@@ -6,7 +6,7 @@ status: needs-triage
 
 ## Problem Statement
 
-Le plan 4 (`docs/plan-4.md`) veut zéro `malloc`, `calloc`, `realloc` ni `free` dans le cœur. L'étape 4 met les objets de partie dans la **zone partie**. Le texte de l'étape, recopié du plan (relu à `HEAD` a182a7f) :
+Le plan 4 (`docs/plan-4.md`) veut zéro `malloc`, `calloc`, `realloc` ni `free` dans le cœur. L'étape 4 met les objets de partie dans la **zone partie**. Le texte de l'étape, recopié du plan tel qu'il était quand 4b a été rédigée (`HEAD` a182a7f). Le texte à jour, après la clôture de 4a, est cité plus bas :
 
 > 4. **Zone partie,** et ses propres tableaux croissants ; remise à zéro sur nouvelle partie. L'étape n'est finie que si `pause_restart` passe `make sanitize-net` sous cet empoisonnement, et si son remplissage ne monte pas pendant une phase sans action d'un e2e.
 >    Elle se fait en sous-étapes, une PRD chacune :
@@ -16,7 +16,13 @@ Le plan 4 (`docs/plan-4.md`) veut zéro `malloc`, `calloc`, `realloc` ni `free` 
 >    - *Reçu de l'étape 2 :* restent à cette étape `ok.qa` (gardé par les hôtes de `bv` et le point souris de `jc:hq` : objet relu par des objets de partie), la structure `ok` et ses calques `ic`, la liste statique de départ, `ie.jb` (fait une fois par partie), `fv`, la structure `pj`, `hp.i`. Les structures de planète ne sont toujours pas libérées (seule leur rangée l'est).
 >    - *Reçu de l'étape 3 :* la structure `g_` (et `fv`) et sa boîte `p` de `bv` restent à cette étape (`/* TROU-7 */`) ; `oe` d'une planète ordinaire passe par `pico8_jo_pq_dans`, qui prend déjà sa zone.
 
-La PRD 4a (`docs/prd/triage/phase1-etape4a-socle-zone-partie.md`, committée à a182a7f) fixe l'ordre des familles. Sa ligne pour 4b, recopiée :
+4a est finie (10d368e, 646f7fc ; clôture b46601e). Sa clôture a réécrit la puce « 4b et suivantes », dans l'ordre fixé par la PRD 4a :
+
+> - **4b et suivantes.** Une famille de propriétaires par PRD dans l'ordre fixé par la PRD 4a : 4b états de `pico8_gen.c` ; 4c tableaux croissants et registres (crée la sous-zone chargement) ; 4d planètes et relais ; 4e slipways et routes ; 4f trous de ver ; 4g recherche et économie ; 4h singletons de `jl`/`eu` et objets du joueur (famille ajoutée par 4a : les « Reçu » des étapes 1 à 3 leur reviennent). N'entre en zone partie qu'une allocation faite une fois par objet de partie ; un champ réaffecté par tick ou par action est réécrit en place, devient une valeur, va en zone frame ou prend une place. Chacune relève le maximum de remplissage sur tous les e2e et le note ; dès que le relevé cumulé, prolongé aux familles restantes, dépasserait ce que les 1,5 Mo laissent, l'étape s'arrête et le signale (§3) sans attendre la dernière famille.
+
+La clôture a aussi ajouté une note « *Découvert (4a)* » et une seule ligne « *Reçu de l'étape 4a* » (les traînées `ts` vont à 4e). Elle a corrigé les lignes « Partie » et « Particules » du §2. La ligne « Partie » dit désormais : « une génération par partie, de `eu` à `eu` ; rendue d'un bloc au vidage de la file qui suit le `eu` suivant (zone à deux bouts) ; `_init` ne la rend pas ».
+
+La PRD 4a a été retirée de `docs/prd/` par b46601e. On la lit par `git show a182a7f:docs/prd/triage/phase1-etape4a-socle-zone-partie.md`. Sa ligne pour 4b, recopiée :
 
 > | **4b** | **États de `pico8_gen.c`** | `pico8_jf` (9), `pico8_jf_free` (26), `pico8_gn` (50), `pico8_gn_free` (124) ; leurs appelants `bw`, `jo:pq` et `bg:pq` choisissent la zone | `gen` 4 → sort | *Reçu 1* : `oh` de `pico8_bg_pq` en zone frame |
 
@@ -39,7 +45,14 @@ Les règles du plan qui la cadrent :
   - avant de faire finir une durée de vie, la PRD inventorie mécaniquement les pointeurs du cœur qui survivent.
 - §5 : fin d'étape = chaque site de l'inventaire converti, `alloc-guard` à égalité stricte, aucun compte n'a monté.
 
-**Ce qui se passe aujourd'hui** (lu à `HEAD` a182a7f, qui ne contient pas encore 4a) :
+**Ce qui se passe aujourd'hui** (relu à `HEAD` b46601e, 4a finie ; `pico8_gen.*`, `pico8_galaxy.*`, `pico8_planet.*`, `pico8_bg.c` et `test_pico8_map_tables.c` n'ont pas changé depuis a182a7f, les numéros de ligne restent donc valables) :
+
+- **La zone partie existe** (`pico8_zone_partie.{h,c}`) :
+  - **poignée** : `pico8_zone_partie()` rend la poignée de la génération courante, `const pico8_zone_choisie_t *` ; `alloc` prend au bout courant, `grow` copie, `release` ne fait rien ;
+  - **bascule** : `pico8_zone_partie_basculer()` est appelée en tête de `pico8_eu`, après `pico8_economy_set_dk(nj)` et avant `pico8_jl()` ;
+  - **rendu** : `pico8_cart_vider_file_sortie()` vide la file, puis, si `pico8_zone_partie_en_attente()`, appelle le point d'oubli `oublier_partie()` (statique, vide) et `pico8_zone_partie_rendre()` ;
+  - **remise à zéro** : `pico8_cart_load()` et `pico8_cart_shutdown()` appellent `pico8_zone_partie_reset()` juste après leur vidage ;
+  - **remplissage** : `pico8_zone_partie_prise()`/`_max()` comptent les deux bouts, arrondis à la cellule de 8 o ; le maximum survit au reset. Le rejeu écrit `partie <n>` et `max_octets partie <n>`. Aucun objet du jeu n'y est encore.
 
 - `pico8_gen.c` porte les deux fabriques de fermetures du cart, `jf(n_,b)` (marche aléatoire bornée) et `gn(hr,og,r)` (tirage pondéré avec fenêtre anti-répétition). C n'a pas de fermetures : chacune devient un **état** (`pico8_jf_state_t`, 8 o ; `pico8_gn_state_t`, 592 o) pris à `malloc` et un `_next`. L'appelant le rend par `pico8_jf_free`/`pico8_gn_free`, qui font `free`.
 - Trois états vivent toute une partie. Ils sont faits par `bw` (`pico8_bw`, appelé une seule fois, par `pico8_eu`, après son `jl()`), à la fin de la boucle des 90 planètes, comme dans le cart (`jo.oc,jo.ir=gn(df,2,jf(0.5,dk.en)),jf(0.8,0.5)`) :
@@ -49,7 +62,7 @@ Les règles du plan qui la cadrent :
 - **Qui les remplace.** Au `bw` suivant, `pico8_jo_set_oc`/`pico8_jo_set_ir` libèrent l'ancien état avant de garder le nouveau, et `bw` libère l'ancien `g_bw_oc_r_ctx`. `pico8_jo_shutdown` (appelé par `pico8_jo_init` au chargement, et par `pico8_cart_shutdown`) libère `jo.oc`/`jo.ir` et les remet à nil. `pico8_galaxy_shutdown` libérerait `g_bw_oc_r_ctx`, mais **rien ne l'appelle**.
 - **Qui les lit.** Seul `pico8_jo_hh` (`jo:hh`, quand une sonde `mz:pr` dévoile une planète « unknown ») lit `jo.ir`, puis `jo.oc` si `df.ll` n'est pas pris. `jo:pq` ne les touche pas : la ligne de 4a nomme `jo:pq` là où les sites de `pico8_planet.c` sont `pico8_jo_set_oc`, `pico8_jo_set_ir` et `pico8_jo_shutdown` (qui libèrent) et `pico8_jo_hh` (qui lit).
 - **Un état de frame.** `pico8_bg_pq` (`bg:pq`, peinture des 32×32 tuiles du fond) fait un `jf(0.1,0)` local, `oh`, et le libère en sortant. `bg:pq` n'est appelé que par la construction de `bg`, dans `eu` (et par les TU qui construisent un `bg`).
-- **Le verrou**, mesuré par `make alloc-guard` sur une copie `git archive HEAD` à a182a7f : **64 objets, 24 allouent, 84 appels**. Les 4 relocations de `pico8_gen.o`, rattachées par `objdump -r` et `addr2line` :
+- **Le verrou**, remesuré par `make alloc-guard` sur une copie `git archive HEAD` à b46601e : **65 objets** (`pico8_zone_partie.o` en plus, qui n'alloue pas), **24 allouent, 84 appels**, liste inchangée. Les 4 relocations de `pico8_gen.o`, rattachées par `objdump -r` et `addr2line` (relevé à a182a7f ; fichier identique depuis) :
 
   | Fonction | Ligne | Appel |
   |---|---|---|
@@ -66,7 +79,7 @@ Le problème : ces quatre appels sont les seuls de `pico8_gen.c`, et ses états 
 
 `pico8_jf` et `pico8_gn` prennent leur état dans une zone **désignée par l'appelant** (`pico8_zone_choisie_t`), comme `pico8_tostr_fixed` ou `pico8_concat2` depuis 0b. Personne ne libère plus un état : il vit autant que sa zone.
 
-- `bw` passe la **poignée de la génération de partie courante** (zone partie, 4a) pour les trois états qui vivent toute la partie. `bw` est appelé dans `eu` *après* la bascule, donc ses états entrent dans la génération de la nouvelle partie.
+- `bw` passe la **poignée de la génération de partie courante** (`pico8_zone_partie()`) pour les trois états qui vivent toute la partie. `bw` est appelé dans `eu` *après* la bascule, donc ses états entrent dans la génération de la nouvelle partie.
 - `bg:pq` passe la **zone frame** pour `oh`, qui ne sort pas de l'appel (*Reçu de l'étape 1*).
 - Les remplacements ne libèrent plus rien. Au `eu` suivant, `bw` repointe `jo.oc`/`jo.ir` sur les nouveaux états. Les anciens restent dans l'ancienne génération, valides jusqu'à son rendu au vidage qui suit, puis empoisonnés sous ASan. Le « motif délicat » de 4a (un ancien objet rendu par son remplaçant, encore vivant) disparaît : le remplaçant n'a plus rien à rendre, c'est la génération qui rend.
 - `pico8_jf_free`, `pico8_gn_free`, `g_bw_oc_r_ctx` et `pico8_galaxy_shutdown` n'avaient d'autre rôle que de libérer : ils disparaissent.
@@ -74,29 +87,6 @@ Le problème : ces quatre appels sont les seuls de `pico8_gen.c`, et ses états 
 - Première mesure réelle de la zone partie : le maximum relevé sur les 26 e2e est **prévu exactement** (608 o par génération, 1216 o pendant la bascule de `pause_restart`, sur x86-64). La projection de 4a est refaite avec cette mesure, et l'étape continue ou s'arrête selon sa règle.
 
 Aucun pixel ne change, aucun tirage `rnd` n'est déplacé.
-
-## Hypothèses sur l'étape 4a
-
-4a est en cours d'implémentation. Cette PRD ne lit que le contenu committé : la PRD 4a et le code à a182a7f. Tout ce qu'elle suppose du résultat de 4a est écrit ici. Les noms entre guillemets sont ceux qu'on suppose ; 4a les a laissés à l'implémenteur.
-
-- **H-4a-1 (poignée de partie).** Un module du cœur (supposé `pico8_zone_partie.{h,c}`) expose la poignée de la génération courante, de type `const pico8_zone_choisie_t *`, par une fonction sans argument (supposée `pico8_zone_partie()`). Elle a la même forme que `pico8_zone_frame()`. `alloc` prend au bout courant, `release` ne fait rien. Le module est hors liste d'exceptions et compte pour zéro au verrou.
-- **H-4a-2 (point de bascule).** La bascule est faite en tête de `pico8_eu`, après `pico8_economy_set_dk(nj)` et avant `pico8_jl()`. Elle précède donc `pico8_bw`. `_init` ne bascule pas.
-- **H-4a-3 (point de rendu).** L'ancienne génération est rendue, et empoisonnée sous ASan, dans `pico8_cart_vider_file_sortie()`, juste après le vidage de la file, précédée du point d'oubli de partie. En jeu, cela tombe en tête du `pico8__update60()` qui suit la frame du clic : f13 sur `pause_restart`.
-- **H-4a-4 (point d'oubli de partie).** Une fonction de `pico8_cart.c`, vide à la fin de 4a, appelée avant le rendu. 4b n'y ajoute rien (voir « Inventaire »).
-- **H-4a-5 (chargement et arrêt).** `pico8_cart_load()` et `pico8_cart_shutdown()` remettent toute la zone partie à zéro (les deux bouts, empoisonnés), après leur vidage. Dans `pico8_cart_load()`, `pico8_jo_init()` (qui appelle `pico8_jo_shutdown()`) passe ensuite. On peut allouer dans la génération courante sans bascule préalable.
-- **H-4a-6 (comptage).** Les octets pris sont arrondis à la cellule de la zone (`pico8_zone_cell_t`, 8 o sur x86-64), sans en-tête par allocation. Pendant qu'une génération attend son rendu, les deux bouts comptent. Le maximum de session n'est remis à zéro qu'avec le processus. 4a ne met **aucun** objet du jeu dans la zone partie : la sentinelle de son TU n'existe que dans ce TU.
-- **H-4a-7 (remplissage écrit).** Sous `PICO8_REMPLISSAGE`, `main.c` écrit `partie <octets pris>` et `max_octets partie <n>` après son vidage final.
-- **H-4a-8 (TU de 4a).** `tests/test_pico8_places_vivantes.c` porte trois cas de 4a :
-  - la sentinelle de `pause_restart` (prise après f11, vivante pendant f12, morte après f13 ; variante « restart » en f7 sans bascule) ;
-  - l'égalité des octets de la zone partie aux frames 45 et 90 de `message_box_hold` ;
-  - un rejeu qui écrit `partie 0` et `max_octets partie 0`.
-
-  Ce dernier cas, et celui de la sentinelle s'il compare des octets exacts, ont des attentes que 4b change (voir Testing Decisions).
-- **H-4a-9 (double bascule).** Une bascule demandée alors qu'une génération attend est refusée par `assert`. Les aides de TU qui enchaînent deux `eu` sans frame (au moins `test_pico8_hy`, cas « construction ») vident déjà la file entre les deux.
-- **H-4a-10 (budget).** `PICO8_ZONE_GAME_BYTES` reste à 768 Ko, et la somme des zones à 1487 Ko sur 1536 (marge de 49 Ko). L'ordre des familles, les estimations par famille et la méthode de projection de 4a sont inchangés à sa clôture.
-- **H-4a-11 (verrou).** 4a ne convertit aucun site : à son `HEAD` de clôture, `alloc-guard` donne toujours 24 fichiers / 84 appels, dont `pico8_gen.c` 4 aux lignes 9, 26, 50 et 124 (le fichier n'est pas touché par 4a).
-- **H-4a-12 (Makefile).** Le module de zone partie est dans `ENGINE_SRCS` et sur la ligne de lien de `main_raylib`. `pico8_galaxy.c` et `pico8_cart.c` ne sont pas dans `DATA_ENGINE_SRCS` (vérifié à a182a7f). 4b n'a donc pas à l'y ajouter. Le seul nouvel utilisateur de la zone partie, `pico8_galaxy.c`, n'est lié que là où `ENGINE_SRCS` l'est.
-- **H-4a-13 (Reçu).** La clôture de 4a n'écrit aucune ligne « *Reçu de l'étape 4a* » pour 4b. Sa seule ligne prévue (traînées `ts`) va à 4e.
 
 ## User Stories
 
@@ -117,8 +107,8 @@ Aucun pixel ne change, aucun tirage `rnd` n'est déplacé.
 15. En tant que développeur des familles suivantes, je veux l'inventaire du §4 refait sur le code de 4b, avec chaque pointeur qui peut viser un état de `pico8_gen.c` classé (repointé, remis à nil, ne peut pas viser), pour que le premier propriétaire en zone partie n'y laisse pas de référence oubliée.
 16. En tant que développeur, je veux un TU sous ASan qui joue `pause_restart` jusqu'après le rendu de f13, puis fait dévoiler des planètes de la nouvelle partie par `jo:hh`, pour prouver que `jo.ir` et `jo.oc` désignent la nouvelle génération et pas l'ancienne, empoisonnée.
 17. En tant que développeur, je veux que ce TU vérifie que la voie `jo.oc()` a bien été prise au moins une fois (une planète dévoilée dont le type n'est pas `df.ll`), pour qu'il lise réellement l'état `gn` et pas seulement `jo.ir`.
-18. En tant que mainteneur du budget, je veux que le rejeu de `pause_restart` écrive `max_octets partie` égal à deux générations d'états (1216 o sur x86-64) et `partie` égal à une (608 o), avec des valeurs calculées par `sizeof` dans le TU, pour que le pic de la bascule soit prouvé par un test qui ne dépend pas de l'architecture.
-19. En tant que mainteneur du budget, je veux que le TU des octets de la zone partie à f12 (après la bascule, avant le rendu) les trouve égaux à deux générations d'états, et à f13 à une, pour voir la bascule et le rendu sur de vrais objets du jeu.
+18. En tant que mainteneur du budget, je veux que les octets de la zone partie valent une génération d'états après f11 de `pause_restart`, deux après f12 et une après f13, avec un maximum de deux, calculés par `sizeof` dans le TU, pour que le pic de la bascule soit prouvé sur de vrais objets par un test qui ne dépend pas de l'architecture (le rejeu écrit déjà ces mêmes accesseurs).
+19. En tant que développeur, je veux que le cas `prise_and_max` de `test_pico8_zone_partie.c` compte les états faits par le `bw` de son `eu`, pour que le TU du socle reste exact maintenant que `eu` met de vrais objets dans la zone.
 20. En tant que mainteneur, je veux que le relevé f45 = f90 de `message_box_hold` reste vert avec des octets non nuls, pour que le contrôle « Croissance par frame » porte enfin sur une zone qui contient quelque chose.
 21. En tant que mainteneur du budget, je veux le maximum de la zone partie relevé sur les 26 e2e après conversion, noté dans le commit et dans « Découvert », pour remplacer l'estimation de 4b par une mesure.
 22. En tant que mainteneur du budget, je veux la projection de 4a refaite avec cette mesure (`P_4b`), et la décision (continuer, relever, s'arrêter et signaler) écrite, pour que l'arrêt anticipé du §3 soit appliqué dès la première famille.
@@ -164,45 +154,46 @@ Aucun pixel ne change, aucun tirage `rnd` n'est déplacé.
 ### Appelants
 
 - **`pico8_bw`** (`pico8_galaxy.c`) :
-  - fait `jf(0.5,dk.en)`, `gn(df,2,…)` et `jf(0.8,0.5)` avec la poignée de partie (H-4a-1), dans le même ordre qu'aujourd'hui (ordre des tirages inchangé : `jf`/`gn` ne tirent rien à la construction) ;
+  - fait `jf(0.5,dk.en)`, `gn(df,2,…)` et `jf(0.8,0.5)` avec `pico8_zone_partie()`, dans le même ordre qu'aujourd'hui (ordre des tirages inchangé : `jf`/`gn` ne tirent rien à la construction) ;
   - passe l'état `gn` et l'état `jo.ir` à `pico8_jo_set_oc`/`_ir`, comme aujourd'hui ;
   - ne garde plus la source de `jo.oc` dans un statique : l'état `gn` la tient par son `r_ctx`, et les deux sont dans la même génération.
 
   `g_bw_oc_r_ctx` et `pico8_galaxy_shutdown` (déclaration et définition) sont supprimés : la conversion les rend orphelins. `pico8_galaxy_shutdown` n'avait déjà aucun appelant à a182a7f. Le commentaire de `pico8_galaxy.h` qui renvoie à `pico8_jo_shutdown()` pour libérer `jo.oc`/`jo.ir` part avec la fonction.
 - **`pico8_jo_set_oc` / `pico8_jo_set_ir`** (`pico8_planet.c`) : affectation seule. Le test d'égalité, qui ne servait qu'à éviter un double `free`, part avec le `free`. Le contrat de `pico8_planet.h` (« Both take ownership and free the previous generator … ») devient : l'état passé doit vivre jusqu'au prochain appel, l'ancien n'est pas libéré, NULL reste le retour valide à « aucun », et seul `bw` les pose.
-- **`pico8_jo_shutdown`** : remet `g_jo_oc`/`g_jo_ir` à nil sans les lire. C'est nécessaire, pas seulement plus simple : au chargement, `pico8_jo_init()` → `pico8_jo_shutdown()` passe après la remise à zéro de la zone partie (H-4a-5). Libérer, ou même lire, l'ancien état y serait un accès à de la mémoire empoisonnée.
+- **`pico8_jo_shutdown`** : remet `g_jo_oc`/`g_jo_ir` à nil sans les lire. C'est nécessaire, pas seulement plus simple : au chargement, `pico8_jo_init()` → `pico8_jo_shutdown()` passe après `pico8_zone_partie_reset()`. Libérer, ou même lire, l'ancien état y serait un accès à de la mémoire empoisonnée.
 - **`pico8_bg_pq`** (`pico8_bg.c`) : `oh = pico8_jf(pico8_zone_frame(), …)`, et l'appel à `pico8_jf_free(oh)` est supprimé. Le commentaire de tête (« `oh` is local to the call and freed here ») perd « and freed here ».
   - *Alternative écartée* : un `pico8_jf_state_t` sur la pile, rempli par une variante d'initialisation. Ce serait plus court, mais cela ajouterait une deuxième fabrique pour un seul appelant et s'écarterait du *Reçu*, qui range `oh` en zone frame.
 - **`pico8_cart.c` n'est pas touché.** `pico8_eu` appelle `bw` comme aujourd'hui. La bascule qui précède est de 4a.
 
 ### Inventaire du §4 pour 4b
 
-4b est la première famille à mettre des objets dans une génération de partie. La durée de vie qui finit est celle de 4a : une génération est rendue au vidage qui suit le `eu` suivant (H-4a-3), ou remise à zéro au chargement et à l'arrêt (H-4a-5).
+4b est la première famille à mettre des objets dans une génération de partie. La durée de vie qui finit est celle de 4a : une génération est rendue par `pico8_zone_partie_rendre()` au vidage qui suit le `eu` suivant, après `oublier_partie()`, ou remise à zéro par `pico8_zone_partie_reset()` au chargement et à l'arrêt.
 
 **Méthode.** Refaire **mécaniquement**, sur le code du commit de 4b, les deux `grep` de 4a sur les fichiers de `CORE_SRCS` :
 
 - `grep -nE '^\s*static\s[^(]*\*\s*[a-zA-Z_][a-zA-Z0-9_]*(\[[^]]*\])*\s*(;|=)'` (hors `const char *` et tables `* const`) ;
 - `grep -nE '^static\s+(struct\s+)?[a-z0-9_]+(_t)?\s+[a-zA-Z_][a-zA-Z0-9_]*\s*(\[[^]]*\])*\s*(;|=)'` (hors `const` et scalaires), dont on lit les champs pointeurs.
 
-Ajouter ensuite un `grep` des types `pico8_jf_state_t` et `pico8_gn_state_t` dans `src/` : il trouve tout champ ou local qui peut garder un état. Comparer avec la table de 4a et avec les pointeurs que 4a a ajoutés (module de zone partie : ne peuvent pas viser, par leur type). Tout pointeur nouveau est classé dans « Découvert ».
+Ajouter ensuite un `grep` des types `pico8_jf_state_t` et `pico8_gn_state_t` dans `src/` : il trouve tout champ ou local qui peut garder un état. Comparer avec la table de la PRD 4a et avec les statiques que 4a a ajoutés (`pico8_zone_partie.c` : `partie`, `partie_handle`, `partie_choisie`). Tout pointeur nouveau est classé dans « Découvert ».
 
-**Relevé attendu** (fait à a182a7f, où les types n'apparaissent que dans `pico8_gen.*`, `pico8_planet.*`, `pico8_galaxy.*` et `pico8_bg.c`) :
+**Relevé attendu** (fait à a182a7f et refait à b46601e : les types n'apparaissent que dans `pico8_gen.*`, `pico8_planet.*`, `pico8_galaxy.*` et `pico8_bg.c`) :
 
 | Pointeur | Peut viser | Statut après le rendu de la génération |
 |---|---|---|
-| `g_jo_oc`, `g_jo_ir` (`planet`) | l'état `gn` / `jf` de la génération où `bw` les a faits | **repointés** par `bw` dans `eu`, après la bascule et avant le rendu (H-4a-2, H-4a-3). Entre la bascule et `bw`, seuls `jl()` et la construction de `bg` s'exécutent, et aucun ne lit `jo.oc`/`jo.ir`. La boucle des planètes de `bw` ne les lit pas non plus (dans le cart, `jo.oc` vaut nil à la première partie, donc `jo:hh` ne peut pas y être appelé). Au chargement et à l'arrêt : **remis à nil** par `pico8_jo_shutdown`, sans lecture. |
+| `g_jo_oc`, `g_jo_ir` (`planet`) | l'état `gn` / `jf` de la génération où `bw` les a faits | **repointés** par `bw` dans `eu`, après `pico8_zone_partie_basculer()` et avant le rendu du vidage suivant. Entre la bascule et `bw`, seuls `jl()` et la construction de `bg` s'exécutent, et aucun ne lit `jo.oc`/`jo.ir`. La boucle des planètes de `bw` ne les lit pas non plus (dans le cart, `jo.oc` vaut nil à la première partie, donc `jo:hh` ne peut pas y être appelé). Au chargement et à l'arrêt : **remis à nil** par `pico8_jo_shutdown`, sans lecture. |
 | `r_ctx` de l'état `gn` | la source `jf` | ne peut pas viser une autre génération : faite par le même `bw` avec la même poignée ; elle est rendue en même temps que l'état qui la lit |
 | `g_bw_oc_r_ctx` (`galaxy`) | — | **supprimé** |
+| `partie_choisie`, `partie_handle`, `partie` (`zone_partie`, ajoutés par 4a) | la poignée et la zone elles-mêmes | ne peuvent pas viser un état (type) |
 | `oh` (local de `bg:pq`) | état de la zone frame | ne survit pas à l'appel |
 
 - Entre `_init` et `eu` (écran titre), `jo.oc`/`jo.ir` désignent les états de la partie quittée. Ils restent vivants, car `_init` ne bascule pas. Rien ne les lit au titre : `jl()` a vidé `hv`, il n'y a pas de sonde. C'est le même cas que `fm`/`ju` dans 4a.
 - Angle mort ASan (4a) : un pointeur gardé à travers deux nouvelles parties ne planterait pas. Il ne peut pas exister ici, puisque `bw` réécrit les deux pointeurs à chaque `eu`.
-- **Conclusion : le point d'oubli de partie reste vide.** `pico8_jo_shutdown` couvre le chargement et l'arrêt, et `bw` couvre la nouvelle partie. Un pointeur trouvé ensuite par ASan est un trou de cet inventaire, noté dans « Découvert » et coupé au point d'oubli.
+- **Conclusion : le point d'oubli de partie (`oublier_partie()`) reste vide.** `pico8_jo_shutdown` couvre le chargement et l'arrêt, et `bw` couvre la nouvelle partie. Un pointeur trouvé ensuite par ASan est un trou de cet inventaire, noté dans « Découvert » et coupé au point d'oubli.
 
 ### Verrou
 
 - `tools/alloc_guard_exceptions.txt` : la ligne `src/pico8_gen.c 4` est retirée. Les lignes `galaxy` 3, `bg` 2 et `planet` 6 ne bougent pas.
-- **Prévision : 24 fichiers / 84 appels → 23 / 80.** La baisse est une estimation (§5). Elle part de la mesure faite au `HEAD` de 4b avant la conversion, qui doit redonner 24 / 84 (H-4a-11). Un écart se note dans « Découvert ».
+- **Prévision : 24 fichiers / 84 appels → 23 / 80.** La baisse est une estimation (§5). Elle part de la mesure faite au `HEAD` de 4b avant la conversion, qui redonne 24 / 84 à b46601e (65 objets). Un écart se note dans « Découvert ».
 
 ### Budget : mesure, projection, décision
 
@@ -211,11 +202,11 @@ Ajouter ensuite un `grep` des types `pico8_jf_state_t` et `pico8_gn_state_t` dan
   - Sur `pause_restart` (deux `eu`, f0 et f12) : les deux générations sont présentes de f12 au rendu de f13, donc `max_octets partie 1216` et `partie 608` en fin de session.
   - `game_end_final_score` finit sur `_init` (« again? ») sans second `eu` : 608 / 608.
 - **Mesure.** Après conversion, rejouer les 26 e2e avec `PICO8_REMPLISSAGE` (méthode de 4a, étape 1 ; la forme est laissée à l'implémenteur : boucle de shell citée dans le commit, ou cible hors suite) et relever `M_4b` = maximum des `max_octets partie`. Si `M_4b` ≠ 1216, l'écart est expliqué **avant** la projection : objet entré par erreur, cellule différente, en-tête. Un écart inexpliqué bloque l'étape.
-- **Projection** (règle de 4a, H-4a-10) : `P_4b = M_4b + Σ estimations restantes × r`.
+- **Projection** (règle de la PRD 4a, relue à a182a7f ; la note « Découvert (4a) » ne l'a pas changée) : `P_4b = M_4b + Σ estimations restantes × r`.
   - Estimations de 4a pour les familles restantes : 4c ~20, 4d ~160, 4e ~30, 4f ~1, 4g ~38, 4h ~12, soit **261 Ko**.
   - `r` = max(1, mesuré / estimé) = max(1, 1216 o / ~2 Ko) = **1**.
   - `P_4b` ≈ 1,2 + 261 ≈ **262 Ko**.
-- **Décision**, comparée à `PICO8_ZONE_GAME_BYTES` (768 Ko) et à la marge (49 Ko, H-4a-10) :
+- **Décision**, comparée à `PICO8_ZONE_GAME_BYTES` (768 Ko) et à la marge (49 Ko, `pico8_zone_sizes.h` à b46601e) :
   - `P_4b ≤ 768 Ko` : on continue. C'est la prévision ;
   - entre 768 et 817 Ko : 4b relève `PICO8_ZONE_GAME_BYTES` d'un chiffre dans son commit ;
   - au-delà : **arrêt de l'étape 4 à 4b**, et signalement à l'humain (zone partie, limite voulue = `P_4b` arrondi, somme actuelle des zones 1487 Ko sur 1536). On ne rogne aucune autre zone (§3).
@@ -240,7 +231,8 @@ Le tableau du §2 n'est pas contredit : rien à corriger. La PRD est retirée de
 Chaque morceau est un commit qui respecte l'invariant du §3 : `make test-all`, `make sanitize-net`, 26 `*.sha256` identiques, `alloc-guard` à égalité stricte. La conversion ne peut pas être coupée : passer temporairement la transitoire à `bw` ferait monter `galaxy`, ce que le cliquet interdit après 0b.
 
 1. **Conversion, tests rouges d'abord.**
-   - Les attentes rouges : remplissage de `pause_restart` (608 / 1216, par `sizeof`), octets à f12 et f13, et `jo:hh` après f13 sous ASan (vert avant la conversion, puisque `malloc` ne s'empoisonne pas, mais il garde la régression).
+   - Les attentes rouges : octets de la zone partie à f12 et f13 de `pause_restart`, et maximum (2G / G / 2G, `G` calculé par `sizeof`) ; valeurs exactes du cas `prise_and_max` de `test_pico8_zone_partie.c`, qui comptent désormais `G` par `eu`.
+   - Le cas `jo:hh` après f13, sous ASan : vert avant la conversion, puisque `malloc` ne s'empoisonne pas, mais il garde la régression.
    - La nouvelle signature de `pico8_jf`/`pico8_gn`. La suppression de `pico8_jf_free`/`pico8_gn_free`, de `g_bw_oc_r_ctx` et de `pico8_galaxy_shutdown`.
    - Les appelants : `bw` sur la poignée de partie, `bg:pq` sur la zone frame, `set_oc`/`set_ir`/`shutdown` sans `free`.
    - `test_pico8_map_tables` adapté. Les contrats C réécrits.
@@ -261,18 +253,33 @@ Chaque morceau est un commit qui respecte l'invariant du §3 : `make test-all`, 
 
   Il ne lit ni `g_jo_oc` ni les bouts de la zone. Les tailles attendues se calculent dans le TU à partir de `sizeof(pico8_jf_state_t)`, `sizeof(pico8_gn_state_t)` et de la cellule de zone, jamais en dur.
 - **`tests/test_pico8_places_vivantes.c`** (ASan, un enfant par cas, piloté comme `main.c`) :
-  - **remplissage écrit par le rejeu** : le cas de 4a qui attendait `partie 0` / `max_octets partie 0` (H-4a-8) attend désormais une génération d'états en `partie` et deux en `max_octets partie` sur `pause_restart`. S'il rejoue un autre e2e, une génération pour les deux lignes ;
-  - **bascule et rendu sur de vrais objets** : sur `pause_restart`, les octets de la zone partie valent deux générations d'états après f12 (bascule et `bw` faits, rendu pas encore), puis une après f13. Même piège que la sentinelle de 4a : la lecture d'après f12 ne passe pas par `relever`, qui vide la file et rendrait la génération lui-même ;
+  - **remplissage écrit par le rejeu** : le cas `le_rejeu_ecrit_le_remplissage_en_fin_de_session` reste **inchangé**. Il compare le fichier écrit aux accesseurs lus dans le même processus, sans valeur en dur. La valeur exacte se prouve par le cas suivant, sur les accesseurs ;
+  - **bascule et rendu sur de vrais objets** (cas nouveau). Soit `G` = `2 × CELLS(sizeof(pico8_jf_state_t)) + CELLS(sizeof(pico8_gn_state_t))` cellules de `sizeof(pico8_zone_cell_t)` octets. Sur `pause_restart`, avec les aides `demarrer` et `jouer_jusqu_a` de 4a :
+    - après f11, `pico8_zone_partie_prise()` vaut `G` ;
+    - après f12 (bascule et `bw` faits, rendu pas encore), elle vaut `2G` ;
+    - après f13, elle vaut `G`, et `pico8_zone_partie_max()` vaut `2G`.
+
+    Comme pour la sentinelle de 4a, on joue sans passer par `relever`, dont le vidage rendrait la génération lui-même. Sur x86-64, cela donne 608 / 1216 / 608 o ;
   - **`jo:hh` après une nouvelle partie** : après f13 de `pause_restart`, dévoiler par `pico8_jo_hh` quelques planètes « unknown » de `cg.jo` (cinq au plus : `oc` n'a que 66 tickets), puis vérifier qu'au moins une a un type autre que `df.ll`, ce qui prouve que `jo.oc()` a été lu. L'enfant ne doit pas mourir : `jo.ir` et `jo.oc` désignent la nouvelle génération. Si `bw` ne les repointait pas, ASan planterait sur la génération rendue en f13 ;
-  - **sentinelle de 4a** : inchangée, sauf si elle compare des octets exacts (H-4a-8). Dans ce cas, son attente compte les états de 4b ;
+  - **sentinelle de 4a** : les trois cas restent inchangés. Ils n'imposent que `prise >= prise d'avant`, la survie en f12, la mort en f13 et la survie à « restart ». En f13, la génération rendue contient désormais, en plus de la sentinelle, les états de la première partie ;
   - **croissance par frame** : le relevé f45 = f90 sur `message_box_hold` reste égal, désormais à une génération d'états au lieu de zéro.
+- **`tests/test_pico8_zone_partie.c`**, cas `prise_and_max` : c'est la **seule attente existante que 4b change**. Le `pico8_eu(NULL)` du cas fait désormais un `bw`, qui prend `G` octets dans la nouvelle génération. Les attentes deviennent :
+  - 0 après chargement et `_init` ;
+  - 64 après le premier bloc ;
+  - `128 + G` après `eu` et le second bloc ;
+  - `64 + G` après l'update qui rend l'ancienne génération ;
+  - maximum `128 + G` ;
+  - après `cart_shutdown`, 0, et le maximum reste `128 + G`.
+
+  `G` est calculé par `sizeof`, comme ci-dessus. Les autres cas de ce TU (vivant à travers `eu`, mort après l'update, `_init` sans bascule, mort après `cart_load`, double `eu` refusé) restent inchangés : ils ne comptent pas d'octets.
 - **`tests/test_pico8_map_tables.c`** (`test_gn_pools_df_entries_by_their_r`) : `pico8_gn(pico8_zone_frame(), …)`, sans `pico8_gn_free`. L'attente (66 tickets, répartis selon `r`) ne change pas.
 - **`tests/test_pico8_bg.c`** et les TU qui construisent un `bg` : verts sans changement. `oh` passe en zone frame, et les tuiles peintes sont les mêmes.
 - **Verrou** : `make alloc-guard` à égalité stricte, liste sans `pico8_gen.c`. Pas de nouveau cas dans `tests/test_alloc_guard.c`.
 - **Invariant** : `make e2e` avec les 26 `*.sha256` inchangés, puis `make sanitize-net`. Sur `pause_restart`, la génération rendue à f13 contient pour la première fois des objets du jeu (les trois états de la première partie).
 - **Pas de TU propre à `pico8_gen`** : il n'en existe pas, et la prise dans la zone est observée par le remplissage de la zone partie, sur rejeu. En ajouter un ne montrerait que ce qu'`alloc-guard` et le remplissage montrent déjà.
 - **Exemples dans le dépôt** :
-  - `tests/test_pico8_places_vivantes.c` : rejeu par enfant, relevés, remplissage écrit par le rejeu, et à 4a la sentinelle ;
+  - `tests/test_pico8_places_vivantes.c` : rejeu par enfant, relevés, remplissage écrit par le rejeu, et la sentinelle de 4a avec `demarrer`/`jouer_jusqu_a` ;
+  - `tests/test_pico8_zone_partie.c` : cas en processus enfant relancé par nom, `use-after-poison` attendu ;
   - `tests/test_pico8_zone_particules.c` : lecture périmée dans un enfant ;
   - `tests/test_pico8_map_tables.c`.
 
@@ -287,28 +294,56 @@ Chaque morceau est un commit qui respecte l'invariant du §3 : `make test-all`, 
 - Les sorties et le glossaire : `jf`/`gn` gardent leur entrée dans `docs/glossaire-noms.md`, dont le sens ne change pas.
 - Lancer l'application raylib.
 
-## À revérifier une fois 4a finie
+## Vérifié contre 4a
 
-À faire avant de commencer 4b, au `HEAD` de clôture de 4a, en lisant le committé. Une hypothèse tombée change la PRD avant tout code.
+Relu à `HEAD` b46601e, sans toucher git :
 
-- **H-4a-1** : nom et forme de la poignée de partie, et module qui la porte. Si la poignée n'est pas un `const pico8_zone_choisie_t *` sans argument, `bw` prend la forme réelle.
-- **H-4a-2, H-4a-3** : la bascule précède bien `pico8_bw` dans `pico8_eu`, et le rendu suit bien le vidage. Sinon l'inventaire de 4b est à refaire, en particulier l'ordre entre le rendu et le repointage par `bw`.
-- **H-4a-4** : point d'oubli de partie présent et vide.
-- **H-4a-5** : remise complète au chargement et à l'arrêt, et ordre entre cette remise et `pico8_jo_init()`/`pico8_jo_shutdown()`. `pico8_jo_shutdown` ne doit rien lire, quel que soit l'ordre.
-- **H-4a-6** : arrondi à la cellule, pas d'en-tête, les deux bouts comptés, aucun objet du jeu dans la zone. Sinon la prévision de 608/1216 o est à recalculer.
-- **H-4a-7** : forme exacte des lignes `partie` / `max_octets partie`.
-- **H-4a-8** : les TU de 4a dans `test_pico8_places_vivantes.c`, quel e2e rejoue le cas du remplissage, et si la sentinelle compare des octets exacts.
-- **H-4a-9** : l'`assert` de double bascule, et les aides de TU déjà corrigées.
-- **H-4a-10** : la taille, la somme et la marge, et les estimations par famille écrites dans la note « Découvert » de 4a. Si 4a a changé une estimation, `P_4b` se recalcule avec la sienne.
-- **H-4a-11** : `make alloc-guard` au `HEAD` de 4a redonne 24 / 84, avec `pico8_gen.c` 4 aux mêmes lignes.
-- **H-4a-12** : listes de sources du `Makefile` (le module de zone partie lié partout où `pico8_galaxy.c` l'est).
-- **H-4a-13** : lignes « *Reçu de l'étape 4a* » et ordre des familles écrits dans le plan. Si 4a a déplacé « états de `pico8_gen.c` » ailleurs qu'en 4b, ou lui a confié un autre *Reçu*, cette PRD est revue.
-- Les numéros de ligne de cette PRD sont ceux de a182a7f. 4a ne touche ni `pico8_gen.c` ni `pico8_galaxy.c` (prévu), mais touche `pico8_cart.c` : on relit `pico8_eu` à son `HEAD`.
+- `git log -6 --stat` : bd372fe (zone à deux bouts et sa poignée), 10d368e (module, bascule, rendu, reset), 646f7fc (remplissage écrit, preuves sur `pause_restart`), b46601e (clôture) ;
+- dans `docs/plan-4.md` : la note « *Découvert (4a)* », la ligne « *Reçu de l'étape 4a* », les lignes « Partie » et « Particules » du §2, et la liste ordonnée des familles dans la puce « 4b et suivantes » ;
+- les sources et les TU : `src/pico8_zone_partie.{h,c}`, `src/pico8_zone.{h,c}` (zone à deux bouts), `src/pico8_zone_choisie.{h,c}`, `src/pico8_cart.c`, `src/main.c`, `tests/test_pico8_places_vivantes.c`, `tests/test_pico8_zone_partie.c`, `tests/test_pico8_hy.c` ;
+- `make alloc-guard` sur une copie `git archive HEAD`.
+
+Les hypothèses du brouillon, une par une :
+
+- **H-4a-1 (poignée de partie) — tenue.**
+  - Le module est `pico8_zone_partie.{h,c}`, et `pico8_zone_partie()` rend un `const pico8_zone_choisie_t *` sur la génération courante.
+  - Avec la poignée, le module exporte `_basculer`, `_en_attente`, `_rendre`, `_reset`, `_prise` et `_max`.
+  - Comportement de la poignée : `alloc` prend au bout courant, `grow` copie, `release` ne fait rien (`bump_release`).
+  - Le module est hors liste d'exceptions.
+- **H-4a-2 (point de bascule) — tenue.** `pico8_zone_partie_basculer()` est appelée juste après `pico8_economy_set_dk(nj)`, avant `pico8_jl()`, `pico8_bg_new()` et `pico8_bw()`. `_init` ne bascule pas (cas `init_keeps_generation`, et variante « restart » de `pause_restart`).
+- **H-4a-3 (point de rendu) — tenue.**
+  - `pico8_cart_vider_file_sortie()` vide la file, puis, seulement si une génération attend, appelle `oublier_partie()` et `pico8_zone_partie_rendre()`.
+  - Sur `pause_restart`, le rendu tombe en tête de l'update de f13 : la sentinelle de 4a y meurt par `use-after-poison`.
+- **H-4a-4 (point d'oubli) — tenue.** `oublier_partie()`, statique de `pico8_cart.c`, est vide.
+- **H-4a-5 (chargement et arrêt) — tenue.**
+  - `pico8_cart_load()` fait : vidage, `pico8_zone_partie_reset()`, puis plus loin `pico8_jo_init()` (donc `pico8_jo_shutdown()`).
+  - `pico8_cart_shutdown()` fait : vidage, reset, puis plus loin `pico8_jo_shutdown()`.
+  - On alloue sans bascule préalable : après `cart_load` + `_init`, une allocation va au bout bas (cas `prise_and_max`). La première bascule exige seulement que le bout d'arrivée soit vide.
+- **H-4a-6 (comptage) — tenue.**
+  - `pico8_bascule_zone_alloc` arrondit à `PICO8_ZONE_CELLS(size) * sizeof(pico8_zone_cell_t)` (8 o), sans en-tête.
+  - `_prise` vaut `bas + haut`, et le maximum ne se remet qu'avec l'init.
+  - Aucun appel à `pico8_zone_partie()` dans `src/` hors le module lui-même : la zone ne contient aucun objet du jeu.
+- **H-4a-7 (remplissage écrit) — tenue.** `write_remplissage` finit par `partie %lu` et `max_octets partie %lu`.
+- **H-4a-8 (TU de 4a) — tombée, sur la forme.** Ce qu'on avait supposé :
+  - *le cas du remplissage attend `partie 0`* : non. `le_rejeu_ecrit_le_remplissage_en_fin_de_session` rejoue jusqu'à f17 et compare le fichier écrit aux accesseurs lus dans le même processus. Il reste vert sans changement : il ne prouve aucune valeur, seulement la forme ;
+  - *la sentinelle compare des octets exacts* : non. Elle n'impose que `prise >= prise d'avant`, et 4b ne la touche pas ;
+  - *aucun autre TU ne compte les octets exacts* : faux. **`tests/test_pico8_zone_partie.c`, cas `prise_and_max`, attend des valeurs exactes à travers un `pico8_eu(NULL)`** : 0, 64, 128, 64, max 128, puis 0 et max 128 après `cart_shutdown`. Après 4b, le `bw` de cet `eu` ajoute une génération d'états. Ce cas casse, et Testing Decisions le reprend.
+  - Le relevé f45 = f90 de `message_box_hold` existe (`r[0].partie == r[1].partie`).
+  - Les aides `jouer_jusqu_a` et `demarrer` de `test_pico8_places_vivantes.c` rejouent frame à frame sans passer par `relever` : 4b les réutilise.
+- **H-4a-9 (double bascule) — tenue.** L'`assert` dit « … vider la file de sortie entre deux eu ». `test_pico8_hy` vide la file dans `test_construction` et `test_lj`.
+- **H-4a-10 (budget) — tenue, précisée.**
+  - `PICO8_ZONE_GAME_BYTES` vaut 768 Ko, la somme 1487 Ko sur 1536, la marge 49 Ko (`pico8_zone_sizes.h` n'a pas changé).
+  - La note « *Découvert (4a)* » ne recopie ni les estimations par famille ni la règle de projection. Elles restent dans la PRD 4a retirée (`git show a182a7f:docs/prd/triage/phase1-etape4a-socle-zone-partie.md`) et rien ne les a changées. `P_4b` s'en sert telles quelles, et la note « Découvert » de 4b cite leur source.
+- **H-4a-11 (verrou) — tenue.** Mesure : **65 objets, 24 allouent, 84 appels**. Il y a un objet de plus (`pico8_zone_partie.o`, qui n'alloue pas), et la liste est identique. `pico8_gen.c` n'a pas changé : 4 appels aux lignes 9, 26, 50 et 124.
+- **H-4a-12 (Makefile) — tenue.** `pico8_zone_partie.c` est dans `ENGINE_SRCS` et sur les deux lignes de `main_raylib`. `pico8_galaxy.c` n'est pas dans `DATA_ENGINE_SRCS`.
+- **H-4a-13 (Reçu) — tenue.** La seule ligne « *Reçu de l'étape 4a* » confie les traînées `ts` à 4e. La liste ordonnée met « 4b états de `pico8_gen.c` » en tête.
+
+**Ce que la vérification change dans cette PRD** : Testing Decisions (le cas `prise_and_max` de `test_pico8_zone_partie.c` à adapter ; le cas du remplissage inchangé, avec une valeur exacte prouvée ailleurs), le morceau 1, et les renvois aux hypothèses, remplacés par les faits. L'inventaire ajoute les statiques du module de zone partie. La prévision de 608 / 1216 o tient.
 
 ## Further Notes
 
 - **Pas d'humain disponible, pas d'outil `Agent` dans cette session.** J'ai donc appliqué moi-même le skill `guideline` (`.claude/skills/guideline/SKILL.md`) aux points que `to-prd` fait valider par un humain (modules, tests, découpage) :
-  - **Hypothèses explicites** : tout ce qui dépend de 4a est en H-4a-1 à H-4a-13, avec la liste à revérifier. L'écart de la ligne de 4a (`jo:pq`) est relevé, pas corrigé en silence.
+  - **Hypothèses explicites** : rédigée pendant 4a, la PRD posait ce qu'elle supposait de 4a en H-4a-1 à H-4a-13. Toutes sont vérifiées à b46601e (section « Vérifié contre 4a ») : 12 tiennent, H-4a-8 tombe sur la forme (TU exacts dans `test_pico8_zone_partie.c`). L'écart de la ligne de 4a (`jo:pq`) est relevé, pas corrigé en silence.
   - **Simplicité** :
     - un seul argument ajouté à deux fonctions ;
     - quatre fonctions ou statiques supprimés parce que la conversion les rend orphelins ;
@@ -316,12 +351,12 @@ Chaque morceau est un commit qui respecte l'invariant du §3 : `make test-all`, 
     - pas de TU propre à `pico8_gen`.
   - **Changements chirurgicaux** :
     - quatre fichiers de source (`gen`, `galaxy`, `planet`, `bg`) et leurs en-têtes ;
-    - un TU adapté, trois cas ajoutés ou ajustés dans `test_pico8_places_vivantes.c` ;
+    - deux TU adaptés (`test_pico8_map_tables`, `prise_and_max` de `test_pico8_zone_partie`), deux cas ajoutés dans `test_pico8_places_vivantes.c` ;
     - une ligne retirée de la liste du verrou ;
     - `pico8_cart.c` intact.
   - **Critères vérifiables** :
     - 23 / 80 au verrou ;
-    - 608 / 1216 o écrits par le rejeu de `pause_restart` ;
+    - `G` / `2G` / `G` octets (608 / 1216 / 608 sur x86-64) après f11, f12 et f13 de `pause_restart`, et `M_4b` = 1216 relevé sur les 26 e2e ;
     - deux générations après f12, une après f13 ;
     - `jo:hh` sans crash après f13 ;
     - 26 `*.sha256` inchangés et `sanitize-net` vert ;
