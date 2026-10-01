@@ -1,14 +1,13 @@
 #include "pico8_entity.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_file_sortie.h"
 #include "pico8_game_data.h"
 #include "pico8_struct.h"
 #include "pico8_zone_frame.h"
-#include "pico8_zone_transitoire.h"
+#include "pico8_zone_partie.h"
 
 #define PICO8_BM_COUNT 5
 static const char *const g_bm_names[PICO8_BM_COUNT] = {"kj", "ev", "hd", "hk", "hb"};
@@ -75,20 +74,49 @@ void pico8_entity_init(void) {
 
     pico8_entity_shutdown();
 
-    pico8_ents_init(&g_hv, &pico8_zone_transitoire);
+    pico8_ents_init(&g_hv, pico8_zone_partie());
 
     for (i = 0; i < PICO8_BM_COUNT; i++) {
         g_cv[i].name = g_bm_names[i];
-        pico8_ents_init(&g_cv[i].list, &pico8_zone_transitoire);
+        pico8_ents_init(&g_cv[i].list, pico8_zone_partie());
     }
 
     for (i = 0; i < PICO8_TAG_COUNT; i++) {
-        pico8_ents_init(&g_cg[i].list, &pico8_zone_transitoire);
+        pico8_ents_init(&g_cg[i].list, pico8_zone_partie());
     }
 
     g_mo = (pico8_struct_header_t *)&g_mo_placeholder;
 
     g_initialized = 1;
+}
+
+void pico8_entity_abandonner_hv(void) {
+    int i;
+
+    for (i = 0; i < g_hv.count; i++) {
+        if (g_hv.items[i]->cls->rendre != NULL) {
+            pico8_file_sortie_mettre(g_hv.items[i]);
+        }
+    }
+}
+
+static void oublier_liste(pico8_ents_t *liste) {
+    liste->items = NULL;
+    liste->count = 0;
+    liste->capacity = 0;
+}
+
+void pico8_entity_oublier_registres(void) {
+    int i;
+
+    oublier_liste(&g_hv);
+    for (i = 0; i < PICO8_BM_COUNT; i++) {
+        oublier_liste(&g_cv[i].list);
+    }
+    for (i = 0; i < PICO8_TAG_COUNT; i++) {
+        oublier_liste(&g_cg[i].list);
+        g_cg[i].seen = 0;
+    }
 }
 
 const pico8_ents_t *pico8_hv(void) {

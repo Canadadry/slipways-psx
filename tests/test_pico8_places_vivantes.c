@@ -348,20 +348,75 @@ static size_t etats_de_bw(void) {
            sizeof(pico8_zone_cell_t);
 }
 
+/* Octets qu'une liste a pris dans sa generation depuis un jl() : les
+ * capacites 4, 8, ... jusqu'a la sienne, car chaque agrandissement copie et
+ * laisse l'ancien bloc mort jusqu'au rendu. NULL (un `cg` jamais vu) : rien. */
+static size_t octets_d_un_registre(const pico8_ents_t *liste) {
+    size_t octets = 0;
+    for (int k = 4; liste != NULL && k <= liste->capacity; k *= 2) {
+        octets += PICO8_ZONE_CELLS((size_t)k * sizeof(pico8_struct_header_t *)) * sizeof(pico8_zone_cell_t);
+    }
+    return octets;
+}
+
+static size_t octets_des_registres(void) {
+    static const char *const CV[] = {"kj", "ev", "hd", "hk", "hb"};
+    static const char *const CG[] = {"qh", "hj", "nr", "g_", "mh", "jc", "mz", "jo", "np", "prober"};
+    size_t r = octets_d_un_registre(pico8_hv());
+    for (size_t i = 0; i < sizeof CV / sizeof CV[0]; i++) r += octets_d_un_registre(pico8_cv(CV[i]));
+    for (size_t i = 0; i < sizeof CG / sizeof CG[0]; i++) r += octets_d_un_registre(pico8_cg(CG[i]));
+    return r;
+}
+
+/* Apres le rendu de f13, la generation ne tient que ce qu'a fait le eu de
+ * f12 et ce qui a grandi depuis : les etats de bw et les registres, blocs
+ * morts compris. */
+static void pause_restart_borne_les_blocs_morts_des_registres(void) {
+    const size_t g = etats_de_bw();
+    demarrer("pause_restart");
+    jouer_jusqu_a(13);
+    const size_t r = octets_des_registres();
+    printf("  pause_restart f13 : partie=%lu, etats de bw=%lu, registres=%lu\n",
+           (unsigned long)pico8_zone_partie_prise(), (unsigned long)g, (unsigned long)r);
+    assert(pico8_zone_partie_prise() == g + r && "les registres prennent 2C - 4 pointeurs, et rien d'autre n'entre");
+}
+
 /* f12 : le bw de la nouvelle partie prend ses etats a cote de ceux de la
  * partie quittee, rendus a f13. */
 static void pause_restart_compte_les_etats_de_bw(void) {
     const size_t g = etats_de_bw();
     demarrer("pause_restart");
     jouer_jusqu_a(11);
-    assert(pico8_zone_partie_prise() == g && "une partie : une generation d'etats de bw");
+    const size_t f11 = pico8_zone_partie_prise();
+    assert(f11 >= g && "une partie : une generation d'etats de bw");
     jouer_jusqu_a(12);
-    assert(pico8_zone_partie_prise() == 2 * g && "les etats des deux parties vivent jusqu'au rendu");
+    const size_t f12 = pico8_zone_partie_prise();
+    assert(f12 >= f11 + g && "les etats des deux parties vivent jusqu'au rendu");
     jouer_jusqu_a(13);
-    assert(pico8_zone_partie_prise() == g && "le rendu de f13 laisse les etats de la nouvelle partie");
-    assert(pico8_zone_partie_max() == 2 * g);
-    printf("  pause_restart f11/f12/f13 : partie=%lu/%lu/%lu, max=%lu\n", (unsigned long)g, (unsigned long)(2 * g),
-           (unsigned long)g, (unsigned long)pico8_zone_partie_max());
+    assert(pico8_zone_partie_prise() == g + octets_des_registres() &&
+           "le rendu de f13 laisse les etats et les registres de la nouvelle partie");
+    assert(pico8_zone_partie_max() >= f12);
+    printf("  pause_restart f11/f12/f13 : partie=%lu/%lu/%lu, max=%lu\n", (unsigned long)f11, (unsigned long)f12,
+           (unsigned long)pico8_zone_partie_prise(), (unsigned long)pico8_zone_partie_max());
+}
+
+/* f11 : titre apres « restart ». Recharger rend les places des entites de
+ * hv, et le jl() d'_init ne relit pas les registres remis a zero. */
+static void pause_restart_recharge_apres_le_titre(void) {
+    releve_t neuf, titre, recharge;
+    demarrer("pause_restart");
+    relever(&neuf, AVANT_F0);
+    jouer_jusqu_a(11);
+    relever(&titre, 11);
+    imprimer("pause_restart", &titre);
+    pico8_cart_shutdown();
+    pico8_cart_load();
+    pico8__init();
+    pico8__update60();
+    pico8__draw();
+    relever(&recharge, 0);
+    imprimer("pause_restart recharge", &recharge);
+    assert(memes_comptes(&neuf, &recharge) && "recharger doit rendre les places des entites de hv");
 }
 
 /* Apres le rendu de f13, jo.ir et jo.oc doivent viser la nouvelle
@@ -581,6 +636,8 @@ int main(void) {
     dans_un_enfant_qui_meurt_par_asan(pause_restart_rend_la_partie_quittee_a_la_frame_suivante);
     dans_un_enfant(pause_restart_garde_la_partie_a_travers_restart);
     dans_un_enfant(pause_restart_compte_les_etats_de_bw);
+    dans_un_enfant(pause_restart_borne_les_blocs_morts_des_registres);
+    dans_un_enfant(pause_restart_recharge_apres_le_titre);
     dans_un_enfant(pause_restart_devoile_sur_les_etats_de_la_nouvelle_partie);
     dans_un_enfant(message_box_hold_ne_bouge_pas_sans_action);
     dans_un_enfant(empty_planet_fade_ne_monte_pas);

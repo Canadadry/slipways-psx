@@ -122,8 +122,10 @@ static void test_replaced_by_jl(void) {
 
 /* The path of a caller that never loads the cart. */
 static void test_jl_without_cart_load(void) {
-    pico8_cart_shutdown();
+    /* pico8_ui_init() after jl() freed `ok`, still in `hv`: the cart
+     * shutdown would abandon it, so `hv` is emptied first. */
     pico8_bootstrap_shutdown();
+    pico8_cart_shutdown();
     pico8_jl();
     assert_an_nf();
     pico8_bootstrap_shutdown();
@@ -150,8 +152,8 @@ static void test_placeholder_is_a_struct(void) {
     assert(is_a_struct_of(pico8_je(), pico8_nf_struct_class()));
     pico8_ui_init();
     assert(pico8_je() == placeholder);
-    pico8_cart_shutdown();
     pico8_bootstrap_shutdown();
+    pico8_cart_shutdown();
 }
 
 int main(void) {

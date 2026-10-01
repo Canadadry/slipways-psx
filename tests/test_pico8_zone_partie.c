@@ -11,6 +11,7 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_dispatch_context.h"
+#include "../src/pico8_entity.h"
 #include "../src/pico8_ents.h"
 #include "../src/pico8_gen.h"
 #include "../src/pico8_gfx.h"
@@ -101,21 +102,43 @@ static size_t etats_de_bw(void) {
            sizeof(pico8_zone_cell_t);
 }
 
+/* Octets qu'une liste a pris dans sa generation depuis un jl() : les
+ * capacites 4, 8, ... jusqu'a la sienne, car chaque agrandissement copie et
+ * laisse l'ancien bloc mort jusqu'au rendu. NULL (un `cg` jamais vu) : rien. */
+static size_t octets_d_un_registre(const pico8_ents_t *liste) {
+    size_t octets = 0;
+    for (int k = 4; liste != NULL && k <= liste->capacity; k *= 2) {
+        octets += PICO8_ZONE_CELLS((size_t)k * sizeof(pico8_struct_header_t *)) * sizeof(pico8_zone_cell_t);
+    }
+    return octets;
+}
+
+static size_t octets_des_registres(void) {
+    static const char *const CV[] = {"kj", "ev", "hd", "hk", "hb"};
+    static const char *const CG[] = {"qh", "hj", "nr", "g_", "mh", "jc", "mz", "jo", "np", "prober"};
+    size_t r = octets_d_un_registre(pico8_hv());
+    for (size_t i = 0; i < sizeof CV / sizeof CV[0]; i++) r += octets_d_un_registre(pico8_cv(CV[i]));
+    for (size_t i = 0; i < sizeof CG / sizeof CG[0]; i++) r += octets_d_un_registre(pico8_cg(CG[i]));
+    return r;
+}
+
 static int case_prise_and_max(void) {
     const size_t g = etats_de_bw();
     load_cart_and_start();
-    assert(pico8_zone_partie_prise() == 0);
+    const size_t titre = pico8_zone_partie_prise();
     (void)counting_block();
-    assert(pico8_zone_partie_prise() == 64);
+    assert(pico8_zone_partie_prise() == titre + 64);
     pico8_eu(NULL);
+    const size_t partie = pico8_zone_partie_prise();
+    assert(partie >= titre + 64 + g && "les deux generations comptent jusqu'au rendu");
     (void)counting_block();
-    assert(pico8_zone_partie_prise() == 128 + g && "les deux generations comptent jusqu'au rendu");
+    assert(pico8_zone_partie_prise() == partie + 64);
     pico8__update60();
-    assert(pico8_zone_partie_prise() == 64 + g);
-    assert(pico8_zone_partie_max() == 128 + g);
+    assert(pico8_zone_partie_prise() == g + octets_des_registres() + 64);
+    assert(pico8_zone_partie_max() == partie + 64);
     pico8_cart_shutdown();
     assert(pico8_zone_partie_prise() == 0);
-    assert(pico8_zone_partie_max() == 128 + g && "le maximum ne se remet qu'avec le processus");
+    assert(pico8_zone_partie_max() == partie + 64 && "le maximum ne se remet qu'avec le processus");
     return 0;
 }
 

@@ -4,19 +4,28 @@
 #include "pico8_ents.h"
 #include "pico8_struct.h"
 
-/* (Re)builds hv, cv and cg to a fresh, empty state, freeing the
- * previous build first via pico8_entity_shutdown(), and puts back the
- * placeholder mo. Must run before any of hv, cv, cg, lt, he, dc or
- * mo below is used. pico8_jl() (pico8_bootstrap.c) calls it, then replaces
- * the placeholder mo through pico8_entity_set_mo(). */
+/* (Re)builds hv, cv and cg empty, growing in the current game-zone
+ * generation (pico8_zone_partie.h), after pico8_entity_shutdown() forgot
+ * the previous build, and puts back the placeholder mo. Must run before
+ * any of hv, cv, cg, lt, he, dc or mo below is used. pico8_jl()
+ * (pico8_bootstrap.c) calls it, then replaces the placeholder mo through
+ * pico8_entity_set_mo(). */
 void pico8_entity_init(void);
 
-/* Releases this module's own bookkeeping (hv/cv/cg's backing arrays); mo
- * is never freed: the placeholder is static, a `qb` struct in
- * its place is dropped (TROU-7). Nor are the entities registered in
+/* Forgets hv/cv/cg's backing arrays, given back with their game-zone
+ * generation; mo is never freed: the placeholder is static, a `qb` struct
+ * in its place is dropped (TROU-7). Nor are the entities registered in
  * hv/cv/cg, which stay owned by whoever instantiated them. A second
  * call, or a call before the first pico8_entity_init(), is a no-op. */
 void pico8_entity_shutdown(void);
+
+/* Every entity of `hv` whose class has `rendre` goes to the exit queue
+ * (pico8_file_sortie.h); `hv` itself is left as is. */
+void pico8_entity_abandonner_hv(void);
+
+/* Empties hv/cv/cg without reading their arrays, which a game-zone reset
+ * has just poisoned; mo and the initialised state are kept. */
+void pico8_entity_oublier_registres(void);
 
 /* Every entity lt()'d and not yet he()'d, in registration order, as
  * pointers to a ke-descended struct (pico8_ke.h). */

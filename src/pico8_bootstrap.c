@@ -3,7 +3,6 @@
 #include <assert.h>
 
 #include "pico8_entity.h"
-#include "pico8_file_sortie.h"
 #include "pico8_fixed.h"
 #include "pico8_ke.h"
 #include "pico8_mouse_reader.h"
@@ -14,14 +13,8 @@ void pico8_jl(void) {
     pico8_qb_t *real_mo;
     pico8_nf_t *real_je;
     pico8_ui_t *real_ok;
-    const pico8_ents_t *hv = pico8_hv();
-    int i;
 
-    for (i = 0; i < hv->count; i++) {
-        if (hv->items[i]->cls->rendre != NULL) {
-            pico8_file_sortie_mettre(hv->items[i]);
-        }
-    }
+    pico8_entity_abandonner_hv();
     pico8_entity_init();
 
     /* Build once, never rebuild. `ke` must exist before `qb`/`nf`/`ui`,
