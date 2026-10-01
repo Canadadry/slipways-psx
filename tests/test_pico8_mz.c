@@ -23,7 +23,6 @@
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_fm.h"
 #include "../src/pico8_gfx.h"
-#include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_planet_display.h"
@@ -35,7 +34,6 @@
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_ui.h"
-#include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
 #include "../src/pico8_wormhole.h"
 

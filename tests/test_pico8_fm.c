@@ -15,23 +15,19 @@
 #include <unistd.h>
 
 #include "../src/pico8_assets.h"
-#include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_cheat.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_economy.h"
-#include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_fm.h"
 #include "../src/pico8_gfx.h"
-#include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_score_panel.h"
 #include "../src/pico8_tech_gate.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_ui_button.h"
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;

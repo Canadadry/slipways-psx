@@ -19,14 +19,12 @@
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_cheat.h"
-#include "../src/pico8_data_init.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_economy.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_fm.h"
 #include "../src/pico8_gfx.h"
-#include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_msgbox.h"
@@ -37,7 +35,6 @@
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_ui.h"
-#include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
 
 /* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a

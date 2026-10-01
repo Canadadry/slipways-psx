@@ -13,7 +13,6 @@
 #include "../src/pico8_cart.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
-#include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_mem.h"

@@ -12,21 +12,15 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_data_init.h"
 #include "../src/pico8_dispatch_context.h"
-#include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_input.h"
-#include "../src/pico8_layout.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_planet_family_trade.h"
 #include "../src/pico8_research.h"
-#include "../src/pico8_research_icon.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_ui.h"
-#include "../src/pico8_vec.h"
 
 #define KIND_HASH 0xBCF0E60Bu
 

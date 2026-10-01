@@ -7,9 +7,6 @@
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_game_data.h"
 #include "../src/pico8_gen.h"
-#include "../src/pico8_planet.h"
-#include "../src/pico8_planet_family.h"
-#include "../src/pico8_planet_family_trade.h"
 
 static void check_int_seq(const int *seq, int count) {
     int out = -12345;

@@ -31,16 +31,11 @@
 #include "../src/pico8_mem.h"
 #include "../src/pico8_particle.h"
 #include "../src/pico8_planet.h"
-#include "../src/pico8_planet_family.h"
-#include "../src/pico8_planet_family_trade.h"
 #include "../src/pico8_probe.h"
-#include "../src/pico8_research.h"
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_ui.h"
-#include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
-#include "../src/pico8_wormhole.h"
 
 
 /* The tag class instances carried, which the frozen hashes fold: any

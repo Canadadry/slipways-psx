@@ -20,13 +20,11 @@
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
-#include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_msgbox.h"
 #include "../src/pico8_score_panel.h"
 #include "../src/pico8_score_panel_display.h"
-#include "../src/pico8_ui_button.h"
 
 #define YEAR_MESSAGE_TICKS 192
 #define YEAR_MESSAGE_SEQUENCE_HASH 0xEF726FD2u

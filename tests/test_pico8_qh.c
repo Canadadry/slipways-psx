@@ -37,7 +37,6 @@
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
 #include "../src/pico8_wormhole.h"
 

@@ -10,7 +10,6 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_data_init.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
@@ -20,7 +19,6 @@
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_planet_family_trade.h"
-#include "../src/pico8_probe.h"
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;

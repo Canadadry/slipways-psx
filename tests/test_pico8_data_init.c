@@ -6,7 +6,6 @@
 #include <string.h>
 
 #include "../src/pico8_assets.h"
-#include "../src/pico8_fixed.h"
 #include "../src/pico8_map_tables.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_research.h"

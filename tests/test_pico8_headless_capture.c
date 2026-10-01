@@ -16,7 +16,6 @@
  * `make replay EVENTS=...` le reecrivent aussi. */
 
 #include "../src/pico8_dump.h"
-#include "../src/pico8_gfx.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_screencast.h"

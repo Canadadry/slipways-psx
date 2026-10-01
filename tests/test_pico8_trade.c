@@ -22,7 +22,6 @@
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
-#include "../src/pico8_help.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_planet_trade.h"
@@ -30,11 +29,9 @@
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_mem.h"
-#include "../src/pico8_menu.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_trade.h"
 #include "../src/pico8_ui.h"
-#include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
 
 /* `gb[3]`: a project with an `o` and no `i`, whose planet exports to any
