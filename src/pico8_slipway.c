@@ -18,6 +18,7 @@
 #include "pico8_ui.h"
 #include "pico8_vec.h"
 #include "pico8_zone_frame.h"
+#include "pico8_zone_particules.h"
 
 static int g_jc_up = 0;
 
@@ -322,11 +323,12 @@ static void pico8_jc_ev_dispatch(pico8_struct_header_t *self, const pico8_vec_t 
     pico8_jc_ev((pico8_jc_t *)self);
 }
 
-/* TROU-7 */
 static void pico8_jc_rendre_dispatch(pico8_struct_header_t *self) {
     pico8_jc_t *jc = (pico8_jc_t *)self;
     const pico8_zone_choisie_t *zone = jc->ts->zone;
 
+    for (int i = 0; i < jc->ts->count; i++)
+        pico8_zone_release(pico8_zone_particules(PICO8_PARTICULES_TS), jc->ts->items[i]);
     jc->ts->count = 0;
     pico8_jo_prise_zone_rendue(zone, jc->header.me);
 }

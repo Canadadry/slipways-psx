@@ -7,16 +7,18 @@
 
 /* `particule` est un element de `qy`, `qy` la liste d'un emetteur,
  * `qy_fv` celle de l'ecran d'aide, `ga` un eclat avec son `oe` et sa
- * boite `ra`. */
+ * boite `ra`, `ts` une trainee d'un slipway. */
 typedef enum {
     PICO8_PARTICULES_PARTICULE,
     PICO8_PARTICULES_QY,
     PICO8_PARTICULES_QY_FV,
     PICO8_PARTICULES_GA,
+    PICO8_PARTICULES_TS,
     PICO8_PARTICULES_COUNT
 } pico8_particules_sorte_t;
 
 #define PICO8_PARTICULE_PLACE 32u
+#define PICO8_TS_PLACE 24u
 /* Elements reserves d'une liste de la sorte, que sa place tient juste. */
 #define PICO8_QY_CAPACITE 160
 #define PICO8_QY_FV_CAPACITE 768
@@ -38,7 +40,7 @@ int pico8_zone_particules_vivantes(pico8_particules_sorte_t sorte);
 /* Maxima de la session. Octets : ceux d'une place-arene, tete comprise,
  * places encore vivantes mesurees a la lecture ; 0 pour `particule`.
  * Elements : ce que pico8_zone_particules_noter_elements a vu de plus grand
- * pour une liste `qy` ou `qy_fv`. */
+ * pour une liste `qy` ou `qy_fv`, ou la liste `ts` d'un slipway. */
 int pico8_zone_particules_max_vivantes(pico8_particules_sorte_t sorte);
 size_t pico8_zone_particules_max_octets(pico8_particules_sorte_t sorte);
 void pico8_zone_particules_noter_elements(pico8_particules_sorte_t sorte, int count);

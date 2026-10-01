@@ -13,6 +13,7 @@
 #include "../src/pico8_particle.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_ptrs.h"
+#include "../src/pico8_slipway_display.h"
 #include "../src/pico8_zone_choisie.h"
 #include "../src/pico8_zone_particules.h"
 
@@ -273,6 +274,42 @@ static int case_ez_notes_the_list_length(void) {
     return 0;
 }
 
+static pico8_ts_t *trainee(void) {
+    return (pico8_ts_t *)pico8_zone_alloc(pico8_zone_particules(PICO8_PARTICULES_TS), sizeof(pico8_ts_t));
+}
+
+static void rendre_trainee(pico8_ts_t *t) {
+    pico8_zone_release(pico8_zone_particules(PICO8_PARTICULES_TS), (unsigned char *)t);
+}
+
+static int case_ts_takes_and_gives_back(void) {
+    pico8_ts_t *a = trainee();
+    pico8_ts_t *b = trainee();
+    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_TS) == 2);
+    rendre_trainee(a);
+    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_TS) == 1 && "rendre une trainee decompte sa sorte");
+    rendre_trainee(b);
+    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_TS) == 0);
+    assert(pico8_zone_particules_max_vivantes(PICO8_PARTICULES_TS) == 2);
+    assert(pico8_zone_particules_max_octets(PICO8_PARTICULES_TS) == 0 && "une trainee est une place nue");
+    pico8_zone_particules_noter_elements(PICO8_PARTICULES_TS, 5);
+    pico8_zone_particules_noter_elements(PICO8_PARTICULES_TS, 2);
+    assert(pico8_zone_particules_max_elements(PICO8_PARTICULES_TS) == 5);
+    return 0;
+}
+
+static int case_ts_dead_after_release(void) {
+    pico8_ts_t *t = trainee();
+    rendre_trainee(t);
+    sink = ((volatile unsigned char *)t)[0];
+    return 0;
+}
+
+static int case_ts_zone_full(void) {
+    for (int i = 0; i < 681; i++) trainee();
+    return 0;
+}
+
 static const struct {
     const char *name;
     int (*run)(void);
@@ -294,6 +331,9 @@ static const struct {
     {"ei_gives_back_a_dying_particle", case_ei_gives_back_a_dying_particle},
     {"particle_dead_after_ei", case_particle_dead_after_ei},
     {"ez_notes_the_list_length", case_ez_notes_the_list_length},
+    {"ts_takes_and_gives_back", case_ts_takes_and_gives_back},
+    {"ts_dead_after_release", case_ts_dead_after_release},
+    {"ts_zone_full", case_ts_zone_full},
 };
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
@@ -384,6 +424,9 @@ int main(int argc, char **argv) {
     expect_clean("ei_gives_back_a_dying_particle");
     expect_poison_crash("particle_dead_after_ei");
     expect_clean("ez_notes_the_list_length");
+    expect_clean("ts_takes_and_gives_back");
+    expect_poison_crash("ts_dead_after_release");
+    expect_fatal("ts_zone_full", "zone particules ts pleine, limite 680 places");
     remove(STDERR_LOG);
     printf("test_pico8_zone_particules: all tests passed\n");
     return 0;

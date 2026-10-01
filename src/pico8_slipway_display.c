@@ -2,13 +2,15 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <stdlib.h>
 
 #include "pico8_dispatch_context.h"
 #include "pico8_entity_geom.h"
 #include "pico8_planet.h"
 #include "pico8_slipway.h"
 #include "pico8_vec.h"
+#include "pico8_zone_particules.h"
+
+typedef char pico8_ts_tient_sa_place[sizeof(pico8_ts_t) <= PICO8_TS_PLACE ? 1 : -1];
 
 static int pico8_jc_display_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
@@ -33,14 +35,15 @@ void pico8_jc_ch(pico8_jc_t *self, const pico8_struct_header_t *f, const pico8_s
                 pico8_vec_t t_ra = pico8_jc_end_ra(t);
                 pico8_vec_t d = pico8_vec_sub(t_ra, f_ra);
                 pico8_vec_t v = pico8_vec_nn(d);
-                pico8_ts_t *particle = malloc(sizeof *particle);
+                pico8_ts_t *particle = (pico8_ts_t *)pico8_zone_alloc(pico8_zone_particules(PICO8_PARTICULES_TS),
+                                                                      sizeof *particle);
 
-                assert(particle != NULL);
                 particle->ra = pico8_vec_add(f_ra, pico8_vec_pa(v));
                 particle->v = v;
                 particle->l = pico8_vec_qx(d);
 
                 pico8_ptrs_add(self->ts, particle);
+                pico8_zone_particules_noter_elements(PICO8_PARTICULES_TS, self->ts->count);
             }
         }
     }
@@ -152,6 +155,7 @@ void pico8_jc_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jc_t *self) {
                      * and still drawn once more at its final position. */
                     if (new_l <= pico8_fixed_from_int(0)) {
                         pico8_ptrs_del(ts, t);
+                        pico8_zone_release(pico8_zone_particules(PICO8_PARTICULES_TS), (unsigned char *)t);
                     }
 
                     {

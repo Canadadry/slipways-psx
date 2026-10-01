@@ -13,6 +13,9 @@
 #define QY_FV_COUNT 1
 #define GA_COUNT 8
 #define ARENES_MAX QY_COUNT
+/* Risque accepte : ~21 trainees vivent par slipway desservi dans les deux
+ * sens, 680 places tiennent une trentaine de tels slipways visibles. */
+#define TS_COUNT 680
 
 /* Particules : chaque liste `qy` a son pire, plus les 5 de la nouvelle
  * aide, nees au `_init` avant le vidage qui rend l'ancienne partie. Un
@@ -31,13 +34,15 @@ typedef char pico8_zone_particules_tient_l_aide[PARTICULE_COUNT >= PICO8_QY_FV_C
 
 typedef char pico8_zone_particules_exceeded[
     (SORTE_BYTES(PICO8_PARTICULE_PLACE, PARTICULE_COUNT) + SORTE_BYTES(QY_SIZE, QY_COUNT) +
-     SORTE_BYTES(QY_FV_SIZE, QY_FV_COUNT) + SORTE_BYTES(GA_SIZE, GA_COUNT)
+     SORTE_BYTES(QY_FV_SIZE, QY_FV_COUNT) + SORTE_BYTES(GA_SIZE, GA_COUNT) +
+     SORTE_BYTES(PICO8_TS_PLACE, TS_COUNT)
      <= PICO8_ZONE_PARTICLES_BYTES) ? 1 : -1];
 
 PICO8_SLOT_ZONE_STORAGE(particule_cells, particule_taken, PICO8_PARTICULE_PLACE, PARTICULE_COUNT);
 PICO8_SLOT_ZONE_STORAGE(qy_cells, qy_taken, QY_SIZE, QY_COUNT);
 PICO8_SLOT_ZONE_STORAGE(qy_fv_cells, qy_fv_taken, QY_FV_SIZE, QY_FV_COUNT);
 PICO8_SLOT_ZONE_STORAGE(ga_cells, ga_taken, GA_SIZE, GA_COUNT);
+PICO8_SLOT_ZONE_STORAGE(ts_cells, ts_taken, PICO8_TS_PLACE, TS_COUNT);
 
 static const struct {
     const char *zone_name;
@@ -53,6 +58,7 @@ static const struct {
     [PICO8_PARTICULES_QY_FV] = {"particules qy_fv", "place qy_fv", qy_fv_cells, qy_fv_taken, QY_FV_SIZE,
                                 QY_FV_COUNT},
     [PICO8_PARTICULES_GA] = {"particules ga", "place ga", ga_cells, ga_taken, GA_SIZE, GA_COUNT},
+    [PICO8_PARTICULES_TS] = {"particules ts", NULL, ts_cells, ts_taken, PICO8_TS_PLACE, TS_COUNT},
 };
 
 static pico8_slot_zone_t g_zones[PICO8_PARTICULES_COUNT];
@@ -130,6 +136,7 @@ static const pico8_zone_choisie_t g_handles[PICO8_PARTICULES_COUNT] = {
     [PICO8_PARTICULES_QY] = {place_alloc, place_grow, place_release, NULL, NULL},
     [PICO8_PARTICULES_QY_FV] = {place_alloc, place_grow, place_release, NULL, NULL},
     [PICO8_PARTICULES_GA] = {place_alloc, place_grow, place_release, NULL, NULL},
+    [PICO8_PARTICULES_TS] = {place_alloc, place_grow, place_release, NULL, NULL},
 };
 
 static pico8_particules_sorte_t sorte_of(const pico8_zone_choisie_t *z) {
@@ -171,7 +178,8 @@ size_t pico8_zone_particules_max_octets(pico8_particules_sorte_t sorte) {
 }
 
 void pico8_zone_particules_noter_elements(pico8_particules_sorte_t sorte, int count) {
-    assert((sorte == PICO8_PARTICULES_QY || sorte == PICO8_PARTICULES_QY_FV) && "seule une liste a des elements");
+    assert((sorte == PICO8_PARTICULES_QY || sorte == PICO8_PARTICULES_QY_FV || sorte == PICO8_PARTICULES_TS) &&
+           "seule une liste a des elements");
     if (count > g_max_elements[sorte]) g_max_elements[sorte] = count;
 }
 

@@ -49,6 +49,7 @@ typedef struct {
     int qy;
     int qy_fv;
     int ga;
+    int ts;
     size_t partie;
 } releve_t;
 
@@ -62,19 +63,22 @@ static void relever(releve_t *r, int frame) {
     r->qy = pico8_zone_particules_vivantes(PICO8_PARTICULES_QY);
     r->qy_fv = pico8_zone_particules_vivantes(PICO8_PARTICULES_QY_FV);
     r->ga = pico8_zone_particules_vivantes(PICO8_PARTICULES_GA);
+    r->ts = pico8_zone_particules_vivantes(PICO8_PARTICULES_TS);
     r->partie = pico8_zone_partie_prise();
 }
 
-/* Particules et listes tenues par les emetteurs inscrits dans `hv`, et
- * eclats inscrits : ce que les comptes de la zone particules doivent dire. */
+/* Particules et listes tenues par les emetteurs inscrits dans `hv`, eclats
+ * inscrits, trainees des slipways de `cg.jc` : ce que les comptes de la
+ * zone particules doivent dire. */
 typedef struct {
     int particules;
     int listes;
     int eclats;
+    int trainees;
 } inscrits_t;
 
 static inscrits_t compter_inscrits(void) {
-    inscrits_t n = {0, 0, 0};
+    inscrits_t n = {0, 0, 0, 0};
     const pico8_ents_t *hv = pico8_hv();
     for (int i = 0; hv != NULL && i < hv->count; i++) {
         const pico8_struct_header_t *e = hv->items[i];
@@ -83,6 +87,11 @@ static inscrits_t compter_inscrits(void) {
             n.particules += e->emitter->qy->count;
         }
         if (e->cls == pico8_ga_struct_class()) n.eclats++;
+    }
+    const pico8_ents_t *jc = pico8_cg("jc");
+    for (int i = 0; jc != NULL && i < jc->count; i++) {
+        const pico8_jc_t *s = (const pico8_jc_t *)jc->items[i];
+        if (s->ts != NULL) n.trainees += s->ts->count;
     }
     return n;
 }
@@ -93,10 +102,10 @@ static void verifier_invariant(const char *e2e, int frame) {
     releve_t r;
     relever(&r, frame);
     inscrits_t n = compter_inscrits();
-    if (r.particule != n.particules || r.qy + r.qy_fv != n.listes || r.ga != n.eclats) {
-        fprintf(stderr, "  %s f%d : particule=%d (inscrites %d) qy+qy_fv=%d (listes %d) ga=%d (eclats %d)\n", e2e, frame,
-               r.particule, n.particules, r.qy + r.qy_fv, n.listes, r.ga, n.eclats);
-        assert(0 && "une particule, une liste qy ou un eclat vit hors des emetteurs inscrits");
+    if (r.particule != n.particules || r.qy + r.qy_fv != n.listes || r.ga != n.eclats || r.ts != n.trainees) {
+        fprintf(stderr, "  %s f%d : particule=%d (inscrites %d) qy+qy_fv=%d (listes %d) ga=%d (eclats %d) ts=%d (trainees %d)\n",
+                e2e, frame, r.particule, n.particules, r.qy + r.qy_fv, n.listes, r.ga, n.eclats, r.ts, n.trainees);
+        assert(0 && "une particule, une liste qy, un eclat ou une trainee vit hors des emetteurs inscrits ou de cg.jc");
     }
 }
 
@@ -521,6 +530,21 @@ static void trade_rich_mine_une_route_gardee_survit_a_la_frame(void) {
     printf("  trade_rich_mine : route de p27 (%d planetes, %d slipways) relue a f151\n", nlp, nrl);
 }
 
+/* Les trainees encore vivantes en fin de partie reviennent a la zone
+ * particules par le `rendre` des slipways, au chargement suivant. */
+static void trade_rich_mine_rend_ses_trainees_au_rechargement(void) {
+    demarrer("trade_rich_mine");
+    jouer_jusqu_a(g_input->frame_count - 1);
+    const int fin = pico8_zone_particules_vivantes(PICO8_PARTICULES_TS);
+    pico8_cart_load();
+    const int apres = pico8_zone_particules_vivantes(PICO8_PARTICULES_TS);
+    printf("  trade_rich_mine : ts %d en fin de rejeu, %d apres rechargement (max %d, liste max %d)\n", fin, apres,
+           pico8_zone_particules_max_vivantes(PICO8_PARTICULES_TS),
+           pico8_zone_particules_max_elements(PICO8_PARTICULES_TS));
+    assert(fin > 0 && "trade_rich_mine finit avec des trainees vivantes");
+    assert(apres == 0 && "le rendre du slipway rend ses trainees");
+}
+
 #define PRISES "tests/fixtures/prises_refusees.json"
 
 /* Fixture PRISES : f0-20 d'empty_planet_fade ; puis des prises de 7 frames
@@ -866,7 +890,7 @@ static void le_rejeu_ecrit_le_remplissage_en_fin_de_session(void) {
         snprintf(ligne, sizeof ligne, "%s %d\n", NOMS[s], r[0].vivantes[s]);
         strcat(attendu, ligne);
     }
-    static const char *const PARTICULES[PICO8_PARTICULES_COUNT] = {"particule", "qy", "qy_fv", "ga"};
+    static const char *const PARTICULES[PICO8_PARTICULES_COUNT] = {"particule", "qy", "qy_fv", "ga", "ts"};
     for (int s = 0; s < PICO8_PARTICULES_COUNT; s++) {
         snprintf(ligne, sizeof ligne, "%s %d\n", PARTICULES[s],
                  pico8_zone_particules_vivantes((pico8_particules_sorte_t)s));
@@ -882,7 +906,8 @@ static void le_rejeu_ecrit_le_remplissage_en_fin_de_session(void) {
                  (unsigned long)pico8_zone_particules_max_octets((pico8_particules_sorte_t)s));
         strcat(attendu, ligne);
     }
-    for (int s = PICO8_PARTICULES_QY; s <= PICO8_PARTICULES_QY_FV; s++) {
+    for (int s = PICO8_PARTICULES_QY; s < PICO8_PARTICULES_COUNT; s++) {
+        if (s == PICO8_PARTICULES_GA) continue;
         snprintf(ligne, sizeof ligne, "max_elements %s %d\n", PARTICULES[s],
                  pico8_zone_particules_max_elements((pico8_particules_sorte_t)s));
         strcat(attendu, ligne);
@@ -940,7 +965,7 @@ static void le_rejeu_ecrit_le_pic_de_la_session(void) {
 
 int main(void) {
     int e2e = invariant_sur_tous_les_e2e();
-    printf("  invariant particule = somme des #qy inscrits : %d e2e, chaque frame\n", e2e);
+    printf("  invariant particule = somme des #qy inscrits, ts = somme des #ts de cg.jc : %d e2e, chaque frame\n", e2e);
     assert(e2e == 26 && "tests/e2e/ compte 26 rejeux");
     dans_un_enfant(pause_restart_revient_au_titre);
     dans_un_enfant(pause_restart_garde_la_partie_quittee_pendant_le_clic);
@@ -955,6 +980,7 @@ int main(void) {
     dans_un_enfant(game_end_final_score_bd_ne_fait_pas_grandir_la_partie);
     dans_un_enfant(trade_rich_mine_bd_sur_des_routes_ne_fait_pas_grandir_la_partie);
     dans_un_enfant(trade_rich_mine_une_route_gardee_survit_a_la_frame);
+    dans_un_enfant(trade_rich_mine_rend_ses_trainees_au_rechargement);
     dans_un_enfant(prises_refusees_ne_font_pas_grandir_la_partie);
     dans_un_enfant(une_prise_posee_garde_son_arene);
     dans_un_enfant(une_prise_refusee_traverse_une_nouvelle_partie);

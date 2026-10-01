@@ -45,7 +45,7 @@
 #include <stdlib.h>
 
 static const char *const SORTE_NAMES[PICO8_SORTE_COUNT] = {"js", "fq", "mh", "iv", "rangee", "le"};
-static const char *const PARTICULES_NAMES[PICO8_PARTICULES_COUNT] = {"particule", "qy", "qy_fv", "ga"};
+static const char *const PARTICULES_NAMES[PICO8_PARTICULES_COUNT] = {"particule", "qy", "qy_fv", "ga", "ts"};
 
 static void write_remplissage(const char *path) {
     FILE *out = fopen(path, "w");
@@ -68,7 +68,8 @@ static void write_remplissage(const char *path) {
         fprintf(out, "max_octets %s %lu\n", PARTICULES_NAMES[s],
                 (unsigned long)pico8_zone_particules_max_octets((pico8_particules_sorte_t)s));
     }
-    for (int s = PICO8_PARTICULES_QY; s <= PICO8_PARTICULES_QY_FV; s++) {
+    for (int s = PICO8_PARTICULES_QY; s < PICO8_PARTICULES_COUNT; s++) {
+        if (s == PICO8_PARTICULES_GA) continue;
         fprintf(out, "max_elements %s %d\n", PARTICULES_NAMES[s],
                 pico8_zone_particules_max_elements((pico8_particules_sorte_t)s));
     }
