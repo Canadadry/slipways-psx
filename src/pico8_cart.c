@@ -38,6 +38,7 @@
 #include "pico8_ui.h"
 #include "pico8_ui_button.h"
 #include "pico8_wormhole.h"
+#include "pico8_zone_frame.h"
 #include "pico8_zone_transitoire.h"
 
 /* pico8_data_init() and pico8_score_panel_init() each run further module
@@ -193,7 +194,11 @@ void pico8_eu(pico8_js_t *nj) {
     pico8_hy_lj(pico8_fm_hy());
 }
 
+/* Ici et pas dans un pilote : rejeu, raylib, couverture et TU passent tous
+ * par update60, et draw, qui suit dans la meme frame, relit ce qu'update a
+ * fait en zone frame. */
 void pico8__update60(void) {
+    pico8_zone_frame_reset();
     pico8_dg();
     pico8_ui_lj(pico8_dispatch_mem(), pico8_ok());
 }
