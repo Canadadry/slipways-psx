@@ -25,6 +25,7 @@
 #include "../src/pico8_input.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_planet.h"
+#include "../src/pico8_planet_display.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_planet_family_trade.h"
 #include "../src/pico8_probe.h"

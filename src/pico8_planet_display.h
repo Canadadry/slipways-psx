@@ -1,6 +1,7 @@
 #ifndef PICO8_PLANET_DISPLAY_H
 #define PICO8_PLANET_DISPLAY_H
 
+#include "pico8_research.h"
 #include "pico8_struct.h"
 #include "pico8_gfx.h"
 #include "pico8_mem.h"
@@ -32,5 +33,10 @@ void pico8_jo_fe(pico8_jo_t *self);
 /* Draws, and mutates `self`: `ma()` decays the halo, and the `fo` flash is
  * cleared once drawn. */
 void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec_t p);
+
+/* In the `hp.cw` branch `self` is marked for removal and the tail of the
+ * work lands on a fresh planet the caller never sees -- or on nothing,
+ * when `hp.cw` is neither "pm" nor "ga". */
+void pico8_jo_hu(pico8_jo_t *self, pico8_hp_t *hp_instance);
 
 #endif

@@ -27,12 +27,9 @@ typedef struct {
 int pico8_qe_map_get(const pico8_qe_map_t *map, pico8_fixed_t qe, pico8_fixed_t *out);
 void pico8_qe_map_set(pico8_qe_map_t *map, pico8_fixed_t qe, pico8_fixed_t v);
 
-/* Each empties `out` first. `cm`: every `qe` VALUE of `r` (not `r`'s keys)
- * mapped to `jm`; `bx`: `cm(0)` plus each producing planet's `kw.mu`;
- * `ck`: `cm(1)` less 0.15 per `qh` for the resource of its last `jy`. */
+/* Empties `out` first: every `qe` VALUE of `r` (not `r`'s keys) mapped to
+ * `jm`. */
 void pico8_cm(pico8_qe_map_t *out, pico8_fixed_t jm);
-void pico8_bx(pico8_qe_map_t *out);
-void pico8_ck(pico8_qe_map_t *out);
 
 /* `#(to.p-pb.p)` is the SQUARED distance, not the Euclidean one. */
 pico8_fixed_t pico8_dj(pico8_vec_t pb_p, pico8_vec_t to_p);

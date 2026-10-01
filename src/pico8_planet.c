@@ -5,17 +5,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pico8_audio.h"
 #include "pico8_collect.h"
-#include "pico8_economy.h"
 #include "pico8_entity_geom.h"
-#include "pico8_fm.h"
 #include "pico8_gen.h"
 #include "pico8_ke.h"
 #include "pico8_msgbox.h"
 #include "pico8_pi.h"
 #include "pico8_research.h"
-#include "pico8_tech_gate.h"
 
 static int g_jo_up = 0;
 
@@ -271,49 +267,6 @@ void pico8_jo_ll(pico8_jo_t *self, pico8_fixed_t t) {
         return;
     }
     self->p_ = t > pico8_fixed_from_int(60);
-}
-
-void pico8_jo_hu(pico8_jo_t *self, pico8_hp_t *hp_instance) {
-    pico8_jo_t *working_self;
-    pico8_fixed_t fp = pico8_fixed_from_int(2);
-
-    pico8_hp_assert(hp_instance);
-    if (self == NULL) {
-        return;
-    }
-    working_self = self;
-
-    if (hp_instance != NULL && hp_instance->cw != NULL) {
-        const pico8_entity_kind_t *target_kind = NULL;
-        pico8_jo_keys_t keys;
-
-        self->p_ = 1;
-
-        target_kind = pico8_jo_kv(hp_instance->cw);
-
-        keys.p = self->p;
-        keys.ra = self->ra;
-        keys.id = self->id;
-
-        working_self = (target_kind != NULL) ? (pico8_jo_t *)target_kind->new_entity(&keys) : NULL;
-    } else if (hp_instance != NULL && hp_instance->go != NULL) {
-        self->nk = pico8_df_lookup(hp_instance->go);
-    } else {
-        pico8_ke_ks((pico8_struct_header_t *)self, "ly");
-        pico8_jo_lz(self, hp_instance);
-        self->fx = pico8_fixed_from_int(1);
-        fp = pico8_ov("autoassemblers", pico8_fixed_from_int(3), pico8_fixed_from_int(2));
-    }
-
-    pico8_hy_nx(pico8_fm_hy(), fp);
-
-    if (hp_instance != NULL && hp_instance->has_rn) {
-        pico8_rn(hp_instance->rn);
-    } else {
-        pico8_rn(pico8_fixed_from_int(55));
-    }
-
-    pico8_jo_kd(working_self);
 }
 
 void pico8_jo_hh(pico8_jo_t *self) {

@@ -28,6 +28,7 @@
 #include "../src/pico8_layout.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_planet.h"
+#include "../src/pico8_planet_display.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_research.h"
 #include "../src/pico8_research_display.h"

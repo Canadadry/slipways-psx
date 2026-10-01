@@ -127,11 +127,6 @@ void pico8_jo_kd(pico8_jo_t *self);
  * (`qc[qc.me]`), through the `LL` entry of a planet's descriptor. */
 void pico8_jo_ll(pico8_jo_t *self, pico8_fixed_t t);
 
-/* In the `hp.cw` branch `self` is marked for removal and the tail of the
- * work lands on a fresh planet the caller never sees -- or on nothing,
- * when `hp.cw` is neither "pm" nor "ga". */
-void pico8_jo_hu(pico8_jo_t *self, pico8_hp_t *hp_instance);
-
 void pico8_jo_hh(pico8_jo_t *self);
 
 void pico8_jo_hk(const pico8_jo_t *self);

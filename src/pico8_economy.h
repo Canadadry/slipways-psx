@@ -1,6 +1,7 @@
 #ifndef PICO8_ECONOMY_H
 #define PICO8_ECONOMY_H
 
+#include "pico8_economy_formulas.h"
 #include "pico8_fixed.h"
 #include "pico8_fm.h"
 #include "pico8_map_tables.h"
@@ -40,5 +41,11 @@ void pico8_hy_lj(pico8_hy_t *self);
 /* `t` is an entry of `pico8_nb_table`, or NULL (no `px`, a cost of 0);
  * its `px` string is appended to `invented`, borrowed. */
 void pico8_hy_kt(pico8_hy_t *self, const pico8_nb_entry_t *t);
+
+/* Each empties `out` first. `bx`: `cm(0)` plus each producing planet's
+ * `kw.mu`; `ck`: `cm(1)` less 0.15 per `qh` for the resource of its last
+ * `jy`. */
+void pico8_bx(pico8_qe_map_t *out);
+void pico8_ck(pico8_qe_map_t *out);
 
 #endif

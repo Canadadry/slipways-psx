@@ -23,6 +23,7 @@
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_planet.h"
+#include "../src/pico8_planet_display.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_planet_trade.h"
 #include "../src/pico8_research.h"

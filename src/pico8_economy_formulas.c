@@ -5,8 +5,6 @@
 #include "pico8_entity.h"
 #include "pico8_game_data.h"
 #include "pico8_map_tables.h"
-#include "pico8_planet.h"
-#include "pico8_research.h"
 #include "pico8_vec.h"
 
 static pico8_fixed_t fixed_max(pico8_fixed_t a, pico8_fixed_t b) {
@@ -43,23 +41,6 @@ void pico8_qe_map_set(pico8_qe_map_t *map, pico8_fixed_t qe, pico8_fixed_t v) {
     map->count++;
 }
 
-typedef void (*cg_visit_fn)(pico8_struct_header_t *e, void *ctx);
-
-static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
-    const pico8_ents_t *list = pico8_cg(tag);
-    pico8_ents_iter_t it;
-    pico8_struct_header_t *e;
-    if (list == NULL) {
-        return;
-    }
-    it = pico8_ents_all(list);
-    while (pico8_ents_iter_next(&it, &e)) {
-        if (e != NULL) {
-            fn(e, ctx);
-        }
-    }
-}
-
 void pico8_cm(pico8_qe_map_t *out, pico8_fixed_t jm) {
     int i;
 
@@ -67,65 +48,6 @@ void pico8_cm(pico8_qe_map_t *out, pico8_fixed_t jm) {
     for (i = 0; i < PICO8_R_COUNT; i++) {
         pico8_qe_map_set(out, pico8_fixed_from_int(pico8_r_table[i].qe), jm);
     }
-}
-
-static void bx_visit(pico8_struct_header_t *pt, void *ctx) {
-    pico8_qe_map_t *p = (pico8_qe_map_t *)ctx;
-    const pico8_jo_t *jo;
-    const pico8_kw_t *kw;
-    pico8_fixed_t current;
-
-    assert(pico8_jo_is_family(pt) && "bx: pt is a planet of cg.jo");
-    jo = (const pico8_jo_t *)pt;
-    if (jo->jy == NULL) {
-        return;
-    }
-    kw = jo->kw;
-    if (kw == NULL || !kw->has_qe) {
-        return;
-    }
-    if (!pico8_qe_map_get(p, kw->qe, &current)) {
-        current = pico8_fixed_from_int(0);
-    }
-    pico8_qe_map_set(p, kw->qe, pico8_fixed_add(current, kw->mu));
-}
-
-void pico8_bx(pico8_qe_map_t *out) {
-    pico8_cm(out, pico8_fixed_from_int(0));
-    for_each_cg("jo", bx_visit, out);
-}
-
-static void ck_visit(pico8_struct_header_t *l, void *ctx) {
-    pico8_qe_map_t *d = (pico8_qe_map_t *)ctx;
-    const pico8_ptrs_t *jy;
-    const pico8_jy_t *last;
-    void *last_val;
-    pico8_fixed_t current;
-
-    assert(pico8_jo_is_family(l) && "ck: l is a planet of cg.qh");
-    jy = ((const pico8_jo_t *)l)->jy;
-    if (jy == NULL || jy->count == 0) {
-        return;
-    }
-    last_val = jy->items[jy->count - 1];
-    if (last_val == NULL) {
-        return;
-    }
-    last = last_val;
-    if (!last->row.has_qe) {
-        return;
-    }
-    /* Fallback 1, not 0: `cm(1)` seeded every key of `r`, so an absent one
-     * is a resource `r` never listed, treated as that same seed. */
-    if (!pico8_qe_map_get(d, last->row.qe, &current)) {
-        current = pico8_fixed_from_int(1);
-    }
-    pico8_qe_map_set(d, last->row.qe, pico8_fixed_sub(current, PICO8_FIXED_LIT(0x00002666, 0.15)));
-}
-
-void pico8_ck(pico8_qe_map_t *out) {
-    pico8_cm(out, pico8_fixed_from_int(1));
-    for_each_cg("qh", ck_visit, out);
 }
 
 pico8_fixed_t pico8_dj(pico8_vec_t pb_p, pico8_vec_t to_p) {
