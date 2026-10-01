@@ -219,7 +219,7 @@ ENGINE_SRCS := \
     src/pico8_wormhole.c \
     src/pico8_wormhole_display.c
 
-# Le cœur porté de docs/plan-2.md §4 : la closure du moteur moins les outils
+# Le cœur porté, sans flottant : la closure du moteur moins les outils
 # d'hôte, qui gardent la libc. Inventaire, couverture et garde flottantes
 # partent tous de cette liste.
 CORE_SRCS := $(filter-out src/pico8_assets.c src/pico8_dump.c,$(ENGINE_SRCS))

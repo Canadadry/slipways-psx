@@ -2,7 +2,7 @@ pico-8 cartridge // http://www.pico-8.com
 version 32
 __lua__
 -- probe -- releve de reference pico-8
--- pour docs/plan-2.md (phase a)
+-- des valeurs fixes 16.16
 --
 -- tout est releve en bits bruts via
 -- tostr(x,true) : pico-8 est en
@@ -149,9 +149,8 @@ end
 
 -- ================================
 -- bloc e : sqrt / sin / cos
--- CAPTURE, PAS EXPLOITE par le
--- chantier de plan-2 (voir sa
--- cloture de perimetre §5).
+-- vecteurs de pico8_fixed_sqrt
+-- et de la table sin/cos.
 -- ================================
 o("## e sqrt")
 for v in all(ps) do

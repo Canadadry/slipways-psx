@@ -1,6 +1,7 @@
 #!/bin/sh
 # usage: float_link.sh <cc> <cflags> <binaire> <objet.o>...
-# Lie les objets sans -lm (docs/plan-2.md §6.2) dans un binaire jetable.
+# Lie les objets sans -lm dans un binaire jetable : le coeur n'appelle aucune
+# fonction mathematique flottante de la libc.
 # Rend 1 si le lien echoue, avec la liste des symboles non resolus ; le
 # diagnostic complet reste dans <binaire>.err. Rend 2 sans objet : un lien de
 # rien passerait pour vert.
