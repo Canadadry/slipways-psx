@@ -461,6 +461,9 @@ $(TMP_DIR)/test_pico8_iv: $(call asan_objs,tests/test_pico8_iv.c $(ENGINE_SRCS))
 $(TMP_DIR)/test_pico8_mh: $(call asan_objs,tests/test_pico8_mh.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_pico8_places_vivantes: $(call asan_objs,tests/test_pico8_places_vivantes.c $(ENGINE_SRCS)) $(TMP_DIR)/pico8_replay | $(TMP_DIR)
+	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
+
 $(TMP_DIR)/test_pico8_fq: $(call objs,tests/test_pico8_fq.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -667,6 +670,7 @@ UNIT_TESTS := \
     test_pico8_jb_ol \
     test_pico8_iv \
     test_pico8_mh \
+    test_pico8_places_vivantes \
     test_pico8_fq \
     test_pico8_nf \
     test_pico8_je \
@@ -704,7 +708,7 @@ UNIT_TESTS := \
 # Un lancement par TU, en cible à part : c'est ce que -j parallélise.
 UNIT_RUNS := $(addprefix unit-run-,$(UNIT_TESTS))
 
-UNIT_RUNS_SPECIAL := unit-run-test_pico8_planet_gh_row_lq unit-run-test_pico8_zone unit-run-test_pico8_zone_choisie unit-run-test_pico8_zone_frame unit-run-test_pico8_zone_interface unit-run-test_pico8_file_sortie unit-run-test_pico8_iv unit-run-test_pico8_mh
+UNIT_RUNS_SPECIAL := unit-run-test_pico8_planet_gh_row_lq unit-run-test_pico8_zone unit-run-test_pico8_zone_choisie unit-run-test_pico8_zone_frame unit-run-test_pico8_zone_interface unit-run-test_pico8_file_sortie unit-run-test_pico8_iv unit-run-test_pico8_mh unit-run-test_pico8_places_vivantes
 
 unit: $(UNIT_RUNS)
 
@@ -733,6 +737,9 @@ unit-run-test_pico8_iv: $(TMP_DIR)/test_pico8_iv
 	ASAN_OPTIONS=detect_leaks=0 ./$<
 
 unit-run-test_pico8_mh: $(TMP_DIR)/test_pico8_mh
+	ASAN_OPTIONS=detect_leaks=0 ./$<
+
+unit-run-test_pico8_places_vivantes: $(TMP_DIR)/test_pico8_places_vivantes
 	ASAN_OPTIONS=detect_leaks=0 ./$<
 
 # Ces deux TU relisent tmp/pico8_replay_dump.txt, le dump par défaut de

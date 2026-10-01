@@ -15,7 +15,12 @@
  *
  * Every replay starts on the title screen: the file itself clicks the
  * difficulty. The driver takes no option; an argument starting with '-'
- * gets the usage and exit 2. */
+ * gets the usage and exit 2.
+ *
+ * PICO8_REMPLISSAGE=<file>, optional, is where the live places of each
+ * interface sort are written after the last frame, one "<sort> <count>"
+ * line each, read after flushing the exit queue. Capture, dump and exit
+ * code stay the same. */
 
 #include "pico8_mem.h"
 #include "pico8_assets.h"
@@ -26,9 +31,26 @@
 #include "pico8_screencast.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_cart.h"
+#include "pico8_zone_interface.h"
 
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
+
+static const char *const SORTE_NAMES[PICO8_SORTE_COUNT] = {"js", "fq", "mh", "iv", "rangee", "le"};
+
+static void write_remplissage(const char *path) {
+    FILE *out = fopen(path, "w");
+    if (out == NULL) {
+        fprintf(stderr, "pico8 replay: impossible d'ouvrir le fichier de remplissage '%s'\n", path);
+        return;
+    }
+    pico8_cart_vider_file_sortie();
+    for (int s = 0; s < PICO8_SORTE_COUNT; s++) {
+        fprintf(out, "%s %d\n", SORTE_NAMES[s], pico8_zone_interface_vivantes((pico8_sorte_t)s));
+    }
+    fclose(out);
+}
 
 int main(int argc, char **argv) {
     if (argc < 2 || argv[1][0] == '-') {
@@ -109,6 +131,11 @@ int main(int argc, char **argv) {
     int dump_ok = pico8_dump_screen(&mem, dump_out);
     fclose(dump_out);
     assert(dump_ok);
+
+    const char *remplissage_path = getenv("PICO8_REMPLISSAGE");
+    if (remplissage_path != NULL) {
+        write_remplissage(remplissage_path);
+    }
 
     pico8_input_free(&input);
 
