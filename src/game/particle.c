@@ -1,4 +1,4 @@
-#include "pico8_particle.h"
+#include "game/particle.h"
 
 #include <assert.h>
 #include <stddef.h>
@@ -8,7 +8,7 @@
 #include "p8/fixed.h"
 #include "game/game_data.h"
 #include "engine/vec.h"
-#include "pico8_zone_particules.h"
+#include "game/particle_zone.h"
 
 typedef char pico8_qy_fits_its_place[sizeof(pico8_qy_t) <= PICO8_PARTICULE_PLACE ? 1 : -1];
 

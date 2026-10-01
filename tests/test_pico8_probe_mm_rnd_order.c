@@ -18,8 +18,8 @@
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "engine/entity.h"
-#include "../src/pico8_particle.h"
-#include "../src/pico8_probe.h"
+#include "game/particle.h"
+#include "game/probe.h"
 #include "engine/vec.h"
 
 static pico8_g__t *new_probe(pico8_fixed_t pn, pico8_fixed_t t, pico8_fixed_t du, pico8_fixed_t py) {

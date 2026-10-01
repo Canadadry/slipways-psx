@@ -11,10 +11,10 @@
 #include "engine/entity.h"
 #include "game/layout.h"
 #include "game/draw_functions.h"
-#include "pico8_scroll.h"
-#include "pico8_ui.h"
-#include "pico8_ui_button.h"
-#include "pico8_zone_interface.h"
+#include "game/scroll.h"
+#include "game/ui.h"
+#include "game/ui_button.h"
+#include "game/ui_zone.h"
 
 static int g_mh_up = 0;
 static int g_iv_up = 0;

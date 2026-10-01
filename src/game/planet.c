@@ -1,4 +1,4 @@
-#include "pico8_planet.h"
+#include "game/planet.h"
 
 #include <assert.h>
 #include <stddef.h>
@@ -11,7 +11,7 @@
 #include "engine/entity.h"
 #include "game/message_box.h"
 #include "game/draw_functions.h"
-#include "pico8_research.h"
+#include "game/research.h"
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
 

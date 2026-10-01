@@ -10,12 +10,12 @@
 
 #include "p8/gfx.h"
 #include "p8/mem.h"
-#include "../src/pico8_particle.h"
-#include "../src/pico8_probe.h"
+#include "game/particle.h"
+#include "game/probe.h"
 #include "engine/pointer_list.h"
-#include "../src/pico8_slipway_display.h"
+#include "game/slipway_display.h"
 #include "engine/allocator.h"
-#include "../src/pico8_zone_particules.h"
+#include "game/particle_zone.h"
 
 #define STDERR_LOG "tmp/test_pico8_zone_particules_stderr.txt"
 

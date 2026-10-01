@@ -1,7 +1,7 @@
 #ifndef PICO8_CART_H
 #define PICO8_CART_H
 
-#include "pico8_ui_button.h"
+#include "game/ui_button.h"
 
 /* Runs every module's init, then builds the tables the cart's top-level
  * statements build (real Lua runs them once before `_init()`), but only

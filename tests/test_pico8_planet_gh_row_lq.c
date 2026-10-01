@@ -25,10 +25,10 @@
 #include "p8/gfx.h"
 #include "game/layout.h"
 #include "p8/mem.h"
-#include "../src/pico8_planet.h"
-#include "../src/pico8_planet_display.h"
-#include "../src/pico8_ui.h"
-#include "../src/pico8_ui_button.h"
+#include "game/planet.h"
+#include "game/planet_display.h"
+#include "game/ui.h"
+#include "game/ui_button.h"
 #include "engine/vec.h"
 
 /* The `js` button instances `pz()` just built. */

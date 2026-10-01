@@ -4,7 +4,7 @@
 #include "p8/gfx.h"
 #include "p8/mem.h"
 #include "engine/vec.h"
-#include "pico8_wormhole.h"
+#include "game/wormhole.h"
 
 /* TROU-3 */
 /* `p` is the struct's `ra`, as `dc("kj")` passes it. A NULL `self` draws

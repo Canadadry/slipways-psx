@@ -14,14 +14,14 @@
 #include "game/layout.h"
 #include "game/message_box.h"
 #include "game/draw_functions.h"
-#include "pico8_score_panel.h"
-#include "pico8_score_panel_display.h"
-#include "pico8_tech_gate.h"
-#include "pico8_ui_button.h"
+#include "game/score_panel.h"
+#include "game/score_panel_display.h"
+#include "game/tech_gate.h"
+#include "game/ui_button.h"
 #include "engine/vec.h"
 #include "p8/str.h"
 #include "engine/frame_zone.h"
-#include "pico8_zone_interface.h"
+#include "game/ui_zone.h"
 
 /* The most items a row of `ix` or `ha` holds. */
 #define PICO8_MENU_ROW_CAP 4

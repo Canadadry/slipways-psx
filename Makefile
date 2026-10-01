@@ -203,35 +203,35 @@ ENGINE_SRCS := \
     src/game/mouse_button.c \
     src/game/mouse.c \
     src/game/message_box.c \
-    src/pico8_particle.c \
+    src/game/particle.c \
     src/game/draw_functions.c \
-    src/pico8_planet.c \
-    src/pico8_planet_display.c \
-    src/pico8_planet_family.c \
-    src/pico8_planet_family_trade.c \
-    src/pico8_planet_trade.c \
-    src/pico8_probe.c \
-    src/pico8_research.c \
-    src/pico8_research_display.c \
-    src/pico8_research_icon.c \
-    src/pico8_score_panel.c \
-    src/pico8_score_panel_display.c \
-    src/pico8_scroll.c \
-    src/pico8_slipway.c \
-    src/pico8_slipway_display.c \
+    src/game/planet.c \
+    src/game/planet_display.c \
+    src/game/planet_family.c \
+    src/game/planet_family_trade.c \
+    src/game/planet_trade.c \
+    src/game/probe.c \
+    src/game/research.c \
+    src/game/research_display.c \
+    src/game/structure_icon.c \
+    src/game/score_panel.c \
+    src/game/score_panel_display.c \
+    src/game/scroll.c \
+    src/game/slipway.c \
+    src/game/slipway_display.c \
     src/p8/str.c \
-    src/pico8_tech_gate.c \
-    src/pico8_trade.c \
-    src/pico8_ui.c \
-    src/pico8_ui_button.c \
+    src/game/tech_gate.c \
+    src/game/trade.c \
+    src/game/ui.c \
+    src/game/ui_button.c \
     src/engine/vec.c \
-    src/pico8_wormhole.c \
-    src/pico8_wormhole_display.c \
+    src/game/wormhole.c \
+    src/game/wormhole_display.c \
     src/engine/zone.c \
     src/engine/allocator.c \
     src/engine/frame_zone.c \
-    src/pico8_zone_interface.c \
-    src/pico8_zone_particules.c \
+    src/game/ui_zone.c \
+    src/game/particle_zone.c \
     src/engine/game_zone.c
 
 # Le cœur porté, sans flottant : la closure du moteur moins les outils
@@ -274,31 +274,31 @@ DATA_ENGINE_SRCS := \
     src/game/mouse_button.c \
     src/game/mouse.c \
     src/game/message_box.c \
-    src/pico8_particle.c \
+    src/game/particle.c \
     src/game/draw_functions.c \
-    src/pico8_planet.c \
-    src/pico8_planet_display.c \
-    src/pico8_planet_family.c \
-    src/pico8_planet_trade.c \
-    src/pico8_probe.c \
-    src/pico8_research.c \
-    src/pico8_research_display.c \
-    src/pico8_scroll.c \
-    src/pico8_slipway.c \
-    src/pico8_slipway_display.c \
+    src/game/planet.c \
+    src/game/planet_display.c \
+    src/game/planet_family.c \
+    src/game/planet_trade.c \
+    src/game/probe.c \
+    src/game/research.c \
+    src/game/research_display.c \
+    src/game/scroll.c \
+    src/game/slipway.c \
+    src/game/slipway_display.c \
     src/p8/str.c \
-    src/pico8_tech_gate.c \
-    src/pico8_trade.c \
-    src/pico8_ui.c \
-    src/pico8_ui_button.c \
+    src/game/tech_gate.c \
+    src/game/trade.c \
+    src/game/ui.c \
+    src/game/ui_button.c \
     src/engine/vec.c \
-    src/pico8_wormhole.c \
-    src/pico8_wormhole_display.c \
+    src/game/wormhole.c \
+    src/game/wormhole_display.c \
     src/engine/zone.c \
     src/engine/allocator.c \
     src/engine/frame_zone.c \
-    src/pico8_zone_interface.c \
-    src/pico8_zone_particules.c \
+    src/game/ui_zone.c \
+    src/game/particle_zone.c \
     src/engine/game_zone.c \
     src/pico8_fatal_pc.c
 
@@ -451,7 +451,7 @@ $(TMP_DIR)/test_pico8_data_init: $(call objs,tests/test_pico8_data_init.c $(DATA
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_map_tables: $(call objs,tests/test_pico8_map_tables.c $(DATA_ENGINE_SRCS) \
-    src/pico8_planet_family_trade.c) | $(TMP_DIR)
+    src/game/planet_family_trade.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_jb_ol: $(call objs,tests/test_pico8_jb_ol.c tests/zone_tas.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
@@ -597,7 +597,7 @@ $(TMP_DIR)/test_pico8_zone_choisie: $(call asan_objs,tests/test_pico8_zone_chois
 $(TMP_DIR)/test_pico8_zone_particules: $(call asan_objs,tests/test_pico8_zone_particules.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_zone_interface: $(call asan_objs,tests/test_pico8_zone_interface.c src/pico8_zone_interface.c src/engine/allocator.c src/engine/zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_zone_interface: $(call asan_objs,tests/test_pico8_zone_interface.c src/game/ui_zone.c src/engine/allocator.c src/engine/zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_pico8_file_sortie: $(call asan_objs,tests/test_pico8_file_sortie.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -609,7 +609,7 @@ $(TMP_DIR)/test_pico8_zone_frame: $(call asan_objs,tests/test_pico8_zone_frame.c
 $(TMP_DIR)/test_pico8_zone_partie: $(call asan_objs,tests/test_pico8_zone_partie.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_ga_export_panel_by: $(call objs,tests/test_pico8_ga_export_panel_by.c $(DATA_ENGINE_SRCS) src/pico8_planet_family.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_ga_export_panel_by: $(call objs,tests/test_pico8_ga_export_panel_by.c $(DATA_ENGINE_SRCS) src/game/planet_family.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_probe_mm_rnd_order: $(call objs,tests/test_pico8_probe_mm_rnd_order.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -1054,8 +1054,8 @@ raylib-vendor-setup:
 # Les deux cibles raylib sont restées en forme source -> exécutable : leurs
 # fichiers ont besoin de -I third_party/raylib/src que les autres n'ont pas, et
 # pico8_raylib_backend_coords.c est aussi linké sans ce flag par un test.
-$(TMP_DIR)/main_raylib: src/main_raylib.c src/pico8_raylib_backend.c src/pico8_raylib_backend.h src/pico8_raylib_backend_coords.c src/pico8_raylib_backend_coords.h src/p8/palette.c src/p8/palette.h src/p8/assets.c src/p8/assets.h src/p8/audio.c src/game/background.c src/engine/bootstrap.c src/game/cart.c src/game/cart.h src/game/cheat.c src/game/cheat.h src/engine/collect.c src/game/data_init.c src/engine/dispatch_context.c src/engine/dispatch_context.h src/pico8_dump.c src/game/economy.c src/game/economy_formulas.c src/game/economy_score.c src/game/economy_tiers.c src/engine/entity_registry.c src/engine/entity_geom.c src/engine/exit_queue.c src/p8/fixed.c src/game/galaxy.c src/game/game_data.c src/game/gen.c src/engine/geom.c src/p8/gfx.c src/game/help.c src/game/help.h src/game/hud.c src/p8/input.c src/pico8_input_json.c src/engine/entity.c src/game/layout.c src/engine/entity_list.c src/engine/pointer_list.c src/game/map_tables.c src/p8/mem.c src/game/menu.c src/game/mouse_button.c src/game/mouse.c src/game/message_box.c src/pico8_particle.c src/game/draw_functions.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_replay_control.c src/pico8_replay_control.h src/pico8_replay_source.c src/pico8_replay_source.h src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_session_recorder.c src/pico8_session_recorder.h src/pico8_slipway.c src/pico8_slipway_display.c src/p8/str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_ui_button.h src/engine/vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c src/engine/zone.c src/engine/allocator.c src/engine/frame_zone.c src/pico8_zone_interface.c src/pico8_zone_particules.c src/engine/game_zone.c src/pico8_fatal_pc.c third_party/raylib/src/libraylib.a | $(TMP_DIR)
-	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ src/main_raylib.c src/pico8_raylib_backend.c src/pico8_raylib_backend_coords.c src/p8/palette.c src/p8/assets.c src/p8/audio.c src/game/background.c src/engine/bootstrap.c src/game/cart.c src/game/cheat.c src/engine/collect.c src/game/data_init.c src/engine/dispatch_context.c src/pico8_dump.c src/game/economy.c src/game/economy_formulas.c src/game/economy_score.c src/game/economy_tiers.c src/engine/entity_registry.c src/engine/entity_geom.c src/engine/exit_queue.c src/p8/fixed.c src/game/galaxy.c src/game/game_data.c src/game/gen.c src/engine/geom.c src/p8/gfx.c src/game/help.c src/game/hud.c src/p8/input.c src/pico8_input_json.c src/engine/entity.c src/game/layout.c src/engine/entity_list.c src/engine/pointer_list.c src/game/map_tables.c src/p8/mem.c src/game/menu.c src/game/mouse_button.c src/game/mouse.c src/game/message_box.c src/pico8_particle.c src/game/draw_functions.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_replay_control.c src/pico8_replay_source.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_session_recorder.c src/pico8_slipway.c src/pico8_slipway_display.c src/p8/str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/engine/vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c src/engine/zone.c src/engine/allocator.c src/engine/frame_zone.c src/pico8_zone_interface.c src/pico8_zone_particules.c src/engine/game_zone.c src/pico8_fatal_pc.c third_party/raylib/src/libraylib.a $(RAYLIB_LDLIBS)
+$(TMP_DIR)/main_raylib: src/main_raylib.c src/pico8_raylib_backend.c src/pico8_raylib_backend.h src/pico8_raylib_backend_coords.c src/pico8_raylib_backend_coords.h src/p8/palette.c src/p8/palette.h src/p8/assets.c src/p8/assets.h src/p8/audio.c src/game/background.c src/engine/bootstrap.c src/game/cart.c src/game/cart.h src/game/cheat.c src/game/cheat.h src/engine/collect.c src/game/data_init.c src/engine/dispatch_context.c src/engine/dispatch_context.h src/pico8_dump.c src/game/economy.c src/game/economy_formulas.c src/game/economy_score.c src/game/economy_tiers.c src/engine/entity_registry.c src/engine/entity_geom.c src/engine/exit_queue.c src/p8/fixed.c src/game/galaxy.c src/game/game_data.c src/game/gen.c src/engine/geom.c src/p8/gfx.c src/game/help.c src/game/help.h src/game/hud.c src/p8/input.c src/pico8_input_json.c src/engine/entity.c src/game/layout.c src/engine/entity_list.c src/engine/pointer_list.c src/game/map_tables.c src/p8/mem.c src/game/menu.c src/game/mouse_button.c src/game/mouse.c src/game/message_box.c src/game/particle.c src/game/draw_functions.c src/game/planet.c src/game/planet_display.c src/game/planet_family.c src/game/planet_family_trade.c src/game/planet_trade.c src/game/probe.c src/pico8_replay_control.c src/pico8_replay_control.h src/pico8_replay_source.c src/pico8_replay_source.h src/game/research.c src/game/research_display.c src/game/structure_icon.c src/game/score_panel.c src/game/score_panel_display.c src/game/scroll.c src/pico8_session_recorder.c src/pico8_session_recorder.h src/game/slipway.c src/game/slipway_display.c src/p8/str.c src/game/tech_gate.c src/game/trade.c src/game/ui.c src/game/ui_button.c src/game/ui_button.h src/engine/vec.c src/game/wormhole.c src/game/wormhole_display.c src/engine/zone.c src/engine/allocator.c src/engine/frame_zone.c src/game/ui_zone.c src/game/particle_zone.c src/engine/game_zone.c src/pico8_fatal_pc.c third_party/raylib/src/libraylib.a | $(TMP_DIR)
+	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ src/main_raylib.c src/pico8_raylib_backend.c src/pico8_raylib_backend_coords.c src/p8/palette.c src/p8/assets.c src/p8/audio.c src/game/background.c src/engine/bootstrap.c src/game/cart.c src/game/cheat.c src/engine/collect.c src/game/data_init.c src/engine/dispatch_context.c src/pico8_dump.c src/game/economy.c src/game/economy_formulas.c src/game/economy_score.c src/game/economy_tiers.c src/engine/entity_registry.c src/engine/entity_geom.c src/engine/exit_queue.c src/p8/fixed.c src/game/galaxy.c src/game/game_data.c src/game/gen.c src/engine/geom.c src/p8/gfx.c src/game/help.c src/game/hud.c src/p8/input.c src/pico8_input_json.c src/engine/entity.c src/game/layout.c src/engine/entity_list.c src/engine/pointer_list.c src/game/map_tables.c src/p8/mem.c src/game/menu.c src/game/mouse_button.c src/game/mouse.c src/game/message_box.c src/game/particle.c src/game/draw_functions.c src/game/planet.c src/game/planet_display.c src/game/planet_family.c src/game/planet_family_trade.c src/game/planet_trade.c src/game/probe.c src/pico8_replay_control.c src/pico8_replay_source.c src/game/research.c src/game/research_display.c src/game/structure_icon.c src/game/score_panel.c src/game/score_panel_display.c src/game/scroll.c src/pico8_session_recorder.c src/game/slipway.c src/game/slipway_display.c src/p8/str.c src/game/tech_gate.c src/game/trade.c src/game/ui.c src/game/ui_button.c src/engine/vec.c src/game/wormhole.c src/game/wormhole_display.c src/engine/zone.c src/engine/allocator.c src/engine/frame_zone.c src/game/ui_zone.c src/game/particle_zone.c src/engine/game_zone.c src/pico8_fatal_pc.c third_party/raylib/src/libraylib.a $(RAYLIB_LDLIBS)
 
 raylib: $(TMP_DIR)/main_raylib
 

@@ -1,13 +1,13 @@
-#include "pico8_planet_trade.h"
+#include "game/planet_trade.h"
 
 #include <assert.h>
 #include <stddef.h>
 
 #include "engine/collect.h"
 #include "game/map_tables.h"
-#include "pico8_planet.h"
-#include "pico8_trade.h"
-#include "pico8_slipway.h"
+#include "game/planet.h"
+#include "game/trade.h"
+#include "game/slipway.h"
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
 

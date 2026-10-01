@@ -7,9 +7,9 @@
 #include "engine/entity_geom.h"
 #include "engine/entity.h"
 #include "game/message_box.h"
-#include "pico8_particle.h"
+#include "game/particle.h"
 #include "game/draw_functions.h"
-#include "pico8_probe.h"
+#include "game/probe.h"
 #include "engine/entity_class.h"
 #include "engine/game_zone.h"
 

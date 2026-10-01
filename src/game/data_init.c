@@ -1,7 +1,7 @@
 #include "game/data_init.h"
 
-#include "pico8_research.h"
-#include "pico8_tech_gate.h"
+#include "game/research.h"
+#include "game/tech_gate.h"
 
 void pico8_data_init(void) {
     /* hp must be ready before build_gb builds one. */

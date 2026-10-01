@@ -1,4 +1,4 @@
-#include "pico8_research_display.h"
+#include "game/research_display.h"
 
 #include <assert.h>
 #include <stddef.h>
@@ -6,10 +6,10 @@
 
 #include "game/layout.h"
 #include "game/map_tables.h"
-#include "pico8_planet.h"
-#include "pico8_research.h"
+#include "game/planet.h"
+#include "game/research.h"
 #include "p8/str.h"
-#include "pico8_tech_gate.h"
+#include "game/tech_gate.h"
 #include "engine/frame_zone.h"
 
 /* In the frame zone. */

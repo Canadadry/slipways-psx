@@ -1,4 +1,4 @@
-#include "pico8_trade.h"
+#include "game/trade.h"
 
 #include <assert.h>
 #include <stddef.h>

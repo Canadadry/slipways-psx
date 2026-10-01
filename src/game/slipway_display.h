@@ -5,7 +5,7 @@
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/mem.h"
-#include "pico8_slipway.h"
+#include "game/slipway.h"
 #include "engine/vec.h"
 
 /* Throughout this module a NULL struct or entity argument is a safe no-op

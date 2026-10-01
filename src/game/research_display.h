@@ -5,7 +5,7 @@
 #include "p8/fixed.h"
 #include "game/layout.h"
 #include "engine/pointer_list.h"
-#include "pico8_research.h"
+#include "game/research.h"
 
 /* Returns a row in the frame zone, valid until its next reset, or NULL
  * when pico8_jo_ex() does. The two items appended to `items` after

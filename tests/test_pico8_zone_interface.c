@@ -9,7 +9,7 @@
 #include <sys/wait.h>
 
 #include "engine/allocator.h"
-#include "../src/pico8_zone_interface.h"
+#include "game/ui_zone.h"
 
 #define STDERR_LOG "tmp/test_pico8_zone_interface_stderr.txt"
 

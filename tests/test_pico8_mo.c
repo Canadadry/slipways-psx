@@ -18,9 +18,9 @@
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "p8/mem.h"
-#include "../src/pico8_scroll.h"
+#include "game/scroll.h"
 #include "engine/entity_class.h"
-#include "../src/pico8_ui.h"
+#include "game/ui.h"
 #include "engine/vec.h"
 
 #define GD_NEAR 1

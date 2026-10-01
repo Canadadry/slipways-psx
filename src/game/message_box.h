@@ -5,7 +5,7 @@
 #include "game/game_data.h"
 #include "p8/gfx.h"
 #include "p8/mem.h"
-#include "pico8_ui_button.h"
+#include "game/ui_button.h"
 #include "engine/vec.h"
 
 /* Throughout this module a NULL instance argument is a safe no-op, and an

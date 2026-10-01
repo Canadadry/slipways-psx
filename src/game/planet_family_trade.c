@@ -1,17 +1,17 @@
-#include "pico8_planet_family_trade.h"
+#include "game/planet_family_trade.h"
 
 #include <assert.h>
 #include <string.h>
 
 #include "engine/entity_class.h"
-#include "pico8_particle.h"
+#include "game/particle.h"
 #include "game/draw_functions.h"
-#include "pico8_planet.h"
-#include "pico8_planet_family.h"
-#include "pico8_planet_trade.h"
-#include "pico8_probe.h"
-#include "pico8_slipway.h"
-#include "pico8_trade.h"
+#include "game/planet.h"
+#include "game/planet_family.h"
+#include "game/planet_trade.h"
+#include "game/probe.h"
+#include "game/slipway.h"
+#include "game/trade.h"
 #include "engine/frame_zone.h"
 
 /* What `mx:kf` leaves in `ht` once it accepts a resource: `o()`. */

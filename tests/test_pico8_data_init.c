@@ -8,7 +8,7 @@
 #include "p8/assets.h"
 #include "game/map_tables.h"
 #include "p8/mem.h"
-#include "../src/pico8_research.h"
+#include "game/research.h"
 
 static void test_hc_fd_dr_nb_decode_real_cart_content(void) {
     pico8_mem_t mem;

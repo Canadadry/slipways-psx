@@ -25,11 +25,11 @@
 #include "game/message_box.h"
 #include "game/economy_score.h"
 #include "game/main_economy.h"
-#include "../src/pico8_score_panel.h"
-#include "../src/pico8_score_panel_display.h"
+#include "game/score_panel.h"
+#include "game/score_panel_display.h"
 #include "engine/allocator.h"
 #include "engine/frame_zone.h"
-#include "../src/pico8_zone_interface.h"
+#include "game/ui_zone.h"
 
 #define YEAR_MESSAGE_TICKS 192
 #define YEAR_MESSAGE_SEQUENCE_HASH 0xEF726FD2u

@@ -1,4 +1,4 @@
-#include "pico8_zone_interface.h"
+#include "game/ui_zone.h"
 
 #include <assert.h>
 #include <stddef.h>

@@ -1,4 +1,4 @@
-#include "pico8_scroll.h"
+#include "game/scroll.h"
 
 #include <assert.h>
 #include <stddef.h>

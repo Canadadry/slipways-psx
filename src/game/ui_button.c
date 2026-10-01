@@ -1,4 +1,4 @@
-#include "pico8_ui_button.h"
+#include "game/ui_button.h"
 
 #include <string.h>
 
@@ -9,7 +9,7 @@
 #include "engine/geom.h"
 #include "engine/entity.h"
 #include "game/layout.h"
-#include "pico8_zone_interface.h"
+#include "game/ui_zone.h"
 
 static int g_js_up = 0;
 static int g_fq_up = 0;

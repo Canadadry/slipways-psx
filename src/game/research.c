@@ -1,10 +1,10 @@
-#include "pico8_research.h"
+#include "game/research.h"
 
 #include <assert.h>
 #include <stddef.h>
 #include <string.h>
 
-#include "pico8_tech_gate.h"
+#include "game/tech_gate.h"
 #include "engine/game_zone.h"
 
 static int g_hp_up = 0;

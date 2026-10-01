@@ -28,11 +28,11 @@
 #include "p8/mem.h"
 #include "game/menu.h"
 #include "game/message_box.h"
-#include "../src/pico8_score_panel.h"
-#include "../src/pico8_score_panel_display.h"
+#include "game/score_panel.h"
+#include "game/score_panel_display.h"
 #include "engine/entity_class.h"
-#include "../src/pico8_ui.h"
-#include "../src/pico8_ui_button.h"
+#include "game/ui.h"
+#include "game/ui_button.h"
 #include "engine/vec.h"
 
 #define BUILT_HASH 0x9BE763EBu

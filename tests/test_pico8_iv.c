@@ -20,14 +20,14 @@
 #include "p8/input.h"
 #include "engine/entity.h"
 #include "p8/mem.h"
-#include "../src/pico8_ui.h"
+#include "game/ui.h"
 #include "game/message_box.h"
 #include "game/mouse.h"
 #include "engine/entity_class.h"
 #include "engine/vec.h"
-#include "../src/pico8_wormhole.h"
+#include "game/wormhole.h"
 #include "engine/frame_zone.h"
-#include "../src/pico8_zone_interface.h"
+#include "game/ui_zone.h"
 
 #define NO_MONEY_TICKS 51
 #define NO_MONEY_SEQUENCE_HASH 0x0F5C11D3u

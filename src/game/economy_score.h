@@ -3,7 +3,7 @@
 
 #include "engine/entity_class.h"
 #include "p8/fixed.h"
-#include "pico8_ui_button.h"
+#include "game/ui_button.h"
 
 /* Throughout this module an absent or wrong-kind field reads as its
  * zero/false default rather than crashing, and a NULL instance is a safe

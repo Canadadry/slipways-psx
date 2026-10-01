@@ -8,9 +8,9 @@
 #include "game/main_economy.h"
 #include "game/game_data.h"
 #include "game/map_tables.h"
-#include "pico8_planet.h"
+#include "game/planet.h"
 #include "p8/str.h"
-#include "pico8_trade.h"
+#include "game/trade.h"
 #include "engine/frame_zone.h"
 
 static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {

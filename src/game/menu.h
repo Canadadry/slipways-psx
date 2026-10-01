@@ -2,7 +2,7 @@
 #define PICO8_MENU_H
 
 #include "engine/entity_class.h"
-#include "pico8_ui_button.h"
+#include "game/ui_button.h"
 
 /* Throughout this module a missing singleton (`fm`, `ju`, `pj`'s class) or an
  * absent table is a safe no-op rather than a crash. */

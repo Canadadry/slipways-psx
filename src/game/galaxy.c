@@ -7,7 +7,7 @@
 #include "engine/entity_geom.h"
 #include "game/game_data.h"
 #include "game/gen.h"
-#include "pico8_planet.h"
+#include "game/planet.h"
 #include "p8/str.h"
 #include "engine/vec.h"
 #include "engine/frame_zone.h"

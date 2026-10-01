@@ -17,9 +17,9 @@
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "p8/mem.h"
-#include "../src/pico8_planet_family.h"
-#include "../src/pico8_planet_family_trade.h"
-#include "../src/pico8_research.h"
+#include "game/planet_family.h"
+#include "game/planet_family_trade.h"
+#include "game/research.h"
 #include "engine/entity_class.h"
 
 #define KIND_HASH 0xBCF0E60Bu

@@ -19,7 +19,7 @@
 #include "game/mouse_button.h"
 #include "game/mouse.h"
 #include "engine/entity_class.h"
-#include "../src/pico8_ui.h"
+#include "game/ui.h"
 #include "engine/vec.h"
 
 #define SCRIPTED_TICKS 12

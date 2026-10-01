@@ -4,7 +4,7 @@
 #include "p8/fixed.h"
 #include "game/game_data.h"
 #include "engine/entity.h"
-#include "pico8_probe_comp.h"
+#include "game/targeting.h"
 #include "engine/pointer_list.h"
 #include "engine/entity_class.h"
 

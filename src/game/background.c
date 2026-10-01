@@ -9,10 +9,10 @@
 #include "p8/fixed.h"
 #include "game/gen.h"
 #include "engine/entity.h"
-#include "pico8_probe.h"
-#include "pico8_scroll.h"
+#include "game/probe.h"
+#include "game/scroll.h"
 #include "engine/vec.h"
-#include "pico8_wormhole.h"
+#include "game/wormhole.h"
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
 

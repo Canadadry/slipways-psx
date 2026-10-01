@@ -1,4 +1,4 @@
-#include "pico8_planet_display.h"
+#include "game/planet_display.h"
 
 #include <assert.h>
 #include <stddef.h>
@@ -15,15 +15,15 @@
 #include "engine/entity.h"
 #include "game/map_tables.h"
 #include "game/message_box.h"
-#include "pico8_planet.h"
-#include "pico8_research.h"
-#include "pico8_research_display.h"
-#include "pico8_slipway.h"
+#include "game/planet.h"
+#include "game/research.h"
+#include "game/research_display.h"
+#include "game/slipway.h"
 #include "p8/str.h"
-#include "pico8_tech_gate.h"
-#include "pico8_ui_button.h"
+#include "game/tech_gate.h"
+#include "game/ui_button.h"
 #include "engine/frame_zone.h"
-#include "pico8_zone_interface.h"
+#include "game/ui_zone.h"
 
 /* `kw` as `lq:mn` reads it, `{qe=kw.qe}` (`mu` is never read there), in
  * the frame zone. */

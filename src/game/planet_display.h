@@ -1,11 +1,11 @@
 #ifndef PICO8_PLANET_DISPLAY_H
 #define PICO8_PLANET_DISPLAY_H
 
-#include "pico8_research.h"
+#include "game/research.h"
 #include "engine/entity_class.h"
 #include "p8/gfx.h"
 #include "p8/mem.h"
-#include "pico8_planet.h"
+#include "game/planet.h"
 #include "engine/vec.h"
 
 /* Throughout this module a NULL instance argument is a safe no-op (Lua nil

@@ -1,4 +1,4 @@
-#include "pico8_wormhole_display.h"
+#include "game/wormhole_display.h"
 
 #include <assert.h>
 #include <stddef.h>
@@ -6,7 +6,7 @@
 
 #include "engine/dispatch_context.h"
 #include "p8/fixed.h"
-#include "pico8_wormhole.h"
+#include "game/wormhole.h"
 
 static pico8_vec_t pico8_mzd_ra_of_ij(const pico8_mz_t *self) {
     const pico8_vec_t *ra = NULL;

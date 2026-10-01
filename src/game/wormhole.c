@@ -1,4 +1,4 @@
-#include "pico8_wormhole.h"
+#include "game/wormhole.h"
 
 #include <assert.h>
 #include <string.h>
@@ -7,9 +7,9 @@
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
 #include "engine/entity.h"
-#include "pico8_planet.h"
-#include "pico8_probe_comp.h"
-#include "pico8_tech_gate.h"
+#include "game/planet.h"
+#include "game/targeting.h"
+#include "game/tech_gate.h"
 #include "engine/allocator.h"
 
 static int g_mz_up = 0;

@@ -1,19 +1,19 @@
-#include "pico8_planet_family.h"
+#include "game/planet_family.h"
 
 #include <assert.h>
 #include <stddef.h>
 #include <string.h>
 
-#include "pico8_scroll.h"
+#include "game/scroll.h"
 #include "engine/entity_class.h"
 #include "engine/dispatch_context.h"
 #include "engine/entity_registry.h"
 #include "engine/entity.h"
-#include "pico8_particle.h"
+#include "game/particle.h"
 #include "game/draw_functions.h"
-#include "pico8_planet.h"
-#include "pico8_planet_display.h"
-#include "pico8_probe.h"
+#include "game/planet.h"
+#include "game/planet_display.h"
+#include "game/probe.h"
 #include "engine/game_zone.h"
 
 static int g_family_up = 0;

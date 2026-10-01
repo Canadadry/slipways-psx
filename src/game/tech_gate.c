@@ -1,4 +1,4 @@
-#include "pico8_tech_gate.h"
+#include "game/tech_gate.h"
 
 #include <assert.h>
 #include <stddef.h>

@@ -3,8 +3,8 @@
 
 #include "engine/entity_class.h"
 #include "p8/fixed.h"
-#include "pico8_planet.h"
-#include "pico8_trade.h"
+#include "game/planet.h"
+#include "game/trade.h"
 
 /* Throughout this module a NULL instance or NULL proposal argument is a
  * safe no-op (Lua nil for the value-returning function), and an absent or

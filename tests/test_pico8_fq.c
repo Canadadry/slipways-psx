@@ -17,11 +17,11 @@
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "p8/mem.h"
-#include "../src/pico8_score_panel_display.h"
+#include "game/score_panel_display.h"
 #include "engine/entity_class.h"
-#include "../src/pico8_ui.h"
-#include "../src/pico8_ui_button.h"
-#include "../src/pico8_zone_interface.h"
+#include "game/ui.h"
+#include "game/ui_button.h"
+#include "game/ui_zone.h"
 
 #define MY_TRUE_TICKS 6
 #define MY_TRUE_SEQUENCE_HASH 0xA6A43C27u

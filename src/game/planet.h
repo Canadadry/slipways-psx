@@ -6,10 +6,10 @@
 #include "game/game_data.h"
 #include "game/gen.h"
 #include "game/layout.h"
-#include "pico8_particle.h"
-#include "pico8_probe_comp.h"
+#include "game/particle.h"
+#include "game/targeting.h"
 #include "engine/pointer_list.h"
-#include "pico8_research.h"
+#include "game/research.h"
 #include "engine/entity_class.h"
 
 /* Throughout this module a NULL instance argument is a safe no-op (Lua nil

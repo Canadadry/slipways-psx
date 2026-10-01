@@ -1,4 +1,4 @@
-#include "../src/pico8_planet.h"
+#include "game/planet.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -10,8 +10,8 @@
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/mem.h"
-#include "../src/pico8_planet_display.h"
-#include "../src/pico8_scroll.h"
+#include "game/planet_display.h"
+#include "game/scroll.h"
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 

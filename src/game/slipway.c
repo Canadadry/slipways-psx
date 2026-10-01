@@ -1,4 +1,4 @@
-#include "pico8_slipway.h"
+#include "game/slipway.h"
 
 #include <assert.h>
 #include <string.h>
@@ -12,13 +12,13 @@
 #include "engine/geom.h"
 #include "p8/input.h"
 #include "engine/entity.h"
-#include "pico8_planet.h"
-#include "pico8_probe_comp.h"
-#include "pico8_tech_gate.h"
-#include "pico8_ui.h"
+#include "game/planet.h"
+#include "game/targeting.h"
+#include "game/tech_gate.h"
+#include "game/ui.h"
 #include "engine/vec.h"
 #include "engine/frame_zone.h"
-#include "pico8_zone_particules.h"
+#include "game/particle_zone.h"
 
 static int g_jc_up = 0;
 

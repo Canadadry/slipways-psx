@@ -36,8 +36,8 @@
 #include "pico8_screencast.h"
 #include "engine/dispatch_context.h"
 #include "game/cart.h"
-#include "pico8_zone_interface.h"
-#include "pico8_zone_particules.h"
+#include "game/ui_zone.h"
+#include "game/particle_zone.h"
 #include "engine/game_zone.h"
 
 #include <assert.h>

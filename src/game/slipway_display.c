@@ -1,14 +1,14 @@
-#include "pico8_slipway_display.h"
+#include "game/slipway_display.h"
 
 #include <assert.h>
 #include <stddef.h>
 
 #include "engine/dispatch_context.h"
 #include "engine/entity_geom.h"
-#include "pico8_planet.h"
-#include "pico8_slipway.h"
+#include "game/planet.h"
+#include "game/slipway.h"
 #include "engine/vec.h"
-#include "pico8_zone_particules.h"
+#include "game/particle_zone.h"
 
 typedef char pico8_ts_tient_sa_place[sizeof(pico8_ts_t) <= PICO8_TS_PLACE ? 1 : -1];
 

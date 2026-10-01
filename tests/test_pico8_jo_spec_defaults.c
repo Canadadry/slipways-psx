@@ -16,9 +16,9 @@
 #include "p8/input.h"
 #include "engine/entity.h"
 #include "p8/mem.h"
-#include "../src/pico8_planet.h"
-#include "../src/pico8_planet_family.h"
-#include "../src/pico8_planet_family_trade.h"
+#include "game/planet.h"
+#include "game/planet_family.h"
+#include "game/planet_family_trade.h"
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;

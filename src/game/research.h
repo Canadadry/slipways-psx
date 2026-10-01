@@ -6,7 +6,7 @@
 #include "game/map_tables.h"
 #include "engine/pointer_list.h"
 #include "engine/entity_class.h"
-#include "pico8_trade.h"
+#include "game/trade.h"
 
 /* A want of `hp.i` or `jo.jy`, the cart's `{qe=r[c]}`, then `gc` as
  * `economy_tiers` writes it. `row` comes first and holds `qe` (has_qe 0:

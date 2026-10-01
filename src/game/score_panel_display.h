@@ -2,7 +2,7 @@
 #define PICO8_SCORE_PANEL_DISPLAY_H
 
 #include "p8/fixed.h"
-#include "pico8_score_panel.h"
+#include "game/score_panel.h"
 
 /* `gz` is tested for PRESENCE, not for a non-zero value: the 0 written into
  * it is truthy in Lua, and it is what makes `pj:kj` draw the reveal curtain

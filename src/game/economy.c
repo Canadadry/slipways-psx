@@ -13,10 +13,10 @@
 #include "game/game_data.h"
 #include "game/map_tables.h"
 #include "game/message_box.h"
-#include "pico8_planet.h"
+#include "game/planet.h"
 #include "engine/pointer_list.h"
-#include "pico8_research.h"
-#include "pico8_tech_gate.h"
+#include "game/research.h"
+#include "game/tech_gate.h"
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
 

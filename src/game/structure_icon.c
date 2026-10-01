@@ -1,4 +1,4 @@
-#include "pico8_research_icon.h"
+#include "game/structure_icon.h"
 
 #include <assert.h>
 #include <string.h>
@@ -10,10 +10,10 @@
 #include "engine/entity.h"
 #include "game/layout.h"
 #include "game/draw_functions.h"
-#include "pico8_planet.h"
-#include "pico8_probe.h"
+#include "game/planet.h"
+#include "game/probe.h"
 #include "p8/str.h"
-#include "pico8_tech_gate.h"
+#include "game/tech_gate.h"
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
 

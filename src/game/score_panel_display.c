@@ -1,4 +1,4 @@
-#include "pico8_score_panel_display.h"
+#include "game/score_panel_display.h"
 
 #include <assert.h>
 #include <string.h>
@@ -7,9 +7,9 @@
 #include "game/main_economy.h"
 #include "game/layout.h"
 #include "game/message_box.h"
-#include "pico8_score_panel.h"
+#include "game/score_panel.h"
 #include "p8/str.h"
-#include "pico8_ui_button.h"
+#include "game/ui_button.h"
 #include "engine/frame_zone.h"
 
 

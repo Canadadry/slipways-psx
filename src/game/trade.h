@@ -23,7 +23,7 @@ typedef struct {
  * named pico8_trade_eq below. The generic membership helper (pico8_ents_has)
  * therefore compares two trades by pointer identity, not by pico8_trade_eq;
  * membership that must honour trade equality goes
- * through `gu_trade` (src/pico8_planet_trade.c). */
+ * through `gu_trade` (src/game/planet_trade.c). */
 void pico8_trade_init(void);
 void pico8_trade_shutdown(void);
 

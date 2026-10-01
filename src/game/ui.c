@@ -1,4 +1,4 @@
-#include "pico8_ui.h"
+#include "game/ui.h"
 
 #include <assert.h>
 #include <string.h>
@@ -9,13 +9,13 @@
 #include "engine/entity.h"
 #include "game/mouse_button.h"
 #include "game/draw_functions.h"
-#include "pico8_planet_family.h"
-#include "pico8_scroll.h"
-#include "pico8_ui_button.h"
+#include "game/planet_family.h"
+#include "game/scroll.h"
+#include "game/ui_button.h"
 #include "engine/vec.h"
-#include "pico8_wormhole.h"
+#include "game/wormhole.h"
 #include "engine/frame_zone.h"
-#include "pico8_zone_interface.h"
+#include "game/ui_zone.h"
 #include "engine/game_zone.h"
 
 static int g_ui_up = 0;

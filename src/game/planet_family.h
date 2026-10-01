@@ -4,8 +4,8 @@
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/mem.h"
-#include "pico8_particle.h"
-#include "pico8_planet.h"
+#include "game/particle.h"
+#include "game/planet.h"
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 

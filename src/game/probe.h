@@ -2,8 +2,8 @@
 #define PICO8_PROBE_H
 
 #include "game/game_data.h"
-#include "pico8_particle.h"
-#include "pico8_probe_comp.h"
+#include "game/particle.h"
+#include "game/targeting.h"
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 #include "engine/allocator.h"

@@ -19,9 +19,9 @@
 #include "p8/input.h"
 #include "p8/mem.h"
 #include "game/message_box.h"
-#include "../src/pico8_score_panel.h"
-#include "../src/pico8_ui.h"
-#include "../src/pico8_ui_button.h"
+#include "game/score_panel.h"
+#include "game/ui.h"
+#include "game/ui_button.h"
 
 #define STDERR_LOG "tmp/test_pico8_file_sortie_stderr.txt"
 

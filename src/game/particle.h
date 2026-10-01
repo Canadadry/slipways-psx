@@ -7,7 +7,7 @@
 #include "p8/mem.h"
 #include "engine/pointer_list.h"
 #include "engine/vec.h"
-#include "pico8_zone_particules.h"
+#include "game/particle_zone.h"
 
 /* Throughout this module a NULL instance, gfx or mem argument is a safe
  * no-op and a non-NULL `self` must be a struct (asserted). `f_` and `ei`

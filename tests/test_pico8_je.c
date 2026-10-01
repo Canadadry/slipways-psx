@@ -19,7 +19,7 @@
 #include "game/mouse.h"
 #include "p8/mem.h"
 #include "engine/entity_class.h"
-#include "../src/pico8_ui.h"
+#include "game/ui.h"
 #include "engine/vec.h"
 
 #define LJ_QA_X 0

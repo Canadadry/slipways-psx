@@ -1,4 +1,4 @@
-#include "pico8_probe.h"
+#include "game/probe.h"
 
 #include <assert.h>
 #include <string.h>
@@ -14,11 +14,11 @@
 #include "game/hud.h"
 #include "p8/audio.h"
 #include "engine/entity.h"
-#include "pico8_particle.h"
-#include "pico8_planet.h"
-#include "pico8_slipway.h"
-#include "pico8_ui.h"
-#include "pico8_wormhole.h"
+#include "game/particle.h"
+#include "game/planet.h"
+#include "game/slipway.h"
+#include "game/ui.h"
+#include "game/wormhole.h"
 #include "p8/str.h"
 #include "engine/frame_zone.h"
 

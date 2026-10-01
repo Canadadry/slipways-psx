@@ -5,11 +5,11 @@
 
 #include "engine/entity_registry.h"
 #include "game/game_data.h"
-#include "pico8_planet.h"
-#include "pico8_planet_trade.h"
-#include "pico8_research.h"
-#include "pico8_slipway.h"
-#include "pico8_trade.h"
+#include "game/planet.h"
+#include "game/planet_trade.h"
+#include "game/research.h"
+#include "game/slipway.h"
+#include "game/trade.h"
 #include "engine/game_zone.h"
 
 static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {

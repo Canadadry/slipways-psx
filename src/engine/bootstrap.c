@@ -6,8 +6,8 @@
 #include "p8/fixed.h"
 #include "engine/entity.h"
 #include "game/mouse.h"
-#include "pico8_scroll.h"
-#include "pico8_ui.h"
+#include "game/scroll.h"
+#include "game/ui.h"
 
 void pico8_jl(void) {
     pico8_qb_t *real_mo;

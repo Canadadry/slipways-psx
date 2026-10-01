@@ -1,4 +1,4 @@
-#include "pico8_score_panel.h"
+#include "game/score_panel.h"
 
 #include <assert.h>
 #include <stddef.h>
@@ -14,7 +14,7 @@
 #include "engine/entity.h"
 #include "game/map_tables.h"
 #include "game/draw_functions.h"
-#include "pico8_planet.h"
+#include "game/planet.h"
 #include "p8/str.h"
 #include "engine/entity_class.h"
 #include "engine/vec.h"

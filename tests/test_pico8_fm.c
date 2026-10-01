@@ -24,9 +24,9 @@
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "p8/mem.h"
-#include "../src/pico8_probe.h"
-#include "../src/pico8_score_panel.h"
-#include "../src/pico8_tech_gate.h"
+#include "game/probe.h"
+#include "game/score_panel.h"
+#include "game/tech_gate.h"
 #include "engine/entity_class.h"
 
 static pico8_mem_t mem;

@@ -1,7 +1,7 @@
 #ifndef PICO8_PLANET_FAMILY_TRADE_H
 #define PICO8_PLANET_FAMILY_TRADE_H
 
-#include "pico8_planet_trade.h"
+#include "game/planet_trade.h"
 #include "engine/entity_class.h"
 
 /* TROU-8 */
