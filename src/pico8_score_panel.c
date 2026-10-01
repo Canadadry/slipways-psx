@@ -20,7 +20,6 @@
 #include "pico8_struct.h"
 #include "pico8_vec.h"
 #include "pico8_zone_frame.h"
-#include "pico8_zone_transitoire.h"
 
 static int g_pj_up = 0;
 static pico8_bz_row_t g_bz[PICO8_BZ_COUNT];
@@ -158,10 +157,10 @@ void pico8_pj_hb(void) {
         }
     }
 
-    cf = pico8_ne(&pico8_zone_transitoire, fm_ge, 0, NULL, &discard_color);
+    cf = pico8_ne(pico8_zone_frame(), fm_ge, 0, NULL, &discard_color);
 
     nz_str = pico8_tostr_fixed(pico8_zone_frame(), fm_nz);
-    ou[0] = (pico8_jb_item_t){.s = pico8_concat2(&pico8_zone_transitoire, nz_str, "$")};
+    ou[0] = (pico8_jb_item_t){.s = pico8_concat2(pico8_zone_frame(), nz_str, "$")};
 
     ou[1] = (pico8_jb_item_t){.s = cf};
 
@@ -176,11 +175,11 @@ void pico8_pj_hb(void) {
         /* `..` binds looser than `+`: the Lua reads `"+"..(fm.po[r.k]+1)`. */
         plus_num =
             pico8_tostr_fixed(pico8_zone_frame(), pico8_fixed_add(po_val, pico8_fixed_from_int(1)));
-        ou[3] = (pico8_jb_item_t){.s = pico8_concat2(&pico8_zone_transitoire, "+", plus_num)};
+        ou[3] = (pico8_jb_item_t){.s = pico8_concat2(pico8_zone_frame(), "+", plus_num)};
     }
 
     happiness_str = pico8_tostr_fixed(pico8_zone_frame(), fm_happiness);
-    ou[4] = (pico8_jb_item_t){.s = pico8_concat2(&pico8_zone_transitoire, happiness_str, "%")};
+    ou[4] = (pico8_jb_item_t){.s = pico8_concat2(pico8_zone_frame(), happiness_str, "%")};
 
     {
         int lo = pico8_fixed_flr_int(fm_lo);
@@ -193,7 +192,11 @@ void pico8_pj_hb(void) {
     ou_state = pico8_pj_ou();
     if (ou_state != NULL) {
         for (i = 0; i < 7; i++) {
-            /* TROU-7 */
+            if (ou[i].s != NULL) {
+                assert(strlen(ou[i].s) <= PICO8_PJ_TEXT_CAP && "an ou text is a number with its suffix, or a month");
+                strcpy(ou_state->texts[i], ou[i].s);
+                ou[i].s = ou_state->texts[i];
+            }
             ou_state->sub_items[i][0] = ou[i];
         }
     }

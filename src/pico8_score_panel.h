@@ -36,30 +36,39 @@ typedef struct {
     const char *ep;
 } pico8_pj_cr_t;
 
+/* The longest text `hb` or `hk` writes: "year " and a year, or a `ne` or
+ * `tostr` of a number with its sign, its four decimals and a suffix. */
+enum { PICO8_PJ_TEXT_CAP = 16 };
+
 /* `pj.ou`: a copy of `pico8_pj_ou_row` whose sub-rows `hb` rewrites
- * (item 1 of each), each an article of `bl`. */
+ * (item 1 of each), each an article of `bl`; a text `hb` writes is a copy
+ * in `texts[i]`. */
 typedef struct {
     pico8_jb_row_t row;
     pico8_jb_item_t items[7];
     pico8_jb_row_t subs[7];
     pico8_jb_item_t sub_items[7][4];
+    char texts[7][PICO8_PJ_TEXT_CAP + 1];
 } pico8_pj_ou_t;
 
 /* `pj.ea`: `row` holds `ea[1]`, `ea[2]` (a copy of its generated row whose
- * item 1 `hk` rewrites) and `ea[3]` when set (a row of `gs`); `lh` NULL is
- * nil. */
+ * item 1 `hk` rewrites, to a copy in `year`) and `ea[3]` when set (a row of
+ * `gs`); `lh` NULL is nil. */
 typedef struct {
     pico8_jb_row_t row;
     pico8_jb_item_t items[3];
     pico8_jb_row_t second;
     pico8_jb_item_t second_items[5];
+    char year[PICO8_PJ_TEXT_CAP + 1];
     pico8_mh_lh_fn lh;
 } pico8_pj_ea_t;
 
 /* A row of `bz`, a copy of its entry of `pico8_bz_table`. Without a score it
  * is an article of `bl` (`row`, never rewritten); with one, `pj:ph`
  * rewrites its positions, `has[i]` saying which hold a value, and makes it
- * a line (`ra` its position). */
+ * a line (`ra` its position). Trap: the texts it writes there are
+ * frame-zone texts, dangling after the next reset; only `pj:ph`, which has
+ * just written them, reads them. */
 typedef struct {
     pico8_jb_row_t row;
     pico8_jb_item_t items[5];

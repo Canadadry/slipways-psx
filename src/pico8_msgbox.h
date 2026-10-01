@@ -21,10 +21,14 @@ typedef int (*pico8_mh_lh_fn)(pico8_mh_t *self);
 enum { PICO8_MH_ITEMS_CAP = PICO8_BZ_COUNT };
 
 /* `items` is the cart's `self[1..n]`, the option row `mh:ev` lays out
- * through `bl`, in the order the construction table stored them: an
- * article stays shared with the caller. Nothing frees the struct: TROU-7. */
+ * through `bl`, in the order the construction table stored them. An
+ * article `ld` is a copy in `place`, its `lq` and vector included; any
+ * other stays shared with the caller, as the cart's box, a shallow copy of
+ * its table, shares the rows of `pj.ea` and `bz`. The struct lives in
+ * `place`, given back by the exit queue once `he` takes the box out. */
 struct pico8_mh {
     pico8_struct_header_t header;
+    const pico8_zone_choisie_t *place;
     const pico8_mh_def_t *def;
     pico8_fixed_t rh;
     pico8_mh_lh_fn lh; /* NULL: `lh` is nil */
@@ -35,7 +39,8 @@ struct pico8_mh {
 
 /* The message box currently open, or NULL for none. The setter never frees
  * the box it replaces: `kc` borrows a struct that `lt` registered into
- * `hv`/`cv`/`cg` and that nothing here owns. */
+ * `hv`/`cv`/`cg`, and the exit queue resets it to NULL as it gives that
+ * struct's place back. */
 pico8_mh_t *pico8_kc(void);
 void pico8_msgbox_set_kc(pico8_mh_t *mh);
 
@@ -49,8 +54,8 @@ void pico8_mh_shutdown(void);
 int pico8_mh_ready(void);
 
 /* The cart's keys of a message box: `items` its positionals in order, each
- * an article of `bl` (borrowed, never copied), `rh` under its flag, `lh`
- * NULL for nil. */
+ * an article of `bl` (an article `ld` copied, any other borrowed for the
+ * box's life), `rh` under its flag, `lh` NULL for nil. */
 typedef struct {
     const pico8_jb_row_t *const *items;
     int count;
@@ -59,8 +64,8 @@ typedef struct {
     pico8_mh_lh_fn lh;
 } pico8_mh_keys_t;
 
-/* `keys` is read, not kept (NULL: none). The struct registers itself
- * through `lt`, and nothing frees it. */
+/* `keys` is read, not kept (NULL: none), but for the articles it borrows.
+ * The struct registers itself through `lt`. */
 pico8_mh_t *pico8_mh_new(const pico8_mh_keys_t *keys);
 
 void pico8_mh_pq(pico8_mh_t *self);

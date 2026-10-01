@@ -1,7 +1,6 @@
 #include "pico8_score_panel_display.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_economy_score.h"
@@ -12,7 +11,6 @@
 #include "pico8_str.h"
 #include "pico8_ui_button.h"
 #include "pico8_zone_frame.h"
-#include "pico8_zone_transitoire.h"
 
 
 /* The captured `t` of `pj:hk`'s `iw.lh` closure. One static is enough:
@@ -31,7 +29,6 @@ void pico8_pj_hk(pico8_fixed_t yr) {
     const pico8_jb_row_t *gs = pico8_pj_gs();
     const pico8_jb_row_t *pp = NULL;
     char *yr_str;
-    char *year_label;
     int idx;
 
     if (iw == NULL) {
@@ -47,9 +44,11 @@ void pico8_pj_hk(pico8_fixed_t yr) {
     }
 
     yr_str = pico8_tostr_fixed(pico8_zone_frame(), yr);
-    year_label = pico8_concat2(&pico8_zone_transitoire, "year ", yr_str);
+    assert(strlen("year ") + strlen(yr_str) <= PICO8_PJ_TEXT_CAP && "a year is at most a 5-digit integer");
+    strcpy(iw->year, "year ");
+    strcat(iw->year, yr_str);
 
-    iw->second_items[0] = (pico8_jb_item_t){.s = year_label};
+    iw->second_items[0] = (pico8_jb_item_t){.s = iw->year};
 
     if (pp != NULL) {
         iw->items[2] = (pico8_jb_item_t){.row = pp};
@@ -110,28 +109,28 @@ typedef struct {
     const pico8_ky_t *s;
 } pico8_pj_ph_ctx_t;
 
-/* `tostr(s[i])`, a newly allocated string the caller owns. */
+/* `tostr(s[i])`, in the frame zone. */
 static char *pico8_pj_ph_s_str(const pico8_ky_t *s, int i) {
     switch (i) {
     case 1:
-        return pico8_tostr_fixed(&pico8_zone_transitoire, s->di);
+        return pico8_tostr_fixed(pico8_zone_frame(), s->di);
     case 2:
-        return pico8_tostr_fixed(&pico8_zone_transitoire, s->gl);
+        return pico8_tostr_fixed(pico8_zone_frame(), s->gl);
     case 3:
-        return pico8_tostr_fixed(&pico8_zone_transitoire, s->el);
+        return pico8_tostr_fixed(pico8_zone_frame(), s->el);
     case 4:
-        return pico8_concat2(&pico8_zone_transitoire, s->happiness, "");
+        return pico8_concat2(pico8_zone_frame(), s->happiness, "");
     case 5:
-        return pico8_tostr_fixed(&pico8_zone_transitoire, s->total);
+        return pico8_tostr_fixed(pico8_zone_frame(), s->total);
     case 6:
-        return pico8_tostr_fixed(&pico8_zone_transitoire, s->tier);
+        return pico8_tostr_fixed(pico8_zone_frame(), s->tier);
     default:
         /* TROU-13 */
-        return pico8_concat2(&pico8_zone_transitoire, "", "");
+        return pico8_concat2(pico8_zone_frame(), "", "");
     }
 }
 
-/* An article `ld` of `bl` and its items, in one block, never freed (TROU-7). */
+/* An article `ld` of `bl` and its items, in one block. */
 typedef struct {
     pico8_jb_row_t row;
     pico8_jb_item_t items[3];
@@ -161,7 +160,6 @@ static const pico8_jb_row_t *pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_
     score_i = st->e->score;
 
     s_str = pico8_pj_ph_s_str(ctx->s, score_i);
-    /* TROU-7 */
     pico8_pj_ph_set(st, 3, (pico8_jb_item_t){.s = s_str});
 
     if (score_i == 0) {
@@ -178,7 +176,7 @@ static const pico8_jb_row_t *pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_
         }
         piece1 = pico8_concat2(pico8_zone_frame(), hl_str, " (");
         piece2 = pico8_concat2(pico8_zone_frame(), piece1, px);
-        label = pico8_concat2(&pico8_zone_transitoire, piece2, ")");
+        label = pico8_concat2(pico8_zone_frame(), piece2, ")");
         pico8_pj_ph_set(st, 1, (pico8_jb_item_t){.s = label});
     }
 
@@ -202,10 +200,8 @@ static const pico8_jb_row_t *pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_
     keys.has_score = 1;
     keys.score = pico8_fixed_from_int(score_i);
     keys.ra = st->e->has_ra ? &st->ra : NULL;
-    /* TROU-7 */
-    lq_inst = pico8_lq_new(&pico8_zone_transitoire, &keys);
-    wrapped = malloc(sizeof *wrapped);
-    assert(wrapped != NULL);
+    lq_inst = pico8_lq_new(pico8_zone_frame(), &keys);
+    wrapped = (pico8_pj_ph_ld_t *)pico8_zone_alloc(pico8_zone_frame(), sizeof *wrapped);
     wrapped->items[0] = (pico8_jb_item_t){.is_ref = 1, .ref = lq_inst};
     wrapped->items[1] = (pico8_jb_item_t){.is_ref = 1, .ref = keys.ra};
     wrapped->items[2] = (pico8_jb_item_t){.is_fixed = 1, .fixed = PICO8_FIXED_LIT(0x00008000, 0.5)};

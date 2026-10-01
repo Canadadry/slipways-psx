@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_audio.h"
@@ -10,6 +9,7 @@
 #include "pico8_fixed.h"
 #include "pico8_hud.h"
 #include "pico8_ke.h"
+#include "pico8_layout.h"
 #include "pico8_pi.h"
 #include "pico8_scroll.h"
 #include "pico8_ui.h"
@@ -81,15 +81,52 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self) {
     }
 }
 
+static void pico8_mh_rendre(pico8_struct_header_t *self) {
+    pico8_zone_arene_rendre(((pico8_mh_t *)self)->place);
+}
+
 static const pico8_struct_class_t g_mh_struct_class = {
     .ev = pico8_mh_ev_dispatch,
     .tags = PICO8_TAG(PICO8_TAG_MH),
+    .rendre = pico8_mh_rendre,
 };
 
+/* An article `ld` copied into a box's place, its vector by value. */
+typedef struct {
+    pico8_jb_row_t row;
+    pico8_jb_item_t items[3];
+    pico8_vec_t ra;
+} pico8_mh_ld_t;
+
+/* `e` itself, or its copy in `place` when it is an article `ld`. */
+static const pico8_jb_row_t *pico8_mh_article(const pico8_zone_choisie_t *place, const pico8_jb_row_t *e) {
+    pico8_mh_ld_t *copy;
+    const pico8_vec_t *ra;
+
+    if (e->fn == NULL || strcmp(e->fn, "ld") != 0) {
+        return e;
+    }
+    assert(e->count == 3 && e->items[0].is_ref && e->items[1].is_ref &&
+           "an article ld is {lq, ra, a}: its lq and ra are what the box copies");
+    copy = (pico8_mh_ld_t *)pico8_zone_alloc(place, sizeof *copy);
+    ra = e->items[1].ref;
+    if (ra != NULL) {
+        copy->ra = *ra;
+    }
+    copy->items[0] = (pico8_jb_item_t){.is_ref = 1, .ref = pico8_lq_copy(place, e->items[0].ref)};
+    copy->items[1] = (pico8_jb_item_t){.is_ref = 1, .ref = ra != NULL ? &copy->ra : NULL};
+    copy->items[2] = e->items[2];
+    copy->row = *e;
+    copy->row.items = copy->items;
+    return &copy->row;
+}
+
 static pico8_mh_t *pico8_mh_struct_new(const pico8_mh_keys_t *keys) {
-    pico8_mh_t *self = malloc(sizeof *self);
+    const pico8_zone_choisie_t *place = pico8_ui_button_place(PICO8_SORTE_MH);
+    pico8_mh_t *self = (pico8_mh_t *)pico8_zone_alloc(place, sizeof *self);
     int i;
 
+    self->place = place;
     pico8_ke_struct_init(&self->header, &g_mh_struct_class, pico8_mh_def.me, pico8_mh_def.t);
     self->def = &pico8_mh_def;
     self->header.fa = &self->def->fa;
@@ -102,7 +139,7 @@ static pico8_mh_t *pico8_mh_struct_new(const pico8_mh_keys_t *keys) {
         assert(keys->count <= PICO8_MH_ITEMS_CAP &&
                "the cart's two mh() are pj:hk (3 articles at most) and pj:ph (one per bz row): a third needs more");
         for (i = 0; i < keys->count; i++) {
-            self->items[self->items_count++] = keys->items[i];
+            self->items[self->items_count++] = pico8_mh_article(place, keys->items[i]);
         }
         if (keys->has_rh) {
             self->rh = keys->rh;
