@@ -6,7 +6,7 @@ status: needs-triage
 
 ## Problem Statement
 
-Le plan 4 (`docs/plan-4.md`) veut zéro `malloc`, `calloc`, `realloc` ni `free` dans le cœur. Le texte de l'étape, recopié du plan (relu à `HEAD` 7255c72) :
+Le plan 4 (`docs/plan-4.md`) veut zéro `malloc`, `calloc`, `realloc` ni `free` dans le cœur. Le texte de l'étape, recopié du plan (relu à `HEAD` e88df7a, étape 3 finie) :
 
 > 4. **Zone partie,** et ses propres tableaux croissants ; remise à zéro sur nouvelle partie. L'étape n'est finie que si `pause_restart` passe `make sanitize-net` sous cet empoisonnement, et si son remplissage ne monte pas pendant une phase sans action d'un e2e.
 >    Elle se fait en sous-étapes, une PRD chacune :
@@ -14,6 +14,7 @@ Le plan 4 (`docs/plan-4.md`) veut zéro `malloc`, `calloc`, `realloc` ni `free` 
 >    - **4b et suivantes.** Une famille de propriétaires par PRD (tableaux croissants et registres ; planètes et relais ; slipways et routes ; recherche ; états de `pico8_gen.c` ; trous de ver), dans l'ordre que fixe la PRD 4a. Chacune relève le maximum de remplissage sur tous les e2e et le note ; dès que le relevé cumulé, prolongé aux familles restantes, dépasserait ce que les 1,5 Mo laissent, l'étape s'arrête et le signale (§3) sans attendre la dernière famille.
 >    - *Reçu de l'étape 1 :* même chose pour les boîtes `vec` des objets de partie (`p`/`v`/`ra` de `qb`, `ra` de `nf`, `mo->v`, `re`/`p` de `jc:hq`, `p` de `pico8_bv`, `ie.gy`) ; `qb:ph` seul en fait trois par frame. L'état `oh` de `pico8_bg_pq` est un objet de frame fait par `pico8_jf`, qui ne prend pas de zone : l'étape 4, qui donne une zone aux états de `pico8_gen.c`, le range en zone frame.
 >    - *Reçu de l'étape 2 :* restent à cette étape `ok.qa` (gardé par les hôtes de `bv` et le point souris de `jc:hq` : objet relu par des objets de partie), la structure `ok` et ses calques `ic`, la liste statique de départ, `ie.jb` (fait une fois par partie), `fv`, la structure `pj`, `hp.i`. Les structures de planète ne sont toujours pas libérées (seule leur rangée l'est).
+>    - *Reçu de l'étape 3 :* la structure `g_` (et `fv`) et sa boîte `p` de `bv` restent à cette étape (`/* TROU-7 */`) ; `oe` d'une planète ordinaire passe par `pico8_jo_pq_dans`, qui prend déjà sa zone.
 
 Cette PRD ne traite que **4a**. Elle fixe aussi, parce que le plan le lui demande, l'ordre des familles 4b et suivantes et la méthode de suivi du budget qu'elles appliqueront.
 
@@ -36,8 +37,9 @@ Les règles du plan qui la cadrent :
 
 **Ce qui se passe aujourd'hui.**
 
-- La zone partie n'est qu'une taille : `PICO8_ZONE_GAME_BYTES` vaut 768 Ko dans `pico8_zone_sizes.h`. Elle compte dans le contrôle de somme : frame 256 + interface 335 + particules 128 + partie 768 = **1487 Ko sur 1536**, soit **49 Ko de marge**. Aucun module ne la possède et rien n'y alloue.
-- Les objets de partie sont pris à la libc ou à la transitoire et jamais rendus (TROU-7).
+- La zone partie n'est qu'une taille : `PICO8_ZONE_GAME_BYTES` vaut 768 Ko dans `pico8_zone_sizes.h`. Elle compte dans le contrôle de somme : frame 256 + interface 335 + particules 128 + partie 768 = **1487 Ko sur 1536**, soit **49 Ko de marge** sur le total. Aucun module ne la possède et rien n'y alloue.
+- La zone particules n'occupe que **113 822 o (111 Ko) de ses 128 Ko** (contrôle à la compilation de `pico8_zone_particules.c`), non relevée. Les ~17 Ko qui restent dedans ne sont pas de la marge pour la zone partie : les reprendre, ce serait rogner une autre zone (§3). Ils restent aux particules, et c'est là que tiendront les traînées `ts` (voir plus bas).
+- Les objets de partie sont pris à la libc ou à la transitoire et jamais rendus (TROU-7). Seule exception depuis l'étape 3 : l'éclat `ga`. Sa structure `pico8_jo_t`, son `oe` et sa copie de position tiennent dans une place de la zone particules, rendue par la file de sortie à sa mort, **en cours de partie**. C'est la première structure de la famille planète vraiment libérée. Un éclat né par `jo:hu` emprunte encore `p`, `ra` et `id` à la planète qu'il remplace, qui est un objet de partie.
 - Aucune « nouvelle partie » n'est nommée dans le code. Il y a quatre entrées, toutes appelées par le `my` d'un bouton, donc depuis `pico8_js_ldown`, au milieu de `ok:lj` (`pico8_ui_jz`, puis `pico8_ui_bh`) :
 
   | Entrée | Bouton | Appelle |
@@ -55,7 +57,7 @@ Les règles du plan qui la cadrent :
    - Après le retour du `my`, `pico8_ui_bh(self, "l")` termine sur l'ancien `ok` : `self->qa`, `self->lheld`, `hq` sur l'objet tenu.
    - Puis `pico8_ui_bh(self, "r")` : `hq` sur l'ancien `rheld` (le `bg` de l'ancienne partie, si le bouton droit est tenu), et, au relâcher, `pico8_ui_jz(GV)` sur les calques `ic` de l'ancien `ok`, donc `gv` sur des planètes de l'ancienne partie.
    - Puis `pico8_ui_cj` fait `he` sur l'ancien `ok.le`, et `self->gj = self->o_`.
-2. **Le vidage de la file**, en tête du `pico8__update60()` suivant. Il appelle `rendre` sur les entités abandonnées par `jl()`. `pico8_jo_rendre_dispatch` lit la struct de la planète (`lq_place`) ; après l'étape 3, il lit aussi son `qy` (H-3-4). `oublier` lit `ju->ed`.
+2. **Le vidage de la file**, en tête du `pico8__update60()` suivant. Il appelle `rendre` sur les entités abandonnées par `jl()`. `pico8_jo_rendre_dispatch` lit la struct de la planète (`lq_place`). Les `rendre` des émetteurs (`hj`, `pm`, `mx`, `g_`, `fv`) lisent aussi `self->emitter` pour rendre leur `qy`. Celui de `ga` lit `oe->zone` puis rend sa place. `oublier` lit `ok->o_`, `ok->gj`, `ok->lheld` (et le `re` d'un `jc` tenu, ajouté par l'étape 3), `kc`, `ju->ed` et `dk`.
 3. **Entre « restart »/« again? » et `eu`**, à l'écran titre :
    - `fm` et `ju` désignent encore le `hy` et le `pj` de la partie quittée ; le cart ne les change que dans `eu` ;
    - la triche (`pico8_cheat.c`, tapée au titre) écrit dans `pico8_fm_hy()` ;
@@ -75,9 +77,13 @@ Une zone partie « vidée à chaque nouvelle partie » ne peut donc pas être vi
 - **Rendu différé au vidage suivant.** L'ancienne génération est rendue d'un bloc, et empoisonnée sous ASan, juste après le vidage de la file de sortie qui suit la bascule. C'est-à-dire en tête du `pico8__update60()` suivant, après la remise de la zone frame et le vidage de la file, avant `dg`. Les quatre lectures ci-dessus tombent toutes avant ce point.
 - **Remplissage et maximum.** Le module expose les octets pris (les deux générations tant que l'ancienne attend) et leur maximum sur la session. Le rejeu les écrit sous `PICO8_REMPLISSAGE`.
 - **Inventaire du §4** des pointeurs qui survivent à une nouvelle partie, refait mécaniquement à `HEAD` (voir Implementation Decisions). Conclusion : avec la bascule à `eu` et le rendu au vidage suivant, aucun pointeur du cœur ne lit l'ancienne génération après son rendu. Rien n'est à remettre à nil en 4a.
-- **Une durée de vie absente du §2 : le chargement.** Les projets de recherche `gb` (avec `hp.i` et ses `jy`) et deux listes statiques (`g_shared_le`, `g_ga_by_shared`) sont faits par `pico8_cart_load()` et vivent d'une partie à l'autre. Ils ne peuvent pas entrer dans une génération. 4a corrige la ligne « Partie » du §2. La famille qui en a besoin la première crée une sous-zone **chargement**, prise dans `PICO8_ZONE_GAME_BYTES` et remise à zéro seulement par le chargement du cart.
-- **Une sorte de particules absente du §2 : les traînées `ts` de `jc:ch`.** Elles naissent par tirage `rnd` à chaque frame et meurent par `del(self.ts,t)`. Ni le §2 ni la PRD de l'étape 3 ne les nomment. Dans une zone partie montante, elles feraient croître le remplissage à chaque tick. 4a corrige la ligne « Particules » du §2 et les confie à la famille slipways, qui les range en zone particules avec un point de libération.
-- **L'ordre des familles 4b à 4h**, l'attribution de chacune des 81 relocations du cliquet qui restent à l'étape 4, et la **méthode de suivi du budget** (relevé, projection, arrêt anticipé).
+- **Une durée de vie absente du §2 : le chargement.** Les projets de recherche `gb` (avec `hp.i` et ses `jy`) et deux listes statiques (`g_shared_le`, `g_ga_by_shared`) sont faits par `pico8_cart_load()` et vivent d'une partie à l'autre. Ils ne peuvent pas entrer dans une génération. 4a décide une sous-zone **chargement**, prise dans `PICO8_ZONE_GAME_BYTES` et remise à zéro seulement par le chargement du cart. La première famille qui en a besoin (4c) la crée.
+- **Une sorte de particules absente du §2 : les traînées `ts` de `jc:ch`.** Elles naissent par tirage `rnd` à chaque frame et meurent par `del(self.ts,t)`. L'étape 3 ne les a pas prises : la ligne « Particules » qu'elle a corrigée ne les nomme pas, et `pico8_jc_ch` fait toujours son `malloc`. Dans une zone partie montante, elles feraient croître le remplissage à chaque tick. 4a les confie à la famille slipways, qui les range en zone particules, dans les ~17 Ko restés libres, avec un point de libération.
+- **L'ordre des familles 4b à 4h**, l'attribution de chacune des 81 relocations du cliquet qui restent à l'étape 4 (84 mesurées, moins les 3 de `pico8_zone_transitoire.c`, qui vont à l'étape 5), et la **méthode de suivi du budget** (relevé, projection, arrêt anticipé).
+- **Changements du plan, à écrire dans `docs/plan-4.md` à la clôture de 4a** (voir « Changements du plan ») :
+  - la ligne « Partie » du §2 (point de rendu, sous-zone chargement) ;
+  - la ligne « Particules » du §2 (traînées `ts`) ;
+  - la famille 4h ajoutée à la liste de l'entrée 4, avec l'ordre des familles.
 
 ## User Stories
 
@@ -101,12 +107,13 @@ Une zone partie « vidée à chaque nouvelle partie » ne peut donc pas être vi
 18. En tant que mainteneur, je veux que le TU des places vivantes relève les octets de la zone partie aux frames 45 et 90 de `message_box_hold` et les trouve égaux, pour que le contrôle « Croissance par frame » soit en place avant que la première famille y alloue.
 19. En tant que gardien du cliquet, je veux que 4a ne change aucun compte d'`alloc-guard` et que le module de zone partie ne référence ni la libc ni `pico8_zone_transitoire`, pour que le verrou reste à égalité stricte.
 20. En tant que gardien de l'invariant, je veux que les 26 `*.sha256` restent identiques, pour prouver qu'une zone vide et sa bascule ne changent ni un pixel ni un tirage `rnd`.
-21. En tant que mainteneur du budget, je veux que `PICO8_ZONE_GAME_BYTES` reste à 768 Ko en 4a et que le contrôle de somme reste vert, pour que la marge de 49 Ko (H-3-2) reste aux familles.
+21. En tant que mainteneur du budget, je veux que `PICO8_ZONE_GAME_BYTES` reste à 768 Ko en 4a et que le contrôle de somme reste vert, pour que la marge de 49 Ko sur le total reste aux familles.
 22. En tant que développeur des familles 4b+, je veux l'inventaire du §4 des pointeurs du cœur qui survivent à une nouvelle partie, chacun classé, pour savoir lesquels mon commit doit remettre à nil ou repointer, et ne pas refaire l'erreur de `dk`.
 23. En tant que développeur des familles 4b+, je veux que chaque famille refasse le même `grep` sur le code de son commit et classe tout pointeur nouveau, pour qu'un pointeur trouvé ensuite par ASan soit noté comme un trou de l'inventaire.
 24. En tant que développeur des familles 4b+, je veux un point d'oubli de partie, appelé juste avant le rendu de l'ancienne génération, où une famille ajoute la remise à nil d'un pointeur que son inventaire désigne, pour qu'il n'existe qu'un seul endroit où une référence à l'ancienne partie est coupée.
 25. En tant que lecteur du plan, je veux que la ligne « Partie » du §2 dise le vrai point de rendu (le vidage qui suit `eu`) et la durée de vie « chargement » de `gb` et des listes statiques, pour que le tableau ne contredise plus le code.
-26. En tant que lecteur du plan, je veux que la ligne « Particules » du §2 nomme les traînées `ts` de `jc:ch`, pour qu'aucune famille ne les range en zone partie, où elles croîtraient par tick.
+26. En tant que lecteur du plan, je veux que la ligne « Particules » du §2, déjà corrigée par l'étape 3, nomme aussi les traînées `ts` de `jc:ch`, pour qu'aucune famille ne les range en zone partie, où elles croîtraient par tick.
+33. En tant que développeur des familles 4b+, je veux que l'inventaire tienne compte des éclats `ga`, rendus en cours de partie depuis l'étape 3, pour savoir quels objets de partie peuvent désigner un objet déjà rendu avant même toute nouvelle partie.
 27. En tant que développeur des familles 4b+, je veux l'ordre des familles, chacune avec ses fichiers, ses fonctions, ses relocations et ses lignes « Reçu », pour que la somme des baisses prévues tombe exactement sur les comptes laissés par l'étape 3.
 28. En tant que développeur des familles 4b+, je veux la liste des sites qui allouent par tick ou par action, rattachés à leur famille, pour qu'aucun n'entre tel quel dans une zone qui ne rend rien avant la partie suivante.
 29. En tant que mainteneur du budget, je veux une estimation par lecture de l'empreinte de chaque famille, à remplacer par la mesure au fil des familles, pour pouvoir projeter le total avant la dernière famille.
@@ -129,7 +136,7 @@ Une zone partie « vidée à chaque nouvelle partie » ne peut donc pas être vi
   - Les autres appelants du vidage font aussi le rendu : `pico8_cart_load()`, `pico8_cart_shutdown()`, et `main.c` avant d'écrire le remplissage.
   - L'ordre vidage puis rendu est le seul qui laisse les `rendre` lire des structs vivantes. Un TU le prouve (Testing Decisions).
 - **Point d'oubli de partie.** Une fonction de `pico8_cart.c`, sœur d'`oublier`, appelée avant le rendu. En 4a elle est vide : l'inventaire ne désigne aucun pointeur à couper. Une famille y ajoute une remise à nil seulement si son propre inventaire en trouve un. Elle ne remplace pas `oublier`, qui vise une entité, pas une génération.
-- **Double bascule sans vidage.** Une bascule demandée alors qu'une génération attend encore est refusée par `assert`. Le message dit qu'il faut vider la file entre deux `eu`. Le jeu ne peut pas déclencher ce cas : un clic par frame, et `eu` n'est atteint que depuis l'écran titre. Les TU qui enchaînent `_init`/`eu` sans frame vident déjà la file depuis les étapes 2 et 3 (H-3-6). Ceux qui enchaînent deux `eu` sans vidage sont corrigés dans le commit de 4a.
+- **Double bascule sans vidage.** Une bascule demandée alors qu'une génération attend encore est refusée par `assert`. Le message dit qu'il faut vider la file entre deux `eu`. Le jeu ne peut pas déclencher ce cas : un clic par frame, et `eu` n'est atteint que depuis l'écran titre. Les étapes 2 et 3 ont fait vider la file aux aides de TU qui en avaient besoin, mais pas à toutes. `tests/test_pico8_hy.c` (cas « construction ») enchaîne deux `new_game()`, donc deux `pico8_eu`, sans vidage ni frame. Ce TU et tout autre que l'`assert` désignera au premier `make test` sont corrigés dans le commit de 4a, par un `pico8_cart_vider_file_sortie()` entre les deux `eu`.
 - **Chargement et arrêt.** `pico8_cart_load()` et `pico8_cart_shutdown()` remettent toute la zone à zéro, après leur vidage : les deux bouts, maximum de session non compris. Le maximum ne se remet qu'avec le processus.
 
 ### Primitive : la zone à deux bouts
@@ -155,21 +162,21 @@ Une zone partie « vidée à chaque nouvelle partie » ne peut donc pas être vi
   - le rendu de l'ancienne génération s'il y en a une (appelé par le vidage) ;
   - la remise à zéro complète (chargement, arrêt) ;
   - les octets pris et leur maximum.
-- **Taille** : `PICO8_ZONE_GAME_BYTES` reste à **768 Ko**. Le contrôle de somme de `pico8_zone_sizes.h` ne change pas : 1487 Ko sur 1536 (H-3-2).
-- **Sous-zone chargement : décidée ici, créée par la famille 4c.** C'est la première famille qui en a besoin (`g_shared_le`, `g_ga_by_shared`). Ce sera une zone montante à une moitié, remise à zéro seulement par `pico8_cart_load()`/`pico8_cart_shutdown()`, prise **dans** `PICO8_ZONE_GAME_BYTES`, avec une vérification à la compilation que chargement + partie ≤ 768 Ko. Taille de départ au doigt mouillé : 64 Ko, prise sur les 768 (partie 704 Ko). Elle ne reçoit que ce que fait le chargement. Ce qui y grandirait ensuite (`g_shared_le`, où `ok.le` ajoute des boutons) doit y réserver sa capacité au chargement, comme la liste `qy` de l'étape 3, ou aller ailleurs. 4a ne la crée pas : aucune poignée sans utilisateur.
+- **Taille** : `PICO8_ZONE_GAME_BYTES` reste à **768 Ko**. Le contrôle de somme de `pico8_zone_sizes.h` ne change pas : 1487 Ko sur 1536, marge de 49 Ko sur le total (zone particules à 128 Ko, dont 111 Ko occupés).
+- **Sous-zone chargement : décidée ici, créée par la famille 4c.** C'est un changement du plan : le §2 n'a pas cette durée de vie, et la clôture de 4a l'écrit dans la ligne « Partie ». 4c est la première famille qui en a besoin (`g_shared_le`, `g_ga_by_shared`). Ce sera une zone montante à une moitié, remise à zéro seulement par `pico8_cart_load()`/`pico8_cart_shutdown()`, prise **dans** `PICO8_ZONE_GAME_BYTES`, avec une vérification à la compilation que chargement + partie ≤ 768 Ko. Taille de départ au doigt mouillé : 64 Ko, prise sur les 768 (partie 704 Ko). Elle ne reçoit que ce que fait le chargement. Ce qui y grandirait ensuite (`g_shared_le`, où `ok.le` ajoute des boutons) doit y réserver sa capacité au chargement, comme la liste `qy` de l'étape 3, ou aller ailleurs. 4a ne la crée pas : aucune poignée sans utilisateur.
 - **Makefile** : le nouvel objet entre dans toutes les listes de sources qui lient `pico8_zone_frame.c` (`ENGINE_SRCS`, `DATA_ENGINE_SRCS` si `pico8_cart.c` y est, ligne de lien de `main_raylib`) et dans la règle ASan du TU du module.
 
 ### Remplissage écrit par le rejeu
 
-- Sous `PICO8_REMPLISSAGE`, `main.c` écrit, après le vidage qu'il fait déjà, une ligne pour la zone partie : nom de zone, octets pris, maximum de la session. Elle suit la forme qu'auront prise les lignes de l'étape 3 (H-3-3). La capture, le dump et le code de sortie ne changent pas.
+- Sous `PICO8_REMPLISSAGE`, `main.c` écrit, après le vidage qu'il fait déjà, deux lignes pour la zone partie, dans la forme que `write_remplissage` a prise à l'étape 3 : la valeur courante sur une ligne `<nom> <n>`, le maximum sur une ligne préfixée. Les particules écrivent `<sorte> <vivantes>`, puis `max_vivantes <sorte> <n>`, `max_octets <sorte> <n>`, `max_elements <sorte> <n>`. La zone partie écrit donc `partie <octets pris>` et `max_octets partie <n>`. La capture, le dump et le code de sortie ne changent pas.
 - Les octets pris après le vidage final ne comptent que la génération courante : l'ancienne vient d'être rendue. Le maximum, lui, garde le pic de la frame de bascule.
 
 ### Inventaire du §4 : pointeurs qui survivent à une nouvelle partie
 
-Fait **mécaniquement** à `HEAD` 7255c72, sur les 63 fichiers de `CORE_SRCS` (liste tirée du `Makefile`) :
+Fait **mécaniquement** à `HEAD` e88df7a, sur les 64 fichiers de `CORE_SRCS` (liste tirée du `Makefile` ; l'étape 3 a ajouté `pico8_zone_particules.c`) :
 
-- `grep -nE '^\s*static\s[^(]*\*\s*[a-zA-Z_][a-zA-Z0-9_]*(\[[^]]*\])?\s*(;|=)'`, hors `const char *` et tables `* const` : 17 pointeurs ;
-- `grep -nE '^static\s+(struct\s+)?[a-z0-9_]+(_t)?\s+[a-zA-Z_][a-zA-Z0-9_]*\s*(\[[^]]*\])*\s*(;|=)'` hors `const` et scalaires, dont on lit les champs pointeurs : 31 structures, plus un `static` de bloc (`copie`, `pico8_economy_dk_quitte`) ;
+- `grep -nE '^\s*static\s[^(]*\*\s*[a-zA-Z_][a-zA-Z0-9_]*(\[[^]]*\])*\s*(;|=)'`, hors `const char *` et tables `* const` : 18 pointeurs. Le motif accepte désormais plusieurs dimensions : le motif de l'étape 3, à une seule dimension, ne voyait pas `g_arenes` ;
+- `grep -nE '^static\s+(struct\s+)?[a-z0-9_]+(_t)?\s+[a-zA-Z_][a-zA-Z0-9_]*\s*(\[[^]]*\])*\s*(;|=)'` hors `const` et scalaires, dont on lit les champs pointeurs : 33 structures (les 31 d'avant l'étape 3, plus `g_zones` et `g_slots` de `pico8_zone_particules.c`), plus un `static` de bloc (`copie`, `pico8_economy_dk_quitte`) ;
 - les champs pointeurs des singletons atteints : `ok`, `mo`, `je`, `fm`, `ju`.
 
 **La sorte rendue** est une génération de la zone partie : tout objet alloué par la poignée de partie entre deux bascules. En 4a, aucun objet n'y est, et le classement dit ce qui se passera quand les familles y mettront leurs objets. La question posée à chaque pointeur : **après le rendu (le vidage qui suit `eu`), peut-il encore désigner un objet de la génération rendue, et est-il lu ?**
@@ -190,6 +197,7 @@ Fait **mécaniquement** à `HEAD` 7255c72, sur les 63 fichiers de `CORE_SRCS` (l
 | `g_gb[]` | `research` | ne doit pas viser la génération : les `hp` sont faits au chargement et vivent d'une partie à l'autre (sous-zone chargement) | 4g |
 | `g_ie_gy` | `research_icon` | **repointé** par `_init` sur `ie.eh` (statique), puis avancé par les `ie` d'`eu` sur des boîtes de la nouvelle génération | 4g |
 | `g_ju` | `score_panel` | **repointé** par `eu`, après la bascule ; lu par `oublier` (`ju->ed`) au vidage qui précède le rendu, encore vivant | 4h |
+| `g_arenes[][]` | `zone_particules` | ne peut pas viser : des places de la zone particules (`qy`, `qy_fv`, `ga`) | — |
 
 **Champs des structures statiques et des singletons.**
 
@@ -206,8 +214,8 @@ Fait **mécaniquement** à `HEAD` 7255c72, sur les 63 fichiers de `CORE_SRCS` (l
 | `g_pj_cr` (`score_panel`) | `hi`/`gq` littéraux constants, `ep` entrée de `pico8_nb_table` | — |
 | `g_bz[].e`, `g_pj_ou`, `g_pj_ea`, `g_jo_kw_shared`, `g_mz_jj_wrapper`, `g_nf_l`/`g_nf_r`/`g_nf_ra`, `g_pi_dispatch[]`, `g_ix_ra`, `g_ha_hi`/`g_ha_gq` | tables constantes, textes statiques, ou aucun champ pointeur | — |
 | `copie` (`economy_score`) | copie d'un `js` : textes et nombres, aucun objet de partie | — |
-| zones et poignées (`frame`, `frame_handle`, `g_zones`, `g_handles`) | ne peuvent pas viser (type) | — |
-| `ok.o_`, `ok.gj`, `ok.lheld`, `ok.rheld`, `ok.ic`, `ok.le`, `ok.qa` | champs du **nouvel** `ok`, faits à nil (ou `&g_shared_le`) par sa construction après la bascule ; l'ancien `ok` n'est plus atteint par aucun pointeur une fois `ok:lj` fini | 4h |
+| zones et poignées (`frame`, `frame_handle`, `g_zones`/`g_handles` de l'interface, `g_zones`/`g_slots` des particules) | ne peuvent pas viser (type) | — |
+| `ok.o_`, `ok.gj`, `ok.lheld`, `ok.rheld`, `ok.ic`, `ok.le`, `ok.qa` | champs du **nouvel** `ok`, faits à nil (ou `&g_shared_le`) par sa construction après la bascule ; l'ancien `ok` n'est plus atteint par aucun pointeur une fois `ok:lj` fini. `oublier` lit `ok.lheld` et le `re` d'un `jc` tenu au vidage qui précède le rendu : c'est le nouvel `ok`, dont `lheld` est nil | 4h |
 | `mo.v`/`.p`/`.ra`, `je.ra` | champs des nouveaux `mo`/`je` | 4h |
 | `fm.invented`, `fm.po`/`.fu` | champs du nouvel `hy` | 4g |
 | `ju.ed` | `mh` (zone interface) ; remis à nil par `oublier` | — |
@@ -215,18 +223,37 @@ Fait **mécaniquement** à `HEAD` 7255c72, sur les 63 fichiers de `CORE_SRCS` (l
 **Objets d'autres zones qui désignent des objets de partie** (hors périmètre mécanique, relevés par lecture) :
 
 - rangées, panneaux et boutons de la zone interface ;
-- listes `qy` et éclats `ga` de la zone particules (H-3-4). Un éclat né par `jo:hu` emprunte le `p`, le `ra` et l'`id` de la planète remplacée.
+- listes `qy` et éclats `ga` de la zone particules. Un éclat né par `jo:hu` emprunte le `p`, le `ra` et l'`id` de la planète remplacée ; celui de `pm:pq` a sa copie de position dans sa place.
 
-Tous sont abandonnés par le `jl()` d'`eu` et rendus par le vidage, **avant** le rendu de la génération. Aucun ne survit au rendu.
+Tous sont des entités, ou appartiennent à une entité, inscrites dans `hv` avec un `rendre`. Le `jl()` d'`eu` les met en file, et le vidage les rend **avant** le rendu de la génération. Aucun ne survit au rendu. `pico8_ga_rendre_dispatch` ne lit que la place de l'éclat (`oe->zone`), sa rangée et sa liste `qy` : jamais les `p`/`ra`/`id` empruntés.
 
-**Conclusion : le point d'oubli de partie est vide en 4a.** Aucun pointeur ne lit l'ancienne génération après son rendu. Le seul cas « vivant mais désigné » est celui de `fm`/`ju` entre `_init` et `eu`. Il est réglé par le choix du point de bascule, pas par une remise à nil. Remettre `fm` au tenant-lieu changerait ce que lit la triche au titre.
+**Éclats `ga` rendus en cours de partie (depuis l'étape 3).** C'est le sens inverse : un objet *de partie* qui désigne un éclat déjà rendu, sans nouvelle partie. Le rendu de la génération n'y est pour rien, mais chaque famille 4b+ doit en tenir compte, car ses objets passent en zone partie et vivent plus longtemps que l'éclat. Relevé par lecture à `HEAD` e88df7a :
+
+| Qui peut désigner un éclat | Pourquoi | Statut |
+|---|---|---|
+| `hv`, `cv`, `cg` | l'éclat y est inscrit ; aucune étiquette (`.tags = 0`), donc absent de tous les `cg` | **retiré** par `pico8_he` avant l'entrée en file |
+| `ok.o_`, `ok.gj` | sa boîte `kq` se survole (`qz` d'un `b(0,0,-1,-1)` est un carré 2×2) | **remis à nil** par `oublier` |
+| `re` du `jc` tenu (`ok.lheld`) | `jc:hq` prend `ok.o_` comme `re` quand `o_.gv` existe, et `ga` hérite `gv` de `jo` | **remis à nil** par `oublier` (ajouté par l'étape 3) ; inatteignable aujourd'hui, `hq` réécrit `re` à chaque `bh` |
+| `ok.ic` | calques du survol | **refaits** par `gw` à chaque `ok:lj` ; rien ne les lit entre le vidage et `gw` (`dg` ne les lit pas) |
+| `qu`/`re` d'un slipway posé, `jc.et` | — | ne peut pas viser : `jo:gv` ne rend vrai que pour `me=="ly"`, et un éclat reste « unknown » ; `jc:ce` ne cherche que dans `qu.oe`, `cg.np` et `cg.jc` |
+| `jo.fo`, `jc.fo`, `g_bv_et.fo` | — | ne peut pas viser : `ga` n'a pas `hq` (pas hôte de `bv`) et n'est pas dans `cg.np` |
+| `oe` d'une planète, routes `by` | — | ne peut pas viser : `ga` a `by = g_ga_by_shared`, toujours vide ; aucun slipway n'aboutit à lui |
+
+Les familles **4d** (planètes, dont `jo:hu` qui crée l'éclat) et **4e** (slipways : `jc:hq`, `re`, `et`) refont ce relevé sur leur code : leurs objets deviennent ceux qui survivent à l'éclat.
+
+**Conclusion : le point d'oubli de partie est vide en 4a.** Aucun pointeur ne lit l'ancienne génération après son rendu. Le seul cas « vivant mais désigné » est celui de `fm`/`ju` entre `_init` et `eu`. Il est réglé par le choix du point de bascule, pas par une remise à nil. Remettre `fm` au tenant-lieu changerait ce que lit la triche au titre. Les éclats rendus en cours de partie restent l'affaire d'`oublier`, qui les couvre déjà.
 
 **Dans chaque famille 4b+**, le même `grep` est refait sur le code du commit, avec la même question. Un pointeur nouveau y est classé. Un pointeur trouvé ensuite par ASan est ajouté au point d'oubli de partie et noté dans « Découvert » comme un **trou de l'inventaire** (§4).
 
-### Corrections du §2 (dans le commit de clôture de 4a)
+### Changements du plan (écrits dans `docs/plan-4.md` par le commit de clôture de 4a)
 
-- **Ligne « Partie »**, durée de vie : « une génération par partie, de `eu` à `eu` ; rendue d'un bloc au vidage de la file qui suit le `eu` suivant (zone à deux bouts) ; `_init` ne la rend pas ». Ajout : « les objets faits au chargement (`gb`, `hp.i`, listes statiques) vivent dans une sous-zone chargement, prise dans la zone partie, remise à zéro par le seul chargement ».
-- **Ligne « Particules »**, contenu : ajouter « traînées `ts` de `jc:ch` ». Une ligne « *Reçu de l'étape 4a* » sous l'entrée 4 les confie à la famille slipways (4e).
+Ce sont des décisions de 4a qui changent le texte du plan, pas seulement des constats. Elles sont écrites dans le plan à la clôture de 4a, dans le même commit que la note « Découvert ».
+
+- **§2, ligne « Partie », durée de vie** : « une génération par partie, de `eu` à `eu` ; rendue d'un bloc au vidage de la file qui suit le `eu` suivant (zone à deux bouts) ; `_init` ne la rend pas ».
+- **§2, ligne « Partie », contenu** : « les objets faits au chargement (`gb`, `hp.i`, listes statiques) vivent dans une sous-zone chargement, prise dans la zone partie, remise à zéro par le seul chargement ».
+- **§2, ligne « Particules », contenu** : la ligne corrigée par l'étape 3 (« particules de `g_:mm`/`ga:mm`/aide, listes `qy` de leurs émetteurs (`g_`, `fv`, `hj`, `pm`, `mx`, `ga`), éclats `ga` entiers ») gagne « traînées `ts` de `jc:ch` ».
+- **Entrée 4, puce « 4b et suivantes »** : la liste des familles devient la liste ordonnée de 4a (4b à 4h), avec la famille **4h** « singletons de `jl`/`eu` et objets du joueur » ajoutée.
+- **Entrée 4** : une ligne « *Reçu de l'étape 4a* » confie les traînées `ts` à 4e, en zone particules, dans les ~17 Ko libres de ses 128 Ko.
 
 ### Sites qui allouent par tick ou par action
 
@@ -250,7 +277,7 @@ Le classement de chaque site est l'affaire de sa famille. 4a ne fait que les rat
 | `pico8_bv` (`p` de l'hôte) | par frame où une sonde ou un hôte est tenu | 4h |
 | `pico8_bg_hq` (boîte `v`) | par frame de glissé | 4h |
 | `pico8_jc_hq` (point souris et sa boîte `p`) | par frame où un slipway est tenu | 4e |
-| `pico8_jc_ch` (traînée `ts`) | par frame, tirage `rnd` 0,08 par sens | 4e, en zone particules |
+| `pico8_jc_ch` (traînée `ts`, `pico8_ts_t` de 20 o, place de 24) | par frame, tirage `rnd` 0,08 par sens | 4e, en zone particules |
 | `bd_reset_visit` (`pt.cc={}` pour chaque planète, `free`+`malloc`) | à chaque `bd`, donc chaque `hy:lj` (action, année, invention), en boucle tant que `bb()` | 4d |
 | `pico8_jo_ib` (`ib`, `lp`, `rl`) | à chaque `bd`, pour chaque planète | 4d |
 | `pico8_jo_cn` (liste fusionnée) | à chaque calcul de route | 4d |
@@ -261,54 +288,52 @@ Le classement de chaque site est l'affaire de sa famille. 4a ne fait que les rat
 
 ### Ordre des familles 4b et suivantes
 
-Le cliquet compte à `HEAD` 7255c72, mesuré par `make alloc-guard` sur une copie `git archive HEAD` : **63 objets, 25 allouent, 91 appels**, égal à `tools/alloc_guard_exceptions.txt`. Les relocations ont été rattachées à leur fonction et à leur ligne par `objdump -r` et `addr2line` sur les objets `-g` d'`alloc-guard`.
+Le cliquet, mesuré par `make alloc-guard` sur une copie `git archive HEAD` à e88df7a : **64 objets, 24 allouent, 84 appels**, égal à `tools/alloc_guard_exceptions.txt`. Les relocations ont été rattachées à leur fonction et à leur ligne par `objdump -r` et `addr2line` sur les objets `-g` d'`alloc-guard`. Par rapport à 7255c72 (91 appels), il manque exactement les 7 que l'étape 3 devait retirer :
 
-L'étape 3 doit en retirer 7 (H-3-1) :
-
-- `pico8_particle.c` 2 ;
+- `pico8_f_` 2 ;
 - `pico8_g__mm` 1 ;
 - `pico8_ga_mm`, `pico8_ga_struct_new`, `pico8_pm_pq` 3 ;
-- l'une des deux de `pico8_jo_pq` 1.
+- le `malloc` de `pico8_jo_pq`, devenu `pico8_jo_pq_dans`. Reste la référence à la transitoire de la forme `pico8_jo_pq`, qui délègue (`planet` 192).
 
-Il en restera 84. Les 3 de `pico8_zone_transitoire.c` vont à l'étape 5. **L'étape 4 porte donc 81 relocations**, toutes attribuées ci-dessous.
+Les 3 de `pico8_zone_transitoire.c` vont à l'étape 5. **L'étape 4 porte donc 81 relocations**, toutes attribuées ci-dessous (lignes à `HEAD` e88df7a).
 
-| Ordre | Famille | Sites (fonction, ligne à `HEAD`) | Relocations | Reçus traités |
+| Ordre | Famille | Sites (fonction, ligne) | Relocations | Reçus traités |
 |---|---|---|---|---|
 | **4b** | **États de `pico8_gen.c`** | `pico8_jf` (9), `pico8_jf_free` (26), `pico8_gn` (50), `pico8_gn_free` (124) ; leurs appelants `bw`, `jo:pq` et `bg:pq` choisissent la zone | `gen` 4 → sort | *Reçu 1* : `oh` de `pico8_bg_pq` en zone frame |
-| **4c** | **Tableaux croissants et registres** | `pico8_entity_init` (78, 82, 86 : `hv`, `cv`, `cg`) ; `pico8_ui_init` (145 : `g_shared_le`) ; `pico8_planet_family_init` (510 : `g_ga_by_shared`) ; crée la sous-zone chargement | `entity` 3 → sort ; `ui` 6 → 5 ; `planet_family` 6 → 5 (H-3-1) | *Reçu 2* : la liste statique de départ |
-| **4d** | **Planètes et relais** | `pico8_jo_struct_new` (102), `pico8_jo_pq` (199, forme qui reste après l'étape 3), `pico8_jo_lz_mw_step` (215), `pico8_jo_lz` (238, 240, 242) ; `pico8_qh/nl/os/hj/pm_struct_new` (62, 123, 167, 242, 313) ; `pico8_nr/fr/mx_struct_new` (191, 237, 331) ; `pico8_jo_cn` (127, 129), `pico8_jo_ib` (188, 189, 215, 216, 218, 219) ; `pico8_bw` (63, 65, 71 : `p`, `ra`, identifiant « p… ») ; `bd_reset_visit` (48, 51, 52) | `planet` 6 → sort ; `planet_family` 5 → sort ; `planet_family_trade` 3 → sort ; `planet_trade` 8 → sort ; `galaxy` 3 → sort ; `economy_tiers` 3 → sort (28) | *Reçu 2* : les structures de planète ; *Reçu 3* : le `oe` des planètes par la variante de `jo:pq` à zone passée (H-3-4) |
-| **4e** | **Slipways et routes** | `pico8_jc_struct_new` (344), `pico8_jc_pq` (89, 90 : `ts`), `pico8_jc_hq` (111, 112) ; `pico8_jc_ch` (`slipway_display` 36 : traînée, vers la zone particules) ; `pico8_trade_struct_new` (29), `pico8_trade_kg` (135-138) | `slipway` 5 → sort ; `slipway_display` 1 → sort ; `trade` 5 → sort (11) | *Reçu 1* : `re`/`p` de `jc:hq` ; *Reçu 4a* : traînées `ts` |
+| **4c** | **Tableaux croissants et registres** | `pico8_entity_init` (78, 82, 86 : `hv`, `cv`, `cg`) ; `pico8_ui_init` (145 : `g_shared_le`) ; `pico8_planet_family_init` (531 : `g_ga_by_shared`) ; crée la sous-zone chargement | `entity` 3 → sort ; `ui` 6 → 5 ; `planet_family` 6 → 5 | *Reçu 2* : la liste statique de départ |
+| **4d** | **Planètes et relais** | `pico8_jo_struct_new` (102), `pico8_jo_pq` (192 : la transitoire passée à `pico8_jo_pq_dans`), `pico8_jo_lz_mw_step` (219), `pico8_jo_lz` (242, 244, 246) ; `pico8_qh/nl/os/hj/pm_struct_new` (62, 123, 167, 247, 316) ; `pico8_nr/fr/mx_struct_new` (`planet_family_trade` 191, 237, 331) ; `pico8_jo_cn` (127, 129), `pico8_jo_ib` (188, 189, 215, 216, 218, 219) ; `pico8_bw` (63, 65, 71 : `p`, `ra`, identifiant « p… ») ; `bd_reset_visit` (48, 51, 52) ; refait le relevé « éclats `ga` rendus en cours de partie » pour `jo:hu` | `planet` 6 → sort ; `planet_family` 5 → sort ; `planet_family_trade` 3 → sort ; `planet_trade` 8 → sort ; `galaxy` 3 → sort ; `economy_tiers` 3 → sort (28) | *Reçu 2* : les structures de planète ; *Reçu 3* : `oe` d'une planète ordinaire par `pico8_jo_pq_dans` (il suffit de lui passer la zone partie) |
+| **4e** | **Slipways et routes** | `pico8_jc_struct_new` (344), `pico8_jc_pq` (89, 90 : `ts`), `pico8_jc_hq` (111, 112) ; `pico8_jc_ch` (`slipway_display` 36 : traînée, vers la zone particules) ; `pico8_trade_struct_new` (29), `pico8_trade_kg` (135-138) ; refait le relevé « éclats `ga` » pour `jc:hq`/`re`/`et` | `slipway` 5 → sort ; `slipway_display` 1 → sort ; `trade` 5 → sort (11) | *Reçu 1* : `re`/`p` de `jc:hq` ; *Reçu 4a* : traînées `ts` |
 | **4f** | **Trous de ver** | `pico8_mz_struct_new` (204), `pico8_mz_pq` (39, 40 : `ox`) | `wormhole` 3 → sort | — |
-| **4g** | **Recherche** (et économie) | `pico8_hp_struct_new` (133, 200, 201), `pico8_jy_new` (119), `pico8_research_free_gb_instances` (33), en sous-zone chargement ; `pico8_ie_struct_new` (203), `pico8_ie_hb` (100), `pico8_ie_ldown` (130) ; `pico8_eu` (`cart` 218 : `ie.jb`) ; `pico8_hy_struct_new` (`economy` 36, 62, 63) ; `fm_free` (`probe` 449) | `research` 5 → sort ; `research_icon` 3 → sort ; `cart` 1 → sort ; `economy` 3 → sort ; `probe` 3 → 2 (13) | *Reçu 1* : `ie.gy` ; *Reçu 2* : `ie.jb`, `hp.i` |
-| **4h** | **Singletons de `jl`/`eu` et objets du joueur** | `pico8_qb_struct_new` (41), `pico8_qb_ph` (122, 124, 129) ; `pico8_nf_struct_new` (39), `pico8_nf_ph` (96) ; `pico8_ui_struct_new` (119, 129), `pico8_ui_shutdown` (156), `pico8_ui_lj` (235), `pico8_ui_gw` (295) ; `pico8_bg_struct_new` (54), `pico8_bg_hq` (208) ; `pico8_fv_struct_new` (`help` 116) ; `pico8_pj_struct_new` (`score_panel` 263) ; `pico8_g__struct_new` (`probe` 409), `pico8_bv` (`probe` 162) | `scroll` 4 → sort ; `mouse_reader` 2 → sort ; `ui` 5 → sort ; `bg` 2 → sort ; `help` 1 → sort ; `score_panel` 1 → sort ; `probe` 2 → sort (17) | *Reçu 1* : `p`/`v`/`ra` de `qb`, `mo->v`, `ra` de `nf`, `p` de `pico8_bv` ; *Reçu 2* : `ok.qa`, la structure `ok` et ses calques `ic`, `fv`, la structure `pj` ; *Reçu 3* : la struct `g_`, la struct `fv` (H-3-4) |
+| **4g** | **Recherche** (et économie) | `pico8_hp_struct_new` (133, 200, 201), `pico8_jy_new` (119), `pico8_research_free_gb_instances` (33), en sous-zone chargement ; `pico8_ie_struct_new` (203), `pico8_ie_hb` (100), `pico8_ie_ldown` (130) ; `pico8_eu` (`cart` 222 : `ie.jb`) ; `pico8_hy_struct_new` (`economy` 36, 62, 63) ; `fm_free` (`probe` 453) | `research` 5 → sort ; `research_icon` 3 → sort ; `cart` 1 → sort ; `economy` 3 → sort ; `probe` 3 → 2 (13) | *Reçu 1* : `ie.gy` ; *Reçu 2* : `ie.jb`, `hp.i` |
+| **4h** | **Singletons de `jl`/`eu` et objets du joueur** | `pico8_qb_struct_new` (41), `pico8_qb_ph` (122, 124, 129) ; `pico8_nf_struct_new` (39), `pico8_nf_ph` (96) ; `pico8_ui_struct_new` (119, 129), `pico8_ui_shutdown` (156), `pico8_ui_lj` (235), `pico8_ui_gw` (295) ; `pico8_bg_struct_new` (54), `pico8_bg_hq` (208) ; `pico8_fv_struct_new` (`help` 117) ; `pico8_pj_struct_new` (`score_panel` 263) ; `pico8_g__struct_new` (`probe` 413), `pico8_bv` (`probe` 162) | `scroll` 4 → sort ; `mouse_reader` 2 → sort ; `ui` 5 → sort ; `bg` 2 → sort ; `help` 1 → sort ; `score_panel` 1 → sort ; `probe` 2 → sort (17) | *Reçu 1* : `p`/`v`/`ra` de `qb`, `mo->v`, `ra` de `nf`, `p` de `pico8_bv` ; *Reçu 2* : `ok.qa`, la structure `ok` et ses calques `ic`, `fv`, la structure `pj` ; *Reçu 3* : la structure `g_` (et `fv`) et sa boîte `p` de `bv` (les `rendre` de `g_` et `fv` existent déjà et ne rendent que leur `qy`) |
 | | **Total** | | **4 + 5 + 28 + 11 + 3 + 13 + 17 = 81** | |
 
 - **Pourquoi cet ordre.**
   - **4b** est la plus petite famille (4 relocations, moins de 2 Ko). Ses objets sont faits dans `eu` et rendus par `bw` au `eu` suivant. Elle éprouve la bascule sur de vrais objets avec le seul motif délicat de l'inventaire : un ancien objet rendu par son remplaçant, encore vivant.
   - **4c** vient ensuite parce que toutes les autres familles inscrivent leurs objets dans `hv`/`cv`/`cg`. Elle fixe aussi la tenue des tableaux croissants dans une zone qui ne rend pas : un agrandissement laisse un bloc mort jusqu'à la génération suivante, ce qui coûte au plus le double de la taille finale. Enfin, elle crée la sous-zone chargement, dont 4g aura besoin.
   - **4d** est le plus gros poste (planètes générées par `bw(90)`, `bd` par action). On le mesure tôt, pour que la projection du budget repose sur une mesure et non sur une estimation.
-  - **4e** dépend de 4d en lecture seulement (un `jc` désigne ses planètes). Elle apporte la seule sorte de particules nouvelle.
+  - **4e** dépend de 4d en lecture seulement (un `jc` désigne ses planètes). Elle apporte la seule sorte de particules nouvelle, à ranger dans les ~17 Ko libres de la zone particules (`ts` : 24 o par place, de l'ordre de quelques centaines de traînées vivantes, donc quelques Ko).
   - **4f** est petite, avec les mêmes motifs que 4e.
   - **4g** touche le chargement et `fm`, que l'inventaire désigne comme vivant entre `_init` et `eu`.
   - **4h** est la plus difficile : boîtes par frame partagées entre objets (`ok.qa` gardé par les hôtes de `bv`), `ok` encore lu après `jl()`, sondes tenues. Elle passe en dernier. Elle donne aussi le critère de fin de l'étape 4 : `pause_restart` sous empoisonnement avec tous les singletons en zone.
-- **Une famille de plus que la liste du plan : 4h.** Le plan énumère six familles, et aucune ne couvre les singletons `mo`/`je`/`ok`, `bg`, `fv`, `pj` ni les sondes `g_`. Ce sont pourtant ceux que les lignes « Reçu » des étapes 1, 2 et 3 renvoient à l'étape 4. Les ranger dans « tableaux croissants et registres » mêlerait les boîtes par frame, le cas le plus dur, à la famille qui doit ouvrir la voie. La note « Découvert » de 4a le dit, et le commit de clôture ajoute 4h à la liste de l'entrée 4.
+- **Une famille de plus que la liste du plan : 4h. C'est un changement du plan**, écrit dans l'entrée 4 à la clôture de 4a. Le plan énumère six familles, et aucune ne couvre les singletons `mo`/`je`/`ok`, `bg`, `fv`, `pj` ni les sondes `g_`. Ce sont pourtant ceux que les lignes « Reçu » des étapes 1, 2 et 3 renvoient à l'étape 4. Le *Reçu de l'étape 3* (structure `g_` et `fv`, boîte `p` de `bv`) n'a d'autre place. Les ranger dans « tableaux croissants et registres » mêlerait les boîtes par frame, le cas le plus dur, à la famille qui doit ouvrir la voie.
 - **Fichiers partagés entre familles.**
   - `ui` : 4c puis 4h.
   - `planet_family` : 4c puis 4d.
   - `probe` : 4g puis 4h.
 
   Chacun ne sort de la liste qu'avec sa dernière famille.
-- Ces comptes sont des **prévisions**. Le verrou compte des relocations, qui dépendent du compilateur, et l'étape 3 n'est pas finie (H-3-1). Chaque famille repart de la mesure à son `HEAD` et note l'écart dans « Découvert ».
+- La colonne « Relocations » est **mesurée** à e88df7a. Les baisses par famille restent des prévisions, puisque le verrou compte des relocations qui dépendent du compilateur. Chaque famille repart de la mesure à son `HEAD` et note l'écart dans « Découvert ».
 
 ### Suivi du budget, famille par famille
 
-**Estimation par lecture**, x86-64, pic d'une session e2e. La bascule est comprise : partie quittée + titre + première frame de la nouvelle partie, soit environ deux parties à la fois. Les tailles viennent de `sizeof` relevés à `HEAD` : `pico8_jo_t` 432, `pico8_jc_t` 960, `pico8_trade_t` 160, `pico8_hp_t` 576, `pico8_hy_t` 472, `pico8_ui_t` 584, `pico8_qb_t` 168, `pico8_nf_t` 144, `pico8_bg_t` 152, `pico8_g__t` 256, `pico8_pj_t` 168, `pico8_ie_t` 176, `pico8_mz_t` 224, `pico8_gn_state_t` 592, `pico8_jf_state_t` 8, `pico8_jy_t` 48, `pico8_ents_t`/`pico8_ptrs_t` 24, `pico8_vec_t` 8. Une allocation est arrondie à 8 o.
+**Estimation par lecture**, x86-64, pic d'une session e2e. La bascule est comprise : partie quittée + titre + première frame de la nouvelle partie, soit environ deux parties à la fois. Les tailles viennent de `sizeof` relevés à `HEAD` e88df7a : `pico8_jo_t` 440 (432 avant l'étape 3), `pico8_g__t` 264 (256), `pico8_jc_t` 960, `pico8_trade_t` 160, `pico8_hp_t` 576, `pico8_hy_t` 472, `pico8_ui_t` 584, `pico8_qb_t` 168, `pico8_nf_t` 144, `pico8_bg_t` 152, `pico8_pj_t` 168, `pico8_ie_t` 176, `pico8_mz_t` 224, `pico8_gn_state_t` 592, `pico8_jf_state_t` 8, `pico8_jy_t` 48, `pico8_ents_t`/`pico8_ptrs_t` 24, `pico8_vec_t` 8. Une allocation est arrondie à 8 o.
 
 | Famille | Par génération | Pic estimé (bascule) |
 |---|---|---|
 | 4b états | ~0,6 Ko | ~2 Ko |
 | 4c registres | `hv` ~200 entrées, 5 `cv`, les `cg`, blocs morts des agrandissements : ~10 Ko | ~20 Ko |
-| 4d planètes | 90 planètes × ~0,9 Ko (struct, `p`/`ra`/id, `oe`, copies `jy`, `cc`/`by`/`ib` une fois les sites par action réglés) ≈ 80 Ko | ~160 Ko |
+| 4d planètes | 90 planètes × ~0,9 Ko (struct, `p`/`ra`/id, `oe`, copies `jy`, `cc`/`by`/`ib` une fois les sites par action réglés) ≈ 80 Ko ; les éclats `ga` n'y sont plus (zone particules) | ~160 Ko |
 | 4e slipways et routes | ≤ 10 slipways × ~1,1 Ko + routes ≈ 15 Ko | ~30 Ko |
 | 4f trous de ver | < 1 Ko | ~1 Ko |
 | 4g recherche | `hy`, 7 `ie` et leurs `jb` ≈ 3 Ko ; chargement : ~36 `hp` × 576 o + `hp.i` ≈ 32 Ko, hors bascule | ~38 Ko |
@@ -323,7 +348,7 @@ Cette table est un ordre de grandeur et une base de projection, pas une limite (
 2. **Projection** : `P_k = M_k + Σ` (estimations des familles restantes) `× r`. `r` vaut le rapport « mesuré / estimé » des familles déjà faites, s'il dépasse 1, et 1 sinon. Une famille dont la mesure dépasse son estimation fait monter la projection des suivantes.
 3. **Décision** :
    - `P_k ≤ PICO8_ZONE_GAME_BYTES` (768 Ko, sous-zone chargement comprise) : on continue ;
-   - `768 Ko < P_k ≤ 768 Ko + marge`, avec marge = 1536 − (frame + interface + particules), soit 49 Ko si l'étape 3 n'a rien relevé (H-3-2) : la famille relève `PICO8_ZONE_GAME_BYTES` d'un chiffre, dans son commit, et le dit ;
+   - `768 Ko < P_k ≤ 768 Ko + marge`, avec marge = 1536 − (frame + interface + particules) = **49 Ko** à e88df7a : la famille relève `PICO8_ZONE_GAME_BYTES` d'un chiffre, dans son commit, et le dit. Les ~17 Ko libres dans les 128 Ko de la zone particules n'entrent pas dans cette marge : ils restent aux particules (traînées `ts` de 4e), et les reprendre serait rogner une autre zone (§3). Si 4e a besoin de relever la zone particules pour `ts`, ce relèvement est pris sur les 49 Ko, et la projection des familles suivantes le compte ;
    - `P_k` au-delà : **arrêt** de l'étape 4 à la famille k, et signalement à l'humain (zone partie, limite voulue = `P_k` arrondi, somme actuelle des zones). On ne rogne ni la frame, ni l'interface, ni les particules (§3), et on n'attend pas la dernière famille.
 4. **Croissance** : à chaque famille, le TU des places vivantes vérifie que les octets de la zone partie sont égaux aux frames 45 et 90 de `message_box_hold`. Une hausse est une allocation par tick de la famille. Elle se corrige dans la famille, pas en relevant la limite (§3).
 5. Un `pico8_fatal` « zone partie pleine » en cours de famille se lit d'abord comme un site par tick ou par action entré tel quel, puis comme une limite trop basse. La note « Découvert » dit lequel.
@@ -343,18 +368,15 @@ Chaque morceau est un commit qui respecte l'invariant du §3 : `make test-all`, 
    - La bascule en tête de `pico8_eu` et le rendu dans `pico8_cart_vider_file_sortie()`, après le vidage de la file, avec le point d'oubli de partie (vide).
    - La remise complète dans `pico8_cart_load()`/`pico8_cart_shutdown()`.
    - Les listes de sources du `Makefile`.
-   - Les aides de TU qui enchaînent deux `eu` sans vidage, corrigées pour vider la file.
+   - Les aides de TU qui enchaînent deux `eu` sans vidage, corrigées pour vider la file (au moins `test_pico8_hy`, cas « construction »).
 3. **Remplissage écrit par le rejeu, et preuves sur rejeu.**
    - La ligne de la zone partie sous `PICO8_REMPLISSAGE`.
    - Le TU de la sentinelle sur `pause_restart`.
    - Le relevé des octets sur `message_box_hold` (f45 = f90).
    - Le contrôle du maximum par un rejeu.
 4. **Clôture de 4a.**
-   - La note « Découvert » sous 4a : point de bascule et de rendu, et pourquoi pas `jl()` ni `_init` ; inventaire et conclusion ; ordre des familles et attribution des 81 relocations ; méthode de budget ; écarts avec les hypothèses H-3-x.
-   - Les corrections des lignes « Partie » et « Particules » du §2.
-   - L'ajout de la famille 4h à la liste de l'entrée 4.
-   - La ligne « *Reçu de l'étape 4a* » sur les traînées `ts`.
-   - La vérification des points « À revérifier ».
+   - La note « Découvert » sous 4a : point de bascule et de rendu, et pourquoi pas `jl()` ni `_init` ; inventaire et conclusion, éclats `ga` compris ; ordre des familles et attribution des 81 relocations ; méthode de budget.
+   - Les changements du plan (voir « Changements du plan ») : lignes « Partie » et « Particules » du §2, famille 4h et ordre des familles dans l'entrée 4, ligne « *Reçu de l'étape 4a* » sur les traînées `ts`.
 
 ## Testing Decisions
 
@@ -379,12 +401,14 @@ Chaque morceau est un commit qui respecte l'invariant du §3 : `make test-all`, 
   - la frame 12 (clic « challenging », donc `eu`) est jouée : la sentinelle se relit sans crash, et les octets pris l'incluent encore ;
   - la frame 13 est jouée, puis la sentinelle est relue : l'enfant doit mourir par ASan ;
   - une variante montre que « restart » ne bascule pas : une sentinelle prise après la frame 6 se relit encore après la frame 11.
+
+  **Piège** : la fonction `relever` de ce TU vide la file avant de lire les comptes (`pico8_cart_vider_file_sortie()`), et ce vidage devient le point de rendu. Entre f12 et f13, la sentinelle doit donc être relue **sans** passer par `relever`, sinon le TU rend la génération lui-même et prouve un autre point que celui du jeu.
 - **Croissance par frame** : le même TU relève les octets de la zone partie aux frames 45 et 90 de `message_box_hold` et les trouve égaux. En 4a, la zone est vide et le relevé est trivial. Il est posé ici pour que chaque famille hérite du contrôle.
-- **Remplissage écrit par le rejeu** : sur le modèle de `tests/test_pico8_replay_usage.c`, un rejeu avec `PICO8_REMPLISSAGE` écrit la ligne de la zone partie (0 octet pris, maximum 0 en 4a) sans changer la capture ni le code de sortie. Le cas « maximum > octets finaux » est porté par le TU de la zone à deux bouts, puisqu'aucun objet du jeu n'y entre encore.
+- **Remplissage écrit par le rejeu** : sur le modèle des cas `le_rejeu_ecrit_le_remplissage_en_fin_de_session` et `le_rejeu_ecrit_le_pic_de_la_session` de `tests/test_pico8_places_vivantes.c`, un rejeu avec `PICO8_REMPLISSAGE` écrit `partie 0` et `max_octets partie 0` en 4a sans changer la capture ni le code de sortie. Le cas « maximum > octets finaux » est porté par le TU de la zone à deux bouts, puisqu'aucun objet du jeu n'y entre encore.
 - **Tests existants** : verts, sans changement d'attente. Seule adaptation permise : vider la file entre deux `eu` dans les aides de TU qui ne jouent pas de frame. L'`assert` les désigne.
 - **Verrou** : `make alloc-guard` à égalité stricte, comptes inchangés. Pas de nouveau cas dans `tests/test_alloc_guard.c`.
 - **Invariant** : `make e2e` avec les 26 `*.sha256` inchangés, puis `make sanitize-net`. En 4a, rien n'est empoisonné en jeu, et `sanitize-net` vert ne prouve que l'absence de régression. La preuve du point de rendu est le TU de la sentinelle.
-- **Exemples dans le dépôt** : `tests/test_pico8_zone.c`, `tests/test_pico8_zone_frame.c`, `tests/test_pico8_zone_choisie.c` (lecture périmée dans un enfant, zone pleine en 3) ; `tests/test_pico8_places_vivantes.c` ; `tests/test_pico8_replay_usage.c` ; `src/main.c` (`write_remplissage`).
+- **Exemples dans le dépôt** : `tests/test_pico8_zone.c`, `tests/test_pico8_zone_frame.c`, `tests/test_pico8_zone_choisie.c`, `tests/test_pico8_zone_particules.c` (lecture périmée dans un enfant, zone pleine en 3) ; `tests/test_pico8_places_vivantes.c` (rejeu frame par frame dans un enfant, relevés, remplissage écrit par le rejeu) ; `src/main.c` (`write_remplissage`).
 
 ## Out of Scope
 
@@ -399,48 +423,50 @@ Chaque morceau est un commit qui respecte l'invariant du §3 : `make test-all`, 
 - Afficher un budget de slipways (§7).
 - Lancer l'application raylib.
 
-## Hypothèses sur l'étape 3
+## Vérifié contre l'étape 3
 
-L'étape 3 est en cours (PRD `docs/prd/triage/phase1-etape3-zone-particules.md`). Cette PRD suppose ce qui suit. Chaque point est à revérifier quand l'étape 3 sera finie.
+Relu contre `HEAD` e88df7a :
 
-- **H-3-1 (comptes laissés).** L'étape 3 se clôt sur sa prévision : **24 fichiers, 84 appels**.
-  - `pico8_particle.c` sort.
-  - `probe` 4 → 3 (`g__mm`).
-  - `planet_family` 9 → 6 (`ga_mm`, `ga_struct_new`, `pm_pq`).
-  - `planet` 7 → 6 (une des deux de `jo_pq`).
+- la note « Découvert » de l'étape 3, la ligne « *Reçu de l'étape 3* » sous l'entrée 4 et la ligne « Particules » corrigée du §2 (`docs/plan-4.md`) ;
+- `src/pico8_zone_particules.{h,c}`, `src/pico8_cart.c` (`oublier`, `pico8__update60`, `pico8_eu`), `src/pico8_planet_family.c` (`pico8_ga_rendre_dispatch`, classe `ga`), `src/pico8_planet.c` (`pico8_jo_pq`, `pico8_jo_pq_dans`), `src/pico8_probe.c` et `src/pico8_help.c` (`rendre` de `g_` et `fv`), `src/main.c` (`write_remplissage`), `tests/test_pico8_places_vivantes.c`, `tests/test_pico8_hy.c` ;
+- `tools/alloc_guard_exceptions.txt`, et `make alloc-guard` sur une copie `git archive HEAD` : 64 objets, 24 allouent, 84 appels ;
+- `git log -10 --stat` (5fb575c à e88df7a).
 
-  L'attribution des 81 relocations de l'étape 4 en dépend.
-- **H-3-2 (budget).** `PICO8_ZONE_PARTICLES_BYTES` reste à 128 Ko : somme 1487 Ko, marge 49 Ko. Tout relèvement de l'étape 3 (permis jusqu'à 177 Ko) retire autant à la marge de l'étape 4.
-- **H-3-3 (format du remplissage).** `main.c` écrit, sous `PICO8_REMPLISSAGE`, par sorte, les places vivantes et le maximum de la session. 4a ajoute sa ligne dans la même forme (nom, valeur courante, maximum).
-- **H-3-4 (sorties de l'étape 3 vers l'étape 4).**
-  - `g_` et `fv` ont `rendre` et passent par la file de sortie.
-  - Les `rendre` des planètes émettrices lisent la struct (rangée, puis `qy`) au vidage.
-  - `jo:pq` a une variante à zone passée, et sa forme actuelle garde une référence à la transitoire.
-  - Les lignes « *Reçu de l'étape 3* » sous l'entrée 4 nomment la struct `g_`, la struct `fv` et le `oe` des planètes.
-  - L'éclat `ga` emprunte `p`/`ra`/`id` à la planète remplacée par `jo:hu`.
-- **H-3-5 (inventaire).** L'étape 3 n'a rien ajouté à `oublier`. Les pointeurs statiques sont ceux relevés à `HEAD` 7255c72.
-- **H-3-6 (TU).** Les aides de TU qui enchaînent `_init`/`eu` sans frame vident la file de sortie (leçon des étapes 2 et 3). `tests/test_pico8_places_vivantes.c` sait jouer un e2e frame par frame dans un enfant et lire des comptes entre deux frames.
-- **H-3-7 (traînées `ts`).** L'étape 3 ne touche pas `pico8_jc_ch` : la traînée reste un `malloc` dans `pico8_slipway_display.c` (1).
-- **H-3-8 (file de sortie).** Capacité inchangée (256). Le vidage reste en tête de `pico8__update60()`, après la remise de la zone frame et avant `pico8_dg()`. Il est aussi appelé par `pico8_cart_load()`, `pico8_cart_shutdown()` et `main.c`.
+Statut de chaque hypothèse du brouillon :
 
-## À revérifier une fois l'étape 3 finie
-
-- `make alloc-guard` sur le `HEAD` d'alors : liste et comptes par fichier. Recalculer la colonne « Relocations » de l'ordre des familles et le total de 81. Un écart va dans « Découvert » de 4a.
-- La note « Découvert » de l'étape 3 :
-  - sites classés autrement que prévu (une struct `g_` ou `fv` gardée par l'étape 3 change 4h) ;
-  - `PICO8_ZONE_PARTICLES_BYTES` et la somme des zones (marge de l'étape 4) ;
-  - toute référence ajoutée à `oublier`.
-- Les lignes « *Reçu de l'étape 3* » sous l'entrée 4 du plan, à rattacher à leur famille dans la table d'ordre.
-- Le format des lignes de `PICO8_REMPLISSAGE` (H-3-3), pour que la ligne de la zone partie suive le même.
-- Le `grep` de l'inventaire refait sur le code d'alors : tout pointeur statique nouveau (par exemple un pointeur de module de particules) est classé avec la question de 4a.
-- Le vidage de la file et son ordre dans `pico8__update60()` (H-3-8). Le point de rendu de la zone partie s'y accroche.
-- Si l'étape 3 a ajouté la sorte `ts` à son module, contre H-3-7 : retirer `pico8_jc_ch` de 4e et la ligne « Reçu de l'étape 4a ».
-- Si le module de particules ne permet pas d'ajouter une sorte sans le refaire : le dire dans la ligne « Reçu de l'étape 4a ».
+- **H-3-1 (comptes laissés) — tenue.** 24 fichiers, 84 appels. `pico8_particle.c` est sorti ; `probe` 3, `planet_family` 6, `planet` 6. Les 84 relocations relevées sont exactement les 91 de 7255c72 moins les 7 prévues (`pico8_f_` ×2, `g__mm`, `ga_mm`, `ga_struct_new`, `pm_pq`, le `malloc` de `jo_pq`). Les numéros de ligne ont bougé : la table des familles donne ceux de e88df7a. L'attribution reste 4 + 5 + 28 + 11 + 3 + 13 + 17 = 81.
+- **H-3-2 (budget) — tenue, précisée.**
+  - `PICO8_ZONE_PARTICLES_BYTES` reste à 128 Ko : somme 1487 Ko sur 1536, marge de 49 Ko sur le total.
+  - Précision : la zone particules n'occupe que 113 822 o (111 Ko). Ses ~17 Ko libres ne sont pas une marge pour la zone partie (§3 : ne pas rogner une autre zone). Ils servent aux traînées `ts` de 4e (voir « Suivi du budget »).
+- **H-3-3 (format du remplissage) — tombée sur la forme.**
+  - `write_remplissage` écrit `<sorte> <n>` pour les vivantes, puis le maximum sur des lignes préfixées : `max_vivantes <sorte> <n>`, `max_octets <sorte> <n>`, `max_elements <sorte> <n>`. Ce n'est pas une ligne « nom, courant, maximum ».
+  - La zone partie suit cette forme : `partie <octets>` et `max_octets partie <n>` (« Remplissage écrit par le rejeu »).
+- **H-3-4 (sorties de l'étape 3 vers l'étape 4) — tenue, avec un écart.**
+  - `g_` et `fv` ont `rendre` (`pico8_g__rendre_dispatch`, qui ne rend que leur `qy`) et passent par la file.
+  - Les `rendre` de `hj`, `pm`, `mx` lisent la struct (rangée, puis `qy`).
+  - `jo:pq` a sa variante `pico8_jo_pq_dans`, et la forme `pico8_jo_pq` garde la référence à la transitoire (`planet` 192, attribuée à 4d).
+  - L'éclat de `jo:hu` emprunte `p`/`ra`/`id`.
+  - **Écart** : l'éclat `ga` est désormais **entièrement** en zone particules (structure, `oe`, copie de position) et **rendu en cours de partie**. Ce n'est plus un objet de partie : il sort de 4d. Les objets de partie qui pourraient le désigner sont relevés dans l'inventaire (« Éclats `ga` rendus en cours de partie »).
+  - Le *Reçu de l'étape 3* dit « la structure `g_` (et `fv`) et sa boîte `p` de `bv` » et « `oe` d'une planète ordinaire passe par `pico8_jo_pq_dans` ». Les deux sont rattachés (4h et 4d).
+- **H-3-5 (inventaire) — tombée.**
+  - L'étape 3 a ajouté à `oublier` la remise à nil du `re` du `jc` tenu (`ok.lheld`), quand il vise l'objet rendu. C'est un trou de son inventaire, trouvé à la vérification : un éclat se survole.
+  - Un pointeur statique est apparu (`g_arenes`), avec deux structures (`g_zones`, `g_slots` des particules). Le motif du `grep` a été élargi aux tableaux à plusieurs dimensions pour le voir.
+  - Tous sont classés dans l'inventaire refait à e88df7a. Aucun ne change la conclusion : point d'oubli de partie vide.
+- **H-3-6 (TU) — tenue en partie.**
+  - `tests/test_pico8_places_vivantes.c` rejoue frame par frame dans un enfant, relève les comptes, et sait vérifier le remplissage et le pic écrits par le rejeu.
+  - Mais toutes les aides de TU ne vident pas la file entre deux `eu` : `test_pico8_hy` (cas « construction ») enchaîne deux `pico8_eu` sans vidage. Le morceau 2 de 4a le corrige.
+  - Nouveau piège pour le TU de la sentinelle : `relever` vide la file, et ce vidage deviendra le point de rendu (Testing Decisions).
+- **H-3-7 (traînées `ts`) — tenue.** `pico8_jc_ch` fait toujours son `malloc` (`slipway_display` 36). La ligne « Particules » corrigée par l'étape 3 ne nomme pas `ts`. 4a l'ajoute aux changements du plan et confie `ts` à 4e.
+- **H-3-8 (file de sortie) — tenue.**
+  - Capacité 256.
+  - `pico8__update60()` fait toujours : remise de la zone frame, vidage, `pico8_dg()`, `pico8_ui_lj()`.
+  - Le vidage est aussi appelé par `pico8_cart_load()`, `pico8_cart_shutdown()` et `main.c`.
+  - Le commentaire de `pico8_zone_particules.c` compte d'ailleurs déjà « les 5 de la nouvelle aide, nées au `_init` avant le vidage qui rend l'ancienne partie » : c'est l'ordre sur lequel s'appuie le rendu de la génération.
 
 ## Further Notes
 
 - **Pas d'humain disponible, pas d'outil `Agent` dans cette session.** Les points que `to-prd` fait valider par un humain (modules attendus, tests voulus, découpage) ont été tranchés en appliquant moi-même le skill `guideline` :
-  - **Hypothèses explicites** : H-3-1 à H-3-8 et la liste « À revérifier » ; l'inventaire du §4 refait par `grep` ; les quatre lectures après `jl()`, relevées dans le code et dans le cart (l. 217-247, 1178-1186).
+  - **Hypothèses explicites** : celles du brouillon (H-3-1 à H-3-8) ont été vérifiées contre l'étape 3 finie (section « Vérifié contre l'étape 3 ») ; l'inventaire du §4 a été refait par `grep` à e88df7a ; les quatre lectures après `jl()` ont été relevées dans le code et dans le cart (l. 217-247, 1178-1186).
   - **Simplicité** :
     - une seule primitive nouvelle (la zone à deux bouts) et un seul module ;
     - pas de sous-zone chargement tant qu'aucun propriétaire n'y entre ;
@@ -468,9 +494,9 @@ L'étape 3 est en cours (PRD `docs/prd/triage/phase1-etape3-zone-particules.md`)
 - À la fin de 4a, la note « Découvert » sous l'entrée 4 du plan porte au minimum :
   - le point de bascule (`eu`) et de rendu (vidage suivant), et pourquoi ni `jl()` ni `_init` ;
   - l'angle mort ASan (deux nouvelles parties) ;
-  - la conclusion de l'inventaire (point d'oubli vide) ;
+  - la conclusion de l'inventaire (point d'oubli vide), éclats `ga` rendus en cours de partie compris ;
   - l'ordre 4b → 4h, la famille 4h ajoutée et pourquoi ;
-  - l'attribution des 81 relocations et l'écart à H-3-1 ;
+  - l'attribution des 81 relocations, mesurée à e88df7a, et l'écart à la mesure du `HEAD` de clôture ;
   - la règle des sites par tick ou par action ;
   - la méthode de budget et l'estimation de départ (~265 Ko) ;
-  - les corrections du §2 (Partie, chargement, `ts`).
+  - les changements du plan écrits dans le même commit (§2 Partie et chargement, §2 Particules et `ts`, famille 4h et ordre des familles, *Reçu de l'étape 4a*).
