@@ -8,9 +8,9 @@ status: needs-triage
 
 Le plan 4 (`docs/plan-4.md`) veut zéro `malloc`, `calloc`, `realloc` ni `free` dans le cœur. L'étape 4 range les objets de partie dans la **zone partie**. Cette PRD traite la sous-étape **4g, recherche et économie**.
 
-**Elle est rédigée pendant 4f.** La PRD de 4f (`docs/prd/next/phase1-etape4f-trous-de-ver.md`) n'est pas implémentée. Tout ce que cette PRD suppose de l'issue de 4f est écrit comme hypothèse `H-4f-n` (section « Hypothèses sur l'étape 4f »). Ce qu'il faudra relire une fois 4f finie est listé dans « À revérifier une fois 4f finie ». Tout le reste a été lu sur le contenu commité à `HEAD` 4093382 (`git archive HEAD`), jamais sur l'arbre de travail.
+**Elle a été rédigée pendant 4f, puis revérifiée contre 4f finie** (section « Vérifié contre 4f ») : les sept hypothèses `H-4f-n` du brouillon tiennent toutes, et le prototype a été refait à `HEAD` 88d9567. Tout a été lu sur le contenu commité (`git archive HEAD`), jamais sur l'arbre de travail. Les fichiers de 4g n'ont pas bougé depuis 4093382, où le brouillon avait été écrit : les lignes citées valent aux deux.
 
-**Le texte de l'étape**, recopié du plan à 4093382 (entrée 4, extraits qui concernent 4g) :
+**Le texte de l'étape**, recopié du plan à 88d9567 (entrée 4, extraits qui concernent 4g) :
 
 > 4. **Zone partie,** et ses propres tableaux croissants ; remise à zéro sur nouvelle partie. L'étape n'est finie que si `pause_restart` passe `make sanitize-net` sous cet empoisonnement, et si son remplissage ne monte pas pendant une phase sans action d'un e2e.
 >    - **4b et suivantes.** Une famille de propriétaires par PRD dans l'ordre fixé par la PRD 4a : […] 4g recherche et économie ; 4h singletons de `jl`/`eu` et objets du joueur […]. N'entre en zone partie qu'une allocation faite une fois par objet de partie ; un champ réaffecté par tick ou par action est réécrit en place, devient une valeur, va en zone frame ou prend une place. Chacune relève le maximum de remplissage sur tous les e2e et le note ; dès que le relevé cumulé, prolongé aux familles restantes, dépasserait ce que les 1,5 Mo laissent, l'étape s'arrête et le signale (§3) sans attendre la dernière famille.
@@ -19,12 +19,15 @@ Le plan 4 (`docs/plan-4.md`) veut zéro `malloc`, `calloc`, `realloc` ni `free` 
 >    - *Découvert (4d) :* […] Une prise d'icône refusée faisait grandir la génération (+616 o) : elle prend une arène de 1536 o recyclée par une liste de 4 prises libres. […]
 >    - *Reçu de l'étape 4d :* […] Pour 4g, l'identifiant « s… » de `ie:ldown` est fait à chaque prise : il va dans l'arène de prise.
 >    - *Découvert (4e) :* […] un `jc` est fait à chaque pression sur une planète (pas une fois par slipway) : il prend l'arène de prise de 4d, portée à 2048 o, et la rend s'il est refusé ; […] Mesure : maximum 130 720 o inchangé, `trade_rich_mine` 95 312 o, au plus 13 traînées ; projection ≈ 147 Ko ≤ 704 : on continue. Comptes : 16 / 47 → 13 / 36.
+>    - *Découvert (4f) :* un trou de ver `mz` naît à chaque pression dans le vide (pas une fois par partie) : il prend l'arène de prise et la rend à sa mort, quel que soit son état ; son `ox` est réservé à sa taille exacte (`pico8_ents_init_reserve`). Liste des prises libres 4 → 8. Rien de nouveau à oublier (`dw = 0` : un `mz` n'accroche jamais `fo`). Mesure : maximum 130 720 o inchangé, chargement 0. Comptes : 13 / 36 → 12 / 33.
 >    - *Reçu de l'étape 1 :* même chose pour les boîtes `vec` des objets de partie (`p`/`v`/`ra` de `qb`, `ra` de `nf`, `mo->v`, `re`/`p` de `jc:hq`, `p` de `pico8_bv`, `ie.gy`) ; […]
 >    - *Reçu de l'étape 2 :* restent à cette étape `ok.qa` […], la structure `ok` et ses calques `ic`, la liste statique de départ, `ie.jb` (fait une fois par partie), `fv`, la structure `pj`, `hp.i`. […]
 
-**La ligne « Partie » du §2**, recopiée :
+La seule ligne « *Reçu de l'étape 4f* » vise 4h (`ox`/`ij` d'un `mz` et les sondes `g_`, `mz.p`/`mz.ra`) : rien à traiter ici.
 
-> | **Partie** | planètes, relais, slipways posés, routes `trade` gardées dans `by`, recherche, trous de ver ; les tableaux croissants (`ents`, `ptrs`, registres) qui les contiennent ; les objets faits au chargement (`gb`, `hp.i`, listes statiques) dans une sous-zone chargement, prise dans la zone partie, remise à zéro par le seul chargement | une génération par partie, de `eu` à `eu` ; rendue d'un bloc au vidage de la file qui suit le `eu` suivant (zone à deux bouts) ; `_init` ne la rend pas |
+**La ligne « Partie » du §2**, recopiée à 88d9567 :
+
+> | **Partie** | planètes, relais, slipways posés, routes `trade` gardées dans `by`, recherche ; dans l'arène de prise recyclée, l'objet tenu (icône, slipway, trou de ver) ; les tableaux croissants (`ents`, `ptrs`, registres) qui les contiennent ; les objets faits au chargement (`gb`, `hp.i`, listes statiques) dans une sous-zone chargement, prise dans la zone partie, remise à zéro par le seul chargement | une génération par partie, de `eu` à `eu` ; rendue d'un bloc au vidage de la file qui suit le `eu` suivant (zone à deux bouts) ; `_init` ne la rend pas |
 
 **La ligne de 4g dans la table des familles de la PRD 4a**, retirée par b46601e (`git show b46601e~1:docs/prd/triage/phase1-etape4a-socle-zone-partie.md`), recopiée :
 
@@ -59,11 +62,11 @@ L'estimation de 4a : « 4g recherche | `hy`, 7 `ie` et leurs `jb` ≈ 3 Ko ; cha
 >   - aller en **zone frame**, s'il n'est relu que dans la frame ;
 >   - prendre une **place** dans une zone qui rend.
 
-**Ce qui se passe aujourd'hui** (lu à 4093382, cart et port) :
+**Ce qui se passe aujourd'hui** (lu à 88d9567, cart et port) :
 
-- **Le verrou** : `make alloc-guard` sur une copie `git archive HEAD` répond « verrou objets 65 allouent 13 appels 36 ». Les 13 relocations de 4g, rattachées par `objdump -r` et `addr2line` sur les objets `-g` d'`alloc-guard` (les lignes de 4a ont bougé) :
+- **Le verrou** : `make alloc-guard` sur une copie `git archive HEAD` répond « verrou objets 65 allouent 12 appels 33 » (`wormhole` est sorti avec 4f). Les 13 relocations de 4g, rattachées par `objdump -r` et `addr2line` sur les objets `-g` d'`alloc-guard` (les lignes de 4a ont bougé) :
 
-  | Fichier | Fonction (ligne à 4093382) | Appel |
+  | Fichier | Fonction (ligne à 88d9567) | Appel |
   |---|---|---|
   | `research` | `pico8_research_free_gb_instances` (33) | `free` d'un `hp` |
   | `research` | `pico8_jy_new` (119) | `calloc` d'un besoin `jy` |
@@ -87,14 +90,14 @@ L'estimation de 4a : « 4g recherche | `hy`, 7 `ie` et leurs `jb` ≈ 3 Ko ; cha
 
 ## Solution
 
-- **Sous-zone chargement** : chaque `hp`, son conteneur `i` et ses besoins `jy` y sont pris. `i` est **réservée exactement** à la longueur de sa chaîne (`pico8_ptrs_init_reserve`), sauf une chaîne vide, laissée sans éléments. `free_gb_instances` ne libère plus rien : il oublie `gb`. Mesuré par prototype : **K_4g = 22 752 o** sur 65 536.
+- **Sous-zone chargement** : chaque `hp`, son conteneur `i` et ses besoins `jy` y sont pris. `i` est **réservée exactement** à la longueur de sa chaîne (`pico8_ptrs_init_reserve`), sauf une chaîne vide, laissée sans éléments (`pico8_ents_init_reserve` de 4f, qui accepte 0, ne convient pas : `i` est une `pico8_ptrs_t` de besoins, pas une liste d'entités). `free_gb_instances` ne libère plus rien : il oublie `gb`. Mesuré par prototype : **K_4g = 22 752 o** sur 65 536.
 - **`pico8_jy_new` prend une zone.** `hp:pq` passe le chargement ; `economy_tiers` et `planet_trade` passent la génération (une fois par planète, règle des familles tenue).
 - **Génération** : la structure `hy` et son conteneur `invented` (agrandi dans la génération à chaque invention, borné par le nombre de techs) ; chaque `ie` ; la bulle `ie.jb` de chaque icône ; la boîte qu'une icône avance sur `ie.gy`, une fois par icône. Mesuré : **+10 184 o par partie**.
 - **L'identifiant « s… » dans l'arène de prise** : `ie:ldown` ouvre la prise, puis fait l'identifiant dans `pico8_jo_zone_construction()`, puis la structure. Une prise refusée rend son identifiant avec son arène ; une prise posée le garde avec la sienne.
 - **Plus de `free` de `fm`** : `pico8_probe_set_fm` et `pico8_probe_shutdown` ne font que rebrancher ; l'ancien `hy` meurt avec sa génération, que le vidage qui suit `eu` rend.
 - **Inventaire du §4** refait : rien à ajouter au point d'oubli de partie ni à `oublier`.
 - **Budget** : `M_4g` = **151 088 o** (`pause_restart`, au clic), `K_4g` = 22 752 o ; projection ≈ 188 Ko au pire ≤ 704, chargement 22,2 Ko ≤ 64 : **on continue**.
-- **Verrou** : `research`, `research_icon`, `cart`, `economy` sortent, `probe` 3 → 2. Mesuré par le prototype à 4093382 : **13 / 36 → 9 / 23**. Après 4f (H-4f-1) : **12 / 33 → 8 / 20**.
+- **Verrou** : `research`, `research_icon`, `cart`, `economy` sortent, `probe` 3 → 2. Mesuré par le prototype à 88d9567 : **12 / 33 → 8 / 20**.
 
 Aucun pixel ne change : le prototype garde les 26 `*.sha256`, `make test` est vert une fois les TU de « Testing Decisions » réécrits, et `make sanitize-net` répond « 26 propre(s) ».
 
@@ -129,7 +132,7 @@ Aucun pixel ne change : le prototype garde les 26 `*.sha256`, `make test` est ve
 27. En tant que mainteneur du plan 4, je veux les maxima de la génération et du chargement relevés sur les 26 e2e, avec la projection et la décision, pour que le budget repose sur une mesure.
 28. En tant que mainteneur du plan 4, je veux que la note « Découvert (4g) » corrige la table de 4a (la boîte de `ie.gy` est faite une fois par icône, pas à chaque `hb`) et son estimation (≈ 10 Ko par partie, pas 3), pour que 4h projette sur un modèle juste.
 29. En tant que mainteneur, je veux que les contrats devenus faux (« Freed only by pico8_research_shutdown », « never freed (TROU-7) », « Nothing frees the struct », « the caller owns the struct until pico8_probe_set_fm() takes it », les `/* TROU-7 */` de ces sites) soient réécrits, et que `<stdlib.h>` et l'inclusion de la transitoire sortent des fichiers qui n'en ont plus besoin, pour que les commentaires restent vrais (règle du `CLAUDE.md`).
-30. En tant qu'agent sans humain, je veux que toute hypothèse sur l'issue de 4f soit numérotée et revérifiée avant l'implémentation, pour ne pas bâtir sur une conception que 4f aurait changée.
+30. En tant qu'agent sans humain, je veux que chaque hypothèse faite sur l'issue de 4f soit marquée tenue ou tombée contre 4f finie, pour ne pas bâtir sur une conception que 4f aurait changée.
 
 ## Implementation Decisions
 
@@ -159,7 +162,7 @@ Chaque site est tranché par lecture : « à quelle fréquence, et qui d'autre g
 
 ### Sous-zone chargement : `gb` et `hp.i`
 
-- `pico8_hp_struct_new` prend sa structure, le conteneur `i` et ses `jy` dans `pico8_zone_chargement()`. Le conteneur `i` est réservé à `strlen` de la chaîne `i` par `pico8_ptrs_init_reserve` ; une chaîne vide passe par `pico8_ptrs_init` (le prototype a d'abord heurté l'`assert` « capacity > 0 » de `pico8_ptrs_init_reserve`).
+- `pico8_hp_struct_new` prend sa structure, le conteneur `i` et ses `jy` dans `pico8_zone_chargement()`. Le conteneur `i` est réservé à `strlen` de la chaîne `i` par `pico8_ptrs_init_reserve` ; une chaîne vide passe par `pico8_ptrs_init` (le prototype a d'abord heurté l'`assert` « capacity > 0 » de `pico8_ptrs_init_reserve`). `pico8_ents_init_reserve` (4f) accepte 0, mais vise des listes d'entités (`pico8_ents_t`) : `hp.i` reste une `pico8_ptrs_t`. Aligner `pico8_ptrs_init_reserve` sur sa sœur (capacité 0 : rien n'est pris) est permis à l'implémenteur à la place du test, avec un cas de TU ; ce n'est pas exigé.
 - Un `hp` fait par un TU (`pico8_hp_new` hors `build_gb`) prend aussi le chargement. Il ne grandit qu'avec les TU, chacun dans son enfant.
 - `free_gb_instances` remet les compteurs à zéro sans rien libérer. Le nom peut changer (il ne libère plus) ; laissé à l'implémenteur.
 - **Remise à zéro** : par `pico8_zone_partie_reset()` seul, dans `pico8_cart_load()`/`pico8_cart_shutdown()`, avant `pico8_data_init` qui refait `gb`. Aucune remise ajoutée.
@@ -197,16 +200,16 @@ Trois durées de vie finissent sur des objets de 4g :
 - **la génération**, rendue au vidage qui suit le `eu` suivant : `hy`, `invented`, les `ie`, leurs bulles, les boîtes de `ie.gy`, les `jy` de planètes ;
 - **l'arène de prise** d'une icône refusée, recyclée : son identifiant.
 
-**Méthode.** Refaire **mécaniquement**, sur le code du commit, les deux `grep` de 4a sur les fichiers de `CORE_SRCS` (65 fichiers à 4093382) :
+**Méthode.** Refaire **mécaniquement**, sur le code du commit, les deux `grep` de 4a sur les fichiers de `CORE_SRCS` (65 fichiers à 88d9567) :
 
 - pointeurs `static` : `grep -nE '^\s*static\s[^(]*\*\s*[a-zA-Z_][a-zA-Z0-9_]*(\[[^]]*\])*\s*(;|=)'`, hors `const char *` et `* const` ;
 - structures `static` dont on lit les champs pointeurs : `grep -nE '^static\s+(struct\s+)?[a-z0-9_]+(_t)?\s+[a-zA-Z_][a-zA-Z0-9_]*\s*(\[[^]]*\])*\s*(;|=)'`, hors `const` et scalaires.
 
-**Trou du motif** : le second `grep` ne voit pas une structure anonyme (`static struct { … } g_gb_px[…]`). Ajouter `grep -nE '^static\s+struct\s*\{'` et classer ce qu'il trouve. À 4093382, il ne trouve que `g_gb_px`.
+**Trou du motif** : le second `grep` ne voit pas une structure anonyme (`static struct { … } g_gb_px[…]`). Ajouter `grep -nE '^static\s+struct\s*\{'` et classer ce qu'il trouve. À 88d9567, il ne trouve que `g_gb_px`.
 
 Y ajouter le `grep` des lecteurs de `hn`, `->i`, `pico8_gb_at`/`_find`, `pico8_fm`/`pico8_fm_hy`, `pico8_ie_gy`, `->jb` d'une icône, et des copies de `id`.
 
-**Relevé fait à 4093382** (20 pointeurs `static`, 37 lignes de structures `static`, plus `g_gb_px`) :
+**Relevé fait à 88d9567** (20 pointeurs `static`, 38 lignes de structures `static` hors `const` et scalaires, plus `g_gb_px` ; identique à 4093382 : 4f n'a ajouté ni pointeur ni structure `static`) :
 
 | Pointeur | Peut viser | Statut |
 |---|---|---|
@@ -214,7 +217,7 @@ Y ajouter le `grep` des lecteurs de `hn`, `->i`, `pico8_gb_at`/`_find`, `pico8_f
 | `g_gb_px[].px`, `g_rr` | — | textes de `pico8_fd_table`, statiques |
 | `g_fm` (`probe`) | génération | **repointé** par `eu` après la bascule ; entre `_init` et `eu`, il désigne l'ancien `hy`, encore vivant ; à l'arrêt et au rechargement, mis à NULL ou au tenant-lieu sans lecture |
 | `g_ie_gy` (`research_icon`) | génération | **repointé** par `_init` sur `ie.eh` (statique), puis, dans `eu`, par les `hb` de `qh` et `os` (sans `rr`, révélées d'office par `fm:lj()`) sur des boîtes de la nouvelle génération. Après le vidage qui suit un `eu`, il ne désigne jamais la génération rendue, même sans `_init` entre deux `eu` (cas de TU) |
-| `g_jo_prise`, `g_jo_prises_libres[]` (`planet`) | arène d'une icône refusée (et son identifiant) | comme en 4d : ouverte seulement autour de la construction, liste oubliée au point d'oubli de partie, au chargement, à l'arrêt |
+| `g_jo_prise`, `g_jo_prises_libres[]` (`planet`, 8 places depuis 4f) | arène d'une icône refusée (et son identifiant) | comme en 4d : ouverte seulement autour de la construction, liste oubliée au point d'oubli de partie, au chargement, à l'arrêt. Une arène rendue par un `mz` (4f) peut être reprise par une icône : son identifiant y est fait après la remise à vide |
 | `g_ok` → `ok.o_`, `ok.gj` | une `ie` survolée | nouvel `ok` refait par le `jl()` d'`eu` ; l'ancien n'est plus lu une fois `ok:lj` fini (4a). Une `ie` n'a pas de `rendre` : elle n'entre pas en file et ne meurt qu'avec sa génération |
 | `g_ok` → `ok.lheld` | la planète tenue, et son identifiant | comme en 4d |
 | `g_hv`, `g_cv[].list`, `g_cg[].list` | des `ie` | refaits par le `jl()` d'`eu` (4c) |
@@ -227,29 +230,30 @@ Y ajouter le `grep` des lecteurs de `hn`, `->i`, `pico8_gb_at`/`_find`, `pico8_f
 - `jo.jy` : des copies par valeur de `hp.i` (4d), ou des `jy` de génération ;
 - un éclat `ga` emprunte l'`id` d'une planète remplacée par `jo:hu` : une planète **posée**, dont l'arène n'est jamais recyclée (4d).
 
-**Conclusion** : ni le point d'oubli de partie ni `oublier` ne gagnent d'entrée. Un pointeur trouvé ensuite par ASan sera ajouté au point d'oubli et noté dans « Découvert » comme un **trou de l'inventaire** (§4). L'inventaire est refait sur le code du commit au morceau de clôture ; s'il diffère de ce relevé (par exemple parce que 4f a ajouté un pointeur), la différence est classée avec la même question.
+**Conclusion** : ni le point d'oubli de partie ni `oublier` ne gagnent d'entrée. Un pointeur trouvé ensuite par ASan sera ajouté au point d'oubli et noté dans « Découvert » comme un **trou de l'inventaire** (§4). L'inventaire est refait sur le code du commit au morceau de clôture ; s'il diffère de ce relevé, la différence est classée avec la même question.
 
 ### Verrou
 
 - `tools/alloc_guard_exceptions.txt` : retirer `src/pico8_research.c 5`, `src/pico8_research_icon.c 3`, `src/pico8_cart.c 1`, `src/pico8_economy.c 3` ; `src/pico8_probe.c 3` → `2`.
-- **Mesuré** par `make alloc-guard` sur le prototype à 4093382 : « verrou objets 65 allouent 9 appels 23 » (13 / 36 → 9 / 23). Après 4f (H-4f-1) : **12 / 33 → 8 / 20**.
+- **Mesuré** par `make alloc-guard` sur le prototype à 88d9567 : « verrou objets 65 allouent 8 appels 20 » (**12 / 33 → 8 / 20**). Le brouillon avait mesuré 13 / 36 → 9 / 23 à 4093382 : même baisse de 13.
 - `<stdlib.h>` et `pico8_zone_transitoire.h` sortent des fichiers qui n'en ont plus besoin (`cart` garde peut-être `<stdlib.h>` pour autre chose : à vérifier à la compilation).
 
 ### Budget : mesure, projection, décision
 
-- **Mesure par prototype** à 4093382, sur une copie `git archive` hors dépôt, avec toute la conception de cette PRD. Les 26 e2e rejoués avec `PICO8_REMPLISSAGE`, contre la même mesure à 4093382 :
-  - les 26 `*.sha256` sont identiques ; `sanitize-net` répond « 26 propre(s) » ; `make test` est vert une fois réécrits les TU de « Testing Decisions » ;
+- **Mesure par prototype** à 88d9567 (refaite après 4f), sur une copie `git archive` hors dépôt, avec toute la conception de cette PRD. Les 26 e2e rejoués avec `PICO8_REMPLISSAGE`, contre la même mesure à 88d9567 (maximum 130 720 o sur `pause_restart`, chargement 0) :
+  - les 26 `*.sha256` sont identiques ; `sanitize-net` répond « 26 propre(s) » ; `make e2e` est vert ; `make test` est vert une fois réécrits les TU de « Testing Decisions », cas de 4f compris (`pliages.json`, `pliage_abandonne.json`, prises qui reprennent l'arène du `mz` mort) ;
   - **chargement : 22 752 o** sur les 26 e2e, constant du début à la fin de chaque e2e (contre 0) ;
   - **génération : +10 184 o par partie** au maximum de 17 e2e (2 × 10 184 sur `pause_restart`), jusqu'à +10 344 sur ceux qui inventent ou font des besoins de planète (`synthesizer_second_link`, `tech_starbirth_protostar`) ;
-  - **`max_octets partie` : 151 088 o** sur `pause_restart` (130 720 + 2 × 10 184, deux générations au clic) ; `trade_rich_mine` 105 528 o ; `game_end_bankrupt` 94 232 o.
+  - **`max_octets partie` : 151 088 o** sur `pause_restart` (130 720 + 2 × 10 184, deux générations au clic) ; `trade_rich_mine` 105 528 o ; `game_end_bankrupt` 94 232 o ;
+  - les écarts sont exactement ceux du brouillon à 4093382, e2e par e2e : 4f a décalé la base de certains e2e (+2 048, une arène de `mz`), pas le coût de 4g.
 - **Ce que coûtent les 10 184 o** (tailles x86-64) : `hy` 472 o + conteneur `invented` 24 o ; 7 `ie` × 176 o = 1 232 o ; les boîtes de `ie.gy` des icônes révélées par `eu` (8 o chacune) ; le reste, **≈ 8,4 Ko, sont les sept bulles `jb`** (lignes et textes recopiés). L'estimation de 4a (≈ 3 Ko) oubliait les bulles.
 - **Chargement** : 34 `hp` × 576 o = 19 584 o, plus 3 168 o de listes `i` et de `jy`. L'estimation de 4a (≈ 32 Ko) comptait ~36 `hp` et des listes plus grosses.
 - **Projection.**
-  - `M_4g` = 151 088 o ≈ 147,5 Ko (sous H-4f-3 : 4f ne change pas `pause_restart`).
+  - `M_4g` = 151 088 o ≈ 147,5 Ko (`M_4f` = 130 720 o mesuré par 4f, + 2 × 10 184).
   - Reste : 4h, estimée ~12 Ko (4a).
   - `r` : le rapport « mesuré / estimé » des familles faites, cumulé (4b–4g : 147,5 mesurés contre ~219 Ko estimés au pic), vaut moins de 1, donc **r = 1** ; avec le seul rapport de 4g (20,4 / 6 ≈ 3,4), par prudence, `P_4g` ≈ 147,5 + 12 × 3,4 ≈ **188 Ko**. Dans les deux cas ≤ 704.
   - `Q_4g` = 22,2 Ko ≤ 64 ; aucune famille restante n'a de chargement.
-  - Somme des zones inchangée : 1487 Ko sur 1536 (H-4f-3).
+  - Somme des zones inchangée : 1487 Ko sur 1536 (`pico8_zone_sizes.h` identique à 4093382).
   - **On continue.**
 - **Mesure à refaire** après conversion : `M_4g`, `K_4g`, le surcoût par partie, et la génération de `pause_restart` à f13 contre le terme exact (voir Testing Decisions). Les noter dans le commit et dans « Découvert », comparés au prototype ; un écart s'explique avant la projection.
 - **Décision**, règle de 4c, dans l'ordre : si `P_4g ≤ 704` et `Q_4g ≤ 64`, on continue ; sinon déplacer la frontière entre génération et chargement ; sinon relever d'un chiffre sur les 49 Ko ; sinon **arrêt de l'étape 4 à 4g** et signalement à l'humain (zone, limite voulue, somme actuelle).
@@ -278,26 +282,26 @@ Chaque morceau est un commit qui respecte l'invariant du §3 :
 - les 26 `*.sha256` sont identiques ;
 - `alloc-guard` est à égalité stricte.
 
-Aucun morceau ne passe la transitoire à un nouvel appelant. Les comptes ci-dessous partent de 4093382 ; après 4f, retrancher 1 fichier et 3 appels à chaque palier (H-4f-1).
+Aucun morceau ne passe la transitoire à un nouvel appelant. Les comptes partent de 88d9567 (12 / 33).
 
 1. **Recherche en sous-zone chargement.**
    - Les tests d'abord : chargement exact après `pico8_cart_load` et égal après un second ; chargement constant sur `pause_restart` ; `pico8_jy_new` dans la zone passée ; `test_rebuild_and_shutdown` réécrit.
    - `pico8_jy_new` prend une zone, ses trois appelants et les TU passent la leur ; `hp:pq` en chargement, `i` réservée ; `free_gb_instances` sans `free` ; contrats de `pico8_research.h` réécrits.
-   - Le verrou : `research` sort, **13 / 36 → 12 / 31**.
+   - Le verrou : `research` sort, **12 / 33 → 11 / 28**.
 2. **Économie en génération, plus de `free` de `fm`.**
    - Les tests d'abord : le `fm` de la partie quittée se relit pendant le clic de `pause_restart` et fait mourir l'enfant ASan après (rouge aujourd'hui : `set_fm` le libère dans `eu`) ; terme `hy` dans l'égalité exacte de la génération ; besoin de `test_pico8_hy` déplacé.
    - `hy` et `invented` en génération ; `fm_free` supprimé ; contrats de `pico8_economy.h` et `pico8_fm.h` réécrits.
-   - Le verrou : `economy` sort, `probe` 3 → 2, **12 / 31 → 11 / 27**.
+   - Le verrou : `economy` sort, `probe` 3 → 2, **11 / 28 → 10 / 24**.
 3. **Icônes en génération, identifiant dans l'arène de prise.**
    - Les tests d'abord : terme « icônes, bulles, boîtes de `ie.gy` » dans l'égalité exacte de la génération ; une icône de la partie quittée se relit pendant le clic et fait mourir l'enfant ASan après.
    - `ie` et sa boîte en génération ; `ie.jb` en génération dans `eu` ; `ie:ldown` ouvre la prise avant l'identifiant ; contrats de `pico8_research_icon.h` réécrits.
-   - Le verrou : `research_icon` et `cart` sortent, **11 / 27 → 9 / 23**.
+   - Le verrou : `research_icon` et `cart` sortent, **10 / 24 → 8 / 20**.
 4. **Mesure et clôture.**
    - Le relevé sur les 26 e2e, `M_4g`, `K_4g`, la comparaison au prototype, la projection et la décision, dans le message du commit.
    - L'inventaire refait par `grep` (motif de structure anonyme compris).
    - La note « Découvert (4g) », la correction du §2, la ligne « *Reçu de l'étape 4g* » pour 4h, le retrait de cette PRD.
 
-Les morceaux 1 à 3 sont indépendants entre eux (fichiers et sites disjoints, sauf l'égalité exacte des TU, que chacun complète). Le 4 dépend des trois. **Aucun ne commence avant la clôture de 4f** et la revérification de « À revérifier une fois 4f finie ».
+Les morceaux 1 à 3 sont indépendants entre eux (fichiers et sites disjoints, sauf l'égalité exacte des TU, que chacun complète). Le 4 dépend des trois. 4f est finie et vérifiée : rien n'attend plus.
 
 ## Testing Decisions
 
@@ -320,7 +324,7 @@ Les morceaux 1 à 3 sont indépendants entre eux (fichiers et sites disjoints, s
 - **`fm` de la partie quittée** (morceau 2, `tests/test_pico8_places_vivantes.c`, sur le modèle de `pause_restart_garde_les_planetes_de_la_partie_quittee_pendant_le_clic` et `pause_restart_rend_les_planetes_de_la_partie_quittee`) : pris à f11 (`pico8_fm_hy()`), il se relit à la fin de f12 (clic « challenging », bascule) ; l'enfant meurt par ASan quand il est relu à f13. Le premier cas est rouge aujourd'hui (`set_fm` le libère dans `eu`).
 - **Icône de la partie quittée** (morceau 3) : même forme, sur une `ie` de `hv` à f11.
 - **`test_pico8_hy`, cas `test_lj`** : le besoin `need` était fait avant `built_world()` et `new_game()`, donc dans une génération rendue avant qu'il serve. Le prototype a vu l'attente sur `fu` tomber (lecture d'une génération rendue, sans ASan dans ce binaire). Il est fait juste avant `pico8_qh_new`, après la dernière nouvelle partie.
-- **Inchangés** et verts dans le prototype : `message_box_hold` f45 = f90, `game_end_final_score` f2 = f51, `prises_refusees_ne_font_pas_grandir_la_partie`, `une_prise_posee_garde_son_arene`, les cas de 4e et la sentinelle de 4a ; `tests/test_pico8_ie.c`, `tests/test_pico8_hp.c` (hors le cas réécrit), `tests/test_pico8_hy.c` (hors `need`).
+- **Inchangés** et verts dans le prototype refait à 88d9567 : `message_box_hold` f45 = f90, `game_end_final_score` f2 = f51, `prises_refusees_ne_font_pas_grandir_la_partie`, `une_prise_posee_reprend_l_arene_du_mz_mort`, `un_slipway_pose_reprend_l_arene_du_mz_mort`, les cas de trous de ver de 4f (`un_mz_tenu_ne_fait_pas_grandir_la_partie`, `mz_refuses_ne_font_pas_grandir_la_partie`, `un_mz_ouvert_rend_son_arene_a_sa_mort`, `un_mz_refuse_traverse_une_nouvelle_partie`, `pliage_abandonne_*`) et la sentinelle de 4a. Ils comparent des générations à l'intérieur d'une partie, ou des prises après la nouvelle partie : les 10 184 o faits par `eu` n'y entrent pas ; `tests/test_pico8_ie.c`, `tests/test_pico8_hp.c` (hors le cas réécrit), `tests/test_pico8_hy.c` (hors `need`).
 - **Verrou** : `make alloc-guard` à égalité stricte avec la liste de chaque morceau.
 - **Invariant** : `make e2e` avec les 26 `*.sha256` inchangés, puis `make sanitize-net`.
 - **Exemples dans le dépôt** : `tests/test_pico8_places_vivantes.c` (rejeu par enfant, `dans_un_enfant_qui_meurt_par_asan`, cas « planètes de la partie quittée » de 4d, `octets_des_*`) ; `tests/test_pico8_zone_partie.c` (`case_prise_and_max`) ; `tests/test_pico8_ptrs.c` (réservation).
@@ -329,43 +333,41 @@ Les morceaux 1 à 3 sont indépendants entre eux (fichiers et sites disjoints, s
 
 - `pico8_bv` (`probe` 162) et `pico8_g__struct_new` (`probe` 413), `ok.qa`, `pj`, `fv`, `bg`, `qb`, `nf`, `ui` : 4h.
 - Le score `pj`, fait dans `eu` à côté de `fm` (`pico8_pj_new`, `score_panel` 263) : 4h.
-- L'arène de prise elle-même, sa taille, ses prises libres, son retour : 4d, 4e, 4f. 4g n'y ajoute qu'un bloc (l'identifiant).
+- L'arène de prise elle-même, sa taille (2048 o), ses prises libres (8), son retour (`pico8_jo_prise_zone_rendue`, `pico8_jo_prise_arene_rendue`) : 4d, 4e, 4f. 4g n'y ajoute qu'un bloc (l'identifiant).
 - Faire de la boîte de `ie.gy` une valeur : écarté (voir Implementation Decisions).
 - Relever `PICO8_ZONE_CHARGEMENT_BYTES`, `PICO8_ZONE_GAME_BYTES` ou `PICO8_JO_PRISE_OCTETS`, sauf si la mesure l'exige.
 - Retirer TROU-7 : étape 5.
 - L'audio : hors périmètre du portage.
 - Lancer l'application raylib.
 
-## Hypothèses sur l'étape 4f
+## Vérifié contre 4f
 
-Chacune est ce que cette PRD suppose de 4f, lue dans sa PRD (`docs/prd/next/phase1-etape4f-trous-de-ver.md` à 4093382), et ce qui change ici si elle tombe.
+Relu à `HEAD` 88d9567 après la clôture de 4f (`git log -4 --stat` : 1d7bfa3 `pico8_ents_init_reserve`, d1e5da0 trous de ver dans l'arène de prise, 88d9567 clôture), sans toucher git ni les sources. Chaque hypothèse du brouillon, et ce qui a été réécrit.
 
-- **H-4f-1 (verrou et fichiers).** 4f ne touche que `pico8_wormhole.{h,c}`, `pico8_planet.{h,c}` (cœur de remise sans état, `PRISES_LIBRES_MAX` à 8), `pico8_ents.{h,c}` (réservation), des TU et des fixtures. Après 4f : **12 fichiers, 33 appels**, et les 13 relocations de 4g restent dans les fonctions du tableau ci-dessus. *Si elle tombe* : 4g repart de la mesure à son `HEAD` et retire 13 appels, dans les fichiers qui les portent.
-- **H-4f-2 (arène de prise).** `pico8_jo_prise_ouvrir`/`_fermer` et `pico8_jo_zone_construction` gardent leur forme et leur contrat ; `PICO8_JO_PRISE_OCTETS` vaut 2048 ; une planète posée garde son arène, une prise refusée la rend par le retour « zone, état ». *Si elle tombe* (arène propre à chaque sorte, ou ouverture déplacée dans le constructeur) : l'identifiant suit la prise là où elle s'ouvre, l'ordre « ouvrir, identifiant, structure » est revu.
-- **H-4f-3 (budget).** `M_4f` = 130 720 o (`pause_restart`, sans trou de ver), `K_4f` = 0, `r` = 1, somme des zones 1487 Ko sur 1536, décision « on continue ». *Si elle tombe* : `M_4g` = `M_4f` + 2 × 10 184 au clic de `pause_restart`, et la projection se refait ; seul un `M_4f` au-delà de ~650 Ko changerait la décision.
-- **H-4f-4 (outillage de test).** `demarrer`, `jouer_jusqu_a`, `partie_sans_registres`, `octets_des_registres`, `octets_des_planetes`, `etats_de_bw`, `dans_un_enfant_qui_meurt_par_asan` et l'égalité exacte de `pause_restart` à f13 existent toujours sous ces formes ; les fixtures de 4f (`pliages.json`, `pliage_abandonne.json`) n'attendent que des différences de génération à l'intérieur d'une partie. *Conséquence* : les 10 184 o de 4g, faits une fois par `eu`, ne changent aucune de leurs attentes ; le cas « refus, restart, nouvelle partie, pression » compare des générations de parties différentes : à relire.
-- **H-4f-5 (« Reçu »).** La clôture de 4f n'écrit de « *Reçu de l'étape 4f* » que pour 4h. *Si elle tombe* (un « Reçu » pour 4g) : cette PRD le traite ou dit pourquoi non, avant l'implémentation.
-- **H-4f-6 (inventaire).** 4f n'ajoute ni pointeur `static` qui puisse viser un objet de 4g, ni entrée au point d'oubli de partie ou à `oublier` ; `oublier_partie` n'appelle toujours que `pico8_jo_oublier_prises()`. *Si elle tombe* : le nouveau pointeur est classé avec la question de l'inventaire ci-dessus.
-- **H-4f-7 (ordre de construction).** La structure n'est toujours pas supposée premier bloc de son arène : le retour d'arène part de la zone d'un champ (`oe->zone`, `ox->zone`). *Si elle tombe* (4f retrouve l'arène par l'adresse de la structure) : l'identifiant passe après la structure, ou le retour d'arène est revu.
+| Hypothèse | Tenue ? | Constat à 88d9567 | Sections réécrites |
+|---|---|---|---|
+| **H-4f-1** (verrou et fichiers) | **tenue** | 4f n'a touché que `pico8_ents`, `pico8_planet`, `pico8_wormhole`, `test_pico8_mz`, `test_pico8_places_vivantes`, deux fixtures et la liste du verrou. `alloc-guard` : 12 / 33. Les fichiers de 4g (`research*`, `economy*`, `economy_tiers`, `planet_trade`, `cart`, `probe`) et leurs TU sont identiques à 4093382 : les 13 relocations sont aux mêmes lignes | Problem Statement (verrou), Verrou, Implementation Chunks (paliers 12 / 33 → 11 / 28 → 10 / 24 → 8 / 20) |
+| **H-4f-2** (arène de prise) | **tenue** | `pico8_jo_prise_ouvrir`/`_fermer`, `pico8_jo_zone_construction` inchangés ; `PICO8_JO_PRISE_OCTETS` 2048 (contrat : « a held icon, a drawn slipway or a wormhole ») ; `pico8_jo_prise_zone_rendue` garde son test « kz » et appelle le cœur sans condition `pico8_jo_prise_arene_rendue` ; `PRISES_LIBRES_MAX` 8 | Inventaire (`g_jo_prises_libres`), Out of Scope |
+| **H-4f-3** (budget) | **tenue** | « Découvert (4f) » : maximum 130 720 o inchangé, chargement 0, 12 / 33 ; `pico8_zone_sizes.h` inchangé (somme 1487 Ko) | Budget (mesure refaite, `M_4g`, somme des zones) |
+| **H-4f-4** (outillage de test) | **tenue** | `demarrer`, `jouer_jusqu_a`, `partie_sans_registres`, `octets_des_registres`, `octets_des_planetes`, `etats_de_bw`, `dans_un_enfant_qui_meurt_par_asan` et l'égalité exacte de `pause_restart` f13 sont là. Les cas « une arène de plus » de 4d/4e sont devenus `*_reprend_l_arene_du_mz_mort`. Le cas « refus, restart, nouvelle partie, pression » (`un_mz_refuse_traverse_une_nouvelle_partie`) ne compare pas de tailles : il vérifie que l'enfant ne meurt pas ; vert dans le prototype | Testing Decisions (liste des cas inchangés) |
+| **H-4f-5** (« Reçu ») | **tenue** | La seule ligne « *Reçu de l'étape 4f* » vise 4h | Problem Statement |
+| **H-4f-6** (inventaire) | **tenue** | `oublier` et `oublier_partie` inchangés (`pico8_cart.c` identique) ; les deux `grep` de 4a et celui des structures anonymes donnent les mêmes lignes qu'à 4093382 (20 pointeurs, 38 structures, `g_gb_px`) | Inventaire (relevé daté de 88d9567) |
+| **H-4f-7** (ordre de construction) | **tenue** | Le `rendre` du `mz` rend `ox->zone`, celui des planètes `oe->zone` : aucun retour ne suppose la structure en tête d'arène | Aucune : l'ordre « ouvrir, identifiant, structure » reste |
 
-## À revérifier une fois 4f finie
+**Ce que 4f apporte en plus des hypothèses.** `pico8_ents_init_reserve` (capacité 0 acceptée) : elle ne convient pas à `hp.i`, qui est une `pico8_ptrs_t` ; l'implémenteur peut aligner `pico8_ptrs_init_reserve` sur elle (voir « Sous-zone chargement »).
 
-Relire à `HEAD` après la clôture de 4f, sans toucher git ni les sources, et réécrire les sections qui en dépendent :
+**Prototype refait à 88d9567**, même conception, mêmes réécritures de TU (l'égalité exacte de `tests/test_pico8_places_vivantes.c` reprise sur sa version de 4f) :
 
-- la note « *Découvert (4f)* », toute ligne « *Reçu de l'étape 4f* » et la ligne « Partie » du §2 dans `docs/plan-4.md` (H-4f-3, H-4f-5) ;
-- `git log --stat` des commits de 4f : aucun ne doit toucher `pico8_research*`, `pico8_economy*`, `pico8_cart.c`, `pico8_probe.c` (H-4f-1) ;
-- `pico8_planet.{h,c}` : `pico8_jo_prise_ouvrir`/`_fermer`, `pico8_jo_zone_construction`, `PICO8_JO_PRISE_OCTETS`, le retour d'arène (H-4f-2, H-4f-7) ;
-- `pico8_cart.c` : `oublier` et `oublier_partie` (H-4f-6) ;
-- `make alloc-guard` sur une copie `git archive HEAD`, et le rattachement des 13 relocations par `objdump -r`/`addr2line` (H-4f-1) ;
-- les aides et égalités exactes de `tests/test_pico8_places_vivantes.c` et `tests/test_pico8_zone_partie.c`, et les fixtures de 4f (H-4f-4) ;
-- **refaire le prototype** sur ce `HEAD` : `sha256`, `sanitize-net`, `make test` (pour lister exactement les TU à réécrire), `alloc-guard`, `max_octets partie` et `max_octets chargement` sur les 26 e2e ;
-- refaire l'inventaire du §4 par `grep`, motif de structure anonyme compris.
+- `make test` vert, `make e2e` vert (26 `*.sha256` identiques), `make sanitize-net` « 26 propre(s) » ;
+- `alloc-guard` : « verrou objets 65 allouent 8 appels 20 » ;
+- chargement 22 752 o, constant sur les 26 e2e ; génération +10 184 o par partie, 151 088 o au plus (`pause_restart`) ; écarts identiques, e2e par e2e, à ceux du brouillon ;
+- `pause_restart` f13 : génération 75 256 = 608 + 16 224 + 48 240 + 10 184, comme au brouillon.
 
 ## Further Notes
 
 - **Pas d'humain disponible, et pas d'outil `Agent` dans cette session pour lancer un agent `guideline` neuf.** J'ai donc appliqué moi-même le skill `guideline` (`.claude/skills/guideline/SKILL.md`) aux points que `to-prd` fait valider par un humain (modules, tests, découpage).
-  - **Hypothèses explicites** : celles sur 4f sont numérotées (H-4f-1 à H-4f-7) et listées à revérifier. Les fréquences ont été lues dans le cart : `ie` l. 919-939 (`hb` 926, `ldown` 932), `_init` l. 1178, `eu` l. 1180-1187, `hy` l. 1198-1230 et `hy:kt` l. 1446. Il en sort deux corrections de 4a : la boîte de `ie.gy` est faite une fois par icône ; l'estimation par partie oubliait les bulles.
+  - **Hypothèses explicites** : celles sur 4f (H-4f-1 à H-4f-7) ont été posées au brouillon puis toutes vérifiées contre 4f finie (section « Vérifié contre 4f »). Les fréquences ont été lues dans le cart : `ie` l. 919-939 (`hb` 926, `ldown` 932), `_init` l. 1178, `eu` l. 1180-1187, `hy` l. 1198-1230 et `hy:kt` l. 1446. Il en sort deux corrections de 4a : la boîte de `ie.gy` est faite une fois par icône ; l'estimation par partie oubliait les bulles.
   - **Simplicité** : aucun mécanisme neuf. La sous-zone chargement de 4c, la génération, l'arène de prise de 4d/4e, `pico8_ptrs_init_reserve`, un paramètre de zone de plus à `pico8_jy_new`, une fonction supprimée (`fm_free`). Écartés : une remise du chargement par `build_gb` (la sous-zone tient aussi les listes de 4c, faites avant `pico8_data_init`), une arène propre à `gb` (seul un TU refait `gb` sans recharger), une valeur pour `ie.gy` (forme de `pico8_ie_t` changée pour 56 o), un relèvement du chargement pour un chemin de TU.
   - **Changements chirurgicaux** : 13 relocations dans 5 fichiers, plus deux appelants de `pico8_jy_new` et l'ordre de trois lignes dans `ie:ldown`. Aucune forme de structure ne change.
-  - **Critères vérifiables** : chaque morceau a ses tests rouges d'abord ; le prototype à 4093382 a montré les attentes (sha256, ASan, verrou 9 / 23, chargement 22 752, génération +10 184 exacte).
-- Le prototype (copie `git archive HEAD` hors dépôt) a aussi refait les TU cassés, pour savoir lesquels le seraient : `test_pico8_zone_partie` et `test_pico8_places_vivantes` (égalités exactes), `test_pico8_hp` (« zone chargement pleine » au troisième `gb`), `test_pico8_hy` (besoin fait dans une génération rendue). Un `test_pico8_hy` compilé sous ASan pour l'occasion passe : le second `eu` sans `_init` du cas « construction » lit `ie.gy` dans la génération précédente, encore vivante. Rien de ce prototype n'est dans le dépôt.
+  - **Critères vérifiables** : chaque morceau a ses tests rouges d'abord ; le prototype, refait à 88d9567, a montré les attentes (sha256, ASan, verrou 8 / 20, chargement 22 752, génération +10 184 exacte).
+- Le prototype (copie `git archive HEAD` hors dépôt, à 4093382 puis à 88d9567) a aussi refait les TU cassés, pour savoir lesquels le seraient : `test_pico8_zone_partie` et `test_pico8_places_vivantes` (égalités exactes), `test_pico8_hp` (« zone chargement pleine » au troisième `gb`), `test_pico8_hy` (besoin fait dans une génération rendue). Un `test_pico8_hy` compilé sous ASan pour l'occasion passe : le second `eu` sans `_init` du cas « construction » lit `ie.gy` dans la génération précédente, encore vivante. Rien de ce prototype n'est dans le dépôt.
