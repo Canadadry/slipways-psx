@@ -159,7 +159,8 @@ static uint32_t cell_value_kind(pico8_lq_cell_t c) {
     }
 }
 
-/* The same kind and, for its kind, the same number, string or row. */
+/* The same kind and, for its kind, the same number, text or row. A row's
+ * text is its own copy, a row borrowed. */
 static int same_cell(pico8_lq_cell_t a, pico8_lq_cell_t b) {
     if (a.kind != b.kind) {
         return 0;
@@ -168,7 +169,7 @@ static int same_cell(pico8_lq_cell_t a, pico8_lq_cell_t b) {
     case PICO8_LQ_CELL_FIXED:
         return a.as.fixed == b.as.fixed;
     case PICO8_LQ_CELL_STRING:
-        return a.as.s == b.as.s;
+        return a.as.s != b.as.s && strcmp(a.as.s, b.as.s) == 0;
     case PICO8_LQ_CELL_ROW:
         return a.as.row == b.as.row;
     default:

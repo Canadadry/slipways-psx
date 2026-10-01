@@ -118,6 +118,17 @@ static int case_jl_enqueues_registered(void) {
     return 0;
 }
 
+static int case_shutdown_drains(void) {
+    load_cart_and_start();
+    pico8_mh_t *e = new_entity(&counted_cls);
+    pico8_lt(&e->header);
+    pico8_he(&e->header);
+    pico8_cart_shutdown();
+    assert(rendus == 1 && pico8_file_sortie_compte() == 0 &&
+           "cart_shutdown vide la file : aucune entree ne survit jusqu'au cart_load suivant");
+    return 0;
+}
+
 static pico8_mh_t *pointed_at_everywhere(void) {
     load_cart_and_start();
     pico8_eu(NULL);
@@ -161,6 +172,7 @@ static const struct {
     {"he_released_at_flush", case_he_released_at_flush},
     {"he_outside_hv_or_without_member", case_he_outside_hv_or_without_member},
     {"jl_enqueues_registered", case_jl_enqueues_registered},
+    {"shutdown_drains", case_shutdown_drains},
     {"flush_forgets_references", case_flush_forgets_references},
     {"update60_after_forgetting", case_update60_after_forgetting},
     {"full", case_full},
@@ -241,6 +253,7 @@ int main(int argc, char **argv) {
     expect_freed_crash("he_released_at_flush");
     expect_clean("he_outside_hv_or_without_member");
     expect_clean("jl_enqueues_registered");
+    expect_clean("shutdown_drains");
     expect_clean("flush_forgets_references");
     expect_clean("update60_after_forgetting");
     expect_fatal("full", "file de sortie pleine, limite 256");

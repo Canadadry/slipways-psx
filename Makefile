@@ -435,6 +435,9 @@ $(TMP_DIR)/test_pico8_geom: $(call objs,tests/test_pico8_geom.c src/pico8_geom.c
 $(TMP_DIR)/test_pico8_ptrs: $(call objs,tests/test_pico8_ptrs.c src/pico8_ptrs.c src/pico8_zone_choisie.c src/pico8_zone_transitoire.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_pico8_zone_arene: $(call objs,tests/test_pico8_zone_arene.c src/pico8_zone_choisie.c src/pico8_zone_transitoire.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_pico8_ents: $(call objs,tests/test_pico8_ents.c src/pico8_ents.c src/pico8_zone_choisie.c src/pico8_zone_transitoire.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -655,6 +658,7 @@ UNIT_TESTS := \
     test_pico8_planet_gh_row_lq \
     test_pico8_zone \
     test_pico8_zone_choisie \
+    test_pico8_zone_arene \
     test_pico8_zone_frame \
     test_pico8_zone_interface \
     test_pico8_file_sortie \

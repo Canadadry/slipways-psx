@@ -25,7 +25,9 @@ typedef struct {
     int has_gz;
 } pico8_pj_t;
 
-/* `pj.cr`: no parent, never an entity, and no writer. */
+/* `pj.cr`: no parent, never an entity, and no writer. Trap: `ep` is a
+ * frame-zone text, dangling after the next reset; only `cr()`, which has
+ * just written it, reads it. */
 typedef struct {
     pico8_struct_header_t header;
     const pico8_vec_t *hi;

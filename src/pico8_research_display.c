@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_layout.h"
@@ -14,13 +13,12 @@
 #include "pico8_zone_frame.h"
 #include "pico8_zone_transitoire.h"
 
-/* Returns a newly heap-allocated, NUL-terminated string the caller owns
- * and must free(). */
+/* In the frame zone. */
 static char *pico8_hp_jb_join(const pico8_hp_t *self) {
     const pico8_ptrs_t *i_list;
     size_t cap = 16;
     size_t len = 0;
-    char *out = malloc(cap);
+    char *out = (char *)pico8_zone_alloc(pico8_zone_frame(), cap);
     int first = 1;
     pico8_ptrs_iter_t it;
     void *entry;
@@ -51,8 +49,10 @@ static char *pico8_hp_jb_join(const pico8_hp_t *self) {
         piece_len = strlen(piece);
         add_len = (first ? 0 : 1) + piece_len;
         if (len + add_len + 1 > cap) {
-            cap = (len + add_len + 1) * 2;
-            out = realloc(out, cap);
+            size_t new_cap = (len + add_len + 1) * 2;
+
+            out = (char *)pico8_zone_grow(pico8_zone_frame(), (unsigned char *)out, cap, new_cap);
+            cap = new_cap;
         }
         if (!first) {
             out[len++] = ',';
@@ -106,16 +106,16 @@ const pico8_jb_row_t *pico8_hp_jb(const pico8_hp_t *self) {
     return &jb->outer;
 }
 
-/* A tuple of `lq:mn` and its items, in one block, never freed (TROU-7). */
+/* A tuple of `lq:mn` and its items, in one block of the frame zone. */
 typedef struct {
     pico8_jb_row_t row;
     pico8_jb_item_t items[4];
 } pico8_jo_ex_tuple_t;
 
 static pico8_jo_ex_tuple_t *pico8_jo_ex_tuple(int count) {
-    pico8_jo_ex_tuple_t *t = calloc(1, sizeof *t);
+    pico8_jo_ex_tuple_t *t = (pico8_jo_ex_tuple_t *)pico8_zone_alloc(pico8_zone_frame(), sizeof *t);
 
-    assert(t != NULL);
+    memset(t, 0, sizeof *t);
     t->row.count = count;
     t->row.items = t->items;
     return t;
@@ -214,7 +214,7 @@ pico8_lq_t *pico8_jo_ex(const pico8_ptrs_t *is, const pico8_fixed_t *o, pico8_fi
     }
 
     if (jq > pico8_fixed_from_int(5)) {
-        char *jq_str = pico8_tostr_fixed(&pico8_zone_transitoire, jq);
+        char *jq_str = pico8_tostr_fixed(pico8_zone_frame(), jq);
         static const pico8_jb_item_t t3_items[] = {{.is_false = 1}, {.n = -4}};
         static const pico8_jb_row_t t3 = {.count = 2, .items = t3_items};
 

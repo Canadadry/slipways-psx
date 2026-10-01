@@ -44,7 +44,7 @@ typedef struct {
     size_t capacity;
     size_t used;
     size_t half;
-    size_t halves;
+    int jamais_remise; /* zone d'une arene : pico8_bump_zone_reset s'y arrete */
 } pico8_bump_zone_t;
 
 typedef struct {

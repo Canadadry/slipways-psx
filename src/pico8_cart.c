@@ -118,6 +118,7 @@ void pico8_cart_vider_file_sortie(void) {
 }
 
 void pico8_cart_shutdown(void) {
+    pico8_cart_vider_file_sortie();
     pico8_menu_shutdown();
     pico8_research_icon_shutdown();
     pico8_score_panel_shutdown();

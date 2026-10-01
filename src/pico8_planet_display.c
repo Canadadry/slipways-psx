@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_audio.h"
@@ -23,14 +22,13 @@
 #include "pico8_str.h"
 #include "pico8_tech_gate.h"
 #include "pico8_zone_frame.h"
-#include "pico8_zone_transitoire.h"
 
-/* `kw` as `lq:mn` reads it, `{qe=kw.qe}` (`mu` is never read there). A
- * fresh row, never freed (TROU-7). */
+/* `kw` as `lq:mn` reads it, `{qe=kw.qe}` (`mu` is never read there), in
+ * the frame zone. */
 static const pico8_jb_row_t *jo_kw_tuple(const pico8_kw_t *kw) {
-    pico8_jb_row_t *t = calloc(1, sizeof *t);
+    pico8_jb_row_t *t = (pico8_jb_row_t *)pico8_zone_alloc(pico8_zone_frame(), sizeof *t);
 
-    assert(t != NULL);
+    memset(t, 0, sizeof *t);
     t->has_qe = kw->has_qe;
     t->qe = kw->qe;
     return t;
@@ -100,17 +98,9 @@ static pico8_lq_cell_t *jo_gh_row_items(int n) {
     return (pico8_lq_cell_t *)pico8_zone_alloc(pico8_zone_frame(), (size_t)n * sizeof(pico8_lq_cell_t));
 }
 
-/* TROU-7 */
-/* `s` followed by `$`: a fresh string, never freed. */
+/* `s` followed by `$`, in the frame zone. */
 static char *jo_dollar(const char *s) {
-    size_t len = strlen(s);
-    char *with_suffix = malloc(len + 2);
-
-    assert(with_suffix != NULL);
-    memcpy(with_suffix, s, len);
-    with_suffix[len] = '$';
-    with_suffix[len + 1] = '\0';
-    return with_suffix;
+    return pico8_concat2(pico8_zone_frame(), s, "$");
 }
 
 /* A planet's `pz` frame: `ep` and `ra` nil when NULL, `ca` and `gq` always. */
@@ -237,7 +227,7 @@ void pico8_jo_gh(const pico8_jo_t *self) {
             row_items[n] = jo_gh_row_items(row_cap[n]);
 
             if (makes) {
-                char *mu_str = pico8_tostr_fixed(&pico8_zone_transitoire, mu);
+                char *mu_str = pico8_tostr_fixed(pico8_zone_frame(), mu);
                 row_items[n][row_keys[n].count++] = pico8_lq_cell_string("makes:");
                 row_items[n][row_keys[n].count++] = pico8_lq_cell_string(mu_str);
             } else {
@@ -245,12 +235,7 @@ void pico8_jo_gh(const pico8_jo_t *self) {
                 int by_count = (by != NULL) ? by->count : 0;
                 char *count_str = pico8_tostr_fixed(pico8_zone_frame(), pico8_fixed_from_int(by_count));
                 char *mu_str = pico8_tostr_fixed(pico8_zone_frame(), mu);
-                size_t count_len = strlen(count_str);
-                size_t mu_len = strlen(mu_str);
-                char *combined = malloc(count_len + 1 + mu_len + 1);
-                memcpy(combined, count_str, count_len);
-                combined[count_len] = '/';
-                memcpy(combined + count_len + 1, mu_str, mu_len + 1);
+                char *combined = pico8_concat2(pico8_zone_frame(), pico8_concat2(pico8_zone_frame(), count_str, "/"), mu_str);
                 row_items[n][row_keys[n].count++] = pico8_lq_cell_string("exports:");
                 row_items[n][row_keys[n].count++] = pico8_lq_cell_string(combined);
             }

@@ -14,16 +14,16 @@
  * from all its items, draws them. */
 pico8_lq_t *pico8_hp_lq(pico8_hp_t *self);
 
-/* TROU-7 */
-/* Returns a row of one line, valid until the next reset of the frame zone,
- * or NULL when `self.ii` is truthy. The line's first item is a heap string
- * nothing frees. */
+/* Returns a row of one line, its texts included, valid until the next
+ * reset of the frame zone, or NULL when `self.ii` is truthy. */
 const pico8_jb_row_t *pico8_hp_jb(const pico8_hp_t *self);
 
 /* TROU-7 */
 /* A static function of `jo`, not a method: `jo.ex(...)`, never `jo:ex(...)`.
  * Returns a fresh row, or NULL when `o` is NULL (nil) -- which `jo:hb`
- * does reach, for a planet whose `kw` carries no `qe`. `o` is read during the call only. */
+ * does reach, for a planet whose `kw` carries no `qe`. `o` is read during the call only.
+ * Its tuples are in the frame zone: a pico8_lq_copy of the row is only
+ * valid in the frame that built it. */
 pico8_lq_t *pico8_jo_ex(const pico8_ptrs_t *is, const pico8_fixed_t *o, pico8_fixed_t jq, pico8_fixed_t mj,
                          pico8_fixed_t d);
 

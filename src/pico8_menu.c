@@ -77,7 +77,6 @@ typedef struct {
     pico8_lq_cell_t h_items[2];
 } pico8_cr_row_t;
 
-/* TROU-7 */
 /* An unaffordable tech gets "my" = false, not an absent field: `t.e_` is a
  * comparison result in `cb()`, so Lua's `and` yields the boolean here. */
 static void pico8_cr_step(const pico8_nb_entry_t *t, pico8_cr_row_t *b) {
@@ -95,7 +94,7 @@ static void pico8_cr_step(const pico8_nb_entry_t *t, pico8_cr_row_t *b) {
     b->row.lq_row = &b->lq;
 
     gi_result = pico8_gi_nb(t);
-    gi_str = pico8_tostr_fixed(&pico8_zone_transitoire, gi_result);
+    gi_str = pico8_tostr_fixed(pico8_zone_frame(), gi_result);
 
     b->h_items[0] = pico8_lq_cell_row(&pair);
     b->h_items[1] = pico8_lq_cell_string(gi_str);
@@ -172,7 +171,7 @@ void pico8_cr(void) {
     if (gr > 0) {
         pico8_cr_row_t *extra = &rows[n++];
         char *gr_str = pico8_tostr_fixed(pico8_zone_frame(), pico8_fixed_from_int(gr));
-        char *label = pico8_concat2(&pico8_zone_transitoire, gr_str, " invented");
+        char *label = pico8_concat2(pico8_zone_frame(), gr_str, " invented");
         extra->lq_items[0] = pico8_lq_cell_fixed(pico8_fixed_from_int(30));
         extra->lq_items[1] = pico8_lq_cell_string(label);
         extra->lq.items = extra->lq_items;
@@ -211,7 +210,7 @@ void pico8_cr(void) {
         tmp3 = pico8_concat2(pico8_zone_frame(), tmp2, diff1_str);
         tmp1 = pico8_concat2(pico8_zone_frame(), tmp3, "/");
         tmp2 = pico8_concat2(pico8_zone_frame(), tmp1, diff2_str);
-        ep = pico8_concat2(&pico8_zone_transitoire, tmp2, ")");
+        ep = pico8_concat2(pico8_zone_frame(), tmp2, ")");
 
         cr->ep = ep;
         frame.ep = cr->ep;

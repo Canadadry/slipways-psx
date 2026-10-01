@@ -24,11 +24,13 @@
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_display.h"
 #include "../src/pico8_score_panel.h"
+#include "../src/pico8_str.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_zone_choisie.h"
 #include "../src/pico8_zone_frame.h"
 #include "../src/pico8_zone_sizes.h"
+#include "../src/pico8_zone_transitoire.h"
 
 #define STDERR_LOG "tmp/test_pico8_zone_frame_stderr.txt"
 
@@ -116,11 +118,13 @@ static void start_game(void) {
     pico8_eu(NULL);
 }
 
+/* Les textes seulement : une case ROW est empruntee jusqu'a la mise en
+ * page (pico8_layout.h), un tuple de frame y est mort apres la remise a
+ * zero. */
 static size_t read_cells(const pico8_lq_t *lq) {
     size_t sum = 0;
     for (int i = 0; i < lq->items_count; i++) {
         if (lq->items[i].kind == PICO8_LQ_CELL_STRING) sum += strlen(lq->items[i].as.s);
-        if (lq->items[i].kind == PICO8_LQ_CELL_ROW) sum += (size_t)lq->items[i].as.row->count;
     }
     return sum;
 }
@@ -247,6 +251,61 @@ static int case_list_dead_next_frame(void) {
     return 0;
 }
 
+static char *frame_text(const char *s) {
+    return pico8_concat2(pico8_zone_frame(), s, "");
+}
+
+static pico8_lq_t *row_of_frame_text(const pico8_zone_choisie_t *zone, const char *s) {
+    pico8_lq_cell_t cell = pico8_lq_cell_string(frame_text(s));
+    pico8_lq_keys_t keys = {.items = &cell, .count = 1};
+    return pico8_lq_new(zone, &keys);
+}
+
+/* Les textes d'une case viennent de la zone frame : apres la remise a zero,
+ * le panneau dessine encore sa copie. */
+static int case_panel_texts_survive_reset(void) {
+    pico8_jb_item_t line = {.s = frame_text("bubble")};
+    pico8_jb_row_t bubble_row = {.count = 1, .items = &line};
+
+    load_cart_and_start();
+    pico8_lq_t *row = row_of_frame_text(&pico8_zone_transitoire, "row");
+    pico8_lq_add(row, pico8_lq_cell_string(frame_text("added")));
+    pico8_lq_t *copy = pico8_lq_copy(&pico8_zone_transitoire, row_of_frame_text(pico8_zone_frame(), "copy"));
+    pico8_jb_t *bubble = pico8_jb_new(&pico8_zone_transitoire, &bubble_row);
+    pico8_jb_item_t tuple_items[] = {{.s = frame_text("tuple")}, {.n = 5}};
+    pico8_jb_row_t *tuple = (pico8_jb_row_t *)pico8_zone_alloc(pico8_zone_frame(), sizeof *tuple);
+    *tuple = (pico8_jb_row_t){.count = 2, .items = tuple_items};
+    pico8_lq_cell_t tuple_cell = pico8_lq_cell_row(tuple);
+    pico8_lq_keys_t tuple_keys = {.items = &tuple_cell, .count = 1};
+    pico8_lq_t *of_tuple = pico8_lq_new(&pico8_zone_transitoire, &tuple_keys);
+    pico8_zone_frame_reset();
+    allocate_again();
+    sink = (unsigned char)(read_cells(row) + read_cells(copy) + read_cells(bubble->ls[0]));
+    pico8_lq_ol_default(&gfx, &mem, row, pico8_vec_v(0, 0));
+    pico8_lq_ol_default(&gfx, &mem, copy, pico8_vec_v(0, 0));
+    pico8_jb_ol(&gfx, &mem, bubble, 0, 0);
+    pico8_lq_ol_default(&gfx, &mem, of_tuple, pico8_vec_v(0, 0));
+    return 0;
+}
+
+static int case_panel_struct_in_zone(void) {
+    load_cart_and_start();
+    pico8_lq_t *row = row_of_frame_text(pico8_zone_frame(), "row");
+    pico8_zone_frame_reset();
+    allocate_again();
+    sink = (unsigned char)row->items_count;
+    return 0;
+}
+
+static int case_bubble_struct_in_zone(void) {
+    load_cart_and_start();
+    pico8_jb_t *bubble = pico8_jb_new(pico8_zone_frame(), NULL);
+    pico8_zone_frame_reset();
+    allocate_again();
+    sink = (unsigned char)bubble->ls_count;
+    return 0;
+}
+
 static int case_full(void) {
     pico8_zone_alloc(pico8_zone_frame(), PICO8_ZONE_FRAME_BYTES / 2);
     pico8_zone_alloc(pico8_zone_frame(), PICO8_ZONE_FRAME_BYTES / 2 + 1);
@@ -270,6 +329,9 @@ static const struct {
     {"invented_lines_survive_reset", case_invented_lines_survive_reset},
     {"hp_jb_survives_reset", case_hp_jb_survives_reset},
     {"ky_happiness_survives_reset", case_ky_happiness_survives_reset},
+    {"panel_texts_survive_reset", case_panel_texts_survive_reset},
+    {"panel_struct_in_zone", case_panel_struct_in_zone},
+    {"bubble_struct_in_zone", case_bubble_struct_in_zone},
 };
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
@@ -356,6 +418,9 @@ int main(int argc, char **argv) {
     expect_clean("invented_lines_survive_reset");
     expect_clean("hp_jb_survives_reset");
     expect_clean("ky_happiness_survives_reset");
+    expect_clean("panel_texts_survive_reset");
+    expect_poison_crash("panel_struct_in_zone");
+    expect_poison_crash("bubble_struct_in_zone");
     remove(STDERR_LOG);
     printf("test_pico8_zone_frame: all tests passed\n");
     return 0;

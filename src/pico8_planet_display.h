@@ -16,9 +16,8 @@
 /* Rebinds `self.lq` to a fresh row; the previous one is dropped. */
 void pico8_jo_hb(pico8_jo_t *self);
 
-/* TROU-7 */
-/* Builds its rows in the frame zone and hands them to `pz()`, which copies
- * them; the strings and tuples their cells point at are never freed. */
+/* Builds its rows, their texts and tuples in the frame zone and hands them
+ * to `pz()`, whose buttons copy the rows and their texts. */
 void pico8_jo_gh(const pico8_jo_t *self);
 
 /* Answering "no" for the drag's own origin planet also opens that
