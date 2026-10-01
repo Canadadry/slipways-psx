@@ -15,9 +15,7 @@
 static int g_js_up = 0;
 static int g_fq_up = 0;
 
-/* The one place of the core that backs the interface zone with the
- * transitional heap; idempotent, called before any place is taken. */
-static const pico8_zone_choisie_t *pico8_ui_button_place(pico8_sorte_t sorte) {
+const pico8_zone_choisie_t *pico8_ui_button_place(pico8_sorte_t sorte) {
     pico8_zone_interface_adosser(&pico8_zone_transitoire);
     return pico8_zone_interface_place(sorte);
 }

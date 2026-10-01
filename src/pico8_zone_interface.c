@@ -11,7 +11,7 @@ static const struct {
     [PICO8_SORTE_JS] = {"place js", 5u * 1024u},
     [PICO8_SORTE_FQ] = {"place fq", 256u},
     [PICO8_SORTE_MH] = {"place mh", 12u * 1024u},
-    [PICO8_SORTE_IV] = {"place iv", 256u},
+    [PICO8_SORTE_IV] = {"place iv", 320u},
     [PICO8_SORTE_RANGEE] = {"place rangee", 768u},
     [PICO8_SORTE_LE] = {"place le", 512u},
 };

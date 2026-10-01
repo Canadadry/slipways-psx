@@ -12,6 +12,7 @@
 #include "pico8_msgbox.h"
 #include "pico8_pi.h"
 #include "pico8_research.h"
+#include "pico8_zone_frame.h"
 #include "pico8_zone_transitoire.h"
 
 static int g_jo_up = 0;
@@ -322,14 +323,12 @@ void pico8_jo_hk(const pico8_jo_t *self) {
         char *text;
 
         keys.ra = self->ra;
-        text = pico8_ne(&pico8_zone_transitoire, self->kr, 10, "$", &color);
+        text = pico8_ne(pico8_zone_frame(), self->kr, 10, "$", &color);
         /* `ne()` is the last expression of the Lua constructor, so both of its
          * return values land as positional entries 1 and 2, not named fields. */
         keys.at1 = text;
         keys.at2 = pico8_fixed_from_int(color);
         pico8_iv_new(&keys);
-        /* `text` is now owned by the new `iv` instance, which reads it every
-         * frame it stays on screen: not freed here. */
     }
 }
 

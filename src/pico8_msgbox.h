@@ -72,12 +72,21 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self);
 /* Calls pico8_pi_init(). */
 void pico8_iv_init(void);
 
-/* `at1`/`at2` are the cart's `self[1]` (the text, a string never freed)
- * and `self[2]` (the forced color). `at1` NULL is nil; a missing `[2]`
- * leaves `at2` at 0, the color `kj` gave nil. Never freed, nor are the
- * vectors `ra` points at: TROU-7. */
+enum { PICO8_IV_TEXT_CAP = 16 };
+
+/* `at1`/`at2` are the cart's `self[1]` (the text) and `self[2]` (the forced
+ * color). `at1` NULL is nil, else it points at `at1_buf`, a copy of the
+ * key's text; a missing `[2]` leaves `at2` at 0, the color `kj` gave nil.
+ * `ra` deliberately stays the key's vector, borrowed, until the first `ph`:
+ * `jo:hk` passes its planet's `ra`, which `na` moves in place before that
+ * `ph`, and the cart reads it moved. From then on, and when `pq` places the
+ * toast itself, `ra` points at `ra_box`. The struct lives in `place`, given
+ * back by the exit queue once `he` takes the toast out. */
 typedef struct {
     pico8_struct_header_t header;
+    const pico8_zone_choisie_t *place;
+    pico8_vec_t ra_box;
+    char at1_buf[PICO8_IV_TEXT_CAP + 1];
     const pico8_iv_def_t *def;
     pico8_fixed_t l;
     const pico8_vec_t *ra;
@@ -94,14 +103,13 @@ int pico8_iv_ready(void);
 /* The cart's keys `ra`, `[1]` and `[2]` of a toast. NULL or 0 is an absent
  * key, which leaves the member's default. */
 typedef struct {
-    pico8_vec_t *ra;
+    const pico8_vec_t *ra;
     const char *at1;
     pico8_fixed_t at2;
 } pico8_iv_keys_t;
 
-/* `keys` is read, not kept (NULL: none); `ra` and `at1` are adopted
- * without copy. The struct registers itself through `lt`, and nothing
- * frees it. */
+/* `keys` is read, not kept (NULL: none), but for `ra`, borrowed until the
+ * first `ph`; `at1` is copied. The struct registers itself through `lt`. */
 pico8_iv_t *pico8_iv_new(const pico8_iv_keys_t *keys);
 
 void pico8_iv_pq(pico8_iv_t *self);

@@ -11,6 +11,12 @@
 #include "pico8_struct.h"
 #include "pico8_vec.h"
 #include "pico8_zone_choisie.h"
+#include "pico8_zone_interface.h"
+
+/* A new place of `sorte`, given back by pico8_zone_arene_rendre. This file
+ * is the one place of the core that backs the interface zone with the
+ * transitional heap: every sort takes its places through here. */
+const pico8_zone_choisie_t *pico8_ui_button_place(pico8_sorte_t sorte);
 
 typedef struct pico8_js pico8_js_t;
 

@@ -154,28 +154,20 @@ void pico8_iv_pq(pico8_iv_t *self) {
         pico8_vec_t je_ra = pico8_iv_vec_or_zero(je != NULL ? je->ra : NULL);
         pico8_vec_t mo_ra = pico8_iv_vec_or_zero(mo != NULL ? mo->ra : NULL);
         pico8_vec_t offset = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(5));
-        pico8_vec_t new_ra = pico8_vec_sub(pico8_vec_add(je_ra, mo_ra), offset);
-        /* TROU-7 */
-        pico8_vec_t *heap_ra = malloc(sizeof *heap_ra);
-        *heap_ra = new_ra;
-        self->ra = heap_ra;
+        self->ra_box = pico8_vec_sub(pico8_vec_add(je_ra, mo_ra), offset);
+        self->ra = &self->ra_box;
     }
 }
 
 void pico8_iv_ph(pico8_iv_t *self) {
-    pico8_vec_t new_ra;
     pico8_fixed_t new_l;
-    pico8_vec_t *heap_ra;
 
     if (self == NULL) {
         return;
     }
 
-    new_ra = pico8_vec_add(pico8_iv_vec_or_zero(self->ra), pico8_iv_vec_or_zero(&self->def->v));
-    /* TROU-7 */
-    heap_ra = malloc(sizeof *heap_ra);
-    *heap_ra = new_ra;
-    self->ra = heap_ra;
+    self->ra_box = pico8_vec_add(pico8_iv_vec_or_zero(self->ra), pico8_iv_vec_or_zero(&self->def->v));
+    self->ra = &self->ra_box;
 
     new_l = pico8_fixed_add(self->l, PICO8_FIXED_LIT(0x00001999, 0.1));
     self->l = new_l;
@@ -212,13 +204,21 @@ static void pico8_iv_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t 
     pico8_iv_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_iv_t *)self, p);
 }
 
+static void pico8_iv_rendre(pico8_struct_header_t *self) {
+    pico8_zone_arene_rendre(((pico8_iv_t *)self)->place);
+}
+
 static const pico8_struct_class_t g_iv_struct_class = {
     .kj = pico8_iv_kj_dispatch,
     .states = {[PICO8_STATE_PH] = pico8_iv_ph_dispatch},
+    .rendre = pico8_iv_rendre,
 };
 
 static pico8_iv_t *pico8_iv_struct_new(const pico8_iv_keys_t *keys) {
-    pico8_iv_t *self = malloc(sizeof *self);
+    const pico8_zone_choisie_t *place = pico8_ui_button_place(PICO8_SORTE_IV);
+    pico8_iv_t *self = (pico8_iv_t *)pico8_zone_alloc(place, sizeof *self);
+
+    self->place = place;
 
     pico8_ke_struct_init(&self->header, &g_iv_struct_class, pico8_iv_def.me, pico8_iv_def.t);
     self->def = &pico8_iv_def;
@@ -232,7 +232,12 @@ static pico8_iv_t *pico8_iv_struct_new(const pico8_iv_keys_t *keys) {
     self->at2 = pico8_fixed_from_int(0);
     if (keys != NULL) {
         self->ra = keys->ra;
-        self->at1 = keys->at1;
+        if (keys->at1 != NULL) {
+            assert(strlen(keys->at1) <= PICO8_IV_TEXT_CAP &&
+                   "a toast's text is a `ne` price or \"-no money-\": a longer one needs a bigger at1_buf and iv place");
+            strcpy(self->at1_buf, keys->at1);
+            self->at1 = self->at1_buf;
+        }
         self->at2 = keys->at2;
     }
 #ifdef PICO8_CLASS_COVERAGE

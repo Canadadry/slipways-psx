@@ -18,6 +18,7 @@
 #include "pico8_ptrs.h"
 #include "pico8_research.h"
 #include "pico8_tech_gate.h"
+#include "pico8_zone_frame.h"
 #include "pico8_zone_transitoire.h"
 
 static int g_hy_up = 0;
@@ -185,12 +186,10 @@ int pico8_hy_lu(pico8_hy_t *self, pico8_fixed_t jt) {
 
     if (jt != pico8_fixed_from_int(0)) {
         int color;
-        char *text = pico8_ne(&pico8_zone_transitoire, pico8_fixed_neg(jt), 10, "$", &color);
+        char *text = pico8_ne(pico8_zone_frame(), pico8_fixed_neg(jt), 10, "$", &color);
         keys.at1 = text;
         keys.at2 = pico8_fixed_from_int(color);
         pico8_iv_new(&keys);
-        /* `text` is now owned by the new `iv` instance, which reads it every
-         * frame it stays on screen: not freed here. */
     }
 
     return 1;
