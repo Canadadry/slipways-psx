@@ -320,6 +320,7 @@ static void test_construction(void) {
     first = invented_of(fm_hy());
     assert(first != invented_of(bare));
 
+    pico8_cart_vider_file_sortie();
     new_game();
     assert(invented_of(fm_hy()) != first && invented_of(fm_hy())->count == 0);
     h = fold_fm(h);
@@ -522,6 +523,7 @@ static void test_lj(void) {
     h = fold_fm(h);
     h = fnv(h, (uint32_t)(hl_string() == NULL));
 
+    pico8_cart_vider_file_sortie();
     new_game();
     fm_hy()->nz = pico8_fixed_from_int(2);
     pico8_hy_lj(fm_self());

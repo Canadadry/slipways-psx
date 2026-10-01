@@ -40,6 +40,7 @@
 #include "pico8_ui_button.h"
 #include "pico8_wormhole.h"
 #include "pico8_zone_frame.h"
+#include "pico8_zone_partie.h"
 #include "pico8_zone_transitoire.h"
 
 /* pico8_data_init() and pico8_score_panel_init() each run further module
@@ -49,6 +50,7 @@ void pico8_cart_load(void) {
     pico8_mem_t *mem;
 
     pico8_cart_vider_file_sortie();
+    pico8_zone_partie_reset();
     pico8_ke_init();
     assert(pico8_ke_ready() && "ke must be declared before every ke-descended class");
     pico8_qb_init();
@@ -118,12 +120,22 @@ static void oublier(const pico8_struct_header_t *e) {
     pico8_economy_dk_quitte(e);
 }
 
+/* Point d'oubli de partie : coupe les references a la generation que
+ * pico8_zone_partie_rendre va rendre. */
+static void oublier_partie(void) {
+}
+
 void pico8_cart_vider_file_sortie(void) {
     pico8_file_sortie_vider(oublier);
+    if (pico8_zone_partie_en_attente()) {
+        oublier_partie();
+        pico8_zone_partie_rendre();
+    }
 }
 
 void pico8_cart_shutdown(void) {
     pico8_cart_vider_file_sortie();
+    pico8_zone_partie_reset();
     pico8_menu_shutdown();
     pico8_research_icon_shutdown();
     pico8_score_panel_shutdown();
@@ -188,6 +200,7 @@ void pico8_eu(pico8_js_t *nj) {
     assert(pico8_hy_ready() && pico8_qh_ready() && "pico8_cart_load() must run before eu()");
 
     pico8_economy_set_dk(nj);
+    pico8_zone_partie_basculer();
 
     /* `jl()` runs a second time here, as in the cart: it unconditionally
      * rebuilds hv/cv/cg and the mo/je/ok singletons. */
