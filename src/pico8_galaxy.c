@@ -11,6 +11,7 @@
 #include "pico8_planet.h"
 #include "pico8_str.h"
 #include "pico8_vec.h"
+#include "pico8_zone_frame.h"
 #include "pico8_zone_transitoire.h"
 
 /* jo.oc's inner random source, which pico8_gn_free never touches (see
@@ -66,9 +67,8 @@ void pico8_bw(pico8_fixed_t n) {
 
         /* `id_str` is not freed here: the instance's "id" field keeps it
          * as-is. */
-        id_num_str = pico8_tostr_fixed(&pico8_zone_transitoire, id);
+        id_num_str = pico8_tostr_fixed(pico8_zone_frame(), id);
         id_str = pico8_concat2(&pico8_zone_transitoire, "p", id_num_str);
-        free(id_num_str);
 
         keys.id = id_str;
         keys.p = p_heap;

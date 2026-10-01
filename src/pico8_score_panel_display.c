@@ -11,6 +11,7 @@
 #include "pico8_score_panel.h"
 #include "pico8_str.h"
 #include "pico8_ui_button.h"
+#include "pico8_zone_frame.h"
 #include "pico8_zone_transitoire.h"
 
 
@@ -45,9 +46,8 @@ void pico8_pj_hk(pico8_fixed_t yr) {
         pp = item->row;
     }
 
-    yr_str = pico8_tostr_fixed(&pico8_zone_transitoire, yr);
+    yr_str = pico8_tostr_fixed(pico8_zone_frame(), yr);
     year_label = pico8_concat2(&pico8_zone_transitoire, "year ", yr_str);
-    free(yr_str);
 
     iw->second_items[0] = (pico8_jb_item_t){.s = year_label};
 
@@ -176,11 +176,9 @@ static const pico8_jb_row_t *pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_
         if (dk != NULL && dk->px != NULL) {
             px = dk->px;
         }
-        piece1 = pico8_concat2(&pico8_zone_transitoire, hl_str, " (");
-        piece2 = pico8_concat2(&pico8_zone_transitoire, piece1, px);
-        free(piece1);
+        piece1 = pico8_concat2(pico8_zone_frame(), hl_str, " (");
+        piece2 = pico8_concat2(pico8_zone_frame(), piece1, px);
         label = pico8_concat2(&pico8_zone_transitoire, piece2, ")");
-        free(piece2);
         pico8_pj_ph_set(st, 1, (pico8_jb_item_t){.s = label});
     }
 

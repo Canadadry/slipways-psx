@@ -11,6 +11,7 @@
 #include "pico8_research.h"
 #include "pico8_str.h"
 #include "pico8_tech_gate.h"
+#include "pico8_zone_frame.h"
 #include "pico8_zone_transitoire.h"
 
 /* Returns a newly heap-allocated, NUL-terminated string the caller owns
@@ -41,12 +42,11 @@ static char *pico8_hp_jb_join(const pico8_hp_t *self) {
         if (entry != NULL) {
             qe = pico8_jy_qe(entry);
         }
-        num_str = qe.kind == PICO8_QE_FIXED ? pico8_tostr_fixed(&pico8_zone_transitoire, qe.n) : NULL;
+        num_str = qe.kind == PICO8_QE_FIXED ? pico8_tostr_fixed(pico8_zone_frame(), qe.n) : NULL;
         iz_name = num_str != NULL ? pico8_iz_lookup(num_str) : NULL;
         if (iz_name != NULL) {
             piece = iz_name;
         }
-        free(num_str);
 
         piece_len = strlen(piece);
         add_len = (first ? 0 : 1) + piece_len;
@@ -91,14 +91,13 @@ const pico8_jb_row_t *pico8_hp_jb(const pico8_hp_t *self) {
     jb->inner.items = jb->inner_items;
 
     if (self->has_o) {
-        char *o_str = pico8_tostr_fixed(&pico8_zone_transitoire, self->o);
+        char *o_str = pico8_tostr_fixed(pico8_zone_frame(), self->o);
         const char *iz_o = pico8_iz_lookup(o_str);
 
         if (iz_o != NULL) {
             jb->inner_items[2].s = iz_o;
             jb->inner.count = 3;
         }
-        free(o_str);
     }
 
     jb->outer_item.row = &jb->inner;

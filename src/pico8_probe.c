@@ -22,7 +22,6 @@
 #include "pico8_wormhole.h"
 #include "pico8_str.h"
 #include "pico8_zone_frame.h"
-#include "pico8_zone_transitoire.h"
 
 static int g_g__up = 0;
 static pico8_struct_header_t *g_fm = NULL;
@@ -236,7 +235,6 @@ void pico8_dl_show(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *me, con
     pico8_vec_t mp;
     const pico8_nf_t *je;
     const char *display = "";
-    char *heap_display = NULL;
 
     if (me == NULL || strcmp(me, "kz") != 0) {
         return;
@@ -256,22 +254,13 @@ void pico8_dl_show(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *me, con
             }
         }
     } else if (pb->has_od) {
-        char *od_str = pico8_tostr_fixed(&pico8_zone_transitoire, pb->od);
-        size_t len = strlen(od_str);
-        heap_display = malloc(len + 2);
-        memcpy(heap_display, od_str, len);
-        heap_display[len] = '$';
-        heap_display[len + 1] = '\0';
-        free(od_str);
-        display = heap_display;
+        display = pico8_concat2(pico8_zone_frame(), pico8_tostr_fixed(pico8_zone_frame(), pb->od), "$");
     }
 
     if (gfx != NULL && mem != NULL) {
         pico8_fixed_t a = PICO8_FIXED_LIT(0x00008000, 0.5);
         pico8_io(gfx, mem, display, mp.x, pico8_fixed_sub(mp.y, pico8_fixed_from_int(8)), 8, &a);
     }
-
-    free(heap_display);
 }
 
 void pico8_dl_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {

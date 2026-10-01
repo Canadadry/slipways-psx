@@ -211,14 +211,13 @@ pico8_ky_t pico8_ky(void) {
         pico8_fixed_mul(pico8_fixed_add(pico8_fixed_add(di_ctx.total, gl), el), PICO8_FIXED_LIT(0x0000028f, 0.01)),
         happiness));
 
-    happiness_str = pico8_tostr_fixed(&pico8_zone_transitoire, happiness);
+    happiness_str = pico8_tostr_fixed(pico8_zone_frame(), happiness);
 
     result.di = di_ctx.total;
     result.gl = gl;
     result.el = el;
     /* TROU-7 */
     result.happiness = concat_percent(happiness_str);
-    free(happiness_str);
     result.total = total;
     result.tier = fixed_min(pico8_fixed_flr(pico8_fixed_div(total, pico8_fixed_from_int(2000))),
                             pico8_fixed_from_int(5));

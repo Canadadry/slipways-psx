@@ -14,6 +14,7 @@
 #include "pico8_probe.h"
 #include "pico8_str.h"
 #include "pico8_tech_gate.h"
+#include "pico8_zone_frame.h"
 #include "pico8_zone_transitoire.h"
 
 static int g_ie_up = 0;
@@ -125,9 +126,8 @@ pico8_down_t pico8_ie_ldown(pico8_ie_t *self) {
         return out;
     }
 
-    id_num_str = pico8_tostr_fixed(&pico8_zone_transitoire, new_id);
+    id_num_str = pico8_tostr_fixed(pico8_zone_frame(), new_id);
     id_str = pico8_concat2(&pico8_zone_transitoire, "s", id_num_str);
-    free(id_num_str);
 
     /* `id_str` is not freed: the new planet's `id` keeps that exact
      * pointer. */

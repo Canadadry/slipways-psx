@@ -21,6 +21,7 @@
 #include "pico8_ui_button.h"
 #include "pico8_vec.h"
 #include "pico8_str.h"
+#include "pico8_zone_frame.h"
 #include "pico8_zone_transitoire.h"
 
 /* The most items a row of `ix` or `ha` holds. */
@@ -169,9 +170,8 @@ void pico8_cr(void) {
 
     if (gr > 0) {
         pico8_cr_row_t *extra = &rows[n++];
-        char *gr_str = pico8_tostr_fixed(&pico8_zone_transitoire, pico8_fixed_from_int(gr));
+        char *gr_str = pico8_tostr_fixed(pico8_zone_frame(), pico8_fixed_from_int(gr));
         char *label = pico8_concat2(&pico8_zone_transitoire, gr_str, " invented");
-        free(gr_str);
         extra->lq_items[0] = pico8_lq_cell_fixed(pico8_fixed_from_int(30));
         extra->lq_items[1] = pico8_lq_cell_string(label);
         extra->lq.items = extra->lq_items;
@@ -201,25 +201,16 @@ void pico8_cr(void) {
             ek_tl = pico8_fixed_from_int(ek);
         }
 
-        tl_str = pico8_tostr_fixed(&pico8_zone_transitoire, tl);
-        diff1_str = pico8_tostr_fixed(&pico8_zone_transitoire, pico8_fixed_sub(pico8_fixed_from_int(gr), qi));
-        diff2_str = pico8_tostr_fixed(&pico8_zone_transitoire, pico8_fixed_sub(ek_tl, qi));
+        tl_str = pico8_tostr_fixed(pico8_zone_frame(), tl);
+        diff1_str = pico8_tostr_fixed(pico8_zone_frame(), pico8_fixed_sub(pico8_fixed_from_int(gr), qi));
+        diff2_str = pico8_tostr_fixed(pico8_zone_frame(), pico8_fixed_sub(ek_tl, qi));
 
-        tmp1 = pico8_concat2(&pico8_zone_transitoire, "level ", tl_str);
-        tmp2 = pico8_concat2(&pico8_zone_transitoire, tmp1, " (");
-        free(tmp1);
-        tmp3 = pico8_concat2(&pico8_zone_transitoire, tmp2, diff1_str);
-        free(tmp2);
-        tmp1 = pico8_concat2(&pico8_zone_transitoire, tmp3, "/");
-        free(tmp3);
-        tmp2 = pico8_concat2(&pico8_zone_transitoire, tmp1, diff2_str);
-        free(tmp1);
+        tmp1 = pico8_concat2(pico8_zone_frame(), "level ", tl_str);
+        tmp2 = pico8_concat2(pico8_zone_frame(), tmp1, " (");
+        tmp3 = pico8_concat2(pico8_zone_frame(), tmp2, diff1_str);
+        tmp1 = pico8_concat2(pico8_zone_frame(), tmp3, "/");
+        tmp2 = pico8_concat2(pico8_zone_frame(), tmp1, diff2_str);
         ep = pico8_concat2(&pico8_zone_transitoire, tmp2, ")");
-        free(tmp2);
-
-        free(tl_str);
-        free(diff1_str);
-        free(diff2_str);
 
         cr->ep = ep;
         frame.ep = cr->ep;
