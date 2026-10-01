@@ -95,13 +95,9 @@ static int pico8_jo_gh_jp_step(void *e, void *ctx_ptr) {
  * the gap. */
 #define PICO8_JO_GH_LB_CAP 4
 
-/* TROU-7 */
 /* Room for `n` positionals of a row of `jo:gh`, the gap's cell included. */
 static pico8_lq_cell_t *jo_gh_row_items(int n) {
-    pico8_lq_cell_t *items = malloc((size_t)n * sizeof *items);
-
-    assert(items != NULL);
-    return items;
+    return (pico8_lq_cell_t *)pico8_zone_alloc(pico8_zone_frame(), (size_t)n * sizeof(pico8_lq_cell_t));
 }
 
 /* TROU-7 */

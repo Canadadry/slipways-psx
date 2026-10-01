@@ -17,8 +17,8 @@
 void pico8_jo_hb(pico8_jo_t *self);
 
 /* TROU-7 */
-/* Hands the rows it builds to `pz()`, which keeps them: only the scratch
- * lists that never reach a row are freed here. */
+/* Builds its rows in the frame zone and hands them to `pz()`, which copies
+ * them; the strings and tuples their cells point at are never freed. */
 void pico8_jo_gh(const pico8_jo_t *self);
 
 /* Answering "no" for the drag's own origin planet also opens that

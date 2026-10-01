@@ -15,8 +15,9 @@
 pico8_lq_t *pico8_hp_lq(pico8_hp_t *self);
 
 /* TROU-7 */
-/* Returns a fresh row of one line, never freed, or NULL when `self.ii` is
- * truthy. The line's first item is a heap string nothing frees either. */
+/* Returns a row of one line, valid until the next reset of the frame zone,
+ * or NULL when `self.ii` is truthy. The line's first item is a heap string
+ * nothing frees. */
 const pico8_jb_row_t *pico8_hp_jb(const pico8_hp_t *self);
 
 /* TROU-7 */

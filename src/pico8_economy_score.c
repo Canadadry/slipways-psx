@@ -13,7 +13,6 @@
 #include "pico8_str.h"
 #include "pico8_trade.h"
 #include "pico8_zone_frame.h"
-#include "pico8_zone_transitoire.h"
 
 static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
     return (a < b) ? a : b;
@@ -170,7 +169,7 @@ static void sum_by_mi_visit(pico8_struct_header_t *pt, void *ctx_) {
 
 static char *concat_percent(const char *s) {
     size_t len = strlen(s);
-    char *out = malloc(len + 2);
+    char *out = (char *)pico8_zone_alloc(pico8_zone_frame(), len + 2);
     memcpy(out, s, len);
     out[len] = '%';
     out[len + 1] = '\0';
@@ -216,7 +215,6 @@ pico8_ky_t pico8_ky(void) {
     result.di = di_ctx.total;
     result.gl = gl;
     result.el = el;
-    /* TROU-7 */
     result.happiness = concat_percent(happiness_str);
     result.total = total;
     result.tier = fixed_min(pico8_fixed_flr(pico8_fixed_div(total, pico8_fixed_from_int(2000))),

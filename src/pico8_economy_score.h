@@ -23,7 +23,7 @@ typedef struct {
     pico8_fixed_t di;
     pico8_fixed_t gl;
     pico8_fixed_t el;
-    char *happiness; /* TROU-7: heap, never freed */
+    char *happiness; /* valid until the next reset of the frame zone */
     pico8_fixed_t total;
     pico8_fixed_t tier;
 } pico8_ky_t;

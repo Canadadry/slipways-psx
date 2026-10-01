@@ -8,8 +8,8 @@
  * absent table is a safe no-op rather than a crash. */
 
 /* TROU-7 */
-/* Rebuilds the tech-tree rows and hands them to `pz`; the rows and the
- * `pj.cr.ep` string a previous call left behind are dropped, not freed. */
+/* Rebuilds the tech-tree rows and hands them to `pz`; the strings a
+ * previous call left in its rows and in `pj.cr.ep` are dropped, not freed. */
 void pico8_cr(void);
 
 /* The button of `ix`'s row `i` (1..PICO8_IX_COUNT), from `pico8_ix_table`,

@@ -12,10 +12,20 @@
 #include "../src/pico8_cart.h"
 #include "../src/pico8_collect.h"
 #include "../src/pico8_dispatch_context.h"
+#include "../src/pico8_entity.h"
 #include "../src/pico8_ents.h"
+#include "../src/pico8_fm.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_input.h"
+#include "../src/pico8_layout.h"
 #include "../src/pico8_mem.h"
+#include "../src/pico8_menu.h"
+#include "../src/pico8_msgbox.h"
+#include "../src/pico8_planet.h"
+#include "../src/pico8_planet_display.h"
+#include "../src/pico8_score_panel.h"
+#include "../src/pico8_ui.h"
+#include "../src/pico8_ui_button.h"
 #include "../src/pico8_zone_choisie.h"
 #include "../src/pico8_zone_frame.h"
 #include "../src/pico8_zone_sizes.h"
@@ -101,6 +111,111 @@ static int case_update60_resets(void) {
     return 0;
 }
 
+static void start_game(void) {
+    load_cart_and_start();
+    pico8_eu(NULL);
+}
+
+static size_t read_cells(const pico8_lq_t *lq) {
+    size_t sum = 0;
+    for (int i = 0; i < lq->items_count; i++) {
+        if (lq->items[i].kind == PICO8_LQ_CELL_STRING) sum += strlen(lq->items[i].as.s);
+        if (lq->items[i].kind == PICO8_LQ_CELL_ROW) sum += (size_t)lq->items[i].as.row->count;
+    }
+    return sum;
+}
+
+/* Remet la zone frame a zero apres la construction du panneau, puis relit
+ * et dessine chaque bouton, bulle `jb` comprise : rend le nombre de
+ * bulles dessinees. */
+static int reset_then_draw_panel(void) {
+    const pico8_ents_t *le = pico8_ok()->le;
+    int bubbles = 0;
+
+    pico8_zone_frame_reset();
+    allocate_again();
+    for (int i = 0; i < le->count; i++) {
+        pico8_js_t *js = (pico8_js_t *)le->items[i];
+        pico8_vec_t p = js->ra != NULL ? *js->ra : pico8_vec_v(0, 0);
+
+        sink = (unsigned char)read_cells(js->lq);
+        if (js->h_ != NULL) sink = (unsigned char)read_cells(js->h_);
+        if (js->jb != NULL) {
+            for (int k = 0; k < js->jb->ls_count; k++) sink = (unsigned char)read_cells(js->jb->ls[k]);
+            bubbles++;
+        }
+        js->m_ = 1;
+        pico8_js_kj(&gfx, &mem, js, p);
+        pico8_js_ev(&gfx, &mem, js);
+    }
+    return bubbles;
+}
+
+static int case_gh_rows_survive_reset(void) {
+    static pico8_kw_t kw = {.has_qe = 1};
+    pico8_jo_t *planet;
+
+    start_game();
+    planet = (pico8_jo_t *)pico8_cg("jo")->items[0];
+    kw.qe = pico8_fixed_from_int(99);
+    kw.mu = pico8_fixed_from_int(1);
+    planet->kw = &kw;
+    pico8_jo_gh(planet);
+    assert(pico8_ok()->le->count >= 2 && "jo:gh: l'icone et la rangee exports");
+    reset_then_draw_panel();
+    return 0;
+}
+
+static int case_invented_lines_survive_reset(void) {
+    start_game();
+    pico8_ptrs_add(pico8_fm_hy()->invented, "slipgates");
+    pico8_cr();
+    assert(reset_then_draw_panel() >= 1 && "cr: la rangee n invented porte sa bulle");
+    return 0;
+}
+
+static int case_hp_jb_survives_reset(void) {
+    pico8_jo_t *planet;
+
+    start_game();
+    planet = (pico8_jo_t *)pico8_cg("jo")->items[0];
+    pico8_jo_hh(planet);
+    (void)pico8_jo_ldown(planet);
+    assert(reset_then_draw_panel() >= 1 && "jo:fe: un batiment porte la bulle de hp:jb");
+    return 0;
+}
+
+static int happiness_cells(const pico8_mh_t *mh) {
+    int found = 0;
+    for (int k = 0; k < mh->items_count; k++) {
+        const pico8_jb_row_t *ld = mh->items[k];
+        if (ld->fn == NULL || strcmp(ld->fn, "ld") != 0 || !ld->items[0].is_ref) continue;
+        const pico8_lq_t *lq = ld->items[0].ref;
+        for (int i = 0; i < lq->items_count; i++)
+            found += lq->items[i].kind == PICO8_LQ_CELL_STRING && strcmp(lq->items[i].as.s, "1%") == 0;
+    }
+    return found;
+}
+
+static int case_ky_happiness_survives_reset(void) {
+    pico8_hy_t *fm;
+    pico8_pj_t *ju;
+
+    start_game();
+    fm = pico8_fm_hy();
+    fm->happiness = pico8_fixed_from_int(1);
+    fm->has_happiness = 1;
+    fm->hl = "final score";
+    fm->has_hl = 1;
+    ju = pico8_ju();
+    ju->header.cls->states[PICO8_STATE_PH](&ju->header, 0);
+    assert(pico8_kc() != NULL && "pj:ph: une partie finie ouvre la boite du score");
+    pico8_zone_frame_reset();
+    allocate_again();
+    assert(happiness_cells(pico8_kc()) == 1 && "pj:ph: la case du bonheur garde sa copie de ky");
+    return 0;
+}
+
 #define LIST_LENGTH 12
 
 static pico8_struct_header_t cells[LIST_LENGTH];
@@ -151,6 +266,10 @@ static const struct {
     {"list_alive_within_frame", case_list_alive_within_frame},
     {"list_dead_next_frame", case_list_dead_next_frame},
     {"full", case_full},
+    {"gh_rows_survive_reset", case_gh_rows_survive_reset},
+    {"invented_lines_survive_reset", case_invented_lines_survive_reset},
+    {"hp_jb_survives_reset", case_hp_jb_survives_reset},
+    {"ky_happiness_survives_reset", case_ky_happiness_survives_reset},
 };
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
@@ -233,6 +352,10 @@ int main(int argc, char **argv) {
     expect_clean("list_alive_within_frame");
     expect_poison_crash("list_dead_next_frame");
     expect_fatal("full", "zone frame pleine, limite 262144 octets");
+    expect_clean("gh_rows_survive_reset");
+    expect_clean("invented_lines_survive_reset");
+    expect_clean("hp_jb_survives_reset");
+    expect_clean("ky_happiness_survives_reset");
     remove(STDERR_LOG);
     printf("test_pico8_zone_frame: all tests passed\n");
     return 0;

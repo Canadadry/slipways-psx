@@ -114,16 +114,16 @@ static void pico8_cr_step(const pico8_nb_entry_t *t, pico8_cr_row_t *b) {
     }
 }
 
-/* TROU-7 */
 /* `jb` of the "n invented" row: one line per invented tech, its name (NULL
- * an empty line), in one fresh block. */
+ * an empty line), in one block of the frame zone. */
 static const pico8_jb_row_t *pico8_menu_invented_lines(const pico8_ptrs_t *list) {
     int n = list != NULL ? list->count : 0;
-    pico8_jb_row_t *row = calloc(1, sizeof *row + (size_t)n * sizeof(pico8_jb_item_t));
+    size_t size = sizeof(pico8_jb_row_t) + (size_t)n * sizeof(pico8_jb_item_t);
+    pico8_jb_row_t *row = (pico8_jb_row_t *)pico8_zone_alloc(pico8_zone_frame(), size);
     pico8_jb_item_t *items = (pico8_jb_item_t *)(row + 1);
     int i;
 
-    assert(row != NULL);
+    memset(row, 0, size);
     for (i = 0; i < n; i++) {
         items[i].s = list->items[i];
     }

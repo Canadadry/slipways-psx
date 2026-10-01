@@ -83,8 +83,8 @@ const pico8_jb_row_t *pico8_hp_jb(const pico8_hp_t *self) {
         return NULL;
     }
 
-    jb = calloc(1, sizeof *jb);
-    assert(jb != NULL);
+    jb = (pico8_hp_jb_t *)pico8_zone_alloc(pico8_zone_frame(), sizeof *jb);
+    memset(jb, 0, sizeof *jb);
     jb->inner_items[0].s = pico8_hp_jb_join(self);
     jb->inner_items[1].n = 13;
     jb->inner.count = 2;
