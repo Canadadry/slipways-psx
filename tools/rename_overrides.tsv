@@ -1,0 +1,1264 @@
+kind	key	new	concept
+# Hand overrides for tools/rename_derive.py, which reads this file after
+# docs/vocabulaire.md and lets it win. Kinds:
+#   token     a token or a phrase (`zone_choisie`) inside any name
+#   name      one whole name, wherever it is declared
+#   field     `parent.name`: a field, local or parameter of that struct or function
+#   identity  one declaration, by the identity of make rename-extract
+# `=` as the new name keeps the old one (statut conservé).
+
+# --- Vocabulary concepts whose row the parser cannot pair ------------------
+token	ks	set_state	ks
+token	ph	update	ph
+token	ly	update_settled	ly
+token	kz	update_placing	kz
+token	pr	update_unfolding	pr
+token	ll	update_vanishing	ll
+token	sorte	slot_kind	sorte
+token	sortes	slot_kinds	sorte
+token	place	slot	sorte
+token	places	slots	sorte
+token	zone_choisie	allocator	pico8_zone_choisie_t
+token	bascule_zone	flip_zone	pico8_bascule_zone_t
+token	bascule	flip_zone	pico8_bascule_zone_t
+token	struct_header	entity	pico8_struct_header_t
+token	struct_class	class	pico8_struct_class_t
+token	struct_new	create	pq
+token	struct_init	init_instance	pq
+token	struct_pq	construct	pq
+token	research_icon	structure_icon	ie
+token	ents	entity_list	pico8_ents_t
+token	ptrs	pointer_list	pico8_ptrs_t
+token	hp	research_project	hp
+token	lw	trade_offer	lw
+token	jo_trade_proposal	trade_offer	lw
+token	trade_proposal	trade_offer	lw
+token	km	vec	pico8_vec_t
+token	qz	box	qz
+token	qz_box	box	qz
+token	probe_def	targeting_archetype	pico8_probe_t
+token	partie	game_zone	zone_partie
+token	chargement	load_zone	zone_partie
+token	file_sortie	exit_queue	file_sortie
+token	particules	particle	qy
+token	particule	particle	qy
+token	zone_tas	heap_allocator
+
+# --- Plain English two-letter words ----------------------------------------
+token	is	is
+token	of	of
+token	in	in
+token	to	to
+token	at	at
+token	as	as
+token	an	an
+token	no	no
+token	or	or
+token	it	it
+token	be	be
+token	if	if
+token	up	up
+token	on	on
+token	by	by
+token	id	id
+token	fn	fn
+token	xy	xy
+token	e2e	e2e
+token	gc	gc
+
+# --- Runtime, geometry, entity helpers (cart names) ------------------------
+token	rg	dot	km
+token	qx	length	km
+token	nn	normalize	km
+token	pa	perpendicular	km
+token	qm	from_polar	km
+token	len_sq	length_squared	km
+token	ee	side
+token	cl	segments_cross
+token	gk	contains_cursor
+token	gd	is_on_screen
+token	na	bob
+token	ij	nearest
+token	mp	mouse_world
+token	rp	mouse_screen
+token	jf	random_walk
+token	gn	weighted_picker
+token	oc	tickets
+token	nm	recent
+token	hr	entries
+token	og	copies_per_weight
+token	bu	update_button
+token	jn	pressed
+token	hm	released
+token	ih	sfx_muted
+token	rn	play_sfx
+token	cu	build_palette_table
+token	dv	select_palette_block
+token	rk	draw_bar
+token	eq	equal	
+token	io	print_outlined
+token	er	outline_offsets
+token	oj	is_unlocked
+token	ov	if_unlocked
+token	gu	contains
+token	jp	filter
+token	nv	map
+token	la	concat
+token	ne	format_signed
+token	ho	rename_positions
+token	ci	layer_fades
+token	bm	message	
+token	bas	bottom	
+token	rec	record	
+token	prober	targeting	pico8_probe_t
+
+# --- Economy ---------------------------------------------------------------
+token	nz	credits
+token	ge	income
+token	jk	research_points
+token	yr	year
+token	lo	year_ticks
+token	po	production
+token	fu	demand
+token	hl	end_status
+token	ew	era
+token	nx	advance_clock
+token	lu	spend
+token	lj	recompute
+token	kt	invent
+token	cm	fill_resource_map
+token	bx	total_production
+token	ck	crowding_penalty
+token	dj	route_base_cost
+token	bk	cost_scale
+token	bd	rebuild_incoming_routes
+token	bb	update_tiers
+token	dh	compute_tier
+token	da	planet_upkeep
+token	cz	colony_upkeep
+token	db	trade_income
+token	ky	final_score
+token	bf	happiness
+token	dk	difficulty
+token	di	development
+token	gl	population
+token	el	technology
+token	es	upkeep_by_tier
+token	ct	partner_bonus_by_tier
+token	b_	development_score_by_tier
+token	co	happiness_by_tier
+token	fb	palette_offsets
+token	ek	tier_thresholds
+token	ef	period_names
+token	bn	route_cost_factor
+token	bq	route_length_factor
+token	cc	incoming_routes
+token	hs	trade_multiplier
+token	jh	production_bonus
+token	hn	project
+token	kr	net_income
+token	gg	is_colonized
+token	hg	served_planets
+token	mu	amount
+
+# --- Planets and structures ------------------------------------------------
+token	lz	install_project
+token	kd	restart_shake
+token	hu	apply_project
+token	hh	roll_type
+token	gh	inspection_panel
+token	fe	projects_panel
+token	ib	rebuild_trades
+token	ex	resource_row
+token	ir	vanish_roll
+token	rr	required_tech
+token	ep	description
+token	ka	ring_colors
+token	dz	mood_rows
+token	em	spacer
+token	ng	spawn_offset
+token	cq	made_resources
+token	ba	accepted_resources
+token	ht	synthesizable_resources
+token	hz	link_sprites
+token	qw	palette_block
+token	fz	class_name
+token	cw	class_name
+token	kv	planet_kind
+token	bw	populate_galaxy
+token	eu	start_game
+
+# --- Slipways, probe, wormhole ---------------------------------------------
+token	ts	transit_dots
+token	ce	obstruction
+token	eb	other_end
+token	ch	spawn_transit_dot
+token	lg	draw_line
+token	nh	fade_in_step	
+token	od	cost
+token	dw	attach_distance
+token	qs	status_text
+token	ik	status_sprite
+token	fp	clock_ticks
+token	dq	confirmed_state
+token	ox	anchors
+token	ej	reveal_radius
+token	oi	radius
+token	kk	color_ramp
+token	jj	too_far_target
+token	np	node	
+
+# --- Particles -------------------------------------------------------------
+token	pn	angle_slices
+token	pk	quarter_turn
+token	du	base_radius
+token	py	speed_factor
+token	ki	lifetime
+token	fc	spawn_rate
+token	k_	trail_colors
+token	qo	matrix_xx
+token	ro	matrix_xy
+token	qg	matrix_yx
+token	q_	matrix_yy
+token	iu	acceleration_factor
+token	ms	speed
+
+# --- Interface ---------------------------------------------------------------
+token	bh	handle_button
+token	jz	send_to_hovered
+token	cj	clear_ephemerals
+token	gw	update_hover
+token	hw	panel_box
+token	le	ephemerals
+token	ic	hovered_by_layer
+token	o_	hovered
+token	gj	previous_hovered
+token	qa	mouse_world
+token	lheld	left_held
+token	rheld	right_held
+token	pl	tile_choices
+token	mq	drag_mouse
+token	h_	side_tooltip
+token	mb	width
+token	qf	slide_target
+token	my	on_click
+token	pz	open_box
+token	rh	duration_scale
+token	lh	keep_open
+token	iw	rows
+token	hi	fixed_pos
+token	gq	row_step
+token	ca	back_color
+token	ff	clear_ephemerals_after
+token	eo	open_sfx
+token	mn	measure_item
+token	fs	placed_items
+token	ls	rows
+token	qv	spacing
+token	om	top
+token	ld	draw_row
+token	bl	draw_rows
+token	rb	rows
+token	nc	shake_offset
+token	bo	difficulty_options
+token	ix	galaxy_menu
+token	ha	pause_menu
+token	eg	refresh_palette
+token	ed	last_box
+token	gz	curtain
+token	c_	is_shown
+token	gy	revealed_count
+token	eh	rest_count
+token	kh	is_revealed
+token	nj	chosen_option
+token	ou	readouts
+token	ea	year_banner
+token	gs	countdown_rows
+token	i_	frame_rows
+token	bz	score_rows
+token	de	panel_toggle
+token	at1	text
+token	at2	color
+token	tl	era	
+
+# --- Research ----------------------------------------------------------------
+token	ri	record
+token	fj	base_cost
+token	ja	production_key
+token	il	upgrade_tech
+token	mc	upgraded_entry
+token	ii	icon_sprite
+token	lr	planet_codes
+token	dm	byproduct
+token	fk	row_tail
+token	mr	positions
+token	gp	routed_positions
+token	bj	available_projects
+token	gb	projects
+token	cb	available_technologies
+token	gi	research_cost
+token	e_	is_affordable
+token	lv	era
+token	oy	tooltip_rows
+token	en	type_bias
+
+# --- Data tables ---------------------------------------------------------------
+token	r_table	resource_codes
+token	r_entry	resource_code
+token	r_lookup	resource_code_lookup
+token	r_count	resource_code_count
+token	iz	resource_names
+token	hc	production_tables
+token	fd	project_records
+token	dr	icon_tooltips
+
+# --- French words ----------------------------------------------------------------
+token	abandonne	abandoned	
+token	abandonner	abandon	
+token	aide	help	
+token	ancrage	anchor	
+token	apres	after	
+token	arene	arena	arene
+token	arenes	arenas	arene
+token	atteint	reached	
+token	attendu	expected	
+token	attente	pending	
+token	aucun	none	
+token	avant	before	
+token	avec	with	
+token	basculer	flip	
+token	bloc	block	
+token	blocs	blocks	
+token	boites	boxes	
+token	borne	bound	
+token	bouge	moves	
+token	bouton	button	
+token	calme	idle	
+token	capacite	capacity	
+token	chaque	each	
+token	champs	fields	
+token	charger	load	
+token	choisie	chosen	
+token	cle	key	
+token	clic	click	
+token	compte	count	
+token	compter	count	
+token	comptes	counts	
+token	copie	copy	
+token	courant	current	
+token	dans	in	
+token	debut	start	
+token	demarrer	start	
+token	depart	start	
+token	derniere	last	
+token	des	of	
+token	dessiner	draw	
+token	deuxieme	second	
+token	devoile	revealed	
+token	devoilees	revealed	
+token	dix	ten	
+token	dont	whose	
+token	eclat	burst	ga
+token	eclats	bursts	ga
+token	economie	economy	
+token	ecran	screen	
+token	ecrit	writes	
+token	ecart	gap	
+token	ecarts	gaps	
+token	emetteur	emitter	
+token	enfant	child	
+token	entite	entity	
+token	entree	entry	
+token	est	is	
+token	etats	states	
+token	fait	does	
+token	fenetres	windows	
+token	fermer	close	
+token	fichier	file	
+token	fin	end	
+token	garde	keeps	
+token	gardee	kept	
+token	grandir	grow	
+token	haut	top	
+token	hors	outside	
+token	hote	host	
+token	icone	icon	
+token	icones	icons	
+token	imprimer	print	
+token	inscrits	registered	
+token	jamais	never	
+token	jouer	play	
+token	jusqu	until	
+token	les	the	
+token	libere	frees	
+token	libres	free	
+token	ligne	line	
+token	lire	read	
+token	liste	list	
+token	listes	lists	
+token	loin	far	
+token	memes	same	
+token	mettre	put	
+token	meurt	dies	
+token	monte	rises	
+token	mort	dead	
+token	morts	dead	
+token	mourante	dying	
+token	naissance	birth	
+token	nom	name	
+token	noms	names	
+token	noter	record	
+token	nouvelle	new	
+token	octets	bytes	
+token	oublie	forgets	
+token	oublier	forget	
+token	ouvert	open	
+token	ouvrir	open	
+token	par	by	
+token	pas	not	
+token	pendant	during	
+token	pire	worst	
+token	planete	planet	jo
+token	planetes	planets	jo
+token	plafond	ceiling	
+token	pliage	wormhole	mz
+token	pliages	wormholes	mz
+token	pointeurs	pointers	
+token	posee	placed	
+token	precedente	previous	
+token	premiere	first	
+token	prendre	take	
+token	prises	grab_arenas	prise
+token	quatre	four	
+token	que	only	
+token	qui	that	
+token	quitte	quits	
+token	quittee	quit	
+token	quitter	quit	
+token	rangee	row	
+token	rangees	rows	
+token	recharge	reloads	
+token	rechargement	reload	
+token	recherche	research	
+token	reecrit	rewrites	
+token	refusee	refused	
+token	refusees	refused	
+token	registre	registry	
+token	registres	registries	
+token	releve	reading	
+token	relever	read	
+token	releves	readings	
+token	relit	rereads	
+token	remise	reset	
+token	remplissage	fill	
+token	rend	releases	
+token	rendue	released	
+token	rendus	released	
+token	reprend	takes_back	
+token	revient	returns	
+token	rien	nothing	
+token	sans	without	
+token	sentinelle	sentinel	
+token	ses	its	
+token	sonde	probe	g_
+token	sondes	probes	g_
+token	sortie	exit	
+token	sortir	exit	
+token	sous	under	
+token	suivante	next	
+token	sur	on	
+token	survit	survives	
+token	survivante	surviving	
+token	taille	size	
+token	tas	heap	
+token	tenu	held	
+token	tenue	held	
+token	tete	head	
+token	tient	holds	
+token	titre	title	
+token	touche	touches	
+token	tous	all	
+token	trainee	trail	
+token	trainees	trails	
+token	travers	across	
+token	une	a	
+token	valeur	value	
+token	verifier	check	
+token	vider	flush	
+token	vingt	twenty	
+token	vise	targets	
+token	vivante	live	
+token	vivantes	live	
+
+# --- French test and helper names, translated whole ----------------------------
+name	relever	take_reading	
+name	verifier_invariant	check_invariant	
+name	imprimer	print_reading	
+name	charger	load_e2e	
+name	rejouer	replay_e2e	
+name	rejouer_sous_invariant	replay_under_invariant	
+name	memes_comptes	same_counts	
+name	aucun_ne_monte	none_rises	
+name	dans_un_enfant	in_child	
+name	lire_fichier	read_file	
+name	dans_un_enfant_qui_meurt_par_asan	in_child_dying_by_asan	
+name	invariant_sur_l_e2e_courant	invariant_on_current_e2e	
+name	invariant_sur_tous_les_e2e	invariant_on_all_e2e	
+name	jouer_jusqu_a	play_until	
+name	jouer_une_frame	play_one_frame	
+name	demarrer	start_e2e	
+name	sentinelle	sentinel	
+name	verifier_sentinelle	check_sentinel	
+name	planete_de_la_premiere_partie	planet_of_first_game	
+name	economie_de_la_premiere_partie	economy_of_first_game	
+name	icone_de_la_premiere_partie	icon_of_first_game	
+name	l_aide_de_hv	help_screen_in_live_entities	
+name	le_bg_de_hv	background_in_live_entities	
+name	singletons_de_la_partie_quittee	singletons_of_quit_game	
+name	octets_d_un_registre	registry_bytes	
+name	octets_des_registres	registries_bytes	
+name	octets_d_un_bloc	block_bytes	
+name	octets_d_une_liste_de_planete	planet_list_bytes	
+name	octets_des_planetes	planets_bytes	
+name	octets_de_l_economie	economy_bytes	
+name	octets_des_icones	icons_bytes	
+name	octets_de_la_recherche_et_de_l_economie	research_and_economy_bytes	
+name	octets_des_singletons	singletons_bytes	
+name	octets_de_quatre_pointeurs	four_pointers_bytes	
+name	octets_de_gb	projects_bytes	
+name	octets_des_oe_de_p27_et_p48	slipways_of_p27_and_p48_bytes	
+name	partie_sans_registres	game_without_registries	
+name	planete_d_id	planet_with_id	
+name	la_prise_posee	placed_grab_arena	
+name	la_sonde_tenue	held_probe	
+name	le_slipway_tenu	held_slipway	
+name	le_mz_tenu	held_wormhole	
+name	le_mz_abandonne	abandoned_wormhole	
+name	planete_dont_fo_est	planet_targeted_by	
+name	le_fo_d_une_planete_hors_ecran_oublie_la_prise_refusee	offscreen_planet_forgets_refused_grab_arena	
+name	le_fo_d_une_planete_hors_ecran_oublie_le_slipway_refuse	offscreen_planet_forgets_refused_slipway	
+name	le_fo_d_une_planete_hors_ecran_oublie_la_sonde_refusee	offscreen_planet_forgets_refused_probe	
+name	un_mz_ne_vise_que_la_sonde_posee	wormhole_targets_only_placed_probe	
+name	sans_bouton	no_button	
+name	frame_sans_action	idle_frame	
+name	fenetres_sans_action_de_l_e2e_courant	idle_windows_of_current_e2e	
+name	fenetres_sans_action_sur_tous_les_e2e	idle_windows_on_all_e2e	
+name	compter_dans_un_enfant	count_in_child	
+name	ecran_titre_sans_entree_atteint_un_regime	idle_title_screen_settles	
+name	memes_octets	same_bytes	
+name	valeur	fill_value	
+name	compter_inscrits	count_registered	
+name	empty_planet_fade_ne_monte_pas	empty_planet_fade_does_not_grow	
+name	game_end_final_score_bd_ne_fait_pas_grandir_la_partie	game_end_final_score_rebuild_does_not_grow_game	
+name	message_box_hold_ne_bouge_pas_sans_action	message_box_hold_idle_does_not_grow	
+name	message_box_hold_reecrit_les_boites_par_tick_en_place	message_box_hold_rewrites_boxes_in_place	
+name	mz_refuses_ne_font_pas_grandir_la_partie	refused_wormholes_do_not_grow_game	
+name	pause_restart_borne_les_blocs_morts_des_registres	pause_restart_bounds_dead_registry_blocks	
+name	pause_restart_compte_les_etats_de_bw	pause_restart_counts_populate_galaxy_states	
+name	pause_restart_devoile_sur_les_etats_de_la_nouvelle_partie	pause_restart_reveals_on_new_game_states	
+name	pause_restart_garde_l_economie_de_la_partie_quittee_pendant_le_clic	pause_restart_keeps_quit_economy_during_click	
+name	pause_restart_garde_la_partie_a_travers_restart	pause_restart_keeps_game_across_restart	
+name	pause_restart_garde_la_partie_quittee_pendant_le_clic	pause_restart_keeps_quit_game_during_click	
+name	pause_restart_garde_les_icones_de_la_partie_quittee_pendant_le_clic	pause_restart_keeps_quit_icons_during_click	
+name	pause_restart_garde_les_planetes_de_la_partie_quittee_pendant_le_clic	pause_restart_keeps_quit_planets_during_click	
+name	pause_restart_garde_les_singletons_de_la_partie_quittee_pendant_le_clic	pause_restart_keeps_quit_singletons_during_click	
+name	pause_restart_ne_touche_pas_au_chargement	pause_restart_leaves_load_zone_alone	
+name	pause_restart_recharge_apres_le_titre	pause_restart_reloads_after_title	
+name	pause_restart_rend_l_economie_de_la_partie_quittee	pause_restart_releases_quit_economy	
+name	pause_restart_rend_la_partie_quittee_a_la_frame_suivante	pause_restart_releases_quit_game_next_frame	
+name	pause_restart_rend_les_icones_de_la_partie_quittee	pause_restart_releases_quit_icons	
+name	pause_restart_rend_les_planetes_de_la_partie_quittee	pause_restart_releases_quit_planets	
+name	pause_restart_rend_un_singleton_de_la_partie_quittee	pause_restart_releases_quit_singleton	
+name	pause_restart_revient_au_titre	pause_restart_returns_to_title	
+name	pliage_abandonne_meurt_avec_sa_partie	abandoned_wormhole_dies_with_its_game	
+name	pliage_abandonne_se_relit_pendant_le_clic	abandoned_wormhole_rereads_during_click	
+name	prises_refusees_ne_font_pas_grandir_la_partie	refused_grab_arenas_do_not_grow_game	
+name	slipways_refuses_ne_font_pas_grandir_la_partie	refused_slipways_do_not_grow_game	
+name	sondes_refusees_ne_font_pas_grandir_la_partie	refused_probes_do_not_grow_game	
+name	tech_geoharvesting_burst_rend_l_eclat	tech_geoharvesting_burst_releases_burst	
+name	trade_rich_mine_bd_sur_des_routes_ne_fait_pas_grandir_la_partie	trade_rich_mine_route_rebuild_does_not_grow_game	
+name	trade_rich_mine_rend_ses_trainees_au_rechargement	trade_rich_mine_releases_trails_on_reload	
+name	trade_rich_mine_une_route_gardee_survit_a_la_frame	trade_rich_mine_kept_route_survives_frame	
+name	un_mz_ouvert_rend_son_arene_a_sa_mort	open_wormhole_releases_arena_on_death	
+name	un_mz_refuse_traverse_une_nouvelle_partie	refused_wormhole_crosses_new_game	
+name	un_mz_tenu_ne_fait_pas_grandir_la_partie	held_wormhole_does_not_grow_game	
+name	un_slipway_pose_reprend_l_arene_du_mz_mort	placed_slipway_reuses_dead_wormhole_arena	
+name	un_slipway_refuse_traverse_une_nouvelle_partie	refused_slipway_crosses_new_game	
+name	un_slipway_tenu_ne_fait_pas_grandir_la_partie	held_slipway_does_not_grow_game	
+name	une_prise_posee_reprend_l_arene_du_mz_mort	placed_grab_arena_reuses_dead_wormhole_arena	
+name	une_prise_refusee_traverse_une_nouvelle_partie	refused_grab_arena_crosses_new_game	
+name	une_sonde_refusee_traverse_une_nouvelle_partie	refused_probe_crosses_new_game	
+name	chaque_sonde_refusee_reprend_l_arene_de_la_precedente	each_refused_probe_reuses_previous_arena	
+name	etats_de_bw	populate_galaxy_states	
+name	case_listes_statiques_dans_chargement	case_static_lists_in_load_zone	
+name	pico8_zone_chargement_hors_de_la_partie	load_zone_outside_game_zone_t	
+name	pico8_zone_particules_tient_l_aide	particle_zone_holds_help_screen_t	
+name	pico8_ts_tient_sa_place	transit_dot_fits_its_slot_t	
+name	sortir_l_aide	leave_help_screen	
+name	test_ei_moves_a_particle_in_place	test_emitter_update_moves_a_particle_in_place	
+name	pico8_qy_fits_its_place	particle_fits_its_slot_t	
+name	pico8_zone_particules_arenes_max	particle_zone_arenas_max_t	
+name	pico8_zone_particules_exceeded	particle_zone_exceeded_t	
+name	pico8_bascule_zone_en_attente	flip_zone_pending	
+name	pico8_zone_partie_en_attente	game_zone_pending	
+name	en_attente	pending	
+name	courant_haut	current_top	
+name	jamais_remise	never_reset	
+
+# --- engine/ -----------------------------------------------------------------
+name	pico8_struct_header_init	entity_init_header	pico8_struct_header_t
+name	pico8_state_of	entity_state_of	ph
+name	pico8_tag_named	entity_tag_named	
+name	pico8_entity_init	entity_registry_init	
+name	pico8_entity_shutdown	entity_registry_shutdown	
+name	pico8_entity_abandonner_hv	entity_registry_abandon_live_entities	hv
+name	pico8_entity_oublier_registres	entity_registry_forget_registries	
+name	pico8_entity_set_mo	entity_registry_set_main_camera	mo
+name	pico8_hd_true	entity_registry_hit_test_always	hd
+name	pico8_entity_geom_ra	pos_of	ra
+name	pico8_entity_geom_p	map_pos_of	p
+name	pico8_entity_geom_zero	zero_vec	
+name	pico8_ij_ents	entity_geom_nearest	ij
+name	pico8_gu_content_ptrs	collect_contains_string	gu
+name	pico8_jp_ents	entity_list_filter	jp
+name	pico8_ents_cat	entity_list_concat	
+name	pico8_vec_v	vec_make	km
+name	pico8_qz	box_make	qz
+name	pico8_qz_call	box_contains	qz
+name	pico8_geom_ee	geom_side_of_line	
+name	pico8_ee_side_t	side_of_line_t	
+name	pico8_zone_alloc	allocator_alloc	pico8_zone_choisie_t
+name	pico8_zone_grow	allocator_grow	pico8_zone_choisie_t
+name	pico8_zone_release	allocator_release	pico8_zone_choisie_t
+name	pico8_zone_grow_refusee	allocator_grow_refused	pico8_zone_choisie_t
+name	pico8_zone_choisie_bump	allocator_from_bump_zone	pico8_zone_choisie_t
+name	pico8_zone_choisie_slot	allocator_from_slot_zone	pico8_zone_choisie_t
+name	pico8_zone_choisie_bascule	allocator_from_flip_zone	pico8_zone_choisie_t
+name	pico8_zone_choisie_bascule_t	flip_zone_allocator_t	pico8_zone_choisie_t
+name	pico8_zone_sortes_init	allocator_init_slot_kinds	sorte
+name	pico8_zone_sorte_t	slot_kind_zone_t	sorte
+name	pico8_zone_arene_prendre	arena_take	arene
+name	pico8_zone_arene_prise	arena_used	arene
+name	pico8_zone_arene_vider	arena_flush	arene
+name	pico8_zone_arene_rendre	arena_release	arene
+name	pico8_bascule_zone_prise	flip_zone_used	pico8_bascule_zone_t
+name	pico8_zone_partie_prise	game_zone_used	zone_partie
+name	pico8_zone_chargement_prise	load_zone_used	zone_partie
+name	chargement_noter_max	load_zone_record_max	zone_partie
+name	partie_init_once	game_zone_init_once	zone_partie
+name	pico8_ke_struct_init	entity_init_instance	ke
+name	bascule_alloc	flip_zone_handle_alloc	pico8_bascule_zone_t
+name	bascule_grow	flip_zone_handle_grow	pico8_bascule_zone_t
+name	bascule_of	flip_zone_of	pico8_bascule_zone_t
+name	bascule_fin	flip_zone_end	pico8_bascule_zone_t
+name	pico8_la_ptrs_append	append_pointer_list	la
+name	g_bm_names	g_message_names	bm
+name	pico8_bm_has	is_message_name	bm
+name	bm	messages	bm
+name	g_file	g_queue	file_sortie
+field	pico8_zone_cell_t.u	align_integer	
+field	pico8_zone_cell_t.p	align_pointer	
+field	pico8_qz_box_t.xl	left	qz
+field	pico8_qz_box_t.xr	right	qz
+field	pico8_qz_box_t.yt	top	qz
+field	pico8_qz_box_t.yb	bottom	qz
+field	pico8_jo_keys_t.id	planet_id	jo
+field	pico8_jo_keys_t.p	map_pos	p
+field	pico8_rgb_t.r	red	
+field	pico8_rgb_t.g	green	
+field	pico8_rgb_t.b	blue	
+name	partie_choisie	game_zone_allocator	zone_partie
+
+# --- game/ -------------------------------------------------------------------
+token	zone_particules	particle_zone	
+token	zone_interface	ui_zone	
+token	pj_cr	score_panel_layout_block	cr
+token	ie_ke	structure_icon_kind	ie
+token	gn_state	weighted_picker	
+token	jf_state	random_walk	
+token	ha2	pause_menu_row2	ha
+token	ha3	pause_menu_row3	ha
+token	ha4	pause_menu_row4	ha
+token	ix1	galaxy_menu_button1	ix
+token	ix2	galaxy_menu_button2	ix
+token	ix3	galaxy_menu_button3	ix
+token	ix4	galaxy_menu_button4	ix
+name	pico8_dispatch_gfx	dispatch_context_gfx	
+name	pico8_dispatch_mem	dispatch_context_mem	
+name	pico8_dispatch_input	dispatch_context_input	
+name	pico8_dispatch_set_gfx	dispatch_context_set_gfx	
+name	pico8_dispatch_set_mem	dispatch_context_set_mem	
+name	pico8_dispatch_set_input	dispatch_context_set_input	
+name	pico8_pi_rk_draw	draw_bar_entry	pi
+name	pico8_pi_io_draw	print_outlined_entry	pi
+name	pico8_pi_eq_draw	draw_help_frame_entry	pi
+name	pico8_pi_spr_draw	spr_entry	pi
+name	pico8_pi_ld_draw	draw_row_entry	pi
+name	pico8_bl	draw_functions_draw_rows	pi
+name	pico8_bl_default	draw_functions_draw_rows_default	pi
+name	for_each_cg	for_each_tagged	cg
+name	call_gg_truthy	is_colonized_truthy	gg
+name	pico8_bw	galaxy_populate	bw
+name	pico8_bw_gn_r	picker_random	gn
+name	pico8_gn	weighted_picker_new	gn
+name	pico8_gn_next	weighted_picker_next	gn
+name	pico8_jf	random_walk_new	jf
+name	pico8_jf_next	random_walk_next	jf
+name	pico8_cr	menu_show_tech_tree_screen	cr
+name	pico8_ix_button	galaxy_menu_button	ix
+name	pico8_ix_my	galaxy_menu_on_click	ix
+name	pico8_msgbox_set_kc	message_box_set_shown	kc
+name	g_kc	g_shown_message_box	kc
+name	pico8_nf_l	mouse_left_button	nf
+name	pico8_nf_r	mouse_right_button	nf
+name	g_nf_l	g_left_button	nf
+name	g_nf_r	g_right_button	nf
+name	pico8_bu	mouse_button_update	bu
+name	pico8_ga_place_prendre	burst_slot_take	ga
+name	pico8_qy_rendre	emitter_release_particles	qy
+name	pico8_jo_kv	planet_kind_named	kv
+name	pico8_jo_set_oc	planet_set_type_picker	jo
+name	g_jo_oc	g_type_picker	jo
+name	pico8_fm_hy	main_economy_typed	fm
+name	pico8_mo_qb	main_camera_typed	mo
+name	pico8_je_nf	main_mouse_typed	je
+name	pico8_probe_et_hang_fo	probe_link_target	et
+name	probe_host_set_ra_p	probe_host_set_positions	ra
+name	pico8_probe_ui_hw_call	probe_panel_box_contains	hw
+name	pico8_jy_new	need_new	jy
+name	pico8_jy_qe	need_resource	jy
+name	pico8_de_my	score_panel_toggle_on_click	de
+name	pico8_pj_de_js_my_dispatch	score_panel_toggle_button_on_click_method	de
+name	pico8_pj_de_my_dispatch	score_panel_toggle_on_click_method	de
+name	pico8_pj_de_toggle	score_panel_toggle_visibility	de
+name	pico8_pj_ph_s_str	score_panel_final_score_text	ky
+name	pico8_qb_set_v	camera_set_velocity	qb
+name	pico8_qb_md	camera_apply	md
+name	pico8_qb_md_dispatch	camera_apply_method	md
+name	pico8_jc_end_p	slipway_end_map_pos	p
+name	hp_r	resource_code_of	r
+identity	c:game_zone.c@partie	game_zone_storage	zone_partie
+identity	c:game_zone.c@partie_handle	game_zone_handle	zone_partie
+identity	c:game_zone.c@chargement	load_zone_storage	zone_partie
+identity	c:game_zone.c@chargement_handle	load_zone_handle	zone_partie
+identity	c:game_zone.c@chargement_max	load_zone_max_used	zone_partie
+name	PARTICULE_COUNT	PARTICLE_CAPACITY	qy
+name	GA_ECLAT	BURST_PARTICLES	ga
+name	EMETTEUR_PIRE	EMITTER_WORST_CASE	
+name	FV_PAR_FRAME	HELP_SCREEN_PER_FRAME	fv
+token	delays_ok	delays_ok	
+token	dump_ok	dump_ok	
+token	gfx_ok	gfx_ok	
+token	map_ok	map_ok	
+token	read_ok	read_ok	
+token	lu_ok	spend_ok	lu
+token	exact_ok	exact_ok	
+name	ie_self_ke_kind	structure_icon_own_kind	ie
+name	pico8_ie_eh	structure_icon_rest_cursor	ie
+name	pico8_ie_gy	structure_icon_cursor	ie
+name	pico8_ie_set_gy	structure_icon_set_cursor	ie
+name	pico8_ie_id	structure_icon_sprite_counter	ie
+name	g_ie_gy	g_cursor	ie
+name	g_ie_id	g_sprite_counter	ie
+name	g_ie_has_id	g_has_sprite_counter	ie
+name	pico8_gi_cost	research_cost_with_discount	gi
+name	pico8_gi_nb	tech_gate_research_cost	gi
+name	pico8_nb_e_	tech_gate_affordable_flags	e_
+name	pico8_nb_e_reset	tech_gate_reset_affordable_flags	e_
+name	g_nb_e_	g_affordable_flags	e_
+name	pico8_trade_eq	trade_equal	
+name	pico8_trade_to	trade_last_planet	
+name	pico8_ui_lj	ui_update	lj
+name	pico8_mzd_ra_of_ij	nearest_anchor_pos	ij
+name	g_ga_by_shared	g_burst_outgoing_routes	by
+name	pico8_ts_t	transit_dot_t	ts
+name	pico8_jo_trade_proposal_kf_fn	trade_offer_accept_fn_t	lw
+name	g_gb_px	g_projects_by_name	gb
+name	g_gb_px_count	g_projects_by_name_count	gb
+name	PICO8_UI_IC_LAYERS	UI_HOVER_LAYERS	ic
+name	PICO8_PARTICULES_PARTICULE	PARTICLE_SLOT_PARTICLE	qy
+name	PICO8_PARTICULES_QY	PARTICLE_SLOT_LIST	qy
+name	PICO8_PARTICULES_QY_FV	PARTICLE_SLOT_HELP_LIST	qy
+name	PICO8_PARTICULES_GA	PARTICLE_SLOT_BURST	ga
+name	PICO8_PARTICULES_TS	PARTICLE_SLOT_TRANSIT_DOT	ts
+name	PICO8_PARTICULES_COUNT	PARTICLE_SLOT_COUNT	qy
+
+# --- fields --------------------------------------------------------------------
+field	pico8_gif_writer_t.ok	succeeded	
+identity	c:@SA@pico8_qe_map_t@S@economy_formulas.h@541@FI@qe	resource	qe
+identity	c:@SA@pico8_qe_map_t@S@economy_formulas.h@541@FI@v	value	qe
+identity	c:@SA@pico8_lq_cell_t@U@layout.h@1579@FI@s	text	lq
+identity	c:research.c@S@research.c@601@FI@px	name	px
+identity	c:research.c@S@research.c@601@FI@hp	project	hp
+field	pico8_pi_dispatch_entry_t.fn	draw	pi
+field	pico8_jb_item_t.s	text	jb
+field	pico8_jb_item_t.n	number	jb
+field	pico8_jb_row.c	color	jb
+field	pico8_jb_row.fn	draw_function	pi
+field	pico8_jb_row.has_c	has_color	jb
+field	pico8_lq_t.c	color	lq
+field	pico8_lq_t.has_c	has_color	lq
+field	pico8_lq_t.w	width	lq
+field	pico8_lq_keys_t.c	color	lq
+field	pico8_lq_keys_t.has_c	has_color	lq
+field	pico8_lq_item_t.d	offset	lq
+field	pico8_df_entry_t.d	description	df
+field	pico8_df_entry_t.r	weight	df
+field	pico8_df_entry_t.s	sprite	df
+field	pico8_kind_rec.s	sprite	
+field	pico8_kind_rec.has_s	has_sprite	
+field	pico8_ie_ke_t.s	sprite	ie
+field	pico8_ie_ke_t.has_s	has_sprite	ie
+field	pico8_ie_t.ke	kind	ie
+field	pico8_ie_keys_t.ke	kind	ie
+field	pico8_jo_def_t.s	sprite	jo
+field	pico8_jo_def_t.hp	project_index	hp
+field	pico8_jo_def_t.nl	is_trading_hub	nl
+field	pico8_jo_def_t.qh	is_structure	qh
+field	pico8_jo_t.s	sprite	jo
+field	pico8_jo_t.id	planet_id	jo
+field	pico8_jo_t.by	outgoing_routes	by
+field	pico8_io_offset_t.c	color	io
+field	pico8_io_offset_t.dx	offset_x	io
+field	pico8_io_offset_t.dy	offset_y	io
+field	pico8_fd_entry_t.i	inputs	hp
+field	pico8_fd_entry_t.o	output	hp
+field	pico8_hp_t.i	inputs	hp
+field	pico8_hp_t.o	output	hp
+field	pico8_hp_t.has_o	has_output	hp
+field	pico8_jy_t.gc	satisfied	jy
+field	pico8_jy_t.has_gc	has_satisfied	jy
+field	pico8_nb_entry_t.nk	icon	nk
+field	pico8_nb_entry_t.nk_key	icon_key	nk
+field	pico8_nf_button_t.on	held	bu
+field	pico8_nf_button_t.has_on	has_held	bu
+field	pico8_qy.p	pos	qy
+field	pico8_qy.v	velocity	qy
+field	pico8_qy.a	acceleration	qy
+field	pico8_qy.has_a	has_acceleration	qy
+field	pico8_qy.l	life	qy
+field	pico8_ts_t.l	life	ts
+field	pico8_ts_t.v	velocity	ts
+field	pico8_iv_t.l	fade	iv
+field	pico8_iv_def_t.l	fade	iv
+field	pico8_iv_def_t.v	velocity	iv
+field	pico8_qb_def_t.v	velocity	qb
+field	pico8_qb_def_t.p	pos_before_shake	qb
+field	pico8_qb_def_t.pc	dpad_directions	qb
+field	pico8_qb_t.v	velocity	qb
+field	pico8_qb_t.v_own	velocity_own	qb
+field	pico8_qb_t.p	pos_before_shake	qb
+field	pico8_qb_t.p_own	pos_before_shake_own	qb
+field	pico8_qe_t.n	number	qe
+field	pico8_jo_trade_proposal.t	route	lw
+field	pico8_jo_trade_proposal.kf	accept	lw
+field	pico8_jo_trade_proposal.ib	accepted_routes	lw
+field	pico8_jc_ce_jc_ctx_t.sp	start_point	jc
+field	pico8_jc_ce_jc_ctx_t.dp	end_point	jc
+field	pico8_jc_ce_np_ctx_t.sp	start_point	jc
+field	pico8_jc_ce_np_ctx_t.dp	end_point	jc
+field	pico8_jf_state_t.b	bias	jf
+field	pico8_jf_state_t.n_	step	jf
+field	pico8_gn_state_t.r	random	gn
+field	pico8_gn_state_t.r_ctx	random_ctx	gn
+field	pico8_bz_row_t.e	entry	bz
+field	pico8_bz_row_t.has	has_value	bz
+field	pico8_pj_ph_ctx_t.s	final_score	ky
+field	pico8_pz_ctx_t.bp	button_pos	pz
+field	pico8_jo_gh_ctx_t.ji	unmet_needs	gh
+field	pico8_jo_fe_row_t.h	cost_keys	fe
+field	pico8_jo_fe_row_t.h_item	cost_item	fe
+field	pico8_cr_row_t.h	cost_keys	cr
+field	pico8_cr_row_t.h_items	cost_items	cr
+field	pico8_g__keys_t.t	state_time	t
+field	pico8_mz_t.ij	anchor	ij
+field	pico8_js._cr_t	technology	cr
+field	pico8_js._jo_fe_pt	project_planet	fe
+field	pico8_js._jo_fe_b	project	fe
+field	pico8_js._jo_fe_od	project_cost	fe
+field	pico8_js.has__jo_fe_od	has_project_cost	fe
+field	pico8_js_keys_t._cr_t	technology	cr
+field	pico8_js_keys_t._jo_fe_pt	project_planet	fe
+field	pico8_js_keys_t._jo_fe_b	project	fe
+field	pico8_js_keys_t._jo_fe_od	project_cost	fe
+field	pico8_js_keys_t.has__jo_fe_od	has_project_cost	fe
+field	pico8_js_keys_t.h_row	side_tooltip_row	h_
+field	pico8_js_keys_t.h_is_false	side_tooltip_is_false	h_
+field	pico8_js_keys_t.jb_row	tooltip_row	jb
+field	pico8_js_keys_t.lq_row	layout_row_keys	lq
+field	pico8_js_keys_t.lq_copy	layout_row_copy	lq
+field	pico8_probe.bv_p	track_map_pos	bv
+field	pico8_probe.bv_ra	track_pos	bv
+field	bit_sink_t.w	writer	
+token	kg	extend	
+token	mw	copy	
+token	pc	dpad_directions	
+token	4f	4f	
+token	op	op	
+token	do	do	
+token	wh	width_height	
+token	gx	kind_table	
+name	js15_count	layer15_button_count	js
+name	known_aa	known_dummy	
+identity	c:research_display.c@6835@F@pico8_jo_ex@t3	tail_row	
+name	t3_items	tail_row_items	
+name	PICO8_JO_GH_LB_CAP	PLANET_INSPECTION_PANEL_EXPORTS_CAP	gh
+name	R2	RESIDUE_2_SITES	
+field	pico8_bz_entry_t.fn	draw_function	bz
+identity	c:test_planet.c@13941@F@test_daughters@S@test_planet.c@13941@FI@d	daughter	
+identity	c:test_structure.c@20574@F@test_descendants@S@test_structure.c@20574@FI@d	descendant	
+identity	c:test_layout_row.c@18361@F@test_calls@f	tuple_values	
+field	run_t.h	hash	
+
+# --- long-scoped short locals and parameters, read in their function ---------
+field	fold_ascension.h	hash	
+field	fold_burst.h	hash	
+field	fold_button.h	hash	
+field	fold_gate.h	hash	
+field	fold_keys.h	hash	
+field	fold_lab.h	hash	
+field	fold_planet.h	hash	
+field	fold_plate.h	hash	
+field	fold_probe.h	hash	
+field	fold_processor.h	hash	
+field	fold_protostar.h	hash	
+field	fold_slipgate.h	hash	
+field	fold_synthesizer.h	hash	
+field	fold_written.h	hash	
+field	members_title_and_game.h	hash	
+field	test_built.h	hash	
+field	test_constructions.h	hash	
+field	test_directed.h	hash	
+field	test_draw.h	hash	
+field	test_ey.h	hash	
+field	test_fv.h	hash	
+field	test_gb.h	hash	
+field	test_hp_lq_and_copy.h	hash	
+field	test_hq_mouse_point.h	hash	
+field	test_install.h	hash	
+field	test_ke_me_by_name.h	hash	
+field	test_ke_t_by_name.h	hash	
+field	test_ke_view.h	hash	
+field	test_left.h	hash	
+field	test_life.h	hash	
+field	test_lj.h	hash	
+field	test_too_far.h	hash	
+field	fold_ascension.e	entity	
+field	fold_burst.e	entity	
+field	fold_written.e	entity	
+field	fold_button.e	entity	
+field	fold_gate.e	entity	
+field	fold_planet.e	entity	
+field	fold_probe.e	entity	
+field	fold_processor.e	entity	
+field	fold_protostar.e	entity	
+field	fold_slipgate.e	entity	
+field	fold_lab.e	entity	
+field	fold_synthesizer.e	entity	
+field	fold_plate.e	entity	
+field	test_ke_t_by_name.e	entities	
+field	test_components_carried.e	entities	
+field	test_ke_me_by_name.e	entities	
+field	bd_route_visit.e	element	
+field	pico8_jo_cn.e	entry	
+field	pico8_dc.i	index	
+field	pico8_dc.nt	message	
+field	pico8_eu.i	index	
+field	pico8_dh.i	index	
+field	pico8_dh.jd	tier	
+field	pico8_dh.im_val	incoming	
+field	bd_route_visit.i	index	
+field	bd_route_visit.by	outgoing	
+field	bd_route_visit.it	iter	
+field	bd_route_visit.pt	entity	
+field	bb_visit.pt	entity	
+field	bb_visit.jg	changed	
+field	bb_visit.jw	tier	
+field	pico8_db.by	outgoing	
+field	pico8_db.ct_pt	planet_bonus	
+field	pico8_db.ct_oz	partner_bonus	
+field	pico8_db.oz_val	partner	
+field	pico8_cr.i	index	
+field	pico8_cr.n	row_count	
+field	pico8_cr.bs	buttons	
+field	pico8_cr.gr	invented_count	
+field	pico8_cr.gr_str	invented_text	
+field	pico8_cr.qi	next_threshold	
+field	pico8_cr.tl	era	
+field	pico8_pz.i	index	
+field	pico8_pz.n	button_count	
+field	pico8_pz.bs	buttons	
+field	pico8_ei.i	index	
+field	pico8_ei.p	particle	
+field	pico8_ei.cx	center_x	
+field	pico8_ei.cy	center_y	
+field	pico8_ei.cs	colors	
+field	pico8_jo_gh.i	index	
+field	pico8_jo_gh.n	row_count	
+field	pico8_jo_gh.bs	buttons	
+field	pico8_jo_gh.jx	unmet_needs	
+field	pico8_ga_kj.i	index	
+field	pico8_ga_kj.p	pos	
+field	pico8_jo_kj.p	pos	
+field	pico8_js_kj.p	pos	
+field	pico8_mz_kj.p	pos	
+field	pico8_pj_hb.i	index	
+field	pico8_pj_hb.cf	text	
+field	pico8_ui_gw.i	index	
+field	pico8_jc_kj.c	line_color	
+field	pico8_jc_kj.bc	border_color	
+field	pico8_jc_kj.tc	dot_color	
+field	pico8_jc_kj.jv	fade_color	
+field	pico8_hp_struct_new.c	input_count	
+field	pico8_bv.c	candidate	
+field	pico8_bv.nq	distance	
+field	pico8_mx_kf.cp	other_end	
+field	pico8_mx_kf.sw	slipway	
+field	pico8_jo_ex.is	inputs	
+field	pico8_jo_ex.o	output	
+field	pico8_jo_ex.jq	amount	
+field	pico8_jo_ex.jq_drawn	amount_drawn	
+field	pico8_jo_ex.jq_str	amount_text	
+field	pico8_jo_ex.mj	used	
+field	pico8_jo_ex.d	spacing	
+field	pico8_jo_ex.l	cells	
+field	pico8_jo_ex.lc	crowded	
+field	pico8_jo_ex.ml	outputs	
+field	pico8_jo_ex.ml_count	outputs_count	
+field	pico8_jo_ex.pe	wide	
+field	pico8_jo_ex.qq_i	output_index	
+field	pico8_hy_lj.dd	trade_total	
+field	pico8_hy_lj.it	iter	
+field	pico8_hy_lj.it2	planets_iter	
+field	pico8_hy_lj.p	planet	
+field	pico8_js_kj.qt	right	
+field	pico8_js_kj.dn	bottom	
+field	pico8_js_kj.ix_p	left_pixel	
+field	pico8_js_kj.iy_p	top_pixel	
+field	pico8_js_kj.ix_qt	right_pixel	
+field	pico8_js_kj.iy_dn	bottom_pixel	
+field	pico8_jc_ce.sp	start_point	
+field	pico8_jc_ce.dp	end_point	
+field	pico8_lq_mn.f	cell	
+field	pico8_lq_mn.w	width	
+field	pico8_bw.id	planet_id	
+field	pico8_bw.n	planet_count	
+field	pico8_ui_bh.bt	button	
+field	pico8_ui_bh.l	is_left	
+field	pico8_ui_bh.nw_kn	down	
+field	pico8_ui_bh.nw_kv	target	
+field	pico8_ui_jz.mf	layer	
+field	pico8_ui_jz.rm	message	
+field	pico8_ui_jz.s	held	
+field	pico8_ui_jz.out_kn	out_down	
+field	pico8_ui_jz.out_kv	out_target	
+field	pico8_pj_ph_map.k	index	
+field	pico8_pj_ph_map.st	score_row	
+field	pico8_pj_ph.lq1	first_line	
+field	pico8_pj_ph.lq2	second_line	
+field	pico8_pj_ph.lq1_item	first_line_item	
+field	pico8_pj_ph.lq2_item	second_line_item	
+field	pico8_pj_ph.ra1	first_line_pos	
+field	pico8_pj_ph.ra2	second_line_pos	
+field	pico8_nr_cn.it	iter	
+field	pico8_nr_cn.t	route	
+field	pico8_nr_cn.w	slipway	
+field	pico8_jo_cn.it	iter	
+field	pico8_jo_cn.t	route	
+field	pico8_jo_ib.it	iter	
+field	pico8_hp_jb_join.it	iter	
+field	pico8_bg_pq.oh	walk	
+field	pico8_bg_pq.vh	value	
+field	pico8_bg_pq.vs	row_values	
+field	pico8_bg_pq.vs_set	row_values_set	
+field	pico8_pj_hk.pp	message	
+field	pico8_mz_kz.td15	reach	
+field	pico8_mz_pr.pt_p	planet_map_pos	
+field	pico8_mz_pr.pt_val	planet	
+field	pico8_jc_lg.qu_pt	start_point	
+field	pico8_jc_lg.re_pt	end_point	
+field	pico8_g__mm.t	state_time	
+field	pico8_hp_lq.po1	first_production	
+field	pico8_dj.pb_p	from_pos	
+field	pico8_dj.to_p	to_pos	
+field	pico8_input_load.p	cursor	
+field	pico8_font_glyph_rows.c	character	
+field	pico8_eq.iy1	top_pixel	
+field	pico8_geom_cl.op1	p1_side	
+field	pico8_geom_cl.op2	p2_side	
+field	pico8_geom_cl.oq1	q1_side	
+field	pico8_geom_cl.oq2	q2_side	
+field	pico8_geom_be.dist_sq	distance_squared	
+field	test_life.a	first	
+field	test_life.b	second	
+field	test_life.c	third	
+field	test_life.i	index	
+field	test_life.by	outgoing	
+field	test_life.p	pos	
+field	test_hp_lq_and_copy.a	allocated	
+field	test_calls.a	cells	
+field	test_calls.t	keys	
+field	test_lq_is_a_struct.a	cells	
+field	test_install.a	first	
+field	test_hq_mouse_point.a	first	
+field	test_hq_mouse_point.b	second	
+field	test_hq_mouse_point.i	index	
+field	test_hq_mouse_point.m1	first_mouse	
+field	test_hq_mouse_point.m2	second_mouse	
+field	test_hq_mouse_point.p1	first_pos	
+field	test_hq_mouse_point.r1	first_end	
+field	test_hq_mouse_point.r2	second_end	
+field	test_qh_is_a_struct.a	built	
+field	test_qh_is_a_struct.i	index	
+field	fold_written.b	button	
+field	fold_keys.b	button	
+field	fold_keys.k	keys	
+field	fold_button.b	button	
+field	parse_gif.b	buffer	
+field	parse_gif.g	gif	
+field	test_gb.b	project	
+field	test_gb.d	hash_by_name	
+field	test_gb.j	inner_index	
+field	test_gb.k	index	
+field	test_ga_export_line_counts_the_routes_in_by.by	outgoing	
+field	test_ga_export_line_counts_the_routes_in_by.i	index	
+field	fold_burst.g	burst	
+field	fold_burst.j	inner_index	
+field	test_kg.g	route	
+field	test_kg.k	extended	
+field	fold_ascension.i	index	
+field	fold_written.i	index	
+field	fold_keys.i	index	
+field	members_title_and_game.i	index	
+field	members_title_and_game.k	key_index	
+field	members_title_and_game.n	count	
+field	fold_button.i	index	
+field	test_built.i	index	
+field	test_built.k	key_index	
+field	fold_gate.i	index	
+field	fold_planet.i	index	
+field	test_gh_exports_row_lq_receives_its_four_items.i	index	
+field	fold_probe.i	index	
+field	test_fv.i	index	
+field	test_g__is_a_struct.i	index	
+field	fold_processor.i	index	
+field	fold_protostar.i	index	
+field	fold_slipgate.i	index	
+field	fold_lab.i	index	
+field	fold_synthesizer.i	index	
+field	fold_plate.i	index	
+field	test_ke_t_by_name.i	index	
+field	test_left.i	index	
+field	test_left.x	pixel_x	
+field	test_left.y	pixel_y	
+field	test_components_carried.i	index	
+field	test_ke_me_by_name.i	index	
+field	test_ke_me_by_name.s	state_name	
+field	test_directed.n	count	
+field	test_directed.id0	first_id	
+field	test_ie_is_a_struct.id0	first_id	
+field	test_constructions.k	keys	
+field	le_rejeu_ecrit_le_remplissage_en_fin_de_session.r	reading	
+field	test_probe_particle_draws_rnd_pn_before_rnd_half.t	state_time	
+field	test_carriers_link_their_storage.ui	built_ui	
+field	test_cn_skips_a_slipway_already_in_rl.w	slipway	
+field	test_fe.with_pt	with_planet	
+identity	c:test_button.c@F@at	button_at	
+identity	c:test_gif.c@F@u8	read_u8	
+identity	c:test_structure_icon.c@F@gx	fill_kind_table	gx
+identity	c:test_structure_icon.c@F@v2	vec_at	
+token	use_ll	use_vanishing	ll
+token	took_ll	took_vanishing	ll
+token	nf_l	mouse_left	nf
+token	nf_r	mouse_right	nf
+token	je_l	main_mouse_left	je
+token	je_r	main_mouse_right	je
+field	pico8_hy_hk.po_rk	science_production	po
+field	pause_restart_devoile_sur_les_etats_de_la_nouvelle_partie.par_oc	from_type_picker	oc
+field	pico8_bw.oc_r_ctx	type_picker_random	oc
+field	pico8_bw.oc_state	type_picker_state	oc
+name	main	=	
+name	pico8_fatal	p8_fatal	
+name	pico8_input_append	p8_input_append	
+name	pico8_input_free	p8_input_free	
+name	pico8_input_load	p8_input_load	
+name	pico8_input_save	p8_input_save	
+name	PICO8_SCREENCAST_OK	SCREENCAST_OK	
+name	pico8_fixed_from_double	fixed_test_double_from_double	
+name	pico8_fixed_to_double	fixed_test_double_to_double	
+name	pico8_raylib_backend_window_to_pico8	raylib_backend_window_to_screen	
+field	pico8_db.pt	entity	
+field	pico8_db.jo	planet	jo
+field	pico8_dh.pt	entity	
+field	pico8_dh.jo	planet	jo
+field	pico8_dc.kj	is_draw	kj
+field	pico8_dc.o	layer_index	
+field	pico8_qb_ph.ip	direction	
+field	fold_gate.nr	gate	nr
+field	sum_by_mi_visit.ctx_	opaque_ctx	
+field	bd_route_visit.jo	from_planet	jo
+token	go	next_type	
+name	test_leaving_lets_go_of_a_dragged_slipway	=	
+name	pico8_geom_be	geom_near_segment	
+token	test_be	test_near_segment	
+name	pico8_eq	hud_draw_help_frame	
+token	mo_qb	main_camera_typed	mo
+token	fm_hy	main_economy_typed	fm
+token	je_nf	main_mouse_typed	je
+token	ke_t	entity_state_time	t
+token	hv_t	live_entities_state_time	t
+token	ke_view	kind_view	ie
+token	without_ly	without_settled	ly
+token	takes_ll	takes_vanishing	ll
+token	is_an_ie	is_a_structure_icon	
+token	is_an_mx	is_a_synthesizer	
+token	is_an_mz	is_a_wormhole	
+token	is_an_nf	is_a_mouse	
+token	is_an_nl	is_a_trading_hub	
+token	is_an_nr	is_a_slipgate	
+token	is_an_os	is_a_processor	
+token	assert_an_nf	assert_a_mouse	
+name	le_rejeu_ecrit_le_pic_de_la_session	replay_writes_session_peak	
+name	le_rejeu_ecrit_le_remplissage_en_fin_de_session	replay_writes_fill_at_session_end	
+field	pico8_jc_t.point_p	point_map_pos	p
+field	pico8_bv_ctx_t.self_p	self_map_pos	p
+name	HELD_G_STRUCT	HELD_PROBE_STRUCT	g_
+name	assert_t	assert_state_time	t
+name	fold_t	fold_state_time	t
+name	until_t	until_state_time	t
+name	build_with_no_o_number	build_with_no_output_number	hp
+name	build_with_o_missing_from_r	build_with_output_missing_from_resource_codes	hp
+name	emitted_particle_p	emitted_particle_pos	qy
+name	planet_p	planet_map_pos	p
+name	mouse_point_p	mouse_point_map_pos	p
+name	on_of	held_of	bu
+name	w_of	width_of	lq
+name	with_c	with_color	lq
+name	test_v_constructs_from_components	test_vec_make_constructs_from_components	km
+name	test_to	test_last_planet	
+name	to_on_other	last_planet_on_other	
+name	cls_of	class_of	cls
+name	shaken_p	zero_pos_before_shake	qb
+name	_POSIX_C_SOURCE	=	
+token	two_pi	two_pi	
+name	LDOWN_G_AFTER	LEFT_PRESS_PROBE_AFTER	g_
+name	LDOWN_G_BEFORE	LEFT_PRESS_PROBE_BEFORE	g_
+name	screen_px	screen_pixel	
+identity	c:test_background.c@F@mo_qb	typed_main_camera	mo
+identity	c:test_camera.c@F@mo_qb	typed_main_camera	mo
+identity	c:test_ui.c@F@mo_qb	typed_main_camera	mo
+identity	c:test_economy.c@F@fm_hy	typed_main_economy	fm
+identity	c:test_probe.c@F@fm_hy	typed_main_economy	fm
+identity	c:test_ui.c@F@je_nf	typed_main_mouse	je
+identity	c:test_layout_row.c@16266@F@test_hp_lq_and_copy@ks	project_ranks	
+field	pico8_input_load.ok	succeeded	
+field	pico8_cr.cr	layout_block	cr
+field	pico8_jo_ib.ib	accepted_routes	ib
+field	pico8_pj_hk.iw	year_banner	ea
+field	pico8_pj_hk.gs	countdown_rows	gs
+field	test_built.pr	targeting	pico8_probe_t
+field	fold_probe.pr	targeting	pico8_probe_t
+field	members_title_and_game.hd	hit_test_list	hd
+identity	c:test_score_panel.c@13293@F@test_life@cr	layout_block	cr
+identity	c:test_trade.c@g_kf_calls	g_accept_calls	lw
+identity	c:test_trade.c@F@count_kf	count_accept	lw

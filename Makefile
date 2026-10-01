@@ -100,12 +100,18 @@
 #                       et ASan : tmp/ast_rename/declarations.tsv et
 #                       occurrences.tsv ; échoue si une unité ne s'analyse pas,
 #                       hors suite
+# make rename-derive-test -> les tests de tools/rename_derive.py sur un
+#                       mini-vocabulaire et une mini-extraction, dans make test
+# make rename-derive -> dérive les noms neufs de chaque déclaration extraite
+#                       (make rename-extract d'abord) : lignes identifiant de
+#                       docs/renommage.tsv, reste dans
+#                       tmp/ast_rename/remainder.tsv, hors suite
 # make rename-apply TABLE=<table> -> renomme aux positions de l'AST les entrées
 #                       de la table (ancien, nouveau, fichier[, identité]) ;
 #                       n'écrit rien au premier refus, rapport dans
 #                       tmp/ast_rename/report.txt, hors suite
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -788,7 +794,7 @@ endif
 replay: $(TMP_DIR)/pico8_replay
 	./$(TMP_DIR)/pico8_replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard
+test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard rename-derive-test
 
 test-all: test e2e
 
@@ -1102,6 +1108,14 @@ rename-extract:
 	@mkdir -p $(AST_RENAME_DIR)
 	$(AST_RENAME_ENV) python3 -m ast_rename extract -o $(AST_RENAME_DIR)/declarations.tsv \
 	    --occurrences $(AST_RENAME_DIR)/occurrences.tsv $(AST_RENAME_ANALYSIS)
+
+rename-derive-test:
+	python3 tests/test_rename_derive.py
+
+rename-derive:
+	python3 tools/rename_derive.py --declarations $(AST_RENAME_DIR)/declarations.tsv \
+	    --vocabulary docs/vocabulaire.md --overrides tools/rename_overrides.tsv \
+	    --output docs/renommage.tsv --remainder $(AST_RENAME_DIR)/remainder.tsv
 
 rename-apply:
 	@test -n "$(TABLE)" || { echo "usage: make rename-apply TABLE=<table>" >&2; exit 1; }
