@@ -28,7 +28,7 @@ typedef struct pico8_probe {
  * `d_`. */
 void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp);
 
-void pico8_bv_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra);
+void pico8_bv_dispatch(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra);
 
 /* Points the `fo` of `et` back at `self`, which it borrows: `et` is a planet
  * of jo's family, a `jc`, the `jc_too_far` struct or `bv`'s throwaway target

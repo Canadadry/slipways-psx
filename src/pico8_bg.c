@@ -25,18 +25,18 @@ static void pico8_bg_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t 
     pico8_bg_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_bg_t *)self);
 }
 
-static pico8_down_t pico8_bg_ldown_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static pico8_down_t pico8_bg_ldown_dispatch(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     (void)qa;
     (void)ra;
     return pico8_bg_ldown((pico8_bg_t *)self);
 }
 
-static pico8_down_t pico8_bg_rdown_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static pico8_down_t pico8_bg_rdown_dispatch(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     (void)qa;
     return pico8_bg_rdown((pico8_bg_t *)self, ra);
 }
 
-static void pico8_bg_hq_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static void pico8_bg_hq_dispatch(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     (void)qa;
     pico8_bg_hq((pico8_bg_t *)self, ra);
 }

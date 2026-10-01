@@ -316,7 +316,7 @@ static pico8_g__t *ldown(void) {
     pico8_down_t out;
 
     assert(ents_list_count(pico8_cg("g_")) == 0);
-    out = cls_of(bg)->ldown(bg, vec_ref(vec_xy(1, 1)), vec_ref(vec_xy(2, 2)));
+    out = cls_of(bg)->ldown(&bg->header, vec_ref(vec_xy(1, 1)), vec_ref(vec_xy(2, 2)));
     assert(out.stop && out.held != NULL && is_probe(out.held));
     return as_g_(out.held);
 }
@@ -518,7 +518,7 @@ static uint32_t fold_hq(uint32_t h, pico8_g__t *e, pico8_vec_t at, int rp, uint3
     pico8_vec_t *mp = mouse_at(at);
     uint32_t kind;
 
-    cls_of(e)->hq(e, mp, vec_ref(vec_xy(rp, rp)));
+    cls_of(e)->hq(&e->header, mp, vec_ref(vec_xy(rp, rp)));
     kind = et_kind(e);
     printf("[hq] et kind %u\n", (unsigned)kind);
     fflush(stdout);
@@ -561,7 +561,7 @@ static void test_life(void) {
     h = fnv(h, screen_hash());
     cls_of(b)->ev(&b->header, NULL);
     h = fnv(h, screen_hash());
-    cls_of(a)->hq(a, mouse_at(planet_p()), vec_ref(vec_xy(64, 64)));
+    cls_of(a)->hq(&a->header, mouse_at(planet_p()), vec_ref(vec_xy(64, 64)));
     cls_of(a)->ev(&a->header, NULL);
     h = fnv(h, screen_hash());
 
@@ -596,7 +596,7 @@ static void test_ey_on(void) {
 
     start_game();
     a = ldown();
-    cls_of(a)->hq(a, mouse_at(planet_p()), vec_ref(vec_xy(64, 64)));
+    cls_of(a)->hq(&a->header, mouse_at(planet_p()), vec_ref(vec_xy(64, 64)));
     assert(cls_of(a)->ey == pico8_d__dispatch);
     out = pico8_d_(&a->header);
     assert(out == 0);
@@ -640,7 +640,7 @@ static void test_ey_void(void) {
     start_game();
     a = ldown();
     (void)a_slipway(&middle);
-    cls_of(a)->hq(a, mouse_at(pico8_vec_add(middle, vec_xy(0, 3))), vec_ref(vec_xy(2, 2)));
+    cls_of(a)->hq(&a->header, mouse_at(pico8_vec_add(middle, vec_xy(0, 3))), vec_ref(vec_xy(2, 2)));
     assert(et_kind(a) == 4);
     assert(et_fo(a) == a);
     assert(!a->p_);
@@ -778,7 +778,7 @@ static void test_bv_et_is_a_struct(void) {
     start_game();
     a = ldown();
     (void)a_slipway(&middle);
-    cls_of(a)->hq(a, mouse_at(pico8_vec_add(middle, vec_xy(0, 3))), vec_ref(vec_xy(2, 2)));
+    cls_of(a)->hq(&a->header, mouse_at(pico8_vec_add(middle, vec_xy(0, 3))), vec_ref(vec_xy(2, 2)));
     assert(a->probe->et != NULL);
     et = a->probe->et;
     assert(is_bv_target(et) && bv_et_fo(et) == a);

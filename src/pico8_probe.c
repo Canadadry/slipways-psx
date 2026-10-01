@@ -206,8 +206,8 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     }
 }
 
-void pico8_bv_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
-    pico8_bv((pico8_struct_header_t *)self, qa, ra);
+void pico8_bv_dispatch(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+    pico8_bv(self, qa, ra);
 }
 
 /* `qs` of `dl`'s target: `mz.jj` and `jc:ce`'s "too far" struct have one;

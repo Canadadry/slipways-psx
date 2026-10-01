@@ -473,11 +473,11 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
     }
 }
 
-void pico8_jo_hb_dispatch(void *self) {
+void pico8_jo_hb_dispatch(pico8_struct_header_t *self) {
     pico8_jo_hb((pico8_jo_t *)self);
 }
 
-pico8_down_t pico8_jo_gv_dispatch(void *self, const pico8_struct_header_t *s) {
+pico8_down_t pico8_jo_gv_dispatch(pico8_struct_header_t *self, const pico8_struct_header_t *s) {
     return pico8_jo_gv((const pico8_jo_t *)self, s);
 }
 
@@ -486,7 +486,7 @@ void pico8_jo_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
     pico8_jo_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_jo_t *)self, p);
 }
 
-pico8_down_t pico8_jo_ldown_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+pico8_down_t pico8_jo_ldown_dispatch(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     (void)qa;
     (void)ra;
     return pico8_jo_ldown((pico8_jo_t *)self);

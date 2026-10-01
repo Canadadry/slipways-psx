@@ -112,7 +112,7 @@ void pico8_ie_hb(pico8_ie_t *self) {
     }
 }
 
-static void pico8_ie_hb_dispatch(void *self) {
+static void pico8_ie_hb_dispatch(pico8_struct_header_t *self) {
     pico8_ie_hb((pico8_ie_t *)self);
 }
 
@@ -149,7 +149,7 @@ pico8_down_t pico8_ie_ldown(pico8_ie_t *self) {
     return out;
 }
 
-static pico8_down_t pico8_ie_ldown_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static pico8_down_t pico8_ie_ldown_dispatch(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     (void)qa;
     (void)ra;
     return pico8_ie_ldown((pico8_ie_t *)self);

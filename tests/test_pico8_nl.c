@@ -439,7 +439,7 @@ static void test_life(void) {
 
     placed = build_plate();
     mp = vec_ref(vec_xy(7680, 7552));
-    cls_of(placed)->hq(placed, mp, vec_ref(vec_xy(64, 64)));
+    cls_of(placed)->hq(&placed->header, mp, vec_ref(vec_xy(64, 64)));
     assert(placed->ra == mp);
     h = fold_vec(h, placed->p);
     h = fnv(h, et_state(placed));

@@ -281,7 +281,7 @@ static void test_drag(void) {
     h = fold_vec(h, mo_qb()->v);
 
     rp = vec_ref(30, 40);
-    out = pico8_bg_struct_class()->rdown(bg, vec_ref(5, 6), rp);
+    out = pico8_bg_struct_class()->rdown(&bg->header, vec_ref(5, 6), rp);
     assert(out.stop && (void *)out.held == bg);
     assert(bg->mq != NULL && bg->mq == rp);
     h = fold_vec(h, bg->mq);

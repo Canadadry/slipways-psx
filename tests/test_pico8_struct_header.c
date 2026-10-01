@@ -245,7 +245,7 @@ static pico8_jc_t *jc_dragged_over_nothing(pico8_struct_header_t *qu) {
     jc = pico8_jc_new(&keys);
     *mp = pico8_vec_v(pico8_fixed_from_int(-640), pico8_fixed_from_int(-640));
     pico8_ok()->o_ = NULL;
-    pico8_jc_struct_class()->hq(jc, mp, NULL);
+    pico8_jc_struct_class()->hq(&jc->header, mp, NULL);
     return jc;
 }
 

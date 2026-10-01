@@ -38,20 +38,20 @@ static int pico8_js_hd_dispatch(pico8_struct_header_t *self, const pico8_vec_t *
     return pico8_gk(self, qa, ra);
 }
 
-static pico8_down_t pico8_js_ldown_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static pico8_down_t pico8_js_ldown_dispatch(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     (void)qa;
     (void)ra;
-    return pico8_js_ldown(self);
+    return pico8_js_ldown((pico8_js_t *)self);
 }
 
 /* `js.hb` is the row's own callback, set by only one row of `ix`: a button
  * without one has no `hb` and stays out of `cv.hb`. */
-static int pico8_js_has_hb(const void *self) {
+static int pico8_js_has_hb(const pico8_struct_header_t *self) {
     return ((const pico8_js_t *)self)->hb != NULL;
 }
 
-static void pico8_js_hb_dispatch(void *self) {
-    pico8_js_t *js = self;
+static void pico8_js_hb_dispatch(pico8_struct_header_t *self) {
+    pico8_js_t *js = (pico8_js_t *)self;
 
     if (js->hb != NULL) {
         js->hb(js);
@@ -285,7 +285,7 @@ pico8_down_t pico8_js_ldown(pico8_js_t *self) {
     return out;
 }
 
-static pico8_down_t pico8_fq_ldown_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static pico8_down_t pico8_fq_ldown_dispatch(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     (void)qa;
     (void)ra;
     return pico8_fq_ldown((pico8_fq_t *)self);

@@ -388,10 +388,10 @@ static void test_shared(void) {
     assert(other->def == ju->def);
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), other));
 
-    cls_of(ju)->hb(ju);
+    cls_of(ju)->hb(&ju->header);
     h = fold_ou_heads(h);
 
-    cls_of(ju)->hk(ju, pico8_fixed_from_int(3425));
+    cls_of(ju)->hk(&ju->header, pico8_fixed_from_int(3425));
     ea = pico8_pj_ea();
     assert(strcmp(string_at(row_of(&ea->row, 2), 1), "year 3425") == 0);
     assert(ea->row.count == 3 && ea->lh != NULL);
@@ -424,11 +424,11 @@ static void test_life(void) {
     int boxes;
     size_t i;
 
-    cls_of(ju)->hb(ju);
+    cls_of(ju)->hb(&ju->header);
     h = fold_ou_heads(h);
 
     for (i = 0; i < sizeof years / sizeof years[0]; i++) {
-        cls_of(ju)->hk(ju, pico8_fixed_from_int(years[i]));
+        cls_of(ju)->hk(&ju->header, pico8_fixed_from_int(years[i]));
         h = fnv(h, (uint32_t)(ea->row.count >= 3));
         h = fnv(h, (uint32_t)(ea->lh != NULL));
         h = fnv_str(h, string_at(row_of(&ea->row, 2), 1));

@@ -214,7 +214,7 @@ void pico8_pj_hb(void) {
     pico8_eg();
 }
 
-static void pico8_pj_hb_dispatch(void *self) {
+static void pico8_pj_hb_dispatch(pico8_struct_header_t *self) {
     (void)self;
     pico8_pj_hb();
 }

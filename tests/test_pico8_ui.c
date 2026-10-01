@@ -711,7 +711,7 @@ typedef struct {
 static pico8_struct_header_t *g_given;
 static int g_giver_hovered = 1;
 
-static pico8_down_t giver_down(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static pico8_down_t giver_down(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     pico8_down_t out;
 
     (void)self;

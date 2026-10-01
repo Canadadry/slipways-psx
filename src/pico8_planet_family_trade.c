@@ -38,7 +38,7 @@ pico8_down_t pico8_nr_gv(const pico8_jo_t *self, const pico8_struct_header_t *s)
     return out;
 }
 
-static pico8_down_t pico8_nr_gv_dispatch(void *self, const pico8_struct_header_t *s) {
+static pico8_down_t pico8_nr_gv_dispatch(pico8_struct_header_t *self, const pico8_struct_header_t *s) {
     return pico8_nr_gv((const pico8_jo_t *)self, s);
 }
 
@@ -73,7 +73,7 @@ pico8_down_t pico8_nr_ldown(pico8_jo_t *self) {
     return gv_result;
 }
 
-static pico8_down_t pico8_nr_ldown_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static pico8_down_t pico8_nr_ldown_dispatch(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     (void)qa;
     (void)ra;
     return pico8_nr_ldown((pico8_jo_t *)self);
@@ -99,7 +99,7 @@ void pico8_nr_hb(pico8_jo_t *self) {
     self->s = s_val;
 }
 
-static void pico8_nr_hb_dispatch(void *self) {
+static void pico8_nr_hb_dispatch(pico8_struct_header_t *self) {
     pico8_nr_hb((pico8_jo_t *)self);
 }
 

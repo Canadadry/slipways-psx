@@ -68,7 +68,7 @@ void pico8_mz_hq(pico8_mz_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     }
 }
 
-static void pico8_mz_hq_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static void pico8_mz_hq_dispatch(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     pico8_mz_hq((pico8_mz_t *)self, qa, ra);
 }
 

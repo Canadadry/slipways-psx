@@ -391,7 +391,7 @@ static void built_world(void) {
     *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
                         pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
-    pico8_jc_struct_class()->hq(jc, mp, NULL);
+    pico8_jc_struct_class()->hq(&jc->header, mp, NULL);
     pico8_ok()->o_ = NULL;
     while (jc->header.t < pico8_fixed_from_int(15)) {
         pico8_dg();

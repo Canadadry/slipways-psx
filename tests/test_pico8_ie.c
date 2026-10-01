@@ -628,7 +628,7 @@ static void test_ie_is_a_struct(void) {
         no_ke = pico8_ie_new(&jb_only);
         assert(is_an_ie_struct(no_ke) && no_ke->ke == NULL);
         assert(shared_id_fixed(no_ke) == id0);
-        (void)cls_of(no_ke)->ldown(no_ke, NULL, NULL);
+        (void)cls_of(no_ke)->ldown(&no_ke->header, NULL, NULL);
         assert(shared_id_fixed(as_ie(built)) == pico8_fixed_add(id0, pico8_fixed_from_int(1)));
     }
 
