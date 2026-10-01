@@ -137,7 +137,7 @@ Les panneaux `lq`/`jb` fixés à la construction d'un objet ne sont pas des sort
 - **File de sortie.** C'est un petit module du cœur, sans libc ni transitoire : un tableau statique de capacité fixe (au doigt mouillé, 256 entrées). Le débordement sort par `pico8_fatal` « file de sortie pleine, limite N ».
   - **Entrée par `he`.** `pico8_he` met l'entité dans la file si elle était dans `hv` (`pico8_ents_del` rend 1) et si son archétype a le membre. Cela couvre `dg` (`p_`) et `ui:cj`.
   - **Entrée par `jl()`.** Avant que `pico8_entity_init` ne vide `hv`, chaque entité encore inscrite dont l'archétype a le membre entre dans la file.
-  - **Vidage** en tête de `pico8__update60()`, juste après la remise à zéro de la zone frame (H-1-1) et avant `pico8_dg()`. Le vidage appelle le membre de chaque entrée.
+  - **Vidage** en tête de `pico8__update60()`, juste après `pico8_zone_frame_reset()` et avant `pico8_dg()` (l'ordre actuel de `pico8__update60()` : remise à zéro, `pico8_dg()`, `pico8_ui_lj()`). Le vidage appelle le membre de chaque entrée.
   - **Vidage aussi à `pico8_cart_load()`**, pour qu'un TU qui recharge le cart sans boucler `update60` ne remplisse pas la file.
   - **Références remises à nil au vidage**, quand elles désignent l'entité rendue : `o_` et `gj` de l'`ok` courant, `kc`, `ju.ed`. Écrire `m_` ou `p_` sur un objet mort n'a aucun effet visible dans le cart. Comparer `kc` à un `ed` mort y est toujours faux : remettre à nil garde ces deux vérités, alors qu'une adresse réutilisée les fausserait. ASan ne voit pas ce cas, qui est une comparaison et non une lecture (§4).
 - **Pourquoi pas sur-le-champ.** Le code relit l'entité après `he` dans la même frame :
@@ -216,7 +216,7 @@ Ces valeurs ne sont pas mesurées (§3). Une place est la struct de la sorte plu
 | `le` | 512 o | 4 | 2 Ko | `ents_t` + ≤ 16 pointeurs, avec les copies d'agrandissement |
 | **Total** | | | **319 Ko** | |
 
-- **Le total dépasse `PICO8_ZONE_INTERFACE_BYTES` (256 Ko).** 2b le relève à **320 Ko**. La somme passe de 1408 Ko à 1472 Ko sur 1536 (H-1-5). C'est permis par le §3 : une limite se change en un chiffre, seule la somme est gardée.
+- **Le total dépasse `PICO8_ZONE_INTERFACE_BYTES` (256 Ko).** 2b le relève à **320 Ko**. L'étape 1 n'a relevé aucune limite (`pico8_zone_sizes.h` à `HEAD` : frame 256, interface 256, particules 128, partie 768 Ko). La somme passe donc de 1408 Ko à **1472 Ko sur 1536**. **Ce relèvement est permis** : le §3 n'arrête une étape que si la somme dépasserait 1,5 Mo. Ici elle reste 64 Ko en dessous, sans rogner aucune autre zone. Le commit qui relève la limite l'écrit dans son message avec la somme, et la note « Découvert » la reprend.
 - Une vérification à la compilation, comme celle de `pico8_zone_sizes.h`, exige que la somme des zones à places d'interface (tailles réelles, hors ASan) tienne dans `PICO8_ZONE_INTERFACE_BYTES`.
 - **Lecture d'un `pico8_fatal`.**
   - « zone interface X pleine, limite N places » se lit d'abord comme une place jamais rendue. On cherche le point de sortie manquant. On ne relève N qu'une fois ce cas écarté, et la note « Découvert » dit lequel des deux c'était.
@@ -225,7 +225,7 @@ Ces valeurs ne sont pas mesurées (§3). Une place est la struct de la sorte plu
 
 ### Inventaire des sites — convertis à l'étape 2
 
-Il est relevé à `HEAD` 884d73e (le code est celui de 86c7f0d) par `objdump -r` sur les objets d'`alloc-guard` à `-O0 -g`, chaque relocation rattachée à sa fonction et à sa ligne par `addr2line`. Les comptes « après étape 1 » sont l'hypothèse H-1-2.
+Il est relevé à `HEAD` 522364f (étape 1 finie) par `objdump -r` sur les objets d'`alloc-guard` à `-O0 -g`, chaque relocation rattachée à sa fonction et à sa ligne par `addr2line`. `make alloc-guard` y donne « 61 objets, 32 allouent, 147 appels », égal à `tools/alloc_guard_exceptions.txt`. Les 56 relocations ci-dessous sont celles de ce relevé ; aucune n'a été convertie par l'étape 1.
 
 « T » désigne une référence à `pico8_zone_transitoire`. « libc » désigne un appel `malloc`/`calloc`/`realloc`/`free`.
 
@@ -245,26 +245,26 @@ Il est relevé à `HEAD` 884d73e (le code est celui de 86c7f0d) par `objdump -r`
 | | `pico8_pz` (345, 346, 357, 364, 365) | listes `le` et `ff`, `free` de la branche sans `ok` | place `le`, rendue par la file | 5 (3 libc + 2 T) |
 | `pico8_layout.c` | `pico8_lq_struct_alloc` (296), `pico8_jb_struct_alloc` (402) | struct du panneau | zone passée | 2 libc |
 | `pico8_ui.c` | `pico8_ui_cj` (441, 442) | liste `le` | place `le`, rendue par la file | 2 (1 libc + 1 T) |
-| `pico8_menu.c` | `pico8_cr_step` (97) | `gi_str` | zone frame | 1 T |
-| | `pico8_cr` (label, `ep`) | textes de case | zone frame | 2 T |
-| | `pico8_ix2_hb_dispatch` (272) | `lq` réaffecté | place `rangée` | 1 T |
-| `pico8_planet_display.c` | `jo_kw_tuple` (30) | tuple de case | zone frame | 1 libc |
-| | `jo_dollar` (110) | texte de case | zone frame | 1 libc |
-| | `pico8_jo_gh` (`mu_str` de « makes », `combined`) | textes de case | zone frame | 2 (1 T + 1 libc) |
-| `pico8_research_display.c` | `pico8_hp_jb_join` (22, 55) | jointure de `hp:jb` | zone frame | 2 libc |
-| | `pico8_jo_ex_tuple` (117) | tuples | zone frame | 1 libc |
-| | `pico8_jo_ex` (219, 259) | `jq_str` ; résultat | frame ; zone passée | 2 T |
-| `pico8_score_panel_display.c` | `pico8_pj_hk` (49) | `year_label` | zone frame | 1 T |
+| `pico8_menu.c` | `pico8_cr_step` (98) | `gi_str` | zone frame | 1 T |
+| | `pico8_cr` (`label` 175, `ep` 214) | textes de case | zone frame | 2 T |
+| | `pico8_ix2_hb_dispatch` (261) | `lq` réaffecté | place `rangée` | 1 T |
+| `pico8_planet_display.c` | `jo_kw_tuple` (31) | tuple de case | zone frame | 1 libc |
+| | `jo_dollar` (107) | texte de case (l'étape 1 lui a déjà retiré le `free` de son argument, qu'elle reçoit `const`) | zone frame | 1 libc |
+| | `pico8_jo_gh` (`mu_str` de « makes » 240, `combined` 250) | textes de case | zone frame | 2 (1 T + 1 libc) |
+| `pico8_research_display.c` | `pico8_hp_jb_join` (23, 55) | jointure de `hp:jb` | zone frame | 2 libc |
+| | `pico8_jo_ex_tuple` (116) | tuples | zone frame | 1 libc |
+| | `pico8_jo_ex` (217, 257) | `jq_str` ; résultat | frame ; zone passée | 2 T |
+| `pico8_score_panel_display.c` | `pico8_pj_hk` (50) | `year_label` | zone frame | 1 T |
 | | `pico8_pj_ph_s_str` (117–130) | sept textes | zone frame | 7 T |
-| | `pico8_pj_ph_map` (182, 208, 209) | `label`, `lq`, `wrapped` | zone frame | 3 (2 T + 1 libc) |
-| | `pico8_pj_ph` (243, 257) | boîtes `spec*.ra` | `pico8_vec_t` locales | 2 libc |
-| `pico8_score_panel.c` | `pico8_pj_hb` | `cf` et trois `pico8_concat2` | zone frame, copie dans `ou` | 4 T |
+| | `pico8_pj_ph_map` (181, 206, 207) | `label`, `lq`, `wrapped` | zone frame | 3 (2 T + 1 libc) |
+| | `pico8_pj_ph` (241, 255) | boîtes `spec*.ra` | `pico8_vec_t` locales | 2 libc |
+| `pico8_score_panel.c` | `pico8_pj_hb` (161, 164, 179, 183) | `cf` et trois `pico8_concat2` | zone frame, copie dans `ou` | 4 T |
 | `pico8_economy.c` | `pico8_hy_lu` (188) | `ne` du toast | zone frame | 1 T |
 | `pico8_planet.c` | `pico8_jo_hk` (325) | `ne` du toast | zone frame | 1 T |
 
 ### Baisse attendue du cliquet, par fichier
 
-| Fichier | Après étape 1 (H-1-2) | Après 2a | Après 2b |
+| Fichier | À `HEAD` 522364f (mesuré) | Après 2a | Après 2b |
 |---|---|---|---|
 | `pico8_ui_button.c` | 9 | 1 | sort |
 | `pico8_msgbox.c` | 11 | sort | — |
@@ -277,7 +277,7 @@ Il est relevé à `HEAD` 884d73e (le code est celui de 86c7f0d) par `objdump -r`
 | `pico8_ui.c` | 8 | 6 | 6 |
 | `pico8_economy.c` | 4 | 3 | 3 |
 | `pico8_planet.c` | 8 | 7 | 7 |
-| **Liste** | 32 fichiers, 147 appels | 26 fichiers, 92 | 25 fichiers, 91 |
+| **Liste** | 32 fichiers, 147 appels (mesuré) | 26 fichiers, 92 | 25 fichiers, 91 |
 
 Ces chiffres sont des **prévisions**. Le verrou compte des relocations, qui dépendent du compilateur. La règle de fin est celle du §5 :
 
@@ -293,14 +293,16 @@ Ils sont listés pour la note « Découvert » et pour les lignes « *Reçu de l
 
 - **`ok.qa`** (`pico8_ui_lj`, 201 ; boîte remplacée à chaque tick). Le *Reçu de l'étape 1* la range sous l'étape 2. **Elle n'y est pas traitée.** Les hôtes de `bv` (`g_`, la famille `jo`, `mz`) et le point souris de `jc:hq` gardent le `qa` qu'on leur passe (`hq`, `ldown` peuvent garder leurs vecteurs : `pico8_struct.h`). Le rendre au tick suivant serait un usage après libération. C'est un objet relu par des objets de partie : zone la plus longue (§4). Il passe à l'étape 4, qui devra le faire tenir par ses hôtes pour ne pas croître par tick.
 - **`ok` lui-même** (`pico8_ui_struct_new`, 86 ; `pico8_ui_shutdown`, 122), ses calques `ic` (96, 261) et la liste statique de départ (112). Ils vivent de `jl()` à `jl()` : étape 4.
-- **`ie.jb`** (`pico8_eu`, `pico8_cart.c` 188). La bulle d'une icône de recherche est faite une fois par partie et ne quitte l'écran qu'à `jl()`. La zone partie la couvre exactement : étape 4.
+- **`ie.jb`** (`pico8_eu`, `pico8_cart.c` 189). La bulle d'une icône de recherche est faite une fois par partie et ne quitte l'écran qu'à `jl()`. La zone partie la couvre exactement : étape 4.
 - **`fv`** (`pico8_help.c` 116). L'écran d'aide vit de `_init` au `jl()` suivant, et descend de `g_` : étapes 3 et 4.
-- **La struct `pj`** (`pico8_score_panel.c` 263). Singleton de partie : étape 4.
+- **La struct `pj`** (`pico8_score_panel.c` 260). Singleton de partie : étape 4.
 - **`hp.i`**, les besoins d'un projet (`pico8_research.c`). Ce sont des données chargées avec le cart : étape 4.
 
 ## Implementation Chunks
 
 Chaque morceau est un commit (ou une courte suite) qui respecte l'invariant du §3 et remet `alloc-guard` à égalité stricte. Son message dit les baisses mesurées par fichier et leur écart à la prévision. **Aucun morceau ne fait monter un compte.** Un site dont la conversion fait planter `make sanitize-net` n'est pas commité ; il est corrigé (sortie manquante, référence oubliée) ou noté pour « Découvert ».
+
+Les tables « Avant/Après » partent de la liste mesurée à `HEAD` 522364f (32 fichiers, 147 appels). Ce sont des prévisions : le commit écrit la liste mesurée, à égalité stricte, et note l'écart. Chaque morceau n'ajoute que des références à la zone frame ou au module de zone interface, que le verrou ne compte pas ; la seule référence nouvelle à la transitoire, l'adossement, entre dans un commit qui en retire huit du même fichier.
 
 **2a — Points de libération, sur la transitoire**
 
@@ -313,29 +315,74 @@ Chaque morceau est un commit (ou une courte suite) qui respecte l'invariant du �
    Aucune sorte n'a encore de membre : la file reste vide en jeu. Comptes inchangés.
 2. **Panneaux qui possèdent leurs textes.**
    - `lq_new`/`lq_copy`/`jb_new` prennent leur struct dans la zone passée et recopient les textes de leurs cases.
-   - `jo.ex` prend sa zone.
-   - Les textes et tuples de case passent en zone frame : `menu`, `planet_display`, `research_display`.
+   - Les textes et tuples de case passent en zone frame : `gi_str`, `label`, `ep` (`menu`) ; `jo_kw_tuple`, `jo_dollar`, `mu_str`, `combined` (`planet_display`) ; la jointure de `hp:jb`, les tuples et `jq_str` de `jo.ex` (`research_display`).
+   - `jo.ex` garde encore son `pico8_lq_new` sur la transitoire, et `ix[2].hb` aussi : leur zone change au morceau 5. Donner sa zone à `jo.ex` ici ferait passer la transitoire par `jo:hb`, et monter `planet_display`.
 
-   `layout` sort de la liste ; `menu`, `planet_display` et `research_display` descendent. `ix[2].hb` et `jo:hb` passent encore la transitoire, jusqu'au morceau 5.
-3. **Toasts `iv`.**
-   - Le texte et la boîte `ra` sont tenus par le toast, avec l'emprunt jusqu'au premier `ph`.
-   - Le toast a sa place et son membre.
-   - Le `ne` de `hy:lu` et de `jo:hk` passe en zone frame.
-   - L'adossement du module à la transitoire, dans `pico8_ui_button.c`, entre ici, dans le même commit qu'une baisse de ce fichier (le morceau 4 peut être commité avant ; l'ordre 3/4 est libre).
-4. **Boutons `js` et fonds `fq`.**
-   - La place `js` (struct, `kq`, `lq`, `h_`, `jb`) et les boîtes `ra`/`qf` tenues.
+   | Fichier | Avant | Après |
+   |---|---|---|
+   | `layout` | 2 | sort |
+   | `menu` | 4 | 1 |
+   | `planet_display` | 4 | sort |
+   | `research_display` | 5 | 1 |
+
+   Liste : 30 fichiers, 134 appels.
+3. **Boutons `js` et fonds `fq`, et adossement du module.**
+   - La place `js` (struct, `kq`, `lq`, `h_`, `jb`) et les boîtes `ra`/`qf` tenues par le bouton.
    - `pz` et `pj:ph` ne font plus de boîte.
    - La place `fq`.
    - Leur membre d'archétype.
+   - L'adossement du module de zone interface à la transitoire, dans `pico8_ui_button.c`. Il entre dans ce commit, qui retire huit références de ce fichier : c'est le premier morceau qui prend une place, et aucun compte ne monte. Les morceaux 4 à 7, qui prennent aussi des places, viennent après.
+
+   | Fichier | Avant | Après |
+   |---|---|---|
+   | `ui_button` | 9 | 1 (l'adossement) |
+   | `msgbox` | 11 | 9 |
+   | `score_panel_display` | 13 | 11 |
+
+   Liste : 30 fichiers, 122 appels.
+4. **Toasts `iv`.**
+   - Le texte et la boîte `ra` sont tenus par le toast, avec l'emprunt jusqu'au premier `ph`.
+   - Le toast a sa place et son membre.
+   - Le `ne` de `hy:lu` et de `jo:hk` passe en zone frame.
+
+   | Fichier | Avant | Après |
+   |---|---|---|
+   | `msgbox` | 9 | 6 |
+   | `economy` | 4 | 3 |
+   | `planet` | 8 | 7 |
+
+   Liste : 30 fichiers, 117 appels.
 5. **Rangées réaffectées.**
-   - `jo.lq` (par `jo.ex`) et le `lq` d'`ix[2]` prennent une place `rangée`, rendue sur-le-champ au remplacement.
+   - `jo.ex` prend la zone de son résultat en premier argument : `jo:hb` passe une place `rangée`, `hp:lq` la zone frame.
+   - `jo.lq` et le `lq` d'`ix[2]` prennent une place `rangée`, rendue sur-le-champ au remplacement.
    - Le membre de la famille `jo` rend `jo.lq` à la sortie de la planète.
+
+   | Fichier | Avant | Après |
+   |---|---|---|
+   | `menu` | 1 | sort |
+   | `research_display` | 1 | sort |
+
+   Liste : 28 fichiers, 115 appels.
 6. **Listes `le`.** `ui:cj` et `pz` (et sa branche `ff`) prennent une place `le` et mettent la liste remplacée dans la file.
+
+   | Fichier | Avant | Après |
+   |---|---|---|
+   | `msgbox` | 6 | 1 |
+   | `ui` | 8 | 6 |
+
+   Liste : 28 fichiers, 108 appels.
 7. **Boîtes `mh` et textes de `pj`.**
    - La place `mh` recopie ses articles.
    - `pj:hk`, `pj:ph_map`, `pj:ph_s_str` et `pj:hb` fabriquent en zone frame, et l'état `ou` tient ses copies.
    - Le membre de `mh`.
-   - `score_panel_display` sort de la liste.
+
+   | Fichier | Avant | Après |
+   |---|---|---|
+   | `msgbox` | 1 | sort |
+   | `score_panel_display` | 11 | sort |
+   | `score_panel` | 5 | 1 |
+
+   Liste : 26 fichiers, 92 appels.
 8. **Preuve des places vivantes.** Les TU de rejeu `pause_restart` et `message_box_hold` (voir Testing Decisions), et l'écriture du remplissage par le rejeu.
    - Si un compte ne revient pas à son niveau, c'est une sortie manquante : on la trouve avant de passer à 2b.
 
@@ -344,8 +391,8 @@ Chaque morceau est un commit (ou une courte suite) qui respecte l'invariant du �
 9. **Zones à places d'interface.**
    - La construction de poignée sur zone à places, et l'accesseur de places prises de `pico8_zone.h`.
    - Le stockage par sorte dans le module de zone interface, et la vérification de somme.
-   - `PICO8_ZONE_INTERFACE_BYTES` relevé si la somme l'exige (320 Ko prévus, H-1-5).
-   - Le retrait de l'adossement à la transitoire : `pico8_ui_button.c` sort de la liste.
+   - `PICO8_ZONE_INTERFACE_BYTES` relevé si la somme l'exige (320 Ko prévus : la somme passe à 1472 Ko sur 1536, permis).
+   - Le retrait de l'adossement à la transitoire : `pico8_ui_button.c` sort de la liste. Liste : 25 fichiers, 91 appels.
    - Aucun point de libération n'est ajouté ni déplacé.
 10. **Clôture de l'étape.**
     - La note « Découvert » sous l'entrée 2 du plan : sites classés autrement que dans le §2, tailles et nombres de places retenus (avec, pour chaque `pico8_fatal` rencontré, « place jamais rendue » ou « limite trop basse »), comptes laissés et écarts à la prévision.
@@ -379,7 +426,7 @@ Chaque morceau est un commit (ou une courte suite) qui respecte l'invariant du �
   - **Boutons qui glissent.** Un menu ouvert et laissé glisser N ticks garde le même compte de places `js`, en 2a comme en 2b.
 - **Places vivantes, sur rejeu** : un TU qui pilote le cart frame par frame depuis un `events.json` de `tests/e2e/`, comme la boucle de `main.c`, et lit le compte de chaque sorte **après un vidage de la file**.
   - `pause_restart` : le compte relevé après `_init`, avant la frame 0 (écran titre), est égal à celui relevé après la frame 11 (écran titre après « restart » en f7, avant le clic de f12). Cela montre que `jl()` rend tout ce qu'il abandonne.
-  - `message_box_hold` : comptes égaux aux frames 45 et 90, dans la phase sans action f42–90 où la boîte de l'année est retenue par son `lh`. Cela montre qu'aucune sorte n'alloue par tick (§3, « Croissance par frame »). Si la fenêtre n'est pas sans mouvement de places (H-1-7), on en choisit une autre dans le même e2e, et « Découvert » le dit.
+  - `message_box_hold` : comptes égaux aux frames 45 et 90, dans la phase sans action f42–90 où la boîte de l'année est retenue par son `lh`. Cela montre qu'aucune sorte n'alloue par tick (§3, « Croissance par frame »). Si la fenêtre n'est pas sans mouvement de places (la lecture de `jo:hk` dit qu'aucune colonie n'existe, donc aucun toast : à confirmer par le TU), on en choisit une autre dans le même e2e, et « Découvert » le dit.
   - `empty_planet_fade` : aucun compte ne monte entre f25 et f94, où « p40 » s'efface. La rangée de « p40 » est rendue : le compte `rangée` peut baisser d'une place.
 
   Le même TU sert en 2a (compteurs adossés à la transitoire) et en 2b (zones à places).
@@ -403,55 +450,44 @@ Chaque morceau est un commit (ou une courte suite) qui respecte l'invariant du �
 - Changer le comportement du jeu, ou compacter la représentation des panneaux (`pico8_jb_item_t` à 48 octets).
 - Lancer l'application raylib.
 
-## Hypothèses sur l'étape 1
+## Vérifié contre l'étape 1
 
-L'étape 1 est en cours. Tout ce qui suit vient de sa PRD (`docs/prd/triage/phase1-etape1-zone-frame.md` à 884d73e) et de ce qu'annonce son morceau 1, pas du code.
+Relu contre `HEAD` 522364f : la note « Découvert » de l'étape 1 et les lignes « *Reçu de l'étape 1* » sous les entrées 2 et 4 de `docs/plan-4.md`, la ligne « Frame » du §2, `tools/alloc_guard_exceptions.txt` (`make alloc-guard` : 61 objets, 32 allouent, 147 appels), `src/pico8_zone_frame.h`, `pico8_zone_sizes.h`, `pico8_zone.h`, `pico8__update60()`, et `git log -8 -p` (4b7ec43, c12cd07, 80e175f, fd2f883, aeb8dfd).
 
-- **H-1-1 (poignée et remise à zéro).**
-  - `src/pico8_zone_frame.h` expose `const pico8_zone_choisie_t *pico8_zone_frame(void)` et `void pico8_zone_frame_reset(void)`.
-  - La zone s'initialise au premier accès.
-  - Elle est remise à zéro en tête de `pico8__update60()`, avant `pico8_dg()`. Cette PRD place le vidage de la file de sortie juste après.
-- **H-1-2 (comptes laissés).** À la fin de l'étape 1, la liste compte **32 fichiers et 147 appels**, et les fichiers de l'inventaire sont à :
-  - `menu` 4, `planet_display` 4, `research_display` 5 ;
-  - `score_panel` 5, `score_panel_display` 13 ;
-  - `ui` 8, `ui_button` 9, `msgbox` 11, `layout` 2 ;
-  - `economy` 4, `planet` 8, `cart` 1.
+- **H-1-1 (poignée et remise à zéro) — tenue.** `const pico8_zone_choisie_t *pico8_zone_frame(void)` et `void pico8_zone_frame_reset(void)`, initialisation au premier appel de l'une ou l'autre. `pico8__update60()` appelle `pico8_zone_frame_reset()` puis `pico8_dg()`. Le vidage de la file de sortie se place entre les deux.
+- **H-1-2 (comptes laissés) — tenue.** 32 fichiers, 147 appels. Chaque fichier de l'inventaire est au compte prévu : `menu` 4, `planet_display` 4, `research_display` 5, `score_panel` 5, `score_panel_display` 13, `ui` 8, `ui_button` 9, `msgbox` 11, `layout` 2, `economy` 4, `planet` 8, `cart` 1. Les tables de cette PRD partent de ces chiffres mesurés.
+- **H-1-3 (sites laissés par l'étape 1) — tenue.** Les 56 relocations de l'inventaire sont toutes encore présentes : `jo_dollar` garde son `malloc` (il ne libère plus son argument, devenu `const`), `jo_kw_tuple` et les tuples de `jo.ex` leur `calloc`, la jointure de `hp:jb` son `malloc`/`realloc`, la boîte `pico8_qz` de `js` sa référence à la transitoire. Seuls les numéros de ligne ont bougé ; l'inventaire est récrit dessus.
+- **H-1-4 (déjà en zone frame) — tenue.** `jo_gh_row_items`, `pico8_menu_invented_lines`, le bloc de `pico8_hp_jb` et `concat_percent` sont en zone frame, chacun avec son test de survie (aeb8dfd) ; `bs`/`rows` et `l` aussi (fd2f883).
+- **H-1-5 (limites) — tenue.** Aucune limite relevée. Somme 1408 Ko ; 128 Ko de marge. Le relèvement de l'interface à 320 Ko la porte à 1472 Ko, permis.
+- **H-1-6 (« Reçu de l'étape 1 » sous l'étape 2) — tenue.** La ligne dit exactement : boîtes `vec` remplacées à chaque tick dans un champ d'objet d'interface (`ra` de `iv`, de `js`, `qa` de `ui`, `qf`/`ra` de `pz`, `spec*.ra` de `pj:ph`), à traiter au point de libération (2a). Traitement : voir ci-dessous.
+- **H-1-7 (pas de toast dans la phase sans action) — non touchée par l'étape 1.** C'est une lecture de `jo:hk`, pas une hypothèse sur l'étape 1 ; elle reste à confirmer par le TU de `message_box_hold` (Testing Decisions).
+- **H-1-8 (pas d'accesseur de remplissage) — tenue.** `pico8_zone.h` n'en expose aucun : l'étape 2 ajoute celui des zones à places.
+- **H-1-9 (§2 corrigé) — tenue.** Seule la ligne « Frame » a changé (« pas les boîtes `vec` rangées dans un champ d'objet, qui vont avec leur objet »). La ligne « Interface » est intacte : le tableau des sortes n'a pas à bouger.
 
-  `pico8_pi.c` et `pico8_economy_score.c` sont sortis.
-- **H-1-3 (sites laissés par l'étape 1).**
-  - L'étape 1 laisse à la transitoire ou à la libc exactement ses « sites écartés » : panneaux et leurs tableaux, textes rangés dans une cellule ou un objet, boîtes `vec` rangées dans un champ, la boîte `pico8_qz` de `js`.
-  - En particulier, `jo_dollar` garde son `malloc`, `jo_kw_tuple` et les tuples de `jo.ex` leur `calloc`, et la jointure de `hp:jb` son `malloc`/`realloc`.
-- **H-1-4 (déjà en zone frame).** `jo_gh_row_items`, `pico8_menu_invented_lines`, le bloc de `pico8_hp_jb`, `concat_percent`, les `bs`/`rows` de `pz` et la rangée `l` de `jo.ex` sont en zone frame. Leurs consommateurs (`pico8_lq_new`, `pico8_jb_new`) les recopient. Cette PRD n'y touche pas.
-- **H-1-5 (limites).** `PICO8_ZONE_FRAME_BYTES` est resté à 256 Ko : la somme est à 1408 Ko et laisse 128 Ko pour relever l'interface.
-- **H-1-6 (lignes « Reçu de l'étape 1 » sous l'étape 2).** Elles ne disent que ce que sa PRD annonce : les boîtes `vec` d'interface remplacées à chaque tick (`ra` de `iv` et de `js`, `qa` de `ui`, `qf`/`ra` de `pz`, `spec*.ra` de `pj:ph`) relèvent du point de libération (2a). Cette PRD les traite toutes, sauf `qa`, dont elle dit pourquoi.
-- **H-1-7 (pas de toast dans la phase sans action).** Dans `message_box_hold`, aucune colonie n'existe : les sauts d'année ne font aucun toast `iv`, et la phase f42–90 ne fait ni ne rend de place. Cette hypothèse vient de la lecture de `jo:hk`, pas du rejeu.
-- **H-1-8 (pas d'accesseur de remplissage).** L'étape 1 n'ajoute pas d'accesseur de remplissage au module de zone : il revient à l'étape 2 (sa PRD, « Further Notes »).
-- **H-1-9 (§2 corrigé).** La ligne « Frame » du tableau du §2 ne cite plus les boîtes `vec`. La ligne « Interface » n'est pas touchée.
+Aucune hypothèse n'a échoué. Aucun site n'a été renvoyé à la transitoire par un crash ASan à l'étape 1.
 
-## À revérifier une fois l'étape 1 finie
+### Traitement du « Reçu de l'étape 1 » sous l'étape 2
 
-Ces points se relisent contre le `HEAD` qui suit le dernier commit de l'étape 1 et sa note « Découvert », avant tout code :
+Chaque boîte de la ligne est traitée en 2a, sauf une :
 
-- Le nom et la signature réels de la poignée frame et de sa remise à zéro, et leur place exacte dans `pico8__update60()` (H-1-1).
-- **Les comptes réels de chaque fichier de l'inventaire** dans `tools/alloc_guard_exceptions.txt` (H-1-2). Il faut alors récrire les tables « Baisse attendue » et l'inventaire sur ces chiffres. Un site de l'inventaire que l'étape 1 aurait déjà converti en sort.
-- Les sites que « Découvert » de l'étape 1 a renvoyés à la transitoire par un crash ASan. Un tel site, s'il touche un panneau ou un objet d'interface, entre dans l'inventaire de l'étape 2.
-- Que `jo_dollar`, `jo_kw_tuple`, la jointure de `hp:jb` et les tuples de `jo.ex` sont restés hors zone frame (H-1-3).
-- La limite frame finale et la somme des zones (H-1-5). Si la marge sous 1,5 Mo est inférieure à 64 Ko, les tailles de place de cette PRD sont à revoir avant 2b. Si elle manque, l'étape s'arrête et le signale.
-- Le texte exact des lignes « *Reçu de l'étape 1* » sous l'entrée 2 du plan (H-1-6). Cette PRD traite chacune ou dit pourquoi non.
-- Que l'étape 1 n'a pas ajouté d'accesseur de remplissage (H-1-8). Si elle l'a fait, l'étape 2 s'en sert au lieu d'en ajouter un.
-- La correction du §2 faite par l'étape 1 (H-1-9). Si elle a touché la ligne « Interface », relire le tableau des sortes.
-- Que la remise à zéro de la frame reste avant `pico8_dg()`. Le vidage de la file de sortie doit précéder tout `he` de la frame.
+| Boîte | Traitement | Morceau |
+|---|---|---|
+| `ra` de `iv` (`iv:pq`, `iv:ph`) | boîte tenue par le toast ; `ra` emprunté jusqu'au premier `ph` | 3 |
+| `ra` de `js` (`js:ph`) | boîte tenue par le bouton | 4 |
+| `qf`/`ra` de `pz` | valeurs recopiées par le bouton ; plus de `malloc` | 4 |
+| `spec*.ra` de `pj:ph` | `pico8_vec_t` locales, recopiées par le bouton | 4 |
+| `qa` de `ui` | **non traitée à l'étape 2** : les hôtes de `bv` (`g_`, la famille `jo`, `mz`) et le point souris de `jc:hq` gardent le `qa` qu'on leur passe ; la rendre au tick suivant serait un usage après libération. Objet relu par des objets de partie : zone la plus longue (§4), étape 4, par une ligne « *Reçu de l'étape 2* » | 10 |
 
 ## Further Notes
 
 - **Pas d'humain disponible, pas d'outil `Agent` dans cette session.** Les points que `to-prd` fait valider par un humain ont été tranchés en appliquant moi-même le skill `guideline` :
-  - **Hypothèses explicites** : sections H-1 et « À revérifier », et les pièges marqués « vérifié par lecture en 2a ».
+  - **Hypothèses explicites** : la liste « Vérifié contre l'étape 1 », et les pièges marqués « vérifié par lecture en 2a ».
   - **Simplicité** : une seule forme de mémoire pour toutes les sortes, la place-arène. Rendre une place est un seul appel, et 2b se réduit à changer la poignée d'adossement.
   - **Changements chirurgicaux** : pas de nouvelle représentation de panneau, pas de compaction des rangées, aucun site de partie touché hors `jo.lq` et les textes de `pj`.
   - **Critères vérifiables** : comptes du cliquet par morceau, `*.sha256` inchangés, `sanitize-net`, et trois relevés de places vivantes sur rejeu.
 - **Pourquoi une file plutôt qu'un rendu dans `he`.** `pico8_ui_set_ok` documente déjà que `jl()` refait `ok` au milieu d'un clic, et que l'ancien `ok` continue sa frame. Un rendu dans `he` ferait du `cj` de l'ancien `ok`, du `qc->t += 1` de `dg` et du `bh("r")` qui suit un clic des usages après libération. Les références globales remises à nil au vidage (`o_`, `gj`, `kc`, `ju.ed`) couvrent ce qu'une frame de retard ne couvre pas. Elles couvrent aussi ce qu'ASan ne voit pas : une comparaison de pointeurs vers une place réutilisée.
 - **Pourquoi les textes de case passent en zone frame.** L'étape 1 les a écartés parce qu'un panneau les désignait par pointeur. Une fois que le panneau, la boîte ou le toast en tient une copie, ils ne vivent plus que le temps de construire l'objet. C'est l'étape 2 qui rend cette copie possible.
-- **Risque de budget.** La somme prévue (≈ 319 Ko) dépasse la limite de départ de l'interface. Le relèvement à 320 Ko tient dans 1,5 Mo seulement si l'étape 1 n'a pas relevé la zone frame de plus de 64 Ko. Le poste le plus lourd est le bouton (une bulle de six lignes) ; le plus nombreux, la rangée de planète. Une compaction des panneaux, si elle devient nécessaire, est une décision de l'humain, pas de cette étape.
+- **Risque de budget.** La somme prévue (≈ 319 Ko) dépasse la limite de départ de l'interface. Le relèvement à 320 Ko porte la somme à 1472 Ko sur 1536 : c'est permis, et la marge restante (64 Ko) borne tout relèvement ultérieur, ici ou aux étapes 3 et 4. Le poste le plus lourd est le bouton (une bulle de six lignes) ; le plus nombreux, la rangée de planète. Une compaction des panneaux, si elle devient nécessaire, est une décision de l'humain, pas de cette étape.
 - À la fin de l'étape, la note « Découvert » sous l'entrée 2 du plan porte au minimum :
   - les sites classés autrement que dans le §2, et pourquoi (dont `ok.qa`, `ie.jb`, `fv`) ;
   - les tailles et nombres de places retenus par sorte ;
