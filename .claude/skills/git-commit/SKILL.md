@@ -8,13 +8,7 @@ description: Clean git commit workflow — run tests, select relevant files from
 ## Workflow
 
 ### 1 PRD graduation (if applicable)
-If a PRD was just implemented, mark it done and move it out of triage:
-
-1. Set `status: done` in the PRD frontmatter.
-2. Move the file from `docs/prd/triage/` to `docs/prd/`.
-3. Rename it with the next sequential number prefix: check existing files in `docs/prd/` (e.g. `001-mvp.md`, `002-slide-animation.md`) and use the next number (zero-padded to 3 digits).
-
-Example: `docs/prd/triage/some-feature.md` → `docs/prd/003-some-feature.md`
+If a PRD was just implemented, `git rm` it from `docs/prd/triage/` in the same commit, and name its file in the commit message. `docs/` only holds what is true or still to do; the PRD lives on in git history.
 
 ### 2. README update (if a PRD was just implemented)
 Read `README.md` and update it to reflect any user-visible changes introduced by the implementation: new features, changed controls, new or renamed source files, new tools. Only touch what actually changed — do not rewrite sections unaffected by the work.

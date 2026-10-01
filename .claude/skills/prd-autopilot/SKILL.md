@@ -45,7 +45,7 @@ If more chunks remain, return to step 2 for the next chunk — the PRD stays in 
 ### 6. Check the e2e net, push, graduate
 Once the final (or only) chunk is committed, invoke the `check-e2e` skill in place.
 
-- `E2E-GREEN:` → mark the PRD done, `git mv` it out of triage yourself and commit that move, then `git push -u origin <current branch>`. This is the only push of the cycle: the remote only ever receives states where `make e2e` is green.
+- `E2E-GREEN:` → `git rm` the PRD from triage yourself and commit that deletion (the commit message names the file; git keeps its content), then `git push -u origin <current branch>`. This is the only push of the cycle: the remote only ever receives states where `make e2e` is green.
 - `E2E-FAILED:` → treat it as a `FAILED:`: stop the loop and report to the user. Don't push, and leave the PRD in triage.
 
 ### 7. Loop
