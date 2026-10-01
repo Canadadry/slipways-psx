@@ -618,6 +618,13 @@ static void test_mutual_inclusion_counts_its_include_lines_in_the_footer(void) {
     write_file(SRC "/a.h", "#include \"b.h\"\n");
     assert(run_residue("--check inclusion-mutuelle " TREE) == 0);
     assert(strcmp(read_file(OUT), "résidu gardé (inclusion-mutuelle) : 0 ligne(s)\n") == 0);
+    setup();
+    write_file(SRC "/game/a.h", "#include \"game/b.h\"\n");
+    write_file(SRC "/game/b.h", "#include \"game/a.h\"\n");
+    assert(run_residue("--check inclusion-mutuelle " TREE) == 1);
+    assert(strcmp(read_file(OUT), "inclusion-mutuelle: " SRC "/game/a.h:1:#include \"game/b.h\"\n"
+                                  "inclusion-mutuelle: " SRC "/game/b.h:1:#include \"game/a.h\"\n"
+                                  "résidu gardé (inclusion-mutuelle) : 2 ligne(s)\n") == 0);
 }
 
 /* a et b s'emploient, mais a.c ne recoit b.h que par c.h : inclusion-mutuelle

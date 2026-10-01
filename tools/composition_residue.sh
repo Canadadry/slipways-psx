@@ -477,7 +477,7 @@ read_inclusions() {
     {
         path = $0; sub(/:.*/, "", path)
         a = path; sub(/.*\//, "", a); sub(/\.[ch]$/, "", a)
-        b = $0; sub(/^[^:]*:[0-9]+:#include "/, "", b); sub(/\.h".*/, "", b)
+        b = $0; sub(/^[^:]*:[0-9]+:#include "/, "", b); sub(/\.h".*/, "", b); sub(/.*\//, "", b)
         if (!(b in mod)) next
         edge[a, b] = 1
         n++; line[n] = $0; from[n] = a; to[n] = b
