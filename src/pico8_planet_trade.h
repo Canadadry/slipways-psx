@@ -31,9 +31,9 @@ void pico8_jo_kf(pico8_jo_t *self, pico8_struct_header_t *sw);
 /* TROU-7 */
 void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw);
 
-/* TROU-7 */
-/* Returns `self.by` itself when it is set, else a fresh heap container;
- * frees neither, and never writes `self.by` back -- its caller does. */
+/* Returns `self.by` itself when it is set, else a container made in the
+ * current game generation, never given back before it; never writes
+ * `self.by` back -- its caller does. */
 pico8_ents_t *pico8_jo_ib(pico8_jo_t *self);
 
 #endif

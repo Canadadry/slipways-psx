@@ -1,7 +1,6 @@
 #include "pico8_economy_tiers.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_entity.h"
@@ -11,7 +10,7 @@
 #include "pico8_research.h"
 #include "pico8_slipway.h"
 #include "pico8_trade.h"
-#include "pico8_zone_transitoire.h"
+#include "pico8_zone_partie.h"
 
 static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
     return (a < b) ? a : b;
@@ -44,12 +43,11 @@ static void bd_reset_visit(pico8_struct_header_t *pt, void *ctx) {
     assert(pico8_jo_is_family(pt) && "bd: pt is a planet of cg.jo");
     jo = (pico8_jo_t *)pt;
     if (jo->cc != NULL) {
-        pico8_ents_free(jo->cc);
-        free(jo->cc);
+        pico8_ents_clear(jo->cc);
+        return;
     }
-    /* TROU-7 */
-    cc = malloc(sizeof *cc);
-    pico8_ents_init(cc, &pico8_zone_transitoire);
+    cc = (pico8_ents_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *cc);
+    pico8_ents_init(cc, pico8_zone_partie());
     jo->cc = cc;
 }
 

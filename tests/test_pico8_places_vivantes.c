@@ -368,17 +368,37 @@ static size_t octets_des_registres(void) {
     return r;
 }
 
+/* Octets d'une liste de planete faite dans la generation : son conteneur,
+ * puis ses blocs comme un registre. */
+static size_t octets_d_une_liste_de_planete(const pico8_ents_t *liste) {
+    if (liste == NULL) return 0;
+    return PICO8_ZONE_CELLS(sizeof *liste) * sizeof(pico8_zone_cell_t) + octets_d_un_registre(liste);
+}
+
+/* Les listes `by` et `cc` que le `bd` d'une partie fait une fois par planete
+ * de `cg.jo`. */
+static size_t octets_des_listes_de_bd(void) {
+    const pico8_ents_t *jo = pico8_cg("jo");
+    size_t octets = 0;
+    for (int i = 0; jo != NULL && i < jo->count; i++) {
+        const pico8_jo_t *p = (const pico8_jo_t *)jo->items[i];
+        octets += octets_d_une_liste_de_planete(p->by) + octets_d_une_liste_de_planete(p->cc);
+    }
+    return octets;
+}
+
 /* Apres le rendu de f13, la generation ne tient que ce qu'a fait le eu de
- * f12 et ce qui a grandi depuis : les etats de bw et les registres, blocs
- * morts compris. */
+ * f12 et ce qui a grandi depuis : les etats de bw, les registres, blocs
+ * morts compris, et les listes `by`/`cc` de son `bd`. */
 static void pause_restart_borne_les_blocs_morts_des_registres(void) {
     const size_t g = etats_de_bw();
     demarrer("pause_restart");
     jouer_jusqu_a(13);
     const size_t r = octets_des_registres();
-    printf("  pause_restart f13 : partie=%lu, etats de bw=%lu, registres=%lu\n",
-           (unsigned long)pico8_zone_partie_prise(), (unsigned long)g, (unsigned long)r);
-    assert(pico8_zone_partie_prise() == g + r && "les registres prennent 2C - 4 pointeurs, et rien d'autre n'entre");
+    const size_t l = octets_des_listes_de_bd();
+    printf("  pause_restart f13 : partie=%lu, etats de bw=%lu, registres=%lu, listes de bd=%lu\n",
+           (unsigned long)pico8_zone_partie_prise(), (unsigned long)g, (unsigned long)r, (unsigned long)l);
+    assert(pico8_zone_partie_prise() == g + r + l && "les registres prennent 2C - 4 pointeurs, et rien d'autre n'entre");
 }
 
 /* f12 : le bw de la nouvelle partie prend ses etats a cote de ceux de la
@@ -393,11 +413,42 @@ static void pause_restart_compte_les_etats_de_bw(void) {
     const size_t f12 = pico8_zone_partie_prise();
     assert(f12 >= f11 + g && "les etats des deux parties vivent jusqu'au rendu");
     jouer_jusqu_a(13);
-    assert(pico8_zone_partie_prise() == g + octets_des_registres() &&
-           "le rendu de f13 laisse les etats et les registres de la nouvelle partie");
+    assert(pico8_zone_partie_prise() == g + octets_des_registres() + octets_des_listes_de_bd() &&
+           "le rendu de f13 laisse les etats, les registres et les listes de bd de la nouvelle partie");
     assert(pico8_zone_partie_max() >= f12);
     printf("  pause_restart f11/f12/f13 : partie=%lu/%lu/%lu, max=%lu\n", (unsigned long)f11, (unsigned long)f12,
            (unsigned long)pico8_zone_partie_prise(), (unsigned long)pico8_zone_partie_max());
+}
+
+/* Octets de la generation hors registres, que `hv` peut faire grandir en
+ * inscrivant des entites. */
+static size_t partie_sans_registres(void) {
+    return pico8_zone_partie_prise() - octets_des_registres();
+}
+
+/* f3-51 : 25 sauts d'annee, donc autant de `bd`, qui ne doivent pas faire
+ * grandir la generation : `cc` est videe en place. */
+static void game_end_final_score_bd_ne_fait_pas_grandir_la_partie(void) {
+    demarrer("game_end_final_score");
+    jouer_jusqu_a(2);
+    const size_t f2 = partie_sans_registres();
+    jouer_jusqu_a(51);
+    const size_t f51 = partie_sans_registres();
+    printf("  game_end_final_score f2/f51 : partie - registres = %lu/%lu\n", (unsigned long)f2, (unsigned long)f51);
+    assert(f2 == f51 && "un bd fait grandir la generation");
+}
+
+/* f138-151 : saut d'annee de f140 sur sept slipways poses, donc `jo:ib`,
+ * `jo:cn` et les `lp`/`rl` des propositions. */
+static void trade_rich_mine_bd_sur_des_routes_ne_fait_pas_grandir_la_partie(void) {
+    demarrer("trade_rich_mine");
+    jouer_jusqu_a(137);
+    const size_t f137 = partie_sans_registres();
+    jouer_jusqu_a(151);
+    const size_t f151 = partie_sans_registres();
+    printf("  trade_rich_mine f137/f151 : partie - registres = %lu/%lu\n", (unsigned long)f137,
+           (unsigned long)f151);
+    assert(f137 == f151 && "un bd sur des routes fait grandir la generation");
 }
 
 /* f11 : titre apres « restart ». Recharger rend les places des entites de
@@ -639,6 +690,8 @@ int main(void) {
     dans_un_enfant(pause_restart_borne_les_blocs_morts_des_registres);
     dans_un_enfant(pause_restart_recharge_apres_le_titre);
     dans_un_enfant(pause_restart_devoile_sur_les_etats_de_la_nouvelle_partie);
+    dans_un_enfant(game_end_final_score_bd_ne_fait_pas_grandir_la_partie);
+    dans_un_enfant(trade_rich_mine_bd_sur_des_routes_ne_fait_pas_grandir_la_partie);
     dans_un_enfant(message_box_hold_ne_bouge_pas_sans_action);
     dans_un_enfant(empty_planet_fade_ne_monte_pas);
     dans_un_enfant(tech_geoharvesting_burst_rend_l_eclat);

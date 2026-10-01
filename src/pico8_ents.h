@@ -17,6 +17,9 @@ typedef struct {
 void pico8_ents_init(pico8_ents_t *ents, const pico8_zone_choisie_t *zone);
 /* Gives `items` back to the zone and leaves `ents` empty, same zone. */
 void pico8_ents_free(pico8_ents_t *ents);
+/* Count back to 0; `items`, its capacity and the zone stay, so later adds
+ * reuse them. Gives nothing back to the zone. */
+void pico8_ents_clear(pico8_ents_t *ents);
 void pico8_ents_add(pico8_ents_t *ents, pico8_struct_header_t *e);
 /* Removes the FIRST element identical to `e`; 1 if one was removed. */
 int pico8_ents_del(pico8_ents_t *ents, const pico8_struct_header_t *e);

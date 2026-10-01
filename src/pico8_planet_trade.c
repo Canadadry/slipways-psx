@@ -10,6 +10,7 @@
 #include "pico8_trade.h"
 #include "pico8_slipway.h"
 #include "pico8_zone_frame.h"
+#include "pico8_zone_partie.h"
 #include "pico8_zone_transitoire.h"
 
 /* Membership by trade equality (same endpoints), not pico8_ents_has's pointer
@@ -185,8 +186,8 @@ pico8_ents_t *pico8_jo_ib(pico8_jo_t *self) {
     if (self->by != NULL) {
         ib = self->by;
     } else {
-        ib = malloc(sizeof *ib);
-        pico8_ents_init(ib, &pico8_zone_transitoire);
+        ib = (pico8_ents_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *ib);
+        pico8_ents_init(ib, pico8_zone_partie());
     }
 
     if (self->kw != NULL) {
@@ -212,11 +213,11 @@ pico8_ents_t *pico8_jo_ib(pico8_jo_t *self) {
         }
         w = w_val;
 
-        lp_list = malloc(sizeof *lp_list);
-        pico8_ents_init(lp_list, &pico8_zone_transitoire);
+        lp_list = (pico8_ents_t *)pico8_zone_alloc(pico8_zone_frame(), sizeof *lp_list);
+        pico8_ents_init(lp_list, pico8_zone_frame());
         pico8_ents_add(lp_list, &self->header);
-        rl_list = malloc(sizeof *rl_list);
-        pico8_ents_init(rl_list, &pico8_zone_transitoire);
+        rl_list = (pico8_ents_t *)pico8_zone_alloc(pico8_zone_frame(), sizeof *rl_list);
+        pico8_ents_init(rl_list, pico8_zone_frame());
         pico8_ents_add(rl_list, w);
 
         keys.lp = lp_list;

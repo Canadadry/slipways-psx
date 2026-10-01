@@ -124,12 +124,39 @@ static void test_jp_keeps_what_the_predicate_keeps_in_order(void) {
     pico8_ents_free(&src);
 }
 
+static void test_clear_keeps_items_and_capacity_and_takes_nothing_until_past_them(void) {
+    pico8_struct_header_t cells[9];
+    pico8_ents_t ents;
+    const pico8_zone_choisie_t *arene = pico8_zone_arene_prendre(&pico8_zone_transitoire, "tu ents", 1024);
+    int i;
+    pico8_ents_init(&ents, arene);
+    for (i = 0; i < 5; i++) {
+        pico8_ents_add(&ents, &cells[i]);
+    }
+    pico8_struct_header_t **items = ents.items;
+    const int capacity = ents.capacity;
+    const size_t prise = pico8_zone_arene_prise(arene);
+
+    pico8_ents_clear(&ents);
+    assert(ents.count == 0 && ents.capacity == capacity && ents.items == items && ents.zone == arene);
+    for (i = 0; i < capacity; i++) {
+        pico8_ents_add(&ents, &cells[i]);
+    }
+    assert(pico8_zone_arene_prise(arene) == prise && "re-adding up to the kept capacity takes nothing");
+    assert(ents.items == items && ents.items[0] == &cells[0] && ents.count == capacity);
+
+    pico8_ents_add(&ents, &cells[capacity]);
+    assert(ents.capacity == 2 * capacity && pico8_zone_arene_prise(arene) > prise && "past it, it grows as before");
+    pico8_zone_arene_rendre(arene);
+}
+
 int main(void) {
     test_add_grows_past_four_keeps_order_and_free_empties();
     test_del_first_identical_and_has();
     test_cat_copies_a_then_b_and_leaves_them();
     test_all_sees_each_when_the_returned_one_is_deleted();
     test_jp_keeps_what_the_predicate_keeps_in_order();
+    test_clear_keeps_items_and_capacity_and_takes_nothing_until_past_them();
     printf("test_pico8_ents: ok\n");
     return 0;
 }

@@ -23,6 +23,11 @@ void pico8_ents_free(pico8_ents_t *ents) {
     ents->capacity = 0;
 }
 
+void pico8_ents_clear(pico8_ents_t *ents) {
+    assert(ents != NULL && "ents primitive called on a NULL container");
+    ents->count = 0;
+}
+
 static void pico8_ents_grow(pico8_ents_t *ents) {
     int new_capacity = ents->capacity == 0 ? PICO8_ENTS_INITIAL_CAPACITY : ents->capacity * 2;
     assert(ents->zone != NULL && "ents_add on a list pico8_ents_init never gave a zone");
