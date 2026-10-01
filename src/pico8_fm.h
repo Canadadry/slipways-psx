@@ -15,9 +15,8 @@ typedef struct {
     pico8_fixed_t yr;
 } pico8_hy_def_t;
 
-/* The economy, one per game. Nothing here frees it: pico8_probe_set_fm()
- * and pico8_probe_shutdown() free the struct alone, never `invented`
- * (TROU-7). `po`/`fu` are NULL before the first pico8_hy_lj(), then point
+/* The economy, one per game, in that game's generation with `invented`;
+ * never freed, it dies with its generation. `po`/`fu` are NULL before the first pico8_hy_lj(), then point
  * at `po_own`/`fu_own`, which every pico8_hy_lj() refills in place. `hl` is
  * absent before the first pico8_hy_lj(). */
 typedef struct {
@@ -57,8 +56,8 @@ const pico8_struct_class_t *pico8_fm_placeholder_struct_class(void);
  * the cheat code), which `pico8_probe_init()` installs, then, from `eu()` on,
  * a `hy` struct; read it through pico8_fm_hy() and pico8_fm_placeholder().
  * NULL before init and after shutdown, which several callers test for. The
- * setter takes ownership of the new occupant and frees a previous `hy` as
- * the struct alone (TROU-7); never the provisional. */
+ * setter only repoints: from `_init` to the next `eu()` the slot still holds
+ * the quit game's `hy`, alive until the flush that follows that `eu()`. */
 pico8_struct_header_t *pico8_fm(void);
 void pico8_probe_set_fm(pico8_struct_header_t *instance);
 

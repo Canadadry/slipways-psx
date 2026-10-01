@@ -37,8 +37,8 @@ typedef struct {
  * module down first, so it is idempotent. */
 void pico8_probe_init(void);
 
-/* Frees the `hy` of `fm` if it holds one, never the provisional, never any
- * probe. Idempotent, and safe before the first `pico8_probe_init()`. */
+/* Empties the `fm` slot without reading it, frees no probe. Idempotent,
+ * and safe before the first `pico8_probe_init()`. */
 void pico8_probe_shutdown(void);
 
 /* 1 from pico8_probe_init() to pico8_probe_shutdown(), 0 otherwise. */

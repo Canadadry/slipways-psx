@@ -13,6 +13,7 @@
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_ents.h"
+#include "../src/pico8_fm.h"
 #include "../src/pico8_gen.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_input.h"
@@ -149,6 +150,15 @@ static size_t octets_des_planetes(void) {
     return octets;
 }
 
+/* Octets de l'economie `fm` faite par `eu` : sa structure et le conteneur
+ * `invented`, sans elements tant que rien n'est invente. */
+static size_t octets_de_l_economie(void) {
+    const pico8_hy_t *fm = pico8_fm_hy();
+    assert(fm != NULL && fm->invented != NULL && "eu a fait l'economie de la partie");
+    assert(fm->invented->count == 0 && fm->invented->items == NULL && "une invention, que l'economie ne compte pas");
+    return octets_d_un_bloc(sizeof *fm) + octets_d_un_bloc(sizeof *fm->invented);
+}
+
 static int case_prise_and_max(void) {
     const size_t g = etats_de_bw();
     load_cart_and_start();
@@ -161,7 +171,7 @@ static int case_prise_and_max(void) {
     (void)counting_block();
     assert(pico8_zone_partie_prise() == partie + 64);
     pico8__update60();
-    assert(pico8_zone_partie_prise() == g + octets_des_registres() + octets_des_planetes() + 64);
+    assert(pico8_zone_partie_prise() == g + octets_des_registres() + octets_des_planetes() + octets_de_l_economie() + 64);
     assert(pico8_zone_partie_max() == partie + 64);
     pico8_cart_shutdown();
     assert(pico8_zone_partie_prise() == 0);

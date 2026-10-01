@@ -21,6 +21,7 @@
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_entity_geom.h"
+#include "../src/pico8_fm.h"
 #include "../src/pico8_game_data.h"
 #include "../src/pico8_gen.h"
 #include "../src/pico8_gfx.h"
@@ -369,6 +370,31 @@ static void pause_restart_rend_les_planetes_de_la_partie_quittee(void) {
     g_lu = (unsigned char)p->has_jh;
 }
 
+/* f11 : l'ecran titre lit encore l'economie de la partie quittee. */
+static const pico8_hy_t *economie_de_la_premiere_partie(void) {
+    demarrer("pause_restart");
+    jouer_jusqu_a(11);
+    const pico8_hy_t *fm = pico8_fm_hy();
+    assert(fm != NULL && "entre _init et eu, fm est l'economie de la partie quittee");
+    return fm;
+}
+
+/* f12 : `eu` la remplace, sa generation vit jusqu'a la fin de la frame. */
+static void pause_restart_garde_l_economie_de_la_partie_quittee_pendant_le_clic(void) {
+    const pico8_hy_t *fm = economie_de_la_premiere_partie();
+    jouer_jusqu_a(12);
+    assert(pico8_zone_partie_en_attente());
+    assert(pico8_fm_hy() != fm && "le clic de f12 fait une nouvelle economie");
+    g_lu = (unsigned char)fm->nz;
+}
+
+/* f13 : elle meurt avec sa generation. */
+static void pause_restart_rend_l_economie_de_la_partie_quittee(void) {
+    const pico8_hy_t *fm = economie_de_la_premiere_partie();
+    jouer_jusqu_a(13);
+    g_lu = (unsigned char)fm->nz;
+}
+
 /* f7 : « restart » (`_init`) ne bascule pas. */
 static void pause_restart_garde_la_partie_a_travers_restart(void) {
     demarrer("pause_restart");
@@ -433,9 +459,18 @@ static size_t octets_des_planetes(void) {
     return octets;
 }
 
+/* Octets de l'economie `fm` faite par `eu` : sa structure et le conteneur
+ * `invented`, sans elements tant que rien n'est invente. */
+static size_t octets_de_l_economie(void) {
+    const pico8_hy_t *fm = pico8_fm_hy();
+    assert(fm != NULL && fm->invented != NULL && "eu a fait l'economie de la partie");
+    assert(fm->invented->count == 0 && fm->invented->items == NULL && "une invention, que l'economie ne compte pas");
+    return octets_d_un_bloc(sizeof *fm) + octets_d_un_bloc(sizeof *fm->invented);
+}
+
 /* Apres le rendu de f13, la generation ne tient que ce qu'a fait le eu de
  * f12 et ce qui a grandi depuis : les etats de bw, les registres, blocs
- * morts compris, et ses planetes. */
+ * morts compris, ses planetes et son economie. */
 static void pause_restart_borne_les_blocs_morts_des_registres(void) {
     const size_t g = etats_de_bw();
     demarrer("pause_restart");
@@ -444,7 +479,8 @@ static void pause_restart_borne_les_blocs_morts_des_registres(void) {
     const size_t p = octets_des_planetes();
     printf("  pause_restart f13 : partie=%lu, etats de bw=%lu, registres=%lu, planetes=%lu\n",
            (unsigned long)pico8_zone_partie_prise(), (unsigned long)g, (unsigned long)r, (unsigned long)p);
-    assert(pico8_zone_partie_prise() == g + r + p && "les registres prennent 2C - 4 pointeurs, et rien d'autre n'entre");
+    assert(pico8_zone_partie_prise() == g + r + p + octets_de_l_economie() &&
+           "les registres prennent 2C - 4 pointeurs, et rien d'autre n'entre");
 }
 
 /* Seul le chargement remplit la sous-zone chargement : deux parties n'y
@@ -472,8 +508,8 @@ static void pause_restart_compte_les_etats_de_bw(void) {
     const size_t f12 = pico8_zone_partie_prise();
     assert(f12 >= f11 + g && "les etats des deux parties vivent jusqu'au rendu");
     jouer_jusqu_a(13);
-    assert(pico8_zone_partie_prise() == g + octets_des_registres() + octets_des_planetes() &&
-           "le rendu de f13 laisse les etats, les registres et les planetes de la nouvelle partie");
+    assert(pico8_zone_partie_prise() == g + octets_des_registres() + octets_des_planetes() + octets_de_l_economie() &&
+           "le rendu de f13 laisse les etats, les registres, les planetes et l'economie de la nouvelle partie");
     assert(pico8_zone_partie_max() >= f12);
     printf("  pause_restart f11/f12/f13 : partie=%lu/%lu/%lu, max=%lu\n", (unsigned long)f11, (unsigned long)f12,
            (unsigned long)pico8_zone_partie_prise(), (unsigned long)pico8_zone_partie_max());
@@ -1072,6 +1108,8 @@ int main(void) {
     dans_un_enfant(pause_restart_garde_la_partie_a_travers_restart);
     dans_un_enfant(pause_restart_garde_les_planetes_de_la_partie_quittee_pendant_le_clic);
     dans_un_enfant_qui_meurt_par_asan(pause_restart_rend_les_planetes_de_la_partie_quittee);
+    dans_un_enfant(pause_restart_garde_l_economie_de_la_partie_quittee_pendant_le_clic);
+    dans_un_enfant_qui_meurt_par_asan(pause_restart_rend_l_economie_de_la_partie_quittee);
     dans_un_enfant(pause_restart_compte_les_etats_de_bw);
     dans_un_enfant(pause_restart_ne_touche_pas_au_chargement);
     dans_un_enfant(pause_restart_borne_les_blocs_morts_des_registres);

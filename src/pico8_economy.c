@@ -1,7 +1,6 @@
 #include "pico8_economy.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_collect.h"
@@ -19,7 +18,7 @@
 #include "pico8_research.h"
 #include "pico8_tech_gate.h"
 #include "pico8_zone_frame.h"
-#include "pico8_zone_transitoire.h"
+#include "pico8_zone_partie.h"
 
 static int g_hy_up = 0;
 
@@ -33,7 +32,7 @@ const pico8_hy_def_t pico8_hy_def = {
 };
 
 static pico8_hy_t *pico8_hy_struct_new(void) {
-    pico8_hy_t *self = malloc(sizeof *self);
+    pico8_hy_t *self = (pico8_hy_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *self);
     pico8_ptrs_t *invented;
 
     pico8_struct_header_init(&self->header, &g_hy_struct_class);
@@ -58,9 +57,8 @@ static pico8_hy_t *pico8_hy_struct_new(void) {
     self->ge = pico8_fixed_from_int(0);
     self->jk = pico8_fixed_from_int(0);
     self->ew = self->def->ew;
-    /* TROU-7 */
-    invented = malloc(sizeof *invented);
-    pico8_ptrs_init(invented, &pico8_zone_transitoire);
+    invented = (pico8_ptrs_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *invented);
+    pico8_ptrs_init(invented, pico8_zone_partie());
     self->invented = invented;
     self->lo = self->def->lo;
     self->yr = self->def->yr;

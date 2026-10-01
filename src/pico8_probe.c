@@ -444,18 +444,8 @@ void pico8_probe_init(void) {
     g_fm = (pico8_struct_header_t *)&g_fm_placeholder;
 }
 
-static void fm_free(pico8_struct_header_t *fm) {
-    if (fm == NULL || fm == (pico8_struct_header_t *)&g_fm_placeholder) {
-        return;
-    }
-    assert(((const pico8_struct_header_t *)fm)->cls == pico8_hy_struct_class() &&
-           "fm: pico8_probe_set_fm only ever stores a hy besides the provisional");
-    free(fm);
-}
-
 void pico8_probe_shutdown(void) {
     g_g__up = 0;
-    fm_free(g_fm);
     g_fm = NULL;
 }
 
@@ -492,10 +482,6 @@ const pico8_fm_placeholder_t *pico8_fm_placeholder(void) {
 }
 
 void pico8_probe_set_fm(pico8_struct_header_t *instance) {
-    if (g_fm == instance) {
-        return;
-    }
-    fm_free(g_fm);
     g_fm = instance;
 }
 
