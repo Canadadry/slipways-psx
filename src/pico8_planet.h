@@ -99,9 +99,30 @@ pico8_jo_t *pico8_jo_new(const pico8_jo_keys_t *keys);
  * defaults. Requires `pico8_jo_init()`. */
 void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def);
 
-/* Where the planet constructors, `jo:pq` and `jo:lz` allocate: the current
+/* Bytes of the arena a held icon builds its structure in. */
+#define PICO8_JO_PRISE_OCTETS 1536u
+
+/* Where the planet constructors, `jo:pq` and `jo:lz` allocate: the grab
+ * arena between `pico8_jo_prise_ouvrir` and `_fermer`, else the current
  * game generation. */
 const pico8_zone_choisie_t *pico8_jo_zone_construction(void);
+
+/* Opens a grab arena, taken from the free grabs (emptied) or else from the
+ * current generation; a placed structure keeps it until the generation is
+ * given back. */
+void pico8_jo_prise_ouvrir(void);
+void pico8_jo_prise_fermer(void);
+/* Called last by a planet's `rendre`: a structure still "kz" built in a
+ * grab arena puts that arena on the free grabs, for the next grab to
+ * empty and reuse. */
+void pico8_jo_prise_rendue(const pico8_jo_t *self);
+/* Sets to nil the `fo` of every `cg.np` entity that points at `e`, which is
+ * being given back: `jo:kj` leaves `fo` set on a planet off screen or
+ * fading, and a recycled grab arena would put a new structure behind it. */
+void pico8_jo_oublier_fo(const pico8_struct_header_t *e);
+/* Drops the free grabs, without reading them: their arenas belong to a
+ * generation about to be given back or reset. */
+void pico8_jo_oublier_prises(void);
 
 /* `oe` taken from, and grown in, the construction zone. */
 void pico8_jo_pq(pico8_jo_t *self);
@@ -113,6 +134,8 @@ void pico8_jo_pq_dans(pico8_jo_t *self, const pico8_zone_choisie_t *zone);
 int pico8_jo_hd_dispatch(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra);
 void pico8_jo_hb_dispatch(pico8_struct_header_t *self);
 /* Gives back the place of `lq` and sets `lq` to nil; the planet stays. */
+void pico8_jo_rendre_rangee(pico8_struct_header_t *self);
+/* `pico8_jo_rendre_rangee`, then `pico8_jo_prise_rendue`. */
 void pico8_jo_rendre_dispatch(pico8_struct_header_t *self);
 pico8_down_t pico8_jo_gv_dispatch(pico8_struct_header_t *self, const pico8_struct_header_t *s);
 void pico8_jo_hk_dispatch(pico8_struct_header_t *self, pico8_fixed_t yr);

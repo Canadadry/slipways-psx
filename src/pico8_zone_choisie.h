@@ -58,6 +58,11 @@ const pico8_zone_choisie_t *pico8_zone_arene_prendre(const pico8_zone_choisie_t 
                                                      const char *name, size_t size);
 /* Octets pris dans le bloc, tete comprise. */
 size_t pico8_zone_arene_prise(const pico8_zone_choisie_t *arene);
+/* Remet l'arene a sa seule tete et empoisonne le reste de son bloc ; le
+ * bloc reste pris a sa zone. Angle mort ASan : les allocations suivantes
+ * reprennent les memes adresses, un pointeur garde d'avant le vidage y lit
+ * le nouveau bloc sans planter. */
+void pico8_zone_arene_vider(const pico8_zone_choisie_t *arene);
 /* Rend le bloc entier a la poignee qui l'a donne. */
 void pico8_zone_arene_rendre(const pico8_zone_choisie_t *arene);
 

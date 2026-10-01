@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "pico8_collect.h"
+#include "pico8_entity.h"
 #include "pico8_entity_geom.h"
 #include "pico8_gen.h"
 #include "pico8_ke.h"
@@ -22,6 +23,15 @@ static pico8_jf_state_t *g_jo_ir = NULL;
 /* Shared by every bare planet: written in place by `bb` and `mx:kf` until
  * `lz` gives the planet its own. */
 static pico8_kw_t g_jo_kw_shared;
+
+/* Nom des arenes de prise : son adresse les reconnait (pico8_jo_prise_rendue). */
+static const char g_jo_nom_prise[] = "prise";
+#define PRISES_LIBRES_MAX 4
+
+/* Non NULL seulement pendant le new_entity de ie:ldown. */
+static const pico8_zone_choisie_t *g_jo_prise = NULL;
+static const pico8_zone_choisie_t *g_jo_prises_libres[PRISES_LIBRES_MAX];
+static int g_jo_prises_libres_n = 0;
 
 int pico8_jo_hd_dispatch(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
     return pico8_gk(self, qa, ra);
@@ -174,7 +184,53 @@ pico8_jo_t *pico8_jo_new(const pico8_jo_keys_t *keys) {
 }
 
 const pico8_zone_choisie_t *pico8_jo_zone_construction(void) {
-    return pico8_zone_partie();
+    return g_jo_prise != NULL ? g_jo_prise : pico8_zone_partie();
+}
+
+void pico8_jo_prise_ouvrir(void) {
+    assert(g_jo_prise == NULL && "une prise d'icone est deja ouverte");
+    if (g_jo_prises_libres_n > 0) {
+        g_jo_prise = g_jo_prises_libres[--g_jo_prises_libres_n];
+        pico8_zone_arene_vider(g_jo_prise);
+    } else {
+        g_jo_prise = pico8_zone_arene_prendre(pico8_zone_partie(), g_jo_nom_prise, PICO8_JO_PRISE_OCTETS);
+    }
+}
+
+void pico8_jo_prise_fermer(void) {
+    g_jo_prise = NULL;
+}
+
+void pico8_jo_prise_rendue(const pico8_jo_t *self) {
+    const pico8_zone_choisie_t *zone = self->oe != NULL ? self->oe->zone : NULL;
+
+    if (zone == NULL || zone->bump == NULL || zone->bump->name != g_jo_nom_prise) {
+        return;
+    }
+    if (self->header.me == NULL || strcmp(self->header.me, "kz") != 0) {
+        return;
+    }
+    assert(g_jo_prises_libres_n < PRISES_LIBRES_MAX &&
+           "prises libres pleines : plus de prises refusees en vol que prevu");
+    g_jo_prises_libres[g_jo_prises_libres_n++] = zone;
+}
+
+/* TROU-26 */
+void pico8_jo_oublier_fo(const pico8_struct_header_t *e) {
+    const pico8_ents_t *np = pico8_cg("np");
+
+    for (int i = 0; np != NULL && i < np->count; i++) {
+        pico8_jo_t *p = (pico8_jo_t *)np->items[i];
+
+        assert(pico8_jo_is_family(&p->header) && "cg.np ne tient que des planetes, qui ont un fo");
+        if (p->fo == e) {
+            p->fo = NULL;
+        }
+    }
+}
+
+void pico8_jo_oublier_prises(void) {
+    g_jo_prises_libres_n = 0;
 }
 
 void pico8_jo_pq(pico8_jo_t *self) {

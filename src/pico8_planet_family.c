@@ -199,8 +199,9 @@ void pico8_hj_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
 }
 
 void pico8_hj_rendre_dispatch(pico8_struct_header_t *self) {
-    pico8_jo_rendre_dispatch(self);
+    pico8_jo_rendre_rangee(self);
     pico8_qy_rendre(self->emitter);
+    pico8_jo_prise_rendue((const pico8_jo_t *)self);
 }
 
 static const pico8_struct_class_t g_hj_struct_class = {

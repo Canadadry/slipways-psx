@@ -263,6 +263,29 @@ static int case_arena_taken_counts_head_and_blocks(void) {
     return 0;
 }
 
+static int case_arena_vider_back_to_head(void) {
+    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&pico8_zone_transitoire, "place essai", ARENA_SIZE);
+    size_t head = pico8_zone_arene_prise(arena);
+    unsigned char *before = arena_counting(arena);
+    pico8_zone_arene_vider(arena);
+    assert(pico8_zone_arene_prise(arena) == head && "une arene videe n'a plus que sa tete");
+    unsigned char *after = arena_counting(arena);
+    /* L'angle mort du recyclage : la meme adresse revient, un pointeur
+     * perime y lirait le nouveau bloc sans planter. */
+    assert(after == before && "une arene videe reprend depuis le debut de son bloc");
+    expect_counting(after);
+    pico8_zone_arene_rendre(arena);
+    return 0;
+}
+
+static int case_arena_vider_kills_old_block(void) {
+    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&pico8_zone_transitoire, "place essai", ARENA_SIZE);
+    unsigned char *items = arena_counting(arena);
+    pico8_zone_arene_vider(arena);
+    sink = items[63];
+    return 0;
+}
+
 #define RESERVED 40
 
 /* Une arene qui tient juste la liste et ses RESERVED elements : un seul
@@ -429,6 +452,8 @@ static const struct {
     {"arena_full", case_arena_full},
     {"arena_spares_neighbour", case_arena_spares_neighbour},
     {"arena_taken_counts_head_and_blocks", case_arena_taken_counts_head_and_blocks},
+    {"arena_vider_back_to_head", case_arena_vider_back_to_head},
+    {"arena_vider_kills_old_block", case_arena_vider_kills_old_block},
     {"ptrs_reserved_fills_without_growing", case_ptrs_reserved_fills_without_growing},
     {"ptrs_reserved_overflow", case_ptrs_reserved_overflow},
     {"bump_grow_keeps_order", case_bump_grow_keeps_order},
@@ -566,6 +591,8 @@ int main(int argc, char **argv) {
     expect_fatal("arena_full", "zone place essai pleine, limite ");
     expect_clean("arena_spares_neighbour");
     expect_clean("arena_taken_counts_head_and_blocks");
+    expect_clean("arena_vider_back_to_head");
+    expect_poison_crash("arena_vider_kills_old_block");
     expect_clean("ptrs_reserved_fills_without_growing");
     expect_fatal("ptrs_reserved_overflow", "zone place essai pleine, limite ");
     remove(STDERR_LOG);

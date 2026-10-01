@@ -416,3 +416,20 @@ La conversion en struct préserve l'écart.
 
 Fichiers : `src/pico8_layout.c` (constructeur de `lq`),
 `src/pico8_score_panel_display.c`.
+
+## TROU-26 — Le `fo` d'une planète hors écran est coupé quand l'objet tenu est rendu
+
+`jo:kj` (lua.lua) sort avant `self.fo=nil` quand la planète est hors de
+`gd()` ou à l'état « ll ». Son `fo` garde alors l'objet tenu (une structure
+prise par une icône de recherche, un `jc`) après que celui-ci a quitté la
+partie ; si la planète revient à l'écran, la cartouche dessine un halo de
+plus avec le `dw` de cet objet mort.
+
+Le port rend l'objet par la file de sortie et recycle son arène : relire
+`fo` serait un usage après libération. `oublier` (`pico8_cart.c`) remet donc
+à nil le `fo` de toute entité `np` qui vise l'objet rendu, et ce halo
+n'est pas dessiné. À l'état « ll », aucune différence : dès t ≥ 60, `kj`
+sort toujours avant de lire `fo`. Aucun e2e n'atteint ce cas.
+
+Fichiers : `src/pico8_cart.c` (`oublier`), `src/pico8_planet.c`
+(`pico8_jo_oublier_fo`).

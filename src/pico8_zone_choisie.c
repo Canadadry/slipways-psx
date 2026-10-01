@@ -122,6 +122,12 @@ size_t pico8_zone_arene_prise(const pico8_zone_choisie_t *arene) {
     return ARENE_HEAD_CELLS * sizeof(pico8_zone_cell_t) + a->bump.used;
 }
 
+void pico8_zone_arene_vider(const pico8_zone_choisie_t *arene) {
+    arene_t *a = (arene_t *)arene;
+    assert(arene != NULL && arene->bump == &a->bump && "vidage d'une poignee qui n'est pas une arene");
+    pico8_bump_zone_init_single(&a->bump, a->bump.name, a->bump.storage, a->bump.capacity);
+}
+
 void pico8_zone_arene_rendre(const pico8_zone_choisie_t *arene) {
     const arene_t *a = (const arene_t *)arene;
     assert(arene != NULL && arene->bump == &a->bump && "rendu d'une poignee qui n'est pas une arene");

@@ -53,6 +53,7 @@ void pico8_cart_load(void) {
     pico8_cart_vider_file_sortie();
     pico8_zone_partie_reset();
     pico8_entity_oublier_registres();
+    pico8_jo_oublier_prises();
     pico8_ke_init();
     assert(pico8_ke_ready() && "ke must be declared before every ke-descended class");
     pico8_qb_init();
@@ -120,11 +121,13 @@ static void oublier(const pico8_struct_header_t *e) {
         ju->ed = NULL;
     }
     pico8_economy_dk_quitte(e);
+    pico8_jo_oublier_fo(e);
 }
 
 /* Point d'oubli de partie : coupe les references a la generation que
  * pico8_zone_partie_rendre va rendre. */
 static void oublier_partie(void) {
+    pico8_jo_oublier_prises();
 }
 
 void pico8_cart_vider_file_sortie(void) {
@@ -140,6 +143,7 @@ void pico8_cart_shutdown(void) {
     pico8_cart_vider_file_sortie();
     pico8_zone_partie_reset();
     pico8_entity_oublier_registres();
+    pico8_jo_oublier_prises();
     pico8_menu_shutdown();
     pico8_research_icon_shutdown();
     pico8_score_panel_shutdown();

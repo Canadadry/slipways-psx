@@ -69,7 +69,7 @@ void pico8_jo_hb(pico8_jo_t *self) {
     self->lq_place = place;
 }
 
-void pico8_jo_rendre_dispatch(pico8_struct_header_t *self) {
+void pico8_jo_rendre_rangee(pico8_struct_header_t *self) {
     pico8_jo_t *jo = (pico8_jo_t *)self;
 
     if (jo->lq_place != NULL) {
@@ -77,6 +77,11 @@ void pico8_jo_rendre_dispatch(pico8_struct_header_t *self) {
     }
     jo->lq = NULL;
     jo->lq_place = NULL;
+}
+
+void pico8_jo_rendre_dispatch(pico8_struct_header_t *self) {
+    pico8_jo_rendre_rangee(self);
+    pico8_jo_prise_rendue((const pico8_jo_t *)self);
 }
 
 typedef struct {

@@ -11,6 +11,7 @@
 #include "pico8_ke.h"
 #include "pico8_layout.h"
 #include "pico8_pi.h"
+#include "pico8_planet.h"
 #include "pico8_probe.h"
 #include "pico8_str.h"
 #include "pico8_tech_gate.h"
@@ -134,7 +135,9 @@ pico8_down_t pico8_ie_ldown(pico8_ie_t *self) {
     keys.id = id_str;
     keys.p = NULL;
     keys.ra = NULL;
+    pico8_jo_prise_ouvrir();
     out.held = ke_kind->new_entity(&keys);
+    pico8_jo_prise_fermer();
     out.stop = out.held != NULL;
     return out;
 }

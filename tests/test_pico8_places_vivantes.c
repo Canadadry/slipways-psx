@@ -20,6 +20,7 @@
 #include "../src/pico8_cheat.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
+#include "../src/pico8_entity_geom.h"
 #include "../src/pico8_game_data.h"
 #include "../src/pico8_gen.h"
 #include "../src/pico8_gfx.h"
@@ -28,6 +29,8 @@
 #include "../src/pico8_particle.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_family.h"
+#include "../src/pico8_scroll.h"
+#include "../src/pico8_ui.h"
 #include "../src/pico8_zone_interface.h"
 #include "../src/pico8_zone_particules.h"
 #include "../src/pico8_zone_partie.h"
@@ -104,8 +107,8 @@ static void imprimer(const char *e2e, const releve_t *r) {
            (unsigned long)r->partie);
 }
 
-/* Charge le cart pour rejouer `e2e` (NULL : aucune entree) et rend ses
- * entrees, statiques. */
+/* Charge le cart pour rejouer `e2e` (NULL : aucune entree ; un chemin s'il
+ * contient un « / ») et rend ses entrees, statiques. */
 static pico8_input_t *charger(const char *e2e) {
     static pico8_mem_t mem;
     static pico8_gfx_t gfx;
@@ -118,7 +121,7 @@ static pico8_input_t *charger(const char *e2e) {
     assert(pico8_load_map_json(&mem, "pico8/map.json"));
     pico8_input_init(&input);
     if (e2e != NULL) {
-        snprintf(path, sizeof path, "tests/e2e/%s.json", e2e);
+        snprintf(path, sizeof path, strchr(e2e, '/') != NULL ? "%s" : "tests/e2e/%s.json", e2e);
         assert(pico8_input_load(&input, path));
     }
     pico8_dispatch_set_gfx(&gfx);
@@ -482,6 +485,103 @@ static void trade_rich_mine_bd_sur_des_routes_ne_fait_pas_grandir_la_partie(void
     assert(f137 == f151 && "un bd sur des routes fait grandir la generation");
 }
 
+#define PRISES "tests/fixtures/prises_refusees.json"
+
+/* Fixture PRISES : f0-20 d'empty_planet_fade ; puis des prises de 7 frames
+ * (pression sur l'icone (122,124), glisse, relache, trois d'attente) :
+ * vingt refusees sur p34 (f21-160), une posee (f161-167), une refusee
+ * (f168-174) ; « restart » et nouvelle partie (clic f185) ; une prise
+ * (f189-195). */
+static void prises_refusees_ne_font_pas_grandir_la_partie(void) {
+    demarrer(PRISES);
+    jouer_jusqu_a(27);
+    const size_t une = partie_sans_registres();
+    jouer_jusqu_a(160);
+    const size_t vingt = partie_sans_registres();
+    printf("  prises refusees 1/20 : partie - registres = %lu/%lu\n", (unsigned long)une, (unsigned long)vingt);
+    assert(une == vingt && "une prise refusee laisse sa structure dans la generation");
+}
+
+/* La structure posee de f161-164, seule planete « s… » de `cg.jo`. */
+static const pico8_jo_t *la_prise_posee(void) {
+    const pico8_ents_t *jo = pico8_cg("jo");
+    const pico8_jo_t *posee = NULL;
+    for (int i = 0; jo != NULL && i < jo->count; i++) {
+        const pico8_jo_t *p = (const pico8_jo_t *)jo->items[i];
+        if (p->id[0] != 's') continue;
+        assert(posee == NULL && "une seule prise a ete posee");
+        posee = p;
+    }
+    assert(posee != NULL && strcmp(posee->header.me, "ly") == 0 && "la prise de f161-164 n'a pas ete posee");
+    return posee;
+}
+
+/* Le `bd` de la pose fait `by` et `cc` dans la generation, hors de l'arene. */
+static void une_prise_posee_garde_son_arene(void) {
+    demarrer(PRISES);
+    jouer_jusqu_a(160);
+    const size_t avant = partie_sans_registres();
+    jouer_jusqu_a(174);
+    const size_t apres = partie_sans_registres();
+    const pico8_jo_t *posee = la_prise_posee();
+    const size_t listes = octets_d_une_liste_de_planete(posee->by) + octets_d_une_liste_de_planete(posee->cc);
+    printf("  prise posee : partie - registres = %lu -> %lu (arene %u, by/cc %lu)\n", (unsigned long)avant,
+           (unsigned long)apres, PICO8_JO_PRISE_OCTETS, (unsigned long)listes);
+    assert(apres == avant + PICO8_JO_PRISE_OCTETS + listes && "une prise posee garde son arene, et rien d'autre");
+}
+
+/* Une frame de rejeu ; sans `dessiner`, aucun `kj` ne remet `fo` a nil. */
+static void jouer_une_frame(int dessiner) {
+    pico8_dispatch_set_input(g_input);
+    pico8_cheat_step(&g_cheat, g_input);
+    pico8__update60();
+    if (dessiner) pico8__draw();
+    if (g_frame < g_input->frame_count - 1) pico8_input_step(g_input);
+    g_frame++;
+}
+
+static pico8_jo_t *planete_dont_fo_est(const pico8_struct_header_t *tenue) {
+    const pico8_ents_t *np = pico8_cg("np");
+    for (int i = 0; np != NULL && i < np->count; i++) {
+        pico8_jo_t *p = (pico8_jo_t *)np->items[i];
+        if (p->fo == tenue) return p;
+    }
+    return NULL;
+}
+
+/* f23 : la structure tenue sur p34 y accroche son `fo` ; p34 passe hors
+ * ecran avant le draw, son `kj` sort sans remettre `fo` a nil. Refusee a
+ * f24, la structure est rendue au vidage de f26, et la pression de f28
+ * reprend son arene : `fo` ne doit pas viser la nouvelle structure. */
+static void le_fo_d_une_planete_hors_ecran_oublie_la_prise_refusee(void) {
+    static pico8_vec_t loin;
+    demarrer(PRISES);
+    jouer_jusqu_a(22);
+    pico8_dispatch_set_input(g_input);
+    pico8_cheat_step(&g_cheat, g_input);
+    pico8__update60();
+    const pico8_struct_header_t *tenue = pico8_ok()->lheld;
+    assert(tenue != NULL && "f23 : une structure est tenue");
+    pico8_jo_t *p34 = planete_dont_fo_est(tenue);
+    assert(p34 != NULL && "f23 : la structure tenue accroche le fo d'une planete");
+    loin = pico8_vec_add(*((const pico8_qb_t *)pico8_mo())->ra, pico8_vec_v(pico8_fixed_from_int(500), 0));
+    p34->ra = &loin;
+    assert(!pico8_gd(&p34->header) && "p34 est hors ecran");
+    pico8__draw();
+    assert(p34->fo == tenue && "hors ecran, kj laisse fo");
+    if (g_frame < g_input->frame_count - 1) pico8_input_step(g_input);
+    g_frame++;
+    while (g_frame <= 27) jouer_une_frame(1);
+    jouer_une_frame(0);
+    assert(pico8_ok()->lheld == tenue && "f28 : la prise suivante reprend l'arene, a la meme adresse");
+    assert(p34->fo == NULL && "le fo d'une planete hors ecran vise une prise refusee recyclee");
+}
+
+static void une_prise_refusee_traverse_une_nouvelle_partie(void) {
+    demarrer(PRISES);
+    jouer_jusqu_a(195);
+}
+
 /* f11 : titre apres « restart ». Recharger rend les places des entites de
  * hv, et le jl() d'_init ne relit pas les registres remis a zero. */
 static void pause_restart_recharge_apres_le_titre(void) {
@@ -725,6 +825,10 @@ int main(void) {
     dans_un_enfant(pause_restart_devoile_sur_les_etats_de_la_nouvelle_partie);
     dans_un_enfant(game_end_final_score_bd_ne_fait_pas_grandir_la_partie);
     dans_un_enfant(trade_rich_mine_bd_sur_des_routes_ne_fait_pas_grandir_la_partie);
+    dans_un_enfant(prises_refusees_ne_font_pas_grandir_la_partie);
+    dans_un_enfant(une_prise_posee_garde_son_arene);
+    dans_un_enfant(une_prise_refusee_traverse_une_nouvelle_partie);
+    dans_un_enfant(le_fo_d_une_planete_hors_ecran_oublie_la_prise_refusee);
     dans_un_enfant(message_box_hold_ne_bouge_pas_sans_action);
     dans_un_enfant(empty_planet_fade_ne_monte_pas);
     dans_un_enfant(tech_geoharvesting_burst_rend_l_eclat);
