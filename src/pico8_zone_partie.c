@@ -42,7 +42,7 @@ void pico8_zone_partie_basculer(void) {
 
 int pico8_zone_partie_en_attente(void) {
     partie_init_once();
-    return partie.en_attente;
+    return pico8_bascule_zone_en_attente(&partie);
 }
 
 void pico8_zone_partie_rendre(void) {

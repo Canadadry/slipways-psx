@@ -41,17 +41,21 @@
 #include "pico8_zone_frame.h"
 #include "pico8_zone_partie.h"
 
+static void quitter_partie(void) {
+    pico8_entity_abandonner_hv();
+    pico8_cart_vider_file_sortie();
+    pico8_zone_partie_reset();
+    pico8_entity_oublier_registres();
+    pico8_jo_oublier_prises();
+}
+
 /* pico8_data_init() and pico8_score_panel_init() each run further module
  * inits of their own (research, score-panel display); listing those
  * here would run them twice. */
 void pico8_cart_load(void) {
     pico8_mem_t *mem;
 
-    pico8_entity_abandonner_hv();
-    pico8_cart_vider_file_sortie();
-    pico8_zone_partie_reset();
-    pico8_entity_oublier_registres();
-    pico8_jo_oublier_prises();
+    quitter_partie();
     pico8_ke_init();
     assert(pico8_ke_ready() && "ke must be declared before every ke-descended class");
     pico8_qb_init();
@@ -137,11 +141,7 @@ void pico8_cart_vider_file_sortie(void) {
 }
 
 void pico8_cart_shutdown(void) {
-    pico8_entity_abandonner_hv();
-    pico8_cart_vider_file_sortie();
-    pico8_zone_partie_reset();
-    pico8_entity_oublier_registres();
-    pico8_jo_oublier_prises();
+    quitter_partie();
     pico8_menu_shutdown();
     pico8_research_icon_shutdown();
     pico8_score_panel_shutdown();

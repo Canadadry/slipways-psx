@@ -29,13 +29,10 @@
 typedef char pico8_zone_particules_arenes_max[(QY_FV_COUNT <= ARENES_MAX && GA_COUNT <= ARENES_MAX) ? 1 : -1];
 typedef char pico8_zone_particules_tient_l_aide[PARTICULE_COUNT >= PICO8_QY_FV_CAPACITE ? 1 : -1];
 
-#define SORTE_BYTES(size, count) \
-    (PICO8_ZONE_CELLS(size) * sizeof(pico8_zone_cell_t) * (count) + (count))
-
 typedef char pico8_zone_particules_exceeded[
-    (SORTE_BYTES(PICO8_PARTICULE_PLACE, PARTICULE_COUNT) + SORTE_BYTES(QY_SIZE, QY_COUNT) +
-     SORTE_BYTES(QY_FV_SIZE, QY_FV_COUNT) + SORTE_BYTES(GA_SIZE, GA_COUNT) +
-     SORTE_BYTES(PICO8_TS_PLACE, TS_COUNT)
+    (PICO8_SLOT_ZONE_BYTES(PICO8_PARTICULE_PLACE, PARTICULE_COUNT) + PICO8_SLOT_ZONE_BYTES(QY_SIZE, QY_COUNT) +
+     PICO8_SLOT_ZONE_BYTES(QY_FV_SIZE, QY_FV_COUNT) + PICO8_SLOT_ZONE_BYTES(GA_SIZE, GA_COUNT) +
+     PICO8_SLOT_ZONE_BYTES(PICO8_TS_PLACE, TS_COUNT)
      <= PICO8_ZONE_PARTICLES_BYTES) ? 1 : -1];
 
 PICO8_SLOT_ZONE_STORAGE(particule_cells, particule_taken, PICO8_PARTICULE_PLACE, PARTICULE_COUNT);
@@ -44,14 +41,7 @@ PICO8_SLOT_ZONE_STORAGE(qy_fv_cells, qy_fv_taken, QY_FV_SIZE, QY_FV_COUNT);
 PICO8_SLOT_ZONE_STORAGE(ga_cells, ga_taken, GA_SIZE, GA_COUNT);
 PICO8_SLOT_ZONE_STORAGE(ts_cells, ts_taken, PICO8_TS_PLACE, TS_COUNT);
 
-static const struct {
-    const char *zone_name;
-    const char *place_name;
-    pico8_zone_cell_t *cells;
-    unsigned char *taken;
-    size_t size;
-    size_t count;
-} SORTES[PICO8_PARTICULES_COUNT] = {
+static const pico8_zone_sorte_t SORTES[PICO8_PARTICULES_COUNT] = {
     [PICO8_PARTICULES_PARTICULE] = {"particules particule", NULL, particule_cells, particule_taken,
                                     PICO8_PARTICULE_PLACE, PARTICULE_COUNT},
     [PICO8_PARTICULES_QY] = {"particules qy", "place qy", qy_cells, qy_taken, QY_SIZE, QY_COUNT},
@@ -77,11 +67,7 @@ static pico8_particules_sorte_t sorte_of(const pico8_zone_choisie_t *z);
  * qu'un initialiseur statique ne ferait pas. */
 static void init_once(void) {
     if (g_ready) return;
-    for (int s = 0; s < PICO8_PARTICULES_COUNT; s++) {
-        pico8_slot_zone_init(&g_zones[s], SORTES[s].zone_name, SORTES[s].cells, SORTES[s].taken,
-                             SORTES[s].size, SORTES[s].count);
-        g_slots[s] = pico8_zone_choisie_slot(&g_zones[s]);
-    }
+    pico8_zone_sortes_init(SORTES, PICO8_PARTICULES_COUNT, g_zones, g_slots);
     g_ready = 1;
 }
 
@@ -108,16 +94,6 @@ static unsigned char *place_alloc(const pico8_zone_choisie_t *z, size_t n) {
     return p;
 }
 
-static unsigned char *place_grow(const pico8_zone_choisie_t *z, unsigned char *p,
-                                 size_t old_n, size_t new_n) {
-    (void)z;
-    (void)p;
-    (void)old_n;
-    (void)new_n;
-    assert(0 && "zone particules : une place ne grandit pas");
-    return NULL;
-}
-
 static void place_release(const pico8_zone_choisie_t *z, unsigned char *p) {
     pico8_particules_sorte_t sorte = sorte_of(z);
     if (p == NULL) return;
@@ -132,11 +108,11 @@ static void place_release(const pico8_zone_choisie_t *z, unsigned char *p) {
 }
 
 static const pico8_zone_choisie_t g_handles[PICO8_PARTICULES_COUNT] = {
-    [PICO8_PARTICULES_PARTICULE] = {place_alloc, place_grow, place_release, NULL, NULL},
-    [PICO8_PARTICULES_QY] = {place_alloc, place_grow, place_release, NULL, NULL},
-    [PICO8_PARTICULES_QY_FV] = {place_alloc, place_grow, place_release, NULL, NULL},
-    [PICO8_PARTICULES_GA] = {place_alloc, place_grow, place_release, NULL, NULL},
-    [PICO8_PARTICULES_TS] = {place_alloc, place_grow, place_release, NULL, NULL},
+    [PICO8_PARTICULES_PARTICULE] = {place_alloc, pico8_zone_grow_refusee, place_release, NULL, NULL},
+    [PICO8_PARTICULES_QY] = {place_alloc, pico8_zone_grow_refusee, place_release, NULL, NULL},
+    [PICO8_PARTICULES_QY_FV] = {place_alloc, pico8_zone_grow_refusee, place_release, NULL, NULL},
+    [PICO8_PARTICULES_GA] = {place_alloc, pico8_zone_grow_refusee, place_release, NULL, NULL},
+    [PICO8_PARTICULES_TS] = {place_alloc, pico8_zone_grow_refusee, place_release, NULL, NULL},
 };
 
 static pico8_particules_sorte_t sorte_of(const pico8_zone_choisie_t *z) {

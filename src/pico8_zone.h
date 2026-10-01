@@ -41,6 +41,10 @@ typedef union {
     static pico8_zone_cell_t cells[PICO8_ZONE_CELLS(slot_size) * (count)]; \
     static unsigned char taken[count]
 
+/* Octets que PICO8_SLOT_ZONE_STORAGE reserve : places et octets pris. */
+#define PICO8_SLOT_ZONE_BYTES(size, count) \
+    (PICO8_ZONE_CELLS(size) * sizeof(pico8_zone_cell_t) * (count) + (count))
+
 typedef struct {
     const char *name;
     pico8_zone_cell_t *storage;
@@ -100,6 +104,9 @@ unsigned char *pico8_bascule_zone_alloc(pico8_bascule_zone_t *zone, size_t size)
 /* Change de bout ; l'ancienne generation reste valide jusqu'a
  * pico8_bascule_zone_rendre. */
 void pico8_bascule_zone_basculer(pico8_bascule_zone_t *zone);
+/* Vrai entre pico8_bascule_zone_basculer et le rendu de l'ancienne
+ * generation. */
+int pico8_bascule_zone_en_attente(const pico8_bascule_zone_t *zone);
 /* Rend et empoisonne l'ancienne generation ; sans generation en attente, ne
  * fait rien. */
 void pico8_bascule_zone_rendre(pico8_bascule_zone_t *zone);

@@ -20,13 +20,10 @@
 #define LE_SIZE 216u
 #define LE_COUNT 16u
 
-#define SORTE_BYTES(size, count) \
-    (PICO8_ZONE_CELLS(size) * sizeof(pico8_zone_cell_t) * (count) + (count))
-
 typedef char pico8_zone_interface_exceeded[
-    (SORTE_BYTES(JS_SIZE, JS_COUNT) + SORTE_BYTES(FQ_SIZE, FQ_COUNT) +
-     SORTE_BYTES(MH_SIZE, MH_COUNT) + SORTE_BYTES(IV_SIZE, IV_COUNT) +
-     SORTE_BYTES(RANGEE_SIZE, RANGEE_COUNT) + SORTE_BYTES(LE_SIZE, LE_COUNT)
+    (PICO8_SLOT_ZONE_BYTES(JS_SIZE, JS_COUNT) + PICO8_SLOT_ZONE_BYTES(FQ_SIZE, FQ_COUNT) +
+     PICO8_SLOT_ZONE_BYTES(MH_SIZE, MH_COUNT) + PICO8_SLOT_ZONE_BYTES(IV_SIZE, IV_COUNT) +
+     PICO8_SLOT_ZONE_BYTES(RANGEE_SIZE, RANGEE_COUNT) + PICO8_SLOT_ZONE_BYTES(LE_SIZE, LE_COUNT)
      <= PICO8_ZONE_INTERFACE_BYTES) ? 1 : -1];
 
 PICO8_SLOT_ZONE_STORAGE(js_cells, js_taken, JS_SIZE, JS_COUNT);
@@ -36,14 +33,7 @@ PICO8_SLOT_ZONE_STORAGE(iv_cells, iv_taken, IV_SIZE, IV_COUNT);
 PICO8_SLOT_ZONE_STORAGE(rangee_cells, rangee_taken, RANGEE_SIZE, RANGEE_COUNT);
 PICO8_SLOT_ZONE_STORAGE(le_cells, le_taken, LE_SIZE, LE_COUNT);
 
-static const struct {
-    const char *zone_name;
-    const char *place_name;
-    pico8_zone_cell_t *cells;
-    unsigned char *taken;
-    size_t size;
-    size_t count;
-} SORTES[PICO8_SORTE_COUNT] = {
+static const pico8_zone_sorte_t SORTES[PICO8_SORTE_COUNT] = {
     [PICO8_SORTE_JS] = {"interface js", "place js", js_cells, js_taken, JS_SIZE, JS_COUNT},
     [PICO8_SORTE_FQ] = {"interface fq", "place fq", fq_cells, fq_taken, FQ_SIZE, FQ_COUNT},
     [PICO8_SORTE_MH] = {"interface mh", "place mh", mh_cells, mh_taken, MH_SIZE, MH_COUNT},
@@ -61,11 +51,7 @@ static int g_ready;
  * qu'un initialiseur statique ne ferait pas. */
 static void init_once(void) {
     if (g_ready) return;
-    for (int s = 0; s < PICO8_SORTE_COUNT; s++) {
-        pico8_slot_zone_init(&g_zones[s], SORTES[s].zone_name, SORTES[s].cells, SORTES[s].taken,
-                             SORTES[s].size, SORTES[s].count);
-        g_handles[s] = pico8_zone_choisie_slot(&g_zones[s]);
-    }
+    pico8_zone_sortes_init(SORTES, PICO8_SORTE_COUNT, g_zones, g_handles);
     g_ready = 1;
 }
 

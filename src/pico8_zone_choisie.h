@@ -26,6 +26,24 @@ pico8_zone_choisie_t pico8_zone_choisie_bump(pico8_bump_zone_t *bump);
  * grow est refuse, rendre rend la place. */
 pico8_zone_choisie_t pico8_zone_choisie_slot(pico8_slot_zone_t *slot);
 
+/* Le grow d'une poignee sur places : assert, rend NULL. */
+unsigned char *pico8_zone_grow_refusee(const pico8_zone_choisie_t *z, unsigned char *p,
+                                       size_t old_n, size_t new_n);
+
+/* Une sorte de places ; place_name NULL quand la place n'est pas une arene. */
+typedef struct {
+    const char *zone_name;
+    const char *place_name;
+    pico8_zone_cell_t *cells;
+    unsigned char *taken;
+    size_t size;
+    size_t count;
+} pico8_zone_sorte_t;
+
+/* Initialise zones[i] sur s[i] et range dans handles[i] sa poignee, pour i < n. */
+void pico8_zone_sortes_init(const pico8_zone_sorte_t *s, int n, pico8_slot_zone_t *zones,
+                            pico8_zone_choisie_t *handles);
+
 /* Poignee sur la generation courante d'une zone a deux bouts, rangee dans
  * un stockage a part : un champ de plus dans pico8_zone_choisie_t grossirait
  * la tete de chaque arene, et les places sont taillees au plus juste. */

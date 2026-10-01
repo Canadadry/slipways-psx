@@ -15,14 +15,14 @@ static unsigned char *bump_grow(const pico8_zone_choisie_t *z, unsigned char *p,
     return q;
 }
 
-static void bump_release(const pico8_zone_choisie_t *z, unsigned char *p) {
+static void release_rien(const pico8_zone_choisie_t *z, unsigned char *p) {
     (void)z;
     (void)p;
 }
 
 pico8_zone_choisie_t pico8_zone_choisie_bump(pico8_bump_zone_t *bump) {
     assert(bump != NULL && "poignee sur une zone absente");
-    pico8_zone_choisie_t z = {bump_alloc, bump_grow, bump_release, bump, NULL};
+    pico8_zone_choisie_t z = {bump_alloc, bump_grow, release_rien, bump, NULL};
     return z;
 }
 
@@ -31,8 +31,8 @@ static unsigned char *slot_alloc(const pico8_zone_choisie_t *z, size_t n) {
     return pico8_slot_zone_alloc(z->slot);
 }
 
-static unsigned char *slot_grow(const pico8_zone_choisie_t *z, unsigned char *p,
-                                size_t old_n, size_t new_n) {
+unsigned char *pico8_zone_grow_refusee(const pico8_zone_choisie_t *z, unsigned char *p,
+                                       size_t old_n, size_t new_n) {
     (void)z;
     (void)p;
     (void)old_n;
@@ -47,8 +47,16 @@ static void slot_release(const pico8_zone_choisie_t *z, unsigned char *p) {
 
 pico8_zone_choisie_t pico8_zone_choisie_slot(pico8_slot_zone_t *slot) {
     assert(slot != NULL && "poignee sur une zone absente");
-    pico8_zone_choisie_t z = {slot_alloc, slot_grow, slot_release, NULL, slot};
+    pico8_zone_choisie_t z = {slot_alloc, pico8_zone_grow_refusee, slot_release, NULL, slot};
     return z;
+}
+
+void pico8_zone_sortes_init(const pico8_zone_sorte_t *s, int n, pico8_slot_zone_t *zones,
+                            pico8_zone_choisie_t *handles) {
+    for (int i = 0; i < n; i++) {
+        pico8_slot_zone_init(&zones[i], s[i].zone_name, s[i].cells, s[i].taken, s[i].size, s[i].count);
+        handles[i] = pico8_zone_choisie_slot(&zones[i]);
+    }
 }
 
 static pico8_bascule_zone_t *bascule_of(const pico8_zone_choisie_t *z) {
@@ -69,7 +77,7 @@ static unsigned char *bascule_grow(const pico8_zone_choisie_t *z, unsigned char 
 const pico8_zone_choisie_t *pico8_zone_choisie_bascule(pico8_zone_choisie_bascule_t *storage,
                                                        pico8_bascule_zone_t *zone) {
     assert(storage != NULL && zone != NULL && "poignee sur une zone absente");
-    pico8_zone_choisie_t z = {bascule_alloc, bascule_grow, bump_release, NULL, NULL};
+    pico8_zone_choisie_t z = {bascule_alloc, bascule_grow, release_rien, NULL, NULL};
     storage->handle = z;
     storage->zone = zone;
     return &storage->handle;

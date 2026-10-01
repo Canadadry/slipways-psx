@@ -111,6 +111,10 @@ void pico8_bascule_zone_basculer(pico8_bascule_zone_t *zone) {
     zone->en_attente = 1;
 }
 
+int pico8_bascule_zone_en_attente(const pico8_bascule_zone_t *zone) {
+    return zone->en_attente;
+}
+
 /* Pas de seconde moitie sous ASan : les generations alternent deja entre les
  * bouts. Angle mort : un pointeur garde a travers deux bascules retombe sur
  * le bout reutilise et ne plante plus. */
