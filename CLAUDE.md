@@ -2,7 +2,7 @@
 
 ## Le portage
 
-- Cible active : **PC via raylib, rendu logiciel** — voir le `README`. Portage littéral, fonction par fonction, de `pico8/lua.lua` (la source décompilée du cart), pas une réécriture depuis le document de conception. Les objets du jeu sont des structs C plates : un noyau commun (`pico8_struct_header_t`), un archétype `static const` par sorte, des composants par pointeur.
+- Cible active : **PC via raylib, rendu logiciel** — voir le `README`. Le C est la référence : le jeu est couvert par les e2e, et `pico8/lua.lua` (la source décompilée du cart) reste comme archive. Les objets du jeu sont des structs C plates : un noyau commun (`pico8_struct_header_t`), un archétype `static const` par sorte, des composants par pointeur.
 - PSX est **en pause**, pas abandonné : on y revient quand une version PC/C est jouable de bout en bout. `psx-hello/` est un projet de test du toolchain — voir `docs/psx-hello-world.md`.
 - L'audio (`sfx`, `music`) est **hors périmètre**, pas reporté.
 
@@ -21,6 +21,6 @@
 
 ## Commentaires
 
-Un commentaire ne reste que s'il porte l'une de ces quatre choses : le sens d'un nom minifié (→ `docs/glossaire-noms.md`), un écart connu avec le cart (→ `docs/trous-de-portage.md`, référencé par un `/* TROU-7 */` nu), un piège qu'on réintroduirait (un `assert` porteur de message, sinon 40 mots), ou un contrat C que le nom ne dit pas (qui libère la mémoire, ce que rend la fonction si le champ manque). `TODO` reste autorisé. Dans un `Makefile`, seule l'aide à la lecture d'une commande reste. Tout le reste va dans le message de commit.
+Un commentaire ne reste que s'il porte l'une de ces trois choses : un écart connu avec le cart (→ `docs/trous-de-portage.md`, référencé par un `/* TROU-7 */` nu), un piège qu'on réintroduirait (un `assert` porteur de message, sinon 40 mots), ou un contrat C que le nom ne dit pas (qui libère la mémoire, ce que rend la fonction si le champ manque). `TODO` reste autorisé. Dans un `Makefile`, seule l'aide à la lecture d'une commande reste. Tout le reste va dans le message de commit.
 
 Pour reprendre un fichier déjà écrit : skill `reprendre-les-commentaires`.
