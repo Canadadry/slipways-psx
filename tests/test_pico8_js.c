@@ -725,6 +725,9 @@ static void test_dk(void) {
         const pico8_ents_t *jo;
         int j;
 
+        /* The frame between two games: each `jl()` hands its ~90 planets
+         * to the exit queue, which only a frame empties. */
+        pico8_cart_vider_file_sortie();
         start_title();
         nj = title_button(i);
         pico8_eu(nj);
@@ -1762,6 +1765,38 @@ static void test_js_places_after_restart(void) {
     assert(js_places() == title);
 }
 
+static int rangee_places(void) {
+    return pico8_zone_interface_vivantes(PICO8_SORTE_RANGEE);
+}
+
+/* `ix[2].hb` rebuilds its icon row in a place of its own, given back as
+ * soon as the next `hb` replaces it, and at `jl()` with its button. */
+static void test_ix2_row_places(void) {
+    void *ix[4];
+    int title;
+    int once;
+    int i;
+
+    start_title();
+    one_frame();
+    title = rangee_places();
+    start_game();
+    one_frame();
+    assert(ix_buttons(ix) == 4);
+    cls_of(ix[1])->hb(ix[1]);
+    once = rangee_places();
+    for (i = 0; i < 5; i++) {
+        cls_of(ix[1])->hb(ix[1]);
+        assert(rangee_places() == once && "the replaced row gives its place back on the spot");
+    }
+    pico8_he(&js_of(ix[1])->header);
+    one_frame();
+    assert(rangee_places() == once - 1 && "the button takes its row's place along");
+    start_title();
+    one_frame();
+    assert(rangee_places() == title);
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -1799,6 +1834,7 @@ int main(void) {
     in_fresh_child(test_pj_are_structs);
     in_fresh_child(test_js_places_come_back);
     in_fresh_child(test_js_places_after_restart);
+    in_fresh_child(test_ix2_row_places);
 
     printf("test_pico8_js: all tests passed\n");
     return 0;

@@ -39,6 +39,7 @@ typedef struct {
     const pico8_df_entry_t *nk;
     pico8_fixed_t fx;
     pico8_lq_t *lq;
+    const pico8_zone_choisie_t *lq_place; /* where `lq` lives; NULL when `lq` is */
     pico8_struct_header_t *fo;
     pico8_fixed_t jh;
     int has_jh;
@@ -102,6 +103,8 @@ void pico8_jo_pq(pico8_jo_t *self);
  * descriptor to name. */
 int pico8_jo_hd_dispatch(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra);
 void pico8_jo_hb_dispatch(pico8_struct_header_t *self);
+/* Gives back the place of `lq` and sets `lq` to nil; the planet stays. */
+void pico8_jo_rendre_dispatch(pico8_struct_header_t *self);
 pico8_down_t pico8_jo_gv_dispatch(pico8_struct_header_t *self, const pico8_struct_header_t *s);
 void pico8_jo_hk_dispatch(pico8_struct_header_t *self, pico8_fixed_t yr);
 void pico8_jo_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra);

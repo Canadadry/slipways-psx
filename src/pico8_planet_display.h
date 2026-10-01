@@ -12,8 +12,8 @@
  * for the value-returning functions), and an absent or wrong-kind field
  * reads as absent rather than crashing. */
 
-/* TROU-7 */
-/* Rebinds `self.lq` to a fresh row; the previous one is dropped. */
+/* Rebinds `self.lq` to a fresh row in a place of its own, and gives the
+ * previous row's place back on the spot: nothing reads it any more. */
 void pico8_jo_hb(pico8_jo_t *self);
 
 /* Builds its rows, their texts and tuples in the frame zone and hands them

@@ -21,7 +21,12 @@ const pico8_zone_choisie_t *pico8_ui_button_place(pico8_sorte_t sorte) {
 }
 
 static void pico8_ui_button_rendre_js(pico8_struct_header_t *self) {
-    pico8_zone_arene_rendre(((pico8_js_t *)self)->place);
+    pico8_js_t *js = (pico8_js_t *)self;
+
+    if (js->lq_place != NULL) {
+        pico8_zone_arene_rendre(js->lq_place);
+    }
+    pico8_zone_arene_rendre(js->place);
 }
 
 static void pico8_ui_button_rendre_fq(pico8_struct_header_t *self) {
@@ -90,6 +95,7 @@ static pico8_js_t *pico8_js_struct_new(const pico8_js_keys_t *keys) {
     self->place = place;
     pico8_ke_struct_init(&self->header, &g_js_struct_class, pico8_js_def.me, pico8_js_def.t);
     self->lq = NULL;
+    self->lq_place = NULL;
     self->mb = 0;
     self->h_ = NULL;
     self->has_h_ = 0;

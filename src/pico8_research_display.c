@@ -11,7 +11,6 @@
 #include "pico8_str.h"
 #include "pico8_tech_gate.h"
 #include "pico8_zone_frame.h"
-#include "pico8_zone_transitoire.h"
 
 /* In the frame zone. */
 static char *pico8_hp_jb_join(const pico8_hp_t *self) {
@@ -125,8 +124,8 @@ static pico8_jb_item_t pico8_jo_ex_fixed(pico8_fixed_t x) {
     return (pico8_jb_item_t){.is_fixed = 1, .fixed = x};
 }
 
-pico8_lq_t *pico8_jo_ex(const pico8_ptrs_t *is, const pico8_fixed_t *o, pico8_fixed_t jq, pico8_fixed_t mj,
-                               pico8_fixed_t d) {
+pico8_lq_t *pico8_jo_ex(const pico8_zone_choisie_t *zone, const pico8_ptrs_t *is, const pico8_fixed_t *o,
+                        pico8_fixed_t jq, pico8_fixed_t mj, pico8_fixed_t d) {
     pico8_lq_cell_t *l;
     int l_count = 0;
     int l_cap;
@@ -254,7 +253,7 @@ pico8_lq_t *pico8_jo_ex(const pico8_ptrs_t *is, const pico8_fixed_t *o, pico8_fi
                                "is a miscount of that size");
     keys.items = l;
     keys.count = l_count;
-    result = pico8_lq_new(&pico8_zone_transitoire, &keys);
+    result = pico8_lq_new(zone, &keys);
     return result;
 }
 
@@ -280,7 +279,7 @@ pico8_lq_t *pico8_hp_lq(pico8_hp_t *self) {
         jq = (po1 > pico8_fixed_from_int(1)) ? po1 : pico8_fixed_from_int(1);
     }
 
-    l = pico8_jo_ex(is, self->has_o ? &self->o : NULL, jq, pico8_fixed_from_int(0), pico8_fixed_from_int(1));
+    l = pico8_jo_ex(pico8_zone_frame(), is, self->has_o ? &self->o : NULL, jq, pico8_fixed_from_int(0), pico8_fixed_from_int(1));
     if (l == NULL) {
         return NULL;
     }

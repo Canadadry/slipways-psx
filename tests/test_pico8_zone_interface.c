@@ -60,7 +60,7 @@ static int case_js_place_full(void) {
 }
 
 static int case_rangee_place_full(void) {
-    pico8_zone_alloc(pico8_zone_interface_place(PICO8_SORTE_RANGEE), 768);
+    pico8_zone_alloc(pico8_zone_interface_place(PICO8_SORTE_RANGEE), 1184);
     return 0;
 }
 

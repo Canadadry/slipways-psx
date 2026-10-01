@@ -46,6 +46,7 @@ static const pico8_struct_class_t g_jo_struct_class = {
     .hd = pico8_jo_hd_dispatch,
     .hk = pico8_jo_hk_dispatch,
     .hb = pico8_jo_hb_dispatch,
+    .rendre = pico8_jo_rendre_dispatch,
     .ldown = pico8_jo_ldown_dispatch,
     .gv = pico8_jo_gv_dispatch,
     .kf = pico8_jo_kf_dispatch,
@@ -79,6 +80,7 @@ void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, con
     self->nk = NULL;
     self->fx = 0;
     self->lq = NULL;
+    self->lq_place = NULL;
     self->fo = NULL;
     self->jh = 0;
     self->has_jh = 0;

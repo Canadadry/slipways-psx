@@ -21,6 +21,7 @@
 #include "pico8_slipway.h"
 #include "pico8_str.h"
 #include "pico8_tech_gate.h"
+#include "pico8_ui_button.h"
 #include "pico8_zone_frame.h"
 
 /* `kw` as `lq:mn` reads it, `{qe=kw.qe}` (`mu` is never read there), in
@@ -40,6 +41,7 @@ void pico8_jo_hb(pico8_jo_t *self) {
     const pico8_fixed_t *qe = NULL;
     pico8_fixed_t mu = pico8_fixed_from_int(0);
     pico8_lq_t *lq_result;
+    const pico8_zone_choisie_t *place;
 
     if (self == NULL) {
         return;
@@ -52,9 +54,28 @@ void pico8_jo_hb(pico8_jo_t *self) {
     }
     by_list = self->by;
 
-    lq_result = pico8_jo_ex(jy_list, qe, mu, pico8_fixed_from_int(by_list != NULL ? by_list->count : 0),
-                             pico8_fixed_from_int(0));
+    place = pico8_ui_button_place(PICO8_SORTE_RANGEE);
+    lq_result = pico8_jo_ex(place, jy_list, qe, mu, pico8_fixed_from_int(by_list != NULL ? by_list->count : 0),
+                            pico8_fixed_from_int(0));
+    if (lq_result == NULL) {
+        pico8_zone_arene_rendre(place);
+        place = NULL;
+    }
+    if (self->lq_place != NULL) {
+        pico8_zone_arene_rendre(self->lq_place);
+    }
     self->lq = lq_result;
+    self->lq_place = place;
+}
+
+void pico8_jo_rendre_dispatch(pico8_struct_header_t *self) {
+    pico8_jo_t *jo = (pico8_jo_t *)self;
+
+    if (jo->lq_place != NULL) {
+        pico8_zone_arene_rendre(jo->lq_place);
+    }
+    jo->lq = NULL;
+    jo->lq_place = NULL;
 }
 
 typedef struct {

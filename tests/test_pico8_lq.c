@@ -38,6 +38,7 @@
 #include "../src/pico8_vec.h"
 #include "../src/pico8_zone.h"
 #include "../src/pico8_zone_choisie.h"
+#include "../src/pico8_zone_frame.h"
 #include "../src/pico8_zone_transitoire.h"
 
 /* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
@@ -480,8 +481,8 @@ static void test_jo_ex(void) {
         assert(p->has_o);
         o = p->o;
         for (b = 0; b < sizeof jqs / sizeof jqs[0]; b++) {
-            const void *lq = pico8_jo_ex(is, &o, pico8_fixed_from_int(jqs[b]), pico8_fixed_from_int((int)b % 3),
-                                         pico8_fixed_from_int((int)b % 2));
+            const void *lq = pico8_jo_ex(pico8_zone_frame(), is, &o, pico8_fixed_from_int(jqs[b]),
+                                         pico8_fixed_from_int((int)b % 3), pico8_fixed_from_int((int)b % 2));
             assert(lq != NULL);
             assert(as_lq(lq)->has_c == (jqs[b] > 5));
             if (jqs[b] > 5) {
@@ -491,11 +492,12 @@ static void test_jo_ex(void) {
         }
     }
     {
-        const void *lq = pico8_jo_ex(NULL, &o, pico8_fixed_from_int(2), 0, pico8_fixed_from_int(1));
+        const void *lq =
+            pico8_jo_ex(pico8_zone_frame(), NULL, &o, pico8_fixed_from_int(2), 0, pico8_fixed_from_int(1));
         assert(lq != NULL);
         h = fold_row(h, lq);
     }
-    assert(pico8_jo_ex(NULL, NULL, pico8_fixed_from_int(1), 0, 0) == NULL);
+    assert(pico8_jo_ex(pico8_zone_frame(), NULL, NULL, pico8_fixed_from_int(1), 0, 0) == NULL);
     check("jo.ex", h, JO_EX_HASH);
 }
 
@@ -977,6 +979,30 @@ static void in_fresh_child(void (*test)(void)) {
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
 }
 
+/* The largest row `jo:hb` can build: a planet of `r.w`, so two `ml`,
+ * with the most wants a project has and `jq` 5, the most drawn one by one.
+ * It fits in one row place. */
+static void test_jo_ex_largest_row_fits_a_place(void) {
+    const pico8_ptrs_t *is = NULL;
+    const pico8_zone_choisie_t *place;
+    pico8_fixed_t o;
+    int r_w;
+    int k;
+
+    for (k = 1; pico8_gb_at(k) != NULL; k++) {
+        const pico8_hp_t *p = pico8_gb_at(k);
+        if (p->i != NULL && (is == NULL || p->i->count > is->count)) {
+            is = p->i;
+        }
+    }
+    assert(is != NULL && is->count == 2 && "the most wants a project has; a longer `i` needs a bigger row place");
+    assert(pico8_r_lookup("w", &r_w));
+    o = pico8_fixed_from_int(r_w);
+    place = pico8_ui_button_place(PICO8_SORTE_RANGEE);
+    assert(pico8_jo_ex(place, is, &o, pico8_fixed_from_int(5), 0, 0) != NULL);
+    pico8_zone_arene_rendre(place);
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -990,6 +1016,7 @@ int main(void) {
     pico8_cart_load();
     in_fresh_child(test_constructions);
     in_fresh_child(test_jo_ex);
+    in_fresh_child(test_jo_ex_largest_row_fits_a_place);
     in_fresh_child(test_hp_lq_and_copy);
     in_fresh_child(test_calls);
     in_fresh_child(test_planet_panel);

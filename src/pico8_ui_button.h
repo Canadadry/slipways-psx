@@ -30,7 +30,8 @@ typedef void (*pico8_js_fn)(pico8_js_t *self);
  * the `my` closures of `cr` and `jo:fe` captured, not cart fields. `ra` and
  * `qf` are NULL (nil) or point at `ra_box`/`qf_box`, copies of the values the
  * keys carried. The struct, its `kq`, `lq`, `h_` and `jb` live in `place`,
- * given back by the exit queue once `he` takes the button out. */
+ * given back by the exit queue once `he` takes the button out -- but for an
+ * `lq` a `hb` rebuilt, which lives in `lq_place` and goes with the button. */
 struct pico8_js {
     pico8_struct_header_t header;
     const pico8_zone_choisie_t *place;
@@ -39,6 +40,7 @@ struct pico8_js {
     const pico8_js_def_t *def;
     pico8_fixed_t fa;
     pico8_lq_t *lq;
+    const pico8_zone_choisie_t *lq_place; /* NULL: `lq` is in `place` */
     pico8_fixed_t mb;
     pico8_lq_t *h_;
     int has_h_; /* 0: nil; 1: present, and a NULL `h_` is `false` */
