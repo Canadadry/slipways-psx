@@ -19,7 +19,8 @@
 
 /* `ra` starts on the archetype's, shared by every `ie`; `hb` rebinds it to
  * the cursor. `gy` and `id` are no members: the module's shared state, read
- * by pico8_ie_gy()/pico8_ie_id(). Nothing frees the struct: TROU-7. */
+ * by pico8_ie_gy()/pico8_ie_id(). The struct lives in the game generation
+ * current at its construction, and dies with it. */
 typedef struct {
     pico8_struct_header_t header;
     const pico8_ie_def_t *def;
@@ -61,8 +62,8 @@ typedef struct {
     pico8_jb_t *jb;
 } pico8_ie_keys_t;
 
-/* `keys` NULL means none. The struct registers itself into `hv`/`cv` through
- * `lt`, and nothing frees it. */
+/* `keys` NULL means none. The struct, made in the current game generation,
+ * registers itself into `hv`/`cv` through `lt`. */
 pico8_ie_t *pico8_ie_new(const pico8_ie_keys_t *keys);
 
 /* `ie.eh`, `pico8_ie_def.eh`, for `_init` to point `ie.gy` at: an alias,
@@ -80,14 +81,14 @@ int pico8_ie_id(pico8_fixed_t *out);
 void pico8_ie_set_gy(const pico8_vec_t *gy);
 
 /* Reveals the icon once, claiming the next slot off the shared `ie.gy`
- * cursor. Requires pico8_research_icon_init(). */
+ * cursor: a box made in the current game generation. Requires
+ * pico8_research_icon_init(). */
 void pico8_ie_hb(pico8_ie_t *self);
 
-/* TROU-7 */
 /* Returns a fresh instance of the class `self.ke` names, for the caller to
  * hold as a placement in progress, or an absent value when `self.ke` is not
- * a class; bumps the shared `ie.id` either way. Requires
- * pico8_research_icon_init(). */
+ * a class; bumps the shared `ie.id` either way. The instance and its `id`
+ * share a grab arena. Requires pico8_research_icon_init(). */
 pico8_down_t pico8_ie_ldown(pico8_ie_t *self);
 
 /* By value, one per read: each member copied off the chain of the class

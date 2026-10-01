@@ -17,10 +17,14 @@
 #include "../src/pico8_gen.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_input.h"
+#include "../src/pico8_layout.h"
+#include "../src/pico8_map_tables.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_planet_family.h"
+#include "../src/pico8_research_icon.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_zone_choisie.h"
+#include "../src/pico8_zone_frame.h"
 #include "../src/pico8_zone_partie.h"
 #include "../src/pico8_zone_sizes.h"
 
@@ -159,6 +163,34 @@ static size_t octets_de_l_economie(void) {
     return octets_d_un_bloc(sizeof *fm) + octets_d_un_bloc(sizeof *fm->invented);
 }
 
+/* Octets des sept icones `ie` de `hv`, dans l'ordre de `dr` : structure,
+ * bulle `jb` refaite dans une arene de la zone frame, et la boite de `ie.gy`
+ * de chaque icone revelee. */
+static size_t octets_des_icones(void) {
+    const pico8_ents_t *hv = pico8_hv();
+    const pico8_zone_choisie_t *mesure = pico8_zone_arene_prendre(pico8_zone_frame(), "mesure des bulles", 16384);
+    const size_t tete = pico8_zone_arene_prise(mesure);
+    size_t octets = 0;
+    int k = 0;
+    for (int i = 0; hv != NULL && i < hv->count; i++) {
+        const pico8_ie_t *ie = (const pico8_ie_t *)hv->items[i];
+        if (ie->header.cls != pico8_ie_struct_class()) continue;
+        assert(k < PICO8_DR_COUNT && "plus d'icones que de bulles dans dr");
+        (void)pico8_jb_new(mesure, &pico8_dr_table[k]);
+        octets += octets_d_un_bloc(sizeof *ie);
+        if (ie->has_kh && ie->kh) octets += octets_d_un_bloc(sizeof(pico8_vec_t));
+        k++;
+    }
+    assert(k == PICO8_DR_COUNT && "eu fait une icone par bulle de dr");
+    return octets + pico8_zone_arene_prise(mesure) - tete;
+}
+
+/* Terme « recherche et economie » de la generation : ce que `eu` fait pour
+ * `fm` et les icones. */
+static size_t octets_de_la_recherche_et_de_l_economie(void) {
+    return octets_de_l_economie() + octets_des_icones();
+}
+
 static int case_prise_and_max(void) {
     const size_t g = etats_de_bw();
     load_cart_and_start();
@@ -171,7 +203,7 @@ static int case_prise_and_max(void) {
     (void)counting_block();
     assert(pico8_zone_partie_prise() == partie + 64);
     pico8__update60();
-    assert(pico8_zone_partie_prise() == g + octets_des_registres() + octets_des_planetes() + octets_de_l_economie() + 64);
+    assert(pico8_zone_partie_prise() == g + octets_des_registres() + octets_des_planetes() + octets_de_la_recherche_et_de_l_economie() + 64);
     assert(pico8_zone_partie_max() == partie + 64);
     pico8_cart_shutdown();
     assert(pico8_zone_partie_prise() == 0);
