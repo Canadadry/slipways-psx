@@ -89,7 +89,7 @@ static void test_one_occurrence_per_category_in_table_order(void) {
     write_file(SRC "/e.h", "typedef struct {\n    pico8_struct_" "header_t header;\n    pico8_" "ptrs_t *oe;\n} pico8_"
                            "jo_t;\n");
     write_file(SRC "/p.h", "typedef struct {\n    pico8_" "jo_t jo;\n} pico8_" "qh_t;\n");
-    write_file(SRC "/v.h", "pico8_qy_t *pico8_" "g__mm(void *self);\n");
+    write_file(SRC "/v.h", "pico8_qy_t *pico8_" "g__mm(void *" "self);\n");
     write_file(ATT, "q1\tx\n");
     write_file(SRC "/a.h", "#include \"b.h\"\n");
     write_file(SRC "/b.h", "#include \"a.h\"\n");
@@ -106,6 +106,7 @@ static void test_one_occurrence_per_category_in_table_order(void) {
                                   "aiguillage-nom\t1\t1\n"
                                   "un-ou-faux\t1\t1\n"
                                   "void-ptr\t1\t1\n"
+                                  "void-self\t1\t1\n"
                                   "ptrs-entité\t1\t1\n"
                                   "noyau-inclut\t1\t1\n"
                                   "atteinte-à-prouver\t1\t1\n"
@@ -185,10 +186,11 @@ static void test_exclusions_edit_the_text_not_the_whole_line(void) {
 
 static void test_overlapping_categories_count_each_but_footer_counts_distinct_lines(void) {
     setup();
-    write_file(SRC "/o.h", "const pico8_str_seq_t *pico8_jo_get" "_n" "u(const void *self);\n");
+    write_file(SRC "/o.h", "const pico8_str_seq_t *pico8_jo_get" "_n" "u(const void *" "self);\n");
     assert(run_residue(TREE) == 0);
     assert(strcmp(read_file(OUT), "accesseurs-q6\t1\t1\n"
                                   "n" "u\t1\t1\n"
+                                  "void-self\t1\t1\n"
                                   "résidu 2 : 1 ligne(s), 1 fichier(s)\n") == 0);
 }
 
@@ -242,7 +244,7 @@ static void test_registres_reads_declaration_points_outside_entity_types(void) {
                            "ptrs_t *oe;\n} pico8_" "ke_t;\n"
                            "typedef struct {\n    pico8_" "ptrs_t layers[16];\n    pico8_" "ptrs_t *qy;\n} pico8_"
                            "emitter_t;\n"
-                           "typedef struct {\n    void *(*new_entity)(int k);\n    void (*kj)(void *self);\n} k_t;\n"
+                           "typedef struct {\n    void *(*new_entity)(int k);\n    void (*kj)(void *" "self);\n} k_t;\n"
                            "const pico8_" "ptrs_t *pico8_" "hv(void);\n"
                            "pico8_lq_t *pico8_" "jo_ex(const pico8_" "ptrs_t *is,\n    int o);\n"
                            "typedef int (*pico8_" "fn)(const pico8_" "ptrs_t *p);\n");
@@ -521,39 +523,64 @@ static void test_registres_sees_split_braces_unions_and_attributes(void) {
 
 static void test_void_ptr_reads_joined_public_prototypes(void) {
     setup();
-    write_file(SRC "/v.h", "pico8_qy_t *pico8_" "g__mm(void *self);\n"
+    write_file(SRC "/v.h", "pico8_qy_t *pico8_" "g__mm(void *" "self);\n"
                            "const void *pico8_" "ha_pz(void);\n"
                            "int pico8_" "two(int a,\n"
                            "    void *b);\n");
     assert(run_residue("--check void-ptr " TREE) == 1);
-    assert(strcmp(read_file(OUT), "void-ptr: " SRC "/v.h:1:pico8_qy_t *pico8_" "g__mm(void *self);\n"
+    assert(strcmp(read_file(OUT), "void-ptr: " SRC "/v.h:1:pico8_qy_t *pico8_" "g__mm(void *" "self);\n"
                                   "void-ptr: " SRC "/v.h:2:const void *pico8_" "ha_pz(void);\n"
                                   "void-ptr: " SRC "/v.h:3:int pico8_" "two(int a,\n"
                                   "résidu gardé (void-ptr) : 3 ligne(s)\n") == 0);
     setup();
-    write_file(SRC "/v.h", "void pico8_" "ei_dispatch(void *self, int x);\n"
-                           "int pico8_jo_get" "_fx(const void *self);\n"
+    write_file(SRC "/v.h", "void pico8_" "ei_dispatch(void *" "self, int x);\n"
+                           "int pico8_jo_get" "_fx(const void *" "self);\n"
                            "pico8_ptrs_t pico8_" "jp_ptrs(int a, void *ctx);\n"
                            "void pico8_" "gn(int a, void *r_ctx);\n"
                            "typedef int pico8_" "fn(void *e);\n"
-                           "typedef struct {\n    void (*kj)(void *self, int x);\n    void *(*new_entity)(void *k);\n} k_t;\n");
+                           "typedef struct {\n    void (*kj)(void *" "self, int x);\n    void *(*new_entity)(void *k);\n} k_t;\n");
     write_file(SRC "/pico8_ptrs.h", "void pico8_" "ptrs_add(pico8_ptrs_t *p, void *e);\n");
     write_file(SRC "/p.c", "void pico8_" "x(void *e);\n");
     write_file(SRC "/i.h", "static inline int f(int x) {\nreturn pico8_" "g((void *)0) + x;\n}\n");
     assert(run_residue(TREE) == 0);
     assert(strcmp(read_file(OUT), "accesseurs-q6\t1\t1\n"
+                                  "void-ptr\t1\t1\n"
+                                  "void-self\t3\t1\n"
                                   "registres\t1\t1\n"
-                                  "résidu 2 : 2 ligne(s), 1 fichier(s)\n") == 0);
+                                  "résidu 2 : 4 ligne(s), 1 fichier(s)\n") == 0);
+}
+
+/* Un receveur d'objet du jeu non type : membre, typedef, definition, locale,
+ * const autour de l'etoile, src/ comme tests/. Limite nommee : un void *
+ * d'un autre nom (e, ctx) n'est pas lu. */
+static void test_void_self_sees_every_untyped_receiver(void) {
+    setup();
+    write_file(SRC "/s.h", "typedef void (*pico8_" "state_fn)(void *" "self, int t);\n"
+                           "struct k {\n    int (*has_hb)(const void *" "self);\n};\n");
+    write_file(SRC "/s.c", "static void pico8_" "bg_kj_dispatch(void *" "self) {\n}\n"
+                           "void (*draw)(void*" "self) = 0;\n"
+                           "int pico8_" "ga_mm(void * const " "self_ptr);\n");
+    write_file(SRC "/n.c", "static int step(void *e, void *ctx);\n"
+                           "static void f(pico8_struct_" "header_t *self);\n");
+    write_file(TST "/t.c", "static void spy(void *" "self, int x) {\n}\n");
+    assert(run_residue("--check void-self " TREE) == 1);
+    assert(strcmp(read_file(OUT), "void-self: " SRC "/s.c:1:static void pico8_" "bg_kj_dispatch(void *" "self) {\n"
+                                  "void-self: " SRC "/s.c:3:void (*draw)(void*" "self) = 0;\n"
+                                  "void-self: " SRC "/s.c:4:int pico8_" "ga_mm(void * const " "self_ptr);\n"
+                                  "void-self: " SRC "/s.h:1:typedef void (*pico8_" "state_fn)(void *" "self, int t);\n"
+                                  "void-self: " SRC "/s.h:3:    int (*has_hb)(const void *" "self);\n"
+                                  "void-self: " TST "/t.c:1:static void spy(void *" "self, int x) {\n"
+                                  "résidu gardé (void-self) : 6 ligne(s)\n") == 0);
 }
 
 static void test_detail_prints_r2_sites_under_void_ptr_and_the_info_line(void) {
     setup();
-    write_file(R2, "pico8_" "f\tsrc/x.c\tamont(void *self)\tpreuve\n");
+    write_file(R2, "pico8_" "f\tsrc/x.c\tamont(void *" "self)\tpreuve\n");
     write_file(SRC "/pico8_game_data.h", "int a;\nint b;\n");
     write_file(SRC "/v.h", "void pico8_" "g(void *e);\n");
     assert(run_residue("--detail " TREE) == 0);
     assert(strcmp(read_file(OUT), "void-ptr\t" SRC "/v.h\t1\n"
-                                  "void-ptr-r2\tpico8_" "f\tamont(void *self)\n"
+                                  "void-ptr-r2\tpico8_" "f\tamont(void *" "self)\n"
                                   "info\t" SRC "/pico8_game_data.h\t2 lignes\n"
                                   "résidu 2 : 1 ligne(s), 1 fichier(s)\n") == 0);
 }
@@ -740,6 +767,7 @@ int main(void) {
     test_readers_see_qualifiers_split_declarations_and_nested_attributes();
     test_registres_sees_split_braces_unions_and_attributes();
     test_void_ptr_reads_joined_public_prototypes();
+    test_void_self_sees_every_untyped_receiver();
     test_detail_prints_r2_sites_under_void_ptr_and_the_info_line();
     test_attainment_list_counts_only_useful_lines();
     test_mutual_inclusion_counts_its_include_lines_in_the_footer();

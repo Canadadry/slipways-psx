@@ -398,7 +398,7 @@ static void test_hk(void) {
     check("hk", h, HK_HASH);
 }
 
-static uint32_t lu_step(uint32_t h, void *self, int jt, int want, const pico8_struct_class_t *iv_cls) {
+static uint32_t lu_step(uint32_t h, pico8_hy_t *self, int jt, int want, const pico8_struct_class_t *iv_cls) {
     int from = pico8_hv()->count;
     int got = pico8_hy_lu(self, pico8_fixed_from_int(jt));
     assert(got == want);

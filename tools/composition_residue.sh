@@ -43,10 +43,10 @@
 
 set -u
 
-CATEGORIES="parente lien-parent accesseurs-q6 défauts nu aiguillage-nom un-ou-faux void-ptr ptrs-entité registres noyau-inclut atteinte-à-prouver inclusion-mutuelle usage-mutuel"
+CATEGORIES="parente lien-parent accesseurs-q6 défauts nu aiguillage-nom un-ou-faux void-ptr void-self ptrs-entité registres noyau-inclut atteinte-à-prouver inclusion-mutuelle usage-mutuel"
 
 # Categories comptees dans le pied.
-SORTIE="parente lien-parent accesseurs-q6 défauts nu aiguillage-nom un-ou-faux void-ptr ptrs-entité registres noyau-inclut atteinte-à-prouver inclusion-mutuelle usage-mutuel"
+SORTIE="parente lien-parent accesseurs-q6 défauts nu aiguillage-nom un-ou-faux void-ptr void-self ptrs-entité registres noyau-inclut atteinte-à-prouver inclusion-mutuelle usage-mutuel"
 
 fail() {
     echo "composition_residue: $1" >&2
@@ -61,6 +61,7 @@ pattern() {
         nu) printf '%s\n' '\bnu\b|get_nu\b|_nu_(tags|items)\b' ;;
         aiguillage-nom) printf '%s\n' '\bhp_(pose|ho)\b|\bpico8_ho_gp_has\b|\bpico8_hp_(mr|gp)_names\b|(->|\.)(mr|gp)\b' ;;
         un-ou-faux) printf '%s\n' '\b(pk|fp)_is_bool\b' ;;
+        void-self) printf '%s\n' '\bvoid[[:space:]]*\*[[:space:]]*(const[[:space:]]+)?self' ;;
         noyau-inclut) printf '%s\n' '^#include "pico8_(game_data|map_tables|data_init)\.h"' ;;
         *) return 1 ;;
     esac
@@ -78,6 +79,11 @@ exclusion() {
         nu) printf '%s\n' "$NU_EXCLUSION" ;;
     esac
 }
+
+# void-self : un objet du jeu recu en void * sous le nom self (self_ptr
+# compris), ou que la ligne le declare : membre, typedef, prototype,
+# definition, locale ; const lu autour de l'etoile. Un void * d'un autre nom
+# n'est pas lu.
 
 # Le void *ctx des parcours porte un contexte, pas une entite. Ce sed-ci veut
 # le sed GNU (\b), comme les grep du script.
@@ -415,7 +421,7 @@ read_prototypes() {
         if (t ~ /^[ \t]*typedef/ || index(t, "void *") == 0) next
         if (!match(t, /(^|[^A-Za-z0-9_])pico8_[a-z0-9_]+\(/)) next
         name = substr(t, RSTART, RLENGTH - 1); sub(/^[^p]*/, "", name)
-        if (name ~ /_dispatch$/ || name ~ /_get_[a-z0-9_]+$/) next
+        if (name ~ /_get_[a-z0-9_]+$/) next
         print $1
     }' > "$work/void-ptr" || fail "echec de awk"
 }

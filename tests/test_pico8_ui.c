@@ -828,7 +828,7 @@ static uint32_t fold_ks_back(uint32_t h, void *e) {
 
 /* The component a host stores in itself: not shared with `other`, of the
  * same class, and inside the host's own `size` bytes. */
-static void assert_own_emitter(void *self, void *other, size_t size) {
+static void assert_own_emitter(pico8_struct_header_t *self, pico8_struct_header_t *other, size_t size) {
     pico8_struct_header_t *e = self;
     pico8_struct_header_t *o = other;
     const char *at = (const char *)e->emitter;
@@ -838,7 +838,7 @@ static void assert_own_emitter(void *self, void *other, size_t size) {
     assert(at >= (const char *)self && at < (const char *)self + size);
 }
 
-static void assert_own_probe(void *self, void *other, size_t size) {
+static void assert_own_probe(pico8_struct_header_t *self, pico8_struct_header_t *other, size_t size) {
     pico8_struct_header_t *e = self;
     pico8_struct_header_t *o = other;
     const char *at = (const char *)e->probe;
@@ -888,24 +888,24 @@ static void test_components_carried(void) {
         assert((header->probe != NULL) == probe[i]);
     }
 
-    assert_own_emitter(e[8], pico8_hj_new(NULL), sizeof(pico8_jo_t));
-    assert_own_emitter(e[9], pico8_pm_new(NULL), sizeof(pico8_jo_t));
-    assert_own_emitter(e[10], pico8_ga_new(NULL), sizeof(pico8_jo_t));
-    assert_own_emitter(e[13], pico8_mx_new(NULL), sizeof(pico8_jo_t));
-    assert_own_emitter(e[14], pico8_g__new(NULL), sizeof(pico8_g__t));
-    assert_own_emitter(e[15], pico8_fv_new(), sizeof(pico8_g__t));
-    assert_own_probe(e[5], pico8_qh_new(NULL), sizeof(pico8_jo_t));
-    assert_own_probe(e[6], pico8_nl_new(NULL), sizeof(pico8_jo_t));
-    assert_own_probe(e[7], pico8_os_new(NULL), sizeof(pico8_jo_t));
-    assert_own_probe(e[8], pico8_hj_new(NULL), sizeof(pico8_jo_t));
-    assert_own_probe(e[9], pico8_pm_new(NULL), sizeof(pico8_jo_t));
-    assert_own_probe(e[11], pico8_nr_new(NULL), sizeof(pico8_jo_t));
-    assert_own_probe(e[12], pico8_fr_new(NULL), sizeof(pico8_jo_t));
-    assert_own_probe(e[13], pico8_mx_new(NULL), sizeof(pico8_jo_t));
-    assert_own_probe(e[14], pico8_g__new(NULL), sizeof(pico8_g__t));
-    assert_own_probe(e[15], pico8_fv_new(), sizeof(pico8_g__t));
-    assert_own_probe(e[19], pico8_jc_new(NULL), sizeof(pico8_jc_t));
-    assert_own_probe(e[23], pico8_mz_new(), sizeof(pico8_mz_t));
+    assert_own_emitter(e[8], &pico8_hj_new(NULL)->header, sizeof(pico8_jo_t));
+    assert_own_emitter(e[9], &pico8_pm_new(NULL)->header, sizeof(pico8_jo_t));
+    assert_own_emitter(e[10], &pico8_ga_new(NULL)->header, sizeof(pico8_jo_t));
+    assert_own_emitter(e[13], &pico8_mx_new(NULL)->header, sizeof(pico8_jo_t));
+    assert_own_emitter(e[14], &pico8_g__new(NULL)->header, sizeof(pico8_g__t));
+    assert_own_emitter(e[15], &pico8_fv_new()->header, sizeof(pico8_g__t));
+    assert_own_probe(e[5], &pico8_qh_new(NULL)->header, sizeof(pico8_jo_t));
+    assert_own_probe(e[6], &pico8_nl_new(NULL)->header, sizeof(pico8_jo_t));
+    assert_own_probe(e[7], &pico8_os_new(NULL)->header, sizeof(pico8_jo_t));
+    assert_own_probe(e[8], &pico8_hj_new(NULL)->header, sizeof(pico8_jo_t));
+    assert_own_probe(e[9], &pico8_pm_new(NULL)->header, sizeof(pico8_jo_t));
+    assert_own_probe(e[11], &pico8_nr_new(NULL)->header, sizeof(pico8_jo_t));
+    assert_own_probe(e[12], &pico8_fr_new(NULL)->header, sizeof(pico8_jo_t));
+    assert_own_probe(e[13], &pico8_mx_new(NULL)->header, sizeof(pico8_jo_t));
+    assert_own_probe(e[14], &pico8_g__new(NULL)->header, sizeof(pico8_g__t));
+    assert_own_probe(e[15], &pico8_fv_new()->header, sizeof(pico8_g__t));
+    assert_own_probe(e[19], &pico8_jc_new(NULL)->header, sizeof(pico8_jc_t));
+    assert_own_probe(e[23], &pico8_mz_new()->header, sizeof(pico8_mz_t));
 }
 
 /* The kind words the frozen hashes fold before a value: any other value
