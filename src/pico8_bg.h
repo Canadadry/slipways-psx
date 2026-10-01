@@ -12,11 +12,13 @@
  * crashing. `hd=1` is flat data, not a method: `bg` always answers the hover
  * test, since nothing lies behind the background to miss. */
 
-/* Nothing frees the struct: TROU-7. */
+/* `mq` is a copy of the mouse position `rdown`/`hq` were last given, not
+ * that box. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_struct_header_t header;
     const pico8_bg_def_t *def;
-    pico8_vec_t *mq;
+    pico8_vec_t mq;
+    int has_mq; /* 0: `mq` is nil (no `rdown` yet, or a nil `rp`), read as the zero vector */
     int m_;
 } pico8_bg_t;
 
@@ -49,7 +51,7 @@ void pico8_bg_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_bg_t *self);
  * `lheld`, or Lua nil when neither class is registered. Nothing frees it. */
 pico8_down_t pico8_bg_ldown(pico8_bg_t *self);
 
-/* Stores `rp` as-is and returns `self`, which becomes `ui.rheld` for as long
+/* Copies `rp` into `mq` and returns `self`, which becomes `ui.rheld` for as long
  * as the button stays down. */
 pico8_down_t pico8_bg_rdown(pico8_bg_t *self, pico8_vec_t *rp);
 

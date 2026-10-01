@@ -51,13 +51,19 @@ static const pico8_struct_class_t g_bg_struct_class = {
     .hq = pico8_bg_hq_dispatch,
 };
 
+/* A nil `rp` reads as the zero vector, as an unset `mq` does. */
+static void pico8_bg_set_mq(pico8_bg_t *self, const pico8_vec_t *rp) {
+    self->has_mq = rp != NULL;
+    self->mq = rp != NULL ? *rp : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+}
+
 static pico8_bg_t *pico8_bg_struct_new(void) {
     pico8_bg_t *self = malloc(sizeof *self);
 
     pico8_ke_struct_init(&self->header, &g_bg_struct_class, pico8_bg_def.me, pico8_bg_def.t);
     self->def = &pico8_bg_def;
     self->header.fa = &self->def->fa;
-    self->mq = NULL;
+    pico8_bg_set_mq(self, NULL);
     self->header.m_ = &self->m_;
     self->m_ = 0;
 #ifdef PICO8_CLASS_COVERAGE
@@ -181,7 +187,7 @@ pico8_down_t pico8_bg_rdown(pico8_bg_t *self, pico8_vec_t *rp) {
     pico8_down_t out = {0, NULL};
 
     if (self != NULL) {
-        self->mq = rp;
+        pico8_bg_set_mq(self, rp);
         out.stop = 1;
         out.held = &self->header;
     }
@@ -200,16 +206,13 @@ void pico8_bg_hq(pico8_bg_t *self, pico8_vec_t *rp) {
         return;
     }
 
-    mq = self->mq != NULL ? *self->mq : zero;
+    mq = self->has_mq ? self->mq : zero;
     rp_vec = rp != NULL ? *rp : zero;
     if (pico8_mo() != NULL) {
-        /* TROU-7 */
-        pico8_vec_t *v_new = malloc(sizeof *v_new);
-        *v_new = pico8_vec_sub(mq, rp_vec);
         mo = pico8_mo_qb();
         assert(mo != NULL && "mo: the placeholder has no writer; a write before jl() stops the run");
-        mo->v = v_new;
+        pico8_qb_set_v(mo, pico8_vec_sub(mq, rp_vec));
     }
 
-    self->mq = rp;
+    pico8_bg_set_mq(self, rp);
 }

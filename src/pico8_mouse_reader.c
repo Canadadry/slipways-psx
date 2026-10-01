@@ -86,16 +86,12 @@ pico8_nf_t *pico8_nf_new(void) {
 }
 
 void pico8_nf_ph(const pico8_input_t *input, pico8_nf_t *self) {
-    pico8_vec_t *ra;
-
     if (self == NULL || input == NULL) {
         return;
     }
 
-    /* TROU-7 */
-    ra = malloc(sizeof *ra);
-    *ra = pico8_vec_v(pico8_fixed_from_int(pico8_stat(input, 32)), pico8_fixed_from_int(pico8_stat(input, 33)));
-    self->ra = ra;
+    self->ra_own = pico8_vec_v(pico8_fixed_from_int(pico8_stat(input, 32)), pico8_fixed_from_int(pico8_stat(input, 33)));
+    self->ra = &self->ra_own;
 
     if (g_nf_up) {
         pico8_bu(input, &g_nf_l, 1);

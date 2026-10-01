@@ -748,8 +748,13 @@ static int same_vec(pico8_vec_t a, pico8_vec_t b) {
     return a.x == b.x && a.y == b.y;
 }
 
+/* The cart keeps the box of `mp`, the port a copy of it. */
+static int holds_copy_of(const pico8_vec_t *ra, const pico8_vec_t *m) {
+    return ra != NULL && ra != m && same_vec(*ra, *m);
+}
+
 /* Over nothing, `hq` hangs on `re` the slipway's own `{ra,p}`, rewritten in
- * place at each call: `ra` the very `mp` it got, `p` its own `mp/128`,
+ * place at each call: `ra` a copy of the `mp` it got, `p` its own `mp/128`,
  * registered nowhere; another `jc` has its own; the generation does not
  * move. */
 static void test_hq_mouse_point(void) {
@@ -776,7 +781,7 @@ static void test_hq_mouse_point(void) {
     hq_over(a, NULL, m1);
     r1 = as_jc(a)->re;
     assert(r1 != NULL && re_kind(a) == RE_THROWAWAY);
-    assert(mouse_point_ra(r1) == m1);
+    assert(holds_copy_of(mouse_point_ra(r1), m1));
     p1 = vec_of(mouse_point_p(r1));
     assert(same_vec(p1, pico8_vec_div(vec_of(mouse_point_ra(r1)), pico8_fixed_from_int(128))));
     assert(mouse_point_p(r1) != m1);
@@ -791,7 +796,7 @@ static void test_hq_mouse_point(void) {
     hq_over(a, NULL, m2);
     r2 = as_jc(a)->re;
     assert(r2 == r1 && re_kind(a) == RE_THROWAWAY && "the mouse point is the slipway's own, rewritten in place");
-    assert(mouse_point_ra(r2) == m2);
+    assert(holds_copy_of(mouse_point_ra(r2), m2));
     assert(same_vec(vec_of(mouse_point_p(r2)), pico8_vec_div(*m2, pico8_fixed_from_int(128))));
     assert(!same_vec(vec_of(mouse_point_p(r2)), p1));
     h = fold_jc(h, a);
@@ -808,13 +813,13 @@ static void test_hq_mouse_point(void) {
     hq_over(b, NULL, m1);
     rb = as_jc(b)->re;
     assert(rb != NULL && rb != r1 && as_jc(a)->re == r1);
-    assert(mouse_point_ra(rb) == m1 && same_vec(vec_of(mouse_point_p(rb)), p1));
-    assert(mouse_point_ra(r1) == m2 && "another slipway's hq leaves this one's point as it was");
+    assert(holds_copy_of(mouse_point_ra(rb), m1) && same_vec(vec_of(mouse_point_p(rb)), p1));
+    assert(holds_copy_of(mouse_point_ra(r1), m2) && "another slipway's hq leaves this one's point as it was");
     h = fold_jc(h, b);
 
     hq_over(a, target, vec_ref_fixed(vec_of(as_jo(target)->ra)));
     assert(as_jc(a)->re == target && re_kind(a) == RE_PLANET);
-    assert(mouse_point_ra(rb) == m1);
+    assert(holds_copy_of(mouse_point_ra(rb), m1));
     h = fold_jc(h, a);
     check("mouse point", h, MOUSE_POINT_HASH);
 

@@ -38,6 +38,11 @@
 #include "../src/pico8_vec.h"
 #include "../src/pico8_zone_transitoire.h"
 
+/* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
+static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {
+    return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
+}
+
 
 #define BUILT_HASH 0x4194DF7Bu
 #define LIFE_HASH 0x6D8FAD96u
@@ -466,7 +471,7 @@ static void test_life(void) {
     assert(mo_ra != NULL);
     mp = vec_ref(pico8_vec_add(*mo_ra, vec_xy(12, 108)));
     cls_of(placed)->hq(placed, mp, vec_ref(vec_xy(64, 64)));
-    assert(as_qh(placed)->ra == mp);
+    assert(ra_copies(as_qh(placed)->ra, mp));
     set_credits(200);
     assert(cls_of(placed)->ey == pico8_d__dispatch);
     h = pico8_d_(placed) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);

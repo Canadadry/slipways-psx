@@ -34,6 +34,11 @@
 #include "../src/pico8_struct.h"
 #include "../src/pico8_vec.h"
 
+/* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
+static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {
+    return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
+}
+
 
 #define BUILT_HASH 0x8355850Bu
 #define LIFE_HASH 0xC8987757u
@@ -440,7 +445,7 @@ static void test_life(void) {
     placed = build_plate();
     mp = vec_ref(vec_xy(7680, 7552));
     cls_of(placed)->hq(&placed->header, mp, vec_ref(vec_xy(64, 64)));
-    assert(placed->ra == mp);
+    assert(ra_copies(placed->ra, mp));
     h = fold_vec(h, placed->p);
     h = fnv(h, et_state(placed));
     h = fold_et(h, placed);

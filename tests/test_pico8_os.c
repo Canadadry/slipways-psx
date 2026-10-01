@@ -38,6 +38,11 @@
 #include "../src/pico8_vec.h"
 #include "../src/pico8_zone_transitoire.h"
 
+/* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
+static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {
+    return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
+}
+
 
 /* The tag class instances carried, which the frozen hashes fold: any
  * other value moves every *_HASH. */
@@ -503,7 +508,7 @@ static void test_life(void) {
     placed = build_processor();
     mp = vec_ref(vec_xy(7680, 7552));
     cls_of(placed)->hq(placed, mp, vec_ref(vec_xy(64, 64)));
-    assert(as_qh(placed)->ra == mp);
+    assert(ra_copies(as_qh(placed)->ra, mp));
     h = fold_vec(h, as_qh(placed)->p);
     h = fnv(h, et_state(as_qh(placed)));
     h = fold_et(h, as_qh(placed));

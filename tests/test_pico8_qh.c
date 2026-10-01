@@ -41,6 +41,11 @@
 #include "../src/pico8_vec.h"
 #include "../src/pico8_wormhole.h"
 
+/* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
+static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {
+    return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
+}
+
 
 /* The tag class instances carried, which the frozen hashes fold: any
  * other value moves every *_HASH. */
@@ -380,12 +385,12 @@ static void set_credits(int n) {
     pico8_fm_hy()->nz = pico8_fixed_from_int(n);
 }
 
-/* What `bv` left on a laboratory: `ra` (the very REF passed), `p`, and
+/* What `bv` left on a laboratory: `ra` (a copy of what was passed), `p`, and
  * what `et` is. */
 static uint32_t fold_held(uint32_t h, void *e, const pico8_vec_t *mp) {
     const pico8_jo_t *qh = as_qh(e);
 
-    assert(qh->ra == mp);
+    assert(ra_copies(qh->ra, mp));
     h = fold_vec(h, qh->p);
     h = fnv(h, et_state(qh));
     return fold_et(h, qh);

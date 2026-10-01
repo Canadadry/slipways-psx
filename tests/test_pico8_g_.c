@@ -38,6 +38,11 @@
 #include "../src/pico8_ui.h"
 #include "../src/pico8_vec.h"
 
+/* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
+static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {
+    return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
+}
+
 
 /* The tag class instances carried, which the frozen hashes fold: any
  * other value moves every *_HASH. */
@@ -515,7 +520,7 @@ static pico8_vec_t *mouse_at(pico8_vec_t at) {
 }
 
 /* `hq` at `at`, the raw mouse at `rp`: `et`'s kind, the target's `fo`,
- * `ra` the very REF passed, `p`. */
+ * `ra` a copy of what was passed, `p`. */
 static uint32_t fold_hq(uint32_t h, pico8_g__t *e, pico8_vec_t at, int rp, uint32_t want_kind) {
     pico8_vec_t *mp = mouse_at(at);
     uint32_t kind;
@@ -525,7 +530,7 @@ static uint32_t fold_hq(uint32_t h, pico8_g__t *e, pico8_vec_t at, int rp, uint3
     printf("[hq] et kind %u\n", (unsigned)kind);
     fflush(stdout);
     assert(kind == want_kind);
-    assert(e->ra == mp);
+    assert(ra_copies(e->ra, mp));
     assert(kind == 1 || et_fo(e) == e);
     h = fnv(h, kind);
     h = fold_et(h, e);

@@ -34,8 +34,8 @@ void pico8_jc_hg_add(pico8_jc_hg_t *hg, const char *id);
 int pico8_jc_hg_has(const pico8_jc_hg_t *hg, const char *id);
 
 /* The `{ra,p}` `jc:hq` hangs on `re` over nothing: the slipway's own,
- * rewritten in place at each call; `ra` is the caller's `mp` itself, not a
- * copy, `p` points at the slipway's `point_p`. */
+ * rewritten in place at each call; `ra` points at the slipway's `point_ra`,
+ * a copy of the caller's `mp` (NULL for a nil `mp`), `p` at its `point_p`. */
 typedef struct {
     pico8_struct_header_t header;
     const pico8_vec_t *ra;
@@ -44,9 +44,10 @@ typedef struct {
 
 /* `ts` is this slipway's own, made by `pico8_jc_pq`, which also empties
  * `hg_own` and points `hg` at it (NULL before). `od` and `et` (NULL is nil)
- * live in the probe; `probe` points at `probe_own`, `point.p` at `point_p`:
- * never copy the struct. Built with `ts` in a grab arena (`pico8_jo_prise_ouvrir`),
- * which a refused slipway's `rendre` puts back on the free grabs. */
+ * live in the probe; `probe` points at `probe_own`, `point.ra` and `point.p`
+ * at `point_ra` and `point_p`: never copy the struct. Built with `ts` in a
+ * grab arena (`pico8_jo_prise_ouvrir`), which a refused slipway's `rendre`
+ * puts back on the free grabs. */
 typedef struct {
     pico8_struct_header_t header;
     const pico8_jc_def_t *def;
@@ -64,6 +65,7 @@ typedef struct {
     pico8_probe_t *probe;
     pico8_probe_t probe_own;
     pico8_jc_mouse_point_t point;
+    pico8_vec_t point_ra;
     pico8_vec_t point_p;
 } pico8_jc_t;
 

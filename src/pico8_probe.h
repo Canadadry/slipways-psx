@@ -15,8 +15,8 @@
 
 /* TROU-7 */
 /* The emitter's `k_` points at
- * `pico8_g__k__seq` (`pico8_fv_k__seq` for `fv`); `ra` is the very REF `bv`
- * was passed, aliased. `emitter` and `probe` point at `emitter_own` and
+ * `pico8_g__k__seq` (`pico8_fv_k__seq` for `fv`); `ra` and `p` point at
+ * the probe's `bv_ra` and `bv_p` once `bv` ran. `emitter` and `probe` point at `emitter_own` and
  * `probe_own`: never copy the struct. `m_` is `fv`'s: a `g_` has no `m_`
  * link and leaves it indeterminate. */
 typedef struct {

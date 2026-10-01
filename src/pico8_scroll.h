@@ -14,8 +14,9 @@
  * rather than crashing. */
 
 /* `v`, `p` and `ra` start on the vectors of the archetype, which every qb
- * shares: none is ever modified in place, only rebound. Nothing frees the
- * struct: TROU-7. */
+ * shares and nothing writes; the first `ph` points them at `v_own`, `p_own`
+ * and `ra_own`, rewritten in place from then on. Never copy the struct.
+ * Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_struct_header_t header;
     const pico8_qb_def_t *def;
@@ -23,6 +24,9 @@ typedef struct {
     pico8_fixed_t ma;
     const pico8_vec_t *p;
     const pico8_vec_t *ra;
+    pico8_vec_t p_own;
+    pico8_vec_t v_own;
+    pico8_vec_t ra_own;
 } pico8_qb_t;
 
 /* Calls pico8_pi_init(), and requires pico8_ke_init() to have run --
@@ -39,10 +43,12 @@ const pico8_struct_class_t *pico8_qb_struct_class(void);
 /* The struct registers itself through `lt`, and nothing frees it. */
 pico8_qb_t *pico8_qb_new(void);
 
-/* Rebinds `p`, `v` and `ra` to fresh heap vectors each tick -- these are
- * whole-member writes, not component mutations, so no earlier reader of
- * the old vectors sees the new values. */
+/* Nothing outside the camera keeps `p`, `v` or `ra`: each tick rewrites
+ * them in place. */
 void pico8_qb_ph(const pico8_input_t *input, pico8_qb_t *self);
+
+/* `mo.v=v` (bg:hq): writes `v_own` and points `v` at it. */
+void pico8_qb_set_v(pico8_qb_t *self, pico8_vec_t v);
 
 /* `fy` is `dc`'s `ci[o]`, never nil: the cart's `fy or 1` fallback has no
  * caller, so there is no separate _default entry point here. */

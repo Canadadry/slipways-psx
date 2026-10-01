@@ -38,6 +38,11 @@
 #include "../src/pico8_vec.h"
 #include "../src/pico8_zone_transitoire.h"
 
+/* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
+static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {
+    return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
+}
+
 
 #define BUILT_HASH 0xA5047E01u
 #define LIFE_HASH 0x8B3BFBB2u
@@ -436,7 +441,7 @@ static void place(void *e, int x, int y) {
     assert(mo_ra != NULL);
     mp = vec_ref(pico8_vec_add(*mo_ra, vec_xy(x, y)));
     cls_of(e)->hq(e, mp, vec_ref(vec_xy(64, 64)));
-    assert(as_qh(e)->ra == mp);
+    assert(ra_copies(as_qh(e)->ra, mp));
 }
 
 /* A slipway drawn from `from` by its `ldown`, aimed by `jc:hq` at a point

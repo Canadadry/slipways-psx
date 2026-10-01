@@ -109,9 +109,9 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
     if (hovered != NULL && hovered->cls->gv != NULL) {
         self->re = hovered;
     } else {
-        self->point.ra = mp;
-        self->point_p = pico8_vec_div(mp != NULL ? *mp : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0)),
-                                      pico8_fixed_from_int(128));
+        self->point_ra = mp != NULL ? *mp : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+        self->point.ra = mp != NULL ? &self->point_ra : NULL;
+        self->point_p = pico8_vec_div(self->point_ra, pico8_fixed_from_int(128));
         self->re = &self->point.header;
     }
 
@@ -378,6 +378,7 @@ static pico8_jc_t *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     self->point.header.p = &self->point.p;
     self->point.ra = NULL;
     self->point.p = &self->point_p;
+    self->point_ra = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     self->point_p = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     if (keys != NULL && keys->qu != NULL) {
         assert(jc_is_endpoint_class(keys->qu->cls) &&

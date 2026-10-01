@@ -15,9 +15,9 @@
 #include "pico8_ui_button.h"
 #include "pico8_vec.h"
 #include "pico8_wormhole.h"
+#include "pico8_zone_frame.h"
 #include "pico8_zone_interface.h"
 #include "pico8_zone_partie.h"
-#include "pico8_zone_transitoire.h"
 
 static int g_ui_up = 0;
 static pico8_struct_header_t *g_je = NULL;
@@ -127,7 +127,7 @@ static pico8_ui_t *pico8_ui_struct_new(void) {
     self->ic = NULL;
     self->ic_own.layer_count = PICO8_UI_IC_LAYERS;
     for (i = 0; i < PICO8_UI_IC_LAYERS; i++) {
-        pico8_ents_init(&self->ic_own.layers[i], &pico8_zone_transitoire);
+        pico8_ents_init(&self->ic_own.layers[i], pico8_zone_frame());
     }
     self->o_ = NULL;
     self->gj = NULL;
@@ -217,7 +217,6 @@ void pico8_ui_lj(pico8_mem_t *mem, pico8_ui_t *self) {
     pico8_ents_t *le_ptr_before;
     int le_count;
     pico8_vec_t qa;
-    pico8_vec_t *heap_qa;
     int hit;
     const pico8_nf_t *je;
     const pico8_qb_t *mo;
@@ -233,10 +232,8 @@ void pico8_ui_lj(pico8_mem_t *mem, pico8_ui_t *self) {
     mo = pico8_mo_qb();
     qa = pico8_vec_add(pico8_ui_vec_or_zero(je != NULL ? je->ra : NULL),
                        pico8_ui_vec_or_zero(mo != NULL ? mo->ra : NULL));
-    /* TROU-7 */
-    heap_qa = malloc(sizeof *heap_qa);
-    *heap_qa = qa;
-    self->qa = heap_qa;
+    self->qa_own = qa;
+    self->qa = &self->qa_own;
 
     pico8_ui_gw(mem, self);
 
@@ -293,8 +290,7 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
     }
 
     for (i = 0; i < PICO8_UI_IC_LAYERS; i++) {
-        pico8_ents_free(&self->ic_own.layers[i]);
-        pico8_ents_init(&self->ic_own.layers[i], &pico8_zone_transitoire);
+        pico8_ents_init(&self->ic_own.layers[i], pico8_zone_frame());
     }
     self->ic = &self->ic_own;
     self->o_ = NULL;

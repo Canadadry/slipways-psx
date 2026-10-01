@@ -980,6 +980,106 @@ static void message_box_hold_ne_bouge_pas_sans_action(void) {
     assert(r[0].partie == r[1].partie && "la zone partie prend des octets par tick");
 }
 
+/* f44-45 : la boite de l'annee retenue, sans action. Les boites refaites
+ * par tick sont reecrites en place : elles gardent leur adresse. */
+static void message_box_hold_reecrit_les_boites_par_tick_en_place(void) {
+    demarrer("message_box_hold");
+    jouer_jusqu_a(44);
+    const pico8_qb_t *mo = pico8_mo_qb();
+    const pico8_nf_t *je = pico8_je_nf();
+    const pico8_ui_t *ok = pico8_ok();
+    assert(mo != NULL && je != NULL && ok != NULL);
+    const void *avant[5] = {mo->p, mo->v, mo->ra, je->ra, ok->qa};
+    size_t prise = pico8_zone_partie_prise();
+    jouer_jusqu_a(45);
+    assert(pico8_mo_qb() == mo && pico8_je_nf() == je && pico8_ok() == ok);
+    const void *apres[5] = {mo->p, mo->v, mo->ra, je->ra, ok->qa};
+    int stables = 0;
+    for (int i = 0; i < 5; i++) stables += avant[i] == apres[i];
+    printf("  message_box_hold f44-45 : %d / 5 boites par tick a la meme adresse\n", stables);
+    fflush(stdout);
+    assert(stables == 5 && "mo.p, mo.v, mo.ra, je.ra et ok.qa doivent etre reecrits en place");
+    assert(pico8_zone_partie_prise() == prise && "la zone partie prend des octets par tick");
+}
+
+static int sans_bouton(const pico8_input_frame_t *f) {
+    if (f->mouse_buttons != 0) return 0;
+    for (int b = 0; b < 6; b++) {
+        if (f->dpad[b]) return 0;
+    }
+    return 1;
+}
+
+static int frame_sans_action(const pico8_input_t *input, int i) {
+    const pico8_input_frame_t *f = &input->frames[i];
+    const pico8_input_frame_t *avant = &input->frames[i - (i > 0)];
+    return i > 0 && sans_bouton(f) && sans_bouton(avant) && f->mouse_x == avant->mouse_x &&
+           f->mouse_y == avant->mouse_y;
+}
+
+/* Une fenetre : au moins deux frames sans bouton ni D-pad, souris immobile,
+ * la frame d'avant comprise. La generation de sa deuxieme frame (la premiere
+ * peut encore vider ce que l'action d'avant a laisse) est celle de sa
+ * derniere. Sans `relever`, dont le vidage rendrait la generation en avance. */
+static int fenetres_sans_action_de_l_e2e_courant(void) {
+    demarrer(g_e2e);
+    int debut = -1;
+    size_t deuxieme = 0;
+    int fenetres = 0;
+    for (int i = 0; i < g_input->frame_count; i++) {
+        int calme = frame_sans_action(g_input, i);
+        jouer_jusqu_a(i);
+        size_t prise = pico8_zone_partie_prise();
+        if (calme && debut < 0) debut = i;
+        if (calme && i == debut + 1) deuxieme = prise;
+        int fin = calme && (i + 1 == g_input->frame_count || !frame_sans_action(g_input, i + 1));
+        if (fin && i > debut) {
+            if (prise != deuxieme) {
+                fprintf(stderr, "  %s f%d-%d : partie %lu -> %lu\n", g_e2e, debut, i, (unsigned long)deuxieme,
+                        (unsigned long)prise);
+                assert(0 && "la generation monte pendant une fenetre sans action");
+            }
+            fenetres++;
+        }
+        if (!calme || fin) debut = -1;
+    }
+    return fenetres;
+}
+
+/* Rend ce que rend `test`, joue dans un enfant (moins de 256). */
+static int compter_dans_un_enfant(int (*test)(void)) {
+    fflush(stdout);
+    pid_t pid = fork();
+    assert(pid >= 0);
+    if (pid == 0) {
+        int n = test();
+        fflush(stdout);
+        _exit(n < 255 ? n : 255);
+    }
+    int status;
+    assert(waitpid(pid, &status, 0) == pid);
+    assert(WIFEXITED(status) && WEXITSTATUS(status) < 255 && "un releve de fenetres sans action a echoue");
+    return WEXITSTATUS(status);
+}
+
+/* Rend le nombre de fenetres sans action des e2e de tests/e2e/. */
+static int fenetres_sans_action_sur_tous_les_e2e(void) {
+    DIR *dir = opendir("tests/e2e");
+    struct dirent *ent;
+    int total = 0;
+    assert(dir != NULL);
+    while ((ent = readdir(dir)) != NULL) {
+        size_t len = strlen(ent->d_name);
+        if (len <= 5 || strcmp(ent->d_name + len - 5, ".json") != 0) continue;
+        assert(len - 5 < sizeof g_e2e);
+        memcpy(g_e2e, ent->d_name, len - 5);
+        g_e2e[len - 5] = '\0';
+        total += compter_dans_un_enfant(fenetres_sans_action_de_l_e2e_courant);
+    }
+    closedir(dir);
+    return total;
+}
+
 /* f25-94 : « p40 » s'efface ; sa rangee rendue peut faire baisser `rangee`. */
 static void empty_planet_fade_ne_monte_pas(void) {
     const int frames[] = {25, 94};
@@ -1198,6 +1298,10 @@ int main(void) {
     dans_un_enfant(pliage_abandonne_se_relit_pendant_le_clic);
     dans_un_enfant_qui_meurt_par_asan(pliage_abandonne_meurt_avec_sa_partie);
     dans_un_enfant(message_box_hold_ne_bouge_pas_sans_action);
+    int fenetres = fenetres_sans_action_sur_tous_les_e2e();
+    printf("  generation constante sur %d fenetres sans action des 26 e2e\n", fenetres);
+    assert(fenetres > 0);
+    dans_un_enfant(message_box_hold_reecrit_les_boites_par_tick_en_place);
     dans_un_enfant(empty_planet_fade_ne_monte_pas);
     dans_un_enfant(tech_geoharvesting_burst_rend_l_eclat);
     dans_un_enfant(ecran_titre_sans_entree_atteint_un_regime);

@@ -84,9 +84,6 @@ void pico8_qb_ph(const pico8_input_t *input, pico8_qb_t *self) {
     const pico8_vec_seq_t *pc = NULL;
     pico8_vec_t p;
     pico8_vec_t v;
-    pico8_vec_t *p_new;
-    pico8_vec_t *v_new;
-    pico8_vec_t *ra_new;
     int b;
 
     if (self == NULL || input == NULL) {
@@ -118,17 +115,17 @@ void pico8_qb_ph(const pico8_input_t *input, pico8_qb_t *self) {
     p.x = pico8_fixed_mid(pico8_fixed_from_int(-64), pico8_fixed_from_int(320), p.x);
     p.y = pico8_fixed_mid(pico8_fixed_from_int(-64), pico8_fixed_from_int(320), p.y);
 
-    /* TROU-7 */
-    p_new = malloc(sizeof *p_new);
-    *p_new = p;
-    v_new = malloc(sizeof *v_new);
-    *v_new = v;
-    self->p = p_new;
-    self->v = v_new;
+    self->p_own = p;
+    self->p = &self->p_own;
+    pico8_qb_set_v(self, v);
 
-    ra_new = malloc(sizeof *ra_new);
-    *ra_new = pico8_ma(p, (pico8_struct_header_t *)self);
-    self->ra = ra_new;
+    self->ra_own = pico8_ma(p, (pico8_struct_header_t *)self);
+    self->ra = &self->ra_own;
+}
+
+void pico8_qb_set_v(pico8_qb_t *self, pico8_vec_t v) {
+    self->v_own = v;
+    self->v = &self->v_own;
 }
 
 void pico8_qb_md(pico8_gfx_t *gfx, pico8_qb_t *self, pico8_fixed_t fy) {

@@ -145,7 +145,6 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     pico8_probe_t *probe;
     pico8_vec_t mp_vec;
     pico8_vec_t p_vec;
-    pico8_vec_t *p_heap;
     pico8_fixed_t nq;
     pico8_struct_header_t *c;
     pico8_struct_header_t *et;
@@ -158,10 +157,9 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     probe = self->probe;
     mp_vec = mp != NULL ? *mp : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     p_vec = pico8_vec_div(mp_vec, pico8_fixed_from_int(128));
-    /* TROU-7 */
-    p_heap = malloc(sizeof *p_heap);
-    *p_heap = p_vec;
-    probe_host_set_ra_p(self, mp, p_heap);
+    probe->bv_ra = mp_vec;
+    probe->bv_p = p_vec;
+    probe_host_set_ra_p(self, mp != NULL ? &probe->bv_ra : NULL, &probe->bv_p);
 
     c = NULL;
     nq = pico8_ij_ents(p_vec, pico8_cg("np"), &c);

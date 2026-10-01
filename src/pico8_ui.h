@@ -25,13 +25,17 @@ typedef struct {
 
 /* `le` of a new `ui` is `pico8_ui_le_shared()`, until `cj` or `pz`
  * replaces it with a list from `pico8_ui_le_new()`, given back when it is
- * replaced in turn or when its `ui` leaves (`rendre`, from `jl()`). `ic` is NULL until the first `gw`, then points at `ic_own`,
- * which every `gw` empties and refills. */
+ * replaced in turn or when its `ui` leaves (`rendre`, from `jl()`). `ic` is
+ * NULL until the first `gw`, then points at `ic_own`, whose layers every
+ * `gw` remakes in the frame zone. `qa` is NULL until the first `lj`, then
+ * points at `qa_own`, rewritten in place by each `lj`. Never copy the
+ * struct. */
 typedef struct {
     pico8_struct_header_t header;
     const pico8_ui_def_t *def;
     pico8_ents_t *le;
     pico8_vec_t *qa;
+    pico8_vec_t qa_own;
     pico8_ui_ic_t *ic;
     pico8_ui_ic_t ic_own;
     pico8_struct_header_t *o_; /* borrowed; nil once the exit queue gives it back */
