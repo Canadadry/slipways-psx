@@ -1262,3 +1262,35 @@ field	members_title_and_game.hd	hit_test_list	hd
 identity	c:test_score_panel.c@13293@F@test_life@cr	layout_block	cr
 identity	c:test_trade.c@g_kf_calls	g_accept_calls	lw
 identity	c:test_trade.c@F@count_kf	count_accept	lw
+
+# --- shadowing found by make rename-table-check -------------------------------
+# A local whose derived name is that of a function, type or static it can see.
+identity	c:test_game_zone.c@8251@F@case_prise_and_max@partie	game_zone_used_before	zone_partie
+identity	c:test_research_project.c@25365@F@test_jy_new_in_the_zone_passed@partie	game_zone_used_before	zone_partie
+identity	c:test_trade.c@11316@F@test_built_in_the_given_zone@partie	game_zone_used_before	zone_partie
+identity	c:test_layout_row.c@17277@F@test_hp_lq_and_copy@lq_t	row_keys	lq
+identity	c:test_help_screen.c@8683@F@test_built@hv	live	hv
+identity	c:test_probe.c@21932@F@test_fv@hv	live	hv
+identity	c:test_probe.c@24150@F@test_g__is_a_struct@hv	live	hv
+identity	c:test_ui.c@29685@F@test_ke_me_by_name@hv	live	hv
+identity	c:test_draw_layers_camera.c@1495@F@test_dc_kj_dispatches_mo_md_then_real_jo_kj@mo	camera	mo
+identity	c:menu.c@3921@F@pico8_cr@fm	economy	fm
+identity	c:score_panel.c@3328@F@pico8_pj_hb@fm	economy	fm
+identity	c:score_panel_display.c@6337@F@pico8_pj_ph@fm	economy	fm
+identity	c:ui.c@7866@F@pico8_ui_gw@je	mouse	je
+identity	c:ui.c@10044@F@pico8_ui_bh@je	mouse	je
+identity	c:test_score_panel.c@13213@F@test_life@ju	score_panel	ju
+identity	c:message_box.c@9838@F@pico8_pz@ok	ui	ok
+identity	c:test_ui.c@15672@F@test_left@ok	ui	ok
+identity	c:test_economy.c@15365@F@test_lj@need_qe	need_amount	qe
+identity	c:test_research_project.c@13698@F@test_gb@b	built	hp
+identity	c:test_trade.c@9245@F@test_kg@g	built_route	trade
+identity	c:test_allocator.c@11464@F@case_arena_spares_neighbour@places	neighbour_allocator	sorte
+
+# --- tmp/ binaries and outputs (tools/rename_strings.py) ------------------------
+# A binary takes the name of its cmd/ file, except frames: tmp/frames is the
+# folder of the e2e captures; the Makefile already calls it FRAMES_TOOL.
+file	tmp/pico8_frames	tmp/frames_tool
+# frames_ref.sh builds the replay driver of an old commit in a worktree: it
+# keeps the old name for a tree without the new rule, as it keeps src/main.c.
+site	tmp/pico8_replay@tools/frames_ref.sh	garde aussi tmp/pico8_replay pour un commit sans la règle tmp/replay

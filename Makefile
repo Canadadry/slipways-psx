@@ -106,12 +106,30 @@
 #                       (make rename-extract d'abord) : lignes identifiant de
 #                       docs/renommage.tsv, reste dans
 #                       tmp/ast_rename/remainder.tsv, hors suite
+# make rename-strings-test -> les tests de tools/rename_strings.py sur un
+#                       mini-arbre, dans make test
+# make rename-strings -> lignes chaîne et fichier de docs/renommage.tsv (clés,
+#                       symboles cités, noms de test, binaires de tmp/), un
+#                       site écrivain ou lecteur par fichier ; signalements
+#                       dans tmp/ast_rename/string_flags.tsv, hors suite
+# make rename-check-test -> les tests de tools/rename_check.py sur une
+#                       mini-extraction, dans make test
+# make rename-table-check -> contrôle mécanique de docs/renommage.tsv contre
+#                       l'extraction (make rename-extract, rename-derive) :
+#                       exhaustivité, collisions, masquages, mots réservés,
+#                       noms cibles de fichiers ; échoue sur une violation,
+#                       hors suite
+# make rename-slice-test -> les tests de tools/rename_slice.py, dans make test
+# make rename-slice MODULES="<module>..." -> les lignes identifiant renommées de
+#                       ces modules de docs/renommage.tsv (motifs du shell sur
+#                       la colonne module : game/planet*), au format de
+#                       rename-apply, dans tmp/ast_rename/slice.tsv, hors suite
 # make rename-apply TABLE=<table> -> renomme aux positions de l'AST les entrées
 #                       de la table (ancien, nouveau, fichier[, identité]) ;
 #                       n'écrit rien au premier refus, rapport dans
 #                       tmp/ast_rename/report.txt, hors suite
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -794,7 +812,7 @@ endif
 replay: $(TMP_DIR)/pico8_replay
 	./$(TMP_DIR)/pico8_replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard rename-derive-test
+test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard rename-derive-test rename-strings-test rename-check-test rename-slice-test
 
 test-all: test e2e
 
@@ -1116,6 +1134,32 @@ rename-derive:
 	python3 tools/rename_derive.py --declarations $(AST_RENAME_DIR)/declarations.tsv \
 	    --vocabulary docs/vocabulaire.md --overrides tools/rename_overrides.tsv \
 	    --output docs/renommage.tsv --remainder $(AST_RENAME_DIR)/remainder.tsv
+
+rename-strings-test:
+	python3 tests/test_rename_strings.py
+
+rename-strings:
+	@mkdir -p $(AST_RENAME_DIR)
+	python3 tools/rename_strings.py --root . --table docs/renommage.tsv \
+	    --vocabulary docs/vocabulaire.md --overrides tools/rename_overrides.tsv \
+	    --flags $(AST_RENAME_DIR)/string_flags.tsv
+
+rename-check-test:
+	python3 tests/test_rename_check.py
+
+rename-table-check:
+	python3 tools/rename_check.py --table docs/renommage.tsv \
+	    --declarations $(AST_RENAME_DIR)/declarations.tsv \
+	    --remainder $(AST_RENAME_DIR)/remainder.tsv --root .
+
+rename-slice-test:
+	python3 tests/test_rename_slice.py
+
+rename-slice:
+	@test -n "$(MODULES)" || { echo "usage: make rename-slice MODULES=\"<module>...\"" >&2; exit 1; }
+	@mkdir -p $(AST_RENAME_DIR)
+	python3 tools/rename_slice.py --table docs/renommage.tsv $(foreach m,$(MODULES),--module '$(m)') \
+	    -o $(AST_RENAME_DIR)/slice.tsv
 
 rename-apply:
 	@test -n "$(TABLE)" || { echo "usage: make rename-apply TABLE=<table>" >&2; exit 1; }

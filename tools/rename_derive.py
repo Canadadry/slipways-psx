@@ -21,7 +21,8 @@ KIND_LABELS = {
 DEFAULT_HEADER = [
     "# Table de renommage du plan 5 (docs/plan-5.md, étape 2b).",
     "# Statut : à valider",
-    "# Lignes identifiant écrites par `make rename-derive` (tools/rename_derive.py) :",
+    "# Lignes identifiant écrites par `make rename-derive` (tools/rename_derive.py),",
+    "# lignes chaîne et fichier par `make rename-strings` (tools/rename_strings.py) :",
     "# corriger docs/vocabulaire.md ou tools/rename_overrides.tsv, pas ces lignes.",
 ]
 
@@ -68,6 +69,9 @@ class Lexicon:
         self.entity_structs = set()  # structs that embed an entity header
         self.type_stems = set()  # new type names without `_t`: receiver types
         self.class_stems = set()  # new names of the classes that have a class table
+        self.strings = {}  # old string key -> (new, concept), for tools/rename_strings.py
+        self.files = {}    # old tmp/ path -> (new, concept), for tools/rename_strings.py
+        self.site_notes = {}  # "old@file" -> (note, concept), for tools/rename_strings.py
 
     def add_token(self, old, new, concept):
         key = tuple(split_tokens(old))
@@ -164,8 +168,10 @@ def strip_type(name):
 
 
 def read_overrides(path, lexicon):
-    """Override rows: kind (identity, name, field, token), key, new (`=`
-    keeps the old name), concept. They win over the vocabulary."""
+    """Override rows: kind (identity, name, field, token; string and file for
+    tools/rename_strings.py; site: a note on one file of a string
+    or file name), key, new (`=` keeps the old name), concept.
+    They win over the vocabulary."""
     with open(path, encoding="utf-8") as f:
         lines = f.read().splitlines()
     seen = {}
@@ -190,6 +196,12 @@ def read_overrides(path, lexicon):
             lexicon.members[(parent, name)] = (new, concept)
         elif kind == "token":
             lexicon.tokens[tuple(split_tokens(key))] = (tuple(split_tokens(new)), concept)
+        elif kind == "string":
+            lexicon.strings[key] = (new, concept)
+        elif kind == "file":
+            lexicon.files[key] = (new, concept)
+        elif kind == "site":
+            lexicon.site_notes[key] = (new, concept)
         else:
             raise SystemExit("%s:%d: unknown override kind %r" % (path, number, kind))
 

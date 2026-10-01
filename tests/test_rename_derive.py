@@ -400,6 +400,14 @@ class Derivation(unittest.TestCase):
         self.assertEqual(table["c:@T@pico8_state_fn"]["nouveau"], "state_fn_t")
         self.assertEqual(table["c:@T@giver_t"]["statut"], "conservé")
 
+    def test_string_file_and_site_overrides_leave_identifiers_alone(self):
+        row = self.new_name(decl("c:@F@pico8_jo_kj", "function", "pico8_jo_kj",
+                                 "src/game/planet.h", linkage="extern"),
+                            overrides="string\tpico8_jo_kj\tnope\t\n"
+                                      "file\ttmp/pico8_jo_kj\ttmp/nope\t\n"
+                                      "site\tpico8_jo_kj@Makefile\ta note\t\n")
+        self.assertEqual(row["nouveau"], "planet_draw")
+
     def test_an_override_key_given_twice_is_refused(self):
         result, _, _, _ = run([decl("c:@F@pico8_jo_kj", "function", "pico8_jo_kj",
                                     "src/game/planet.h", linkage="extern")],
