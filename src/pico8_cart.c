@@ -7,34 +7,29 @@
 #include "pico8_audio.h"
 #include "pico8_bg.h"
 #include "pico8_bootstrap.h"
-#include "pico8_class.h"
-#include "pico8_collect.h"
+#include "pico8_fm.h"
+#include "pico8_struct.h"
 #include "pico8_data_init.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_economy.h"
 #include "pico8_economy_score.h"
 #include "pico8_entity.h"
-#include "pico8_entity_geom.h"
 #include "pico8_fixed.h"
 #include "pico8_galaxy.h"
-#include "pico8_game_data.h"
 #include "pico8_gfx.h"
 #include "pico8_help.h"
 #include "pico8_hud.h"
 #include "pico8_ke.h"
 #include "pico8_layout.h"
-#include "pico8_list.h"
 #include "pico8_mem.h"
 #include "pico8_menu.h"
 #include "pico8_mouse_reader.h"
 #include "pico8_msgbox.h"
-#include "pico8_ob.h"
 #include "pico8_pi.h"
 #include "pico8_planet.h"
 #include "pico8_planet_family.h"
 #include "pico8_planet_family_trade.h"
 #include "pico8_probe.h"
-#include "pico8_research.h"
 #include "pico8_research_icon.h"
 #include "pico8_score_panel.h"
 #include "pico8_scroll.h"
@@ -42,28 +37,23 @@
 #include "pico8_trade.h"
 #include "pico8_ui.h"
 #include "pico8_ui_button.h"
-#include "pico8_value.h"
-#include "pico8_vec.h"
 #include "pico8_wormhole.h"
 
 /* pico8_data_init() and pico8_score_panel_init() each run further module
- * inits of their own (stash/research, score-panel display); listing those
+ * inits of their own (research, score-panel display); listing those
  * here would run them twice. */
 void pico8_cart_load(void) {
     pico8_mem_t *mem;
 
     pico8_ke_init();
+    assert(pico8_ke_ready() && "ke must be declared before every ke-descended class");
     pico8_qb_init();
     pico8_nf_init();
     pico8_ui_init();
-    assert(pico8_ke_class() != NULL && pico8_qb_class()->parent == pico8_ke_class() &&
-           pico8_nf_class()->parent == pico8_ke_class() && pico8_ui_class()->parent == pico8_ke_class() &&
-           "ke must be declared before every ke-descended class");
 
     pico8_layout_init();
     pico8_pi_init();
     pico8_trade_init();
-    pico8_game_data_init();
 
     pico8_js_init();
     pico8_fq_init();
@@ -75,33 +65,26 @@ void pico8_cart_load(void) {
 
     mem = pico8_dispatch_mem();
     if (mem != NULL) {
-        pico8_data_init(mem);
+        pico8_data_init();
     }
 
     pico8_jo_init();
     pico8_jc_init();
     pico8_planet_family_init();
-    assert(pico8_qh_class()->parent == pico8_jo_class() && pico8_ga_class()->parent == pico8_jo_class() &&
+    assert(pico8_qh_ready() && pico8_ga_ready() && pico8_jo_ready() &&
            "qh and ga extend jo: pico8_jo_init() must run first");
     pico8_planet_family_trade_init();
-    assert(pico8_nr_class()->parent == pico8_qh_class() && pico8_mx_class()->parent == pico8_hj_class() &&
+    assert(pico8_nr_ready() && pico8_mx_ready() && pico8_qh_ready() && pico8_hj_ready() &&
            "nr extends qh and mx extends hj: pico8_planet_family_init() must run first");
     pico8_wormhole_init();
 
     pico8_help_init();
-    assert(pico8_fv_class()->parent == pico8_g__class() && "fv extends g_: pico8_probe_init() must run first");
+    assert(pico8_fv_ready() && pico8_g__ready() && "fv extends g_: pico8_probe_init() must run first");
     pico8_score_panel_init();
     pico8_research_icon_init();
     pico8_menu_init();
-    assert(pico8_js_class()->parent == pico8_ke_class() && pico8_fq_class()->parent == pico8_ke_class() &&
-           pico8_bg_class()->parent == pico8_ke_class() && pico8_mh_class()->parent == pico8_ke_class() &&
-           pico8_iv_class()->parent == pico8_ke_class() && pico8_g__class()->parent == pico8_ke_class() &&
-           pico8_jo_class()->parent == pico8_ke_class() && pico8_jc_class()->parent == pico8_ke_class() &&
-           pico8_mz_class()->parent == pico8_ke_class() && pico8_pj_class()->parent == pico8_ke_class() &&
-           pico8_ie_class()->parent == pico8_ke_class() &&
-           "ke must be declared before every ke-descended class");
 
-    pico8_help_set_eu(pico8_eu_dispatch);
+    pico8_help_set_eu(pico8_eu);
     pico8_score_panel_set_init(pico8_init_dispatch);
 }
 
@@ -127,7 +110,6 @@ void pico8_cart_shutdown(void) {
     pico8_fq_shutdown();
     pico8_js_shutdown();
 
-    pico8_game_data_shutdown();
     pico8_trade_shutdown();
     pico8_layout_shutdown();
 
@@ -139,127 +121,75 @@ void pico8_cart_shutdown(void) {
 
 void pico8__init(void) {
     pico8_mem_t *mem = pico8_dispatch_mem();
-    pico8_value_t eh_val;
 
-    assert(pico8_ie_class() != NULL && "pico8_cart_load() must run before _init()");
-    assert(pico8_eu_field_value().as.function == pico8_eu_dispatch &&
-           pico8_init_field_value().as.function == pico8_init_dispatch &&
+    assert(pico8_ie_ready() && "pico8_cart_load() must run before _init()");
+    assert(pico8_eu_field_value() == pico8_eu &&
+           pico8_init_field_value() == pico8_init_dispatch &&
            "pico8_help_init()/pico8_score_panel_init() reset these bridges, so pico8_cart_load() must "
            "install them afterwards: every button copies the value when it is built");
 
     pico8_cu(mem);
     pico8_jl();
-    assert(pico8_jo_class()->parent == pico8_ke_class() &&
-           "jl() must not rebuild ke: every class pico8_cart_load() built holds a .parent into it");
 
     /* `ie.gy,kc=ie.eh`: Lua pads the extra name with nil, so `gy` takes `eh`
      * and `kc` is cleared. `gy` aliases `eh`'s heap vector, it is not a copy. */
-    if (pico8_ie_class() != NULL && pico8_ob_table_get_name(pico8_ie_class()->defaults, "eh", &eh_val)) {
-        pico8_ob_table_set_name(pico8_ie_class()->defaults, "gy", eh_val);
-    }
+    pico8_ie_set_gy(pico8_ie_eh());
     pico8_msgbox_set_kc(NULL);
 
-    (void)pico8_fv_new(NULL);
+    (void)pico8_fv_new();
     /* TROU-10 */
     pico8_music(0);
 }
 
-pico8_value_t pico8_init_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+void pico8_init_dispatch(pico8_js_t *self) {
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
     pico8__init();
-    return pico8_value_ref(NULL);
 }
 
-/* `nv(ix,js)`'s per-element adapter: an entry that is not a REF to a table
- * contributes nothing. */
-static int pico8_eu_ix_map(pico8_value_t e, void *ctx, pico8_value_t *out_value) {
-    const pico8_ob_table_t *row;
-    pico8_instance_t *made;
-
-    (void)ctx;
-    if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
-        return 0;
-    }
-    row = (const pico8_ob_table_t *)e.as.ref;
-    made = pico8_js_new(row);
-    *out_value = pico8_value_ref(made);
-    return 1;
-}
-
-void pico8_eu(pico8_instance_t *nj) {
-    pico8_class_t *gx[7];
+void pico8_eu(pico8_js_t *nj) {
+    const pico8_entity_kind_t *gx[7];
     int i;
 
-    assert(pico8_hy_class() != NULL && pico8_qh_class() != NULL && "pico8_cart_load() must run before eu()");
+    assert(pico8_hy_ready() && pico8_qh_ready() && "pico8_cart_load() must run before eu()");
 
-    pico8_economy_set_dk(nj != NULL ? nj->fields : NULL);
+    pico8_economy_set_dk(nj);
 
     /* `jl()` runs a second time here, as in the cart: it unconditionally
      * rebuilds hv/cv/cg and the mo/je/ok singletons. */
     pico8_jl();
-    (void)pico8_bg_new(NULL);
+    (void)pico8_bg_new();
     pico8_bw(pico8_fixed_from_int(90));
 
     /* TROU-7 */
-    pico8_probe_set_fm(pico8_hy_new(NULL));
-    pico8_pj_set_ju(pico8_pj_new(NULL));
+    pico8_probe_set_fm((pico8_struct_header_t *)pico8_hy_new());
+    pico8_pj_set_ju(pico8_pj_new());
 
-    if (pico8_ix() != NULL) {
-        pico8_list_t ix_items;
-        pico8_list_t mapped;
+    if (pico8_ha_pz() != NULL) {
         int j;
 
-        pico8_list_init(&ix_items);
-        for (j = 0; j < pico8_ix()->count; j++) {
-            if (pico8_ix()->entries[j].key.kind == PICO8_OB_KEY_INDEX) {
-                pico8_list_add(&ix_items, pico8_ix()->entries[j].value);
-            }
+        for (j = 1; j <= PICO8_IX_COUNT; j++) {
+            (void)pico8_ix_button(j);
         }
-        mapped = pico8_nv(&ix_items, pico8_eu_ix_map, NULL);
-        pico8_list_free(&mapped);
-        pico8_list_free(&ix_items);
     }
 
-    gx[0] = pico8_qh_class();
-    gx[1] = pico8_os_class();
-    gx[2] = pico8_nr_class();
-    gx[3] = pico8_fr_class();
-    gx[4] = pico8_nl_class();
-    gx[5] = pico8_mx_class();
-    gx[6] = pico8_hj_class();
+    gx[0] = pico8_qh_kind();
+    gx[1] = pico8_os_kind();
+    gx[2] = pico8_nr_kind();
+    gx[3] = pico8_fr_kind();
+    gx[4] = pico8_nl_kind();
+    gx[5] = pico8_mx_kind();
+    gx[6] = pico8_hj_kind();
 
     for (i = 0; i < 7; i++) {
-        pico8_value_t dr_val;
-        const pico8_ob_table_t *dr_entry = NULL;
-        pico8_ob_table_t *overrides;
-        pico8_instance_t *jb_instance;
+        pico8_ie_keys_t keys = {0};
 
-        if (pico8_dr() != NULL && pico8_ob_table_get_index(pico8_dr(), i + 1, &dr_val) &&
-            dr_val.kind == PICO8_VALUE_REF && dr_val.as.ref != NULL) {
-            dr_entry = (const pico8_ob_table_t *)dr_val.as.ref;
-        }
-        jb_instance = pico8_jb_new(dr_entry);
-
-        overrides = pico8_ob_table_new();
-        pico8_ob_table_set_name(overrides, "ke", pico8_value_ref(gx[i]));
-        pico8_ob_table_set_name(overrides, "jb", pico8_value_ref(jb_instance));
-        (void)pico8_ie_new(overrides);
-        pico8_ob_table_free(overrides);
+        keys.ke = gx[i];
+        keys.jb = pico8_jb_new(&pico8_dr_table[i]);
+        (void)pico8_ie_new(&keys);
     }
 
-    assert(pico8_fm() != NULL && "fm must be the real hy instance before fm:lj()");
-    pico8_hy_lj(pico8_fm());
-}
-
-pico8_value_t pico8_eu_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
-    pico8_eu((pico8_instance_t *)self);
-    return pico8_value_ref(NULL);
+    assert(pico8_fm_hy() != NULL && "fm must be the hy of this game before fm:lj()");
+    pico8_hy_lj(pico8_fm_hy());
 }
 
 void pico8__update60(void) {

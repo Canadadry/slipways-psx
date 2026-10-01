@@ -1,69 +1,134 @@
 #ifndef PICO8_MSGBOX_H
 #define PICO8_MSGBOX_H
 
-#include "pico8_class.h"
+#include "pico8_struct.h"
+#include "pico8_game_data.h"
 #include "pico8_gfx.h"
-#include "pico8_list.h"
 #include "pico8_mem.h"
-#include "pico8_ob.h"
-#include "pico8_value.h"
+#include "pico8_ui_button.h"
 #include "pico8_vec.h"
 
 /* Throughout this module a NULL instance argument is a safe no-op, and an
  * absent or wrong-kind field reads as its zero/false default. */
 
+typedef struct pico8_mh pico8_mh_t;
+
+/* `mh.lh`: the Lua truth of what it returns, which `mh:ev` tests. */
+typedef int (*pico8_mh_lh_fn)(pico8_mh_t *self);
+
+/* The cart builds a box twice: `pj:hk` (up to 3 articles) and `pj:ph`
+ * (one per row of `bz`). */
+enum { PICO8_MH_ITEMS_CAP = PICO8_BZ_COUNT };
+
+/* `items` is the cart's `self[1..n]`, the option row `mh:ev` lays out
+ * through `bl`, in the order the construction table stored them: an
+ * article stays shared with the caller. Nothing frees the struct: TROU-7. */
+struct pico8_mh {
+    pico8_struct_header_t header;
+    const pico8_mh_def_t *def;
+    pico8_fixed_t rh;
+    pico8_mh_lh_fn lh; /* NULL: `lh` is nil */
+    int p_;
+    const pico8_jb_row_t *items[PICO8_MH_ITEMS_CAP];
+    int items_count;
+};
+
 /* The message box currently open, or NULL for none. The setter never frees
- * the instance it replaces: `kc` is a borrowed bookmark into an entity that
- * `lt` registered into `hv`/`cv`/`cg` and that nothing here owns. */
-pico8_instance_t *pico8_kc(void);
-void pico8_msgbox_set_kc(pico8_instance_t *instance);
+ * the box it replaces: `kc` borrows a struct that `lt` registered into
+ * `hv`/`cv`/`cg` and that nothing here owns. */
+pico8_mh_t *pico8_kc(void);
+void pico8_msgbox_set_kc(pico8_mh_t *mh);
 
 void pico8_mh_init(void);
 
-/* Frees the `mh` class and clears `kc`, never any instance. Idempotent, and
- * safe before the first `pico8_mh_init()`. */
+/* Clears `kc`, never frees any box. Idempotent, and safe before the first
+ * `pico8_mh_init()`. */
 void pico8_mh_shutdown(void);
 
-pico8_class_t *pico8_mh_class(void);
+/* 1 from pico8_mh_init() to pico8_mh_shutdown(), 0 otherwise. */
+int pico8_mh_ready(void);
 
-/* `overrides` is copied, not kept; its positional entries become the
- * instance's own `self[1..n]`, the option row `mh:ev` lays out through
- * `bl`. The instance registers itself through `lt`, and nothing frees it. */
-pico8_instance_t *pico8_mh_new(const pico8_ob_table_t *overrides);
+/* The cart's keys of a message box: `items` its positionals in order, each
+ * an article of `bl` (borrowed, never copied), `rh` under its flag, `lh`
+ * NULL for nil. */
+typedef struct {
+    const pico8_jb_row_t *const *items;
+    int count;
+    int has_rh; /* 0: `rh` keeps the archetype's */
+    pico8_fixed_t rh;
+    pico8_mh_lh_fn lh;
+} pico8_mh_keys_t;
 
-void pico8_mh_pq(pico8_instance_t *self);
+/* `keys` is read, not kept (NULL: none). The struct registers itself
+ * through `lt`, and nothing frees it. */
+pico8_mh_t *pico8_mh_new(const pico8_mh_keys_t *keys);
+
+void pico8_mh_pq(pico8_mh_t *self);
 
 /* A NULL `gfx`/`mem` skips the drawing and the camera reset only; the
  * closing timer and the `kc` bookkeeping still run. */
-void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self);
+void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self);
 
-/* Registers the `pi` constructors first: the class spec holds `v(0,-0.34)`,
- * so `'v'` must resolve when `ob()` parses it, or the field ends up a bare
- * positional table instead of a vector. */
+/* Calls pico8_pi_init(). */
 void pico8_iv_init(void);
 
+/* `at1`/`at2` are the cart's `self[1]` (the text, a string never freed)
+ * and `self[2]` (the forced color). `at1` NULL is nil; a missing `[2]`
+ * leaves `at2` at 0, the color `kj` gave nil. Never freed, nor are the
+ * vectors `ra` points at: TROU-7. */
+typedef struct {
+    pico8_struct_header_t header;
+    const pico8_iv_def_t *def;
+    pico8_fixed_t l;
+    const pico8_vec_t *ra;
+    int p_;
+    const char *at1;
+    pico8_fixed_t at2;
+} pico8_iv_t;
+
 void pico8_iv_shutdown(void);
-pico8_class_t *pico8_iv_class(void);
 
-/* `overrides` is copied, not kept; its positional entries become `self[1]`
- * (the text) and `self[2]` (the forced color). The instance registers
- * itself through `lt`, and nothing frees it. */
-pico8_instance_t *pico8_iv_new(const pico8_ob_table_t *overrides);
+/* 1 from pico8_iv_init() to pico8_iv_shutdown(), 0 otherwise. */
+int pico8_iv_ready(void);
 
-void pico8_iv_pq(pico8_instance_t *self);
-void pico8_iv_ph(pico8_instance_t *self);
+/* The cart's keys `ra`, `[1]` and `[2]` of a toast. NULL or 0 is an absent
+ * key, which leaves the member's default. */
+typedef struct {
+    pico8_vec_t *ra;
+    const char *at1;
+    pico8_fixed_t at2;
+} pico8_iv_keys_t;
 
-/* Reads `self[1]`/`self[2]` off the instance's own positional entries, so a
- * class default of the same index is not consulted. A NULL `gfx`/`mem`
- * makes the whole call a no-op. */
-void pico8_iv_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_t *self, pico8_vec_t p);
+/* `keys` is read, not kept (NULL: none); `ra` and `at1` are adopted
+ * without copy. The struct registers itself through `lt`, and nothing
+ * frees it. */
+pico8_iv_t *pico8_iv_new(const pico8_iv_keys_t *keys);
+
+void pico8_iv_pq(pico8_iv_t *self);
+void pico8_iv_ph(pico8_iv_t *self);
+
+/* A NULL `gfx`/`mem` makes the whole call a no-op. */
+void pico8_iv_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_iv_t *self, pico8_vec_t p);
+
+/* What `pz` reads of its `p`, filled by the caller from its own members: a
+ * NULL pointer or a 0 has_* is nil; `ff` is the Lua truth of `p.ff`. `pz`
+ * reads it during the call and keeps none of it. */
+typedef struct {
+    const char *ep;
+    int has_eo;
+    pico8_fixed_t eo;
+    const pico8_vec_t *hi;
+    int ff;
+    int has_ca;
+    pico8_fixed_t ca;
+    const pico8_vec_t *gq;
+    const pico8_vec_t *ra;
+} pico8_pz_frame_t;
 
 /* TROU-7 */
-/* Every item of `bs` must be a REF to a `pico8_ob_table_t`: each one is
- * mutated in place, then turned into a `js` instance stored in `ok.le`. The
- * list itself stays the caller's, its tables become the instances'. `p` may
- * be a classless field-bag -- a stack `pico8_instance_t` with `cls` NULL --
- * which is how `pz(ha,ha)` passes a plain table. */
-void pico8_pz(const pico8_instance_t *p, const pico8_list_t *bs);
+/* The `n` rows of `bs` are the keys of `ok.le`'s buttons, each read on a
+ * copy that gets `ra`, `qf` and `fa`; `bs` stays the caller's, unchanged.
+ * A NULL `frame` is a no-op. */
+void pico8_pz(const pico8_pz_frame_t *frame, const pico8_js_keys_t *bs, int n);
 
 #endif

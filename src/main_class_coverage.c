@@ -1,7 +1,8 @@
-/* Rejoue argv[1] comme src/main.c, depuis l'ecran titre, sans capture ni
- * dump, puis imprime une ligne `<classe> <instanciations>` par classe connue
- * et une ligne `inconnue <n>`. Rend 2 si le fichier ne se charge pas :
- * tools/class_coverage.sh le signale alors « illisible ». */
+/* Rejoue argv[1] comme src/main.c, depuis l'écran titre, sans capture ni
+ * dump, puis imprime une ligne `<classe> <instanciations>` par nom de
+ * KNOWN[]. Rend 2 si le fichier ne se charge pas : tools/class_coverage.sh
+ * le signale alors « illisible ». Rend 3, le nom fautif sur stderr, si un
+ * nom compté manque à KNOWN[]. */
 
 #include "pico8_mem.h"
 #include "pico8_assets.h"
@@ -10,47 +11,15 @@
 #include "pico8_cheat.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_cart.h"
-#include "pico8_class.h"
-#include "pico8_bg.h"
-#include "pico8_economy.h"
-#include "pico8_help.h"
-#include "pico8_ke.h"
-#include "pico8_layout.h"
-#include "pico8_mouse_reader.h"
-#include "pico8_msgbox.h"
-#include "pico8_planet.h"
-#include "pico8_planet_family.h"
-#include "pico8_planet_family_trade.h"
-#include "pico8_probe.h"
-#include "pico8_research.h"
-#include "pico8_research_icon.h"
-#include "pico8_score_panel.h"
-#include "pico8_scroll.h"
-#include "pico8_slipway.h"
-#include "pico8_trade.h"
-#include "pico8_ui.h"
-#include "pico8_ui_button.h"
-#include "pico8_wormhole.h"
+#include "pico8_coverage.h"
 
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 
-typedef struct {
-    const char *name;
-    pico8_class_t *(*accessor)(void);
-} known_class_t;
-
-static const known_class_t KNOWN[] = {
-    {"bg", pico8_bg_class},   {"fq", pico8_fq_class},       {"fr", pico8_fr_class},
-    {"fv", pico8_fv_class},   {"g_", pico8_g__class},       {"ga", pico8_ga_class},
-    {"hj", pico8_hj_class},   {"hp", pico8_hp_class},       {"hy", pico8_hy_class},
-    {"ie", pico8_ie_class},   {"iv", pico8_iv_class},       {"jb", pico8_jb_class},
-    {"jc", pico8_jc_class},   {"jo", pico8_jo_class},       {"js", pico8_js_class},
-    {"ke", pico8_ke_class},   {"lq", pico8_lq_class},       {"mh", pico8_mh_class},
-    {"mx", pico8_mx_class},   {"mz", pico8_mz_class},       {"nf", pico8_nf_class},
-    {"nl", pico8_nl_class},   {"nr", pico8_nr_class},       {"os", pico8_os_class},
-    {"pj", pico8_pj_class},   {"pm", pico8_pm_class},       {"qb", pico8_qb_class},
-    {"qh", pico8_qh_class},   {"trade", pico8_trade_class}, {"ui", pico8_ui_class},
+static const char *const KNOWN[] = {
+    "bg", "fq", "fr", "fv", "g_", "ga", "hj", "hp", "hy", "ie", "iv", "jb", "jc", "jo", "js",
+    "ke", "lq", "mh", "mx", "mz", "nf", "nl", "nr", "os", "pj", "pm", "qb", "qh", "trade", "ui",
 };
 
 #define KNOWN_COUNT ((int)(sizeof KNOWN / sizeof KNOWN[0]))
@@ -91,18 +60,24 @@ int main(int argc, char **argv) {
         }
     }
 
-    long known_total = 0;
     for (int k = 0; k < KNOWN_COUNT; k++) {
-        const pico8_class_t *cls = KNOWN[k].accessor();
-        assert(cls != NULL && "a class accessor returned NULL once the cart is loaded");
         for (int j = 0; j < k; j++) {
-            assert(KNOWN[j].accessor() != cls && "two accessors share a class: its count would be doubled");
+            assert(strcmp(KNOWN[j], KNOWN[k]) != 0 && "two KNOWN[] entries share a name: its line would be doubled");
         }
-        long count = pico8_class_coverage_count(cls);
-        known_total += count;
-        printf("%s %ld\n", KNOWN[k].name, count);
     }
-    printf("inconnue %ld\n", pico8_class_coverage_total() - known_total);
+    const char *unknown = pico8_class_coverage_first_unknown(KNOWN, KNOWN_COUNT);
+    if (unknown != NULL) {
+        if (unknown[0] == '\0') {
+            fprintf(stderr, "pico8_class_coverage: une classe instanciée n'a pas de nom de couverture (nom \"\")\n");
+        } else {
+            fprintf(stderr, "pico8_class_coverage: le nom %s n'est pas dans KNOWN[]\n", unknown);
+        }
+        pico8_input_free(&input);
+        return 3;
+    }
+    for (int k = 0; k < KNOWN_COUNT; k++) {
+        printf("%s %ld\n", KNOWN[k], pico8_class_coverage_count(KNOWN[k]));
+    }
 
     pico8_input_free(&input);
     return 0;

@@ -5,59 +5,44 @@
 #include <stdlib.h>
 
 #include "../src/pico8_bootstrap.h"
-#include "../src/pico8_class.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_mem.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_planet_display.h"
 #include "../src/pico8_scroll.h"
-#include "../src/pico8_value.h"
+#include "../src/pico8_struct.h"
 #include "../src/pico8_vec.h"
 
 /* `dc("kj")`'s `mo:md(ci[o])` special case, which needs both a real `mo`
- * and a real entity registered under "kj" to run at all. Kept out of
- * `test_pico8_entity_smoke.c` so that file's small dependency graph stays
- * small: proving this needs `jl()`, a real `jo` and real gfx/mem. */
+ * and a real entity registered under "kj" to run at all: `jl()`, a real
+ * `jo` and real gfx/mem. */
 
-static char g_order[8];
-static int g_order_n = 0;
+static int g_kj_calls = 0;
+static int g_camera_x_at_kj;
+static int g_camera_y_at_kj;
 
-/* Records the call order, then forwards to the real `pico8_qb_md`, so the
- * order is observed without stubbing the behaviour out. Installed as an
- * instance field on `mo` alone -- instance fields win over the class chain
- * -- so no other `qb` sees it. */
-static pico8_value_t spy_md(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_fixed_t fy = (arg0.kind == PICO8_VALUE_FIXED) ? arg0.as.fixed : pico8_fixed_from_int(1);
-    (void)argc;
-    (void)arg1;
-    assert(g_order_n < 8);
-    g_order[g_order_n++] = 'M';
-    pico8_qb_md(pico8_dispatch_gfx(), (pico8_instance_t *)self, fy);
-    return pico8_value_ref(NULL);
+/* Records the camera `mo:md` has left by the time the planet's "kj" runs,
+ * then forwards to the real `pico8_jo_kj`, so the order is observed without
+ * stubbing the behaviour out. Installed on the planet alone, through a copy
+ * of jo's class whose `kj` is this spy, so no other `jo` sees it. */
+static void spy_kj(pico8_struct_header_t *self, const pico8_vec_t *ra) {
+    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+
+    g_kj_calls++;
+    g_camera_x_at_kj = pico8_dispatch_gfx()->camera_x;
+    g_camera_y_at_kj = pico8_dispatch_gfx()->camera_y;
+    pico8_jo_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_jo_t *)self, p);
 }
 
-/* Same, for the planet's "kj". */
-static pico8_value_t spy_kj(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_vec_t p = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-    (void)argc;
-    (void)arg1;
-    if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
-        p = *(const pico8_vec_t *)arg0.as.ref;
-    }
-    assert(g_order_n < 8);
-    g_order[g_order_n++] = 'K';
-    pico8_jo_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_instance_t *)self, p);
-    return pico8_value_ref(NULL);
-}
+static pico8_struct_class_t g_spied_jo;
 
 static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
     pico8_mem_t mem;
     pico8_gfx_t gfx;
-    pico8_instance_t *planet;
-    pico8_instance_t *mo;
+    pico8_jo_t *planet;
+    pico8_struct_header_t *mo;
     pico8_vec_t *ra_heap;
     int screen_pixel_addr;
     unsigned char pixel_before;
@@ -68,7 +53,7 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
 
-    g_order_n = 0;
+    g_kj_calls = 0;
 
     /* `jl()` builds the real `hv`/`cv`/`cg` and the real `mo=qb()`. */
     pico8_jl();
@@ -82,12 +67,12 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
     /* `jo` wires "kj" as a class default, so the instance must land in the
      * real `cv["kj"]` bucket. */
     {
-        const pico8_list_t *bucket = pico8_cv("kj");
+        const pico8_ents_t *bucket = pico8_cv("kj");
         int found = 0;
         int i;
         assert(bucket != NULL);
         for (i = 0; i < bucket->count; i++) {
-            if (bucket->items[i].kind == PICO8_VALUE_REF && bucket->items[i].as.ref == planet) {
+            if (bucket->items[i] == (pico8_struct_header_t *)planet) {
                 found = 1;
             }
         }
@@ -98,10 +83,12 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
      * early return is not taken and the real draw body runs. */
     ra_heap = malloc(sizeof *ra_heap);
     *ra_heap = pico8_vec_v(pico8_fixed_from_int(256), pico8_fixed_from_int(256));
-    pico8_ob_table_set_name(planet->fields, "ra", pico8_value_ref(ra_heap));
+    planet->ra = ra_heap;
 
-    pico8_ob_table_set_name(mo->fields, "md", pico8_value_function(spy_md));
-    pico8_ob_table_set_name(planet->fields, "kj", pico8_value_function(spy_kj));
+    assert(mo->cls == pico8_qb_struct_class());
+    g_spied_jo = *pico8_jo_struct_class();
+    g_spied_jo.kj = spy_kj;
+    planet->header.cls = &g_spied_jo;
 
     /* `kj` paints colour 0, which is also the framebuffer's cleared value,
      * so reading 0 back proves nothing unless the byte held something else
@@ -114,13 +101,13 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
     pixel_before = pico8_peek(&mem, screen_pixel_addr);
     assert(pixel_before == 9);
 
+    assert(gfx.camera_x == 0 && gfx.camera_y == 0);
     pico8_dc("kj");
 
     /* Order, never the reverse: within a layer, the "kj" special case runs
-     * before the per-entity loop. */
-    assert(g_order_n == 2);
-    assert(g_order[0] == 'M');
-    assert(g_order[1] == 'K');
+     * before the per-entity loop, so the real `kj` already sees its camera. */
+    assert(g_kj_calls == 1);
+    assert(g_camera_x_at_kj == 192 && g_camera_y_at_kj == 192);
 
     /* `mo:md` really ran: the camera lands on `qb`'s spec `ra=v(192,192)`,
      * `self.ma` having decayed to its 0 default so the shake adds nothing. */
@@ -138,6 +125,7 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
 
     assert(pico8_mo() == mo);
 
+    planet->header.cls = pico8_jo_struct_class();
     pico8_jo_shutdown();
     pico8_bootstrap_shutdown();
 }

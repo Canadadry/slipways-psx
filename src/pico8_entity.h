@@ -1,71 +1,62 @@
 #ifndef PICO8_ENTITY_H
 #define PICO8_ENTITY_H
 
-#include "pico8_class.h"
-#include "pico8_list.h"
-#include "pico8_ob.h"
-#include "pico8_value.h"
+#include "pico8_ents.h"
+#include "pico8_struct.h"
 
-/* (Re)builds every global this module owns -- hv, cv, cg, ci and the
- * placeholder mo -- to a fresh, empty state, freeing the previous build
- * first via pico8_entity_shutdown(). Must run before any of hv, cv, cg,
- * lt, he, dc, mv, ci or mo below is used. pico8_jl() (pico8_bootstrap.c)
- * calls it, then replaces the placeholder mo through
- * pico8_entity_set_mo(). */
+/* (Re)builds hv, cv and cg to a fresh, empty state, freeing the
+ * previous build first via pico8_entity_shutdown(), and puts back the
+ * placeholder mo. Must run before any of hv, cv, cg, lt, he, dc or
+ * mo below is used. pico8_jl() (pico8_bootstrap.c) calls it, then replaces
+ * the placeholder mo through pico8_entity_set_mo(). */
 void pico8_entity_init(void);
 
-/* Releases this module's own bookkeeping (hv/cv/cg's backing arrays, ci's
- * table) and frees the instance pico8_mo() currently holds -- but NOT the
- * entities registered in hv/cv/cg, which stay owned by whoever
- * instantiated them. A second call, or a call before the first
- * pico8_entity_init(), is a no-op. */
+/* Releases this module's own bookkeeping (hv/cv/cg's backing arrays); mo
+ * is never freed: the placeholder is static, a `qb` struct in
+ * its place is dropped (TROU-7). Nor are the entities registered in
+ * hv/cv/cg, which stay owned by whoever instantiated them. A second
+ * call, or a call before the first pico8_entity_init(), is a no-op. */
 void pico8_entity_shutdown(void);
 
 /* Every entity lt()'d and not yet he()'d, in registration order, as
- * PICO8_VALUE_REF values whose .as.ref is a pico8_instance_t*. */
-const pico8_list_t *pico8_hv(void);
+ * pointers to a ke-descended struct (pico8_ke.h). */
+const pico8_ents_t *pico8_hv(void);
 
 /* The entities registered under bm field name `name` ("kj", "ev", "hd",
  * "hk" or "hb"), or NULL if `name` is not one of those five. The five
  * buckets are fixed, so a returned pointer stays valid for the module's
  * whole lifetime. */
-const pico8_list_t *pico8_cv(const char *name);
+const pico8_ents_t *pico8_cv(const char *name);
 
 /* The entities registered under `tag`, or NULL if no entity carrying
- * that tag has ever been lt()'d. Unlike cv, cg's storage grows as new
- * tags are first seen: do not hold a returned pointer across a later
- * lt() call, call pico8_cg() again instead. */
-const pico8_list_t *pico8_cg(const char *tag);
+ * that tag has been lt()'d since pico8_entity_init() -- an unknown tag
+ * included. A returned pointer stays valid until the next
+ * pico8_entity_init() or pico8_entity_shutdown(). */
+const pico8_ents_t *pico8_cg(const char *tag);
 
-pico8_instance_t *pico8_lt(pico8_instance_t *e);
-void pico8_he(pico8_instance_t *e);
+/* Only pico8_ke_struct_pq calls it outside tests: every entity of `hv` has
+ * had `me` and `t` set by pico8_ke_struct_init, and pico8_dg() reads them. */
+pico8_struct_header_t *pico8_lt(pico8_struct_header_t *e);
+void pico8_he(pico8_struct_header_t *e);
 
-/* Returns 1 and writes *out_value when `e` is non-NULL and has a field
- * named `method_name` anywhere on its class chain -- calling it with `e`,
- * `argc`, `arg0` and `arg1` when the field is PICO8_VALUE_FUNCTION-kind,
- * using the field's own value as-is otherwise. Returns 0, leaving
- * *out_value untouched, when `e` is NULL or has no such field. `argc`
- * says how many of arg0/arg1 are real; a caller passes
- * pico8_value_ref(NULL) for the slots it does not cover. */
-int pico8_mv(pico8_instance_t *e, const char *method_name, int argc, pico8_value_t arg0, pico8_value_t arg1,
-             pico8_value_t *out_value);
-
+/* `nt` is "kj" or "ev" (asserted). */
 void pico8_dc(const char *nt);
 
-/* The per-layer blend factors dc()'s `kj` branch indexes into, 1-indexed
- * as in the cart. Owned by this module (built and freed by
- * pico8_entity_init()/_shutdown()); callers must not free it. */
-const pico8_ob_table_t *pico8_ci(void);
+/* `hd=1` of `bg` and `fq`: the hover test that every point passes. */
+int pico8_hd_true(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra);
 
-/* Until pico8_jl() runs, a classless instance with no fields, so that
- * dc()'s `mo:md(ci[o])` has an object to dispatch through; afterwards the
- * real `qb` instance. Owned by this module; callers must not free it. */
-pico8_instance_t *pico8_mo(void);
+/* Until pico8_jl() runs, the placeholder struct, with no member and no
+ * `md`: dc() calls `mo:md(ci[o])` on a `qb` only; afterwards the
+ * real `qb` struct (pico8_scroll.h). Its members are read and written
+ * through pico8_mo_qb(). Callers must not free it. */
+pico8_struct_header_t *pico8_mo(void);
+
+const pico8_struct_class_t *pico8_mo_placeholder_struct_class(void);
 
 /* Makes `instance` what pico8_mo() returns. Does NOT free the outgoing
  * one: pico8_jl() can run from inside a dispatch chain that still holds
  * the old mo, and freeing it there is a use-after-free. NULL is a valid
  * "no mo"; passing back the current pico8_mo() is a no-op. */
-void pico8_entity_set_mo(pico8_instance_t *instance);
+void pico8_entity_set_mo(pico8_struct_header_t *instance);
 
 #endif

@@ -1,9 +1,5 @@
-/* Six sites read the "by" field as a `pico8_list_t*`, so its producers
- * must all make a real list. A `by=o()` in a class spec does not: `ob()`
- * parses it into an ob_table. Nothing visible separates the two while the
- * table is empty, because `count` sits at the same byte offset in both
- * structs -- which is why the contract is asserted here on the REF itself,
- * between two assertions on what a player reads. */
+/* The "exports:" row of `jo:gh` counts the routes held in the `by` a `ga`
+ * receives at construction, read on the member itself. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -12,53 +8,48 @@
 
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_data_init.h"
-#include "../src/pico8_class.h"
+#include "../src/pico8_struct.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_layout.h"
-#include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_display.h"
 #include "../src/pico8_planet_family.h"
-#include "../src/pico8_type_tag.h"
+#include "../src/pico8_trade.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
 /* The `js` buttons `pz()` just built. */
-static const pico8_list_t *ok_le(void) {
-    pico8_instance_t *ok = pico8_ok();
-    pico8_value_t le;
+static const pico8_ents_t *ok_le(void) {
+    const pico8_ui_t *ok = pico8_ok();
     assert(ok != NULL);
-    assert(pico8_instance_get_field(ok, "le", &le));
-    assert(le.kind == PICO8_VALUE_REF && le.as.ref != NULL);
-    return (const pico8_list_t *)le.as.ref;
+    assert(ok->le != NULL);
+    return ok->le;
 }
 
-static const pico8_instance_t *button_lq(pico8_value_t button_val) {
-    const pico8_instance_t *button;
-    pico8_value_t lq_val;
+static const pico8_lq_t *button_lq(const void *button) {
+    const pico8_lq_t *lq;
 
-    assert(button_val.kind == PICO8_VALUE_REF && button_val.as.ref != NULL);
-    button = (const pico8_instance_t *)button_val.as.ref;
-    assert(pico8_instance_get_field(button, "lq", &lq_val));
-    assert(lq_val.kind == PICO8_VALUE_REF && lq_val.as.ref != NULL);
-    return (const pico8_instance_t *)lq_val.as.ref;
+    assert(button != NULL);
+    assert(((const pico8_struct_header_t *)button)->cls == pico8_js_struct_class());
+    lq = ((const pico8_js_t *)button)->lq;
+    assert(lq != NULL);
+    return lq;
 }
 
-static const char *lq_index_string(const pico8_instance_t *lq, int index) {
-    pico8_value_t v;
-    if (!pico8_ob_table_get_index(lq->fields, index, &v)) {
+static const char *lq_index_string(const pico8_lq_t *lq, int index) {
+    pico8_lq_cell_t v;
+    if (index < 1 || index > lq->items_count) {
         return NULL;
     }
-    return (v.kind == PICO8_VALUE_STRING) ? v.as.string : NULL;
+    v = lq->items[index - 1];
+    return (v.kind == PICO8_LQ_CELL_STRING) ? v.as.s : NULL;
 }
 
-static int lq_index_is_string(const pico8_instance_t *lq, int index, const char *expected) {
+static int lq_index_is_string(const pico8_lq_t *lq, int index, const char *expected) {
     const char *s = lq_index_string(lq, index);
     return s != NULL && strcmp(s, expected) == 0;
 }
@@ -72,7 +63,7 @@ static void setup_panel_state(pico8_mem_t *mem, pico8_gfx_t *gfx) {
     pico8_dispatch_set_gfx(gfx);
     pico8_dispatch_set_mem(mem);
 
-    pico8_data_init(mem);
+    pico8_data_init();
     pico8_jl();
     pico8_layout_init();
     pico8_js_init();
@@ -80,27 +71,23 @@ static void setup_panel_state(pico8_mem_t *mem, pico8_gfx_t *gfx) {
     pico8_planet_family_init();
 }
 
-/* Read through the field interface, not the class defaults, so the test
+/* Read on the instance's member, not the class defaults, so the test
  * says nothing about where the value comes from. */
-static void *planet_by_ref(const pico8_instance_t *planet) {
-    pico8_value_t by;
-    assert(pico8_instance_get_field(planet, "by", &by));
-    assert(by.kind == PICO8_VALUE_REF);
-    return by.as.ref;
+static pico8_ents_t *planet_by_ref(const pico8_jo_t *planet) {
+    return planet->by;
 }
 
 static void test_ga_export_line_counts_the_routes_in_by(void) {
     pico8_mem_t mem;
     pico8_gfx_t gfx;
-    pico8_instance_t *planet;
-    pico8_ob_table_t *kw;
+    pico8_jo_t *planet;
+    static pico8_kw_t kw;
     pico8_vec_t *ra;
-    pico8_vec_t *gq;
-    pico8_list_t *by;
-    pico8_ob_table_t *route_a;
-    pico8_ob_table_t *route_b;
-    const pico8_list_t *le;
-    const pico8_instance_t *exports_lq = NULL;
+    pico8_ents_t *by;
+    pico8_trade_t *route_a;
+    pico8_trade_t *route_b;
+    const pico8_ents_t *le;
+    const pico8_lq_t *exports_lq = NULL;
     int i;
 
     setup_panel_state(&mem, &gfx);
@@ -108,25 +95,22 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
     planet = pico8_ga_new(NULL);
     assert(planet != NULL);
 
-    /* "x" is deliberately not one of `jo.cq`'s resources, so `jo:gh` takes
+    /* 99 is deliberately not one of `jo.cq`'s resources, so `jo:gh` takes
      * the else branch and builds the "exports:" row, not the "makes:" one. */
-    kw = pico8_ob_table_new();
-    pico8_ob_table_set_name(kw, "mu", pico8_value_fixed(pico8_fixed_from_int(2)));
-    pico8_ob_table_set_name(kw, "qe", pico8_value_string("x"));
-    pico8_ob_table_set_name(planet->fields, "kw", pico8_value_ref(kw));
+    kw.has_qe = 1;
+    kw.qe = pico8_fixed_from_int(99);
+    kw.mu = pico8_fixed_from_int(2);
+    planet->kw = &kw;
 
     ra = malloc(sizeof *ra);
     *ra = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
-    pico8_ob_table_set_name(planet->fields, "ra", pico8_value_ref(ra));
-    gq = malloc(sizeof *gq);
-    *gq = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(9));
-    pico8_ob_table_set_name(planet->fields, "gq", pico8_value_ref(gq));
+    planet->ra = ra;
 
     /* A fresh `ga` exports nothing, against a capacity of `kw.mu`. */
     pico8_jo_gh(planet);
     le = ok_le();
     for (i = 0; i < le->count; i++) {
-        const pico8_instance_t *lq = button_lq(le->items[i]);
+        const pico8_lq_t *lq = button_lq(le->items[i]);
         if (lq_index_is_string(lq, 1, "exports:")) {
             exports_lq = lq;
         }
@@ -139,19 +123,16 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
      * declaration installed. */
     by = planet_by_ref(planet);
     assert(by != NULL);
-    /* The contract all six readers assume, on the value actually handed
-     * out. The panel assertions around it pass either way. */
-    assert(pico8_type_tag_of(by) == PICO8_TYPE_TAG_LIST);
-    route_a = pico8_ob_table_new();
-    route_b = pico8_ob_table_new();
-    pico8_list_add(by, pico8_value_ref(route_a));
-    pico8_list_add(by, pico8_value_ref(route_b));
+    route_a = pico8_trade_new(NULL);
+    route_b = pico8_trade_new(NULL);
+    pico8_ents_add(by, &route_a->header);
+    pico8_ents_add(by, &route_b->header);
 
     exports_lq = NULL;
     pico8_jo_gh(planet);
     le = ok_le();
     for (i = 0; i < le->count; i++) {
-        const pico8_instance_t *lq = button_lq(le->items[i]);
+        const pico8_lq_t *lq = button_lq(le->items[i]);
         if (lq_index_is_string(lq, 1, "exports:")) {
             exports_lq = lq;
         }

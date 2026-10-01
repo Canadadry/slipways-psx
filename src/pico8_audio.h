@@ -1,7 +1,7 @@
 #ifndef PICO8_AUDIO_H
 #define PICO8_AUDIO_H
 
-#include "pico8_value.h"
+#include "pico8_fixed.h"
 
 /* TROU-10 */
 void pico8_sfx(int n, int channel);
@@ -13,9 +13,6 @@ void pico8_music(int n);
 int pico8_ih(void);
 void pico8_set_ih(int value);
 
-/* `no` is the shared value type, not an int, because call sites pass either
- * an sfx id or a plain false (`rn(self.my and 60)`). Only PICO8_VALUE_BOOL
- * false is falsy; anything else plays. */
-void pico8_rn(pico8_value_t no);
+void pico8_rn(pico8_fixed_t no);
 
 #endif

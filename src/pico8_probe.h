@@ -1,72 +1,75 @@
 #ifndef PICO8_PROBE_H
 #define PICO8_PROBE_H
 
-#include "pico8_class.h"
-#include "pico8_gfx.h"
-#include "pico8_list.h"
-#include "pico8_mem.h"
-#include "pico8_ob.h"
-#include "pico8_value.h"
+#include "pico8_game_data.h"
+#include "pico8_particle.h"
+#include "pico8_probe_comp.h"
+#include "pico8_struct.h"
 #include "pico8_vec.h"
 
 /* Throughout this module a NULL instance argument is a safe no-op (Lua nil
- * for the value-returning functions), an absent or wrong-kind field reads as
- * 0/false/the zero vector rather than crashing, and a NULL `gfx`/`mem` skips
- * the draw calls while the rest of the body still runs. */
+ * for the value-returning functions), a non-NULL `self` must be a struct
+ * (asserted) whose class carries the component the function reads -- a
+ * probe for `bv`, `dl`, `d_`, an emitter for `g_:mm` -- and a NULL
+ * `gfx`/`mem` skips the draw calls while the rest of the body still runs. */
+
+/* TROU-7 */
+/* The emitter's `k_` points at
+ * `pico8_g__k__seq` (`pico8_fv_k__seq` for `fv`); `ra` is the very REF `bv`
+ * was passed, aliased. `emitter` and `probe` point at `emitter_own` and
+ * `probe_own`: never copy the struct. `m_` is `fv`'s: a `g_` has no `m_`
+ * link and leaves it indeterminate. */
+typedef struct {
+    pico8_struct_header_t header;
+    const pico8_g__def_t *def;
+    pico8_emitter_t *emitter;
+    pico8_probe_t *probe;
+    const pico8_vec_t *ra;
+    const pico8_vec_t *p;
+    int p_;
+    int m_;
+    pico8_emitter_t emitter_own;
+    pico8_probe_t probe_own;
+} pico8_g__t;
 
 /* TROU-8 */
-/* Builds the `g_` class and installs the `fm` placeholder. Shuts the module
- * down first, so it is idempotent and any previously handed out
- * `pico8_g__class()` pointer is freed by a second call. */
+/* Puts the provisional `fm` back in the slot, its `jk`/`nz` nil. Shuts the
+ * module down first, so it is idempotent. */
 void pico8_probe_init(void);
 
-/* Frees the `g_` class and whichever instance `fm` currently holds, never any
- * `g_` instance. Idempotent, and safe before the first `pico8_probe_init()`. */
+/* Frees the `hy` of `fm` if it holds one, never the provisional, never any
+ * probe. Idempotent, and safe before the first `pico8_probe_init()`. */
 void pico8_probe_shutdown(void);
 
-/* NULL before `pico8_probe_init()` and after `pico8_probe_shutdown()`. Also
- * reachable as `pico8_class_lookup_named("g_")`. */
-pico8_class_t *pico8_g__class(void);
+/* 1 from pico8_probe_init() to pico8_probe_shutdown(), 0 otherwise. */
+int pico8_g__ready(void);
 
-/* `overrides` is copied, not kept. The new instance registers itself into
- * `hv`/`cv`/`cg` through `lt` (and gets its particle list from `f_`), and
- * nothing ever frees it. Called before `pico8_probe_init()` it yields a
- * class-less instance rather than NULL. */
-pico8_instance_t *pico8_g__new(const pico8_ob_table_t *overrides);
+/* Initializes an allocated pico8_g__t under `cls`: ke's part, g_'s 4
+ * written members nil, `def` kept, `ra`, the emitter and the probe copied
+ * from it. Reads no key, runs neither `pq` nor `lt`, records no coverage. */
+void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls, const pico8_g__def_t *def);
 
-/* `fm`. `pico8_probe_init()` installs a class-less placeholder here;
- * `pico8_cart` replaces it with the real `hy` instance. The setter frees the
- * previous instance and takes ownership of the new one; NULL before init and
- * after shutdown, which several callers test for. */
-pico8_instance_t *pico8_fm(void);
-void pico8_probe_set_fm(pico8_instance_t *instance);
+/* The keys of `pico8_g__new`, read, not kept. `t` is `header.t`, whose default
+ * is 0: no flag. `pn`, `du`, `py` have non-zero defaults, so a key at 0
+ * needs its `has_` flag. */
+typedef struct {
+    pico8_fixed_t t;
+    int has_pn;
+    pico8_fixed_t pn;
+    int has_du;
+    pico8_fixed_t du;
+    int has_py;
+    pico8_fixed_t py;
+} pico8_g__keys_t;
 
-/* TROU-7 */
-/* `mp` is stored into `ra` by REF identity, not copied: the caller's vector
- * stays aliased. `et` ends in one of three states -- a real target, a
- * class-less throwaway instance, or literal `false` -- of which only `false`
- * is falsy; collapsing the throwaway to nil would change `d_`. */
-void pico8_bv(pico8_instance_t *self, pico8_value_t mp, pico8_value_t rp);
-
-pico8_value_t pico8_bv_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
-
-/* Generic tooltip helper, not probe-specific: also called directly by
- * `jc:hh`, `qh:ph` and the research icon, on entities that are never `g_`.
- * `self` is read, never retained -- one caller passes a stack instance. */
-void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self);
-
-pico8_value_t pico8_dl_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
-
-/* Returns Lua true on the success branch, nil on the other; `jc:ey` consumes
- * that result. */
-pico8_value_t pico8_d_(pico8_instance_t *self);
-
-pico8_value_t pico8_d__dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+/* `keys` NULL means none. The new probe registers itself into `hv`/`cv`/`cg` through `lt`
+ * (and gets its particle list from `f_`), and nothing ever frees it.
+ * Asserts when called before `pico8_probe_init()`. */
+pico8_g__t *pico8_g__new(const pico8_g__keys_t *keys);
 
 /* TROU-7 */
-/* Returns a REF to a freshly allocated particle table ("p"/"v"/"l", the two
- * vectors heap-allocated too); `ez` appends it to `qy` and nothing ever frees
- * it. */
-pico8_value_t pico8_g__mm(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+/* Returns a freshly allocated `pico8_qy_t` (`has_a` 0), one allocation;
+ * `ez` appends it to `qy` and nothing ever frees it. */
+pico8_qy_t *pico8_g__mm(pico8_struct_header_t *self);
 
 #endif

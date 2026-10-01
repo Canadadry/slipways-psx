@@ -1,0 +1,31 @@
+ke  0  0/26  exemptée (abstraite, jamais instanciée directement)
+fr  1  1/26
+hj  1  1/26
+nl  1  1/26
+os  1  1/26
+pm  1  1/26
+ga  2  2/26
+mx  2  1/26
+nr  2  2/26
+fq  3  3/26
+qh  12  3/26
+g_  18  18/26
+mz  20  18/26
+jc  26  10/26
+bg  27  26/26
+hy  27  26/26
+pj  27  26/26
+fv  28  26/26
+nf  55  26/26
+qb  55  26/26
+ui  55  26/26
+mh  70  11/26
+iv  141  19/26
+ie  189  26/26
+trade  247  9/26
+jb  481  26/26
+js  619  26/26
+hp  884  26/26
+jo  2430  26/26
+lq  2742  26/26
+couverture: OK -- chaque classe non exemptée est instanciée (26 rejeu(x))

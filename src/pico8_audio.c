@@ -21,11 +21,9 @@ void pico8_set_ih(int value) {
     g_ih = value;
 }
 
-void pico8_rn(pico8_value_t no) {
-    int truthy = !(no.kind == PICO8_VALUE_BOOL && no.as.boolean == 0);
-
-    if (truthy && !pico8_ih()) {
-        int n = (no.kind == PICO8_VALUE_FIXED) ? pico8_fixed_flr_int(no.as.fixed) : 0;
+void pico8_rn(pico8_fixed_t no) {
+    if (!pico8_ih()) {
+        int n = pico8_fixed_flr_int(no);
         pico8_sfx(n, 3);
     }
 }

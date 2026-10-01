@@ -9,3 +9,4 @@ Règle de cette liste : chaque todo est une seule phrase claire, lisible sans r�
 - [ ] Avant d'écrire le prochain plan, trancher comment remplacer malloc : quelles allocations vivent une frame, lesquelles vivent toute la partie, et quelles limites de taille imposer.
 - [ ] Ajouter une triche qui donne des points de score bonus, pour qu'un e2e court montre les étoiles allumées du panneau de score.
 - [ ] Faire respecter la couverture de classes par `make e2e-cleanup`, qui propose de retirer `place_processor_ascension`, seul e2e à instancier le processeur et la porte d'ascension.
+- [ ] Renommer les champs des structs du jeu qui portent encore un nom abrégé hérité du cart, uniquement quand on connaît leur sens, sans rien inventer.

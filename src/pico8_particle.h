@@ -1,41 +1,64 @@
 #ifndef PICO8_PARTICLE_H
 #define PICO8_PARTICLE_H
 
-#include "pico8_class.h"
+#include "pico8_struct.h"
+#include "pico8_game_data.h"
 #include "pico8_gfx.h"
-#include "pico8_list.h"
 #include "pico8_mem.h"
-#include "pico8_ob.h"
-#include "pico8_value.h"
+#include "pico8_ptrs.h"
+#include "pico8_vec.h"
 
 /* Throughout this module a NULL instance, gfx or mem argument is a safe
- * no-op, and an absent or wrong-kind field reads as its zero default.
- *
- * The C shape of a particle record -- what every `mm` must return, and what
- * `qy` therefore holds -- is this module's own contract, carried by no
- * name: a REF to a heap `pico8_ob_table_t` with "p" and "v" (REFs to heap
- * `pico8_vec_t`), an optional "a" (same shape; absent is a real, checked
- * case) and "l" (fixed). */
+ * no-op and a non-NULL `self` must be a struct (asserted). `f_` and `ei`
+ * stop on an entity whose `emitter` link is NULL; `ez` adds nothing there. */
+
+/* An element of `qy`, `{p,v,a,l}` in the cart: every `mm` returns one on
+ * the heap, `ei` updates it in place, nothing frees it. `has_a` is 0 for
+ * `g_`'s particles, whose `a` is absent and never read. */
+typedef struct pico8_qy {
+    pico8_vec_t p;
+    pico8_vec_t v;
+    int has_a;
+    pico8_vec_t a;
+    pico8_fixed_t l;
+} pico8_qy_t;
+
+/* What `ei`, `ez`, `f_` and `g_:mm` read of their host, the particle
+ * emitter's own fields, stored in the host (`emitter_own`) and never copied;
+ * the rest is read on `def`, the host's archetype's emitter. `qy` is NULL
+ * until `f_`, then owned by the host and never freed (TROU-7). `pn`, `du`
+ * are read by `g_:mm` only: a `ga` leaves them unwritten. */
+typedef struct pico8_emitter {
+    const pico8_emitter_def_t *def;
+    pico8_fixed_t pn;
+    pico8_fixed_t du;
+    pico8_fixed_t py;
+    const pico8_int_seq_t *k_; /* NULL: absent, every particle drawn in colour 0 */
+    pico8_fixed_t qo;
+    pico8_fixed_t ro;
+    pico8_fixed_t qg;
+    pico8_fixed_t q_;
+    pico8_ptrs_t *qy;
+} pico8_emitter_t;
 
 /* TROU-7 */
-/* `pico8_class_pq_fn`-shaped, so `g_.pq=f_`/`hj.pq=f_` port as a direct
- * `pico8_class_set_pq(cls, pico8_f_)` with no adapter. The fresh `qy` list
- * is heap-allocated and owned by the instance, which never frees it. */
-void pico8_f_(pico8_instance_t *self);
+/* The fresh `qy` list is heap-allocated and owned by `self`, which never
+ * frees it. */
+void pico8_f_(pico8_struct_header_t *self);
 
 /* Appends `self:mm()` records to `self.qy` while `rnd() < n`, subtracting 1
  * from `n` each turn: a fractional `n` genuinely has a chance of spawning
  * one more particle than `flr(n)`. A `self` whose class chain has no `mm`
  * adds nothing. */
-void pico8_ez(pico8_instance_t *self, pico8_fixed_t n);
+void pico8_ez(pico8_struct_header_t *self, pico8_fixed_t n);
 
 /* Takes gfx/mem explicitly, for the classes whose own `kj` calls it as a
  * plain function; `pico8_ei_dispatch` below is the same work reached
  * through a `kj` field, reading both from the dispatch context instead. */
-void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self);
+void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *self);
 
-/* `argc`/`arg0`/`arg1` are never read: `ei` declares only `self`, so Lua
- * drops the `entity.ra` argument `dc()` passes. */
-pico8_value_t pico8_ei_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+/* `ra` is never read: `ei` declares only `self`, so Lua drops the
+ * `entity.ra` argument `dc()` passes. */
+void pico8_ei_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra);
 
 #endif

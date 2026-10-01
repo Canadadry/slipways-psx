@@ -1,254 +1,253 @@
 #include "pico8_ui.h"
 
 #include <assert.h>
-#include <stddef.h>
-#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-#include "pico8_collect.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_entity.h"
 #include "pico8_ke.h"
-#include "pico8_list.h"
+#include "pico8_mouse.h"
 #include "pico8_pi.h"
+#include "pico8_planet_family.h"
+#include "pico8_scroll.h"
 #include "pico8_vec.h"
-#include "pico8_ref_audit.h"
+#include "pico8_wormhole.h"
 
-static pico8_class_t *g_ui_class = NULL;
-static pico8_instance_t *g_je = NULL;
-static pico8_instance_t *g_ok = NULL;
+static int g_ui_up = 0;
+static pico8_struct_header_t *g_je = NULL;
+static pico8_ui_t *g_ok = NULL;
+static pico8_ents_t g_shared_le;
 
-/* Field readers: an absent field, a wrong kind, or a NULL instance all read
- * as the default -- a zero vector here, "no value" for the raw one. */
-static pico8_vec_t pico8_ui_field_vec(const pico8_instance_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return *(const pico8_vec_t *)v.as.ref;
-    }
-    return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+const pico8_qz_box_t *pico8_ui_hw(void) {
+    return g_ui_up ? &pico8_ui_def.hw : NULL;
 }
 
-static pico8_value_t pico8_ui_field_raw(const pico8_instance_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v)) {
-        return v;
-    }
-    return pico8_value_ref(NULL);
+pico8_ents_t *pico8_ui_le_shared(void) {
+    return &g_shared_le;
 }
 
-/* Lua truthiness, used on every dispatch result below: false is falsy, and
- * so is this port's stand-in for nil, a REF holding NULL. A check that only
- * caught false swallowed every click near an unrevealed planet. */
-static int pico8_ui_truthy(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
-        return 0;
-    }
-    if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
-        return 0;
-    }
-    return 1;
-}
+static const pico8_struct_class_t g_je_placeholder_struct_class = {0};
+
+typedef struct {
+    pico8_struct_header_t header;
+} pico8_je_placeholder_t;
+
+/* The only one: never allocated, never freed. */
+static pico8_je_placeholder_t g_je_placeholder = {{.cls = &g_je_placeholder_struct_class}};
 
 static int pico8_ui_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
 }
 
-/* je[bt] (bt "l" or "r"): NULL when `je` has no such button-state table,
+static pico8_vec_t pico8_ui_vec_or_zero(const pico8_vec_t *v) {
+    return v != NULL ? *v : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+}
+
+/* je[bt] (bt "l" or "r"): NULL when `je` has no such button state,
  * which is the case for the field-less placeholder. */
-static const pico8_ob_table_t *pico8_ui_je_button_table(const char *bt) {
-    pico8_value_t b_val;
-    if (pico8_instance_get_field(g_je, bt, &b_val) && b_val.kind == PICO8_VALUE_REF && b_val.as.ref != NULL) {
-        assert(pico8_type_tag_of(b_val.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-               "je's per-button state must be a plain table");
-        return (const pico8_ob_table_t *)b_val.as.ref;
+static const pico8_nf_button_t *pico8_ui_je_button_table(const char *bt) {
+    assert((strcmp(bt, "l") == 0 || strcmp(bt, "r") == 0) &&
+           "je[bt]: bt is l or r only; another button has no state table -- stop");
+    assert(g_je != NULL && "je[bt]: indexing a nil je stops the run, as in the cart");
+    if (pico8_je_nf() == NULL) {
+        return NULL;
     }
-    return NULL;
+    return strcmp(bt, "l") == 0 ? pico8_nf_l() : pico8_nf_r();
 }
 
 static int pico8_ui_je_button_field_bool(const char *bt, const char *field) {
-    const pico8_ob_table_t *b = pico8_ui_je_button_table(bt);
-    pico8_value_t v;
-    if (b != NULL && pico8_ob_table_get_name(b, field, &v) && v.kind == PICO8_VALUE_BOOL) {
-        return v.as.boolean;
+    const pico8_nf_button_t *b = pico8_ui_je_button_table(bt);
+    if (b == NULL || !b->has_on) {
+        return 0;
     }
-    return 0;
+    if (strcmp(field, "jn") == 0) {
+        return b->jn;
+    }
+    assert(strcmp(field, "hm") == 0 && "je[bt]: only jn and hm are read");
+    return b->hm;
 }
 
-static pico8_value_t pico8_ui_ev_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
-    pico8_ui_ev(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_instance_t *)self);
-    return pico8_value_ref(NULL);
+static void pico8_ui_ev_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
+    (void)ra;
+    pico8_ui_ev(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_ui_t *)self);
+}
+
+static const pico8_struct_class_t g_ui_struct_class = {
+    .ev = pico8_ui_ev_dispatch,
+};
+
+static pico8_ui_t *pico8_ui_struct_new(void) {
+    pico8_ui_t *self;
+    int i;
+
+    assert(g_ui_up && "pico8_ui_init() must run first");
+    self = malloc(sizeof *self);
+    pico8_ke_struct_init(&self->header, &g_ui_struct_class, pico8_ui_def.me, pico8_ui_def.t);
+    self->def = &pico8_ui_def;
+    self->header.fa = &self->def->fa;
+    self->header.ql = &self->def->ql;
+    self->le = &g_shared_le;
+    self->qa = NULL;
+    self->ic = NULL;
+    self->ic_own.layer_count = PICO8_UI_IC_LAYERS;
+    for (i = 0; i < PICO8_UI_IC_LAYERS; i++) {
+        pico8_ents_init(&self->ic_own.layers[i]);
+    }
+    self->o_ = NULL;
+    self->gj = NULL;
+    self->lheld = NULL;
+    self->rheld = NULL;
+#ifdef PICO8_CLASS_COVERAGE
+    pico8_class_coverage_record("ui");
+#endif
+    pico8_ke_struct_pq(&self->header);
+    return self;
 }
 
 void pico8_ui_init(void) {
-    pico8_ob_table_t *raw_le = NULL;
-    pico8_value_t le_val;
-    pico8_list_t *heap_le;
-
     pico8_ui_shutdown();
     pico8_pi_init();
+    pico8_ents_init(&g_shared_le);
+    g_ui_up = 1;
 
-    g_ui_class = pico8_class_declare(pico8_ke_class(), "\nql=58,fa=15,le=o(),hw=b(10,10,118,118),\n");
-
-    /* `gu()`/`nv()` need a list, not the table `ob()` parses for `le=o()`.
-     * The raw table is freed here: nothing else ever sees it. */
-    if (pico8_ob_table_get_name(g_ui_class->defaults, "le", &le_val) && le_val.kind == PICO8_VALUE_REF) {
-        raw_le = (pico8_ob_table_t *)le_val.as.ref;
-    }
-    heap_le = malloc(sizeof *heap_le);
-    pico8_list_init(heap_le);
-    pico8_ob_table_set_name(g_ui_class->defaults, "le", pico8_value_ref(heap_le));
-    pico8_ob_table_free(raw_le);
-
-    pico8_ob_table_set_name(g_ui_class->defaults, "ev", pico8_value_function(pico8_ui_ev_dispatch));
-
-    g_je = malloc(sizeof *g_je);
-    g_je->tag = PICO8_TYPE_TAG_INSTANCE;
-    g_je->fields = pico8_ob_table_new();
-    g_je->cls = NULL;
+    g_je = (pico8_struct_header_t *)&g_je_placeholder;
 }
 
 void pico8_ui_shutdown(void) {
-    if (g_ui_class != NULL) {
-        pico8_class_free(g_ui_class);
-        g_ui_class = NULL;
-    }
-    if (g_je != NULL) {
-        pico8_instance_free(g_je);
-        g_je = NULL;
-    }
+    g_ui_up = 0;
+    g_je = NULL;
     if (g_ok != NULL) {
-        pico8_instance_free(g_ok);
+        free(g_ok);
         g_ok = NULL;
     }
 }
 
-pico8_class_t *pico8_ui_class(void) {
-    return g_ui_class;
+const pico8_struct_class_t *pico8_je_placeholder_struct_class(void) {
+    return &g_je_placeholder_struct_class;
 }
 
-pico8_instance_t *pico8_ui_new(const pico8_ob_table_t *overrides) {
-    return pico8_class_instantiate(g_ui_class, overrides);
+int pico8_ui_ready(void) {
+    return g_ui_up;
 }
 
-pico8_instance_t *pico8_je(void) {
+const pico8_struct_class_t *pico8_ui_struct_class(void) {
+    return &g_ui_struct_class;
+}
+
+pico8_ui_t *pico8_ui_new(void) {
+    return pico8_ui_struct_new();
+}
+
+pico8_struct_header_t *pico8_je(void) {
     return g_je;
+}
+
+pico8_nf_t *pico8_je_nf(void) {
+    if (g_je == NULL || g_je == &g_je_placeholder.header) {
+        return NULL;
+    }
+    assert(g_je->cls == pico8_nf_struct_class() && "je: only the placeholder or an nf is ever stored");
+    return (pico8_nf_t *)g_je;
 }
 
 /* Deliberately does not free the outgoing instance. `pico8_jl()` rebuilds
  * je/ok mid-frame, reachable from a click dispatched inside pico8_ui_lj,
  * whose `self` is still the old `ok` after the callback returns -- freeing
  * here is a use-after-free. */
-void pico8_ui_set_je(pico8_instance_t *instance) {
+void pico8_ui_set_je(pico8_struct_header_t *instance) {
     if (instance == g_je) {
         return;
     }
     g_je = instance;
 }
 
-pico8_instance_t *pico8_ok(void) {
+pico8_ui_t *pico8_ok(void) {
     return g_ok;
 }
 
 /* Same non-freeing rule as pico8_ui_set_je(), and the same reason. */
-void pico8_ui_set_ok(pico8_instance_t *instance) {
-    if (instance == g_ok) {
+void pico8_ui_set_ok(pico8_ui_t *ui) {
+    if (ui == g_ok) {
         return;
     }
-    g_ok = instance;
+    g_ok = ui;
 }
 
 /* `le` is read before gw()/bh() run: the `self.le == le` test further down
  * is a pointer identity check against the list this frame started with. */
-void pico8_ui_lj(pico8_mem_t *mem, pico8_instance_t *self) {
-    pico8_value_t le_val;
-    void *le_ptr_before = NULL;
+void pico8_ui_lj(pico8_mem_t *mem, pico8_ui_t *self) {
+    pico8_ents_t *le_ptr_before;
     int le_count;
     pico8_vec_t qa;
     pico8_vec_t *heap_qa;
     int hit;
+    const pico8_nf_t *je;
+    const pico8_qb_t *mo;
 
     if (self == NULL) {
         return;
     }
 
-    if (pico8_instance_get_field(self, "le", &le_val) && le_val.kind == PICO8_VALUE_REF && le_val.as.ref != NULL) {
-        le_ptr_before = le_val.as.ref;
-        le_count = PICO8_REF_AS_LIST_CONST(le_val.as.ref)->count;
-    } else {
-        le_count = 0;
-    }
+    le_ptr_before = self->le;
+    le_count = self->le != NULL ? self->le->count : 0;
 
-    qa = pico8_vec_add(pico8_ui_field_vec(g_je, "ra"), pico8_ui_field_vec(pico8_mo(), "ra"));
+    je = pico8_je_nf();
+    mo = pico8_mo_qb();
+    qa = pico8_vec_add(pico8_ui_vec_or_zero(je != NULL ? je->ra : NULL),
+                       pico8_ui_vec_or_zero(mo != NULL ? mo->ra : NULL));
     /* TROU-7 */
     heap_qa = malloc(sizeof *heap_qa);
     *heap_qa = qa;
-    pico8_ob_table_set_name(self->fields, "qa", pico8_value_ref(heap_qa));
+    self->qa = heap_qa;
 
     pico8_ui_gw(mem, self);
 
-    hit = (le_count == 0) || pico8_gu(PICO8_REF_AS_LIST_CONST(le_ptr_before), pico8_ui_field_raw(self, "o_"));
+    hit = (le_count == 0) || pico8_ents_has(le_ptr_before, self->o_);
     if (hit) {
         pico8_ui_bh(self, "l");
     }
 
     pico8_ui_bh(self, "r");
 
-    if (pico8_ui_je_button_field_bool("l", "jn")) {
-        pico8_value_t le_val2;
-        int same = pico8_instance_get_field(self, "le", &le_val2) && le_val2.kind == PICO8_VALUE_REF &&
-                    le_val2.as.ref == le_ptr_before;
-        if (same) {
-            pico8_ui_cj(self);
-        }
+    if (pico8_ui_je_button_field_bool("l", "jn") && self->le == le_ptr_before) {
+        pico8_ui_cj(self);
     }
 
-    pico8_ob_table_set_name(self->fields, "gj", pico8_ui_field_raw(self, "o_"));
+    self->gj = self->o_;
 }
 
 /* `(rheld and 9) or (o_ and o_.ql) or self.ql`: a hovered entity whose own
  * `ql` is absent falls through to self's own cursor sprite. */
-void pico8_ui_ev(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_t *self) {
+void pico8_ui_ev(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_ui_t *self) {
     pico8_vec_t je_ra;
+    const pico8_nf_t *je;
     int spr_id = 0;
-    pico8_value_t o_val;
 
     if (self == NULL || gfx == NULL || mem == NULL) {
         return;
     }
 
-    if (pico8_ui_truthy(pico8_ui_field_raw(self, "rheld"))) {
+    if (self->rheld != NULL) {
         spr_id = 9;
+    } else if (self->o_ != NULL) {
+        spr_id = pico8_ui_to_int(self->o_->ql != NULL ? *self->o_->ql : self->def->ql);
     } else {
-        o_val = pico8_ui_field_raw(self, "o_");
-        if (o_val.kind == PICO8_VALUE_REF && o_val.as.ref != NULL) {
-            pico8_value_t ql_val = pico8_ui_field_raw((const pico8_instance_t *)o_val.as.ref, "ql");
-            if (ql_val.kind != PICO8_VALUE_FIXED) {
-                ql_val = pico8_ui_field_raw(self, "ql");
-            }
-            spr_id = (ql_val.kind == PICO8_VALUE_FIXED) ? pico8_ui_to_int(ql_val.as.fixed) : 0;
-        } else {
-            pico8_value_t ql_val = pico8_ui_field_raw(self, "ql");
-            spr_id = (ql_val.kind == PICO8_VALUE_FIXED) ? pico8_ui_to_int(ql_val.as.fixed) : 0;
-        }
+        spr_id = pico8_ui_to_int(self->def->ql);
     }
 
-    je_ra = pico8_ui_field_vec(g_je, "ra");
+    je = pico8_je_nf();
+    je_ra = pico8_ui_vec_or_zero(je != NULL ? je->ra : NULL);
     pico8_spr_default(gfx, mem, spr_id, pico8_ui_to_int(je_ra.x), pico8_ui_to_int(je_ra.y));
 }
 
 /* Lua's `(self.gj or {}).m_=false` writes onto a throwaway table when the
  * field is absent, with no observable effect, so the write is simply
  * skipped here rather than allocating a table nothing reads. */
-void pico8_ui_gw(pico8_mem_t *mem, pico8_instance_t *self) {
-    pico8_ob_table_t *ic;
-    pico8_value_t qa_val;
-    pico8_value_t je_ra_val;
-    const pico8_list_t *hd_bucket;
-    pico8_value_t gj_val;
-    pico8_value_t o_val;
+void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
+    const pico8_nf_t *je;
+    const pico8_vec_t *je_ra;
+    const pico8_ents_t *hd_bucket;
     int i;
     int poke_val;
 
@@ -256,44 +255,48 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_instance_t *self) {
         return;
     }
 
-    /* TROU-7 */
-    ic = pico8_ob_table_new();
-    pico8_ob_table_set_name(self->fields, "ic", pico8_value_ref(ic));
-    pico8_ob_table_set_name(self->fields, "o_", pico8_value_ref(NULL));
+    for (i = 0; i < PICO8_UI_IC_LAYERS; i++) {
+        pico8_ents_free(&self->ic_own.layers[i]);
+        pico8_ents_init(&self->ic_own.layers[i]);
+    }
+    self->ic = &self->ic_own;
+    self->o_ = NULL;
 
-    qa_val = pico8_ui_field_raw(self, "qa");
-    je_ra_val = pico8_ui_field_raw(g_je, "ra");
+    je = pico8_je_nf();
+    je_ra = je != NULL ? je->ra : NULL;
 
     hd_bucket = pico8_cv("hd");
     if (hd_bucket != NULL) {
         for (i = 0; i < hd_bucket->count; i++) {
-            pico8_instance_t *e = hd_bucket->items[i].as.ref;
-            pico8_value_t hit_out;
+            pico8_struct_header_t *e = hd_bucket->items[i];
 
-            /* TROU-11 */
-            if (pico8_mv(e, "hd", 2, qa_val, je_ra_val, &hit_out) && pico8_ui_truthy(hit_out)) {
-                pico8_value_t fa_val;
-                if (pico8_instance_get_field(e, "fa", &fa_val) && fa_val.kind == PICO8_VALUE_FIXED) {
-                    pico8_ft_index(ic, pico8_ui_to_int(fa_val.as.fixed), pico8_value_ref(e));
+            if (e->cls->hd != NULL && e->cls->hd(e, self->qa, je_ra)) {
+                if (e->fa != NULL) {
+                    int fa = pico8_ui_to_int(*e->fa);
+
+                    assert(fa >= 0 && fa < PICO8_UI_IC_LAYERS &&
+                           "ui.ic: a hovered entity's fa outside 0..15, the layers jz walks -- stop, do not widen");
+                    pico8_ents_add(&self->ic->layers[fa], e);
                 }
-                pico8_ob_table_set_name(self->fields, "o_", pico8_value_ref(e));
+                self->o_ = e;
             }
         }
     }
 
-    gj_val = pico8_ui_field_raw(self, "gj");
-    if (gj_val.kind == PICO8_VALUE_REF && gj_val.as.ref != NULL) {
-        pico8_ob_table_set_name(((pico8_instance_t *)gj_val.as.ref)->fields, "m_", pico8_value_bool(0));
+    if (self->gj != NULL) {
+        assert(self->gj->m_ != NULL &&
+               "entity: a generic write names a field this struct has no member for -- stop, do not add a member");
+        *self->gj->m_ = 0;
     }
 
-    o_val = pico8_ui_field_raw(self, "o_");
-    if (o_val.kind == PICO8_VALUE_REF && o_val.as.ref != NULL) {
-        pico8_ob_table_set_name(((pico8_instance_t *)o_val.as.ref)->fields, "m_", pico8_value_bool(1));
+    if (self->o_ != NULL) {
+        assert(self->o_->m_ != NULL &&
+               "entity: a generic write names a field this struct has no member for -- stop, do not add a member");
+        *self->o_->m_ = 1;
     }
 
-    if (o_val.kind == PICO8_VALUE_REF && o_val.as.ref != NULL) {
-        pico8_value_t fg_val = pico8_ui_field_raw((const pico8_instance_t *)o_val.as.ref, "fg");
-        poke_val = (fg_val.kind == PICO8_VALUE_FIXED) ? pico8_ui_to_int(fg_val.as.fixed) : 0;
+    if (self->o_ != NULL) {
+        poke_val = pico8_ui_to_int(self->o_->fg != NULL ? *self->o_->fg : pico8_fixed_from_int(0));
     } else {
         int prev = pico8_peek(mem, 0x5f80);
         poke_val = (prev - 1 > 0) ? prev - 1 : 0;
@@ -301,92 +304,111 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_instance_t *self) {
     pico8_poke(mem, 0x5f80, (unsigned char)poke_val);
 }
 
-void pico8_ui_bh(pico8_instance_t *self, const char *bt) {
-    char ni[16];
-    pico8_value_t held_val;
-    pico8_instance_t *held_inst = NULL;
-    pico8_value_t qa_val;
-    pico8_value_t je_ra_val;
-    pico8_value_t discard;
+static int ui_is_held_class(const pico8_struct_class_t *cls) {
+    return cls == pico8_jc_struct_class() || cls == pico8_g__struct_class() || cls == pico8_mz_struct_class() ||
+           (cls->states[PICO8_STATE_LY] != NULL && cls != pico8_pm_struct_class());
+}
+
+void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
+    int l;
+    pico8_struct_header_t *held_inst;
+    pico8_nf_t *je;
+    pico8_vec_t *je_ra;
 
     if (self == NULL) {
         return;
     }
 
-    snprintf(ni, sizeof ni, "%sheld", bt);
-    qa_val = pico8_ui_field_raw(self, "qa");
-    je_ra_val = pico8_ui_field_raw(g_je, "ra");
+    assert((strcmp(bt, "l") == 0 || strcmp(bt, "r") == 0) &&
+           "ui:bh: bt is l or r only; another button has no state table -- stop");
+    l = bt[0] == 'l';
+    je = pico8_je_nf();
+    je_ra = je != NULL ? je->ra : NULL;
 
     if (pico8_ui_je_button_field_bool(bt, "jn")) {
-        char down_name[16];
-        pico8_instance_t *kv = NULL;
-        pico8_value_t kn;
+        pico8_struct_header_t *kv = NULL;
+        pico8_down_t kn;
 
-        snprintf(down_name, sizeof down_name, "%sdown", bt);
-
-        if (pico8_ui_jz(self, down_name, 2, qa_val, je_ra_val, &kv, &kn) && kn.kind == PICO8_VALUE_REF) {
-            pico8_ob_table_set_name(self->fields, ni, kn);
+        if (pico8_ui_jz(self, l ? PICO8_JZ_LDOWN : PICO8_JZ_RDOWN, self->qa, je_ra, NULL, &kv, &kn) &&
+            kn.held != NULL) {
+            if (l) {
+                assert(ui_is_held_class(kn.held->cls) &&
+                       "ui.lheld: what an ldown hands over is a jc; a g_ or an mz from bg; a qh, os, nr, fr, nl, mx "
+                       "or hj from an ie");
+                self->lheld = kn.held;
+            } else {
+                assert(kn.held->cls == pico8_bg_struct_class() && "ui.rheld: what an rdown hands over is the bg");
+                self->rheld = (pico8_bg_t *)kn.held;
+            }
         }
     }
 
-    held_val = pico8_ui_field_raw(self, ni);
-    if (held_val.kind == PICO8_VALUE_REF && held_val.as.ref != NULL) {
-        /* TROU-6 */
-        held_inst = (pico8_instance_t *)held_val.as.ref;
+    held_inst = l ? self->lheld : (self->rheld != NULL ? &self->rheld->header : NULL);
+
+    if (held_inst != NULL && held_inst->cls->hq != NULL) {
+        held_inst->cls->hq(held_inst, self->qa, je_ra);
     }
 
-    pico8_mv(held_inst, "hq", 2, qa_val, je_ra_val, &discard);
-
     if (pico8_ui_je_button_field_bool(bt, "hm") && held_inst != NULL) {
-        pico8_instance_t *nw_kv = NULL;
-        pico8_value_t nw_kn;
-        pico8_value_t ey_arg = pico8_value_ref(NULL);
+        pico8_struct_header_t *nw_kv = NULL;
+        pico8_down_t nw_kn;
 
         /* `ey`'s argument is the entity `jz` found, not a field read on
          * `held`: no object in this cart carries a "kv" field. */
-        if (pico8_ui_jz(self, "gv", 1, held_val, pico8_value_ref(NULL), &nw_kv, &nw_kn) && nw_kv != NULL) {
-            ey_arg = pico8_value_ref(nw_kv);
-        }
+        (void)pico8_ui_jz(self, PICO8_JZ_GV, NULL, NULL, held_inst, &nw_kv, &nw_kn);
 
-        pico8_mv(held_inst, "ey", 1, ey_arg, pico8_value_ref(NULL), &discard);
-        pico8_ob_table_set_name(self->fields, ni, pico8_value_ref(NULL));
+        if (held_inst->cls->ey != NULL) {
+            held_inst->cls->ey(held_inst, nw_kv);
+        }
+        if (l) {
+            self->lheld = NULL;
+        } else {
+            self->rheld = NULL;
+        }
     }
 }
 
 /* Layers descend from 15 to 0 and the first truthy answer wins: that order
  * is the dispatch priority between overlapping entities, not an arbitrary
  * walk. */
-int pico8_ui_jz(pico8_instance_t *self, const char *rm, int argc, pico8_value_t arg0, pico8_value_t arg1,
-                pico8_instance_t **out_kv, pico8_value_t *out_kn) {
+int pico8_ui_jz(pico8_ui_t *self, pico8_jz_slot_t rm, pico8_vec_t *qa, pico8_vec_t *ra, const pico8_struct_header_t *s,
+                pico8_struct_header_t **out_kv, pico8_down_t *out_kn) {
     int mf;
-    pico8_value_t ic_val;
-    const pico8_ob_table_t *ic;
 
     if (self == NULL) {
         return 0;
     }
 
-    if (!pico8_instance_get_field(self, "ic", &ic_val) || ic_val.kind != PICO8_VALUE_REF || ic_val.as.ref == NULL) {
+    if (self->ic == NULL) {
         return 0;
     }
-    ic = (const pico8_ob_table_t *)ic_val.as.ref;
 
-    for (mf = 15; mf >= 0; mf--) {
-        pico8_value_t bucket_val;
-        const pico8_list_t *bucket;
+    for (mf = PICO8_UI_IC_LAYERS - 1; mf >= 0; mf--) {
+        const pico8_ents_t *bucket = &self->ic->layers[mf];
         int i;
 
-        if (!pico8_ob_table_get_index(ic, mf, &bucket_val) || bucket_val.kind != PICO8_VALUE_REF ||
-            bucket_val.as.ref == NULL) {
-            continue;
-        }
-        bucket = PICO8_REF_AS_LIST_CONST(bucket_val.as.ref);
-
         for (i = 0; i < bucket->count; i++) {
-            pico8_instance_t *h = bucket->items[i].as.ref;
-            pico8_value_t kn;
+            pico8_struct_header_t *h = bucket->items[i];
+            pico8_down_t kn = {0, NULL};
 
-            if (pico8_mv(h, rm, argc, arg0, arg1, &kn) && pico8_ui_truthy(kn)) {
+            switch (rm) {
+            case PICO8_JZ_LDOWN:
+                if (h->cls->ldown != NULL) {
+                    kn = h->cls->ldown(h, qa, ra);
+                }
+                break;
+            case PICO8_JZ_RDOWN:
+                if (h->cls->rdown != NULL) {
+                    kn = h->cls->rdown(h, qa, ra);
+                }
+                break;
+            case PICO8_JZ_GV:
+                if (h->cls->gv != NULL) {
+                    kn = h->cls->gv(h, s);
+                }
+                break;
+            }
+            if (kn.stop) {
                 *out_kv = h;
                 *out_kn = kn;
                 return 1;
@@ -397,33 +419,25 @@ int pico8_ui_jz(pico8_instance_t *self, const char *rm, int argc, pico8_value_t 
     return 0;
 }
 
-/* `he()` returns nothing, so this never produces a mapped value (always 0)
- * and the mapped list stays empty; the point is `pico8_he()`'s side effect
- * of unregistering each entity. */
-static int pico8_ui_cj_he_mapper(pico8_value_t e, void *ctx, pico8_value_t *out_value) {
-    (void)ctx;
-    (void)out_value;
-    if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
-        pico8_he((pico8_instance_t *)e.as.ref);
-    }
-    return 0;
-}
-
-void pico8_ui_cj(pico8_instance_t *self) {
-    pico8_value_t le_val;
-    pico8_list_t *heap_le;
+void pico8_ui_cj(pico8_ui_t *self) {
+    pico8_ents_t *heap_le;
 
     if (self == NULL) {
         return;
     }
 
-    if (pico8_instance_get_field(self, "le", &le_val) && le_val.kind == PICO8_VALUE_REF && le_val.as.ref != NULL) {
-        pico8_list_t discarded = pico8_nv(PICO8_REF_AS_LIST_CONST(le_val.as.ref), pico8_ui_cj_he_mapper, NULL);
-        pico8_list_free(&discarded);
+    if (self->le != NULL) {
+        pico8_ents_iter_t it = pico8_ents_all(self->le);
+        pico8_struct_header_t *e;
+        while (pico8_ents_iter_next(&it, &e)) {
+            if (e != NULL) {
+                pico8_he(e);
+            }
+        }
     }
 
     /* TROU-7 */
     heap_le = malloc(sizeof *heap_le);
-    pico8_list_init(heap_le);
-    pico8_ob_table_set_name(self->fields, "le", pico8_value_ref(heap_le));
+    pico8_ents_init(heap_le);
+    self->le = heap_le;
 }

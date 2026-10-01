@@ -41,25 +41,23 @@ Fichiers : `src/pico8_scroll.c`, `src/pico8_input.h` (le schéma de frame, qui n
 
 ## TROU-3 — Les chaînes ne sont pas internées
 
-`pico8_value_equal` compare deux `PICO8_VALUE_STRING` **par pointeur**,
-alors que Lua interne les littéraux : deux chaînes identiques y sont le
-même objet. Comme le parseur `ob()` de ce port alloue une chaîne neuve par
-token, deux chaînes égales ne sont jamais le même pointeur.
+Lua interne les littéraux : deux chaînes identiques y sont le même objet.
+Ce port copie ou alloue ses chaînes (les données générées ont un tableau
+distinct par jeton) : deux chaînes égales n'y sont donc pas le même
+pointeur.
 
-Contourné au cas par cas : `pico8_gu_content` compare par contenu, et
-plusieurs modules ont leur propre comparaison par contenu (`jo:gg`, `dh`,
-`db`). Toute nouvelle comparaison de chaînes doit choisir explicitement,
-`pico8_value_equal` ne fera pas ce qu'on croit.
+Contourné au cas par cas : `pico8_gu_content_ptrs` compare par contenu
+(les chaînes de `hy.invented`, pour `oj`), et
+plusieurs modules ont leur propre comparaison par contenu (`jo:gg`,
+`db`). Toute nouvelle comparaison de chaînes doit choisir explicitement.
 
-**Une exception, qui explique deux sites voisins qui ne se ressemblent
-pas.** Les valeurs que `ho()` route à travers `r` partagent littéralement
-le pointeur de `r` : là, la comparaison par identité est correcte. C'est
-le cas de `kw.qe` (routé depuis `hp.o`), d'où un `pico8_value_equal` dans
-`jo:gh` là où `db()` — qui compare une chaîne d'une autre provenance —
-doit passer par le contenu. Aucun des deux n'est à « corriger » d'après
-l'autre.
+**Hors de TROU-3 : les `qe`.** Ce que `ho()` route à travers `r` (`hp.o`,
+`hp.dm`, donc `kw.qe`) et les besoins `{qe=r[c]}` sont des nombres —
+l'indice d'une ressource —, pas des chaînes : ils se comparent par valeur
+(`==` sur `pico8_fixed_t`, `pico8_qe_equal`). `db()`, qui compare une
+chaîne, passe par le contenu.
 
-Fichiers : `src/pico8_value.c`, `src/pico8_collect.c`.
+Fichiers : `src/pico8_collect.c`.
 
 ## TROU-4 — `oo()` ne retombe pas sur la table quand le constructeur rend faux
 
@@ -69,13 +67,14 @@ ne teste que `fn == NULL` et rend sinon le résultat du constructeur tel
 quel.
 
 Devenu atteignable : `'s'` (le constructeur `spr`) est bien enregistré
-depuis `pico8_pi_init()`, et `pico8_pi_spr_constructor` rend
-`pico8_value_ref(NULL)`, donc une valeur fausse. Aucune spec du cart
+depuis `pico8_pi_init()`, et `pico8_pi_spr_constructor` rendait un
+pointeur nul, donc une valeur fausse. Aucune spec du cart
 n'écrit `s(...)` aujourd'hui — vérifié sur `pico8/lua.lua` — donc le trou
 est dormant, pas actif. Il s'ouvrira le jour où une spec en écrira une.
 
-Fichiers : `src/pico8_collect.c` (`pico8_oo`), `src/pico8_ob.c` (la même
-logique, dupliquée en ligne dans le parseur).
+Sans site depuis D.8 : `pico8_oo` (`src/pico8_collect.c`) supprimé à D.7a,
+`src/pico8_ob.c` et `pico8_pi_spr_constructor` supprimés à D.8 ; le port
+n'analyse plus de spec.
 
 ## TROU-5 — `dg()` saute une entité quand une entité s'auto-supprime
 
@@ -87,20 +86,6 @@ Divergence assumée : une entité sautée est simplement traitée à la frame
 suivante.
 
 Fichier : `src/pico8_bootstrap.c`.
-
-## TROU-6 — L'entité tenue par la souris est castée sans vérification
-
-`ui:bh()` range dans `lheld`/`rheld` ce que rend le `ldown`/`rdown` de
-l'entité cliquée, puis le relit comme un `pico8_instance_t*` pour lui
-envoyer `hq`/`ey`. Rien ne garantit que c'en soit une : en Lua c'est
-n'importe quelle table.
-
-Aujourd'hui sans danger — toutes les classes qui définissent `ldown` rendent
-soit une instance, soit un booléen — mais c'est la même famille de
-confusion de représentation que celle qui a produit quatre débordements de tas (voir
-le tag de type, `src/pico8_type_tag.h`).
-
-Fichier : `src/pico8_ui.c`.
 
 ## TROU-7 — Fuites mémoire assumées
 
@@ -126,7 +111,8 @@ par utilité.
 d'appel n'en a eu besoin. `t[nom]=nil` n'a donc pas d'équivalent exact —
 écrire une valeur fausse n'est pas la même chose qu'un champ absent.
 
-Fichier : `src/pico8_ob.c`.
+Sans site depuis D.8 : `src/pico8_ob.c` supprimé ; le port n'a plus de
+table à clés dynamiques.
 
 ## TROU-10 — L'audio est hors périmètre
 
@@ -156,7 +142,8 @@ Pas transformé en `assert(argc >= 2)` : ça ferait sauter un `dc("hd")` par
 ailleurs légitime. Le vrai correctif est de décider ce que `hd` doit faire
 sous `dc()`, ce qui dépasse une reprise de commentaires.
 
-Fichiers : `src/pico8_ui_button.c`, `src/pico8_entity.c`.
+Sans site depuis D.10a : l'emplacement `hd` a toujours deux arguments et
+`dc` ne lance que `kj`/`ev` (`assert` sur tout autre nom).
 
 ## TROU-12 — Le premier anneau du trou de ver est noir au lieu de garder la plume
 
@@ -190,17 +177,14 @@ Fichier : `src/pico8_wormhole_display.c`.
 La rangée « score 0 » du panneau lit `s[st.score]` avec `score == 0`,
 c'est-à-dire un indice que `ky()` ne pose jamais. Lua y verrait nil.
 
-Ce port n'a pas de nil : il passe son emplissage « absent »
-(`pico8_value_ref(NULL)`) à `pico8_value_tostr`, qui rend `""`. PICO-8,
-lui, a une représentation dédiée pour nil dans `tostr` — donc la ligne ne
-s'affiche pas pareil.
+Ce port n'a pas de nil à mettre en chaîne : `pico8_pj_ph_s_str` rend `""`
+pour tout indice hors de 1..6. PICO-8, lui, a une représentation dédiée
+pour nil dans `tostr` — donc la ligne ne s'affiche pas pareil.
 
-Corollaire : le commentaire de `pico8_value_tostr` affirmait que ses
-branches `REF`/`FUNCTION` ne sont exercées par aucun site d'appel. C'est
-faux depuis que le panneau de score existe : elles le sont à chaque
-rafraîchissement.
+Fixé par `test_scores_box_follows_c_` de `test_pico8_mh`
+(`SCORES_SEQUENCE_HASH`).
 
-Fichiers : `src/pico8_score_panel_display.c`, `src/pico8_value.c`.
+Fichier : `src/pico8_score_panel_display.c`.
 
 ## TROU-14 — Une boucle qui supprime son propre élément en saute un
 
@@ -352,7 +336,7 @@ Fichier : `src/pico8_planet_family.c`.
 
 ## TROU-22 — `tostr` sous 0.0001 n'est pas sourcé
 
-`pico8_value_tostr` écrit un nombre avec 4 décimales arrondies au pair,
+`pico8_tostr_fixed` écrit un nombre avec 4 décimales arrondies au pair,
 puis retire les zéros de fin et le point nu. Cette règle reproduit 13 des
 14 témoins du bloc C de `tools/probe_out.txt`, dont `2/3 → "0.6667"`.
 
@@ -367,4 +351,72 @@ Non atteint par le filet : aucune valeur affichée par le jeu n'a une
 magnitude inférieure à 0.0001. Se tranche par une relance d'une ligne de
 la sonde (reliquat de la Phase A, `docs/plan-2.md`).
 
-Fichier : `src/pico8_value.c`.
+Fichier : `src/pico8_str.c`.
+
+## TROU-23 — Une ligne de bouton qui porte `h_` ou `jb` à nil a quand même sa pastille ou son infobulle
+
+Dans le cart, `js:pq` fait `self.h_=self.h_ and lq(self.h_)` et
+`self.jb=self.jb and jb(self.jb)` : une clé nil ne construit rien. Ce port
+construit un `lq` vide, ou un `jb` vide, dès que la ligne porte la clé,
+même à nil (TROU-9 : une clé nommée écrite à nil reste présente). Seul
+`false` n'en construit pas.
+
+Atteint par le filet : la ligne de `jo:fe` d'un bâtiment dont `b:jb()` est
+nil (`hp:jb` quand `ii` est vrai) reçoit une infobulle vide, dessinée au
+survol (`events_recorded_1790198294`, `session_events`). La ligne de
+`jo:gh` sans `kr` recevrait une pastille vide ; aucun rejeu ne l'atteint.
+La struct `js`, où nil vaut absent, garde ce comportement : la présence
+d'une clé `h_` ou `jb` nil est portée par `has_h_`/`has_jb` de
+`pico8_js_keys_t`, sans `h_row` ni `h_is_false` (sans `jb_row`) ; `js:pq`
+construit alors une rangée ou un `jb` vides. Fixé par `test_nil_keys` de
+`test_pico8_js`.
+
+Fichier : `src/pico8_ui_button.c`.
+
+## TROU-24 — `trade:kg` donne `qe=false` à la route neuve quand `self.qe` est nil
+
+Dans le cart, `trade:kg` recopie `self.qe` tel quel : nil reste nil, et
+aucune route n'a jamais `qe=false`. Ce port pose `false` quand la route
+allongée n'a pas de `qe`. Dans la struct `trade`, nil et absent ne font
+qu'un : un `qe` nil, passé explicitement ou omis, donne `false`.
+
+`pico8_qe_t` garde les trois états et `pico8_qe_equal` est le `==` de Lua :
+l'écart se voit là où une route rencontre un besoin sans `qe`. Dans
+`jo:cn`, une route venue de `jo:ib` sans `qe` (nil) répond à un tel besoin,
+comme dans le cart ; passée par `kg` (`nr:cn`), elle vaut `false` et n'y
+répond plus. Dans `dh`, la garde `has_qe` écarte en plus la route nil que le
+cart compterait : une route sans nombre n'y compte jamais.
+
+Non atteint par les e2e : toute route qu'ils construisent a un `qe` non nil.
+`jo:ib` passe pourtant un `qe` nil quand la table `kw` de la planète n'a pas
+de `qe`. `test_pico8_trade` fixe les deux lectures.
+
+Fichiers : `src/pico8_trade.c`, `src/pico8_planet_trade.c`,
+`src/pico8_economy_tiers.c`.
+
+## TROU-25 — La rangée « score 0 » du panneau de fin a un trou, le port en dessine les deux éléments
+
+La ligne `o("",score=0,ra=v(64,21),c=5)` de `bz` (lua.lua:803) n'a qu'un
+positionnel, l'indice 1. `pj:ph` (lua.lua:885-891) lui écrit `st[3]` (la
+chaîne de TROU-13), puis réécrit `st[1]`, et la passe à `lq`. La rangée
+porte donc les indices 1 et 3, sans 2.
+
+`lq:pq` la parcourt par `nv`, donc `all(self)` (lua.lua:289-290), qui
+s'arrête à la bordure `#t`. Le port, lui, prend toutes les clés d'indice dans
+l'ordre croissant (`pico8_layout_positional_values`) et resserre le trou :
+le membre `items` de la rangée garde les deux éléments, `fs` en a deux, et
+`w` compte les deux. Le centrage de la rangée (`a=0.5`, par `pi.ld`) en
+dépend. Atteint par le filet (`game_end`, 4 constructions).
+
+Vérifié dans la source du cart : la ligne de `bz`, l'ordre des écritures de
+`pj:ph` et le parcours par `all` de `lq:pq`. Non vérifié sur PICO-8 : la
+valeur de `#t` pour cette table. Dans l'implémentation de Lua 5.2, une
+table construite avec `[1]` puis complétée en `[3]` a une bordure de 1, et
+`all` ne verrait que l'indice 1 ; PICO-8 peut rendre 3, l'autre
+bordure valide (`t[1]` n'étant pas nil, 0 n'en est pas une).
+
+Préexistant : l'instance de `lq` parcourait déjà toutes les clés d'indice.
+La conversion en struct (plan 3, étape 1a.34) préserve l'écart.
+
+Fichiers : `src/pico8_layout.c` (constructeur de `lq`),
+`src/pico8_score_panel_display.c`.

@@ -6,71 +6,44 @@
 #include <string.h>
 
 #include "../src/pico8_assets.h"
-#include "../src/pico8_fixed.h"
+#include "../src/pico8_map_tables.h"
 #include "../src/pico8_mem.h"
+#include "../src/pico8_research.h"
 
 static void test_hc_fd_dr_nb_decode_real_cart_content(void) {
     pico8_mem_t mem;
-    pico8_value_t v;
 
     pico8_mem_init(&mem);
     assert(pico8_load_map_json(&mem, "pico8/map.json"));
 
-    pico8_data_init(&mem);
+    pico8_data_init();
 
-    assert(pico8_hc()->count == 6);
-    assert(pico8_ob_table_get_name(pico8_hc(), "f-", &v));
-    assert(v.kind == PICO8_VALUE_REF);
-    assert(pico8_ob_table_get_name(pico8_hc(), "qh+", &v));
-    assert(v.kind == PICO8_VALUE_REF);
-    assert(!pico8_ob_table_get_name(pico8_hc(), "does-not-exist", &v));
+    assert(PICO8_HC_COUNT == 6);
+    assert(pico8_hc_lookup("f-") != NULL);
+    assert(pico8_hc_lookup("qh+") != NULL);
+    assert(pico8_hc_lookup("does-not-exist") == NULL);
 
-    assert(pico8_fd()->count == 42);
+    assert(PICO8_FD_COUNT == 42);
+    assert(pico8_gb_count() == 34 && pico8_gb_at(34) != NULL);
+    assert(pico8_gb_at(35) == NULL);
 
-    assert(pico8_dr()->count == 7);
-    assert(pico8_ob_table_get_index(pico8_dr(), 1, &v));
-    assert(v.kind == PICO8_VALUE_REF);
+    assert(PICO8_DR_COUNT == 7);
+    assert(pico8_dr_table[0].count > 0 && pico8_dr_table[0].items[0].row != NULL);
     {
-        const pico8_ob_table_t *entry = v.as.ref;
-        pico8_value_t title_row;
-        assert(pico8_ob_table_get_index(entry, 1, &title_row));
-        assert(title_row.kind == PICO8_VALUE_REF);
-        {
-            const pico8_ob_table_t *title = title_row.as.ref;
-            pico8_value_t title_text;
-            assert(pico8_ob_table_get_index(title, 1, &title_text));
-            assert(title_text.kind == PICO8_VALUE_STRING);
-            assert(strcmp(title_text.as.string, "-lab-") == 0);
-            free((void *)title_text.as.string);
-        }
+        const pico8_jb_row_t *title = pico8_dr_table[0].items[0].row;
+        assert(title->count > 0 && title->items[0].s != NULL);
+        assert(strcmp(title->items[0].s, "-lab-") == 0);
     }
 
-    assert(pico8_nb()->count == 38);
-    assert(pico8_ob_table_get_index(pico8_nb(), 1, &v));
-    assert(v.kind == PICO8_VALUE_REF);
+    assert(PICO8_NB_COUNT == 19);
     {
-        const pico8_ob_table_t *tech = v.as.ref;
-        pico8_value_t field;
+        const pico8_nb_entry_t *tech = &pico8_nb_table[0];
 
-        assert(pico8_ob_table_get_name(tech, "px", &field));
-        assert(field.kind == PICO8_VALUE_STRING);
-        assert(strcmp(field.as.string, "space folding") == 0);
-        free((void *)field.as.string);
-
-        assert(pico8_ob_table_get_name(tech, "lv", &field));
-        assert(field.kind == PICO8_VALUE_FIXED);
-        assert(field.as.fixed == pico8_fixed_from_int(1));
-
-        assert(pico8_ob_table_get_name(tech, "nk", &field));
-        assert(field.kind == PICO8_VALUE_FIXED);
-        assert(field.as.fixed == pico8_fixed_from_int(22));
-
-        assert(pico8_ob_table_get_name(tech, "od", &field));
-        assert(field.kind == PICO8_VALUE_FIXED);
-        assert(field.as.fixed == pico8_fixed_from_int(4));
-
-        assert(pico8_ob_table_get_name(tech, "oy", &field));
-        assert(field.kind == PICO8_VALUE_REF);
+        assert(strcmp(tech->px, "space folding") == 0);
+        assert(tech->lv == 1);
+        assert(tech->nk == 22);
+        assert(tech->od == 4);
+        assert(tech->oy != NULL);
     }
 
     pico8_data_shutdown();

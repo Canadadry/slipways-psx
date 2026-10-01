@@ -5,38 +5,54 @@
 #include <string.h>
 
 #include "pico8_audio.h"
-#include "pico8_class.h"
-#include "pico8_collect.h"
-#include "pico8_data_init.h"
+#include "pico8_fm.h"
+#include "pico8_struct.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_economy.h"
 #include "pico8_fixed.h"
+#include "pico8_game_data.h"
 #include "pico8_input.h"
 #include "pico8_layout.h"
-#include "pico8_list.h"
 #include "pico8_msgbox.h"
 #include "pico8_pi.h"
-#include "pico8_probe.h"
 #include "pico8_score_panel.h"
 #include "pico8_score_panel_display.h"
 #include "pico8_tech_gate.h"
-#include "pico8_type_tag.h"
 #include "pico8_ui_button.h"
-#include "pico8_value.h"
-#include "pico8_ref_audit.h"
+#include "pico8_vec.h"
+#include "pico8_str.h"
 
-static pico8_ob_table_t *g_ix = NULL;
-static pico8_ob_table_t *g_ha = NULL;
+/* The most items a row of `ix` or `ha` holds. */
+#define PICO8_MENU_ROW_CAP 4
 
-static int cr_truthy(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
-        return 0;
-    }
-    if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
-        return 0;
-    }
-    return 1;
-}
+static int g_menu_up = 0;
+/* `ix[i].ra` and `ha.hi`/`ha.gq`, reset by each init: the buttons borrow
+ * them. */
+static pico8_vec_t g_ix_ra[PICO8_IX_COUNT];
+static pico8_vec_t g_ha_hi;
+static pico8_vec_t g_ha_gq;
+
+static void pico8_ix4_my_dispatch(pico8_js_t *self);
+
+typedef struct {
+    pico8_struct_header_t header;
+    pico8_vec_t *hi;
+    pico8_vec_t *gq;
+    pico8_fixed_t ca;
+    int has_ca; /* 0: `ca` is nil, and `ca` is then never read */
+} pico8_ha_pz_t;
+
+static const pico8_struct_class_t g_ha_pz_struct_class = {0};
+
+/* Never allocated nor freed: `pico8_menu_init()` points its `hi`/`gq`/`ca`
+ * at `ha`'s own values, `pico8_menu_shutdown()` resets them to nil. */
+static pico8_ha_pz_t g_ha_pz = {
+    {.cls = &g_ha_pz_struct_class},
+    NULL,
+    NULL,
+    0,
+    0,
+};
 
 static char *cr_concat2(const char *a, const char *b) {
     size_t la = strlen(a);
@@ -48,162 +64,140 @@ static char *cr_concat2(const char *a, const char *b) {
     return out;
 }
 
-/* Borrows `pj`'s class-level `cr` table, which this module then writes into:
- * not a copy, and NULL before pico8_score_panel_init(). */
-static pico8_ob_table_t *pj_cr_table(void) {
-    pico8_class_t *cls = pico8_pj_class();
-    pico8_value_t v;
-    if (cls != NULL && cls->defaults != NULL && pico8_ob_table_get_name(cls->defaults, "cr", &v) &&
-        v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        assert(pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE && "pj.cr must be a plain spec table");
-        return (pico8_ob_table_t *)v.as.ref;
+/* `_cr_t` is not a cart field: it is where pico8_cr_step stashes the row's
+ * captured tech, as its entry of pico8_nb_table, read back here off the
+ * button `js(b)` copied it to. */
+static void pico8_cr_row_my_dispatch(pico8_js_t *self) {
+    if (self == NULL) {
+        return;
     }
-    return NULL;
+    if (self->_cr_t != NULL) {
+        pico8_hy_kt(pico8_fm_hy(), self->_cr_t);
+    }
 }
 
-/* `"_cr_t"` is not a cart field: it is where pico8_cr_step stashes the row's
- * captured tech entry, read back here off the row once it is an instance. */
-static pico8_value_t pico8_cr_row_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_instance_t *inst = (pico8_instance_t *)self;
-    pico8_value_t t_val;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
-    if (inst == NULL) {
-        return pico8_value_ref(NULL);
-    }
-    if (pico8_instance_get_field(inst, "_cr_t", &t_val) && t_val.kind == PICO8_VALUE_REF && t_val.as.ref != NULL) {
-        pico8_hy_kt(pico8_fm(), (const pico8_ob_table_t *)t_val.as.ref);
-    }
-    return pico8_value_ref(NULL);
-}
+/* One row of `cr`'s `bs`: the keys and the rows its `lq`/`h_` read. */
+typedef struct {
+    pico8_js_keys_t row;
+    pico8_lq_keys_t lq;
+    pico8_lq_cell_t lq_items[2];
+    pico8_lq_keys_t h;
+    pico8_lq_cell_t h_items[2];
+} pico8_cr_row_t;
 
 /* TROU-7 */
 /* An unaffordable tech gets "my" = false, not an absent field: `t.e_` is a
  * comparison result in `cb()`, so Lua's `and` yields the boolean here. */
-static int pico8_cr_step(pico8_value_t e, void *ctx, pico8_value_t *out_value) {
-    pico8_ob_table_t *t;
-    pico8_ob_table_t *row;
-    pico8_ob_table_t *lq_table;
-    pico8_ob_table_t *h_table;
-    pico8_ob_table_t *pair_table;
-    pico8_value_t nk_val = pico8_value_ref(NULL);
-    pico8_value_t px_val = pico8_value_ref(NULL);
-    pico8_value_t oy_val;
-    pico8_value_t e_val;
+static void pico8_cr_step(const pico8_nb_entry_t *t, pico8_cr_row_t *b) {
+    static const pico8_jb_item_t pair_items[] = {{.n = 24}, {.n = 5}};
+    static const pico8_jb_row_t pair = {.count = 2, .items = pair_items};
     pico8_fixed_t gi_result;
     char *gi_str;
-    (void)ctx;
 
-    if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
-        return 0;
+    b->lq_items[0] = pico8_lq_cell_fixed(pico8_fixed_from_int(t->nk));
+    b->lq_items[1] = pico8_lq_cell_string(t->px);
+    b->lq.items = b->lq_items;
+    b->lq.count = 2;
+    b->lq.has_c = 1;
+    b->lq.c = pico8_fixed_from_int(6);
+    b->row.lq_row = &b->lq;
+
+    gi_result = pico8_gi_nb(t);
+    gi_str = pico8_tostr_fixed(gi_result);
+
+    b->h_items[0] = pico8_lq_cell_row(&pair);
+    b->h_items[1] = pico8_lq_cell_string(gi_str);
+    b->h.items = b->h_items;
+    b->h.count = 2;
+    b->row.has_h_ = 1;
+    b->row.h_row = &b->h;
+
+    b->row.has_jb = 1;
+    b->row.jb_row = t->oy;
+
+    b->row.has_my = 1;
+    if (pico8_nb_e_(t)) {
+        b->row._cr_t = t;
+        b->row.my = pico8_cr_row_my_dispatch;
     }
-    assert(pico8_type_tag_of(e.as.ref) == PICO8_TYPE_TAG_OB_TABLE && "cb() must yield plain nb entries");
-    t = (pico8_ob_table_t *)e.as.ref;
-
-    row = pico8_ob_table_new();
-
-    pico8_ob_table_get_name(t, "nk", &nk_val);
-    pico8_ob_table_get_name(t, "px", &px_val);
-    lq_table = pico8_ob_table_new();
-    pico8_ob_table_set_index(lq_table, 1, nk_val);
-    pico8_ob_table_set_index(lq_table, 2, px_val);
-    pico8_ob_table_set_name(lq_table, "c", pico8_value_fixed(pico8_fixed_from_int(6)));
-    pico8_ob_table_set_name(row, "lq", pico8_value_ref(lq_table));
-
-    pair_table = pico8_ob_table_new();
-    pico8_ob_table_set_index(pair_table, 1, pico8_value_fixed(pico8_fixed_from_int(24)));
-    pico8_ob_table_set_index(pair_table, 2, pico8_value_fixed(pico8_fixed_from_int(5)));
-
-    gi_result = pico8_gi(t);
-    gi_str = pico8_value_tostr(pico8_value_fixed(gi_result));
-
-    h_table = pico8_ob_table_new();
-    pico8_ob_table_set_index(h_table, 1, pico8_value_ref(pair_table));
-    pico8_ob_table_set_index(h_table, 2, pico8_value_string(gi_str));
-    pico8_ob_table_set_name(row, "h_", pico8_value_ref(h_table));
-
-    if (pico8_ob_table_get_name(t, "oy", &oy_val)) {
-        pico8_ob_table_set_name(row, "jb", oy_val);
-    }
-
-    if (pico8_ob_table_get_name(t, "e_", &e_val) && cr_truthy(e_val)) {
-        pico8_ob_table_set_name(row, "_cr_t", pico8_value_ref(t));
-        pico8_ob_table_set_name(row, "my", pico8_value_function(pico8_cr_row_my_dispatch));
-    } else {
-        pico8_ob_table_set_name(row, "my", pico8_value_bool(0));
-    }
-
-    *out_value = pico8_value_ref(row);
-    return 1;
 }
 
 /* TROU-7 */
-/* Returns a fresh table the caller owns. Storing the list REF unconverted
- * instead is what `js:pq`'s later `jb(self.jb)` would read at the wrong
- * element stride. */
-static pico8_ob_table_t *pico8_menu_list_to_ob_table(const pico8_list_t *list) {
-    return pico8_ob_table_from_list(list);
+/* `jb` of the "n invented" row: one line per invented tech, its name (NULL
+ * an empty line), in one fresh block. */
+static const pico8_jb_row_t *pico8_menu_invented_lines(const pico8_ptrs_t *list) {
+    int n = list != NULL ? list->count : 0;
+    pico8_jb_row_t *row = calloc(1, sizeof *row + (size_t)n * sizeof(pico8_jb_item_t));
+    pico8_jb_item_t *items = (pico8_jb_item_t *)(row + 1);
+    int i;
+
+    assert(row != NULL);
+    for (i = 0; i < n; i++) {
+        items[i].s = list->items[i];
+    }
+    row->count = n;
+    row->items = items;
+    return row;
 }
 
 void pico8_cr(void) {
-    pico8_instance_t *fm = pico8_fm();
+    const pico8_hy_t *fm = pico8_fm_hy();
     pico8_fixed_t tl = pico8_fixed_from_int(0);
     int gr = 0;
     pico8_fixed_t qi = pico8_fixed_from_int(0);
-    pico8_value_t tl_val;
-    pico8_value_t invented_val;
-    const pico8_ob_table_t *ek;
-    pico8_list_t cb_list;
-    pico8_list_t bs;
-    pico8_ob_table_t *cr_table;
+    int ek;
+    pico8_cb_kept_t cb_list;
+    pico8_cr_row_t *rows;
+    pico8_js_keys_t *bs;
+    int n = 0;
+    int i;
+    pico8_pj_cr_t *cr;
+    pico8_pz_frame_t frame = {0};
 
-    if (fm != NULL && pico8_instance_get_field(fm, "ew", &tl_val) && tl_val.kind == PICO8_VALUE_FIXED) {
-        tl = tl_val.as.fixed;
+    if (fm != NULL) {
+        tl = fm->ew;
     }
-    if (fm != NULL && pico8_instance_get_field(fm, "invented", &invented_val) &&
-        invented_val.kind == PICO8_VALUE_REF && invented_val.as.ref != NULL) {
-        gr = PICO8_REF_AS_LIST_CONST(invented_val.as.ref)->count;
+    if (fm != NULL && fm->invented != NULL) {
+        gr = fm->invented->count;
     }
 
-    ek = pico8_ek();
-    if (ek != NULL) {
-        pico8_value_t qi_val;
-        int idx = pico8_fixed_flr_int(tl) - 1;
-        if (pico8_ob_table_get_index(ek, idx, &qi_val) && qi_val.kind == PICO8_VALUE_FIXED) {
-            qi = qi_val.as.fixed;
-        }
+    if (pico8_int_seq_at(pico8_ek_table, PICO8_EK_COUNT, pico8_fixed_flr_int(tl) - 1, &ek)) {
+        qi = pico8_fixed_from_int(ek);
     }
 
     /* `true` is the ignore-cost flag: this screen lists every tech of the era,
      * affordable or not. `ix[2].hb`'s bare `cb()` wants only the affordable
      * ones. The two sites do not merge. */
-    cb_list = pico8_cb(pico8_value_bool(1));
-    bs = pico8_nv(&cb_list, pico8_cr_step, NULL);
-    pico8_list_free(&cb_list);
-
-    if (gr > 0) {
-        pico8_ob_table_t *extra = pico8_ob_table_new();
-        pico8_ob_table_t *lq2 = pico8_ob_table_new();
-        char *gr_str = pico8_value_tostr(pico8_value_fixed(pico8_fixed_from_int(gr)));
-        char *label = cr_concat2(gr_str, " invented");
-        free(gr_str);
-        pico8_ob_table_set_index(lq2, 1, pico8_value_fixed(pico8_fixed_from_int(30)));
-        pico8_ob_table_set_index(lq2, 2, pico8_value_string(label));
-        pico8_ob_table_set_name(lq2, "c", pico8_value_fixed(pico8_fixed_from_int(3)));
-        pico8_ob_table_set_name(extra, "lq", pico8_value_ref(lq2));
-        {
-            const pico8_list_t *invented_list =
-                (invented_val.kind == PICO8_VALUE_REF) ? PICO8_REF_AS_LIST_CONST(invented_val.as.ref) : NULL;
-            pico8_ob_table_set_name(extra, "jb", pico8_value_ref(pico8_menu_list_to_ob_table(invented_list)));
-        }
-        pico8_list_add(&bs, pico8_value_ref(extra));
+    cb_list = pico8_cb(1);
+    rows = calloc((size_t)cb_list.count + 1, sizeof *rows);
+    bs = calloc((size_t)cb_list.count + 1, sizeof *bs);
+    assert(rows != NULL && bs != NULL);
+    for (i = 0; i < cb_list.count; i++) {
+        pico8_cr_step(cb_list.items[i], &rows[n++]);
     }
 
-    cr_table = pj_cr_table();
-    if (cr_table != NULL) {
+    if (gr > 0) {
+        pico8_cr_row_t *extra = &rows[n++];
+        char *gr_str = pico8_tostr_fixed(pico8_fixed_from_int(gr));
+        char *label = cr_concat2(gr_str, " invented");
+        free(gr_str);
+        extra->lq_items[0] = pico8_lq_cell_fixed(pico8_fixed_from_int(30));
+        extra->lq_items[1] = pico8_lq_cell_string(label);
+        extra->lq.items = extra->lq_items;
+        extra->lq.count = 2;
+        extra->lq.has_c = 1;
+        extra->lq.c = pico8_fixed_from_int(3);
+        extra->row.lq_row = &extra->lq;
+        extra->row.has_jb = 1;
+        extra->row.jb_row = pico8_menu_invented_lines(fm->invented);
+    }
+    for (i = 0; i < n; i++) {
+        bs[i] = rows[i].row;
+    }
+
+    cr = pico8_pj_cr();
+    if (cr != NULL) {
         pico8_fixed_t ek_tl = pico8_fixed_from_int(0);
-        pico8_value_t ek_tl_val;
         char *tl_str;
         char *diff1_str;
         char *diff2_str;
@@ -211,16 +205,14 @@ void pico8_cr(void) {
         char *tmp2;
         char *tmp3;
         char *ep;
-        pico8_instance_t wrapper;
 
-        if (ek != NULL && pico8_ob_table_get_index(ek, pico8_fixed_flr_int(tl), &ek_tl_val) &&
-            ek_tl_val.kind == PICO8_VALUE_FIXED) {
-            ek_tl = ek_tl_val.as.fixed;
+        if (pico8_int_seq_at(pico8_ek_table, PICO8_EK_COUNT, pico8_fixed_flr_int(tl), &ek)) {
+            ek_tl = pico8_fixed_from_int(ek);
         }
 
-        tl_str = pico8_value_tostr(pico8_value_fixed(tl));
-        diff1_str = pico8_value_tostr(pico8_value_fixed(pico8_fixed_sub(pico8_fixed_from_int(gr), qi)));
-        diff2_str = pico8_value_tostr(pico8_value_fixed(pico8_fixed_sub(ek_tl, qi)));
+        tl_str = pico8_tostr_fixed(tl);
+        diff1_str = pico8_tostr_fixed(pico8_fixed_sub(pico8_fixed_from_int(gr), qi));
+        diff2_str = pico8_tostr_fixed(pico8_fixed_sub(ek_tl, qi));
 
         tmp1 = cr_concat2("level ", tl_str);
         tmp2 = cr_concat2(tmp1, " (");
@@ -238,256 +230,198 @@ void pico8_cr(void) {
         free(diff1_str);
         free(diff2_str);
 
-        pico8_ob_table_set_name(cr_table, "ep", pico8_value_string(ep));
-
-        wrapper.tag = PICO8_TYPE_TAG_INSTANCE;
-        wrapper.fields = cr_table;
-        wrapper.cls = NULL;
-        pico8_pz(&wrapper, &bs);
+        cr->ep = ep;
+        frame.ep = cr->ep;
+        frame.hi = cr->hi;
+        frame.has_ca = 1;
+        frame.ca = cr->ca;
+        frame.gq = cr->gq;
+        pico8_pz(&frame, bs, n);
     }
 
-    pico8_list_free(&bs);
+    free(bs);
+    free(rows);
 }
 
-static pico8_ob_table_t *pico8_menu_index_table(pico8_ob_table_t *table, int idx) {
-    pico8_value_t v;
-    if (table != NULL && pico8_ob_table_get_index(table, idx, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return (pico8_ob_table_t *)v.as.ref;
-    }
-    return NULL;
-}
-
-/* Returns a new, heap-backed list the caller owns and must release with
- * pico8_list_free(). */
-static pico8_list_t pico8_menu_positional_values(const pico8_ob_table_t *table) {
-    pico8_list_t list;
-    int i;
-    pico8_list_init(&list);
-    if (table == NULL) {
-        return list;
-    }
-    for (i = 0; i < table->count; i++) {
-        if (table->entries[i].key.kind == PICO8_OB_KEY_INDEX) {
-            pico8_list_add(&list, table->entries[i].value);
-        }
-    }
-    return list;
-}
-
-static pico8_value_t pico8_ix1_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_instance_t *fm = pico8_fm();
+static void pico8_ix1_my_dispatch(pico8_js_t *self) {
+    pico8_hy_t *fm = pico8_fm_hy();
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
     if (fm != NULL) {
-        pico8_ob_table_set_name(fm->fields, "lo", pico8_value_fixed(pico8_fixed_from_int(1)));
+        fm->lo = pico8_fixed_from_int(1);
     }
     pico8_hy_hk(fm);
-    return pico8_value_ref(NULL);
 }
 
-static pico8_value_t pico8_ix2_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+static void pico8_ix2_my_dispatch(pico8_js_t *self) {
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
     pico8_cr();
-    return pico8_value_ref(NULL);
 }
 
 /* TROU-7 */
 /* The bare `cb()` counts only affordable techs. pico8_cr()'s `cb(true)` is the
  * other, non-interchangeable site: passing the flag here would light the icon
  * whenever any tech of the era is left. */
-static pico8_value_t pico8_ix2_hb_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_instance_t *inst = (pico8_instance_t *)self;
-    pico8_list_t cb_list;
+static void pico8_ix2_hb_dispatch(pico8_js_t *self) {
+    pico8_cb_kept_t cb_list;
     int cb_count;
-    pico8_ob_table_t *overrides;
-    pico8_instance_t *built;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
+    pico8_lq_cell_t item;
+    pico8_lq_keys_t keys = {0};
+    pico8_lq_t *built;
 
-    if (inst == NULL) {
-        return pico8_value_ref(NULL);
+    if (self == NULL) {
+        return;
     }
 
-    cb_list = pico8_cb(pico8_value_ref(NULL));
+    cb_list = pico8_cb(0);
     cb_count = cb_list.count;
-    pico8_list_free(&cb_list);
 
-    overrides = pico8_ob_table_new();
-    pico8_ob_table_set_index(overrides, 1, pico8_value_fixed(pico8_fixed_from_int(cb_count > 0 ? 24 : 37)));
-    built = pico8_lq_new(overrides);
-    pico8_ob_table_free(overrides);
+    item = pico8_lq_cell_fixed(pico8_fixed_from_int(cb_count > 0 ? 24 : 37));
+    keys.items = &item;
+    keys.count = 1;
+    built = pico8_lq_new(&keys);
 
-    pico8_ob_table_set_name(inst->fields, "lq", pico8_value_ref(built));
-
-    return pico8_value_ref(NULL);
+    self->lq = built;
 }
 
-/* `de` is borrowed from pico8_score_panel_display.c: the same table `pj:ph()`
- * uses, not a copy. */
-static pico8_value_t pico8_ix3_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_instance_t *ju = pico8_ju();
-    pico8_instance_t *built;
+/* `fq(de)` takes the `my` of the one `de` of pico8_score_panel_display.c,
+ * the one `pj:ph()` uses. */
+static void pico8_ix3_my_dispatch(pico8_js_t *self) {
+    pico8_pj_t *ju = pico8_ju();
+    pico8_fq_keys_t keys = {0};
+    pico8_fq_t *built;
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
     if (ju != NULL) {
-        pico8_ob_table_set_name(ju->fields, "c_", pico8_value_bool(1));
+        ju->c_ = 1;
+        ju->has_c_ = 1;
     }
-    built = pico8_fq_new(pico8_de());
+    keys.my = pico8_de_my();
+    built = pico8_fq_new(&keys);
     (void)built;
-    return pico8_value_ref(NULL);
 }
 
 /* TROU-10 */
-static pico8_value_t pico8_ha2_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+static void pico8_ha2_my_dispatch(pico8_js_t *self) {
     int stat_val;
     pico8_fixed_t s;
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
     stat_val = pico8_stat(pico8_dispatch_input(), 20);
     s = pico8_fixed_sgn(pico8_fixed_from_int(stat_val));
     pico8_music(-pico8_fixed_flr_int(s));
-    return pico8_value_ref(NULL);
 }
 
 /* TROU-10 */
 /* `ih` is the real global of pico8_audio.c, which pico8_rn() reads; a private
  * copy here would leave that mute check on the old value. */
-static pico8_value_t pico8_ha3_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+static void pico8_ha3_my_dispatch(pico8_js_t *self) {
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
     pico8_set_ih(!pico8_ih());
-    return pico8_value_ref(NULL);
 }
 
-static pico8_value_t pico8_ha4_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+static void pico8_ha4_my_dispatch(pico8_js_t *self) {
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
-    return pico8_value_ref(NULL);
 }
 
-/* `ha` is passed to `pz` as both the layout holder and the row list, so the
- * stack wrapper borrows it as `->fields` while its positional entries go in
- * as `bs`. The wrapper never outlives the call. */
-static pico8_value_t pico8_ix4_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_ob_table_t *row;
-    pico8_list_t bs;
-    pico8_instance_t wrapper;
+static const pico8_js_fn g_ix_my[PICO8_IX_COUNT] = {
+    pico8_ix1_my_dispatch,
+    pico8_ix2_my_dispatch,
+    pico8_ix3_my_dispatch,
+    pico8_ix4_my_dispatch,
+};
+static const pico8_js_fn g_ix_hb[PICO8_IX_COUNT] = {NULL, pico8_ix2_hb_dispatch, NULL, NULL};
+
+/* `pz(ha,ha)`: `ha`'s rows go in as `bs`, their `my` installed on every
+ * run, and `p` is the frame of `g_ha_pz`, which carries `ha`'s `hi`/`gq`/`ca`. */
+static void pico8_ix4_my_dispatch(pico8_js_t *self) {
+    const pico8_js_fn my[PICO8_HA_COUNT] = {
+        pico8_init_field_value(),
+        pico8_ha2_my_dispatch,
+        pico8_ha3_my_dispatch,
+        pico8_ha4_my_dispatch,
+    };
+    pico8_js_keys_t bs[PICO8_HA_COUNT];
+    pico8_lq_keys_t lq[PICO8_HA_COUNT];
+    pico8_lq_cell_t items[PICO8_HA_COUNT][PICO8_MENU_ROW_CAP];
+    pico8_pz_frame_t frame = {0};
+    int i;
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
 
-    row = pico8_menu_index_table(g_ha, 1);
-    if (row != NULL) {
-        pico8_ob_table_set_name(row, "my", pico8_init_field_value());
+    if (!g_menu_up) {
+        return;
     }
-    row = pico8_menu_index_table(g_ha, 2);
-    if (row != NULL) {
-        pico8_ob_table_set_name(row, "my", pico8_value_function(pico8_ha2_my_dispatch));
-    }
-    row = pico8_menu_index_table(g_ha, 3);
-    if (row != NULL) {
-        pico8_ob_table_set_name(row, "my", pico8_value_function(pico8_ha3_my_dispatch));
-    }
-    row = pico8_menu_index_table(g_ha, 4);
-    if (row != NULL) {
-        pico8_ob_table_set_name(row, "my", pico8_value_function(pico8_ha4_my_dispatch));
-    }
+    for (i = 0; i < PICO8_HA_COUNT; i++) {
+        const pico8_ha_entry_t *e = &pico8_ha_table[i];
 
-    if (g_ha != NULL) {
-        bs = pico8_menu_positional_values(g_ha);
-        wrapper.tag = PICO8_TYPE_TAG_INSTANCE;
-        wrapper.fields = g_ha;
-        wrapper.cls = NULL;
-        pico8_pz(&wrapper, &bs);
-        pico8_list_free(&bs);
+        memset(&bs[i], 0, sizeof bs[i]);
+        lq[i] = pico8_lq_keys_of_row(e->lq, items[i], PICO8_MENU_ROW_CAP);
+        bs[i].lq_row = &lq[i];
+        bs[i].has_fg = e->has_fg;
+        bs[i].fg = pico8_fixed_from_int(e->fg);
+        bs[i].has_my = 1;
+        bs[i].my = my[i];
     }
-
-    return pico8_value_ref(NULL);
+    frame.hi = g_ha_pz.hi;
+    frame.has_ca = g_ha_pz.has_ca;
+    frame.ca = g_ha_pz.ca;
+    frame.gq = g_ha_pz.gq;
+    pico8_pz(&frame, bs, PICO8_HA_COUNT);
 }
 
-const pico8_ob_table_t *pico8_ix(void) {
-    return g_ix;
+pico8_js_t *pico8_ix_button(int i) {
+    const pico8_ix_entry_t *e;
+    pico8_js_keys_t keys = {0};
+    pico8_lq_keys_t lq;
+    pico8_lq_cell_t items[PICO8_MENU_ROW_CAP];
+
+    assert(g_menu_up && i >= 1 && i <= PICO8_IX_COUNT && "ix has PICO8_IX_COUNT rows, after pico8_menu_init()");
+    e = &pico8_ix_table[i - 1];
+    lq = pico8_lq_keys_of_row(e->lq, items, PICO8_MENU_ROW_CAP);
+    keys.lq_row = &lq;
+    keys.ra = &g_ix_ra[i - 1];
+    keys.has_my = 1;
+    keys.my = g_ix_my[i - 1];
+    keys.hb = g_ix_hb[i - 1];
+    return pico8_js_new(&keys);
 }
 
-const pico8_ob_table_t *pico8_ha(void) {
-    return g_ha;
+pico8_js_fn pico8_ix_my(int i) {
+    assert(i >= 1 && i <= PICO8_IX_COUNT);
+    return g_ix_my[i - 1];
+}
+
+const pico8_struct_header_t *pico8_ha_pz(void) {
+    return g_menu_up ? &g_ha_pz.header : NULL;
+}
+
+const pico8_struct_class_t *pico8_ha_pz_struct_class(void) {
+    return &g_ha_pz_struct_class;
 }
 
 void pico8_menu_init(void) {
-    pico8_ob_table_t *row;
+    int i;
 
     pico8_menu_shutdown();
 
     pico8_pi_init();
 
-    g_ix = pico8_ob("\n"
-                     "o(\n"
-                     "ra=v(118,0),\n"
-                     "lq=o(o(15,7)),\n"
-                     "),o(\n"
-                     "ra=v(0,0),\n"
-                     "lq=o(o(37,7)),\n"
-                     "),o(\n"
-                     "ra=v(47,0),\n"
-                     "lq=o(o(25,7)),\n"
-                     "),o(\n"
-                     "ra=v(0,117),\n"
-                     "lq=o(o(8,7)),\n"
-                     "),\n",
-                     NULL);
-
-    g_ha = pico8_ob("\n"
-                     "o(lq=o(31,\"restart     \")),\n"
-                     "o(lq=o(42,\"toggle music\")),\n"
-                     "o(lq=o(40,\"toggle sfx  \")),\n"
-                     "o(lq=o(26,\"how to play?\"),fg=5,),\n"
-                     "hi=v(0,107),gq=v(0,-11),\n"
-                     "ca=14,\n",
-                     NULL);
-
-    row = pico8_menu_index_table(g_ix, 1);
-    if (row != NULL) {
-        pico8_ob_table_set_name(row, "my", pico8_value_function(pico8_ix1_my_dispatch));
+    for (i = 0; i < PICO8_IX_COUNT; i++) {
+        g_ix_ra[i] = pico8_vec_v(pico8_fixed_from_int(pico8_ix_table[i].ra_x),
+                                 pico8_fixed_from_int(pico8_ix_table[i].ra_y));
     }
-    row = pico8_menu_index_table(g_ix, 2);
-    if (row != NULL) {
-        pico8_ob_table_set_name(row, "my", pico8_value_function(pico8_ix2_my_dispatch));
-        pico8_ob_table_set_name(row, "hb", pico8_value_function(pico8_ix2_hb_dispatch));
-    }
-    row = pico8_menu_index_table(g_ix, 3);
-    if (row != NULL) {
-        pico8_ob_table_set_name(row, "my", pico8_value_function(pico8_ix3_my_dispatch));
-    }
-    row = pico8_menu_index_table(g_ix, 4);
-    if (row != NULL) {
-        pico8_ob_table_set_name(row, "my", pico8_value_function(pico8_ix4_my_dispatch));
-    }
+    g_ha_hi = pico8_vec_v(pico8_fixed_from_int(pico8_ha_tail.hi_x), pico8_fixed_from_int(pico8_ha_tail.hi_y));
+    g_ha_gq = pico8_vec_v(pico8_fixed_from_int(pico8_ha_tail.gq_x), pico8_fixed_from_int(pico8_ha_tail.gq_y));
+    g_ha_pz.hi = &g_ha_hi;
+    g_ha_pz.gq = &g_ha_gq;
+    g_ha_pz.ca = pico8_fixed_from_int(pico8_ha_tail.ca);
+    g_ha_pz.has_ca = 1;
+    g_menu_up = 1;
 }
 
 void pico8_menu_shutdown(void) {
-    if (g_ix != NULL) {
-        pico8_ob_table_free(g_ix);
-        g_ix = NULL;
-    }
-    if (g_ha != NULL) {
-        pico8_ob_table_free(g_ha);
-        g_ha = NULL;
-    }
+    g_menu_up = 0;
+    g_ha_pz.hi = NULL;
+    g_ha_pz.gq = NULL;
+    g_ha_pz.ca = 0;
+    g_ha_pz.has_ca = 0;
     /* `ih` is deliberately not reset here: it belongs to pico8_audio.c, and
      * rebuilding this module's tables must not move it. */
 }

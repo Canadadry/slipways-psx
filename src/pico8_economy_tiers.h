@@ -1,7 +1,7 @@
 #ifndef PICO8_ECONOMY_TIERS_H
 #define PICO8_ECONOMY_TIERS_H
 
-#include "pico8_class.h"
+#include "pico8_struct.h"
 #include "pico8_fixed.h"
 
 /* Throughout this module an absent or wrong-kind field reads as its
@@ -19,6 +19,6 @@ int pico8_bb(void);
 
 /* Writes the match count back onto each want's `gc` field: the side effect
  * is what `dh`'s own later branches, and `jo`'s display, read. */
-pico8_fixed_t pico8_dh(const pico8_instance_t *pt);
+pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt);
 
 #endif

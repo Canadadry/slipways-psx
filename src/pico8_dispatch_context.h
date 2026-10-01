@@ -5,9 +5,10 @@
 #include "pico8_input.h"
 #include "pico8_mem.h"
 
-/* The current frame's gfx/mem/input, for methods reached through
- * pico8_value_function_t, whose (self, argc, arg0, arg1) shape has no slot
- * for them. The frame loop sets these; a dispatch adapter reads them.
+/* The current frame's gfx/mem/input, for the methods reached through a
+ * member of pico8_struct_class_t and for the callbacks rows carry, whose
+ * signatures have no slot for them. The frame loop sets these; the callee
+ * reads them.
  *
  * All three are borrowed, never owned, and must outlive the frames they
  * are set for. Each getter returns NULL until its setter has run. */

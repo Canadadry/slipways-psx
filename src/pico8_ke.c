@@ -1,40 +1,42 @@
 #include "pico8_ke.h"
 
+#include <assert.h>
 #include <stddef.h>
+#include <string.h>
 
 #include "pico8_entity.h"
 #include "pico8_fixed.h"
-#include "pico8_ob.h"
 
-static pico8_class_t *g_ke_class = NULL;
-
-/* Bridges pico8_class_pq_fn to pico8_lt, whose returned pointer is always
- * the instance it was given and is discarded here. */
-static void pico8_ke_pq_lt(pico8_instance_t *instance) {
-    pico8_lt(instance);
-}
+static int g_ke_up = 0;
 
 void pico8_ke_init(void) {
     pico8_ke_shutdown();
-    g_ke_class = pico8_class_declare(NULL, "\nme=\"ph\",t=0,\n");
-    pico8_class_set_pq(g_ke_class, pico8_ke_pq_lt);
+    g_ke_up = 1;
 }
 
 void pico8_ke_shutdown(void) {
-    if (g_ke_class != NULL) {
-        pico8_class_free(g_ke_class);
-        g_ke_class = NULL;
-    }
+    g_ke_up = 0;
 }
 
-pico8_class_t *pico8_ke_class(void) {
-    return g_ke_class;
+int pico8_ke_ready(void) {
+    return g_ke_up;
 }
 
-void pico8_ke_ks(pico8_instance_t *self, pico8_value_t me) {
+void pico8_ke_ks(pico8_struct_header_t *self, const char *me) {
     if (self == NULL) {
         return;
     }
-    pico8_ob_table_set_name(self->fields, "me", me);
-    pico8_ob_table_set_name(self->fields, "t", pico8_value_fixed(pico8_fixed_from_int(0)));
+    self->me = me;
+    self->t = pico8_fixed_from_int(0);
+}
+
+void pico8_ke_struct_init(pico8_struct_header_t *self, const pico8_struct_class_t *cls, const char *me,
+                          pico8_fixed_t t) {
+    pico8_struct_header_init(self, cls);
+    self->me = me;
+    self->t = t;
+}
+
+void pico8_ke_struct_pq(pico8_struct_header_t *self) {
+    pico8_lt(self);
 }

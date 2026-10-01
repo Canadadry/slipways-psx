@@ -3,67 +3,90 @@
 #include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "pico8_dispatch_context.h"
-#include "pico8_ke.h"
+#include "pico8_game_data.h"
 #include "pico8_mouse.h"
 #include "pico8_pi.h"
-#include "pico8_value.h"
 #include "pico8_vec.h"
 
-static pico8_class_t *g_nf_class = NULL;
-
-static void pico8_nf_pq_dispatch(pico8_instance_t *instance) {
-    pico8_nf_pq(pico8_dispatch_mem(), instance);
-}
+static int g_nf_up = 0;
+static pico8_nf_button_t g_nf_l;
+static pico8_nf_button_t g_nf_r;
+/* Not in the archetype: two TUs write `je.ra` in place. */
+static pico8_vec_t g_nf_ra;
 
 /* dg() dispatches the per-tick state method as `qc[qc.me](qc,qc.t)`, so
- * arg0 is the frame counter, which nf:ph does not read. */
-static pico8_value_t pico8_nf_ph_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
-    pico8_nf_ph(pico8_dispatch_input(), (pico8_instance_t *)self);
-    return pico8_value_ref(NULL);
+ * `t` is the frame counter, which nf:ph does not read. */
+static void pico8_nf_ph_dispatch(pico8_struct_header_t *self, pico8_fixed_t t) {
+    (void)t;
+    pico8_nf_ph(pico8_dispatch_input(), (pico8_nf_t *)self);
 }
 
-void pico8_nf_init(void) {
-    pico8_nf_shutdown();
-    pico8_pi_init();
-    assert(pico8_ob_lookup_constructor('v') != NULL && "nf's spec parses v(0,0) as a vector");
-    assert(pico8_ke_class() != NULL && "nf descends from ke");
-    g_nf_class = pico8_class_declare(pico8_ke_class(), "\nl=o(),r=o(),ra=v(0,0),\n");
-    pico8_class_set_pq(g_nf_class, pico8_nf_pq_dispatch);
-    pico8_ob_table_set_name(g_nf_class->defaults, "ph", pico8_value_function(pico8_nf_ph_dispatch));
-}
+static const pico8_struct_class_t g_nf_struct_class = {
+    .states = {[PICO8_STATE_PH] = pico8_nf_ph_dispatch},
+};
 
-void pico8_nf_shutdown(void) {
-    if (g_nf_class != NULL) {
-        pico8_class_free(g_nf_class);
-        g_nf_class = NULL;
-    }
-}
-
-pico8_class_t *pico8_nf_class(void) {
-    return g_nf_class;
-}
-
-pico8_instance_t *pico8_nf_new(const pico8_ob_table_t *overrides) {
-    return pico8_class_instantiate(g_nf_class, overrides);
-}
-
-void pico8_nf_pq(pico8_mem_t *mem, pico8_instance_t *self) {
-    (void)self;
+static void pico8_nf_pq(pico8_mem_t *mem) {
     if (mem == NULL) {
         return;
     }
     pico8_poke(mem, 0x5f2d, 1);
 }
 
-void pico8_nf_ph(const pico8_input_t *input, pico8_instance_t *self) {
+static pico8_nf_t *pico8_nf_struct_new(void) {
+    pico8_nf_t *self = malloc(sizeof *self);
+
+    pico8_ke_struct_init(&self->header, &g_nf_struct_class, pico8_nf_def.me, pico8_nf_def.t);
+    self->def = &pico8_nf_def;
+    /* Read-only: this module writes through its member. */
+    self->header.ra = (const pico8_vec_t *const *)&self->ra;
+    self->ra = &g_nf_ra;
+#ifdef PICO8_CLASS_COVERAGE
+    pico8_class_coverage_record("nf");
+#endif
+    pico8_nf_pq(pico8_dispatch_mem());
+    pico8_ke_struct_pq(&self->header);
+    return self;
+}
+
+void pico8_nf_init(void) {
+    pico8_nf_shutdown();
+    pico8_pi_init();
+    assert(pico8_ke_ready() && "nf descends from ke");
+    g_nf_up = 1;
+    g_nf_ra = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    memset(&g_nf_l, 0, sizeof g_nf_l);
+    memset(&g_nf_r, 0, sizeof g_nf_r);
+}
+
+void pico8_nf_shutdown(void) {
+    g_nf_up = 0;
+}
+
+const pico8_nf_button_t *pico8_nf_l(void) {
+    return g_nf_up ? &g_nf_l : NULL;
+}
+
+const pico8_nf_button_t *pico8_nf_r(void) {
+    return g_nf_up ? &g_nf_r : NULL;
+}
+
+int pico8_nf_ready(void) {
+    return g_nf_up;
+}
+
+const pico8_struct_class_t *pico8_nf_struct_class(void) {
+    return &g_nf_struct_class;
+}
+
+pico8_nf_t *pico8_nf_new(void) {
+    return pico8_nf_struct_new();
+}
+
+void pico8_nf_ph(const pico8_input_t *input, pico8_nf_t *self) {
     pico8_vec_t *ra;
-    pico8_value_t l_val;
-    pico8_value_t r_val;
 
     if (self == NULL || input == NULL) {
         return;
@@ -72,12 +95,10 @@ void pico8_nf_ph(const pico8_input_t *input, pico8_instance_t *self) {
     /* TROU-7 */
     ra = malloc(sizeof *ra);
     *ra = pico8_vec_v(pico8_fixed_from_int(pico8_stat(input, 32)), pico8_fixed_from_int(pico8_stat(input, 33)));
-    pico8_ob_table_set_name(self->fields, "ra", pico8_value_ref(ra));
+    self->ra = ra;
 
-    if (pico8_instance_get_field(self, "l", &l_val) && l_val.kind == PICO8_VALUE_REF && l_val.as.ref != NULL) {
-        pico8_bu(input, (pico8_ob_table_t *)l_val.as.ref, 1);
-    }
-    if (pico8_instance_get_field(self, "r", &r_val) && r_val.kind == PICO8_VALUE_REF && r_val.as.ref != NULL) {
-        pico8_bu(input, (pico8_ob_table_t *)r_val.as.ref, 6);
+    if (g_nf_up) {
+        pico8_bu(input, &g_nf_l, 1);
+        pico8_bu(input, &g_nf_r, 6);
     }
 }

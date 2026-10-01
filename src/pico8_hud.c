@@ -3,9 +3,7 @@
 #include <assert.h>
 #include <string.h>
 
-/* `er`: the 8 outline offsets in black, then the center in color 15.
- * Constant data with no table bookkeeping to preserve, so a plain C array
- * rather than a pico8_ob() spec. */
+/* `er`: the 8 outline offsets in black, then the center in color 15. */
 typedef struct {
     int dx;
     int dy;
