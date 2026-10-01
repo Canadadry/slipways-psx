@@ -27,6 +27,7 @@
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_zone_interface.h"
 #include "../src/pico8_zone_particules.h"
+#include "../src/pico8_zone_partie.h"
 
 #define AVANT_F0 (-1)
 #define MAX_RELEVES 4
@@ -40,6 +41,7 @@ typedef struct {
     int qy;
     int qy_fv;
     int ga;
+    size_t partie;
 } releve_t;
 
 static void relever(releve_t *r, int frame) {
@@ -52,6 +54,7 @@ static void relever(releve_t *r, int frame) {
     r->qy = pico8_zone_particules_vivantes(PICO8_PARTICULES_QY);
     r->qy_fv = pico8_zone_particules_vivantes(PICO8_PARTICULES_QY_FV);
     r->ga = pico8_zone_particules_vivantes(PICO8_PARTICULES_GA);
+    r->partie = pico8_zone_partie_prise();
 }
 
 /* Particules et listes tenues par les emetteurs inscrits dans `hv`, et
@@ -94,7 +97,8 @@ static void imprimer(const char *e2e, const releve_t *r) {
     for (int s = 0; s < PICO8_SORTE_COUNT; s++) {
         printf(" %s=%d", NOMS[s], r->vivantes[s]);
     }
-    printf(" particule=%d qy=%d qy_fv=%d ga=%d\n", r->particule, r->qy, r->qy_fv, r->ga);
+    printf(" particule=%d qy=%d qy_fv=%d ga=%d partie=%lu\n", r->particule, r->qy, r->qy_fv, r->ga,
+           (unsigned long)r->partie);
 }
 
 /* Charge le cart pour rejouer `e2e` (NULL : aucune entree) et rend ses
@@ -194,6 +198,38 @@ static void dans_un_enfant(void (*test)(void)) {
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0 && "un releve de places vivantes a echoue");
 }
 
+#define ASAN_LOG "tmp/test_places_vivantes_asan.txt"
+
+static char *lire_fichier(const char *path, size_t *len);
+
+/* L'enfant doit mourir par ASan en relisant une sentinelle rendue. */
+static void dans_un_enfant_qui_meurt_par_asan(void (*test)(void)) {
+    fflush(stdout);
+    remove(ASAN_LOG);
+    pid_t pid = fork();
+    assert(pid >= 0);
+    if (pid == 0) {
+        assert(freopen(ASAN_LOG, "w", stderr) != NULL);
+        test();
+        _exit(0);
+    }
+    int status;
+    assert(waitpid(pid, &status, 0) == pid);
+    size_t len;
+    char *err = lire_fichier(ASAN_LOG, &len);
+    if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+        fprintf(stderr, "%s", err);
+        assert(0 && "la sentinelle rendue se relit : la generation n'a pas ete rendue");
+    }
+    if (strstr(err, "use-after-poison") == NULL) {
+        fprintf(stderr, "%s", err);
+        assert(0 && "attendu use-after-poison sur la sentinelle rendue");
+    }
+    printf("  pause_restart f13 : la sentinelle relue plante (use-after-poison)\n");
+    free(err);
+    remove(ASAN_LOG);
+}
+
 static char g_e2e[128];
 
 static void invariant_sur_l_e2e_courant(void) {
@@ -231,12 +267,84 @@ static void pause_restart_revient_au_titre(void) {
     assert(r[0].particule == 0 && r[1].particule == 5 * 5 && "jl() doit rendre les particules de l'aide");
 }
 
+/* volatile : la lecture d'une sentinelle rendue ne doit pas etre retiree
+ * par l'optimiseur, c'est elle que le cas observe. */
+static volatile unsigned char g_lu;
+
+static pico8_input_t *g_input;
+static pico8_cheat_t g_cheat;
+static int g_frame;
+
+/* Sans `relever` : son vidage de la file rendrait la generation lui-meme,
+ * a la place de l'update60 de la frame qui suit le clic. */
+static void jouer_jusqu_a(int derniere) {
+    for (; g_frame <= derniere && g_frame < g_input->frame_count; g_frame++) {
+        pico8_dispatch_set_input(g_input);
+        pico8_cheat_step(&g_cheat, g_input);
+        pico8__update60();
+        pico8__draw();
+        if (g_frame < g_input->frame_count - 1) pico8_input_step(g_input);
+    }
+    assert(g_frame == derniere + 1 && "une frame de sentinelle est hors du rejeu");
+}
+
+static void demarrer(const char *e2e) {
+    g_input = charger(e2e);
+    pico8_cheat_init(&g_cheat);
+    g_frame = 0;
+}
+
+static unsigned char *sentinelle(void) {
+    unsigned char *s = pico8_zone_alloc(pico8_zone_partie(), 64);
+    for (int i = 0; i < 64; i++) s[i] = (unsigned char)i;
+    return s;
+}
+
+static void verifier_sentinelle(const unsigned char *s) {
+    for (int i = 0; i < 64; i++) assert(s[i] == i && "la sentinelle de la zone partie a change");
+}
+
+/* f12 : clic « challenging », donc `eu` : la zone bascule, la generation
+ * de la partie quittee (et du titre de f7) vit jusqu'a la fin de la frame. */
+static void pause_restart_garde_la_partie_quittee_pendant_le_clic(void) {
+    demarrer("pause_restart");
+    jouer_jusqu_a(11);
+    assert(!pico8_zone_partie_en_attente());
+    unsigned char *s = sentinelle();
+    size_t prise = pico8_zone_partie_prise();
+    jouer_jusqu_a(12);
+    assert(pico8_zone_partie_en_attente() && "le clic de f12 fait basculer la zone partie");
+    verifier_sentinelle(s);
+    assert(pico8_zone_partie_prise() >= prise && "les octets pris comptent la partie quittee jusqu'a son rendu");
+    printf("  pause_restart f12 : partie=%lu, sentinelle lue\n", (unsigned long)pico8_zone_partie_prise());
+}
+
+/* f13 : l'update60 vide la file puis rend la generation quittee. */
+static void pause_restart_rend_la_partie_quittee_a_la_frame_suivante(void) {
+    demarrer("pause_restart");
+    jouer_jusqu_a(11);
+    unsigned char *s = sentinelle();
+    jouer_jusqu_a(13);
+    g_lu = s[63];
+}
+
+/* f7 : « restart » (`_init`) ne bascule pas. */
+static void pause_restart_garde_la_partie_a_travers_restart(void) {
+    demarrer("pause_restart");
+    jouer_jusqu_a(6);
+    unsigned char *s = sentinelle();
+    jouer_jusqu_a(11);
+    assert(!pico8_zone_partie_en_attente() && "« restart » ne fait pas basculer la zone partie");
+    verifier_sentinelle(s);
+}
+
 /* f42-90 : la boite de l'annee retenue par son lh, sans clic. */
 static void message_box_hold_ne_bouge_pas_sans_action(void) {
     const int frames[] = {45, 90};
     releve_t r[2];
     rejouer("message_box_hold", frames, 2, r);
     assert(memes_comptes(&r[0], &r[1]) && r[0].particule == r[1].particule && "une sorte prend une place par tick");
+    assert(r[0].partie == r[1].partie && "la zone partie prend des octets par tick");
 }
 
 /* f25-94 : « p40 » s'efface ; sa rangee rendue peut faire baisser `rangee`. */
@@ -322,9 +430,10 @@ static int memes_octets(const char *a_path, const char *b_path) {
 #define DUMP_B "tmp/test_places_vivantes_b.txt"
 
 /* PICO8_REMPLISSAGE=<fichier> : le rejeu y ecrit une ligne « <sorte>
- * <vivantes> » par sorte d'interface puis de particules, et les maxima de
- * la session par sorte de particules, en fin de session, sans toucher
- * capture, dump ni code de sortie. */
+ * <vivantes> » par sorte d'interface puis de particules, les maxima de
+ * la session par sorte de particules, puis les octets pris de la zone
+ * partie et leur maximum, en fin de session, sans toucher capture, dump ni
+ * code de sortie. */
 static void le_rejeu_ecrit_le_remplissage_en_fin_de_session(void) {
     const int frames[] = {17};
     releve_t r[1];
@@ -364,6 +473,9 @@ static void le_rejeu_ecrit_le_remplissage_en_fin_de_session(void) {
                  pico8_zone_particules_max_elements((pico8_particules_sorte_t)s));
         strcat(attendu, ligne);
     }
+    snprintf(ligne, sizeof ligne, "partie %lu\nmax_octets partie %lu\n", (unsigned long)pico8_zone_partie_prise(),
+             (unsigned long)pico8_zone_partie_max());
+    strcat(attendu, ligne);
     size_t len;
     char *ecrit = lire_fichier(REMPLISSAGE, &len);
     printf("  remplissage ecrit par le rejeu :\n%s", ecrit);
@@ -413,6 +525,9 @@ int main(void) {
     printf("  invariant particule = somme des #qy inscrits : %d e2e, chaque frame\n", e2e);
     assert(e2e == 26 && "tests/e2e/ compte 26 rejeux");
     dans_un_enfant(pause_restart_revient_au_titre);
+    dans_un_enfant(pause_restart_garde_la_partie_quittee_pendant_le_clic);
+    dans_un_enfant_qui_meurt_par_asan(pause_restart_rend_la_partie_quittee_a_la_frame_suivante);
+    dans_un_enfant(pause_restart_garde_la_partie_a_travers_restart);
     dans_un_enfant(message_box_hold_ne_bouge_pas_sans_action);
     dans_un_enfant(empty_planet_fade_ne_monte_pas);
     dans_un_enfant(tech_geoharvesting_burst_rend_l_eclat);

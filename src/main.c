@@ -21,8 +21,9 @@
  * interface sort, then of each particle sort, are written after the last
  * frame, one "<sort> <count>" line each, read after flushing the exit
  * queue; then the session's maxima of each particle sort, one
- * "max_vivantes|max_octets|max_elements <sort> <n>" line each. Capture,
- * dump and exit code stay the same. */
+ * "max_vivantes|max_octets|max_elements <sort> <n>" line each; then the
+ * bytes taken in the game zone, "partie <n>", and their session maximum,
+ * "max_octets partie <n>". Capture, dump and exit code stay the same. */
 
 #include "pico8_mem.h"
 #include "pico8_assets.h"
@@ -35,6 +36,7 @@
 #include "pico8_cart.h"
 #include "pico8_zone_interface.h"
 #include "pico8_zone_particules.h"
+#include "pico8_zone_partie.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -68,6 +70,8 @@ static void write_remplissage(const char *path) {
         fprintf(out, "max_elements %s %d\n", PARTICULES_NAMES[s],
                 pico8_zone_particules_max_elements((pico8_particules_sorte_t)s));
     }
+    fprintf(out, "partie %lu\n", (unsigned long)pico8_zone_partie_prise());
+    fprintf(out, "max_octets partie %lu\n", (unsigned long)pico8_zone_partie_max());
     fclose(out);
 }
 
