@@ -99,7 +99,8 @@ pico8_jo_t *pico8_jo_new(const pico8_jo_keys_t *keys);
  * defaults. Requires `pico8_jo_init()`. */
 void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def);
 
-/* Bytes of the arena a held icon or a drawn slipway builds its object in. */
+/* Bytes of the arena a held icon, a drawn slipway or a wormhole builds its
+ * object in. */
 #define PICO8_JO_PRISE_OCTETS 2048u
 
 /* Where the planet constructors, `jo:pq` and `jo:lz` allocate: the grab
@@ -116,6 +117,9 @@ void pico8_jo_prise_fermer(void);
  * `me`: a grab arena (NULL or another zone: nothing) whose object is still
  * "kz" goes on the free grabs, for the next grab to empty and reuse. */
 void pico8_jo_prise_zone_rendue(const pico8_zone_choisie_t *zone, const char *me);
+/* The same whatever the state: for an object whose memory nothing borrows
+ * after its death. */
+void pico8_jo_prise_arene_rendue(const pico8_zone_choisie_t *zone);
 /* `pico8_jo_prise_zone_rendue` with the zone of the planet's `oe`. */
 void pico8_jo_prise_rendue(const pico8_jo_t *self);
 /* Sets to nil the `fo` of every `cg.np` entity that points at `e`, which is

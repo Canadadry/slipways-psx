@@ -24,11 +24,11 @@ static pico8_jf_state_t *g_jo_ir = NULL;
  * `lz` gives the planet its own. */
 static pico8_kw_t g_jo_kw_shared;
 
-/* Nom des arenes de prise : son adresse les reconnait (pico8_jo_prise_zone_rendue). */
+/* Nom des arenes de prise : son adresse les reconnait (pico8_jo_prise_arene_rendue). */
 static const char g_jo_nom_prise[] = "prise";
-#define PRISES_LIBRES_MAX 4
+#define PRISES_LIBRES_MAX 8
 
-/* Non NULL seulement pendant le new_entity de ie:ldown. */
+/* Non NULL seulement entre pico8_jo_prise_ouvrir et _fermer. */
 static const pico8_zone_choisie_t *g_jo_prise = NULL;
 static const pico8_zone_choisie_t *g_jo_prises_libres[PRISES_LIBRES_MAX];
 static int g_jo_prises_libres_n = 0;
@@ -206,10 +206,14 @@ void pico8_jo_prise_rendue(const pico8_jo_t *self) {
 }
 
 void pico8_jo_prise_zone_rendue(const pico8_zone_choisie_t *zone, const char *me) {
-    if (zone == NULL || zone->bump == NULL || zone->bump->name != g_jo_nom_prise) {
+    if (me == NULL || strcmp(me, "kz") != 0) {
         return;
     }
-    if (me == NULL || strcmp(me, "kz") != 0) {
+    pico8_jo_prise_arene_rendue(zone);
+}
+
+void pico8_jo_prise_arene_rendue(const pico8_zone_choisie_t *zone) {
+    if (zone == NULL || zone->bump == NULL || zone->bump->name != g_jo_nom_prise) {
         return;
     }
     assert(g_jo_prises_libres_n < PRISES_LIBRES_MAX &&

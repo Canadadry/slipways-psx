@@ -15,5 +15,4 @@ src/pico8_research_icon.c 3
 src/pico8_score_panel.c 1
 src/pico8_scroll.c 4
 src/pico8_ui.c 5
-src/pico8_wormhole.c 3
 src/pico8_zone_transitoire.c 3

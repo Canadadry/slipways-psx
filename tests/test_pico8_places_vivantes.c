@@ -33,6 +33,7 @@
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_trade.h"
 #include "../src/pico8_ui.h"
+#include "../src/pico8_wormhole.h"
 #include "../src/pico8_zone_interface.h"
 #include "../src/pico8_zone_particules.h"
 #include "../src/pico8_zone_partie.h"
@@ -577,7 +578,7 @@ static const pico8_jo_t *la_prise_posee(void) {
 }
 
 /* Le `bd` de la pose fait `by` et `cc` dans la generation, hors de l'arene. */
-static void une_prise_posee_garde_son_arene(void) {
+static void une_prise_posee_reprend_l_arene_du_mz_mort(void) {
     demarrer(PRISES);
     jouer_jusqu_a(160);
     const size_t avant = partie_sans_registres();
@@ -585,9 +586,10 @@ static void une_prise_posee_garde_son_arene(void) {
     const size_t apres = partie_sans_registres();
     const pico8_jo_t *posee = la_prise_posee();
     const size_t listes = octets_d_une_liste_de_planete(posee->by) + octets_d_une_liste_de_planete(posee->cc);
-    printf("  prise posee : partie - registres = %lu -> %lu (arene %u, by/cc %lu)\n", (unsigned long)avant,
-           (unsigned long)apres, PICO8_JO_PRISE_OCTETS, (unsigned long)listes);
-    assert(apres == avant + PICO8_JO_PRISE_OCTETS + listes && "une prise posee garde son arene, et rien d'autre");
+    printf("  prise posee : partie - registres = %lu -> %lu (by/cc %lu)\n", (unsigned long)avant,
+           (unsigned long)apres, (unsigned long)listes);
+    assert(apres == avant + listes &&
+           "la prise posee reprend l'arene libre du mz de f4 (rendu a f48), et ne prend que by et cc en plus");
 }
 
 /* Une frame de rejeu ; sans `dessiner`, aucun `kj` ne remet `fo` a nil. */
@@ -684,7 +686,7 @@ static size_t octets_des_oe_de_p27_et_p48(void) {
 
 /* Le `kf` de la pose fait grandir `oe` aux deux bouts, dans la generation,
  * hors de l'arene. */
-static void un_slipway_pose_garde_son_arene(void) {
+static void un_slipway_pose_reprend_l_arene_du_mz_mort(void) {
     demarrer(SLIPWAYS);
     jouer_jusqu_a(334);
     const size_t avant = partie_sans_registres();
@@ -693,10 +695,10 @@ static void un_slipway_pose_garde_son_arene(void) {
     const size_t apres = partie_sans_registres();
     const size_t oe = octets_des_oe_de_p27_et_p48() - oe_avant;
     assert(pico8_cg("jc") != NULL && pico8_cg("jc")->count == 1 && "f338 : un slipway pose");
-    printf("  slipway pose puis refuse : partie - registres = %lu -> %lu (arene %u, oe %lu)\n", (unsigned long)avant,
-           (unsigned long)apres, PICO8_JO_PRISE_OCTETS, (unsigned long)oe);
-    assert(apres == avant + PICO8_JO_PRISE_OCTETS + oe &&
-           "un slipway pose garde son arene, le refuse suivant en reprend une");
+    printf("  slipway pose puis refuse : partie - registres = %lu -> %lu (oe %lu)\n", (unsigned long)avant,
+           (unsigned long)apres, (unsigned long)oe);
+    assert(apres == avant + oe &&
+           "le slipway pose reprend l'arene libre du mz de f4 (rendu a f48), le refuse suivant l'autre");
 }
 
 /* f345 : le slipway tenu de p27 vers (73,91) accroche le `fo` de p48, sur
@@ -733,6 +735,90 @@ static void un_slipway_refuse_traverse_une_nouvelle_partie(void) {
     assert(pico8_cg("jc") == NULL || pico8_cg("jc")->count == 0);
     assert(pico8_ok()->lheld != NULL && "f371 : une prise dans la nouvelle partie");
     jouer_jusqu_a(377);
+}
+
+#define PLIAGES "tests/fixtures/pliages.json"
+
+/* Fixture PLIAGES : f0-3 de slipway_build (sonde a f2) ; puis des cycles de
+ * 7 frames en (80,55) : quatre tenues des la pression, trois relachees.
+ * Vingt `mz` refuses (f4-143), un tenu seize frames (f144-159) et ouvert au
+ * relache de f160, rendu a f188 ; une pression refusee (f193-199) ;
+ * « restart » et nouvelle partie (clic f210) ; une sonde en (55,50) (f216),
+ * un `mz` refuse (f218-224). Un refus est relache a la 5e frame du cycle et rendu
+ * au vidage de la 7e. */
+static const pico8_mz_t *le_mz_tenu(void) {
+    const pico8_struct_header_t *tenu = pico8_ok()->lheld;
+    assert(tenu != NULL && tenu->cls == pico8_mz_struct_class() && "un trou de ver est tenu");
+    return (const pico8_mz_t *)tenu;
+}
+
+static void un_mz_tenu_ne_fait_pas_grandir_la_partie(void) {
+    demarrer(PLIAGES);
+    jouer_jusqu_a(4);
+    const pico8_mz_t *tenu = le_mz_tenu();
+    const size_t f4 = pico8_zone_partie_prise();
+    jouer_jusqu_a(7);
+    assert(le_mz_tenu() == tenu);
+    printf("  mz tenu f4/f7 : partie = %lu/%lu\n", (unsigned long)f4, (unsigned long)pico8_zone_partie_prise());
+    assert(pico8_zone_partie_prise() == f4 && "un trou de ver tenu alloue a chaque frame");
+}
+
+static void mz_refuses_ne_font_pas_grandir_la_partie(void) {
+    demarrer(PLIAGES);
+    jouer_jusqu_a(10);
+    const size_t un = partie_sans_registres();
+    jouer_jusqu_a(143);
+    const size_t vingt = partie_sans_registres();
+    printf("  mz refuses 1/20 : partie - registres = %lu/%lu\n", (unsigned long)un, (unsigned long)vingt);
+    assert(un == vingt && "un trou de ver refuse laisse son arene dans la generation");
+}
+
+static void un_mz_ouvert_rend_son_arene_a_sa_mort(void) {
+    demarrer(PLIAGES);
+    jouer_jusqu_a(143);
+    const size_t avant = partie_sans_registres();
+    jouer_jusqu_a(160);
+    const pico8_ents_t *mz = pico8_cg("mz");
+    assert(mz != NULL && mz->count == 1 && strcmp(((const pico8_mz_t *)mz->items[0])->header.me, "pr") == 0 &&
+           "f160 : le trou de ver est ouvert");
+    jouer_jusqu_a(193);
+    assert(pico8_cg("mz")->count == 1 && "f193 : seul le trou de ver de la pression vit");
+    const size_t apres = partie_sans_registres();
+    printf("  mz ouvert : partie - registres = %lu -> %lu\n", (unsigned long)avant, (unsigned long)apres);
+    assert(apres == avant && "un trou de ver ouvert garde son arene apres sa mort");
+}
+
+static void un_mz_refuse_traverse_une_nouvelle_partie(void) {
+    demarrer(PLIAGES);
+    jouer_jusqu_a(218);
+    le_mz_tenu();
+    jouer_jusqu_a(224);
+}
+
+#define PLIAGE_ABANDONNE "tests/fixtures/pliage_abandonne.json"
+
+/* Fixture PLIAGE_ABANDONNE : f0-20 de slipway_build (`mz` ouvert a f20),
+ * puis f2-17 de pause_restart : « restart » a f26 abandonne le `mz`, le clic
+ * « challenging » de f31 bascule la zone partie. */
+static const pico8_mz_t *le_mz_abandonne(void) {
+    demarrer(PLIAGE_ABANDONNE);
+    jouer_jusqu_a(22);
+    const pico8_ents_t *mz = pico8_cg("mz");
+    assert(mz != NULL && mz->count == 1 && "f22 : un trou de ver vit");
+    return (const pico8_mz_t *)mz->items[0];
+}
+
+static void pliage_abandonne_se_relit_pendant_le_clic(void) {
+    const pico8_mz_t *mz = le_mz_abandonne();
+    jouer_jusqu_a(31);
+    assert(pico8_zone_partie_en_attente() && "le clic de f31 fait basculer la zone partie");
+    g_lu = (unsigned char)mz->p_;
+}
+
+static void pliage_abandonne_meurt_avec_sa_partie(void) {
+    const pico8_mz_t *mz = le_mz_abandonne();
+    jouer_jusqu_a(32);
+    g_lu = (unsigned char)mz->p_;
 }
 
 /* f11 : titre apres « restart ». Recharger rend les places des entites de
@@ -982,14 +1068,20 @@ int main(void) {
     dans_un_enfant(trade_rich_mine_une_route_gardee_survit_a_la_frame);
     dans_un_enfant(trade_rich_mine_rend_ses_trainees_au_rechargement);
     dans_un_enfant(prises_refusees_ne_font_pas_grandir_la_partie);
-    dans_un_enfant(une_prise_posee_garde_son_arene);
+    dans_un_enfant(une_prise_posee_reprend_l_arene_du_mz_mort);
     dans_un_enfant(une_prise_refusee_traverse_une_nouvelle_partie);
     dans_un_enfant(le_fo_d_une_planete_hors_ecran_oublie_la_prise_refusee);
     dans_un_enfant(un_slipway_tenu_ne_fait_pas_grandir_la_partie);
     dans_un_enfant(slipways_refuses_ne_font_pas_grandir_la_partie);
-    dans_un_enfant(un_slipway_pose_garde_son_arene);
+    dans_un_enfant(un_slipway_pose_reprend_l_arene_du_mz_mort);
     dans_un_enfant(un_slipway_refuse_traverse_une_nouvelle_partie);
     dans_un_enfant(le_fo_d_une_planete_hors_ecran_oublie_le_slipway_refuse);
+    dans_un_enfant(un_mz_tenu_ne_fait_pas_grandir_la_partie);
+    dans_un_enfant(mz_refuses_ne_font_pas_grandir_la_partie);
+    dans_un_enfant(un_mz_ouvert_rend_son_arene_a_sa_mort);
+    dans_un_enfant(un_mz_refuse_traverse_une_nouvelle_partie);
+    dans_un_enfant(pliage_abandonne_se_relit_pendant_le_clic);
+    dans_un_enfant_qui_meurt_par_asan(pliage_abandonne_meurt_avec_sa_partie);
     dans_un_enfant(message_box_hold_ne_bouge_pas_sans_action);
     dans_un_enfant(empty_planet_fade_ne_monte_pas);
     dans_un_enfant(tech_geoharvesting_burst_rend_l_eclat);
