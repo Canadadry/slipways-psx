@@ -128,8 +128,16 @@
 #                       de la table (ancien, nouveau, fichier[, identité]) ;
 #                       n'écrit rien au premier refus, rapport dans
 #                       tmp/ast_rename/report.txt, hors suite
+# make rename-count-test -> les tests de tools/rename_count.py sur un
+#                       mini-arbre, dans make test
+# make cart-names-count [MODULES="<module>..."] -> compteur anti-cart : anciens
+#                       noms des lignes renommées de docs/renommage.tsv encore
+#                       dans le code, par module et catégorie (noms courts par
+#                       tmp/ast_rename/occurrences.tsv, make rename-extract
+#                       d'abord) ; copie dans tmp/ast_rename/cart_names_count.txt,
+#                       n'échoue jamais, hors suite
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test rename-count-test cart-names-count
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -812,7 +820,7 @@ endif
 replay: $(TMP_DIR)/pico8_replay
 	./$(TMP_DIR)/pico8_replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard rename-derive-test rename-strings-test rename-check-test rename-slice-test
+test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard rename-derive-test rename-strings-test rename-check-test rename-slice-test rename-count-test
 
 test-all: test e2e
 
@@ -1160,6 +1168,15 @@ rename-slice:
 	@mkdir -p $(AST_RENAME_DIR)
 	python3 tools/rename_slice.py --table docs/renommage.tsv $(foreach m,$(MODULES),--module '$(m)') \
 	    -o $(AST_RENAME_DIR)/slice.tsv
+
+rename-count-test:
+	python3 tests/test_rename_count.py
+
+cart-names-count:
+	@mkdir -p $(AST_RENAME_DIR)
+	python3 tools/rename_count.py --table docs/renommage.tsv \
+	    --occurrences $(AST_RENAME_DIR)/occurrences.tsv --root . \
+	    $(foreach m,$(MODULES),--module '$(m)') | tee $(AST_RENAME_DIR)/cart_names_count.txt
 
 rename-apply:
 	@test -n "$(TABLE)" || { echo "usage: make rename-apply TABLE=<table>" >&2; exit 1; }
