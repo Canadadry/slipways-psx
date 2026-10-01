@@ -1,7 +1,7 @@
 #ifndef PICO8_STR_H
 #define PICO8_STR_H
 
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 #include "pico8_zone_choisie.h"
 
 /* PICO-8's sub(s,i,j): 1-indexed and both bounds included, so sub(s,1,1) is

@@ -5,7 +5,7 @@
 #include <string.h>
 
 #include "pico8_dispatch_context.h"
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 #include "pico8_wormhole.h"
 
 static pico8_vec_t pico8_mzd_ra_of_ij(const pico8_mz_t *self) {

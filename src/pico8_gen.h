@@ -1,7 +1,7 @@
 #ifndef PICO8_GEN_H
 #define PICO8_GEN_H
 
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 #include "pico8_game_data.h"
 #include "pico8_zone_choisie.h"
 

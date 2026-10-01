@@ -3,8 +3,8 @@
 
 #include "pico8_research.h"
 #include "pico8_struct.h"
-#include "pico8_gfx.h"
-#include "pico8_mem.h"
+#include "p8/gfx.h"
+#include "p8/mem.h"
 #include "pico8_planet.h"
 #include "pico8_vec.h"
 

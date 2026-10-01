@@ -5,7 +5,7 @@
 
 #include "pico8_hud.h"
 #include "pico8_layout.h"
-#include "pico8_str.h"
+#include "p8/str.h"
 #include "pico8_vec.h"
 #include "pico8_zone_frame.h"
 

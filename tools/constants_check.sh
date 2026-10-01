@@ -1,5 +1,5 @@
 #!/bin/sh
-# usage: constants_check.sh <defaillances attendues> <releve> <pico8_fixed.c> <repertoire de travail> <source.c>...
+# usage: constants_check.sh <defaillances attendues> <releve> <p8/fixed.c> <repertoire de travail> <source.c>...
 # Rend 0 si les litteraux en ECART de constants_compare.sh sont exactement ceux
 # de la liste (un par ligne, # pour un commentaire), en n'imprimant que les
 # comptes. Rend 1 sinon, ou si le comparateur echoue, ou si la liste nomme un

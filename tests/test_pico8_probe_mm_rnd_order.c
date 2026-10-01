@@ -16,7 +16,7 @@
 #include <unistd.h>
 
 #include "../src/pico8_entity.h"
-#include "../src/pico8_fixed.h"
+#include "p8/fixed.h"
 #include "../src/pico8_ke.h"
 #include "../src/pico8_particle.h"
 #include "../src/pico8_probe.h"

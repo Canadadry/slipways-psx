@@ -1,4 +1,4 @@
-#include "pico8_gfx.h"
+#include "p8/gfx.h"
 
 #include <stdlib.h>
 

@@ -7,14 +7,14 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "../src/pico8_assets.h"
+#include "p8/assets.h"
 #include "../src/pico8_data_init.h"
 #include "../src/pico8_dispatch_context.h"
-#include "../src/pico8_fixed.h"
-#include "../src/pico8_gfx.h"
+#include "p8/fixed.h"
+#include "p8/gfx.h"
 #include "../src/pico8_hud.h"
 #include "../src/pico8_layout.h"
-#include "../src/pico8_mem.h"
+#include "p8/mem.h"
 #include "../src/pico8_struct.h"
 #include "zone_tas.h"
 

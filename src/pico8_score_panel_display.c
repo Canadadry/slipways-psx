@@ -8,7 +8,7 @@
 #include "pico8_layout.h"
 #include "pico8_msgbox.h"
 #include "pico8_score_panel.h"
-#include "pico8_str.h"
+#include "p8/str.h"
 #include "pico8_ui_button.h"
 #include "pico8_zone_frame.h"
 

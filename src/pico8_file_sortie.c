@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include "pico8_fatal.h"
+#include "p8/fatal.h"
 
 typedef struct {
     pico8_struct_header_t *entite;

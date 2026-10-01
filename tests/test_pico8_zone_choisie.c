@@ -11,7 +11,7 @@
 #include "../src/pico8_collect.h"
 #include "../src/pico8_ents.h"
 #include "../src/pico8_ptrs.h"
-#include "../src/pico8_str.h"
+#include "p8/str.h"
 #include "../src/pico8_zone.h"
 #include "../src/pico8_zone_choisie.h"
 #include "zone_tas.h"

@@ -1,7 +1,7 @@
 #ifndef PICO8_SCORE_PANEL_DISPLAY_H
 #define PICO8_SCORE_PANEL_DISPLAY_H
 
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 #include "pico8_score_panel.h"
 
 /* `gz` is tested for PRESENCE, not for a non-zero value: the 0 written into

@@ -1,7 +1,7 @@
 #ifndef PICO8_FIXED_TEST_DOUBLE_H
 #define PICO8_FIXED_TEST_DOUBLE_H
 
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 
 /* Rounds to the nearest representable 16.16 value -- not PICO-8's
  * truncation, which PICO8_FIXED_LIT carries. */

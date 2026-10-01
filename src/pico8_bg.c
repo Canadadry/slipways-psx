@@ -6,7 +6,7 @@
 
 #include "pico8_dispatch_context.h"
 #include "pico8_entity.h"
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 #include "pico8_gen.h"
 #include "pico8_ke.h"
 #include "pico8_probe.h"

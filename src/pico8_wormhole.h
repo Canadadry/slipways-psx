@@ -2,7 +2,7 @@
 #define PICO8_WORMHOLE_H
 
 #include "pico8_ents.h"
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 #include "pico8_game_data.h"
 #include "pico8_probe_comp.h"
 #include "pico8_struct.h"

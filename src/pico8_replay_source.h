@@ -7,7 +7,7 @@
 #ifndef PICO8_REPLAY_SOURCE_H
 #define PICO8_REPLAY_SOURCE_H
 
-#include "pico8_input.h"
+#include "p8/input.h"
 
 typedef enum {
     /* No path was given on the command line: an ordinary new game. */

@@ -1,7 +1,7 @@
 #ifndef PICO8_GFX_H
 #define PICO8_GFX_H
 
-#include "pico8_mem.h"
+#include "p8/mem.h"
 
 #define PICO8_SCREEN_WIDTH 128
 #define PICO8_SCREEN_HEIGHT 128

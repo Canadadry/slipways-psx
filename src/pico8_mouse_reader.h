@@ -2,7 +2,7 @@
 #define PICO8_MOUSE_READER_H
 
 #include "pico8_game_data.h"
-#include "pico8_input.h"
+#include "p8/input.h"
 #include "pico8_ke.h"
 #include "pico8_mouse.h"
 #include "pico8_struct.h"

@@ -1,4 +1,4 @@
-#include "pico8_assets.h"
+#include "p8/assets.h"
 
 #include <stdio.h>
 #include <stdlib.h>

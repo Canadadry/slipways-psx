@@ -1,7 +1,7 @@
 #ifndef PICO8_GEOM_H
 #define PICO8_GEOM_H
 
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 #include "pico8_vec.h"
 #include "pico8_zone_choisie.h"
 

@@ -9,7 +9,7 @@
 #ifndef PICO8_SESSION_RECORDER_H
 #define PICO8_SESSION_RECORDER_H
 
-#include "pico8_input.h"
+#include "p8/input.h"
 
 /* Room for the backend's tmp/events_recorded_<timestamp>.json and then
  * some; not a limit any caller is expected to reach. */

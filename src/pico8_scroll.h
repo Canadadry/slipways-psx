@@ -1,10 +1,10 @@
 #ifndef PICO8_SCROLL_H
 #define PICO8_SCROLL_H
 
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 #include "pico8_game_data.h"
-#include "pico8_gfx.h"
-#include "pico8_input.h"
+#include "p8/gfx.h"
+#include "p8/input.h"
 #include "pico8_ke.h"
 #include "pico8_struct.h"
 #include "pico8_vec.h"

@@ -1,6 +1,6 @@
 #include "pico8_dump.h"
 
-#include "pico8_gfx.h"
+#include "p8/gfx.h"
 
 #include <assert.h>
 

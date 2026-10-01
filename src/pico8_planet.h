@@ -2,7 +2,7 @@
 #define PICO8_PLANET_H
 
 #include "pico8_ents.h"
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 #include "pico8_game_data.h"
 #include "pico8_gen.h"
 #include "pico8_layout.h"

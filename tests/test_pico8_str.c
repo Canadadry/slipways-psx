@@ -1,4 +1,4 @@
-#include "../src/pico8_str.h"
+#include "p8/str.h"
 #include "zone_tas.h"
 
 #include <assert.h>

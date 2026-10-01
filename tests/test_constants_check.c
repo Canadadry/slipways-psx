@@ -1,6 +1,6 @@
 /* tools/constants_compare.sh et tools/constants_check.sh, sur des sources, un
  * releve et une liste de defaillances attendues fabriques, avec le vrai
- * src/pico8_fixed.c : ils se testent par ce qu'ils doivent empecher. */
+ * src/p8/fixed.c : ils se testent par ce qu'ils doivent empecher. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -12,7 +12,7 @@
 #define EXPECTED DIR "/attendus.txt"
 #define WORK DIR "/gen"
 #define OUT DIR "/out.txt"
-#define FIXED "src/pico8_fixed.c"
+#define FIXED "src/p8/fixed.c"
 
 #define SRC_A DIR "/pico8_a.c"
 #define SRC_B DIR "/pico8_b.c"

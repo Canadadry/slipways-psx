@@ -1,4 +1,4 @@
-#include "pico8_mem.h"
+#include "p8/mem.h"
 
 #include <string.h>
 

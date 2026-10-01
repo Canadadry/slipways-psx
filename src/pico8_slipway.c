@@ -3,14 +3,14 @@
 #include <assert.h>
 #include <string.h>
 
-#include "pico8_audio.h"
+#include "p8/audio.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_economy.h"
 #include "pico8_economy_formulas.h"
 #include "pico8_entity.h"
 #include "pico8_fm.h"
 #include "pico8_geom.h"
-#include "pico8_input.h"
+#include "p8/input.h"
 #include "pico8_ke.h"
 #include "pico8_planet.h"
 #include "pico8_probe_comp.h"

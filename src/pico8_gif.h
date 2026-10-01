@@ -5,7 +5,7 @@
 #ifndef PICO8_GIF_H
 #define PICO8_GIF_H
 
-#include "pico8_input.h"
+#include "p8/input.h"
 
 #include <stdio.h>
 

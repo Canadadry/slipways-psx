@@ -2,7 +2,7 @@
 #define PICO8_PLANET_TRADE_H
 
 #include "pico8_struct.h"
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 #include "pico8_planet.h"
 #include "pico8_trade.h"
 

@@ -1,4 +1,4 @@
-#include "pico8_audio.h"
+#include "p8/audio.h"
 
 static int g_ih = 0;
 

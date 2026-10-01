@@ -1,7 +1,7 @@
 #ifndef PICO8_DUMP_H
 #define PICO8_DUMP_H
 
-#include "pico8_mem.h"
+#include "p8/mem.h"
 
 #include <stdio.h>
 

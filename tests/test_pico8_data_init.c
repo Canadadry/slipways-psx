@@ -5,9 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../src/pico8_assets.h"
+#include "p8/assets.h"
 #include "../src/pico8_map_tables.h"
-#include "../src/pico8_mem.h"
+#include "p8/mem.h"
 #include "../src/pico8_research.h"
 
 static void test_hc_fd_dr_nb_decode_real_cart_content(void) {

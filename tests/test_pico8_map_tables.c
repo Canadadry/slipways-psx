@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #include "../src/pico8_economy_formulas.h"
-#include "../src/pico8_fixed.h"
+#include "p8/fixed.h"
 #include "../src/pico8_game_data.h"
 #include "../src/pico8_gen.h"
 #include "../src/pico8_zone_frame.h"

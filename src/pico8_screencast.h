@@ -19,8 +19,8 @@
 #ifndef PICO8_SCREENCAST_H
 #define PICO8_SCREENCAST_H
 
-#include "pico8_gfx.h"
-#include "pico8_mem.h"
+#include "p8/gfx.h"
+#include "p8/mem.h"
 
 #include <stdio.h>
 

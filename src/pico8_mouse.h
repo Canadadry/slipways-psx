@@ -1,7 +1,7 @@
 #ifndef PICO8_MOUSE_H
 #define PICO8_MOUSE_H
 
-#include "pico8_input.h"
+#include "p8/input.h"
 
 /* One button's state, `nf.l` or `nf.r` in the cart: until the first `bu`,
  * `has_on` is 0 and `on`/`jn`/`hm` are absent. */

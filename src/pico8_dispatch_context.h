@@ -1,9 +1,9 @@
 #ifndef PICO8_DISPATCH_CONTEXT_H
 #define PICO8_DISPATCH_CONTEXT_H
 
-#include "pico8_gfx.h"
-#include "pico8_input.h"
-#include "pico8_mem.h"
+#include "p8/gfx.h"
+#include "p8/input.h"
+#include "p8/mem.h"
 
 /* The current frame's gfx/mem/input, for the methods reached through a
  * member of pico8_struct_class_t and for the callbacks rows carry, whose

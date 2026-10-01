@@ -1,4 +1,4 @@
-#include "pico8_fatal.h"
+#include "p8/fatal.h"
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -19,10 +19,10 @@
 
 #include "pico8_screencast.h"
 #include "pico8_screencast_player.h"
-#include "pico8_palette.h"
+#include "p8/palette.h"
 #include "pico8_replay_control.h"
 #include "pico8_raylib_backend.h"
-#include "pico8_gfx.h"
+#include "p8/gfx.h"
 
 #include "raylib.h"
 

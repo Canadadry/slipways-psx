@@ -10,16 +10,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../src/pico8_assets.h"
+#include "p8/assets.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
-#include "../src/pico8_fixed.h"
-#include "../src/pico8_gfx.h"
-#include "../src/pico8_input.h"
+#include "p8/fixed.h"
+#include "p8/gfx.h"
+#include "p8/input.h"
 #include "../src/pico8_ke.h"
-#include "../src/pico8_mem.h"
+#include "p8/mem.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_msgbox.h"
 #include "../src/pico8_mouse_reader.h"

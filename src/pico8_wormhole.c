@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "pico8_audio.h"
+#include "p8/audio.h"
 #include "pico8_entity.h"
 #include "pico8_entity_geom.h"
 #include "pico8_ke.h"

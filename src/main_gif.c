@@ -5,7 +5,7 @@
  * stderr. */
 
 #include "pico8_gif.h"
-#include "pico8_input.h"
+#include "p8/input.h"
 #include "pico8_screencast.h"
 
 #include <stdio.h>

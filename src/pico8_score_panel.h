@@ -1,10 +1,10 @@
 #ifndef PICO8_SCORE_PANEL_H
 #define PICO8_SCORE_PANEL_H
 
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 #include "pico8_game_data.h"
-#include "pico8_gfx.h"
-#include "pico8_mem.h"
+#include "p8/gfx.h"
+#include "p8/mem.h"
 #include "pico8_map_tables.h"
 #include "pico8_msgbox.h"
 #include "pico8_struct.h"

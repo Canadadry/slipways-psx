@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "pico8_coverage.h"
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 #include "pico8_geom.h"
 #include "pico8_vec.h"
 

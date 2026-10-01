@@ -11,17 +11,17 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "../src/pico8_assets.h"
+#include "p8/assets.h"
 #include "../src/pico8_bg.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_economy.h"
-#include "../src/pico8_gfx.h"
+#include "p8/gfx.h"
 #include "../src/pico8_help.h"
-#include "../src/pico8_input.h"
+#include "p8/input.h"
 #include "../src/pico8_layout.h"
-#include "../src/pico8_mem.h"
+#include "p8/mem.h"
 #include "../src/pico8_mouse_reader.h"
 #include "../src/pico8_msgbox.h"
 #include "../src/pico8_planet.h"

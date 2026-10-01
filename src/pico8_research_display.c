@@ -8,7 +8,7 @@
 #include "pico8_map_tables.h"
 #include "pico8_planet.h"
 #include "pico8_research.h"
-#include "pico8_str.h"
+#include "p8/str.h"
 #include "pico8_tech_gate.h"
 #include "pico8_zone_frame.h"
 

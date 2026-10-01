@@ -9,7 +9,7 @@
 #include "pico8_game_data.h"
 #include "pico8_map_tables.h"
 #include "pico8_planet.h"
-#include "pico8_str.h"
+#include "p8/str.h"
 #include "pico8_trade.h"
 #include "pico8_zone_frame.h"
 

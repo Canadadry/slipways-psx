@@ -1,10 +1,10 @@
 #ifndef PICO8_PROBE_COMP_H
 #define PICO8_PROBE_COMP_H
 
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 #include "pico8_game_data.h"
-#include "pico8_gfx.h"
-#include "pico8_mem.h"
+#include "p8/gfx.h"
+#include "p8/mem.h"
 #include "pico8_struct.h"
 #include "pico8_vec.h"
 

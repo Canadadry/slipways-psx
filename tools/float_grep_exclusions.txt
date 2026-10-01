@@ -8,8 +8,8 @@ src/main_frames.c | point d'entree de l'outil d'emission de frames pico8_frames,
 src/main_minimize.c | point d'entree du minimiseur de rejeux pico8_minimize, outil d'hote
 src/main_raylib.c | point d'entree du driver interactif raylib
 src/main_screencast_viewer.c | point d'entree du visualiseur d'enregistrement
-src/pico8_assets.c | outil d'hote du §4, chargement des ressources par la libc
-src/pico8_assets.h | outil d'hote du §4, en-tete de pico8_assets.c
+src/p8/assets.c | outil d'hote du §4, chargement des ressources par la libc
+src/p8/assets.h | outil d'hote du §4, en-tete de p8/assets.c
 src/pico8_dump.c | outil d'hote du §4, dump texte du framebuffer
 src/pico8_dump.h | outil d'hote du §4, en-tete de pico8_dump.c
 src/pico8_coverage.c | instrumentation de couverture des classes (PICO8_CLASS_COVERAGE), outil d'hote
@@ -19,8 +19,8 @@ src/pico8_fixed_test_double.c | aide de test, hors coeur : from_double/to_double
 src/pico8_fixed_test_double.h | aide de test, hors coeur : en-tete de pico8_fixed_test_double.c, inclus par les tests et le comparateur de constantes
 src/pico8_minimize.c | minimiseur de rejeux, outil d'hote
 src/pico8_minimize.h | minimiseur de rejeux, en-tete de pico8_minimize.c
-src/pico8_palette.c | backend raylib et visualiseur, palette RGB de presentation
-src/pico8_palette.h | backend raylib et visualiseur, en-tete de pico8_palette.c
+src/p8/palette.c | backend raylib et visualiseur, palette RGB de presentation
+src/p8/palette.h | backend raylib et visualiseur, en-tete de p8/palette.c
 src/pico8_raylib_backend.c | backend raylib
 src/pico8_raylib_backend.h | backend raylib
 src/pico8_raylib_backend_coords.c | backend raylib, conversion des coordonnees de fenetre

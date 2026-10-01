@@ -2,9 +2,9 @@
 #define PICO8_SLIPWAY_DISPLAY_H
 
 #include "pico8_struct.h"
-#include "pico8_fixed.h"
-#include "pico8_gfx.h"
-#include "pico8_mem.h"
+#include "p8/fixed.h"
+#include "p8/gfx.h"
+#include "p8/mem.h"
 #include "pico8_slipway.h"
 #include "pico8_vec.h"
 

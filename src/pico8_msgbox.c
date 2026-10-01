@@ -4,9 +4,9 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "pico8_audio.h"
+#include "p8/audio.h"
 #include "pico8_dispatch_context.h"
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 #include "pico8_hud.h"
 #include "pico8_ke.h"
 #include "pico8_layout.h"

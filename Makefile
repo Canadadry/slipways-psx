@@ -83,7 +83,7 @@
 # make float-link    -> lie les objets de tmp/pico8_replay sans -lm (§6.2) dans un
 #                       binaire jetable, jamais lancé ; hors suite : make test
 #                       construit déjà tmp/pico8_replay, même lien
-# make sin-table     -> régénère src/pico8_quarter_wave.h (table de sin/cos du
+# make sin-table     -> régénère src/p8/quarter_wave.h (table de sin/cos du
 #                       cœur) depuis tools/gen_quarter_wave.c, hors suite
 # make raylib        -> compile et LINK le binaire interactif, ne le lance jamais
 # make screencast-viewer -> idem pour le visualiseur d'enregistrement
@@ -100,6 +100,7 @@ endif
 
 CC ?= cc
 CFLAGS ?= -std=c99 -Wall -Wextra -Werror -g
+override CFLAGS += -Isrc
 
 TMP_DIR := tmp
 
@@ -163,8 +164,8 @@ $(OBJ_SANITIZE_DIR)/%.o: %.c
 # main_raylib.c) et les modules qui ne servent qu'au driver interactif. Utilisée
 # par toute cible qui boote un cart, pico8_cart_load() tirant tout le port.
 ENGINE_SRCS := \
-    src/pico8_assets.c \
-    src/pico8_audio.c \
+    src/p8/assets.c \
+    src/p8/audio.c \
     src/pico8_bg.c \
     src/pico8_bootstrap.c \
     src/pico8_cheat.c \
@@ -182,22 +183,22 @@ ENGINE_SRCS := \
     src/pico8_entity_geom.c \
     src/pico8_file_sortie.c \
     src/pico8_fatal_pc.c \
-    src/pico8_fixed.c \
+    src/p8/fixed.c \
     src/pico8_galaxy.c \
     src/pico8_game_data.c \
     src/pico8_gen.c \
     src/pico8_geom.c \
-    src/pico8_gfx.c \
+    src/p8/gfx.c \
     src/pico8_help.c \
     src/pico8_hud.c \
-    src/pico8_input.c \
+    src/p8/input.c \
     src/pico8_input_json.c \
     src/pico8_ke.c \
     src/pico8_layout.c \
     src/pico8_ents.c \
     src/pico8_ptrs.c \
     src/pico8_map_tables.c \
-    src/pico8_mem.c \
+    src/p8/mem.c \
     src/pico8_menu.c \
     src/pico8_mouse.c \
     src/pico8_mouse_reader.c \
@@ -218,7 +219,7 @@ ENGINE_SRCS := \
     src/pico8_scroll.c \
     src/pico8_slipway.c \
     src/pico8_slipway_display.c \
-    src/pico8_str.c \
+    src/p8/str.c \
     src/pico8_tech_gate.c \
     src/pico8_trade.c \
     src/pico8_ui.c \
@@ -236,14 +237,14 @@ ENGINE_SRCS := \
 # Le cœur porté, sans flottant : la closure du moteur moins les outils
 # d'hôte, qui gardent la libc. Inventaire, couverture et garde flottantes
 # partent tous de cette liste.
-CORE_SRCS := $(filter-out src/pico8_assets.c src/pico8_coverage.c src/pico8_dump.c src/pico8_fatal_pc.c src/pico8_input_json.c,$(ENGINE_SRCS))
+CORE_SRCS := $(filter-out src/p8/assets.c src/pico8_coverage.c src/pico8_dump.c src/pico8_fatal_pc.c src/pico8_input_json.c,$(ENGINE_SRCS))
 
 # Closure plus étroite : ce que pico8_data_init() atteint pour construire un
 # vrai état de jeu, sans booter de cart.
 DATA_ENGINE_SRCS := \
     src/pico8_data_init.c \
-    src/pico8_assets.c \
-    src/pico8_audio.c \
+    src/p8/assets.c \
+    src/p8/audio.c \
     src/pico8_bg.c \
     src/pico8_bootstrap.c \
     src/pico8_collect.c \
@@ -256,20 +257,20 @@ DATA_ENGINE_SRCS := \
     src/pico8_entity.c \
     src/pico8_entity_geom.c \
     src/pico8_file_sortie.c \
-    src/pico8_fixed.c \
+    src/p8/fixed.c \
     src/pico8_game_data.c \
     src/pico8_gen.c \
     src/pico8_geom.c \
-    src/pico8_gfx.c \
+    src/p8/gfx.c \
     src/pico8_hud.c \
-    src/pico8_input.c \
+    src/p8/input.c \
     src/pico8_input_json.c \
     src/pico8_ke.c \
     src/pico8_layout.c \
     src/pico8_ents.c \
     src/pico8_ptrs.c \
     src/pico8_map_tables.c \
-    src/pico8_mem.c \
+    src/p8/mem.c \
     src/pico8_mouse.c \
     src/pico8_mouse_reader.c \
     src/pico8_msgbox.c \
@@ -285,7 +286,7 @@ DATA_ENGINE_SRCS := \
     src/pico8_scroll.c \
     src/pico8_slipway.c \
     src/pico8_slipway_display.c \
-    src/pico8_str.c \
+    src/p8/str.c \
     src/pico8_tech_gate.c \
     src/pico8_trade.c \
     src/pico8_ui.c \
@@ -315,52 +316,52 @@ $(TMP_DIR):
 
 # Les .json en prérequis sont les fixtures que le test lit à l'exécution ;
 # $(filter %.o,$^) les garde hors de la ligne de link.
-$(TMP_DIR)/test_pico8_mem: $(call objs,tests/test_pico8_mem.c src/pico8_mem.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_mem: $(call objs,tests/test_pico8_mem.c src/p8/mem.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_asset_loading: $(call objs,tests/test_asset_loading.c src/pico8_assets.c src/pico8_mem.c) | $(TMP_DIR)
+$(TMP_DIR)/test_asset_loading: $(call objs,tests/test_asset_loading.c src/p8/assets.c src/p8/mem.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_gfx: $(call objs,tests/test_pico8_gfx.c src/pico8_gfx.c src/pico8_mem.c src/pico8_assets.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_gfx: $(call objs,tests/test_pico8_gfx.c src/p8/gfx.c src/p8/mem.c src/p8/assets.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_input: $(call objs,tests/test_pico8_input.c src/pico8_input.c src/pico8_input_json.c) tests/fixtures/demo_events.json tests/fixtures/events_valid_ox.json tests/fixtures/events_malformed_five_dpad.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_input: $(call objs,tests/test_pico8_input.c src/p8/input.c src/pico8_input_json.c) tests/fixtures/demo_events.json tests/fixtures/events_valid_ox.json tests/fixtures/events_malformed_five_dpad.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_dump: $(call objs,tests/test_pico8_dump.c src/pico8_dump.c src/pico8_gfx.c src/pico8_mem.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_dump: $(call objs,tests/test_pico8_dump.c src/pico8_dump.c src/p8/gfx.c src/p8/mem.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_fixed: $(call objs,tests/test_pico8_fixed.c src/pico8_fixed.c src/pico8_fixed_test_double.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_fixed: $(call objs,tests/test_pico8_fixed.c src/p8/fixed.c src/pico8_fixed_test_double.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # Le même test que ci-dessus, sous UBSan : pico8_fixed fait des réinterprétations
 # de bits signé/non signé qui donneraient les bons nombres tout en étant de l'UB.
 # -fno-sanitize-recover fait échouer le binaire au lieu d'imprimer un avertissement.
-$(TMP_DIR)/test_pico8_fixed_ubsan: $(call ubsan_objs,tests/test_pico8_fixed.c src/pico8_fixed.c src/pico8_fixed_test_double.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_fixed_ubsan: $(call ubsan_objs,tests/test_pico8_fixed.c src/p8/fixed.c src/pico8_fixed_test_double.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(UBSAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_raylib_backend_coords: $(call objs,tests/test_pico8_raylib_backend_coords.c src/pico8_raylib_backend_coords.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_replay_source: $(call objs,tests/test_pico8_replay_source.c src/pico8_replay_source.c src/pico8_input.c src/pico8_input_json.c) tests/fixtures/events_valid.json tests/fixtures/events_malformed_missing_field.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_replay_source: $(call objs,tests/test_pico8_replay_source.c src/pico8_replay_source.c src/p8/input.c src/pico8_input_json.c) tests/fixtures/events_valid.json tests/fixtures/events_malformed_missing_field.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_recording_continuity: $(call objs,tests/test_pico8_recording_continuity.c src/pico8_session_recorder.c src/pico8_replay_source.c src/pico8_input.c src/pico8_input_json.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_recording_continuity: $(call objs,tests/test_pico8_recording_continuity.c src/pico8_session_recorder.c src/pico8_replay_source.c src/p8/input.c src/pico8_input_json.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_pico8_replay_control: $(call objs,tests/test_pico8_replay_control.c src/pico8_replay_control.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_marker_coherence: $(call objs,tests/test_pico8_marker_coherence.c src/pico8_session_recorder.c src/pico8_replay_source.c src/pico8_input.c src/pico8_input_json.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_marker_coherence: $(call objs,tests/test_pico8_marker_coherence.c src/pico8_session_recorder.c src/pico8_replay_source.c src/p8/input.c src/pico8_input_json.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_screencast: $(call objs,tests/test_pico8_screencast.c src/pico8_screencast.c src/pico8_mem.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_screencast: $(call objs,tests/test_pico8_screencast.c src/pico8_screencast.c src/p8/mem.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 # Ce test lance le vrai pilote de rejeu, d'où $(TMP_DIR)/pico8_replay en
 # prérequis : il rejoue la même fixture avec et sans capture et compare les deux
 # dumps, pour que l'argument de capture reste sans effet sur le reste.
-$(TMP_DIR)/test_pico8_headless_capture: $(call objs,tests/test_pico8_headless_capture.c src/pico8_screencast.c src/pico8_dump.c src/pico8_gfx.c src/pico8_mem.c src/pico8_input.c src/pico8_input_json.c) $(TMP_DIR)/pico8_replay tests/fixtures/screencast_capture_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_headless_capture: $(call objs,tests/test_pico8_headless_capture.c src/pico8_screencast.c src/pico8_dump.c src/p8/gfx.c src/p8/mem.c src/p8/input.c src/pico8_input_json.c) $(TMP_DIR)/pico8_replay tests/fixtures/screencast_capture_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_pico8_replay_from_title: $(call objs,tests/test_pico8_replay_from_title.c) $(TMP_DIR)/pico8_replay tests/fixtures/title_click_forgiving.json tests/fixtures/title_click_reasonable.json | $(TMP_DIR)
@@ -369,11 +370,11 @@ $(TMP_DIR)/test_pico8_replay_from_title: $(call objs,tests/test_pico8_replay_fro
 $(TMP_DIR)/test_pico8_replay_usage: $(call objs,tests/test_pico8_replay_usage.c) $(TMP_DIR)/pico8_replay tests/fixtures/title_click_forgiving.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/pico8_frames: $(call objs,src/main_frames.c src/pico8_screencast.c src/pico8_dump.c src/pico8_mem.c) | $(TMP_DIR)
+$(TMP_DIR)/pico8_frames: $(call objs,src/main_frames.c src/pico8_screencast.c src/pico8_dump.c src/p8/mem.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 # Lance le pilote de rejeu puis l'outil d'émission de frames.
-$(TMP_DIR)/test_pico8_frames_tool: $(call objs,tests/test_pico8_frames_tool.c src/pico8_screencast.c src/pico8_mem.c) $(TMP_DIR)/pico8_replay $(TMP_DIR)/pico8_frames tests/fixtures/screencast_capture_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_frames_tool: $(call objs,tests/test_pico8_frames_tool.c src/pico8_screencast.c src/p8/mem.c) $(TMP_DIR)/pico8_replay $(TMP_DIR)/pico8_frames tests/fixtures/screencast_capture_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_frames_check: $(call objs,tests/test_frames_check.c) tools/frames_check.sh | $(TMP_DIR)
@@ -391,10 +392,10 @@ $(TMP_DIR)/test_e2e_limits: $(call objs,tests/test_e2e_limits.c) tools/e2e_limit
 $(TMP_DIR)/test_e2e_cleanup: $(call objs,tests/test_e2e_cleanup.c) tools/e2e_cleanup.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/pico8_minimize: $(call objs,src/main_minimize.c src/pico8_minimize.c src/pico8_input.c src/pico8_input_json.c) | $(TMP_DIR)
+$(TMP_DIR)/pico8_minimize: $(call objs,src/main_minimize.c src/pico8_minimize.c src/p8/input.c src/pico8_input_json.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_minimize: $(call objs,tests/test_pico8_minimize.c src/pico8_minimize.c src/pico8_input.c src/pico8_input_json.c) $(TMP_DIR)/pico8_minimize tools/minimize.sh | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_minimize: $(call objs,tests/test_pico8_minimize.c src/pico8_minimize.c src/p8/input.c src/pico8_input_json.c) $(TMP_DIR)/pico8_minimize tools/minimize.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_float_guard: $(call objs,tests/test_float_guard.c) tools/float_guard.sh | $(TMP_DIR)
@@ -415,22 +416,22 @@ $(TMP_DIR)/test_composition_residue: $(call objs,tests/test_composition_residue.
 $(TMP_DIR)/test_float_link: $(call objs,tests/test_float_link.c) tools/float_link.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_constants_check: $(call objs,tests/test_constants_check.c) tools/constants_compare.sh tools/constants_check.sh src/pico8_fixed.c src/pico8_fixed.h | $(TMP_DIR)
+$(TMP_DIR)/test_constants_check: $(call objs,tests/test_constants_check.c) tools/constants_compare.sh tools/constants_check.sh src/p8/fixed.c src/p8/fixed.h | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/pico8_gif: $(call objs,src/main_gif.c src/pico8_gif.c src/pico8_palette.c src/pico8_screencast.c src/pico8_mem.c src/pico8_input.c src/pico8_input_json.c) | $(TMP_DIR)
+$(TMP_DIR)/pico8_gif: $(call objs,src/main_gif.c src/pico8_gif.c src/p8/palette.c src/pico8_screencast.c src/p8/mem.c src/p8/input.c src/pico8_input_json.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_gif: $(call objs,tests/test_pico8_gif.c src/pico8_gif.c src/pico8_palette.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_gif: $(call objs,tests/test_pico8_gif.c src/pico8_gif.c src/p8/palette.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_screencast_player: $(call objs,tests/test_pico8_screencast_player.c src/pico8_screencast_player.c src/pico8_palette.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_screencast_player: $(call objs,tests/test_pico8_screencast_player.c src/pico8_screencast_player.c src/p8/palette.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_vec: $(call objs,tests/test_pico8_vec.c src/pico8_vec.c src/pico8_fixed.c src/pico8_fixed_test_double.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_vec: $(call objs,tests/test_pico8_vec.c src/pico8_vec.c src/p8/fixed.c src/pico8_fixed_test_double.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_geom: $(call objs,tests/test_pico8_geom.c src/pico8_geom.c src/pico8_vec.c src/pico8_fixed.c src/pico8_fixed_test_double.c src/pico8_zone_choisie.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_geom: $(call objs,tests/test_pico8_geom.c src/pico8_geom.c src/pico8_vec.c src/p8/fixed.c src/pico8_fixed_test_double.c src/pico8_zone_choisie.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_ptrs: $(call objs,tests/test_pico8_ptrs.c tests/zone_tas.c src/pico8_ptrs.c src/pico8_zone_choisie.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
@@ -443,7 +444,7 @@ $(TMP_DIR)/test_pico8_ents: $(call objs,tests/test_pico8_ents.c tests/zone_tas.c
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 
-$(TMP_DIR)/test_pico8_str: $(call objs,tests/test_pico8_str.c tests/zone_tas.c src/pico8_str.c src/pico8_fixed.c src/pico8_zone_choisie.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_str: $(call objs,tests/test_pico8_str.c tests/zone_tas.c src/p8/str.c src/p8/fixed.c src/pico8_zone_choisie.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_pico8_data_init: $(call objs,tests/test_pico8_data_init.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
@@ -567,7 +568,7 @@ $(TMP_DIR)/test_pico8_fm: $(call objs,tests/test_pico8_fm.c $(ENGINE_SRCS)) | $(
 $(TMP_DIR)/test_pico8_planet_kj_dispatch: $(call objs,tests/test_pico8_planet_kj_dispatch.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_demo: $(call objs,tests/test_pico8_demo.c src/pico8_mem.c src/pico8_assets.c src/pico8_gfx.c src/pico8_input.c src/pico8_input_json.c src/pico8_dump.c) tests/fixtures/demo_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_demo: $(call objs,tests/test_pico8_demo.c src/p8/mem.c src/p8/assets.c src/p8/gfx.c src/p8/input.c src/pico8_input_json.c src/pico8_dump.c) tests/fixtures/demo_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 REPLAY_SRCS := src/main.c src/pico8_screencast.c $(ENGINE_SRCS)
@@ -590,7 +591,7 @@ $(TMP_DIR)/test_pico8_planet_gh_row_lq: $(call asan_objs,tests/test_pico8_planet
 $(TMP_DIR)/test_pico8_zone: $(call asan_objs,tests/test_pico8_zone.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_zone_choisie: $(call asan_objs,tests/test_pico8_zone_choisie.c tests/zone_tas.c src/pico8_ents.c src/pico8_ptrs.c src/pico8_str.c src/pico8_collect.c src/pico8_geom.c src/pico8_vec.c src/pico8_fixed.c src/pico8_zone_choisie.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_zone_choisie: $(call asan_objs,tests/test_pico8_zone_choisie.c tests/zone_tas.c src/pico8_ents.c src/pico8_ptrs.c src/p8/str.c src/pico8_collect.c src/pico8_geom.c src/pico8_vec.c src/p8/fixed.c src/pico8_zone_choisie.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_pico8_zone_particules: $(call asan_objs,tests/test_pico8_zone_particules.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -616,7 +617,7 @@ $(TMP_DIR)/test_pico8_probe_mm_rnd_order: $(call objs,tests/test_pico8_probe_mm_
 
 # Liste de sources réduite et non $(ENGINE_SRCS) : ce test ne boote pas de cart.
 # Mesurée en linkant, pas devinée.
-$(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing: $(call objs,tests/test_pico8_layout_nil_item_draws_nothing.c tests/zone_tas.c src/pico8_assets.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_fixed.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_layout.c src/pico8_ptrs.c src/pico8_map_tables.c src/pico8_mem.c src/pico8_str.c src/pico8_vec.c src/pico8_zone_choisie.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing: $(call objs,tests/test_pico8_layout_nil_item_draws_nothing.c tests/zone_tas.c src/p8/assets.c src/pico8_collect.c src/pico8_dispatch_context.c src/p8/fixed.c src/pico8_geom.c src/p8/gfx.c src/pico8_hud.c src/pico8_layout.c src/pico8_ptrs.c src/pico8_map_tables.c src/p8/mem.c src/p8/str.c src/pico8_vec.c src/pico8_zone_choisie.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # Le plus long en tête : sous -j, make le lance d'abord.
@@ -987,8 +988,8 @@ sanitize-net: $(SANITIZE_RUNS)
 .PHONY: sanitize-net $(SANITIZE_RUNS)
 
 # Les sources du cœur, où le comparateur lit les appels PICO8_FIXED_LIT.
-constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_ecarts.txt tools/probe_out.txt src/pico8_fixed.c src/pico8_fixed.h $(CORE_SRCS) | $(TMP_DIR)
-	@sh tools/constants_check.sh tools/constants_expected_ecarts.txt tools/probe_out.txt src/pico8_fixed.c $(TMP_DIR)/constants_check \
+constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_ecarts.txt tools/probe_out.txt src/p8/fixed.c src/p8/fixed.h $(CORE_SRCS) | $(TMP_DIR)
+	@sh tools/constants_check.sh tools/constants_expected_ecarts.txt tools/probe_out.txt src/p8/fixed.c $(TMP_DIR)/constants_check \
 	    $(CORE_SRCS)
 
 .PHONY: constants-check
@@ -1028,8 +1029,8 @@ $(TMP_DIR)/gen_quarter_wave: tools/gen_quarter_wave.c | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $< -lm
 
 sin-table: $(TMP_DIR)/gen_quarter_wave
-	./$(TMP_DIR)/gen_quarter_wave > $(TMP_DIR)/pico8_quarter_wave.h
-	mv $(TMP_DIR)/pico8_quarter_wave.h src/pico8_quarter_wave.h
+	./$(TMP_DIR)/gen_quarter_wave > $(TMP_DIR)/quarter_wave.h
+	mv $(TMP_DIR)/quarter_wave.h src/p8/quarter_wave.h
 
 .PHONY: sin-table
 
@@ -1053,22 +1054,22 @@ raylib-vendor-setup:
 # Les deux cibles raylib sont restées en forme source -> exécutable : leurs
 # fichiers ont besoin de -I third_party/raylib/src que les autres n'ont pas, et
 # pico8_raylib_backend_coords.c est aussi linké sans ce flag par un test.
-$(TMP_DIR)/main_raylib: src/main_raylib.c src/pico8_raylib_backend.c src/pico8_raylib_backend.h src/pico8_raylib_backend_coords.c src/pico8_raylib_backend_coords.h src/pico8_palette.c src/pico8_palette.h src/pico8_assets.c src/pico8_assets.h src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_cart.h src/pico8_cheat.c src/pico8_cheat.h src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dispatch_context.h src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_file_sortie.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_help.h src/pico8_hud.c src/pico8_input.c src/pico8_input_json.c src/pico8_ke.c src/pico8_layout.c src/pico8_ents.c src/pico8_ptrs.c src/pico8_map_tables.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_replay_control.c src/pico8_replay_control.h src/pico8_replay_source.c src/pico8_replay_source.h src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_session_recorder.c src/pico8_session_recorder.h src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_ui_button.h src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c src/pico8_zone.c src/pico8_zone_choisie.c src/pico8_zone_frame.c src/pico8_zone_interface.c src/pico8_zone_particules.c src/pico8_zone_partie.c src/pico8_fatal_pc.c third_party/raylib/src/libraylib.a | $(TMP_DIR)
-	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ src/main_raylib.c src/pico8_raylib_backend.c src/pico8_raylib_backend_coords.c src/pico8_palette.c src/pico8_assets.c src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_cheat.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_file_sortie.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_hud.c src/pico8_input.c src/pico8_input_json.c src/pico8_ke.c src/pico8_layout.c src/pico8_ents.c src/pico8_ptrs.c src/pico8_map_tables.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_replay_control.c src/pico8_replay_source.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_session_recorder.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c src/pico8_zone.c src/pico8_zone_choisie.c src/pico8_zone_frame.c src/pico8_zone_interface.c src/pico8_zone_particules.c src/pico8_zone_partie.c src/pico8_fatal_pc.c third_party/raylib/src/libraylib.a $(RAYLIB_LDLIBS)
+$(TMP_DIR)/main_raylib: src/main_raylib.c src/pico8_raylib_backend.c src/pico8_raylib_backend.h src/pico8_raylib_backend_coords.c src/pico8_raylib_backend_coords.h src/p8/palette.c src/p8/palette.h src/p8/assets.c src/p8/assets.h src/p8/audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_cart.h src/pico8_cheat.c src/pico8_cheat.h src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dispatch_context.h src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_file_sortie.c src/p8/fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/p8/gfx.c src/pico8_help.c src/pico8_help.h src/pico8_hud.c src/p8/input.c src/pico8_input_json.c src/pico8_ke.c src/pico8_layout.c src/pico8_ents.c src/pico8_ptrs.c src/pico8_map_tables.c src/p8/mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_replay_control.c src/pico8_replay_control.h src/pico8_replay_source.c src/pico8_replay_source.h src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_session_recorder.c src/pico8_session_recorder.h src/pico8_slipway.c src/pico8_slipway_display.c src/p8/str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_ui_button.h src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c src/pico8_zone.c src/pico8_zone_choisie.c src/pico8_zone_frame.c src/pico8_zone_interface.c src/pico8_zone_particules.c src/pico8_zone_partie.c src/pico8_fatal_pc.c third_party/raylib/src/libraylib.a | $(TMP_DIR)
+	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ src/main_raylib.c src/pico8_raylib_backend.c src/pico8_raylib_backend_coords.c src/p8/palette.c src/p8/assets.c src/p8/audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_cheat.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_file_sortie.c src/p8/fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/p8/gfx.c src/pico8_help.c src/pico8_hud.c src/p8/input.c src/pico8_input_json.c src/pico8_ke.c src/pico8_layout.c src/pico8_ents.c src/pico8_ptrs.c src/pico8_map_tables.c src/p8/mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_replay_control.c src/pico8_replay_source.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_session_recorder.c src/pico8_slipway.c src/pico8_slipway_display.c src/p8/str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c src/pico8_zone.c src/pico8_zone_choisie.c src/pico8_zone_frame.c src/pico8_zone_interface.c src/pico8_zone_particules.c src/pico8_zone_partie.c src/pico8_fatal_pc.c third_party/raylib/src/libraylib.a $(RAYLIB_LDLIBS)
 
 raylib: $(TMP_DIR)/main_raylib
 
 # Le visualiseur : même règle que la cible raylib ci-dessus, link seulement.
-$(SCREENCAST_VIEWER_BIN): src/main_screencast_viewer.c src/pico8_screencast.c src/pico8_screencast.h src/pico8_screencast_player.c src/pico8_screencast_player.h src/pico8_palette.c src/pico8_palette.h src/pico8_replay_control.c src/pico8_replay_control.h src/pico8_raylib_backend.c src/pico8_raylib_backend.h src/pico8_raylib_backend_coords.c src/pico8_raylib_backend_coords.h src/pico8_session_recorder.c src/pico8_session_recorder.h src/pico8_input.c src/pico8_input_json.c src/pico8_input.h src/pico8_mem.c src/pico8_mem.h src/pico8_gfx.h third_party/raylib/src/libraylib.a | $(TMP_DIR)
-	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ src/main_screencast_viewer.c src/pico8_screencast.c src/pico8_screencast_player.c src/pico8_palette.c src/pico8_replay_control.c src/pico8_raylib_backend.c src/pico8_raylib_backend_coords.c src/pico8_session_recorder.c src/pico8_input.c src/pico8_input_json.c src/pico8_mem.c third_party/raylib/src/libraylib.a $(RAYLIB_LDLIBS)
+$(SCREENCAST_VIEWER_BIN): src/main_screencast_viewer.c src/pico8_screencast.c src/pico8_screencast.h src/pico8_screencast_player.c src/pico8_screencast_player.h src/p8/palette.c src/p8/palette.h src/pico8_replay_control.c src/pico8_replay_control.h src/pico8_raylib_backend.c src/pico8_raylib_backend.h src/pico8_raylib_backend_coords.c src/pico8_raylib_backend_coords.h src/pico8_session_recorder.c src/pico8_session_recorder.h src/p8/input.c src/pico8_input_json.c src/p8/input.h src/p8/mem.c src/p8/mem.h src/p8/gfx.h third_party/raylib/src/libraylib.a | $(TMP_DIR)
+	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ src/main_screencast_viewer.c src/pico8_screencast.c src/pico8_screencast_player.c src/p8/palette.c src/pico8_replay_control.c src/pico8_raylib_backend.c src/pico8_raylib_backend_coords.c src/pico8_session_recorder.c src/p8/input.c src/pico8_input_json.c src/p8/mem.c third_party/raylib/src/libraylib.a $(RAYLIB_LDLIBS)
 
 screencast-viewer: $(SCREENCAST_VIEWER_BIN)
 
 # Les fragments de dépendances écrits par le compilateur, un par objet. Le
 # wildcard tolère qu'ils n'existent pas : sur un clone frais, tout est compilé.
--include $(wildcard $(OBJ_DIR)/src/*.d $(OBJ_DIR)/tests/*.d)
--include $(wildcard $(OBJ_ASAN_DIR)/src/*.d $(OBJ_ASAN_DIR)/tests/*.d)
--include $(wildcard $(OBJ_UBSAN_DIR)/src/*.d $(OBJ_UBSAN_DIR)/tests/*.d)
--include $(wildcard $(OBJ_COVERAGE_DIR)/src/*.d $(OBJ_COVERAGE_DIR)/tests/*.d)
--include $(wildcard $(OBJ_GCOV_DIR)/src/*.d $(OBJ_GCOV_DIR)/tests/*.d)
--include $(wildcard $(OBJ_SANITIZE_DIR)/src/*.d $(OBJ_SANITIZE_DIR)/tests/*.d)
+-include $(wildcard $(OBJ_DIR)/src/*.d $(OBJ_DIR)/src/*/*.d $(OBJ_DIR)/tests/*.d)
+-include $(wildcard $(OBJ_ASAN_DIR)/src/*.d $(OBJ_ASAN_DIR)/src/*/*.d $(OBJ_ASAN_DIR)/tests/*.d)
+-include $(wildcard $(OBJ_UBSAN_DIR)/src/*.d $(OBJ_UBSAN_DIR)/src/*/*.d $(OBJ_UBSAN_DIR)/tests/*.d)
+-include $(wildcard $(OBJ_COVERAGE_DIR)/src/*.d $(OBJ_COVERAGE_DIR)/src/*/*.d $(OBJ_COVERAGE_DIR)/tests/*.d)
+-include $(wildcard $(OBJ_GCOV_DIR)/src/*.d $(OBJ_GCOV_DIR)/src/*/*.d $(OBJ_GCOV_DIR)/tests/*.d)
+-include $(wildcard $(OBJ_SANITIZE_DIR)/src/*.d $(OBJ_SANITIZE_DIR)/src/*/*.d $(OBJ_SANITIZE_DIR)/tests/*.d)

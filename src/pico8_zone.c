@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include "pico8_fatal.h"
+#include "p8/fatal.h"
 #include "pico8_zone_sizes.h"
 
 #ifdef PICO8_ZONE_ASAN

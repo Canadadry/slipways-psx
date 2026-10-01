@@ -1,4 +1,4 @@
-#include "pico8_str.h"
+#include "p8/str.h"
 
 #include <stdint.h>
 #include <stdio.h>

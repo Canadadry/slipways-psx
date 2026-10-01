@@ -1,7 +1,7 @@
 #ifndef PICO8_MAP_TABLES_H
 #define PICO8_MAP_TABLES_H
 
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 
 enum {
     PICO8_R_COUNT = 13,

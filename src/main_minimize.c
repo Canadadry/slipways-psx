@@ -8,7 +8,7 @@
  * Sur échec : code non nul, message sur stderr, <sortie> non écrite. drop
  * échoue sur une plage hors du fichier ou qui le viderait. */
 
-#include "pico8_input.h"
+#include "p8/input.h"
 #include "pico8_minimize.h"
 
 #include <errno.h>

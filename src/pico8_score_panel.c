@@ -15,7 +15,7 @@
 #include "pico8_map_tables.h"
 #include "pico8_pi.h"
 #include "pico8_planet.h"
-#include "pico8_str.h"
+#include "p8/str.h"
 #include "pico8_struct.h"
 #include "pico8_vec.h"
 #include "pico8_zone_frame.h"

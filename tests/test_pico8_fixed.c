@@ -1,4 +1,4 @@
-#include "../src/pico8_fixed.h"
+#include "p8/fixed.h"
 #include "../src/pico8_fixed_test_double.h"
 
 #include <assert.h>

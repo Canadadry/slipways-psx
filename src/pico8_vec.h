@@ -1,7 +1,7 @@
 #ifndef PICO8_VEC_H
 #define PICO8_VEC_H
 
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 
 /* Naming: the metamethods C has no operator overloading for are spelled
  * out (pico8_vec_add/sub/mul/div/neg for __add/__sub/__mul/__div/__unm,

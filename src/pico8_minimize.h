@@ -1,7 +1,7 @@
 #ifndef PICO8_MINIMIZE_H
 #define PICO8_MINIMIZE_H
 
-#include "pico8_input.h"
+#include "p8/input.h"
 
 /* Étage mécanique du minimiseur, pur : copie dans `out` (capacité
  * `frame_count`) les frames gardées de `frames`, dans l'ordre, sans en

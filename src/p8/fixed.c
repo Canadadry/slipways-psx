@@ -1,5 +1,5 @@
-#include "pico8_fixed.h"
-#include "pico8_quarter_wave.h"
+#include "p8/fixed.h"
+#include "p8/quarter_wave.h"
 
 pico8_fixed_t pico8_fixed_from_int(int32_t i) {
     return (pico8_fixed_t)((uint32_t)i << PICO8_FIXED_SHIFT);

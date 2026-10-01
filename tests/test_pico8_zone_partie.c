@@ -8,7 +8,7 @@
 #include <string.h>
 #include <sys/wait.h>
 
-#include "../src/pico8_assets.h"
+#include "p8/assets.h"
 #include "../src/pico8_bg.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_dispatch_context.h"
@@ -16,11 +16,11 @@
 #include "../src/pico8_ents.h"
 #include "../src/pico8_fm.h"
 #include "../src/pico8_gen.h"
-#include "../src/pico8_gfx.h"
-#include "../src/pico8_input.h"
+#include "p8/gfx.h"
+#include "p8/input.h"
 #include "../src/pico8_layout.h"
 #include "../src/pico8_map_tables.h"
-#include "../src/pico8_mem.h"
+#include "p8/mem.h"
 #include "../src/pico8_mouse_reader.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_research_icon.h"

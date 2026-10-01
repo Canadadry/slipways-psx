@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#include "pico8_audio.h"
+#include "p8/audio.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_entity.h"
 #include "pico8_entity_geom.h"

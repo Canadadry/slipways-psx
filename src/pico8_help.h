@@ -1,8 +1,8 @@
 #ifndef PICO8_HELP_H
 #define PICO8_HELP_H
 
-#include "pico8_gfx.h"
-#include "pico8_mem.h"
+#include "p8/gfx.h"
+#include "p8/mem.h"
 #include "pico8_probe.h"
 #include "pico8_struct.h"
 #include "pico8_ui_button.h"

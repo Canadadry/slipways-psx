@@ -1,10 +1,10 @@
 #ifndef PICO8_LAYOUT_H
 #define PICO8_LAYOUT_H
 
-#include "pico8_fixed.h"
-#include "pico8_gfx.h"
+#include "p8/fixed.h"
+#include "p8/gfx.h"
 #include "pico8_map_tables.h"
-#include "pico8_mem.h"
+#include "p8/mem.h"
 #include "pico8_struct.h"
 #include "pico8_vec.h"
 #include "pico8_zone_choisie.h"

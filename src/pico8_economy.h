@@ -2,7 +2,7 @@
 #define PICO8_ECONOMY_H
 
 #include "pico8_economy_formulas.h"
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 #include "pico8_fm.h"
 #include "pico8_map_tables.h"
 #include "pico8_struct.h"

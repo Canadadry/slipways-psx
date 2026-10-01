@@ -1,4 +1,4 @@
-#include "pico8_input.h"
+#include "p8/input.h"
 
 #include <assert.h>
 #include <stdio.h>

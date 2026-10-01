@@ -2,8 +2,8 @@
 #define PICO8_BG_H
 
 #include "pico8_game_data.h"
-#include "pico8_gfx.h"
-#include "pico8_mem.h"
+#include "p8/gfx.h"
+#include "p8/mem.h"
 #include "pico8_struct.h"
 #include "pico8_vec.h"
 

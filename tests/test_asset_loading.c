@@ -1,5 +1,5 @@
-#include "../src/pico8_assets.h"
-#include "../src/pico8_mem.h"
+#include "p8/assets.h"
+#include "p8/mem.h"
 
 #include <assert.h>
 #include <stdio.h>

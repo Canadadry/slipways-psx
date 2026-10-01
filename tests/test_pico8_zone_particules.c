@@ -8,8 +8,8 @@
 #include <string.h>
 #include <sys/wait.h>
 
-#include "../src/pico8_gfx.h"
-#include "../src/pico8_mem.h"
+#include "p8/gfx.h"
+#include "p8/mem.h"
 #include "../src/pico8_particle.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_ptrs.h"

@@ -5,7 +5,7 @@
 #include <string.h>
 
 #include "pico8_entity.h"
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 
 static int g_ke_up = 0;
 

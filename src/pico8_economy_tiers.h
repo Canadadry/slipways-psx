@@ -2,7 +2,7 @@
 #define PICO8_ECONOMY_TIERS_H
 
 #include "pico8_struct.h"
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 
 /* Throughout this module an absent or wrong-kind field reads as its
  * zero/false default rather than crashing, and a NULL instance is a safe

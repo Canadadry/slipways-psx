@@ -17,7 +17,7 @@
 
 #include "../src/pico8_screencast_player.h"
 
-#include "../src/pico8_palette.h"
+#include "p8/palette.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -142,7 +142,7 @@ static void test_a_refusal_truncates_rather_than_overflowing(void) {
 /* LA PALETTE, ET POURQUOI ELLE EST ASSERTIONNEE DANS CE FICHIER-CI. Le
  * visualiseur ne redefinit pas sa palette : la conversion d'un index
  * PICO-8 vers une couleur est deja faite par le backend interactif, et
- * les deux binaires raylib lisent la meme table (src/pico8_palette.c,
+ * les deux binaires raylib lisent la meme table (src/p8/palette.c,
  * sans raylib, trois octets par couleur).
  *
  * Quarante-huit octets hexadecimaux ecrits a la main sont exactement ou

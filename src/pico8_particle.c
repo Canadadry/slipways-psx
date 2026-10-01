@@ -5,7 +5,7 @@
 
 #include "pico8_dispatch_context.h"
 #include "pico8_entity_geom.h"
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 #include "pico8_game_data.h"
 #include "pico8_vec.h"
 #include "pico8_zone_particules.h"

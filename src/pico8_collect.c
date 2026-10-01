@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "pico8_str.h"
+#include "p8/str.h"
 
 pico8_ptrs_t pico8_jp_ptrs(const pico8_zone_choisie_t *zone, const pico8_ptrs_t *qk,
                            pico8_jp_ptrs_predicate_fn ow, void *ctx) {

@@ -1,4 +1,4 @@
-#include "pico8_palette.h"
+#include "p8/palette.h"
 
 const pico8_rgb_t PICO8_PALETTE_RGB[PICO8_PALETTE_COLORS] = {
     { 0x00, 0x00, 0x00 },

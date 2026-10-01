@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <stddef.h>
 
-#include "pico8_audio.h"
+#include "p8/audio.h"
 #include "pico8_bg.h"
 #include "pico8_bootstrap.h"
 #include "pico8_fm.h"
@@ -14,14 +14,14 @@
 #include "pico8_economy_score.h"
 #include "pico8_entity.h"
 #include "pico8_file_sortie.h"
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 #include "pico8_galaxy.h"
-#include "pico8_gfx.h"
+#include "p8/gfx.h"
 #include "pico8_help.h"
 #include "pico8_hud.h"
 #include "pico8_ke.h"
 #include "pico8_layout.h"
-#include "pico8_mem.h"
+#include "p8/mem.h"
 #include "pico8_menu.h"
 #include "pico8_mouse_reader.h"
 #include "pico8_msgbox.h"

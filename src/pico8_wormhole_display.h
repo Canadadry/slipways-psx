@@ -1,8 +1,8 @@
 #ifndef PICO8_WORMHOLE_DISPLAY_H
 #define PICO8_WORMHOLE_DISPLAY_H
 
-#include "pico8_gfx.h"
-#include "pico8_mem.h"
+#include "p8/gfx.h"
+#include "p8/mem.h"
 #include "pico8_vec.h"
 #include "pico8_wormhole.h"
 

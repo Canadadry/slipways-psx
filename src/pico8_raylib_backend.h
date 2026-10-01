@@ -9,8 +9,8 @@
 #ifndef PICO8_RAYLIB_BACKEND_H
 #define PICO8_RAYLIB_BACKEND_H
 
-#include "pico8_mem.h"
-#include "pico8_input.h"
+#include "p8/mem.h"
+#include "p8/input.h"
 #include "pico8_session_recorder.h"
 #include "pico8_replay_control.h"
 

@@ -4,7 +4,7 @@
 
 #include "../src/pico8_gif.h"
 
-#include "../src/pico8_palette.h"
+#include "p8/palette.h"
 
 #include <assert.h>
 #include <stdio.h>

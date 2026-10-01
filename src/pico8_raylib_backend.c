@@ -1,8 +1,8 @@
 #include "pico8_raylib_backend.h"
 
 #include "pico8_raylib_backend_coords.h"
-#include "pico8_gfx.h"
-#include "pico8_palette.h"
+#include "p8/gfx.h"
+#include "p8/palette.h"
 
 #include <stdio.h>
 #include <time.h>

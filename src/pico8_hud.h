@@ -1,9 +1,9 @@
 #ifndef PICO8_HUD_H
 #define PICO8_HUD_H
 
-#include "pico8_fixed.h"
-#include "pico8_gfx.h"
-#include "pico8_mem.h"
+#include "p8/fixed.h"
+#include "p8/gfx.h"
+#include "p8/mem.h"
 
 /* Fixed-point stays fixed-point across this module's API and is truncated
  * to int only at the pico8_gfx draw call. An omitted Lua argument gets its

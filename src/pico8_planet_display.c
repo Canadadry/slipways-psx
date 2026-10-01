@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "pico8_audio.h"
+#include "p8/audio.h"
 #include "pico8_collect.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_economy.h"
@@ -19,7 +19,7 @@
 #include "pico8_research.h"
 #include "pico8_research_display.h"
 #include "pico8_slipway.h"
-#include "pico8_str.h"
+#include "p8/str.h"
 #include "pico8_tech_gate.h"
 #include "pico8_ui_button.h"
 #include "pico8_zone_frame.h"

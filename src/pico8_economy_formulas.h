@@ -1,7 +1,7 @@
 #ifndef PICO8_ECONOMY_FORMULAS_H
 #define PICO8_ECONOMY_FORMULAS_H
 
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 #include "pico8_map_tables.h"
 #include "pico8_vec.h"
 

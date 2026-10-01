@@ -1,4 +1,4 @@
-/* Host tool behind make sin-table: writes src/pico8_quarter_wave.h on stdout.
+/* Host tool behind make sin-table: writes src/p8/quarter_wave.h on stdout.
  * Entry r is the pre-table pico8_fixed_sin/cos expression, standard sign, at
  * the fraction of a turn r/65536: same 2*pi, same rounding as
  * pico8_fixed_from_double. */

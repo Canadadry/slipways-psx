@@ -1,7 +1,7 @@
 #ifndef PICO8_CHEAT_H
 #define PICO8_CHEAT_H
 
-#include "pico8_input.h"
+#include "p8/input.h"
 
 /* The A A B B A A B B code (A = O, btn(4); B = X, btn(5)), read from the
  * input stream alone so that a replay re-applies it on the same frame. Not

@@ -1,10 +1,10 @@
 #ifndef PICO8_PI_H
 #define PICO8_PI_H
 
-#include "pico8_fixed.h"
-#include "pico8_gfx.h"
+#include "p8/fixed.h"
+#include "p8/gfx.h"
 #include "pico8_map_tables.h"
-#include "pico8_mem.h"
+#include "p8/mem.h"
 
 /* Draws article `e` of `bl()` from its items, `e[1]..e[5]` in the cart. */
 typedef void (*pico8_pi_fn)(const pico8_jb_row_t *e);

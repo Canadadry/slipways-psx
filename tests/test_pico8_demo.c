@@ -1,8 +1,8 @@
 
-#include "../src/pico8_mem.h"
-#include "../src/pico8_assets.h"
-#include "../src/pico8_gfx.h"
-#include "../src/pico8_input.h"
+#include "p8/mem.h"
+#include "p8/assets.h"
+#include "p8/gfx.h"
+#include "p8/input.h"
 #include "../src/pico8_dump.h"
 
 #include <assert.h>

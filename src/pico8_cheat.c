@@ -1,6 +1,6 @@
 #include "pico8_cheat.h"
 
-#include "pico8_fixed.h"
+#include "p8/fixed.h"
 #include "pico8_fm.h"
 
 #include <stddef.h>

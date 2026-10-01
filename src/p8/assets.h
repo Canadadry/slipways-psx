@@ -1,7 +1,7 @@
 #ifndef PICO8_ASSETS_H
 #define PICO8_ASSETS_H
 
-#include "pico8_mem.h"
+#include "p8/mem.h"
 
 /* Load an exported asset file -- {"width": w, "pixels": [...]} for the
  * sprite sheet, {"width": w, "cells": [...]} for the map -- into `mem`.
