@@ -25,10 +25,11 @@ Les tableaux croissants ne sont pas réécrits : ils gardent leur forme et prenn
 - **Limite atteinte = erreur fatale.** Le cœur appelle une fonction `pico8_fatal(message)` fournie par la plateforme. Sur PC : message nommant la zone et sa limite sur `stderr`, puis `exit`. Sur PSX : plus tard. Le jeu n'est **pas** modifié, il n'y a ni refus silencieux ni fin de partie forcée.
 - **Invariant de chaque commit :** `make test-all` et `make sanitize-net` passent, et tous les `*.sha256` de `tests/e2e/` restent identiques. Retirer `malloc` ne change pas un pixel. Une limite trop basse fait échouer un e2e avec le message de la zone, ce qui suffit à la remonter.
 - **Accès après la durée de vie.** Sous ASan (build de test), toute remise à zéro empoisonne la mémoire de la zone (`ASAN_POISON_MEMORY_REGION`) — la zone frame à chaque frame, la zone partie à chaque nouvelle partie —, et les zones à places empoisonnent une place rendue. Un objet utilisé hors de sa durée de vie fait planter le rejeu, au lieu de corrompre la mémoire en silence. L'oracle est `make sanitize-net` (existant, vert au départ), qui rejoue tous les e2e sous ASan+UBSan.
+- **Croissance par frame.** Chaque zone expose son remplissage (octets pris pour une zone montante, places vivantes pour une zone à places), et le rejeu peut l'écrire en fin de session. Pour une zone qui n'est pas remise à zéro à chaque frame, le remplissage relevé à deux frames d'un même e2e, séparées par une phase sans action du joueur, est égal. Une hausse est une allocation par tick sans libération : elle se corrige à l'étape qui l'a fait entrer dans la zone, pas en relevant la limite. Ce contrôle ne demande pas de partie longue (§6) : il lit un taux, pas un épuisement.
 
 ## 4. Classement des sites
 
-Chaque étape classe les sites qu'elle touche dans sa zone, en suivant le tableau du §2. Un site qu'on ne sait pas classer avec certitude (objet référencé au-delà de la frame, callback qui garde un `self`) va dans la zone à durée de vie la plus longue qui le couvre, jamais dans la plus courte. Le crash ASan est l'oracle qui tranche quand la lecture ne suffit pas.
+Chaque étape classe les sites qu'elle touche dans sa zone, en suivant le tableau du §2. Un site qu'on ne sait pas classer avec certitude (objet référencé au-delà de la frame, callback qui garde un `self`) va dans la zone à durée de vie la plus longue qui le couvre, jamais dans la plus courte. Le crash ASan est l'oracle qui tranche quand la lecture ne suffit pas. Il ne voit pas tout (0a) : un pointeur gardé à travers deux remises à zéro, ou vers une place rendue un tour complet plus tôt, ne plante pas. Un `sanitize-net` vert ne promeut donc pas un site douteux vers une zone plus courte : seule la lecture le fait ; ASan ne fait que rétrograder.
 
 ## 5. Étapes
 
@@ -49,14 +50,18 @@ Chacune est une PRD et un commit (ou une courte suite de commits), et respecte l
 2. **Zone interface.**
 3. **Zone particules.**
 
-   Ces deux étapes créent un point de libération qui n'existe pas aujourd'hui (TROU-7 : panneaux, messages et particules fuient). Elles ne sont finies que si chaque sorte convertie rend sa place, ce qui se montre : après une session scriptée, le nombre de places vivantes revient à son niveau de départ. Dans une zone à places, un `pico8_fatal` est d'abord lu comme une place jamais rendue ; la limite n'est relevée qu'une fois ce cas écarté, et la note « Découvert » dit lequel des deux c'était.
+   Ces deux étapes créent un point de libération qui n'existe pas aujourd'hui (TROU-7 : panneaux, messages et particules fuient). Elles ne sont finies que si chaque sorte convertie rend sa place, ce qui se montre par le remplissage du §3 : après une session scriptée, le nombre de places vivantes revient à son niveau de départ, et il ne monte pas pendant une phase sans action. Dans une zone à places, un `pico8_fatal` est d'abord lu comme une place jamais rendue ; la limite n'est relevée qu'une fois ce cas écarté, et la note « Découvert » dit lequel des deux c'était.
 
-4. **Zone partie,** et ses propres tableaux croissants ; remise à zéro sur nouvelle partie. L'étape n'est finie que si `pause_restart` passe `make sanitize-net` sous cet empoisonnement.
+   Chacune se fait en deux temps, chacun sa PRD ou son lot de commits :
+   - **a. Points de libération, sur la transitoire.** Chaque sorte de l'étape (et chaque champ réaffecté qui lui revient, TROU-7) gagne sa libération, la transitoire encore derrière : sous ASan, la quarantaine de la libc attrape tout usage après libération. Le critère des places vivantes est montré ici, sur un compte de vivants par sorte.
+   - **b. Conversion.** Les mêmes sites passent à la zone à places, sans ajouter ni déplacer de point de libération : un `sanitize-net` rouge en b vient de la zone, pas d'une libération manquante.
+
+4. **Zone partie,** et ses propres tableaux croissants ; remise à zéro sur nouvelle partie. L'étape n'est finie que si `pause_restart` passe `make sanitize-net` sous cet empoisonnement, et si son remplissage ne monte pas pendant une phase sans action d'un e2e.
 5. **Clôture.** La liste d'exceptions du verrou ne contient plus que les fichiers d'hôte justifiés. `TROU-7` est retiré de `docs/trous-de-portage.md` et des sources qui le citent, et l'entrée `malloc` du `README` est retirée.
 
-Une étape de 1 à 4 est finie quand les sites de sa zone sont convertis et que le compte du cliquet a baissé d'autant dans chaque fichier concerné. Beaucoup de fichiers allouent pour plusieurs zones : ils ne sortent de la liste qu'avec la dernière.
+Une étape de 1 à 4 est finie quand chaque site de l'inventaire de sa PRD est converti — vérifié sur la source : la fonction ne référence plus la transitoire ni la libc pour ces objets — et que `alloc-guard` est à égalité stricte sur les comptes mesurés, aucun n'ayant monté. La baisse prévue par la PRD n'est qu'une estimation (le verrou compte des relocations, qui dépendent du compilateur) : l'écart se note dans « Découvert », il ne bloque pas l'étape. Beaucoup de fichiers allouent pour plusieurs zones : ils ne sortent de la liste qu'avec la dernière.
 
-Chaque étape se termine en ajoutant sous sa propre entrée une courte note « Découvert » : les sites classés autrement que dans le §2 (par la règle du §4 ou par un crash ASan), la zone attribuée à chaque propriétaire, les limites relevées, et les comptes du cliquet qu'elle laisse. Si un constat contredit le tableau du §2, l'étape corrige le tableau dans le même commit.
+Chaque étape se termine en ajoutant sous sa propre entrée une courte note « Découvert » : les sites classés autrement que dans le §2 (par la règle du §4 ou par un crash ASan), la zone attribuée à chaque propriétaire, les limites relevées, et les comptes du cliquet qu'elle laisse. Si un constat contredit le tableau du §2, l'étape corrige le tableau dans le même commit. Un constat qui change ce qu'une étape suivante devra faire est aussi reporté, en une ligne, sous l'entrée de cette étape (*Reçu de l'étape N :* …), et la PRD de cette étape le traite ou dit pourquoi non.
 
 ## 6. Décision actée, à ne pas rouvrir
 
