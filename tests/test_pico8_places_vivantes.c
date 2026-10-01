@@ -30,6 +30,7 @@
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_scroll.h"
+#include "../src/pico8_slipway.h"
 #include "../src/pico8_trade.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_zone_interface.h"
@@ -475,7 +476,8 @@ static void game_end_final_score_bd_ne_fait_pas_grandir_la_partie(void) {
 
 /* f140-151 : saut d'annee de f140 sur sept slipways poses, donc `jo:ib`,
  * `jo:cn` et `nr:cn`, qui reproposent des routes connues. Le `bd` de f139
- * garde, lui, la route du slipway pose a f136. */
+ * garde, lui, la route du slipway pose a f136. Le slipway refuse du clic
+ * de f142 prend une arene, que celui de f148 reprend. */
 static void trade_rich_mine_bd_sur_des_routes_ne_fait_pas_grandir_la_partie(void) {
     demarrer("trade_rich_mine");
     jouer_jusqu_a(139);
@@ -484,7 +486,8 @@ static void trade_rich_mine_bd_sur_des_routes_ne_fait_pas_grandir_la_partie(void
     const size_t f151 = partie_sans_registres();
     printf("  trade_rich_mine f139/f151 : partie - registres = %lu/%lu\n", (unsigned long)f139,
            (unsigned long)f151);
-    assert(f139 == f151 && "un bd sur des routes fait grandir la generation");
+    assert(f151 == f139 + PICO8_JO_PRISE_OCTETS &&
+           "un bd sur des routes fait grandir la generation, ou le refus de f148 ne reprend pas l'arene de f142");
 }
 
 static const pico8_jo_t *planete_d_id(const char *id) {
@@ -613,6 +616,99 @@ static void le_fo_d_une_planete_hors_ecran_oublie_la_prise_refusee(void) {
 static void une_prise_refusee_traverse_une_nouvelle_partie(void) {
     demarrer(PRISES);
     jouer_jusqu_a(195);
+}
+
+#define SLIPWAYS "tests/fixtures/slipways_refuses.json"
+
+/* Fixture SLIPWAYS : f0-34 de slipway_build (« p27 » et « p48 »
+ * colonisees) ; puis des cycles de 15 frames : pression sur « p27 » (88,37),
+ * dix frames tenues, relache, trois d'attente. Vingt refus tenus en (40,100)
+ * (f35-334), un glisse pose de p27 a p48 (f335-338, attente f339-341), un
+ * refus tenu en (73,91), au-dela de p48 (f342-356) ; « restart » et nouvelle
+ * partie (clic f367) ; une prise d'icone (f371-377). Un refus est relache a
+ * la 11e frame du cycle et rendu au vidage de la 13e. */
+static const pico8_jc_t *le_slipway_tenu(void) {
+    const pico8_struct_header_t *tenu = pico8_ok()->lheld;
+    assert(tenu != NULL && tenu->cls == pico8_jc_struct_class() && "un slipway est tenu");
+    return (const pico8_jc_t *)tenu;
+}
+
+static void un_slipway_tenu_ne_fait_pas_grandir_la_partie(void) {
+    demarrer(SLIPWAYS);
+    jouer_jusqu_a(36);
+    const pico8_jc_t *tenu = le_slipway_tenu();
+    const size_t f36 = pico8_zone_partie_prise();
+    jouer_jusqu_a(45);
+    assert(le_slipway_tenu() == tenu && tenu->re == &tenu->point.header && "f45 : tenu au-dessus du vide");
+    printf("  slipway tenu f36/f45 : partie = %lu/%lu\n", (unsigned long)f36, (unsigned long)pico8_zone_partie_prise());
+    assert(pico8_zone_partie_prise() == f36 && "un slipway tenu alloue a chaque frame");
+}
+
+static void slipways_refuses_ne_font_pas_grandir_la_partie(void) {
+    demarrer(SLIPWAYS);
+    jouer_jusqu_a(49);
+    const size_t un = partie_sans_registres();
+    jouer_jusqu_a(334);
+    const size_t vingt = partie_sans_registres();
+    printf("  slipways refuses 1/20 : partie - registres = %lu/%lu\n", (unsigned long)un, (unsigned long)vingt);
+    assert(un == vingt && "un slipway refuse laisse son arene dans la generation");
+}
+
+static size_t octets_des_oe_de_p27_et_p48(void) {
+    return octets_d_un_registre(planete_d_id("p27")->oe) + octets_d_un_registre(planete_d_id("p48")->oe);
+}
+
+/* Le `kf` de la pose fait grandir `oe` aux deux bouts, dans la generation,
+ * hors de l'arene. */
+static void un_slipway_pose_garde_son_arene(void) {
+    demarrer(SLIPWAYS);
+    jouer_jusqu_a(334);
+    const size_t avant = partie_sans_registres();
+    const size_t oe_avant = octets_des_oe_de_p27_et_p48();
+    jouer_jusqu_a(356);
+    const size_t apres = partie_sans_registres();
+    const size_t oe = octets_des_oe_de_p27_et_p48() - oe_avant;
+    assert(pico8_cg("jc") != NULL && pico8_cg("jc")->count == 1 && "f338 : un slipway pose");
+    printf("  slipway pose puis refuse : partie - registres = %lu -> %lu (arene %u, oe %lu)\n", (unsigned long)avant,
+           (unsigned long)apres, PICO8_JO_PRISE_OCTETS, (unsigned long)oe);
+    assert(apres == avant + PICO8_JO_PRISE_OCTETS + oe &&
+           "un slipway pose garde son arene, le refuse suivant en reprend une");
+}
+
+/* f345 : le slipway tenu de p27 vers (73,91) accroche le `fo` de p48, sur
+ * son chemin, qu'on pousse hors ecran : son `kj` ne remet plus `fo` a nil.
+ * Refuse a f353, le slipway est rendu au vidage de f355. */
+static void le_fo_d_une_planete_hors_ecran_oublie_le_slipway_refuse(void) {
+    static pico8_vec_t loin;
+    demarrer(SLIPWAYS);
+    jouer_jusqu_a(344);
+    pico8_dispatch_set_input(g_input);
+    pico8_cheat_step(&g_cheat, g_input);
+    pico8__update60();
+    const pico8_jc_t *tenu = le_slipway_tenu();
+    pico8_jo_t *p = planete_dont_fo_est(&tenu->header);
+    assert(p != NULL && "f345 : le slipway tenu accroche le fo d'une planete");
+    loin = pico8_vec_add(*((const pico8_qb_t *)pico8_mo())->ra, pico8_vec_v(pico8_fixed_from_int(500), 0));
+    p->ra = &loin;
+    assert(!pico8_gd(&p->header) && "la planete est hors ecran");
+    pico8__draw();
+    if (g_frame < g_input->frame_count - 1) pico8_input_step(g_input);
+    g_frame++;
+    jouer_jusqu_a(354);
+    assert(p->fo == &tenu->header && "hors ecran, kj laisse fo");
+    jouer_jusqu_a(355);
+    printf("  slipway refuse : fo de %s coupe au vidage de f355\n", p->id);
+    assert(p->fo == NULL && "le fo d'une planete hors ecran vise un slipway refuse rendu");
+}
+
+static void un_slipway_refuse_traverse_une_nouvelle_partie(void) {
+    demarrer(SLIPWAYS);
+    jouer_jusqu_a(356);
+    assert(pico8_cg("jc") != NULL && pico8_cg("jc")->count == 1);
+    jouer_jusqu_a(371);
+    assert(pico8_cg("jc") == NULL || pico8_cg("jc")->count == 0);
+    assert(pico8_ok()->lheld != NULL && "f371 : une prise dans la nouvelle partie");
+    jouer_jusqu_a(377);
 }
 
 /* f11 : titre apres « restart ». Recharger rend les places des entites de
@@ -863,6 +959,11 @@ int main(void) {
     dans_un_enfant(une_prise_posee_garde_son_arene);
     dans_un_enfant(une_prise_refusee_traverse_une_nouvelle_partie);
     dans_un_enfant(le_fo_d_une_planete_hors_ecran_oublie_la_prise_refusee);
+    dans_un_enfant(un_slipway_tenu_ne_fait_pas_grandir_la_partie);
+    dans_un_enfant(slipways_refuses_ne_font_pas_grandir_la_partie);
+    dans_un_enfant(un_slipway_pose_garde_son_arene);
+    dans_un_enfant(un_slipway_refuse_traverse_une_nouvelle_partie);
+    dans_un_enfant(le_fo_d_une_planete_hors_ecran_oublie_le_slipway_refuse);
     dans_un_enfant(message_box_hold_ne_bouge_pas_sans_action);
     dans_un_enfant(empty_planet_fade_ne_monte_pas);
     dans_un_enfant(tech_geoharvesting_burst_rend_l_eclat);

@@ -24,7 +24,7 @@ static pico8_jf_state_t *g_jo_ir = NULL;
  * `lz` gives the planet its own. */
 static pico8_kw_t g_jo_kw_shared;
 
-/* Nom des arenes de prise : son adresse les reconnait (pico8_jo_prise_rendue). */
+/* Nom des arenes de prise : son adresse les reconnait (pico8_jo_prise_zone_rendue). */
 static const char g_jo_nom_prise[] = "prise";
 #define PRISES_LIBRES_MAX 4
 
@@ -202,12 +202,14 @@ void pico8_jo_prise_fermer(void) {
 }
 
 void pico8_jo_prise_rendue(const pico8_jo_t *self) {
-    const pico8_zone_choisie_t *zone = self->oe != NULL ? self->oe->zone : NULL;
+    pico8_jo_prise_zone_rendue(self->oe != NULL ? self->oe->zone : NULL, self->header.me);
+}
 
+void pico8_jo_prise_zone_rendue(const pico8_zone_choisie_t *zone, const char *me) {
     if (zone == NULL || zone->bump == NULL || zone->bump->name != g_jo_nom_prise) {
         return;
     }
-    if (self->header.me == NULL || strcmp(self->header.me, "kz") != 0) {
+    if (me == NULL || strcmp(me, "kz") != 0) {
         return;
     }
     assert(g_jo_prises_libres_n < PRISES_LIBRES_MAX &&

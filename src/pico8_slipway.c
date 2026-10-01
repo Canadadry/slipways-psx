@@ -1,7 +1,6 @@
 #include "pico8_slipway.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_audio.h"
@@ -19,7 +18,6 @@
 #include "pico8_ui.h"
 #include "pico8_vec.h"
 #include "pico8_zone_frame.h"
-#include "pico8_zone_transitoire.h"
 
 static int g_jc_up = 0;
 
@@ -78,6 +76,7 @@ int pico8_jc_hg_has(const pico8_jc_hg_t *hg, const char *id) {
 }
 
 void pico8_jc_pq(pico8_jc_t *self) {
+    const pico8_zone_choisie_t *zone;
     pico8_ptrs_t *ts;
 
     if (self == NULL) {
@@ -86,8 +85,9 @@ void pico8_jc_pq(pico8_jc_t *self) {
 
     pico8_rn(pico8_fixed_from_int(50));
 
-    ts = malloc(sizeof *ts);
-    pico8_ptrs_init(ts, &pico8_zone_transitoire);
+    zone = pico8_jo_zone_construction();
+    ts = (pico8_ptrs_t *)pico8_zone_alloc(zone, sizeof *ts);
+    pico8_ptrs_init_reserve(ts, zone, PICO8_JC_TS_RESERVE);
     self->ts = ts;
 
     self->hg_own.count = 0;
@@ -108,16 +108,10 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
     if (hovered != NULL && hovered->cls->gv != NULL) {
         self->re = hovered;
     } else {
-        pico8_jc_mouse_point_t *point = malloc(sizeof *point);
-        pico8_vec_t *p_heap = malloc(sizeof *p_heap);
-        pico8_struct_header_init(&point->header, &g_jc_mouse_point_struct_class);
-        point->header.ra = &point->ra;
-        point->header.p = &point->p;
-        point->ra = mp;
-        *p_heap = pico8_vec_div(mp != NULL ? *mp : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0)),
-                                pico8_fixed_from_int(128));
-        point->p = p_heap;
-        self->re = (pico8_struct_header_t *)point;
+        self->point.ra = mp;
+        self->point_p = pico8_vec_div(mp != NULL ? *mp : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0)),
+                                      pico8_fixed_from_int(128));
+        self->re = &self->point.header;
     }
 
     self->probe->od = pico8_dj(pico8_jc_end_p(self->qu), pico8_jc_end_p(self->re));
@@ -328,6 +322,15 @@ static void pico8_jc_ev_dispatch(pico8_struct_header_t *self, const pico8_vec_t 
     pico8_jc_ev((pico8_jc_t *)self);
 }
 
+/* TROU-7 */
+static void pico8_jc_rendre_dispatch(pico8_struct_header_t *self) {
+    pico8_jc_t *jc = (pico8_jc_t *)self;
+    const pico8_zone_choisie_t *zone = jc->ts->zone;
+
+    jc->ts->count = 0;
+    pico8_jo_prise_zone_rendue(zone, jc->header.me);
+}
+
 static int jc_is_endpoint_class(const pico8_struct_class_t *cls) {
     return cls->states[PICO8_STATE_LY] != NULL || cls == pico8_jo_struct_class();
 }
@@ -337,11 +340,15 @@ static const pico8_struct_class_t g_jc_struct_class = {
     .ev = pico8_jc_ev_dispatch,
     .hq = pico8_jc_hq_dispatch,
     .ey = pico8_jc_ey_dispatch,
+    .rendre = pico8_jc_rendre_dispatch,
     .tags = PICO8_TAG(PICO8_TAG_JC),
 };
 
 static pico8_jc_t *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
-    pico8_jc_t *self = malloc(sizeof *self);
+    pico8_jc_t *self;
+
+    pico8_jo_prise_ouvrir();
+    self = (pico8_jc_t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
 
     pico8_ke_struct_init(&self->header, &g_jc_struct_class, pico8_jc_def.me, pico8_jc_def.t);
     self->def = &pico8_jc_def;
@@ -364,6 +371,12 @@ static pico8_jc_t *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     self->fo = NULL;
     self->header.p_ = &self->p_;
     self->p_ = 0;
+    pico8_struct_header_init(&self->point.header, &g_jc_mouse_point_struct_class);
+    self->point.header.ra = &self->point.ra;
+    self->point.header.p = &self->point.p;
+    self->point.ra = NULL;
+    self->point.p = &self->point_p;
+    self->point_p = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     if (keys != NULL && keys->qu != NULL) {
         assert(jc_is_endpoint_class(keys->qu->cls) &&
                "jc.qu: a key neither nil nor a planet a slipway starts from (jo, qh, nl, os, hj, pm, nr, fr, mx) "
@@ -374,6 +387,7 @@ static pico8_jc_t *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     pico8_class_coverage_record("jc");
 #endif
     pico8_jc_pq(self);
+    pico8_jo_prise_fermer();
     pico8_ke_struct_pq(&self->header);
     return self;
 }

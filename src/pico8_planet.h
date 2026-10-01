@@ -99,8 +99,8 @@ pico8_jo_t *pico8_jo_new(const pico8_jo_keys_t *keys);
  * defaults. Requires `pico8_jo_init()`. */
 void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def);
 
-/* Bytes of the arena a held icon builds its structure in. */
-#define PICO8_JO_PRISE_OCTETS 1536u
+/* Bytes of the arena a held icon or a drawn slipway builds its object in. */
+#define PICO8_JO_PRISE_OCTETS 2048u
 
 /* Where the planet constructors, `jo:pq` and `jo:lz` allocate: the grab
  * arena between `pico8_jo_prise_ouvrir` and `_fermer`, else the current
@@ -112,9 +112,11 @@ const pico8_zone_choisie_t *pico8_jo_zone_construction(void);
  * given back. */
 void pico8_jo_prise_ouvrir(void);
 void pico8_jo_prise_fermer(void);
-/* Called last by a planet's `rendre`: a structure still "kz" built in a
- * grab arena puts that arena on the free grabs, for the next grab to
- * empty and reuse. */
+/* Called last by the `rendre` of an object built in `zone`, whose state is
+ * `me`: a grab arena (NULL or another zone: nothing) whose object is still
+ * "kz" goes on the free grabs, for the next grab to empty and reuse. */
+void pico8_jo_prise_zone_rendue(const pico8_zone_choisie_t *zone, const char *me);
+/* `pico8_jo_prise_zone_rendue` with the zone of the planet's `oe`. */
 void pico8_jo_prise_rendue(const pico8_jo_t *self);
 /* Sets to nil the `fo` of every `cg.np` entity that points at `e`, which is
  * being given back: `jo:kj` leaves `fo` set on a planet off screen or
