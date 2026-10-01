@@ -36,7 +36,7 @@
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_vec.h"
-#include "../src/pico8_zone_transitoire.h"
+#include "zone_tas.h"
 
 /* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
 static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {
@@ -424,7 +424,7 @@ static uint32_t fold_economy(uint32_t h, void *e) {
 static pico8_ents_t *list_of(int n, pico8_struct_header_t *item) {
     pico8_ents_t *l = malloc(sizeof *l);
     int i;
-    pico8_ents_init(l, &pico8_zone_transitoire);
+    pico8_ents_init(l, &zone_tas);
     for (i = 0; i < n; i++) {
         pico8_ents_add(l, item);
     }

@@ -31,7 +31,7 @@
 #include "../src/pico8_layout.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_vec.h"
-#include "../src/pico8_zone_transitoire.h"
+#include "zone_tas.h"
 
 /* Where the row is rendered. Any position clear of the screen edges does;
  * these put the whole 8x8 sprite the faulty build drew well inside the
@@ -108,7 +108,7 @@ static pico8_lq_cell_t render_one_item(pico8_jb_item_t item) {
     pico8_lq_keys_t keys = pico8_lq_keys_of_row(&row, cells, 1);
     pico8_lq_t *line;
 
-    line = pico8_lq_new(&pico8_zone_transitoire, &keys);
+    line = pico8_lq_new(&zone_tas, &keys);
     assert(line != NULL && line->items_count == 1);
 
     pico8_cls(&mem);

@@ -30,7 +30,7 @@
 #include "../src/pico8_zone_choisie.h"
 #include "../src/pico8_zone_frame.h"
 #include "../src/pico8_zone_sizes.h"
-#include "../src/pico8_zone_transitoire.h"
+#include "zone_tas.h"
 
 #define STDERR_LOG "tmp/test_pico8_zone_frame_stderr.txt"
 
@@ -268,16 +268,16 @@ static int case_panel_texts_survive_reset(void) {
     pico8_jb_row_t bubble_row = {.count = 1, .items = &line};
 
     load_cart_and_start();
-    pico8_lq_t *row = row_of_frame_text(&pico8_zone_transitoire, "row");
+    pico8_lq_t *row = row_of_frame_text(&zone_tas, "row");
     pico8_lq_add(row, pico8_lq_cell_string(frame_text("added")));
-    pico8_lq_t *copy = pico8_lq_copy(&pico8_zone_transitoire, row_of_frame_text(pico8_zone_frame(), "copy"));
-    pico8_jb_t *bubble = pico8_jb_new(&pico8_zone_transitoire, &bubble_row);
+    pico8_lq_t *copy = pico8_lq_copy(&zone_tas, row_of_frame_text(pico8_zone_frame(), "copy"));
+    pico8_jb_t *bubble = pico8_jb_new(&zone_tas, &bubble_row);
     pico8_jb_item_t tuple_items[] = {{.s = frame_text("tuple")}, {.n = 5}};
     pico8_jb_row_t *tuple = (pico8_jb_row_t *)pico8_zone_alloc(pico8_zone_frame(), sizeof *tuple);
     *tuple = (pico8_jb_row_t){.count = 2, .items = tuple_items};
     pico8_lq_cell_t tuple_cell = pico8_lq_cell_row(tuple);
     pico8_lq_keys_t tuple_keys = {.items = &tuple_cell, .count = 1};
-    pico8_lq_t *of_tuple = pico8_lq_new(&pico8_zone_transitoire, &tuple_keys);
+    pico8_lq_t *of_tuple = pico8_lq_new(&zone_tas, &tuple_keys);
     pico8_zone_frame_reset();
     allocate_again();
     sink = (unsigned char)(read_cells(row) + read_cells(copy) + read_cells(bubble->ls[0]));

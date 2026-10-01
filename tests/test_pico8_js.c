@@ -45,7 +45,7 @@
 #include "../src/pico8_vec.h"
 #include "../src/pico8_zone_frame.h"
 #include "../src/pico8_zone_interface.h"
-#include "../src/pico8_zone_transitoire.h"
+#include "zone_tas.h"
 
 /* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
  * project with an `o` and no `i`, which exports to any planet a slipway
@@ -1006,7 +1006,7 @@ static void test_draw(void) {
     free_keys.h_is_false = 1;
     free_ = build(free_keys, "plain", NULL);
     tooltip = build(at(10, 20), "plain", NULL);
-    ((pico8_js_t *)tooltip)->jb = pico8_jb_new(&pico8_zone_transitoire, &pico8_dr_table[0]);
+    ((pico8_js_t *)tooltip)->jb = pico8_jb_new(&zone_tas, &pico8_dr_table[0]);
 
     px[0] = draw_alone(plain);
     px[1] = draw_alone(with_my);
@@ -1262,7 +1262,7 @@ static uint32_t fold_written(uint32_t h, void *e, void *other) {
     assert(row != NULL);
     b->lq = row;
     h = fold_js_members(h, e);
-    row = pico8_lq_new(&pico8_zone_transitoire, NULL);
+    row = pico8_lq_new(&zone_tas, NULL);
     b->lq = row;
     h = fold_js_members(h, e);
     b->lq = NULL;
@@ -1360,7 +1360,7 @@ static uint32_t fold_keys(uint32_t h, pico8_lq_t *row) {
     k = none;
     k.has_h_ = 1;
     b = built(k);
-    b->h_ = pico8_lq_copy(&pico8_zone_transitoire, row);
+    b->h_ = pico8_lq_copy(&zone_tas, row);
     assert(b->has_h_ && is_lq(b->h_) && b->h_ != row);
     h = fold_and_drop(h, b);
 

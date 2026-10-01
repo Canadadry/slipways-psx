@@ -41,7 +41,7 @@
 #include "../src/pico8_zone_frame.h"
 #include "../src/pico8_zone_interface.h"
 #include "../src/pico8_zone_partie.h"
-#include "../src/pico8_zone_transitoire.h"
+#include "zone_tas.h"
 
 /* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
  * project with an `o` and no `i`, which exports to any planet a slipway
@@ -337,7 +337,7 @@ static uint32_t fold_row(uint32_t h, const void *lq) {
 /* Builds the row from `k` (NULL: no keys), folds it; `nil_at` as in
  * fold_positionals. */
 static uint32_t fold_built_from(uint32_t h, const char *label, const pico8_lq_keys_t *k, unsigned nil_at) {
-    const void *lq = pico8_lq_new(&pico8_zone_transitoire, k);
+    const void *lq = pico8_lq_new(&zone_tas, k);
     uint32_t one = fold_row_from(2166136261u, lq, k, nil_at);
 
     assert(((const pico8_struct_header_t *)lq)->ra == &as_lq(lq)->ra);
@@ -409,7 +409,7 @@ static void test_constructions(void) {
         a[0] = tuple_of(4, f);
         k = positionals(1, a);
         h = fold_built_from(h, "spr w qw qv", &k, 0u);
-        assert(pico8_lq_new(&pico8_zone_transitoire, &k)->fs[0].sprite_qw == pico8_fixed_from_int(3));
+        assert(pico8_lq_new(&zone_tas, &k)->fs[0].sprite_qw == pico8_fixed_from_int(3));
     }
     {
         pico8_jb_row_t *qe = calloc(1, sizeof *qe);
@@ -585,7 +585,7 @@ static void test_calls(void) {
 
     a[2] = tuple_of(2, f);
     t = with_c(positionals(3, a), 11);
-    lq = pico8_lq_new(&pico8_zone_transitoire, &t);
+    lq = pico8_lq_new(&zone_tas, &t);
 
     want = drawn_by_ol(lq, vec_xy(64, 30), PICO8_FIXED_LIT(0x00008000, 0.5));
     h = fnv(h, want);
@@ -645,7 +645,7 @@ static uint32_t drawn_after_adds(const pico8_zone_choisie_t *zone) {
 static void test_lq_add_in_bump_zone(void) {
     pico8_bump_zone_t bump;
     pico8_zone_choisie_t handle;
-    uint32_t want = drawn_after_adds(&pico8_zone_transitoire);
+    uint32_t want = drawn_after_adds(&zone_tas);
 
     pico8_bump_zone_init(&bump, "essai-panneau", panel_cells, 4096);
     handle = pico8_zone_choisie_bump(&bump);
@@ -804,7 +804,7 @@ static void test_gh_wants_more(void) {
     a->gc = pico8_fixed_from_int(1);
     b->has_gc = 1;
     b->gc = pico8_fixed_from_int(2);
-    pico8_ptrs_init(jy, &pico8_zone_transitoire);
+    pico8_ptrs_init(jy, &zone_tas);
     pico8_ptrs_add(jy, a);
     pico8_ptrs_add(jy, b);
     planet = pico8_jo_new(NULL);
@@ -842,7 +842,7 @@ static void test_gh_w_maker_wants_no_more(void) {
     kw->qe = pico8_fixed_from_int(r_w);
     a->has_gc = 1;
     a->gc = pico8_fixed_from_int(1);
-    pico8_ptrs_init(jy, &pico8_zone_transitoire);
+    pico8_ptrs_init(jy, &zone_tas);
     pico8_ptrs_add(jy, a);
     planet = pico8_jo_new(NULL);
     planet->jy = jy;
@@ -869,7 +869,7 @@ static void test_gh_lab_wants_its_last(void) {
     a->gc = pico8_fixed_from_int(1);
     b->has_gc = 1;
     b->gc = pico8_fixed_from_int(1);
-    pico8_ptrs_init(jy, &pico8_zone_transitoire);
+    pico8_ptrs_init(jy, &zone_tas);
     pico8_ptrs_add(jy, a);
     pico8_ptrs_add(jy, b);
     lab = pico8_qh_new(NULL);
@@ -930,7 +930,7 @@ static void test_lq_is_a_struct(void) {
     int k;
     int i;
 
-    lq = pico8_lq_new(&pico8_zone_transitoire, &t);
+    lq = pico8_lq_new(&zone_tas, &t);
     assert(lq != NULL && lq->header.cls == cls);
     assert(cls->ol != NULL);
     assert(cls->kj == NULL && cls->ev == NULL && cls->hd == NULL && cls->hk == NULL && cls->hb == NULL &&
@@ -942,7 +942,7 @@ static void test_lq_is_a_struct(void) {
     assert(pico8_lq_ready());
     assert(lq->has_c && lq->c == pico8_fixed_from_int(9));
     assert(!lq->has_bg);
-    copy = pico8_lq_copy(&pico8_zone_transitoire, lq);
+    copy = pico8_lq_copy(&zone_tas, lq);
     assert(copy != lq && copy->items != lq->items && copy->items_count == 2);
     assert(copy->has_c && copy->c == pico8_fixed_from_int(9) && copy->fs_count == 2 && copy->w == lq->w);
 

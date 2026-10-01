@@ -39,7 +39,7 @@
 #include "../src/pico8_struct.h"
 #include "../src/pico8_vec.h"
 #include "../src/pico8_zone_partie.h"
-#include "../src/pico8_zone_transitoire.h"
+#include "zone_tas.h"
 
 /* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
 static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {
@@ -560,7 +560,7 @@ static void give_row(void *e, int qe) {
 
     row->has_gc = 1;
     row->gc = pico8_fixed_from_int(0);
-    pico8_ptrs_init(jy, &pico8_zone_transitoire);
+    pico8_ptrs_init(jy, &zone_tas);
     pico8_ptrs_add(jy, row);
     as_hj(e)->jy = jy;
 }

@@ -36,7 +36,7 @@
 #include "../src/pico8_struct.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
-#include "../src/pico8_zone_transitoire.h"
+#include "zone_tas.h"
 
 /* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
 static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {
@@ -460,12 +460,12 @@ static void export_to(void *pt, void *oz) {
     pico8_ents_t *by = malloc(sizeof *by);
     pico8_trade_t *t;
 
-    pico8_ents_init(lp, &pico8_zone_transitoire);
+    pico8_ents_init(lp, &zone_tas);
     pico8_ents_add(lp, pt);
     pico8_ents_add(lp, oz);
     keys.lp = lp;
     t = pico8_trade_new(pico8_zone_partie(), &keys);
-    pico8_ents_init(by, &pico8_zone_transitoire);
+    pico8_ents_init(by, &zone_tas);
     pico8_ents_add(by, &t->header);
     assert(pico8_jo_is_family(pt));
     ((pico8_jo_t *)pt)->by = by;

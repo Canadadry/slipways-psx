@@ -436,17 +436,17 @@ $(TMP_DIR)/test_pico8_vec: $(call objs,tests/test_pico8_vec.c src/pico8_vec.c sr
 $(TMP_DIR)/test_pico8_geom: $(call objs,tests/test_pico8_geom.c src/pico8_geom.c src/pico8_vec.c src/pico8_fixed.c src/pico8_fixed_test_double.c src/pico8_zone_choisie.c src/pico8_zone_transitoire.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_ptrs: $(call objs,tests/test_pico8_ptrs.c src/pico8_ptrs.c src/pico8_zone_choisie.c src/pico8_zone_transitoire.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_ptrs: $(call objs,tests/test_pico8_ptrs.c tests/zone_tas.c src/pico8_ptrs.c src/pico8_zone_choisie.c src/pico8_zone_transitoire.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_zone_arene: $(call objs,tests/test_pico8_zone_arene.c src/pico8_zone_choisie.c src/pico8_zone_transitoire.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_zone_arene: $(call objs,tests/test_pico8_zone_arene.c tests/zone_tas.c src/pico8_zone_choisie.c src/pico8_zone_transitoire.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_ents: $(call objs,tests/test_pico8_ents.c src/pico8_ents.c src/pico8_zone_choisie.c src/pico8_zone_transitoire.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_ents: $(call objs,tests/test_pico8_ents.c tests/zone_tas.c src/pico8_ents.c src/pico8_zone_choisie.c src/pico8_zone_transitoire.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 
-$(TMP_DIR)/test_pico8_str: $(call objs,tests/test_pico8_str.c src/pico8_str.c src/pico8_fixed.c src/pico8_zone_choisie.c src/pico8_zone_transitoire.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_str: $(call objs,tests/test_pico8_str.c tests/zone_tas.c src/pico8_str.c src/pico8_fixed.c src/pico8_zone_choisie.c src/pico8_zone_transitoire.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_pico8_data_init: $(call objs,tests/test_pico8_data_init.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
@@ -456,7 +456,7 @@ $(TMP_DIR)/test_pico8_map_tables: $(call objs,tests/test_pico8_map_tables.c $(DA
     src/pico8_planet_family_trade.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_jb_ol: $(call objs,tests/test_pico8_jb_ol.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_jb_ol: $(call objs,tests/test_pico8_jb_ol.c tests/zone_tas.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_iv: $(call asan_objs,tests/test_pico8_iv.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -492,10 +492,10 @@ $(TMP_DIR)/test_pico8_bg: $(call objs,tests/test_pico8_bg.c $(ENGINE_SRCS)) | $(
 $(TMP_DIR)/test_pico8_jc: $(call objs,tests/test_pico8_jc.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_ie: $(call objs,tests/test_pico8_ie.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_ie: $(call objs,tests/test_pico8_ie.c tests/zone_tas.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_js: $(call objs,tests/test_pico8_js.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_js: $(call objs,tests/test_pico8_js.c tests/zone_tas.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_jo: $(call objs,tests/test_pico8_jo.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -510,7 +510,7 @@ $(TMP_DIR)/test_pico8_entity_kind: $(call objs,tests/test_pico8_entity_kind.c $(
 $(TMP_DIR)/test_pico8_spec_defaults: $(call objs,tests/test_pico8_spec_defaults.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_struct_header: $(call objs,tests/test_pico8_struct_header.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_struct_header: $(call objs,tests/test_pico8_struct_header.c tests/zone_tas.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_jo_spec_defaults: $(call objs,tests/test_pico8_jo_spec_defaults.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -519,7 +519,7 @@ $(TMP_DIR)/test_pico8_jo_spec_defaults: $(call objs,tests/test_pico8_jo_spec_def
 $(TMP_DIR)/test_pico8_nl: $(call objs,tests/test_pico8_nl.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_os: $(call objs,tests/test_pico8_os.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_os: $(call objs,tests/test_pico8_os.c tests/zone_tas.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_hj: $(call objs,tests/test_pico8_hj.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -528,13 +528,13 @@ $(TMP_DIR)/test_pico8_hj: $(call objs,tests/test_pico8_hj.c $(ENGINE_SRCS)) | $(
 $(TMP_DIR)/test_pico8_pm: $(call objs,tests/test_pico8_pm.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_mx: $(call objs,tests/test_pico8_mx.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_mx: $(call objs,tests/test_pico8_mx.c tests/zone_tas.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_nr: $(call objs,tests/test_pico8_nr.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_nr: $(call objs,tests/test_pico8_nr.c tests/zone_tas.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_fr: $(call objs,tests/test_pico8_fr.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_fr: $(call objs,tests/test_pico8_fr.c tests/zone_tas.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_ga: $(call objs,tests/test_pico8_ga.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -552,16 +552,16 @@ $(TMP_DIR)/test_pico8_pj: $(call objs,tests/test_pico8_pj.c $(ENGINE_SRCS)) | $(
 $(TMP_DIR)/test_pico8_ui: $(call objs,tests/test_pico8_ui.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_trade: $(call asan_objs,tests/test_pico8_trade.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_trade: $(call asan_objs,tests/test_pico8_trade.c tests/zone_tas.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_hp: $(call objs,tests/test_pico8_hp.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_lq: $(call objs,tests/test_pico8_lq.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_lq: $(call objs,tests/test_pico8_lq.c tests/zone_tas.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_hy: $(call objs,tests/test_pico8_hy.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_hy: $(call objs,tests/test_pico8_hy.c tests/zone_tas.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_fm: $(call objs,tests/test_pico8_fm.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -594,7 +594,7 @@ $(TMP_DIR)/test_pico8_planet_gh_row_lq: $(call asan_objs,tests/test_pico8_planet
 $(TMP_DIR)/test_pico8_zone: $(call asan_objs,tests/test_pico8_zone.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_zone_choisie: $(call asan_objs,tests/test_pico8_zone_choisie.c src/pico8_ents.c src/pico8_ptrs.c src/pico8_str.c src/pico8_collect.c src/pico8_geom.c src/pico8_vec.c src/pico8_fixed.c src/pico8_zone_choisie.c src/pico8_zone_transitoire.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_zone_choisie: $(call asan_objs,tests/test_pico8_zone_choisie.c tests/zone_tas.c src/pico8_ents.c src/pico8_ptrs.c src/pico8_str.c src/pico8_collect.c src/pico8_geom.c src/pico8_vec.c src/pico8_fixed.c src/pico8_zone_choisie.c src/pico8_zone_transitoire.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_pico8_zone_particules: $(call asan_objs,tests/test_pico8_zone_particules.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -606,7 +606,7 @@ $(TMP_DIR)/test_pico8_zone_interface: $(call asan_objs,tests/test_pico8_zone_int
 $(TMP_DIR)/test_pico8_file_sortie: $(call asan_objs,tests/test_pico8_file_sortie.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_zone_frame: $(call asan_objs,tests/test_pico8_zone_frame.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_zone_frame: $(call asan_objs,tests/test_pico8_zone_frame.c tests/zone_tas.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_zone_partie: $(call asan_objs,tests/test_pico8_zone_partie.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -620,7 +620,7 @@ $(TMP_DIR)/test_pico8_probe_mm_rnd_order: $(call objs,tests/test_pico8_probe_mm_
 
 # Liste de sources réduite et non $(ENGINE_SRCS) : ce test ne boote pas de cart.
 # Mesurée en linkant, pas devinée.
-$(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing: $(call objs,tests/test_pico8_layout_nil_item_draws_nothing.c src/pico8_assets.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_fixed.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_layout.c src/pico8_ptrs.c src/pico8_map_tables.c src/pico8_mem.c src/pico8_str.c src/pico8_vec.c src/pico8_zone_choisie.c src/pico8_zone_transitoire.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing: $(call objs,tests/test_pico8_layout_nil_item_draws_nothing.c tests/zone_tas.c src/pico8_assets.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_fixed.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_layout.c src/pico8_ptrs.c src/pico8_map_tables.c src/pico8_mem.c src/pico8_str.c src/pico8_vec.c src/pico8_zone_choisie.c src/pico8_zone_transitoire.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # Le plus long en tête : sous -j, make le lance d'abord.

@@ -14,7 +14,7 @@
 #include "../src/pico8_str.h"
 #include "../src/pico8_zone.h"
 #include "../src/pico8_zone_choisie.h"
-#include "../src/pico8_zone_transitoire.h"
+#include "zone_tas.h"
 
 #define STDERR_LOG "tmp/test_pico8_zone_choisie_stderr.txt"
 #define CAPACITY 1024
@@ -73,14 +73,6 @@ static int case_bump_stale_after_reset(void) {
 static int case_bump_grow_past_capacity(void) {
     unsigned char *items = pico8_zone_alloc(&handle, 512);
     pico8_zone_grow(&handle, items, 512, 1024);
-    return 0;
-}
-
-static int case_transient_round_trip(void) {
-    unsigned char *items = grow_counting(&pico8_zone_transitoire);
-    expect_counting(items);
-    pico8_zone_release(&pico8_zone_transitoire, items);
-    pico8_zone_release(&pico8_zone_transitoire, pico8_zone_alloc(&pico8_zone_transitoire, 8));
     return 0;
 }
 
@@ -167,17 +159,6 @@ static int case_ents_stale_after_reset(void) {
     return 0;
 }
 
-static int case_ents_transient_round_trip(void) {
-    pico8_ents_t ents;
-    pico8_ents_init(&ents, &pico8_zone_transitoire);
-    for (int i = 0; i < LIST_LENGTH; i++) pico8_ents_add(&ents, &cells[i]);
-    pico8_ents_t both = pico8_ents_cat(&pico8_zone_transitoire, &ents, &ents);
-    assert(both.count == 2 * LIST_LENGTH);
-    pico8_ents_free(&both);
-    pico8_ents_free(&ents);
-    return 0;
-}
-
 static void expect_text(char *got, const char *expected) {
     if (strcmp(got, expected) != 0) fprintf(stderr, "attendu \"%s\", obtenu \"%s\"\n", expected, got);
     assert(strcmp(got, expected) == 0);
@@ -210,14 +191,6 @@ static int case_texts_in_bump(void) {
     return 0;
 }
 
-static int case_ne_transient_round_trip(void) {
-    int color;
-    char *text = pico8_ne(&pico8_zone_transitoire, pico8_fixed_from_int(-4), 10, "$", &color);
-    expect_text(text, "-4$");
-    free(text);
-    return 0;
-}
-
 #define ARENA_SIZE 512
 
 static unsigned char *arena_counting(const pico8_zone_choisie_t *arena) {
@@ -227,7 +200,7 @@ static unsigned char *arena_counting(const pico8_zone_choisie_t *arena) {
 }
 
 static int case_arena_alive_until_released(void) {
-    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&pico8_zone_transitoire, "place essai", ARENA_SIZE);
+    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&zone_tas, "place essai", ARENA_SIZE);
     unsigned char *items = arena_counting(arena);
     unsigned char *grown = grow_counting(arena);
     pico8_zone_release(arena, items);
@@ -238,7 +211,7 @@ static int case_arena_alive_until_released(void) {
 }
 
 static int case_arena_dead_after_release(void) {
-    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&pico8_zone_transitoire, "place essai", ARENA_SIZE);
+    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&zone_tas, "place essai", ARENA_SIZE);
     unsigned char *items = arena_counting(arena);
     pico8_zone_arene_rendre(arena);
     sink = items[63];
@@ -246,13 +219,13 @@ static int case_arena_dead_after_release(void) {
 }
 
 static int case_arena_full(void) {
-    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&pico8_zone_transitoire, "place essai", ARENA_SIZE);
+    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&zone_tas, "place essai", ARENA_SIZE);
     pico8_zone_alloc(arena, ARENA_SIZE);
     return 0;
 }
 
 static int case_arena_taken_counts_head_and_blocks(void) {
-    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&pico8_zone_transitoire, "place essai", ARENA_SIZE);
+    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&zone_tas, "place essai", ARENA_SIZE);
     size_t head = pico8_zone_arene_prise(arena);
     assert(head > 0 && head < (size_t)ARENA_SIZE && "la tete de l'arene compte dans ce qu'elle a pris");
     pico8_zone_alloc(arena, 10);
@@ -264,7 +237,7 @@ static int case_arena_taken_counts_head_and_blocks(void) {
 }
 
 static int case_arena_vider_back_to_head(void) {
-    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&pico8_zone_transitoire, "place essai", ARENA_SIZE);
+    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&zone_tas, "place essai", ARENA_SIZE);
     size_t head = pico8_zone_arene_prise(arena);
     unsigned char *before = arena_counting(arena);
     pico8_zone_arene_vider(arena);
@@ -279,7 +252,7 @@ static int case_arena_vider_back_to_head(void) {
 }
 
 static int case_arena_vider_kills_old_block(void) {
-    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&pico8_zone_transitoire, "place essai", ARENA_SIZE);
+    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&zone_tas, "place essai", ARENA_SIZE);
     unsigned char *items = arena_counting(arena);
     pico8_zone_arene_vider(arena);
     sink = items[63];
@@ -291,12 +264,12 @@ static int case_arena_vider_kills_old_block(void) {
 /* Une arene qui tient juste la liste et ses RESERVED elements : un seul
  * agrandissement la ferait deborder. */
 static const pico8_zone_choisie_t *reserved_list(pico8_ptrs_t **out) {
-    const pico8_zone_choisie_t *probe = pico8_zone_arene_prendre(&pico8_zone_transitoire, "sonde", ARENA_SIZE);
+    const pico8_zone_choisie_t *probe = pico8_zone_arene_prendre(&zone_tas, "sonde", ARENA_SIZE);
     size_t head = pico8_zone_arene_prise(probe);
     pico8_zone_arene_rendre(probe);
     size_t size = head + PICO8_ZONE_CELLS(sizeof(pico8_ptrs_t)) * sizeof(pico8_zone_cell_t) +
                   RESERVED * sizeof(void *);
-    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&pico8_zone_transitoire, "place essai", size);
+    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&zone_tas, "place essai", size);
     pico8_ptrs_t *ptrs = (pico8_ptrs_t *)pico8_zone_alloc(arena, sizeof *ptrs);
     pico8_ptrs_init_reserve(ptrs, arena, RESERVED);
     assert(pico8_zone_arene_prise(arena) == size);
@@ -460,14 +433,11 @@ static const struct {
     {"bump_read_before_reset", case_bump_read_before_reset},
     {"bump_stale_after_reset", case_bump_stale_after_reset},
     {"bump_grow_past_capacity", case_bump_grow_past_capacity},
-    {"transient_round_trip", case_transient_round_trip},
     {"ents_grow_keeps_order", case_ents_grow_keeps_order},
     {"ptrs_grow_keeps_order", case_ptrs_grow_keeps_order},
     {"ents_read_before_reset", case_ents_read_before_reset},
     {"ents_stale_after_reset", case_ents_stale_after_reset},
-    {"ents_transient_round_trip", case_ents_transient_round_trip},
     {"texts_in_bump", case_texts_in_bump},
-    {"ne_transient_round_trip", case_ne_transient_round_trip},
 };
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
@@ -578,14 +548,11 @@ int main(int argc, char **argv) {
     expect_clean("bump_read_before_reset");
     expect_poison_crash("bump_stale_after_reset");
     expect_fatal("bump_grow_past_capacity", "zone essai-liste pleine, limite 1024 octets");
-    expect_clean("transient_round_trip");
     expect_clean("ents_grow_keeps_order");
     expect_clean("ptrs_grow_keeps_order");
     expect_clean("ents_read_before_reset");
     expect_poison_crash("ents_stale_after_reset");
-    expect_clean("ents_transient_round_trip");
     expect_clean("texts_in_bump");
-    expect_clean("ne_transient_round_trip");
     expect_clean("arena_alive_until_released");
     expect_freed_crash("arena_dead_after_release");
     expect_fatal("arena_full", "zone place essai pleine, limite ");

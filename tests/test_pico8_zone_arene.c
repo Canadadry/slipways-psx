@@ -12,12 +12,12 @@
 
 #include "../src/pico8_zone.h"
 #include "../src/pico8_zone_choisie.h"
-#include "../src/pico8_zone_transitoire.h"
+#include "zone_tas.h"
 
 #define ARENA_SIZE 512
 
 static void reset_arena(void) {
-    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&pico8_zone_transitoire, "place essai", ARENA_SIZE);
+    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&zone_tas, "place essai", ARENA_SIZE);
     pico8_bump_zone_reset(arena->bump);
 }
 

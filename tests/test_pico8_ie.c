@@ -35,7 +35,7 @@
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
 #include "../src/pico8_wormhole.h"
-#include "../src/pico8_zone_transitoire.h"
+#include "zone_tas.h"
 
 #define CONSTRUCTION_HASH 0x37EED64Du
 #define START_HASH 0x8C839F39u
@@ -326,8 +326,8 @@ static void test_construction(void) {
         h = fold_kq(h, all[i]);
     }
 
-    jb_a = pico8_jb_new(&pico8_zone_transitoire, dr_row(0));
-    jb_b = pico8_jb_new(&pico8_zone_transitoire, dr_row(1));
+    jb_a = pico8_jb_new(&zone_tas, dr_row(0));
+    jb_b = pico8_jb_new(&zone_tas, dr_row(1));
     a = build_icon(classes[0], jb_a);
     b = build_icon(classes[1], jb_b);
     h = check_fresh_icon(h, a, classes[0], jb_a);
@@ -611,7 +611,7 @@ static void test_ie_is_a_struct(void) {
     start_game();
     gx(classes);
     n = icons(all, 16);
-    built = build_icon(classes[2], pico8_jb_new(&pico8_zone_transitoire, dr_row(2)));
+    built = build_icon(classes[2], pico8_jb_new(&zone_tas, dr_row(2)));
     all[n++] = built;
     for (i = 0; i < n; i++) {
         assert(is_an_ie_struct(all[i]));
@@ -626,7 +626,7 @@ static void test_ie_is_a_struct(void) {
         pico8_ie_t *no_ke;
         pico8_fixed_t id0 = shared_id_fixed(as_ie(built));
 
-        jb_only.jb = pico8_jb_new(&pico8_zone_transitoire, NULL);
+        jb_only.jb = pico8_jb_new(&zone_tas, NULL);
         no_ke = pico8_ie_new(&jb_only);
         assert(is_an_ie_struct(no_ke) && no_ke->ke == NULL);
         assert(shared_id_fixed(no_ke) == id0);
@@ -676,7 +676,7 @@ static void test_ke_view_is_a_struct(void) {
         pico8_ie_keys_t jb_only = {0};
         void *no_ke;
 
-        jb_only.jb = pico8_jb_new(&pico8_zone_transitoire, NULL);
+        jb_only.jb = pico8_jb_new(&zone_tas, NULL);
         no_ke = pico8_ie_new(&jb_only);
         view = pico8_ie_ke_view(no_ke);
         assert(view.header.cls == pico8_ie_ke_view_struct_class());
