@@ -18,6 +18,7 @@
 #include "../src/pico8_planet_display.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_trade.h"
+#include "../src/pico8_zone_partie.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
@@ -123,8 +124,8 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
      * declaration installed. */
     by = planet_by_ref(planet);
     assert(by != NULL);
-    route_a = pico8_trade_new(NULL);
-    route_b = pico8_trade_new(NULL);
+    route_a = pico8_trade_new(pico8_zone_partie(), NULL);
+    route_b = pico8_trade_new(pico8_zone_partie(), NULL);
     pico8_ents_add(by, &route_a->header);
     pico8_ents_add(by, &route_b->header);
 

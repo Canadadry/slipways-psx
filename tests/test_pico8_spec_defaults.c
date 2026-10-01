@@ -28,6 +28,7 @@
 #include "../src/pico8_score_panel.h"
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_trade.h"
+#include "../src/pico8_zone_partie.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_wormhole.h"
@@ -222,7 +223,7 @@ static void test_hy_ready(void) {
 }
 
 static void test_trade_ready(void) {
-    pico8_trade_t *trade = pico8_trade_new(NULL);
+    pico8_trade_t *trade = pico8_trade_new(pico8_zone_partie(), NULL);
 
     assert(trade->header.cls == pico8_trade_struct_class());
     assert(pico8_trade_ready());

@@ -37,6 +37,7 @@
 #include "../src/pico8_struct.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_vec.h"
+#include "../src/pico8_zone_partie.h"
 
 
 #define BUILT_HASH 0xEA365129u
@@ -610,8 +611,8 @@ static void test_life(void) {
     h = fnv(h, row);
     by = as_ga(c)->by;
     assert(by == as_ga(a)->by && by->count == 0);
-    pico8_ents_add(by, &pico8_trade_new(NULL)->header);
-    pico8_ents_add(by, &pico8_trade_new(NULL)->header);
+    pico8_ents_add(by, &pico8_trade_new(pico8_zone_partie(), NULL)->header);
+    pico8_ents_add(by, &pico8_trade_new(pico8_zone_partie(), NULL)->header);
     cls_of(a)->hb(a);
     assert(fold_lq(2166136261u, a) != row);
     h = fold_lq(h, a);

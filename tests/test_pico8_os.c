@@ -32,6 +32,7 @@
 #include "../src/pico8_research.h"
 #include "../src/pico8_research_icon.h"
 #include "../src/pico8_trade.h"
+#include "../src/pico8_zone_partie.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
@@ -458,7 +459,7 @@ static void export_to(void *pt, void *oz) {
     pico8_ents_add(lp, pt);
     pico8_ents_add(lp, oz);
     keys.lp = lp;
-    t = pico8_trade_new(&keys);
+    t = pico8_trade_new(pico8_zone_partie(), &keys);
     pico8_ents_init(by, &pico8_zone_transitoire);
     pico8_ents_add(by, &t->header);
     assert(pico8_jo_is_family(pt));

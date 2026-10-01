@@ -12,6 +12,7 @@
 #include "pico8_probe.h"
 #include "pico8_slipway.h"
 #include "pico8_trade.h"
+#include "pico8_zone_frame.h"
 
 /* What `mx:kf` leaves in `ht` once it accepts a resource: `o()`. */
 static const pico8_int_seq_t g_mx_ht_spent = {0, NULL};
@@ -136,7 +137,7 @@ void pico8_nr_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
 
         {
             pico8_jo_trade_proposal_t gf = *lw;
-            pico8_trade_t *extended = pico8_trade_kg(t, &self->header, w);
+            pico8_trade_t *extended = pico8_trade_kg(pico8_zone_frame(), t, &self->header, w);
             pico8_struct_header_t *other;
 
             gf.t = extended;

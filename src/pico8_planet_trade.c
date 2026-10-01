@@ -35,7 +35,9 @@ static void pico8_jo_ib_kf_closure(pico8_jo_trade_proposal_t *self, pico8_trade_
         return;
     }
     if (!gu_trade(self->ib, a)) {
-        pico8_ents_add(self->ib, &a->header);
+        assert(self->ib->zone == pico8_zone_partie() &&
+               "jo:ib: a kept route is copied into the generation; a list of another zone would outlive it");
+        pico8_ents_add(self->ib, &pico8_trade_copy(pico8_zone_partie(), a)->header);
         self->mu -= pico8_fixed_from_int(1);
     }
 }
@@ -160,7 +162,7 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
         }
 
         if (pico8_qe_equal(t_qe, qe_val) && !(have_r_q && pico8_qe_equal(qe_val, r_q))) {
-            pico8_trade_t *extended = pico8_trade_kg(t, &self->header, NULL);
+            pico8_trade_t *extended = pico8_trade_kg(pico8_zone_frame(), t, &self->header, NULL);
             if (lw->kf != NULL) {
                 lw->kf(lw, extended);
             }
@@ -220,7 +222,7 @@ pico8_ents_t *pico8_jo_ib(pico8_jo_t *self) {
 
         keys.lp = lp_list;
         keys.rl = rl_list;
-        lw.t = pico8_trade_new(&keys);
+        lw.t = pico8_trade_new(pico8_zone_frame(), &keys);
         /* Recomputed each iteration: an earlier proposal's `kf` may already
          * have grown `ib`. */
         lw.mu = mu - pico8_fixed_from_int(ib->count);

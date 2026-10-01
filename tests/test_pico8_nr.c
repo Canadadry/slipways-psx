@@ -34,6 +34,7 @@
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_trade.h"
+#include "../src/pico8_zone_partie.h"
 #include "../src/pico8_vec.h"
 #include "../src/pico8_zone_transitoire.h"
 
@@ -615,7 +616,7 @@ static void test_cn_skips_a_slipway_already_in_rl(void) {
     keys.has_qe = 1;
     keys.qe = qe;
     keys.rl = with_w;
-    lw.t = pico8_trade_new(&keys);
+    lw.t = pico8_trade_new(pico8_zone_partie(), &keys);
     lw.mu = pico8_fixed_from_int(2);
     lw.kf = take_offer;
     lw.ib = &ib;
@@ -624,7 +625,7 @@ static void test_cn_skips_a_slipway_already_in_rl(void) {
 
     pico8_ents_init(without_w, &pico8_zone_transitoire);
     keys.rl = without_w;
-    lw.t = pico8_trade_new(&keys);
+    lw.t = pico8_trade_new(pico8_zone_partie(), &keys);
     pico8_nr_cn(self, &lw);
     assert(g_offers == 1 && ib.count == 1 && lw.mu == pico8_fixed_from_int(1));
     pico8_ents_free(&ib);

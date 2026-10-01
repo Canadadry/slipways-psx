@@ -30,6 +30,7 @@
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_scroll.h"
+#include "../src/pico8_trade.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_zone_interface.h"
 #include "../src/pico8_zone_particules.h"
@@ -472,17 +473,49 @@ static void game_end_final_score_bd_ne_fait_pas_grandir_la_partie(void) {
     assert(f2 == f51 && "un bd fait grandir la generation");
 }
 
-/* f138-151 : saut d'annee de f140 sur sept slipways poses, donc `jo:ib`,
- * `jo:cn` et les `lp`/`rl` des propositions. */
+/* f140-151 : saut d'annee de f140 sur sept slipways poses, donc `jo:ib`,
+ * `jo:cn` et `nr:cn`, qui reproposent des routes connues. Le `bd` de f139
+ * garde, lui, la route du slipway pose a f136. */
 static void trade_rich_mine_bd_sur_des_routes_ne_fait_pas_grandir_la_partie(void) {
     demarrer("trade_rich_mine");
-    jouer_jusqu_a(137);
-    const size_t f137 = partie_sans_registres();
+    jouer_jusqu_a(139);
+    const size_t f139 = partie_sans_registres();
     jouer_jusqu_a(151);
     const size_t f151 = partie_sans_registres();
-    printf("  trade_rich_mine f137/f151 : partie - registres = %lu/%lu\n", (unsigned long)f137,
+    printf("  trade_rich_mine f139/f151 : partie - registres = %lu/%lu\n", (unsigned long)f139,
            (unsigned long)f151);
-    assert(f137 == f151 && "un bd sur des routes fait grandir la generation");
+    assert(f139 == f151 && "un bd sur des routes fait grandir la generation");
+}
+
+static const pico8_jo_t *planete_d_id(const char *id) {
+    const pico8_ents_t *np = pico8_cg("np");
+    for (int i = 0; np != NULL && i < np->count; i++) {
+        const pico8_jo_t *p = (const pico8_jo_t *)np->items[i];
+        if (p->id != NULL && strcmp(p->id, id) == 0) return p;
+    }
+    assert(0 && "planete introuvable dans cg.np");
+    return NULL;
+}
+
+/* Une route de `by` gardee par le `bd` de f139 se relit a f151, apres douze
+ * remises a zero de la frame ou ses candidates sont faites. */
+static void trade_rich_mine_une_route_gardee_survit_a_la_frame(void) {
+    pico8_struct_header_t *lp[16];
+    pico8_struct_header_t *rl[16];
+    demarrer("trade_rich_mine");
+    jouer_jusqu_a(139);
+    const pico8_ents_t *by = planete_d_id("p27")->by;
+    assert(by != NULL && by->count > 0 && "f139 : p27 garde une route");
+    const pico8_trade_t *t = (const pico8_trade_t *)by->items[by->count - 1];
+    const int nlp = t->lp->count;
+    const int nrl = t->rl->count;
+    assert(nlp <= 16 && nrl <= 16);
+    memcpy(lp, t->lp->items, (size_t)nlp * sizeof *lp);
+    memcpy(rl, t->rl->items, (size_t)nrl * sizeof *rl);
+    jouer_jusqu_a(151);
+    assert(t->lp->count == nlp && memcmp(lp, t->lp->items, (size_t)nlp * sizeof *lp) == 0);
+    assert(t->rl->count == nrl && memcmp(rl, t->rl->items, (size_t)nrl * sizeof *rl) == 0);
+    printf("  trade_rich_mine : route de p27 (%d planetes, %d slipways) relue a f151\n", nlp, nrl);
 }
 
 #define PRISES "tests/fixtures/prises_refusees.json"
@@ -825,6 +858,7 @@ int main(void) {
     dans_un_enfant(pause_restart_devoile_sur_les_etats_de_la_nouvelle_partie);
     dans_un_enfant(game_end_final_score_bd_ne_fait_pas_grandir_la_partie);
     dans_un_enfant(trade_rich_mine_bd_sur_des_routes_ne_fait_pas_grandir_la_partie);
+    dans_un_enfant(trade_rich_mine_une_route_gardee_survit_a_la_frame);
     dans_un_enfant(prises_refusees_ne_font_pas_grandir_la_partie);
     dans_un_enfant(une_prise_posee_garde_son_arene);
     dans_un_enfant(une_prise_refusee_traverse_une_nouvelle_partie);

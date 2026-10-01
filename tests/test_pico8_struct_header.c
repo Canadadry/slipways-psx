@@ -33,6 +33,7 @@
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_trade.h"
+#include "../src/pico8_zone_partie.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_wormhole.h"
@@ -104,7 +105,7 @@ static void test_non_carriers_have_null_links(void) {
     assert_links(&pico8_jb_new(&pico8_zone_transitoire, NULL)->header, (pico8_struct_header_t){0});
     assert_links(&pico8_hp_new(NULL)->header, (pico8_struct_header_t){0});
     assert_links(&pico8_hy_new()->header, (pico8_struct_header_t){0});
-    assert_links(&pico8_trade_new(NULL)->header, (pico8_struct_header_t){0});
+    assert_links(&pico8_trade_new(pico8_zone_partie(), NULL)->header, (pico8_struct_header_t){0});
     assert_links(&view.header, (pico8_struct_header_t){0});
 }
 
