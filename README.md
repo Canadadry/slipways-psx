@@ -18,3 +18,5 @@ Règle de cette liste : chaque todo est une seule phrase claire, lisible sans r�
 - [ ] Faire respecter la couverture de classes par `make e2e-cleanup`, qui propose de retirer `place_processor_ascension`, seul e2e à instancier le processeur et la porte d'ascension.
 - [ ] Renommer les champs des structs du jeu qui portent encore un nom abrégé hérité du cart, uniquement quand on connaît leur sens, sans rien inventer.
 - [ ] À la reprise PSX, décider si la manette émule la souris PICO-8 ou saute de planète en planète ; idées dans l'historique git de `docs/after-v1.md`.
+- [ ] À la reprise PSX, remesurer sur MIPS les tailles de place des zones interface et particules : mesurées sur x86-64, js et mh n'ont aucune marge.
+- [ ] Avant tout nouveau point de libération, rendre mécanique la liste des références coupées par `oublier` : l'inventaire par grep en a manqué trois (`dk`, `jc->re`, `fo`).
