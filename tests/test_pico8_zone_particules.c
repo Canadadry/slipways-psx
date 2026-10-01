@@ -15,7 +15,6 @@
 #include "../src/pico8_ptrs.h"
 #include "../src/pico8_zone_choisie.h"
 #include "../src/pico8_zone_particules.h"
-#include "../src/pico8_zone_transitoire.h"
 
 #define STDERR_LOG "tmp/test_pico8_zone_particules_stderr.txt"
 
@@ -79,7 +78,7 @@ static int case_ga_zone_full(void) {
 }
 
 static int case_particule_zone_full(void) {
-    for (int i = 0; i < 2049; i++) particule();
+    for (int i = 0; i < 100000; i++) particule();
     return 0;
 }
 
@@ -339,12 +338,12 @@ static void expect_clean(const char *name) {
     free(err);
 }
 
-static void expect_freed_crash(const char *name) {
+static void expect_poison_crash(const char *name) {
     char *err;
     int status = run_child(name, &err);
-    if (WEXITSTATUS(status) == 0 || strstr(err, "heap-use-after-free") == NULL) {
-        fprintf(stderr, "%s: attendu heap-use-after-free, sortie %d\n%s", name, WEXITSTATUS(status), err);
-        assert(0 && "une place rendue a la transitoire puis lue doit planter sous ASan");
+    if (WEXITSTATUS(status) == 0 || strstr(err, "use-after-poison") == NULL) {
+        fprintf(stderr, "%s: attendu use-after-poison, sortie %d\n%s", name, WEXITSTATUS(status), err);
+        assert(0 && "une place rendue a sa zone puis lue doit planter sous ASan");
     }
     free(err);
 }
@@ -361,7 +360,6 @@ static void expect_fatal(const char *name, const char *message) {
 }
 
 int main(int argc, char **argv) {
-    pico8_zone_particules_adosser(&pico8_zone_transitoire);
     if (argc == 2) {
         for (size_t i = 0; i < CASE_COUNT; i++)
             if (strcmp(argv[1], CASES[i].name) == 0) return CASES[i].run();
@@ -370,21 +368,21 @@ int main(int argc, char **argv) {
     }
     self_path = argv[0];
     expect_clean("live_places_follow_takes");
-    expect_freed_crash("particule_dead_after_release");
+    expect_poison_crash("particule_dead_after_release");
     expect_fatal("ga_zone_full", "zone particules ga pleine, limite 8 places");
-    expect_fatal("particule_zone_full", "zone particules particule pleine, limite 2048 places");
+    expect_fatal("particule_zone_full", "zone particules particule pleine, limite 2085 places");
     expect_clean("qy_holds_its_capacity");
     expect_fatal("qy_past_capacity", "zone place qy pleine, limite ");
     expect_clean("qy_fv_holds_its_capacity");
     expect_fatal("qy_fv_past_capacity", "zone place qy_fv pleine, limite ");
     expect_clean("maxima_keep_the_peak");
     expect_clean("qy_rendre_gives_back_particles_then_list");
-    expect_freed_crash("qy_rendre_releases_the_arena");
+    expect_poison_crash("qy_rendre_releases_the_arena");
     expect_clean("f__takes_a_qy_list");
     expect_clean("f__fv_takes_a_qy_fv_list");
     expect_clean("second_f__gives_back_the_old_list");
     expect_clean("ei_gives_back_a_dying_particle");
-    expect_freed_crash("particle_dead_after_ei");
+    expect_poison_crash("particle_dead_after_ei");
     expect_clean("ez_notes_the_list_length");
     remove(STDERR_LOG);
     printf("test_pico8_zone_particules: all tests passed\n");

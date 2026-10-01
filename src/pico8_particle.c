@@ -9,7 +9,6 @@
 #include "pico8_game_data.h"
 #include "pico8_vec.h"
 #include "pico8_zone_particules.h"
-#include "pico8_zone_transitoire.h"
 
 typedef char pico8_qy_fits_its_place[sizeof(pico8_qy_t) <= PICO8_PARTICULE_PLACE ? 1 : -1];
 
@@ -25,17 +24,11 @@ static int pico8_particle_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
 }
 
-static void adosser(void) {
-    pico8_zone_particules_adosser(&pico8_zone_transitoire);
-}
-
 pico8_qy_t *pico8_particule_prendre(void) {
-    adosser();
     return (pico8_qy_t *)pico8_zone_alloc(pico8_zone_particules(PICO8_PARTICULES_PARTICULE), sizeof(pico8_qy_t));
 }
 
 const pico8_zone_choisie_t *pico8_ga_place_prendre(void) {
-    adosser();
     return pico8_zone_particules_place(PICO8_PARTICULES_GA);
 }
 
@@ -56,7 +49,6 @@ void pico8_f__dans(pico8_struct_header_t *self, pico8_particules_sorte_t sorte) 
 
     emitter = self->emitter;
     pico8_qy_rendre(emitter);
-    adosser();
     place = pico8_zone_particules_place(sorte);
     qy = (pico8_ptrs_t *)pico8_zone_alloc(place, sizeof *qy);
     pico8_ptrs_init_reserve(qy, place,

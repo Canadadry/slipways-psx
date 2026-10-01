@@ -21,10 +21,6 @@ typedef enum {
 #define PICO8_QY_CAPACITE 160
 #define PICO8_QY_FV_CAPACITE 768
 
-/* Les places sont prises a `adossement`, qui doit leur survivre. Avant le
- * premier appel, prendre une place s'arrete sur un assert. */
-void pico8_zone_particules_adosser(const pico8_zone_choisie_t *adossement);
-
 /* Poignee qui donne et reprend une place entiere de la sorte : alloc(n)
  * exige n <= taille de place, grow est refuse. Une place de `qy`, `qy_fv`
  * ou `ga` est une arene, prise par pico8_zone_particules_place. Plus de
