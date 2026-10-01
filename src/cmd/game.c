@@ -1,8 +1,8 @@
-/* The interactive PC driver: same boot sequence as src/main.c up to
+/* The interactive PC driver: same boot sequence as src/cmd/replay.c up to
  * pico8_cart_load()/pico8__init(), but its per-frame input comes from a
  * live raylib window, or from a recording given as the one optional
  * positional argument, and the framebuffer is presented as a texture
- * instead of dumped as text. src/main.c is never modified by this file.
+ * instead of dumped as text. src/cmd/replay.c is never modified by this file.
  *
  * Unlike main.c, this driver must NOT pre-click a difficulty button with
  * pico8_eu(): a recording made here starts on the title screen and holds
@@ -16,9 +16,9 @@
 #include "game/cheat.h"
 #include "engine/dispatch_context.h"
 #include "game/cart.h"
-#include "pico8_raylib_backend.h"
-#include "pico8_replay_source.h"
-#include "pico8_replay_control.h"
+#include "platform/raylib_backend.h"
+#include "devtools/replay_source.h"
+#include "devtools/replay_control.h"
 
 #include <assert.h>
 #include <stdio.h>

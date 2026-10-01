@@ -2,8 +2,8 @@
  *   pico8_frames frame <capture> <N>  la frame N sur stdout, au format de pico8_dump_screen
  * Sur echec : code non nul, message sur stderr. */
 
-#include "pico8_dump.h"
-#include "pico8_screencast.h"
+#include "devtools/dump.h"
+#include "devtools/screencast.h"
 
 #include <errno.h>
 #include <limits.h>

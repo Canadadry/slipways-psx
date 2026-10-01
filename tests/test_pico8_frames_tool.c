@@ -2,7 +2,7 @@
  * le proposent, sur une capture faite par le vrai pilote de rejeu. Comme
  * test_pico8_headless_capture, ce test reecrit le dump du pilote. */
 
-#include "../src/pico8_screencast.h"
+#include "devtools/screencast.h"
 
 #include <assert.h>
 #include <stdio.h>

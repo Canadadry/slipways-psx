@@ -1,6 +1,6 @@
-#include "pico8_raylib_backend.h"
+#include "platform/raylib_backend.h"
 
-#include "pico8_raylib_backend_coords.h"
+#include "platform/raylib_backend_coords.h"
 #include "p8/gfx.h"
 #include "p8/palette.h"
 

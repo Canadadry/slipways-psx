@@ -1,4 +1,4 @@
-/* Rejoue argv[1] comme src/main.c, depuis l'écran titre, sans capture ni
+/* Rejoue argv[1] comme src/cmd/replay.c, depuis l'écran titre, sans capture ni
  * dump, puis imprime une ligne `<classe> <instanciations>` par nom de
  * KNOWN[]. Rend 2 si le fichier ne se charge pas : tools/class_coverage.sh
  * le signale alors « illisible ». Rend 3, le nom fautif sur stderr, si un
@@ -11,7 +11,7 @@
 #include "game/cheat.h"
 #include "engine/dispatch_context.h"
 #include "game/cart.h"
-#include "pico8_coverage.h"
+#include "devtools/class_coverage.h"
 
 #include <assert.h>
 #include <stdio.h>

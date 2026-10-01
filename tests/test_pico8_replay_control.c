@@ -8,7 +8,7 @@
  * before" would pass on a ladder that went 60, 61, 62, and the point of
  * the default is a specific multiplier. */
 
-#include "../src/pico8_replay_control.h"
+#include "devtools/replay_control.h"
 
 #include <assert.h>
 #include <stdio.h>

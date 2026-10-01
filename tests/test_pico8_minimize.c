@@ -2,7 +2,7 @@
  * pico8_minimize et tools/minimize.sh sur des fichiers d'événements
  * fabriqués, la couverture remplacée par un oracle en script. */
 
-#include "../src/pico8_minimize.h"
+#include "devtools/minimize.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -270,8 +270,8 @@ static void write_file(const char *path, const char *text) {
 
 static void write_oracles(void) {
     write_file(CLICKS_ORACLE, "grep '\"mouse_buttons\": 1' \"$1\" | sed 's/, \"mouse_buttons.*//' | sort -u\n");
-    write_file(CONSTANT_ORACLE, "echo src/main.c:1\n");
-    write_file(AT_LEAST_3_ORACLE, "[ $(grep -c mouse_x \"$1\") -ge 3 ] && echo src/main.c:1\n");
+    write_file(CONSTANT_ORACLE, "echo src/cmd/replay.c:1\n");
+    write_file(AT_LEAST_3_ORACLE, "[ $(grep -c mouse_x \"$1\") -ge 3 ] && echo src/cmd/replay.c:1\n");
     write_file(X7_ORACLE, "grep -c '\"mouse_x\": 7,' \"$1\"\n");
     write_file(DPAD_WIDTH_ORACLE, "grep -q 'false, false, false, false, false' \"$1\" && echo six || echo four\n");
 }

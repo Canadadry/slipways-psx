@@ -2,39 +2,39 @@
 # tools/float_grep.sh via make float-grep. Une ligne "<chemin> | <justification>".
 # Tout .c/.h de src/ est soit dans le coeur (CORE_SRCS et leurs en-tetes, -MM),
 # soit ici ; un fichier du coeur ici fait echouer la cible.
-src/main.c | point d'entree du rejeu headless, outil d'hote du §4
-src/main_class_coverage.c | point d'entree de l'outil de couverture des classes (PICO8_CLASS_COVERAGE), outil d'hote
-src/main_frames.c | point d'entree de l'outil d'emission de frames pico8_frames, outil d'hote
-src/main_minimize.c | point d'entree du minimiseur de rejeux pico8_minimize, outil d'hote
-src/main_raylib.c | point d'entree du driver interactif raylib
-src/main_screencast_viewer.c | point d'entree du visualiseur d'enregistrement
+src/cmd/replay.c | point d'entree du rejeu headless, outil d'hote du §4
+src/cmd/class_coverage.c | point d'entree de l'outil de couverture des classes (PICO8_CLASS_COVERAGE), outil d'hote
+src/cmd/frames.c | point d'entree de l'outil d'emission de frames pico8_frames, outil d'hote
+src/cmd/minimize.c | point d'entree du minimiseur de rejeux pico8_minimize, outil d'hote
+src/cmd/game.c | point d'entree du driver interactif raylib
+src/cmd/screencast_viewer.c | point d'entree du visualiseur d'enregistrement
 src/p8/assets.c | outil d'hote du §4, chargement des ressources par la libc
 src/p8/assets.h | outil d'hote du §4, en-tete de p8/assets.c
-src/pico8_dump.c | outil d'hote du §4, dump texte du framebuffer
-src/pico8_dump.h | outil d'hote du §4, en-tete de pico8_dump.c
-src/pico8_coverage.c | instrumentation de couverture des classes (PICO8_CLASS_COVERAGE), outil d'hote
-src/pico8_input_json.c | lecture et ecriture d'events.json, outil d'hote
-src/pico8_fatal_pc.c | implementation PC de pico8_fatal (stderr, exit), fournie par la plateforme
-src/pico8_fixed_test_double.c | aide de test, hors coeur : from_double/to_double, liee par les tests et le comparateur de constantes
-src/pico8_fixed_test_double.h | aide de test, hors coeur : en-tete de pico8_fixed_test_double.c, inclus par les tests et le comparateur de constantes
-src/pico8_minimize.c | minimiseur de rejeux, outil d'hote
-src/pico8_minimize.h | minimiseur de rejeux, en-tete de pico8_minimize.c
+src/devtools/dump.c | outil d'hote du §4, dump texte du framebuffer
+src/devtools/dump.h | outil d'hote du §4, en-tete de devtools/dump.c
+src/devtools/class_coverage.c | instrumentation de couverture des classes (PICO8_CLASS_COVERAGE), outil d'hote
+src/devtools/input_json.c | lecture et ecriture d'events.json, outil d'hote
+src/platform/fatal_pc.c | implementation PC de pico8_fatal (stderr, exit), fournie par la plateforme
+src/devtools/fixed_test_double.c | aide de test, hors coeur : from_double/to_double, liee par les tests et le comparateur de constantes
+src/devtools/fixed_test_double.h | aide de test, hors coeur : en-tete de devtools/fixed_test_double.c, inclus par les tests et le comparateur de constantes
+src/devtools/minimize.c | minimiseur de rejeux, outil d'hote
+src/devtools/minimize.h | minimiseur de rejeux, en-tete de devtools/minimize.c
 src/p8/palette.c | backend raylib et visualiseur, palette RGB de presentation
 src/p8/palette.h | backend raylib et visualiseur, en-tete de p8/palette.c
-src/pico8_raylib_backend.c | backend raylib
-src/pico8_raylib_backend.h | backend raylib
-src/pico8_raylib_backend_coords.c | backend raylib, conversion des coordonnees de fenetre
-src/pico8_raylib_backend_coords.h | backend raylib
-src/pico8_replay_control.c | rejeu et enregistrement du driver interactif
-src/pico8_replay_control.h | rejeu et enregistrement du driver interactif
-src/pico8_replay_source.c | rejeu, lecture d'events.json
-src/pico8_replay_source.h | rejeu, lecture d'events.json
-src/pico8_screencast.c | visualiseur et enregistrement d'ecran, capture des pixels du rejeu
-src/pico8_screencast.h | visualiseur et enregistrement d'ecran
-src/pico8_screencast_player.c | visualiseur d'enregistrement
-src/pico8_screencast_player.h | visualiseur d'enregistrement
-src/pico8_session_recorder.c | rejeu et enregistrement de session du driver interactif
-src/pico8_session_recorder.h | rejeu et enregistrement de session du driver interactif
-src/main_gif.c | point d'entree de l'outil pico8_gif de make gif, outil d'hote
-src/pico8_gif.c | encodeur GIF de make gif, outil d'hote
-src/pico8_gif.h | encodeur GIF de make gif, en-tete de pico8_gif.c
+src/platform/raylib_backend.c | backend raylib
+src/platform/raylib_backend.h | backend raylib
+src/platform/raylib_backend_coords.c | backend raylib, conversion des coordonnees de fenetre
+src/platform/raylib_backend_coords.h | backend raylib
+src/devtools/replay_control.c | rejeu et enregistrement du driver interactif
+src/devtools/replay_control.h | rejeu et enregistrement du driver interactif
+src/devtools/replay_source.c | rejeu, lecture d'events.json
+src/devtools/replay_source.h | rejeu, lecture d'events.json
+src/devtools/screencast.c | visualiseur et enregistrement d'ecran, capture des pixels du rejeu
+src/devtools/screencast.h | visualiseur et enregistrement d'ecran
+src/devtools/screencast_player.c | visualiseur d'enregistrement
+src/devtools/screencast_player.h | visualiseur d'enregistrement
+src/devtools/session_recorder.c | rejeu et enregistrement de session du driver interactif
+src/devtools/session_recorder.h | rejeu et enregistrement de session du driver interactif
+src/cmd/gif.c | point d'entree de l'outil pico8_gif de make gif, outil d'hote
+src/devtools/gif.c | encodeur GIF de make gif, outil d'hote
+src/devtools/gif.h | encodeur GIF de make gif, en-tete de devtools/gif.c

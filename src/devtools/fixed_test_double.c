@@ -1,4 +1,4 @@
-#include "pico8_fixed_test_double.h"
+#include "devtools/fixed_test_double.h"
 
 pico8_fixed_t pico8_fixed_from_double(double d) {
     double scaled = d * 65536.0;

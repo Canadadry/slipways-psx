@@ -2,7 +2,7 @@
  * l'encodeur : un aller-retour entre deux moitiés du même code passerait sur
  * une largeur de code fausse des deux côtés. */
 
-#include "../src/pico8_gif.h"
+#include "devtools/gif.h"
 
 #include "p8/palette.h"
 

@@ -9,7 +9,7 @@
  * échoue sur une plage hors du fichier ou qui le viderait. */
 
 #include "p8/input.h"
-#include "pico8_minimize.h"
+#include "devtools/minimize.h"
 
 #include <errno.h>
 #include <limits.h>

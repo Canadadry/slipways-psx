@@ -2,7 +2,7 @@
  * fabrique : un rejeu court depuis l'ecran titre et un fichier malforme. Puis
  * le compteur de couverture, seul. */
 
-#include "../src/pico8_coverage.h"
+#include "devtools/class_coverage.h"
 
 #include <assert.h>
 #include <stdio.h>

@@ -1,4 +1,4 @@
-#include "pico8_coverage.h"
+#include "devtools/class_coverage.h"
 
 #ifdef PICO8_CLASS_COVERAGE
 #include <assert.h>

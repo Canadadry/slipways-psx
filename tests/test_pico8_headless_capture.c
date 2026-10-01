@@ -15,10 +15,10 @@
  * pilote avec celui de la fixture courte ; test_pico8_frames_tool et
  * `make replay EVENTS=...` le reecrivent aussi. */
 
-#include "../src/pico8_dump.h"
+#include "devtools/dump.h"
 #include "p8/input.h"
 #include "p8/mem.h"
-#include "../src/pico8_screencast.h"
+#include "devtools/screencast.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -27,7 +27,7 @@
 
 #define FIXTURE "tests/fixtures/screencast_capture_events.json"
 #define DRIVER "./tmp/pico8_replay"
-/* Le chemin par defaut du dump de src/main.c, quand argv[3] manque.
+/* Le chemin par defaut du dump de src/cmd/replay.c, quand argv[3] manque.
  * C'est la sortie sur laquelle portent la fidelite ET la neutralite. */
 #define DRIVER_DUMP "tmp/pico8_replay_dump.txt"
 #define CUSTOM_DUMP "tmp/test_headless_capture_custom_dump.txt"

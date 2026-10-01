@@ -75,7 +75,7 @@ static void test_idle_file_covers_strictly_less_than_clicking_file(void) {
     assert(run(SCRIPT " diff " DIR "/idle.lines " DIR "/click.lines", DIR "/gap.lines") == 0);
     assert(line_count(DIR "/gap.lines") == 0);
     const char *idle_text = read_file(DIR "/idle.lines");
-    assert(strstr(idle_text, "src/main.c:") != NULL);
+    assert(strstr(idle_text, "src/cmd/replay.c:") != NULL);
 }
 
 /* Deux fichiers : la couverture est l'union. */

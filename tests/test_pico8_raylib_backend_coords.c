@@ -2,7 +2,7 @@
  * clamping boundary included. Links against the coordinate module alone and
  * never raylib, so it stays in the window-free suite. */
 
-#include "../src/pico8_raylib_backend_coords.h"
+#include "platform/raylib_backend_coords.h"
 
 #include <assert.h>
 #include <stdio.h>

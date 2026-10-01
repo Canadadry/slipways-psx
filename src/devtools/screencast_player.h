@@ -2,12 +2,12 @@
  * de fenetre : quelle frame afficher maintenant, et ce qu'on dit d'un
  * fichier qu'on refuse de jouer. Rien ici n'inclut raylib.h, et rien ici
  * ne doit l'inclure : c'est ce qui rend ce module exercable par
- * `make unit`, que src/main_screencast_viewer.c n'est pas. */
+ * `make unit`, que src/cmd/screencast_viewer.c n'est pas. */
 
 #ifndef PICO8_SCREENCAST_PLAYER_H
 #define PICO8_SCREENCAST_PLAYER_H
 
-#include "pico8_screencast.h"
+#include "devtools/screencast.h"
 
 #include <stddef.h>
 

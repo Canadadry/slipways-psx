@@ -1,4 +1,4 @@
-#include "../src/pico8_dump.h"
+#include "devtools/dump.h"
 #include "p8/gfx.h"
 #include "p8/mem.h"
 

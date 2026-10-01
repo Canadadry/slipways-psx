@@ -3,7 +3,7 @@
  * jamais la presence d'un champ, d'une fonction ou d'une structure
  * interne. Les fichiers de travail sont ecrits sous tmp/ et effaces. */
 
-#include "../src/pico8_screencast.h"
+#include "devtools/screencast.h"
 
 #include "p8/gfx.h"
 #include "p8/mem.h"

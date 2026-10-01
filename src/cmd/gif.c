@@ -4,9 +4,9 @@
  * dernier event, pas de souris. Sur échec : code non nul, message sur
  * stderr. */
 
-#include "pico8_gif.h"
+#include "devtools/gif.h"
 #include "p8/input.h"
-#include "pico8_screencast.h"
+#include "devtools/screencast.h"
 
 #include <stdio.h>
 

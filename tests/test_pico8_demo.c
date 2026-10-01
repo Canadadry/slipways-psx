@@ -3,7 +3,7 @@
 #include "p8/assets.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "../src/pico8_dump.h"
+#include "devtools/dump.h"
 
 #include <assert.h>
 #include <stdio.h>

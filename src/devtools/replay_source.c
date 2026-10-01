@@ -1,4 +1,4 @@
-#include "pico8_replay_source.h"
+#include "devtools/replay_source.h"
 
 #include <assert.h>
 #include <stddef.h>

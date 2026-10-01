@@ -1,7 +1,7 @@
 /* Les seize couleurs de la palette par defaut de PICO-8, en un seul
  * endroit pour les deux programmes raylib du depot : le pilote interactif
- * (src/pico8_raylib_backend.c) et le visualiseur de screencast
- * (src/main_screencast_viewer.c). Aucun des deux ne redefinit la sienne ;
+ * (src/platform/raylib_backend.c) et le visualiseur de screencast
+ * (src/cmd/screencast_viewer.c). Aucun des deux ne redefinit la sienne ;
  * deux tables recopiees finiraient par diverger, et le visualiseur
  * montrerait alors autre chose que le jeu.
  *

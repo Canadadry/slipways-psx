@@ -1,4 +1,4 @@
-#include "pico8_gif.h"
+#include "devtools/gif.h"
 
 #include "p8/gfx.h"
 #include "p8/palette.h"

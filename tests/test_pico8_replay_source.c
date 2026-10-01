@@ -11,7 +11,7 @@
  * module delegates "valid recording" to `pico8_input_load`, so it must be
  * tested against that function's idea of a bad file, not a second one. */
 
-#include "../src/pico8_replay_source.h"
+#include "devtools/replay_source.h"
 
 #include <assert.h>
 #include <stdio.h>

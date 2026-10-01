@@ -17,11 +17,11 @@
  * pico8_palette. Ce qui reste ici demande une fenetre, donc `make unit`
  * ne l'exerce pas. */
 
-#include "pico8_screencast.h"
-#include "pico8_screencast_player.h"
+#include "devtools/screencast.h"
+#include "devtools/screencast_player.h"
 #include "p8/palette.h"
-#include "pico8_replay_control.h"
-#include "pico8_raylib_backend.h"
+#include "devtools/replay_control.h"
+#include "platform/raylib_backend.h"
 #include "p8/gfx.h"
 
 #include "raylib.h"

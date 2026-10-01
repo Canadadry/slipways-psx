@@ -15,7 +15,7 @@
  * passerait sur un curseur qui resservirait toujours la frame 0, ou qui
  * les servirait a l'envers. */
 
-#include "../src/pico8_screencast_player.h"
+#include "devtools/screencast_player.h"
 
 #include "p8/palette.h"
 

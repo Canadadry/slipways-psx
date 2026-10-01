@@ -1,4 +1,4 @@
-#include "pico8_screencast.h"
+#include "devtools/screencast.h"
 
 #include <assert.h>
 #include <stddef.h>

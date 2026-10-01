@@ -1,4 +1,4 @@
-#include "pico8_minimize.h"
+#include "devtools/minimize.h"
 
 #include <assert.h>
 #include <stdlib.h>

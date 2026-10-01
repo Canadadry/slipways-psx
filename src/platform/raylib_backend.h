@@ -11,8 +11,8 @@
 
 #include "p8/mem.h"
 #include "p8/input.h"
-#include "pico8_session_recorder.h"
-#include "pico8_replay_control.h"
+#include "devtools/session_recorder.h"
+#include "devtools/replay_control.h"
 
 #include "raylib.h"
 

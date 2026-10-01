@@ -1,4 +1,4 @@
-#include "pico8_session_recorder.h"
+#include "devtools/session_recorder.h"
 
 #include <assert.h>
 #include <stdio.h>

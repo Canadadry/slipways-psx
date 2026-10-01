@@ -3,7 +3,7 @@
 
 #include <string.h>
 
-#include "pico8_coverage.h"
+#include "devtools/class_coverage.h"
 #include "p8/fixed.h"
 #include "engine/geom.h"
 #include "engine/vec.h"

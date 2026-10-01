@@ -13,8 +13,8 @@
  * rather than merely reloading it: parsing says nothing about what the
  * next session does with the file. */
 
-#include "../src/pico8_session_recorder.h"
-#include "../src/pico8_replay_source.h"
+#include "devtools/session_recorder.h"
+#include "devtools/replay_source.h"
 
 #include <assert.h>
 #include <stdio.h>
