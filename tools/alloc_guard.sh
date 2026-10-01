@@ -1,10 +1,10 @@
 #!/bin/sh
 # usage: alloc_guard.sh <liste d'exceptions> <racine des objets> <objet.o>...
-# Compte, par objet, les relocations vers malloc, calloc, realloc, free et la
-# poignee pico8_zone_transitoire, adossee a la libc (aussi sous la forme
-# _malloc de Darwin), et exige l'egalite stricte avec la liste. L'objet
-# <racine>/src/x.o y figure sous src/x.c. Rend 1 sur tout ecart, 2 sans
-# objet : une garde sur rien passerait pour verte. $OBJDUMP remplace objdump.
+# Compte, par objet, les relocations vers malloc, calloc, realloc et free
+# (aussi sous la forme _malloc de Darwin), et exige l'egalite stricte avec la
+# liste. L'objet <racine>/src/x.o y figure sous src/x.c. Rend 1 sur tout
+# ecart, 2 sans objet : une garde sur rien passerait pour verte. $OBJDUMP
+# remplace objdump.
 
 set -u
 
@@ -39,7 +39,7 @@ for obj in "$@"; do
             sym = $NF
             sub(/[-+]0x[0-9a-fA-F]+$/, "", sym)
             sub(/^_/, "", sym)
-            if (sym == "malloc" || sym == "calloc" || sym == "realloc" || sym == "free" || sym == "pico8_zone_transitoire") n++
+            if (sym == "malloc" || sym == "calloc" || sym == "realloc" || sym == "free") n++
         }
         END { print n + 0 }')
     echo "$src $count" >> "$actual"

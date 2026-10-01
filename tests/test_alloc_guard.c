@@ -65,18 +65,14 @@ static void setup(void) {
     assert(system("cc -std=c99 -c -o " CLEAN " " DIR "/src/pico8_clean.c") == 0);
 }
 
-/* pico8_transient_user.c : deux references a la poignee transitoire, dans
- * le code et dans les donnees, et un free. */
+/* pico8_transient_user.c : deux references a l'ancienne poignee
+ * pico8_zone_transitoire, dans le code et dans les donnees, sans appel libc. */
 static void setup_transient_user(void) {
     setup();
     write_file(DIR "/src/pico8_transient_user.c",
-               "#include <stdlib.h>\n"
                "extern const int pico8_zone_transitoire;\n"
                "const int *pico8_kept = &pico8_zone_transitoire;\n"
-               "int pico8_use(int *p) {\n"
-               "    free(p);\n"
-               "    return pico8_zone_transitoire;\n"
-               "}\n");
+               "int pico8_use(void) { return pico8_zone_transitoire; }\n");
     assert(system("cc -std=c99 -c -o " TRANSIENT_USER " " DIR "/src/pico8_transient_user.c") == 0);
 }
 
@@ -147,33 +143,20 @@ static void test_darwin_underscore_symbols_are_counted(void) {
     assert(run_guard_with("OBJDUMP=" DIR "/objdump", ALLOCS) == 1);
 }
 
-static void test_unlisted_transient_reference_fails_with_the_line_to_add(void) {
+static void test_reference_to_the_old_transient_symbol_counts_zero(void) {
     setup_transient_user();
     write_file(LIST, "");
-    assert(run_guard(TRANSIENT_USER) == 1);
-    assert(strstr(read_file(OUT), "ligne a ajouter : src/pico8_transient_user.c 3\n") != NULL);
-}
-
-static void test_two_transient_references_and_a_free_count_three(void) {
-    setup_transient_user();
-    write_file(LIST, "src/pico8_transient_user.c 3\n");
     assert(run_guard(TRANSIENT_USER) == 0);
-    write_file(LIST, "src/pico8_transient_user.c 1\n");
-    assert(run_guard(TRANSIENT_USER) == 1);
+    assert(strstr(read_file(OUT), "allouent 0 appels 0\n") != NULL);
 }
 
-static void test_darwin_underscore_transient_symbol_is_counted(void) {
+static void test_header_only_list_passes_then_fails_on_a_new_allocation(void) {
     setup();
-    write_file(DIR "/objdump",
-               "#!/bin/sh\n"
-               "echo 'RELOCATION RECORDS FOR [__text]:'\n"
-               "echo '0000000000000012 X86_64_RELOC_GOT_LOAD _pico8_zone_transitoire'\n"
-               "echo '0000000000000020 X86_64_RELOC_GOT_LOAD _pico8_zone_transitoire_bis'\n"
-               "echo 'RELOCATION RECORDS FOR [__const]:'\n"
-               "echo '0000000000000000 X86_64_RELOC_UNSIGNED _pico8_zone_transitoire'\n");
-    assert(system("chmod +x " DIR "/objdump") == 0);
-    write_file(LIST, "src/pico8_allocs.c 2\n");
-    assert(run_guard_with("OBJDUMP=" DIR "/objdump", ALLOCS) == 0);
+    write_file(LIST, "# Liste d'exceptions du verrou : vide.\n# Une ligne `<source> <appels>` par fichier.\n");
+    assert(run_guard(CLEAN) == 0);
+    assert(strstr(read_file(OUT), "allouent 0 appels 0\n") != NULL);
+    assert(run_guard(ALLOCS " " CLEAN) == 1);
+    assert(strstr(read_file(OUT), "ligne a ajouter : src/pico8_allocs.c 3\n") != NULL);
 }
 
 int main(void) {
@@ -185,9 +168,8 @@ int main(void) {
     test_listed_file_missing_from_objects_fails();
     test_no_object_is_an_error_not_a_pass();
     test_darwin_underscore_symbols_are_counted();
-    test_unlisted_transient_reference_fails_with_the_line_to_add();
-    test_two_transient_references_and_a_free_count_three();
-    test_darwin_underscore_transient_symbol_is_counted();
+    test_reference_to_the_old_transient_symbol_counts_zero();
+    test_header_only_list_passes_then_fails_on_a_new_allocation();
     assert(system("rm -rf " DIR) == 0);
     printf("test_alloc_guard: all tests passed\n");
     return 0;

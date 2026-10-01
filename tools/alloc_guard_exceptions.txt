@@ -1,7 +1,5 @@
 # Liste d'exceptions du verrou (tools/alloc_guard.sh, make alloc-guard) : une
 # ligne `<source> <appels>` par fichier du cœur qui appelle encore malloc,
-# calloc, realloc ou free, ou qui référence la poignée pico8_zone_transitoire,
-# avec le nombre d'appels relevé sur son objet.
-# Égalité stricte : chaque conversion baisse ce compte à la main, dans le
-# commit qui la fait ; un fichier qui n'alloue plus quitte la liste.
-src/pico8_zone_transitoire.c 3
+# calloc, realloc ou free, avec le nombre d'appels relevé sur son objet.
+# Égalité stricte. La liste est vide : aucun fichier du cœur n'alloue par la
+# libc, et une ligne ajoutée ici serait une exception permanente.
