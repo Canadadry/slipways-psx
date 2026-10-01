@@ -73,5 +73,7 @@ void pico8_slot_zone_init(pico8_slot_zone_t *zone, const char *name,
  * release. */
 unsigned char *pico8_slot_zone_alloc(pico8_slot_zone_t *zone);
 void pico8_slot_zone_release(pico8_slot_zone_t *zone, unsigned char *slot);
+/* Places prises et pas encore rendues. */
+size_t pico8_slot_zone_taken(const pico8_slot_zone_t *zone);
 
 #endif

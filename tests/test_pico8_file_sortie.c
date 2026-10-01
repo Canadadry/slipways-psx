@@ -291,6 +291,16 @@ static void expect_freed_crash(const char *name) {
     free(err);
 }
 
+static void expect_poison_crash(const char *name) {
+    char *err;
+    int status = run_child(name, &err);
+    if (WEXITSTATUS(status) == 0 || strstr(err, "use-after-poison") == NULL) {
+        fprintf(stderr, "%s: attendu use-after-poison, sortie %d\n%s", name, WEXITSTATUS(status), err);
+        assert(0 && "une liste lue apres le vidage de la file doit planter sous ASan");
+    }
+    free(err);
+}
+
 static void expect_fatal(const char *name, const char *message) {
     char *err;
     int status = run_child(name, &err);
@@ -313,7 +323,7 @@ int main(int argc, char **argv) {
     expect_clean("he_alive_until_flush");
     expect_freed_crash("he_released_at_flush");
     expect_clean("le_alive_until_flush");
-    expect_freed_crash("le_released_at_flush");
+    expect_poison_crash("le_released_at_flush");
     expect_clean("he_outside_hv_or_without_member");
     expect_clean("jl_enqueues_registered");
     expect_clean("shutdown_drains");

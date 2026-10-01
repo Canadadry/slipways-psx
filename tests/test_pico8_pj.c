@@ -267,7 +267,9 @@ static pico8_pj_t *start_game(void) {
     pico8_input_init(&input);
     pico8_dispatch_set_input(&input);
     pico8__init();
+    pico8_cart_vider_file_sortie();
     pico8_eu(NULL);
+    pico8_cart_vider_file_sortie();
     assert(pico8_ju() != NULL);
     return pico8_ju();
 }

@@ -23,6 +23,7 @@
 #include "pico8_tech_gate.h"
 #include "pico8_ui_button.h"
 #include "pico8_zone_frame.h"
+#include "pico8_zone_interface.h"
 
 /* `kw` as `lq:mn` reads it, `{qe=kw.qe}` (`mu` is never read there), in
  * the frame zone. */
@@ -54,7 +55,7 @@ void pico8_jo_hb(pico8_jo_t *self) {
     }
     by_list = self->by;
 
-    place = pico8_ui_button_place(PICO8_SORTE_RANGEE);
+    place = pico8_zone_interface_place(PICO8_SORTE_RANGEE);
     lq_result = pico8_jo_ex(place, jy_list, qe, mu, pico8_fixed_from_int(by_list != NULL ? by_list->count : 0),
                             pico8_fixed_from_int(0));
     if (lq_result == NULL) {

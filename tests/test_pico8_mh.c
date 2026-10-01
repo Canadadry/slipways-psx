@@ -193,6 +193,7 @@ static void test_year_with_a_message(void) {
     run_t run;
 
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     run_start(&run);
     track(&run, year_box(3425));
     run.h = fnv(run.h, draw_hash());
@@ -206,6 +207,7 @@ static void test_year_without_a_message(void) {
     run_t run;
 
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     run_start(&run);
     track(&run, year_box(3400));
     run.h = fnv(run.h, draw_hash());
@@ -223,6 +225,7 @@ static void test_two_years_in_a_row(void) {
     int i;
 
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     run_start(&run);
     first = year_box(3424);
     track(&run, first);
@@ -251,6 +254,7 @@ static void set_c_(pico8_pj_t *ju, int on) {
 static pico8_pj_t *game_ju(void) {
     pico8_eu(NULL);
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     assert(pico8_ju() != NULL);
     return pico8_ju();
 }
@@ -297,6 +301,7 @@ static void test_defaults_match_the_parsed_spec(void) {
     const pico8_mh_t *box;
 
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     box = year_box(3400);
     assert(box->def == &pico8_mh_def);
     assert(box->def->fa == pico8_fixed_from_int(14));
@@ -330,6 +335,7 @@ static void test_mh_is_a_struct_registered_under_ev(void) {
     int i;
 
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     from_pj = year_box(3400);
     keys.lh = counting_lh;
     generic = pico8_mh_new(&keys);
@@ -354,6 +360,7 @@ static void test_mh_nil_lh_key_reads_absent(void) {
     pico8_mh_t *box;
 
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     keys.lh = NULL;
     box = pico8_mh_new(&keys);
     assert(box->lh == NULL);
@@ -409,6 +416,7 @@ static void test_year_box_keeps_its_label(void) {
     uint32_t want;
 
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     (void)year_box(3424);
     want = draw_hash();
     scribble_frame_zone();

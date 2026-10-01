@@ -116,3 +116,9 @@ void pico8_slot_zone_release(pico8_slot_zone_t *zone, unsigned char *slot) {
     zone->taken[i] = 0;
     POISON(slot, zone->slot_size);
 }
+
+size_t pico8_slot_zone_taken(const pico8_slot_zone_t *zone) {
+    size_t n = 0;
+    for (size_t i = 0; i < zone->count; i++) n += zone->taken[i];
+    return n;
+}

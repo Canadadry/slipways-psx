@@ -22,7 +22,32 @@ static void bump_release(const pico8_zone_choisie_t *z, unsigned char *p) {
 
 pico8_zone_choisie_t pico8_zone_choisie_bump(pico8_bump_zone_t *bump) {
     assert(bump != NULL && "poignee sur une zone absente");
-    pico8_zone_choisie_t z = {bump_alloc, bump_grow, bump_release, bump};
+    pico8_zone_choisie_t z = {bump_alloc, bump_grow, bump_release, bump, NULL};
+    return z;
+}
+
+static unsigned char *slot_alloc(const pico8_zone_choisie_t *z, size_t n) {
+    assert(n <= z->slot->slot_size && "zone a places : bloc plus grand qu'une place");
+    return pico8_slot_zone_alloc(z->slot);
+}
+
+static unsigned char *slot_grow(const pico8_zone_choisie_t *z, unsigned char *p,
+                                size_t old_n, size_t new_n) {
+    (void)z;
+    (void)p;
+    (void)old_n;
+    (void)new_n;
+    assert(0 && "zone a places : une place ne grandit pas");
+    return NULL;
+}
+
+static void slot_release(const pico8_zone_choisie_t *z, unsigned char *p) {
+    if (p != NULL) pico8_slot_zone_release(z->slot, p);
+}
+
+pico8_zone_choisie_t pico8_zone_choisie_slot(pico8_slot_zone_t *slot) {
+    assert(slot != NULL && "poignee sur une zone absente");
+    pico8_zone_choisie_t z = {slot_alloc, slot_grow, slot_release, NULL, slot};
     return z;
 }
 

@@ -15,6 +15,7 @@
 #include "pico8_ui_button.h"
 #include "pico8_vec.h"
 #include "pico8_wormhole.h"
+#include "pico8_zone_interface.h"
 #include "pico8_zone_transitoire.h"
 
 static int g_ui_up = 0;
@@ -31,7 +32,7 @@ pico8_ents_t *pico8_ui_le_shared(void) {
 }
 
 pico8_ents_t *pico8_ui_le_new(void) {
-    const pico8_zone_choisie_t *place = pico8_ui_button_place(PICO8_SORTE_LE);
+    const pico8_zone_choisie_t *place = pico8_zone_interface_place(PICO8_SORTE_LE);
     pico8_ents_t *le = (pico8_ents_t *)pico8_zone_alloc(place, sizeof *le);
 
     pico8_ents_init(le, place);

@@ -22,6 +22,7 @@
 #include "pico8_vec.h"
 #include "pico8_str.h"
 #include "pico8_zone_frame.h"
+#include "pico8_zone_interface.h"
 
 /* The most items a row of `ix` or `ha` holds. */
 #define PICO8_MENU_ROW_CAP 4
@@ -255,7 +256,7 @@ static void pico8_ix2_hb_dispatch(pico8_js_t *self) {
     item = pico8_lq_cell_fixed(pico8_fixed_from_int(cb_count > 0 ? 24 : 37));
     keys.items = &item;
     keys.count = 1;
-    place = pico8_ui_button_place(PICO8_SORTE_RANGEE);
+    place = pico8_zone_interface_place(PICO8_SORTE_RANGEE);
     self->lq = pico8_lq_new(place, &keys);
     if (self->lq_place != NULL) {
         pico8_zone_arene_rendre(self->lq_place);

@@ -85,6 +85,18 @@ static int case_bump_full(void) {
     return 0;
 }
 
+static int case_slot_taken_follows(void) {
+    assert(pico8_slot_zone_taken(&slots) == 0);
+    unsigned char *a = pico8_slot_zone_alloc(&slots);
+    unsigned char *b = pico8_slot_zone_alloc(&slots);
+    assert(pico8_slot_zone_taken(&slots) == 2);
+    pico8_slot_zone_release(&slots, a);
+    assert(pico8_slot_zone_taken(&slots) == 1 && "rendre une place la decompte");
+    pico8_slot_zone_release(&slots, b);
+    assert(pico8_slot_zone_taken(&slots) == 0);
+    return 0;
+}
+
 static int case_slot_full(void) {
     for (int i = 0; i < 5; i++) pico8_slot_zone_alloc(&slots);
     return 0;
@@ -99,6 +111,7 @@ static const struct {
     {"slot_stale_after_release", case_slot_stale_after_release},
     {"bump_overflow_past_object", case_bump_overflow_past_object},
     {"bump_full", case_bump_full},
+    {"slot_taken_follows", case_slot_taken_follows},
     {"slot_full", case_slot_full},
 };
 
@@ -175,6 +188,7 @@ int main(int argc, char **argv) {
     }
     self_path = argv[0];
     expect_clean("control");
+    expect_clean("slot_taken_follows");
     expect_poison_crash("bump_stale_after_reset");
     expect_poison_crash("slot_stale_after_release");
     expect_poison_crash("bump_overflow_past_object");

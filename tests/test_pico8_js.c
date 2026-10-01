@@ -27,19 +27,23 @@
 #include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_layout.h"
+#include "../src/pico8_map_tables.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_menu.h"
 #include "../src/pico8_msgbox.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_display.h"
 #include "../src/pico8_research.h"
+#include "../src/pico8_research_display.h"
 #include "../src/pico8_score_panel.h"
 #include "../src/pico8_slipway.h"
+#include "../src/pico8_str.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_tech_gate.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
+#include "../src/pico8_zone_frame.h"
 #include "../src/pico8_zone_interface.h"
 #include "../src/pico8_zone_transitoire.h"
 
@@ -1264,6 +1268,15 @@ static void *built(pico8_js_keys_t keys) {
     return pico8_js_new(&keys);
 }
 
+/* Folded, then out of `hv` and its place given back, as a frame would:
+ * the buttons fold_keys builds one after another hold no place at once. */
+static uint32_t fold_and_drop(uint32_t h, pico8_js_t *b) {
+    h = fold_js_members(h, b);
+    pico8_he(&b->header);
+    pico8_cart_vider_file_sortie();
+    return h;
+}
+
 /* Each optional key unset, the fixed ones and `my` given at zero, `h_`
  * false, TROU-23, an `h_` copied from an `lq` (written on the member: no
  * key builds it), a row's keys as `lq(x)`'s argument. */
@@ -1280,61 +1293,61 @@ static uint32_t fold_keys(uint32_t h, pico8_lq_t *row) {
         assert(!b->has_fg && b->px == NULL && !b->has_trade && !b->has_en && !b->has__jo_fe_od);
         assert(b->ra == NULL && b->qf == NULL && b->hb == NULL && !b->has_my && b->_cr_t == NULL);
         assert(b->_jo_fe_pt == NULL && b->_jo_fe_b == NULL);
-        h = fold_js_members(h, b);
+        h = fold_and_drop(h, b);
     }
     k = none;
     k.has_fg = 1;
     b = built(k);
     assert(b->has_fg && b->fg == 0);
-    h = fold_js_members(h, b);
+    h = fold_and_drop(h, b);
     k = none;
     k.has_trade = 1;
     b = built(k);
     assert(b->has_trade && b->trade == 0);
-    h = fold_js_members(h, b);
+    h = fold_and_drop(h, b);
     k = none;
     k.has_en = 1;
     b = built(k);
     assert(b->has_en && b->en == 0);
-    h = fold_js_members(h, b);
+    h = fold_and_drop(h, b);
     k = none;
     k.has__jo_fe_od = 1;
     b = built(k);
     assert(b->has__jo_fe_od && b->_jo_fe_od == 0);
-    h = fold_js_members(h, b);
+    h = fold_and_drop(h, b);
     for (i = 0; i < 2; i++) {
         b = built(keyed_my(none, NULL));
         assert(my_state(b) == 1);
-        h = fold_js_members(h, b);
+        h = fold_and_drop(h, b);
     }
     k = none;
     k.has_h_ = 1;
     k.h_is_false = 1;
     b = built(k);
     assert(b->has_h_ && b->h_ == NULL);
-    h = fold_js_members(h, b);
+    h = fold_and_drop(h, b);
 
     k = none;
     k.has_h_ = 1;
     b = built(k);
     assert(b->has_h_ && is_lq(b->h_) && b->h_->w == 0);
-    h = fold_js_members(h, b);
+    h = fold_and_drop(h, b);
     k = none;
     k.has_jb = 1;
     b = built(k);
     assert(b->jb != NULL && is_of_class(b->jb, pico8_jb_struct_class()));
-    h = fold_js_members(h, b);
+    h = fold_and_drop(h, b);
     k = none;
     b = built(k);
     assert(b->lq != NULL && is_lq(b->lq));
-    h = fold_js_members(h, b);
+    h = fold_and_drop(h, b);
 
     k = none;
     k.has_h_ = 1;
     b = built(k);
     b->h_ = pico8_lq_copy(&pico8_zone_transitoire, row);
     assert(b->has_h_ && is_lq(b->h_) && b->h_ != row);
-    h = fold_js_members(h, b);
+    h = fold_and_drop(h, b);
 
     from_keys[0] = pico8_lq_cell_string("from a list");
     from_keys[1] = pico8_lq_cell_fixed(pico8_fixed_from_int(3));
@@ -1344,7 +1357,7 @@ static uint32_t fold_keys(uint32_t h, pico8_lq_t *row) {
     k.lq_row = &from;
     b = built(k);
     assert(b->lq != NULL && is_lq(b->lq) && row_count(b->lq) == 2);
-    return fold_js_members(h, b);
+    return fold_and_drop(h, b);
 }
 
 static uint32_t members_title_and_game(void) {
@@ -1853,6 +1866,51 @@ static void test_le_places_after_restart(void) {
     assert(le_places() == title);
 }
 
+/* The largest buttons the game builds, each in one js place: every tech's
+ * row of `cr` (its `oy` bubble), the « invented » row once every tech is,
+ * and every project's row as `jo:fe` builds it (its `lq`, its cost, its
+ * `hp:jb` bubble). */
+static void test_largest_buttons_fit_their_places(void) {
+    pico8_hy_t *fm;
+    int k;
+    int i;
+
+    start_game();
+    fm = pico8_fm_hy();
+    fm->jk = pico8_fixed_from_int(9999);
+    for (i = 0; i < PICO8_NB_COUNT; i++) {
+        fm->ew = pico8_fixed_from_int(pico8_nb_table[i].lv);
+        pico8_cr();
+        one_frame();
+    }
+    for (i = 0; i < PICO8_NB_COUNT; i++) {
+        invent((char *)pico8_nb_table[i].px);
+    }
+    pico8_cr();
+    assert(js_of(ok_le()->items[ok_le()->count - 1])->jb->ls_count == PICO8_NB_COUNT);
+    one_frame();
+
+    for (k = 1; k <= pico8_gb_count(); k++) {
+        pico8_hp_t *b = pico8_gb_at(k);
+        pico8_lq_cell_t lq_items[8];
+        pico8_lq_keys_t lq;
+        pico8_lq_cell_t h_item = pico8_lq_cell_string(
+            pico8_concat2(pico8_zone_frame(), "$", pico8_tostr_fixed(pico8_zone_frame(), pico8_hp_od(b))));
+        pico8_lq_keys_t h = {.items = &h_item, .count = 1};
+        pico8_js_keys_t keys = {.has_h_ = 1, .h_row = &h, .has_jb = 1};
+
+        if (b->lq != NULL) {
+            lq = pico8_lq_keys_of_row(b->lq, lq_items, 8);
+            keys.lq_row = &lq;
+        } else {
+            keys.lq_copy = pico8_hp_lq(b);
+        }
+        keys.jb_row = pico8_hp_jb(b);
+        pico8_he(&pico8_js_new(&keys)->header);
+        one_frame();
+    }
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -1893,6 +1951,7 @@ int main(void) {
     in_fresh_child(test_ix2_row_places);
     in_fresh_child(test_le_places_come_back);
     in_fresh_child(test_le_places_after_restart);
+    in_fresh_child(test_largest_buttons_fit_their_places);
 
     printf("test_pico8_js: all tests passed\n");
     return 0;

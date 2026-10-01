@@ -593,7 +593,7 @@ $(TMP_DIR)/test_pico8_zone: $(call asan_objs,tests/test_pico8_zone.c src/pico8_z
 $(TMP_DIR)/test_pico8_zone_choisie: $(call asan_objs,tests/test_pico8_zone_choisie.c src/pico8_ents.c src/pico8_ptrs.c src/pico8_str.c src/pico8_collect.c src/pico8_geom.c src/pico8_vec.c src/pico8_fixed.c src/pico8_zone_choisie.c src/pico8_zone_transitoire.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_zone_interface: $(call asan_objs,tests/test_pico8_zone_interface.c src/pico8_zone_interface.c src/pico8_zone_choisie.c src/pico8_zone_transitoire.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_zone_interface: $(call asan_objs,tests/test_pico8_zone_interface.c src/pico8_zone_interface.c src/pico8_zone_choisie.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_pico8_file_sortie: $(call asan_objs,tests/test_pico8_file_sortie.c $(ENGINE_SRCS)) | $(TMP_DIR)

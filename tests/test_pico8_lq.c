@@ -39,6 +39,7 @@
 #include "../src/pico8_zone.h"
 #include "../src/pico8_zone_choisie.h"
 #include "../src/pico8_zone_frame.h"
+#include "../src/pico8_zone_interface.h"
 #include "../src/pico8_zone_transitoire.h"
 
 /* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
@@ -998,7 +999,7 @@ static void test_jo_ex_largest_row_fits_a_place(void) {
     assert(is != NULL && is->count == 2 && "the most wants a project has; a longer `i` needs a bigger row place");
     assert(pico8_r_lookup("w", &r_w));
     o = pico8_fixed_from_int(r_w);
-    place = pico8_ui_button_place(PICO8_SORTE_RANGEE);
+    place = pico8_zone_interface_place(PICO8_SORTE_RANGEE);
     assert(pico8_jo_ex(place, is, &o, pico8_fixed_from_int(5), 0, 0) != NULL);
     pico8_zone_arene_rendre(place);
 }

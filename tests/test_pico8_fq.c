@@ -130,6 +130,7 @@ static void test_ldown_with_a_true_my_removes_the_veil(void) {
     int ticks = 0;
 
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     veil = veil_with_my(1);
     h = fold_veil(h, veil);
     while (ents_listed(pico8_hv(), veil)) {
@@ -158,6 +159,7 @@ static void test_bare_veil_swallows_the_click_and_stays(void) {
     int i;
 
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     veil = pico8_fq_new(NULL);
     for (i = 0; i < IDLE_TICKS; i++) {
         if (i == LDOWN_TICK) {
@@ -179,6 +181,7 @@ static void test_false_my_keeps_the_veil(void) {
     int i;
 
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     veil = veil_with_my(0);
     for (i = 0; i < IDLE_TICKS; i++) {
         if (i == LDOWN_TICK) {
@@ -249,6 +252,7 @@ static void test_defaults_match_the_parsed_spec(void) {
     pico8_fq_t *veil;
 
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     veil = pico8_fq_new(NULL);
     assert(veil->def == &pico8_fq_def);
     assert(veil->def->fa == pico8_fixed_from_int(14));
@@ -277,6 +281,7 @@ static void test_fq_is_a_struct_registered_under_hd(void) {
     int i;
 
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     keys.my = pico8_de_my();
     built = pico8_fq_new(&keys);
     generic = pico8_fq_new(NULL);

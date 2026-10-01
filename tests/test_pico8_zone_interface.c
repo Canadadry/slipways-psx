@@ -10,7 +10,6 @@
 
 #include "../src/pico8_zone_choisie.h"
 #include "../src/pico8_zone_interface.h"
-#include "../src/pico8_zone_transitoire.h"
 
 #define STDERR_LOG "tmp/test_pico8_zone_interface_stderr.txt"
 
@@ -55,12 +54,17 @@ static int case_place_dead_after_release(void) {
 }
 
 static int case_js_place_full(void) {
-    pico8_zone_alloc(pico8_zone_interface_place(PICO8_SORTE_JS), 5 * 1024);
+    pico8_zone_alloc(pico8_zone_interface_place(PICO8_SORTE_JS), 6240);
+    return 0;
+}
+
+static int case_fq_zone_full(void) {
+    for (int i = 0; i <= 4; i++) pico8_zone_interface_place(PICO8_SORTE_FQ);
     return 0;
 }
 
 static int case_rangee_place_full(void) {
-    pico8_zone_alloc(pico8_zone_interface_place(PICO8_SORTE_RANGEE), 1184);
+    pico8_zone_alloc(pico8_zone_interface_place(PICO8_SORTE_RANGEE), 1192);
     return 0;
 }
 
@@ -73,6 +77,7 @@ static const struct {
     {"place_dead_after_release", case_place_dead_after_release},
     {"js_place_full", case_js_place_full},
     {"rangee_place_full", case_rangee_place_full},
+    {"fq_zone_full", case_fq_zone_full},
 };
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
@@ -117,12 +122,12 @@ static void expect_clean(const char *name) {
     free(err);
 }
 
-static void expect_freed_crash(const char *name) {
+static void expect_poison_crash(const char *name) {
     char *err;
     int status = run_child(name, &err);
-    if (WEXITSTATUS(status) == 0 || strstr(err, "heap-use-after-free") == NULL) {
-        fprintf(stderr, "%s: attendu heap-use-after-free, sortie %d\n%s", name, WEXITSTATUS(status), err);
-        assert(0 && "une place rendue a la transitoire puis lue doit planter sous ASan");
+    if (WEXITSTATUS(status) == 0 || strstr(err, "use-after-poison") == NULL) {
+        fprintf(stderr, "%s: attendu use-after-poison, sortie %d\n%s", name, WEXITSTATUS(status), err);
+        assert(0 && "une place rendue puis lue doit planter sous ASan");
     }
     free(err);
 }
@@ -133,13 +138,12 @@ static void expect_fatal(const char *name, const char *message) {
     if (WEXITSTATUS(status) != 3 || strstr(err, message) == NULL) {
         fprintf(stderr, "%s: attendu sortie 3 et \"%s\", sortie %d\n%s",
                 name, message, WEXITSTATUS(status), err);
-        assert(0 && "une place trop petite doit appeler pico8_fatal");
+        assert(0 && "une place trop petite ou une zone pleine doit appeler pico8_fatal");
     }
     free(err);
 }
 
 int main(int argc, char **argv) {
-    pico8_zone_interface_adosser(&pico8_zone_transitoire);
     if (argc == 2) {
         for (size_t i = 0; i < CASE_COUNT; i++)
             if (strcmp(argv[1], CASES[i].name) == 0) return CASES[i].run();
@@ -149,9 +153,10 @@ int main(int argc, char **argv) {
     self_path = argv[0];
     expect_clean("live_places_follow_takes");
     expect_clean("place_alive_until_released");
-    expect_freed_crash("place_dead_after_release");
+    expect_poison_crash("place_dead_after_release");
     expect_fatal("js_place_full", "zone place js pleine, limite ");
     expect_fatal("rangee_place_full", "zone place rangee pleine, limite ");
+    expect_fatal("fq_zone_full", "zone interface fq pleine, limite 4 places");
     remove(STDERR_LOG);
     printf("test_pico8_zone_interface: all tests passed\n");
     return 0;

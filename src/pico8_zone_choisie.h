@@ -14,11 +14,17 @@ typedef struct pico8_zone_choisie {
                            size_t old_n, size_t new_n);
     void (*release)(const struct pico8_zone_choisie *z, unsigned char *p);
     pico8_bump_zone_t *bump; /* NULL hors zone a pointeur montant */
+    pico8_slot_zone_t *slot; /* NULL hors zone a places */
 } pico8_zone_choisie_t;
 
 /* Poignee sur une zone deja initialisee, qui doit lui survivre. Rendre n'y
  * fait rien : la memoire repart au reset de la zone. */
 pico8_zone_choisie_t pico8_zone_choisie_bump(pico8_bump_zone_t *bump);
+
+/* Poignee sur une zone a places deja initialisee, qui doit lui survivre :
+ * chaque bloc est une place entiere. alloc(n) exige n <= taille de place,
+ * grow est refuse, rendre rend la place. */
+pico8_zone_choisie_t pico8_zone_choisie_slot(pico8_slot_zone_t *slot);
 
 /* Memoire non initialisee ; pico8_fatal si la zone est pleine. */
 unsigned char *pico8_zone_alloc(const pico8_zone_choisie_t *z, size_t n);

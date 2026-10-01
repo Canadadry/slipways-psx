@@ -10,15 +10,9 @@
 #include "pico8_ke.h"
 #include "pico8_layout.h"
 #include "pico8_zone_interface.h"
-#include "pico8_zone_transitoire.h"
 
 static int g_js_up = 0;
 static int g_fq_up = 0;
-
-const pico8_zone_choisie_t *pico8_ui_button_place(pico8_sorte_t sorte) {
-    pico8_zone_interface_adosser(&pico8_zone_transitoire);
-    return pico8_zone_interface_place(sorte);
-}
 
 static void pico8_ui_button_rendre_js(pico8_struct_header_t *self) {
     pico8_js_t *js = (pico8_js_t *)self;
@@ -89,7 +83,7 @@ static const pico8_struct_class_t g_js_struct_class = {
 };
 
 static pico8_js_t *pico8_js_struct_new(const pico8_js_keys_t *keys) {
-    const pico8_zone_choisie_t *place = pico8_ui_button_place(PICO8_SORTE_JS);
+    const pico8_zone_choisie_t *place = pico8_zone_interface_place(PICO8_SORTE_JS);
     pico8_js_t *self = (pico8_js_t *)pico8_zone_alloc(place, sizeof *self);
 
     self->place = place;
@@ -326,7 +320,7 @@ static const pico8_struct_class_t g_fq_struct_class = {
 };
 
 static pico8_fq_t *pico8_fq_struct_new(const pico8_fq_keys_t *keys) {
-    const pico8_zone_choisie_t *place = pico8_ui_button_place(PICO8_SORTE_FQ);
+    const pico8_zone_choisie_t *place = pico8_zone_interface_place(PICO8_SORTE_FQ);
     pico8_fq_t *self = (pico8_fq_t *)pico8_zone_alloc(place, sizeof *self);
 
     self->place = place;

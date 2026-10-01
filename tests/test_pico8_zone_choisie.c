@@ -267,7 +267,7 @@ static void no_grow_release(const pico8_zone_choisie_t *z, unsigned char *p) {
 }
 
 static int case_arena_spares_neighbour(void) {
-    static const pico8_zone_choisie_t places = {first_neighbour, NULL, no_grow_release, NULL};
+    static const pico8_zone_choisie_t places = {first_neighbour, NULL, no_grow_release, NULL, NULL};
     unsigned char *next = (unsigned char *)neighbours + ARENA_SIZE;
     memset(next, 7, ARENA_SIZE);
     const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&places, "place essai", ARENA_SIZE);
@@ -277,10 +277,59 @@ static int case_arena_spares_neighbour(void) {
     return 0;
 }
 
+#define SLOT_SIZE 64
+
+PICO8_SLOT_ZONE_STORAGE(slot_cells, slot_taken, SLOT_SIZE, 2);
+
+static pico8_slot_zone_t slots;
+static pico8_zone_choisie_t slot_handle;
+
+static int case_slot_handle_round_trip(void) {
+    unsigned char *a = pico8_zone_alloc(&slot_handle, SLOT_SIZE);
+    unsigned char *b = pico8_zone_alloc(&slot_handle, 1);
+    memset(a, 4, SLOT_SIZE);
+    *b = 5;
+    assert(pico8_slot_zone_taken(&slots) == 2);
+    pico8_zone_release(&slot_handle, a);
+    assert(pico8_slot_zone_taken(&slots) == 1 && "rendre par la poignee rend la place");
+    assert(*b == 5);
+    pico8_zone_release(&slot_handle, NULL);
+    assert(pico8_slot_zone_taken(&slots) == 1);
+    return 0;
+}
+
+static int case_slot_handle_too_big(void) {
+    pico8_zone_alloc(&slot_handle, SLOT_SIZE + 1);
+    return 0;
+}
+
+static int case_slot_handle_no_grow(void) {
+    pico8_zone_grow(&slot_handle, pico8_zone_alloc(&slot_handle, 8), 8, 16);
+    return 0;
+}
+
+static int case_slot_handle_stale_after_release(void) {
+    unsigned char *a = pico8_zone_alloc(&slot_handle, SLOT_SIZE);
+    memset(a, 4, SLOT_SIZE);
+    pico8_zone_release(&slot_handle, a);
+    sink = a[0];
+    return 0;
+}
+
+static int case_slot_handle_full(void) {
+    for (int i = 0; i < 3; i++) pico8_zone_alloc(&slot_handle, 8);
+    return 0;
+}
+
 static const struct {
     const char *name;
     int (*run)(void);
 } CASES[] = {
+    {"slot_handle_round_trip", case_slot_handle_round_trip},
+    {"slot_handle_too_big", case_slot_handle_too_big},
+    {"slot_handle_no_grow", case_slot_handle_no_grow},
+    {"slot_handle_stale_after_release", case_slot_handle_stale_after_release},
+    {"slot_handle_full", case_slot_handle_full},
     {"arena_alive_until_released", case_arena_alive_until_released},
     {"arena_dead_after_release", case_arena_dead_after_release},
     {"arena_full", case_arena_full},
@@ -361,6 +410,16 @@ static void expect_freed_crash(const char *name) {
     free(err);
 }
 
+static void expect_assert(const char *name, const char *message) {
+    char *err;
+    int status = run_child(name, &err);
+    if (WEXITSTATUS(status) == 0 || strstr(err, message) == NULL) {
+        fprintf(stderr, "%s: attendu un assert \"%s\", sortie %d\n%s", name, message, WEXITSTATUS(status), err);
+        assert(0 && "la poignee d'une zone a places refuse ce qu'une place ne tient pas");
+    }
+    free(err);
+}
+
 static void expect_fatal(const char *name, const char *message) {
     char *err;
     int status = run_child(name, &err);
@@ -375,6 +434,8 @@ static void expect_fatal(const char *name, const char *message) {
 int main(int argc, char **argv) {
     pico8_bump_zone_init(&bump, "essai-liste", bump_cells, CAPACITY);
     handle = pico8_zone_choisie_bump(&bump);
+    pico8_slot_zone_init(&slots, "essai-places", slot_cells, slot_taken, SLOT_SIZE, 2);
+    slot_handle = pico8_zone_choisie_slot(&slots);
     if (argc == 2) {
         for (size_t i = 0; i < CASE_COUNT; i++)
             if (strcmp(argv[1], CASES[i].name) == 0) return CASES[i].run();
@@ -383,6 +444,11 @@ int main(int argc, char **argv) {
     }
     self_path = argv[0];
     expect_clean("bump_grow_keeps_order");
+    expect_clean("slot_handle_round_trip");
+    expect_assert("slot_handle_too_big", "plus grand qu'une place");
+    expect_assert("slot_handle_no_grow", "une place ne grandit pas");
+    expect_poison_crash("slot_handle_stale_after_release");
+    expect_fatal("slot_handle_full", "zone essai-places pleine, limite 2 places");
     expect_clean("bump_read_before_reset");
     expect_poison_crash("bump_stale_after_reset");
     expect_fatal("bump_grow_past_capacity", "zone essai-liste pleine, limite 1024 octets");

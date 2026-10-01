@@ -24,4 +24,4 @@ static void transient_release(const pico8_zone_choisie_t *z, unsigned char *p) {
 }
 
 const pico8_zone_choisie_t pico8_zone_transitoire = {
-    transient_alloc, transient_grow, transient_release, NULL};
+    transient_alloc, transient_grow, transient_release, NULL, NULL};

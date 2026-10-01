@@ -3,68 +3,75 @@
 #include <assert.h>
 #include <stddef.h>
 
-/* Au doigt mouille : la struct de la sorte et ce qu'elle possede. */
+#include "pico8_zone_sizes.h"
+
+/* Taille : la plus grande place que le jeu construit, en-tete d'arene
+ * compris (x86-64). Nombre : ce qui vit a la fois au pire de la frame. */
+#define JS_SIZE 6240u
+#define JS_COUNT 24u
+#define FQ_SIZE 256u
+#define FQ_COUNT 4u
+#define MH_SIZE 4624u
+#define MH_COUNT 6u
+#define IV_SIZE 320u
+#define IV_COUNT 128u
+#define RANGEE_SIZE 1192u
+#define RANGEE_COUNT 100u
+#define LE_SIZE 216u
+#define LE_COUNT 16u
+
+#define SORTE_BYTES(size, count) \
+    (PICO8_ZONE_CELLS(size) * sizeof(pico8_zone_cell_t) * (count) + (count))
+
+typedef char pico8_zone_interface_exceeded[
+    (SORTE_BYTES(JS_SIZE, JS_COUNT) + SORTE_BYTES(FQ_SIZE, FQ_COUNT) +
+     SORTE_BYTES(MH_SIZE, MH_COUNT) + SORTE_BYTES(IV_SIZE, IV_COUNT) +
+     SORTE_BYTES(RANGEE_SIZE, RANGEE_COUNT) + SORTE_BYTES(LE_SIZE, LE_COUNT)
+     <= PICO8_ZONE_INTERFACE_BYTES) ? 1 : -1];
+
+PICO8_SLOT_ZONE_STORAGE(js_cells, js_taken, JS_SIZE, JS_COUNT);
+PICO8_SLOT_ZONE_STORAGE(fq_cells, fq_taken, FQ_SIZE, FQ_COUNT);
+PICO8_SLOT_ZONE_STORAGE(mh_cells, mh_taken, MH_SIZE, MH_COUNT);
+PICO8_SLOT_ZONE_STORAGE(iv_cells, iv_taken, IV_SIZE, IV_COUNT);
+PICO8_SLOT_ZONE_STORAGE(rangee_cells, rangee_taken, RANGEE_SIZE, RANGEE_COUNT);
+PICO8_SLOT_ZONE_STORAGE(le_cells, le_taken, LE_SIZE, LE_COUNT);
+
 static const struct {
+    const char *zone_name;
     const char *place_name;
+    pico8_zone_cell_t *cells;
+    unsigned char *taken;
     size_t size;
+    size_t count;
 } SORTES[PICO8_SORTE_COUNT] = {
-    [PICO8_SORTE_JS] = {"place js", 5u * 1024u},
-    [PICO8_SORTE_FQ] = {"place fq", 256u},
-    [PICO8_SORTE_MH] = {"place mh", 4616u},
-    [PICO8_SORTE_IV] = {"place iv", 320u},
-    [PICO8_SORTE_RANGEE] = {"place rangee", 1184u},
-    [PICO8_SORTE_LE] = {"place le", 208u},
+    [PICO8_SORTE_JS] = {"interface js", "place js", js_cells, js_taken, JS_SIZE, JS_COUNT},
+    [PICO8_SORTE_FQ] = {"interface fq", "place fq", fq_cells, fq_taken, FQ_SIZE, FQ_COUNT},
+    [PICO8_SORTE_MH] = {"interface mh", "place mh", mh_cells, mh_taken, MH_SIZE, MH_COUNT},
+    [PICO8_SORTE_IV] = {"interface iv", "place iv", iv_cells, iv_taken, IV_SIZE, IV_COUNT},
+    [PICO8_SORTE_RANGEE] = {"interface rangee", "place rangee", rangee_cells, rangee_taken, RANGEE_SIZE,
+                            RANGEE_COUNT},
+    [PICO8_SORTE_LE] = {"interface le", "place le", le_cells, le_taken, LE_SIZE, LE_COUNT},
 };
 
-static const pico8_zone_choisie_t *g_adossement;
-static int g_vivantes[PICO8_SORTE_COUNT];
+static pico8_slot_zone_t g_zones[PICO8_SORTE_COUNT];
+static pico8_zone_choisie_t g_handles[PICO8_SORTE_COUNT];
+static int g_ready;
 
-static pico8_sorte_t sorte_of(const pico8_zone_choisie_t *z);
-
-static unsigned char *place_alloc(const pico8_zone_choisie_t *z, size_t n) {
-    pico8_sorte_t sorte = sorte_of(z);
-    assert(g_adossement != NULL && "zone interface sans adossement");
-    assert(n <= SORTES[sorte].size && "zone interface : on n'y prend qu'une place entiere, pas plus");
-    g_vivantes[sorte]++;
-    return pico8_zone_alloc(g_adossement, SORTES[sorte].size);
-}
-
-static unsigned char *place_grow(const pico8_zone_choisie_t *z, unsigned char *p,
-                                 size_t old_n, size_t new_n) {
-    (void)z;
-    (void)p;
-    (void)old_n;
-    (void)new_n;
-    assert(0 && "zone interface : une place ne grandit pas");
-    return NULL;
-}
-
-static void place_release(const pico8_zone_choisie_t *z, unsigned char *p) {
-    if (p == NULL) return;
-    g_vivantes[sorte_of(z)]--;
-    pico8_zone_release(g_adossement, p);
-}
-
-static const pico8_zone_choisie_t g_handles[PICO8_SORTE_COUNT] = {
-    [PICO8_SORTE_JS] = {place_alloc, place_grow, place_release, NULL},
-    [PICO8_SORTE_FQ] = {place_alloc, place_grow, place_release, NULL},
-    [PICO8_SORTE_MH] = {place_alloc, place_grow, place_release, NULL},
-    [PICO8_SORTE_IV] = {place_alloc, place_grow, place_release, NULL},
-    [PICO8_SORTE_RANGEE] = {place_alloc, place_grow, place_release, NULL},
-    [PICO8_SORTE_LE] = {place_alloc, place_grow, place_release, NULL},
-};
-
-static pico8_sorte_t sorte_of(const pico8_zone_choisie_t *z) {
-    assert(z >= g_handles && z < g_handles + PICO8_SORTE_COUNT && "poignee hors de la zone interface");
-    return (pico8_sorte_t)(z - g_handles);
-}
-
-void pico8_zone_interface_adosser(const pico8_zone_choisie_t *adossement) {
-    g_adossement = adossement;
+/* Paresseuse : pico8_slot_zone_init empoisonne le stockage sous ASan, ce
+ * qu'un initialiseur statique ne ferait pas. */
+static void init_once(void) {
+    if (g_ready) return;
+    for (int s = 0; s < PICO8_SORTE_COUNT; s++) {
+        pico8_slot_zone_init(&g_zones[s], SORTES[s].zone_name, SORTES[s].cells, SORTES[s].taken,
+                             SORTES[s].size, SORTES[s].count);
+        g_handles[s] = pico8_zone_choisie_slot(&g_zones[s]);
+    }
+    g_ready = 1;
 }
 
 const pico8_zone_choisie_t *pico8_zone_interface(pico8_sorte_t sorte) {
     assert(sorte >= 0 && sorte < PICO8_SORTE_COUNT);
+    init_once();
     return &g_handles[sorte];
 }
 
@@ -74,5 +81,6 @@ const pico8_zone_choisie_t *pico8_zone_interface_place(pico8_sorte_t sorte) {
 
 int pico8_zone_interface_vivantes(pico8_sorte_t sorte) {
     assert(sorte >= 0 && sorte < PICO8_SORTE_COUNT);
-    return g_vivantes[sorte];
+    init_once();
+    return (int)pico8_slot_zone_taken(&g_zones[sorte]);
 }
