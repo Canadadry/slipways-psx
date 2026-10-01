@@ -264,21 +264,18 @@ pico8_iv_t *pico8_iv_new(const pico8_iv_keys_t *keys) {
 typedef struct {
     const pico8_pz_frame_t *frame;
     pico8_vec_t bp;
-    pico8_vec_t *ra_heap;
+    pico8_vec_t ra;
 } pico8_pz_ctx_t;
 
-/* One row of `bs` onto a copy of its keys: the shared `ra`, its own `qf`,
+/* One row of `bs` onto a copy of its keys: the common `ra`, its own `qf`,
  * `fa` from `p.ca`; then the button. */
 static pico8_js_t *pico8_pz_step(pico8_pz_ctx_t *ctx, const pico8_js_keys_t *row) {
     pico8_js_keys_t b = *row;
+    pico8_vec_t qf = ctx->bp;
     pico8_vec_t gq;
 
-    /* Every item's "ra" is the same vector object, as in Lua -- not a copy
-     * per item. */
-    b.ra = ctx->ra_heap;
-
-    b.qf = malloc(sizeof *b.qf);
-    *b.qf = ctx->bp;
+    b.ra = &ctx->ra;
+    b.qf = &qf;
 
     /* TROU-9 */
     if (ctx->frame->has_ca) {
@@ -335,8 +332,7 @@ void pico8_pz(const pico8_pz_frame_t *frame, const pico8_js_keys_t *bs, int n) {
 
     ctx.frame = frame;
     ctx.bp = pico8_vec_add(ra, pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0)));
-    ctx.ra_heap = malloc(sizeof *ctx.ra_heap);
-    *ctx.ra_heap = ra;
+    ctx.ra = ra;
 
     ok = pico8_ok();
     pico8_ui_cj(ok);

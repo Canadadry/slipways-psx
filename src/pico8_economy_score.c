@@ -261,6 +261,21 @@ void pico8_economy_set_dk(const pico8_js_t *dk) {
     g_dk = dk;
 }
 
+void pico8_economy_dk_quitte(const pico8_struct_header_t *e) {
+    static pico8_js_t copie;
+
+    if (g_dk == NULL || &g_dk->header != e) {
+        return;
+    }
+    memset(&copie, 0, sizeof copie);
+    copie.px = g_dk->px;
+    copie.has_trade = g_dk->has_trade;
+    copie.trade = g_dk->trade;
+    copie.has_en = g_dk->has_en;
+    copie.en = g_dk->en;
+    g_dk = &copie;
+}
+
 pico8_fixed_t pico8_kr(pico8_struct_header_t *p) {
     pico8_fixed_t kr = pico8_fixed_flr(pico8_fixed_sub(pico8_db(p), pico8_da(p)));
     pico8_jo_t *jo;

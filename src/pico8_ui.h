@@ -34,8 +34,8 @@ typedef struct {
     pico8_vec_t *qa;
     pico8_ui_ic_t *ic;
     pico8_ui_ic_t ic_own;
-    pico8_struct_header_t *o_; /* borrowed, never freed */
-    pico8_struct_header_t *gj; /* borrowed, never freed */
+    pico8_struct_header_t *o_; /* borrowed; nil once the exit queue gives it back */
+    pico8_struct_header_t *gj; /* borrowed; nil once the exit queue gives it back */
     pico8_struct_header_t *lheld; /* borrowed, never freed */
     pico8_bg_t *rheld; /* borrowed, never freed */
 } pico8_ui_t;

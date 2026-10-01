@@ -111,6 +111,7 @@ static void oublier(const pico8_struct_header_t *e) {
     if (ju != NULL && (const pico8_struct_header_t *)ju->ed == e) {
         ju->ed = NULL;
     }
+    pico8_economy_dk_quitte(e);
 }
 
 void pico8_cart_vider_file_sortie(void) {

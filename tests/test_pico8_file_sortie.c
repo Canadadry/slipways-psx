@@ -12,6 +12,7 @@
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_dispatch_context.h"
+#include "../src/pico8_economy_score.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_file_sortie.h"
 #include "../src/pico8_gfx.h"
@@ -20,6 +21,7 @@
 #include "../src/pico8_msgbox.h"
 #include "../src/pico8_score_panel.h"
 #include "../src/pico8_ui.h"
+#include "../src/pico8_ui_button.h"
 
 #define STDERR_LOG "tmp/test_pico8_file_sortie_stderr.txt"
 
@@ -102,16 +104,24 @@ static int case_he_outside_hv_or_without_member(void) {
     return 0;
 }
 
+static int registered_with_rendre(void) {
+    const pico8_ents_t *hv = pico8_hv();
+    int n = 0;
+    for (int i = 0; i < hv->count; i++) n += hv->items[i]->cls->rendre != NULL;
+    return n;
+}
+
 static int case_jl_enqueues_registered(void) {
     load_cart_and_start();
     pico8_mh_t *counted = new_entity(&counted_cls);
     pico8_mh_t *kept = new_entity(&kept_cls);
     pico8_lt(&counted->header);
     pico8_lt(&kept->header);
+    int expected = registered_with_rendre();
     pico8_jl();
-    assert(pico8_file_sortie_compte() == 1 && "jl enfile chaque inscrit qui a de quoi rendre");
+    assert(pico8_file_sortie_compte() == expected && "jl enfile chaque inscrit qui a de quoi rendre");
     pico8_he(&counted->header);
-    assert(pico8_file_sortie_compte() == 1 && "he apres jl : l'entite n'est plus dans hv, pas deux fois");
+    assert(pico8_file_sortie_compte() == expected && "he apres jl : l'entite n'est plus dans hv, pas deux fois");
     assert(rendus == 0 && "jl ne rend rien avant la fin de la frame");
     pico8_cart_load();
     assert(rendus == 1 && pico8_file_sortie_compte() == 0 && "cart_load vide la file");
@@ -158,6 +168,27 @@ static int case_update60_after_forgetting(void) {
     return 0;
 }
 
+/* `eu()` drops the title, and the difficulty button with it; `dk` still
+ * reads it for the whole game. */
+static int case_dk_outlives_its_button(void) {
+    load_cart_and_start();
+    const pico8_ents_t *hd = pico8_cv("hd");
+    pico8_js_t *nj = NULL;
+    for (int i = 0; i < hd->count && nj == NULL; i++)
+        if (hd->items[i]->cls == pico8_js_struct_class() && ((pico8_js_t *)hd->items[i])->has_en)
+            nj = (pico8_js_t *)hd->items[i];
+    assert(nj != NULL);
+    const char *px = nj->px;
+    pico8_fixed_t trade = nj->trade;
+    pico8_fixed_t en = nj->en;
+    pico8_eu(nj);
+    pico8__update60();
+    pico8__draw();
+    const pico8_js_t *dk = pico8_dk();
+    assert(dk != NULL && dk->px == px && dk->has_trade && dk->trade == trade && dk->has_en && dk->en == en);
+    return 0;
+}
+
 static int case_full(void) {
     pico8_mh_t *e = new_entity(&counted_cls);
     for (int i = 0; i <= PICO8_FILE_SORTIE_CAP; i++) pico8_file_sortie_mettre(&e->header);
@@ -175,6 +206,7 @@ static const struct {
     {"shutdown_drains", case_shutdown_drains},
     {"flush_forgets_references", case_flush_forgets_references},
     {"update60_after_forgetting", case_update60_after_forgetting},
+    {"dk_outlives_its_button", case_dk_outlives_its_button},
     {"full", case_full},
 };
 
@@ -256,6 +288,7 @@ int main(int argc, char **argv) {
     expect_clean("shutdown_drains");
     expect_clean("flush_forgets_references");
     expect_clean("update60_after_forgetting");
+    expect_clean("dk_outlives_its_button");
     expect_fatal("full", "file de sortie pleine, limite 256");
     remove(STDERR_LOG);
     printf("test_pico8_file_sortie: all tests passed\n");

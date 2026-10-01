@@ -529,7 +529,7 @@ static uint32_t fold_lq(uint32_t h, const pico8_lq_t *lq) {
 }
 
 /* What `pz(pj.cr, bs)` left in `ok.le`: the `ep` head row, then one row per
- * tech, all at `fa` = `ca`, sharing one `ra` = `hi`, `qf` stepped by `gq`. */
+ * tech, all at `fa` = `ca`, each with the `ra` = `hi`, `qf` stepped by `gq`. */
 static uint32_t fold_cr_le(uint32_t h, const char **head) {
     const pico8_ents_t *le;
     const pico8_lq_t *lq;
@@ -549,7 +549,7 @@ static uint32_t fold_cr_le(uint32_t h, const char **head) {
     for (i = 0; i < le->count; i++) {
         const pico8_js_t *b = as_js(le->items[i]);
         pico8_vec_t qf = vec_of(b->qf);
-        assert(b->ra == ra);
+        assert(b->ra != NULL && b->ra->x == ra->x && b->ra->y == ra->y);
         assert(b->fa == pico8_fixed_from_int(10));
         assert(qf.x == 0 && qf.y == pico8_fixed_from_int(11 * (i + 1)));
         h = fold_fixed_member(h, b->fa);

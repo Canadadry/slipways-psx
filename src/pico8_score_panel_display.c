@@ -229,6 +229,8 @@ void pico8_pj_ph(pico8_pj_t *self) {
         pico8_lq_keys_t lq2 = {0};
         pico8_js_t *made1;
         pico8_js_t *made2;
+        const pico8_vec_t ra1 = pico8_vec_v(pico8_fixed_from_int(51), pico8_fixed_from_int(100));
+        const pico8_vec_t ra2 = pico8_vec_v(pico8_fixed_from_int(39), pico8_fixed_from_int(100));
 
         (void)pico8_fq_new(NULL);
 
@@ -237,9 +239,7 @@ void pico8_pj_ph(pico8_pj_t *self) {
         lq1.count = 1;
         spec1.has_fa = 1;
         spec1.fa = pico8_fixed_from_int(15);
-        /* TROU-7 */
-        spec1.ra = malloc(sizeof *spec1.ra);
-        *spec1.ra = pico8_vec_v(pico8_fixed_from_int(51), pico8_fixed_from_int(100));
+        spec1.ra = &ra1;
         spec1.lq_row = &lq1;
         spec1.has_my = 1;
         spec1.my = pico8_init_field_value();
@@ -251,9 +251,7 @@ void pico8_pj_ph(pico8_pj_t *self) {
         lq2.count = 1;
         spec2.has_fa = 1;
         spec2.fa = pico8_fixed_from_int(15);
-        /* TROU-7 */
-        spec2.ra = malloc(sizeof *spec2.ra);
-        *spec2.ra = pico8_vec_v(pico8_fixed_from_int(39), pico8_fixed_from_int(100));
+        spec2.ra = &ra2;
         spec2.lq_row = &lq2;
         spec2.has_my = 1;
         spec2.my = pico8_pj_de_js_my_dispatch;

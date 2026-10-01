@@ -40,6 +40,7 @@
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
+#include "../src/pico8_zone_interface.h"
 #include "../src/pico8_zone_transitoire.h"
 
 /* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
@@ -395,12 +396,17 @@ static uint32_t fold_le(uint32_t h, const char *label) {
     return h;
 }
 
-/* The `ra` every row of one `pz` call shares. */
+static int same_vec(const pico8_vec_t *a, const pico8_vec_t *b) {
+    return a != NULL && b != NULL && a->x == b->x && a->y == b->y;
+}
+
+/* The `ra` every row of one `pz` call starts from: each button holds a
+ * copy of it. */
 static void check_shared_ra(void) {
     const pico8_ents_t *le = ok_le();
     int i;
     for (i = 1; le != NULL && i < le->count; i++) {
-        assert(js_of(le->items[i])->ra == js_of(le->items[0])->ra);
+        assert(same_vec(js_of(le->items[i])->ra, js_of(le->items[0])->ra));
     }
 }
 
@@ -591,7 +597,7 @@ static void test_title(void) {
             if (first == NULL) {
                 first = e;
             }
-            assert(js_of(e)->ra == js_of(first)->ra);
+            assert(same_vec(js_of(e)->ra, js_of(first)->ra));
             h = fold_button(h, e);
             n++;
         }
@@ -790,8 +796,8 @@ static pico8_js_keys_t keyed_my(pico8_js_keys_t keys, pico8_js_fn my) {
     return keys;
 }
 
-/* `ph` moves `ra` 0.4 of the way to `qf`, then jumps the last unit, always
- * onto a fresh vector. */
+/* `ph` moves `ra` 0.4 of the way to `qf`, then jumps the last unit, never
+ * through the vector the keys carried. */
 static void test_ph(void) {
     uint32_t h = 2166136261u;
     void *b;
@@ -805,8 +811,8 @@ static void test_ph(void) {
 
         keys.qf = vec_at(40, -20);
         b = build(keys, "go", NULL);
+        first = keys.ra;
     }
-    first = js_of(b)->ra;
     first_at = vec_of(first);
     while (steps < 40) {
         pico8_vec_t before = vec_of(js_of(b)->ra);
@@ -1168,13 +1174,13 @@ static uint32_t fold_le_members(uint32_t h) {
     return h;
 }
 
-/* One `pz` call: one `ra` for all, a `qf` each. */
+/* One `pz` call: one `ra` value for all, a `qf` each. */
 static void check_one_pz(void *const *b, int n) {
     int i;
     int j;
 
     for (i = 0; i < n; i++) {
-        assert(js_of(b[i])->ra != NULL && js_of(b[i])->ra == js_of(b[0])->ra);
+        assert(same_vec(js_of(b[i])->ra, js_of(b[0])->ra));
         for (j = 0; j < i; j++) {
             assert(js_of(b[i])->qf != NULL && js_of(b[i])->qf != js_of(b[j])->qf);
         }
@@ -1702,6 +1708,60 @@ static void in_fresh_child(void (*test)(void)) {
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
 }
 
+static int js_places(void) {
+    return pico8_zone_interface_vivantes(PICO8_SORTE_JS);
+}
+
+/* The pause menu's buttons take a place each; sliding to their `qf` takes
+ * none; `cj` takes them off, and the next frame gives the places back. */
+static void test_js_places_come_back(void) {
+    void *ix[4];
+    void *last;
+    pico8_vec_t before;
+    int base;
+    int open;
+    int i;
+
+    start_game();
+    one_frame();
+    base = js_places();
+    assert(ix_buttons(ix) == 4);
+    call_my(ix[3]);
+    open = js_places();
+    printf("[places] js: %d before the pause menu, %d open\n", base, open);
+    assert(open == base + ok_le()->count && ok_le()->count > 0);
+    last = ok_le()->items[ok_le()->count - 1];
+    before = vec_of(js_of(last)->ra);
+    for (i = 0; i < 30; i++) {
+        one_frame();
+        assert(js_places() == open && "a sliding button takes no place per tick");
+    }
+    assert(!same_vec(js_of(last)->ra, &before) && "the menu slid");
+    pico8_ui_cj(pico8_ok());
+    one_frame();
+    assert(js_places() == base);
+}
+
+/* `jl()` hands every button it drops to the exit queue: a new title after
+ * a game and its pause menu holds as many places as the first title. */
+static void test_js_places_after_restart(void) {
+    void *ix[4];
+    int title;
+
+    start_title();
+    one_frame();
+    title = js_places();
+    assert(title > 0);
+    start_game();
+    one_frame();
+    assert(ix_buttons(ix) == 4);
+    call_my(ix[3]);
+    one_frame();
+    start_title();
+    one_frame();
+    assert(js_places() == title);
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -1737,6 +1797,8 @@ int main(void) {
     in_fresh_child(test_cb_writes_every_e_);
     in_fresh_child(test_panels_are_structs);
     in_fresh_child(test_pj_are_structs);
+    in_fresh_child(test_js_places_come_back);
+    in_fresh_child(test_js_places_after_restart);
 
     printf("test_pico8_js: all tests passed\n");
     return 0;

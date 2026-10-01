@@ -21,6 +21,7 @@
 #include "../src/pico8_struct.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
+#include "../src/pico8_zone_interface.h"
 
 #define MY_TRUE_TICKS 6
 #define MY_TRUE_SEQUENCE_HASH 0xA6A43C27u
@@ -291,6 +292,28 @@ static void test_fq_is_a_struct_registered_under_hd(void) {
     assert(((const pico8_fq_t *)built)->my == pico8_de_my());
 }
 
+/* A veil takes a place; once its `my` lifts `p_` and `dg` takes it out,
+ * emptying the exit queue gives the place back. */
+static void test_veil_gives_its_place_back(void) {
+    pico8_fq_t *veil;
+    int base;
+    int ticks = 0;
+
+    pico8_jl();
+    pico8_cart_vider_file_sortie();
+    base = pico8_zone_interface_vivantes(PICO8_SORTE_FQ);
+    veil = veil_with_my(1);
+    assert(pico8_zone_interface_vivantes(PICO8_SORTE_FQ) == base + 1);
+    assert(ldown(veil));
+    while (ents_listed(pico8_hv(), veil)) {
+        pico8_dg();
+        assert(++ticks < 1000);
+    }
+    assert(pico8_zone_interface_vivantes(PICO8_SORTE_FQ) == base + 1 && "out of hv, still read this frame");
+    pico8_cart_vider_file_sortie();
+    assert(pico8_zone_interface_vivantes(PICO8_SORTE_FQ) == base);
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -309,6 +332,7 @@ int main(void) {
     test_hover_loop_on_the_veil();
     test_defaults_match_the_parsed_spec();
     test_fq_is_a_struct_registered_under_hd();
+    test_veil_gives_its_place_back();
 
     printf("test_pico8_fq: all tests passed\n");
     return 0;

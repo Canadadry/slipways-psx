@@ -10,6 +10,7 @@
 #include "pico8_research.h"
 #include "pico8_struct.h"
 #include "pico8_vec.h"
+#include "pico8_zone_choisie.h"
 
 typedef struct pico8_js pico8_js_t;
 
@@ -20,11 +21,15 @@ typedef void (*pico8_js_fn)(pico8_js_t *self);
 /* A button: every key of its construction table, copied (`js(b)`), then
  * what `js:pq` built from them. `my` and `hb` are closures the table
  * carried, called as fields; `_cr_t` and `_jo_fe_pt`/`_b`/`_od` are what
- * the `my` closures of `cr` and `jo:fe` captured, not cart fields. `ra` may
- * be the vector every button of one `pz` shares: never written through.
- * Nothing frees the struct: TROU-7. */
+ * the `my` closures of `cr` and `jo:fe` captured, not cart fields. `ra` and
+ * `qf` are NULL (nil) or point at `ra_box`/`qf_box`, copies of the values the
+ * keys carried. The struct, its `kq`, `lq`, `h_` and `jb` live in `place`,
+ * given back by the exit queue once `he` takes the button out. */
 struct pico8_js {
     pico8_struct_header_t header;
+    const pico8_zone_choisie_t *place;
+    pico8_vec_t ra_box;
+    pico8_vec_t qf_box;
     const pico8_js_def_t *def;
     pico8_fixed_t fa;
     pico8_lq_t *lq;
@@ -73,8 +78,8 @@ typedef struct {
     const pico8_lq_keys_t *h_row;
     int has_jb; /* present without `jb_row`: an empty `jb` (TROU-23) */
     const pico8_jb_row_t *jb_row;
-    pico8_vec_t *ra;
-    pico8_vec_t *qf;
+    const pico8_vec_t *ra;
+    const pico8_vec_t *qf;
     int has_my; /* present, and a NULL `my` is `false` */
     pico8_js_fn my;
     pico8_js_fn hb;
@@ -93,7 +98,7 @@ typedef struct {
 } pico8_js_keys_t;
 
 /* `keys` is read, not kept (NULL: none). The struct registers itself
- * through `lt`, and nothing frees it. */
+ * through `lt`. */
 pico8_js_t *pico8_js_new(const pico8_js_keys_t *keys);
 
 /* `keys` is read, not kept (NULL: none). */
@@ -115,9 +120,11 @@ typedef struct pico8_fq pico8_fq_t;
 typedef int (*pico8_fq_my_fn)(pico8_fq_t *self);
 
 /* `my` is the closure the construction table carried, which `mv` calls as
- * a field, not a method. Nothing frees the struct: TROU-7. */
+ * a field, not a method. The struct lives in `place`, given back by the
+ * exit queue once `he` takes the veil out. */
 struct pico8_fq {
     pico8_struct_header_t header;
+    const pico8_zone_choisie_t *place;
     const pico8_fq_def_t *def;
     pico8_fq_my_fn my;
     int p_;
@@ -137,7 +144,7 @@ typedef struct {
 } pico8_fq_keys_t;
 
 /* `keys` is read, not kept (NULL: none). The struct registers itself
- * through `lt`, and nothing frees it. */
+ * through `lt`. */
 pico8_fq_t *pico8_fq_new(const pico8_fq_keys_t *keys);
 
 pico8_down_t pico8_fq_ldown(pico8_fq_t *self);

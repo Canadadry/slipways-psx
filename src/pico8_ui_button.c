@@ -1,6 +1,5 @@
 #include "pico8_ui_button.h"
 
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_audio.h"
@@ -10,10 +9,26 @@
 #include "pico8_geom.h"
 #include "pico8_ke.h"
 #include "pico8_layout.h"
+#include "pico8_zone_interface.h"
 #include "pico8_zone_transitoire.h"
 
 static int g_js_up = 0;
 static int g_fq_up = 0;
+
+/* The one place of the core that backs the interface zone with the
+ * transitional heap; idempotent, called before any place is taken. */
+static const pico8_zone_choisie_t *pico8_ui_button_place(pico8_sorte_t sorte) {
+    pico8_zone_interface_adosser(&pico8_zone_transitoire);
+    return pico8_zone_interface_place(sorte);
+}
+
+static void pico8_ui_button_rendre_js(pico8_struct_header_t *self) {
+    pico8_zone_arene_rendre(((pico8_js_t *)self)->place);
+}
+
+static void pico8_ui_button_rendre_fq(pico8_struct_header_t *self) {
+    pico8_zone_arene_rendre(((pico8_fq_t *)self)->place);
+}
 
 static int pico8_ui_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
@@ -67,11 +82,14 @@ static const pico8_struct_class_t g_js_struct_class = {
     .has_hb = pico8_js_has_hb,
     .ldown = pico8_js_ldown_dispatch,
     .states = {[PICO8_STATE_PH] = pico8_js_ph_dispatch},
+    .rendre = pico8_ui_button_rendre_js,
 };
 
 static pico8_js_t *pico8_js_struct_new(const pico8_js_keys_t *keys) {
-    pico8_js_t *self = malloc(sizeof *self);
+    const pico8_zone_choisie_t *place = pico8_ui_button_place(PICO8_SORTE_JS);
+    pico8_js_t *self = (pico8_js_t *)pico8_zone_alloc(place, sizeof *self);
 
+    self->place = place;
     pico8_ke_struct_init(&self->header, &g_js_struct_class, pico8_js_def.me, pico8_js_def.t);
     self->lq = NULL;
     self->mb = 0;
@@ -105,8 +123,14 @@ static pico8_js_t *pico8_js_struct_new(const pico8_js_keys_t *keys) {
         if (keys->has_fa) {
             self->fa = keys->fa;
         }
-        self->ra = keys->ra;
-        self->qf = keys->qf;
+        if (keys->ra != NULL) {
+            self->ra_box = *keys->ra;
+            self->ra = &self->ra_box;
+        }
+        if (keys->qf != NULL) {
+            self->qf_box = *keys->qf;
+            self->qf = &self->qf_box;
+        }
         self->my = keys->my;
         self->has_my = keys->has_my;
         self->hb = keys->hb;
@@ -155,14 +179,15 @@ pico8_js_t *pico8_js_new(const pico8_js_keys_t *keys) {
 
 /* `lq(x)` of the cart for `js.lq`: built from a row's keys, else a copy of
  * an `lq`, else an empty row. */
-static pico8_lq_t *pico8_js_lq(const pico8_lq_t *copy, const pico8_lq_keys_t *row) {
+static pico8_lq_t *pico8_js_lq(const pico8_zone_choisie_t *place, const pico8_lq_t *copy,
+                               const pico8_lq_keys_t *row) {
     if (row != NULL) {
-        return pico8_lq_new(&pico8_zone_transitoire, row);
+        return pico8_lq_new(place, row);
     }
     if (copy == NULL) {
-        return pico8_lq_new(&pico8_zone_transitoire, NULL);
+        return pico8_lq_new(place, NULL);
     }
-    return pico8_lq_copy(&pico8_zone_transitoire, copy);
+    return pico8_lq_copy(place, copy);
 }
 
 void pico8_js_pq(pico8_js_t *self, const pico8_js_keys_t *keys) {
@@ -175,20 +200,20 @@ void pico8_js_pq(pico8_js_t *self, const pico8_js_keys_t *keys) {
         keys = &none;
     }
 
-    self->lq = pico8_js_lq(keys->lq_copy, keys->lq_row);
+    self->lq = pico8_js_lq(self->place, keys->lq_copy, keys->lq_row);
     self->mb = pico8_fixed_add(self->lq->w, pico8_fixed_from_int(2));
-    self->header.kq = pico8_qz(&pico8_zone_transitoire, pico8_fixed_from_int(0), pico8_fixed_from_int(-1), self->mb, pico8_fixed_from_int(11));
+    self->header.kq = pico8_qz(self->place, pico8_fixed_from_int(0), pico8_fixed_from_int(-1), self->mb, pico8_fixed_from_int(11));
 
     /* TROU-23 */
     if (keys->h_row != NULL || (keys->has_h_ && !keys->h_is_false)) {
-        self->h_ = pico8_lq_new(&pico8_zone_transitoire, keys->h_row);
+        self->h_ = pico8_lq_new(self->place, keys->h_row);
         self->has_h_ = 1;
     } else if (keys->has_h_) {
         self->h_ = NULL;
         self->has_h_ = 1;
     }
     if (keys->jb_row != NULL || keys->has_jb) {
-        self->jb = pico8_jb_new(&pico8_zone_transitoire, keys->jb_row);
+        self->jb = pico8_jb_new(self->place, keys->jb_row);
     }
 }
 
@@ -203,10 +228,8 @@ void pico8_js_ph(pico8_js_t *self) {
         pico8_vec_t d = pico8_vec_sub(qf, ra);
         pico8_fixed_t len_sq = pico8_vec_len_sq(d);
         pico8_vec_t delta = (len_sq <= pico8_fixed_from_int(1)) ? d : pico8_vec_mul(d, PICO8_FIXED_LIT(0x00006666, 0.4));
-        /* TROU-7 */
-        pico8_vec_t *heap_ra = malloc(sizeof *heap_ra);
-        *heap_ra = pico8_vec_add(ra, delta);
-        self->ra = heap_ra;
+        self->ra_box = pico8_vec_add(ra, delta);
+        self->ra = &self->ra_box;
     }
 }
 
@@ -295,11 +318,14 @@ static pico8_down_t pico8_fq_ldown_dispatch(pico8_struct_header_t *self, pico8_v
 static const pico8_struct_class_t g_fq_struct_class = {
     .hd = pico8_hd_true,
     .ldown = pico8_fq_ldown_dispatch,
+    .rendre = pico8_ui_button_rendre_fq,
 };
 
 static pico8_fq_t *pico8_fq_struct_new(const pico8_fq_keys_t *keys) {
-    pico8_fq_t *self = malloc(sizeof *self);
+    const pico8_zone_choisie_t *place = pico8_ui_button_place(PICO8_SORTE_FQ);
+    pico8_fq_t *self = (pico8_fq_t *)pico8_zone_alloc(place, sizeof *self);
 
+    self->place = place;
     pico8_ke_struct_init(&self->header, &g_fq_struct_class, pico8_fq_def.me, pico8_fq_def.t);
     self->def = &pico8_fq_def;
     self->header.fa = &self->def->fa;
