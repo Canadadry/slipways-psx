@@ -21,10 +21,10 @@ Les tableaux croissants ne sont pas réécrits : ils gardent leur forme et prenn
 
 ## 3. Règles communes
 
-- **Limites au doigt mouillé.** Pas de mesure préalable ; une limite se change en un chiffre. Seul garde-fou : la somme des zones tient dans **1,5 Mo**. C'est ce qui reste sur PSX une fois retirés le noyau, les bibliothèques du SDK, le code du jeu compilé MIPS (~210–256 Ko mesurés), la pile et la mémoire PICO-8.
+- **Limites au doigt mouillé.** Pas de mesure préalable ; une limite se change en un chiffre. Seul garde-fou : la somme des zones tient dans **1,5 Mo**. Si relever une limite ferait dépasser cette somme, l'étape s'arrête et le signale à l'humain (zone, limite voulue, somme actuelle) : elle ne déplace pas le plafond et ne rogne pas une autre zone pour faire de la place. C'est ce qui reste sur PSX une fois retirés le noyau, les bibliothèques du SDK, le code du jeu compilé MIPS (~210–256 Ko mesurés), la pile et la mémoire PICO-8.
 - **Limite atteinte = erreur fatale.** Le cœur appelle une fonction `pico8_fatal(message)` fournie par la plateforme. Sur PC : message nommant la zone et sa limite sur `stderr`, puis `exit`. Sur PSX : plus tard. Le jeu n'est **pas** modifié, il n'y a ni refus silencieux ni fin de partie forcée.
-- **Invariant de chaque commit :** `make test-all` passe, et tous les `*.sha256` de `tests/e2e/` restent identiques. Retirer `malloc` ne change pas un pixel. Une limite trop basse fait échouer un e2e avec le message de la zone, ce qui suffit à la remonter.
-- **Accès après la durée de vie.** Sous ASan (build de test), la zone frame empoisonne sa mémoire à chaque remise à zéro (`ASAN_POISON_MEMORY_REGION`), et les zones à places empoisonnent une place rendue. Un objet utilisé hors de sa durée de vie fait planter le rejeu, au lieu de corrompre la mémoire en silence. Les e2e tournent sous ce build au moins une fois par étape.
+- **Invariant de chaque commit :** `make test-all` et `make sanitize-net` passent, et tous les `*.sha256` de `tests/e2e/` restent identiques. Retirer `malloc` ne change pas un pixel. Une limite trop basse fait échouer un e2e avec le message de la zone, ce qui suffit à la remonter.
+- **Accès après la durée de vie.** Sous ASan (build de test), toute remise à zéro empoisonne la mémoire de la zone (`ASAN_POISON_MEMORY_REGION`) — la zone frame à chaque frame, la zone partie à chaque nouvelle partie —, et les zones à places empoisonnent une place rendue. Un objet utilisé hors de sa durée de vie fait planter le rejeu, au lieu de corrompre la mémoire en silence. L'oracle est `make sanitize-net` (existant, vert au départ), qui rejoue tous les e2e sous ASan+UBSan.
 
 ## 4. Classement des sites
 
@@ -34,12 +34,29 @@ Chaque étape classe les sites qu'elle touche dans sa zone, en suivant le tablea
 
 Chacune est une PRD et un commit (ou une courte suite de commits), et respecte l'invariant du §3.
 
-0. **Socle.** `pico8_fatal`, avec son implémentation PC dans le rejeu et le backend raylib. Un module de zone générique (zone frame à pointeur montant, zone à places de taille fixe), avec son empoisonnement ASan et ses tests unitaires. Une cible qui lance les e2e sous ASan. Aucun site du jeu n'est encore converti.
+**Prérequis, avant de lancer `plan-pilot` :** un humain joue une partie complète et chargée dans raylib, sur le build actuel, et sa session enregistrée entre au filet avec son `sha256` posé avant toute conversion. Le plafond de frames des e2e (`tools/e2e_limits.sh`, 600 au plus) ne peut pas la contenir : le prérequis tranche aussi comment elle en est exemptée, en restant couverte par `make test-all` et `make sanitize-net`. On ne la raccourcit pas pour la faire entrer. Les e2e sont des sessions courtes : ils ne remplissent ni la zone partie ni la zone particules d'une fin de partie, et ils ne recyclent pas assez de places pour qu'une référence périmée se voie à l'image. Cette partie y est donc soumise au même invariant que les autres (image identique, propre sous `make sanitize-net`). Un `pico8_fatal` qu'elle déclenche relève la limite nommée, consignée dans la note « Découvert ».
+
+0a. **Socle — outils.** Une PRD.
+   - `pico8_fatal`, avec son implémentation PC dans le rejeu et le backend raylib.
+   - Un module de zone générique (zone frame à pointeur montant, zone à places de taille fixe), avec son empoisonnement ASan et ses tests unitaires. Critère de ces tests : sous ASan, un pointeur gardé d'avant une remise à zéro (frame précédente, partie précédente), ou vers une place rendue, fait encore planter **après** que la zone a servi de nouvelles allocations. Sinon la réutilisation masque le bug, et l'oracle du §4 ne tranche rien.
+   - Une vérification mécanique (build ou `make test`) qui échoue si la somme des tailles de zones dépasse 1,5 Mo.
+   - Le **verrou**, dans `make test` : il échoue si un objet du cœur référence `malloc`, `calloc`, `realloc` ou `free` (`nm -u` sur les objets de `CORE_SRCS`), sauf pour les fichiers d'une liste d'exceptions qui contient au départ tous les fichiers du cœur qui allouent, chacun avec son nombre d'appels d'allocation restants. Ce nombre ne peut que baisser : un cliquet, qui bloque toute réintroduction dans un fichier à moitié converti. On tranche ici le sort des fichiers d'hôte classés dans le cœur (`pico8_input.c`, `pico8_coverage.c`) : sortis de `CORE_SRCS`, ou exceptions permanentes justifiées ligne par ligne.
+0b. **Socle — zones choisies par l'appelant.** Une PRD, après 0a : le verrou est déjà en place.
+   - Les tableaux croissants partagés (`ents`, `ptrs`, ceux des panneaux `lq`) prennent leur capacité dans une zone désignée par leur propriétaire, et les fonctions partagées qui fabriquent textes et boîtes (`tostr`, concaténations, boîtes `vec`) dans une zone désignée par l'appelant : l'identifiant d'une planète, fait par les mêmes fonctions qu'un texte de menu, vit toute la partie. Les étapes 1 à 4 n'ont plus qu'à choisir une zone par propriétaire ou par appel ; une liste temporaire (filtrée, concaténée) va en zone frame.
+   - Une zone **transitoire**, adossée à la libc, reproduit le comportement actuel (l'appelant libère encore) : c'est elle que passe tout appelant pas encore converti. Ses allocations sont comptées par le cliquet comme les autres ; les étapes 1 à 4 en retirent leurs appelants, l'étape 5 la supprime.
+   - Pendant 0a et 0b, aucun site du jeu n'est encore converti.
 1. **Zone frame.** Textes et petites boîtes. Les `free` correspondants disparaissent.
 2. **Zone interface.**
 3. **Zone particules.**
-4. **Zone partie,** tableaux croissants compris ; remise à zéro sur nouvelle partie (`pause_restart` le couvre).
-5. **Verrou.** Une cible de `make test` échoue si un objet du cœur référence `malloc`, `calloc`, `realloc` ou `free` (`nm -u` sur les objets de `CORE_SRCS`). Les fichiers d'hôte encore classés dans le cœur (`pico8_input.c`, `pico8_coverage.c`) sont soit sortis de `CORE_SRCS`, soit listés dans une liste d'exclusion, avec une justification par ligne. `TROU-7` est retiré de `docs/trous-de-portage.md` et des sources qui le citent, et l'entrée `malloc` du `README` est retirée.
+
+   Ces deux étapes créent un point de libération qui n'existe pas aujourd'hui (TROU-7 : panneaux, messages et particules fuient). Elles ne sont finies que si chaque sorte convertie rend sa place, ce qui se montre : après une session scriptée, le nombre de places vivantes revient à son niveau de départ. Dans une zone à places, un `pico8_fatal` est d'abord lu comme une place jamais rendue ; la limite n'est relevée qu'une fois ce cas écarté, et la note « Découvert » dit lequel des deux c'était.
+
+4. **Zone partie,** et ses propres tableaux croissants ; remise à zéro sur nouvelle partie. L'étape n'est finie que si `pause_restart` passe `make sanitize-net` sous cet empoisonnement.
+5. **Clôture.** La liste d'exceptions du verrou ne contient plus que les fichiers d'hôte justifiés. `TROU-7` est retiré de `docs/trous-de-portage.md` et des sources qui le citent, et l'entrée `malloc` du `README` est retirée.
+
+Une étape de 1 à 4 est finie quand les sites de sa zone sont convertis et que le compte du cliquet a baissé d'autant dans chaque fichier concerné. Beaucoup de fichiers allouent pour plusieurs zones : ils ne sortent de la liste qu'avec la dernière.
+
+Chaque étape se termine en ajoutant sous sa propre entrée une courte note « Découvert » : les sites classés autrement que dans le §2 (par la règle du §4 ou par un crash ASan), la zone attribuée à chaque propriétaire, les limites relevées, et les comptes du cliquet qu'elle laisse. Si un constat contredit le tableau du §2, l'étape corrige le tableau dans le même commit.
 
 ## 6. Hors périmètre
 
