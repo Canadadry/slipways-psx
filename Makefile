@@ -89,8 +89,23 @@
 # make screencast-viewer -> idem pour le visualiseur d'enregistrement
 #                       (les deux exigent make raylib-vendor-setup au préalable)
 # make psx-hello     -> projet PSX de test (nécessite psn00bsdk-toolchain-setup)
+# make rename-tool-setup -> installe les bindings Python de libclang
+#                       (tools/ast_rename) dans third_party/clang-python,
+#                       réseau, une seule fois, hors suite
+# make rename-tool-test -> les tests de tools/ast_rename sur le mini-arbre
+#                       tests/fixtures/ast_rename ; exige rename-tool-setup,
+#                       hors suite
+# make rename-extract -> chaque déclaration de src/, tests/, tools/ et ses
+#                       occurrences, dans les configurations défaut, couverture
+#                       et ASan : tmp/ast_rename/declarations.tsv et
+#                       occurrences.tsv ; échoue si une unité ne s'analyse pas,
+#                       hors suite
+# make rename-apply TABLE=<table> -> renomme aux positions de l'AST les entrées
+#                       de la table (ancien, nouveau, fichier[, identité]) ;
+#                       n'écrit rien au premier refus, rapport dans
+#                       tmp/ast_rename/report.txt, hors suite
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -1064,6 +1079,35 @@ $(SCREENCAST_VIEWER_BIN): src/cmd/screencast_viewer.c src/devtools/screencast.c 
 	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ src/cmd/screencast_viewer.c src/devtools/screencast.c src/devtools/screencast_player.c src/p8/palette.c src/devtools/replay_control.c src/platform/raylib_backend.c src/platform/raylib_backend_coords.c src/devtools/session_recorder.c src/p8/input.c src/devtools/input_json.c src/p8/mem.c third_party/raylib/src/libraylib.a $(RAYLIB_LDLIBS)
 
 screencast-viewer: $(SCREENCAST_VIEWER_BIN)
+
+AST_RENAME_BINDINGS := $(CURDIR)/third_party/clang-python
+LIBCLANG ?= /usr/lib/llvm-18/lib/libclang-18.so.1
+AST_RENAME_ENV := PYTHONPATH=$(CURDIR)/tools:$(AST_RENAME_BINDINGS) LIBCLANG=$(LIBCLANG)
+AST_RENAME_DIR := $(TMP_DIR)/ast_rename
+# Pathspec ':!' : git's '*' crosses '/', so tests/fixtures/ would match tests/*.c.
+AST_RENAME_UNITS = $(shell git ls-files 'src/*.c' 'tests/*.c' 'tools/*.c' ':!tests/fixtures/*')
+AST_RENAME_ANALYSIS = --root . --exclude-dir third_party --cflags "$(CFLAGS)" \
+    --config default= --config coverage="$(COVERAGE_CFLAGS)" --config asan="$(ASAN_CFLAGS)" \
+    --include-on-demand raylib.h=third_party/raylib/src \
+    --include-on-demand sanitizer/asan_interface.h=$(shell $(CC) -print-file-name=include) \
+    $(AST_RENAME_UNITS)
+
+rename-tool-setup:
+	sh tools/install_ast_rename_bindings.sh
+
+rename-tool-test:
+	$(AST_RENAME_ENV) python3 tests/test_ast_rename.py
+
+rename-extract:
+	@mkdir -p $(AST_RENAME_DIR)
+	$(AST_RENAME_ENV) python3 -m ast_rename extract -o $(AST_RENAME_DIR)/declarations.tsv \
+	    --occurrences $(AST_RENAME_DIR)/occurrences.tsv $(AST_RENAME_ANALYSIS)
+
+rename-apply:
+	@test -n "$(TABLE)" || { echo "usage: make rename-apply TABLE=<table>" >&2; exit 1; }
+	@mkdir -p $(AST_RENAME_DIR)
+	$(AST_RENAME_ENV) python3 -m ast_rename apply --table $(TABLE) \
+	    --report $(AST_RENAME_DIR)/report.txt $(AST_RENAME_ANALYSIS)
 
 # Les fragments de dépendances écrits par le compilateur, un par objet. Le
 # wildcard tolère qu'ils n'existent pas : sur un clone frais, tout est compilé.
