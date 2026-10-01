@@ -16,9 +16,9 @@
 
 #include "p8/assets.h"
 #include "engine/bootstrap.h"
-#include "../src/pico8_cart.h"
+#include "game/cart.h"
 #include "engine/dispatch_context.h"
-#include "../src/pico8_economy_tiers.h"
+#include "game/economy_tiers.h"
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"

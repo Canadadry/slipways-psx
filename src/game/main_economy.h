@@ -1,7 +1,7 @@
 #ifndef PICO8_FM_H
 #define PICO8_FM_H
 
-#include "pico8_economy_formulas.h"
+#include "game/economy_formulas.h"
 #include "p8/fixed.h"
 #include "engine/pointer_list.h"
 #include "engine/entity_class.h"

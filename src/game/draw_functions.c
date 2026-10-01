@@ -1,10 +1,10 @@
-#include "pico8_pi.h"
+#include "game/draw_functions.h"
 
 #include <assert.h>
 #include <string.h>
 
-#include "pico8_hud.h"
-#include "pico8_layout.h"
+#include "game/hud.h"
+#include "game/layout.h"
 #include "p8/str.h"
 #include "engine/vec.h"
 #include "engine/frame_zone.h"

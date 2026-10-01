@@ -2,7 +2,7 @@
 #define PICO8_SCROLL_H
 
 #include "p8/fixed.h"
-#include "pico8_game_data.h"
+#include "game/game_data.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "engine/entity.h"

@@ -15,12 +15,12 @@
 #include <unistd.h>
 
 #include "p8/assets.h"
-#include "../src/pico8_cart.h"
-#include "../src/pico8_cheat.h"
+#include "game/cart.h"
+#include "game/cheat.h"
 #include "engine/dispatch_context.h"
-#include "../src/pico8_economy.h"
+#include "game/economy.h"
 #include "p8/fixed.h"
-#include "../src/pico8_fm.h"
+#include "game/main_economy.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "p8/mem.h"

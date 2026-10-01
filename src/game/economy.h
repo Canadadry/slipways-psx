@@ -1,10 +1,10 @@
 #ifndef PICO8_ECONOMY_H
 #define PICO8_ECONOMY_H
 
-#include "pico8_economy_formulas.h"
+#include "game/economy_formulas.h"
 #include "p8/fixed.h"
-#include "pico8_fm.h"
-#include "pico8_map_tables.h"
+#include "game/main_economy.h"
+#include "game/map_tables.h"
 #include "engine/entity_class.h"
 
 /* Throughout this module a NULL `self` is a safe no-op. */

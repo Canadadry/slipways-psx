@@ -18,12 +18,12 @@
 #include <string.h>
 
 #include "engine/bootstrap.h"
-#include "../src/pico8_data_init.h"
+#include "game/data_init.h"
 #include "engine/entity_class.h"
 #include "engine/dispatch_context.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
-#include "../src/pico8_layout.h"
+#include "game/layout.h"
 #include "p8/mem.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_display.h"

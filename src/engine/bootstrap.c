@@ -5,7 +5,7 @@
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "engine/entity.h"
-#include "pico8_mouse_reader.h"
+#include "game/mouse.h"
 #include "pico8_scroll.h"
 #include "pico8_ui.h"
 

@@ -1,5 +1,5 @@
 #include "p8/assets.h"
-#include "../src/pico8_bg.h"
+#include "game/background.h"
 #include "p8/gfx.h"
 #include "p8/mem.h"
 

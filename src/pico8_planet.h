@@ -3,9 +3,9 @@
 
 #include "engine/entity_list.h"
 #include "p8/fixed.h"
-#include "pico8_game_data.h"
-#include "pico8_gen.h"
-#include "pico8_layout.h"
+#include "game/game_data.h"
+#include "game/gen.h"
+#include "game/layout.h"
 #include "pico8_particle.h"
 #include "pico8_probe_comp.h"
 #include "engine/pointer_list.h"

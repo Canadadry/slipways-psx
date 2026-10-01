@@ -2,8 +2,8 @@
 #define PICO8_RESEARCH_H
 
 #include "p8/fixed.h"
-#include "pico8_game_data.h"
-#include "pico8_map_tables.h"
+#include "game/game_data.h"
+#include "game/map_tables.h"
 #include "engine/pointer_list.h"
 #include "engine/entity_class.h"
 #include "pico8_trade.h"

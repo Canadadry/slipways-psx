@@ -1,13 +1,13 @@
-#include "pico8_mouse_reader.h"
+#include "game/mouse.h"
 
 #include <assert.h>
 #include <stddef.h>
 #include <string.h>
 
 #include "engine/dispatch_context.h"
-#include "pico8_game_data.h"
-#include "pico8_mouse.h"
-#include "pico8_pi.h"
+#include "game/game_data.h"
+#include "game/mouse_button.h"
+#include "game/draw_functions.h"
 #include "engine/vec.h"
 #include "engine/game_zone.h"
 

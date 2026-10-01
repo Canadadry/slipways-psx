@@ -3,7 +3,7 @@
 
 #include "p8/fixed.h"
 #include "p8/gfx.h"
-#include "pico8_map_tables.h"
+#include "game/map_tables.h"
 #include "p8/mem.h"
 
 /* Draws article `e` of `bl()` from its items, `e[1]..e[5]` in the cart. */

@@ -19,7 +19,7 @@
 #                 "<cat>\t<a>\t<b>" par paire d'inclusion-mutuelle et
 #                 d'usage-mutuel, sous void-ptr les
 #                 "void-ptr-r2\t<fonction>\t<amont>" de COMPOSITION_R2, la
-#                 ligne "info" de pico8_game_data.h s'il est lu, puis le meme
+#                 ligne "info" de game/game_data.h s'il est lu, puis le meme
 #                 pied ; code 0.
 #   --check     : "<cat>: <fichier>:<ligne>:<texte>" par occurrence des
 #                 categories nommees, puis
@@ -62,7 +62,7 @@ pattern() {
         aiguillage-nom) printf '%s\n' '\bhp_(pose|ho)\b|\bpico8_ho_gp_has\b|\bpico8_hp_(mr|gp)_names\b|(->|\.)(mr|gp)\b' ;;
         un-ou-faux) printf '%s\n' '\b(pk|fp)_is_bool\b' ;;
         void-self) printf '%s\n' '\bvoid[[:space:]]*\*[[:space:]]*(const[[:space:]]+)?self' ;;
-        noyau-inclut) printf '%s\n' '^#include "pico8_(game_data|map_tables|data_init)\.h"' ;;
+        noyau-inclut) printf '%s\n' '^#include "game/(game_data|map_tables|data_init)\.h"' ;;
         *) return 1 ;;
     esac
 }
@@ -736,7 +736,7 @@ for cat in $CATEGORIES; do
     fi
 done
 if [ "$mode" = detail ]; then
-    grep '/pico8_game_data\.h$\|^pico8_game_data\.h$' "$work/files" | while IFS= read -r file; do
+    grep '/game/game_data\.h$\|^game/game_data\.h$' "$work/files" | while IFS= read -r file; do
         printf 'info\t%s\t%s lignes\n' "$file" "$(wc -l < "$file" | tr -d ' ')"
     done
 fi

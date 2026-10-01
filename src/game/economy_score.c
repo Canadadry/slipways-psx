@@ -1,13 +1,13 @@
-#include "pico8_economy_score.h"
+#include "game/economy_score.h"
 
 #include <assert.h>
 #include <string.h>
 
-#include "pico8_economy_formulas.h"
+#include "game/economy_formulas.h"
 #include "engine/entity_registry.h"
-#include "pico8_fm.h"
-#include "pico8_game_data.h"
-#include "pico8_map_tables.h"
+#include "game/main_economy.h"
+#include "game/game_data.h"
+#include "game/map_tables.h"
 #include "pico8_planet.h"
 #include "p8/str.h"
 #include "pico8_trade.h"

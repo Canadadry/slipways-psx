@@ -2,7 +2,7 @@
 #define PICO8_SLIPWAY_H
 
 #include "p8/fixed.h"
-#include "pico8_game_data.h"
+#include "game/game_data.h"
 #include "engine/entity.h"
 #include "pico8_probe_comp.h"
 #include "engine/pointer_list.h"

@@ -1,7 +1,7 @@
-#include "pico8_cheat.h"
+#include "game/cheat.h"
 
 #include "p8/fixed.h"
-#include "pico8_fm.h"
+#include "game/main_economy.h"
 
 #include <stddef.h>
 

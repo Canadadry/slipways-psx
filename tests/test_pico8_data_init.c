@@ -1,4 +1,4 @@
-#include "../src/pico8_data_init.h"
+#include "game/data_init.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -6,7 +6,7 @@
 #include <string.h>
 
 #include "p8/assets.h"
-#include "../src/pico8_map_tables.h"
+#include "game/map_tables.h"
 #include "p8/mem.h"
 #include "../src/pico8_research.h"
 

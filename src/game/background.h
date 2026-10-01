@@ -1,7 +1,7 @@
 #ifndef PICO8_BG_H
 #define PICO8_BG_H
 
-#include "pico8_game_data.h"
+#include "game/game_data.h"
 #include "p8/gfx.h"
 #include "p8/mem.h"
 #include "engine/entity_class.h"

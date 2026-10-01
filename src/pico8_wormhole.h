@@ -3,7 +3,7 @@
 
 #include "engine/entity_list.h"
 #include "p8/fixed.h"
-#include "pico8_game_data.h"
+#include "game/game_data.h"
 #include "pico8_probe_comp.h"
 #include "engine/entity_class.h"
 #include "engine/vec.h"

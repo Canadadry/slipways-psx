@@ -1,12 +1,12 @@
-#include "pico8_galaxy.h"
+#include "game/galaxy.h"
 
 #include <string.h>
 
-#include "pico8_economy_score.h"
+#include "game/economy_score.h"
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
-#include "pico8_game_data.h"
-#include "pico8_gen.h"
+#include "game/game_data.h"
+#include "game/gen.h"
 #include "pico8_planet.h"
 #include "p8/str.h"
 #include "engine/vec.h"

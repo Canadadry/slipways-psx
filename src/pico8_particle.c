@@ -6,7 +6,7 @@
 #include "engine/dispatch_context.h"
 #include "engine/entity_geom.h"
 #include "p8/fixed.h"
-#include "pico8_game_data.h"
+#include "game/game_data.h"
 #include "engine/vec.h"
 #include "pico8_zone_particules.h"
 

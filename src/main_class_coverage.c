@@ -8,9 +8,9 @@
 #include "p8/assets.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "pico8_cheat.h"
+#include "game/cheat.h"
 #include "engine/dispatch_context.h"
-#include "pico8_cart.h"
+#include "game/cart.h"
 #include "pico8_coverage.h"
 
 #include <assert.h>

@@ -1,4 +1,4 @@
-#include "pico8_msgbox.h"
+#include "game/message_box.h"
 
 #include <assert.h>
 #include <stddef.h>
@@ -7,10 +7,10 @@
 #include "p8/audio.h"
 #include "engine/dispatch_context.h"
 #include "p8/fixed.h"
-#include "pico8_hud.h"
+#include "game/hud.h"
 #include "engine/entity.h"
-#include "pico8_layout.h"
-#include "pico8_pi.h"
+#include "game/layout.h"
+#include "game/draw_functions.h"
 #include "pico8_scroll.h"
 #include "pico8_ui.h"
 #include "pico8_ui_button.h"

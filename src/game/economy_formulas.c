@@ -1,10 +1,10 @@
-#include "pico8_economy_formulas.h"
+#include "game/economy_formulas.h"
 
 #include <assert.h>
 
 #include "engine/entity_registry.h"
-#include "pico8_game_data.h"
-#include "pico8_map_tables.h"
+#include "game/game_data.h"
+#include "game/map_tables.h"
 #include "engine/vec.h"
 
 static pico8_fixed_t fixed_max(pico8_fixed_t a, pico8_fixed_t b) {

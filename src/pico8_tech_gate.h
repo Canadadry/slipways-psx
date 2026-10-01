@@ -2,7 +2,7 @@
 #define PICO8_TECH_GATE_H
 
 #include "p8/fixed.h"
-#include "pico8_map_tables.h"
+#include "game/map_tables.h"
 
 /* A NULL `px` (the cart's nil or false) answers 1: no prerequisite is an
  * unlocked one. */

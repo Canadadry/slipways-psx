@@ -1,4 +1,4 @@
-#include "pico8_data_init.h"
+#include "game/data_init.h"
 
 #include "pico8_research.h"
 #include "pico8_tech_gate.h"

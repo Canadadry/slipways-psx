@@ -7,7 +7,7 @@
 #include "engine/dispatch_context.h"
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
-#include "pico8_pi.h"
+#include "game/draw_functions.h"
 #include "engine/vec.h"
 #include "engine/game_zone.h"
 

@@ -4,14 +4,14 @@
 #include <string.h>
 
 #include "engine/dispatch_context.h"
-#include "pico8_economy.h"
+#include "game/economy.h"
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
 #include "p8/fixed.h"
-#include "pico8_fm.h"
+#include "game/main_economy.h"
 #include "engine/geom.h"
 #include "p8/gfx.h"
-#include "pico8_hud.h"
+#include "game/hud.h"
 #include "p8/audio.h"
 #include "engine/entity.h"
 #include "pico8_particle.h"

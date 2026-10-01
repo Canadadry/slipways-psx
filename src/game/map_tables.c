@@ -1,4 +1,4 @@
-#include "pico8_map_tables.h"
+#include "game/map_tables.h"
 
 #include <assert.h>
 #include <stddef.h>

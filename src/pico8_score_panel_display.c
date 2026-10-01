@@ -3,10 +3,10 @@
 #include <assert.h>
 #include <string.h>
 
-#include "pico8_economy_score.h"
-#include "pico8_fm.h"
-#include "pico8_layout.h"
-#include "pico8_msgbox.h"
+#include "game/economy_score.h"
+#include "game/main_economy.h"
+#include "game/layout.h"
+#include "game/message_box.h"
 #include "pico8_score_panel.h"
 #include "p8/str.h"
 #include "pico8_ui_button.h"

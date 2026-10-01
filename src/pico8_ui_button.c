@@ -8,7 +8,7 @@
 #include "engine/entity_geom.h"
 #include "engine/geom.h"
 #include "engine/entity.h"
-#include "pico8_layout.h"
+#include "game/layout.h"
 #include "pico8_zone_interface.h"
 
 static int g_js_up = 0;

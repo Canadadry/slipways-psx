@@ -1,4 +1,4 @@
-#include "pico8_help.h"
+#include "game/help.h"
 
 #include <assert.h>
 #include <string.h>
@@ -6,9 +6,9 @@
 #include "engine/dispatch_context.h"
 #include "engine/entity_geom.h"
 #include "engine/entity.h"
-#include "pico8_msgbox.h"
+#include "game/message_box.h"
 #include "pico8_particle.h"
-#include "pico8_pi.h"
+#include "game/draw_functions.h"
 #include "pico8_probe.h"
 #include "engine/entity_class.h"
 #include "engine/game_zone.h"

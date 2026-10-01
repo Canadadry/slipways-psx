@@ -3,7 +3,7 @@
 
 #include "p8/fixed.h"
 #include "engine/geom.h"
-#include "pico8_map_tables.h"
+#include "game/map_tables.h"
 #include "engine/vec.h"
 
 enum {

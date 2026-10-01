@@ -2,7 +2,7 @@
 #define PICO8_ECONOMY_FORMULAS_H
 
 #include "p8/fixed.h"
-#include "pico8_map_tables.h"
+#include "game/map_tables.h"
 #include "engine/vec.h"
 
 /* Throughout this module an absent or wrong-kind field reads as its

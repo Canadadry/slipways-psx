@@ -1,4 +1,4 @@
-#include "pico8_hud.h"
+#include "game/hud.h"
 
 #include <assert.h>
 #include <string.h>

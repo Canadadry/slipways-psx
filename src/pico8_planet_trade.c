@@ -4,7 +4,7 @@
 #include <stddef.h>
 
 #include "engine/collect.h"
-#include "pico8_map_tables.h"
+#include "game/map_tables.h"
 #include "pico8_planet.h"
 #include "pico8_trade.h"
 #include "pico8_slipway.h"

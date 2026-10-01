@@ -7,7 +7,7 @@
  * WHY THIS TEST EXISTS beside the e2e tests/e2e/colony_panel.json, which
  * replays the reported bug end to end: that one pins only the msgbox half
  * of the fix (`pz()`'s own `if p.ep then`). Measured when the bug was fixed
- * -- reverting src/pico8_layout.c's REF(NULL) clause on its own left the
+ * -- reverting src/game/layout.c's REF(NULL) clause on its own left the
  * whole suite green, because once `pz()` stops building the bogus row no
  * nil ever reaches `lq:mn` again: the single nil in the entire replay
  * corpus (the 9729-frame events.json plus the 278-frame built_planet_panel
@@ -15,7 +15,7 @@
  * the `lq:mn` guard is correct today and free to rot the moment another
  * caller hands `lq()` a nil item.
  *
- * `pico8_lq_mn` is static to src/pico8_layout.c, so this test never names
+ * `pico8_lq_mn` is static to src/game/layout.c, so this test never names
  * it: it builds a real `lq` holding ONE positional item -- the shape of
  * every `lq({...})` call site -- and renders it with pico8_lq_ol_default(),
  * which is how the cart reaches `lq:mn` too. */
@@ -27,8 +27,8 @@
 #include "p8/assets.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
-#include "../src/pico8_hud.h"
-#include "../src/pico8_layout.h"
+#include "game/hud.h"
+#include "game/layout.h"
 #include "p8/mem.h"
 #include "engine/vec.h"
 #include "zone_tas.h"

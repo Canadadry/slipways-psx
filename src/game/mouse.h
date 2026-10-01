@@ -1,10 +1,10 @@
 #ifndef PICO8_MOUSE_READER_H
 #define PICO8_MOUSE_READER_H
 
-#include "pico8_game_data.h"
+#include "game/game_data.h"
 #include "p8/input.h"
 #include "engine/entity.h"
-#include "pico8_mouse.h"
+#include "game/mouse_button.h"
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 

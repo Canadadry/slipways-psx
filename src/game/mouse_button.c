@@ -1,4 +1,4 @@
-#include "pico8_mouse.h"
+#include "game/mouse_button.h"
 
 #include <assert.h>
 #include <stddef.h>

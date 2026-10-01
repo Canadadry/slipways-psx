@@ -3,7 +3,7 @@
 
 #include "engine/entity_class.h"
 #include "p8/fixed.h"
-#include "pico8_layout.h"
+#include "game/layout.h"
 #include "engine/pointer_list.h"
 #include "pico8_research.h"
 

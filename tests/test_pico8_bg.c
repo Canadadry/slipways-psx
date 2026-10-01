@@ -15,9 +15,9 @@
 #include <unistd.h>
 
 #include "p8/assets.h"
-#include "../src/pico8_bg.h"
+#include "game/background.h"
 #include "engine/bootstrap.h"
-#include "../src/pico8_cart.h"
+#include "game/cart.h"
 #include "engine/dispatch_context.h"
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"

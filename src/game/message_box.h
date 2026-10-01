@@ -2,7 +2,7 @@
 #define PICO8_MSGBOX_H
 
 #include "engine/entity_class.h"
-#include "pico8_game_data.h"
+#include "game/game_data.h"
 #include "p8/gfx.h"
 #include "p8/mem.h"
 #include "pico8_ui_button.h"

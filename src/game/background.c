@@ -1,4 +1,4 @@
-#include "pico8_bg.h"
+#include "game/background.h"
 
 #include <assert.h>
 #include <stddef.h>
@@ -7,7 +7,7 @@
 #include "engine/dispatch_context.h"
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
-#include "pico8_gen.h"
+#include "game/gen.h"
 #include "engine/entity.h"
 #include "pico8_probe.h"
 #include "pico8_scroll.h"

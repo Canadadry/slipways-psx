@@ -9,7 +9,7 @@
 
 #include "p8/assets.h"
 #include "engine/bootstrap.h"
-#include "../src/pico8_cart.h"
+#include "game/cart.h"
 #include "engine/dispatch_context.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"

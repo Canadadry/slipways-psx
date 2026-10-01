@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "engine/exit_queue.h"
-#include "pico8_game_data.h"
+#include "game/game_data.h"
 #include "engine/entity_class.h"
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"

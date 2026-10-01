@@ -1,4 +1,4 @@
-#include "pico8_game_data.h"
+#include "game/game_data.h"
 
 #include <assert.h>
 #include <stddef.h>

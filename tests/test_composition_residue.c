@@ -52,7 +52,7 @@ static int run_residue(const char *args) {
 }
 
 static void setup(void) {
-    assert(system("rm -rf " DIR " && mkdir -p " SRC "/engine " TST) == 0);
+    assert(system("rm -rf " DIR " && mkdir -p " SRC "/engine " SRC "/game " TST) == 0);
     write_file(SRC "/clean.c", "int main(void) { return 0; }\n");
     write_file(TST "/clean_test.c", "int helper(int x) { return x + 1; }\n");
     write_file(ATT, "");
@@ -85,7 +85,7 @@ static void test_one_occurrence_per_category_in_table_order(void) {
     write_file(SRC "/c4.c", "return self->n" "u;\n");
     write_file(TST "/c5.c", "hp_" "pose(self, p);\n");
     write_file(TST "/c6.c", "e->pk_" "is_bool = 1;\n");
-    write_file(SRC "/engine/entity_class.h", "#include \"pico8_" "game_data.h\"\n");
+    write_file(SRC "/engine/entity_class.h", "#include \"game/" "game_data.h\"\n");
     write_file(SRC "/e.h", "typedef struct {\n    pico8_struct_" "header_t header;\n    pico8_" "ptrs_t *oe;\n} pico8_"
                            "jo_t;\n");
     write_file(SRC "/p.h", "typedef struct {\n    pico8_" "jo_t jo;\n} pico8_" "qh_t;\n");
@@ -149,8 +149,8 @@ static void test_other_witnesses_of_each_pattern_bite(void) {
                                   "un-ou-faux\t1\t1\n"
                                   "résidu 2 : 7 ligne(s), 1 fichier(s)\n") == 0);
     setup();
-    write_file(SRC "/engine/entity.h", "#include \"pico8_" "map_tables.h\"\n");
-    write_file(SRC "/engine/entity_registry.h", "#include \"pico8_" "data_init.h\"\n");
+    write_file(SRC "/engine/entity.h", "#include \"game/" "map_tables.h\"\n");
+    write_file(SRC "/engine/entity_registry.h", "#include \"game/" "data_init.h\"\n");
     assert(run_residue(TREE) == 0);
     assert(strcmp(read_file(OUT), "noyau-inclut\t2\t2\n"
                                   "résidu 2 : 2 ligne(s), 2 fichier(s)\n") == 0);
@@ -171,7 +171,7 @@ static void test_named_false_positives_do_not_bite(void) {
     assert_alone_is_empty(SRC "/f.c", "self->bg_is_bool = 0;\n");
     assert_alone_is_empty(SRC "/f.c", "k.h_is_false = 1;\n");
     assert_alone_is_empty(SRC "/engine/entity_class.h", "#include \"engine/vec.h\"\n");
-    assert_alone_is_empty(SRC "/pico8_planet.h", "#include \"pico8_" "game_data.h\"\n");
+    assert_alone_is_empty(SRC "/pico8_planet.h", "#include \"game/" "game_data.h\"\n");
 }
 
 static void test_exclusions_edit_the_text_not_the_whole_line(void) {
@@ -576,12 +576,12 @@ static void test_void_self_sees_every_untyped_receiver(void) {
 static void test_detail_prints_r2_sites_under_void_ptr_and_the_info_line(void) {
     setup();
     write_file(R2, "pico8_" "f\tsrc/x.c\tamont(void *" "self)\tpreuve\n");
-    write_file(SRC "/pico8_game_data.h", "int a;\nint b;\n");
+    write_file(SRC "/game/game_data.h", "int a;\nint b;\n");
     write_file(SRC "/v.h", "void pico8_" "g(void *e);\n");
     assert(run_residue("--detail " TREE) == 0);
     assert(strcmp(read_file(OUT), "void-ptr\t" SRC "/v.h\t1\n"
                                   "void-ptr-r2\tpico8_" "f\tamont(void *" "self)\n"
-                                  "info\t" SRC "/pico8_game_data.h\t2 lignes\n"
+                                  "info\t" SRC "/game/game_data.h\t2 lignes\n"
                                   "résidu 2 : 1 ligne(s), 1 fichier(s)\n") == 0);
 }
 

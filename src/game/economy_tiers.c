@@ -1,10 +1,10 @@
-#include "pico8_economy_tiers.h"
+#include "game/economy_tiers.h"
 
 #include <assert.h>
 #include <string.h>
 
 #include "engine/entity_registry.h"
-#include "pico8_game_data.h"
+#include "game/game_data.h"
 #include "pico8_planet.h"
 #include "pico8_planet_trade.h"
 #include "pico8_research.h"

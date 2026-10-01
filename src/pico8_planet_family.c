@@ -10,7 +10,7 @@
 #include "engine/entity_registry.h"
 #include "engine/entity.h"
 #include "pico8_particle.h"
-#include "pico8_pi.h"
+#include "game/draw_functions.h"
 #include "pico8_planet.h"
 #include "pico8_planet_display.h"
 #include "pico8_probe.h"

@@ -1,12 +1,12 @@
-#include "../src/pico8_map_tables.h"
+#include "game/map_tables.h"
 
 #include <assert.h>
 #include <stdio.h>
 
-#include "../src/pico8_economy_formulas.h"
+#include "game/economy_formulas.h"
 #include "p8/fixed.h"
-#include "../src/pico8_game_data.h"
-#include "../src/pico8_gen.h"
+#include "game/game_data.h"
+#include "game/gen.h"
 #include "engine/frame_zone.h"
 
 static void check_int_seq(const int *seq, int count) {

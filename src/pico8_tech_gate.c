@@ -5,8 +5,8 @@
 #include <string.h>
 
 #include "engine/collect.h"
-#include "pico8_economy_formulas.h"
-#include "pico8_fm.h"
+#include "game/economy_formulas.h"
+#include "game/main_economy.h"
 
 /* `e_` of each entry of `pico8_nb_table`, by rank. */
 static int g_nb_e_[PICO8_NB_COUNT];

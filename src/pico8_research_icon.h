@@ -1,9 +1,9 @@
 #ifndef PICO8_RESEARCH_ICON_H
 #define PICO8_RESEARCH_ICON_H
 
-#include "pico8_game_data.h"
+#include "game/game_data.h"
 #include "p8/gfx.h"
-#include "pico8_layout.h"
+#include "game/layout.h"
 #include "p8/mem.h"
 #include "engine/entity_class.h"
 #include "engine/vec.h"

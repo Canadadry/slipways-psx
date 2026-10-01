@@ -1,19 +1,19 @@
-#include "pico8_menu.h"
+#include "game/menu.h"
 
 #include <assert.h>
 #include <string.h>
 
 #include "p8/audio.h"
-#include "pico8_fm.h"
+#include "game/main_economy.h"
 #include "engine/entity_class.h"
 #include "engine/dispatch_context.h"
-#include "pico8_economy.h"
+#include "game/economy.h"
 #include "p8/fixed.h"
-#include "pico8_game_data.h"
+#include "game/game_data.h"
 #include "p8/input.h"
-#include "pico8_layout.h"
-#include "pico8_msgbox.h"
-#include "pico8_pi.h"
+#include "game/layout.h"
+#include "game/message_box.h"
+#include "game/draw_functions.h"
 #include "pico8_score_panel.h"
 #include "pico8_score_panel_display.h"
 #include "pico8_tech_gate.h"

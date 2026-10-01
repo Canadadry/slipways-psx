@@ -1,10 +1,10 @@
 #ifndef PICO8_UI_BUTTON_H
 #define PICO8_UI_BUTTON_H
 
-#include "pico8_game_data.h"
+#include "game/game_data.h"
 #include "p8/gfx.h"
-#include "pico8_layout.h"
-#include "pico8_map_tables.h"
+#include "game/layout.h"
+#include "game/map_tables.h"
 #include "p8/mem.h"
 #include "pico8_planet.h"
 #include "pico8_research.h"

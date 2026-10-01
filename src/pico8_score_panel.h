@@ -2,11 +2,11 @@
 #define PICO8_SCORE_PANEL_H
 
 #include "p8/fixed.h"
-#include "pico8_game_data.h"
+#include "game/game_data.h"
 #include "p8/gfx.h"
 #include "p8/mem.h"
-#include "pico8_map_tables.h"
-#include "pico8_msgbox.h"
+#include "game/map_tables.h"
+#include "game/message_box.h"
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 

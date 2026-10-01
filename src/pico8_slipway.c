@@ -5,10 +5,10 @@
 
 #include "p8/audio.h"
 #include "engine/dispatch_context.h"
-#include "pico8_economy.h"
-#include "pico8_economy_formulas.h"
+#include "game/economy.h"
+#include "game/economy_formulas.h"
 #include "engine/entity_registry.h"
-#include "pico8_fm.h"
+#include "game/main_economy.h"
 #include "engine/geom.h"
 #include "p8/input.h"
 #include "engine/entity.h"

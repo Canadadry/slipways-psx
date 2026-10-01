@@ -5,7 +5,7 @@
 
 #include "engine/entity_class.h"
 #include "pico8_particle.h"
-#include "pico8_pi.h"
+#include "game/draw_functions.h"
 #include "pico8_planet.h"
 #include "pico8_planet_family.h"
 #include "pico8_planet_trade.h"

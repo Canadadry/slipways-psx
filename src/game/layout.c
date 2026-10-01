@@ -1,11 +1,11 @@
-#include "pico8_layout.h"
+#include "game/layout.h"
 
 #include <assert.h>
 #include <stddef.h>
 #include <string.h>
 
 #include "engine/dispatch_context.h"
-#include "pico8_hud.h"
+#include "game/hud.h"
 
 static int g_layout_up = 0;
 static const pico8_struct_class_t g_lq_struct_class;

@@ -8,12 +8,12 @@
 #include <stdio.h>
 
 #include "p8/assets.h"
-#include "../src/pico8_data_init.h"
+#include "game/data_init.h"
 #include "engine/dispatch_context.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
-#include "../src/pico8_hud.h"
-#include "../src/pico8_layout.h"
+#include "game/hud.h"
+#include "game/layout.h"
 #include "p8/mem.h"
 #include "engine/entity_class.h"
 #include "zone_tas.h"

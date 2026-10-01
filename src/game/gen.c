@@ -1,9 +1,9 @@
-#include "pico8_gen.h"
+#include "game/gen.h"
 
 #include <assert.h>
 #include <stddef.h>
 
-#include "pico8_game_data.h"
+#include "game/game_data.h"
 #include "engine/allocator.h"
 
 pico8_jf_state_t *pico8_jf(const pico8_zone_choisie_t *zone, pico8_fixed_t n_, pico8_fixed_t b) {

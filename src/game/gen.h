@@ -2,7 +2,7 @@
 #define PICO8_GEN_H
 
 #include "p8/fixed.h"
-#include "pico8_game_data.h"
+#include "game/game_data.h"
 #include "engine/allocator.h"
 
 /* C has no closures, so each of these two closure factories becomes a state

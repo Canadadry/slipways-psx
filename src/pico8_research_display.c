@@ -4,8 +4,8 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "pico8_layout.h"
-#include "pico8_map_tables.h"
+#include "game/layout.h"
+#include "game/map_tables.h"
 #include "pico8_planet.h"
 #include "pico8_research.h"
 #include "p8/str.h"
