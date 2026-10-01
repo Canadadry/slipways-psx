@@ -1,7 +1,6 @@
 #include "pico8_probe.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_dispatch_context.h"
@@ -359,7 +358,12 @@ pico8_qy_t *pico8_g__mm(pico8_struct_header_t *self) {
 }
 
 void pico8_g__rendre_dispatch(pico8_struct_header_t *self) {
+    const pico8_g__t *g_ = (const pico8_g__t *)self;
+
     pico8_qy_rendre(self->emitter);
+    if (g_->prise != NULL && (self->me == NULL || strcmp(self->me, "ly") != 0)) {
+        pico8_jo_prise_arene_rendue(g_->prise);
+    }
 }
 
 static const pico8_struct_class_t g_g__struct_class = {
@@ -392,6 +396,7 @@ void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls, con
     self->probe->def = &self->def->probe;
     self->probe->et = NULL;
     self->p_ = 0;
+    self->prise = NULL;
     self->probe->od = self->def->probe.od;
     self->probe->has_od = self->def->probe.has_od;
     self->emitter->py = self->def->emitter.py;
@@ -408,8 +413,11 @@ static pico8_g__t *pico8_g__struct_new(const pico8_g__keys_t *keys) {
     pico8_g__t *self;
 
     assert(g_g__up && "pico8_probe_init() must run first");
-    self = malloc(sizeof *self);
+    pico8_jo_prise_ouvrir();
+    self = (pico8_g__t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
     pico8_g__struct_init(self, &g_g__struct_class, &pico8_g__def);
+    self->prise = pico8_jo_zone_construction();
+    pico8_jo_prise_fermer();
     if (keys != NULL) {
         self->header.t = keys->t;
         if (keys->has_pn) {

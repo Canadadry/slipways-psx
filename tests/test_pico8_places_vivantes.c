@@ -35,6 +35,7 @@
 #include "../src/pico8_particle.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_family.h"
+#include "../src/pico8_probe.h"
 #include "../src/pico8_research_icon.h"
 #include "../src/pico8_score_panel.h"
 #include "../src/pico8_scroll.h"
@@ -984,6 +985,92 @@ static void un_mz_refuse_traverse_une_nouvelle_partie(void) {
     jouer_jusqu_a(224);
 }
 
+#define SONDES "tests/fixtures/sondes_refusees.json"
+
+/* Fixture SONDES : clic « reasonable » (f0-1) ; puis des cycles de 7 frames
+ * dans le vide, hors du panneau `hw`, en (5,100) : quatre tenues des la
+ * pression, trois relachees. Dix sondes refusees (f2-71) ; une pressee en
+ * (5,100) a f72, glissee et relachee sur p34 (31,84) (f73-78) ; un refus
+ * (f79-85) ; une sonde posee en (55,50) (f86-87) ; un `mz` tenu (f88-94) ;
+ * « restart » et nouvelle partie (clic f105) ; un refus (f109-115). Un
+ * refus est relache a la 5e frame du cycle et rendu au vidage de la 7e. */
+static const pico8_g__t *la_sonde_tenue(void) {
+    const pico8_struct_header_t *tenue = pico8_ok()->lheld;
+    assert(tenue != NULL && tenue->cls == pico8_g__struct_class() && "une sonde est tenue");
+    return (const pico8_g__t *)tenue;
+}
+
+static void sondes_refusees_ne_font_pas_grandir_la_partie(void) {
+    demarrer(SONDES);
+    jouer_jusqu_a(8);
+    const size_t une = partie_sans_registres();
+    jouer_jusqu_a(71);
+    const size_t dix = partie_sans_registres();
+    printf("  sondes refusees 1/10 : partie - registres = %lu/%lu\n", (unsigned long)une, (unsigned long)dix);
+    assert(une == dix && "une sonde refusee laisse son arene dans la generation");
+}
+
+static void chaque_sonde_refusee_reprend_l_arene_de_la_precedente(void) {
+    demarrer(SONDES);
+    jouer_jusqu_a(2);
+    const pico8_g__t *premiere = la_sonde_tenue();
+    for (int k = 1; k < 10; k++) {
+        jouer_jusqu_a(2 + 7 * k);
+        assert(la_sonde_tenue() == premiere && "la sonde suivante reprend l'arene de la refusee, a la meme adresse");
+    }
+    printf("  sondes refusees : dix sondes a la meme adresse\n");
+}
+
+/* f74 : la sonde tenue sur p34 y accroche son `fo` ; p34 passe hors ecran
+ * avant le draw. Refusee a f76, la sonde est rendue au vidage de f78, et
+ * la pression de f79 reprend son arene. */
+static void le_fo_d_une_planete_hors_ecran_oublie_la_sonde_refusee(void) {
+    static pico8_vec_t loin;
+    demarrer(SONDES);
+    jouer_jusqu_a(73);
+    pico8_dispatch_set_input(g_input);
+    pico8_cheat_step(&g_cheat, g_input);
+    pico8__update60();
+    const pico8_struct_header_t *tenue = &la_sonde_tenue()->header;
+    pico8_jo_t *p34 = planete_dont_fo_est(tenue);
+    assert(p34 != NULL && "f74 : la sonde tenue accroche le fo d'une planete");
+    loin = pico8_vec_add(*((const pico8_qb_t *)pico8_mo())->ra, pico8_vec_v(pico8_fixed_from_int(500), 0));
+    p34->ra = &loin;
+    assert(!pico8_gd(&p34->header) && "p34 est hors ecran");
+    pico8__draw();
+    assert(p34->fo == tenue && "hors ecran, kj laisse fo");
+    if (g_frame < g_input->frame_count - 1) pico8_input_step(g_input);
+    g_frame++;
+    while (g_frame <= 78) jouer_une_frame(1);
+    jouer_une_frame(0);
+    assert(pico8_ok()->lheld == tenue && "f79 : la sonde suivante reprend l'arene, a la meme adresse");
+    assert(p34->fo == NULL && "le fo d'une planete hors ecran vise une sonde refusee recyclee");
+}
+
+/* f90 : `ox` du `mz` tenu ne garde que des sondes posees ; la sonde posee
+ * garde son arene, le `mz` en prend une autre. */
+static void un_mz_ne_vise_que_la_sonde_posee(void) {
+    demarrer(SONDES);
+    jouer_jusqu_a(90);
+    const pico8_mz_t *mz = le_mz_tenu();
+    const pico8_g__t *posee = NULL;
+    for (int i = 0; i < mz->ox->count; i++) {
+        const pico8_struct_header_t *e = mz->ox->items[i];
+        if (e->cls != pico8_g__struct_class()) continue;
+        assert(posee == NULL && strcmp(e->me, "ly") == 0 && "ox ne garde qu'une sonde, posee");
+        posee = (const pico8_g__t *)e;
+    }
+    assert(posee != NULL && "f86 : la sonde posee est une ancre du mz");
+    assert(posee->prise != NULL && posee->prise != mz->ox->zone && "la sonde posee garde son arene");
+}
+
+static void une_sonde_refusee_traverse_une_nouvelle_partie(void) {
+    demarrer(SONDES);
+    jouer_jusqu_a(109);
+    la_sonde_tenue();
+    jouer_jusqu_a(115);
+}
+
 #define PLIAGE_ABANDONNE "tests/fixtures/pliage_abandonne.json"
 
 /* Fixture PLIAGE_ABANDONNE : f0-20 de slipway_build (`mz` ouvert a f20),
@@ -1379,6 +1466,11 @@ int main(void) {
     dans_un_enfant(mz_refuses_ne_font_pas_grandir_la_partie);
     dans_un_enfant(un_mz_ouvert_rend_son_arene_a_sa_mort);
     dans_un_enfant(un_mz_refuse_traverse_une_nouvelle_partie);
+    dans_un_enfant(sondes_refusees_ne_font_pas_grandir_la_partie);
+    dans_un_enfant(chaque_sonde_refusee_reprend_l_arene_de_la_precedente);
+    dans_un_enfant(le_fo_d_une_planete_hors_ecran_oublie_la_sonde_refusee);
+    dans_un_enfant(un_mz_ne_vise_que_la_sonde_posee);
+    dans_un_enfant(une_sonde_refusee_traverse_une_nouvelle_partie);
     dans_un_enfant(pliage_abandonne_se_relit_pendant_le_clic);
     dans_un_enfant_qui_meurt_par_asan(pliage_abandonne_meurt_avec_sa_partie);
     dans_un_enfant(message_box_hold_ne_bouge_pas_sans_action);

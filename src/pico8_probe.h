@@ -6,6 +6,7 @@
 #include "pico8_probe_comp.h"
 #include "pico8_struct.h"
 #include "pico8_vec.h"
+#include "pico8_zone_choisie.h"
 
 /* Throughout this module a NULL instance argument is a safe no-op (Lua nil
  * for the value-returning functions), a non-NULL `self` must be a struct
@@ -13,12 +14,12 @@
  * probe for `bv`, `dl`, `d_`, an emitter for `g_:mm` -- and a NULL
  * `gfx`/`mem` skips the draw calls while the rest of the body still runs. */
 
-/* TROU-7 */
 /* The emitter's `k_` points at
  * `pico8_g__k__seq` (`pico8_fv_k__seq` for `fv`); `ra` and `p` point at
  * the probe's `bv_ra` and `bv_p` once `bv` ran. `emitter` and `probe` point at `emitter_own` and
  * `probe_own`: never copy the struct. `m_` is `fv`'s: a `g_` has no `m_`
- * link and leaves it indeterminate. */
+ * link and leaves it indeterminate. `prise` is the grab arena a `g_` lives
+ * in, NULL for `fv`. */
 typedef struct {
     pico8_struct_header_t header;
     const pico8_g__def_t *def;
@@ -28,6 +29,7 @@ typedef struct {
     const pico8_vec_t *p;
     int p_;
     int m_;
+    const pico8_zone_choisie_t *prise;
     pico8_emitter_t emitter_own;
     pico8_probe_t probe_own;
 } pico8_g__t;
@@ -45,7 +47,7 @@ void pico8_probe_shutdown(void);
 int pico8_g__ready(void);
 
 /* Initializes an allocated pico8_g__t under `cls`: ke's part, g_'s 4
- * written members nil, `def` kept, `ra`, the emitter and the probe copied
+ * written members nil, `prise` NULL, `def` kept, `ra`, the emitter and the probe copied
  * from it. Reads no key, runs neither `pq` nor `lt`, records no coverage. */
 void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls, const pico8_g__def_t *def);
 
@@ -62,17 +64,19 @@ typedef struct {
     pico8_fixed_t py;
 } pico8_g__keys_t;
 
-/* `keys` NULL means none. The new probe registers itself into `hv`/`cv`/`cg` through `lt`
- * (and gets its particle list from `f_`, which its `rendre` gives back);
- * nothing ever frees the probe itself.
- * Asserts when called before `pico8_probe_init()`. */
+/* `keys` NULL means none. Built in a grab arena (`pico8_jo_prise_ouvrir`),
+ * so no other grab may be open. The new probe registers itself into
+ * `hv`/`cv`/`cg` through `lt` (and gets its particle list from `f_`, which
+ * its `rendre` gives back). Asserts when called before `pico8_probe_init()`. */
 pico8_g__t *pico8_g__new(const pico8_g__keys_t *keys);
 
 /* A particle (`has_a` 0) from pico8_particule_prendre, which `ez` appends
  * to `qy`. */
 pico8_qy_t *pico8_g__mm(pico8_struct_header_t *self);
 
-/* `rendre` of `g_` and `fv`: gives back their `qy`, not their struct. */
+/* `rendre` of `g_` and `fv`: gives back their `qy`, and the grab arena of
+ * a `g_` not placed (`me` other than "ly"); a placed one keeps it until the
+ * generation is given back. */
 void pico8_g__rendre_dispatch(pico8_struct_header_t *self);
 
 #endif

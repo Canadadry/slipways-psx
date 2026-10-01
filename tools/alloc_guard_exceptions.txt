@@ -4,5 +4,4 @@
 # avec le nombre d'appels relevé sur son objet.
 # Égalité stricte : chaque conversion baisse ce compte à la main, dans le
 # commit qui la fait ; un fichier qui n'alloue plus quitte la liste.
-src/pico8_probe.c 1
 src/pico8_zone_transitoire.c 3

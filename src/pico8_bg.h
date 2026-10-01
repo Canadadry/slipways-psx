@@ -48,7 +48,8 @@ void pico8_bg_pq(pico8_mem_t *mem, pico8_bg_t *self);
 void pico8_bg_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_bg_t *self);
 
 /* Returns the freshly built `mz` or `g_`, which `ui:bh` then holds as
- * `lheld`, or Lua nil when neither class is registered. Nothing frees it. */
+ * `lheld`, or Lua nil when neither class is registered. Both live in a grab
+ * arena: an `mz` gives it back at its death, a `g_` unless it was placed. */
 pico8_down_t pico8_bg_ldown(pico8_bg_t *self);
 
 /* Copies `rp` into `mq` and returns `self`, which becomes `ui.rheld` for as long
