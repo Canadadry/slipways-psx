@@ -167,8 +167,7 @@ pico8_lq_t *pico8_jo_ex(const pico8_ptrs_t *is, const pico8_fixed_t *o, pico8_fi
         l_cap = is_count + (is_count > 0 ? 2 : 0) + (jq > pico8_fixed_from_int(5) ? 2 : 0) +
                 ml_count * (pico8_fixed_flr_int(loop_bound) + 1);
     }
-    l = malloc((size_t)l_cap * sizeof *l);
-    assert(l != NULL);
+    l = (pico8_lq_cell_t *)pico8_zone_alloc(pico8_zone_frame(), (size_t)l_cap * sizeof *l);
 
     if (is != NULL) {
         pico8_ptrs_iter_t it = pico8_ptrs_all(is);
@@ -256,7 +255,6 @@ pico8_lq_t *pico8_jo_ex(const pico8_ptrs_t *is, const pico8_fixed_t *o, pico8_fi
     keys.items = l;
     keys.count = l_count;
     result = pico8_lq_new(&pico8_zone_transitoire, &keys);
-    free(l);
     return result;
 }
 

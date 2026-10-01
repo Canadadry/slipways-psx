@@ -161,9 +161,10 @@ void pico8_cr(void) {
      * affordable or not. `ix[2].hb`'s bare `cb()` wants only the affordable
      * ones. The two sites do not merge. */
     cb_list = pico8_cb(1);
-    rows = calloc((size_t)cb_list.count + 1, sizeof *rows);
-    bs = calloc((size_t)cb_list.count + 1, sizeof *bs);
-    assert(rows != NULL && bs != NULL);
+    rows = (pico8_cr_row_t *)pico8_zone_alloc(pico8_zone_frame(), ((size_t)cb_list.count + 1) * sizeof *rows);
+    bs = (pico8_js_keys_t *)pico8_zone_alloc(pico8_zone_frame(), ((size_t)cb_list.count + 1) * sizeof *bs);
+    memset(rows, 0, ((size_t)cb_list.count + 1) * sizeof *rows);
+    memset(bs, 0, ((size_t)cb_list.count + 1) * sizeof *bs);
     for (i = 0; i < cb_list.count; i++) {
         pico8_cr_step(cb_list.items[i], &rows[n++]);
     }
@@ -220,9 +221,6 @@ void pico8_cr(void) {
         frame.gq = cr->gq;
         pico8_pz(&frame, bs, n);
     }
-
-    free(bs);
-    free(rows);
 }
 
 static void pico8_ix1_my_dispatch(pico8_js_t *self) {

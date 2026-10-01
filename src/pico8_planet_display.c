@@ -369,6 +369,7 @@ void pico8_jo_fe(pico8_jo_t *self) {
     pico8_js_keys_t *bs;
     pico8_jo_fe_row_t *rows;
     pico8_pz_frame_t frame;
+    size_t cap;
     int n = 0;
     int i;
 
@@ -377,9 +378,11 @@ void pico8_jo_fe(pico8_jo_t *self) {
     }
 
     bj_list = pico8_bj((const pico8_struct_header_t *)self);
-    bs = calloc(bj_list.count > 0 ? bj_list.count : 1, sizeof *bs);
-    rows = calloc(bj_list.count > 0 ? bj_list.count : 1, sizeof *rows);
-    assert(bs != NULL && rows != NULL);
+    cap = bj_list.count > 0 ? (size_t)bj_list.count : 1;
+    bs = (pico8_js_keys_t *)pico8_zone_alloc(pico8_zone_frame(), cap * sizeof *bs);
+    rows = (pico8_jo_fe_row_t *)pico8_zone_alloc(pico8_zone_frame(), cap * sizeof *rows);
+    memset(bs, 0, cap * sizeof *bs);
+    memset(rows, 0, cap * sizeof *rows);
     for (i = 0; i < bj_list.count; i++) {
         pico8_jo_fe_keys(self, bj_list.items[i], &bs[n], &rows[n]);
         n++;
@@ -387,8 +390,6 @@ void pico8_jo_fe(pico8_jo_t *self) {
 
     frame = jo_pz_frame(self);
     pico8_pz(&frame, bs, n);
-    free(bs);
-    free(rows);
 }
 
 void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec_t p) {
