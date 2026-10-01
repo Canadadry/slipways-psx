@@ -44,6 +44,7 @@ typedef struct {
     size_t capacity;
     size_t used;
     size_t half;
+    size_t halves;
 } pico8_bump_zone_t;
 
 typedef struct {
@@ -57,6 +58,10 @@ typedef struct {
 
 void pico8_bump_zone_init(pico8_bump_zone_t *zone, const char *name,
                           pico8_zone_cell_t *storage, size_t capacity);
+/* Une seule moitie, quel que soit le build, et jamais de reset : la zone
+ * d'une arene (pico8_zone_choisie.h), qui n'a que son bloc. */
+void pico8_bump_zone_init_single(pico8_bump_zone_t *zone, const char *name,
+                                 pico8_zone_cell_t *storage, size_t capacity);
 /* Memoire non initialisee, valable jusqu'au prochain reset. */
 unsigned char *pico8_bump_zone_alloc(pico8_bump_zone_t *zone, size_t size);
 void pico8_bump_zone_reset(pico8_bump_zone_t *zone);

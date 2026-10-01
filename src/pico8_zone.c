@@ -33,7 +33,19 @@ void pico8_bump_zone_init(pico8_bump_zone_t *zone, const char *name,
     zone->capacity = capacity;
     zone->used = 0;
     zone->half = 0;
+    zone->halves = PICO8_BUMP_ZONE_HALVES;
     POISON(storage, PICO8_BUMP_ZONE_HALVES * PICO8_ZONE_CELLS(capacity) * sizeof *storage);
+}
+
+void pico8_bump_zone_init_single(pico8_bump_zone_t *zone, const char *name,
+                                 pico8_zone_cell_t *storage, size_t capacity) {
+    zone->name = name;
+    zone->storage = storage;
+    zone->capacity = capacity;
+    zone->used = 0;
+    zone->half = 0;
+    zone->halves = 1;
+    POISON(storage, PICO8_ZONE_CELLS(capacity) * sizeof *storage);
 }
 
 unsigned char *pico8_bump_zone_alloc(pico8_bump_zone_t *zone, size_t size) {
@@ -50,6 +62,8 @@ unsigned char *pico8_bump_zone_alloc(pico8_bump_zone_t *zone, size_t size) {
  * quitte : revenir au debut rendrait ses adresses aux allocations suivantes,
  * et un pointeur perime y lirait sans planter. */
 void pico8_bump_zone_reset(pico8_bump_zone_t *zone) {
+    assert(zone->halves == PICO8_BUMP_ZONE_HALVES &&
+           "reset d'une zone a une moitie : une arene ne se remet jamais a zero, on la rend");
     POISON(bump_half(zone), PICO8_ZONE_CELLS(zone->capacity) * sizeof(pico8_zone_cell_t));
     zone->half = (zone->half + 1) % PICO8_BUMP_ZONE_HALVES;
     zone->used = 0;

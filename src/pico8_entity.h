@@ -37,6 +37,8 @@ const pico8_ents_t *pico8_cg(const char *tag);
 /* Only pico8_ke_struct_pq calls it outside tests: every entity of `hv` has
  * had `me` and `t` set by pico8_ke_struct_init, and pico8_dg() reads them. */
 pico8_struct_header_t *pico8_lt(pico8_struct_header_t *e);
+/* `e` taken out of `hv` here, with a class that has `rendre`, goes to the
+ * exit queue: once only, even if he() runs again after jl(). */
 void pico8_he(pico8_struct_header_t *e);
 
 /* `nt` is "kj" or "ev" (asserted). */

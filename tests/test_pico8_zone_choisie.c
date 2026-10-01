@@ -218,10 +218,73 @@ static int case_ne_transient_round_trip(void) {
     return 0;
 }
 
+#define ARENA_SIZE 512
+
+static unsigned char *arena_counting(const pico8_zone_choisie_t *arena) {
+    unsigned char *items = pico8_zone_alloc(arena, 64);
+    for (int i = 0; i < 64; i++) items[i] = (unsigned char)i;
+    return items;
+}
+
+static int case_arena_alive_until_released(void) {
+    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&pico8_zone_transitoire, "place essai", ARENA_SIZE);
+    unsigned char *items = arena_counting(arena);
+    unsigned char *grown = grow_counting(arena);
+    pico8_zone_release(arena, items);
+    expect_counting(items);
+    expect_counting(grown);
+    pico8_zone_arene_rendre(arena);
+    return 0;
+}
+
+static int case_arena_dead_after_release(void) {
+    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&pico8_zone_transitoire, "place essai", ARENA_SIZE);
+    unsigned char *items = arena_counting(arena);
+    pico8_zone_arene_rendre(arena);
+    sink = items[63];
+    return 0;
+}
+
+static int case_arena_full(void) {
+    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&pico8_zone_transitoire, "place essai", ARENA_SIZE);
+    pico8_zone_alloc(arena, ARENA_SIZE);
+    return 0;
+}
+
+/* Les places voisines d'une arene, hors du bloc qu'elle a pris : sous ASan,
+ * l'arene ne doit pas les empoisonner. */
+static pico8_zone_cell_t neighbours[2 * PICO8_ZONE_CELLS(ARENA_SIZE)];
+
+static unsigned char *first_neighbour(const pico8_zone_choisie_t *z, size_t n) {
+    (void)z;
+    assert(n == ARENA_SIZE);
+    return (unsigned char *)neighbours;
+}
+
+static void no_grow_release(const pico8_zone_choisie_t *z, unsigned char *p) {
+    (void)z;
+    (void)p;
+}
+
+static int case_arena_spares_neighbour(void) {
+    static const pico8_zone_choisie_t places = {first_neighbour, NULL, no_grow_release, NULL};
+    unsigned char *next = (unsigned char *)neighbours + ARENA_SIZE;
+    memset(next, 7, ARENA_SIZE);
+    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&places, "place essai", ARENA_SIZE);
+    for (int i = 0; i < ARENA_SIZE; i++) assert(next[i] == 7);
+    sink = arena_counting(arena)[63];
+    pico8_zone_arene_rendre(arena);
+    return 0;
+}
+
 static const struct {
     const char *name;
     int (*run)(void);
 } CASES[] = {
+    {"arena_alive_until_released", case_arena_alive_until_released},
+    {"arena_dead_after_release", case_arena_dead_after_release},
+    {"arena_full", case_arena_full},
+    {"arena_spares_neighbour", case_arena_spares_neighbour},
     {"bump_grow_keeps_order", case_bump_grow_keeps_order},
     {"bump_read_before_reset", case_bump_read_before_reset},
     {"bump_stale_after_reset", case_bump_stale_after_reset},
@@ -288,6 +351,16 @@ static void expect_poison_crash(const char *name) {
     free(err);
 }
 
+static void expect_freed_crash(const char *name) {
+    char *err;
+    int status = run_child(name, &err);
+    if (WEXITSTATUS(status) == 0 || strstr(err, "heap-use-after-free") == NULL) {
+        fprintf(stderr, "%s: attendu heap-use-after-free, sortie %d\n%s", name, WEXITSTATUS(status), err);
+        assert(0 && "un bloc d'arene lu apres le rendu de l'arene doit planter sous ASan");
+    }
+    free(err);
+}
+
 static void expect_fatal(const char *name, const char *message) {
     char *err;
     int status = run_child(name, &err);
@@ -321,6 +394,10 @@ int main(int argc, char **argv) {
     expect_clean("ents_transient_round_trip");
     expect_clean("texts_in_bump");
     expect_clean("ne_transient_round_trip");
+    expect_clean("arena_alive_until_released");
+    expect_freed_crash("arena_dead_after_release");
+    expect_fatal("arena_full", "zone place essai pleine, limite ");
+    expect_clean("arena_spares_neighbour");
     remove(STDERR_LOG);
     printf("test_pico8_zone_choisie: all tests passed\n");
     return 0;

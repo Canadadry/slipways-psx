@@ -14,6 +14,7 @@
 #include "pico8_economy.h"
 #include "pico8_economy_score.h"
 #include "pico8_entity.h"
+#include "pico8_file_sortie.h"
 #include "pico8_fixed.h"
 #include "pico8_galaxy.h"
 #include "pico8_gfx.h"
@@ -47,6 +48,7 @@
 void pico8_cart_load(void) {
     pico8_mem_t *mem;
 
+    pico8_cart_vider_file_sortie();
     pico8_ke_init();
     assert(pico8_ke_ready() && "ke must be declared before every ke-descended class");
     pico8_qb_init();
@@ -88,6 +90,31 @@ void pico8_cart_load(void) {
 
     pico8_help_set_eu(pico8_eu);
     pico8_score_panel_set_init(pico8_init_dispatch);
+}
+
+/* Une place rendue peut revenir a la meme adresse : `kc == ju.ed` serait
+ * vrai pour une boite neuve, et `gj.m_` ecrirait dans un autre objet.
+ * ASan ne voit pas la comparaison. */
+static void oublier(const pico8_struct_header_t *e) {
+    pico8_ui_t *ok = pico8_ok();
+    pico8_pj_t *ju = pico8_ju();
+
+    if (ok != NULL && ok->o_ == e) {
+        ok->o_ = NULL;
+    }
+    if (ok != NULL && ok->gj == e) {
+        ok->gj = NULL;
+    }
+    if ((const pico8_struct_header_t *)pico8_kc() == e) {
+        pico8_msgbox_set_kc(NULL);
+    }
+    if (ju != NULL && (const pico8_struct_header_t *)ju->ed == e) {
+        ju->ed = NULL;
+    }
+}
+
+void pico8_cart_vider_file_sortie(void) {
+    pico8_file_sortie_vider(oublier);
 }
 
 void pico8_cart_shutdown(void) {
@@ -199,6 +226,7 @@ void pico8_eu(pico8_js_t *nj) {
  * fait en zone frame. */
 void pico8__update60(void) {
     pico8_zone_frame_reset();
+    pico8_cart_vider_file_sortie();
     pico8_dg();
     pico8_ui_lj(pico8_dispatch_mem(), pico8_ok());
 }

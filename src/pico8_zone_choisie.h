@@ -29,4 +29,14 @@ unsigned char *pico8_zone_grow(const pico8_zone_choisie_t *z, unsigned char *p,
 /* p peut etre NULL. */
 void pico8_zone_release(const pico8_zone_choisie_t *z, unsigned char *p);
 
+/* Arene : un bloc de `size` octets pris a `from`, qui range dans sa tete
+ * une zone montante privee et la poignee rendue, laquelle vit autant que le
+ * bloc. Ce qu'on y alloue vit jusqu'a pico8_zone_arene_rendre ; y rendre un
+ * bloc ne fait rien, y agrandir copie et laisse l'ancien bloc mort. `name`
+ * doit vivre autant que l'arene : il compose « zone <name> pleine ». */
+const pico8_zone_choisie_t *pico8_zone_arene_prendre(const pico8_zone_choisie_t *from,
+                                                     const char *name, size_t size);
+/* Rend le bloc entier a la poignee qui l'a donne. */
+void pico8_zone_arene_rendre(const pico8_zone_choisie_t *arene);
+
 #endif

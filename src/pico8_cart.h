@@ -14,6 +14,11 @@
  * inserting an `_init()`. */
 void pico8_cart_load(void);
 
+/* Vide la file de sortie, apres avoir remis a nil `o_` et `gj` de l'`ok`
+ * courant, `kc` et `ju.ed` qui designaient une entite rendue.
+ * pico8__update60() et pico8_cart_load() l'appellent en tete. */
+void pico8_cart_vider_file_sortie(void);
+
 /* Frees everything pico8_cart_load() built, in reverse order. Idempotent,
  * and safe before the first pico8_cart_load(). No Lua equivalent. */
 void pico8_cart_shutdown(void);

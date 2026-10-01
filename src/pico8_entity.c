@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "pico8_file_sortie.h"
 #include "pico8_game_data.h"
 #include "pico8_struct.h"
 #include "pico8_zone_frame.h"
@@ -166,7 +167,9 @@ void pico8_he(pico8_struct_header_t *e) {
     int i;
 
     /* TROU-5 */
-    pico8_ents_del(&g_hv, e);
+    if (pico8_ents_del(&g_hv, e) && e->cls->rendre != NULL) {
+        pico8_file_sortie_mettre(e);
+    }
 
     for (i = 0; i < PICO8_BM_COUNT; i++) {
         if (pico8_bm_has(e, i)) {
