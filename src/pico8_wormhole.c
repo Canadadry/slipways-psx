@@ -11,6 +11,7 @@
 #include "pico8_planet.h"
 #include "pico8_probe_comp.h"
 #include "pico8_tech_gate.h"
+#include "pico8_zone_transitoire.h"
 
 static int g_mz_up = 0;
 
@@ -36,7 +37,7 @@ void pico8_mz_pq(pico8_mz_t *self) {
 
     /* TROU-7 */
     heap_ox = malloc(sizeof *heap_ox);
-    pico8_ents_init(heap_ox);
+    pico8_ents_init(heap_ox, &pico8_zone_transitoire);
     it = pico8_ents_all(pico8_hv());
     while (pico8_ents_iter_next(&it, &p)) {
         if (p != NULL && p->fx != NULL && *p->fx != 0) {

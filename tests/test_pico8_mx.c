@@ -37,6 +37,7 @@
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_vec.h"
+#include "../src/pico8_zone_transitoire.h"
 
 
 #define BUILT_HASH 0x2A676693u
@@ -552,7 +553,7 @@ static void give_row(void *e, int qe) {
 
     row->has_gc = 1;
     row->gc = pico8_fixed_from_int(0);
-    pico8_ptrs_init(jy);
+    pico8_ptrs_init(jy, &pico8_zone_transitoire);
     pico8_ptrs_add(jy, row);
     as_hj(e)->jy = jy;
 }

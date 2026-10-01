@@ -35,6 +35,7 @@
 #include "../src/pico8_struct.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
+#include "../src/pico8_zone_transitoire.h"
 
 
 /* The tag class instances carried, which the frozen hashes fold: any
@@ -453,12 +454,12 @@ static void export_to(void *pt, void *oz) {
     pico8_ents_t *by = malloc(sizeof *by);
     pico8_trade_t *t;
 
-    pico8_ents_init(lp);
+    pico8_ents_init(lp, &pico8_zone_transitoire);
     pico8_ents_add(lp, pt);
     pico8_ents_add(lp, oz);
     keys.lp = lp;
     t = pico8_trade_new(&keys);
-    pico8_ents_init(by);
+    pico8_ents_init(by, &pico8_zone_transitoire);
     pico8_ents_add(by, &t->header);
     assert(pico8_jo_is_family(pt));
     ((pico8_jo_t *)pt)->by = by;

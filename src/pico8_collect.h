@@ -5,21 +5,24 @@
 #include "pico8_ptrs.h"
 
 /* `ow` gets each element plus `ctx`, this port's stand-in for the captured
- * upvalue of the original's closure. Returns a new container the caller
- * releases with pico8_ptrs_free(); a NULL `qk` gives an empty one. */
+ * upvalue of the original's closure. Returns a new container in `zone` the
+ * caller releases with pico8_ptrs_free(); a NULL `qk` gives an empty one. */
 typedef int (*pico8_jp_ptrs_predicate_fn)(void *e, void *ctx);
-pico8_ptrs_t pico8_jp_ptrs(const pico8_ptrs_t *qk, pico8_jp_ptrs_predicate_fn ow, void *ctx);
+pico8_ptrs_t pico8_jp_ptrs(const pico8_zone_choisie_t *zone, const pico8_ptrs_t *qk,
+                           pico8_jp_ptrs_predicate_fn ow, void *ctx);
 
-/* `a`'s elements then `b`'s, in a new container the caller releases with
- * pico8_ptrs_free(). Neither argument may be NULL. */
-pico8_ptrs_t pico8_la_ptrs(const pico8_ptrs_t *a, const pico8_ptrs_t *b);
+/* `a`'s elements then `b`'s, in a new container in `zone` the caller
+ * releases with pico8_ptrs_free(). Neither list may be NULL. */
+pico8_ptrs_t pico8_la_ptrs(const pico8_zone_choisie_t *zone, const pico8_ptrs_t *a,
+                           const pico8_ptrs_t *b);
 
 /* `kp` writes *out and returns 1 to contribute an element, 0 to contribute
  * nothing -- this port has no nil for `add(m,kp(e)or nil)` to drop. Returns
- * a new container the caller releases with pico8_ptrs_free(). `qk` must not
- * be NULL. */
+ * a new container in `zone` the caller releases with pico8_ptrs_free(). `qk`
+ * must not be NULL. */
 typedef int (*pico8_nv_ptrs_fn)(void *e, void *ctx, void **out);
-pico8_ptrs_t pico8_nv_ptrs(const pico8_ptrs_t *qk, pico8_nv_ptrs_fn kp, void *ctx);
+pico8_ptrs_t pico8_nv_ptrs(const pico8_zone_choisie_t *zone, const pico8_ptrs_t *qk,
+                           pico8_nv_ptrs_fn kp, void *ctx);
 
 /* TROU-3 */
 /* Membership by string content: every element of `qk` is a string (NULL is

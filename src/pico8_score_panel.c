@@ -19,6 +19,7 @@
 #include "pico8_str.h"
 #include "pico8_struct.h"
 #include "pico8_vec.h"
+#include "pico8_zone_transitoire.h"
 
 static int g_pj_up = 0;
 static pico8_bz_row_t g_bz[PICO8_BZ_COUNT];
@@ -119,7 +120,7 @@ void pico8_eg(void) {
     pico8_fixed_t ps;
     int i;
 
-    filtered = pico8_jp_ents(pico8_cg("jo"), pico8_eg_gg_pred, NULL);
+    filtered = pico8_jp_ents(&pico8_zone_transitoire, pico8_cg("jo"), pico8_eg_gg_pred, NULL);
     ps = pico8_fixed_div(pico8_fixed_from_int(filtered.count), pico8_fixed_from_int(2));
     pico8_ents_free(&filtered);
 

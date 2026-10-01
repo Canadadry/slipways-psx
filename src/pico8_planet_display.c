@@ -22,6 +22,7 @@
 #include "pico8_slipway.h"
 #include "pico8_str.h"
 #include "pico8_tech_gate.h"
+#include "pico8_zone_transitoire.h"
 
 /* `kw` as `lq:mn` reads it, `{qe=kw.qe}` (`mu` is never read there). A
  * fresh row, never freed (TROU-7). */
@@ -179,10 +180,10 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     }
     n = 1;
 
-    pico8_ptrs_init(&ctx.ji);
+    pico8_ptrs_init(&ctx.ji, &pico8_zone_transitoire);
 
     jy = self->jy;
-    jx = pico8_jp_ptrs(jy, pico8_jo_gh_jp_step, &ctx);
+    jx = pico8_jp_ptrs(&pico8_zone_transitoire, jy, pico8_jo_gh_jp_step, &ctx);
 
     if (jx.count > 0) {
         row_cap[n] = 1 + jx.count + 1;

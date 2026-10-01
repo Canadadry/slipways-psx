@@ -21,6 +21,7 @@
 #include "pico8_ui.h"
 #include "pico8_wormhole.h"
 #include "pico8_str.h"
+#include "pico8_zone_transitoire.h"
 
 static int g_g__up = 0;
 static pico8_struct_header_t *g_fm = NULL;
@@ -176,7 +177,7 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
         pico8_struct_header_t *first = NULL;
 
         ctx.self_p = p_vec;
-        filtered = pico8_jp_ents(pico8_cg("jc"), pico8_bv_jc_predicate, &ctx);
+        filtered = pico8_jp_ents(&pico8_zone_transitoire, pico8_cg("jc"), pico8_bv_jc_predicate, &ctx);
         if (filtered.count > 0) {
             first = filtered.items[0];
             have_first = 1;

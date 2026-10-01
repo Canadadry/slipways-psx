@@ -6,6 +6,7 @@
 
 #include "pico8_game_data.h"
 #include "pico8_struct.h"
+#include "pico8_zone_transitoire.h"
 
 #define PICO8_BM_COUNT 5
 static const char *const g_bm_names[PICO8_BM_COUNT] = {"kj", "ev", "hd", "hk", "hb"};
@@ -72,11 +73,15 @@ void pico8_entity_init(void) {
 
     pico8_entity_shutdown();
 
-    pico8_ents_init(&g_hv);
+    pico8_ents_init(&g_hv, &pico8_zone_transitoire);
 
     for (i = 0; i < PICO8_BM_COUNT; i++) {
         g_cv[i].name = g_bm_names[i];
-        pico8_ents_init(&g_cv[i].list);
+        pico8_ents_init(&g_cv[i].list, &pico8_zone_transitoire);
+    }
+
+    for (i = 0; i < PICO8_TAG_COUNT; i++) {
+        pico8_ents_init(&g_cg[i].list, &pico8_zone_transitoire);
     }
 
     g_mo = (pico8_struct_header_t *)&g_mo_placeholder;
@@ -186,7 +191,7 @@ void pico8_dc(const char *nt) {
     assert((kj || strcmp(nt, "ev") == 0) && "dc: only kj and ev are drawn through dc");
 
     for (i = 0; i < 15; i++) {
-        pico8_ents_init(&layers[i]);
+        pico8_ents_init(&layers[i], &pico8_zone_transitoire);
     }
 
     bucket_src = pico8_cv(nt);

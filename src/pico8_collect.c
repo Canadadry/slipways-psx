@@ -6,11 +6,12 @@
 
 #include "pico8_str.h"
 
-pico8_ptrs_t pico8_jp_ptrs(const pico8_ptrs_t *qk, pico8_jp_ptrs_predicate_fn ow, void *ctx) {
+pico8_ptrs_t pico8_jp_ptrs(const pico8_zone_choisie_t *zone, const pico8_ptrs_t *qk,
+                           pico8_jp_ptrs_predicate_fn ow, void *ctx) {
     pico8_ptrs_t f;
     pico8_ptrs_iter_t it;
     void *e;
-    pico8_ptrs_init(&f);
+    pico8_ptrs_init(&f, zone);
     if (qk == NULL) {
         return f;
     }
@@ -23,12 +24,13 @@ pico8_ptrs_t pico8_jp_ptrs(const pico8_ptrs_t *qk, pico8_jp_ptrs_predicate_fn ow
     return f;
 }
 
-pico8_ptrs_t pico8_nv_ptrs(const pico8_ptrs_t *qk, pico8_nv_ptrs_fn kp, void *ctx) {
+pico8_ptrs_t pico8_nv_ptrs(const pico8_zone_choisie_t *zone, const pico8_ptrs_t *qk,
+                           pico8_nv_ptrs_fn kp, void *ctx) {
     pico8_ptrs_t m;
     pico8_ptrs_iter_t it;
     void *e;
     assert(qk != NULL && "nv: a NULL list is not tolerated here, unlike gu and jp");
-    pico8_ptrs_init(&m);
+    pico8_ptrs_init(&m, zone);
     it = pico8_ptrs_all(qk);
     while (pico8_ptrs_iter_next(&it, &e)) {
         void *v;
@@ -43,10 +45,11 @@ static void pico8_la_ptrs_append(void *e, void *ctx) {
     pico8_ptrs_add(ctx, e);
 }
 
-pico8_ptrs_t pico8_la_ptrs(const pico8_ptrs_t *a, const pico8_ptrs_t *b) {
+pico8_ptrs_t pico8_la_ptrs(const pico8_zone_choisie_t *zone, const pico8_ptrs_t *a,
+                           const pico8_ptrs_t *b) {
     pico8_ptrs_t t;
     assert(a != NULL && b != NULL && "la: a NULL list is not tolerated here, unlike gu and jp");
-    pico8_ptrs_init(&t);
+    pico8_ptrs_init(&t, zone);
     pico8_ptrs_foreach(a, pico8_la_ptrs_append, &t);
     pico8_ptrs_foreach(b, pico8_la_ptrs_append, &t);
     return t;

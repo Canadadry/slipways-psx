@@ -35,6 +35,7 @@
 #include "../src/pico8_struct.h"
 #include "../src/pico8_trade.h"
 #include "../src/pico8_vec.h"
+#include "../src/pico8_zone_transitoire.h"
 
 
 #define BUILT_HASH 0x4194DF7Bu
@@ -429,7 +430,7 @@ static pico8_ents_t *list_of(int n, pico8_struct_header_t *item) {
     pico8_ents_t *l = malloc(sizeof *l);
     int i;
 
-    pico8_ents_init(l);
+    pico8_ents_init(l, &pico8_zone_transitoire);
     for (i = 0; i < n; i++) {
         pico8_ents_add(l, item);
     }
@@ -599,7 +600,7 @@ static void test_cn_skips_a_slipway_already_in_rl(void) {
     qe = pico8_fixed_from_int(r_p);
     self = pico8_nr_new(NULL);
     other = pico8_qh_new(NULL);
-    pico8_ptrs_init(jy);
+    pico8_ptrs_init(jy, &pico8_zone_transitoire);
     pico8_ptrs_add(jy, pico8_jy_new(&qe));
     other->jy = jy;
     jc_keys.qu = &self->header;
@@ -608,9 +609,9 @@ static void test_cn_skips_a_slipway_already_in_rl(void) {
     assert(self->oe != NULL && self->oe->count == 0);
     pico8_ents_add(self->oe, &w->header);
 
-    pico8_ents_init(with_w);
+    pico8_ents_init(with_w, &pico8_zone_transitoire);
     pico8_ents_add(with_w, &w->header);
-    pico8_ents_init(&ib);
+    pico8_ents_init(&ib, &pico8_zone_transitoire);
     keys.has_qe = 1;
     keys.qe = qe;
     keys.rl = with_w;
@@ -621,7 +622,7 @@ static void test_cn_skips_a_slipway_already_in_rl(void) {
     pico8_nr_cn(self, &lw);
     assert(g_offers == 0 && ib.count == 0 && lw.mu == pico8_fixed_from_int(2));
 
-    pico8_ents_init(without_w);
+    pico8_ents_init(without_w, &pico8_zone_transitoire);
     keys.rl = without_w;
     lw.t = pico8_trade_new(&keys);
     pico8_nr_cn(self, &lw);

@@ -37,6 +37,7 @@
 #include "../src/pico8_struct.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_vec.h"
+#include "../src/pico8_zone_transitoire.h"
 
 /* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
  * project with an `o` and no `i`, which exports to any planet a slipway
@@ -538,7 +539,7 @@ static void test_lj(void) {
 
     fu = fm_hy()->fu;
     needer = pico8_qh_new(NULL);
-    pico8_ptrs_init(&needs);
+    pico8_ptrs_init(&needs, &pico8_zone_transitoire);
     pico8_ptrs_add(&needs, need);
     needer->jy = &needs;
     pico8_hy_lj(fm_self());

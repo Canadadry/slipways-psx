@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "pico8_tech_gate.h"
+#include "pico8_zone_transitoire.h"
 
 static int g_hp_up = 0;
 
@@ -197,7 +198,7 @@ static pico8_hp_t *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
     /* A want for every character, never skipping one: the Lua table
      * constructor is non-nil even when `r[c]` is absent. */
     new_i_heap = malloc(sizeof *new_i_heap);
-    pico8_ptrs_init(new_i_heap);
+    pico8_ptrs_init(new_i_heap, &pico8_zone_transitoire);
     for (c = 0; i_src[c] != '\0'; c++) {
         char key[2] = {i_src[c], '\0'};
         int r_qe;

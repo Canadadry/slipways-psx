@@ -9,6 +9,7 @@
 #include "pico8_planet.h"
 #include "pico8_trade.h"
 #include "pico8_slipway.h"
+#include "pico8_zone_transitoire.h"
 
 /* Membership by trade equality (same endpoints), not pico8_ents_has's pointer
  * identity: every candidate offered here is a freshly built route, which
@@ -120,9 +121,9 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
             pico8_ptrs_t merged;
             pico8_ptrs_t *merged_heap;
 
-            pico8_ptrs_init(&prefix);
+            pico8_ptrs_init(&prefix, &pico8_zone_transitoire);
             pico8_ptrs_add(&prefix, fresh);
-            merged = pico8_la_ptrs(&prefix, jy);
+            merged = pico8_la_ptrs(&pico8_zone_transitoire, &prefix, jy);
             pico8_ptrs_free(&prefix);
 
             merged_heap = malloc(sizeof *merged_heap);
@@ -185,7 +186,7 @@ pico8_ents_t *pico8_jo_ib(pico8_jo_t *self) {
         ib = self->by;
     } else {
         ib = malloc(sizeof *ib);
-        pico8_ents_init(ib);
+        pico8_ents_init(ib, &pico8_zone_transitoire);
     }
 
     if (self->kw != NULL) {
@@ -212,10 +213,10 @@ pico8_ents_t *pico8_jo_ib(pico8_jo_t *self) {
         w = w_val;
 
         lp_list = malloc(sizeof *lp_list);
-        pico8_ents_init(lp_list);
+        pico8_ents_init(lp_list, &pico8_zone_transitoire);
         pico8_ents_add(lp_list, &self->header);
         rl_list = malloc(sizeof *rl_list);
-        pico8_ents_init(rl_list);
+        pico8_ents_init(rl_list, &pico8_zone_transitoire);
         pico8_ents_add(rl_list, w);
 
         keys.lp = lp_list;

@@ -1,19 +1,23 @@
 #include "pico8_ptrs.h"
 
 #include <assert.h>
-#include <stdlib.h>
+#include <stddef.h>
 
 #define PICO8_PTRS_INITIAL_CAPACITY 4
 
-void pico8_ptrs_init(pico8_ptrs_t *ptrs) {
+void pico8_ptrs_init(pico8_ptrs_t *ptrs, const pico8_zone_choisie_t *zone) {
+    assert(zone != NULL && "ptrs_init: a list without a zone would grow nowhere");
     ptrs->items = NULL;
     ptrs->count = 0;
     ptrs->capacity = 0;
+    ptrs->zone = zone;
 }
 
 void pico8_ptrs_free(pico8_ptrs_t *ptrs) {
     assert(ptrs != NULL && "ptrs primitive called on a NULL container");
-    free(ptrs->items);
+    if (ptrs->items != NULL) {
+        pico8_zone_release(ptrs->zone, (unsigned char *)ptrs->items);
+    }
     ptrs->items = NULL;
     ptrs->count = 0;
     ptrs->capacity = 0;
@@ -21,11 +25,10 @@ void pico8_ptrs_free(pico8_ptrs_t *ptrs) {
 
 static void pico8_ptrs_grow(pico8_ptrs_t *ptrs) {
     int new_capacity = ptrs->capacity == 0 ? PICO8_PTRS_INITIAL_CAPACITY : ptrs->capacity * 2;
-    void **new_items = realloc(ptrs->items, (size_t)new_capacity * sizeof(void *));
-    if (new_items == NULL) {
-        abort();
-    }
-    ptrs->items = new_items;
+    assert(ptrs->zone != NULL && "ptrs_add on a list pico8_ptrs_init never gave a zone");
+    ptrs->items = (void **)pico8_zone_grow(ptrs->zone, (unsigned char *)ptrs->items,
+                                           (size_t)ptrs->capacity * sizeof(void *),
+                                           (size_t)new_capacity * sizeof(void *));
     ptrs->capacity = new_capacity;
 }
 

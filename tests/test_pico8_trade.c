@@ -34,6 +34,7 @@
 #include "../src/pico8_trade.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_vec.h"
+#include "../src/pico8_zone_transitoire.h"
 
 /* `gb[3]`: a project with an `o` and no `i`, whose planet exports to any
  * planet a slipway joins it to. */
@@ -181,7 +182,7 @@ static void join(void *qu, void *re) {
 static pico8_ents_t *list_of(int n, void *const *items) {
     pico8_ents_t *l = malloc(sizeof *l);
     int i;
-    pico8_ents_init(l);
+    pico8_ents_init(l, &pico8_zone_transitoire);
     for (i = 0; i < n; i++) {
         pico8_ents_add(l, items[i]);
     }
@@ -494,7 +495,7 @@ static void test_cn_wildcard_want(void) {
     assert(pico8_r_lookup("?", &any_qe));
     any = pico8_fixed_from_int(any_qe);
     want = pico8_jy_new(&any);
-    pico8_ptrs_init(jy);
+    pico8_ptrs_init(jy, &pico8_zone_transitoire);
     pico8_ptrs_add(jy, want);
     qh = pico8_qh_new(NULL);
     qh->jy = jy;
@@ -515,7 +516,7 @@ static void test_cn_nil_want_after_kg(void) {
     pico8_trade_t *nil_route;
 
     start_game();
-    pico8_ptrs_init(jy);
+    pico8_ptrs_init(jy, &pico8_zone_transitoire);
     pico8_ptrs_add(jy, pico8_jy_new(NULL));
     qh = pico8_qh_new(NULL);
     qh->jy = jy;
@@ -545,11 +546,11 @@ static void test_dh_counts_numbered_routes_only(void) {
     start_game();
     nil_want = pico8_jy_new(NULL);
     x_want = pico8_jy_new(&x);
-    pico8_ptrs_init(jy);
+    pico8_ptrs_init(jy, &pico8_zone_transitoire);
     pico8_ptrs_add(jy, nil_want);
     pico8_ptrs_add(jy, x_want);
     nil_route = pico8_trade_new(NULL);
-    pico8_ents_init(cc);
+    pico8_ents_init(cc, &pico8_zone_transitoire);
     pico8_ents_add(cc, &nil_route->header);
     pico8_ents_add(cc, &pico8_trade_kg(nil_route, NULL, NULL)->header);
     pico8_ents_add(cc, &pico8_trade_new(&(pico8_trade_keys_t){.has_qe = 1, .qe = x})->header);

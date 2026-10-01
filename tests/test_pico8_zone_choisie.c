@@ -8,6 +8,8 @@
 #include <string.h>
 #include <sys/wait.h>
 
+#include "../src/pico8_ents.h"
+#include "../src/pico8_ptrs.h"
 #include "../src/pico8_zone.h"
 #include "../src/pico8_zone_choisie.h"
 #include "../src/pico8_zone_transitoire.h"
@@ -80,6 +82,100 @@ static int case_transient_round_trip(void) {
     return 0;
 }
 
+#define LIST_LENGTH 12
+
+static pico8_struct_header_t cells[LIST_LENGTH];
+
+static pico8_ents_t grown_ents(void) {
+    pico8_ents_t ents;
+    pico8_ents_init(&ents, &handle);
+    for (int i = 0; i < LIST_LENGTH; i++) pico8_ents_add(&ents, &cells[i]);
+    return ents;
+}
+
+static int is_even_cell(pico8_struct_header_t *e, void *ctx) {
+    (void)ctx;
+    return (e - cells) % 2 == 0;
+}
+
+static int case_ents_grow_keeps_order(void) {
+    pico8_ents_t ents = grown_ents();
+    assert(ents.count == LIST_LENGTH);
+    for (int i = 0; i < LIST_LENGTH; i++) assert(ents.items[i] == &cells[i]);
+
+    pico8_ents_t both = pico8_ents_cat(&handle, &ents, &ents);
+    assert(both.count == 2 * LIST_LENGTH);
+    for (int i = 0; i < 2 * LIST_LENGTH; i++) assert(both.items[i] == &cells[i % LIST_LENGTH]);
+
+    pico8_ents_t even = pico8_jp_ents(&handle, &ents, is_even_cell, NULL);
+    assert(even.count == LIST_LENGTH / 2);
+    for (int i = 0; i < LIST_LENGTH / 2; i++) assert(even.items[i] == &cells[2 * i]);
+
+    pico8_ents_iter_t it = pico8_ents_all(&ents);
+    pico8_struct_header_t *e;
+    int seen = 0;
+    while (pico8_ents_iter_next(&it, &e)) {
+        assert(e == &cells[seen] && "all() voit chaque element malgre la suppression");
+        seen++;
+        pico8_ents_del(&ents, e);
+    }
+    assert(seen == LIST_LENGTH && ents.count == 0);
+
+    pico8_ents_free(&ents);
+    assert(ents.count == 0 && ents.items == NULL);
+    pico8_ents_add(&ents, &cells[0]);
+    assert(ents.count == 1 && ents.items[0] == &cells[0]);
+    return 0;
+}
+
+static int case_ptrs_grow_keeps_order(void) {
+    pico8_ptrs_t ptrs;
+    pico8_ptrs_init(&ptrs, &handle);
+    for (int i = 0; i < LIST_LENGTH; i++) pico8_ptrs_add(&ptrs, &cells[i]);
+    assert(ptrs.count == LIST_LENGTH);
+    for (int i = 0; i < LIST_LENGTH; i++) assert(ptrs.items[i] == &cells[i]);
+
+    pico8_ptrs_iter_t it = pico8_ptrs_all(&ptrs);
+    void *e;
+    int seen = 0;
+    while (pico8_ptrs_iter_next(&it, &e)) {
+        assert(e == &cells[seen] && "all() voit chaque element malgre la suppression");
+        seen++;
+        pico8_ptrs_del(&ptrs, e);
+    }
+    assert(seen == LIST_LENGTH && ptrs.count == 0);
+
+    pico8_ptrs_free(&ptrs);
+    assert(ptrs.count == 0 && ptrs.items == NULL);
+    return 0;
+}
+
+static int case_ents_read_before_reset(void) {
+    pico8_ents_t ents = grown_ents();
+    sink = (unsigned char)(ents.items[LIST_LENGTH - 1] == &cells[LIST_LENGTH - 1]);
+    pico8_bump_zone_reset(&bump);
+    return 0;
+}
+
+static int case_ents_stale_after_reset(void) {
+    pico8_ents_t ents = grown_ents();
+    pico8_bump_zone_reset(&bump);
+    for (int i = 0; i < 4; i++) memset(pico8_zone_alloc(&handle, 64), 2, 64);
+    sink = (unsigned char)(ents.items[LIST_LENGTH - 1] == &cells[LIST_LENGTH - 1]);
+    return 0;
+}
+
+static int case_ents_transient_round_trip(void) {
+    pico8_ents_t ents;
+    pico8_ents_init(&ents, &pico8_zone_transitoire);
+    for (int i = 0; i < LIST_LENGTH; i++) pico8_ents_add(&ents, &cells[i]);
+    pico8_ents_t both = pico8_ents_cat(&pico8_zone_transitoire, &ents, &ents);
+    assert(both.count == 2 * LIST_LENGTH);
+    pico8_ents_free(&both);
+    pico8_ents_free(&ents);
+    return 0;
+}
+
 static const struct {
     const char *name;
     int (*run)(void);
@@ -89,6 +185,11 @@ static const struct {
     {"bump_stale_after_reset", case_bump_stale_after_reset},
     {"bump_grow_past_capacity", case_bump_grow_past_capacity},
     {"transient_round_trip", case_transient_round_trip},
+    {"ents_grow_keeps_order", case_ents_grow_keeps_order},
+    {"ptrs_grow_keeps_order", case_ptrs_grow_keeps_order},
+    {"ents_read_before_reset", case_ents_read_before_reset},
+    {"ents_stale_after_reset", case_ents_stale_after_reset},
+    {"ents_transient_round_trip", case_ents_transient_round_trip},
 };
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
@@ -169,6 +270,11 @@ int main(int argc, char **argv) {
     expect_poison_crash("bump_stale_after_reset");
     expect_fatal("bump_grow_past_capacity", "zone essai-liste pleine, limite 1024 octets");
     expect_clean("transient_round_trip");
+    expect_clean("ents_grow_keeps_order");
+    expect_clean("ptrs_grow_keeps_order");
+    expect_clean("ents_read_before_reset");
+    expect_poison_crash("ents_stale_after_reset");
+    expect_clean("ents_transient_round_trip");
     remove(STDERR_LOG);
     printf("test_pico8_zone_choisie: all tests passed\n");
     return 0;

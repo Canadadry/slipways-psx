@@ -18,6 +18,7 @@
 #include "pico8_tech_gate.h"
 #include "pico8_ui.h"
 #include "pico8_vec.h"
+#include "pico8_zone_transitoire.h"
 
 static int g_jc_up = 0;
 
@@ -85,7 +86,7 @@ void pico8_jc_pq(pico8_jc_t *self) {
     pico8_rn(pico8_fixed_from_int(50));
 
     ts = malloc(sizeof *ts);
-    pico8_ptrs_init(ts);
+    pico8_ptrs_init(ts, &pico8_zone_transitoire);
     self->ts = ts;
 
     self->hg_own.count = 0;
@@ -278,9 +279,9 @@ pico8_struct_header_t *pico8_jc_ce(pico8_jc_t *self) {
         jc_ctx.self_has_mt = self->has_mt;
         jc_ctx.self_mt = self->mt;
 
-        part1 = pico8_jp_ents(pico8_cg("np"), pico8_jc_ce_np_predicate, &np_ctx);
-        part2 = pico8_jp_ents(pico8_cg("jc"), pico8_jc_ce_jc_predicate, &jc_ctx);
-        ds = pico8_ents_cat(&part1, &part2);
+        part1 = pico8_jp_ents(&pico8_zone_transitoire, pico8_cg("np"), pico8_jc_ce_np_predicate, &np_ctx);
+        part2 = pico8_jp_ents(&pico8_zone_transitoire, pico8_cg("jc"), pico8_jc_ce_jc_predicate, &jc_ctx);
+        ds = pico8_ents_cat(&pico8_zone_transitoire, &part1, &part2);
         pico8_ents_free(&part1);
         pico8_ents_free(&part2);
 

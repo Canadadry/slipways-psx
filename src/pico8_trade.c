@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "pico8_zone_transitoire.h"
 
 static int g_trade_up = 0;
 
@@ -111,8 +112,8 @@ pico8_trade_t *pico8_trade_kg(const pico8_trade_t *self, pico8_struct_header_t *
         return NULL;
     }
 
-    pico8_ents_init(&empty_lp);
-    pico8_ents_init(&empty_rl);
+    pico8_ents_init(&empty_lp, &pico8_zone_transitoire);
+    pico8_ents_init(&empty_rl, &pico8_zone_transitoire);
     lp = self->lp != NULL ? self->lp : &empty_lp;
     rl = self->rl != NULL ? self->rl : &empty_rl;
     /* TROU-24 */
@@ -120,20 +121,20 @@ pico8_trade_t *pico8_trade_kg(const pico8_trade_t *self, pico8_struct_header_t *
     keys.qe_is_bool = self->has_qe ? self->qe_is_bool : 1;
     keys.qe = self->has_qe ? self->qe : 0;
 
-    pico8_ents_init(&np_list);
+    pico8_ents_init(&np_list, &pico8_zone_transitoire);
     if (np != NULL) {
         pico8_ents_add(&np_list, np);
     }
-    pico8_ents_init(&jc_list);
+    pico8_ents_init(&jc_list, &pico8_zone_transitoire);
     if (jc != NULL) {
         pico8_ents_add(&jc_list, jc);
     }
 
     /* TROU-7 */
     new_lp = malloc(sizeof *new_lp);
-    *new_lp = pico8_ents_cat(lp, &np_list);
+    *new_lp = pico8_ents_cat(&pico8_zone_transitoire, lp, &np_list);
     new_rl = malloc(sizeof *new_rl);
-    *new_rl = pico8_ents_cat(rl, &jc_list);
+    *new_rl = pico8_ents_cat(&pico8_zone_transitoire, rl, &jc_list);
 
     pico8_ents_free(&np_list);
     pico8_ents_free(&jc_list);

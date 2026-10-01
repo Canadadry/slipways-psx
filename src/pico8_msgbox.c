@@ -14,6 +14,7 @@
 #include "pico8_scroll.h"
 #include "pico8_ui.h"
 #include "pico8_ui_button.h"
+#include "pico8_zone_transitoire.h"
 
 static int g_mh_up = 0;
 static int g_iv_up = 0;
@@ -342,7 +343,7 @@ void pico8_pz(const pico8_pz_frame_t *frame, const pico8_js_keys_t *bs, int n) {
 
     /* TROU-7 */
     le_heap = malloc(sizeof *le_heap);
-    pico8_ents_init(le_heap);
+    pico8_ents_init(le_heap, &pico8_zone_transitoire);
     if (has_ep) {
         pico8_ents_add(le_heap, &pico8_pz_step(&ctx, &ep_row)->header);
     }
@@ -361,7 +362,7 @@ void pico8_pz(const pico8_pz_frame_t *frame, const pico8_js_keys_t *bs, int n) {
      * once `le` no longer holds them, exactly as in the cart. */
     if (frame->ff && ok != NULL) {
         pico8_ents_t *empty_heap = malloc(sizeof *empty_heap);
-        pico8_ents_init(empty_heap);
+        pico8_ents_init(empty_heap, &pico8_zone_transitoire);
         ok->le = empty_heap;
     }
 }

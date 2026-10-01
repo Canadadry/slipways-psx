@@ -36,6 +36,7 @@
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
+#include "../src/pico8_zone_transitoire.h"
 
 /* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
  * project with an `o` and no `i`, which exports to any planet a slipway
@@ -765,7 +766,7 @@ static void test_gh_wants_more(void) {
     a->gc = pico8_fixed_from_int(1);
     b->has_gc = 1;
     b->gc = pico8_fixed_from_int(2);
-    pico8_ptrs_init(jy);
+    pico8_ptrs_init(jy, &pico8_zone_transitoire);
     pico8_ptrs_add(jy, a);
     pico8_ptrs_add(jy, b);
     planet = pico8_jo_new(NULL);
@@ -803,7 +804,7 @@ static void test_gh_w_maker_wants_no_more(void) {
     kw->qe = pico8_fixed_from_int(r_w);
     a->has_gc = 1;
     a->gc = pico8_fixed_from_int(1);
-    pico8_ptrs_init(jy);
+    pico8_ptrs_init(jy, &pico8_zone_transitoire);
     pico8_ptrs_add(jy, a);
     planet = pico8_jo_new(NULL);
     planet->jy = jy;
@@ -830,7 +831,7 @@ static void test_gh_lab_wants_its_last(void) {
     a->gc = pico8_fixed_from_int(1);
     b->has_gc = 1;
     b->gc = pico8_fixed_from_int(1);
-    pico8_ptrs_init(jy);
+    pico8_ptrs_init(jy, &pico8_zone_transitoire);
     pico8_ptrs_add(jy, a);
     pico8_ptrs_add(jy, b);
     lab = pico8_qh_new(NULL);

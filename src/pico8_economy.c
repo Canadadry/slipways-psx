@@ -18,6 +18,7 @@
 #include "pico8_ptrs.h"
 #include "pico8_research.h"
 #include "pico8_tech_gate.h"
+#include "pico8_zone_transitoire.h"
 
 static int g_hy_up = 0;
 
@@ -58,7 +59,7 @@ static pico8_hy_t *pico8_hy_struct_new(void) {
     self->ew = self->def->ew;
     /* TROU-7 */
     invented = malloc(sizeof *invented);
-    pico8_ptrs_init(invented);
+    pico8_ptrs_init(invented, &pico8_zone_transitoire);
     self->invented = invented;
     self->lo = self->def->lo;
     self->yr = self->def->yr;

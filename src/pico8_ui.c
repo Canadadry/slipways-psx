@@ -13,6 +13,7 @@
 #include "pico8_scroll.h"
 #include "pico8_vec.h"
 #include "pico8_wormhole.h"
+#include "pico8_zone_transitoire.h"
 
 static int g_ui_up = 0;
 static pico8_struct_header_t *g_je = NULL;
@@ -92,7 +93,7 @@ static pico8_ui_t *pico8_ui_struct_new(void) {
     self->ic = NULL;
     self->ic_own.layer_count = PICO8_UI_IC_LAYERS;
     for (i = 0; i < PICO8_UI_IC_LAYERS; i++) {
-        pico8_ents_init(&self->ic_own.layers[i]);
+        pico8_ents_init(&self->ic_own.layers[i], &pico8_zone_transitoire);
     }
     self->o_ = NULL;
     self->gj = NULL;
@@ -108,7 +109,7 @@ static pico8_ui_t *pico8_ui_struct_new(void) {
 void pico8_ui_init(void) {
     pico8_ui_shutdown();
     pico8_pi_init();
-    pico8_ents_init(&g_shared_le);
+    pico8_ents_init(&g_shared_le, &pico8_zone_transitoire);
     g_ui_up = 1;
 
     g_je = (pico8_struct_header_t *)&g_je_placeholder;
@@ -257,7 +258,7 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
 
     for (i = 0; i < PICO8_UI_IC_LAYERS; i++) {
         pico8_ents_free(&self->ic_own.layers[i]);
-        pico8_ents_init(&self->ic_own.layers[i]);
+        pico8_ents_init(&self->ic_own.layers[i], &pico8_zone_transitoire);
     }
     self->ic = &self->ic_own;
     self->o_ = NULL;
@@ -438,6 +439,6 @@ void pico8_ui_cj(pico8_ui_t *self) {
 
     /* TROU-7 */
     heap_le = malloc(sizeof *heap_le);
-    pico8_ents_init(heap_le);
+    pico8_ents_init(heap_le, &pico8_zone_transitoire);
     self->le = heap_le;
 }

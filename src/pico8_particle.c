@@ -9,6 +9,7 @@
 #include "pico8_fixed.h"
 #include "pico8_game_data.h"
 #include "pico8_vec.h"
+#include "pico8_zone_transitoire.h"
 
 /* `fa`, and `ra` into `*ra` (the zero vector when nil), of the host of `ei`. */
 static pico8_fixed_t emitter_host_fa_ra(const pico8_struct_header_t *self, pico8_vec_t *ra) {
@@ -34,7 +35,7 @@ void pico8_f_(pico8_struct_header_t *self) {
 
     emitter = self->emitter;
     qy = malloc(sizeof *qy);
-    pico8_ptrs_init(qy);
+    pico8_ptrs_init(qy, &pico8_zone_transitoire);
     emitter->qy = qy;
 }
 

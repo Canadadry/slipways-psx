@@ -36,6 +36,7 @@
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_vec.h"
+#include "../src/pico8_zone_transitoire.h"
 
 
 #define BUILT_HASH 0xA5047E01u
@@ -418,7 +419,7 @@ static uint32_t fold_economy(uint32_t h, void *e) {
 static pico8_ents_t *list_of(int n, pico8_struct_header_t *item) {
     pico8_ents_t *l = malloc(sizeof *l);
     int i;
-    pico8_ents_init(l);
+    pico8_ents_init(l, &pico8_zone_transitoire);
     for (i = 0; i < n; i++) {
         pico8_ents_add(l, item);
     }

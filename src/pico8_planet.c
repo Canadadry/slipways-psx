@@ -12,6 +12,7 @@
 #include "pico8_msgbox.h"
 #include "pico8_pi.h"
 #include "pico8_research.h"
+#include "pico8_zone_transitoire.h"
 
 static int g_jo_up = 0;
 
@@ -192,7 +193,7 @@ void pico8_jo_pq(pico8_jo_t *self) {
     }
 
     oe = malloc(sizeof *oe);
-    pico8_ents_init(oe);
+    pico8_ents_init(oe, &pico8_zone_transitoire);
     self->oe = oe;
 
     if (self->header.cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_QH)) {
@@ -231,9 +232,9 @@ void pico8_jo_lz(pico8_jo_t *self, pico8_hp_t *hp_instance) {
     self->hn = hp_instance;
     self->ep = NULL;
 
-    pico8_ptrs_init(&jy);
+    pico8_ptrs_init(&jy, &pico8_zone_transitoire);
     if (hp_instance != NULL && hp_instance->i != NULL) {
-        jy = pico8_nv_ptrs(hp_instance->i, pico8_jo_lz_mw_step, NULL);
+        jy = pico8_nv_ptrs(&pico8_zone_transitoire, hp_instance->i, pico8_jo_lz_mw_step, NULL);
     }
     jy_heap = malloc(sizeof *jy_heap);
     *jy_heap = jy;
