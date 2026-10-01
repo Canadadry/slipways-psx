@@ -273,9 +273,9 @@ void pico8_dl_show(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *me, con
     free(heap_display);
 }
 
-void pico8_dl_dispatch(void *self, const pico8_vec_t *ra) {
+void pico8_dl_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
     (void)ra;
-    pico8_dl(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_struct_header_t *)self);
+    pico8_dl(pico8_dispatch_gfx(), pico8_dispatch_mem(), self);
 }
 
 /* Raises `p_`, which a host of `d_` holds for itself: `g_`'s line, jo's

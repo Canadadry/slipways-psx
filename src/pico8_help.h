@@ -40,6 +40,6 @@ void pico8_fv_pq(pico8_g__t *self);
 
 void pico8_fv_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_g__t *self, pico8_vec_t p);
 
-void pico8_fv_kj_dispatch(void *self, const pico8_vec_t *ra);
+void pico8_fv_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra);
 
 #endif

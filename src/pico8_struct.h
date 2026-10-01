@@ -142,8 +142,8 @@ struct pico8_kind_rec;
  * is NULL when a non-NULL `hb` is enough for `e.hb` to exist; otherwise the
  * instance decides. `mm` returns a fresh particle the caller owns. */
 struct pico8_struct_class {
-    void (*kj)(void *self, const pico8_vec_t *ra);
-    void (*ev)(void *self, const pico8_vec_t *ra);
+    void (*kj)(pico8_struct_header_t *self, const pico8_vec_t *ra);
+    void (*ev)(pico8_struct_header_t *self, const pico8_vec_t *ra);
     int (*hd)(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra);
     void (*hk)(void *self, pico8_fixed_t yr);
     void (*hb)(void *self);

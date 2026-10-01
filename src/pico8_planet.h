@@ -104,7 +104,7 @@ int pico8_jo_hd_dispatch(pico8_struct_header_t *self, const pico8_vec_t *qa, con
 void pico8_jo_hb_dispatch(void *self);
 pico8_down_t pico8_jo_gv_dispatch(void *self, const pico8_struct_header_t *s);
 void pico8_jo_hk_dispatch(void *self, pico8_fixed_t yr);
-void pico8_jo_kj_dispatch(void *self, const pico8_vec_t *ra);
+void pico8_jo_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra);
 pico8_down_t pico8_jo_ldown_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra);
 void pico8_jo_kf_dispatch(void *self, pico8_struct_header_t *sw);
 

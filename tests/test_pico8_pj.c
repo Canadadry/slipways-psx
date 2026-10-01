@@ -443,7 +443,7 @@ static void test_life(void) {
     h = fnv_str(h, cr->ep);
 
     for (i = 0; i < 2; i++) {
-        cls_of(ju)->kj(ju, NULL);
+        cls_of(ju)->kj(&ju->header, NULL);
         h = fnv(h, screen_hash());
     }
     assert(!ju->has_gz);
@@ -467,7 +467,7 @@ static void test_life(void) {
     assert(ju->ed == pico8_kc());
 
     for (i = 0; i < 3; i++) {
-        cls_of(ju)->kj(ju, NULL);
+        cls_of(ju)->kj(&ju->header, NULL);
         h = fold_opt_fixed(h, ju->has_gz, ju->gz);
         h = fnv(h, screen_hash());
     }

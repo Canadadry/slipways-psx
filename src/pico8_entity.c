@@ -224,7 +224,7 @@ void pico8_dc(const char *nt) {
 
         for (i = 0; i < bucket->count; i++) {
             pico8_struct_header_t *qc = bucket->items[i];
-            void (*draw)(void *self, const pico8_vec_t *ra) = kj ? qc->cls->kj : qc->cls->ev;
+            void (*draw)(pico8_struct_header_t *self, const pico8_vec_t *ra) = kj ? qc->cls->kj : qc->cls->ev;
             const pico8_vec_t *ra = qc->ra != NULL ? *qc->ra : NULL;
 
             if (draw != NULL) {

@@ -27,7 +27,7 @@ static int g_camera_y_at_kj;
  * then forwards to the real `pico8_jo_kj`, so the order is observed without
  * stubbing the behaviour out. Installed on the planet alone, through a copy
  * of jo's class whose `kj` is this spy, so no other `jo` sees it. */
-static void spy_kj(void *self, const pico8_vec_t *ra) {
+static void spy_kj(pico8_struct_header_t *self, const pico8_vec_t *ra) {
     pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 
     g_kj_calls++;

@@ -20,7 +20,7 @@ static int pico8_bg_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
 }
 
-static void pico8_bg_kj_dispatch(void *self, const pico8_vec_t *ra) {
+static void pico8_bg_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
     (void)ra;
     pico8_bg_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_bg_t *)self);
 }

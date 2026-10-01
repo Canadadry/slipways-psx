@@ -67,7 +67,7 @@ static int pico8_ui_je_button_field_bool(const char *bt, const char *field) {
     return b->hm;
 }
 
-static void pico8_ui_ev_dispatch(void *self, const pico8_vec_t *ra) {
+static void pico8_ui_ev_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
     (void)ra;
     pico8_ui_ev(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_ui_t *)self);
 }

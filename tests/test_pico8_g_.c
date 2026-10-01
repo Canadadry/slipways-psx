@@ -557,12 +557,12 @@ static void test_life(void) {
 
     pico8_ke_ks(&a->header, "kz");
     pico8_ke_ks(&b->header, "kz");
-    cls_of(a)->ev(a, NULL);
+    cls_of(a)->ev(&a->header, NULL);
     h = fnv(h, screen_hash());
-    cls_of(b)->ev(b, NULL);
+    cls_of(b)->ev(&b->header, NULL);
     h = fnv(h, screen_hash());
     cls_of(a)->hq(a, mouse_at(planet_p()), vec_ref(vec_xy(64, 64)));
-    cls_of(a)->ev(a, NULL);
+    cls_of(a)->ev(&a->header, NULL);
     h = fnv(h, screen_hash());
 
     for (i = 0; i < 3; i++) {

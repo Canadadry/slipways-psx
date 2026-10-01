@@ -53,7 +53,7 @@ void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *s
  * is nil, `pb` is read during the call only. */
 void pico8_dl_show(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *me, const pico8_probe_t *pb);
 
-void pico8_dl_dispatch(void *self, const pico8_vec_t *ra);
+void pico8_dl_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra);
 
 /* Returns 1 on the success branch (Lua true), 0 on the other (nil); `jc:ey`
  * and `mz:ey` consume it. */

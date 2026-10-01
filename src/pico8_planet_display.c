@@ -481,7 +481,7 @@ pico8_down_t pico8_jo_gv_dispatch(void *self, const pico8_struct_header_t *s) {
     return pico8_jo_gv((const pico8_jo_t *)self, s);
 }
 
-void pico8_jo_kj_dispatch(void *self, const pico8_vec_t *ra) {
+void pico8_jo_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
     pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     pico8_jo_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_jo_t *)self, p);
 }

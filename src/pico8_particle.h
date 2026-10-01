@@ -59,6 +59,6 @@ void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *s
 
 /* `ra` is never read: `ei` declares only `self`, so Lua drops the
  * `entity.ra` argument `dc()` passes. */
-void pico8_ei_dispatch(void *self, const pico8_vec_t *ra);
+void pico8_ei_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra);
 
 #endif

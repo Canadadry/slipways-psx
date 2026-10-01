@@ -23,14 +23,14 @@ static void pico8_js_ph_dispatch(void *self, pico8_fixed_t t) {
     pico8_js_ph(self);
 }
 
-static void pico8_js_ev_dispatch(void *self, const pico8_vec_t *ra) {
+static void pico8_js_ev_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
     (void)ra;
-    pico8_js_ev(pico8_dispatch_gfx(), pico8_dispatch_mem(), self);
+    pico8_js_ev(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_js_t *)self);
 }
 
-static void pico8_js_kj_dispatch(void *self, const pico8_vec_t *ra) {
+static void pico8_js_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
     pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-    pico8_js_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), self, p);
+    pico8_js_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_js_t *)self, p);
 }
 
 /* `js.hd=gk`: a field assignment in the cart, not a method definition. */

@@ -41,7 +41,7 @@ void pico8_mh_pq(pico8_mh_t *self) {
     pico8_msgbox_set_kc(self);
 }
 
-static void pico8_mh_ev_dispatch(void *self, const pico8_vec_t *ra) {
+static void pico8_mh_ev_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
     (void)ra;
     pico8_mh_ev(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_mh_t *)self);
 }
@@ -206,7 +206,7 @@ void pico8_iv_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_iv_t *sel
     pico8_dv_default(mem);
 }
 
-static void pico8_iv_kj_dispatch(void *self, const pico8_vec_t *ra) {
+static void pico8_iv_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
     pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     pico8_iv_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_iv_t *)self, p);
 }

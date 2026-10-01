@@ -122,6 +122,6 @@ pico8_struct_header_t *pico8_jc_eb(const pico8_jc_t *self, const pico8_struct_he
 
 void pico8_jc_ev(pico8_jc_t *self);
 
-void pico8_jc_kj_dispatch(void *self, const pico8_vec_t *ra);
+void pico8_jc_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra);
 
 #endif

@@ -254,7 +254,7 @@ void pico8_pj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_pj_t *self) {
     }
 }
 
-static void pico8_pj_kj_dispatch(void *self, const pico8_vec_t *ra) {
+static void pico8_pj_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
     (void)ra;
     pico8_pj_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_pj_t *)self);
 }
