@@ -1,0 +1,41 @@
+# Liste d'exceptions du verrou (tools/alloc_guard.sh, make alloc-guard) : une
+# ligne `<source> <appels>` par fichier du cœur qui appelle encore malloc,
+# calloc, realloc ou free, avec le nombre d'appels relevé sur son objet.
+# Égalité stricte : chaque conversion baisse ce compte à la main, dans le
+# commit qui la fait ; un fichier qui n'alloue plus quitte la liste.
+src/pico8_bg.c 2
+src/pico8_collect.c 3
+src/pico8_economy.c 2
+src/pico8_economy_score.c 2
+src/pico8_economy_tiers.c 2
+src/pico8_ents.c 2
+src/pico8_galaxy.c 4
+src/pico8_gen.c 4
+src/pico8_geom.c 1
+src/pico8_help.c 1
+src/pico8_layout.c 6
+src/pico8_menu.c 15
+src/pico8_mouse_reader.c 2
+src/pico8_msgbox.c 9
+src/pico8_particle.c 1
+src/pico8_pi.c 1
+src/pico8_planet.c 4
+src/pico8_planet_display.c 11
+src/pico8_planet_family.c 8
+src/pico8_planet_family_trade.c 3
+src/pico8_planet_trade.c 4
+src/pico8_probe.c 7
+src/pico8_ptrs.c 2
+src/pico8_research.c 4
+src/pico8_research_display.c 8
+src/pico8_research_icon.c 4
+src/pico8_score_panel.c 5
+src/pico8_score_panel_display.c 7
+src/pico8_scroll.c 4
+src/pico8_slipway.c 4
+src/pico8_slipway_display.c 1
+src/pico8_str.c 3
+src/pico8_trade.c 3
+src/pico8_ui.c 4
+src/pico8_ui_button.c 3
+src/pico8_wormhole.c 2

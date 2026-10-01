@@ -1,7 +1,8 @@
 # Tout tourne en parallèle (-j au nombre de cœurs, sorties regroupées par cible).
 #
 # make test          -> unit + constants-check + float-grep + float-guard +
-#                       data-guard + composition-guard, la boucle rapide
+#                       alloc-guard + data-guard + composition-guard, la boucle
+#                       rapide
 # make e2e           -> rejoue chaque e2e de tests/e2e/ depuis l'écran titre,
 #                       avec le binaire -O0 de make test, et compare le sha256
 #                       de sa capture à <nom>.json.sha256 ; échoue aussi si un
@@ -72,6 +73,10 @@
 #                       exactement tools/constants_expected_ecarts.txt, dans make test
 # make float-guard   -> réécrit tools/float_guard.txt, en échec si un fichier
 #                       du cœur a besoin du flottant (§6.3), dans make test
+# make alloc-guard   -> compte les appels malloc/calloc/realloc/free de chaque
+#                       objet du cœur ; échoue sur tout écart, plus haut ou plus
+#                       bas, avec tools/alloc_guard_exceptions.txt (cliquet, mis
+#                       à jour à la main), dans make test
 # make float-grep    -> grep du §6.1 sur le cœur (CORE_SRCS + en-têtes, -MM), le
 #                       reste de src/ exclu par tools/float_grep_exclusions.txt,
 #                       dans make test
@@ -379,6 +384,9 @@ $(TMP_DIR)/test_pico8_minimize: $(call objs,tests/test_pico8_minimize.c src/pico
 $(TMP_DIR)/test_float_guard: $(call objs,tests/test_float_guard.c) tools/float_guard.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_alloc_guard: $(call objs,tests/test_alloc_guard.c) tools/alloc_guard.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_float_grep: $(call objs,tests/test_float_grep.c) tools/float_grep.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -607,6 +615,7 @@ UNIT_TESTS := \
     test_pico8_minimize \
     test_e2e_cleanup \
     test_float_guard \
+    test_alloc_guard \
     test_float_grep \
     test_data_residue \
     test_float_link \
@@ -682,7 +691,7 @@ endif
 replay: $(TMP_DIR)/pico8_replay
 	./$(TMP_DIR)/pico8_replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard data-guard composition-guard
+test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard
 
 test-all: test e2e
 
@@ -915,6 +924,13 @@ float-guard: tools/float_guard.sh | $(TMP_DIR)
 	exit $$status
 
 .PHONY: float-guard
+
+ALLOC_GUARD_EXCEPTIONS := tools/alloc_guard_exceptions.txt
+
+alloc-guard: tools/alloc_guard.sh $(ALLOC_GUARD_EXCEPTIONS) $(call objs,$(CORE_SRCS))
+	@sh tools/alloc_guard.sh $(ALLOC_GUARD_EXCEPTIONS) $(OBJ_DIR) $(call objs,$(CORE_SRCS))
+
+.PHONY: alloc-guard
 
 FLOAT_GREP_EXCLUSIONS := tools/float_grep_exclusions.txt
 
