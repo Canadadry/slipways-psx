@@ -5,7 +5,7 @@ description: Drives unsupervised, front-to-back implementation of a phased plan 
 
 # Plan Pilot
 
-Generic, project-agnostic. Takes one argument: the path to a plan file organized into phases, each with numbered steps (the shape of `docs/plan.md` in this repo, the first real target — but read the given plan's actual structure, don't hardcode this one).
+Generic, project-agnostic. Takes one argument: the path to a plan file organized into phases, each with numbered steps (read the given plan's actual structure, don't hardcode one).
 
 No human responds during this run. Every checkpoint below that would normally ask a person is resolved by a `guideline`-skill agent instead, same convention `prd-autopilot` already uses for `tdd`.
 
@@ -14,7 +14,7 @@ No human responds during this run. Every checkpoint below that would normally as
 Repeat until there's no next step:
 
 ### 1. Find the next step
-Look in `docs/prd/done/` (create it if missing) for the highest `phase<N>-etape<M>-*.md`. The next step is the one immediately after it in the plan's own phase/step order. Nothing graduated yet → the plan's first step. Last step of the last phase already graduated → the plan is complete, report and stop.
+Graduated PRDs are deleted, not kept: list the ones already deleted with `git log --diff-filter=D --name-only --format= -- 'docs/prd/triage/phase*-etape*'` and take the highest `phase<N>-etape<M>-*.md` in the plan's order. The next step is the one immediately after it in the plan's own phase/step order. Nothing graduated yet → the plan's first step. Last step of the last phase already graduated → the plan is complete, report and stop.
 
 ### 2. Write its PRD
 Spawn a fresh agent running the `to-prd` skill. See [prd-prompt.md](prd-prompt.md) for the exact prompt template — it must hand over the step verbatim as the agent's context (satisfying `to-prd`'s "don't interview, synthesize what you know"), redirect every `to-prd` "check with the user" checkpoint to a fresh `guideline` agent, name the output `phase<N>-etape<M>-<slug>.md` in `docs/prd/triage/`, and constrain scope to this one step — chunk internally via `to-prd`'s own "Implementation Chunks" if the step is too big for one TDD cycle, never merge steps.
@@ -23,7 +23,7 @@ Spawn a fresh agent running the `to-prd` skill. See [prd-prompt.md](prd-prompt.m
 While step N is being implemented or verified, spawn the PRD agent for step N+1 in the background — it only reads and greps, so it never conflicts with the implementer. Its prompt adds: step N is not done yet; every assumption about N's outcome (file shapes, counts, deviations) is an explicit hypothesis labelled `H-<N>-k`; list the sections to re-check once N's plan note exists; read nothing uncommitted. It writes to `docs/prd/next/`, not `docs/prd/triage/`, so step 3's "only this step's PRD in the queue" still holds. When N graduates, compare the `H-<N>-k` hypotheses with N's final plan note and commit: all hold → move the PRD to `docs/prd/triage/`; any fails → send the same agent back to update the PRD first. Never start N+1's implementation before N graduates.
 
 ### 3. Run it
-Invoke `prd-autopilot` as-is — don't reimplement its cycle. Only this step's PRD (and its own internal chunks, if any) sits in `docs/prd/triage/`, so "run until the queue is empty" naturally stops after this one step. Have it move the graduated PRD to `docs/prd/done/`, keeping the `phase<N>-etape<M>-<slug>.md` filename — step 1 of the next cycle depends on that filename surviving.
+Invoke `prd-autopilot` as-is — don't reimplement its cycle. Only this step's PRD (and its own internal chunks, if any) sits in `docs/prd/triage/`, so "run until the queue is empty" naturally stops after this one step. It deletes the graduated PRD from `docs/prd/triage/`; step 1 of the next cycle reads the `phase<N>-etape<M>-<slug>.md` filename from that deletion in `git log`, so never rename it.
 
 ### 4. Bugs
 Any bug report from an implementer or verifier agent, at any point in steps 2-3: spawn a fresh `help-me-debug` agent on it first. It explains the bug, it doesn't fix it — once it reports back, resume the current step's TDD work informed by that diagnosis. No separate fix pathway.

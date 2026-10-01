@@ -30,7 +30,7 @@ for src in "$@"; do
 done
 
 cat <<'EOF'
-# Garde -mgeneral-regs-only sur le coeur (docs/plan-2.md §6.3), produite par
+# Garde -mgeneral-regs-only sur le coeur (aucun registre flottant), produite par
 # tools/float_guard.sh via make float-guard. Ne pas editer a la main.
 #
 # Une ligne par fichier du coeur qui ne compile pas sans registre flottant.

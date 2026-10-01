@@ -5,7 +5,7 @@ description: Read-only review of a project plan document that proposes methodolo
 
 # Plan Review
 
-Generic, project-agnostic. Takes one argument: the path to a plan file (e.g. `docs/plan.md`). Produces proposals; never edits anything.
+Generic, project-agnostic. Takes one argument: the path to a plan file (e.g. a `docs/plan-*.md`). Produces proposals; never edits anything.
 
 ## Scope discipline
 

@@ -1,6 +1,6 @@
 #!/bin/sh
 # usage: float_grep.sh <cc> <cflags> <exclusions> <repertoire> <source.c>...
-# Le grep du §6.1 de docs/plan-2.md sur le coeur : les sources recues plus les
+# Cherche toute trace de flottant dans le coeur : les sources recues plus les
 # en-tetes que <cc> <cflags> -MM leur trouve. Tout .c/.h de <repertoire> est
 # soit dans ce coeur, soit dans <exclusions> (lignes "<chemin> | <justification>",
 # # en tete de ligne pour un commentaire), jamais les deux, jamais aucun.

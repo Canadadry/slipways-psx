@@ -72,9 +72,8 @@ pointeur nul, donc une valeur fausse. Aucune spec du cart
 n'écrit `s(...)` aujourd'hui — vérifié sur `pico8/lua.lua` — donc le trou
 est dormant, pas actif. Il s'ouvrira le jour où une spec en écrira une.
 
-Sans site depuis D.8 : `pico8_oo` (`src/pico8_collect.c`) supprimé à D.7a,
-`src/pico8_ob.c` et `pico8_pi_spr_constructor` supprimés à D.8 ; le port
-n'analyse plus de spec.
+Sans site : `pico8_oo`, `src/pico8_ob.c` et `pico8_pi_spr_constructor`
+sont supprimés ; le port n'analyse plus de spec.
 
 ## TROU-5 — `dg()` saute une entité quand une entité s'auto-supprime
 
@@ -96,8 +95,8 @@ fuient volontairement :
   que personne ne libère jamais ;
 - une réaffectation de champ (`self.kw = {…}`) abandonne l'ancienne valeur.
 
-Une partie longue croît donc lentement en mémoire. `docs/plan-2.md` a
-l'élimination de `malloc` à son programme, ce qui referme les deux.
+Une partie longue croît donc lentement en mémoire. Remplacer `malloc`
+(voir « À faire » du `README`) refermerait les deux.
 
 ## TROU-8 — Le tag `prober` n'a aucun lecteur
 
@@ -111,7 +110,7 @@ par utilité.
 d'appel n'en a eu besoin. `t[nom]=nil` n'a donc pas d'équivalent exact —
 écrire une valeur fausse n'est pas la même chose qu'un champ absent.
 
-Sans site depuis D.8 : `src/pico8_ob.c` supprimé ; le port n'a plus de
+Sans site : `src/pico8_ob.c` est supprimé ; le port n'a plus de
 table à clés dynamiques.
 
 ## TROU-10 — L'audio est hors périmètre
@@ -142,7 +141,7 @@ Pas transformé en `assert(argc >= 2)` : ça ferait sauter un `dc("hd")` par
 ailleurs légitime. Le vrai correctif est de décider ce que `hd` doit faire
 sous `dc()`, ce qui dépasse une reprise de commentaires.
 
-Sans site depuis D.10a : l'emplacement `hd` a toujours deux arguments et
+Sans site : l'emplacement `hd` a toujours deux arguments et
 `dc` ne lance que `kj`/`ev` (`assert` sur tout autre nom).
 
 ## TROU-12 — Le premier anneau du trou de ver est noir au lieu de garder la plume
@@ -312,8 +311,7 @@ jour, alors que `pen_color` du port n'est écrit que par `pico8_rk`. Un
 tracé coloré entre un `rk` et un `rk_default` ferait diverger le port.
 Non étudié.
 
-Trouvé en convertissant les casts de `pico8_ga_kj` (plan 2, D0b) ;
-prémisse réfutée par diagnostic (émulateurs) après la Phase E.
+Prémisse réfutée par diagnostic dans les émulateurs.
 
 Fichier : `src/pico8_planet_family.c`.
 
@@ -329,8 +327,6 @@ l'éclat d'une protoétoile prend la palette de l'éclat ordinaire.
 Probable, pas vérifié contre PICO-8. `pico8_pm_pq` est exécuté par l'e2e
 `tests/e2e/tech_starbirth_protostar.json` : son empreinte fige le rendu du
 port, écart compris.
-
-Trouvé en convertissant les casts de `pico8_ga_kj` (plan 2, D0b).
 
 Fichier : `src/pico8_planet_family.c`.
 
@@ -348,8 +344,8 @@ les autres magnitudes inférieures à 0.0001, la règle de PICO-8 est
 inconnue.
 
 Non atteint par le filet : aucune valeur affichée par le jeu n'a une
-magnitude inférieure à 0.0001. Se tranche par une relance d'une ligne de
-la sonde (reliquat de la Phase A, `docs/plan-2.md`).
+magnitude inférieure à 0.0001. Se tranche par une ligne de plus dans
+`tools/probe.p8`, lancée sur PICO-8.
 
 Fichier : `src/pico8_str.c`.
 
@@ -416,7 +412,7 @@ table construite avec `[1]` puis complétée en `[3]` a une bordure de 1, et
 bordure valide (`t[1]` n'étant pas nil, 0 n'en est pas une).
 
 Préexistant : l'instance de `lq` parcourait déjà toutes les clés d'indice.
-La conversion en struct (plan 3, étape 1a.34) préserve l'écart.
+La conversion en struct préserve l'écart.
 
 Fichiers : `src/pico8_layout.c` (constructeur de `lq`),
 `src/pico8_score_panel_display.c`.

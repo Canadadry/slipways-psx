@@ -1,6 +1,6 @@
 # Slipways (PICO-8) — règles de design & mécaniques
 
-Document de référence pour la réimplémentation intégrale de la version PICO-8 de *Slipways* (@krajzeg / @gruber_music), portée sur PC en C via raylib (voir `docs/plan.md`). Les mécaniques et valeurs ci-dessous sont extraites directement du code source (`lua.lua`) et des données embarquées dans la cartouche (`map.json`) ; le pitch et les instructions officielles viennent de la page itch.io.
+Document de référence pour la réimplémentation intégrale de la version PICO-8 de *Slipways* (@krajzeg / @gruber_music), portée sur PC en C via raylib (voir le `README`). Les mécaniques et valeurs ci-dessous sont extraites directement du code source (`lua.lua`) et des données embarquées dans la cartouche (`map.json`) ; le pitch et les instructions officielles viennent de la page itch.io.
 
 ## Pitch officiel (itch.io)
 
@@ -289,10 +289,10 @@ La version PICO-8 est **pilotée à la souris**, ce qui ne se transpose pas dire
 - Clic gauche maintenu + glisser depuis une planète colonisée jusqu'à une autre = tracer une nouvelle slipway (`ui:bh`, `jo:ldown`).
 - Clic droit maintenu + glisser dans le vide = déplacer la caméra (`bg:rdown`/`bg:hq`).
 - Clic sur une planète inconnue = envoyer une sonde ; clic sur une planète connue mais non colonisée = ouvrir le choix de colonisation (`jo:fe`, liste des jobs compatibles).
-- Il existe malgré tout un vestige de contrôle directionnel : `qb:ph` (ligne 1134) déplace un curseur avec les 4 boutons directionnels PICO-8 (inertie simple, vitesse ×3, freinage ×0.2) — c'est probablement un fallback clavier/manette resté dans le code ; le plan retient toutefois un mode souris simple pour la v1 (curseur en pixels + clic simulé, voir `docs/plan.md`) plutôt que ce fallback à inertie.
+- Il existe malgré tout un vestige de contrôle directionnel : `qb:ph` (ligne 1134) déplace un curseur avec les 4 boutons directionnels PICO-8 (inertie simple, vitesse ×3, freinage ×0.2) — c'est probablement un fallback clavier/manette resté dans le code.
 - Pas de scroll de zoom : la caméra suit simplement le curseur (`qb:md`).
 
-Règles de blocage (portée, croisement, planète sur le trajet) à garder telles quelles quel que soit le mapping manette retenu — elles ne dépendent pas de la souris. Idées de mapping alternatif au mode souris v1 : voir `docs/after-v1.md`.
+Règles de blocage (portée, croisement, planète sur le trajet) à garder telles quelles quel que soit le mapping manette retenu — elles ne dépendent pas de la souris.
 
 ---
 

@@ -27,7 +27,7 @@ Stage 2 never starts on a plausible cause. The gate after stage 1 is the whole p
 
 Put these in each sub-agent prompt — a fresh agent knows none of them:
 
-- **Never launch the raylib app interactively** (`CLAUDE.md`, and `docs/plan.md`'s testing strategy). Reproduction is headless: fixed frame count, scripted `events.json`, framebuffer dumped as text.
+- **Never launch the raylib app interactively** (`CLAUDE.md`). Reproduction is headless: fixed frame count, scripted `events.json`, framebuffer dumped as text.
 - **The Bash hooks reject absolute paths and `git -C`**. Use project-relative paths, never `cd`. They also reject backticks in a command line, heredocs included — write files with the Write tool, not a heredoc.
 - **Only the orchestrator touches git.** Sub-agents never commit, stage, stash, branch or push.
 - **The suite is `make test`** — prefer the Makefile target over invoking a runner directly.

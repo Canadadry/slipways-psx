@@ -2,9 +2,9 @@
 
 `psx-hello/` is a minimal PSn00bSDK project exercising the concrete building
 blocks the PSX port needs before any game logic: double-buffered GPU setup,
-the BIOS pad driver, and the v1 controller mapping from `docs/plan.md` Phase 2
-(Cross toggles mouse mode, D-pad moves a pixel cursor while it's on, Circle
-simulates a click).
+the BIOS pad driver, and a first controller mapping that emulates the PICO-8
+mouse (Cross toggles mouse mode, D-pad moves a pixel cursor while it's on,
+Circle simulates a click).
 
 ## Building it (on a machine with normal network access)
 
@@ -108,9 +108,8 @@ it was written for and should be built with the real toolchain from
   access and watch the two `timeout`-wrapped builds — report back if either
   one actually times out rather than completing (that's the "runaway build"
   failure mode to watch for).
-- Build and boot `psx-hello` in PCSX-Redux (see `docs/plan.md` for the CLI
-  flags — `--no-ui --loadexe psx-hello/build/psx-hello.exe --run
-  --test-mode`) to close the loop this doc couldn't: does it actually render
+- Build and boot `psx-hello` in PCSX-Redux (`--no-ui --loadexe
+  psx-hello/build/psx-hello.exe --run --test-mode`) to close the loop this doc couldn't: does it actually render
   and respond to a pad?
 - If `elf2x` still crashes with the real toolchain's output, that's worth
   filing upstream; the workaround in this doc (`objcopy -O binary` + a

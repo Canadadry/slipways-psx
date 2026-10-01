@@ -35,9 +35,9 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `lt` | `pico8_lt` | enregistre une instance fraîche dans `hv`/`cv`/`cg` ; c'est le `pq` de `ke` (`pico8_ke_struct_pq`), et prend l'en-tête `pico8_struct_header_t` |
 | `me` | champ `"me"` | nom de l'état/icône courant d'une entité |
 | `t` | champ `"t"` | compteur de frames de l'état courant |
-| `mv(e,rm,...)` | membre typé de `pico8_struct_class_t` (`e->cls->rm`), ou fonction directe pour `eb`, `ib`, `gg`, `md` | dispatch : appelle la méthode `rm` de `e` ; `pico8_mv` supprimé (D.10a) |
+| `mv(e,rm,...)` | membre typé de `pico8_struct_class_t` (`e->cls->rm`), ou fonction directe pour `eb`, `ib`, `gg`, `md` | dispatch : appelle la méthode `rm` de `e` |
 | `dc(nt)` | `pico8_dc` | envoie le message `nt` à toutes les entités inscrites sous ce nom ; la branche `kj` dessine couche par couche via `ci` |
-| `ft(rc,nt,pu)` | — (`pico8_ft_index`, `pico8_ft_name` supprimés à D.7a) | « crée la liste `rc[nt]` si besoin, puis y ajoute `pu` » |
+| `ft(rc,nt,pu)` | — | « crée la liste `rc[nt]` si besoin, puis y ajoute `pu` » |
 | `bm` | — | les cinq noms de message que `dc` sait router : `kj`, `ev`, `hd`, `hk`, `hb` |
 | `cv` | `pico8_cv` | entités indexées par nom de message `bm` : `kj` (dessin), `ev`, `hd` (survol), `hk`, `hb` |
 | `cg` | `pico8_cg` | entités indexées par étiquette (`tags` de la classe, `PICO8_TAG_*`), d'où `cg("jo")` = toutes les planètes |
@@ -51,7 +51,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `gt` | — (`PICO8_GT` supprimé à D.8 avec `pico8_stash.c`) | alphabet de 51 caractères de `unstash` |
+| `gt` | — | alphabet de 51 caractères de `unstash` |
 | `unstash(pd)` | — (tables décodées générées : `pico8_map_tables.c`) | décode une chaîne depuis la mémoire cart, un octet = un index dans `gt`, l'octet 0 termine |
 | `r` | `pico8_r_table`, `pico8_r_lookup` | table décodée depuis l'adresse 8192 |
 | `iz` | `pico8_iz_table`, `pico8_iz_lookup` | table décodée depuis l'adresse 8259 |
@@ -135,7 +135,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `hc` | `pico8_hc_table`, `pico8_hc_lookup` | données lues par `hp:po()`, décodées depuis l'adresse 8383 |
 | `fd` | `pico8_fd_table` | données des projets de recherche, source de `gb`, décodées depuis l'adresse 8494 ; `build_gb` la parcourt |
 | `gb` | `pico8_gb_at`, `pico8_gb_find`, `pico8_gb_count` | les instances `hp` construites depuis `fd` : `gb[k]` par rang (tableau fixe de `pico8_research.c`), `gb[px]` le dernier projet enregistré sous ce `px` (plusieurs le partagent) |
-| `dr` | `pico8_dr_table` ; vue ob `pico8_dr` supprimée (D.6b) | décodées depuis l'adresse 9807 : les specs d'infobulle des icônes d'amélioration : `eu()` lit `dr[i]` pour la i-ème classe de planète qui reçoit une icône `ie` |
+| `dr` | `pico8_dr_table` | décodées depuis l'adresse 9807 : les specs d'infobulle des icônes d'amélioration : `eu()` lit `dr[i]` pour la i-ème classe de planète qui reçoit une icône `ie` |
 | `nb` | `pico8_nb_table`, `pico8_nb_lookup(px)` (`nb[px]`) | liste des technologies, décodée depuis l'adresse 10457 ; `cb()` en rend des entrées et en écrit les `e_` (`pico8_nb_e_`, tableau statique remis par `pico8_data_init`) ; le `_cr_t` d'un bouton de `cr` pointe une entrée de `pico8_nb_table` |
 | `ek` | `pico8_ek_table` (`pico8_game_data.h`) | seuils de palier comparés à `#self.invented` par `hy:kt()` |
 
@@ -259,10 +259,10 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | Nom | Symbole C | Sens |
 |---|---|---|
 | `ob(qs,mr)` | — (données générées : `pico8_game_data.c`) | analyse une spec compacte (`"x=-1,y=-1,c=0,"`) en table, puis y fusionne `mr` ; **la virgule finale est obligatoire**, sans elle le dernier champ est perdu |
-| `fi(qs,fn)` | — (supprimé à D.8 avec `pico8_ob.c`) | appliquait `fn` à chaque caractère et collectait les résultats non nuls ; seul `ob()` s'en servait |
+| `fi(qs,fn)` | — | applique `fn` à chaque caractère et collecte les résultats non nuls ; seul `ob()` s'en sert |
 | `pi` | `pico8_pi_dispatch_register` | table des constructeurs appelables depuis une spec (`b`→`qz`, `v`→`v`, `s`→`spr`, sans équivalent : le port n'analyse plus de spec) et des fonctions de dessin de `bl()`, `pico8_pi_fn` (un article) : `br`→`rk`, `qr`→`io`, `rf`→`eq`, `s`→`spr`, `ld`→`lq:ol` |
 | `oo(fn,a)` | — | appelle `fn` avec les 5 premières entrées positionnelles de `a` : dans `bl`, la fonction de `pi` lit elle-même les items de l'article |
-| `bl(rb,nc)` | `pico8_bl` | dessine chaque article de `rb` (un tableau de `n` `const pico8_jb_row_t *`, items et `fn`) via la fonction `pi` que nomme son `fn`, avec une secousse de caméra `nc` alternée. C'est le seul consommateur de `pi` depuis D.8 |
+| `bl(rb,nc)` | `pico8_bl` | dessine chaque article de `rb` (un tableau de `n` `const pico8_jb_row_t *`, items et `fn`) via la fonction `pi` que nomme son `fn`, avec une secousse de caméra `nc` alternée. C'est le seul consommateur de `pi` |
 | `fn`, `rb`, `nc` | — ; `rb` de `fv` : `const pico8_jb_row_t *rb` → `pico8_fv_rb_row` | le nom de constructeur d'une rangée, la liste de rangées, le décalage de secousse |
 | `oa` | — | masque de bouton passé à `bu()` : 1 pour le gauche, 6 pour le droit |
 
@@ -289,7 +289,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | — | `pico8_jp_ptrs`, `pico8_nv_ptrs` | `jp` et `nv` sur un `pico8_ptrs_t` (élément `void *`) ; `collect` n'a plus de version à valeur |
 | `la(a,b)` | `pico8_la_ptrs` ; `pico8_ents_cat` sur les listes d'entités | concatène deux conteneurs de pointeurs |
 | `ne(d,c,ku)` | `pico8_ne` | formate un nombre signé : `+` devant les positifs, couleur 8 (rouge) forcée pour les négatifs, suffixe `ku` optionnel |
-| `ho(rc,mr,gp)` | `hp_positions` (`static`, `pico8_research.c`) : chaque position écrit son membre, `o`/`dm` par `hp_r` ; `pico8_ho_apply` supprimé (D.8) | renomme les champs positionnels d'un enregistrement selon `mr` et l'indexe dans `rc` par son `.px` |
+| `ho(rc,mr,gp)` | `hp_positions` (`static`, `pico8_research.c`) : chaque position écrit son membre, `o`/`dm` par `hp_r` | renomme les champs positionnels d'un enregistrement selon `mr` et l'indexe dans `rc` par son `.px` |
 | `tostr(v)` | `pico8_tostr_fixed` (`pico8_str.h`) pour un nombre ; `s[i]` du panneau de fin par `pico8_pj_ph_s_str` (chaîne possédée, `""` hors de 1..6 : TROU-13) | conversion en chaîne ; un nombre : 4 décimales puis zéros de fin élagués |
 
 ## Fond de carte et caméra à la souris

@@ -1,4 +1,4 @@
-# Fichiers de src/ hors du coeur du §6.1 de docs/plan-2.md, lus par
+# Fichiers de src/ hors du coeur sans flottant, lus par
 # tools/float_grep.sh via make float-grep. Une ligne "<chemin> | <justification>".
 # Tout .c/.h de src/ est soit dans le coeur (CORE_SRCS et leurs en-tetes, -MM),
 # soit ici ; un fichier du coeur ici fait echouer la cible.

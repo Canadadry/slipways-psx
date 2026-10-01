@@ -2,7 +2,7 @@
 
 ## Le portage
 
-- Cible active : **PC via raylib, rendu logiciel** — voir `docs/plan.md`. Portage littéral, fonction par fonction, de `pico8/lua.lua` (la source décompilée du cart), pas une réécriture depuis le document de conception. Les objets du jeu sont des structs C plates : un noyau commun (`pico8_struct_header_t`), un archétype `static const` par sorte, des composants par pointeur ; le plan actif est `docs/plan-3.md`.
+- Cible active : **PC via raylib, rendu logiciel** — voir le `README`. Portage littéral, fonction par fonction, de `pico8/lua.lua` (la source décompilée du cart), pas une réécriture depuis le document de conception. Les objets du jeu sont des structs C plates : un noyau commun (`pico8_struct_header_t`), un archétype `static const` par sorte, des composants par pointeur.
 - PSX est **en pause**, pas abandonné : on y revient quand une version PC/C est jouable de bout en bout. `psx-hello/` est un projet de test du toolchain — voir `docs/psx-hello-world.md`.
 - L'audio (`sfx`, `music`) est **hors périmètre**, pas reporté.
 
@@ -14,6 +14,10 @@
 
 - `make test` est la boucle rapide (TU et contrôles statiques, quelques secondes). `make e2e` rejoue les e2e de `tests/e2e/` depuis l'écran titre (~1 s). `make test-all` fait les deux. La légende des cibles est en tête du `Makefile`.
 - `make raylib` compile et linke le binaire interactif sans jamais l'exécuter ; il faut `make raylib-vendor-setup` d'abord — voir `docs/raylib-vendoring.md`.
+
+## Docs
+
+`docs/` ne décrit que ce qui est vrai ou à faire. Ce qui est fini — plan, étude, PRD implémentée — est supprimé : l'historique, c'est git.
 
 ## Commentaires
 
