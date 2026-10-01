@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include "zone_tas.h"
+#include "heap_allocator.h"
 
 static void test_add_grows_past_four_and_keeps_order(void) {
     int cells[5];

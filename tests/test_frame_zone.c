@@ -30,7 +30,7 @@
 #include "engine/allocator.h"
 #include "engine/frame_zone.h"
 #include "engine/zone_sizes.h"
-#include "zone_tas.h"
+#include "heap_allocator.h"
 
 #define STDERR_LOG "tmp/test_pico8_zone_frame_stderr.txt"
 

@@ -37,7 +37,7 @@
 #include "game/ui.h"
 #include "game/ui_button.h"
 #include "game/wormhole.h"
-#include "zone_tas.h"
+#include "heap_allocator.h"
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;

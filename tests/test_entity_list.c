@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include "zone_tas.h"
+#include "heap_allocator.h"
 
 static void test_add_grows_past_four_keeps_order_and_free_empties(void) {
     pico8_struct_header_t cells[5];

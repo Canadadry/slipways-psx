@@ -3,7 +3,7 @@
  * and the one operation that moves it forward. Kept outside
  * pico8_raylib_backend.c, which includes raylib.h and can therefore be
  * neither built nor run by `make unit`, so that the continuity of a
- * resumed recording can be tested (tests/test_pico8_recording_
+ * resumed recording can be tested (tests/test_recording_
  * continuity.c). Nothing here includes raylib.h. */
 
 #ifndef PICO8_SESSION_RECORDER_H

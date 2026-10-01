@@ -9,7 +9,7 @@
  * commence donc a l'offset N x 8192, et le nombre de frames est la taille
  * du fichier divisee par 8192, jamais un compteur stocke. Ce contrat est
  * public -- un script exterieur doit pouvoir lire le fichier sans le code
- * du projet -- et tests/test_pico8_screencast.c asserte l'ordre des
+ * du projet -- et tests/test_screencast.c asserte l'ordre des
  * quartets sur les octets bruts, ce qu'un aller-retour ne prouverait pas.
  *
  * Rien ici n'inclut raylib.h et rien ici ne doit l'inclure : un fichier

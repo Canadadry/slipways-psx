@@ -1,7 +1,7 @@
 /* The one piece of the raylib presentation/input concern that can be
  * tested: kept out of pico8_raylib_backend.c, which includes raylib.h and
  * can therefore be neither built nor run here, so
- * tests/test_pico8_raylib_backend_coords.c links this .c alone. */
+ * tests/test_raylib_backend_coords.c links this .c alone. */
 
 #ifndef PICO8_RAYLIB_BACKEND_COORDS_H
 #define PICO8_RAYLIB_BACKEND_COORDS_H

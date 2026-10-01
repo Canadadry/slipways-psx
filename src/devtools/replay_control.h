@@ -1,7 +1,7 @@
 /* How fast a replay runs, and what it tells the player while it does.
  * Kept outside the raylib modules, which include raylib.h and can be
  * neither built nor run here, so the speed ladder and the progress line
- * are pinned to exact values by tests/test_pico8_replay_control.c.
+ * are pinned to exact values by tests/test_replay_control.c.
  * Nothing here includes raylib.h.
  *
  * Abbreviating a replay may only shorten the wait between frames, never

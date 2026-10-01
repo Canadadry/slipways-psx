@@ -96,7 +96,7 @@ int main(void) {
      * aborted this test on its first assertion. The scenario now lives in
      * a fixture of its own, where a recording swap cannot reach it; the
      * root recording is still covered, for shape and loadability rather
-     * than fixed values, by tests/test_pico8_input.c. */
+     * than fixed values, by tests/test_input.c. */
     pico8_input_t input;
     pico8_input_init(&input);
     assert(pico8_input_load(&input, DEMO_EVENTS_PATH));

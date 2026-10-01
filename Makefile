@@ -316,65 +316,65 @@ $(TMP_DIR):
 
 # Les .json en prérequis sont les fixtures que le test lit à l'exécution ;
 # $(filter %.o,$^) les garde hors de la ligne de link.
-$(TMP_DIR)/test_pico8_mem: $(call objs,tests/test_pico8_mem.c src/p8/mem.c) | $(TMP_DIR)
+$(TMP_DIR)/test_mem: $(call objs,tests/test_mem.c src/p8/mem.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_asset_loading: $(call objs,tests/test_asset_loading.c src/p8/assets.c src/p8/mem.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_gfx: $(call objs,tests/test_pico8_gfx.c src/p8/gfx.c src/p8/mem.c src/p8/assets.c) | $(TMP_DIR)
+$(TMP_DIR)/test_gfx: $(call objs,tests/test_gfx.c src/p8/gfx.c src/p8/mem.c src/p8/assets.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_input: $(call objs,tests/test_pico8_input.c src/p8/input.c src/devtools/input_json.c) tests/fixtures/demo_events.json tests/fixtures/events_valid_ox.json tests/fixtures/events_malformed_five_dpad.json | $(TMP_DIR)
+$(TMP_DIR)/test_input: $(call objs,tests/test_input.c src/p8/input.c src/devtools/input_json.c) tests/fixtures/demo_events.json tests/fixtures/events_valid_ox.json tests/fixtures/events_malformed_five_dpad.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_dump: $(call objs,tests/test_pico8_dump.c src/devtools/dump.c src/p8/gfx.c src/p8/mem.c) | $(TMP_DIR)
+$(TMP_DIR)/test_dump: $(call objs,tests/test_dump.c src/devtools/dump.c src/p8/gfx.c src/p8/mem.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_fixed: $(call objs,tests/test_pico8_fixed.c src/p8/fixed.c src/devtools/fixed_test_double.c) | $(TMP_DIR)
+$(TMP_DIR)/test_fixed: $(call objs,tests/test_fixed.c src/p8/fixed.c src/devtools/fixed_test_double.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # Le même test que ci-dessus, sous UBSan : pico8_fixed fait des réinterprétations
 # de bits signé/non signé qui donneraient les bons nombres tout en étant de l'UB.
 # -fno-sanitize-recover fait échouer le binaire au lieu d'imprimer un avertissement.
-$(TMP_DIR)/test_pico8_fixed_ubsan: $(call ubsan_objs,tests/test_pico8_fixed.c src/p8/fixed.c src/devtools/fixed_test_double.c) | $(TMP_DIR)
+$(TMP_DIR)/test_fixed_ubsan: $(call ubsan_objs,tests/test_fixed.c src/p8/fixed.c src/devtools/fixed_test_double.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(UBSAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_raylib_backend_coords: $(call objs,tests/test_pico8_raylib_backend_coords.c src/platform/raylib_backend_coords.c) | $(TMP_DIR)
+$(TMP_DIR)/test_raylib_backend_coords: $(call objs,tests/test_raylib_backend_coords.c src/platform/raylib_backend_coords.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_replay_source: $(call objs,tests/test_pico8_replay_source.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) tests/fixtures/events_valid.json tests/fixtures/events_malformed_missing_field.json | $(TMP_DIR)
+$(TMP_DIR)/test_replay_source: $(call objs,tests/test_replay_source.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) tests/fixtures/events_valid.json tests/fixtures/events_malformed_missing_field.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_recording_continuity: $(call objs,tests/test_pico8_recording_continuity.c src/devtools/session_recorder.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) | $(TMP_DIR)
+$(TMP_DIR)/test_recording_continuity: $(call objs,tests/test_recording_continuity.c src/devtools/session_recorder.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_replay_control: $(call objs,tests/test_pico8_replay_control.c src/devtools/replay_control.c) | $(TMP_DIR)
+$(TMP_DIR)/test_replay_control: $(call objs,tests/test_replay_control.c src/devtools/replay_control.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_marker_coherence: $(call objs,tests/test_pico8_marker_coherence.c src/devtools/session_recorder.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) | $(TMP_DIR)
+$(TMP_DIR)/test_marker_coherence: $(call objs,tests/test_marker_coherence.c src/devtools/session_recorder.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_screencast: $(call objs,tests/test_pico8_screencast.c src/devtools/screencast.c src/p8/mem.c) | $(TMP_DIR)
+$(TMP_DIR)/test_screencast: $(call objs,tests/test_screencast.c src/devtools/screencast.c src/p8/mem.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 # Ce test lance le vrai pilote de rejeu, d'où $(TMP_DIR)/pico8_replay en
 # prérequis : il rejoue la même fixture avec et sans capture et compare les deux
 # dumps, pour que l'argument de capture reste sans effet sur le reste.
-$(TMP_DIR)/test_pico8_headless_capture: $(call objs,tests/test_pico8_headless_capture.c src/devtools/screencast.c src/devtools/dump.c src/p8/gfx.c src/p8/mem.c src/p8/input.c src/devtools/input_json.c) $(TMP_DIR)/pico8_replay tests/fixtures/screencast_capture_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_headless_capture: $(call objs,tests/test_headless_capture.c src/devtools/screencast.c src/devtools/dump.c src/p8/gfx.c src/p8/mem.c src/p8/input.c src/devtools/input_json.c) $(TMP_DIR)/pico8_replay tests/fixtures/screencast_capture_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_replay_from_title: $(call objs,tests/test_pico8_replay_from_title.c) $(TMP_DIR)/pico8_replay tests/fixtures/title_click_forgiving.json tests/fixtures/title_click_reasonable.json | $(TMP_DIR)
+$(TMP_DIR)/test_replay_from_title: $(call objs,tests/test_replay_from_title.c) $(TMP_DIR)/pico8_replay tests/fixtures/title_click_forgiving.json tests/fixtures/title_click_reasonable.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_replay_usage: $(call objs,tests/test_pico8_replay_usage.c) $(TMP_DIR)/pico8_replay tests/fixtures/title_click_forgiving.json | $(TMP_DIR)
+$(TMP_DIR)/test_replay_usage: $(call objs,tests/test_replay_usage.c) $(TMP_DIR)/pico8_replay tests/fixtures/title_click_forgiving.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/pico8_frames: $(call objs,src/cmd/frames.c src/devtools/screencast.c src/devtools/dump.c src/p8/mem.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 # Lance le pilote de rejeu puis l'outil d'émission de frames.
-$(TMP_DIR)/test_pico8_frames_tool: $(call objs,tests/test_pico8_frames_tool.c src/devtools/screencast.c src/p8/mem.c) $(TMP_DIR)/pico8_replay $(TMP_DIR)/pico8_frames tests/fixtures/screencast_capture_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_frames_tool: $(call objs,tests/test_frames_tool.c src/devtools/screencast.c src/p8/mem.c) $(TMP_DIR)/pico8_replay $(TMP_DIR)/pico8_frames tests/fixtures/screencast_capture_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_frames_check: $(call objs,tests/test_frames_check.c) tools/frames_check.sh | $(TMP_DIR)
@@ -395,7 +395,7 @@ $(TMP_DIR)/test_e2e_cleanup: $(call objs,tests/test_e2e_cleanup.c) tools/e2e_cle
 $(TMP_DIR)/pico8_minimize: $(call objs,src/cmd/minimize.c src/devtools/minimize.c src/p8/input.c src/devtools/input_json.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_minimize: $(call objs,tests/test_pico8_minimize.c src/devtools/minimize.c src/p8/input.c src/devtools/input_json.c) $(TMP_DIR)/pico8_minimize tools/minimize.sh | $(TMP_DIR)
+$(TMP_DIR)/test_minimize: $(call objs,tests/test_minimize.c src/devtools/minimize.c src/p8/input.c src/devtools/input_json.c) $(TMP_DIR)/pico8_minimize tools/minimize.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_float_guard: $(call objs,tests/test_float_guard.c) tools/float_guard.sh | $(TMP_DIR)
@@ -422,153 +422,153 @@ $(TMP_DIR)/test_constants_check: $(call objs,tests/test_constants_check.c) tools
 $(TMP_DIR)/pico8_gif: $(call objs,src/cmd/gif.c src/devtools/gif.c src/p8/palette.c src/devtools/screencast.c src/p8/mem.c src/p8/input.c src/devtools/input_json.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_gif: $(call objs,tests/test_pico8_gif.c src/devtools/gif.c src/p8/palette.c) | $(TMP_DIR)
+$(TMP_DIR)/test_gif: $(call objs,tests/test_gif.c src/devtools/gif.c src/p8/palette.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_screencast_player: $(call objs,tests/test_pico8_screencast_player.c src/devtools/screencast_player.c src/p8/palette.c) | $(TMP_DIR)
+$(TMP_DIR)/test_screencast_player: $(call objs,tests/test_screencast_player.c src/devtools/screencast_player.c src/p8/palette.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_vec: $(call objs,tests/test_pico8_vec.c src/engine/vec.c src/p8/fixed.c src/devtools/fixed_test_double.c) | $(TMP_DIR)
+$(TMP_DIR)/test_vec: $(call objs,tests/test_vec.c src/engine/vec.c src/p8/fixed.c src/devtools/fixed_test_double.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_geom: $(call objs,tests/test_pico8_geom.c src/engine/geom.c src/engine/vec.c src/p8/fixed.c src/devtools/fixed_test_double.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_geom: $(call objs,tests/test_geom.c src/engine/geom.c src/engine/vec.c src/p8/fixed.c src/devtools/fixed_test_double.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_ptrs: $(call objs,tests/test_pico8_ptrs.c tests/zone_tas.c src/engine/pointer_list.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pointer_list: $(call objs,tests/test_pointer_list.c tests/heap_allocator.c src/engine/pointer_list.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_zone_arene: $(call objs,tests/test_pico8_zone_arene.c tests/zone_tas.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_arena: $(call objs,tests/test_arena.c tests/heap_allocator.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_ents: $(call objs,tests/test_pico8_ents.c tests/zone_tas.c src/engine/entity_list.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_entity_list: $(call objs,tests/test_entity_list.c tests/heap_allocator.c src/engine/entity_list.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 
-$(TMP_DIR)/test_pico8_str: $(call objs,tests/test_pico8_str.c tests/zone_tas.c src/p8/str.c src/p8/fixed.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_str: $(call objs,tests/test_str.c tests/heap_allocator.c src/p8/str.c src/p8/fixed.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_data_init: $(call objs,tests/test_pico8_data_init.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_data_init: $(call objs,tests/test_data_init.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_map_tables: $(call objs,tests/test_pico8_map_tables.c $(DATA_ENGINE_SRCS) \
+$(TMP_DIR)/test_map_tables: $(call objs,tests/test_map_tables.c $(DATA_ENGINE_SRCS) \
     src/game/planet_family_trade.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_jb_ol: $(call objs,tests/test_pico8_jb_ol.c tests/zone_tas.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_tooltip_draw_at: $(call objs,tests/test_tooltip_draw_at.c tests/heap_allocator.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_iv: $(call asan_objs,tests/test_pico8_iv.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_toast: $(call asan_objs,tests/test_toast.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_mh: $(call asan_objs,tests/test_pico8_mh.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_message_box: $(call asan_objs,tests/test_message_box.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_places_vivantes: $(call asan_objs,tests/test_pico8_places_vivantes.c $(ENGINE_SRCS)) $(TMP_DIR)/pico8_replay | $(TMP_DIR)
+$(TMP_DIR)/test_live_slots: $(call asan_objs,tests/test_live_slots.c $(ENGINE_SRCS)) $(TMP_DIR)/pico8_replay | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_fq: $(call objs,tests/test_pico8_fq.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_modal_backdrop: $(call objs,tests/test_modal_backdrop.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_nf: $(call objs,tests/test_pico8_nf.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_mouse: $(call objs,tests/test_mouse.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_je: $(call objs,tests/test_pico8_je.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_main_mouse: $(call objs,tests/test_main_mouse.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_mo: $(call objs,tests/test_pico8_mo.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_main_camera: $(call objs,tests/test_main_camera.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_qb: $(call objs,tests/test_pico8_qb.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_camera: $(call objs,tests/test_camera.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_mz: $(call objs,tests/test_pico8_mz.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_wormhole: $(call objs,tests/test_wormhole.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_bg: $(call objs,tests/test_pico8_bg.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_background: $(call objs,tests/test_background.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_jc: $(call objs,tests/test_pico8_jc.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_slipway: $(call objs,tests/test_slipway.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_ie: $(call objs,tests/test_pico8_ie.c tests/zone_tas.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_structure_icon: $(call objs,tests/test_structure_icon.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_js: $(call objs,tests/test_pico8_js.c tests/zone_tas.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_button: $(call objs,tests/test_button.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_jo: $(call objs,tests/test_pico8_jo.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_planet: $(call objs,tests/test_planet.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_qh: $(call objs,tests/test_pico8_qh.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_structure: $(call objs,tests/test_structure.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_entity_kind: $(call objs,tests/test_pico8_entity_kind.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_entity_kind: $(call objs,tests/test_entity_kind.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_spec_defaults: $(call objs,tests/test_pico8_spec_defaults.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_spec_defaults: $(call objs,tests/test_spec_defaults.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_struct_header: $(call objs,tests/test_pico8_struct_header.c tests/zone_tas.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_entity_header: $(call objs,tests/test_entity_header.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_jo_spec_defaults: $(call objs,tests/test_pico8_jo_spec_defaults.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_planet_spec_defaults: $(call objs,tests/test_planet_spec_defaults.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_nl: $(call objs,tests/test_pico8_nl.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_trading_hub: $(call objs,tests/test_trading_hub.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_os: $(call objs,tests/test_pico8_os.c tests/zone_tas.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_processor: $(call objs,tests/test_processor.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_hj: $(call objs,tests/test_pico8_hj.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_ascension: $(call objs,tests/test_ascension.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_pm: $(call objs,tests/test_pico8_pm.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_protostar: $(call objs,tests/test_protostar.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_mx: $(call objs,tests/test_pico8_mx.c tests/zone_tas.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_synthesizer: $(call objs,tests/test_synthesizer.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_nr: $(call objs,tests/test_pico8_nr.c tests/zone_tas.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_slipgate: $(call objs,tests/test_slipgate.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_fr: $(call objs,tests/test_pico8_fr.c tests/zone_tas.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_infraspace_gate: $(call objs,tests/test_infraspace_gate.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_ga: $(call objs,tests/test_pico8_ga.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_burst: $(call objs,tests/test_burst.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_g_: $(call objs,tests/test_pico8_g_.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_probe: $(call objs,tests/test_probe.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_fv: $(call objs,tests/test_pico8_fv.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_help_screen: $(call objs,tests/test_help_screen.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_pj: $(call objs,tests/test_pico8_pj.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_score_panel: $(call objs,tests/test_score_panel.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_ui: $(call objs,tests/test_pico8_ui.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_ui: $(call objs,tests/test_ui.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_trade: $(call asan_objs,tests/test_pico8_trade.c tests/zone_tas.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_trade: $(call asan_objs,tests/test_trade.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_hp: $(call objs,tests/test_pico8_hp.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_research_project: $(call objs,tests/test_research_project.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_lq: $(call objs,tests/test_pico8_lq.c tests/zone_tas.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_layout_row: $(call objs,tests/test_layout_row.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_hy: $(call objs,tests/test_pico8_hy.c tests/zone_tas.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_economy: $(call objs,tests/test_economy.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_fm: $(call objs,tests/test_pico8_fm.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_main_economy: $(call objs,tests/test_main_economy.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_planet_kj_dispatch: $(call objs,tests/test_pico8_planet_kj_dispatch.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_draw_layers_camera: $(call objs,tests/test_draw_layers_camera.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_demo: $(call objs,tests/test_pico8_demo.c src/p8/mem.c src/p8/assets.c src/p8/gfx.c src/p8/input.c src/devtools/input_json.c src/devtools/dump.c) tests/fixtures/demo_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_demo: $(call objs,tests/test_demo.c src/p8/mem.c src/p8/assets.c src/p8/gfx.c src/p8/input.c src/devtools/input_json.c src/devtools/dump.c) tests/fixtures/demo_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 REPLAY_SRCS := src/cmd/replay.c src/devtools/screencast.c $(ENGINE_SRCS)
@@ -579,83 +579,83 @@ $(TMP_DIR)/pico8_replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 $(TMP_DIR)/pico8_replay_gcov: $(call gcov_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(GCOV_CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_bg_kj: $(call objs,tests/test_pico8_bg_kj.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_background_draw: $(call objs,tests/test_background_draw.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # Sous ASan, et sans jumeau non instrumenté : le crash visé dépend de la
 # disposition de l'allocateur (le même rejeu sort 139 en -O0 et 0 en -O1), donc
 # seul le débordement lui-même est un oracle fiable.
-$(TMP_DIR)/test_pico8_planet_gh_row_lq: $(call asan_objs,tests/test_pico8_planet_gh_row_lq.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_planet_exports_row: $(call asan_objs,tests/test_planet_exports_row.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_zone: $(call asan_objs,tests/test_pico8_zone.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_zone: $(call asan_objs,tests/test_zone.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_zone_choisie: $(call asan_objs,tests/test_pico8_zone_choisie.c tests/zone_tas.c src/engine/entity_list.c src/engine/pointer_list.c src/p8/str.c src/engine/collect.c src/engine/geom.c src/engine/vec.c src/p8/fixed.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_allocator: $(call asan_objs,tests/test_allocator.c tests/heap_allocator.c src/engine/entity_list.c src/engine/pointer_list.c src/p8/str.c src/engine/collect.c src/engine/geom.c src/engine/vec.c src/p8/fixed.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_zone_particules: $(call asan_objs,tests/test_pico8_zone_particules.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_particle_zone: $(call asan_objs,tests/test_particle_zone.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_zone_interface: $(call asan_objs,tests/test_pico8_zone_interface.c src/game/ui_zone.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_ui_zone: $(call asan_objs,tests/test_ui_zone.c src/game/ui_zone.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_file_sortie: $(call asan_objs,tests/test_pico8_file_sortie.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_exit_queue: $(call asan_objs,tests/test_exit_queue.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_zone_frame: $(call asan_objs,tests/test_pico8_zone_frame.c tests/zone_tas.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_frame_zone: $(call asan_objs,tests/test_frame_zone.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_zone_partie: $(call asan_objs,tests/test_pico8_zone_partie.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_game_zone: $(call asan_objs,tests/test_game_zone.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_ga_export_panel_by: $(call objs,tests/test_pico8_ga_export_panel_by.c $(DATA_ENGINE_SRCS) src/game/planet_family.c) | $(TMP_DIR)
+$(TMP_DIR)/test_burst_exports_row: $(call objs,tests/test_burst_exports_row.c $(DATA_ENGINE_SRCS) src/game/planet_family.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_probe_mm_rnd_order: $(call objs,tests/test_pico8_probe_mm_rnd_order.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_probe_spawn_particle_order: $(call objs,tests/test_probe_spawn_particle_order.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # Liste de sources réduite et non $(ENGINE_SRCS) : ce test ne boote pas de cart.
 # Mesurée en linkant, pas devinée.
-$(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing: $(call objs,tests/test_pico8_layout_nil_item_draws_nothing.c tests/zone_tas.c src/p8/assets.c src/engine/collect.c src/engine/dispatch_context.c src/p8/fixed.c src/engine/geom.c src/p8/gfx.c src/game/hud.c src/game/layout.c src/engine/pointer_list.c src/game/map_tables.c src/p8/mem.c src/p8/str.c src/engine/vec.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_layout_nil_item_draws_nothing: $(call objs,tests/test_layout_nil_item_draws_nothing.c tests/heap_allocator.c src/p8/assets.c src/engine/collect.c src/engine/dispatch_context.c src/p8/fixed.c src/engine/geom.c src/p8/gfx.c src/game/hud.c src/game/layout.c src/engine/pointer_list.c src/game/map_tables.c src/p8/mem.c src/p8/str.c src/engine/vec.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # Le plus long en tête : sous -j, make le lance d'abord.
 UNIT_TESTS := \
     test_composition_residue \
-    test_pico8_mem \
+    test_mem \
     test_asset_loading \
-    test_pico8_gfx \
-    test_pico8_input \
-    test_pico8_dump \
-    test_pico8_fixed \
-    test_pico8_fixed_ubsan \
-    test_pico8_vec \
-    test_pico8_geom \
-    test_pico8_ptrs \
-    test_pico8_ents \
-    test_pico8_str \
-    test_pico8_data_init \
-    test_pico8_map_tables \
-    test_pico8_planet_kj_dispatch \
-    test_pico8_demo \
-    test_pico8_raylib_backend_coords \
-    test_pico8_replay_source \
-    test_pico8_recording_continuity \
-    test_pico8_replay_control \
-    test_pico8_marker_coherence \
-    test_pico8_screencast \
-    test_pico8_headless_capture \
-    test_pico8_replay_from_title \
-    test_pico8_replay_usage \
-    test_pico8_screencast_player \
-    test_pico8_gif \
-    test_pico8_frames_tool \
+    test_gfx \
+    test_input \
+    test_dump \
+    test_fixed \
+    test_fixed_ubsan \
+    test_vec \
+    test_geom \
+    test_pointer_list \
+    test_entity_list \
+    test_str \
+    test_data_init \
+    test_map_tables \
+    test_draw_layers_camera \
+    test_demo \
+    test_raylib_backend_coords \
+    test_replay_source \
+    test_recording_continuity \
+    test_replay_control \
+    test_marker_coherence \
+    test_screencast \
+    test_headless_capture \
+    test_replay_from_title \
+    test_replay_usage \
+    test_screencast_player \
+    test_gif \
+    test_frames_tool \
     test_frames_check \
     test_class_coverage \
     test_line_coverage \
     test_e2e_limits \
-    test_pico8_minimize \
+    test_minimize \
     test_e2e_cleanup \
     test_float_guard \
     test_alloc_guard \
@@ -663,103 +663,103 @@ UNIT_TESTS := \
     test_data_residue \
     test_float_link \
     test_constants_check \
-    test_pico8_bg_kj \
-    test_pico8_probe_mm_rnd_order \
-    test_pico8_planet_gh_row_lq \
-    test_pico8_zone \
-    test_pico8_zone_choisie \
-    test_pico8_zone_arene \
-    test_pico8_zone_frame \
-    test_pico8_zone_interface \
-    test_pico8_zone_particules \
-    test_pico8_zone_partie \
-    test_pico8_file_sortie \
-    test_pico8_ga_export_panel_by \
-    test_pico8_layout_nil_item_draws_nothing \
-    test_pico8_jb_ol \
-    test_pico8_iv \
-    test_pico8_mh \
-    test_pico8_places_vivantes \
-    test_pico8_fq \
-    test_pico8_nf \
-    test_pico8_je \
-    test_pico8_qb \
-    test_pico8_mo \
-    test_pico8_mz \
-    test_pico8_bg \
-    test_pico8_jc \
-    test_pico8_ie \
-    test_pico8_js \
-    test_pico8_jo \
-    test_pico8_qh \
-    test_pico8_nl \
-    test_pico8_entity_kind \
-    test_pico8_spec_defaults \
-    test_pico8_struct_header \
-    test_pico8_jo_spec_defaults \
-    test_pico8_os \
-    test_pico8_hj \
-    test_pico8_pm \
-    test_pico8_mx \
-    test_pico8_nr \
-    test_pico8_fr \
-    test_pico8_ga \
-    test_pico8_g_ \
-    test_pico8_fv \
-    test_pico8_pj \
-    test_pico8_ui \
-    test_pico8_trade \
-    test_pico8_hp \
-    test_pico8_lq \
-    test_pico8_hy \
-    test_pico8_fm
+    test_background_draw \
+    test_probe_spawn_particle_order \
+    test_planet_exports_row \
+    test_zone \
+    test_allocator \
+    test_arena \
+    test_frame_zone \
+    test_ui_zone \
+    test_particle_zone \
+    test_game_zone \
+    test_exit_queue \
+    test_burst_exports_row \
+    test_layout_nil_item_draws_nothing \
+    test_tooltip_draw_at \
+    test_toast \
+    test_message_box \
+    test_live_slots \
+    test_modal_backdrop \
+    test_mouse \
+    test_main_mouse \
+    test_camera \
+    test_main_camera \
+    test_wormhole \
+    test_background \
+    test_slipway \
+    test_structure_icon \
+    test_button \
+    test_planet \
+    test_structure \
+    test_trading_hub \
+    test_entity_kind \
+    test_spec_defaults \
+    test_entity_header \
+    test_planet_spec_defaults \
+    test_processor \
+    test_ascension \
+    test_protostar \
+    test_synthesizer \
+    test_slipgate \
+    test_infraspace_gate \
+    test_burst \
+    test_probe \
+    test_help_screen \
+    test_score_panel \
+    test_ui \
+    test_trade \
+    test_research_project \
+    test_layout_row \
+    test_economy \
+    test_main_economy
 
 # Un lancement par TU, en cible à part : c'est ce que -j parallélise.
 UNIT_RUNS := $(addprefix unit-run-,$(UNIT_TESTS))
 
-UNIT_RUNS_SPECIAL := unit-run-test_pico8_zone unit-run-test_pico8_zone_choisie unit-run-test_pico8_zone_frame unit-run-test_pico8_zone_interface unit-run-test_pico8_zone_particules unit-run-test_pico8_zone_partie unit-run-test_pico8_file_sortie unit-run-test_pico8_iv unit-run-test_pico8_mh unit-run-test_pico8_places_vivantes unit-run-test_pico8_trade
+UNIT_RUNS_SPECIAL := unit-run-test_zone unit-run-test_allocator unit-run-test_frame_zone unit-run-test_ui_zone unit-run-test_particle_zone unit-run-test_game_zone unit-run-test_exit_queue unit-run-test_toast unit-run-test_message_box unit-run-test_live_slots unit-run-test_trade
 
 unit: $(UNIT_RUNS)
 
 $(filter-out $(UNIT_RUNS_SPECIAL),$(UNIT_RUNS)): unit-run-%: $(TMP_DIR)/%
 	./$<
 
-unit-run-test_pico8_zone: $(TMP_DIR)/test_pico8_zone
+unit-run-test_zone: $(TMP_DIR)/test_zone
 	ASAN_OPTIONS=detect_leaks=0 ./$<
 
-unit-run-test_pico8_zone_choisie: $(TMP_DIR)/test_pico8_zone_choisie
+unit-run-test_allocator: $(TMP_DIR)/test_allocator
 	ASAN_OPTIONS=detect_leaks=0 ./$<
 
-unit-run-test_pico8_zone_frame: $(TMP_DIR)/test_pico8_zone_frame
+unit-run-test_frame_zone: $(TMP_DIR)/test_frame_zone
 	ASAN_OPTIONS=detect_leaks=0 ./$<
 
-unit-run-test_pico8_zone_interface: $(TMP_DIR)/test_pico8_zone_interface
+unit-run-test_ui_zone: $(TMP_DIR)/test_ui_zone
 	ASAN_OPTIONS=detect_leaks=0 ./$<
 
-unit-run-test_pico8_zone_particules: $(TMP_DIR)/test_pico8_zone_particules
+unit-run-test_particle_zone: $(TMP_DIR)/test_particle_zone
 	ASAN_OPTIONS=detect_leaks=0 ./$<
 
-unit-run-test_pico8_zone_partie: $(TMP_DIR)/test_pico8_zone_partie
+unit-run-test_game_zone: $(TMP_DIR)/test_game_zone
 	ASAN_OPTIONS=detect_leaks=0 ./$<
 
-unit-run-test_pico8_file_sortie: $(TMP_DIR)/test_pico8_file_sortie
+unit-run-test_exit_queue: $(TMP_DIR)/test_exit_queue
 	ASAN_OPTIONS=detect_leaks=0 ./$<
 
-unit-run-test_pico8_iv: $(TMP_DIR)/test_pico8_iv
+unit-run-test_toast: $(TMP_DIR)/test_toast
 	ASAN_OPTIONS=detect_leaks=0 ./$<
 
-unit-run-test_pico8_mh: $(TMP_DIR)/test_pico8_mh
+unit-run-test_message_box: $(TMP_DIR)/test_message_box
 	ASAN_OPTIONS=detect_leaks=0 ./$<
 
-unit-run-test_pico8_places_vivantes: $(TMP_DIR)/test_pico8_places_vivantes
+unit-run-test_live_slots: $(TMP_DIR)/test_live_slots
 	ASAN_OPTIONS=detect_leaks=0 ./$<
 
-unit-run-test_pico8_trade: $(TMP_DIR)/test_pico8_trade
+unit-run-test_trade: $(TMP_DIR)/test_trade
 	ASAN_OPTIONS=detect_leaks=0 ./$<
 
 # Ces deux TU relisent tmp/pico8_replay_dump.txt, le dump par défaut de
 # pico8_replay : sous -j, jamais en même temps.
-unit-run-test_pico8_frames_tool: | unit-run-test_pico8_headless_capture
+unit-run-test_frames_tool: | unit-run-test_headless_capture
 
 .PHONY: $(UNIT_RUNS)
 

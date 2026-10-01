@@ -35,7 +35,7 @@
 #include "game/ui_button.h"
 #include "engine/vec.h"
 #include "game/wormhole.h"
-#include "zone_tas.h"
+#include "heap_allocator.h"
 
 #define CONSTRUCTION_HASH 0x37EED64Du
 #define START_HASH 0x8C839F39u

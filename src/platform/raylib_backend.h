@@ -53,7 +53,7 @@ int pico8_raylib_backend_should_continue(const pico8_raylib_backend_t *backend);
  * bookmark with no effect on *out_frame. The index comes from
  * pico8_session_recorder_frame_count: stop recording replayed frames and
  * every marker of a resumed session silently shifts by the replay's
- * length (tests/test_pico8_marker_coherence.c). */
+ * length (tests/test_marker_coherence.c). */
 void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, pico8_input_frame_t *out_frame);
 
 /* Uploads the current framebuffer (pico8_peek from PICO8_ADDR_SCREEN, one
@@ -90,7 +90,7 @@ void pico8_raylib_backend_set_frame_rate_cap(int target_fps);
  * the one a crash report needs. A failed append drops the frame rather
  * than killing a live session. Takes replayed and live frames alike, which
  * is what keeps a resumed session's recording complete and replayable in
- * its turn (tests/test_pico8_recording_continuity.c). */
+ * its turn (tests/test_recording_continuity.c). */
 void pico8_raylib_backend_record_frame(pico8_raylib_backend_t *backend, const pico8_input_frame_t *frame);
 
 /* Restores the host cursor, unloads the texture, closes the window and

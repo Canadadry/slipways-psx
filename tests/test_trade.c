@@ -36,7 +36,7 @@
 #include "game/ui.h"
 #include "engine/vec.h"
 #include "engine/frame_zone.h"
-#include "zone_tas.h"
+#include "heap_allocator.h"
 
 /* `gb[3]`: a project with an `o` and no `i`, whose planet exports to any
  * planet a slipway joins it to. */

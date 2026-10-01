@@ -14,7 +14,7 @@
 #include "p8/str.h"
 #include "engine/zone.h"
 #include "engine/allocator.h"
-#include "zone_tas.h"
+#include "heap_allocator.h"
 
 #define STDERR_LOG "tmp/test_pico8_zone_choisie_stderr.txt"
 #define CAPACITY 1024

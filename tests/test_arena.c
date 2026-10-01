@@ -12,7 +12,7 @@
 
 #include "engine/zone.h"
 #include "engine/allocator.h"
-#include "zone_tas.h"
+#include "heap_allocator.h"
 
 #define ARENA_SIZE 512
 

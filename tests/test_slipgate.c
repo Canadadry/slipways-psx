@@ -36,7 +36,7 @@
 #include "game/trade.h"
 #include "engine/game_zone.h"
 #include "engine/vec.h"
-#include "zone_tas.h"
+#include "heap_allocator.h"
 
 /* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
 static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {

@@ -8,7 +8,7 @@
  *
  * argv[2], optional, is where each frame's pixels are written. Absent means no
  * capture, and the driver then behaves exactly as it did before capture
- * existed -- tests/test_pico8_headless_capture.c asserts that.
+ * existed -- tests/test_headless_capture.c asserts that.
  *
  * argv[3], optional, is where the text dump goes; absent means
  * tmp/pico8_replay_dump.txt. Giving it requires giving argv[2].
@@ -130,7 +130,7 @@ int main(int argc, char **argv) {
         /* APRES pico8__draw() et avant la frame suivante : c'est le seul
          * instant ou la memoire ecran tient la frame i complete. En tete
          * de boucle, la capture entiere serait decalee d'une frame --
-         * tests/test_pico8_headless_capture.c le detecte en comparant la
+         * tests/test_headless_capture.c le detecte en comparant la
          * derniere frame capturee au dump texte. */
         if (capture_path && !pico8_screencast_write_frame(&capture, &mem)) {
             fprintf(stderr, "pico8 replay: echec d'ecriture de la frame %d dans '%s'\n",

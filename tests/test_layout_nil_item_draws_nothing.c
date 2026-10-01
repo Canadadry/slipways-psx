@@ -31,7 +31,7 @@
 #include "game/layout.h"
 #include "p8/mem.h"
 #include "engine/vec.h"
-#include "zone_tas.h"
+#include "heap_allocator.h"
 
 /* Where the row is rendered. Any position clear of the screen edges does;
  * these put the whole 8x8 sprite the faulty build drew well inside the

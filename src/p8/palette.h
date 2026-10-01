@@ -15,7 +15,7 @@
  * raylib.h a ce fichier et le sortirait de `make unit`, alors que
  * quarante-huit octets hexadecimaux sont exactement l'endroit ou une
  * faute de frappe ne se voit qu'a l'oeil, dans une fenetre.
- * tests/test_pico8_screencast_player.c les asserte une par une ; chaque
+ * tests/test_screencast_player.c les asserte une par une ; chaque
  * fichier raylib fabrique son `Color` au point d'usage. */
 
 #ifndef PICO8_PALETTE_H

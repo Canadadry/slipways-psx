@@ -7,7 +7,7 @@
  * recording must stay an explicit launch error and never become a silent
  * new game, which would look to the player like a lost save.
  *
- * The failure fixtures are the ones `tests/test_pico8_input.c` uses: this
+ * The failure fixtures are the ones `tests/test_input.c` uses: this
  * module delegates "valid recording" to `pico8_input_load`, so it must be
  * tested against that function's idea of a bad file, not a second one. */
 

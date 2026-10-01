@@ -16,7 +16,7 @@
 #include "game/layout.h"
 #include "p8/mem.h"
 #include "engine/entity_class.h"
-#include "zone_tas.h"
+#include "heap_allocator.h"
 
 #define DR_FIRST_ENTRY_HASH 0x8B2796B5u
 #define BARE_STRINGS_HASH 0x2B14E741u
