@@ -15,8 +15,7 @@
 
 /* `v`, `p` and `ra` start on the vectors of the archetype, which every qb
  * shares and nothing writes; the first `ph` points them at `v_own`, `p_own`
- * and `ra_own`, rewritten in place from then on. Never copy the struct.
- * Nothing frees the struct: TROU-7. */
+ * and `ra_own`, rewritten in place from then on. Never copy the struct. */
 typedef struct {
     pico8_struct_header_t header;
     const pico8_qb_def_t *def;
@@ -40,7 +39,8 @@ void pico8_qb_shutdown(void);
 int pico8_qb_ready(void);
 const pico8_struct_class_t *pico8_qb_struct_class(void);
 
-/* The struct registers itself through `lt`, and nothing frees it. */
+/* The struct registers itself through `lt`; it lives in the current
+ * game-zone generation. */
 pico8_qb_t *pico8_qb_new(void);
 
 /* Nothing outside the camera keeps `p`, `v` or `ra`: each tick rewrites

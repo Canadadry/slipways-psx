@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_dispatch_context.h"
@@ -10,6 +9,7 @@
 #include "pico8_mouse.h"
 #include "pico8_pi.h"
 #include "pico8_vec.h"
+#include "pico8_zone_partie.h"
 
 static int g_nf_up = 0;
 static pico8_nf_button_t g_nf_l;
@@ -36,7 +36,7 @@ static void pico8_nf_pq(pico8_mem_t *mem) {
 }
 
 static pico8_nf_t *pico8_nf_struct_new(void) {
-    pico8_nf_t *self = malloc(sizeof *self);
+    pico8_nf_t *self = (pico8_nf_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *self);
 
     pico8_ke_struct_init(&self->header, &g_nf_struct_class, pico8_nf_def.me, pico8_nf_def.t);
     self->def = &pico8_nf_def;

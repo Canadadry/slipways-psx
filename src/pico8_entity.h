@@ -13,8 +13,8 @@
 void pico8_entity_init(void);
 
 /* Forgets hv/cv/cg's backing arrays, given back with their game-zone
- * generation; mo is never freed: the placeholder is static, a `qb` struct
- * in its place is dropped (TROU-7). Nor are the entities registered in
+ * generation; mo is forgotten unread: the placeholder is static, a `qb`
+ * struct lives in the game zone. Nor are the entities registered in
  * hv/cv/cg, which stay owned by whoever instantiated them. A second
  * call, or a call before the first pico8_entity_init(), is a no-op. */
 void pico8_entity_shutdown(void);
@@ -64,9 +64,9 @@ pico8_struct_header_t *pico8_mo(void);
 
 const pico8_struct_class_t *pico8_mo_placeholder_struct_class(void);
 
-/* Makes `instance` what pico8_mo() returns. Does NOT free the outgoing
- * one: pico8_jl() can run from inside a dispatch chain that still holds
- * the old mo, and freeing it there is a use-after-free. NULL is a valid
+/* Makes `instance` what pico8_mo() returns. The outgoing one lives on
+ * with its generation: pico8_jl() can run from inside a dispatch chain
+ * that still holds the old mo. NULL is a valid
  * "no mo"; passing back the current pico8_mo() is a no-op. */
 void pico8_entity_set_mo(pico8_struct_header_t *instance);
 

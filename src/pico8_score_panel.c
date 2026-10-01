@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_collect.h"
@@ -20,6 +19,7 @@
 #include "pico8_struct.h"
 #include "pico8_vec.h"
 #include "pico8_zone_frame.h"
+#include "pico8_zone_partie.h"
 
 static int g_pj_up = 0;
 static pico8_bz_row_t g_bz[PICO8_BZ_COUNT];
@@ -260,7 +260,7 @@ static pico8_pj_t *pico8_pj_struct_new(void) {
     pico8_pj_t *self;
 
     assert(g_pj_up && "pico8_score_panel_init() must run first");
-    self = malloc(sizeof *self);
+    self = (pico8_pj_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *self);
     pico8_ke_struct_init(&self->header, &g_pj_struct_class, pico8_pj_def.me, pico8_pj_def.t);
     self->def = &pico8_pj_def;
     self->fa = self->def->fa;

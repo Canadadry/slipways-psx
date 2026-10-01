@@ -1,7 +1,6 @@
 #include "pico8_help.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_dispatch_context.h"
@@ -12,6 +11,7 @@
 #include "pico8_pi.h"
 #include "pico8_probe.h"
 #include "pico8_struct.h"
+#include "pico8_zone_partie.h"
 
 static int g_fv_up = 0;
 
@@ -114,7 +114,7 @@ static pico8_g__t *pico8_fv_struct_new(void) {
     pico8_g__t *self;
 
     assert(g_fv_up && "pico8_help_init() must run first");
-    self = malloc(sizeof *self);
+    self = (pico8_g__t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *self);
     pico8_g__struct_init(self, &g_fv_struct_class, &pico8_fv_def);
     self->header.kq = &self->def->kq;
     self->header.ql = &self->def->ql;

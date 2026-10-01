@@ -9,6 +9,7 @@
 #include <sys/wait.h>
 
 #include "../src/pico8_assets.h"
+#include "../src/pico8_bg.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
@@ -20,8 +21,11 @@
 #include "../src/pico8_layout.h"
 #include "../src/pico8_map_tables.h"
 #include "../src/pico8_mem.h"
+#include "../src/pico8_mouse_reader.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_research_icon.h"
+#include "../src/pico8_score_panel.h"
+#include "../src/pico8_scroll.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_zone_choisie.h"
 #include "../src/pico8_zone_frame.h"
@@ -191,6 +195,19 @@ static size_t octets_de_la_recherche_et_de_l_economie(void) {
     return octets_de_l_economie() + octets_des_icones();
 }
 
+/* Terme « singletons » : `mo`, `je`, `ok` du jl() de `eu`, son `bg`, seul
+ * dans `hv`, et `ju`. */
+static size_t octets_des_singletons(void) {
+    const pico8_ents_t *hv = pico8_hv();
+    int bg = 0;
+    for (int i = 0; hv != NULL && i < hv->count; i++) bg += hv->items[i]->cls == pico8_bg_struct_class();
+    assert(bg == 1 && "eu fait un seul bg");
+    assert(pico8_mo_qb() != NULL && pico8_je_nf() != NULL && pico8_ok() != NULL && pico8_ju() != NULL);
+    return octets_d_un_bloc(sizeof(pico8_qb_t)) + octets_d_un_bloc(sizeof(pico8_nf_t)) +
+           octets_d_un_bloc(sizeof(pico8_ui_t)) + octets_d_un_bloc(sizeof(pico8_bg_t)) +
+           octets_d_un_bloc(sizeof(pico8_pj_t));
+}
+
 static int case_prise_and_max(void) {
     const size_t g = etats_de_bw();
     load_cart_and_start();
@@ -203,7 +220,8 @@ static int case_prise_and_max(void) {
     (void)counting_block();
     assert(pico8_zone_partie_prise() == partie + 64);
     pico8__update60();
-    assert(pico8_zone_partie_prise() == g + octets_des_registres() + octets_des_planetes() + octets_de_la_recherche_et_de_l_economie() + 64);
+    assert(pico8_zone_partie_prise() == g + octets_des_registres() + octets_des_planetes() + octets_de_la_recherche_et_de_l_economie() +
+                                         octets_des_singletons() + 64);
     assert(pico8_zone_partie_max() == partie + 64);
     pico8_cart_shutdown();
     assert(pico8_zone_partie_prise() == 0);

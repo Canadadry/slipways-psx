@@ -1,7 +1,6 @@
 #include "pico8_ui.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_dispatch_context.h"
@@ -102,7 +101,6 @@ static void pico8_ui_le_rendre(pico8_ui_t *self) {
     self->le = NULL;
 }
 
-/* TROU-7 */
 static void pico8_ui_rendre_dispatch(pico8_struct_header_t *self) {
     pico8_ui_le_rendre((pico8_ui_t *)self);
 }
@@ -117,7 +115,7 @@ static pico8_ui_t *pico8_ui_struct_new(void) {
     int i;
 
     assert(g_ui_up && "pico8_ui_init() must run first");
-    self = malloc(sizeof *self);
+    self = (pico8_ui_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *self);
     pico8_ke_struct_init(&self->header, &g_ui_struct_class, pico8_ui_def.me, pico8_ui_def.t);
     self->def = &pico8_ui_def;
     self->header.fa = &self->def->fa;
@@ -153,11 +151,7 @@ void pico8_ui_shutdown(void) {
     g_ui_up = 0;
     pico8_ents_free(&g_shared_le);
     g_je = NULL;
-    if (g_ok != NULL) {
-        pico8_ui_le_rendre(g_ok);
-        free(g_ok);
-        g_ok = NULL;
-    }
+    g_ok = NULL;
 }
 
 const pico8_struct_class_t *pico8_je_placeholder_struct_class(void) {
@@ -188,10 +182,9 @@ pico8_nf_t *pico8_je_nf(void) {
     return (pico8_nf_t *)g_je;
 }
 
-/* Deliberately does not free the outgoing instance. `pico8_jl()` rebuilds
+/* The outgoing instance lives on with its generation. `pico8_jl()` rebuilds
  * je/ok mid-frame, reachable from a click dispatched inside pico8_ui_lj,
- * whose `self` is still the old `ok` after the callback returns -- freeing
- * here is a use-after-free. */
+ * whose `self` is still the old `ok` after the callback returns. */
 void pico8_ui_set_je(pico8_struct_header_t *instance) {
     if (instance == g_je) {
         return;

@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_dispatch_context.h"
@@ -10,6 +9,7 @@
 #include "pico8_entity_geom.h"
 #include "pico8_pi.h"
 #include "pico8_vec.h"
+#include "pico8_zone_partie.h"
 
 static int g_qb_up = 0;
 
@@ -38,7 +38,7 @@ static const pico8_struct_class_t g_qb_struct_class = {
 };
 
 static pico8_qb_t *pico8_qb_struct_new(void) {
-    pico8_qb_t *self = malloc(sizeof *self);
+    pico8_qb_t *self = (pico8_qb_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *self);
 
     pico8_ke_struct_init(&self->header, &g_qb_struct_class, pico8_qb_def.me, pico8_qb_def.t);
     self->def = &pico8_qb_def;

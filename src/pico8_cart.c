@@ -214,7 +214,6 @@ void pico8_eu(pico8_js_t *nj) {
     (void)pico8_bg_new();
     pico8_bw(pico8_fixed_from_int(90));
 
-    /* TROU-7 */
     pico8_probe_set_fm((pico8_struct_header_t *)pico8_hy_new());
     pico8_pj_set_ju(pico8_pj_new());
 

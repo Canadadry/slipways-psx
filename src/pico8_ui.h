@@ -49,10 +49,10 @@ typedef struct {
  * replaces. */
 void pico8_ui_init(void);
 
-/* Frees `ok` and gives back its `le`; `je` is never freed: the placeholder is
- * static, an `nf` struct in its place is dropped (TROU-7). The shared `le`
- * is forgotten without being read: its array went with the loading
- * sub-zone. Idempotent, and safe before the first `pico8_ui_init()`. */
+/* Forgets `ok` and `je` without reading them: the zone reset that precedes
+ * this call has already taken them, and the exit queue gave back `ok`'s
+ * `le` before it. The shared `le` is forgotten without being read: its
+ * array went with the loading sub-zone. Idempotent, and safe before the first `pico8_ui_init()`. */
 void pico8_ui_shutdown(void);
 
 /* 1 from pico8_ui_init() to pico8_ui_shutdown(), 0 otherwise. */
@@ -76,9 +76,8 @@ pico8_ents_t *pico8_ui_le_new(void);
  * the shared one. */
 void pico8_ui_set_le(pico8_ui_t *self, pico8_ents_t *le);
 
-/* The `ui` registers itself through `lt` into `hv` and `cv.ev`, no `cg`;
- * only the current `ok` is ever freed, by `pico8_ui_shutdown()`. Asserts
- * before the init. */
+/* The `ui` registers itself through `lt` into `hv` and `cv.ev`, no `cg`; it
+ * lives in the current game-zone generation. Asserts before the init. */
 pico8_ui_t *pico8_ui_new(void);
 
 /* Between `pico8_ui_init()` and `pico8_ui_set_je()` this is the placeholder

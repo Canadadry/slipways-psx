@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_dispatch_context.h"
@@ -15,6 +14,7 @@
 #include "pico8_vec.h"
 #include "pico8_wormhole.h"
 #include "pico8_zone_frame.h"
+#include "pico8_zone_partie.h"
 
 static int g_bg_up = 0;
 
@@ -58,7 +58,7 @@ static void pico8_bg_set_mq(pico8_bg_t *self, const pico8_vec_t *rp) {
 }
 
 static pico8_bg_t *pico8_bg_struct_new(void) {
-    pico8_bg_t *self = malloc(sizeof *self);
+    pico8_bg_t *self = (pico8_bg_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *self);
 
     pico8_ke_struct_init(&self->header, &g_bg_struct_class, pico8_bg_def.me, pico8_bg_def.t);
     self->def = &pico8_bg_def;

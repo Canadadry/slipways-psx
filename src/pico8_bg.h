@@ -13,7 +13,7 @@
  * test, since nothing lies behind the background to miss. */
 
 /* `mq` is a copy of the mouse position `rdown`/`hq` were last given, not
- * that box. Nothing frees the struct: TROU-7. */
+ * that box. */
 typedef struct {
     pico8_struct_header_t header;
     const pico8_bg_def_t *def;
@@ -24,7 +24,7 @@ typedef struct {
 
 void pico8_bg_init(void);
 
-/* Never frees any `bg`. Idempotent, and safe before the first
+/* Idempotent, and safe before the first
  * `pico8_bg_init()`. */
 void pico8_bg_shutdown(void);
 
@@ -33,8 +33,8 @@ int pico8_bg_ready(void);
 
 const pico8_struct_class_t *pico8_bg_struct_class(void);
 
-/* The struct registers itself into `hv`/`cv` through `lt`, and nothing
- * frees it. */
+/* The struct registers itself into `hv`/`cv` through `lt`; it lives in the
+ * current game-zone generation. */
 pico8_bg_t *pico8_bg_new(void);
 
 /* `pl` is `self`'s, or `pico8_bg_pl_seq` for a NULL `self`: `bg.pl` in the

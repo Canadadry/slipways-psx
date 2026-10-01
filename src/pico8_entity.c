@@ -63,7 +63,6 @@ void pico8_entity_shutdown(void) {
         g_cg[i].seen = 0;
     }
 
-    /* TROU-7 */
     g_mo = NULL;
 
     g_initialized = 0;

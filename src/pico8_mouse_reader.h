@@ -14,7 +14,7 @@
 /* `l` and `r` are not members: every nf reads and bu() mutates the same
  * two button tables, the class's shared state. `ra` starts on a (0,0)
  * every nf shares; the first `ph` points it at `ra_own`, rewritten in place
- * from then on. Never copy the struct. Nothing frees the struct: TROU-7. */
+ * from then on. Never copy the struct. */
 typedef struct {
     pico8_struct_header_t header;
     const pico8_nf_def_t *def;
@@ -38,8 +38,8 @@ const pico8_nf_button_t *pico8_nf_r(void);
 int pico8_nf_ready(void);
 const pico8_struct_class_t *pico8_nf_struct_class(void);
 
-/* The struct enables devkit mouse reporting, registers itself through `lt`,
- * and nothing frees it. */
+/* The struct enables devkit mouse reporting, registers itself through `lt`;
+ * it lives in the current game-zone generation. */
 pico8_nf_t *pico8_nf_new(void);
 
 /* Rewrites `self.ra` in place with the mouse position, then runs bu()

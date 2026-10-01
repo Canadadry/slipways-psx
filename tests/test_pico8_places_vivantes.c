@@ -16,6 +16,7 @@
 #include <unistd.h>
 
 #include "../src/pico8_assets.h"
+#include "../src/pico8_bg.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_cheat.h"
 #include "../src/pico8_dispatch_context.h"
@@ -25,14 +26,17 @@
 #include "../src/pico8_game_data.h"
 #include "../src/pico8_gen.h"
 #include "../src/pico8_gfx.h"
+#include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_layout.h"
 #include "../src/pico8_map_tables.h"
 #include "../src/pico8_mem.h"
+#include "../src/pico8_mouse_reader.h"
 #include "../src/pico8_particle.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_research_icon.h"
+#include "../src/pico8_score_panel.h"
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_trade.h"
@@ -428,6 +432,58 @@ static void pause_restart_rend_les_icones_de_la_partie_quittee(void) {
     g_lu = (unsigned char)ie->kh;
 }
 
+/* Le `fv` de `hv`, que fait `_init`. */
+static const pico8_g__t *l_aide_de_hv(void) {
+    const pico8_ents_t *hv = pico8_hv();
+    for (int i = 0; hv != NULL && i < hv->count; i++) {
+        if (hv->items[i]->cls == pico8_fv_struct_class()) return (const pico8_g__t *)hv->items[i];
+    }
+    assert(0 && "le titre a son aide dans hv");
+    return NULL;
+}
+
+static const pico8_bg_t *le_bg_de_hv(void);
+
+enum { SINGLETON_MO, SINGLETON_JE, SINGLETON_OK, SINGLETON_BG, SINGLETON_JU, SINGLETON_FV, SINGLETON_COUNT };
+static const char *const NOMS_DES_SINGLETONS[SINGLETON_COUNT] = {"mo", "je", "ok", "bg", "ju", "fv"};
+
+/* f6 : le `bg` du eu de la premiere partie ; f11 : `mo`, `je`, `ok` et
+ * l'aide `fv` du `_init` de f7, `ju` du eu. Tous dans la generation de la
+ * premiere partie. */
+static void singletons_de_la_partie_quittee(const void *out[SINGLETON_COUNT]) {
+    demarrer("pause_restart");
+    jouer_jusqu_a(6);
+    out[SINGLETON_BG] = le_bg_de_hv();
+    jouer_jusqu_a(11);
+    out[SINGLETON_MO] = pico8_mo_qb();
+    out[SINGLETON_JE] = pico8_je_nf();
+    out[SINGLETON_OK] = pico8_ok();
+    out[SINGLETON_JU] = pico8_ju();
+    out[SINGLETON_FV] = l_aide_de_hv();
+    for (int k = 0; k < SINGLETON_COUNT; k++) assert(out[k] != NULL && "un singleton manque a f11");
+}
+
+/* f12 : le clic bascule ; le `ok` quitte finit son lj apres le jl() de `eu`. */
+static void pause_restart_garde_les_singletons_de_la_partie_quittee_pendant_le_clic(void) {
+    const void *s[SINGLETON_COUNT];
+    singletons_de_la_partie_quittee(s);
+    jouer_jusqu_a(12);
+    assert(pico8_zone_partie_en_attente());
+    assert(pico8_mo_qb() != s[SINGLETON_MO] && pico8_ok() != s[SINGLETON_OK] && pico8_ju() != s[SINGLETON_JU] &&
+           "le clic de f12 fait de nouveaux singletons");
+    for (int k = 0; k < SINGLETON_COUNT; k++) g_lu = *(const unsigned char *)s[k];
+}
+
+static int g_singleton;
+
+/* f13 : chacun meurt avec sa generation. */
+static void pause_restart_rend_un_singleton_de_la_partie_quittee(void) {
+    const void *s[SINGLETON_COUNT];
+    singletons_de_la_partie_quittee(s);
+    jouer_jusqu_a(13);
+    g_lu = *(const unsigned char *)s[g_singleton];
+}
+
 /* f7 : « restart » (`_init`) ne bascule pas. */
 static void pause_restart_garde_la_partie_a_travers_restart(void) {
     demarrer("pause_restart");
@@ -529,9 +585,31 @@ static size_t octets_de_la_recherche_et_de_l_economie(void) {
     return octets_de_l_economie() + octets_des_icones();
 }
 
+/* Le `bg` de `hv`, que `eu` fait seul. */
+static const pico8_bg_t *le_bg_de_hv(void) {
+    const pico8_ents_t *hv = pico8_hv();
+    const pico8_bg_t *bg = NULL;
+    for (int i = 0; hv != NULL && i < hv->count; i++) {
+        if (hv->items[i]->cls != pico8_bg_struct_class()) continue;
+        assert(bg == NULL && "hv tient deux bg");
+        bg = (const pico8_bg_t *)hv->items[i];
+    }
+    assert(bg != NULL && "eu a fait le bg de la partie");
+    return bg;
+}
+
+/* Terme « singletons » : `mo`, `je`, `ok` du jl() de `eu`, son `bg` et `ju`. */
+static size_t octets_des_singletons(void) {
+    assert(pico8_mo_qb() != NULL && pico8_je_nf() != NULL && pico8_ok() != NULL && pico8_ju() != NULL);
+    (void)le_bg_de_hv();
+    return octets_d_un_bloc(sizeof(pico8_qb_t)) + octets_d_un_bloc(sizeof(pico8_nf_t)) +
+           octets_d_un_bloc(sizeof(pico8_ui_t)) + octets_d_un_bloc(sizeof(pico8_bg_t)) +
+           octets_d_un_bloc(sizeof(pico8_pj_t));
+}
+
 /* Apres le rendu de f13, la generation ne tient que ce qu'a fait le eu de
  * f12 et ce qui a grandi depuis : les etats de bw, les registres, blocs
- * morts compris, ses planetes et son economie. */
+ * morts compris, ses planetes, son economie et ses singletons. */
 static void pause_restart_borne_les_blocs_morts_des_registres(void) {
     const size_t g = etats_de_bw();
     demarrer("pause_restart");
@@ -540,7 +618,7 @@ static void pause_restart_borne_les_blocs_morts_des_registres(void) {
     const size_t p = octets_des_planetes();
     printf("  pause_restart f13 : partie=%lu, etats de bw=%lu, registres=%lu, planetes=%lu\n",
            (unsigned long)pico8_zone_partie_prise(), (unsigned long)g, (unsigned long)r, (unsigned long)p);
-    assert(pico8_zone_partie_prise() == g + r + p + octets_de_la_recherche_et_de_l_economie() &&
+    assert(pico8_zone_partie_prise() == g + r + p + octets_de_la_recherche_et_de_l_economie() + octets_des_singletons() &&
            "les registres prennent 2C - 4 pointeurs, et rien d'autre n'entre");
 }
 
@@ -569,8 +647,9 @@ static void pause_restart_compte_les_etats_de_bw(void) {
     const size_t f12 = pico8_zone_partie_prise();
     assert(f12 >= f11 + g && "les etats des deux parties vivent jusqu'au rendu");
     jouer_jusqu_a(13);
-    assert(pico8_zone_partie_prise() == g + octets_des_registres() + octets_des_planetes() + octets_de_la_recherche_et_de_l_economie() &&
-           "le rendu de f13 laisse les etats, les registres, les planetes et l'economie de la nouvelle partie");
+    assert(pico8_zone_partie_prise() == g + octets_des_registres() + octets_des_planetes() + octets_de_la_recherche_et_de_l_economie() +
+                                             octets_des_singletons() &&
+           "le rendu de f13 laisse les etats, les registres, les planetes, l'economie et les singletons de la nouvelle partie");
     assert(pico8_zone_partie_max() >= f12);
     printf("  pause_restart f11/f12/f13 : partie=%lu/%lu/%lu, max=%lu\n", (unsigned long)f11, (unsigned long)f12,
            (unsigned long)pico8_zone_partie_prise(), (unsigned long)pico8_zone_partie_max());
@@ -1273,6 +1352,11 @@ int main(void) {
     dans_un_enfant_qui_meurt_par_asan(pause_restart_rend_l_economie_de_la_partie_quittee);
     dans_un_enfant(pause_restart_garde_les_icones_de_la_partie_quittee_pendant_le_clic);
     dans_un_enfant_qui_meurt_par_asan(pause_restart_rend_les_icones_de_la_partie_quittee);
+    dans_un_enfant(pause_restart_garde_les_singletons_de_la_partie_quittee_pendant_le_clic);
+    for (g_singleton = 0; g_singleton < SINGLETON_COUNT; g_singleton++) {
+        printf("  singleton %s :", NOMS_DES_SINGLETONS[g_singleton]);
+        dans_un_enfant_qui_meurt_par_asan(pause_restart_rend_un_singleton_de_la_partie_quittee);
+    }
     dans_un_enfant(pause_restart_compte_les_etats_de_bw);
     dans_un_enfant(pause_restart_ne_touche_pas_au_chargement);
     dans_un_enfant(pause_restart_borne_les_blocs_morts_des_registres);

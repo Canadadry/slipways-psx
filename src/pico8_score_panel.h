@@ -12,7 +12,6 @@
 
 /* Throughout this module a NULL panel argument is a safe no-op. */
 
-/* TROU-7 */
 /* `ed` NULL reads as the class's `ed`, the number 1, never nil. */
 typedef struct {
     pico8_struct_header_t header;
@@ -102,9 +101,8 @@ const pico8_struct_class_t *pico8_pj_cr_struct_class(void);
 const pico8_jb_row_t *pico8_pj_i_(void);
 const pico8_jb_row_t *pico8_pj_gs(void);
 
-/* TROU-7 */
 /* The panel registers itself through `lt` into `hv`, `cv.kj`, `cv.hk`,
- * `cv.hb` and no `cg`; nothing ever frees it. Asserts when called before the
+ * `cv.hb` and no `cg`; it lives in the game-zone generation `eu` opens. Asserts when called before the
  * init. */
 pico8_pj_t *pico8_pj_new(void);
 
