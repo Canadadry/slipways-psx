@@ -11,22 +11,12 @@
 #include "pico8_planet.h"
 #include "pico8_str.h"
 #include "pico8_vec.h"
+#include "pico8_zone_transitoire.h"
 
 /* jo.oc's inner random source, which pico8_gn_free never touches (see
  * pico8_gen.h): owned here, 1:1 with whichever pico8_gn_state_t currently
  * sits in jo.oc, and rebuilt with it on every pico8_bw(). */
 static pico8_jf_state_t *g_bw_oc_r_ctx = NULL;
-
-/* Returns a newly heap-allocated string the caller owns and must free(). */
-static char *pico8_bw_concat2(const char *a, const char *b) {
-    size_t la = strlen(a);
-    size_t lb = strlen(b);
-    char *out = malloc(la + lb + 1);
-    memcpy(out, a, la);
-    memcpy(out + la, b, lb);
-    out[la + lb] = '\0';
-    return out;
-}
 
 /* Adapts pico8_jf_next to pico8_gn_random_fn's ctx shape: `ctx` is always
  * the pico8_jf_state_t this file passes alongside it. */
@@ -76,8 +66,8 @@ void pico8_bw(pico8_fixed_t n) {
 
         /* `id_str` is not freed here: the instance's "id" field keeps it
          * as-is. */
-        id_num_str = pico8_tostr_fixed(id);
-        id_str = pico8_bw_concat2("p", id_num_str);
+        id_num_str = pico8_tostr_fixed(&pico8_zone_transitoire, id);
+        id_str = pico8_concat2(&pico8_zone_transitoire, "p", id_num_str);
         free(id_num_str);
 
         keys.id = id_str;

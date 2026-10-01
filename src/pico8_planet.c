@@ -322,7 +322,7 @@ void pico8_jo_hk(const pico8_jo_t *self) {
         char *text;
 
         keys.ra = self->ra;
-        text = pico8_ne(self->kr, 10, "$", &color);
+        text = pico8_ne(&pico8_zone_transitoire, self->kr, 10, "$", &color);
         /* `ne()` is the last expression of the Lua constructor, so both of its
          * return values land as positional entries 1 and 2, not named fields. */
         keys.at1 = text;

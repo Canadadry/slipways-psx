@@ -256,7 +256,7 @@ void pico8_dl_show(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *me, con
             }
         }
     } else if (pb->has_od) {
-        char *od_str = pico8_tostr_fixed(pb->od);
+        char *od_str = pico8_tostr_fixed(&pico8_zone_transitoire, pb->od);
         size_t len = strlen(od_str);
         heap_display = malloc(len + 2);
         memcpy(heap_display, od_str, len);

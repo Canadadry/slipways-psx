@@ -11,18 +11,8 @@
 #include "pico8_score_panel.h"
 #include "pico8_str.h"
 #include "pico8_ui_button.h"
+#include "pico8_zone_transitoire.h"
 
-
-/* Returns a newly allocated string the caller owns and must free(). */
-static char *pj_concat2(const char *a, const char *b) {
-    size_t la = strlen(a);
-    size_t lb = strlen(b);
-    char *out = malloc(la + lb + 1);
-    memcpy(out, a, la);
-    memcpy(out + la, b, lb);
-    out[la + lb] = '\0';
-    return out;
-}
 
 /* The captured `t` of `pj:hk`'s `iw.lh` closure. One static is enough:
  * `pj.ea.lh` is replaced wholesale by every call that sets it, so only one
@@ -55,8 +45,8 @@ void pico8_pj_hk(pico8_fixed_t yr) {
         pp = item->row;
     }
 
-    yr_str = pico8_tostr_fixed(yr);
-    year_label = pj_concat2("year ", yr_str);
+    yr_str = pico8_tostr_fixed(&pico8_zone_transitoire, yr);
+    year_label = pico8_concat2(&pico8_zone_transitoire, "year ", yr_str);
     free(yr_str);
 
     iw->second_items[0] = (pico8_jb_item_t){.s = year_label};
@@ -124,20 +114,20 @@ typedef struct {
 static char *pico8_pj_ph_s_str(const pico8_ky_t *s, int i) {
     switch (i) {
     case 1:
-        return pico8_tostr_fixed(s->di);
+        return pico8_tostr_fixed(&pico8_zone_transitoire, s->di);
     case 2:
-        return pico8_tostr_fixed(s->gl);
+        return pico8_tostr_fixed(&pico8_zone_transitoire, s->gl);
     case 3:
-        return pico8_tostr_fixed(s->el);
+        return pico8_tostr_fixed(&pico8_zone_transitoire, s->el);
     case 4:
-        return pj_concat2(s->happiness, "");
+        return pico8_concat2(&pico8_zone_transitoire, s->happiness, "");
     case 5:
-        return pico8_tostr_fixed(s->total);
+        return pico8_tostr_fixed(&pico8_zone_transitoire, s->total);
     case 6:
-        return pico8_tostr_fixed(s->tier);
+        return pico8_tostr_fixed(&pico8_zone_transitoire, s->tier);
     default:
         /* TROU-13 */
-        return pj_concat2("", "");
+        return pico8_concat2(&pico8_zone_transitoire, "", "");
     }
 }
 
@@ -186,10 +176,10 @@ static const pico8_jb_row_t *pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_
         if (dk != NULL && dk->px != NULL) {
             px = dk->px;
         }
-        piece1 = pj_concat2(hl_str, " (");
-        piece2 = pj_concat2(piece1, px);
+        piece1 = pico8_concat2(&pico8_zone_transitoire, hl_str, " (");
+        piece2 = pico8_concat2(&pico8_zone_transitoire, piece1, px);
         free(piece1);
-        label = pj_concat2(piece2, ")");
+        label = pico8_concat2(&pico8_zone_transitoire, piece2, ")");
         free(piece2);
         pico8_pj_ph_set(st, 1, (pico8_jb_item_t){.s = label});
     }

@@ -185,7 +185,7 @@ int pico8_hy_lu(pico8_hy_t *self, pico8_fixed_t jt) {
 
     if (jt != pico8_fixed_from_int(0)) {
         int color;
-        char *text = pico8_ne(pico8_fixed_neg(jt), 10, "$", &color);
+        char *text = pico8_ne(&pico8_zone_transitoire, pico8_fixed_neg(jt), 10, "$", &color);
         keys.at1 = text;
         keys.at2 = pico8_fixed_from_int(color);
         pico8_iv_new(&keys);

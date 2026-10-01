@@ -3,6 +3,7 @@
 
 #include "pico8_fixed.h"
 #include "pico8_vec.h"
+#include "pico8_zone_choisie.h"
 
 /* Three values, not a bool: `cl` needs "on the line" (the Lua nil `ee`
  * returns for a zero cross product) told apart from "off it, on this
@@ -33,9 +34,9 @@ typedef struct {
 } pico8_qz_box_t;
 
 /* C has no closures, so the predicate the cart returns becomes this box
- * plus pico8_qz_call. The box is heap-allocated and belongs to the caller,
- * which parks it in a link (`js`'s `header.kq`) and never frees it. */
-pico8_qz_box_t *pico8_qz(pico8_fixed_t xl, pico8_fixed_t yt, pico8_fixed_t xr, pico8_fixed_t yb);
+ * plus pico8_qz_call. The box lives in `zone` and belongs to the caller,
+ * which parks it in a link (`js`'s `header.kq`) and never releases it. */
+pico8_qz_box_t *pico8_qz(const pico8_zone_choisie_t *zone, pico8_fixed_t xl, pico8_fixed_t yt, pico8_fixed_t xr, pico8_fixed_t yb);
 
 /* True iff p is inside [xl,xr]x[yt,yb], by mid()'s clamp-then-compare
  * idiom (pico8_fixed_mid). `box` must not be NULL: the caller guards it. */

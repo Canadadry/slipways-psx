@@ -1,7 +1,6 @@
 #include "pico8_collect.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_str.h"
@@ -71,8 +70,9 @@ int pico8_gu_content_ptrs(const pico8_ptrs_t *qk, const char *kb) {
     return 0;
 }
 
-char *pico8_ne(pico8_fixed_t d, int c, const char *ku, int *out_color) {
-    char *num_str = pico8_tostr_fixed(d);
+char *pico8_ne(const pico8_zone_choisie_t *zone, pico8_fixed_t d, int c, const char *ku,
+               int *out_color) {
+    char *num_str = pico8_tostr_fixed(zone, d);
     const char *suffix = ku != NULL ? ku : "";
     char *result;
     size_t prefix_len;
@@ -82,16 +82,16 @@ char *pico8_ne(pico8_fixed_t d, int c, const char *ku, int *out_color) {
     if (d >= 0) {
         *out_color = c;
         prefix_len = 1 + strlen(num_str);
-        result = malloc(prefix_len + strlen(suffix) + 1);
+        result = (char *)pico8_zone_alloc(zone, prefix_len + strlen(suffix) + 1);
         result[0] = '+';
         memcpy(result + 1, num_str, strlen(num_str) + 1);
     } else {
         *out_color = 8;
         prefix_len = strlen(num_str);
-        result = malloc(prefix_len + strlen(suffix) + 1);
+        result = (char *)pico8_zone_alloc(zone, prefix_len + strlen(suffix) + 1);
         memcpy(result, num_str, strlen(num_str) + 1);
     }
     strcat(result, suffix);
-    free(num_str);
+    pico8_zone_release(zone, (unsigned char *)num_str);
     return result;
 }

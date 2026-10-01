@@ -29,17 +29,6 @@ static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
     return (a < b) ? a : b;
 }
 
-/* Returns a newly allocated string the caller owns and must free(). */
-static char *pj_concat2(const char *a, const char *b) {
-    size_t la = strlen(a);
-    size_t lb = strlen(b);
-    char *out = malloc(la + lb + 1);
-    memcpy(out, a, la);
-    memcpy(out + la, b, lb);
-    out[la + lb] = '\0';
-    return out;
-}
-
 /* pj's class state `ou` and `ea`, reset by each init to their generated
  * rows and rewritten in place by `hb`/`hk`. */
 static pico8_pj_ou_t g_pj_ou;
@@ -169,10 +158,10 @@ void pico8_pj_hb(void) {
         }
     }
 
-    cf = pico8_ne(fm_ge, 0, NULL, &discard_color);
+    cf = pico8_ne(&pico8_zone_transitoire, fm_ge, 0, NULL, &discard_color);
 
-    nz_str = pico8_tostr_fixed(fm_nz);
-    ou[0] = (pico8_jb_item_t){.s = pj_concat2(nz_str, "$")};
+    nz_str = pico8_tostr_fixed(&pico8_zone_transitoire, fm_nz);
+    ou[0] = (pico8_jb_item_t){.s = pico8_concat2(&pico8_zone_transitoire, nz_str, "$")};
     free(nz_str);
 
     ou[1] = (pico8_jb_item_t){.s = cf};
@@ -187,13 +176,13 @@ void pico8_pj_hb(void) {
         }
         /* `..` binds looser than `+`: the Lua reads `"+"..(fm.po[r.k]+1)`. */
         plus_num =
-            pico8_tostr_fixed(pico8_fixed_add(po_val, pico8_fixed_from_int(1)));
-        ou[3] = (pico8_jb_item_t){.s = pj_concat2("+", plus_num)};
+            pico8_tostr_fixed(&pico8_zone_transitoire, pico8_fixed_add(po_val, pico8_fixed_from_int(1)));
+        ou[3] = (pico8_jb_item_t){.s = pico8_concat2(&pico8_zone_transitoire, "+", plus_num)};
         free(plus_num);
     }
 
-    happiness_str = pico8_tostr_fixed(fm_happiness);
-    ou[4] = (pico8_jb_item_t){.s = pj_concat2(happiness_str, "%")};
+    happiness_str = pico8_tostr_fixed(&pico8_zone_transitoire, fm_happiness);
+    ou[4] = (pico8_jb_item_t){.s = pico8_concat2(&pico8_zone_transitoire, happiness_str, "%")};
     free(happiness_str);
 
     {

@@ -2,10 +2,9 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
-char *pico8_sub(const char *s, int i, int j) {
+char *pico8_sub(const pico8_zone_choisie_t *zone, const char *s, int i, int j) {
     int len = (int)strlen(s);
 
     if (i < 1) {
@@ -16,19 +15,19 @@ char *pico8_sub(const char *s, int i, int j) {
     }
 
     if (j < i) {
-        char *out = malloc(1);
+        char *out = (char *)pico8_zone_alloc(zone, 1);
         out[0] = '\0';
         return out;
     }
 
     int n = j - i + 1;
-    char *out = malloc((size_t)n + 1);
+    char *out = (char *)pico8_zone_alloc(zone, (size_t)n + 1);
     memcpy(out, s + (i - 1), (size_t)n);
     out[n] = '\0';
     return out;
 }
 
-char *pico8_tostr_fixed(pico8_fixed_t x) {
+char *pico8_tostr_fixed(const pico8_zone_choisie_t *zone, pico8_fixed_t x) {
     char buf[64];
 
     /* TROU-22 */
@@ -62,7 +61,17 @@ char *pico8_tostr_fixed(pico8_fixed_t x) {
         }
     }
     size_t n = strlen(buf);
-    char *out = malloc(n + 1);
+    char *out = (char *)pico8_zone_alloc(zone, n + 1);
     memcpy(out, buf, n + 1);
+    return out;
+}
+
+char *pico8_concat2(const pico8_zone_choisie_t *zone, const char *a, const char *b) {
+    size_t la = strlen(a);
+    size_t lb = strlen(b);
+    char *out = (char *)pico8_zone_alloc(zone, la + lb + 1);
+    memcpy(out, a, la);
+    memcpy(out + la, b, lb);
+    out[la + lb] = '\0';
     return out;
 }

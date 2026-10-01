@@ -1,4 +1,5 @@
 #include "../src/pico8_str.h"
+#include "../src/pico8_zone_transitoire.h"
 
 #include <assert.h>
 #include <stdint.h>
@@ -7,49 +8,49 @@
 #include <string.h>
 
 static void test_sub_first_character(void) {
-    char *r = pico8_sub("hello", 1, 1);
+    char *r = pico8_sub(&pico8_zone_transitoire, "hello", 1, 1);
     assert(strcmp(r, "h") == 0);
     free(r);
 }
 
 static void test_sub_last_character(void) {
-    char *r = pico8_sub("hello", 5, 5);
+    char *r = pico8_sub(&pico8_zone_transitoire, "hello", 5, 5);
     assert(strcmp(r, "o") == 0);
     free(r);
 }
 
 static void test_sub_full_string(void) {
-    char *r = pico8_sub("hello", 1, 5);
+    char *r = pico8_sub(&pico8_zone_transitoire, "hello", 1, 5);
     assert(strcmp(r, "hello") == 0);
     free(r);
 }
 
 static void test_sub_middle_range(void) {
-    char *r = pico8_sub("hello", 2, 4);
+    char *r = pico8_sub(&pico8_zone_transitoire, "hello", 2, 4);
     assert(strcmp(r, "ell") == 0);
     free(r);
 }
 
 static void test_sub_empty_range_when_j_less_than_i(void) {
-    char *r = pico8_sub("hello", 3, 2);
+    char *r = pico8_sub(&pico8_zone_transitoire, "hello", 3, 2);
     assert(strcmp(r, "") == 0);
     free(r);
 }
 
 static void test_tostr_small_positive_integer(void) {
-    char *s = pico8_tostr_fixed(pico8_fixed_from_int(3));
+    char *s = pico8_tostr_fixed(&pico8_zone_transitoire, pico8_fixed_from_int(3));
     assert(strcmp(s, "3") == 0);
     free(s);
 }
 
 static void test_tostr_zero(void) {
-    char *s = pico8_tostr_fixed(pico8_fixed_from_int(0));
+    char *s = pico8_tostr_fixed(&pico8_zone_transitoire, pico8_fixed_from_int(0));
     assert(strcmp(s, "0") == 0);
     free(s);
 }
 
 static void test_tostr_negative_integer(void) {
-    char *s = pico8_tostr_fixed(pico8_fixed_from_int(-5));
+    char *s = pico8_tostr_fixed(&pico8_zone_transitoire, pico8_fixed_from_int(-5));
     assert(strcmp(s, "-5") == 0);
     free(s);
 }
@@ -59,7 +60,7 @@ static pico8_fixed_t raw_fixed(uint32_t raw) {
 }
 
 static void assert_tostr_raw(uint32_t raw, const char *expected) {
-    char *s = pico8_tostr_fixed(raw_fixed(raw));
+    char *s = pico8_tostr_fixed(&pico8_zone_transitoire, raw_fixed(raw));
     if (strcmp(s, expected) != 0) {
         fprintf(stderr, "tostr 0x%08x: got \"%s\", expected \"%s\"\n",
                 (unsigned)raw, s, expected);
@@ -85,7 +86,7 @@ static void test_tostr_matches_probe_block_c(void) {
 }
 
 static void test_tostr_below_0_0001_keeps_port_output(void) {
-    char *s = pico8_tostr_fixed(raw_fixed(0xfffffffau));
+    char *s = pico8_tostr_fixed(&pico8_zone_transitoire, raw_fixed(0xfffffffau));
     assert(strcmp(s, "-0.0001") == 0
            && "TROU-22: PICO-8 prints \"-0\" for raw -6; the port keeps \"-0.0001\"");
     free(s);
@@ -116,7 +117,7 @@ static void old_tostr_percent_4f_for_test(int32_t raw, char *buf, size_t size) {
 static int check_against_old_tostr(int32_t raw) {
     char old[64];
     old_tostr_percent_4f_for_test(raw, old, sizeof old);
-    char *s = pico8_tostr_fixed(raw);
+    char *s = pico8_tostr_fixed(&pico8_zone_transitoire, raw);
     int same = strcmp(s, old) == 0;
     if (!same) {
         fprintf(stderr, "tostr 0x%08x: old \"%s\", new \"%s\"\n",

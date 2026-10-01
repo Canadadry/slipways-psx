@@ -21,6 +21,7 @@
 #include "pico8_ui_button.h"
 #include "pico8_vec.h"
 #include "pico8_str.h"
+#include "pico8_zone_transitoire.h"
 
 /* The most items a row of `ix` or `ha` holds. */
 #define PICO8_MENU_ROW_CAP 4
@@ -53,16 +54,6 @@ static pico8_ha_pz_t g_ha_pz = {
     0,
     0,
 };
-
-static char *cr_concat2(const char *a, const char *b) {
-    size_t la = strlen(a);
-    size_t lb = strlen(b);
-    char *out = malloc(la + lb + 1);
-    memcpy(out, a, la);
-    memcpy(out + la, b, lb);
-    out[la + lb] = '\0';
-    return out;
-}
 
 /* `_cr_t` is not a cart field: it is where pico8_cr_step stashes the row's
  * captured tech, as its entry of pico8_nb_table, read back here off the
@@ -103,7 +94,7 @@ static void pico8_cr_step(const pico8_nb_entry_t *t, pico8_cr_row_t *b) {
     b->row.lq_row = &b->lq;
 
     gi_result = pico8_gi_nb(t);
-    gi_str = pico8_tostr_fixed(gi_result);
+    gi_str = pico8_tostr_fixed(&pico8_zone_transitoire, gi_result);
 
     b->h_items[0] = pico8_lq_cell_row(&pair);
     b->h_items[1] = pico8_lq_cell_string(gi_str);
@@ -178,8 +169,8 @@ void pico8_cr(void) {
 
     if (gr > 0) {
         pico8_cr_row_t *extra = &rows[n++];
-        char *gr_str = pico8_tostr_fixed(pico8_fixed_from_int(gr));
-        char *label = cr_concat2(gr_str, " invented");
+        char *gr_str = pico8_tostr_fixed(&pico8_zone_transitoire, pico8_fixed_from_int(gr));
+        char *label = pico8_concat2(&pico8_zone_transitoire, gr_str, " invented");
         free(gr_str);
         extra->lq_items[0] = pico8_lq_cell_fixed(pico8_fixed_from_int(30));
         extra->lq_items[1] = pico8_lq_cell_string(label);
@@ -210,20 +201,20 @@ void pico8_cr(void) {
             ek_tl = pico8_fixed_from_int(ek);
         }
 
-        tl_str = pico8_tostr_fixed(tl);
-        diff1_str = pico8_tostr_fixed(pico8_fixed_sub(pico8_fixed_from_int(gr), qi));
-        diff2_str = pico8_tostr_fixed(pico8_fixed_sub(ek_tl, qi));
+        tl_str = pico8_tostr_fixed(&pico8_zone_transitoire, tl);
+        diff1_str = pico8_tostr_fixed(&pico8_zone_transitoire, pico8_fixed_sub(pico8_fixed_from_int(gr), qi));
+        diff2_str = pico8_tostr_fixed(&pico8_zone_transitoire, pico8_fixed_sub(ek_tl, qi));
 
-        tmp1 = cr_concat2("level ", tl_str);
-        tmp2 = cr_concat2(tmp1, " (");
+        tmp1 = pico8_concat2(&pico8_zone_transitoire, "level ", tl_str);
+        tmp2 = pico8_concat2(&pico8_zone_transitoire, tmp1, " (");
         free(tmp1);
-        tmp3 = cr_concat2(tmp2, diff1_str);
+        tmp3 = pico8_concat2(&pico8_zone_transitoire, tmp2, diff1_str);
         free(tmp2);
-        tmp1 = cr_concat2(tmp3, "/");
+        tmp1 = pico8_concat2(&pico8_zone_transitoire, tmp3, "/");
         free(tmp3);
-        tmp2 = cr_concat2(tmp1, diff2_str);
+        tmp2 = pico8_concat2(&pico8_zone_transitoire, tmp1, diff2_str);
         free(tmp1);
-        ep = cr_concat2(tmp2, ")");
+        ep = pico8_concat2(&pico8_zone_transitoire, tmp2, ")");
         free(tmp2);
 
         free(tl_str);

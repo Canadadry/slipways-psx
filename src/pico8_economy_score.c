@@ -211,7 +211,7 @@ pico8_ky_t pico8_ky(void) {
         pico8_fixed_mul(pico8_fixed_add(pico8_fixed_add(di_ctx.total, gl), el), PICO8_FIXED_LIT(0x0000028f, 0.01)),
         happiness));
 
-    happiness_str = pico8_tostr_fixed(happiness);
+    happiness_str = pico8_tostr_fixed(&pico8_zone_transitoire, happiness);
 
     result.di = di_ctx.total;
     result.gl = gl;

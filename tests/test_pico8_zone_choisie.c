@@ -8,8 +8,10 @@
 #include <string.h>
 #include <sys/wait.h>
 
+#include "../src/pico8_collect.h"
 #include "../src/pico8_ents.h"
 #include "../src/pico8_ptrs.h"
+#include "../src/pico8_str.h"
 #include "../src/pico8_zone.h"
 #include "../src/pico8_zone_choisie.h"
 #include "../src/pico8_zone_transitoire.h"
@@ -176,6 +178,46 @@ static int case_ents_transient_round_trip(void) {
     return 0;
 }
 
+static void expect_text(char *got, const char *expected) {
+    if (strcmp(got, expected) != 0) fprintf(stderr, "attendu \"%s\", obtenu \"%s\"\n", expected, got);
+    assert(strcmp(got, expected) == 0);
+}
+
+static int case_texts_in_bump(void) {
+    expect_text(pico8_concat2(&handle, "level ", "3"), "level 3");
+    expect_text(pico8_concat2(&handle, "", "p7"), "p7");
+    expect_text(pico8_concat2(&handle, "p7", ""), "p7");
+    expect_text(pico8_concat2(&handle, "", ""), "");
+    expect_text(pico8_sub(&handle, "hello", 2, 4), "ell");
+    expect_text(pico8_sub(&handle, "hello", 3, 2), "");
+    expect_text(pico8_tostr_fixed(&handle, pico8_fixed_from_int(-5)), "-5");
+    expect_text(pico8_tostr_fixed(&handle, (pico8_fixed_t)0x00028000u), "2.5");
+
+    int color = -1;
+    expect_text(pico8_ne(&handle, pico8_fixed_from_int(12), 10, "$", &color), "+12$");
+    assert(color == 10);
+    expect_text(pico8_ne(&handle, pico8_fixed_from_int(12), 3, NULL, &color), "+12");
+    assert(color == 3);
+    expect_text(pico8_ne(&handle, pico8_fixed_from_int(-4), 10, "$", &color), "-4$");
+    assert(color == 8);
+    expect_text(pico8_ne(&handle, pico8_fixed_from_int(-4), 10, NULL, &color), "-4");
+    assert(color == 8);
+
+    pico8_qz_box_t *box = pico8_qz(&handle, pico8_fixed_from_int(0), pico8_fixed_from_int(-1),
+                                   pico8_fixed_from_int(20), pico8_fixed_from_int(11));
+    assert(pico8_qz_call(box, (pico8_vec_t){pico8_fixed_from_int(5), pico8_fixed_from_int(5)}));
+    assert(!pico8_qz_call(box, (pico8_vec_t){pico8_fixed_from_int(21), pico8_fixed_from_int(5)}));
+    return 0;
+}
+
+static int case_ne_transient_round_trip(void) {
+    int color;
+    char *text = pico8_ne(&pico8_zone_transitoire, pico8_fixed_from_int(-4), 10, "$", &color);
+    expect_text(text, "-4$");
+    free(text);
+    return 0;
+}
+
 static const struct {
     const char *name;
     int (*run)(void);
@@ -190,6 +232,8 @@ static const struct {
     {"ents_read_before_reset", case_ents_read_before_reset},
     {"ents_stale_after_reset", case_ents_stale_after_reset},
     {"ents_transient_round_trip", case_ents_transient_round_trip},
+    {"texts_in_bump", case_texts_in_bump},
+    {"ne_transient_round_trip", case_ne_transient_round_trip},
 };
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
@@ -275,6 +319,8 @@ int main(int argc, char **argv) {
     expect_clean("ents_read_before_reset");
     expect_poison_crash("ents_stale_after_reset");
     expect_clean("ents_transient_round_trip");
+    expect_clean("texts_in_bump");
+    expect_clean("ne_transient_round_trip");
     remove(STDERR_LOG);
     printf("test_pico8_zone_choisie: all tests passed\n");
     return 0;

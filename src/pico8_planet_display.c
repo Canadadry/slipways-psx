@@ -169,7 +169,7 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     if (self->has_kr) {
         int discard_color = 0;
 
-        h_item = pico8_lq_cell_string(jo_dollar(pico8_ne(self->kr, 0, NULL, &discard_color)));
+        h_item = pico8_lq_cell_string(jo_dollar(pico8_ne(&pico8_zone_transitoire, self->kr, 0, NULL, &discard_color)));
         memset(&h_keys, 0, sizeof h_keys);
         h_keys.items = &h_item;
         h_keys.count = 1;
@@ -243,14 +243,14 @@ void pico8_jo_gh(const pico8_jo_t *self) {
             row_items[n] = jo_gh_row_items(row_cap[n]);
 
             if (makes) {
-                char *mu_str = pico8_tostr_fixed(mu);
+                char *mu_str = pico8_tostr_fixed(&pico8_zone_transitoire, mu);
                 row_items[n][row_keys[n].count++] = pico8_lq_cell_string("makes:");
                 row_items[n][row_keys[n].count++] = pico8_lq_cell_string(mu_str);
             } else {
                 const pico8_ents_t *by = self->by;
                 int by_count = (by != NULL) ? by->count : 0;
-                char *count_str = pico8_tostr_fixed(pico8_fixed_from_int(by_count));
-                char *mu_str = pico8_tostr_fixed(mu);
+                char *count_str = pico8_tostr_fixed(&pico8_zone_transitoire, pico8_fixed_from_int(by_count));
+                char *mu_str = pico8_tostr_fixed(&pico8_zone_transitoire, mu);
                 size_t count_len = strlen(count_str);
                 size_t mu_len = strlen(mu_str);
                 char *combined = malloc(count_len + 1 + mu_len + 1);
@@ -349,7 +349,7 @@ static void pico8_jo_fe_keys(pico8_jo_t *self, pico8_hp_t *b, pico8_js_keys_t *k
     keys->has_h_ = 1;
     keys->h_is_false = od <= pico8_fixed_from_int(0);
     if (od > pico8_fixed_from_int(0)) {
-        row->h_item = pico8_lq_cell_string(jo_dollar(pico8_tostr_fixed(od)));
+        row->h_item = pico8_lq_cell_string(jo_dollar(pico8_tostr_fixed(&pico8_zone_transitoire, od)));
         memset(&row->h, 0, sizeof row->h);
         row->h.items = &row->h_item;
         row->h.count = 1;

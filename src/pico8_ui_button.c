@@ -10,6 +10,7 @@
 #include "pico8_geom.h"
 #include "pico8_ke.h"
 #include "pico8_layout.h"
+#include "pico8_zone_transitoire.h"
 
 static int g_js_up = 0;
 static int g_fq_up = 0;
@@ -176,7 +177,7 @@ void pico8_js_pq(pico8_js_t *self, const pico8_js_keys_t *keys) {
 
     self->lq = pico8_js_lq(keys->lq_copy, keys->lq_row);
     self->mb = pico8_fixed_add(self->lq->w, pico8_fixed_from_int(2));
-    self->header.kq = pico8_qz(pico8_fixed_from_int(0), pico8_fixed_from_int(-1), self->mb, pico8_fixed_from_int(11));
+    self->header.kq = pico8_qz(&pico8_zone_transitoire, pico8_fixed_from_int(0), pico8_fixed_from_int(-1), self->mb, pico8_fixed_from_int(11));
 
     /* TROU-23 */
     if (keys->h_row != NULL || (keys->has_h_ && !keys->h_is_false)) {

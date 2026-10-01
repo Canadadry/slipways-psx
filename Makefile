@@ -423,7 +423,7 @@ $(TMP_DIR)/test_pico8_screencast_player: $(call objs,tests/test_pico8_screencast
 $(TMP_DIR)/test_pico8_vec: $(call objs,tests/test_pico8_vec.c src/pico8_vec.c src/pico8_fixed.c src/pico8_fixed_test_double.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_geom: $(call objs,tests/test_pico8_geom.c src/pico8_geom.c src/pico8_vec.c src/pico8_fixed.c src/pico8_fixed_test_double.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_geom: $(call objs,tests/test_pico8_geom.c src/pico8_geom.c src/pico8_vec.c src/pico8_fixed.c src/pico8_fixed_test_double.c src/pico8_zone_choisie.c src/pico8_zone_transitoire.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_ptrs: $(call objs,tests/test_pico8_ptrs.c src/pico8_ptrs.c src/pico8_zone_choisie.c src/pico8_zone_transitoire.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
@@ -433,7 +433,7 @@ $(TMP_DIR)/test_pico8_ents: $(call objs,tests/test_pico8_ents.c src/pico8_ents.c
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 
-$(TMP_DIR)/test_pico8_str: $(call objs,tests/test_pico8_str.c src/pico8_str.c src/pico8_fixed.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_str: $(call objs,tests/test_pico8_str.c src/pico8_str.c src/pico8_fixed.c src/pico8_zone_choisie.c src/pico8_zone_transitoire.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_pico8_data_init: $(call objs,tests/test_pico8_data_init.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
@@ -578,7 +578,7 @@ $(TMP_DIR)/test_pico8_planet_gh_row_lq: $(call asan_objs,tests/test_pico8_planet
 $(TMP_DIR)/test_pico8_zone: $(call asan_objs,tests/test_pico8_zone.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_zone_choisie: $(call asan_objs,tests/test_pico8_zone_choisie.c src/pico8_ents.c src/pico8_ptrs.c src/pico8_zone_choisie.c src/pico8_zone_transitoire.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_zone_choisie: $(call asan_objs,tests/test_pico8_zone_choisie.c src/pico8_ents.c src/pico8_ptrs.c src/pico8_str.c src/pico8_collect.c src/pico8_geom.c src/pico8_vec.c src/pico8_fixed.c src/pico8_zone_choisie.c src/pico8_zone_transitoire.c src/pico8_zone.c src/pico8_fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_pico8_ga_export_panel_by: $(call objs,tests/test_pico8_ga_export_panel_by.c $(DATA_ENGINE_SRCS) src/pico8_planet_family.c) | $(TMP_DIR)

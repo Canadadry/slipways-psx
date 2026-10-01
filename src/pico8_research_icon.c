@@ -14,6 +14,7 @@
 #include "pico8_probe.h"
 #include "pico8_str.h"
 #include "pico8_tech_gate.h"
+#include "pico8_zone_transitoire.h"
 
 static int g_ie_up = 0;
 
@@ -27,17 +28,6 @@ static int g_ie_has_id = 0;
 
 static int ie_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
-}
-
-/* Returns a newly heap-allocated string the caller owns and must free(). */
-static char *ie_concat2(const char *a, const char *b) {
-    size_t la = strlen(a);
-    size_t lb = strlen(b);
-    char *out = malloc(la + lb + 1);
-    memcpy(out, a, la);
-    memcpy(out + la, b, lb);
-    out[la + lb] = '\0';
-    return out;
 }
 
 /* Returns the kind held in `self.ke`, or NULL when the member is nil. The
@@ -135,8 +125,8 @@ pico8_down_t pico8_ie_ldown(pico8_ie_t *self) {
         return out;
     }
 
-    id_num_str = pico8_tostr_fixed(new_id);
-    id_str = ie_concat2("s", id_num_str);
+    id_num_str = pico8_tostr_fixed(&pico8_zone_transitoire, new_id);
+    id_str = pico8_concat2(&pico8_zone_transitoire, "s", id_num_str);
     free(id_num_str);
 
     /* `id_str` is not freed: the new planet's `id` keeps that exact
