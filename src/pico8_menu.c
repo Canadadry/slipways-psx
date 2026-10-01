@@ -269,7 +269,7 @@ static void pico8_ix2_hb_dispatch(pico8_js_t *self) {
     item = pico8_lq_cell_fixed(pico8_fixed_from_int(cb_count > 0 ? 24 : 37));
     keys.items = &item;
     keys.count = 1;
-    built = pico8_lq_new(&keys);
+    built = pico8_lq_new(&pico8_zone_transitoire, &keys);
 
     self->lq = built;
 }

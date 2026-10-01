@@ -256,7 +256,7 @@ pico8_lq_t *pico8_jo_ex(const pico8_ptrs_t *is, const pico8_fixed_t *o, pico8_fi
                                "is a miscount of that size");
     keys.items = l;
     keys.count = l_count;
-    result = pico8_lq_new(&keys);
+    result = pico8_lq_new(&pico8_zone_transitoire, &keys);
     free(l);
     return result;
 }

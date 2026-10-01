@@ -157,12 +157,12 @@ pico8_js_t *pico8_js_new(const pico8_js_keys_t *keys) {
  * an `lq`, else an empty row. */
 static pico8_lq_t *pico8_js_lq(const pico8_lq_t *copy, const pico8_lq_keys_t *row) {
     if (row != NULL) {
-        return pico8_lq_new(row);
+        return pico8_lq_new(&pico8_zone_transitoire, row);
     }
     if (copy == NULL) {
-        return pico8_lq_new(NULL);
+        return pico8_lq_new(&pico8_zone_transitoire, NULL);
     }
-    return pico8_lq_copy(copy);
+    return pico8_lq_copy(&pico8_zone_transitoire, copy);
 }
 
 void pico8_js_pq(pico8_js_t *self, const pico8_js_keys_t *keys) {
@@ -181,14 +181,14 @@ void pico8_js_pq(pico8_js_t *self, const pico8_js_keys_t *keys) {
 
     /* TROU-23 */
     if (keys->h_row != NULL || (keys->has_h_ && !keys->h_is_false)) {
-        self->h_ = pico8_lq_new(keys->h_row);
+        self->h_ = pico8_lq_new(&pico8_zone_transitoire, keys->h_row);
         self->has_h_ = 1;
     } else if (keys->has_h_) {
         self->h_ = NULL;
         self->has_h_ = 1;
     }
     if (keys->jb_row != NULL || keys->has_jb) {
-        self->jb = pico8_jb_new(keys->jb_row);
+        self->jb = pico8_jb_new(&pico8_zone_transitoire, keys->jb_row);
     }
 }
 

@@ -38,6 +38,7 @@
 #include "pico8_ui.h"
 #include "pico8_ui_button.h"
 #include "pico8_wormhole.h"
+#include "pico8_zone_transitoire.h"
 
 /* pico8_data_init() and pico8_score_panel_init() each run further module
  * inits of their own (research, score-panel display); listing those
@@ -184,7 +185,7 @@ void pico8_eu(pico8_js_t *nj) {
         pico8_ie_keys_t keys = {0};
 
         keys.ke = gx[i];
-        keys.jb = pico8_jb_new(&pico8_dr_table[i]);
+        keys.jb = pico8_jb_new(&pico8_zone_transitoire, &pico8_dr_table[i]);
         (void)pico8_ie_new(&keys);
     }
 

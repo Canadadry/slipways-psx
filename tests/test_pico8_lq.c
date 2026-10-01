@@ -36,6 +36,8 @@
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
+#include "../src/pico8_zone.h"
+#include "../src/pico8_zone_choisie.h"
 #include "../src/pico8_zone_transitoire.h"
 
 /* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
@@ -331,7 +333,7 @@ static uint32_t fold_row(uint32_t h, const void *lq) {
 /* Builds the row from `k` (NULL: no keys), folds it; `nil_at` as in
  * fold_positionals. */
 static uint32_t fold_built_from(uint32_t h, const char *label, const pico8_lq_keys_t *k, unsigned nil_at) {
-    const void *lq = pico8_lq_new(k);
+    const void *lq = pico8_lq_new(&pico8_zone_transitoire, k);
     uint32_t one = fold_row_from(2166136261u, lq, k, nil_at);
 
     assert(((const pico8_struct_header_t *)lq)->ra == &as_lq(lq)->ra);
@@ -403,7 +405,7 @@ static void test_constructions(void) {
         a[0] = tuple_of(4, f);
         k = positionals(1, a);
         h = fold_built_from(h, "spr w qw qv", &k, 0u);
-        assert(pico8_lq_new(&k)->fs[0].sprite_qw == pico8_fixed_from_int(3));
+        assert(pico8_lq_new(&pico8_zone_transitoire, &k)->fs[0].sprite_qw == pico8_fixed_from_int(3));
     }
     {
         pico8_jb_row_t *qe = calloc(1, sizeof *qe);
@@ -578,7 +580,7 @@ static void test_calls(void) {
 
     a[2] = tuple_of(2, f);
     t = with_c(positionals(3, a), 11);
-    lq = pico8_lq_new(&t);
+    lq = pico8_lq_new(&pico8_zone_transitoire, &t);
 
     want = drawn_by_ol(lq, vec_xy(64, 30), PICO8_FIXED_LIT(0x00008000, 0.5));
     h = fnv(h, want);
@@ -612,6 +614,37 @@ static void test_calls(void) {
     pico8_lq_ol(&gfx, &mem, NULL, vec_xy(20, 90), 0);
     assert(screen_hash() == want);
     check("calls", h, CALLS_HASH);
+}
+
+PICO8_BUMP_ZONE_STORAGE(panel_cells, 4096);
+
+/* Built, grown past its first cells by `lq_add`, then laid out anew by
+ * `lq_copy`, all in `zone`. */
+static uint32_t drawn_after_adds(const pico8_zone_choisie_t *zone) {
+    pico8_lq_cell_t a[] = {str("ab"), num(12)};
+    pico8_lq_keys_t t = with_c(positionals(2, a), 9);
+    pico8_lq_t *lq = pico8_lq_new(zone, &t);
+    pico8_lq_t *copy;
+    int i;
+
+    for (i = 0; i < 6; i++) {
+        pico8_lq_add(lq, i % 2 ? num(16 + i) : str("cd"));
+    }
+    copy = pico8_lq_copy(zone, lq);
+    assert(row_count(copy) == 8);
+    return drawn_by_ol(copy, vec_xy(64, 60), PICO8_FIXED_LIT(0x00008000, 0.5));
+}
+
+/* `lq_add` grows `items` in the zone the panel kept: a panel in a bump
+ * zone draws what the same panel draws in the transient zone. */
+static void test_lq_add_in_bump_zone(void) {
+    pico8_bump_zone_t bump;
+    pico8_zone_choisie_t handle;
+    uint32_t want = drawn_after_adds(&pico8_zone_transitoire);
+
+    pico8_bump_zone_init(&bump, "essai-panneau", panel_cells, 4096);
+    handle = pico8_zone_choisie_bump(&bump);
+    assert(drawn_after_adds(&handle) == want);
 }
 
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
@@ -892,7 +925,7 @@ static void test_lq_is_a_struct(void) {
     int k;
     int i;
 
-    lq = pico8_lq_new(&t);
+    lq = pico8_lq_new(&pico8_zone_transitoire, &t);
     assert(lq != NULL && lq->header.cls == cls);
     assert(cls->ol != NULL);
     assert(cls->kj == NULL && cls->ev == NULL && cls->hd == NULL && cls->hk == NULL && cls->hb == NULL &&
@@ -904,7 +937,7 @@ static void test_lq_is_a_struct(void) {
     assert(pico8_lq_ready());
     assert(lq->has_c && lq->c == pico8_fixed_from_int(9));
     assert(!lq->has_bg);
-    copy = pico8_lq_copy(lq);
+    copy = pico8_lq_copy(&pico8_zone_transitoire, lq);
     assert(copy != lq && copy->items != lq->items && copy->items_count == 2);
     assert(copy->has_c && copy->c == pico8_fixed_from_int(9) && copy->fs_count == 2 && copy->w == lq->w);
 
@@ -963,6 +996,7 @@ int main(void) {
     in_fresh_child(test_gh_w_maker_wants_no_more);
     in_fresh_child(test_gh_lab_wants_its_last);
     in_fresh_child(test_lq_is_a_struct);
+    in_fresh_child(test_lq_add_in_bump_zone);
 
     printf("test_pico8_lq: all tests passed\n");
     return 0;

@@ -7,6 +7,7 @@
 #include "pico8_mem.h"
 #include "pico8_struct.h"
 #include "pico8_vec.h"
+#include "pico8_zone_choisie.h"
 
 /* C has no closures, so lq:mn bakes the draw its Lua counterpart returns as a
  * closure into this tagged record instead. */
@@ -51,10 +52,11 @@ typedef struct {
 /* `items` is the cart's `self[1..n]` in ascending index order, holes
  * closed up: the sequence `lq:pq` walks, `items_count` of them (pico8_lq_add
  * appends without laying out again, so `fs_count` may be smaller). `ra` is
- * the vector the keys held, borrowed, never copied. Nothing frees the row,
- * `items`, or `fs`: TROU-7. */
+ * the vector the keys held, borrowed, never copied. `items` and `fs` are in
+ * `zone`, given by the creator; nothing frees them nor the row: TROU-7. */
 typedef struct {
     pico8_struct_header_t header;
+    const pico8_zone_choisie_t *zone;
     pico8_lq_cell_t *items;
     int items_count;
     pico8_fixed_t c;
@@ -71,9 +73,11 @@ typedef struct {
 } pico8_lq_t;
 
 /* Never freed, nor is the array `ls` points at: TROU-7. `ls` NULL: not
- * laid out yet. */
+ * laid out yet. `ls` and its lines' arrays are in `zone`, given by the
+ * creator. */
 typedef struct {
     pico8_struct_header_t header;
+    const pico8_zone_choisie_t *zone;
     pico8_lq_t **ls;
     int ls_count;
 } pico8_jb_t;
@@ -108,8 +112,9 @@ typedef struct {
     pico8_vec_t *ra;
 } pico8_lq_keys_t;
 
-/* `keys` is read, not kept (NULL: none). */
-pico8_lq_t *pico8_lq_new(const pico8_lq_keys_t *keys);
+/* `keys` is read, not kept (NULL: none). `zone` holds the row's arrays,
+ * kept for pico8_lq_add, and must outlive the row. */
+pico8_lq_t *pico8_lq_new(const pico8_zone_choisie_t *zone, const pico8_lq_keys_t *keys);
 
 /* Cells as the producers of keys write them. */
 pico8_lq_cell_t pico8_lq_cell_nothing(void);
@@ -128,16 +133,18 @@ pico8_lq_cell_t pico8_lq_cell_item(const pico8_jb_item_t *item);
 pico8_lq_keys_t pico8_lq_keys_of_row(const pico8_jb_row_t *row, pico8_lq_cell_t *cells, int cap);
 
 /* The copy `lq(row)`, laid out anew: every cell of `row` in order (what
- * they point at borrowed), its `c`, `bg`, `score`, `ra`. */
-pico8_lq_t *pico8_lq_copy(const pico8_lq_t *row);
+ * they point at borrowed), its `c`, `bg`, `score`, `ra`. Its arrays are in
+ * `zone`, as pico8_lq_new. */
+pico8_lq_t *pico8_lq_copy(const pico8_zone_choisie_t *zone, const pico8_lq_t *row);
 
 /* The cart's `add(l, v)` on a row already laid out: `cell` is appended to
- * `items`, `fs` and `w` are left as they were. */
+ * `items`, grown in the row's zone; `fs` and `w` are left as they were. */
 void pico8_lq_add(pico8_lq_t *self, pico8_lq_cell_t cell);
 
 /* One line per item of `row` (NULL: no line): a string makes a one-item
- * row, a row its scalar items and its `c`, any other item an empty row. */
-pico8_jb_t *pico8_jb_new(const pico8_jb_row_t *row);
+ * row, a row its scalar items and its `c`, any other item an empty row.
+ * `ls` and the lines' arrays are in `zone`, which must outlive the `jb`. */
+pico8_jb_t *pico8_jb_new(const pico8_zone_choisie_t *zone, const pico8_jb_row_t *row);
 
 /* Omitting `a` is numerically the same as `a` of 0, so pico8_lq_ol_default
  * passes 0 rather than carrying a "was it provided" flag. A NULL self draws

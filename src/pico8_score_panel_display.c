@@ -205,7 +205,7 @@ static const pico8_jb_row_t *pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_
     keys.score = pico8_fixed_from_int(score_i);
     keys.ra = st->e->has_ra ? &st->ra : NULL;
     /* TROU-7 */
-    lq_inst = pico8_lq_new(&keys);
+    lq_inst = pico8_lq_new(&pico8_zone_transitoire, &keys);
     wrapped = malloc(sizeof *wrapped);
     assert(wrapped != NULL);
     wrapped->items[0] = (pico8_jb_item_t){.is_ref = 1, .ref = lq_inst};
