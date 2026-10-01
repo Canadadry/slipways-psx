@@ -14,6 +14,7 @@ src/pico8_dump.c | outil d'hote du §4, dump texte du framebuffer
 src/pico8_dump.h | outil d'hote du §4, en-tete de pico8_dump.c
 src/pico8_coverage.c | instrumentation de couverture des classes (PICO8_CLASS_COVERAGE), outil d'hote
 src/pico8_input_json.c | lecture et ecriture d'events.json, outil d'hote
+src/pico8_fatal_pc.c | implementation PC de pico8_fatal (stderr, exit), fournie par la plateforme
 src/pico8_fixed_test_double.c | aide de test, hors coeur : from_double/to_double, liee par les tests et le comparateur de constantes
 src/pico8_fixed_test_double.h | aide de test, hors coeur : en-tete de pico8_fixed_test_double.c, inclus par les tests et le comparateur de constantes
 src/pico8_minimize.c | minimiseur de rejeux, outil d'hote
