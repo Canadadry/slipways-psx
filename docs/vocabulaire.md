@@ -1,6 +1,6 @@
 # Vocabulaire du plan 5
 
-Statut : à valider
+Statut : validé
 
 Ce document fixe le sens et le nom anglais des concepts récurrents du code, des membres de l'en-tête commun et de ceux de la vtable des classes, ainsi que l'arborescence cible des fichiers. Il est l'entrée des étapes 1 à 3 du plan 5 (`docs/plan-5.md`) ; pour le détail symbole par symbole, il cède la place au TSV de l'étape 2b (`docs/renommage.tsv`), qui en dérive ses noms. Les noms proposés suivent le §4 du plan : anglais, mots complets, aucun préfixe pour le jeu, `p8_` pour le seul runtime PICO-8 émulé. Une colonne « doute » non vide signale où relire en priorité. Les comptes `N×` sont des occurrences dans `src/` (`grep -o`) ; « gloss. § X » renvoie à une section de `docs/glossaire-noms.md`.
 
