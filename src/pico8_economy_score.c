@@ -12,6 +12,7 @@
 #include "pico8_planet.h"
 #include "pico8_str.h"
 #include "pico8_trade.h"
+#include "pico8_zone_frame.h"
 #include "pico8_zone_transitoire.h"
 
 static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
@@ -69,10 +70,9 @@ static int cz_predicate(pico8_struct_header_t *e, void *ctx) {
 
 pico8_fixed_t pico8_cz(void) {
     const pico8_ents_t *jo_list = pico8_cg("jo");
-    pico8_ents_t filtered = pico8_jp_ents(&pico8_zone_transitoire, jo_list, cz_predicate, NULL);
+    pico8_ents_t filtered = pico8_jp_ents(pico8_zone_frame(), jo_list, cz_predicate, NULL);
     int mu = filtered.count;
     pico8_fixed_t result;
-    pico8_ents_free(&filtered);
     result = pico8_fixed_mul(PICO8_FIXED_LIT(0x00002e14, 0.18), pico8_fixed_from_int(mu * mu));
     return pico8_fixed_flr(result);
 }

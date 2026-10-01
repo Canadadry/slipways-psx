@@ -6,6 +6,7 @@
 
 #include "pico8_game_data.h"
 #include "pico8_struct.h"
+#include "pico8_zone_frame.h"
 #include "pico8_zone_transitoire.h"
 
 #define PICO8_BM_COUNT 5
@@ -191,7 +192,7 @@ void pico8_dc(const char *nt) {
     assert((kj || strcmp(nt, "ev") == 0) && "dc: only kj and ev are drawn through dc");
 
     for (i = 0; i < 15; i++) {
-        pico8_ents_init(&layers[i], &pico8_zone_transitoire);
+        pico8_ents_init(&layers[i], pico8_zone_frame());
     }
 
     bucket_src = pico8_cv(nt);
@@ -234,10 +235,6 @@ void pico8_dc(const char *nt) {
                 draw(qc, ra);
             }
         }
-    }
-
-    for (i = 0; i < 15; i++) {
-        pico8_ents_free(&layers[i]);
     }
 }
 

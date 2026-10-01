@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "pico8_zone_frame.h"
 #include "pico8_zone_transitoire.h"
 
 static int g_trade_up = 0;
@@ -93,9 +94,9 @@ int pico8_trade_to(const pico8_trade_t *self, pico8_struct_header_t **out) {
     return 1;
 }
 
-/* `{np}`/`{jc}` are one-element stack containers, freed once pico8_ents_cat
- * has copied their element into the heap lp/rl it returns; a Lua `{x}`
- * holds zero elements when x is nil, so a NULL contributes nothing. */
+/* `{np}`/`{jc}` live in the frame zone: pico8_ents_cat copies their
+ * element into the lp/rl it returns. A Lua `{x}` holds zero elements
+ * when x is nil, so a NULL contributes nothing. */
 pico8_trade_t *pico8_trade_kg(const pico8_trade_t *self, pico8_struct_header_t *np, pico8_struct_header_t *jc) {
     pico8_trade_keys_t keys = {0};
     pico8_ents_t empty_lp;
@@ -112,8 +113,8 @@ pico8_trade_t *pico8_trade_kg(const pico8_trade_t *self, pico8_struct_header_t *
         return NULL;
     }
 
-    pico8_ents_init(&empty_lp, &pico8_zone_transitoire);
-    pico8_ents_init(&empty_rl, &pico8_zone_transitoire);
+    pico8_ents_init(&empty_lp, pico8_zone_frame());
+    pico8_ents_init(&empty_rl, pico8_zone_frame());
     lp = self->lp != NULL ? self->lp : &empty_lp;
     rl = self->rl != NULL ? self->rl : &empty_rl;
     /* TROU-24 */
@@ -121,11 +122,11 @@ pico8_trade_t *pico8_trade_kg(const pico8_trade_t *self, pico8_struct_header_t *
     keys.qe_is_bool = self->has_qe ? self->qe_is_bool : 1;
     keys.qe = self->has_qe ? self->qe : 0;
 
-    pico8_ents_init(&np_list, &pico8_zone_transitoire);
+    pico8_ents_init(&np_list, pico8_zone_frame());
     if (np != NULL) {
         pico8_ents_add(&np_list, np);
     }
-    pico8_ents_init(&jc_list, &pico8_zone_transitoire);
+    pico8_ents_init(&jc_list, pico8_zone_frame());
     if (jc != NULL) {
         pico8_ents_add(&jc_list, jc);
     }
@@ -135,9 +136,6 @@ pico8_trade_t *pico8_trade_kg(const pico8_trade_t *self, pico8_struct_header_t *
     *new_lp = pico8_ents_cat(&pico8_zone_transitoire, lp, &np_list);
     new_rl = malloc(sizeof *new_rl);
     *new_rl = pico8_ents_cat(&pico8_zone_transitoire, rl, &jc_list);
-
-    pico8_ents_free(&np_list);
-    pico8_ents_free(&jc_list);
 
     keys.lp = new_lp;
     keys.rl = new_rl;

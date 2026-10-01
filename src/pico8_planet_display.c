@@ -22,6 +22,7 @@
 #include "pico8_slipway.h"
 #include "pico8_str.h"
 #include "pico8_tech_gate.h"
+#include "pico8_zone_frame.h"
 #include "pico8_zone_transitoire.h"
 
 /* `kw` as `lq:mn` reads it, `{qe=kw.qe}` (`mu` is never read there). A
@@ -180,10 +181,10 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     }
     n = 1;
 
-    pico8_ptrs_init(&ctx.ji, &pico8_zone_transitoire);
+    pico8_ptrs_init(&ctx.ji, pico8_zone_frame());
 
     jy = self->jy;
-    jx = pico8_jp_ptrs(&pico8_zone_transitoire, jy, pico8_jo_gh_jp_step, &ctx);
+    jx = pico8_jp_ptrs(pico8_zone_frame(), jy, pico8_jo_gh_jp_step, &ctx);
 
     if (jx.count > 0) {
         row_cap[n] = 1 + jx.count + 1;
@@ -217,7 +218,6 @@ void pico8_jo_gh(const pico8_jo_t *self) {
             n++;
         }
     }
-    pico8_ptrs_free(&jx);
 
     /* A `ji` the predicate appended nothing to leaves no row at all, not a
      * row holding false: Lua's `add(t,nil)` is a no-op. */
@@ -230,7 +230,6 @@ void pico8_jo_gh(const pico8_jo_t *self) {
         }
         n++;
     }
-    pico8_ptrs_free(&ctx.ji);
 
     {
         const pico8_kw_t *kw = self->kw;

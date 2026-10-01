@@ -9,6 +9,7 @@
 #include "pico8_planet.h"
 #include "pico8_trade.h"
 #include "pico8_slipway.h"
+#include "pico8_zone_frame.h"
 #include "pico8_zone_transitoire.h"
 
 /* Membership by trade equality (same endpoints), not pico8_ents_has's pointer
@@ -121,10 +122,9 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
             pico8_ptrs_t merged;
             pico8_ptrs_t *merged_heap;
 
-            pico8_ptrs_init(&prefix, &pico8_zone_transitoire);
+            pico8_ptrs_init(&prefix, pico8_zone_frame());
             pico8_ptrs_add(&prefix, fresh);
             merged = pico8_la_ptrs(&pico8_zone_transitoire, &prefix, jy);
-            pico8_ptrs_free(&prefix);
 
             merged_heap = malloc(sizeof *merged_heap);
             *merged_heap = merged;
