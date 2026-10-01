@@ -20,14 +20,14 @@ typedef struct {
 /* `i.qe`: nil or a number, never false. */
 pico8_qe_t pico8_jy_qe(const pico8_jy_t *i);
 
-/* A fresh want, never freed (TROU-7): `qe` NULL is nil, no `gc`. */
-pico8_jy_t *pico8_jy_new(const pico8_fixed_t *qe);
+/* A fresh want in `zone`, never freed here: `qe` NULL is nil, no `gc`. */
+pico8_jy_t *pico8_jy_new(const pico8_zone_choisie_t *zone, const pico8_fixed_t *qe);
 
-/* A research project of `gb`. Freed only by pico8_research_shutdown(),
- * through `gb`'s ranks. The members are borrowed from `pico8_fd_table` and
- * from `r`, except `i`, a list built here and never freed (TROU-7), and
- * `lq`, which points at `lq_own` (its third item `lq_inner`) or is NULL.
- * The struct is never copied: `lq` points into it. */
+/* A research project of `gb`, taken with its list `i` and the wants in it
+ * from the load sub-zone: they live until the next load or shutdown, never
+ * freed. The other members are borrowed from `pico8_fd_table` and from `r`,
+ * except `lq`, which points at `lq_own` (its third item `lq_inner`) or is
+ * NULL. The struct is never copied: `lq` points into it. */
 typedef struct {
     pico8_struct_header_t header;
     const pico8_hp_def_t *def;
@@ -63,10 +63,8 @@ typedef struct {
 /* Calls pico8_research_shutdown() first. */
 void pico8_research_init(void);
 
-/* Frees every project `gb` still holds, then `gb`.
- * Walks `gb`'s positional entries only: its named `gb[px]` entries alias
- * the same projects, so freeing both would free them twice. Idempotent, and
- * safe before the first pico8_research_init(). */
+/* Forgets `gb` without freeing its projects: their memory goes back at the
+ * next load. Idempotent, and safe before the first pico8_research_init(). */
 void pico8_research_shutdown(void);
 
 /* 1 from pico8_research_init() to pico8_research_shutdown(), 0 otherwise. */
@@ -94,9 +92,9 @@ typedef struct {
  * `px`, so pico8_research_build_gb() must have built `gb` first. */
 pico8_hp_t *pico8_hp_new(const pico8_hp_keys_t *keys);
 
-/* Rebuilds `gb` from `pico8_fd_table`, freeing whatever a previous call
- * left. A header entry sets the running `rr` category every later record is
- * tagged with. */
+/* Rebuilds `gb` from `pico8_fd_table`, forgetting whatever a previous call
+ * left, whose memory goes back at the next load. A header entry sets the
+ * running `rr` category every later record is tagged with. */
 void pico8_research_build_gb(void);
 
 /* `gb`, owned by this module (callers free nothing): its projects by rank,

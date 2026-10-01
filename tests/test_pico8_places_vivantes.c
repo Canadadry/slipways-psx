@@ -447,6 +447,19 @@ static void pause_restart_borne_les_blocs_morts_des_registres(void) {
     assert(pico8_zone_partie_prise() == g + r + p && "les registres prennent 2C - 4 pointeurs, et rien d'autre n'entre");
 }
 
+/* Seul le chargement remplit la sous-zone chargement : deux parties n'y
+ * ajoutent rien. */
+static void pause_restart_ne_touche_pas_au_chargement(void) {
+    demarrer("pause_restart");
+    jouer_jusqu_a(1);
+    const size_t f1 = pico8_zone_chargement_prise();
+    assert(f1 > 0 && "gb est dans la sous-zone chargement");
+    jouer_jusqu_a(g_input->frame_count - 1);
+    printf("  pause_restart : chargement=%lu a f1 et en fin de rejeu\n", (unsigned long)f1);
+    assert(pico8_zone_chargement_prise() == f1 && "une partie prend dans la sous-zone chargement");
+    assert(pico8_zone_chargement_max() == f1);
+}
+
 /* f12 : le bw de la nouvelle partie prend ses etats a cote de ceux de la
  * partie quittee, rendus a f13. */
 static void pause_restart_compte_les_etats_de_bw(void) {
@@ -1060,6 +1073,7 @@ int main(void) {
     dans_un_enfant(pause_restart_garde_les_planetes_de_la_partie_quittee_pendant_le_clic);
     dans_un_enfant_qui_meurt_par_asan(pause_restart_rend_les_planetes_de_la_partie_quittee);
     dans_un_enfant(pause_restart_compte_les_etats_de_bw);
+    dans_un_enfant(pause_restart_ne_touche_pas_au_chargement);
     dans_un_enfant(pause_restart_borne_les_blocs_morts_des_registres);
     dans_un_enfant(pause_restart_recharge_apres_le_titre);
     dans_un_enfant(pause_restart_devoile_sur_les_etats_de_la_nouvelle_partie);

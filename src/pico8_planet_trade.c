@@ -118,7 +118,7 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
 
         {
             pico8_fixed_t e_qe = r_e.n;
-            pico8_jy_t *fresh = pico8_jy_new(&e_qe);
+            pico8_jy_t *fresh = pico8_jy_new(pico8_zone_partie(), &e_qe);
             pico8_ptrs_t prefix;
             pico8_ptrs_t merged;
             pico8_ptrs_t *merged_own;

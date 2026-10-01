@@ -40,6 +40,7 @@
 #include "../src/pico8_zone_choisie.h"
 #include "../src/pico8_zone_frame.h"
 #include "../src/pico8_zone_interface.h"
+#include "../src/pico8_zone_partie.h"
 #include "../src/pico8_zone_transitoire.h"
 
 /* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
@@ -791,8 +792,8 @@ static const pico8_lq_t *panel_row(const char *head) {
  * resource draws it 5 wide, a want of none nothing, 6 wide. */
 static void test_gh_wants_more(void) {
     pico8_fixed_t ore = pico8_fixed_from_int(21);
-    pico8_jy_t *a = pico8_jy_new(&ore);
-    pico8_jy_t *b = pico8_jy_new(NULL);
+    pico8_jy_t *a = pico8_jy_new(pico8_zone_partie(), &ore);
+    pico8_jy_t *b = pico8_jy_new(pico8_zone_partie(), NULL);
     pico8_ptrs_t *jy = malloc(sizeof *jy);
     pico8_jo_t *planet;
     const pico8_lq_t *wants;
@@ -829,7 +830,7 @@ static void test_gh_wants_more(void) {
  * want arrives. */
 static void test_gh_w_maker_wants_no_more(void) {
     pico8_fixed_t ore = pico8_fixed_from_int(21);
-    pico8_jy_t *a = pico8_jy_new(&ore);
+    pico8_jy_t *a = pico8_jy_new(pico8_zone_partie(), &ore);
     pico8_ptrs_t *jy = malloc(sizeof *jy);
     pico8_kw_t *kw = calloc(1, sizeof *kw);
     pico8_jo_t *planet;
@@ -857,8 +858,8 @@ static void test_gh_w_maker_wants_no_more(void) {
 
 /* A laboratory (`qh` true) lists only its last want under "wants more:". */
 static void test_gh_lab_wants_its_last(void) {
-    pico8_jy_t *a = pico8_jy_new(NULL);
-    pico8_jy_t *b = pico8_jy_new(NULL);
+    pico8_jy_t *a = pico8_jy_new(pico8_zone_partie(), NULL);
+    pico8_jy_t *b = pico8_jy_new(pico8_zone_partie(), NULL);
     pico8_ptrs_t *jy = malloc(sizeof *jy);
     pico8_jo_t *lab;
     const pico8_lq_t *wants;

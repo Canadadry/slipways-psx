@@ -554,7 +554,7 @@ static void test_cn_wildcard_want(void) {
     start_game();
     assert(pico8_r_lookup("?", &any_qe));
     any = pico8_fixed_from_int(any_qe);
-    want = pico8_jy_new(&any);
+    want = pico8_jy_new(pico8_zone_partie(), &any);
     pico8_ptrs_init(jy, &pico8_zone_transitoire);
     pico8_ptrs_add(jy, want);
     qh = pico8_qh_new(NULL);
@@ -577,7 +577,7 @@ static void test_cn_nil_want_after_kg(void) {
 
     start_game();
     pico8_ptrs_init(jy, &pico8_zone_transitoire);
-    pico8_ptrs_add(jy, pico8_jy_new(NULL));
+    pico8_ptrs_add(jy, pico8_jy_new(pico8_zone_partie(), NULL));
     qh = pico8_qh_new(NULL);
     qh->jy = jy;
     nil_route = pico8_trade_new(pico8_zone_partie(), &(pico8_trade_keys_t){.lp = list_of(0, NULL)});
@@ -604,8 +604,8 @@ static void test_dh_counts_numbered_routes_only(void) {
     pico8_trade_t *nil_route;
 
     start_game();
-    nil_want = pico8_jy_new(NULL);
-    x_want = pico8_jy_new(&x);
+    nil_want = pico8_jy_new(pico8_zone_partie(), NULL);
+    x_want = pico8_jy_new(pico8_zone_partie(), &x);
     pico8_ptrs_init(jy, &pico8_zone_transitoire);
     pico8_ptrs_add(jy, nil_want);
     pico8_ptrs_add(jy, x_want);

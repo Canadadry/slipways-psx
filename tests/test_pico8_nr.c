@@ -602,7 +602,7 @@ static void test_cn_skips_a_slipway_already_in_rl(void) {
     self = pico8_nr_new(NULL);
     other = pico8_qh_new(NULL);
     pico8_ptrs_init(jy, &pico8_zone_transitoire);
-    pico8_ptrs_add(jy, pico8_jy_new(&qe));
+    pico8_ptrs_add(jy, pico8_jy_new(pico8_zone_partie(), &qe));
     other->jy = jy;
     jc_keys.qu = &self->header;
     w = pico8_jc_new(&jc_keys);

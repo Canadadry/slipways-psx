@@ -37,6 +37,7 @@
 #include "../src/pico8_struct.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_vec.h"
+#include "../src/pico8_zone_partie.h"
 #include "../src/pico8_zone_transitoire.h"
 
 /* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
@@ -487,7 +488,7 @@ static void test_lj(void) {
     pico8_jo_t *needer;
     pico8_ptrs_t needs;
     pico8_fixed_t need_qe = pico8_fixed_from_int(99);
-    pico8_jy_t *need = pico8_jy_new(&need_qe);
+    pico8_jy_t *need;
     pico8_fixed_t made;
     pico8_fixed_t now;
     pico8_fixed_t qe;
@@ -540,6 +541,7 @@ static void test_lj(void) {
     check("lj", h, LJ_HASH);
 
     fu = fm_hy()->fu;
+    need = pico8_jy_new(pico8_zone_partie(), &need_qe);
     needer = pico8_qh_new(NULL);
     pico8_ptrs_init(&needs, &pico8_zone_transitoire);
     pico8_ptrs_add(&needs, need);

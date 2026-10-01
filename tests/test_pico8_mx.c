@@ -38,6 +38,7 @@
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_vec.h"
+#include "../src/pico8_zone_partie.h"
 #include "../src/pico8_zone_transitoire.h"
 
 
@@ -549,7 +550,7 @@ static void *join(void *qu, void *synthesizer) {
  * count of suppliers. */
 static void give_row(void *e, int qe) {
     pico8_fixed_t want_qe = pico8_fixed_from_int(qe);
-    pico8_jy_t *row = pico8_jy_new(&want_qe);
+    pico8_jy_t *row = pico8_jy_new(pico8_zone_partie(), &want_qe);
     pico8_ptrs_t *jy = malloc(sizeof *jy);
 
     row->has_gc = 1;

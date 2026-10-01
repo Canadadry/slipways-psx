@@ -38,6 +38,8 @@
 #include "../src/pico8_tech_gate.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_vec.h"
+#include "../src/pico8_zone.h"
+#include "../src/pico8_zone_partie.h"
 
 /* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
  * project with an `o` and no `i`, which exports to any planet a slipway
@@ -770,10 +772,62 @@ static void test_harvested_world(void) {
     check("harvested world", fold_world(), HARVESTED_WORLD_HASH);
 }
 
-/* `gb` rebuilt from `fd` frees the projects it held and gives the same
- * projects; shutdown leaves no class and no `gb`, `fk` still the generated
- * row; init again, then a rebuild, gives them once more. */
+static size_t octets_d_un_bloc(size_t taille) {
+    return PICO8_ZONE_CELLS(taille) * sizeof(pico8_zone_cell_t);
+}
+
+/* Each project of `gb`, its list `i`, its items unless empty, its wants. */
+static size_t octets_de_gb(void) {
+    size_t octets = 0;
+    int k;
+
+    for (k = 1; k <= gb_count(); k++) {
+        const pico8_hp_t *b = project(k);
+        const int n = b->i->count;
+
+        octets += octets_d_un_bloc(sizeof *b) + octets_d_un_bloc(sizeof *b->i) +
+                  (size_t)n * octets_d_un_bloc(sizeof(pico8_jy_t));
+        if (n > 0) {
+            octets += octets_d_un_bloc((size_t)n * sizeof(void *));
+        }
+    }
+    return octets;
+}
+
+/* `gb` is all the load sub-zone holds after pico8_cart_load(), each `i`
+ * reserved to its exact length. */
+static void test_gb_in_chargement(void) {
+    int k;
+
+    for (k = 1; k <= gb_count(); k++) {
+        const pico8_hp_t *b = project(k);
+        assert(b->i->capacity == b->i->count && b->i->zone == pico8_zone_chargement());
+    }
+    printf("  chargement apres pico8_cart_load : %lu\n", (unsigned long)pico8_zone_chargement_prise());
+    assert(pico8_zone_chargement_prise() == octets_de_gb());
+}
+
+/* A want is taken from the zone its caller passes. */
+static void test_jy_new_in_the_zone_passed(void) {
+    const pico8_fixed_t qe = pico8_fixed_from_int(3);
+    const size_t chargement = pico8_zone_chargement_prise();
+    const size_t partie = pico8_zone_partie_prise();
+    pico8_jy_t *a = pico8_jy_new(pico8_zone_chargement(), &qe);
+    pico8_jy_t *b = pico8_jy_new(pico8_zone_partie(), NULL);
+
+    assert(pico8_zone_chargement_prise() == chargement + octets_d_un_bloc(sizeof *a));
+    assert(pico8_zone_partie_prise() == partie + octets_d_un_bloc(sizeof *b));
+    assert(a->row.has_qe && a->row.qe == qe && !a->has_gc);
+    assert(!b->row.has_qe && !b->has_gc);
+}
+
+/* `gb` rebuilt from `fd` forgets the projects it held, whose memory goes
+ * back at the next load, and gives the same projects; shutdown leaves no
+ * class and no `gb`, `fk` still the generated row; init again, then a
+ * load, gives them once more, and a second load takes the same bytes. */
 static void test_rebuild_and_shutdown(void) {
+    size_t k;
+
     pico8_research_build_gb();
     test_gb();
 
@@ -785,8 +839,11 @@ static void test_rebuild_and_shutdown(void) {
 
     pico8_research_init();
     assert(pico8_hp_ready() && pico8_hp_fk() == &pico8_hp_fk_row);
-    pico8_research_build_gb();
+    pico8_cart_load();
     test_gb();
+    k = pico8_zone_chargement_prise();
+    pico8_cart_load();
+    assert(pico8_zone_chargement_prise() == k);
 }
 
 static void must_abort(void (*write)(void *), void *e) {
@@ -1037,6 +1094,8 @@ int main(void) {
     in_fresh_child(test_hp_is_a_struct);
     in_fresh_child(test_gb_px_is_the_last_registered);
     in_fresh_child(test_rebuild_and_shutdown);
+    in_fresh_child(test_gb_in_chargement);
+    in_fresh_child(test_jy_new_in_the_zone_passed);
 
     printf("test_pico8_hp: all tests passed\n");
     return 0;

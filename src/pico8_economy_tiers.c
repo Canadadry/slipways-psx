@@ -159,7 +159,7 @@ static void bb_visit(pico8_struct_header_t *pt, void *ctx) {
             pico8_hp_t *hn = jo->hn;
             if (hn != NULL && hn->has_dm) {
                 if (jo->jy != NULL) {
-                    pico8_jy_t *entry = pico8_jy_new(&hn->dm);
+                    pico8_jy_t *entry = pico8_jy_new(pico8_zone_partie(), &hn->dm);
                     pico8_ptrs_add(jo->jy, entry);
                 }
             }
