@@ -69,8 +69,8 @@
 # make sanitize-net  -> rejoue les e2e de tests/e2e/ sous ASan+UBSan (-O2),
 #                       critère « sortie propre », hors suite
 # make constants-check -> compare chaque PICO8_FIXED_LIT du cœur à son hexa relevé
-#                       (tools/probe_out.txt) ; échoue si les écarts ne sont pas
-#                       exactement tools/constants_expected_ecarts.txt, dans make test
+#                       (tools/pico8_reference_probe_out.txt) ; échoue si les écarts ne sont pas
+#                       exactement tools/constants_expected_gaps.txt, dans make test
 # make float-guard   -> réécrit tools/float_guard.txt, en échec si un fichier
 #                       du cœur a besoin du flottant (§6.3), dans make test
 # make alloc-guard   -> compte les appels malloc/calloc/realloc/free de chaque
@@ -988,8 +988,8 @@ sanitize-net: $(SANITIZE_RUNS)
 .PHONY: sanitize-net $(SANITIZE_RUNS)
 
 # Les sources du cœur, où le comparateur lit les appels PICO8_FIXED_LIT.
-constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_ecarts.txt tools/probe_out.txt src/p8/fixed.c src/p8/fixed.h $(CORE_SRCS) | $(TMP_DIR)
-	@sh tools/constants_check.sh tools/constants_expected_ecarts.txt tools/probe_out.txt src/p8/fixed.c $(TMP_DIR)/constants_check \
+constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_gaps.txt tools/pico8_reference_probe_out.txt src/p8/fixed.c src/p8/fixed.h $(CORE_SRCS) | $(TMP_DIR)
+	@sh tools/constants_check.sh tools/constants_expected_gaps.txt tools/pico8_reference_probe_out.txt src/p8/fixed.c $(TMP_DIR)/constants_check \
 	    $(CORE_SRCS)
 
 .PHONY: constants-check

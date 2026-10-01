@@ -132,7 +132,7 @@ static void test_flr_exact_integer_is_unchanged(void) {
 }
 
 static void test_flr_int_matches_probe_block_b(void) {
-    /* tools/probe_out.txt, "## b rounding": copied from the probe, never
+    /* tools/pico8_reference_probe_out.txt, "## b rounding": copied from the probe, never
      * derived. */
     static const struct { uint32_t raw; int32_t expected; } probe[] = {
         {0xFFFE8000u, -2}, {0xFFFF8000u, -1}, {0xFFFF199Au, -1},
@@ -344,7 +344,7 @@ static void test_sqrt_negative_value_is_zero(void) {
 }
 
 static void test_sqrt_matches_probe_block_e(void) {
-    /* tools/probe_out.txt, "## e sqrt": copied from the probe, never
+    /* tools/pico8_reference_probe_out.txt, "## e sqrt": copied from the probe, never
      * derived. */
     static const struct { uint32_t raw; uint32_t expected; } probe[] = {
         {0x00004000u, 0x00008000u}, {0x00008000u, 0x0000B504u},
@@ -362,7 +362,7 @@ static void test_sqrt_matches_probe_block_e(void) {
 }
 
 static void test_pow075_matches_probe_block_d(void) {
-    /* tools/probe_out.txt, "## d pow075": copied from the probe, never
+    /* tools/pico8_reference_probe_out.txt, "## d pow075": copied from the probe, never
      * derived. */
     static const struct { uint32_t raw; uint32_t expected; } probe[] = {
         {0x00004000u, 0x00005A82u}, {0x00008000u, 0x00009836u},
@@ -423,7 +423,7 @@ static void test_rnd_default_behaves_as_rnd_one(void) {
 /* sin/cos are bit-exact at the 64 probed points i/64 only. */
 /* TROU-1 */
 static void test_sin_matches_probe_block_e(void) {
-    /* tools/probe_out.txt, "## e sin": copied from the probe, never
+    /* tools/pico8_reference_probe_out.txt, "## e sin": copied from the probe, never
      * derived. The argument is i/64 turns, raw i * 0x400. */
     static const struct { uint32_t raw; uint32_t expected; } probe[] = {
         {0x00000000u, 0x00000000u}, {0x00000400u, 0xFFFFE6E8u}, {0x00000800u, 0xFFFFCE0Fu},
@@ -455,7 +455,7 @@ static void test_sin_matches_probe_block_e(void) {
 }
 
 static void test_cos_matches_probe_block_e(void) {
-    /* tools/probe_out.txt, "## e cos": copied from the probe, never
+    /* tools/pico8_reference_probe_out.txt, "## e cos": copied from the probe, never
      * derived. The argument is i/64 turns, raw i * 0x400. */
     static const struct { uint32_t raw; uint32_t expected; } probe[] = {
         {0x00000000u, 0x00010000u}, {0x00000400u, 0x0000FEC4u}, {0x00000800u, 0x0000FB15u},

@@ -15,7 +15,7 @@ typedef int32_t pico8_fixed_t;
 #define PICO8_FIXED_DIV0_POS ((pico8_fixed_t)0x7FFFFFFF)
 #define PICO8_FIXED_DIV0_NEG ((pico8_fixed_t)(-0x7FFFFFFF))
 
-/* raw: the 8 hex digits of tools/probe_out.txt block A, point removed; lua:
+/* raw: the 8 hex digits of tools/pico8_reference_probe_out.txt block A, point removed; lua:
  * the cart's literal, for grep and tools/constants_compare.sh -- never
  * evaluated. */
 #define PICO8_FIXED_LIT(raw, lua) ((pico8_fixed_t)(uint32_t)(raw##u))
@@ -80,7 +80,7 @@ pico8_fixed_t pico8_fixed_shl(pico8_fixed_t x, int32_t n);
  * square root on the raw bits, with no host floating point. */
 pico8_fixed_t pico8_fixed_sqrt(pico8_fixed_t x);
 
-/* x^0.75 as PICO-8 computes it (tools/probe_out.txt block D): s*sqrt(s)
+/* x^0.75 as PICO-8 computes it (tools/pico8_reference_probe_out.txt block D): s*sqrt(s)
  * with s = sqrt(x), each step truncated. 0 and negative x give 0. */
 pico8_fixed_t pico8_fixed_pow075(pico8_fixed_t x);
 

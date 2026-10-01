@@ -129,8 +129,8 @@ REGISTRES_NON_ENTITE="pico8_emitter_t.qy pico8_jo_gh_ctx_t.ji pico8_nv_ptrs pico
 # En-tetes du noyau, par chemin relatif a src/ : noyau-inclut ne lit qu'eux.
 NOYAU="engine/entity_class.h engine/entity.h engine/entity_registry.h"
 
-ATTEINTE=${COMPOSITION_ATTEINTE:-tools/atteinte_a_prouver.txt}
-R2=${COMPOSITION_R2:-tools/composition_r2_sites.txt}
+ATTEINTE=${COMPOSITION_ATTEINTE:-tools/reachability_questions.txt}
+R2=${COMPOSITION_R2:-tools/composition_residue_sites.txt}
 
 known() {
     case " $CATEGORIES " in

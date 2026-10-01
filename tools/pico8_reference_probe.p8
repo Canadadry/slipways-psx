@@ -10,12 +10,12 @@ __lua__
 -- SONT des entiers. le decimal est
 -- ambigu, l'hexa ne l'est pas.
 --
--- ecrit probe_out.txt et affiche
+-- ecrit pico8_reference_probe_out.txt et affiche
 -- un resume a l'ecran.
 
 local first=true
 function o(s)
- printh(s,"probe_out",first)
+ printh(s,"pico8_reference_probe_out",first)
  first=false
 end
 
@@ -193,7 +193,7 @@ o("# end")
 -- ================================
 cls(0)
 print("probe done",0,0,11)
-print("-> probe_out.txt",0,6,6)
+print("-> pico8_reference_probe_out.txt",0,6,6)
 print("",0,12)
 print("flr(-1.5) "..h(flr(-1.5)),0,18,7)
 print("flr(-0.5) "..h(flr(-0.5)),0,24,7)

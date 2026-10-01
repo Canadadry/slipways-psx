@@ -736,7 +736,7 @@ static void trade_rich_mine_rend_ses_trainees_au_rechargement(void) {
     assert(apres == 0 && "le rendre du slipway rend ses trainees");
 }
 
-#define PRISES "tests/fixtures/prises_refusees.json"
+#define PRISES "tests/fixtures/grab_arenas_refused.json"
 
 /* Fixture PRISES : f0-20 d'empty_planet_fade ; puis des prises de 7 frames
  * (pression sur l'icone (122,124), glisse, relache, trois d'attente) :
@@ -834,7 +834,7 @@ static void une_prise_refusee_traverse_une_nouvelle_partie(void) {
     jouer_jusqu_a(195);
 }
 
-#define SLIPWAYS "tests/fixtures/slipways_refuses.json"
+#define SLIPWAYS "tests/fixtures/slipways_refused.json"
 
 /* Fixture SLIPWAYS : f0-34 de slipway_build (« p27 » et « p48 »
  * colonisees) ; puis des cycles de 15 frames : pression sur « p27 » (88,37),
@@ -927,7 +927,7 @@ static void un_slipway_refuse_traverse_une_nouvelle_partie(void) {
     jouer_jusqu_a(377);
 }
 
-#define PLIAGES "tests/fixtures/pliages.json"
+#define PLIAGES "tests/fixtures/wormholes.json"
 
 /* Fixture PLIAGES : f0-3 de slipway_build (sonde a f2) ; puis des cycles de
  * 7 frames en (80,55) : quatre tenues des la pression, trois relachees.
@@ -985,7 +985,7 @@ static void un_mz_refuse_traverse_une_nouvelle_partie(void) {
     jouer_jusqu_a(224);
 }
 
-#define SONDES "tests/fixtures/sondes_refusees.json"
+#define SONDES "tests/fixtures/probes_refused.json"
 
 /* Fixture SONDES : clic « reasonable » (f0-1) ; puis des cycles de 7 frames
  * dans le vide, hors du panneau `hw`, en (5,100) : quatre tenues des la
@@ -1071,7 +1071,7 @@ static void une_sonde_refusee_traverse_une_nouvelle_partie(void) {
     jouer_jusqu_a(115);
 }
 
-#define PLIAGE_ABANDONNE "tests/fixtures/pliage_abandonne.json"
+#define PLIAGE_ABANDONNE "tests/fixtures/wormhole_abandoned.json"
 
 /* Fixture PLIAGE_ABANDONNE : f0-20 de slipway_build (`mz` ouvert a f20),
  * puis f2-17 de pause_restart : « restart » a f26 abandonne le `mz`, le clic
