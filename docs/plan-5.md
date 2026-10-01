@@ -23,19 +23,21 @@ Seule tolérance, à la Go : une variable locale ou un paramètre d'une ou deux 
 ```
 src/
   p8/         runtime PICO-8 émulé — symboles en p8_, fichiers sans préfixe
-              fixed, gfx, palette, mem, str, ptrs, input, mouse_reader,
-              audio (stub), assets, quarter_wave, fatal
+              fixed, gfx, palette, mem, str, input, audio (stub), assets,
+              quarter_wave, fatal
   engine/     socle objet et mémoire, sans planète ni slipway
-              struct_header, classe racine, entity, ents, collect,
-              dispatch_context, zones mémoire, file de sortie, bootstrap
+              entity_class.h, entity (classe racine), entity_registry,
+              entity_list, pointer_list, entity_geom, vec, geom, collect,
+              dispatch_context, zones mémoire, exit_queue, bootstrap
   game/       le jeu
               planet*, slipway*, trade, research*, economy*, galaxy, gen,
-              probe*, wormhole*, ui, ui_button, menu, hud, msgbox, layout,
-              help, score_panel*, scroll, particle, bg, tech_gate, cheat,
+              probe, targeting, wormhole*, ui, ui_button, ui_zone, menu,
+              hud, message_box, layout, help, score_panel*, scroll,
+              particle, particle_zone, background, mouse, tech_gate, cheat,
               game_data, map_tables, data_init, cart…
   platform/   raylib_backend, raylib_backend_coords, fatal_pc
   devtools/   vérification sans fenêtre : dump, gif, screencast*, replay_*,
-              session_recorder, input_json, coverage, minimize,
+              session_recorder, input_json, class_coverage, minimize,
               fixed_test_double
   cmd/        un fichier par binaire, à plat : game.c, replay.c, frames.c,
               gif.c, minimize.c, screencast_viewer.c, class_coverage.c
@@ -56,7 +58,7 @@ Les includes s'écrivent depuis `src/` (`#include "game/planet.h"`), avec `-Isrc
 | Méthode de classe | même règle, sur le type receveur | `entity_reset_state` |
 | Fonction `static` | pas de préfixe de module | `find_nearest` |
 | Constante, enum, macro | `MODULE_UPPER_CASE` | `TAG_PLANET` |
-| Champ de struct | nom complet, jamais abrégé | `e->pos`, pas `e->p` |
+| Champ de struct | nom complet, jamais abrégé | `e->map_pos`, pas `e->p` |
 | Globale | nom complet ; `g_` seulement pour une statique mutable de fichier | `g_frame_count` |
 | Locale, paramètre | 1–2 lettres permises si portée ≤ 40 lignes ; idiomes encouragés | `i`, `n`, `e`, `p`, `dx` |
 
@@ -78,6 +80,15 @@ Exceptions à la règle des deux lettres : `x` et `y` comme champs d'un vecteur.
 Chacune est une PRD, poussée sur la branche du chantier, et respecte l'invariant du §5.
 
 0. **Vocabulaire de base — point d'arrêt humain.** Le dictionnaire des ~50 concepts récurrents du domaine (`jo`, `ga`, `jc`, `g_`, `pj`, `hp`, `lq`…), les champs de l'en-tête commun (`pico8_struct_header_t`) et les membres de la vtable des classes (`kj`, `ev`, `hd`, `hk`, `hb`…), présenté **rempli** à partir du glossaire et de la lecture du code. L'humain corrige ; aucun code n'est touché. Y figure aussi l'arborescence résolue : chaque fichier actuel, son répertoire et son nom cible, que l'étape 1 applique sans rien inventer. Le vocabulaire et l'arborescence validés sont l'entrée des étapes 1 à 3. Dans la même étape, avant que le code ne bouge, les **consignes aux agents** changent : le `CLAUDE.md` et les skills qui l'encodent (au moins `fix-bug`) perdent le portage littéral jugé contre `lua.lua` et la branche « nom minifié → glossaire », pour qu'un agent des étapes 1 à 4 — ou un `fix-bug` lancé par `check-e2e` en cours de route — ne reçoive pas deux règles contraires. Le glossaire, lui, reste jusqu'à l'étape 5 : c'est une entrée des étapes 0 et 2.
+
+   **Découvert** (détail dans `docs/vocabulaire.md`, colonne « doute ») :
+   - 83 concepts plutôt que ~50. Le code corrige le glossaire : `ma` est une secousse (`shake`), pas un halo ; `hf` vaut `is_planet` ; `ra` est la position en pixels (`pos`) et `p` la position en cases (`map_pos`), d'où l'exemple du §4 corrigé ; `dc` ne route plus que le dessin (`draw_layers`) ; l'archétype s'appelle `pico8_X_def` (→ `X_archetype`), pas `pico8_X_start`.
+   - Noms qui résistent au §4, à trancher : `g_` → `probe` force le composant `pico8_probe_t` et le membre `probe` à devenir `targeting` ; `cls` → `class` est un mot réservé C++ (`entity_class` sinon) ; `fg` → `gpio_signal` ne repose que sur deux porteurs.
+   - Doubles sens : `kf` (vtable `attach_slipway`, `lw` `accept`), `hp`, `nk`, `cr`.
+   - Hors liste du §3 (corrigé en conséquence) : `mouse_reader` → `game/mouse` et `ptrs` → `engine/pointer_list` quittent `p8/` ; `struct` → `engine/entity_class.h`, `entity` → `engine/entity_registry`, `ents` → `engine/entity_list` ; `msgbox` → `message_box`, `bg` → `background`, `coverage` → `devtools/class_coverage` ; en plus dans `engine/` : `entity_geom`, `vec`, `geom`, `zone_sizes.h` ; dans `game/` : `ui_zone`, `particle_zone`, `main_economy.h`, `mouse_button`, `draw_functions`.
+   - `devtools/input_json.c` définit des fonctions déclarées dans `p8/input.h` : en-tête peut-être à scinder, noté, non traité (§7).
+   - `tools/probe.p8` → `pico8_reference_probe.p8` : `probe` nomme désormais la sonde du jeu.
+   - Résidu hors périmètre : le `README` énonce encore le portage littéral, et le `CLAUDE.md` y renvoie pour la cible ; il est mis à jour à l'étape 5.
 1. **Déplacements seuls.** `git mv` vers l'arborescence du §3 (noms de fichiers anglais du vocabulaire), includes en `"dir/fichier.h"`, `-Isrc`, `Makefile`, chemins dans `tools/`. Aucun symbole ne change. Commits de `git mv` purs, séparés des retouches de contenu, pour que `git log --follow` suive : le commit de `git mv` seul ne compile pas, l'invariant du §5 se vérifie sur la paire qu'il forme avec son commit de retouches, sans commit intermédiaire.
 2a. **Outil de renommage AST.** Extraction et application, prouvées de bout en bout sur un petit module, invariant compris, puis code rendu à son état d'origine : s'il ne tient pas face aux macros (`##`, `#define`), on le sait avant de produire le TSV. Sa note « Découvert » (macros gérées ou non, forme réelle des positions) est l'entrée de 2b.
 2b. **Dictionnaire complet — point d'arrêt humain.** `docs/renommage.tsv` : fichiers, types, fonctions, champs, constantes, statiques, globales, noms de tests et de fixtures, dérivés du vocabulaire et des règles du §4. Extraction exhaustive par l'AST clang (`-Xclang -ast-dump=json`), pas à la main : chaque déclaration de 1–2 caractères ou issue d'un digramme y figure. Les noms portés par une **chaîne** (clés d'étiquette comme `pico8_cg("jo")`, noms enregistrés par la couverture de classes, fichiers attendus de `tools/`) forment une catégorie à part du TSV : le compilateur ne les voit pas. Avant la relecture, le TSV satisfait un critère mécanique : **exhaustif** (chaque déclaration extraite a une entrée ou le statut explicite « conservé », ce qui y fait entrer les noms français, que ni l'une ni l'autre garde ne repère) et **sans collision** (aucun nom neuf en double, aucun masquage dans une même portée). La garde anti-cart est branchée en compteur. L'étape inscrit dans ce plan, comme entrées numérotées à part entière (3a, 3b…, 4a, 4b…, chacune avec son texte et ses modules), les sous-étapes des étapes 3 et 4 : `game/`, environ 70 % du code, y est découpé en familles de taille comparable. Sa note « Découvert » n'en garde que la justification par les volumes. L'humain relit un échantillon ; un nom corrigé dans l'échantillon fait revoir ceux qui en dérivent.
