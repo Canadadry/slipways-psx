@@ -11,6 +11,7 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_dispatch_context.h"
+#include "../src/pico8_gen.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_mem.h"
@@ -89,20 +90,28 @@ static int case_dead_after_cart_load(void) {
     return 0;
 }
 
+/* Octets que le bw de chaque eu prend dans sa generation : jo.oc, sa
+ * source et jo.ir. */
+static size_t etats_de_bw(void) {
+    return (2 * PICO8_ZONE_CELLS(sizeof(pico8_jf_state_t)) + PICO8_ZONE_CELLS(sizeof(pico8_gn_state_t))) *
+           sizeof(pico8_zone_cell_t);
+}
+
 static int case_prise_and_max(void) {
+    const size_t g = etats_de_bw();
     load_cart_and_start();
     assert(pico8_zone_partie_prise() == 0);
     (void)counting_block();
     assert(pico8_zone_partie_prise() == 64);
     pico8_eu(NULL);
     (void)counting_block();
-    assert(pico8_zone_partie_prise() == 128 && "les deux generations comptent jusqu'au rendu");
+    assert(pico8_zone_partie_prise() == 128 + g && "les deux generations comptent jusqu'au rendu");
     pico8__update60();
-    assert(pico8_zone_partie_prise() == 64);
-    assert(pico8_zone_partie_max() == 128);
+    assert(pico8_zone_partie_prise() == 64 + g);
+    assert(pico8_zone_partie_max() == 128 + g);
     pico8_cart_shutdown();
     assert(pico8_zone_partie_prise() == 0);
-    assert(pico8_zone_partie_max() == 128 && "le maximum ne se remet qu'avec le processus");
+    assert(pico8_zone_partie_max() == 128 + g && "le maximum ne se remet qu'avec le processus");
     return 0;
 }
 

@@ -130,29 +130,15 @@ void pico8_jo_init(void) {
 
 void pico8_jo_shutdown(void) {
     g_jo_up = 0;
-    if (g_jo_oc != NULL) {
-        pico8_gn_free(g_jo_oc);
-        g_jo_oc = NULL;
-    }
-    if (g_jo_ir != NULL) {
-        pico8_jf_free(g_jo_ir);
-        g_jo_ir = NULL;
-    }
+    g_jo_oc = NULL;
+    g_jo_ir = NULL;
 }
 
 void pico8_jo_set_oc(pico8_gn_state_t *oc) {
-    if (g_jo_oc == oc) {
-        return;
-    }
-    pico8_gn_free(g_jo_oc);
     g_jo_oc = oc;
 }
 
 void pico8_jo_set_ir(pico8_jf_state_t *ir) {
-    if (g_jo_ir == ir) {
-        return;
-    }
-    pico8_jf_free(g_jo_ir);
     g_jo_ir = ir;
 }
 

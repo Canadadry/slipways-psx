@@ -67,8 +67,9 @@ typedef struct {
 /* Calls `pico8_pi_init()` first. */
 void pico8_jo_init(void);
 
-/* Frees the `oc`/`ir` generators, never any `jo` instance. Idempotent, and
- * safe before the first `pico8_jo_init()`. */
+/* Sets the `oc`/`ir` generators back to nil without reading them: their
+ * zone may already be reset. Frees no `jo` instance. Idempotent, and safe
+ * before the first `pico8_jo_init()`. */
 void pico8_jo_shutdown(void);
 
 /* 1 from `pico8_jo_init()` to `pico8_jo_shutdown()`, 0 otherwise. */
@@ -143,9 +144,9 @@ void pico8_jo_hk(const pico8_jo_t *self);
  * alone, or nil; `ui:bh` holds only the instance, and nothing frees it. */
 pico8_down_t pico8_jo_ldown(pico8_jo_t *self);
 
-/* Both take ownership and free the previous generator; NULL is the valid
- * way back to "none", and `pico8_jo_shutdown()` releases whichever is set.
- * Both start NULL -- `bw()` is what sets them. */
+/* The state passed must live until the next call; the previous one is not
+ * freed. NULL is the valid way back to "none". Both start NULL -- only
+ * `bw()` sets them. */
 void pico8_jo_set_oc(pico8_gn_state_t *oc);
 void pico8_jo_set_ir(pico8_jf_state_t *ir);
 

@@ -1,12 +1,13 @@
 #include "pico8_gen.h"
 
 #include <assert.h>
-#include <stdlib.h>
+#include <stddef.h>
 
 #include "pico8_game_data.h"
+#include "pico8_zone_choisie.h"
 
-pico8_jf_state_t *pico8_jf(pico8_fixed_t n_, pico8_fixed_t b) {
-    pico8_jf_state_t *state = malloc(sizeof *state);
+pico8_jf_state_t *pico8_jf(const pico8_zone_choisie_t *zone, pico8_fixed_t n_, pico8_fixed_t b) {
+    pico8_jf_state_t *state = (pico8_jf_state_t *)pico8_zone_alloc(zone, sizeof *state);
     state->n_ = n_;
     state->b = b;
     return state;
@@ -20,10 +21,6 @@ pico8_fixed_t pico8_jf_next(pico8_jf_state_t *state) {
 
     state->b = pico8_fixed_add(state->b, pico8_fixed_mul(pico8_fixed_sub(half, v), state->n_));
     return v;
-}
-
-void pico8_jf_free(pico8_jf_state_t *state) {
-    free(state);
 }
 
 /* `nm` is written by bare index assignment, so `all(nm)` is PICO-8
@@ -45,9 +42,9 @@ static int pico8_gn_nm_contains(const pico8_gn_state_t *state, const pico8_df_en
 
 /* `for n=1,e.r*og`: Lua runs the body floor(X) times for X>=1 and never
  * for X<1, which is what pico8_fixed_flr reproduces here. */
-pico8_gn_state_t *pico8_gn(const pico8_df_entry_t *hr, int hr_count, pico8_fixed_t og, pico8_gn_random_fn r,
-                           void *r_ctx) {
-    pico8_gn_state_t *state = malloc(sizeof *state);
+pico8_gn_state_t *pico8_gn(const pico8_zone_choisie_t *zone, const pico8_df_entry_t *hr, int hr_count,
+                           pico8_fixed_t og, pico8_gn_random_fn r, void *r_ctx) {
+    pico8_gn_state_t *state = (pico8_gn_state_t *)pico8_zone_alloc(zone, sizeof *state);
     int i;
 
     state->oc_count = 0;
@@ -115,11 +112,4 @@ const pico8_df_entry_t *pico8_gn_next(pico8_gn_state_t *state) {
         state->nm_set[slot - 1] = 1;
     }
     return e;
-}
-
-void pico8_gn_free(pico8_gn_state_t *state) {
-    if (state == NULL) {
-        return;
-    }
-    free(state);
 }

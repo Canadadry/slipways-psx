@@ -7,6 +7,7 @@
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_game_data.h"
 #include "../src/pico8_gen.h"
+#include "../src/pico8_zone_frame.h"
 
 static void check_int_seq(const int *seq, int count) {
     int out = -12345;
@@ -129,7 +130,7 @@ static void test_gn_pools_df_entries_by_their_r(void) {
     pico8_gn_state_t *state;
     int i;
 
-    state = pico8_gn(pico8_df_table, PICO8_DF_COUNT, pico8_fixed_from_int(2), never_drawn, NULL);
+    state = pico8_gn(pico8_zone_frame(), pico8_df_table, PICO8_DF_COUNT, pico8_fixed_from_int(2), never_drawn, NULL);
     assert(state->oc_count == 66);
     for (i = 0; i < PICO8_DF_COUNT; i++) {
         int want = pico8_fixed_flr_int(pico8_fixed_mul(pico8_df_table[i].r, pico8_fixed_from_int(2)));
@@ -141,7 +142,6 @@ static void test_gn_pools_df_entries_by_their_r(void) {
         }
         assert(got == want);
     }
-    pico8_gn_free(state);
 }
 
 /* ob() gave each string token its own allocation: no string field of the jo

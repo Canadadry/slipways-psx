@@ -20,10 +20,13 @@
 #include "../src/pico8_cheat.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
+#include "../src/pico8_game_data.h"
+#include "../src/pico8_gen.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_particle.h"
+#include "../src/pico8_planet.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_zone_interface.h"
 #include "../src/pico8_zone_particules.h"
@@ -338,6 +341,50 @@ static void pause_restart_garde_la_partie_a_travers_restart(void) {
     verifier_sentinelle(s);
 }
 
+/* Octets que le bw de chaque eu prend dans sa generation : jo.oc, sa
+ * source et jo.ir. */
+static size_t etats_de_bw(void) {
+    return (2 * PICO8_ZONE_CELLS(sizeof(pico8_jf_state_t)) + PICO8_ZONE_CELLS(sizeof(pico8_gn_state_t))) *
+           sizeof(pico8_zone_cell_t);
+}
+
+/* f12 : le bw de la nouvelle partie prend ses etats a cote de ceux de la
+ * partie quittee, rendus a f13. */
+static void pause_restart_compte_les_etats_de_bw(void) {
+    const size_t g = etats_de_bw();
+    demarrer("pause_restart");
+    jouer_jusqu_a(11);
+    assert(pico8_zone_partie_prise() == g && "une partie : une generation d'etats de bw");
+    jouer_jusqu_a(12);
+    assert(pico8_zone_partie_prise() == 2 * g && "les etats des deux parties vivent jusqu'au rendu");
+    jouer_jusqu_a(13);
+    assert(pico8_zone_partie_prise() == g && "le rendu de f13 laisse les etats de la nouvelle partie");
+    assert(pico8_zone_partie_max() == 2 * g);
+    printf("  pause_restart f11/f12/f13 : partie=%lu/%lu/%lu, max=%lu\n", (unsigned long)g, (unsigned long)(2 * g),
+           (unsigned long)g, (unsigned long)pico8_zone_partie_max());
+}
+
+/* Apres le rendu de f13, jo.ir et jo.oc doivent viser la nouvelle
+ * generation : sinon ASan plante a la premiere lecture. */
+static void pause_restart_devoile_sur_les_etats_de_la_nouvelle_partie(void) {
+    demarrer("pause_restart");
+    jouer_jusqu_a(13);
+    const pico8_ents_t *jo = pico8_cg("jo");
+    const pico8_df_entry_t *ll = pico8_df_lookup("ll");
+    int devoilees = 0;
+    int par_oc = 0;
+    for (int i = 0; jo != NULL && i < jo->count && devoilees < 5; i++) {
+        pico8_jo_t *p = (pico8_jo_t *)jo->items[i];
+        if (p->header.me == NULL || strcmp(p->header.me, "unknown") != 0) continue;
+        pico8_jo_hh(p);
+        devoilees++;
+        par_oc += p->nk != NULL && p->nk != ll;
+    }
+    assert(devoilees > 0 && "la nouvelle partie a des planetes unknown");
+    assert(par_oc > 0 && "aucun devoilement n'a lu jo.oc");
+    printf("  pause_restart f13 : %d planetes devoilees, %d par jo.oc\n", devoilees, par_oc);
+}
+
 /* f42-90 : la boite de l'annee retenue par son lh, sans clic. */
 static void message_box_hold_ne_bouge_pas_sans_action(void) {
     const int frames[] = {45, 90};
@@ -528,6 +575,8 @@ int main(void) {
     dans_un_enfant(pause_restart_garde_la_partie_quittee_pendant_le_clic);
     dans_un_enfant_qui_meurt_par_asan(pause_restart_rend_la_partie_quittee_a_la_frame_suivante);
     dans_un_enfant(pause_restart_garde_la_partie_a_travers_restart);
+    dans_un_enfant(pause_restart_compte_les_etats_de_bw);
+    dans_un_enfant(pause_restart_devoile_sur_les_etats_de_la_nouvelle_partie);
     dans_un_enfant(message_box_hold_ne_bouge_pas_sans_action);
     dans_un_enfant(empty_planet_fade_ne_monte_pas);
     dans_un_enfant(tech_geoharvesting_burst_rend_l_eclat);

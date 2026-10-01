@@ -14,6 +14,7 @@
 #include "pico8_scroll.h"
 #include "pico8_vec.h"
 #include "pico8_wormhole.h"
+#include "pico8_zone_frame.h"
 
 static int g_bg_up = 0;
 
@@ -89,7 +90,7 @@ pico8_bg_t *pico8_bg_new(void) {
 }
 
 /* `vs[x] or 1` is only ever taken on row y=0; every later row reads back the
- * previous row's own `vh`. `oh` is local to the call and freed here. */
+ * previous row's own `vh`. `oh` is local to the call. */
 void pico8_bg_pq(pico8_mem_t *mem, pico8_bg_t *self) {
     pico8_fixed_t vs[32];
     int vs_set[32];
@@ -106,7 +107,7 @@ void pico8_bg_pq(pico8_mem_t *mem, pico8_bg_t *self) {
         vs_set[x] = 0;
     }
 
-    oh = pico8_jf(PICO8_FIXED_LIT(0x00001999, 0.1), pico8_fixed_from_int(0));
+    oh = pico8_jf(pico8_zone_frame(), PICO8_FIXED_LIT(0x00001999, 0.1), pico8_fixed_from_int(0));
 
     for (y = 0; y <= 31; y++) {
         for (x = 0; x <= 31; x++) {
@@ -134,8 +135,6 @@ void pico8_bg_pq(pico8_mem_t *mem, pico8_bg_t *self) {
             pico8_mset(mem, x, y, tile);
         }
     }
-
-    pico8_jf_free(oh);
 }
 
 void pico8_bg_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_bg_t *self) {
