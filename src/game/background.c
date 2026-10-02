@@ -173,10 +173,10 @@ down_t pico8_bg_ldown(pico8_bg_t *self) {
     g_tag = entities_by_tag("probe");
     count = (g_tag != NULL) ? g_tag->count : 0;
     if (count > 0) {
-        assert(pico8_mz_ready() && "pico8_wormhole_init() must run before bg:ldown builds an mz");
-        made = (entity_t *)pico8_mz_new();
+        assert(wormhole_ready() && "pico8_wormhole_init() must run before bg:ldown builds an mz");
+        made = (entity_t *)wormhole_new();
     } else {
-        made = (entity_t *)pico8_g__new(NULL);
+        made = (entity_t *)probe_new(NULL);
     }
     out.stop = made != NULL;
     out.held = made;

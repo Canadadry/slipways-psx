@@ -12,7 +12,7 @@
 static int g_nb_e_[TECHNOLOGIES_COUNT];
 
 int pico8_oj(const char *px) {
-    const pico8_hy_t *fm = pico8_fm_hy();
+    const pico8_hy_t *fm = main_economy_typed();
     const pointer_list_t *invented_list = NULL;
 
     if (px == NULL) {
@@ -34,7 +34,7 @@ p8_fixed_t pico8_ov(const char *px, p8_fixed_t lk, p8_fixed_t mc) {
 
 /* `flr(od*max(fm.fu[nk], 0.55))`, an absent `fu[nk]` reading as 0. */
 static p8_fixed_t pico8_gi_cost(p8_fixed_t od, int has_nk, p8_fixed_t nk) {
-    const pico8_hy_t *fm = pico8_fm_hy();
+    const pico8_hy_t *fm = main_economy_typed();
     p8_fixed_t fu = p8_fixed_from_int(0);
     p8_fixed_t threshold = P8_FIXED_LIT(0x00008ccc, 0.55);
     p8_fixed_t factor;
@@ -58,8 +58,8 @@ p8_fixed_t pico8_gi_nb(const technologies_entry_t *t) {
  * hoisting it under a keep/drop branch would change what callers read back
  * off nb. */
 static int pico8_cb_predicate(const technologies_entry_t *t, int bi) {
-    const pico8_hy_t *fm = pico8_fm_hy();
-    const pico8_fm_placeholder_t *provisional = pico8_fm_placeholder();
+    const pico8_hy_t *fm = main_economy_typed();
+    const pico8_fm_placeholder_t *provisional = main_economy_placeholder();
     p8_fixed_t jk = p8_fixed_from_int(0);
     p8_fixed_t ew = p8_fixed_from_int(0);
     int affordable;

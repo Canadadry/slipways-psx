@@ -325,7 +325,7 @@ static void planet_projects_panel_on_click_method(pico8_js_t *self) {
     }
 
     assert(pt != NULL && "jo:fe's my callback lost its captured planet");
-    if (pico8_hy_lu(pico8_fm_hy(), od)) {
+    if (pico8_hy_lu(main_economy_typed(), od)) {
         planet_apply_project(pt, b);
     }
 }
@@ -467,7 +467,7 @@ void planet_draw(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t pos
             int radius;
 
             if (self->targeted_by->targeting != NULL) {
-                dw = self->targeted_by->targeting->def->attach_distance;
+                dw = self->targeted_by->targeting->archetype->attach_distance;
             }
             radius_f = p8_fixed_mul(p8_fixed_sqrt(dw), p8_fixed_from_int(128));
             radius = p8_fixed_flr_int(radius_f);
@@ -558,7 +558,7 @@ void planet_apply_project(planet_t *self, pico8_hp_t *research_project_instance)
         fp = pico8_ov("autoassemblers", p8_fixed_from_int(3), p8_fixed_from_int(2));
     }
 
-    pico8_hy_nx(pico8_fm_hy(), fp);
+    pico8_hy_nx(main_economy_typed(), fp);
 
     if (research_project_instance != NULL && research_project_instance->has_rn) {
         p8_play_sfx(research_project_instance->rn);

@@ -433,10 +433,10 @@ static void test_largest_scores_box_fits_its_place(void) {
 
     challenging.px = "challenging";
     pico8_economy_set_dk(&challenging);
-    pico8_fm_hy()->hl = NULL;
-    pico8_fm_hy()->has_hl = 0;
-    pico8_fm_hy()->happiness = P8_FIXED_LIT(0x80000007, -32767.9999);
-    pico8_fm_hy()->has_happiness = 1;
+    main_economy_typed()->hl = NULL;
+    main_economy_typed()->has_hl = 0;
+    main_economy_typed()->happiness = P8_FIXED_LIT(0x80000007, -32767.9999);
+    main_economy_typed()->has_happiness = 1;
     ju->gz = p8_fixed_from_int(0);
     ju->has_gz = 1;
     set_c_(ju, 1);

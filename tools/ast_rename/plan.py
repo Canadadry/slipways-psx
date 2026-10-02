@@ -119,8 +119,9 @@ def _resolve(entries, model, plan):
 def _check_names(renamed, model, plan):
     """The new name must not meet another declaration where both are visible:
     a macro of a header meets every name, a macro of a .c file the names of a
-    header, of external linkage or of its file; file-scope names meet each other unless both are
-    static in different files, and meet the locals they would shadow; fields
+    header, of external linkage or of its file; file-scope names meet each other when one is
+    shared or both are in the same file (an enum constant or a type of a .c file
+    is unseen elsewhere), and meet the locals they would shadow; fields
     meet the fields of their struct; locals the locals of their function whose
     scope overlaps theirs, and the file-scope names of a header, of external linkage or of their file."""
     final = {}
@@ -155,7 +156,7 @@ def _visible_together(a, b):
         return _shared(outer) or outer.file == local.file
     if a.linkage == "static" and b.linkage == "static":
         return a.file == b.file
-    return True
+    return _shared(a) or _shared(b) or a.file == b.file
 
 
 def _scopes_overlap(a, b):

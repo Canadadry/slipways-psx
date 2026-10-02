@@ -10,7 +10,7 @@
 #include "engine/vec.h"
 #include "game/particle_zone.h"
 
-typedef char transit_dot_fits_its_slot_t[sizeof(transit_dot_t) <= PICO8_TS_PLACE ? 1 : -1];
+typedef char transit_dot_fits_its_slot_t[sizeof(transit_dot_t) <= TRANSIT_DOTS_SLOT ? 1 : -1];
 
 static int to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
@@ -35,7 +35,7 @@ void slipway_spawn_transit_dot(slipway_t *self, const entity_t *f, const entity_
                 vec_t t_pos = slipway_end_pos(t);
                 vec_t d = vec_sub(t_pos, f_pos);
                 vec_t v = vec_normalize(d);
-                transit_dot_t *particle = (transit_dot_t *)allocator_alloc(pico8_zone_particules(PICO8_PARTICULES_TS),
+                transit_dot_t *particle = (transit_dot_t *)allocator_alloc(particle_zone(PARTICLE_SLOT_TRANSIT_DOT),
                                                                       sizeof *particle);
 
                 particle->pos = vec_add(f_pos, vec_perpendicular(v));
@@ -43,7 +43,7 @@ void slipway_spawn_transit_dot(slipway_t *self, const entity_t *f, const entity_
                 particle->life = vec_length(d);
 
                 pointer_list_add(self->transit_dots, particle);
-                pico8_zone_particules_noter_elements(PICO8_PARTICULES_TS, self->transit_dots->count);
+                particle_zone_record_elements(PARTICLE_SLOT_TRANSIT_DOT, self->transit_dots->count);
             }
         }
     }
@@ -120,7 +120,7 @@ void slipway_draw(const p8_graphics_t *gfx, p8_memory_t *mem, slipway_t *self) {
             self->fade_in_step = p8_fixed_add(fade_in_step, p8_fixed_from_int(1));
         }
 
-        target_or_targeted_by = self->targeting->et != NULL || self->targeted_by != NULL;
+        target_or_targeted_by = self->targeting->target != NULL || self->targeted_by != NULL;
         infraspace_truthy = self->has_infraspace;
 
         line_color = target_or_targeted_by ? p8_fixed_from_int(2) : (infraspace_truthy ? p8_fixed_from_int(0) : fade_color);
@@ -155,7 +155,7 @@ void slipway_draw(const p8_graphics_t *gfx, p8_memory_t *mem, slipway_t *self) {
                      * and still drawn once more at its final position. */
                     if (new_l <= p8_fixed_from_int(0)) {
                         pointer_list_del(ts, t);
-                        allocator_release(pico8_zone_particules(PICO8_PARTICULES_TS), (unsigned char *)t);
+                        allocator_release(particle_zone(PARTICLE_SLOT_TRANSIT_DOT), (unsigned char *)t);
                     }
 
                     {

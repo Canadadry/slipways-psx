@@ -768,10 +768,10 @@ static void test_ui_held_stops_off_row(void) {
     left[4] = pico8_fv_new();
     left[5] = pico8_js_new(NULL);
     left[6] = pico8_ie_new(NULL);
-    left[7] = pico8_mz_jj_wrapper();
+    left[7] = wormhole_too_far_target_wrapper();
     right[0] = slipway_new(NULL);
-    right[1] = pico8_g__new(NULL);
-    right[2] = pico8_mz_new();
+    right[1] = probe_new(NULL);
+    right[2] = wormhole_new();
     right[3] = pico8_qh_new(NULL);
     right[4] = left[2];
     right[5] = left[4];
@@ -856,9 +856,9 @@ static entity_t *help_alone(entity_t *first) {
     static entity_t *previous;
     entity_t *fresh;
 
-    pico8_qy_rendre(first->emitter);
+    emitter_release_particles(first->emitter);
     if (previous != NULL) {
-        pico8_qy_rendre(previous->emitter);
+        emitter_release_particles(previous->emitter);
     }
     fresh = &pico8_fv_new()->header;
     previous = fresh;
@@ -888,7 +888,7 @@ static void test_components_carried(void) {
     e[11] = slipgate_new(NULL);
     e[12] = infraspace_gate_new(NULL);
     e[13] = synthesizer_new(NULL);
-    e[14] = pico8_g__new(NULL);
+    e[14] = probe_new(NULL);
     e[15] = pico8_fv_new();
     e[16] = pico8_ie_new(NULL);
     e[17] = pico8_pj_new();
@@ -897,7 +897,7 @@ static void test_components_carried(void) {
     e[20] = pico8_ui_new();
     e[21] = pico8_js_new(NULL);
     e[22] = pico8_fq_new(NULL);
-    e[23] = pico8_mz_new();
+    e[23] = wormhole_new();
     for (i = 0; i < 24; i++) {
         const entity_t *header = e[i];
 
@@ -909,8 +909,8 @@ static void test_components_carried(void) {
     assert_own_emitter(e[9], &pico8_pm_new(NULL)->header, sizeof(planet_t));
     assert_own_emitter(e[10], &pico8_ga_new(NULL)->header, sizeof(planet_t));
     assert_own_emitter(e[13], &synthesizer_new(NULL)->header, sizeof(planet_t));
-    assert_own_emitter(e[14], &pico8_g__new(NULL)->header, sizeof(pico8_g__t));
-    assert_own_emitter(e[15], help_alone(e[15]), sizeof(pico8_g__t));
+    assert_own_emitter(e[14], &probe_new(NULL)->header, sizeof(probe_t));
+    assert_own_emitter(e[15], help_alone(e[15]), sizeof(probe_t));
     assert_own_probe(e[5], &pico8_qh_new(NULL)->header, sizeof(planet_t));
     assert_own_probe(e[6], &pico8_nl_new(NULL)->header, sizeof(planet_t));
     assert_own_probe(e[7], &pico8_os_new(NULL)->header, sizeof(planet_t));
@@ -919,10 +919,10 @@ static void test_components_carried(void) {
     assert_own_probe(e[11], &slipgate_new(NULL)->header, sizeof(planet_t));
     assert_own_probe(e[12], &infraspace_gate_new(NULL)->header, sizeof(planet_t));
     assert_own_probe(e[13], &synthesizer_new(NULL)->header, sizeof(planet_t));
-    assert_own_probe(e[14], &pico8_g__new(NULL)->header, sizeof(pico8_g__t));
-    assert_own_probe(e[15], help_alone(e[15]), sizeof(pico8_g__t));
+    assert_own_probe(e[14], &probe_new(NULL)->header, sizeof(probe_t));
+    assert_own_probe(e[15], help_alone(e[15]), sizeof(probe_t));
     assert_own_probe(e[19], &slipway_new(NULL)->header, sizeof(slipway_t));
-    assert_own_probe(e[23], &pico8_mz_new()->header, sizeof(pico8_mz_t));
+    assert_own_probe(e[23], &wormhole_new()->header, sizeof(wormhole_t));
 }
 
 /* The kind words the frozen hashes fold before a value: any other value
@@ -970,7 +970,7 @@ static void test_ke_me_by_name(void) {
     e[11] = slipgate_new(NULL);
     e[12] = infraspace_gate_new(NULL);
     e[13] = synthesizer_new(NULL);
-    e[14] = pico8_g__new(NULL);
+    e[14] = probe_new(NULL);
     e[15] = pico8_fv_new();
     e[16] = pico8_ie_new(NULL);
     e[17] = pico8_pj_new();
@@ -979,7 +979,7 @@ static void test_ke_me_by_name(void) {
     e[20] = pico8_ui_new();
     e[21] = pico8_js_new(NULL);
     e[22] = pico8_fq_new(NULL);
-    e[23] = pico8_mz_new();
+    e[23] = wormhole_new();
     for (i = 0; i < 24; i++) {
         me = ke_of(e[i])->state;
         assert(me != NULL);
@@ -1038,10 +1038,10 @@ static void assert_t(void *e, int want) {
 
 static void test_ke_t_by_name(void) {
     void *e[24];
-    pico8_g__keys_t keyed_keys = {0};
-    pico8_g__keys_t zero_keys = {0};
-    pico8_g__t *keyed;
-    pico8_g__t *zero;
+    probe_keys_t keyed_keys = {0};
+    probe_keys_t zero_keys = {0};
+    probe_t *keyed;
+    probe_t *zero;
     uint32_t h = 2166136261u;
     size_t i;
 
@@ -1064,7 +1064,7 @@ static void test_ke_t_by_name(void) {
     e[11] = slipgate_new(NULL);
     e[12] = infraspace_gate_new(NULL);
     e[13] = synthesizer_new(NULL);
-    e[14] = pico8_g__new(NULL);
+    e[14] = probe_new(NULL);
     e[15] = pico8_fv_new();
     e[16] = pico8_ie_new(NULL);
     e[17] = pico8_pj_new();
@@ -1073,7 +1073,7 @@ static void test_ke_t_by_name(void) {
     e[20] = pico8_ui_new();
     e[21] = pico8_js_new(NULL);
     e[22] = pico8_fq_new(NULL);
-    e[23] = pico8_mz_new();
+    e[23] = wormhole_new();
     for (i = 0; i < 24; i++) {
         assert_t(e[i], 0);
         h = fold_t(h, e[i]);
@@ -1084,26 +1084,26 @@ static void test_ke_t_by_name(void) {
         h = fnv(h, 0u);
     }
 
-    keyed_keys.has_pn = 1;
-    keyed_keys.pn = p8_fixed_from_int(7);
-    keyed_keys.t = p8_fixed_from_int(3);
-    keyed_keys.has_du = 1;
-    keyed_keys.du = p8_fixed_from_int(10);
-    keyed_keys.has_py = 1;
-    keyed_keys.py = p8_fixed_from_int(1);
-    keyed = pico8_g__new(&keyed_keys);
+    keyed_keys.has_angle_slices = 1;
+    keyed_keys.angle_slices = p8_fixed_from_int(7);
+    keyed_keys.state_time = p8_fixed_from_int(3);
+    keyed_keys.has_base_radius = 1;
+    keyed_keys.base_radius = p8_fixed_from_int(10);
+    keyed_keys.has_speed_factor = 1;
+    keyed_keys.speed_factor = p8_fixed_from_int(1);
+    keyed = probe_new(&keyed_keys);
     assert_t(keyed, 3);
-    assert(keyed->emitter->pn == p8_fixed_from_int(7));
-    assert(keyed->emitter->du == p8_fixed_from_int(10));
-    assert(keyed->emitter->py == p8_fixed_from_int(1));
+    assert(keyed->emitter->angle_slices == p8_fixed_from_int(7));
+    assert(keyed->emitter->base_radius == p8_fixed_from_int(10));
+    assert(keyed->emitter->speed_factor == p8_fixed_from_int(1));
     h = fold_t(h, keyed);
 
-    zero_keys.t = 0;
-    zero = pico8_g__new(&zero_keys);
+    zero_keys.state_time = 0;
+    zero = probe_new(&zero_keys);
     assert_t(zero, 0);
-    assert(zero->emitter->pn == probe_archetype.emitter.angle_slices);
-    assert(zero->emitter->du == probe_archetype.emitter.base_radius);
-    assert(zero->emitter->py == probe_archetype.emitter.speed_factor);
+    assert(zero->emitter->angle_slices == probe_archetype.emitter.angle_slices);
+    assert(zero->emitter->base_radius == probe_archetype.emitter.base_radius);
+    assert(zero->emitter->speed_factor == probe_archetype.emitter.speed_factor);
     h = fold_t(h, zero);
 
     entity_set_state(&keyed->header, "vanishing");
@@ -1119,12 +1119,12 @@ static void test_ke_t_by_name(void) {
 }
 
 static void test_g__t_key_stops_off_row(void) {
-    pico8_g__keys_t keys = {0};
+    probe_keys_t keys = {0};
     void *made;
 
     (void)start_game();
-    keys.t = 0;
-    made = pico8_g__new(&keys);
+    keys.state_time = 0;
+    made = probe_new(&keys);
     assert_t(made, 0);
 }
 

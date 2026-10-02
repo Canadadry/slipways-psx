@@ -62,8 +62,8 @@ typedef struct {
     int has_infraspace;                /* 0: `mt` is nil, and is then never read */
     entity_t *targeted_by; /* borrowed, never freed */
     int is_dead;
-    pico8_probe_t *targeting;
-    pico8_probe_t probe_own;
+    targeting_t *targeting;
+    targeting_t probe_own;
     slipway_mouse_point_t point;
     vec_t point_pos;
     vec_t point_map_pos;

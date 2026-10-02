@@ -166,14 +166,14 @@ static void test_price_toast_lives_as_before(void) {
 static void test_mz_scan_skips_a_live_toast(void) {
     vec_t ra = vec_make(p8_fixed_from_int(40), p8_fixed_from_int(60));
     void *e;
-    pico8_mz_t *mz;
+    wormhole_t *mz;
 
     fresh_world();
     e = build(&ra, "+1$", 11);
-    mz = pico8_mz_new();
-    assert(mz->ox != NULL);
-    assert(!ents_listed(mz->ox, e));
-    assert(mz->ox->count == 0);
+    mz = wormhole_new();
+    assert(mz->anchors != NULL);
+    assert(!ents_listed(mz->anchors, e));
+    assert(mz->anchors->count == 0);
 }
 
 /* dg on a ke struct: the method named by `me` is called with `t`, `t` is

@@ -12,22 +12,22 @@
 #include "game/tech_gate.h"
 #include "engine/allocator.h"
 
-static int g_mz_up = 0;
+static int g_wormhole_up = 0;
 
-static const entity_class_t g_mz_jj_struct_class = {0};
+static const entity_class_t g_wormhole_too_far_target_class = {0};
 
 /* The only one: never allocated, never freed; no writer, so a write
  * reaching it stops the run. */
-static pico8_mz_jj_t g_mz_jj_wrapper = {
-    {.class = &g_mz_jj_struct_class},
+static wormhole_too_far_target_t g_wormhole_too_far_target_wrapper = {
+    {.class = &g_wormhole_too_far_target_class},
     wormhole_too_far_target_status_text,
 };
 
-static int pico8_mz_ancrage(const entity_t *p) {
+static int wormhole_anchor(const entity_t *p) {
     return p != NULL && p->fold_anchor != NULL && *p->fold_anchor != 0;
 }
 
-void pico8_mz_pq(pico8_mz_t *self) {
+void wormhole_construct(wormhole_t *self) {
     const allocator_t *zone = planet_zone_construction();
     entity_list_t *ox;
     entity_list_iter_t it;
@@ -42,50 +42,50 @@ void pico8_mz_pq(pico8_mz_t *self) {
 
     it = entity_list_all(live_entities());
     while (entity_list_iter_next(&it, &p)) {
-        n += pico8_mz_ancrage(p);
+        n += wormhole_anchor(p);
     }
     ox = (entity_list_t *)allocator_alloc(zone, sizeof *ox);
     entity_list_init_reserve(ox, zone, n);
     it = entity_list_all(live_entities());
     while (entity_list_iter_next(&it, &p)) {
-        if (pico8_mz_ancrage(p)) {
+        if (wormhole_anchor(p)) {
             entity_list_add(ox, p);
         }
     }
     assert(ox->count == n && ox->capacity == n);
-    self->ox = ox;
+    self->anchors = ox;
 }
 
-void pico8_mz_hq(pico8_mz_t *self, vec_t *mp, vec_t *rp) {
+void wormhole_drag(wormhole_t *self, vec_t *mp, vec_t *rp) {
     vec_t p_vec;
     entity_t *nearest = NULL;
     p8_fixed_t nq;
     p8_fixed_t threshold;
 
-    pico8_bv((entity_t *)self, mp, rp);
+    targeting_track((entity_t *)self, mp, rp);
     if (self == NULL) {
         return;
     }
 
-    p_vec = self->p != NULL ? *self->p : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    nq = entity_geom_nearest(p_vec, self->ox, &nearest);
-    self->ij = nearest;
+    p_vec = self->map_pos != NULL ? *self->map_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    nq = entity_geom_nearest(p_vec, self->anchors, &nearest);
+    self->anchor = nearest;
 
     threshold = pico8_ov("space folding", P8_FIXED_LIT(0x000030a3, 0.19), P8_FIXED_LIT(0x0000451e, 0.27));
 
     if (nq > threshold) {
-        self->probe->et = (entity_t *)pico8_mz_jj_wrapper();
+        self->targeting->target = (entity_t *)wormhole_too_far_target_wrapper();
     }
 }
 
-static void pico8_mz_hq_dispatch(entity_t *self, vec_t *qa, vec_t *ra) {
-    pico8_mz_hq((pico8_mz_t *)self, qa, ra);
+static void wormhole_drag_method(entity_t *self, vec_t *qa, vec_t *ra) {
+    wormhole_drag((wormhole_t *)self, qa, ra);
 }
 
-void pico8_mz_kz(pico8_mz_t *self, p8_fixed_t t) {
+void wormhole_update_placing(wormhole_t *self, p8_fixed_t t) {
     p8_fixed_t threshold;
     p8_fixed_t one;
-    p8_fixed_t td15;
+    p8_fixed_t reach;
     p8_fixed_t min_val;
     p8_fixed_t sin_term;
     p8_fixed_t result;
@@ -97,20 +97,20 @@ void pico8_mz_kz(pico8_mz_t *self, p8_fixed_t t) {
     threshold = pico8_ov("space folding", p8_fixed_from_int(29), p8_fixed_from_int(35));
 
     one = p8_fixed_from_int(1);
-    td15 = p8_fixed_div(t, p8_fixed_from_int(15));
-    min_val = (td15 < one) ? td15 : one;
+    reach = p8_fixed_div(t, p8_fixed_from_int(15));
+    min_val = (reach < one) ? reach : one;
     sin_term =
         p8_fixed_mul(p8_fixed_sin(p8_fixed_div(t, p8_fixed_from_int(40))), P8_FIXED_LIT(0x00001999, 0.1));
 
     result = p8_fixed_mul(threshold, p8_fixed_add(min_val, sin_term));
-    self->oi = result;
+    self->radius = result;
 }
 
-static void pico8_mz_kz_dispatch(entity_t *self, p8_fixed_t t) {
-    pico8_mz_kz((pico8_mz_t *)self, t);
+static void wormhole_update_placing_method(entity_t *self, p8_fixed_t t) {
+    wormhole_update_placing((wormhole_t *)self, t);
 }
 
-void pico8_mz_ey(pico8_mz_t *self) {
+void wormhole_drop(wormhole_t *self) {
     p8_fixed_t t;
     int result;
 
@@ -125,47 +125,47 @@ void pico8_mz_ey(pico8_mz_t *self) {
     if (t < p8_fixed_from_int(15)) {
         result = 1;
     } else {
-        result = !pico8_d_((entity_t *)self);
+        result = !targeting_confirm((entity_t *)self);
     }
 
-    self->p_ = result;
+    self->is_dead = result;
 }
 
-static void pico8_mz_ey_dispatch(entity_t *self, entity_t *kv) {
+static void wormhole_drop_method(entity_t *self, entity_t *kv) {
     (void)kv;
-    pico8_mz_ey((pico8_mz_t *)self);
+    wormhole_drop((wormhole_t *)self);
 }
 
-void pico8_mz_pr(pico8_mz_t *self, p8_fixed_t t) {
+void wormhole_update_unfolding(wormhole_t *self, p8_fixed_t t) {
     p8_fixed_t sr;
     vec_t self_p;
-    const entity_list_t *jo_list;
+    const entity_list_t *planet_list;
     int i;
 
     if (self == NULL) {
         return;
     }
 
-    sr = p8_fixed_add(p8_fixed_div(pico8_mz_ej(self, t), p8_fixed_from_int(128)),
+    sr = p8_fixed_add(p8_fixed_div(wormhole_reveal_radius(self, t), p8_fixed_from_int(128)),
                           P8_FIXED_LIT(0x000007ef, 0.031));
 
-    self_p = self->p != NULL ? *self->p : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    jo_list = entities_by_tag("planet");
-    if (jo_list != NULL) {
-        for (i = 0; i < jo_list->count; i++) {
-            entity_t *pt_val = jo_list->items[i];
+    self_p = self->map_pos != NULL ? *self->map_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    planet_list = entities_by_tag("planet");
+    if (planet_list != NULL) {
+        for (i = 0; i < planet_list->count; i++) {
+            entity_t *planet = planet_list->items[i];
             planet_t *pt;
 
-            if (pt_val == NULL) {
+            if (planet == NULL) {
                 continue;
             }
-            assert(planet_is_family(pt_val) && "mz:pr: cg.jo holds planets only");
-            pt = (planet_t *)pt_val;
+            assert(planet_is_family(planet) && "mz:pr: cg.jo holds planets only");
+            pt = (planet_t *)planet;
 
             if (pt->header.state != NULL && strcmp(pt->header.state, "unknown") == 0) {
-                vec_t pt_p =
+                vec_t planet_map_pos =
                     pt->map_pos != NULL ? *pt->map_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-                vec_t diff = vec_sub(pt_p, self_p);
+                vec_t diff = vec_sub(planet_map_pos, self_p);
                 if (vec_length(diff) < sr) {
                     planet_roll_type(pt);
                 }
@@ -173,106 +173,106 @@ void pico8_mz_pr(pico8_mz_t *self, p8_fixed_t t) {
         }
     }
 
-    self->p_ = t > p8_fixed_from_int(25);
+    self->is_dead = t > p8_fixed_from_int(25);
 }
 
-static void pico8_mz_pr_dispatch(entity_t *self, p8_fixed_t t) {
-    pico8_mz_pr((pico8_mz_t *)self, t);
+static void wormhole_update_unfolding_method(entity_t *self, p8_fixed_t t) {
+    wormhole_update_unfolding((wormhole_t *)self, t);
 }
 
-p8_fixed_t pico8_mz_ej(pico8_mz_t *self, p8_fixed_t t) {
+p8_fixed_t wormhole_reveal_radius(wormhole_t *self, p8_fixed_t t) {
     p8_fixed_t sq = p8_fixed_sqrt(p8_fixed_div(t, p8_fixed_from_int(15)));
     p8_fixed_t one = p8_fixed_from_int(1);
     p8_fixed_t min_val = (sq < one) ? sq : one;
     p8_fixed_t oi = p8_fixed_from_int(0);
 
     if (self != NULL) {
-        oi = self->oi;
+        oi = self->radius;
     }
     return p8_fixed_mul(min_val, oi);
 }
 
-static void pico8_mz_rendre_dispatch(entity_t *self) {
-    planet_grab_arena_arena_released(((pico8_mz_t *)self)->ox->zone);
+static void wormhole_release_method(entity_t *self) {
+    planet_grab_arena_arena_released(((wormhole_t *)self)->anchors->zone);
 }
 
 /* Lua's `mz.hq=bv` is rebound three statements later by `function mz:hq`,
  * so only that second definition is ever reachable. Putting
  * pico8_bv_dispatch in the HQ entry instead would look faithful and would
  * drop the nearest-anchor search. */
-static const entity_class_t g_mz_struct_class = {
-    .draw = pico8_mz_kj_dispatch,
-    .draw_overlay = pico8_dl_dispatch,
-    .drag = pico8_mz_hq_dispatch,
-    .drop = pico8_mz_ey_dispatch,
-    .release = pico8_mz_rendre_dispatch,
+static const entity_class_t g_wormhole_class = {
+    .draw = wormhole_draw_method,
+    .draw_overlay = targeting_tooltip_method,
+    .drag = wormhole_drag_method,
+    .drop = wormhole_drop_method,
+    .release = wormhole_release_method,
     .states =
         {
-            [ENTITY_STATE_PLACING] = pico8_mz_kz_dispatch,
-            [ENTITY_STATE_UNFOLDING] = pico8_mz_pr_dispatch,
+            [ENTITY_STATE_PLACING] = wormhole_update_placing_method,
+            [ENTITY_STATE_UNFOLDING] = wormhole_update_unfolding_method,
         },
     .tags = TAG(TAG_WORMHOLE),
 };
 
-static pico8_mz_t *pico8_mz_struct_new(void) {
-    pico8_mz_t *self;
+static wormhole_t *wormhole_create(void) {
+    wormhole_t *self;
 
     planet_grab_arena_open();
-    self = (pico8_mz_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
+    self = (wormhole_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
-    entity_init_instance(&self->header, &g_mz_struct_class, wormhole_archetype.state, wormhole_archetype.state_time);
-    self->def = &wormhole_archetype;
-    self->header.layer = &self->def->layer;
-    self->header.pos = &self->ra;
-    self->header.map_pos = &self->p;
+    entity_init_instance(&self->header, &g_wormhole_class, wormhole_archetype.state, wormhole_archetype.state_time);
+    self->archetype = &wormhole_archetype;
+    self->header.layer = &self->archetype->layer;
+    self->header.pos = &self->pos;
+    self->header.map_pos = &self->map_pos;
     self->header.targeting = &self->probe_own;
-    self->probe = &self->probe_own;
-    self->probe->def = &self->def->targeting;
-    self->oi = self->def->radius;
-    self->probe->od = self->def->targeting.cost;
-    self->probe->has_od = self->def->targeting.has_cost;
-    self->jj = &g_mz_jj_wrapper;
-    self->ox = NULL;
-    self->ra = NULL;
-    self->p = NULL;
-    self->probe->et = NULL;
-    self->ij = NULL;
-    self->header.is_dead = &self->p_;
-    self->p_ = 0;
+    self->targeting = &self->probe_own;
+    self->targeting->archetype = &self->archetype->targeting;
+    self->radius = self->archetype->radius;
+    self->targeting->cost = self->archetype->targeting.cost;
+    self->targeting->has_cost = self->archetype->targeting.has_cost;
+    self->too_far_target = &g_wormhole_too_far_target_wrapper;
+    self->anchors = NULL;
+    self->pos = NULL;
+    self->map_pos = NULL;
+    self->targeting->target = NULL;
+    self->anchor = NULL;
+    self->header.is_dead = &self->is_dead;
+    self->is_dead = 0;
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("wormhole");
 #endif
-    pico8_mz_pq(self);
+    wormhole_construct(self);
     planet_grab_arena_close();
     entity_construct(&self->header);
     return self;
 }
 
-void pico8_wormhole_init(void) {
-    pico8_wormhole_shutdown();
-    g_mz_up = 1;
+void wormhole_init(void) {
+    wormhole_shutdown();
+    g_wormhole_up = 1;
 }
 
-void pico8_wormhole_shutdown(void) {
-    g_mz_up = 0;
+void wormhole_shutdown(void) {
+    g_wormhole_up = 0;
 }
 
-int pico8_mz_ready(void) {
-    return g_mz_up;
+int wormhole_ready(void) {
+    return g_wormhole_up;
 }
 
-const entity_class_t *pico8_mz_struct_class(void) {
-    return &g_mz_struct_class;
+const entity_class_t *wormhole_class(void) {
+    return &g_wormhole_class;
 }
 
-pico8_mz_t *pico8_mz_new(void) {
-    return pico8_mz_struct_new();
+wormhole_t *wormhole_new(void) {
+    return wormhole_create();
 }
 
-pico8_mz_jj_t *pico8_mz_jj_wrapper(void) {
-    return &g_mz_jj_wrapper;
+wormhole_too_far_target_t *wormhole_too_far_target_wrapper(void) {
+    return &g_wormhole_too_far_target_wrapper;
 }
 
-const entity_class_t *pico8_mz_jj_struct_class(void) {
-    return &g_mz_jj_struct_class;
+const entity_class_t *wormhole_too_far_target_class(void) {
+    return &g_wormhole_too_far_target_class;
 }

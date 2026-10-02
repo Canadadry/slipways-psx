@@ -34,9 +34,9 @@ static p8_graphics_t gfx;
 static p8_input_t input;
 
 static void assert_at_rest(void) {
-    const pico8_fm_placeholder_t *fm = pico8_fm_placeholder();
+    const pico8_fm_placeholder_t *fm = main_economy_placeholder();
 
-    assert(fm != NULL && (const void *)fm == (const void *)pico8_fm());
+    assert(fm != NULL && (const void *)fm == (const void *)main_economy());
     assert(!fm->has_jk && !fm->has_nz);
 }
 
@@ -63,7 +63,7 @@ static int type_cheat(void) {
 }
 
 static void assert_cheated(void) {
-    const pico8_fm_placeholder_t *fm = pico8_fm_placeholder();
+    const pico8_fm_placeholder_t *fm = main_economy_placeholder();
 
     assert(fm != NULL);
     assert(fm->has_jk && fm->jk == p8_fixed_from_int(99));
@@ -89,8 +89,8 @@ static void test_cheat_on_title(void) {
     const technologies_entry_t *t = technologies_table;
 
     pico8__init();
-    provisional = pico8_fm();
-    assert(pico8_fm_hy() == NULL && (const void *)pico8_fm_placeholder() == provisional);
+    provisional = main_economy();
+    assert(main_economy_typed() == NULL && (const void *)main_economy_placeholder() == provisional);
     while (pico8_gi_nb(t) <= p8_fixed_from_int(0) || pico8_gi_nb(t) > p8_fixed_from_int(99)) {
         t++;
         assert(t < technologies_table + TECHNOLOGIES_COUNT);
@@ -98,34 +98,34 @@ static void test_cheat_on_title(void) {
     assert(cb_affordable(t) == 0);
     pico8_pj_hb();
     assert(pico8_pj_ou()->sub_items[2][0].is_ref && strcmp(pico8_pj_ou()->sub_items[0][0].text, "0$") == 0);
-    assert(type_cheat() == 1 && pico8_fm() == provisional);
+    assert(type_cheat() == 1 && main_economy() == provisional);
     assert(cb_affordable(t) == 1);
     pico8_pj_hb();
     assert(!pico8_pj_ou()->sub_items[2][0].is_ref && strcmp(pico8_pj_ou()->sub_items[0][0].text, "200$") == 0);
     assert_cheated();
-    assert(type_cheat() == 1 && pico8_fm() == provisional);
+    assert(type_cheat() == 1 && main_economy() == provisional);
     assert_cheated();
 }
 
 static void test_new_init(void) {
     pico8__init();
     assert(type_cheat() == 1);
-    pico8_probe_init();
+    probe_init();
     assert_at_rest();
 }
 
 static void test_cycle(void) {
     pico8__init();
-    pico8_probe_shutdown();
-    assert(pico8_fm() == NULL && pico8_fm_hy() == NULL);
+    probe_shutdown();
+    assert(main_economy() == NULL && main_economy_typed() == NULL);
     assert(type_cheat() == 1);
-    assert(pico8_fm() == NULL && pico8_fm_hy() == NULL);
-    pico8_probe_shutdown();
-    assert(pico8_fm() == NULL);
-    pico8_probe_init();
+    assert(main_economy() == NULL && main_economy_typed() == NULL);
+    probe_shutdown();
+    assert(main_economy() == NULL);
+    probe_init();
     assert_at_rest();
-    pico8_probe_init();
-    pico8_probe_init();
+    probe_init();
+    probe_init();
     assert_at_rest();
 }
 
@@ -133,22 +133,22 @@ static void test_replacement(void) {
     pico8__init();
     assert(type_cheat() == 1);
     new_game();
-    assert(pico8_fm_placeholder() == NULL && (void *)pico8_fm_hy() == (void *)pico8_fm());
-    assert(pico8_fm_hy()->jk == p8_fixed_from_int(0));
-    assert(pico8_fm_hy()->nz == p8_fixed_from_int(100));
-    pico8_probe_init();
+    assert(main_economy_placeholder() == NULL && (void *)main_economy_typed() == (void *)main_economy());
+    assert(main_economy_typed()->jk == p8_fixed_from_int(0));
+    assert(main_economy_typed()->nz == p8_fixed_from_int(100));
+    probe_init();
     assert_at_rest();
 }
 
 /* The provisional is one static struct whose descriptor has no method;
  * `eu()` puts a `hy` in its place. */
 static void test_fm_is_a_struct(void) {
-    const entity_class_t *cls = pico8_fm_placeholder_struct_class();
+    const entity_class_t *cls = main_economy_placeholder_class();
     void *provisional;
     int j;
 
     pico8__init();
-    provisional = pico8_fm();
+    provisional = main_economy();
     assert(provisional != NULL);
     assert(((const entity_t *)provisional)->class == cls);
     assert(cls->draw == NULL && cls->draw_overlay == NULL && cls->hit_test == NULL && cls->new_year == NULL && cls->refresh == NULL &&
@@ -159,11 +159,11 @@ static void test_fm_is_a_struct(void) {
         assert(cls->states[j] == NULL);
     }
 
-    pico8_probe_init();
-    assert(pico8_fm() == provisional);
+    probe_init();
+    assert(main_economy() == provisional);
 
     new_game();
-    assert(((const entity_t *)pico8_fm())->class == pico8_hy_struct_class());
+    assert(((const entity_t *)main_economy())->class == pico8_hy_struct_class());
 }
 
 /* `cb` keeps a tech of the current tier until it is invented, even with `bi`. */
@@ -178,9 +178,9 @@ static void test_cb_drops_invented(void) {
     kept = pico8_cb(1);
     assert(kept.count > 0);
     t = kept.items[0];
-    ew = pico8_fm_hy()->ew;
-    pico8_hy_kt(pico8_fm_hy(), t);
-    assert(pico8_fm_hy()->ew == ew);
+    ew = main_economy_typed()->ew;
+    pico8_hy_kt(main_economy_typed(), t);
+    assert(main_economy_typed()->ew == ew);
     kept = pico8_cb(1);
     for (i = 0; i < kept.count; i++) {
         assert(kept.items[i] != t);

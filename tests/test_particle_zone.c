@@ -17,296 +17,296 @@
 #include "engine/allocator.h"
 #include "game/particle_zone.h"
 
-#define STDERR_LOG "tmp/test_pico8_zone_particules_stderr.txt"
+#define STDERR_LOG "tmp/test_particle_zone_stderr.txt"
 
 /* volatile : la lecture d'un pointeur perime ne doit pas etre retiree par
  * l'optimiseur, c'est elle que le cas observe. */
 static volatile unsigned char sink;
 
-static pico8_qy_t *particule(void) {
-    pico8_qy_t *p = (pico8_qy_t *)allocator_alloc(pico8_zone_particules(PICO8_PARTICULES_PARTICULE), sizeof *p);
+static particle_t *particle(void) {
+    particle_t *p = (particle_t *)allocator_alloc(particle_zone(PARTICLE_SLOT_PARTICLE), sizeof *p);
     memset(p, 0, sizeof *p);
     return p;
 }
 
-static void rendre_particule(pico8_qy_t *p) {
-    allocator_release(pico8_zone_particules(PICO8_PARTICULES_PARTICULE), (unsigned char *)p);
+static void release_particle(particle_t *p) {
+    allocator_release(particle_zone(PARTICLE_SLOT_PARTICLE), (unsigned char *)p);
 }
 
 /* Une liste qy de la sorte, dans sa place, reservee a `capacite`. */
-static pointer_list_t *liste(pico8_particules_sorte_t sorte, int capacite) {
-    const allocator_t *place = pico8_zone_particules_place(sorte);
-    pointer_list_t *qy = (pointer_list_t *)allocator_alloc(place, sizeof *qy);
-    pointer_list_init_reserve(qy, place, capacite);
+static pointer_list_t *list(particle_slot_kind_t slot_kind, int capacity) {
+    const allocator_t *slot = particle_zone_slot(slot_kind);
+    pointer_list_t *qy = (pointer_list_t *)allocator_alloc(slot, sizeof *qy);
+    pointer_list_init_reserve(qy, slot, capacity);
     return qy;
 }
 
-static int case_live_places_follow_takes(void) {
-    for (int s = 0; s < PICO8_PARTICULES_COUNT; s++)
-        assert(pico8_zone_particules_vivantes((pico8_particules_sorte_t)s) == 0);
+static int case_live_slots_follow_takes(void) {
+    for (int s = 0; s < PARTICLE_SLOT_COUNT; s++)
+        assert(particle_zone_live((particle_slot_kind_t)s) == 0);
 
-    pico8_qy_t *a = particule();
-    pico8_qy_t *b = particule();
-    const allocator_t *qy = pico8_zone_particules_place(PICO8_PARTICULES_QY);
-    const allocator_t *fv = pico8_zone_particules_place(PICO8_PARTICULES_QY_FV);
-    const allocator_t *ga = pico8_zone_particules_place(PICO8_PARTICULES_GA);
-    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE) == 2);
-    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_QY) == 1);
-    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_QY_FV) == 1);
-    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_GA) == 1);
+    particle_t *a = particle();
+    particle_t *b = particle();
+    const allocator_t *qy = particle_zone_slot(PARTICLE_SLOT_LIST);
+    const allocator_t *fv = particle_zone_slot(PARTICLE_SLOT_HELP_LIST);
+    const allocator_t *ga = particle_zone_slot(PARTICLE_SLOT_BURST);
+    assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 2);
+    assert(particle_zone_live(PARTICLE_SLOT_LIST) == 1);
+    assert(particle_zone_live(PARTICLE_SLOT_HELP_LIST) == 1);
+    assert(particle_zone_live(PARTICLE_SLOT_BURST) == 1);
 
-    rendre_particule(a);
-    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE) == 1 && "rendre une place decompte sa sorte");
-    rendre_particule(b);
+    release_particle(a);
+    assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 1 && "rendre une place decompte sa sorte");
+    release_particle(b);
     arena_release(qy);
     arena_release(fv);
     arena_release(ga);
-    for (int s = 0; s < PICO8_PARTICULES_COUNT; s++)
-        assert(pico8_zone_particules_vivantes((pico8_particules_sorte_t)s) == 0);
+    for (int s = 0; s < PARTICLE_SLOT_COUNT; s++)
+        assert(particle_zone_live((particle_slot_kind_t)s) == 0);
     return 0;
 }
 
-static int case_particule_dead_after_release(void) {
-    pico8_qy_t *p = particule();
-    rendre_particule(p);
+static int case_particle_dead_after_release(void) {
+    particle_t *p = particle();
+    release_particle(p);
     sink = ((volatile unsigned char *)p)[0];
     return 0;
 }
 
-static int case_ga_zone_full(void) {
-    for (int i = 0; i < 9; i++) pico8_zone_particules_place(PICO8_PARTICULES_GA);
+static int case_burst_zone_full(void) {
+    for (int i = 0; i < 9; i++) particle_zone_slot(PARTICLE_SLOT_BURST);
     return 0;
 }
 
-static int case_particule_zone_full(void) {
-    for (int i = 0; i < 100000; i++) particule();
+static int case_particle_zone_full(void) {
+    for (int i = 0; i < 100000; i++) particle();
     return 0;
 }
 
-static int case_qy_holds_its_capacity(void) {
-    pointer_list_t *qy = liste(PICO8_PARTICULES_QY, PICO8_QY_CAPACITE);
-    for (int i = 0; i < PICO8_QY_CAPACITE; i++) pointer_list_add(qy, NULL);
+static int case_particles_holds_its_capacity(void) {
+    pointer_list_t *qy = list(PARTICLE_SLOT_LIST, PARTICLES_CAPACITY);
+    for (int i = 0; i < PARTICLES_CAPACITY; i++) pointer_list_add(qy, NULL);
     arena_release(qy->zone);
     return 0;
 }
 
-static int case_qy_past_capacity(void) {
-    pointer_list_t *qy = liste(PICO8_PARTICULES_QY, PICO8_QY_CAPACITE);
-    for (int i = 0; i <= PICO8_QY_CAPACITE; i++) pointer_list_add(qy, NULL);
+static int case_particles_past_capacity(void) {
+    pointer_list_t *qy = list(PARTICLE_SLOT_LIST, PARTICLES_CAPACITY);
+    for (int i = 0; i <= PARTICLES_CAPACITY; i++) pointer_list_add(qy, NULL);
     return 0;
 }
 
-static int case_qy_fv_holds_its_capacity(void) {
-    pointer_list_t *qy = liste(PICO8_PARTICULES_QY_FV, PICO8_QY_FV_CAPACITE);
-    for (int i = 0; i < PICO8_QY_FV_CAPACITE; i++) pointer_list_add(qy, NULL);
+static int case_particles_help_screen_holds_its_capacity(void) {
+    pointer_list_t *qy = list(PARTICLE_SLOT_HELP_LIST, PARTICLES_HELP_SCREEN_CAPACITY);
+    for (int i = 0; i < PARTICLES_HELP_SCREEN_CAPACITY; i++) pointer_list_add(qy, NULL);
     arena_release(qy->zone);
     return 0;
 }
 
-static int case_qy_fv_past_capacity(void) {
-    pointer_list_t *qy = liste(PICO8_PARTICULES_QY_FV, PICO8_QY_FV_CAPACITE);
-    for (int i = 0; i <= PICO8_QY_FV_CAPACITE; i++) pointer_list_add(qy, NULL);
+static int case_particles_help_screen_past_capacity(void) {
+    pointer_list_t *qy = list(PARTICLE_SLOT_HELP_LIST, PARTICLES_HELP_SCREEN_CAPACITY);
+    for (int i = 0; i <= PARTICLES_HELP_SCREEN_CAPACITY; i++) pointer_list_add(qy, NULL);
     return 0;
 }
 
 static int case_maxima_keep_the_peak(void) {
-    for (int s = 0; s < PICO8_PARTICULES_COUNT; s++) {
-        assert(pico8_zone_particules_max_vivantes((pico8_particules_sorte_t)s) == 0);
-        assert(pico8_zone_particules_max_octets((pico8_particules_sorte_t)s) == 0);
+    for (int s = 0; s < PARTICLE_SLOT_COUNT; s++) {
+        assert(particle_zone_max_live((particle_slot_kind_t)s) == 0);
+        assert(particle_zone_max_bytes((particle_slot_kind_t)s) == 0);
     }
-    assert(pico8_zone_particules_max_elements(PICO8_PARTICULES_QY) == 0);
+    assert(particle_zone_max_elements(PARTICLE_SLOT_LIST) == 0);
 
-    pico8_qy_t *p[3] = {particule(), particule(), particule()};
-    for (int i = 0; i < 3; i++) rendre_particule(p[i]);
-    pico8_qy_t *q = particule();
-    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE) == 1);
-    assert(pico8_zone_particules_max_vivantes(PICO8_PARTICULES_PARTICULE) == 3 &&
+    particle_t *p[3] = {particle(), particle(), particle()};
+    for (int i = 0; i < 3; i++) release_particle(p[i]);
+    particle_t *q = particle();
+    assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 1);
+    assert(particle_zone_max_live(PARTICLE_SLOT_PARTICLE) == 3 &&
            "le maximum se releve a chaque prise, pas a la lecture");
-    rendre_particule(q);
+    release_particle(q);
 
-    const allocator_t *rendue = pico8_zone_particules_place(PICO8_PARTICULES_GA);
-    allocator_alloc(rendue, 200);
-    size_t prise_rendue = arena_used(rendue);
-    arena_release(rendue);
-    assert(pico8_zone_particules_max_octets(PICO8_PARTICULES_GA) == prise_rendue &&
+    const allocator_t *released = particle_zone_slot(PARTICLE_SLOT_BURST);
+    allocator_alloc(released, 200);
+    size_t grab_arena_released = arena_used(released);
+    arena_release(released);
+    assert(particle_zone_max_bytes(PARTICLE_SLOT_BURST) == grab_arena_released &&
            "une place rendue garde ce qu'elle a pris");
 
-    const allocator_t *vivante = pico8_zone_particules_place(PICO8_PARTICULES_GA);
-    allocator_alloc(vivante, 400);
-    assert(pico8_zone_particules_max_octets(PICO8_PARTICULES_GA) == arena_used(vivante) &&
+    const allocator_t *live = particle_zone_slot(PARTICLE_SLOT_BURST);
+    allocator_alloc(live, 400);
+    assert(particle_zone_max_bytes(PARTICLE_SLOT_BURST) == arena_used(live) &&
            "une place encore vivante compte a la lecture");
-    assert(pico8_zone_particules_max_octets(PICO8_PARTICULES_QY) == 0);
+    assert(particle_zone_max_bytes(PARTICLE_SLOT_LIST) == 0);
 
-    pico8_zone_particules_noter_elements(PICO8_PARTICULES_QY, 7);
-    pico8_zone_particules_noter_elements(PICO8_PARTICULES_QY, 3);
-    pico8_zone_particules_noter_elements(PICO8_PARTICULES_QY_FV, 12);
-    assert(pico8_zone_particules_max_elements(PICO8_PARTICULES_QY) == 7);
-    assert(pico8_zone_particules_max_elements(PICO8_PARTICULES_QY_FV) == 12);
+    particle_zone_record_elements(PARTICLE_SLOT_LIST, 7);
+    particle_zone_record_elements(PARTICLE_SLOT_LIST, 3);
+    particle_zone_record_elements(PARTICLE_SLOT_HELP_LIST, 12);
+    assert(particle_zone_max_elements(PARTICLE_SLOT_LIST) == 7);
+    assert(particle_zone_max_elements(PARTICLE_SLOT_HELP_LIST) == 12);
     return 0;
 }
 
-static int case_qy_rendre_gives_back_particles_then_list(void) {
-    pico8_emitter_t emitter;
+static int case_particles_release_gives_back_particles_then_list(void) {
+    emitter_t emitter;
     memset(&emitter, 0, sizeof emitter);
-    emitter.qy = liste(PICO8_PARTICULES_QY, PICO8_QY_CAPACITE);
-    pointer_list_add(emitter.qy, particule());
-    pointer_list_add(emitter.qy, NULL);
-    pointer_list_add(emitter.qy, particule());
-    pico8_qy_t *gardee = particule();
-    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE) == 3);
+    emitter.particles = list(PARTICLE_SLOT_LIST, PARTICLES_CAPACITY);
+    pointer_list_add(emitter.particles, particle());
+    pointer_list_add(emitter.particles, NULL);
+    pointer_list_add(emitter.particles, particle());
+    particle_t *kept = particle();
+    assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 3);
 
-    pico8_qy_rendre(&emitter);
+    emitter_release_particles(&emitter);
 
-    assert(emitter.qy == NULL && "l'hote ne vise plus la liste rendue");
-    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE) == 1 &&
+    assert(emitter.particles == NULL && "l'hote ne vise plus la liste rendue");
+    assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 1 &&
            "les particules de la liste sont rendues, pas les autres");
-    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_QY) == 0);
-    rendre_particule(gardee);
+    assert(particle_zone_live(PARTICLE_SLOT_LIST) == 0);
+    release_particle(kept);
 
-    pico8_qy_rendre(&emitter);
-    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_QY) == 0 && "un hote sans liste n'a rien a rendre");
+    emitter_release_particles(&emitter);
+    assert(particle_zone_live(PARTICLE_SLOT_LIST) == 0 && "un hote sans liste n'a rien a rendre");
     return 0;
 }
 
-static int case_qy_rendre_releases_the_arena(void) {
-    pico8_emitter_t emitter;
+static int case_particles_release_releases_the_arena(void) {
+    emitter_t emitter;
     memset(&emitter, 0, sizeof emitter);
-    emitter.qy = liste(PICO8_PARTICULES_QY, PICO8_QY_CAPACITE);
-    const pointer_list_t *qy = emitter.qy;
-    pico8_qy_rendre(&emitter);
+    emitter.particles = list(PARTICLE_SLOT_LIST, PARTICLES_CAPACITY);
+    const pointer_list_t *qy = emitter.particles;
+    emitter_release_particles(&emitter);
     sink = ((const volatile unsigned char *)qy)[0];
     return 0;
 }
 
 /* Un hote d'emetteur reduit a ce que lisent `f_` et `ei` : `fa` 10, donc
  * dessine sans `gd`, et `fc` 0, donc sans naissance. */
-static const emitter_archetype_t g_sans_naissance;
-static const entity_class_t g_hote_cls;
-static const p8_fixed_t g_fa_dix = 10 << 16;
-static const vec_t *const g_ra_nil = NULL;
-static pico8_emitter_t g_emitter;
-static entity_t g_hote;
+static const emitter_archetype_t g_without_birth;
+static const entity_class_t g_host_cls;
+static const p8_fixed_t g_layer_ten = 10 << 16;
+static const vec_t *const g_pos_nil = NULL;
+static emitter_t g_emitter;
+static entity_t g_host;
 static p8_graphics_t g_gfx;
 static p8_memory_t g_mem;
 
-static entity_t *hote(void) {
+static entity_t *host(void) {
     p8_gfx_init(&g_gfx);
     p8_mem_init(&g_mem);
-    entity_init_header(&g_hote, &g_hote_cls);
+    entity_init_header(&g_host, &g_host_cls);
     memset(&g_emitter, 0, sizeof g_emitter);
-    g_emitter.def = &g_sans_naissance;
-    g_hote.layer = &g_fa_dix;
-    g_hote.pos = &g_ra_nil;
-    g_hote.emitter = &g_emitter;
-    pico8_f_(&g_hote);
-    return &g_hote;
+    g_emitter.archetype = &g_without_birth;
+    g_host.layer = &g_layer_ten;
+    g_host.pos = &g_pos_nil;
+    g_host.emitter = &g_emitter;
+    emitter_init(&g_host);
+    return &g_host;
 }
 
 /* Une particule qui meurt au prochain `ei` : `l` 1.1, moins 0.14. */
-static pico8_qy_t *mourante(entity_t *h) {
-    pico8_qy_t *p = pico8_particule_prendre();
+static particle_t *dying(entity_t *h) {
+    particle_t *p = particle_take();
     memset(p, 0, sizeof *p);
-    p->l = (1 << 16) + 6554;
-    pointer_list_add(h->emitter->qy, p);
+    p->life = (1 << 16) + 6554;
+    pointer_list_add(h->emitter->particles, p);
     return p;
 }
 
-static int case_f__takes_a_qy_list(void) {
-    entity_t *h = hote();
-    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_QY) == 1);
-    assert(h->emitter->qy != NULL && h->emitter->qy->count == 0);
-    pico8_qy_rendre(h->emitter);
-    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_QY) == 0);
+static int case_emitter_init_takes_a_particles_list(void) {
+    entity_t *h = host();
+    assert(particle_zone_live(PARTICLE_SLOT_LIST) == 1);
+    assert(h->emitter->particles != NULL && h->emitter->particles->count == 0);
+    emitter_release_particles(h->emitter);
+    assert(particle_zone_live(PARTICLE_SLOT_LIST) == 0);
     return 0;
 }
 
-static int case_f__fv_takes_a_qy_fv_list(void) {
-    entity_t *h = hote();
-    pico8_qy_rendre(h->emitter);
-    pico8_f__dans(h, PICO8_PARTICULES_QY_FV);
-    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_QY_FV) == 1);
-    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_QY) == 0);
+static int case_emitter_init_help_screen_takes_a_particles_help_screen_list(void) {
+    entity_t *h = host();
+    emitter_release_particles(h->emitter);
+    emitter_init_in(h, PARTICLE_SLOT_HELP_LIST);
+    assert(particle_zone_live(PARTICLE_SLOT_HELP_LIST) == 1);
+    assert(particle_zone_live(PARTICLE_SLOT_LIST) == 0);
     return 0;
 }
 
-static int case_second_f__gives_back_the_old_list(void) {
-    entity_t *h = hote();
-    mourante(h);
-    mourante(h);
-    pico8_f_(h);
-    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_QY) == 1 && "l'ancienne liste est rendue");
-    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE) == 0 && "et ses particules avec elle");
-    assert(h->emitter->qy->count == 0);
+static int case_second_emitter_init_gives_back_the_old_list(void) {
+    entity_t *h = host();
+    dying(h);
+    dying(h);
+    emitter_init(h);
+    assert(particle_zone_live(PARTICLE_SLOT_LIST) == 1 && "l'ancienne liste est rendue");
+    assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 0 && "et ses particules avec elle");
+    assert(h->emitter->particles->count == 0);
     return 0;
 }
 
-static int case_ei_gives_back_a_dying_particle(void) {
-    entity_t *h = hote();
-    mourante(h);
-    pico8_qy_t *survivante = mourante(h);
-    survivante->l = 5 << 16;
-    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE) == 2);
-    pico8_ei(&g_gfx, &g_mem, h);
-    assert(h->emitter->qy->count == 1);
-    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE) == 1 && "ei rend la particule qu'il retire");
+static int case_emitter_update_gives_back_a_dying_particle(void) {
+    entity_t *h = host();
+    dying(h);
+    particle_t *surviving = dying(h);
+    surviving->life = 5 << 16;
+    assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 2);
+    emitter_update(&g_gfx, &g_mem, h);
+    assert(h->emitter->particles->count == 1);
+    assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 1 && "ei rend la particule qu'il retire");
     return 0;
 }
 
-static int case_particle_dead_after_ei(void) {
-    entity_t *h = hote();
-    pico8_qy_t *p = mourante(h);
-    pico8_ei(&g_gfx, &g_mem, h);
+static int case_particle_dead_after_emitter_update(void) {
+    entity_t *h = host();
+    particle_t *p = dying(h);
+    emitter_update(&g_gfx, &g_mem, h);
     sink = ((volatile unsigned char *)p)[0];
     return 0;
 }
 
-static int case_ez_notes_the_list_length(void) {
-    static const entity_class_t cls = {.spawn_particle = pico8_g__mm};
-    static const emitter_archetype_t def = {.lifetime = 9 << 16, .spawn_rate = 1 << 16};
-    entity_t *h = hote();
-    g_hote.class = &cls;
-    g_emitter.def = &def;
-    g_emitter.pn = 1 << 16;
-    pico8_ez(h, 3 << 16);
-    assert(h->emitter->qy->count == 3);
-    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE) == 3 && "g_:mm prend a la poignee particule");
-    assert(pico8_zone_particules_max_elements(PICO8_PARTICULES_QY) == 3);
+static int case_emitter_spawn_notes_the_list_length(void) {
+    static const entity_class_t cls = {.spawn_particle = probe_spawn_particle};
+    static const emitter_archetype_t archetype = {.lifetime = 9 << 16, .spawn_rate = 1 << 16};
+    entity_t *h = host();
+    g_host.class = &cls;
+    g_emitter.archetype = &archetype;
+    g_emitter.angle_slices = 1 << 16;
+    emitter_spawn(h, 3 << 16);
+    assert(h->emitter->particles->count == 3);
+    assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 3 && "g_:mm prend a la poignee particule");
+    assert(particle_zone_max_elements(PARTICLE_SLOT_LIST) == 3);
     return 0;
 }
 
-static transit_dot_t *trainee(void) {
-    return (transit_dot_t *)allocator_alloc(pico8_zone_particules(PICO8_PARTICULES_TS), sizeof(transit_dot_t));
+static transit_dot_t *trail(void) {
+    return (transit_dot_t *)allocator_alloc(particle_zone(PARTICLE_SLOT_TRANSIT_DOT), sizeof(transit_dot_t));
 }
 
-static void rendre_trainee(transit_dot_t *t) {
-    allocator_release(pico8_zone_particules(PICO8_PARTICULES_TS), (unsigned char *)t);
+static void release_trail(transit_dot_t *t) {
+    allocator_release(particle_zone(PARTICLE_SLOT_TRANSIT_DOT), (unsigned char *)t);
 }
 
-static int case_ts_takes_and_gives_back(void) {
-    transit_dot_t *a = trainee();
-    transit_dot_t *b = trainee();
-    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_TS) == 2);
-    rendre_trainee(a);
-    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_TS) == 1 && "rendre une trainee decompte sa sorte");
-    rendre_trainee(b);
-    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_TS) == 0);
-    assert(pico8_zone_particules_max_vivantes(PICO8_PARTICULES_TS) == 2);
-    assert(pico8_zone_particules_max_octets(PICO8_PARTICULES_TS) == 0 && "une trainee est une place nue");
-    pico8_zone_particules_noter_elements(PICO8_PARTICULES_TS, 5);
-    pico8_zone_particules_noter_elements(PICO8_PARTICULES_TS, 2);
-    assert(pico8_zone_particules_max_elements(PICO8_PARTICULES_TS) == 5);
+static int case_transit_dots_takes_and_gives_back(void) {
+    transit_dot_t *a = trail();
+    transit_dot_t *b = trail();
+    assert(particle_zone_live(PARTICLE_SLOT_TRANSIT_DOT) == 2);
+    release_trail(a);
+    assert(particle_zone_live(PARTICLE_SLOT_TRANSIT_DOT) == 1 && "rendre une trainee decompte sa sorte");
+    release_trail(b);
+    assert(particle_zone_live(PARTICLE_SLOT_TRANSIT_DOT) == 0);
+    assert(particle_zone_max_live(PARTICLE_SLOT_TRANSIT_DOT) == 2);
+    assert(particle_zone_max_bytes(PARTICLE_SLOT_TRANSIT_DOT) == 0 && "une trainee est une place nue");
+    particle_zone_record_elements(PARTICLE_SLOT_TRANSIT_DOT, 5);
+    particle_zone_record_elements(PARTICLE_SLOT_TRANSIT_DOT, 2);
+    assert(particle_zone_max_elements(PARTICLE_SLOT_TRANSIT_DOT) == 5);
     return 0;
 }
 
-static int case_ts_dead_after_release(void) {
-    transit_dot_t *t = trainee();
-    rendre_trainee(t);
+static int case_transit_dots_dead_after_release(void) {
+    transit_dot_t *t = trail();
+    release_trail(t);
     sink = ((volatile unsigned char *)t)[0];
     return 0;
 }
 
-static int case_ts_zone_full(void) {
-    for (int i = 0; i < 681; i++) trainee();
+static int case_transit_dots_zone_full(void) {
+    for (int i = 0; i < 681; i++) trail();
     return 0;
 }
 
@@ -314,26 +314,26 @@ static const struct {
     const char *name;
     int (*run)(void);
 } CASES[] = {
-    {"live_places_follow_takes", case_live_places_follow_takes},
-    {"particule_dead_after_release", case_particule_dead_after_release},
-    {"ga_zone_full", case_ga_zone_full},
-    {"particule_zone_full", case_particule_zone_full},
-    {"qy_holds_its_capacity", case_qy_holds_its_capacity},
-    {"qy_past_capacity", case_qy_past_capacity},
-    {"qy_fv_holds_its_capacity", case_qy_fv_holds_its_capacity},
-    {"qy_fv_past_capacity", case_qy_fv_past_capacity},
+    {"live_places_follow_takes", case_live_slots_follow_takes},
+    {"particule_dead_after_release", case_particle_dead_after_release},
+    {"burst_zone_full", case_burst_zone_full},
+    {"particule_zone_full", case_particle_zone_full},
+    {"particles_holds_its_capacity", case_particles_holds_its_capacity},
+    {"particles_past_capacity", case_particles_past_capacity},
+    {"particles_help_screen_holds_its_capacity", case_particles_help_screen_holds_its_capacity},
+    {"particles_help_screen_past_capacity", case_particles_help_screen_past_capacity},
     {"maxima_keep_the_peak", case_maxima_keep_the_peak},
-    {"qy_rendre_gives_back_particles_then_list", case_qy_rendre_gives_back_particles_then_list},
-    {"qy_rendre_releases_the_arena", case_qy_rendre_releases_the_arena},
-    {"f__takes_a_qy_list", case_f__takes_a_qy_list},
-    {"f__fv_takes_a_qy_fv_list", case_f__fv_takes_a_qy_fv_list},
-    {"second_f__gives_back_the_old_list", case_second_f__gives_back_the_old_list},
-    {"ei_gives_back_a_dying_particle", case_ei_gives_back_a_dying_particle},
-    {"particle_dead_after_ei", case_particle_dead_after_ei},
-    {"ez_notes_the_list_length", case_ez_notes_the_list_length},
-    {"ts_takes_and_gives_back", case_ts_takes_and_gives_back},
-    {"ts_dead_after_release", case_ts_dead_after_release},
-    {"ts_zone_full", case_ts_zone_full},
+    {"particles_release_gives_back_particles_then_list", case_particles_release_gives_back_particles_then_list},
+    {"particles_release_releases_the_arena", case_particles_release_releases_the_arena},
+    {"emitter_init_takes_a_particles_list", case_emitter_init_takes_a_particles_list},
+    {"emitter_init_help_screen_takes_a_particles_help_screen_list", case_emitter_init_help_screen_takes_a_particles_help_screen_list},
+    {"second_emitter_init_gives_back_the_old_list", case_second_emitter_init_gives_back_the_old_list},
+    {"emitter_update_gives_back_a_dying_particle", case_emitter_update_gives_back_a_dying_particle},
+    {"particle_dead_after_emitter_update", case_particle_dead_after_emitter_update},
+    {"emitter_spawn_notes_the_list_length", case_emitter_spawn_notes_the_list_length},
+    {"transit_dots_takes_and_gives_back", case_transit_dots_takes_and_gives_back},
+    {"transit_dots_dead_after_release", case_transit_dots_dead_after_release},
+    {"transit_dots_zone_full", case_transit_dots_zone_full},
 };
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
@@ -403,31 +403,31 @@ int main(int argc, char **argv) {
     if (argc == 2) {
         for (size_t i = 0; i < CASE_COUNT; i++)
             if (strcmp(argv[1], CASES[i].name) == 0) return CASES[i].run();
-        fprintf(stderr, "test_pico8_zone_particules: cas inconnu %s\n", argv[1]);
+        fprintf(stderr, "test_particle_zone: cas inconnu %s\n", argv[1]);
         return 2;
     }
     self_path = argv[0];
     expect_clean("live_places_follow_takes");
     expect_poison_crash("particule_dead_after_release");
-    expect_fatal("ga_zone_full", "zone particules ga pleine, limite 8 places");
+    expect_fatal("burst_zone_full", "zone particules burst pleine, limite 8 places");
     expect_fatal("particule_zone_full", "zone particules particule pleine, limite 2085 places");
-    expect_clean("qy_holds_its_capacity");
-    expect_fatal("qy_past_capacity", "zone place qy pleine, limite ");
-    expect_clean("qy_fv_holds_its_capacity");
-    expect_fatal("qy_fv_past_capacity", "zone place qy_fv pleine, limite ");
+    expect_clean("particles_holds_its_capacity");
+    expect_fatal("particles_past_capacity", "zone place particles pleine, limite ");
+    expect_clean("particles_help_screen_holds_its_capacity");
+    expect_fatal("particles_help_screen_past_capacity", "zone place particles_help_screen pleine, limite ");
     expect_clean("maxima_keep_the_peak");
-    expect_clean("qy_rendre_gives_back_particles_then_list");
-    expect_poison_crash("qy_rendre_releases_the_arena");
-    expect_clean("f__takes_a_qy_list");
-    expect_clean("f__fv_takes_a_qy_fv_list");
-    expect_clean("second_f__gives_back_the_old_list");
-    expect_clean("ei_gives_back_a_dying_particle");
-    expect_poison_crash("particle_dead_after_ei");
-    expect_clean("ez_notes_the_list_length");
-    expect_clean("ts_takes_and_gives_back");
-    expect_poison_crash("ts_dead_after_release");
-    expect_fatal("ts_zone_full", "zone particules ts pleine, limite 680 places");
+    expect_clean("particles_release_gives_back_particles_then_list");
+    expect_poison_crash("particles_release_releases_the_arena");
+    expect_clean("emitter_init_takes_a_particles_list");
+    expect_clean("emitter_init_help_screen_takes_a_particles_help_screen_list");
+    expect_clean("second_emitter_init_gives_back_the_old_list");
+    expect_clean("emitter_update_gives_back_a_dying_particle");
+    expect_poison_crash("particle_dead_after_emitter_update");
+    expect_clean("emitter_spawn_notes_the_list_length");
+    expect_clean("transit_dots_takes_and_gives_back");
+    expect_poison_crash("transit_dots_dead_after_release");
+    expect_fatal("transit_dots_zone_full", "zone particules transit_dots pleine, limite 680 places");
     remove(STDERR_LOG);
-    printf("test_pico8_zone_particules: all tests passed\n");
+    printf("test_particle_zone: all tests passed\n");
     return 0;
 }

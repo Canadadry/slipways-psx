@@ -399,8 +399,8 @@ static void test_shared(void) {
     assert(ea->row.count == 3 && ea->lh != NULL);
     h = fold_ref_member(h, pico8_pj_ea());
 
-    pico8_fm_hy()->hl = "final score";
-    pico8_fm_hy()->has_hl = 1;
+    main_economy_typed()->hl = "final score";
+    main_economy_typed()->has_hl = 1;
     cls_of(ju)->states[ENTITY_STATE_NORMAL](&ju->header, p8_fixed_from_int(0));
     assert(ju->fa == p8_fixed_from_int(13));
     assert(c__state(ju) == 2);
@@ -452,8 +452,8 @@ static void test_life(void) {
 
     fq_before = fq_count();
     js_before = js15_count();
-    pico8_fm_hy()->hl = "final score";
-    pico8_fm_hy()->has_hl = 1;
+    main_economy_typed()->hl = "final score";
+    main_economy_typed()->has_hl = 1;
     cls_of(ju)->states[ENTITY_STATE_NORMAL](&ju->header, p8_fixed_from_int(0));
     assert(c__state(ju) == 2);
     assert(ju->has_gz && ju->gz == 0);
@@ -705,7 +705,7 @@ static void test_ky_reads_invented_and_happiness(void) {
     int i;
 
     (void)start_game();
-    fm = pico8_fm_hy();
+    fm = main_economy_typed();
     for (i = 0; i < 10; i++) {
         pointer_list_add(fm->invented, "a tech");
     }
@@ -735,7 +735,7 @@ static layout_row_cell_t ph_row_item(const pico8_mh_t *mh, int k, int i) {
  * and the tier row (11) lights `s[6]` of its five icons. */
 static void test_ph_rows_show_ky(void) {
     void *ju = start_game();
-    pico8_hy_t *fm = pico8_fm_hy();
+    pico8_hy_t *fm = main_economy_typed();
     const pico8_mh_t *mh;
     layout_row_cell_t total;
     layout_row_cell_t icon;

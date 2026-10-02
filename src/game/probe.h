@@ -1,5 +1,5 @@
-#ifndef PICO8_PROBE_H
-#define PICO8_PROBE_H
+#ifndef GAME_PROBE_H
+#define GAME_PROBE_H
 
 #include "game/game_data.h"
 #include "game/particle.h"
@@ -22,61 +22,61 @@
  * in, NULL for `fv`. */
 typedef struct {
     entity_t header;
-    const probe_archetype_t *def;
-    pico8_emitter_t *emitter;
-    pico8_probe_t *probe;
-    const vec_t *ra;
-    const vec_t *p;
-    int p_;
-    int m_;
-    const allocator_t *prise;
-    pico8_emitter_t emitter_own;
-    pico8_probe_t probe_own;
-} pico8_g__t;
+    const probe_archetype_t *archetype;
+    emitter_t *emitter;
+    targeting_t *targeting;
+    const vec_t *pos;
+    const vec_t *map_pos;
+    int is_dead;
+    int is_hovered;
+    const allocator_t *grab_arena;
+    emitter_t emitter_own;
+    targeting_t probe_own;
+} probe_t;
 
 /* TROU-8 */
 /* Puts the provisional `fm` back in the slot, its `jk`/`nz` nil. Shuts the
  * module down first, so it is idempotent. */
-void pico8_probe_init(void);
+void probe_init(void);
 
 /* Empties the `fm` slot without reading it, frees no probe. Idempotent,
  * and safe before the first `pico8_probe_init()`. */
-void pico8_probe_shutdown(void);
+void probe_shutdown(void);
 
 /* 1 from pico8_probe_init() to pico8_probe_shutdown(), 0 otherwise. */
-int pico8_g__ready(void);
+int probe_ready(void);
 
 /* Initializes an allocated pico8_g__t under `cls`: ke's part, g_'s 4
  * written members nil, `prise` NULL, `def` kept, `ra`, the emitter and the probe copied
  * from it. Reads no key, runs neither `pq` nor `lt`, records no coverage. */
-void pico8_g__struct_init(pico8_g__t *self, const entity_class_t *cls, const probe_archetype_t *def);
+void probe_init_instance(probe_t *self, const entity_class_t *cls, const probe_archetype_t *archetype);
 
 /* The keys of `pico8_g__new`, read, not kept. `t` is `header.t`, whose default
  * is 0: no flag. `pn`, `du`, `py` have non-zero defaults, so a key at 0
  * needs its `has_` flag. */
 typedef struct {
-    p8_fixed_t t;
-    int has_pn;
-    p8_fixed_t pn;
-    int has_du;
-    p8_fixed_t du;
-    int has_py;
-    p8_fixed_t py;
-} pico8_g__keys_t;
+    p8_fixed_t state_time;
+    int has_angle_slices;
+    p8_fixed_t angle_slices;
+    int has_base_radius;
+    p8_fixed_t base_radius;
+    int has_speed_factor;
+    p8_fixed_t speed_factor;
+} probe_keys_t;
 
 /* `keys` NULL means none. Built in a grab arena (`pico8_jo_prise_ouvrir`),
  * so no other grab may be open. The new probe registers itself into
  * `hv`/`cv`/`cg` through `lt` (and gets its particle list from `f_`, which
  * its `rendre` gives back). Asserts when called before `pico8_probe_init()`. */
-pico8_g__t *pico8_g__new(const pico8_g__keys_t *keys);
+probe_t *probe_new(const probe_keys_t *keys);
 
 /* A particle (`has_a` 0) from pico8_particule_prendre, which `ez` appends
  * to `qy`. */
-pico8_qy_t *pico8_g__mm(entity_t *self);
+particle_t *probe_spawn_particle(entity_t *self);
 
 /* `rendre` of `g_` and `fv`: gives back their `qy`, and the grab arena of
  * a `g_` not placed (`me` other than "ly"); a placed one keeps it until the
  * generation is given back. */
-void pico8_g__rendre_dispatch(entity_t *self);
+void probe_release_method(entity_t *self);
 
 #endif

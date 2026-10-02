@@ -20,12 +20,12 @@ void pico8_cheat_init(pico8_cheat_t *cheat) {
 /* Before `eu()`, `fm` is still the provisional, and the code is typed on
  * the title screen too: the cheat writes the provisional there. */
 static void apply(void) {
-    entity_t *fm = pico8_fm();
+    entity_t *fm = main_economy();
     pico8_hy_t *hy;
     if (fm == NULL) {
         return;
     }
-    if (((const entity_t *)fm)->class == pico8_fm_placeholder_struct_class()) {
+    if (((const entity_t *)fm)->class == main_economy_placeholder_class()) {
         pico8_fm_placeholder_t *provisional = (pico8_fm_placeholder_t *)fm;
         provisional->jk = p8_fixed_from_int(99);
         provisional->has_jk = 1;
@@ -33,7 +33,7 @@ static void apply(void) {
         provisional->has_nz = 1;
         return;
     }
-    hy = pico8_fm_hy();
+    hy = main_economy_typed();
     hy->jk = p8_fixed_from_int(99);
     hy->nz = p8_fixed_from_int(200);
 }

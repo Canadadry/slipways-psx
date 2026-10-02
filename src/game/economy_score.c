@@ -181,7 +181,7 @@ pico8_ky_t pico8_ky(void) {
     p8_fixed_t base;
     p8_fixed_t el;
     p8_fixed_t total;
-    const pico8_hy_t *fm = pico8_fm_hy();
+    const pico8_hy_t *fm = main_economy_typed();
     p8_fixed_t happiness = fm != NULL && fm->has_happiness ? fm->happiness : p8_fixed_from_int(0);
     const pointer_list_t *invented = fm != NULL ? fm->invented : NULL;
     int invented_count = (invented != NULL) ? invented->count : 0;
@@ -222,7 +222,7 @@ pico8_ky_t pico8_ky(void) {
 }
 
 p8_fixed_t pico8_bf(void) {
-    const pico8_hy_t *fm = pico8_fm_hy();
+    const pico8_hy_t *fm = main_economy_typed();
     const pico8_qe_map_t *fm_po = fm != NULL ? fm->po : NULL;
     p8_fixed_t r_h = p8_fixed_from_int(0);
     p8_fixed_t r_w = p8_fixed_from_int(0);

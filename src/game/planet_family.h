@@ -142,7 +142,7 @@ void pico8_ga_pq(planet_t *self);
 
 /* A particle (`has_a` 1) from pico8_particule_prendre, which `ez` stores
  * into `self.qy`. */
-pico8_qy_t *pico8_ga_mm(entity_t *self);
+particle_t *pico8_ga_mm(entity_t *self);
 
 void pico8_ga_kj(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t p);
 

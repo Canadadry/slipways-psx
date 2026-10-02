@@ -161,7 +161,7 @@ static size_t planets_bytes(void) {
 /* Octets de l'economie `fm` faite par `eu` : sa structure et le conteneur
  * `invented`, sans elements tant que rien n'est invente. */
 static size_t economy_bytes(void) {
-    const pico8_hy_t *fm = pico8_fm_hy();
+    const pico8_hy_t *fm = main_economy_typed();
     assert(fm != NULL && fm->invented != NULL && "eu a fait l'economie de la partie");
     assert(fm->invented->count == 0 && fm->invented->items == NULL && "une invention, que l'economie ne compte pas");
     return block_bytes(sizeof *fm) + block_bytes(sizeof *fm->invented);

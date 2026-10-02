@@ -45,7 +45,7 @@
 #include <stdlib.h>
 
 static const char *const SORTE_NAMES[PICO8_SORTE_COUNT] = {"button", "modal_backdrop", "message_box", "toast", "rangee", "le"};
-static const char *const PARTICULES_NAMES[PICO8_PARTICULES_COUNT] = {"particule", "qy", "qy_fv", "burst", "ts"};
+static const char *const PARTICULES_NAMES[PARTICLE_SLOT_COUNT] = {"particule", "qy", "qy_fv", "burst", "ts"};
 
 static void write_remplissage(const char *path) {
     FILE *out = fopen(path, "w");
@@ -57,21 +57,21 @@ static void write_remplissage(const char *path) {
     for (int s = 0; s < PICO8_SORTE_COUNT; s++) {
         fprintf(out, "%s %d\n", SORTE_NAMES[s], pico8_zone_interface_vivantes((pico8_sorte_t)s));
     }
-    for (int s = 0; s < PICO8_PARTICULES_COUNT; s++) {
-        fprintf(out, "%s %d\n", PARTICULES_NAMES[s], pico8_zone_particules_vivantes((pico8_particules_sorte_t)s));
+    for (int s = 0; s < PARTICLE_SLOT_COUNT; s++) {
+        fprintf(out, "%s %d\n", PARTICULES_NAMES[s], particle_zone_live((particle_slot_kind_t)s));
     }
-    for (int s = 0; s < PICO8_PARTICULES_COUNT; s++) {
+    for (int s = 0; s < PARTICLE_SLOT_COUNT; s++) {
         fprintf(out, "max_vivantes %s %d\n", PARTICULES_NAMES[s],
-                pico8_zone_particules_max_vivantes((pico8_particules_sorte_t)s));
+                particle_zone_max_live((particle_slot_kind_t)s));
     }
-    for (int s = PICO8_PARTICULES_QY; s < PICO8_PARTICULES_COUNT; s++) {
+    for (int s = PARTICLE_SLOT_LIST; s < PARTICLE_SLOT_COUNT; s++) {
         fprintf(out, "max_octets %s %lu\n", PARTICULES_NAMES[s],
-                (unsigned long)pico8_zone_particules_max_octets((pico8_particules_sorte_t)s));
+                (unsigned long)particle_zone_max_bytes((particle_slot_kind_t)s));
     }
-    for (int s = PICO8_PARTICULES_QY; s < PICO8_PARTICULES_COUNT; s++) {
-        if (s == PICO8_PARTICULES_GA) continue;
+    for (int s = PARTICLE_SLOT_LIST; s < PARTICLE_SLOT_COUNT; s++) {
+        if (s == PARTICLE_SLOT_BURST) continue;
         fprintf(out, "max_elements %s %d\n", PARTICULES_NAMES[s],
-                pico8_zone_particules_max_elements((pico8_particules_sorte_t)s));
+                particle_zone_max_elements((particle_slot_kind_t)s));
     }
     fprintf(out, "partie %lu\n", (unsigned long)game_zone_used());
     fprintf(out, "max_octets partie %lu\n", (unsigned long)game_zone_max());

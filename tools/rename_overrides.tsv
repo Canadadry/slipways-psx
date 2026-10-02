@@ -715,7 +715,7 @@ name	pico8_nf_r	mouse_right_button	nf
 name	g_nf_l	g_left_button	nf
 name	g_nf_r	g_right_button	nf
 name	pico8_bu	mouse_button_update	bu
-name	pico8_ga_place_prendre	burst_slot_take	ga
+name	pico8_ga_place_prendre	particle_burst_slot_take	ga
 name	pico8_qy_rendre	emitter_release_particles	qy
 name	pico8_jo_kv	planet_kind_named	kv
 name	pico8_jo_set_oc	planet_set_type_picker	jo

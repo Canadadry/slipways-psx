@@ -22,37 +22,37 @@
 #include "p8/str.h"
 #include "engine/frame_zone.h"
 
-static int g_g__up = 0;
-static entity_t *g_fm = NULL;
+static int g_probe_up = 0;
+static entity_t *g_main_economy = NULL;
 
-static const entity_class_t g_fm_placeholder_struct_class = {0};
+static const entity_class_t g_main_economy_placeholder_class = {0};
 
-static pico8_fm_placeholder_t g_fm_placeholder = {
-    {.class = &g_fm_placeholder_struct_class}, 0, 0, 0, 0};
+static pico8_fm_placeholder_t g_main_economy_placeholder = {
+    {.class = &g_main_economy_placeholder_class}, 0, 0, 0, 0};
 
-static int bv_et_is_holder_class(const entity_class_t *cls) {
-    return cls->drag == pico8_bv_dispatch || cls == pico8_mz_struct_class();
+static int targeting_track_target_is_holder_class(const entity_class_t *cls) {
+    return cls->drag == targeting_track_method || cls == wormhole_class();
 }
 
-static const entity_class_t g_bv_et_struct_class = {0};
+static const entity_class_t g_targeting_track_target_class = {0};
 
 /* The `{}` `bv` puts in `et` over the void, off the panel: never allocated,
  * never freed; only `fo` is written, and the next `bv` overwrites it. */
-static pico8_bv_et_t g_bv_et = {{.class = &g_bv_et_struct_class}, NULL};
+static targeting_track_target_t g_targeting_track_target = {{.class = &g_targeting_track_target_class}, NULL};
 
-static int pico8_probe_to_int(p8_fixed_t x) {
+static int probe_to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
 }
 
 typedef struct {
-    vec_t self_p;
-} pico8_bv_ctx_t;
+    vec_t self_map_pos;
+} targeting_track_ctx_t;
 
-static int pico8_bv_jc_predicate(entity_t *e, void *ctx_ptr) {
-    const pico8_bv_ctx_t *ctx = (const pico8_bv_ctx_t *)ctx_ptr;
+static int targeting_track_slipway_predicate(entity_t *e, void *ctx_ptr) {
+    const targeting_track_ctx_t *ctx = (const targeting_track_ctx_t *)ctx_ptr;
     const slipway_t *sw;
-    vec_t qu_p;
-    vec_t re_p;
+    vec_t start_p;
+    vec_t end_p;
 
     if (e == NULL) {
         return 0;
@@ -60,15 +60,15 @@ static int pico8_bv_jc_predicate(entity_t *e, void *ctx_ptr) {
     assert(e->class == slipway_class() && "cg.jc holds slipways only");
     sw = (const slipway_t *)e;
 
-    qu_p = slipway_end_map_pos(sw->start);
-    re_p = slipway_end_map_pos(sw->end);
+    start_p = slipway_end_map_pos(sw->start);
+    end_p = slipway_end_map_pos(sw->end);
 
-    return geom_near_segment(qu_p, re_p, ctx->self_p, P8_FIXED_LIT(0x000000d1, 0.0032));
+    return geom_near_segment(start_p, end_p, ctx->self_map_pos, P8_FIXED_LIT(0x000000d1, 0.0032));
 }
 
 /* `hw` is read off the `ui` class, not off `ok`; no class reads as "the
  * point is not inside the panel". */
-static int pico8_probe_ui_hw_call(vec_t rp) {
+static int probe_panel_box_contains(vec_t rp) {
     const box_t *hw = pico8_ui_hw();
 
     if (hw == NULL) {
@@ -79,15 +79,15 @@ static int pico8_probe_ui_hw_call(vec_t rp) {
 
 /* `ra` and `p`, which a host of `bv` holds for itself: `g_`'s line, jo's
  * family (qh's line) or an `mz`. */
-static void probe_host_set_ra_p(entity_t *self, vec_t *ra, vec_t *p) {
-    pico8_g__t *g_;
+static void probe_host_set_positions(entity_t *self, vec_t *ra, vec_t *p) {
+    probe_t *g_;
     planet_t *jo;
-    pico8_mz_t *mz;
+    wormhole_t *mz;
 
     if (self->class->lineage & LINEAGE(LINEAGE_PROBE)) {
-        g_ = (pico8_g__t *)self;
-        g_->ra = ra;
-        g_->p = p;
+        g_ = (probe_t *)self;
+        g_->pos = ra;
+        g_->map_pos = p;
         return;
     }
     if (planet_is_family(self)) {
@@ -96,31 +96,31 @@ static void probe_host_set_ra_p(entity_t *self, vec_t *ra, vec_t *p) {
         jo->map_pos = p;
         return;
     }
-    assert(self->class == pico8_mz_struct_class() &&
+    assert(self->class == wormhole_class() &&
            "bv: a host neither of g_'s line, of jo's family nor an mz, none of whose hq runs bv -- stop");
-    mz = (pico8_mz_t *)self;
-    mz->ra = ra;
-    mz->p = p;
+    mz = (wormhole_t *)self;
+    mz->pos = ra;
+    mz->map_pos = p;
 }
 
 /* What `bv` aims at: `cg.np` (jo, and qh's tree: exactly the descriptors
  * holding `ly`), a `jc`, or the throwaway target. */
-static int g__is_target_class(const entity_class_t *cls) {
+static int probe_is_target_class(const entity_class_t *cls) {
     return cls->states[ENTITY_STATE_SETTLED] != NULL || cls == planet_class() ||
-           cls == slipway_class() || cls == pico8_bv_et_struct_class();
+           cls == slipway_class() || cls == targeting_track_target_class();
 }
 
-void pico8_probe_et_hang_fo(entity_t *et, entity_t *self) {
+void probe_link_target(entity_t *et, entity_t *self) {
     if (planet_is_family(et)) {
-        assert((self->class->drag == pico8_bv_dispatch || self->class == slipway_class()) &&
+        assert((self->class->drag == targeting_track_method || self->class == slipway_class()) &&
                "jo.fo: a write neither nil nor an object whose hq runs bv (g_, fv, qh, nl, os, hj, pm, nr, fr, mx) "
                "or a jc does not fit the member's type -- stop, do not widen the member");
         ((planet_t *)et)->targeted_by = self;
         return;
     }
     if (et->class == slipway_class()) {
-        assert((self->class->drag == pico8_bv_dispatch || self->class == slipway_class() ||
-                self->class == pico8_mz_struct_class()) &&
+        assert((self->class->drag == targeting_track_method || self->class == slipway_class() ||
+                self->class == wormhole_class()) &&
                "jc.fo: a write neither nil nor what hangs fo on a slipway (an object whose hq runs bv: g_, fv, qh, "
                "nl, os, hj, pm, nr, fr, mx; an mz; another jc) does not fit the member's type -- stop");
         ((slipway_t *)et)->targeted_by = self;
@@ -133,20 +133,20 @@ void pico8_probe_et_hang_fo(entity_t *et, entity_t *self) {
         ((slipway_too_far_t *)et)->targeted_by = (slipway_t *)self;
         return;
     }
-    assert(et == &g_bv_et.header && "bv: et is a planet, a jc or the static throwaway struct, nothing else");
-    assert(bv_et_is_holder_class(self->class) &&
+    assert(et == &g_targeting_track_target.header && "bv: et is a planet, a jc or the static throwaway struct, nothing else");
+    assert(targeting_track_target_is_holder_class(self->class) &&
            "bv_et.fo: a write neither nil nor an object whose hq runs bv (g_, fv, mz, qh, nl, os, hj, pm, nr, fr, "
            "mx) does not fit the member's type -- stop, do not widen the member");
-    g_bv_et.fo = self;
+    g_targeting_track_target.targeted_by = self;
 }
 
-void pico8_bv(entity_t *self, vec_t *mp, vec_t *rp) {
-    pico8_probe_t *probe;
-    vec_t mp_vec;
+void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
+    targeting_t *probe;
+    vec_t mouse_world_vec;
     vec_t p_vec;
-    p8_fixed_t nq;
-    entity_t *c;
-    entity_t *et;
+    p8_fixed_t distance;
+    entity_t *candidate;
+    entity_t *target;
 
     if (self == NULL) {
         return;
@@ -154,64 +154,64 @@ void pico8_bv(entity_t *self, vec_t *mp, vec_t *rp) {
     assert(self->targeting != NULL && "bv: a class that carries no probe is no receiver -- stop");
 
     probe = self->targeting;
-    mp_vec = mp != NULL ? *mp : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    p_vec = vec_div(mp_vec, p8_fixed_from_int(128));
-    probe->bv_ra = mp_vec;
-    probe->bv_p = p_vec;
-    probe_host_set_ra_p(self, mp != NULL ? &probe->bv_ra : NULL, &probe->bv_p);
+    mouse_world_vec = mouse_world != NULL ? *mouse_world : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    p_vec = vec_div(mouse_world_vec, p8_fixed_from_int(128));
+    probe->track_pos = mouse_world_vec;
+    probe->track_map_pos = p_vec;
+    probe_host_set_positions(self, mouse_world != NULL ? &probe->track_pos : NULL, &probe->track_map_pos);
 
-    c = NULL;
-    nq = entity_geom_nearest(p_vec, entities_by_tag("node"), &c);
+    candidate = NULL;
+    distance = entity_geom_nearest(p_vec, entities_by_tag("node"), &candidate);
 
-    et = NULL;
+    target = NULL;
 
-    if (nq < probe->def->attach_distance && c != NULL) {
-        et = c;
+    if (distance < probe->archetype->attach_distance && candidate != NULL) {
+        target = candidate;
     } else {
-        pico8_bv_ctx_t ctx;
+        targeting_track_ctx_t ctx;
         entity_list_t filtered;
         int have_first = 0;
         entity_t *first = NULL;
 
-        ctx.self_p = p_vec;
-        filtered = entity_list_filter(frame_zone(), entities_by_tag("slipway"), pico8_bv_jc_predicate, &ctx);
+        ctx.self_map_pos = p_vec;
+        filtered = entity_list_filter(frame_zone(), entities_by_tag("slipway"), targeting_track_slipway_predicate, &ctx);
         if (filtered.count > 0) {
             first = filtered.items[0];
             have_first = 1;
         }
 
         if (have_first && first != NULL) {
-            et = first;
+            target = first;
         } else {
-            vec_t rp_vec = rp != NULL ? *rp : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-            if (!pico8_probe_ui_hw_call(rp_vec)) {
-                et = &g_bv_et.header;
+            vec_t mouse_screen_vec = mouse_screen != NULL ? *mouse_screen : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+            if (!probe_panel_box_contains(mouse_screen_vec)) {
+                target = &g_targeting_track_target.header;
             } else {
-                et = NULL;
+                target = NULL;
             }
         }
     }
 
-    assert((et == NULL ||
-            g__is_target_class(et->class)) &&
+    assert((target == NULL ||
+            probe_is_target_class(target->class)) &&
            "bv: et is false or what bv aims at (a planet jo, qh, nl, os, hj, pm, nr, fr, mx, a jc, or the static "
            "throwaway struct), never a bare table");
-    probe->et = et;
+    probe->target = target;
 
-    if (probe->et != NULL) {
-        pico8_probe_et_hang_fo(probe->et, self);
+    if (probe->target != NULL) {
+        probe_link_target(probe->target, self);
     }
 }
 
-void pico8_bv_dispatch(entity_t *self, vec_t *qa, vec_t *ra) {
-    pico8_bv(self, qa, ra);
+void targeting_track_method(entity_t *self, vec_t *qa, vec_t *ra) {
+    targeting_track(self, qa, ra);
 }
 
 /* `qs` of `dl`'s target: `mz.jj` and `jc:ce`'s "too far" struct have one;
  * any other target (a planet, a `jc`, the throwaway) reads as absent, NULL. */
-static const char *probe_et_qs(const entity_t *et) {
-    if (et->class == pico8_mz_jj_struct_class()) {
-        return ((const pico8_mz_jj_t *)et)->qs;
+static const char *probe_target_status_text(const entity_t *et) {
+    if (et->class == wormhole_too_far_target_class()) {
+        return ((const wormhole_too_far_target_t *)et)->status_text;
     }
     if (et->class == slipway_too_far_class()) {
         return ((const slipway_too_far_t *)et)->status_text;
@@ -219,16 +219,16 @@ static const char *probe_et_qs(const entity_t *et) {
     return NULL;
 }
 
-void pico8_dl(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self) {
+void targeting_tooltip(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self) {
     if (self == NULL) {
         return;
     }
     assert(self->targeting != NULL && "dl: a class that carries no probe is no receiver -- stop");
 
-    pico8_dl_show(gfx, mem, self->state, self->targeting);
+    targeting_tooltip_show(gfx, mem, self->state, self->targeting);
 }
 
-void pico8_dl_show(const p8_graphics_t *gfx, p8_memory_t *mem, const char *me, const pico8_probe_t *pb) {
+void targeting_tooltip_show(const p8_graphics_t *gfx, p8_memory_t *mem, const char *me, const targeting_t *pb) {
     vec_t mp;
     const pico8_nf_t *je;
     const char *display = "";
@@ -240,18 +240,18 @@ void pico8_dl_show(const p8_graphics_t *gfx, p8_memory_t *mem, const char *me, c
     je = pico8_je_nf();
     mp = je != NULL && je->ra != NULL ? *je->ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 
-    if (pb->et != NULL) {
-        const char *qs = probe_et_qs(pb->et);
+    if (pb->target != NULL) {
+        const char *qs = probe_target_status_text(pb->target);
         if (qs != NULL) {
             display = qs;
         } else {
             if (gfx != NULL && mem != NULL) {
-                p8_spr_default(gfx, mem, 31, pico8_probe_to_int(p8_fixed_sub(mp.x, p8_fixed_from_int(3))),
-                                   pico8_probe_to_int(p8_fixed_sub(mp.y, p8_fixed_from_int(8))));
+                p8_spr_default(gfx, mem, 31, probe_to_int(p8_fixed_sub(mp.x, p8_fixed_from_int(3))),
+                                   probe_to_int(p8_fixed_sub(mp.y, p8_fixed_from_int(8))));
             }
         }
-    } else if (pb->has_od) {
-        display = p8_concat2(frame_zone(), p8_tostr_fixed(frame_zone(), pb->od), "$");
+    } else if (pb->has_cost) {
+        display = p8_concat2(frame_zone(), p8_tostr_fixed(frame_zone(), pb->cost), "$");
     }
 
     if (gfx != NULL && mem != NULL) {
@@ -260,23 +260,23 @@ void pico8_dl_show(const p8_graphics_t *gfx, p8_memory_t *mem, const char *me, c
     }
 }
 
-void pico8_dl_dispatch(entity_t *self, const vec_t *ra) {
+void targeting_tooltip_method(entity_t *self, const vec_t *ra) {
     (void)ra;
-    pico8_dl(dispatch_context_gfx(), dispatch_context_mem(), self);
+    targeting_tooltip(dispatch_context_gfx(), dispatch_context_mem(), self);
 }
 
 /* Raises `p_`, which a host of `d_` holds for itself: `g_`'s line, jo's
  * family (qh's line), a `jc` or an `mz`. */
-static void probe_host_raise_p_(entity_t *self) {
+static void probe_host_raise_is_dead(entity_t *self) {
     assert(self->is_dead != NULL && "d_: a host that carries no p_, none of whose ey runs d_ -- stop");
     *self->is_dead = 1;
 }
 
-int pico8_d_(entity_t *self) {
-    const pico8_probe_t *probe;
-    int has_et;
+int targeting_confirm(entity_t *self) {
+    const targeting_t *probe;
+    int has_target;
     pico8_hy_t *fm;
-    int lu_ok = 0;
+    int spend_ok = 0;
 
     if (self == NULL) {
         return 0;
@@ -284,213 +284,213 @@ int pico8_d_(entity_t *self) {
     assert(self->targeting != NULL && "d_: a class that carries no probe is no receiver -- stop");
 
     probe = self->targeting;
-    has_et = probe->et != NULL;
+    has_target = probe->target != NULL;
 
-    fm = pico8_fm_hy();
-    if (!has_et) {
-        lu_ok = pico8_hy_lu(fm, probe->has_od ? probe->od : p8_fixed_from_int(0));
+    fm = main_economy_typed();
+    if (!has_target) {
+        spend_ok = pico8_hy_lu(fm, probe->has_cost ? probe->cost : p8_fixed_from_int(0));
     }
 
-    assert((!has_et || !lu_ok) && "d_: fm:lu must stay short-circuited when et is set");
+    assert((!has_target || !spend_ok) && "d_: fm:lu must stay short-circuited when et is set");
 
-    if (!has_et && lu_ok) {
-        entity_set_state(self, probe->def->confirmed_state != NULL ? probe->def->confirmed_state : "normal");
+    if (!has_target && spend_ok) {
+        entity_set_state(self, probe->archetype->confirmed_state != NULL ? probe->archetype->confirmed_state : "normal");
 
-        pico8_hy_nx(pico8_fm_hy(), probe->def->clock_ticks);
+        pico8_hy_nx(main_economy_typed(), probe->archetype->clock_ticks);
 
-        p8_play_sfx(probe->def->has_status_sprite ? probe->def->status_sprite : p8_fixed_from_int(54));
+        p8_play_sfx(probe->archetype->has_status_sprite ? probe->archetype->status_sprite : p8_fixed_from_int(54));
 
         return 1;
     }
 
     p8_play_sfx(p8_fixed_from_int(57));
-    probe_host_raise_p_(self);
+    probe_host_raise_is_dead(self);
     return 0;
 }
 
-void pico8_d__dispatch(entity_t *self, entity_t *kv) {
+void targeting_confirm_method(entity_t *self, entity_t *kv) {
     (void)kv;
-    (void)pico8_d_(self);
+    (void)targeting_confirm(self);
 }
 
-pico8_qy_t *pico8_g__mm(entity_t *self) {
-    const pico8_emitter_t *emitter = NULL;
-    p8_fixed_t pn = 0, t = 0, du = 0, py = 0, ki = 0;
+particle_t *probe_spawn_particle(entity_t *self) {
+    const emitter_t *emitter = NULL;
+    p8_fixed_t angle_slices = 0, state_time = 0, base_radius = 0, speed_factor = 0, lifetime = 0;
     int pk = 0;
-    p8_fixed_t a, rnd_pn, rnd_half;
+    p8_fixed_t a, rnd_angle_slices, rnd_half;
     vec_t p, v;
-    pico8_qy_t *particle;
+    particle_t *particle;
 
     if (self != NULL) {
         assert(self->emitter != NULL && "g_.mm: a class that carries no particle emitter has no mm -- stop");
         emitter = self->emitter;
-        pn = emitter->pn;
-        t = self->state_time;
-        du = emitter->du;
-        py = emitter->py;
-        ki = emitter->def->lifetime;
-        pk = emitter->def->quarter_turn != 0;
+        angle_slices = emitter->angle_slices;
+        state_time = self->state_time;
+        base_radius = emitter->base_radius;
+        speed_factor = emitter->speed_factor;
+        lifetime = emitter->archetype->lifetime;
+        pk = emitter->archetype->quarter_turn != 0;
     }
 
     /* Two statements, not two arguments: C leaves argument order unspecified
      * (gcc drew rnd(0.5) first), Lua draws rnd(self.pn) first. */
-    rnd_pn = p8_fixed_rnd(pn);
+    rnd_angle_slices = p8_fixed_rnd(angle_slices);
     rnd_half = p8_fixed_rnd(P8_FIXED_LIT(0x00008000, 0.5));
     a = p8_fixed_add(
-        p8_fixed_div(p8_fixed_add(p8_fixed_flr(rnd_pn), rnd_half), pn),
-        p8_fixed_mul(t, P8_FIXED_LIT(0x00000041, 0.001)));
+        p8_fixed_div(p8_fixed_add(p8_fixed_flr(rnd_angle_slices), rnd_half), angle_slices),
+        p8_fixed_mul(state_time, P8_FIXED_LIT(0x00000041, 0.001)));
 
-    p = vec_from_polar(p8_fixed_add(du, p8_fixed_rnd_default()), a);
-    v = vec_mul(p, py);
+    p = vec_from_polar(p8_fixed_add(base_radius, p8_fixed_rnd_default()), a);
+    v = vec_mul(p, speed_factor);
 
     if (pk) {
         v = vec_perpendicular(v);
     }
 
-    particle = pico8_particule_prendre();
-    particle->p = p;
-    particle->v = v;
-    particle->has_a = 0;
-    particle->a = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    particle->l = ki;
+    particle = particle_take();
+    particle->pos = p;
+    particle->velocity = v;
+    particle->has_acceleration = 0;
+    particle->acceleration = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    particle->life = lifetime;
 
     return particle;
 }
 
-void pico8_g__rendre_dispatch(entity_t *self) {
-    const pico8_g__t *g_ = (const pico8_g__t *)self;
+void probe_release_method(entity_t *self) {
+    const probe_t *g_ = (const probe_t *)self;
 
-    pico8_qy_rendre(self->emitter);
-    if (g_->prise != NULL && (self->state == NULL || strcmp(self->state, "settled") != 0)) {
-        planet_grab_arena_arena_released(g_->prise);
+    emitter_release_particles(self->emitter);
+    if (g_->grab_arena != NULL && (self->state == NULL || strcmp(self->state, "settled") != 0)) {
+        planet_grab_arena_arena_released(g_->grab_arena);
     }
 }
 
-static const entity_class_t g_g__struct_class = {
-    .draw = pico8_ei_dispatch,
-    .draw_overlay = pico8_dl_dispatch,
-    .drag = pico8_bv_dispatch,
-    .drop = pico8_d__dispatch,
-    .spawn_particle = pico8_g__mm,
-    .release = pico8_g__rendre_dispatch,
+static const entity_class_t g_probe_class = {
+    .draw = emitter_update_method,
+    .draw_overlay = targeting_tooltip_method,
+    .drag = targeting_track_method,
+    .drop = targeting_confirm_method,
+    .spawn_particle = probe_spawn_particle,
+    .release = probe_release_method,
     .tags = TAG(TAG_PROBE) | TAG(TAG_TARGETING),
     .lineage = LINEAGE(LINEAGE_PROBE),
 };
 
-void pico8_g__struct_init(pico8_g__t *self, const entity_class_t *cls, const probe_archetype_t *def) {
-    entity_init_instance(&self->header, cls, def->state, def->state_time);
-    self->def = def;
-    self->header.layer = &self->def->layer;
-    self->header.pos = &self->ra;
-    self->header.map_pos = &self->p;
-    self->header.fold_anchor = &self->def->fold_anchor;
-    self->header.is_dead = &self->p_;
+void probe_init_instance(probe_t *self, const entity_class_t *cls, const probe_archetype_t *archetype) {
+    entity_init_instance(&self->header, cls, archetype->state, archetype->state_time);
+    self->archetype = archetype;
+    self->header.layer = &self->archetype->layer;
+    self->header.pos = &self->pos;
+    self->header.map_pos = &self->map_pos;
+    self->header.fold_anchor = &self->archetype->fold_anchor;
+    self->header.is_dead = &self->is_dead;
     self->header.emitter = &self->emitter_own;
     self->header.targeting = &self->probe_own;
     self->emitter = &self->emitter_own;
-    self->emitter->def = &self->def->emitter;
-    self->emitter->qy = NULL;
-    self->ra = self->def->has_pos ? &self->def->pos : NULL;
-    self->p = NULL;
-    self->probe = &self->probe_own;
-    self->probe->def = &self->def->targeting;
-    self->probe->et = NULL;
-    self->p_ = 0;
-    self->prise = NULL;
-    self->probe->od = self->def->targeting.cost;
-    self->probe->has_od = self->def->targeting.has_cost;
-    self->emitter->py = self->def->emitter.speed_factor;
-    self->emitter->pn = self->def->emitter.angle_slices;
-    self->emitter->k_ = self->def->emitter.trail_colors;
-    self->emitter->qo = self->def->emitter.matrix_xx;
-    self->emitter->ro = self->def->emitter.matrix_xy;
-    self->emitter->qg = self->def->emitter.matrix_yx;
-    self->emitter->q_ = self->def->emitter.matrix_yy;
-    self->emitter->du = self->def->emitter.base_radius;
+    self->emitter->archetype = &self->archetype->emitter;
+    self->emitter->particles = NULL;
+    self->pos = self->archetype->has_pos ? &self->archetype->pos : NULL;
+    self->map_pos = NULL;
+    self->targeting = &self->probe_own;
+    self->targeting->archetype = &self->archetype->targeting;
+    self->targeting->target = NULL;
+    self->is_dead = 0;
+    self->grab_arena = NULL;
+    self->targeting->cost = self->archetype->targeting.cost;
+    self->targeting->has_cost = self->archetype->targeting.has_cost;
+    self->emitter->speed_factor = self->archetype->emitter.speed_factor;
+    self->emitter->angle_slices = self->archetype->emitter.angle_slices;
+    self->emitter->trail_colors = self->archetype->emitter.trail_colors;
+    self->emitter->matrix_xx = self->archetype->emitter.matrix_xx;
+    self->emitter->matrix_xy = self->archetype->emitter.matrix_xy;
+    self->emitter->matrix_yx = self->archetype->emitter.matrix_yx;
+    self->emitter->matrix_yy = self->archetype->emitter.matrix_yy;
+    self->emitter->base_radius = self->archetype->emitter.base_radius;
 }
 
-static pico8_g__t *pico8_g__struct_new(const pico8_g__keys_t *keys) {
-    pico8_g__t *self;
+static probe_t *probe_create(const probe_keys_t *keys) {
+    probe_t *self;
 
-    assert(g_g__up && "pico8_probe_init() must run first");
+    assert(g_probe_up && "pico8_probe_init() must run first");
     planet_grab_arena_open();
-    self = (pico8_g__t *)allocator_alloc(planet_zone_construction(), sizeof *self);
-    pico8_g__struct_init(self, &g_g__struct_class, &probe_archetype);
-    self->prise = planet_zone_construction();
+    self = (probe_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
+    probe_init_instance(self, &g_probe_class, &probe_archetype);
+    self->grab_arena = planet_zone_construction();
     planet_grab_arena_close();
     if (keys != NULL) {
-        self->header.state_time = keys->t;
-        if (keys->has_pn) {
-            self->emitter->pn = keys->pn;
+        self->header.state_time = keys->state_time;
+        if (keys->has_angle_slices) {
+            self->emitter->angle_slices = keys->angle_slices;
         }
-        if (keys->has_du) {
-            self->emitter->du = keys->du;
+        if (keys->has_base_radius) {
+            self->emitter->base_radius = keys->base_radius;
         }
-        if (keys->has_py) {
-            self->emitter->py = keys->py;
+        if (keys->has_speed_factor) {
+            self->emitter->speed_factor = keys->speed_factor;
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("probe");
 #endif
-    pico8_f_((entity_t *)self);
+    emitter_init((entity_t *)self);
     entity_construct(&self->header);
     return self;
 }
 
-void pico8_probe_init(void) {
-    pico8_probe_shutdown();
+void probe_init(void) {
+    probe_shutdown();
 
-    g_g__up = 1;
+    g_probe_up = 1;
 
-    g_fm_placeholder.jk = 0;
-    g_fm_placeholder.has_jk = 0;
-    g_fm_placeholder.nz = 0;
-    g_fm_placeholder.has_nz = 0;
-    g_fm = (entity_t *)&g_fm_placeholder;
+    g_main_economy_placeholder.jk = 0;
+    g_main_economy_placeholder.has_jk = 0;
+    g_main_economy_placeholder.nz = 0;
+    g_main_economy_placeholder.has_nz = 0;
+    g_main_economy = (entity_t *)&g_main_economy_placeholder;
 }
 
-void pico8_probe_shutdown(void) {
-    g_g__up = 0;
-    g_fm = NULL;
+void probe_shutdown(void) {
+    g_probe_up = 0;
+    g_main_economy = NULL;
 }
 
-int pico8_g__ready(void) {
-    return g_g__up;
+int probe_ready(void) {
+    return g_probe_up;
 }
 
-const entity_class_t *pico8_g__struct_class(void) {
-    return &g_g__struct_class;
+const entity_class_t *probe_class(void) {
+    return &g_probe_class;
 }
 
-pico8_g__t *pico8_g__new(const pico8_g__keys_t *keys) {
-    return pico8_g__struct_new(keys);
+probe_t *probe_new(const probe_keys_t *keys) {
+    return probe_create(keys);
 }
 
-const entity_class_t *pico8_fm_placeholder_struct_class(void) {
-    return &g_fm_placeholder_struct_class;
+const entity_class_t *main_economy_placeholder_class(void) {
+    return &g_main_economy_placeholder_class;
 }
 
-entity_t *pico8_fm(void) {
-    return g_fm;
+entity_t *main_economy(void) {
+    return g_main_economy;
 }
 
-pico8_hy_t *pico8_fm_hy(void) {
-    if (g_fm == NULL || g_fm == &g_fm_placeholder.header) {
+pico8_hy_t *main_economy_typed(void) {
+    if (g_main_economy == NULL || g_main_economy == &g_main_economy_placeholder.header) {
         return NULL;
     }
-    assert(g_fm->class == pico8_hy_struct_class() && "fm: only the provisional or a hy is ever stored");
-    return (pico8_hy_t *)g_fm;
+    assert(g_main_economy->class == pico8_hy_struct_class() && "fm: only the provisional or a hy is ever stored");
+    return (pico8_hy_t *)g_main_economy;
 }
 
-const pico8_fm_placeholder_t *pico8_fm_placeholder(void) {
-    return g_fm == &g_fm_placeholder.header ? &g_fm_placeholder : NULL;
+const pico8_fm_placeholder_t *main_economy_placeholder(void) {
+    return g_main_economy == &g_main_economy_placeholder.header ? &g_main_economy_placeholder : NULL;
 }
 
-void pico8_probe_set_fm(entity_t *instance) {
-    g_fm = instance;
+void probe_set_main_economy(entity_t *instance) {
+    g_main_economy = instance;
 }
 
-const entity_class_t *pico8_bv_et_struct_class(void) {
-    return &g_bv_et_struct_class;
+const entity_class_t *targeting_track_target_class(void) {
+    return &g_targeting_track_target_class;
 }

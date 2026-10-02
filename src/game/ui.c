@@ -331,7 +331,7 @@ void pico8_ui_gw(p8_memory_t *mem, pico8_ui_t *self) {
 }
 
 static int ui_is_held_class(const entity_class_t *cls) {
-    return cls == slipway_class() || cls == pico8_g__struct_class() || cls == pico8_mz_struct_class() ||
+    return cls == slipway_class() || cls == probe_class() || cls == wormhole_class() ||
            (cls->states[ENTITY_STATE_SETTLED] != NULL && cls != pico8_pm_struct_class());
 }
 

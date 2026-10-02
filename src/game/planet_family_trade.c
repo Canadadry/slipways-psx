@@ -159,15 +159,15 @@ static void slipgate_offer_trade_method(entity_t *self, struct trade_offer *lw) 
 
 static const entity_class_t g_slipgate_class = {
     .draw = planet_draw_method,
-    .draw_overlay = pico8_dl_dispatch,
+    .draw_overlay = targeting_tooltip_method,
     .hit_test = planet_hit_test_method,
     .new_year = planet_new_year_method,
     .refresh = slipgate_refresh_method,
     .release = planet_release_method,
     .left_press = slipgate_left_press_method,
     .accept_drop = slipgate_accept_drop_method,
-    .drag = pico8_bv_dispatch,
-    .drop = pico8_d__dispatch,
+    .drag = targeting_track_method,
+    .drop = targeting_confirm_method,
     .attach_slipway = planet_attach_slipway_method,
     .offer_trade = slipgate_offer_trade_method,
     .states =
@@ -213,15 +213,15 @@ static planet_t *slipgate_create(const planet_keys_t *keys) {
 
 static const entity_class_t g_infraspace_gate_class = {
     .draw = planet_draw_method,
-    .draw_overlay = pico8_dl_dispatch,
+    .draw_overlay = targeting_tooltip_method,
     .hit_test = planet_hit_test_method,
     .new_year = planet_new_year_method,
     .refresh = slipgate_refresh_method,
     .release = planet_release_method,
     .left_press = slipgate_left_press_method,
     .accept_drop = slipgate_accept_drop_method,
-    .drag = pico8_bv_dispatch,
-    .drop = pico8_d__dispatch,
+    .drag = targeting_track_method,
+    .drop = targeting_confirm_method,
     .attach_slipway = planet_attach_slipway_method,
     .offer_trade = slipgate_offer_trade_method,
     .states =
@@ -306,18 +306,18 @@ static void synthesizer_attach_slipway_method(entity_t *self, entity_t *sw) {
 
 static const entity_class_t g_synthesizer_class = {
     .draw = pico8_hj_kj_dispatch,
-    .draw_overlay = pico8_dl_dispatch,
+    .draw_overlay = targeting_tooltip_method,
     .hit_test = planet_hit_test_method,
     .new_year = planet_new_year_method,
     .refresh = planet_refresh_method,
     .release = pico8_hj_rendre_dispatch,
     .left_press = planet_left_press_method,
     .accept_drop = planet_accept_drop_method,
-    .drag = pico8_bv_dispatch,
-    .drop = pico8_d__dispatch,
+    .drag = targeting_track_method,
+    .drop = targeting_confirm_method,
     .attach_slipway = synthesizer_attach_slipway_method,
     .offer_trade = planet_offer_trade_method,
-    .spawn_particle = pico8_g__mm,
+    .spawn_particle = probe_spawn_particle,
     .states =
         {
             [ENTITY_STATE_VANISHING] = planet_update_vanishing_method,
@@ -344,7 +344,7 @@ static planet_t *synthesizer_create(const planet_keys_t *keys) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("synthesizer");
 #endif
-    pico8_f_((entity_t *)self);
+    emitter_init((entity_t *)self);
     planet_construct(self);
     entity_construct(&self->header);
     return self;

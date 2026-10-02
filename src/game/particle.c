@@ -10,101 +10,101 @@
 #include "engine/vec.h"
 #include "game/particle_zone.h"
 
-typedef char pico8_qy_fits_its_place[sizeof(pico8_qy_t) <= PICO8_PARTICULE_PLACE ? 1 : -1];
+typedef char particle_fits_its_slot_t[sizeof(particle_t) <= PARTICLE_SLOT ? 1 : -1];
 
 /* `fa`, and `ra` into `*ra` (the zero vector when nil), of the host of `ei`. */
-static p8_fixed_t emitter_host_fa_ra(const entity_t *self, vec_t *ra) {
+static p8_fixed_t emitter_host_layer_pos(const entity_t *self, vec_t *ra) {
     assert(self->layer != NULL && self->pos != NULL &&
            "ei: a host that carries no fa or no ra, none of whose kj runs ei -- stop");
     *ra = *self->pos != NULL ? **self->pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     return *self->layer;
 }
 
-static int pico8_particle_to_int(p8_fixed_t x) {
+static int particle_to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
 }
 
-pico8_qy_t *pico8_particule_prendre(void) {
-    return (pico8_qy_t *)allocator_alloc(pico8_zone_particules(PICO8_PARTICULES_PARTICULE), sizeof(pico8_qy_t));
+particle_t *particle_take(void) {
+    return (particle_t *)allocator_alloc(particle_zone(PARTICLE_SLOT_PARTICLE), sizeof(particle_t));
 }
 
-const allocator_t *pico8_ga_place_prendre(void) {
-    return pico8_zone_particules_place(PICO8_PARTICULES_GA);
+const allocator_t *particle_burst_slot_take(void) {
+    return particle_zone_slot(PARTICLE_SLOT_BURST);
 }
 
-void pico8_f_(entity_t *self) {
-    pico8_f__dans(self, PICO8_PARTICULES_QY);
+void emitter_init(entity_t *self) {
+    emitter_init_in(self, PARTICLE_SLOT_LIST);
 }
 
-void pico8_f__dans(entity_t *self, pico8_particules_sorte_t sorte) {
-    const allocator_t *place;
-    pico8_emitter_t *emitter;
+void emitter_init_in(entity_t *self, particle_slot_kind_t slot_kind) {
+    const allocator_t *slot;
+    emitter_t *emitter;
     pointer_list_t *qy;
 
     if (self == NULL) {
         return;
     }
     assert(self->emitter != NULL && "f_: a class that carries no particle emitter has no `qy` -- stop");
-    assert((sorte == PICO8_PARTICULES_QY || sorte == PICO8_PARTICULES_QY_FV) && "f_: a qy list is a qy or a qy_fv");
+    assert((slot_kind == PARTICLE_SLOT_LIST || slot_kind == PARTICLE_SLOT_HELP_LIST) && "f_: a qy list is a qy or a qy_fv");
 
     emitter = self->emitter;
-    pico8_qy_rendre(emitter);
-    place = pico8_zone_particules_place(sorte);
-    qy = (pointer_list_t *)allocator_alloc(place, sizeof *qy);
-    pointer_list_init_reserve(qy, place,
-                            sorte == PICO8_PARTICULES_QY_FV ? PICO8_QY_FV_CAPACITE : PICO8_QY_CAPACITE);
-    emitter->qy = qy;
-    emitter->qy_sorte = sorte;
+    emitter_release_particles(emitter);
+    slot = particle_zone_slot(slot_kind);
+    qy = (pointer_list_t *)allocator_alloc(slot, sizeof *qy);
+    pointer_list_init_reserve(qy, slot,
+                            slot_kind == PARTICLE_SLOT_HELP_LIST ? PARTICLES_HELP_SCREEN_CAPACITY : PARTICLES_CAPACITY);
+    emitter->particles = qy;
+    emitter->particles_slot_kind = slot_kind;
 }
 
-void pico8_qy_rendre(pico8_emitter_t *emitter) {
-    pointer_list_t *qy = emitter->qy;
-    const allocator_t *particules = pico8_zone_particules(PICO8_PARTICULES_PARTICULE);
+void emitter_release_particles(emitter_t *emitter) {
+    pointer_list_t *qy = emitter->particles;
+    const allocator_t *particle = particle_zone(PARTICLE_SLOT_PARTICLE);
     int i;
 
     if (qy == NULL) {
         return;
     }
     for (i = 0; i < qy->count; i++) {
-        allocator_release(particules, qy->items[i]);
+        allocator_release(particle, qy->items[i]);
     }
     /* The list lives in its own arena: `qy` dies with it. */
     arena_release(qy->zone);
-    emitter->qy = NULL;
+    emitter->particles = NULL;
 }
 
-void pico8_ez(entity_t *self, p8_fixed_t n) {
-    pico8_emitter_t *emitter;
+void emitter_spawn(entity_t *self, p8_fixed_t n) {
+    emitter_t *emitter;
     pointer_list_t *qy;
 
     if (self == NULL) {
         return;
     }
     emitter = self->emitter;
-    qy = emitter != NULL ? emitter->qy : NULL;
+    qy = emitter != NULL ? emitter->particles : NULL;
 
     while (p8_fixed_rnd_default() < n) {
         if (qy != NULL && self->class->spawn_particle != NULL) {
             pointer_list_add(qy, self->class->spawn_particle(self));
-            pico8_zone_particules_noter_elements(emitter->qy_sorte, qy->count);
+            particle_zone_record_elements(emitter->particles_slot_kind, qy->count);
         }
         n = p8_fixed_sub(n, p8_fixed_from_int(1));
     }
 }
 
-void pico8_ei(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self) {
-    const pico8_emitter_t *emitter;
-    p8_fixed_t fa;
-    vec_t ra;
-    p8_fixed_t cx;
-    p8_fixed_t cy;
-    p8_fixed_t qo;
-    p8_fixed_t qg;
-    p8_fixed_t ro;
-    p8_fixed_t q_;
-    const int_seq_t *cs;
-    pointer_list_t *qy;
-    int i;
+void emitter_update(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self) {
+    const emitter_t *emitter;
+    p8_fixed_t layer;
+    vec_t pos;
+    p8_fixed_t center_x;
+    p8_fixed_t center_y;
+    p8_fixed_t matrix_xx;
+    p8_fixed_t matrix_yx;
+    p8_fixed_t matrix_xy;
+    p8_fixed_t matrix_yy;
+    const int_seq_t *colors;
+    pointer_list_t *particles;
+    int index;
 
     if (self == NULL) {
         return;
@@ -112,58 +112,58 @@ void pico8_ei(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self) {
     assert(self->emitter != NULL && "ei: a class that carries no particle emitter is no receiver -- stop");
 
     emitter = self->emitter;
-    fa = emitter_host_fa_ra(self, &ra);
-    if (fa < p8_fixed_from_int(10) && !entity_geom_is_on_screen(self)) {
+    layer = emitter_host_layer_pos(self, &pos);
+    if (layer < p8_fixed_from_int(10) && !entity_geom_is_on_screen(self)) {
         return;
     }
 
-    cx = ra.x;
-    cy = ra.y;
-    qo = emitter->qo;
-    qg = emitter->qg;
-    ro = emitter->ro;
-    q_ = emitter->q_;
-    cs = emitter->k_;
+    center_x = pos.x;
+    center_y = pos.y;
+    matrix_xx = emitter->matrix_xx;
+    matrix_yx = emitter->matrix_yx;
+    matrix_xy = emitter->matrix_xy;
+    matrix_yy = emitter->matrix_yy;
+    colors = emitter->trail_colors;
 
-    qy = emitter->qy;
-    if (qy != NULL) {
-        for (i = 0; i < qy->count; i++) {
-            pico8_qy_t *p = qy->items[i];
+    particles = emitter->particles;
+    if (particles != NULL) {
+        for (index = 0; index < particles->count; index++) {
+            particle_t *particle = particles->items[index];
             vec_t pv;
 
-            if (p == NULL) {
+            if (particle == NULL) {
                 continue;
             }
-            pv = p->v;
+            pv = particle->velocity;
 
-            p->p = vec_add(p->p, pv);
+            particle->pos = vec_add(particle->pos, pv);
 
-            p->v.x = p8_fixed_add(p8_fixed_mul(qo, pv.x), p8_fixed_mul(ro, pv.y));
+            particle->velocity.x = p8_fixed_add(p8_fixed_mul(matrix_xx, pv.x), p8_fixed_mul(matrix_xy, pv.y));
             /* In Lua `pv` aliases `p.v`, so the second row reads the x
              * just written. Passing the snapshot's `pv.x` here instead
              * would be a silent divergence. */
-            p->v.y = p8_fixed_add(p8_fixed_mul(qg, p->v.x), p8_fixed_mul(q_, pv.y));
+            particle->velocity.y = p8_fixed_add(p8_fixed_mul(matrix_yx, particle->velocity.x), p8_fixed_mul(matrix_yy, pv.y));
 
-            if (p->has_a) {
-                p->v = vec_add(p->v, p->a);
+            if (particle->has_acceleration) {
+                particle->velocity = vec_add(particle->velocity, particle->acceleration);
             }
 
-            p->l = p8_fixed_sub(p->l, P8_FIXED_LIT(0x000023d7, 0.14));
+            particle->life = p8_fixed_sub(particle->life, P8_FIXED_LIT(0x000023d7, 0.14));
 
-            if (p->l <= p8_fixed_from_int(1)) {
+            if (particle->life <= p8_fixed_from_int(1)) {
                 /* The Lua loop is `pairs()`, not `all()`: the element
                  * that slides into the vacated slot is skipped this
                  * frame. Reproduced by never compensating the index. */
-                pointer_list_del(qy, p);
-                allocator_release(pico8_zone_particules(PICO8_PARTICULES_PARTICULE), (unsigned char *)p);
+                pointer_list_del(particles, particle);
+                allocator_release(particle_zone(PARTICLE_SLOT_PARTICLE), (unsigned char *)particle);
             } else {
-                int px = pico8_particle_to_int(p8_fixed_add(cx, p->p.x));
-                int py = pico8_particle_to_int(p8_fixed_add(cy, p->p.y));
+                int px = particle_to_int(p8_fixed_add(center_x, particle->pos.x));
+                int py = particle_to_int(p8_fixed_add(center_y, particle->pos.y));
                 int col = 0;
-                int idx = pico8_particle_to_int(p8_fixed_flr(p->l));
+                int idx = particle_to_int(p8_fixed_flr(particle->life));
 
-                if (cs != NULL) {
-                    int_seq_at(cs->items, cs->count, idx, &col);
+                if (colors != NULL) {
+                    int_seq_at(colors->items, colors->count, idx, &col);
                 }
 
                 p8_pset(gfx, mem, px, py, col);
@@ -171,10 +171,10 @@ void pico8_ei(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self) {
         }
     }
 
-    pico8_ez(self, emitter->def->spawn_rate);
+    emitter_spawn(self, emitter->archetype->spawn_rate);
 }
 
-void pico8_ei_dispatch(entity_t *self, const vec_t *ra) {
+void emitter_update_method(entity_t *self, const vec_t *ra) {
     (void)ra;
-    pico8_ei(dispatch_context_gfx(), dispatch_context_mem(), self);
+    emitter_update(dispatch_context_gfx(), dispatch_context_mem(), self);
 }

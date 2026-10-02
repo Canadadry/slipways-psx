@@ -22,39 +22,39 @@
 #include "game/probe.h"
 #include "engine/vec.h"
 
-static pico8_g__t *new_probe(p8_fixed_t pn, p8_fixed_t t, p8_fixed_t du, p8_fixed_t py) {
-    pico8_g__keys_t keys = {0};
+static probe_t *new_probe(p8_fixed_t pn, p8_fixed_t t, p8_fixed_t du, p8_fixed_t py) {
+    probe_keys_t keys = {0};
 
-    keys.has_pn = 1;
-    keys.pn = pn;
-    keys.t = t;
-    keys.has_du = 1;
-    keys.du = du;
-    keys.has_py = 1;
-    keys.py = py;
-    return pico8_g__new(&keys);
+    keys.has_angle_slices = 1;
+    keys.angle_slices = pn;
+    keys.state_time = t;
+    keys.has_base_radius = 1;
+    keys.base_radius = du;
+    keys.has_speed_factor = 1;
+    keys.speed_factor = py;
+    return probe_new(&keys);
 }
 
-static vec_t emitted_particle_p(pico8_g__t *probe) {
+static vec_t emitted_particle_pos(probe_t *probe) {
     void *particle;
-    const pico8_qy_t *q;
+    const particle_t *q;
     pointer_list_iter_t it;
 
-    pico8_ez((entity_t *)probe, p8_fixed_from_int(1));
+    emitter_spawn((entity_t *)probe, p8_fixed_from_int(1));
 
-    assert(probe->emitter != NULL && probe->emitter->qy != NULL);
-    it = pointer_list_all(probe->emitter->qy);
+    assert(probe->emitter != NULL && probe->emitter->particles != NULL);
+    it = pointer_list_all(probe->emitter->particles);
     assert(pointer_list_iter_next(&it, &particle) && particle != NULL);
     q = particle;
-    return q->p;
+    return q->pos;
 }
 
-static void test_probe_particle_draws_rnd_pn_before_rnd_half(void) {
-    p8_fixed_t pn = p8_fixed_from_int(7);
-    p8_fixed_t t = p8_fixed_from_int(3);
-    p8_fixed_t du = p8_fixed_from_int(10);
-    p8_fixed_t py = p8_fixed_from_int(1);
-    pico8_g__t *probe;
+static void test_probe_particle_draws_rnd_angle_slices_before_rnd_half(void) {
+    p8_fixed_t angle_slices = p8_fixed_from_int(7);
+    p8_fixed_t state_time = p8_fixed_from_int(3);
+    p8_fixed_t base_radius = p8_fixed_from_int(10);
+    p8_fixed_t speed_factor = p8_fixed_from_int(1);
+    probe_t *probe;
     int fds[2];
     pid_t child;
     int status;
@@ -66,8 +66,8 @@ static void test_probe_particle_draws_rnd_pn_before_rnd_half(void) {
 
     entity_registry_init();
     entity_init();
-    pico8_probe_init();
-    probe = new_probe(pn, t, du, py);
+    probe_init();
+    probe = new_probe(angle_slices, state_time, base_radius, speed_factor);
     assert(probe != NULL);
 
     assert(pipe(fds) == 0);
@@ -75,7 +75,7 @@ static void test_probe_particle_draws_rnd_pn_before_rnd_half(void) {
     child = fork();
     assert(child >= 0);
     if (child == 0) {
-        vec_t p = emitted_particle_p(probe);
+        vec_t p = emitted_particle_pos(probe);
         close(fds[0]);
         _exit(write(fds[1], &p, sizeof p) == (ssize_t)sizeof p ? 0 : 1);
     }
@@ -86,21 +86,21 @@ static void test_probe_particle_draws_rnd_pn_before_rnd_half(void) {
 
     /* ez's loop test `rnd()<n`, then lua.lua:727-728 in Lua's order. */
     (void)p8_fixed_rnd_default();
-    first = p8_fixed_rnd(pn);
+    first = p8_fixed_rnd(angle_slices);
     second = p8_fixed_rnd(P8_FIXED_LIT(0x00008000, 0.5));
-    a = p8_fixed_add(p8_fixed_div(p8_fixed_add(p8_fixed_flr(first), second), pn),
-                        p8_fixed_mul(t, P8_FIXED_LIT(0x00000041, 0.001)));
-    want = vec_from_polar(p8_fixed_add(du, p8_fixed_rnd_default()), a);
+    a = p8_fixed_add(p8_fixed_div(p8_fixed_add(p8_fixed_flr(first), second), angle_slices),
+                        p8_fixed_mul(state_time, P8_FIXED_LIT(0x00000041, 0.001)));
+    want = vec_from_polar(p8_fixed_add(base_radius, p8_fixed_rnd_default()), a);
 
     if (got.x != want.x || got.y != want.y) {
-        fprintf(stderr, "g_:mm particle p = (%08x,%08x), cart order gives (%08x,%08x)\n", (unsigned)got.x,
+        fprintf(stderr, "probe:spawn_particle particle pos = (%08x,%08x), cart order gives (%08x,%08x)\n", (unsigned)got.x,
                 (unsigned)got.y, (unsigned)want.x, (unsigned)want.y);
     }
     assert(got.x == want.x && got.y == want.y);
 }
 
 int main(void) {
-    test_probe_particle_draws_rnd_pn_before_rnd_half();
-    printf("test_pico8_probe_mm_rnd_order: ok\n");
+    test_probe_particle_draws_rnd_angle_slices_before_rnd_half();
+    printf("test_probe_spawn_particle_order: ok\n");
     return 0;
 }

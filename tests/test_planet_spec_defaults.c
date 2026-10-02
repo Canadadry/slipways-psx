@@ -51,17 +51,17 @@ static void assert_planet_box(const box_t *kq) {
 /* The members of qh every class below it inherits, its probe's archetype, and
  * the probe's init literals. */
 static void assert_structure_tail(const planet_t *qh, const planet_archetype_t *archetype) {
-    assert(qh->targeting->def == &archetype->targeting);
+    assert(qh->targeting->archetype == &archetype->targeting);
     assert(qh->development_tier == archetype->development_tier && qh->has_development_tier == 1);
-    assert(qh->targeting->has_od == 1 && qh->targeting->def->status_sprite == 0 && qh->targeting->def->has_status_sprite == 0);
+    assert(qh->targeting->has_cost == 1 && qh->targeting->archetype->status_sprite == 0 && qh->targeting->archetype->has_status_sprite == 0);
 }
 
 /* The emitter of an ascension, pm or mx, and its archetype. */
-static void assert_emitter(const pico8_emitter_t *em, const planet_archetype_t *archetype) {
-    assert(em->def == &archetype->emitter);
-    assert(em->py == archetype->emitter.speed_factor && em->pn == archetype->emitter.angle_slices && em->k_ == archetype->emitter.trail_colors);
-    assert(em->du == archetype->emitter.base_radius && em->qo == archetype->emitter.matrix_xx && em->ro == archetype->emitter.matrix_xy);
-    assert(em->qg == archetype->emitter.matrix_yx && em->q_ == archetype->emitter.matrix_yy);
+static void assert_emitter(const emitter_t *em, const planet_archetype_t *archetype) {
+    assert(em->archetype == &archetype->emitter);
+    assert(em->speed_factor == archetype->emitter.speed_factor && em->angle_slices == archetype->emitter.angle_slices && em->trail_colors == archetype->emitter.trail_colors);
+    assert(em->base_radius == archetype->emitter.base_radius && em->matrix_xx == archetype->emitter.matrix_xx && em->matrix_xy == archetype->emitter.matrix_xy);
+    assert(em->matrix_yx == archetype->emitter.matrix_yx && em->matrix_yy == archetype->emitter.matrix_yy);
 }
 
 static void test_planet_defaults(void) {
@@ -83,7 +83,7 @@ static void test_structure_defaults(void) {
 
     assert(pico8_qh_ready());
     assert_same_string(qh->header.state, structure_archetype.state);
-    assert(qh->targeting->od == structure_archetype.targeting.cost);
+    assert(qh->targeting->cost == structure_archetype.targeting.cost);
     assert(qh->sprite == structure_archetype.sprite);
     assert_structure_tail(qh, &structure_archetype);
     assert_planet_box(&qh->archetype->hit_box);
@@ -95,7 +95,7 @@ static void test_trading_hub_defaults(void) {
 
     assert(pico8_nl_ready());
     assert(nl->sprite == trading_hub_archetype.sprite);
-    assert(nl->targeting->od == trading_hub_archetype.targeting.cost);
+    assert(nl->targeting->cost == trading_hub_archetype.targeting.cost);
     assert(nl->palette_block == trading_hub_archetype.palette_block);
     assert_same_string(nl->header.state, trading_hub_archetype.state);
     assert_structure_tail(nl, &trading_hub_archetype);
@@ -108,7 +108,7 @@ static void test_processor_defaults(void) {
 
     assert(pico8_os_ready());
     assert(os->sprite == processor_archetype.sprite);
-    assert(os->targeting->od == processor_archetype.targeting.cost);
+    assert(os->targeting->cost == processor_archetype.targeting.cost);
     assert_same_string(os->header.state, processor_archetype.state);
     assert_structure_tail(os, &processor_archetype);
     assert_planet_box(&os->archetype->hit_box);
@@ -119,7 +119,7 @@ static void test_ascension_defaults(void) {
     planet_t *hj = pico8_hj_new(NULL);
 
     assert(pico8_hj_ready());
-    assert(hj->targeting->od == ascension_archetype.targeting.cost);
+    assert(hj->targeting->cost == ascension_archetype.targeting.cost);
     assert(hj->sprite == ascension_archetype.sprite);
     assert_emitter(hj->emitter, &ascension_archetype);
     assert_same_string(hj->header.state, ascension_archetype.state);
@@ -135,7 +135,7 @@ static void test_protostar_defaults(void) {
     assert_same_string(pm->header.state, protostar_archetype.state);
     assert(pm->sprite == protostar_archetype.sprite);
     assert_emitter(pm->emitter, &protostar_archetype);
-    assert(pm->targeting->od == protostar_archetype.targeting.cost);
+    assert(pm->targeting->cost == protostar_archetype.targeting.cost);
     assert_structure_tail(pm, &protostar_archetype);
     assert_planet_box(&pm->archetype->hit_box);
     assert_planet_tail(pm, &protostar_archetype);
@@ -147,14 +147,14 @@ static void test_burst_defaults(void) {
 
     assert(pico8_ga_ready());
     assert(ga->outgoing_routes != NULL && ga->outgoing_routes == other->outgoing_routes);
-    assert(ga->emitter->def == &burst_archetype.emitter);
-    assert(ga->emitter->qo == burst_archetype.emitter.matrix_xx);
-    assert(ga->emitter->ro == burst_archetype.emitter.matrix_xy);
-    assert(ga->emitter->qg == burst_archetype.emitter.matrix_yx);
-    assert(ga->emitter->q_ == burst_archetype.emitter.matrix_yy);
-    assert(ga->emitter->k_ == burst_archetype.emitter.trail_colors);
+    assert(ga->emitter->archetype == &burst_archetype.emitter);
+    assert(ga->emitter->matrix_xx == burst_archetype.emitter.matrix_xx);
+    assert(ga->emitter->matrix_xy == burst_archetype.emitter.matrix_xy);
+    assert(ga->emitter->matrix_yx == burst_archetype.emitter.matrix_yx);
+    assert(ga->emitter->matrix_yy == burst_archetype.emitter.matrix_yy);
+    assert(ga->emitter->trail_colors == burst_archetype.emitter.trail_colors);
     assert(ga->acceleration_factor == burst_archetype.acceleration_factor);
-    assert(ga->emitter->py == burst_archetype.emitter.speed_factor);
+    assert(ga->emitter->speed_factor == burst_archetype.emitter.speed_factor);
     assert(ga->speed == burst_archetype.speed);
     assert_box(&ga->archetype->hit_box, 0, 0, -1, -1);
     assert_same_string(ga->header.state, ga->archetype->state);
@@ -168,7 +168,7 @@ static void test_burst_defaults(void) {
 
 /* What nr and fr inherit from qh and jo, and nr's box, which fr keeps. */
 static void assert_slipgate_inherited(const planet_t *nr, const planet_archetype_t *archetype) {
-    assert(nr->targeting->od == archetype->targeting.cost);
+    assert(nr->targeting->cost == archetype->targeting.cost);
     assert(nr->sprite == archetype->sprite);
     assert_box(&nr->archetype->hit_box, -4, -4, 5, 5);
     assert_same_string(nr->header.state, archetype->state);
@@ -195,7 +195,7 @@ static void test_synthesizer_defaults(void) {
 
     assert(synthesizer_ready());
     assert(mx->sprite == synthesizer_archetype.sprite);
-    assert(mx->targeting->od == synthesizer_archetype.targeting.cost);
+    assert(mx->targeting->cost == synthesizer_archetype.targeting.cost);
     assert(mx->synthesizable_resources == synthesizer_archetype.synthesizable_resources);
     assert_emitter(mx->emitter, &synthesizer_archetype);
     assert_same_string(mx->header.state, synthesizer_archetype.state);

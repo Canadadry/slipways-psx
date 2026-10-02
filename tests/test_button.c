@@ -557,7 +557,7 @@ static void built_panel(void) {
  * some techs affordable, some too dear. */
 static void tech_screen(void) {
     start_game();
-    pico8_fm_hy()->jk = p8_fixed_from_int(5);
+    main_economy_typed()->jk = p8_fixed_from_int(5);
     pico8_cr();
     one_frame();
 }
@@ -567,8 +567,8 @@ static void game_end(void) {
     entity_t *ju;
 
     start_game();
-    pico8_fm_hy()->hl = "final score";
-    pico8_fm_hy()->has_hl = 1;
+    main_economy_typed()->hl = "final score";
+    main_economy_typed()->has_hl = 1;
     ju = (entity_t *)pico8_ju();
     assert(ju->class->states[ENTITY_STATE_NORMAL] != NULL);
     ju->class->states[ENTITY_STATE_NORMAL](ju, p8_fixed_from_int(0));
@@ -653,8 +653,8 @@ static void test_pause(void) {
 }
 
 static void invent(char *rr) {
-    assert(pico8_fm_hy() != NULL && pico8_fm_hy()->invented != NULL);
-    pointer_list_add(pico8_fm_hy()->invented, rr);
+    assert(main_economy_typed() != NULL && main_economy_typed()->invented != NULL);
+    pointer_list_add(main_economy_typed()->invented, rr);
 }
 
 static void test_research(void) {
@@ -963,11 +963,11 @@ static void test_cr_my(void) {
         }
     }
     assert(i < le->count);
-    assert(pico8_fm_hy() != NULL);
-    invented = pico8_fm_hy()->invented;
+    assert(main_economy_typed() != NULL);
+    invented = main_economy_typed()->invented;
     h = fnv(h, (uint32_t)invented->count);
     call_my(le->items[i]);
-    invented = pico8_fm_hy()->invented;
+    invented = main_economy_typed()->invented;
     h = fnv(h, (uint32_t)invented->count);
     assert(invented->count >= 1);
     last = invented->items[invented->count - 1];
@@ -1677,8 +1677,8 @@ static void test_cb_writes_every_e_(void) {
     int i;
 
     start_game();
-    pico8_fm_hy()->jk = p8_fixed_from_int(12);
-    jk = pico8_fm_hy()->jk;
+    main_economy_typed()->jk = p8_fixed_from_int(12);
+    jk = main_economy_typed()->jk;
     kept = pico8_cb(0);
     for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
         const technologies_entry_t *t = &technologies_table[i];
@@ -1693,7 +1693,7 @@ static void test_cb_writes_every_e_(void) {
         dropped_affordable += affordable && !is_kept;
     }
     assert(dropped_affordable > 0);
-    pico8_fm_hy()->jk = p8_fixed_from_int(999);
+    main_economy_typed()->jk = p8_fixed_from_int(999);
     (void)pico8_cb(0);
     for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
         assert(pico8_nb_e_(&technologies_table[i]) == 1);
@@ -1891,7 +1891,7 @@ static void test_largest_buttons_fit_their_places(void) {
     int i;
 
     start_game();
-    fm = pico8_fm_hy();
+    fm = main_economy_typed();
     fm->jk = p8_fixed_from_int(9999);
     for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
         fm->ew = p8_fixed_from_int(technologies_table[i].era);

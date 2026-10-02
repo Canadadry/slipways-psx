@@ -125,7 +125,7 @@ PTRS_NON_ENTITE="pico8_hy_t.invented planet_t.needs pico8_hp_t.i slipway_t.trans
 # enregistrements jy (planet_display.c:54) ; pico8_jp_ptrs et pico8_la_ptrs
 # sur des enregistrements jy (planet_display.c:186, planet_trade.c:128), les
 # listes d'entites passant par pico8_jp_ents et pico8_ents_cat.
-REGISTRES_NON_ENTITE="pico8_emitter_t.qy planet_inspection_panel_ctx_t.unmet_needs collect_map_pointer_list collect_contains_string pico8_jo_ex collect_filter_pointer_list collect_concat_pointer_list"
+REGISTRES_NON_ENTITE="emitter_t.particles planet_inspection_panel_ctx_t.unmet_needs collect_map_pointer_list collect_contains_string pico8_jo_ex collect_filter_pointer_list collect_concat_pointer_list"
 
 # En-tetes du noyau, par chemin relatif a src/ : noyau-inclut ne lit qu'eux.
 NOYAU="engine/entity_class.h engine/entity.h engine/entity_registry.h"

@@ -126,8 +126,8 @@ void pico8_eg(void) {
 }
 
 void pico8_pj_hb(void) {
-    const pico8_hy_t *fm = pico8_fm_hy();
-    const pico8_fm_placeholder_t *provisional = pico8_fm_placeholder();
+    const pico8_hy_t *fm = main_economy_typed();
+    const pico8_fm_placeholder_t *provisional = main_economy_placeholder();
     p8_fixed_t fm_ge = fm != NULL ? fm->ge : p8_fixed_from_int(0);
     p8_fixed_t fm_nz = p8_fixed_from_int(0);
     data_item_t fm_jk = {.is_ref = 1};

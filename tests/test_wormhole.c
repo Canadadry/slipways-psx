@@ -44,13 +44,13 @@
  * (TROU-5). */
 #define SETTLE_TICKS 120
 
-#define OX_HASH 0xC6D8AF55u
-#define HQ_HASH 0x9DAA980Cu
-#define KZ_TICKS 21
-#define KZ_HASH 0xE16D1D52u
-#define EY_HASH 0x86F499FFu
-#define PR_HASH 0x85EB1EC6u
-#define PR_EXIT_TICK 27
+#define ANCHORS_HASH 0xC6D8AF55u
+#define DRAG_HASH 0x9DAA980Cu
+#define UPDATE_PLACING_TICKS 21
+#define UPDATE_PLACING_HASH 0xE16D1D52u
+#define DROP_HASH 0x86F499FFu
+#define UPDATE_UNFOLDING_HASH 0x85EB1EC6u
+#define UPDATE_UNFOLDING_EXIT_TICK 27
 #define DRAW_HASH 0xD124A50Cu
 
 static p8_memory_t mem;
@@ -73,7 +73,7 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int ents_rank_in(const entity_list_t *list, const void *e) {
+static int entity_list_rank_in(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -83,27 +83,27 @@ static int ents_rank_in(const entity_list_t *list, const void *e) {
     return -1;
 }
 
-static int ents_listed(const entity_list_t *list, const void *e) {
-    return ents_rank_in(list, e) >= 0;
+static int entity_list_listed(const entity_list_t *list, const void *e) {
+    return entity_list_rank_in(list, e) >= 0;
 }
 
-static int is_me(const entity_t *ke, const char *want) {
+static int is_state(const entity_t *ke, const char *want) {
     return ke->state != NULL && strcmp(ke->state, want) == 0;
 }
 
-static pico8_mz_t *as_mz(void *e) {
+static wormhole_t *as_wormhole(void *e) {
     assert(e != NULL &&
-           ((const entity_t *)e)->class == pico8_mz_struct_class());
+           ((const entity_t *)e)->class == wormhole_class());
     return e;
 }
 
-static slipway_t *as_jc(void *e) {
+static slipway_t *as_slipway(void *e) {
     assert(e != NULL &&
            ((const entity_t *)e)->class == slipway_class());
     return e;
 }
 
-static planet_t *as_jo(void *e) {
+static planet_t *as_planet(void *e) {
     assert(planet_is_family(e));
     return e;
 }
@@ -117,8 +117,8 @@ static uint32_t fold_vec(uint32_t h, const vec_t *p) {
 }
 
 /* 0 absent or false, 2 true. */
-static uint32_t p__state(const pico8_mz_t *mz) {
-    return mz->p_ ? 2 : 0;
+static uint32_t is_dead_state(const wormhole_t *mz) {
+    return mz->is_dead ? 2 : 0;
 }
 
 static uint32_t fold_string(uint32_t h, const char *s) {
@@ -128,42 +128,42 @@ static uint32_t fold_string(uint32_t h, const char *s) {
     return fnv_str(h, s);
 }
 
-enum { TARGET_ABSENT, TARGET_FALSE, ET_JJ, TARGET_SLIPWAY, ET_JO, ET_THROWAWAY, TARGET_OTHER };
+enum { TARGET_ABSENT, TARGET_FALSE, TARGET_TOO_FAR_TARGET, TARGET_SLIPWAY, TARGET_PLANET, TARGET_THROWAWAY, TARGET_OTHER };
 
-static int is_bv_target(const void *e) {
+static int is_targeting_track_target(const void *e) {
     return e != NULL &&
-           ((const entity_t *)e)->class == pico8_bv_et_struct_class();
+           ((const entity_t *)e)->class == targeting_track_target_class();
 }
 
 /* The throwaway target's `fo`, NULL when absent. */
-static const void *bv_et_fo(const void *t) {
-    assert(is_bv_target(t));
-    return ((const pico8_bv_et_t *)t)->fo;
+static const void *targeting_track_target_targeted_by(const void *t) {
+    assert(is_targeting_track_target(t));
+    return ((const targeting_track_target_t *)t)->targeted_by;
 }
 
-static int et_kind(const pico8_mz_t *mz) {
-    const void *et = mz->probe->et;
+static int target_kind(const wormhole_t *mz) {
+    const void *et = mz->targeting->target;
 
     if (et == NULL) {
         return TARGET_FALSE;
     }
-    if (et == (const void *)pico8_mz_jj_wrapper()) {
-        return ET_JJ;
+    if (et == (const void *)wormhole_too_far_target_wrapper()) {
+        return TARGET_TOO_FAR_TARGET;
     }
-    if (ents_listed(entities_by_tag("slipway"), et)) {
+    if (entity_list_listed(entities_by_tag("slipway"), et)) {
         return TARGET_SLIPWAY;
     }
-    if (ents_listed(entities_by_tag("planet"), et)) {
-        return ET_JO;
+    if (entity_list_listed(entities_by_tag("planet"), et)) {
+        return TARGET_PLANET;
     }
-    if (is_bv_target(et)) {
-        return ET_THROWAWAY;
+    if (is_targeting_track_target(et)) {
+        return TARGET_THROWAWAY;
     }
     return TARGET_OTHER;
 }
 
 static p8_fixed_t credits(void) {
-    const pico8_hy_t *hy = pico8_fm_hy();
+    const pico8_hy_t *hy = main_economy_typed();
     assert(hy != NULL);
     return hy->nz;
 }
@@ -190,7 +190,7 @@ static void start_game(void) {
 }
 
 static vec_t pos_of(void *e) {
-    const planet_t *jo = as_jo(e);
+    const planet_t *jo = as_planet(e);
     assert(jo->map_pos != NULL);
     return *jo->map_pos;
 }
@@ -205,7 +205,7 @@ static p8_fixed_t dist2(vec_t a, vec_t b) {
  * `ok.o_`. */
 static void world(void) {
     const entity_list_t *jos;
-    slipway_keys_t jc_keys = {0};
+    slipway_keys_t slipway_keys = {0};
     vec_t *mp = malloc(sizeof *mp);
     void *qu;
     void *re = NULL;
@@ -225,8 +225,8 @@ static void world(void) {
     planet_apply_project(qu, pico8_hp_new(NULL));
     planet_apply_project(re, pico8_hp_new(NULL));
 
-    jc_keys.start = qu;
-    jc = slipway_new(&jc_keys);
+    slipway_keys.start = qu;
+    jc = slipway_new(&slipway_keys);
     *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
                         vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
@@ -242,8 +242,8 @@ static void world(void) {
     }
 }
 
-static pico8_mz_t *build_mz(void) {
-    return pico8_mz_new();
+static wormhole_t *build_wormhole(void) {
+    return wormhole_new();
 }
 
 static vec_t *vec_ref(int x, int y) {
@@ -258,28 +258,28 @@ static vec_t *vec_ref_fixed(vec_t at) {
     return v;
 }
 
-static void hq(void *mz, vec_t *mp, vec_t *rp) {
-    pico8_mz_struct_class()->drag(mz, mp, rp);
+static void drag(void *mz, vec_t *mp, vec_t *rp) {
+    wormhole_class()->drag(mz, mp, rp);
 }
 
-static void ey(void *mz) {
-    pico8_mz_struct_class()->drop(mz, NULL);
+static void drop(void *mz) {
+    wormhole_class()->drop(mz, NULL);
 }
 
 /* `dg` skips the entity after one it takes out of `hv` (TROU-5): count
  * ticks by `t`, not by calls. */
-static void until_t(const pico8_mz_t *mz, int t) {
+static void until_state_time(const wormhole_t *mz, int t) {
     while (mz->header.state_time < p8_fixed_from_int(t)) {
         update_entities();
     }
 }
 
-static planet_t *first_jo_with_me(const char *me) {
+static planet_t *first_planet_with_state(const char *me) {
     const entity_list_t *list = entities_by_tag("planet");
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        planet_t *jo = as_jo(list->items[i]);
-        if (is_me(&jo->header, me)) {
+        planet_t *jo = as_planet(list->items[i]);
+        if (is_state(&jo->header, me)) {
             return jo;
         }
     }
@@ -294,41 +294,41 @@ static vec_t slipway_mid(slipway_t *jc) {
 
 /* A fresh `mz`: the spec's defaults, ke's `t`, nothing written yet but
  * `ox`, registered like any `ke` entity with `kj` and `ev`. */
-static void check_fresh_mz(void *e) {
-    const pico8_mz_t *mz = as_mz(e);
+static void check_fresh_wormhole(void *e) {
+    const wormhole_t *mz = as_wormhole(e);
     const int_seq_t *kk;
-    const pico8_mz_jj_t *jj;
-    static const int want_kk[9] = {7, 7, 6, 13, 5, 1, 1, 1, 0};
+    const wormhole_too_far_target_t *jj;
+    static const int want_color_ramp[9] = {7, 7, 6, 13, 5, 1, 1, 1, 0};
     int i;
 
-    assert(is_me(&mz->header, "placing"));
+    assert(is_state(&mz->header, "placing"));
     assert(mz->header.state_time == 0);
-    assert(mz->probe->def->attach_distance == 0);
-    assert(mz->probe->def->confirmed_state != NULL && strcmp(mz->probe->def->confirmed_state, "unfolding") == 0);
-    assert(mz->def->spawn_snd == p8_fixed_from_int(52));
-    assert(mz->probe->def->status_sprite == p8_fixed_from_int(49) && mz->probe->def->has_status_sprite == 1);
-    assert(mz->oi == 0);
-    assert(mz->probe->od == p8_fixed_from_int(3));
-    assert(mz->probe->def->clock_ticks == p8_fixed_from_int(1));
-    assert(mz->def->layer == p8_fixed_from_int(5));
-    assert(mz->header.layer == &mz->def->layer);
+    assert(mz->targeting->archetype->attach_distance == 0);
+    assert(mz->targeting->archetype->confirmed_state != NULL && strcmp(mz->targeting->archetype->confirmed_state, "unfolding") == 0);
+    assert(mz->archetype->spawn_snd == p8_fixed_from_int(52));
+    assert(mz->targeting->archetype->status_sprite == p8_fixed_from_int(49) && mz->targeting->archetype->has_status_sprite == 1);
+    assert(mz->radius == 0);
+    assert(mz->targeting->cost == p8_fixed_from_int(3));
+    assert(mz->targeting->archetype->clock_ticks == p8_fixed_from_int(1));
+    assert(mz->archetype->layer == p8_fixed_from_int(5));
+    assert(mz->header.layer == &mz->archetype->layer);
 
-    kk = mz->def->color_ramp;
+    kk = mz->archetype->color_ramp;
     assert(kk == &wormhole_color_ramp_seq && kk->count == 9);
     for (i = 0; i < 9; i++) {
-        assert(kk->items[i] == want_kk[i]);
+        assert(kk->items[i] == want_color_ramp[i]);
     }
     assert(mz->header.class->tags == TAG(TAG_WORMHOLE));
-    jj = mz->jj;
-    assert(jj != NULL && jj->qs != NULL && strcmp(jj->qs, "-too far-") == 0);
-    assert(pico8_mz_jj_wrapper() == jj);
+    jj = mz->too_far_target;
+    assert(jj != NULL && jj->status_text != NULL && strcmp(jj->status_text, "-too far-") == 0);
+    assert(wormhole_too_far_target_wrapper() == jj);
 
-    assert(mz->ra == NULL && mz->p == NULL && mz->probe->et == NULL && mz->ij == NULL && !mz->p_);
-    assert(mz->ox != NULL);
+    assert(mz->pos == NULL && mz->map_pos == NULL && mz->targeting->target == NULL && mz->anchor == NULL && !mz->is_dead);
+    assert(mz->anchors != NULL);
 
-    assert(ents_listed(live_entities(), mz) && ents_listed(entities_by_message("draw"), mz) && ents_listed(entities_by_message("draw_overlay"), mz));
-    assert(ents_listed(entities_by_tag("wormhole"), mz));
-    assert(!ents_listed(entities_by_message("hit_test"), mz) && !ents_listed(entities_by_message("new_year"), mz) && !ents_listed(entities_by_message("refresh"), mz));
+    assert(entity_list_listed(live_entities(), mz) && entity_list_listed(entities_by_message("draw"), mz) && entity_list_listed(entities_by_message("draw_overlay"), mz));
+    assert(entity_list_listed(entities_by_tag("wormhole"), mz));
+    assert(!entity_list_listed(entities_by_message("hit_test"), mz) && !entity_list_listed(entities_by_message("new_year"), mz) && !entity_list_listed(entities_by_message("refresh"), mz));
 }
 
 static void test_construction(void) {
@@ -342,37 +342,37 @@ static void test_construction(void) {
     before = mzs == NULL ? 0 : mzs->count;
     made = pico8_bg_ldown(NULL);
     assert(made.stop && made.held != NULL);
-    assert(ents_listed(entities_by_tag("probe"), made.held));
+    assert(entity_list_listed(entities_by_tag("probe"), made.held));
     mzs = entities_by_tag("wormhole");
     assert((mzs == NULL ? 0 : mzs->count) == before);
 
     made = pico8_bg_ldown(NULL);
     assert(made.stop && made.held != NULL);
-    check_fresh_mz(made.held);
-    check_fresh_mz(build_mz());
-    check_fresh_mz(pico8_mz_new());
+    check_fresh_wormhole(made.held);
+    check_fresh_wormhole(build_wormhole());
+    check_fresh_wormhole(wormhole_new());
 }
 
-static uint32_t fold_ox(uint32_t h, const pico8_mz_t *mz) {
+static uint32_t fold_anchors(uint32_t h, const wormhole_t *mz) {
     const entity_list_t *ox;
     int i;
 
-    assert(mz->ox != NULL);
-    ox = mz->ox;
+    assert(mz->anchors != NULL);
+    ox = mz->anchors;
     h = fnv(h, (uint32_t)ox->count);
     for (i = 0; i < ox->count; i++) {
-        h = fnv(h, (uint32_t)ents_rank_in(live_entities(), ox->items[i]));
+        h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), ox->items[i]));
     }
     return h;
 }
 
 /* `ox` holds the `fx` entities of `hv` in its order, never an `mz`. */
-static void test_ox(void) {
+static void test_anchors(void) {
     uint32_t h = 2166136261u;
-    pico8_mz_t *first;
-    pico8_mz_t *second;
+    wormhole_t *first;
+    wormhole_t *second;
     planet_t *unlit = NULL;
-    pico8_g__t *probe;
+    probe_t *probe;
     planet_t *lit;
     const entity_list_t *jos;
     int i;
@@ -380,29 +380,29 @@ static void test_ox(void) {
     world();
     jos = entities_by_tag("planet");
     for (i = 0; unlit == NULL && jos != NULL && i < jos->count; i++) {
-        planet_t *jo = as_jo(jos->items[i]);
+        planet_t *jo = as_planet(jos->items[i]);
         if (jo->fold_anchor == 0) {
             unlit = jo;
         }
     }
     assert(unlit != NULL);
-    first = build_mz();
-    h = fold_ox(h, first);
-    second = build_mz();
-    h = fold_ox(h, second);
-    assert(second->ox != NULL);
-    assert(!ents_listed(second->ox, first) && !ents_listed(second->ox, unlit));
-    printf("[ox] %d entries\n", second->ox->count);
-    assert(second->ox->count > 0);
-    check("ox", h, OX_HASH);
+    first = build_wormhole();
+    h = fold_anchors(h, first);
+    second = build_wormhole();
+    h = fold_anchors(h, second);
+    assert(second->anchors != NULL);
+    assert(!entity_list_listed(second->anchors, first) && !entity_list_listed(second->anchors, unlit));
+    printf("[anchors] %d entries\n", second->anchors->count);
+    assert(second->anchors->count > 0);
+    check("anchors", h, ANCHORS_HASH);
 
     /* A probe's `fx` is a fixed, true in Lua even at 0: it joins `ox`. */
-    probe = pico8_g__new(NULL);
-    assert(ents_listed(build_mz()->ox, probe));
+    probe = probe_new(NULL);
+    assert(entity_list_listed(build_wormhole()->anchors, probe));
 
     lit = pico8_qh_new(NULL);
     lit->fold_anchor = p8_fixed_from_int(1);
-    assert(ents_listed(build_mz()->ox, lit));
+    assert(entity_list_listed(build_wormhole()->anchors, lit));
 }
 
 /* Bytes a registry has taken from the generation: capacities 4, 8, ... up
@@ -424,69 +424,69 @@ static size_t generation_but_registries(void) {
 /* A built `mz` takes one grab arena, `ox` reserved to the exact count;
  * once given back, the next `mz` takes that arena again. */
 static void test_arena(void) {
-    pico8_mz_t *mz;
+    wormhole_t *mz;
     size_t before;
     int i;
 
     world();
     pico8_cart_vider_file_sortie();
     assert(!game_zone_pending());
-    build_mz();
+    build_wormhole();
     before = generation_but_registries();
-    mz = build_mz();
-    printf("[arena] generation +%lu, ox %d/%d\n", (unsigned long)(generation_but_registries() - before),
-           mz->ox->count, mz->ox->capacity);
+    mz = build_wormhole();
+    printf("[arena] generation +%lu, anchors %d/%d\n", (unsigned long)(generation_but_registries() - before),
+           mz->anchors->count, mz->anchors->capacity);
     assert(generation_but_registries() == before + PLANET_GRAB_ARENA_BYTES);
-    assert(mz->ox->count > 0 && mz->ox->count == mz->ox->capacity);
-    for (i = 1; i < mz->ox->count; i++) {
-        assert(ents_rank_in(live_entities(), mz->ox->items[i - 1]) < ents_rank_in(live_entities(), mz->ox->items[i]));
+    assert(mz->anchors->count > 0 && mz->anchors->count == mz->anchors->capacity);
+    for (i = 1; i < mz->anchors->count; i++) {
+        assert(entity_list_rank_in(live_entities(), mz->anchors->items[i - 1]) < entity_list_rank_in(live_entities(), mz->anchors->items[i]));
     }
 
-    ey(mz);
-    assert(mz->p_);
+    drop(mz);
+    assert(mz->is_dead);
     update_entities();
-    assert(!ents_listed(live_entities(), mz));
+    assert(!entity_list_listed(live_entities(), mz));
     pico8_cart_vider_file_sortie();
     before = generation_but_registries();
-    build_mz();
+    build_wormhole();
     assert(generation_but_registries() == before && "a dead mz gives its grab arena back to the next grab");
 }
 
 /* The `fo` of the `mz`'s `et`, a slipway or the throwaway. */
-static const void *et_fo(const pico8_mz_t *mz) {
-    entity_t *et = mz->probe->et;
+static const void *target_targeted_by(const wormhole_t *mz) {
+    entity_t *et = mz->targeting->target;
 
     assert(et != NULL);
     if (et->class == slipway_class()) {
         return ((const slipway_t *)et)->targeted_by;
     }
-    return bv_et_fo(et);
+    return targeting_track_target_targeted_by(et);
 }
 
-static uint32_t fold_hq(uint32_t h, const pico8_mz_t *mz, int want_kind) {
-    const entity_t *et = mz->probe->et;
-    int kind = et_kind(mz);
+static uint32_t fold_drag(uint32_t h, const wormhole_t *mz, int want_kind) {
+    const entity_t *et = mz->targeting->target;
+    int kind = target_kind(mz);
 
-    printf("[hq] et kind %d\n", kind);
+    printf("[drag] target kind %d\n", kind);
     fflush(stdout);
     assert(kind == want_kind);
-    assert(mz->header.pos == &mz->ra && mz->header.map_pos == &mz->p);
-    h = fold_vec(h, mz->ra);
-    h = fold_vec(h, mz->p);
+    assert(mz->header.pos == &mz->pos && mz->header.map_pos == &mz->map_pos);
+    h = fold_vec(h, mz->pos);
+    h = fold_vec(h, mz->map_pos);
     h = fnv(h, (uint32_t)kind);
     if (et != NULL) {
-        if (et->class == pico8_mz_jj_struct_class() && ((const pico8_mz_jj_t *)et)->qs != NULL) {
-            h = fnv_str(h, ((const pico8_mz_jj_t *)et)->qs);
+        if (et->class == wormhole_too_far_target_class() && ((const wormhole_too_far_target_t *)et)->status_text != NULL) {
+            h = fnv_str(h, ((const wormhole_too_far_target_t *)et)->status_text);
         }
         if (et->class == slipway_too_far_class() && ((const slipway_too_far_t *)et)->status_text != NULL) {
             h = fnv_str(h, ((const slipway_too_far_t *)et)->status_text);
         }
-        if (kind == TARGET_SLIPWAY || kind == ET_THROWAWAY) {
-            assert(et_fo(mz) == mz);
+        if (kind == TARGET_SLIPWAY || kind == TARGET_THROWAWAY) {
+            assert(target_targeted_by(mz) == mz);
         }
     }
-    assert(mz->ij != NULL);
-    return fnv(h, (uint32_t)ents_rank_in(live_entities(), mz->ij));
+    assert(mz->anchor != NULL);
+    return fnv(h, (uint32_t)entity_list_rank_in(live_entities(), mz->anchor));
 }
 
 /* A quarter of the slipway's length past its `qu` end: near that
@@ -498,104 +498,104 @@ static vec_t near_anchor(void) {
     vec_t re;
 
     assert(jcs != NULL && jcs->count == 1);
-    jc = as_jc(jcs->items[0]);
+    jc = as_slipway(jcs->items[0]);
     qu = pos_of(jc->start);
     re = pos_of(jc->end);
     return vec_mul(vec_add(qu, vec_div(vec_sub(qu, re), p8_fixed_from_int(4))),
                          p8_fixed_from_int(128));
 }
 
-static void test_hq(void) {
+static void test_drag(void) {
     uint32_t h = 2166136261u;
-    pico8_mz_t *mz;
+    wormhole_t *mz;
     const entity_list_t *jcs;
     vec_t mid;
 
     world();
-    mz = build_mz();
+    mz = build_wormhole();
     jcs = entities_by_tag("slipway");
     assert(jcs != NULL && jcs->count > 0);
-    mid = slipway_mid(as_jc(jcs->items[0]));
-    hq(mz, vec_ref_fixed(mid), vec_ref(64, 64));
-    h = fold_hq(h, mz, TARGET_SLIPWAY);
-    hq(mz, vec_ref(-640, -640), vec_ref(64, 64));
-    h = fold_hq(h, mz, ET_JJ);
-    hq(mz, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
-    h = fold_hq(h, mz, TARGET_FALSE);
-    hq(mz, vec_ref_fixed(near_anchor()), vec_ref(2, 2));
-    h = fold_hq(h, mz, ET_THROWAWAY);
-    check("drag", h, HQ_HASH);
+    mid = slipway_mid(as_slipway(jcs->items[0]));
+    drag(mz, vec_ref_fixed(mid), vec_ref(64, 64));
+    h = fold_drag(h, mz, TARGET_SLIPWAY);
+    drag(mz, vec_ref(-640, -640), vec_ref(64, 64));
+    h = fold_drag(h, mz, TARGET_TOO_FAR_TARGET);
+    drag(mz, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
+    h = fold_drag(h, mz, TARGET_FALSE);
+    drag(mz, vec_ref_fixed(near_anchor()), vec_ref(2, 2));
+    h = fold_drag(h, mz, TARGET_THROWAWAY);
+    check("drag", h, DRAG_HASH);
 }
 
 /* `kz` grows `oi` each `dg` tick; nothing sets `p_`. */
-static void test_kz_ticks(void) {
+static void test_update_placing_ticks(void) {
     uint32_t h = 2166136261u;
-    pico8_mz_t *mz;
+    wormhole_t *mz;
     int i;
 
     world();
-    mz = build_mz();
-    for (i = 0; i < KZ_TICKS; i++) {
+    mz = build_wormhole();
+    for (i = 0; i < UPDATE_PLACING_TICKS; i++) {
         update_entities();
-        assert(p__state(mz) == 0);
+        assert(is_dead_state(mz) == 0);
         assert(mz->header.state_time == p8_fixed_from_int(i + 1));
-        h = fnv(h, (uint32_t)mz->oi);
+        h = fnv(h, (uint32_t)mz->radius);
     }
-    assert(ents_listed(live_entities(), mz));
-    check("kz ticks", h, KZ_HASH);
+    assert(entity_list_listed(live_entities(), mz));
+    check("placing ticks", h, UPDATE_PLACING_HASH);
 }
 
-static uint32_t fold_ey(uint32_t h, const pico8_mz_t *mz) {
+static uint32_t fold_drop(uint32_t h, const wormhole_t *mz) {
     h = fold_string(h, mz->header.state);
     h = fnv(h, (uint32_t)mz->header.state_time);
-    h = fnv(h, p__state(mz));
+    h = fnv(h, is_dead_state(mz));
     return fnv(h, (uint32_t)credits());
 }
 
 /* Before tick 15 `d_` never runs; after it, a set `et` refuses, an unset
  * one pays `od` and turns to `pr`, and too few credits refuse. */
-static void test_ey(void) {
-    uint32_t h = 2166136261u;
+static void test_drop(void) {
+    uint32_t hash = 2166136261u;
     p8_fixed_t before;
-    pico8_mz_t *early;
-    pico8_mz_t *targeted;
-    pico8_mz_t *paid;
-    pico8_mz_t *broke;
+    wormhole_t *early;
+    wormhole_t *targeted;
+    wormhole_t *paid;
+    wormhole_t *broke;
 
     world();
     before = credits();
 
-    early = build_mz();
-    ey(early);
-    assert(p__state(early) == 2 && credits() == before);
-    h = fold_ey(h, early);
+    early = build_wormhole();
+    drop(early);
+    assert(is_dead_state(early) == 2 && credits() == before);
+    hash = fold_drop(hash, early);
 
-    targeted = build_mz();
-    until_t(targeted, 15);
-    hq(targeted, vec_ref(-640, -640), vec_ref(64, 64));
-    assert(et_kind(targeted) == ET_JJ);
-    ey(targeted);
-    assert(p__state(targeted) == 2 && credits() == before);
-    h = fold_ey(h, targeted);
+    targeted = build_wormhole();
+    until_state_time(targeted, 15);
+    drag(targeted, vec_ref(-640, -640), vec_ref(64, 64));
+    assert(target_kind(targeted) == TARGET_TOO_FAR_TARGET);
+    drop(targeted);
+    assert(is_dead_state(targeted) == 2 && credits() == before);
+    hash = fold_drop(hash, targeted);
 
-    paid = build_mz();
-    until_t(paid, 15);
-    hq(paid, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
-    assert(et_kind(paid) == TARGET_FALSE);
-    ey(paid);
-    assert(is_me(&paid->header, "unfolding") && paid->header.state_time == 0 && p__state(paid) == 0);
+    paid = build_wormhole();
+    until_state_time(paid, 15);
+    drag(paid, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
+    assert(target_kind(paid) == TARGET_FALSE);
+    drop(paid);
+    assert(is_state(&paid->header, "unfolding") && paid->header.state_time == 0 && is_dead_state(paid) == 0);
     assert(credits() == p8_fixed_sub(before, p8_fixed_from_int(3)));
-    h = fold_ey(h, paid);
+    hash = fold_drop(hash, paid);
 
-    broke = build_mz();
-    until_t(broke, 15);
-    hq(broke, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
-    pico8_fm_hy()->nz = p8_fixed_from_int(2);
-    ey(broke);
-    assert(is_me(&broke->header, "placing") && p__state(broke) == 2);
+    broke = build_wormhole();
+    until_state_time(broke, 15);
+    drag(broke, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
+    main_economy_typed()->nz = p8_fixed_from_int(2);
+    drop(broke);
+    assert(is_state(&broke->header, "placing") && is_dead_state(broke) == 2);
     assert(credits() == p8_fixed_from_int(2));
-    h = fold_ey(h, broke);
-    check("drop", h, EY_HASH);
+    hash = fold_drop(hash, broke);
+    check("drop", hash, DROP_HASH);
 }
 
 static int unknown_count(void) {
@@ -603,7 +603,7 @@ static int unknown_count(void) {
     int n = 0;
     int i;
     for (i = 0; jo != NULL && i < jo->count; i++) {
-        if (is_me(&as_jo(jo->items[i])->header, "unknown")) {
+        if (is_state(&as_planet(jo->items[i])->header, "unknown")) {
             n++;
         }
     }
@@ -612,47 +612,47 @@ static int unknown_count(void) {
 
 /* A paid `mz` put on an unknown planet: `pr` reveals around it until
  * `t>25` takes it out of `hv`. */
-static pico8_mz_t *paid_mz_on_unknown(void) {
-    pico8_mz_t *mz = build_mz();
-    planet_t *unknown = first_jo_with_me("unknown");
+static wormhole_t *paid_wormhole_on_unknown(void) {
+    wormhole_t *mz = build_wormhole();
+    planet_t *unknown = first_planet_with_state("unknown");
     vec_t *p = malloc(sizeof *p);
 
     assert(unknown != NULL);
-    until_t(mz, 15);
-    hq(mz, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
-    assert(et_kind(mz) == TARGET_FALSE);
-    ey(mz);
-    assert(is_me(&mz->header, "unfolding"));
+    until_state_time(mz, 15);
+    drag(mz, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
+    assert(target_kind(mz) == TARGET_FALSE);
+    drop(mz);
+    assert(is_state(&mz->header, "unfolding"));
     assert(unknown->map_pos != NULL);
     *p = *unknown->map_pos;
-    mz->p = p;
+    mz->map_pos = p;
     return mz;
 }
 
-static void test_pr_ticks(void) {
+static void test_update_unfolding_ticks(void) {
     uint32_t h = 2166136261u;
-    pico8_mz_t *mz;
+    wormhole_t *mz;
     int tick = 0;
     int revealed = 0;
 
     world();
-    mz = paid_mz_on_unknown();
-    while (ents_listed(live_entities(), mz)) {
+    mz = paid_wormhole_on_unknown();
+    while (entity_list_listed(live_entities(), mz)) {
         int before = unknown_count();
         update_entities();
         tick++;
         assert(tick < 100);
         revealed += before - unknown_count();
         h = fnv(h, (uint32_t)(before - unknown_count()));
-        h = fnv(h, p__state(mz));
-        h = fnv(h, (uint32_t)ents_listed(entities_by_message("draw"), mz));
-        h = fnv(h, (uint32_t)ents_listed(entities_by_tag("wormhole"), mz));
+        h = fnv(h, is_dead_state(mz));
+        h = fnv(h, (uint32_t)entity_list_listed(entities_by_message("draw"), mz));
+        h = fnv(h, (uint32_t)entity_list_listed(entities_by_tag("wormhole"), mz));
     }
-    printf("[pr] left hv after %d ticks, %d planets revealed\n", tick, revealed);
+    printf("[unfolding] left live_entities after %d ticks, %d planets revealed\n", tick, revealed);
     assert(revealed > 0);
-    assert(!ents_listed(entities_by_message("draw"), mz) && !ents_listed(entities_by_message("draw_overlay"), mz) && !ents_listed(entities_by_tag("wormhole"), mz));
-    check_int("pr exit tick", tick, PR_EXIT_TICK);
-    check("pr ticks", h, PR_HASH);
+    assert(!entity_list_listed(entities_by_message("draw"), mz) && !entity_list_listed(entities_by_message("draw_overlay"), mz) && !entity_list_listed(entities_by_tag("wormhole"), mz));
+    check_int("unfolding exit tick", tick, UPDATE_UNFOLDING_EXIT_TICK);
+    check("unfolding ticks", h, UPDATE_UNFOLDING_HASH);
 }
 
 static uint32_t screen_hash(void) {
@@ -681,11 +681,11 @@ static uint32_t draw(void *mz) {
 /* Ring, anchor line and sprite while `kz`, the "-too far-" label on the
  * `jj` wrapper, the coloured rings of `pr`. */
 static void test_draw(void) {
-    uint32_t h = 2166136261u;
+    uint32_t hash = 2166136261u;
     uint32_t blank;
-    pico8_mz_t *bare;
-    pico8_mz_t *far;
-    pico8_mz_t *mz;
+    wormhole_t *bare;
+    wormhole_t *far;
+    wormhole_t *mz;
     int t;
 
     world();
@@ -693,44 +693,44 @@ static void test_draw(void) {
     p8_cls(&mem);
     blank = screen_hash();
 
-    bare = build_mz();
-    until_t(bare, 5);
-    hq(bare, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
-    assert(et_kind(bare) == TARGET_FALSE);
+    bare = build_wormhole();
+    until_state_time(bare, 5);
+    drag(bare, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
+    assert(target_kind(bare) == TARGET_FALSE);
     assert(draw(bare) != blank);
-    h = fnv(h, draw(bare));
+    hash = fnv(hash, draw(bare));
 
-    far = build_mz();
-    until_t(far, 5);
-    hq(far, vec_ref(-640, -640), vec_ref(64, 64));
-    assert(et_kind(far) == ET_JJ);
+    far = build_wormhole();
+    until_state_time(far, 5);
+    drag(far, vec_ref(-640, -640), vec_ref(64, 64));
+    assert(target_kind(far) == TARGET_TOO_FAR_TARGET);
     assert(draw(far) != draw(bare));
-    h = fnv(h, draw(far));
+    hash = fnv(hash, draw(far));
 
-    mz = paid_mz_on_unknown();
+    mz = paid_wormhole_on_unknown();
     for (t = 1; t <= 20; t++) {
         update_entities();
         if (t == 4 || t == 9 || t == 20) {
             uint32_t d = draw(mz);
             assert(d != blank);
-            h = fnv(h, d);
+            hash = fnv(hash, d);
         }
     }
-    check("draw", h, DRAW_HASH);
+    check("draw", hash, DRAW_HASH);
 }
 
 /* Released over a colonized planet or a slipgate, `jz("gv",held)` reads
  * `s.qu` off the `mz`, which it never has. */
-static void test_gv(void) {
-    pico8_mz_t *mz;
+static void test_accept_drop(void) {
+    wormhole_t *mz;
     planet_t *ly;
     void *nr;
     planet_keys_t keys;
     down_t r;
 
     world();
-    mz = build_mz();
-    ly = first_jo_with_me("settled");
+    mz = build_wormhole();
+    ly = first_planet_with_state("settled");
     assert(ly != NULL);
     r = planet_accept_drop(ly, &mz->header);
     assert(r.stop && r.held == NULL);
@@ -746,90 +746,90 @@ static void test_gv(void) {
 /* `mz.jj` as the cart has it: `qs` and nothing else, never written. `bv`
  * puts `fo` on the target it has just computed, never on the wrapper a
  * previous `hq` left in `et`. */
-static void check_jj_untouched(void) {
-    const pico8_mz_jj_t *wrapper = pico8_mz_jj_wrapper();
+static void check_too_far_target_untouched(void) {
+    const wormhole_too_far_target_t *wrapper = wormhole_too_far_target_wrapper();
 
     assert(wrapper != NULL);
-    assert(wrapper->qs != NULL && strcmp(wrapper->qs, "-too far-") == 0);
+    assert(wrapper->status_text != NULL && strcmp(wrapper->status_text, "-too far-") == 0);
 }
 
-static void check_fo_is(const pico8_mz_t *mz) {
-    assert(et_fo(mz) == mz);
+static void check_targeted_by_is(const wormhole_t *mz) {
+    assert(target_targeted_by(mz) == mz);
 }
 
-static void test_jj_wrapper(void) {
+static void test_too_far_target_wrapper(void) {
     void *wrapper;
-    pico8_mz_t *mz;
-    pico8_mz_t *other;
+    wormhole_t *wormhole;
+    wormhole_t *other;
     const entity_list_t *jcs;
     vec_t mid;
 
     world();
-    wrapper = (void *)pico8_mz_jj_wrapper();
-    check_jj_untouched();
+    wrapper = (void *)wormhole_too_far_target_wrapper();
+    check_too_far_target_untouched();
     assert(((const entity_t *)wrapper)->class->draw == NULL &&
            ((const entity_t *)wrapper)->class->draw_overlay == NULL &&
            ((const entity_t *)wrapper)->class->drag == NULL);
 
-    mz = build_mz();
-    hq(mz, vec_ref(-640, -640), vec_ref(64, 64));
-    assert(et_kind(mz) == ET_JJ);
-    check_jj_untouched();
+    wormhole = build_wormhole();
+    drag(wormhole, vec_ref(-640, -640), vec_ref(64, 64));
+    assert(target_kind(wormhole) == TARGET_TOO_FAR_TARGET);
+    check_too_far_target_untouched();
 
     jcs = entities_by_tag("slipway");
     assert(jcs != NULL && jcs->count > 0);
-    mid = slipway_mid(as_jc(jcs->items[0]));
-    hq(mz, vec_ref_fixed(mid), vec_ref(64, 64));
-    assert(et_kind(mz) == TARGET_SLIPWAY);
-    check_fo_is(mz);
-    check_jj_untouched();
+    mid = slipway_mid(as_slipway(jcs->items[0]));
+    drag(wormhole, vec_ref_fixed(mid), vec_ref(64, 64));
+    assert(target_kind(wormhole) == TARGET_SLIPWAY);
+    check_targeted_by_is(wormhole);
+    check_too_far_target_untouched();
 
-    hq(mz, vec_ref_fixed(near_anchor()), vec_ref(2, 2));
-    assert(et_kind(mz) == ET_THROWAWAY);
-    check_fo_is(mz);
-    check_jj_untouched();
+    drag(wormhole, vec_ref_fixed(near_anchor()), vec_ref(2, 2));
+    assert(target_kind(wormhole) == TARGET_THROWAWAY);
+    check_targeted_by_is(wormhole);
+    check_too_far_target_untouched();
 
-    hq(mz, vec_ref(-640, -640), vec_ref(64, 64));
-    assert(et_kind(mz) == ET_JJ);
-    check_jj_untouched();
+    drag(wormhole, vec_ref(-640, -640), vec_ref(64, 64));
+    assert(target_kind(wormhole) == TARGET_TOO_FAR_TARGET);
+    check_too_far_target_untouched();
 
-    other = build_mz();
-    hq(other, vec_ref(640, 640), vec_ref(64, 64));
-    assert(et_kind(other) == ET_JJ);
-    assert(mz->probe->et != NULL && other->probe->et != NULL);
-    assert(mz->probe->et == other->probe->et && (void *)mz->probe->et == wrapper);
-    check_jj_untouched();
+    other = build_wormhole();
+    drag(other, vec_ref(640, 640), vec_ref(64, 64));
+    assert(target_kind(other) == TARGET_TOO_FAR_TARGET);
+    assert(wormhole->targeting->target != NULL && other->targeting->target != NULL);
+    assert(wormhole->targeting->target == other->targeting->target && (void *)wormhole->targeting->target == wrapper);
+    check_too_far_target_untouched();
 }
 
 static int is_a_struct_of(const void *e, const entity_class_t *cls) {
     return e != NULL && ((const entity_t *)e)->class == cls;
 }
 
-static int is_an_mz_struct(const void *e) {
-    return is_a_struct_of(e, pico8_mz_struct_class());
+static int is_a_wormhole_struct(const void *e) {
+    return is_a_struct_of(e, wormhole_class());
 }
 
 /* Built through `bg:ldown` or directly, an `mz` is a
  * struct with its six methods; the `jj` wrapper is a struct too, the very
  * object of the `jj` member. */
-static void test_mz_is_a_struct(void) {
+static void test_wormhole_is_a_struct(void) {
     down_t made;
-    pico8_mz_t *mz;
+    wormhole_t *mz;
 
     start_game();
     (void)pico8_bg_ldown(NULL);
     made = pico8_bg_ldown(NULL);
-    mz = pico8_mz_new();
-    assert(is_an_mz_struct(made.held) && is_an_mz_struct(build_mz()) && is_an_mz_struct(mz));
-    assert(pico8_mz_struct_class()->drag != NULL && pico8_mz_struct_class()->drop != NULL);
-    assert(pico8_mz_struct_class()->draw_at == NULL);
-    assert(pico8_mz_struct_class()->states[ENTITY_STATE_PLACING] != NULL &&
-           pico8_mz_struct_class()->states[ENTITY_STATE_UNFOLDING] != NULL && pico8_mz_struct_class()->draw != NULL &&
-           pico8_mz_struct_class()->draw_overlay != NULL);
-    assert(pico8_mz_struct_class()->states[ENTITY_STATE_NORMAL] == NULL && pico8_mz_struct_class()->left_press == NULL);
+    mz = wormhole_new();
+    assert(is_a_wormhole_struct(made.held) && is_a_wormhole_struct(build_wormhole()) && is_a_wormhole_struct(mz));
+    assert(wormhole_class()->drag != NULL && wormhole_class()->drop != NULL);
+    assert(wormhole_class()->draw_at == NULL);
+    assert(wormhole_class()->states[ENTITY_STATE_PLACING] != NULL &&
+           wormhole_class()->states[ENTITY_STATE_UNFOLDING] != NULL && wormhole_class()->draw != NULL &&
+           wormhole_class()->draw_overlay != NULL);
+    assert(wormhole_class()->states[ENTITY_STATE_NORMAL] == NULL && wormhole_class()->left_press == NULL);
 
-    assert(is_a_struct_of(pico8_mz_jj_wrapper(), pico8_mz_jj_struct_class()));
-    assert(mz->jj == pico8_mz_jj_wrapper());
+    assert(is_a_struct_of(wormhole_too_far_target_wrapper(), wormhole_too_far_target_class()));
+    assert(mz->too_far_target == wormhole_too_far_target_wrapper());
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked
@@ -860,17 +860,17 @@ int main(void) {
 
     pico8_cart_load();
     in_fresh_child(test_construction);
-    in_fresh_child(test_ox);
+    in_fresh_child(test_anchors);
     in_fresh_child(test_arena);
-    in_fresh_child(test_hq);
-    in_fresh_child(test_kz_ticks);
-    in_fresh_child(test_ey);
-    in_fresh_child(test_pr_ticks);
+    in_fresh_child(test_drag);
+    in_fresh_child(test_update_placing_ticks);
+    in_fresh_child(test_drop);
+    in_fresh_child(test_update_unfolding_ticks);
     in_fresh_child(test_draw);
-    in_fresh_child(test_gv);
-    in_fresh_child(test_jj_wrapper);
-    in_fresh_child(test_mz_is_a_struct);
+    in_fresh_child(test_accept_drop);
+    in_fresh_child(test_too_far_target_wrapper);
+    in_fresh_child(test_wormhole_is_a_struct);
 
-    printf("test_pico8_mz: all tests passed\n");
+    printf("test_wormhole: all tests passed\n");
     return 0;
 }

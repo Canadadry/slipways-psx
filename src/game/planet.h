@@ -57,10 +57,10 @@ typedef struct {
     p8_fixed_t palette_block;          /* nl */
     p8_fixed_t acceleration_factor, speed;      /* ga */
     const int_seq_t *synthesizable_resources; /* mx */
-    pico8_probe_t *targeting;      /* qh's lineage */
-    pico8_emitter_t *emitter;  /* hj, pm, mx, ga */
-    pico8_probe_t probe_own;
-    pico8_emitter_t emitter_own;
+    targeting_t *targeting;      /* qh's lineage */
+    emitter_t *emitter;  /* hj, pm, mx, ga */
+    targeting_t probe_own;
+    emitter_t emitter_own;
 } planet_t;
 
 /* TROU-8 */

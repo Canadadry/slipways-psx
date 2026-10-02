@@ -84,8 +84,8 @@ static inline int entity_tag_named(const char *name) {
 }
 
 typedef struct entity_class entity_class_t;
-struct pico8_emitter;
-struct pico8_probe;
+struct emitter;
+struct targeting;
 
 /* First member of every entity struct, and of the parent struct a child
  * embeds first. `me` and `t` are ke's (`me` NULL is nil). A component link
@@ -109,8 +109,8 @@ typedef struct {
     const p8_fixed_t *fold_anchor;
     int *is_dead;
     int *is_hovered;
-    struct pico8_emitter *emitter;
-    struct pico8_probe *targeting;
+    struct emitter *emitter;
+    struct targeting *targeting;
 } entity_t;
 
 /* Every constructor calls it first: its zone block leaves the header
@@ -131,7 +131,7 @@ typedef struct {
 
 typedef void (*state_fn_t)(entity_t *self, p8_fixed_t t);
 
-struct pico8_qy;
+struct particle;
 struct trade_offer;
 struct str_seq;
 struct kind_record;
@@ -156,7 +156,7 @@ struct entity_class {
     void (*attach_slipway)(entity_t *self, entity_t *sw);
     void (*offer_trade)(entity_t *self, struct trade_offer *lw);
     void (*draw_at)(entity_t *self, vec_t p, p8_fixed_t a);
-    struct pico8_qy *(*spawn_particle)(entity_t *self);
+    struct particle *(*spawn_particle)(entity_t *self);
     state_fn_t states[STATE_COUNT];
     /* `PICO8_TAG(t)` set: lt() registers every instance under tag t. */
     unsigned tags;
@@ -191,6 +191,6 @@ typedef struct {
 /* Here, not in pico8_slipway.h / pico8_probe.h: ui.c compares against
  * them, and including either header from ui.c makes an include pair. */
 const entity_class_t *slipway_class(void);
-const entity_class_t *pico8_g__struct_class(void);
+const entity_class_t *probe_class(void);
 
 #endif

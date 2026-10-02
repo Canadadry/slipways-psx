@@ -50,7 +50,7 @@ typedef struct {
     int has_nz; /* 0: `nz` is nil, and is then never read */
 } pico8_fm_placeholder_t;
 
-const entity_class_t *pico8_fm_placeholder_struct_class(void);
+const entity_class_t *main_economy_placeholder_class(void);
 
 /* `fm`: the provisional, a static struct that has only `jk`/`nz` (written by
  * the cheat code), which `pico8_probe_init()` installs, then, from `eu()` on,
@@ -58,13 +58,13 @@ const entity_class_t *pico8_fm_placeholder_struct_class(void);
  * NULL before init and after shutdown, which several callers test for. The
  * setter only repoints: from `_init` to the next `eu()` the slot still holds
  * the quit game's `hy`, alive until the flush that follows that `eu()`. */
-entity_t *pico8_fm(void);
-void pico8_probe_set_fm(entity_t *instance);
+entity_t *main_economy(void);
+void probe_set_main_economy(entity_t *instance);
 
 /* The `hy` of `fm`, NULL when the slot is empty and on the provisional. */
-pico8_hy_t *pico8_fm_hy(void);
+pico8_hy_t *main_economy_typed(void);
 
 /* The provisional `fm`, NULL when the slot is empty or holds a `hy`. */
-const pico8_fm_placeholder_t *pico8_fm_placeholder(void);
+const pico8_fm_placeholder_t *main_economy_placeholder(void);
 
 #endif

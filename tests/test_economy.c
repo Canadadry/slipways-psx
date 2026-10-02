@@ -68,12 +68,12 @@ static pico8_cheat_t cheat;
 
 /* NULL on the provisional `fm`, as the functions of `hy` take it. */
 static pico8_hy_t *fm_self(void) {
-    return pico8_fm_hy();
+    return main_economy_typed();
 }
 
 static pico8_hy_t *fm_hy(void) {
-    assert(pico8_fm_hy() != NULL);
-    return pico8_fm_hy();
+    assert(main_economy_typed() != NULL);
+    return main_economy_typed();
 }
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -604,7 +604,7 @@ static void test_cheat_on_provisional(void) {
     int i;
 
     pico8__init();
-    provisional = pico8_fm_placeholder();
+    provisional = main_economy_placeholder();
     assert(provisional != NULL && !provisional->has_jk && !provisional->has_nz);
 
     memset(frames, 0, sizeof frames);
@@ -617,7 +617,7 @@ static void test_cheat_on_provisional(void) {
     for (pad.current_frame = 0; pad.current_frame < 16; pad.current_frame++) {
         fired += pico8_cheat_step(&cheat, &pad);
     }
-    assert(fired == 1 && pico8_fm_placeholder() == provisional);
+    assert(fired == 1 && main_economy_placeholder() == provisional);
     assert(provisional->has_jk && provisional->jk == p8_fixed_from_int(99));
     assert(provisional->has_nz && provisional->nz == p8_fixed_from_int(200));
 
@@ -656,12 +656,12 @@ static void test_hy_is_a_struct(void) {
 
     assert(pico8_hy_ready());
     pico8__init();
-    assert(pico8_fm() != NULL && ((const entity_t *)pico8_fm())->class == pico8_fm_placeholder_struct_class());
-    assert(pico8_fm_hy() == NULL);
+    assert(main_economy() != NULL && ((const entity_t *)main_economy())->class == main_economy_placeholder_class());
+    assert(main_economy_typed() == NULL);
 
     new_game();
-    assert(pico8_fm() != NULL);
-    assert(((const entity_t *)pico8_fm())->class == cls && pico8_fm_hy() == (void *)pico8_fm());
+    assert(main_economy() != NULL);
+    assert(((const entity_t *)main_economy())->class == cls && main_economy_typed() == (void *)main_economy());
     assert(cls->draw == NULL && cls->draw_overlay == NULL && cls->hit_test == NULL && cls->new_year == NULL && cls->refresh == NULL &&
            cls->has_refresh == NULL && cls->left_press == NULL && cls->right_press == NULL && cls->accept_drop == NULL);
     assert(cls->drag == NULL && cls->drop == NULL && cls->attach_slipway == NULL && cls->offer_trade == NULL && cls->draw_at == NULL &&
@@ -675,8 +675,8 @@ static void test_hy_is_a_struct(void) {
 
     must_abort(lu_on_other, pico8_ok());
 
-    pico8_probe_shutdown();
-    assert(pico8_fm() == NULL && pico8_fm_hy() == NULL);
+    probe_shutdown();
+    assert(main_economy() == NULL && main_economy_typed() == NULL);
 }
 
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a

@@ -528,14 +528,14 @@ static void invent(const char *px) {
     technologies_entry_t *t = malloc(sizeof *t);
 
     *t = (technologies_entry_t){px, 0, NULL, 0, 0, NULL};
-    pico8_hy_kt(pico8_fm_hy(), t);
+    pico8_hy_kt(main_economy_typed(), t);
     assert(pico8_oj(px));
 }
 
 static void test_functions(void) {
     int k;
 
-    assert(pico8_fm_hy() == NULL && !pico8_oj("nanomaterials"));
+    assert(main_economy_typed() == NULL && !pico8_oj("nanomaterials"));
     start_game();
     assert(!pico8_oj("nanomaterials"));
     check("functions", fold_functions(2166136261u), FUNCTIONS_HASH);

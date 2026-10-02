@@ -355,6 +355,29 @@ class ApplyTest(Setup):
                      ("low_part", "part", "src/shapes.c")])
         self.assertRefused(apply(), before, "collides")
 
+    def plant_enum(self, path, constants):
+        with open(os.path.join(WORK, "src", path), "ab") as f:
+            f.write(b"enum { " + b", ".join(constants) + b" };\n")
+
+    def test_accepts_enum_constants_of_two_c_files_given_the_same_name(self):
+        self.plant_enum("main.c", [b"MAIN_NONE", b"MAIN_PLANET"])
+        self.plant_enum("shapes.c", [b"SHAPE_NONE", b"SHAPE_PLANET"])
+        write_table([("MAIN_PLANET", "SHAPE_PLANET", "src/main.c")])
+        result = apply()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(b"enum { MAIN_NONE, SHAPE_PLANET };", read("src/main.c"))
+        self.assertTrue(compiles())
+
+    def test_refuses_an_enum_constant_of_a_c_file_named_like_one_of_a_header(self):
+        header = read("src/shapes.h").replace(
+            b"#endif", b"enum { SHAPE_NONE, SHAPE_PLANET };\n\n#endif")
+        with open(os.path.join(WORK, "src", "shapes.h"), "wb") as f:
+            f.write(header)
+        self.plant_enum("main.c", [b"MAIN_NONE", b"MAIN_PLANET"])
+        before = tree_digest()
+        write_table([("MAIN_PLANET", "SHAPE_PLANET", "src/main.c")])
+        self.assertRefused(apply(), before, "MAIN_PLANET -> SHAPE_PLANET: collides")
+
     def plant_main_macro(self):
         with open(os.path.join(WORK, "src", "main.c"), "ab") as f:
             f.write(b"#define MAIN_LIMIT 2\nint main_limit(void) { return MAIN_LIMIT; }\n")

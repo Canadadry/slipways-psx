@@ -299,20 +299,20 @@ static void *spawn(int x, int y, const char *id, void **protostar) {
  * and `jo`, where `lt` registered it -- in `hv` alone -- and `mo.ma`. */
 static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     const planet_t *g = as_ga(e);
-    const pico8_emitter_t *em = g->emitter;
+    const emitter_t *em = g->emitter;
     const planet_t *jo = g;
     int j;
 
     assert(is_ga(e));
     h = fold_string_member(h, g->archetype->class_name);
     h = fold_fixed_member(h, jo->archetype->layer);
-    h = fold_fixed_member(h, em->def->spawn_rate);
-    h = fold_fixed_member(h, em->qo);
-    h = fold_fixed_member(h, em->ro);
-    h = fold_fixed_member(h, em->qg);
-    h = fold_fixed_member(h, em->q_);
+    h = fold_fixed_member(h, em->archetype->spawn_rate);
+    h = fold_fixed_member(h, em->matrix_xx);
+    h = fold_fixed_member(h, em->matrix_xy);
+    h = fold_fixed_member(h, em->matrix_yx);
+    h = fold_fixed_member(h, em->matrix_yy);
     h = fold_fixed_member(h, g->acceleration_factor);
-    h = fold_fixed_member(h, em->py);
+    h = fold_fixed_member(h, em->speed_factor);
     h = fold_fixed_member(h, g->speed);
     h = fold_hf(h, jo);
     h = fold_string_member(h, jo->header.state);
@@ -322,10 +322,10 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     h = fold_p_(h, jo);
     h = fold_vec(h, jo->pos);
     h = fold_vec(h, jo->map_pos);
-    h = fnv(h, (uint32_t)(em->k_ == NULL ? -1 : em->k_->count));
+    h = fnv(h, (uint32_t)(em->trail_colors == NULL ? -1 : em->trail_colors->count));
     h = fnv(h, (uint32_t)tag_count(jo->header.class->tags));
     h = fnv(h, (uint32_t)ents_ptrs_size(jo->outgoing_routes));
-    h = fnv(h, (uint32_t)ptrs_size(em->qy));
+    h = fnv(h, (uint32_t)ptrs_size(em->particles));
     h = fnv(h, (uint32_t)ents_ptrs_size(jo->slipways));
     assert(pico8_mo_qb() != NULL);
     h = fold_fixed_member(h, pico8_mo_qb()->ma);
@@ -338,11 +338,11 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(em->k_ != NULL));
+    h = fnv(h, (uint32_t)(em->trail_colors != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(em->qy != NULL));
+    h = fnv(h, (uint32_t)(em->particles != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -393,10 +393,10 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     assert(jo->archetype == &burst_archetype);
     assert(jo->outgoing_routes != NULL);
     if (from_pm) {
-        assert(em->k_ != &burst_trail_colors_seq);
-        assert(em->k_ != &protostar_trail_colors_seq);
+        assert(em->trail_colors != &burst_trail_colors_seq);
+        assert(em->trail_colors != &protostar_trail_colors_seq);
     } else {
-        assert(em->k_ == &burst_trail_colors_seq);
+        assert(em->trail_colors == &burst_trail_colors_seq);
     }
     assert(jo->archetype == &burst_archetype);
     assert(jo->production == planet_shared_production());
@@ -430,8 +430,8 @@ static void test_built(void) {
     c = pico8_ga_new(NULL);
     h = fold_burst(h, c, 0);
     assert(a != b && b != c && a != c);
-    assert(as_ga(a)->emitter->qy != as_ga(b)->emitter->qy &&
-           as_ga(b)->emitter->qy != as_ga(c)->emitter->qy);
+    assert(as_ga(a)->emitter->particles != as_ga(b)->emitter->particles &&
+           as_ga(b)->emitter->particles != as_ga(c)->emitter->particles);
     assert(as_ga(a)->slipways != as_ga(b)->slipways);
     assert(as_ga(a)->outgoing_routes == as_ga(b)->outgoing_routes && as_ga(b)->outgoing_routes == as_ga(c)->outgoing_routes);
     assert(as_ga(c)->pos == NULL && as_ga(c)->map_pos == NULL && as_ga(c)->planet_id == NULL);
@@ -441,13 +441,13 @@ static void test_built(void) {
     check("built", h, BUILT_HASH);
 }
 
-static uint32_t fold_particle(uint32_t h, const pico8_qy_t *q) {
+static uint32_t fold_particle(uint32_t h, const particle_t *q) {
     assert(q != NULL);
-    assert(q->has_a);
-    h = fnv(fnv(h, (uint32_t)q->p.x), (uint32_t)q->p.y);
-    h = fnv(fnv(h, (uint32_t)q->v.x), (uint32_t)q->v.y);
-    h = fnv(fnv(h, (uint32_t)q->a.x), (uint32_t)q->a.y);
-    return fnv(h, (uint32_t)q->l);
+    assert(q->has_acceleration);
+    h = fnv(fnv(h, (uint32_t)q->pos.x), (uint32_t)q->pos.y);
+    h = fnv(fnv(h, (uint32_t)q->velocity.x), (uint32_t)q->velocity.y);
+    h = fnv(fnv(h, (uint32_t)q->acceleration.x), (uint32_t)q->acceleration.y);
+    return fnv(h, (uint32_t)q->life);
 }
 
 /* A tuple of `lq:mn`: items, `qe`, `c`, then the entry count. */
@@ -531,7 +531,7 @@ static uint32_t fold_lq(uint32_t h, void *e) {
 /* Cuts `qy` to its first `n` particles, giving back the others. */
 static void cut_qy(pointer_list_t *qy, int n) {
     while (qy->count > n) {
-        allocator_release(pico8_zone_particules(PICO8_PARTICULES_PARTICULE), qy->items[qy->count - 1]);
+        allocator_release(particle_zone(PARTICLE_SLOT_PARTICLE), qy->items[qy->count - 1]);
         qy->count--;
     }
 }
@@ -539,7 +539,7 @@ static void cut_qy(pointer_list_t *qy, int n) {
 /* `kj` on `e` with its `qy` cut in place to `n` particles: `p_` after. */
 static uint32_t fold_cut(uint32_t h, void *e, int n) {
     planet_t *g = as_ga(e);
-    pointer_list_t *qy = g->emitter->qy;
+    pointer_list_t *qy = g->emitter->particles;
 
     assert(qy != NULL && qy->count >= n);
     cut_qy(qy, n);
@@ -578,10 +578,10 @@ static void test_life(void) {
         h = fold_p_(h, as_ga(a));
         h = fold_p_(h, as_ga(b));
         h = fold_p_(h, as_ga(c));
-        h = fnv(h, (uint32_t)ptrs_size(as_ga(b)->emitter->qy));
+        h = fnv(h, (uint32_t)ptrs_size(as_ga(b)->emitter->particles));
     }
 
-    cut_qy(as_ga(b)->emitter->qy, 3);
+    cut_qy(as_ga(b)->emitter->particles, 3);
     for (i = 0; i < 3; i++) {
         draw_layers("draw");
         h = fnv(h, screen_hash());
@@ -646,14 +646,14 @@ static void test_burst(void) {
     }
     check_int("burst frames", frames, BURST_FRAMES);
     pico8_cart_vider_file_sortie();
-    check_int("ga places after the burst", pico8_zone_particules_vivantes(PICO8_PARTICULES_GA), 0);
+    check_int("ga places after the burst", particle_zone_live(PARTICLE_SLOT_BURST), 0);
 }
 
 /* `ei` moves a particle of `qy` in place: `p` by the old `v`, `v` turned
  * (its second row reads the x just written), then accelerated by `a`, and
  * `l` less 0.14. A protostar's burst turns (`qg` is not 0). */
 static void test_ei_moves_a_particle_in_place(void) {
-    pico8_qy_t *particle = pico8_particule_prendre();
+    particle_t *particle = particle_take();
     vec_t p0 = vec_xy(3, -2);
     vec_t v0 = vec_make(P8_FIXED_LIT(0x00018000, 1.5), P8_FIXED_LIT(0x00004000, 0.25));
     vec_t a0 = vec_make(P8_FIXED_LIT(0x00002000, 0.125), P8_FIXED_LIT(0xFFFF8000, -0.5));
@@ -661,30 +661,30 @@ static void test_ei_moves_a_particle_in_place(void) {
     p8_fixed_t vx;
     p8_fixed_t vy;
     void *e;
-    const pico8_emitter_t *em;
+    const emitter_t *em;
 
     start_game();
     e = spawn(84, 60, "s73", NULL);
     em = as_ga(e)->emitter;
-    assert(em->qg != 0);
-    particle->p = p0;
-    particle->v = v0;
-    particle->has_a = 1;
-    particle->a = a0;
-    particle->l = p8_fixed_from_int(5);
-    qy = em->qy;
+    assert(em->matrix_yx != 0);
+    particle->pos = p0;
+    particle->velocity = v0;
+    particle->has_acceleration = 1;
+    particle->acceleration = a0;
+    particle->life = p8_fixed_from_int(5);
+    qy = em->particles;
     cut_qy(qy, 0);
     pointer_list_add(qy, particle);
 
-    pico8_ei(&gfx, &mem, e);
+    emitter_update(&gfx, &mem, e);
 
-    vx = p8_fixed_add(p8_fixed_mul(em->qo, v0.x), p8_fixed_mul(em->ro, v0.y));
-    vy = p8_fixed_add(p8_fixed_mul(em->qg, vx), p8_fixed_mul(em->q_, v0.y));
+    vx = p8_fixed_add(p8_fixed_mul(em->matrix_xx, v0.x), p8_fixed_mul(em->matrix_xy, v0.y));
+    vy = p8_fixed_add(p8_fixed_mul(em->matrix_yx, vx), p8_fixed_mul(em->matrix_yy, v0.y));
     assert(qy->count >= 1 && qy->items[0] == particle);
-    assert(particle->p.x == p8_fixed_add(p0.x, v0.x) && particle->p.y == p8_fixed_add(p0.y, v0.y));
-    assert(particle->v.x == p8_fixed_add(vx, a0.x) && particle->v.y == p8_fixed_add(vy, a0.y));
-    assert(particle->a.x == a0.x && particle->a.y == a0.y);
-    assert(particle->l == p8_fixed_sub(p8_fixed_from_int(5), P8_FIXED_LIT(0x000023d7, 0.14)));
+    assert(particle->pos.x == p8_fixed_add(p0.x, v0.x) && particle->pos.y == p8_fixed_add(p0.y, v0.y));
+    assert(particle->velocity.x == p8_fixed_add(vx, a0.x) && particle->velocity.y == p8_fixed_add(vy, a0.y));
+    assert(particle->acceleration.x == a0.x && particle->acceleration.y == a0.y);
+    assert(particle->life == p8_fixed_sub(p8_fixed_from_int(5), P8_FIXED_LIT(0x000023d7, 0.14)));
 }
 
 static int is_a_ga_struct(const void *e) {
@@ -750,10 +750,10 @@ typedef struct {
 
 static held_t held_now(void) {
     held_t h;
-    h.particules = pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE);
-    h.qy = pico8_zone_particules_vivantes(PICO8_PARTICULES_QY);
-    h.qy_fv = pico8_zone_particules_vivantes(PICO8_PARTICULES_QY_FV);
-    h.ga = pico8_zone_particules_vivantes(PICO8_PARTICULES_GA);
+    h.particules = particle_zone_live(PARTICLE_SLOT_PARTICLE);
+    h.qy = particle_zone_live(PARTICLE_SLOT_LIST);
+    h.qy_fv = particle_zone_live(PARTICLE_SLOT_HELP_LIST);
+    h.ga = particle_zone_live(PARTICLE_SLOT_BURST);
     h.rangees = pico8_zone_interface_vivantes(PICO8_SORTE_RANGEE);
     return h;
 }
@@ -769,7 +769,7 @@ static void test_leaving_gives_back_its_particles(void) {
     start_game();
     pico8_cart_vider_file_sortie();
     e = as_ga(harvest(40, 40, "s74"));
-    count = e->emitter->qy->count;
+    count = e->emitter->particles->count;
     assert(count == 140);
     built = held_now();
     entity_unregister(&e->header);
@@ -791,7 +791,7 @@ static void test_the_largest_bursts_fit_their_place(void) {
     (void)harvest(40, 40, "s84");
     (void)spawn(80, 70, "s83", NULL);
     assert(held_now().ga == before.ga + 2);
-    printf("ga place: %lu bytes at most\n", (unsigned long)pico8_zone_particules_max_octets(PICO8_PARTICULES_GA));
+    printf("ga place: %lu bytes at most\n", (unsigned long)particle_zone_max_bytes(PARTICLE_SLOT_BURST));
 }
 
 /* A burst can be hovered, so a dragged slipway can end on it; the flush

@@ -322,14 +322,14 @@ static void test_ldown(void) {
 
     out = pico8_bg_struct_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));
     assert(out.stop && out.held != NULL);
-    assert(out.held->class == pico8_g__struct_class());
+    assert(out.held->class == probe_class());
     assert(ents_listed(entities_by_tag("probe"), out.held));
 
     out = pico8_bg_struct_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));
     assert(out.stop && out.held != NULL);
-    assert(out.held->class == pico8_mz_struct_class());
+    assert(out.held->class == wormhole_class());
     assert(ents_listed(entities_by_tag("wormhole"), out.held));
-    assert(is_me(&((const pico8_mz_t *)out.held)->header, "placing"));
+    assert(is_me(&((const wormhole_t *)out.held)->header, "placing"));
 
     check_int("ldown g_ after", ents_list_count(entities_by_tag("probe")), LDOWN_G_AFTER);
     check_int("ldown mz after", ents_list_count(entities_by_tag("wormhole")), LDOWN_MZ_AFTER);
@@ -455,11 +455,11 @@ static uint32_t lheld_kind(void) {
         return HELD_ABSENT;
     }
     if (held != NULL &&
-        ((const entity_t *)held)->class == pico8_g__struct_class()) {
+        ((const entity_t *)held)->class == probe_class()) {
         return HELD_G_STRUCT;
     }
     if (held != NULL &&
-        ((const entity_t *)held)->class == pico8_mz_struct_class()) {
+        ((const entity_t *)held)->class == wormhole_class()) {
         return HELD_MZ_STRUCT;
     }
     return HELD_OTHER;

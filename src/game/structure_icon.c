@@ -168,11 +168,11 @@ void pico8_ie_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_ie_t *self, vec_t p
      * kind-level build cost. */
     if (self->m_) {
         if (ie_self_ke_kind(self) != NULL) {
-            pico8_probe_t pb = {.def = &targeting_archetype_none};
+            targeting_t pb = {.archetype = &targeting_archetype_none};
 
-            pb.has_od = view.has_od;
-            pb.od = view.od;
-            pico8_dl_show(gfx, mem, view.me, &pb);
+            pb.has_cost = view.has_od;
+            pb.cost = view.od;
+            targeting_tooltip_show(gfx, mem, view.me, &pb);
         }
         if (self->jb != NULL) {
             tooltip_draw_at(gfx, mem, self->jb, p8_fixed_from_int(0), p8_fixed_from_int(0));

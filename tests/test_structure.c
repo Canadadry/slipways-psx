@@ -132,7 +132,7 @@ static uint32_t p__state(const planet_t *jo) {
 
 /* 1 no target, 3 a target: the bytes the frozen hashes fold. */
 static uint32_t et_state(const planet_t *qh) {
-    return qh->targeting->et == NULL ? 1u : 3u;
+    return qh->targeting->target == NULL ? 1u : 3u;
 }
 
 static uint32_t fold_vec(uint32_t h, const vec_t *p) {
@@ -145,7 +145,7 @@ static uint32_t fold_vec(uint32_t h, const vec_t *p) {
 
 static int is_bv_target(const void *e) {
     return e != NULL &&
-           ((const entity_t *)e)->class == pico8_bv_et_struct_class();
+           ((const entity_t *)e)->class == targeting_track_target_class();
 }
 
 static uint32_t fold_ref(uint32_t h, const void *ref) {
@@ -166,7 +166,7 @@ static uint32_t fold_et(uint32_t h, const planet_t *qh) {
     case 1u:
         return fold_bool_member(h, 0);
     default:
-        return fold_ref(fnv(h, 1u), qh->targeting->et);
+        return fold_ref(fnv(h, 1u), qh->targeting->target);
     }
 }
 
@@ -279,11 +279,11 @@ static uint32_t fold_lab(uint32_t h, void *e) {
     h = fold_string_member(h, jo->header.state);
     h = fold_fixed_member(h, jo->header.state_time);
     h = fold_fixed_member(h, qh->archetype->project_index);
-    h = fold_string_member(h, qh->targeting->def->confirmed_state);
+    h = fold_string_member(h, qh->targeting->archetype->confirmed_state);
     h = fold_qh(h, qh);
-    h = fold_fixed_member(h, qh->targeting->od);
-    h = fold_fixed_member(h, qh->targeting->def->clock_ticks);
-    h = fold_fixed_member(h, qh->targeting->def->attach_distance);
+    h = fold_fixed_member(h, qh->targeting->cost);
+    h = fold_fixed_member(h, qh->targeting->archetype->clock_ticks);
+    h = fold_fixed_member(h, qh->targeting->archetype->attach_distance);
     h = jo->has_development_tier ? fold_fixed_member(h, jo->development_tier) : fold_absent(h);
     h = fold_fixed_member(h, qh->sprite);
     h = fold_hf(h, jo);
@@ -297,14 +297,14 @@ static uint32_t fold_lab(uint32_t h, void *e) {
      * still proves the typed reads. */
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->archetype->name != NULL));
-    h = fnv(h, (uint32_t)(qh->targeting->def->confirmed_state != NULL));
+    h = fnv(h, (uint32_t)(qh->targeting->archetype->confirmed_state != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->archetype->accepted_resources != NULL));
-    h = fnv(h, qh->targeting->et != NULL ? 1u : 0u);
+    h = fnv(h, qh->targeting->target != NULL ? 1u : 0u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -377,12 +377,12 @@ static void test_built(void) {
 }
 
 static p8_fixed_t credits(void) {
-    assert(pico8_fm_hy() != NULL);
-    return pico8_fm_hy()->nz;
+    assert(main_economy_typed() != NULL);
+    return main_economy_typed()->nz;
 }
 
 static void set_credits(int n) {
-    pico8_fm_hy()->nz = p8_fixed_from_int(n);
+    main_economy_typed()->nz = p8_fixed_from_int(n);
 }
 
 /* What `bv` left on a laboratory: `ra` (a copy of what was passed), `p`, and
@@ -424,7 +424,7 @@ static void test_life(void) {
     mp = vec_ref(vec_xy(7680, 7680));
     cls_of(out_lab)->drag(out_lab, mp, vec_ref(vec_xy(0, 0)));
     h = fold_held(h, out_lab, mp);
-    assert(et_state(as_qh(out_lab)) == 3 && !ents_listed(live_entities(), as_qh(out_lab)->targeting->et));
+    assert(et_state(as_qh(out_lab)) == 3 && !ents_listed(live_entities(), as_qh(out_lab)->targeting->target));
 
     planet = entities_by_tag("planet")->items[0];
     assert(planet_is_family(planet));
@@ -433,7 +433,7 @@ static void test_life(void) {
     mp = vec_ref(vec_add(vec_mul(*planet_p, p8_fixed_from_int(128)), vec_xy(6, 0)));
     cls_of(out_lab)->drag(out_lab, mp, vec_ref(vec_xy(64, 64)));
     h = fold_held(h, out_lab, mp);
-    assert(as_qh(out_lab)->targeting->et == planet &&
+    assert(as_qh(out_lab)->targeting->target == planet &&
            ((const planet_t *)planet)->targeted_by == out_lab);
 
     poor_lab = build_lab();
@@ -442,8 +442,8 @@ static void test_life(void) {
     h = fold_held(h, poor_lab, mp);
     assert(et_state(as_qh(poor_lab)) == 1);
     set_credits(3);
-    assert(cls_of(poor_lab)->drop == pico8_d__dispatch);
-    h = pico8_d_(poor_lab) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
+    assert(cls_of(poor_lab)->drop == targeting_confirm_method);
+    h = targeting_confirm(poor_lab) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
     h = fold_string_member(h, as_qh(poor_lab)->header.state);
     h = fold_fixed_member(h, as_qh(poor_lab)->header.state_time);
     h = fnv(h, p__state(as_qh(poor_lab)));
@@ -454,8 +454,8 @@ static void test_life(void) {
     mp = vec_ref(vec_xy(7680, 7552));
     cls_of(in_lab)->drag(in_lab, mp, vec_ref(vec_xy(64, 64)));
     set_credits(100);
-    assert(cls_of(in_lab)->drop == pico8_d__dispatch);
-    h = pico8_d_(in_lab) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
+    assert(cls_of(in_lab)->drop == targeting_confirm_method);
+    h = targeting_confirm(in_lab) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
     h = fold_string_member(h, as_qh(in_lab)->header.state);
     h = fold_fixed_member(h, as_qh(in_lab)->header.state_time);
     h = fnv(h, p__state(as_qh(in_lab)));
@@ -519,9 +519,9 @@ static uint32_t fold_descendant(uint32_t h, void *d) {
     planet_t *nl = cls_of(d) == pico8_nl_struct_class() ? (planet_t *)d : NULL;
     p8_fixed_t qw = nl != NULL ? nl->palette_block : 0;
 
-    h = fold_string_member(h, qh->targeting->def->confirmed_state);
-    h = fold_fixed_member(h, qh->targeting->def->clock_ticks);
-    h = fold_fixed_member(h, qh->targeting->def->attach_distance);
+    h = fold_string_member(h, qh->targeting->archetype->confirmed_state);
+    h = fold_fixed_member(h, qh->targeting->archetype->clock_ticks);
+    h = fold_fixed_member(h, qh->targeting->archetype->attach_distance);
     h = fold_hf(h, qh);
     h = qh->has_development_tier ? fold_fixed_member(h, qh->development_tier) : fold_absent(h);
     h = fnv(h, (uint32_t)(qh->header.class->tags == (TAG(TAG_STRUCTURE) | TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING))));
@@ -737,10 +737,10 @@ static void test_lineage_of_each_class(void) {
     }
     assert(lineage_of(pico8_ga_kind()->new_entity(&keys)) == jo);
     assert(lineage_of(&planet_new(&keys)->header) == jo);
-    assert(lineage_of(&pico8_g__new(NULL)->header) == LINEAGE(LINEAGE_PROBE));
+    assert(lineage_of(&probe_new(NULL)->header) == LINEAGE(LINEAGE_PROBE));
     assert(lineage_of(&pico8_fv_new()->header) == LINEAGE(LINEAGE_PROBE));
     assert(lineage_of(&pico8_qb_new()->header) == 0 && lineage_of(&pico8_bg_new()->header) == 0);
-    assert(lineage_of(&pico8_mz_new()->header) == 0 && lineage_of(&slipway_new(NULL)->header) == 0);
+    assert(lineage_of(&wormhole_new()->header) == 0 && lineage_of(&slipway_new(NULL)->header) == 0);
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked

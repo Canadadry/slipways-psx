@@ -282,10 +282,10 @@ static uint32_t fold_slipgate(uint32_t h, const void *e) {
     h = fold_string_member(h, nr->archetype->required_tech);
     h = fold_fixed_member(h, qh->archetype->project_index);
     h = fold_fixed_member(h, qh->sprite);
-    h = fold_fixed_member(h, qh->targeting->od);
-    h = fold_fixed_member(h, qh->targeting->def->clock_ticks);
-    h = fold_fixed_member(h, qh->targeting->def->attach_distance);
-    h = fold_string_member(h, qh->targeting->def->confirmed_state);
+    h = fold_fixed_member(h, qh->targeting->cost);
+    h = fold_fixed_member(h, qh->targeting->archetype->clock_ticks);
+    h = fold_fixed_member(h, qh->targeting->archetype->attach_distance);
+    h = fold_string_member(h, qh->targeting->archetype->confirmed_state);
     h = fold_qh(h, qh);
     h = jo->has_development_tier ? fold_fixed_member(h, jo->development_tier) : fold_absent(h);
     h = fold_hf(h, jo);
@@ -302,14 +302,14 @@ static uint32_t fold_slipgate(uint32_t h, const void *e) {
     h = fnv(h, (uint32_t)(nr->archetype->required_tech != NULL));
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->archetype->name != NULL));
-    h = fnv(h, (uint32_t)(qh->targeting->def->confirmed_state != NULL));
+    h = fnv(h, (uint32_t)(qh->targeting->archetype->confirmed_state != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->archetype->accepted_resources != NULL));
-    h = fnv(h, qh->targeting->et != NULL ? 1u : 0u);
+    h = fnv(h, qh->targeting->target != NULL ? 1u : 0u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -393,7 +393,7 @@ static void test_built(void) {
 }
 
 static void set_credits(int n) {
-    pico8_fm_hy()->nz = p8_fixed_from_int(n);
+    main_economy_typed()->nz = p8_fixed_from_int(n);
 }
 
 static uint32_t fold_ra_y(uint32_t h, const planet_t *qh) {
@@ -473,8 +473,8 @@ static void test_life(void) {
     cls_of(placed)->drag(placed, mp, vec_ref(vec_xy(64, 64)));
     assert(ra_copies(as_qh(placed)->pos, mp));
     set_credits(200);
-    assert(cls_of(placed)->drop == pico8_d__dispatch);
-    h = pico8_d_(placed) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
+    assert(cls_of(placed)->drop == targeting_confirm_method);
+    h = targeting_confirm(placed) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
     h = fold_string_member(h, as_qh(placed)->header.state);
     assert(strcmp(as_qh(placed)->header.state, "settled") == 0);
     h = fold_economy(h, placed);

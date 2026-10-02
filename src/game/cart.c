@@ -71,7 +71,7 @@ void pico8_cart_load(void) {
     pico8_bg_init();
     pico8_mh_init();
     pico8_iv_init();
-    pico8_probe_init();
+    probe_init();
     pico8_economy_init();
 
     mem = dispatch_context_mem();
@@ -87,10 +87,10 @@ void pico8_cart_load(void) {
     planet_family_trade_init();
     assert(slipgate_ready() && synthesizer_ready() && pico8_qh_ready() && pico8_hj_ready() &&
            "nr extends qh and mx extends hj: pico8_planet_family_init() must run first");
-    pico8_wormhole_init();
+    wormhole_init();
 
     pico8_help_init();
-    assert(pico8_fv_ready() && pico8_g__ready() && "fv extends g_: pico8_probe_init() must run first");
+    assert(pico8_fv_ready() && probe_ready() && "fv extends g_: pico8_probe_init() must run first");
     pico8_score_panel_init();
     pico8_research_icon_init();
     pico8_menu_init();
@@ -147,7 +147,7 @@ void pico8_cart_shutdown(void) {
     pico8_score_panel_shutdown();
     pico8_help_shutdown();
 
-    pico8_wormhole_shutdown();
+    wormhole_shutdown();
     planet_family_trade_shutdown();
     pico8_planet_family_shutdown();
     slipway_shutdown();
@@ -156,7 +156,7 @@ void pico8_cart_shutdown(void) {
     data_init_data_shutdown();
 
     pico8_economy_shutdown();
-    pico8_probe_shutdown();
+    probe_shutdown();
     pico8_iv_shutdown();
     pico8_mh_shutdown();
     pico8_bg_shutdown();
@@ -214,7 +214,7 @@ void pico8_eu(pico8_js_t *nj) {
     (void)pico8_bg_new();
     galaxy_populate(p8_fixed_from_int(90));
 
-    pico8_probe_set_fm((entity_t *)pico8_hy_new());
+    probe_set_main_economy((entity_t *)pico8_hy_new());
     pico8_pj_set_ju(pico8_pj_new());
 
     if (pico8_ha_pz() != NULL) {
@@ -241,8 +241,8 @@ void pico8_eu(pico8_js_t *nj) {
         (void)pico8_ie_new(&keys);
     }
 
-    assert(pico8_fm_hy() != NULL && "fm must be the hy of this game before fm:lj()");
-    pico8_hy_lj(pico8_fm_hy());
+    assert(main_economy_typed() != NULL && "fm must be the hy of this game before fm:lj()");
+    pico8_hy_lj(main_economy_typed());
 }
 
 /* Ici et pas dans un pilote : rejeu, raylib, couverture et TU passent tous

@@ -505,8 +505,8 @@ static char *const gx_rr[7] = {NULL, NULL, "slipgates", "infraspace", "trade lea
                                      "ascension"};
 
 static void invent(char *rr) {
-    assert(pico8_fm_hy() != NULL && pico8_fm_hy()->invented != NULL);
-    pointer_list_add(pico8_fm_hy()->invented, rr);
+    assert(main_economy_typed() != NULL && main_economy_typed()->invented != NULL);
+    pointer_list_add(main_economy_typed()->invented, rr);
 }
 
 /* Per icon, in `gx[]` order: `hb` reveals it exactly when `oj(self.ke.rr)`,
@@ -637,7 +637,7 @@ static void test_ie_is_a_struct(void) {
     others[0] = pico8_bg_new();
     others[1] = pico8_fq_new(NULL);
     others[2] = slipway_new(NULL);
-    others[3] = pico8_mz_new();
+    others[3] = wormhole_new();
     for (i = 0; i < 4; i++) {
         assert(cls_of(others[i])->refresh == NULL);
     }

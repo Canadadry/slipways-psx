@@ -63,7 +63,7 @@ static void pico8_cr_row_my_dispatch(pico8_js_t *self) {
         return;
     }
     if (self->_cr_t != NULL) {
-        pico8_hy_kt(pico8_fm_hy(), self->_cr_t);
+        pico8_hy_kt(main_economy_typed(), self->_cr_t);
     }
 }
 
@@ -131,7 +131,7 @@ static const data_row_t *pico8_menu_invented_lines(const pointer_list_t *list) {
 }
 
 void pico8_cr(void) {
-    const pico8_hy_t *fm = pico8_fm_hy();
+    const pico8_hy_t *fm = main_economy_typed();
     p8_fixed_t tl = p8_fixed_from_int(0);
     int gr = 0;
     p8_fixed_t qi = p8_fixed_from_int(0);
@@ -222,7 +222,7 @@ void pico8_cr(void) {
 }
 
 static void pico8_ix1_my_dispatch(pico8_js_t *self) {
-    pico8_hy_t *fm = pico8_fm_hy();
+    pico8_hy_t *fm = main_economy_typed();
     (void)self;
     if (fm != NULL) {
         fm->lo = p8_fixed_from_int(1);

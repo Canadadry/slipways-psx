@@ -76,8 +76,8 @@ static int ents_listed(const entity_list_t *list, const void *e) {
 }
 
 /* 0 absent or false, 2 true. */
-static uint32_t m__state(const pico8_g__t *fv) {
-    return fv->m_ ? 2 : 0;
+static uint32_t m__state(const probe_t *fv) {
+    return fv->is_hovered ? 2 : 0;
 }
 
 /* The words the frozen hashes fold before a value: 0xF1 a number, 0xB0 a
@@ -249,12 +249,12 @@ static void start_title(void) {
 
 /* The help, whatever its form: `g_`'s tags and `fa`=10 (a probe has 2). */
 static int is_help(entity_t *e) {
-    const pico8_g__t *g_ =
-        e != NULL && (e->class->lineage & LINEAGE(LINEAGE_PROBE)) ? (const pico8_g__t *)e : NULL;
-    return g_ != NULL && g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)) && g_->def->layer == p8_fixed_from_int(10);
+    const probe_t *g_ =
+        e != NULL && (e->class->lineage & LINEAGE(LINEAGE_PROBE)) ? (const probe_t *)e : NULL;
+    return g_ != NULL && g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)) && g_->archetype->layer == p8_fixed_from_int(10);
 }
 
-static pico8_g__t *the_help(void) {
+static probe_t *the_help(void) {
     const entity_list_t *hv = live_entities();
     entity_t *found = NULL;
     int i;
@@ -266,7 +266,7 @@ static pico8_g__t *the_help(void) {
         }
     }
     assert(found != NULL && found->class == pico8_fv_struct_class());
-    return (pico8_g__t *)found;
+    return (probe_t *)found;
 }
 
 static int in_layer(int layer, const void *e) {
@@ -292,10 +292,10 @@ static const pico8_js_t *as_js(const void *e) {
 static void test_built(void) {
     uint32_t h = 2166136261u;
     const entity_list_t *hv;
-    pico8_g__t *fv;
-    const pico8_g__t *g_;
-    const pico8_emitter_t *em;
-    const pico8_probe_t *pr;
+    probe_t *fv;
+    const probe_t *g_;
+    const emitter_t *em;
+    const targeting_t *pr;
     int rank;
     size_t i;
     int k;
@@ -304,64 +304,64 @@ static void test_built(void) {
     fv = the_help();
     g_ = fv;
     em = g_->emitter;
-    pr = g_->probe;
+    pr = g_->targeting;
     hv = live_entities();
 
-    assert(g_->def->layer == p8_fixed_from_int(10));
-    assert(em->def->lifetime == p8_fixed_from_int(17));
-    assert(g_->def->back_color == p8_fixed_from_int(11));
+    assert(g_->archetype->layer == p8_fixed_from_int(10));
+    assert(em->archetype->lifetime == p8_fixed_from_int(17));
+    assert(g_->archetype->back_color == p8_fixed_from_int(11));
     assert(g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
-    assert(g_->ra != NULL && em->k_ != NULL);
-    assert(g_->def->rows != NULL && pr->def->confirmed_state != NULL);
-    h = fold_fixed_member(h, g_->def->layer);
-    h = fold_ref_member(h, g_->ra);
-    h = fold_ref_member(h, &g_->def->fixed_pos);
-    h = fold_fixed_member(h, g_->def->back_color);
-    h = fold_ref_member(h, &g_->def->row_step);
-    h = fold_fixed_member(h, g_->def->open_sfx);
-    h = fold_fixed_member(h, g_->def->clear_ephemerals_after);
-    h = fold_fixed_member(h, em->def->spawn_rate);
-    h = fold_ref_member(h, em->k_);
-    h = fold_fixed_member(h, em->qo);
-    h = fold_fixed_member(h, em->ro);
-    h = fold_fixed_member(h, em->qg);
-    h = fold_fixed_member(h, em->q_);
-    h = fold_fixed_member(h, em->pn);
-    h = fold_fixed_member(h, em->du);
-    h = fold_fixed_member(h, em->py);
-    h = fold_fixed_member(h, em->def->quarter_turn);
-    h = fold_fixed_member(h, em->def->lifetime);
-    h = fold_ref_member(h, &g_->def->hit_box);
-    h = fold_fixed_member(h, g_->def->cursor_sprite);
-    h = fold_fixed_member(h, g_->def->gpio_signal);
-    h = fold_ref_member(h, g_->def->rows);
+    assert(g_->pos != NULL && em->trail_colors != NULL);
+    assert(g_->archetype->rows != NULL && pr->archetype->confirmed_state != NULL);
+    h = fold_fixed_member(h, g_->archetype->layer);
+    h = fold_ref_member(h, g_->pos);
+    h = fold_ref_member(h, &g_->archetype->fixed_pos);
+    h = fold_fixed_member(h, g_->archetype->back_color);
+    h = fold_ref_member(h, &g_->archetype->row_step);
+    h = fold_fixed_member(h, g_->archetype->open_sfx);
+    h = fold_fixed_member(h, g_->archetype->clear_ephemerals_after);
+    h = fold_fixed_member(h, em->archetype->spawn_rate);
+    h = fold_ref_member(h, em->trail_colors);
+    h = fold_fixed_member(h, em->matrix_xx);
+    h = fold_fixed_member(h, em->matrix_xy);
+    h = fold_fixed_member(h, em->matrix_yx);
+    h = fold_fixed_member(h, em->matrix_yy);
+    h = fold_fixed_member(h, em->angle_slices);
+    h = fold_fixed_member(h, em->base_radius);
+    h = fold_fixed_member(h, em->speed_factor);
+    h = fold_fixed_member(h, em->archetype->quarter_turn);
+    h = fold_fixed_member(h, em->archetype->lifetime);
+    h = fold_ref_member(h, &g_->archetype->hit_box);
+    h = fold_fixed_member(h, g_->archetype->cursor_sprite);
+    h = fold_fixed_member(h, g_->archetype->gpio_signal);
+    h = fold_ref_member(h, g_->archetype->rows);
     h = fold_tags(fnv(fnv(h, 1u), 0x7Au), g_->header.class->tags);
-    h = fold_fixed_member(h, g_->def->fold_anchor);
-    h = fold_string_member(h, pr->def->confirmed_state);
-    h = fold_fixed_member(h, pr->od);
-    h = fold_bool_member(h, pr->def->clock_ticks != 0);
-    h = fold_fixed_member(h, pr->def->attach_distance);
-    h = fold_vec(h, g_->ra);
-    h = fold_vec(h, &g_->def->fixed_pos);
-    h = fold_vec(h, &g_->def->row_step);
-    h = fold_box(h, &g_->def->hit_box);
-    assert(g_->def == &help_screen_archetype && g_->ra == &help_screen_archetype.pos);
-    assert(em->k_ == &help_screen_trail_colors_seq);
-    assert(em->k_ != &probe_trail_colors_seq);
-    assert(g_->def->rows == &help_screen_rows_row);
+    h = fold_fixed_member(h, g_->archetype->fold_anchor);
+    h = fold_string_member(h, pr->archetype->confirmed_state);
+    h = fold_fixed_member(h, pr->cost);
+    h = fold_bool_member(h, pr->archetype->clock_ticks != 0);
+    h = fold_fixed_member(h, pr->archetype->attach_distance);
+    h = fold_vec(h, g_->pos);
+    h = fold_vec(h, &g_->archetype->fixed_pos);
+    h = fold_vec(h, &g_->archetype->row_step);
+    h = fold_box(h, &g_->archetype->hit_box);
+    assert(g_->archetype == &help_screen_archetype && g_->pos == &help_screen_archetype.pos);
+    assert(em->trail_colors == &help_screen_trail_colors_seq);
+    assert(em->trail_colors != &probe_trail_colors_seq);
+    assert(g_->archetype->rows == &help_screen_rows_row);
     h = fold_string_member(h, g_->header.state);
     h = fold_fixed_member(h, g_->header.state_time);
-    h = fnv(h, (uint32_t)size_of(em->qy));
-    assert(size_of(em->qy) == 0);
-    assert(!fv->m_ && g_->p == NULL && pr->et == NULL && !g_->p_);
+    h = fnv(h, (uint32_t)size_of(em->particles));
+    assert(size_of(em->particles) == 0);
+    assert(!fv->is_hovered && g_->map_pos == NULL && pr->target == NULL && !g_->is_dead);
     assert(cls_of(fv)->new_year == NULL && cls_of(fv)->refresh == NULL && cls_of(fv)->states[ENTITY_STATE_NORMAL] == NULL &&
            cls_of(fv)->left_press == NULL);
 
     assert(cls_of(fv)->draw == pico8_fv_kj_dispatch);
-    assert(cls_of(fv)->draw_overlay == pico8_dl_dispatch);
-    assert(cls_of(fv)->spawn_particle == pico8_g__mm);
-    assert(cls_of(fv)->drag == pico8_bv_dispatch);
-    assert(cls_of(fv)->drop == pico8_d__dispatch);
+    assert(cls_of(fv)->draw_overlay == targeting_tooltip_method);
+    assert(cls_of(fv)->spawn_particle == probe_spawn_particle);
+    assert(cls_of(fv)->drag == targeting_track_method);
+    assert(cls_of(fv)->drop == targeting_confirm_method);
     assert(cls_of(fv)->hit_test != NULL);
 
     rank = ents_rank_in(hv, fv);
@@ -402,7 +402,7 @@ static void test_built(void) {
  * out of `kq`, `rp` retained since `fa` >= 10. */
 static void test_life(void) {
     uint32_t h = 2166136261u;
-    pico8_g__t *fv;
+    probe_t *fv;
     int i;
 
     start_title();
@@ -410,7 +410,7 @@ static void test_life(void) {
     for (i = 0; i < 3; i++) {
         draw_layers("draw");
         h = fnv(h, screen_hash());
-        h = fnv(h, (uint32_t)size_of(fv->emitter->qy));
+        h = fnv(h, (uint32_t)size_of(fv->emitter->particles));
     }
     draw_layers("draw_overlay");
     h = fnv(h, screen_hash());
@@ -424,7 +424,7 @@ static void test_life(void) {
     assert(cls_of(fv)->hit_test(&fv->header, vec_ref(64, 112), vec_ref(64, 10)) == 0);
     assert(cls_of(fv)->hit_test(&fv->header, vec_ref(24, 106), vec_ref(24, 106)) == 1);
     assert(cls_of(fv)->hit_test(&fv->header, vec_ref(23, 106), vec_ref(23, 106)) == 0);
-    h = fnv(h, (uint32_t)size_of(fv->emitter->qy));
+    h = fnv(h, (uint32_t)size_of(fv->emitter->particles));
     check("life", h, LIFE_HASH);
 }
 
@@ -445,7 +445,7 @@ static void mouse_at(int x, int y) {
  * help in layer `fa` of `ic`, the cursor sprite `ql`; then out, `m_` false. */
 static void test_hover(void) {
     uint32_t h = 2166136261u;
-    pico8_g__t *fv;
+    probe_t *fv;
     uint32_t drawn;
 
     start_title();
@@ -482,7 +482,7 @@ static void empty_qy(pointer_list_t *qy) {
     while (qy->count > 0) {
         void *particle = qy->items[0];
         pointer_list_del(qy, particle);
-        allocator_release(pico8_zone_particules(PICO8_PARTICULES_PARTICULE), particle);
+        allocator_release(particle_zone(PARTICLE_SLOT_PARTICLE), particle);
     }
 }
 
@@ -491,27 +491,27 @@ static void empty_qy(pointer_list_t *qy) {
 /* A particle of the help is drawn in the help's own `k_`: at `l`=6.5, less
  * the frame's 0.14, index 6 is colour 9, where `g_`'s five have none. */
 static void test_particle_takes_the_help_palette(void) {
-    pico8_qy_t *particle = pico8_particule_prendre();
+    particle_t *particle = particle_take();
     pointer_list_t *qy;
     vec_t ra;
-    pico8_g__t *fv;
+    probe_t *fv;
     int at;
 
     start_title();
     fv = the_help();
-    assert(fv->ra != NULL);
-    ra = *fv->ra;
-    particle->p = vec_make(0, 0);
-    particle->v = vec_make(0, 0);
-    particle->has_a = 0;
-    particle->l = P8_FIXED_LIT(0x00068000, 6.5);
-    qy = fv->emitter->qy;
+    assert(fv->pos != NULL);
+    ra = *fv->pos;
+    particle->pos = vec_make(0, 0);
+    particle->velocity = vec_make(0, 0);
+    particle->has_acceleration = 0;
+    particle->life = P8_FIXED_LIT(0x00068000, 6.5);
+    qy = fv->emitter->particles;
     empty_qy(qy);
     pointer_list_add(qy, particle);
     p8_camera_reset(&gfx);
     at = P8_ADDR_SCREEN + p8_fixed_flr_int(ra.y) * P8_SCREEN_WIDTH + p8_fixed_flr_int(ra.x);
     p8_poke(&mem, at, 3);
-    pico8_ei(&gfx, &mem, &fv->header);
+    emitter_update(&gfx, &mem, &fv->header);
     assert(p8_peek(&mem, at) == help_screen_trail_colors_seq.items[5] && help_screen_trail_colors_seq.items[5] == 9);
 }
 
@@ -530,7 +530,7 @@ static void test_eu_retires_the_help(void) {
  * shutdown. */
 static void test_fv_is_a_struct(void) {
     const entity_class_t *cls = pico8_fv_struct_class();
-    const entity_class_t *g_ = pico8_g__struct_class();
+    const entity_class_t *g_ = probe_class();
     void *fv;
     int j;
 
@@ -556,31 +556,31 @@ static void test_fv_is_a_struct(void) {
 }
 
 static void call_f_(void *e) {
-    pico8_f_(e);
+    emitter_init(e);
 }
 
 static void call_ez(void *e) {
-    pico8_ez(e, p8_fixed_from_int(1));
+    emitter_spawn(e, p8_fixed_from_int(1));
 }
 
 static void call_ei(void *e) {
-    pico8_ei(&gfx, &mem, e);
+    emitter_update(&gfx, &mem, e);
 }
 
 static void call_g__mm(void *e) {
-    (void)pico8_g__mm(e);
+    (void)probe_spawn_particle(e);
 }
 
 static void call_bv(void *e) {
-    pico8_bv(e, vec_ref(1, 1), vec_ref(2, 2));
+    targeting_track(e, vec_ref(1, 1), vec_ref(2, 2));
 }
 
 static void call_dl(void *e) {
-    pico8_dl(&gfx, &mem, e);
+    targeting_tooltip(&gfx, &mem, e);
 }
 
 static void call_d_(void *e) {
-    (void)pico8_d_(e);
+    (void)targeting_confirm(e);
 }
 
 static void call_gk(void *e) {
@@ -599,7 +599,7 @@ static void test_g__closed(void) {
     size_t i;
 
     start_title();
-    assert(pico8_g__ready());
+    assert(probe_ready());
     for (i = 0; i < sizeof fns / sizeof fns[0]; i++) {
         fns[i](NULL);
     }
@@ -633,9 +633,9 @@ typedef struct {
 
 static held_t held_now(void) {
     held_t h;
-    h.particules = pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE);
-    h.qy = pico8_zone_particules_vivantes(PICO8_PARTICULES_QY);
-    h.qy_fv = pico8_zone_particules_vivantes(PICO8_PARTICULES_QY_FV);
+    h.particules = particle_zone_live(PARTICLE_SLOT_PARTICLE);
+    h.qy = particle_zone_live(PARTICLE_SLOT_LIST);
+    h.qy_fv = particle_zone_live(PARTICLE_SLOT_HELP_LIST);
     h.rangees = pico8_zone_interface_vivantes(PICO8_SORTE_RANGEE);
     return h;
 }
@@ -643,21 +643,21 @@ static held_t held_now(void) {
 /* The help that `eu` takes out gives back, at the exit queue's flush, its
  * particles and its `qy_fv`, the one place of its sort. */
 static void test_eu_gives_back_the_help_particles(void) {
-    pico8_g__t *fv;
+    probe_t *fv;
     held_t title;
     held_t after;
 
     start_title();
     fv = the_help();
-    pico8_ez(&fv->header, p8_fixed_from_int(5));
+    emitter_spawn(&fv->header, p8_fixed_from_int(5));
     title = held_now();
-    assert(title.qy_fv == 1 && fv->emitter->qy->count >= 5);
-    assert(title.particules == fv->emitter->qy->count);
+    assert(title.qy_fv == 1 && fv->emitter->particles->count >= 5);
+    assert(title.particules == fv->emitter->particles->count);
     pico8_eu(NULL);
     pico8_cart_vider_file_sortie();
     after = held_now();
     assert(after.qy_fv == 0 && after.particules == 0);
-    assert(fv->emitter->qy == NULL);
+    assert(fv->emitter->particles == NULL);
 }
 
 int main(void) {

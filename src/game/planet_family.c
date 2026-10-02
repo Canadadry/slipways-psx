@@ -26,15 +26,15 @@ void pico8_qh_ly_dispatch(entity_t *self, p8_fixed_t t) {
 
 static const entity_class_t g_qh_struct_class = {
     .draw = planet_draw_method,
-    .draw_overlay = pico8_dl_dispatch,
+    .draw_overlay = targeting_tooltip_method,
     .hit_test = planet_hit_test_method,
     .new_year = planet_new_year_method,
     .refresh = planet_refresh_method,
     .release = planet_release_method,
     .left_press = planet_left_press_method,
     .accept_drop = planet_accept_drop_method,
-    .drag = pico8_bv_dispatch,
-    .drop = pico8_d__dispatch,
+    .drag = targeting_track_method,
+    .drop = targeting_confirm_method,
     .attach_slipway = planet_attach_slipway_method,
     .offer_trade = planet_offer_trade_method,
     .states =
@@ -50,11 +50,11 @@ void pico8_qh_struct_init(planet_t *self, const entity_class_t *cls, const plane
     planet_init_instance(self, cls, def);
     self->header.targeting = &self->probe_own;
     self->targeting = &self->probe_own;
-    self->targeting->def = &self->archetype->targeting;
-    self->targeting->od = self->archetype->targeting.cost;
-    self->targeting->has_od = self->archetype->targeting.has_cost;
+    self->targeting->archetype = &self->archetype->targeting;
+    self->targeting->cost = self->archetype->targeting.cost;
+    self->targeting->has_cost = self->archetype->targeting.has_cost;
     self->sprite = self->archetype->sprite;
-    self->targeting->et = NULL;
+    self->targeting->target = NULL;
 }
 
 static planet_t *pico8_qh_struct_new(const planet_keys_t *keys) {
@@ -98,15 +98,15 @@ static void pico8_nl_ly_dispatch(entity_t *self, p8_fixed_t t) {
 
 static const entity_class_t g_nl_struct_class = {
     .draw = planet_draw_method,
-    .draw_overlay = pico8_dl_dispatch,
+    .draw_overlay = targeting_tooltip_method,
     .hit_test = planet_hit_test_method,
     .new_year = planet_new_year_method,
     .refresh = planet_refresh_method,
     .release = planet_release_method,
     .left_press = planet_left_press_method,
     .accept_drop = planet_accept_drop_method,
-    .drag = pico8_bv_dispatch,
-    .drop = pico8_d__dispatch,
+    .drag = targeting_track_method,
+    .drop = targeting_confirm_method,
     .attach_slipway = planet_attach_slipway_method,
     .offer_trade = planet_offer_trade_method,
     .states =
@@ -142,15 +142,15 @@ static planet_t *pico8_nl_struct_new(const planet_keys_t *keys) {
 
 static const entity_class_t g_os_struct_class = {
     .draw = planet_draw_method,
-    .draw_overlay = pico8_dl_dispatch,
+    .draw_overlay = targeting_tooltip_method,
     .hit_test = planet_hit_test_method,
     .new_year = planet_new_year_method,
     .refresh = planet_refresh_method,
     .release = planet_release_method,
     .left_press = planet_left_press_method,
     .accept_drop = planet_accept_drop_method,
-    .drag = pico8_bv_dispatch,
-    .drop = pico8_d__dispatch,
+    .drag = targeting_track_method,
+    .drop = targeting_confirm_method,
     .attach_slipway = planet_attach_slipway_method,
     .offer_trade = planet_offer_trade_method,
     .states =
@@ -188,7 +188,7 @@ void pico8_hj_kj(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t p) 
         return;
     }
     if (self->has_development_tier && self->development_tier >= p8_fixed_from_int(2)) {
-        pico8_ei(gfx, mem, (entity_t *)self);
+        emitter_update(gfx, mem, (entity_t *)self);
     }
     planet_draw(gfx, mem, self, p);
 }
@@ -200,24 +200,24 @@ void pico8_hj_kj_dispatch(entity_t *self, const vec_t *ra) {
 
 void pico8_hj_rendre_dispatch(entity_t *self) {
     planet_release_row(self);
-    pico8_qy_rendre(self->emitter);
+    emitter_release_particles(self->emitter);
     planet_grab_arena_released((const planet_t *)self);
 }
 
 static const entity_class_t g_hj_struct_class = {
     .draw = pico8_hj_kj_dispatch,
-    .draw_overlay = pico8_dl_dispatch,
+    .draw_overlay = targeting_tooltip_method,
     .hit_test = planet_hit_test_method,
     .new_year = planet_new_year_method,
     .refresh = planet_refresh_method,
     .release = pico8_hj_rendre_dispatch,
     .left_press = planet_left_press_method,
     .accept_drop = planet_accept_drop_method,
-    .drag = pico8_bv_dispatch,
-    .drop = pico8_d__dispatch,
+    .drag = targeting_track_method,
+    .drop = targeting_confirm_method,
     .attach_slipway = planet_attach_slipway_method,
     .offer_trade = planet_offer_trade_method,
-    .spawn_particle = pico8_g__mm,
+    .spawn_particle = probe_spawn_particle,
     .states =
         {
             [ENTITY_STATE_VANISHING] = planet_update_vanishing_method,
@@ -231,16 +231,16 @@ void pico8_hj_struct_init(planet_t *self, const entity_class_t *cls, const plane
     pico8_qh_struct_init(self, cls, def);
     self->header.emitter = &self->emitter_own;
     self->emitter = &self->emitter_own;
-    self->emitter->def = &self->archetype->emitter;
-    self->emitter->py = self->archetype->emitter.speed_factor;
-    self->emitter->pn = self->archetype->emitter.angle_slices;
-    self->emitter->k_ = self->archetype->emitter.trail_colors;
-    self->emitter->du = self->archetype->emitter.base_radius;
-    self->emitter->qo = self->archetype->emitter.matrix_xx;
-    self->emitter->ro = self->archetype->emitter.matrix_xy;
-    self->emitter->qg = self->archetype->emitter.matrix_yx;
-    self->emitter->q_ = self->archetype->emitter.matrix_yy;
-    self->emitter->qy = NULL;
+    self->emitter->archetype = &self->archetype->emitter;
+    self->emitter->speed_factor = self->archetype->emitter.speed_factor;
+    self->emitter->angle_slices = self->archetype->emitter.angle_slices;
+    self->emitter->trail_colors = self->archetype->emitter.trail_colors;
+    self->emitter->base_radius = self->archetype->emitter.base_radius;
+    self->emitter->matrix_xx = self->archetype->emitter.matrix_xx;
+    self->emitter->matrix_xy = self->archetype->emitter.matrix_xy;
+    self->emitter->matrix_yx = self->archetype->emitter.matrix_yx;
+    self->emitter->matrix_yy = self->archetype->emitter.matrix_yy;
+    self->emitter->particles = NULL;
 }
 
 static planet_t *pico8_hj_struct_new(const planet_keys_t *keys) {
@@ -259,7 +259,7 @@ static planet_t *pico8_hj_struct_new(const planet_keys_t *keys) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("ascension");
 #endif
-    pico8_f_((entity_t *)self);
+    emitter_init((entity_t *)self);
     planet_construct(self);
     entity_construct(&self->header);
     return self;
@@ -291,18 +291,18 @@ void pico8_pm_pq(planet_t *self) {
 
 static const entity_class_t g_pm_struct_class = {
     .draw = pico8_hj_kj_dispatch,
-    .draw_overlay = pico8_dl_dispatch,
+    .draw_overlay = targeting_tooltip_method,
     .hit_test = planet_hit_test_method,
     .new_year = planet_new_year_method,
     .refresh = planet_refresh_method,
     .release = pico8_hj_rendre_dispatch,
     .left_press = planet_left_press_method,
     .accept_drop = planet_accept_drop_method,
-    .drag = pico8_bv_dispatch,
-    .drop = pico8_d__dispatch,
+    .drag = targeting_track_method,
+    .drop = targeting_confirm_method,
     .attach_slipway = planet_attach_slipway_method,
     .offer_trade = planet_offer_trade_method,
-    .spawn_particle = pico8_g__mm,
+    .spawn_particle = probe_spawn_particle,
     .states =
         {
             [ENTITY_STATE_VANISHING] = planet_update_vanishing_method,
@@ -332,7 +332,7 @@ static planet_t *pico8_pm_struct_new(const planet_keys_t *keys) {
     pico8_class_coverage_record("protostar");
 #endif
     pico8_pm_pq(self);
-    pico8_f_((entity_t *)self);
+    emitter_init((entity_t *)self);
     planet_construct(self);
     entity_construct(&self->header);
     return self;
@@ -344,8 +344,8 @@ void pico8_ga_pq(planet_t *self) {
     if (self == NULL) {
         return;
     }
-    pico8_f_((entity_t *)self);
-    pico8_ez((entity_t *)self, p8_fixed_from_int(140));
+    emitter_init((entity_t *)self);
+    emitter_spawn((entity_t *)self, p8_fixed_from_int(140));
 
     if (main_camera() != NULL) {
         mo = pico8_mo_qb();
@@ -354,7 +354,7 @@ void pico8_ga_pq(planet_t *self) {
     }
 }
 
-pico8_qy_t *pico8_ga_mm(entity_t *self_ptr) {
+particle_t *pico8_ga_mm(entity_t *self_ptr) {
     const planet_t *self = (const planet_t *)self_ptr;
     p8_fixed_t qd;
     p8_fixed_t ms;
@@ -363,7 +363,7 @@ pico8_qy_t *pico8_ga_mm(entity_t *self_ptr) {
     vec_t p;
     vec_t v;
     vec_t a;
-    pico8_qy_t *particle;
+    particle_t *particle;
 
     qd = p8_fixed_add(p8_fixed_rnd(P8_FIXED_LIT(0x00018000, 1.5)), P8_FIXED_LIT(0x00008000, 0.5));
     if (p8_fixed_rnd_default() < P8_FIXED_LIT(0x00009999, 0.6)) {
@@ -374,17 +374,17 @@ pico8_qy_t *pico8_ga_mm(entity_t *self_ptr) {
 
     ms = self->speed;
     iu = self->acceleration_factor;
-    py = self->emitter->py;
+    py = self->emitter->speed_factor;
 
     v = vec_mul(p, ms);
     a = vec_mul(p, iu);
 
-    particle = pico8_particule_prendre();
-    particle->p = p;
-    particle->v = v;
-    particle->has_a = 1;
-    particle->a = a;
-    particle->l = p8_fixed_add(p8_fixed_rnd(py), py);
+    particle = particle_take();
+    particle->pos = p;
+    particle->velocity = v;
+    particle->has_acceleration = 1;
+    particle->acceleration = a;
+    particle->life = p8_fixed_add(p8_fixed_rnd(py), py);
 
     return particle;
 }
@@ -400,13 +400,13 @@ void pico8_ga_kj(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t p) 
         return;
     }
 
-    qy = self->emitter->qy;
+    qy = self->emitter->particles;
 
     px = p8_fixed_flr_int(p.x);
     py = p8_fixed_flr_int(p.y);
 
     for (i = 1; i <= 3; i++) {
-        const pico8_qy_t *pt = NULL;
+        const particle_t *pt = NULL;
 
         if (qy != NULL && i <= qy->count) {
             pt = qy->items[i - 1];
@@ -417,12 +417,12 @@ void pico8_ga_kj(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t p) 
             int color = 0;
             int k_entry;
 
-            idx = p8_fixed_flr_int(p8_fixed_flr(p8_fixed_div(pt->l, p8_fixed_from_int(2))));
+            idx = p8_fixed_flr_int(p8_fixed_flr(p8_fixed_div(pt->life, p8_fixed_from_int(2))));
             /* TROU-21 */
             if (int_seq_at(burst_trail_colors_seq.items, burst_trail_colors_seq.count, idx, &k_entry)) {
                 color = k_entry;
             }
-            p8_circ(gfx, mem, px, py, p8_fixed_flr_int(vec_length(pt->p)), color);
+            p8_circ(gfx, mem, px, py, p8_fixed_flr_int(vec_length(pt->pos)), color);
         }
 
         /* Lua's `pt` outlives the loop, so `p_` follows the THIRD slot
@@ -432,7 +432,7 @@ void pico8_ga_kj(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t p) 
         third_taken = pt != NULL;
     }
 
-    pico8_ei(gfx, mem, (entity_t *)self);
+    emitter_update(gfx, mem, (entity_t *)self);
     self->is_dead = !third_taken;
 }
 
@@ -468,23 +468,23 @@ static const entity_class_t g_ga_struct_class = {
 };
 
 static planet_t *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
-    const allocator_t *place = pico8_ga_place_prendre();
+    const allocator_t *place = particle_burst_slot_take();
     planet_t *self = (planet_t *)allocator_alloc(place, sizeof *self);
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
     planet_init_instance(self, &g_ga_struct_class, &burst_archetype);
     self->header.emitter = &self->emitter_own;
     self->emitter = &self->emitter_own;
-    self->emitter->def = &self->archetype->emitter;
-    self->emitter->qo = self->archetype->emitter.matrix_xx;
-    self->emitter->ro = self->archetype->emitter.matrix_xy;
-    self->emitter->qg = self->archetype->emitter.matrix_yx;
-    self->emitter->q_ = self->archetype->emitter.matrix_yy;
-    self->emitter->k_ = self->archetype->emitter.trail_colors;
+    self->emitter->archetype = &self->archetype->emitter;
+    self->emitter->matrix_xx = self->archetype->emitter.matrix_xx;
+    self->emitter->matrix_xy = self->archetype->emitter.matrix_xy;
+    self->emitter->matrix_yx = self->archetype->emitter.matrix_yx;
+    self->emitter->matrix_yy = self->archetype->emitter.matrix_yy;
+    self->emitter->trail_colors = self->archetype->emitter.trail_colors;
     self->acceleration_factor = self->archetype->acceleration_factor;
-    self->emitter->py = self->archetype->emitter.speed_factor;
+    self->emitter->speed_factor = self->archetype->emitter.speed_factor;
     self->speed = self->archetype->speed;
-    self->emitter->qy = NULL;
+    self->emitter->particles = NULL;
     self->outgoing_routes = &g_ga_by_shared;
     if (keys != NULL) {
         if (keys->jo.map_pos != NULL) {
@@ -504,13 +504,13 @@ static planet_t *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
             self->planet_id = keys->jo.planet_id;
         }
         if (keys->pq != NULL) {
-            self->emitter->qo = keys->pq->matrix_xx;
-            self->emitter->ro = keys->pq->matrix_xy;
-            self->emitter->qg = keys->pq->matrix_yx;
-            self->emitter->q_ = keys->pq->matrix_yy;
-            self->emitter->k_ = keys->pq->trail_colors;
+            self->emitter->matrix_xx = keys->pq->matrix_xx;
+            self->emitter->matrix_xy = keys->pq->matrix_xy;
+            self->emitter->matrix_yx = keys->pq->matrix_yx;
+            self->emitter->matrix_yy = keys->pq->matrix_yy;
+            self->emitter->trail_colors = keys->pq->trail_colors;
             self->acceleration_factor = keys->pq->acceleration_factor;
-            self->emitter->py = keys->pq->speed_factor;
+            self->emitter->speed_factor = keys->pq->speed_factor;
             self->speed = keys->pq->speed;
         }
     }

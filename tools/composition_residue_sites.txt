@@ -1,11 +1,11 @@
 is_message_name	src/engine/entity_registry.c	aucun : hv est typé (2.11r-b1)	entity_unregister (entity.c:217) <- ui.c:458 (typee), bootstrap.c:72 ; entity_register (entity.c:188) <- entity_construct (ke.c:40), typee
 draw_layers	src/engine/entity_registry.c	aucun : cv est typé (2.11r-b2)	qc = bucket_src->items[i] ; entrees typees (const char *nt), appelants cart.c:208-209
-entity_set_state	src/engine/entity.c	aucun : pico8_d__dispatch est typé (2.20c)	pico8_d_ <- pico8_d__dispatch ; planet_roll_type <- pico8_mz_pr, typee ; planet_apply_project <- planet_projects_panel_on_click_method, typee
-pico8_f_	src/game/particle.c	aucun	appelants : help.c:180, planet_family.c:332, :436, planet_family_trade.c:408, probe.c:502 (self local des *_struct_new) ; planet_family.c:448 dans pico8_ga_pq (ga_t *) <- pico8_ga_struct_new
-pico8_ez	src/game/particle.c	aucun : pico8_ei_dispatch est typé (2.20a)	pico8_ei <- pico8_ei_dispatch ; pico8_ga_pq <- pico8_ga_struct_new, typee
-pico8_ei	src/game/particle.c	aucun : pico8_ei_dispatch est typé (2.20a)	pico8_ei_dispatch ; pico8_fv_kj, pico8_hj_kj, pico8_ga_kj <- leurs *_kj_dispatch, typés (2.20a)
-pico8_bv	src/game/probe.c	aucun : pico8_bv_dispatch est typé (2.20b)	pico8_bv_dispatch ; pico8_mz_hq <- pico8_mz_hq_dispatch, typé (2.20b)
-pico8_dl	src/game/probe.c	aucun : pico8_dl_dispatch est typé (2.20a)	pico8_dl_dispatch ; slipway_draw_overlay <- slipway_draw_overlay_method, typé (2.20a)
-pico8_d_	src/game/probe.c	aucun : pico8_d__dispatch est typé (2.20c)	pico8_d__dispatch ; slipway_drop <- slipway_drop_method, pico8_mz_ey <- pico8_mz_ey_dispatch, typés (2.20c)
+entity_set_state	src/engine/entity.c	aucun : targeting_confirm_method est typé (2.20c)	targeting_confirm <- targeting_confirm_method ; planet_roll_type <- wormhole_update_unfolding, typee ; planet_apply_project <- planet_projects_panel_on_click_method, typee
+emitter_init	src/game/particle.c	aucun	appelants : help.c:180, planet_family.c:332, :436, planet_family_trade.c:408, probe.c:502 (self local des *_struct_new) ; planet_family.c:448 dans pico8_ga_pq (ga_t *) <- pico8_ga_struct_new
+emitter_spawn	src/game/particle.c	aucun : emitter_update_method est typé (2.20a)	emitter_update <- emitter_update_method ; pico8_ga_pq <- pico8_ga_struct_new, typee
+emitter_update	src/game/particle.c	aucun : emitter_update_method est typé (2.20a)	emitter_update_method ; pico8_fv_kj, pico8_hj_kj, pico8_ga_kj <- leurs *_kj_dispatch, typés (2.20a)
+targeting_track	src/game/probe.c	aucun : targeting_track_method est typé (2.20b)	targeting_track_method ; wormhole_drag <- wormhole_drag_method, typé (2.20b)
+targeting_tooltip	src/game/probe.c	aucun : targeting_tooltip_method est typé (2.20a)	targeting_tooltip_method ; slipway_draw_overlay <- slipway_draw_overlay_method, typé (2.20a)
+targeting_confirm	src/game/probe.c	aucun : targeting_confirm_method est typé (2.20c)	targeting_confirm_method ; slipway_drop <- slipway_drop_method, wormhole_drop <- wormhole_drop_method, typés (2.20c)
 pico8_eg_gg_pred	src/game/score_panel.c	aucun : prédicat typé de entity_list_filter sur cg (2.11r-b3)	score_panel.c:112 : entity_list_filter(frame_zone(), entities_by_tag("jo"), pico8_eg_gg_pred, NULL)
 slipway_drag	src/game/slipway.c	aucun : jo.oe est typee (2.8b)	self->probe->et = slipway_obstruction(self) dans slipway_drag <- slipway_drag_method, typé (2.20b)

@@ -89,7 +89,7 @@ static void test_one_occurrence_per_category_in_table_order(void) {
     write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n    pointer_" "list_t *oe;\n} pico8_"
                            "jo_t;\n");
     write_file(SRC "/p.h", "typedef struct {\n    pico8_" "jo_t jo;\n} pico8_" "qh_t;\n");
-    write_file(SRC "/v.h", "pico8_qy_t *pico8_" "g__mm(void *" "self);\n");
+    write_file(SRC "/v.h", "particle_t *pico8_" "g__mm(void *" "self);\n");
     write_file(ATT, "q1\tx\n");
     write_file(SRC "/a.h", "#include \"b.h\"\n");
     write_file(SRC "/b.h", "#include \"a.h\"\n");
@@ -242,8 +242,8 @@ static void test_registres_reads_declaration_points_outside_entity_types(void) {
     setup();
     write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n    pointer_"
                            "list_t *oe;\n} pico8_" "ke_t;\n"
-                           "typedef struct {\n    pointer_" "list_t layers[16];\n    pointer_" "list_t *qy;\n} pico8_"
-                           "emitter_t;\n"
+                           "typedef struct {\n    pointer_" "list_t layers[16];\n    pointer_" "list_t *particles;\n} emitter_"
+                           "t;\n"
                            "typedef struct {\n    void *(*new_entity)(int k);\n    void (*kj)(void *" "self);\n} k_t;\n"
                            "const pointer_" "list_t *live_" "entities(void);\n"
                            "layout_row_t *pico8_" "jo_ex(const pointer_" "list_t *is,\n    int o);\n"
@@ -523,12 +523,12 @@ static void test_registres_sees_split_braces_unions_and_attributes(void) {
 
 static void test_void_ptr_reads_joined_public_prototypes(void) {
     setup();
-    write_file(SRC "/v.h", "pico8_qy_t *pico8_" "g__mm(void *" "self);\n"
+    write_file(SRC "/v.h", "particle_t *pico8_" "g__mm(void *" "self);\n"
                            "const void *pico8_" "ha_pz(void);\n"
                            "int pico8_" "two(int a,\n"
                            "    void *b);\n");
     assert(run_residue("--check void-ptr " TREE) == 1);
-    assert(strcmp(read_file(OUT), "void-ptr: " SRC "/v.h:1:pico8_qy_t *pico8_" "g__mm(void *" "self);\n"
+    assert(strcmp(read_file(OUT), "void-ptr: " SRC "/v.h:1:particle_t *pico8_" "g__mm(void *" "self);\n"
                                   "void-ptr: " SRC "/v.h:2:const void *pico8_" "ha_pz(void);\n"
                                   "void-ptr: " SRC "/v.h:3:int pico8_" "two(int a,\n"
                                   "résidu gardé (void-ptr) : 3 ligne(s)\n") == 0);

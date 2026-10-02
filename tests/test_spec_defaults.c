@@ -113,17 +113,17 @@ static void test_camera_defaults_and_ready(void) {
 
 /* mz's own `me` replaces ke's; `jj` holds the generated `qs`. */
 static void test_wormhole_defaults_and_ready(void) {
-    pico8_mz_t *mz = pico8_mz_new();
+    wormhole_t *mz = wormhole_new();
 
-    assert(mz->def == &wormhole_archetype && mz->probe->def == &wormhole_archetype.targeting);
-    assert(mz->header.state == mz->def->state && strcmp(mz->header.state, "placing") == 0 && mz->header.state_time == 0);
-    assert(mz->oi == mz->def->radius);
-    assert(mz->probe->od == mz->def->targeting.cost && mz->probe->od == p8_fixed_from_int(3));
-    assert(mz->probe->has_od == mz->def->targeting.has_cost);
-    assert(mz->jj == pico8_mz_jj_wrapper() && mz->jj->qs == wormhole_too_far_target_status_text);
-    assert(pico8_mz_ready());
-    pico8_wormhole_shutdown();
-    assert(!pico8_mz_ready());
+    assert(mz->archetype == &wormhole_archetype && mz->targeting->archetype == &wormhole_archetype.targeting);
+    assert(mz->header.state == mz->archetype->state && strcmp(mz->header.state, "placing") == 0 && mz->header.state_time == 0);
+    assert(mz->radius == mz->archetype->radius);
+    assert(mz->targeting->cost == mz->archetype->targeting.cost && mz->targeting->cost == p8_fixed_from_int(3));
+    assert(mz->targeting->has_cost == mz->archetype->targeting.has_cost);
+    assert(mz->too_far_target == wormhole_too_far_target_wrapper() && mz->too_far_target->status_text == wormhole_too_far_target_status_text);
+    assert(wormhole_ready());
+    wormhole_shutdown();
+    assert(!wormhole_ready());
 }
 
 static void test_layout_ready(void) {
@@ -134,20 +134,20 @@ static void test_layout_ready(void) {
 
 /* A fresh fv: its archetype's defaults copied, ke's under them. */
 static void test_help_screen_defaults_and_ready(void) {
-    const pico8_g__t *g_ = pico8_fv_new();
+    const probe_t *g_ = pico8_fv_new();
 
-    assert(g_->def == &help_screen_archetype && g_->emitter->def == &help_screen_archetype.emitter &&
-           g_->probe->def == &help_screen_archetype.targeting);
-    assert(g_->ra == &g_->def->pos);
-    assert(g_->emitter->k_ == g_->def->emitter.trail_colors);
-    assert(g_->emitter->qo == g_->def->emitter.matrix_xx && g_->emitter->ro == g_->def->emitter.matrix_xy);
-    assert(g_->emitter->qg == g_->def->emitter.matrix_yx && g_->emitter->q_ == g_->def->emitter.matrix_yy);
-    assert(g_->emitter->pn == g_->def->emitter.angle_slices && g_->emitter->du == g_->def->emitter.base_radius);
-    assert(g_->emitter->py == g_->def->emitter.speed_factor);
-    assert(g_->probe->od == g_->def->targeting.cost);
-    assert(g_->probe->has_od == g_->def->targeting.has_cost);
-    assert(g_->probe->has_od == 1 && g_->probe->def->status_sprite == 0 && g_->probe->def->has_status_sprite == 0);
-    assert(g_->header.state == g_->def->state && strcmp(g_->header.state, "normal") == 0 && g_->header.state_time == 0);
+    assert(g_->archetype == &help_screen_archetype && g_->emitter->archetype == &help_screen_archetype.emitter &&
+           g_->targeting->archetype == &help_screen_archetype.targeting);
+    assert(g_->pos == &g_->archetype->pos);
+    assert(g_->emitter->trail_colors == g_->archetype->emitter.trail_colors);
+    assert(g_->emitter->matrix_xx == g_->archetype->emitter.matrix_xx && g_->emitter->matrix_xy == g_->archetype->emitter.matrix_xy);
+    assert(g_->emitter->matrix_yx == g_->archetype->emitter.matrix_yx && g_->emitter->matrix_yy == g_->archetype->emitter.matrix_yy);
+    assert(g_->emitter->angle_slices == g_->archetype->emitter.angle_slices && g_->emitter->base_radius == g_->archetype->emitter.base_radius);
+    assert(g_->emitter->speed_factor == g_->archetype->emitter.speed_factor);
+    assert(g_->targeting->cost == g_->archetype->targeting.cost);
+    assert(g_->targeting->has_cost == g_->archetype->targeting.has_cost);
+    assert(g_->targeting->has_cost == 1 && g_->targeting->archetype->status_sprite == 0 && g_->targeting->archetype->has_status_sprite == 0);
+    assert(g_->header.state == g_->archetype->state && strcmp(g_->header.state, "normal") == 0 && g_->header.state_time == 0);
     assert(pico8_fv_ready());
     pico8_help_shutdown();
     assert(!pico8_fv_ready());
@@ -156,24 +156,24 @@ static void test_help_screen_defaults_and_ready(void) {
 /* A fresh probe: its archetype's defaults copied, ke's under them; no `ra`
  * yet. */
 static void test_probe_defaults_and_ready(void) {
-    pico8_g__t *g_ = pico8_g__new(NULL);
+    probe_t *g_ = probe_new(NULL);
 
-    assert(g_->def == &probe_archetype && g_->emitter->def == &probe_archetype.emitter &&
-           g_->probe->def == &probe_archetype.targeting);
-    assert(g_->probe->od == g_->def->targeting.cost);
-    assert(g_->probe->has_od == g_->def->targeting.has_cost && g_->probe->has_od == 1);
-    assert(g_->probe->def->status_sprite == 0 && g_->probe->def->has_status_sprite == 0);
-    assert(g_->emitter->py == g_->def->emitter.speed_factor);
-    assert(g_->emitter->pn == g_->def->emitter.angle_slices);
-    assert(g_->emitter->k_ == g_->def->emitter.trail_colors);
-    assert(g_->emitter->qo == g_->def->emitter.matrix_xx && g_->emitter->ro == g_->def->emitter.matrix_xy);
-    assert(g_->emitter->qg == g_->def->emitter.matrix_yx && g_->emitter->q_ == g_->def->emitter.matrix_yy);
-    assert(g_->emitter->du == g_->def->emitter.base_radius);
-    assert(g_->ra == NULL);
-    assert(g_->header.state == g_->def->state && strcmp(g_->header.state, "normal") == 0 && g_->header.state_time == 0);
-    assert(pico8_g__ready());
-    pico8_probe_shutdown();
-    assert(!pico8_g__ready());
+    assert(g_->archetype == &probe_archetype && g_->emitter->archetype == &probe_archetype.emitter &&
+           g_->targeting->archetype == &probe_archetype.targeting);
+    assert(g_->targeting->cost == g_->archetype->targeting.cost);
+    assert(g_->targeting->has_cost == g_->archetype->targeting.has_cost && g_->targeting->has_cost == 1);
+    assert(g_->targeting->archetype->status_sprite == 0 && g_->targeting->archetype->has_status_sprite == 0);
+    assert(g_->emitter->speed_factor == g_->archetype->emitter.speed_factor);
+    assert(g_->emitter->angle_slices == g_->archetype->emitter.angle_slices);
+    assert(g_->emitter->trail_colors == g_->archetype->emitter.trail_colors);
+    assert(g_->emitter->matrix_xx == g_->archetype->emitter.matrix_xx && g_->emitter->matrix_xy == g_->archetype->emitter.matrix_xy);
+    assert(g_->emitter->matrix_yx == g_->archetype->emitter.matrix_yx && g_->emitter->matrix_yy == g_->archetype->emitter.matrix_yy);
+    assert(g_->emitter->base_radius == g_->archetype->emitter.base_radius);
+    assert(g_->pos == NULL);
+    assert(g_->header.state == g_->archetype->state && strcmp(g_->header.state, "normal") == 0 && g_->header.state_time == 0);
+    assert(probe_ready());
+    probe_shutdown();
+    assert(!probe_ready());
 }
 
 static void test_research_project_defaults_and_ready(void) {
@@ -246,7 +246,7 @@ int main(void) {
     assert(!pico8_hp_ready());
     assert(!pico8_pj_ready());
     assert(!pico8_ie_ready());
-    assert(!pico8_g__ready());
+    assert(!probe_ready());
     assert(!pico8_fv_ready());
     pico8_cart_load();
     reset_world();

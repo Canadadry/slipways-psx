@@ -172,7 +172,7 @@ static int case_inspection_panel_rows_survive_reset(void) {
 
 static int case_invented_lines_survive_reset(void) {
     start_game();
-    pointer_list_add(pico8_fm_hy()->invented, "slipgates");
+    pointer_list_add(main_economy_typed()->invented, "slipgates");
     pico8_cr();
     assert(reset_then_draw_panel() >= 1 && "cr: la rangee n invented porte sa bulle");
     return 0;
@@ -206,7 +206,7 @@ static int case_final_score_happiness_survives_reset(void) {
     pico8_pj_t *ju;
 
     start_game();
-    fm = pico8_fm_hy();
+    fm = main_economy_typed();
     fm->happiness = p8_fixed_from_int(1);
     fm->has_happiness = 1;
     fm->hl = "final score";

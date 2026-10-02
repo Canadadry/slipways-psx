@@ -6,160 +6,160 @@
 
 /* Taille : en-tete d'arene compris (x86-64), une liste tient juste sa
  * capacite reservee. Nombre : ce qui vit a la fois au pire de la frame. */
-#define QY_SIZE (96u + 24u + PICO8_QY_CAPACITE * 8u)
-#define QY_FV_SIZE (96u + 24u + PICO8_QY_FV_CAPACITE * 8u)
-#define GA_SIZE 640u
-#define QY_COUNT 24
-#define QY_FV_COUNT 1
-#define GA_COUNT 8
-#define ARENES_MAX QY_COUNT
+#define PARTICLES_SIZE (96u + 24u + PARTICLES_CAPACITY * 8u)
+#define PARTICLES_HELP_SCREEN_SIZE (96u + 24u + PARTICLES_HELP_SCREEN_CAPACITY * 8u)
+#define BURST_SIZE 640u
+#define PARTICLES_COUNT 24
+#define PARTICLES_HELP_SCREEN_COUNT 1
+#define BURST_COUNT 8
+#define ARENAS_MAX PARTICLES_COUNT
 /* Risque accepte : ~21 trainees vivent par slipway desservi dans les deux
  * sens, 680 places tiennent une trentaine de tels slipways visibles. */
-#define TS_COUNT 680
+#define TRANSIT_DOTS_COUNT 680
 
 /* Particules : chaque liste `qy` a son pire, plus les 5 de la nouvelle
  * aide, nees au `_init` avant le vidage qui rend l'ancienne partie. Un
  * eclat en fait 140 (`ez(self,140)`) ; une sonde ou un `pm` (`fc=1`,
  * `ki=9`) ~58, 60 avec les sauts de TROU-14. */
-#define GA_ECLAT 140
-#define EMETTEUR_PIRE 60
-#define FV_PAR_FRAME 5
-#define PARTICULE_COUNT (GA_COUNT * GA_ECLAT + (QY_COUNT - GA_COUNT) * EMETTEUR_PIRE + FV_PAR_FRAME)
+#define BURST_PARTICLES 140
+#define EMITTER_WORST_CASE 60
+#define HELP_SCREEN_PER_FRAME 5
+#define PARTICLE_CAPACITY (BURST_COUNT * BURST_PARTICLES + (PARTICLES_COUNT - BURST_COUNT) * EMITTER_WORST_CASE + HELP_SCREEN_PER_FRAME)
 
-typedef char pico8_zone_particules_arenes_max[(QY_FV_COUNT <= ARENES_MAX && GA_COUNT <= ARENES_MAX) ? 1 : -1];
-typedef char pico8_zone_particules_tient_l_aide[PARTICULE_COUNT >= PICO8_QY_FV_CAPACITE ? 1 : -1];
+typedef char particle_zone_arenas_max_t[(PARTICLES_HELP_SCREEN_COUNT <= ARENAS_MAX && BURST_COUNT <= ARENAS_MAX) ? 1 : -1];
+typedef char particle_zone_holds_help_screen_t[PARTICLE_CAPACITY >= PARTICLES_HELP_SCREEN_CAPACITY ? 1 : -1];
 
-typedef char pico8_zone_particules_exceeded[
-    (SLOT_ZONE_BYTES(PICO8_PARTICULE_PLACE, PARTICULE_COUNT) + SLOT_ZONE_BYTES(QY_SIZE, QY_COUNT) +
-     SLOT_ZONE_BYTES(QY_FV_SIZE, QY_FV_COUNT) + SLOT_ZONE_BYTES(GA_SIZE, GA_COUNT) +
-     SLOT_ZONE_BYTES(PICO8_TS_PLACE, TS_COUNT)
+typedef char particle_zone_exceeded_t[
+    (SLOT_ZONE_BYTES(PARTICLE_SLOT, PARTICLE_CAPACITY) + SLOT_ZONE_BYTES(PARTICLES_SIZE, PARTICLES_COUNT) +
+     SLOT_ZONE_BYTES(PARTICLES_HELP_SCREEN_SIZE, PARTICLES_HELP_SCREEN_COUNT) + SLOT_ZONE_BYTES(BURST_SIZE, BURST_COUNT) +
+     SLOT_ZONE_BYTES(TRANSIT_DOTS_SLOT, TRANSIT_DOTS_COUNT)
      <= ZONE_PARTICLES_BYTES) ? 1 : -1];
 
-SLOT_ZONE_STORAGE(particule_cells, particule_taken, PICO8_PARTICULE_PLACE, PARTICULE_COUNT);
-SLOT_ZONE_STORAGE(qy_cells, qy_taken, QY_SIZE, QY_COUNT);
-SLOT_ZONE_STORAGE(qy_fv_cells, qy_fv_taken, QY_FV_SIZE, QY_FV_COUNT);
-SLOT_ZONE_STORAGE(ga_cells, ga_taken, GA_SIZE, GA_COUNT);
-SLOT_ZONE_STORAGE(ts_cells, ts_taken, PICO8_TS_PLACE, TS_COUNT);
+SLOT_ZONE_STORAGE(particle_cells, particle_taken, PARTICLE_SLOT, PARTICLE_CAPACITY);
+SLOT_ZONE_STORAGE(particles_cells, particles_taken, PARTICLES_SIZE, PARTICLES_COUNT);
+SLOT_ZONE_STORAGE(particles_help_screen_cells, particles_help_screen_taken, PARTICLES_HELP_SCREEN_SIZE, PARTICLES_HELP_SCREEN_COUNT);
+SLOT_ZONE_STORAGE(burst_cells, burst_taken, BURST_SIZE, BURST_COUNT);
+SLOT_ZONE_STORAGE(transit_dots_cells, transit_dots_taken, TRANSIT_DOTS_SLOT, TRANSIT_DOTS_COUNT);
 
-static const slot_kind_zone_t SORTES[PICO8_PARTICULES_COUNT] = {
-    [PICO8_PARTICULES_PARTICULE] = {"particules particule", NULL, particule_cells, particule_taken,
-                                    PICO8_PARTICULE_PLACE, PARTICULE_COUNT},
-    [PICO8_PARTICULES_QY] = {"particules qy", "place qy", qy_cells, qy_taken, QY_SIZE, QY_COUNT},
-    [PICO8_PARTICULES_QY_FV] = {"particules qy_fv", "place qy_fv", qy_fv_cells, qy_fv_taken, QY_FV_SIZE,
-                                QY_FV_COUNT},
-    [PICO8_PARTICULES_GA] = {"particules ga", "place ga", ga_cells, ga_taken, GA_SIZE, GA_COUNT},
-    [PICO8_PARTICULES_TS] = {"particules ts", NULL, ts_cells, ts_taken, PICO8_TS_PLACE, TS_COUNT},
+static const slot_kind_zone_t SLOT_KINDS[PARTICLE_SLOT_COUNT] = {
+    [PARTICLE_SLOT_PARTICLE] = {"particules particule", NULL, particle_cells, particle_taken,
+                                    PARTICLE_SLOT, PARTICLE_CAPACITY},
+    [PARTICLE_SLOT_LIST] = {"particules particles", "place particles", particles_cells, particles_taken, PARTICLES_SIZE, PARTICLES_COUNT},
+    [PARTICLE_SLOT_HELP_LIST] = {"particules particles_help_screen", "place particles_help_screen", particles_help_screen_cells, particles_help_screen_taken, PARTICLES_HELP_SCREEN_SIZE,
+                                PARTICLES_HELP_SCREEN_COUNT},
+    [PARTICLE_SLOT_BURST] = {"particules burst", "place burst", burst_cells, burst_taken, BURST_SIZE, BURST_COUNT},
+    [PARTICLE_SLOT_TRANSIT_DOT] = {"particules transit_dots", NULL, transit_dots_cells, transit_dots_taken, TRANSIT_DOTS_SLOT, TRANSIT_DOTS_COUNT},
 };
 
-static slot_zone_t g_zones[PICO8_PARTICULES_COUNT];
-static allocator_t g_slots[PICO8_PARTICULES_COUNT];
+static slot_zone_t g_zones[PARTICLE_SLOT_COUNT];
+static allocator_t g_slots[PARTICLE_SLOT_COUNT];
 static int g_ready;
-static int g_vivantes[PICO8_PARTICULES_COUNT];
-static int g_max_vivantes[PICO8_PARTICULES_COUNT];
-static size_t g_max_octets[PICO8_PARTICULES_COUNT];
-static int g_max_elements[PICO8_PARTICULES_COUNT];
+static int g_live[PARTICLE_SLOT_COUNT];
+static int g_max_live[PARTICLE_SLOT_COUNT];
+static size_t g_max_bytes[PARTICLE_SLOT_COUNT];
+static int g_max_elements[PARTICLE_SLOT_COUNT];
 /* Places-arenes vivantes, mesurees a la lecture du maximum d'octets. */
-static unsigned char *g_arenes[PICO8_PARTICULES_COUNT][ARENES_MAX];
+static unsigned char *g_arenas[PARTICLE_SLOT_COUNT][ARENAS_MAX];
 
-static pico8_particules_sorte_t sorte_of(const allocator_t *z);
+static particle_slot_kind_t slot_kind_of(const allocator_t *z);
 
 /* Paresseuse : pico8_slot_zone_init empoisonne le stockage sous ASan, ce
  * qu'un initialiseur statique ne ferait pas. */
 static void init_once(void) {
     if (g_ready) return;
-    allocator_init_slot_kinds(SORTES, PICO8_PARTICULES_COUNT, g_zones, g_slots);
+    allocator_init_slot_kinds(SLOT_KINDS, PARTICLE_SLOT_COUNT, g_zones, g_slots);
     g_ready = 1;
 }
 
-static int est_arene(pico8_particules_sorte_t sorte) {
-    return SORTES[sorte].slot_name != NULL;
+static int is_arena(particle_slot_kind_t slot_kind) {
+    return SLOT_KINDS[slot_kind].slot_name != NULL;
 }
 
-static void relever_octets(pico8_particules_sorte_t sorte, const unsigned char *arene) {
-    size_t prise = arena_used((const allocator_t *)arene);
-    if (prise > g_max_octets[sorte]) g_max_octets[sorte] = prise;
+static void read_bytes(particle_slot_kind_t slot_kind, const unsigned char *arena) {
+    size_t grab_arena = arena_used((const allocator_t *)arena);
+    if (grab_arena > g_max_bytes[slot_kind]) g_max_bytes[slot_kind] = grab_arena;
 }
 
-static unsigned char *place_alloc(const allocator_t *z, size_t n) {
-    pico8_particules_sorte_t sorte = sorte_of(z);
+static unsigned char *slot_alloc(const allocator_t *z, size_t n) {
+    particle_slot_kind_t slot_kind = slot_kind_of(z);
     init_once();
-    unsigned char *p = allocator_alloc(&g_slots[sorte], n);
-    if (est_arene(sorte)) {
+    unsigned char *p = allocator_alloc(&g_slots[slot_kind], n);
+    if (is_arena(slot_kind)) {
         int i = 0;
-        while (g_arenes[sorte][i] != NULL) i++;
-        g_arenes[sorte][i] = p;
+        while (g_arenas[slot_kind][i] != NULL) i++;
+        g_arenas[slot_kind][i] = p;
     }
-    g_vivantes[sorte]++;
-    if (g_vivantes[sorte] > g_max_vivantes[sorte]) g_max_vivantes[sorte] = g_vivantes[sorte];
+    g_live[slot_kind]++;
+    if (g_live[slot_kind] > g_max_live[slot_kind]) g_max_live[slot_kind] = g_live[slot_kind];
     return p;
 }
 
-static void place_release(const allocator_t *z, unsigned char *p) {
-    pico8_particules_sorte_t sorte = sorte_of(z);
+static void slot_release(const allocator_t *z, unsigned char *p) {
+    particle_slot_kind_t slot_kind = slot_kind_of(z);
     if (p == NULL) return;
-    if (est_arene(sorte)) {
+    if (is_arena(slot_kind)) {
         int i = 0;
-        while (g_arenes[sorte][i] != p) i++;
-        relever_octets(sorte, p);
-        g_arenes[sorte][i] = NULL;
+        while (g_arenas[slot_kind][i] != p) i++;
+        read_bytes(slot_kind, p);
+        g_arenas[slot_kind][i] = NULL;
     }
-    g_vivantes[sorte]--;
-    allocator_release(&g_slots[sorte], p);
+    g_live[slot_kind]--;
+    allocator_release(&g_slots[slot_kind], p);
 }
 
-static const allocator_t g_handles[PICO8_PARTICULES_COUNT] = {
-    [PICO8_PARTICULES_PARTICULE] = {place_alloc, allocator_grow_refused, place_release, NULL, NULL},
-    [PICO8_PARTICULES_QY] = {place_alloc, allocator_grow_refused, place_release, NULL, NULL},
-    [PICO8_PARTICULES_QY_FV] = {place_alloc, allocator_grow_refused, place_release, NULL, NULL},
-    [PICO8_PARTICULES_GA] = {place_alloc, allocator_grow_refused, place_release, NULL, NULL},
-    [PICO8_PARTICULES_TS] = {place_alloc, allocator_grow_refused, place_release, NULL, NULL},
+static const allocator_t g_handles[PARTICLE_SLOT_COUNT] = {
+    [PARTICLE_SLOT_PARTICLE] = {slot_alloc, allocator_grow_refused, slot_release, NULL, NULL},
+    [PARTICLE_SLOT_LIST] = {slot_alloc, allocator_grow_refused, slot_release, NULL, NULL},
+    [PARTICLE_SLOT_HELP_LIST] = {slot_alloc, allocator_grow_refused, slot_release, NULL, NULL},
+    [PARTICLE_SLOT_BURST] = {slot_alloc, allocator_grow_refused, slot_release, NULL, NULL},
+    [PARTICLE_SLOT_TRANSIT_DOT] = {slot_alloc, allocator_grow_refused, slot_release, NULL, NULL},
 };
 
-static pico8_particules_sorte_t sorte_of(const allocator_t *z) {
-    assert(z >= g_handles && z < g_handles + PICO8_PARTICULES_COUNT && "poignee hors de la zone particules");
-    return (pico8_particules_sorte_t)(z - g_handles);
+static particle_slot_kind_t slot_kind_of(const allocator_t *z) {
+    assert(z >= g_handles && z < g_handles + PARTICLE_SLOT_COUNT && "poignee hors de la zone particules");
+    return (particle_slot_kind_t)(z - g_handles);
 }
 
-const allocator_t *pico8_zone_particules(pico8_particules_sorte_t sorte) {
-    assert(sorte >= 0 && sorte < PICO8_PARTICULES_COUNT);
-    return &g_handles[sorte];
+const allocator_t *particle_zone(particle_slot_kind_t slot_kind) {
+    assert(slot_kind >= 0 && slot_kind < PARTICLE_SLOT_COUNT);
+    return &g_handles[slot_kind];
 }
 
-const allocator_t *pico8_zone_particules_place(pico8_particules_sorte_t sorte) {
-    assert(sorte >= 0 && sorte < PICO8_PARTICULES_COUNT && est_arene(sorte) &&
+const allocator_t *particle_zone_slot(particle_slot_kind_t slot_kind) {
+    assert(slot_kind >= 0 && slot_kind < PARTICLE_SLOT_COUNT && is_arena(slot_kind) &&
            "une particule est une place nue, pas une arene");
-    return arena_take(&g_handles[sorte], SORTES[sorte].slot_name, SORTES[sorte].size);
+    return arena_take(&g_handles[slot_kind], SLOT_KINDS[slot_kind].slot_name, SLOT_KINDS[slot_kind].size);
 }
 
-int pico8_zone_particules_vivantes(pico8_particules_sorte_t sorte) {
-    assert(sorte >= 0 && sorte < PICO8_PARTICULES_COUNT);
+int particle_zone_live(particle_slot_kind_t slot_kind) {
+    assert(slot_kind >= 0 && slot_kind < PARTICLE_SLOT_COUNT);
     init_once();
-    assert((size_t)g_vivantes[sorte] == slot_zone_taken(&g_zones[sorte]) &&
+    assert((size_t)g_live[slot_kind] == slot_zone_taken(&g_zones[slot_kind]) &&
            "places vivantes : une place prise ou rendue sans passer par la poignee de la sorte");
-    return g_vivantes[sorte];
+    return g_live[slot_kind];
 }
 
-int pico8_zone_particules_max_vivantes(pico8_particules_sorte_t sorte) {
-    assert(sorte >= 0 && sorte < PICO8_PARTICULES_COUNT);
-    return g_max_vivantes[sorte];
+int particle_zone_max_live(particle_slot_kind_t slot_kind) {
+    assert(slot_kind >= 0 && slot_kind < PARTICLE_SLOT_COUNT);
+    return g_max_live[slot_kind];
 }
 
-size_t pico8_zone_particules_max_octets(pico8_particules_sorte_t sorte) {
-    assert(sorte >= 0 && sorte < PICO8_PARTICULES_COUNT);
-    if (est_arene(sorte)) {
-        for (int i = 0; i < ARENES_MAX; i++)
-            if (g_arenes[sorte][i] != NULL) relever_octets(sorte, g_arenes[sorte][i]);
+size_t particle_zone_max_bytes(particle_slot_kind_t slot_kind) {
+    assert(slot_kind >= 0 && slot_kind < PARTICLE_SLOT_COUNT);
+    if (is_arena(slot_kind)) {
+        for (int i = 0; i < ARENAS_MAX; i++)
+            if (g_arenas[slot_kind][i] != NULL) read_bytes(slot_kind, g_arenas[slot_kind][i]);
     }
-    return g_max_octets[sorte];
+    return g_max_bytes[slot_kind];
 }
 
-void pico8_zone_particules_noter_elements(pico8_particules_sorte_t sorte, int count) {
-    assert((sorte == PICO8_PARTICULES_QY || sorte == PICO8_PARTICULES_QY_FV || sorte == PICO8_PARTICULES_TS) &&
+void particle_zone_record_elements(particle_slot_kind_t slot_kind, int count) {
+    assert((slot_kind == PARTICLE_SLOT_LIST || slot_kind == PARTICLE_SLOT_HELP_LIST || slot_kind == PARTICLE_SLOT_TRANSIT_DOT) &&
            "seule une liste a des elements");
-    if (count > g_max_elements[sorte]) g_max_elements[sorte] = count;
+    if (count > g_max_elements[slot_kind]) g_max_elements[slot_kind] = count;
 }
 
-int pico8_zone_particules_max_elements(pico8_particules_sorte_t sorte) {
-    assert(sorte >= 0 && sorte < PICO8_PARTICULES_COUNT);
-    return g_max_elements[sorte];
+int particle_zone_max_elements(particle_slot_kind_t slot_kind) {
+    assert(slot_kind >= 0 && slot_kind < PARTICLE_SLOT_COUNT);
+    return g_max_elements[slot_kind];
 }

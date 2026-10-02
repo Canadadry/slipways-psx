@@ -163,7 +163,7 @@ static const data_row_t *pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_ph_c
     pico8_pj_ph_set(st, 3, (data_item_t){.text = s_str});
 
     if (score_i == 0) {
-        const pico8_hy_t *fm = pico8_fm_hy();
+        const pico8_hy_t *fm = main_economy_typed();
         const char *hl_str = fm != NULL && fm->has_hl && fm->hl != NULL ? fm->hl : "current score";
         const pico8_js_t *dk = pico8_dk();
         const char *px = "";
@@ -210,7 +210,7 @@ static const data_row_t *pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_ph_c
 }
 
 void pico8_pj_ph(pico8_pj_t *self) {
-    const pico8_hy_t *fm = pico8_fm_hy();
+    const pico8_hy_t *fm = main_economy_typed();
     int has_hl = fm != NULL && fm->has_hl && fm->hl != NULL;
     int has_gz = self != NULL && self->has_gz;
 

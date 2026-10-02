@@ -115,17 +115,17 @@ void slipway_drag(slipway_t *self, vec_t *mp) {
         self->end = &self->point.header;
     }
 
-    self->targeting->od = pico8_dj(slipway_end_map_pos(self->start), slipway_end_map_pos(self->end));
-    self->targeting->has_od = 1;
+    self->targeting->cost = pico8_dj(slipway_end_map_pos(self->start), slipway_end_map_pos(self->end));
+    self->targeting->has_cost = 1;
 
     /* A fixed is always true in Lua: `qu.mt or re.mt` takes the first present. */
     self->infraspace = p8_fixed_from_int(0);
     self->has_infraspace = slipway_infraspace_of(self->start, &self->infraspace) || slipway_infraspace_of(self->end, &self->infraspace);
     self->header.infraspace = self->has_infraspace ? &self->infraspace : NULL;
 
-    self->targeting->et = slipway_obstruction(self);
-    if (self->targeting->et != NULL) {
-        pico8_probe_et_hang_fo(self->targeting->et, &self->header);
+    self->targeting->target = slipway_obstruction(self);
+    if (self->targeting->target != NULL) {
+        probe_link_target(self->targeting->target, &self->header);
     }
 
     self->layer = self->has_infraspace ? p8_fixed_from_int(2) : p8_fixed_from_int(4);
@@ -140,7 +140,7 @@ void slipway_drop(slipway_t *self, entity_t *end) {
 
     /* `d_()` charges the player and advances the clock, so it must stay
      * behind the `re == NULL` short-circuit. */
-    should_fail = (end == NULL) || !pico8_d_((entity_t *)self);
+    should_fail = (end == NULL) || !targeting_confirm((entity_t *)self);
     if (should_fail) {
         /* pico8_stat has no case for 19, so it reads 0 and this sfx never
          * fires; ported anyway. It dereferences `input` without checking it,
@@ -171,7 +171,7 @@ void slipway_drop(slipway_t *self, entity_t *end) {
                "jc:ey: both endpoints must expose \"kf\", or the slipway never joins their `oe`");
         (void)start_registered;
         (void)end_registered;
-        pico8_hy_nx(pico8_fm_hy(), p8_fixed_from_int(1));
+        pico8_hy_nx(main_economy_typed(), p8_fixed_from_int(1));
     }
 }
 
@@ -305,7 +305,7 @@ void slipway_draw_overlay(slipway_t *self) {
     }
 
     if (self->start != self->end) {
-        pico8_dl(dispatch_context_gfx(), dispatch_context_mem(), (entity_t *)self);
+        targeting_tooltip(dispatch_context_gfx(), dispatch_context_mem(), (entity_t *)self);
     }
 }
 
@@ -328,7 +328,7 @@ static void slipway_release_method(entity_t *self) {
     const allocator_t *zone = jc->transit_dots->zone;
 
     for (int i = 0; i < jc->transit_dots->count; i++)
-        allocator_release(pico8_zone_particules(PICO8_PARTICULES_TS), jc->transit_dots->items[i]);
+        allocator_release(particle_zone(PARTICLE_SLOT_TRANSIT_DOT), jc->transit_dots->items[i]);
     jc->transit_dots->count = 0;
     planet_grab_arena_zone_released(zone, jc->header.state);
 }
@@ -358,18 +358,18 @@ static slipway_t *slipway_create(const slipway_keys_t *keys) {
     self->header.layer = &self->layer;
     self->header.targeting = &self->probe_own;
     self->targeting = &self->probe_own;
-    self->targeting->def = &self->archetype->targeting;
+    self->targeting->archetype = &self->archetype->targeting;
     self->fade_in_step = self->archetype->fade_in_step;
     self->start = NULL;
     self->transit_dots = NULL;
     self->served_planets = NULL;
     self->end = NULL;
-    self->targeting->od = self->archetype->targeting.cost;
-    self->targeting->has_od = self->archetype->targeting.has_cost;
+    self->targeting->cost = self->archetype->targeting.cost;
+    self->targeting->has_cost = self->archetype->targeting.has_cost;
     self->infraspace = 0;
     self->has_infraspace = 0;
     self->header.infraspace = NULL;
-    self->targeting->et = NULL;
+    self->targeting->target = NULL;
     self->targeted_by = NULL;
     self->header.is_dead = &self->is_dead;
     self->is_dead = 0;
