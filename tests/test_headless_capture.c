@@ -31,7 +31,7 @@
  * C'est la sortie sur laquelle portent la fidelite ET la neutralite. */
 #define DRIVER_DUMP "tmp/replay_dump.txt"
 #define CUSTOM_DUMP "tmp/test_headless_capture_custom_dump.txt"
-#define DUMP_WITNESS "temoin: ce dump ne doit pas etre reecrit\n"
+#define DUMP_WITNESS "witness: this dump must not be rewritten\n"
 #define CAPTURE "tmp/test_headless_capture.bin"
 #define STDERR_LOG "tmp/test_headless_capture_stderr.txt"
 /* Un chemin dont le repertoire parent n'existe pas : le cas "chemin
