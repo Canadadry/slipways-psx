@@ -131,14 +131,14 @@ static char *planet_dollar(const char *s) {
 }
 
 /* A planet's `pz` frame: `ep` and `ra` nil when NULL, `ca` and `gq` always. */
-static pico8_pz_frame_t planet_open_box_frame(const planet_t *self) {
-    pico8_pz_frame_t frame = {0};
+static open_box_frame_t planet_open_box_frame(const planet_t *self) {
+    open_box_frame_t frame = {0};
 
-    frame.ep = self->description;
-    frame.has_ca = 1;
-    frame.ca = self->archetype->back_color;
-    frame.gq = &self->archetype->row_step;
-    frame.ra = self->pos;
+    frame.description = self->description;
+    frame.has_back_color = 1;
+    frame.back_color = self->archetype->back_color;
+    frame.row_step = &self->archetype->row_step;
+    frame.pos = self->pos;
     return frame;
 }
 
@@ -156,7 +156,7 @@ void planet_inspection_panel(const planet_t *self) {
     planet_inspection_panel_ctx_t ctx;
     const pointer_list_t *needs;
     pointer_list_t unmet_needs;
-    pico8_pz_frame_t frame;
+    open_box_frame_t frame;
     int index;
 
     if (self == NULL) {
@@ -284,7 +284,7 @@ void planet_inspection_panel(const planet_t *self) {
     }
 
     frame = planet_open_box_frame(self);
-    pico8_pz(&frame, buttons, row_count);
+    message_box_open_box(&frame, buttons, row_count);
 }
 
 down_t planet_accept_drop(const planet_t *self, const entity_t *s) {
@@ -376,7 +376,7 @@ void planet_projects_panel(planet_t *self) {
     available_projects_kept_t available_projects_list;
     button_keys_t *bs;
     planet_projects_panel_row_t *rows;
-    pico8_pz_frame_t frame;
+    open_box_frame_t frame;
     size_t cap;
     int n = 0;
     int i;
@@ -397,7 +397,7 @@ void planet_projects_panel(planet_t *self) {
     }
 
     frame = planet_open_box_frame(self);
-    pico8_pz(&frame, bs, n);
+    message_box_open_box(&frame, bs, n);
 }
 
 void planet_draw(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t pos) {

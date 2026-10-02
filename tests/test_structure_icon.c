@@ -214,8 +214,8 @@ static void check_int(const char *label, int got, int want) {
 }
 
 static void new_game(void) {
-    pico8_eu(NULL);
-    pico8_cart_vider_file_sortie();
+    cart_start_game(NULL);
+    cart_flush_exit_queue();
 }
 
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
@@ -223,7 +223,7 @@ static void new_game(void) {
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
-    pico8__init();
+    cart_init();
     new_game();
 }
 
@@ -586,7 +586,7 @@ static void test_restart(void) {
     }
     h = fold_shared(h, all[0]);
 
-    pico8__init();
+    cart_init();
     assert(shared_revealed_count(as_structure_icon(all[0])) == &as_structure_icon(all[0])->archetype->rest_count);
     assert(shared_id_fixed(as_structure_icon(all[0])) == id);
     h = fold_shared(h, all[0]);
@@ -712,7 +712,7 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
+    cart_load();
     in_fresh_child(test_construction);
     in_fresh_child(test_start);
     in_fresh_child(test_directed);

@@ -345,8 +345,8 @@ static uint32_t screen_hash(void) {
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
-    pico8__init();
-    pico8_eu(NULL);
+    cart_init();
+    cart_start_game(NULL);
 }
 
 static planet_t *as_planet(void *e) {
@@ -740,8 +740,8 @@ static uint32_t fold_world(void) {
     const entity_list_t *jo;
     int i;
 
-    pico8__update60();
-    pico8__draw();
+    cart_update60();
+    cart_draw();
     jo = entities_by_tag("planet");
     for (i = 0; jo != NULL && i < jo->count; i++) {
         h = fnv(h, (uint32_t)projects_rank(as_planet(jo->items[i])->project));
@@ -803,7 +803,7 @@ static void test_projects_in_load_zone(void) {
         const research_project_t *b = project(k);
         assert(b->inputs->capacity == b->inputs->count && b->inputs->zone == game_zone_load_zone());
     }
-    printf("  chargement apres pico8_cart_load : %lu\n", (unsigned long)load_zone_used());
+    printf("  chargement apres cart_load : %lu\n", (unsigned long)load_zone_used());
     assert(load_zone_used() == projects_bytes());
 }
 
@@ -839,10 +839,10 @@ static void test_rebuild_and_shutdown(void) {
 
     research_init();
     assert(research_project_ready() && research_project_row_tail() == &research_project_row_tail_row);
-    pico8_cart_load();
+    cart_load();
     test_projects();
     k = load_zone_used();
-    pico8_cart_load();
+    cart_load();
     assert(load_zone_used() == k);
 }
 
@@ -1084,7 +1084,7 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
+    cart_load();
     in_fresh_child(test_projects);
     in_fresh_child(test_functions);
     in_fresh_child(test_install);

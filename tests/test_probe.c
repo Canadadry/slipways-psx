@@ -261,9 +261,9 @@ static uint32_t screen_hash(void) {
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
-    pico8__init();
-    pico8_eu(NULL);
-    pico8_cart_vider_file_sortie();
+    cart_init();
+    cart_start_game(NULL);
+    cart_flush_exit_queue();
 }
 
 static vec_t *vec_ref(vec_t at) {
@@ -681,7 +681,7 @@ static void test_help_screen(void) {
 
     p8_input_init(&input);
     dispatch_context_set_input(&input);
-    pico8__init();
+    cart_init();
     live = live_entities();
     for (index = 0; index < live->count; index++) {
         entity_t *e = live->items[index];
@@ -703,7 +703,7 @@ static void test_help_screen(void) {
     assert(class_of(help_screen)->drag == targeting_track_method);
     assert(class_of(help_screen)->drop == targeting_confirm_method);
     assert(class_of(help_screen)->draw != emitter_update_method);
-    assert(class_of(help_screen)->draw == pico8_fv_kj_dispatch);
+    assert(class_of(help_screen)->draw == help_screen_draw_method);
     assert(class_of(help_screen)->hit_test != NULL);
     assert(probe_ready());
     assert(size_of(help_screen->emitter->particles) >= 0);
@@ -762,7 +762,7 @@ static void test_probe_is_a_struct(void) {
         assert(is_a_probe_struct(&bare) && !is_probe(&bare.header));
     }
 
-    pico8__init();
+    cart_init();
     live = live_entities();
     for (j = 0; j < live->count; j++) {
         entity_t *e = live->items[j];
@@ -772,7 +772,7 @@ static void test_probe_is_a_struct(void) {
     }
     assert(j < live->count);
     assert(live->items[j] != NULL &&
-           ((const entity_t *)live->items[j])->class == pico8_fv_struct_class());
+           ((const entity_t *)live->items[j])->class == help_screen_class());
 }
 
 /* The throwaway target is a struct that keeps `fo`, the probe aiming at it,
@@ -841,7 +841,7 @@ static void test_leaving_gives_back_its_particles(void) {
     assert(a->emitter->particles->count == 5);
     assert(held_now().particle == before.particle + 5 && held_now().particles == before.particles + 1);
     entity_unregister(&a->header);
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     after = held_now();
     assert(after.particle == before.particle && after.particles == before.particles);
     assert(a->emitter->particles == NULL);
@@ -857,7 +857,7 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
+    cart_load();
     in_fresh_child(test_built);
     in_fresh_child(test_life);
     in_fresh_child(test_drop_on);

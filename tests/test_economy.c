@@ -64,7 +64,7 @@
 static p8_memory_t mem;
 static p8_graphics_t gfx;
 static p8_input_t input;
-static pico8_cheat_t cheat;
+static cheat_t cheat;
 
 /* NULL on the provisional `fm`, as the functions of `hy` take it. */
 static economy_t *main_economy_self(void) {
@@ -193,7 +193,7 @@ static void check(const char *label, uint32_t got, uint32_t want) {
 }
 
 static void new_game(void) {
-    pico8_eu(NULL);
+    cart_start_game(NULL);
 }
 
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
@@ -201,8 +201,8 @@ static void new_game(void) {
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
-    pico8__init();
-    pico8_eu(NULL);
+    cart_init();
+    cart_start_game(NULL);
 }
 
 static planet_t *as_planet(void *e) {
@@ -270,11 +270,11 @@ static void built_world(void) {
 /* The descriptor every `iv` shares, taken off one built for that purpose;
  * it stays in `hv`. */
 static const entity_class_t *toast_descriptor(void) {
-    pico8_iv_keys_t keys = {0};
-    const pico8_iv_t *ref;
+    toast_keys_t keys = {0};
+    const toast_t *ref;
 
-    keys.at1 = "ref";
-    ref = pico8_iv_new(&keys);
+    keys.text = "ref";
+    ref = toast_new(&keys);
     return ref->header.class;
 }
 
@@ -289,10 +289,10 @@ static uint32_t fold_new_entities(uint32_t h, int from, const entity_class_t *to
         const void *e = hv->items[i];
         h = fnv(h, FROZEN_STRUCT_TAG);
         if (((const entity_t *)e)->class == toast_cls) {
-            const pico8_iv_t *iv = e;
-            h = iv->at1 != NULL ? fold_string(fnv(h, (uint32_t)STRING_KIND), iv->at1)
+            const toast_t *iv = e;
+            h = iv->text != NULL ? fold_string(fnv(h, (uint32_t)STRING_KIND), iv->text)
                                 : fnv(fnv(h, (uint32_t)REF_KIND), 0xDEADu);
-            h = fold_fixed(h, iv->at2);
+            h = fold_fixed(h, iv->color);
         }
     }
     return h;
@@ -306,7 +306,7 @@ static void test_construction(void) {
     economy_t *bare;
     const pointer_list_t *first;
 
-    pico8__init();
+    cart_init();
     bare = economy_new();
     assert(bare->invented != NULL && bare->production == NULL && bare->demand == NULL && !bare->has_happiness);
     assert(!bare->has_end_status);
@@ -321,7 +321,7 @@ static void test_construction(void) {
     first = invented_of(typed_main_economy());
     assert(first != invented_of(bare));
 
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     new_game();
     assert(invented_of(typed_main_economy()) != first && invented_of(typed_main_economy())->count == 0);
     h = fold_main_economy(h);
@@ -425,7 +425,7 @@ static void test_spend(void) {
     from = live_entities()->count;
     h = spend_step(h, main_economy_self(), 101, 0, toast_cls);
     assert(typed_main_economy()->credits == p8_fixed_from_int(100) && live_entities()->count == from + 1);
-    assert(strcmp(((const pico8_iv_t *)live_entities()->items[from])->at1, "-no money-") == 0);
+    assert(strcmp(((const toast_t *)live_entities()->items[from])->text, "-no money-") == 0);
 
     from = live_entities()->count;
     h = spend_step(h, main_economy_self(), 0, 1, toast_cls);
@@ -524,7 +524,7 @@ static void test_recompute(void) {
     hash = fold_main_economy(hash);
     hash = fnv(hash, (uint32_t)(end_status_string() == NULL));
 
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     new_game();
     typed_main_economy()->credits = p8_fixed_from_int(2);
     economy_recompute(main_economy_self());
@@ -603,7 +603,7 @@ static void test_cheat_on_provisional(void) {
     int fired = 0;
     int i;
 
-    pico8__init();
+    cart_init();
     provisional = main_economy_placeholder();
     assert(provisional != NULL && !provisional->has_research_points && !provisional->has_credits);
 
@@ -613,9 +613,9 @@ static void test_cheat_on_provisional(void) {
     }
     pad.frames = frames;
     pad.frame_count = 16;
-    pico8_cheat_init(&cheat);
+    cheat_init(&cheat);
     for (pad.current_frame = 0; pad.current_frame < 16; pad.current_frame++) {
-        fired += pico8_cheat_step(&cheat, &pad);
+        fired += cheat_step(&cheat, &pad);
     }
     assert(fired == 1 && main_economy_placeholder() == provisional);
     assert(provisional->has_research_points && provisional->research_points == p8_fixed_from_int(99));
@@ -655,7 +655,7 @@ static void test_economy_is_a_struct(void) {
     int j;
 
     assert(economy_ready());
-    pico8__init();
+    cart_init();
     assert(main_economy() != NULL && ((const entity_t *)main_economy())->class == main_economy_placeholder_class());
     assert(main_economy_typed() == NULL);
 
@@ -707,7 +707,7 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
+    cart_load();
     in_fresh_child(test_construction);
     in_fresh_child(test_advance_clock);
     in_fresh_child(test_new_year);

@@ -35,10 +35,10 @@
 #include "game/ui_button.h"
 #include "engine/vec.h"
 
-#define BUILT_HASH 0x9BE763EBu
-#define SHARED_HASH 0xAC16627Bu
+#define BUILT_HASH 0x5EC1E758u
+#define SHARED_HASH 0x387783BAu
 #define LIFE_HASH 0xDDBCC765u
-#define CR_HASH 0x7D1C5B1Fu
+#define TECH_TREE_SCREEN_HASH 0x7D1C5B1Fu
 
 static p8_memory_t mem;
 static p8_graphics_t gfx;
@@ -62,7 +62,7 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int ents_rank_in(const entity_list_t *list, const void *e) {
+static int entity_list_rank_in(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -72,29 +72,29 @@ static int ents_rank_in(const entity_list_t *list, const void *e) {
     return -1;
 }
 
-static int ents_listed(const entity_list_t *list, const void *e) {
-    return ents_rank_in(list, e) >= 0;
+static int entity_list_listed(const entity_list_t *list, const void *e) {
+    return entity_list_rank_in(list, e) >= 0;
 }
 
-static int ents_count_of(const entity_list_t *list) {
+static int entity_list_count_of(const entity_list_t *list) {
     return list == NULL ? 0 : list->count;
 }
 
 /* 0 absent, 1 false, 2 true. */
-static uint32_t c__state(const pico8_pj_t *pj) {
-    if (!pj->has_c_) {
+static uint32_t is_shown_state(const score_panel_t *pj) {
+    if (!pj->has_is_shown) {
         return 0;
     }
-    return pj->c_ ? 2 : 1;
+    return pj->is_shown ? 2 : 1;
 }
 
 /* `ed` NULL reads as the class's `ed`, the number 1. */
-static p8_fixed_t ed_fixed(const pico8_pj_t *pj) {
-    assert(pj->ed == NULL);
+static p8_fixed_t last_box_fixed(const score_panel_t *pj) {
+    assert(pj->last_box == NULL);
     return p8_fixed_from_int(1);
 }
 
-static int is_lq(const void *e) {
+static int is_layout_row(const void *e) {
     return e != NULL &&
            ((const entity_t *)e)->class == layout_row_class();
 }
@@ -149,10 +149,10 @@ static uint32_t fold_row_entries(uint32_t h, const data_row_t *row) {
                                       : fold_item(h, &row->items[i]);
     }
     if (row->has_color) {
-        h = fold_fixed(fnv_str(h, "c"), p8_fixed_from_int(row->color));
+        h = fold_fixed(fnv_str(h, "color"), p8_fixed_from_int(row->color));
     }
     if (row->draw_function != NULL) {
-        h = fold_string(fnv_str(h, "fn"), row->draw_function);
+        h = fold_string(fnv_str(h, "draw_function"), row->draw_function);
     }
     return h;
 }
@@ -166,29 +166,29 @@ static uint32_t fold_row(uint32_t h, const data_row_t *row) {
 }
 
 /* `ea`: its positionals, then `lh`. */
-static uint32_t fold_ea(uint32_t h, const pico8_pj_ea_t *ea) {
+static uint32_t fold_year_banner(uint32_t h, const score_panel_year_banner_t *ea) {
     h = fold_row_entries(h, &ea->row);
-    if (ea->lh != NULL) {
-        h = fnv(fnv_str(h, "lh"), 0xFCu);
+    if (ea->keep_open != NULL) {
+        h = fnv(fnv_str(h, "keep_open"), 0xFCu);
     }
-    return fnv(h, (uint32_t)(row_entries(&ea->row) + (ea->lh != NULL)));
+    return fnv(h, (uint32_t)(row_entries(&ea->row) + (ea->keep_open != NULL)));
 }
 
 static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (ref == NULL) {
         return fnv(h, 0xDEADu);
     }
-    if (ents_listed(live_entities(), ref)) {
-        return fnv(fnv(h, 0x4Eu), (uint32_t)ents_rank_in(live_entities(), ref));
+    if (entity_list_listed(live_entities(), ref)) {
+        return fnv(fnv(h, 0x4Eu), (uint32_t)entity_list_rank_in(live_entities(), ref));
     }
     if (ref == (const void *)&score_panel_countdown_rows_row || ref == (const void *)&score_panel_frame_rows_row) {
         return fold_row(fnv(h, 0x7Au), ref);
     }
-    if (ref == (const void *)pico8_pj_ou()) {
-        return fold_row(fnv(h, 0x7Au), &pico8_pj_ou()->row);
+    if (ref == (const void *)score_panel_readouts()) {
+        return fold_row(fnv(h, 0x7Au), &score_panel_readouts()->row);
     }
-    if (ref == (const void *)pico8_pj_ea()) {
-        return fold_ea(fnv(h, 0x7Au), ref);
+    if (ref == (const void *)score_panel_year_banner()) {
+        return fold_year_banner(fnv(h, 0x7Au), ref);
     }
     return fnv(fnv(h, 0xEEEEu), 0u);
 }
@@ -210,31 +210,31 @@ static uint32_t fold_ref_member(uint32_t h, const void *ref) {
     return ref != NULL ? fold_ref(fnv(h, 1u), ref) : fnv(h, 0u);
 }
 
-static uint32_t fold_ed(uint32_t h, const pico8_pj_t *pj) {
-    assert(pj->ed == NULL && "no test folds a pj holding an ed: to fold one, fold 1 then its rank in hv (0x4E, rank) as fold_ref does, or outside hv 0xEEEE then the frozen struct tag 0x9E5C57C7");
-    return fold_fixed_member(h, ed_fixed(pj));
+static uint32_t fold_last_box(uint32_t h, const score_panel_t *pj) {
+    assert(pj->last_box == NULL && "no test folds a pj holding an ed: to fold one, fold 1 then its rank in hv (0x4E, rank) as fold_ref does, or outside hv 0xEEEE then the frozen struct tag 0x9E5C57C7");
+    return fold_fixed_member(h, last_box_fixed(pj));
 }
 
 /* `cr` as the spec table it was: its entries in spec order, then their
  * count; the 0xF1 of `ca` and the 0x57 of `ep` are constant by the
  * struct's shape. */
-static uint32_t fold_cr(uint32_t h, const pico8_pj_cr_t *cr) {
+static uint32_t fold_tech_tree_screen(uint32_t h, const score_panel_layout_block_t *cr) {
     int count = 0;
 
     assert(cr != NULL);
     h = fnv(fnv(h, 1u), 0x7Au);
-    if (cr->hi != NULL) {
-        h = fold_ref(fnv_str(h, "hi"), cr->hi);
+    if (cr->fixed_pos != NULL) {
+        h = fold_ref(fnv_str(h, "fixed_pos"), cr->fixed_pos);
         count++;
     }
-    if (cr->gq != NULL) {
-        h = fold_ref(fnv_str(h, "gq"), cr->gq);
+    if (cr->row_step != NULL) {
+        h = fold_ref(fnv_str(h, "row_step"), cr->row_step);
         count++;
     }
-    h = fnv(fnv(fnv_str(h, "ca"), 0xF1u), (uint32_t)cr->ca);
+    h = fnv(fnv(fnv_str(h, "back_color"), 0xF1u), (uint32_t)cr->back_color);
     count++;
-    if (cr->ep != NULL) {
-        h = fnv_str(fnv(fnv_str(h, "ep"), 0x57u), cr->ep);
+    if (cr->description != NULL) {
+        h = fnv_str(fnv(fnv_str(h, "description"), 0x57u), cr->description);
         count++;
     }
     return fnv(h, (uint32_t)count);
@@ -257,21 +257,21 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-static const entity_class_t *cls_of(const void *e) {
+static const entity_class_t *class_of(const void *e) {
     return ((const entity_t *)e)->class;
 }
 
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
  * reads as difficulty 0. */
-static pico8_pj_t *start_game(void) {
+static score_panel_t *start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
-    pico8__init();
-    pico8_cart_vider_file_sortie();
-    pico8_eu(NULL);
-    pico8_cart_vider_file_sortie();
-    assert(pico8_ju() != NULL);
-    return pico8_ju();
+    cart_init();
+    cart_flush_exit_queue();
+    cart_start_game(NULL);
+    cart_flush_exit_queue();
+    assert(main_score_panel() != NULL);
+    return main_score_panel();
 }
 
 static const data_row_t *row_of(const data_row_t *t, int i) {
@@ -285,8 +285,8 @@ static const char *string_at(const data_row_t *t, int i) {
 }
 
 /* The 7 `ou[i][1]` as `hb` wrote them. */
-static uint32_t fold_ou_heads(uint32_t h) {
-    const pico8_pj_ou_t *ou = pico8_pj_ou();
+static uint32_t fold_readouts_heads(uint32_t h) {
+    const score_panel_readouts_t *ou = score_panel_readouts();
     int i;
 
     assert(ou != NULL);
@@ -300,7 +300,7 @@ static int is_of(const void *e, const entity_class_t *cls) {
     return e != NULL && ((const entity_t *)e)->class == cls;
 }
 
-static int fq_count(void) {
+static int modal_backdrop_count(void) {
     const entity_list_t *hv = live_entities();
     int n = 0;
     int i;
@@ -310,7 +310,7 @@ static int fq_count(void) {
     return n;
 }
 
-static int js15_count(void) {
+static int layer15_button_count(void) {
     const entity_list_t *hv = live_entities();
     int n = 0;
     int i;
@@ -321,18 +321,18 @@ static int js15_count(void) {
     return n;
 }
 
-static int de_my(void) {
-    return pico8_de_my()(NULL);
+static int panel_toggle_on_click(void) {
+    return score_panel_toggle_on_click()(NULL);
 }
 
 /* `pj:ph`'s second button, the one whose `my` is `de`'s. */
-static button_t *de_button(void) {
+static button_t *panel_toggle_button(void) {
     const entity_list_t *hv = live_entities();
     int i;
     for (i = hv->count - 1; i >= 0; i--) {
         button_t *e = (button_t *)hv->items[i];
         if (is_of(e, button_class()) && e->layer == p8_fixed_from_int(15) &&
-            e->on_click != pico8_init_field_value()) {
+            e->on_click != score_panel_init_field_value()) {
             return e;
         }
     }
@@ -343,38 +343,38 @@ static button_t *de_button(void) {
  * defaults, the names only read elsewhere, its 4 methods, and the 5 tables
  * of the class, by identity and content. */
 static void test_built(void) {
-    uint32_t h = 2166136261u;
-    pico8_pj_t *ju = start_game();
-    size_t i;
+    uint32_t hash = 2166136261u;
+    score_panel_t *ju = start_game();
+    size_t index;
 
-    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), ju));
-    h = fnv(h, (uint32_t)live_entities()->count);
-    assert(ents_listed(entities_by_message("draw"), ju) && ents_listed(entities_by_message("new_year"), ju) && ents_listed(entities_by_message("refresh"), ju));
-    assert(!ents_listed(entities_by_message("draw_overlay"), ju) && !ents_listed(entities_by_message("hit_test"), ju));
-    h = fnv(h, (uint32_t)ents_rank_in(entities_by_message("draw"), ju));
-    h = fnv(h, (uint32_t)ents_rank_in(entities_by_message("new_year"), ju));
-    h = fnv(h, (uint32_t)ents_rank_in(entities_by_message("refresh"), ju));
-    for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
-        assert(!ents_listed(entities_by_tag(tags[i]), ju));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), ju));
+    hash = fnv(hash, (uint32_t)live_entities()->count);
+    assert(entity_list_listed(entities_by_message("draw"), ju) && entity_list_listed(entities_by_message("new_year"), ju) && entity_list_listed(entities_by_message("refresh"), ju));
+    assert(!entity_list_listed(entities_by_message("draw_overlay"), ju) && !entity_list_listed(entities_by_message("hit_test"), ju));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message("draw"), ju));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message("new_year"), ju));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message("refresh"), ju));
+    for (index = 0; index < sizeof tags / sizeof tags[0]; index++) {
+        assert(!entity_list_listed(entities_by_tag(tags[index]), ju));
     }
 
-    assert(ju->fa == p8_fixed_from_int(10));
-    assert(ju->def == &score_panel_archetype && ju->fa == ju->def->layer);
-    assert(ju->ed == NULL);
+    assert(ju->layer == p8_fixed_from_int(10));
+    assert(ju->archetype == &score_panel_archetype && ju->layer == ju->archetype->layer);
+    assert(ju->last_box == NULL);
     assert(ju->header.state != NULL && strcmp(ju->header.state, "normal") == 0);
-    h = fold_fixed_member(h, ju->header.state_time);
-    assert(!ju->has_c_ && !ju->has_gz);
-    assert(cls_of(ju)->draw != NULL && cls_of(ju)->states[ENTITY_STATE_NORMAL] != NULL && cls_of(ju)->refresh != NULL &&
-           cls_of(ju)->new_year != NULL);
-    assert(cls_of(ju)->hit_test == NULL && cls_of(ju)->draw_overlay == NULL);
-    h = fold_ref_member(h, pico8_pj_ea());
-    assert(ju->def->countdown_rows == &score_panel_countdown_rows_row);
-    h = fold_ref_member(h, ju->def->countdown_rows);
-    h = fold_cr(h, pico8_pj_cr());
-    assert(ju->def->frame_rows == &score_panel_frame_rows_row);
-    h = fold_ref_member(h, ju->def->frame_rows);
-    h = fold_ref_member(h, pico8_pj_ou());
-    check("built", h, BUILT_HASH);
+    hash = fold_fixed_member(hash, ju->header.state_time);
+    assert(!ju->has_is_shown && !ju->has_curtain);
+    assert(class_of(ju)->draw != NULL && class_of(ju)->states[ENTITY_STATE_NORMAL] != NULL && class_of(ju)->refresh != NULL &&
+           class_of(ju)->new_year != NULL);
+    assert(class_of(ju)->hit_test == NULL && class_of(ju)->draw_overlay == NULL);
+    hash = fold_ref_member(hash, score_panel_year_banner());
+    assert(ju->archetype->countdown_rows == &score_panel_countdown_rows_row);
+    hash = fold_ref_member(hash, ju->archetype->countdown_rows);
+    hash = fold_tech_tree_screen(hash, score_panel_layout_block());
+    assert(ju->archetype->frame_rows == &score_panel_frame_rows_row);
+    hash = fold_ref_member(hash, ju->archetype->frame_rows);
+    hash = fold_ref_member(hash, score_panel_readouts());
+    check("built", hash, BUILT_HASH);
 }
 
 /* A second panel shares the class's `ou`/`ea`/`cr`/`gs`/`i_` and sees what
@@ -382,116 +382,116 @@ static void test_built(void) {
  * each panel's own. */
 static void test_shared(void) {
     uint32_t h = 2166136261u;
-    pico8_pj_t *ju = start_game();
-    pico8_pj_t *other = pico8_pj_new();
-    const pico8_pj_ea_t *ea;
+    score_panel_t *ju = start_game();
+    score_panel_t *other = score_panel_new();
+    const score_panel_year_banner_t *ea;
 
     assert(other != NULL && other != ju);
-    assert(other->def == ju->def);
-    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), other));
+    assert(other->archetype == ju->archetype);
+    h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), other));
 
-    cls_of(ju)->refresh(&ju->header);
-    h = fold_ou_heads(h);
+    class_of(ju)->refresh(&ju->header);
+    h = fold_readouts_heads(h);
 
-    cls_of(ju)->new_year(&ju->header, p8_fixed_from_int(3425));
-    ea = pico8_pj_ea();
+    class_of(ju)->new_year(&ju->header, p8_fixed_from_int(3425));
+    ea = score_panel_year_banner();
     assert(strcmp(string_at(row_of(&ea->row, 2), 1), "year 3425") == 0);
-    assert(ea->row.count == 3 && ea->lh != NULL);
-    h = fold_ref_member(h, pico8_pj_ea());
+    assert(ea->row.count == 3 && ea->keep_open != NULL);
+    h = fold_ref_member(h, score_panel_year_banner());
 
     main_economy_typed()->end_status = "final score";
     main_economy_typed()->has_end_status = 1;
-    cls_of(ju)->states[ENTITY_STATE_NORMAL](&ju->header, p8_fixed_from_int(0));
-    assert(ju->fa == p8_fixed_from_int(13));
-    assert(c__state(ju) == 2);
-    assert(other->fa == p8_fixed_from_int(10));
-    assert(ed_fixed(other) == p8_fixed_from_int(1));
-    assert(!other->has_c_ && !other->has_gz);
-    h = fold_fixed_member(h, other->fa);
-    h = fold_ed(h, other);
-    h = fold_opt_fixed(h, ju->has_gz, ju->gz);
+    class_of(ju)->states[ENTITY_STATE_NORMAL](&ju->header, p8_fixed_from_int(0));
+    assert(ju->layer == p8_fixed_from_int(13));
+    assert(is_shown_state(ju) == 2);
+    assert(other->layer == p8_fixed_from_int(10));
+    assert(last_box_fixed(other) == p8_fixed_from_int(1));
+    assert(!other->has_is_shown && !other->has_curtain);
+    h = fold_fixed_member(h, other->layer);
+    h = fold_last_box(h, other);
+    h = fold_opt_fixed(h, ju->has_curtain, ju->curtain);
     check("shared", h, SHARED_HASH);
 }
 
 /* `hb`; `hk` on a year with a message and two without; `cr()`; `kj` closed;
  * the game's end through `ph`, twice; `kj` open; `de.my` twice. */
 static void test_life(void) {
-    uint32_t h = 2166136261u;
-    pico8_pj_t *ju = start_game();
-    const pico8_pj_ea_t *ea = pico8_pj_ea();
-    const pico8_pj_cr_t *cr = pico8_pj_cr();
+    uint32_t hash = 2166136261u;
+    score_panel_t *score_panel = start_game();
+    const score_panel_year_banner_t *year_banner = score_panel_year_banner();
+    const score_panel_layout_block_t *layout_block = score_panel_layout_block();
     static const int years[] = {3425, 3400, 3401};
-    int fq_before;
-    int js_before;
+    int modal_backdrop_before;
+    int button_before;
     int boxes;
-    size_t i;
+    size_t index;
 
-    cls_of(ju)->refresh(&ju->header);
-    h = fold_ou_heads(h);
+    class_of(score_panel)->refresh(&score_panel->header);
+    hash = fold_readouts_heads(hash);
 
-    for (i = 0; i < sizeof years / sizeof years[0]; i++) {
-        cls_of(ju)->new_year(&ju->header, p8_fixed_from_int(years[i]));
-        h = fnv(h, (uint32_t)(ea->row.count >= 3));
-        h = fnv(h, (uint32_t)(ea->lh != NULL));
-        h = fnv_str(h, string_at(row_of(&ea->row, 2), 1));
-        h = fnv(h, (uint32_t)ents_count_of(entities_by_tag("message_box")));
-        h = fnv(h, (uint32_t)ents_rank_in(live_entities(), pico8_kc()));
+    for (index = 0; index < sizeof years / sizeof years[0]; index++) {
+        class_of(score_panel)->new_year(&score_panel->header, p8_fixed_from_int(years[index]));
+        hash = fnv(hash, (uint32_t)(year_banner->row.count >= 3));
+        hash = fnv(hash, (uint32_t)(year_banner->keep_open != NULL));
+        hash = fnv_str(hash, string_at(row_of(&year_banner->row, 2), 1));
+        hash = fnv(hash, (uint32_t)entity_list_count_of(entities_by_tag("message_box")));
+        hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), shown_message_box()));
     }
-    assert(ea->row.count == 2 && ea->lh != NULL);
+    assert(year_banner->row.count == 2 && year_banner->keep_open != NULL);
 
-    pico8_cr();
-    assert(cr == pico8_pj_cr());
-    assert(cr->ep != NULL);
-    h = fnv_str(h, cr->ep);
+    menu_show_tech_tree_screen();
+    assert(layout_block == score_panel_layout_block());
+    assert(layout_block->description != NULL);
+    hash = fnv_str(hash, layout_block->description);
 
-    for (i = 0; i < 2; i++) {
-        cls_of(ju)->draw(&ju->header, NULL);
-        h = fnv(h, screen_hash());
+    for (index = 0; index < 2; index++) {
+        class_of(score_panel)->draw(&score_panel->header, NULL);
+        hash = fnv(hash, screen_hash());
     }
-    assert(!ju->has_gz);
+    assert(!score_panel->has_curtain);
 
-    fq_before = fq_count();
-    js_before = js15_count();
+    modal_backdrop_before = modal_backdrop_count();
+    button_before = layer15_button_count();
     main_economy_typed()->end_status = "final score";
     main_economy_typed()->has_end_status = 1;
-    cls_of(ju)->states[ENTITY_STATE_NORMAL](&ju->header, p8_fixed_from_int(0));
-    assert(c__state(ju) == 2);
-    assert(ju->has_gz && ju->gz == 0);
-    assert(ju->fa == p8_fixed_from_int(13));
-    assert(fq_count() == fq_before + 1 && js15_count() == js_before + 2);
-    assert(ju->ed == pico8_kc() && pico8_kc() != NULL);
-    boxes = ents_count_of(entities_by_tag("message_box"));
-    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), pico8_kc()));
-    h = fnv(h, (uint32_t)live_entities()->count);
+    class_of(score_panel)->states[ENTITY_STATE_NORMAL](&score_panel->header, p8_fixed_from_int(0));
+    assert(is_shown_state(score_panel) == 2);
+    assert(score_panel->has_curtain && score_panel->curtain == 0);
+    assert(score_panel->layer == p8_fixed_from_int(13));
+    assert(modal_backdrop_count() == modal_backdrop_before + 1 && layer15_button_count() == button_before + 2);
+    assert(score_panel->last_box == shown_message_box() && shown_message_box() != NULL);
+    boxes = entity_list_count_of(entities_by_tag("message_box"));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), shown_message_box()));
+    hash = fnv(hash, (uint32_t)live_entities()->count);
 
-    cls_of(ju)->states[ENTITY_STATE_NORMAL](&ju->header, p8_fixed_from_int(0));
-    assert(ents_count_of(entities_by_tag("message_box")) == boxes);
-    assert(ju->ed == pico8_kc());
+    class_of(score_panel)->states[ENTITY_STATE_NORMAL](&score_panel->header, p8_fixed_from_int(0));
+    assert(entity_list_count_of(entities_by_tag("message_box")) == boxes);
+    assert(score_panel->last_box == shown_message_box());
 
-    for (i = 0; i < 3; i++) {
-        cls_of(ju)->draw(&ju->header, NULL);
-        h = fold_opt_fixed(h, ju->has_gz, ju->gz);
-        h = fnv(h, screen_hash());
+    for (index = 0; index < 3; index++) {
+        class_of(score_panel)->draw(&score_panel->header, NULL);
+        hash = fold_opt_fixed(hash, score_panel->has_curtain, score_panel->curtain);
+        hash = fnv(hash, screen_hash());
     }
-    assert(ju->has_gz && ju->gz == P8_FIXED_LIT(0x00009999, 0.6));
+    assert(score_panel->has_curtain && score_panel->curtain == P8_FIXED_LIT(0x00009999, 0.6));
 
-    assert(de_my() == 1);
-    assert(c__state(ju) == 1);
-    assert(de_my() == 1);
-    assert(c__state(ju) == 2);
+    assert(panel_toggle_on_click() == 1);
+    assert(is_shown_state(score_panel) == 1);
+    assert(panel_toggle_on_click() == 1);
+    assert(is_shown_state(score_panel) == 2);
     {
-        button_t *de = de_button();
+        button_t *de = panel_toggle_button();
         assert(de != NULL && de->has_on_click && de->on_click != NULL);
         de->on_click(de);
-        assert(c__state(ju) == 1);
+        assert(is_shown_state(score_panel) == 1);
         de->on_click(de);
-        assert(c__state(ju) == 2);
+        assert(is_shown_state(score_panel) == 2);
     }
-    h = fold_fixed_member(h, ju->fa);
-    check("life", h, LIFE_HASH);
+    hash = fold_fixed_member(hash, score_panel->layer);
+    check("life", hash, LIFE_HASH);
 }
 
-static const button_t *as_js(const void *e) {
+static const button_t *as_button(const void *e) {
     assert(is_of(e, button_class()));
     return e;
 }
@@ -517,10 +517,10 @@ static uint32_t fold_cell(uint32_t h, layout_row_cell_t c) {
 }
 
 /* A row's `lq` as `js:pq` built it: its `w`, its `c`, its positional items. */
-static uint32_t fold_lq(uint32_t h, const layout_row_t *lq) {
+static uint32_t fold_layout_row(uint32_t h, const layout_row_t *lq) {
     int i;
 
-    assert(is_lq(lq));
+    assert(is_layout_row(lq));
     h = fold_fixed_member(h, lq->width);
     h = fold_opt_fixed(h, lq->has_color, lq->color);
     for (i = 0; i < row_count(lq); i++) {
@@ -532,7 +532,7 @@ static uint32_t fold_lq(uint32_t h, const layout_row_t *lq) {
 
 /* What `pz(pj.cr, bs)` left in `ok.le`: the `ep` head row, then one row per
  * tech, all at `fa` = `ca`, each with the `ra` = `hi`, `qf` stepped by `gq`. */
-static uint32_t fold_cr_le(uint32_t h, const char **head) {
+static uint32_t fold_tech_tree_screen_ephemerals(uint32_t h, const char **head) {
     const entity_list_t *le;
     const layout_row_t *lq;
     const vec_t *ra;
@@ -542,14 +542,14 @@ static uint32_t fold_cr_le(uint32_t h, const char **head) {
     le = main_ui()->ephemerals;
     assert(le->count >= 2);
     h = fnv(h, (uint32_t)le->count);
-    lq = as_js(le->items[0])->layout_row;
+    lq = as_button(le->items[0])->layout_row;
     assert(lq != NULL && lq->has_color && lq->color == p8_fixed_from_int(13));
     assert(row_count(lq) > 0 && row_item(lq, 0).kind == LAYOUT_ROW_CELL_STRING);
     *head = row_item(lq, 0).as.text;
     h = fnv_str(h, *head);
-    ra = as_js(le->items[0])->pos;
+    ra = as_button(le->items[0])->pos;
     for (i = 0; i < le->count; i++) {
-        const button_t *b = as_js(le->items[i]);
+        const button_t *b = as_button(le->items[i]);
         vec_t qf = vec_of(b->slide_target);
         assert(b->pos != NULL && b->pos->x == ra->x && b->pos->y == ra->y);
         assert(b->layer == p8_fixed_from_int(10));
@@ -557,7 +557,7 @@ static uint32_t fold_cr_le(uint32_t h, const char **head) {
         h = fold_fixed_member(h, b->layer);
         h = fnv(fnv(h, (uint32_t)qf.x), (uint32_t)qf.y);
         assert(b->layout_row != NULL);
-        h = fold_lq(h, b->layout_row);
+        h = fold_layout_row(h, b->layout_row);
     }
     assert(vec_of(ra).x == 0 && vec_of(ra).y == p8_fixed_from_int(11));
     return h;
@@ -566,32 +566,32 @@ static uint32_t fold_cr_le(uint32_t h, const char **head) {
 /* `cr()` twice on one game, then on the next game started in the same
  * process: one shared `pj.cr`, `ep` absent until the first `cr()` and kept
  * across games, the same head row each time. */
-static void test_cr(void) {
+static void test_tech_tree_screen(void) {
     uint32_t h = 2166136261u;
-    const pico8_pj_cr_t *cr;
+    const score_panel_layout_block_t *cr;
     const char *head1;
     const char *head2;
 
     (void)start_game();
-    cr = pico8_pj_cr();
-    assert(cr != NULL && cr->ep == NULL);
-    pico8_cr();
-    h = fold_cr_le(h, &head1);
-    assert(cr->ep != NULL && strcmp(cr->ep, head1) == 0);
-    pico8_cr();
-    h = fold_cr_le(h, &head2);
+    cr = score_panel_layout_block();
+    assert(cr != NULL && cr->description == NULL);
+    menu_show_tech_tree_screen();
+    h = fold_tech_tree_screen_ephemerals(h, &head1);
+    assert(cr->description != NULL && strcmp(cr->description, head1) == 0);
+    menu_show_tech_tree_screen();
+    h = fold_tech_tree_screen_ephemerals(h, &head2);
     assert(strcmp(head1, head2) == 0);
-    assert(pico8_pj_new() != NULL && pico8_pj_cr() == cr);
+    assert(score_panel_new() != NULL && score_panel_layout_block() == cr);
 
     (void)start_game();
-    assert(pico8_pj_cr() == cr);
-    assert(cr->ep != NULL && strcmp(cr->ep, head2) == 0);
-    pico8_cr();
-    h = fold_cr_le(h, &head1);
-    check("cr", h, CR_HASH);
+    assert(score_panel_layout_block() == cr);
+    assert(cr->description != NULL && strcmp(cr->description, head2) == 0);
+    menu_show_tech_tree_screen();
+    h = fold_tech_tree_screen_ephemerals(h, &head1);
+    check("tech_tree_screen", h, TECH_TREE_SCREEN_HASH);
 }
 
-static int pico8_pj_ea_lh_witness(pico8_mh_t *self) {
+static int score_panel_year_banner_keep_open_witness(message_box_t *self) {
     (void)self;
     return 1;
 }
@@ -599,36 +599,36 @@ static int pico8_pj_ea_lh_witness(pico8_mh_t *self) {
 /* Right after the init, before any `hb`/`hk`, `ou` and `ea` hold what
  * their generated rows hold, and are copies of them; each init resets what
  * `hb`/`hk` wrote. */
-static void test_ou_ea_start_as_their_rows(void) {
-    pico8_pj_ou_t *ou;
+static void test_readouts_year_banner_start_as_their_rows(void) {
+    score_panel_readouts_t *ou;
 
-    pico8_score_panel_init();
-    ou = pico8_pj_ou();
-    assert(ou != NULL && pico8_pj_ea() != NULL);
-    assert(&ou->row != &score_panel_readouts_row && &pico8_pj_ea()->row != &score_panel_year_banner_row);
+    score_panel_init();
+    ou = score_panel_readouts();
+    assert(ou != NULL && score_panel_year_banner() != NULL);
+    assert(&ou->row != &score_panel_readouts_row && &score_panel_year_banner()->row != &score_panel_year_banner_row);
     assert(fold_row(0u, &ou->row) == fold_row(0u, &score_panel_readouts_row));
-    assert(fold_row(0u, &pico8_pj_ea()->row) == fold_row(0u, &score_panel_year_banner_row) && pico8_pj_ea()->lh == NULL);
+    assert(fold_row(0u, &score_panel_year_banner()->row) == fold_row(0u, &score_panel_year_banner_row) && score_panel_year_banner()->keep_open == NULL);
     ou->sub_items[0][0] = (data_item_t){.text = "written"};
-    pico8_pj_ea()->second_items[0] = (data_item_t){.text = "year 3425"};
-    pico8_pj_ea()->items[2] = (data_item_t){.row = &score_panel_countdown_rows_row};
-    pico8_pj_ea()->row.count = 3;
-    pico8_pj_ea()->lh = pico8_pj_ea_lh_witness;
+    score_panel_year_banner()->second_items[0] = (data_item_t){.text = "year 3425"};
+    score_panel_year_banner()->items[2] = (data_item_t){.row = &score_panel_countdown_rows_row};
+    score_panel_year_banner()->row.count = 3;
+    score_panel_year_banner()->keep_open = score_panel_year_banner_keep_open_witness;
     assert(fold_row(0u, &ou->row) != fold_row(0u, &score_panel_readouts_row));
-    assert(fold_row(0u, &pico8_pj_ea()->row) != fold_row(0u, &score_panel_year_banner_row));
-    pico8_score_panel_init();
-    assert(pico8_pj_ou() == ou);
-    assert(fold_row(0u, &pico8_pj_ou()->row) == fold_row(0u, &score_panel_readouts_row));
-    assert(fold_row(0u, &pico8_pj_ea()->row) == fold_row(0u, &score_panel_year_banner_row) && pico8_pj_ea()->lh == NULL);
-    pico8_score_panel_shutdown();
-    assert(pico8_pj_ou() == NULL && pico8_pj_ea() == NULL);
+    assert(fold_row(0u, &score_panel_year_banner()->row) != fold_row(0u, &score_panel_year_banner_row));
+    score_panel_init();
+    assert(score_panel_readouts() == ou);
+    assert(fold_row(0u, &score_panel_readouts()->row) == fold_row(0u, &score_panel_readouts_row));
+    assert(fold_row(0u, &score_panel_year_banner()->row) == fold_row(0u, &score_panel_year_banner_row) && score_panel_year_banner()->keep_open == NULL);
+    score_panel_shutdown();
+    assert(score_panel_readouts() == NULL && score_panel_year_banner() == NULL);
 }
 
 /* The game's panel is a struct whose descriptor holds exactly `hb`, `kj`,
  * `hk`, `ph`; it takes no construction key. `ea`, `cr`, `ou`
  * are the class's shared state; `gs`, `i_` are the generated rows. */
-static void test_pj_is_a_struct(void) {
-    const entity_class_t *cls = pico8_pj_struct_class();
-    pico8_pj_t *ju = start_game();
+static void test_score_panel_is_a_struct(void) {
+    const entity_class_t *cls = score_panel_class();
+    score_panel_t *ju = start_game();
     int j;
 
     assert(is_of(ju, cls));
@@ -640,22 +640,22 @@ static void test_pj_is_a_struct(void) {
     for (j = 0; j < STATE_COUNT; j++) {
         assert((cls->states[j] != NULL) == (j == ENTITY_STATE_NORMAL));
     }
-    assert(pico8_pj_ready());
-    assert(pico8_pj_ou() != NULL && pico8_pj_ea() != NULL && pico8_pj_cr() != NULL);
-    assert(pico8_pj_i_() == &score_panel_frame_rows_row && pico8_pj_gs() == &score_panel_countdown_rows_row);
-    assert(ju->def->countdown_rows == &score_panel_countdown_rows_row && ju->def->frame_rows == &score_panel_frame_rows_row);
+    assert(score_panel_ready());
+    assert(score_panel_readouts() != NULL && score_panel_year_banner() != NULL && score_panel_layout_block() != NULL);
+    assert(score_panel_frame_rows() == &score_panel_frame_rows_row && score_panel_countdown_rows() == &score_panel_countdown_rows_row);
+    assert(ju->archetype->countdown_rows == &score_panel_countdown_rows_row && ju->archetype->frame_rows == &score_panel_frame_rows_row);
 }
 
 /* `pj.cr` is one static struct without method, holding `hi`,
  * `gq`, `ca` and, once `cr()` ran, `ep`; the init resets `ep`, the shutdown
  * hides it. */
-static void test_cr_is_a_struct(void) {
-    const entity_class_t *cls = pico8_pj_cr_struct_class();
-    pico8_pj_cr_t *cr;
+static void test_tech_tree_screen_is_a_struct(void) {
+    const entity_class_t *cls = score_panel_layout_block_class();
+    score_panel_layout_block_t *cr;
     int j;
 
     (void)start_game();
-    cr = pico8_pj_cr();
+    cr = score_panel_layout_block();
     assert(cr != NULL && is_of(cr, cls));
     assert(cls->draw == NULL && cls->draw_overlay == NULL && cls->hit_test == NULL && cls->new_year == NULL && cls->refresh == NULL &&
            cls->left_press == NULL && cls->right_press == NULL && cls->accept_drop == NULL);
@@ -664,19 +664,19 @@ static void test_cr_is_a_struct(void) {
     for (j = 0; j < STATE_COUNT; j++) {
         assert(cls->states[j] == NULL);
     }
-    assert(cr->hi != NULL);
-    assert(cr->gq != NULL && cr->gq != cr->hi);
-    assert(cr->ca == p8_fixed_from_int(10));
-    assert(cr->ep == NULL);
+    assert(cr->fixed_pos != NULL);
+    assert(cr->row_step != NULL && cr->row_step != cr->fixed_pos);
+    assert(cr->back_color == p8_fixed_from_int(10));
+    assert(cr->description == NULL);
 
-    pico8_cr();
-    assert(cr->ep != NULL);
-    assert(pico8_pj_new() != NULL && pico8_pj_cr() == cr);
+    menu_show_tech_tree_screen();
+    assert(cr->description != NULL);
+    assert(score_panel_new() != NULL && score_panel_layout_block() == cr);
 
-    pico8_score_panel_init();
-    assert(pico8_pj_cr() == cr && cr->ep == NULL);
-    pico8_score_panel_shutdown();
-    assert(pico8_pj_cr() == NULL);
+    score_panel_init();
+    assert(score_panel_layout_block() == cr && cr->description == NULL);
+    score_panel_shutdown();
+    assert(score_panel_layout_block() == NULL);
 }
 
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
@@ -699,7 +699,7 @@ static void in_fresh_child(void (*test)(void)) {
 
 /* `ky()` on a started game with ten techs invented and a happiness of 1:
  * no planet scores yet, so `s[5]` is the techs' part and `s[6]` its tier. */
-static void test_ky_reads_invented_and_happiness(void) {
+static void test_final_score_reads_invented_and_happiness(void) {
     economy_t *fm;
     final_score_t s;
     int i;
@@ -719,7 +719,7 @@ static void test_ky_reads_invented_and_happiness(void) {
 
 /* Item `i` (1-based) of the line that `ph` put in the box's row `k`
  * (0-based), an article `ld`. */
-static layout_row_cell_t ph_row_item(const pico8_mh_t *mh, int k, int i) {
+static layout_row_cell_t update_row_item(const message_box_t *mh, int k, int i) {
     const data_row_t *ld;
     const layout_row_t *lq;
 
@@ -733,10 +733,10 @@ static layout_row_cell_t ph_row_item(const pico8_mh_t *mh, int k, int i) {
 
 /* `ph` shows `ky()`: the score-5 row (box row 10) carries `s[5]`, the total,
  * and the tier row (11) lights `s[6]` of its five icons. */
-static void test_ph_rows_show_ky(void) {
+static void test_update_rows_show_final_score(void) {
     void *ju = start_game();
     economy_t *fm = main_economy_typed();
-    const pico8_mh_t *mh;
+    const message_box_t *mh;
     layout_row_cell_t total;
     layout_row_cell_t icon;
     int i;
@@ -748,25 +748,25 @@ static void test_ph_rows_show_ky(void) {
     fm->has_happiness = 1;
     fm->end_status = "final score";
     fm->has_end_status = 1;
-    cls_of(ju)->states[ENTITY_STATE_NORMAL](ju, p8_fixed_from_int(0));
-    mh = pico8_kc();
+    class_of(ju)->states[ENTITY_STATE_NORMAL](ju, p8_fixed_from_int(0));
+    mh = shown_message_box();
     assert(mh != NULL && mh->items_count == SCORE_ROWS_COUNT);
-    total = ph_row_item(mh, 10, 3);
+    total = update_row_item(mh, 10, 3);
     assert(total.kind == LAYOUT_ROW_CELL_STRING && strcmp(total.as.text, "14") == 0);
     for (i = 1; i <= 5; i++) {
-        icon = ph_row_item(mh, 11, i);
+        icon = update_row_item(mh, 11, i);
         assert(icon.kind == LAYOUT_ROW_CELL_FIXED && icon.as.fixed == p8_fixed_from_int(57));
     }
 }
 
 /* `eg` on a started game: no planet is `ly` yet, so half their count is 0
  * and every pattern of `fb` gets its flag. */
-static void test_eg_flags_every_fb_pattern_without_ly(void) {
+static void test_refresh_palette_flags_every_palette_offsets_pattern_without_settled(void) {
     int i;
 
     (void)start_game();
     assert(entities_by_tag("planet")->count >= 2);
-    pico8_eg();
+    score_panel_refresh_palette();
     for (i = 0; i < PALETTE_OFFSETS_COUNT; i++) {
         assert(p8_peek(&mem, 0x3101 + 4 * palette_offsets_table[i]) >= 128);
     }
@@ -782,18 +782,18 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
+    cart_load();
     in_fresh_child(test_built);
     in_fresh_child(test_shared);
     in_fresh_child(test_life);
-    in_fresh_child(test_cr);
-    in_fresh_child(test_ou_ea_start_as_their_rows);
-    in_fresh_child(test_pj_is_a_struct);
-    in_fresh_child(test_cr_is_a_struct);
-    in_fresh_child(test_ky_reads_invented_and_happiness);
-    in_fresh_child(test_ph_rows_show_ky);
-    in_fresh_child(test_eg_flags_every_fb_pattern_without_ly);
+    in_fresh_child(test_tech_tree_screen);
+    in_fresh_child(test_readouts_year_banner_start_as_their_rows);
+    in_fresh_child(test_score_panel_is_a_struct);
+    in_fresh_child(test_tech_tree_screen_is_a_struct);
+    in_fresh_child(test_final_score_reads_invented_and_happiness);
+    in_fresh_child(test_update_rows_show_final_score);
+    in_fresh_child(test_refresh_palette_flags_every_palette_offsets_pattern_without_settled);
 
-    printf("test_pico8_pj: all tests passed\n");
+    printf("test_score_panel: all tests passed\n");
     return 0;
 }

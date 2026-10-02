@@ -242,7 +242,7 @@ int main(void) {
     assert(!slipgate_ready());
     assert(!infraspace_gate_ready());
     assert(!synthesizer_ready());
-    pico8_cart_load();
+    cart_load();
     reset_world();
 
     test_second_reset_world_keeps_entity();

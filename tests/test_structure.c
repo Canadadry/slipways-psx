@@ -201,9 +201,9 @@ static void check(const char *label, uint32_t got, uint32_t want) {
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
-    pico8__init();
-    pico8_eu(NULL);
-    pico8_cart_vider_file_sortie();
+    cart_init();
+    cart_start_game(NULL);
+    cart_flush_exit_queue();
 }
 
 static vec_t *vec_ref(vec_t at) {
@@ -738,7 +738,7 @@ static void test_lineage_of_each_class(void) {
     assert(lineage_of(burst_kind()->new_entity(&keys)) == jo);
     assert(lineage_of(&planet_new(&keys)->header) == jo);
     assert(lineage_of(&probe_new(NULL)->header) == LINEAGE(LINEAGE_PROBE));
-    assert(lineage_of(&pico8_fv_new()->header) == LINEAGE(LINEAGE_PROBE));
+    assert(lineage_of(&help_screen_new()->header) == LINEAGE(LINEAGE_PROBE));
     assert(lineage_of(&camera_new()->header) == 0 && lineage_of(&background_new()->header) == 0);
     assert(lineage_of(&wormhole_new()->header) == 0 && lineage_of(&slipway_new(NULL)->header) == 0);
 }
@@ -779,7 +779,7 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
+    cart_load();
     in_fresh_child(test_built);
     in_fresh_child(test_life);
     in_fresh_child(test_descendants);

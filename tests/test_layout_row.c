@@ -657,8 +657,8 @@ static void test_layout_row_add_in_bump_zone(void) {
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
-    pico8__init();
-    pico8_eu(NULL);
+    cart_init();
+    cart_start_game(NULL);
 }
 
 static planet_t *as_planet(void *e) {
@@ -718,8 +718,8 @@ static void built_planet_panel(void) {
         update_entities();
     }
     planet_inspection_panel(qu);
-    pico8__update60();
-    pico8__draw();
+    cart_update60();
+    cart_draw();
 }
 
 /* A button's `lq` or `h_`, NULL when nil or false. */
@@ -1015,7 +1015,7 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
+    cart_load();
     in_fresh_child(test_constructions);
     in_fresh_child(test_planet_resource_row);
     in_fresh_child(test_planet_resource_row_largest_row_fits_a_slot);

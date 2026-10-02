@@ -16,101 +16,101 @@
 /* The captured `t` of `pj:hk`'s `iw.lh` closure. One static is enough:
  * `pj.ea.lh` is replaced wholesale by every call that sets it, so only one
  * such closure is ever live. */
-static int g_pj_hk_lh_t = 0;
+static int g_score_panel_new_year_keep_open_t = 0;
 
-static int pico8_pj_hk_lh_dispatch(pico8_mh_t *self) {
+static int score_panel_new_year_keep_open_method(message_box_t *self) {
     (void)self;
-    g_pj_hk_lh_t -= 1;
-    return g_pj_hk_lh_t > 0;
+    g_score_panel_new_year_keep_open_t -= 1;
+    return g_score_panel_new_year_keep_open_t > 0;
 }
 
-void pico8_pj_hk(p8_fixed_t yr) {
-    pico8_pj_ea_t *iw = pico8_pj_ea();
-    const data_row_t *gs = pico8_pj_gs();
-    const data_row_t *pp = NULL;
-    char *yr_str;
+void score_panel_new_year(p8_fixed_t year) {
+    score_panel_year_banner_t *year_banner = score_panel_year_banner();
+    const data_row_t *countdown_rows = score_panel_countdown_rows();
+    const data_row_t *message = NULL;
+    char *year_str;
     int idx;
 
-    if (iw == NULL) {
+    if (year_banner == NULL) {
         return;
     }
 
-    idx = 3426 - p8_fixed_flr_int(yr);
-    if (idx >= 1 && idx <= gs->count) {
-        const data_item_t *item = &gs->items[idx - 1];
+    idx = 3426 - p8_fixed_flr_int(year);
+    if (idx >= 1 && idx <= countdown_rows->count) {
+        const data_item_t *item = &countdown_rows->items[idx - 1];
 
         assert((item->row != NULL || item->is_false) && "gs holds rows and false only");
-        pp = item->row;
+        message = item->row;
     }
 
-    yr_str = p8_tostr_fixed(frame_zone(), yr);
-    assert(strlen("year ") + strlen(yr_str) <= PICO8_PJ_TEXT_CAP && "a year is at most a 5-digit integer");
-    strcpy(iw->year, "year ");
-    strcat(iw->year, yr_str);
+    year_str = p8_tostr_fixed(frame_zone(), year);
+    assert(strlen("year ") + strlen(year_str) <= SCORE_PANEL_TEXT_CAP && "a year is at most a 5-digit integer");
+    strcpy(year_banner->year, "year ");
+    strcat(year_banner->year, year_str);
 
-    iw->second_items[0] = (data_item_t){.text = iw->year};
+    year_banner->second_items[0] = (data_item_t){.text = year_banner->year};
 
-    if (pp != NULL) {
-        iw->items[2] = (data_item_t){.row = pp};
-        iw->row.count = 3;
-        g_pj_hk_lh_t = 90;
-        iw->lh = pico8_pj_hk_lh_dispatch;
+    if (message != NULL) {
+        year_banner->items[2] = (data_item_t){.row = message};
+        year_banner->row.count = 3;
+        g_score_panel_new_year_keep_open_t = 90;
+        year_banner->keep_open = score_panel_new_year_keep_open_method;
     } else {
-        iw->row.count = 2;
+        year_banner->row.count = 2;
     }
 
     {
         const data_row_t *items[3];
-        pico8_mh_keys_t keys = {0};
-        pico8_mh_t *made;
+        message_box_keys_t keys = {0};
+        message_box_t *made;
         int i;
 
-        for (i = 0; i < iw->row.count; i++) {
-            items[i] = iw->row.items[i].row;
+        for (i = 0; i < year_banner->row.count; i++) {
+            items[i] = year_banner->row.items[i].row;
         }
         keys.items = items;
-        keys.count = iw->row.count;
-        keys.lh = iw->lh;
-        made = pico8_mh_new(&keys);
+        keys.count = year_banner->row.count;
+        keys.keep_open = year_banner->keep_open;
+        made = message_box_new(&keys);
         (void)made;
     }
 }
 
 /* `de.my`'s body: `pj:ph` stores it in a button, `fq(de)` in a veil, each
  * through the variant of its own callback type. */
-static void pico8_pj_de_toggle(void) {
-    pico8_pj_t *ju = pico8_ju();
+static void score_panel_toggle_visibility(void) {
+    score_panel_t *ju = main_score_panel();
     if (ju != NULL) {
-        ju->c_ = !(ju->has_c_ && ju->c_);
-        ju->has_c_ = 1;
+        ju->is_shown = !(ju->has_is_shown && ju->is_shown);
+        ju->has_is_shown = 1;
     }
 }
 
-static int pico8_pj_de_my_dispatch(modal_backdrop_t *self) {
+static int score_panel_toggle_on_click_method(modal_backdrop_t *self) {
     (void)self;
-    pico8_pj_de_toggle();
+    score_panel_toggle_visibility();
     return 1;
 }
 
-static void pico8_pj_de_js_my_dispatch(button_t *self) {
+static void score_panel_toggle_button_on_click_method(button_t *self) {
     (void)self;
-    pico8_pj_de_toggle();
+    score_panel_toggle_visibility();
 }
 
 /* `self` inside `pj:ph` is always `ju` -- `pj()` is constructed exactly once
  * in the cart -- so reading `ju.c_` here IS reading the captured upvalue. */
-static int pico8_pj_ph_lh_dispatch(pico8_mh_t *self) {
-    const pico8_pj_t *ju = pico8_ju();
+static int score_panel_update_keep_open_method(message_box_t *self) {
+    const score_panel_t *ju = main_score_panel();
     (void)self;
-    return ju != NULL && ju->has_c_ && ju->c_;
+    return ju != NULL && ju->has_is_shown && ju->is_shown;
 }
 
 typedef struct {
-    const final_score_t *s;
-} pico8_pj_ph_ctx_t;
+    const final_score_t *final_score;
+} score_panel_update_ctx_t;
 
 /* `tostr(s[i])`, in the frame zone. */
-static char *pico8_pj_ph_s_str(const final_score_t *s, int i) {
+static char *score_panel_final_score_text(const final_score_t *s, int i) {
     switch (i) {
     case 1:
         return p8_tostr_fixed(frame_zone(), s->development);
@@ -134,37 +134,37 @@ static char *pico8_pj_ph_s_str(const final_score_t *s, int i) {
 typedef struct {
     data_row_t row;
     data_item_t items[3];
-} pico8_pj_ph_ld_t;
+} score_panel_update_draw_row_t;
 
-static void pico8_pj_ph_set(pico8_bz_row_t *st, int i, data_item_t item) {
+static void score_panel_update_set(score_rows_row_t *st, int i, data_item_t item) {
     st->items[i - 1] = item;
-    st->has[i - 1] = 1;
+    st->has_value[i - 1] = 1;
 }
 
 /* One row of `bz` as `ph` shows it: a row without a score is its own
  * article; one with a score gets `s[score]` at 3 (and more for 0 and 6),
  * then becomes the line of an article `ld`. */
-static const data_row_t *pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_ph_ctx_t *ctx) {
+static const data_row_t *score_panel_update_map(score_rows_row_t *score_row, const score_panel_update_ctx_t *ctx) {
     int score_i;
     char *s_str;
     layout_row_cell_t items[5];
     layout_row_keys_t keys = {0};
-    layout_row_t *lq_inst;
-    pico8_pj_ph_ld_t *wrapped;
-    int k;
+    layout_row_t *layout_row_inst;
+    score_panel_update_draw_row_t *wrapped;
+    int index;
 
-    if (!st->e->has_score) {
-        return &st->row;
+    if (!score_row->entry->has_score) {
+        return &score_row->row;
     }
 
-    score_i = st->e->score;
+    score_i = score_row->entry->score;
 
-    s_str = pico8_pj_ph_s_str(ctx->s, score_i);
-    pico8_pj_ph_set(st, 3, (data_item_t){.text = s_str});
+    s_str = score_panel_final_score_text(ctx->final_score, score_i);
+    score_panel_update_set(score_row, 3, (data_item_t){.text = s_str});
 
     if (score_i == 0) {
         const economy_t *fm = main_economy_typed();
-        const char *hl_str = fm != NULL && fm->has_end_status && fm->end_status != NULL ? fm->end_status : "current score";
+        const char *end_status_str = fm != NULL && fm->has_end_status && fm->end_status != NULL ? fm->end_status : "current score";
         const button_t *dk = economy_score_difficulty();
         const char *px = "";
         char *piece1;
@@ -174,152 +174,152 @@ static const data_row_t *pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_ph_c
         if (dk != NULL && dk->name != NULL) {
             px = dk->name;
         }
-        piece1 = p8_concat2(frame_zone(), hl_str, " (");
+        piece1 = p8_concat2(frame_zone(), end_status_str, " (");
         piece2 = p8_concat2(frame_zone(), piece1, px);
         label = p8_concat2(frame_zone(), piece2, ")");
-        pico8_pj_ph_set(st, 1, (data_item_t){.text = label});
+        score_panel_update_set(score_row, 1, (data_item_t){.text = label});
     }
 
     if (score_i == 6) {
         int i;
         for (i = 1; i <= 5; i++) {
-            int icon = (i <= p8_fixed_flr_int(ctx->s->tier)) ? 56 : 57;
-            pico8_pj_ph_set(st, i, (data_item_t){.number = icon});
+            int icon = (i <= p8_fixed_flr_int(ctx->final_score->tier)) ? 56 : 57;
+            score_panel_update_set(score_row, i, (data_item_t){.number = icon});
         }
     }
 
     /* TROU-25 */
-    for (k = 0; k < 5; k++) {
-        if (st->has[k]) {
-            items[keys.count++] = layout_row_cell_item(&st->items[k]);
+    for (index = 0; index < 5; index++) {
+        if (score_row->has_value[index]) {
+            items[keys.count++] = layout_row_cell_item(&score_row->items[index]);
         }
     }
     keys.items = items;
-    keys.has_color = st->row.has_color;
-    keys.color = p8_fixed_from_int(st->row.color);
+    keys.has_color = score_row->row.has_color;
+    keys.color = p8_fixed_from_int(score_row->row.color);
     keys.has_score = 1;
     keys.score = p8_fixed_from_int(score_i);
-    keys.pos = st->e->has_pos ? &st->ra : NULL;
-    lq_inst = layout_row_new(frame_zone(), &keys);
-    wrapped = (pico8_pj_ph_ld_t *)allocator_alloc(frame_zone(), sizeof *wrapped);
-    wrapped->items[0] = (data_item_t){.is_ref = 1, .ref = lq_inst};
+    keys.pos = score_row->entry->has_pos ? &score_row->pos : NULL;
+    layout_row_inst = layout_row_new(frame_zone(), &keys);
+    wrapped = (score_panel_update_draw_row_t *)allocator_alloc(frame_zone(), sizeof *wrapped);
+    wrapped->items[0] = (data_item_t){.is_ref = 1, .ref = layout_row_inst};
     wrapped->items[1] = (data_item_t){.is_ref = 1, .ref = keys.pos};
     wrapped->items[2] = (data_item_t){.is_fixed = 1, .fixed = P8_FIXED_LIT(0x00008000, 0.5)};
     wrapped->row = (data_row_t){.count = 3, .items = wrapped->items, .draw_function = "draw_row"};
     return &wrapped->row;
 }
 
-void pico8_pj_ph(pico8_pj_t *self) {
-    const economy_t *fm = main_economy_typed();
-    int has_hl = fm != NULL && fm->has_end_status && fm->end_status != NULL;
-    int has_gz = self != NULL && self->has_gz;
+void score_panel_update(score_panel_t *self) {
+    const economy_t *economy = main_economy_typed();
+    int has_end_status = economy != NULL && economy->has_end_status && economy->end_status != NULL;
+    int has_curtain = self != NULL && self->has_curtain;
 
-    if (has_hl && !has_gz) {
+    if (has_end_status && !has_curtain) {
         static const data_item_t back_items[] = {{.number = 10}, {.number = 7}};
         static const data_row_t back = {.count = 2, .items = back_items};
         button_keys_t spec1 = {0};
         button_keys_t spec2 = {0};
-        layout_row_cell_t lq1_item;
-        layout_row_cell_t lq2_item;
-        layout_row_keys_t lq1 = {0};
-        layout_row_keys_t lq2 = {0};
+        layout_row_cell_t first_line_item;
+        layout_row_cell_t second_line_item;
+        layout_row_keys_t first_line = {0};
+        layout_row_keys_t second_line = {0};
         button_t *made1;
         button_t *made2;
-        const vec_t ra1 = vec_make(p8_fixed_from_int(51), p8_fixed_from_int(100));
-        const vec_t ra2 = vec_make(p8_fixed_from_int(39), p8_fixed_from_int(100));
+        const vec_t first_line_pos = vec_make(p8_fixed_from_int(51), p8_fixed_from_int(100));
+        const vec_t second_line_pos = vec_make(p8_fixed_from_int(39), p8_fixed_from_int(100));
 
         (void)modal_backdrop_new(NULL);
 
-        lq1_item = layout_row_cell_string(" again? ");
-        lq1.items = &lq1_item;
-        lq1.count = 1;
+        first_line_item = layout_row_cell_string(" again? ");
+        first_line.items = &first_line_item;
+        first_line.count = 1;
         spec1.has_layer = 1;
         spec1.layer = p8_fixed_from_int(15);
-        spec1.pos = &ra1;
-        spec1.layout_row_keys = &lq1;
+        spec1.pos = &first_line_pos;
+        spec1.layout_row_keys = &first_line;
         spec1.has_on_click = 1;
-        spec1.on_click = pico8_init_field_value();
+        spec1.on_click = score_panel_init_field_value();
         made1 = button_new(&spec1);
         (void)made1;
 
-        lq2_item = layout_row_cell_row(&back);
-        lq2.items = &lq2_item;
-        lq2.count = 1;
+        second_line_item = layout_row_cell_row(&back);
+        second_line.items = &second_line_item;
+        second_line.count = 1;
         spec2.has_layer = 1;
         spec2.layer = p8_fixed_from_int(15);
-        spec2.pos = &ra2;
-        spec2.layout_row_keys = &lq2;
+        spec2.pos = &second_line_pos;
+        spec2.layout_row_keys = &second_line;
         spec2.has_on_click = 1;
-        spec2.on_click = pico8_pj_de_js_my_dispatch;
+        spec2.on_click = score_panel_toggle_button_on_click_method;
         made2 = button_new(&spec2);
         (void)made2;
 
         if (self != NULL) {
-            self->c_ = 1;
-            self->has_c_ = 1;
-            self->gz = 0;
-            self->has_gz = 1;
-            self->fa = p8_fixed_from_int(13);
+            self->is_shown = 1;
+            self->has_is_shown = 1;
+            self->curtain = 0;
+            self->has_curtain = 1;
+            self->layer = p8_fixed_from_int(13);
         }
     }
 
     {
-        int c_truthy = self != NULL && self->has_c_ && self->c_;
-        int ed_equals_kc = 0;
+        int c_truthy = self != NULL && self->has_is_shown && self->is_shown;
+        int last_box_equals_shown_message_box = 0;
 
         /* A NULL `ed` is the class default, the number 1, which is never
          * `kc`, not even a nil one: without the `ed != NULL` test, NULL == NULL
          * would keep the block from firing on the first eligible tick. */
         if (self != NULL) {
-            ed_equals_kc = self->ed != NULL && pico8_kc() == self->ed;
+            last_box_equals_shown_message_box = self->last_box != NULL && shown_message_box() == self->last_box;
         }
 
-        if (c_truthy && !ed_equals_kc) {
+        if (c_truthy && !last_box_equals_shown_message_box) {
             final_score_t s = economy_score_final();
-            pico8_bz_row_t *bz = pico8_pj_bz();
-            pico8_pj_ph_ctx_t ctx;
+            score_rows_row_t *bz = score_panel_score_rows();
+            score_panel_update_ctx_t ctx;
             const data_row_t *iw[SCORE_ROWS_COUNT];
-            pico8_mh_keys_t keys = {0};
-            pico8_mh_t *made;
+            message_box_keys_t keys = {0};
+            message_box_t *made;
             int i;
 
-            ctx.s = &s;
+            ctx.final_score = &s;
             for (i = 0; bz != NULL && i < SCORE_ROWS_COUNT; i++) {
-                iw[i] = pico8_pj_ph_map(&bz[i], &ctx);
+                iw[i] = score_panel_update_map(&bz[i], &ctx);
             }
 
             keys.items = iw;
             keys.count = bz != NULL ? SCORE_ROWS_COUNT : 0;
-            keys.has_rh = 1;
-            keys.rh = p8_fixed_from_int(3);
-            keys.lh = pico8_pj_ph_lh_dispatch;
-            made = pico8_mh_new(&keys);
+            keys.has_duration_scale = 1;
+            keys.duration_scale = p8_fixed_from_int(3);
+            keys.keep_open = score_panel_update_keep_open_method;
+            made = message_box_new(&keys);
 
             if (self != NULL) {
-                self->ed = made;
+                self->last_box = made;
             }
         }
     }
 }
 
-void pico8_score_panel_display_init(void) {
-    pico8_score_panel_display_shutdown();
-    g_pj_hk_lh_t = 0;
+void score_panel_display_init(void) {
+    score_panel_display_shutdown();
+    g_score_panel_new_year_keep_open_t = 0;
 }
 
-void pico8_score_panel_display_shutdown(void) {
+void score_panel_display_shutdown(void) {
 }
 
-modal_backdrop_on_click_fn_t pico8_de_my(void) {
-    return pico8_pj_de_my_dispatch;
+modal_backdrop_on_click_fn_t score_panel_toggle_on_click(void) {
+    return score_panel_toggle_on_click_method;
 }
 
-void pico8_pj_hk_dispatch(entity_t *self, p8_fixed_t yr) {
+void score_panel_new_year_method(entity_t *self, p8_fixed_t yr) {
     (void)self;
-    pico8_pj_hk(yr);
+    score_panel_new_year(yr);
 }
 
-void pico8_pj_ph_dispatch(entity_t *self, p8_fixed_t t) {
+void score_panel_update_method(entity_t *self, p8_fixed_t t) {
     (void)t;
-    pico8_pj_ph((pico8_pj_t *)self);
+    score_panel_update((score_panel_t *)self);
 }

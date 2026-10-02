@@ -41,9 +41,9 @@
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
 
-static void quitter_partie(void) {
+static void quit_game_zone(void) {
     entity_registry_abandon_live_entities();
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     game_zone_reset();
     entity_registry_forget_registries();
     planet_forget_grab_arenas();
@@ -52,10 +52,10 @@ static void quitter_partie(void) {
 /* pico8_data_init() and pico8_score_panel_init() each run further module
  * inits of their own (research, score-panel display); listing those
  * here would run them twice. */
-void pico8_cart_load(void) {
+void cart_load(void) {
     p8_memory_t *mem;
 
-    quitter_partie();
+    quit_game_zone();
     entity_init();
     assert(entity_ready() && "ke must be declared before every ke-descended class");
     camera_init();
@@ -69,8 +69,8 @@ void pico8_cart_load(void) {
     button_init();
     modal_backdrop_init();
     background_init();
-    pico8_mh_init();
-    pico8_iv_init();
+    message_box_init();
+    toast_init();
     probe_init();
     economy_init();
 
@@ -89,22 +89,22 @@ void pico8_cart_load(void) {
            "nr extends qh and mx extends hj: pico8_planet_family_init() must run first");
     wormhole_init();
 
-    pico8_help_init();
-    assert(pico8_fv_ready() && probe_ready() && "fv extends g_: pico8_probe_init() must run first");
-    pico8_score_panel_init();
+    help_init();
+    assert(help_screen_ready() && probe_ready() && "fv extends g_: pico8_probe_init() must run first");
+    score_panel_init();
     structure_icon_init();
-    pico8_menu_init();
+    menu_init();
 
-    pico8_help_set_eu(pico8_eu);
-    pico8_score_panel_set_init(pico8_init_dispatch);
+    help_set_start_game(cart_start_game);
+    score_panel_set_init(cart_init_method);
 }
 
 /* Une place rendue peut revenir a la meme adresse : `kc == ju.ed` serait
  * vrai pour une boite neuve, et `gj.m_` ecrirait dans un autre objet.
  * ASan ne voit pas la comparaison. */
-static void oublier(const entity_t *e) {
+static void forget(const entity_t *e) {
     ui_t *ok = main_ui();
-    pico8_pj_t *ju = pico8_ju();
+    score_panel_t *ju = main_score_panel();
 
     if (ok != NULL && ok->hovered == e) {
         ok->hovered = NULL;
@@ -116,11 +116,11 @@ static void oublier(const entity_t *e) {
         ((slipway_t *)ok->left_held)->end == e) {
         ((slipway_t *)ok->left_held)->end = NULL;
     }
-    if ((const entity_t *)pico8_kc() == e) {
-        pico8_msgbox_set_kc(NULL);
+    if ((const entity_t *)shown_message_box() == e) {
+        message_box_set_shown(NULL);
     }
-    if (ju != NULL && (const entity_t *)ju->ed == e) {
-        ju->ed = NULL;
+    if (ju != NULL && (const entity_t *)ju->last_box == e) {
+        ju->last_box = NULL;
     }
     economy_score_difficulty_quits(e);
     planet_forget_targeted_by(e);
@@ -128,24 +128,24 @@ static void oublier(const entity_t *e) {
 
 /* Point d'oubli de partie : coupe les references a la generation que
  * pico8_zone_partie_rendre va rendre. */
-static void oublier_partie(void) {
+static void forget_game_zone(void) {
     planet_forget_grab_arenas();
 }
 
-void pico8_cart_vider_file_sortie(void) {
-    exit_queue_flush(oublier);
+void cart_flush_exit_queue(void) {
+    exit_queue_flush(forget);
     if (game_zone_pending()) {
-        oublier_partie();
+        forget_game_zone();
         game_zone_release();
     }
 }
 
-void pico8_cart_shutdown(void) {
-    quitter_partie();
-    pico8_menu_shutdown();
+void cart_shutdown(void) {
+    quit_game_zone();
+    menu_shutdown();
     structure_icon_shutdown();
-    pico8_score_panel_shutdown();
-    pico8_help_shutdown();
+    score_panel_shutdown();
+    help_shutdown();
 
     wormhole_shutdown();
     planet_family_trade_shutdown();
@@ -157,8 +157,8 @@ void pico8_cart_shutdown(void) {
 
     economy_shutdown();
     probe_shutdown();
-    pico8_iv_shutdown();
-    pico8_mh_shutdown();
+    toast_shutdown();
+    message_box_shutdown();
     background_shutdown();
     modal_backdrop_shutdown();
     button_shutdown();
@@ -172,12 +172,12 @@ void pico8_cart_shutdown(void) {
     entity_shutdown();
 }
 
-void pico8__init(void) {
+void cart_init(void) {
     p8_memory_t *mem = dispatch_context_mem();
 
     assert(structure_icon_ready() && "pico8_cart_load() must run before _init()");
-    assert(pico8_eu_field_value() == pico8_eu &&
-           pico8_init_field_value() == pico8_init_dispatch &&
+    assert(help_start_game_field_value() == cart_start_game &&
+           score_panel_init_field_value() == cart_init_method &&
            "pico8_help_init()/pico8_score_panel_init() reset these bridges, so pico8_cart_load() must "
            "install them afterwards: every button copies the value when it is built");
 
@@ -187,25 +187,25 @@ void pico8__init(void) {
     /* `ie.gy,kc=ie.eh`: Lua pads the extra name with nil, so `gy` takes `eh`
      * and `kc` is cleared. `gy` aliases `eh`'s vector, it is not a copy. */
     structure_icon_set_cursor(structure_icon_rest_cursor());
-    pico8_msgbox_set_kc(NULL);
+    message_box_set_shown(NULL);
 
-    (void)pico8_fv_new();
+    (void)help_screen_new();
     /* TROU-10 */
     p8_music(0);
 }
 
-void pico8_init_dispatch(button_t *self) {
+void cart_init_method(button_t *self) {
     (void)self;
-    pico8__init();
+    cart_init();
 }
 
-void pico8_eu(button_t *nj) {
-    const entity_kind_t *gx[7];
-    int i;
+void cart_start_game(button_t *chosen_option) {
+    const entity_kind_t *kind_table[7];
+    int index;
 
     assert(economy_ready() && structure_ready() && "pico8_cart_load() must run before eu()");
 
-    economy_score_set_difficulty(nj);
+    economy_score_set_difficulty(chosen_option);
     game_zone_flip();
 
     /* `jl()` runs a second time here, as in the cart: it unconditionally
@@ -215,29 +215,29 @@ void pico8_eu(button_t *nj) {
     galaxy_populate(p8_fixed_from_int(90));
 
     probe_set_main_economy((entity_t *)economy_new());
-    pico8_pj_set_ju(pico8_pj_new());
+    score_panel_set_main_score_panel(score_panel_new());
 
-    if (pico8_ha_pz() != NULL) {
+    if (pause_menu_open_box() != NULL) {
         int j;
 
         for (j = 1; j <= GALAXY_MENU_COUNT; j++) {
-            (void)pico8_ix_button(j);
+            (void)galaxy_menu_button(j);
         }
     }
 
-    gx[0] = structure_kind();
-    gx[1] = processor_kind();
-    gx[2] = slipgate_kind();
-    gx[3] = infraspace_gate_kind();
-    gx[4] = trading_hub_kind();
-    gx[5] = synthesizer_kind();
-    gx[6] = ascension_kind();
+    kind_table[0] = structure_kind();
+    kind_table[1] = processor_kind();
+    kind_table[2] = slipgate_kind();
+    kind_table[3] = infraspace_gate_kind();
+    kind_table[4] = trading_hub_kind();
+    kind_table[5] = synthesizer_kind();
+    kind_table[6] = ascension_kind();
 
-    for (i = 0; i < 7; i++) {
+    for (index = 0; index < 7; index++) {
         structure_icon_keys_t keys = {0};
 
-        keys.kind = gx[i];
-        keys.tooltip = tooltip_new(game_zone(), &icon_tooltips_table[i]);
+        keys.kind = kind_table[index];
+        keys.tooltip = tooltip_new(game_zone(), &icon_tooltips_table[index]);
         (void)structure_icon_new(&keys);
     }
 
@@ -248,14 +248,14 @@ void pico8_eu(button_t *nj) {
 /* Ici et pas dans un pilote : rejeu, raylib, couverture et TU passent tous
  * par update60, et draw, qui suit dans la meme frame, relit ce qu'update a
  * fait en zone frame. */
-void pico8__update60(void) {
+void cart_update60(void) {
     frame_zone_reset();
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     update_entities();
     ui_update(dispatch_context_mem(), main_ui());
 }
 
-void pico8__draw(void) {
+void cart_draw(void) {
     p8_memory_t *mem = dispatch_context_mem();
 
     p8_cls(mem);

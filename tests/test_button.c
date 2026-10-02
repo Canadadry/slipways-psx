@@ -431,9 +431,9 @@ static void check_int(const char *label, int got, int want) {
 static void leave_help_screen(void) {
     const entity_list_t *hv = live_entities();
     for (int i = 0; i < hv->count; i++) {
-        if (hv->items[i]->class == pico8_fv_struct_class()) {
+        if (hv->items[i]->class == help_screen_class()) {
             entity_unregister(hv->items[i]);
-            pico8_cart_vider_file_sortie();
+            cart_flush_exit_queue();
             return;
         }
     }
@@ -443,15 +443,15 @@ static void start_title(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
     leave_help_screen();
-    pico8__init();
+    cart_init();
 }
 
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
  * reads as difficulty 0. */
 static void start_game(void) {
     start_title();
-    pico8_eu(NULL);
-    pico8_cart_vider_file_sortie();
+    cart_start_game(NULL);
+    cart_flush_exit_queue();
 }
 
 /* The `i`th (from 1) of the title's four buttons, which `pz` built from
@@ -532,8 +532,8 @@ static void *built_world(void) {
 }
 
 static void one_frame(void) {
-    pico8__update60();
-    pico8__draw();
+    cart_update60();
+    cart_draw();
 }
 
 /* A generated planet discovered by `jo:hh` and clicked: `jo:fe`'s panel. */
@@ -558,7 +558,7 @@ static void built_panel(void) {
 static void tech_screen(void) {
     start_game();
     main_economy_typed()->research_points = p8_fixed_from_int(5);
-    pico8_cr();
+    menu_show_tech_tree_screen();
     one_frame();
 }
 
@@ -569,7 +569,7 @@ static void game_end(void) {
     start_game();
     main_economy_typed()->end_status = "final score";
     main_economy_typed()->has_end_status = 1;
-    ju = (entity_t *)pico8_ju();
+    ju = (entity_t *)main_score_panel();
     assert(ju->class->states[ENTITY_STATE_NORMAL] != NULL);
     ju->class->states[ENTITY_STATE_NORMAL](ju, p8_fixed_from_int(0));
     one_frame();
@@ -667,7 +667,7 @@ static void test_research(void) {
 
     start_game();
     invent("slipgates");
-    pico8_cr();
+    menu_show_tech_tree_screen();
     check_shared_pos();
     le = main_ui_ephemerals();
     for (i = 0; i < le->count; i++) {
@@ -746,10 +746,10 @@ static void test_difficulty(void) {
 
         /* The frame between two games: each `jl()` hands its ~90 planets
          * to the exit queue, which only a frame empties. */
-        pico8_cart_vider_file_sortie();
+        cart_flush_exit_queue();
         start_title();
         nj = title_button(i);
-        pico8_eu(nj);
+        cart_start_game(nj);
         assert(economy_score_difficulty() == nj);
         h = fold_fixed_or_nil(h, button_of(nj)->has_type_bias, button_of(nj)->type_bias);
         h = fold_fixed_or_nil(h, button_of(nj)->has_trade, button_of(nj)->trade);
@@ -1065,7 +1065,7 @@ static void test_button_is_a_struct(void) {
     start_title();
     check_int("struct title", all_buttons_are_structs(), 4);
     nj = title_button(2);
-    pico8_eu(nj);
+    cart_start_game(nj);
     assert(is_button(nj) && economy_score_difficulty() == nj);
     assert(galaxy_menu_buttons(ix) == 4);
     check_int("struct start_game", all_buttons_are_structs(), 4);
@@ -1077,7 +1077,7 @@ static void test_button_is_a_struct(void) {
     }
     call_on_click(ix[3]);
     check_int("struct pause", all_buttons_are_structs(), 8);
-    pico8_cr();
+    menu_show_tech_tree_screen();
     check_int("struct research", all_buttons_are_structs(), 9);
     {
         const button_keys_t empty = {0};
@@ -1288,7 +1288,7 @@ static void *built(button_keys_t keys) {
 static uint32_t fold_and_drop(uint32_t h, button_t *b) {
     h = fold_button_members(h, b);
     entity_unregister(&b->header);
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     return h;
 }
 
@@ -1405,11 +1405,11 @@ static uint32_t members_title_and_game(void) {
     check_one_open_box(title, 4);
 
     chosen_option = title[1];
-    assert(button_of(chosen_option)->on_click == pico8_eu_field_value());
+    assert(button_of(chosen_option)->on_click == help_start_game_field_value());
     assert(button_of(chosen_option)->has_trade && button_of(chosen_option)->has_type_bias);
     printf("[members] difficulty: trade %d, type_bias %d/65536\n", p8_fixed_flr_int(button_of(chosen_option)->trade), (int)button_of(chosen_option)->type_bias);
     hash = fold_button_members(hash, chosen_option);
-    pico8_eu(chosen_option);
+    cart_start_game(chosen_option);
     assert(economy_score_difficulty() == chosen_option);
     assert(galaxy_menu_buttons(galaxy_menu) == 4);
     for (index = 0; index < 4; index++) {
@@ -1638,8 +1638,8 @@ static void test_pause_menu_open_box_is_a_struct(void) {
     size_t i;
 
     start_game();
-    o = pico8_ha_pz();
-    assert(o != NULL && o->class == pico8_ha_pz_struct_class());
+    o = pause_menu_open_box();
+    assert(o != NULL && o->class == pause_menu_open_box_class());
     assert(o->class->draw == NULL && o->class->draw_overlay == NULL && o->class->hit_test == NULL && o->class->new_year == NULL &&
            o->class->refresh == NULL && o->class->left_press == NULL && o->class->right_press == NULL && o->class->accept_drop == NULL);
     assert(o->class->drag == NULL && o->class->drop == NULL && o->class->attach_slipway == NULL && o->class->offer_trade == NULL && o->class->draw_at == NULL &&
@@ -1648,23 +1648,23 @@ static void test_pause_menu_open_box_is_a_struct(void) {
         assert(o->class->states[i] == NULL);
     }
 
-    pico8_menu_shutdown();
-    assert(pico8_ha_pz() == NULL);
-    pico8_menu_init();
-    assert(pico8_ha_pz() == o);
+    menu_shutdown();
+    assert(pause_menu_open_box() == NULL);
+    menu_init();
+    assert(pause_menu_open_box() == o);
 }
 
 /* TROU-9: a button's `fa` is `p.ca` when `p` has one, else `js`'s own. */
 static void test_open_box_layer_only_from_back_color(void) {
-    pico8_pz_frame_t frame = {0};
+    open_box_frame_t frame = {0};
     button_keys_t row = {0};
 
     start_game();
-    pico8_pz(&frame, &row, 1);
+    message_box_open_box(&frame, &row, 1);
     assert(main_ui_ephemerals()->count == 1 && button_of(main_ui_ephemerals()->items[0])->layer == p8_fixed_from_int(11));
-    frame.has_ca = 1;
-    frame.ca = p8_fixed_from_int(14);
-    pico8_pz(&frame, &row, 1);
+    frame.has_back_color = 1;
+    frame.back_color = p8_fixed_from_int(14);
+    message_box_open_box(&frame, &row, 1);
     assert(main_ui_ephemerals()->count == 1 && button_of(main_ui_ephemerals()->items[0])->layer == p8_fixed_from_int(14));
 }
 
@@ -1707,7 +1707,7 @@ static void test_available_technologies_writes_every_is_affordable(void) {
 /* A NULL frame makes `pz` a no-op. */
 static void test_open_box_closed(void) {
     start_game();
-    pico8_pz(NULL, NULL, 0);
+    message_box_open_box(NULL, NULL, 0);
 }
 
 static void test_panels_are_structs(void) {
@@ -1895,13 +1895,13 @@ static void test_largest_buttons_fit_their_slots(void) {
     fm->research_points = p8_fixed_from_int(9999);
     for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
         fm->era = p8_fixed_from_int(technologies_table[i].era);
-        pico8_cr();
+        menu_show_tech_tree_screen();
         one_frame();
     }
     for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
         invent((char *)technologies_table[i].name);
     }
-    pico8_cr();
+    menu_show_tech_tree_screen();
     assert(button_of(main_ui_ephemerals()->items[main_ui_ephemerals()->count - 1])->tooltip->rows_count == TECHNOLOGIES_COUNT);
     one_frame();
 
@@ -1936,7 +1936,7 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
+    cart_load();
     in_fresh_child(test_title);
     in_fresh_child(test_start_game);
     in_fresh_child(test_pause);

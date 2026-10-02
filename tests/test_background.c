@@ -138,8 +138,8 @@ static void check_int(const char *label, int got, int want) {
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
-    pico8__init();
-    pico8_eu(NULL);
+    cart_init();
+    cart_start_game(NULL);
 }
 
 /* The background is the `bg` of cv.hd whose `hd` and `fa` are both 1. */
@@ -496,8 +496,8 @@ static void test_scripted_drags(void) {
     for (i = 0; i < 7; i++) {
         int count;
 
-        pico8__update60();
-        pico8__draw();
+        cart_update60();
+        cart_draw();
         assert(find_background(&count) == bg && count == 1);
         assert((main_ui()->right_held == bg) == (i < 3));
         if (i == 6) {
@@ -567,7 +567,7 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
+    cart_load();
     in_fresh_child(test_construction);
     in_fresh_child(test_map);
     in_fresh_child(test_drag);

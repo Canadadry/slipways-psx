@@ -277,8 +277,8 @@ static void test_right_drag_moves_the_camera(void) {
     vec_t after;
     int i;
 
-    pico8__init();
-    pico8_eu(NULL);
+    cart_init();
+    cart_start_game(NULL);
     for (i = 0; i < 20; i++) {
         memset(&g_frames[i], 0, sizeof g_frames[i]);
         g_frames[i].mouse_x = 64 + 2 * i;
@@ -286,11 +286,11 @@ static void test_right_drag_moves_the_camera(void) {
         g_frames[i].mouse_buttons = i < 18 ? 2 : 0;
     }
     script(20);
-    pico8__update60();
+    cart_update60();
     before = must_vec(typed_main_camera()->pos_before_shake);
     for (i = 1; i < 20; i++) {
         p8_input_step(&input);
-        pico8__update60();
+        cart_update60();
     }
     unscript();
     after = must_vec(typed_main_camera()->pos_before_shake);
@@ -316,8 +316,8 @@ static int burst_alive(void) {
 static void test_burst_shakes(void) {
     int i;
 
-    pico8__init();
-    pico8_eu(NULL);
+    cart_init();
+    cart_start_game(NULL);
     assert(!burst_alive());
     (void)burst_new(NULL);
     assert(burst_alive());
@@ -387,7 +387,7 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
+    cart_load();
     in_fresh_child(test_right_drag_moves_the_camera);
     in_fresh_child(test_burst_shakes);
 

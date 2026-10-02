@@ -68,14 +68,14 @@ static uint32_t draw_hash(void) {
 }
 
 /* One toast's `kj` alone, as `dc("kj")` would place it. */
-static uint32_t draw_hash_of(const pico8_iv_t *e) {
+static uint32_t draw_hash_of(const toast_t *e) {
     p8_gfx_init(&gfx);
     p8_cls(&mem);
-    pico8_iv_kj(&gfx, &mem, e, *e->ra);
+    toast_draw(&gfx, &mem, e, *e->pos);
     return screen_hash();
 }
 
-static int ents_listed(const entity_list_t *list, const void *e) {
+static int entity_list_listed(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -97,22 +97,22 @@ static void fresh_world(void) {
     ((mouse_t *)main_mouse())->pos = mouse;
 }
 
-static pico8_iv_t *build(const vec_t *ra, const char *text, int color) {
-    pico8_iv_keys_t keys = {0};
+static toast_t *build(const vec_t *ra, const char *text, int color) {
+    toast_keys_t keys = {0};
 
     if (ra != NULL) {
-        vec_t *heap_ra = malloc(sizeof *heap_ra);
-        *heap_ra = *ra;
-        keys.ra = heap_ra;
+        vec_t *heap_pos = malloc(sizeof *heap_pos);
+        *heap_pos = *ra;
+        keys.pos = heap_pos;
     }
-    keys.at1 = text;
-    keys.at2 = p8_fixed_from_int(color);
-    return pico8_iv_new(&keys);
+    keys.text = text;
+    keys.color = p8_fixed_from_int(color);
+    return toast_new(&keys);
 }
 
 /* Lives the toast through `dg` until it leaves `hv`, folding every tick's
  * `ra`, `l`, `t`, list membership and `dc("kj")` screen into one hash. */
-static void live(pico8_iv_t *e, int want_ticks, uint32_t want_sequence, uint32_t want_first_draw, const char *label) {
+static void live(toast_t *e, int want_ticks, uint32_t want_sequence, uint32_t want_first_draw, const char *label) {
     uint32_t h = 2166136261u;
     uint32_t first_draw;
     uint32_t blank;
@@ -122,22 +122,22 @@ static void live(pico8_iv_t *e, int want_ticks, uint32_t want_sequence, uint32_t
     blank = screen_hash();
     first_draw = draw_hash();
 
-    while (ents_listed(live_entities(), e)) {
+    while (entity_list_listed(live_entities(), e)) {
         vec_t ra;
-        assert(e->ra != NULL);
-        ra = *e->ra;
+        assert(e->pos != NULL);
+        ra = *e->pos;
         assert(ticks < 1000);
         h = fnv(h, (uint32_t)ra.x);
         h = fnv(h, (uint32_t)ra.y);
-        h = fnv(h, (uint32_t)e->l);
+        h = fnv(h, (uint32_t)e->fade);
         h = fnv(h, (uint32_t)e->header.state_time);
-        h = fnv(h, (uint32_t)ents_listed(entities_by_message("draw"), e));
+        h = fnv(h, (uint32_t)entity_list_listed(entities_by_message("draw"), e));
         h = fnv(h, draw_hash());
         update_entities();
         ticks++;
     }
-    assert(!ents_listed(entities_by_message("draw"), e));
-    h = fnv(h, (uint32_t)e->l);
+    assert(!entity_list_listed(entities_by_message("draw"), e));
+    h = fnv(h, (uint32_t)e->fade);
     h = fnv(h, (uint32_t)e->header.state_time);
 
     printf("[%s] ticks=%d sequence=0x%08Xu first_draw=0x%08Xu\n", label, ticks, (unsigned)h, (unsigned)first_draw);
@@ -163,7 +163,7 @@ static void test_price_toast_lives_as_before(void) {
 
 /* A toast alive when a wormhole is built is scanned by `mz:pq` for `fx`,
  * which it does not have. */
-static void test_mz_scan_skips_a_live_toast(void) {
+static void test_wormhole_scan_skips_a_live_toast(void) {
     vec_t ra = vec_make(p8_fixed_from_int(40), p8_fixed_from_int(60));
     void *e;
     wormhole_t *mz;
@@ -172,7 +172,7 @@ static void test_mz_scan_skips_a_live_toast(void) {
     e = build(&ra, "+1$", 11);
     mz = wormhole_new();
     assert(mz->anchors != NULL);
-    assert(!ents_listed(mz->anchors, e));
+    assert(!entity_list_listed(mz->anchors, e));
     assert(mz->anchors->count == 0);
 }
 
@@ -180,109 +180,109 @@ static void test_mz_scan_skips_a_live_toast(void) {
  * bumped on the struct itself, and a truthy `p_` takes it out of hv. */
 typedef struct {
     entity_t header;
-    int p_;
+    int is_dead;
 } fake_toast_t;
 
-static int g_fake_ph_calls = 0;
-static p8_fixed_t g_fake_ph_last_t;
+static int g_fake_update_calls = 0;
+static p8_fixed_t g_fake_update_last_t;
 
-static void fake_toast_ph(entity_t *self, p8_fixed_t t) {
+static void fake_toast_update(entity_t *self, p8_fixed_t t) {
     fake_toast_t *f = (fake_toast_t *)self;
-    g_fake_ph_calls++;
-    g_fake_ph_last_t = t;
+    g_fake_update_calls++;
+    g_fake_update_last_t = t;
     if (t >= p8_fixed_from_int(2)) {
-        f->p_ = 1;
+        f->is_dead = 1;
     }
 }
 
 static const entity_class_t g_fake_toast_class = {
-    .states = {[ENTITY_STATE_NORMAL] = fake_toast_ph},
+    .states = {[ENTITY_STATE_NORMAL] = fake_toast_update},
 };
 
-static void test_dg_drives_a_ke_struct(void) {
+static void test_update_entities_drives_a_entity_struct(void) {
     fake_toast_t *f = malloc(sizeof *f);
     int i;
 
     fresh_world();
     entity_init_instance(&f->header, &g_fake_toast_class, "normal", 0);
-    f->header.is_dead = &f->p_;
-    f->p_ = 0;
+    f->header.is_dead = &f->is_dead;
+    f->is_dead = 0;
     entity_construct(&f->header);
-    assert(ents_listed(live_entities(), f));
+    assert(entity_list_listed(live_entities(), f));
 
     for (i = 0; i < 2; i++) {
         update_entities();
-        assert(g_fake_ph_calls == i + 1 && g_fake_ph_last_t == p8_fixed_from_int(i));
+        assert(g_fake_update_calls == i + 1 && g_fake_update_last_t == p8_fixed_from_int(i));
         assert(f->header.state_time == p8_fixed_from_int(i + 1));
-        assert(ents_listed(live_entities(), f));
+        assert(entity_list_listed(live_entities(), f));
     }
     update_entities();
-    assert(g_fake_ph_calls == 3 && g_fake_ph_last_t == p8_fixed_from_int(2));
-    assert(!ents_listed(live_entities(), f));
+    assert(g_fake_update_calls == 3 && g_fake_update_last_t == p8_fixed_from_int(2));
+    assert(!entity_list_listed(live_entities(), f));
     assert(f->header.state_time == p8_fixed_from_int(3));
 }
 
 /* The struct's defaults are its archetype's, whose `fa` and `v` are the
  * spec's. */
 static void test_defaults_match_the_parsed_spec(void) {
-    const pico8_iv_t *e;
+    const toast_t *e;
 
     fresh_world();
     e = build(NULL, "x", 7);
-    assert(e->def == &toast_archetype);
-    assert(e->def->velocity.x == 0 && e->def->velocity.y == -0x570a);
-    assert(e->def->layer == p8_fixed_from_int(9));
-    assert(e->l == e->def->fade);
+    assert(e->archetype == &toast_archetype);
+    assert(e->archetype->velocity.x == 0 && e->archetype->velocity.y == -0x570a);
+    assert(e->archetype->layer == p8_fixed_from_int(9));
+    assert(e->fade == e->archetype->fade);
     assert(e->header.state != NULL && strcmp(e->header.state, "normal") == 0);
     assert(e->header.state_time == 0);
-    assert(build(NULL, "y", 7)->def == e->def);
-    assert(pico8_iv_ready());
-    pico8_iv_shutdown();
-    assert(!pico8_iv_ready());
-    pico8_iv_init();
+    assert(build(NULL, "y", 7)->archetype == e->archetype);
+    assert(toast_ready());
+    toast_shutdown();
+    assert(!toast_ready());
+    toast_init();
 }
 
 /* Built directly or through its class, an iv is a struct that lands in hv
  * and cv.kj only. */
-static void test_iv_is_a_struct_registered_under_kj(void) {
+static void test_toast_is_a_struct_registered_under_draw(void) {
     const char *others[] = {"draw_overlay", "hit_test", "new_year", "refresh"};
-    pico8_iv_keys_t keys = {0};
+    toast_keys_t keys = {0};
     void *direct;
     void *generic;
     int i;
 
     fresh_world();
-    keys.at1 = "z";
+    keys.text = "z";
     direct = build(NULL, "z", 7);
-    generic = pico8_iv_new(&keys);
+    generic = toast_new(&keys);
 
     assert(direct != NULL);
     assert(generic != NULL);
-    assert(ents_listed(live_entities(), direct) && ents_listed(entities_by_message("draw"), direct));
-    assert(ents_listed(live_entities(), generic) && ents_listed(entities_by_message("draw"), generic));
+    assert(entity_list_listed(live_entities(), direct) && entity_list_listed(entities_by_message("draw"), direct));
+    assert(entity_list_listed(live_entities(), generic) && entity_list_listed(entities_by_message("draw"), generic));
     for (i = 0; i < 4; i++) {
-        assert(!ents_listed(entities_by_message(others[i]), direct) && !ents_listed(entities_by_message(others[i]), generic));
+        assert(!entity_list_listed(entities_by_message(others[i]), direct) && !entity_list_listed(entities_by_message(others[i]), generic));
     }
 }
 
 /* A toast takes a place; once `dg` takes it out after its 50 ticks,
  * emptying the exit queue gives the place back. */
-static void test_toast_gives_its_place_back(void) {
-    pico8_iv_t *e;
+static void test_toast_gives_its_slot_back(void) {
+    toast_t *e;
     int base;
     int ticks = 0;
 
     fresh_world();
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     base = ui_zone_live(SLOT_KIND_TOAST);
     e = build(NULL, "-no money-", 8);
     assert(ui_zone_live(SLOT_KIND_TOAST) == base + 1);
-    while (ents_listed(live_entities(), e)) {
+    while (entity_list_listed(live_entities(), e)) {
         update_entities();
         assert(++ticks < 1000);
     }
     assert(ui_zone_live(SLOT_KIND_TOAST) == base + 1 && "out of hv, still read this frame");
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     assert(ui_zone_live(SLOT_KIND_TOAST) == base);
 }
 
@@ -293,7 +293,7 @@ static void test_toast_keeps_a_copy_of_its_text(void) {
     uint32_t want;
     char *text;
     char *reuse;
-    pico8_iv_t *e;
+    toast_t *e;
 
     fresh_world();
     want = draw_hash_of(build(&ra, "+12$", 11));
@@ -304,35 +304,35 @@ static void test_toast_keeps_a_copy_of_its_text(void) {
     frame_zone_reset();
     reuse = (char *)allocator_alloc(frame_zone(), 64);
     memset(reuse, 'X', 64);
-    assert(e->at1 != NULL && strcmp(e->at1, "+12$") == 0);
+    assert(e->text != NULL && strcmp(e->text, "+12$") == 0);
     assert(draw_hash_of(e) == want);
 }
 
 /* `jo:hk` hands the toast its planet's `ra`, which `na` moves in place in
  * the next `dg`, before the toast's first `ph`: the toast follows it until
  * then, and no longer after. */
-static void test_toast_follows_the_borrowed_ra_until_its_first_ph(void) {
-    vec_t *planet_ra = malloc(sizeof *planet_ra);
-    pico8_iv_keys_t keys = {0};
+static void test_toast_follows_the_borrowed_pos_until_its_first_update(void) {
+    vec_t *planet_pos = malloc(sizeof *planet_pos);
+    toast_keys_t keys = {0};
     vec_t moved;
     vec_t after;
-    pico8_iv_t *e;
+    toast_t *e;
 
     fresh_world();
-    *planet_ra = vec_make(p8_fixed_from_int(100), p8_fixed_from_int(100));
-    keys.ra = planet_ra;
-    keys.at1 = "+1$";
-    keys.at2 = p8_fixed_from_int(11);
-    e = pico8_iv_new(&keys);
-    *planet_ra = vec_make(p8_fixed_from_int(110), P8_FIXED_LIT(0x00648000, 100.5));
-    moved = *planet_ra;
-    assert(e->ra->x == moved.x && e->ra->y == moved.y);
-    pico8_iv_ph(e);
-    after = vec_add(moved, e->def->velocity);
-    assert(e->ra->x == after.x && e->ra->y == after.y);
-    *planet_ra = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    free(planet_ra);
-    assert(e->ra->x == after.x && e->ra->y == after.y);
+    *planet_pos = vec_make(p8_fixed_from_int(100), p8_fixed_from_int(100));
+    keys.pos = planet_pos;
+    keys.text = "+1$";
+    keys.color = p8_fixed_from_int(11);
+    e = toast_new(&keys);
+    *planet_pos = vec_make(p8_fixed_from_int(110), P8_FIXED_LIT(0x00648000, 100.5));
+    moved = *planet_pos;
+    assert(e->pos->x == moved.x && e->pos->y == moved.y);
+    toast_update(e);
+    after = vec_add(moved, e->archetype->velocity);
+    assert(e->pos->x == after.x && e->pos->y == after.y);
+    *planet_pos = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    free(planet_pos);
+    assert(e->pos->x == after.x && e->pos->y == after.y);
 }
 
 int main(void) {
@@ -345,19 +345,19 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
-    pico8__init();
+    cart_load();
+    cart_init();
 
     test_no_money_toast_lives_as_before();
     test_price_toast_lives_as_before();
-    test_mz_scan_skips_a_live_toast();
-    test_dg_drives_a_ke_struct();
+    test_wormhole_scan_skips_a_live_toast();
+    test_update_entities_drives_a_entity_struct();
     test_defaults_match_the_parsed_spec();
-    test_iv_is_a_struct_registered_under_kj();
-    test_toast_gives_its_place_back();
+    test_toast_is_a_struct_registered_under_draw();
+    test_toast_gives_its_slot_back();
     test_toast_keeps_a_copy_of_its_text();
-    test_toast_follows_the_borrowed_ra_until_its_first_ph();
+    test_toast_follows_the_borrowed_pos_until_its_first_update();
 
-    printf("test_pico8_iv: all tests passed\n");
+    printf("test_toast: all tests passed\n");
     return 0;
 }

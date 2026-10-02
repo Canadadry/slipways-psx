@@ -201,8 +201,8 @@ static uint32_t screen_hash(void) {
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
-    pico8__init();
-    pico8_eu(NULL);
+    cart_init();
+    cart_start_game(NULL);
 }
 
 static vec_t *vec_ref(vec_t at) {
@@ -732,7 +732,7 @@ static void test_leaving_gives_back_its_particles(void) {
     planet_t *e;
 
     start_game();
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     before = held_now();
     e = as_ascension(build_synthesizer());
     emitter_spawn(&e->header, p8_fixed_from_int(5));
@@ -740,7 +740,7 @@ static void test_leaving_gives_back_its_particles(void) {
     assert(e->emitter->particles->count == 5);
     assert(held_now().particle == before.particle + 5 && held_now().particles == before.particles + 1);
     entity_unregister(&e->header);
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     after = held_now();
     assert(after.particle == before.particle && after.particles == before.particles && after.rows == before.rows);
     assert(e->emitter->particles == NULL && e->layout_row_slot == NULL);
@@ -756,7 +756,7 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
+    cart_load();
     in_fresh_child(test_built);
     in_fresh_child(test_life);
     in_fresh_child(test_synthesis);

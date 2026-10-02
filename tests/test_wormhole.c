@@ -185,8 +185,8 @@ static void check_int(const char *label, int got, int want) {
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
-    pico8__init();
-    pico8_eu(NULL);
+    cart_init();
+    cart_start_game(NULL);
 }
 
 static vec_t pos_of(void *e) {
@@ -429,7 +429,7 @@ static void test_arena(void) {
     int i;
 
     world();
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     assert(!game_zone_pending());
     build_wormhole();
     before = generation_but_registries();
@@ -446,7 +446,7 @@ static void test_arena(void) {
     assert(mz->is_dead);
     update_entities();
     assert(!entity_list_listed(live_entities(), mz));
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     before = generation_but_registries();
     build_wormhole();
     assert(generation_but_registries() == before && "a dead mz gives its grab arena back to the next grab");
@@ -858,7 +858,7 @@ int main(void) {
     dispatch_context_set_gfx(&gfx);
     dispatch_context_set_mem(&mem);
 
-    pico8_cart_load();
+    cart_load();
     in_fresh_child(test_construction);
     in_fresh_child(test_anchors);
     in_fresh_child(test_arena);

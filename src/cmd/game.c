@@ -67,16 +67,16 @@ int main(int argc, char **argv) {
     pico8_raylib_backend_t backend;
     pico8_raylib_backend_init(&backend);
 
-    pico8_cart_load();
-    pico8__init();
+    cart_load();
+    cart_init();
 
     /* One loop for replay and live play, with one call site for
      * update60(), draw() and present(): they differ only in where the
      * frame came from. Every recorded frame is stepped AND drawn --
      * drawing has measured side effects on game state, so skipping either
      * misses the recorded state. */
-    pico8_cheat_t cheat;
-    pico8_cheat_init(&cheat);
+    cheat_t cheat;
+    cheat_init(&cheat);
     while (pico8_raylib_backend_should_continue(&backend)) {
         p8_input_frame_t frame;
         int from_recording = pico8_replay_source_next_frame(&replay, &frame);
@@ -97,9 +97,9 @@ int main(int argc, char **argv) {
         p8_input_t input = { &frame, 1, 0 };
         dispatch_context_set_input(&input);
 
-        pico8_cheat_step(&cheat, &input);
-        pico8__update60();
-        pico8__draw();
+        cheat_step(&cheat, &input);
+        cart_update60();
+        cart_draw();
 
         const char *replay_status = NULL;
         char replay_status_text[PICO8_REPLAY_CONTROL_STATUS_MAX];

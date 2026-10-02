@@ -315,8 +315,8 @@ static void check(const char *label, uint32_t got, uint32_t want) {
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
-    pico8__init();
-    pico8_eu(NULL);
+    cart_init();
+    cart_start_game(NULL);
 }
 
 static vec_t pos_of(const void *e) {
@@ -1120,7 +1120,7 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
+    cart_load();
     in_fresh_child(test_construction);
     in_fresh_child(test_drop);
     in_fresh_child(test_drag);

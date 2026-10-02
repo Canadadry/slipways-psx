@@ -185,8 +185,8 @@ static void check(const char *label, uint32_t got, uint32_t want) {
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
-    pico8__init();
-    pico8_eu(NULL);
+    cart_init();
+    cart_start_game(NULL);
 }
 
 static vec_t *vec_ref(vec_t at) {
@@ -572,7 +572,7 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
+    cart_load();
     in_fresh_child(test_built);
     in_fresh_child(test_life);
     in_fresh_child(test_trading_hub_is_a_struct);

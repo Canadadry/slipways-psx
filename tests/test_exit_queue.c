@@ -46,11 +46,11 @@ static const entity_class_t kept_cls = {0};
 
 /* Une boite `mh` : `kc` et `ju.ed` ne designent que des boites. `m_` vise
  * un champ a elle, pour que `ui:gw` puisse l'ecrire par `gj`. */
-static pico8_mh_t *new_entity(const entity_class_t *cls) {
-    pico8_mh_t *mh = calloc(1, sizeof *mh);
+static message_box_t *new_entity(const entity_class_t *cls) {
+    message_box_t *mh = calloc(1, sizeof *mh);
     assert(mh != NULL);
     mh->header.class = cls;
-    mh->header.is_hovered = &mh->p_;
+    mh->header.is_hovered = &mh->is_dead;
     return mh;
 }
 
@@ -67,31 +67,31 @@ static void load_cart_and_start(void) {
     dispatch_context_set_gfx(&gfx);
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
-    pico8_cart_load();
-    pico8__init();
+    cart_load();
+    cart_init();
     /* Le `pz` du titre a remplace `ok.le` : la premiere frame vide la file. */
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
 }
 
 static int case_entity_unregister_alive_until_flush(void) {
     load_cart_and_start();
-    pico8_mh_t *e = new_entity(&freed_cls);
+    message_box_t *e = new_entity(&freed_cls);
     entity_register(&e->header);
     entity_unregister(&e->header);
     assert(exit_queue_count() == 1 && "he enfile une entite de hv qui a de quoi rendre");
-    sink = (unsigned char)e->p_;
-    pico8__update60();
+    sink = (unsigned char)e->is_dead;
+    cart_update60();
     assert(exit_queue_count() == 0 && "update60 vide la file");
     return 0;
 }
 
 static int case_entity_unregister_released_at_flush(void) {
     load_cart_and_start();
-    pico8_mh_t *e = new_entity(&freed_cls);
+    message_box_t *e = new_entity(&freed_cls);
     entity_register(&e->header);
     entity_unregister(&e->header);
-    pico8__update60();
-    sink = (unsigned char)e->p_;
+    cart_update60();
+    sink = (unsigned char)e->is_dead;
     return 0;
 }
 
@@ -108,22 +108,22 @@ static const entity_list_t *replaced_ephemerals(void) {
 static int case_ephemerals_alive_until_flush(void) {
     const entity_list_t *old = replaced_ephemerals();
     sink = (unsigned char)old->count;
-    pico8__update60();
+    cart_update60();
     assert(exit_queue_count() == 0);
     return 0;
 }
 
 static int case_ephemerals_released_at_flush(void) {
     const entity_list_t *old = replaced_ephemerals();
-    pico8__update60();
+    cart_update60();
     sink = (unsigned char)old->count;
     return 0;
 }
 
 static int case_entity_unregister_outside_live_entities_or_without_member(void) {
     load_cart_and_start();
-    pico8_mh_t *absent = new_entity(&counted_cls);
-    pico8_mh_t *kept = new_entity(&kept_cls);
+    message_box_t *absent = new_entity(&counted_cls);
+    message_box_t *kept = new_entity(&kept_cls);
     entity_unregister(&absent->header);
     entity_register(&kept->header);
     entity_unregister(&kept->header);
@@ -140,8 +140,8 @@ static int registered_with_release(void) {
 
 static int case_reset_world_enqueues_registered(void) {
     load_cart_and_start();
-    pico8_mh_t *counted = new_entity(&counted_cls);
-    pico8_mh_t *kept = new_entity(&kept_cls);
+    message_box_t *counted = new_entity(&counted_cls);
+    message_box_t *kept = new_entity(&kept_cls);
     entity_register(&counted->header);
     entity_register(&kept->header);
     int expected = registered_with_release();
@@ -150,48 +150,48 @@ static int case_reset_world_enqueues_registered(void) {
     entity_unregister(&counted->header);
     assert(exit_queue_count() == expected && "he apres jl : l'entite n'est plus dans hv, pas deux fois");
     assert(released == 0 && "jl ne rend rien avant la fin de la frame");
-    pico8_cart_load();
+    cart_load();
     assert(released == 1 && exit_queue_count() == 0 && "cart_load vide la file");
     return 0;
 }
 
 static int case_shutdown_drains(void) {
     load_cart_and_start();
-    pico8_mh_t *e = new_entity(&counted_cls);
+    message_box_t *e = new_entity(&counted_cls);
     entity_register(&e->header);
     entity_unregister(&e->header);
-    pico8_cart_shutdown();
+    cart_shutdown();
     assert(released == 1 && exit_queue_count() == 0 &&
            "cart_shutdown vide la file : aucune entree ne survit jusqu'au cart_load suivant");
     return 0;
 }
 
-static pico8_mh_t *pointed_at_everywhere(void) {
+static message_box_t *pointed_at_everywhere(void) {
     load_cart_and_start();
-    pico8_eu(NULL);
-    pico8_mh_t *e = new_entity(&freed_cls);
+    cart_start_game(NULL);
+    message_box_t *e = new_entity(&freed_cls);
     entity_register(&e->header);
     main_ui()->hovered = &e->header;
     main_ui()->previous_hovered = &e->header;
-    pico8_msgbox_set_kc(e);
-    pico8_ju()->ed = e;
+    message_box_set_shown(e);
+    main_score_panel()->last_box = e;
     entity_unregister(&e->header);
     return e;
 }
 
 static int case_flush_forgets_references(void) {
     (void)pointed_at_everywhere();
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     assert(main_ui()->hovered == NULL && main_ui()->previous_hovered == NULL);
-    assert(pico8_kc() == NULL && pico8_ju()->ed == NULL);
+    assert(shown_message_box() == NULL && main_score_panel()->last_box == NULL);
     return 0;
 }
 
 static int case_update60_after_forgetting(void) {
     (void)pointed_at_everywhere();
-    pico8__update60();
-    pico8__draw();
-    assert(pico8_kc() == NULL && pico8_ju()->ed == NULL);
+    cart_update60();
+    cart_draw();
+    assert(shown_message_box() == NULL && main_score_panel()->last_box == NULL);
     return 0;
 }
 
@@ -208,16 +208,16 @@ static int case_difficulty_outlives_its_button(void) {
     const char *px = nj->name;
     p8_fixed_t trade = nj->trade;
     p8_fixed_t en = nj->type_bias;
-    pico8_eu(nj);
-    pico8__update60();
-    pico8__draw();
+    cart_start_game(nj);
+    cart_update60();
+    cart_draw();
     const button_t *dk = economy_score_difficulty();
     assert(dk != NULL && dk->name == px && dk->has_trade && dk->trade == trade && dk->has_type_bias && dk->type_bias == en);
     return 0;
 }
 
 static int case_full(void) {
-    pico8_mh_t *e = new_entity(&counted_cls);
+    message_box_t *e = new_entity(&counted_cls);
     for (int i = 0; i <= EXIT_QUEUE_CAP; i++) exit_queue_put(&e->header);
     return 0;
 }

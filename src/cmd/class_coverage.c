@@ -45,16 +45,16 @@ int main(int argc, char **argv) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
-    pico8__init();
+    cart_load();
+    cart_init();
 
-    pico8_cheat_t cheat;
-    pico8_cheat_init(&cheat);
+    cheat_t cheat;
+    cheat_init(&cheat);
     for (int i = 0; i < input.frame_count; i++) {
         dispatch_context_set_input(&input);
-        pico8_cheat_step(&cheat, &input);
-        pico8__update60();
-        pico8__draw();
+        cheat_step(&cheat, &input);
+        cart_update60();
+        cart_draw();
         if (i < input.frame_count - 1) {
             p8_input_step(&input);
         }

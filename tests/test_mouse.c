@@ -239,7 +239,7 @@ static void test_placeholder_main_mouse(void) {
 static void test_launch_with_left_held(void) {
     const void *first_main_mouse;
 
-    pico8__init();
+    cart_init();
     first_main_mouse = main_mouse();
     frame(0, 64, 64, 1);
     frame(1, 64, 64, 1);
@@ -247,7 +247,7 @@ static void test_launch_with_left_held(void) {
     script(3);
     update_entities();
     p8_input_step(&input);
-    pico8_eu(NULL);
+    cart_start_game(NULL);
     assert(main_mouse() != first_main_mouse);
     p8_input_step(&input);
     update_entities();
@@ -291,7 +291,7 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
+    cart_load();
 
     test_reset_world_builds_a_mouse_reader();
     test_scripted_ticks();

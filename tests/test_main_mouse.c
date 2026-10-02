@@ -106,15 +106,15 @@ static void test_shutdown_and_init_cycle(void) {
     ui_init();
     ui_init();
     assert_placeholder(0);
-    pico8_cart_shutdown();
+    cart_shutdown();
     assert(main_mouse() == NULL);
-    pico8_cart_load();
+    cart_load();
     assert_placeholder(0);
 }
 
 /* `jl()` puts an `nf` in its place; pico8_ui_init() puts it back. */
 static void test_replaced_by_reset_world(void) {
-    pico8__init();
+    cart_init();
     assert_a_mouse();
     ui_init();
     assert_placeholder(1);
@@ -125,7 +125,7 @@ static void test_reset_world_without_cart_load(void) {
     /* pico8_ui_init() after jl() freed `ok`, still in `hv`: the cart
      * shutdown would abandon it, so `hv` is emptied first. */
     bootstrap_shutdown();
-    pico8_cart_shutdown();
+    cart_shutdown();
     reset_world();
     assert_a_mouse();
     bootstrap_shutdown();
@@ -145,7 +145,7 @@ static int is_a_struct_of(const void *e, const entity_class_t *cls) {
 static void test_placeholder_is_a_struct(void) {
     const void *placeholder;
 
-    pico8_cart_load();
+    cart_load();
     placeholder = main_mouse();
     assert(is_a_struct_of(placeholder, main_mouse_placeholder_class()));
     reset_world();
@@ -153,7 +153,7 @@ static void test_placeholder_is_a_struct(void) {
     ui_init();
     assert(main_mouse() == placeholder);
     bootstrap_shutdown();
-    pico8_cart_shutdown();
+    cart_shutdown();
 }
 
 int main(void) {
@@ -166,7 +166,7 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
+    cart_load();
 
     test_placeholder_after_cart_load();
     test_recompute_on_placeholder();

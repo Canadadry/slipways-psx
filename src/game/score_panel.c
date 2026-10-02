@@ -21,9 +21,9 @@
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
 
-static int g_pj_up = 0;
-static pico8_bz_row_t g_bz[SCORE_ROWS_COUNT];
-static pico8_pj_t *g_ju = NULL;
+static int g_score_panel_up = 0;
+static score_rows_row_t g_score_rows[SCORE_ROWS_COUNT];
+static score_panel_t *g_main_score_panel = NULL;
 
 static p8_fixed_t fixed_min(p8_fixed_t a, p8_fixed_t b) {
     return (a < b) ? a : b;
@@ -31,12 +31,12 @@ static p8_fixed_t fixed_min(p8_fixed_t a, p8_fixed_t b) {
 
 /* pj's class state `ou` and `ea`, reset by each init to their generated
  * rows and rewritten in place by `hb`/`hk`. */
-static pico8_pj_ou_t g_pj_ou;
-static pico8_pj_ea_t g_pj_ea;
+static score_panel_readouts_t g_score_panel_readouts;
+static score_panel_year_banner_t g_score_panel_year_banner;
 
 /* Copies `src` into `dst` and its item storage (`cap` items), `fn` and `c`
  * included; nested rows stay the generated ones. */
-static void pj_row_copy(data_row_t *dst, data_item_t *items, int cap, const data_row_t *src) {
+static void score_panel_row_copy(data_row_t *dst, data_item_t *items, int cap, const data_row_t *src) {
     int i;
 
     assert(src->count <= cap && "a copied row of pj holds no more items than its generated row");
@@ -47,55 +47,55 @@ static void pj_row_copy(data_row_t *dst, data_item_t *items, int cap, const data
     dst->items = items;
 }
 
-static const entity_class_t g_pj_cr_struct_class = {0};
+static const entity_class_t g_score_panel_layout_block_class = {0};
 
-static pico8_pj_cr_t g_pj_cr = {
-    {.class = &g_pj_cr_struct_class},
+static score_panel_layout_block_t g_score_panel_layout_block = {
+    {.class = &g_score_panel_layout_block_class},
     &(const vec_t){0x0, 0xb0000},
     &(const vec_t){0x0, 0xb0000},
     0xa0000,
     NULL,
 };
 
-pico8_pj_ou_t *pico8_pj_ou(void) {
-    return g_pj_up ? &g_pj_ou : NULL;
+score_panel_readouts_t *score_panel_readouts(void) {
+    return g_score_panel_up ? &g_score_panel_readouts : NULL;
 }
 
-pico8_pj_ea_t *pico8_pj_ea(void) {
-    return g_pj_up ? &g_pj_ea : NULL;
+score_panel_year_banner_t *score_panel_year_banner(void) {
+    return g_score_panel_up ? &g_score_panel_year_banner : NULL;
 }
 
-pico8_pj_cr_t *pico8_pj_cr(void) {
-    return g_pj_up ? &g_pj_cr : NULL;
+score_panel_layout_block_t *score_panel_layout_block(void) {
+    return g_score_panel_up ? &g_score_panel_layout_block : NULL;
 }
 
-const entity_class_t *pico8_pj_cr_struct_class(void) {
-    return &g_pj_cr_struct_class;
+const entity_class_t *score_panel_layout_block_class(void) {
+    return &g_score_panel_layout_block_class;
 }
 
-const data_row_t *pico8_pj_i_(void) {
+const data_row_t *score_panel_frame_rows(void) {
     return score_panel_archetype.frame_rows;
 }
 
-const data_row_t *pico8_pj_gs(void) {
+const data_row_t *score_panel_countdown_rows(void) {
     return score_panel_archetype.countdown_rows;
 }
 
-static void pico8_pj_init_placeholder(button_t *self) {
+static void score_panel_init_placeholder(button_t *self) {
     (void)self;
 }
 
-static button_fn_t g_init_dispatch = pico8_pj_init_placeholder;
+static button_fn_t g_init_method = score_panel_init_placeholder;
 
-button_fn_t pico8_init_field_value(void) {
-    return g_init_dispatch;
+button_fn_t score_panel_init_field_value(void) {
+    return g_init_method;
 }
 
-void pico8_score_panel_set_init(button_fn_t fn) {
-    g_init_dispatch = (fn != NULL) ? fn : pico8_pj_init_placeholder;
+void score_panel_set_init(button_fn_t fn) {
+    g_init_method = (fn != NULL) ? fn : score_panel_init_placeholder;
 }
 
-static int pico8_eg_gg_pred(entity_t *e, void *ctx) {
+static int refresh_palette_is_colonized_pred(entity_t *e, void *ctx) {
     (void)ctx;
     if (e == NULL) {
         return 0;
@@ -103,13 +103,13 @@ static int pico8_eg_gg_pred(entity_t *e, void *ctx) {
     return planet_is_colonized((const planet_t *)e);
 }
 
-void pico8_eg(void) {
+void score_panel_refresh_palette(void) {
     p8_memory_t *mem = dispatch_context_mem();
     entity_list_t filtered;
     p8_fixed_t ps;
     int i;
 
-    filtered = entity_list_filter(frame_zone(), entities_by_tag("planet"), pico8_eg_gg_pred, NULL);
+    filtered = entity_list_filter(frame_zone(), entities_by_tag("planet"), refresh_palette_is_colonized_pred, NULL);
     ps = p8_fixed_div(p8_fixed_from_int(filtered.count), p8_fixed_from_int(2));
 
     if (mem == NULL) {
@@ -125,117 +125,117 @@ void pico8_eg(void) {
     }
 }
 
-void pico8_pj_hb(void) {
-    const economy_t *fm = main_economy_typed();
+void score_panel_refresh(void) {
+    const economy_t *economy = main_economy_typed();
     const main_economy_placeholder_t *provisional = main_economy_placeholder();
-    p8_fixed_t fm_ge = fm != NULL ? fm->income : p8_fixed_from_int(0);
-    p8_fixed_t fm_nz = p8_fixed_from_int(0);
-    data_item_t fm_jk = {.is_ref = 1};
-    p8_fixed_t fm_happiness = fm != NULL && fm->has_happiness ? fm->happiness : p8_fixed_from_int(0);
-    p8_fixed_t fm_lo = fm != NULL ? fm->year_ticks : p8_fixed_from_int(0);
-    data_item_t fm_yr = fm != NULL ? (data_item_t){.is_fixed = 1, .fixed = fm->year}
+    p8_fixed_t main_economy_income = economy != NULL ? economy->income : p8_fixed_from_int(0);
+    p8_fixed_t main_economy_credits = p8_fixed_from_int(0);
+    data_item_t main_economy_research_points = {.is_ref = 1};
+    p8_fixed_t main_economy_happiness = economy != NULL && economy->has_happiness ? economy->happiness : p8_fixed_from_int(0);
+    p8_fixed_t main_economy_year_ticks = economy != NULL ? economy->year_ticks : p8_fixed_from_int(0);
+    data_item_t main_economy_year = economy != NULL ? (data_item_t){.is_fixed = 1, .fixed = economy->year}
                                        : (data_item_t){.is_ref = 1};
-    const resource_map_t *fm_po = fm != NULL ? fm->production : NULL;
-    pico8_pj_ou_t *ou_state;
-    data_item_t ou[7];
-    char *cf;
-    char *nz_str;
+    const resource_map_t *main_economy_production = economy != NULL ? economy->production : NULL;
+    score_panel_readouts_t *readouts_state;
+    data_item_t readouts[7];
+    char *text;
+    char *credits_str;
     char *happiness_str;
     char *plus_num;
     int discard_color = 0;
-    int i;
+    int index;
 
-    if (fm != NULL) {
-        fm_nz = fm->credits;
-        fm_jk = (data_item_t){.is_fixed = 1, .fixed = fm->research_points};
+    if (economy != NULL) {
+        main_economy_credits = economy->credits;
+        main_economy_research_points = (data_item_t){.is_fixed = 1, .fixed = economy->research_points};
     } else if (provisional != NULL) {
         if (provisional->has_credits) {
-            fm_nz = provisional->credits;
+            main_economy_credits = provisional->credits;
         }
         if (provisional->has_research_points) {
-            fm_jk = (data_item_t){.is_fixed = 1, .fixed = provisional->research_points};
+            main_economy_research_points = (data_item_t){.is_fixed = 1, .fixed = provisional->research_points};
         }
     }
 
-    cf = collect_format_signed(frame_zone(), fm_ge, 0, NULL, &discard_color);
+    text = collect_format_signed(frame_zone(), main_economy_income, 0, NULL, &discard_color);
 
-    nz_str = p8_tostr_fixed(frame_zone(), fm_nz);
-    ou[0] = (data_item_t){.text = p8_concat2(frame_zone(), nz_str, "$")};
+    credits_str = p8_tostr_fixed(frame_zone(), main_economy_credits);
+    readouts[0] = (data_item_t){.text = p8_concat2(frame_zone(), credits_str, "$")};
 
-    ou[1] = (data_item_t){.text = cf};
+    readouts[1] = (data_item_t){.text = text};
 
-    ou[2] = fm_jk;
+    readouts[2] = main_economy_research_points;
 
     {
         int k_key;
-        p8_fixed_t po_val = p8_fixed_from_int(0);
+        p8_fixed_t production_val = p8_fixed_from_int(0);
         if (resource_code_lookup("k", &k_key)) {
-            resource_map_get(fm_po, p8_fixed_from_int(k_key), &po_val);
+            resource_map_get(main_economy_production, p8_fixed_from_int(k_key), &production_val);
         }
         /* `..` binds looser than `+`: the Lua reads `"+"..(fm.po[r.k]+1)`. */
         plus_num =
-            p8_tostr_fixed(frame_zone(), p8_fixed_add(po_val, p8_fixed_from_int(1)));
-        ou[3] = (data_item_t){.text = p8_concat2(frame_zone(), "+", plus_num)};
+            p8_tostr_fixed(frame_zone(), p8_fixed_add(production_val, p8_fixed_from_int(1)));
+        readouts[3] = (data_item_t){.text = p8_concat2(frame_zone(), "+", plus_num)};
     }
 
-    happiness_str = p8_tostr_fixed(frame_zone(), fm_happiness);
-    ou[4] = (data_item_t){.text = p8_concat2(frame_zone(), happiness_str, "%")};
+    happiness_str = p8_tostr_fixed(frame_zone(), main_economy_happiness);
+    readouts[4] = (data_item_t){.text = p8_concat2(frame_zone(), happiness_str, "%")};
 
     {
-        int lo = p8_fixed_flr_int(fm_lo);
-        ou[5] = (lo >= 1 && lo <= PERIOD_NAMES_COUNT) ? (data_item_t){.text = period_names_table[lo - 1]}
+        int lo = p8_fixed_flr_int(main_economy_year_ticks);
+        readouts[5] = (lo >= 1 && lo <= PERIOD_NAMES_COUNT) ? (data_item_t){.text = period_names_table[lo - 1]}
                                                   : (data_item_t){.is_ref = 1};
     }
 
-    ou[6] = fm_yr;
+    readouts[6] = main_economy_year;
 
-    ou_state = pico8_pj_ou();
-    if (ou_state != NULL) {
-        for (i = 0; i < 7; i++) {
-            if (ou[i].text != NULL) {
-                assert(strlen(ou[i].text) <= PICO8_PJ_TEXT_CAP && "an ou text is a number with its suffix, or a month");
-                strcpy(ou_state->texts[i], ou[i].text);
-                ou[i].text = ou_state->texts[i];
+    readouts_state = score_panel_readouts();
+    if (readouts_state != NULL) {
+        for (index = 0; index < 7; index++) {
+            if (readouts[index].text != NULL) {
+                assert(strlen(readouts[index].text) <= SCORE_PANEL_TEXT_CAP && "an ou text is a number with its suffix, or a month");
+                strcpy(readouts_state->texts[index], readouts[index].text);
+                readouts[index].text = readouts_state->texts[index];
             }
-            ou_state->sub_items[i][0] = ou[i];
+            readouts_state->sub_items[index][0] = readouts[index];
         }
     }
 
-    pico8_eg();
+    score_panel_refresh_palette();
 }
 
-static void pico8_pj_hb_dispatch(entity_t *self) {
+static void score_panel_refresh_method(entity_t *self) {
     (void)self;
-    pico8_pj_hb();
+    score_panel_refresh();
 }
 
 /* `la(pj.i_, pj.ou)`: 5 then 7 articles in the cart. */
-enum { PICO8_PJ_KJ_ARTICLES_CAP = 5 + 7 };
+enum { SCORE_PANEL_DRAW_ARTICLES_CAP = 5 + 7 };
 
-void pico8_pj_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_pj_t *self) {
-    const data_row_t *i_ = pico8_pj_i_();
-    pico8_pj_ou_t *ou_state = pico8_pj_ou();
-    const data_row_t *combined[PICO8_PJ_KJ_ARTICLES_CAP];
+void score_panel_draw(p8_graphics_t *gfx, p8_memory_t *mem, score_panel_t *self) {
+    const data_row_t *i_ = score_panel_frame_rows();
+    score_panel_readouts_t *readouts_state = score_panel_readouts();
+    const data_row_t *combined[SCORE_PANEL_DRAW_ARTICLES_CAP];
     int n = 0;
     int i;
 
-    assert(i_->count + (ou_state != NULL ? ou_state->row.count : 0) <= PICO8_PJ_KJ_ARTICLES_CAP &&
+    assert(i_->count + (readouts_state != NULL ? readouts_state->row.count : 0) <= SCORE_PANEL_DRAW_ARTICLES_CAP &&
            "la(pj.i_, pj.ou) is 5 + 7 articles in the cart");
     for (i = 0; i < i_->count; i++) {
         combined[n++] = i_->items[i].row;
     }
-    for (i = 0; ou_state != NULL && i < ou_state->row.count; i++) {
-        combined[n++] = ou_state->row.items[i].row;
+    for (i = 0; readouts_state != NULL && i < readouts_state->row.count; i++) {
+        combined[n++] = readouts_state->row.items[i].row;
     }
 
     draw_functions_draw_rows_default(gfx, mem, combined, n);
 
-    if (self != NULL && self->has_gz) {
-        p8_fixed_t gz = p8_fixed_add(self->gz, P8_FIXED_LIT(0x00003333, 0.2));
+    if (self != NULL && self->has_curtain) {
+        p8_fixed_t gz = p8_fixed_add(self->curtain, P8_FIXED_LIT(0x00003333, 0.2));
         p8_fixed_t capped = fixed_min(gz, P8_FIXED_LIT(0x00033333, 3.2));
         p8_fixed_t h = p8_fixed_mul(capped, capped);
 
-        self->gz = gz;
+        self->curtain = gz;
         hud_draw_bar(gfx, mem, p8_fixed_from_int(0), h, 0);
         /* The cart's only colour-less `rk`: the bottom bar inherits the pen
          * colour the line above leaves behind. Passing a colour here would
@@ -244,32 +244,32 @@ void pico8_pj_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_pj_t *self) {
     }
 }
 
-static void pico8_pj_kj_dispatch(entity_t *self, const vec_t *ra) {
+static void score_panel_draw_method(entity_t *self, const vec_t *ra) {
     (void)ra;
-    pico8_pj_kj(dispatch_context_gfx(), dispatch_context_mem(), (pico8_pj_t *)self);
+    score_panel_draw(dispatch_context_gfx(), dispatch_context_mem(), (score_panel_t *)self);
 }
 
-static const entity_class_t g_pj_struct_class = {
-    .draw = pico8_pj_kj_dispatch,
-    .new_year = pico8_pj_hk_dispatch,
-    .refresh = pico8_pj_hb_dispatch,
-    .states = {[ENTITY_STATE_NORMAL] = pico8_pj_ph_dispatch},
+static const entity_class_t g_score_panel_class = {
+    .draw = score_panel_draw_method,
+    .new_year = score_panel_new_year_method,
+    .refresh = score_panel_refresh_method,
+    .states = {[ENTITY_STATE_NORMAL] = score_panel_update_method},
 };
 
-static pico8_pj_t *pico8_pj_struct_new(void) {
-    pico8_pj_t *self;
+static score_panel_t *score_panel_create(void) {
+    score_panel_t *self;
 
-    assert(g_pj_up && "pico8_score_panel_init() must run first");
-    self = (pico8_pj_t *)allocator_alloc(game_zone(), sizeof *self);
-    entity_init_instance(&self->header, &g_pj_struct_class, score_panel_archetype.state, score_panel_archetype.state_time);
-    self->def = &score_panel_archetype;
-    self->fa = self->def->layer;
-    self->header.layer = &self->fa;
-    self->ed = NULL;
-    self->c_ = 0;
-    self->has_c_ = 0;
-    self->gz = 0;
-    self->has_gz = 0;
+    assert(g_score_panel_up && "pico8_score_panel_init() must run first");
+    self = (score_panel_t *)allocator_alloc(game_zone(), sizeof *self);
+    entity_init_instance(&self->header, &g_score_panel_class, score_panel_archetype.state, score_panel_archetype.state_time);
+    self->archetype = &score_panel_archetype;
+    self->layer = self->archetype->layer;
+    self->header.layer = &self->layer;
+    self->last_box = NULL;
+    self->is_shown = 0;
+    self->has_is_shown = 0;
+    self->curtain = 0;
+    self->has_curtain = 0;
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("score_panel");
 #endif
@@ -277,72 +277,72 @@ static pico8_pj_t *pico8_pj_struct_new(void) {
     return self;
 }
 
-void pico8_score_panel_init(void) {
+void score_panel_init(void) {
     int i;
 
-    pico8_score_panel_shutdown();
+    score_panel_shutdown();
 
     draw_functions_init();
 
     for (i = 0; i < SCORE_ROWS_COUNT; i++) {
         const score_rows_entry_t *e = &score_rows_table[i];
-        pico8_bz_row_t *b = &g_bz[i];
+        score_rows_row_t *b = &g_score_rows[i];
         int k;
 
-        pj_row_copy(&b->row, b->items, 5, &e->row);
+        score_panel_row_copy(&b->row, b->items, 5, &e->row);
         b->row.draw_function = e->draw_function;
         for (k = 0; k < 5; k++) {
-            b->has[k] = k < e->row.count;
+            b->has_value[k] = k < e->row.count;
         }
-        b->ra = vec_make(p8_fixed_from_int(e->pos_x), p8_fixed_from_int(e->pos_y));
-        b->e = e;
+        b->pos = vec_make(p8_fixed_from_int(e->pos_x), p8_fixed_from_int(e->pos_y));
+        b->entry = e;
     }
 
-    g_pj_up = 1;
-    pj_row_copy(&g_pj_ou.row, g_pj_ou.items, 7, &score_panel_readouts_row);
-    for (i = 0; i < g_pj_ou.row.count; i++) {
-        pj_row_copy(&g_pj_ou.subs[i], g_pj_ou.sub_items[i], 4, score_panel_readouts_row.items[i].row);
-        g_pj_ou.items[i].row = &g_pj_ou.subs[i];
+    g_score_panel_up = 1;
+    score_panel_row_copy(&g_score_panel_readouts.row, g_score_panel_readouts.items, 7, &score_panel_readouts_row);
+    for (i = 0; i < g_score_panel_readouts.row.count; i++) {
+        score_panel_row_copy(&g_score_panel_readouts.subs[i], g_score_panel_readouts.sub_items[i], 4, score_panel_readouts_row.items[i].row);
+        g_score_panel_readouts.items[i].row = &g_score_panel_readouts.subs[i];
     }
-    pj_row_copy(&g_pj_ea.row, g_pj_ea.items, 3, &score_panel_year_banner_row);
-    pj_row_copy(&g_pj_ea.second, g_pj_ea.second_items, 5, score_panel_year_banner_row.items[1].row);
-    g_pj_ea.items[1].row = &g_pj_ea.second;
-    g_pj_ea.lh = NULL;
-    g_pj_cr.ep = NULL;
+    score_panel_row_copy(&g_score_panel_year_banner.row, g_score_panel_year_banner.items, 3, &score_panel_year_banner_row);
+    score_panel_row_copy(&g_score_panel_year_banner.second, g_score_panel_year_banner.second_items, 5, score_panel_year_banner_row.items[1].row);
+    g_score_panel_year_banner.items[1].row = &g_score_panel_year_banner.second;
+    g_score_panel_year_banner.keep_open = NULL;
+    g_score_panel_layout_block.description = NULL;
 
-    pico8_score_panel_set_init(NULL);
-    g_ju = NULL;
+    score_panel_set_init(NULL);
+    g_main_score_panel = NULL;
 
-    pico8_score_panel_display_init();
+    score_panel_display_init();
 }
 
-void pico8_score_panel_shutdown(void) {
-    pico8_score_panel_display_shutdown();
-    g_pj_up = 0;
-    pico8_score_panel_set_init(NULL);
-    g_ju = NULL;
+void score_panel_shutdown(void) {
+    score_panel_display_shutdown();
+    g_score_panel_up = 0;
+    score_panel_set_init(NULL);
+    g_main_score_panel = NULL;
 }
 
-int pico8_pj_ready(void) {
-    return g_pj_up;
+int score_panel_ready(void) {
+    return g_score_panel_up;
 }
 
-const entity_class_t *pico8_pj_struct_class(void) {
-    return &g_pj_struct_class;
+const entity_class_t *score_panel_class(void) {
+    return &g_score_panel_class;
 }
 
-pico8_pj_t *pico8_pj_new(void) {
-    return pico8_pj_struct_new();
+score_panel_t *score_panel_new(void) {
+    return score_panel_create();
 }
 
-pico8_bz_row_t *pico8_pj_bz(void) {
-    return g_pj_up ? g_bz : NULL;
+score_rows_row_t *score_panel_score_rows(void) {
+    return g_score_panel_up ? g_score_rows : NULL;
 }
 
-pico8_pj_t *pico8_ju(void) {
-    return g_ju;
+score_panel_t *main_score_panel(void) {
+    return g_main_score_panel;
 }
 
-void pico8_pj_set_ju(pico8_pj_t *instance) {
-    g_ju = instance;
+void score_panel_set_main_score_panel(score_panel_t *instance) {
+    g_main_score_panel = instance;
 }

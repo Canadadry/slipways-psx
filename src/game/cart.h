@@ -1,5 +1,5 @@
-#ifndef PICO8_CART_H
-#define PICO8_CART_H
+#ifndef GAME_CART_H
+#define GAME_CART_H
 
 #include "game/ui_button.h"
 
@@ -12,37 +12,37 @@
  * The asserts in its body cover the ordering constraints that were found;
  * an adjacency they do not cover is not thereby free. Re-derive before
  * inserting an `_init()`. */
-void pico8_cart_load(void);
+void cart_load(void);
 
 /* Vide la file de sortie, apres avoir remis a nil `o_` et `gj` de l'`ok`
  * courant, `kc` et `ju.ed` qui designaient une entite rendue ; puis rend la
  * generation de la zone partie que le dernier `eu` a quittee.
  * pico8__update60(), pico8_cart_load() et pico8_cart_shutdown() l'appellent
  * en tete. */
-void pico8_cart_vider_file_sortie(void);
+void cart_flush_exit_queue(void);
 
 /* Frees everything pico8_cart_load() built, in reverse order. Idempotent,
  * and safe before the first pico8_cart_load(). No Lua equivalent. */
-void pico8_cart_shutdown(void);
+void cart_shutdown(void);
 
 /* Requires pico8_cart_load(). */
-void pico8__init(void);
+void cart_init(void);
 
 /* `_init` as a button's `my`: `self`, the button, is discarded: `_init()`
  * declares no parameter. */
-void pico8_init_dispatch(button_t *self);
+void cart_init_method(button_t *self);
 
 /* Starts a game from the clicked difficulty button `nj`, which becomes `dk`
  * (borrowed, not copied); a NULL `nj` gives a NULL `dk`.
  * Requires pico8_cart_load(). */
-void pico8_eu(button_t *nj);
+void cart_start_game(button_t *nj);
 
 /* Requires pico8_cart_load() and at least one prior pico8__init()/pico8_eu();
  * a not-yet-built `ok` or `hv` is a no-op rather than an error. */
-void pico8__update60(void);
+void cart_update60(void);
 
 /* Reads the cart memory through pico8_dispatch_mem(); a NULL mem makes the
  * drawing calls that need it no-ops. */
-void pico8__draw(void);
+void cart_draw(void);
 
 #endif

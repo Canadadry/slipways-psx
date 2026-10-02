@@ -11,7 +11,7 @@
 static const int sequence[] = {BTN_O, BTN_O, BTN_X, BTN_X, BTN_O, BTN_O, BTN_X, BTN_X};
 #define SEQUENCE_LENGTH ((int)(sizeof sequence / sizeof sequence[0]))
 
-void pico8_cheat_init(pico8_cheat_t *cheat) {
+void cheat_init(cheat_t *cheat) {
     cheat->prev_o = 0;
     cheat->prev_x = 0;
     cheat->matched = 0;
@@ -38,7 +38,7 @@ static void apply(void) {
     hy->credits = p8_fixed_from_int(200);
 }
 
-static int feed(pico8_cheat_t *cheat, int button) {
+static int feed(cheat_t *cheat, int button) {
     if (sequence[cheat->matched] != button) {
         cheat->matched = 0;
         return 0;
@@ -52,7 +52,7 @@ static int feed(pico8_cheat_t *cheat, int button) {
     return 1;
 }
 
-int pico8_cheat_step(pico8_cheat_t *cheat, const p8_input_t *input) {
+int cheat_step(cheat_t *cheat, const p8_input_t *input) {
     int o = p8_btn(input, BTN_O);
     int x = p8_btn(input, BTN_X);
     int o_edge = o && !cheat->prev_o;

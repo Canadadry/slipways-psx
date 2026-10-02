@@ -51,8 +51,8 @@ static void load_cart_and_start(void) {
     dispatch_context_set_gfx(&gfx);
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
-    pico8_cart_load();
-    pico8__init();
+    cart_load();
+    cart_init();
 }
 
 static unsigned char *counting_block(void) {
@@ -68,7 +68,7 @@ static void allocate_again(void) {
 static int case_alive_through_start_game(void) {
     load_cart_and_start();
     unsigned char *block = counting_block();
-    pico8_eu(NULL);
+    cart_start_game(NULL);
     allocate_again();
     for (int i = 0; i < 64; i++) assert(block[i] == i && "la generation quittee vit jusqu'au vidage qui suit eu");
     return 0;
@@ -77,8 +77,8 @@ static int case_alive_through_start_game(void) {
 static int case_dead_after_next_update(void) {
     load_cart_and_start();
     unsigned char *block = counting_block();
-    pico8_eu(NULL);
-    pico8__update60();
+    cart_start_game(NULL);
+    cart_update60();
     allocate_again();
     sink = block[63];
     return 0;
@@ -86,11 +86,11 @@ static int case_dead_after_next_update(void) {
 
 static int case_init_keeps_generation(void) {
     load_cart_and_start();
-    pico8_eu(NULL);
-    pico8__update60();
+    cart_start_game(NULL);
+    cart_update60();
     unsigned char *block = counting_block();
-    pico8__init();
-    pico8__update60();
+    cart_init();
+    cart_update60();
     allocate_again();
     for (int i = 0; i < 64; i++) assert(block[i] == i && "_init ne fait pas basculer la zone partie");
     return 0;
@@ -99,7 +99,7 @@ static int case_init_keeps_generation(void) {
 static int case_dead_after_cart_load(void) {
     load_cart_and_start();
     unsigned char *block = counting_block();
-    pico8_cart_load();
+    cart_load();
     sink = block[63];
     return 0;
 }
@@ -202,10 +202,10 @@ static size_t singletons_bytes(void) {
     int bg = 0;
     for (int i = 0; hv != NULL && i < hv->count; i++) bg += hv->items[i]->class == background_class();
     assert(bg == 1 && "eu fait un seul bg");
-    assert(main_camera_typed() != NULL && main_mouse_typed() != NULL && main_ui() != NULL && pico8_ju() != NULL);
+    assert(main_camera_typed() != NULL && main_mouse_typed() != NULL && main_ui() != NULL && main_score_panel() != NULL);
     return block_bytes(sizeof(camera_t)) + block_bytes(sizeof(mouse_t)) +
            block_bytes(sizeof(ui_t)) + block_bytes(sizeof(background_t)) +
-           block_bytes(sizeof(pico8_pj_t));
+           block_bytes(sizeof(score_panel_t));
 }
 
 static int case_grab_arena_and_max(void) {
@@ -214,16 +214,16 @@ static int case_grab_arena_and_max(void) {
     const size_t title = game_zone_used();
     (void)counting_block();
     assert(game_zone_used() == title + 64);
-    pico8_eu(NULL);
+    cart_start_game(NULL);
     const size_t game_zone_used_before = game_zone_used();
     assert(game_zone_used_before >= title + 64 + g && "les deux generations comptent jusqu'au rendu");
     (void)counting_block();
     assert(game_zone_used() == game_zone_used_before + 64);
-    pico8__update60();
+    cart_update60();
     assert(game_zone_used() == g + registries_bytes() + planets_bytes() + research_and_economy_bytes() +
                                          singletons_bytes() + 64);
     assert(game_zone_max() == game_zone_used_before + 64);
-    pico8_cart_shutdown();
+    cart_shutdown();
     assert(game_zone_used() == 0);
     assert(game_zone_max() == game_zone_used_before + 64 && "le maximum ne se remet qu'avec le processus");
     return 0;
@@ -238,8 +238,8 @@ static unsigned char *counting_block_load_zone(void) {
 static int case_load_zone_survives_start_game(void) {
     load_cart_and_start();
     unsigned char *block = counting_block_load_zone();
-    pico8_eu(NULL);
-    pico8__update60();
+    cart_start_game(NULL);
+    cart_update60();
     allocate_again();
     for (int i = 0; i < 64; i++) assert(block[i] == i && "la sous-zone chargement ne suit pas les generations");
     return 0;
@@ -248,7 +248,7 @@ static int case_load_zone_survives_start_game(void) {
 static int case_load_zone_dead_after_cart_load(void) {
     load_cart_and_start();
     unsigned char *block = counting_block_load_zone();
-    pico8_cart_load();
+    cart_load();
     for (int i = 0; i < 4; i++) memset(allocator_alloc(game_zone_load_zone(), 64), 2, 64);
     sink = block[63];
     return 0;
@@ -259,11 +259,11 @@ static int case_load_zone_grab_arena_and_max(void) {
     const size_t start = load_zone_used();
     (void)counting_block_load_zone();
     assert(load_zone_used() == start + 64);
-    pico8_eu(NULL);
-    pico8__update60();
+    cart_start_game(NULL);
+    cart_update60();
     assert(load_zone_used() == start + 64 && "ni eu ni le rendu ne touchent la sous-zone");
     assert(game_zone_load_zone_max() == start + 64);
-    pico8_cart_shutdown();
+    cart_shutdown();
     assert(load_zone_used() == 0);
     assert(game_zone_load_zone_max() == start + 64 && "le maximum ne se remet qu'avec le processus");
     return 0;
@@ -292,7 +292,7 @@ static int case_static_lists_in_load_zone(void) {
     entity_list_add(by, &element);
     assert(load_zone_used() == start + 2 * four_pointers_bytes() &&
            "le by partage des ga prend sa capacite dans la sous-zone chargement");
-    pico8_cart_shutdown();
+    cart_shutdown();
     assert(le->items == NULL && le->count == 0 && le->capacity == 0 && "ui_shutdown oublie la liste de depart");
     assert(by->items == NULL && by->count == 0 && by->capacity == 0 && "le shutdown oublie le by partage");
     return 0;
@@ -300,8 +300,8 @@ static int case_static_lists_in_load_zone(void) {
 
 static int case_double_start_game_without_flush(void) {
     load_cart_and_start();
-    pico8_eu(NULL);
-    pico8_eu(NULL);
+    cart_start_game(NULL);
+    cart_start_game(NULL);
     return 0;
 }
 

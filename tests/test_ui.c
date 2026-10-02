@@ -194,9 +194,9 @@ static int is_of(const void *e, const entity_class_t *cls) {
 static ui_t *start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
-    pico8__init();
-    pico8_eu(NULL);
-    pico8_cart_vider_file_sortie();
+    cart_init();
+    cart_start_game(NULL);
+    cart_flush_exit_queue();
     assert(main_ui() != NULL);
     return main_ui();
 }
@@ -299,7 +299,7 @@ static void test_built(void) {
 }
 
 static void call_galaxy_menu_on_click(int i) {
-    pico8_ix_my(i)(NULL);
+    galaxy_menu_on_click(i)(NULL);
 }
 
 /* A second `ui` shares the class's empty `le` until its own `cj`; `pz`
@@ -326,7 +326,7 @@ static void test_shared(void) {
     h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), ephemerals_of(ok)->items[0]));
     assert(ui_ephemerals_shared() == le && le->count == 0);
 
-    (void)pico8_fv_new();
+    (void)help_screen_new();
     assert(ephemerals_of(ok)->count == 0 && ok->ephemerals != le);
     h = fnv(h, (uint32_t)live_entities()->count);
     check("shared", h, SHARED_HASH);
@@ -594,7 +594,7 @@ static void test_stale(void) {
 
     p8_input_init(&input);
     dispatch_context_set_input(&input);
-    pico8__init();
+    cart_init();
     old = main_ui();
     mouse_at(76, 71, 0);
     ui_update(&mem, old);
@@ -765,7 +765,7 @@ static void test_ui_held_stops_off_row(void) {
     left[1] = burst_new(NULL);
     left[2] = entities_by_tag("planet")->items[0];
     left[3] = the_background();
-    left[4] = pico8_fv_new();
+    left[4] = help_screen_new();
     left[5] = button_new(NULL);
     left[6] = structure_icon_new(NULL);
     left[7] = wormhole_too_far_target_wrapper();
@@ -860,7 +860,7 @@ static entity_t *help_alone(entity_t *first) {
     if (previous != NULL) {
         emitter_release_particles(previous->emitter);
     }
-    fresh = &pico8_fv_new()->header;
+    fresh = &help_screen_new()->header;
     previous = fresh;
     return fresh;
 }
@@ -876,8 +876,8 @@ static void test_components_carried(void) {
     (void)start_game();
     entities[0] = background_new();
     entities[1] = mouse_new();
-    entities[2] = pico8_mh_new(NULL);
-    entities[3] = pico8_iv_new(NULL);
+    entities[2] = message_box_new(NULL);
+    entities[3] = toast_new(NULL);
     entities[4] = planet_new(NULL);
     entities[5] = structure_new(NULL);
     entities[6] = trading_hub_new(NULL);
@@ -889,9 +889,9 @@ static void test_components_carried(void) {
     entities[12] = infraspace_gate_new(NULL);
     entities[13] = synthesizer_new(NULL);
     entities[14] = probe_new(NULL);
-    entities[15] = pico8_fv_new();
+    entities[15] = help_screen_new();
     entities[16] = structure_icon_new(NULL);
-    entities[17] = pico8_pj_new();
+    entities[17] = score_panel_new();
     entities[18] = camera_new();
     entities[19] = slipway_new(NULL);
     entities[20] = ui_new();
@@ -958,8 +958,8 @@ static void test_entity_state_by_name(void) {
 
     entities[0] = background_new();
     entities[1] = mouse_new();
-    entities[2] = pico8_mh_new(NULL);
-    entities[3] = pico8_iv_new(NULL);
+    entities[2] = message_box_new(NULL);
+    entities[3] = toast_new(NULL);
     entities[4] = planet_new(NULL);
     entities[5] = structure_new(NULL);
     entities[6] = trading_hub_new(NULL);
@@ -971,9 +971,9 @@ static void test_entity_state_by_name(void) {
     entities[12] = infraspace_gate_new(NULL);
     entities[13] = synthesizer_new(NULL);
     entities[14] = probe_new(NULL);
-    entities[15] = pico8_fv_new();
+    entities[15] = help_screen_new();
     entities[16] = structure_icon_new(NULL);
-    entities[17] = pico8_pj_new();
+    entities[17] = score_panel_new();
     entities[18] = camera_new();
     entities[19] = slipway_new(NULL);
     entities[20] = ui_new();
@@ -1052,8 +1052,8 @@ static void test_entity_state_time_by_name(void) {
 
     entities[0] = background_new();
     entities[1] = mouse_new();
-    entities[2] = pico8_mh_new(NULL);
-    entities[3] = pico8_iv_new(NULL);
+    entities[2] = message_box_new(NULL);
+    entities[3] = toast_new(NULL);
     entities[4] = planet_new(NULL);
     entities[5] = structure_new(NULL);
     entities[6] = trading_hub_new(NULL);
@@ -1065,9 +1065,9 @@ static void test_entity_state_time_by_name(void) {
     entities[12] = infraspace_gate_new(NULL);
     entities[13] = synthesizer_new(NULL);
     entities[14] = probe_new(NULL);
-    entities[15] = pico8_fv_new();
+    entities[15] = help_screen_new();
     entities[16] = structure_icon_new(NULL);
-    entities[17] = pico8_pj_new();
+    entities[17] = score_panel_new();
     entities[18] = camera_new();
     entities[19] = slipway_new(NULL);
     entities[20] = ui_new();
@@ -1156,7 +1156,7 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
+    cart_load();
     in_fresh_child(test_built);
     in_fresh_child(test_shared);
     in_fresh_child(test_fresh);

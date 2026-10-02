@@ -89,25 +89,25 @@ static void load_cart_and_start(void) {
     dispatch_context_set_gfx(&gfx);
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
-    pico8_cart_load();
-    pico8__init();
+    cart_load();
+    cart_init();
 }
 
 static int case_update60_alive_until_next(void) {
     load_cart_and_start();
-    pico8__update60();
+    cart_update60();
     unsigned char *block = counting_block();
-    pico8__draw();
+    cart_draw();
     sink = block[63];
     return 0;
 }
 
 static int case_update60_resets(void) {
     load_cart_and_start();
-    pico8__update60();
+    cart_update60();
     unsigned char *block = counting_block();
-    pico8__draw();
-    pico8__update60();
+    cart_draw();
+    cart_update60();
     allocate_again();
     sink = block[63];
     return 0;
@@ -115,7 +115,7 @@ static int case_update60_resets(void) {
 
 static void start_game(void) {
     load_cart_and_start();
-    pico8_eu(NULL);
+    cart_start_game(NULL);
 }
 
 /* Les textes seulement : une case ROW est empruntee jusqu'a la mise en
@@ -173,7 +173,7 @@ static int case_inspection_panel_rows_survive_reset(void) {
 static int case_invented_lines_survive_reset(void) {
     start_game();
     pointer_list_add(main_economy_typed()->invented, "slipgates");
-    pico8_cr();
+    menu_show_tech_tree_screen();
     assert(reset_then_draw_panel() >= 1 && "cr: la rangee n invented porte sa bulle");
     return 0;
 }
@@ -189,7 +189,7 @@ static int case_research_project_tooltip_survives_reset(void) {
     return 0;
 }
 
-static int happiness_cells(const pico8_mh_t *mh) {
+static int happiness_cells(const message_box_t *mh) {
     int found = 0;
     for (int k = 0; k < mh->items_count; k++) {
         const data_row_t *ld = mh->items[k];
@@ -203,7 +203,7 @@ static int happiness_cells(const pico8_mh_t *mh) {
 
 static int case_final_score_happiness_survives_reset(void) {
     economy_t *fm;
-    pico8_pj_t *ju;
+    score_panel_t *ju;
 
     start_game();
     fm = main_economy_typed();
@@ -211,12 +211,12 @@ static int case_final_score_happiness_survives_reset(void) {
     fm->has_happiness = 1;
     fm->end_status = "final score";
     fm->has_end_status = 1;
-    ju = pico8_ju();
+    ju = main_score_panel();
     ju->header.class->states[ENTITY_STATE_NORMAL](&ju->header, 0);
-    assert(pico8_kc() != NULL && "pj:ph: une partie finie ouvre la boite du score");
+    assert(shown_message_box() != NULL && "pj:ph: une partie finie ouvre la boite du score");
     frame_zone_reset();
     allocate_again();
-    assert(happiness_cells(pico8_kc()) == 1 && "pj:ph: la case du bonheur garde sa copie de ky");
+    assert(happiness_cells(shown_message_box()) == 1 && "pj:ph: la case du bonheur garde sa copie de ky");
     return 0;
 }
 

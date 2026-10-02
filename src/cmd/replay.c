@@ -53,7 +53,7 @@ static void write_remplissage(const char *path) {
         fprintf(stderr, "pico8 replay: impossible d'ouvrir le fichier de remplissage '%s'\n", path);
         return;
     }
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     for (int s = 0; s < SLOT_KIND_COUNT; s++) {
         fprintf(out, "%s %d\n", SORTE_NAMES[s], ui_zone_live((slot_kind_t)s));
     }
@@ -106,8 +106,8 @@ int main(int argc, char **argv) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
-    pico8__init();
+    cart_load();
+    cart_init();
 
     /* Un echec tue le processus : une capture absente ou tronquee
      * produirait une empreinte fausse, indiscernable d'une regression.
@@ -120,13 +120,13 @@ int main(int argc, char **argv) {
     }
 
     int frame_count = input.frame_count;
-    pico8_cheat_t cheat;
-    pico8_cheat_init(&cheat);
+    cheat_t cheat;
+    cheat_init(&cheat);
     for (int i = 0; i < frame_count; i++) {
         dispatch_context_set_input(&input);
-        pico8_cheat_step(&cheat, &input);
-        pico8__update60();
-        pico8__draw();
+        cheat_step(&cheat, &input);
+        cart_update60();
+        cart_draw();
         /* APRES pico8__draw() et avant la frame suivante : c'est le seul
          * instant ou la memoire ecran tient la frame i complete. En tete
          * de boucle, la capture entiere serait decalee d'une frame --

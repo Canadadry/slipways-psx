@@ -45,7 +45,7 @@ static int type_cheat(void) {
     static const int presses[] = {4, 4, 5, 5, 4, 4, 5, 5};
     p8_input_frame_t frames[16];
     p8_input_t pad;
-    pico8_cheat_t cheat;
+    cheat_t cheat;
     int fired = 0;
     int i;
 
@@ -55,9 +55,9 @@ static int type_cheat(void) {
     }
     pad.frames = frames;
     pad.frame_count = 16;
-    pico8_cheat_init(&cheat);
+    cheat_init(&cheat);
     for (pad.current_frame = 0; pad.current_frame < 16; pad.current_frame++) {
-        fired += pico8_cheat_step(&cheat, &pad);
+        fired += cheat_step(&cheat, &pad);
     }
     return fired;
 }
@@ -71,11 +71,11 @@ static void assert_cheated(void) {
 }
 
 static void new_game(void) {
-    pico8_eu(NULL);
+    cart_start_game(NULL);
 }
 
 static void test_at_rest(void) {
-    pico8__init();
+    cart_init();
     assert_at_rest();
 }
 
@@ -88,7 +88,7 @@ static void test_cheat_on_title(void) {
     void *provisional;
     const technologies_entry_t *t = technologies_table;
 
-    pico8__init();
+    cart_init();
     provisional = main_economy();
     assert(main_economy_typed() == NULL && (const void *)main_economy_placeholder() == provisional);
     while (tech_gate_research_cost(t) <= p8_fixed_from_int(0) || tech_gate_research_cost(t) > p8_fixed_from_int(99)) {
@@ -96,26 +96,26 @@ static void test_cheat_on_title(void) {
         assert(t < technologies_table + TECHNOLOGIES_COUNT);
     }
     assert(available_technologies_affordable(t) == 0);
-    pico8_pj_hb();
-    assert(pico8_pj_ou()->sub_items[2][0].is_ref && strcmp(pico8_pj_ou()->sub_items[0][0].text, "0$") == 0);
+    score_panel_refresh();
+    assert(score_panel_readouts()->sub_items[2][0].is_ref && strcmp(score_panel_readouts()->sub_items[0][0].text, "0$") == 0);
     assert(type_cheat() == 1 && main_economy() == provisional);
     assert(available_technologies_affordable(t) == 1);
-    pico8_pj_hb();
-    assert(!pico8_pj_ou()->sub_items[2][0].is_ref && strcmp(pico8_pj_ou()->sub_items[0][0].text, "200$") == 0);
+    score_panel_refresh();
+    assert(!score_panel_readouts()->sub_items[2][0].is_ref && strcmp(score_panel_readouts()->sub_items[0][0].text, "200$") == 0);
     assert_cheated();
     assert(type_cheat() == 1 && main_economy() == provisional);
     assert_cheated();
 }
 
 static void test_new_init(void) {
-    pico8__init();
+    cart_init();
     assert(type_cheat() == 1);
     probe_init();
     assert_at_rest();
 }
 
 static void test_cycle(void) {
-    pico8__init();
+    cart_init();
     probe_shutdown();
     assert(main_economy() == NULL && main_economy_typed() == NULL);
     assert(type_cheat() == 1);
@@ -130,7 +130,7 @@ static void test_cycle(void) {
 }
 
 static void test_replacement(void) {
-    pico8__init();
+    cart_init();
     assert(type_cheat() == 1);
     new_game();
     assert(main_economy_placeholder() == NULL && (void *)main_economy_typed() == (void *)main_economy());
@@ -147,7 +147,7 @@ static void test_main_economy_is_a_struct(void) {
     void *provisional;
     int j;
 
-    pico8__init();
+    cart_init();
     provisional = main_economy();
     assert(provisional != NULL);
     assert(((const entity_t *)provisional)->class == cls);
@@ -173,7 +173,7 @@ static void test_available_technologies_drops_invented(void) {
     p8_fixed_t ew;
     int i;
 
-    pico8__init();
+    cart_init();
     new_game();
     kept = tech_gate_available_technologies(1);
     assert(kept.count > 0);
@@ -215,7 +215,7 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
+    cart_load();
     in_fresh_child(test_at_rest);
     in_fresh_child(test_cheat_on_title);
     in_fresh_child(test_new_init);

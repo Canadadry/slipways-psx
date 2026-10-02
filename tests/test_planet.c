@@ -163,9 +163,9 @@ static void check_int(const char *label, int got, int want) {
 static void leave_help_screen(void) {
     const entity_list_t *hv = live_entities();
     for (int i = 0; i < hv->count; i++) {
-        if (hv->items[i]->class == pico8_fv_struct_class()) {
+        if (hv->items[i]->class == help_screen_class()) {
             entity_unregister(hv->items[i]);
-            pico8_cart_vider_file_sortie();
+            cart_flush_exit_queue();
             return;
         }
     }
@@ -175,15 +175,15 @@ static void start_title(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
     leave_help_screen();
-    pico8__init();
+    cart_init();
 }
 
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
  * reads as difficulty 0. */
 static void start_game(void) {
     start_title();
-    pico8_eu(NULL);
-    pico8_cart_vider_file_sortie();
+    cart_start_game(NULL);
+    cart_flush_exit_queue();
 }
 
 static vec_t *vec_ref(vec_t at) {
@@ -633,7 +633,7 @@ static void test_refresh_row_slot(void) {
     int i;
 
     start_game();
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     a = planet_with_a_row();
     class_of(a)->refresh(&a->header);
     once = row_slots();
@@ -644,7 +644,7 @@ static void test_refresh_row_slot(void) {
     }
     entity_unregister(&a->header);
     assert(row_slots() == once && "out of hv, the planet is still read this frame");
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     assert(row_slots() == once - 1 && a->layout_row == NULL);
 }
 
@@ -669,7 +669,7 @@ static void test_rows_given_back_after_restart(void) {
     int i;
 
     start_title();
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     title = row_slots();
     start_game();
     jo = entities_by_tag("planet");
@@ -679,7 +679,7 @@ static void test_rows_given_back_after_restart(void) {
     }
     assert(row_slots() > title);
     start_title();
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     assert(row_slots() == title);
 }
 
@@ -719,7 +719,7 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
+    cart_load();
     in_fresh_child(test_galaxy);
     in_fresh_child(test_daughters);
     in_fresh_child(test_new_planet);

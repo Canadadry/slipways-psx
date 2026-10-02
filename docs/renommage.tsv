@@ -170,7 +170,7 @@ i	i	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@5175@F
 input	input	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@4325@F@main@input
 mem	mem	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@4114@F@main@mem
 out	out	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@2115@F@write_remplissage@out
-remplissage_path	fill_path	src/cmd/replay.c	identifiant	locale	renommé	cmd/replay			c:replay.c@6664@F@main@remplissage_path
+remplissage_path	fill_path	src/cmd/replay.c	identifiant	locale	renommé	cmd/replay			c:replay.c@6627@F@main@remplissage_path
 s	s	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@2336@F@write_remplissage@s
 s	s	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@2490@F@write_remplissage@s
 s	s	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@2666@F@write_remplissage@s
@@ -3649,7 +3649,7 @@ mo_ra	main_camera_pos	src/game/message_box.c	identifiant	locale	renommé	game/me
 nc	nc	src/game/message_box.c	identifiant	locale	conservé	game/message_box			c:message_box.c@1066@F@pico8_mh_ev@nc
 new_l	new_l	src/game/message_box.c	identifiant	locale	conservé	game/message_box			c:message_box.c@5723@F@pico8_iv_ph@new_l
 offset	offset	src/game/message_box.c	identifiant	locale	conservé	game/message_box			c:message_box.c@5480@F@pico8_iv_pq@offset
-ok	ui	src/game/message_box.c	identifiant	locale	renommé	game/message_box	ok		c:message_box.c@9713@F@pico8_pz@ok
+ok	dispatcher	src/game/message_box.c	identifiant	locale	renommé	game/message_box	ok		c:message_box.c@9713@F@pico8_pz@ok
 p	p	src/game/message_box.c	identifiant	locale	conservé	game/message_box			c:message_box.c@6785@F@pico8_iv_kj_dispatch@p
 place	slot	src/game/message_box.c	identifiant	locale	renommé	game/message_box	sorte		c:message_box.c@3484@F@pico8_mh_struct_new@place
 place	slot	src/game/message_box.c	identifiant	locale	renommé	game/message_box	sorte		c:message_box.c@7243@F@pico8_iv_struct_new@place

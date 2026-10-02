@@ -1,5 +1,5 @@
-#ifndef PICO8_CHEAT_H
-#define PICO8_CHEAT_H
+#ifndef GAME_CHEAT_H
+#define GAME_CHEAT_H
 
 #include "p8/input.h"
 
@@ -10,14 +10,14 @@ typedef struct {
     int prev_o;
     int prev_x;
     int matched;
-} pico8_cheat_t;
+} cheat_t;
 
-void pico8_cheat_init(pico8_cheat_t *cheat);
+void cheat_init(cheat_t *cheat);
 
 /* Call once per frame, before pico8__update60(), on that frame's input.
  * Counts rising edges of O and X only; one out of sequence restarts the
  * count from zero, arrows and mouse leave it alone. On the last press it
  * assigns fm.jk = 99 and fm.nz = 200 and returns 1, else returns 0. */
-int pico8_cheat_step(pico8_cheat_t *cheat, const p8_input_t *input);
+int cheat_step(cheat_t *cheat, const p8_input_t *input);
 
 #endif

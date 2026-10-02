@@ -202,8 +202,8 @@ static void check(const char *label, uint32_t got, uint32_t want) {
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
-    pico8__init();
-    pico8_eu(NULL);
+    cart_init();
+    cart_start_game(NULL);
 }
 
 /* A game started from the title screen as a click on its second
@@ -217,7 +217,7 @@ static void clicked_game(void) {
 
     p8_input_init(&input);
     dispatch_context_set_input(&input);
-    pico8__init();
+    cart_init();
     hd = entities_by_message("hit_test");
     for (i = 0; i < hd->count; i++) {
         if (((const entity_t *)hd->items[i])->class == button_class() && ++buttons == 2) {
@@ -622,7 +622,7 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
+    cart_load();
     in_fresh_child(test_built);
     in_fresh_child(test_life);
     in_fresh_child(test_processor_is_a_struct);

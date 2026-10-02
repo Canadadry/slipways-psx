@@ -374,17 +374,17 @@ void planet_new_year(const planet_t *self) {
         return;
     }
     {
-        pico8_iv_keys_t keys = {0};
+        toast_keys_t keys = {0};
         int color = 0;
         char *text;
 
-        keys.ra = self->pos;
+        keys.pos = self->pos;
         text = collect_format_signed(frame_zone(), self->net_income, 10, "$", &color);
         /* `ne()` is the last expression of the Lua constructor, so both of its
          * return values land as positional entries 1 and 2, not named fields. */
-        keys.at1 = text;
-        keys.at2 = p8_fixed_from_int(color);
-        pico8_iv_new(&keys);
+        keys.text = text;
+        keys.color = p8_fixed_from_int(color);
+        toast_new(&keys);
     }
 }
 

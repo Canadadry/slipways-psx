@@ -120,9 +120,9 @@ static void test_carriers_link_their_storage(void) {
     modal_backdrop_t *modal_backdrop = modal_backdrop_new(NULL);
     ui_t *built_ui = ui_new();
     camera_t *camera = camera_new();
-    pico8_mh_t *message_box = pico8_mh_new(NULL);
-    pico8_iv_t *toast = pico8_iv_new(NULL);
-    probe_t *help_screen = pico8_fv_new();
+    message_box_t *message_box = message_box_new(NULL);
+    toast_t *toast = toast_new(NULL);
+    probe_t *help_screen = help_screen_new();
     planet_t *planet = planet_new(NULL);
     planet_t *infraspace_gate = infraspace_gate_new(NULL);
     planet_t *infraspace_gate_planet = infraspace_gate;
@@ -139,8 +139,8 @@ static void test_carriers_link_their_storage(void) {
     assert_links(&modal_backdrop->header, (entity_t){.layer = &modal_backdrop->archetype->layer, .is_dead = &modal_backdrop->is_dead, .is_hovered = &modal_backdrop->is_hovered});
     assert_links(&built_ui->header, (entity_t){.layer = &built_ui->archetype->layer, .cursor_sprite = &built_ui->archetype->cursor_sprite});
     assert_links(&camera->header, (entity_t){.pos = &camera->pos, .map_pos = &camera->pos_before_shake, .shake = &camera->shake});
-    assert_links(&message_box->header, (entity_t){.layer = &message_box->def->layer, .is_dead = &message_box->p_});
-    assert_links(&toast->header, (entity_t){.layer = &toast->def->layer, .pos = &toast->ra, .is_dead = &toast->p_});
+    assert_links(&message_box->header, (entity_t){.layer = &message_box->archetype->layer, .is_dead = &message_box->is_dead});
+    assert_links(&toast->header, (entity_t){.layer = &toast->archetype->layer, .pos = &toast->pos, .is_dead = &toast->is_dead});
     assert_links(&help_screen->header, (entity_t){.layer = &help_screen->archetype->layer,
                                                          .pos = &help_screen->pos,
                                                          .map_pos = &help_screen->map_pos,
@@ -280,7 +280,7 @@ int main(int argc, char **argv) {
     dispatch_context_set_gfx(&gfx);
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
-    pico8_cart_load();
+    cart_load();
     reset_world();
 
     assert_malloc_fills();

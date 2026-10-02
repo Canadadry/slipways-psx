@@ -134,7 +134,7 @@ static void test_layout_ready(void) {
 
 /* A fresh fv: its archetype's defaults copied, ke's under them. */
 static void test_help_screen_defaults_and_ready(void) {
-    const probe_t *g_ = pico8_fv_new();
+    const probe_t *g_ = help_screen_new();
 
     assert(g_->archetype == &help_screen_archetype && g_->emitter->archetype == &help_screen_archetype.emitter &&
            g_->targeting->archetype == &help_screen_archetype.targeting);
@@ -148,9 +148,9 @@ static void test_help_screen_defaults_and_ready(void) {
     assert(g_->targeting->has_cost == g_->archetype->targeting.has_cost);
     assert(g_->targeting->has_cost == 1 && g_->targeting->archetype->status_sprite == 0 && g_->targeting->archetype->has_status_sprite == 0);
     assert(g_->header.state == g_->archetype->state && strcmp(g_->header.state, "normal") == 0 && g_->header.state_time == 0);
-    assert(pico8_fv_ready());
-    pico8_help_shutdown();
-    assert(!pico8_fv_ready());
+    assert(help_screen_ready());
+    help_shutdown();
+    assert(!help_screen_ready());
 }
 
 /* A fresh probe: its archetype's defaults copied, ke's under them; no `ra`
@@ -198,18 +198,18 @@ static void test_structure_icon_defaults_and_ready(void) {
 
 /* `cr` holds the spec's record. */
 static void test_score_panel_defaults_and_ready(void) {
-    pico8_pj_t *pj = pico8_pj_new();
-    const pico8_pj_cr_t *cr = pico8_pj_cr();
+    score_panel_t *pj = score_panel_new();
+    const score_panel_layout_block_t *cr = score_panel_layout_block();
 
-    assert(pj->def == &score_panel_archetype && pj->fa == pj->def->layer);
-    assert(pj->ed == NULL);
-    assert(cr->hi->x == 0 && cr->hi->y == p8_fixed_from_int(11));
-    assert(cr->gq->x == 0 && cr->gq->y == p8_fixed_from_int(11));
-    assert(cr->ca == p8_fixed_from_int(10));
-    assert(pj->header.state == pj->def->state && strcmp(pj->header.state, "normal") == 0 && pj->header.state_time == 0);
-    assert(pico8_pj_ready());
-    pico8_score_panel_shutdown();
-    assert(!pico8_pj_ready());
+    assert(pj->archetype == &score_panel_archetype && pj->layer == pj->archetype->layer);
+    assert(pj->last_box == NULL);
+    assert(cr->fixed_pos->x == 0 && cr->fixed_pos->y == p8_fixed_from_int(11));
+    assert(cr->row_step->x == 0 && cr->row_step->y == p8_fixed_from_int(11));
+    assert(cr->back_color == p8_fixed_from_int(10));
+    assert(pj->header.state == pj->archetype->state && strcmp(pj->header.state, "normal") == 0 && pj->header.state_time == 0);
+    assert(score_panel_ready());
+    score_panel_shutdown();
+    assert(!score_panel_ready());
 }
 
 /* hy and trade: an empty spec, a root struct. */
@@ -244,11 +244,11 @@ int main(void) {
     assert(!trade_ready());
     assert(!economy_ready());
     assert(!research_project_ready());
-    assert(!pico8_pj_ready());
+    assert(!score_panel_ready());
     assert(!structure_icon_ready());
     assert(!probe_ready());
-    assert(!pico8_fv_ready());
-    pico8_cart_load();
+    assert(!help_screen_ready());
+    cart_load();
     reset_world();
 
     test_second_reset_world_keeps_specs();

@@ -183,8 +183,8 @@ static uint32_t screen_hash(void) {
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
-    pico8__init();
-    pico8_eu(NULL);
+    cart_init();
+    cart_start_game(NULL);
 }
 
 static vec_t *vec_ref(vec_t at) {
@@ -639,13 +639,13 @@ static void test_burst(void) {
     while (burst_from(0) != NULL) {
         e = burst_from(0);
         assert(burst_from(entity_list_rank_in(live_entities(), e) + 1) == NULL);
-        pico8__update60();
-        pico8__draw();
+        cart_update60();
+        cart_draw();
         frames++;
         assert(frames < 600);
     }
     check_int("burst frames", frames, BURST_FRAMES);
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     check_int("burst places after the burst", particle_zone_live(PARTICLE_SLOT_BURST), 0);
 }
 
@@ -767,13 +767,13 @@ static void test_leaving_gives_back_its_particles(void) {
     int count;
 
     start_game();
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     e = as_burst(harvest(40, 40, "s74"));
     count = e->emitter->particles->count;
     assert(count == 140);
     built = held_now();
     entity_unregister(&e->header);
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     after = held_now();
     assert(after.particle == built.particle - count && after.particles == built.particles - 1);
     assert(after.burst == built.burst - 1);
@@ -786,7 +786,7 @@ static void test_the_largest_bursts_fit_their_slot(void) {
     held_t before;
 
     start_game();
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     before = held_now();
     (void)harvest(40, 40, "s84");
     (void)spawn(80, 70, "s83", NULL);
@@ -804,7 +804,7 @@ static void test_leaving_lets_go_of_a_dragged_slipway(void) {
     void *e;
 
     start_game();
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     keys.planet_id = "s85";
     keys.map_pos = vec_ref(vec_xy(30, 30));
     keys.pos = vec_ref(near_main_camera(60, 60));
@@ -816,7 +816,7 @@ static void test_leaving_lets_go_of_a_dragged_slipway(void) {
     slipway_drag(jc, &mp);
     assert(jc->end == e);
     entity_unregister(e);
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     assert(jc->end == NULL);
 }
 
@@ -830,7 +830,7 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
+    cart_load();
     in_fresh_child(test_built);
     in_fresh_child(test_life);
     in_fresh_child(test_burst);

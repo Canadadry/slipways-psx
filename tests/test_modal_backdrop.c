@@ -130,7 +130,7 @@ static void test_left_press_with_a_true_on_click_removes_the_veil(void) {
     int ticks = 0;
 
     reset_world();
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     veil = veil_with_on_click(1);
     h = fold_veil(h, veil);
     while (entity_list_listed(live_entities(), veil)) {
@@ -159,7 +159,7 @@ static void test_bare_veil_swallows_the_click_and_stays(void) {
     int i;
 
     reset_world();
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     veil = modal_backdrop_new(NULL);
     for (i = 0; i < IDLE_TICKS; i++) {
         if (i == LEFT_PRESS_TICK) {
@@ -181,7 +181,7 @@ static void test_false_on_click_keeps_the_veil(void) {
     int i;
 
     reset_world();
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     veil = veil_with_on_click(0);
     for (i = 0; i < IDLE_TICKS; i++) {
         if (i == LEFT_PRESS_TICK) {
@@ -214,8 +214,8 @@ static void test_hover_loop_on_the_veil(void) {
     entity_t *kv = NULL;
     modal_backdrop_t *veil;
 
-    pico8__init();
-    pico8_eu(NULL);
+    cart_init();
+    cart_start_game(NULL);
     veil = modal_backdrop_new(NULL);
 
     ui_update(&mem, main_ui());
@@ -252,7 +252,7 @@ static void test_defaults_match_the_parsed_spec(void) {
     modal_backdrop_t *veil;
 
     reset_world();
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     veil = modal_backdrop_new(NULL);
     assert(veil->archetype == &modal_backdrop_archetype);
     assert(veil->archetype->layer == p8_fixed_from_int(14));
@@ -281,8 +281,8 @@ static void test_modal_backdrop_is_a_struct_registered_under_hit_test(void) {
     int i;
 
     reset_world();
-    pico8_cart_vider_file_sortie();
-    keys.on_click = pico8_de_my();
+    cart_flush_exit_queue();
+    keys.on_click = score_panel_toggle_on_click();
     built = modal_backdrop_new(&keys);
     generic = modal_backdrop_new(NULL);
 
@@ -294,7 +294,7 @@ static void test_modal_backdrop_is_a_struct_registered_under_hit_test(void) {
     }
     assert(cls->hit_test == entity_registry_hit_test_always && cls->hit_test(generic, NULL, NULL) == 1);
     assert(cls->states[ENTITY_STATE_NORMAL] == NULL && cls->right_press == NULL);
-    assert(((const modal_backdrop_t *)built)->on_click == pico8_de_my());
+    assert(((const modal_backdrop_t *)built)->on_click == score_panel_toggle_on_click());
 }
 
 /* A veil takes a place; once its `my` lifts `p_` and `dg` takes it out,
@@ -305,7 +305,7 @@ static void test_veil_gives_its_slot_back(void) {
     int ticks = 0;
 
     reset_world();
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     base = ui_zone_live(SLOT_KIND_MODAL_BACKDROP);
     veil = veil_with_on_click(1);
     assert(ui_zone_live(SLOT_KIND_MODAL_BACKDROP) == base + 1);
@@ -315,7 +315,7 @@ static void test_veil_gives_its_slot_back(void) {
         assert(++ticks < 1000);
     }
     assert(ui_zone_live(SLOT_KIND_MODAL_BACKDROP) == base + 1 && "out of hv, still read this frame");
-    pico8_cart_vider_file_sortie();
+    cart_flush_exit_queue();
     assert(ui_zone_live(SLOT_KIND_MODAL_BACKDROP) == base);
 }
 
@@ -329,7 +329,7 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
+    cart_load();
 
     test_left_press_with_a_true_on_click_removes_the_veil();
     test_bare_veil_swallows_the_click_and_stays();

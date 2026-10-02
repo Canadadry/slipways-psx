@@ -16,38 +16,38 @@
 #include "game/ui_button.h"
 #include "game/ui_zone.h"
 
-static int g_mh_up = 0;
-static int g_iv_up = 0;
-static pico8_mh_t *g_kc = NULL;
+static int g_message_box_up = 0;
+static int g_toast_up = 0;
+static message_box_t *g_shown_message_box = NULL;
 
-pico8_mh_t *pico8_kc(void) {
-    return g_kc;
+message_box_t *shown_message_box(void) {
+    return g_shown_message_box;
 }
 
-void pico8_msgbox_set_kc(pico8_mh_t *mh) {
-    g_kc = mh;
+void message_box_set_shown(message_box_t *mh) {
+    g_shown_message_box = mh;
 }
 
-void pico8_mh_pq(pico8_mh_t *self) {
-    pico8_mh_t *previous;
+void message_box_construct(message_box_t *self) {
+    message_box_t *previous;
 
     if (self == NULL) {
         return;
     }
 
-    previous = pico8_kc();
+    previous = shown_message_box();
     if (previous != NULL) {
-        previous->p_ = 1;
+        previous->is_dead = 1;
     }
-    pico8_msgbox_set_kc(self);
+    message_box_set_shown(self);
 }
 
-static void pico8_mh_ev_dispatch(entity_t *self, const vec_t *ra) {
+static void message_box_draw_overlay_method(entity_t *self, const vec_t *ra) {
     (void)ra;
-    pico8_mh_ev(dispatch_context_gfx(), dispatch_context_mem(), (pico8_mh_t *)self);
+    message_box_draw_overlay(dispatch_context_gfx(), dispatch_context_mem(), (message_box_t *)self);
 }
 
-void pico8_mh_ev(p8_graphics_t *gfx, p8_memory_t *mem, pico8_mh_t *self) {
+void message_box_draw_overlay(p8_graphics_t *gfx, p8_memory_t *mem, message_box_t *self) {
     p8_fixed_t self_t, rh, t, nc, t3;
 
     if (self == NULL) {
@@ -55,11 +55,11 @@ void pico8_mh_ev(p8_graphics_t *gfx, p8_memory_t *mem, pico8_mh_t *self) {
     }
 
     self_t = self->header.state_time;
-    rh = self->rh;
+    rh = self->duration_scale;
     t = p8_fixed_sub(p8_fixed_div(self_t, rh), p8_fixed_from_int(10));
 
     if (t >= 0) {
-        if (self->lh != NULL && self->lh(self)) {
+        if (self->keep_open != NULL && self->keep_open(self)) {
             self->header.state_time = p8_fixed_mul(rh, p8_fixed_from_int(10));
             t = p8_fixed_from_int(0);
         }
@@ -76,32 +76,32 @@ void pico8_mh_ev(p8_graphics_t *gfx, p8_memory_t *mem, pico8_mh_t *self) {
     }
 
     if (t > P8_FIXED_LIT(0x000a8000, 10.5)) {
-        self->p_ = 1;
-        pico8_msgbox_set_kc(NULL);
-        assert(pico8_kc() == NULL && "`self.p_,kc=true` is one value for two targets: kc gets nil, not true");
+        self->is_dead = 1;
+        message_box_set_shown(NULL);
+        assert(shown_message_box() == NULL && "`self.p_,kc=true` is one value for two targets: kc gets nil, not true");
     }
 }
 
-static void pico8_mh_rendre(entity_t *self) {
-    arena_release(((pico8_mh_t *)self)->place);
+static void message_box_release(entity_t *self) {
+    arena_release(((message_box_t *)self)->slot);
 }
 
-static const entity_class_t g_mh_struct_class = {
-    .draw_overlay = pico8_mh_ev_dispatch,
+static const entity_class_t g_message_box_class = {
+    .draw_overlay = message_box_draw_overlay_method,
     .tags = TAG(TAG_MESSAGE_BOX),
-    .release = pico8_mh_rendre,
+    .release = message_box_release,
 };
 
 /* An article `ld` copied into a box's place, its vector by value. */
 typedef struct {
     data_row_t row;
     data_item_t items[3];
-    vec_t ra;
-} pico8_mh_ld_t;
+    vec_t pos;
+} message_box_draw_row_t;
 
 /* `e` itself, or its copy in `place` when it is an article `ld`. */
-static const data_row_t *pico8_mh_article(const allocator_t *place, const data_row_t *e) {
-    pico8_mh_ld_t *copy;
+static const data_row_t *message_box_article(const allocator_t *slot, const data_row_t *e) {
+    message_box_draw_row_t *copy;
     const vec_t *ra;
 
     if (e->draw_function == NULL || strcmp(e->draw_function, "draw_row") != 0) {
@@ -109,115 +109,115 @@ static const data_row_t *pico8_mh_article(const allocator_t *place, const data_r
     }
     assert(e->count == 3 && e->items[0].is_ref && e->items[1].is_ref &&
            "an article ld is {lq, ra, a}: its lq and ra are what the box copies");
-    copy = (pico8_mh_ld_t *)allocator_alloc(place, sizeof *copy);
+    copy = (message_box_draw_row_t *)allocator_alloc(slot, sizeof *copy);
     ra = e->items[1].ref;
     if (ra != NULL) {
-        copy->ra = *ra;
+        copy->pos = *ra;
     }
-    copy->items[0] = (data_item_t){.is_ref = 1, .ref = layout_row_copy(place, e->items[0].ref)};
-    copy->items[1] = (data_item_t){.is_ref = 1, .ref = ra != NULL ? &copy->ra : NULL};
+    copy->items[0] = (data_item_t){.is_ref = 1, .ref = layout_row_copy(slot, e->items[0].ref)};
+    copy->items[1] = (data_item_t){.is_ref = 1, .ref = ra != NULL ? &copy->pos : NULL};
     copy->items[2] = e->items[2];
     copy->row = *e;
     copy->row.items = copy->items;
     return &copy->row;
 }
 
-static pico8_mh_t *pico8_mh_struct_new(const pico8_mh_keys_t *keys) {
-    const allocator_t *place = ui_zone_slot(SLOT_KIND_MESSAGE_BOX);
-    pico8_mh_t *self = (pico8_mh_t *)allocator_alloc(place, sizeof *self);
+static message_box_t *message_box_create(const message_box_keys_t *keys) {
+    const allocator_t *slot = ui_zone_slot(SLOT_KIND_MESSAGE_BOX);
+    message_box_t *self = (message_box_t *)allocator_alloc(slot, sizeof *self);
     int i;
 
-    self->place = place;
-    entity_init_instance(&self->header, &g_mh_struct_class, message_box_archetype.state, message_box_archetype.state_time);
-    self->def = &message_box_archetype;
-    self->header.layer = &self->def->layer;
-    self->rh = self->def->duration_scale;
-    self->lh = NULL;
-    self->header.is_dead = &self->p_;
-    self->p_ = 0;
+    self->slot = slot;
+    entity_init_instance(&self->header, &g_message_box_class, message_box_archetype.state, message_box_archetype.state_time);
+    self->archetype = &message_box_archetype;
+    self->header.layer = &self->archetype->layer;
+    self->duration_scale = self->archetype->duration_scale;
+    self->keep_open = NULL;
+    self->header.is_dead = &self->is_dead;
+    self->is_dead = 0;
     self->items_count = 0;
     if (keys != NULL) {
-        assert(keys->count <= PICO8_MH_ITEMS_CAP &&
+        assert(keys->count <= MESSAGE_BOX_ITEMS_CAP &&
                "the cart's two mh() are pj:hk (3 articles at most) and pj:ph (one per bz row): a third needs more");
         for (i = 0; i < keys->count; i++) {
-            self->items[self->items_count++] = pico8_mh_article(place, keys->items[i]);
+            self->items[self->items_count++] = message_box_article(slot, keys->items[i]);
         }
-        if (keys->has_rh) {
-            self->rh = keys->rh;
+        if (keys->has_duration_scale) {
+            self->duration_scale = keys->duration_scale;
         }
-        self->lh = keys->lh;
+        self->keep_open = keys->keep_open;
     }
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("message_box");
 #endif
-    pico8_mh_pq(self);
+    message_box_construct(self);
     entity_construct(&self->header);
     return self;
 }
 
-void pico8_mh_init(void) {
-    pico8_mh_shutdown();
-    g_mh_up = 1;
+void message_box_init(void) {
+    message_box_shutdown();
+    g_message_box_up = 1;
 }
 
-void pico8_mh_shutdown(void) {
-    g_mh_up = 0;
-    pico8_msgbox_set_kc(NULL);
+void message_box_shutdown(void) {
+    g_message_box_up = 0;
+    message_box_set_shown(NULL);
 }
 
-int pico8_mh_ready(void) {
-    return g_mh_up;
+int message_box_ready(void) {
+    return g_message_box_up;
 }
 
-pico8_mh_t *pico8_mh_new(const pico8_mh_keys_t *keys) {
-    return pico8_mh_struct_new(keys);
+message_box_t *message_box_new(const message_box_keys_t *keys) {
+    return message_box_create(keys);
 }
 
-static vec_t pico8_iv_vec_or_zero(const vec_t *p) {
+static vec_t toast_vec_or_zero(const vec_t *p) {
     if (p != NULL) {
         return *p;
     }
     return vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
-void pico8_iv_pq(pico8_iv_t *self) {
+void toast_construct(toast_t *self) {
     if (self == NULL) {
         return;
     }
 
-    if (self->ra == NULL) {
+    if (self->pos == NULL) {
         const mouse_t *je = main_mouse_typed();
         const camera_t *mo = main_camera_typed();
-        vec_t je_ra = pico8_iv_vec_or_zero(je != NULL ? je->pos : NULL);
-        vec_t mo_ra = pico8_iv_vec_or_zero(mo != NULL ? mo->pos : NULL);
+        vec_t main_mouse_pos = toast_vec_or_zero(je != NULL ? je->pos : NULL);
+        vec_t main_camera_pos = toast_vec_or_zero(mo != NULL ? mo->pos : NULL);
         vec_t offset = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(5));
-        self->ra_box = vec_sub(vec_add(je_ra, mo_ra), offset);
-        self->ra = &self->ra_box;
+        self->pos_box = vec_sub(vec_add(main_mouse_pos, main_camera_pos), offset);
+        self->pos = &self->pos_box;
     }
 }
 
-void pico8_iv_ph(pico8_iv_t *self) {
+void toast_update(toast_t *self) {
     p8_fixed_t new_l;
 
     if (self == NULL) {
         return;
     }
 
-    self->ra_box = vec_add(pico8_iv_vec_or_zero(self->ra), pico8_iv_vec_or_zero(&self->def->velocity));
-    self->ra = &self->ra_box;
+    self->pos_box = vec_add(toast_vec_or_zero(self->pos), toast_vec_or_zero(&self->archetype->velocity));
+    self->pos = &self->pos_box;
 
-    new_l = p8_fixed_add(self->l, P8_FIXED_LIT(0x00001999, 0.1));
-    self->l = new_l;
+    new_l = p8_fixed_add(self->fade, P8_FIXED_LIT(0x00001999, 0.1));
+    self->fade = new_l;
 
-    self->p_ = new_l >= p8_fixed_from_int(5);
+    self->is_dead = new_l >= p8_fixed_from_int(5);
 }
 
-static void pico8_iv_ph_dispatch(entity_t *self, p8_fixed_t t) {
+static void toast_update_method(entity_t *self, p8_fixed_t t) {
     (void)t;
-    pico8_iv_ph((pico8_iv_t *)self);
+    toast_update((toast_t *)self);
 }
 
-void pico8_iv_kj(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_iv_t *self, vec_t p) {
+void toast_draw(const p8_graphics_t *gfx, p8_memory_t *mem, const toast_t *self, vec_t p) {
     const char *text;
     int color;
     p8_fixed_t a_center = P8_FIXED_LIT(0x00008000, 0.5);
@@ -226,180 +226,180 @@ void pico8_iv_kj(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_iv_t *s
         return;
     }
 
-    hud_select_palette_block(mem, self->l);
+    hud_select_palette_block(mem, self->fade);
 
-    text = self->at1 != NULL ? self->at1 : "";
-    color = p8_fixed_flr_int(self->at2);
+    text = self->text != NULL ? self->text : "";
+    color = p8_fixed_flr_int(self->color);
 
     hud_print_outlined(gfx, mem, text, p.x, p.y, color, &a_center);
 
     hud_select_palette_block_default(mem);
 }
 
-static void pico8_iv_kj_dispatch(entity_t *self, const vec_t *ra) {
+static void toast_draw_method(entity_t *self, const vec_t *ra) {
     vec_t p = ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    pico8_iv_kj(dispatch_context_gfx(), dispatch_context_mem(), (const pico8_iv_t *)self, p);
+    toast_draw(dispatch_context_gfx(), dispatch_context_mem(), (const toast_t *)self, p);
 }
 
-static void pico8_iv_rendre(entity_t *self) {
-    arena_release(((pico8_iv_t *)self)->place);
+static void toast_release(entity_t *self) {
+    arena_release(((toast_t *)self)->slot);
 }
 
-static const entity_class_t g_iv_struct_class = {
-    .draw = pico8_iv_kj_dispatch,
-    .states = {[ENTITY_STATE_NORMAL] = pico8_iv_ph_dispatch},
-    .release = pico8_iv_rendre,
+static const entity_class_t g_toast_class = {
+    .draw = toast_draw_method,
+    .states = {[ENTITY_STATE_NORMAL] = toast_update_method},
+    .release = toast_release,
 };
 
-static pico8_iv_t *pico8_iv_struct_new(const pico8_iv_keys_t *keys) {
-    const allocator_t *place = ui_zone_slot(SLOT_KIND_TOAST);
-    pico8_iv_t *self = (pico8_iv_t *)allocator_alloc(place, sizeof *self);
+static toast_t *toast_create(const toast_keys_t *keys) {
+    const allocator_t *slot = ui_zone_slot(SLOT_KIND_TOAST);
+    toast_t *self = (toast_t *)allocator_alloc(slot, sizeof *self);
 
-    self->place = place;
+    self->slot = slot;
 
-    entity_init_instance(&self->header, &g_iv_struct_class, toast_archetype.state, toast_archetype.state_time);
-    self->def = &toast_archetype;
-    self->header.layer = &self->def->layer;
-    self->header.pos = &self->ra;
-    self->l = self->def->fade;
-    self->ra = NULL;
-    self->header.is_dead = &self->p_;
-    self->p_ = 0;
-    self->at1 = NULL;
-    self->at2 = p8_fixed_from_int(0);
+    entity_init_instance(&self->header, &g_toast_class, toast_archetype.state, toast_archetype.state_time);
+    self->archetype = &toast_archetype;
+    self->header.layer = &self->archetype->layer;
+    self->header.pos = &self->pos;
+    self->fade = self->archetype->fade;
+    self->pos = NULL;
+    self->header.is_dead = &self->is_dead;
+    self->is_dead = 0;
+    self->text = NULL;
+    self->color = p8_fixed_from_int(0);
     if (keys != NULL) {
-        self->ra = keys->ra;
-        if (keys->at1 != NULL) {
-            assert(strlen(keys->at1) <= PICO8_IV_TEXT_CAP &&
-                   "a toast's text is a `ne` price or \"-no money-\": a longer one needs a bigger at1_buf and iv place");
-            strcpy(self->at1_buf, keys->at1);
-            self->at1 = self->at1_buf;
+        self->pos = keys->pos;
+        if (keys->text != NULL) {
+            assert(strlen(keys->text) <= TOAST_TEXT_CAP &&
+                   "a toast's text is a `ne` price or \"-no money-\": a longer one needs a bigger text_buf and iv place");
+            strcpy(self->text_buf, keys->text);
+            self->text = self->text_buf;
         }
-        self->at2 = keys->at2;
+        self->color = keys->color;
     }
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("toast");
 #endif
-    pico8_iv_pq(self);
+    toast_construct(self);
     entity_construct(&self->header);
     return self;
 }
 
-void pico8_iv_init(void) {
-    pico8_iv_shutdown();
+void toast_init(void) {
+    toast_shutdown();
     draw_functions_init();
-    g_iv_up = 1;
+    g_toast_up = 1;
 }
 
-void pico8_iv_shutdown(void) {
-    g_iv_up = 0;
+void toast_shutdown(void) {
+    g_toast_up = 0;
 }
 
-int pico8_iv_ready(void) {
-    return g_iv_up;
+int toast_ready(void) {
+    return g_toast_up;
 }
 
-pico8_iv_t *pico8_iv_new(const pico8_iv_keys_t *keys) {
-    return pico8_iv_struct_new(keys);
+toast_t *toast_new(const toast_keys_t *keys) {
+    return toast_create(keys);
 }
 
 typedef struct {
-    const pico8_pz_frame_t *frame;
-    vec_t bp;
-    vec_t ra;
-} pico8_pz_ctx_t;
+    const open_box_frame_t *frame;
+    vec_t button_pos;
+    vec_t pos;
+} open_box_ctx_t;
 
 /* One row of `bs` onto a copy of its keys: the common `ra`, its own `qf`,
  * `fa` from `p.ca`; then the button. */
-static button_t *pico8_pz_step(pico8_pz_ctx_t *ctx, const button_keys_t *row) {
+static button_t *open_box_step(open_box_ctx_t *ctx, const button_keys_t *row) {
     button_keys_t b = *row;
-    vec_t qf = ctx->bp;
+    vec_t qf = ctx->button_pos;
     vec_t gq;
 
-    b.pos = &ctx->ra;
+    b.pos = &ctx->pos;
     b.slide_target = &qf;
 
     /* TROU-9 */
-    if (ctx->frame->has_ca) {
-        b.layer = ctx->frame->ca;
+    if (ctx->frame->has_back_color) {
+        b.layer = ctx->frame->back_color;
         b.has_layer = 1;
     }
 
-    gq = ctx->frame->gq != NULL ? *ctx->frame->gq : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    ctx->bp = vec_add(ctx->bp, gq);
+    gq = ctx->frame->row_step != NULL ? *ctx->frame->row_step : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    ctx->button_pos = vec_add(ctx->button_pos, gq);
 
     return button_new(&b);
 }
 
 /* With no `ok` there is no list to hold the button. */
-static void pz_add(entity_list_t *le, button_t *button) {
+static void open_box_add(entity_list_t *le, button_t *button) {
     if (le != NULL) {
         entity_list_add(le, &button->header);
     }
 }
 
-void pico8_pz(const pico8_pz_frame_t *frame, const button_keys_t *bs, int n) {
-    layout_row_cell_t ep_cell;
-    vec_t ra;
-    pico8_pz_ctx_t ctx;
-    entity_list_t *le;
-    ui_t *ok;
-    p8_fixed_t rn_arg;
-    button_keys_t ep_row = {0};
-    layout_row_keys_t ep_lq = {0};
-    int has_ep;
-    int i;
+void message_box_open_box(const open_box_frame_t *frame, const button_keys_t *buttons, int button_count) {
+    layout_row_cell_t description_cell;
+    vec_t pos;
+    open_box_ctx_t ctx;
+    entity_list_t *ephemerals;
+    ui_t *dispatcher;
+    p8_fixed_t play_sfx_arg;
+    button_keys_t description_row = {0};
+    layout_row_keys_t description_layout_row = {0};
+    int has_description;
+    int index;
 
     if (frame == NULL) {
         return;
     }
 
-    has_ep = frame->ep != NULL;
-    if (has_ep) {
-        ep_cell = layout_row_cell_string(frame->ep);
-        ep_lq.items = &ep_cell;
-        ep_lq.count = 1;
-        ep_lq.has_color = 1;
-        ep_lq.color = p8_fixed_from_int(13);
-        ep_row.layout_row_keys = &ep_lq;
+    has_description = frame->description != NULL;
+    if (has_description) {
+        description_cell = layout_row_cell_string(frame->description);
+        description_layout_row.items = &description_cell;
+        description_layout_row.count = 1;
+        description_layout_row.has_color = 1;
+        description_layout_row.color = p8_fixed_from_int(13);
+        description_row.layout_row_keys = &description_layout_row;
     }
 
-    if (frame->has_eo) {
-        rn_arg = frame->eo;
+    if (frame->has_open_sfx) {
+        play_sfx_arg = frame->open_sfx;
     } else {
-        rn_arg = p8_fixed_from_int(62);
+        play_sfx_arg = p8_fixed_from_int(62);
     }
-    p8_play_sfx(rn_arg);
+    p8_play_sfx(play_sfx_arg);
 
-    if (frame->hi != NULL) {
-        ra = *frame->hi;
-    } else if (frame->ra != NULL) {
-        ra = *frame->ra;
+    if (frame->fixed_pos != NULL) {
+        pos = *frame->fixed_pos;
+    } else if (frame->pos != NULL) {
+        pos = *frame->pos;
     } else {
-        ra = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+        pos = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     }
 
     ctx.frame = frame;
-    ctx.bp = vec_add(ra, vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0)));
-    ctx.ra = ra;
+    ctx.button_pos = vec_add(pos, vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0)));
+    ctx.pos = pos;
 
-    ok = main_ui();
-    ui_clear_ephemerals(ok);
+    dispatcher = main_ui();
+    ui_clear_ephemerals(dispatcher);
 
-    le = ok != NULL ? ui_ephemerals_new() : NULL;
-    if (has_ep) {
-        pz_add(le, pico8_pz_step(&ctx, &ep_row));
+    ephemerals = dispatcher != NULL ? ui_ephemerals_new() : NULL;
+    if (has_description) {
+        open_box_add(ephemerals, open_box_step(&ctx, &description_row));
     }
-    for (i = 0; i < n; i++) {
-        pz_add(le, pico8_pz_step(&ctx, &bs[i]));
+    for (index = 0; index < button_count; index++) {
+        open_box_add(ephemerals, open_box_step(&ctx, &buttons[index]));
     }
-    if (ok != NULL) {
-        ui_set_ephemerals(ok, le);
+    if (dispatcher != NULL) {
+        ui_set_ephemerals(dispatcher, ephemerals);
     }
 
     /* The `js` buttons built just above stay registered in `hv`/`cv`/`cg`
      * once `le` no longer holds them, exactly as in the cart. */
-    if (frame->ff && ok != NULL) {
-        ui_set_ephemerals(ok, ui_ephemerals_new());
+    if (frame->clear_ephemerals_after && dispatcher != NULL) {
+        ui_set_ephemerals(dispatcher, ui_ephemerals_new());
     }
 }

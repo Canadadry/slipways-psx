@@ -37,7 +37,7 @@
 #include "engine/vec.h"
 
 
-#define BUILT_HASH 0xFAA9865Eu
+#define BUILT_HASH 0x088E67AEu
 #define LIFE_HASH 0x64B6480Bu
 #define HOVER_HASH 0xEE114A89u
 
@@ -61,7 +61,7 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int ents_rank_in(const entity_list_t *list, const void *e) {
+static int entity_list_rank_in(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -71,12 +71,12 @@ static int ents_rank_in(const entity_list_t *list, const void *e) {
     return -1;
 }
 
-static int ents_listed(const entity_list_t *list, const void *e) {
-    return ents_rank_in(list, e) >= 0;
+static int entity_list_listed(const entity_list_t *list, const void *e) {
+    return entity_list_rank_in(list, e) >= 0;
 }
 
 /* 0 absent or false, 2 true. */
-static uint32_t m__state(const probe_t *fv) {
+static uint32_t is_hovered_state(const probe_t *fv) {
     return fv->is_hovered ? 2 : 0;
 }
 
@@ -147,10 +147,10 @@ static uint32_t fold_row(uint32_t h, const data_row_t *row) {
         }
     }
     if (row->has_color) {
-        h = fold_fixed(fnv_str(h, "c"), p8_fixed_from_int(row->color));
+        h = fold_fixed(fnv_str(h, "color"), p8_fixed_from_int(row->color));
     }
     if (row->draw_function != NULL) {
-        h = fold_string(fnv_str(h, "fn"), row->draw_function);
+        h = fold_string(fnv_str(h, "draw_function"), row->draw_function);
     }
     return fnv(h, (uint32_t)(row->count + (row->has_color != 0) + (row->draw_function != NULL)));
 }
@@ -159,8 +159,8 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (ref == NULL) {
         return fnv(h, 0xDEADu);
     }
-    if (ents_listed(live_entities(), ref)) {
-        return fnv(fnv(h, 0x4Eu), (uint32_t)ents_rank_in(live_entities(), ref));
+    if (entity_list_listed(live_entities(), ref)) {
+        return fnv(fnv(h, 0x4Eu), (uint32_t)entity_list_rank_in(live_entities(), ref));
     }
     if (ref == (const void *)&help_screen_trail_colors_seq) {
         return fold_seq(fnv(h, 0x7Au), ref);
@@ -237,14 +237,14 @@ static vec_t *vec_ref(int x, int y) {
     return v;
 }
 
-static const entity_class_t *cls_of(const void *e) {
+static const entity_class_t *class_of(const void *e) {
     return ((const entity_t *)e)->class;
 }
 
 static void start_title(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
-    pico8__init();
+    cart_init();
 }
 
 /* The help, whatever its form: `g_`'s tags and `fa`=10 (a probe has 2). */
@@ -265,7 +265,7 @@ static probe_t *the_help(void) {
             found = hv->items[i];
         }
     }
-    assert(found != NULL && found->class == pico8_fv_struct_class());
+    assert(found != NULL && found->class == help_screen_class());
     return (probe_t *)found;
 }
 
@@ -275,10 +275,10 @@ static int in_layer(int layer, const void *e) {
     if (ic == NULL) {
         return 0;
     }
-    return ents_listed(&ic->layers[layer], e);
+    return entity_list_listed(&ic->layers[layer], e);
 }
 
-static const button_t *as_js(const void *e) {
+static const button_t *as_button(const void *e) {
     assert(e != NULL &&
            ((const entity_t *)e)->class == button_class());
     return e;
@@ -290,142 +290,142 @@ static const button_t *as_js(const void *e) {
  * built before it, each carrying the `my` stamped on its `bo` row; where
  * `lt` registered it; `ok.le` emptied. */
 static void test_built(void) {
-    uint32_t h = 2166136261u;
-    const entity_list_t *hv;
-    probe_t *fv;
-    const probe_t *g_;
-    const emitter_t *em;
-    const targeting_t *pr;
+    uint32_t hash = 2166136261u;
+    const entity_list_t *live;
+    probe_t *help_screen;
+    const probe_t *probe;
+    const emitter_t *spacer;
+    const targeting_t *targeting;
     int rank;
-    size_t i;
-    int k;
+    size_t index;
+    int key_index;
 
     start_title();
-    fv = the_help();
-    g_ = fv;
-    em = g_->emitter;
-    pr = g_->targeting;
-    hv = live_entities();
+    help_screen = the_help();
+    probe = help_screen;
+    spacer = probe->emitter;
+    targeting = probe->targeting;
+    live = live_entities();
 
-    assert(g_->archetype->layer == p8_fixed_from_int(10));
-    assert(em->archetype->lifetime == p8_fixed_from_int(17));
-    assert(g_->archetype->back_color == p8_fixed_from_int(11));
-    assert(g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
-    assert(g_->pos != NULL && em->trail_colors != NULL);
-    assert(g_->archetype->rows != NULL && pr->archetype->confirmed_state != NULL);
-    h = fold_fixed_member(h, g_->archetype->layer);
-    h = fold_ref_member(h, g_->pos);
-    h = fold_ref_member(h, &g_->archetype->fixed_pos);
-    h = fold_fixed_member(h, g_->archetype->back_color);
-    h = fold_ref_member(h, &g_->archetype->row_step);
-    h = fold_fixed_member(h, g_->archetype->open_sfx);
-    h = fold_fixed_member(h, g_->archetype->clear_ephemerals_after);
-    h = fold_fixed_member(h, em->archetype->spawn_rate);
-    h = fold_ref_member(h, em->trail_colors);
-    h = fold_fixed_member(h, em->matrix_xx);
-    h = fold_fixed_member(h, em->matrix_xy);
-    h = fold_fixed_member(h, em->matrix_yx);
-    h = fold_fixed_member(h, em->matrix_yy);
-    h = fold_fixed_member(h, em->angle_slices);
-    h = fold_fixed_member(h, em->base_radius);
-    h = fold_fixed_member(h, em->speed_factor);
-    h = fold_fixed_member(h, em->archetype->quarter_turn);
-    h = fold_fixed_member(h, em->archetype->lifetime);
-    h = fold_ref_member(h, &g_->archetype->hit_box);
-    h = fold_fixed_member(h, g_->archetype->cursor_sprite);
-    h = fold_fixed_member(h, g_->archetype->gpio_signal);
-    h = fold_ref_member(h, g_->archetype->rows);
-    h = fold_tags(fnv(fnv(h, 1u), 0x7Au), g_->header.class->tags);
-    h = fold_fixed_member(h, g_->archetype->fold_anchor);
-    h = fold_string_member(h, pr->archetype->confirmed_state);
-    h = fold_fixed_member(h, pr->cost);
-    h = fold_bool_member(h, pr->archetype->clock_ticks != 0);
-    h = fold_fixed_member(h, pr->archetype->attach_distance);
-    h = fold_vec(h, g_->pos);
-    h = fold_vec(h, &g_->archetype->fixed_pos);
-    h = fold_vec(h, &g_->archetype->row_step);
-    h = fold_box(h, &g_->archetype->hit_box);
-    assert(g_->archetype == &help_screen_archetype && g_->pos == &help_screen_archetype.pos);
-    assert(em->trail_colors == &help_screen_trail_colors_seq);
-    assert(em->trail_colors != &probe_trail_colors_seq);
-    assert(g_->archetype->rows == &help_screen_rows_row);
-    h = fold_string_member(h, g_->header.state);
-    h = fold_fixed_member(h, g_->header.state_time);
-    h = fnv(h, (uint32_t)size_of(em->particles));
-    assert(size_of(em->particles) == 0);
-    assert(!fv->is_hovered && g_->map_pos == NULL && pr->target == NULL && !g_->is_dead);
-    assert(cls_of(fv)->new_year == NULL && cls_of(fv)->refresh == NULL && cls_of(fv)->states[ENTITY_STATE_NORMAL] == NULL &&
-           cls_of(fv)->left_press == NULL);
+    assert(probe->archetype->layer == p8_fixed_from_int(10));
+    assert(spacer->archetype->lifetime == p8_fixed_from_int(17));
+    assert(probe->archetype->back_color == p8_fixed_from_int(11));
+    assert(probe->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
+    assert(probe->pos != NULL && spacer->trail_colors != NULL);
+    assert(probe->archetype->rows != NULL && targeting->archetype->confirmed_state != NULL);
+    hash = fold_fixed_member(hash, probe->archetype->layer);
+    hash = fold_ref_member(hash, probe->pos);
+    hash = fold_ref_member(hash, &probe->archetype->fixed_pos);
+    hash = fold_fixed_member(hash, probe->archetype->back_color);
+    hash = fold_ref_member(hash, &probe->archetype->row_step);
+    hash = fold_fixed_member(hash, probe->archetype->open_sfx);
+    hash = fold_fixed_member(hash, probe->archetype->clear_ephemerals_after);
+    hash = fold_fixed_member(hash, spacer->archetype->spawn_rate);
+    hash = fold_ref_member(hash, spacer->trail_colors);
+    hash = fold_fixed_member(hash, spacer->matrix_xx);
+    hash = fold_fixed_member(hash, spacer->matrix_xy);
+    hash = fold_fixed_member(hash, spacer->matrix_yx);
+    hash = fold_fixed_member(hash, spacer->matrix_yy);
+    hash = fold_fixed_member(hash, spacer->angle_slices);
+    hash = fold_fixed_member(hash, spacer->base_radius);
+    hash = fold_fixed_member(hash, spacer->speed_factor);
+    hash = fold_fixed_member(hash, spacer->archetype->quarter_turn);
+    hash = fold_fixed_member(hash, spacer->archetype->lifetime);
+    hash = fold_ref_member(hash, &probe->archetype->hit_box);
+    hash = fold_fixed_member(hash, probe->archetype->cursor_sprite);
+    hash = fold_fixed_member(hash, probe->archetype->gpio_signal);
+    hash = fold_ref_member(hash, probe->archetype->rows);
+    hash = fold_tags(fnv(fnv(hash, 1u), 0x7Au), probe->header.class->tags);
+    hash = fold_fixed_member(hash, probe->archetype->fold_anchor);
+    hash = fold_string_member(hash, targeting->archetype->confirmed_state);
+    hash = fold_fixed_member(hash, targeting->cost);
+    hash = fold_bool_member(hash, targeting->archetype->clock_ticks != 0);
+    hash = fold_fixed_member(hash, targeting->archetype->attach_distance);
+    hash = fold_vec(hash, probe->pos);
+    hash = fold_vec(hash, &probe->archetype->fixed_pos);
+    hash = fold_vec(hash, &probe->archetype->row_step);
+    hash = fold_box(hash, &probe->archetype->hit_box);
+    assert(probe->archetype == &help_screen_archetype && probe->pos == &help_screen_archetype.pos);
+    assert(spacer->trail_colors == &help_screen_trail_colors_seq);
+    assert(spacer->trail_colors != &probe_trail_colors_seq);
+    assert(probe->archetype->rows == &help_screen_rows_row);
+    hash = fold_string_member(hash, probe->header.state);
+    hash = fold_fixed_member(hash, probe->header.state_time);
+    hash = fnv(hash, (uint32_t)size_of(spacer->particles));
+    assert(size_of(spacer->particles) == 0);
+    assert(!help_screen->is_hovered && probe->map_pos == NULL && targeting->target == NULL && !probe->is_dead);
+    assert(class_of(help_screen)->new_year == NULL && class_of(help_screen)->refresh == NULL && class_of(help_screen)->states[ENTITY_STATE_NORMAL] == NULL &&
+           class_of(help_screen)->left_press == NULL);
 
-    assert(cls_of(fv)->draw == pico8_fv_kj_dispatch);
-    assert(cls_of(fv)->draw_overlay == targeting_tooltip_method);
-    assert(cls_of(fv)->spawn_particle == probe_spawn_particle);
-    assert(cls_of(fv)->drag == targeting_track_method);
-    assert(cls_of(fv)->drop == targeting_confirm_method);
-    assert(cls_of(fv)->hit_test != NULL);
+    assert(class_of(help_screen)->draw == help_screen_draw_method);
+    assert(class_of(help_screen)->draw_overlay == targeting_tooltip_method);
+    assert(class_of(help_screen)->spawn_particle == probe_spawn_particle);
+    assert(class_of(help_screen)->drag == targeting_track_method);
+    assert(class_of(help_screen)->drop == targeting_confirm_method);
+    assert(class_of(help_screen)->hit_test != NULL);
 
-    rank = ents_rank_in(hv, fv);
-    h = fnv(h, (uint32_t)rank);
-    h = fnv(h, (uint32_t)hv->count);
+    rank = entity_list_rank_in(live, help_screen);
+    hash = fnv(hash, (uint32_t)rank);
+    hash = fnv(hash, (uint32_t)live->count);
     assert(rank >= 4);
-    for (k = 0; k < 4; k++) {
-        const button_t *b = as_js(hv->items[rank - 4 + k]);
+    for (key_index = 0; key_index < 4; key_index++) {
+        const button_t *b = as_button(live->items[rank - 4 + key_index]);
         vec_t qf;
         assert(b->layer == p8_fixed_from_int(11));
         assert(b->slide_target != NULL);
         qf = *b->slide_target;
-        assert(qf.x == p8_fixed_from_int(34) && qf.y == p8_fixed_from_int(56 + 11 * k));
-        h = fold_vec(h, b->slide_target);
-        h = fold_vec(h, b->pos);
-        h = fold_fixed_member(h, b->layer);
+        assert(qf.x == p8_fixed_from_int(34) && qf.y == p8_fixed_from_int(56 + 11 * key_index));
+        hash = fold_vec(hash, b->slide_target);
+        hash = fold_vec(hash, b->pos);
+        hash = fold_fixed_member(hash, b->layer);
     }
-    for (i = 0; i < 5; i++) {
-        static const char *const bm[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
-        h = fnv(h, (uint32_t)ents_rank_in(entities_by_message(bm[i]), fv));
+    for (index = 0; index < 5; index++) {
+        static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+        hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(messages[index]), help_screen));
     }
-    assert(ents_listed(entities_by_message("draw"), fv) && ents_listed(entities_by_message("draw_overlay"), fv) && ents_listed(entities_by_message("hit_test"), fv));
-    assert(!ents_listed(entities_by_message("new_year"), fv) && !ents_listed(entities_by_message("refresh"), fv));
-    h = fnv(h, (uint32_t)ents_rank_in(entities_by_tag("probe"), fv));
-    h = fnv(h, (uint32_t)ents_rank_in(entities_by_tag("targeting"), fv));
-    assert(ents_listed(entities_by_tag("probe"), fv) && ents_listed(entities_by_tag("targeting"), fv));
+    assert(entity_list_listed(entities_by_message("draw"), help_screen) && entity_list_listed(entities_by_message("draw_overlay"), help_screen) && entity_list_listed(entities_by_message("hit_test"), help_screen));
+    assert(!entity_list_listed(entities_by_message("new_year"), help_screen) && !entity_list_listed(entities_by_message("refresh"), help_screen));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("probe"), help_screen));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("targeting"), help_screen));
+    assert(entity_list_listed(entities_by_tag("probe"), help_screen) && entity_list_listed(entities_by_tag("targeting"), help_screen));
 
-    for (k = 0; k < 4; k++) {
-        const button_t *row = (const button_t *)hv->items[rank - 4 + k];
+    for (key_index = 0; key_index < 4; key_index++) {
+        const button_t *row = (const button_t *)live->items[rank - 4 + key_index];
         assert(row->has_on_click);
-        assert(row->on_click == pico8_eu_field_value());
+        assert(row->on_click == help_start_game_field_value());
     }
     assert(main_ui()->ephemerals != NULL && main_ui()->ephemerals->count == 0);
-    check("built", h, BUILT_HASH);
+    check("built", hash, BUILT_HASH);
 }
 
 /* `dc("kj")` x3 with the screen and `qy`; `dc("ev")`; `dg` x3; `hd` in and
  * out of `kq`, `rp` retained since `fa` >= 10. */
 static void test_life(void) {
-    uint32_t h = 2166136261u;
+    uint32_t hash = 2166136261u;
     probe_t *fv;
-    int i;
+    int index;
 
     start_title();
     fv = the_help();
-    for (i = 0; i < 3; i++) {
+    for (index = 0; index < 3; index++) {
         draw_layers("draw");
-        h = fnv(h, screen_hash());
-        h = fnv(h, (uint32_t)size_of(fv->emitter->particles));
+        hash = fnv(hash, screen_hash());
+        hash = fnv(hash, (uint32_t)size_of(fv->emitter->particles));
     }
     draw_layers("draw_overlay");
-    h = fnv(h, screen_hash());
-    for (i = 0; i < 3; i++) {
+    hash = fnv(hash, screen_hash());
+    for (index = 0; index < 3; index++) {
         update_entities();
-        h = fold_fixed_member(h, fv->header.state_time);
-        h = fold_string_member(h, fv->header.state);
-        assert(ents_listed(live_entities(), fv));
+        hash = fold_fixed_member(hash, fv->header.state_time);
+        hash = fold_string_member(hash, fv->header.state);
+        assert(entity_list_listed(live_entities(), fv));
     }
-    assert(cls_of(fv)->hit_test(&fv->header, vec_ref(64, 10), vec_ref(64, 112)) == 1);
-    assert(cls_of(fv)->hit_test(&fv->header, vec_ref(64, 112), vec_ref(64, 10)) == 0);
-    assert(cls_of(fv)->hit_test(&fv->header, vec_ref(24, 106), vec_ref(24, 106)) == 1);
-    assert(cls_of(fv)->hit_test(&fv->header, vec_ref(23, 106), vec_ref(23, 106)) == 0);
-    h = fnv(h, (uint32_t)size_of(fv->emitter->particles));
-    check("life", h, LIFE_HASH);
+    assert(class_of(fv)->hit_test(&fv->header, vec_ref(64, 10), vec_ref(64, 112)) == 1);
+    assert(class_of(fv)->hit_test(&fv->header, vec_ref(64, 112), vec_ref(64, 10)) == 0);
+    assert(class_of(fv)->hit_test(&fv->header, vec_ref(24, 106), vec_ref(24, 106)) == 1);
+    assert(class_of(fv)->hit_test(&fv->header, vec_ref(23, 106), vec_ref(23, 106)) == 0);
+    hash = fnv(hash, (uint32_t)size_of(fv->emitter->particles));
+    check("life", hash, LIFE_HASH);
 }
 
 static p8_input_frame_t g_mouse;
@@ -453,10 +453,10 @@ static void test_hover(void) {
     mouse_at(64, 112);
     ui_update(&mem, main_ui());
     assert((void *)main_ui()->hovered == fv);
-    assert(m__state(fv) == 2);
+    assert(is_hovered_state(fv) == 2);
     check_int("hover 0x5f80", p8_peek(&mem, 0x5f80), 5);
     assert(in_layer(10, fv));
-    h = fnv(h, m__state(fv));
+    h = fnv(h, is_hovered_state(fv));
     h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
 
     p8_cls(&mem);
@@ -470,15 +470,15 @@ static void test_hover(void) {
     mouse_at(64, 10);
     ui_update(&mem, main_ui());
     assert((void *)main_ui()->hovered != fv);
-    assert(m__state(fv) == 0);
+    assert(is_hovered_state(fv) == 0);
     assert(!in_layer(10, fv));
-    h = fnv(h, m__state(fv));
+    h = fnv(h, is_hovered_state(fv));
     h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
     check("hover", h, HOVER_HASH);
 }
 
 /* Gives back each particle of `qy` and leaves it empty. */
-static void empty_qy(pointer_list_t *qy) {
+static void empty_particles(pointer_list_t *qy) {
     while (qy->count > 0) {
         void *particle = qy->items[0];
         pointer_list_del(qy, particle);
@@ -506,7 +506,7 @@ static void test_particle_takes_the_help_palette(void) {
     particle->has_acceleration = 0;
     particle->life = P8_FIXED_LIT(0x00068000, 6.5);
     qy = fv->emitter->particles;
-    empty_qy(qy);
+    empty_particles(qy);
     pointer_list_add(qy, particle);
     p8_camera_reset(&gfx);
     at = P8_ADDR_SCREEN + p8_fixed_flr_int(ra.y) * P8_SCREEN_WIDTH + p8_fixed_flr_int(ra.x);
@@ -515,21 +515,21 @@ static void test_particle_takes_the_help_palette(void) {
     assert(p8_peek(&mem, at) == help_screen_trail_colors_seq.items[5] && help_screen_trail_colors_seq.items[5] == 9);
 }
 
-static void test_eu_retires_the_help(void) {
+static void test_start_game_retires_the_help(void) {
     void *fv;
 
     start_title();
     fv = the_help();
-    pico8_eu(NULL);
-    assert(!ents_listed(live_entities(), fv));
-    assert(!ents_listed(entities_by_tag("probe"), fv) && !ents_listed(entities_by_message("draw"), fv) && !ents_listed(entities_by_message("hit_test"), fv));
+    cart_start_game(NULL);
+    assert(!entity_list_listed(live_entities(), fv));
+    assert(!entity_list_listed(entities_by_tag("probe"), fv) && !entity_list_listed(entities_by_message("draw"), fv) && !entity_list_listed(entities_by_message("hit_test"), fv));
 }
 
 /* The title's help is a struct whose descriptor shares `g_`'s 4 inherited
  * entries and holds its own `kj`, `hd`. Ready from its init to its
  * shutdown. */
-static void test_fv_is_a_struct(void) {
-    const entity_class_t *cls = pico8_fv_struct_class();
+static void test_help_screen_is_a_struct(void) {
+    const entity_class_t *cls = help_screen_class();
     const entity_class_t *g_ = probe_class();
     void *fv;
     int j;
@@ -541,61 +541,61 @@ static void test_fv_is_a_struct(void) {
            cls->spawn_particle == g_->spawn_particle);
     assert(cls->attach_slipway == NULL && cls->offer_trade == NULL && cls->draw_at == NULL);
     assert(cls->draw_overlay != NULL && cls->draw_overlay == g_->draw_overlay);
-    assert(cls->draw == pico8_fv_kj_dispatch && cls->hit_test != NULL);
+    assert(cls->draw == help_screen_draw_method && cls->hit_test != NULL);
     assert(cls->new_year == NULL && cls->refresh == NULL && cls->has_refresh == NULL && cls->left_press == NULL && cls->right_press == NULL &&
            cls->accept_drop == NULL);
     for (j = 0; j < STATE_COUNT; j++) {
         assert(cls->states[j] == NULL);
     }
-    assert(pico8_fv_ready());
+    assert(help_screen_ready());
 
-    pico8_help_shutdown();
-    assert(!pico8_fv_ready());
-    pico8_help_init();
-    assert(pico8_fv_ready());
+    help_shutdown();
+    assert(!help_screen_ready());
+    help_init();
+    assert(help_screen_ready());
 }
 
-static void call_f_(void *e) {
+static void call_emitter_init(void *e) {
     emitter_init(e);
 }
 
-static void call_ez(void *e) {
+static void call_emitter_spawn(void *e) {
     emitter_spawn(e, p8_fixed_from_int(1));
 }
 
-static void call_ei(void *e) {
+static void call_emitter_update(void *e) {
     emitter_update(&gfx, &mem, e);
 }
 
-static void call_g__mm(void *e) {
+static void call_probe_spawn_particle(void *e) {
     (void)probe_spawn_particle(e);
 }
 
-static void call_bv(void *e) {
+static void call_targeting_track(void *e) {
     targeting_track(e, vec_ref(1, 1), vec_ref(2, 2));
 }
 
-static void call_dl(void *e) {
+static void call_targeting_tooltip(void *e) {
     targeting_tooltip(&gfx, &mem, e);
 }
 
-static void call_d_(void *e) {
+static void call_targeting_confirm(void *e) {
     (void)targeting_confirm(e);
 }
 
-static void call_gk(void *e) {
+static void call_contains_cursor(void *e) {
     (void)entity_geom_contains_cursor(e, vec_ref(1, 1), vec_ref(2, 2));
 }
 
-static void call_na(void *e) {
+static void call_bob(void *e) {
     planet_bob(e, p8_fixed_from_int(1));
 }
 
 /* On NULL `self`: `d_`, `gk` return 0; `g__mm` draws three `rnd`, divides by
  * `pn` = 0 and returns a new particle; the six others do nothing. */
-static void test_g__closed(void) {
-    static void (*const fns[])(void *) = {call_f_, call_ez, call_ei, call_g__mm, call_bv,
-                                          call_dl, call_d_, call_gk, call_na};
+static void test_probe_closed(void) {
+    static void (*const fns[])(void *) = {call_emitter_init, call_emitter_spawn, call_emitter_update, call_probe_spawn_particle, call_targeting_track,
+                                          call_targeting_tooltip, call_targeting_confirm, call_contains_cursor, call_bob};
     size_t i;
 
     start_title();
@@ -642,7 +642,7 @@ static held_t held_now(void) {
 
 /* The help that `eu` takes out gives back, at the exit queue's flush, its
  * particles and its `qy_fv`, the one place of its sort. */
-static void test_eu_gives_back_the_help_particles(void) {
+static void test_start_game_gives_back_the_help_particles(void) {
     probe_t *fv;
     held_t title;
     held_t after;
@@ -653,8 +653,8 @@ static void test_eu_gives_back_the_help_particles(void) {
     title = held_now();
     assert(title.particles_help_screen == 1 && fv->emitter->particles->count >= 5);
     assert(title.particle == fv->emitter->particles->count);
-    pico8_eu(NULL);
-    pico8_cart_vider_file_sortie();
+    cart_start_game(NULL);
+    cart_flush_exit_queue();
     after = held_now();
     assert(after.particles_help_screen == 0 && after.particle == 0);
     assert(fv->emitter->particles == NULL);
@@ -670,16 +670,16 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
+    cart_load();
     in_fresh_child(test_built);
     in_fresh_child(test_life);
     in_fresh_child(test_hover);
     in_fresh_child(test_particle_takes_the_help_palette);
-    in_fresh_child(test_eu_retires_the_help);
-    in_fresh_child(test_fv_is_a_struct);
-    in_fresh_child(test_eu_gives_back_the_help_particles);
-    in_fresh_child(test_g__closed);
+    in_fresh_child(test_start_game_retires_the_help);
+    in_fresh_child(test_help_screen_is_a_struct);
+    in_fresh_child(test_start_game_gives_back_the_help_particles);
+    in_fresh_child(test_probe_closed);
 
-    printf("test_pico8_fv: all tests passed\n");
+    printf("test_help_screen: all tests passed\n");
     return 0;
 }

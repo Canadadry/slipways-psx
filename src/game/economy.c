@@ -166,15 +166,15 @@ void economy_new_year(economy_t *self) {
 
 int economy_spend(economy_t *self, p8_fixed_t jt) {
     p8_fixed_t nz;
-    pico8_iv_keys_t keys = {0};
+    toast_keys_t keys = {0};
 
     assert_economy(self);
     nz = self != NULL ? self->credits : p8_fixed_from_int(0);
 
     if (nz < jt) {
-        keys.at1 = "-no money-";
-        keys.at2 = p8_fixed_from_int(8);
-        pico8_iv_new(&keys);
+        keys.text = "-no money-";
+        keys.color = p8_fixed_from_int(8);
+        toast_new(&keys);
         return 0;
     }
 
@@ -185,9 +185,9 @@ int economy_spend(economy_t *self, p8_fixed_t jt) {
     if (jt != p8_fixed_from_int(0)) {
         int color;
         char *text = collect_format_signed(frame_zone(), p8_fixed_neg(jt), 10, "$", &color);
-        keys.at1 = text;
-        keys.at2 = p8_fixed_from_int(color);
-        pico8_iv_new(&keys);
+        keys.text = text;
+        keys.color = p8_fixed_from_int(color);
+        toast_new(&keys);
     }
 
     return 1;

@@ -203,7 +203,7 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    pico8_cart_load();
+    cart_load();
 
     test_placeholder_after_init();
     test_is_on_screen_on_placeholder();
