@@ -28,7 +28,7 @@ verdict=$(awk -F' [|] ' '
     END {
         for (lit in listed) if (!(lit in status)) print "litteral liste absent des sources : " lit
         for (lit in listed) if (status[lit] == "ok") print "liste perimee : retirer " lit
-        for (lit in status) if (status[lit] == "ECART" && !(lit in listed)) print "regression : " lit
+        for (lit in status) if (status[lit] == "GAP" && !(lit in listed)) print "regression : " lit
     }' "$expected" "$table" | sort)
 
 if [ -n "$verdict" ]; then

@@ -127,6 +127,6 @@ int main(void) {
     fclose(dump_out);
     assert(dump_ok);
 
-    printf("pico8 demo: all assertions passed; framebuffer dumped to tmp/demo_dump.txt\n");
+    printf("test_demo: all assertions passed; framebuffer dumped to tmp/demo_dump.txt\n");
     return 0;
 }

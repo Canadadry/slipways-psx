@@ -24,20 +24,20 @@ fail() {
     exit 1
 }
 
-mkdir -p "$work" || fail "repertoire de travail $work impossible a creer"
+mkdir -p "$work" || fail "cannot create the work directory $work"
 sites=$work/sites.txt
-releve=$work/releve.txt
+reference=$work/reference.txt
 gen=$work/constants_values.c
 bin=$work/constants_values
 
-[ $# -gt 0 ] || fail "aucune constante dans les sources : aucune source"
+[ $# -gt 0 ] || fail "no constant in the sources: no source"
 awk '
 {
     rest = $0
     while ((p = index(rest, "P8_FIXED_LIT")) > 0) {
         rest = substr(rest, p)
         if (!match(rest, /^P8_FIXED_LIT\(0x[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f], [0-9]*\.?[0-9]+\)/)) {
-            printf "constants_compare: %s:%d : appel P8_FIXED_LIT hors de la forme stricte\n", FILENAME, FNR > "/dev/stderr"
+            printf "constants_compare: %s:%d: P8_FIXED_LIT call outside the strict form\n", FILENAME, FNR > "/dev/stderr"
             bad = 1
             break
         }
@@ -49,17 +49,17 @@ awk '
         rest = substr(rest, RLENGTH + 1)
     }
 }
-END { exit bad }' "$@" > "$sites" || fail "appel P8_FIXED_LIT mal forme"
-[ -s "$sites" ] || fail "aucune constante dans les sources"
+END { exit bad }' "$@" > "$sites" || fail "malformed P8_FIXED_LIT call"
+[ -s "$sites" ] || fail "no constant in the sources"
 
 awk '/^## a literals$/ { in_a = 1; found = 1; next }
      /^## / { in_a = 0 }
      in_a && NF == 2 { print $1, tolower($2) }
-     END { exit found ? 0 : 1 }' "$probe" > "$releve" \
-    || fail "bloc A (## a literals) introuvable dans $probe"
+     END { exit found ? 0 : 1 }' "$probe" > "$reference" \
+    || fail "block A (## a literals) not found in $probe"
 
-missing=$(awk -F'\t' 'NR == FNR { split($0, f, " "); seen[f[1]] = 1; next } !($1 in seen) && !($1 in told) { told[$1] = 1; print $1 }' "$releve" "$sites")
-[ -z "$missing" ] || fail "litteral absent du bloc A de $probe : $(echo $missing)"
+missing=$(awk -F'\t' 'NR == FNR { split($0, f, " "); seen[f[1]] = 1; next } !($1 in seen) && !($1 in told) { told[$1] = 1; print $1 }' "$reference" "$sites")
+[ -z "$missing" ] || fail "literal missing from block A of $probe: $(echo $missing)"
 
 {
     echo '#include <stdint.h>'
@@ -76,8 +76,8 @@ missing=$(awk -F'\t' 'NR == FNR { split($0, f, " "); seen[f[1]] = 1; next } !($1
 } > "$gen"
 
 ${CC:-cc} -std=c99 -Wall -Wextra -Werror -I "$(dirname "$(dirname "$fixed_c")")" -o "$bin" "$gen" "$fixed_c" \
-    || fail "le programme engendre $gen ne compile pas"
-"$bin" > "$work/valeurs.txt" || fail "$bin s'arrete en erreur"
+    || fail "generated program $gen does not compile"
+"$bin" > "$work/values.txt" || fail "$bin exits with an error"
 
 awk 'FILENAME == ARGV[1] { rel[$1] = $2; next }
      FILENAME == ARGV[2] { value[$1] = $2; next }
@@ -98,10 +98,10 @@ awk 'FILENAME == ARGV[1] { rel[$1] = $2; next }
      END {
          for (i = 1; i <= lits; i++) {
              lit = order[i]
-             status = (lit in off) ? "ECART" : "ok"
+             status = (lit in off) ? "GAP" : "ok"
              print lit " | " rel[lit] " | " c[lit] " | " status " | " n[lit]
-             total += n[lit]; if (status == "ok") ok++; else ecart++
+             total += n[lit]; if (status == "ok") ok++; else gaps++
          }
-         printf "litteraux %d | sites %d | ok %d | ecart %d\n", lits, total, ok, ecart
+         printf "literals %d | sites %d | ok %d | gaps %d\n", lits, total, ok, gaps
      }' \
-    "$releve" "$work/valeurs.txt" "$sites"
+    "$reference" "$work/values.txt" "$sites"

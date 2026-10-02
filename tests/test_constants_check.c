@@ -69,14 +69,14 @@ static void test_table_marks_exact_ok_and_truncated_gap(void) {
     assert(run(COMPARE) == 0);
     const char *out = read_file(OUT);
     assert(strstr(out, "0.5 | 0x0000.8000 | 0x0000.8000 | ok | 1\n") != NULL);
-    assert(strstr(out, "0.27 | 0x0000.451e | 0x0000.451f | ECART | 2\n") != NULL);
-    assert(strstr(out, "litteraux 2 | sites 3 | ok 1 | ecart 1\n") != NULL);
+    assert(strstr(out, "0.27 | 0x0000.451e | 0x0000.451f | GAP | 2\n") != NULL);
+    assert(strstr(out, "literals 2 | sites 3 | ok 1 | gaps 1\n") != NULL);
 }
 
 static void test_expected_list_equal_to_gaps_passes(void) {
     reset();
     assert(run(CHECK) == 0);
-    assert(strstr(read_file(OUT), "litteraux 2 | sites 3 | ok 1 | ecart 1\n") != NULL);
+    assert(strstr(read_file(OUT), "literals 2 | sites 3 | ok 1 | gaps 1\n") != NULL);
 }
 
 /* 0.5 est exact : le lister, c'est une liste perimee. */
@@ -117,7 +117,7 @@ static void test_missing_block_a_fails(void) {
     reset();
     write_file(PROBE, "# probe v1\n0.27 0x0000.451e\n0.5 0x0000.8000\n");
     assert(run(COMPARE) != 0);
-    assert(strstr(read_file(OUT), "bloc A") != NULL);
+    assert(strstr(read_file(OUT), "block A") != NULL);
 }
 
 /* Le bloc qui suit A a une ligne de meme forme : lue comme un litteral, elle
@@ -126,7 +126,7 @@ static void test_block_after_a_is_not_read_as_literals(void) {
     reset();
     write_file(PROBE, PROBE_TEXT "## c tostr\n0.27 0x0000.451f\n");
     assert(run(COMPARE) == 0);
-    assert(strstr(read_file(OUT), "0.27 | 0x0000.451e | 0x0000.451f | ECART | 2\n") != NULL);
+    assert(strstr(read_file(OUT), "0.27 | 0x0000.451e | 0x0000.451f | GAP | 2\n") != NULL);
 }
 
 static void write_sources(const char *a, const char *b) {
@@ -141,8 +141,8 @@ static void test_macro_sites_are_read_from_the_sources(void) {
     assert(run(COMPARE) == 0);
     const char *out = read_file(OUT);
     assert(strstr(out, "0.5 | 0x0000.8000 | 0x0000.8000 | ok | 1\n") != NULL);
-    assert(strstr(out, "0.27 | 0x0000.451e | 0x0000.451f | ECART | 1\n") != NULL);
-    assert(strstr(out, "litteraux 2 | sites 2 | ok 1 | ecart 1\n") != NULL);
+    assert(strstr(out, "0.27 | 0x0000.451e | 0x0000.451f | GAP | 1\n") != NULL);
+    assert(strstr(out, "literals 2 | sites 2 | ok 1 | gaps 1\n") != NULL);
 }
 
 /* Un site juste ne couvre pas son frere faux. */
@@ -152,8 +152,8 @@ static void test_two_sites_of_one_literal_with_two_values_are_gap(void) {
                   "y = P8_FIXED_LIT(0x0000451f, 0.27);\n");
     assert(run(COMPARE) == 0);
     const char *out = read_file(OUT);
-    assert(strstr(out, "0.27 | 0x0000.451e | 0x0000.451e,0x0000.451f | ECART | 2\n") != NULL);
-    assert(strstr(out, "litteraux 1 | sites 2 | ok 0 | ecart 1\n") != NULL);
+    assert(strstr(out, "0.27 | 0x0000.451e | 0x0000.451e,0x0000.451f | GAP | 2\n") != NULL);
+    assert(strstr(out, "literals 1 | sites 2 | ok 0 | gaps 1\n") != NULL);
 }
 
 static void test_malformed_macro_call_fails_naming_its_file(void) {
@@ -185,14 +185,14 @@ static void test_no_constant_under_any_form_fails(void) {
     write_sources("x = 1;\n", "y = 2;\n");
     write_file(EXPECTED, "");
     assert(run(COMPARE) != 0);
-    assert(strstr(read_file(OUT), "aucune constante") != NULL);
+    assert(strstr(read_file(OUT), "no constant") != NULL);
     assert(run(CHECK) != 0);
 }
 
 static void test_no_source_fails(void) {
     reset();
     assert(run("sh tools/constants_compare.sh " PROBE " " FIXED " " WORK) != 0);
-    assert(strstr(read_file(OUT), "aucune source") != NULL);
+    assert(strstr(read_file(OUT), "no source") != NULL);
 }
 
 static void test_unlisted_macro_gap_fails_as_regression(void) {
@@ -200,7 +200,7 @@ static void test_unlisted_macro_gap_fails_as_regression(void) {
     write_sources("x = P8_FIXED_LIT(0x00008000, 0.5);\n",
                   "y = P8_FIXED_LIT(0x0000451f, 0.27);\n");
     assert(run(CHECK) == 0);
-    assert(strstr(read_file(OUT), "litteraux 2 | sites 2 | ok 1 | ecart 1\n") != NULL);
+    assert(strstr(read_file(OUT), "literals 2 | sites 2 | ok 1 | gaps 1\n") != NULL);
     write_file(EXPECTED, "");
     assert(run(CHECK) != 0);
     assert(strstr(read_file(OUT), "regression : 0.27") != NULL);
