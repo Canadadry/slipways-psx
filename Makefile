@@ -174,8 +174,32 @@
 #                       par module, hors tools/scope_exceptions.txt ; lit
 #                       tmp/ast_rename/declarations.tsv (make rename-extract
 #                       d'abord), n'échoue jamais, hors suite
+# make cryptic-locals [MODULES="<module>..." | SUBSTEP=<3x>] -> the cryptic
+#                       locals list: each local or parameter of scope > 40
+#                       lines named in three characters or less, or with a
+#                       `_` part found in no renamed new name of
+#                       docs/renommage.tsv; reads
+#                       tmp/ast_rename/declarations.tsv (make rename-extract
+#                       first), never fails, outside the suite
+# make cart-citations-test -> the tests of tools/cart_citations.py on a mini
+#                       tree, in make test
+# make cart-citations [MODULES="<module>..." | SUBSTEP=<3x>] -> what comments
+#                       and assert messages cite of the cart beyond
+#                       cart-names-count: `cart` (outside game/cart), `Lua`,
+#                       `lua.lua`, bare old names of two characters or less;
+#                       one site per line, then per module; never fails,
+#                       outside the suite
+# make french-count-test -> the tests of tools/french_count.py on a mini
+#                       tree, in make test
+# make french-count [MODULES="<module>..." | SUBSTEP=<3x>] [SITES=1] -> French
+#                       counter: French function words and accented words
+#                       left in the code, per module and column, minus
+#                       tools/french_exceptions.txt; SUBSTEP: the sub-step's
+#                       modules, split done / later; SITES=1 lists each
+#                       mention; warns for a module in no sub-step, never
+#                       fails, outside the suite
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test rename-count-test cart-names-count rename-substeps-test rename-substeps-check rename-strings-verify-test rename-strings-verify rename-rekey-test rename-rekey rename-rekey-check scope-count-test scope-count
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test rename-count-test cart-names-count rename-substeps-test rename-substeps-check rename-strings-verify-test rename-strings-verify rename-rekey-test rename-rekey rename-rekey-check scope-count-test scope-count cryptic-locals cart-citations-test cart-citations french-count-test french-count
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -858,7 +882,7 @@ endif
 replay: $(TMP_DIR)/replay
 	./$(TMP_DIR)/replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard rename-derive-test rename-strings-test rename-check-test rename-slice-test rename-count-test rename-substeps-test rename-substeps-check rename-strings-verify-test rename-rekey-test scope-count-test
+test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard rename-derive-test rename-strings-test rename-check-test rename-slice-test rename-count-test rename-substeps-test rename-substeps-check rename-strings-verify-test rename-rekey-test scope-count-test french-count-test cart-citations-test
 
 test-all: test e2e
 
@@ -1254,6 +1278,28 @@ scope-count:
 	python3 tools/scope_count.py --declarations $(AST_RENAME_DIR)/declarations.tsv \
 	    --exceptions tools/scope_exceptions.txt --root . $(foreach m,$(MODULES),--module '$(m)') \
 	    $(if $(SUBSTEP),--substep $(SUBSTEP) --substeps $(RENAME_SUBSTEPS))
+
+cryptic-locals:
+	python3 tools/scope_count.py --declarations $(AST_RENAME_DIR)/declarations.tsv \
+	    --exceptions tools/scope_exceptions.txt --root . --cryptic --table docs/renommage.tsv \
+	    $(foreach m,$(MODULES),--module '$(m)') \
+	    $(if $(SUBSTEP),--substep $(SUBSTEP) --substeps $(RENAME_SUBSTEPS))
+
+cart-citations-test:
+	python3 tests/test_cart_citations.py
+
+cart-citations:
+	python3 tools/cart_citations.py --table docs/renommage.tsv --root . \
+	    $(foreach m,$(MODULES),--module '$(m)') \
+	    $(if $(SUBSTEP),--substep $(SUBSTEP) --substeps $(RENAME_SUBSTEPS))
+
+french-count-test:
+	python3 tests/test_french_count.py
+
+french-count:
+	python3 tools/french_count.py --root . --exceptions tools/french_exceptions.txt \
+	    --substeps $(RENAME_SUBSTEPS) $(foreach m,$(MODULES),--module '$(m)') \
+	    $(if $(SUBSTEP),--substep $(SUBSTEP)) $(if $(SITES),--sites)
 
 rename-apply:
 	@test -n "$(TABLE)" || { echo "usage: make rename-apply TABLE=<table>" >&2; exit 1; }

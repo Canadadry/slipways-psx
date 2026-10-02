@@ -5,11 +5,19 @@ enum constant, macro, static or global (one column each); a local or a
 parameter whose scope spans more than 40 lines (column long-scope). Allowed:
 any other local or parameter (a parameter of a function-pointer type has the
 scope of its prototype), and the (kind, parent, name) triples of the
-exceptions file. Never fails: exit 0."""
+exceptions file. Never fails: exit 0.
+
+With --cryptic and --table docs/renommage.tsv, the cryptic-locals list
+instead: each local or parameter whose scope spans more than 40 lines (a
+parameter of a function-pointer type has the scope of its prototype) and
+whose name has three characters or less, or has a part, split on `_`, that
+is no part of the new name of a renamed row of the table (the English a
+human validated); one line per candidate, then the total per module."""
 
 import argparse
 import fnmatch
 import os
+import re
 import sys
 
 REFUSED_KINDS = ("type", "tag", "function", "field", "enum_constant", "macro", "static",
@@ -57,14 +65,35 @@ def column_of(row):
         return None
     if row["kind"] in REFUSED_KINDS:
         return row["kind"]
+    return "long-scope" if is_long_scope(row) else None
+
+
+def is_long_scope(row):
+    if row["kind"] not in SCOPE_KINDS:
+        return False
     if row["kind"] == "param" and "." in row["parent"]:
         # A param of a function-pointer type: the extraction names its
         # translation unit as parent and runs its scope to the unit's end.
-        return None
-    if row["kind"] in SCOPE_KINDS and row["scope_lines"].isdigit() \
-            and int(row["scope_lines"]) > MAX_SCOPE_LINES:
-        return "long-scope"
-    return None
+        return False
+    return row["scope_lines"].isdigit() and int(row["scope_lines"]) > MAX_SCOPE_LINES
+
+
+def validated_words(table):
+    """The lowercase `_` parts of the new names of the renamed rows."""
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import rename_count
+    words = set()
+    for row in rename_count.read_table(table):
+        if row.get("statut") == "renommé":
+            words.update(w.lower() for w in re.split(r"[^A-Za-z0-9]+", row["nouveau"]) if w)
+    return words
+
+
+def is_cryptic(row, words):
+    if not is_long_scope(row):
+        return False
+    parts = [p.lower() for p in row["name"].split("_") if p]
+    return len(row["name"]) <= 3 or any(p not in words for p in parts)
 
 
 def newest_source(root):
@@ -88,7 +117,12 @@ def main(argv):
                         help="only these modules (shell patterns: game/planet*)")
     parser.add_argument("--substep", help="only this sub-step's modules")
     parser.add_argument("--substeps", help="the sub-step table, with --substep")
+    parser.add_argument("--cryptic", action="store_true",
+                        help="list the cryptic long-scope locals and params instead")
+    parser.add_argument("--table", help="docs/renommage.tsv, with --cryptic")
     args = parser.parse_args(argv)
+    if args.cryptic and not args.table:
+        parser.error("--cryptic needs --table")
 
     selected = None
     if args.substep:
@@ -99,16 +133,26 @@ def main(argv):
             parser.error("unknown sub-step %s" % args.substep)
         selected = set(substeps.modules[args.substep])
 
+    def selected_module(row):
+        module = module_of(row["file"])
+        if selected is not None and module not in selected:
+            return None
+        if args.module and not any(fnmatch.fnmatchcase(module, m) for m in args.module):
+            return None
+        return module
+
+    if args.cryptic:
+        print_cryptic(args, selected_module)
+        return 0
+
     exceptions = read_exceptions(args.exceptions)
     table = {}
     for row in read_declarations(args.declarations):
         column = column_of(row)
         if column is None or (row["kind"], row["parent"], row["name"]) in exceptions:
             continue
-        module = module_of(row["file"])
-        if selected is not None and module not in selected:
-            continue
-        if args.module and not any(fnmatch.fnmatchcase(module, m) for m in args.module):
+        module = selected_module(row)
+        if module is None:
             continue
         table.setdefault(module, dict.fromkeys(COLUMNS, 0))[column] += 1
 
@@ -122,10 +166,35 @@ def main(argv):
                 total[column] += row[column]
         print("%-*s %s %10d" % (width, module, " ".join("%13d" % row[c] for c in COLUMNS),
                                 sum(row.values())))
+    warn_if_stale(args)
+    return 0
+
+
+def print_cryptic(args, selected_module):
+    words = validated_words(args.table)
+    found = []
+    for row in read_declarations(args.declarations):
+        module = selected_module(row)
+        if module is not None and is_cryptic(row, words):
+            found.append((module, row["kind"], row["name"], row["parent"], row["scope_lines"]))
+    found.sort(key=lambda c: (c[0], c[3], c[2]))
+    print("module kind name parent scope_lines")
+    for candidate in found:
+        print("\t".join(candidate))
+    print("module candidates")
+    per_module = {}
+    for candidate in found:
+        per_module[candidate[0]] = per_module.get(candidate[0], 0) + 1
+    for module in sorted(per_module):
+        print("%s %d" % (module, per_module[module]))
+    print("total %d" % len(found))
+    warn_if_stale(args)
+
+
+def warn_if_stale(args):
     if os.path.getmtime(args.declarations) < newest_source(args.root):
         print("warning: %s is older than the sources; run `make rename-extract`"
               % args.declarations)
-    return 0
 
 
 if __name__ == "__main__":

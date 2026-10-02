@@ -133,5 +133,70 @@ class ScopeCount(unittest.TestCase):
         self.assertIn("warning:", result.stdout)
 
 
+TABLE = ("# Statut : validé\n"
+         "ancien\tnouveau\tfichier\tcatégorie\tsorte\tstatut\tmodule\tconcept\tnote\tidentité\n"
+         "jo_i\tplanet_index\tsrc/game/gadget.c\tidentifiant\tlocale\trenommé\tgame/gadget\t\t\tc:x\n"
+         "q\tq\tsrc/game/gadget.c\tidentifiant\tlocale\tconservé\tgame/gadget\t\t\tc:y\n"
+         "zz\tcount_total\tsrc/game/gadget.c\tidentifiant\tlocale\tconservé\tgame/gadget\t\t\tc:z\n")
+TABLE_PATH = os.path.join(REPO, "tmp", "test_scope_count_table.tsv")
+
+
+def cryptic(rows, *args):
+    """The candidate lines and the per-module totals of --cryptic."""
+    result = run(rows, "--cryptic", "--table", TABLE_PATH, *args)
+    candidates, totals = [], {}
+    for line in result.stdout.splitlines():
+        cells = line.split()
+        if line.startswith("warning:") or not cells or cells[0] in ("module", "candidate"):
+            continue
+        if cells[0] == "total" or len(cells) == 2:
+            totals[cells[0]] = int(cells[1])
+        else:
+            candidates.append(tuple(cells))
+    return result, candidates, totals
+
+
+class Cryptic(unittest.TestCase):
+    """--cryptic: the locals and params of scope > 40 lines whose name has
+    three characters or less, or a `_` part that no renamed new name has."""
+
+    @classmethod
+    def setUpClass(cls):
+        os.makedirs(os.path.dirname(TABLE_PATH), exist_ok=True)
+        with open(TABLE_PATH, "w", encoding="utf-8") as f:
+            f.write(TABLE)
+
+    def test_a_short_name_is_a_candidate_past_forty_lines(self):
+        result, candidates, totals = cryptic([decl("local", "abc", "src/game/gadget.c", "run", 41),
+                                              decl("param", "pos", "src/game/gadget.c", "run", 40)])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(candidates, [("game/gadget", "local", "abc", "run", "41")], result.stdout)
+        self.assertEqual(totals, {"game/gadget": 1, "total": 1}, result.stdout)
+
+    def test_a_name_with_a_part_no_new_name_has_is_a_candidate(self):
+        _, candidates, _ = cryptic([decl("local", "planet_index", "src/game/gadget.c", "run", 90),
+                                    decl("local", "Planet_INDEX", "src/game/gadget.c", "run", 90),
+                                    decl("local", "planet_tally", "src/game/gadget.c", "run", 90),
+                                    decl("param", "count_total", "src/game/gadget.c", "run", 90)])
+        self.assertEqual(sorted(c[2] for c in candidates), ["count_total", "planet_tally"])
+
+    def test_fields_statics_and_function_pointer_params_are_not_candidates(self):
+        _, candidates, totals = cryptic([decl("field", "abc", "src/game/gadget.c", "run", 90),
+                                         decl("static", "abc", "src/game/gadget.c", "run", 90),
+                                         decl("param", "abc", "src/game/gadget.h",
+                                              "src/game/gadget.c", 90)])
+        self.assertEqual(candidates, [])
+        self.assertEqual(totals, {"total": 0})
+
+    def test_modules_and_substep_select_the_candidates(self):
+        rows = [decl("local", "abc", "src/engine/widget.c", "run", 90),
+                decl("local", "abc", "src/game/gadget.c", "run", 90)]
+        _, candidates, _ = cryptic(rows, "--module", "engine/*")
+        self.assertEqual([c[0] for c in candidates], ["engine/widget"])
+        _, candidates, _ = cryptic(rows, "--substep", "3b",
+                                   "--substeps", os.path.join(WORK, "substeps.tsv"))
+        self.assertEqual([c[0] for c in candidates], ["game/gadget"])
+
+
 if __name__ == "__main__":
     unittest.main()
