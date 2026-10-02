@@ -30,7 +30,7 @@ void planet_projects_panel(planet_t *self);
 
 /* Draws, and mutates `self`: `ma()` decays the halo, and the `fo` flash is
  * cleared once drawn. */
-void planet_draw(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t pos);
+void planet_draw(p8_graphics_t *graphics, p8_memory_t *memory, planet_t *self, vec_t screen_pos);
 
 /* In the `hp.cw` branch `self` is marked for removal and the tail of the
  * work lands on a fresh planet the caller never sees -- or on nothing,

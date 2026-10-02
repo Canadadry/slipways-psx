@@ -153,7 +153,7 @@ void planet_inspection_panel(const planet_t *self) {
     layout_row_keys_t row_keys[PLANET_INSPECTION_PANEL_ROWS];
     layout_row_cell_t *row_items[PLANET_INSPECTION_PANEL_ROWS];
     int row_cap[PLANET_INSPECTION_PANEL_ROWS];
-    planet_inspection_panel_ctx_t ctx;
+    planet_inspection_panel_ctx_t filter_context;
     const pointer_list_t *needs;
     pointer_list_t unmet_needs;
     open_box_frame_t frame;
@@ -193,10 +193,10 @@ void planet_inspection_panel(const planet_t *self) {
     }
     row_count = 1;
 
-    pointer_list_init(&ctx.unmet_needs, frame_zone());
+    pointer_list_init(&filter_context.unmet_needs, frame_zone());
 
     needs = self->needs;
-    unmet_needs = collect_filter_pointer_list(frame_zone(), needs, planet_inspection_panel_filter_step, &ctx);
+    unmet_needs = collect_filter_pointer_list(frame_zone(), needs, planet_inspection_panel_filter_step, &filter_context);
 
     if (unmet_needs.count > 0) {
         row_cap[row_count] = 1 + unmet_needs.count + 1;
@@ -233,12 +233,12 @@ void planet_inspection_panel(const planet_t *self) {
 
     /* A `ji` the predicate appended nothing to leaves no row at all, not a
      * row holding false: Lua's `add(t,nil)` is a no-op. */
-    if (ctx.unmet_needs.count >= 1) {
-        row_cap[row_count] = 1 + ctx.unmet_needs.count + 1;
+    if (filter_context.unmet_needs.count >= 1) {
+        row_cap[row_count] = 1 + filter_context.unmet_needs.count + 1;
         row_items[row_count] = planet_inspection_panel_row_items(row_cap[row_count]);
         row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string("receives:");
-        for (index = 0; index < ctx.unmet_needs.count; index++) {
-            row_items[row_count][row_keys[row_count].count++] = layout_row_cell_row(ctx.unmet_needs.items[index]);
+        for (index = 0; index < filter_context.unmet_needs.count; index++) {
+            row_items[row_count][row_keys[row_count].count++] = layout_row_cell_row(filter_context.unmet_needs.items[index]);
         }
         row_count++;
     }
@@ -400,11 +400,11 @@ void planet_projects_panel(planet_t *self) {
     message_box_open_box(&frame, bs, n);
 }
 
-void planet_draw(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t pos) {
-    vec_t adjusted;
+void planet_draw(p8_graphics_t *graphics, p8_memory_t *memory, planet_t *self, vec_t screen_pos) {
+    vec_t shaken_pos;
     const char *state_val;
-    int name;
-    int speed_factor;
+    int screen_x;
+    int screen_y;
     int spr_index = 43;
 
     if (self == NULL || !entity_geom_is_on_screen((const entity_t *)self)) {
@@ -413,7 +413,7 @@ void planet_draw(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t pos
 
     /* Also decays `self.ma`. Everything below draws at `adjusted`, never
      * at the `p` that was passed in. */
-    adjusted = entity_geom_shake(pos, (entity_t *)self);
+    shaken_pos = entity_geom_shake(screen_pos, (entity_t *)self);
 
     state_val = self->header.state;
     if (state_val != NULL && strcmp(state_val, "vanishing") == 0) {
@@ -423,15 +423,15 @@ void planet_draw(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t pos
         }
     }
 
-    name = p8_fixed_flr_int(adjusted.x);
-    speed_factor = p8_fixed_flr_int(adjusted.y);
+    screen_x = p8_fixed_flr_int(shaken_pos.x);
+    screen_y = p8_fixed_flr_int(shaken_pos.y);
 
-    p8_circfill(gfx, mem, name, speed_factor, 7, 0);
+    p8_circfill(graphics, memory, screen_x, screen_y, 7, 0);
 
     /* An absent `qw` reads as 0, i.e. the default palette block. */
-    hud_select_palette_block(mem, (self->header.class->lineage & LINEAGE(LINEAGE_TRADING_HUB)) ? self->palette_block : p8_fixed_from_int(0));
-    p8_palt(mem, 3, 0);
-    p8_palt(mem, 0, 1);
+    hud_select_palette_block(memory, (self->header.class->lineage & LINEAGE(LINEAGE_TRADING_HUB)) ? self->palette_block : p8_fixed_from_int(0));
+    p8_palt(memory, 3, 0);
+    p8_palt(memory, 0, 1);
 
     /* `A and B or C`: `nk.s` is never absent, so only a nil `nk` falls
      * through to `self.s`, then to the literal 43. */
@@ -440,21 +440,21 @@ void planet_draw(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t pos
     } else if (self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) {
         spr_index = p8_fixed_flr_int(self->sprite);
     }
-    p8_spr(gfx, mem, spr_index, name - 4, speed_factor - 4, 2, 2);
-    hud_select_palette_block_default(mem);
+    p8_spr(graphics, memory, spr_index, screen_x - 4, screen_y - 4, 2, 2);
+    hud_select_palette_block_default(memory);
 
     if (planet_is_colonized(self)) {
         int mi = p8_fixed_flr_int(self->has_development_tier ? self->development_tier : p8_fixed_from_int(0));
         int color = 0;
         int_seq_at(planet_ring_colors()->items, planet_ring_colors()->count, mi, &color);
-        p8_circ(gfx, mem, name, speed_factor, 6, color);
-        p8_spr_default(gfx, mem, mi + 1, name - 3, speed_factor - 6);
+        p8_circ(graphics, memory, screen_x, screen_y, 6, color);
+        p8_spr_default(graphics, memory, mi + 1, screen_x - 3, screen_y - 6);
     }
 
     {
         if (self->layout_row != NULL) {
             vec_t offset =
-                vec_add(adjusted, vec_make(p8_fixed_from_int(0), p8_fixed_from_int(7)));
+                vec_add(shaken_pos, vec_make(p8_fixed_from_int(0), p8_fixed_from_int(7)));
             assert(self->layout_row->header.class->draw_at != NULL && "a layout row has a draw_at method");
             self->layout_row->header.class->draw_at(&self->layout_row->header, offset, P8_FIXED_LIT(0x00008000, 0.5));
         }
@@ -475,9 +475,9 @@ void planet_draw(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t pos
             /* The pattern literal's fractional `.1` is PICO-8's
              * transparency flag: its set bits leave the screen untouched,
              * so this is `_transparent`, not plain `pico8_fillp`. */
-            p8_fillp_transparent(gfx, 0xAAAAu);
-            p8_circfill(gfx, mem, name, speed_factor, radius, 2);
-            p8_fillp_reset(gfx);
+            p8_fillp_transparent(graphics, 0xAAAAu);
+            p8_circfill(graphics, memory, screen_x, screen_y, radius, 2);
+            p8_fillp_reset(graphics);
             self->targeted_by = NULL;
         }
     }
@@ -527,14 +527,14 @@ down_t planet_left_press(planet_t *self) {
 }
 
 void planet_apply_project(planet_t *self, research_project_t *research_project_instance) {
-    planet_t *working_self;
+    planet_t *result_planet;
     p8_fixed_t fp = p8_fixed_from_int(2);
 
     research_project_assert(research_project_instance);
     if (self == NULL) {
         return;
     }
-    working_self = self;
+    result_planet = self;
 
     if (research_project_instance != NULL && research_project_instance->class_name != NULL) {
         const entity_kind_t *target_kind = NULL;
@@ -548,7 +548,7 @@ void planet_apply_project(planet_t *self, research_project_t *research_project_i
         keys.pos = self->pos;
         keys.planet_id = self->planet_id;
 
-        working_self = (target_kind != NULL) ? (planet_t *)target_kind->new_entity(&keys) : NULL;
+        result_planet = (target_kind != NULL) ? (planet_t *)target_kind->new_entity(&keys) : NULL;
     } else if (research_project_instance != NULL && research_project_instance->next_type != NULL) {
         self->planet_type = planet_types_lookup(research_project_instance->next_type);
     } else {
@@ -566,5 +566,5 @@ void planet_apply_project(planet_t *self, research_project_t *research_project_i
         p8_play_sfx(p8_fixed_from_int(55));
     }
 
-    planet_restart_shake(working_self);
+    planet_restart_shake(result_planet);
 }

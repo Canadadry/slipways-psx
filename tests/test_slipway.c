@@ -669,77 +669,77 @@ static void test_draw(void) {
  * spending or joining anything. */
 static void test_too_far(void) {
     uint32_t hash = 2166136261u;
-    uint32_t blank;
+    uint32_t empty;
     uint32_t too_far;
     uint32_t sprite;
-    uint32_t costed;
+    uint32_t cost;
     vec_t main_camera_pos;
     vec_t mouse;
     p8_fixed_t fade_in_step;
     p8_fixed_t before;
-    void *old;
-    void *origin;
+    void *old_slipway;
+    void *start_planet;
     void *target;
-    void *far;
-    void *twin;
+    void *far_slipway;
+    void *second_slipway;
     void *near;
-    void *end;
+    void *end_before_drop;
 
     world();
-    old = the_slipway();
-    origin = as_slipway(old)->start;
-    target = as_slipway(old)->end;
-    far = build_slipway(origin);
-    drag_over(far, NULL, vec_ref(-640, -640));
-    assert(end_kind(far) == END_THROWAWAY && target_kind(far) == TARGET_STATUS_TEXT);
-    assert(target_kind(old) == TARGET_ABSENT);
+    old_slipway = the_slipway();
+    start_planet = as_slipway(old_slipway)->start;
+    target = as_slipway(old_slipway)->end;
+    far_slipway = build_slipway(start_planet);
+    drag_over(far_slipway, NULL, vec_ref(-640, -640));
+    assert(end_kind(far_slipway) == END_THROWAWAY && target_kind(far_slipway) == TARGET_STATUS_TEXT);
+    assert(target_kind(old_slipway) == TARGET_ABSENT);
     assert(main_camera_typed() != NULL);
     main_camera_pos = vec_of(main_camera_typed()->pos);
     p8_camera(&gfx, p8_fixed_flr_int(main_camera_pos.x), p8_fixed_flr_int(main_camera_pos.y));
     p8_cls(&mem);
-    blank = screen_hash();
+    empty = screen_hash();
 
-    class_of(far)->draw(far, NULL);
-    assert(screen_hash() != blank);
+    class_of(far_slipway)->draw(far_slipway, NULL);
+    assert(screen_hash() != empty);
     hash = fnv(hash, screen_hash());
 
-    twin = build_slipway(origin);
-    drag_over(twin, target, vec_ref_fixed(vec_of(as_planet(target)->pos)));
-    assert(target_kind(twin) == TARGET_SLIPWAY);
-    near = build_slipway(origin);
+    second_slipway = build_slipway(start_planet);
+    drag_over(second_slipway, target, vec_ref_fixed(vec_of(as_planet(target)->pos)));
+    assert(target_kind(second_slipway) == TARGET_SLIPWAY);
+    near = build_slipway(start_planet);
     drag_over(near, NULL,
-            vec_ref_fixed(vec_add(vec_of(as_planet(origin)->pos), vec_make(p8_fixed_from_int(16), 0))));
+            vec_ref_fixed(vec_add(vec_of(as_planet(start_planet)->pos), vec_make(p8_fixed_from_int(16), 0))));
     assert(end_kind(near) == END_THROWAWAY && target_kind(near) == TARGET_ABSENT && as_slipway(near)->targeting->has_cost);
     assert(main_mouse_typed() != NULL);
     mouse = vec_of(main_mouse_typed()->pos);
     p8_camera(&gfx, p8_fixed_flr_int(mouse.x) - 64, p8_fixed_flr_int(mouse.y) - 64);
     p8_cls(&mem);
-    class_of(far)->draw_overlay(far, NULL);
+    class_of(far_slipway)->draw_overlay(far_slipway, NULL);
     too_far = screen_hash();
     p8_cls(&mem);
-    class_of(twin)->draw_overlay(twin, NULL);
+    class_of(second_slipway)->draw_overlay(second_slipway, NULL);
     sprite = screen_hash();
     p8_cls(&mem);
     class_of(near)->draw_overlay(near, NULL);
-    costed = screen_hash();
-    assert(too_far != blank && sprite != blank && costed != blank);
-    assert(too_far != sprite && too_far != costed);
+    cost = screen_hash();
+    assert(too_far != empty && sprite != empty && cost != empty);
+    assert(too_far != sprite && too_far != cost);
     hash = fnv(hash, too_far);
     hash = fnv(hash, sprite);
-    hash = fnv(hash, costed);
+    hash = fnv(hash, cost);
 
     before = credits();
-    fade_in_step = as_slipway(far)->fade_in_step;
-    end = as_slipway(far)->end;
-    assert(entity_list_pointer_list_count(as_planet(origin)->slipways) == 1 && entity_list_pointer_list_count(as_planet(target)->slipways) == 1);
-    class_of(far)->drop(far, target);
-    assert(is_dead_state(as_slipway(far)) == 2);
+    fade_in_step = as_slipway(far_slipway)->fade_in_step;
+    end_before_drop = as_slipway(far_slipway)->end;
+    assert(entity_list_pointer_list_count(as_planet(start_planet)->slipways) == 1 && entity_list_pointer_list_count(as_planet(target)->slipways) == 1);
+    class_of(far_slipway)->drop(far_slipway, target);
+    assert(is_dead_state(as_slipway(far_slipway)) == 2);
     assert(credits() == before);
-    assert(entity_list_pointer_list_count(as_planet(origin)->slipways) == 1 && entity_list_pointer_list_count(as_planet(target)->slipways) == 1);
-    assert(as_slipway(far)->end == end && end_kind(far) == END_THROWAWAY);
-    assert(as_slipway(far)->fade_in_step == fade_in_step);
-    assert(target_kind(far) == TARGET_STATUS_TEXT);
-    hash = fold_slipway(hash, far);
+    assert(entity_list_pointer_list_count(as_planet(start_planet)->slipways) == 1 && entity_list_pointer_list_count(as_planet(target)->slipways) == 1);
+    assert(as_slipway(far_slipway)->end == end_before_drop && end_kind(far_slipway) == END_THROWAWAY);
+    assert(as_slipway(far_slipway)->fade_in_step == fade_in_step);
+    assert(target_kind(far_slipway) == TARGET_STATUS_TEXT);
+    hash = fold_slipway(hash, far_slipway);
     hash = fnv(hash, (uint32_t)credits());
     check("too_far", hash, TOO_FAR_HASH);
 }
@@ -763,20 +763,20 @@ static void test_drag_mouse_point(void) {
     vec_t *second_mouse;
     vec_t first_pos;
     vec_t on_camera;
-    void *origin;
+    void *start_planet;
     void *target;
     void *first;
     void *second;
     void *first_end;
     void *second_end;
-    void *rows;
-    size_t grab_arena;
+    void *other_end;
+    size_t used_before;
     int index;
 
     world();
-    origin = as_slipway(the_slipway())->start;
+    start_planet = as_slipway(the_slipway())->start;
     target = as_slipway(the_slipway())->end;
-    first = build_slipway(origin);
+    first = build_slipway(start_planet);
     first_mouse = vec_ref(-640, -640);
     drag_over(first, NULL, first_mouse);
     first_end = as_slipway(first)->end;
@@ -801,25 +801,25 @@ static void test_drag_mouse_point(void) {
     assert(!same_vec(vec_of(mouse_point_map_pos(second_end)), first_pos));
     hash = fold_slipway(hash, first);
 
-    grab_arena = game_zone_used();
+    used_before = game_zone_used();
     for (index = 0; index < 10; index++) {
         drag_over(first, NULL, index % 2 ? first_mouse : second_mouse);
         assert(as_slipway(first)->end == first_end);
     }
-    assert(game_zone_used() == grab_arena && "a held slipway allocates nothing per drag");
+    assert(game_zone_used() == used_before && "a held slipway allocates nothing per drag");
     drag_over(first, NULL, second_mouse);
 
-    second = build_slipway(origin);
+    second = build_slipway(start_planet);
     drag_over(second, NULL, first_mouse);
-    rows = as_slipway(second)->end;
-    assert(rows != NULL && rows != first_end && as_slipway(first)->end == first_end);
-    assert(holds_copy_of(mouse_point_pos(rows), first_mouse) && same_vec(vec_of(mouse_point_map_pos(rows)), first_pos));
+    other_end = as_slipway(second)->end;
+    assert(other_end != NULL && other_end != first_end && as_slipway(first)->end == first_end);
+    assert(holds_copy_of(mouse_point_pos(other_end), first_mouse) && same_vec(vec_of(mouse_point_map_pos(other_end)), first_pos));
     assert(holds_copy_of(mouse_point_pos(first_end), second_mouse) && "another slipway's drag leaves this one's point as it was");
     hash = fold_slipway(hash, second);
 
     drag_over(first, target, vec_ref_fixed(vec_of(as_planet(target)->pos)));
     assert(as_slipway(first)->end == target && end_kind(first) == END_PLANET);
-    assert(holds_copy_of(mouse_point_pos(rows), first_mouse));
+    assert(holds_copy_of(mouse_point_pos(other_end), first_mouse));
     hash = fold_slipway(hash, first);
     check("mouse_point", hash, MOUSE_POINT_HASH);
 

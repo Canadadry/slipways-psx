@@ -131,8 +131,8 @@ void slipway_drag(slipway_t *self, vec_t *mp) {
     self->layer = self->has_infraspace ? p8_fixed_from_int(2) : p8_fixed_from_int(4);
 }
 
-void slipway_drop(slipway_t *self, entity_t *end) {
-    int should_fail;
+void slipway_drop(slipway_t *self, entity_t *end_planet) {
+    int refused;
 
     if (self == NULL) {
         return;
@@ -140,8 +140,8 @@ void slipway_drop(slipway_t *self, entity_t *end) {
 
     /* `d_()` charges the player and advances the clock, so it must stay
      * behind the `re == NULL` short-circuit. */
-    should_fail = (end == NULL) || !targeting_confirm((entity_t *)self);
-    if (should_fail) {
+    refused = (end_planet == NULL) || !targeting_confirm((entity_t *)self);
+    if (refused) {
         /* pico8_stat has no case for 19, so it reads 0 and this sfx never
          * fires; ported anyway. It dereferences `input` without checking it,
          * so the NULL guard below is load-bearing. */
@@ -154,7 +154,7 @@ void slipway_drop(slipway_t *self, entity_t *end) {
     }
 
     self->fade_in_step = p8_fixed_from_int(1);
-    self->end = end;
+    self->end = end_planet;
 
     {
         entity_t *qu = self->start;
@@ -163,9 +163,9 @@ void slipway_drop(slipway_t *self, entity_t *end) {
         if (start_registered) {
             qu->class->attach_slipway(qu, &self->header);
         }
-        end_registered = end != NULL && end->class->attach_slipway != NULL;
+        end_registered = end_planet != NULL && end_planet->class->attach_slipway != NULL;
         if (end_registered) {
-            end->class->attach_slipway(end, &self->header);
+            end_planet->class->attach_slipway(end_planet, &self->header);
         }
         assert(start_registered && end_registered &&
                "slipway_drop: both endpoints must have attach_slipway, or the slipway never joins their slipways lists");
@@ -216,8 +216,8 @@ static int slipway_obstruction_slipway_predicate(entity_t *e, void *ctx_ptr) {
 }
 
 entity_t *slipway_obstruction(slipway_t *self) {
-    entity_t *start;
-    entity_t *end;
+    entity_t *start_node;
+    entity_t *end_node;
     vec_t start_point;
     vec_t end_point;
     p8_fixed_t threshold;
@@ -226,10 +226,10 @@ entity_t *slipway_obstruction(slipway_t *self) {
         return NULL;
     }
 
-    start = self->start;
-    end = self->end;
-    start_point = slipway_end_map_pos(start);
-    end_point = slipway_end_map_pos(end);
+    start_node = self->start;
+    end_node = self->end;
+    start_point = slipway_end_map_pos(start_node);
+    end_point = slipway_end_map_pos(end_node);
 
     threshold = tech_gate_if_unlocked("space folding", P8_FIXED_LIT(0x00008000, 0.5), P8_FIXED_LIT(0x0001147a, 1.08));
 
@@ -240,9 +240,9 @@ entity_t *slipway_obstruction(slipway_t *self) {
     {
         const entity_list_t *oe = NULL;
 
-        if (start != NULL) {
-            assert(planet_is_family(start) && "a slipway's start is a planet: slipway_create asserts it");
-            oe = ((const planet_t *)start)->slipways;
+        if (start_node != NULL) {
+            assert(planet_is_family(start_node) && "a slipway's start is a planet: slipway_create asserts it");
+            oe = ((const planet_t *)start_node)->slipways;
         }
         if (oe != NULL) {
             entity_list_iter_t it = entity_list_all(oe);
@@ -253,7 +253,7 @@ entity_t *slipway_obstruction(slipway_t *self) {
                 }
                 assert(w->class == slipway_class() &&
                        "the start's slipways list holds slipways: only planet_attach_slipway adds to it, and only slipways");
-                if (slipway_other_end((const slipway_t *)w, start) == end) {
+                if (slipway_other_end((const slipway_t *)w, start_node) == end_node) {
                     return w;
                 }
             }

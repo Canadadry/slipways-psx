@@ -86,18 +86,18 @@ void slipway_draw_line(const p8_graphics_t *gfx, p8_memory_t *mem, const slipway
     }
 }
 
-void slipway_draw(const p8_graphics_t *gfx, p8_memory_t *mem, slipway_t *self) {
-    entity_t *start;
-    entity_t *end;
+void slipway_draw(const p8_graphics_t *graphics, p8_memory_t *memory, slipway_t *self) {
+    entity_t *start_node;
+    entity_t *end_node;
 
     if (self == NULL) {
         return;
     }
 
-    start = self->start;
-    end = self->end;
+    start_node = self->start;
+    end_node = self->end;
 
-    if (entity_geom_is_on_screen(start) || entity_geom_is_on_screen(end)) {
+    if (entity_geom_is_on_screen(start_node) || entity_geom_is_on_screen(end_node)) {
         p8_fixed_t fade_in_step = self->fade_in_step;
         int fade_in_step_i = to_int(fade_in_step);
         p8_fixed_t fade_color = p8_fixed_from_int(0);
@@ -127,9 +127,9 @@ void slipway_draw(const p8_graphics_t *gfx, p8_memory_t *mem, slipway_t *self) {
         border_color = infraspace_truthy ? fade_color : p8_fixed_from_int(0);
         dot_color = infraspace_truthy ? p8_fixed_from_int(5) : p8_fixed_from_int(13);
 
-        slipway_draw_line(gfx, mem, self, p8_fixed_from_int(-1), p8_fixed_from_int(2), p8_fixed_from_int(3),
+        slipway_draw_line(graphics, memory, self, p8_fixed_from_int(-1), p8_fixed_from_int(2), p8_fixed_from_int(3),
                     to_int(border_color));
-        slipway_draw_line(gfx, mem, self, p8_fixed_from_int(0), p8_fixed_from_int(1), p8_fixed_from_int(1),
+        slipway_draw_line(graphics, memory, self, p8_fixed_from_int(0), p8_fixed_from_int(1), p8_fixed_from_int(1),
                     to_int(line_color));
 
         {
@@ -161,15 +161,15 @@ void slipway_draw(const p8_graphics_t *gfx, p8_memory_t *mem, slipway_t *self) {
                     {
                         int x = to_int(new_pos.x);
                         int y = to_int(new_pos.y);
-                        p8_rectfill(gfx, mem, x, y, x + 1, y + 1, 0);
-                        p8_pset(gfx, mem, x, y, to_int(dot_color));
+                        p8_rectfill(graphics, memory, x, y, x + 1, y + 1, 0);
+                        p8_pset(graphics, memory, x, y, to_int(dot_color));
                     }
                 }
             }
         }
 
-        slipway_spawn_transit_dot(self, start, end);
-        slipway_spawn_transit_dot(self, end, start);
+        slipway_spawn_transit_dot(self, start_node, end_node);
+        slipway_spawn_transit_dot(self, end_node, start_node);
     }
 
     self->targeted_by = NULL;

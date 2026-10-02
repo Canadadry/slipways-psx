@@ -97,7 +97,7 @@ planet_t *planet_new(const planet_keys_t *keys);
  * `def` kept, the members it holds copied from it, the others nil. Neither
  * runs `jo:pq` nor `lt`: a daughter's constructor does, after its own
  * defaults. Requires `pico8_jo_init()`. */
-void planet_init_instance(planet_t *self, const entity_class_t *cls, const planet_archetype_t *archetype);
+void planet_init_instance(planet_t *self, const entity_class_t *instance_class, const planet_archetype_t *archetype);
 
 /* Bytes of the arena a held icon, a drawn slipway or a wormhole builds its
  * object in. */

@@ -65,9 +65,9 @@ static const entity_class_t g_planet_class = {
     .lineage = LINEAGE(LINEAGE_PLANET),
 };
 
-void planet_init_instance(planet_t *self, const entity_class_t *cls, const planet_archetype_t *archetype) {
+void planet_init_instance(planet_t *self, const entity_class_t *instance_class, const planet_archetype_t *archetype) {
     assert(g_planet_up && "planet_init() must run first");
-    entity_init_instance(&self->header, cls, archetype->state, archetype->state_time);
+    entity_init_instance(&self->header, instance_class, archetype->state, archetype->state_time);
     self->archetype = archetype;
     self->header.layer = &self->archetype->layer;
     /* Read-only: the planet modules write through their members. */

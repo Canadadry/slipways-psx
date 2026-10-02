@@ -32,6 +32,6 @@ void slipway_draw_line(const p8_graphics_t *gfx, p8_memory_t *mem, const slipway
  * `ra` moves by its `v` in place and its `l` is decremented (a dead one gives
  * its place back), and `fo` is cleared even when the visibility gate drew
  * nothing. */
-void slipway_draw(const p8_graphics_t *gfx, p8_memory_t *mem, slipway_t *self);
+void slipway_draw(const p8_graphics_t *graphics, p8_memory_t *memory, slipway_t *self);
 
 #endif

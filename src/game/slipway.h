@@ -117,7 +117,7 @@ void slipway_drag(slipway_t *self, vec_t *mp);
 
 /* A NULL `re`, or a `d_()` that refuses, only raises `self.p_`; both
  * endpoints are registered on success. */
-void slipway_drop(slipway_t *self, entity_t *re);
+void slipway_drop(slipway_t *self, entity_t *end_planet);
 
 /* Returns the existing slipway to reuse, the first planet or slipway in
  * the way, the one static `{qs="-too far-"}` struct, or NULL. */

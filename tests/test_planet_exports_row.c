@@ -85,18 +85,18 @@ static void setup_panel_state(p8_memory_t *mem, p8_graphics_t *gfx) {
 }
 
 static void test_inspection_panel_exports_row_layout_row_receives_its_four_items(void) {
-    p8_memory_t mem;
-    p8_graphics_t gfx;
+    p8_memory_t memory;
+    p8_graphics_t graphics;
     planet_t *planet;
     static production_t production;
     const data_row_t *production_row;
-    vec_t *pos;
+    vec_t *planet_pos;
     const entity_list_t *ephemerals;
     const layout_row_t *exports_layout_row = NULL;
     layout_row_cell_t entry;
     int index;
 
-    setup_panel_state(&mem, &gfx);
+    setup_panel_state(&memory, &graphics);
 
     planet = planet_new(NULL);
     assert(planet != NULL);
@@ -110,9 +110,9 @@ static void test_inspection_panel_exports_row_layout_row_receives_its_four_items
     planet->production = &production;
 
     /* `jo:gh` reads it, and the archetype's `gq`, for `pz()`'s row placement. */
-    pos = malloc(sizeof *pos);
-    *pos = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
-    planet->pos = pos;
+    planet_pos = malloc(sizeof *planet_pos);
+    *planet_pos = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
+    planet->pos = planet_pos;
 
     /* The call under test: this is where the overflow happened. */
     planet_inspection_panel(planet);

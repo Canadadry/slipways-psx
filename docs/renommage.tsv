@@ -4061,8 +4061,8 @@ zone	zone	src/game/planet.c	identifiant	locale	conservé	game/planet			c:planet.
 PICO8_JO_PRISE_OCTETS	PLANET_GRAB_ARENA_BYTES	src/game/planet.h	identifiant	macro	renommé	game/planet	jo		macro:src/game/planet.h:PICO8_JO_PRISE_OCTETS
 PICO8_PLANET_H	GAME_PLANET_H	src/game/planet.h	identifiant	macro	renommé	game/planet			macro:src/game/planet.h:PICO8_PLANET_H
 PRISES_LIBRES_MAX	GRAB_ARENAS_FREE_MAX	src/game/planet.c	identifiant	macro	renommé	game/planet	prise		macro:src/game/planet.c:PRISES_LIBRES_MAX
-cls	cls	src/game/planet.c	identifiant	paramètre	conservé	game/planet			c:planet.c@2159@F@pico8_jo_struct_init@cls
-cls	cls	src/game/planet.h	identifiant	paramètre	conservé	game/planet			c:planet.h@3619@F@pico8_jo_struct_init@cls
+cls	instance_class	src/game/planet.c	identifiant	paramètre	renommé	game/planet			c:planet.c@2227@F@planet_init_instance@cls
+cls	instance_class	src/game/planet.h	identifiant	paramètre	renommé	game/planet			c:planet.h@3808@F@planet_init_instance@cls
 ctx	ctx	src/game/planet.c	identifiant	paramètre	conservé	game/planet			c:planet.c@7444@F@pico8_jo_lz_mw_step@ctx
 def	archetype	src/game/planet.c	identifiant	paramètre	renommé	game/planet	def		c:planet.c@2133@F@pico8_jo_struct_init@def
 def	archetype	src/game/planet.h	identifiant	paramètre	renommé	game/planet	def		c:planet.h@3562@F@pico8_jo_struct_init@def
@@ -4185,7 +4185,7 @@ pico8_jo_ldown	planet_left_press	src/game/planet_display.c	identifiant	fonction	
 pico8_jo_ldown_dispatch	planet_left_press_method	src/game/planet_display.c	identifiant	fonction	renommé	game/planet_display	jo		c:@F@pico8_jo_ldown_dispatch
 pico8_jo_rendre_dispatch	planet_release_method	src/game/planet_display.c	identifiant	fonction	renommé	game/planet_display	jo		c:@F@pico8_jo_rendre_dispatch
 pico8_jo_rendre_rangee	planet_release_row	src/game/planet_display.c	identifiant	fonction	renommé	game/planet_display	jo		c:@F@pico8_jo_rendre_rangee
-adjusted	adjusted	src/game/planet_display.c	identifiant	locale	conservé	game/planet_display			c:planet_display.c@13123@F@pico8_jo_kj@adjusted
+adjusted	shaken_pos	src/game/planet_display.c	identifiant	locale	renommé	game/planet_display			c:planet_display.c@15060@F@planet_draw@adjusted
 b	b	src/game/planet_display.c	identifiant	locale	conservé	game/planet_display			c:planet_display.c@10550@F@pico8_jo_fe_my_dispatch@b
 bj_list	available_projects_list	src/game/planet_display.c	identifiant	locale	renommé	game/planet_display			c:planet_display.c@12232@F@pico8_jo_fe@bj_list
 bs	bs	src/game/planet_display.c	identifiant	locale	conservé	game/planet_display			c:planet_display.c@12300@F@pico8_jo_fe@bs
@@ -4199,7 +4199,7 @@ combined	combined	src/game/planet_display.c	identifiant	locale	conservé	game/pl
 count	count	src/game/planet_display.c	identifiant	locale	conservé	game/planet_display			c:planet_display.c@2678@F@pico8_jo_gh_jp_step@count
 count_str	count_str	src/game/planet_display.c	identifiant	locale	conservé	game/planet_display			c:planet_display.c@8477@F@pico8_jo_gh@count_str
 ctx	ctx	src/game/planet_display.c	identifiant	locale	conservé	game/planet_display			c:planet_display.c@2571@F@pico8_jo_gh_jp_step@ctx
-ctx	ctx	src/game/planet_display.c	identifiant	locale	conservé	game/planet_display			c:planet_display.c@4458@F@pico8_jo_gh@ctx
+ctx	filter_context	src/game/planet_display.c	identifiant	locale	renommé	game/planet_display			c:planet_display.c@4816@F@planet_inspection_panel@ctx
 discard_color	discard_color	src/game/planet_display.c	identifiant	locale	conservé	game/planet_display			c:planet_display.c@5209@F@pico8_jo_gh@discard_color
 dw	dw	src/game/planet_display.c	identifiant	locale	conservé	game/planet_display			c:planet_display.c@15299@F@pico8_jo_kj@dw
 fp	fp	src/game/planet_display.c	identifiant	locale	conservé	game/planet_display			c:planet_display.c@17518@F@pico8_jo_hu@fp
@@ -4247,8 +4247,8 @@ out	out	src/game/planet_display.c	identifiant	locale	conservé	game/planet_displ
 p	p	src/game/planet_display.c	identifiant	locale	conservé	game/planet_display			c:planet_display.c@16386@F@pico8_jo_kj_dispatch@p
 place	slot	src/game/planet_display.c	identifiant	locale	renommé	game/planet_display	sorte		c:planet_display.c@1221@F@pico8_jo_hb@place
 pt	pt	src/game/planet_display.c	identifiant	locale	conservé	game/planet_display			c:planet_display.c@10530@F@pico8_jo_fe_my_dispatch@pt
-px	name	src/game/planet_display.c	identifiant	locale	renommé	game/planet_display	px		c:planet_display.c@13097@F@pico8_jo_kj@px
-py	speed_factor	src/game/planet_display.c	identifiant	locale	renommé	game/planet_display			c:planet_display.c@13109@F@pico8_jo_kj@py
+px	screen_x	src/game/planet_display.c	identifiant	locale	renommé	game/planet_display	px		c:planet_display.c@15107@F@planet_draw@name
+py	screen_y	src/game/planet_display.c	identifiant	locale	renommé	game/planet_display			c:planet_display.c@15121@F@planet_draw@speed_factor
 qe	qe	src/game/planet_display.c	identifiant	locale	conservé	game/planet_display			c:planet_display.c@1107@F@pico8_jo_hb@qe
 qe_is_r_w	resource_is_r_w	src/game/planet_display.c	identifiant	locale	renommé	game/planet_display	qe		c:planet_display.c@6309@F@pico8_jo_gh@qe_is_r_w
 r_w	r_w	src/game/planet_display.c	identifiant	locale	conservé	game/planet_display			c:planet_display.c@6303@F@pico8_jo_gh@r_w
@@ -4262,7 +4262,7 @@ spr_index	spr_index	src/game/planet_display.c	identifiant	locale	conservé	game/
 t	t	src/game/planet_display.c	identifiant	locale	conservé	game/planet_display			c:planet_display.c@13583@F@pico8_jo_kj@t
 t	t	src/game/planet_display.c	identifiant	locale	conservé	game/planet_display			c:planet_display.c@818@F@jo_kw_tuple@t
 target_kind	target_kind	src/game/planet_display.c	identifiant	locale	conservé	game/planet_display			c:planet_display.c@17735@F@pico8_jo_hu@target_kind
-working_self	working_self	src/game/planet_display.c	identifiant	locale	conservé	game/planet_display			c:planet_display.c@17488@F@pico8_jo_hu@working_self
+working_self	result_planet	src/game/planet_display.c	identifiant	locale	renommé	game/planet_display			c:planet_display.c@19605@F@planet_apply_project@working_self
 PICO8_JO_GH_LB_CAP	PLANET_INSPECTION_PANEL_EXPORTS_CAP	src/game/planet_display.c	identifiant	macro	renommé	game/planet_display	gh		macro:src/game/planet_display.c:PICO8_JO_GH_LB_CAP
 PICO8_JO_GH_ROWS	PLANET_INSPECTION_PANEL_ROWS	src/game/planet_display.c	identifiant	macro	renommé	game/planet_display	jo		macro:src/game/planet_display.c:PICO8_JO_GH_ROWS
 PICO8_JO_ROW_CAP	PLANET_ROW_CAP	src/game/planet_display.c	identifiant	macro	renommé	game/planet_display	jo		macro:src/game/planet_display.c:PICO8_JO_ROW_CAP
@@ -4270,17 +4270,17 @@ PICO8_PLANET_DISPLAY_H	GAME_PLANET_DISPLAY_H	src/game/planet_display.h	identifia
 b	b	src/game/planet_display.c	identifiant	paramètre	conservé	game/planet_display			c:planet_display.c@11235@F@pico8_jo_fe_keys@b
 ctx_ptr	ctx_ptr	src/game/planet_display.c	identifiant	paramètre	conservé	game/planet_display			c:planet_display.c@2550@F@pico8_jo_gh_jp_step@ctx_ptr
 e	e	src/game/planet_display.c	identifiant	paramètre	conservé	game/planet_display			c:planet_display.c@2541@F@pico8_jo_gh_jp_step@e
-gfx	gfx	src/game/planet_display.c	identifiant	paramètre	conservé	game/planet_display			c:planet_display.c@13048@F@pico8_jo_kj@gfx
-gfx	gfx	src/game/planet_display.h	identifiant	paramètre	conservé	game/planet_display			c:planet_display.h@1225@F@pico8_jo_kj@gfx
+gfx	graphics	src/game/planet_display.c	identifiant	paramètre	renommé	game/planet_display			c:planet_display.c@14989@F@planet_draw@gfx
+gfx	graphics	src/game/planet_display.h	identifiant	paramètre	renommé	game/planet_display			c:planet_display.h@1228@F@planet_draw@gfx
 hp_instance	research_project_instance	src/game/planet_display.c	identifiant	paramètre	renommé	game/planet_display	hp		c:planet_display.c@17223@F@pico8_jo_hu@hp_instance
 hp_instance	research_project_instance	src/game/planet_display.h	identifiant	paramètre	renommé	game/planet_display	hp		c:planet_display.h@1499@F@pico8_jo_hu@hp_instance
 keys	keys	src/game/planet_display.c	identifiant	paramètre	conservé	game/planet_display			c:planet_display.c@11250@F@pico8_jo_fe_keys@keys
 kw	kw	src/game/planet_display.c	identifiant	paramètre	conservé	game/planet_display			c:planet_display.c@790@F@jo_kw_tuple@kw
-mem	mem	src/game/planet_display.c	identifiant	paramètre	conservé	game/planet_display			c:planet_display.c@13066@F@pico8_jo_kj@mem
-mem	mem	src/game/planet_display.h	identifiant	paramètre	conservé	game/planet_display			c:planet_display.h@1243@F@pico8_jo_kj@mem
+mem	memory	src/game/planet_display.c	identifiant	paramètre	renommé	game/planet_display			c:planet_display.c@15009@F@planet_draw@mem
+mem	memory	src/game/planet_display.h	identifiant	paramètre	renommé	game/planet_display			c:planet_display.h@1248@F@planet_draw@mem
 n	n	src/game/planet_display.c	identifiant	paramètre	conservé	game/planet_display			c:planet_display.c@3455@F@jo_gh_row_items@n
-p	pos	src/game/planet_display.c	identifiant	paramètre	renommé	game/planet_display			c:planet_display.c@13038@F@pico8_jo_kj@p
-p	pos	src/game/planet_display.h	identifiant	paramètre	renommé	game/planet_display			c:planet_display.h@1262@F@pico8_jo_kj@p
+p	screen_pos	src/game/planet_display.c	identifiant	paramètre	renommé	game/planet_display			c:planet_display.c@15043@F@planet_draw@pos
+p	screen_pos	src/game/planet_display.h	identifiant	paramètre	renommé	game/planet_display			c:planet_display.h@1282@F@planet_draw@pos
 qa	qa	src/game/planet_display.c	identifiant	paramètre	conservé	game/planet_display			c:planet_display.c@16637@F@pico8_jo_ldown_dispatch@qa
 ra	ra	src/game/planet_display.c	identifiant	paramètre	conservé	game/planet_display			c:planet_display.c@16357@F@pico8_jo_kj_dispatch@ra
 ra	ra	src/game/planet_display.c	identifiant	paramètre	conservé	game/planet_display			c:planet_display.c@16654@F@pico8_jo_ldown_dispatch@ra
@@ -4646,8 +4646,8 @@ e_qe	e_resource	src/game/planet_trade.c	identifiant	locale	renommé	game/planet_
 extended	extended	src/game/planet_trade.c	identifiant	locale	conservé	game/planet_trade			c:planet_trade.c@5064@F@pico8_jo_cn@extended
 fresh	fresh	src/game/planet_trade.c	identifiant	locale	conservé	game/planet_trade			c:planet_trade.c@3534@F@pico8_jo_cn@fresh
 gc	gc	src/game/planet_trade.c	identifiant	locale	conservé	game/planet_trade			c:planet_trade.c@3119@F@pico8_jo_cn@gc
-have_r_e	have_r_e	src/game/planet_trade.c	identifiant	locale	conservé	game/planet_trade			c:planet_trade.c@2259@F@pico8_jo_cn@have_r_e
-have_r_q	have_r_q	src/game/planet_trade.c	identifiant	locale	conservé	game/planet_trade			c:planet_trade.c@2277@F@pico8_jo_cn@have_r_q
+have_r_e	has_bonus_resource	src/game/planet_trade.c	identifiant	locale	renommé	game/planet_trade			c:planet_trade.c@2360@F@planet_offer_trade@have_r_e
+have_r_q	has_any_resource	src/game/planet_trade.c	identifiant	locale	renommé	game/planet_trade			c:planet_trade.c@2378@F@planet_offer_trade@have_r_q
 i	i	src/game/planet_trade.c	identifiant	locale	conservé	game/planet_trade			c:planet_trade.c@3078@F@pico8_jo_cn@i
 i	i	src/game/planet_trade.c	identifiant	locale	conservé	game/planet_trade			c:planet_trade.c@4240@F@pico8_jo_cn@i
 ib	accepted_routes	src/game/planet_trade.c	identifiant	locale	renommé	game/planet_trade	ib		c:planet_trade.c@5290@F@pico8_jo_ib@ib
@@ -4667,10 +4667,10 @@ other	other	src/game/planet_trade.c	identifiant	locale	conservé	game/planet_tra
 other	other	src/game/planet_trade.c	identifiant	locale	conservé	game/planet_trade			c:planet_trade.c@6183@F@pico8_jo_ib@other
 prefix	prefix	src/game/planet_trade.c	identifiant	locale	conservé	game/planet_trade			c:planet_trade.c@3608@F@pico8_jo_cn@prefix
 qe	resource	src/game/planet_trade.c	identifiant	locale	renommé	game/planet_trade	qe		c:planet_trade.c@2092@F@pico8_jo_cn@qe
-qe_is_r_q	resource_is_r_q	src/game/planet_trade.c	identifiant	locale	renommé	game/planet_trade	qe		c:planet_trade.c@3142@F@pico8_jo_cn@qe_is_r_q
+qe_is_r_q	resource_is_any	src/game/planet_trade.c	identifiant	locale	renommé	game/planet_trade	qe		c:planet_trade.c@3456@F@planet_offer_trade@resource_is_r_q
 qe_val	resource_val	src/game/planet_trade.c	identifiant	locale	renommé	game/planet_trade	qe		c:planet_trade.c@4198@F@pico8_jo_cn@qe_val
-r_e	r_e	src/game/planet_trade.c	identifiant	locale	conservé	game/planet_trade			c:planet_trade.c@2169@F@pico8_jo_cn@r_e
-r_q	r_q	src/game/planet_trade.c	identifiant	locale	conservé	game/planet_trade			c:planet_trade.c@2214@F@pico8_jo_cn@r_q
+r_e	bonus_resource	src/game/planet_trade.c	identifiant	locale	renommé	game/planet_trade			c:planet_trade.c@2270@F@planet_offer_trade@r_e
+r_q	any_resource	src/game/planet_trade.c	identifiant	locale	renommé	game/planet_trade			c:planet_trade.c@2315@F@planet_offer_trade@r_q
 rl_list	slipways_list	src/game/planet_trade.c	identifiant	locale	renommé	game/planet_trade	lp		c:planet_trade.c@6092@F@pico8_jo_ib@rl_list
 t	route	src/game/planet_trade.c	identifiant	locale	renommé	game/planet_trade			c:planet_trade.c@2230@F@pico8_jo_cn@t
 t_qe	t_resource	src/game/planet_trade.c	identifiant	locale	renommé	game/planet_trade	qe		c:planet_trade.c@2252@F@pico8_jo_cn@t_qe
@@ -5474,14 +5474,14 @@ p	p	src/game/slipway.c	identifiant	locale	conservé	game/slipway			c:slipway.c@1
 part1	part1	src/game/slipway.c	identifiant	locale	conservé	game/slipway			c:slipway.c@8185@F@pico8_jc_ce@part1
 part2	part2	src/game/slipway.c	identifiant	locale	conservé	game/slipway			c:slipway.c@8213@F@pico8_jc_ce@part2
 qu	qu	src/game/slipway.c	identifiant	locale	conservé	game/slipway			c:slipway.c@4777@F@pico8_jc_ey@qu
-qu	start	src/game/slipway.c	identifiant	locale	renommé	game/slipway	qu		c:slipway.c@6676@F@pico8_jc_ce@qu
+qu	start_node	src/game/slipway.c	identifiant	locale	renommé	game/slipway	qu		c:slipway.c@7387@F@slipway_obstruction@start
 qu_registered	start_registered	src/game/slipway.c	identifiant	locale	renommé	game/slipway	qu		c:slipway.c@4682@F@pico8_jc_ey@qu_registered
 ra	ra	src/game/slipway.c	identifiant	locale	conservé	game/slipway			c:slipway.c@1250@F@pico8_jc_end_ra@ra
-re	end	src/game/slipway.c	identifiant	locale	renommé	game/slipway	qu		c:slipway.c@6694@F@pico8_jc_ce@re
+re	end_node	src/game/slipway.c	identifiant	locale	renommé	game/slipway	qu		c:slipway.c@7408@F@slipway_obstruction@end
 re_registered	end_registered	src/game/slipway.c	identifiant	locale	renommé	game/slipway	qu		c:slipway.c@4759@F@pico8_jc_ey@re_registered
 result	result	src/game/slipway.c	identifiant	locale	conservé	game/slipway			c:slipway.c@8266@F@pico8_jc_ce@result
 self	self	src/game/slipway.c	identifiant	locale	conservé	game/slipway			c:slipway.c@10747@F@pico8_jc_struct_new@self
-should_fail	should_fail	src/game/slipway.c	identifiant	locale	conservé	game/slipway			c:slipway.c@3985@F@pico8_jc_ey@should_fail
+should_fail	refused	src/game/slipway.c	identifiant	locale	renommé	game/slipway			c:slipway.c@4259@F@slipway_drop@should_fail
 sp	start_point	src/game/slipway.c	identifiant	locale	renommé	game/slipway			c:slipway.c@6712@F@pico8_jc_ce@sp
 sw	sw	src/game/slipway.c	identifiant	locale	conservé	game/slipway			c:slipway.c@6381@F@pico8_jc_ce_jc_predicate@sw
 threshold	threshold	src/game/slipway.c	identifiant	locale	conservé	game/slipway			c:slipway.c@6923@F@pico8_jc_ce@threshold
@@ -5521,8 +5521,8 @@ qa	qa	src/game/slipway.c	identifiant	paramètre	conservé	game/slipway			c:slipw
 ra	ra	src/game/slipway.c	identifiant	paramètre	conservé	game/slipway			c:slipway.c@9527@F@pico8_jc_hq_dispatch@ra
 ra	ra	src/game/slipway.c	identifiant	paramètre	conservé	game/slipway			c:slipway.c@9801@F@pico8_jc_ev_dispatch@ra
 ra	ra	src/game/slipway.h	identifiant	paramètre	conservé	game/slipway			c:slipway.h@5206@F@pico8_jc_kj_dispatch@ra
-re	end	src/game/slipway.c	identifiant	paramètre	renommé	game/slipway	qu		c:slipway.c@3857@F@pico8_jc_ey@re
-re	re	src/game/slipway.h	identifiant	paramètre	conservé	game/slipway			c:slipway.h@4578@F@pico8_jc_ey@re
+re	end_planet	src/game/slipway.c	identifiant	paramètre	renommé	game/slipway	qu		c:slipway.c@4238@F@slipway_drop@end
+re	end_planet	src/game/slipway.h	identifiant	paramètre	renommé	game/slipway			c:slipway.h@4643@F@slipway_drop@re
 self	self	src/game/slipway.c	identifiant	paramètre	conservé	game/slipway			c:slipway.c@2282@F@pico8_jc_pq@self
 self	self	src/game/slipway.c	identifiant	paramètre	conservé	game/slipway			c:slipway.c@2711@F@pico8_jc_hq@self
 self	self	src/game/slipway.c	identifiant	paramètre	conservé	game/slipway			c:slipway.c@3934@F@pico8_jc_ey@self
@@ -5577,10 +5577,10 @@ nh	fade_in_step	src/game/slipway_display.c	identifiant	locale	renommé	game/slip
 nh_i	fade_in_step_i	src/game/slipway_display.c	identifiant	locale	renommé	game/slipway_display			c:slipway_display.c@3515@F@pico8_jc_kj@nh_i
 particle	particle	src/game/slipway_display.c	identifiant	locale	conservé	game/slipway_display			c:slipway_display.c@1340@F@pico8_jc_ch@particle
 qu	qu	src/game/slipway_display.c	identifiant	locale	conservé	game/slipway_display			c:slipway_display.c@2020@F@pico8_jc_lg@qu
-qu	start	src/game/slipway_display.c	identifiant	locale	renommé	game/slipway_display	qu		c:slipway_display.c@3282@F@pico8_jc_kj@qu
+qu	start_node	src/game/slipway_display.c	identifiant	locale	renommé	game/slipway_display	qu		c:slipway_display.c@3383@F@slipway_draw@start
 qu_pt	start_point	src/game/slipway_display.c	identifiant	locale	renommé	game/slipway_display			c:slipway_display.c@1998@F@pico8_jc_lg@qu_pt
 re	re	src/game/slipway_display.c	identifiant	locale	conservé	game/slipway_display			c:slipway_display.c@2051@F@pico8_jc_lg@re
-re	end	src/game/slipway_display.c	identifiant	locale	renommé	game/slipway_display	qu		c:slipway_display.c@3300@F@pico8_jc_kj@re
+re	end_node	src/game/slipway_display.c	identifiant	locale	renommé	game/slipway_display	qu		c:slipway_display.c@3404@F@slipway_draw@end
 re_pt	end_point	src/game/slipway_display.c	identifiant	locale	renommé	game/slipway_display			c:slipway_display.c@2015@F@pico8_jc_lg@re_pt
 t	t	src/game/slipway_display.c	identifiant	locale	conservé	game/slipway_display			c:slipway_display.c@2082@F@pico8_jc_lg@t
 t	t	src/game/slipway_display.c	identifiant	locale	conservé	game/slipway_display			c:slipway_display.c@5162@F@pico8_jc_kj@t
@@ -5601,16 +5601,16 @@ c	c	src/game/slipway_display.h	identifiant	paramètre	conservé	game/slipway_dis
 f	f	src/game/slipway_display.c	identifiant	paramètre	conservé	game/slipway_display			c:slipway_display.c@466@F@pico8_jc_ch@f
 f	f	src/game/slipway_display.h	identifiant	paramètre	conservé	game/slipway_display			c:slipway_display.h@812@F@pico8_jc_ch@f
 gfx	gfx	src/game/slipway_display.c	identifiant	paramètre	conservé	game/slipway_display			c:slipway_display.c@1872@F@pico8_jc_lg@gfx
-gfx	gfx	src/game/slipway_display.c	identifiant	paramètre	conservé	game/slipway_display			c:slipway_display.c@3378@F@pico8_jc_kj@gfx
-gfx	gfx	src/game/slipway_display.h	identifiant	paramètre	conservé	game/slipway_display			c:slipway_display.h@1359@F@pico8_jc_kj@gfx
+gfx	graphics	src/game/slipway_display.c	identifiant	paramètre	renommé	game/slipway_display			c:slipway_display.c@3316@F@slipway_draw@gfx
+gfx	graphics	src/game/slipway_display.h	identifiant	paramètre	renommé	game/slipway_display			c:slipway_display.h@1342@F@slipway_draw@gfx
 gfx	gfx	src/game/slipway_display.h	identifiant	paramètre	conservé	game/slipway_display			c:slipway_display.h@953@F@pico8_jc_lg@gfx
 h	h	src/game/slipway_display.c	identifiant	paramètre	conservé	game/slipway_display			c:slipway_display.c@1973@F@pico8_jc_lg@h
 h	h	src/game/slipway_display.h	identifiant	paramètre	conservé	game/slipway_display			c:slipway_display.h@1054@F@pico8_jc_lg@h
 l	l	src/game/slipway_display.c	identifiant	paramètre	conservé	game/slipway_display			c:slipway_display.c@1938@F@pico8_jc_lg@l
 l	l	src/game/slipway_display.h	identifiant	paramètre	conservé	game/slipway_display			c:slipway_display.h@1019@F@pico8_jc_lg@l
 mem	mem	src/game/slipway_display.c	identifiant	paramètre	conservé	game/slipway_display			c:slipway_display.c@1896@F@pico8_jc_lg@mem
-mem	mem	src/game/slipway_display.c	identifiant	paramètre	conservé	game/slipway_display			c:slipway_display.c@3402@F@pico8_jc_kj@mem
-mem	mem	src/game/slipway_display.h	identifiant	paramètre	conservé	game/slipway_display			c:slipway_display.h@1383@F@pico8_jc_kj@mem
+mem	memory	src/game/slipway_display.c	identifiant	paramètre	renommé	game/slipway_display			c:slipway_display.c@3342@F@slipway_draw@mem
+mem	memory	src/game/slipway_display.h	identifiant	paramètre	renommé	game/slipway_display			c:slipway_display.h@1368@F@slipway_draw@mem
 mem	mem	src/game/slipway_display.h	identifiant	paramètre	conservé	game/slipway_display			c:slipway_display.h@977@F@pico8_jc_lg@mem
 ra	ra	src/game/slipway_display.c	identifiant	paramètre	conservé	game/slipway_display			c:slipway_display.c@6493@F@pico8_jc_kj_dispatch@ra
 s	s	src/game/slipway_display.c	identifiant	paramètre	conservé	game/slipway_display			c:slipway_display.c@1990@F@pico8_jc_lg@s
@@ -12815,16 +12815,16 @@ setup_panel_state	setup_panel_state	tests/test_planet_exports_row.c	identifiant	
 test_gh_exports_row_lq_receives_its_four_items	test_inspection_panel_exports_row_layout_row_receives_its_four_items	tests/test_planet_exports_row.c	identifiant	fonction	renommé	tests/test_planet_exports_row	lq		c:test_planet_exports_row.c@F@test_gh_exports_row_lq_receives_its_four_items
 entry	entry	tests/test_planet_exports_row.c	identifiant	locale	conservé	tests/test_planet_exports_row			c:test_planet_exports_row.c@2998@F@test_gh_exports_row_lq_receives_its_four_items@entry
 exports_lq	exports_layout_row	tests/test_planet_exports_row.c	identifiant	locale	renommé	tests/test_planet_exports_row	lq		c:test_planet_exports_row.c@2950@F@test_gh_exports_row_lq_receives_its_four_items@exports_lq
-gfx	gfx	tests/test_planet_exports_row.c	identifiant	locale	conservé	tests/test_planet_exports_row			c:test_planet_exports_row.c@2803@F@test_gh_exports_row_lq_receives_its_four_items@gfx
+gfx	graphics	tests/test_planet_exports_row.c	identifiant	locale	renommé	tests/test_planet_exports_row			c:test_planet_exports_row.c@2870@F@test_inspection_panel_exports_row_layout_row_receives_its_four_items@gfx
 i	index	tests/test_planet_exports_row.c	identifiant	locale	renommé	tests/test_planet_exports_row			c:test_planet_exports_row.c@3022@F@test_gh_exports_row_lq_receives_its_four_items@i
 kw_row	production_row	tests/test_planet_exports_row.c	identifiant	locale	renommé	tests/test_planet_exports_row	kw		c:test_planet_exports_row.c@2876@F@test_gh_exports_row_lq_receives_its_four_items@kw_row
 le	ephemerals	tests/test_planet_exports_row.c	identifiant	locale	renommé	tests/test_planet_exports_row			c:test_planet_exports_row.c@2921@F@test_gh_exports_row_lq_receives_its_four_items@le
 lq	lq	tests/test_planet_exports_row.c	identifiant	locale	conservé	tests/test_planet_exports_row			c:test_planet_exports_row.c@1510@F@button_lq@lq
 lq	lq	tests/test_planet_exports_row.c	identifiant	locale	conservé	tests/test_planet_exports_row			c:test_planet_exports_row.c@3915@F@test_gh_exports_row_lq_receives_its_four_items@lq
-mem	mem	tests/test_planet_exports_row.c	identifiant	locale	conservé	tests/test_planet_exports_row			c:test_planet_exports_row.c@2782@F@test_gh_exports_row_lq_receives_its_four_items@mem
+mem	memory	tests/test_planet_exports_row.c	identifiant	locale	renommé	tests/test_planet_exports_row			c:test_planet_exports_row.c@2849@F@test_inspection_panel_exports_row_layout_row_receives_its_four_items@mem
 ok	ok	tests/test_planet_exports_row.c	identifiant	locale	conservé	tests/test_planet_exports_row			c:test_planet_exports_row.c@1245@F@ok_le@ok
 planet	planet	tests/test_planet_exports_row.c	identifiant	locale	conservé	tests/test_planet_exports_row			c:test_planet_exports_row.c@2824@F@test_gh_exports_row_lq_receives_its_four_items@planet
-ra	pos	tests/test_planet_exports_row.c	identifiant	locale	renommé	tests/test_planet_exports_row	ra		c:test_planet_exports_row.c@2906@F@test_gh_exports_row_lq_receives_its_four_items@ra
+ra	planet_pos	tests/test_planet_exports_row.c	identifiant	locale	renommé	tests/test_planet_exports_row	ra		c:test_planet_exports_row.c@2989@F@test_inspection_panel_exports_row_layout_row_receives_its_four_items@pos
 v	v	tests/test_planet_exports_row.c	identifiant	locale	conservé	tests/test_planet_exports_row			c:test_planet_exports_row.c@2094@F@lq_index_is_string@v
 button	button	tests/test_planet_exports_row.c	identifiant	paramètre	conservé	tests/test_planet_exports_row			c:test_planet_exports_row.c@1484@F@button_lq@button
 expected	expected	tests/test_planet_exports_row.c	identifiant	paramètre	conservé	tests/test_planet_exports_row			c:test_planet_exports_row.c@2066@F@lq_index_is_string@expected
@@ -14690,13 +14690,13 @@ b	second	tests/test_slipway.c	identifiant	locale	renommé	tests/test_slipway			c
 before	before	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@14862@F@test_ey@before
 before	before	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@20318@F@test_too_far@before
 blank	blank	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@18742@F@test_draw@blank
-blank	blank	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@20166@F@test_too_far@blank
+blank	empty	tests/test_slipway.c	identifiant	locale	renommé	tests/test_slipway			c:test_slipway.c@22451@F@test_too_far@blank
 by_ldown	by_left_press	tests/test_slipway.c	identifiant	locale	renommé	tests/test_slipway	ldown		c:test_slipway.c@14213@F@test_construction@by_ldown
 by_lookup	by_lookup	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@14027@F@test_construction@by_lookup
 child	child	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@29836@F@must_abort@child
 child	child	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@34527@F@in_fresh_child@child
 circled	circled	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@18782@F@test_draw@circled
-costed	costed	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@20229@F@test_too_far@costed
+costed	cost	tests/test_slipway.c	identifiant	locale	renommé	tests/test_slipway			c:test_slipway.c@22514@F@test_too_far@costed
 crossed	crossed	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@26067@F@test_ce_crosses_a_slipway@crossed
 d	d	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@8946@F@dist2@d
 direct	direct	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@31425@F@test_jc_is_a_struct@direct
@@ -14704,7 +14704,7 @@ e	e	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:tes
 et	et	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@32241@F@test_too_far_is_a_struct@et
 et	et	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@5542@F@et_kind@et
 far	far	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@16317@F@test_hq@far
-far	far	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@20395@F@test_too_far@far
+far	far_slipway	tests/test_slipway.c	identifiant	locale	renommé	tests/test_slipway			c:test_slipway.c@22682@F@test_too_far@far
 far	far	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@32209@F@test_too_far_is_a_struct@far
 far	far	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@33865@F@test_jc_new_stops_off_qu@far
 fresh	fresh	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@17695@F@test_eb@fresh
@@ -14770,7 +14770,7 @@ off	off	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c
 old	old	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@16266@F@test_hq@old
 old	old	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@17644@F@test_eb@old
 old	old	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@18827@F@test_draw@old
-old	old	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@20344@F@test_too_far@old
+old	old_slipway	tests/test_slipway.c	identifiant	locale	renommé	tests/test_slipway			c:test_slipway.c@22631@F@test_too_far@old
 old	old	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@26020@F@test_ce_crosses_a_slipway@old
 old	old	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@27606@F@test_bv@old
 old	old	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@28884@F@test_bv_takes_the_first_slipway_of_cg@old
@@ -14781,8 +14781,8 @@ origin	origin	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipw
 origin	origin	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@16281@F@test_hq@origin
 origin	origin	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@17659@F@test_eb@origin
 origin	origin	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@18842@F@test_draw@origin
-origin	origin	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@20359@F@test_too_far@origin
-origin	origin	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@23343@F@test_hq_mouse_point@origin
+origin	start_planet	tests/test_slipway.c	identifiant	locale	renommé	tests/test_slipway			c:test_slipway.c@22646@F@test_too_far@origin
+origin	start_planet	tests/test_slipway.c	identifiant	locale	renommé	tests/test_slipway			c:test_slipway.c@26013@F@test_drag_mouse_point@origin
 origin	origin	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@32191@F@test_too_far_is_a_struct@origin
 origin	origin	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@32910@F@test_mouse_point_is_a_struct@origin
 other	other	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@32224@F@test_too_far_is_a_struct@other
@@ -14791,7 +14791,7 @@ p	p	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:tes
 p1	first_pos	tests/test_slipway.c	identifiant	locale	renommé	tests/test_slipway			c:test_slipway.c@23464@F@test_hq_mouse_point@p1
 past	past	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@26354@F@test_ce_crosses_a_slipway@past
 plain	plain	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@18762@F@test_draw@plain
-prise	grab_arena	tests/test_slipway.c	identifiant	locale	renommé	tests/test_slipway	prise		c:test_slipway.c@23603@F@test_hq_mouse_point@prise
+prise	used_before	tests/test_slipway.c	identifiant	locale	renommé	tests/test_slipway	prise		c:test_slipway.c@26143@F@test_drag_mouse_point@grab_arena
 probe	probe	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@27217@F@probe_with_zero_dw@probe
 probe	probe	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@27621@F@test_bv@probe
 probe	probe	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@28915@F@test_bv_takes_the_first_slipway_of_cg@probe
@@ -14801,9 +14801,9 @@ qu	qu	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:t
 qu	qu	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@28932@F@test_bv_takes_the_first_slipway_of_cg@qu
 r1	first_end	tests/test_slipway.c	identifiant	locale	renommé	tests/test_slipway			c:test_slipway.c@23561@F@test_hq_mouse_point@r1
 r2	second_end	tests/test_slipway.c	identifiant	locale	renommé	tests/test_slipway			c:test_slipway.c@23575@F@test_hq_mouse_point@r2
-rb	rows	tests/test_slipway.c	identifiant	locale	renommé	tests/test_slipway			c:test_slipway.c@23589@F@test_hq_mouse_point@rb
+rb	other_end	tests/test_slipway.c	identifiant	locale	renommé	tests/test_slipway			c:test_slipway.c@26127@F@test_drag_mouse_point@rows
 re	re	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@10522@F@world@re
-re	end	tests/test_slipway.c	identifiant	locale	renommé	tests/test_slipway	qu		c:test_slipway.c@20654@F@test_too_far@re
+re	end_before_drop	tests/test_slipway.c	identifiant	locale	renommé	tests/test_slipway	qu		c:test_slipway.c@22729@F@test_too_far@end
 re	re	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@27658@F@test_bv@re
 re	re	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@28952@F@test_bv_takes_the_first_slipway_of_cg@re
 re	re	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@32942@F@test_mouse_point_is_a_struct@re
@@ -14819,7 +14819,7 @@ target	target	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipw
 target	target	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@23361@F@test_hq_mouse_point@target
 too_far	too_far	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@20186@F@test_too_far@too_far
 twin	twin	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@16332@F@test_hq@twin
-twin	twin	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@20410@F@test_too_far@twin
+twin	second_slipway	tests/test_slipway.c	identifiant	locale	renommé	tests/test_slipway			c:test_slipway.c@22697@F@test_too_far@twin
 twin	twin	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@28899@F@test_bv_takes_the_first_slipway_of_cg@twin
 v	v	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@11032@F@vec_ref@v
 v	v	tests/test_slipway.c	identifiant	locale	conservé	tests/test_slipway			c:test_slipway.c@11213@F@vec_ref_fixed@v

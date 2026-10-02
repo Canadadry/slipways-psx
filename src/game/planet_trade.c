@@ -71,10 +71,10 @@ void planet_attach_slipway(planet_t *self, entity_t *sw) {
 
 void planet_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
     int resource;
-    resource_t r_e = {.kind = RESOURCE_NIL};
-    resource_t r_q = {.kind = RESOURCE_NIL};
-    int have_r_e;
-    int have_r_q;
+    resource_t bonus_resource = {.kind = RESOURCE_NIL};
+    resource_t any_resource = {.kind = RESOURCE_NIL};
+    int has_bonus_resource;
+    int has_any_resource;
     trade_route_t *route;
     resource_t t_resource = {.kind = RESOURCE_NIL};
     pointer_list_t *needs = NULL;
@@ -89,27 +89,27 @@ void planet_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
         t_resource = trade_resource(route);
     }
 
-    have_r_e = resource_code_lookup("e", &resource);
-    if (have_r_e) {
-        r_e = (resource_t){.kind = RESOURCE_FIXED, .number = p8_fixed_from_int(resource)};
+    has_bonus_resource = resource_code_lookup("e", &resource);
+    if (has_bonus_resource) {
+        bonus_resource = (resource_t){.kind = RESOURCE_FIXED, .number = p8_fixed_from_int(resource)};
     }
-    have_r_q = resource_code_lookup("?", &resource);
-    if (have_r_q) {
-        r_q = (resource_t){.kind = RESOURCE_FIXED, .number = p8_fixed_from_int(resource)};
+    has_any_resource = resource_code_lookup("?", &resource);
+    if (has_any_resource) {
+        any_resource = (resource_t){.kind = RESOURCE_FIXED, .number = p8_fixed_from_int(resource)};
     }
 
     needs = self->needs;
 
-    if (have_r_e && resource_equal(t_resource, r_e) && !self->has_production_bonus) {
+    if (has_bonus_resource && resource_equal(t_resource, bonus_resource) && !self->has_production_bonus) {
         iter = pointer_list_all(needs);
         while (pointer_list_iter_next(&iter, &entry)) {
             if (entry != NULL) {
                 const need_t *i = entry;
                 p8_fixed_t gc = i->has_satisfied ? i->satisfied : p8_fixed_from_int(0);
-                int resource_is_r_q;
+                int resource_is_any;
 
-                resource_is_r_q = have_r_q && resource_equal(need_resource(i), r_q);
-                if (gc == p8_fixed_from_int(0) && !resource_is_r_q) {
+                resource_is_any = has_any_resource && resource_equal(need_resource(i), any_resource);
+                if (gc == p8_fixed_from_int(0) && !resource_is_any) {
                     pointer_list_del(needs, entry);
                     break;
                 }
@@ -117,7 +117,7 @@ void planet_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
         }
 
         {
-            p8_fixed_t e_resource = r_e.number;
+            p8_fixed_t e_resource = bonus_resource.number;
             need_t *fresh = need_new(game_zone(), &e_resource);
             pointer_list_t prefix;
             pointer_list_t merged;
@@ -147,7 +147,7 @@ void planet_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
         i = entry;
         resource_val = need_resource(i);
 
-        if (have_r_q && resource_equal(resource_val, r_q)) {
+        if (has_any_resource && resource_equal(resource_val, any_resource)) {
             int accepted = 0;
 
             if ((self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && self->archetype->accepted_resources != NULL) {
@@ -161,7 +161,7 @@ void planet_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
             }
         }
 
-        if (resource_equal(t_resource, resource_val) && !(have_r_q && resource_equal(resource_val, r_q))) {
+        if (resource_equal(t_resource, resource_val) && !(has_any_resource && resource_equal(resource_val, any_resource))) {
             trade_route_t *extended = trade_extend(frame_zone(), route, &self->header, NULL);
             if (trade_offer->accept != NULL) {
                 trade_offer->accept(trade_offer, extended);
