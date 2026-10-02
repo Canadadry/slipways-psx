@@ -47,7 +47,7 @@ set -u
 CATEGORIES="parent parent-link header-accessors defaults nu name-dispatch one-or-false void-ptr void-self entity-ptrs registries core-includes reachability-to-prove mutual-inclusion mutual-usage"
 
 # Categories comptees dans le pied.
-SORTIE="parent parent-link header-accessors defaults nu name-dispatch one-or-false void-ptr void-self entity-ptrs registries core-includes reachability-to-prove mutual-inclusion mutual-usage"
+FOOTER_CATEGORIES="parent parent-link header-accessors defaults nu name-dispatch one-or-false void-ptr void-self entity-ptrs registries core-includes reachability-to-prove mutual-inclusion mutual-usage"
 
 fail() {
     echo "composition_residue: $1" >&2
@@ -69,14 +69,14 @@ pattern() {
 }
 
 # entity_state_of rend un enum depuis un nom d'etat : ce n'est pas une lignee.
-LIEN_EXCLUSION='s/entity_state_of//g'
+PARENT_LINK_EXCLUSION='s/entity_state_of//g'
 # Le "nu" echappe de la fixture de test_data_residue.c est une chaine de
 # test, pas le champ. Pas de \b dans ces sed, le sed BSD ne le connait pas.
 NU_EXCLUSION='s/\\"nu\\"//g'
 
 exclusion() {
     case $1 in
-        parent-link) printf '%s\n' "$LIEN_EXCLUSION" ;;
+        parent-link) printf '%s\n' "$PARENT_LINK_EXCLUSION" ;;
         nu) printf '%s\n' "$NU_EXCLUSION" ;;
     esac
 }
@@ -98,7 +98,7 @@ VOID_EXCLUSION='s/void \*+(r_)?ctx\b//g'
 # enregistrements jy (research.c:233), jc.ts des particules
 # (slipway_display.c:43). L'exemption va nom par nom : une ligne compte des
 # qu'un de ses noms, ou une declaration sans nom lisible, n'est pas exempte.
-PTRS_NON_ENTITE="economy_t.invented planet_t.needs research_project_t.inputs slipway_t.transit_dots"
+ENTITY_PTRS_EXEMPT="economy_t.invented planet_t.needs research_project_t.inputs slipway_t.transit_dots"
 
 # registres : hors tests/ et engine/pointer_list.[ch], les points de declaration qui
 # tiennent des entites par void * hors des types d'entite (que ptrs-entite
@@ -125,12 +125,12 @@ PTRS_NON_ENTITE="economy_t.invented planet_t.needs research_project_t.inputs sli
 # enregistrements jy (planet_display.c:54) ; pico8_jp_ptrs et pico8_la_ptrs
 # sur des enregistrements jy (planet_display.c:186, planet_trade.c:128), les
 # listes d'entites passant par pico8_jp_ents et pico8_ents_cat.
-REGISTRES_NON_ENTITE="emitter_t.particles planet_inspection_panel_ctx_t.unmet_needs collect_map_pointer_list collect_contains_string research_display_planet_resource_row collect_filter_pointer_list collect_concat_pointer_list"
+REGISTRIES_EXEMPT="emitter_t.particles planet_inspection_panel_ctx_t.unmet_needs collect_map_pointer_list collect_contains_string research_display_planet_resource_row collect_filter_pointer_list collect_concat_pointer_list"
 
 # En-tetes du noyau, par chemin relatif a src/ : noyau-inclut ne lit qu'eux.
-NOYAU="engine/entity_class.h engine/entity.h engine/entity_registry.h"
+CORE_HEADERS="engine/entity_class.h engine/entity.h engine/entity_registry.h"
 
-ATTEINTE=${COMPOSITION_REACHABILITY:-tools/reachability_questions.txt}
+REACHABILITY=${COMPOSITION_REACHABILITY:-tools/reachability_questions.txt}
 R2=${COMPOSITION_R2:-tools/composition_residue_sites.txt}
 
 known() {
@@ -144,7 +144,7 @@ mode=count
 checked=
 case ${1:-} in
     --detail) mode=detail; shift ;;
-    --fields) mode=champs; shift ;;
+    --fields) mode=fields; shift ;;
     --check)
         mode=check
         [ $# -ge 2 ] || fail "--check without a category"
@@ -173,13 +173,13 @@ for dir in "$@"; do
 done
 find "$@" \( -name '*.c' -o -name '*.h' \) -type f | sort > "$work/files"
 [ -s "$work/files" ] || fail "no .c or .h file in: $*"
-[ -f "$ATTEINTE" ] || fail "missing reachability list: $ATTEINTE"
+[ -f "$REACHABILITY" ] || fail "missing reachability list: $REACHABILITY"
 [ -f "$R2" ] || fail "missing R2 list: $R2"
 
-: > "$work/noyau"
+: > "$work/core"
 while IFS= read -r file; do
-    for name in $NOYAU; do
-        case /$file in */"$name") printf '%s\n' "$file" >> "$work/noyau" ;; esac
+    for name in $CORE_HEADERS; do
+        case /$file in */"$name") printf '%s\n' "$file" >> "$work/core" ;; esac
     done
 done < "$work/files"
 
@@ -241,8 +241,8 @@ function braces(s,    t, n) {
 # $work/ptrs-entité les lignes "<fichier>:<ligne>:<texte>", et dans
 # $work/members les "<type>\t<membre>" que lit --champs.
 read_structs() {
-    awk -v non_entite=" $PTRS_NON_ENTITE " -v out_parente="$work/parent" \
-        -v reg_non_entite=" $REGISTRES_NON_ENTITE " -v out_reg="$work/registries.structs" -v reg_types="$REG_TYPES" \
+    awk -v exempt=" $ENTITY_PTRS_EXEMPT " -v out_parent="$work/parent" \
+        -v reg_exempt=" $REGISTRIES_EXEMPT " -v out_reg="$work/registries.structs" -v reg_types="$REG_TYPES" \
         -v out_ptrs="$work/entity-ptrs" -v out_members="$work/members" "$CLEAN_AWK"'
     FNR == 1 { depth = 0; incomment = 0; inbody = 0; base = 0; phead = ""; mpend = "" }
     {
@@ -350,20 +350,20 @@ read_structs() {
                 }
             }
         } while (grown)
-        printf "" > out_parente
+        printf "" > out_parent
         printf "" > out_ptrs
         printf "" > out_members
         printf "" > out_reg
         for (i = 1; i <= alias_n; i++) alias_of[alias_a[i]] = alias_b[i]
         for (k = 1; k <= n; k++) {
             if (!sobj[k] && first[k] in e && first[k] != "entity_t")
-                print sfile[k] ":" firstline[k] ":" firsttext[k] > out_parente
+                print sfile[k] ":" firstline[k] ":" firsttext[k] > out_parent
             if (!in_e(k) && sfile[k] !~ /(^|\/)tests\// && sfile[k] !~ /(^|\/)engine\/pointer_list\.[ch]$/) {
                 m = split(names[k], nm, " ")
                 for (j = 1; j <= nr[k]; j++) {
                     q = split(rmem[k, j], mm, " "); left = q
                     for (h = 1; h <= q; h++)
-                        for (i = 1; i <= m; i++) if (index(reg_non_entite, " " nm[i] "." mm[h] " ")) { left--; break }
+                        for (i = 1; i <= m; i++) if (index(reg_exempt, " " nm[i] "." mm[h] " ")) { left--; break }
                     if (left > 0 || q == 0) print sfile[k] ":" rline[k, j] ":" rtext[k, j] > out_reg
                 }
             }
@@ -381,7 +381,7 @@ read_structs() {
             for (j = 1; j <= nr[k]; j++) {
                 q = split(rmem[k, j], mm, " "); left = q
                 for (h = 1; h <= q; h++)
-                    for (i = 1; i <= m; i++) if (index(non_entite, " " nm[i] "." mm[h] " ")) { left--; break }
+                    for (i = 1; i <= m; i++) if (index(exempt, " " nm[i] "." mm[h] " ")) { left--; break }
                 if ((left > 0 || q == 0) && !((k, rline[k, j]) in shown)) {
                     shown[k, rline[k, j]] = 1
                     print sfile[k] ":" rline[k, j] ":" rtext[k, j] > out_ptrs
@@ -430,11 +430,11 @@ read_prototypes() {
 # registres, suite : objets pico8_ptrs_t de portee fichier des .c et
 # prototypes des .h (hors engine/pointer_list.h), hors tests/, joints comme ceux de
 # void-ptr ; un nom de REGISTRES_NON_ENTITE est exempte.
-read_registres() {
+read_registries() {
     [ -f "$work/parent" ] || read_structs
     : > "$work/registries.decl"
     if [ -s "$work/regfiles" ]; then
-        awk -v non=" $REGISTRES_NON_ENTITE " -v reg_types="$REG_TYPES" "$CLEAN_AWK"'
+        awk -v exempt=" $REGISTRIES_EXEMPT " -v reg_types="$REG_TYPES" "$CLEAN_AWK"'
         FNR == 1 { depth = 0; incomment = 0; acc = "" }
         {
             c = unattr(clean($0))
@@ -452,7 +452,7 @@ read_registres() {
                           (!fn && acc ~ /(^|[^A-Za-z0-9_])void([ \t]+(const|volatile))*[ \t]*\*/) ||
                           (fn && ret ~ /(^|[^A-Za-z0-9_])void([ \t]+(const|volatile))*[ \t]*\*([ \t]*(const|volatile))*[ \t]*\*/))
                     keep = FILENAME ~ /\.h$/ || !fn
-                    if (ok && keep && !index(non, " " name " ")) print FILENAME ":" start ":" text
+                    if (ok && keep && !index(exempt, " " name " ")) print FILENAME ":" start ":" text
                     acc = ""
                 }
             }
@@ -608,18 +608,18 @@ collect() {
             sort -t: -k1,1 -k2,2n "$work/$1" > "$work/sorted" && mv "$work/sorted" "$work/$1"
             return 0 ;;
         void-ptr) read_prototypes; return 0 ;;
-        registries) read_registres; return 0 ;;
+        registries) read_registries; return 0 ;;
         mutual-inclusion) read_inclusions; return 0 ;;
         mutual-usage) read_usages; return 0 ;;
         reachability-to-prove)
             status=0
-            grep -nE '^[^#[:space:]]' "$ATTEINTE" > "$work/numbers" || status=$?
+            grep -nE '^[^#[:space:]]' "$REACHABILITY" > "$work/numbers" || status=$?
             [ "$status" -le 1 ] || fail "grep failed"
-            sed "s|^|$ATTEINTE:|" "$work/numbers" > "$work/$1"
+            sed "s|^|$REACHABILITY:|" "$work/numbers" > "$work/$1"
             return 0 ;;
     esac
     list="$work/files"
-    [ "$1" = core-includes ] && list="$work/noyau"
+    [ "$1" = core-includes ] && list="$work/core"
     : > "$work/$1"
     [ -s "$list" ] || return 0
     status=0
@@ -647,7 +647,7 @@ collect() {
 # colonne 0. Hors de toute fonction (initialiseur de fichier, dont les
 # defauts pico8_X_start), une ecriture est hors constructeur : le releve est
 # un majorant, il ne declare pas constant ce qu'un initialiseur ecrit.
-champs() {
+fields() {
     read_structs
     sort -u "$work/members" > "$work/members.sorted"
     grep -E '\.c$' "$work/files" | grep -v '/tests/' | grep -v '^tests/' > "$work/sources" || true
@@ -687,14 +687,14 @@ champs() {
     awk -F'\t' '
     NR == FNR { c[$1] = $2 "\t" $3; next }
     { print $1 "\t" $2 "\t" c[$2] }' "$work/members.sorted.counts" "$work/members.sorted" \
-        | sort -t"$(printf '\t')" -k1,1 -k2,2 > "$work/champs" || fail "awk failed"
-    cat "$work/champs"
+        | sort -t"$(printf '\t')" -k1,1 -k2,2 > "$work/fields" || fail "awk failed"
+    cat "$work/fields"
     awk -F'\t' '{ n++; if ($3 == 0) k++; if ($4 == 0) z++ }
-    END { printf "fields: %d; no write: %d; no write outside a constructor: %d\n", n, k, z }' "$work/champs"
+    END { printf "fields: %d; no write: %d; no write outside a constructor: %d\n", n, k, z }' "$work/fields"
 }
 
-if [ "$mode" = champs ]; then
-    champs
+if [ "$mode" = fields ]; then
+    fields
     exit 0
 fi
 
@@ -715,7 +715,7 @@ fi
 for cat in $CATEGORIES; do
     collect "$cat"
     if [ -s "$work/$cat" ]; then
-        case " $SORTIE " in
+        case " $FOOTER_CATEGORIES " in
             *" $cat "*) cut -d: -f1,2 "$work/$cat" >> "$work/all" ;;
         esac
         if [ -f "$work/$cat.pairs" ] && [ "$mode" = detail ]; then
