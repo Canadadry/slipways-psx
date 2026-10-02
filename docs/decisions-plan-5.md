@@ -20,76 +20,87 @@
   4. les mentions entre backticks, en commentaire et dans les chaînes sont réécrites à la main dans le même commit.
 - **Portée d'une décision de nommage** : elle s'applique aussi aux mentions entre backticks et en commentaire. Contrôle : le `grep` des sites ci-dessus sur l'ancien nom rend 0, `make test-all` vert, `tests/e2e/*.sha256` inchangés.
 - **Procédure G (garde à motifs)** : le motif ou l'exemption édité dans `tools/composition_residue.sh` ou `tools/data_residue.sh` ; `--detail` des deux scripts relevé avant et après ; pour un motif gardé, un test de vivacité (violation plantée, écrite avec les noms neufs, qui fait échouer `--check`) ; `make test` vert.
+- **Familles d'application** (colonne « Application » de l'index) : chaque entrée relève d'une seule famille, qui fixe la sous-étape de l'étape 5 où elle s'applique (`docs/plan-5.md`, §6, 5a–5f) :
+  - **O** (outillage) : un outil, sa règle ou le mécanisme des gardes — 5a ;
+  - **G** (garde à motifs) : un motif, une exemption ou une fixture de `tools/composition_residue.sh` ou `tools/data_residue.sh`, procédure G — 5b ;
+  - **N** (nommage) : un renommage par la procédure N ou par le `sed` de l'entrée, ou une retouche ponctuelle d'un test (assertion, tableau) — 5c ;
+  - **X** (ligne d'exception) : un reste compté par un compteur, levé par une ligne d'exception ou par la règle d'outil qui en tient lieu — 5d ;
+  - **T** (`TROU` → `GAP`) : un marqueur `TROU-N` — 5d ;
+  - **D** (docs et skills) : un fichier de `docs/`, du `CLAUDE.md` ou de `.claude/` — 5f.
+- **Verdicts** : ensemble fermé de quatre valeurs, écrites telles quelles sur la ligne `Verdict` : `proposition` (la proposition prête, appliquée telle quelle), `variante nommée` (une option nommée de l'entrée, par sa lettre, ou une variante écrite en une ligne), `garder tel quel` (rien n'est édité), `reporter hors plan 5` (la question part dans un chantier hors du plan 5, rien n'est édité). Une entrée à reste compté (section « Clôture (4l4) », « Restes comptés ») dont le verdict est `garder tel quel` ou `reporter hors plan 5` finit en ligne d'exception : sans elle, son reste rougit la garde quand elle devient bloquante (5e).
 
 ## Index
 
-| n° | Origine | Question | Sites |
-|---|---|---|---:|
-| D-1 | 2b, 3l | Repli `tmp/pico8_replay` de `tools/frames_ref.sh` | 1 |
-| D-2 | 3k, 3l | `PICO8_CLASS_COVERAGE`, macro `-D` hors TSV | 35 |
-| D-3 | 3a, 3l | `PICO8_MALLOC_FILLS`, variable d'environnement | 2 |
-| D-4 | 3l | Noms `pico8_*` des fixtures de `test_alloc_guard.c` | 36 |
-| D-5 | 3a, 3l | Motif générique `void-ptr` (`pico8_X(`) | 0 prototype |
-| D-6 | 3a | `LIEN_EXCLUSION` mort | 2 |
-| D-7 | 3a | Motif générique `pico8_X_of` (`lien-parent`) | 0 |
-| D-8 | 3a | Motif générique `pico8_X_start` (`défauts`, `--champs`) | 0 |
-| D-9 | 3a, 3b, 3d | Motif `spec` `pico8_X_(default\|defaults_reset)` et `SPEC_EXCLUSION` mort | 0 + 2 |
-| D-10 | 3b | Exclusion `usage-mutuel` (`PICO8`, `P8`) morte | 0 |
-| D-11 | 3a | Catégories historiques des gardes à motifs | 9 catégories |
-| D-12 | 3e | Suffixe de constructeur de `--champs` | 5 |
-| D-13 | 3a, 3l | 12 statiques locales de deux lettres des tests | 12 |
-| D-14 | 3c | Ordre des mots des macros de taille de zone | 12 |
-| D-15 | 3f | `probe_own` stocke un `targeting_t` | 24 |
-| D-16 | 3f | `probe_link_target` déclaré hors de son module | 4 |
-| D-17 | 3d, 3e, 3f, 3i, 3j | Noms qui bégaient | 60 |
-| D-18 | 3f | Étiquette morte `main_mouse` de `test_main_mouse.c` | 1 |
-| D-19 | 3g | `planet_upkeep` sans le préfixe `economy_score_` | 11 |
-| D-20 | 3h | Singletons `main_*` déclarés hors d'un module `main_*` | 207 |
-| D-21 | 3i, 3j | Préfixe `g_` des tables `static const` de classe | 143 |
-| D-22 | 3j | Suffixe `_t` sur deux variables | 9 |
-| D-23 | 3j | Faute `test_update_entities_drives_a_entity_struct` | 2 |
-| D-24 | 3j | `DIFFICULTY_OPTIONS_ROW_CAP` sans son module | 3 |
-| D-25 | 0, 2b, 3k, 3l | `p8_input_*` et `p8_fatal` définis hors de `p8/` | 5 fonctions |
-| D-26 | 3g, 3h | Lignes `chaîne` `pz` et `go` éditées hors de `rename-strings` | 2 |
-| D-27 | 3k | Motif `pico8_class_coverage_record` de `tools/rename_strings.py` | 1 |
-| D-28 | §6 « Outillage figé » | Alertes `warn-review` de fin de tronçon 2 | 4 alertes connues |
-| D-29 | PRD 4a | Paramètres et locales courts nommés d'un digramme du cart | 131 paramètres de méthode |
-| D-30 | 2b (échantillon) | `typed_main_*` des tests contre `main_*_typed` | 96 |
-| D-31 | 2b (échantillon) | Digramme `oc` : `tickets` et `type_picker` | 3 |
-| D-32 | 2b (échantillon) | Champs de l'icône de structure : `rest_count` est une position | 22 |
-| D-33 | 4a | Exceptions du compteur de français : schéma du TSV et fixtures françaises (3a) | 26 |
-| D-34 | 4a | Assertion faible `strstr(log, "exempt")` de `test_class_coverage.c` | 1 |
-| D-35 | 4b | Noms d'identifiant qui citent Lua ou le cart (`P8_FIXED_LIT`, trois tests) | 8 |
-| D-36 | 4b | `` `mem` `` et `` `gfx` `` comptés en `backtick` après le renommage des locales de `test_demo.c` | 23 |
-| D-37 | 4c1 | `argc`/`argv` de `main` dans la liste des locales cryptiques | 10 déclarations |
-| D-38 | 4c1 | Statiques de fichier `mem`/`gfx` des tests | 80 déclarations |
-| D-39 | 4d | Nom de test qui cite le cart (`test_data_init.c`) | 2 |
-| D-40 | 4d | Clés du cart sans ligne `chaîne` au TSV (`"br"`, `"qr"`, `"rf"`, `"s"`, `"qh+"`) | 0 après 4d |
-| D-41 | 4d | Nom de test qui garde le digramme `r` (`test_map_tables.c`) | 2 |
-| D-42 | 4e | Ligne du TSV d'une locale renommée deux fois | 14 lignes |
-| D-43 | 4e | Paramètres `gfx`/`mem` des fonctions de dessin | 96 + 128 déclarations |
-| D-44 | 4e | Champ `planet_inspection_panel_ctx_t.unmet_needs`, qui tient les besoins reçus | 7 + 1 |
-| D-45 | 4f1 | Noms de test qui disent « grab arena » pour une prise (`test_live_slots.c`) | 16 + fixture |
-| D-46 | 4f2 | Fonctions de `main_economy.h` définies dans `probe.c` (`probe_set_main_economy`) | 3 + 159 |
-| D-47 | 4g | `structure_icon_sprite_counter` compte des identifiants de planète, pas des sprites | 4 + 5 + 5 |
-| D-48 | 4h | Noms de test qui décrivent l'API générique disparue ou la méthode du cart (`test_ui.c`, `test_main_mouse.c`, `test_main_camera.c`) | 2 + 2 + 4 + 8 |
-| D-49 | 4i | Assistants de test qui citent un digramme du cart ou un surnom (`planet_by_ref`, `build_plate`, `fold_plate`, `is_plate`) | 2 + 6 + 3 + 3 |
-| D-50 | 4j | Locales courtes dont le nom porte un digramme du cart (`c_truthy`, `s_str`) | 2 + 3 |
-| D-51 | 4j | `spacer` qui tient un émetteur dans quatre tests de 3i | 55 |
-| D-52 | 4k2 | Nom de test `test_the_shared_palette_is_the_published_pico8_one` | 2 |
-| D-53 | 4a, 4k3 | Assertion d'absence `"unknown"` sans écrivain (`test_class_coverage.c`) | 1 |
-| D-54 | 4k3 | Préfixe `k_` des tableaux `static const` du morceau 4k3 | 26 |
-| D-55 | 4l1 | Exception `du` du compteur de français dans le `Makefile` | 1 |
-| D-56 | 4l1 | Citations `cart`/`lua` irréductibles de la légende du `Makefile` | 6 + 2 |
-| D-57 | 4e, 4l2 | Noms du cart dans les fixtures de `tests/test_composition_residue.c` | 83 |
-| D-58 | 4l2 | Macro `ATT` de `tests/test_composition_residue.c` | 7 |
-| D-59 | 4b, 4l3 | Faux positifs des compteurs dans le relevé figé `tools/pico8_reference_probe_out.txt` | 8 + 7 |
-| D-60 | 4l3 | `blank` et `screen_texture` du `main` de `src/cmd/screencast_viewer.c` | 2 (+ 2) |
-| D-61 | 4l4 | Exception `LÖVE` du compteur de français (`tools/ttf_to_pixelfont.py`) | 1 |
-| D-62 | 4l4 | Noms au préfixe du cart des fixtures des tests de garde, hors `test_alloc_guard.c` | 8 + 2 + 1 |
-| D-63 | 4l4 | Noms du cart dans les fixtures de `tests/test_data_residue.c` | 23 lignes |
-| D-64 | 4l4 | Marqueur `# TROU-1` de `tools/constants_expected_gaps.txt` | 1 |
-| D-65 | 4l4 | Leçons de la consigne de l'étape 4 à reporter dans le skill `reprendre-les-commentaires` | 1 fichier |
+| n° | Origine | Question | Sites | Application |
+|---|---|---|---:|---|
+| D-1 | 2b, 3l | Repli `tmp/pico8_replay` de `tools/frames_ref.sh` | 1 | X |
+| D-2 | 3k, 3l | `PICO8_CLASS_COVERAGE`, macro `-D` hors TSV | 35 | N |
+| D-3 | 3a, 3l | `PICO8_MALLOC_FILLS`, variable d'environnement | 2 | N |
+| D-4 | 3l | Noms `pico8_*` des fixtures de `test_alloc_guard.c` | 36 | N |
+| D-5 | 3a, 3l | Motif générique `void-ptr` (`pico8_X(`) | 0 prototype | G |
+| D-6 | 3a | `LIEN_EXCLUSION` mort | 2 | G |
+| D-7 | 3a | Motif générique `pico8_X_of` (`lien-parent`) | 0 | G |
+| D-8 | 3a | Motif générique `pico8_X_start` (`défauts`, `--champs`) | 0 | G |
+| D-9 | 3a, 3b, 3d | Motif `spec` `pico8_X_(default\|defaults_reset)` et `SPEC_EXCLUSION` mort | 0 + 2 | G |
+| D-10 | 3b | Exclusion `usage-mutuel` (`PICO8`, `P8`) morte | 0 | G |
+| D-11 | 3a | Catégories historiques des gardes à motifs | 9 catégories | G |
+| D-12 | 3e | Suffixe de constructeur de `--champs` | 5 | G |
+| D-13 | 3a, 3l | 12 statiques locales de deux lettres des tests | 12 | X |
+| D-14 | 3c | Ordre des mots des macros de taille de zone | 12 | N |
+| D-15 | 3f | `probe_own` stocke un `targeting_t` | 24 | N |
+| D-16 | 3f | `probe_link_target` déclaré hors de son module | 4 | N |
+| D-17 | 3d, 3e, 3f, 3i, 3j | Noms qui bégaient | 60 | N |
+| D-18 | 3f | Étiquette morte `main_mouse` de `test_main_mouse.c` | 1 | N |
+| D-19 | 3g | `planet_upkeep` sans le préfixe `economy_score_` | 11 | N |
+| D-20 | 3h | Singletons `main_*` déclarés hors d'un module `main_*` | 207 | N |
+| D-21 | 3i, 3j | Préfixe `g_` des tables `static const` de classe | 143 | N |
+| D-22 | 3j | Suffixe `_t` sur deux variables | 9 | N |
+| D-23 | 3j | Faute `test_update_entities_drives_a_entity_struct` | 2 | N |
+| D-24 | 3j | `DIFFICULTY_OPTIONS_ROW_CAP` sans son module | 3 | N |
+| D-25 | 0, 2b, 3k, 3l | `p8_input_*` et `p8_fatal` définis hors de `p8/` | 5 fonctions | N |
+| D-26 | 3g, 3h | Lignes `chaîne` `pz` et `go` éditées hors de `rename-strings` | 2 | N |
+| D-27 | 3k | Motif `pico8_class_coverage_record` de `tools/rename_strings.py` | 1 | O |
+| D-28 | §6 « Outillage figé » | Alertes `warn-review` de fin de tronçon 2 | 4 alertes connues | O |
+| D-29 | PRD 4a | Paramètres et locales courts nommés d'un digramme du cart | 131 paramètres de méthode | N |
+| D-30 | 2b (échantillon) | `typed_main_*` des tests contre `main_*_typed` | 96 | N |
+| D-31 | 2b (échantillon) | Digramme `oc` : `tickets` et `type_picker` | 3 | N |
+| D-32 | 2b (échantillon) | Champs de l'icône de structure : `rest_count` est une position | 22 | N |
+| D-33 | 4a | Exceptions du compteur de français : schéma du TSV et fixtures françaises (3a) | 26 | X |
+| D-34 | 4a | Assertion faible `strstr(log, "exempt")` de `test_class_coverage.c` | 1 | N |
+| D-35 | 4b | Noms d'identifiant qui citent Lua ou le cart (`P8_FIXED_LIT`, trois tests) | 8 | N |
+| D-36 | 4b | `` `mem` `` et `` `gfx` `` comptés en `backtick` après le renommage des locales de `test_demo.c` | 23 | O |
+| D-37 | 4c1 | `argc`/`argv` de `main` dans la liste des locales cryptiques | 10 déclarations | X |
+| D-38 | 4c1 | Statiques de fichier `mem`/`gfx` des tests | 80 déclarations | N |
+| D-39 | 4d | Nom de test qui cite le cart (`test_data_init.c`) | 2 | N |
+| D-40 | 4d | Clés du cart sans ligne `chaîne` au TSV (`"br"`, `"qr"`, `"rf"`, `"s"`, `"qh+"`) | 0 après 4d | O |
+| D-41 | 4d | Nom de test qui garde le digramme `r` (`test_map_tables.c`) | 2 | N |
+| D-42 | 4e | Ligne du TSV d'une locale renommée deux fois | 14 lignes | O |
+| D-43 | 4e | Paramètres `gfx`/`mem` des fonctions de dessin | 96 + 128 déclarations | N |
+| D-44 | 4e | Champ `planet_inspection_panel_ctx_t.unmet_needs`, qui tient les besoins reçus | 7 + 1 | N |
+| D-45 | 4f1 | Noms de test qui disent « grab arena » pour une prise (`test_live_slots.c`) | 16 + fixture | N |
+| D-46 | 4f2 | Fonctions de `main_economy.h` définies dans `probe.c` (`probe_set_main_economy`) | 3 + 159 | N |
+| D-47 | 4g | `structure_icon_sprite_counter` compte des identifiants de planète, pas des sprites | 4 + 5 + 5 | N |
+| D-48 | 4h | Noms de test qui décrivent l'API générique disparue ou la méthode du cart (`test_ui.c`, `test_main_mouse.c`, `test_main_camera.c`) | 2 + 2 + 4 + 8 | N |
+| D-49 | 4i | Assistants de test qui citent un digramme du cart ou un surnom (`planet_by_ref`, `build_plate`, `fold_plate`, `is_plate`) | 2 + 6 + 3 + 3 | N |
+| D-50 | 4j | Locales courtes dont le nom porte un digramme du cart (`c_truthy`, `s_str`) | 2 + 3 | N |
+| D-51 | 4j | `spacer` qui tient un émetteur dans quatre tests de 3i | 55 | N |
+| D-52 | 4k2 | Nom de test `test_the_shared_palette_is_the_published_pico8_one` | 2 | N |
+| D-53 | 4a, 4k3 | Assertion d'absence `"unknown"` sans écrivain (`test_class_coverage.c`) | 1 | N |
+| D-54 | 4k3 | Préfixe `k_` des tableaux `static const` du morceau 4k3 | 26 | N |
+| D-55 | 4l1 | Exception `du` du compteur de français dans le `Makefile` | 1 | X |
+| D-56 | 4l1 | Citations `cart`/`lua` irréductibles de la légende du `Makefile` | 6 + 2 | X |
+| D-57 | 4e, 4l2 | Noms du cart dans les fixtures de `tests/test_composition_residue.c` | 83 | G |
+| D-58 | 4l2 | Macro `ATT` de `tests/test_composition_residue.c` | 7 | N |
+| D-59 | 4b, 4l3 | Faux positifs des compteurs dans le relevé figé `tools/pico8_reference_probe_out.txt` | 8 + 7 | X |
+| D-60 | 4l3 | `blank` et `screen_texture` du `main` de `src/cmd/screencast_viewer.c` | 2 (+ 2) | X |
+| D-61 | 4l4 | Exception `LÖVE` du compteur de français (`tools/ttf_to_pixelfont.py`) | 1 | X |
+| D-62 | 4l4 | Noms au préfixe du cart des fixtures des tests de garde, hors `test_alloc_guard.c` | 8 + 2 + 1 | N |
+| D-63 | 4l4 | Noms du cart dans les fixtures de `tests/test_data_residue.c` | 23 lignes | G |
+| D-64 | 4l4 | Marqueur `# TROU-1` de `tools/constants_expected_gaps.txt` | 1 | T |
+| D-65 | 4l4 | Leçons de la consigne de l'étape 4 à reporter dans le skill `reprendre-les-commentaires` | 1 fichier | D |
+| D-66 | consultation `plan-review` d'avant 5 | Comment les deux gardes deviennent bloquantes | 2 gardes | O |
+| D-67 | 4a, §6 entrée 5 | Le compteur de français devient-il une troisième garde ? | 36 `string` | O |
+| D-68 | 4l4, consultation `plan-review` d'avant 5 | Alertes `warn-review` de fin de tronçon 3 | 16 alertes | O |
 
 ## Entrées
 
@@ -874,13 +885,63 @@
 - **Question** : la consigne meurt avec l'étape (son dernier état : `git show dd1d875:docs/consigne-etape-4.md`) ; le skill « sert aussi hors de ce chantier ». Faut-il y reporter les pièges qui ne tiennent pas à ce chantier ?
 - **Options** : (a) rien, git garde la consigne ; (b) reporter dans `consigne-agent.md` du skill quatre pièges généraux, en français : une ligne de commentaire qu'un script imprime (`sed -n '2p' "$0"`) est une chaîne ; un `#` d'ici-document n'est pas un commentaire ; un commentaire glissé dans un programme `awk` entre apostrophes casse le script sans changer les lignes hors commentaire (`sh -n`) ; un fichier dont un outil compare les numéros de ligne (couverture, message d'`assert` imprimé) garde la hauteur de chaque bloc.
 - **Sites** : 1 fichier du skill.
-- **Proposition prête à appliquer** : (b), à l'étape 5 avec la mise à jour des skills (entrée 5, dernière puce).
+- **Proposition prête à appliquer** : (b), à l'étape 5 avec la mise à jour des skills (sous-étape 5f).
 - **Contrôle** : relecture humaine.
 - **Verdict** :
+
+### D-66 — Comment les deux gardes deviennent bloquantes
+
+- **Origine** : consultation `plan-review` d'avant l'étape 5 ; mesures refaites à `1b4b949`.
+- **Question** : le §5 du plan rend les deux gardes « bloquantes dans `make test` ». Or toutes deux lisent une extraction libclang : `tools/rename_count.py` lit `tmp/ast_rename/occurrences.tsv` (noms ambigus), `tools/scope_count.py` lit `tmp/ast_rename/declarations.tsv`. Les brancher telles quelles met `make rename-extract` dans `make test`. Par quel mécanisme deviennent-elles bloquantes ?
+- **Mesures** (à `1b4b949`, 4 cœurs, extraction écrite hors de `tmp/`) : `make rename-extract` 98 s (179 unités × 3 configurations, aucune ligne `warning:`, les 4 `partial` de `class_coverage`) ; `make test` 15,5 s (deux passes à chaud, 15,7 et 15,5) ; sur l'extraction faite, `make cart-names-count` 2,0 s et `make scope-count` 0,3 s : le coût est l'extraction, six fois la suite. Sorties : `declarations.tsv` 1,9 Mo, `occurrences.tsv` 7,2 Mo. Dépendances, dont `make test` n'exige aujourd'hui aucune : les bindings Python de libclang dans `third_party/clang-python` (ignoré par git), posés par `make rename-tool-setup`, qui fait `pip install clang==18.1.8` par le réseau ; `libclang` de `/usr/lib/llvm-18` (`LIBCLANG`, `Makefile:1203`). Restes à lever avant tout blocage : `cart-names-count` 1 (D-1), `scope-count` 12 (D-13), les mêmes qu'à la clôture.
+- **Options** :
+  - (a) extraction incrémentale par fichier, mise en cache dans `tmp/` (une unité réanalysée seulement si elle ou un en-tête qu'elle inclut a changé) ; `make test` lance l'extraction puis les deux gardes, et **échoue** (ne saute pas) si libclang ou les bindings manquent, avec un message qui nomme `make rename-tool-setup`. Première passe à froid : le coût d'une extraction complète.
+  - (b) un artefact réduit, versionné (identifiant, sorte, étendue de portée : ce que lisent les deux gardes), avec le hachage des sources qui l'ont produit ; `make test` lit l'artefact sans libclang et **échoue** si le hachage ne correspond plus aux sources ; une cible hors suite, qui demande libclang, le régénère.
+  - (c) scission : la partie texte de la garde anti-cart (noms distinctifs, recherche en mot entier sur le TSV) dans `make test`, sans libclang ; la partie AST (noms d'une ou deux lettres, garde de portée) dans une cible bloquante séparée, chaînée dans `make test-all` ou dans une `make check`. (c) rouvre la lettre du §5 (« dans `make test` ») : seul l'humain peut la prendre.
+- **Sites** : 2 gardes (`tools/rename_count.py`, `tools/scope_count.py`), la recette de `test` (`Makefile:906`) et sa légende.
+- **Proposition prête à appliquer** : aucune option n'est préférée par la méthode : l'arbitrage (durée de la suite, dépendance réseau et système, lettre du §5) est humain. Sous chacune, 5a construit le mécanisme, test d'abord (`tests/test_rename_count.py`, `tests/test_scope_count.py`, ou un test neuf de la cible), et 5e le branche, une fois les restes à zéro (`docs/plan-5.md`, §6, 5a et 5e).
+- **Contrôle** : celui de 5e (une violation plantée rougit la vraie cible) ; en plus, sous (a), `make test` avec `LIBCLANG` pointé sur un fichier absent rend un code non nul ; sous (b), un `.c` modifié sans régénérer l'artefact rend `make test` rouge ; sous (c), `make test` passe sans libclang et la cible AST, sans libclang, échoue.
+- **Verdict** :
+
+### D-67 — Le compteur de français devient-il une troisième garde ?
+
+- **Origine** : §6 du plan, entrée 5 (« l'étape tranche si le compteur de français devient une troisième garde permanente »), déplacée ici pour être tranchée au point d'arrêt ; compteur construit par 4a (`tools/french_count.py`).
+- **Question** : le §2 interdit tout mot français dans le code ; seul le compteur de français le voit, et il ne bloque rien. En faire une garde bloquante, comme les deux du §5 ?
+- **Mesures** (à `1b4b949`) : `make french-count` 0,75 s, texte seul, sans extraction ni libclang ; reste sans `SUBSTEP` : `string` 36, exactement ceux de D-33 (26), D-55 (1), D-59 (8) et D-61 (1), 0 avec leurs 17 lignes d'exception.
+- **Options** : (a) troisième garde, bloquante dans `make test` à 5e, après les lignes d'exception de 5d ; (b) relevé non bloquant gardé hors suite ; (c) retirer le compteur, son test, son fichier d'exceptions et ses deux cibles.
+- **Sites** : 1 compteur (`tools/french_count.py`, `tests/test_french_count.py`, `tools/french_exceptions.txt`, cibles `french-count` et `french-count-test`) ; 36 restes.
+- **Proposition prête à appliquer** : (a) : la garde ne coûte pas une seconde, ne dépend ni de libclang ni de D-66, et ses restes sont tous couverts par des entrées X. Sous (a), les verdicts de D-33, D-55, D-59 et D-61 finissent en lignes d'exception (règle des verdicts, « Conventions »).
+- **Contrôle** : sous (a), celui de 5e : un mot français planté dans un commentaire d'une copie de travail, passé par la vraie cible, rend `make test` rouge.
+- **Verdict** :
+
+### D-68 — Alertes `warn-review` de fin de tronçon 3
+
+- **Origine** : passe `/warn-review` de fin de tronçon 3 (outils des étapes 3 et 4, gardes de `tools/`), relevé transmis par la consultation `plan-review` d'avant l'étape 5 ; lignes vérifiées à `1b4b949`. Pendant de D-28 pour le tronçon 3.
+- **Question** : un verdict par alerte. Chaque proposition est l'une de trois : *appliquer en 5* (verdict `proposition`, sous-étape nommée), *reporter hors plan 5*, *abandonner* (verdict `garder tel quel`). L'alerte 14 est **à trancher** : elle recoupe D-5, D-7, D-8, D-9 et D-11, et son verdict doit leur être cohérent ; 5b n'ouvre pas sans lui.
+- **Sites et propositions** :
+  1. *Import circulaire* : `tools/rename_count.py:30` importe `rename_substeps`, `tools/rename_substeps.py:25` importe `rename_count` (pour `read_table`, ligne 190). Proposition : appliquer en 5 (5a), avec 4 : `read_table` sort dans un module de lecture qui n'importe aucun outil ; contrôle : `rename_substeps` s'importe sans charger `rename_count` (`sys.modules`), tous les `rename-*-test` verts.
+  2. *Moyeu sous un nom de compteur* : `rename_count.py` est importé par six outils (`cart_citations`, `french_count`, `rename_rekey`, `rename_strings_verify`, `rename_substeps`, `scope_count`) pour `read_table`, `source_files`, `c_regions`, `text_regions`, `BACKTICK`, `C_FILES`, `path_pattern`, `Names`. Proposition : reporter hors plan 5 ; seul `read_table` en sort (1, 4).
+  3. *Règles de visibilité recopiées* : `tools/ast_rename/plan.py:162` (`_scopes_overlap`, `_shared`, l. 172) recopie la règle d'`overlap()` de `tools/rename_check.py`. Proposition : appliquer en 5 (5a), avant les renommages de 5c qui passent par `rename-apply` : `plan.py` importe la règle de `rename_check.py` (comme les mots-clés, D-28, puce 2) ; `rename-tool-test` et `rename-check-test` verts.
+  4. *Lecteurs en plus du TSV et des déclarations* : `read_declarations` défini trois fois (`tools/scope_count.py:37`, `tools/rename_check.py:79`, `tools/rename_derive.py:37`), l'en-tête lu en ligne par `tools/rename_slice.py:37` et par `rewrite` de `tools/rename_rekey.py:56`. Proposition : appliquer en 5 (5a), avec D-28, puce 1 : un lecteur par fichier (`docs/renommage.tsv`, `declarations.tsv`) dans le module de lecture de 1, que tous importent.
+  5. *`module_of` redéfini* : `tools/scope_count.py:31`, déjà dans `tools/rename_derive.py:229`. Proposition : appliquer en 5 (5a) : un seul `module_of`, puisque les lignes d'exception de 5d sont rangées par module ; contrôle : `make scope-count` et `make cryptic-locals` identiques à l'octet avant et après.
+  6. *Imports dans un corps de fonction* : `tools/scope_count.py:84` (`rename_count`) et `:130` (`rename_substeps`). Proposition : appliquer en 5 (5a), avec 1 et 4 : imports en tête de fichier.
+  7. *Mode caché* : `--cryptic` (`tools/scope_count.py:173`) est un second outil sous une option, et exige `--exceptions` (ligne 114), qu'il ne lit pas. Proposition : appliquer en 5 (5a) : `--exceptions` facultatif sous `--cryptic`, test d'abord dans `tests/test_scope_count.py` ; le mode reste une option.
+  8. *Tableau par module réécrit quatre fois* : `french_count.py`, `rename_count.py`, `cart_citations.py`, `scope_count.py`. Proposition : reporter hors plan 5 (sorties comparées à l'octet par les notes de l'étape 4 ; rien ne change pour les gardes).
+  9. *Lecteurs d'exceptions parallèles* : `read_exceptions` de `tools/french_count.py:128` (`colonne`, `module`, `mot`) et de `tools/scope_count.py:52` (`sorte`, `parent`, `nom`) ; D-1 en ajoute un troisième (`tools/cart_names_exceptions.txt`). Proposition : appliquer en 5 (5a) : un lecteur de triplets, chaque fichier garde son schéma ; contrôle : les tests des trois compteurs verts.
+  10. *`COLUMNS` redéclaré* : `tools/french_count.py:40`, même tuple que `tools/rename_count.py:32`. Proposition : appliquer en 5 (5a), avec 4 : importé.
+  11. *`--module`/`--substep` répétés dans six outils*. Proposition : reporter hors plan 5 : le chantier fini, `--substep` n'a plus d'usage.
+  12. *Chemin du TSV écrit 19 fois* dans le `Makefile` (11 recettes, 8 lignes de légende), quand `RENAME_SUBSTEPS` existe pour la table des sous-étapes. Proposition : appliquer en 5 (5a) : une variable (`RENAME_TABLE := docs/renommage.tsv`) dans les recettes ; contrôle : `grep -n 'docs/renommage.tsv' Makefile` hors légende rend la seule définition, base de `make` égale par la table de la substitution.
+  13. *Outils de l'étape 4 rangés en 3a* : `tools/rename_substeps.tsv:8` (`tools/french_count`, `tools/cart_citations`… avec `engine/entity_class`). Proposition : abandonner : rangement acté par 4a (plan, note de 4a, « Table »), et la table ne sert plus qu'aux `SUBSTEP` des étapes 3 et 4.
+  14. **À trancher** — *Gardes épinglées sur des noms du cart effacés* : `tools/composition_residue.sh:66-69` (`defaults` `pico8_X_start`, `name-dispatch` `hp_pose`, `pico8_ho_gp_has`, `one-or-false` `pk_is_bool`, avec `nu`) et `tools/data_residue.sh:20` (catégories `value`, `ob`, `stash`, `list`, épinglées sur des noms `pico8_*` qui n'existent plus) apparient 0 ; `composition-guard` et `data-guard` sont verts dans `make test` parce que rien ne peut plus y apparier. Recoupe D-5, D-7, D-8, D-9, D-11 : D-5, D-7 et D-8 proposent de garder leur motif tel quel, D-11 de retirer les catégories pour cette même raison. Proposition : appliquer en 5 (5b) un verdict commun aux six entrées : un motif écrit en nom du cart qui apparie 0 est retiré avec ses fixtures (D-11 (a), étendu à la branche de D-5, D-7, D-8 et D-9), la garde anti-cart bloquante (5e) interdisant déjà ces noms ; à défaut, chaque motif gardé est déclaré « vert par construction » dans son entrée.
+  15. *`SPEC_EXCLUSION` écrit en dur* : `tools/data_residue.sh:49`, sept noms. Proposition : abandonner : sans objet sous D-9 (a), qui retire l'exclusion ; sous D-9 (b), elle redevient vivante et reste telle quelle.
+  16. *`tools/composition_residue.sh` fait 767 lignes*. Proposition : reporter hors plan 5 (découper le script est un redécoupage, §7 du plan).
+- **Verdict** (un par alerte, l'alerte 14 d'abord) :
 
 ## Clôture (4l4)
 
 Le registre est clos par 4l4, dernier morceau de l'étape 4 : **65 entrées**, D-1 à D-65, chacune avec son origine, sa question, ses options, ses sites et une proposition prête à appliquer, et une ligne `Verdict` vide (contrôle, par script : chaque `### D-n` a une ligne `Proposition` ou `propositions`, et une ligne `Verdict` vide — D-28, qui porte une proposition par alerte, a sa ligne « Verdict (un par alerte) », vide). L'étape 5 attend un verdict sur chacune.
+
+**Complété par la consultation `plan-review` d'avant l'étape 5** : D-66 (mécanisme des gardes bloquantes), D-67 (compteur de français en troisième garde, question déplacée de l'entrée 5 du plan), D-68 (alertes `warn-review` de fin de tronçon 3, une proposition par alerte, l'alerte 14 à trancher), et la colonne « Application » de l'index (« Conventions », familles et verdicts). **68 entrées**, D-1 à D-68. Contrôle, par script : chaque `### D-n` a une ligne `Proposition` ou `propositions` et une ligne `Verdict` vide (D-28 et D-68, une proposition par alerte, ont leur ligne « Verdict (un par alerte) », vide ; la proposition de D-66 ne préfère aucune option) ; chaque ligne de l'index a une famille parmi `N`, `G`, `X`, `O`, `T`, `D`. Répartition : N 39, G 10, X 9, O 8, T 1, D 1.
 
 **Restes comptés**, sans `SUBSTEP`, sur une extraction fraîche à la fin de 4l4 — la liste exacte, compteur par compteur :
 
@@ -894,4 +955,4 @@ Le registre est clos par 4l4, dernier morceau de l'étape 4 : **65 entrées**, D
 
 Aucun autre reste. Avec les 17 lignes d'exception de D-33, D-55, D-59 et D-61, `french-count` sans `SUBSTEP` rend 0 (vérifié sur une copie de `tools/french_exceptions.txt`).
 
-**Entrées qu'aucun compteur ne voit** : toutes les autres — D-2 à D-12, D-14 à D-32, D-34 à D-36, D-38 à D-54, D-57, D-58, D-62 à D-65.
+**Entrées qu'aucun compteur ne voit** : toutes les autres — D-2 à D-12, D-14 à D-32, D-34 à D-36, D-38 à D-54, D-57, D-58, D-62 à D-68.
