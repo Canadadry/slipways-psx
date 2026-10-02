@@ -1300,6 +1300,10 @@ identity	c:test_allocator.c@11464@F@case_arena_spares_neighbour@places	neighbour
 # --- long-scope locals (make cryptic-locals) -----------------------------------
 identity	c:test_demo.c@379@F@main@mem	memory	
 identity	c:test_demo.c@424@F@main@gfx	graphics	
+identity	c:entity_registry.c@5709@F@draw_layers@bucket_src	message_bucket	
+identity	c:test_draw_layers_camera.c@1449@F@test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_planet_draw@mem	memory	
+identity	c:test_draw_layers_camera.c@1470@F@test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_planet_draw@gfx	graphics	
+identity	c:test_game_zone.c@6250@F@icons_bytes@mesure	measure_arena	
 
 # --- tmp/ binaries and outputs (tools/rename_strings.py) ------------------------
 # A binary takes the name of its cmd/ file, except frames: tmp/frames is the

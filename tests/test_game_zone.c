@@ -172,21 +172,21 @@ static size_t economy_bytes(void) {
  * de chaque icone revelee. */
 static size_t icons_bytes(void) {
     const entity_list_t *hv = live_entities();
-    const allocator_t *mesure = arena_take(frame_zone(), "tooltip-measure", 16384);
-    const size_t head = arena_used(mesure);
+    const allocator_t *measure_arena = arena_take(frame_zone(), "tooltip-measure", 16384);
+    const size_t head = arena_used(measure_arena);
     size_t bytes = 0;
     int k = 0;
     for (int i = 0; hv != NULL && i < hv->count; i++) {
         const structure_icon_t *ie = (const structure_icon_t *)hv->items[i];
         if (ie->header.class != structure_icon_class()) continue;
         assert(k < ICON_TOOLTIPS_COUNT && "more icons than tooltips in icon_tooltips_table");
-        (void)tooltip_new(mesure, &icon_tooltips_table[k]);
+        (void)tooltip_new(measure_arena, &icon_tooltips_table[k]);
         bytes += block_bytes(sizeof *ie);
         if (ie->has_is_revealed && ie->is_revealed) bytes += block_bytes(sizeof(vec_t));
         k++;
     }
     assert(k == ICON_TOOLTIPS_COUNT && "cart_start_game makes one icon per tooltip of icon_tooltips_table");
-    return bytes + arena_used(mesure) - head;
+    return bytes + arena_used(measure_arena) - head;
 }
 
 /* Terme « recherche et economie » de la generation : ce que `eu` fait pour

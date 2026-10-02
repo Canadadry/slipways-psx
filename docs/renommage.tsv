@@ -1154,7 +1154,7 @@ pico8_lt	entity_register	src/engine/entity_registry.c	identifiant	fonction	renom
 pico8_mo	main_camera	src/engine/entity_registry.c	identifiant	fonction	renommé	engine/entity_registry	ok		c:@F@pico8_mo
 pico8_mo_placeholder_struct_class	main_camera_placeholder_class	src/engine/entity_registry.c	identifiant	fonction	renommé	engine/entity_registry	ok		c:@F@pico8_mo_placeholder_struct_class
 bucket	bucket	src/engine/entity_registry.c	identifiant	locale	conservé	engine/entity_registry			c:entity_registry.c@6165@F@pico8_dc@bucket
-bucket_src	bucket_src	src/engine/entity_registry.c	identifiant	locale	conservé	engine/entity_registry			c:entity_registry.c@5207@F@pico8_dc@bucket_src
+bucket_src	message_bucket	src/engine/entity_registry.c	identifiant	locale	renommé	engine/entity_registry			c:entity_registry.c@5709@F@draw_layers@bucket_src
 ci	ci	src/engine/entity_registry.c	identifiant	locale	conservé	engine/entity_registry			c:entity_registry.c@6256@F@pico8_dc@ci
 cls	cls	src/engine/entity_registry.c	identifiant	locale	conservé	engine/entity_registry			c:entity_registry.c@3339@F@pico8_bm_has@cls
 draw	draw	src/engine/entity_registry.c	identifiant	locale	conservé	engine/entity_registry			c:entity_registry.c@6655@F@pico8_dc@draw
@@ -8973,9 +8973,9 @@ spy_kj	spy_draw	tests/test_draw_layers_camera.c	identifiant	fonction	renommé	te
 test_dc_kj_dispatches_mo_md_then_real_jo_kj	test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_planet_draw	tests/test_draw_layers_camera.c	identifiant	fonction	renommé	tests/test_draw_layers_camera	dc		c:test_draw_layers_camera.c@F@test_dc_kj_dispatches_mo_md_then_real_jo_kj
 bucket	bucket	tests/test_draw_layers_camera.c	identifiant	locale	conservé	tests/test_draw_layers_camera			c:test_draw_layers_camera.c@2122@F@test_dc_kj_dispatches_mo_md_then_real_jo_kj@bucket
 found	found	tests/test_draw_layers_camera.c	identifiant	locale	conservé	tests/test_draw_layers_camera			c:test_draw_layers_camera.c@2175@F@test_dc_kj_dispatches_mo_md_then_real_jo_kj@found
-gfx	gfx	tests/test_draw_layers_camera.c	identifiant	locale	conservé	tests/test_draw_layers_camera			c:test_draw_layers_camera.c@1450@F@test_dc_kj_dispatches_mo_md_then_real_jo_kj@gfx
+gfx	graphics	tests/test_draw_layers_camera.c	identifiant	locale	renommé	tests/test_draw_layers_camera			c:test_draw_layers_camera.c@1470@F@test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_planet_draw@gfx
 i	i	tests/test_draw_layers_camera.c	identifiant	locale	conservé	tests/test_draw_layers_camera			c:test_draw_layers_camera.c@2198@F@test_dc_kj_dispatches_mo_md_then_real_jo_kj@i
-mem	mem	tests/test_draw_layers_camera.c	identifiant	locale	conservé	tests/test_draw_layers_camera			c:test_draw_layers_camera.c@1429@F@test_dc_kj_dispatches_mo_md_then_real_jo_kj@mem
+mem	memory	tests/test_draw_layers_camera.c	identifiant	locale	renommé	tests/test_draw_layers_camera			c:test_draw_layers_camera.c@1449@F@test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_planet_draw@mem
 mo	camera	tests/test_draw_layers_camera.c	identifiant	locale	renommé	tests/test_draw_layers_camera	mo		c:test_draw_layers_camera.c@1472@F@test_dc_kj_dispatches_mo_md_then_real_jo_kj@mo
 p	p	tests/test_draw_layers_camera.c	identifiant	locale	conservé	tests/test_draw_layers_camera			c:test_draw_layers_camera.c@1006@F@spy_kj@p
 pixel_after	pixel_after	tests/test_draw_layers_camera.c	identifiant	locale	conservé	tests/test_draw_layers_camera			c:test_draw_layers_camera.c@1611@F@test_dc_kj_dispatches_mo_md_then_real_jo_kj@pixel_after
@@ -10113,7 +10113,7 @@ jo	jo	tests/test_game_zone.c	identifiant	locale	conservé	tests/test_game_zone		
 k	k	tests/test_game_zone.c	identifiant	locale	conservé	tests/test_game_zone			c:test_game_zone.c@3552@F@octets_d_un_registre@k
 k	k	tests/test_game_zone.c	identifiant	locale	conservé	tests/test_game_zone			c:test_game_zone.c@6464@F@octets_des_icones@k
 le	le	tests/test_game_zone.c	identifiant	locale	conservé	tests/test_game_zone			c:test_game_zone.c@10963@F@case_listes_statiques_dans_chargement@le
-mesure	mesure	tests/test_game_zone.c	identifiant	locale	conservé	tests/test_game_zone			c:test_game_zone.c@6270@F@octets_des_icones@mesure
+mesure	measure_arena	tests/test_game_zone.c	identifiant	locale	renommé	tests/test_game_zone			c:test_game_zone.c@6250@F@icons_bytes@mesure
 octets	bytes	tests/test_game_zone.c	identifiant	locale	renommé	tests/test_game_zone			c:test_game_zone.c@3508@F@octets_d_un_registre@octets
 octets	bytes	tests/test_game_zone.c	identifiant	locale	renommé	tests/test_game_zone			c:test_game_zone.c@4992@F@octets_des_planetes@octets
 octets	bytes	tests/test_game_zone.c	identifiant	locale	renommé	tests/test_game_zone			c:test_game_zone.c@6497@F@octets_des_icones@octets

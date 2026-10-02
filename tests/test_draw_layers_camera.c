@@ -39,8 +39,8 @@ static void spy_draw(entity_t *self, const vec_t *ra) {
 static entity_class_t g_spied_planet;
 
 static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_planet_draw(void) {
-    p8_memory_t mem;
-    p8_graphics_t gfx;
+    p8_memory_t memory;
+    p8_graphics_t graphics;
     planet_t *planet;
     entity_t *camera;
     vec_t *pos_heap;
@@ -48,10 +48,10 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
     unsigned char pixel_before;
     unsigned char pixel_after;
 
-    p8_mem_init(&mem);
-    p8_gfx_init(&gfx);
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
+    p8_mem_init(&memory);
+    p8_gfx_init(&graphics);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
 
     g_draw_calls = 0;
 
@@ -97,11 +97,11 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
      * hardcoded here because the camera is not set yet, and cross-checked
      * against the real camera below. */
     screen_pixel_addr = P8_ADDR_SCREEN + (256 - 192) * P8_SCREEN_WIDTH + (256 - 192);
-    p8_poke(&mem, screen_pixel_addr, 9);
-    pixel_before = p8_peek(&mem, screen_pixel_addr);
+    p8_poke(&memory, screen_pixel_addr, 9);
+    pixel_before = p8_peek(&memory, screen_pixel_addr);
     assert(pixel_before == 9);
 
-    assert(gfx.camera_x == 0 && gfx.camera_y == 0);
+    assert(graphics.camera_x == 0 && graphics.camera_y == 0);
     draw_layers("draw");
 
     /* Order, never the reverse: within a layer, the "kj" special case runs
@@ -111,16 +111,16 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
 
     /* `mo:md` really ran: the camera lands on `qb`'s spec `ra=v(192,192)`,
      * `self.ma` having decayed to its 0 default so the shake adds nothing. */
-    assert(gfx.camera_x == 192);
-    assert(gfx.camera_y == 192);
+    assert(graphics.camera_x == 192);
+    assert(graphics.camera_y == 192);
 
     /* The sentinel address against the camera actually set, so the two
      * cannot drift apart. */
-    assert(screen_pixel_addr == P8_ADDR_SCREEN + (256 - gfx.camera_y) * P8_SCREEN_WIDTH + (256 - gfx.camera_x));
+    assert(screen_pixel_addr == P8_ADDR_SCREEN + (256 - graphics.camera_y) * P8_SCREEN_WIDTH + (256 - graphics.camera_x));
 
     /* `circfill(p.x,p.y,7,0)` paints a black disc on world (256,256), i.e.
      * screen (64,64): the sentinel is gone. */
-    pixel_after = p8_peek(&mem, screen_pixel_addr);
+    pixel_after = p8_peek(&memory, screen_pixel_addr);
     assert(pixel_after == 0);
 
     assert(main_camera() == camera);

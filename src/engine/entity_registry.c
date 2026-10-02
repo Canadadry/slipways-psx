@@ -214,7 +214,7 @@ void entity_unregister(entity_t *e) {
 }
 
 void draw_layers(const char *message) {
-    const entity_list_t *bucket_src;
+    const entity_list_t *message_bucket;
     entity_list_t layers[15];
     int is_draw = strcmp(message, "draw") == 0;
     int index, layer_index;
@@ -225,10 +225,10 @@ void draw_layers(const char *message) {
         entity_list_init(&layers[index], frame_zone());
     }
 
-    bucket_src = entities_by_message(message);
-    if (bucket_src != NULL) {
-        for (index = 0; index < bucket_src->count; index++) {
-            entity_t *qc = bucket_src->items[index];
+    message_bucket = entities_by_message(message);
+    if (message_bucket != NULL) {
+        for (index = 0; index < message_bucket->count; index++) {
+            entity_t *qc = message_bucket->items[index];
             int layer;
 
             /* An entity whose `.fa` is absent or outside 1..15 is dropped
