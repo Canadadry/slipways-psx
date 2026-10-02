@@ -12,7 +12,7 @@
 
 typedef char particle_fits_its_slot_t[sizeof(particle_t) <= PARTICLE_SLOT ? 1 : -1];
 
-/* `fa`, and `ra` into `*ra` (the zero vector when nil), of the host of `ei`. */
+/* The host's layer, and its position into the out vector (zero when absent). */
 static p8_fixed_t emitter_host_layer_pos(const entity_t *self, vec_t *ra) {
     assert(self->layer != NULL && self->pos != NULL &&
            "emitter_update: a host that carries no layer or no pos, none of whose draw runs it -- stop");
@@ -68,7 +68,7 @@ void emitter_release_particles(emitter_t *emitter) {
     for (i = 0; i < qy->count; i++) {
         allocator_release(particle, qy->items[i]);
     }
-    /* The list lives in its own arena: `qy` dies with it. */
+    /* The list lives in its own arena: the list dies with it. */
     arena_release(qy->zone);
     emitter->particles = NULL;
 }
@@ -139,9 +139,9 @@ void emitter_update(const p8_graphics_t *graphics, p8_memory_t *memory, entity_t
             particle->pos = vec_add(particle->pos, pv);
 
             particle->velocity.x = p8_fixed_add(p8_fixed_mul(matrix_xx, pv.x), p8_fixed_mul(matrix_xy, pv.y));
-            /* In Lua `pv` aliases `p.v`, so the second row reads the x
-             * just written. Passing the snapshot's `pv.x` here instead
-             * would be a silent divergence. */
+            /* The second row reads the x just written, not the snapshot's:
+             * passing pv.x here instead would look like a fix and would
+             * move every particle whose matrix_yx is not 0. */
             particle->velocity.y = p8_fixed_add(p8_fixed_mul(matrix_yx, particle->velocity.x), p8_fixed_mul(matrix_yy, pv.y));
 
             if (particle->has_acceleration) {
@@ -151,9 +151,9 @@ void emitter_update(const p8_graphics_t *graphics, p8_memory_t *memory, entity_t
             particle->life = p8_fixed_sub(particle->life, P8_FIXED_LIT(0x000023d7, 0.14));
 
             if (particle->life <= p8_fixed_from_int(1)) {
-                /* The Lua loop is `pairs()`, not `all()`: the element
-                 * that slides into the vacated slot is skipped this
-                 * frame. Reproduced by never compensating the index. */
+                /* TROU-14 */
+                /* Never compensate the index: the particle that slides
+                 * into the freed slot waits for the next frame. */
                 pointer_list_del(particles, particle);
                 allocator_release(particle_zone(PARTICLE_SLOT_PARTICLE), (unsigned char *)particle);
             } else {

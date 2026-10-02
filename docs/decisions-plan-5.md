@@ -70,6 +70,7 @@
 | D-43 | 4e | Paramètres `gfx`/`mem` des fonctions de dessin | 96 + 128 déclarations |
 | D-44 | 4e | Champ `planet_inspection_panel_ctx_t.unmet_needs`, qui tient les besoins reçus | 7 + 1 |
 | D-45 | 4f1 | Noms de test qui disent « grab arena » pour une prise (`test_live_slots.c`) | 16 + fixture |
+| D-46 | 4f2 | Fonctions de `main_economy.h` définies dans `probe.c` (`probe_set_main_economy`) | 3 + 159 |
 
 ## Entrées
 
@@ -259,6 +260,7 @@
 
   `targeting_own` : 0 site.
 - **Portée** : s'applique aussi aux mentions entre backticks et en commentaire ; contrôle sur `probe_own`.
+- **Complément (4f2)** : 4f2 renomme les locales `probe` de `targeting_track` et `targeting_confirm` (`src/game/probe.c`) en `targeting` : elles tiennent un `targeting_t`, nom qui mentait, comme le champ `self->targeting` et la locale `targeting` de `fold_probe`. Reste le champ `probe_own`, objet de l'entrée ; ses mentions en commentaire (`probe.h`, `wormhole.h`, `targeting.h`) le citent sans backticks, par son nom courant.
 - **Verdict** :
 
 ### D-16 — `probe_link_target` hors de son module
@@ -294,6 +296,7 @@
 - **Proposition prête à appliquer** : (a), procédure N (lignes `ancien nouveau fichier identité` du tableau, une par identité) ; les lignes de `tools/rename_overrides.tsv` sont `name<TAB><ancien><TAB><nouveau>`.
 - **Portée** : s'applique aussi aux mentions entre backticks et en commentaire ; contrôle sur chaque ancien nom.
 - **Complément (4e)** : le libellé `"update_vanishing_update_entities_calls"` de `check_int()` (`tests/test_planet.c`) est le nom de `UPDATE_VANISHING_UPDATE_ENTITIES_CALLS` en minuscules (règle des libellés, consigne point 7) : si (a) est appliquée, il devient `"update_vanishing_calls"` dans le même commit.
+- **Complément (4f2)** : `emitter_init_help_screen_takes_a_particles_help_screen_list` est un nom de cas : la fonction est `case_emitter_init_help_screen_takes_a_particles_help_screen_list` (`tests/test_particle_zone.c`), et la chaîne de `CASES[]` et celle de son `expect_clean` suivent la fonction (règle des noms de cas, consigne point 7) ; sous (a), trois sites d'un coup : la fonction devient `case_emitter_init_help_screen_takes_a_help_list`, ses deux chaînes `"emitter_init_help_screen_takes_a_help_list"` (lignes 330 et 423 à la fin de 4f2), et l'identité de la ligne du tableau ci-dessus est `c:test_particle_zone.c@F@case_emitter_init_help_screen_takes_a_particles_help_screen_list`.
 - **Verdict** :
 
 ### D-18 — Étiquette morte `main_mouse` de `test_main_mouse.c`
@@ -572,6 +575,7 @@
 - **Sites** : 14 lignes ; `rename-table-check` sur l'extraction de l'état des chaînes de 4e : 27 708 → 27 638 (84 violations des 42 lignes tombent, ces 14 apparaissent).
 - **Proposition prête à appliquer** : (a) ; (c) à l'étape 5 si la garde de l'étape 5 lit `rename-table-check`. Contrôle de (c) : `make rename-check-test` vert, `make rename-table-check` rend 14 violations de moins.
 - **Portée** : aucune mention en commentaire ni entre backticks n'est en cause sous (a) ; sous (b), les 19 mentions sont à réécrire.
+- **Complément (4f1, 4f2)** : 4f1 ajoute 3 lignes de cette forme (`prise` → `grab_arena` → `used_before`/`used`), 4f2 en ajoute 8 (`ra`/`p` → `pos` → `screen_pos` ×3, `px` → `name` → `screen_x`, `py` → `speed_factor` → `screen_y`, `prise` → `grab_arena` → `used`, `prise_rendue` → `grab_arena_released` → `released_used`, `em` → `spacer` → `emitter`) : 25 lignes en tout. `rename-table-check` sur l'extraction de l'état des chaînes de 4f2 : 27 708 → 27 670.
 - **Verdict** :
 
 ### D-43 — Paramètres `gfx`/`mem` des fonctions de dessin
@@ -582,6 +586,7 @@
 - **Sites** : `grep -rnE 'p8_graphics_t \*gfx\b' src | wc -l` : 100 à `fdf8844`, 96 après 4e ; `grep -rnE 'p8_memory_t \*mem\b' src | wc -l` : 132 à `fdf8844`, 128 après 4e (prototypes compris).
 - **Proposition prête à appliquer** : (a), à revoir avec D-36 et D-38.
 - **Portée** : sous (b), s'applique aussi aux mentions entre backticks et en commentaire ; contrôle : les deux `grep` ci-dessus rendent 0.
+- **Complément (4f2)** : après 4f2, `grep -rnE 'p8_graphics_t \*gfx\b' src | wc -l` 92, `'p8_memory_t \*mem\b'` 124 (`emitter_update` et `wormhole_draw` renommés, prototypes compris) ; restent à courte portée, dans les fichiers de 4f2, `targeting_tooltip` et `targeting_tooltip_show`.
 - **Verdict** :
 
 ### D-44 — Champ `planet_inspection_panel_ctx_t.unmet_needs`, qui tient les besoins reçus
@@ -602,4 +607,14 @@
 - **Sites** (``grep`` des conventions, fin de 4f1) : 2 par fonction (la définition et un appel : `main`, ou `placed_grab_arena_reuses_dead_wormhole_arena` pour `placed_grab_arena`), 10 ; macro 6 (définition, quatre `start_e2e`, l'en-tête de commentaire de sa fixture) ; fixture 1 en code (la valeur de `GRAB_ARENAS`), plus sa ligne de `tools/rename_substeps.tsv` et la liste de 4f2 du plan. Noms neufs : 0 site.
 - **Proposition prête à appliquer** : (a), procédure N, identités relevées à la fin de 4f1 dans `declarations.tsv` : `refused_grab_arenas_do_not_grow_game	refused_grabs_do_not_grow_game	tests/test_live_slots.c	c:test_live_slots.c@F@refused_grab_arenas_do_not_grow_game`, `placed_grab_arena	placed_grab	tests/test_live_slots.c	c:test_live_slots.c@F@placed_grab_arena`, `placed_grab_arena_reuses_dead_wormhole_arena	placed_grab_reuses_dead_wormhole_arena	tests/test_live_slots.c	c:test_live_slots.c@F@placed_grab_arena_reuses_dead_wormhole_arena`, `refused_grab_arena_crosses_new_game	refused_grab_crosses_new_game	tests/test_live_slots.c	c:test_live_slots.c@F@refused_grab_arena_crosses_new_game`, `offscreen_planet_forgets_refused_grab_arena	offscreen_planet_forgets_refused_grab	tests/test_live_slots.c	c:test_live_slots.c@F@offscreen_planet_forgets_refused_grab_arena`, `GRAB_ARENAS	GRABS	tests/test_live_slots.c	macro:tests/test_live_slots.c:GRAB_ARENAS` ; les lignes de `docs/renommage.tsv` gardent leur `ancien` du cart (D-42).
 - **Portée** : s'applique aussi aux mentions en commentaire (l'en-tête `GRAB_ARENAS:` de la fixture) ; contrôle : `grep -rnw 'grab_arena\|grab_arenas\|GRAB_ARENAS\|grab_arenas_refused' tests/test_live_slots.c` ne rend que le champ `placed->grab_arena` de la sonde, qui tient vraiment une arène.
+- **Verdict** :
+
+### D-46 — Fonctions de `main_economy.h` définies dans `probe.c`
+
+- **Origine** : 4f2 (commit de commentaires ; 3f le notait pour les `main_economy*`).
+- **Question** : `main_economy`, `main_economy_typed`, `main_economy_placeholder`, `main_economy_placeholder_class` et `probe_set_main_economy` sont déclarées dans `src/game/main_economy.h`, qui n'a pas de `.c`, et définies dans `src/game/probe.c` (avec l'état `g_main_economy` et la struct provisoire, que `probe_init` remet en place). `probe_set_main_economy` porte en plus le préfixe `probe_` dans un en-tête `main_economy` (§4 : module = nom du fichier). Que faire ?
+- **Options** : (a) garder (§7 : pas de redécoupage de module pendant le plan 5) ; (b) renommer `probe_set_main_economy` → `main_economy_set`, procédure N ; (c) déplacer les définitions et leur état dans un `src/game/main_economy.c` (redécoupage, hors plan 5).
+- **Sites** (`grep` des conventions, fin de 4f2) : `probe_set_main_economy` 3 (déclaration `main_economy.h:62`, définition `probe.c:490`, appel `cart.c:217`) ; `main_economy` 53 (mot entier, les `#include "game/main_economy.h"` compris), `main_economy_typed` 91, `main_economy_placeholder` 10, `main_economy_placeholder_class` 5. `main_economy_set` : 0 site.
+- **Proposition prête à appliquer** : (a) ; (b) en complément si l'humain veut le §4 à la lettre : `probe_set_main_economy	main_economy_set	src/game/main_economy.h	c:@F@probe_set_main_economy`, ligne de `tools/rename_overrides.tsv` `name	pico8_probe_set_fm	main_economy_set` ; la ligne du TSV garde son `ancien` du cart (`pico8_probe_set_fm`).
+- **Portée** : s'applique aussi aux mentions entre backticks et en commentaire ; contrôle sous (b) : le `grep` des conventions sur `probe_set_main_economy` rend 0.
 - **Verdict** :

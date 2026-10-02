@@ -120,8 +120,8 @@ void wormhole_drop(wormhole_t *self) {
 
     t = self->header.state_time;
 
-    /* The `or` short-circuits: `d_`'s side effects must not run before tick
-     * 15, so this call cannot be hoisted out of the else branch. */
+    /* targeting_confirm's side effects must not run before tick 15, so
+     * this call cannot be hoisted out of the else branch. */
     if (t < p8_fixed_from_int(15)) {
         result = 1;
     } else {
@@ -196,10 +196,10 @@ static void wormhole_release_method(entity_t *self) {
     planet_grab_arena_arena_released(((wormhole_t *)self)->anchors->zone);
 }
 
-/* Lua's `mz.hq=bv` is rebound three statements later by `function mz:hq`,
- * so only that second definition is ever reachable. Putting
- * pico8_bv_dispatch in the HQ entry instead would look faithful and would
- * drop the nearest-anchor search. */
+/* The drag entry is wormhole_drag, which calls targeting_track itself and
+ * then searches the nearest anchor. Putting targeting_track_method there,
+ * as in the other targeting classes, would look uniform and would drop the
+ * nearest-anchor search and the too-far target. */
 static const entity_class_t g_wormhole_class = {
     .draw = wormhole_draw_method,
     .draw_overlay = targeting_tooltip_method,

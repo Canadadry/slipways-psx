@@ -4,8 +4,8 @@
 
 #include "engine/zone_sizes.h"
 
-/* Taille : en-tete d'arene compris (x86-64), une liste tient juste sa
- * capacite reservee. Nombre : ce qui vit a la fois au pire de la frame. */
+/* Size: arena header included (x86-64), a list holds just its reserved
+ * capacity. Count: what lives at once in the worst frame. */
 #define PARTICLES_SIZE (96u + 24u + PARTICLES_CAPACITY * 8u)
 #define PARTICLES_HELP_SCREEN_SIZE (96u + 24u + PARTICLES_HELP_SCREEN_CAPACITY * 8u)
 #define BURST_SIZE 640u
@@ -13,14 +13,14 @@
 #define PARTICLES_HELP_SCREEN_COUNT 1
 #define BURST_COUNT 8
 #define ARENAS_MAX PARTICLES_COUNT
-/* Risque accepte : ~21 trainees vivent par slipway desservi dans les deux
- * sens, 680 places tiennent une trentaine de tels slipways visibles. */
+/* Accepted risk: ~21 transit dots live per slipway served both ways, and
+ * 680 slots hold about thirty such visible slipways. */
 #define TRANSIT_DOTS_COUNT 680
 
-/* Particules : chaque liste `qy` a son pire, plus les 5 de la nouvelle
- * aide, nees au `_init` avant le vidage qui rend l'ancienne partie. Un
- * eclat en fait 140 (`ez(self,140)`) ; une sonde ou un `pm` (`fc=1`,
- * `ki=9`) ~58, 60 avec les sauts de TROU-14. */
+/* Particles: each particle list at its worst, plus the 5 of the new help
+ * screen, born at cart_init before the flush that gives back the old game.
+ * A burst makes 140 (emitter_spawn with 140); a probe or a protostar
+ * (spawn_rate 1, lifetime 9) ~58, 60 with the skips of TROU-14. */
 #define BURST_PARTICLES 140
 #define EMITTER_WORST_CASE 60
 #define HELP_SCREEN_PER_FRAME 5
@@ -58,13 +58,13 @@ static int g_live[PARTICLE_SLOT_COUNT];
 static int g_max_live[PARTICLE_SLOT_COUNT];
 static size_t g_max_bytes[PARTICLE_SLOT_COUNT];
 static int g_max_elements[PARTICLE_SLOT_COUNT];
-/* Places-arenes vivantes, mesurees a la lecture du maximum d'octets. */
+/* Live arena slots, measured when the maximum of bytes is read. */
 static unsigned char *g_arenas[PARTICLE_SLOT_COUNT][ARENAS_MAX];
 
 static particle_slot_kind_t slot_kind_of(const allocator_t *z);
 
-/* Paresseuse : pico8_slot_zone_init empoisonne le stockage sous ASan, ce
- * qu'un initialiseur statique ne ferait pas. */
+/* Lazy: slot_zone_init, through allocator_init_slot_kinds, poisons the
+ * storage under ASan, which a static initializer would not do. */
 static void init_once(void) {
     if (g_ready) return;
     allocator_init_slot_kinds(SLOT_KINDS, PARTICLE_SLOT_COUNT, g_zones, g_slots);

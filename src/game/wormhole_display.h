@@ -7,8 +7,9 @@
 #include "game/wormhole.h"
 
 /* TROU-3 */
-/* `p` is the struct's `ra`, as `dc("kj")` passes it. A NULL `self` draws
- * nothing; a NULL `gfx` or `mem` skips the drawing calls only. */
+/* screen_pos is the struct's pos, as the draw dispatch passes it. A NULL
+ * `self` draws nothing; NULL graphics or memory skips the drawing calls
+ * only. */
 void wormhole_draw(p8_graphics_t *graphics, p8_memory_t *memory, wormhole_t *self, vec_t screen_pos);
 
 #endif

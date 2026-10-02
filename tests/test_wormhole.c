@@ -1,6 +1,5 @@
-/* The wormhole `mz`, read and written only through the dual-form field API
- * and driven through the real `mv`/`dg`, in a game built directly: no
- * events file. */
+/* The wormhole, read through its struct and driven through its class's
+ * methods and update_entities, in a game built directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -40,8 +39,8 @@
 #include "engine/game_zone.h"
 
 /* Ticks after the slipway is paid, long enough for the colonizing and
- * paying effects to leave `hv`: `dg` skips the entity after one it takes out
- * (TROU-5). */
+ * paying effects to leave the live entities: update_entities skips the
+ * entity after one it takes out (TROU-5). */
 #define SETTLE_TICKS 120
 
 #define ANCHORS_HASH 0xC6D8AF55u
@@ -135,7 +134,7 @@ static int is_targeting_track_target(const void *e) {
            ((const entity_t *)e)->class == targeting_track_target_class();
 }
 
-/* The throwaway target's `fo`, NULL when absent. */
+/* The throwaway target's targeted_by, NULL when absent. */
 static const void *targeting_track_target_targeted_by(const void *t) {
     assert(is_targeting_track_target(t));
     return ((const targeting_track_target_t *)t)->targeted_by;
@@ -180,8 +179,8 @@ static void check_int(const char *label, int got, int want) {
     assert(got == want);
 }
 
-/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
- * reads as difficulty 0. */
+/* A game started as cart_start_game starts it, with no difficulty picked:
+ * a NULL difficulty reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
@@ -201,8 +200,8 @@ static p8_fixed_t dist2(vec_t a, vec_t b) {
 }
 
 /* Two generated planets colonized and joined by a paid slipway, the rest
- * of the galaxy left unknown, then left to settle. `jc:hq` reads the hovered planet off
- * `ok.o_`. */
+ * of the galaxy left unknown, then left to settle. The slipway's drag reads
+ * the hovered planet off main_ui()->hovered. */
 static void world(void) {
     const entity_list_t *jos;
     slipway_keys_t slipway_keys = {0};
@@ -266,8 +265,8 @@ static void drop(void *mz) {
     wormhole_class()->drop(mz, NULL);
 }
 
-/* `dg` skips the entity after one it takes out of `hv` (TROU-5): count
- * ticks by `t`, not by calls. */
+/* update_entities skips the entity after one it takes out of the live
+ * entities (TROU-5): count ticks by state time, not by calls. */
 static void until_state_time(const wormhole_t *mz, int t) {
     while (mz->header.state_time < p8_fixed_from_int(t)) {
         update_entities();
@@ -286,14 +285,15 @@ static planet_t *first_planet_with_state(const char *me) {
     return NULL;
 }
 
-/* The middle of `jc`, in screen units. */
+/* The middle of the slipway, in world units. */
 static vec_t slipway_mid(slipway_t *jc) {
     return vec_mul(vec_div(vec_add(pos_of(jc->start), pos_of(jc->end)), p8_fixed_from_int(2)),
                          p8_fixed_from_int(128));
 }
 
-/* A fresh `mz`: the spec's defaults, ke's `t`, nothing written yet but
- * `ox`, registered like any `ke` entity with `kj` and `ev`. */
+/* A fresh wormhole: the archetype's defaults, a zero state time, nothing
+ * written yet but its anchors list, registered like any entity with draw
+ * and draw_overlay. */
 static void check_fresh_wormhole(void *e) {
     const wormhole_t *mz = as_wormhole(e);
     const int_seq_t *kk;
@@ -366,7 +366,8 @@ static uint32_t fold_anchors(uint32_t h, const wormhole_t *mz) {
     return h;
 }
 
-/* `ox` holds the `fx` entities of `hv` in its order, never an `mz`. */
+/* The anchors list holds the live entities with a non-zero fold_anchor,
+ * in their order, never a wormhole. */
 static void test_anchors(void) {
     uint32_t h = 2166136261u;
     wormhole_t *first;
@@ -396,7 +397,8 @@ static void test_anchors(void) {
     assert(second->anchors->count > 0);
     check("anchors", h, ANCHORS_HASH);
 
-    /* A probe's `fx` is a fixed, true in Lua even at 0: it joins `ox`. */
+    /* A probe's fold_anchor is 1, from its archetype: it joins the anchors
+     * list. */
     probe = probe_new(NULL);
     assert(entity_list_listed(build_wormhole()->anchors, probe));
 
@@ -421,8 +423,8 @@ static size_t generation_but_registries(void) {
            registry_bytes(entities_by_message("draw_overlay")) - registry_bytes(entities_by_tag("wormhole"));
 }
 
-/* A built `mz` takes one grab arena, `ox` reserved to the exact count;
- * once given back, the next `mz` takes that arena again. */
+/* A built wormhole takes one grab arena, its anchors list reserved to the
+ * exact count; once given back, the next wormhole takes that arena again. */
 static void test_arena(void) {
     wormhole_t *mz;
     size_t before;
@@ -452,7 +454,7 @@ static void test_arena(void) {
     assert(generation_but_registries() == before && "a dead wormhole gives its grab arena back to the next grab");
 }
 
-/* The `fo` of the `mz`'s `et`, a slipway or the throwaway. */
+/* The targeted_by of the wormhole's target, a slipway or the throwaway. */
 static const void *target_targeted_by(const wormhole_t *mz) {
     entity_t *et = mz->targeting->target;
 
@@ -489,7 +491,7 @@ static uint32_t fold_drag(uint32_t h, const wormhole_t *mz, int want_kind) {
     return fnv(h, (uint32_t)entity_list_rank_in(live_entities(), mz->anchor));
 }
 
-/* A quarter of the slipway's length past its `qu` end: near that
+/* A quarter of the slipway's length past its start end: near that
  * colonized anchor, off the slipway's segment. */
 static vec_t near_anchor(void) {
     const entity_list_t *jcs = entities_by_tag("slipway");
@@ -527,7 +529,8 @@ static void test_drag(void) {
     check("drag", h, DRAG_HASH);
 }
 
-/* `kz` grows `oi` each `dg` tick; nothing sets `p_`. */
+/* The placing state grows the radius each update_entities tick; nothing
+ * sets is_dead. */
 static void test_update_placing_ticks(void) {
     uint32_t h = 2166136261u;
     wormhole_t *mz;
@@ -552,8 +555,9 @@ static uint32_t fold_drop(uint32_t h, const wormhole_t *mz) {
     return fnv(h, (uint32_t)credits());
 }
 
-/* Before tick 15 `d_` never runs; after it, a set `et` refuses, an unset
- * one pays `od` and turns to `pr`, and too few credits refuse. */
+/* Before tick 15 targeting_confirm never runs; after it, a set target
+ * refuses, an unset one pays the cost and turns to unfolding, and too few
+ * credits refuse. */
 static void test_drop(void) {
     uint32_t hash = 2166136261u;
     p8_fixed_t before;
@@ -610,8 +614,8 @@ static int unknown_count(void) {
     return n;
 }
 
-/* A paid `mz` put on an unknown planet: `pr` reveals around it until
- * `t>25` takes it out of `hv`. */
+/* A paid wormhole put on an unknown planet: the unfolding state reveals
+ * around it until a state time past 25 takes it out of the live entities. */
 static wormhole_t *paid_wormhole_on_unknown(void) {
     wormhole_t *mz = build_wormhole();
     planet_t *unknown = first_planet_with_state("unknown");
@@ -666,8 +670,8 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-/* `kj` is given the screen centre rather than `ra`, which is in world
- * coordinates, off the uncamera'd screen. */
+/* The draw method is given the screen centre rather than pos, which is in
+ * world coordinates, off the screen without a camera. */
 static uint32_t draw(void *mz) {
     const entity_class_t *cls = ((const entity_t *)mz)->class;
 
@@ -678,8 +682,8 @@ static uint32_t draw(void *mz) {
     return screen_hash();
 }
 
-/* Ring, anchor line and sprite while `kz`, the "-too far-" label on the
- * `jj` wrapper, the coloured rings of `pr`. */
+/* Ring, anchor line and sprite while placing, the "-too far-" label of the
+ * too-far target, the coloured rings while unfolding. */
 static void test_draw(void) {
     uint32_t hash = 2166136261u;
     uint32_t blank;
@@ -719,8 +723,8 @@ static void test_draw(void) {
     check("draw", hash, DRAW_HASH);
 }
 
-/* Released over a colonized planet or a slipgate, `jz("gv",held)` reads
- * `s.qu` off the `mz`, which it never has. */
+/* Released over a colonized planet or a slipgate, accept_drop looks for a
+ * held slipway's start, which a wormhole never has: stopped, nothing held. */
 static void test_accept_drop(void) {
     wormhole_t *mz;
     planet_t *ly;
@@ -743,9 +747,9 @@ static void test_accept_drop(void) {
     assert(r.stop && r.held == NULL);
 }
 
-/* `mz.jj` as the cart has it: `qs` and nothing else, never written. `bv`
- * puts `fo` on the target it has just computed, never on the wrapper a
- * previous `hq` left in `et`. */
+/* The wormhole's too-far target: status_text and nothing else, never
+ * written. targeting_track puts targeted_by on the target it has just
+ * computed, never on the too-far target a previous drag left there. */
 static void check_too_far_target_untouched(void) {
     const wormhole_too_far_target_t *wrapper = wormhole_too_far_target_wrapper();
 
@@ -809,9 +813,10 @@ static int is_a_wormhole_struct(const void *e) {
     return is_a_struct_of(e, wormhole_class());
 }
 
-/* Built through `bg:ldown` or directly, an `mz` is a
- * struct with its six methods; the `jj` wrapper is a struct too, the very
- * object of the `jj` member. */
+/* Built through the background's left_press or directly, a wormhole is a
+ * struct whose class has drag, drop, draw, draw_overlay and its two state
+ * methods; the too-far target is a struct too, the very object of the
+ * too_far_target member. */
 static void test_wormhole_is_a_struct(void) {
     down_t made;
     wormhole_t *mz;
@@ -833,7 +838,7 @@ static void test_wormhole_is_a_struct(void) {
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked
- * right after pico8_cart_load(), as a fresh process would start it. */
+ * right after cart_load(), as a fresh process would start it. */
 static void in_fresh_child(void (*test)(void)) {
     pid_t child;
     int status;

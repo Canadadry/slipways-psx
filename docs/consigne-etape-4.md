@@ -28,6 +28,8 @@ Il n'y a plus de nom minifié. Le glossaire (`docs/glossaire-noms.md`) se lit se
 
 `/* TROU-n */` reste tel quel jusqu'à l'étape 5 (pas de `GAP-n`). Un écart nouveau se marque `/* TROU-? */` et se propose au rapport. `docs/trous-de-portage.md` est en lecture seule.
 
+*Amendé par 4f2.* Un écart déjà numéroté que la prose décrit sans marqueur devient son marqueur nu (`/* TROU-n */`) ; dans un `.c` de `tools/line_coverage_reference.txt`, il se pose dans la hauteur du bloc qu'il remplace, les lignes restantes ne portant qu'un piège, jamais un résumé de l'écart (TROU-12 et TROU-14 à 4f2, TROU-16 à 4d). Un « TROU-n » en prose qui explique une valeur (« 60 avec les sauts de TROU-14 ») reste.
+
 ## 5. Destination 3 sans `assert` neuf
 
 - **Aucun `assert` n'est ajouté à l'étape 4** : il changerait la sortie du préprocesseur et ne relève d'aucune des trois sortes de commit. La destination 3 se réduit à ses 40 mots. Un piège qui mériterait un `assert` va dans la rubrique 4 (« envisagés ») et, s'il est sérieux, dans le registre `docs/decisions-plan-5.md` par l'orchestrateur.
@@ -48,6 +50,7 @@ Il n'y a plus de nom minifié. Le glossaire (`docs/glossaire-noms.md`) se lit se
 - *Amendé par 4e.* Un message réécrit se relit lui-même avec `cart-citations` avant d'être proposé : un mot anglais de deux lettres qui est un ancien nom (`id`) y compte en `short` comme dans un commentaire. On écrit le nom C (`planet_id`) ou un mot plein (« identifier »).
 - *Amendé par 4f1.* Un même littéral peut être à la fois un libellé imprimé et le lecteur de la sortie d'un binaire : `NAMES[]` de `tests/test_live_slots.c` imprime les sortes de places et compose la sortie `REPLAY_FILL` attendue. Il reste lecteur, donc à la sous-étape de l'écrivain (`cmd/replay.c`, 4l3) ; la ligne imprimée reste hybride (`rangee=` dans une ligne anglaise) jusque-là.
 - *Amendé par 4f1.* Un commentaire qui décrit un format écrit par une autre sous-étape le décrit par le rôle de ses lignes, sans citer les étiquettes que cette sous-étape traduira : il reste vrai après elle.
+- *Amendé par 4f2.* Un nom de zone composé (`"<zone> <sorte>"`, lu par le gabarit fatal de `engine/zone.c`) se traduit en gardant la composition, même quand elle redouble un mot (`particles particles`) ; ses lecteurs se cherchent par chaque fragment du message composé, dont le nom de zone seul et le nom d'arène (`slot <sorte>`).
 
 ## 7. Tests
 
@@ -81,6 +84,7 @@ Sans `make` (le répertoire de build est partagé) : l'agent appelle les scripts
 - *Fichier d'avant* (*amendé par 4a*, pour l'orchestrateur) : quand le commit de chaînes et le commit de commentaires touchent le même fichier, l'« avant » des commentaires est l'état d'après les chaînes ; l'orchestrateur en garde une copie sous `tmp/` avant de lancer les agents, puisque les deux commits ne sont faits qu'à la fin.
 - *Mentions d'un nom renommé* (*amendé par 4e*, pour l'orchestrateur) : avant de renommer une locale, `grep` des mentions exactes entre backticks de son nom courant dans **tout** le dépôt (``grep -rn '`ctx`' src tests tools``) : le nom courant d'une ligne `conservé` devient un ancien nom, et une mention d'une sous-étape close se mettrait à compter (`` `ctx` `` de `collect.h` et `galaxy.c` à 4e). La sous-étape qui renomme la réécrit, à hauteur constante. Une locale déjà renommée à l'étape 3 garde l'`ancien` du cart de sa ligne (D-42) : son nom courant ne devient pas un ancien nom.
 - *Mot français de deux lettres* (*amendé par 4f1*, pour l'orchestrateur) : avant de renommer une locale dont le nom est un mot français d'une ou deux lettres (`un`), mesurer `cart-citations` sans `SUBSTEP` avec le TSV d'avant et d'après, sur le même arbre : le mot devient un ancien nom, et chaque occurrence nue des sous-étapes suivantes compte en `short` (+235 à 4f1). Les sous-étapes closes doivent rester à 0 ; sinon la sous-étape qui renomme les réécrit.
+- *Portée des locales* (*amendé par 4f2*) : `cryptic-locals` et `scope-count` comptent la portée en lignes, commentaires compris ; un commentaire allongé dans le corps d'une fonction allonge la portée de ses locales. À 4f2, une ligne de plus dans `test_probe_particle_draws_rnd_angle_slices_before_rnd_half` a fait de `got` (portée 40 → 41) une candidate. Un commentaire réécrit dans un corps de fonction garde sa hauteur, ou la portée se relève après l'extraction fraîche.
 - *`e2e-gap`* (*amendé par 4e*) : la sortie brute de `make e2e-gap` permute ses lignes `cc` d'un lancement à l'autre ; on compare `tmp/line_coverage_gap.txt`, ou la sortie privée de ses lignes `cc `.
 - *Compteurs*, colonnes `backtick` et `comment` à zéro sur ses fichiers, hors messages d'`assert` qu'il a proposés :
 
@@ -99,6 +103,7 @@ Au format de `modele-rapport.md`, avec ces changements de rubriques :
 - rubrique 3 (asserts posés) : vide par construction ;
 - rubrique 5 : devient « **noms à renommer** » — locales candidates de `make cryptic-locals`, statiques locales, noms au sens illisible, chacun avec un nom proposé (jamais une ligne de glossaire) ;
   - *Amendé par 4e.* Un nom neuf est fait de mots déjà validés du TSV (sinon `cryptic-locals` le garde, ou il se valide lui-même par sa propre ligne) et ne masque ni fonction, ni globale, ni macro, ni type, ni locale de la même fonction (`declarations.tsv`) ; le prototype d'en-tête se renomme avec sa définition.
+  - *Amendé par 4f2.* Un nom neuf égal à une étiquette de struct (`struct targeting`, `struct emitter`) ne masque rien : les étiquettes sont un espace de noms à part ; précédents, les locales `targeting` de `fold_probe` et `emitter` de `emitter_spawn`, déjà extraites et acceptées.
   - *Amendé par 4e.* Un nom qui ment se propose comme une locale cryptique, même si aucun compteur ne le voit : un nom dérivé d'un concept global du TSV (`px` → `name` pour une abscisse à l'écran) ou un champ dont le nom dit le contraire de ce qu'il tient (`unmet_needs` pour les besoins reçus, D-44).
 - rubrique 10, ajoutée : « **chaînes et messages d'`assert` à réécrire** » — site, texte actuel, texte proposé, lecteurs, test qui le lit ;
 - rubrique 11, ajoutée : « **exceptions proposées** » — faux positifs du compteur de français, avec la ligne d'exception prête (`colonne<TAB>module<TAB>mot`, `tools/french_exceptions.txt`).

@@ -9,14 +9,18 @@
 #include "engine/vec.h"
 #include "game/particle_zone.h"
 
-/* Throughout this module a NULL instance, gfx or mem argument is a safe
- * no-op and a non-NULL `self` must be a struct (asserted). `f_` and `ei`
- * stop on an entity whose `emitter` link is NULL; `ez` adds nothing there. */
+/* A NULL `self` is a no-op for emitter_init, emitter_init_in, emitter_spawn
+ * and emitter_update; emitter_release_particles needs a non-NULL emitter,
+ * and emitter_update draws each surviving particle through p8_pset, which
+ * needs non-NULL graphics and memory. emitter_init_in and emitter_update
+ * stop on an entity whose emitter link is NULL (asserted); emitter_spawn
+ * adds nothing there. */
 
-/* An element of `qy`, `{p,v,a,l}` in the cart: every `mm` takes one from
- * pico8_particule_prendre, `ei` updates it in place and gives it back when
- * it takes it out of `qy`, or pico8_qy_rendre with its list. `has_a` is 0 for
- * `g_`'s particles, whose `a` is absent and never read. */
+/* An element of an emitter's particle list: every spawn_particle method
+ * takes one from particle_take, emitter_update updates it in place and gives
+ * it back when it takes it out of the list, or emitter_release_particles
+ * with its list. has_acceleration is 0 for a probe's particles, whose
+ * acceleration is zero and never read. */
 typedef struct particle {
     vec_t pos;
     vec_t velocity;
@@ -25,12 +29,14 @@ typedef struct particle {
     p8_fixed_t life;
 } particle_t;
 
-/* What `ei`, `ez`, `f_` and `g_:mm` read of their host, the particle
- * emitter's own fields, stored in the host (`emitter_own`) and never copied;
- * the rest is read on `def`, the host's archetype's emitter. `qy` is NULL
- * until `f_`, then in its own arena of the sort `qy_sorte`, owned by the
- * host, whose `rendre` gives it back by pico8_qy_rendre. `pn`, `du`
- * are read by `g_:mm` only: a `ga` leaves them unwritten. */
+/* What emitter_update, emitter_spawn, emitter_init and probe_spawn_particle
+ * read of their host, the particle emitter's own fields, stored in the host
+ * (emitter_own) and never copied; the rest is read on the archetype, the
+ * host's archetype's emitter. particles is NULL until emitter_init, then in
+ * its own arena of the kind particles_slot_kind, owned by the host, whose
+ * release method gives it back by emitter_release_particles. angle_slices
+ * and base_radius are read by probe_spawn_particle only: a burst leaves them
+ * unwritten. */
 typedef struct emitter {
     const emitter_archetype_t *archetype;
     p8_fixed_t angle_slices;
@@ -42,42 +48,45 @@ typedef struct emitter {
     p8_fixed_t matrix_yx;
     p8_fixed_t matrix_yy;
     pointer_list_t *particles;
-    particle_slot_kind_t particles_slot_kind; /* meaningless while `qy` is NULL */
+    particle_slot_kind_t particles_slot_kind; /* meaningless while particles is NULL */
 } emitter_t;
 
-/* Gives back the list `self` already has (pico8_qy_rendre), then takes a
- * fresh one, reserved to its capacity: `fv` takes `qy_fv`, every other
- * host `qy` by pico8_f_. */
+/* Gives back the list `self` already has (emitter_release_particles), then
+ * takes a fresh one, reserved to its capacity: the help screen takes a help
+ * screen list through emitter_init_in, every other host a particle list
+ * through emitter_init. */
 void emitter_init(entity_t *self);
 void emitter_init_in(entity_t *self, particle_slot_kind_t slot_kind);
 
-/* An uninitialised place of the `particule` sort; given back by `ei` or
- * pico8_qy_rendre once in a `qy`. */
+/* An uninitialised slot of the particle kind; given back by emitter_update
+ * or emitter_release_particles once in a particle list. */
 particle_t *particle_take(void);
 
-/* A fresh place of the `ga` sort, as an arena: the burst puts its struct,
- * its `oe` and its `ra` box there, and its `rendre` gives it back by
- * pico8_zone_arene_rendre. */
+/* A fresh slot of the burst kind, as an arena: the burst puts its struct,
+ * its slipways list and its pos box there, and its release method gives it
+ * back by arena_release. */
 const allocator_t *particle_burst_slot_take(void);
 
-/* Gives back each particle still in `emitter->qy` to the `particule`
- * handle, then the list's arena, and leaves `emitter->qy` NULL; nothing
- * when it already is. */
+/* Gives back each particle still in emitter->particles to the particle
+ * handle, then the list's arena, and leaves the list NULL; nothing when it
+ * already is. `emitter` must not be NULL. */
 void emitter_release_particles(emitter_t *emitter);
 
-/* Appends `self:mm()` records to `self.qy` while `rnd() < n`, subtracting 1
- * from `n` each turn: a fractional `n` genuinely has a chance of spawning
- * one more particle than `flr(n)`. A `self` whose class chain has no `mm`
- * adds nothing. */
+/* Appends what the class's spawn_particle returns to the particle list
+ * while rnd() is below the count, subtracting 1 from the count each turn: a
+ * fractional count genuinely has a chance of spawning one more particle
+ * than its floor. A class without spawn_particle, or a host without a list,
+ * adds nothing but still draws from rnd() each turn. */
 void emitter_spawn(entity_t *self, p8_fixed_t n);
 
-/* Takes gfx/mem explicitly, for the classes whose own `kj` calls it as a
- * plain function; `pico8_ei_dispatch` below is the same work reached
- * through a `kj` field, reading both from the dispatch context instead. */
+/* Takes graphics and memory explicitly, for the classes whose own draw
+ * method calls it as a plain function; emitter_update_method below is the
+ * same work reached through a draw entry, reading both from the dispatch
+ * context instead. */
 void emitter_update(const p8_graphics_t *graphics, p8_memory_t *memory, entity_t *self);
 
-/* `ra` is never read: `ei` declares only `self`, so Lua drops the
- * `entity.ra` argument `dc()` passes. */
+/* The position argument is never read: emitter_update reads the host's
+ * own position. */
 void emitter_update_method(entity_t *self, const vec_t *ra);
 
 #endif

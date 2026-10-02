@@ -1,5 +1,5 @@
-/* Lie sous ASan. Chaque cas tourne dans un processus enfant : ce binaire se
- * relance lui-meme avec le nom du cas, et le parent lit son statut et son
+/* Linked under ASan. Each case runs in a child process: this binary runs
+ * itself again with the case name, and the parent reads its status and its
  * stderr. */
 
 #include <assert.h>
@@ -19,8 +19,8 @@
 
 #define STDERR_LOG "tmp/test_particle_zone_stderr.txt"
 
-/* volatile : la lecture d'un pointeur perime ne doit pas etre retiree par
- * l'optimiseur, c'est elle que le cas observe. */
+/* volatile: the read through a stale pointer must not be removed by the
+ * optimizer, it is what the case observes. */
 static volatile unsigned char sink;
 
 static particle_t *particle(void) {
@@ -33,7 +33,7 @@ static void release_particle(particle_t *p) {
     allocator_release(particle_zone(PARTICLE_SLOT_PARTICLE), (unsigned char *)p);
 }
 
-/* Une liste qy de la sorte, dans sa place, reservee a `capacite`. */
+/* A particle list of the kind, in its slot, reserved to `capacity`. */
 static pointer_list_t *list(particle_slot_kind_t slot_kind, int capacity) {
     const allocator_t *slot = particle_zone_slot(slot_kind);
     pointer_list_t *qy = (pointer_list_t *)allocator_alloc(slot, sizeof *qy);
@@ -178,8 +178,9 @@ static int case_particles_release_releases_the_arena(void) {
     return 0;
 }
 
-/* Un hote d'emetteur reduit a ce que lisent `f_` et `ei` : `fa` 10, donc
- * dessine sans `gd`, et `fc` 0, donc sans naissance. */
+/* An emitter host cut down to what emitter_init and emitter_update read:
+ * layer 10, so drawn without the on-screen test, and spawn_rate 0, so
+ * nothing is born. */
 static const emitter_archetype_t g_without_birth;
 static const entity_class_t g_host_cls;
 static const p8_fixed_t g_layer_ten = 10 << 16;
@@ -202,7 +203,7 @@ static entity_t *host(void) {
     return &g_host;
 }
 
-/* Une particule qui meurt au prochain `ei` : `l` 1.1, moins 0.14. */
+/* A particle that dies at the next emitter_update: life 1.1, minus 0.14. */
 static particle_t *dying(entity_t *h) {
     particle_t *p = particle_take();
     memset(p, 0, sizeof *p);
@@ -338,7 +339,7 @@ static const struct {
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
 
-/* Tampon alloue, termine par un nul, que l'appelant libere. */
+/* An allocated buffer, ending with a nul, which the caller frees. */
 static char *read_whole_file(const char *path) {
     FILE *file = fopen(path, "rb");
     assert(file != NULL);
@@ -356,8 +357,8 @@ static char *read_whole_file(const char *path) {
 
 static const char *self_path;
 
-/* Rend le statut brut de system() ; *err recoit le stderr de l'enfant, que
- * l'appelant libere. */
+/* Returns the raw status of system(); *err receives the child's stderr,
+ * which the caller frees. */
 static int run_child(const char *name, char **err) {
     char cmd[512];
     remove(STDERR_LOG);

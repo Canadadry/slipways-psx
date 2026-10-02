@@ -8,18 +8,21 @@
 #include "engine/vec.h"
 #include "engine/allocator.h"
 
-/* Throughout this module a NULL instance argument is a safe no-op (Lua nil
- * for the value-returning functions), a non-NULL `self` must be a struct
- * (asserted) whose class carries the component the function reads -- a
- * probe for `bv`, `dl`, `d_`, an emitter for `g_:mm` -- and a NULL
- * `gfx`/`mem` skips the draw calls while the rest of the body still runs. */
+/* targeting_track, targeting_tooltip and targeting_confirm return at once
+ * on a NULL `self` (targeting_confirm returns 0); probe_release_method and
+ * probe_init_instance do not check it, and probe_spawn_particle still takes
+ * a particle, its draws at zero. A non-NULL `self` must carry the component
+ * the function reads (asserted): its targeting for the three targeting_*
+ * functions, its emitter for probe_spawn_particle. NULL graphics or memory
+ * skips the draw calls while the rest of the body still runs. */
 
-/* The emitter's `k_` points at
- * `pico8_g__k__seq` (`pico8_fv_k__seq` for `fv`); `ra` and `p` point at
- * the probe's `bv_ra` and `bv_p` once `bv` ran. `emitter` and `probe` point at `emitter_own` and
- * `probe_own`: never copy the struct. `m_` is `fv`'s: a `g_` has no `m_`
- * link and leaves it indeterminate. `prise` is the grab arena a `g_` lives
- * in, NULL for `fv`. */
+/* The emitter's trail_colors points at probe_trail_colors_seq
+ * (help_screen_trail_colors_seq for the help screen); pos and map_pos point
+ * at the targeting's track_pos and track_map_pos once targeting_track ran.
+ * emitter and targeting point at emitter_own and probe_own: never copy the
+ * struct. is_hovered is the help screen's: a probe never links it and leaves
+ * it indeterminate. grab_arena is the grab arena a probe lives in, NULL for
+ * the help screen. */
 typedef struct {
     entity_t header;
     const probe_archetype_t *archetype;
@@ -35,25 +38,26 @@ typedef struct {
 } probe_t;
 
 /* TROU-8 */
-/* Puts the provisional `fm` back in the slot, its `jk`/`nz` nil. Shuts the
- * module down first, so it is idempotent. */
+/* Puts the placeholder main economy back, its credits and research points
+ * absent. Shuts the module down first, so it is idempotent. */
 void probe_init(void);
 
-/* Empties the `fm` slot without reading it, frees no probe. Idempotent,
- * and safe before the first `pico8_probe_init()`. */
+/* Empties the main economy slot without reading it, frees no probe.
+ * Idempotent, and safe before the first probe_init(). */
 void probe_shutdown(void);
 
-/* 1 from pico8_probe_init() to pico8_probe_shutdown(), 0 otherwise. */
+/* 1 from probe_init() to probe_shutdown(), 0 otherwise. */
 int probe_ready(void);
 
-/* Initializes an allocated pico8_g__t under `cls`: ke's part, g_'s 4
- * written members nil, `prise` NULL, `def` kept, `ra`, the emitter and the probe copied
- * from it. Reads no key, runs neither `pq` nor `lt`, records no coverage. */
+/* Initializes an allocated probe_t under the given class: the entity part,
+ * the particle list, target, map_pos, is_dead and grab_arena cleared, the
+ * archetype kept, pos, the emitter and the targeting copied from it. Reads no key, runs neither
+ * the construct method nor entity_construct, records no coverage. */
 void probe_init_instance(probe_t *self, const entity_class_t *cls, const probe_archetype_t *archetype);
 
-/* The keys of `pico8_g__new`, read, not kept. `t` is `header.t`, whose default
- * is 0: no flag. `pn`, `du`, `py` have non-zero defaults, so a key at 0
- * needs its `has_` flag. */
+/* The keys of probe_new, read, not kept. state_time is the header's, whose
+ * default is 0: no flag. angle_slices, base_radius, speed_factor have
+ * non-zero defaults, so a key at 0 needs its has_ flag. */
 typedef struct {
     p8_fixed_t state_time;
     int has_angle_slices;
@@ -64,19 +68,20 @@ typedef struct {
     p8_fixed_t speed_factor;
 } probe_keys_t;
 
-/* `keys` NULL means none. Built in a grab arena (`pico8_jo_prise_ouvrir`),
- * so no other grab may be open. The new probe registers itself into
- * `hv`/`cv`/`cg` through `lt` (and gets its particle list from `f_`, which
- * its `rendre` gives back). Asserts when called before `pico8_probe_init()`. */
+/* `keys` NULL means none. Built in a grab arena (planet_grab_arena_open),
+ * so no other grab may be open. The new probe registers itself among the
+ * live entities, draw layers and tags through entity_construct (and gets
+ * its particle list from emitter_init, which its release method gives
+ * back). Asserts when called before probe_init(). */
 probe_t *probe_new(const probe_keys_t *keys);
 
-/* A particle (`has_a` 0) from pico8_particule_prendre, which `ez` appends
- * to `qy`. */
+/* A particle (has_acceleration 0) from particle_take, which emitter_spawn
+ * appends to the particle list. */
 particle_t *probe_spawn_particle(entity_t *self);
 
-/* `rendre` of `g_` and `fv`: gives back their `qy`, and the grab arena of
- * a `g_` not placed (`me` other than "ly"); a placed one keeps it until the
- * generation is given back. */
+/* Release method of the probe and the help screen: gives back their
+ * particle list, and the grab arena of a probe not placed (state other than
+ * "settled"); a placed one keeps it until the generation is given back. */
 void probe_release_method(entity_t *self);
 
 #endif

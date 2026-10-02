@@ -1,9 +1,9 @@
-/* The probe `g_`, read and written only through the dual-form field API,
- * its defaults read on its archetype, built by
- * its three roads (`bg:ldown`, `pico8_g__new(NULL)`, `pico8_g__new` with the
- * 4 keys of probe_mm_rnd_order) and driven through the real `mv`/`dc`/`dg`.
- * Its methods are compared to the public functions. Its daughter `fv` is
- * read on the title screen. No events file. */
+/* The probe, read through its struct, its defaults read on its archetype,
+ * built by its three roads (the background's left_press, probe_new(NULL),
+ * probe_new with the 4 keys of test_probe_spawn_particle_order.c) and
+ * driven through its class's methods, draw_layers and update_entities. Its
+ * methods are compared to the public functions. The help screen, of the
+ * probe's lineage, is read on the title screen. No events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -38,7 +38,8 @@
 #include "game/ui.h"
 #include "engine/vec.h"
 
-/* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
+/* pos is a copy of the mouse position, never the caller's box (NULL stays
+ * NULL). */
 static int pos_copies(const vec_t *ra, const vec_t *mp) {
     return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
 }
@@ -111,7 +112,7 @@ static int is_targeting_track_target(const void *e) {
            ((const entity_t *)e)->class == targeting_track_target_class();
 }
 
-/* The throwaway target's `fo`, NULL when absent. */
+/* The throwaway target's targeted_by, NULL when absent. */
 static const void *targeting_track_target_targeted_by(const void *t) {
     assert(is_targeting_track_target(t));
     return ((const targeting_track_target_t *)t)->targeted_by;
@@ -170,7 +171,7 @@ static uint32_t fold_is_dead(uint32_t h, const probe_t *g_) {
     return (g_->is_dead != 0) ? fold_bool_member(h, g_->is_dead != 0) : fnv(h, 0u);
 }
 
-/* `g_`'s 18 spec defaults, in spec order. */
+/* A probe's 18 archetype defaults, in archetype order. */
 static uint32_t fold_defaults(uint32_t h, const probe_t *g_) {
     const emitter_t *em = g_->emitter;
     const targeting_t *pr = g_->targeting;
@@ -256,8 +257,8 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
- * reads as difficulty 0. */
+/* A game started as cart_start_game starts it, with no difficulty picked:
+ * a NULL difficulty reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
@@ -280,7 +281,8 @@ static const entity_class_t *class_of(const void *e) {
     return ((const entity_t *)e)->class;
 }
 
-/* The background is the `bg` of cv.hd whose `hd` and `fa` are both 1. */
+/* The background is the one among the hit_test entities whose archetype's
+ * hit_test and layer are both 1. */
 static background_t *the_background(void) {
     const entity_list_t *hd = entities_by_message("hit_test");
     background_t *found = NULL;
@@ -304,7 +306,8 @@ static background_t *the_background(void) {
     return found;
 }
 
-/* A probe, whatever its form: `g_`'s tags and `fa`=2 (an `fv` has 10). */
+/* A probe, whatever its form: the probe's tags and layer 2 (the help screen
+ * has 10). */
 static int is_probe(entity_t *e) {
     const probe_t *g_ =
         e != NULL && (e->class->lineage & LINEAGE(LINEAGE_PROBE)) ? (const probe_t *)e : NULL;
@@ -317,7 +320,7 @@ static probe_t *as_probe(void *e) {
     return e;
 }
 
-/* Road (a): `bg:ldown` while cg.g_ is empty. */
+/* First road: the background's left_press while the probe tag is empty. */
 static probe_t *left_press(void) {
     background_t *bg = the_background();
     down_t out;
@@ -328,7 +331,7 @@ static probe_t *left_press(void) {
     return as_probe(out.held);
 }
 
-/* Road (c): the 4 keys of probe_mm_rnd_order. */
+/* Third road: the 4 keys of test_probe_spawn_particle_order.c. */
 static probe_t *keyed(void) {
     probe_keys_t keys = {0};
 
@@ -342,9 +345,10 @@ static probe_t *keyed(void) {
     return probe_new(&keys);
 }
 
-/* A probe as its road and `f_`, `lt` left it: its 18 defaults, `me`, `t`,
- * its tables' contents, its empty `qy`; none of the names only `bv`/`d_`
- * write; its 5 methods, the public functions; where `lt` registered it. */
+/* A probe as its road, emitter_init and entity_construct left it: its 18
+ * defaults, state, state time, its tables' contents, its empty particle
+ * list; none of the fields only targeting_track and targeting_confirm
+ * write; its 5 methods, the public functions; where it was registered. */
 static uint32_t fold_probe(uint32_t hash, probe_t *entity) {
     const emitter_t *emitter = entity->emitter;
     const targeting_t *targeting = entity->targeting;
@@ -429,7 +433,7 @@ static uint32_t fold_particle(uint32_t h, const particle_t *q) {
     return fnv(h, (uint32_t)q->life);
 }
 
-/* The kind of the probe's `et`: `false`, a planet, a slipway, the throwaway
+/* The kind of the probe's target: NULL, a planet, a slipway, the throwaway
  * struct. */
 static uint32_t target_kind(const probe_t *e) {
     const void *ref;
@@ -449,7 +453,8 @@ static uint32_t target_kind(const probe_t *e) {
     return 4;
 }
 
-/* The `fo` of the probe's `et`, a planet, a slipway or the throwaway. */
+/* The targeted_by of the probe's target, a planet, a slipway or the
+ * throwaway. */
 static const void *target_targeted_by(const probe_t *e) {
     entity_t *et = e->targeting->target;
 
@@ -463,7 +468,8 @@ static const void *target_targeted_by(const probe_t *e) {
     return targeting_track_target_targeted_by(et);
 }
 
-/* `et` in the bytes its value read by name folded to: false, the target. */
+/* The target as the frozen hashes fold it: a false boolean when NULL, else
+ * the target. */
 static uint32_t fold_target(uint32_t h, const probe_t *e) {
     if (e->targeting->target == NULL) {
         return fnv(fnv(h, 0xB0u), 0u);
@@ -471,7 +477,7 @@ static uint32_t fold_target(uint32_t h, const probe_t *e) {
     return fold_ref(h, e->targeting->target);
 }
 
-/* The first planet of cg.np. */
+/* The first planet of the node tag. */
 static planet_t *a_planet(void) {
     entity_t *e;
 
@@ -488,7 +494,7 @@ static vec_t planet_map_pos(void) {
 }
 
 /* A slipway between two bare planets far from each other and from the
- * rest, its `re` set directly; its middle is the returned point. */
+ * rest, its end set directly; its middle is the returned point. */
 static slipway_t *a_slipway(vec_t *middle) {
     planet_keys_t keys;
     slipway_keys_t slipway_keys = {0};
@@ -513,14 +519,15 @@ static slipway_t *a_slipway(vec_t *middle) {
     return jc;
 }
 
-/* The mouse one pixel off `at` (world units, as `p`): `ij` skips an entity
- * at the very position. */
+/* The mouse one pixel off the given point (map units, as map_pos):
+ * entity_geom_nearest skips an entity at the very position. */
 static vec_t *mouse_at(vec_t at) {
     return vec_ref(vec_add(vec_mul(at, p8_fixed_from_int(128)), vec_xy(1, 1)));
 }
 
-/* `hq` at `at`, the raw mouse at `rp`: `et`'s kind, the target's `fo`,
- * `ra` a copy of what was passed, `p`. */
+/* The drag at the given point, the screen mouse at the given coordinate:
+ * the target's kind, its targeted_by, pos a copy of what was passed,
+ * map_pos. */
 static uint32_t fold_drag(uint32_t h, probe_t *e, vec_t at, int rp, uint32_t want_kind) {
     vec_t *mp = mouse_at(at);
     uint32_t kind;
@@ -538,9 +545,10 @@ static uint32_t fold_drag(uint32_t h, probe_t *e, vec_t at, int rp, uint32_t wan
     return h;
 }
 
-/* `mm`; `hq` on a planet, a slipway, the void; `ev` with a target and
- * without; `dc("kj")` with `qy`'s size; `dg` steps, then `p_` set by `ey`
- * taking it out of `hv` and cg. */
+/* spawn_particle; the drag on a planet, a slipway, the void; draw_overlay
+ * with a target and without; draw_layers("draw") with the particle lists'
+ * sizes; update_entities steps, then is_dead raised by the drop taking it
+ * out of the live entities and the tags. */
 static void test_life(void) {
     uint32_t hash = 2166136261u;
     probe_t *first;
@@ -595,7 +603,7 @@ static void test_life(void) {
     check("life", hash, LIFE_HASH);
 }
 
-/* `ey` with a target: `p_`, nil returned. */
+/* The drop with a target: is_dead raised, 0 returned. */
 static void test_drop_on(void) {
     uint32_t h = 2166136261u;
     probe_t *a;
@@ -615,7 +623,8 @@ static void test_drop_on(void) {
     check("drop_on", h, DROP_ON_HASH);
 }
 
-/* `ey` with no target and enough credits: `ks(dq)`, true returned. */
+/* The drop with no target and enough credits: entity_set_state to the
+ * confirmed state, 1 returned. */
 static void test_drop_off(void) {
     uint32_t h = 2166136261u;
     probe_t *a;
@@ -635,8 +644,9 @@ static void test_drop_off(void) {
     check("drop_off", h, DROP_OFF_HASH);
 }
 
-/* `ey` over the void, off the panel: `et` is the throwaway target, which is
- * truthy, so the drop is refused (`p_`, nil returned) and costs nothing. */
+/* The drop over the void, off the panel: the target is the throwaway struct,
+ * not NULL, so the drop is refused (is_dead raised, 0 returned) and costs
+ * nothing. */
 static void test_drop_void(void) {
     probe_t *a;
     vec_t middle;
@@ -663,15 +673,16 @@ static void test_drop_void(void) {
     printf("[drop void] refused\n");
 }
 
-/* The help: `g_`'s tags and `fa`=10. */
+/* The help screen: the probe's tags and layer 10. */
 static int is_help(entity_t *e) {
     const probe_t *g_ =
         e != NULL && (e->class->lineage & LINEAGE(LINEAGE_PROBE)) ? (const probe_t *)e : NULL;
     return g_ != NULL && g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)) && g_->archetype->layer == p8_fixed_from_int(10);
 }
 
-/* The title screen's `fv`, of `g_`'s lineage: its
- * tags, `fx`, `dq` inherited, `ev`, `mm` the functions of `g_`. */
+/* The title screen's help screen, of the probe's lineage: its tags,
+ * fold_anchor and confirmed_state inherited, draw_overlay and
+ * spawn_particle the probe's functions, a draw of its own. */
 static void test_help_screen(void) {
     uint32_t hash = 2166136261u;
     const entity_list_t *live;
@@ -726,9 +737,9 @@ static int is_a_probe_struct(const void *e) {
            ((const entity_t *)e)->class == probe_class();
 }
 
-/* Built by any road, a probe is a struct whose descriptor holds the 5
- * public functions of `g_`, which its class no longer installs. The title's
- * `fv` is a struct of its own. */
+/* Built by any road, a probe is a struct whose class descriptor holds the
+ * probe's 5 public functions and no other method. The title's help screen
+ * is a struct of its own class. */
 static void test_probe_is_a_struct(void) {
     const entity_class_t *descriptor = probe_class();
     const entity_list_t *live;
@@ -775,8 +786,8 @@ static void test_probe_is_a_struct(void) {
            ((const entity_t *)live->items[j])->class == help_screen_class());
 }
 
-/* The throwaway target is a struct that keeps `fo`, the probe aiming at it,
- * and has no `ev`. */
+/* The throwaway target is a struct that keeps targeted_by, the probe aiming
+ * at it, and has no draw_overlay. */
 static void test_targeting_track_target_is_a_struct(void) {
     probe_t *a;
     void *et;
@@ -792,8 +803,8 @@ static void test_targeting_track_target_is_a_struct(void) {
     assert(class_of(et)->draw_overlay == NULL);
 }
 
-/* Each scenario runs in a child forked right after pico8_cart_load(), as a
- * fresh process would start it: the rnd state is the same for all. */
+/* Each scenario runs in a child forked right after cart_load(), as a fresh
+ * process would start it: the rnd state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
     pid_t child;
     int status;
@@ -810,7 +821,8 @@ static void in_fresh_child(void (*test)(void)) {
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
 }
 
-/* What an emitter holds in the particle zone, by sort. */
+/* What an emitter holds in the particle zone, by kind, and the UI zone's
+ * rows. */
 typedef struct {
     int particle;
     int particles;
@@ -827,8 +839,8 @@ static held_t held_now(void) {
     return h;
 }
 
-/* A probe that leaves (`he`, then the exit queue's flush) gives back its
- * particles and its `qy`, and keeps its struct. */
+/* A probe that leaves (entity_unregister, then the exit queue's flush)
+ * gives back its particles and its particle list, and keeps its struct. */
 static void test_leaving_gives_back_its_particles(void) {
     held_t before;
     held_t after;

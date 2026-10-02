@@ -1,10 +1,11 @@
-/* `g_:mm` (lua.lua:727) draws rnd(self.pn) before rnd(0.5): Lua evaluates
- * `flr(rnd(self.pn))+rnd(0.5)` left to right. The particle a probe emits
- * through `ez` must land where that order puts it, whatever the compiler.
+/* probe_spawn_particle draws rnd(angle_slices) before rnd(0.5): the angle
+ * sums flr(rnd(angle_slices)) and rnd(0.5), drawn left to right. The
+ * particle a probe emits through emitter_spawn must land where that order
+ * puts it, whatever the compiler.
  *
  * The generator has no public reseed, so the same state is reached twice by
- * fork(): the child emits the particle, the parent redraws the cart's
- * sequence from the identical state with the port's own rnd. */
+ * fork(): the child emits the particle, the parent redraws the expected
+ * sequence from the identical state with p8_fixed_rnd. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -84,7 +85,7 @@ static void test_probe_particle_draws_rnd_angle_slices_before_rnd_half(void) {
     close(pipe_ends[0]);
     assert(waitpid(child, &status, 0) == child && WIFEXITED(status) && WEXITSTATUS(status) == 0);
 
-    /* ez's loop test `rnd()<n`, then lua.lua:727-728 in Lua's order. */
+    /* emitter_spawn's loop test, then the angle's two draws, left to right. */
     (void)p8_fixed_rnd_default();
     first = p8_fixed_rnd(angle_slices);
     second = p8_fixed_rnd(P8_FIXED_LIT(0x00008000, 0.5));
