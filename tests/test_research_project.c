@@ -438,7 +438,7 @@ static void test_projects(void) {
     for (index = 1; index <= PROJECTS_COUNT; index++) {
         research_project_t *built = project(index);
         const pointer_list_t *i_list;
-        void *found;
+        void *project_by_name;
         int inner_index;
 
         hash = fnv(hash, (uint32_t)index);
@@ -482,10 +482,10 @@ static void test_projects(void) {
         }
         assert((void *)built->archetype->row_tail == row_tail);
         if (built->name != NULL) {
-            found = research_projects_find(built->name);
-            assert(found != NULL);
-            assert(found == last_with_name(built->name));
-            hash = fnv(hash, (uint32_t)projects_rank(found));
+            project_by_name = research_projects_find(built->name);
+            assert(project_by_name != NULL);
+            assert(project_by_name == last_with_name(built->name));
+            hash = fnv(hash, (uint32_t)projects_rank(project_by_name));
         }
     }
     assert(row_tail == &research_project_row_tail_row);
@@ -690,22 +690,22 @@ static void test_wants(void) {
 
 static void test_install(void) {
     uint32_t hash = 2166136261u;
-    void *plain;
+    void *ordinary_project;
     void *first;
     void *next_type_project;
     int nth;
 
     start_game();
-    plain = project_with(ordinary, 0);
+    ordinary_project = project_with(ordinary, 0);
 
     first = new_planet("p901", 10, 12);
-    planet_install_project(first, plain);
-    assert((void *)as_planet(first)->project == plain && as_planet(first)->description == NULL);
+    planet_install_project(first, ordinary_project);
+    assert((void *)as_planet(first)->project == ordinary_project && as_planet(first)->description == NULL);
     hash = fold_planet(hash, first);
 
     first = new_planet("p902", 30, 14);
-    planet_apply_project(first, plain);
-    assert((void *)as_planet(first)->project == plain);
+    planet_apply_project(first, ordinary_project);
+    assert((void *)as_planet(first)->project == ordinary_project);
     hash = fold_planet(hash, first);
 
     next_type_project = project_with(with_next_type, 0);

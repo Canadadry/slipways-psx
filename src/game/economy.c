@@ -197,7 +197,7 @@ void economy_recompute(economy_t *self) {
     p8_fixed_t trade_total = p8_fixed_from_int(0);
     p8_fixed_t income;
     p8_fixed_t happiness;
-    p8_fixed_t skill_mult;
+    p8_fixed_t skill_multiplier;
     const entity_list_t *planet_list;
     entity_list_iter_t iter;
     entity_t *planet;
@@ -232,8 +232,8 @@ void economy_recompute(economy_t *self) {
         }
     }
 
-    skill_mult = tech_gate_if_unlocked("skill implants", p8_fixed_from_int(1), P8_FIXED_LIT(0x00012666, 1.15));
-    income = p8_fixed_sub(p8_fixed_flr(p8_fixed_mul(trade_total, skill_mult)), economy_score_colony_upkeep());
+    skill_multiplier = tech_gate_if_unlocked("skill implants", p8_fixed_from_int(1), P8_FIXED_LIT(0x00012666, 1.15));
+    income = p8_fixed_sub(p8_fixed_flr(p8_fixed_mul(trade_total, skill_multiplier)), economy_score_colony_upkeep());
     self->income = income;
 
     happiness = economy_score_happiness();

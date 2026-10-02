@@ -1909,7 +1909,7 @@ po_rk	science_production	src/game/economy.c	identifiant	locale	renommé	game/eco
 qc	qc	src/game/economy.c	identifiant	locale	conservé	game/economy			c:economy.c@3258@F@pico8_hy_hk@qc
 qc	qc	src/game/economy.c	identifiant	locale	conservé	game/economy			c:economy.c@6545@F@pico8_hy_lj@qc
 self	self	src/game/economy.c	identifiant	locale	conservé	game/economy			c:economy.c@813@F@pico8_hy_struct_new@self
-skill_mult	skill_mult	src/game/economy.c	identifiant	locale	conservé	game/economy			c:economy.c@4966@F@pico8_hy_lj@skill_mult
+skill_mult	skill_multiplier	src/game/economy.c	identifiant	locale	renommé	game/economy			c:economy.c@5321@F@economy_recompute@skill_mult
 text	text	src/game/economy.c	identifiant	locale	conservé	game/economy			c:economy.c@4619@F@pico8_hy_lu@text
 threshold	threshold	src/game/economy.c	identifiant	locale	conservé	game/economy			c:economy.c@7390@F@pico8_hy_kt@threshold
 yr	year	src/game/economy.c	identifiant	locale	renommé	game/economy			c:economy.c@4954@F@pico8_hy_lj@yr
@@ -2177,8 +2177,8 @@ want	want	src/game/economy_tiers.c	identifiant	locale	conservé	game/economy_tie
 PICO8_ECONOMY_TIERS_H	GAME_ECONOMY_TIERS_H	src/game/economy_tiers.h	identifiant	macro	renommé	game/economy_tiers			macro:src/game/economy_tiers.h:PICO8_ECONOMY_TIERS_H
 a	a	src/game/economy_tiers.c	identifiant	paramètre	conservé	game/economy_tiers			c:economy_tiers.c@333@F@fixed_min@a
 b	b	src/game/economy_tiers.c	identifiant	paramètre	conservé	game/economy_tiers			c:economy_tiers.c@350@F@fixed_min@b
-ctx	ctx	src/game/economy_tiers.c	identifiant	paramètre	conservé	game/economy_tiers			c:economy_tiers.c@1370@F@bd_route_visit@ctx
-ctx	ctx	src/game/economy_tiers.c	identifiant	paramètre	conservé	game/economy_tiers			c:economy_tiers.c@3936@F@bb_visit@ctx
+ctx	context	src/game/economy_tiers.c	identifiant	paramètre	renommé	game/economy_tiers			c:economy_tiers.c@1463@F@rebuild_incoming_routes_route_visit@ctx
+ctx	context	src/game/economy_tiers.c	identifiant	paramètre	renommé	game/economy_tiers			c:economy_tiers.c@4580@F@update_tiers_visit@ctx
 ctx	ctx	src/game/economy_tiers.c	identifiant	paramètre	conservé	game/economy_tiers			c:economy_tiers.c@524@F@for_each_cg@ctx
 ctx	ctx	src/game/economy_tiers.c	identifiant	paramètre	conservé	game/economy_tiers			c:economy_tiers.c@882@F@bd_reset_visit@ctx
 ctx	ctx	src/game/economy_tiers.c	identifiant	paramètre	conservé	game/economy_tiers			c:economy_tiers.c@ctx
@@ -4928,7 +4928,7 @@ i	i	src/game/research.c	identifiant	locale	conservé	game/research			c:research.
 i	i	src/game/research.c	identifiant	locale	conservé	game/research			c:research.c@8052@F@pico8_research_build_gb@i
 i	i	src/game/research.c	identifiant	locale	conservé	game/research			c:research.c@8752@F@pico8_gb_find@i
 i	i	src/game/research.c	identifiant	locale	conservé	game/research			c:research.c@982@F@pico8_research_gb_register@i
-i_src	i_src	src/game/research.c	identifiant	locale	conservé	game/research			c:research.c@4127@F@pico8_hp_struct_new@i_src
+i_src	input_codes	src/game/research.c	identifiant	locale	renommé	game/research			c:research.c@4790@F@project_create@i_src
 il	il	src/game/research.c	identifiant	locale	conservé	game/research			c:research.c@8998@F@pico8_hp_po@il
 il	il	src/game/research.c	identifiant	locale	conservé	game/research			c:research.c@9564@F@pico8_hp_od@il
 inst	inst	src/game/research.c	identifiant	locale	conservé	game/research			c:research.c@8359@F@pico8_research_build_gb@inst
@@ -4947,7 +4947,7 @@ PICO8_RESEARCH_H	GAME_RESEARCH_H	src/game/research.h	identifiant	macro	renommé	
 hp	hp	src/game/research.c	identifiant	paramètre	conservé	game/research			c:research.c@960@F@pico8_research_gb_register@hp
 i	i	src/game/research.c	identifiant	paramètre	conservé	game/research			c:research.c@3333@F@pico8_jy_qe@i
 i	i	src/game/research.h	identifiant	paramètre	conservé	game/research			c:research.h@647@F@pico8_jy_qe@i
-i_src	i_src	src/game/research.c	identifiant	paramètre	conservé	game/research			c:research.c@2483@F@hp_positions@i_src
+i_src	input_codes	src/game/research.c	identifiant	paramètre	renommé	game/research			c:research.c@2830@F@research_project_positions@i_src
 k	k	src/game/research.c	identifiant	paramètre	conservé	game/research			c:research.c@8606@F@pico8_gb_at@k
 k	k	src/game/research.h	identifiant	paramètre	conservé	game/research			c:research.h@4045@F@pico8_gb_at@k
 keys	keys	src/game/research.c	identifiant	paramètre	conservé	game/research			c:research.c@3916@F@pico8_hp_struct_new@keys
@@ -5001,7 +5001,7 @@ pico8_jo_ex_fixed	planet_resource_row_fixed	src/game/research_display.c	identifi
 pico8_jo_ex_tuple	planet_resource_row_tuple	src/game/research_display.c	identifiant	fonction	renommé	game/research_display	jo		c:research_display.c@F@pico8_jo_ex_tuple
 add_len	add_len	src/game/research_display.c	identifiant	locale	conservé	game/research_display			c:research_display.c@908@F@pico8_hp_jb_join@add_len
 b	b	src/game/research_display.c	identifiant	locale	conservé	game/research_display			c:research_display.c@10518@F@pico8_bj@b
-cap	cap	src/game/research_display.c	identifiant	locale	conservé	game/research_display			c:research_display.c@400@F@pico8_hp_jb_join@cap
+cap	capacity	src/game/research_display.c	identifiant	locale	renommé	game/research_display			c:research_display.c@423@F@research_project_tooltip_join@cap
 entry	entry	src/game/research_display.c	identifiant	locale	conservé	game/research_display			c:research_display.c@4843@F@pico8_jo_ex@entry
 entry	entry	src/game/research_display.c	identifiant	locale	conservé	game/research_display			c:research_display.c@553@F@pico8_hp_jb_join@entry
 first	first	src/game/research_display.c	identifiant	locale	conservé	game/research_display			c:research_display.c@508@F@pico8_hp_jb_join@first
@@ -5029,7 +5029,7 @@ l	l	src/game/research_display.c	identifiant	locale	conservé	game/research_displ
 l_cap	l_cap	src/game/research_display.c	identifiant	locale	conservé	game/research_display			c:research_display.c@3600@F@pico8_jo_ex@l_cap
 l_count	l_count	src/game/research_display.c	identifiant	locale	conservé	game/research_display			c:research_display.c@3579@F@pico8_jo_ex@l_count
 lc	crowded	src/game/research_display.c	identifiant	locale	renommé	game/research_display			c:research_display.c@3585@F@pico8_jo_ex@lc
-len	len	src/game/research_display.c	identifiant	locale	conservé	game/research_display			c:research_display.c@421@F@pico8_hp_jb_join@len
+len	length	src/game/research_display.c	identifiant	locale	renommé	game/research_display			c:research_display.c@444@F@research_project_tooltip_join@len
 loop_bound	loop_bound	src/game/research_display.c	identifiant	locale	conservé	game/research_display			c:research_display.c@4401@F@pico8_jo_ex@loop_bound
 loop_bound	loop_bound	src/game/research_display.c	identifiant	locale	conservé	game/research_display			c:research_display.c@7242@F@pico8_jo_ex@loop_bound
 mg	mg	src/game/research_display.c	identifiant	locale	conservé	game/research_display			c:research_display.c@9552@F@pico8_bj_predicate@mg
@@ -5041,7 +5041,7 @@ new_cap	new_cap	src/game/research_display.c	identifiant	locale	conservé	game/re
 num_str	num_str	src/game/research_display.c	identifiant	locale	conservé	game/research_display			c:research_display.c@798@F@pico8_hp_jb_join@num_str
 o_is_r_w	o_is_r_w	src/game/research_display.c	identifiant	locale	conservé	game/research_display			c:research_display.c@3899@F@pico8_jo_ex@o_is_r_w
 o_str	o_str	src/game/research_display.c	identifiant	locale	conservé	game/research_display			c:research_display.c@2457@F@pico8_hp_jb@o_str
-out	out	src/game/research_display.c	identifiant	locale	conservé	game/research_display			c:research_display.c@441@F@pico8_hp_jb_join@out
+out	names	src/game/research_display.c	identifiant	locale	renommé	game/research_display			c:research_display.c@464@F@research_project_tooltip_join@out
 pe	wide	src/game/research_display.c	identifiant	locale	renommé	game/research_display			c:research_display.c@3686@F@pico8_jo_ex@pe
 piece	piece	src/game/research_display.c	identifiant	locale	conservé	game/research_display			c:research_display.c@850@F@pico8_hp_jb_join@piece
 piece_len	piece_len	src/game/research_display.c	identifiant	locale	conservé	game/research_display			c:research_display.c@882@F@pico8_hp_jb_join@piece_len
@@ -9190,9 +9190,9 @@ maker	maker	tests/test_economy.c	identifiant	locale	conservé	tests/test_economy
 mp	mp	tests/test_economy.c	identifiant	locale	conservé	tests/test_economy			c:test_economy.c@6802@F@built_world@mp
 need	need	tests/test_economy.c	identifiant	locale	conservé	tests/test_economy			c:test_economy.c@15419@F@test_lj@need
 need_qe	need_amount	tests/test_economy.c	identifiant	locale	renommé	tests/test_economy	qe		c:test_economy.c@15315@F@test_lj@need_qe
-needer	needer	tests/test_economy.c	identifiant	locale	conservé	tests/test_economy			c:test_economy.c@15317@F@test_lj@needer
+needer	structure	tests/test_economy.c	identifiant	locale	renommé	tests/test_economy			c:test_economy.c@16729@F@test_recompute@needer
 needs	needs	tests/test_economy.c	identifiant	locale	conservé	tests/test_economy			c:test_economy.c@15341@F@test_lj@needs
-now	now	tests/test_economy.c	identifiant	locale	conservé	tests/test_economy			c:test_economy.c@15465@F@test_lj@now
+now	amount	tests/test_economy.c	identifiant	locale	renommé	tests/test_economy			c:test_economy.c@16868@F@test_recompute@now
 nz	nz	tests/test_economy.c	identifiant	locale	conservé	tests/test_economy			c:test_economy.c@11748@F@test_hk@nz
 p	p	tests/test_economy.c	identifiant	locale	conservé	tests/test_economy			c:test_economy.c@14145@F@fold_planets_kr@p
 p	p	tests/test_economy.c	identifiant	locale	conservé	tests/test_economy			c:test_economy.c@14592@F@a_maker@p
@@ -13864,7 +13864,7 @@ fds	fds	tests/test_research_project.c	identifiant	locale	conservé	tests/test_re
 first	first	tests/test_research_project.c	identifiant	locale	conservé	tests/test_research_project			c:test_research_project.c@32219@F@test_gb_px_is_the_last_registered@first
 fk	row_tail	tests/test_research_project.c	identifiant	locale	renommé	tests/test_research_project			c:test_research_project.c@13444@F@test_gb@fk
 found	found	tests/test_research_project.c	identifiant	locale	conservé	tests/test_research_project			c:test_research_project.c@12887@F@last_with_px@found
-found	found	tests/test_research_project.c	identifiant	locale	conservé	tests/test_research_project			c:test_research_project.c@13770@F@test_gb@found
+found	project_by_name	tests/test_research_project.c	identifiant	locale	renommé	tests/test_research_project			c:test_research_project.c@14392@F@test_projects@found
 go_project	next_type_project	tests/test_research_project.c	identifiant	locale	renommé	tests/test_research_project			c:test_research_project.c@21970@F@test_install@go_project
 got	got	tests/test_research_project.c	identifiant	locale	conservé	tests/test_research_project			c:test_research_project.c@27361@F@must_abort_saying@got
 h	h	tests/test_research_project.c	identifiant	locale	conservé	tests/test_research_project			c:test_research_project.c@10590@F@screen_hash@h
@@ -13930,7 +13930,7 @@ p	p	tests/test_research_project.c	identifiant	locale	conservé	tests/test_resear
 p	p	tests/test_research_project.c	identifiant	locale	conservé	tests/test_research_project			c:test_research_project.c@20852@F@test_wants@p
 p	p	tests/test_research_project.c	identifiant	locale	conservé	tests/test_research_project			c:test_research_project.c@23592@F@test_harvested_world@p
 partie	game_zone_used_before	tests/test_research_project.c	identifiant	locale	renommé	tests/test_research_project	zone_partie		c:test_research_project.c@25732@F@test_jy_new_in_the_zone_passed@partie
-plain	plain	tests/test_research_project.c	identifiant	locale	conservé	tests/test_research_project			c:test_research_project.c@21662@F@test_install@plain
+plain	ordinary_project	tests/test_research_project.c	identifiant	locale	renommé	tests/test_research_project			c:test_research_project.c@23866@F@test_install@plain
 po	po	tests/test_research_project.c	identifiant	locale	conservé	tests/test_research_project			c:test_research_project.c@16060@F@fold_functions@po
 qe	qe	tests/test_research_project.c	identifiant	locale	conservé	tests/test_research_project			c:test_research_project.c@14527@F@test_gb@qe
 qe	qe	tests/test_research_project.c	identifiant	locale	conservé	tests/test_research_project			c:test_research_project.c@25250@F@test_jy_new_in_the_zone_passed@qe
@@ -15282,7 +15282,7 @@ vec_ref	vec_ref	tests/test_structure_icon.c	identifiant	fonction	conservé	tests
 a	a	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@8931@F@test_construction@a
 all	all	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@10402@F@test_start@all
 all	all	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@11068@F@first_icon_with_kh@all
-all	all	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@11504@F@test_directed@all
+all	all_icons	tests/test_structure_icon.c	identifiant	locale	renommé	tests/test_structure_icon			c:test_structure_icon.c@12568@F@test_directed@all
 all	all	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@15933@F@test_ke_view@all
 all	all	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@17338@F@test_restart@all
 all	all	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@18632@F@test_ie_is_a_struct@all
@@ -15294,7 +15294,7 @@ before	before	tests/test_structure_icon.c	identifiant	locale	conservé	tests/tes
 blank	blank	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@14316@F@test_draw@blank
 built	built	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@18651@F@test_ie_is_a_struct@built
 child	child	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@21641@F@in_fresh_child@child
-classes	classes	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@18589@F@test_ie_is_a_struct@classes
+classes	kinds	tests/test_structure_icon.c	identifiant	locale	renommé	tests/test_structure_icon			c:test_structure_icon.c@20667@F@test_structure_icon_is_a_struct@classes
 classes	classes	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@20308@F@test_ke_view_is_a_struct@classes
 classes	classes	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@8869@F@test_construction@classes
 dx	dx	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@13418@F@test_directed@dx
@@ -15361,7 +15361,7 @@ no_ke	no_entity	tests/test_structure_icon.c	identifiant	locale	renommé	tests/te
 others	others	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@18668@F@test_ie_is_a_struct@others
 plain	plain	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@16737@F@test_ke_view@plain
 present	present	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@2557@F@shared_id_fixed@present
-ra	pos	tests/test_structure_icon.c	identifiant	locale	renommé	tests/test_structure_icon	ra		c:test_structure_icon.c@11833@F@test_directed@ra
+ra	icon_pos	tests/test_structure_icon.c	identifiant	locale	renommé	tests/test_structure_icon	ra		c:test_structure_icon.c@12698@F@test_directed@pos
 ra_before	pos_before	tests/test_structure_icon.c	identifiant	locale	renommé	tests/test_structure_icon	ra		c:test_structure_icon.c@11768@F@test_directed@ra_before
 shown	shown	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@11469@F@test_directed@shown
 shown	shown	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@14408@F@test_draw@shown

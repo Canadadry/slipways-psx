@@ -485,12 +485,12 @@ static void test_recompute(void) {
     const resource_map_t *production;
     const resource_map_t *demand;
     planet_t *maker;
-    planet_t *needer;
+    planet_t *structure;
     pointer_list_t needs;
     p8_fixed_t need_amount = p8_fixed_from_int(99);
     need_t *need;
     p8_fixed_t made;
-    p8_fixed_t now;
+    p8_fixed_t amount;
     p8_fixed_t resource;
 
     built_world();
@@ -502,12 +502,12 @@ static void test_recompute(void) {
     assert(resource_map_get(production, resource, &made) && maker->production->amount > 0);
     maker->production->resource = p8_fixed_from_int(99);
     economy_recompute(main_economy_self());
-    assert(resource_map_get(production, p8_fixed_from_int(99), &now) && now == maker->production->amount);
-    assert(resource_map_get(production, resource, &now) && now == p8_fixed_sub(made, maker->production->amount));
+    assert(resource_map_get(production, p8_fixed_from_int(99), &amount) && amount == maker->production->amount);
+    assert(resource_map_get(production, resource, &amount) && amount == p8_fixed_sub(made, maker->production->amount));
     maker->production->resource = resource;
     economy_recompute(main_economy_self());
-    assert(!resource_map_get(production, p8_fixed_from_int(99), &now));
-    assert(resource_map_get(production, resource, &now) && now == made);
+    assert(!resource_map_get(production, p8_fixed_from_int(99), &amount));
+    assert(resource_map_get(production, resource, &amount) && amount == made);
     assert(typed_main_economy()->production == production && typed_main_economy()->demand == demand);
     assert(end_status_string() == NULL);
     hash = fold_main_economy(hash);
@@ -542,15 +542,15 @@ static void test_recompute(void) {
 
     demand = typed_main_economy()->demand;
     need = need_new(game_zone(), &need_amount);
-    needer = structure_new(NULL);
+    structure = structure_new(NULL);
     pointer_list_init(&needs, &heap_allocator);
     pointer_list_add(&needs, need);
-    needer->needs = &needs;
+    structure->needs = &needs;
     economy_recompute(main_economy_self());
-    assert(resource_map_get(demand, p8_fixed_from_int(99), &now) && now == p8_fixed_from_int(1) - 0x2666);
-    needer->needs = NULL;
+    assert(resource_map_get(demand, p8_fixed_from_int(99), &amount) && amount == p8_fixed_from_int(1) - 0x2666);
+    structure->needs = NULL;
     economy_recompute(main_economy_self());
-    assert(!resource_map_get(demand, p8_fixed_from_int(99), &now));
+    assert(!resource_map_get(demand, p8_fixed_from_int(99), &amount));
 }
 
 /* An nb entry of cost `od` whose `nk` (0) no resource of `r` is: gi reads

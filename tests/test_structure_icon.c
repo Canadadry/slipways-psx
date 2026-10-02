@@ -386,16 +386,16 @@ static void test_directed(void) {
     uint32_t hash = 2166136261u;
     void *shown;
     void *hidden;
-    void *all[16];
+    void *all_icons[16];
     const vec_t *revealed_count_before;
     const vec_t *pos_before;
     down_t made;
     p8_fixed_t first_id;
-    vec_t pos;
+    vec_t icon_pos;
     int count;
 
     start_game();
-    count = icons(all, 16);
+    count = icons(all_icons, 16);
     shown = first_icon_with_is_revealed(2);
     hidden = first_icon_with_is_revealed(0);
     assert(shown != NULL && hidden != NULL);
@@ -410,30 +410,30 @@ static void test_directed(void) {
     hash = fold_icon(hash, hidden);
     hash = fold_shared(hash, hidden);
 
-    first_id = shared_id_fixed(as_structure_icon(all[0]));
-    made = class_of(all[0])->left_press(all[0], NULL, NULL);
+    first_id = shared_id_fixed(as_structure_icon(all_icons[0]));
+    made = class_of(all_icons[0])->left_press(all_icons[0], NULL, NULL);
     assert(made.stop && made.held != NULL && planet_is_family(made.held));
     assert(strcmp(((const planet_t *)made.held)->planet_id, "s1") == 0);
-    assert(shared_id_fixed(as_structure_icon(all[count - 1])) == p8_fixed_add(first_id, p8_fixed_from_int(1)));
+    assert(shared_id_fixed(as_structure_icon(all_icons[count - 1])) == p8_fixed_add(first_id, p8_fixed_from_int(1)));
     hash = fold_string(hash, ((const planet_t *)made.held)->planet_id);
-    made = class_of(all[count - 1])->left_press(all[count - 1], NULL, NULL);
+    made = class_of(all_icons[count - 1])->left_press(all_icons[count - 1], NULL, NULL);
     assert(made.held != NULL && planet_is_family(made.held));
     assert(strcmp(((const planet_t *)made.held)->planet_id, "s2") == 0);
-    assert(shared_id_fixed(as_structure_icon(all[0])) == p8_fixed_add(first_id, p8_fixed_from_int(2)));
+    assert(shared_id_fixed(as_structure_icon(all_icons[0])) == p8_fixed_add(first_id, p8_fixed_from_int(2)));
     hash = fold_string(hash, ((const planet_t *)made.held)->planet_id);
-    hash = fold_shared(hash, all[3]);
+    hash = fold_shared(hash, all_icons[3]);
 
     assert(as_structure_icon(shown)->pos != NULL);
-    pos = *as_structure_icon(shown)->pos;
-    assert(class_of(shown)->hit_test(shown, vec_ref(vec_at(-500, -500)), vec_ref(vec_add(pos, vec_at(1, 1)))));
-    assert(!class_of(shown)->hit_test(shown, vec_ref(vec_add(pos, vec_at(1, 1))),
-                              vec_ref(vec_add(pos, vec_at(20, 20)))));
-    assert(!class_of(hidden)->hit_test(hidden, vec_ref(vec_at(0, 0)), vec_ref(vec_add(pos, vec_at(1, 1)))));
+    icon_pos = *as_structure_icon(shown)->pos;
+    assert(class_of(shown)->hit_test(shown, vec_ref(vec_at(-500, -500)), vec_ref(vec_add(icon_pos, vec_at(1, 1)))));
+    assert(!class_of(shown)->hit_test(shown, vec_ref(vec_add(icon_pos, vec_at(1, 1))),
+                              vec_ref(vec_add(icon_pos, vec_at(20, 20)))));
+    assert(!class_of(hidden)->hit_test(hidden, vec_ref(vec_at(0, 0)), vec_ref(vec_add(icon_pos, vec_at(1, 1)))));
     {
         int dx;
         for (dx = -2; dx <= 11; dx++) {
             int hit = class_of(shown)->hit_test(shown, vec_ref(vec_at(0, 0)),
-                                        vec_ref(vec_add(pos, vec_at(dx, dx - 1))));
+                                        vec_ref(vec_add(icon_pos, vec_at(dx, dx - 1))));
             hash = fnv(hash, (uint32_t)hit);
         }
     }
@@ -601,7 +601,7 @@ static int is_a_structure_icon_struct(const void *e) {
 /* Built by `eu` or directly, an `ie` is a struct with its four methods, and
  * no other struct answers to `hb`. */
 static void test_structure_icon_is_a_struct(void) {
-    const entity_kind_t *classes[7];
+    const entity_kind_t *kinds[7];
     void *all[16];
     void *built;
     void *others[4];
@@ -609,9 +609,9 @@ static void test_structure_icon_is_a_struct(void) {
     int i;
 
     start_game();
-    fill_kind_table(classes);
+    fill_kind_table(kinds);
     n = icons(all, 16);
-    built = build_icon(classes[2], tooltip_new(&heap_allocator, icon_tooltips_row(2)));
+    built = build_icon(kinds[2], tooltip_new(&heap_allocator, icon_tooltips_row(2)));
     all[n++] = built;
     for (i = 0; i < n; i++) {
         assert(is_a_structure_icon_struct(all[i]));

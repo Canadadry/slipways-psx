@@ -1382,6 +1382,21 @@ identity	c:test_probe.c@24496@F@test_help_screen@found	help_entity
 identity	c:test_probe.c@27182@F@test_probe_is_a_struct@cls	descriptor	
 identity	c:test_probe.c@27260@F@test_probe_is_a_struct@roads	probes	
 identity	c:test_probe_spawn_particle_order.c@1844@F@test_probe_particle_draws_rnd_angle_slices_before_rnd_half@fds	pipe_ends	
+identity	c:economy.c@5321@F@economy_recompute@skill_mult	skill_multiplier	
+identity	c:economy_tiers.c@1463@F@rebuild_incoming_routes_route_visit@ctx	context	
+identity	c:economy_tiers.c@4580@F@update_tiers_visit@ctx	context	
+identity	c:research.c@4790@F@project_create@i_src	input_codes	
+identity	c:research.c@2830@F@research_project_positions@i_src	input_codes	
+identity	c:research_display.c@423@F@research_project_tooltip_join@cap	capacity	
+identity	c:research_display.c@444@F@research_project_tooltip_join@len	length	
+identity	c:research_display.c@464@F@research_project_tooltip_join@out	names	
+identity	c:test_economy.c@16729@F@test_recompute@needer	structure	
+identity	c:test_economy.c@16868@F@test_recompute@now	amount	
+identity	c:test_research_project.c@23866@F@test_install@plain	ordinary_project	
+identity	c:test_research_project.c@14392@F@test_projects@found	project_by_name	
+identity	c:test_structure_icon.c@12568@F@test_directed@all	all_icons	
+identity	c:test_structure_icon.c@12698@F@test_directed@pos	icon_pos	
+identity	c:test_structure_icon.c@20667@F@test_structure_icon_is_a_struct@classes	kinds	
 
 # --- tmp/ binaries and outputs (tools/rename_strings.py) ------------------------
 # A binary takes the name of its cmd/ file, except frames: tmp/frames is the

@@ -71,7 +71,7 @@ static p8_fixed_t resource_code_of(const char *s) {
 /* `ho(gb, mr, gp)` on one record of `fd`: positions 1..npos are `px`, `lr`,
  * `fj`, `ja`, `i`, `o`, `il`, `dm`. `i` gets the raw string that `hp:pq`
  * turns into its list afterwards. */
-static void research_project_positions(research_project_t *self, const project_records_entry_t *ri, const char **i_src) {
+static void research_project_positions(research_project_t *self, const project_records_entry_t *ri, const char **input_codes) {
     int n = ri->npos;
 
     assert(ri->header == NULL && "research_project_positions: a header entry sets the required_tech of the records after it, it is not a project");
@@ -90,7 +90,7 @@ static void research_project_positions(research_project_t *self, const project_r
         self->production_key = research_project_string(ri->production_key);
     }
     if (n >= 5) {
-        *i_src = research_project_string(ri->inputs);
+        *input_codes = research_project_string(ri->inputs);
     }
     if (n >= 6) {
         self->output = resource_code_of(ri->output);
@@ -127,7 +127,7 @@ static research_project_t *project_create(const research_project_keys_t *keys) {
     const allocator_t *load_zone = game_zone_load_zone();
     research_project_t *self = (research_project_t *)allocator_alloc(load_zone, sizeof *self);
     pointer_list_t *new_i;
-    const char *i_src = "";
+    const char *input_codes = "";
     size_t input_count;
 
     entity_init_header(&self->header, &g_research_project_class);
@@ -156,7 +156,7 @@ static research_project_t *project_create(const research_project_keys_t *keys) {
     if (keys != NULL && keys->record != NULL) {
         const project_records_entry_t *ri = keys->record;
 
-        research_project_positions(self, ri, &i_src);
+        research_project_positions(self, ri, &input_codes);
         if (ri->has_icon_sprite) {
             self->icon_sprite = p8_fixed_from_int(ri->icon_sprite);
             self->has_icon_sprite = 1;
@@ -193,13 +193,13 @@ static research_project_t *project_create(const research_project_keys_t *keys) {
     /* A want for every character, never skipping one: the Lua table
      * constructor is non-nil even when `r[c]` is absent. */
     new_i = (pointer_list_t *)allocator_alloc(load_zone, sizeof *new_i);
-    if (i_src[0] == '\0') {
+    if (input_codes[0] == '\0') {
         pointer_list_init(new_i, load_zone);
     } else {
-        pointer_list_init_reserve(new_i, load_zone, (int)strlen(i_src));
+        pointer_list_init_reserve(new_i, load_zone, (int)strlen(input_codes));
     }
-    for (input_count = 0; i_src[input_count] != '\0'; input_count++) {
-        char key[2] = {i_src[input_count], '\0'};
+    for (input_count = 0; input_codes[input_count] != '\0'; input_count++) {
+        char key[2] = {input_codes[input_count], '\0'};
         int r_resource;
         p8_fixed_t qe;
 

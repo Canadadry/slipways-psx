@@ -15,16 +15,16 @@
 /* In the frame zone. */
 static char *research_project_tooltip_join(const research_project_t *self) {
     const pointer_list_t *i_list;
-    size_t cap = 16;
-    size_t len = 0;
-    char *out = (char *)allocator_alloc(frame_zone(), cap);
+    size_t capacity = 16;
+    size_t length = 0;
+    char *names = (char *)allocator_alloc(frame_zone(), capacity);
     int first = 1;
     pointer_list_iter_t iter;
     void *entry;
 
-    out[0] = '\0';
+    names[0] = '\0';
     if (self->inputs == NULL) {
-        return out;
+        return names;
     }
     i_list = self->inputs;
     iter = pointer_list_all(i_list);
@@ -47,20 +47,20 @@ static char *research_project_tooltip_join(const research_project_t *self) {
 
         piece_len = strlen(piece);
         add_len = (first ? 0 : 1) + piece_len;
-        if (len + add_len + 1 > cap) {
-            size_t new_cap = (len + add_len + 1) * 2;
+        if (length + add_len + 1 > capacity) {
+            size_t new_cap = (length + add_len + 1) * 2;
 
-            out = (char *)allocator_grow(frame_zone(), (unsigned char *)out, cap, new_cap);
-            cap = new_cap;
+            names = (char *)allocator_grow(frame_zone(), (unsigned char *)names, capacity, new_cap);
+            capacity = new_cap;
         }
         if (!first) {
-            out[len++] = ',';
+            names[length++] = ',';
         }
-        memcpy(out + len, piece, piece_len + 1);
-        len += piece_len;
+        memcpy(names + length, piece, piece_len + 1);
+        length += piece_len;
         first = 0;
     }
-    return out;
+    return names;
 }
 
 /* The `jb` of `hp:jb`, its one line and their items, in one block. */

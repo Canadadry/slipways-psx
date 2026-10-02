@@ -51,12 +51,12 @@ static void rebuild_incoming_routes_reset_visit(entity_t *pt, void *ctx) {
     jo->incoming_routes = cc;
 }
 
-static void rebuild_incoming_routes_route_visit(entity_t *entity, void *ctx) {
+static void rebuild_incoming_routes_route_visit(entity_t *entity, void *context) {
     planet_t *from_planet;
     entity_list_t *outgoing;
     entity_list_iter_t iter;
     entity_t *element;
-    (void)ctx;
+    (void)context;
     if (entity == NULL) {
         return;
     }
@@ -136,8 +136,8 @@ void economy_tiers_rebuild_incoming_routes(void) {
     for_each_tagged("planet", rebuild_incoming_routes_route_visit, NULL);
 }
 
-static void update_tiers_visit(entity_t *entity, void *ctx) {
-    int *changed = (int *)ctx;
+static void update_tiers_visit(entity_t *entity, void *context) {
+    int *changed = (int *)context;
     planet_t *planet;
     p8_fixed_t tier;
     int has_development_tier;
