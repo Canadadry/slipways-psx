@@ -57,6 +57,8 @@
 | D-30 | 2b (échantillon) | `typed_main_*` des tests contre `main_*_typed` | 96 |
 | D-31 | 2b (échantillon) | Digramme `oc` : `tickets` et `type_picker` | 3 |
 | D-32 | 2b (échantillon) | Champs de l'icône de structure : `rest_count` est une position | 22 |
+| D-33 | 4a | Exceptions du compteur de français : schéma du TSV et fixtures françaises (3a) | 26 |
+| D-34 | 4a | Assertion faible `strstr(log, "exempt")` de `test_class_coverage.c` | 1 |
 
 ## Entrées
 
@@ -440,4 +442,41 @@
 
   et, identités à relever (offset), `revealed_count_before` → `cursor_before`, paramètre `gy` → `cursor` (ligne `field structure_icon_set_cursor.gy	cursor`). Noms neufs : 0 site.
 - **Portée** : s'applique aussi aux mentions entre backticks et en commentaire ; contrôle sur `rest_count`, `revealed_count`.
+- **Verdict** :
+
+### D-33 — Exceptions du compteur de français : schéma du TSV et fixtures françaises (3a)
+
+- **Origine** : 4a (relevé de fin, `make french-count SUBSTEP=3a`) ; suite de D-28, puce *Schéma du TSV en français*.
+- **Question** : les 26 mentions `string` `done` qui restent sur 3a sont du français par construction : les noms de colonnes et les statuts du TSV (`catégorie`, `identité`, `renommé`, `conservé`, `validé`) dans deux outils et leurs mini-TSV de test, et les mots français que `tests/test_cart_citations.py` plante exprès (`le`, compté comme homonyme d'un nom ; `dès`, accent au milieu d'un mot). Les excepter ?
+- **Options** : (a) excepter les 14 triplets ci-dessous ; (b) traduire le schéma du TSV (D-28), ce qui fait tomber les 12 lignes de schéma et laisse `le` et `dès`.
+- **Sites** : 26 (`tests/test_cart_citations` 18, `tests/test_scope_count` 6, `tools/cart_citations` 1, `tools/scope_count` 1) ; `SITES=1` les liste.
+- **Proposition prête à appliquer** : (a), ces lignes ajoutées à `tools/french_exceptions.txt` (séparateur : tabulation) :
+
+  ```
+  string	tests/test_cart_citations	catégorie
+  string	tests/test_cart_citations	identité
+  string	tests/test_cart_citations	renommé
+  string	tests/test_cart_citations	conservé
+  string	tests/test_cart_citations	validé
+  string	tests/test_cart_citations	le
+  string	tests/test_cart_citations	dès
+  string	tests/test_scope_count	catégorie
+  string	tests/test_scope_count	identité
+  string	tests/test_scope_count	renommé
+  string	tests/test_scope_count	conservé
+  string	tests/test_scope_count	validé
+  string	tools/cart_citations	renommé
+  string	tools/scope_count	renommé
+  ```
+
+  Contrôle (fait par 4a sur une copie du fichier) : `make french-count SUBSTEP=3a` à `TOTAL done` 0 et `TOTAL later` 0. Les sous-étapes suivantes proposent leurs propres lignes ; celles des outils du dictionnaire ne sont pas comptées (exclus par construction).
+- **Verdict** :
+
+### D-34 — Assertion faible `strstr(log, "exempt")` de `test_class_coverage.c`
+
+- **Origine** : 4a (commit de chaînes, lecteurs de `tools/class_coverage.sh`).
+- **Question** : `test_exempting_every_zero_class_passes` affirme `strstr(log, "exempt") != NULL`, qui apparie aussi la ligne de verdict (`coverage: OK -- every non-exempt class is instantiated …`) : elle passe même si aucune ligne ne porte d'exemption. Faiblesse héritée telle quelle (l'ancien `"exemptée"` appariait aussi « non exemptée ») ; l'étape 4 ne change pas une condition d'assertion.
+- **Options** : (a) resserrer sur la forme d'une ligne exemptée ; (b) garder.
+- **Sites** : 1 (`tests/test_class_coverage.c:69`).
+- **Proposition prête à appliquer** : (a), `strstr(log, "  exempt (test)") != NULL` (la raison `test` est celle qu'écrit l'`awk` du même cas), commit `test:` ; contrôle : `make test` vert.
 - **Verdict** :

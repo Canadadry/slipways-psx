@@ -1,5 +1,5 @@
-/* The kernel's component links on entities whose constructor `malloc`s
- * without zeroing. The binary runs itself again with `malloc` filling every
+/* The kernel's component links on entities whose constructor calls
+ * `malloc` without zeroing. The binary runs itself again with `malloc` filling every
  * block it returns (MallocScribble on macOS; MALLOC_PERTURB_ on glibc, whose
  * tcache hands a freed block back unfilled, hence the tcache turned off), so
  * a link no init set is not NULL. */
@@ -74,8 +74,8 @@ static void assert_malloc_fills(void) {
     free(block);
 }
 
-/* Each link of `want`: the one a class carries, or NULL; its `cls`, `me`
- * and `t` are not compared. */
+/* Each link of `want`: the one a class carries, or NULL; its `class`,
+ * `state` and `state_time` are not compared. */
 static void assert_links(const entity_t *h, entity_t want) {
     assert(h->layer == want.layer);
     assert(h->pos == want.pos);
@@ -92,8 +92,8 @@ static void assert_links(const entity_t *h, entity_t want) {
     assert(h->targeting == want.targeting);
 }
 
-/* Non-carriers, one per constructor that does not go through ke; the mouse
- * point, which `jc:hq` builds, has its own test below. */
+/* Non-carriers: no link but `pos`, at most. The mouse point a slipway's
+ * `drag` builds has its own test below. */
 static void test_non_carriers_have_null_links(void) {
     structure_icon_t *ie = structure_icon_new(NULL);
     structure_icon_kind_t view = structure_icon_kind_view(ie);
@@ -251,8 +251,8 @@ static slipway_t *slipway_dragged_over_nothing(entity_t *qu) {
     return jc;
 }
 
-/* The point `jc:hq` builds over nothing carries `ra` and `p` alone; the
- * slipway's `mt` is its start's, else nil. */
+/* The point a slipway's `drag` builds over nothing carries `pos` and
+ * `map_pos` alone; the slipway's `infraspace` is its start's, else absent. */
 static void test_mouse_point_has_null_links(void) {
     slipway_t *jc = slipway_dragged_over_nothing(&planet_new(NULL)->header);
     slipway_mouse_point_t *point = (slipway_mouse_point_t *)jc->end;

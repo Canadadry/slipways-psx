@@ -1,8 +1,8 @@
-/* The nine planet kinds the cart handles as values -- the seven of `gx`,
- * then `pm` and `ga`, reached by `kv[hp.cw]`. test_kind_fields_and_build()
- * reads them through each kind's `rec` and kind_build() only; its frozen
- * value was taken on the code where these were still classes and must not
- * be re-taken. */
+/* The nine planet kinds handled as values -- the seven of the kind table,
+ * then protostar and burst, looked up by a research project's `class_name`.
+ * test_kind_fields_and_build() reads them through each kind's `record` and
+ * kind_build() only; its frozen value was taken on the code where these
+ * were still classes and must not be re-taken. */
 
 #include <assert.h>
 #include <stdint.h>
@@ -107,8 +107,9 @@ static uint32_t fold_string(uint32_t h, const char *s) {
     return fnv(h, 0xFFFFFFFFu);
 }
 
-/* The kind word is constant by the struct's shape (`rr`/`me` strings,
- * `s`/`od` fixed), kept so that KIND_HASH still proves the typed reads. */
+/* The kind word is constant by the struct's shape (`required_tech` and
+ * `state` strings, `sprite` and `cost` fixed), kept so that KIND_HASH still
+ * proves the typed reads. */
 static uint32_t fold_string_member(uint32_t h, const char *s) {
     h = fnv(h, (uint32_t)(s != NULL));
     return s == NULL ? h : fold_string(fnv(h, (uint32_t)STRING_KIND), s);
@@ -125,8 +126,10 @@ static void check(const char *label, uint32_t got, uint32_t want) {
     assert(got == want);
 }
 
-/* `rr`/`s`/`me`/`od` of each kind as `ie:hb`/`ie:kj` read them, absent
- * included (`qh`/`os` have no `rr`), and the struct each kind builds. */
+/* `required_tech`, `sprite`, `state` and `cost` of each kind as a
+ * structure icon's `refresh` and `draw` read them, absent included
+ * (structure, processor and burst have no `required_tech`), and the struct
+ * each kind builds. */
 static void test_kind_fields_and_build(void) {
     uint32_t h = 2166136261u;
     int i;
@@ -147,8 +150,8 @@ static void test_kind_fields_and_build(void) {
     check("kind", h, KIND_HASH);
 }
 
-/* Each kind's `rec` holds the generated default of the class that sets
- * each name. */
+/* Each kind's `record` holds the generated default of the class that sets
+ * each field. */
 static void test_kind_reader_serves_the_generated_defaults(void) {
     const kind_record_t *record;
 
@@ -207,8 +210,8 @@ static void test_kind_reader_serves_the_generated_defaults(void) {
     assert(!record->has_cost && record->cost == 0);
 }
 
-/* `kv[hp.cw]` only ever sees "pm" or "ga": every research of `gb` carries
- * one of them as `cw`, or none. */
+/* The kind lookup by class name only ever sees "protostar" or "burst":
+ * every research project carries one of them as `class_name`, or none. */
 static void test_every_class_name_is_protostar_or_burst(void) {
     int with_class_name = 0;
     int k;

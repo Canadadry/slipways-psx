@@ -1,12 +1,12 @@
 #!/bin/sh
-# usage: class_coverage.sh [--expect <référence>]
-#                          <outil pico8_class_coverage> <dossier|->
+# usage: class_coverage.sh [--expect <reference>]
+#                          <class_coverage tool> <dir|->
 #                          [<exemptions> [<events>...]]
-# Rejoue chaque <dossier>/*events.json (sans descendre dans les sous-dossiers ;
-# - : aucun), puis chaque <events> nommé, un processus par rejeu, depuis
-# l'écran titre. Rend 1 si une classe est à 0 sans être exemptée, ou, avec
-# --expect, si la sortie diffère octet pour octet de <référence> (absente
-# comprise).
+# Replays every <dir>/*events.json (not recursing into subdirectories;
+# - : none), then every named <events>, one process per replay, from the
+# title screen. Exits 1 if a class is at 0 without an exemption, or, with
+# --expect, if the output differs byte for byte from <reference> (a missing
+# <reference> included).
 
 set -u
 
@@ -55,8 +55,8 @@ report() {
         : > "$work/exempt"
     fi
 
-    # FILENAME et non NR == FNR : un fichier d'exemptions vide ferait lire les
-    # comptes comme des exemptions.
+    # Test FILENAME rather than compare the record counters: with an empty
+    # exemptions file, the counts would be read as exemptions.
     awk -v run="$run" -v exempt_file="$work/exempt" '
         FILENAME == exempt_file {
             if ($1 != "") { reason = $0; sub(/^[^ ]+ +/, "", reason); exempt[$1] = reason }
