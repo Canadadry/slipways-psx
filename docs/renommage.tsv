@@ -45,13 +45,13 @@ ke	entity	src/cmd/class_coverage.c	chaîne	nom de classe + clé	renommé	cmd/cla
 tmp/pico8_class_coverage	tmp/class_coverage	src/cmd/class_coverage.c	fichier	binaire	renommé	cmd/class_coverage		lecteur	fichier:tmp/pico8_class_coverage
 main	main	src/cmd/class_coverage.c	identifiant	fonction	conservé	cmd/class_coverage			c:@F@main
 cheat	cheat	src/cmd/class_coverage.c	identifiant	locale	conservé	cmd/class_coverage			c:class_coverage.c@1578@F@main@cheat
-gfx	gfx	src/cmd/class_coverage.c	identifiant	locale	conservé	cmd/class_coverage			c:class_coverage.c@1059@F@main@gfx
+gfx	graphics	src/cmd/class_coverage.c	identifiant	locale	renommé	cmd/class_coverage			c:class_coverage.c@1245@F@main@gfx
 i	i	src/cmd/class_coverage.c	identifiant	locale	conservé	cmd/class_coverage			c:class_coverage.c@1638@F@main@i
 input	input	src/cmd/class_coverage.c	identifiant	locale	conservé	cmd/class_coverage			c:class_coverage.c@1221@F@main@input
 j	j	src/cmd/class_coverage.c	identifiant	locale	conservé	cmd/class_coverage			c:class_coverage.c@1966@F@main@j
 k	k	src/cmd/class_coverage.c	identifiant	locale	conservé	cmd/class_coverage			c:class_coverage.c@1918@F@main@k
 k	k	src/cmd/class_coverage.c	identifiant	locale	conservé	cmd/class_coverage			c:class_coverage.c@2579@F@main@k
-mem	mem	src/cmd/class_coverage.c	identifiant	locale	conservé	cmd/class_coverage			c:class_coverage.c@1012@F@main@mem
+mem	memory	src/cmd/class_coverage.c	identifiant	locale	renommé	cmd/class_coverage			c:class_coverage.c@1201@F@main@mem
 unknown	unknown	src/cmd/class_coverage.c	identifiant	locale	conservé	cmd/class_coverage			c:class_coverage.c@2129@F@main@unknown
 KNOWN_COUNT	KNOWN_COUNT	src/cmd/class_coverage.c	identifiant	macro	conservé	cmd/class_coverage			macro:src/cmd/class_coverage.c:KNOWN_COUNT
 argc	argc	src/cmd/class_coverage.c	identifiant	paramètre	conservé	cmd/class_coverage			c:class_coverage.c@912@F@main@argc
@@ -85,9 +85,9 @@ backend	backend	src/cmd/game.c	identifiant	locale	conservé	cmd/game			c:game.c@
 cheat	cheat	src/cmd/game.c	identifiant	locale	conservé	cmd/game			c:game.c@3002@F@main@cheat
 frame	frame	src/cmd/game.c	identifiant	locale	conservé	cmd/game			c:game.c@3122@F@main@frame
 from_recording	from_recording	src/cmd/game.c	identifiant	locale	conservé	cmd/game			c:game.c@3157@F@main@from_recording
-gfx	gfx	src/cmd/game.c	identifiant	locale	conservé	cmd/game			c:game.c@2332@F@main@gfx
+gfx	graphics	src/cmd/game.c	identifiant	locale	renommé	cmd/game			c:game.c@2260@F@main@gfx
 input	input	src/cmd/game.c	identifiant	locale	conservé	cmd/game			c:game.c@4043@F@main@input
-mem	mem	src/cmd/game.c	identifiant	locale	conservé	cmd/game			c:game.c@2284@F@main@mem
+mem	memory	src/cmd/game.c	identifiant	locale	renommé	cmd/game			c:game.c@2215@F@main@mem
 replay	replay	src/cmd/game.c	identifiant	locale	conservé	cmd/game			c:game.c@1126@F@main@replay
 replay_control	replay_control	src/cmd/game.c	identifiant	locale	conservé	cmd/game			c:game.c@2192@F@main@replay_control
 replay_path	replay_path	src/cmd/game.c	identifiant	locale	conservé	cmd/game			c:game.c@1066@F@main@replay_path
@@ -163,12 +163,12 @@ cheat	cheat	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.
 dump_ok	dump_ok	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@6676@F@main@dump_ok
 dump_out	dump_out	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@6602@F@main@dump_out
 dump_path	dump_path	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@4033@F@main@dump_path
-events_path	events_path	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@3934@F@main@events_path
+events_path	replay_path	src/cmd/replay.c	identifiant	locale	renommé	cmd/replay			c:replay.c@3802@F@main@events_path
 frame_count	frame_count	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@5074@F@main@frame_count
-gfx	gfx	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@4162@F@main@gfx
+gfx	graphics	src/cmd/replay.c	identifiant	locale	renommé	cmd/replay			c:replay.c@4021@F@main@gfx
 i	i	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@5175@F@main@i
 input	input	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@4325@F@main@input
-mem	mem	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@4114@F@main@mem
+mem	memory	src/cmd/replay.c	identifiant	locale	renommé	cmd/replay			c:replay.c@3976@F@main@mem
 out	out	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@2115@F@write_remplissage@out
 remplissage_path	fill_path	src/cmd/replay.c	identifiant	locale	renommé	cmd/replay			c:replay.c@6588@F@main@remplissage_path
 s	s	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@2336@F@write_remplissage@s

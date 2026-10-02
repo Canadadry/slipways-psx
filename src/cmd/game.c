@@ -52,17 +52,17 @@ int main(int argc, char **argv) {
     replay_control_t replay_control;
     replay_control_init(&replay_control);
 
-    p8_memory_t mem;
-    p8_mem_init(&mem);
+    p8_memory_t memory;
+    p8_mem_init(&memory);
 
-    p8_graphics_t gfx;
-    p8_gfx_init(&gfx);
+    p8_graphics_t graphics;
+    p8_gfx_init(&graphics);
 
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
 
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
 
     raylib_backend_t backend;
     raylib_backend_init(&backend);
@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
                                                replay_status_text, sizeof replay_status_text);
             replay_status = replay_status_text;
         }
-        raylib_backend_present(&backend, &mem, &frame, replay_status);
+        raylib_backend_present(&backend, &memory, &frame, replay_status);
     }
 
     raylib_backend_shutdown(&backend);

@@ -27,12 +27,12 @@ static const char *const KNOWN[] = {
 int main(int argc, char **argv) {
     assert(argc == 2 && "usage: class_coverage <events.json>");
 
-    p8_memory_t mem;
-    p8_mem_init(&mem);
-    p8_graphics_t gfx;
-    p8_gfx_init(&gfx);
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_memory_t memory;
+    p8_mem_init(&memory);
+    p8_graphics_t graphics;
+    p8_gfx_init(&graphics);
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
 
     p8_input_t input;
     p8_input_init(&input);
@@ -41,8 +41,8 @@ int main(int argc, char **argv) {
         return 2;
     }
 
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
     dispatch_context_set_input(&input);
 
     cart_load();

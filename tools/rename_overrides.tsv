@@ -1462,6 +1462,13 @@ identity	c:input_json.c@3074@F@p8_input_load@obj_buf	frame_copy
 identity	c:input_json.c@5528@F@p8_input_save@tmp_len	tmp_path_size	
 identity	c:minimize.c@1334@F@minimize_mechanical@out	kept_frames	
 identity	c:minimize.h@1331@F@minimize_mechanical@out	kept_frames	
+identity	c:class_coverage.c@1201@F@main@mem	memory	
+identity	c:class_coverage.c@1245@F@main@gfx	graphics	
+identity	c:game.c@2215@F@main@mem	memory	
+identity	c:game.c@2260@F@main@gfx	graphics	
+identity	c:replay.c@3802@F@main@events_path	replay_path	
+identity	c:replay.c@3976@F@main@mem	memory	
+identity	c:replay.c@4021@F@main@gfx	graphics	
 
 # --- tmp/ binaries and outputs (tools/rename_strings.py) ------------------------
 # A binary takes the name of its cmd/ file, except frames: tmp/frames is the

@@ -85,25 +85,25 @@ int main(int argc, char **argv) {
         fprintf(stderr, "usage: replay <events.json> [<capture.bin> [<dump.txt>]]\n");
         return 2;
     }
-    const char *events_path = argv[1];
+    const char *replay_path = argv[1];
     const char *capture_path = (argc > 2) ? argv[2] : NULL;
     const char *dump_path = (argc > 3) ? argv[3] : "tmp/replay_dump.txt";
 
-    p8_memory_t mem;
-    p8_mem_init(&mem);
+    p8_memory_t memory;
+    p8_mem_init(&memory);
 
-    p8_graphics_t gfx;
-    p8_gfx_init(&gfx);
+    p8_graphics_t graphics;
+    p8_gfx_init(&graphics);
 
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
 
     p8_input_t input;
     p8_input_init(&input);
-    assert(p8_input_load(&input, events_path));
+    assert(p8_input_load(&input, replay_path));
 
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
     dispatch_context_set_input(&input);
 
     cart_load();
@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
          * de boucle, la capture entiere serait decalee d'une frame --
          * tests/test_headless_capture.c le detecte en comparant la
          * derniere frame capturee au dump texte. */
-        if (capture_path && !screencast_write_frame(&capture, &mem)) {
+        if (capture_path && !screencast_write_frame(&capture, &memory)) {
             fprintf(stderr, "replay: cannot write frame %d to '%s'\n",
                     i, capture_path);
             screencast_writer_close(&capture);
@@ -156,7 +156,7 @@ int main(int argc, char **argv) {
 
     FILE *dump_out = fopen(dump_path, "w");
     assert(dump_out != NULL);
-    int dump_ok = dump_screen(&mem, dump_out);
+    int dump_ok = dump_screen(&memory, dump_out);
     fclose(dump_out);
     assert(dump_ok);
 
@@ -168,7 +168,7 @@ int main(int argc, char **argv) {
     p8_input_free(&input);
 
     printf("replay: %d frame(s) run against %s; framebuffer dumped to %s\n",
-           frame_count, events_path, dump_path);
+           frame_count, replay_path, dump_path);
     if (capture_path) {
         printf("replay: %d frame(s) captured to %s\n", frame_count, capture_path);
     }
