@@ -1,5 +1,5 @@
 #!/bin/sh
-# usage: minimize.sh <pico8_minimize> [--min-chunk N] <entrée> <sortie> [<oracle>...]
+# usage: minimize.sh <minimize tool> [--min-chunk N] <input> <output> [<oracle>...]
 # Sans oracle : l'étage mécanique seul.
 # Avec : `<oracle>... <events>` doit écrire sur stdout l'ensemble de lignes
 # couvertes par ce fichier (line_coverage.sh cover), code non nul s'il
@@ -56,7 +56,7 @@ oracle_args=$*
 # chargeur qui complète un d-pad de 4 une ligne que nul candidat ne couvre.
 "$tool" rewrite "$input" "$work/raw.json" || exit 1
 if ! "$oracle_cmd" $oracle_args "$work/raw.json" > "$work/raw.lines"; then
-    echo "minimize: l'oracle échoue sur $input" >&2
+    echo "minimize: the oracle fails on $input" >&2
     exit 1
 fi
 raw_frames=$("$tool" count "$input") || exit 1
@@ -64,7 +64,7 @@ raw_frames=$("$tool" count "$input") || exit 1
 "$tool" mechanical "$input" "$work/current.json" || exit 1
 mechanical_frames=$("$tool" count "$work/current.json") || exit 1
 if ! same_lines "$work/current.json"; then
-    echo "minimize: l'étage mécanique change les lignes couvertes, la passe repart de $input" >&2
+    echo "minimize: the mechanical pass changes the covered lines; the guided pass starts again from $input" >&2
     cp "$work/raw.json" "$work/current.json" || exit 1
 fi
 
@@ -85,9 +85,9 @@ while [ "$size" -ge "$min_chunk" ] && [ "$size" -ge 1 ]; do
             i=$((i + count))
         fi
     done
-    echo "minimize: tranches de $size : $n frame(s)" >&2
+    echo "minimize: chunks of $size: $n frame(s)" >&2
     size=$((size / 2))
 done
 
 cp "$work/current.json" "$output" || exit 1
-echo "minimize: $input : $raw_frames frame(s) brutes, $mechanical_frames après l'étage mécanique, $n après la passe guidée ($calls candidat(s) jugé(s))" >&2
+echo "minimize: $input: $raw_frames raw frame(s), $mechanical_frames after the mechanical pass, $n after the guided pass ($calls candidate(s) judged)" >&2

@@ -31,7 +31,7 @@ static int parse_int(const char *text, int *out) {
 static int load(p8_input_t *input, const char *path) {
     p8_input_init(input);
     if (!p8_input_load(input, path)) {
-        fprintf(stderr, "minimize: %s absent ou malformé\n", path);
+        fprintf(stderr, "minimize: %s missing or malformed\n", path);
         return 0;
     }
     return 1;
@@ -39,7 +39,7 @@ static int load(p8_input_t *input, const char *path) {
 
 static int save(const p8_input_frame_t *frames, int n, const char *path) {
     if (!p8_input_save(frames, n, path)) {
-        fprintf(stderr, "minimize: écriture de %s impossible\n", path);
+        fprintf(stderr, "minimize: cannot write %s\n", path);
         return 0;
     }
     return 1;
@@ -61,7 +61,7 @@ static int drop(const char *in_path, const char *out_path, const char *first_tex
     int first;
     int count;
     if (!parse_int(first_text, &first) || !parse_int(count_text, &count)) {
-        fprintf(stderr, "minimize: plage invalide: %s %s\n", first_text, count_text);
+        fprintf(stderr, "minimize: invalid range: %s %s\n", first_text, count_text);
         return 1;
     }
     p8_input_t input;
@@ -70,7 +70,7 @@ static int drop(const char *in_path, const char *out_path, const char *first_tex
     }
     int n = input.frame_count;
     if (count == 0 || first >= n || count > n - first || count == n) {
-        fprintf(stderr, "minimize: plage %d+%d hors des %d frames de %s ou qui le viderait\n", first, count,
+        fprintf(stderr, "minimize: range %d+%d outside the %d frames of %s, or emptying it\n", first, count,
                 n, in_path);
         p8_input_free(&input);
         return 1;
@@ -115,9 +115,9 @@ int main(int argc, char **argv) {
     if (argc == 3 && strcmp(argv[1], "count") == 0) {
         return count_frames(argv[2]);
     }
-    fprintf(stderr, "usage: minimize mechanical <entrée> <sortie>\n"
-                    "       minimize drop <entrée> <sortie> <première> <nombre>\n"
-                    "       minimize rewrite <entrée> <sortie>\n"
-                    "       minimize count <entrée>\n");
+    fprintf(stderr, "usage: minimize mechanical <input> <output>\n"
+                    "       minimize drop <input> <output> <first> <count>\n"
+                    "       minimize rewrite <input> <output>\n"
+                    "       minimize count <input>\n");
     return 1;
 }

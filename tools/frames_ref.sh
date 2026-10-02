@@ -51,7 +51,7 @@ while [ $# -ge 4 ]; do
 
     [ -f "$reference" ] || continue
     if [ ! -f "$current" ]; then
-        echo "e2e-ref: $events : empreinte courante absente ($current)" >&2
+        echo "e2e-ref: $events: current hash missing ($current)" >&2
         exit 1
     fi
     [ "$(cat "$reference")" = "$(cat "$current")" ] && continue
@@ -64,15 +64,15 @@ while [ $# -ge 4 ]; do
         *) commit= ;;
     esac
     if [ -z "$commit" ]; then
-        echo "e2e-ref: $events : $reference n'est pas commitee -- aucune reference a reconstruire." >&2
-        echo "e2e-ref:   la commiter avant de lancer e2e-ref : git status -- $reference" >&2
+        echo "e2e-ref: $events: $reference is not committed -- no reference to rebuild." >&2
+        echo "e2e-ref:   commit it before running e2e-ref: git status -- $reference" >&2
         exit 1
     fi
     echo "$commit $events $capture" >> "$pending"
 done
 
 if [ ! -s "$pending" ]; then
-    echo "e2e-ref: aucun rejeu divergent -- rien a reconstruire."
+    echo "e2e-ref: no diverging replay -- nothing to rebuild."
     exit 0
 fi
 
@@ -84,7 +84,7 @@ first_divergent_frame() {
     status=$?
     [ $status -eq 0 ] && return 0
     if [ $status -ne 1 ]; then
-        echo "e2e-ref: cmp $1 $2 a echoue" >&2
+        echo "e2e-ref: cmp $1 $2 failed" >&2
         return 1
     fi
     byte=$(printf '%s\n' "$out" | sed -n -e 's/.* differ: byte \([0-9][0-9]*\).*/\1/p' -e 's/.* differ: char \([0-9][0-9]*\).*/\1/p')
@@ -105,15 +105,15 @@ for commit in $(cut -d' ' -f1 "$pending" | sort -u); do
         git worktree prune
     fi
     mkdir -p "$(dirname "$worktree")"
-    echo "e2e-ref: reconstruction de la reference $commit"
+    echo "e2e-ref: rebuilding the reference $commit"
     if ! git worktree add --detach "$worktree" "$commit" > /dev/null; then
-        echo "e2e-ref: worktree de $commit impossible" >&2
+        echo "e2e-ref: cannot add a worktree at $commit" >&2
         exit 1
     fi
     driver=tmp/pico8_replay
     grep -q -e '^$(TMP_DIR)/replay:' "$worktree/Makefile" && driver=tmp/replay
     if ! (cd "$worktree" && MAKEFLAGS= MFLAGS= make $driver < /dev/null > /dev/null); then
-        echo "e2e-ref: le pilote de rejeu ne compile pas au commit $commit" >&2
+        echo "e2e-ref: the replay driver does not build at commit $commit" >&2
         exit 1
     fi
 
@@ -128,23 +128,23 @@ for commit in $(cut -d' ' -f1 "$pending" | sort -u); do
         mkdir -p "$(dirname "$root/$ref_capture")"
         rm -f "$root/$ref_capture"
         if [ ! -f "$worktree/$events" ]; then
-            echo "e2e-ref: $events n'existe pas au commit $commit" >&2
+            echo "e2e-ref: $events does not exist at commit $commit" >&2
             exit 1
         fi
         if ! (cd "$worktree" && ./$driver $flag "$events" "$root/$ref_capture" < /dev/null > /dev/null); then
             rm -f "$root/$ref_capture"
-            echo "e2e-ref: $events : le rejeu echoue au commit $commit" >&2
+            echo "e2e-ref: $events: the replay fails at commit $commit" >&2
             exit 1
         fi
 
         frame=$(first_divergent_frame "$ref_capture" "$capture") || exit 1
         if [ -z "$frame" ]; then
-            echo "e2e-ref: $events : la capture reconstruite a $commit est identique a la capture courante."
+            echo "e2e-ref: $events: the capture rebuilt at $commit is identical to the current capture."
             continue
         fi
-        echo "e2e-ref: $events : premiere frame divergente $frame (reference $commit)"
-        echo "e2e-ref:   reference : $tool frame $ref_capture $frame"
-        echo "e2e-ref:   courante  : $tool frame $capture $frame"
+        echo "e2e-ref: $events: first diverging frame $frame (reference $commit)"
+        echo "e2e-ref:   reference: $tool frame $ref_capture $frame"
+        echo "e2e-ref:   current:   $tool frame $capture $frame"
     done < "$pending"
 
     remove_worktree

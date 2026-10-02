@@ -40,8 +40,8 @@ int main(int argc, char **argv) {
      * c'est sur cette confiance que repose la signature d'empreinte. */
     if (argc != 2) {
         fprintf(stderr,
-                "screencast-viewer: usage : %s <fichier de pixels>\n"
-                "screencast-viewer: le fabriquer : make screencast EVENTS=<events.json> (ecrit tmp/screencast.bin)\n",
+                "screencast-viewer: usage: %s <pixel file>\n"
+                "screencast-viewer: to make one: make screencast EVENTS=<events.json> (writes tmp/screencast.bin)\n",
                 argv[0]);
         return 1;
     }
@@ -69,8 +69,8 @@ int main(int argc, char **argv) {
     replay_control_init(&control);
 
     fprintf(stderr,
-            "screencast-viewer: '%s', %d frames, lecture en boucle.\n"
-            "screencast-viewer: PAGE UP plus vite, PAGE DOWN moins vite, END sans plafond ; fermer la fenetre pour quitter.\n",
+            "screencast-viewer: '%s', %d frames, played once, then held on the last frame.\n"
+            "screencast-viewer: PAGE UP faster, PAGE DOWN slower, END uncapped; close the window to quit.\n",
             path, frame_count);
 
     InitWindow(P8_SCREEN_WIDTH * RAYLIB_BACKEND_SCALE, P8_SCREEN_HEIGHT * RAYLIB_BACKEND_SCALE,
@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
              * sort en erreur plutot que de continuer a afficher la frame
              * precedente, qui ferait passer une panne pour une image
              * figee. */
-            fprintf(stderr, "screencast-viewer: lecture de la frame %d de '%s' impossible -- arret.\n", index, path);
+            fprintf(stderr, "screencast-viewer: cannot read frame %d of '%s' -- stopping.\n", index, path);
             exit_code = 1;
             break;
         }

@@ -54,7 +54,7 @@
 #define BEFORE_F0 (-1)
 #define MAX_READINGS 4
 
-static const char *const NAMES[SLOT_KIND_COUNT] = {"button", "modal_backdrop", "message_box", "toast", "rangee", "ephemerals"};
+static const char *const NAMES[SLOT_KIND_COUNT] = {"button", "modal_backdrop", "message_box", "toast", "row", "ephemerals"};
 
 typedef struct {
     int frame;
@@ -1372,19 +1372,19 @@ static void replay_writes_fill_at_session_end(void) {
         snprintf(line, sizeof line, "%s %d\n", NAMES[s], reading[0].live[s]);
         strcat(expected, line);
     }
-    static const char *const PARTICLE[PARTICLE_SLOT_COUNT] = {"particule", "particles", "particles_help_screen", "burst", "transit_dots"};
+    static const char *const PARTICLE[PARTICLE_SLOT_COUNT] = {"particle", "particles", "particles_help_screen", "burst", "transit_dots"};
     for (int s = 0; s < PARTICLE_SLOT_COUNT; s++) {
         snprintf(line, sizeof line, "%s %d\n", PARTICLE[s],
                  particle_zone_live((particle_slot_kind_t)s));
         strcat(expected, line);
     }
     for (int s = 0; s < PARTICLE_SLOT_COUNT; s++) {
-        snprintf(line, sizeof line, "max_vivantes %s %d\n", PARTICLE[s],
+        snprintf(line, sizeof line, "max_live %s %d\n", PARTICLE[s],
                  particle_zone_max_live((particle_slot_kind_t)s));
         strcat(expected, line);
     }
     for (int s = PARTICLE_SLOT_LIST; s < PARTICLE_SLOT_COUNT; s++) {
-        snprintf(line, sizeof line, "max_octets %s %lu\n", PARTICLE[s],
+        snprintf(line, sizeof line, "max_bytes %s %lu\n", PARTICLE[s],
                  (unsigned long)particle_zone_max_bytes((particle_slot_kind_t)s));
         strcat(expected, line);
     }
@@ -1394,12 +1394,12 @@ static void replay_writes_fill_at_session_end(void) {
                  particle_zone_max_elements((particle_slot_kind_t)s));
         strcat(expected, line);
     }
-    snprintf(line, sizeof line, "partie %lu\nmax_octets partie %lu\n", (unsigned long)game_zone_used(),
+    snprintf(line, sizeof line, "game %lu\nmax_bytes game %lu\n", (unsigned long)game_zone_used(),
              (unsigned long)game_zone_max());
     strcat(expected, line);
-    snprintf(line, sizeof line, "chargement %lu\n", (unsigned long)load_zone_used());
+    snprintf(line, sizeof line, "load %lu\n", (unsigned long)load_zone_used());
     strcat(expected, line);
-    snprintf(line, sizeof line, "max_octets chargement %lu\n", (unsigned long)game_zone_load_zone_max());
+    snprintf(line, sizeof line, "max_bytes load %lu\n", (unsigned long)game_zone_load_zone_max());
     strcat(expected, line);
     size_t len;
     char *writes = read_file(FILL, &len);
@@ -1433,11 +1433,11 @@ static void replay_writes_session_peak(void) {
                   " " DUMP_A " > /dev/null") == 0);
     size_t len;
     char *writes = read_file(FILL, &len);
-    long particle = fill_value(writes, "particule");
-    long max_particle = fill_value(writes, "max_vivantes particule");
+    long particle = fill_value(writes, "particle");
+    long max_particle = fill_value(writes, "max_live particle");
     printf("  tech_geoharvesting_burst: particle %ld at the end of the session, max %ld; burst %ld, max %ld\n", particle,
-           max_particle, fill_value(writes, "burst"), fill_value(writes, "max_vivantes burst"));
-    assert(fill_value(writes, "max_vivantes burst") >= 1 && "'harvest' makes a burst");
+           max_particle, fill_value(writes, "burst"), fill_value(writes, "max_live burst"));
+    assert(fill_value(writes, "max_live burst") >= 1 && "'harvest' makes a burst");
     assert(max_particle >= 140 && particle < 140 && "the maximum is read at every take, not at the end of the session");
     free(writes);
     remove(FILL);

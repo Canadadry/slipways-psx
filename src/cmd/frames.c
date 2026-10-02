@@ -16,19 +16,19 @@ static const char *status_text(screencast_status_t status) {
     case SCREENCAST_OK:
         return "ok";
     case SCREENCAST_UNREADABLE:
-        return "illisible ou absente";
+        return "unreadable or missing";
     case SCREENCAST_EMPTY:
-        return "vide";
+        return "empty";
     case SCREENCAST_TRUNCATED:
-        return "tronquee (taille non multiple d'une frame)";
+        return "truncated (size not a multiple of a frame)";
     }
-    return "etat inconnu";
+    return "unknown status";
 }
 
 static int open_capture(screencast_reader_t *reader, const char *path) {
     screencast_status_t status = screencast_reader_open(reader, path);
     if (status != SCREENCAST_OK) {
-        fprintf(stderr, "frames_tool: capture %s : %s\n", path, status_text(status));
+        fprintf(stderr, "frames_tool: capture %s: %s\n", path, status_text(status));
         return 0;
     }
     return 1;
@@ -48,7 +48,7 @@ static int parse_index(const char *text, int *out_index) {
 static int write_frame(const char *capture_path, const char *index_text) {
     int index;
     if (!parse_index(index_text, &index)) {
-        fprintf(stderr, "frames_tool: index de frame invalide : %s\n", index_text);
+        fprintf(stderr, "frames_tool: invalid frame index: %s\n", index_text);
         return 0;
     }
 
@@ -62,13 +62,13 @@ static int write_frame(const char *capture_path, const char *index_text) {
     int read_ok = screencast_read_frame(&reader, index, pixels);
     screencast_reader_close(&reader);
     if (!read_ok) {
-        fprintf(stderr, "frames_tool: capture %s : pas de frame %d (%d frame(s), index 0 a %d)\n",
+        fprintf(stderr, "frames_tool: capture %s: no frame %d (%d frame(s), index 0 to %d)\n",
                 capture_path, index, count, count - 1);
         return 0;
     }
 
     if (!dump_pixels(pixels, stdout) || fflush(stdout) != 0) {
-        fprintf(stderr, "frames_tool: ecriture de la frame %d impossible\n", index);
+        fprintf(stderr, "frames_tool: cannot write frame %d\n", index);
         return 0;
     }
     return 1;

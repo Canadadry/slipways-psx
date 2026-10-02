@@ -25,7 +25,7 @@ static const char *const KNOWN[] = {
 #define KNOWN_COUNT ((int)(sizeof KNOWN / sizeof KNOWN[0]))
 
 int main(int argc, char **argv) {
-    assert(argc == 2 && "usage: pico8_class_coverage <events.json>");
+    assert(argc == 2 && "usage: class_coverage <events.json>");
 
     p8_memory_t mem;
     p8_mem_init(&mem);
@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
     p8_input_t input;
     p8_input_init(&input);
     if (!p8_input_load(&input, argv[1])) {
-        fprintf(stderr, "class_coverage: %s ne se charge pas\n", argv[1]);
+        fprintf(stderr, "class_coverage: %s does not load\n", argv[1]);
         return 2;
     }
 
@@ -68,9 +68,9 @@ int main(int argc, char **argv) {
     const char *unknown = class_coverage_first_unknown(KNOWN, KNOWN_COUNT);
     if (unknown != NULL) {
         if (unknown[0] == '\0') {
-            fprintf(stderr, "class_coverage: une classe instanciée n'a pas de nom de couverture (nom \"\")\n");
+            fprintf(stderr, "class_coverage: an instantiated class has no coverage name (name \"\")\n");
         } else {
-            fprintf(stderr, "class_coverage: le nom %s n'est pas dans KNOWN[]\n", unknown);
+            fprintf(stderr, "class_coverage: the name %s is not in KNOWN[]\n", unknown);
         }
         p8_input_free(&input);
         return 3;

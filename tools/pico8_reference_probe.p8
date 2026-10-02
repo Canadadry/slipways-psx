@@ -28,7 +28,7 @@ print("probe: running...",0,0,7)
 flip()
 
 o("# probe v1")
-o("# pico-8 version: <a renseigner>")
+o("# pico-8 version: <to fill in>")
 
 -- ================================
 -- bloc a : les 54 litteraux

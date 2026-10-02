@@ -44,13 +44,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static const char *const SLOT_KIND_NAMES[SLOT_KIND_COUNT] = {"button", "modal_backdrop", "message_box", "toast", "rangee", "ephemerals"};
-static const char *const PARTICLE_NAMES[PARTICLE_SLOT_COUNT] = {"particule", "particles", "particles_help_screen", "burst", "transit_dots"};
+static const char *const SLOT_KIND_NAMES[SLOT_KIND_COUNT] = {"button", "modal_backdrop", "message_box", "toast", "row", "ephemerals"};
+static const char *const PARTICLE_NAMES[PARTICLE_SLOT_COUNT] = {"particle", "particles", "particles_help_screen", "burst", "transit_dots"};
 
 static void write_fill(const char *path) {
     FILE *out = fopen(path, "w");
     if (out == NULL) {
-        fprintf(stderr, "replay: impossible d'ouvrir le fichier de remplissage '%s'\n", path);
+        fprintf(stderr, "replay: cannot open the fill file '%s'\n", path);
         return;
     }
     cart_flush_exit_queue();
@@ -61,11 +61,11 @@ static void write_fill(const char *path) {
         fprintf(out, "%s %d\n", PARTICLE_NAMES[s], particle_zone_live((particle_slot_kind_t)s));
     }
     for (int s = 0; s < PARTICLE_SLOT_COUNT; s++) {
-        fprintf(out, "max_vivantes %s %d\n", PARTICLE_NAMES[s],
+        fprintf(out, "max_live %s %d\n", PARTICLE_NAMES[s],
                 particle_zone_max_live((particle_slot_kind_t)s));
     }
     for (int s = PARTICLE_SLOT_LIST; s < PARTICLE_SLOT_COUNT; s++) {
-        fprintf(out, "max_octets %s %lu\n", PARTICLE_NAMES[s],
+        fprintf(out, "max_bytes %s %lu\n", PARTICLE_NAMES[s],
                 (unsigned long)particle_zone_max_bytes((particle_slot_kind_t)s));
     }
     for (int s = PARTICLE_SLOT_LIST; s < PARTICLE_SLOT_COUNT; s++) {
@@ -73,10 +73,10 @@ static void write_fill(const char *path) {
         fprintf(out, "max_elements %s %d\n", PARTICLE_NAMES[s],
                 particle_zone_max_elements((particle_slot_kind_t)s));
     }
-    fprintf(out, "partie %lu\n", (unsigned long)game_zone_used());
-    fprintf(out, "max_octets partie %lu\n", (unsigned long)game_zone_max());
-    fprintf(out, "chargement %lu\n", (unsigned long)load_zone_used());
-    fprintf(out, "max_octets chargement %lu\n", (unsigned long)game_zone_load_zone_max());
+    fprintf(out, "game %lu\n", (unsigned long)game_zone_used());
+    fprintf(out, "max_bytes game %lu\n", (unsigned long)game_zone_max());
+    fprintf(out, "load %lu\n", (unsigned long)load_zone_used());
+    fprintf(out, "max_bytes load %lu\n", (unsigned long)game_zone_load_zone_max());
     fclose(out);
 }
 
@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
      * fprintf plutot qu'un assert, pour que le message nomme le chemin. */
     screencast_writer_t capture = { NULL };
     if (capture_path && !screencast_writer_open(&capture, capture_path)) {
-        fprintf(stderr, "replay: impossible d'ouvrir le fichier de capture '%s'\n",
+        fprintf(stderr, "replay: cannot open the capture file '%s'\n",
                 capture_path);
         return 1;
     }
@@ -133,7 +133,7 @@ int main(int argc, char **argv) {
          * tests/test_headless_capture.c le detecte en comparant la
          * derniere frame capturee au dump texte. */
         if (capture_path && !screencast_write_frame(&capture, &mem)) {
-            fprintf(stderr, "replay: echec d'ecriture de la frame %d dans '%s'\n",
+            fprintf(stderr, "replay: cannot write frame %d to '%s'\n",
                     i, capture_path);
             screencast_writer_close(&capture);
             return 1;
@@ -149,7 +149,7 @@ int main(int argc, char **argv) {
      * l'ecrire : un dump frais ferait passer pour
      * normale une execution dont la capture est perdue. */
     if (capture_path && !screencast_writer_close(&capture)) {
-        fprintf(stderr, "replay: echec de fermeture du fichier de capture '%s'\n",
+        fprintf(stderr, "replay: cannot close the capture file '%s'\n",
                 capture_path);
         return 1;
     }
