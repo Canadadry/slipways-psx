@@ -1,6 +1,6 @@
-/* tools/float_guard.sh, le corps de `make float-guard`, sur des sources
- * fabriquees : il se teste par ce qu'il doit empecher, un fichier flottant
- * que la garde laisserait passer. */
+/* tools/float_guard.sh, the body of `make float-guard`, on built sources:
+ * it is tested by what it must prevent, a floating-point file that the
+ * guard would let through. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -13,7 +13,7 @@
 #define OUT DIR "/out.txt"
 #define GUARD "sh tools/float_guard.sh cc '-std=c99 -Wall -Wextra -Werror' " DIR "/obj"
 
-/* Tampon statique, termine par NUL, ecrase a chaque appel. */
+/* Static buffer, NUL-terminated, overwritten by each call. */
 static const char *read_file(const char *path) {
     static char buf[1 << 16];
     FILE *file = fopen(path, "rb");
@@ -31,8 +31,8 @@ static void write_file(const char *path, const char *text) {
     fclose(file);
 }
 
-/* Rend le code de sortie du script, relu depuis un fichier : le statut brut
- * de system() n'est pas decodable sans <sys/wait.h>, hors C99. */
+/* The exit code of the script, read back from a file: the raw status of
+ * system() cannot be decoded without <sys/wait.h>, outside C99. */
 static int run_guard(const char *sources) {
     char cmd[1024];
     snprintf(cmd, sizeof cmd, GUARD " %s > " OUT " 2>&1; echo $? > " DIR "/code", sources);

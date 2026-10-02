@@ -3,15 +3,16 @@
 #        line_coverage.sh diff <set> <set>
 #        line_coverage.sh contrib <set> [<set>...]
 #        line_coverage.sh gap <reference> <unreachable> <set>
-# Un ensemble : une ligne `fichier:ligne` par ligne source exécutée, triée.
-# cover : l'union des lignes couvertes par les rejeux, un processus par
-#   fichier, chacun depuis l'écran titre. Rend 1, sans rien écrire sur la
-#   sortie, si un fichier manque ou si un rejeu échoue.
-# diff : les lignes du premier ensemble absentes du second (l'écart).
-# contrib : les lignes du premier ensemble qu'aucun des autres ne couvre
-#   (l'apport d'un fichier).
-# gap : les lignes de la référence ni couvertes par l'ensemble ni listées dans
-#   les inatteignables (`fichier:ligne raison`, seul le premier champ compte).
+# A set: one `file:line` line per executed source line, sorted.
+# cover: the union of the lines covered by the replays, one process per
+#   file, each from the title screen. Exit 1, writing nothing on the
+#   standard output, when a file is missing or a replay fails.
+# diff: the lines of the first set missing from the second.
+# contrib: the lines of the first set that none of the others covers (what
+#   one file adds).
+# gap: the lines of the reference neither covered by the set nor listed as
+#   unreachable (`file:line reason`, only the first field counts).
+# Exit 1 on bad arguments or a missing set.
 
 set -u
 
@@ -19,7 +20,7 @@ sorted() {
     LC_ALL=C sort -t: -k1,1 -k2,2n -u
 }
 
-# Les ensembles suivant le premier forment l'union à retirer du premier.
+# The sets after the first make the union removed from the first.
 minus() {
     for set in "$@"; do
         if [ ! -f "$set" ]; then
@@ -56,8 +57,8 @@ cover() {
     fi
 
     abs_objdir=$(cd "$objdir" && pwd) || exit 1
-    # Retire le chemin absolu de l'arbre : chaque rejeu écrit ses .gcda sous
-    # son propre préfixe, rangés comme dans l'arbre.
+    # GCOV_PREFIX_STRIP drops the absolute path of the tree: each replay
+    # writes its `.gcda` files under its own prefix, laid out as in the tree.
     strip=$(printf '%s\n' "$abs_objdir" | awk -F/ '{ print NF - 1 }')
 
     work=$(mktemp -d "${TMPDIR:-/tmp}/line_coverage.XXXXXX")
@@ -105,7 +106,7 @@ cover() {
             cat "$work/gcov.err" >&2
             exit 1
         fi
-        # Les en-têtes système (chemin absolu) ne sont pas du code du port.
+        # System headers (absolute paths) are not code of the game.
         awk -F: '
             $3 == "Source" && $2 + 0 == 0 { src = $4; next }
             {

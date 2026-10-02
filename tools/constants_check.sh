@@ -1,10 +1,11 @@
 #!/bin/sh
-# usage: constants_check.sh <defaillances attendues> <releve> <p8/fixed.c> <repertoire de travail> <source.c>...
-# Rend 0 si les litteraux en ECART de constants_compare.sh sont exactement ceux
-# de la liste (un par ligne, # pour un commentaire), en n'imprimant que les
-# comptes. Rend 1 sinon, ou si le comparateur echoue, ou si la liste nomme un
-# litteral absent des sources ; la table complete part
-# alors sur stderr.
+# usage: constants_check.sh <expected gaps> <reference> <p8/fixed.c> <working directory> <source.c>...
+# Exit 0 when the GAP literals of constants_compare.sh are exactly those of
+# the list (one per line, `#` starts a comment), printing only the summary
+# line of the comparison. Exit 1 otherwise, when the list or the working
+# directory is missing, when the comparator fails, or when the list names a
+# literal absent from the sources; on a verdict, the whole table goes to
+# stderr first.
 
 set -u
 

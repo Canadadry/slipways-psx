@@ -1,7 +1,7 @@
-/* tools/data_residue.sh, le corps de `make data-residue` et du troisieme
- * controle de `make data-guard`, sur un mini-arbre fabrique.
- * Le script lit tests/ : chaque jeton de fixture est coupe en deux litteraux
- * ("pico8_" "value_t"), sinon ce fichier entrerait dans le residu qu'il mesure. */
+/* tools/data_residue.sh, the body of `make data-residue` and of the category
+ * check of `make data-guard`, on a small built tree.
+ * The script reads tests/: each fixture token is split into two literals,
+ * or this file would enter the residue it measures. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -16,7 +16,7 @@
 #define TREE SRC " " TST
 #define EMPTY_FOOTER "residue D: 0 line(s), 0 file(s)\n"
 
-/* Tampon statique, termine par NUL, ecrase a chaque appel. */
+/* Static buffer, NUL-terminated, overwritten by each call. */
 static const char *read_file(const char *path) {
     static char buf[1 << 16];
     FILE *file = fopen(path, "rb");
@@ -34,9 +34,9 @@ static void write_file(const char *path, const char *text) {
     fclose(file);
 }
 
-/* Rend le code de sortie du script, relu depuis un fichier : le statut brut
- * de system() n'est pas decodable sans <sys/wait.h>, hors C99. La sortie
- * standard va dans OUT, l'erreur dans ERR. */
+/* The exit code of the script, read back from a file: the raw status of
+ * system() cannot be decoded without <sys/wait.h>, outside C99. The standard
+ * output goes to OUT, the error to ERR. */
 static int run_residue(const char *args) {
     char cmd[1024];
     snprintf(cmd, sizeof cmd, "sh tools/data_residue.sh %s > " OUT " 2> " ERR "; echo $? > " DIR "/code", args);

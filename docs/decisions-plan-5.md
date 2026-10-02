@@ -1,6 +1,6 @@
 # Registre des décisions humaines du plan 5
 
-**Condition d'entrée de l'étape 5** (`docs/plan-5.md`, §6, entrée 5) : chaque entrée ci-dessous porte un verdict humain. Le registre est ouvert par 4a à partir des notes « Découvert » de 0 à 3l, complété par chaque sous-étape 4x, clos par 4l. Aucune entrée n'est appliquée avant son verdict : l'étape 3 et l'étape 4 ont appliqué tels quels les noms en cause.
+**Condition d'entrée de l'étape 5** (`docs/plan-5.md`, §6, entrée 5) : chaque entrée ci-dessous porte un verdict humain. Le registre est ouvert par 4a à partir des notes « Découvert » de 0 à 3l, complété par chaque sous-étape 4x, clos par 4l4 (section « Clôture (4l4) », en fin de fichier). Aucune entrée n'est appliquée avant son verdict : l'étape 3 et l'étape 4 ont appliqué tels quels les noms en cause.
 
 ## Conventions
 
@@ -85,6 +85,11 @@
 | D-58 | 4l2 | Macro `ATT` de `tests/test_composition_residue.c` | 7 |
 | D-59 | 4b, 4l3 | Faux positifs des compteurs dans le relevé figé `tools/pico8_reference_probe_out.txt` | 8 + 7 |
 | D-60 | 4l3 | `blank` et `screen_texture` du `main` de `src/cmd/screencast_viewer.c` | 2 (+ 2) |
+| D-61 | 4l4 | Exception `LÖVE` du compteur de français (`tools/ttf_to_pixelfont.py`) | 1 |
+| D-62 | 4l4 | Noms au préfixe du cart des fixtures des tests de garde, hors `test_alloc_guard.c` | 8 + 2 + 1 |
+| D-63 | 4l4 | Noms du cart dans les fixtures de `tests/test_data_residue.c` | 23 lignes |
+| D-64 | 4l4 | Marqueur `# TROU-1` de `tools/constants_expected_gaps.txt` | 1 |
+| D-65 | 4l4 | Leçons de la consigne de l'étape 4 à reporter dans le skill `reprendre-les-commentaires` | 1 fichier |
 
 ## Entrées
 
@@ -133,6 +138,7 @@
 - **Proposition prête à appliquer** : (a). Dans `tests/test_alloc_guard.c` seulement : `pico8_allocs` → `allocs`, `pico8_clean` → `clean`, `pico8_gone` → `gone`, `pico8_transient_user` → `transient_user`, `pico8_zone_transitoire` → `transient_zone`, `pico8_malloc_count` → `malloc_count`, `pico8_grow` → `grow`, `pico8_half` → `half`, `pico8_kept` → `kept`, `pico8_use` → `use` ; un `sed` par paire, mot entier ; commit `test:`.
 - **Contrôle** : `make test` vert (`test_alloc_guard` compris) ; `grep -c 'pico8_' tests/test_alloc_guard.c` rend 0.
 - **Portée** : s'applique aussi aux mentions en commentaire du même fichier.
+- **Complément (4l4)** : les commentaires de `tests/test_alloc_guard.c`, réécrits par 4l4, décrivent les fixtures par leur rôle (« the allocating source », « an external zone handle ») ; les fixtures sont intouchées. Remesuré à la fin de 4l4 : 33 sites (`pico8_allocs` 14, `pico8_clean` 6, `pico8_gone` 2, `pico8_transient_user` 3, `pico8_zone_transitoire` 3, les cinq symboles 1 chacun) ; les 3 de moins étaient des mentions en commentaire. D-62 pose la même question pour trois autres tests de garde.
 - **Verdict** :
 
 ### D-5 — Motif générique `void-ptr` (`pico8_X(`)
@@ -187,6 +193,7 @@
 - **Sites** : branche 0 ; `SPEC_EXCLUSION` 2 (définition, emploi) ; témoins de `test_data_residue.c` (3d : 6 lignes).
 - **Proposition prête à appliquer** : (a) — supprimer les lignes 49 et 94 (le `sed` devient sans objet : `grep` direct) ; les témoins restent.
 - **Contrôle** : procédure G ; `make data-guard` vert.
+- **Complément (4l4)** : après 4l4, la branche est toujours à `data_residue.sh:38`, `SPEC_EXCLUSION` défini ligne 49 et lu ligne 94 (en-tête réécrit à hauteur égale). Le commentaire qui le précède dit : « These seven `_default` names are variants with an omitted argument, not class defaults: counting them would make spec impossible to clear. No `\b` in this sed expression: BSD sed does not know it. » (sept noms comptés ; le piège tient pour `sed`, les `grep -E` du script prennent `\b`).
 - **Verdict** :
 
 ### D-10 — Exclusion `usage-mutuel` morte
@@ -209,6 +216,7 @@
 - **Proposition prête à appliquer** : (a). Leurs motifs citent des noms `pico8_*` qu'aucun code ne peut plus porter une fois la garde anti-cart bloquante (étape 5) : elles ne gardent plus rien. Un commit `refactor:` par script.
 - **Contrôle** : procédure G — `--detail` égal à celui d'avant moins les lignes de ces catégories ; `make test` vert.
 - **Complément (4l2)** : `aiguillage-nom` s'appelle `name-dispatch`, `un-ou-faux` `one-or-false`, `nu` est gardé (4l2) ; leurs motifs sont aux lignes 67 (`nu`), 68 (`name-dispatch`) et 69 (`one-or-false`), `NU_EXCLUSION` à la ligne 80, après 4l2 ; dans `COMPOSITION_RESIDUE_GUARD`, les noms neufs. Les six catégories de `tools/data_residue.sh` sont intouchées (4l4).
+- **Complément (4l4)** : `valeur` s'appelle `value`, `par-nom` `by-name` et `liste` `list` (4l4, avec `DATA_RESIDUE_GUARD` et `tests/test_data_residue.c`) ; les six catégories historiques de `tools/data_residue.sh` sont `value` (ligne 29), `ob` (30), `stash` (31), `type-tag` (32), `ref-audit` (33), `list` (40–41), toutes dans `DATA_RESIDUE_GUARD`.
 - **Verdict** :
 
 ### D-12 — Suffixe de constructeur de `--champs`
@@ -248,6 +256,7 @@
 - **Proposition prête à appliquer** : (a), qui aligne la statique de fonction sur la tolérance du §1 sans liste à tenir ; (b) en repli.
 - **Contrôle** : `make scope-count` sans `SUBSTEP` : `total` 0.
 - **Portée** (si (b)) : s'applique aussi aux mentions en commentaire et entre backticks.
+- **Complément (4l4)** : remesuré à la fin de l'étape 4, `scope-count` sans `SUBSTEP` : 12, les mêmes ; inchangé.
 - **Verdict** :
 
 ### D-14 — Ordre des mots des macros de taille de zone
@@ -320,8 +329,8 @@
   Aucun nom proposé n'existe (0 site chacun). `entity_list_list_size` et `entity_list_pointer_list_size` sont la même fonction statique (taille d'une `entity_list_t`, -1 si NULL) sous deux noms : un seul nom neuf.
 - **Proposition prête à appliquer** : (a), procédure N (lignes `ancien nouveau fichier identité` du tableau, une par identité) ; les lignes de `tools/rename_overrides.tsv` sont `name<TAB><ancien><TAB><nouveau>`.
 - **Portée** : s'applique aussi aux mentions entre backticks et en commentaire ; contrôle sur chaque ancien nom.
-- **Complément (4e)** : le libellé `"update_vanishing_update_entities_calls"` de `check_int()` (`tests/test_planet.c`) est le nom de `UPDATE_VANISHING_UPDATE_ENTITIES_CALLS` en minuscules (règle des libellés, consigne point 7) : si (a) est appliquée, il devient `"update_vanishing_calls"` dans le même commit.
-- **Complément (4f2)** : `emitter_init_help_screen_takes_a_particles_help_screen_list` est un nom de cas : la fonction est `case_emitter_init_help_screen_takes_a_particles_help_screen_list` (`tests/test_particle_zone.c`), et la chaîne de `CASES[]` et celle de son `expect_clean` suivent la fonction (règle des noms de cas, consigne point 7) ; sous (a), trois sites d'un coup : la fonction devient `case_emitter_init_help_screen_takes_a_help_list`, ses deux chaînes `"emitter_init_help_screen_takes_a_help_list"` (lignes 330 et 423 à la fin de 4f2), et l'identité de la ligne du tableau ci-dessus est `c:test_particle_zone.c@F@case_emitter_init_help_screen_takes_a_particles_help_screen_list`.
+- **Complément (4e)** : le libellé `"update_vanishing_update_entities_calls"` de `check_int()` (`tests/test_planet.c`) est le nom de `UPDATE_VANISHING_UPDATE_ENTITIES_CALLS` en minuscules (règle des libellés, consigne point 7 ; `git show dd1d875:docs/consigne-etape-4.md`) : si (a) est appliquée, il devient `"update_vanishing_calls"` dans le même commit.
+- **Complément (4f2)** : `emitter_init_help_screen_takes_a_particles_help_screen_list` est un nom de cas : la fonction est `case_emitter_init_help_screen_takes_a_particles_help_screen_list` (`tests/test_particle_zone.c`), et la chaîne de `CASES[]` et celle de son `expect_clean` suivent la fonction (règle des noms de cas, consigne point 7 ; `git show dd1d875:docs/consigne-etape-4.md`) ; sous (a), trois sites d'un coup : la fonction devient `case_emitter_init_help_screen_takes_a_help_list`, ses deux chaînes `"emitter_init_help_screen_takes_a_help_list"` (lignes 330 et 423 à la fin de 4f2), et l'identité de la ligne du tableau ci-dessus est `c:test_particle_zone.c@F@case_emitter_init_help_screen_takes_a_particles_help_screen_list`.
 - **Verdict** :
 
 ### D-18 — Étiquette morte `main_mouse` de `test_main_mouse.c`
@@ -514,6 +523,7 @@
   ```
 
   Contrôle (fait par 4a sur une copie du fichier) : `make french-count SUBSTEP=3a` à `TOTAL done` 0 et `TOTAL later` 0. Les sous-étapes suivantes proposent leurs propres lignes ; celles des outils du dictionnaire ne sont pas comptées (exclus par construction).
+- **Complément (4l4)** : à la fin de l'étape 4, sans `SUBSTEP`, `french-count` `string` 36 = 26 (cette entrée) + 1 (D-55) + 8 (D-59) + 1 (D-61) ; 0 avec les 17 lignes de ces quatre entrées, vérifié sur une copie de `tools/french_exceptions.txt` (`tmp/4l4_s3/fe_copy.txt`).
 - **Verdict** :
 
 ### D-34 — Assertion faible `strstr(log, "exempt")` de `test_class_coverage.c`
@@ -562,6 +572,7 @@
 - **Proposition prête à appliquer** : (a). Contrôle : `make cryptic-locals` sans `SUBSTEP` rend 10 candidats de moins, `make scope-count-test` vert.
 - **Portée** : la règle ne touche que la liste des locales cryptiques ; aucune mention en commentaire ni entre backticks n'est en cause.
 - **Complément (4l3)** : après 4l3, `cryptic-locals` garde les 8 `argc`/`argv` des `main` de `cmd/class_coverage` (58), `cmd/game` (95), `cmd/replay` (94), `cmd/screencast_viewer` (100 ; 102 avant ses commentaires) et les 2 de `tests/test_allocator.c` ; inchangé.
+- **Complément (4l4)** : remesuré à la fin de l'étape 4, sans `SUBSTEP` : les 10 `argc`/`argv` des cinq `main`, avec `blank` et `screen_texture` (D-60), 12 candidats ; inchangé.
 - **Verdict** :
 
 ### D-38 — Statiques de fichier `mem`/`gfx` des tests
@@ -588,7 +599,7 @@
 
 - **Origine** : 4d (commit de chaînes).
 - **Question** : les clés de dispatch des fonctions de dessin `"br"`, `"qr"`, `"rf"`, `"s"` (clés de la table de dispatch du cart, `fn="…"` de ses rangées) et la clé de production `"qh+"` (composé de `"qh"`, renommé `"structure"` par 3a) n'avaient pas de ligne `chaîne` au TSV : 2b ne les avait pas extraites (clés de deux lettres hors du TSV ; composé non apparié par la règle « la chaîne est exactement le nom »). 4d les a traduites (`"draw_bar"`, `"print_outlined"`, `"draw_help_frame"`, `"spr"`, `"structure+"`) selon la règle de propriété des chaînes, mais la garde anti-cart ne verrait pas une telle clé revenir. Faut-il outiller ce contrôle ?
-- **Options** : (a) rien, le contrôle reste humain (règle de tri du point 6 de `docs/consigne-etape-4.md`) ; (b) ajouter à l'étape 5 des lignes `chaîne` par `rename-strings` (outil, test d'abord), pour que la garde les compte ; (c) un relevé ponctuel à l'étape 5 des `fn="…"` de `pico8/lua.lua` contre les clés de `draw_functions_init`.
+- **Options** : (a) rien, le contrôle reste humain (règle de tri du point 6 de la consigne de l'étape 4, amendement de 4d, supprimée par 4l4 : `git show dd1d875:docs/consigne-etape-4.md` ; une chaîne de table se trie par son consommateur, et une clé du cart — clé minifiée ou composé d'une telle clé, qui ne sert qu'à un `strcmp`, une recherche ou un dispatch — se traduit par son écrivain à tous ses sites) ; (b) ajouter à l'étape 5 des lignes `chaîne` par `rename-strings` (outil, test d'abord), pour que la garde les compte ; (c) un relevé ponctuel à l'étape 5 des `fn="…"` de `pico8/lua.lua` contre les clés de `draw_functions_init`.
 - **Sites** : 0 après 4d (`grep -rn '"br"\|"qr"\|"rf"\|"qh+"\|draw_function = "s"\|dispatch_lookup("s")\|register("s"' src tests`).
 - **Proposition prête à appliquer** : (a).
 - **Portée** : aucune mention en commentaire ni entre backticks n'est en cause.
@@ -757,16 +768,18 @@
 - **Proposition prête à appliquer** : (a), la ligne `string<TAB>Makefile<TAB>du` ajoutée à `tools/french_exceptions.txt`. Contrôle, fait par 4l1 sur une copie du fichier (`tmp/4l1_end/french_exceptions_d55.txt`) : `french-count MODULES=Makefile` `string` 7 → 6 ; 0 après 4l2 (`un`, `ou`, `à`, `entité`, `défauts` de `COMPOSITION_RESIDUE_GUARD`) et 4l4 (`par` de `DATA_RESIDUE_GUARD`).
 - **Portée** : aucune mention en commentaire.
 - **Complément (4l2)** : après 4l2, `french-count MODULES=Makefile` rend `string` 2 (`du`, cette entrée ; `par` de `DATA_RESIDUE_GUARD`, 4l4) ; 1 avec la ligne de cette entrée. Les mots de `COMPOSITION_RESIDUE_GUARD` sont partis avec les catégories anglaises.
+- **Complément (4l4)** : `par` est parti avec les catégories anglaises de `DATA_RESIDUE_GUARD` ; après 4l4, `french-count MODULES=Makefile` rend `string` 1 (`du`), 0 avec la ligne de cette entrée. Sans `SUBSTEP`, voir D-33 (36 = 26 + 1 + 8 + 1).
 - **Verdict** :
 
 ### D-56 — Citations `cart`/`lua` irréductibles de la légende du `Makefile`
 
 - **Origine** : 4l1.
 - **Question** : la légende nomme les cibles `cart-names-count`, `cart-citations-test`, `cart-citations` et décrit ce que le relevé cherche (`` `cart` `` hors de `game/cart`, `` `Lua` ``, `` `lua.lua` ``) ; `tools/cart_citations.py` les compte (sa regex prend `-` pour une frontière ; il n'exclut que ses propres fichiers). Que faire de ce reste ?
-- **Options** : (a) l'accepter (le relevé n'est pas une garde du §5) ; (b) que `tools/cart_citations.py` ne compte ni `cart-names-count`/`cart-citations` (noms de cibles) ni la ligne de légende qui le décrit, test d'abord ; (c) renommer les deux cibles (`old-names-count`, …), avec `CLAUDE.md`, le plan, le registre, la consigne et les skills qui les citent.
+- **Options** : (a) l'accepter (le relevé n'est pas une garde du §5) ; (b) que `tools/cart_citations.py` ne compte ni `cart-names-count`/`cart-citations` (noms de cibles) ni la ligne de légende qui le décrit, test d'abord ; (c) renommer les deux cibles (`old-names-count`, …), avec `CLAUDE.md`, le plan, le registre et les skills qui les citent.
 - **Sites** : 6 `cart`, 2 `lua`, mesurés après 4l1 (`Makefile:149` entrée de `cart-names-count`, `:199` `cart-citations-test`, `:201` `cart-citations`, `:203` renvoi à `cart-names-count`, `` `cart` ``, `game/cart` et `` `Lua` ``, `:204` `` `lua.lua` ``).
 - **Proposition prête à appliquer** : (a), rien à appliquer ; contrôle : `make cart-citations MODULES=Makefile` rend exactement 6/2/0.
 - **Portée** : aucune mention ailleurs dans le code (les outils du dictionnaire et `tools/cart_citations.py` sont exclus du relevé).
+- **Complément (4l4)** : remesuré à la fin de l'étape 4, `make cart-citations MODULES=Makefile` rend 6/2/0 (lignes 149, 199, 201, 203, 204) ; inchangé.
 - **Verdict** :
 
 ### D-57 — Noms du cart dans les fixtures de `tests/test_composition_residue.c`
@@ -799,6 +812,7 @@
 - **Sites** : 8 (`french-count`, `string`) + 7 (`cart-citations`, `short`).
 - **Proposition prête à appliquer** : (a). Contrôle, fait par 4l3 sur une copie du fichier d'exceptions (`tmp/4l3_s3/fe_copy.txt`) : `french-count MODULES=tools/pico8_reference_probe_out` 8 → 0 ; `make cart-citations MODULES=tools/pico8_reference_probe_out` rend exactement 0/0/7.
 - **Portée** : aucune mention en commentaire (la sonde, réécrite par 4l3, écrit ses blocs « block A » à « block F »).
+- **Complément (4l4)** : inchangé à la fin de l'étape 4 (8 `string`, 7 `short`) ; sans `SUBSTEP`, voir D-33.
 - **Verdict** :
 
 ### D-60 — `blank` et `screen_texture` du `main` de `src/cmd/screencast_viewer.c`
@@ -810,3 +824,74 @@
 - **Proposition prête à appliquer** : (a), par une règle plutôt qu'une liste ; contrôle : `make cryptic-locals MODULES=cmd/screencast_viewer` rend 2 candidats de moins.
 - **Portée** : aucune mention en commentaire (relevé à la fin de l'état 3 de 4l3).
 - **Verdict** :
+
+### D-61 — Exception `LÖVE` du compteur de français (`tools/ttf_to_pixelfont.py`)
+
+- **Origine** : 4l4 (relevé de fin).
+- **Question** : la docstring (« Bake a TTF/OTF into a LÖVE2D ImageFont sprite sheet »), imprimée par `--help` (`argparse.ArgumentParser(description=__doc__)`), écrit le nom propre du moteur avec son `Ö` ; `french-count` le compte `string`. Que faire de ce reste ?
+- **Options** : (a) la ligne `string<TAB>tools/ttf_to_pixelfont<TAB>LÖVE` dans `tools/french_exceptions.txt` ; (b) écrire « LOVE2D » (le nom change dans l'aide) ; (c) retirer l'outil : aucune cible du `Makefile`, aucun appelant (`git grep ttf_to_pixelfont` : `docs/vocabulaire.md`, `tools/rename_substeps.tsv`, le plan, ce registre), il sort d'un autre jeu (il imprime du Lua pour Love2D).
+- **Sites** : 1.
+- **Proposition prête à appliquer** : (a). Contrôle, fait par 4l4 sur une copie du fichier d'exceptions (`tmp/4l4_s3/fe_copy.txt`) : `french-count MODULES=tools/ttf_to_pixelfont` 1 → 0.
+- **Portée** : aucune mention en commentaire.
+- **Verdict** :
+
+### D-62 — Noms au préfixe du cart des fixtures des tests de garde, hors `test_alloc_guard.c`
+
+- **Origine** : 4l4 (même question que D-4).
+- **Question** : `tests/test_float_guard.c` (`pico8_floating.c`, `pico8_integer.c`, `pico8_another.c` ×3, `pico8_half` ×2, `pico8_third`), `tests/test_constants_check.c` (`pico8_a.c`, `pico8_b.c`) et `tests/test_float_grep.c` (macro `PICO8_HOST_BUILD`, jamais définie) fabriquent des sources aux noms du cart ; hors TSV, aucun compteur ne les voit, aucun motif ne les exige.
+- **Options** : (a) retirer le préfixe ; (b) garder.
+- **Sites** : 8 + 2 + 1 occurrences (7 + 2 + 1 lignes ; `grep -c 'pico8_\|PICO8_'` des trois fichiers à la fin de 4l4).
+- **Proposition prête à appliquer** : (a), un `sed` mot entier par nom, dans les trois fichiers seulement (`pico8_floating` → `floating`, `pico8_integer` → `integer`, `pico8_another` → `another`, `pico8_half` → `half`, `pico8_third` → `third`, `pico8_a` → `a`, `pico8_b` → `b`, `PICO8_HOST_BUILD` → `HOST_BUILD`), commit `test:`, avec D-4.
+- **Contrôle** : `make test` vert ; `grep -c 'pico8_\|PICO8_'` des trois fichiers rend 0.
+- **Portée** : les commentaires des trois fichiers, réécrits par 4l4, ne citent aucun de ces noms (la fixture de `test_float_grep.c` dit « a macro the flags never define »).
+- **Verdict** :
+
+### D-63 — Noms du cart dans les fixtures de `tests/test_data_residue.c`
+
+- **Origine** : 4l4 (même question que D-57).
+- **Question** : les fixtures écrivent des noms au préfixe et aux digrammes du cart (`"pico8_" "value_t"`, `ob_table_t`, `unstash`, `type_tag_t`, `ref_audit`, `mv`, `list_t`, `jo_default`, `jo_truthy`, `g_jo_spec`, `jo_default_fixed`…), coupés en deux littéraux ; presque tous sont exigés par les motifs des catégories historiques (D-9, D-11). Que faire des noms arbitraires ?
+- **Options** : (a) garder tant que ces motifs vivent ; (b) renommer les digrammes arbitraires (`jo` → `planet`) en gardant ce qu'un motif exige ; (c) suivre D-11 et D-9 (les fixtures d'une catégorie retirée partent avec elle).
+- **Sites** : 23 lignes avec `pico8_`/`PICO8_` (`grep -c`, à la fin de 4l4).
+- **Proposition prête à appliquer** : (a), puis (c) aux verdicts de D-9 et D-11.
+- **Contrôle** : `make test` vert.
+- **Portée** : les fixtures seulement ; les commentaires du fichier, réécrits par 4l4, n'en citent aucune.
+- **Verdict** :
+
+### D-64 — Marqueur `# TROU-1` de `tools/constants_expected_gaps.txt`
+
+- **Origine** : 4l4.
+- **Question** : la liste des défaillances attendues de `constants-check` (vide) porte en tête le marqueur `TROU-1` ; l'entrée TROU-1 de `docs/trous-de-portage.md` traite de `sin`/`cos` hors des 64 points relevés et ne mentionne ni `constants-check` ni cette liste (`grep -n -i 'constants\|attendu' docs/trous-de-portage.md` : 0), et `constants-check` compare des littéraux décimaux, pas `sin`/`cos`. Garder le marqueur ?
+- **Options** : (a) garder (et le passer à `GAP-1` à l'étape 5) ; (b) retirer la ligne.
+- **Sites** : 1.
+- **Proposition prête à appliquer** : (b), à l'étape 5, avant le passage `TROU-N` → `GAP-N`.
+- **Contrôle** : `make constants-check` et `make test` verts.
+- **Portée** : aucune autre mention.
+- **Verdict** :
+
+### D-65 — Leçons de la consigne de l'étape 4 à reporter dans le skill `reprendre-les-commentaires`
+
+- **Origine** : 4l4 (suppression de `docs/consigne-etape-4.md`).
+- **Question** : la consigne meurt avec l'étape (son dernier état : `git show dd1d875:docs/consigne-etape-4.md`) ; le skill « sert aussi hors de ce chantier ». Faut-il y reporter les pièges qui ne tiennent pas à ce chantier ?
+- **Options** : (a) rien, git garde la consigne ; (b) reporter dans `consigne-agent.md` du skill quatre pièges généraux, en français : une ligne de commentaire qu'un script imprime (`sed -n '2p' "$0"`) est une chaîne ; un `#` d'ici-document n'est pas un commentaire ; un commentaire glissé dans un programme `awk` entre apostrophes casse le script sans changer les lignes hors commentaire (`sh -n`) ; un fichier dont un outil compare les numéros de ligne (couverture, message d'`assert` imprimé) garde la hauteur de chaque bloc.
+- **Sites** : 1 fichier du skill.
+- **Proposition prête à appliquer** : (b), à l'étape 5 avec la mise à jour des skills (entrée 5, dernière puce).
+- **Contrôle** : relecture humaine.
+- **Verdict** :
+
+## Clôture (4l4)
+
+Le registre est clos par 4l4, dernier morceau de l'étape 4 : **65 entrées**, D-1 à D-65, chacune avec son origine, sa question, ses options, ses sites et une proposition prête à appliquer, et une ligne `Verdict` vide (contrôle, par script : chaque `### D-n` a une ligne `Proposition` ou `propositions`, et une ligne `Verdict` vide — D-28, qui porte une proposition par alerte, a sa ligne « Verdict (un par alerte) », vide). L'étape 5 attend un verdict sur chacune.
+
+**Restes comptés**, sans `SUBSTEP`, sur une extraction fraîche à la fin de 4l4 — la liste exacte, compteur par compteur :
+
+| Compteur | Reste | Entrées |
+|---|---|---|
+| `french-count` | `string` 36 : `tests/test_cart_citations` 18, `tests/test_scope_count` 6, `tools/cart_citations` 1, `tools/scope_count` 1 ; `Makefile` 1 ; `tools/pico8_reference_probe_out` 8 ; `tools/ttf_to_pixelfont` 1 | D-33 (26), D-55 (1), D-59 (8), D-61 (1) |
+| `cart-names-count` | `string` 1 (`tools/frames_ref`) | D-1 |
+| `cart-citations` | `cart` 6, `lua` 2 (`Makefile`) ; `short` 7 (`tools/pico8_reference_probe_out`) | D-56, D-59 |
+| `cryptic-locals` | 12 : `argc`/`argv` de cinq `main` (10), `blank`, `screen_texture` (2) | D-37, D-60 |
+| `scope-count` | 12 statiques locales de tests (`static` 12) | D-13 |
+
+Aucun autre reste. Avec les 17 lignes d'exception de D-33, D-55, D-59 et D-61, `french-count` sans `SUBSTEP` rend 0 (vérifié sur une copie de `tools/french_exceptions.txt`).
+
+**Entrées qu'aucun compteur ne voit** : toutes les autres — D-2 à D-12, D-14 à D-32, D-34 à D-36, D-38 à D-54, D-57, D-58, D-62 à D-65.

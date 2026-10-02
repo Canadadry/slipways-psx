@@ -1,10 +1,10 @@
 #!/bin/sh
-# usage: alloc_guard.sh <liste d'exceptions> <racine des objets> <objet.o>...
-# Compte, par objet, les relocations vers malloc, calloc, realloc et free
-# (aussi sous la forme _malloc de Darwin), et exige l'egalite stricte avec la
-# liste. L'objet <racine>/src/x.o y figure sous src/x.c. Rend 1 sur tout
-# ecart, 2 sans objet : une garde sur rien passerait pour verte. $OBJDUMP
-# remplace objdump.
+# usage: alloc_guard.sh <exception list> <object root> <object.o>...
+# Counts, per object, the relocations to malloc, calloc, realloc and free
+# (also in the Darwin form `_malloc`), and requires strict equality with the
+# list. The object <root>/src/x.o appears there as src/x.c. Exit 1 on any
+# difference, 2 with no object or an unreadable list: a guard over nothing
+# would pass for green. $OBJDUMP replaces objdump.
 
 set -u
 
@@ -30,8 +30,8 @@ trap 'rm -f "$actual" "$report"' EXIT
 for obj in "$@"; do
     src=${obj#"$root"/}
     src=${src%.o}.c
-    # Seules les sections de code et de donnees comptent : les relocations de
-    # .debug_* et .eh_frame ne sont pas des appels.
+    # Only code and data sections count: the relocations of `.debug_*` and
+    # `.eh_frame` are not calls.
     count=$("$objdump" -r "$obj" | awk '
         /^RELOCATION RECORDS FOR/ { skip = ($0 ~ /debug|eh_frame/); next }
         skip || NF < 3 { next }

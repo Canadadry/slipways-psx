@@ -1,5 +1,5 @@
-/* tools/frames_check.sh, la comparaison d'empreintes de `make e2e`, sur des empreintes
- * fabriquees : il se teste par ce qu'il doit empecher. */
+/* tools/frames_check.sh, the hash comparison of `make e2e`, on built hashes:
+ * it is tested by what it must prevent. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -23,7 +23,7 @@
 #define HASH_B "bbbb000000000000000000000000000000000000000000000000000000000002"
 #define HASH_X "ffff00000000000000000000000000000000000000000000000000000000dead"
 
-/* Tampon alloue, termine par NUL : l'appelant le libere. */
+/* Allocated buffer, NUL-terminated: the caller frees it. */
 static char *read_log(void) {
     FILE *file = fopen(LOG, "rb");
     assert(file != NULL);
@@ -66,8 +66,8 @@ static void test_matching_references_pass_and_are_announced(void) {
     free(log);
 }
 
-/* Le premier rejeu divergent n'arrete pas l'examen : le second est
- * rapporte aussi. */
+/* The first diverging replay does not stop the examination: the second is
+ * reported too. */
 static void test_every_divergent_replay_is_named_with_both_hashes(void) {
     reset();
     write_hash(A_REF, HASH_X);
@@ -108,7 +108,7 @@ static void test_missing_reference_is_not_compared_and_says_how_to_set_it(void) 
     free(log);
 }
 
-/* Un rejeu qui n'a rien produit ne passe pas pour juste. */
+/* A replay that produced nothing does not pass for right. */
 static void test_missing_current_hash_fails(void) {
     reset();
     write_hash(A_REF, HASH_A);

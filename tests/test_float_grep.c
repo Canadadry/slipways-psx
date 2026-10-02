@@ -1,6 +1,7 @@
-/* tools/float_grep.sh, le corps de `make float-grep`, sur un mini-src/
- * fabrique : il se teste par ce qu'il doit empecher, un flottant du coeur
- * que le grep du §6.1 laisserait passer, ou un fichier soustrait en silence. */
+/* tools/float_grep.sh, the body of `make float-grep`, on a small built src/:
+ * it is tested by what it must prevent, a floating-point word in a header of
+ * the core that a grep of the sources alone would miss, or a file silently
+ * left out. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -13,7 +14,7 @@
 #define OUT DIR "/out.txt"
 #define GREP "sh tools/float_grep.sh cc '-std=c99 -Wall -Wextra -Werror' " EXCL " " SRC
 
-/* Tampon statique, termine par NUL, ecrase a chaque appel. */
+/* Static buffer, NUL-terminated, overwritten by each call. */
 static const char *read_file(const char *path) {
     static char buf[1 << 16];
     FILE *file = fopen(path, "rb");
@@ -31,8 +32,8 @@ static void write_file(const char *path, const char *text) {
     fclose(file);
 }
 
-/* Rend le code de sortie du script, relu depuis un fichier : le statut brut
- * de system() n'est pas decodable sans <sys/wait.h>, hors C99. */
+/* The exit code of the script, read back from a file: the raw status of
+ * system() cannot be decoded without <sys/wait.h>, outside C99. */
 static int run_grep(const char *sources) {
     char cmd[1024];
     snprintf(cmd, sizeof cmd, GREP " %s > " OUT " 2>&1; echo $? > " DIR "/code", sources);
@@ -40,8 +41,9 @@ static int run_grep(const char *sources) {
     return atoi(read_file(DIR "/code"));
 }
 
-/* Un coeur sans flottant : core.c inclut core.h ; audit.h n'est inclus que
- * sous PICO8_HOST_BUILD, donc hors du coeur, et exclu avec main.c. */
+/* A core without floating point: core.c includes core.h; audit.h is
+ * included only under a macro the flags never define, so it stays out of
+ * the core, excluded with main.c. */
 static void setup(void) {
     assert(system("rm -rf " DIR " && mkdir -p " SRC) == 0);
     write_file(SRC "/core.c",

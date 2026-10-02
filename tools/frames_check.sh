@@ -1,7 +1,8 @@
 #!/bin/sh
-# usage: frames_check.sh [<events> <reference .sha256> <empreinte courante>]...
-# Rend 0 si aucune reference posee ne diverge ; tous les rejeux sont examines
-# avant de conclure.
+# usage: frames_check.sh [<events> <reference .sha256> <current hash>]...
+# Exit 0 when no existing reference diverges and no current hash is
+# missing; an events file without a reference is reported, not compared.
+# Every replay is examined before concluding.
 
 set -u
 

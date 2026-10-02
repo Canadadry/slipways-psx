@@ -1,6 +1,6 @@
-/* tools/constants_compare.sh et tools/constants_check.sh, sur des sources, un
- * releve et une liste de defaillances attendues fabriques, avec le vrai
- * src/p8/fixed.c : ils se testent par ce qu'ils doivent empecher. */
+/* tools/constants_compare.sh and tools/constants_check.sh, on built sources,
+ * reference and expected-gap list, with the real src/p8/fixed.c: they are
+ * tested by what they must prevent. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -20,7 +20,7 @@
 #define COMPARE "sh tools/constants_compare.sh " PROBE " " FIXED " " WORK SRCS
 #define CHECK "sh tools/constants_check.sh " EXPECTED " " PROBE " " FIXED " " WORK SRCS
 
-/* 0.27 : PICO-8 tronque a 0x451e, l'arrondi au plus proche donne 0x451f. */
+/* 0.27: PICO-8 truncates to 0x451e, rounding to nearest gives 0x451f. */
 #define SRC_A_TEXT "x = P8_FIXED_LIT(0x00008000, 0.5); y = P8_FIXED_LIT(0x0000451f, 0.27);\n"
 #define SRC_B_TEXT "z = P8_FIXED_LIT(0x0000451f, 0.27);\n"
 
@@ -32,7 +32,7 @@
     "## b rounding\n" \
     "flr 0xfffe.8000 -> 0xfffe.0000\n"
 
-/* Tampon statique, termine par NUL, ecrase a chaque appel. */
+/* Static buffer, NUL-terminated, overwritten by each call. */
 static const char *read_file(const char *path) {
     static char buf[1 << 16];
     FILE *file = fopen(path, "rb");
@@ -79,7 +79,7 @@ static void test_expected_list_equal_to_gaps_passes(void) {
     assert(strstr(read_file(OUT), "literals 2 | sites 3 | ok 1 | gaps 1\n") != NULL);
 }
 
-/* 0.5 est exact : le lister, c'est une liste perimee. */
+/* 0.5 is exact: listing it makes the list stale. */
 static void test_listed_literal_that_passes_fails_as_stale(void) {
     reset();
     write_file(EXPECTED, "0.27\n0.5\n");
@@ -120,8 +120,8 @@ static void test_missing_block_a_fails(void) {
     assert(strstr(read_file(OUT), "block A") != NULL);
 }
 
-/* Le bloc qui suit A a une ligne de meme forme : lue comme un litteral, elle
- * rendrait 0.27 exact. */
+/* The block after block A has a line of the same shape: read as a literal,
+ * it would make 0.27 exact. */
 static void test_block_after_a_is_not_read_as_literals(void) {
     reset();
     write_file(PROBE, PROBE_TEXT "## c tostr\n0.27 0x0000.451f\n");
@@ -145,7 +145,7 @@ static void test_macro_sites_are_read_from_the_sources(void) {
     assert(strstr(out, "literals 2 | sites 2 | ok 1 | gaps 1\n") != NULL);
 }
 
-/* Un site juste ne couvre pas son frere faux. */
+/* A right site does not cover its wrong sibling. */
 static void test_two_sites_of_one_literal_with_two_values_are_gap(void) {
     reset();
     write_sources("x = P8_FIXED_LIT(0x0000451e, 0.27);\n",

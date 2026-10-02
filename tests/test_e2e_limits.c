@@ -1,5 +1,5 @@
-/* tools/e2e_limits.sh, la garde des nouveaux e2e (fichiers compagnons, 180
- * frames, 600 en exception listee), sur des fichiers d'evenements fabriques. */
+/* tools/e2e_limits.sh, the guard of new e2e files (companion files, 180
+ * frames, 600 for a listed exception), on built events files. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -21,7 +21,7 @@ static void write_file(const char *path, const char *text) {
     fclose(file);
 }
 
-/* Tampon statique, ecrase a chaque appel. */
+/* Static buffer, overwritten by each call. */
 static const char *read_log(void) {
     FILE *file = fopen(LOG, "rb");
     assert(file != NULL);
@@ -32,7 +32,7 @@ static const char *read_log(void) {
     return buf;
 }
 
-/* Un e2e complet : <nom>.json de `frames` frames, <nom>.txt et <nom>.json.sha256. */
+/* A complete e2e: <name>.json of `frames` frames, <name>.txt and <name>.json.sha256. */
 static void write_e2e(const char *name, int frames) {
     char path[256];
     snprintf(path, sizeof path, DIR "/%s.json", name);

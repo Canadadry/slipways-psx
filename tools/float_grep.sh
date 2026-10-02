@@ -1,14 +1,13 @@
 #!/bin/sh
-# usage: float_grep.sh <cc> <cflags> <exclusions> <repertoire> <source.c>...
-# Cherche toute trace de flottant dans le coeur : les sources recues plus les
-# en-tetes que <cc> <cflags> -MM leur trouve. Tout .c/.h de <repertoire> est
-# soit dans ce coeur, soit dans <exclusions> (lignes "<chemin> | <justification>",
-# # en tete de ligne pour un commentaire), jamais les deux, jamais aucun.
-# Rend 1 si une ligne est trouvee, 2 sur partition incoherente, liste
-# d'exclusion invalide, coeur vide ou echec du compilateur : une mesure sur
-# rien passerait pour verte.
-# <cflags> ne doit jamais porter PICO8_FLOAT_* : -MM ferait entrer dans le
-# coeur l'en-tete d'audit, que ce build seul inclut.
+# usage: float_grep.sh <compiler> <cflags> <exclusions> <directory> <source.c>...
+# Looks for any trace of floating point in the core: the given sources plus
+# the headers that `<compiler> <cflags> -MM` finds for them. Every `.c` or `.h`
+# file of <directory> is either in that core or in <exclusions> (lines
+# `<path> | <justification>`, a leading `#` for a comment), never both,
+# never neither. Prints the matching lines, then
+# `float-grep core N excluded K lines M`. Exit 1 when a line is found, 2 on
+# an inconsistent partition, an invalid exclusion list, an empty core or a
+# compiler failure: a measure over nothing would pass for green.
 
 set -u
 
@@ -29,10 +28,10 @@ fail() {
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
-# cflags est volontairement non quote : c'est une liste d'options.
+# cflags is deliberately unquoted: it is a list of options.
 $cc $cflags -MM "$@" > "$work/deps" || fail "$cc -MM failed"
-# Apple clang ajoute aux dependances -MM des fichiers qui ne sont pas du C
-# (SDKSettings.json du SDK) : seuls les .c et .h forment le coeur.
+# Apple clang adds files that are not C to the `-MM` dependencies (the
+# SDKSettings.json of the SDK): only `.c` and `.h` files make the core.
 tr ' \\' '\n\n' < "$work/deps" | grep -v ':$' | grep -E '\.[ch]$' | LC_ALL=C sort -u > "$work/core"
 [ -s "$work/core" ] || fail "empty core"
 
@@ -72,8 +71,7 @@ while IFS= read -r path; do
 done < "$work/neither"
 [ "$errors" -eq 0 ] || exit 2
 
-# L'expression du §6.1 telle quelle, commentaires compris. grep rend 1 quand
-# rien ne correspond : ce n'est pas une erreur ici.
+# Comments included. grep exits 1 when nothing matches: not an error here.
 status=0
 grep -HnE '\b(double|float)\b' $(cat "$work/core") > "$work/found" || status=$?
 [ "$status" -le 1 ] || fail "grep failed"

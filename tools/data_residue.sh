@@ -1,19 +1,19 @@
 #!/bin/sh
-# usage: data_residue.sh [--detail | --check <cat>[,<cat>...]] [dossier...]
-# Compte, dans les .c/.h des dossiers (defaut : src tests, chemins imprimes
-# tels que recus), les lignes de chaque categorie du residu de la phase D,
-# commentaires compris ; une ligne compte dans chaque categorie qu'elle touche.
-#   sans option : "<cat>\t<lignes>\t<fichiers>" par categorie non nulle, puis
-#                 "résidu D : N ligne(s), M fichier(s)" (couples fichier:ligne
-#                 et fichiers distincts) ; code 0 quel que soit le compte.
-#   --detail    : "<cat>\t<fichier>\t<lignes>" par couple non nul, puis le
-#                 meme pied ; code 0.
-#   --check     : "<cat>: <fichier>:<ligne>:<texte>" par occurrence des
-#                 categories nommees, puis "résidu gardé (<cats>) : N ligne(s)" ;
-#                 code 1 si N > 0.
-# Vide (sortie de la phase D) : la seule ligne "résidu D : 0 ligne(s), 0 fichier(s)".
-# Code 2 sur option ou categorie inconnue, dossier absent, aucun .c/.h, echec
-# de grep : une mesure sur rien passerait pour vide.
+# usage: data_residue.sh [--detail | --check <cat>[,<cat>...]] [dir...]
+# Counts, in the `.c` and `.h` files under the directories (default: src
+# tests; paths printed as given), the lines of each category of residue D,
+# comments included; a line counts in every category it matches.
+#   no option : `<cat>\t<lines>\t<files>` per nonzero category, then
+#               `residue D: N line(s), M file(s)` (distinct file:line
+#               couples and distinct files); exit 0 whatever the count.
+#   --detail  : `<cat>\t<file>\t<lines>` per nonzero couple, then the same
+#               footer; exit 0.
+#   --check   : `<cat>: <file>:<line>:<text>` per match of the named
+#               categories, then `guarded residue (<cats>): N line(s)`;
+#               exit 1 when N > 0.
+# A clean tree prints only `residue D: 0 line(s), 0 file(s)`.
+# Exit 2 on an unknown option or category, a missing directory, no `.c` or
+# `.h` file, a grep failure: a measure over nothing would pass for clean.
 
 set -u
 
@@ -43,9 +43,9 @@ pattern() {
     esac
 }
 
-# Ces sept _default sont des variantes a argument omis du cart, pas des defauts
-# de classe : les compter rendrait spec impossible a eteindre. Pas de \b ici,
-# le sed BSD ne le connait pas.
+# These seven `_default` names are variants with an omitted argument, not
+# class defaults: counting them would make spec impossible to clear. No `\b`
+# in this sed expression: BSD sed does not know it.
 SPEC_EXCLUSION='s/(p8_spr|p8_fixed_rnd|hud_select_palette_block|hud_print_outlined|layout_row_draw_at|draw_functions_draw_rows|hud_draw_bar)_default//g'
 
 mode=count
@@ -81,8 +81,8 @@ done
 find "$@" \( -name '*.c' -o -name '*.h' \) -type f | sort > "$work/files"
 [ -s "$work/files" ] || fail "no .c or .h file in: $*"
 
-# Rend dans $work/<cat> les lignes "<fichier>:<ligne>:<texte>", dans l'ordre
-# des fichiers puis des lignes. grep rend 1 quand rien ne correspond.
+# Writes `<file>:<line>:<text>` lines into $work/<cat>, in file then line
+# order. grep exits 1 when nothing matches.
 collect() {
     status=0
     if [ "$1" = spec ]; then

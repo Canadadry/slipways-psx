@@ -1,11 +1,11 @@
 #!/bin/sh
 # usage: e2e_cleanup.sh <name> <frames> <set> [<name> <frames> <set>...]
-# La passe de nettoyage finale : du plus long au plus court (à frames égales,
-# par nom), retire tout fichier dont chaque ligne est couverte par l'union
-# des fichiers restants. Écrit les noms retirés, dans l'ordre du retrait ;
-# ne supprime rien. Un ensemble : une ligne `fichier:ligne` par ligne
-# couverte (line_coverage.sh cover).
-# Au fil de l'eau, un nouveau fichier se juge seul contre ceux déjà là :
+# The final cleanup pass: from the longest to the shortest (equal frames:
+# by name), drops every file whose every line is covered by the union of
+# the remaining files. Prints the dropped names, in the order they are
+# dropped; deletes nothing. A set: one `file:line` line per covered line
+# (line_coverage.sh cover). Exit 1 on bad arguments.
+# Along the way, a new file is judged alone against those already there:
 # line_coverage.sh contrib, make e2e-judge.
 
 set -u
@@ -38,7 +38,7 @@ done
 
 LC_ALL=C sort -k2,2nr -k1,1 "$work/files" > "$work/order"
 
-# covers[l] : combien de fichiers restants couvrent la ligne l.
+# covers[line]: how many remaining files cover that line.
 awk '
     NR == FNR { name[FNR] = $1; set[FNR] = $3; n = FNR; next }
     END {

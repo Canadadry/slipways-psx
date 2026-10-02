@@ -1,6 +1,6 @@
-/* tools/float_link.sh, le corps de `make float-link`, sur des objets
- * fabriques : il se teste par ce qu'il doit empecher, un appel a libm que
- * le lien sans -lm laisserait passer. */
+/* tools/float_link.sh, the body of `make float-link`, on built objects: it
+ * is tested by what it must prevent, a libm call that the link without
+ * `-lm` would let through. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -15,7 +15,7 @@
 #define SINE_O DIR "/sine.o"
 #define LINK "sh tools/float_link.sh cc '-std=c99' " BIN
 
-/* Tampon statique, termine par NUL, ecrase a chaque appel. */
+/* Static buffer, NUL-terminated, overwritten by each call. */
 static const char *read_file(const char *path) {
     static char buf[1 << 16];
     FILE *file = fopen(path, "rb");
@@ -33,8 +33,8 @@ static void write_file(const char *path, const char *text) {
     fclose(file);
 }
 
-/* Rend le code de sortie du script, relu depuis un fichier : le statut brut
- * de system() n'est pas decodable sans <sys/wait.h>, hors C99. */
+/* The exit code of the script, read back from a file: the raw status of
+ * system() cannot be decoded without <sys/wait.h>, outside C99. */
 static int run_link(const char *objects) {
     char cmd[1024];
     snprintf(cmd, sizeof cmd, LINK " %s > " OUT " 2>&1; echo $? > " DIR "/code", objects);

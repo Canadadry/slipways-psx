@@ -1,4 +1,4 @@
-# Questions d'atteinte ouvertes : id<TAB>question<TAB>sites<TAB>sortie attendue.
-# Une ligne sort par une entree TROU et son test, ou par une ligne de
-# tools/line_coverage_unreachable.txt. composition_residue.sh compte les
-# lignes qui ne commencent ni par # ni par un blanc.
+# Open reachability questions: identifier<TAB>question<TAB>sites<TAB>expected way out.
+# A line leaves through a TROU entry and its test, or through a line of
+# tools/line_coverage_unreachable.txt. composition_residue.sh counts the
+# lines that start neither with # nor with a blank.

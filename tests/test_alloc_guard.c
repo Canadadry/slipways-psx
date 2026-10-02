@@ -1,6 +1,6 @@
-/* tools/alloc_guard.sh, le corps de `make alloc-guard`, sur des objets
- * fabriques : il se teste par ce qu'il doit empecher, une allocation libc
- * qui reviendrait dans le coeur sans changer la liste d'exceptions. */
+/* tools/alloc_guard.sh, the body of `make alloc-guard`, on built objects:
+ * it is tested by what it must prevent, a libc allocation coming back into
+ * the core without a change to the exception list. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -16,7 +16,7 @@
 #define TRANSIENT_USER OBJ "/src/pico8_transient_user.o"
 #define GUARD "sh tools/alloc_guard.sh " LIST " " OBJ
 
-/* Tampon statique, termine par NUL, ecrase a chaque appel. */
+/* Static buffer, NUL-terminated, overwritten by each call. */
 static const char *read_file(const char *path) {
     static char buf[1 << 16];
     FILE *file = fopen(path, "rb");
@@ -34,8 +34,8 @@ static void write_file(const char *path, const char *text) {
     fclose(file);
 }
 
-/* Rend le code de sortie du script, relu depuis un fichier : le statut brut
- * de system() n'est pas decodable sans <sys/wait.h>, hors C99. */
+/* The exit code of the script, read back from a file: the raw status of
+ * system() cannot be decoded without <sys/wait.h>, outside C99. */
 static int run_guard_with(const char *env, const char *objects) {
     char cmd[1024];
     snprintf(cmd, sizeof cmd, "%s " GUARD " %s > " OUT " 2>&1; echo $? > " DIR "/code", env, objects);
@@ -47,8 +47,8 @@ static int run_guard(const char *objects) {
     return run_guard_with("", objects);
 }
 
-/* pico8_allocs.c : 3 appels (malloc, realloc, free), plus un commentaire et
- * un identifiant qui contiennent « malloc » sans en etre un appel. */
+/* The allocating source: 3 calls (malloc, realloc, free), plus a comment and
+ * an identifier that contain "malloc" without being a call. */
 static void setup(void) {
     assert(system("rm -rf " DIR " && mkdir -p " DIR "/src " OBJ "/src") == 0);
     write_file(DIR "/src/pico8_allocs.c",
@@ -65,8 +65,8 @@ static void setup(void) {
     assert(system("cc -std=c99 -c -o " CLEAN " " DIR "/src/pico8_clean.c") == 0);
 }
 
-/* pico8_transient_user.c : deux references a l'ancienne poignee
- * pico8_zone_transitoire, dans le code et dans les donnees, sans appel libc. */
+/* Two references to an external zone handle, one in code and one in data,
+ * with no libc call: relocations that are not allocations. */
 static void setup_transient_user(void) {
     setup();
     write_file(DIR "/src/pico8_transient_user.c",
@@ -125,8 +125,8 @@ static void test_no_object_is_an_error_not_a_pass(void) {
     assert(run_guard("") == 2);
 }
 
-/* Le listing de relocations d'un objet Mach-O, simule pour ne pas dependre
- * de la plateforme : les symboles C y portent un `_` en tete. */
+/* The relocation listing of a Mach-O object, faked so as not to depend on
+ * the platform: C symbols carry a leading `_` there. */
 static void test_darwin_underscore_symbols_are_counted(void) {
     setup();
     write_file(DIR "/objdump",

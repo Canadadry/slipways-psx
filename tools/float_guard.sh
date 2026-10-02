@@ -1,10 +1,10 @@
 #!/bin/sh
-# usage: float_guard.sh <cc> <cflags> <repertoire jetable> <source.c>...
-# Ecrit le rapport sur la sortie standard. Rend 1 si un fichier echoue sous
-# -mgeneral-regs-only, 2 sans source : une garde sur rien passerait pour verte.
-# Les objets ne sont jamais lies : sur x86_64, leurs arguments double passent
-# sur la pile, ABI incoherente avec le reste. Le diagnostic de chaque fichier
-# reste dans <repertoire>/<fichier>.err.
+# usage: float_guard.sh <compiler> <cflags> <scratch directory> <source.c>...
+# Writes the report on the standard output. Exit 1 when a file fails under
+# `-mgeneral-regs-only`, 2 with no source: a guard over nothing would pass
+# for green. The objects are never linked: on x86_64, their double
+# arguments go on the stack, an ABI inconsistent with the rest. The
+# diagnostic of each file stays in <directory>/<file>.err.
 
 set -u
 
@@ -23,7 +23,7 @@ failed=$work/failed.txt
 : > "$failed"
 for src in "$@"; do
     base=$work/$(echo "$src" | tr '/' '_')
-    # cflags est volontairement non quote : c'est une liste d'options.
+    # cflags is deliberately unquoted: it is a list of options.
     if ! $cc $cflags -mgeneral-regs-only -c -o "$base.o" "$src" 2> "$base.err"; then
         echo "$src" >> "$failed"
     fi

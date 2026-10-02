@@ -1,9 +1,10 @@
 #!/bin/sh
 # usage: e2e_limits.sh <exceptions> [<events>...]
-# Rend 1 si un e2e n'a pas son <nom>.txt ou son <nom>.json.sha256, ou dépasse
-# 180 frames ; 600 s'il est listé dans <exceptions> (`<events> raison`, seul le
-# premier champ compte). Tous les fichiers sont examinés avant de conclure.
-# Une frame du fichier est une frame de jeu : on compte les "mouse_x".
+# Exit 1 when the exception list is missing, or when an e2e is missing,
+# lacks its <name>.txt or its <name>.json.sha256, or runs past 180 frames
+# (600 when it is listed in <exceptions>, as `<events> reason`: only the
+# first field counts). Every file is examined before concluding.
+# A frame of the file is a game frame: the "mouse_x" keys are counted.
 
 set -u
 
