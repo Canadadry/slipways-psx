@@ -60,11 +60,11 @@ void structure_init_instance(planet_t *self, const entity_class_t *cls, const pl
 static planet_t *structure_create(const planet_keys_t *keys) {
     planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
-    assert(g_family_up && "pico8_planet_family_init() must run first");
+    assert(g_family_up && "planet_family_init() must run first");
     structure_init_instance(self, &g_structure_class, &structure_archetype);
     if (keys != NULL) {
         assert(keys->map_pos == NULL && keys->pos == NULL &&
-               "qh: the only construction key is id (ie:ldown); another key has no member "
+               "structure_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
                "-- stop, do not add one");
         if (keys->planet_id != NULL) {
             self->planet_id = keys->planet_id;
@@ -84,7 +84,7 @@ void trading_hub_update_settled(planet_t *self, p8_fixed_t t) {
     }
     planet_bob((entity_t *)self, t);
 
-    assert(self->has_development_tier && "nl:ly reads self.mi unguarded, unlike hj:kj");
+    assert(self->has_development_tier && "trading_hub_update_settled: a settled trading hub has a development tier; only ascension_draw checks for none");
     if (self->has_development_tier && self->development_tier >= p8_fixed_from_int(2)) {
         self->palette_block =
             p8_fixed_add(p8_fixed_from_int(8),
@@ -121,12 +121,12 @@ static const entity_class_t g_trading_hub_class = {
 static planet_t *trading_hub_create(const planet_keys_t *keys) {
     planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
-    assert(g_family_up && "pico8_planet_family_init() must run first");
+    assert(g_family_up && "planet_family_init() must run first");
     structure_init_instance(self, &g_trading_hub_class, &trading_hub_archetype);
     self->palette_block = self->archetype->palette_block;
     if (keys != NULL) {
         assert(keys->map_pos == NULL && keys->pos == NULL &&
-               "nl: the only construction key is id (ie:ldown); another key has no member "
+               "trading_hub_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
                "-- stop, do not add one");
         if (keys->planet_id != NULL) {
             self->planet_id = keys->planet_id;
@@ -165,11 +165,11 @@ static const entity_class_t g_processor_class = {
 static planet_t *processor_create(const planet_keys_t *keys) {
     planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
-    assert(g_family_up && "pico8_planet_family_init() must run first");
+    assert(g_family_up && "planet_family_init() must run first");
     structure_init_instance(self, &g_processor_class, &processor_archetype);
     if (keys != NULL) {
         assert(keys->map_pos == NULL && keys->pos == NULL &&
-               "os: the only construction key is id (ie:ldown); another key has no member "
+               "processor_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
                "-- stop, do not add one");
         if (keys->planet_id != NULL) {
             self->planet_id = keys->planet_id;
@@ -246,11 +246,11 @@ void ascension_init_instance(planet_t *self, const entity_class_t *cls, const pl
 static planet_t *ascension_create(const planet_keys_t *keys) {
     planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
-    assert(g_family_up && "pico8_planet_family_init() must run first");
+    assert(g_family_up && "planet_family_init() must run first");
     ascension_init_instance(self, &g_ascension_class, &ascension_archetype);
     if (keys != NULL) {
         assert(keys->map_pos == NULL && keys->pos == NULL &&
-               "hj: the only construction key is id (ie:ldown); another key has no member "
+               "ascension_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
                "-- stop, do not add one");
         if (keys->planet_id != NULL) {
             self->planet_id = keys->planet_id;
@@ -315,7 +315,7 @@ static const entity_class_t g_protostar_class = {
 static planet_t *protostar_create(const planet_keys_t *keys) {
     planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
-    assert(g_family_up && "pico8_planet_family_init() must run first");
+    assert(g_family_up && "planet_family_init() must run first");
     ascension_init_instance(self, &g_protostar_class, &protostar_archetype);
     if (keys != NULL) {
         if (keys->map_pos != NULL) {
@@ -349,7 +349,7 @@ void burst_construct(planet_t *self) {
 
     if (main_camera() != NULL) {
         mo = main_camera_typed();
-        assert(mo != NULL && "mo: the placeholder has no writer; a write before jl() stops the run");
+        assert(mo != NULL && "burst_construct: the camera placeholder has no shake; a burst before reset_world() stops the run");
         mo->shake = p8_fixed_from_int(3);
     }
 }
@@ -471,7 +471,7 @@ static planet_t *burst_create(const burst_keys_t *keys) {
     const allocator_t *slot = particle_burst_slot_take();
     planet_t *self = (planet_t *)allocator_alloc(slot, sizeof *self);
 
-    assert(g_family_up && "pico8_planet_family_init() must run first");
+    assert(g_family_up && "planet_family_init() must run first");
     planet_init_instance(self, &g_burst_class, &burst_archetype);
     self->header.emitter = &self->emitter_own;
     self->emitter = &self->emitter_own;
@@ -496,7 +496,7 @@ static planet_t *burst_create(const burst_keys_t *keys) {
         if (keys->pos_copy != NULL) {
             vec_t *ra = (vec_t *)allocator_alloc(slot, sizeof *ra);
 
-            assert(keys->planet.pos == NULL && "ga: a burst borrows its ra or copies it, not both");
+            assert(keys->planet.pos == NULL && "burst_create: a burst borrows its position or copies it, not both");
             *ra = *keys->pos_copy;
             self->pos = ra;
         }
@@ -524,7 +524,7 @@ static planet_t *burst_create(const burst_keys_t *keys) {
 }
 
 void planet_family_init(void) {
-    assert(planet_ready() && "pico8_jo_init() must run first");
+    assert(planet_ready() && "planet_init() must run first");
     planet_family_shutdown();
     draw_functions_init();
     g_family_up = 1;

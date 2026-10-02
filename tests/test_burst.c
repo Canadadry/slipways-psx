@@ -128,7 +128,7 @@ static uint32_t fold_vec(uint32_t h, const vec_t *p) {
 }
 
 static uint32_t fold_ref_member(uint32_t h, const void *ref) {
-    assert(ref == NULL && "no test folds a set ref: to fold one, fold 1 then its rank in hv (0x4E, rank), or outside hv 0xEEEE then the frozen struct tag 0x9E5C57C7, as the frozen hashes did");
+    assert(ref == NULL && "fold_ref_member: no test folds a set ref: to fold one, fold 1 then its rank in the live entities (0x4E, rank), or outside them 0xEEEE then the frozen struct tag 0x9E5C57C7, as the frozen hashes did");
     return fold_absent(h);
 }
 
@@ -463,7 +463,7 @@ static uint32_t fold_tuple(uint32_t h, const data_row_t *t) {
         } else if (item->is_false) {
             h = fold_bool(h, 0);
         } else {
-            assert(!item->is_ref && "no test folds a tuple item that points: to fold one, fold 0xDEAD if NULL, else 0xEEEE then 0, as the frozen hashes did");
+            assert(!item->is_ref && "fold_tuple: no test folds a tuple item that points: to fold one, fold 0xDEAD if NULL, else 0xEEEE then 0, as the frozen hashes did");
             h = fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->number));
         }
     }
@@ -518,7 +518,7 @@ static uint32_t fold_layout_row(uint32_t h, void *e) {
         h = fold_fixed(fnv_str(h, "score"), lq->score);
         n++;
     }
-    assert(lq->pos == NULL && "no test folds an lq whose ra is set: to fold one, fold the key \"ra\", then 0xEEEE then 0, count it in n, as the frozen hashes did");
+    assert(lq->pos == NULL && "fold_layout_row: no test folds a layout row whose pos is set: to fold one, fold the key \"pos\", then 0xEEEE then 0, count it with the other keys, as the frozen hashes did");
     /* As fold_ref folded the tagged list `fs` was: never in `hv`, so the tag branch. */
     h = fnv(fnv(fnv_str(h, "placed_items"), 0xEEEEu), FROZEN_LIST_TAG);
     h = fold_fixed(fnv_str(h, "width"), lq->width);
@@ -644,9 +644,9 @@ static void test_burst(void) {
         frames++;
         assert(frames < 600);
     }
-    check_int("burst frames", frames, BURST_FRAMES);
+    check_int("burst_frames", frames, BURST_FRAMES);
     cart_flush_exit_queue();
-    check_int("burst places after the burst", particle_zone_live(PARTICLE_SLOT_BURST), 0);
+    check_int("burst slots after the burst", particle_zone_live(PARTICLE_SLOT_BURST), 0);
 }
 
 /* `ei` moves a particle of `qy` in place: `p` by the old `v`, `v` turned
@@ -791,7 +791,7 @@ static void test_the_largest_bursts_fit_their_slot(void) {
     (void)harvest(40, 40, "s84");
     (void)spawn(80, 70, "s83", NULL);
     assert(held_now().burst == before.burst + 2);
-    printf("burst place: %lu bytes at most\n", (unsigned long)particle_zone_max_bytes(PARTICLE_SLOT_BURST));
+    printf("burst slot: %lu bytes at most\n", (unsigned long)particle_zone_max_bytes(PARTICLE_SLOT_BURST));
 }
 
 /* A burst can be hovered, so a dragged slipway can end on it; the flush

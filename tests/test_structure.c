@@ -156,7 +156,7 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
         return fnv(fnv(h, 0x4Eu), (uint32_t)entity_list_rank_in(live_entities(), ref));
     }
     /* The frozen hashes folded the INSTANCE tag the throwaway had. */
-    assert(is_targeting_track_target(ref) && "no test folds an entity outside hv that is not the throwaway target: to fold one, fold 0xEEEE then the frozen struct tag 0x9E5C57C7, as test_pico8_fr.c does");
+    assert(is_targeting_track_target(ref) && "fold_ref: no test folds an entity outside the live entities that is not the throwaway target: to fold one, fold 0xEEEE then the frozen struct tag 0x9E5C57C7, as test_infraspace_gate.c does");
     return fnv(fnv(h, 0xEEEEu), FROZEN_INSTANCE_TAG);
 }
 
