@@ -1,7 +1,7 @@
-/* The planet `jo`, read on its struct members and its generated defaults
- * (pico8_game_data.h), and driven through the real `bw`/`dg`/`dc`/`mv`. Its
- * daughters are read the same way. Games are built directly: no events
- * file. */
+/* The planet, read on its struct members and its generated defaults
+ * (game/game_data.h), and driven through the real galaxy_populate,
+ * update_entities and draw_layers. Its subclasses are read the same way.
+ * Games are built directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -158,8 +158,9 @@ static void check_int(const char *label, int got, int want) {
     assert(got == want);
 }
 
-/* Un _init sur l'ecran titre, sans frame : l'aide d'avant rend sa place
- * qy_fv, unique, avant que la nouvelle la prenne. */
+/* A cart_init on the title screen, without a frame: the previous help
+ * screen gives back its help particle list slot, the only one, before the
+ * new help screen takes it. */
 static void leave_help_screen(void) {
     const entity_list_t *hv = live_entities();
     for (int i = 0; i < hv->count; i++) {
@@ -178,8 +179,8 @@ static void start_title(void) {
     cart_init();
 }
 
-/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
- * reads as difficulty 0. */
+/* A game started by cart_start_game with no difficulty picked: a NULL
+ * difficulty reads as difficulty 0. */
 static void start_game(void) {
     start_title();
     cart_start_game(NULL);
@@ -196,8 +197,9 @@ static const entity_class_t *class_of(const void *e) {
     return ((const entity_t *)e)->class;
 }
 
-/* jo's own members: `hd`, `kj`, `ldown`, `hb`, `gv`, `hk`, `kf`, `cn` and
- * the state `ll`; no other. */
+/* The planet class's own members: hit_test, draw, left_press, refresh,
+ * accept_drop, new_year, attach_slipway, offer_trade and the vanishing
+ * state; no other. */
 static void assert_planet_members(const entity_class_t *c) {
     const entity_class_t *jo = planet_class();
 
@@ -212,9 +214,9 @@ static void assert_planet_members(const entity_class_t *c) {
            c->states[ENTITY_STATE_UNFOLDING] == NULL);
 }
 
-/* A bare planet as `jo(...)` and `jo:pq` left it: the scalars, which of
- * its 31 members are set, its methods, which default tables it shares
- * with the class, and where `lt` registered it. */
+/* A bare planet as planet_new and planet_construct left it: the scalars,
+ * which of its 31 members are set, its methods, which default tables it
+ * shares with the class, and where entity_register registered it. */
 static uint32_t fold_planet(uint32_t hash, const void *entity) {
     const planet_t *planet = as_planet(entity);
     size_t index;
@@ -230,9 +232,9 @@ static uint32_t fold_planet(uint32_t hash, const void *entity) {
     hash = fold_vec(hash, planet->map_pos);
     hash = fold_vec(hash, planet->pos);
     hash = fold_vec(hash, &planet->archetype->row_step);
-    /* The 1s of `hf`, `hs`, `fa`, `ma` and `ca`: constant by the struct's
-     * shape, kept so that GALAXY_HASH and NEW_PLANET_HASH still prove the
-     * typed reads. */
+    /* The 1s of is_planet, trade_multiplier, layer, shake and back_color:
+     * constant by the struct's shape, kept so that GALAXY_HASH and
+     * NEW_PLANET_HASH still prove the typed reads. */
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
@@ -278,7 +280,7 @@ static uint32_t fold_planet(uint32_t hash, const void *entity) {
     return hash;
 }
 
-/* After `eu`: the 90 planets `bw` built. */
+/* After cart_start_game: the 90 planets galaxy_populate built. */
 static void test_galaxy(void) {
     uint32_t h = 2166136261u;
     const entity_list_t *jo;
@@ -358,8 +360,9 @@ static int daughter_of(const void *e) {
     return -1;
 }
 
-/* What a daughter inherits from `jo`: `ca`, `gq`, the `em` table itself,
- * and `jo`'s `gg` and `hd` called on it. */
+/* What a subclass inherits from the planet: back_color, row_step, the
+ * spacer row itself, and planet_is_colonized and the planet's hit_test
+ * called on it. */
 static uint32_t fold_daughter(uint32_t h, void *d) {
     const planet_t *jo = as_planet(d);
     vec_t ra;
@@ -375,8 +378,8 @@ static uint32_t fold_daughter(uint32_t h, void *d) {
     return fold_bool(h, class_of(d)->hit_test(d, vec_ref(ra), vec_ref(ra)));
 }
 
-/* The shop's `ie:ldown` on the icon of `kind`, as the player buys it, then
- * dragged by `hq` to the middle of the screen. */
+/* The shop's structure_icon_left_press on the icon of `kind`, as the
+ * player buys it, then dragged to the middle of the screen. */
 static void *bought(const entity_kind_t *kind) {
     const entity_list_t *hb = entities_by_message("refresh");
     const camera_t *mo = main_camera_typed();
@@ -399,7 +402,7 @@ static void *bought(const entity_kind_t *kind) {
     return NULL;
 }
 
-/* The project of `gb` whose `cw` names `cw`. */
+/* The research project whose class_name is the given one. */
 static research_project_t *class_name_project(const char *cw) {
     int k;
 
@@ -412,8 +415,8 @@ static research_project_t *class_name_project(const char *cw) {
     }
 }
 
-/* A generated planet turned by `jo:hu` into the daughter `cw` names: the
- * newest entity of `hv`. */
+/* A generated planet turned by planet_apply_project into the subclass the
+ * class name names: the newest live entity. */
 static void *turned(int planet, const char *cw) {
     void *p = entities_by_tag("planet")->items[planet];
 
@@ -422,8 +425,8 @@ static void *turned(int planet, const char *cw) {
     return live_entities()->items[live_entities()->count - 1];
 }
 
-/* Each daughter by the road a game takes to it: the seven of the shop
- * bought from their icons, `pm` and `ga` turned from planets by the
+/* Each subclass by the road a game takes to it: the seven of the shop
+ * bought from their icons, protostar and burst turned from planets by the
  * collapse and harvest projects. */
 static void test_daughters(void) {
     static const struct {
@@ -469,8 +472,8 @@ static void test_new_planet(void) {
     check("new_planet", h, NEW_PLANET_HASH);
 }
 
-/* cg answers NULL for a tag that no entity has carried since
- * pico8_entity_init(), known or not, and keeps a list once emptied. */
+/* entities_by_tag answers NULL for a tag that no entity has carried since
+ * entity_registry_init(), known or not, and keeps a list once emptied. */
 static void test_entities_by_tag_null_until_seen(void) {
     void *a;
 
@@ -486,8 +489,9 @@ static void test_entities_by_tag_null_until_seen(void) {
     assert(entities_by_tag("planet") == NULL);
 }
 
-/* `dg` calls `qc[qc.me]`: a planet whose `me` is "ll" runs `jo:ll` until
- * its `t` passes 60, then leaves `hv`. */
+/* update_entities dispatches by state: a "vanishing" planet runs
+ * planet_update_vanishing until its state time passes 60, then leaves the
+ * live entities. */
 static void test_update_vanishing(void) {
     planet_t *a;
     int calls = 0;
@@ -506,9 +510,9 @@ static void test_update_vanishing(void) {
     check_int("update_vanishing_update_entities_calls", calls, UPDATE_VANISHING_UPDATE_ENTITIES_CALLS);
 }
 
-/* `kw` of a planet that never ran `lz` is the class's shared one: an
- * in-place write to it is seen by every such planet and by the class, until
- * the next pico8_jo_init() puts it back to `{mu=0}`. */
+/* The production of a planet that never ran planet_install_project is the
+ * class's shared one: an in-place write to it is seen by every such planet
+ * and by the class, until the next planet_init() puts it back to zero. */
 static void test_production_shared(void) {
     planet_t *a;
     planet_t *b;
@@ -549,9 +553,9 @@ static void test_production_shared(void) {
     assert(!kw->has_resource && kw->amount == p8_fixed_from_int(0));
 }
 
-/* `jo:hh` takes `df.ll` itself on a roll of `jo.ir()` under 0.45, and its
- * `me` for the planet's state; any other draw is a `jo.oc()` entry, and
- * `known`. */
+/* planet_roll_type takes the "vanishing" planet type itself on a vanish
+ * roll under 0.45, and its state for the planet's; any other draw is a
+ * weighted picker entry, and "known". */
 static void test_roll_type_takes_vanishing(void) {
     char id[8];
     int took_vanishing = 0;
@@ -576,8 +580,8 @@ static int is_a_planet_struct(const void *e) {
            ((const entity_t *)e)->class == planet_class();
 }
 
-/* Built by `bw` or pico8_jo_new, a `jo` is a struct whose descriptor holds
- * jo's 11 dispatchers, and its class installs none of them, nor a `pq`. */
+/* Built by galaxy_populate or planet_new, a planet is a struct whose class
+ * holds the planet's methods, and no other. */
 static void test_planet_is_a_struct(void) {
     const entity_list_t *jo;
     void *a;
@@ -612,8 +616,9 @@ static int row_slots(void) {
     return ui_zone_live(SLOT_KIND_ROW);
 }
 
-/* A galaxy planet given a `kw` of its own with a `qe`, as `lz` and `bb`
- * would: `jo:hb` then gives it a row. */
+/* A galaxy planet given a production of its own with a resource, as
+ * planet_install_project and update_tiers_visit would: planet_refresh then
+ * gives it a row. */
 static planet_t *planet_with_a_row(void) {
     planet_t *a = (planet_t *)entities_by_tag("planet")->items[0];
 
@@ -624,9 +629,9 @@ static planet_t *planet_with_a_row(void) {
     return a;
 }
 
-/* `jo:hb` rebuilds the planet's row in a place of its own and gives the
- * replaced one back on the spot; once the planet leaves `hv`, emptying the
- * exit queue gives its row's place back. */
+/* planet_refresh rebuilds the planet's row in a slot of its own and gives
+ * the replaced one back on the spot; once the planet leaves the live
+ * entities, emptying the exit queue gives its row's slot back. */
 static void test_refresh_row_slot(void) {
     planet_t *a;
     int once;
@@ -648,7 +653,8 @@ static void test_refresh_row_slot(void) {
     assert(row_slots() == once - 1 && a->layout_row == NULL);
 }
 
-/* A planet whose `kw` has no `qe` gets no row from `jo.ex`, and no place. */
+/* A planet whose production has no resource gets no row from
+ * research_display_planet_resource_row, and no slot. */
 static void test_refresh_without_resource_takes_no_slot(void) {
     planet_t *a;
     int before;
@@ -661,8 +667,8 @@ static void test_refresh_without_resource_takes_no_slot(void) {
     assert(a->layout_row == NULL && row_slots() == before);
 }
 
-/* `jl()` hands every planet to the exit queue: a title after a game whose
- * planets all built a row holds as many row places as before. */
+/* reset_world() hands every planet to the exit queue: a title after a game
+ * whose planets all built a row holds as many row slots as before. */
 static void test_rows_given_back_after_restart(void) {
     const entity_list_t *jo;
     int title;
@@ -684,7 +690,7 @@ static void test_rows_given_back_after_restart(void) {
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked
- * right after pico8_cart_load(), as a fresh process would start it. */
+ * right after cart_load(), as a fresh process would start it. */
 static pid_t spawn(void (*test)(void)) {
     pid_t child;
 

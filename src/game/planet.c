@@ -20,15 +20,15 @@ static int g_planet_up = 0;
 static weighted_picker_t *g_type_picker = NULL;
 static random_walk_t *g_planet_vanish_roll = NULL;
 
-/* Shared by every bare planet: written in place by `bb` and `mx:kf` until
- * `lz` gives the planet its own. */
+/* Shared by every bare planet: written in place by update_tiers_visit and
+ * synthesizer_attach_slipway until planet_install_project gives it its own. */
 static production_t g_planet_production_shared;
 
-/* Nom des arenes de prise : son adresse les reconnait (pico8_jo_prise_arene_rendue). */
+/* Grab arenas are recognised by the address of this name (planet_grab_arena_arena_released). */
 static const char g_planet_name_grab_arena[] = "grab";
 #define GRAB_ARENAS_FREE_MAX 8
 
-/* Non NULL seulement entre pico8_jo_prise_ouvrir et _fermer. */
+/* Non-NULL only between planet_grab_arena_open and planet_grab_arena_close. */
 static const allocator_t *g_planet_grab_arena = NULL;
 static const allocator_t *g_planet_grab_arenas_free[GRAB_ARENAS_FREE_MAX];
 static int g_planet_grab_arenas_free_n = 0;
@@ -263,7 +263,7 @@ void planet_construct_in(planet_t *self, const allocator_t *zone) {
     }
 }
 
-/* `mw(i)`: a copy of the want, never shared with `hp.i`. */
+/* A copy of each need, never shared with the project's inputs. */
 static int planet_install_project_copy_step(void *e, void *ctx, void **out) {
     if (e != NULL) {
         need_t *copy = (need_t *)allocator_alloc((const allocator_t *)ctx, sizeof *copy);
@@ -339,9 +339,9 @@ void planet_roll_type(planet_t *self) {
         p8_fixed_t roll = random_walk_next(g_planet_vanish_roll);
         int use_vanishing = 0;
 
-        /* `jo.ir()<0.45 and df.ll or jo.oc()`: a falsy `df.ll` falls through
-         * to `jo.oc()` even on a winning roll -- both conditions, never the
-         * roll alone. */
+        /* A winning roll (below 0.45) without a "vanishing" planet type falls
+         * through to the weighted picker -- both conditions, never the roll
+         * alone. */
         if (roll < P8_FIXED_LIT(0x00007333, 0.45)) {
             use_vanishing = planet_types_lookup("vanishing") != NULL;
         }
@@ -380,8 +380,8 @@ void planet_new_year(const planet_t *self) {
 
         keys.pos = self->pos;
         text = collect_format_signed(frame_zone(), self->net_income, 10, "$", &color);
-        /* `ne()` is the last expression of the Lua constructor, so both of its
-         * return values land as positional entries 1 and 2, not named fields. */
+        /* One call gives both toast keys: the signed text and its color
+         * (10 for a gain, 8 for a loss). */
         keys.text = text;
         keys.color = p8_fixed_from_int(color);
         toast_new(&keys);

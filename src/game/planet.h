@@ -12,19 +12,21 @@
 #include "game/research.h"
 #include "engine/entity_class.h"
 
-/* Throughout this module a NULL instance argument is a safe no-op (Lua nil
- * for the value-returning functions), and an absent or wrong-kind field
+/* Throughout this module a NULL instance argument is a safe no-op (NULL or
+ * 0 for the value-returning functions), and an absent or wrong-kind field
  * reads as absent rather than crashing. */
 
-/* A planet of any of the ten kinds, which differ only by class table and
- * archetype: its archetype (`kw` points at the one kw every bare planet
- * shares, written in place by `bb` and `mx:kf`, until `lz` points it at the
- * planet's own `kw_own`), its construction keys `id`/`p`/`ra`, then every
- * field jo's functions write on it, then its kinds' fields. A kind's field is
- * indeterminate on a planet of another kind; `probe`, `emitter` are NULL
- * there, else they point at `probe_own`, `emitter_own`: never copy the
- * struct. The struct lives in its game generation (a burst's in its
- * particle place) and goes back with it. */
+/* A planet of any of the ten kinds of the planet lineage, which differ only
+ * by class and archetype: its archetype (`production` points at the one
+ * production every bare planet shares, written in place by
+ * update_tiers_visit and synthesizer_attach_slipway, until
+ * planet_install_project points it at the planet's own `production_own`),
+ * its construction keys `planet_id`/`map_pos`/`pos`, then every field the
+ * planet functions write on it, then its kinds' fields. A kind's field is
+ * indeterminate on a planet of another kind; `targeting`, `emitter` are
+ * NULL there, else they point at `probe_own`, `emitter_own`: never copy the
+ * struct. The struct lives in the game zone (a burst's in its particle
+ * slot) and goes back with it. */
 typedef struct {
     entity_t header;
     const planet_archetype_t *archetype;
@@ -40,7 +42,7 @@ typedef struct {
     const planet_types_entry_t *planet_type;
     p8_fixed_t fold_anchor;
     layout_row_t *layout_row;
-    const allocator_t *layout_row_slot; /* where `lq` lives; NULL when `lq` is */
+    const allocator_t *layout_row_slot; /* where the layout row lives; NULL when it is */
     entity_t *targeted_by;
     p8_fixed_t production_bonus;
     int has_production_bonus;
@@ -53,95 +55,98 @@ typedef struct {
     int has_development_tier;
     int is_hovered;
     production_t production_own;
-    p8_fixed_t sprite;           /* qh's lineage */
-    p8_fixed_t palette_block;          /* nl */
-    p8_fixed_t acceleration_factor, speed;      /* ga */
-    const int_seq_t *synthesizable_resources; /* mx */
-    targeting_t *targeting;      /* qh's lineage */
-    emitter_t *emitter;  /* hj, pm, mx, ga */
+    p8_fixed_t sprite;           /* structure lineage */
+    p8_fixed_t palette_block;          /* trading hub */
+    p8_fixed_t acceleration_factor, speed;      /* burst */
+    const int_seq_t *synthesizable_resources; /* synthesizer */
+    targeting_t *targeting;      /* structure lineage */
+    emitter_t *emitter;  /* ascension, protostar, synthesizer, burst */
     targeting_t probe_own;
     emitter_t emitter_own;
 } planet_t;
 
 /* TROU-8 */
-/* Calls `pico8_pi_init()` first. */
+/* Calls draw_functions_init(). */
 void planet_init(void);
 
-/* Sets the `oc`/`ir` generators back to nil without reading them: their
- * zone may already be reset. Frees no `jo` instance. Idempotent, and safe
- * before the first `pico8_jo_init()`. */
+/* Sets the type picker and the vanish roll back to NULL without reading
+ * them: their zone may already be reset. Frees no planet. Idempotent, and
+ * safe before the first planet_init(). */
 void planet_shutdown(void);
 
-/* 1 from `pico8_jo_init()` to `pico8_jo_shutdown()`, 0 otherwise. */
+/* 1 from planet_init() to planet_shutdown(), 0 otherwise. */
 int planet_ready(void);
 
 const entity_class_t *planet_class(void);
 
-/* `jo.dz` (PICO8_JO_DZ_COUNT rows), `jo.cq`, `jo.ka`, `jo.em`: jo's
- * generated data, never NULL, init or not. */
+/* The planet's generated data (PLANET_MOOD_ROWS_COUNT mood rows, made
+ * resources, ring colors, spacer row): never NULL, init or not. */
 const data_row_t *planet_mood_rows(void);
 const int_seq_t *planet_made_resources(void);
 const int_seq_t *planet_ring_colors(void);
 const data_row_t *planet_spacer(void);
 
-/* The `kw` every bare planet points at; each `pico8_jo_init()` resets it to
- * `{mu=0}`. */
+/* The production every bare planet points at; each planet_init() resets
+ * it to zero. */
 production_t *planet_shared_production(void);
 
 /* `keys` (NULL means none) is read, not kept. The new planet registers
- * itself into `hv`/`cv`/`cg` through `lt`, and lives in the construction
- * zone until that zone is given back. Requires `pico8_jo_init()`. */
+ * itself (entity_register), and lives in the construction zone until that
+ * zone is given back. Requires planet_init(). */
 planet_t *planet_new(const planet_keys_t *keys);
 
-/* Sets up an allocated `self` as a bare planet whose descriptor is `cls`:
- * `def` kept, the members it holds copied from it, the others nil. Neither
- * runs `jo:pq` nor `lt`: a daughter's constructor does, after its own
- * defaults. Requires `pico8_jo_init()`. */
+/* Sets up an allocated `self` as a bare planet of class `instance_class`:
+ * the archetype kept, the members it holds copied from it, the others NULL
+ * or 0. Runs neither planet_construct nor entity_construct: a subclass's
+ * constructor does, after its own defaults. Requires planet_init(). */
 void planet_init_instance(planet_t *self, const entity_class_t *instance_class, const planet_archetype_t *archetype);
 
 /* Bytes of the arena a held icon, a drawn slipway or a wormhole builds its
  * object in. */
 #define PLANET_GRAB_ARENA_BYTES 2048u
 
-/* Where the planet constructors, `jo:pq` and `jo:lz` allocate: the grab
- * arena between `pico8_jo_prise_ouvrir` and `_fermer`, else the current
- * game generation. */
+/* Where the planet constructors, planet_construct and
+ * planet_install_project allocate: the grab arena between
+ * planet_grab_arena_open and planet_grab_arena_close, else the game zone. */
 const allocator_t *planet_zone_construction(void);
 
 /* Opens a grab arena, taken from the free grabs (emptied) or else from the
- * current generation; a placed structure keeps it until the generation is
- * given back. */
+ * game zone; a placed structure keeps it until the game zone is given back. */
 void planet_grab_arena_open(void);
 void planet_grab_arena_close(void);
-/* Called last by the `rendre` of an object built in `zone`, whose state is
- * `me`: a grab arena (NULL or another zone: nothing) whose object is still
- * "kz" goes on the free grabs, for the next grab to empty and reuse. */
+/* Called last by the release method of an object built in `zone`, with the
+ * object's state: a grab arena (NULL or another zone: nothing) whose object
+ * is still "placing" goes on the free grabs, for the next grab to empty and
+ * reuse. */
 void planet_grab_arena_zone_released(const allocator_t *zone, const char *me);
 /* The same whatever the state: for an object whose memory nothing borrows
  * after its death. */
 void planet_grab_arena_arena_released(const allocator_t *zone);
-/* `pico8_jo_prise_zone_rendue` with the zone of the planet's `oe`. */
+/* planet_grab_arena_zone_released with the zone of the planet's slipways. */
 void planet_grab_arena_released(const planet_t *self);
-/* Sets to nil the `fo` of every `cg.np` entity that points at `e`, which is
- * being given back: `jo:kj` leaves `fo` set on a planet off screen or
- * fading, and a recycled grab arena would put a new structure behind it. */
+/* Sets to NULL the `targeted_by` of every node entity that points at the
+ * entity being given back: planet_draw leaves `targeted_by` set on a planet
+ * off screen or fading, and a recycled grab arena would put a new structure
+ * behind it. */
 void planet_forget_targeted_by(const entity_t *e);
 /* Drops the free grabs, without reading them: their arenas belong to a
- * generation about to be given back or reset. */
+ * game zone about to be given back or reset. */
 void planet_forget_grab_arenas(void);
 
-/* `oe` taken from, and grown in, the construction zone. */
+/* The slipways list taken from, and grown in, the construction zone. */
 void planet_construct(planet_t *self);
-/* `oe` taken from, and grown in, `zone`, which must outlive it. */
+/* The slipways list taken from, and grown in, `zone`, which must outlive
+ * it. */
 void planet_construct_in(planet_t *self, const allocator_t *zone);
 
-/* The dispatchers jo's descriptor holds, for a daughter's `static const`
- * descriptor to name. */
+/* The methods the planet class holds, for a subclass's `static const`
+ * class to name. */
 int planet_hit_test_method(entity_t *self, const vec_t *qa, const vec_t *ra);
 void planet_refresh_method(entity_t *self);
-/* Gives back the place of `lq` and sets `lq` to nil; the planet stays. */
+/* Gives back the layout row's slot and sets the row to NULL; the planet
+ * stays. */
 void planet_release_row(entity_t *self);
-/* `pico8_jo_rendre_rangee`, then `pico8_jo_prise_rendue`. */
+/* planet_release_row, then planet_grab_arena_released. */
 void planet_release_method(entity_t *self);
 down_t planet_accept_drop_method(entity_t *self, const entity_t *s);
 void planet_new_year_method(entity_t *self, p8_fixed_t yr);
@@ -149,8 +154,7 @@ void planet_draw_method(entity_t *self, const vec_t *ra);
 down_t planet_left_press_method(entity_t *self, vec_t *qa, vec_t *ra);
 void planet_attach_slipway_method(entity_t *self, entity_t *sw);
 
-/* `e` is one of the ten classes of jo's tree: the only ones whose state
- * `ll` is jo's. */
+/* 1 when the entity's class is one of the ten of the planet lineage. */
 int planet_is_family(const entity_t *e);
 void planet_offer_trade_method(entity_t *self, struct trade_offer *lw);
 void planet_update_vanishing_method(entity_t *self, p8_fixed_t t);
@@ -158,36 +162,38 @@ void planet_update_vanishing_method(entity_t *self, p8_fixed_t t);
 void planet_install_project(planet_t *self, research_project_t *research_project_instance);
 
 /* TROU-3 */
-/* 1 when `hf` is true and `me` is "ly", 0 otherwise, a NULL `self` included. */
+/* 1 when the archetype's is_planet is set and the state is "settled", 0
+ * otherwise, a NULL `self` included. */
 int planet_is_colonized(const planet_t *self);
 
 void planet_restart_shake(planet_t *self);
 
-/* No textual `:ll(` call site exists: `dg()` reaches this by state name
- * (`qc[qc.me]`), through the `LL` entry of a planet's descriptor. */
+/* No direct caller: update_entities reaches it by state, through the
+ * ENTITY_STATE_VANISHING entry of the planet class. */
 void planet_update_vanishing(planet_t *self, p8_fixed_t t);
 
 void planet_roll_type(planet_t *self);
 
 void planet_new_year(const planet_t *self);
 
-/* Returns a freshly built `jc` instance in `held`, Lua true as `stop`
- * alone, or nil; `ui:bh` holds only the instance. The `jc` lives in its
- * grab arena, which it gives back if refused. */
+/* Returns a freshly built slipway in `held` for a settled planet, `stop`
+ * alone for a known one (after opening its projects panel), or neither. The
+ * slipway lives in its grab arena, which it gives back if refused. */
 down_t planet_left_press(planet_t *self);
 
 /* The state passed must live until the next call; the previous one is not
- * freed. NULL is the valid way back to "none". Both start NULL -- only
- * `bw()` sets them. */
+ * freed. NULL is the valid way back to none. Both start NULL -- only
+ * galaxy_populate sets them. */
 void planet_set_type_picker(weighted_picker_t *oc);
 void planet_set_vanish_roll(random_walk_t *ir);
 
-/* Mutates the pico8_vec_t `self.ra` points at, in place: every other holder
- * of that vector -- the `iv` toast `jo:hk` builds from `self.ra` -- sees the
- * bob. Rebinding the field to a fresh vector, as `qb:kj` does, would not. */
+/* Mutates the vec_t the planet's `pos` points at, in place: every other
+ * holder of that vector -- the toast planet_new_year builds from `pos` --
+ * sees the bob. Rebinding the field to a fresh vector, as camera_update
+ * does, would not. */
 void planet_bob(entity_t *self, p8_fixed_t t);
 
-/* NULL when no kind has `fz`. */
+/* NULL when no kind has that class name. */
 const entity_kind_t *planet_kind_named(const char *fz);
 
 #endif

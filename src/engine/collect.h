@@ -4,9 +4,9 @@
 #include "engine/geom.h"
 #include "engine/pointer_list.h"
 
-/* The predicate gets each element plus `ctx`, in place of a closure's
- * captured state. Returns a new container in `zone` the caller releases
- * with pointer_list_free(); a NULL source list gives an empty one. */
+/* The predicate gets each element plus the context pointer, in place of a
+ * closure's captured state. Returns a new container in `zone` the caller
+ * releases with pointer_list_free(); a NULL source list gives an empty one. */
 typedef int (*filter_pointer_list_predicate_fn_t)(void *e, void *ctx);
 pointer_list_t collect_filter_pointer_list(const allocator_t *zone, const pointer_list_t *qk,
                            filter_pointer_list_predicate_fn_t ow, void *ctx);

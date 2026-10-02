@@ -1,6 +1,6 @@
-/* The defaults of the ten classes of the `jo` tree, on a fresh struct of
- * each, against its kind's archetype; and each module's `_ready` over init
- * and shutdown. */
+/* The defaults of the ten classes of the planet lineage, on a fresh struct
+ * of each, against its kind's archetype; and each module's `_ready` over
+ * init and shutdown. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -29,9 +29,9 @@ static void assert_same_string(const char *a, const char *b) {
     assert(a != NULL && a == b && strcmp(a, b) == 0);
 }
 
-/* The members of jo every class of the tree inherits, and its kind's
- * archetype; kw aside, which `lz` points at the planet's own when it has an
- * `hp`. */
+/* The planet members every class of the lineage inherits, and its kind's
+ * archetype; the production aside, which planet_install_project points at
+ * the planet's own when it has a research project. */
 static void assert_planet_tail(const planet_t *jo, const planet_archetype_t *archetype) {
     assert(jo->archetype == archetype);
     assert(jo->shake == archetype->shake);
@@ -43,20 +43,20 @@ static void assert_box(const box_t *kq, int xl, int yt, int xr, int yb) {
            kq->right == p8_fixed_from_int(xr) && kq->bottom == p8_fixed_from_int(yb));
 }
 
-/* jo's box, which ga and nr replace. */
+/* The planet's hit box, which the burst and the slipgate replace. */
 static void assert_planet_box(const box_t *kq) {
     assert_box(kq, -7, -7, 7, 7);
 }
 
-/* The members of qh every class below it inherits, its probe's archetype, and
- * the probe's init literals. */
+/* The structure members every class below it inherits, its targeting's
+ * archetype, and the targeting's init literals. */
 static void assert_structure_tail(const planet_t *qh, const planet_archetype_t *archetype) {
     assert(qh->targeting->archetype == &archetype->targeting);
     assert(qh->development_tier == archetype->development_tier && qh->has_development_tier == 1);
     assert(qh->targeting->has_cost == 1 && qh->targeting->archetype->status_sprite == 0 && qh->targeting->archetype->has_status_sprite == 0);
 }
 
-/* The emitter of an ascension, pm or mx, and its archetype. */
+/* The emitter of an ascension, protostar or synthesizer, and its archetype. */
 static void assert_emitter(const emitter_t *em, const planet_archetype_t *archetype) {
     assert(em->archetype == &archetype->emitter);
     assert(em->speed_factor == archetype->emitter.speed_factor && em->angle_slices == archetype->emitter.angle_slices && em->trail_colors == archetype->emitter.trail_colors);
@@ -166,7 +166,8 @@ static void test_burst_defaults(void) {
     assert(ga->production_own.amount == 0 && !ga->production_own.has_resource && ga->production_own.resource == 0);
 }
 
-/* What nr and fr inherit from qh and jo, and nr's box, which fr keeps. */
+/* What the slipgate and the infraspace gate inherit from the structure and
+ * the planet, and the slipgate's hit box, which the infraspace gate keeps. */
 static void assert_slipgate_inherited(const planet_t *nr, const planet_archetype_t *archetype) {
     assert(nr->targeting->cost == archetype->targeting.cost);
     assert(nr->sprite == archetype->sprite);
@@ -204,8 +205,9 @@ static void test_synthesizer_defaults(void) {
     assert_planet_tail(mx, &synthesizer_archetype);
 }
 
-/* The second `jl()` (the one `eu` runs) finds `ke` ready and leaves it
- * alone: a fresh struct of each module still holds `t` 0. */
+/* The second reset_world() (the one cart_start_game runs) finds the entity
+ * module ready and leaves it alone: a fresh struct of each module still
+ * holds a state time of 0. */
 static void test_second_reset_world_keeps_entity(void) {
     assert(entity_ready());
     reset_world();

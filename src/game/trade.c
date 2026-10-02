@@ -120,9 +120,9 @@ int trade_last_planet(const trade_route_t *self, entity_t **out) {
     return 1;
 }
 
-/* `{np}`/`{jc}` live in the frame zone: pico8_ents_cat copies their
- * element into the lp/rl it returns. A Lua `{x}` holds zero elements
- * when x is nil, so a NULL contributes nothing. */
+/* The one-element node and slipway lists live in the frame zone:
+ * entity_list_concat copies their element into the lists it returns. A NULL
+ * node or slipway leaves its list empty, so it contributes nothing. */
 trade_route_t *trade_extend(const allocator_t *zone, const trade_route_t *self,
                               entity_t *node, entity_t *slipway) {
     trade_keys_t keys = {0};

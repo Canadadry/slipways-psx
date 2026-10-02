@@ -1,6 +1,7 @@
-/* The export route `trade`, built by `jo:ib` and `kg` in a game built
- * directly (no events file), or by hand on that game's planets and
- * slipways, read on its struct members and through `to`/`kg`/`eq`. */
+/* The export route, built by planet_rebuild_trades and trade_extend in a
+ * game built directly (no events file), or by hand on that game's planets
+ * and slipways, read on its struct members and through trade_last_planet,
+ * trade_extend and trade_equal. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -38,8 +39,8 @@
 #include "engine/frame_zone.h"
 #include "heap_allocator.h"
 
-/* `gb[3]`: a project with an `o` and no `i`, whose planet exports to any
- * planet a slipway joins it to. */
+/* Research project 3: an output and no inputs, so its planet exports to
+ * any planet a slipway joins it to. */
 #define EXPORTER 3
 
 #define GAME_ROUTE_HASH 0x93A4DA45u
@@ -77,7 +78,7 @@ static planet_t *as_planet(void *e) {
     return e;
 }
 
-/* Both `qe` set, of one kind and one value. */
+/* Both resources set, of one kind and one value. */
 static int same_resource(const trade_route_t *a, const trade_route_t *b) {
     return a->has_resource && b->has_resource && a->resource_is_bool == b->resource_is_bool && a->resource == b->resource;
 }
@@ -86,15 +87,16 @@ static int same_resource(const trade_route_t *a, const trade_route_t *b) {
  * moves them. */
 enum { FIXED_KIND = 0, BOOL_KIND = 2, REF_KIND = 3 };
 
-/* The kind word a REF value folded, then presence and the rank in `hv`. */
+/* The kind word of a reference, then presence and the rank in the live
+ * entities. */
 static uint32_t fold_ref(uint32_t h, const void *p) {
     h = fnv(h, (uint32_t)REF_KIND);
     h = fnv(h, (uint32_t)(p != NULL));
     return fnv(h, (uint32_t)entity_list_rank_in(live_entities(), p));
 }
 
-/* A BOOL or FIXED value's kind word and payload; an unset `qe` folds as
- * absent. */
+/* A boolean or fixed value's kind word and payload; an unset resource
+ * folds as absent. */
 static uint32_t fold_resource(uint32_t h, const trade_route_t *t) {
     if (!t->has_resource) {
         return fnv(h, 0xFFFFFFFFu);
@@ -117,8 +119,8 @@ static uint32_t fold_ranks(uint32_t h, const entity_list_t *l) {
     return h;
 }
 
-/* A route: the ranks in `hv` of its `lp` planets and `rl` slipways, its
- * `qe`, and the rank of `to()`. */
+/* A route: the live entity ranks of its planets and slipways, its
+ * resource, and the rank of its last planet. */
 static uint32_t fold_route(uint32_t h, const trade_route_t *t) {
     entity_t *to;
     h = fold_ranks(h, t->planets);
@@ -136,8 +138,8 @@ static void check(const char *label, uint32_t got, uint32_t want) {
     assert(got == want);
 }
 
-/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
- * reads as difficulty 0. */
+/* A game started by cart_start_game with no difficulty picked: a NULL
+ * difficulty reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
@@ -161,8 +163,8 @@ static research_project_t *project(int k) {
     return research_projects_at(k);
 }
 
-/* `jc:hq` reads the hovered planet off `ok.o_`; the slipway is paid by `ey`
- * as a drag onto `re` pays it. */
+/* slipway_drag reads the hovered planet off the main user interface; the
+ * slipway is paid by slipway_drop as a drag onto the end planet pays it. */
 static void join(void *qu, void *re) {
     slipway_keys_t slipway_keys = {0};
     vec_t *mp = malloc(sizeof *mp);
@@ -191,7 +193,7 @@ static entity_list_t *list_of(int n, void *const *items) {
     return l;
 }
 
-/* NULL `lp`/`rl` are nil; `has_qe` 0 is a nil `qe`. */
+/* NULL planets or slipways stay NULL; has_resource 0 is no resource. */
 static trade_route_t *route(entity_list_t *lp, entity_list_t *rl, int has_resource, int resource_is_bool, p8_fixed_t qe) {
     trade_keys_t keys = {0};
 
@@ -211,7 +213,7 @@ static void *planet(int i) {
 
 /* A generated planet colonized by EXPORTER, its nearest one by a bare
  * project, the two joined by a paid slipway, then left to settle; and the
- * first route: the first element of `by` on the first planet of `cg.jo`
+ * first route: the first outgoing route of the first planet (planet tag)
  * that exports. */
 static trade_route_t *game_route(void) {
     const entity_list_t *jo;
@@ -245,8 +247,9 @@ static trade_route_t *game_route(void) {
     return NULL;
 }
 
-/* A route built from the game's route's own `lp`/`rl`/`qe` reads them back
- * by identity; with no key, or `lp` alone, the others are absent. */
+/* A route built from the game's route's own planets, slipways and
+ * resource reads them back by identity; with no key, or the planets alone,
+ * the others are absent. */
 static void test_construction(void) {
     uint32_t h = 2166136261u;
     trade_route_t *g = game_route();
@@ -269,8 +272,8 @@ static void test_construction(void) {
     check("game_route", h, GAME_ROUTE_HASH);
 }
 
-/* `to` is the last of `lp`; an empty or missing `lp` gives nothing and
- * leaves the output alone. */
+/* trade_last_planet is the last of the planets; an empty or missing list
+ * gives nothing and leaves the output alone. */
 static void test_last_planet(void) {
     static entity_t sentinel_target;
     entity_t *const sentinel = &sentinel_target;
@@ -306,9 +309,9 @@ static int list_is(const entity_list_t *l, int n, entity_t *const *items) {
     return 1;
 }
 
-/* `kg` builds a new route and leaves `self` alone: `np` appended to `lp`,
- * `jc` to `rl` unless nil, the same `qe`; `self` with no `qe` gives the new
- * route `qe` false. */
+/* trade_extend builds a new route and leaves `self` alone: the node
+ * appended to the planets, the slipway to the slipways unless NULL, the
+ * same resource; `self` with no resource gives the new route false. */
 static void test_extend(void) {
     trade_route_t *built_route = game_route();
     const entity_list_t *planets = built_route->planets;
@@ -360,8 +363,8 @@ static void test_extend(void) {
     assert(trade_extend(game_zone(), NULL, node, slipway) == NULL);
 }
 
-/* `trade_new` and `kg` build in the zone they are given: an arena taken
- * from the game generation grows, the generation itself does not. */
+/* trade_new and trade_extend build in the zone they are given: an arena
+ * taken from the game zone grows, the game zone itself does not. */
 static void test_built_in_the_given_zone(void) {
     trade_route_t *g = game_route();
     const allocator_t *arena = arena_take(game_zone(), "routes", 4096);
@@ -377,7 +380,7 @@ static void test_built_in_the_given_zone(void) {
     assert(game_zone_used() == game_zone_used_before);
 }
 
-/* A route made in the frame zone, copied into the generation: the copy
+/* A route made in the frame zone, copied into the game zone: the copy
  * shares neither struct nor list with it, and reads back whole once the
  * frame zone is reset, which ASan poisons. */
 static void test_copy_outlives_the_frame(void) {
@@ -501,9 +504,10 @@ static void equal_right_other(void *e) {
     (void)trade_equal(trade_new(game_zone(), NULL), e);
 }
 
-/* A game's route is a struct whose descriptor has no method;
- * a `qe` key its member could not hold stops the run, as does reading a true
- * `qe`, and `to`/`kg`/`copy`/`eq` refuse anything that is not a route. */
+/* A game's route is a struct whose class has no method; a resource key its
+ * member could not hold stops the run, as does reading a true resource, and
+ * trade_last_planet, trade_extend, trade_copy and trade_equal refuse
+ * anything that is not a route. */
 static void test_trade_is_a_struct(void) {
     const entity_class_t *cls = trade_class();
     trade_route_t *g = game_route();
@@ -540,8 +544,8 @@ static void count_accept(trade_offer_t *self, trade_route_t *a) {
     g_accept_calls++;
 }
 
-/* A want of any resource (`r["?"]`) takes the resource of a trade its
- * planet accepts (`ba`), then answers that trade once. */
+/* A need of any resource (code "?") takes the resource of a trade its
+ * planet accepts (accepted_resources), then answers that trade once. */
 static void test_offer_trade_wildcard_want(void) {
     trade_keys_t keys = {0};
     trade_offer_t lw = {0};
@@ -567,8 +571,9 @@ static void test_offer_trade_wildcard_want(void) {
     assert(want->row.has_resource && want->row.resource == keys.resource && g_accept_calls == 1);
 }
 
-/* A route through `kg` holds false, not nil: it no longer answers a want
- * with no `qe`, which the cart's nil route would answer -- TROU-24. */
+/* A route through trade_extend holds false, not absent: it no longer
+ * answers a need with no resource, as a route with no resource does --
+ * TROU-24. */
 static void test_offer_trade_nil_want_after_extend(void) {
     trade_offer_t lw = {0};
     pointer_list_t *jy = malloc(sizeof *jy);
@@ -591,9 +596,10 @@ static void test_offer_trade_nil_want_after_extend(void) {
     assert(g_accept_calls == 1);
 }
 
-/* `dh` counts for a want only the routes whose `qe` equals the want's: a
- * route with no `qe` is skipped by the `has_qe` guard, and one through `kg`
- * holds false, which is not the nil of a want with no `qe` -- TROU-24. */
+/* economy_tiers_compute_tier counts for a need only the routes whose
+ * resource equals the need's: a route with no resource is skipped by the
+ * has_resource guard, and one through trade_extend holds false, which is
+ * not the absent resource of a need with none -- TROU-24. */
 static void test_compute_tier_counts_numbered_routes_only(void) {
     pointer_list_t *jy = malloc(sizeof *jy);
     entity_list_t *cc = malloc(sizeof *cc);
@@ -623,8 +629,8 @@ static void test_compute_tier_counts_numbered_routes_only(void) {
     assert(x_want->has_satisfied && x_want->satisfied == p8_fixed_from_int(1));
 }
 
-/* `pico8_qe_equal` is Lua's `==` both ways, `n` unread outside FIXED; and
- * `pico8_trade_qe` reads nil, false (after `kg`) and a number. */
+/* resource_equal is symmetric, `number` unread outside RESOURCE_FIXED; and
+ * trade_resource reads absent, false (after trade_extend) and a number. */
 static void test_resource_equal(void) {
     const resource_t nil = {.kind = RESOURCE_NIL};
     const resource_t no = {.kind = RESOURCE_FALSE};
@@ -650,7 +656,7 @@ static void test_resource_equal(void) {
     assert(got.kind == RESOURCE_FIXED && got.number == p8_fixed_from_int(2));
 }
 
-/* Each scenario runs in a child forked right after pico8_cart_load(), as a
+/* Each scenario runs in a child forked right after cart_load(), as a
  * fresh process would start it: the rnd state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
     pid_t child;

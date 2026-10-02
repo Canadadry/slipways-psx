@@ -14,7 +14,7 @@
 #include "game/trade.h"
 #include "engine/frame_zone.h"
 
-/* What `mx:kf` leaves in `ht` once it accepts a resource: `o()`. */
+/* What synthesizer_attach_slipway leaves as synthesizable resources once it accepts one. */
 static const int_seq_t g_synthesizer_synthesizable_resources_spent = {0, NULL};
 
 static int g_family_trade_up = 0;
@@ -28,7 +28,7 @@ down_t slipgate_accept_drop(const planet_t *self, const entity_t *s) {
         return out;
     }
 
-    /* Only a held `jc` carries `qu`: a held `bg`, `mz` or planet reads it absent. */
+    /* Only a held slipway has a start: a held background, wormhole or planet has none. */
     start_not_self = !(s != NULL && s->class == slipway_class() &&
                     ((const slipway_t *)s)->start == &self->header);
 
@@ -48,8 +48,8 @@ typedef struct {
     entity_t header;
 } slipgate_left_press_empty_t;
 
-/* The `{}` `nr:ldown` hands to `nr:gv`: never allocated, never freed,
- * never written. */
+/* The empty entity slipgate_left_press hands to slipgate_accept_drop:
+ * never allocated, never freed, never written. */
 static const slipgate_left_press_empty_t g_slipgate_left_press_empty = {{.class = &g_slipgate_left_press_empty_class}};
 
 down_t slipgate_left_press(planet_t *self) {
@@ -143,8 +143,8 @@ void slipgate_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
             gf.route = extended;
             assert(slipway->class == slipway_class() && "a slipgate's slipways list holds slipways only: planet_attach_slipway adds to it");
             other = slipway_other_end((const slipway_t *)slipway, (const entity_t *)self);
-            /* `&gf` is a stack address passed to a dispatched `cn`: safe
-             * only while no `cn` implementation stores its proposal. */
+            /* The copy is on the stack, passed to a dispatched offer_trade:
+             * safe only while no offer_trade method stores its offer. */
             if (other != NULL && other->class->offer_trade != NULL) {
                 other->class->offer_trade(other, &gf);
             }
@@ -179,10 +179,10 @@ static const entity_class_t g_slipgate_class = {
     .lineage = LINEAGE(LINEAGE_PLANET) | LINEAGE(LINEAGE_STRUCTURE),
 };
 
-/* Initializes an allocated pico8_jo_t under `cls` and `def`, its kind's
- * archetype: qh's part, nr having no member of its own. Reads no key, runs
- * neither `pq` nor `lt`, records no coverage. Requires
- * `pico8_planet_family_trade_init()`. */
+/* Initializes an allocated planet_t under the given class and its kind's
+ * archetype: the structure's part, a slipgate having no member of its own.
+ * Reads no key, runs neither planet_construct nor entity_construct, records
+ * no coverage. Requires planet_family_trade_init(). */
 static void slipgate_init_instance(planet_t *self, const entity_class_t *cls, const planet_archetype_t *archetype) {
     structure_init_instance(self, cls, archetype);
 }

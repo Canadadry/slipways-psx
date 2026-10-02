@@ -1,9 +1,9 @@
-/* `jo:gh`'s "exports:" row must reach its `lq` with its four items, in
- * order, and not one more: the bug copied a display row's positionals at
- * the wrong element stride, took its count from the wrong slot and walked
- * past the end of the allocation. The copy into the row's cells, and the
- * layout that gives each cell one `fs` entry, fail the same way if they
- * take one item too many.
+/* The inspection panel's "exports:" row must reach its layout row with its
+ * four items, in order, and not one more: the bug copied a data row's items
+ * at the wrong element stride, took its count from the wrong slot and
+ * walked past the end of the allocation. The copy into the row's cells, and
+ * the layout that gives each cell one placed item, fail the same way if
+ * they take one item too many.
  *
  * Built under AddressSanitizer, because the resulting SIGSEGV depends on
  * allocator layout and is not a sound oracle: on the replay that reported
@@ -31,7 +31,7 @@
 #include "game/ui_button.h"
 #include "engine/vec.h"
 
-/* The `js` button instances `pz()` just built. */
+/* The buttons message_box_open_box just built. */
 static const entity_list_t *main_ui_ephemerals(void) {
     const ui_t *ok = main_ui();
     assert(ok != NULL);
@@ -39,7 +39,7 @@ static const entity_list_t *main_ui_ephemerals(void) {
     return ok->ephemerals;
 }
 
-/* A button's `lq` field, after `js:pq()` replaced the raw row override
+/* A button's layout row, after button_construct replaced the raw row keys
  * with a real row. */
 static const layout_row_t *button_layout_row(const void *button) {
     const layout_row_t *lq;
@@ -68,9 +68,9 @@ static int layout_row_index_is_string(const layout_row_t *lq, int index, const c
     return v.kind == LAYOUT_ROW_CELL_STRING && strcmp(v.as.text, expected) == 0;
 }
 
-/* What `jo:gh` reaches when the cart calls it, built without a boot: `r`
- * (from pico8_data_init), the jo/lq/js classes, and the `ok` singleton `pz()`
- * fills. */
+/* What planet_inspection_panel reaches in a game, built without a boot:
+ * the resource codes (data_init), the planet, layout row and button
+ * classes, and the main user interface message_box_open_box fills. */
 static void setup_panel_state(p8_memory_t *mem, p8_graphics_t *gfx) {
     p8_mem_init(mem);
     p8_gfx_init(gfx);
@@ -101,15 +101,16 @@ static void test_inspection_panel_exports_row_layout_row_receives_its_four_items
     planet = planet_new(NULL);
     assert(planet != NULL);
 
-    /* 99 is deliberately not one of `jo.cq`'s resources, so `jo:gh` takes
-     * the else branch and builds the 4-item "exports:" row rather than the
-     * 3-item "makes:" one. */
+    /* 99 is deliberately not one of the planet's made resources, so the
+     * panel takes the else branch and builds the 4-item "exports:" row
+     * rather than the "makes:" one. */
     production.has_resource = 1;
     production.resource = p8_fixed_from_int(99);
     production.amount = p8_fixed_from_int(1);
     planet->production = &production;
 
-    /* `jo:gh` reads it, and the archetype's `gq`, for `pz()`'s row placement. */
+    /* The panel reads it, and the archetype's row_step, for the box's row
+     * placement. */
     planet_pos = malloc(sizeof *planet_pos);
     *planet_pos = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
     planet->pos = planet_pos;
@@ -118,8 +119,7 @@ static void test_inspection_panel_exports_row_layout_row_receives_its_four_items
     planet_inspection_panel(planet);
 
     ephemerals = main_ui_ephemerals();
-    /* The icon row, whose "lq" really is an ob_table, plus the "exports:"
-     * row. */
+    /* The icon row, plus the "exports:" row. */
     assert(ephemerals->count >= 2);
 
     for (index = 0; index < ephemerals->count; index++) {
@@ -132,8 +132,9 @@ static void test_inspection_panel_exports_row_layout_row_receives_its_four_items
     assert(exports_layout_row != NULL);
 
     /* The four items the row holds, in order and at the right element
-     * stride: "exports:", "<#by>/<mu>", the `{qe=kw.qe}` of `kw`, and the
-     * `{false,1}` tuple `jo:gh` appends to every row after the first. */
+     * stride: "exports:", "<outgoing routes>/<amount>", the production's
+     * resource tuple, and the {false, 1} gap the panel appends to every row
+     * after the first. */
     assert(layout_row_index_is_string(exports_layout_row, 1, "exports:"));
     assert(layout_row_index_is_string(exports_layout_row, 2, "0/1"));
 
@@ -148,7 +149,8 @@ static void test_inspection_panel_exports_row_layout_row_receives_its_four_items
     /* No phantom fifth item from an over-long copy loop. */
     assert(!layout_row_item(exports_layout_row, 5, &entry));
 
-    /* `lq:pq()` ran over exactly those four: one `fs` entry per item. */
+    /* layout_row_construct ran over exactly those four: one placed item
+     * each. */
     assert(exports_layout_row->placed_items != NULL);
     assert(exports_layout_row->placed_items_count == 4);
 }

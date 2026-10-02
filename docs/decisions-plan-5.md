@@ -66,6 +66,9 @@
 | D-39 | 4d | Nom de test qui cite le cart (`test_data_init.c`) | 2 |
 | D-40 | 4d | Clés du cart sans ligne `chaîne` au TSV (`"br"`, `"qr"`, `"rf"`, `"s"`, `"qh+"`) | 0 après 4d |
 | D-41 | 4d | Nom de test qui garde le digramme `r` (`test_map_tables.c`) | 2 |
+| D-42 | 4e | Ligne du TSV d'une locale renommée deux fois | 14 lignes |
+| D-43 | 4e | Paramètres `gfx`/`mem` des fonctions de dessin | 96 + 128 déclarations |
+| D-44 | 4e | Champ `planet_inspection_panel_ctx_t.unmet_needs`, qui tient les besoins reçus | 7 + 1 |
 
 ## Entrées
 
@@ -289,6 +292,7 @@
   Aucun nom proposé n'existe (0 site chacun). `entity_list_list_size` et `entity_list_pointer_list_size` sont la même fonction statique (taille d'une `entity_list_t`, -1 si NULL) sous deux noms : un seul nom neuf.
 - **Proposition prête à appliquer** : (a), procédure N (lignes `ancien nouveau fichier identité` du tableau, une par identité) ; les lignes de `tools/rename_overrides.tsv` sont `name<TAB><ancien><TAB><nouveau>`.
 - **Portée** : s'applique aussi aux mentions entre backticks et en commentaire ; contrôle sur chaque ancien nom.
+- **Complément (4e)** : le libellé `"update_vanishing_update_entities_calls"` de `check_int()` (`tests/test_planet.c`) est le nom de `UPDATE_VANISHING_UPDATE_ENTITIES_CALLS` en minuscules (règle des libellés, consigne point 7) : si (a) est appliquée, il devient `"update_vanishing_calls"` dans le même commit.
 - **Verdict** :
 
 ### D-18 — Étiquette morte `main_mouse` de `test_main_mouse.c`
@@ -505,6 +509,7 @@
 - **Options** : (a) les sous-étapes suivantes réécrivent (« the memory », « the graphics state ») ; (b) règle du compteur : un nom ambigu dont toutes les lignes `renommé` sont des locales ou des paramètres ne compte en `backtick` que dans le fichier de ces lignes (test d'abord dans `tests/test_rename_count.py`) ; (c) exceptions par module.
 - **Sites** : 23 : `src/game/message_box.h` 4, `src/game/ui.h` 3, `background.h`, `draw_functions.h`, `probe.h`, `slipway_display.h`, `structure_icon.h`, `wormhole_display.h` 2 chacun, `hud.h`, `mouse.h`, `scroll.h`, `src/devtools/screencast.h` 1 chacun (``grep -rnoE '`(mem|gfx)`' src tests tools``).
 - **Proposition prête à appliquer** : (b), qui vaut aussi pour les renommages de locales des 4x suivantes ; contrôle : `make cart-names-count` sans `SUBSTEP` rend 26 `backtick` de moins qu'avant la règle, et `make rename-count-test` vert.
+- **Complément (4e)** : un renommage de locale de l'étape 4 a le même effet. 4e renomme `ctx` → `filter_context` (`planet_inspection_panel`) : `ctx`, nom courant d'une ligne `conservé`, devient un ancien nom ambigu, et les mentions `` `ctx` `` de `src/engine/collect.h:7` (3c) et `src/game/galaxy.c:16` (3d), sous-étapes closes, se mettent à compter en `later` ; 4e les a réécrites (« the context pointer »). La règle (b) l'aurait évité.
 - **Verdict** :
 
 ### D-37 — `argc`/`argv` de `main` dans la liste des locales cryptiques
@@ -555,4 +560,34 @@
 - **Sites** : 2 (définition, appel de `main`).
 - **Proposition prête à appliquer** : (a), procédure N : `test_weighted_picker_pools_planet_types_entries_by_their_r	test_weighted_picker_pools_planet_types_entries_by_their_weight	tests/test_map_tables.c	c:test_map_tables.c@F@test_weighted_picker_pools_planet_types_entries_by_their_r` (nom neuf : 0 site) ; la ligne de `docs/renommage.tsv` passe au nom neuf.
 - **Portée** : s'applique aussi aux mentions en commentaire (aucune) ; contrôle : `grep -rn 'by_their_r\b' src tests tools` rend 0.
+- **Verdict** :
+
+### D-42 — Ligne du TSV d'une locale renommée deux fois
+
+- **Origine** : 4e (commit de locales).
+- **Question** : 14 locales et paramètres déjà renommés à l'étape 3 (`p` → `pos` ×2, `ra` → `pos`, `px` → `name`, `py` → `speed_factor`, `qe_is_r_q` → `resource_is_r_q`, `qu` → `start` ×2, `re` → `end` ×4, `rb` → `rows`, `prise` → `grab_arena`) l'ont été de nouveau à 4e (`screen_pos`, `planet_pos`, `screen_x`, `screen_y`, `resource_is_any`, `start_node`, `end_node`, `end_planet`, `end_before_drop`, `other_end`, `used_before`). Leur ligne de `docs/renommage.tsv` a pris le nom neuf et l'identité courante mais garde l'`ancien` du cart (et le `concept`), si bien que `rename-table-check` les signale d'une sorte neuve (« row c:…@planet_draw@pos: says p in …, the extraction pos in … ») et que `rename_derive.py` ne les reproduit qu'hors des colonnes `ancien` et `concept` (il prend pour ancien le nom courant). Quelle forme de ligne garder ?
+- **Options** : (a) garder l'`ancien` du cart : le pont inverse vers le Lua reste intact (§2 du plan), et le contrôle est rouge par construction depuis l'étape 3 ; (b) chaîner (ancien = nom courant, `pos` → `screen_pos`) : `rename_derive.py` à l'octet, mais `pos`, `name`, `rows`, `start`, `end`… deviennent d'anciens noms ambigus, et 19 mentions entre backticks de ces mots compteraient partout (`` `pos` `` 6, `` `name` `` 6, `` `rows` `` 7, mesurées dans le rejeu de la PRD) ; (c) apprendre à `tools/rename_check.py` qu'une ligne `renommé` dont l'identité est celle de l'extraction et dont le nom extrait est son `nouveau` d'une étape précédente n'est pas en défaut (test d'abord dans `tests/test_rename_check.py`).
+- **Sites** : 14 lignes ; `rename-table-check` sur l'extraction de l'état des chaînes de 4e : 27 708 → 27 638 (84 violations des 42 lignes tombent, ces 14 apparaissent).
+- **Proposition prête à appliquer** : (a) ; (c) à l'étape 5 si la garde de l'étape 5 lit `rename-table-check`. Contrôle de (c) : `make rename-check-test` vert, `make rename-table-check` rend 14 violations de moins.
+- **Portée** : aucune mention en commentaire ni entre backticks n'est en cause sous (a) ; sous (b), les 19 mentions sont à réécrire.
+- **Verdict** :
+
+### D-43 — Paramètres `gfx`/`mem` des fonctions de dessin
+
+- **Origine** : 4e (commit de locales), après 4b et 4c2.
+- **Question** : 4b, 4c2 et 4e renomment en `graphics`/`memory` les seules déclarations `gfx`/`mem` à longue portée (`planet_draw`, `slipway_draw`, `main` de `test_demo.c`…) ; les autres, dont les fonctions de dessin voisines (`slipway_draw_line`, `hud.c`, `layout.c`…), restent à portée ≤ 40 lignes, permises par le §1, et `gfx`/`mem` sont désormais d'anciens noms ambigus (D-36). Le code mêle donc les deux formes d'une fonction à l'autre. Tout renommer ?
+- **Options** : (a) garder (§1) ; (b) tout renommer en `graphics`/`memory` par la procédure N, avec D-38 (statiques de fichier des tests).
+- **Sites** : `grep -rnE 'p8_graphics_t \*gfx\b' src | wc -l` : 100 à `fdf8844`, 96 après 4e ; `grep -rnE 'p8_memory_t \*mem\b' src | wc -l` : 132 à `fdf8844`, 128 après 4e (prototypes compris).
+- **Proposition prête à appliquer** : (a), à revoir avec D-36 et D-38.
+- **Portée** : sous (b), s'applique aussi aux mentions entre backticks et en commentaire ; contrôle : les deux `grep` ci-dessus rendent 0.
+- **Verdict** :
+
+### D-44 — Champ `planet_inspection_panel_ctx_t.unmet_needs`, qui tient les besoins reçus
+
+- **Origine** : 4e (commit de commentaires, réécriture du commentaire de `planet_inspection_panel_filter_step`).
+- **Question** : dans `src/game/planet_display.c`, le filtre garde les besoins que rien ne satisfait (la locale `unmet_needs` de `planet_inspection_panel`, rangée « needs: ») et ajoute chaque besoin satisfait, une fois par unité, à la liste du contexte, qui fait la rangée « receives: ». Ce champ du contexte s'appelle aussi `unmet_needs` (`ji` → `unmet_needs`, 3e, comme la locale `jx`) : il dit le contraire de ce qu'il tient. Aucun compteur ne le voit. Le renommer ?
+- **Options** : (a) renommer le champ `received_needs` ; (b) garder.
+- **Sites** : 7 lignes de `src/game/planet_display.c` (déclaration ligne 88, emplois 107, 196, 236, 237, 240, 241) ; l'exemption `planet_inspection_panel_ctx_t.unmet_needs` de `REGISTRES_NON_ENTITE` (`tools/composition_residue.sh:128`) et les deux lignes `chaîne` de `docs/renommage.tsv` qui la citent (écrivain `planet_display.c`, lecteur `tools/composition_residue.sh`).
+- **Proposition prête à appliquer** : (a), procédure N : `unmet_needs	received_needs	src/game/planet_display.c	c:@SA@planet_inspection_panel_ctx_t@FI@unmet_needs` (identité stable, relevée dans `declarations.tsv` à la fin de 4e), ligne de `tools/rename_overrides.tsv` `field	pico8_jo_gh_ctx_t.ji	received_needs	gh` ; l'exemption et les lignes `chaîne` suivent par la procédure G (`--detail` avant et après, vivacité). La locale `unmet_needs` de `planet_inspection_panel` garde son nom.
+- **Portée** : s'applique aussi aux mentions en commentaire (aucune après 4e) ; contrôle : `grep -n 'ctx->unmet_needs\|filter_context.unmet_needs\|ctx_t.unmet_needs' src tools` rend 0.
 - **Verdict** :

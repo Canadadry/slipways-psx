@@ -1,5 +1,6 @@
-/* The slipway `jc`, read and written on its members and driven through the
- * real `mv`/`dg`/`dc`/`ok`, in games built directly: no events file. */
+/* The slipway, read and written on its members and driven through the
+ * real update_entities, draw_layers and main user interface, in games built
+ * directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -39,8 +40,8 @@
 #include "engine/game_zone.h"
 
 /* Ticks after the slipway is paid, long enough for the colonizing and
- * paying effects to leave `hv`: `dg` skips the entity after one it takes out
- * (TROU-5). */
+ * paying effects to leave the live entities: update_entities skips the
+ * entity after one it takes out (TROU-5). */
 #define SETTLE_TICKS 120
 
 #define ATTACH_DISTANCE_BITS 0x00000106
@@ -131,7 +132,7 @@ static slipway_too_far_t *as_too_far(const void *e) {
     return (slipway_too_far_t *)e;
 }
 
-/* The mouse point's `ra` and `p`, NULL when absent. */
+/* The mouse point's `pos` and `map_pos`, NULL when absent. */
 static const vec_t *mouse_point_pos(const void *re) {
     assert(is_throwaway(re));
     return ((const slipway_mouse_point_t *)re)->pos;
@@ -155,13 +156,13 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (entity_list_listed(live_entities(), ref)) {
         return fnv(fnv(h, 0x4Eu), (uint32_t)entity_list_rank_in(live_entities(), ref));
     }
-    /* The frozen hashes folded the `{qs}` as a class-less throwaway. */
+    /* The frozen hashes folded the too-far struct as a class-less throwaway. */
     return fnv(h, is_too_far(ref) || is_throwaway(ref) ? 0x7Au : 0xEEEEu);
 }
 
-/* A member as the frozen hashes fold what the name reader gave: nil when
- * absent; the 0xF1 of a fixed and the 0x57 of a string are constant by the
- * struct's shape, kept so that the hashes still prove the typed reads. */
+/* A member as the frozen hashes fold it: 0xDEAD when absent; the 0xF1 of a
+ * fixed and the 0x57 of a string are constant by the struct's shape, kept
+ * so that the hashes still prove the typed reads. */
 static uint32_t fold_fixed(uint32_t h, int has, p8_fixed_t f) {
     return has ? fnv(fnv(h, 0xF1u), (uint32_t)f) : fnv(h, 0xDEADu);
 }
@@ -239,7 +240,7 @@ static int entity_list_pointer_list_count(const entity_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
-/* The count, then each `id` and `true`. */
+/* The count, then each served planet's identifier. */
 static uint32_t fold_served_planets(uint32_t h, const void *jc) {
     const slipway_served_planets_t *hg = as_slipway(jc)->served_planets;
     int i;
@@ -310,8 +311,8 @@ static void check(const char *label, uint32_t got, uint32_t want) {
     assert(got == want);
 }
 
-/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
- * reads as difficulty 0. */
+/* A game started by cart_start_game with no difficulty picked: a NULL
+ * difficulty reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
@@ -352,8 +353,9 @@ static void colonized_pair(void **qu, void **re) {
 static void *build_slipway(void *qu);
 static void drag_over(void *jc, void *hovered, vec_t *mp);
 
-/* A slipway from `qu` dragged over `re` as `jc:hq` sees a drag (it reads the
- * hovered planet off `ok.o_`), held until its `t` reaches 15, not paid. */
+/* A slipway from the start planet dragged over the end planet as
+ * slipway_drag sees a drag (it reads the hovered planet off the main user
+ * interface), held until its state time reaches 15, not paid. */
 static void *dragged(void *qu, void *re) {
     vec_t *mp = malloc(sizeof *mp);
     void *jc = build_slipway(qu);
@@ -368,8 +370,8 @@ static void *dragged(void *qu, void *re) {
     return jc;
 }
 
-/* Two colonized planets joined by one slipway, paid by `ey` as a drag pays
- * it, then left to settle. */
+/* Two colonized planets joined by one slipway, paid by slipway_drop as a
+ * drag pays it, then left to settle. */
 static void world(void) {
     void *qu;
     void *re;
@@ -408,13 +410,13 @@ static vec_t *vec_ref_fixed(vec_t at) {
     return v;
 }
 
-/* `jc:hq` reads the hovered entity off `ok.o_`. */
+/* slipway_drag reads the hovered entity off the main user interface. */
 static void drag_over(void *jc, void *hovered, vec_t *mp) {
     main_ui()->hovered = hovered;
     class_of(jc)->drag(jc, mp, NULL);
 }
 
-/* Every entity of `cg` begins with its header. */
+/* Every entity of a tag list begins with its header. */
 static const entity_t *entity_of(const void *e) {
     assert(e != NULL);
     return e;
@@ -432,8 +434,9 @@ static void *first_with_state(const char *tag, const char *me) {
     return NULL;
 }
 
-/* A fresh `jc`: the spec's defaults, ke's `t`, `qu`, and the `ts`/`hg` its
- * `pq` made; registered like any `ke` entity with `kj` and `ev`. */
+/* A fresh slipway: the archetype's defaults, the entity's state time, the
+ * start, and the transit dots and served planets slipway_construct made;
+ * registered like any entity with draw and draw_overlay. */
 static void check_fresh_slipway(const void *e, const void *qu) {
     const slipway_t *jc = as_slipway(e);
     const int_seq_t *k_;
@@ -497,8 +500,8 @@ static void test_construction(void) {
     assert(as_slipway(by_left_press)->served_planets != as_slipway(by_lookup)->served_planets);
 }
 
-/* Without a target, `ey` only raises `p_`; with one, the slipway joins both
- * `oe` and `d_` charges `od`. */
+/* Without an end, slipway_drop only sets is_dead; with one, the slipway
+ * joins both planets' slipways and targeting_confirm charges its cost. */
 static void test_drop(void) {
     uint32_t hash = 2166136261u;
     void *held;
@@ -537,8 +540,9 @@ static void test_drop(void) {
     check("drop", hash, DROP_HASH);
 }
 
-/* Beyond range `et` is a fresh `{qs}`; over the pair an existing slipway
- * already joins, `et` is that slipway; either way its `fo` is the new one. */
+/* Beyond range the target is the too-far struct; over the pair an existing
+ * slipway already joins, the target is that slipway; either way its
+ * `targeted_by` is the new one. */
 static void test_drag(void) {
     uint32_t h = 2166136261u;
     void *old;
@@ -582,7 +586,7 @@ static void test_drag_takes_infraspace_from_its_start(void) {
     assert(as_slipway(from_infraspace_gate)->header.infraspace == &as_slipway(from_infraspace_gate)->infraspace);
 }
 
-/* `A and B or C`: a falsy `re` falls back to `qu`. */
+/* A NULL end falls back to the start. */
 static void test_other_end(void) {
     uint32_t h = 2166136261u;
     void *old;
@@ -618,8 +622,9 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-/* Under the game's camera: the slipway alone on a cleared screen, `fo` cleared after drawing; then a
- * planet whose `fo` is a slipway, circled at `dw`'s radius. */
+/* Under the game's camera: the slipway alone on a cleared screen,
+ * `targeted_by` cleared after drawing; then a planet whose `targeted_by` is
+ * a slipway, circled at the attach distance's radius. */
 static void test_draw(void) {
     uint32_t hash = 2166136261u;
     uint32_t blank;
@@ -663,10 +668,10 @@ static void test_draw(void) {
     check("draw", hash, DRAW_HASH);
 }
 
-/* Beyond range: `kj` draws the line under the game's camera, `ev` writes
- * `qs` at the mouse where one with another `et` draws a sprite and one
- * without writes its cost, and `ey` onto a real planet is refused without
- * spending or joining anything. */
+/* Beyond range: draw draws the line under the game's camera, draw_overlay
+ * writes the status text at the mouse where one with another target draws
+ * a sprite and one without writes its cost, and drop onto a real planet is
+ * refused without spending or joining anything. */
 static void test_too_far(void) {
     uint32_t hash = 2166136261u;
     uint32_t empty;
@@ -748,15 +753,15 @@ static int same_vec(vec_t a, vec_t b) {
     return a.x == b.x && a.y == b.y;
 }
 
-/* The cart keeps the box of `mp`, the port a copy of it. */
+/* The point holds a copy of the mouse vector: equal, never the same box. */
 static int holds_copy_of(const vec_t *ra, const vec_t *m) {
     return ra != NULL && ra != m && same_vec(*ra, *m);
 }
 
-/* Over nothing, `hq` hangs on `re` the slipway's own `{ra,p}`, rewritten in
- * place at each call: `ra` a copy of the `mp` it got, `p` its own `mp/128`,
- * registered nowhere; another `jc` has its own; the generation does not
- * move. */
+/* Over nothing, slipway_drag hangs the end on the slipway's own mouse
+ * point, rewritten in place at each call: `pos` a copy of the mouse vector
+ * it got, `map_pos` that vector over 128, registered nowhere; another
+ * slipway has its own; the game zone does not grow. */
 static void test_drag_mouse_point(void) {
     uint32_t hash = 2166136261u;
     vec_t *first_mouse;
@@ -829,8 +834,9 @@ static void test_drag_mouse_point(void) {
     assert(entity_geom_is_on_screen(as_slipway(second)->end));
 }
 
-/* `jc:ce` falls through to `cg("jc")` when no planet lies on the drag: a
- * drag from a nearby planet to just past the slipway's middle crosses it. */
+/* slipway_obstruction falls through to the slipway tag when no planet lies
+ * on the drag: a drag from a nearby planet to just past the slipway's
+ * middle crosses it. */
 static void test_obstruction_crosses_a_slipway(void) {
     const entity_list_t *jos;
     void *old;
@@ -862,12 +868,13 @@ static void test_obstruction_crosses_a_slipway(void) {
     assert(crossed);
 }
 
-/* g_'s archetype with the probe's `dw` zeroed, as `mz`'s is: every point of
- * this short slipway lies within a `g_`'s `dw` of one of its own planets,
- * which would win. */
+/* The probe's archetype with its attach distance zeroed, as the wormhole's
+ * is: every point of this short slipway lies within a probe's attach
+ * distance of one of its own planets, which would win. */
 static probe_archetype_t g_attach_distance_zero;
 
-/* A `g_` built as `pico8_g__new(NULL)` builds one, on `g_dw_zero`. */
+/* A probe set up as probe_new sets one up, but on that archetype and in
+ * the heap. */
 static probe_t *probe_with_zero_attach_distance(void) {
     probe_t *probe = malloc(sizeof *probe);
 
@@ -879,7 +886,7 @@ static probe_t *probe_with_zero_attach_distance(void) {
     return probe;
 }
 
-/* A probe over the slipway targets it and hangs `fo` on it. */
+/* A probe over the slipway targets it and sets its `targeted_by`. */
 static void test_targeting_track(void) {
     uint32_t h = 2166136261u;
     void *old;
@@ -912,9 +919,9 @@ static void test_targeting_track(void) {
     check("targeting_track", h, TARGETING_TRACK_HASH);
 }
 
-/* `bv` aims at the first slipway of `cg("jc")` under the probe (`jp(...)[1]`),
- * not the last: a second slipway laid over the first, registered after it,
- * never wins. */
+/* targeting_track aims at the first slipway of the slipway tag under the
+ * probe, not the last: a second slipway laid over the first, registered
+ * after it, never wins. */
 static void test_targeting_track_takes_the_first_slipway_of_entities_by_tag(void) {
     void *old;
     void *twin;
@@ -967,8 +974,9 @@ static void served_planets_add_one_more(void *hg) {
     slipway_served_planets_add(hg, "one more");
 }
 
-/* `hg[id]=true` keeps each string `id` once and in order, reads anything
- * else as absent, refuses a nil `id` and a 91st planet. */
+/* slipway_served_planets_add keeps each identifier once and in order,
+ * slipway_served_planets_has reads anything else as absent; a NULL
+ * identifier and a 91st planet are refused. */
 static void test_served_planets_is_a_set_of_ids(void) {
     static char ids[SLIPWAY_SERVED_PLANETS_CAP][8];
     slipway_served_planets_t hg = {0, {NULL}};
@@ -991,8 +999,8 @@ static void test_served_planets_is_a_set_of_ids(void) {
     must_abort(served_planets_add_one_more, &hg);
 }
 
-/* Built by `jo:ldown`/`nr:ldown` or directly, a `jc`
- * is a struct with its five methods. */
+/* Built in a game or directly by slipway_new, a slipway is a struct with
+ * its five methods. */
 static void test_slipway_is_a_struct(void) {
     void *old;
     void *jc;
@@ -1012,8 +1020,8 @@ static void test_slipway_is_a_struct(void) {
            class_of(jc)->left_press == NULL && class_of(jc)->right_press == NULL && class_of(jc)->accept_drop == NULL);
 }
 
-/* Beyond range, every `jc` gets the same struct: `qs` fixed, `fo` the last
- * `hq` to write it, no method. */
+/* Beyond range, every slipway gets the same struct: the status text fixed,
+ * `targeted_by` the last slipway_drag to write it, no method. */
 static void test_too_far_is_a_struct(void) {
     void *origin;
     void *far;
@@ -1034,8 +1042,8 @@ static void test_too_far_is_a_struct(void) {
     assert(strcmp(et->status_text, "-too far-") == 0);
 }
 
-/* Over nothing, `re` is a `{ra,p}` struct without method; a nil `mp`
- * leaves `ra` absent and `p` zero. */
+/* Over nothing, the end is a mouse point struct without method; a NULL
+ * mouse vector leaves `pos` absent and `map_pos` zero. */
 static void test_mouse_point_is_a_struct(void) {
     void *origin;
     void *jc;
@@ -1069,7 +1077,7 @@ static void build_off_row(void *e) {
     (void)slipway_new(&keys);
 }
 
-/* A construction's `qu` that is not a planet stops the run. */
+/* A start key that is not a planet or a structure stops the run. */
 static void test_slipway_new_stops_off_start(void) {
     void *off[5];
     void *old;
@@ -1093,7 +1101,7 @@ static void test_slipway_new_stops_off_start(void) {
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked
- * right after pico8_cart_load(), as a fresh process would start it. */
+ * right after cart_load(), as a fresh process would start it. */
 static void in_fresh_child(void (*test)(void)) {
     pid_t child;
     int status;

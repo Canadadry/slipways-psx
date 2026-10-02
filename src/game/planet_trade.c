@@ -11,9 +11,9 @@
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
 
-/* Membership by trade equality (same endpoints), not pico8_ents_has's pointer
- * identity: every candidate offered here is a freshly built route, which
- * identity would never match. NULL-safe on `list`. */
+/* Membership by trade equality (same endpoints), not entity_list_has's
+ * pointer identity: every candidate offered here is a freshly built route,
+ * which identity would never match. NULL-safe on `list`. */
 static int contains_trade(const entity_list_t *list, const trade_route_t *v) {
     entity_list_iter_t it;
     entity_t *e;
@@ -223,8 +223,8 @@ entity_list_t *planet_rebuild_trades(planet_t *self) {
         keys.planets = planets_list;
         keys.slipways = slipways_list;
         lw.route = trade_new(frame_zone(), &keys);
-        /* Recomputed each iteration: an earlier proposal's `kf` may already
-         * have grown `ib`. */
+        /* Recomputed each iteration: an earlier offer's accept callback may
+         * already have grown the accepted routes. */
         lw.amount = amount - p8_fixed_from_int(accepted_routes->count);
         lw.accept = planet_rebuild_trades_attach_slipway_closure;
         lw.accepted_routes = accepted_routes;
@@ -233,8 +233,8 @@ entity_list_t *planet_rebuild_trades(planet_t *self) {
             break;
         }
 
-        /* `lw` is on the stack: a callee that keeps the REF past this
-         * iteration holds a dangling pointer. `nr:cn` copies it instead. */
+        /* The offer is on the stack: a callee that keeps a pointer to it past
+         * this iteration dangles. slipgate_offer_trade copies it instead. */
         assert(w->class == slipway_class() && "a planet's slipways list holds slipways only: planet_attach_slipway adds to it");
         other = slipway_other_end((const slipway_t *)w, (const entity_t *)self);
         if (other != NULL && other->class->offer_trade != NULL) {

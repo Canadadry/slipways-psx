@@ -13,8 +13,8 @@
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
 
-/* Adapts random_walk_next() to weighted_picker_random_fn_t: `ctx` is always
- * the random_walk_t this file passes alongside it. */
+/* Adapts random_walk_next() to weighted_picker_random_fn_t: the context
+ * pointer is always the random_walk_t this file passes alongside it. */
 static p8_fixed_t picker_random(void *ctx) {
     return random_walk_next((random_walk_t *)ctx);
 }
