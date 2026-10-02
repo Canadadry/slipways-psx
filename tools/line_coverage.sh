@@ -1,8 +1,8 @@
 #!/bin/sh
-# usage: line_coverage.sh cover <pilote gcov> <arbre gcov> <events>...
-#        line_coverage.sh diff <ensemble> <ensemble>
-#        line_coverage.sh contrib <ensemble> [<ensemble>...]
-#        line_coverage.sh gap <référence> <inatteignables> <ensemble>
+# usage: line_coverage.sh cover <gcov driver> <gcov tree> <events>...
+#        line_coverage.sh diff <set> <set>
+#        line_coverage.sh contrib <set> [<set>...]
+#        line_coverage.sh gap <reference> <unreachable> <set>
 # Un ensemble : une ligne `fichier:ligne` par ligne source exécutée, triée.
 # cover : l'union des lignes couvertes par les rejeux, un processus par
 #   fichier, chacun depuis l'écran titre. Rend 1, sans rien écrire sur la
@@ -23,7 +23,7 @@ sorted() {
 minus() {
     for set in "$@"; do
         if [ ! -f "$set" ]; then
-            echo "ensemble absent: $set" >&2
+            echo "missing set: $set" >&2
             exit 1
         fi
     done
@@ -37,7 +37,7 @@ minus() {
 gap() {
     for set in "$@"; do
         if [ ! -f "$set" ]; then
-            echo "ensemble absent: $set" >&2
+            echo "missing set: $set" >&2
             exit 1
         fi
     done
@@ -51,7 +51,7 @@ cover() {
     objdir=$2
     shift 2
     if [ $# -eq 0 ]; then
-        echo "cover: aucun fichier d'événements" >&2
+        echo "cover: no events file" >&2
         exit 1
     fi
 
@@ -88,7 +88,7 @@ cover() {
         [ -f "$work/$i.status" ] || continue
         status=$(cat "$work/$i.status")
         if [ "$status" -ne 0 ]; then
-            echo "échec: $(cat "$work/$i.events") (code $status)" >&2
+            echo "failed: $(cat "$work/$i.events") (code $status)" >&2
             sed 's/^/  /' "$work/$i.err" >&2
             failed=1
         fi
@@ -101,7 +101,7 @@ cover() {
         cp "$objdir/$rel"/*.gcno "$dir"/ || exit 1
         if ! gcov -t -o "$dir" "$dir"/*.gcda > "$work/gcov.out" 2> "$work/gcov.err" \
             || grep -q 'mismatch' "$work/gcov.err"; then
-            echo "gcov: échec sur $dir" >&2
+            echo "gcov: failed on $dir" >&2
             cat "$work/gcov.err" >&2
             exit 1
         fi
@@ -122,22 +122,22 @@ cover() {
 case "${1:-}" in
     cover)
         shift
-        [ $# -ge 2 ] || { echo "usage: $0 cover <pilote gcov> <arbre gcov> <events>..." >&2; exit 1; }
+        [ $# -ge 2 ] || { echo "usage: $0 cover <gcov driver> <gcov tree> <events>..." >&2; exit 1; }
         cover "$@"
         ;;
     diff)
         shift
-        [ $# -eq 2 ] || { echo "usage: $0 diff <ensemble> <ensemble>" >&2; exit 1; }
+        [ $# -eq 2 ] || { echo "usage: $0 diff <set> <set>" >&2; exit 1; }
         minus "$@"
         ;;
     contrib)
         shift
-        [ $# -ge 1 ] || { echo "usage: $0 contrib <ensemble> [<ensemble>...]" >&2; exit 1; }
+        [ $# -ge 1 ] || { echo "usage: $0 contrib <set> [<set>...]" >&2; exit 1; }
         minus "$@"
         ;;
     gap)
         shift
-        [ $# -eq 3 ] || { echo "usage: $0 gap <référence> <inatteignables> <ensemble>" >&2; exit 1; }
+        [ $# -eq 3 ] || { echo "usage: $0 gap <reference> <unreachable> <set>" >&2; exit 1; }
         gap "$@"
         ;;
     *)

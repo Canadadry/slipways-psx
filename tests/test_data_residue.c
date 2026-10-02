@@ -14,7 +14,7 @@
 #define OUT DIR "/out.txt"
 #define ERR DIR "/err.txt"
 #define TREE SRC " " TST
-#define EMPTY_FOOTER "résidu D : 0 ligne(s), 0 fichier(s)\n"
+#define EMPTY_FOOTER "residue D: 0 line(s), 0 file(s)\n"
 
 /* Tampon statique, termine par NUL, ecrase a chaque appel. */
 static const char *read_file(const char *path) {
@@ -69,17 +69,17 @@ static void test_one_occurrence_per_category_in_table_order(void) {
     write_file(TST "/c9.c", "int k = g_jo_" "spec[0];\n");
     write_file(TST "/c10.c", "pico8_" "list_t l;\n");
     assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "valeur\t1\t1\n"
+    assert(strcmp(read_file(OUT), "value\t1\t1\n"
                                   "ob\t1\t1\n"
                                   "stash\t1\t1\n"
                                   "type-tag\t1\t1\n"
                                   "ref-audit\t1\t1\n"
-                                  "par-nom\t1\t1\n"
+                                  "by-name\t1\t1\n"
                                   "dispatch\t1\t1\n"
                                   "over" "rides\t1\t1\n"
                                   "spec\t1\t1\n"
-                                  "liste\t1\t1\n"
-                                  "résidu D : 10 ligne(s), 10 fichier(s)\n") == 0);
+                                  "list\t1\t1\n"
+                                  "residue D: 10 line(s), 10 file(s)\n") == 0);
 }
 
 static void test_overlapping_categories_count_each_but_footer_counts_distinct_lines(void) {
@@ -87,14 +87,14 @@ static void test_overlapping_categories_count_each_but_footer_counts_distinct_li
     write_file(SRC "/e.c", "pico8_" "entity_get_field(e, \"x\", &v);\n"
                            "pico8_" "value_t v;\n");
     assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "valeur\t1\t1\n"
-                                  "par-nom\t1\t1\n"
-                                  "résidu D : 2 ligne(s), 1 fichier(s)\n") == 0);
+    assert(strcmp(read_file(OUT), "value\t1\t1\n"
+                                  "by-name\t1\t1\n"
+                                  "residue D: 2 line(s), 1 file(s)\n") == 0);
     write_file(SRC "/e.c", "pico8_" "value_t v = pico8_" "entity_get_field(e, \"x\");\n");
     assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "valeur\t1\t1\n"
-                                  "par-nom\t1\t1\n"
-                                  "résidu D : 1 ligne(s), 1 fichier(s)\n") == 0);
+    assert(strcmp(read_file(OUT), "value\t1\t1\n"
+                                  "by-name\t1\t1\n"
+                                  "residue D: 1 line(s), 1 file(s)\n") == 0);
 }
 
 static void test_omitted_argument_defaults_are_not_class_specs(void) {
@@ -110,7 +110,7 @@ static void test_omitted_argument_defaults_are_not_class_specs(void) {
                            "hud_" "print_outlined_default(x);\n");
     assert(run_residue(TREE) == 0);
     assert(strcmp(read_file(OUT), "spec\t2\t1\n"
-                                  "résidu D : 2 ligne(s), 1 fichier(s)\n") == 0);
+                                  "residue D: 2 line(s), 1 file(s)\n") == 0);
 }
 
 static void test_word_boundaries_and_value_truthy(void) {
@@ -125,8 +125,8 @@ static void test_word_boundaries_and_value_truthy(void) {
                            "static k_t kind = { ." "set_field = f };\n"
                            "int b = field_" "truthy(e, \"x\");\n");
     assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "par-nom\t3\t1\n"
-                                  "résidu D : 3 ligne(s), 1 fichier(s)\n") == 0);
+    assert(strcmp(read_file(OUT), "by-name\t3\t1\n"
+                                  "residue D: 3 line(s), 1 file(s)\n") == 0);
 }
 
 static void test_list_word_boundaries(void) {
@@ -142,8 +142,8 @@ static void test_list_word_boundaries(void) {
     assert(run_residue(TREE) == 0);
     assert(strcmp(read_file(OUT), "type-tag\t1\t1\n"
                                   "ref-audit\t1\t1\n"
-                                  "liste\t3\t1\n"
-                                  "résidu D : 3 ligne(s), 1 fichier(s)\n") == 0);
+                                  "list\t3\t1\n"
+                                  "residue D: 3 line(s), 1 file(s)\n") == 0);
 }
 
 static void test_detail_sorts_by_category_then_file(void) {
@@ -151,10 +151,10 @@ static void test_detail_sorts_by_category_then_file(void) {
     write_file(SRC "/b.c", "pico8_" "value_t b;\n");
     write_file(SRC "/a.c", "pico8_" "value_t a;\npico8_" "ob_table_t *t;\n");
     assert(run_residue("--detail " TREE) == 0);
-    const char *expected = "valeur\t" SRC "/a.c\t1\n"
-                           "valeur\t" SRC "/b.c\t1\n"
+    const char *expected = "value\t" SRC "/a.c\t1\n"
+                           "value\t" SRC "/b.c\t1\n"
                            "ob\t" SRC "/a.c\t1\n"
-                           "résidu D : 3 ligne(s), 2 fichier(s)\n";
+                           "residue D: 3 line(s), 2 file(s)\n";
     assert(strcmp(read_file(OUT), expected) == 0);
     assert(system("cp " OUT " " DIR "/one.txt") == 0);
     assert(run_residue("--detail " TREE) == 0);
@@ -167,9 +167,9 @@ static void test_check_fails_only_on_a_named_category_present(void) {
     assert(run_residue("--check ref-audit " TREE) == 1);
     const char *out = read_file(OUT);
     assert(strstr(out, "ref-audit: " SRC "/r.c:2:#include \"pico8_" "ref_audit.h\"\n") != NULL);
-    assert(strstr(out, "résidu gardé (ref-audit) : 1 ligne(s)\n") != NULL);
+    assert(strstr(out, "guarded residue (ref-audit): 1 line(s)\n") != NULL);
     assert(run_residue("--check spec " TREE) == 0);
-    assert(strcmp(read_file(OUT), "résidu gardé (spec) : 0 ligne(s)\n") == 0);
+    assert(strcmp(read_file(OUT), "guarded residue (spec): 0 line(s)\n") == 0);
     assert(run_residue("--check spec,ref-audit " TREE) == 1);
     assert(run_residue("--check nope " TREE) == 2);
     assert(strstr(read_file(ERR), "nope") != NULL);
@@ -181,10 +181,10 @@ static void test_check_fails_only_on_a_named_category_present(void) {
 static void test_measure_on_nothing_is_an_error_not_an_empty_residue(void) {
     setup();
     assert(run_residue(SRC " " DIR "/absent") == 2);
-    assert(strstr(read_file(OUT), "résidu D : 0") == NULL);
+    assert(strstr(read_file(OUT), "residue D: 0") == NULL);
     assert(system("mkdir -p " DIR "/bare && echo x > " DIR "/bare/notes.txt") == 0);
     assert(run_residue(DIR "/bare") == 2);
-    assert(strstr(read_file(OUT), "résidu D : 0") == NULL);
+    assert(strstr(read_file(OUT), "residue D: 0") == NULL);
     assert(run_residue("--check spec " DIR "/bare") == 2);
     assert(run_residue("--bogus " TREE) == 2);
 }

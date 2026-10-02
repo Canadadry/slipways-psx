@@ -45,7 +45,7 @@ static void write_e2e(const char *name, int frames) {
     fputs("  ]\n}\n", file);
     fclose(file);
     snprintf(path, sizeof path, DIR "/%s.txt", name);
-    write_file(path, "ce que fait le rejeu\n");
+    write_file(path, "what the replay does\n");
     snprintf(path, sizeof path, DIR "/%s.json.sha256", name);
     write_file(path, "0000\n");
 }
@@ -68,24 +68,24 @@ static void test_no_e2e_passes(void) {
 
 static void test_e2e_of_180_frames_passes(void) {
     reset();
-    write_e2e("court", 180);
-    assert(run(DIR "/court.json") == 0);
+    write_e2e("short", 180);
+    assert(run(DIR "/short.json") == 0);
 }
 
 static void test_e2e_over_180_frames_fails_and_is_named(void) {
     reset();
-    write_e2e("court", 10);
+    write_e2e("short", 10);
     write_e2e("long", 181);
-    assert(run(DIR "/court.json " DIR "/long.json") != 0);
+    assert(run(DIR "/short.json " DIR "/long.json") != 0);
     assert(strstr(read_log(), DIR "/long.json") != NULL);
     assert(strstr(read_log(), "181") != NULL);
-    assert(strstr(read_log(), DIR "/court.json :") == NULL);
+    assert(strstr(read_log(), DIR "/short.json:") == NULL);
 }
 
 static void test_listed_exception_is_allowed_up_to_600_frames(void) {
     reset();
     write_e2e("long", 600);
-    write_file(EXCEPTIONS, DIR "/long.json la sonde met 9 s a revenir\n");
+    write_file(EXCEPTIONS, DIR "/long.json the probe takes 9 s to come back\n");
     assert(run(DIR "/long.json") == 0);
     write_e2e("long", 601);
     assert(run(DIR "/long.json") != 0);
@@ -94,14 +94,14 @@ static void test_listed_exception_is_allowed_up_to_600_frames(void) {
 
 static void test_missing_companion_file_fails(void) {
     reset();
-    write_e2e("sans_txt", 10);
-    assert(system("rm " DIR "/sans_txt.txt") == 0);
-    assert(run(DIR "/sans_txt.json") != 0);
-    assert(strstr(read_log(), DIR "/sans_txt.txt") != NULL);
-    write_e2e("sans_sha", 10);
-    assert(system("rm " DIR "/sans_sha.json.sha256") == 0);
-    assert(run(DIR "/sans_sha.json") != 0);
-    assert(strstr(read_log(), DIR "/sans_sha.json.sha256") != NULL);
+    write_e2e("no_txt", 10);
+    assert(system("rm " DIR "/no_txt.txt") == 0);
+    assert(run(DIR "/no_txt.json") != 0);
+    assert(strstr(read_log(), DIR "/no_txt.txt") != NULL);
+    write_e2e("no_sha", 10);
+    assert(system("rm " DIR "/no_sha.json.sha256") == 0);
+    assert(run(DIR "/no_sha.json") != 0);
+    assert(strstr(read_log(), DIR "/no_sha.json.sha256") != NULL);
     assert(run(DIR "/absent.json") != 0);
     assert(strstr(read_log(), DIR "/absent.json") != NULL);
 }

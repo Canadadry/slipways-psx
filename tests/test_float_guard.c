@@ -50,17 +50,17 @@ static void test_floating_file_is_listed_and_fails_the_guard(void) {
     setup();
     assert(run_guard(FLOATING " " INTEGER) == 1);
     const char *out = read_file(OUT);
-    assert(strstr(out, "echec " FLOATING "\n") != NULL);
+    assert(strstr(out, "failed " FLOATING "\n") != NULL);
     assert(strstr(out, INTEGER) == NULL);
-    assert(strstr(out, "garde fichiers 2 en-echec 1\n") != NULL);
+    assert(strstr(out, "float-guard files 2 failing 1\n") != NULL);
 }
 
 static void test_integer_file_alone_passes_the_guard(void) {
     setup();
     assert(run_guard(INTEGER) == 0);
     const char *out = read_file(OUT);
-    assert(strstr(out, "\nechec ") == NULL);
-    assert(strstr(out, "garde fichiers 1 en-echec 0\n") != NULL);
+    assert(strstr(out, "\nfailed ") == NULL);
+    assert(strstr(out, "float-guard files 1 failing 0\n") != NULL);
 }
 
 static void test_every_failing_file_is_listed_sorted(void) {
@@ -68,10 +68,10 @@ static void test_every_failing_file_is_listed_sorted(void) {
     write_file(DIR "/pico8_another.c", "float pico8_third(void) { return 3.0f; }\n");
     assert(run_guard(FLOATING " " INTEGER " " DIR "/pico8_another.c") == 1);
     const char *out = read_file(OUT);
-    const char *another = strstr(out, "echec " DIR "/pico8_another.c\n");
-    const char *floating = strstr(out, "echec " FLOATING "\n");
+    const char *another = strstr(out, "failed " DIR "/pico8_another.c\n");
+    const char *floating = strstr(out, "failed " FLOATING "\n");
     assert(another != NULL && floating != NULL && another < floating);
-    assert(strstr(out, "garde fichiers 3 en-echec 2\n") != NULL);
+    assert(strstr(out, "float-guard files 3 failing 2\n") != NULL);
 }
 
 static void test_no_source_is_an_error_not_a_pass(void) {

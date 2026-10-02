@@ -78,7 +78,7 @@ static void setup_transient_user(void) {
 
 static void test_exact_counts_pass(void) {
     setup();
-    write_file(LIST, "# commentaire\nsrc/pico8_allocs.c 3\n");
+    write_file(LIST, "# comment\nsrc/pico8_allocs.c 3\n");
     assert(run_guard(ALLOCS " " CLEAN) == 0);
 }
 
@@ -147,16 +147,16 @@ static void test_reference_to_the_old_transient_symbol_counts_zero(void) {
     setup_transient_user();
     write_file(LIST, "");
     assert(run_guard(TRANSIENT_USER) == 0);
-    assert(strstr(read_file(OUT), "allouent 0 appels 0\n") != NULL);
+    assert(strstr(read_file(OUT), "allocating 0 calls 0\n") != NULL);
 }
 
 static void test_header_only_list_passes_then_fails_on_a_new_allocation(void) {
     setup();
-    write_file(LIST, "# Liste d'exceptions du verrou : vide.\n# Une ligne `<source> <appels>` par fichier.\n");
+    write_file(LIST, "# Exception list of the allocation guard: empty.\n# One line `<source> <calls>` per file.\n");
     assert(run_guard(CLEAN) == 0);
-    assert(strstr(read_file(OUT), "allouent 0 appels 0\n") != NULL);
+    assert(strstr(read_file(OUT), "allocating 0 calls 0\n") != NULL);
     assert(run_guard(ALLOCS " " CLEAN) == 1);
-    assert(strstr(read_file(OUT), "ligne a ajouter : src/pico8_allocs.c 3\n") != NULL);
+    assert(strstr(read_file(OUT), "line to add: src/pico8_allocs.c 3\n") != NULL);
 }
 
 int main(void) {

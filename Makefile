@@ -1074,7 +1074,7 @@ e2e-judge: $(TMP_DIR)/replay_gcov tools/line_coverage.sh
 .PHONY: minimize e2e-cleanup e2e-judge
 
 # The categories of the counter that have fallen to 0, comma-separated.
-DATA_RESIDUE_GUARD := spec,overrides,stash,ob,dispatch,par-nom,liste,ref-audit,valeur,type-tag
+DATA_RESIDUE_GUARD := spec,overrides,stash,ob,dispatch,by-name,list,ref-audit,value,type-tag
 
 data-residue: tools/data_residue.sh
 	@sh tools/data_residue.sh
@@ -1134,7 +1134,7 @@ FLOAT_GUARD := tools/float_guard.txt
 float-guard: tools/float_guard.sh | $(TMP_DIR)
 	@status=0; sh tools/float_guard.sh "$(CC)" "$(CFLAGS)" $(TMP_DIR)/float-guard $(CORE_SRCS) > $(TMP_DIR)/float_guard.txt || status=$$?; \
 	mv $(TMP_DIR)/float_guard.txt $(FLOAT_GUARD); \
-	grep '^garde ' $(FLOAT_GUARD); \
+	grep '^float-guard ' $(FLOAT_GUARD); \
 	exit $$status
 
 .PHONY: float-guard

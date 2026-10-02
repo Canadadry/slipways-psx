@@ -37,9 +37,9 @@ static int run(const char *args) {
 static void test_two_identical_files_leave_only_the_shorter(void) {
     write_file(DIR "/a.lines", "src/a.c:1\nsrc/a.c:2\n");
     write_file(DIR "/b.lines", "src/a.c:1\nsrc/a.c:2\n");
-    assert(run("court 12 " DIR "/a.lines long 40 " DIR "/b.lines") == 0);
+    assert(run("short 12 " DIR "/a.lines long 40 " DIR "/b.lines") == 0);
     assert(strcmp(read_out(), "long\n") == 0);
-    assert(run("long 40 " DIR "/b.lines court 12 " DIR "/a.lines") == 0);
+    assert(run("long 40 " DIR "/b.lines short 12 " DIR "/a.lines") == 0);
     assert(strcmp(read_out(), "long\n") == 0);
 }
 
@@ -71,7 +71,7 @@ static void test_missing_set_or_bad_arguments_fail(void) {
     write_file(DIR "/a.lines", "src/a.c:1\n");
     assert(run("a 10 " DIR "/a.lines b 5 " DIR "/absent.lines") != 0);
     assert(run("a 10") != 0);
-    assert(run("a dix " DIR "/a.lines") != 0);
+    assert(run("a ten " DIR "/a.lines") != 0);
 }
 
 int main(void) {

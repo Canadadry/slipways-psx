@@ -14,7 +14,7 @@ work=$3
 shift 3
 
 if [ $# -eq 0 ]; then
-    echo "float_guard: aucune source" >&2
+    echo "float_guard: no source" >&2
     exit 2
 fi
 
@@ -30,20 +30,20 @@ for src in "$@"; do
 done
 
 cat <<'EOF'
-# Garde -mgeneral-regs-only sur le coeur (aucun registre flottant), produite par
-# tools/float_guard.sh via make float-guard. Ne pas editer a la main.
+# -mgeneral-regs-only guard over the core (no floating-point register),
+# written by tools/float_guard.sh through make float-guard. Do not edit.
 #
-# Une ligne par fichier du coeur qui ne compile pas sans registre flottant.
-# La liste doit etre vide.
+# One line per file of the core that does not compile without
+# floating-point registers. The list must be empty.
 #
-# Angle mort sur x86_64 : un argument double passe a une fonction externe
-# compile sans erreur sous la garde. Il est tenu par l'absence de prototype
-# flottant dans le coeur : un tel appel y est une declaration implicite, donc
-# une erreur.
+# Blind spot on x86_64: a double argument passed to an external function
+# compiles without error under the guard. The absence of any floating-point
+# prototype in the core holds it: such a call is an implicit declaration
+# there, hence an error.
 #
 EOF
-LC_ALL=C sort "$failed" | sed 's/^/echec /'
+LC_ALL=C sort "$failed" | sed 's/^/failed /'
 count=$(wc -l < "$failed" | tr -d ' ')
 echo "#"
-echo "garde fichiers $# en-echec $count"
+echo "float-guard files $# failing $count"
 [ "$count" -eq 0 ]

@@ -17,7 +17,7 @@
 
 set -u
 
-CATEGORIES="valeur ob stash type-tag ref-audit par-nom dispatch overrides spec liste"
+CATEGORIES="value ob stash type-tag ref-audit by-name dispatch overrides spec list"
 
 fail() {
     echo "data_residue: $1" >&2
@@ -26,18 +26,18 @@ fail() {
 
 pattern() {
     case $1 in
-        valeur) printf '%s\n' '\bpico8_value_[A-Za-z0-9_]+|\bPICO8_VALUE_[A-Z0-9_]+|pico8_value\.h' ;;
+        value) printf '%s\n' '\bpico8_value_[A-Za-z0-9_]+|\bPICO8_VALUE_[A-Z0-9_]+|pico8_value\.h' ;;
         ob) printf '%s\n' '\bpico8_ob(_[A-Za-z0-9_]+)?\b|\bPICO8_OB_[A-Z0-9_]+|\bpico8_fi(_fn)?\b|pico8_ob\.h' ;;
         stash) printf '%s\n' '\bpico8_unstash\b|\bpico8_stash_[A-Za-z0-9_]+|pico8_stash\.h|\bpico8_(r|iz)\(\)' ;;
         type-tag) printf '%s\n' '\bpico8_type_tag(_of|_t)?\b|\bPICO8_TYPE_TAG_[A-Z0-9_]+|pico8_type_tag\.h' ;;
         ref-audit) printf '%s\n' 'pico8_ref_audit\.h|\bPICO8_REF_[A-Z0-9_]+' ;;
-        par-nom) printf '%s\n' '\bpico8_entity_(get|set)_field\b|\b[a-z0-9_]*field_truthy\(|'\
+        by-name) printf '%s\n' '\bpico8_entity_(get|set)_field\b|\b[a-z0-9_]*field_truthy\(|'\
 '\bpico8_[a-z0-9_]+_(set_)?field(_fn)?\b|(->|\.)(set_)?field\b|\b[a-z0-9_]+_take_[a-z0-9_]+\(' ;;
         dispatch) printf '%s\n' '\bpico8_value_function(_t)?\b|\bpico8_mv\(' ;;
         overrides) printf '%s\n' '\boverrides\b' ;;
         spec) printf '%s\n' '\bg_[a-z0-9_]+_(spec|defaults)\b|\bpico8_[a-z0-9_]+_(default|defaults_reset)\b|'\
 '\b[a-z0-9_]+_default_(fixed|table|vec|string|box|list|bool|hf)\b' ;;
-        liste) printf '%s\n' '\bpico8_list_[a-z_]+\b|\bPICO8_REF_AS_LIST[A-Z_]*|'\
+        list) printf '%s\n' '\bpico8_list_[a-z_]+\b|\bPICO8_REF_AS_LIST[A-Z_]*|'\
 '\bPICO8_TYPE_TAG_LIST\b|pico8_list\.h' ;;
         *) return 1 ;;
     esac
@@ -54,18 +54,18 @@ case ${1:-} in
     --detail) mode=detail; shift ;;
     --check)
         mode=check
-        [ $# -ge 2 ] || fail "--check sans categorie"
+        [ $# -ge 2 ] || fail "--check without a category"
         checked=$2
         shift 2
-        [ -n "$checked" ] || fail "--check sans categorie"
+        [ -n "$checked" ] || fail "--check without a category"
         for cat in $(printf '%s\n' "$checked" | tr ',' ' '); do
-            pattern "$cat" > /dev/null || fail "categorie inconnue : $cat"
+            pattern "$cat" > /dev/null || fail "unknown category: $cat"
         done
         case ,$checked, in
-            *,,*) fail "categorie vide dans : $checked" ;;
+            *,,*) fail "empty category in: $checked" ;;
         esac
         ;;
-    -*) fail "option inconnue : $1" ;;
+    -*) fail "unknown option: $1" ;;
 esac
 [ $# -gt 0 ] || set -- src tests
 
@@ -76,10 +76,10 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
 for dir in "$@"; do
-    [ -d "$dir" ] || fail "dossier absent : $dir"
+    [ -d "$dir" ] || fail "missing directory: $dir"
 done
 find "$@" \( -name '*.c' -o -name '*.h' \) -type f | sort > "$work/files"
-[ -s "$work/files" ] || fail "aucun .c/.h dans : $*"
+[ -s "$work/files" ] || fail "no .c or .h file in: $*"
 
 # Rend dans $work/<cat> les lignes "<fichier>:<ligne>:<texte>", dans l'ordre
 # des fichiers puis des lignes. grep rend 1 quand rien ne correspond.
@@ -87,20 +87,20 @@ collect() {
     status=0
     if [ "$1" = spec ]; then
         grep -lE "$(pattern spec)" $(cat "$work/files") > "$work/candidates" || status=$?
-        [ "$status" -le 1 ] || fail "echec de grep"
+        [ "$status" -le 1 ] || fail "grep failed"
         : > "$work/spec"
         while IFS= read -r file; do
             status=0
-            sed -E "$SPEC_EXCLUSION" "$file" > "$work/excluded" || fail "echec de sed"
+            sed -E "$SPEC_EXCLUSION" "$file" > "$work/excluded" || fail "sed failed"
             grep -nE "$(pattern spec)" "$work/excluded" > "$work/numbers" || status=$?
-            [ "$status" -le 1 ] || fail "echec de grep"
+            [ "$status" -le 1 ] || fail "grep failed"
             cut -d: -f1 "$work/numbers" > "$work/numbers.cut"
             awk -v f="$file" 'NR == FNR { keep[$1] = 1; next } FNR in keep { print f ":" FNR ":" $0 }' \
                 "$work/numbers.cut" "$file" >> "$work/spec"
         done < "$work/candidates"
     else
         grep -HnE "$(pattern "$1")" $(cat "$work/files") > "$work/$1" || status=$?
-        [ "$status" -le 1 ] || fail "echec de grep"
+        [ "$status" -le 1 ] || fail "grep failed"
     fi
 }
 
@@ -112,7 +112,7 @@ if [ "$mode" = check ]; then
         cut -d: -f1,2 "$work/$cat" >> "$work/all"
     done
     n=$(sort -u "$work/all" | wc -l | tr -d ' ')
-    echo "résidu gardé ($checked) : $n ligne(s)"
+    echo "guarded residue ($checked): $n line(s)"
     [ "$n" -eq 0 ]
     exit
 fi
@@ -132,4 +132,4 @@ for cat in $CATEGORIES; do
 done
 lines=$(sort -u "$work/all" | wc -l | tr -d ' ')
 files=$(cut -d: -f1 "$work/all" | sort -u | wc -l | tr -d ' ')
-echo "résidu D : $lines ligne(s), $files fichier(s)"
+echo "residue D: $lines line(s), $files file(s)"

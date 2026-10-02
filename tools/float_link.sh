@@ -15,7 +15,7 @@ bin=$3
 shift 3
 
 if [ $# -eq 0 ]; then
-    echo "float_link: aucun objet" >&2
+    echo "float_link: no object" >&2
     exit 2
 fi
 
@@ -28,10 +28,10 @@ $cc $cflags -o "$bin" "$@" 2> "$bin.err" || status=1
 # GNU ld : undefined reference to `sym' ; lld : undefined symbol: sym
 sed -n "s/.*undefined reference to [\`']\([^']*\)'.*/\1/p; s/.*undefined symbol: \([^[:space:]]*\).*/\1/p" "$bin.err" \
     | LC_ALL=C sort -u > "$bin.unresolved"
-sed 's/^/non-resolu /' "$bin.unresolved"
+sed 's/^/unresolved /' "$bin.unresolved"
 count=$(wc -l < "$bin.unresolved" | tr -d ' ')
-echo "float-link objets $# non-resolus $count"
+echo "float-link objects $# unresolved $count"
 if [ "$status" -ne 0 ] && [ "$count" -eq 0 ]; then
-    echo "float_link: echec du lien, voir $bin.err" >&2
+    echo "float_link: link failed, see $bin.err" >&2
 fi
 exit "$status"

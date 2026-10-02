@@ -13,12 +13,12 @@ root=$2
 shift 2
 
 if [ $# -eq 0 ]; then
-    echo "alloc_guard: aucun objet" >&2
+    echo "alloc_guard: no object" >&2
     exit 2
 fi
 
 if [ ! -r "$list" ]; then
-    echo "alloc_guard: liste illisible : $list" >&2
+    echo "alloc_guard: unreadable list: $list" >&2
     exit 2
 fi
 
@@ -54,19 +54,19 @@ done
     END {
         for (f in got) {
             if (got[f] > 0 && !(f in listed)) {
-                printf "alloc_guard: %s alloue %d fois, hors liste ; ligne a ajouter : %s %d\n", f, got[f], f, got[f]
+                printf "alloc_guard: %s allocates %d time(s), not listed; line to add: %s %d\n", f, got[f], f, got[f]
             } else if ((f in listed) && got[f] == 0) {
-                printf "alloc_guard: %s n\047alloue plus ; ligne a retirer : %s %s\n", f, f, listed[f]
+                printf "alloc_guard: %s no longer allocates; line to remove: %s %s\n", f, f, listed[f]
             } else if ((f in listed) && got[f] != listed[f]) {
-                printf "alloc_guard: %s alloue %d fois, %s inscrit(s) ; ligne a ecrire : %s %d\n", f, got[f], listed[f], f, got[f]
+                printf "alloc_guard: %s allocates %d time(s), %s listed; line to write: %s %d\n", f, got[f], listed[f], f, got[f]
             }
         }
         for (f in listed) {
             if (!(f in seen)) {
-                printf "alloc_guard: %s n\047est pas dans les objets recus ; ligne a retirer : %s %s\n", f, f, listed[f]
+                printf "alloc_guard: %s is not among the objects given; line to remove: %s %s\n", f, f, listed[f]
             }
         }
     }' | LC_ALL=C sort > "$report"
 cat "$report"
-awk '$2 > 0 { files++; calls += $2 } END { printf "verrou objets %d allouent %d appels %d\n", NR, files, calls }' "$actual"
+awk '$2 > 0 { files++; calls += $2 } END { printf "alloc-guard objects %d allocating %d calls %d\n", NR, files, calls }' "$actual"
 [ ! -s "$report" ]

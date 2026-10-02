@@ -124,7 +124,7 @@ static void test_set_operation_on_missing_set_fails(void) {
 static void test_gap_removes_covered_and_unreachable_lines(void) {
     write_file(DIR "/ref.lines", "src/a.c:1\nsrc/a.c:2\nsrc/b.c:10\nsrc/c.c:5\n");
     write_file(DIR "/covered.lines", "src/a.c:1\nsrc/z.c:9\n");
-    write_file(DIR "/unreachable.txt", "src/c.c:5 jamais en 600 frames\n");
+    write_file(DIR "/unreachable.txt", "src/c.c:5 never in 600 frames\n");
     assert(run(SCRIPT " gap " DIR "/ref.lines " DIR "/unreachable.txt " DIR "/covered.lines",
                DIR "/out.lines") == 0);
     assert(strcmp(read_file(DIR "/out.lines"), "src/a.c:2\nsrc/b.c:10\n") == 0);

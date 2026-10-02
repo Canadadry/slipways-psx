@@ -8,8 +8,8 @@
 #include <string.h>
 
 #define DIR "tmp/test_constants_check_work"
-#define PROBE DIR "/releve.txt"
-#define EXPECTED DIR "/attendus.txt"
+#define PROBE DIR "/reference.txt"
+#define EXPECTED DIR "/expected.txt"
 #define WORK DIR "/gen"
 #define OUT DIR "/out.txt"
 #define FIXED "src/p8/fixed.c"
@@ -85,7 +85,7 @@ static void test_listed_literal_that_passes_fails_as_stale(void) {
     write_file(EXPECTED, "0.27\n0.5\n");
     assert(run(CHECK) != 0);
     const char *out = read_file(OUT);
-    assert(strstr(out, "liste perimee : retirer 0.5") != NULL);
+    assert(strstr(out, "stale list: remove 0.5") != NULL);
     assert(strstr(out, "regression") == NULL);
 }
 
@@ -94,8 +94,8 @@ static void test_unlisted_gap_fails_as_regression(void) {
     write_file(EXPECTED, "");
     assert(run(CHECK) != 0);
     const char *out = read_file(OUT);
-    assert(strstr(out, "regression : 0.27") != NULL);
-    assert(strstr(out, "perimee") == NULL);
+    assert(strstr(out, "regression: 0.27") != NULL);
+    assert(strstr(out, "stale") == NULL);
 }
 
 static void test_listed_literal_absent_from_sources_fails(void) {
@@ -203,7 +203,7 @@ static void test_unlisted_macro_gap_fails_as_regression(void) {
     assert(strstr(read_file(OUT), "literals 2 | sites 2 | ok 1 | gaps 1\n") != NULL);
     write_file(EXPECTED, "");
     assert(run(CHECK) != 0);
-    assert(strstr(read_file(OUT), "regression : 0.27") != NULL);
+    assert(strstr(read_file(OUT), "regression: 0.27") != NULL);
 }
 
 int main(void) {

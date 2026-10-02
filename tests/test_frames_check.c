@@ -60,8 +60,8 @@ static void test_matching_references_pass_and_are_announced(void) {
     write_hash(B_REF, HASH_B);
     assert(run_check() == 0);
     char *log = read_log();
-    assert(strstr(log, A_EVENTS " : conforme") != NULL);
-    assert(strstr(log, B_EVENTS " : conforme") != NULL);
+    assert(strstr(log, A_EVENTS ": matches") != NULL);
+    assert(strstr(log, B_EVENTS ": matches") != NULL);
     assert(strstr(log, "DIVERGENT") == NULL);
     free(log);
 }
@@ -89,7 +89,7 @@ static void test_only_the_divergent_replay_is_named(void) {
     write_hash(B_REF, HASH_X);
     assert(run_check() != 0);
     char *log = read_log();
-    assert(strstr(log, A_EVENTS " : conforme") != NULL);
+    assert(strstr(log, A_EVENTS ": matches") != NULL);
     assert(strstr(log, "DIVERGENT " B_EVENTS) != NULL);
     assert(strstr(log, "DIVERGENT " A_EVENTS) == NULL);
     free(log);
@@ -103,8 +103,8 @@ static void test_missing_reference_is_not_compared_and_says_how_to_set_it(void) 
     char *log = read_log();
     assert(strstr(log, A_REF) != NULL);
     assert(strstr(log, "make e2e-baseline") != NULL);
-    assert(strstr(log, A_EVENTS " : conforme") == NULL);
-    assert(strstr(log, B_EVENTS " : conforme") != NULL);
+    assert(strstr(log, A_EVENTS ": matches") == NULL);
+    assert(strstr(log, B_EVENTS ": matches") != NULL);
     free(log);
 }
 
@@ -117,8 +117,8 @@ static void test_missing_current_hash_fails(void) {
     assert(run_check() != 0);
     char *log = read_log();
     assert(strstr(log, A_CUR) != NULL);
-    assert(strstr(log, A_EVENTS " : conforme") == NULL);
-    assert(strstr(log, B_EVENTS " : conforme") != NULL);
+    assert(strstr(log, A_EVENTS ": matches") == NULL);
+    assert(strstr(log, B_EVENTS ": matches") != NULL);
     free(log);
 }
 

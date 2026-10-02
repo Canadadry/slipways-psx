@@ -18,22 +18,22 @@ fail() {
     exit 1
 }
 
-[ -f "$expected" ] || fail "liste des defaillances attendues $expected absente"
-mkdir -p "$work" || fail "repertoire de travail $work impossible a creer"
-sh "$(dirname "$0")/constants_compare.sh" "$@" > "$table" || fail "le comparateur s'arrete en erreur"
+[ -f "$expected" ] || fail "expected-gap list $expected missing"
+mkdir -p "$work" || fail "cannot create the working directory $work"
+sh "$(dirname "$0")/constants_compare.sh" "$@" > "$table" || fail "the comparator stopped on an error"
 
 verdict=$(awk -F' [|] ' '
     FILENAME == ARGV[1] { if ($0 !~ /^#/ && NF) listed[$0] = 1; next }
     NF == 5 { status[$1] = $4 }
     END {
-        for (lit in listed) if (!(lit in status)) print "litteral liste absent des sources : " lit
-        for (lit in listed) if (status[lit] == "ok") print "liste perimee : retirer " lit
-        for (lit in status) if (status[lit] == "GAP" && !(lit in listed)) print "regression : " lit
+        for (lit in listed) if (!(lit in status)) print "listed literal absent from the sources: " lit
+        for (lit in listed) if (status[lit] == "ok") print "stale list: remove " lit
+        for (lit in status) if (status[lit] == "GAP" && !(lit in listed)) print "regression: " lit
     }' "$expected" "$table" | sort)
 
 if [ -n "$verdict" ]; then
     cat "$table" >&2
     echo "$verdict" | sed 's/^/constants_check: /' >&2
-    fail "les ECART ne sont pas ceux de $expected"
+    fail "the GAP literals are not those of $expected"
 fi
 tail -n 1 "$table"

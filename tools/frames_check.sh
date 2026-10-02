@@ -13,12 +13,12 @@ while [ $# -ge 3 ]; do
     shift 3
 
     if [ ! -f "$reference" ]; then
-        echo "frames: $events : aucune reference ($reference absent) -- rien capture ni compare."
-        echo "frames:   pour la poser sur le code actuel : make e2e-baseline"
+        echo "frames: $events: no reference ($reference missing) -- not compared."
+        echo "frames:   to set it from the current code: make e2e-baseline"
         continue
     fi
     if [ ! -f "$current" ]; then
-        echo "frames: $events : empreinte courante absente ($current)" >&2
+        echo "frames: $events: current hash missing ($current)" >&2
         failed=1
         continue
     fi
@@ -26,17 +26,17 @@ while [ $# -ge 3 ]; do
     attendue=$(cat "$reference")
     obtenue=$(cat "$current")
     if [ "$attendue" = "$obtenue" ]; then
-        echo "frames: $events : conforme ($obtenue)"
+        echo "frames: $events: matches ($obtenue)"
         continue
     fi
 
     failed=1
     {
-        echo "frames: DIVERGENT $events -- le port ne dessine plus la meme chose."
-        echo "frames:   attendue ($reference) : $attendue"
-        echo "frames:   obtenue  ($current) : $obtenue"
-        echo "frames:   reconstruire la reference et trouver la premiere frame : make e2e-ref"
-        echo "frames:   si la divergence est voulue : make e2e-baseline"
+        echo "frames: DIVERGENT $events -- the game no longer draws the same thing."
+        echo "frames:   expected ($reference): $attendue"
+        echo "frames:   actual   ($current): $obtenue"
+        echo "frames:   rebuild the reference and find the first diverging frame: make e2e-ref"
+        echo "frames:   if the divergence is intended: make e2e-baseline"
     } >&2
 done
 

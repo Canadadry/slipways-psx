@@ -51,15 +51,15 @@ static void setup(void) {
     write_file(SRC "/core.h", "int core_half(int x);\n");
     write_file(SRC "/audit.h", "double audit_value(void);\n");
     write_file(SRC "/main.c", "int main(void) { double d = 1.0; return (int)d; }\n");
-    write_file(EXCL, "# commentaire\n\n"
-                     SRC "/audit.h | build d'audit\n"
-                     SRC "/main.c | point d'entree\n");
+    write_file(EXCL, "# comment\n\n"
+                     SRC "/audit.h | audit build\n"
+                     SRC "/main.c | entry point\n");
 }
 
 static void test_core_without_float_passes(void) {
     setup();
     assert(run_grep(SRC "/core.c") == 0);
-    assert(strstr(read_file(OUT), "float-grep coeur 2 exclus 2 lignes 0\n") != NULL);
+    assert(strstr(read_file(OUT), "float-grep core 2 excluded 2 lines 0\n") != NULL);
 }
 
 static void test_comment_word_in_included_header_is_found(void) {
@@ -68,14 +68,14 @@ static void test_comment_word_in_included_header_is_found(void) {
     assert(run_grep(SRC "/core.c") == 1);
     const char *out = read_file(OUT);
     assert(strstr(out, SRC "/core.h:1:/* no double-free here */\n") != NULL);
-    assert(strstr(out, "float-grep coeur 2 exclus 2 lignes 1\n") != NULL);
+    assert(strstr(out, "float-grep core 2 excluded 2 lines 1\n") != NULL);
 }
 
 static void test_identifier_suffix_is_not_a_word(void) {
     setup();
     write_file(SRC "/core.h", "int core_half(int x);\nint fixed_test_double_to_double;\n");
     assert(run_grep(SRC "/core.c") == 0);
-    assert(strstr(read_file(OUT), "lignes 0\n") != NULL);
+    assert(strstr(read_file(OUT), "lines 0\n") != NULL);
 }
 
 static void test_lines_are_sorted_by_file_then_line_number(void) {
@@ -94,38 +94,38 @@ static void test_lines_are_sorted_by_file_then_line_number(void) {
     const char *header = strstr(out, SRC "/core.h:1:float f;\n");
     assert(nine != NULL && ten != NULL && header != NULL);
     assert(nine < ten && ten < header);
-    assert(strstr(out, "lignes 3\n") != NULL);
+    assert(strstr(out, "lines 3\n") != NULL);
 }
 
 static void test_audit_only_header_must_be_excluded(void) {
     setup();
-    write_file(EXCL, SRC "/main.c | point d'entree\n");
+    write_file(EXCL, SRC "/main.c | entry point\n");
     assert(run_grep(SRC "/core.c") == 2);
-    assert(strstr(read_file(OUT), "ni dans le coeur ni exclu : " SRC "/audit.h\n") != NULL);
+    assert(strstr(read_file(OUT), "neither in the core nor excluded: " SRC "/audit.h\n") != NULL);
 }
 
 static void test_core_file_cannot_be_excluded(void) {
     setup();
-    write_file(EXCL, SRC "/audit.h | build d'audit\n" SRC "/main.c | point d'entree\n"
-                     SRC "/core.h | masque\n");
+    write_file(EXCL, SRC "/audit.h | audit build\n" SRC "/main.c | entry point\n"
+                     SRC "/core.h | hidden\n");
     assert(run_grep(SRC "/core.c") == 2);
-    assert(strstr(read_file(OUT), "dans le coeur et exclu : " SRC "/core.h\n") != NULL);
+    assert(strstr(read_file(OUT), "in the core and excluded: " SRC "/core.h\n") != NULL);
 }
 
 static void test_excluding_a_missing_file_is_an_error(void) {
     setup();
-    write_file(EXCL, SRC "/audit.h | build d'audit\n" SRC "/main.c | point d'entree\n"
-                     SRC "/gone.c | supprime\n");
+    write_file(EXCL, SRC "/audit.h | audit build\n" SRC "/main.c | entry point\n"
+                     SRC "/gone.c | deleted\n");
     assert(run_grep(SRC "/core.c") == 2);
-    assert(strstr(read_file(OUT), "fichier absent : " SRC "/gone.c\n") != NULL);
+    assert(strstr(read_file(OUT), "missing file: " SRC "/gone.c\n") != NULL);
 }
 
 static void test_empty_justification_is_an_error(void) {
     setup();
-    write_file(EXCL, SRC "/audit.h |  \n" SRC "/main.c | point d'entree\n");
+    write_file(EXCL, SRC "/audit.h |  \n" SRC "/main.c | entry point\n");
     assert(run_grep(SRC "/core.c") == 2);
-    assert(strstr(read_file(OUT), "justification vide : " SRC "/audit.h\n") != NULL);
-    write_file(EXCL, SRC "/audit.h\n" SRC "/main.c | point d'entree\n");
+    assert(strstr(read_file(OUT), "empty justification: " SRC "/audit.h\n") != NULL);
+    write_file(EXCL, SRC "/audit.h\n" SRC "/main.c | entry point\n");
     assert(run_grep(SRC "/core.c") == 2);
 }
 
@@ -133,7 +133,7 @@ static void test_duplicate_exclusion_is_an_error(void) {
     setup();
     write_file(EXCL, SRC "/audit.h | a\n" SRC "/main.c | b\n" SRC "/main.c | c\n");
     assert(run_grep(SRC "/core.c") == 2);
-    assert(strstr(read_file(OUT), "en double : " SRC "/main.c\n") != NULL);
+    assert(strstr(read_file(OUT), "duplicate exclusion: " SRC "/main.c\n") != NULL);
 }
 
 static void test_no_source_is_an_error_not_a_pass(void) {

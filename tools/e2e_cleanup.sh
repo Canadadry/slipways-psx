@@ -1,5 +1,5 @@
 #!/bin/sh
-# usage: e2e_cleanup.sh <nom> <frames> <ensemble> [<nom> <frames> <ensemble>...]
+# usage: e2e_cleanup.sh <name> <frames> <set> [<name> <frames> <set>...]
 # La passe de nettoyage finale : du plus long au plus court (à frames égales,
 # par nom), retire tout fichier dont chaque ligne est couverte par l'union
 # des fichiers restants. Écrit les noms retirés, dans l'ordre du retrait ;
@@ -24,12 +24,12 @@ trap 'rm -rf "$work"' EXIT
 while [ $# -gt 0 ]; do
     case $2 in
         '' | *[!0-9]*)
-            echo "e2e_cleanup: $1 : nombre de frames invalide: $2" >&2
+            echo "e2e_cleanup: $1: invalid frame count: $2" >&2
             exit 1
             ;;
     esac
     if [ ! -f "$3" ]; then
-        echo "e2e_cleanup: $1 : ensemble absent: $3" >&2
+        echo "e2e_cleanup: $1: missing set: $3" >&2
         exit 1
     fi
     printf '%s %s %s\n' "$1" "$2" "$3" >> "$work/files"

@@ -10,20 +10,20 @@ set -u
 exceptions=$1
 shift
 if [ ! -f "$exceptions" ]; then
-    echo "e2e: liste d'exceptions absente: $exceptions" >&2
+    echo "e2e: missing exceptions list: $exceptions" >&2
     exit 1
 fi
 
 failed=0
 for events in "$@"; do
     if [ ! -f "$events" ]; then
-        echo "e2e: $events absent" >&2
+        echo "e2e: $events missing" >&2
         failed=1
         continue
     fi
     for companion in "${events%.json}.txt" "$events.sha256"; do
         if [ ! -f "$companion" ]; then
-            echo "e2e: $events : $companion manque" >&2
+            echo "e2e: $events: $companion missing" >&2
             failed=1
         fi
     done
@@ -34,7 +34,7 @@ for events in "$@"; do
         limit=600
     fi
     if [ "$frames" -gt "$limit" ]; then
-        echo "e2e: $events : $frames frames, plus que $limit" >&2
+        echo "e2e: $events: $frames frames, more than $limit" >&2
         failed=1
     fi
 done
