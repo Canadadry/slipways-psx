@@ -8955,9 +8955,9 @@ tmp/pico8_demo_dump.txt	tmp/demo_dump.txt	tests/test_demo.c	fichier	sortie	renom
 screen_pixel	screen_pixel	tests/test_demo.c	identifiant	fonction	conservé	tests/test_demo			c:test_demo.c@F@screen_pixel
 dump_ok	dump_ok	tests/test_demo.c	identifiant	locale	conservé	tests/test_demo			c:test_demo.c@4468@F@main@dump_ok
 dump_out	dump_out	tests/test_demo.c	identifiant	locale	conservé	tests/test_demo			c:test_demo.c@4378@F@main@dump_out
-gfx	gfx	tests/test_demo.c	identifiant	locale	conservé	tests/test_demo			c:test_demo.c@436@F@main@gfx
+gfx	graphics	tests/test_demo.c	identifiant	locale	renommé	tests/test_demo			c:test_demo.c@424@F@main@gfx
 input	input	tests/test_demo.c	identifiant	locale	conservé	tests/test_demo			c:test_demo.c@3640@F@main@input
-mem	mem	tests/test_demo.c	identifiant	locale	conservé	tests/test_demo			c:test_demo.c@388@F@main@mem
+mem	memory	tests/test_demo.c	identifiant	locale	renommé	tests/test_demo			c:test_demo.c@379@F@main@mem
 x	x	tests/test_demo.c	identifiant	locale	conservé	tests/test_demo			c:test_demo.c@1024@F@main@x
 x	x	tests/test_demo.c	identifiant	locale	conservé	tests/test_demo			c:test_demo.c@1333@F@main@x
 x	x	tests/test_demo.c	identifiant	locale	conservé	tests/test_demo			c:test_demo.c@2455@F@main@x

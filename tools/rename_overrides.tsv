@@ -1297,6 +1297,10 @@ identity	c:test_research_project.c@13698@F@test_gb@b	built	hp
 identity	c:test_trade.c@9245@F@test_kg@g	built_route	trade
 identity	c:test_allocator.c@11464@F@case_arena_spares_neighbour@places	neighbour_allocator	sorte
 
+# --- long-scope locals (make cryptic-locals) -----------------------------------
+identity	c:test_demo.c@379@F@main@mem	memory	
+identity	c:test_demo.c@424@F@main@gfx	graphics	
+
 # --- tmp/ binaries and outputs (tools/rename_strings.py) ------------------------
 # A binary takes the name of its cmd/ file, except frames: tmp/frames is the
 # folder of the e2e captures; the Makefile already calls it FRAMES_TOOL.
