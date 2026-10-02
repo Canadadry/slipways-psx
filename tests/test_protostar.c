@@ -485,7 +485,7 @@ static uint32_t fold_draw(uint32_t h, void *e) {
 static void test_life(void) {
     uint32_t hash = 2166136261u;
     const vec_t *main_camera_pos;
-    vec_t pos = vec_xy(64, 64);
+    vec_t map_pos = vec_xy(64, 64);
     vec_t ra;
     void *placed;
     void *bare;
@@ -496,7 +496,7 @@ static void test_life(void) {
     main_camera_pos = main_camera_typed()->pos;
     assert(main_camera_pos != NULL);
     ra = vec_add(*main_camera_pos, vec_xy(12, 108));
-    placed = build_protostar(&pos, &ra, "s90");
+    placed = build_protostar(&map_pos, &ra, "s90");
     hash = fold_spawned(hash, placed);
     assert(strcmp(as_ascension(placed)->header.state, "settled") == 0);
 

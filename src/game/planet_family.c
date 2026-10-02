@@ -389,12 +389,12 @@ particle_t *burst_spawn_particle(entity_t *self_ptr) {
     return particle;
 }
 
-void burst_draw(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t pos) {
+void burst_draw(p8_graphics_t *graphics, p8_memory_t *memory, planet_t *self, vec_t screen_pos) {
     const pointer_list_t *particles = NULL;
     int third_taken = 0;
     int index;
-    int name;
-    int speed_factor;
+    int screen_x;
+    int screen_y;
 
     if (self == NULL) {
         return;
@@ -402,8 +402,8 @@ void burst_draw(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t pos)
 
     particles = self->emitter->particles;
 
-    name = p8_fixed_flr_int(pos.x);
-    speed_factor = p8_fixed_flr_int(pos.y);
+    screen_x = p8_fixed_flr_int(screen_pos.x);
+    screen_y = p8_fixed_flr_int(screen_pos.y);
 
     for (index = 1; index <= 3; index++) {
         const particle_t *pt = NULL;
@@ -422,7 +422,7 @@ void burst_draw(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t pos)
             if (int_seq_at(burst_trail_colors_seq.items, burst_trail_colors_seq.count, idx, &k_entry)) {
                 color = k_entry;
             }
-            p8_circ(gfx, mem, name, speed_factor, p8_fixed_flr_int(vec_length(pt->pos)), color);
+            p8_circ(graphics, memory, screen_x, screen_y, p8_fixed_flr_int(vec_length(pt->pos)), color);
         }
 
         /* Lua's `pt` outlives the loop, so `p_` follows the THIRD slot
@@ -432,7 +432,7 @@ void burst_draw(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t pos)
         third_taken = pt != NULL;
     }
 
-    emitter_update(gfx, mem, (entity_t *)self);
+    emitter_update(graphics, memory, (entity_t *)self);
     self->is_dead = !third_taken;
 }
 

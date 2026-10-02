@@ -144,6 +144,6 @@ void burst_construct(planet_t *self);
  * into `self.qy`. */
 particle_t *burst_spawn_particle(entity_t *self);
 
-void burst_draw(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t pos);
+void burst_draw(p8_graphics_t *graphics, p8_memory_t *memory, planet_t *self, vec_t screen_pos);
 
 #endif

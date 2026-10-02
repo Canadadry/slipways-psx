@@ -561,7 +561,7 @@ static void test_life(void) {
     void *protostar;
     entity_list_t *outgoing;
     static production_t production;
-    uint32_t row;
+    uint32_t row_hash;
     int live_entities_count;
     int index;
 
@@ -607,14 +607,14 @@ static void test_life(void) {
     production.amount = p8_fixed_from_int(2);
     as_burst(first)->production = &production;
     class_of(first)->refresh(first);
-    row = fold_layout_row(2166136261u, first);
-    hash = fnv(hash, row);
+    row_hash = fold_layout_row(2166136261u, first);
+    hash = fnv(hash, row_hash);
     outgoing = as_burst(third)->outgoing_routes;
     assert(outgoing == as_burst(first)->outgoing_routes && outgoing->count == 0);
     entity_list_add(outgoing, &trade_new(game_zone(), NULL)->header);
     entity_list_add(outgoing, &trade_new(game_zone(), NULL)->header);
     class_of(first)->refresh(first);
-    assert(fold_layout_row(2166136261u, first) != row);
+    assert(fold_layout_row(2166136261u, first) != row_hash);
     hash = fold_layout_row(hash, first);
     assert(entity_list_pointer_list_size(as_burst(second)->outgoing_routes) == 2);
     /* `jo:ib` is `self.by or {}`: the `by` held, routes kept, never a fresh one. */

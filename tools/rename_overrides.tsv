@@ -1417,6 +1417,22 @@ identity	c:test_button.c@41899@F@fold_keys@row	source_row
 identity	c:test_button.c@45210@F@members_title_and_game@plain	ordinary_button	
 identity	c:test_ui.c@16621@F@test_left@jos	planets	
 identity	c:test_ui.c@16689@F@test_left@origin	start_planet	
+identity	c:planet_family.c@14303@F@burst_draw@gfx	graphics	
+identity	c:planet_family.c@14323@F@burst_draw@mem	memory	
+identity	c:planet_family.c@14357@F@burst_draw@pos	screen_pos	
+identity	c:planet_family.c@14458@F@burst_draw@name	screen_x	
+identity	c:planet_family.c@14472@F@burst_draw@speed_factor	screen_y	
+identity	c:planet_family.h@6431@F@burst_draw@gfx	graphics	
+identity	c:planet_family.h@6451@F@burst_draw@mem	memory	
+identity	c:planet_family.h@6485@F@burst_draw@pos	screen_pos	
+identity	c:test_burst.c@21788@F@test_life@row	row_hash	
+identity	c:test_burst_exports_row.c@2416@F@test_burst_export_line_counts_the_outgoing_routes@mem	memory	
+identity	c:test_burst_exports_row.c@2437@F@test_burst_export_line_counts_the_outgoing_routes@gfx	graphics	
+identity	c:test_burst_exports_row.c@2518@F@test_burst_export_line_counts_the_outgoing_routes@pos	planet_pos	
+identity	c:test_protostar.c@20257@F@test_life@pos	map_pos	
+identity	c:test_structure.c@15983@F@test_life@poor_lab	refused_lab	
+identity	c:test_structure.c@25582@F@test_structure_is_a_struct@descendants	descendant_kinds	
+identity	c:test_structure.c@25820@F@test_structure_is_a_struct@cls	lab_class	
 
 # --- tmp/ binaries and outputs (tools/rename_strings.py) ------------------------
 # A binary takes the name of its cmd/ file, except frames: tmp/frames is the

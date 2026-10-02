@@ -409,7 +409,7 @@ static void test_life(void) {
     uint32_t hash = 2166136261u;
     void *out_lab;
     void *in_lab;
-    void *poor_lab;
+    void *refused_lab;
     void *planet;
     vec_t *mouse_world;
     const vec_t *planet_map_pos;
@@ -436,19 +436,19 @@ static void test_life(void) {
     assert(as_structure(out_lab)->targeting->target == planet &&
            ((const planet_t *)planet)->targeted_by == out_lab);
 
-    poor_lab = build_lab();
+    refused_lab = build_lab();
     mouse_world = vec_ref(vec_xy(7680, 7680));
-    class_of(poor_lab)->drag(poor_lab, mouse_world, vec_ref(vec_xy(64, 64)));
-    hash = fold_held(hash, poor_lab, mouse_world);
-    assert(target_state(as_structure(poor_lab)) == 1);
+    class_of(refused_lab)->drag(refused_lab, mouse_world, vec_ref(vec_xy(64, 64)));
+    hash = fold_held(hash, refused_lab, mouse_world);
+    assert(target_state(as_structure(refused_lab)) == 1);
     set_credits(3);
-    assert(class_of(poor_lab)->drop == targeting_confirm_method);
-    hash = targeting_confirm(poor_lab) ? fnv(fnv(hash, 0xB0u), 1u) : fold_ref(hash, NULL);
-    hash = fold_string_member(hash, as_structure(poor_lab)->header.state);
-    hash = fold_fixed_member(hash, as_structure(poor_lab)->header.state_time);
-    hash = fnv(hash, is_dead_state(as_structure(poor_lab)));
+    assert(class_of(refused_lab)->drop == targeting_confirm_method);
+    hash = targeting_confirm(refused_lab) ? fnv(fnv(hash, 0xB0u), 1u) : fold_ref(hash, NULL);
+    hash = fold_string_member(hash, as_structure(refused_lab)->header.state);
+    hash = fold_fixed_member(hash, as_structure(refused_lab)->header.state_time);
+    hash = fnv(hash, is_dead_state(as_structure(refused_lab)));
     hash = fnv(hash, (uint32_t)credits());
-    assert(is_dead_state(as_structure(poor_lab)) == 2 && credits() == p8_fixed_from_int(3));
+    assert(is_dead_state(as_structure(refused_lab)) == 2 && credits() == p8_fixed_from_int(3));
 
     in_lab = build_lab();
     mouse_world = vec_ref(vec_xy(7680, 7552));
@@ -473,7 +473,7 @@ static void test_life(void) {
     }
     hash = fold_pos_y(hash, in_lab);
     assert(as_structure(in_lab)->pos->y != in_y);
-    hash = fnv(hash, (uint32_t)entity_list_listed(live_entities(), poor_lab));
+    hash = fnv(hash, (uint32_t)entity_list_listed(live_entities(), refused_lab));
     check("life", hash, LIFE_HASH);
 }
 
@@ -648,9 +648,9 @@ static int is_a_structure_struct(const void *e) {
  * construction key other than `id` stops the run. Every descendant is a
  * struct under its own descriptor. */
 static void test_structure_is_a_struct(void) {
-    const entity_kind_t *const descendants[] = {trading_hub_kind(), processor_kind(), ascension_kind(), protostar_kind(),
+    const entity_kind_t *const descendant_kinds[] = {trading_hub_kind(), processor_kind(), ascension_kind(), protostar_kind(),
                                                       synthesizer_kind(), slipgate_kind(), infraspace_gate_kind()};
-    const entity_class_t *cls = structure_class();
+    const entity_class_t *lab_class = structure_class();
     void *built;
     size_t index;
 
@@ -658,53 +658,53 @@ static void test_structure_is_a_struct(void) {
     built = build_lab();
     assert(is_a_structure_struct(built) && entity_list_listed(entities_by_tag("structure"), built));
     assert(planet_upkeep(built) == p8_fixed_from_int(entities_by_tag("structure")->count));
-    assert(cls->attach_slipway == planet_class()->attach_slipway && cls->offer_trade == planet_class()->offer_trade);
-    assert_structure_shape(cls);
-    assert(cls->hit_test == planet_class()->hit_test && cls->draw == planet_class()->draw &&
-           cls->left_press == planet_class()->left_press && cls->refresh == planet_class()->refresh &&
-           cls->accept_drop == planet_class()->accept_drop && cls->new_year == planet_class()->new_year &&
-           cls->states[ENTITY_STATE_VANISHING] == planet_class()->states[ENTITY_STATE_VANISHING]);
-    assert(cls->draw_overlay != planet_class()->draw_overlay && cls->states[ENTITY_STATE_SETTLED] != NULL);
-    assert(cls->drag != planet_class()->drag && cls->drop != planet_class()->drop && cls->spawn_particle == NULL);
+    assert(lab_class->attach_slipway == planet_class()->attach_slipway && lab_class->offer_trade == planet_class()->offer_trade);
+    assert_structure_shape(lab_class);
+    assert(lab_class->hit_test == planet_class()->hit_test && lab_class->draw == planet_class()->draw &&
+           lab_class->left_press == planet_class()->left_press && lab_class->refresh == planet_class()->refresh &&
+           lab_class->accept_drop == planet_class()->accept_drop && lab_class->new_year == planet_class()->new_year &&
+           lab_class->states[ENTITY_STATE_VANISHING] == planet_class()->states[ENTITY_STATE_VANISHING]);
+    assert(lab_class->draw_overlay != planet_class()->draw_overlay && lab_class->states[ENTITY_STATE_SETTLED] != NULL);
+    assert(lab_class->drag != planet_class()->drag && lab_class->drop != planet_class()->drop && lab_class->spawn_particle == NULL);
 
     must_abort(build_with_unknown_key, NULL);
     {
         planet_t *bare = structure_new(NULL);
         assert(is_a_structure_struct(bare) && bare->planet_id == NULL && bare->slipways != NULL && entity_list_listed(entities_by_tag("structure"), bare));
     }
-    for (index = 0; index < sizeof descendants / sizeof descendants[0]; index++) {
+    for (index = 0; index < sizeof descendant_kinds / sizeof descendant_kinds[0]; index++) {
         planet_keys_t keys;
         void *d;
         keys.planet_id = "s99";
         keys.map_pos = NULL;
         keys.pos = NULL;
-        d = descendants[index]->new_entity(&keys);
-        if (descendants[index] == trading_hub_kind()) {
+        d = descendant_kinds[index]->new_entity(&keys);
+        if (descendant_kinds[index] == trading_hub_kind()) {
             assert(d != NULL &&
                    ((const entity_t *)d)->class == trading_hub_class());
             continue;
         }
-        if (descendants[index] == processor_kind()) {
+        if (descendant_kinds[index] == processor_kind()) {
             assert(d != NULL &&
                    ((const entity_t *)d)->class == processor_class());
             continue;
         }
-        if (descendants[index] == ascension_kind()) {
+        if (descendant_kinds[index] == ascension_kind()) {
             assert(d != NULL &&
                    ((const entity_t *)d)->class == ascension_class());
             continue;
         }
-        if (descendants[index] == protostar_kind()) {
+        if (descendant_kinds[index] == protostar_kind()) {
             assert(d != NULL &&
                    ((const entity_t *)d)->class == protostar_class());
             continue;
         }
-        if (descendants[index] == synthesizer_kind()) {
+        if (descendant_kinds[index] == synthesizer_kind()) {
             assert(d != NULL &&
                    ((const entity_t *)d)->class == synthesizer_class());
             continue;
         }
-        if (descendants[index] == slipgate_kind()) {
+        if (descendant_kinds[index] == slipgate_kind()) {
             assert(d != NULL &&
                    ((const entity_t *)d)->class == slipgate_class());
             continue;

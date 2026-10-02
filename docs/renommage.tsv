@@ -4401,9 +4401,9 @@ particle	particle	src/game/planet_family.c	identifiant	locale	conservé	game/pla
 place	slot	src/game/planet_family.c	identifiant	locale	renommé	game/planet_family	sorte		c:planet_family.c@15649@F@pico8_ga_rendre_dispatch@place
 place	slot	src/game/planet_family.c	identifiant	locale	renommé	game/planet_family	sorte		c:planet_family.c@16523@F@pico8_ga_struct_new@place
 pt	pt	src/game/planet_family.c	identifiant	locale	conservé	game/planet_family			c:planet_family.c@13401@F@pico8_ga_kj@pt
-px	name	src/game/planet_family.c	identifiant	locale	renommé	game/planet_family	px		c:planet_family.c@14045@F@pico8_ga_kj@px
+px	screen_x	src/game/planet_family.c	identifiant	locale	renommé	game/planet_family	px		c:planet_family.c@14458@F@burst_draw@name
 py	py	src/game/planet_family.c	identifiant	locale	conservé	game/planet_family			c:planet_family.c@12177@F@pico8_ga_mm@py
-py	speed_factor	src/game/planet_family.c	identifiant	locale	renommé	game/planet_family			c:planet_family.c@14057@F@pico8_ga_kj@py
+py	screen_y	src/game/planet_family.c	identifiant	locale	renommé	game/planet_family			c:planet_family.c@14472@F@burst_draw@speed_factor
 qd	qd	src/game/planet_family.c	identifiant	locale	conservé	game/planet_family			c:planet_family.c@12111@F@pico8_ga_mm@qd
 qy	particles	src/game/planet_family.c	identifiant	locale	renommé	game/planet_family	qy		c:planet_family.c@13972@F@pico8_ga_kj@qy
 ra	ra	src/game/planet_family.c	identifiant	locale	conservé	game/planet_family			c:planet_family.c@16695@F@pico8_ga_struct_new@ra
@@ -4429,10 +4429,10 @@ def	archetype	src/game/planet_family.c	identifiant	paramètre	renommé	game/plan
 def	archetype	src/game/planet_family.h	identifiant	paramètre	renommé	game/planet_family	def		c:planet_family.h@1518@F@pico8_qh_struct_init@def
 def	archetype	src/game/planet_family.h	identifiant	paramètre	renommé	game/planet_family	def		c:planet_family.h@3701@F@pico8_hj_struct_init@def
 fz	fz	src/game/planet_family.c	identifiant	paramètre	conservé	game/planet_family			c:planet_family.c@21681@F@pico8_jo_kv@fz
-gfx	gfx	src/game/planet_family.c	identifiant	paramètre	conservé	game/planet_family			c:planet_family.c@13048@F@pico8_ga_kj@gfx
+gfx	graphics	src/game/planet_family.c	identifiant	paramètre	renommé	game/planet_family			c:planet_family.c@14303@F@burst_draw@gfx
 gfx	gfx	src/game/planet_family.c	identifiant	paramètre	conservé	game/planet_family			c:planet_family.c@6377@F@pico8_hj_kj@gfx
 gfx	gfx	src/game/planet_family.h	identifiant	paramètre	conservé	game/planet_family			c:planet_family.h@6267@F@pico8_hj_kj@gfx
-gfx	gfx	src/game/planet_family.h	identifiant	paramètre	conservé	game/planet_family			c:planet_family.h@6580@F@pico8_ga_kj@gfx
+gfx	graphics	src/game/planet_family.h	identifiant	paramètre	renommé	game/planet_family			c:planet_family.h@6431@F@burst_draw@gfx
 keys	keys	src/game/planet_family.c	identifiant	paramètre	conservé	game/planet_family			c:planet_family.c@10810@F@pico8_pm_struct_new@keys
 keys	keys	src/game/planet_family.c	identifiant	paramètre	conservé	game/planet_family			c:planet_family.c@15612@F@pico8_ga_struct_new@keys
 keys	keys	src/game/planet_family.c	identifiant	paramètre	conservé	game/planet_family			c:planet_family.c@18058@F@pico8_qh_kind_new@keys
@@ -4457,14 +4457,14 @@ keys	keys	src/game/planet_family.h	identifiant	paramètre	conservé	game/planet_
 keys	keys	src/game/planet_family.h	identifiant	paramètre	conservé	game/planet_family			c:planet_family.h@3414@F@pico8_hj_new@keys
 keys	keys	src/game/planet_family.h	identifiant	paramètre	conservé	game/planet_family			c:planet_family.h@4804@F@pico8_pm_new@keys
 keys	keys	src/game/planet_family.h	identifiant	paramètre	conservé	game/planet_family			c:planet_family.h@6165@F@pico8_ga_new@keys
-mem	mem	src/game/planet_family.c	identifiant	paramètre	conservé	game/planet_family			c:planet_family.c@13066@F@pico8_ga_kj@mem
+mem	memory	src/game/planet_family.c	identifiant	paramètre	renommé	game/planet_family			c:planet_family.c@14323@F@burst_draw@mem
 mem	mem	src/game/planet_family.c	identifiant	paramètre	conservé	game/planet_family			c:planet_family.c@6395@F@pico8_hj_kj@mem
 mem	mem	src/game/planet_family.h	identifiant	paramètre	conservé	game/planet_family			c:planet_family.h@6285@F@pico8_hj_kj@mem
-mem	mem	src/game/planet_family.h	identifiant	paramètre	conservé	game/planet_family			c:planet_family.h@6598@F@pico8_ga_kj@mem
-p	pos	src/game/planet_family.c	identifiant	paramètre	renommé	game/planet_family			c:planet_family.c@13957@F@pico8_ga_kj@p
+mem	memory	src/game/planet_family.h	identifiant	paramètre	renommé	game/planet_family			c:planet_family.h@6451@F@burst_draw@mem
+p	screen_pos	src/game/planet_family.c	identifiant	paramètre	renommé	game/planet_family			c:planet_family.c@14357@F@burst_draw@pos
 p	p	src/game/planet_family.c	identifiant	paramètre	conservé	game/planet_family			c:planet_family.c@6431@F@pico8_hj_kj@p
 p	p	src/game/planet_family.h	identifiant	paramètre	conservé	game/planet_family			c:planet_family.h@6321@F@pico8_hj_kj@p
-p	pos	src/game/planet_family.h	identifiant	paramètre	renommé	game/planet_family			c:planet_family.h@6452@F@pico8_ga_kj@p
+p	screen_pos	src/game/planet_family.h	identifiant	paramètre	renommé	game/planet_family			c:planet_family.h@6485@F@burst_draw@pos
 ra	ra	src/game/planet_family.c	identifiant	paramètre	conservé	game/planet_family			c:planet_family.c@14447@F@pico8_ga_kj_dispatch@ra
 ra	ra	src/game/planet_family.c	identifiant	paramètre	conservé	game/planet_family			c:planet_family.c@6716@F@pico8_hj_kj_dispatch@ra
 ra	ra	src/game/planet_family.h	identifiant	paramètre	conservé	game/planet_family			c:planet_family.h@4034@F@pico8_hj_kj_dispatch@ra
@@ -8002,7 +8002,7 @@ qy	qy	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_
 qy	qy	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@22331@F@test_ei_moves_a_particle_in_place@qy
 ra	ra	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@8023@F@spawn@ra
 roads	roads	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@23891@F@test_ga_is_a_struct@roads
-row	row	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@18995@F@test_life@row
+row	row_hash	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst			c:test_burst.c@21788@F@test_life@row
 status	status	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@24955@F@in_fresh_child@status
 t	t	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@1636@F@tag_count@t
 v	v	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@5239@F@vec_ref@v
@@ -8104,16 +8104,16 @@ setup_panel_state	setup_panel_state	tests/test_burst_exports_row.c	identifiant	f
 test_ga_export_line_counts_the_routes_in_by	test_burst_export_line_counts_the_outgoing_routes	tests/test_burst_exports_row.c	identifiant	fonction	renommé	tests/test_burst_exports_row	ga		c:test_burst_exports_row.c@F@test_ga_export_line_counts_the_routes_in_by
 by	outgoing	tests/test_burst_exports_row.c	identifiant	locale	renommé	tests/test_burst_exports_row			c:test_burst_exports_row.c@2480@F@test_ga_export_line_counts_the_routes_in_by@by
 exports_lq	exports_layout_row	tests/test_burst_exports_row.c	identifiant	locale	renommé	tests/test_burst_exports_row	lq		c:test_burst_exports_row.c@2588@F@test_ga_export_line_counts_the_routes_in_by@exports_lq
-gfx	gfx	tests/test_burst_exports_row.c	identifiant	locale	conservé	tests/test_burst_exports_row			c:test_burst_exports_row.c@2382@F@test_ga_export_line_counts_the_routes_in_by@gfx
+gfx	graphics	tests/test_burst_exports_row.c	identifiant	locale	renommé	tests/test_burst_exports_row			c:test_burst_exports_row.c@2437@F@test_burst_export_line_counts_the_outgoing_routes@gfx
 i	index	tests/test_burst_exports_row.c	identifiant	locale	renommé	tests/test_burst_exports_row			c:test_burst_exports_row.c@2631@F@test_ga_export_line_counts_the_routes_in_by@i
 le	ephemerals	tests/test_burst_exports_row.c	identifiant	locale	renommé	tests/test_burst_exports_row			c:test_burst_exports_row.c@2559@F@test_ga_export_line_counts_the_routes_in_by@le
 lq	lq	tests/test_burst_exports_row.c	identifiant	locale	conservé	tests/test_burst_exports_row			c:test_burst_exports_row.c@3284@F@test_ga_export_line_counts_the_routes_in_by@lq
 lq	lq	tests/test_burst_exports_row.c	identifiant	locale	conservé	tests/test_burst_exports_row			c:test_burst_exports_row.c@4064@F@test_ga_export_line_counts_the_routes_in_by@lq
 lq	lq	tests/test_burst_exports_row.c	identifiant	locale	conservé	tests/test_burst_exports_row			c:test_burst_exports_row.c@905@F@button_lq@lq
-mem	mem	tests/test_burst_exports_row.c	identifiant	locale	conservé	tests/test_burst_exports_row			c:test_burst_exports_row.c@2361@F@test_ga_export_line_counts_the_routes_in_by@mem
+mem	memory	tests/test_burst_exports_row.c	identifiant	locale	renommé	tests/test_burst_exports_row			c:test_burst_exports_row.c@2416@F@test_burst_export_line_counts_the_outgoing_routes@mem
 ok	ok	tests/test_burst_exports_row.c	identifiant	locale	conservé	tests/test_burst_exports_row			c:test_burst_exports_row.c@735@F@ok_le@ok
 planet	planet	tests/test_burst_exports_row.c	identifiant	locale	conservé	tests/test_burst_exports_row			c:test_burst_exports_row.c@2403@F@test_ga_export_line_counts_the_routes_in_by@planet
-ra	pos	tests/test_burst_exports_row.c	identifiant	locale	renommé	tests/test_burst_exports_row	ra		c:test_burst_exports_row.c@2465@F@test_ga_export_line_counts_the_routes_in_by@ra
+ra	planet_pos	tests/test_burst_exports_row.c	identifiant	locale	renommé	tests/test_burst_exports_row	ra		c:test_burst_exports_row.c@2518@F@test_burst_export_line_counts_the_outgoing_routes@pos
 route_a	route_a	tests/test_burst_exports_row.c	identifiant	locale	conservé	tests/test_burst_exports_row			c:test_burst_exports_row.c@2496@F@test_ga_export_line_counts_the_routes_in_by@route_a
 route_b	route_b	tests/test_burst_exports_row.c	identifiant	locale	conservé	tests/test_burst_exports_row			c:test_burst_exports_row.c@2524@F@test_ga_export_line_counts_the_routes_in_by@route_b
 s	s	tests/test_burst_exports_row.c	identifiant	locale	conservé	tests/test_burst_exports_row			c:test_burst_exports_row.c@1479@F@lq_index_is_string@s
@@ -13502,7 +13502,7 @@ keys	keys	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protost
 made	made	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@7062@F@build_protostar@made
 mo_ra	main_camera_pos	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protostar	ok		c:test_protostar.c@18665@F@test_life@mo_ra
 ng	ng	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@8192@F@fold_spawned@ng
-p	pos	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protostar			c:test_protostar.c@18689@F@test_life@p
+p	map_pos	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protostar			c:test_protostar.c@20257@F@test_life@pos
 p	p	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@18958@F@test_pm_is_a_struct@p
 pa	pa	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@14985@F@test_built@pa
 pb	pb	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@15065@F@test_built@pb
@@ -15090,9 +15090,9 @@ bare	bare	tests/test_structure.c	identifiant	locale	conservé	tests/test_structu
 before	before	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@13970@F@test_life@before
 child	child	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@21504@F@must_abort@child
 child	child	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@27161@F@spawn@child
-cls	cls	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@22711@F@test_qh_is_a_struct@cls
+cls	lab_class	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure			c:test_structure.c@25820@F@test_structure_is_a_struct@cls
 d	d	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@24011@F@test_qh_is_a_struct@d
-descendants	descendants	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@22483@F@test_qh_is_a_struct@descendants
+descendants	descendant_kinds	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure			c:test_structure.c@25582@F@test_structure_is_a_struct@descendants
 e	e	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@26178@F@test_lineage_of_each_class@e
 e	e	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@7985@F@qh_icon@e
 h	hash	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure			c:test_structure.c@13654@F@test_built@h
@@ -15134,7 +15134,7 @@ out_lab	out_lab	tests/test_structure.c	identifiant	locale	conservé	tests/test_s
 p	p	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@20879@F@test_descendants@p
 planet	planet	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@13864@F@test_life@planet
 planet_p	planet_map_pos	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure	p		c:test_structure.c@14929@F@test_life@planet_p
-poor_lab	poor_lab	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@13844@F@test_life@poor_lab
+poor_lab	refused_lab	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure			c:test_structure.c@15983@F@test_life@poor_lab
 qh	qh	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@13224@F@fold_held@qh
 qh	qh	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@17715@F@fold_descendant@qh
 qh	qh	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@25831@F@test_lineage_of_each_class@qh

@@ -79,11 +79,11 @@ static entity_list_t *planet_by_ref(const planet_t *planet) {
 }
 
 static void test_burst_export_line_counts_the_outgoing_routes(void) {
-    p8_memory_t mem;
-    p8_graphics_t gfx;
+    p8_memory_t memory;
+    p8_graphics_t graphics;
     planet_t *planet;
     static production_t production;
-    vec_t *pos;
+    vec_t *planet_pos;
     entity_list_t *outgoing;
     trade_route_t *route_a;
     trade_route_t *route_b;
@@ -91,7 +91,7 @@ static void test_burst_export_line_counts_the_outgoing_routes(void) {
     const layout_row_t *exports_layout_row = NULL;
     int index;
 
-    setup_panel_state(&mem, &gfx);
+    setup_panel_state(&memory, &graphics);
 
     planet = burst_new(NULL);
     assert(planet != NULL);
@@ -103,9 +103,9 @@ static void test_burst_export_line_counts_the_outgoing_routes(void) {
     production.amount = p8_fixed_from_int(2);
     planet->production = &production;
 
-    pos = malloc(sizeof *pos);
-    *pos = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
-    planet->pos = pos;
+    planet_pos = malloc(sizeof *planet_pos);
+    *planet_pos = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
+    planet->pos = planet_pos;
 
     /* A fresh `ga` exports nothing, against a capacity of `kw.mu`. */
     planet_inspection_panel(planet);
