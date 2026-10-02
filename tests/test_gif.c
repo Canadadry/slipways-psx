@@ -1,6 +1,6 @@
-/* Le GIF d'une capture, relu par un décodeur LZW écrit ici, indépendant de
- * l'encodeur : un aller-retour entre deux moitiés du même code passerait sur
- * une largeur de code fausse des deux côtés. */
+/* A capture's GIF, read back by an LZW decoder written here, independent
+ * of the encoder: a round trip between two halves of the same code would
+ * pass with the same wrong code width on both sides. */
 
 #include "devtools/gif.h"
 
@@ -42,7 +42,7 @@ static int u16(buf_t *b) {
     return lo | (read_u8(b) << 8);
 }
 
-/* Les sous-blocs d'une image, concaténés. */
+/* The sub-blocks of an image, concatenated. */
 static unsigned char *read_sub_blocks(buf_t *b, long *out_len) {
     long cap = 1 << 16, len = 0;
     unsigned char *data = malloc((size_t)cap);
@@ -61,8 +61,8 @@ static unsigned char *read_sub_blocks(buf_t *b, long *out_len) {
     return data;
 }
 
-/* Décode `len` octets LZW en exactement `pixel_count` index ; rend le
- * nombre de codes clear rencontrés après le premier. */
+/* Decodes `data_length` LZW bytes into exactly `pixel_count` indices;
+ * returns the number of clear codes met after the first one. */
 static int lzw_decode(const unsigned char *data, long data_length, int min_code_size, unsigned char *pixels, long pixel_count) {
     static int prefix[4096];
     static unsigned char suffix[4096];
@@ -107,7 +107,7 @@ static int lzw_decode(const unsigned char *data, long data_length, int min_code_
         unsigned char first = (unsigned char)c;
         stack[sp++] = first;
         if (code == next) {
-            /* KwKwK : la chaîne de prev suivie de son propre premier octet. */
+            /* KwKwK: the string of `previous_code` followed by its own first byte. */
             memmove(stack + 1, stack, (size_t)sp);
             stack[0] = first;
             sp++;
@@ -208,7 +208,7 @@ static unsigned char dst_pixel(const gif_t *g, int frame, int x, int y) {
     return g->pixels[(long)frame * DST * DST + (long)y * DST + x];
 }
 
-/* Chaque pixel source devient un carré SCALE x SCALE de sa couleur. */
+/* Each source pixel becomes a SCALE x SCALE square of its color. */
 static void assert_scaled(const gif_t *g, int frame, const unsigned char *src) {
     for (int y = 0; y < DST; y++) {
         for (int x = 0; x < DST; x++) {
@@ -247,8 +247,8 @@ static void test_frames_round_trip_scaled_by_three(void) {
     free(g.pixels);
 }
 
-/* Anneau de rayon 2 en couleur 7 sans bouton, de rayon 3 en couleur 8 avec
- * un bouton ; le centre reste le pixel du jeu. */
+/* A ring of radius 2 in color 7 with no button down, of radius 3 in color
+ * 8 with a button down; the center keeps the game's pixel. */
 static void test_mouse_marker_overlays_the_event(void) {
     static unsigned char frames[2 * SRC * SRC];
     static unsigned char expected[2 * SRC * SRC];
@@ -294,8 +294,8 @@ static void test_mouse_marker_overlays_the_event(void) {
     free(g.pixels);
 }
 
-/* Une souris hors écran ne déborde pas du tampon : seuls les pixels de
- * l'anneau dans l'écran changent. */
+/* A mouse at the screen's edge does not overflow the buffer: only the
+ * pixels of the ring that fall inside the screen change. */
 static void test_mouse_marker_is_clipped_at_the_edge(void) {
     static unsigned char frames[SRC * SRC];
     memset(frames, 3, sizeof frames);
@@ -309,8 +309,8 @@ static void test_mouse_marker_is_clipped_at_the_edge(void) {
     free(g.pixels);
 }
 
-/* Une frame de bruit remplit la table des 4096 codes : l'encodeur doit
- * émettre un clear et repartir à 5 bits, sinon le décodage diverge. */
+/* A frame of noise fills the table of 4096 codes: the encoder must emit
+ * a clear code and restart at 5 bits, or decoding diverges. */
 static void test_noise_fills_the_table_and_emits_clear(void) {
     static unsigned char frames[SRC * SRC];
     unsigned int seed = 12345;

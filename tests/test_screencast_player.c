@@ -1,19 +1,18 @@
-/* Les deux seules decisions que prend le visualiseur de screencast et
- * qui ne demandent pas de fenetre : quelle frame afficher maintenant,
- * et ce qu'on dit a un humain dont le fichier ne peut pas etre joue.
+/* The only two decisions the screencast viewer makes that need no
+ * window: which frame to show now, and what to tell a human whose file
+ * cannot be played.
  *
- * CE QUE CE FICHIER NE PEUT PAS AFFIRMER : qu'une fenetre s'ouvre, que
- * l'image est a l'echelle 6, que PAGE UP accelere reellement la
- * lecture, que la ligne d'etat est lisible. Tout cela demande un
- * serveur graphique et un humain, et CLAUDE.md interdit d'ouvrir cette
- * fenetre. Ce qui n'est pas testable sans fenetre est au mauvais
- * endroit ; ce fichier teste ce qui a ete mis au bon endroit, et ne
- * simule ni touche ni pixel.
+ * What this file cannot assert: that a window opens, that the image is
+ * at scale 6, that PAGE UP really speeds playback up, that the status
+ * line is readable. All of that needs a display server and a human, and
+ * CLAUDE.md forbids opening that window. What cannot be tested without a
+ * window is in the wrong place; this file tests what was put in the
+ * right place, and simulates neither keys nor pixels.
  *
- * On affirme partout la SUITE des index servis, un par un et dans
- * l'ordre, jamais leur nombre : un test qui compterait les avances
- * passerait sur un curseur qui resservirait toujours la frame 0, ou qui
- * les servirait a l'envers. */
+ * Everywhere, the sequence of the indices served is asserted, one by one
+ * and in order, never their count: a test that counted the advances
+ * would pass a cursor that always served frame 0 again, or served them
+ * backwards. */
 
 #include "devtools/screencast_player.h"
 
@@ -23,10 +22,9 @@
 #include <stdio.h>
 #include <string.h>
 
-/* La lecture commence sur la premiere frame du fichier et avance d'une
- * frame par appel, dans l'ordre. C'est la logique neuve de ce module :
- * le format et la lecture indexee sont dans pico8_screencast, la
- * vitesse dans pico8_replay_control. */
+/* Playback starts on the first frame of the file and moves one frame
+ * per call, in order. The format and the indexed reading live in
+ * devtools/screencast, the speed in devtools/replay_control. */
 static void test_playback_starts_at_the_first_frame_and_walks_in_order(void) {
     screencast_player_t player;
     screencast_player_init(&player, 5);
@@ -42,16 +40,15 @@ static void test_playback_starts_at_the_first_frame_and_walks_in_order(void) {
     assert(screencast_player_current_frame(&player) == 4);
 }
 
-/* LA FIN DU FICHIER, QUI EST LA VRAIE DECISION DE CE MODULE. La lecture
- * se fige sur la derniere frame au lieu de reboucler : une capture a
- * une fin, et la derniere image est celle qu'un humain vient examiner
- * avant de signer une empreinte -- une lecture qui repartirait au debut
- * la lui retirerait au moment ou il la regarde.
+/* The end of the file, the real decision of this module. Playback
+ * freezes on the last frame instead of looping: a capture has an end,
+ * and playback that started over would take the last image away from
+ * whoever is looking at it.
  *
- * L'avance est appelee PLUSIEURS fois au-dela de la fin, et l'index est
- * asserti a chaque tour : un curseur qui se figerait une fois puis
- * repartirait, ou qui deborderait a la deuxieme avance de trop,
- * passerait un test qui s'arreterait a la premiere. */
+ * The advance is called many times past the end, and the index is
+ * asserted on every turn: a cursor that froze once then started over,
+ * or that overflowed on the second extra advance, would pass a test
+ * that stopped at the first. */
 static void test_playback_freezes_on_the_last_frame(void) {
     screencast_player_t player;
     screencast_player_init(&player, 3);
@@ -62,19 +59,18 @@ static void test_playback_freezes_on_the_last_frame(void) {
     screencast_player_advance(&player);
     assert(screencast_player_current_frame(&player) == 2);
 
-    /* La derniere frame est atteinte : a partir d'ici, plus rien ne
-     * bouge, et surtout jamais vers 0. */
+    /* The last frame is reached: from here on nothing moves, and above
+     * all never back to 0. */
     for (int i = 0; i < 50; i++) {
         screencast_player_advance(&player);
         assert(screencast_player_current_frame(&player) == 2);
     }
 }
 
-/* Un fichier d'une seule frame est une capture valide (8 192 octets), et
- * c'est le cas ou une avance mal ecrite sort du fichier le plus vite :
- * l'index reste 0, quel que soit le nombre d'avances. Un index hors
- * bornes ne doit jamais etre demande a pico8_screencast_read_frame, qui
- * le refuserait. */
+/* A one-frame file is a valid capture (8192 bytes), and the case where
+ * a badly written advance leaves the file soonest: the index stays 0,
+ * whatever the number of advances. An out-of-range index must never be
+ * asked of screencast_read_frame, which would refuse it. */
 static void test_a_single_frame_capture_stays_on_its_only_frame(void) {
     screencast_player_t player;
     screencast_player_init(&player, 1);
@@ -85,20 +81,19 @@ static void test_a_single_frame_capture_stays_on_its_only_frame(void) {
     }
 }
 
-/* LE REFUS, QUI EST L'AUTRE MOITIE DU MODULE. pico8_screencast sait
- * deja DISTINGUER les trois facons dont un fichier de pixels peut etre
- * injouable (absent/illisible, vide, tronque) ; ce qu'il ne fait pas,
- * et ne doit pas faire, c'est decider quoi en dire a un humain. Une
- * fenetre qui s'ouvre sur du noir est indiscernable d'une session qui
- * commence par un ecran noir, donc le refus doit etre EXPLICITE et doit
- * arriver AVANT la fenetre.
+/* The refusal, the other half of the module. devtools/screencast
+ * already tells apart the three ways a pixel file can be unplayable
+ * (missing or unreadable, empty, truncated); what it does not do, and
+ * must not do, is decide what to tell a human about it. A window that
+ * opens on black cannot be told from a session that starts on a black
+ * screen, so the refusal must be explicit and must come before the
+ * window.
  *
- * Les trois messages sont affirmes un par un et en entier. Un test qui
- * verifierait seulement qu'une chaine non vide sort passerait sur la
- * mutation la plus probable de ce module -- un seul message generique
- * pour les trois cas. Chacun nomme le chemin (celui qu'on a tape n'est
- * pas toujours celui qu'on croit), dit la cause, et dit qu'aucune
- * fenetre ne s'est ouverte. */
+ * The three messages are asserted one by one and in full. A test that
+ * only checked that a non-empty string comes out would pass the most
+ * likely mutation of this module -- a single generic message for all
+ * three cases. Each names the path (the one typed is not always the one
+ * meant), says the cause, and says that no window was opened. */
 static void test_each_refusal_names_the_path_and_its_own_reason(void) {
     char out[SCREENCAST_PLAYER_REFUSAL_MAX];
 
@@ -119,12 +114,12 @@ static void test_each_refusal_names_the_path_and_its_own_reason(void) {
                   "Redo it: make screencast EVENTS=<events.json>") == 0);
 }
 
-/* Le meme contrat que pico8_replay_control_format_status : une sortie
- * toujours terminee par un NUL, tronquee plutot que debordee. Un
- * message d'erreur n'a pas le droit d'etre lui-meme la faute -- et
- * celui-ci est ecrit juste avant un exit, la ou plus rien ne rattrape
- * un debordement. Les 16 octets de `out` sont plus courts que le plus
- * court des trois messages, donc la troncature est certaine. */
+/* The same contract as replay_control_format_status: an output always
+ * terminated by a NUL, truncated rather than overflowed. An error message
+ * must not itself be the fault -- and this one is written just before
+ * screencast_viewer returns 1, where nothing catches an overflow any
+ * more. The 16-byte buffer is shorter than the shortest of the three
+ * messages, so truncation is certain. */
 static void test_a_refusal_truncates_rather_than_overflowing(void) {
     char out[16];
     char guard[8];
@@ -139,21 +134,16 @@ static void test_a_refusal_truncates_rather_than_overflowing(void) {
     }
 }
 
-/* LA PALETTE, ET POURQUOI ELLE EST ASSERTIONNEE DANS CE FICHIER-CI. Le
- * visualiseur ne redefinit pas sa palette : la conversion d'un index
- * PICO-8 vers une couleur est deja faite par le backend interactif, et
- * les deux binaires raylib lisent la meme table (src/p8/palette.c,
- * sans raylib, trois octets par couleur).
+/* The palette. The viewer has no palette of its own: like the game's
+ * raylib backend and the GIF writer, it converts each color index itself
+ * through `P8_PALETTE_RGB` (src/p8/palette.c, no raylib, three bytes per
+ * color).
  *
- * Quarante-huit octets hexadecimaux ecrits a la main sont exactement ou
- * une faute de frappe se cache sans rien casser de visible : un bleu
- * legerement faux ne fait echouer aucune compilation et ne se remarque
- * qu'a l'oeil, sur une fenetre que personne ici ne peut ouvrir. D'ou
- * ces seize assertions, une par couleur. Les valeurs sont celles,
- * publiees et universellement documentees, de la palette par defaut de
- * PICO-8 -- pas une fonction portee depuis pico8/lua.lua. Elles vivent
- * dans ce binaire plutot que dans une cible a elles parce qu'une cible
- * de plus pour seize constantes serait plus de Makefile que de test. */
+ * Forty-eight hand-written hex bytes are exactly where a typo hides
+ * without breaking anything visible: a slightly wrong blue fails no
+ * build and only shows to the eye, on a window nobody here can open.
+ * Hence these sixteen assertions, one per color. The values are the
+ * published, widely documented ones of the PICO-8 default palette. */
 static void test_the_shared_palette_is_the_published_pico8_one(void) {
     static const unsigned char expected[P8_PALETTE_COLORS][3] = {
         { 0x00, 0x00, 0x00 }, { 0x1D, 0x2B, 0x53 }, { 0x7E, 0x25, 0x53 }, { 0x00, 0x87, 0x51 },

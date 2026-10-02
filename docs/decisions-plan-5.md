@@ -76,6 +76,7 @@
 | D-49 | 4i | Assistants de test qui citent un digramme du cart ou un surnom (`planet_by_ref`, `build_plate`, `fold_plate`, `is_plate`) | 2 + 6 + 3 + 3 |
 | D-50 | 4j | Locales courtes dont le nom porte un digramme du cart (`c_truthy`, `s_str`) | 2 + 3 |
 | D-51 | 4j | `spacer` qui tient un émetteur dans quatre tests de 3i | 55 |
+| D-52 | 4k2 | Nom de test `test_the_shared_palette_is_the_published_pico8_one` | 2 |
 
 ## Entrées
 
@@ -527,6 +528,7 @@
 - **Complément (4g)** : 4g renomme `cap`, `out`, `len` (`research_project_tooltip_join`, → `capacity`, `names`, `length`) : mots anglais courants de trois lettres, ils deviennent d'anciens noms ambigus. Sans `SUBSTEP`, sur l'arbre de l'état des locales extrait, TSV d'avant puis d'après : `backtick` 1 894 → 1 904 (+10) ; `cart-citations` identique. Mentions : `src/game/layout.h:136` (`` `cap` ``, 3d, close), réécrite par 4g (« as many as the last argument ») ; `economy.h:45`, `economy_formulas.h:30` (`` `out` ``, 3g), réécrites ; `src/game/score_panel.c:37` (`` `cap` ``, 3j, +1) ; `src/devtools/screencast_player.h:42`, `dump.h:8`, `replay_control.h:63`, `minimize.h:6`, `tests/test_screencast_player.c:126` (`` `out` ``), `tests/test_gif.c:64` (`` `len` ``) (3k, +6), laissées à leur sous-étape, dont la mesure de départ monte d'autant. La règle (b) l'aurait évité.
 - **Complément (4h)** : 4h renomme deux locales `row` de `tests/test_button.c` (`fold_written` → `layout_row`, `fold_keys` → `source_row`, portées 44 et 79). Sans `SUBSTEP`, sur l'arbre de l'état des locales extrait, TSV d'avant puis d'après : `backtick` 1 560 → 1 570 (+10) ; `cart-citations` identique (66/20/1 289). Mentions : `src/game/layout.h:40`, `:128`, `:140`, `:150`, `:152`, `src/game/map_tables.h:34`, `src/game/game_data.h:103` (3d, close, +7 `later`) et `src/game/research.h:12` (3g, close, +1 `later`), réécrites par 4h sans backticks et à hauteur constante (« the row field », « the row argument », « the given row ») ; `src/game/score_panel.h:53`, `:66` (3j, +2), laissées à leur sous-étape. Un mot anglais de trois lettres qui nomme aussi des champs et des paramètres légitimes (`row` de `data_row_t`, de `layout_row_cell_t`) compte autant que la locale renommée. La règle (b) l'aurait évité.
 - **Complément (4k1)** : 4k1 réécrit la mention `` `mem` `` de `src/devtools/screencast.h:45` (« the PICO-8 memory ») ; elle était l'une des 23 du relevé de 4b.
+- **Complément (4k2)** : 4k2 réécrit les mentions `` `out` `` de `src/devtools/screencast_player.h:42`, `src/devtools/dump.h:8`, `tests/test_screencast_player.c:126` (« the buffer », « the stream », « the 16-byte buffer ») et `` `len` `` de `tests/test_gif.c:64` (`` `data_length` ``, nom de la locale après le commit de locales de 4k2) : 4 des 6 de 3k relevées par 4g ; restent `src/devtools/replay_control.h:63` et `src/devtools/minimize.h:6` (4k3). Les « un » de 4k2 (38) sont partis avec le français. Les locales renommées par 4k2 (`eoi`, `prev`, `clears`, `bitpos`, `written`, `packed`) deviennent d'anciens noms sans aucune mention entre backticks dans le dépôt ; `gif` garde son ancien `g` (D-42) : aucun effet de bord mesuré (compteurs sans `SUBSTEP`, TSV d'avant puis d'après, identiques à l'octet).
 - **Verdict** :
 
 ### D-37 — `argc`/`argv` de `main` dans la liste des locales cryptiques
@@ -592,6 +594,7 @@
 - **Complément (4h)** : 4h ajoute 3 lignes de cette forme (`ra` → `pos` → `mouse_screen`, `ui_send_to_hovered` de `src/game/ui.c` ; `p` → `pos` → `draw_pos`, `button_draw` de `src/game/ui_button.c` et son prototype de `ui_button.h`) : 29 lignes en tout. `rename-table-check` sur l'extraction de l'état des chaînes de 4h : 27 708 → 27 671 (40 violations tombent, ces 3 apparaissent).
 - **Complément (4i)** : 4i ajoute 6 lignes de cette forme (`p` → `pos` → `screen_pos` ×2, `px` → `name` → `screen_x`, `py` → `speed_factor` → `screen_y`, `burst_draw` de `src/game/planet_family.c` et son prototype de `planet_family.h` ; `ra` → `pos` → `planet_pos`, `test_burst_export_line_counts_the_outgoing_routes` de `tests/test_burst_exports_row.c` ; `p` → `pos` → `map_pos`, `test_life` de `tests/test_protostar.c`) : 35 lignes en tout. `rename-table-check` sur l'extraction de l'état des chaînes de 4i : 27 708 → 27 682 (32 violations tombent, ces 6 apparaissent).
 - **Complément (4j)** : 4j ajoute 3 lignes de cette forme (`tl` → `era` → `current_era`, `menu_show_tech_tree_screen` de `src/game/menu.c` ; `ra` → `pos` → `box_pos`, `message_box_open_box` de `src/game/message_box.c` ; `em` → `spacer` → `emitter`, `test_built` de `tests/test_help_screen.c`) : 38 lignes en tout. `rename-table-check` sur l'extraction de l'état des chaînes de 4j : 27 708 → 27 685 (26 violations tombent, ces 3 apparaissent).
+- **Complément (4k2)** : 4k2 ajoute 1 ligne de cette forme (`g` → `gif` → `result`, `parse_gif` de `tests/test_gif.c`) : 39 lignes en tout. `rename-table-check` sur l'extraction de l'état des chaînes de 4k2 : 27 714 → 27 697 (18 violations tombent, celle-ci apparaît).
 - **Verdict** :
 
 ### D-43 — Paramètres `gfx`/`mem` des fonctions de dessin
@@ -606,6 +609,7 @@
 - **Complément (4h)** : après 4h, `grep -rnE 'p8_graphics_t \*gfx\b' src | wc -l` 90, `'p8_memory_t \*mem\b'` 118 (`button_draw`, `background_construct`, `ui_update_hover` renommés, prototypes compris) ; restent à courte portée, dans les fichiers de 4h, `ui_update`, `ui_draw_overlay`, `button_draw_overlay`, `background_draw`, `camera_apply`, leurs prototypes et la statique `mouse_construct`.
 - **Complément (4i)** : après 4i, `grep -rnE 'p8_graphics_t \*gfx\b' src | wc -l` 88, `'p8_memory_t \*mem\b'` 116 (`burst_draw` et son prototype renommés) ; restent à courte portée, dans les fichiers de 4i, `ascension_draw` et son prototype, et les paramètres de `setup_panel_state` (`tests/test_burst_exports_row.c`, portée 13).
 - **Complément (4j)** : après 4j, `grep -rnE 'p8_graphics_t \*gfx\b' src | wc -l` 88, `'p8_memory_t \*mem\b'` 115 (la locale `mem` de `cart_load` renommée `memory`) ; restent à courte portée, dans les fichiers de 4j, `message_box_draw_overlay`, `toast_draw`, `help_screen_draw`, `score_panel_draw` et leurs prototypes, et les locales `mem` de `cart_init`, `cart_draw`, `score_panel_refresh_palette`.
+- **Complément (4k2)** : après 4k2, `grep -rnE 'p8_graphics_t \*gfx\b' src | wc -l` 88, `'p8_memory_t \*mem\b'` 115, inchangés ; restent à courte portée, dans les fichiers de 4k2, `dump_screen` et son prototype, et les locales `mem`/`gfx` de `test_dump_of_hand_drawn_pattern_matches_exact_text` (`tests/test_dump.c`, portées 36 et 35).
 - **Verdict** :
 
 ### D-44 — Champ `planet_inspection_panel_ctx_t.unmet_needs`, qui tient les besoins reçus
@@ -687,4 +691,14 @@
 - **Sites** (fin de 4j, mot entier hors `->spacer`) : 55 (`test_ascension.c` 12, `test_burst.c` 15, `test_protostar.c` 14, `test_synthesizer.c` 14), plus 7 lectures du champ, qui restent ; le rapport de `rename-apply` fait foi.
 - **Proposition prête à appliquer** : (a), procédure N, identités relevées dans `declarations.tsv` à la fin de 4j : `spacer	emitter	tests/test_ascension.c	c:test_ascension.c@10781@F@fold_ascension@spacer`, `spacer	emitter	tests/test_burst.c	c:test_burst.c@9384@F@fold_burst@spacer`, `spacer	emitter	tests/test_protostar.c	c:test_protostar.c@10400@F@fold_protostar@spacer`, `spacer	emitter	tests/test_synthesizer.c	c:test_synthesizer.c@10982@F@fold_synthesizer@spacer` (offsets à relever de nouveau) ; lignes `identity` de `tools/rename_overrides.tsv` ; les lignes de `docs/renommage.tsv` gardent leur `ancien` (D-42). Masquage : `emitter` est aussi un champ et une étiquette de struct, espaces de noms à part (précédent de 4f2). Renommer ne change aucun hachage (seuls des membres sont pliés).
 - **Portée** : s'applique aussi aux mentions en commentaire (aucune) ; contrôle : `grep -nP '(?<![>.])\bspacer\b' tests/test_ascension.c tests/test_burst.c tests/test_protostar.c tests/test_synthesizer.c` rend 0.
+- **Verdict** :
+
+### D-52 — Nom de test `test_the_shared_palette_is_the_published_pico8_one`
+
+- **Origine** : 4k2 (relecture `grep -i pico8` des fichiers du morceau).
+- **Question** : le nom de ce test de `tests/test_screencast_player.c` dit `pico8` pour la console PICO-8, dont la palette publiée est vérifiée, pas pour le cart ni comme préfixe `pico8_` ; aucun compteur ne le voit. Le garder ?
+- **Options** : (a) garder (il nomme la console, comme le préfixe `p8_` du runtime) ; (b) renommer, procédure N, en `test_the_shared_palette_is_the_published_console_one`.
+- **Sites** : 2 (définition `tests/test_screencast_player.c:147`, appel de `main` `:168`, numéros de fin de 4k2).
+- **Proposition prête à appliquer** : (a) ; sous (b), contrôle : `grep -rn pico8_one tests` rend 0.
+- **Portée** : aucune mention en commentaire ni entre backticks.
 - **Verdict** :

@@ -33,7 +33,7 @@ int gif_open(gif_writer_t *writer, FILE *file) {
     put(writer, "GIF89a", 6);
     put_u16(writer, SIDE);
     put_u16(writer, SIDE);
-    /* Table globale présente, résolution 8 bits, 2^(3+1) = 16 couleurs. */
+    /* Global color table present, 8-bit resolution, 2^(3+1) = 16 colors. */
     put_byte(writer, 0xF3);
     put_byte(writer, 0);
     put_byte(writer, 0);
@@ -91,8 +91,8 @@ static void sink_flush(bit_sink_t *s) {
     put_byte(s->writer, 0);
 }
 
-/* child[code][c] : le code de la chaîne `code` suivie de l'index c, 0 si
- * absente (0 n'est jamais un code d'enfant, les enfants commencent à 18). */
+/* Indexed by a string's code and the color index after it: the code of the
+ * longer string, 0 if absent (0 is never a child code: they start at 18). */
 static unsigned short child[MAX_CODES][P8_PALETTE_COLORS];
 
 static void lzw_encode(gif_writer_t *w, const unsigned char *pixels, long count) {
@@ -114,9 +114,9 @@ static void lzw_encode(gif_writer_t *w, const unsigned char *pixels, long count)
         sink_code(&s, prefix, width);
         if (next < MAX_CODES) {
             child[prefix][c] = (unsigned short)next;
-            /* Le décodeur ajoute cette entrée un code plus tard : il passe à
-             * width+1 bits juste à temps pour lire le premier code qui
-             * pourrait la désigner. */
+            /* The decoder adds this entry one code later: it moves to
+             * width+1 bits just in time to read the first code that
+             * could refer to it. */
             if (next == (1 << width) && width < 12) {
                 width++;
             }
@@ -162,7 +162,7 @@ int gif_write_frame(gif_writer_t *writer, const unsigned char *pixels, const p8_
             scaled[y * SIDE + x] = screen[(y / GIF_SCALE) * P8_SCREEN_WIDTH + x / GIF_SCALE] & 15;
         }
     }
-    /* Graphic Control Extension : pas de transparence, délai 3 cs. */
+    /* Graphic Control Extension: no transparency, a delay of three hundredths of a second. */
     put_byte(writer, 0x21);
     put_byte(writer, 0xF9);
     put_byte(writer, 4);

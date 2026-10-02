@@ -103,8 +103,8 @@ static void test_dump_of_hand_drawn_pattern_matches_exact_text(void) {
     free(expected);
 }
 
-/* Le texte ecrit par `write` sur un fichier temporaire. Tampon alloue,
- * que l'appelant libere. */
+/* The text `write` puts in a temporary file: an allocated buffer, with
+ * no terminating NUL, that the caller frees. */
 static char *capture_text(int (*write)(const void *, FILE *), const void *src, size_t *out_len) {
     FILE *tmp = tmpfile();
     assert(tmp != NULL);

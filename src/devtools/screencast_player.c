@@ -5,9 +5,9 @@
 
 void screencast_player_init(screencast_player_t *player, int frame_count) {
     assert(player);
-    /* pico8_screencast_reader_open rend deja EMPTY sur un fichier de
-     * taille nulle, donc un compte nul ici est un appelant casse, pas un
-     * fichier douteux. */
+    /* screencast_reader_open already returns SCREENCAST_EMPTY for a
+     * zero-size file, so a zero count here is a broken caller, not a
+     * doubtful file. */
     assert(frame_count > 0);
 
     player->frame_count = frame_count;
@@ -23,9 +23,9 @@ int screencast_player_current_frame(const screencast_player_t *player) {
 void screencast_player_advance(screencast_player_t *player) {
     assert(player);
 
-    /* Increment garde, et non increment suivi d'un recadrage : `current`
-     * ne prend jamais, meme le temps d'une instruction, une valeur hors
-     * du fichier. */
+    /* A guarded increment, not an increment followed by a clamp: `current`
+     * never holds, even for the time of one instruction, a value outside
+     * the file. */
     if (player->current + 1 < player->frame_count) {
         player->current++;
     }
