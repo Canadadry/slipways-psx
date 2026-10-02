@@ -37,8 +37,8 @@
 #include "engine/vec.h"
 
 
-#define BUILT_HASH 0x0B80F384u
-#define LIFE_HASH 0x3BFADEC0u
+#define BUILT_HASH 0xFAA9865Eu
+#define LIFE_HASH 0x64B6480Bu
 #define HOVER_HASH 0xEE114A89u
 
 static pico8_mem_t mem;
@@ -98,10 +98,10 @@ static uint32_t fold_string(uint32_t h, const char *s) {
  * the count. */
 static uint32_t fold_tags(uint32_t h, unsigned tags) {
     static const char *const names[TAG_COUNT] = {
-        [TAG_STRUCTURE] = "qh", [TAG_ASCENSION] = "hj", [TAG_SLIPGATE] = "nr",
-        [TAG_PROBE] = "g_", [TAG_MESSAGE_BOX] = "mh", [TAG_SLIPWAY] = "jc",
-        [TAG_WORMHOLE] = "mz", [TAG_PLANET] = "jo", [TAG_NODE] = "np",
-        [TAG_TARGETING] = "prober",
+        [TAG_STRUCTURE] = "structure", [TAG_ASCENSION] = "ascension", [TAG_SLIPGATE] = "slipgate",
+        [TAG_PROBE] = "probe", [TAG_MESSAGE_BOX] = "message_box", [TAG_SLIPWAY] = "slipway",
+        [TAG_WORMHOLE] = "wormhole", [TAG_PLANET] = "planet", [TAG_NODE] = "node",
+        [TAG_TARGETING] = "targeting",
     };
     uint32_t k = 0;
     int t;
@@ -380,14 +380,14 @@ static void test_built(void) {
         h = fold_fixed_member(h, b->fa);
     }
     for (i = 0; i < 5; i++) {
-        static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
+        static const char *const bm[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
         h = fnv(h, (uint32_t)ents_rank_in(pico8_cv(bm[i]), fv));
     }
-    assert(ents_listed(pico8_cv("kj"), fv) && ents_listed(pico8_cv("ev"), fv) && ents_listed(pico8_cv("hd"), fv));
-    assert(!ents_listed(pico8_cv("hk"), fv) && !ents_listed(pico8_cv("hb"), fv));
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_cg("g_"), fv));
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_cg("prober"), fv));
-    assert(ents_listed(pico8_cg("g_"), fv) && ents_listed(pico8_cg("prober"), fv));
+    assert(ents_listed(pico8_cv("draw"), fv) && ents_listed(pico8_cv("draw_overlay"), fv) && ents_listed(pico8_cv("hit_test"), fv));
+    assert(!ents_listed(pico8_cv("new_year"), fv) && !ents_listed(pico8_cv("refresh"), fv));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_cg("probe"), fv));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_cg("targeting"), fv));
+    assert(ents_listed(pico8_cg("probe"), fv) && ents_listed(pico8_cg("targeting"), fv));
 
     for (k = 0; k < 4; k++) {
         const pico8_js_t *row = (const pico8_js_t *)hv->items[rank - 4 + k];
@@ -408,11 +408,11 @@ static void test_life(void) {
     start_title();
     fv = the_help();
     for (i = 0; i < 3; i++) {
-        pico8_dc("kj");
+        pico8_dc("draw");
         h = fnv(h, screen_hash());
         h = fnv(h, (uint32_t)size_of(fv->emitter->qy));
     }
-    pico8_dc("ev");
+    pico8_dc("draw_overlay");
     h = fnv(h, screen_hash());
     for (i = 0; i < 3; i++) {
         pico8_dg();
@@ -522,7 +522,7 @@ static void test_eu_retires_the_help(void) {
     fv = the_help();
     pico8_eu(NULL);
     assert(!ents_listed(pico8_hv(), fv));
-    assert(!ents_listed(pico8_cg("g_"), fv) && !ents_listed(pico8_cv("kj"), fv) && !ents_listed(pico8_cv("hd"), fv));
+    assert(!ents_listed(pico8_cg("probe"), fv) && !ents_listed(pico8_cv("draw"), fv) && !ents_listed(pico8_cv("hit_test"), fv));
 }
 
 /* The title's help is a struct whose descriptor shares `g_`'s 4 inherited

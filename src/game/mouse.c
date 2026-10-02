@@ -44,7 +44,7 @@ static pico8_nf_t *pico8_nf_struct_new(void) {
     self->header.pos = (const pico8_vec_t *const *)&self->ra;
     self->ra = &g_nf_ra;
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("nf");
+    pico8_class_coverage_record("mouse");
 #endif
     pico8_nf_pq(pico8_dispatch_mem());
     pico8_ke_struct_pq(&self->header);

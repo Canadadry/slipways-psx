@@ -123,8 +123,8 @@ static size_t octets_d_un_registre(const pico8_ents_t *liste) {
 }
 
 static size_t octets_des_registres(void) {
-    static const char *const CV[] = {"kj", "ev", "hd", "hk", "hb"};
-    static const char *const CG[] = {"qh", "hj", "nr", "g_", "mh", "jc", "mz", "jo", "np", "prober"};
+    static const char *const CV[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+    static const char *const CG[] = {"structure", "ascension", "slipgate", "probe", "message_box", "slipway", "wormhole", "planet", "node", "targeting"};
     size_t r = octets_d_un_registre(pico8_hv());
     for (size_t i = 0; i < sizeof CV / sizeof CV[0]; i++) r += octets_d_un_registre(pico8_cv(CV[i]));
     for (size_t i = 0; i < sizeof CG / sizeof CG[0]; i++) r += octets_d_un_registre(pico8_cg(CG[i]));
@@ -146,7 +146,7 @@ static size_t octets_d_une_liste_de_planete(const pico8_ents_t *liste) {
  * et listes `oe`, `by`, `cc`. Sans `jy` ni copies de besoins, que les
  * planetes de `bw` n'ont pas avant une action. */
 static size_t octets_des_planetes(void) {
-    const pico8_ents_t *jo = pico8_cg("jo");
+    const pico8_ents_t *jo = pico8_cg("planet");
     size_t octets = 0;
     for (int i = 0; jo != NULL && i < jo->count; i++) {
         const pico8_jo_t *p = (const pico8_jo_t *)jo->items[i];

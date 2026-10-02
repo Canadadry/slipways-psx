@@ -260,6 +260,6 @@ void pico8__draw(void) {
 
     pico8_cls(mem);
     pico8_dv_default(mem);
-    pico8_dc("kj");
-    pico8_dc("ev");
+    pico8_dc("draw");
+    pico8_dc("draw_overlay");
 }

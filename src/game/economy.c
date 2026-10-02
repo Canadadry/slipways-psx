@@ -64,7 +64,7 @@ static pico8_hy_t *pico8_hy_struct_new(void) {
     self->yr = self->def->yr;
 
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("hy");
+    pico8_class_coverage_record("economy");
 #endif
     return self;
 }
@@ -151,7 +151,7 @@ void pico8_hy_hk(pico8_hy_t *self) {
 
     pico8_hy_lj(self);
 
-    hk_list = pico8_cv("hk");
+    hk_list = pico8_cv("new_year");
     if (hk_list != NULL) {
         it = pico8_ents_all(hk_list);
         while (pico8_ents_iter_next(&it, &qc)) {
@@ -220,7 +220,7 @@ void pico8_hy_lj(pico8_hy_t *self) {
     self->po = &self->po_own;
     self->fu = &self->fu_own;
 
-    jo_list = pico8_cg("jo");
+    jo_list = pico8_cg("planet");
     if (jo_list != NULL) {
         it = pico8_ents_all(jo_list);
         while (pico8_ents_iter_next(&it, &p)) {
@@ -252,7 +252,7 @@ void pico8_hy_lj(pico8_hy_t *self) {
     self->has_hl = 1;
 
     {
-        const pico8_ents_t *hb_list = pico8_cv("hb");
+        const pico8_ents_t *hb_list = pico8_cv("refresh");
         if (hb_list != NULL) {
             pico8_ents_iter_t it2;
             entity_t *qc;
@@ -340,7 +340,7 @@ static void bx_visit(entity_t *pt, void *ctx) {
 
 void pico8_bx(pico8_qe_map_t *out) {
     pico8_cm(out, pico8_fixed_from_int(0));
-    for_each_cg("jo", bx_visit, out);
+    for_each_cg("planet", bx_visit, out);
 }
 
 static void ck_visit(entity_t *l, void *ctx) {
@@ -373,5 +373,5 @@ static void ck_visit(entity_t *l, void *ctx) {
 
 void pico8_ck(pico8_qe_map_t *out) {
     pico8_cm(out, pico8_fixed_from_int(1));
-    for_each_cg("qh", ck_visit, out);
+    for_each_cg("structure", ck_visit, out);
 }

@@ -69,7 +69,7 @@ static uint32_t screen_hash(void) {
 static uint32_t draw_hash(void) {
     pico8_gfx_init(&gfx);
     pico8_cls(&mem);
-    pico8_dc("ev");
+    pico8_dc("draw_overlay");
     return screen_hash();
 }
 
@@ -102,8 +102,8 @@ static uint32_t fold_box(uint32_t h, const pico8_mh_t *e) {
     }
     h = fnv(h, (uint32_t)(pico8_kc() == e));
     h = fnv(h, (uint32_t)ents_listed(pico8_hv(), e));
-    h = fnv(h, (uint32_t)ents_listed(pico8_cv("ev"), e));
-    return fnv(h, (uint32_t)ents_listed(pico8_cg("mh"), e));
+    h = fnv(h, (uint32_t)ents_listed(pico8_cv("draw_overlay"), e));
+    return fnv(h, (uint32_t)ents_listed(pico8_cg("message_box"), e));
 }
 
 typedef struct {
@@ -164,8 +164,8 @@ static void run_check(const run_t *run, int want_ticks, uint32_t want_sequence, 
     int i;
 
     for (i = 0; i < run->count; i++) {
-        assert(!ents_listed(pico8_cv("ev"), run->boxes[i]));
-        assert(!ents_listed(pico8_cg("mh"), run->boxes[i]));
+        assert(!ents_listed(pico8_cv("draw_overlay"), run->boxes[i]));
+        assert(!ents_listed(pico8_cg("message_box"), run->boxes[i]));
         assert(pico8_kc() != run->boxes[i]);
     }
     assert(run->drew);
@@ -178,13 +178,13 @@ static void run_check(const run_t *run, int want_ticks, uint32_t want_sequence, 
 /* `pj:hk` discards the box it builds; `mh:pq` has just made it `kc`. */
 static const pico8_mh_t *year_box(int yr) {
     const pico8_mh_t *box;
-    int before = ents_count_of(pico8_cg("mh"));
+    int before = ents_count_of(pico8_cg("message_box"));
 
     pico8_pj_hk(pico8_fixed_from_int(yr));
     box = pico8_kc();
     assert(box != NULL);
-    assert(ents_count_of(pico8_cg("mh")) == before + 1);
-    assert(ents_listed(pico8_cg("mh"), box) && ents_listed(pico8_hv(), box) && ents_listed(pico8_cv("ev"), box));
+    assert(ents_count_of(pico8_cg("message_box")) == before + 1);
+    assert(ents_listed(pico8_cg("message_box"), box) && ents_listed(pico8_hv(), box) && ents_listed(pico8_cv("draw_overlay"), box));
     return box;
 }
 
@@ -277,20 +277,20 @@ static void test_scores_box_follows_c_(void) {
     box = pico8_kc();
     assert(box != NULL);
     assert(ju->ed == box);
-    built = ents_count_of(pico8_cg("mh"));
+    built = ents_count_of(pico8_cg("message_box"));
     track(&run, box);
     run.h = fnv(run.h, draw_hash());
 
     for (i = 0; i < 80; i++) {
         pico8_pj_ph(ju);
-        assert(ents_count_of(pico8_cg("mh")) == built);
+        assert(ents_count_of(pico8_cg("message_box")) == built);
         tick(&run);
         assert(ents_listed(pico8_hv(), box));
     }
     set_c_(ju, 0);
     while (any_listed(&run)) {
         pico8_pj_ph(ju);
-        assert(ents_count_of(pico8_cg("mh")) == built);
+        assert(ents_count_of(pico8_cg("message_box")) == built);
         tick(&run);
     }
     run_check(&run, SCORES_TICKS, SCORES_SEQUENCE_HASH, "scores box follows c_");
@@ -308,7 +308,7 @@ static void test_defaults_match_the_parsed_spec(void) {
     assert(box->rh == box->def->rh);
     assert(box->rh == pico8_fixed_from_int(5));
     assert(box->header.class->tags == TAG(TAG_MESSAGE_BOX));
-    assert(box->header.state != NULL && strcmp(box->header.state, "ph") == 0);
+    assert(box->header.state != NULL && strcmp(box->header.state, "normal") == 0);
     assert(pico8_mh_ready());
     pico8_mh_shutdown();
     assert(!pico8_mh_ready());
@@ -327,7 +327,7 @@ static int counting_lh(pico8_mh_t *self) {
  * cv.ev and cg("mh") only; its `lh` is a field `mv` calls, and it has no
  * `ph` for `dg` to call. */
 static void test_mh_is_a_struct_registered_under_ev(void) {
-    const char *others[] = {"kj", "hd", "hk", "hb"};
+    const char *others[] = {"draw", "hit_test", "new_year", "refresh"};
     pico8_mh_keys_t keys = {0};
     const pico8_mh_t *from_pj;
     void *generic;
@@ -343,7 +343,7 @@ static void test_mh_is_a_struct_registered_under_ev(void) {
     assert(from_pj != NULL);
     assert(generic != NULL);
     assert(pico8_kc() == generic);
-    assert(ents_listed(pico8_hv(), generic) && ents_listed(pico8_cv("ev"), generic) && ents_listed(pico8_cg("mh"), generic));
+    assert(ents_listed(pico8_hv(), generic) && ents_listed(pico8_cv("draw_overlay"), generic) && ents_listed(pico8_cg("message_box"), generic));
     for (i = 0; i < 4; i++) {
         assert(!ents_listed(pico8_cv(others[i]), from_pj) && !ents_listed(pico8_cv(others[i]), generic));
     }

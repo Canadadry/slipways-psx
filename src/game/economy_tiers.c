@@ -132,8 +132,8 @@ static void bd_route_visit(entity_t *pt, void *ctx) {
 }
 
 void pico8_bd(void) {
-    for_each_cg("jo", bd_reset_visit, NULL);
-    for_each_cg("jo", bd_route_visit, NULL);
+    for_each_cg("planet", bd_reset_visit, NULL);
+    for_each_cg("planet", bd_route_visit, NULL);
 }
 
 static void bb_visit(entity_t *pt, void *ctx) {
@@ -196,7 +196,7 @@ static void bb_visit(entity_t *pt, void *ctx) {
 
 int pico8_bb(void) {
     int jg = 0;
-    for_each_cg("jo", bb_visit, &jg);
+    for_each_cg("planet", bb_visit, &jg);
     return jg;
 }
 
@@ -212,7 +212,7 @@ pico8_fixed_t pico8_dh(const entity_t *pt) {
     }
     assert(pico8_jo_is_family(pt) && "dh: pt is a planet of cg.jo");
     jo = (const pico8_jo_t *)pt;
-    if (jo->header.state == NULL || strcmp(jo->header.state, "ly") != 0) {
+    if (jo->header.state == NULL || strcmp(jo->header.state, "settled") != 0) {
         return pico8_fixed_from_int(0);
     }
 

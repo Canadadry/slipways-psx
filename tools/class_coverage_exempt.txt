@@ -1,1 +1,1 @@
-ke abstraite, jamais instanciée directement
+entity abstraite, jamais instanciée directement

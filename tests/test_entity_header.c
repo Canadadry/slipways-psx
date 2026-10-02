@@ -289,6 +289,6 @@ int main(int argc, char **argv) {
     test_component_carriers_link_their_own();
     test_mouse_point_has_null_links();
 
-    printf("test_pico8_struct_header: all tests passed\n");
+    printf("test_entity_header: all tests passed\n");
     return 0;
 }

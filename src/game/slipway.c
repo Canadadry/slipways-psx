@@ -275,8 +275,8 @@ entity_t *pico8_jc_ce(pico8_jc_t *self) {
         jc_ctx.self_has_mt = self->has_mt;
         jc_ctx.self_mt = self->mt;
 
-        part1 = pico8_jp_ents(pico8_zone_frame(), pico8_cg("np"), pico8_jc_ce_np_predicate, &np_ctx);
-        part2 = pico8_jp_ents(pico8_zone_frame(), pico8_cg("jc"), pico8_jc_ce_jc_predicate, &jc_ctx);
+        part1 = pico8_jp_ents(pico8_zone_frame(), pico8_cg("node"), pico8_jc_ce_np_predicate, &np_ctx);
+        part2 = pico8_jp_ents(pico8_zone_frame(), pico8_cg("slipway"), pico8_jc_ce_jc_predicate, &jc_ctx);
         ds = pico8_ents_cat(pico8_zone_frame(), &part1, &part2);
 
         if (ds.count > 0) {
@@ -387,7 +387,7 @@ static pico8_jc_t *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
         self->qu = keys->qu;
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("jc");
+    pico8_class_coverage_record("slipway");
 #endif
     pico8_jc_pq(self);
     pico8_jo_prise_fermer();

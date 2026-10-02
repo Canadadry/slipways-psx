@@ -48,8 +48,8 @@ static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
 
-static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
-static const char *const tags[] = {"jo", "np", "prober"};
+static const char *const bm[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+static const char *const tags[] = {"planet", "node", "targeting"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -285,7 +285,7 @@ static void test_galaxy(void) {
     int i;
 
     start_game();
-    jo = pico8_cg("jo");
+    jo = pico8_cg("planet");
     for (i = 0; i < jo->count; i++) {
         h = fold_planet(h, jo->items[i]);
     }
@@ -378,7 +378,7 @@ static uint32_t fold_daughter(uint32_t h, void *d) {
 /* The shop's `ie:ldown` on the icon of `kind`, as the player buys it, then
  * dragged by `hq` to the middle of the screen. */
 static void *bought(const entity_kind_t *kind) {
-    const pico8_ents_t *hb = pico8_cv("hb");
+    const pico8_ents_t *hb = pico8_cv("refresh");
     const pico8_qb_t *mo = pico8_mo_qb();
     const pico8_vec_t *mo_ra;
     int i;
@@ -415,7 +415,7 @@ static pico8_hp_t *cw_project(const char *cw) {
 /* A generated planet turned by `jo:hu` into the daughter `cw` names: the
  * newest entity of `hv`. */
 static void *turned(int planet, const char *cw) {
-    void *p = pico8_cg("jo")->items[planet];
+    void *p = pico8_cg("planet")->items[planet];
 
     pico8_jo_hh(p);
     pico8_jo_hu(p, cw_project(cw));
@@ -439,8 +439,8 @@ static void test_daughters(void) {
     for (i = 0; i < sizeof shop / sizeof shop[0]; i++) {
         made[shop[i].d] = bought(shop[i].kind());
     }
-    made[PM] = turned(0, "pm");
-    made[GA] = turned(1, "ga");
+    made[PM] = turned(0, "protostar");
+    made[GA] = turned(1, "burst");
     for (i = 0; i < DAUGHTERS; i++) {
         assert(made[i] != NULL && daughter_of(made[i]) == (int)i && ents_listed(pico8_hv(), made[i]));
         h = fold_daughter(fnv(h, (uint32_t)i), made[i]);
@@ -463,7 +463,7 @@ static void test_new_planet(void) {
 
     start_title();
     a = new_planet("p900", 1, 2);
-    assert(ents_listed(pico8_hv(), a) && ents_listed(pico8_cg("jo"), a));
+    assert(ents_listed(pico8_hv(), a) && ents_listed(pico8_cg("planet"), a));
     h = fold_planet(h, a);
     h = fold_live(h, a);
     check("new planet", h, NEW_PLANET_HASH);
@@ -476,14 +476,14 @@ static void test_cg_null_until_seen(void) {
 
     start_title();
     pico8_entity_init();
-    assert(pico8_cg("jo") == NULL && pico8_cg("np") == NULL && pico8_cg("bg") == NULL);
+    assert(pico8_cg("planet") == NULL && pico8_cg("node") == NULL && pico8_cg("background") == NULL);
     a = new_planet("p902", 5, 6);
-    assert(pico8_cg("jo") != NULL && pico8_cg("np") != NULL && pico8_cg("prober") != NULL);
-    assert(pico8_cg("qh") == NULL && pico8_cg("bg") == NULL);
+    assert(pico8_cg("planet") != NULL && pico8_cg("node") != NULL && pico8_cg("targeting") != NULL);
+    assert(pico8_cg("structure") == NULL && pico8_cg("background") == NULL);
     pico8_he(a);
-    assert(pico8_cg("jo") != NULL && pico8_cg("jo")->count == 0);
+    assert(pico8_cg("planet") != NULL && pico8_cg("planet")->count == 0);
     pico8_entity_init();
-    assert(pico8_cg("jo") == NULL);
+    assert(pico8_cg("planet") == NULL);
 }
 
 /* `dg` calls `qc[qc.me]`: a planet whose `me` is "ll" runs `jo:ll` until
@@ -496,13 +496,13 @@ static void test_ll(void) {
     a = new_planet("p901", 3, 4);
     pico8_dg();
     assert(p__state(a) == 0);
-    pico8_ke_ks(&a->header, "ll");
+    pico8_ke_ks(&a->header, "vanishing");
     while (ents_listed(pico8_hv(), a) && calls < 200) {
         pico8_dg();
         calls++;
     }
     assert(p__state(a) == 2);
-    assert(!ents_listed(pico8_hv(), a) && !ents_listed(pico8_cg("jo"), a));
+    assert(!ents_listed(pico8_hv(), a) && !ents_listed(pico8_cg("planet"), a));
     check_int("ll dg calls", calls, LL_DG_CALLS);
 }
 
@@ -565,8 +565,8 @@ static void test_hh_takes_ll(void) {
         p = new_planet(id, i, i);
         pico8_jo_hh(p);
         assert(p->nk != NULL && p->ep == p->nk->d);
-        took_ll = p->nk == pico8_df_lookup("ll");
-        assert(strcmp(p->header.state, took_ll ? "ll" : "known") == 0);
+        took_ll = p->nk == pico8_df_lookup("vanishing");
+        assert(strcmp(p->header.state, took_ll ? "vanishing" : "known") == 0);
     }
     assert(took_ll);
 }
@@ -584,7 +584,7 @@ static void test_jo_is_a_struct(void) {
     int j;
 
     start_game();
-    jo = pico8_cg("jo");
+    jo = pico8_cg("planet");
     for (j = 0; j < jo->count; j++) {
         assert(is_a_jo_struct(jo->items[j]));
     }
@@ -602,7 +602,7 @@ static void test_jo_is_a_struct(void) {
     }
 
     (void)bought(pico8_qh_kind());
-    jo = pico8_cg("qh");
+    jo = pico8_cg("structure");
     assert(jo != NULL && jo->count == 1);
     assert(jo->items[0] != NULL &&
            ((const entity_t *)jo->items[0])->class == pico8_qh_struct_class());
@@ -615,7 +615,7 @@ static int rangee_places(void) {
 /* A galaxy planet given a `kw` of its own with a `qe`, as `lz` and `bb`
  * would: `jo:hb` then gives it a row. */
 static pico8_jo_t *planet_with_a_row(void) {
-    pico8_jo_t *a = (pico8_jo_t *)pico8_cg("jo")->items[0];
+    pico8_jo_t *a = (pico8_jo_t *)pico8_cg("planet")->items[0];
 
     a->kw = &a->kw_own;
     a->kw_own.has_qe = 1;
@@ -672,7 +672,7 @@ static void test_rows_given_back_after_restart(void) {
     pico8_cart_vider_file_sortie();
     title = rangee_places();
     start_game();
-    jo = pico8_cg("jo");
+    jo = pico8_cg("planet");
     (void)planet_with_a_row();
     for (i = 0; i < jo->count; i++) {
         cls_of(jo->items[i])->refresh(jo->items[i]);

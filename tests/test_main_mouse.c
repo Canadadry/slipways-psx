@@ -41,8 +41,8 @@ static int ents_listed(const pico8_ents_t *list, const void *e) {
 
 /* `cv` may be read only once pico8_entity_init() has run. */
 static int registered(const void *e, int entity_live) {
-    const char *buckets[] = {"kj", "ev", "hd", "hk", "hb"};
-    const char *tags[] = {"je", "nf", "ui", "qb", "ke"};
+    const char *buckets[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+    const char *tags[] = {"je", "mouse", "ui", "camera", "entity"};
     int i;
 
     if (ents_listed(pico8_hv(), e)) {

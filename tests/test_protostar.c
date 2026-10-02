@@ -36,7 +36,7 @@
 #include "engine/vec.h"
 
 
-#define BUILT_HASH 0x73FAD653u
+#define BUILT_HASH 0x9F8A0FC3u
 #define LIFE_HASH 0x3F990656u
 
 /* The tag `jo:ib`'s list carried as a tagged list, which the frozen hashes
@@ -47,8 +47,8 @@ static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
 
-static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
-static const char *const tags[] = {"jo", "np", "prober"};
+static const char *const bm[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+static const char *const tags[] = {"planet", "node", "targeting"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -243,7 +243,7 @@ static int is_pm(const void *e) {
 
 static int is_ga(const void *e) {
     return e != NULL && cls_of(e) == pico8_ga_struct_class() && ((const pico8_jo_t *)e)->def->fz != NULL &&
-           strcmp(((const pico8_jo_t *)e)->def->fz, "ga") == 0;
+           strcmp(((const pico8_jo_t *)e)->def->fz, "burst") == 0;
 }
 
 /* The `ga` that `pm:pq` spawned: registered in `hv` just before the
@@ -412,7 +412,7 @@ static uint32_t fold_protostar(uint32_t h, void *e) {
     for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
         h = fnv(h, (uint32_t)ents_rank_in(pico8_cg(tags[i]), e));
     }
-    assert(ents_listed(pico8_cg("jo"), e) && !ents_listed(pico8_cg("qh"), e) && !ents_listed(pico8_cg("hj"), e));
+    assert(ents_listed(pico8_cg("planet"), e) && !ents_listed(pico8_cg("structure"), e) && !ents_listed(pico8_cg("ascension"), e));
     return fold_spawned(h, e);
 }
 
@@ -473,7 +473,7 @@ static uint32_t fold_economy(uint32_t h, void *e) {
 
 /* `dc("kj")` once: the screen it leaves and what `hj:kj` left in `qy`. */
 static uint32_t fold_draw(uint32_t h, void *e) {
-    pico8_dc("kj");
+    pico8_dc("draw");
     h = fnv(h, screen_hash());
     return fnv(h, (uint32_t)ptrs_size(as_hj(e)->emitter->qy));
 }
@@ -498,7 +498,7 @@ static void test_life(void) {
     ra = pico8_vec_add(*mo_ra, vec_xy(12, 108));
     placed = build_protostar(&p, &ra, "s90");
     h = fold_spawned(h, placed);
-    assert(strcmp(as_hj(placed)->header.state, "ly") == 0);
+    assert(strcmp(as_hj(placed)->header.state, "settled") == 0);
 
     h = fold_economy(h, placed);
     for (i = 0; i < 3; i++) {
@@ -543,7 +543,7 @@ static void test_pm_is_a_struct(void) {
 
     start_game();
     a = build_protostar(&p, &ra, "s77");
-    assert(is_a_pm_struct(a) && cls != hj && ents_listed(pico8_cg("jo"), a) && !ents_listed(pico8_cg("hj"), a));
+    assert(is_a_pm_struct(a) && cls != hj && ents_listed(pico8_cg("planet"), a) && !ents_listed(pico8_cg("ascension"), a));
     assert_qh_shape(cls);
     assert_members_of(cls, hj, 1, 1);
     assert(cls->attach_slipway == hj->attach_slipway && cls->offer_trade == hj->offer_trade && cls->spawn_particle == hj->spawn_particle);
@@ -552,7 +552,7 @@ static void test_pm_is_a_struct(void) {
         pico8_jo_t *bare = pico8_pm_new(NULL);
         assert(is_a_pm_struct(bare) && bare->id == NULL && bare->ra == NULL &&
                bare->oe != NULL && ptrs_size(bare->emitter->qy) == 0 &&
-               ents_listed(pico8_cg("jo"), bare));
+               ents_listed(pico8_cg("planet"), bare));
     }
 }
 

@@ -28,7 +28,7 @@ void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mz_t *self, pico8_vec
     px = pico8_fixed_flr_int(p.x);
     py = pico8_fixed_flr_int(p.y);
 
-    if (self->header.state != NULL && strcmp(self->header.state, "kz") == 0) {
+    if (self->header.state != NULL && strcmp(self->header.state, "placing") == 0) {
         pico8_vec_t cp;
 
         if (self->probe->et == NULL) {

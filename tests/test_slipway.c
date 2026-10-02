@@ -44,13 +44,13 @@
 #define SETTLE_TICKS 120
 
 #define DW_BITS 0x00000106
-#define EY_HASH 0x2D4E976Fu
-#define HQ_HASH 0x369116ECu
+#define EY_HASH 0xEC58A304u
+#define HQ_HASH 0xCD175E6Bu
 #define EB_HASH 0x19ADC88Cu
-#define DRAW_HASH 0xABD825A2u
-#define BV_HASH 0x731DE4D8u
-#define TOO_FAR_HASH 0xBFB9FB9Bu
-#define MOUSE_POINT_HASH 0x78A94031u
+#define DRAW_HASH 0x92EAE4C5u
+#define BV_HASH 0xB930691Fu
+#define TOO_FAR_HASH 0x65AE0C50u
+#define MOUSE_POINT_HASH 0x4C9D6519u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -185,7 +185,7 @@ static int re_kind(const void *jc) {
     if (re == NULL) {
         return RE_ABSENT;
     }
-    if (ents_listed(pico8_cg("np"), re)) {
+    if (ents_listed(pico8_cg("node"), re)) {
         return RE_PLANET;
     }
     if (is_throwaway(re)) {
@@ -201,10 +201,10 @@ static int et_kind(const void *jc) {
     if (et == NULL) {
         return ET_ABSENT;
     }
-    if (ents_listed(pico8_cg("np"), et)) {
+    if (ents_listed(pico8_cg("node"), et)) {
         return ET_PLANET;
     }
-    if (ents_listed(pico8_cg("jc"), et)) {
+    if (ents_listed(pico8_cg("slipway"), et)) {
         return ET_JC;
     }
     if (is_too_far(et)) {
@@ -219,13 +219,13 @@ static int holder_kind(const void *fo) {
     if (fo == NULL) {
         return FO_ABSENT;
     }
-    if (ents_listed(pico8_cg("jc"), fo)) {
+    if (ents_listed(pico8_cg("slipway"), fo)) {
         return FO_JC;
     }
-    if (ents_listed(pico8_cg("g_"), fo)) {
+    if (ents_listed(pico8_cg("probe"), fo)) {
         return FO_PROBE;
     }
-    if (ents_listed(pico8_cg("mz"), fo)) {
+    if (ents_listed(pico8_cg("wormhole"), fo)) {
         return FO_MZ;
     }
     return FO_OTHER;
@@ -284,7 +284,7 @@ static pico8_fixed_t credits(void) {
 }
 
 static uint32_t fold_planets(uint32_t h, int with_eb) {
-    const pico8_ents_t *np = pico8_cg("np");
+    const pico8_ents_t *np = pico8_cg("node");
     int i;
 
     for (i = 0; np != NULL && i < np->count; i++) {
@@ -335,7 +335,7 @@ static void colonized_pair(void **qu, void **re) {
     int i;
 
     start_game();
-    jos = pico8_cg("jo");
+    jos = pico8_cg("planet");
     assert(jos != NULL && jos->count > 1);
     *qu = jos->items[0];
     *re = NULL;
@@ -382,11 +382,11 @@ static void world(void) {
     for (i = 0; i < SETTLE_TICKS; i++) {
         pico8_dg();
     }
-    assert(pico8_cg("jc") != NULL && pico8_cg("jc")->count == 1);
+    assert(pico8_cg("slipway") != NULL && pico8_cg("slipway")->count == 1);
 }
 
 static void *the_slipway(void) {
-    return pico8_cg("jc")->items[0];
+    return pico8_cg("slipway")->items[0];
 }
 
 static void *build_jc(void *qu) {
@@ -441,7 +441,7 @@ static void check_fresh_jc(const void *e, const void *qu) {
     size_t i;
 
     assert(jc->def == &pico8_jc_def && jc->probe->def == &pico8_jc_def.probe);
-    assert(jc->header.state != NULL && strcmp(jc->header.state, "kz") == 0);
+    assert(jc->header.state != NULL && strcmp(jc->header.state, "placing") == 0);
     assert(jc->header.state_time == 0);
     assert(jc->fa == pico8_fixed_from_int(2));
     assert(jc->probe->def->fp == 0);
@@ -470,9 +470,9 @@ static void check_fresh_jc(const void *e, const void *qu) {
     assert(cls_of(jc)->hit_test == NULL && cls_of(jc)->states[ENTITY_STATE_PLACING] == NULL &&
            cls_of(jc)->states[ENTITY_STATE_NORMAL] == NULL && cls_of(jc)->left_press == NULL && cls_of(jc)->accept_drop == NULL);
 
-    assert(ents_listed(pico8_hv(), jc) && ents_listed(pico8_cv("kj"), jc) && ents_listed(pico8_cv("ev"), jc));
-    assert(ents_listed(pico8_cg("jc"), jc));
-    assert(!ents_listed(pico8_cv("hd"), jc) && !ents_listed(pico8_cv("hk"), jc) && !ents_listed(pico8_cv("hb"), jc));
+    assert(ents_listed(pico8_hv(), jc) && ents_listed(pico8_cv("draw"), jc) && ents_listed(pico8_cv("draw_overlay"), jc));
+    assert(ents_listed(pico8_cg("slipway"), jc));
+    assert(!ents_listed(pico8_cv("hit_test"), jc) && !ents_listed(pico8_cv("new_year"), jc) && !ents_listed(pico8_cv("refresh"), jc));
 }
 
 static void test_construction(void) {
@@ -482,7 +482,7 @@ static void test_construction(void) {
     down_t made;
 
     world();
-    ly = first_with_me("jo", "ly");
+    ly = first_with_me("planet", "settled");
     assert(ly != NULL);
     made = cls_of(ly)->left_press(ly, NULL, NULL);
     assert(made.stop && made.held != NULL);
@@ -510,7 +510,7 @@ static void test_ey(void) {
 
     colonized_pair(&origin, &target);
     held = dragged(origin, target);
-    assert(ents_listed(pico8_cg("jc"), held));
+    assert(ents_listed(pico8_cg("slipway"), held));
     assert(as_jc(held)->qu == origin && as_jc(held)->re == target);
     assert(re_kind(held) == RE_PLANET && et_kind(held) == ET_ABSENT);
     assert(ents_ptrs_count(as_jo(origin)->oe) == 0 && ents_ptrs_count(as_jo(target)->oe) == 0);
@@ -534,7 +534,7 @@ static void test_ey(void) {
     h = fold_jc(h, held);
     h = fold_planets(h, 1);
     h = fnv(h, (uint32_t)credits());
-    check("ey", h, EY_HASH);
+    check("drop", h, EY_HASH);
 }
 
 /* Beyond range `et` is a fresh `{qs}`; over the pair an existing slipway
@@ -565,7 +565,7 @@ static void test_hq(void) {
     assert(as_jc(old)->fo == twin);
     h = fold_jc(h, twin);
     h = fold_jc(h, old);
-    check("hq", h, HQ_HASH);
+    check("drag", h, HQ_HASH);
 }
 
 static void test_hq_takes_mt_from_its_start(void) {
@@ -787,7 +787,7 @@ static void test_hq_mouse_point(void) {
     assert(mouse_point_p(r1) != m1);
     assert(*((const entity_t *)r1)->map_pos == mouse_point_p(r1));
     assert(!pico8_gd(r1));
-    assert(!ents_listed(pico8_hv(), r1) && !ents_listed(pico8_cg("jc"), r1) && !ents_listed(pico8_cg("np"), r1));
+    assert(!ents_listed(pico8_hv(), r1) && !ents_listed(pico8_cg("slipway"), r1) && !ents_listed(pico8_cg("node"), r1));
     h = fnv(h, (uint32_t)p1.x);
     h = fnv(h, (uint32_t)p1.y);
     h = fold_jc(h, a);
@@ -839,7 +839,7 @@ static void test_ce_crosses_a_slipway(void) {
     int crossed = 0;
 
     world();
-    jos = pico8_cg("jo");
+    jos = pico8_cg("planet");
     old = the_slipway();
     mid = pico8_vec_div(pico8_vec_add(pos_of(as_jc(old)->qu), pos_of(as_jc(old)->re)), pico8_fixed_from_int(2));
     for (i = 0; i < jos->count && !crossed; i++) {
@@ -927,8 +927,8 @@ static void test_bv_takes_the_first_slipway_of_cg(void) {
     old = the_slipway();
     twin = build_jc(as_jc(old)->re);
     as_jc(twin)->re = as_jc(old)->qu;
-    assert(pico8_cg("jc")->count == 2 && pico8_cg("jc")->items[0] == old &&
-           pico8_cg("jc")->items[1] == twin);
+    assert(pico8_cg("slipway")->count == 2 && pico8_cg("slipway")->items[0] == old &&
+           pico8_cg("slipway")->items[1] == twin);
     probe = probe_with_zero_dw();
     qu = pos_of(as_jc(old)->qu);
     re = pos_of(as_jc(old)->re);

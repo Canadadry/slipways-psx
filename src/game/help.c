@@ -122,7 +122,7 @@ static pico8_g__t *pico8_fv_struct_new(void) {
     self->header.is_hovered = &self->m_;
     self->m_ = 0;
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("fv");
+    pico8_class_coverage_record("help_screen");
 #endif
     pico8_fv_pq(self);
     pico8_f__dans((entity_t *)self, PICO8_PARTICULES_QY_FV);

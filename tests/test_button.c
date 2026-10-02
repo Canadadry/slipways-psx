@@ -72,7 +72,7 @@
 #define PH_HASH 0xD2A611E7u
 #define LDOWN_HASH 0x4621266Fu
 #define HB_HASH 0x0FA6ACC7u
-#define FE_MY_HASH 0x459139D2u
+#define FE_MY_HASH 0xCB3A928Cu
 #define CR_MY_HASH 0x7ED641D9u
 #define DRAW_HASH 0x92E72EEBu
 #define JS_MEMBERS_HASH 0x264E8964u
@@ -333,11 +333,11 @@ static const pico8_ents_t *ok_le(void) {
 /* A button as `js(b)` and `js:pq` left it: every construction key, what
  * `pq` built, the methods and where `lt` registered it. */
 static uint32_t fold_button(uint32_t h, const void *e) {
-    static const char *const bm[] = {"kj", "ev", "hd", "hb", "hk"};
+    static const char *const bm[] = {"draw", "draw_overlay", "hit_test", "refresh", "new_year"};
     const pico8_js_t *b = js_of(e);
     size_t i;
 
-    assert(b->header.state != NULL && strcmp(b->header.state, "ph") == 0);
+    assert(b->header.state != NULL && strcmp(b->header.state, "normal") == 0);
     h = fold_fixed(h, b->header.state_time);
     h = fold_fixed(h, b->fa);
     h = fold_fixed(h, b->mb);
@@ -457,7 +457,7 @@ static void start_game(void) {
 /* The `i`th (from 1) of the title's four buttons, which `pz` built from
  * `bo`'s rows in order: the entities of `cv.hd` with an `mb`. */
 static void *title_button(int i) {
-    const pico8_ents_t *hd = pico8_cv("hd");
+    const pico8_ents_t *hd = pico8_cv("hit_test");
     int k;
 
     for (k = 0; hd != NULL && k < hd->count; k++) {
@@ -502,7 +502,7 @@ static void *built_world(void) {
     int i;
 
     start_game();
-    jos = pico8_cg("jo");
+    jos = pico8_cg("planet");
     assert(jos != NULL && jos->count > 1);
     qu = jos->items[0];
     for (i = 1; i < jos->count; i++) {
@@ -541,7 +541,7 @@ static void known_panel(void) {
     void *p;
 
     start_game();
-    p = pico8_cg("jo")->items[0];
+    p = pico8_cg("planet")->items[0];
     pico8_jo_hh(p);
     (void)pico8_jo_ldown(p);
     one_frame();
@@ -586,7 +586,7 @@ static void call_my(void *e) {
 /* The buttons `eu`'s `nv(ix,js)` built: the only `fa`=11 entities with an
  * `lq` in `cv.hd` right after `eu`. */
 static int ix_buttons(void *out[4]) {
-    const pico8_ents_t *hd = pico8_cv("hd");
+    const pico8_ents_t *hd = pico8_cv("hit_test");
     int n = 0;
     int i;
     for (i = 0; hd != NULL && i < hd->count; i++) {
@@ -609,7 +609,7 @@ static void test_title(void) {
     int i;
 
     start_title();
-    hd = pico8_cv("hd");
+    hd = pico8_cv("hit_test");
     for (i = 0; i < hd->count; i++) {
         void *e = hd->items[i];
         if (is_js(e)) {
@@ -722,7 +722,7 @@ static void test_pj(void) {
     int i;
 
     game_end();
-    hd = pico8_cv("hd");
+    hd = pico8_cv("hit_test");
     for (i = 0; i < hd->count; i++) {
         void *e = hd->items[i];
         if (is_js(e) && js_of(e)->fa == pico8_fixed_from_int(15) && js_of(e)->lq != NULL) {
@@ -731,7 +731,7 @@ static void test_pj(void) {
         }
     }
     check_int("pj buttons", n, 2);
-    check("pj", h, PJ_HASH);
+    check("score_panel", h, PJ_HASH);
 }
 
 /* `dk` is the button `eu` got: its `en` sizes the galaxy. */
@@ -754,7 +754,7 @@ static void test_dk(void) {
         h = fold_fixed_or_nil(h, js_of(nj)->has_en, js_of(nj)->en);
         h = fold_fixed_or_nil(h, js_of(nj)->has_trade, js_of(nj)->trade);
         h = fold_string_or_nil(h, js_of(nj)->px);
-        jo = pico8_cg("jo");
+        jo = pico8_cg("planet");
         printf("[dk] bo[%d]: %d planet(s)\n", i, jo->count);
         h = fnv(h, (uint32_t)jo->count);
         for (j = 0; j < jo->count; j++) {
@@ -849,7 +849,7 @@ static void test_ph(void) {
     assert(vec_of(js_of(b)->ra).x == pico8_fixed_from_int(40) && vec_of(js_of(b)->ra).y == pico8_fixed_from_int(-20));
     printf("[ph] %d step(s)\n", steps);
     h = fnv(h, (uint32_t)steps);
-    check("ph", h, PH_HASH);
+    check("normal", h, PH_HASH);
 }
 
 static int my_calls;
@@ -881,7 +881,7 @@ static void test_ldown(void) {
     h = fnv(h, (uint32_t)my_calls);
     h = fold_button(h, with_my);
     h = fold_button(h, with_false);
-    check("ldown", h, LDOWN_HASH);
+    check("left_press", h, LDOWN_HASH);
 }
 
 static uint32_t lq_first(const void *b) {
@@ -916,7 +916,7 @@ static void test_hb(void) {
     h = fnv(h, lq_first(ix[1]));
     h = fold_fixed(h, js_of(ix[1])->lq->w);
     h = fold_fixed(h, js_of(ix[1])->mb);
-    check("hb", h, HB_HASH);
+    check("refresh", h, HB_HASH);
 }
 
 /* The `my` of a `jo:fe` row builds on the planet it captured. */
@@ -938,7 +938,7 @@ static void test_fe_my(void) {
         h = fnv(h, (uint32_t)pico8_hv()->count);
         call_my(b);
         printf("[fe my] row %d: planet me=%s, %d entities\n", i,
-               pt->header.state != NULL && strcmp(pt->header.state, "ly") == 0 ? "ly" : "not ly", pico8_hv()->count);
+               pt->header.state != NULL && strcmp(pt->header.state, "settled") == 0 ? "settled" : "not ly", pico8_hv()->count);
         h = fold_string_or_nil(h, pt->header.state);
         h = fnv(h, (uint32_t)pico8_hv()->count);
         break;
@@ -1390,7 +1390,7 @@ static uint32_t members_title_and_game(void) {
     size_t k;
 
     start_title();
-    hd = pico8_cv("hd");
+    hd = pico8_cv("hit_test");
     for (i = 0; i < hd->count; i++) {
         void *e = hd->items[i];
         if (is_js(e)) {
@@ -1516,7 +1516,7 @@ static uint32_t members_fe(void) {
             pt = b->_jo_fe_pt;
         }
         assert(b->_jo_fe_pt == pt);
-        assert(is_of_class(pt, pico8_jo_struct_class()) && ents_listed(pico8_cg("jo"), pt));
+        assert(is_of_class(pt, pico8_jo_struct_class()) && ents_listed(pico8_cg("planet"), pt));
         assert(b->_jo_fe_b != NULL && is_of_class(b->_jo_fe_b, pico8_hp_struct_class()));
         assert(b->has__jo_fe_od);
         assert(b->my != NULL);
@@ -1546,7 +1546,7 @@ static uint32_t members_pj(void) {
     int i;
 
     game_end();
-    hd = pico8_cv("hd");
+    hd = pico8_cv("hit_test");
     for (i = 0; i < hd->count; i++) {
         void *e = hd->items[i];
         if (is_js(e) && js_of(e)->fa == pico8_fixed_from_int(15) && js_of(e)->lq != NULL) {

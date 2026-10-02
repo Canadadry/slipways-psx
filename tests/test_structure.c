@@ -51,16 +51,16 @@ static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {
  * other value moves every *_HASH. */
 #define FROZEN_INSTANCE_TAG 0x9E5C1451u
 
-#define BUILT_HASH 0xA67C1FC6u
-#define LIFE_HASH 0x0ECCCC0Au
-#define DESCENDANTS_HASH 0x19708F66u
+#define BUILT_HASH 0x8CC38DAAu
+#define LIFE_HASH 0x37B44597u
+#define DESCENDANTS_HASH 0x129E3D90u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
 
-static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
-static const char *const tags[] = {"qh", "jo", "np", "prober"};
+static const char *const bm[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+static const char *const tags[] = {"structure", "planet", "node", "targeting"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -244,7 +244,7 @@ static void assert_members_of(const entity_class_t *c, const entity_class_t *ref
 
 /* The research icon whose `ke` is `gx[0]`, the laboratory. */
 static void *qh_icon(void) {
-    const pico8_ents_t *hb = pico8_cv("hb");
+    const pico8_ents_t *hb = pico8_cv("refresh");
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i];
@@ -426,7 +426,7 @@ static void test_life(void) {
     h = fold_held(h, out_lab, mp);
     assert(et_state(as_qh(out_lab)) == 3 && !ents_listed(pico8_hv(), as_qh(out_lab)->probe->et));
 
-    planet = pico8_cg("jo")->items[0];
+    planet = pico8_cg("planet")->items[0];
     assert(pico8_jo_is_family(planet));
     planet_p = ((const pico8_jo_t *)planet)->p;
     assert(planet_p != NULL);
@@ -460,7 +460,7 @@ static void test_life(void) {
     h = fold_fixed_member(h, as_qh(in_lab)->header.state_time);
     h = fnv(h, p__state(as_qh(in_lab)));
     h = fnv(h, (uint32_t)credits());
-    assert(strcmp(as_qh(in_lab)->header.state, "ly") == 0 && credits() == pico8_fixed_from_int(100 - 15));
+    assert(strcmp(as_qh(in_lab)->header.state, "settled") == 0 && credits() == pico8_fixed_from_int(100 - 15));
     in_y = as_qh(in_lab)->ra->y;
 
     ra_before = as_qh(out_lab)->ra;
@@ -550,7 +550,7 @@ static uint32_t fold_descendant(uint32_t h, void *d) {
 /* The shop's `ie:ldown` on the icon of `kind`, as the player buys it, then
  * dragged by `hq` to the middle of the screen. */
 static void *bought(const entity_kind_t *kind) {
-    const pico8_ents_t *hb = pico8_cv("hb");
+    const pico8_ents_t *hb = pico8_cv("refresh");
     const pico8_qb_t *mo = pico8_mo_qb();
     const pico8_vec_t *mo_ra;
     int i;
@@ -602,9 +602,9 @@ static void test_descendants(void) {
     for (i = 0; i < sizeof shop / sizeof shop[0]; i++) {
         made[shop[i].d] = bought(shop[i].kind());
     }
-    p = pico8_cg("jo")->items[0];
+    p = pico8_cg("planet")->items[0];
     pico8_jo_hh(p);
-    pico8_jo_hu(p, cw_project("pm"));
+    pico8_jo_hu(p, cw_project("protostar"));
     made[PM] = pico8_hv()->items[pico8_hv()->count - 1];
     for (i = 0; i < DESCENDANTS; i++) {
         assert(made[i] != NULL && descendant_of(made[i]) == (int)i && ents_listed(pico8_hv(), made[i]));
@@ -656,8 +656,8 @@ static void test_qh_is_a_struct(void) {
 
     start_game();
     a = build_lab();
-    assert(is_a_qh_struct(a) && ents_listed(pico8_cg("qh"), a));
-    assert(pico8_da(a) == pico8_fixed_from_int(pico8_cg("qh")->count));
+    assert(is_a_qh_struct(a) && ents_listed(pico8_cg("structure"), a));
+    assert(pico8_da(a) == pico8_fixed_from_int(pico8_cg("structure")->count));
     assert(cls->attach_slipway == pico8_jo_struct_class()->attach_slipway && cls->offer_trade == pico8_jo_struct_class()->offer_trade);
     assert_qh_shape(cls);
     assert(cls->hit_test == pico8_jo_struct_class()->hit_test && cls->draw == pico8_jo_struct_class()->draw &&
@@ -670,7 +670,7 @@ static void test_qh_is_a_struct(void) {
     must_abort(build_with_unknown_key, NULL);
     {
         pico8_jo_t *bare = pico8_qh_new(NULL);
-        assert(is_a_qh_struct(bare) && bare->id == NULL && bare->oe != NULL && ents_listed(pico8_cg("qh"), bare));
+        assert(is_a_qh_struct(bare) && bare->id == NULL && bare->oe != NULL && ents_listed(pico8_cg("structure"), bare));
     }
     for (i = 0; i < sizeof descendants / sizeof descendants[0]; i++) {
         planet_keys_t keys;

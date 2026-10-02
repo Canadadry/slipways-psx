@@ -67,7 +67,7 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
     /* `jo` wires "kj" as a class default, so the instance must land in the
      * real `cv["kj"]` bucket. */
     {
-        const pico8_ents_t *bucket = pico8_cv("kj");
+        const pico8_ents_t *bucket = pico8_cv("draw");
         int found = 0;
         int i;
         assert(bucket != NULL);
@@ -102,7 +102,7 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
     assert(pixel_before == 9);
 
     assert(gfx.camera_x == 0 && gfx.camera_y == 0);
-    pico8_dc("kj");
+    pico8_dc("draw");
 
     /* Order, never the reverse: within a layer, the "kj" special case runs
      * before the per-entity loop, so the real `kj` already sees its camera. */

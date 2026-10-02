@@ -199,7 +199,7 @@ static int case_update60_after_forgetting(void) {
  * reads it for the whole game. */
 static int case_dk_outlives_its_button(void) {
     load_cart_and_start();
-    const pico8_ents_t *hd = pico8_cv("hd");
+    const pico8_ents_t *hd = pico8_cv("hit_test");
     pico8_js_t *nj = NULL;
     for (int i = 0; i < hd->count && nj == NULL; i++)
         if (hd->items[i]->class == pico8_js_struct_class() && ((pico8_js_t *)hd->items[i])->has_en)

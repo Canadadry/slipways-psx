@@ -148,7 +148,7 @@ static pico8_mh_t *pico8_mh_struct_new(const pico8_mh_keys_t *keys) {
         self->lh = keys->lh;
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("mh");
+    pico8_class_coverage_record("message_box");
 #endif
     pico8_mh_pq(self);
     pico8_ke_struct_pq(&self->header);
@@ -278,7 +278,7 @@ static pico8_iv_t *pico8_iv_struct_new(const pico8_iv_keys_t *keys) {
         self->at2 = keys->at2;
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("iv");
+    pico8_class_coverage_record("toast");
 #endif
     pico8_iv_pq(self);
     pico8_ke_struct_pq(&self->header);

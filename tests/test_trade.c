@@ -204,7 +204,7 @@ static pico8_trade_t *route(pico8_ents_t *lp, pico8_ents_t *rl, int has_qe, int 
 }
 
 static void *planet(int i) {
-    const pico8_ents_t *jo = pico8_cg("jo");
+    const pico8_ents_t *jo = pico8_cg("planet");
     assert(jo != NULL && i < jo->count);
     return jo->items[i];
 }
@@ -220,7 +220,7 @@ static pico8_trade_t *game_route(void) {
     int i;
 
     start_game();
-    jo = pico8_cg("jo");
+    jo = pico8_cg("planet");
     assert(jo != NULL && jo->count > 3);
     qu = jo->items[0];
     for (i = 1; i < jo->count; i++) {
@@ -617,7 +617,7 @@ static void test_dh_counts_numbered_routes_only(void) {
     qh = pico8_qh_new(NULL);
     qh->jy = jy;
     qh->cc = cc;
-    pico8_ke_ks(&qh->header, "ly");
+    pico8_ke_ks(&qh->header, "settled");
     (void)pico8_dh(&qh->header);
     assert(nil_want->has_gc && nil_want->gc == pico8_fixed_from_int(0));
     assert(x_want->has_gc && x_want->gc == pico8_fixed_from_int(1));

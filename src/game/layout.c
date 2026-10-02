@@ -336,7 +336,7 @@ static pico8_lq_t *pico8_lq_struct_alloc(const pico8_zone_choisie_t *zone, int n
 static pico8_lq_t *pico8_lq_struct_finish(pico8_lq_t *self) {
     pico8_lq_pq(self);
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("lq");
+    pico8_class_coverage_record("layout_row");
 #endif
     return self;
 }
@@ -421,7 +421,7 @@ static pico8_jb_t *pico8_jb_struct_alloc(const pico8_zone_choisie_t *zone) {
     self = (pico8_jb_t *)pico8_zone_alloc(zone, sizeof *self);
 
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("jb");
+    pico8_class_coverage_record("tooltip");
 #endif
     entity_init_header(&self->header, &g_jb_struct_class);
     self->zone = zone;

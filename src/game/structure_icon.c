@@ -221,7 +221,7 @@ static pico8_ie_t *pico8_ie_struct_new(const pico8_ie_keys_t *keys) {
         self->jb = keys->jb;
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("ie");
+    pico8_class_coverage_record("structure_icon");
 #endif
     pico8_ke_struct_pq(&self->header);
     return self;

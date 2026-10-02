@@ -18,8 +18,8 @@
 #include <string.h>
 
 static const char *const KNOWN[] = {
-    "bg", "fq", "fr", "fv", "g_", "ga", "hj", "hp", "hy", "ie", "iv", "jb", "jc", "jo", "js",
-    "ke", "lq", "mh", "mx", "mz", "nf", "nl", "nr", "os", "pj", "pm", "qb", "qh", "trade", "ui",
+    "background", "modal_backdrop", "infraspace_gate", "help_screen", "probe", "burst", "ascension", "research_project", "economy", "structure_icon", "toast", "tooltip", "slipway", "planet", "button",
+    "entity", "layout_row", "message_box", "synthesizer", "wormhole", "mouse", "trading_hub", "slipgate", "processor", "score_panel", "protostar", "camera", "structure", "trade", "ui",
 };
 
 #define KNOWN_COUNT ((int)(sizeof KNOWN / sizeof KNOWN[0]))

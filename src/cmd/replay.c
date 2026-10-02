@@ -44,8 +44,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static const char *const SORTE_NAMES[PICO8_SORTE_COUNT] = {"js", "fq", "mh", "iv", "rangee", "le"};
-static const char *const PARTICULES_NAMES[PICO8_PARTICULES_COUNT] = {"particule", "qy", "qy_fv", "ga", "ts"};
+static const char *const SORTE_NAMES[PICO8_SORTE_COUNT] = {"button", "modal_backdrop", "message_box", "toast", "rangee", "le"};
+static const char *const PARTICULES_NAMES[PICO8_PARTICULES_COUNT] = {"particule", "qy", "qy_fv", "burst", "ts"};
 
 static void write_remplissage(const char *path) {
     FILE *out = fopen(path, "w");

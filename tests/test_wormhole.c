@@ -48,7 +48,7 @@
 #define HQ_HASH 0x9DAA980Cu
 #define KZ_TICKS 21
 #define KZ_HASH 0xE16D1D52u
-#define EY_HASH 0x52EB8E18u
+#define EY_HASH 0x86F499FFu
 #define PR_HASH 0x85EB1EC6u
 #define PR_EXIT_TICK 27
 #define DRAW_HASH 0xD124A50Cu
@@ -150,10 +150,10 @@ static int et_kind(const pico8_mz_t *mz) {
     if (et == (const void *)pico8_mz_jj_wrapper()) {
         return ET_JJ;
     }
-    if (ents_listed(pico8_cg("jc"), et)) {
+    if (ents_listed(pico8_cg("slipway"), et)) {
         return ET_JC;
     }
-    if (ents_listed(pico8_cg("jo"), et)) {
+    if (ents_listed(pico8_cg("planet"), et)) {
         return ET_JO;
     }
     if (is_bv_target(et)) {
@@ -213,7 +213,7 @@ static void world(void) {
     int i;
 
     start_game();
-    jos = pico8_cg("jo");
+    jos = pico8_cg("planet");
     assert(jos != NULL && jos->count > 1);
     qu = jos->items[0];
     for (i = 1; i < jos->count; i++) {
@@ -275,7 +275,7 @@ static void until_t(const pico8_mz_t *mz, int t) {
 }
 
 static pico8_jo_t *first_jo_with_me(const char *me) {
-    const pico8_ents_t *list = pico8_cg("jo");
+    const pico8_ents_t *list = pico8_cg("planet");
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         pico8_jo_t *jo = as_jo(list->items[i]);
@@ -301,10 +301,10 @@ static void check_fresh_mz(void *e) {
     static const int want_kk[9] = {7, 7, 6, 13, 5, 1, 1, 1, 0};
     int i;
 
-    assert(is_me(&mz->header, "kz"));
+    assert(is_me(&mz->header, "placing"));
     assert(mz->header.state_time == 0);
     assert(mz->probe->def->dw == 0);
-    assert(mz->probe->def->dq != NULL && strcmp(mz->probe->def->dq, "pr") == 0);
+    assert(mz->probe->def->dq != NULL && strcmp(mz->probe->def->dq, "unfolding") == 0);
     assert(mz->def->spawn_snd == pico8_fixed_from_int(52));
     assert(mz->probe->def->ik == pico8_fixed_from_int(49) && mz->probe->def->has_ik == 1);
     assert(mz->oi == 0);
@@ -326,9 +326,9 @@ static void check_fresh_mz(void *e) {
     assert(mz->ra == NULL && mz->p == NULL && mz->probe->et == NULL && mz->ij == NULL && !mz->p_);
     assert(mz->ox != NULL);
 
-    assert(ents_listed(pico8_hv(), mz) && ents_listed(pico8_cv("kj"), mz) && ents_listed(pico8_cv("ev"), mz));
-    assert(ents_listed(pico8_cg("mz"), mz));
-    assert(!ents_listed(pico8_cv("hd"), mz) && !ents_listed(pico8_cv("hk"), mz) && !ents_listed(pico8_cv("hb"), mz));
+    assert(ents_listed(pico8_hv(), mz) && ents_listed(pico8_cv("draw"), mz) && ents_listed(pico8_cv("draw_overlay"), mz));
+    assert(ents_listed(pico8_cg("wormhole"), mz));
+    assert(!ents_listed(pico8_cv("hit_test"), mz) && !ents_listed(pico8_cv("new_year"), mz) && !ents_listed(pico8_cv("refresh"), mz));
 }
 
 static void test_construction(void) {
@@ -337,13 +337,13 @@ static void test_construction(void) {
     int before;
 
     start_game();
-    assert(pico8_cg("g_") == NULL || pico8_cg("g_")->count == 0);
-    mzs = pico8_cg("mz");
+    assert(pico8_cg("probe") == NULL || pico8_cg("probe")->count == 0);
+    mzs = pico8_cg("wormhole");
     before = mzs == NULL ? 0 : mzs->count;
     made = pico8_bg_ldown(NULL);
     assert(made.stop && made.held != NULL);
-    assert(ents_listed(pico8_cg("g_"), made.held));
-    mzs = pico8_cg("mz");
+    assert(ents_listed(pico8_cg("probe"), made.held));
+    mzs = pico8_cg("wormhole");
     assert((mzs == NULL ? 0 : mzs->count) == before);
 
     made = pico8_bg_ldown(NULL);
@@ -378,7 +378,7 @@ static void test_ox(void) {
     int i;
 
     world();
-    jos = pico8_cg("jo");
+    jos = pico8_cg("planet");
     for (i = 0; unlit == NULL && jos != NULL && i < jos->count; i++) {
         pico8_jo_t *jo = as_jo(jos->items[i]);
         if (jo->fx == 0) {
@@ -417,8 +417,8 @@ static size_t registry_bytes(const pico8_ents_t *list) {
 }
 
 static size_t generation_but_registries(void) {
-    return pico8_zone_partie_prise() - registry_bytes(pico8_hv()) - registry_bytes(pico8_cv("kj")) -
-           registry_bytes(pico8_cv("ev")) - registry_bytes(pico8_cg("mz"));
+    return pico8_zone_partie_prise() - registry_bytes(pico8_hv()) - registry_bytes(pico8_cv("draw")) -
+           registry_bytes(pico8_cv("draw_overlay")) - registry_bytes(pico8_cg("wormhole"));
 }
 
 /* A built `mz` takes one grab arena, `ox` reserved to the exact count;
@@ -492,7 +492,7 @@ static uint32_t fold_hq(uint32_t h, const pico8_mz_t *mz, int want_kind) {
 /* A quarter of the slipway's length past its `qu` end: near that
  * colonized anchor, off the slipway's segment. */
 static pico8_vec_t near_anchor(void) {
-    const pico8_ents_t *jcs = pico8_cg("jc");
+    const pico8_ents_t *jcs = pico8_cg("slipway");
     const pico8_jc_t *jc;
     pico8_vec_t qu;
     pico8_vec_t re;
@@ -513,7 +513,7 @@ static void test_hq(void) {
 
     world();
     mz = build_mz();
-    jcs = pico8_cg("jc");
+    jcs = pico8_cg("slipway");
     assert(jcs != NULL && jcs->count > 0);
     mid = slipway_mid(as_jc(jcs->items[0]));
     hq(mz, vec_ref_fixed(mid), vec_ref(64, 64));
@@ -524,7 +524,7 @@ static void test_hq(void) {
     h = fold_hq(h, mz, ET_FALSE);
     hq(mz, vec_ref_fixed(near_anchor()), vec_ref(2, 2));
     h = fold_hq(h, mz, ET_THROWAWAY);
-    check("hq", h, HQ_HASH);
+    check("drag", h, HQ_HASH);
 }
 
 /* `kz` grows `oi` each `dg` tick; nothing sets `p_`. */
@@ -583,7 +583,7 @@ static void test_ey(void) {
     hq(paid, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
     assert(et_kind(paid) == ET_FALSE);
     ey(paid);
-    assert(is_me(&paid->header, "pr") && paid->header.state_time == 0 && p__state(paid) == 0);
+    assert(is_me(&paid->header, "unfolding") && paid->header.state_time == 0 && p__state(paid) == 0);
     assert(credits() == pico8_fixed_sub(before, pico8_fixed_from_int(3)));
     h = fold_ey(h, paid);
 
@@ -592,14 +592,14 @@ static void test_ey(void) {
     hq(broke, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
     pico8_fm_hy()->nz = pico8_fixed_from_int(2);
     ey(broke);
-    assert(is_me(&broke->header, "kz") && p__state(broke) == 2);
+    assert(is_me(&broke->header, "placing") && p__state(broke) == 2);
     assert(credits() == pico8_fixed_from_int(2));
     h = fold_ey(h, broke);
-    check("ey", h, EY_HASH);
+    check("drop", h, EY_HASH);
 }
 
 static int unknown_count(void) {
-    const pico8_ents_t *jo = pico8_cg("jo");
+    const pico8_ents_t *jo = pico8_cg("planet");
     int n = 0;
     int i;
     for (i = 0; jo != NULL && i < jo->count; i++) {
@@ -622,7 +622,7 @@ static pico8_mz_t *paid_mz_on_unknown(void) {
     hq(mz, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
     assert(et_kind(mz) == ET_FALSE);
     ey(mz);
-    assert(is_me(&mz->header, "pr"));
+    assert(is_me(&mz->header, "unfolding"));
     assert(unknown->p != NULL);
     *p = *unknown->p;
     mz->p = p;
@@ -645,12 +645,12 @@ static void test_pr_ticks(void) {
         revealed += before - unknown_count();
         h = fnv(h, (uint32_t)(before - unknown_count()));
         h = fnv(h, p__state(mz));
-        h = fnv(h, (uint32_t)ents_listed(pico8_cv("kj"), mz));
-        h = fnv(h, (uint32_t)ents_listed(pico8_cg("mz"), mz));
+        h = fnv(h, (uint32_t)ents_listed(pico8_cv("draw"), mz));
+        h = fnv(h, (uint32_t)ents_listed(pico8_cg("wormhole"), mz));
     }
     printf("[pr] left hv after %d ticks, %d planets revealed\n", tick, revealed);
     assert(revealed > 0);
-    assert(!ents_listed(pico8_cv("kj"), mz) && !ents_listed(pico8_cv("ev"), mz) && !ents_listed(pico8_cg("mz"), mz));
+    assert(!ents_listed(pico8_cv("draw"), mz) && !ents_listed(pico8_cv("draw_overlay"), mz) && !ents_listed(pico8_cg("wormhole"), mz));
     check_int("pr exit tick", tick, PR_EXIT_TICK);
     check("pr ticks", h, PR_HASH);
 }
@@ -730,7 +730,7 @@ static void test_gv(void) {
 
     world();
     mz = build_mz();
-    ly = first_jo_with_me("ly");
+    ly = first_jo_with_me("settled");
     assert(ly != NULL);
     r = pico8_jo_gv(ly, &mz->header);
     assert(r.stop && r.held == NULL);
@@ -776,7 +776,7 @@ static void test_jj_wrapper(void) {
     assert(et_kind(mz) == ET_JJ);
     check_jj_untouched();
 
-    jcs = pico8_cg("jc");
+    jcs = pico8_cg("slipway");
     assert(jcs != NULL && jcs->count > 0);
     mid = slipway_mid(as_jc(jcs->items[0]));
     hq(mz, vec_ref_fixed(mid), vec_ref(64, 64));

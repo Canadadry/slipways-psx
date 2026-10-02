@@ -295,7 +295,7 @@ down_t pico8_jo_gv(const pico8_jo_t *self, const entity_t *s) {
         return out;
     }
     me_val = self->header.state;
-    if (me_val == NULL || strcmp(me_val, "ly") != 0) {
+    if (me_val == NULL || strcmp(me_val, "settled") != 0) {
         return out;
     }
     /* Only a held `jc` carries `qu`: a held `bg`, `mz` or planet reads it absent. */
@@ -416,7 +416,7 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
     adjusted = pico8_ma(p, (entity_t *)self);
 
     me_val = self->header.state;
-    if (me_val != NULL && strcmp(me_val, "ll") == 0) {
+    if (me_val != NULL && strcmp(me_val, "vanishing") == 0) {
         pico8_fixed_t t = self->header.state_time;
         if (pico8_fixed_rnd(pico8_fixed_from_int(30)) < pico8_fixed_sub(t, pico8_fixed_from_int(30))) {
             return;
@@ -515,7 +515,7 @@ down_t pico8_jo_ldown(pico8_jo_t *self) {
         out.stop = 1;
         return out;
     }
-    if (strcmp(me_val, "ly") == 0) {
+    if (strcmp(me_val, "settled") == 0) {
         pico8_jc_keys_t keys = {0};
 
         assert(pico8_jc_ready() && "pico8_jc_init() must run before jo:ldown builds a jc");
@@ -552,7 +552,7 @@ void pico8_jo_hu(pico8_jo_t *self, pico8_hp_t *hp_instance) {
     } else if (hp_instance != NULL && hp_instance->go != NULL) {
         self->nk = pico8_df_lookup(hp_instance->go);
     } else {
-        pico8_ke_ks((entity_t *)self, "ly");
+        pico8_ke_ks((entity_t *)self, "settled");
         pico8_jo_lz(self, hp_instance);
         self->fx = pico8_fixed_from_int(1);
         fp = pico8_ov("autoassemblers", pico8_fixed_from_int(3), pico8_fixed_from_int(2));

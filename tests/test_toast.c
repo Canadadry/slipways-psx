@@ -63,7 +63,7 @@ static uint32_t screen_hash(void) {
 static uint32_t draw_hash(void) {
     pico8_gfx_init(&gfx);
     pico8_cls(&mem);
-    pico8_dc("kj");
+    pico8_dc("draw");
     return screen_hash();
 }
 
@@ -131,12 +131,12 @@ static void live(pico8_iv_t *e, int want_ticks, uint32_t want_sequence, uint32_t
         h = fnv(h, (uint32_t)ra.y);
         h = fnv(h, (uint32_t)e->l);
         h = fnv(h, (uint32_t)e->header.state_time);
-        h = fnv(h, (uint32_t)ents_listed(pico8_cv("kj"), e));
+        h = fnv(h, (uint32_t)ents_listed(pico8_cv("draw"), e));
         h = fnv(h, draw_hash());
         pico8_dg();
         ticks++;
     }
-    assert(!ents_listed(pico8_cv("kj"), e));
+    assert(!ents_listed(pico8_cv("draw"), e));
     h = fnv(h, (uint32_t)e->l);
     h = fnv(h, (uint32_t)e->header.state_time);
 
@@ -204,7 +204,7 @@ static void test_dg_drives_a_ke_struct(void) {
     int i;
 
     fresh_world();
-    pico8_ke_struct_init(&f->header, &g_fake_toast_class, "ph", 0);
+    pico8_ke_struct_init(&f->header, &g_fake_toast_class, "normal", 0);
     f->header.is_dead = &f->p_;
     f->p_ = 0;
     pico8_ke_struct_pq(&f->header);
@@ -233,7 +233,7 @@ static void test_defaults_match_the_parsed_spec(void) {
     assert(e->def->v.x == 0 && e->def->v.y == -0x570a);
     assert(e->def->fa == pico8_fixed_from_int(9));
     assert(e->l == e->def->l);
-    assert(e->header.state != NULL && strcmp(e->header.state, "ph") == 0);
+    assert(e->header.state != NULL && strcmp(e->header.state, "normal") == 0);
     assert(e->header.state_time == 0);
     assert(build(NULL, "y", 7)->def == e->def);
     assert(pico8_iv_ready());
@@ -245,7 +245,7 @@ static void test_defaults_match_the_parsed_spec(void) {
 /* Built directly or through its class, an iv is a struct that lands in hv
  * and cv.kj only. */
 static void test_iv_is_a_struct_registered_under_kj(void) {
-    const char *others[] = {"ev", "hd", "hk", "hb"};
+    const char *others[] = {"draw_overlay", "hit_test", "new_year", "refresh"};
     pico8_iv_keys_t keys = {0};
     void *direct;
     void *generic;
@@ -258,8 +258,8 @@ static void test_iv_is_a_struct_registered_under_kj(void) {
 
     assert(direct != NULL);
     assert(generic != NULL);
-    assert(ents_listed(pico8_hv(), direct) && ents_listed(pico8_cv("kj"), direct));
-    assert(ents_listed(pico8_hv(), generic) && ents_listed(pico8_cv("kj"), generic));
+    assert(ents_listed(pico8_hv(), direct) && ents_listed(pico8_cv("draw"), direct));
+    assert(ents_listed(pico8_hv(), generic) && ents_listed(pico8_cv("draw"), generic));
     for (i = 0; i < 4; i++) {
         assert(!ents_listed(pico8_cv(others[i]), direct) && !ents_listed(pico8_cv(others[i]), generic));
     }

@@ -44,8 +44,8 @@ static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {
 }
 
 
-#define BUILT_HASH 0x4194DF7Bu
-#define LIFE_HASH 0x6D8FAD96u
+#define BUILT_HASH 0xBAF7572Fu
+#define LIFE_HASH 0xC22C89F7u
 
 /* The tag `jo:ib`'s list carried as a tagged list, which the frozen hashes
  * fold: any other value moves every *_HASH. */
@@ -59,8 +59,8 @@ static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
 
-static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
-static const char *const tags[] = {"nr", "np", "prober"};
+static const char *const bm[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+static const char *const tags[] = {"slipgate", "node", "targeting"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -211,7 +211,7 @@ static void assert_qh_shape(const entity_class_t *c) {
 
 /* The research icon whose `ke` is `kind`. */
 static void *icon_of(const entity_kind_t *kind) {
-    const pico8_ents_t *hb = pico8_cv("hb");
+    const pico8_ents_t *hb = pico8_cv("refresh");
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i];
@@ -373,7 +373,7 @@ static uint32_t fold_slipgate(uint32_t h, const void *e) {
     for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
         h = fnv(h, (uint32_t)ents_rank_in(pico8_cg(tags[i]), e));
     }
-    assert(ents_listed(pico8_cg("nr"), e) && !ents_listed(pico8_cg("jo"), e) && !ents_listed(pico8_cg("qh"), e));
+    assert(ents_listed(pico8_cg("slipgate"), e) && !ents_listed(pico8_cg("planet"), e) && !ents_listed(pico8_cg("structure"), e));
     return h;
 }
 
@@ -476,13 +476,13 @@ static void test_life(void) {
     assert(cls_of(placed)->drop == pico8_d__dispatch);
     h = pico8_d_(placed) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
     h = fold_string_member(h, as_qh(placed)->header.state);
-    assert(strcmp(as_qh(placed)->header.state, "ly") == 0);
+    assert(strcmp(as_qh(placed)->header.state, "settled") == 0);
     h = fold_economy(h, placed);
     for (i = 0; i < 3; i++) {
         h = fold_dg(h, placed);
     }
     for (i = 0; i < 2; i++) {
-        pico8_dc("kj");
+        pico8_dc("draw");
         h = fnv(h, screen_hash());
     }
 
@@ -521,7 +521,7 @@ static void test_life(void) {
     bare = pico8_nr_new(NULL);
     assert(gate_kind(bare) == NR && as_qh(bare)->id == NULL && as_qh(bare)->oe != NULL &&
            as_qh(bare)->kw != NULL);
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_cg("nr"), bare));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_cg("slipgate"), bare));
     {
         planet_keys_t keys;
         pico8_vec_t *p = vec_ref(vec_xy(3, 4));
@@ -553,7 +553,7 @@ static void test_nr_is_a_struct(void) {
 
     start_game();
     a = build_slipgate();
-    assert(is_an_nr_struct(a) && cls != qh && ents_listed(pico8_cg("nr"), a));
+    assert(is_an_nr_struct(a) && cls != qh && ents_listed(pico8_cg("slipgate"), a));
     assert(cls->offer_trade != qh->offer_trade && cls->attach_slipway == qh->attach_slipway && cls->drag == qh->drag && cls->drop == qh->drop && cls->spawn_particle == qh->spawn_particle);
     assert_qh_shape(cls);
     assert(cls->draw == qh->draw && cls->draw_overlay == qh->draw_overlay && cls->hit_test == qh->hit_test && cls->new_year == qh->new_year);

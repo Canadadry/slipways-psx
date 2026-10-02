@@ -10,7 +10,7 @@
 #include "engine/game_zone.h"
 
 #define PICO8_BM_COUNT 5
-static const char *const g_bm_names[PICO8_BM_COUNT] = {"kj", "ev", "hd", "hk", "hb"};
+static const char *const g_bm_names[PICO8_BM_COUNT] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
 
 typedef struct {
     const char *name; /* borrowed from g_bm_names -- not owned here */
@@ -216,10 +216,10 @@ void pico8_he(entity_t *e) {
 void pico8_dc(const char *nt) {
     const pico8_ents_t *bucket_src;
     pico8_ents_t layers[15];
-    int kj = strcmp(nt, "kj") == 0;
+    int kj = strcmp(nt, "draw") == 0;
     int i, o;
 
-    assert((kj || strcmp(nt, "ev") == 0) && "dc: only kj and ev are drawn through dc");
+    assert((kj || strcmp(nt, "draw_overlay") == 0) && "dc: only kj and ev are drawn through dc");
 
     for (i = 0; i < 15; i++) {
         pico8_ents_init(&layers[i], pico8_zone_frame());

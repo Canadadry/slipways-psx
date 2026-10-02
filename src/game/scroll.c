@@ -50,7 +50,7 @@ static pico8_qb_t *pico8_qb_struct_new(void) {
     self->p = &self->def->p;
     self->ra = &self->def->ra;
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("qb");
+    pico8_class_coverage_record("camera");
 #endif
     pico8_ke_struct_pq(&self->header);
     return self;

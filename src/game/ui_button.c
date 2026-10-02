@@ -147,7 +147,7 @@ static pico8_js_t *pico8_js_struct_new(const pico8_js_keys_t *keys) {
     }
     self->header.gpio_signal = self->has_fg ? &self->fg : NULL;
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("js");
+    pico8_class_coverage_record("button");
 #endif
     pico8_js_pq(self, keys);
     pico8_ke_struct_pq(&self->header);
@@ -336,7 +336,7 @@ static pico8_fq_t *pico8_fq_struct_new(const pico8_fq_keys_t *keys) {
         self->my = keys->my;
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("fq");
+    pico8_class_coverage_record("modal_backdrop");
 #endif
     pico8_ke_struct_pq(&self->header);
     return self;

@@ -204,7 +204,7 @@ static pico8_jo_t *pico8_nr_struct_new(const planet_keys_t *keys) {
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("nr");
+    pico8_class_coverage_record("slipgate");
 #endif
     pico8_jo_pq(self);
     pico8_ke_struct_pq(&self->header);
@@ -248,7 +248,7 @@ static pico8_jo_t *pico8_fr_struct_new(const planet_keys_t *keys) {
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("fr");
+    pico8_class_coverage_record("infraspace_gate");
 #endif
     pico8_jo_pq(self);
     pico8_ke_struct_pq(&self->header);
@@ -342,7 +342,7 @@ static pico8_jo_t *pico8_mx_struct_new(const planet_keys_t *keys) {
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("mx");
+    pico8_class_coverage_record("synthesizer");
 #endif
     pico8_f_((entity_t *)self);
     pico8_jo_pq(self);

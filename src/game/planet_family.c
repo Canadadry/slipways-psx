@@ -71,7 +71,7 @@ static pico8_jo_t *pico8_qh_struct_new(const planet_keys_t *keys) {
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("qh");
+    pico8_class_coverage_record("structure");
 #endif
     pico8_jo_pq(self);
     pico8_ke_struct_pq(&self->header);
@@ -133,7 +133,7 @@ static pico8_jo_t *pico8_nl_struct_new(const planet_keys_t *keys) {
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("nl");
+    pico8_class_coverage_record("trading_hub");
 #endif
     pico8_jo_pq(self);
     pico8_ke_struct_pq(&self->header);
@@ -176,7 +176,7 @@ static pico8_jo_t *pico8_os_struct_new(const planet_keys_t *keys) {
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("os");
+    pico8_class_coverage_record("processor");
 #endif
     pico8_jo_pq(self);
     pico8_ke_struct_pq(&self->header);
@@ -257,7 +257,7 @@ static pico8_jo_t *pico8_hj_struct_new(const planet_keys_t *keys) {
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("hj");
+    pico8_class_coverage_record("ascension");
 #endif
     pico8_f_((entity_t *)self);
     pico8_jo_pq(self);
@@ -329,7 +329,7 @@ static pico8_jo_t *pico8_pm_struct_new(const planet_keys_t *keys) {
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("pm");
+    pico8_class_coverage_record("protostar");
 #endif
     pico8_pm_pq(self);
     pico8_f_((entity_t *)self);
@@ -515,7 +515,7 @@ static pico8_jo_t *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("ga");
+    pico8_class_coverage_record("burst");
 #endif
     pico8_ga_pq(self);
     pico8_jo_pq_dans(self, place);
@@ -683,8 +683,8 @@ static const struct {
     const char *fz;
     const entity_kind_t *(*kind)(void);
 } g_kv[] = {
-    {"pm", pico8_pm_kind},
-    {"ga", pico8_ga_kind},
+    {"protostar", pico8_pm_kind},
+    {"burst", pico8_ga_kind},
 };
 
 const entity_kind_t *pico8_jo_kv(const char *fz) {

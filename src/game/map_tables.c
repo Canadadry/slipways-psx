@@ -19,12 +19,12 @@ const pico8_hc_entry_t pico8_hc_table[PICO8_HC_COUNT] = {
     {"f+", 4, {0, 2, 3, 4}, NULL},
     {"-", 3, {1, 2, 3}, "+"},
     {"+", 3, {2, 3, 4}, NULL},
-    {"qh", 4, {0, 1, 3, 5}, "qh+"},
+    {"structure", 4, {0, 1, 3, 5}, "qh+"},
     {"qh+", 4, {0, 2, 5, 8}, NULL},
 };
 
 const pico8_fd_entry_t pico8_fd_table[PICO8_FD_COUNT] = {
-    {.npos = 7, .px = "", .lr = "", .fj = 0, .ja = "qh", .i = "p\?", .o = "k", .il = "superhuman ai"},
+    {.npos = 7, .px = "", .lr = "", .fj = 0, .ja = "structure", .i = "p\?", .o = "k", .il = "superhuman ai"},
     {.npos = 6, .px = "", .lr = "", .fj = 0, .ja = "f+", .i = "p", .o = "h"},
     {.npos = 6, .px = "", .lr = "", .fj = 0, .ja = "-", .i = "", .o = "e"},
     {.npos = 7, .px = "", .lr = "", .fj = 0, .ja = "f-", .i = "l", .o = "f", .il = "xenofoods"},
@@ -63,9 +63,9 @@ const pico8_fd_entry_t pico8_fd_table[PICO8_FD_COUNT] = {
     {.header = "biome hacking"},
     {.npos = 3, .px = "terraform", .lr = "xisoj", .fj = 20, .has_ii = 1, .ii = 39, .go = "e"},
     {.header = "starbirth"},
-    {.npos = 3, .px = "collapse", .lr = "gm", .fj = 30, .has_ii = 1, .ii = 41, .cw = "pm", .has_rn = 1, .rn = 45},
+    {.npos = 3, .px = "collapse", .lr = "gm", .fj = 30, .has_ii = 1, .ii = 41, .cw = "protostar", .has_rn = 1, .rn = 45},
     {.header = "geoharvesting"},
-    {.npos = 3, .px = "harvest", .lr = "efmorxjisg", .fj = -20, .has_ii = 1, .ii = 23, .cw = "ga", .has_rn = 1,
+    {.npos = 3, .px = "harvest", .lr = "efmorxjisg", .fj = -20, .has_ii = 1, .ii = 23, .cw = "burst", .has_rn = 1,
         .rn = 46},
 };
 

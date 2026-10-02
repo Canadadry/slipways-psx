@@ -452,7 +452,7 @@ static void test_constructions(void) {
     {
         pico8_lq_cell_t a[] = {str("3"), num(12)};
         k = with_c(with_bg(positionals(2, a), 8), 7);
-        h = fold_built_from(h, "bg", &k, 0u);
+        h = fold_built_from(h, "background", &k, 0u);
     }
     {
         pico8_lq_cell_t a[] = {str("4")};
@@ -691,7 +691,7 @@ static void built_planet_panel(void) {
     int i;
 
     start_game();
-    jos = pico8_cg("jo");
+    jos = pico8_cg("planet");
     assert(jos != NULL && jos->count > 1);
     qu = jos->items[0];
     for (i = 1; i < jos->count; i++) {

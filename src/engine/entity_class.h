@@ -21,11 +21,11 @@ typedef enum {
 /* The state named `me`, or -1 for any other name (`unknown`, `known`). */
 static inline int entity_state_of(const char *me) {
     static const char *const names[STATE_COUNT] = {
-        [ENTITY_STATE_NORMAL] = "ph",
-        [ENTITY_STATE_SETTLED] = "ly",
-        [ENTITY_STATE_VANISHING] = "ll",
-        [ENTITY_STATE_PLACING] = "kz",
-        [ENTITY_STATE_UNFOLDING] = "pr",
+        [ENTITY_STATE_NORMAL] = "normal",
+        [ENTITY_STATE_SETTLED] = "settled",
+        [ENTITY_STATE_VANISHING] = "vanishing",
+        [ENTITY_STATE_PLACING] = "placing",
+        [ENTITY_STATE_UNFOLDING] = "unfolding",
     };
     int i;
 
@@ -68,10 +68,10 @@ typedef enum {
 /* The tag named `name`, or -1 for any other name. */
 static inline int entity_tag_named(const char *name) {
     static const char *const names[TAG_COUNT] = {
-        [TAG_STRUCTURE] = "qh", [TAG_ASCENSION] = "hj", [TAG_SLIPGATE] = "nr",
-        [TAG_PROBE] = "g_", [TAG_MESSAGE_BOX] = "mh", [TAG_SLIPWAY] = "jc",
-        [TAG_WORMHOLE] = "mz", [TAG_PLANET] = "jo", [TAG_NODE] = "np",
-        [TAG_TARGETING] = "prober",
+        [TAG_STRUCTURE] = "structure", [TAG_ASCENSION] = "ascension", [TAG_SLIPGATE] = "slipgate",
+        [TAG_PROBE] = "probe", [TAG_MESSAGE_BOX] = "message_box", [TAG_SLIPWAY] = "slipway",
+        [TAG_WORMHOLE] = "wormhole", [TAG_PLANET] = "planet", [TAG_NODE] = "node",
+        [TAG_TARGETING] = "targeting",
     };
     int i;
 

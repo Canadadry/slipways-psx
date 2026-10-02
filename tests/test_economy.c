@@ -239,7 +239,7 @@ static void built_world(void) {
     int i;
 
     start_game();
-    jos = pico8_cg("jo");
+    jos = pico8_cg("planet");
     assert(jos != NULL && jos->count > 1);
     qu = jos->items[0];
     for (i = 1; i < jos->count; i++) {
@@ -399,7 +399,7 @@ static void test_hk(void) {
 
     pico8_hy_hk(NULL);
     h = fold_fm(h);
-    check("hk", h, HK_HASH);
+    check("new_year", h, HK_HASH);
 }
 
 static uint32_t lu_step(uint32_t h, pico8_hy_t *self, int jt, int want, const entity_class_t *iv_cls) {
@@ -445,7 +445,7 @@ static void test_lu(void) {
 }
 
 static uint32_t fold_planets_kr(uint32_t h) {
-    const pico8_ents_t *jo = pico8_cg("jo");
+    const pico8_ents_t *jo = pico8_cg("planet");
     int i;
     for (i = 0; jo != NULL && i < jo->count; i++) {
         const pico8_jo_t *p = as_jo(jo->items[i]);
@@ -462,7 +462,7 @@ static const char *hl_string(void) {
 
 /* The first producing planet of `cg.jo`: `jy` set and its own `kw`. */
 static pico8_jo_t *a_maker(void) {
-    const pico8_ents_t *jos = pico8_cg("jo");
+    const pico8_ents_t *jos = pico8_cg("planet");
     int i;
 
     for (i = 0; i < jos->count; i++) {

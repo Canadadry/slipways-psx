@@ -46,7 +46,7 @@ static int ents_listed(const pico8_ents_t *list, const void *e) {
 /* Not a qb; no method answers and the camera stays put; hv and cv are
  * empty. */
 static void assert_placeholder(void) {
-    const char *buckets[] = {"kj", "ev", "hd", "hk", "hb"};
+    const char *buckets[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
     entity_t *mo = pico8_mo();
     int i;
 

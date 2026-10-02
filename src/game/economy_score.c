@@ -44,7 +44,7 @@ static int call_gg_truthy(entity_t *pt) {
 
 pico8_fixed_t pico8_da(entity_t *pt) {
     if (pt != NULL && (pt->class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && ((const pico8_jo_t *)pt)->def->qh) {
-        const pico8_ents_t *qh_list = pico8_cg("qh");
+        const pico8_ents_t *qh_list = pico8_cg("structure");
         return pico8_fixed_from_int(qh_list != NULL ? qh_list->count : 0);
     }
     if (call_gg_truthy(pt)) {
@@ -67,7 +67,7 @@ static int cz_predicate(entity_t *e, void *ctx) {
 }
 
 pico8_fixed_t pico8_cz(void) {
-    const pico8_ents_t *jo_list = pico8_cg("jo");
+    const pico8_ents_t *jo_list = pico8_cg("planet");
     pico8_ents_t filtered = pico8_jp_ents(pico8_zone_frame(), jo_list, cz_predicate, NULL);
     int mu = filtered.count;
     pico8_fixed_t result;
@@ -192,7 +192,7 @@ pico8_ky_t pico8_ky(void) {
     di_ctx.total = pico8_fixed_from_int(0);
     di_ctx.seq = pico8_b__table;
     di_ctx.count = PICO8_B__COUNT;
-    for_each_cg("jo", sum_by_mi_visit, &di_ctx);
+    for_each_cg("planet", sum_by_mi_visit, &di_ctx);
 
     if (fm_po != NULL) {
         int p;
@@ -245,7 +245,7 @@ pico8_fixed_t pico8_bf(void) {
     ctx.total = pico8_fixed_from_int(0);
     ctx.seq = pico8_co_table;
     ctx.count = PICO8_CO_COUNT;
-    for_each_cg("jo", sum_by_mi_visit, &ctx);
+    for_each_cg("planet", sum_by_mi_visit, &ctx);
 
     return pico8_fixed_add(h_val, ctx.total);
 }

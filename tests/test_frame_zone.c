@@ -160,7 +160,7 @@ static int case_gh_rows_survive_reset(void) {
     pico8_jo_t *planet;
 
     start_game();
-    planet = (pico8_jo_t *)pico8_cg("jo")->items[0];
+    planet = (pico8_jo_t *)pico8_cg("planet")->items[0];
     kw.qe = pico8_fixed_from_int(99);
     kw.mu = pico8_fixed_from_int(1);
     planet->kw = &kw;
@@ -182,7 +182,7 @@ static int case_hp_jb_survives_reset(void) {
     pico8_jo_t *planet;
 
     start_game();
-    planet = (pico8_jo_t *)pico8_cg("jo")->items[0];
+    planet = (pico8_jo_t *)pico8_cg("planet")->items[0];
     pico8_jo_hh(planet);
     (void)pico8_jo_ldown(planet);
     assert(reset_then_draw_panel() >= 1 && "jo:fe: un batiment porte la bulle de hp:jb");

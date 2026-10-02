@@ -40,8 +40,8 @@ static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {
 }
 
 
-#define BUILT_HASH 0x8355850Bu
-#define LIFE_HASH 0xC8987757u
+#define BUILT_HASH 0x067C3AC7u
+#define LIFE_HASH 0x31386BDAu
 
 /* The tag `jo:ib`'s list carried as a tagged list, which the frozen hashes
  * fold: any other value moves every *_HASH. */
@@ -55,8 +55,8 @@ static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
 
-static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
-static const char *const tags[] = {"jo", "np", "prober"};
+static const char *const bm[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+static const char *const tags[] = {"planet", "node", "targeting"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -233,7 +233,7 @@ static void assert_members_of(const entity_class_t *c, const entity_class_t *ref
 
 /* The research icon whose `ke` is `gx[4]`, the trading hub. */
 static void *nl_icon(void) {
-    const pico8_ents_t *hb = pico8_cv("hb");
+    const pico8_ents_t *hb = pico8_cv("refresh");
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i];
@@ -366,7 +366,7 @@ static uint32_t fold_plate(uint32_t h, const void *e) {
     for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
         h = fnv(h, (uint32_t)ents_rank_in(pico8_cg(tags[i]), e));
     }
-    assert(!ents_listed(pico8_cg("qh"), e));
+    assert(!ents_listed(pico8_cg("structure"), e));
     return h;
 }
 
@@ -455,7 +455,7 @@ static void test_life(void) {
     h = fold_string_member(h, placed->header.state);
     h = fold_fixed_member(h, placed->header.state_time);
     h = fnv(h, (uint32_t)credits());
-    assert(strcmp(placed->header.state, "ly") == 0 && credits() == pico8_fixed_from_int(100 - 20));
+    assert(strcmp(placed->header.state, "settled") == 0 && credits() == pico8_fixed_from_int(100 - 20));
 
     h = fold_economy(h, placed);
 
@@ -522,7 +522,7 @@ static void test_nl_is_a_struct(void) {
 
     start_game();
     a = build_plate();
-    assert(is_an_nl_struct(a) && ents_listed(pico8_cg("jo"), a) && !ents_listed(pico8_cg("qh"), a));
+    assert(is_an_nl_struct(a) && ents_listed(pico8_cg("planet"), a) && !ents_listed(pico8_cg("structure"), a));
     assert_qh_shape(cls);
     assert_members_of(cls, qh, 1, 0);
     assert(cls->attach_slipway == qh->attach_slipway && cls->offer_trade == qh->offer_trade && cls->spawn_particle == NULL);
@@ -532,7 +532,7 @@ static void test_nl_is_a_struct(void) {
     {
         pico8_jo_t *bare = pico8_nl_new(NULL);
         assert(is_an_nl_struct(bare) && bare->id == NULL && bare->oe != NULL &&
-               ents_listed(pico8_cg("jo"), bare));
+               ents_listed(pico8_cg("planet"), bare));
     }
 }
 

@@ -49,11 +49,11 @@
 
 #define GB_COUNT 34
 #define GB_NAMED 26
-#define GB_HASH 0x1339FD84u
+#define GB_HASH 0x537BCD0Fu
 #define DEFAULTS_HASH 0xC841FB8Au
 #define FUNCTIONS_HASH 0x538CF904u
 #define FUNCTIONS_INVENTED_HASH 0xA64C8C0Fu
-#define INSTALL_HASH 0xE9A9797Cu
+#define INSTALL_HASH 0xAAA3A39Du
 #define BUILT_WORLD_HASH 0xDF3A48A1u
 #define HARVESTED_WORLD_HASH 0xE7F2768Cu
 
@@ -378,7 +378,7 @@ static void built_world(void) {
     int i;
 
     start_game();
-    jos = pico8_cg("jo");
+    jos = pico8_cg("planet");
     assert(jos != NULL && jos->count > 1);
     qu = jos->items[0];
     for (i = 1; i < jos->count; i++) {
@@ -742,7 +742,7 @@ static uint32_t fold_world(void) {
 
     pico8__update60();
     pico8__draw();
-    jo = pico8_cg("jo");
+    jo = pico8_cg("planet");
     for (i = 0; jo != NULL && i < jo->count; i++) {
         h = fnv(h, (uint32_t)gb_rank(as_jo(jo->items[i])->hn));
     }
@@ -761,7 +761,7 @@ static void test_harvested_world(void) {
     int i;
 
     start_game();
-    p = pico8_cg("jo")->items[0];
+    p = pico8_cg("planet")->items[0];
     pico8_jo_hh(p);
     pico8_jo_hu(p, project_with(with_cw, 1));
     last = pico8_hv()->items[pico8_hv()->count - 1];
@@ -983,11 +983,11 @@ static void lq_on_other(void *e) {
 }
 
 static void lz_on_other(void *e) {
-    pico8_jo_lz((pico8_jo_t *)pico8_cg("jo")->items[0], e);
+    pico8_jo_lz((pico8_jo_t *)pico8_cg("planet")->items[0], e);
 }
 
 static void hu_on_other(void *e) {
-    pico8_jo_hu((pico8_jo_t *)pico8_cg("jo")->items[0], e);
+    pico8_jo_hu((pico8_jo_t *)pico8_cg("planet")->items[0], e);
 }
 
 /* A project is a struct whose descriptor has no method and no writer, its

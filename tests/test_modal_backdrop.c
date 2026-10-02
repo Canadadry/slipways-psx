@@ -84,7 +84,7 @@ static uint32_t fold_veil(uint32_t h, const pico8_fq_t *e) {
     h = fold_bool_member(h, (e->p_ != 0), e->p_);
     h = fold_bool_member(h, (e->m_ != 0), e->m_);
     h = fnv(h, (uint32_t)ents_listed(pico8_hv(), e));
-    return fnv(h, (uint32_t)ents_listed(pico8_cv("hd"), e));
+    return fnv(h, (uint32_t)ents_listed(pico8_cv("hit_test"), e));
 }
 
 static const void *ok_o_(void) {
@@ -145,7 +145,7 @@ static void test_ldown_with_a_true_my_removes_the_veil(void) {
         assert(ticks < 1000);
     }
     assert(g_my_calls == 1);
-    assert(!ents_listed(pico8_cv("hd"), veil));
+    assert(!ents_listed(pico8_cv("hit_test"), veil));
     printf("[my true] ticks=%d\n", ticks);
     fflush(stdout);
     assert(ticks == MY_TRUE_TICKS);
@@ -169,7 +169,7 @@ static void test_bare_veil_swallows_the_click_and_stays(void) {
         pico8_dg();
         h = fold_veil(h, veil);
     }
-    assert(ents_listed(pico8_hv(), veil) && ents_listed(pico8_cv("hd"), veil));
+    assert(ents_listed(pico8_hv(), veil) && ents_listed(pico8_cv("hit_test"), veil));
     check("bare", h, BARE_SEQUENCE_HASH);
 }
 
@@ -192,7 +192,7 @@ static void test_false_my_keeps_the_veil(void) {
         pico8_dg();
         h = fold_veil(h, veil);
     }
-    assert(ents_listed(pico8_hv(), veil) && ents_listed(pico8_cv("hd"), veil));
+    assert(ents_listed(pico8_hv(), veil) && ents_listed(pico8_cv("hit_test"), veil));
     check("my false", h, BARE_SEQUENCE_HASH);
 }
 
@@ -257,7 +257,7 @@ static void test_defaults_match_the_parsed_spec(void) {
     assert(veil->def == &pico8_fq_def);
     assert(veil->def->fa == pico8_fixed_from_int(14));
     assert(veil->def->hd == pico8_fixed_from_int(1));
-    assert(veil->header.state != NULL && strcmp(veil->header.state, "ph") == 0);
+    assert(veil->header.state != NULL && strcmp(veil->header.state, "normal") == 0);
     assert(pico8_fq_ready());
     pico8_fq_shutdown();
     assert(!pico8_fq_ready());
@@ -273,7 +273,7 @@ static int is_a_veil_struct(const void *e) {
  * and cv.hd only; its `hd` is the constant hit of `hd=1`, and it has
  * neither `ph` nor `rdown`. */
 static void test_fq_is_a_struct_registered_under_hd(void) {
-    const char *others[] = {"kj", "ev", "hk", "hb"};
+    const char *others[] = {"draw", "draw_overlay", "new_year", "refresh"};
     const entity_class_t *cls = pico8_fq_struct_class();
     pico8_fq_keys_t keys = {0};
     void *built;
@@ -287,8 +287,8 @@ static void test_fq_is_a_struct_registered_under_hd(void) {
     generic = pico8_fq_new(NULL);
 
     assert(is_a_veil_struct(built) && is_a_veil_struct(generic));
-    assert(ents_listed(pico8_hv(), built) && ents_listed(pico8_cv("hd"), built));
-    assert(ents_listed(pico8_hv(), generic) && ents_listed(pico8_cv("hd"), generic));
+    assert(ents_listed(pico8_hv(), built) && ents_listed(pico8_cv("hit_test"), built));
+    assert(ents_listed(pico8_hv(), generic) && ents_listed(pico8_cv("hit_test"), generic));
     for (i = 0; i < 4; i++) {
         assert(!ents_listed(pico8_cv(others[i]), built) && !ents_listed(pico8_cv(others[i]), generic));
     }

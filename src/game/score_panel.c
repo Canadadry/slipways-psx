@@ -109,7 +109,7 @@ void pico8_eg(void) {
     pico8_fixed_t ps;
     int i;
 
-    filtered = pico8_jp_ents(pico8_zone_frame(), pico8_cg("jo"), pico8_eg_gg_pred, NULL);
+    filtered = pico8_jp_ents(pico8_zone_frame(), pico8_cg("planet"), pico8_eg_gg_pred, NULL);
     ps = pico8_fixed_div(pico8_fixed_from_int(filtered.count), pico8_fixed_from_int(2));
 
     if (mem == NULL) {
@@ -271,7 +271,7 @@ static pico8_pj_t *pico8_pj_struct_new(void) {
     self->gz = 0;
     self->has_gz = 0;
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("pj");
+    pico8_class_coverage_record("score_panel");
 #endif
     pico8_ke_struct_pq(&self->header);
     return self;

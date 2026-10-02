@@ -150,7 +150,7 @@ void pico8_mz_pr(pico8_mz_t *self, pico8_fixed_t t) {
                           PICO8_FIXED_LIT(0x000007ef, 0.031));
 
     self_p = self->p != NULL ? *self->p : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-    jo_list = pico8_cg("jo");
+    jo_list = pico8_cg("planet");
     if (jo_list != NULL) {
         for (i = 0; i < jo_list->count; i++) {
             entity_t *pt_val = jo_list->items[i];
@@ -240,7 +240,7 @@ static pico8_mz_t *pico8_mz_struct_new(void) {
     self->header.is_dead = &self->p_;
     self->p_ = 0;
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("mz");
+    pico8_class_coverage_record("wormhole");
 #endif
     pico8_mz_pq(self);
     pico8_jo_prise_fermer();

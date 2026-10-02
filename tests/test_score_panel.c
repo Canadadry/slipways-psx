@@ -44,7 +44,7 @@ static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
 
-static const char *const tags[] = {"jo", "g_", "qh", "jc", "mz", "mh", "np", "hj", "prober", "nr", "bg"};
+static const char *const tags[] = {"planet", "probe", "structure", "slipway", "wormhole", "message_box", "node", "ascension", "targeting", "slipgate", "background"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -349,11 +349,11 @@ static void test_built(void) {
 
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), ju));
     h = fnv(h, (uint32_t)pico8_hv()->count);
-    assert(ents_listed(pico8_cv("kj"), ju) && ents_listed(pico8_cv("hk"), ju) && ents_listed(pico8_cv("hb"), ju));
-    assert(!ents_listed(pico8_cv("ev"), ju) && !ents_listed(pico8_cv("hd"), ju));
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_cv("kj"), ju));
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_cv("hk"), ju));
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_cv("hb"), ju));
+    assert(ents_listed(pico8_cv("draw"), ju) && ents_listed(pico8_cv("new_year"), ju) && ents_listed(pico8_cv("refresh"), ju));
+    assert(!ents_listed(pico8_cv("draw_overlay"), ju) && !ents_listed(pico8_cv("hit_test"), ju));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_cv("draw"), ju));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_cv("new_year"), ju));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_cv("refresh"), ju));
     for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
         assert(!ents_listed(pico8_cg(tags[i]), ju));
     }
@@ -361,7 +361,7 @@ static void test_built(void) {
     assert(ju->fa == pico8_fixed_from_int(10));
     assert(ju->def == &pico8_pj_def && ju->fa == ju->def->fa);
     assert(ju->ed == NULL);
-    assert(ju->header.state != NULL && strcmp(ju->header.state, "ph") == 0);
+    assert(ju->header.state != NULL && strcmp(ju->header.state, "normal") == 0);
     h = fold_fixed_member(h, ju->header.state_time);
     assert(!ju->has_c_ && !ju->has_gz);
     assert(cls_of(ju)->draw != NULL && cls_of(ju)->states[ENTITY_STATE_NORMAL] != NULL && cls_of(ju)->refresh != NULL &&
@@ -434,7 +434,7 @@ static void test_life(void) {
         h = fnv(h, (uint32_t)(ea->row.count >= 3));
         h = fnv(h, (uint32_t)(ea->lh != NULL));
         h = fnv_str(h, string_at(row_of(&ea->row, 2), 1));
-        h = fnv(h, (uint32_t)ents_count_of(pico8_cg("mh")));
+        h = fnv(h, (uint32_t)ents_count_of(pico8_cg("message_box")));
         h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), pico8_kc()));
     }
     assert(ea->row.count == 2 && ea->lh != NULL);
@@ -460,12 +460,12 @@ static void test_life(void) {
     assert(ju->fa == pico8_fixed_from_int(13));
     assert(fq_count() == fq_before + 1 && js15_count() == js_before + 2);
     assert(ju->ed == pico8_kc() && pico8_kc() != NULL);
-    boxes = ents_count_of(pico8_cg("mh"));
+    boxes = ents_count_of(pico8_cg("message_box"));
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), pico8_kc()));
     h = fnv(h, (uint32_t)pico8_hv()->count);
 
     cls_of(ju)->states[ENTITY_STATE_NORMAL](&ju->header, pico8_fixed_from_int(0));
-    assert(ents_count_of(pico8_cg("mh")) == boxes);
+    assert(ents_count_of(pico8_cg("message_box")) == boxes);
     assert(ju->ed == pico8_kc());
 
     for (i = 0; i < 3; i++) {
@@ -765,7 +765,7 @@ static void test_eg_flags_every_fb_pattern_without_ly(void) {
     int i;
 
     (void)start_game();
-    assert(pico8_cg("jo")->count >= 2);
+    assert(pico8_cg("planet")->count >= 2);
     pico8_eg();
     for (i = 0; i < PICO8_FB_COUNT; i++) {
         assert(pico8_peek(&mem, 0x3101 + 4 * pico8_fb_table[i]) >= 128);

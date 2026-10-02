@@ -144,7 +144,7 @@ static void start_game(void) {
 
 /* The background is the `bg` of cv.hd whose `hd` and `fa` are both 1. */
 static pico8_bg_t *find_bg(int *count) {
-    const pico8_ents_t *hd = pico8_cv("hd");
+    const pico8_ents_t *hd = pico8_cv("hit_test");
     pico8_bg_t *found = NULL;
     int i;
 
@@ -189,7 +189,7 @@ static void check_fresh_bg(const pico8_bg_t *bg) {
     const pico8_int_seq_t *pl;
     size_t i;
 
-    assert(is_me(&bg->header, "ph"));
+    assert(is_me(&bg->header, "normal"));
     assert(bg->header.state_time == 0);
     assert(bg->def == &pico8_bg_def);
     assert(bg->def->fa == pico8_fixed_from_int(1));
@@ -203,8 +203,8 @@ static void check_fresh_bg(const pico8_bg_t *bg) {
     assert(cls->accept_drop == NULL && cls->states[ENTITY_STATE_NORMAL] == NULL);
     assert(cls->draw != NULL && cls->left_press != NULL && cls->right_press != NULL && cls->drag != NULL);
     assert(cls->drop == NULL);
-    assert(ents_listed(pico8_hv(), bg) && ents_listed(pico8_cv("kj"), bg) && ents_listed(pico8_cv("hd"), bg));
-    assert(!ents_listed(pico8_cv("ev"), bg) && !ents_listed(pico8_cv("hk"), bg) && !ents_listed(pico8_cv("hb"), bg));
+    assert(ents_listed(pico8_hv(), bg) && ents_listed(pico8_cv("draw"), bg) && ents_listed(pico8_cv("hit_test"), bg));
+    assert(!ents_listed(pico8_cv("draw_overlay"), bg) && !ents_listed(pico8_cv("new_year"), bg) && !ents_listed(pico8_cv("refresh"), bg));
 }
 
 static void test_construction(void) {
@@ -219,7 +219,7 @@ static void test_construction(void) {
     check_fresh_bg(built);
     generic = pico8_bg_new();
     check_fresh_bg(generic);
-    assert(pico8_cg("bg") == NULL);
+    assert(pico8_cg("background") == NULL);
     assert(from_eu->def == built->def && built->def == generic->def);
 }
 
@@ -315,24 +315,24 @@ static void test_ldown(void) {
 
     start_game();
     bg = the_bg();
-    g_before = ents_list_count(pico8_cg("g_"));
-    mz_before = ents_list_count(pico8_cg("mz"));
+    g_before = ents_list_count(pico8_cg("probe"));
+    mz_before = ents_list_count(pico8_cg("wormhole"));
     check_int("ldown g_ before", g_before, LDOWN_G_BEFORE);
     check_int("ldown mz before", mz_before, LDOWN_MZ_BEFORE);
 
     out = pico8_bg_struct_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));
     assert(out.stop && out.held != NULL);
     assert(out.held->class == pico8_g__struct_class());
-    assert(ents_listed(pico8_cg("g_"), out.held));
+    assert(ents_listed(pico8_cg("probe"), out.held));
 
     out = pico8_bg_struct_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));
     assert(out.stop && out.held != NULL);
     assert(out.held->class == pico8_mz_struct_class());
-    assert(ents_listed(pico8_cg("mz"), out.held));
-    assert(is_me(&((const pico8_mz_t *)out.held)->header, "kz"));
+    assert(ents_listed(pico8_cg("wormhole"), out.held));
+    assert(is_me(&((const pico8_mz_t *)out.held)->header, "placing"));
 
-    check_int("ldown g_ after", ents_list_count(pico8_cg("g_")), LDOWN_G_AFTER);
-    check_int("ldown mz after", ents_list_count(pico8_cg("mz")), LDOWN_MZ_AFTER);
+    check_int("ldown g_ after", ents_list_count(pico8_cg("probe")), LDOWN_G_AFTER);
+    check_int("ldown mz after", ents_list_count(pico8_cg("wormhole")), LDOWN_MZ_AFTER);
 }
 
 static int in_layer(int layer, const void *e) {
@@ -391,7 +391,7 @@ static void test_hover(void) {
 }
 
 static pico8_jo_t *first_jo_with_me(const char *me) {
-    const pico8_ents_t *list = pico8_cg("jo");
+    const pico8_ents_t *list = pico8_cg("planet");
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         entity_t *e = list->items[i];
@@ -414,13 +414,13 @@ static void test_gv(void) {
     down_t r;
 
     start_game();
-    pico8_jo_hu((pico8_jo_t *)pico8_cg("jo")->items[0], pico8_hp_new(NULL));
+    pico8_jo_hu((pico8_jo_t *)pico8_cg("planet")->items[0], pico8_hp_new(NULL));
     bg = the_bg();
-    ly = first_jo_with_me("ly");
+    ly = first_jo_with_me("settled");
     assert(ly != NULL);
     r = pico8_jo_gv(ly, &bg->header);
     assert(r.stop && r.held == NULL);
-    assert(is_me(&ly->header, "ly"));
+    assert(is_me(&ly->header, "settled"));
 
     keys.planet_id = NULL;
     keys.map_pos = ly->p;
@@ -437,12 +437,12 @@ static void test_draw(void) {
 
     pico8_jl();
     bg = (void *)pico8_bg_new();
-    assert(ents_list_count(pico8_cv("kj")) == 1 && ents_listed(pico8_cv("kj"), bg));
+    assert(ents_list_count(pico8_cv("draw")) == 1 && ents_listed(pico8_cv("draw"), bg));
     pico8_gfx_init(&gfx);
     pico8_cls(&mem);
     assert(pico8_mo()->class == pico8_qb_struct_class());
     pico8_qb_md(pico8_dispatch_gfx(), (pico8_qb_t *)pico8_mo(), pico8_fixed_from_int(1));
-    pico8_dc("kj");
+    pico8_dc("draw");
     check("draw", screen_hash(), DRAW_HASH);
 }
 

@@ -63,15 +63,15 @@
 #define LEFT_HASH 0xBD9BC256u
 #define CJ_HASH 0xD215FB81u
 #define STALE_HASH 0x5B066E86u
-#define KE_ME_HASH 0xD2ED2BC5u
-#define KE_T_HASH 0x5DB51DEEu
+#define KE_ME_HASH 0xE995C6EFu
+#define KE_T_HASH 0xDE09A985u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
 
-static const char *const not_listed[] = {"kj", "hd", "hk", "hb"};
-static const char *const tags[] = {"jo", "g_", "qh", "jc", "mz", "mh", "np", "hj", "prober", "nr", "bg"};
+static const char *const not_listed[] = {"draw", "hit_test", "new_year", "refresh"};
+static const char *const tags[] = {"planet", "probe", "structure", "slipway", "wormhole", "message_box", "node", "ascension", "targeting", "slipgate", "background"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -216,7 +216,7 @@ static int placed(void *e) {
 
 /* The planet of `cg.jo` nearest to `qu`, among those with a `p`. */
 static void *nearest_to(void *qu) {
-    const pico8_ents_t *jos = pico8_cg("jo");
+    const pico8_ents_t *jos = pico8_cg("planet");
     void *re = NULL;
     int i;
 
@@ -269,8 +269,8 @@ static void test_built(void) {
 
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), ok));
     h = fnv(h, (uint32_t)pico8_hv()->count);
-    assert(ents_listed(pico8_cv("ev"), ok));
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_cv("ev"), ok));
+    assert(ents_listed(pico8_cv("draw_overlay"), ok));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_cv("draw_overlay"), ok));
     for (i = 0; i < sizeof not_listed / sizeof not_listed[0]; i++) {
         assert(!ents_listed(pico8_cv(not_listed[i]), ok));
     }
@@ -280,7 +280,7 @@ static void test_built(void) {
 
     assert(ok->def->ql == pico8_fixed_from_int(58));
     assert(ok->def->fa == pico8_fixed_from_int(15));
-    assert(ok->header.state != NULL && strcmp(ok->header.state, "ph") == 0);
+    assert(ok->header.state != NULL && strcmp(ok->header.state, "normal") == 0);
     /* The presence word is constant by the struct's shape, kept so that
      * BUILT_HASH still proves the typed read. */
     h = fnv(fnv(h, 1u), (uint32_t)ok->header.state_time);
@@ -314,7 +314,7 @@ static void test_shared(void) {
     assert(other->header.cursor_sprite == &other->def->ql);
     assert(other->le == le && le == pico8_ui_le_shared());
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), other));
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_cv("ev"), other));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_cv("draw_overlay"), other));
 
     pico8_ui_cj(other);
     assert(other->le != le && le_of(other)->count == 0);
@@ -357,7 +357,7 @@ static void test_fresh(void) {
 
 /* The first planet of `cg.jo` whose screen position is well inside. */
 static pico8_jo_t *planet_on_screen(int *sx, int *sy) {
-    const pico8_ents_t *jo = pico8_cg("jo");
+    const pico8_ents_t *jo = pico8_cg("planet");
     pico8_vec_t cam = vec_at(mo_qb()->ra);
     int i;
 
@@ -514,7 +514,7 @@ static void test_left(void) {
     int i;
 
     ok = start_game();
-    jos = pico8_cg("jo");
+    jos = pico8_cg("planet");
     for (i = 0; i < jos->count && other == NULL; i++) {
         void *e = jos->items[i];
         if (on_screen(e) && on_screen(nearest_to(e))) {
@@ -553,7 +553,7 @@ static void test_left(void) {
     pico8_ui_lj(&mem, ok);
     assert(ok->lheld == NULL && ok->rheld == NULL);
     assert(oe_count(origin) == 1 && oe_count(target) == 1);
-    h = fnv(h, (uint32_t)pico8_cg("jc")->count);
+    h = fnv(h, (uint32_t)pico8_cg("slipway")->count);
     check("left", h, LEFT_HASH);
 }
 
@@ -763,7 +763,7 @@ static void test_ui_held_stops_off_row(void) {
     pico8_lt(&g_giver.header);
     left[0] = pico8_pm_new(NULL);
     left[1] = pico8_ga_new(NULL);
-    left[2] = pico8_cg("jo")->items[0];
+    left[2] = pico8_cg("planet")->items[0];
     left[3] = the_bg();
     left[4] = pico8_fv_new();
     left[5] = pico8_js_new(NULL);
@@ -791,7 +791,7 @@ static void test_ui_held_stops_off_row(void) {
 /* `ks` takes a struct or NULL, and does nothing on NULL. */
 static void test_ke_closed(void) {
     (void)start_game();
-    pico8_ke_ks(NULL, "ph");
+    pico8_ke_ks(NULL, "normal");
 }
 
 /* Every entity struct begins with its header. */
@@ -930,11 +930,11 @@ static void test_components_carried(void) {
 enum { FIXED_KIND = 0, STRING_KIND = 1 };
 
 static void test_ke_me_by_name(void) {
-    static const char *const want[24] = {"ph", "ph",      "ph", "ph", "unknown", "kz", "kz", "kz",
-                                         "kz", "ly",      "unknown", "kz", "kz", "kz", "ph", "ph",
-                                         "ph", "ph",      "ph", "kz", "ph", "ph", "ph", "kz"};
+    static const char *const want[24] = {"normal", "normal",      "normal", "normal", "unknown", "placing", "placing", "placing",
+                                         "placing", "settled",      "unknown", "placing", "placing", "placing", "normal", "normal",
+                                         "normal", "normal",      "normal", "placing", "normal", "normal", "normal", "placing"};
     static const int identity[24] = {1, 1, 1, 1, 2, 3, 3, 3, 3, 4, 2, 3, 3, 3, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0};
-    char s[] = "ll";
+    char s[] = "vanishing";
     void *e[24];
     const pico8_ents_t *hv;
     const char *me;
@@ -1001,9 +1001,9 @@ static void test_ke_me_by_name(void) {
     pico8_ke_ks(e[0], NULL);
     assert(ke_of(e[0])->state == NULL);
     h = fold_ks_back(fnv(h, 0u), e[0]);
-    pico8_ke_ks(e[0], "ph");
+    pico8_ke_ks(e[0], "normal");
     me = ke_of(e[0])->state;
-    assert(me != NULL && strcmp(me, "ph") == 0);
+    assert(me != NULL && strcmp(me, "normal") == 0);
     h = fold_ks_back(fold_string(fnv(h, 1u), me), e[0]);
 
     pico8_ke_ks(e[9], s);
@@ -1106,12 +1106,12 @@ static void test_ke_t_by_name(void) {
     assert(zero->emitter->py == pico8_g__def.emitter.py);
     h = fold_t(h, zero);
 
-    pico8_ke_ks(&keyed->header, "ll");
+    pico8_ke_ks(&keyed->header, "vanishing");
     assert_t(keyed, 0);
-    assert(keyed->header.state != NULL && strcmp(keyed->header.state, "ll") == 0);
+    assert(keyed->header.state != NULL && strcmp(keyed->header.state, "vanishing") == 0);
     h = fold_string(fold_t(h, keyed), keyed->header.state);
 
-    pico8_ke_ks(e[9], "ll");
+    pico8_ke_ks(e[9], "vanishing");
     assert_t(e[9], 0);
     h = fold_t(h, e[9]);
 

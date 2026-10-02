@@ -556,7 +556,7 @@ static void test_void_ptr_reads_joined_public_prototypes(void) {
 static void test_void_self_sees_every_untyped_receiver(void) {
     setup();
     write_file(SRC "/s.h", "typedef void (*pico8_" "state_fn)(void *" "self, int t);\n"
-                           "struct k {\n    int (*has_hb)(const void *" "self);\n};\n");
+                           "struct k {\n    int (*has_refresh)(const void *" "self);\n};\n");
     write_file(SRC "/s.c", "static void pico8_" "bg_kj_dispatch(void *" "self) {\n}\n"
                            "void (*draw)(void*" "self) = 0;\n"
                            "int pico8_" "ga_mm(void * const " "self_ptr);\n");
@@ -568,7 +568,7 @@ static void test_void_self_sees_every_untyped_receiver(void) {
                                   "void-self: " SRC "/s.c:3:void (*draw)(void*" "self) = 0;\n"
                                   "void-self: " SRC "/s.c:4:int pico8_" "ga_mm(void * const " "self_ptr);\n"
                                   "void-self: " SRC "/s.h:1:typedef void (*pico8_" "state_fn)(void *" "self, int t);\n"
-                                  "void-self: " SRC "/s.h:3:    int (*has_hb)(const void *" "self);\n"
+                                  "void-self: " SRC "/s.h:3:    int (*has_refresh)(const void *" "self);\n"
                                   "void-self: " TST "/t.c:1:static void spy(void *" "self, int x) {\n"
                                   "résidu gardé (void-self) : 6 ligne(s)\n") == 0);
 }

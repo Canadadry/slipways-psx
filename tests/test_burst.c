@@ -40,7 +40,7 @@
 #include "engine/game_zone.h"
 
 
-#define BUILT_HASH 0xEA365129u
+#define BUILT_HASH 0xA539DD6Du
 #define LIFE_HASH 0x196B693Au
 #define BURST_FRAMES 86
 
@@ -52,8 +52,8 @@ static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
 
-static const char *const tags[] = {"jo", "np", "prober", "hj", "qh"};
-static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
+static const char *const tags[] = {"planet", "node", "targeting", "ascension", "structure"};
+static const char *const bm[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
 
 static int tag_count(unsigned tags) {
     int t, n = 0;
@@ -213,7 +213,7 @@ static const entity_class_t *cls_of(const void *e) {
 /* `fz` is "ga" on a burst and on nothing else. */
 static int is_ga(const void *e) {
     return e != NULL && cls_of(e) == pico8_ga_struct_class() && ((const pico8_jo_t *)e)->def->fz != NULL &&
-           strcmp(((const pico8_jo_t *)e)->def->fz, "ga") == 0;
+           strcmp(((const pico8_jo_t *)e)->def->fz, "burst") == 0;
 }
 
 static pico8_jo_t *as_ga(void *e) {
@@ -240,7 +240,7 @@ static void *harvest_recipe(void) {
 
     for (i = 1; i <= pico8_gb_count(); i++) {
         pico8_hp_t *hp = pico8_gb_at(i);
-        if (hp->cw != NULL && strcmp(hp->cw, "ga") == 0) {
+        if (hp->cw != NULL && strcmp(hp->cw, "burst") == 0) {
             assert(found == NULL || found == hp);
             found = hp;
         }
@@ -573,7 +573,7 @@ static void test_life(void) {
     h = fold_particle(h, cls_of(b)->spawn_particle(b));
     h = fold_particle(h, cls_of(c)->spawn_particle(c));
     for (i = 0; i < 3; i++) {
-        pico8_dc("kj");
+        pico8_dc("draw");
         h = fnv(h, screen_hash());
         h = fold_p_(h, as_ga(a));
         h = fold_p_(h, as_ga(b));
@@ -583,7 +583,7 @@ static void test_life(void) {
 
     cut_qy(as_ga(b)->emitter->qy, 3);
     for (i = 0; i < 3; i++) {
-        pico8_dc("kj");
+        pico8_dc("draw");
         h = fnv(h, screen_hash());
     }
 

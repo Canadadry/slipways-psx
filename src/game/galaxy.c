@@ -49,7 +49,7 @@ void pico8_bw(pico8_fixed_t n) {
             pico8_fixed_t rx = pico8_fixed_add(pico8_fixed_rnd(two_seventy_five), eighth);
             pico8_fixed_t ry = pico8_fixed_add(pico8_fixed_rnd(two_seventy_five), eighth);
             p_vec = pico8_vec_v(rx, ry);
-        } while (pico8_ij_ents(p_vec, pico8_cg("jo"), &nearest) <= threshold);
+        } while (pico8_ij_ents(p_vec, pico8_cg("planet"), &nearest) <= threshold);
 
         p_box = (pico8_vec_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *p_box);
         *p_box = p_vec;

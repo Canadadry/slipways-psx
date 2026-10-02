@@ -161,7 +161,7 @@ void pico8_bv(entity_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     probe_host_set_ra_p(self, mp != NULL ? &probe->bv_ra : NULL, &probe->bv_p);
 
     c = NULL;
-    nq = pico8_ij_ents(p_vec, pico8_cg("np"), &c);
+    nq = pico8_ij_ents(p_vec, pico8_cg("node"), &c);
 
     et = NULL;
 
@@ -174,7 +174,7 @@ void pico8_bv(entity_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
         entity_t *first = NULL;
 
         ctx.self_p = p_vec;
-        filtered = pico8_jp_ents(pico8_zone_frame(), pico8_cg("jc"), pico8_bv_jc_predicate, &ctx);
+        filtered = pico8_jp_ents(pico8_zone_frame(), pico8_cg("slipway"), pico8_bv_jc_predicate, &ctx);
         if (filtered.count > 0) {
             first = filtered.items[0];
             have_first = 1;
@@ -233,7 +233,7 @@ void pico8_dl_show(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *me, con
     const pico8_nf_t *je;
     const char *display = "";
 
-    if (me == NULL || strcmp(me, "kz") != 0) {
+    if (me == NULL || strcmp(me, "placing") != 0) {
         return;
     }
 
@@ -294,7 +294,7 @@ int pico8_d_(entity_t *self) {
     assert((!has_et || !lu_ok) && "d_: fm:lu must stay short-circuited when et is set");
 
     if (!has_et && lu_ok) {
-        pico8_ke_ks(self, probe->def->dq != NULL ? probe->def->dq : "ph");
+        pico8_ke_ks(self, probe->def->dq != NULL ? probe->def->dq : "normal");
 
         pico8_hy_nx(pico8_fm_hy(), probe->def->fp);
 
@@ -361,7 +361,7 @@ void pico8_g__rendre_dispatch(entity_t *self) {
     const pico8_g__t *g_ = (const pico8_g__t *)self;
 
     pico8_qy_rendre(self->emitter);
-    if (g_->prise != NULL && (self->state == NULL || strcmp(self->state, "ly") != 0)) {
+    if (g_->prise != NULL && (self->state == NULL || strcmp(self->state, "settled") != 0)) {
         pico8_jo_prise_arene_rendue(g_->prise);
     }
 }
@@ -431,7 +431,7 @@ static pico8_g__t *pico8_g__struct_new(const pico8_g__keys_t *keys) {
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("g_");
+    pico8_class_coverage_record("probe");
 #endif
     pico8_f_((entity_t *)self);
     pico8_ke_struct_pq(&self->header);

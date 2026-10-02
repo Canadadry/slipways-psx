@@ -67,7 +67,7 @@ static pico8_bg_t *pico8_bg_struct_new(void) {
     self->header.is_hovered = &self->m_;
     self->m_ = 0;
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("bg");
+    pico8_class_coverage_record("background");
 #endif
     pico8_bg_pq(pico8_dispatch_mem(), self);
     pico8_ke_struct_pq(&self->header);
@@ -170,7 +170,7 @@ down_t pico8_bg_ldown(pico8_bg_t *self) {
 
     (void)self;
 
-    g_tag = pico8_cg("g_");
+    g_tag = pico8_cg("probe");
     count = (g_tag != NULL) ? g_tag->count : 0;
     if (count > 0) {
         assert(pico8_mz_ready() && "pico8_wormhole_init() must run before bg:ldown builds an mz");

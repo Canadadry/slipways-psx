@@ -291,7 +291,7 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
     je = pico8_je_nf();
     je_ra = je != NULL ? je->ra : NULL;
 
-    hd_bucket = pico8_cv("hd");
+    hd_bucket = pico8_cv("hit_test");
     if (hd_bucket != NULL) {
         for (i = 0; i < hd_bucket->count; i++) {
             entity_t *e = hd_bucket->items[i];

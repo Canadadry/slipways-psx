@@ -123,7 +123,7 @@ static pico8_jo_t *pico8_jo_struct_new(const planet_keys_t *keys) {
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("jo");
+    pico8_class_coverage_record("planet");
 #endif
     pico8_jo_pq(self);
     pico8_ke_struct_pq(&self->header);
@@ -206,7 +206,7 @@ void pico8_jo_prise_rendue(const pico8_jo_t *self) {
 }
 
 void pico8_jo_prise_zone_rendue(const pico8_zone_choisie_t *zone, const char *me) {
-    if (me == NULL || strcmp(me, "kz") != 0) {
+    if (me == NULL || strcmp(me, "placing") != 0) {
         return;
     }
     pico8_jo_prise_arene_rendue(zone);
@@ -223,7 +223,7 @@ void pico8_jo_prise_arene_rendue(const pico8_zone_choisie_t *zone) {
 
 /* TROU-26 */
 void pico8_jo_oublier_fo(const entity_t *e) {
-    const pico8_ents_t *np = pico8_cg("np");
+    const pico8_ents_t *np = pico8_cg("node");
 
     for (int i = 0; np != NULL && i < np->count; i++) {
         pico8_jo_t *p = (pico8_jo_t *)np->items[i];
@@ -310,7 +310,7 @@ int pico8_jo_gg(const pico8_jo_t *self) {
     if (!self->def->hf) {
         return 0;
     }
-    return self->header.state != NULL && strcmp(self->header.state, "ly") == 0;
+    return self->header.state != NULL && strcmp(self->header.state, "settled") == 0;
 }
 
 void pico8_jo_kd(pico8_jo_t *self) {
@@ -343,10 +343,10 @@ void pico8_jo_hh(pico8_jo_t *self) {
          * to `jo.oc()` even on a winning roll -- both conditions, never the
          * roll alone. */
         if (roll < PICO8_FIXED_LIT(0x00007333, 0.45)) {
-            use_ll = pico8_df_lookup("ll") != NULL;
+            use_ll = pico8_df_lookup("vanishing") != NULL;
         }
         if (use_ll) {
-            nk = pico8_df_lookup("ll");
+            nk = pico8_df_lookup("vanishing");
         } else if (g_jo_oc != NULL) {
             nk = pico8_gn_next(g_jo_oc);
         }

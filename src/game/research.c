@@ -213,7 +213,7 @@ static pico8_hp_t *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
     self->i = new_i;
 
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("hp");
+    pico8_class_coverage_record("research_project");
 #endif
     return self;
 }

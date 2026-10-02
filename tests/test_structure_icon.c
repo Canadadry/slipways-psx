@@ -37,7 +37,7 @@
 #include "game/wormhole.h"
 #include "heap_allocator.h"
 
-#define CONSTRUCTION_HASH 0x37EED64Du
+#define CONSTRUCTION_HASH 0x22EBAD5Du
 #define START_HASH 0x8C839F39u
 #define DIRECTED_HASH 0xA5C469BDu
 #define DRAW_HASH 0xA740E905u
@@ -147,7 +147,7 @@ static int is_icon(const void *e) {
 }
 
 static int icons(void *out[], int cap) {
-    const pico8_ents_t *hb = pico8_cv("hb");
+    const pico8_ents_t *hb = pico8_cv("refresh");
     int n = 0;
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
@@ -273,7 +273,7 @@ static uint32_t fold_kq(uint32_t h, void *icon) {
 static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const void *jb) {
     const pico8_ie_t *ie = as_ie(icon);
 
-    assert(ie->header.state != NULL && strcmp(ie->header.state, "ph") == 0);
+    assert(ie->header.state != NULL && strcmp(ie->header.state, "normal") == 0);
     assert(ie->header.state_time == 0);
     assert(ie->def == &pico8_ie_def);
     assert(ie->def->fa == pico8_fixed_from_int(12));
@@ -287,9 +287,9 @@ static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const v
            cls_of(icon)->right_press == NULL && cls_of(icon)->accept_drop == NULL);
     assert(cls_of(icon)->hit_test != NULL && cls_of(icon)->refresh != NULL && cls_of(icon)->draw != NULL &&
            cls_of(icon)->left_press != NULL);
-    assert(ents_listed(pico8_hv(), icon) && ents_listed(pico8_cv("kj"), icon) && ents_listed(pico8_cv("hd"), icon) &&
-           ents_listed(pico8_cv("hb"), icon));
-    assert(!ents_listed(pico8_cv("ev"), icon) && !ents_listed(pico8_cv("hk"), icon));
+    assert(ents_listed(pico8_hv(), icon) && ents_listed(pico8_cv("draw"), icon) && ents_listed(pico8_cv("hit_test"), icon) &&
+           ents_listed(pico8_cv("refresh"), icon));
+    assert(!ents_listed(pico8_cv("draw_overlay"), icon) && !ents_listed(pico8_cv("new_year"), icon));
 
     h = fold_string(h, ie->header.state);
     h = fold_fixed(h, ie->def->fa);
@@ -318,11 +318,11 @@ static void test_construction(void) {
         const pico8_ie_t *ie = as_ie(all[i]);
         assert(ie->ke == classes[i]);
         assert(ie->jb != NULL);
-        assert(ie->header.state != NULL && strcmp(ie->header.state, "ph") == 0);
+        assert(ie->header.state != NULL && strcmp(ie->header.state, "normal") == 0);
         assert(ie->def->fa == pico8_fixed_from_int(12));
         assert(cls_of(all[i])->hit_test != NULL);
-        assert(ents_listed(pico8_hv(), all[i]) && ents_listed(pico8_cv("kj"), all[i]) && ents_listed(pico8_cv("hd"), all[i]));
-        assert(!ents_listed(pico8_cv("ev"), all[i]) && !ents_listed(pico8_cv("hk"), all[i]));
+        assert(ents_listed(pico8_hv(), all[i]) && ents_listed(pico8_cv("draw"), all[i]) && ents_listed(pico8_cv("hit_test"), all[i]));
+        assert(!ents_listed(pico8_cv("draw_overlay"), all[i]) && !ents_listed(pico8_cv("new_year"), all[i]));
         h = fold_kq(h, all[i]);
     }
 
@@ -669,7 +669,7 @@ static void test_ke_view_is_a_struct(void) {
         }
         assert(view.has_s && view.s == pico8_fixed_from_int(s[i]));
         assert(view.has_od && view.od == pico8_fixed_from_int(od[i]));
-        assert(view.me != NULL && strcmp(view.me, "kz") == 0);
+        assert(view.me != NULL && strcmp(view.me, "placing") == 0);
     }
 
     {

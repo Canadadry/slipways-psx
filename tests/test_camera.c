@@ -57,7 +57,7 @@ static int ents_listed(const pico8_ents_t *list, const void *e) {
 }
 
 static int in_any_cv(const void *e) {
-    const char *names[] = {"kj", "ev", "hd", "hk", "hb"};
+    const char *names[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
     int i;
 
     for (i = 0; i < 5; i++) {
@@ -143,7 +143,7 @@ static void check_fresh_mo(const pico8_qb_t *mo) {
     assert(v.x == 0 && v.y == 0);
     assert(mo->ma == 0);
     assert(mo->header.state_time == 0);
-    assert(mo->header.state != NULL && strcmp(mo->header.state, "ph") == 0);
+    assert(mo->header.state != NULL && strcmp(mo->header.state, "normal") == 0);
     assert(mo->p != mo->ra);
 
     pc = mo->def->pc;

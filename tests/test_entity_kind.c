@@ -22,7 +22,7 @@
 #include "game/research.h"
 #include "engine/entity_class.h"
 
-#define KIND_HASH 0xBCF0E60Bu
+#define KIND_HASH 0x4B139A82u
 
 #define KIND_COUNT 9
 
@@ -223,7 +223,7 @@ static void test_every_class_name_is_protostar_or_burst(void) {
         if (cw == NULL) {
             continue;
         }
-        assert(strcmp(cw, "pm") == 0 || strcmp(cw, "ga") == 0);
+        assert(strcmp(cw, "protostar") == 0 || strcmp(cw, "burst") == 0);
         with_class_name++;
     }
     printf("[cw] %d of %d researches\n", with_class_name, pico8_gb_count());
@@ -246,6 +246,6 @@ int main(void) {
     test_kind_fields_and_build();
     test_kind_reader_serves_the_generated_defaults();
 
-    printf("test_pico8_entity_kind: all tests passed\n");
+    printf("test_entity_kind: all tests passed\n");
     return 0;
 }

@@ -54,10 +54,10 @@ static void test_short_replay_and_malformed_file(void) {
     assert(run("") != 0);
     char *log = read_log();
     assert(strstr(log, "illisible: " DIR "/replays/bad_events.json") != NULL);
-    assert(count_of(log, "jo") > 0);
+    assert(count_of(log, "planet") > 0);
     assert(count_of(log, "ui") > 0);
-    assert(count_of(log, "nl") == 0);
-    assert(strstr(log, "\nnl  0  0/1") != NULL);
+    assert(count_of(log, "trading_hub") == 0);
+    assert(strstr(log, "\ntrading_hub  0  0/1") != NULL);
     assert(strstr(log, "inconnue") == NULL);
 }
 
@@ -77,7 +77,7 @@ static void test_expect_equal_output_passes_unchanged(void) {
 }
 
 static void test_expect_one_count_off_fails(void) {
-    assert(system("sed 's/^jo  \\([0-9]*\\)/jo  1\\1/' " LOG " > " EXPECTED) == 0);
+    assert(system("sed 's/^planet  \\([0-9]*\\)/planet  1\\1/' " LOG " > " EXPECTED) == 0);
     assert(system("cmp -s " LOG " " EXPECTED) != 0);
     assert(run_with("--expect " EXPECTED, EXEMPT) != 0);
     assert(strstr(read_log(), "sortie différente") != NULL);

@@ -23,7 +23,7 @@ const char *const pico8_ef_table[PICO8_EF_COUNT] = {"JAN", "FEB", "MAR", "APR", 
     "OCT", "NOV", "DEC", "UND", "DUO", "TER"};
 
 const pico8_df_entry_t pico8_df_table[PICO8_DF_COUNT] = {
-    {"ll", 45, 0x0, NULL, "ll"},
+    {"vanishing", 45, 0x0, NULL, "vanishing"},
     {"e", 160, 0x48000, "earth-like", NULL},
     {"f", 128, 0x60000, "forgeworld", NULL},
     {"m", 134, 0x40000, "mineral", NULL},
@@ -286,7 +286,7 @@ const pico8_jb_row_t pico8_pj_ou_row = {.count = 7, .items = pj_ou_items};
 const char pico8_mz_jj_qs[] = "-too far-";
 
 const pico8_bg_def_t pico8_bg_def = {
-    .me = "ph",
+    .me = "normal",
     .t = 0x0,
     .fa = 0x10000,
     .hd = 0x10000,
@@ -294,7 +294,7 @@ const pico8_bg_def_t pico8_bg_def = {
 };
 
 const pico8_ui_def_t pico8_ui_def = {
-    .me = "ph",
+    .me = "normal",
     .t = 0x0,
     .ql = 0x3a0000,
     .fa = 0xf0000,
@@ -302,20 +302,20 @@ const pico8_ui_def_t pico8_ui_def = {
 };
 
 const pico8_js_def_t pico8_js_def = {
-    .me = "ph",
+    .me = "normal",
     .t = 0x0,
     .fa = 0xb0000,
 };
 
 const pico8_fq_def_t pico8_fq_def = {
-    .me = "ph",
+    .me = "normal",
     .t = 0x0,
     .fa = 0xe0000,
     .hd = 0x10000,
 };
 
 const pico8_qb_def_t pico8_qb_def = {
-    .me = "ph",
+    .me = "normal",
     .t = 0x0,
     .v = {0x0, 0x0},
     .ma = 0x0,
@@ -325,19 +325,19 @@ const pico8_qb_def_t pico8_qb_def = {
 };
 
 const pico8_nf_def_t pico8_nf_def = {
-    .me = "ph",
+    .me = "normal",
     .t = 0x0,
 };
 
 const pico8_mh_def_t pico8_mh_def = {
-    .me = "ph",
+    .me = "normal",
     .t = 0x0,
     .fa = 0xe0000,
     .rh = 0x50000,
 };
 
 const pico8_iv_def_t pico8_iv_def = {
-    .me = "ph",
+    .me = "normal",
     .t = 0x0,
     .fa = 0x90000,
     .l = 0x0,
@@ -349,7 +349,7 @@ const pico8_hp_def_t pico8_hp_def = {
 };
 
 const pico8_ie_def_t pico8_ie_def = {
-    .me = "ph",
+    .me = "normal",
     .t = 0x0,
     .kq = {0x0, 0x0, 0x90000, 0x80000},
     .fa = 0xc0000,
@@ -358,7 +358,7 @@ const pico8_ie_def_t pico8_ie_def = {
 };
 
 const pico8_pj_def_t pico8_pj_def = {
-    .me = "ph",
+    .me = "normal",
     .t = 0x0,
     .fa = 0xa0000,
     .gs = &pico8_pj_gs_row,
@@ -366,17 +366,17 @@ const pico8_pj_def_t pico8_pj_def = {
 };
 
 const pico8_mz_def_t pico8_mz_def = {
-    .me = "kz",
+    .me = "placing",
     .t = 0x0,
     .spawn_snd = 0x340000,
     .oi = 0x0,
     .fa = 0x50000,
     .kk = &pico8_mz_kk_seq,
-    .probe = {.dw = 0x0, .od = 0x30000, .has_od = 1, .dq = "pr", .fp = 0x10000, .ik = 0x310000, .has_ik = 1},
+    .probe = {.dw = 0x0, .od = 0x30000, .has_od = 1, .dq = "unfolding", .fp = 0x10000, .ik = 0x310000, .has_ik = 1},
 };
 
 const pico8_jc_def_t pico8_jc_def = {
-    .me = "kz",
+    .me = "placing",
     .t = 0x0,
     .fa = 0x20000,
     .k_ = &pico8_jc_k__seq,
@@ -388,18 +388,18 @@ const pico8_probe_def_t pico8_probe_def_none = {
     .dw = 0x0, .od = 0x0, .has_od = 0, .dq = NULL, .fp = 0x0, .ik = 0x0, .has_ik = 0};
 
 const pico8_g__def_t pico8_g__def = {
-    .me = "ph",
+    .me = "normal",
     .t = 0x0,
     .fx = 0x10000,
     .fa = 0x20000,
     .has_ra = 0,
     .emitter = {.pn = 0x30000, .du = 0x20000, .py = 0xf5c, .ki = 0x90000, .pk = 0x10000, .fc = 0x10000,
                 .k_ = &pico8_g__k__seq, .qo = 0x1051e, .ro = -0xd70, .qg = 0xd70, .q_ = 0x1051e},
-    .probe = {.dw = 0x666, .od = 0x0, .has_od = 1, .dq = "ly", .fp = 0x0, .ik = 0x0, .has_ik = 0},
+    .probe = {.dw = 0x666, .od = 0x0, .has_od = 1, .dq = "settled", .fp = 0x0, .ik = 0x0, .has_ik = 0},
 };
 
 const pico8_g__def_t pico8_fv_def = {
-    .me = "ph",
+    .me = "normal",
     .t = 0x0,
     .fx = 0x10000,
     .fa = 0xa0000,
@@ -416,17 +416,17 @@ const pico8_g__def_t pico8_fv_def = {
     .rb = &pico8_fv_rb_row,
     .emitter = {.pn = 0x50000, .du = 0xf0000, .py = 0x1b6, .ki = 0x110000, .pk = 0x10000, .fc = 0x50000,
                 .k_ = &pico8_fv_k__seq, .qo = 0x1051e, .ro = -0x1ca, .qg = 0x1ca, .q_ = 0x1051e},
-    .probe = {.dw = 0x666, .od = 0x0, .has_od = 1, .dq = "ly", .fp = 0x0, .ik = 0x0, .has_ik = 0},
+    .probe = {.dw = 0x666, .od = 0x0, .has_od = 1, .dq = "settled", .fp = 0x0, .ik = 0x0, .has_ik = 0},
 };
 
 static const char jo_me_text[] = "unknown";
-static const char qh_me_text[] = "kz";
-static const char qh_dq_text[] = "ly";
+static const char qh_me_text[] = "placing";
+static const char qh_dq_text[] = "settled";
 static const char nl_rr_text[] = "trade league";
 static const char hj_rr_text[] = "ascension";
-static const char pm_fz_text[] = "pm";
-static const char pm_me_text[] = "ly";
-static const char ga_fz_text[] = "ga";
+static const char pm_fz_text[] = "protostar";
+static const char pm_me_text[] = "settled";
+static const char ga_fz_text[] = "burst";
 static const char nr_rr_text[] = "slipgates";
 static const char fr_rr_text[] = "infraspace";
 static const char mx_rr_text[] = "void synthesis";
