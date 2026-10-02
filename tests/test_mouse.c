@@ -1,6 +1,7 @@
-/* The mouse reader `nf` (`je` once `jl()` has run), read through
- * pico8_je_nf() and the shared `l`/`r` tables and driven through the real
- * `dg`, in games built directly: no events file. */
+/* The mouse reader `mouse_t` (`main_mouse()` once `reset_world()` has run),
+ * read through main_mouse_typed() and the shared button states and driven
+ * through the real update_entities, in games built directly: no events
+ * file. */
 
 #include <assert.h>
 #include <stdint.h>
@@ -60,7 +61,8 @@ static int in_any_entities_by_message(const void *e) {
     return 0;
 }
 
-/* The shared tables while `je` is an nf, NULL on the placeholder. */
+/* The shared button states while the main mouse is a `mouse_t`, NULL on
+ * the placeholder. */
 static const mouse_button_t *main_mouse_left(void) {
     return main_mouse_typed() != NULL ? mouse_left_button() : NULL;
 }
@@ -122,7 +124,8 @@ static void check(const char *label, uint32_t got, uint32_t want) {
 
 static p8_input_frame_t g_frames[64];
 
-/* Points the dispatch input at `n` frames of g_frames, positioned at 0. */
+/* Points the dispatch input at the first frames of g_frames, positioned at
+ * 0. */
 static void script(int n) {
     input.frames = g_frames;
     input.frame_count = n;
@@ -142,8 +145,9 @@ static void frame(int i, int x, int y, int buttons) {
     g_frames[i].mouse_buttons = buttons;
 }
 
-/* `jl()` builds `je`: devkit mouse on, in hv only, `ra` the zero default,
- * `l`/`r` present and still empty. */
+/* `reset_world()` builds the main mouse: devkit mouse on, among the live
+ * entities only, its position the zero default, both button states present
+ * and still empty. */
 static void test_reset_world_builds_a_mouse_reader(void) {
     const void *je;
     vec_t ra;
@@ -181,8 +185,8 @@ static void test_scripted_ticks(void) {
     check("scripted", h, SCRIPTED_HASH);
 }
 
-/* Every `nf` shares the two button tables: a left button held across `jl()`
- * gives the new `je` no fresh press. */
+/* Every mouse shares the two button states: a left button held across
+ * `reset_world()` gives the new main mouse no fresh press. */
 static void test_buttons_survive_reset_world(void) {
     const mouse_button_t *l_before;
 
@@ -205,7 +209,7 @@ static void test_buttons_survive_reset_world(void) {
     assert(pressed_of(main_mouse_left()) == 0 && held_of(main_mouse_left()) == 1);
 }
 
-/* Rebuilding the class starts both tables afresh. */
+/* `mouse_init()` starts both button states afresh. */
 static void test_mouse_init_starts_the_tables_afresh(void) {
     reset_world();
     frame(0, 10, 10, 1);
@@ -219,8 +223,8 @@ static void test_mouse_init_starts_the_tables_afresh(void) {
     assert(held_of(main_mouse_left()) == -1 && held_of(main_mouse_right()) == -1);
 }
 
-/* Before `jl()`, `je` is the field-less placeholder: no buttons, no `ra`,
- * and `ok`'s frame dispatches no press. */
+/* After `ui_init()`, the main mouse is the member-less placeholder: no
+ * buttons, no position, and a ui_update on it hands over no press. */
 static void test_placeholder_main_mouse(void) {
     ui_t *ok;
     vec_t ra;
@@ -234,8 +238,8 @@ static void test_placeholder_main_mouse(void) {
     assert(ok->mouse_world != NULL);
 }
 
-/* The title screen's `je`, then `eu` starting a game with the left button
- * still held: the new `je` sees it held. */
+/* The title screen's main mouse, then cart_start_game starting a game with
+ * the left button still held: the new main mouse sees it held. */
 static void test_launch_with_left_held(void) {
     const void *first_main_mouse;
 
@@ -260,9 +264,9 @@ static int is_a_mouse_struct(const void *e) {
            ((const entity_t *)e)->class == mouse_class();
 }
 
-/* Built by `pico8_nf_new` or through its class, an nf is a struct in hv
- * only; `ph` is its method, `kj` is absent, and every nf shares the class's
- * two button tables. */
+/* Built by `mouse_new`, a mouse is a struct among the live entities only;
+ * its update is its method, `draw` is absent, and every mouse shares the
+ * class's two button states. */
 static void test_mouse_is_a_struct_sharing_its_buttons(void) {
     void *built;
     void *generic;

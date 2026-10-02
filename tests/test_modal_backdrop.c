@@ -1,6 +1,7 @@
-/* The click veil `fq`, built bare (`pj:ph`) and with a `my` (`ix[3]` with
- * `de`), lived through the real `dg`, its `ldown` and the hover loop of
- * `ok`, in a game built directly: no events file. */
+/* The click veil `modal_backdrop_t`, built bare (as the score panel builds
+ * it) and with an `on_click` (as the galaxy menu builds it), lived through
+ * the real update_entities, its left press and the hover loop of
+ * `main_ui()`, in a game built directly: no events file. */
 
 #include <assert.h>
 #include <stdint.h>
@@ -122,8 +123,8 @@ static void check(const char *label, uint32_t got, uint32_t want) {
     assert(got == want);
 }
 
-/* `fq(de)`: the click at tick LDOWN_TICK stores `my()` in `p_`, and the
- * next `dg` takes the veil out. */
+/* With an `on_click`: the click at tick LEFT_PRESS_TICK stores what it
+ * returns in `is_dead`, and the next update_entities takes the veil out. */
 static void test_left_press_with_a_true_on_click_removes_the_veil(void) {
     uint32_t h = 2166136261u;
     modal_backdrop_t *veil;
@@ -152,7 +153,7 @@ static void test_left_press_with_a_true_on_click_removes_the_veil(void) {
     check("on_click_true_sequence", h, ON_CLICK_TRUE_SEQUENCE_HASH);
 }
 
-/* `fq()`: a click is swallowed, `p_` stays nil, the veil stays. */
+/* Bare: a click is swallowed, `is_dead` stays 0, the veil stays. */
 static void test_bare_veil_swallows_the_click_and_stays(void) {
     uint32_t h = 2166136261u;
     modal_backdrop_t *veil;
@@ -173,8 +174,8 @@ static void test_bare_veil_swallows_the_click_and_stays(void) {
     check("bare_sequence", h, BARE_SEQUENCE_HASH);
 }
 
-/* A `my` answering false leaves `p_` false, which reads as nil: the veil
- * stays, as a bare one. */
+/* An `on_click` answering 0 leaves `is_dead` 0: the veil stays, as a bare
+ * one. */
 static void test_false_on_click_keeps_the_veil(void) {
     uint32_t h = 2166136261u;
     modal_backdrop_t *veil;
@@ -205,9 +206,10 @@ static int in_layer(int layer, const void *e) {
     return entity_list_listed(&ic->layers[layer], e);
 }
 
-/* A started game, then `fq()`: `ok`'s hover loop makes it `o_` (hd=1 is
- * always a hit) in layer 14, marks it `m_`, takes `ldown` but not `rdown`,
- * and, once the veil is gone, unmarks it through `gj`. */
+/* A started game, then a bare veil: the hover loop of `main_ui()` makes it
+ * `hovered` (its hit test always hits) in layer 14, marks it `is_hovered`,
+ * takes the left press but not the right one, and, once the veil is gone,
+ * unmarks it through `previous_hovered`. */
 static void test_hover_loop_on_the_veil(void) {
     uint32_t h = 2166136261u;
     down_t kn;
@@ -269,9 +271,9 @@ static int is_a_veil_struct(const void *e) {
            ((const entity_t *)e)->class == modal_backdrop_class();
 }
 
-/* Built by `pico8_fq_new` or through its class, a veil is a struct in hv
- * and cv.hd only; its `hd` is the constant hit of `hd=1`, and it has
- * neither `ph` nor `rdown`. */
+/* Built by `modal_backdrop_new` with or without keys, a veil is a struct
+ * among the live entities and under hit_test only; its hit test always
+ * hits, and it has neither an update nor a right press. */
 static void test_modal_backdrop_is_a_struct_registered_under_hit_test(void) {
     const char *others[] = {"draw", "draw_overlay", "new_year", "refresh"};
     const entity_class_t *cls = modal_backdrop_class();
@@ -297,8 +299,8 @@ static void test_modal_backdrop_is_a_struct_registered_under_hit_test(void) {
     assert(((const modal_backdrop_t *)built)->on_click == score_panel_toggle_on_click());
 }
 
-/* A veil takes a place; once its `my` lifts `p_` and `dg` takes it out,
- * emptying the exit queue gives the place back. */
+/* A veil takes a slot; once its `on_click` sets `is_dead` and
+ * update_entities takes it out, emptying the exit queue gives the slot back. */
 static void test_veil_gives_its_slot_back(void) {
     modal_backdrop_t *veil;
     int base;

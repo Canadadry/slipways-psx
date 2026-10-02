@@ -51,7 +51,7 @@ static const entity_class_t g_background_class = {
     .drag = background_drag_method,
 };
 
-/* A nil `rp` reads as the zero vector, as an unset `mq` does. */
+/* A NULL mouse position reads as the zero vector, as an unset one does. */
 static void background_set_drag_mouse(background_t *self, const vec_t *rp) {
     self->has_drag_mouse = rp != NULL;
     self->drag_mouse = rp != NULL ? *rp : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
@@ -95,8 +95,8 @@ background_t *background_new(void) {
     return background_create();
 }
 
-/* `vs[x] or 1` is only ever taken on row y=0; every later row reads back the
- * previous row's own `vh`. `oh` is local to the call. */
+/* The previous value defaults to 1 on row y=0 only; every later row reads
+ * back the previous row's own value. The running value is local to the call. */
 void background_construct(p8_memory_t *memory, background_t *self) {
     p8_fixed_t row_values[32];
     int row_values_set[32];
@@ -194,8 +194,8 @@ down_t background_right_press(background_t *self, vec_t *rp) {
     return out;
 }
 
-/* `self.mq` is read here and overwritten by the last statement of the
- * function: that read-then-replace is the drag delta itself. */
+/* The stored drag mouse is read here and overwritten by the last statement
+ * of the function: that read-then-replace is the drag delta itself. */
 void background_drag(background_t *self, vec_t *rp) {
     vec_t zero = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     vec_t mq;

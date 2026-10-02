@@ -1,6 +1,7 @@
-/* The button `js`, read and written on its members and driven through the
- * real `pz`/`eu`/`cr`/`ix`/`dg`/`dc`/`mv`, on title screens and games built
- * directly: no events file. */
+/* The button `button_t`, read and written on its members and driven through
+ * the real opening of a button list, cart_start_game, the tech tree screen,
+ * the galaxy menu, update_entities, draw_layers and the on_click call, on
+ * title screens and games built directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -47,9 +48,9 @@
 #include "game/ui_zone.h"
 #include "heap_allocator.h"
 
-/* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
- * project with an `o` and no `i`, which exports to any planet a slipway
- * joins it to. */
+/* Research project 12, a colony that needs two resources and exports one;
+ * project 3, a project with an output and no input, which exports to any
+ * planet a slipway joins it to. */
 #define COLONY 12
 #define EXPORTER 3
 
@@ -232,7 +233,7 @@ static uint32_t fold_string(uint32_t h, const char *s) {
     return fnv_str(fnv(h, 0x57u), s);
 }
 
-/* An absent member folds as the nil the name reader gave. */
+/* An absent member folds as 0xDEAD, the word frozen for an absent value. */
 static uint32_t fold_fixed_or_nil(uint32_t h, int has, p8_fixed_t f) {
     return has ? fold_fixed(h, f) : fnv(h, 0xDEADu);
 }
@@ -255,7 +256,7 @@ static uint32_t fold_opt_ref(uint32_t h, const void *ref) {
 }
 
 /* A positional as the value it was sorted from folded: a row as any REF,
- * NOTHING as false (no row folded here holds a nil at the top level). */
+ * NOTHING as false (no row folded here holds an absent top-level item). */
 static uint32_t fold_cell(uint32_t h, layout_row_cell_t c) {
     switch (c.kind) {
     case LAYOUT_ROW_CELL_ROW:
@@ -282,7 +283,7 @@ static uint32_t fold_layout_row(uint32_t h, const layout_row_t *lq) {
     return h;
 }
 
-/* Absent, `false`, or what it holds: a row, a `jb` struct. A row folds by
+/* Absent, false, or what it holds: a row, a tooltip struct. A row folds by
  * the tag of the class-instance form these values were frozen on. */
 static uint32_t fold_built(uint32_t h, const void *ref) {
     if (ref == NULL) {
@@ -330,8 +331,9 @@ static const entity_list_t *main_ui_ephemerals(void) {
     return main_ui() == NULL ? NULL : main_ui()->ephemerals;
 }
 
-/* A button as `js(b)` and `js:pq` left it: every construction key, what
- * `pq` built, the methods and where `lt` registered it. */
+/* A button as button_new and button_construct left it: every construction
+ * key, what button_construct built, the methods and where entity_register
+ * registered it. */
 static uint32_t fold_button(uint32_t hash, const void *entity) {
     static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "refresh", "new_year"};
     const button_t *button = button_of(entity);
@@ -404,8 +406,8 @@ static int same_vec(const vec_t *a, const vec_t *b) {
     return a != NULL && b != NULL && a->x == b->x && a->y == b->y;
 }
 
-/* The `ra` every row of one `pz` call starts from: each button holds a
- * copy of it. */
+/* The position every row of one button list starts from: each button holds
+ * a copy of it. */
 static void check_shared_pos(void) {
     const entity_list_t *le = main_ui_ephemerals();
     int i;
@@ -426,8 +428,8 @@ static void check_int(const char *label, int got, int want) {
     assert(got == want);
 }
 
-/* Un _init sur l'ecran titre, sans frame : l'aide d'avant rend sa place
- * qy_fv, unique, avant que la nouvelle la prenne. */
+/* A cart_init on the title screen, with no frame: the previous help gives
+ * back its help screen list, the only one, before the new help takes it. */
 static void leave_help_screen(void) {
     const entity_list_t *hv = live_entities();
     for (int i = 0; i < hv->count; i++) {
@@ -446,16 +448,16 @@ static void start_title(void) {
     cart_init();
 }
 
-/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
- * reads as difficulty 0. */
+/* A game started as cart_start_game starts it, with no difficulty picked:
+ * a NULL difficulty reads as difficulty 0. */
 static void start_game(void) {
     start_title();
     cart_start_game(NULL);
     cart_flush_exit_queue();
 }
 
-/* The `i`th (from 1) of the title's four buttons, which `pz` built from
- * `bo`'s rows in order: the entities of `cv.hd` with an `mb`. */
+/* The nth (from 1) of the title's four buttons, built in order from the
+ * difficulty options: the buttons among the hit_test entities. */
 static void *title_button(int i) {
     const entity_list_t *hd = entities_by_message("hit_test");
     int k;
@@ -490,8 +492,9 @@ static research_project_t *project(int k) {
 }
 
 /* A generated planet colonized by COLONY, its nearest one by EXPORTER, the
- * two joined by a slipway paid by `ey` as a drag pays it (`jc:hq` reads the
- * hovered planet off `ok.o_`), then left to settle; returns the colony. */
+ * two joined by a slipway paid by its drop as a drag pays it (the slipway's
+ * drag reads the hovered planet off `main_ui()`), then left to settle;
+ * returns the colony. */
 static void *built_world(void) {
     const entity_list_t *jos;
     slipway_keys_t slipway_keys = {0};
@@ -536,7 +539,8 @@ static void one_frame(void) {
     cart_draw();
 }
 
-/* A generated planet discovered by `jo:hh` and clicked: `jo:fe`'s panel. */
+/* A generated planet discovered by planet_roll_type and clicked: its
+ * projects panel. */
 static void known_panel(void) {
     void *p;
 
@@ -547,14 +551,14 @@ static void known_panel(void) {
     one_frame();
 }
 
-/* built_world's colony with its panel, `jo:gh`, up. */
+/* built_world's colony with its inspection panel up. */
 static void built_panel(void) {
     planet_inspection_panel(built_world());
     one_frame();
 }
 
-/* The research screen, `cr`, opened on a started game holding 5 `jk`:
- * some techs affordable, some too dear. */
+/* The tech tree screen, opened on a started game holding 5 research
+ * points: some techs affordable, some too dear. */
 static void tech_screen(void) {
     start_game();
     main_economy_typed()->research_points = p8_fixed_from_int(5);
@@ -562,7 +566,8 @@ static void tech_screen(void) {
     one_frame();
 }
 
-/* The game's end: `pj:ph` once `hy.hl` is "final score". */
+/* The game's end: the score panel's update once the end status is
+ * "final score". */
 static void game_end(void) {
     entity_t *ju;
 
@@ -575,7 +580,7 @@ static void game_end(void) {
     one_frame();
 }
 
-/* The button's `my` callback, called as a click calls it. */
+/* The button's `on_click` callback, called as a click calls it. */
 static void call_on_click(void *e) {
     button_t *b = e;
 
@@ -583,8 +588,8 @@ static void call_on_click(void *e) {
     b->on_click(b);
 }
 
-/* The buttons `eu`'s `nv(ix,js)` built: the only `fa`=11 entities with an
- * `lq` in `cv.hd` right after `eu`. */
+/* The galaxy menu buttons cart_start_game built: the only layer 11
+ * entities with a `layout_row` among the hit_test entities right after it. */
 static int galaxy_menu_buttons(void *out[4]) {
     const entity_list_t *hd = entities_by_message("hit_test");
     int n = 0;
@@ -599,8 +604,9 @@ static int galaxy_menu_buttons(void *out[4]) {
     return n;
 }
 
-/* `fv`'s `ff` empties `ok.le` right after `pz`: its buttons are the
- * entities of `cv.hd` with an `mb`, which only a `js` has. */
+/* The help screen empties the ephemerals of `main_ui()` right after the
+ * title's button list opens: its buttons are the hit_test entities that are
+ * buttons. */
 static void test_title(void) {
     uint32_t h = 2166136261u;
     const entity_list_t *hd;
@@ -713,8 +719,8 @@ static void test_inspection_panel(void) {
     check("inspection_panel", h, INSPECTION_PANEL_HASH);
 }
 
-/* `pj:ph`'s two buttons, whose results nothing keeps: the `fa`=15 entities
- * with an `lq`. */
+/* The score panel's two buttons, whose results nothing keeps: the layer 15
+ * entities with a `layout_row`. */
 static void test_score_panel(void) {
     uint32_t h = 2166136261u;
     const entity_list_t *hd;
@@ -734,7 +740,8 @@ static void test_score_panel(void) {
     check("score_panel", h, SCORE_PANEL_HASH);
 }
 
-/* `dk` is the button `eu` got: its `en` sizes the galaxy. */
+/* The difficulty is the button cart_start_game got: its `type_bias` sizes
+ * the galaxy. */
 static void test_difficulty(void) {
     uint32_t h = 2166136261u;
     int i;
@@ -744,8 +751,8 @@ static void test_difficulty(void) {
         const entity_list_t *jo;
         int j;
 
-        /* The frame between two games: each `jl()` hands its ~90 planets
-         * to the exit queue, which only a frame empties. */
+        /* The frame between two games: each `reset_world()` hands its ~90
+         * planets to the exit queue, which only a frame empties. */
         cart_flush_exit_queue();
         start_title();
         nj = title_button(i);
@@ -782,8 +789,8 @@ static vec_t *vec_at(int x, int y) {
     return p;
 }
 
-/* A button of `keys` whose `lq` is `{lq_text}`, and whose `h_`, when
- * `h_text` is not NULL, is `{h_text,c=13}`. */
+/* A button of `keys` whose layout row holds the one text given, and whose
+ * side tooltip, when its text is not NULL, holds that text in color 13. */
 static void *build(button_keys_t keys, const char *layout_row_text, const char *h_text) {
     layout_row_cell_t layout_row_item = layout_row_cell_string(layout_row_text);
     layout_row_cell_t h_item;
@@ -818,8 +825,8 @@ static button_keys_t keyed_on_click(button_keys_t keys, button_fn_t my) {
     return keys;
 }
 
-/* `ph` moves `ra` 0.4 of the way to `qf`, then jumps the last unit, never
- * through the vector the keys carried. */
+/* button_update moves the position 0.4 of the way to `slide_target`, then
+ * jumps the last unit, never through the vector the keys carried. */
 static void test_update(void) {
     uint32_t h = 2166136261u;
     void *b;
@@ -893,7 +900,8 @@ static uint32_t layout_row_first(const void *b) {
     return (uint32_t)p8_fixed_flr_int(v.as.fixed);
 }
 
-/* `ix[2].hb` rebuilds its button's `lq`: 24 when a tech is affordable. */
+/* The second galaxy menu button's `refresh` rebuilds its `layout_row`: 24
+ * when a tech is affordable. */
 static void test_refresh(void) {
     uint32_t h = 2166136261u;
     void *ix[4];
@@ -919,7 +927,7 @@ static void test_refresh(void) {
     check("refresh", h, REFRESH_HASH);
 }
 
-/* The `my` of a `jo:fe` row builds on the planet it captured. */
+/* The `on_click` of a projects panel row builds on its `project_planet`. */
 static void test_projects_panel_on_click(void) {
     uint32_t h = 2166136261u;
     const entity_list_t *le;
@@ -947,7 +955,7 @@ static void test_projects_panel_on_click(void) {
     check("projects_panel_on_click", h, PROJECTS_PANEL_ON_CLICK_HASH);
 }
 
-/* The `my` of a `cr` row invents the tech it captured. */
+/* The `on_click` of a tech tree screen row invents its `technology`. */
 static void test_tech_tree_screen_on_click(void) {
     uint32_t h = 2166136261u;
     const entity_list_t *le;
@@ -984,9 +992,9 @@ static uint32_t draw_alone(void *b) {
     return screen_hash();
 }
 
-/* One button at a time on a cleared screen: `my` absent, present, hovered,
- * with a price `h_`, a tooltip `jb` shown only when hovered, and an `h_`
- * left `false` (a free building of `jo:fe`). */
+/* One button at a time on a cleared screen: `on_click` absent, present,
+ * hovered, with a price side tooltip, a tooltip shown only when hovered, and
+ * a side tooltip left false (a free building of the projects panel). */
 static void test_draw(void) {
     uint32_t hash = 2166136261u;
     button_keys_t free_keys = keyed_on_click(button_at(10, 20), counting_on_click);
@@ -1026,8 +1034,9 @@ static void test_draw(void) {
     check("draw", hash, DRAW_HASH);
 }
 
-/* TROU-23: a row that carries `h_` or `jb` at nil still gets an empty
- * `lq` or `jb`; only `false`, or no key at all, gets none. */
+/* TROU-23: a row whose side tooltip or tooltip key is present but absent
+ * still gets an empty row or tooltip; only false, or no key at all, gets
+ * none. */
 static void test_nil_keys(void) {
     button_keys_t b = {0};
     void *nil_keys;
@@ -1044,7 +1053,7 @@ static void test_nil_keys(void) {
     assert(button_of(nil_keys)->tooltip != NULL);
 }
 
-/* How many `js` structs hv holds. */
+/* How many button structs the live entities hold. */
 static int all_buttons_are_structs(void) {
     const entity_list_t *hv = live_entities();
     int n = 0;
@@ -1055,8 +1064,8 @@ static int all_buttons_are_structs(void) {
     return n;
 }
 
-/* Built by any producer, a `js` is a struct with the five methods of its
- * descriptor. */
+/* Built by any producer, a button is a struct with the five methods of its
+ * class. */
 static void test_button_is_a_struct(void) {
     void *ix[4];
     void *nj;
@@ -1087,16 +1096,16 @@ static void test_button_is_a_struct(void) {
 }
 
 /* The kind words the frozen hashes fold before a value, FUNCTION_KIND the one
- * the name reader gave a callback (the constants that fold `my` and `hb`); the
- * enum entries are gone. Any other value moves them. */
+ * of a callback (the constants that fold `on_click` and `refresh`). Any other
+ * value moves them. */
 enum { FIXED_KIND = 0, STRING_KIND = 1, BOOL_KIND = 2, REF_KIND = 3, FUNCTION_KIND = 4 };
 
 static int is_of_class(const void *ref, const entity_class_t *cls) {
     return ref != NULL && ((const entity_t *)ref)->class == cls;
 }
 
-/* `my` or `hb` from its member, in the bytes the name reader's value folded
- * to: absent, `false`, or a function by first sight. */
+/* `on_click` or `refresh` from its member, in the bytes the frozen values
+ * folded: absent, false, or a function by first sight. */
 static uint32_t fold_button_fn(uint32_t h, int present, button_fn_t fn) {
     if (!present) {
         return fnv(h, 0u);
@@ -1107,15 +1116,15 @@ static uint32_t fold_button_fn(uint32_t h, int present, button_fn_t fn) {
     return fnv(fnv(fnv(fnv(h, 1u), (uint32_t)FUNCTION_KIND), 0xFCu), fn_index(fn));
 }
 
-/* A present member: bit 1, then the word of the kind the name reader gave
- * it. Both are constant by the struct's shape for a member of one kind,
- * kept so that JS_MEMBERS_HASH still proves the typed reads. */
+/* A present member: bit 1, then the word of its kind. Both are constant by
+ * the struct's shape for a member of one kind, kept so that
+ * BUTTON_MEMBERS_HASH still proves the typed reads. */
 static uint32_t fold_kind(uint32_t h, uint32_t kind) {
     return fnv(fnv(h, 1u), (uint32_t)kind);
 }
 
-/* A present reference: a row by content, a `jb`/`jo`/`hp` struct by class,
- * anything else by its tag. */
+/* A present reference: a row by content, a tooltip, planet or research
+ * project struct by class, anything else by its tag. */
 static uint32_t fold_member_ref(uint32_t h, const void *ref) {
     h = fold_kind(h, REF_KIND);
     if (is_layout_row(ref)) {
@@ -1149,7 +1158,8 @@ static uint32_t fold_member_fixed(uint32_t h, int has, p8_fixed_t f) {
 }
 
 /* The 17 members and the two callbacks, in the order the frozen constants
- * folded them: `my` after `qf`, `hb` after `m_`. */
+ * folded them: `on_click` after `slide_target`, `refresh` after
+ * `is_hovered`. */
 static uint32_t fold_button_members(uint32_t h, const void *e) {
     const button_t *b = button_of(e);
 
@@ -1196,7 +1206,7 @@ static uint32_t fold_ephemerals_members(uint32_t h) {
     return h;
 }
 
-/* One `pz` call: one `ra` value for all, a `qf` each. */
+/* One button list: one position value for all, a `slide_target` each. */
 static void check_one_open_box(void *const *b, int n) {
     int i;
     int j;
@@ -1221,15 +1231,16 @@ static void check_ephemerals_one_open_box(void) {
     check_one_open_box(b, le->count);
 }
 
-/* `m_` true, false, or nil (`present` 0), which reads as false. */
+/* `is_hovered` true, false, or absent (`present` 0), which reads as
+ * false. */
 static void write_is_hovered(button_t *b, int present, int value) {
     b->is_hovered = present ? value : 0;
 }
 
-/* `m_` takes true, false and nil; `lq` a row or nil. The raw writer
- * answered 0 to the 15 other names and to 8 strangers: those 23 words are
- * constant by the writer's shape, kept so that JS_MEMBERS_HASH still proves
- * the typed reads. */
+/* `is_hovered` takes true, false and absent; `layout_row` a row or NULL.
+ * The frozen values hold 23 more words, all 0, constant by the struct's
+ * shape, kept so that BUTTON_MEMBERS_HASH still proves the typed
+ * reads. */
 static uint32_t fold_written(uint32_t hash, void *entity, void *other) {
     button_t *button = button_of(entity);
     const box_t *hit_box_before = button->header.hit_box;
@@ -1283,8 +1294,9 @@ static void *built(button_keys_t keys) {
     return button_new(&keys);
 }
 
-/* Folded, then out of `hv` and its place given back, as a frame would:
- * the buttons fold_keys builds one after another hold no place at once. */
+/* Folded, then out of the live entities and its slot given back, as a
+ * frame would: the buttons fold_keys builds one after another hold no slot
+ * at once. */
 static uint32_t fold_and_drop(uint32_t h, button_t *b) {
     h = fold_button_members(h, b);
     entity_unregister(&b->header);
@@ -1292,9 +1304,10 @@ static uint32_t fold_and_drop(uint32_t h, button_t *b) {
     return h;
 }
 
-/* Each optional key unset, the fixed ones and `my` given at zero, `h_`
- * false, TROU-23, an `h_` copied from an `lq` (written on the member: no
- * key builds it), a row's keys as `lq(x)`'s argument. */
+/* Each optional key unset, the fixed ones and `on_click` given at zero, a
+ * side tooltip false, TROU-23, a side tooltip copied from a layout row
+ * (written on the member: no key builds it), a row's keys as the layout
+ * row's source. */
 static uint32_t fold_keys(uint32_t hash, layout_row_t *source_row) {
     const button_keys_t none = {0};
     button_keys_t keys;
@@ -1449,7 +1462,7 @@ static uint32_t members_title_and_game(void) {
     assert(draw_alone(on_click_false) == draw_alone(ordinary_button));
     hash = fnv(hash, draw_alone(on_click_false));
 
-    /* 10 strangers the name reader refused: constant by the struct's shape. */
+    /* 10 words constant by the struct's shape, kept for the frozen hash. */
     for (key_index = 0; key_index < 10; key_index++) {
         hash = fnv(hash, 0u);
     }
@@ -1466,8 +1479,8 @@ static uint32_t members_research(void) {
     for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
         assert(technologies_table[i].tooltip_rows != NULL);
     }
-    /* The frozen hash folded the count of the old nb table: each record
-     * under its rank and under its px. */
+    /* The frozen hash folded the count of the old technologies table: each
+     * record under its rank and under its name. */
     h = fnv(h, (uint32_t)(2 * TECHNOLOGIES_COUNT));
 
     tech_screen();
@@ -1600,8 +1613,8 @@ static void test_button_members_by_name(void) {
     check("button_members", h, BUTTON_MEMBERS_HASH);
 }
 
-/* `h_=od>0 and {…}` of `jo:fe`: a free building's `h_` is false, not the
- * empty row of a present nil. */
+/* A free building of the projects panel has a side tooltip that is false,
+ * not the empty row of a present but absent key. */
 static void test_projects_panel_free_row(void) {
     const entity_list_t *le;
     research_project_t *b = NULL;
@@ -1631,8 +1644,8 @@ static void test_projects_panel_free_row(void) {
     assert(found);
 }
 
-/* What `ix[4].my` hands `pz` as `p`: a struct without method, for as long
- * as `ha` lives. */
+/* What the fourth galaxy menu button's `on_click` hands the button list as
+ * its frame: a struct without method, for as long as the pause menu lives. */
 static void test_pause_menu_open_box_is_a_struct(void) {
     const entity_t *o;
     size_t i;
@@ -1654,7 +1667,8 @@ static void test_pause_menu_open_box_is_a_struct(void) {
     assert(pause_menu_open_box() == o);
 }
 
-/* TROU-9: a button's `fa` is `p.ca` when `p` has one, else `js`'s own. */
+/* TROU-9: a button's layer is the frame's back color when the frame has
+ * one, else the button's own. */
 static void test_open_box_layer_only_from_back_color(void) {
     open_box_frame_t frame = {0};
     button_keys_t row = {0};
@@ -1668,8 +1682,8 @@ static void test_open_box_layer_only_from_back_color(void) {
     assert(main_ui_ephemerals()->count == 1 && button_of(main_ui_ephemerals()->items[0])->layer == p8_fixed_from_int(14));
 }
 
-/* `cb` writes `e_` for every entry, kept or not; `pico8_data_init` forgets
- * them all. */
+/* tech_gate_available_technologies writes the affordable flag for every
+ * entry, kept or not; `data_init()` forgets them all. */
 static void test_available_technologies_writes_every_is_affordable(void) {
     available_technologies_kept_t kept;
     p8_fixed_t jk;
@@ -1704,7 +1718,7 @@ static void test_available_technologies_writes_every_is_affordable(void) {
     }
 }
 
-/* A NULL frame makes `pz` a no-op. */
+/* A NULL frame makes message_box_open_box a no-op. */
 static void test_open_box_closed(void) {
     start_game();
     message_box_open_box(NULL, NULL, 0);
@@ -1721,7 +1735,7 @@ static void test_score_panel_are_structs(void) {
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked
- * right after pico8_cart_load(), as a fresh process would start it. */
+ * right after cart_load(), as a fresh process would start it. */
 static void in_fresh_child(void (*test)(void)) {
     pid_t child;
     int status;
@@ -1743,8 +1757,9 @@ static int button_slots(void) {
     return ui_zone_live(SLOT_KIND_BUTTON);
 }
 
-/* The pause menu's buttons take a place each; sliding to their `qf` takes
- * none; `cj` takes them off, and the next frame gives the places back. */
+/* The pause menu's buttons take a slot each; sliding to their
+ * `slide_target` takes none; ui_clear_ephemerals takes them off, and the next
+ * frame gives the slots back. */
 static void test_button_slots_come_back(void) {
     void *ix[4];
     void *last;
@@ -1773,8 +1788,9 @@ static void test_button_slots_come_back(void) {
     assert(button_slots() == base);
 }
 
-/* `jl()` hands every button it drops to the exit queue: a new title after
- * a game and its pause menu holds as many places as the first title. */
+/* `reset_world()` hands every button it drops to the exit queue: a new
+ * title after a game and its pause menu holds as many slots as the first
+ * title. */
 static void test_button_slots_after_restart(void) {
     void *ix[4];
     int title;
@@ -1797,8 +1813,9 @@ static int row_slots(void) {
     return ui_zone_live(SLOT_KIND_ROW);
 }
 
-/* `ix[2].hb` rebuilds its icon row in a place of its own, given back as
- * soon as the next `hb` replaces it, and at `jl()` with its button. */
+/* The second galaxy menu button's `refresh` rebuilds its icon row in a slot
+ * of its own, given back as soon as the next `refresh` replaces it, and at
+ * `reset_world()` with its button. */
 static void test_galaxy_menu_button2_row_slots(void) {
     void *ix[4];
     int title;
@@ -1829,8 +1846,9 @@ static int ephemerals_slots(void) {
     return ui_zone_live(SLOT_KIND_EPHEMERALS);
 }
 
-/* Each `ok.le` a `cj` or a `pz` makes takes a place of its own; the list
- * it replaces stays readable until the next frame gives its place back. */
+/* Each ephemerals list of `main_ui()` that ui_clear_ephemerals or a button
+ * list makes takes a slot of its own; the list it replaces stays readable
+ * until the next frame gives its slot back. */
 static void test_ephemerals_slots_come_back(void) {
     void *ix[4];
     const entity_list_t *menu;
@@ -1859,8 +1877,9 @@ static void test_ephemerals_slots_come_back(void) {
     }
 }
 
-/* `jl()` drops the old `ok` with its `le`, even one a `cj` made after the
- * `jl()` (a click on « restart » ends its frame on the old `ok`). */
+/* `reset_world()` drops the old `main_ui()` with its ephemerals, even a
+ * list ui_clear_ephemerals made after it (a click on "restart" ends its frame
+ * on the old one). */
 static void test_ephemerals_slots_after_restart(void) {
     void *ix[4];
     ui_t *old;
@@ -1881,10 +1900,10 @@ static void test_ephemerals_slots_after_restart(void) {
     assert(ephemerals_slots() == title);
 }
 
-/* The largest buttons the game builds, each in one js place: every tech's
- * row of `cr` (its `oy` bubble), the « invented » row once every tech is,
- * and every project's row as `jo:fe` builds it (its `lq`, its cost, its
- * `hp:jb` bubble). */
+/* The largest buttons the game builds, each in one button slot: every
+ * tech's row of the tech tree screen (its tooltip bubble), the "invented"
+ * row once every tech is, and every project's row as the projects panel
+ * builds it (its layout row, its cost, its tooltip bubble). */
 static void test_largest_buttons_fit_their_slots(void) {
     economy_t *fm;
     int k;

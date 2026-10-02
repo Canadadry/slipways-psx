@@ -9,7 +9,7 @@
 #include "game/trade.h"
 
 /* A need of a project's `inputs` or of a planet's `needs`: the resource of
- * one input code, then `satisfied` as economy_tiers writes it. `row` comes
+ * one input code, then `satisfied` as economy_tiers writes it. The row field comes
  * first and holds the resource (`has_resource` 0: absent) and no item: a REF
  * to a need is the one-resource tuple the layout row reads. */
 typedef struct {

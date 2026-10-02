@@ -1,6 +1,6 @@
-/* The background `bg`, read and written only through the dual-form field
- * API and driven through the real `mv`/`dg`/`dc`/`ok`, in games built
- * directly: no events file. */
+/* The background `background_t`, read and written on its members and
+ * driven through the real on_click call, update_entities, draw_layers and
+ * `main_ui()`, in games built directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -100,12 +100,12 @@ static uint32_t fold_vec(uint32_t h, const vec_t *p) {
     return fnv(h, (uint32_t)p->y);
 }
 
-/* `mq` as the box the cart keeps: NULL while nil. */
+/* `drag_mouse` as a pointer: NULL while absent. */
 static const vec_t *drag_mouse_of(const background_t *bg) {
     return bg->has_drag_mouse ? &bg->drag_mouse : NULL;
 }
 
-/* `mq` holds the value of `rp`, a copy. */
+/* `drag_mouse` holds the value of the given position, a copy. */
 static int drag_mouse_is(const background_t *bg, const vec_t *rp) {
     return bg->has_drag_mouse && &bg->drag_mouse != rp && bg->drag_mouse.x == rp->x && bg->drag_mouse.y == rp->y;
 }
@@ -133,8 +133,8 @@ static void check_int(const char *label, int got, int want) {
     assert(got == want);
 }
 
-/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
- * reads as difficulty 0. */
+/* A game started as cart_start_game starts it, with no difficulty picked:
+ * a NULL difficulty reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
@@ -142,7 +142,8 @@ static void start_game(void) {
     cart_start_game(NULL);
 }
 
-/* The background is the `bg` of cv.hd whose `hd` and `fa` are both 1. */
+/* The background is the one among the hit_test entities whose hit test and
+ * layer are both 1. */
 static background_t *find_background(int *count) {
     const entity_list_t *hd = entities_by_message("hit_test");
     background_t *found = NULL;
@@ -182,8 +183,9 @@ static int mget(int x, int y) {
     return p8_peek(&mem, P8_ADDR_SPRITE_MAP_SHARED + y * P8_MAP_WIDTH + x);
 }
 
-/* A fresh `bg`: ke's `me`/`t`, the spec's `fa`/`hd`/`pl`, the four
- * methods, nothing written yet, registered in hv, cv.kj and cv.hd only. */
+/* A fresh background: the entity's state and state time, the archetype's
+ * layer, hit test and tile choices, the four methods, nothing written yet,
+ * registered among the live entities, under draw and hit_test only. */
 static void check_fresh_background(const background_t *bg) {
     const entity_class_t *cls = bg->header.class;
     const int_seq_t *pl;
@@ -269,9 +271,9 @@ static void drag(void *bg, vec_t *rp) {
     background_class()->drag(bg, vec_ref(1, 2), rp);
 }
 
-/* `hq` with no `mq` yet reads the zero vector; `rdown` keeps a copy of `rp`
- * and hands back the background; each `hq` then moves `mo.v` by the drag
- * delta and replaces `mq`. */
+/* A drag with no `drag_mouse` yet reads the zero vector; the right press
+ * keeps a copy of the position and hands back the background; each drag then
+ * moves the camera velocity by the drag delta and replaces `drag_mouse`. */
 static void test_drag(void) {
     uint32_t h = 2166136261u;
     background_t *bg;
@@ -306,7 +308,8 @@ static void test_drag(void) {
     check("drag", h, DRAG_HASH);
 }
 
-/* `ldown` builds a `g_` while cg.g_ is empty, an `mz` after. */
+/* The left press builds a probe while the probe tag is empty, a wormhole
+ * after. */
 static void test_left_press(void) {
     void *bg;
     down_t out;
@@ -344,9 +347,9 @@ static int in_layer(int layer, const void *e) {
     return entity_list_listed(&ic->layers[layer], e);
 }
 
-/* Nothing else hovered: the background is `o_`, marked `m_`, in layer 1,
- * and answers both `ldown` and `rdown`; a veil built over it takes `o_`,
- * and the next hover pass unmarks it through `gj`. */
+/* Nothing else hovered: the background is `hovered`, marked `is_hovered`,
+ * in layer 1, and answers both presses; a veil built over it takes
+ * `hovered`, and the next hover pass unmarks it through `previous_hovered`. */
 static p8_input_frame_t g_void;
 
 static void test_hover(void) {
@@ -404,8 +407,8 @@ static planet_t *first_planet_with_state(const char *me) {
     return NULL;
 }
 
-/* Released over a colonized planet or a slipgate, `jz("gv",held)` reads
- * `s.qu` off the background, which it never has. */
+/* Released over a colonized planet or a slipgate, accept_drop with the
+ * background held reads a start planet off it, which it never has. */
 static void test_accept_drop(void) {
     background_t *bg;
     planet_t *ly;
@@ -430,8 +433,8 @@ static void test_accept_drop(void) {
     assert(r.stop && r.held == NULL);
 }
 
-/* `bg` alone in cv.kj, drawn by `dc` with the camera `mo` puts at its
- * initial position. */
+/* The background alone under draw, drawn by draw_layers with the main
+ * camera at its initial position. */
 static void test_draw(void) {
     void *bg;
 
@@ -474,9 +477,9 @@ static void drag_frame(int i, int x, int y, int buttons) {
     g_drag[i].mouse_buttons = buttons;
 }
 
-/* Over empty space, the right button held makes the background `ok.rheld`
- * until released; the left button pressed there holds the `g_` its `ldown`
- * builds. */
+/* Over empty space, the right button held makes the background
+ * `right_held` until released; the left button pressed there holds the probe
+ * its left press builds. */
 static void test_scripted_drags(void) {
     background_t *bg;
     int i;
@@ -516,8 +519,8 @@ static int is_a_background_struct(const void *e) {
            ((const entity_t *)e)->class == background_class();
 }
 
-/* Built by `eu()`, `pico8_bg_new` or through its class, a background is a
- * struct with `kj`, `ldown`, `rdown` and `hq` as methods. */
+/* Built by `cart_start_game()` or `background_new`, a background is a
+ * struct with draw, left press, right press and drag as methods. */
 static void test_background_is_a_struct(void) {
     const entity_class_t *cls;
     void *from_start_game;
@@ -540,7 +543,7 @@ static void test_background_is_a_struct(void) {
 }
 
 /* A scenario depends on the rnd state: run each in a child forked right
- * after pico8_cart_load(), as a fresh process would start it. */
+ * after cart_load(), as a fresh process would start it. */
 static void in_fresh_child(void (*test)(void)) {
     pid_t child;
     int status;

@@ -1,7 +1,7 @@
-/* The placeholder `je` that pico8_ui_init() leaves until `jl()` replaces it
- * with an `nf`, read only through the dual-form field reader. The frozen
- * values were taken on the code where the placeholder was still a
- * class-less instance and must not be re-taken. */
+/* The placeholder main mouse that ui_init() leaves until `reset_world()`
+ * replaces it with a `mouse_t`. The frozen mouse world position was taken on
+ * the code where the placeholder was still a class-less instance and must
+ * not be re-taken. */
 
 #include <assert.h>
 #include <stdint.h>
@@ -39,7 +39,7 @@ static int entity_list_listed(const entity_list_t *list, const void *e) {
     return 0;
 }
 
-/* `cv` may be read only once pico8_entity_init() has run. */
+/* The messages may be read only once entity_registry_init() has run. */
 static int registered(const void *e, int entity_live) {
     const char *buckets[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
     const char *tags[] = {"main_mouse", "mouse", "ui", "camera", "entity"};
@@ -56,7 +56,7 @@ static int registered(const void *e, int entity_live) {
     return 0;
 }
 
-/* Not an nf; no method answers; nothing registers it. */
+/* Not a `mouse_t`; no method answers; nothing registers it. */
 static void assert_placeholder(int entity_live) {
     entity_t *je = main_mouse();
 
@@ -74,13 +74,14 @@ static void assert_a_mouse(void) {
     assert(mouse_left_button() != NULL && mouse_right_button() != NULL);
 }
 
-/* Between pico8_cart_load() and pico8__init(). */
+/* Between cart_load() and cart_init(). */
 static void test_placeholder_after_cart_load(void) {
     assert_placeholder(0);
 }
 
-/* `ok`'s frame on the placeholder, `ok` built by hand since `jl()` has not
- * run: no press, `qa` is `mo.ra` alone. */
+/* A ui_update on the placeholder, the `ui_t` built by hand since
+ * `reset_world()` has not run: no press, `mouse_world` is the camera
+ * position alone. */
 static void test_recompute_on_placeholder(void) {
     ui_t *ok;
     const vec_t *qa;
@@ -97,7 +98,8 @@ static void test_recompute_on_placeholder(void) {
     assert(qa->x == RECOMPUTE_MOUSE_WORLD_X && qa->y == RECOMPUTE_MOUSE_WORLD_Y);
 }
 
-/* Shutdown clears it; every init brings it back; a whole cart reload too. */
+/* Shutdown clears it; every init brings it back; cart_shutdown() and
+ * cart_load() too. */
 static void test_shutdown_and_init_cycle(void) {
     ui_shutdown();
     assert(main_mouse() == NULL);
@@ -112,7 +114,7 @@ static void test_shutdown_and_init_cycle(void) {
     assert_placeholder(0);
 }
 
-/* `jl()` puts an `nf` in its place; pico8_ui_init() puts it back. */
+/* `reset_world()` puts a `mouse_t` in its place; ui_init() puts it back. */
 static void test_replaced_by_reset_world(void) {
     cart_init();
     assert_a_mouse();
@@ -120,10 +122,10 @@ static void test_replaced_by_reset_world(void) {
     assert_placeholder(1);
 }
 
-/* The path of a caller that never loads the cart. */
+/* The path of a caller that never calls cart_load(). */
 static void test_reset_world_without_cart_load(void) {
-    /* pico8_ui_init() after jl() freed `ok`, still in `hv`: the cart
-     * shutdown would abandon it, so `hv` is emptied first. */
+    /* ui_init() after reset_world() freed `main_ui()`, still live:
+     * cart_shutdown() would abandon it, so the live entities go first. */
     bootstrap_shutdown();
     cart_shutdown();
     reset_world();
@@ -140,8 +142,8 @@ static int is_a_struct_of(const void *e, const entity_class_t *cls) {
            ((const entity_t *)e)->class == cls;
 }
 
-/* A struct of its own class, one object for the whole process; an `nf`
- * struct once `jl()` has run. */
+/* A struct of its own class, one object for the whole process; a
+ * `mouse_t` once `reset_world()` has run. */
 static void test_placeholder_is_a_struct(void) {
     const void *placeholder;
 

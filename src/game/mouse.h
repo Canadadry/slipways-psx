@@ -8,13 +8,13 @@
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
-/* Throughout this module a NULL struct, `mem` or `input` argument is a
- * safe no-op. */
+/* mouse_update returns early on a NULL struct or input. */
 
-/* `l` and `r` are not members: every nf reads and bu() mutates the same
- * two button tables, the class's shared state. `ra` starts on a (0,0)
- * every nf shares; the first `ph` points it at `ra_own`, rewritten in place
- * from then on. Never copy the struct. */
+/* The left and right button states are not members: every mouse reads,
+ * and mouse_button_update mutates, the same two states, shared by the
+ * class. The position starts on a (0,0) every mouse shares; the first
+ * mouse_update points it at `pos_own`, rewritten in place from then on.
+ * Never copy the struct. */
 typedef struct {
     entity_t header;
     const mouse_archetype_t *archetype;
@@ -22,29 +22,30 @@ typedef struct {
     vec_t pos_own;
 } mouse_t;
 
-/* Calls pico8_pi_init(), and requires pico8_ke_init() to have run --
- * asserted, not repaired. Starts the shared `l`/`r` tables afresh, as
- * rebuilding the class did in the cart. */
+/* Calls draw_functions_init(), and requires entity_init() to have run --
+ * asserted, not repaired. Starts the shared button states and the shared
+ * position afresh. */
 void mouse_init(void);
 
-/* Frees the shared `l`/`r` tables. */
+/* Only lowers the ready flag: the button states are static, never freed,
+ * and mouse_left_button()/mouse_right_button() return NULL from then on. */
 void mouse_shutdown(void);
 
-/* The shared `l`/`r` tables, NULL outside pico8_nf_init()..pico8_nf_shutdown(). */
+/* The shared button states, NULL outside mouse_init()..mouse_shutdown(). */
 const mouse_button_t *mouse_left_button(void);
 const mouse_button_t *mouse_right_button(void);
 
-/* 1 from pico8_nf_init() to pico8_nf_shutdown(), 0 otherwise. */
+/* 1 from mouse_init() to mouse_shutdown(), 0 otherwise. */
 int mouse_ready(void);
 const entity_class_t *mouse_class(void);
 
-/* The struct enables devkit mouse reporting, registers itself through `lt`;
- * it lives in the current game-zone generation. */
+/* The struct enables devkit mouse reporting, registers itself through
+ * entity_register; it lives in the current game-zone generation. */
 mouse_t *mouse_new(void);
 
-/* Rewrites `self.ra` in place with the mouse position, then runs bu()
- * over the shared `l`/`r` tables, which are mutated in place and never
- * rebound. */
+/* Rewrites `pos_own` with the mouse position and points the struct's
+ * position at it, then runs mouse_button_update over the shared button
+ * states, which are mutated in place and never rebound. */
 void mouse_update(const p8_input_t *input, mouse_t *self);
 
 #endif

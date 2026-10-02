@@ -1,5 +1,5 @@
-/* Lie sous ASan. Chaque cas tourne dans un processus enfant : ce binaire se
- * relance lui-meme avec le nom du cas, et le parent lit son statut et son
+/* Linked under ASan. Each case runs in a child process: this binary runs
+ * itself again with the case name, and the parent reads its status and its
  * stderr. */
 
 #include <assert.h>
@@ -13,8 +13,8 @@
 
 #define STDERR_LOG "tmp/test_ui_zone_stderr.txt"
 
-/* volatile : la lecture d'un pointeur perime ne doit pas etre retiree par
- * l'optimiseur, c'est elle que le cas observe. */
+/* volatile: the read through a stale pointer must not be removed by the
+ * optimizer, it is what the case observes. */
 static volatile unsigned char sink;
 
 static int case_live_slots_follow_takes(void) {
@@ -82,7 +82,7 @@ static const struct {
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
 
-/* Tampon alloue, termine par un nul, que l'appelant libere. */
+/* An allocated buffer, ending with a nul, which the caller frees. */
 static char *read_whole_file(const char *path) {
     FILE *file = fopen(path, "rb");
     assert(file != NULL);
@@ -100,8 +100,8 @@ static char *read_whole_file(const char *path) {
 
 static const char *self_path;
 
-/* Rend le statut brut de system() ; *err recoit le stderr de l'enfant, que
- * l'appelant libere. */
+/* Returns the raw status of system(); *err receives the child's stderr,
+ * which the caller frees. */
 static int run_child(const char *name, char **err) {
     char cmd[512];
     remove(STDERR_LOG);

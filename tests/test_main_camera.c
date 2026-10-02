@@ -1,7 +1,7 @@
-/* The placeholder `mo` that pico8_entity_init() leaves until `jl()` replaces
- * it with a `qb`, read through pico8_mo_qb(). The frozen
- * values were taken on the code where the placeholder was still a
- * class-less instance and must not be re-taken. */
+/* The placeholder main camera that entity_registry_init() leaves until
+ * `reset_world()` replaces it with a `camera_t`, read through
+ * main_camera_typed(). The frozen values were taken on the code where the
+ * placeholder was still a class-less instance and must not be re-taken. */
 
 #include <assert.h>
 #include <stdint.h>
@@ -43,8 +43,8 @@ static int entity_list_listed(const entity_list_t *list, const void *e) {
     return 0;
 }
 
-/* Not a qb; no method answers and the camera stays put; hv and cv are
- * empty. */
+/* Not a `camera_t`; no method answers and the camera stays put; the live
+ * entities and the messages are empty. */
 static void assert_placeholder(void) {
     const char *buckets[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
     entity_t *mo = main_camera();
@@ -82,7 +82,8 @@ typedef struct {
 
 static const entity_class_t g_pos_only_class = {0};
 
-/* `gd` reads `mo.ra` as (0,0): 64 off is inside the 76 margin, 77 is not. */
+/* entity_geom_is_on_screen reads the camera position as (0,0): 64 off is
+ * inside the 76 margin, 77 is not. */
 static void test_is_on_screen_on_placeholder(void) {
     vec_t near_pos = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
     vec_t far_pos = vec_make(p8_fixed_from_int(64 + 77), p8_fixed_from_int(64));
@@ -101,8 +102,9 @@ static void test_is_on_screen_on_placeholder(void) {
     assert(near_hit == IS_ON_SCREEN_NEAR && far_hit == IS_ON_SCREEN_FAR);
 }
 
-/* `ok`'s frame on the placeholder, `ok` built by hand since `jl()` has not
- * run: `qa` is `je.ra + mo.ra`. */
+/* A ui_update on the placeholder, the `ui_t` built by hand since
+ * `reset_world()` has not run: `mouse_world` is the mouse position plus the
+ * camera position. */
 static void test_recompute_on_placeholder(void) {
     ui_t *ok;
     const vec_t *qa;
@@ -130,7 +132,8 @@ static void test_shutdown_and_init_cycle(void) {
     assert(main_camera() == NULL);
 }
 
-/* `jl()` puts a `qb` in its place; pico8_entity_init() puts it back. */
+/* `reset_world()` puts a `camera_t` in its place; entity_registry_init()
+ * puts it back. */
 static void test_replaced_by_reset_world(void) {
     reset_world();
     assert_a_camera();
@@ -148,8 +151,8 @@ static int is_a_struct_of(const void *e, const entity_class_t *cls) {
            ((const entity_t *)e)->class == cls;
 }
 
-/* A struct of its own class, one object for the whole process. A `qb`
- * struct once `jl()` has run. */
+/* A struct of its own class, one object for the whole process. A
+ * `camera_t` once `reset_world()` has run. */
 static void test_placeholder_is_a_struct(void) {
     const void *placeholder;
 
@@ -163,8 +166,9 @@ static void test_placeholder_is_a_struct(void) {
     bootstrap_shutdown();
 }
 
-/* A shaken camera: `ra` is off `p`, and off its own diagonal. `gd` reads
- * the camera's `ra`, never its `p`, and each axis on its own. */
+/* A shaken camera: its position is off its position before shake, and off
+ * its own diagonal. entity_geom_is_on_screen reads the camera's position,
+ * never its position before shake, and each axis on its own. */
 static void test_is_on_screen_under_a_shaken_camera(void) {
     static const vec_t zero_pos_before_shake = {0, 0};
     static vec_t shaken_pos;

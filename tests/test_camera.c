@@ -1,6 +1,7 @@
-/* The camera `qb` (`mo` once `jl()` has run), read and written on its
- * members through pico8_mo_qb() and driven through the real `dg`/`dc`, in games
- * built directly: no events file. */
+/* The camera `camera_t` (`main_camera()` once `reset_world()` has run),
+ * read and written on its members through main_camera_typed() and driven
+ * through the real update_entities and draw_layers, in games built directly:
+ * no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -129,8 +130,10 @@ static int is_vec(vec_t v, int x, int y) {
     return v.x == p8_fixed_from_int(x) && v.y == p8_fixed_from_int(y);
 }
 
-/* `jl()` builds `mo`: in hv only, the spec's defaults, ke's `me`/`t`, `pc`
- * in the order left, right, up, down, and `p`/`ra` two distinct vectors. */
+/* `reset_world()` builds the main camera: among the live entities only, the
+ * archetype's defaults, the entity's state and state time, the dpad
+ * directions in the order left, right, up, down, and the position before
+ * shake and the position two distinct vectors. */
 static void check_fresh_main_camera(const camera_t *mo) {
     const vec_seq_t *pc;
     vec_t p = must_vec(mo->pos_before_shake);
@@ -167,8 +170,8 @@ static void apply_camera_to(p8_fixed_t fy, int want_x, int want_y) {
     assert(gfx.camera_x == want_x && gfx.camera_y == want_y);
 }
 
-/* `md(fy)` puts the camera on `ra*fy`. The later tests of this process
- * start from the camera the last `md` leaves: 192,192. */
+/* camera_apply puts the camera on the position times the factor. The later
+ * tests of this process start from the camera the last call leaves: 192,192. */
 static void test_apply_camera_sets_the_camera(void) {
     reset_world();
     apply_camera_to(p8_fixed_from_int(1), 192, 192);
@@ -215,8 +218,9 @@ static void test_scripted_ticks(void) {
     check("scripted", h, SCRIPTED_HASH);
 }
 
-/* `mo.ma=3`, as `ga:pq` writes it, decays by 0.1 per `ph`, shaking `ra`
- * off `p` by `qm(ma, t*0.2)`. */
+/* A shake of 3, as a burst's construction writes it, decays by 0.1 per
+ * camera_update, shaking the position off the position before shake by
+ * entity_geom_shake. */
 static void test_shake_decays(void) {
     uint32_t h = 2166136261u;
     int ticks = 0;
@@ -243,8 +247,8 @@ static void test_shake_decays(void) {
     check("shake", h, SHAKE_HASH);
 }
 
-/* `eu()` runs `jl()` again over a live `mo`; a shutdown and a fresh `jl()`
- * after it must not crash either. */
+/* `cart_start_game()` runs `reset_world()` again over a live main camera; a
+ * shutdown and a fresh `reset_world()` after it must not crash either. */
 static void test_second_reset_world(void) {
     const void *first;
 
@@ -260,8 +264,8 @@ static void test_second_reset_world(void) {
     check_fresh_main_camera(typed_main_camera());
 }
 
-/* Before `jl()`, `mo` is the placeholder, not a qb: `md` dispatches
- * nothing and the camera stays put. */
+/* Before `reset_world()`, the main camera is the placeholder, not a
+ * `camera_t`: nothing is applied and the camera stays put. */
 static void test_placeholder_main_camera(void) {
     entity_registry_init();
     p8_camera(&gfx, 5, 6);
@@ -270,8 +274,9 @@ static void test_placeholder_main_camera(void) {
     assert(main_camera_typed() == NULL);
 }
 
-/* A game started as `eu` starts it, the right button pressed over empty
- * space then dragged: `ok` hands the press to `bg`, whose `hq` moves `mo`. */
+/* A game started as cart_start_game starts it, the right button pressed over
+ * empty space then dragged: `main_ui()` hands the press to the background,
+ * whose drag moves the main camera. */
 static void test_right_drag_moves_the_camera(void) {
     vec_t before;
     vec_t after;
@@ -311,8 +316,8 @@ static int burst_alive(void) {
     return 0;
 }
 
-/* A `ga`'s `pq` shakes the camera: `mo.ma=3` as soon as it is built, then
- * the decay back to 0 within GEOHARVEST_WINDOW ticks. */
+/* A burst's construction shakes the camera: a shake of 3 as soon as it is
+ * built, then the decay back to 0 within GEOHARVEST_WINDOW ticks. */
 static void test_burst_shakes(void) {
     int i;
 
@@ -329,7 +334,7 @@ static void test_burst_shakes(void) {
 }
 
 /* The galaxy depends on the rnd state, which the tests before it consume: run
- * it in a child forked right after pico8_cart_load(), as a fresh process
+ * it in a child forked right after cart_load(), as a fresh process
  * would start it. */
 static void in_fresh_child(void (*test)(void)) {
     pid_t child;
@@ -352,8 +357,9 @@ static int is_a_camera_struct(const void *e) {
            ((const entity_t *)e)->class == camera_class();
 }
 
-/* `jl()`'s `mo` and one built through the class are qb structs in hv only,
- * with `ph` and `md` as methods and no `kj`; `ph` reads a nil `v` as zero. */
+/* The main camera of `reset_world()` and one built by camera_new are camera
+ * structs among the live entities only, with an update and an apply as
+ * methods and no draw; the update reads a NULL velocity as zero. */
 static void test_camera_is_a_struct(void) {
     camera_t *generic;
 

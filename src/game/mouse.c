@@ -14,11 +14,11 @@
 static int g_mouse_up = 0;
 static mouse_button_t g_left_button;
 static mouse_button_t g_right_button;
-/* Not in the archetype: two TUs write `je.ra` in place. */
+/* Not in the archetype: two translation units write it in place. */
 static vec_t g_mouse_pos;
 
-/* dg() dispatches the per-tick state method as `qc[qc.me](qc,qc.t)`, so
- * `t` is the frame counter, which nf:ph does not read. */
+/* update_entities() calls the per-tick state method with the entity's
+ * frame counter, which mouse_update does not read. */
 static void mouse_update_method(entity_t *self, p8_fixed_t t) {
     (void)t;
     mouse_update(dispatch_context_input(), (mouse_t *)self);

@@ -1,8 +1,9 @@
-/* The click dispatcher `ui`, the singleton `ok`, built by its only road
- * (`jl()`, `pico8_ui_new()`, on a game started directly: no events
- * file), read only through the dual-form field API and compared with the
- * archetype `pico8_ui_def` and `pico8_ui_le_shared()`, and
- * driven through the real `dg`/`lj`/`ev`/`jz`/`cj`/`pz`. */
+/* The click dispatcher `ui_t`, the singleton `main_ui()`, built by its only
+ * road (`reset_world()`, `ui_new()`, on a game started directly: no events
+ * file), compared with the archetype `ui_archetype` and
+ * `ui_ephemerals_shared()`, and driven through the real update_entities,
+ * ui_update, draw_overlay, ui_send_to_hovered, ui_clear_ephemerals and the
+ * opening of a button list. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -50,8 +51,8 @@
 #include "game/wormhole.h"
 
 /* Ticks after the slipway is paid, long enough for the colonizing and
- * paying effects to leave `hv`: `dg` skips the entity after one it takes out
- * (TROU-5). */
+ * paying effects to leave the live entities: update_entities skips the
+ * entity after one it takes out (TROU-5). */
 #define SETTLE_TICKS 120
 
 #define BUILT_HASH 0x86CE257Cu
@@ -132,7 +133,7 @@ static uint32_t fold_vec(uint32_t h, vec_t v) {
     return fnv(fnv(h, (uint32_t)v.x), (uint32_t)v.y);
 }
 
-/* Presence, then the rank in `hv` of an entity. */
+/* Presence, then the rank of an entity among the live entities. */
 static uint32_t fold_entity(uint32_t h, const void *ref) {
     h = fnv(h, (uint32_t)(ref != NULL));
     return fnv(h, (uint32_t)entity_list_rank_in(live_entities(), ref));
@@ -171,7 +172,8 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-/* `ev` drawn alone on a cleared screen is exactly sprite `id` at `je.ra`. */
+/* The overlay drawn alone on a cleared screen is exactly the given sprite at
+ * the main mouse position. */
 static uint32_t cursor_is(int id) {
     vec_t at = vec_at(typed_main_mouse()->pos);
     uint32_t drawn;
@@ -189,8 +191,8 @@ static int is_of(const void *e, const entity_class_t *cls) {
     return e != NULL && ((const entity_t *)e)->class == cls;
 }
 
-/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
- * reads as difficulty 0. */
+/* A game started as cart_start_game starts it, with no difficulty picked:
+ * a NULL difficulty reads as difficulty 0. */
 static ui_t *start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
@@ -214,7 +216,7 @@ static int placed(void *e) {
     return as_planet(e)->map_pos != NULL;
 }
 
-/* The planet of `cg.jo` nearest to `qu`, among those with a `p`. */
+/* The planet nearest to the given one, among those with a `map_pos`. */
 static void *nearest_to(void *qu) {
     const entity_list_t *jos = entities_by_tag("planet");
     void *re = NULL;
@@ -232,7 +234,7 @@ static void *nearest_to(void *qu) {
 
 static p8_input_frame_t g_mouse;
 
-/* One frame's mouse, read by `je` through `dg`. */
+/* One frame's mouse, read by the main mouse through update_entities. */
 static void mouse_at(int x, int y, int buttons) {
     memset(&g_mouse, 0, sizeof g_mouse);
     g_mouse.mouse_x = x;
@@ -259,9 +261,9 @@ static void *the_background(void) {
     return bg;
 }
 
-/* The game's `ok` as `jl()` and `lt` left it: where it registered, its
- * defaults, the names only read elsewhere, its one method, and the class's
- * `le`/`hw` by identity. */
+/* The game's `main_ui()` as `reset_world()` and entity_register left it:
+ * where it registered, its defaults, the names only read elsewhere, its one
+ * method, and the class's ephemerals and panel box by identity. */
 static void test_built(void) {
     uint32_t hash = 2166136261u;
     ui_t *ok = start_game();
@@ -302,8 +304,9 @@ static void call_galaxy_menu_on_click(int i) {
     galaxy_menu_on_click(i)(NULL);
 }
 
-/* A second `ui` shares the class's empty `le` until its own `cj`; `pz`
- * replaces `ok.le`, and a `p` with `ff` empties it. */
+/* A second `ui_t` shares the class's empty ephemerals until its own
+ * ui_clear_ephemerals; a button list replaces those of `main_ui()`, and a
+ * help screen empties them. */
 static void test_shared(void) {
     uint32_t h = 2166136261u;
     ui_t *ok = start_game();
@@ -332,8 +335,9 @@ static void test_shared(void) {
     check("shared", h, SHARED_HASH);
 }
 
-/* A fresh game's first `lj`: `qa` = `je.ra` + `mo.ra`, `ic` built, `gj` is
- * `o_`, and `ev` draws sprite 58 at `je.ra`. */
+/* A fresh game's first ui_update: `mouse_world` is the mouse position plus
+ * the camera position, `hovered_by_layer` built, `previous_hovered` is
+ * `hovered`, and the overlay draws sprite 58 at the mouse position. */
 static void test_fresh(void) {
     uint32_t h = 2166136261u;
     ui_t *ok = start_game();
@@ -355,7 +359,7 @@ static void test_fresh(void) {
     check("fresh", h, FRESH_HASH);
 }
 
-/* The first planet of `cg.jo` whose screen position is well inside. */
+/* The first planet whose screen position is well inside. */
 static planet_t *planet_on_screen(int *sx, int *sy) {
     const entity_list_t *jo = entities_by_tag("planet");
     vec_t cam = vec_at(typed_main_camera()->pos);
@@ -375,8 +379,9 @@ static planet_t *planet_on_screen(int *sx, int *sy) {
     return NULL;
 }
 
-/* The mouse over a planet: `o_` is the planet, marked `m_`, its `fg` poked
- * at 0x5f80, `gj` on the next pass; the mouse away unmarks it. */
+/* The mouse over a planet: `hovered` is the planet, marked `is_hovered`,
+ * its `gpio_signal` poked at 0x5f80, `previous_hovered` on the next pass;
+ * the mouse away unmarks it. */
 static void test_hover(void) {
     uint32_t h = 2166136261u;
     ui_t *ok = start_game();
@@ -391,7 +396,7 @@ static void test_hover(void) {
     ui_update(&mem, ok);
     assert((void *)ok->hovered == planet);
     assert(is_hovered_state(planet) == 2);
-    /* A planet has no `fg`: 0x5f80 is poked with 0. */
+    /* A planet has no `gpio_signal`: 0x5f80 is poked with 0. */
     assert(p8_peek(&mem, 0x5f80) == 0);
     assert(in_layer(ok, 6, planet) && in_layer(ok, 1, the_background()));
     h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), planet));
@@ -412,9 +417,9 @@ static void test_hover(void) {
     check("hover", h, HOVER_HASH);
 }
 
-/* `jz` walks the layers from 15 down: over a planet, `hd` answers from the
- * planet (layer 6) before the background (layer 1); `rdown` only from the
- * background, which answers itself. */
+/* ui_send_to_hovered walks the layers from 15 down: over a planet, the left
+ * press answers from the planet (layer 6) before the background (layer 1);
+ * the right press only from the background, which answers itself. */
 static void test_layers(void) {
     uint32_t h = 2166136261u;
     ui_t *ok = start_game();
@@ -446,9 +451,9 @@ static void test_layers(void) {
     check("layers", h, LAYERS_HASH);
 }
 
-/* The right button held scrolls through the background's `rdown`/`hq`:
- * `rheld` is the background and the cursor is sprite 9; released, `rheld`
- * goes. */
+/* The right button held scrolls through the background's right press and
+ * drag: `right_held` is the background and the cursor is sprite 9;
+ * released, `right_held` goes. */
 static void test_right(void) {
     uint32_t h = 2166136261u;
     ui_t *ok = start_game();
@@ -481,7 +486,7 @@ static int slipways_count(void *planet) {
     return oe == NULL ? 0 : oe->count;
 }
 
-/* Where `e` is on screen under `mo`'s camera. */
+/* Where the entity is on screen under the main camera. */
 static void screen_of(void *e, int *x, int *y) {
     vec_t at = vec_sub(vec_at(as_planet(e)->pos), vec_at(typed_main_camera()->pos));
 
@@ -499,8 +504,8 @@ static int on_screen(void *e) {
 
 /* A started game's first planet on screen whose nearest one is on screen
  * too, both colonized by a bare project, then the mouse by hand: the left
- * button on the one holds a new slipway `jc` in `lheld`; released over the
- * other, `ey` gets that planet and `lheld` goes. */
+ * button on the one holds a new slipway in `left_held`; released over the
+ * other, the drop gets that planet and `left_held` goes. */
 static void test_left(void) {
     uint32_t hash = 2166136261u;
     const entity_list_t *planets;
@@ -557,7 +562,8 @@ static void test_left(void) {
     check("left", hash, LEFT_HASH);
 }
 
-/* `cj` unregisters every entity of the old `le` and starts a new list. */
+/* ui_clear_ephemerals unregisters every entity of the old list and starts
+ * a new one. */
 static void test_clear_ephemerals(void) {
     uint32_t h = 2166136261u;
     ui_t *ok = start_game();
@@ -583,9 +589,10 @@ static void test_clear_ephemerals(void) {
     check("clear_ephemerals", h, CLEAR_EPHEMERALS_HASH);
 }
 
-/* On the title screen, a click on a difficulty button runs `eu()` from
- * inside `lj`: `jl()` rebuilds `ok`, and the end of `lj` still runs on the
- * old one, whose `cj` and `gj` land on it, not on the new `ok`. */
+/* On the title screen, a click on a difficulty button runs
+ * `cart_start_game()` from inside ui_update: `reset_world()` rebuilds
+ * `main_ui()`, and the end of ui_update still runs on the old one, whose
+ * cleared ephemerals and `previous_hovered` land on it, not on the new one. */
 static void test_stale(void) {
     uint32_t h = 2166136261u;
     ui_t *old;
@@ -617,8 +624,9 @@ static void test_stale(void) {
     check("stale", h, STALE_HASH);
 }
 
-/* With a panel up, `lj` hands the left click to an entity of `le`: the
- * third row of `ha` runs its `my`, which flips `ih`. */
+/* With a panel up, ui_update hands the left click to one of the
+ * ephemerals: the third row of the pause menu runs its `on_click`, which
+ * flips the sound effects mute. */
 static void test_click_reaches_a_row_of_ephemerals(void) {
     ui_t *ok = start_game();
     void *row;
@@ -649,7 +657,7 @@ static void test_click_reaches_a_row_of_ephemerals(void) {
     p8_set_sfx_muted(ih);
 }
 
-/* `pico8_ui_init()` empties the shared `le`. */
+/* `ui_init()` empties the shared ephemerals. */
 static void test_init_empties_shared_ephemerals(void) {
     static entity_t mark;
 
@@ -680,9 +688,9 @@ static void handle_button_on_x(void *e) {
     ui_handle_button(e, "x");
 }
 
-/* The game's `ok` is a struct whose descriptor holds only `ev`; it takes
- * no construction key and no button but `l`/`r`. Every
- * new `ui` starts on the class's generated defaults and its shared `le`. */
+/* The game's `main_ui()` is a struct whose class holds only draw_overlay;
+ * it takes no construction key and no button but "left"/"right". Every new
+ * `ui_t` starts on the class's archetype and its shared ephemerals. */
 static void test_ui_is_a_struct(void) {
     const entity_class_t *cls = ui_class();
     ui_t *ok = start_game();
@@ -788,7 +796,7 @@ static void test_ui_held_stops_off_row(void) {
     }
 }
 
-/* `ks` takes a struct or NULL, and does nothing on NULL. */
+/* entity_set_state takes a struct or NULL, and does nothing on NULL. */
 static void test_entity_closed(void) {
     (void)start_game();
     entity_set_state(NULL, "normal");
@@ -850,8 +858,8 @@ static void assert_own_probe(entity_t *self, entity_t *other, size_t size) {
     assert(at >= (const char *)self && at < (const char *)self + size);
 }
 
-/* A second help, built once `first` gave back its list: the qy_fv sort
- * holds one help's list at a time. */
+/* A second help, built once `first` gave back its list: the particle zone
+ * holds one help screen list at a time. */
 static entity_t *help_alone(entity_t *first) {
     static entity_t *previous;
     entity_t *fresh;
@@ -865,8 +873,10 @@ static entity_t *help_alone(entity_t *first) {
     return fresh;
 }
 
-/* Which of the 24 classes carry a particle emitter (exactly hj, pm, ga, mx,
- * g_, fv) and a probe (qh's line, g_, fv, jc, mz), each in its own storage. */
+/* Which of the 24 classes carry a particle emitter (exactly ascension,
+ * protostar, burst, synthesizer, probe, help screen) and a targeting
+ * (the structure family, probe, help screen, slipway, wormhole), each in its
+ * own storage. */
 static void test_components_carried(void) {
     static const int emitter[24] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0};
     static const int probe[24] = {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1};
@@ -945,8 +955,8 @@ static void test_entity_state_by_name(void) {
     live = live_entities();
     assert(live != NULL);
     hash = fnv(hash, (uint32_t)live->count);
-    /* The kind word is constant by the struct's shape (`me` is a string or
-     * absent), kept so that KE_ME_HASH still proves the typed reads. */
+    /* The kind word is constant by the struct's shape (the state is a string
+     * or absent), kept so that ENTITY_STATE_HASH still proves the reads. */
     for (index = 0; index < (size_t)live->count; index++) {
         state = entity_of(live->items[index])->state;
         if (state != NULL) {
@@ -989,7 +999,7 @@ static void test_entity_state_by_name(void) {
         hash = fnv(hash, (uint32_t)identity_of(state));
     }
 
-    /* The six strangers the reader refused, constant by the struct's shape. */
+    /* Six words constant by the struct's shape, kept for the frozen hash. */
     for (index = 0; index < 6; index++) {
         hash = fnv(hash, 0u);
     }
@@ -1014,8 +1024,8 @@ static void test_entity_state_by_name(void) {
     check("entity_state", hash, ENTITY_STATE_HASH);
 }
 
-/* The kind word is constant by the struct's shape (`t` is always a fixed),
- * kept so that KE_T_HASH still proves the typed reads. */
+/* The kind word is constant by the struct's shape (the state time is always
+ * a fixed), kept so that ENTITY_STATE_TIME_HASH still proves the reads. */
 static uint32_t fold_state_time(uint32_t h, void *e) {
     return fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)entity_of(e)->state_time);
 }
@@ -1079,7 +1089,7 @@ static void test_entity_state_time_by_name(void) {
         hash = fold_state_time(hash, entities[index]);
     }
 
-    /* The six strangers the reader refused, constant by the struct's shape. */
+    /* Six words constant by the struct's shape, kept for the frozen hash. */
     for (index = 0; index < 6; index++) {
         hash = fnv(hash, 0u);
     }
@@ -1128,7 +1138,7 @@ static void test_probe_t_key_stops_off_row(void) {
     assert_state_time(made, 0);
 }
 
-/* Each scenario runs in a child forked right after pico8_cart_load(), as a
+/* Each scenario runs in a child forked right after cart_load(), as a
  * fresh process would start it: the rnd state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
     pid_t child;

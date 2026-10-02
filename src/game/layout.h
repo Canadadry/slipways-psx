@@ -37,7 +37,7 @@ typedef enum {
     LAYOUT_ROW_CELL_TRUE
 } layout_row_cell_kind_t;
 
-/* In a row, `text` is a copy in the row's zone. `row` is borrowed: it is
+/* In a row, `text` is a copy in the row's zone. The row field is borrowed: it is
  * read only by the layout, and by a layout_row_copy() in the same frame (a
  * research project's layout row copied into a button's). A ROW is read as a
  * tuple (sprite number, width, palette block, spacing) or as a resource,
@@ -125,7 +125,7 @@ layout_row_cell_t layout_row_cell_fixed(p8_fixed_t x);
 /* The string is borrowed until a row copies it; a NULL one stops the run:
  * no producer writes one. */
 layout_row_cell_t layout_row_cell_string(const char *s);
-/* `row` borrowed; NULL is NOTHING. */
+/* The row argument is borrowed; NULL is NOTHING. */
 layout_row_cell_t layout_row_cell_row(const data_row_t *row);
 /* An item of the data tables as row_measure_item() tells it apart: a row,
  * a string, a number; false and a NULL `ref` are NOTHING. What it points at
@@ -137,9 +137,9 @@ layout_row_cell_t layout_row_cell_item(const data_item_t *item);
  * and its color. `cells` must outlive the keys. */
 layout_row_keys_t layout_row_keys_of_row(const data_row_t *row, layout_row_cell_t *cells, int cap);
 
-/* A copy of `row`, laid out anew: every cell in order (texts copied, ROWs
- * borrowed), its color, background, score and position. It is in `zone`, as
- * with layout_row_new(). */
+/* A copy of the given row, laid out anew: every cell in order (texts
+ * copied, ROWs borrowed), its color, background, score and position. It is
+ * in `zone`, as with layout_row_new(). */
 layout_row_t *layout_row_copy(const allocator_t *zone, const layout_row_t *row);
 
 /* Appends `cell` (its text copied) to a row already laid out, growing
@@ -147,10 +147,10 @@ layout_row_t *layout_row_copy(const allocator_t *zone, const layout_row_t *row);
  * were. */
 void layout_row_add(layout_row_t *self, layout_row_cell_t cell);
 
-/* One line per item of `row` (NULL: no line): a string makes a one-item
- * row, a row its scalar items and its color, any other item an empty row.
- * `row` is read, not kept: the tooltip, its lines and their texts are in
- * `zone`, which must outlive the tooltip. */
+/* One line per item of the given row (NULL: no line): a string makes a
+ * one-item row, a row its scalar items and its color, any other item an
+ * empty row. The data row is read, not kept: the tooltip, its lines and
+ * their texts are in `zone`, which must outlive the tooltip. */
 tooltip_t *tooltip_new(const allocator_t *zone, const data_row_t *row);
 
 /* Omitting the alignment factor is numerically the same as passing 0, so

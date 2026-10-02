@@ -100,7 +100,7 @@ typedef struct {
     p8_fixed_t type_bias;
 } difficulty_options_entry_t;
 
-/* `row` holds the positionals, its color coming last; then draw_function
+/* The row field holds the positionals, its color coming last; then draw_function
  * (NULL when absent), the score and the position, each only meaningful under
  * its has_ flag. */
 typedef struct {

@@ -9,13 +9,15 @@
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
-/* Throughout this module a NULL struct, `gfx` or `input` argument is a
- * safe no-op, and a nil (NULL) vector member reads as the zero vector
- * rather than crashing. */
+/* camera_update returns early on a NULL struct or input, camera_apply on a
+ * NULL struct or graphics state; camera_set_velocity does not. A NULL
+ * vector member reads as the zero vector. */
 
-/* `v`, `p` and `ra` start on the vectors of the archetype, which every qb
- * shares and nothing writes; the first `ph` points them at `v_own`, `p_own`
- * and `ra_own`, rewritten in place from then on. Never copy the struct. */
+/* The velocity, the position before shake and the position start on the
+ * vectors of the archetype, which every camera shares and nothing writes;
+ * the first camera_update points them at `velocity_own`,
+ * `pos_before_shake_own` and `pos_own`, rewritten in place from then on.
+ * Never copy the struct. */
 typedef struct {
     entity_t header;
     const camera_archetype_t *archetype;
@@ -28,34 +30,34 @@ typedef struct {
     vec_t pos_own;
 } camera_t;
 
-/* Calls pico8_pi_init(), and requires pico8_ke_init() to have run --
- * asserted, not repaired. qb has no `pq` of its own; it inherits ke's,
- * which is what registers the camera into hv/cv/cg. */
+/* Calls draw_functions_init(), and requires entity_init() to have run --
+ * asserted, not repaired. The camera has no constructor of its own:
+ * entity_construct registers it into the live entities and its messages. */
 void camera_init(void);
 
 void camera_shutdown(void);
 
-/* 1 from pico8_qb_init() to pico8_qb_shutdown(), 0 otherwise. */
+/* 1 from camera_init() to camera_shutdown(), 0 otherwise. */
 int camera_ready(void);
 const entity_class_t *camera_class(void);
 
-/* The struct registers itself through `lt`; it lives in the current
- * game-zone generation. */
+/* The struct registers itself through entity_register; it lives in the
+ * current game-zone generation. */
 camera_t *camera_new(void);
 
-/* Nothing outside the camera keeps `p`, `v` or `ra`: each tick rewrites
- * them in place. */
+/* Nothing outside the camera keeps its velocity, position before shake
+ * or position: each tick rewrites them in place. */
 void camera_update(const p8_input_t *input, camera_t *self);
 
-/* `mo.v=v` (bg:hq): writes `v_own` and points `v` at it. */
+/* Called by background_drag: writes `velocity_own` and points `velocity` at it. */
 void camera_set_velocity(camera_t *self, vec_t v);
 
-/* `fy` is `dc`'s `ci[o]`, never nil: the cart's `fy or 1` fallback has no
- * caller, so there is no separate _default entry point here. */
+/* The parallax factor is the layer's own, from draw_layers, never absent:
+ * there is no entry point with a default factor. */
 void camera_apply(p8_graphics_t *gfx, camera_t *self, p8_fixed_t fy);
 
-/* `mo` (pico8_entity.h) as its `qb`: NULL when there is no mo and on the
- * placeholder. */
+/* `main_camera()` (engine/entity_registry.h) as a `camera_t`: NULL when
+ * there is none and on the placeholder. */
 camera_t *main_camera_typed(void);
 
 #endif

@@ -3,8 +3,9 @@
 
 #include "engine/allocator.h"
 
-/* Une sorte prend une place a elle par objet ; `rangee` est un `lq`
- * reaffecte dans un objet qui lui survit, `le` une liste `ok.le`. */
+/* Each kind takes a slot of its own per object; a row slot holds a
+ * `layout_row_t` reassigned inside an object that outlives it, an
+ * ephemerals slot the `ephemerals` list of a `ui_t`. */
 typedef enum {
     SLOT_KIND_BUTTON,
     SLOT_KIND_MODAL_BACKDROP,
@@ -15,16 +16,15 @@ typedef enum {
     SLOT_KIND_COUNT
 } slot_kind_t;
 
-/* Poignee qui donne et reprend une place entiere de la sorte : alloc(n)
- * exige n <= taille de place, grow est refuse. */
+/* A handle that gives and takes back a whole slot of the kind: an
+ * allocation no larger than the slot size, never a grow. */
 const allocator_t *ui_zone(slot_kind_t slot_kind);
 
-/* Une place de la sorte, en arene nommee « place <sorte> » ; on la rend
- * par pico8_zone_arene_rendre. Zone pleine : pico8_fatal « zone interface
- * <sorte> pleine ». */
+/* A slot of the kind, as an arena named `slot <kind>`, given back by
+ * arena_release. A full zone calls p8_fatal with `zone ui <kind> full`. */
 const allocator_t *ui_zone_slot(slot_kind_t slot_kind);
 
-/* Places prises et pas encore rendues. */
+/* Slots taken and not yet given back. */
 int ui_zone_live(slot_kind_t slot_kind);
 
 #endif

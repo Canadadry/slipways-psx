@@ -5,8 +5,8 @@
 
 #include "engine/zone_sizes.h"
 
-/* Taille : la plus grande place que le jeu construit, en-tete d'arene
- * compris (x86-64). Nombre : ce qui vit a la fois au pire de la frame. */
+/* Size: the largest slot the game builds, arena header included
+ * (x86-64). Count: what lives at once at the worst point of a frame. */
 #define BUTTON_SIZE 6240u
 #define BUTTON_COUNT 24u
 #define MODAL_BACKDROP_SIZE 256u
@@ -47,8 +47,8 @@ static slot_zone_t g_zones[SLOT_KIND_COUNT];
 static allocator_t g_handles[SLOT_KIND_COUNT];
 static int g_ready;
 
-/* Paresseuse : pico8_slot_zone_init empoisonne le stockage sous ASan, ce
- * qu'un initialiseur statique ne ferait pas. */
+/* Lazy: allocator_init_slot_kinds poisons the storage under ASan, which a
+ * static initializer would not do. */
 static void init_once(void) {
     if (g_ready) return;
     allocator_init_slot_kinds(SLOT_KINDS, SLOT_KIND_COUNT, g_zones, g_handles);

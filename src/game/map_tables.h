@@ -31,7 +31,7 @@ typedef struct {
     const char *upgraded_entry;
 } production_tables_entry_t;
 
-/* An item is the string `text` when non-NULL, the row when `row` is
+/* An item is the string `text` when non-NULL, the row when the row field is
  * non-NULL, false when is_false is set, the number `fixed` when is_fixed is
  * set (a non-integer, as fixed-point bits), the pointer `ref` when is_ref is
  * set (NULL: absent; never set by the data tables), the integer `number`

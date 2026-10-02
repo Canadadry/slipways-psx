@@ -65,8 +65,8 @@ static vec_t ui_vec_or_zero(const vec_t *v) {
     return v != NULL ? *v : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
-/* je[bt] (bt "l" or "r"): NULL when `je` has no such button state,
- * which is the case for the field-less placeholder. */
+/* The state of the "left" or "right" button of the main mouse: NULL when
+ * it has none, which is the case for the member-less placeholder. */
 static const mouse_button_t *ui_main_mouse_button_table(const char *bt) {
     assert((strcmp(bt, "left") == 0 || strcmp(bt, "right") == 0) &&
            "ui_main_mouse_button_table: left or right only; another button has no state table -- stop");
@@ -182,9 +182,9 @@ mouse_t *main_mouse_typed(void) {
     return (mouse_t *)g_main_mouse;
 }
 
-/* The outgoing instance lives on with its generation. `pico8_jl()` rebuilds
- * je/ok mid-frame, reachable from a click dispatched inside pico8_ui_lj,
- * whose `self` is still the old `ok` after the callback returns. */
+/* The outgoing instance lives on with its generation. `reset_world()`
+ * rebuilds the main mouse and `main_ui()` mid-frame, from a click handled
+ * inside ui_update, whose `self` is still the old one after it returns. */
 void ui_set_main_mouse(entity_t *instance) {
     if (instance == g_main_mouse) {
         return;
@@ -196,7 +196,7 @@ ui_t *main_ui(void) {
     return g_main_ui;
 }
 
-/* Same non-freeing rule as pico8_ui_set_je(), and the same reason. */
+/* Same non-freeing rule as ui_set_main_mouse(), and the same reason. */
 void ui_set_main_ui(ui_t *ui) {
     if (ui == g_main_ui) {
         return;
@@ -204,8 +204,8 @@ void ui_set_main_ui(ui_t *ui) {
     g_main_ui = ui;
 }
 
-/* `le` is read before gw()/bh() run: the `self.le == le` test further down
- * is a pointer identity check against the list this frame started with. */
+/* The ephemerals are read before the hover and button handling run: the
+ * test further down is a pointer identity check against this frame's list. */
 void ui_update(p8_memory_t *mem, ui_t *self) {
     entity_list_t *ephemerals_ptr_before;
     int ephemerals_count;
@@ -244,8 +244,8 @@ void ui_update(p8_memory_t *mem, ui_t *self) {
     self->previous_hovered = self->hovered;
 }
 
-/* `(rheld and 9) or (o_ and o_.ql) or self.ql`: a hovered entity whose own
- * `ql` is absent falls through to self's own cursor sprite. */
+/* A right-held background shows sprite 9; a hovered entity whose own
+ * `cursor_sprite` is absent falls through to self's own cursor sprite. */
 void ui_draw_overlay(const p8_graphics_t *gfx, p8_memory_t *mem, const ui_t *self) {
     vec_t main_mouse_pos;
     const mouse_t *je;
@@ -268,9 +268,9 @@ void ui_draw_overlay(const p8_graphics_t *gfx, p8_memory_t *mem, const ui_t *sel
     p8_spr_default(gfx, mem, spr_id, ui_to_int(main_mouse_pos.x), ui_to_int(main_mouse_pos.y));
 }
 
-/* Lua's `(self.gj or {}).m_=false` writes onto a throwaway table when the
- * field is absent, with no observable effect, so the write is simply
- * skipped here rather than allocating a table nothing reads. */
+/* An absent previously hovered entity is skipped. The previous one is
+ * cleared before the hovered one is set, so an entity hovered on two frames
+ * in a row stays hovered. */
 void ui_update_hover(p8_memory_t *memory, ui_t *self) {
     const mouse_t *mouse;
     const vec_t *main_mouse_pos;
@@ -379,8 +379,8 @@ void ui_handle_button(ui_t *self, const char *button) {
         entity_t *target = NULL;
         down_t down;
 
-        /* `ey`'s argument is the entity `jz` found, not a field read on
-         * `held`: no object in this cart carries a "kv" field. */
+        /* The drop target is the entity ui_send_to_hovered found, not a
+         * field read on the held entity. */
         (void)ui_send_to_hovered(self, SEND_TO_HOVERED_ACCEPT_DROP, NULL, NULL, held_inst, &target, &down);
 
         if (held_inst->class->drop != NULL) {
@@ -394,9 +394,9 @@ void ui_handle_button(ui_t *self, const char *button) {
     }
 }
 
-/* Layers descend from 15 to 0 and the first truthy answer wins: that order
- * is the dispatch priority between overlapping entities, not an arbitrary
- * walk. */
+/* Layers descend from 15 to 0 and the first answer whose `stop` is set
+ * wins: that order is the dispatch priority between overlapping entities,
+ * not an arbitrary walk. */
 int ui_send_to_hovered(ui_t *self, send_to_hovered_slot_t message, vec_t *mouse_world, vec_t *mouse_screen, const entity_t *held,
                 entity_t **out_target, down_t *out_down) {
     int layer;

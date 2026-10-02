@@ -46,7 +46,7 @@ static void button_draw_method(entity_t *self, const vec_t *ra) {
     button_draw(dispatch_context_gfx(), dispatch_context_mem(), (button_t *)self, p);
 }
 
-/* `js.hd=gk`: a field assignment in the cart, not a method definition. */
+/* The hit test is the generic one of entity_geom: the cursor in the box. */
 static int button_hit_test_method(entity_t *self, const vec_t *qa, const vec_t *ra) {
     return entity_geom_contains_cursor(self, qa, ra);
 }
@@ -57,8 +57,8 @@ static down_t button_left_press_method(entity_t *self, vec_t *qa, vec_t *ra) {
     return button_left_press((button_t *)self);
 }
 
-/* `js.hb` is the row's own callback, set by only one row of `ix`: a button
- * without one has no `hb` and stays out of `cv.hb`. */
+/* `refresh` is the row's own callback, set by only one galaxy menu row: a
+ * button without one has no `refresh` and stays out of that message. */
 static int button_has_refresh(const entity_t *self) {
     return ((const button_t *)self)->refresh != NULL;
 }
@@ -175,8 +175,8 @@ button_t *button_new(const button_keys_t *keys) {
     return button_create(keys);
 }
 
-/* `lq(x)` of the cart for `js.lq`: built from a row's keys, else a copy of
- * an `lq`, else an empty row. */
+/* The button's layout row: built from a row's keys, else a copy of a
+ * `layout_row_t`, else an empty row. */
 static layout_row_t *button_layout_row(const allocator_t *slot, const layout_row_t *copy,
                                const layout_row_keys_t *row) {
     if (row != NULL) {
