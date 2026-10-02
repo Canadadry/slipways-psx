@@ -1,1 +1,1 @@
-entity abstraite, jamais instanciée directement
+entity abstract, never instantiated directly

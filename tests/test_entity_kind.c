@@ -226,7 +226,7 @@ static void test_every_class_name_is_protostar_or_burst(void) {
         assert(strcmp(cw, "protostar") == 0 || strcmp(cw, "burst") == 0);
         with_class_name++;
     }
-    printf("[cw] %d of %d researches\n", with_class_name, research_projects_count());
+    printf("[class_name] %d of %d researches\n", with_class_name, research_projects_count());
     assert(with_class_name > 0);
 }
 

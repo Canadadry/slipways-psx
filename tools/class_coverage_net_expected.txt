@@ -1,4 +1,4 @@
-entity  0  0/26  exemptée (abstraite, jamais instanciée directement)
+entity  0  0/26  exempt (abstract, never instantiated directly)
 ascension  1  1/26
 infraspace_gate  1  1/26
 processor  1  1/26
@@ -28,4 +28,4 @@ button  619  26/26
 research_project  884  26/26
 planet  2430  26/26
 layout_row  2742  26/26
-couverture: OK -- chaque classe non exemptée est instanciée (26 rejeu(x))
+coverage: OK -- every non-exempt class is instantiated (26 replay(s))

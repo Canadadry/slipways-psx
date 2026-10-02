@@ -153,7 +153,7 @@ static void test_carriers_link_their_storage(void) {
                                                          .emitter = &help_screen->emitter_own,
                                                          .targeting = &help_screen->probe_own});
     assert(*help_screen->header.fold_anchor == p8_fixed_from_int(1) &&
-           "a probe's fx is its archetype's 1.0, Lua's true: 0 would read as nil");
+           "a probe's fold_anchor is its archetype's 1.0: 0 would read as absent");
     assert_links(&planet->header, (entity_t){.layer = &planet->archetype->layer,
                                                       .pos = (const vec_t *const *)&planet->pos,
                                                       .map_pos = (const vec_t *const *)&planet->map_pos,
@@ -219,7 +219,7 @@ static void test_component_carriers_link_their_own(void) {
                                                       .targeting = &g_->probe_own});
     assert(g_->emitter == g_->header.emitter && g_->targeting == g_->header.targeting);
     assert(*g_->header.fold_anchor == p8_fixed_from_int(1) &&
-           "a probe's fx is its archetype's 1.0, Lua's true: 0 would read as nil");
+           "a probe's fold_anchor is its archetype's 1.0: 0 would read as absent");
     assert_structure_links(structure_new(NULL), NULL);
     assert_structure_links(nl, NULL);
     assert_structure_links(os, NULL);

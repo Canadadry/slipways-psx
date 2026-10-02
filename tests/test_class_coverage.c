@@ -53,7 +53,7 @@ static int run(const char *exempt) {
 static void test_short_replay_and_malformed_file(void) {
     assert(run("") != 0);
     char *log = read_log();
-    assert(strstr(log, "illisible: " DIR "/replays/bad_events.json") != NULL);
+    assert(strstr(log, "unreadable: " DIR "/replays/bad_events.json") != NULL);
     assert(count_of(log, "planet") > 0);
     assert(count_of(log, "ui") > 0);
     assert(count_of(log, "trading_hub") == 0);
@@ -66,7 +66,7 @@ static void test_exempting_every_zero_class_passes(void) {
     assert(system("awk '$2 == 0 { print $1, \"test\" }' " LOG " > " EXEMPT) == 0);
     assert(run(EXEMPT) == 0);
     char *log = read_log();
-    assert(strstr(log, "exemptée") != NULL);
+    assert(strstr(log, "exempt") != NULL);
 }
 
 static void test_expect_equal_output_passes_unchanged(void) {
@@ -80,7 +80,7 @@ static void test_expect_one_count_off_fails(void) {
     assert(system("sed 's/^planet  \\([0-9]*\\)/planet  1\\1/' " LOG " > " EXPECTED) == 0);
     assert(system("cmp -s " LOG " " EXPECTED) != 0);
     assert(run_with("--expect " EXPECTED, EXEMPT) != 0);
-    assert(strstr(read_log(), "sortie différente") != NULL);
+    assert(strstr(read_log(), "output differs") != NULL);
 }
 
 static void test_expect_missing_file_fails(void) {
