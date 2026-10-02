@@ -45,14 +45,14 @@ static int pico8_probe_to_int(p8_fixed_t x) {
 }
 
 typedef struct {
-    pico8_vec_t self_p;
+    vec_t self_p;
 } pico8_bv_ctx_t;
 
 static int pico8_bv_jc_predicate(entity_t *e, void *ctx_ptr) {
     const pico8_bv_ctx_t *ctx = (const pico8_bv_ctx_t *)ctx_ptr;
     const pico8_jc_t *sw;
-    pico8_vec_t qu_p;
-    pico8_vec_t re_p;
+    vec_t qu_p;
+    vec_t re_p;
 
     if (e == NULL) {
         return 0;
@@ -63,23 +63,23 @@ static int pico8_bv_jc_predicate(entity_t *e, void *ctx_ptr) {
     qu_p = pico8_jc_end_p(sw->qu);
     re_p = pico8_jc_end_p(sw->re);
 
-    return pico8_geom_be(qu_p, re_p, ctx->self_p, P8_FIXED_LIT(0x000000d1, 0.0032));
+    return geom_near_segment(qu_p, re_p, ctx->self_p, P8_FIXED_LIT(0x000000d1, 0.0032));
 }
 
 /* `hw` is read off the `ui` class, not off `ok`; no class reads as "the
  * point is not inside the panel". */
-static int pico8_probe_ui_hw_call(pico8_vec_t rp) {
-    const pico8_qz_box_t *hw = pico8_ui_hw();
+static int pico8_probe_ui_hw_call(vec_t rp) {
+    const box_t *hw = pico8_ui_hw();
 
     if (hw == NULL) {
         return 0;
     }
-    return pico8_qz_call(hw, rp);
+    return box_contains(hw, rp);
 }
 
 /* `ra` and `p`, which a host of `bv` holds for itself: `g_`'s line, jo's
  * family (qh's line) or an `mz`. */
-static void probe_host_set_ra_p(entity_t *self, pico8_vec_t *ra, pico8_vec_t *p) {
+static void probe_host_set_ra_p(entity_t *self, vec_t *ra, vec_t *p) {
     pico8_g__t *g_;
     pico8_jo_t *jo;
     pico8_mz_t *mz;
@@ -140,10 +140,10 @@ void pico8_probe_et_hang_fo(entity_t *et, entity_t *self) {
     g_bv_et.fo = self;
 }
 
-void pico8_bv(entity_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
+void pico8_bv(entity_t *self, vec_t *mp, vec_t *rp) {
     pico8_probe_t *probe;
-    pico8_vec_t mp_vec;
-    pico8_vec_t p_vec;
+    vec_t mp_vec;
+    vec_t p_vec;
     p8_fixed_t nq;
     entity_t *c;
     entity_t *et;
@@ -154,14 +154,14 @@ void pico8_bv(entity_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     assert(self->targeting != NULL && "bv: a class that carries no probe is no receiver -- stop");
 
     probe = self->targeting;
-    mp_vec = mp != NULL ? *mp : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    p_vec = pico8_vec_div(mp_vec, p8_fixed_from_int(128));
+    mp_vec = mp != NULL ? *mp : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    p_vec = vec_div(mp_vec, p8_fixed_from_int(128));
     probe->bv_ra = mp_vec;
     probe->bv_p = p_vec;
     probe_host_set_ra_p(self, mp != NULL ? &probe->bv_ra : NULL, &probe->bv_p);
 
     c = NULL;
-    nq = pico8_ij_ents(p_vec, pico8_cg("node"), &c);
+    nq = entity_geom_nearest(p_vec, entities_by_tag("node"), &c);
 
     et = NULL;
 
@@ -169,12 +169,12 @@ void pico8_bv(entity_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
         et = c;
     } else {
         pico8_bv_ctx_t ctx;
-        pico8_ents_t filtered;
+        entity_list_t filtered;
         int have_first = 0;
         entity_t *first = NULL;
 
         ctx.self_p = p_vec;
-        filtered = pico8_jp_ents(pico8_zone_frame(), pico8_cg("slipway"), pico8_bv_jc_predicate, &ctx);
+        filtered = entity_list_filter(frame_zone(), entities_by_tag("slipway"), pico8_bv_jc_predicate, &ctx);
         if (filtered.count > 0) {
             first = filtered.items[0];
             have_first = 1;
@@ -183,7 +183,7 @@ void pico8_bv(entity_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
         if (have_first && first != NULL) {
             et = first;
         } else {
-            pico8_vec_t rp_vec = rp != NULL ? *rp : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
+            vec_t rp_vec = rp != NULL ? *rp : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
             if (!pico8_probe_ui_hw_call(rp_vec)) {
                 et = &g_bv_et.header;
             } else {
@@ -203,7 +203,7 @@ void pico8_bv(entity_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     }
 }
 
-void pico8_bv_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+void pico8_bv_dispatch(entity_t *self, vec_t *qa, vec_t *ra) {
     pico8_bv(self, qa, ra);
 }
 
@@ -229,7 +229,7 @@ void pico8_dl(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self) {
 }
 
 void pico8_dl_show(const p8_graphics_t *gfx, p8_memory_t *mem, const char *me, const pico8_probe_t *pb) {
-    pico8_vec_t mp;
+    vec_t mp;
     const pico8_nf_t *je;
     const char *display = "";
 
@@ -238,7 +238,7 @@ void pico8_dl_show(const p8_graphics_t *gfx, p8_memory_t *mem, const char *me, c
     }
 
     je = pico8_je_nf();
-    mp = je != NULL && je->ra != NULL ? *je->ra : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    mp = je != NULL && je->ra != NULL ? *je->ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 
     if (pb->et != NULL) {
         const char *qs = probe_et_qs(pb->et);
@@ -251,7 +251,7 @@ void pico8_dl_show(const p8_graphics_t *gfx, p8_memory_t *mem, const char *me, c
             }
         }
     } else if (pb->has_od) {
-        display = p8_concat2(pico8_zone_frame(), p8_tostr_fixed(pico8_zone_frame(), pb->od), "$");
+        display = p8_concat2(frame_zone(), p8_tostr_fixed(frame_zone(), pb->od), "$");
     }
 
     if (gfx != NULL && mem != NULL) {
@@ -260,9 +260,9 @@ void pico8_dl_show(const p8_graphics_t *gfx, p8_memory_t *mem, const char *me, c
     }
 }
 
-void pico8_dl_dispatch(entity_t *self, const pico8_vec_t *ra) {
+void pico8_dl_dispatch(entity_t *self, const vec_t *ra) {
     (void)ra;
-    pico8_dl(pico8_dispatch_gfx(), pico8_dispatch_mem(), self);
+    pico8_dl(dispatch_context_gfx(), dispatch_context_mem(), self);
 }
 
 /* Raises `p_`, which a host of `d_` holds for itself: `g_`'s line, jo's
@@ -294,7 +294,7 @@ int pico8_d_(entity_t *self) {
     assert((!has_et || !lu_ok) && "d_: fm:lu must stay short-circuited when et is set");
 
     if (!has_et && lu_ok) {
-        pico8_ke_ks(self, probe->def->dq != NULL ? probe->def->dq : "normal");
+        entity_set_state(self, probe->def->dq != NULL ? probe->def->dq : "normal");
 
         pico8_hy_nx(pico8_fm_hy(), probe->def->fp);
 
@@ -318,7 +318,7 @@ pico8_qy_t *pico8_g__mm(entity_t *self) {
     p8_fixed_t pn = 0, t = 0, du = 0, py = 0, ki = 0;
     int pk = 0;
     p8_fixed_t a, rnd_pn, rnd_half;
-    pico8_vec_t p, v;
+    vec_t p, v;
     pico8_qy_t *particle;
 
     if (self != NULL) {
@@ -340,18 +340,18 @@ pico8_qy_t *pico8_g__mm(entity_t *self) {
         p8_fixed_div(p8_fixed_add(p8_fixed_flr(rnd_pn), rnd_half), pn),
         p8_fixed_mul(t, P8_FIXED_LIT(0x00000041, 0.001)));
 
-    p = pico8_vec_qm(p8_fixed_add(du, p8_fixed_rnd_default()), a);
-    v = pico8_vec_mul(p, py);
+    p = vec_from_polar(p8_fixed_add(du, p8_fixed_rnd_default()), a);
+    v = vec_mul(p, py);
 
     if (pk) {
-        v = pico8_vec_pa(v);
+        v = vec_perpendicular(v);
     }
 
     particle = pico8_particule_prendre();
     particle->p = p;
     particle->v = v;
     particle->has_a = 0;
-    particle->a = pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    particle->a = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     particle->l = ki;
 
     return particle;
@@ -378,7 +378,7 @@ static const entity_class_t g_g__struct_class = {
 };
 
 void pico8_g__struct_init(pico8_g__t *self, const entity_class_t *cls, const pico8_g__def_t *def) {
-    pico8_ke_struct_init(&self->header, cls, def->me, def->t);
+    entity_init_instance(&self->header, cls, def->me, def->t);
     self->def = def;
     self->header.layer = &self->def->fa;
     self->header.pos = &self->ra;
@@ -414,7 +414,7 @@ static pico8_g__t *pico8_g__struct_new(const pico8_g__keys_t *keys) {
 
     assert(g_g__up && "pico8_probe_init() must run first");
     pico8_jo_prise_ouvrir();
-    self = (pico8_g__t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
+    self = (pico8_g__t *)allocator_alloc(pico8_jo_zone_construction(), sizeof *self);
     pico8_g__struct_init(self, &g_g__struct_class, &pico8_g__def);
     self->prise = pico8_jo_zone_construction();
     pico8_jo_prise_fermer();
@@ -434,7 +434,7 @@ static pico8_g__t *pico8_g__struct_new(const pico8_g__keys_t *keys) {
     pico8_class_coverage_record("probe");
 #endif
     pico8_f_((entity_t *)self);
-    pico8_ke_struct_pq(&self->header);
+    entity_construct(&self->header);
     return self;
 }
 

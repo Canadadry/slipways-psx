@@ -42,10 +42,10 @@
 #include "engine/game_zone.h"
 
 static void quitter_partie(void) {
-    pico8_entity_abandonner_hv();
+    entity_registry_abandon_live_entities();
     pico8_cart_vider_file_sortie();
-    pico8_zone_partie_reset();
-    pico8_entity_oublier_registres();
+    game_zone_reset();
+    entity_registry_forget_registries();
     pico8_jo_oublier_prises();
 }
 
@@ -56,8 +56,8 @@ void pico8_cart_load(void) {
     p8_memory_t *mem;
 
     quitter_partie();
-    pico8_ke_init();
-    assert(pico8_ke_ready() && "ke must be declared before every ke-descended class");
+    entity_init();
+    assert(entity_ready() && "ke must be declared before every ke-descended class");
     pico8_qb_init();
     pico8_nf_init();
     pico8_ui_init();
@@ -74,7 +74,7 @@ void pico8_cart_load(void) {
     pico8_probe_init();
     pico8_economy_init();
 
-    mem = pico8_dispatch_mem();
+    mem = dispatch_context_mem();
     if (mem != NULL) {
         pico8_data_init();
     }
@@ -133,10 +133,10 @@ static void oublier_partie(void) {
 }
 
 void pico8_cart_vider_file_sortie(void) {
-    pico8_file_sortie_vider(oublier);
-    if (pico8_zone_partie_en_attente()) {
+    exit_queue_flush(oublier);
+    if (game_zone_pending()) {
         oublier_partie();
-        pico8_zone_partie_rendre();
+        game_zone_release();
     }
 }
 
@@ -169,11 +169,11 @@ void pico8_cart_shutdown(void) {
     pico8_ui_shutdown();
     pico8_nf_shutdown();
     pico8_qb_shutdown();
-    pico8_ke_shutdown();
+    entity_shutdown();
 }
 
 void pico8__init(void) {
-    p8_memory_t *mem = pico8_dispatch_mem();
+    p8_memory_t *mem = dispatch_context_mem();
 
     assert(pico8_ie_ready() && "pico8_cart_load() must run before _init()");
     assert(pico8_eu_field_value() == pico8_eu &&
@@ -182,7 +182,7 @@ void pico8__init(void) {
            "install them afterwards: every button copies the value when it is built");
 
     pico8_cu(mem);
-    pico8_jl();
+    reset_world();
 
     /* `ie.gy,kc=ie.eh`: Lua pads the extra name with nil, so `gy` takes `eh`
      * and `kc` is cleared. `gy` aliases `eh`'s vector, it is not a copy. */
@@ -206,11 +206,11 @@ void pico8_eu(pico8_js_t *nj) {
     assert(pico8_hy_ready() && pico8_qh_ready() && "pico8_cart_load() must run before eu()");
 
     pico8_economy_set_dk(nj);
-    pico8_zone_partie_basculer();
+    game_zone_flip();
 
     /* `jl()` runs a second time here, as in the cart: it unconditionally
      * rebuilds hv/cv/cg and the mo/je/ok singletons. */
-    pico8_jl();
+    reset_world();
     (void)pico8_bg_new();
     pico8_bw(p8_fixed_from_int(90));
 
@@ -237,7 +237,7 @@ void pico8_eu(pico8_js_t *nj) {
         pico8_ie_keys_t keys = {0};
 
         keys.ke = gx[i];
-        keys.jb = pico8_jb_new(pico8_zone_partie(), &pico8_dr_table[i]);
+        keys.jb = pico8_jb_new(game_zone(), &pico8_dr_table[i]);
         (void)pico8_ie_new(&keys);
     }
 
@@ -249,17 +249,17 @@ void pico8_eu(pico8_js_t *nj) {
  * par update60, et draw, qui suit dans la meme frame, relit ce qu'update a
  * fait en zone frame. */
 void pico8__update60(void) {
-    pico8_zone_frame_reset();
+    frame_zone_reset();
     pico8_cart_vider_file_sortie();
-    pico8_dg();
-    pico8_ui_lj(pico8_dispatch_mem(), pico8_ok());
+    update_entities();
+    pico8_ui_lj(dispatch_context_mem(), pico8_ok());
 }
 
 void pico8__draw(void) {
-    p8_memory_t *mem = pico8_dispatch_mem();
+    p8_memory_t *mem = dispatch_context_mem();
 
     p8_cls(mem);
     pico8_dv_default(mem);
-    pico8_dc("draw");
-    pico8_dc("draw_overlay");
+    draw_layers("draw");
+    draw_layers("draw_overlay");
 }

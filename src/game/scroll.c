@@ -14,22 +14,22 @@
 static int g_qb_up = 0;
 
 /* NULL reads as the zero vector. */
-static pico8_vec_t pico8_qb_vec(const pico8_vec_t *v) {
+static vec_t pico8_qb_vec(const vec_t *v) {
     if (v != NULL) {
         return *v;
     }
-    return pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    return vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
 /* dg() dispatches the per-tick state method as `qc[qc.me](qc,qc.t)`, so
  * `t` is the frame counter, which qb:ph does not read. */
 static void pico8_qb_ph_dispatch(entity_t *self, p8_fixed_t t) {
     (void)t;
-    pico8_qb_ph(pico8_dispatch_input(), (pico8_qb_t *)self);
+    pico8_qb_ph(dispatch_context_input(), (pico8_qb_t *)self);
 }
 
 static void pico8_qb_md_dispatch(entity_t *self, p8_fixed_t fy) {
-    pico8_qb_md(pico8_dispatch_gfx(), (pico8_qb_t *)self, fy);
+    pico8_qb_md(dispatch_context_gfx(), (pico8_qb_t *)self, fy);
 }
 
 static const entity_class_t g_qb_struct_class = {
@@ -38,9 +38,9 @@ static const entity_class_t g_qb_struct_class = {
 };
 
 static pico8_qb_t *pico8_qb_struct_new(void) {
-    pico8_qb_t *self = (pico8_qb_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *self);
+    pico8_qb_t *self = (pico8_qb_t *)allocator_alloc(game_zone(), sizeof *self);
 
-    pico8_ke_struct_init(&self->header, &g_qb_struct_class, pico8_qb_def.me, pico8_qb_def.t);
+    entity_init_instance(&self->header, &g_qb_struct_class, pico8_qb_def.me, pico8_qb_def.t);
     self->def = &pico8_qb_def;
     self->header.pos = &self->ra;
     self->header.map_pos = &self->p;
@@ -52,14 +52,14 @@ static pico8_qb_t *pico8_qb_struct_new(void) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("camera");
 #endif
-    pico8_ke_struct_pq(&self->header);
+    entity_construct(&self->header);
     return self;
 }
 
 void pico8_qb_init(void) {
     pico8_qb_shutdown();
     pico8_pi_init();
-    assert(pico8_ke_ready() && "qb descends from ke");
+    assert(entity_ready() && "qb descends from ke");
     g_qb_up = 1;
 }
 
@@ -80,10 +80,10 @@ pico8_qb_t *pico8_qb_new(void) {
 }
 
 void pico8_qb_ph(const p8_input_t *input, pico8_qb_t *self) {
-    pico8_vec_t ip = pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    vec_t ip = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     const pico8_vec_seq_t *pc = NULL;
-    pico8_vec_t p;
-    pico8_vec_t v;
+    vec_t p;
+    vec_t v;
     int b;
 
     if (self == NULL || input == NULL) {
@@ -98,19 +98,19 @@ void pico8_qb_ph(const p8_input_t *input, pico8_qb_t *self) {
         int btn_p2 = 0;
 
         if (btn_p1 || btn_p2) {
-            pico8_vec_t dir = pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
+            vec_t dir = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
             if (pc != NULL && b < pc->count) {
                 dir = pc->items[b];
             }
-            ip = pico8_vec_add(ip, pico8_vec_mul(dir, p8_fixed_from_int(3)));
+            ip = vec_add(ip, vec_mul(dir, p8_fixed_from_int(3)));
         }
     }
 
     p = pico8_qb_vec(self->p);
     v = pico8_qb_vec(self->v);
 
-    p = pico8_vec_add(p, v);
-    v = pico8_vec_add(v, pico8_vec_mul(pico8_vec_sub(ip, v), P8_FIXED_LIT(0x00003333, 0.2)));
+    p = vec_add(p, v);
+    v = vec_add(v, vec_mul(vec_sub(ip, v), P8_FIXED_LIT(0x00003333, 0.2)));
 
     p.x = p8_fixed_mid(p8_fixed_from_int(-64), p8_fixed_from_int(320), p.x);
     p.y = p8_fixed_mid(p8_fixed_from_int(-64), p8_fixed_from_int(320), p.y);
@@ -119,30 +119,30 @@ void pico8_qb_ph(const p8_input_t *input, pico8_qb_t *self) {
     self->p = &self->p_own;
     pico8_qb_set_v(self, v);
 
-    self->ra_own = pico8_ma(p, (entity_t *)self);
+    self->ra_own = entity_geom_shake(p, (entity_t *)self);
     self->ra = &self->ra_own;
 }
 
-void pico8_qb_set_v(pico8_qb_t *self, pico8_vec_t v) {
+void pico8_qb_set_v(pico8_qb_t *self, vec_t v) {
     self->v_own = v;
     self->v = &self->v_own;
 }
 
 void pico8_qb_md(p8_graphics_t *gfx, pico8_qb_t *self, p8_fixed_t fy) {
-    pico8_vec_t cp;
+    vec_t cp;
 
     if (self == NULL || gfx == NULL) {
         return;
     }
 
-    cp = pico8_vec_mul(pico8_qb_vec(self->ra), fy);
+    cp = vec_mul(pico8_qb_vec(self->ra), fy);
     p8_camera(gfx, p8_fixed_flr_int(cp.x), p8_fixed_flr_int(cp.y));
 }
 
 pico8_qb_t *pico8_mo_qb(void) {
-    entity_t *mo = pico8_mo();
+    entity_t *mo = main_camera();
 
-    if (mo == NULL || mo->class == pico8_mo_placeholder_struct_class()) {
+    if (mo == NULL || mo->class == main_camera_placeholder_class()) {
         return NULL;
     }
     assert(mo->class == pico8_qb_struct_class() && "mo: only the placeholder or a qb is ever stored");

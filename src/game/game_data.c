@@ -212,7 +212,7 @@ const pico8_int_seq_t pico8_mz_kk_seq = {9, mz_kk_items};
 static const int bg_pl_items[] = {0, 0, 0, 72, 73, 74, 75, 88, 89, 90, 91, 88, 91, 89, 91};
 const pico8_int_seq_t pico8_bg_pl_seq = {15, bg_pl_items};
 
-static const pico8_vec_t qb_pc_items[] = {{-0x10000, 0x0}, {0x10000, 0x0}, {0x0, -0x10000}, {0x0, 0x10000}};
+static const vec_t qb_pc_items[] = {{-0x10000, 0x0}, {0x10000, 0x0}, {0x0, -0x10000}, {0x0, 0x10000}};
 const pico8_vec_seq_t pico8_qb_pc_vecs = {4, qb_pc_items};
 
 static const pico8_jb_item_t fv_rb_1_items[] = {{.n = 192}, {.n = 0}, {.n = 11}, {.n = 16}, {.n = 4}};

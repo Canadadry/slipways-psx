@@ -619,6 +619,7 @@ name	pico8_entity_geom_ra	pos_of	ra
 name	pico8_entity_geom_p	map_pos_of	p
 name	pico8_entity_geom_zero	zero_vec	
 name	pico8_ij_ents	entity_geom_nearest	ij
+name	pico8_ma	entity_geom_shake	ma
 name	pico8_gu_content_ptrs	collect_contains_string	gu
 name	pico8_jp_ents	entity_list_filter	jp
 name	pico8_ents_cat	entity_list_concat	

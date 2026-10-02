@@ -31,24 +31,24 @@ typedef struct {
     p8_fixed_t ma;
     pico8_kw_t *kw;
     const char *id;
-    pico8_vec_t *p;
-    pico8_vec_t *ra;
-    pico8_ents_t *oe;
+    vec_t *p;
+    vec_t *ra;
+    entity_list_t *oe;
     pico8_hp_t *hn;
     const char *ep;
-    pico8_ptrs_t *jy;
+    pointer_list_t *jy;
     const pico8_df_entry_t *nk;
     p8_fixed_t fx;
     pico8_lq_t *lq;
-    const pico8_zone_choisie_t *lq_place; /* where `lq` lives; NULL when `lq` is */
+    const allocator_t *lq_place; /* where `lq` lives; NULL when `lq` is */
     entity_t *fo;
     p8_fixed_t jh;
     int has_jh;
     int p_;
     p8_fixed_t kr;
     int has_kr;
-    pico8_ents_t *cc;
-    pico8_ents_t *by;
+    entity_list_t *cc;
+    entity_list_t *by;
     p8_fixed_t mi;
     int has_mi;
     int m_;
@@ -106,7 +106,7 @@ void pico8_jo_struct_init(pico8_jo_t *self, const entity_class_t *cls, const pic
 /* Where the planet constructors, `jo:pq` and `jo:lz` allocate: the grab
  * arena between `pico8_jo_prise_ouvrir` and `_fermer`, else the current
  * game generation. */
-const pico8_zone_choisie_t *pico8_jo_zone_construction(void);
+const allocator_t *pico8_jo_zone_construction(void);
 
 /* Opens a grab arena, taken from the free grabs (emptied) or else from the
  * current generation; a placed structure keeps it until the generation is
@@ -116,10 +116,10 @@ void pico8_jo_prise_fermer(void);
 /* Called last by the `rendre` of an object built in `zone`, whose state is
  * `me`: a grab arena (NULL or another zone: nothing) whose object is still
  * "kz" goes on the free grabs, for the next grab to empty and reuse. */
-void pico8_jo_prise_zone_rendue(const pico8_zone_choisie_t *zone, const char *me);
+void pico8_jo_prise_zone_rendue(const allocator_t *zone, const char *me);
 /* The same whatever the state: for an object whose memory nothing borrows
  * after its death. */
-void pico8_jo_prise_arene_rendue(const pico8_zone_choisie_t *zone);
+void pico8_jo_prise_arene_rendue(const allocator_t *zone);
 /* `pico8_jo_prise_zone_rendue` with the zone of the planet's `oe`. */
 void pico8_jo_prise_rendue(const pico8_jo_t *self);
 /* Sets to nil the `fo` of every `cg.np` entity that points at `e`, which is
@@ -133,11 +133,11 @@ void pico8_jo_oublier_prises(void);
 /* `oe` taken from, and grown in, the construction zone. */
 void pico8_jo_pq(pico8_jo_t *self);
 /* `oe` taken from, and grown in, `zone`, which must outlive it. */
-void pico8_jo_pq_dans(pico8_jo_t *self, const pico8_zone_choisie_t *zone);
+void pico8_jo_pq_dans(pico8_jo_t *self, const allocator_t *zone);
 
 /* The dispatchers jo's descriptor holds, for a daughter's `static const`
  * descriptor to name. */
-int pico8_jo_hd_dispatch(entity_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra);
+int pico8_jo_hd_dispatch(entity_t *self, const vec_t *qa, const vec_t *ra);
 void pico8_jo_hb_dispatch(entity_t *self);
 /* Gives back the place of `lq` and sets `lq` to nil; the planet stays. */
 void pico8_jo_rendre_rangee(entity_t *self);
@@ -145,8 +145,8 @@ void pico8_jo_rendre_rangee(entity_t *self);
 void pico8_jo_rendre_dispatch(entity_t *self);
 down_t pico8_jo_gv_dispatch(entity_t *self, const entity_t *s);
 void pico8_jo_hk_dispatch(entity_t *self, p8_fixed_t yr);
-void pico8_jo_kj_dispatch(entity_t *self, const pico8_vec_t *ra);
-down_t pico8_jo_ldown_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra);
+void pico8_jo_kj_dispatch(entity_t *self, const vec_t *ra);
+down_t pico8_jo_ldown_dispatch(entity_t *self, vec_t *qa, vec_t *ra);
 void pico8_jo_kf_dispatch(entity_t *self, entity_t *sw);
 
 /* `e` is one of the ten classes of jo's tree: the only ones whose state

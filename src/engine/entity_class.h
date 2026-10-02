@@ -99,9 +99,9 @@ typedef struct {
     const char *state;
     p8_fixed_t state_time;
     const p8_fixed_t *layer;
-    const pico8_vec_t *const *pos;
-    const pico8_vec_t *const *map_pos;
-    const pico8_qz_box_t *hit_box;
+    const vec_t *const *pos;
+    const vec_t *const *map_pos;
+    const box_t *hit_box;
     const p8_fixed_t *cursor_sprite;
     const p8_fixed_t *gpio_signal;
     const p8_fixed_t *infraspace;
@@ -142,20 +142,20 @@ struct pico8_kind_rec;
  * is NULL when a non-NULL `hb` is enough for `e.hb` to exist; otherwise the
  * instance decides. `mm` returns a fresh particle the caller owns. */
 struct entity_class {
-    void (*draw)(entity_t *self, const pico8_vec_t *ra);
-    void (*draw_overlay)(entity_t *self, const pico8_vec_t *ra);
-    int (*hit_test)(entity_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra);
+    void (*draw)(entity_t *self, const vec_t *ra);
+    void (*draw_overlay)(entity_t *self, const vec_t *ra);
+    int (*hit_test)(entity_t *self, const vec_t *qa, const vec_t *ra);
     void (*new_year)(entity_t *self, p8_fixed_t yr);
     void (*refresh)(entity_t *self);
     int (*has_refresh)(const entity_t *self);
-    down_t (*left_press)(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra);
-    down_t (*right_press)(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra);
+    down_t (*left_press)(entity_t *self, vec_t *qa, vec_t *ra);
+    down_t (*right_press)(entity_t *self, vec_t *qa, vec_t *ra);
     down_t (*accept_drop)(entity_t *self, const entity_t *s);
-    void (*drag)(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra);
+    void (*drag)(entity_t *self, vec_t *qa, vec_t *ra);
     void (*drop)(entity_t *self, entity_t *kv);
     void (*attach_slipway)(entity_t *self, entity_t *sw);
     void (*offer_trade)(entity_t *self, struct pico8_jo_trade_proposal *lw);
-    void (*draw_at)(entity_t *self, pico8_vec_t p, p8_fixed_t a);
+    void (*draw_at)(entity_t *self, vec_t p, p8_fixed_t a);
     struct pico8_qy *(*spawn_particle)(entity_t *self);
     state_fn_t states[STATE_COUNT];
     /* `PICO8_TAG(t)` set: lt() registers every instance under tag t. */
@@ -174,8 +174,8 @@ struct entity_class {
  * vectors it points at, without copying them. */
 typedef struct {
     const char *planet_id;
-    pico8_vec_t *map_pos;
-    pico8_vec_t *pos;
+    vec_t *map_pos;
+    vec_t *pos;
 } planet_keys_t;
 
 /* A kind the cart handles as a value (`gx[]`, `ie.ke`, `kv[hp.cw]`): one

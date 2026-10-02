@@ -80,7 +80,7 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int ents_rank_in(const pico8_ents_t *list, const void *e) {
+static int ents_rank_in(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -90,7 +90,7 @@ static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     return -1;
 }
 
-static int ents_listed(const pico8_ents_t *list, const void *e) {
+static int ents_listed(const entity_list_t *list, const void *e) {
     return ents_rank_in(list, e) >= 0;
 }
 
@@ -119,7 +119,7 @@ static uint32_t fold_p_(uint32_t h, const pico8_jo_t *jo) {
     return (jo->p_ != 0) ? fold_bool_member(h, jo->p_) : fold_absent(h);
 }
 
-static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
+static uint32_t fold_vec(uint32_t h, const vec_t *p) {
     if (p == NULL) {
         return fnv(h, 0xDEADu);
     }
@@ -133,11 +133,11 @@ static uint32_t fold_ref_member(uint32_t h, const void *ref) {
 }
 
 /* The item count of a list member, -1 when NULL. */
-static int ptrs_size(const pico8_ptrs_t *l) {
+static int ptrs_size(const pointer_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
-static int ents_ptrs_size(const pico8_ents_t *l) {
+static int ents_ptrs_size(const entity_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
@@ -182,28 +182,28 @@ static uint32_t screen_hash(void) {
  * reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
 }
 
-static pico8_vec_t *vec_ref(pico8_vec_t at) {
-    pico8_vec_t *v = malloc(sizeof *v);
+static vec_t *vec_ref(vec_t at) {
+    vec_t *v = malloc(sizeof *v);
     *v = at;
     return v;
 }
 
-static pico8_vec_t vec_xy(int x, int y) {
-    return pico8_vec_v(p8_fixed_from_int(x), p8_fixed_from_int(y));
+static vec_t vec_xy(int x, int y) {
+    return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
-static pico8_vec_t near_mo(int x, int y) {
-    const pico8_vec_t *mo_ra;
+static vec_t near_mo(int x, int y) {
+    const vec_t *mo_ra;
 
     assert(pico8_mo_qb() != NULL);
     mo_ra = pico8_mo_qb()->ra;
     assert(mo_ra != NULL);
-    return pico8_vec_add(*mo_ra, vec_xy(x, y));
+    return vec_add(*mo_ra, vec_xy(x, y));
 }
 
 static const entity_class_t *cls_of(const void *e) {
@@ -223,7 +223,7 @@ static pico8_jo_t *as_ga(void *e) {
 
 /* The first burst of `hv` at rank `from` or later, NULL when none. */
 static void *ga_from(int from) {
-    const pico8_ents_t *hv = pico8_hv();
+    const entity_list_t *hv = live_entities();
     int i;
     for (i = from; i < hv->count; i++) {
         if (is_ga(hv->items[i])) {
@@ -255,16 +255,16 @@ static void *harvest(int x, int y, const char *id) {
     planet_keys_t keys;
     pico8_jo_t *planet;
     void *made;
-    int before = pico8_hv()->count;
+    int before = live_entities()->count;
 
     keys.planet_id = id;
     keys.map_pos = vec_ref(vec_xy(x / 2, y / 2));
     keys.pos = vec_ref(near_mo(x, y));
     planet = pico8_jo_new(&keys);
-    assert(!is_ga(planet) && pico8_hv()->count == before + 1);
+    assert(!is_ga(planet) && live_entities()->count == before + 1);
     pico8_jo_hu(planet, harvest_recipe());
     made = ga_from(before + 1);
-    assert(made != NULL && pico8_hv()->count == before + 2 && ga_from(0) == made);
+    assert(made != NULL && live_entities()->count == before + 2 && ga_from(0) == made);
     assert(as_ga(made)->ra == planet->ra && as_ga(made)->p == planet->p);
     return made;
 }
@@ -280,17 +280,17 @@ static void *spawn(int x, int y, const char *id, void **protostar) {
     keys.map_pos = vec_ref(vec_xy(x / 2, y / 2));
     keys.pos = vec_ref(near_mo(x, y));
     pm = pico8_pm_new(&keys);
-    at = ents_rank_in(pico8_hv(), pm);
-    assert(at >= 1 && is_ga(pico8_hv()->items[at - 1]));
+    at = ents_rank_in(live_entities(), pm);
+    assert(at >= 1 && is_ga(live_entities()->items[at - 1]));
     {
-        const pico8_vec_t *ra = as_ga(pico8_hv()->items[at - 1])->ra;
-        pico8_vec_t want = pico8_vec_add(*keys.pos, ((pico8_jo_t *)pm)->def->ng);
+        const vec_t *ra = as_ga(live_entities()->items[at - 1])->ra;
+        vec_t want = vec_add(*keys.pos, ((pico8_jo_t *)pm)->def->ng);
         assert(ra != keys.pos && ra->x == want.x && ra->y == want.y);
     }
     if (protostar != NULL) {
         *protostar = pm;
     }
-    return pico8_hv()->items[at - 1];
+    return live_entities()->items[at - 1];
 }
 
 /* A burst as its road and `ga:pq`, `jo:pq`, `ke:pq` left it: its scalars,
@@ -404,12 +404,12 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     assert(jo->def->ka == &pico8_jo_ka_seq);
     assert(jo->def->dz == pico8_jo_dz_rows);
     assert(jo->def->cq == &pico8_jo_cq_seq);
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), e));
+    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), e));
     for (j = 0; j < (int)(sizeof bm / sizeof bm[0]); j++) {
-        h = fnv(h, (uint32_t)ents_rank_in(pico8_cv(bm[j]), e));
+        h = fnv(h, (uint32_t)ents_rank_in(entities_by_message(bm[j]), e));
     }
     for (j = 0; j < (int)(sizeof tags / sizeof tags[0]); j++) {
-        assert(!ents_listed(pico8_cg(tags[j]), e));
+        assert(!ents_listed(entities_by_tag(tags[j]), e));
     }
     return h;
 }
@@ -529,9 +529,9 @@ static uint32_t fold_lq(uint32_t h, void *e) {
 }
 
 /* Cuts `qy` to its first `n` particles, giving back the others. */
-static void cut_qy(pico8_ptrs_t *qy, int n) {
+static void cut_qy(pointer_list_t *qy, int n) {
     while (qy->count > n) {
-        pico8_zone_release(pico8_zone_particules(PICO8_PARTICULES_PARTICULE), qy->items[qy->count - 1]);
+        allocator_release(pico8_zone_particules(PICO8_PARTICULES_PARTICULE), qy->items[qy->count - 1]);
         qy->count--;
     }
 }
@@ -539,7 +539,7 @@ static void cut_qy(pico8_ptrs_t *qy, int n) {
 /* `kj` on `e` with its `qy` cut in place to `n` particles: `p_` after. */
 static uint32_t fold_cut(uint32_t h, void *e, int n) {
     pico8_jo_t *g = as_ga(e);
-    pico8_ptrs_t *qy = g->emitter->qy;
+    pointer_list_t *qy = g->emitter->qy;
 
     assert(qy != NULL && qy->count >= n);
     cut_qy(qy, n);
@@ -559,7 +559,7 @@ static void test_life(void) {
     void *b;
     void *c;
     void *pm;
-    pico8_ents_t *by;
+    entity_list_t *by;
     static pico8_kw_t kw;
     uint32_t row;
     int hv_count;
@@ -573,7 +573,7 @@ static void test_life(void) {
     h = fold_particle(h, cls_of(b)->spawn_particle(b));
     h = fold_particle(h, cls_of(c)->spawn_particle(c));
     for (i = 0; i < 3; i++) {
-        pico8_dc("draw");
+        draw_layers("draw");
         h = fnv(h, screen_hash());
         h = fold_p_(h, as_ga(a));
         h = fold_p_(h, as_ga(b));
@@ -583,7 +583,7 @@ static void test_life(void) {
 
     cut_qy(as_ga(b)->emitter->qy, 3);
     for (i = 0; i < 3; i++) {
-        pico8_dc("draw");
+        draw_layers("draw");
         h = fnv(h, screen_hash());
     }
 
@@ -611,8 +611,8 @@ static void test_life(void) {
     h = fnv(h, row);
     by = as_ga(c)->by;
     assert(by == as_ga(a)->by && by->count == 0);
-    pico8_ents_add(by, &pico8_trade_new(pico8_zone_partie(), NULL)->header);
-    pico8_ents_add(by, &pico8_trade_new(pico8_zone_partie(), NULL)->header);
+    entity_list_add(by, &pico8_trade_new(game_zone(), NULL)->header);
+    entity_list_add(by, &pico8_trade_new(game_zone(), NULL)->header);
     cls_of(a)->refresh(a);
     assert(fold_lq(2166136261u, a) != row);
     h = fold_lq(h, a);
@@ -620,9 +620,9 @@ static void test_life(void) {
     /* `jo:ib` is `self.by or {}`: the `by` held, routes kept, never a fresh one. */
     assert(pico8_jo_ib(as_ga(b)) == by && by->count == 2);
 
-    hv_count = pico8_hv()->count;
+    hv_count = live_entities()->count;
     cls_of(b)->new_year(b, p8_fixed_from_int(0));
-    assert(pico8_hv()->count == hv_count && !as_ga(b)->has_kr);
+    assert(live_entities()->count == hv_count && !as_ga(b)->has_kr);
     h = fnv(h, screen_hash());
     check("life", h, LIFE_HASH);
 }
@@ -638,7 +638,7 @@ static void test_burst(void) {
     assert(ga_from(0) == e);
     while (ga_from(0) != NULL) {
         e = ga_from(0);
-        assert(ga_from(ents_rank_in(pico8_hv(), e) + 1) == NULL);
+        assert(ga_from(ents_rank_in(live_entities(), e) + 1) == NULL);
         pico8__update60();
         pico8__draw();
         frames++;
@@ -654,10 +654,10 @@ static void test_burst(void) {
  * `l` less 0.14. A protostar's burst turns (`qg` is not 0). */
 static void test_ei_moves_a_particle_in_place(void) {
     pico8_qy_t *particle = pico8_particule_prendre();
-    pico8_vec_t p0 = vec_xy(3, -2);
-    pico8_vec_t v0 = pico8_vec_v(P8_FIXED_LIT(0x00018000, 1.5), P8_FIXED_LIT(0x00004000, 0.25));
-    pico8_vec_t a0 = pico8_vec_v(P8_FIXED_LIT(0x00002000, 0.125), P8_FIXED_LIT(0xFFFF8000, -0.5));
-    pico8_ptrs_t *qy;
+    vec_t p0 = vec_xy(3, -2);
+    vec_t v0 = vec_make(P8_FIXED_LIT(0x00018000, 1.5), P8_FIXED_LIT(0x00004000, 0.25));
+    vec_t a0 = vec_make(P8_FIXED_LIT(0x00002000, 0.125), P8_FIXED_LIT(0xFFFF8000, -0.5));
+    pointer_list_t *qy;
     p8_fixed_t vx;
     p8_fixed_t vy;
     void *e;
@@ -674,7 +674,7 @@ static void test_ei_moves_a_particle_in_place(void) {
     particle->l = p8_fixed_from_int(5);
     qy = em->qy;
     cut_qy(qy, 0);
-    pico8_ptrs_add(qy, particle);
+    pointer_list_add(qy, particle);
 
     pico8_ei(&gfx, &mem, e);
 
@@ -772,7 +772,7 @@ static void test_leaving_gives_back_its_particles(void) {
     count = e->emitter->qy->count;
     assert(count == 140);
     built = held_now();
-    pico8_he(&e->header);
+    entity_unregister(&e->header);
     pico8_cart_vider_file_sortie();
     after = held_now();
     assert(after.particules == built.particules - count && after.qy == built.qy - 1);
@@ -800,7 +800,7 @@ static void test_leaving_lets_go_of_a_dragged_slipway(void) {
     planet_keys_t keys;
     pico8_jc_keys_t jc_keys;
     pico8_jc_t *jc;
-    pico8_vec_t mp = vec_xy(40, 40);
+    vec_t mp = vec_xy(40, 40);
     void *e;
 
     start_game();
@@ -815,7 +815,7 @@ static void test_leaving_lets_go_of_a_dragged_slipway(void) {
     pico8_ok()->o_ = e;
     pico8_jc_hq(jc, &mp);
     assert(jc->re == e);
-    pico8_he(e);
+    entity_unregister(e);
     pico8_cart_vider_file_sortie();
     assert(jc->re == NULL);
 }
@@ -826,9 +826,9 @@ int main(void) {
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(p8_load_map_json(&mem, "pico8/map.json"));
     p8_input_init(&input);
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
 
     pico8_cart_load();
     in_fresh_child(test_built);

@@ -23,7 +23,7 @@ typedef struct {
     p8_fixed_t color;     /* TEXT only: self.c or 6 */
     p8_fixed_t sprite_id; /* SPRITE only: f */
     p8_fixed_t sprite_qw; /* SPRITE only: dv()'s palette-block arg */
-    pico8_vec_t d;           /* offset within the line; set by lq:pq, not by lq:mn */
+    vec_t d;           /* offset within the line; set by lq:pq, not by lq:mn */
 } pico8_lq_item_t;
 
 /* The five cases `lq:mn` tells a positional apart by, written by the
@@ -58,7 +58,7 @@ typedef struct {
  * and the texts are in `zone`, given by the creator: they go with it. */
 typedef struct {
     entity_t header;
-    const pico8_zone_choisie_t *zone;
+    const allocator_t *zone;
     pico8_lq_cell_t *items;
     int items_count;
     p8_fixed_t c;
@@ -68,7 +68,7 @@ typedef struct {
     int bg_is_bool; /* 1: `bg` holds a boolean (0/1), 0: a fixed; read only when `has_bg` */
     p8_fixed_t score;
     int has_score; /* 0: `score` is nil, and `score` is then never read */
-    const pico8_vec_t *ra;
+    const vec_t *ra;
     pico8_lq_item_t *fs; /* NULL: not laid out yet */
     int fs_count;
     p8_fixed_t w;
@@ -78,7 +78,7 @@ typedef struct {
  * `zone`, given by the creator: they go with it. */
 typedef struct {
     entity_t header;
-    const pico8_zone_choisie_t *zone;
+    const allocator_t *zone;
     pico8_lq_t **ls;
     int ls_count;
 } pico8_jb_t;
@@ -110,12 +110,12 @@ typedef struct {
     p8_fixed_t bg;
     int has_score;
     p8_fixed_t score;
-    pico8_vec_t *ra;
+    vec_t *ra;
 } pico8_lq_keys_t;
 
 /* `keys` is read, not kept (NULL: none). `zone` holds the row, its arrays
  * and its texts, is kept for pico8_lq_add, and must outlive the row. */
-pico8_lq_t *pico8_lq_new(const pico8_zone_choisie_t *zone, const pico8_lq_keys_t *keys);
+pico8_lq_t *pico8_lq_new(const allocator_t *zone, const pico8_lq_keys_t *keys);
 
 /* Cells as the producers of keys write them. */
 pico8_lq_cell_t pico8_lq_cell_nothing(void);
@@ -137,7 +137,7 @@ pico8_lq_keys_t pico8_lq_keys_of_row(const pico8_jb_row_t *row, pico8_lq_cell_t 
 /* The copy `lq(row)`, laid out anew: every cell of `row` in order (texts
  * copied, ROWs borrowed), its `c`, `bg`, `score`, `ra`. It is in `zone`, as
  * pico8_lq_new. */
-pico8_lq_t *pico8_lq_copy(const pico8_zone_choisie_t *zone, const pico8_lq_t *row);
+pico8_lq_t *pico8_lq_copy(const allocator_t *zone, const pico8_lq_t *row);
 
 /* The cart's `add(l, v)` on a row already laid out: `cell` (its text
  * copied) is appended to `items`, grown in the row's zone; `fs` and `w` are
@@ -148,13 +148,13 @@ void pico8_lq_add(pico8_lq_t *self, pico8_lq_cell_t cell);
  * row, a row its scalar items and its `c`, any other item an empty row.
  * `row` is read, not kept: the bubble, its lines and their texts are in
  * `zone`, which must outlive the `jb`. */
-pico8_jb_t *pico8_jb_new(const pico8_zone_choisie_t *zone, const pico8_jb_row_t *row);
+pico8_jb_t *pico8_jb_new(const allocator_t *zone, const pico8_jb_row_t *row);
 
 /* Omitting `a` is numerically the same as `a` of 0, so pico8_lq_ol_default
  * passes 0 rather than carrying a "was it provided" flag. A NULL self draws
  * nothing. */
-void pico8_lq_ol(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_lq_t *self, pico8_vec_t p, p8_fixed_t a);
-void pico8_lq_ol_default(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_lq_t *self, pico8_vec_t p);
+void pico8_lq_ol(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_lq_t *self, vec_t p, p8_fixed_t a);
+void pico8_lq_ol_default(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_lq_t *self, vec_t p);
 
 /* A NULL self, or one whose `ls` is nil, draws nothing -- not even the
  * frame. */

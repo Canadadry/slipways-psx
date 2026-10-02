@@ -18,8 +18,8 @@ typedef struct pico8_probe {
     entity_t *et;
     p8_fixed_t od;
     int has_od; /* 0: `od` is nil, and is then never read */
-    pico8_vec_t bv_ra;
-    pico8_vec_t bv_p;
+    vec_t bv_ra;
+    vec_t bv_p;
 } pico8_probe_t;
 
 /* The host's `ra` and `p` point at its probe's `bv_ra` (NULL for a nil `mp`)
@@ -28,9 +28,9 @@ typedef struct pico8_probe {
  * static struct with no readable field but `fo`, or literal `false` -- of
  * which only `false` is falsy; collapsing the throwaway to nil would change
  * `d_`. */
-void pico8_bv(entity_t *self, pico8_vec_t *mp, pico8_vec_t *rp);
+void pico8_bv(entity_t *self, vec_t *mp, vec_t *rp);
 
-void pico8_bv_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra);
+void pico8_bv_dispatch(entity_t *self, vec_t *qa, vec_t *ra);
 
 /* Points the `fo` of `et` back at `self`, which it borrows: `et` is a planet
  * of jo's family, a `jc`, the `jc_too_far` struct or `bv`'s throwaway target
@@ -55,7 +55,7 @@ void pico8_dl(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self);
  * is nil, `pb` is read during the call only. */
 void pico8_dl_show(const p8_graphics_t *gfx, p8_memory_t *mem, const char *me, const pico8_probe_t *pb);
 
-void pico8_dl_dispatch(entity_t *self, const pico8_vec_t *ra);
+void pico8_dl_dispatch(entity_t *self, const vec_t *ra);
 
 /* Returns 1 on the success branch (Lua true), 0 on the other (nil); `jc:ey`
  * and `mz:ey` consume it. */

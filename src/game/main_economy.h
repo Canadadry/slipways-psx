@@ -26,7 +26,7 @@ typedef struct {
     p8_fixed_t ge;
     p8_fixed_t jk;
     p8_fixed_t ew;
-    pico8_ptrs_t *invented;
+    pointer_list_t *invented;
     p8_fixed_t lo;
     p8_fixed_t yr;
     pico8_qe_map_t *po;

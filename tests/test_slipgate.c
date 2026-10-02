@@ -39,7 +39,7 @@
 #include "heap_allocator.h"
 
 /* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
-static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {
+static int ra_copies(const vec_t *ra, const vec_t *mp) {
     return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
 }
 
@@ -78,7 +78,7 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int ents_rank_in(const pico8_ents_t *list, const void *e) {
+static int ents_rank_in(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -88,7 +88,7 @@ static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     return -1;
 }
 
-static int ents_listed(const pico8_ents_t *list, const void *e) {
+static int ents_listed(const entity_list_t *list, const void *e) {
     return ents_rank_in(list, e) >= 0;
 }
 
@@ -113,7 +113,7 @@ static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
     return jo->def->hf ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
-static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
+static uint32_t fold_vec(uint32_t h, const vec_t *p) {
     if (p == NULL) {
         return fnv(h, 0xDEADu);
     }
@@ -125,8 +125,8 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (ref == NULL) {
         return fnv(h, 0xDEADu);
     }
-    if (ents_listed(pico8_hv(), ref)) {
-        return fnv(fnv(h, 0x4Eu), (uint32_t)ents_rank_in(pico8_hv(), ref));
+    if (ents_listed(live_entities(), ref)) {
+        return fnv(fnv(h, 0x4Eu), (uint32_t)ents_rank_in(live_entities(), ref));
     }
     return fnv(fnv(h, 0xEEEEu), FROZEN_STRUCT_TAG);
 }
@@ -138,11 +138,11 @@ static uint32_t fold_bool(uint32_t h, int b) {
 }
 
 /* The item count of a list member, -1 when NULL. */
-static int list_size(const pico8_ptrs_t *l) {
+static int list_size(const pointer_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
-static int ents_list_size(const pico8_ents_t *l) {
+static int ents_list_size(const entity_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
@@ -179,19 +179,19 @@ static uint32_t screen_hash(void) {
  * reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
 }
 
-static pico8_vec_t *vec_ref(pico8_vec_t at) {
-    pico8_vec_t *v = malloc(sizeof *v);
+static vec_t *vec_ref(vec_t at) {
+    vec_t *v = malloc(sizeof *v);
     *v = at;
     return v;
 }
 
-static pico8_vec_t vec_xy(int x, int y) {
-    return pico8_vec_v(p8_fixed_from_int(x), p8_fixed_from_int(y));
+static vec_t vec_xy(int x, int y) {
+    return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
 static const entity_class_t *cls_of(const void *e) {
@@ -211,7 +211,7 @@ static void assert_qh_shape(const entity_class_t *c) {
 
 /* The research icon whose `ke` is `kind`. */
 static void *icon_of(const entity_kind_t *kind) {
-    const pico8_ents_t *hb = pico8_cv("refresh");
+    const entity_list_t *hb = entities_by_message("refresh");
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i];
@@ -356,7 +356,7 @@ static uint32_t fold_slipgate(uint32_t h, const void *e) {
     assert(jo->def == &pico8_nr_def);
     assert(jo->header.class->tags == (TAG(TAG_SLIPGATE) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && nr->def->hz == &pico8_nr_hz_seq);
     assert(jo->header.class->tags != (TAG(TAG_STRUCTURE) | TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)));
-    assert(jo->def->kq.xl != pico8_jo_def.kq.xl);
+    assert(jo->def->kq.left != pico8_jo_def.kq.left);
     assert(qh->def->px == &pico8_qh_px_row && qh->def->ba == &pico8_qh_ba_seq);
     assert(jo->def == &pico8_nr_def);
     assert(jo->def->em == &pico8_jo_em_row && jo->def->ka == &pico8_jo_ka_seq && jo->def->dz == pico8_jo_dz_rows &&
@@ -366,14 +366,14 @@ static uint32_t fold_slipgate(uint32_t h, const void *e) {
     assert(jo->hn == pico8_gb_at(1));
     h = fnv(h, (uint32_t)ents_list_size(jo->oe));
     h = fnv(h, (uint32_t)list_size(jo->jy));
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), e));
+    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
-        h = fnv(h, (uint32_t)ents_rank_in(pico8_cv(bm[i]), e));
+        h = fnv(h, (uint32_t)ents_rank_in(entities_by_message(bm[i]), e));
     }
     for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
-        h = fnv(h, (uint32_t)ents_rank_in(pico8_cg(tags[i]), e));
+        h = fnv(h, (uint32_t)ents_rank_in(entities_by_tag(tags[i]), e));
     }
-    assert(ents_listed(pico8_cg("slipgate"), e) && !ents_listed(pico8_cg("planet"), e) && !ents_listed(pico8_cg("structure"), e));
+    assert(ents_listed(entities_by_tag("slipgate"), e) && !ents_listed(entities_by_tag("planet"), e) && !ents_listed(entities_by_tag("structure"), e));
     return h;
 }
 
@@ -397,7 +397,7 @@ static void set_credits(int n) {
 }
 
 static uint32_t fold_ra_y(uint32_t h, const pico8_jo_t *qh) {
-    const pico8_vec_t *ra = qh->ra;
+    const vec_t *ra = qh->ra;
     return ra == NULL ? fnv(h, 0xDEADu) : fnv(h, (uint32_t)ra->y);
 }
 
@@ -406,14 +406,14 @@ static uint32_t fold_dg(uint32_t h, void *e) {
     const pico8_jo_t *qh = as_qh(e);
 
     h = fold_ra_y(h, qh);
-    pico8_dg();
+    update_entities();
     h = fold_fixed_member(h, qh->header.state_time);
     return fold_ra_y(h, qh);
 }
 
 /* `jo:ib`'s container, folded as fold_ref folded the tagged list it was:
  * never in `hv`, so the tag branch. */
-static uint32_t fold_ib(uint32_t h, const pico8_ents_t *ib) {
+static uint32_t fold_ib(uint32_t h, const entity_list_t *ib) {
     if (ib == NULL) {
         return fnv(h, 0xDEADu);
     }
@@ -422,7 +422,7 @@ static uint32_t fold_ib(uint32_t h, const pico8_ents_t *ib) {
 
 /* What `bb`'s `dh`, `ib`, `gg` and `da` give on a slipgate. */
 static uint32_t fold_economy(uint32_t h, void *e) {
-    pico8_ents_t *ib = pico8_jo_ib(e);
+    entity_list_t *ib = pico8_jo_ib(e);
     h = fnv(h, (uint32_t)pico8_dh(e));
     h = fold_ib(h, ib);
     h = fnv(fnv(h, 0xB0u), pico8_jo_gg(e) ? 1u : 0u);
@@ -432,13 +432,13 @@ static uint32_t fold_economy(uint32_t h, void *e) {
 
 /* A list of `n` copies of `item`, for `oe`: `gv`, `ldown` and `hb` only
  * count it. */
-static pico8_ents_t *list_of(int n, entity_t *item) {
-    pico8_ents_t *l = malloc(sizeof *l);
+static entity_list_t *list_of(int n, entity_t *item) {
+    entity_list_t *l = malloc(sizeof *l);
     int i;
 
-    pico8_ents_init(l, &zone_tas);
+    entity_list_init(l, &heap_allocator);
     for (i = 0; i < n; i++) {
-        pico8_ents_add(l, item);
+        entity_list_add(l, item);
     }
     return l;
 }
@@ -454,10 +454,10 @@ static void test_life(void) {
     void *idle;
     void *fr;
     void *bare;
-    pico8_vec_t *mp;
+    vec_t *mp;
     down_t jc;
-    pico8_ents_t *oe;
-    const pico8_vec_t *mo_ra;
+    entity_list_t *oe;
+    const vec_t *mo_ra;
     int i;
 
     start_game();
@@ -469,7 +469,7 @@ static void test_life(void) {
     assert(pico8_mo_qb() != NULL);
     mo_ra = pico8_mo_qb()->ra;
     assert(mo_ra != NULL);
-    mp = vec_ref(pico8_vec_add(*mo_ra, vec_xy(12, 108)));
+    mp = vec_ref(vec_add(*mo_ra, vec_xy(12, 108)));
     cls_of(placed)->drag(placed, mp, vec_ref(vec_xy(64, 64)));
     assert(ra_copies(as_qh(placed)->ra, mp));
     set_credits(200);
@@ -482,7 +482,7 @@ static void test_life(void) {
         h = fold_dg(h, placed);
     }
     for (i = 0; i < 2; i++) {
-        pico8_dc("draw");
+        draw_layers("draw");
         h = fnv(h, screen_hash());
     }
 
@@ -521,18 +521,18 @@ static void test_life(void) {
     bare = pico8_nr_new(NULL);
     assert(gate_kind(bare) == NR && as_qh(bare)->id == NULL && as_qh(bare)->oe != NULL &&
            as_qh(bare)->kw != NULL);
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_cg("slipgate"), bare));
+    h = fnv(h, (uint32_t)ents_rank_in(entities_by_tag("slipgate"), bare));
     {
         planet_keys_t keys;
-        pico8_vec_t *p = vec_ref(vec_xy(3, 4));
-        pico8_vec_t *ra = vec_ref(vec_xy(5, 6));
+        vec_t *p = vec_ref(vec_xy(3, 4));
+        vec_t *ra = vec_ref(vec_xy(5, 6));
         void *with;
         keys.planet_id = NULL;
         keys.map_pos = p;
         keys.pos = ra;
         with = pico8_nr_new(&keys);
         assert(as_qh(with)->p == p && as_qh(with)->ra == ra && as_qh(with)->id == NULL);
-        h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), with));
+        h = fnv(h, (uint32_t)ents_rank_in(live_entities(), with));
     }
     check("life", h, LIFE_HASH);
 }
@@ -553,7 +553,7 @@ static void test_nr_is_a_struct(void) {
 
     start_game();
     a = build_slipgate();
-    assert(is_an_nr_struct(a) && cls != qh && ents_listed(pico8_cg("slipgate"), a));
+    assert(is_an_nr_struct(a) && cls != qh && ents_listed(entities_by_tag("slipgate"), a));
     assert(cls->offer_trade != qh->offer_trade && cls->attach_slipway == qh->attach_slipway && cls->drag == qh->drag && cls->drop == qh->drop && cls->spawn_particle == qh->spawn_particle);
     assert_qh_shape(cls);
     assert(cls->draw == qh->draw && cls->draw_overlay == qh->draw_overlay && cls->hit_test == qh->hit_test && cls->new_year == qh->new_year);
@@ -578,7 +578,7 @@ static void test_nr_is_a_struct(void) {
 static int g_offers = 0;
 
 static void take_offer(pico8_jo_trade_proposal_t *self, pico8_trade_t *a) {
-    pico8_ents_add(self->ib, &a->header);
+    entity_list_add(self->ib, &a->header);
     self->mu -= p8_fixed_from_int(1);
     g_offers++;
 }
@@ -592,10 +592,10 @@ static void test_cn_skips_a_slipway_already_in_rl(void) {
     pico8_jo_t *other;
     pico8_jc_keys_t jc_keys = {0};
     pico8_jc_t *w;
-    pico8_ptrs_t *jy = malloc(sizeof *jy);
-    pico8_ents_t *with_w = malloc(sizeof *with_w);
-    pico8_ents_t *without_w = malloc(sizeof *without_w);
-    pico8_ents_t ib;
+    pointer_list_t *jy = malloc(sizeof *jy);
+    entity_list_t *with_w = malloc(sizeof *with_w);
+    entity_list_t *without_w = malloc(sizeof *without_w);
+    entity_list_t ib;
     pico8_trade_keys_t keys = {0};
     pico8_jo_trade_proposal_t lw = {0};
     p8_fixed_t qe;
@@ -606,34 +606,34 @@ static void test_cn_skips_a_slipway_already_in_rl(void) {
     qe = p8_fixed_from_int(r_p);
     self = pico8_nr_new(NULL);
     other = pico8_qh_new(NULL);
-    pico8_ptrs_init(jy, &zone_tas);
-    pico8_ptrs_add(jy, pico8_jy_new(pico8_zone_partie(), &qe));
+    pointer_list_init(jy, &heap_allocator);
+    pointer_list_add(jy, pico8_jy_new(game_zone(), &qe));
     other->jy = jy;
     jc_keys.qu = &self->header;
     w = pico8_jc_new(&jc_keys);
     w->re = &other->header;
     assert(self->oe != NULL && self->oe->count == 0);
-    pico8_ents_add(self->oe, &w->header);
+    entity_list_add(self->oe, &w->header);
 
-    pico8_ents_init(with_w, &zone_tas);
-    pico8_ents_add(with_w, &w->header);
-    pico8_ents_init(&ib, &zone_tas);
+    entity_list_init(with_w, &heap_allocator);
+    entity_list_add(with_w, &w->header);
+    entity_list_init(&ib, &heap_allocator);
     keys.has_qe = 1;
     keys.qe = qe;
     keys.rl = with_w;
-    lw.t = pico8_trade_new(pico8_zone_partie(), &keys);
+    lw.t = pico8_trade_new(game_zone(), &keys);
     lw.mu = p8_fixed_from_int(2);
     lw.kf = take_offer;
     lw.ib = &ib;
     pico8_nr_cn(self, &lw);
     assert(g_offers == 0 && ib.count == 0 && lw.mu == p8_fixed_from_int(2));
 
-    pico8_ents_init(without_w, &zone_tas);
+    entity_list_init(without_w, &heap_allocator);
     keys.rl = without_w;
-    lw.t = pico8_trade_new(pico8_zone_partie(), &keys);
+    lw.t = pico8_trade_new(game_zone(), &keys);
     pico8_nr_cn(self, &lw);
     assert(g_offers == 1 && ib.count == 1 && lw.mu == p8_fixed_from_int(1));
-    pico8_ents_free(&ib);
+    entity_list_free(&ib);
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked
@@ -668,9 +668,9 @@ int main(void) {
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(p8_load_map_json(&mem, "pico8/map.json"));
     p8_input_init(&input);
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
 
     pico8_cart_load();
     in_fresh_child(test_built);

@@ -20,14 +20,14 @@ static p8_fixed_t fixed_min(p8_fixed_t a, p8_fixed_t b) {
 typedef void (*cg_visit_fn)(entity_t *e, void *ctx);
 
 static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
-    const pico8_ents_t *list = pico8_cg(tag);
-    pico8_ents_iter_t it;
+    const entity_list_t *list = entities_by_tag(tag);
+    entity_list_iter_t it;
     entity_t *e;
     if (list == NULL) {
         return;
     }
-    it = pico8_ents_all(list);
-    while (pico8_ents_iter_next(&it, &e)) {
+    it = entity_list_all(list);
+    while (entity_list_iter_next(&it, &e)) {
         if (e != NULL) {
             fn(e, ctx);
         }
@@ -44,7 +44,7 @@ static int call_gg_truthy(entity_t *pt) {
 
 p8_fixed_t pico8_da(entity_t *pt) {
     if (pt != NULL && (pt->class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && ((const pico8_jo_t *)pt)->def->qh) {
-        const pico8_ents_t *qh_list = pico8_cg("structure");
+        const entity_list_t *qh_list = entities_by_tag("structure");
         return p8_fixed_from_int(qh_list != NULL ? qh_list->count : 0);
     }
     if (call_gg_truthy(pt)) {
@@ -67,8 +67,8 @@ static int cz_predicate(entity_t *e, void *ctx) {
 }
 
 p8_fixed_t pico8_cz(void) {
-    const pico8_ents_t *jo_list = pico8_cg("planet");
-    pico8_ents_t filtered = pico8_jp_ents(pico8_zone_frame(), jo_list, cz_predicate, NULL);
+    const entity_list_t *jo_list = entities_by_tag("planet");
+    entity_list_t filtered = entity_list_filter(frame_zone(), jo_list, cz_predicate, NULL);
     int mu = filtered.count;
     p8_fixed_t result;
     result = p8_fixed_mul(P8_FIXED_LIT(0x00002e14, 0.18), p8_fixed_from_int(mu * mu));
@@ -78,7 +78,7 @@ p8_fixed_t pico8_cz(void) {
 p8_fixed_t pico8_db(const entity_t *pt) {
     p8_fixed_t total = p8_fixed_from_int(0);
     const pico8_jo_t *jo;
-    const pico8_ents_t *by;
+    const entity_list_t *by;
     const pico8_js_t *dk = pico8_dk();
 
     if (pt == NULL) {
@@ -168,7 +168,7 @@ static void sum_by_mi_visit(entity_t *pt, void *ctx_) {
 
 static char *concat_percent(const char *s) {
     size_t len = strlen(s);
-    char *out = (char *)pico8_zone_alloc(pico8_zone_frame(), len + 2);
+    char *out = (char *)allocator_alloc(frame_zone(), len + 2);
     memcpy(out, s, len);
     out[len] = '%';
     out[len + 1] = '\0';
@@ -183,7 +183,7 @@ pico8_ky_t pico8_ky(void) {
     p8_fixed_t total;
     const pico8_hy_t *fm = pico8_fm_hy();
     p8_fixed_t happiness = fm != NULL && fm->has_happiness ? fm->happiness : p8_fixed_from_int(0);
-    const pico8_ptrs_t *invented = fm != NULL ? fm->invented : NULL;
+    const pointer_list_t *invented = fm != NULL ? fm->invented : NULL;
     int invented_count = (invented != NULL) ? invented->count : 0;
     const pico8_qe_map_t *fm_po = fm != NULL ? fm->po : NULL;
     char *happiness_str;
@@ -209,7 +209,7 @@ pico8_ky_t pico8_ky(void) {
         p8_fixed_mul(p8_fixed_add(p8_fixed_add(di_ctx.total, gl), el), P8_FIXED_LIT(0x0000028f, 0.01)),
         happiness));
 
-    happiness_str = p8_tostr_fixed(pico8_zone_frame(), happiness);
+    happiness_str = p8_tostr_fixed(frame_zone(), happiness);
 
     result.di = di_ctx.total;
     result.gl = gl;

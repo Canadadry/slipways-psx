@@ -19,14 +19,14 @@ static p8_fixed_t fixed_min(p8_fixed_t a, p8_fixed_t b) {
 typedef void (*cg_visit_fn)(entity_t *e, void *ctx);
 
 static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
-    const pico8_ents_t *list = pico8_cg(tag);
-    pico8_ents_iter_t it;
+    const entity_list_t *list = entities_by_tag(tag);
+    entity_list_iter_t it;
     entity_t *e;
     if (list == NULL) {
         return;
     }
-    it = pico8_ents_all(list);
-    while (pico8_ents_iter_next(&it, &e)) {
+    it = entity_list_all(list);
+    while (entity_list_iter_next(&it, &e)) {
         if (e != NULL) {
             fn(e, ctx);
         }
@@ -35,7 +35,7 @@ static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
 
 static void bd_reset_visit(entity_t *pt, void *ctx) {
     pico8_jo_t *jo;
-    pico8_ents_t *cc;
+    entity_list_t *cc;
     (void)ctx;
     if (pt == NULL) {
         return;
@@ -43,18 +43,18 @@ static void bd_reset_visit(entity_t *pt, void *ctx) {
     assert(pico8_jo_is_family(pt) && "bd: pt is a planet of cg.jo");
     jo = (pico8_jo_t *)pt;
     if (jo->cc != NULL) {
-        pico8_ents_clear(jo->cc);
+        entity_list_clear(jo->cc);
         return;
     }
-    cc = (pico8_ents_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *cc);
-    pico8_ents_init(cc, pico8_zone_partie());
+    cc = (entity_list_t *)allocator_alloc(game_zone(), sizeof *cc);
+    entity_list_init(cc, game_zone());
     jo->cc = cc;
 }
 
 static void bd_route_visit(entity_t *pt, void *ctx) {
     pico8_jo_t *jo;
-    pico8_ents_t *by;
-    pico8_ents_iter_t it;
+    entity_list_t *by;
+    entity_list_iter_t it;
     entity_t *e;
     (void)ctx;
     if (pt == NULL) {
@@ -70,11 +70,11 @@ static void bd_route_visit(entity_t *pt, void *ctx) {
         return;
     }
 
-    it = pico8_ents_all(by);
-    while (pico8_ents_iter_next(&it, &e)) {
+    it = entity_list_all(by);
+    while (entity_list_iter_next(&it, &e)) {
         const pico8_trade_t *route;
-        const pico8_ents_t *rl;
-        const pico8_ents_t *lp;
+        const entity_list_t *rl;
+        const entity_list_t *lp;
         entity_t *to_val;
         int i;
 
@@ -125,7 +125,7 @@ static void bd_route_visit(entity_t *pt, void *ctx) {
             assert(pico8_jo_is_family(to_val) && "a trade leads to a planet");
             dest = (pico8_jo_t *)to_val;
             if (dest->cc != NULL) {
-                pico8_ents_add(dest->cc, e);
+                entity_list_add(dest->cc, e);
             }
         }
     }
@@ -159,8 +159,8 @@ static void bb_visit(entity_t *pt, void *ctx) {
             pico8_hp_t *hn = jo->hn;
             if (hn != NULL && hn->has_dm) {
                 if (jo->jy != NULL) {
-                    pico8_jy_t *entry = pico8_jy_new(pico8_zone_partie(), &hn->dm);
-                    pico8_ptrs_add(jo->jy, entry);
+                    pico8_jy_t *entry = pico8_jy_new(game_zone(), &hn->dm);
+                    pointer_list_add(jo->jy, entry);
                 }
             }
         }
@@ -202,8 +202,8 @@ int pico8_bb(void) {
 
 p8_fixed_t pico8_dh(const entity_t *pt) {
     const pico8_jo_t *jo;
-    const pico8_ptrs_t *jy;
-    const pico8_ents_t *cc;
+    const pointer_list_t *jy;
+    const entity_list_t *cc;
     p8_fixed_t jd = p8_fixed_from_int(1);
     int i;
 
@@ -288,7 +288,7 @@ p8_fixed_t pico8_dh(const entity_t *pt) {
     }
 
     {
-        const pico8_ents_t *by = jo->by;
+        const entity_list_t *by = jo->by;
         int by_count = (by != NULL) ? by->count : 0;
         int cc_count = (cc != NULL) ? cc->count : 0;
         p8_fixed_t mid_val =

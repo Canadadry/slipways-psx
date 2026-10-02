@@ -32,7 +32,7 @@ void pico8_qe_map_set(pico8_qe_map_t *map, p8_fixed_t qe, p8_fixed_t v);
 void pico8_cm(pico8_qe_map_t *out, p8_fixed_t jm);
 
 /* `#(to.p-pb.p)` is the SQUARED distance, not the Euclidean one. */
-p8_fixed_t pico8_dj(pico8_vec_t pb_p, pico8_vec_t to_p);
+p8_fixed_t pico8_dj(vec_t pb_p, vec_t to_p);
 
 /* An absent `cg.jc` counts as zero slipways. */
 p8_fixed_t pico8_bk(void);

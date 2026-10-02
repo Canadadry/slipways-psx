@@ -86,7 +86,7 @@ static void test_one_occurrence_per_category_in_table_order(void) {
     write_file(TST "/c5.c", "hp_" "pose(self, p);\n");
     write_file(TST "/c6.c", "e->pk_" "is_bool = 1;\n");
     write_file(SRC "/engine/entity_class.h", "#include \"game/" "game_data.h\"\n");
-    write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n    pico8_" "ptrs_t *oe;\n} pico8_"
+    write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n    pointer_" "list_t *oe;\n} pico8_"
                            "jo_t;\n");
     write_file(SRC "/p.h", "typedef struct {\n    pico8_" "jo_t jo;\n} pico8_" "qh_t;\n");
     write_file(SRC "/v.h", "pico8_qy_t *pico8_" "g__mm(void *" "self);\n");
@@ -229,38 +229,38 @@ static void test_entity_reader_ignores_what_is_not_an_embedded_parent(void) {
 static void test_ptrs_members_count_only_on_entity_types(void) {
     setup();
     write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} pico8_" "ke_t;\n"
-                           "typedef struct {\n    pico8_" "ke_t ke;\n    pico8_" "ptrs_t *oe;\n    pico8_"
-                           "ptrs_t *jy;\n} pico8_" "jo_t;\n"
-                           "typedef struct {\n    int a;\n    pico8_" "ptrs_t *qy;\n} other_t;\n"
-                           "void f(void) {\n    pico8_" "ptrs_t list;\n}\n");
+                           "typedef struct {\n    pico8_" "ke_t ke;\n    pointer_" "list_t *oe;\n    pointer_"
+                           "list_t *jy;\n} pico8_" "jo_t;\n"
+                           "typedef struct {\n    int a;\n    pointer_" "list_t *qy;\n} other_t;\n"
+                           "void f(void) {\n    pointer_" "list_t list;\n}\n");
     assert(run_residue("--check ptrs-entité " TREE) == 1);
-    assert(strcmp(read_file(OUT), "ptrs-entité: " SRC "/e.h:6:    pico8_" "ptrs_t *oe;\n"
+    assert(strcmp(read_file(OUT), "ptrs-entité: " SRC "/e.h:6:    pointer_" "list_t *oe;\n"
                                   "résidu gardé (ptrs-entité) : 1 ligne(s)\n") == 0);
 }
 
 static void test_registres_reads_declaration_points_outside_entity_types(void) {
     setup();
-    write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n    pico8_"
-                           "ptrs_t *oe;\n} pico8_" "ke_t;\n"
-                           "typedef struct {\n    pico8_" "ptrs_t layers[16];\n    pico8_" "ptrs_t *qy;\n} pico8_"
+    write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n    pointer_"
+                           "list_t *oe;\n} pico8_" "ke_t;\n"
+                           "typedef struct {\n    pointer_" "list_t layers[16];\n    pointer_" "list_t *qy;\n} pico8_"
                            "emitter_t;\n"
                            "typedef struct {\n    void *(*new_entity)(int k);\n    void (*kj)(void *" "self);\n} k_t;\n"
-                           "const pico8_" "ptrs_t *pico8_" "hv(void);\n"
-                           "pico8_lq_t *pico8_" "jo_ex(const pico8_" "ptrs_t *is,\n    int o);\n"
-                           "typedef int (*pico8_" "fn)(const pico8_" "ptrs_t *p);\n");
-    write_file(SRC "/r.c", "static pico8_" "ptrs_t g_hv;\n"
-                           "static pico8_" "ptrs_t *g_list = 0;\n"
-                           "pico8_" "ptrs_t pico8_" "jp_ptrs(const pico8_" "ptrs_t *qk) {\n    pico8_"
-                           "ptrs_t f;\n    return f;\n}\n");
-    write_file(SRC "/engine/pointer_list.h", "typedef struct {\n    const pico8_" "ptrs_t *ptrs;\n} pico8_" "ptrs_iter_t;\n"
-                                    "void pico8_" "ptrs_add(pico8_" "ptrs_t *p, void *e);\n");
-    write_file(TST "/t.c", "static pico8_" "ptrs_t g_t;\n");
+                           "const pointer_" "list_t *live_" "entities(void);\n"
+                           "pico8_lq_t *pico8_" "jo_ex(const pointer_" "list_t *is,\n    int o);\n"
+                           "typedef int (*pico8_" "fn)(const pointer_" "list_t *p);\n");
+    write_file(SRC "/r.c", "static pointer_" "list_t g_live_entities;\n"
+                           "static pointer_" "list_t *g_list = 0;\n"
+                           "pointer_" "list_t collect_" "filter_pointer_list(const pointer_" "list_t *qk) {\n    pointer_"
+                           "list_t f;\n    return f;\n}\n");
+    write_file(SRC "/engine/pointer_list.h", "typedef struct {\n    const pointer_" "list_t *ptrs;\n} pointer_" "list_iter_t;\n"
+                                    "void pointer_" "list_add(pointer_" "list_t *p, void *e);\n");
+    write_file(TST "/t.c", "static pointer_" "list_t g_t;\n");
     assert(run_residue("--check registres " TREE) == 1);
-    assert(strcmp(read_file(OUT), "registres: " SRC "/e.h:6:    pico8_" "ptrs_t layers[16];\n"
+    assert(strcmp(read_file(OUT), "registres: " SRC "/e.h:6:    pointer_" "list_t layers[16];\n"
                                   "registres: " SRC "/e.h:10:    void *(*new_entity)(int k);\n"
-                                  "registres: " SRC "/e.h:13:const pico8_" "ptrs_t *pico8_" "hv(void);\n"
-                                  "registres: " SRC "/r.c:1:static pico8_" "ptrs_t g_hv;\n"
-                                  "registres: " SRC "/r.c:2:static pico8_" "ptrs_t *g_list = 0;\n"
+                                  "registres: " SRC "/e.h:13:const pointer_" "list_t *live_" "entities(void);\n"
+                                  "registres: " SRC "/r.c:1:static pointer_" "list_t g_live_entities;\n"
+                                  "registres: " SRC "/r.c:2:static pointer_" "list_t *g_list = 0;\n"
                                   "résidu gardé (registres) : 5 ligne(s)\n") == 0);
 }
 
@@ -269,72 +269,72 @@ static void test_registres_reads_declaration_points_outside_entity_types(void) {
  * l'attendu. */
 static void test_registres_sees_hidden_forms_and_not_its_named_limits(void) {
     setup();
-    write_file(SRC "/f.h", "typedef pico8_" "ptrs_t reg_t;\n"
+    write_file(SRC "/f.h", "typedef pointer_" "list_t reg_t;\n"
                            "typedef reg_t reg2_t;\n"
                            "typedef struct {\n"
-                           "    pico8_" "ptrs_t *a, *b;\n"
-                           "    pico8_" "ptrs_t **pp;\n"
-                           "    const pico8_" "ptrs_t *const x;\n"
+                           "    pointer_" "list_t *a, *b;\n"
+                           "    pointer_" "list_t **pp;\n"
+                           "    const pointer_" "list_t *const x;\n"
                            "    void **items;\n"
-                           "    pico8_" "ptrs_t (*get)(void);\n"
+                           "    pointer_" "list_t (*get)(void);\n"
                            "    void *slots[8];\n"
                            "    void *owner;\n"
                            "    struct {\n"
-                           "        pico8_" "ptrs_t l;\n"
+                           "        pointer_" "list_t l;\n"
                            "    } inner;\n"
                            "} holder_t;\n"
-                           "static inline const pico8_" "ptrs_t *reg_get(void) { return 0; }\n"
+                           "static inline const pointer_" "list_t *reg_get(void) { return 0; }\n"
                            "void **pico8_" "reg_items(void);\n"
-                           "extern pico8_" "ptrs_t g_reg;\n"
-                           "typedef struct { pico8_" "ptrs_t l; } one_t;\n");
+                           "extern pointer_" "list_t g_reg;\n"
+                           "typedef struct { pointer_" "list_t l; } one_t;\n");
     write_file(SRC "/f.c", "static void reg_f(void) {\n"
-                           "    static pico8_" "ptrs_t reg;\n"
-                           "    pico8_" "ptrs_t l;\n"
+                           "    static pointer_" "list_t reg;\n"
+                           "    pointer_" "list_t l;\n"
                            "    static struct {\n"
-                           "        pico8_" "ptrs_t l;\n"
+                           "        pointer_" "list_t l;\n"
                            "    } g;\n"
                            "    (void)reg;\n"
                            "}\n"
                            "static reg_t g_alias;\n"
                            "static reg2_t g_alias2;\n"
                            "static struct {\n"
-                           "    pico8_" "ptrs_t list;\n"
+                           "    pointer_" "list_t list;\n"
                            "} g_anon;\n"
                            "static struct reg_s {\n"
-                           "    pico8_" "ptrs_t list;\n"
+                           "    pointer_" "list_t list;\n"
                            "} g_named;\n"
-                           "static struct { pico8_" "ptrs_t l; } g_one;\n"
+                           "static struct { pointer_" "list_t l; } g_one;\n"
                            "static void *g_void[64];\n"
-                           "static pico8_" "ptrs_t g_a, g_b;\n"
-                           "pico8_" "ptrs_t g_pub;\n"
+                           "static pointer_" "list_t g_a, g_b;\n"
+                           "pointer_" "list_t g_pub;\n"
                            "typedef void *handle_t;\n"
                            "static handle_t g_h[64];\n"
-                           "#define REG(n) pico8_" "ptrs_t n\n"
+                           "#define REG(n) pointer_" "list_t n\n"
                            "static REG(g_m);\n"
-                           "int reg_n(const pico8_" "ptrs_t *p) {\n"
+                           "int reg_n(const pointer_" "list_t *p) {\n"
                            "    return p->count;\n"
                            "}\n");
     write_file(TST "/t.c", "static void *g_t[4];\n");
     assert(run_residue("--check registres " TREE) == 1);
-    assert(strcmp(read_file(OUT), "registres: " SRC "/f.c:2:    static pico8_" "ptrs_t reg;\n"
-                                  "registres: " SRC "/f.c:5:        pico8_" "ptrs_t l;\n"
+    assert(strcmp(read_file(OUT), "registres: " SRC "/f.c:2:    static pointer_" "list_t reg;\n"
+                                  "registres: " SRC "/f.c:5:        pointer_" "list_t l;\n"
                                   "registres: " SRC "/f.c:9:static reg_t g_alias;\n"
-                                  "registres: " SRC "/f.c:12:    pico8_" "ptrs_t list;\n"
-                                  "registres: " SRC "/f.c:15:    pico8_" "ptrs_t list;\n"
-                                  "registres: " SRC "/f.c:17:static struct { pico8_" "ptrs_t l; } g_one;\n"
+                                  "registres: " SRC "/f.c:12:    pointer_" "list_t list;\n"
+                                  "registres: " SRC "/f.c:15:    pointer_" "list_t list;\n"
+                                  "registres: " SRC "/f.c:17:static struct { pointer_" "list_t l; } g_one;\n"
                                   "registres: " SRC "/f.c:18:static void *g_void[64];\n"
-                                  "registres: " SRC "/f.c:19:static pico8_" "ptrs_t g_a, g_b;\n"
-                                  "registres: " SRC "/f.c:20:pico8_" "ptrs_t g_pub;\n"
-                                  "registres: " SRC "/f.h:4:    pico8_" "ptrs_t *a, *b;\n"
-                                  "registres: " SRC "/f.h:5:    pico8_" "ptrs_t **pp;\n"
-                                  "registres: " SRC "/f.h:6:    const pico8_" "ptrs_t *const x;\n"
+                                  "registres: " SRC "/f.c:19:static pointer_" "list_t g_a, g_b;\n"
+                                  "registres: " SRC "/f.c:20:pointer_" "list_t g_pub;\n"
+                                  "registres: " SRC "/f.h:4:    pointer_" "list_t *a, *b;\n"
+                                  "registres: " SRC "/f.h:5:    pointer_" "list_t **pp;\n"
+                                  "registres: " SRC "/f.h:6:    const pointer_" "list_t *const x;\n"
                                   "registres: " SRC "/f.h:7:    void **items;\n"
-                                  "registres: " SRC "/f.h:8:    pico8_" "ptrs_t (*get)(void);\n"
+                                  "registres: " SRC "/f.h:8:    pointer_" "list_t (*get)(void);\n"
                                   "registres: " SRC "/f.h:9:    void *slots[8];\n"
-                                  "registres: " SRC "/f.h:15:static inline const pico8_" "ptrs_t *reg_get(void) { return 0; }\n"
+                                  "registres: " SRC "/f.h:15:static inline const pointer_" "list_t *reg_get(void) { return 0; }\n"
                                   "registres: " SRC "/f.h:16:void **pico8_" "reg_items(void);\n"
-                                  "registres: " SRC "/f.h:17:extern pico8_" "ptrs_t g_reg;\n"
-                                  "registres: " SRC "/f.h:18:typedef struct { pico8_" "ptrs_t l; } one_t;\n"
+                                  "registres: " SRC "/f.h:17:extern pointer_" "list_t g_reg;\n"
+                                  "registres: " SRC "/f.h:18:typedef struct { pointer_" "list_t l; } one_t;\n"
                                   "résidu gardé (registres) : 19 ligne(s)\n") == 0);
 }
 
@@ -344,22 +344,22 @@ static void test_registres_sees_hidden_forms_and_not_its_named_limits(void) {
  * (:17). */
 static void test_ptrs_entite_reads_entity_members_like_registres(void) {
     setup();
-    write_file(SRC "/a.h", "typedef pico8_" "ptrs_t reg17_t;\n");
+    write_file(SRC "/a.h", "typedef pointer_" "list_t reg17_t;\n");
     write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} pico8_" "ke_t;\n"
                            "typedef struct {\n"
                            "    pico8_" "ke_t ke;\n"
                            "    void **items;\n"
                            "    void *slots[8];\n"
                            "    reg17_t l;\n"
-                           "    pico8_" "ptrs_t arr[4];\n"
-                           "    pico8_" "ptrs_t **pp;\n"
-                           "    pico8_" "ptrs_t *a, *b;\n"
-                           "    const pico8_" "ptrs_t *const x;\n"
+                           "    pointer_" "list_t arr[4];\n"
+                           "    pointer_" "list_t **pp;\n"
+                           "    pointer_" "list_t *a, *b;\n"
+                           "    const pointer_" "list_t *const x;\n"
                            "    void *(*get)(void);\n"
                            "    _Alignas(8) void **al;\n"
                            "    void *owner;\n"
-                           "    pico8_" "ptrs_t *jy, *other_jy;\n"
-                           "    pico8_" "ptrs_t (*mk)(void);\n"
+                           "    pointer_" "list_t *jy, *other_jy;\n"
+                           "    pointer_" "list_t (*mk)(void);\n"
                            "    _Alignas (8) void **al2;\n"
                            "} pico8_" "jo_t;\n"
                            "typedef struct pico8_" "nl_s\n"
@@ -372,14 +372,14 @@ static void test_ptrs_entite_reads_entity_members_like_registres(void) {
     assert(strcmp(read_file(OUT), "ptrs-entité: " SRC "/e.h:6:    void **items;\n"
                                   "ptrs-entité: " SRC "/e.h:7:    void *slots[8];\n"
                                   "ptrs-entité: " SRC "/e.h:8:    reg17_t l;\n"
-                                  "ptrs-entité: " SRC "/e.h:9:    pico8_" "ptrs_t arr[4];\n"
-                                  "ptrs-entité: " SRC "/e.h:10:    pico8_" "ptrs_t **pp;\n"
-                                  "ptrs-entité: " SRC "/e.h:11:    pico8_" "ptrs_t *a, *b;\n"
-                                  "ptrs-entité: " SRC "/e.h:12:    const pico8_" "ptrs_t *const x;\n"
+                                  "ptrs-entité: " SRC "/e.h:9:    pointer_" "list_t arr[4];\n"
+                                  "ptrs-entité: " SRC "/e.h:10:    pointer_" "list_t **pp;\n"
+                                  "ptrs-entité: " SRC "/e.h:11:    pointer_" "list_t *a, *b;\n"
+                                  "ptrs-entité: " SRC "/e.h:12:    const pointer_" "list_t *const x;\n"
                                   "ptrs-entité: " SRC "/e.h:13:    void *(*get)(void);\n"
                                   "ptrs-entité: " SRC "/e.h:14:    _Alignas(8) void **al;\n"
-                                  "ptrs-entité: " SRC "/e.h:16:    pico8_" "ptrs_t *jy, *other_jy;\n"
-                                  "ptrs-entité: " SRC "/e.h:17:    pico8_" "ptrs_t (*mk)(void);\n"
+                                  "ptrs-entité: " SRC "/e.h:16:    pointer_" "list_t *jy, *other_jy;\n"
+                                  "ptrs-entité: " SRC "/e.h:17:    pointer_" "list_t (*mk)(void);\n"
                                   "ptrs-entité: " SRC "/e.h:18:    _Alignas (8) void **al2;\n"
                                   "ptrs-entité: " SRC "/e.h:23:    void **more;\n"
                                   "résidu gardé (ptrs-entité) : 13 ligne(s)\n") == 0);
@@ -413,11 +413,11 @@ static void test_readers_see_qualifiers_split_declarations_and_nested_attributes
                            "    volatile void **q2;\n"
                            "    void * volatile *q3;\n"
                            "    int k2; void **items;\n"
-                           "    pico8_" "ptrs_t *jy; pico8_" "ptrs_t *hidden;\n"
+                           "    pointer_" "list_t *jy; pointer_" "list_t *hidden;\n"
                            "    void **d1; void **d2;\n"
                            "    void **\n"
                            "        split;\n"
-                           "    pico8_" "ptrs_t\n"
+                           "    pointer_" "list_t\n"
                            "        *next_line;\n"
                            "    void **nested __attribute__((aligned(sizeof(int))));\n"
                            "    _Alignas(sizeof(int)) void **al;\n"
@@ -434,7 +434,7 @@ static void test_readers_see_qualifiers_split_declarations_and_nested_attributes
                            "} pico8_" "jo_t;\n");
     write_file(SRC "/f.c", "static void const *g_c[4];\n"
                            "static const char **g_names;\n"
-                           "static pico8_" "ptrs_t pico8_" "jp_ptrs; static pico8_" "ptrs_t g_second;\n");
+                           "static pointer_" "list_t collect_" "filter_pointer_list; static pointer_" "list_t g_second;\n");
     write_file(SRC "/f.h", "void const **pico8_" "reg_c(void);\n"
                            "void *volatile *pico8_" "reg_v(void);\n"
                            "const char **pico8_" "names(void);\n");
@@ -443,10 +443,10 @@ static void test_readers_see_qualifiers_split_declarations_and_nested_attributes
                                   "ptrs-entité: " SRC "/e.h:7:    volatile void **q2;\n"
                                   "ptrs-entité: " SRC "/e.h:8:    void * volatile *q3;\n"
                                   "ptrs-entité: " SRC "/e.h:9:    int k2; void **items;\n"
-                                  "ptrs-entité: " SRC "/e.h:10:    pico8_" "ptrs_t *jy; pico8_" "ptrs_t *hidden;\n"
+                                  "ptrs-entité: " SRC "/e.h:10:    pointer_" "list_t *jy; pointer_" "list_t *hidden;\n"
                                   "ptrs-entité: " SRC "/e.h:11:    void **d1; void **d2;\n"
                                   "ptrs-entité: " SRC "/e.h:12:    void **\n"
-                                  "ptrs-entité: " SRC "/e.h:14:    pico8_" "ptrs_t\n"
+                                  "ptrs-entité: " SRC "/e.h:14:    pointer_" "list_t\n"
                                   "ptrs-entité: " SRC "/e.h:16:    void **nested __attribute__((aligned(sizeof(int))));\n"
                                   "ptrs-entité: " SRC "/e.h:17:    _Alignas(sizeof(int)) void **al;\n"
                                   "registres: " SRC "/f.c:1:static void const *g_c[4];\n"
@@ -462,15 +462,15 @@ static void test_registres_sees_split_braces_unions_and_attributes(void) {
     setup();
     write_file(SRC "/f.h", "typedef struct reg_s\n"
                            "{\n"
-                           "    pico8_" "ptrs_t l;\n"
+                           "    pointer_" "list_t l;\n"
                            "} reg_s_t;\n"
                            "typedef union {\n"
-                           "    pico8_" "ptrs_t l;\n"
+                           "    pointer_" "list_t l;\n"
                            "    int x;\n"
                            "} reg_u_t;\n"
-                           "typedef union { pico8_" "ptrs_t l; } reg_u1_t;\n"
+                           "typedef union { pointer_" "list_t l; } reg_u1_t;\n"
                            "typedef struct __attribute__((packed)) {\n"
-                           "    pico8_" "ptrs_t l;\n"
+                           "    pointer_" "list_t l;\n"
                            "} reg_p_t;\n"
                            "struct __attribute__((aligned(8))) reg_q {\n"
                            "    void **items __attribute__((aligned(8)));\n"
@@ -478,44 +478,44 @@ static void test_registres_sees_split_braces_unions_and_attributes(void) {
                            "typedef struct {\n"
                            "    _Alignas(8) void **items;\n"
                            "    union {\n"
-                           "        pico8_" "ptrs_t l;\n"
+                           "        pointer_" "list_t l;\n"
                            "    } inner;\n"
                            "} reg_a_t;\n");
-    write_file(SRC "/f.c", "_Alignas(8) static pico8_" "ptrs_t g_al;\n"
+    write_file(SRC "/f.c", "_Alignas(8) static pointer_" "list_t g_al;\n"
                            "_Alignas(8) static void *g_slots[8];\n"
                            "static union {\n"
-                           "    pico8_" "ptrs_t l;\n"
+                           "    pointer_" "list_t l;\n"
                            "} g_u;\n"
                            "static struct\n"
                            "{\n"
-                           "    pico8_" "ptrs_t l;\n"
+                           "    pointer_" "list_t l;\n"
                            "} g_s;\n"
                            "_Alignas(8) static struct {\n"
-                           "    pico8_" "ptrs_t l;\n"
+                           "    pointer_" "list_t l;\n"
                            "} g_as;\n"
                            "static void reg_f(void) {\n"
                            "    static union {\n"
-                           "        pico8_" "ptrs_t l;\n"
+                           "        pointer_" "list_t l;\n"
                            "    } u;\n"
                            "    static struct\n"
                            "    {\n"
-                           "        pico8_" "ptrs_t l;\n"
+                           "        pointer_" "list_t l;\n"
                            "    } s;\n"
                            "    (void)u;\n"
                            "    (void)s;\n"
                            "}\n");
     assert(run_residue("--check registres " TREE) == 1);
-    assert(strcmp(read_file(OUT), "registres: " SRC "/f.c:1:_Alignas(8) static pico8_" "ptrs_t g_al;\n"
+    assert(strcmp(read_file(OUT), "registres: " SRC "/f.c:1:_Alignas(8) static pointer_" "list_t g_al;\n"
                                   "registres: " SRC "/f.c:2:_Alignas(8) static void *g_slots[8];\n"
-                                  "registres: " SRC "/f.c:4:    pico8_" "ptrs_t l;\n"
-                                  "registres: " SRC "/f.c:8:    pico8_" "ptrs_t l;\n"
-                                  "registres: " SRC "/f.c:11:    pico8_" "ptrs_t l;\n"
-                                  "registres: " SRC "/f.c:15:        pico8_" "ptrs_t l;\n"
-                                  "registres: " SRC "/f.c:19:        pico8_" "ptrs_t l;\n"
-                                  "registres: " SRC "/f.h:3:    pico8_" "ptrs_t l;\n"
-                                  "registres: " SRC "/f.h:6:    pico8_" "ptrs_t l;\n"
-                                  "registres: " SRC "/f.h:9:typedef union { pico8_" "ptrs_t l; } reg_u1_t;\n"
-                                  "registres: " SRC "/f.h:11:    pico8_" "ptrs_t l;\n"
+                                  "registres: " SRC "/f.c:4:    pointer_" "list_t l;\n"
+                                  "registres: " SRC "/f.c:8:    pointer_" "list_t l;\n"
+                                  "registres: " SRC "/f.c:11:    pointer_" "list_t l;\n"
+                                  "registres: " SRC "/f.c:15:        pointer_" "list_t l;\n"
+                                  "registres: " SRC "/f.c:19:        pointer_" "list_t l;\n"
+                                  "registres: " SRC "/f.h:3:    pointer_" "list_t l;\n"
+                                  "registres: " SRC "/f.h:6:    pointer_" "list_t l;\n"
+                                  "registres: " SRC "/f.h:9:typedef union { pointer_" "list_t l; } reg_u1_t;\n"
+                                  "registres: " SRC "/f.h:11:    pointer_" "list_t l;\n"
                                   "registres: " SRC "/f.h:14:    void **items __attribute__((aligned(8)));\n"
                                   "registres: " SRC "/f.h:17:    _Alignas(8) void **items;\n"
                                   "résidu gardé (registres) : 13 ligne(s)\n") == 0);
@@ -535,11 +535,11 @@ static void test_void_ptr_reads_joined_public_prototypes(void) {
     setup();
     write_file(SRC "/v.h", "void pico8_" "ei_dispatch(void *" "self, int x);\n"
                            "int pico8_jo_get" "_fold_anchor(const void *" "self);\n"
-                           "pico8_ptrs_t pico8_" "jp_ptrs(int a, void *ctx);\n"
+                           "pointer_list_t collect_" "filter_pointer_list(int a, void *ctx);\n"
                            "void pico8_" "gn(int a, void *r_ctx);\n"
                            "typedef int pico8_" "fn(void *e);\n"
                            "typedef struct {\n    void (*kj)(void *" "self, int x);\n    void *(*new_entity)(void *k);\n} k_t;\n");
-    write_file(SRC "/engine/pointer_list.h", "void pico8_" "ptrs_add(pico8_ptrs_t *p, void *e);\n");
+    write_file(SRC "/engine/pointer_list.h", "void pointer_" "list_add(pointer_list_t *p, void *e);\n");
     write_file(SRC "/p.c", "void pico8_" "x(void *e);\n");
     write_file(SRC "/i.h", "static inline int f(int x) {\nreturn pico8_" "g((void *)0) + x;\n}\n");
     assert(run_residue(TREE) == 0);

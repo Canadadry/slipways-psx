@@ -1,5 +1,5 @@
-#ifndef PICO8_ENTS_H
-#define PICO8_ENTS_H
+#ifndef ENGINE_ENTITY_LIST_H
+#define ENGINE_ENTITY_LIST_H
 
 #include "engine/entity_class.h"
 #include "engine/allocator.h"
@@ -10,43 +10,43 @@ typedef struct {
     entity_t **items;
     int count;
     int capacity;
-    const pico8_zone_choisie_t *zone;
-} pico8_ents_t;
+    const allocator_t *zone;
+} entity_list_t;
 
 /* `zone` must outlive `ents`. */
-void pico8_ents_init(pico8_ents_t *ents, const pico8_zone_choisie_t *zone);
+void entity_list_init(entity_list_t *entity_list, const allocator_t *zone);
 /* Takes `items` for `capacity` elements from `zone` at once (0 takes nothing);
  * adding past it grows through `zone` as usual. */
-void pico8_ents_init_reserve(pico8_ents_t *ents, const pico8_zone_choisie_t *zone, int capacity);
+void entity_list_init_reserve(entity_list_t *entity_list, const allocator_t *zone, int capacity);
 /* Gives `items` back to the zone and leaves `ents` empty, same zone. */
-void pico8_ents_free(pico8_ents_t *ents);
+void entity_list_free(entity_list_t *entity_list);
 /* Count back to 0; `items`, its capacity and the zone stay, so later adds
  * reuse them. Gives nothing back to the zone. */
-void pico8_ents_clear(pico8_ents_t *ents);
-void pico8_ents_add(pico8_ents_t *ents, entity_t *e);
+void entity_list_clear(entity_list_t *entity_list);
+void entity_list_add(entity_list_t *entity_list, entity_t *e);
 /* Removes the FIRST element identical to `e`; 1 if one was removed. */
-int pico8_ents_del(pico8_ents_t *ents, const entity_t *e);
+int entity_list_del(entity_list_t *entity_list, const entity_t *e);
 /* 1 if `e` is an element (pointer identity); `ents` NULL holds nothing. */
-int pico8_ents_has(const pico8_ents_t *ents, const entity_t *e);
+int entity_list_has(const entity_list_t *entity_list, const entity_t *e);
 /* A fresh list in `zone`: `a` then `b`; the caller releases it with
  * pico8_ents_free(). */
-pico8_ents_t pico8_ents_cat(const pico8_zone_choisie_t *zone, const pico8_ents_t *a,
-                            const pico8_ents_t *b);
+entity_list_t entity_list_concat(const allocator_t *zone, const entity_list_t *a,
+                            const entity_list_t *b);
 
 /* As pico8_jp_ptrs: a fresh list in `zone` of the elements `ow` keeps, in
  * order; the caller releases it with pico8_ents_free(). A NULL `qk` gives an
  * empty list. */
-typedef int (*pico8_jp_ents_predicate_fn)(entity_t *e, void *ctx);
-pico8_ents_t pico8_jp_ents(const pico8_zone_choisie_t *zone, const pico8_ents_t *qk,
-                           pico8_jp_ents_predicate_fn ow, void *ctx);
+typedef int (*filter_entity_list_predicate_fn_t)(entity_t *e, void *ctx);
+entity_list_t entity_list_filter(const allocator_t *zone, const entity_list_t *qk,
+                           filter_entity_list_predicate_fn_t ow, void *ctx);
 
 /* As pico8_ptrs_iter_t. */
 typedef struct {
-    const pico8_ents_t *ents;
+    const entity_list_t *entity_list;
     int index;
     int last_count;
-} pico8_ents_iter_t;
-pico8_ents_iter_t pico8_ents_all(const pico8_ents_t *ents);
-int pico8_ents_iter_next(pico8_ents_iter_t *iter, entity_t **out);
+} entity_list_iter_t;
+entity_list_iter_t entity_list_all(const entity_list_t *entity_list);
+int entity_list_iter_next(entity_list_iter_t *iter, entity_t **out);
 
 #endif

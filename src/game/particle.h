@@ -18,10 +18,10 @@
  * it takes it out of `qy`, or pico8_qy_rendre with its list. `has_a` is 0 for
  * `g_`'s particles, whose `a` is absent and never read. */
 typedef struct pico8_qy {
-    pico8_vec_t p;
-    pico8_vec_t v;
+    vec_t p;
+    vec_t v;
     int has_a;
-    pico8_vec_t a;
+    vec_t a;
     p8_fixed_t l;
 } pico8_qy_t;
 
@@ -41,7 +41,7 @@ typedef struct pico8_emitter {
     p8_fixed_t ro;
     p8_fixed_t qg;
     p8_fixed_t q_;
-    pico8_ptrs_t *qy;
+    pointer_list_t *qy;
     pico8_particules_sorte_t qy_sorte; /* meaningless while `qy` is NULL */
 } pico8_emitter_t;
 
@@ -58,7 +58,7 @@ pico8_qy_t *pico8_particule_prendre(void);
 /* A fresh place of the `ga` sort, as an arena: the burst puts its struct,
  * its `oe` and its `ra` box there, and its `rendre` gives it back by
  * pico8_zone_arene_rendre. */
-const pico8_zone_choisie_t *pico8_ga_place_prendre(void);
+const allocator_t *pico8_ga_place_prendre(void);
 
 /* Gives back each particle still in `emitter->qy` to the `particule`
  * handle, then the list's arena, and leaves `emitter->qy` NULL; nothing
@@ -78,6 +78,6 @@ void pico8_ei(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self);
 
 /* `ra` is never read: `ei` declares only `self`, so Lua drops the
  * `entity.ra` argument `dc()` passes. */
-void pico8_ei_dispatch(entity_t *self, const pico8_vec_t *ra);
+void pico8_ei_dispatch(entity_t *self, const vec_t *ra);
 
 #endif

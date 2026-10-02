@@ -18,7 +18,7 @@ typedef struct {
 
 /* The state is taken from `zone` and lives as long as it: nothing to
  * release. */
-pico8_jf_state_t *pico8_jf(const pico8_zone_choisie_t *zone, p8_fixed_t n_, p8_fixed_t b);
+pico8_jf_state_t *pico8_jf(const allocator_t *zone, p8_fixed_t n_, p8_fixed_t b);
 p8_fixed_t pico8_jf_next(pico8_jf_state_t *state);
 
 /* `gn`'s third argument is a zero-argument Lua closure: a function pointer
@@ -44,7 +44,7 @@ typedef struct {
  * `hr`. The state is taken from `zone` and lives as long as it, nothing to
  * release; `hr` and `r_ctx` must live at least as long as the state.
  * pico8_gn_next hands back one of `hr`'s entries. */
-pico8_gn_state_t *pico8_gn(const pico8_zone_choisie_t *zone, const pico8_df_entry_t *hr, int hr_count,
+pico8_gn_state_t *pico8_gn(const allocator_t *zone, const pico8_df_entry_t *hr, int hr_count,
                            p8_fixed_t og, pico8_gn_random_fn r, void *r_ctx);
 const pico8_df_entry_t *pico8_gn_next(pico8_gn_state_t *state);
 

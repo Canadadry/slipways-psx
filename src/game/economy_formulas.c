@@ -50,9 +50,9 @@ void pico8_cm(pico8_qe_map_t *out, p8_fixed_t jm) {
     }
 }
 
-p8_fixed_t pico8_dj(pico8_vec_t pb_p, pico8_vec_t to_p) {
-    pico8_vec_t diff = pico8_vec_sub(to_p, pb_p);
-    p8_fixed_t len_sq = pico8_vec_len_sq(diff);
+p8_fixed_t pico8_dj(vec_t pb_p, vec_t to_p) {
+    vec_t diff = vec_sub(to_p, pb_p);
+    p8_fixed_t len_sq = vec_length_squared(diff);
     p8_fixed_t x = p8_fixed_div(len_sq, pico8_bq());
     p8_fixed_t ec = p8_fixed_pow075(x);
     p8_fixed_t clamped = fixed_max(P8_FIXED_LIT(0x00008000, 0.5), ec);
@@ -62,7 +62,7 @@ p8_fixed_t pico8_dj(pico8_vec_t pb_p, pico8_vec_t to_p) {
 }
 
 p8_fixed_t pico8_bk(void) {
-    const pico8_ents_t *jc = pico8_cg("slipway");
+    const entity_list_t *jc = entities_by_tag("slipway");
     int count = (jc != NULL) ? jc->count : 0;
     p8_fixed_t sq = p8_fixed_sqrt(p8_fixed_from_int(count));
     p8_fixed_t val = p8_fixed_sub(p8_fixed_mul(sq, P8_FIXED_LIT(0x0000451e, 0.27)), P8_FIXED_LIT(0x00001999, 0.1));

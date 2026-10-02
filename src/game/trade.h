@@ -9,8 +9,8 @@
 /* `lp`/`rl` are the containers the keys held, borrowed, not copied. */
 typedef struct {
     entity_t header;
-    pico8_ents_t *lp;
-    pico8_ents_t *rl;
+    entity_list_t *lp;
+    entity_list_t *rl;
     p8_fixed_t qe;
     int has_qe;     /* 0: `qe` is nil, and `qe` is then never read */
     int qe_is_bool; /* 1: `qe` holds a boolean (0/1), 0: a fixed; read only when `has_qe` */
@@ -44,20 +44,20 @@ int pico8_qe_equal(pico8_qe_t a, pico8_qe_t b);
 /* The keys of `pico8_trade_new`: `lp`/`rl` NULL are nil, kept as given;
  * `has_qe`, `qe_is_bool`, `qe` as in `pico8_trade_t`, all 0 for a nil `qe`. */
 typedef struct {
-    pico8_ents_t *lp;
-    pico8_ents_t *rl;
+    entity_list_t *lp;
+    entity_list_t *rl;
     p8_fixed_t qe;
     int has_qe;
     int qe_is_bool;
 } pico8_trade_keys_t;
 
 /* The struct is made in `zone`; `keys` NULL means none: every member nil. */
-pico8_trade_t *pico8_trade_new(const pico8_zone_choisie_t *zone, const pico8_trade_keys_t *keys);
+pico8_trade_t *pico8_trade_new(const allocator_t *zone, const pico8_trade_keys_t *keys);
 
 /* A copy made wholly in `zone`: struct, `lp`, `rl` and their items are new,
  * so it shares nothing with `self` and outlives it. A nil `lp`/`rl` stays
  * nil; NULL for a NULL self. */
-pico8_trade_t *pico8_trade_copy(const pico8_zone_choisie_t *zone, const pico8_trade_t *self);
+pico8_trade_t *pico8_trade_copy(const allocator_t *zone, const pico8_trade_t *self);
 
 /* `qe` as the cart compares it: nil for a nil `qe` or a NULL self, false
  * only as `kg` writes it (TROU-24); a true `qe` stops the run. */
@@ -71,7 +71,7 @@ int pico8_trade_to(const pico8_trade_t *self, entity_t **out);
  * NULL self.
  * A nil "lp"/"rl" on self reads as an empty list, a nil "qe" as false
  * (TROU-24). A NULL `np`/`jc` is nil: it contributes nothing to "lp"/"rl". */
-pico8_trade_t *pico8_trade_kg(const pico8_zone_choisie_t *zone, const pico8_trade_t *self,
+pico8_trade_t *pico8_trade_kg(const allocator_t *zone, const pico8_trade_t *self,
                               entity_t *np, entity_t *jc);
 
 /* Two trades are equal iff they start (`lp[1]`) and end (`:to()`) at the

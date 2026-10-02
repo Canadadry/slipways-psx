@@ -32,9 +32,9 @@ void pico8_bw(p8_fixed_t n) {
     pico8_jf_state_t *ir_state;
 
     for (id = one; id <= n; id = p8_fixed_add(id, one)) {
-        pico8_vec_t p_vec;
-        pico8_vec_t *p_box;
-        pico8_vec_t *ra_box;
+        vec_t p_vec;
+        vec_t *p_box;
+        vec_t *ra_box;
         entity_t *nearest;
         char *id_num_str;
         char *id_str;
@@ -48,16 +48,16 @@ void pico8_bw(p8_fixed_t n) {
         do {
             p8_fixed_t rx = p8_fixed_add(p8_fixed_rnd(two_seventy_five), eighth);
             p8_fixed_t ry = p8_fixed_add(p8_fixed_rnd(two_seventy_five), eighth);
-            p_vec = pico8_vec_v(rx, ry);
-        } while (pico8_ij_ents(p_vec, pico8_cg("planet"), &nearest) <= threshold);
+            p_vec = vec_make(rx, ry);
+        } while (entity_geom_nearest(p_vec, entities_by_tag("planet"), &nearest) <= threshold);
 
-        p_box = (pico8_vec_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *p_box);
+        p_box = (vec_t *)allocator_alloc(game_zone(), sizeof *p_box);
         *p_box = p_vec;
-        ra_box = (pico8_vec_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *ra_box);
-        *ra_box = pico8_vec_mul(p_vec, p8_fixed_from_int(128));
+        ra_box = (vec_t *)allocator_alloc(game_zone(), sizeof *ra_box);
+        *ra_box = vec_mul(p_vec, p8_fixed_from_int(128));
 
-        id_num_str = p8_tostr_fixed(pico8_zone_frame(), id);
-        id_str = p8_concat2(pico8_zone_partie(), "p", id_num_str);
+        id_num_str = p8_tostr_fixed(frame_zone(), id);
+        id_str = p8_concat2(game_zone(), "p", id_num_str);
 
         keys.planet_id = id_str;
         keys.map_pos = p_box;
@@ -75,11 +75,11 @@ void pico8_bw(p8_fixed_t n) {
         dk_en = dk->en;
     }
 
-    oc_r_ctx = pico8_jf(pico8_zone_partie(), P8_FIXED_LIT(0x00008000, 0.5), dk_en);
-    oc_state = pico8_gn(pico8_zone_partie(), pico8_df_table, PICO8_DF_COUNT, p8_fixed_from_int(2), pico8_bw_gn_r,
+    oc_r_ctx = pico8_jf(game_zone(), P8_FIXED_LIT(0x00008000, 0.5), dk_en);
+    oc_state = pico8_gn(game_zone(), pico8_df_table, PICO8_DF_COUNT, p8_fixed_from_int(2), pico8_bw_gn_r,
                         oc_r_ctx);
     pico8_jo_set_oc(oc_state);
 
-    ir_state = pico8_jf(pico8_zone_partie(), P8_FIXED_LIT(0x0000cccc, 0.8), P8_FIXED_LIT(0x00008000, 0.5));
+    ir_state = pico8_jf(game_zone(), P8_FIXED_LIT(0x0000cccc, 0.8), P8_FIXED_LIT(0x00008000, 0.5));
     pico8_jo_set_ir(ir_state);
 }

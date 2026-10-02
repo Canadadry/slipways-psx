@@ -5,64 +5,64 @@
 
 #include "p8/str.h"
 
-pico8_ptrs_t pico8_jp_ptrs(const pico8_zone_choisie_t *zone, const pico8_ptrs_t *qk,
-                           pico8_jp_ptrs_predicate_fn ow, void *ctx) {
-    pico8_ptrs_t f;
-    pico8_ptrs_iter_t it;
+pointer_list_t collect_filter_pointer_list(const allocator_t *zone, const pointer_list_t *qk,
+                           filter_pointer_list_predicate_fn_t ow, void *ctx) {
+    pointer_list_t f;
+    pointer_list_iter_t it;
     void *e;
-    pico8_ptrs_init(&f, zone);
+    pointer_list_init(&f, zone);
     if (qk == NULL) {
         return f;
     }
-    it = pico8_ptrs_all(qk);
-    while (pico8_ptrs_iter_next(&it, &e)) {
+    it = pointer_list_all(qk);
+    while (pointer_list_iter_next(&it, &e)) {
         if (ow(e, ctx)) {
-            pico8_ptrs_add(&f, e);
+            pointer_list_add(&f, e);
         }
     }
     return f;
 }
 
-pico8_ptrs_t pico8_nv_ptrs(const pico8_zone_choisie_t *zone, const pico8_ptrs_t *qk,
-                           pico8_nv_ptrs_fn kp, void *ctx) {
-    pico8_ptrs_t m;
-    pico8_ptrs_iter_t it;
+pointer_list_t collect_map_pointer_list(const allocator_t *zone, const pointer_list_t *qk,
+                           map_pointer_list_fn_t kp, void *ctx) {
+    pointer_list_t m;
+    pointer_list_iter_t it;
     void *e;
     assert(qk != NULL && "nv: a NULL list is not tolerated here, unlike gu and jp");
-    pico8_ptrs_init(&m, zone);
-    it = pico8_ptrs_all(qk);
-    while (pico8_ptrs_iter_next(&it, &e)) {
+    pointer_list_init(&m, zone);
+    it = pointer_list_all(qk);
+    while (pointer_list_iter_next(&it, &e)) {
         void *v;
         if (kp(e, ctx, &v)) {
-            pico8_ptrs_add(&m, v);
+            pointer_list_add(&m, v);
         }
     }
     return m;
 }
 
-static void pico8_la_ptrs_append(void *e, void *ctx) {
-    pico8_ptrs_add(ctx, e);
+static void append_pointer_list(void *e, void *ctx) {
+    pointer_list_add(ctx, e);
 }
 
-pico8_ptrs_t pico8_la_ptrs(const pico8_zone_choisie_t *zone, const pico8_ptrs_t *a,
-                           const pico8_ptrs_t *b) {
-    pico8_ptrs_t t;
+pointer_list_t collect_concat_pointer_list(const allocator_t *zone, const pointer_list_t *a,
+                           const pointer_list_t *b) {
+    pointer_list_t t;
     assert(a != NULL && b != NULL && "la: a NULL list is not tolerated here, unlike gu and jp");
-    pico8_ptrs_init(&t, zone);
-    pico8_ptrs_foreach(a, pico8_la_ptrs_append, &t);
-    pico8_ptrs_foreach(b, pico8_la_ptrs_append, &t);
+    pointer_list_init(&t, zone);
+    pointer_list_foreach(a, append_pointer_list, &t);
+    pointer_list_foreach(b, append_pointer_list, &t);
     return t;
 }
 
 /* TROU-3 */
-int pico8_gu_content_ptrs(const pico8_ptrs_t *qk, const char *kb) {
-    pico8_ptrs_iter_t it;
+int collect_contains_string(const pointer_list_t *qk, const char *kb) {
+    pointer_list_iter_t it;
     void *e;
     if (qk == NULL) {
         return 0;
     }
-    it = pico8_ptrs_all(qk);
-    while (pico8_ptrs_iter_next(&it, &e)) {
+    it = pointer_list_all(qk);
+    while (pointer_list_iter_next(&it, &e)) {
         if (e != NULL && strcmp(e, kb) == 0) {
             return 1;
         }
@@ -70,7 +70,7 @@ int pico8_gu_content_ptrs(const pico8_ptrs_t *qk, const char *kb) {
     return 0;
 }
 
-char *pico8_ne(const pico8_zone_choisie_t *zone, p8_fixed_t d, int c, const char *ku,
+char *collect_format_signed(const allocator_t *zone, p8_fixed_t d, int c, const char *ku,
                int *out_color) {
     char *num_str = p8_tostr_fixed(zone, d);
     const char *suffix = ku != NULL ? ku : "";
@@ -82,16 +82,16 @@ char *pico8_ne(const pico8_zone_choisie_t *zone, p8_fixed_t d, int c, const char
     if (d >= 0) {
         *out_color = c;
         prefix_len = 1 + strlen(num_str);
-        result = (char *)pico8_zone_alloc(zone, prefix_len + strlen(suffix) + 1);
+        result = (char *)allocator_alloc(zone, prefix_len + strlen(suffix) + 1);
         result[0] = '+';
         memcpy(result + 1, num_str, strlen(num_str) + 1);
     } else {
         *out_color = 8;
         prefix_len = strlen(num_str);
-        result = (char *)pico8_zone_alloc(zone, prefix_len + strlen(suffix) + 1);
+        result = (char *)allocator_alloc(zone, prefix_len + strlen(suffix) + 1);
         memcpy(result, num_str, strlen(num_str) + 1);
     }
     strcat(result, suffix);
-    pico8_zone_release(zone, (unsigned char *)num_str);
+    allocator_release(zone, (unsigned char *)num_str);
     return result;
 }

@@ -38,13 +38,13 @@ static void assert_jo_tail(const pico8_jo_t *jo, const pico8_jo_def_t *def) {
     assert(jo->mi == def->mi && jo->has_mi == def->has_mi);
 }
 
-static void assert_box(const pico8_qz_box_t *kq, int xl, int yt, int xr, int yb) {
-    assert(kq->xl == p8_fixed_from_int(xl) && kq->yt == p8_fixed_from_int(yt) &&
-           kq->xr == p8_fixed_from_int(xr) && kq->yb == p8_fixed_from_int(yb));
+static void assert_box(const box_t *kq, int xl, int yt, int xr, int yb) {
+    assert(kq->left == p8_fixed_from_int(xl) && kq->top == p8_fixed_from_int(yt) &&
+           kq->right == p8_fixed_from_int(xr) && kq->bottom == p8_fixed_from_int(yb));
 }
 
 /* jo's box, which ga and nr replace. */
-static void assert_jo_box(const pico8_qz_box_t *kq) {
+static void assert_jo_box(const box_t *kq) {
     assert_box(kq, -7, -7, 7, 7);
 }
 
@@ -207,9 +207,9 @@ static void test_mx_defaults(void) {
 /* The second `jl()` (the one `eu` runs) finds `ke` ready and leaves it
  * alone: a fresh struct of each module still holds `t` 0. */
 static void test_second_jl_keeps_ke(void) {
-    assert(pico8_ke_ready());
-    pico8_jl();
-    assert(pico8_ke_ready());
+    assert(entity_ready());
+    reset_world();
+    assert(entity_ready());
     assert(pico8_jo_new(NULL)->header.state_time == 0);
     assert(pico8_qh_new(NULL)->header.state_time == 0);
     assert(pico8_nl_new(NULL)->header.state_time == 0);
@@ -228,9 +228,9 @@ int main(void) {
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(p8_load_map_json(&mem, "pico8/map.json"));
     p8_input_init(&input);
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
 
     assert(!pico8_jo_ready());
     assert(!pico8_qh_ready());
@@ -243,7 +243,7 @@ int main(void) {
     assert(!pico8_fr_ready());
     assert(!pico8_mx_ready());
     pico8_cart_load();
-    pico8_jl();
+    reset_world();
 
     test_second_jl_keeps_ke();
     test_jo_defaults();
@@ -272,9 +272,9 @@ int main(void) {
     assert(pico8_jo_ready());
     pico8_jo_shutdown();
     assert(!pico8_jo_ready());
-    assert(pico8_ke_ready());
-    pico8_ke_shutdown();
-    assert(!pico8_ke_ready());
+    assert(entity_ready());
+    entity_shutdown();
+    assert(!entity_ready());
 
     printf("test_pico8_jo_spec_defaults: all tests passed\n");
     return 0;

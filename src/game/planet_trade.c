@@ -14,15 +14,15 @@
 /* Membership by trade equality (same endpoints), not pico8_ents_has's pointer
  * identity: every candidate offered here is a freshly built route, which
  * identity would never match. NULL-safe on `list`. */
-static int gu_trade(const pico8_ents_t *list, const pico8_trade_t *v) {
-    pico8_ents_iter_t it;
+static int gu_trade(const entity_list_t *list, const pico8_trade_t *v) {
+    entity_list_iter_t it;
     entity_t *e;
 
     if (list == NULL) {
         return 0;
     }
-    it = pico8_ents_all(list);
-    while (pico8_ents_iter_next(&it, &e)) {
+    it = entity_list_all(list);
+    while (entity_list_iter_next(&it, &e)) {
         if (pico8_trade_eq((const pico8_trade_t *)e, v)) {
             return 1;
         }
@@ -35,15 +35,15 @@ static void pico8_jo_ib_kf_closure(pico8_jo_trade_proposal_t *self, pico8_trade_
         return;
     }
     if (!gu_trade(self->ib, a)) {
-        assert(self->ib->zone == pico8_zone_partie() &&
+        assert(self->ib->zone == game_zone() &&
                "jo:ib: a kept route is copied into the generation; a list of another zone would outlive it");
-        pico8_ents_add(self->ib, &pico8_trade_copy(pico8_zone_partie(), a)->header);
+        entity_list_add(self->ib, &pico8_trade_copy(game_zone(), a)->header);
         self->mu -= p8_fixed_from_int(1);
     }
 }
 
 void pico8_jo_kf(pico8_jo_t *self, entity_t *sw) {
-    pico8_ents_t *oe = NULL;
+    entity_list_t *oe = NULL;
     entity_t *other = NULL;
 
     if (self == NULL) {
@@ -52,7 +52,7 @@ void pico8_jo_kf(pico8_jo_t *self, entity_t *sw) {
 
     oe = self->oe;
     if (oe != NULL) {
-        pico8_ents_add(oe, sw);
+        entity_list_add(oe, sw);
     }
 
     if (sw != NULL) {
@@ -77,8 +77,8 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
     int have_r_q;
     pico8_trade_t *t;
     pico8_qe_t t_qe = {.kind = PICO8_QE_NIL};
-    pico8_ptrs_t *jy = NULL;
-    pico8_ptrs_iter_t it;
+    pointer_list_t *jy = NULL;
+    pointer_list_iter_t it;
     void *e;
 
     if (self == NULL || lw == NULL) {
@@ -101,8 +101,8 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
     jy = self->jy;
 
     if (have_r_e && pico8_qe_equal(t_qe, r_e) && !self->has_jh) {
-        it = pico8_ptrs_all(jy);
-        while (pico8_ptrs_iter_next(&it, &e)) {
+        it = pointer_list_all(jy);
+        while (pointer_list_iter_next(&it, &e)) {
             if (e != NULL) {
                 const pico8_jy_t *i = e;
                 p8_fixed_t gc = i->has_gc ? i->gc : p8_fixed_from_int(0);
@@ -110,7 +110,7 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
 
                 qe_is_r_q = have_r_q && pico8_qe_equal(pico8_jy_qe(i), r_q);
                 if (gc == p8_fixed_from_int(0) && !qe_is_r_q) {
-                    pico8_ptrs_del(jy, e);
+                    pointer_list_del(jy, e);
                     break;
                 }
             }
@@ -118,16 +118,16 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
 
         {
             p8_fixed_t e_qe = r_e.n;
-            pico8_jy_t *fresh = pico8_jy_new(pico8_zone_partie(), &e_qe);
-            pico8_ptrs_t prefix;
-            pico8_ptrs_t merged;
-            pico8_ptrs_t *merged_own;
+            pico8_jy_t *fresh = pico8_jy_new(game_zone(), &e_qe);
+            pointer_list_t prefix;
+            pointer_list_t merged;
+            pointer_list_t *merged_own;
 
-            pico8_ptrs_init(&prefix, pico8_zone_frame());
-            pico8_ptrs_add(&prefix, fresh);
-            merged = pico8_la_ptrs(pico8_zone_partie(), &prefix, jy);
+            pointer_list_init(&prefix, frame_zone());
+            pointer_list_add(&prefix, fresh);
+            merged = collect_concat_pointer_list(game_zone(), &prefix, jy);
 
-            merged_own = (pico8_ptrs_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *merged_own);
+            merged_own = (pointer_list_t *)allocator_alloc(game_zone(), sizeof *merged_own);
             *merged_own = merged;
             self->jy = merged_own;
             jy = merged_own;
@@ -136,8 +136,8 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
         self->has_jh = 1;
     }
 
-    it = pico8_ptrs_all(jy);
-    while (pico8_ptrs_iter_next(&it, &e)) {
+    it = pointer_list_all(jy);
+    while (pointer_list_iter_next(&it, &e)) {
         pico8_jy_t *i;
         pico8_qe_t qe_val;
 
@@ -162,7 +162,7 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
         }
 
         if (pico8_qe_equal(t_qe, qe_val) && !(have_r_q && pico8_qe_equal(qe_val, r_q))) {
-            pico8_trade_t *extended = pico8_trade_kg(pico8_zone_frame(), t, &self->header, NULL);
+            pico8_trade_t *extended = pico8_trade_kg(frame_zone(), t, &self->header, NULL);
             if (lw->kf != NULL) {
                 lw->kf(lw, extended);
             }
@@ -171,12 +171,12 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
     }
 }
 
-pico8_ents_t *pico8_jo_ib(pico8_jo_t *self) {
-    pico8_ents_t *ib;
+entity_list_t *pico8_jo_ib(pico8_jo_t *self) {
+    entity_list_t *ib;
     pico8_trade_keys_t keys = {0};
     p8_fixed_t mu = p8_fixed_from_int(0);
-    const pico8_ents_t *oe = NULL;
-    pico8_ents_iter_t it;
+    const entity_list_t *oe = NULL;
+    entity_list_iter_t it;
     entity_t *w_val;
 
     if (self == NULL) {
@@ -186,8 +186,8 @@ pico8_ents_t *pico8_jo_ib(pico8_jo_t *self) {
     if (self->by != NULL) {
         ib = self->by;
     } else {
-        ib = (pico8_ents_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *ib);
-        pico8_ents_init(ib, pico8_zone_partie());
+        ib = (entity_list_t *)allocator_alloc(game_zone(), sizeof *ib);
+        entity_list_init(ib, game_zone());
     }
 
     if (self->kw != NULL) {
@@ -200,12 +200,12 @@ pico8_ents_t *pico8_jo_ib(pico8_jo_t *self) {
 
     oe = self->oe;
 
-    it = pico8_ents_all(oe);
-    while (pico8_ents_iter_next(&it, &w_val)) {
+    it = entity_list_all(oe);
+    while (entity_list_iter_next(&it, &w_val)) {
         entity_t *w;
         pico8_jo_trade_proposal_t lw;
-        pico8_ents_t *lp_list;
-        pico8_ents_t *rl_list;
+        entity_list_t *lp_list;
+        entity_list_t *rl_list;
         entity_t *other;
 
         if (w_val == NULL) {
@@ -213,16 +213,16 @@ pico8_ents_t *pico8_jo_ib(pico8_jo_t *self) {
         }
         w = w_val;
 
-        lp_list = (pico8_ents_t *)pico8_zone_alloc(pico8_zone_frame(), sizeof *lp_list);
-        pico8_ents_init(lp_list, pico8_zone_frame());
-        pico8_ents_add(lp_list, &self->header);
-        rl_list = (pico8_ents_t *)pico8_zone_alloc(pico8_zone_frame(), sizeof *rl_list);
-        pico8_ents_init(rl_list, pico8_zone_frame());
-        pico8_ents_add(rl_list, w);
+        lp_list = (entity_list_t *)allocator_alloc(frame_zone(), sizeof *lp_list);
+        entity_list_init(lp_list, frame_zone());
+        entity_list_add(lp_list, &self->header);
+        rl_list = (entity_list_t *)allocator_alloc(frame_zone(), sizeof *rl_list);
+        entity_list_init(rl_list, frame_zone());
+        entity_list_add(rl_list, w);
 
         keys.lp = lp_list;
         keys.rl = rl_list;
-        lw.t = pico8_trade_new(pico8_zone_frame(), &keys);
+        lw.t = pico8_trade_new(frame_zone(), &keys);
         /* Recomputed each iteration: an earlier proposal's `kf` may already
          * have grown `ib`. */
         lw.mu = mu - p8_fixed_from_int(ib->count);

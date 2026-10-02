@@ -23,7 +23,7 @@ static int g_ie_up = 0;
  * counter shared by every icon, never a member. `gy` is rebound, never
  * written through: an icon's `ra`, and `eh`, may hold its REF. Only `_init`
  * resets `gy`, only pico8_research_icon_init() resets `id`. */
-static const pico8_vec_t *g_ie_gy = NULL;
+static const vec_t *g_ie_gy = NULL;
 static p8_fixed_t g_ie_id = 0;
 static int g_ie_has_id = 0;
 
@@ -94,11 +94,11 @@ void pico8_ie_hb(pico8_ie_t *self) {
     self->has_kh = 1;
 
     {
-        pico8_vec_t current =
-            g_ie_gy != NULL ? *g_ie_gy : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
-        pico8_vec_t delta = pico8_vec_v(p8_fixed_from_int(10), p8_fixed_from_int(0));
-        pico8_vec_t *box = (pico8_vec_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *box);
-        *box = pico8_vec_sub(current, delta);
+        vec_t current =
+            g_ie_gy != NULL ? *g_ie_gy : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+        vec_t delta = vec_make(p8_fixed_from_int(10), p8_fixed_from_int(0));
+        vec_t *box = (vec_t *)allocator_alloc(game_zone(), sizeof *box);
+        *box = vec_sub(current, delta);
         g_ie_gy = box;
     }
 }
@@ -129,7 +129,7 @@ down_t pico8_ie_ldown(pico8_ie_t *self) {
     /* The grab opens before `id_str` is made: the planet keeps that exact
      * pointer as its `id`, so it must live and die with the grab's arena. */
     pico8_jo_prise_ouvrir();
-    id_num_str = p8_tostr_fixed(pico8_zone_frame(), new_id);
+    id_num_str = p8_tostr_fixed(frame_zone(), new_id);
     id_str = p8_concat2(pico8_jo_zone_construction(), "s", id_num_str);
     keys.planet_id = id_str;
     keys.map_pos = NULL;
@@ -140,13 +140,13 @@ down_t pico8_ie_ldown(pico8_ie_t *self) {
     return out;
 }
 
-static down_t pico8_ie_ldown_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static down_t pico8_ie_ldown_dispatch(entity_t *self, vec_t *qa, vec_t *ra) {
     (void)qa;
     (void)ra;
     return pico8_ie_ldown((pico8_ie_t *)self);
 }
 
-void pico8_ie_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_ie_t *self, pico8_vec_t p) {
+void pico8_ie_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_ie_t *self, vec_t p) {
     pico8_ie_ke_t view;
 
     /* An icon not yet revealed by `ie:hb` draws nothing at all. */
@@ -183,14 +183,14 @@ void pico8_ie_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_ie_t *self, pico8_v
 }
 
 /* `dc("kj")` calls `qc[nt](qc,qc.ra)`, so `ra` is always `self.ra`. */
-static void pico8_ie_kj_dispatch(entity_t *self, const pico8_vec_t *ra) {
-    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    pico8_ie_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_ie_t *)self, p);
+static void pico8_ie_kj_dispatch(entity_t *self, const vec_t *ra) {
+    vec_t p = ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    pico8_ie_kj(dispatch_context_gfx(), dispatch_context_mem(), (pico8_ie_t *)self, p);
 }
 
 /* `ie.hd=gk`: a field assignment in the cart, not a method definition. */
-static int pico8_ie_hd_dispatch(entity_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
-    return pico8_gk(self, qa, ra);
+static int pico8_ie_hd_dispatch(entity_t *self, const vec_t *qa, const vec_t *ra) {
+    return entity_geom_contains_cursor(self, qa, ra);
 }
 
 static const entity_class_t g_ie_struct_class = {
@@ -201,10 +201,10 @@ static const entity_class_t g_ie_struct_class = {
 };
 
 static pico8_ie_t *pico8_ie_struct_new(const pico8_ie_keys_t *keys) {
-    pico8_ie_t *self = (pico8_ie_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *self);
+    pico8_ie_t *self = (pico8_ie_t *)allocator_alloc(game_zone(), sizeof *self);
 
     assert(g_ie_up && "pico8_research_icon_init() must run before an ie is built");
-    pico8_ke_struct_init(&self->header, &g_ie_struct_class, pico8_ie_def.me, pico8_ie_def.t);
+    entity_init_instance(&self->header, &g_ie_struct_class, pico8_ie_def.me, pico8_ie_def.t);
     self->def = &pico8_ie_def;
     self->header.layer = &self->def->fa;
     self->header.pos = &self->ra;
@@ -223,7 +223,7 @@ static pico8_ie_t *pico8_ie_struct_new(const pico8_ie_keys_t *keys) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("structure_icon");
 #endif
-    pico8_ke_struct_pq(&self->header);
+    entity_construct(&self->header);
     return self;
 }
 
@@ -255,11 +255,11 @@ pico8_ie_t *pico8_ie_new(const pico8_ie_keys_t *keys) {
     return pico8_ie_struct_new(keys);
 }
 
-const pico8_vec_t *pico8_ie_eh(void) {
+const vec_t *pico8_ie_eh(void) {
     return g_ie_up ? &pico8_ie_def.eh : NULL;
 }
 
-const pico8_vec_t *pico8_ie_gy(void) {
+const vec_t *pico8_ie_gy(void) {
     return g_ie_gy;
 }
 
@@ -271,6 +271,6 @@ int pico8_ie_id(p8_fixed_t *out) {
     return 1;
 }
 
-void pico8_ie_set_gy(const pico8_vec_t *gy) {
+void pico8_ie_set_gy(const vec_t *gy) {
     g_ie_gy = gy;
 }

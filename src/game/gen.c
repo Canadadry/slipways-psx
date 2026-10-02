@@ -6,8 +6,8 @@
 #include "game/game_data.h"
 #include "engine/allocator.h"
 
-pico8_jf_state_t *pico8_jf(const pico8_zone_choisie_t *zone, p8_fixed_t n_, p8_fixed_t b) {
-    pico8_jf_state_t *state = (pico8_jf_state_t *)pico8_zone_alloc(zone, sizeof *state);
+pico8_jf_state_t *pico8_jf(const allocator_t *zone, p8_fixed_t n_, p8_fixed_t b) {
+    pico8_jf_state_t *state = (pico8_jf_state_t *)allocator_alloc(zone, sizeof *state);
     state->n_ = n_;
     state->b = b;
     return state;
@@ -42,9 +42,9 @@ static int pico8_gn_nm_contains(const pico8_gn_state_t *state, const pico8_df_en
 
 /* `for n=1,e.r*og`: Lua runs the body floor(X) times for X>=1 and never
  * for X<1, which is what pico8_fixed_flr reproduces here. */
-pico8_gn_state_t *pico8_gn(const pico8_zone_choisie_t *zone, const pico8_df_entry_t *hr, int hr_count,
+pico8_gn_state_t *pico8_gn(const allocator_t *zone, const pico8_df_entry_t *hr, int hr_count,
                            p8_fixed_t og, pico8_gn_random_fn r, void *r_ctx) {
-    pico8_gn_state_t *state = (pico8_gn_state_t *)pico8_zone_alloc(zone, sizeof *state);
+    pico8_gn_state_t *state = (pico8_gn_state_t *)allocator_alloc(zone, sizeof *state);
     int i;
 
     state->oc_count = 0;

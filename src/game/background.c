@@ -22,45 +22,45 @@ static int pico8_bg_to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
 }
 
-static void pico8_bg_kj_dispatch(entity_t *self, const pico8_vec_t *ra) {
+static void pico8_bg_kj_dispatch(entity_t *self, const vec_t *ra) {
     (void)ra;
-    pico8_bg_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_bg_t *)self);
+    pico8_bg_kj(dispatch_context_gfx(), dispatch_context_mem(), (const pico8_bg_t *)self);
 }
 
-static down_t pico8_bg_ldown_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static down_t pico8_bg_ldown_dispatch(entity_t *self, vec_t *qa, vec_t *ra) {
     (void)qa;
     (void)ra;
     return pico8_bg_ldown((pico8_bg_t *)self);
 }
 
-static down_t pico8_bg_rdown_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static down_t pico8_bg_rdown_dispatch(entity_t *self, vec_t *qa, vec_t *ra) {
     (void)qa;
     return pico8_bg_rdown((pico8_bg_t *)self, ra);
 }
 
-static void pico8_bg_hq_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static void pico8_bg_hq_dispatch(entity_t *self, vec_t *qa, vec_t *ra) {
     (void)qa;
     pico8_bg_hq((pico8_bg_t *)self, ra);
 }
 
 static const entity_class_t g_bg_struct_class = {
     .draw = pico8_bg_kj_dispatch,
-    .hit_test = pico8_hd_true,
+    .hit_test = entity_registry_hit_test_always,
     .left_press = pico8_bg_ldown_dispatch,
     .right_press = pico8_bg_rdown_dispatch,
     .drag = pico8_bg_hq_dispatch,
 };
 
 /* A nil `rp` reads as the zero vector, as an unset `mq` does. */
-static void pico8_bg_set_mq(pico8_bg_t *self, const pico8_vec_t *rp) {
+static void pico8_bg_set_mq(pico8_bg_t *self, const vec_t *rp) {
     self->has_mq = rp != NULL;
-    self->mq = rp != NULL ? *rp : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    self->mq = rp != NULL ? *rp : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
 static pico8_bg_t *pico8_bg_struct_new(void) {
-    pico8_bg_t *self = (pico8_bg_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *self);
+    pico8_bg_t *self = (pico8_bg_t *)allocator_alloc(game_zone(), sizeof *self);
 
-    pico8_ke_struct_init(&self->header, &g_bg_struct_class, pico8_bg_def.me, pico8_bg_def.t);
+    entity_init_instance(&self->header, &g_bg_struct_class, pico8_bg_def.me, pico8_bg_def.t);
     self->def = &pico8_bg_def;
     self->header.layer = &self->def->fa;
     pico8_bg_set_mq(self, NULL);
@@ -69,8 +69,8 @@ static pico8_bg_t *pico8_bg_struct_new(void) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("background");
 #endif
-    pico8_bg_pq(pico8_dispatch_mem(), self);
-    pico8_ke_struct_pq(&self->header);
+    pico8_bg_pq(dispatch_context_mem(), self);
+    entity_construct(&self->header);
     return self;
 }
 
@@ -113,7 +113,7 @@ void pico8_bg_pq(p8_memory_t *mem, pico8_bg_t *self) {
         vs_set[x] = 0;
     }
 
-    oh = pico8_jf(pico8_zone_frame(), P8_FIXED_LIT(0x00001999, 0.1), p8_fixed_from_int(0));
+    oh = pico8_jf(frame_zone(), P8_FIXED_LIT(0x00001999, 0.1), p8_fixed_from_int(0));
 
     for (y = 0; y <= 31; y++) {
         for (x = 0; x <= 31; x++) {
@@ -163,14 +163,14 @@ void pico8_bg_kj(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_bg_t *self) {
 }
 
 down_t pico8_bg_ldown(pico8_bg_t *self) {
-    const pico8_ents_t *g_tag;
+    const entity_list_t *g_tag;
     int count;
     entity_t *made;
     down_t out;
 
     (void)self;
 
-    g_tag = pico8_cg("probe");
+    g_tag = entities_by_tag("probe");
     count = (g_tag != NULL) ? g_tag->count : 0;
     if (count > 0) {
         assert(pico8_mz_ready() && "pico8_wormhole_init() must run before bg:ldown builds an mz");
@@ -183,7 +183,7 @@ down_t pico8_bg_ldown(pico8_bg_t *self) {
     return out;
 }
 
-down_t pico8_bg_rdown(pico8_bg_t *self, pico8_vec_t *rp) {
+down_t pico8_bg_rdown(pico8_bg_t *self, vec_t *rp) {
     down_t out = {0, NULL};
 
     if (self != NULL) {
@@ -196,10 +196,10 @@ down_t pico8_bg_rdown(pico8_bg_t *self, pico8_vec_t *rp) {
 
 /* `self.mq` is read here and overwritten by the last statement of the
  * function: that read-then-replace is the drag delta itself. */
-void pico8_bg_hq(pico8_bg_t *self, pico8_vec_t *rp) {
-    pico8_vec_t zero = pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    pico8_vec_t mq;
-    pico8_vec_t rp_vec;
+void pico8_bg_hq(pico8_bg_t *self, vec_t *rp) {
+    vec_t zero = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    vec_t mq;
+    vec_t rp_vec;
     pico8_qb_t *mo;
 
     if (self == NULL) {
@@ -208,10 +208,10 @@ void pico8_bg_hq(pico8_bg_t *self, pico8_vec_t *rp) {
 
     mq = self->has_mq ? self->mq : zero;
     rp_vec = rp != NULL ? *rp : zero;
-    if (pico8_mo() != NULL) {
+    if (main_camera() != NULL) {
         mo = pico8_mo_qb();
         assert(mo != NULL && "mo: the placeholder has no writer; a write before jl() stops the run");
-        pico8_qb_set_v(mo, pico8_vec_sub(mq, rp_vec));
+        pico8_qb_set_v(mo, vec_sub(mq, rp_vec));
     }
 
     pico8_bg_set_mq(self, rp);

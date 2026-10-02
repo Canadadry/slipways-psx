@@ -28,11 +28,11 @@ typedef enum {
  * ou `ga` est une arene, prise par pico8_zone_particules_place. Plus de
  * places vivantes que la limite : pico8_fatal « zone particules <sorte>
  * pleine ». */
-const pico8_zone_choisie_t *pico8_zone_particules(pico8_particules_sorte_t sorte);
+const allocator_t *pico8_zone_particules(pico8_particules_sorte_t sorte);
 
 /* Une place de `qy`, `qy_fv` ou `ga`, en arene nommee « place <sorte> » ;
  * on la rend par pico8_zone_arene_rendre. */
-const pico8_zone_choisie_t *pico8_zone_particules_place(pico8_particules_sorte_t sorte);
+const allocator_t *pico8_zone_particules_place(pico8_particules_sorte_t sorte);
 
 /* Places prises et pas encore rendues. */
 int pico8_zone_particules_vivantes(pico8_particules_sorte_t sorte);

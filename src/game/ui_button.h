@@ -28,19 +28,19 @@ typedef void (*pico8_js_fn)(pico8_js_t *self);
  * `lq` a `hb` rebuilt, which lives in `lq_place` and goes with the button. */
 struct pico8_js {
     entity_t header;
-    const pico8_zone_choisie_t *place;
-    pico8_vec_t ra_box;
-    pico8_vec_t qf_box;
+    const allocator_t *place;
+    vec_t ra_box;
+    vec_t qf_box;
     const pico8_js_def_t *def;
     p8_fixed_t fa;
     pico8_lq_t *lq;
-    const pico8_zone_choisie_t *lq_place; /* NULL: `lq` is in `place` */
+    const allocator_t *lq_place; /* NULL: `lq` is in `place` */
     p8_fixed_t mb;
     pico8_lq_t *h_;
     int has_h_; /* 0: nil; 1: present, and a NULL `h_` is `false` */
     pico8_jb_t *jb;
-    const pico8_vec_t *ra;
-    pico8_vec_t *qf;
+    const vec_t *ra;
+    vec_t *qf;
     pico8_js_fn my;
     int has_my; /* 0: nil; 1: present, and a NULL `my` is `false` */
     int m_;
@@ -80,8 +80,8 @@ typedef struct {
     const pico8_lq_keys_t *h_row;
     int has_jb; /* present without `jb_row`: an empty `jb` (TROU-23) */
     const pico8_jb_row_t *jb_row;
-    const pico8_vec_t *ra;
-    const pico8_vec_t *qf;
+    const vec_t *ra;
+    const vec_t *qf;
     int has_my; /* present, and a NULL `my` is `false` */
     pico8_js_fn my;
     pico8_js_fn hb;
@@ -110,7 +110,7 @@ void pico8_js_ph(pico8_js_t *self);
 
 void pico8_js_ev(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_js_t *self);
 
-void pico8_js_kj(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_js_t *self, pico8_vec_t p);
+void pico8_js_kj(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_js_t *self, vec_t p);
 
 /* Always returns true: the click is consumed whether or not a `my` callback
  * was there to run. */
@@ -126,7 +126,7 @@ typedef int (*pico8_fq_my_fn)(pico8_fq_t *self);
  * exit queue once `he` takes the veil out. */
 struct pico8_fq {
     entity_t header;
-    const pico8_zone_choisie_t *place;
+    const allocator_t *place;
     const pico8_fq_def_t *def;
     pico8_fq_my_fn my;
     int p_;

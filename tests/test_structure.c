@@ -42,7 +42,7 @@
 #include "game/wormhole.h"
 
 /* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
-static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {
+static int ra_copies(const vec_t *ra, const vec_t *mp) {
     return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
 }
 
@@ -78,7 +78,7 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int ents_rank_in(const pico8_ents_t *list, const void *e) {
+static int ents_rank_in(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -88,7 +88,7 @@ static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     return -1;
 }
 
-static int ents_listed(const pico8_ents_t *list, const void *e) {
+static int ents_listed(const entity_list_t *list, const void *e) {
     return ents_rank_in(list, e) >= 0;
 }
 
@@ -135,7 +135,7 @@ static uint32_t et_state(const pico8_jo_t *qh) {
     return qh->probe->et == NULL ? 1u : 3u;
 }
 
-static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
+static uint32_t fold_vec(uint32_t h, const vec_t *p) {
     if (p == NULL) {
         return fnv(h, 0xDEADu);
     }
@@ -152,8 +152,8 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (ref == NULL) {
         return fnv(h, 0xDEADu);
     }
-    if (ents_listed(pico8_hv(), ref)) {
-        return fnv(fnv(h, 0x4Eu), (uint32_t)ents_rank_in(pico8_hv(), ref));
+    if (ents_listed(live_entities(), ref)) {
+        return fnv(fnv(h, 0x4Eu), (uint32_t)ents_rank_in(live_entities(), ref));
     }
     /* The frozen hashes folded the INSTANCE tag the throwaway had. */
     assert(is_bv_target(ref) && "no test folds an entity outside hv that is not the throwaway target: to fold one, fold 0xEEEE then the frozen struct tag 0x9E5C57C7, as test_pico8_fr.c does");
@@ -171,11 +171,11 @@ static uint32_t fold_et(uint32_t h, const pico8_jo_t *qh) {
 }
 
 /* The item count of a list member, -1 when NULL. */
-static int list_size(const pico8_ptrs_t *l) {
+static int list_size(const pointer_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
-static int ents_list_size(const pico8_ents_t *l) {
+static int ents_list_size(const entity_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
@@ -200,20 +200,20 @@ static void check(const char *label, uint32_t got, uint32_t want) {
  * reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
     pico8_cart_vider_file_sortie();
 }
 
-static pico8_vec_t *vec_ref(pico8_vec_t at) {
-    pico8_vec_t *v = malloc(sizeof *v);
+static vec_t *vec_ref(vec_t at) {
+    vec_t *v = malloc(sizeof *v);
     *v = at;
     return v;
 }
 
-static pico8_vec_t vec_xy(int x, int y) {
-    return pico8_vec_v(p8_fixed_from_int(x), p8_fixed_from_int(y));
+static vec_t vec_xy(int x, int y) {
+    return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
 static const entity_class_t *cls_of(const void *e) {
@@ -244,7 +244,7 @@ static void assert_members_of(const entity_class_t *c, const entity_class_t *ref
 
 /* The research icon whose `ke` is `gx[0]`, the laboratory. */
 static void *qh_icon(void) {
-    const pico8_ents_t *hb = pico8_cv("refresh");
+    const entity_list_t *hb = entities_by_message("refresh");
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i];
@@ -351,12 +351,12 @@ static uint32_t fold_lab(uint32_t h, void *e) {
     h = fold_kw(h, jo);
     h = fnv(h, (uint32_t)ents_list_size(jo->oe));
     h = fnv(h, (uint32_t)list_size(jo->jy));
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), e));
+    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
-        h = fnv(h, (uint32_t)ents_rank_in(pico8_cv(bm[i]), e));
+        h = fnv(h, (uint32_t)ents_rank_in(entities_by_message(bm[i]), e));
     }
     for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
-        h = fnv(h, (uint32_t)ents_rank_in(pico8_cg(tags[i]), e));
+        h = fnv(h, (uint32_t)ents_rank_in(entities_by_tag(tags[i]), e));
     }
     return h;
 }
@@ -387,7 +387,7 @@ static void set_credits(int n) {
 
 /* What `bv` left on a laboratory: `ra` (a copy of what was passed), `p`, and
  * what `et` is. */
-static uint32_t fold_held(uint32_t h, void *e, const pico8_vec_t *mp) {
+static uint32_t fold_held(uint32_t h, void *e, const vec_t *mp) {
     const pico8_jo_t *qh = as_qh(e);
 
     assert(ra_copies(qh->ra, mp));
@@ -397,7 +397,7 @@ static uint32_t fold_held(uint32_t h, void *e, const pico8_vec_t *mp) {
 }
 
 static uint32_t fold_ra_y(uint32_t h, void *e) {
-    const pico8_vec_t *ra = as_qh(e)->ra;
+    const vec_t *ra = as_qh(e)->ra;
     assert(ra != NULL);
     return fnv(h, (uint32_t)ra->y);
 }
@@ -411,9 +411,9 @@ static void test_life(void) {
     void *in_lab;
     void *poor_lab;
     void *planet;
-    pico8_vec_t *mp;
-    const pico8_vec_t *planet_p;
-    const pico8_vec_t *ra_before;
+    vec_t *mp;
+    const vec_t *planet_p;
+    const vec_t *ra_before;
     p8_fixed_t before;
     p8_fixed_t in_y;
     int i;
@@ -424,13 +424,13 @@ static void test_life(void) {
     mp = vec_ref(vec_xy(7680, 7680));
     cls_of(out_lab)->drag(out_lab, mp, vec_ref(vec_xy(0, 0)));
     h = fold_held(h, out_lab, mp);
-    assert(et_state(as_qh(out_lab)) == 3 && !ents_listed(pico8_hv(), as_qh(out_lab)->probe->et));
+    assert(et_state(as_qh(out_lab)) == 3 && !ents_listed(live_entities(), as_qh(out_lab)->probe->et));
 
-    planet = pico8_cg("planet")->items[0];
+    planet = entities_by_tag("planet")->items[0];
     assert(pico8_jo_is_family(planet));
     planet_p = ((const pico8_jo_t *)planet)->p;
     assert(planet_p != NULL);
-    mp = vec_ref(pico8_vec_add(pico8_vec_mul(*planet_p, p8_fixed_from_int(128)), vec_xy(6, 0)));
+    mp = vec_ref(vec_add(vec_mul(*planet_p, p8_fixed_from_int(128)), vec_xy(6, 0)));
     cls_of(out_lab)->drag(out_lab, mp, vec_ref(vec_xy(64, 64)));
     h = fold_held(h, out_lab, mp);
     assert(as_qh(out_lab)->probe->et == planet &&
@@ -467,13 +467,13 @@ static void test_life(void) {
     before = ra_before->y;
     for (i = 0; i < 4; i++) {
         h = fold_ra_y(h, in_lab);
-        pico8_dg();
+        update_entities();
         h = fold_fixed_member(h, as_qh(in_lab)->header.state_time);
         assert(as_qh(out_lab)->ra == ra_before && ra_before->y == before);
     }
     h = fold_ra_y(h, in_lab);
     assert(as_qh(in_lab)->ra->y != in_y);
-    h = fnv(h, (uint32_t)ents_listed(pico8_hv(), poor_lab));
+    h = fnv(h, (uint32_t)ents_listed(live_entities(), poor_lab));
     check("life", h, LIFE_HASH);
 }
 
@@ -530,7 +530,7 @@ static uint32_t fold_descendant(uint32_t h, void *d) {
     assert(cls_of(d)->drag == pico8_qh_struct_class()->drag && cls_of(d)->drop == pico8_qh_struct_class()->drop);
     assert(cls_of(d)->draw_overlay == pico8_qh_struct_class()->draw_overlay);
     if (qh->ra != NULL) {
-        pico8_vec_t *v = qh->ra;
+        vec_t *v = qh->ra;
         p8_fixed_t y = v->y;
         h = fnv(fnv(h, 1u), (uint32_t)y);
         cls_of(d)->states[ENTITY_STATE_SETTLED](d, p8_fixed_from_int(50));
@@ -550,9 +550,9 @@ static uint32_t fold_descendant(uint32_t h, void *d) {
 /* The shop's `ie:ldown` on the icon of `kind`, as the player buys it, then
  * dragged by `hq` to the middle of the screen. */
 static void *bought(const entity_kind_t *kind) {
-    const pico8_ents_t *hb = pico8_cv("refresh");
+    const entity_list_t *hb = entities_by_message("refresh");
     const pico8_qb_t *mo = pico8_mo_qb();
-    const pico8_vec_t *mo_ra;
+    const vec_t *mo_ra;
     int i;
 
     assert(mo != NULL && mo->ra != NULL);
@@ -562,7 +562,7 @@ static void *bought(const entity_kind_t *kind) {
         if (cls_of(icon) == pico8_ie_struct_class() && ((const pico8_ie_t *)icon)->ke == kind) {
             down_t made = cls_of(icon)->left_press(icon, NULL, NULL);
             assert(made.stop && made.held != NULL);
-            cls_of(made.held)->drag(made.held, vec_ref(pico8_vec_add(*mo_ra, vec_xy(64, 64))),
+            cls_of(made.held)->drag(made.held, vec_ref(vec_add(*mo_ra, vec_xy(64, 64))),
                                   vec_ref(vec_xy(64, 64)));
             return made.held;
         }
@@ -602,12 +602,12 @@ static void test_descendants(void) {
     for (i = 0; i < sizeof shop / sizeof shop[0]; i++) {
         made[shop[i].d] = bought(shop[i].kind());
     }
-    p = pico8_cg("planet")->items[0];
+    p = entities_by_tag("planet")->items[0];
     pico8_jo_hh(p);
     pico8_jo_hu(p, cw_project("protostar"));
-    made[PM] = pico8_hv()->items[pico8_hv()->count - 1];
+    made[PM] = live_entities()->items[live_entities()->count - 1];
     for (i = 0; i < DESCENDANTS; i++) {
-        assert(made[i] != NULL && descendant_of(made[i]) == (int)i && ents_listed(pico8_hv(), made[i]));
+        assert(made[i] != NULL && descendant_of(made[i]) == (int)i && ents_listed(live_entities(), made[i]));
         h = fold_descendant(fnv(h, (uint32_t)i), made[i]);
     }
     check("descendants", h, DESCENDANTS_HASH);
@@ -656,8 +656,8 @@ static void test_qh_is_a_struct(void) {
 
     start_game();
     a = build_lab();
-    assert(is_a_qh_struct(a) && ents_listed(pico8_cg("structure"), a));
-    assert(pico8_da(a) == p8_fixed_from_int(pico8_cg("structure")->count));
+    assert(is_a_qh_struct(a) && ents_listed(entities_by_tag("structure"), a));
+    assert(pico8_da(a) == p8_fixed_from_int(entities_by_tag("structure")->count));
     assert(cls->attach_slipway == pico8_jo_struct_class()->attach_slipway && cls->offer_trade == pico8_jo_struct_class()->offer_trade);
     assert_qh_shape(cls);
     assert(cls->hit_test == pico8_jo_struct_class()->hit_test && cls->draw == pico8_jo_struct_class()->draw &&
@@ -670,7 +670,7 @@ static void test_qh_is_a_struct(void) {
     must_abort(build_with_unknown_key, NULL);
     {
         pico8_jo_t *bare = pico8_qh_new(NULL);
-        assert(is_a_qh_struct(bare) && bare->id == NULL && bare->oe != NULL && ents_listed(pico8_cg("structure"), bare));
+        assert(is_a_qh_struct(bare) && bare->id == NULL && bare->oe != NULL && ents_listed(entities_by_tag("structure"), bare));
     }
     for (i = 0; i < sizeof descendants / sizeof descendants[0]; i++) {
         planet_keys_t keys;
@@ -775,9 +775,9 @@ int main(void) {
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(p8_load_map_json(&mem, "pico8/map.json"));
     p8_input_init(&input);
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
 
     pico8_cart_load();
     in_fresh_child(test_built);

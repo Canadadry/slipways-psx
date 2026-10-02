@@ -19,13 +19,13 @@
 typedef struct {
     entity_t header;
     const pico8_qb_def_t *def;
-    const pico8_vec_t *v;
+    const vec_t *v;
     p8_fixed_t ma;
-    const pico8_vec_t *p;
-    const pico8_vec_t *ra;
-    pico8_vec_t p_own;
-    pico8_vec_t v_own;
-    pico8_vec_t ra_own;
+    const vec_t *p;
+    const vec_t *ra;
+    vec_t p_own;
+    vec_t v_own;
+    vec_t ra_own;
 } pico8_qb_t;
 
 /* Calls pico8_pi_init(), and requires pico8_ke_init() to have run --
@@ -48,7 +48,7 @@ pico8_qb_t *pico8_qb_new(void);
 void pico8_qb_ph(const p8_input_t *input, pico8_qb_t *self);
 
 /* `mo.v=v` (bg:hq): writes `v_own` and points `v` at it. */
-void pico8_qb_set_v(pico8_qb_t *self, pico8_vec_t v);
+void pico8_qb_set_v(pico8_qb_t *self, vec_t v);
 
 /* `fy` is `dc`'s `ci[o]`, never nil: the cart's `fy or 1` fallback has no
  * caller, so there is no separate _default entry point here. */

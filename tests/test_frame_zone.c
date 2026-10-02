@@ -32,20 +32,20 @@
 #include "engine/zone_sizes.h"
 #include "heap_allocator.h"
 
-#define STDERR_LOG "tmp/test_pico8_zone_frame_stderr.txt"
+#define STDERR_LOG "tmp/test_frame_zone_stderr.txt"
 
 /* volatile : la lecture d'un pointeur perime ne doit pas etre retiree par
  * l'optimiseur, c'est elle que le cas observe. */
 static volatile unsigned char sink;
 
 static unsigned char *counting_block(void) {
-    unsigned char *block = pico8_zone_alloc(pico8_zone_frame(), 64);
+    unsigned char *block = allocator_alloc(frame_zone(), 64);
     for (int i = 0; i < 64; i++) block[i] = (unsigned char)i;
     return block;
 }
 
 static void allocate_again(void) {
-    for (int i = 0; i < 4; i++) memset(pico8_zone_alloc(pico8_zone_frame(), 64), 2, 64);
+    for (int i = 0; i < 4; i++) memset(allocator_alloc(frame_zone(), 64), 2, 64);
 }
 
 static int case_lazy_init(void) {
@@ -55,7 +55,7 @@ static int case_lazy_init(void) {
 }
 
 static int case_reset_before_first_use(void) {
-    pico8_zone_frame_reset();
+    frame_zone_reset();
     unsigned char *block = counting_block();
     assert(block[63] == 63);
     return 0;
@@ -70,7 +70,7 @@ static int case_alive_within_frame(void) {
 
 static int case_dead_next_frame(void) {
     unsigned char *block = counting_block();
-    pico8_zone_frame_reset();
+    frame_zone_reset();
     allocate_again();
     sink = block[63];
     return 0;
@@ -86,9 +86,9 @@ static void load_cart_and_start(void) {
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(p8_load_map_json(&mem, "pico8/map.json"));
     p8_input_init(&input);
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
     pico8_cart_load();
     pico8__init();
 }
@@ -133,14 +133,14 @@ static size_t read_cells(const pico8_lq_t *lq) {
  * et dessine chaque bouton, bulle `jb` comprise : rend le nombre de
  * bulles dessinees. */
 static int reset_then_draw_panel(void) {
-    const pico8_ents_t *le = pico8_ok()->le;
+    const entity_list_t *le = pico8_ok()->le;
     int bubbles = 0;
 
-    pico8_zone_frame_reset();
+    frame_zone_reset();
     allocate_again();
     for (int i = 0; i < le->count; i++) {
         pico8_js_t *js = (pico8_js_t *)le->items[i];
-        pico8_vec_t p = js->ra != NULL ? *js->ra : pico8_vec_v(0, 0);
+        vec_t p = js->ra != NULL ? *js->ra : vec_make(0, 0);
 
         sink = (unsigned char)read_cells(js->lq);
         if (js->h_ != NULL) sink = (unsigned char)read_cells(js->h_);
@@ -155,12 +155,12 @@ static int reset_then_draw_panel(void) {
     return bubbles;
 }
 
-static int case_gh_rows_survive_reset(void) {
+static int case_inspection_panel_rows_survive_reset(void) {
     static pico8_kw_t kw = {.has_qe = 1};
     pico8_jo_t *planet;
 
     start_game();
-    planet = (pico8_jo_t *)pico8_cg("planet")->items[0];
+    planet = (pico8_jo_t *)entities_by_tag("planet")->items[0];
     kw.qe = p8_fixed_from_int(99);
     kw.mu = p8_fixed_from_int(1);
     planet->kw = &kw;
@@ -172,17 +172,17 @@ static int case_gh_rows_survive_reset(void) {
 
 static int case_invented_lines_survive_reset(void) {
     start_game();
-    pico8_ptrs_add(pico8_fm_hy()->invented, "slipgates");
+    pointer_list_add(pico8_fm_hy()->invented, "slipgates");
     pico8_cr();
     assert(reset_then_draw_panel() >= 1 && "cr: la rangee n invented porte sa bulle");
     return 0;
 }
 
-static int case_hp_jb_survives_reset(void) {
+static int case_research_project_tooltip_survives_reset(void) {
     pico8_jo_t *planet;
 
     start_game();
-    planet = (pico8_jo_t *)pico8_cg("planet")->items[0];
+    planet = (pico8_jo_t *)entities_by_tag("planet")->items[0];
     pico8_jo_hh(planet);
     (void)pico8_jo_ldown(planet);
     assert(reset_then_draw_panel() >= 1 && "jo:fe: un batiment porte la bulle de hp:jb");
@@ -201,7 +201,7 @@ static int happiness_cells(const pico8_mh_t *mh) {
     return found;
 }
 
-static int case_ky_happiness_survives_reset(void) {
+static int case_final_score_happiness_survives_reset(void) {
     pico8_hy_t *fm;
     pico8_pj_t *ju;
 
@@ -214,7 +214,7 @@ static int case_ky_happiness_survives_reset(void) {
     ju = pico8_ju();
     ju->header.class->states[ENTITY_STATE_NORMAL](&ju->header, 0);
     assert(pico8_kc() != NULL && "pj:ph: une partie finie ouvre la boite du score");
-    pico8_zone_frame_reset();
+    frame_zone_reset();
     allocate_again();
     assert(happiness_cells(pico8_kc()) == 1 && "pj:ph: la case du bonheur garde sa copie de ky");
     return 0;
@@ -229,33 +229,33 @@ static int is_even_cell(entity_t *e, void *ctx) {
     return (e - cells) % 2 == 0;
 }
 
-static pico8_ents_t even_cells(void) {
-    pico8_ents_t all;
-    pico8_ents_init(&all, pico8_zone_frame());
-    for (int i = 0; i < LIST_LENGTH; i++) pico8_ents_add(&all, &cells[i]);
-    return pico8_jp_ents(pico8_zone_frame(), &all, is_even_cell, NULL);
+static entity_list_t even_cells(void) {
+    entity_list_t all;
+    entity_list_init(&all, frame_zone());
+    for (int i = 0; i < LIST_LENGTH; i++) entity_list_add(&all, &cells[i]);
+    return entity_list_filter(frame_zone(), &all, is_even_cell, NULL);
 }
 
 static int case_list_alive_within_frame(void) {
-    pico8_ents_t even = even_cells();
+    entity_list_t even = even_cells();
     assert(even.count == LIST_LENGTH / 2);
     for (int i = 0; i < LIST_LENGTH / 2; i++) assert(even.items[i] == &cells[2 * i]);
     return 0;
 }
 
 static int case_list_dead_next_frame(void) {
-    pico8_ents_t even = even_cells();
-    pico8_zone_frame_reset();
+    entity_list_t even = even_cells();
+    frame_zone_reset();
     allocate_again();
     sink = (unsigned char)(even.items[0] == &cells[0]);
     return 0;
 }
 
 static char *frame_text(const char *s) {
-    return p8_concat2(pico8_zone_frame(), s, "");
+    return p8_concat2(frame_zone(), s, "");
 }
 
-static pico8_lq_t *row_of_frame_text(const pico8_zone_choisie_t *zone, const char *s) {
+static pico8_lq_t *row_of_frame_text(const allocator_t *zone, const char *s) {
     pico8_lq_cell_t cell = pico8_lq_cell_string(frame_text(s));
     pico8_lq_keys_t keys = {.items = &cell, .count = 1};
     return pico8_lq_new(zone, &keys);
@@ -268,30 +268,30 @@ static int case_panel_texts_survive_reset(void) {
     pico8_jb_row_t bubble_row = {.count = 1, .items = &line};
 
     load_cart_and_start();
-    pico8_lq_t *row = row_of_frame_text(&zone_tas, "row");
+    pico8_lq_t *row = row_of_frame_text(&heap_allocator, "row");
     pico8_lq_add(row, pico8_lq_cell_string(frame_text("added")));
-    pico8_lq_t *copy = pico8_lq_copy(&zone_tas, row_of_frame_text(pico8_zone_frame(), "copy"));
-    pico8_jb_t *bubble = pico8_jb_new(&zone_tas, &bubble_row);
+    pico8_lq_t *copy = pico8_lq_copy(&heap_allocator, row_of_frame_text(frame_zone(), "copy"));
+    pico8_jb_t *bubble = pico8_jb_new(&heap_allocator, &bubble_row);
     pico8_jb_item_t tuple_items[] = {{.s = frame_text("tuple")}, {.n = 5}};
-    pico8_jb_row_t *tuple = (pico8_jb_row_t *)pico8_zone_alloc(pico8_zone_frame(), sizeof *tuple);
+    pico8_jb_row_t *tuple = (pico8_jb_row_t *)allocator_alloc(frame_zone(), sizeof *tuple);
     *tuple = (pico8_jb_row_t){.count = 2, .items = tuple_items};
     pico8_lq_cell_t tuple_cell = pico8_lq_cell_row(tuple);
     pico8_lq_keys_t tuple_keys = {.items = &tuple_cell, .count = 1};
-    pico8_lq_t *of_tuple = pico8_lq_new(&zone_tas, &tuple_keys);
-    pico8_zone_frame_reset();
+    pico8_lq_t *of_tuple = pico8_lq_new(&heap_allocator, &tuple_keys);
+    frame_zone_reset();
     allocate_again();
     sink = (unsigned char)(read_cells(row) + read_cells(copy) + read_cells(bubble->ls[0]));
-    pico8_lq_ol_default(&gfx, &mem, row, pico8_vec_v(0, 0));
-    pico8_lq_ol_default(&gfx, &mem, copy, pico8_vec_v(0, 0));
+    pico8_lq_ol_default(&gfx, &mem, row, vec_make(0, 0));
+    pico8_lq_ol_default(&gfx, &mem, copy, vec_make(0, 0));
     pico8_jb_ol(&gfx, &mem, bubble, 0, 0);
-    pico8_lq_ol_default(&gfx, &mem, of_tuple, pico8_vec_v(0, 0));
+    pico8_lq_ol_default(&gfx, &mem, of_tuple, vec_make(0, 0));
     return 0;
 }
 
 static int case_panel_struct_in_zone(void) {
     load_cart_and_start();
-    pico8_lq_t *row = row_of_frame_text(pico8_zone_frame(), "row");
-    pico8_zone_frame_reset();
+    pico8_lq_t *row = row_of_frame_text(frame_zone(), "row");
+    frame_zone_reset();
     allocate_again();
     sink = (unsigned char)row->items_count;
     return 0;
@@ -299,16 +299,16 @@ static int case_panel_struct_in_zone(void) {
 
 static int case_bubble_struct_in_zone(void) {
     load_cart_and_start();
-    pico8_jb_t *bubble = pico8_jb_new(pico8_zone_frame(), NULL);
-    pico8_zone_frame_reset();
+    pico8_jb_t *bubble = pico8_jb_new(frame_zone(), NULL);
+    frame_zone_reset();
     allocate_again();
     sink = (unsigned char)bubble->ls_count;
     return 0;
 }
 
 static int case_full(void) {
-    pico8_zone_alloc(pico8_zone_frame(), PICO8_ZONE_FRAME_BYTES / 2);
-    pico8_zone_alloc(pico8_zone_frame(), PICO8_ZONE_FRAME_BYTES / 2 + 1);
+    allocator_alloc(frame_zone(), FRAME_ZONE_BYTES / 2);
+    allocator_alloc(frame_zone(), FRAME_ZONE_BYTES / 2 + 1);
     return 0;
 }
 
@@ -325,10 +325,10 @@ static const struct {
     {"list_alive_within_frame", case_list_alive_within_frame},
     {"list_dead_next_frame", case_list_dead_next_frame},
     {"full", case_full},
-    {"gh_rows_survive_reset", case_gh_rows_survive_reset},
+    {"inspection_panel_rows_survive_reset", case_inspection_panel_rows_survive_reset},
     {"invented_lines_survive_reset", case_invented_lines_survive_reset},
-    {"hp_jb_survives_reset", case_hp_jb_survives_reset},
-    {"ky_happiness_survives_reset", case_ky_happiness_survives_reset},
+    {"research_project_tooltip_survives_reset", case_research_project_tooltip_survives_reset},
+    {"ky_happiness_survives_reset", case_final_score_happiness_survives_reset},
     {"panel_texts_survive_reset", case_panel_texts_survive_reset},
     {"panel_struct_in_zone", case_panel_struct_in_zone},
     {"bubble_struct_in_zone", case_bubble_struct_in_zone},
@@ -401,7 +401,7 @@ int main(int argc, char **argv) {
     if (argc == 2) {
         for (size_t i = 0; i < CASE_COUNT; i++)
             if (strcmp(argv[1], CASES[i].name) == 0) return CASES[i].run();
-        fprintf(stderr, "test_pico8_zone_frame: cas inconnu %s\n", argv[1]);
+        fprintf(stderr, "test_frame_zone: cas inconnu %s\n", argv[1]);
         return 2;
     }
     self_path = argv[0];
@@ -414,14 +414,14 @@ int main(int argc, char **argv) {
     expect_clean("list_alive_within_frame");
     expect_poison_crash("list_dead_next_frame");
     expect_fatal("full", "zone frame pleine, limite 262144 octets");
-    expect_clean("gh_rows_survive_reset");
+    expect_clean("inspection_panel_rows_survive_reset");
     expect_clean("invented_lines_survive_reset");
-    expect_clean("hp_jb_survives_reset");
+    expect_clean("research_project_tooltip_survives_reset");
     expect_clean("ky_happiness_survives_reset");
     expect_clean("panel_texts_survive_reset");
     expect_poison_crash("panel_struct_in_zone");
     expect_poison_crash("bubble_struct_in_zone");
     remove(STDERR_LOG);
-    printf("test_pico8_zone_frame: all tests passed\n");
+    printf("test_frame_zone: all tests passed\n");
     return 0;
 }

@@ -27,9 +27,9 @@ typedef struct {
     const pico8_mz_def_t *def;
     p8_fixed_t oi;
     pico8_mz_jj_t *jj;
-    pico8_ents_t *ox;
-    const pico8_vec_t *ra;
-    const pico8_vec_t *p;
+    entity_list_t *ox;
+    const vec_t *ra;
+    const vec_t *p;
     entity_t *ij; /* borrowed, never freed */
     int p_;
     pico8_probe_t *probe;
@@ -61,7 +61,7 @@ void pico8_mz_pq(pico8_mz_t *self);
 
 /* Calls `pico8_bv` first, which is what sets `ra`/`p` and a first `et`;
  * the "too far" branch here then overwrites `et`. */
-void pico8_mz_hq(pico8_mz_t *self, pico8_vec_t *mp, pico8_vec_t *rp);
+void pico8_mz_hq(pico8_mz_t *self, vec_t *mp, vec_t *rp);
 
 void pico8_mz_kz(pico8_mz_t *self, p8_fixed_t t);
 
@@ -73,6 +73,6 @@ void pico8_mz_pr(pico8_mz_t *self, p8_fixed_t t);
 /* Reads `self.oi` only; `self` is non-const for signature uniformity. */
 p8_fixed_t pico8_mz_ej(pico8_mz_t *self, p8_fixed_t t);
 
-void pico8_mz_kj_dispatch(entity_t *self, const pico8_vec_t *ra);
+void pico8_mz_kj_dispatch(entity_t *self, const vec_t *ra);
 
 #endif

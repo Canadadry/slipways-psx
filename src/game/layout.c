@@ -64,16 +64,16 @@ static pico8_lq_cell_t pico8_lq_scalar_item(const pico8_jb_item_t *item) {
     return pico8_lq_cell_item(item);
 }
 
-static const char *pico8_lq_copy_text(const pico8_zone_choisie_t *zone, const char *s) {
+static const char *pico8_lq_copy_text(const allocator_t *zone, const char *s) {
     size_t n = strlen(s) + 1;
-    char *copy = (char *)pico8_zone_alloc(zone, n);
+    char *copy = (char *)allocator_alloc(zone, n);
 
     memcpy(copy, s, n);
     return copy;
 }
 
 /* A STRING cell points at its copy in `zone`; any other cell is kept as is. */
-static pico8_lq_cell_t pico8_lq_own_cell(const pico8_zone_choisie_t *zone, pico8_lq_cell_t cell) {
+static pico8_lq_cell_t pico8_lq_own_cell(const allocator_t *zone, pico8_lq_cell_t cell) {
     if (cell.kind == PICO8_LQ_CELL_STRING) {
         cell.as.s = pico8_lq_copy_text(zone, cell.as.s);
     }
@@ -153,7 +153,7 @@ static void pico8_lq_pq(pico8_lq_t *self) {
     int n = self->items_count;
     int i;
 
-    self->fs = (pico8_lq_item_t *)pico8_zone_alloc(self->zone, (size_t)(n > 0 ? n : 1) * sizeof *self->fs);
+    self->fs = (pico8_lq_item_t *)allocator_alloc(self->zone, (size_t)(n > 0 ? n : 1) * sizeof *self->fs);
     for (i = 0; i < n; i++) {
         p8_fixed_t w_i = p8_fixed_from_int(0);
         p8_fixed_t qv_i = p8_fixed_from_int(0);
@@ -164,7 +164,7 @@ static void pico8_lq_pq(pico8_lq_t *self) {
         if (self->items[i].kind == PICO8_LQ_CELL_ROW && self->fs[i].kind == PICO8_LQ_ITEM_TEXT) {
             self->fs[i].text = pico8_lq_copy_text(self->zone, self->fs[i].text);
         }
-        self->fs[i].d = pico8_vec_v(x, p8_fixed_from_int(0));
+        self->fs[i].d = vec_make(x, p8_fixed_from_int(0));
         w = p8_fixed_add(w, p8_fixed_add(w_i, qv_i));
         fs = qv_i;
     }
@@ -173,8 +173,8 @@ static void pico8_lq_pq(pico8_lq_t *self) {
 }
 
 static void pico8_lq_ol_item_draw(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_lq_item_t *item,
-                                   pico8_vec_t p) {
-    pico8_vec_t pos = pico8_vec_add(p, item->d);
+                                   vec_t p) {
+    vec_t pos = vec_add(p, item->d);
 
     switch (item->kind) {
     case PICO8_LQ_ITEM_TEXT:
@@ -195,7 +195,7 @@ static void pico8_lq_ol_item_draw(const p8_graphics_t *gfx, p8_memory_t *mem, co
     }
 }
 
-void pico8_lq_ol(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_lq_t *self, pico8_vec_t p, p8_fixed_t a) {
+void pico8_lq_ol(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_lq_t *self, vec_t p, p8_fixed_t a) {
     p8_fixed_t w;
     int i;
 
@@ -206,7 +206,7 @@ void pico8_lq_ol(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_lq_t *s
            "lq:ol: every row reaching it (jo.lq, js.lq/h_, jb.ls, pi.ld) is an lq; anything else would be read "
            "through the wrong layout");
     w = self->w;
-    p = pico8_vec_sub(p, pico8_vec_v(p8_fixed_mul(a, w), p8_fixed_from_int(0)));
+    p = vec_sub(p, vec_make(p8_fixed_mul(a, w), p8_fixed_from_int(0)));
 
     if (self->fs == NULL) {
         return;
@@ -216,7 +216,7 @@ void pico8_lq_ol(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_lq_t *s
     }
 }
 
-void pico8_lq_ol_default(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_lq_t *self, pico8_vec_t p) {
+void pico8_lq_ol_default(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_lq_t *self, vec_t p) {
     pico8_lq_ol(gfx, mem, self, p, p8_fixed_from_int(0));
 }
 
@@ -224,7 +224,7 @@ void pico8_lq_ol_default(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8
 #define PICO8_JB_LINE_CAP 7
 
 /* The line `jb:pq` builds from one item of its row. */
-static pico8_lq_t *pico8_jb_line(const pico8_zone_choisie_t *zone, const pico8_jb_item_t *item) {
+static pico8_lq_t *pico8_jb_line(const allocator_t *zone, const pico8_jb_item_t *item) {
     pico8_lq_keys_t keys = {0};
     pico8_lq_cell_t s;
     pico8_lq_cell_t items[PICO8_JB_LINE_CAP];
@@ -258,7 +258,7 @@ static void pico8_jb_pq(pico8_jb_t *self, const pico8_jb_row_t *row) {
     int n = row != NULL ? row->count : 0;
     int i;
 
-    self->ls = (pico8_lq_t **)pico8_zone_alloc(self->zone, (size_t)(n > 0 ? n : 1) * sizeof *self->ls);
+    self->ls = (pico8_lq_t **)allocator_alloc(self->zone, (size_t)(n > 0 ? n : 1) * sizeof *self->ls);
     for (i = 0; i < n; i++) {
         self->ls[i] = pico8_jb_line(self->zone, &row->items[i]);
     }
@@ -287,20 +287,20 @@ void pico8_jb_ol(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_jb_t *self, p
     p8_fillp_reset(gfx);
 
     for (i = 0; i < self->ls_count; i++) {
-        pico8_vec_t pos = pico8_vec_v(p8_fixed_from_int(64), p8_fixed_add(om, p8_fixed_from_int(2)));
+        vec_t pos = vec_make(p8_fixed_from_int(64), p8_fixed_add(om, p8_fixed_from_int(2)));
         pico8_lq_ol(gfx, mem, self->ls[i], pos, P8_FIXED_LIT(0x00008000, 0.5));
         om = p8_fixed_add(om, p8_fixed_from_int(8));
     }
 }
 
-static void pico8_lq_ol_dispatch(entity_t *self, pico8_vec_t p, p8_fixed_t a) {
-    pico8_lq_ol(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_lq_t *)self, p, a);
+static void pico8_lq_ol_dispatch(entity_t *self, vec_t p, p8_fixed_t a) {
+    pico8_lq_ol(dispatch_context_gfx(), dispatch_context_mem(), (const pico8_lq_t *)self, p, a);
 }
 
 /* No launcher reaches it (`jo.lq` is an `lq`); a vector `om` counts as 0. */
-static void pico8_jb_ol_dispatch(entity_t *self, pico8_vec_t p, p8_fixed_t a) {
+static void pico8_jb_ol_dispatch(entity_t *self, vec_t p, p8_fixed_t a) {
     (void)p;
-    pico8_jb_ol(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_jb_t *)self, p8_fixed_from_int(0), a);
+    pico8_jb_ol(dispatch_context_gfx(), dispatch_context_mem(), (const pico8_jb_t *)self, p8_fixed_from_int(0), a);
 }
 
 static const entity_class_t g_lq_struct_class = {
@@ -308,11 +308,11 @@ static const entity_class_t g_lq_struct_class = {
 };
 
 /* The row with room for `n` cells, members at nil, not laid out. */
-static pico8_lq_t *pico8_lq_struct_alloc(const pico8_zone_choisie_t *zone, int n) {
+static pico8_lq_t *pico8_lq_struct_alloc(const allocator_t *zone, int n) {
     pico8_lq_t *self;
 
     assert(zone != NULL && "lq: a row without a zone would have nowhere to keep its cells");
-    self = (pico8_lq_t *)pico8_zone_alloc(zone, sizeof *self);
+    self = (pico8_lq_t *)allocator_alloc(zone, sizeof *self);
 
     entity_init_header(&self->header, &g_lq_struct_class);
     self->header.pos = &self->ra;
@@ -328,7 +328,7 @@ static pico8_lq_t *pico8_lq_struct_alloc(const pico8_zone_choisie_t *zone, int n
     self->fs_count = 0;
     self->w = 0;
     self->zone = zone;
-    self->items = (pico8_lq_cell_t *)pico8_zone_alloc(zone, (size_t)(n > 0 ? n : 1) * sizeof *self->items);
+    self->items = (pico8_lq_cell_t *)allocator_alloc(zone, (size_t)(n > 0 ? n : 1) * sizeof *self->items);
     self->items_count = n;
     return self;
 }
@@ -341,7 +341,7 @@ static pico8_lq_t *pico8_lq_struct_finish(pico8_lq_t *self) {
     return self;
 }
 
-static pico8_lq_t *pico8_lq_struct_new(const pico8_zone_choisie_t *zone, const pico8_lq_keys_t *keys) {
+static pico8_lq_t *pico8_lq_struct_new(const allocator_t *zone, const pico8_lq_keys_t *keys) {
     pico8_lq_t *self = pico8_lq_struct_alloc(zone, keys != NULL ? keys->count : 0);
     int k;
 
@@ -383,7 +383,7 @@ pico8_lq_keys_t pico8_lq_keys_of_row(const pico8_jb_row_t *row, pico8_lq_cell_t 
     return keys;
 }
 
-pico8_lq_t *pico8_lq_copy(const pico8_zone_choisie_t *zone, const pico8_lq_t *row) {
+pico8_lq_t *pico8_lq_copy(const allocator_t *zone, const pico8_lq_t *row) {
     pico8_lq_t *self = pico8_lq_struct_alloc(zone, row->items_count);
     int k;
 
@@ -402,7 +402,7 @@ pico8_lq_t *pico8_lq_copy(const pico8_zone_choisie_t *zone, const pico8_lq_t *ro
 }
 
 void pico8_lq_add(pico8_lq_t *self, pico8_lq_cell_t cell) {
-    self->items = (pico8_lq_cell_t *)pico8_zone_grow(self->zone, (unsigned char *)self->items,
+    self->items = (pico8_lq_cell_t *)allocator_grow(self->zone, (unsigned char *)self->items,
                                                      (size_t)self->items_count * sizeof *self->items,
                                                      (size_t)(self->items_count + 1) * sizeof *self->items);
     self->items[self->items_count] = pico8_lq_own_cell(self->zone, cell);
@@ -414,11 +414,11 @@ static const entity_class_t g_jb_struct_class = {
 };
 
 /* The `jb` itself, before its lines. */
-static pico8_jb_t *pico8_jb_struct_alloc(const pico8_zone_choisie_t *zone) {
+static pico8_jb_t *pico8_jb_struct_alloc(const allocator_t *zone) {
     pico8_jb_t *self;
 
     assert(zone != NULL && "jb: a bubble without a zone would have nowhere to keep its lines");
-    self = (pico8_jb_t *)pico8_zone_alloc(zone, sizeof *self);
+    self = (pico8_jb_t *)allocator_alloc(zone, sizeof *self);
 
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("tooltip");
@@ -430,7 +430,7 @@ static pico8_jb_t *pico8_jb_struct_alloc(const pico8_zone_choisie_t *zone) {
     return self;
 }
 
-static pico8_jb_t *pico8_jb_struct_new(const pico8_zone_choisie_t *zone, const pico8_jb_row_t *row) {
+static pico8_jb_t *pico8_jb_struct_new(const allocator_t *zone, const pico8_jb_row_t *row) {
     pico8_jb_t *self;
 
     assert((row == NULL || (!row->has_c && row->fn == NULL)) &&
@@ -465,10 +465,10 @@ const entity_class_t *pico8_jb_struct_class(void) {
     return &g_jb_struct_class;
 }
 
-pico8_lq_t *pico8_lq_new(const pico8_zone_choisie_t *zone, const pico8_lq_keys_t *keys) {
+pico8_lq_t *pico8_lq_new(const allocator_t *zone, const pico8_lq_keys_t *keys) {
     return pico8_lq_struct_new(zone, keys);
 }
 
-pico8_jb_t *pico8_jb_new(const pico8_zone_choisie_t *zone, const pico8_jb_row_t *row) {
+pico8_jb_t *pico8_jb_new(const allocator_t *zone, const pico8_jb_row_t *row) {
     return pico8_jb_struct_new(zone, row);
 }

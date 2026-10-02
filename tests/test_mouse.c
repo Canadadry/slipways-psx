@@ -38,7 +38,7 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
     return h;
 }
 
-static int ents_listed(const pico8_ents_t *list, const void *e) {
+static int ents_listed(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -53,7 +53,7 @@ static int in_any_cv(const void *e) {
     int i;
 
     for (i = 0; i < 5; i++) {
-        if (ents_listed(pico8_cv(names[i]), e)) {
+        if (ents_listed(entities_by_message(names[i]), e)) {
             return 1;
         }
     }
@@ -82,7 +82,7 @@ static int hm_of(const pico8_nf_button_t *b) {
     return b == NULL || !b->has_on ? -1 : b->hm;
 }
 
-static int ra_of_je(pico8_vec_t *out) {
+static int ra_of_je(vec_t *out) {
     const pico8_nf_t *nf = pico8_je_nf();
 
     if (nf == NULL || nf->ra == NULL) {
@@ -94,7 +94,7 @@ static int ra_of_je(pico8_vec_t *out) {
 
 static uint32_t fold_je(uint32_t h) {
     const pico8_nf_button_t *bts[2];
-    pico8_vec_t ra;
+    vec_t ra;
     int i;
 
     bts[0] = je_l();
@@ -127,12 +127,12 @@ static void script(int n) {
     input.frames = g_frames;
     input.frame_count = n;
     input.current_frame = 0;
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_input(&input);
 }
 
 static void unscript(void) {
     p8_input_init(&input);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_input(&input);
 }
 
 static void frame(int i, int x, int y, int buttons) {
@@ -146,13 +146,13 @@ static void frame(int i, int x, int y, int buttons) {
  * `l`/`r` present and still empty. */
 static void test_jl_builds_a_mouse_reader(void) {
     const void *je;
-    pico8_vec_t ra;
+    vec_t ra;
 
     p8_poke(&mem, 0x5f2d, 0);
-    pico8_jl();
+    reset_world();
     je = pico8_je();
     assert(p8_peek(&mem, 0x5f2d) == 1);
-    assert(ents_listed(pico8_hv(), je) && !in_any_cv(je));
+    assert(ents_listed(live_entities(), je) && !in_any_cv(je));
     assert(ra_of_je(&ra) && ra.x == 0 && ra.y == 0);
     assert(je_l() != NULL && je_r() != NULL && je_l() != je_r());
     assert(on_of(je_l()) == -1 && jn_of(je_l()) == -1 && hm_of(je_l()) == -1);
@@ -165,13 +165,13 @@ static void test_scripted_ticks(void) {
     uint32_t h = 2166136261u;
     int i;
 
-    pico8_jl();
+    reset_world();
     for (i = 0; i < SCRIPTED_TICKS; i++) {
         frame(i, 7 + 9 * i, 120 - 5 * i, buttons[i]);
     }
     script(SCRIPTED_TICKS);
     for (i = 0; i < SCRIPTED_TICKS; i++) {
-        pico8_dg();
+        update_entities();
         h = fold_je(h);
         if (i < SCRIPTED_TICKS - 1) {
             p8_input_step(&input);
@@ -186,20 +186,20 @@ static void test_scripted_ticks(void) {
 static void test_buttons_survive_jl(void) {
     const pico8_nf_button_t *l_before;
 
-    pico8_jl();
+    reset_world();
     frame(0, 40, 40, 1);
     frame(1, 41, 41, 1);
     frame(2, 42, 42, 1);
     script(3);
-    pico8_dg();
+    update_entities();
     p8_input_step(&input);
-    pico8_dg();
+    update_entities();
     assert(on_of(je_l()) == 1);
     l_before = je_l();
 
-    pico8_jl();
+    reset_world();
     p8_input_step(&input);
-    pico8_dg();
+    update_entities();
     unscript();
     assert(je_l() == l_before);
     assert(jn_of(je_l()) == 0 && on_of(je_l()) == 1);
@@ -207,15 +207,15 @@ static void test_buttons_survive_jl(void) {
 
 /* Rebuilding the class starts both tables afresh. */
 static void test_nf_init_starts_the_tables_afresh(void) {
-    pico8_jl();
+    reset_world();
     frame(0, 10, 10, 1);
     script(1);
-    pico8_dg();
+    update_entities();
     unscript();
     assert(on_of(je_l()) == 1);
 
     pico8_nf_init();
-    pico8_jl();
+    reset_world();
     assert(on_of(je_l()) == -1 && on_of(je_r()) == -1);
 }
 
@@ -223,9 +223,9 @@ static void test_nf_init_starts_the_tables_afresh(void) {
  * and `ok`'s frame dispatches no press. */
 static void test_placeholder_je(void) {
     pico8_ui_t *ok;
-    pico8_vec_t ra;
+    vec_t ra;
 
-    pico8_jl();
+    reset_world();
     pico8_ui_init();
     assert(je_l() == NULL && je_r() == NULL && !ra_of_je(&ra));
     ok = pico8_ui_new();
@@ -245,12 +245,12 @@ static void test_launch_with_left_held(void) {
     frame(1, 64, 64, 1);
     frame(2, 64, 64, 1);
     script(3);
-    pico8_dg();
+    update_entities();
     p8_input_step(&input);
     pico8_eu(NULL);
     assert(pico8_je() != first_je);
     p8_input_step(&input);
-    pico8_dg();
+    update_entities();
     unscript();
     assert(on_of(je_l()) == 1);
 }
@@ -267,13 +267,13 @@ static void test_nf_is_a_struct_sharing_its_buttons(void) {
     void *built;
     void *generic;
 
-    pico8_jl();
+    reset_world();
     built = pico8_nf_new();
     generic = pico8_nf_new();
 
     assert(is_an_nf_struct(built) && is_an_nf_struct(generic) && is_an_nf_struct(pico8_je()));
-    assert(ents_listed(pico8_hv(), built) && !in_any_cv(built));
-    assert(ents_listed(pico8_hv(), generic) && !in_any_cv(generic));
+    assert(ents_listed(live_entities(), built) && !in_any_cv(built));
+    assert(ents_listed(live_entities(), generic) && !in_any_cv(generic));
     assert(((const entity_t *)generic)->class->states[ENTITY_STATE_NORMAL] != NULL);
     assert(((const entity_t *)generic)->class->draw == NULL);
     assert(pico8_nf_l() != NULL && pico8_nf_r() != NULL);
@@ -287,9 +287,9 @@ int main(void) {
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(p8_load_map_json(&mem, "pico8/map.json"));
     p8_input_init(&input);
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
 
     pico8_cart_load();
 

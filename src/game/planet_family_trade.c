@@ -73,7 +73,7 @@ down_t pico8_nr_ldown(pico8_jo_t *self) {
     return gv_result;
 }
 
-static down_t pico8_nr_ldown_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static down_t pico8_nr_ldown_dispatch(entity_t *self, vec_t *qa, vec_t *ra) {
     (void)qa;
     (void)ra;
     return pico8_nr_ldown((pico8_jo_t *)self);
@@ -105,8 +105,8 @@ static void pico8_nr_hb_dispatch(entity_t *self) {
 
 void pico8_nr_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
     pico8_trade_t *t;
-    const pico8_ents_t *oe = NULL;
-    pico8_ents_iter_t it;
+    const entity_list_t *oe = NULL;
+    entity_list_iter_t it;
     entity_t *w;
 
     if (self == NULL || lw == NULL) {
@@ -116,9 +116,9 @@ void pico8_nr_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
 
     oe = self->oe;
 
-    it = pico8_ents_all(oe);
-    while (pico8_ents_iter_next(&it, &w)) {
-        const pico8_ents_t *t_rl = NULL;
+    it = entity_list_all(oe);
+    while (entity_list_iter_next(&it, &w)) {
+        const entity_list_t *t_rl = NULL;
 
         if (w == NULL) {
             continue;
@@ -131,13 +131,13 @@ void pico8_nr_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
         if (t != NULL && t->rl != NULL) {
             t_rl = t->rl;
         }
-        if (pico8_ents_has(t_rl, w)) {
+        if (entity_list_has(t_rl, w)) {
             continue;
         }
 
         {
             pico8_jo_trade_proposal_t gf = *lw;
-            pico8_trade_t *extended = pico8_trade_kg(pico8_zone_frame(), t, &self->header, w);
+            pico8_trade_t *extended = pico8_trade_kg(frame_zone(), t, &self->header, w);
             entity_t *other;
 
             gf.t = extended;
@@ -188,7 +188,7 @@ static void pico8_nr_struct_init(pico8_jo_t *self, const entity_class_t *cls, co
 }
 
 static pico8_jo_t *pico8_nr_struct_new(const planet_keys_t *keys) {
-    pico8_jo_t *self = (pico8_jo_t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
+    pico8_jo_t *self = (pico8_jo_t *)allocator_alloc(pico8_jo_zone_construction(), sizeof *self);
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
     pico8_nr_struct_init(self, &g_nr_struct_class, &pico8_nr_def);
@@ -207,7 +207,7 @@ static pico8_jo_t *pico8_nr_struct_new(const planet_keys_t *keys) {
     pico8_class_coverage_record("slipgate");
 #endif
     pico8_jo_pq(self);
-    pico8_ke_struct_pq(&self->header);
+    entity_construct(&self->header);
     return self;
 }
 
@@ -234,7 +234,7 @@ static const entity_class_t g_fr_struct_class = {
 };
 
 static pico8_jo_t *pico8_fr_struct_new(const planet_keys_t *keys) {
-    pico8_jo_t *self = (pico8_jo_t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
+    pico8_jo_t *self = (pico8_jo_t *)allocator_alloc(pico8_jo_zone_construction(), sizeof *self);
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
     pico8_nr_struct_init(self, &g_fr_struct_class, &pico8_fr_def);
@@ -251,7 +251,7 @@ static pico8_jo_t *pico8_fr_struct_new(const planet_keys_t *keys) {
     pico8_class_coverage_record("infraspace_gate");
 #endif
     pico8_jo_pq(self);
-    pico8_ke_struct_pq(&self->header);
+    entity_construct(&self->header);
     return self;
 }
 
@@ -264,15 +264,15 @@ void pico8_mx_kf(pico8_jo_t *self, entity_t *sw) {
     }
 
     if (cp != NULL) {
-        const pico8_ptrs_t *jy;
-        pico8_ptrs_iter_t it;
+        const pointer_list_t *jy;
+        pointer_list_iter_t it;
         void *i_val;
 
         assert(pico8_jo_is_family(cp) && "mx:kf: the other end of a registered slipway is a planet");
         jy = ((const pico8_jo_t *)cp)->jy;
 
-        it = pico8_ptrs_all(jy);
-        while (pico8_ptrs_iter_next(&it, &i_val)) {
+        it = pointer_list_all(jy);
+        while (pointer_list_iter_next(&it, &i_val)) {
             const pico8_jy_t *i;
             p8_fixed_t gc;
 
@@ -328,7 +328,7 @@ static const entity_class_t g_mx_struct_class = {
 };
 
 static pico8_jo_t *pico8_mx_struct_new(const planet_keys_t *keys) {
-    pico8_jo_t *self = (pico8_jo_t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
+    pico8_jo_t *self = (pico8_jo_t *)allocator_alloc(pico8_jo_zone_construction(), sizeof *self);
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
     pico8_hj_struct_init(self, &g_mx_struct_class, &pico8_mx_def);
@@ -346,7 +346,7 @@ static pico8_jo_t *pico8_mx_struct_new(const planet_keys_t *keys) {
 #endif
     pico8_f_((entity_t *)self);
     pico8_jo_pq(self);
-    pico8_ke_struct_pq(&self->header);
+    entity_construct(&self->header);
     return self;
 }
 

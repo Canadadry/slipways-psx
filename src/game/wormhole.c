@@ -28,9 +28,9 @@ static int pico8_mz_ancrage(const entity_t *p) {
 }
 
 void pico8_mz_pq(pico8_mz_t *self) {
-    const pico8_zone_choisie_t *zone = pico8_jo_zone_construction();
-    pico8_ents_t *ox;
-    pico8_ents_iter_t it;
+    const allocator_t *zone = pico8_jo_zone_construction();
+    entity_list_t *ox;
+    entity_list_iter_t it;
     entity_t *p;
     int n = 0;
 
@@ -40,24 +40,24 @@ void pico8_mz_pq(pico8_mz_t *self) {
 
     p8_play_sfx(p8_fixed_from_int(53));
 
-    it = pico8_ents_all(pico8_hv());
-    while (pico8_ents_iter_next(&it, &p)) {
+    it = entity_list_all(live_entities());
+    while (entity_list_iter_next(&it, &p)) {
         n += pico8_mz_ancrage(p);
     }
-    ox = (pico8_ents_t *)pico8_zone_alloc(zone, sizeof *ox);
-    pico8_ents_init_reserve(ox, zone, n);
-    it = pico8_ents_all(pico8_hv());
-    while (pico8_ents_iter_next(&it, &p)) {
+    ox = (entity_list_t *)allocator_alloc(zone, sizeof *ox);
+    entity_list_init_reserve(ox, zone, n);
+    it = entity_list_all(live_entities());
+    while (entity_list_iter_next(&it, &p)) {
         if (pico8_mz_ancrage(p)) {
-            pico8_ents_add(ox, p);
+            entity_list_add(ox, p);
         }
     }
     assert(ox->count == n && ox->capacity == n);
     self->ox = ox;
 }
 
-void pico8_mz_hq(pico8_mz_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
-    pico8_vec_t p_vec;
+void pico8_mz_hq(pico8_mz_t *self, vec_t *mp, vec_t *rp) {
+    vec_t p_vec;
     entity_t *nearest = NULL;
     p8_fixed_t nq;
     p8_fixed_t threshold;
@@ -67,8 +67,8 @@ void pico8_mz_hq(pico8_mz_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
         return;
     }
 
-    p_vec = self->p != NULL ? *self->p : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    nq = pico8_ij_ents(p_vec, self->ox, &nearest);
+    p_vec = self->p != NULL ? *self->p : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    nq = entity_geom_nearest(p_vec, self->ox, &nearest);
     self->ij = nearest;
 
     threshold = pico8_ov("space folding", P8_FIXED_LIT(0x000030a3, 0.19), P8_FIXED_LIT(0x0000451e, 0.27));
@@ -78,7 +78,7 @@ void pico8_mz_hq(pico8_mz_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     }
 }
 
-static void pico8_mz_hq_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static void pico8_mz_hq_dispatch(entity_t *self, vec_t *qa, vec_t *ra) {
     pico8_mz_hq((pico8_mz_t *)self, qa, ra);
 }
 
@@ -138,8 +138,8 @@ static void pico8_mz_ey_dispatch(entity_t *self, entity_t *kv) {
 
 void pico8_mz_pr(pico8_mz_t *self, p8_fixed_t t) {
     p8_fixed_t sr;
-    pico8_vec_t self_p;
-    const pico8_ents_t *jo_list;
+    vec_t self_p;
+    const entity_list_t *jo_list;
     int i;
 
     if (self == NULL) {
@@ -149,8 +149,8 @@ void pico8_mz_pr(pico8_mz_t *self, p8_fixed_t t) {
     sr = p8_fixed_add(p8_fixed_div(pico8_mz_ej(self, t), p8_fixed_from_int(128)),
                           P8_FIXED_LIT(0x000007ef, 0.031));
 
-    self_p = self->p != NULL ? *self->p : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    jo_list = pico8_cg("planet");
+    self_p = self->p != NULL ? *self->p : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    jo_list = entities_by_tag("planet");
     if (jo_list != NULL) {
         for (i = 0; i < jo_list->count; i++) {
             entity_t *pt_val = jo_list->items[i];
@@ -163,10 +163,10 @@ void pico8_mz_pr(pico8_mz_t *self, p8_fixed_t t) {
             pt = (pico8_jo_t *)pt_val;
 
             if (pt->header.state != NULL && strcmp(pt->header.state, "unknown") == 0) {
-                pico8_vec_t pt_p =
-                    pt->p != NULL ? *pt->p : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
-                pico8_vec_t diff = pico8_vec_sub(pt_p, self_p);
-                if (pico8_vec_qx(diff) < sr) {
+                vec_t pt_p =
+                    pt->p != NULL ? *pt->p : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+                vec_t diff = vec_sub(pt_p, self_p);
+                if (vec_length(diff) < sr) {
                     pico8_jo_hh(pt);
                 }
             }
@@ -218,9 +218,9 @@ static pico8_mz_t *pico8_mz_struct_new(void) {
     pico8_mz_t *self;
 
     pico8_jo_prise_ouvrir();
-    self = (pico8_mz_t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
+    self = (pico8_mz_t *)allocator_alloc(pico8_jo_zone_construction(), sizeof *self);
 
-    pico8_ke_struct_init(&self->header, &g_mz_struct_class, pico8_mz_def.me, pico8_mz_def.t);
+    entity_init_instance(&self->header, &g_mz_struct_class, pico8_mz_def.me, pico8_mz_def.t);
     self->def = &pico8_mz_def;
     self->header.layer = &self->def->fa;
     self->header.pos = &self->ra;
@@ -244,7 +244,7 @@ static pico8_mz_t *pico8_mz_struct_new(void) {
 #endif
     pico8_mz_pq(self);
     pico8_jo_prise_fermer();
-    pico8_ke_struct_pq(&self->header);
+    entity_construct(&self->header);
     return self;
 }
 

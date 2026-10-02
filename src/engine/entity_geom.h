@@ -1,5 +1,5 @@
-#ifndef PICO8_ENTITY_GEOM_H
-#define PICO8_ENTITY_GEOM_H
+#ifndef ENGINE_ENTITY_GEOM_H
+#define ENGINE_ENTITY_GEOM_H
 
 #include "engine/entity_list.h"
 #include "engine/entity_class.h"
@@ -13,17 +13,17 @@
 
 /* `gk`'s `e` is NULL or a struct (asserted); its NULL `mp`/`rp` reads as
  * the zero vector. */
-int pico8_gk(const entity_t *e, const pico8_vec_t *mp, const pico8_vec_t *rp);
+int entity_geom_contains_cursor(const entity_t *e, const vec_t *mp, const vec_t *rp);
 
-int pico8_gd(const entity_t *e);
+int entity_geom_is_on_screen(const entity_t *e);
 
 /* `e` is NULL or carries `ma` (asserted): a planet or the camera. Decays
  * `e.ma` in place. */
-pico8_vec_t pico8_ma(pico8_vec_t p, entity_t *e);
+vec_t entity_geom_shake(vec_t p, entity_t *e);
 
 /* Reads every element of `j_` as an entity instance. `*out_nearest` is
  * NULL -- Lua's nil -- when `j_` is NULL, empty, or holds
  * nothing away from `p`; the returned distance is then 32767. */
-p8_fixed_t pico8_ij_ents(pico8_vec_t p, const pico8_ents_t *j_, entity_t **out_nearest);
+p8_fixed_t entity_geom_nearest(vec_t p, const entity_list_t *j_, entity_t **out_nearest);
 
 #endif

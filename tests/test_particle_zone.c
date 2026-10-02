@@ -24,20 +24,20 @@
 static volatile unsigned char sink;
 
 static pico8_qy_t *particule(void) {
-    pico8_qy_t *p = (pico8_qy_t *)pico8_zone_alloc(pico8_zone_particules(PICO8_PARTICULES_PARTICULE), sizeof *p);
+    pico8_qy_t *p = (pico8_qy_t *)allocator_alloc(pico8_zone_particules(PICO8_PARTICULES_PARTICULE), sizeof *p);
     memset(p, 0, sizeof *p);
     return p;
 }
 
 static void rendre_particule(pico8_qy_t *p) {
-    pico8_zone_release(pico8_zone_particules(PICO8_PARTICULES_PARTICULE), (unsigned char *)p);
+    allocator_release(pico8_zone_particules(PICO8_PARTICULES_PARTICULE), (unsigned char *)p);
 }
 
 /* Une liste qy de la sorte, dans sa place, reservee a `capacite`. */
-static pico8_ptrs_t *liste(pico8_particules_sorte_t sorte, int capacite) {
-    const pico8_zone_choisie_t *place = pico8_zone_particules_place(sorte);
-    pico8_ptrs_t *qy = (pico8_ptrs_t *)pico8_zone_alloc(place, sizeof *qy);
-    pico8_ptrs_init_reserve(qy, place, capacite);
+static pointer_list_t *liste(pico8_particules_sorte_t sorte, int capacite) {
+    const allocator_t *place = pico8_zone_particules_place(sorte);
+    pointer_list_t *qy = (pointer_list_t *)allocator_alloc(place, sizeof *qy);
+    pointer_list_init_reserve(qy, place, capacite);
     return qy;
 }
 
@@ -47,9 +47,9 @@ static int case_live_places_follow_takes(void) {
 
     pico8_qy_t *a = particule();
     pico8_qy_t *b = particule();
-    const pico8_zone_choisie_t *qy = pico8_zone_particules_place(PICO8_PARTICULES_QY);
-    const pico8_zone_choisie_t *fv = pico8_zone_particules_place(PICO8_PARTICULES_QY_FV);
-    const pico8_zone_choisie_t *ga = pico8_zone_particules_place(PICO8_PARTICULES_GA);
+    const allocator_t *qy = pico8_zone_particules_place(PICO8_PARTICULES_QY);
+    const allocator_t *fv = pico8_zone_particules_place(PICO8_PARTICULES_QY_FV);
+    const allocator_t *ga = pico8_zone_particules_place(PICO8_PARTICULES_GA);
     assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE) == 2);
     assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_QY) == 1);
     assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_QY_FV) == 1);
@@ -58,9 +58,9 @@ static int case_live_places_follow_takes(void) {
     rendre_particule(a);
     assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE) == 1 && "rendre une place decompte sa sorte");
     rendre_particule(b);
-    pico8_zone_arene_rendre(qy);
-    pico8_zone_arene_rendre(fv);
-    pico8_zone_arene_rendre(ga);
+    arena_release(qy);
+    arena_release(fv);
+    arena_release(ga);
     for (int s = 0; s < PICO8_PARTICULES_COUNT; s++)
         assert(pico8_zone_particules_vivantes((pico8_particules_sorte_t)s) == 0);
     return 0;
@@ -84,28 +84,28 @@ static int case_particule_zone_full(void) {
 }
 
 static int case_qy_holds_its_capacity(void) {
-    pico8_ptrs_t *qy = liste(PICO8_PARTICULES_QY, PICO8_QY_CAPACITE);
-    for (int i = 0; i < PICO8_QY_CAPACITE; i++) pico8_ptrs_add(qy, NULL);
-    pico8_zone_arene_rendre(qy->zone);
+    pointer_list_t *qy = liste(PICO8_PARTICULES_QY, PICO8_QY_CAPACITE);
+    for (int i = 0; i < PICO8_QY_CAPACITE; i++) pointer_list_add(qy, NULL);
+    arena_release(qy->zone);
     return 0;
 }
 
 static int case_qy_past_capacity(void) {
-    pico8_ptrs_t *qy = liste(PICO8_PARTICULES_QY, PICO8_QY_CAPACITE);
-    for (int i = 0; i <= PICO8_QY_CAPACITE; i++) pico8_ptrs_add(qy, NULL);
+    pointer_list_t *qy = liste(PICO8_PARTICULES_QY, PICO8_QY_CAPACITE);
+    for (int i = 0; i <= PICO8_QY_CAPACITE; i++) pointer_list_add(qy, NULL);
     return 0;
 }
 
 static int case_qy_fv_holds_its_capacity(void) {
-    pico8_ptrs_t *qy = liste(PICO8_PARTICULES_QY_FV, PICO8_QY_FV_CAPACITE);
-    for (int i = 0; i < PICO8_QY_FV_CAPACITE; i++) pico8_ptrs_add(qy, NULL);
-    pico8_zone_arene_rendre(qy->zone);
+    pointer_list_t *qy = liste(PICO8_PARTICULES_QY_FV, PICO8_QY_FV_CAPACITE);
+    for (int i = 0; i < PICO8_QY_FV_CAPACITE; i++) pointer_list_add(qy, NULL);
+    arena_release(qy->zone);
     return 0;
 }
 
 static int case_qy_fv_past_capacity(void) {
-    pico8_ptrs_t *qy = liste(PICO8_PARTICULES_QY_FV, PICO8_QY_FV_CAPACITE);
-    for (int i = 0; i <= PICO8_QY_FV_CAPACITE; i++) pico8_ptrs_add(qy, NULL);
+    pointer_list_t *qy = liste(PICO8_PARTICULES_QY_FV, PICO8_QY_FV_CAPACITE);
+    for (int i = 0; i <= PICO8_QY_FV_CAPACITE; i++) pointer_list_add(qy, NULL);
     return 0;
 }
 
@@ -124,16 +124,16 @@ static int case_maxima_keep_the_peak(void) {
            "le maximum se releve a chaque prise, pas a la lecture");
     rendre_particule(q);
 
-    const pico8_zone_choisie_t *rendue = pico8_zone_particules_place(PICO8_PARTICULES_GA);
-    pico8_zone_alloc(rendue, 200);
-    size_t prise_rendue = pico8_zone_arene_prise(rendue);
-    pico8_zone_arene_rendre(rendue);
+    const allocator_t *rendue = pico8_zone_particules_place(PICO8_PARTICULES_GA);
+    allocator_alloc(rendue, 200);
+    size_t prise_rendue = arena_used(rendue);
+    arena_release(rendue);
     assert(pico8_zone_particules_max_octets(PICO8_PARTICULES_GA) == prise_rendue &&
            "une place rendue garde ce qu'elle a pris");
 
-    const pico8_zone_choisie_t *vivante = pico8_zone_particules_place(PICO8_PARTICULES_GA);
-    pico8_zone_alloc(vivante, 400);
-    assert(pico8_zone_particules_max_octets(PICO8_PARTICULES_GA) == pico8_zone_arene_prise(vivante) &&
+    const allocator_t *vivante = pico8_zone_particules_place(PICO8_PARTICULES_GA);
+    allocator_alloc(vivante, 400);
+    assert(pico8_zone_particules_max_octets(PICO8_PARTICULES_GA) == arena_used(vivante) &&
            "une place encore vivante compte a la lecture");
     assert(pico8_zone_particules_max_octets(PICO8_PARTICULES_QY) == 0);
 
@@ -149,9 +149,9 @@ static int case_qy_rendre_gives_back_particles_then_list(void) {
     pico8_emitter_t emitter;
     memset(&emitter, 0, sizeof emitter);
     emitter.qy = liste(PICO8_PARTICULES_QY, PICO8_QY_CAPACITE);
-    pico8_ptrs_add(emitter.qy, particule());
-    pico8_ptrs_add(emitter.qy, NULL);
-    pico8_ptrs_add(emitter.qy, particule());
+    pointer_list_add(emitter.qy, particule());
+    pointer_list_add(emitter.qy, NULL);
+    pointer_list_add(emitter.qy, particule());
     pico8_qy_t *gardee = particule();
     assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE) == 3);
 
@@ -172,7 +172,7 @@ static int case_qy_rendre_releases_the_arena(void) {
     pico8_emitter_t emitter;
     memset(&emitter, 0, sizeof emitter);
     emitter.qy = liste(PICO8_PARTICULES_QY, PICO8_QY_CAPACITE);
-    const pico8_ptrs_t *qy = emitter.qy;
+    const pointer_list_t *qy = emitter.qy;
     pico8_qy_rendre(&emitter);
     sink = ((const volatile unsigned char *)qy)[0];
     return 0;
@@ -183,7 +183,7 @@ static int case_qy_rendre_releases_the_arena(void) {
 static const pico8_emitter_def_t g_sans_naissance;
 static const entity_class_t g_hote_cls;
 static const p8_fixed_t g_fa_dix = 10 << 16;
-static const pico8_vec_t *const g_ra_nil = NULL;
+static const vec_t *const g_ra_nil = NULL;
 static pico8_emitter_t g_emitter;
 static entity_t g_hote;
 static p8_graphics_t g_gfx;
@@ -207,7 +207,7 @@ static pico8_qy_t *mourante(entity_t *h) {
     pico8_qy_t *p = pico8_particule_prendre();
     memset(p, 0, sizeof *p);
     p->l = (1 << 16) + 6554;
-    pico8_ptrs_add(h->emitter->qy, p);
+    pointer_list_add(h->emitter->qy, p);
     return p;
 }
 
@@ -275,11 +275,11 @@ static int case_ez_notes_the_list_length(void) {
 }
 
 static pico8_ts_t *trainee(void) {
-    return (pico8_ts_t *)pico8_zone_alloc(pico8_zone_particules(PICO8_PARTICULES_TS), sizeof(pico8_ts_t));
+    return (pico8_ts_t *)allocator_alloc(pico8_zone_particules(PICO8_PARTICULES_TS), sizeof(pico8_ts_t));
 }
 
 static void rendre_trainee(pico8_ts_t *t) {
-    pico8_zone_release(pico8_zone_particules(PICO8_PARTICULES_TS), (unsigned char *)t);
+    allocator_release(pico8_zone_particules(PICO8_PARTICULES_TS), (unsigned char *)t);
 }
 
 static int case_ts_takes_and_gives_back(void) {

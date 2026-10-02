@@ -48,22 +48,22 @@ static pico8_nf_button_t *nf_l_of(const pico8_nf_t *nf) {
 static void test_second_jl_keeps_specs(void) {
     pico8_nf_button_t *nf_l = nf_l_of(pico8_je_nf());
     static entity_t mark_cell;
-    pico8_ents_t *ui_le = pico8_ui_le_shared();
+    entity_list_t *ui_le = pico8_ui_le_shared();
     entity_t *mark = &mark_cell;
     int hm = nf_l->hm;
     int ui_count;
 
     assert(pico8_qb_ready());
     nf_l->hm = 0x7777;
-    pico8_ents_add(ui_le, mark);
+    entity_list_add(ui_le, mark);
     ui_count = ui_le->count;
 
-    pico8_jl();
+    reset_world();
 
     assert(pico8_qb_ready());
     assert(nf_l_of(pico8_je_nf()) == nf_l && nf_l_of(pico8_je_nf())->hm == 0x7777);
     assert(pico8_ui_le_shared() == ui_le && pico8_ui_le_shared()->count == ui_count);
-    assert(pico8_ents_del(ui_le, mark));
+    assert(entity_list_del(ui_le, mark));
     nf_l->hm = hm;
 }
 
@@ -223,7 +223,7 @@ static void test_hy_ready(void) {
 }
 
 static void test_trade_ready(void) {
-    pico8_trade_t *trade = pico8_trade_new(pico8_zone_partie(), NULL);
+    pico8_trade_t *trade = pico8_trade_new(game_zone(), NULL);
 
     assert(trade->header.class == pico8_trade_struct_class());
     assert(pico8_trade_ready());
@@ -237,9 +237,9 @@ int main(void) {
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(p8_load_map_json(&mem, "pico8/map.json"));
     p8_input_init(&input);
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
 
     assert(!pico8_trade_ready());
     assert(!pico8_hy_ready());
@@ -249,7 +249,7 @@ int main(void) {
     assert(!pico8_g__ready());
     assert(!pico8_fv_ready());
     pico8_cart_load();
-    pico8_jl();
+    reset_world();
 
     test_second_jl_keeps_specs();
     test_bg_defaults_and_ready();

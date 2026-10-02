@@ -21,30 +21,30 @@
 static int g_ui_up = 0;
 static entity_t *g_je = NULL;
 static pico8_ui_t *g_ok = NULL;
-static pico8_ents_t g_shared_le;
+static entity_list_t g_shared_le;
 
-const pico8_qz_box_t *pico8_ui_hw(void) {
+const box_t *pico8_ui_hw(void) {
     return g_ui_up ? &pico8_ui_def.hw : NULL;
 }
 
-pico8_ents_t *pico8_ui_le_shared(void) {
+entity_list_t *pico8_ui_le_shared(void) {
     return &g_shared_le;
 }
 
-pico8_ents_t *pico8_ui_le_new(void) {
-    const pico8_zone_choisie_t *place = pico8_zone_interface_place(PICO8_SORTE_LE);
-    pico8_ents_t *le = (pico8_ents_t *)pico8_zone_alloc(place, sizeof *le);
+entity_list_t *pico8_ui_le_new(void) {
+    const allocator_t *place = pico8_zone_interface_place(PICO8_SORTE_LE);
+    entity_list_t *le = (entity_list_t *)allocator_alloc(place, sizeof *le);
 
-    pico8_ents_init(le, place);
+    entity_list_init(le, place);
     return le;
 }
 
-void pico8_ui_set_le(pico8_ui_t *self, pico8_ents_t *le) {
-    pico8_ents_t *old = self->le;
+void pico8_ui_set_le(pico8_ui_t *self, entity_list_t *le) {
+    entity_list_t *old = self->le;
 
     self->le = le;
     if (old != NULL && old != &g_shared_le) {
-        pico8_file_sortie_mettre_arene(old->zone);
+        exit_queue_put_arena(old->zone);
     }
 }
 
@@ -61,8 +61,8 @@ static int pico8_ui_to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
 }
 
-static pico8_vec_t pico8_ui_vec_or_zero(const pico8_vec_t *v) {
-    return v != NULL ? *v : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
+static vec_t pico8_ui_vec_or_zero(const vec_t *v) {
+    return v != NULL ? *v : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
 /* je[bt] (bt "l" or "r"): NULL when `je` has no such button state,
@@ -89,14 +89,14 @@ static int pico8_ui_je_button_field_bool(const char *bt, const char *field) {
     return b->hm;
 }
 
-static void pico8_ui_ev_dispatch(entity_t *self, const pico8_vec_t *ra) {
+static void pico8_ui_ev_dispatch(entity_t *self, const vec_t *ra) {
     (void)ra;
-    pico8_ui_ev(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_ui_t *)self);
+    pico8_ui_ev(dispatch_context_gfx(), dispatch_context_mem(), (const pico8_ui_t *)self);
 }
 
 static void pico8_ui_le_rendre(pico8_ui_t *self) {
     if (self->le != NULL && self->le != &g_shared_le) {
-        pico8_zone_arene_rendre(self->le->zone);
+        arena_release(self->le->zone);
     }
     self->le = NULL;
 }
@@ -115,8 +115,8 @@ static pico8_ui_t *pico8_ui_struct_new(void) {
     int i;
 
     assert(g_ui_up && "pico8_ui_init() must run first");
-    self = (pico8_ui_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *self);
-    pico8_ke_struct_init(&self->header, &g_ui_struct_class, pico8_ui_def.me, pico8_ui_def.t);
+    self = (pico8_ui_t *)allocator_alloc(game_zone(), sizeof *self);
+    entity_init_instance(&self->header, &g_ui_struct_class, pico8_ui_def.me, pico8_ui_def.t);
     self->def = &pico8_ui_def;
     self->header.layer = &self->def->fa;
     self->header.cursor_sprite = &self->def->ql;
@@ -125,7 +125,7 @@ static pico8_ui_t *pico8_ui_struct_new(void) {
     self->ic = NULL;
     self->ic_own.layer_count = PICO8_UI_IC_LAYERS;
     for (i = 0; i < PICO8_UI_IC_LAYERS; i++) {
-        pico8_ents_init(&self->ic_own.layers[i], pico8_zone_frame());
+        entity_list_init(&self->ic_own.layers[i], frame_zone());
     }
     self->o_ = NULL;
     self->gj = NULL;
@@ -134,14 +134,14 @@ static pico8_ui_t *pico8_ui_struct_new(void) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("ui");
 #endif
-    pico8_ke_struct_pq(&self->header);
+    entity_construct(&self->header);
     return self;
 }
 
 void pico8_ui_init(void) {
     pico8_ui_shutdown();
     pico8_pi_init();
-    pico8_ents_init(&g_shared_le, pico8_zone_chargement());
+    entity_list_init(&g_shared_le, game_zone_load_zone());
     g_ui_up = 1;
 
     g_je = (entity_t *)&g_je_placeholder;
@@ -149,7 +149,7 @@ void pico8_ui_init(void) {
 
 void pico8_ui_shutdown(void) {
     g_ui_up = 0;
-    pico8_ents_free(&g_shared_le);
+    entity_list_free(&g_shared_le);
     g_je = NULL;
     g_ok = NULL;
 }
@@ -207,9 +207,9 @@ void pico8_ui_set_ok(pico8_ui_t *ui) {
 /* `le` is read before gw()/bh() run: the `self.le == le` test further down
  * is a pointer identity check against the list this frame started with. */
 void pico8_ui_lj(p8_memory_t *mem, pico8_ui_t *self) {
-    pico8_ents_t *le_ptr_before;
+    entity_list_t *le_ptr_before;
     int le_count;
-    pico8_vec_t qa;
+    vec_t qa;
     int hit;
     const pico8_nf_t *je;
     const pico8_qb_t *mo;
@@ -223,14 +223,14 @@ void pico8_ui_lj(p8_memory_t *mem, pico8_ui_t *self) {
 
     je = pico8_je_nf();
     mo = pico8_mo_qb();
-    qa = pico8_vec_add(pico8_ui_vec_or_zero(je != NULL ? je->ra : NULL),
+    qa = vec_add(pico8_ui_vec_or_zero(je != NULL ? je->ra : NULL),
                        pico8_ui_vec_or_zero(mo != NULL ? mo->ra : NULL));
     self->qa_own = qa;
     self->qa = &self->qa_own;
 
     pico8_ui_gw(mem, self);
 
-    hit = (le_count == 0) || pico8_ents_has(le_ptr_before, self->o_);
+    hit = (le_count == 0) || entity_list_has(le_ptr_before, self->o_);
     if (hit) {
         pico8_ui_bh(self, "l");
     }
@@ -247,7 +247,7 @@ void pico8_ui_lj(p8_memory_t *mem, pico8_ui_t *self) {
 /* `(rheld and 9) or (o_ and o_.ql) or self.ql`: a hovered entity whose own
  * `ql` is absent falls through to self's own cursor sprite. */
 void pico8_ui_ev(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_ui_t *self) {
-    pico8_vec_t je_ra;
+    vec_t je_ra;
     const pico8_nf_t *je;
     int spr_id = 0;
 
@@ -273,8 +273,8 @@ void pico8_ui_ev(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_ui_t *s
  * skipped here rather than allocating a table nothing reads. */
 void pico8_ui_gw(p8_memory_t *mem, pico8_ui_t *self) {
     const pico8_nf_t *je;
-    const pico8_vec_t *je_ra;
-    const pico8_ents_t *hd_bucket;
+    const vec_t *je_ra;
+    const entity_list_t *hd_bucket;
     int i;
     int poke_val;
 
@@ -283,7 +283,7 @@ void pico8_ui_gw(p8_memory_t *mem, pico8_ui_t *self) {
     }
 
     for (i = 0; i < PICO8_UI_IC_LAYERS; i++) {
-        pico8_ents_init(&self->ic_own.layers[i], pico8_zone_frame());
+        entity_list_init(&self->ic_own.layers[i], frame_zone());
     }
     self->ic = &self->ic_own;
     self->o_ = NULL;
@@ -291,7 +291,7 @@ void pico8_ui_gw(p8_memory_t *mem, pico8_ui_t *self) {
     je = pico8_je_nf();
     je_ra = je != NULL ? je->ra : NULL;
 
-    hd_bucket = pico8_cv("hit_test");
+    hd_bucket = entities_by_message("hit_test");
     if (hd_bucket != NULL) {
         for (i = 0; i < hd_bucket->count; i++) {
             entity_t *e = hd_bucket->items[i];
@@ -302,7 +302,7 @@ void pico8_ui_gw(p8_memory_t *mem, pico8_ui_t *self) {
 
                     assert(fa >= 0 && fa < PICO8_UI_IC_LAYERS &&
                            "ui.ic: a hovered entity's fa outside 0..15, the layers jz walks -- stop, do not widen");
-                    pico8_ents_add(&self->ic->layers[fa], e);
+                    entity_list_add(&self->ic->layers[fa], e);
                 }
                 self->o_ = e;
             }
@@ -339,7 +339,7 @@ void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
     int l;
     entity_t *held_inst;
     pico8_nf_t *je;
-    pico8_vec_t *je_ra;
+    vec_t *je_ra;
 
     if (self == NULL) {
         return;
@@ -397,7 +397,7 @@ void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
 /* Layers descend from 15 to 0 and the first truthy answer wins: that order
  * is the dispatch priority between overlapping entities, not an arbitrary
  * walk. */
-int pico8_ui_jz(pico8_ui_t *self, pico8_jz_slot_t rm, pico8_vec_t *qa, pico8_vec_t *ra, const entity_t *s,
+int pico8_ui_jz(pico8_ui_t *self, pico8_jz_slot_t rm, vec_t *qa, vec_t *ra, const entity_t *s,
                 entity_t **out_kv, down_t *out_kn) {
     int mf;
 
@@ -410,7 +410,7 @@ int pico8_ui_jz(pico8_ui_t *self, pico8_jz_slot_t rm, pico8_vec_t *qa, pico8_vec
     }
 
     for (mf = PICO8_UI_IC_LAYERS - 1; mf >= 0; mf--) {
-        const pico8_ents_t *bucket = &self->ic->layers[mf];
+        const entity_list_t *bucket = &self->ic->layers[mf];
         int i;
 
         for (i = 0; i < bucket->count; i++) {
@@ -451,11 +451,11 @@ void pico8_ui_cj(pico8_ui_t *self) {
     }
 
     if (self->le != NULL) {
-        pico8_ents_iter_t it = pico8_ents_all(self->le);
+        entity_list_iter_t it = entity_list_all(self->le);
         entity_t *e;
-        while (pico8_ents_iter_next(&it, &e)) {
+        while (entity_list_iter_next(&it, &e)) {
             if (e != NULL) {
-                pico8_he(e);
+                entity_unregister(e);
             }
         }
     }

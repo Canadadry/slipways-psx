@@ -51,8 +51,8 @@ static const entity_class_t g_pj_cr_struct_class = {0};
 
 static pico8_pj_cr_t g_pj_cr = {
     {.class = &g_pj_cr_struct_class},
-    &(const pico8_vec_t){0x0, 0xb0000},
-    &(const pico8_vec_t){0x0, 0xb0000},
+    &(const vec_t){0x0, 0xb0000},
+    &(const vec_t){0x0, 0xb0000},
     0xa0000,
     NULL,
 };
@@ -104,12 +104,12 @@ static int pico8_eg_gg_pred(entity_t *e, void *ctx) {
 }
 
 void pico8_eg(void) {
-    p8_memory_t *mem = pico8_dispatch_mem();
-    pico8_ents_t filtered;
+    p8_memory_t *mem = dispatch_context_mem();
+    entity_list_t filtered;
     p8_fixed_t ps;
     int i;
 
-    filtered = pico8_jp_ents(pico8_zone_frame(), pico8_cg("planet"), pico8_eg_gg_pred, NULL);
+    filtered = entity_list_filter(frame_zone(), entities_by_tag("planet"), pico8_eg_gg_pred, NULL);
     ps = p8_fixed_div(p8_fixed_from_int(filtered.count), p8_fixed_from_int(2));
 
     if (mem == NULL) {
@@ -157,10 +157,10 @@ void pico8_pj_hb(void) {
         }
     }
 
-    cf = pico8_ne(pico8_zone_frame(), fm_ge, 0, NULL, &discard_color);
+    cf = collect_format_signed(frame_zone(), fm_ge, 0, NULL, &discard_color);
 
-    nz_str = p8_tostr_fixed(pico8_zone_frame(), fm_nz);
-    ou[0] = (pico8_jb_item_t){.s = p8_concat2(pico8_zone_frame(), nz_str, "$")};
+    nz_str = p8_tostr_fixed(frame_zone(), fm_nz);
+    ou[0] = (pico8_jb_item_t){.s = p8_concat2(frame_zone(), nz_str, "$")};
 
     ou[1] = (pico8_jb_item_t){.s = cf};
 
@@ -174,12 +174,12 @@ void pico8_pj_hb(void) {
         }
         /* `..` binds looser than `+`: the Lua reads `"+"..(fm.po[r.k]+1)`. */
         plus_num =
-            p8_tostr_fixed(pico8_zone_frame(), p8_fixed_add(po_val, p8_fixed_from_int(1)));
-        ou[3] = (pico8_jb_item_t){.s = p8_concat2(pico8_zone_frame(), "+", plus_num)};
+            p8_tostr_fixed(frame_zone(), p8_fixed_add(po_val, p8_fixed_from_int(1)));
+        ou[3] = (pico8_jb_item_t){.s = p8_concat2(frame_zone(), "+", plus_num)};
     }
 
-    happiness_str = p8_tostr_fixed(pico8_zone_frame(), fm_happiness);
-    ou[4] = (pico8_jb_item_t){.s = p8_concat2(pico8_zone_frame(), happiness_str, "%")};
+    happiness_str = p8_tostr_fixed(frame_zone(), fm_happiness);
+    ou[4] = (pico8_jb_item_t){.s = p8_concat2(frame_zone(), happiness_str, "%")};
 
     {
         int lo = p8_fixed_flr_int(fm_lo);
@@ -244,9 +244,9 @@ void pico8_pj_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_pj_t *self) {
     }
 }
 
-static void pico8_pj_kj_dispatch(entity_t *self, const pico8_vec_t *ra) {
+static void pico8_pj_kj_dispatch(entity_t *self, const vec_t *ra) {
     (void)ra;
-    pico8_pj_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_pj_t *)self);
+    pico8_pj_kj(dispatch_context_gfx(), dispatch_context_mem(), (pico8_pj_t *)self);
 }
 
 static const entity_class_t g_pj_struct_class = {
@@ -260,8 +260,8 @@ static pico8_pj_t *pico8_pj_struct_new(void) {
     pico8_pj_t *self;
 
     assert(g_pj_up && "pico8_score_panel_init() must run first");
-    self = (pico8_pj_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *self);
-    pico8_ke_struct_init(&self->header, &g_pj_struct_class, pico8_pj_def.me, pico8_pj_def.t);
+    self = (pico8_pj_t *)allocator_alloc(game_zone(), sizeof *self);
+    entity_init_instance(&self->header, &g_pj_struct_class, pico8_pj_def.me, pico8_pj_def.t);
     self->def = &pico8_pj_def;
     self->fa = self->def->fa;
     self->header.layer = &self->fa;
@@ -273,7 +273,7 @@ static pico8_pj_t *pico8_pj_struct_new(void) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("score_panel");
 #endif
-    pico8_ke_struct_pq(&self->header);
+    entity_construct(&self->header);
     return self;
 }
 
@@ -294,7 +294,7 @@ void pico8_score_panel_init(void) {
         for (k = 0; k < 5; k++) {
             b->has[k] = k < e->row.count;
         }
-        b->ra = pico8_vec_v(p8_fixed_from_int(e->ra_x), p8_fixed_from_int(e->ra_y));
+        b->ra = vec_make(p8_fixed_from_int(e->ra_x), p8_fixed_from_int(e->ra_y));
         b->e = e;
     }
 

@@ -110,7 +110,7 @@ static void pico8_pi_rk_draw(const pico8_jb_row_t *e) {
  * technology counter in the top menu bar. Other kinds do fall back to "". */
 static void pico8_pi_io_draw(const pico8_jb_row_t *e) {
     const pico8_jb_item_t *a1 = pico8_pi_arg(e, 1);
-    char *owned = pico8_pi_is_number(e, 1) ? p8_tostr_fixed(pico8_zone_frame(), pico8_pi_number(e, 1)) : NULL;
+    char *owned = pico8_pi_is_number(e, 1) ? p8_tostr_fixed(frame_zone(), pico8_pi_number(e, 1)) : NULL;
     const char *t = a1 != NULL && a1->s != NULL ? a1->s : (owned != NULL ? owned : "");
     p8_fixed_t x = pico8_pi_number(e, 2);
     p8_fixed_t y = pico8_pi_number(e, 3);
@@ -145,10 +145,10 @@ static void pico8_pi_spr_draw(const pico8_jb_row_t *e) {
  * position vector and e[3] the alignment factor. */
 static void pico8_pi_ld_draw(const pico8_jb_row_t *e) {
     const pico8_lq_t *self = pico8_pi_ref(e, 1);
-    const pico8_vec_t *at = pico8_pi_ref(e, 2);
-    pico8_vec_t p = at != NULL
+    const vec_t *at = pico8_pi_ref(e, 2);
+    vec_t p = at != NULL
                         ? *at
-                        : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
+                        : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     p8_fixed_t a = pico8_pi_number(e, 3);
     pico8_lq_ol(g_pi_gfx, g_pi_mem, self, p, a);
 }

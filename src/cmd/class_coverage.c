@@ -41,9 +41,9 @@ int main(int argc, char **argv) {
         return 2;
     }
 
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
 
     pico8_cart_load();
     pico8__init();
@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
     pico8_cheat_t cheat;
     pico8_cheat_init(&cheat);
     for (int i = 0; i < input.frame_count; i++) {
-        pico8_dispatch_set_input(&input);
+        dispatch_context_set_input(&input);
         pico8_cheat_step(&cheat, &input);
         pico8__update60();
         pico8__draw();

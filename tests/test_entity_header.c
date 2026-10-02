@@ -98,14 +98,14 @@ static void test_non_carriers_have_null_links(void) {
     pico8_ie_t *ie = pico8_ie_new(NULL);
     pico8_ie_ke_t view = pico8_ie_ke_view(ie);
     pico8_nf_t *nf = pico8_nf_new();
-    pico8_lq_t *lq = pico8_lq_new(&zone_tas, NULL);
+    pico8_lq_t *lq = pico8_lq_new(&heap_allocator, NULL);
 
-    assert_links(&nf->header, (entity_t){.pos = (const pico8_vec_t *const *)&nf->ra});
+    assert_links(&nf->header, (entity_t){.pos = (const vec_t *const *)&nf->ra});
     assert_links(&lq->header, (entity_t){.pos = &lq->ra});
-    assert_links(&pico8_jb_new(&zone_tas, NULL)->header, (entity_t){0});
+    assert_links(&pico8_jb_new(&heap_allocator, NULL)->header, (entity_t){0});
     assert_links(&pico8_hp_new(NULL)->header, (entity_t){0});
     assert_links(&pico8_hy_new()->header, (entity_t){0});
-    assert_links(&pico8_trade_new(pico8_zone_partie(), NULL)->header, (entity_t){0});
+    assert_links(&pico8_trade_new(game_zone(), NULL)->header, (entity_t){0});
     assert_links(&view.header, (entity_t){0});
 }
 
@@ -155,8 +155,8 @@ static void test_carriers_link_their_storage(void) {
     assert(*help_screen->header.fold_anchor == p8_fixed_from_int(1) &&
            "a probe's fx is its archetype's 1.0, Lua's true: 0 would read as nil");
     assert_links(&planet->header, (entity_t){.layer = &planet->def->fa,
-                                                      .pos = (const pico8_vec_t *const *)&planet->ra,
-                                                      .map_pos = (const pico8_vec_t *const *)&planet->p,
+                                                      .pos = (const vec_t *const *)&planet->ra,
+                                                      .map_pos = (const vec_t *const *)&planet->p,
                                                       .hit_box = &planet->def->kq,
                                                       .shake = &planet->ma,
                                                       .fold_anchor = &planet->fx,
@@ -164,8 +164,8 @@ static void test_carriers_link_their_storage(void) {
                                                       .is_hovered = &planet->m_});
     assert(planet->probe == NULL && planet->emitter == NULL);
     assert_links(&infraspace_gate_planet->header, (entity_t){.layer = &infraspace_gate_planet->def->fa,
-                                                         .pos = (const pico8_vec_t *const *)&infraspace_gate_planet->ra,
-                                                         .map_pos = (const pico8_vec_t *const *)&infraspace_gate_planet->p,
+                                                         .pos = (const vec_t *const *)&infraspace_gate_planet->ra,
+                                                         .map_pos = (const vec_t *const *)&infraspace_gate_planet->p,
                                                          .hit_box = &infraspace_gate_planet->def->kq,
                                                          .infraspace = &infraspace_gate_planet->def->mt,
                                                          .shake = &infraspace_gate_planet->ma,
@@ -178,8 +178,8 @@ static void test_carriers_link_their_storage(void) {
 /* A planet's links, but for its emitter and probe. */
 static entity_t planet_links(pico8_jo_t *jo) {
     return (entity_t){.layer = &jo->def->fa,
-                                   .pos = (const pico8_vec_t *const *)&jo->ra,
-                                   .map_pos = (const pico8_vec_t *const *)&jo->p,
+                                   .pos = (const vec_t *const *)&jo->ra,
+                                   .map_pos = (const vec_t *const *)&jo->p,
                                    .hit_box = &jo->def->kq,
                                    .shake = &jo->ma,
                                    .fold_anchor = &jo->fx,
@@ -240,12 +240,12 @@ static void test_component_carriers_link_their_own(void) {
 
 static pico8_jc_t *slipway_dragged_over_nothing(entity_t *qu) {
     pico8_jc_keys_t keys = {0};
-    pico8_vec_t *mp = malloc(sizeof *mp);
+    vec_t *mp = malloc(sizeof *mp);
     pico8_jc_t *jc;
 
     keys.qu = qu;
     jc = pico8_jc_new(&keys);
-    *mp = pico8_vec_v(p8_fixed_from_int(-640), p8_fixed_from_int(-640));
+    *mp = vec_make(p8_fixed_from_int(-640), p8_fixed_from_int(-640));
     pico8_ok()->o_ = NULL;
     pico8_jc_struct_class()->drag(&jc->header, mp, NULL);
     return jc;
@@ -277,11 +277,11 @@ int main(int argc, char **argv) {
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(p8_load_map_json(&mem, "pico8/map.json"));
     p8_input_init(&input);
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
     pico8_cart_load();
-    pico8_jl();
+    reset_world();
 
     assert_malloc_fills();
     test_non_carriers_have_null_links();

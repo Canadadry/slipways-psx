@@ -38,8 +38,8 @@ void pico8_help_set_eu(pico8_js_fn fn);
  * `self` still stamps them and only skips the `pz()` call. */
 void pico8_fv_pq(pico8_g__t *self);
 
-void pico8_fv_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_g__t *self, pico8_vec_t p);
+void pico8_fv_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_g__t *self, vec_t p);
 
-void pico8_fv_kj_dispatch(entity_t *self, const pico8_vec_t *ra);
+void pico8_fv_kj_dispatch(entity_t *self, const vec_t *ra);
 
 #endif

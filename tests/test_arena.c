@@ -17,8 +17,8 @@
 #define ARENA_SIZE 512
 
 static void reset_arena(void) {
-    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&zone_tas, "place essai", ARENA_SIZE);
-    pico8_bump_zone_reset(arena->bump);
+    const allocator_t *arena = arena_take(&heap_allocator, "place essai", ARENA_SIZE);
+    bump_zone_reset(arena->bump);
 }
 
 int main(void) {
@@ -33,9 +33,9 @@ int main(void) {
     int status;
     assert(waitpid(child, &status, 0) == child);
     if (!WIFSIGNALED(status) || WTERMSIG(status) != SIGABRT) {
-        fprintf(stderr, "test_pico8_zone_arene: remettre une arene a zero doit s'arreter sur un assert\n");
+        fprintf(stderr, "test_arena: remettre une arene a zero doit s'arreter sur un assert\n");
         return 1;
     }
-    printf("test_pico8_zone_arene: all tests passed\n");
+    printf("test_arena: all tests passed\n");
     return 0;
 }

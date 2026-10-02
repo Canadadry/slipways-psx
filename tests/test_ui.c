@@ -82,7 +82,7 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
     return h;
 }
 
-static int ents_rank_in(const pico8_ents_t *list, const void *e) {
+static int ents_rank_in(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -92,16 +92,16 @@ static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     return -1;
 }
 
-static int ents_listed(const pico8_ents_t *list, const void *e) {
+static int ents_listed(const entity_list_t *list, const void *e) {
     return ents_rank_in(list, e) >= 0;
 }
 
-static const pico8_ents_t *le_of(const pico8_ui_t *ok) {
+static const entity_list_t *le_of(const pico8_ui_t *ok) {
     assert(ok->le != NULL);
     return ok->le;
 }
 
-static pico8_vec_t vec_at(const pico8_vec_t *p) {
+static vec_t vec_at(const vec_t *p) {
     assert(p != NULL);
     return *p;
 }
@@ -128,14 +128,14 @@ static uint32_t m__state(const pico8_jo_t *jo) {
     return jo->m_ ? 2 : 0;
 }
 
-static uint32_t fold_vec(uint32_t h, pico8_vec_t v) {
+static uint32_t fold_vec(uint32_t h, vec_t v) {
     return fnv(fnv(h, (uint32_t)v.x), (uint32_t)v.y);
 }
 
 /* Presence, then the rank in `hv` of an entity. */
 static uint32_t fold_entity(uint32_t h, const void *ref) {
     h = fnv(h, (uint32_t)(ref != NULL));
-    return fnv(h, (uint32_t)ents_rank_in(pico8_hv(), ref));
+    return fnv(h, (uint32_t)ents_rank_in(live_entities(), ref));
 }
 
 static int layer_count(const pico8_ui_t *ok, int mf) {
@@ -173,7 +173,7 @@ static uint32_t screen_hash(void) {
 
 /* `ev` drawn alone on a cleared screen is exactly sprite `id` at `je.ra`. */
 static uint32_t cursor_is(int id) {
-    pico8_vec_t at = vec_at(je_nf()->ra);
+    vec_t at = vec_at(je_nf()->ra);
     uint32_t drawn;
 
     p8_cls(&mem);
@@ -193,7 +193,7 @@ static int is_of(const void *e, const entity_class_t *cls) {
  * reads as difficulty 0. */
 static pico8_ui_t *start_game(void) {
     p8_input_init(&input);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
     pico8_cart_vider_file_sortie();
@@ -201,12 +201,12 @@ static pico8_ui_t *start_game(void) {
     return pico8_ok();
 }
 
-static pico8_vec_t pos_of(void *e) {
+static vec_t pos_of(void *e) {
     return vec_at(as_jo(e)->p);
 }
 
-static p8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
-    pico8_vec_t d = pico8_vec_sub(a, b);
+static p8_fixed_t dist2(vec_t a, vec_t b) {
+    vec_t d = vec_sub(a, b);
     return p8_fixed_add(p8_fixed_mul(d.x, d.x), p8_fixed_mul(d.y, d.y));
 }
 
@@ -216,7 +216,7 @@ static int placed(void *e) {
 
 /* The planet of `cg.jo` nearest to `qu`, among those with a `p`. */
 static void *nearest_to(void *qu) {
-    const pico8_ents_t *jos = pico8_cg("planet");
+    const entity_list_t *jos = entities_by_tag("planet");
     void *re = NULL;
     int i;
 
@@ -241,12 +241,12 @@ static void mouse_at(int x, int y, int buttons) {
     input.frames = &g_mouse;
     input.frame_count = 1;
     input.current_frame = 0;
-    pico8_dispatch_set_input(&input);
-    pico8_dg();
+    dispatch_context_set_input(&input);
+    update_entities();
 }
 
 static void *the_bg(void) {
-    const pico8_ents_t *hv = pico8_hv();
+    const entity_list_t *hv = live_entities();
     void *bg = NULL;
     int i;
     for (i = 0; i < hv->count; i++) {
@@ -267,15 +267,15 @@ static void test_built(void) {
     pico8_ui_t *ok = start_game();
     size_t i;
 
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), ok));
-    h = fnv(h, (uint32_t)pico8_hv()->count);
-    assert(ents_listed(pico8_cv("draw_overlay"), ok));
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_cv("draw_overlay"), ok));
+    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), ok));
+    h = fnv(h, (uint32_t)live_entities()->count);
+    assert(ents_listed(entities_by_message("draw_overlay"), ok));
+    h = fnv(h, (uint32_t)ents_rank_in(entities_by_message("draw_overlay"), ok));
     for (i = 0; i < sizeof not_listed / sizeof not_listed[0]; i++) {
-        assert(!ents_listed(pico8_cv(not_listed[i]), ok));
+        assert(!ents_listed(entities_by_message(not_listed[i]), ok));
     }
     for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
-        assert(!ents_listed(pico8_cg(tags[i]), ok));
+        assert(!ents_listed(entities_by_tag(tags[i]), ok));
     }
 
     assert(ok->def->ql == p8_fixed_from_int(58));
@@ -292,8 +292,8 @@ static void test_built(void) {
 
     assert(ok->le == pico8_ui_le_shared());
     assert(ok->def == &pico8_ui_def);
-    assert(ok->def->hw.xl == p8_fixed_from_int(10) && ok->def->hw.yt == p8_fixed_from_int(10));
-    assert(ok->def->hw.xr == p8_fixed_from_int(118) && ok->def->hw.yb == p8_fixed_from_int(118));
+    assert(ok->def->hw.left == p8_fixed_from_int(10) && ok->def->hw.top == p8_fixed_from_int(10));
+    assert(ok->def->hw.right == p8_fixed_from_int(118) && ok->def->hw.bottom == p8_fixed_from_int(118));
     assert(le_of(ok)->count == 0);
     check("built", h, BUILT_HASH);
 }
@@ -308,13 +308,13 @@ static void test_shared(void) {
     uint32_t h = 2166136261u;
     pico8_ui_t *ok = start_game();
     pico8_ui_t *other = pico8_ui_new();
-    const pico8_ents_t *le = ok->le;
+    const entity_list_t *le = ok->le;
 
     assert(other != NULL && other != ok);
     assert(other->header.cursor_sprite == &other->def->ql);
     assert(other->le == le && le == pico8_ui_le_shared());
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), other));
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_cv("draw_overlay"), other));
+    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), other));
+    h = fnv(h, (uint32_t)ents_rank_in(entities_by_message("draw_overlay"), other));
 
     pico8_ui_cj(other);
     assert(other->le != le && le_of(other)->count == 0);
@@ -323,12 +323,12 @@ static void test_shared(void) {
     call_ix_my(4);
     assert(ok->le != le && other->le != ok->le);
     h = fnv(h, (uint32_t)le_of(ok)->count);
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), le_of(ok)->items[0]));
+    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), le_of(ok)->items[0]));
     assert(pico8_ui_le_shared() == le && le->count == 0);
 
     (void)pico8_fv_new();
     assert(le_of(ok)->count == 0 && ok->le != le);
-    h = fnv(h, (uint32_t)pico8_hv()->count);
+    h = fnv(h, (uint32_t)live_entities()->count);
     check("shared", h, SHARED_HASH);
 }
 
@@ -337,11 +337,11 @@ static void test_shared(void) {
 static void test_fresh(void) {
     uint32_t h = 2166136261u;
     pico8_ui_t *ok = start_game();
-    pico8_vec_t want;
+    vec_t want;
 
     mouse_at(64, 100, 0);
     pico8_ui_lj(&mem, pico8_ok());
-    want = pico8_vec_add(vec_at(je_nf()->ra), vec_at(mo_qb()->ra));
+    want = vec_add(vec_at(je_nf()->ra), vec_at(mo_qb()->ra));
     assert(vec_at(ok->qa).x == want.x && vec_at(ok->qa).y == want.y);
     assert(ok->ic != NULL && ok->o_ != NULL);
     assert(ok->gj == ok->o_);
@@ -357,12 +357,12 @@ static void test_fresh(void) {
 
 /* The first planet of `cg.jo` whose screen position is well inside. */
 static pico8_jo_t *planet_on_screen(int *sx, int *sy) {
-    const pico8_ents_t *jo = pico8_cg("planet");
-    pico8_vec_t cam = vec_at(mo_qb()->ra);
+    const entity_list_t *jo = entities_by_tag("planet");
+    vec_t cam = vec_at(mo_qb()->ra);
     int i;
 
     for (i = 0; jo != NULL && i < jo->count; i++) {
-        pico8_vec_t at = vec_at(as_jo(jo->items[i])->ra);
+        vec_t at = vec_at(as_jo(jo->items[i])->ra);
         int x = p8_fixed_flr_int(p8_fixed_sub(at.x, cam.x));
         int y = p8_fixed_flr_int(p8_fixed_sub(at.y, cam.y));
         if (x >= 16 && x <= 112 && y >= 16 && y <= 112) {
@@ -394,7 +394,7 @@ static void test_hover(void) {
     /* A planet has no `fg`: 0x5f80 is poked with 0. */
     assert(p8_peek(&mem, 0x5f80) == 0);
     assert(in_layer(ok, 6, planet) && in_layer(ok, 1, the_bg()));
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), planet));
+    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), planet));
     h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
     h = fold_layers(h, ok);
 
@@ -420,8 +420,8 @@ static void test_layers(void) {
     pico8_ui_t *ok = start_game();
     entity_t *kv = NULL;
     down_t kn;
-    pico8_vec_t *qa;
-    pico8_vec_t *ra;
+    vec_t *qa;
+    vec_t *ra;
     pico8_jo_t *planet;
     int x;
     int y;
@@ -435,14 +435,14 @@ static void test_layers(void) {
     ra = je_nf()->ra;
     assert(qa != NULL && ra != NULL);
 
-    pico8_ke_ks(&planet->header, "known");
+    entity_set_state(&planet->header, "known");
     assert(pico8_ui_jz(pico8_ok(), PICO8_JZ_LDOWN, qa, ra, NULL, &kv, &kn));
     assert((void *)kv == planet && kn.stop && kn.held == NULL);
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), kv));
+    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), kv));
     kv = NULL;
     assert(pico8_ui_jz(pico8_ok(), PICO8_JZ_RDOWN, qa, ra, NULL, &kv, &kn));
     assert((void *)kv == the_bg() && kn.stop && (void *)kn.held == the_bg());
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), kv));
+    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), kv));
     check("layers", h, LAYERS_HASH);
 }
 
@@ -477,13 +477,13 @@ static void test_right(void) {
 }
 
 static int oe_count(void *planet) {
-    const pico8_ents_t *oe = as_jo(planet)->oe;
+    const entity_list_t *oe = as_jo(planet)->oe;
     return oe == NULL ? 0 : oe->count;
 }
 
 /* Where `e` is on screen under `mo`'s camera. */
 static void screen_of(void *e, int *x, int *y) {
-    pico8_vec_t at = pico8_vec_sub(vec_at(as_jo(e)->ra), vec_at(mo_qb()->ra));
+    vec_t at = vec_sub(vec_at(as_jo(e)->ra), vec_at(mo_qb()->ra));
 
     *x = p8_fixed_flr_int(at.x);
     *y = p8_fixed_flr_int(at.y);
@@ -503,7 +503,7 @@ static int on_screen(void *e) {
  * other, `ey` gets that planet and `lheld` goes. */
 static void test_left(void) {
     uint32_t h = 2166136261u;
-    const pico8_ents_t *jos;
+    const entity_list_t *jos;
     pico8_ui_t *ok;
     void *held;
     void *origin = NULL;
@@ -514,7 +514,7 @@ static void test_left(void) {
     int i;
 
     ok = start_game();
-    jos = pico8_cg("planet");
+    jos = entities_by_tag("planet");
     for (i = 0; i < jos->count && other == NULL; i++) {
         void *e = jos->items[i];
         if (on_screen(e) && on_screen(nearest_to(e))) {
@@ -526,7 +526,7 @@ static void test_left(void) {
     pico8_jo_hu(origin, pico8_hp_new(NULL));
     pico8_jo_hu(other, pico8_hp_new(NULL));
     for (i = 0; i < SETTLE_TICKS; i++) {
-        pico8_dg();
+        update_entities();
     }
 
     screen_of(origin, &x, &y);
@@ -537,8 +537,8 @@ static void test_left(void) {
     held = ok->lheld;
     assert(held != NULL && is_of(held, pico8_jc_struct_class()) && ok->rheld == NULL);
     assert((void *)((const pico8_jc_t *)held)->qu == origin && oe_count(origin) == 0);
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), held));
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), origin));
+    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), held));
+    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), origin));
     h = fnv(h, cursor_is(58));
 
     screen_of(other, &x, &y);
@@ -547,13 +547,13 @@ static void test_left(void) {
     assert((void *)ok->lheld == held);
     target = ok->o_;
     assert(target == other);
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), target));
+    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), target));
 
     mouse_at(x, y, 0);
     pico8_ui_lj(&mem, ok);
     assert(ok->lheld == NULL && ok->rheld == NULL);
     assert(oe_count(origin) == 1 && oe_count(target) == 1);
-    h = fnv(h, (uint32_t)pico8_cg("slipway")->count);
+    h = fnv(h, (uint32_t)entities_by_tag("slipway")->count);
     check("left", h, LEFT_HASH);
 }
 
@@ -561,7 +561,7 @@ static void test_left(void) {
 static void test_cj(void) {
     uint32_t h = 2166136261u;
     pico8_ui_t *ok = start_game();
-    const pico8_ents_t *le;
+    const entity_list_t *le;
     int count;
     int i;
 
@@ -570,16 +570,16 @@ static void test_cj(void) {
     count = le->count;
     assert(count > 0);
     for (i = 0; i < count; i++) {
-        assert(ents_listed(pico8_hv(), le->items[i]));
-        h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), le->items[i]));
+        assert(ents_listed(live_entities(), le->items[i]));
+        h = fnv(h, (uint32_t)ents_rank_in(live_entities(), le->items[i]));
     }
-    h = fnv(h, (uint32_t)pico8_hv()->count);
+    h = fnv(h, (uint32_t)live_entities()->count);
     pico8_ui_cj(pico8_ok());
     assert(ok->le != le && le_of(ok)->count == 0 && ok->le != pico8_ui_le_shared());
     for (i = 0; i < count; i++) {
-        assert(!ents_listed(pico8_hv(), le->items[i]));
+        assert(!ents_listed(live_entities(), le->items[i]));
     }
-    h = fnv(h, (uint32_t)pico8_hv()->count);
+    h = fnv(h, (uint32_t)live_entities()->count);
     check("cj", h, CJ_HASH);
 }
 
@@ -590,10 +590,10 @@ static void test_stale(void) {
     uint32_t h = 2166136261u;
     pico8_ui_t *old;
     void *button;
-    const pico8_ents_t *le;
+    const entity_list_t *le;
 
     p8_input_init(&input);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_input(&input);
     pico8__init();
     old = pico8_ok();
     mouse_at(76, 71, 0);
@@ -601,19 +601,19 @@ static void test_stale(void) {
     button = old->o_;
     le = le_of(old);
     assert(button != NULL && is_of(button, pico8_js_struct_class()) && le->count == 0);
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), button));
+    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), button));
 
     mouse_at(76, 71, 1);
     pico8_ui_lj(&mem, old);
     assert(pico8_ok() != old && pico8_ok() != NULL);
     assert(old->gj == old->o_ && old->gj != NULL && is_of(old->gj, pico8_js_struct_class()));
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), old->gj));
+    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), old->gj));
     assert(old->le != le && le_of(old)->count == 0);
     assert(pico8_ok()->gj == NULL && pico8_ok()->qa == NULL);
     h = fnv(h, (uint32_t)le_of(pico8_ok())->count);
     h = fnv(h, (uint32_t)(pico8_ok()->le == pico8_ui_le_shared()));
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), pico8_ok()));
-    h = fnv(h, (uint32_t)pico8_hv()->count);
+    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), pico8_ok()));
+    h = fnv(h, (uint32_t)live_entities()->count);
     check("stale", h, STALE_HASH);
 }
 
@@ -654,7 +654,7 @@ static void test_init_empties_shared_le(void) {
     static entity_t mark;
 
     (void)start_game();
-    pico8_ents_add(pico8_ui_le_shared(), &mark);
+    entity_list_add(pico8_ui_le_shared(), &mark);
     assert(pico8_ui_le_shared()->count == 1);
     pico8_ui_init();
     assert(pico8_ui_le_shared()->count == 0);
@@ -713,7 +713,7 @@ typedef struct {
 static entity_t *g_given;
 static int g_giver_hovered = 1;
 
-static down_t giver_down(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static down_t giver_down(entity_t *self, vec_t *qa, vec_t *ra) {
     down_t out;
 
     (void)self;
@@ -724,7 +724,7 @@ static down_t giver_down(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     return out;
 }
 
-static int giver_hd(entity_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
+static int giver_hd(entity_t *self, const vec_t *qa, const vec_t *ra) {
     (void)self;
     (void)qa;
     (void)ra;
@@ -760,10 +760,10 @@ static void test_ui_held_stops_off_row(void) {
     void *right[6];
     size_t i;
 
-    pico8_lt(&g_giver.header);
+    entity_register(&g_giver.header);
     left[0] = pico8_pm_new(NULL);
     left[1] = pico8_ga_new(NULL);
-    left[2] = pico8_cg("planet")->items[0];
+    left[2] = entities_by_tag("planet")->items[0];
     left[3] = the_bg();
     left[4] = pico8_fv_new();
     left[5] = pico8_js_new(NULL);
@@ -791,7 +791,7 @@ static void test_ui_held_stops_off_row(void) {
 /* `ks` takes a struct or NULL, and does nothing on NULL. */
 static void test_ke_closed(void) {
     (void)start_game();
-    pico8_ke_ks(NULL, "normal");
+    entity_set_state(NULL, "normal");
 }
 
 /* Every entity struct begins with its header. */
@@ -936,13 +936,13 @@ static void test_ke_me_by_name(void) {
     static const int identity[24] = {1, 1, 1, 1, 2, 3, 3, 3, 3, 4, 2, 3, 3, 3, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0};
     char s[] = "vanishing";
     void *e[24];
-    const pico8_ents_t *hv;
+    const entity_list_t *hv;
     const char *me;
     uint32_t h = 2166136261u;
     size_t i;
 
     (void)start_game();
-    hv = pico8_hv();
+    hv = live_entities();
     assert(hv != NULL);
     h = fnv(h, (uint32_t)hv->count);
     /* The kind word is constant by the struct's shape (`me` is a string or
@@ -994,19 +994,19 @@ static void test_ke_me_by_name(void) {
         h = fnv(h, 0u);
     }
 
-    pico8_ke_ks(e[0], s);
+    entity_set_state(e[0], s);
     me = ke_of(e[0])->state;
     assert(me == s);
     h = fold_ks_back(fold_string(fnv(h, 1u), me), e[0]);
-    pico8_ke_ks(e[0], NULL);
+    entity_set_state(e[0], NULL);
     assert(ke_of(e[0])->state == NULL);
     h = fold_ks_back(fnv(h, 0u), e[0]);
-    pico8_ke_ks(e[0], "normal");
+    entity_set_state(e[0], "normal");
     me = ke_of(e[0])->state;
     assert(me != NULL && strcmp(me, "normal") == 0);
     h = fold_ks_back(fold_string(fnv(h, 1u), me), e[0]);
 
-    pico8_ke_ks(e[9], s);
+    entity_set_state(e[9], s);
     me = ke_of(e[9])->state;
     assert(me == s);
     h = fold_ks_back(fold_string(fnv(h, 1u), me), e[9]);
@@ -1021,7 +1021,7 @@ static uint32_t fold_t(uint32_t h, void *e) {
 }
 
 static uint32_t fold_hv_t(uint32_t h) {
-    const pico8_ents_t *hv = pico8_hv();
+    const entity_list_t *hv = live_entities();
     int i;
 
     assert(hv != NULL);
@@ -1047,7 +1047,7 @@ static void test_ke_t_by_name(void) {
 
     (void)start_game();
     h = fold_hv_t(h);
-    pico8_dg();
+    update_entities();
     h = fold_hv_t(h);
 
     e[0] = pico8_bg_new();
@@ -1106,12 +1106,12 @@ static void test_ke_t_by_name(void) {
     assert(zero->emitter->py == pico8_g__def.emitter.py);
     h = fold_t(h, zero);
 
-    pico8_ke_ks(&keyed->header, "vanishing");
+    entity_set_state(&keyed->header, "vanishing");
     assert_t(keyed, 0);
     assert(keyed->header.state != NULL && strcmp(keyed->header.state, "vanishing") == 0);
     h = fold_string(fold_t(h, keyed), keyed->header.state);
 
-    pico8_ke_ks(e[9], "vanishing");
+    entity_set_state(e[9], "vanishing");
     assert_t(e[9], 0);
     h = fold_t(h, e[9]);
 
@@ -1152,9 +1152,9 @@ int main(void) {
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(p8_load_map_json(&mem, "pico8/map.json"));
     p8_input_init(&input);
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
 
     pico8_cart_load();
     in_fresh_child(test_built);

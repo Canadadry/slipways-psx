@@ -24,7 +24,7 @@
 typedef struct {
     entity_t header;
     const pico8_ie_def_t *def;
-    const pico8_vec_t *ra;
+    const vec_t *ra;
     const entity_kind_t *ke;
     pico8_jb_t *jb;
     int kh;
@@ -69,16 +69,16 @@ pico8_ie_t *pico8_ie_new(const pico8_ie_keys_t *keys);
 /* `ie.eh`, `pico8_ie_def.eh`, for `_init` to point `ie.gy` at: an alias,
  * not a copy. NULL before pico8_research_icon_init() and after the
  * shutdown. */
-const pico8_vec_t *pico8_ie_eh(void);
+const vec_t *pico8_ie_eh(void);
 
 /* The shared `ie.gy` cursor, borrowed; NULL while `gy` is nil. */
-const pico8_vec_t *pico8_ie_gy(void);
+const vec_t *pico8_ie_gy(void);
 
 /* The shared `ie.id` counter: 0 while `id` is nil, else 1 with `*out` set. */
 int pico8_ie_id(p8_fixed_t *out);
 
 /* NULL is a nil `gy`. */
-void pico8_ie_set_gy(const pico8_vec_t *gy);
+void pico8_ie_set_gy(const vec_t *gy);
 
 /* Reveals the icon once, claiming the next slot off the shared `ie.gy`
  * cursor: a box made in the current game generation. Requires
@@ -97,6 +97,6 @@ down_t pico8_ie_ldown(pico8_ie_t *self);
 pico8_ie_ke_t pico8_ie_ke_view(const pico8_ie_t *self);
 const entity_class_t *pico8_ie_ke_view_struct_class(void);
 
-void pico8_ie_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_ie_t *self, pico8_vec_t p);
+void pico8_ie_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_ie_t *self, vec_t p);
 
 #endif

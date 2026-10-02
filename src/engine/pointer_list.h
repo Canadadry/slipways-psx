@@ -1,5 +1,5 @@
-#ifndef PICO8_PTRS_H
-#define PICO8_PTRS_H
+#ifndef ENGINE_POINTER_LIST_H
+#define ENGINE_POINTER_LIST_H
 
 #include "engine/allocator.h"
 
@@ -10,36 +10,36 @@ typedef struct {
     void **items;
     int count;
     int capacity;
-    const pico8_zone_choisie_t *zone;
-} pico8_ptrs_t;
+    const allocator_t *zone;
+} pointer_list_t;
 
 /* `zone` must outlive `ptrs`. */
-void pico8_ptrs_init(pico8_ptrs_t *ptrs, const pico8_zone_choisie_t *zone);
+void pointer_list_init(pointer_list_t *pointer_list, const allocator_t *zone);
 /* Takes `items` for `capacity` elements from `zone` at once; adding past it
  * grows through `zone` as usual -- in an arena sized to fit, a pico8_fatal. */
-void pico8_ptrs_init_reserve(pico8_ptrs_t *ptrs, const pico8_zone_choisie_t *zone, int capacity);
+void pointer_list_init_reserve(pointer_list_t *pointer_list, const allocator_t *zone, int capacity);
 /* Gives `items` back to the zone and leaves `ptrs` empty, same zone. */
-void pico8_ptrs_free(pico8_ptrs_t *ptrs);
+void pointer_list_free(pointer_list_t *pointer_list);
 /* An iterator holds `ptrs`, not `items`: it survives the growth. */
-void pico8_ptrs_add(pico8_ptrs_t *ptrs, void *e);
+void pointer_list_add(pointer_list_t *pointer_list, void *e);
 /* Removes the FIRST element identical to `e` (pointer equality) and shifts
  * the later ones down; 1 if one was removed, 0 (no change) otherwise. */
-int pico8_ptrs_del(pico8_ptrs_t *ptrs, const void *e);
+int pointer_list_del(pointer_list_t *pointer_list, const void *e);
 
 /* all(): recovers when the element it last returned is deleted during the
  * walk (it re-reads that slot once the count drops), not when an earlier
  * one is -- the documented PICO-8 caveat, kept as is. */
 typedef struct {
-    const pico8_ptrs_t *ptrs;
+    const pointer_list_t *pointer_list;
     int index;      /* last index returned, -1 before the first call */
     int last_count; /* ptrs->count right after that return (or at init) */
-} pico8_ptrs_iter_t;
-pico8_ptrs_iter_t pico8_ptrs_all(const pico8_ptrs_t *ptrs);
+} pointer_list_iter_t;
+pointer_list_iter_t pointer_list_all(const pointer_list_t *pointer_list);
 /* 1 and *out set, or 0 once exhausted (*out untouched). */
-int pico8_ptrs_iter_next(pico8_ptrs_iter_t *iter, void **out);
+int pointer_list_iter_next(pointer_list_iter_t *iter, void **out);
 
 /* No deletion tolerance: `fn` must not add to or delete from `ptrs`. */
-typedef void (*pico8_ptrs_foreach_fn)(void *e, void *ctx);
-void pico8_ptrs_foreach(const pico8_ptrs_t *ptrs, pico8_ptrs_foreach_fn fn, void *ctx);
+typedef void (*pointer_list_foreach_fn_t)(void *e, void *ctx);
+void pointer_list_foreach(const pointer_list_t *pointer_list, pointer_list_foreach_fn_t fn, void *ctx);
 
 #endif

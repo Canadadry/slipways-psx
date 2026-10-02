@@ -28,7 +28,7 @@ enum { PICO8_MH_ITEMS_CAP = PICO8_BZ_COUNT };
  * `place`, given back by the exit queue once `he` takes the box out. */
 struct pico8_mh {
     entity_t header;
-    const pico8_zone_choisie_t *place;
+    const allocator_t *place;
     const pico8_mh_def_t *def;
     p8_fixed_t rh;
     pico8_mh_lh_fn lh; /* NULL: `lh` is nil */
@@ -89,12 +89,12 @@ enum { PICO8_IV_TEXT_CAP = 16 };
  * back by the exit queue once `he` takes the toast out. */
 typedef struct {
     entity_t header;
-    const pico8_zone_choisie_t *place;
-    pico8_vec_t ra_box;
+    const allocator_t *place;
+    vec_t ra_box;
     char at1_buf[PICO8_IV_TEXT_CAP + 1];
     const pico8_iv_def_t *def;
     p8_fixed_t l;
-    const pico8_vec_t *ra;
+    const vec_t *ra;
     int p_;
     const char *at1;
     p8_fixed_t at2;
@@ -108,7 +108,7 @@ int pico8_iv_ready(void);
 /* The cart's keys `ra`, `[1]` and `[2]` of a toast. NULL or 0 is an absent
  * key, which leaves the member's default. */
 typedef struct {
-    const pico8_vec_t *ra;
+    const vec_t *ra;
     const char *at1;
     p8_fixed_t at2;
 } pico8_iv_keys_t;
@@ -121,7 +121,7 @@ void pico8_iv_pq(pico8_iv_t *self);
 void pico8_iv_ph(pico8_iv_t *self);
 
 /* A NULL `gfx`/`mem` makes the whole call a no-op. */
-void pico8_iv_kj(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_iv_t *self, pico8_vec_t p);
+void pico8_iv_kj(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_iv_t *self, vec_t p);
 
 /* What `pz` reads of its `p`, filled by the caller from its own members: a
  * NULL pointer or a 0 has_* is nil; `ff` is the Lua truth of `p.ff`. `pz`
@@ -130,12 +130,12 @@ typedef struct {
     const char *ep;
     int has_eo;
     p8_fixed_t eo;
-    const pico8_vec_t *hi;
+    const vec_t *hi;
     int ff;
     int has_ca;
     p8_fixed_t ca;
-    const pico8_vec_t *gq;
-    const pico8_vec_t *ra;
+    const vec_t *gq;
+    const vec_t *ra;
 } pico8_pz_frame_t;
 
 /* The `n` rows of `bs` are the keys of `ok.le`'s buttons, each read on a

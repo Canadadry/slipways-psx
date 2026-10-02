@@ -56,7 +56,7 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-static int ents_listed(const pico8_ents_t *list, const void *e) {
+static int ents_listed(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -83,8 +83,8 @@ static uint32_t fold_veil(uint32_t h, const pico8_fq_t *e) {
     h = fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)e->header.state_time);
     h = fold_bool_member(h, (e->p_ != 0), e->p_);
     h = fold_bool_member(h, (e->m_ != 0), e->m_);
-    h = fnv(h, (uint32_t)ents_listed(pico8_hv(), e));
-    return fnv(h, (uint32_t)ents_listed(pico8_cv("hit_test"), e));
+    h = fnv(h, (uint32_t)ents_listed(live_entities(), e));
+    return fnv(h, (uint32_t)ents_listed(entities_by_message("hit_test"), e));
 }
 
 static const void *ok_o_(void) {
@@ -129,23 +129,23 @@ static void test_ldown_with_a_true_my_removes_the_veil(void) {
     pico8_fq_t *veil;
     int ticks = 0;
 
-    pico8_jl();
+    reset_world();
     pico8_cart_vider_file_sortie();
     veil = veil_with_my(1);
     h = fold_veil(h, veil);
-    while (ents_listed(pico8_hv(), veil)) {
+    while (ents_listed(live_entities(), veil)) {
         if (ticks == LDOWN_TICK) {
             assert(ldown(veil));
             assert(g_my_calls == 1);
             h = fold_veil(h, veil);
         }
-        pico8_dg();
+        update_entities();
         ticks++;
         h = fold_veil(h, veil);
         assert(ticks < 1000);
     }
     assert(g_my_calls == 1);
-    assert(!ents_listed(pico8_cv("hit_test"), veil));
+    assert(!ents_listed(entities_by_message("hit_test"), veil));
     printf("[my true] ticks=%d\n", ticks);
     fflush(stdout);
     assert(ticks == MY_TRUE_TICKS);
@@ -158,7 +158,7 @@ static void test_bare_veil_swallows_the_click_and_stays(void) {
     pico8_fq_t *veil;
     int i;
 
-    pico8_jl();
+    reset_world();
     pico8_cart_vider_file_sortie();
     veil = pico8_fq_new(NULL);
     for (i = 0; i < IDLE_TICKS; i++) {
@@ -166,10 +166,10 @@ static void test_bare_veil_swallows_the_click_and_stays(void) {
             assert(ldown(veil));
             assert(!veil->p_);
         }
-        pico8_dg();
+        update_entities();
         h = fold_veil(h, veil);
     }
-    assert(ents_listed(pico8_hv(), veil) && ents_listed(pico8_cv("hit_test"), veil));
+    assert(ents_listed(live_entities(), veil) && ents_listed(entities_by_message("hit_test"), veil));
     check("bare", h, BARE_SEQUENCE_HASH);
 }
 
@@ -180,7 +180,7 @@ static void test_false_my_keeps_the_veil(void) {
     pico8_fq_t *veil;
     int i;
 
-    pico8_jl();
+    reset_world();
     pico8_cart_vider_file_sortie();
     veil = veil_with_my(0);
     for (i = 0; i < IDLE_TICKS; i++) {
@@ -189,10 +189,10 @@ static void test_false_my_keeps_the_veil(void) {
             assert(g_my_calls == 1);
             assert(!veil->p_);
         }
-        pico8_dg();
+        update_entities();
         h = fold_veil(h, veil);
     }
-    assert(ents_listed(pico8_hv(), veil) && ents_listed(pico8_cv("hit_test"), veil));
+    assert(ents_listed(live_entities(), veil) && ents_listed(entities_by_message("hit_test"), veil));
     check("my false", h, BARE_SEQUENCE_HASH);
 }
 
@@ -238,7 +238,7 @@ static void test_hover_loop_on_the_veil(void) {
     }
     h = fold_veil(h, veil);
 
-    pico8_he(&veil->header);
+    entity_unregister(&veil->header);
     pico8_ui_lj(&mem, pico8_ok());
     assert(ok_o_() != veil && !in_layer(14, veil));
     assert(!veil->m_);
@@ -251,7 +251,7 @@ static void test_hover_loop_on_the_veil(void) {
 static void test_defaults_match_the_parsed_spec(void) {
     pico8_fq_t *veil;
 
-    pico8_jl();
+    reset_world();
     pico8_cart_vider_file_sortie();
     veil = pico8_fq_new(NULL);
     assert(veil->def == &pico8_fq_def);
@@ -280,19 +280,19 @@ static void test_fq_is_a_struct_registered_under_hd(void) {
     void *generic;
     int i;
 
-    pico8_jl();
+    reset_world();
     pico8_cart_vider_file_sortie();
     keys.my = pico8_de_my();
     built = pico8_fq_new(&keys);
     generic = pico8_fq_new(NULL);
 
     assert(is_a_veil_struct(built) && is_a_veil_struct(generic));
-    assert(ents_listed(pico8_hv(), built) && ents_listed(pico8_cv("hit_test"), built));
-    assert(ents_listed(pico8_hv(), generic) && ents_listed(pico8_cv("hit_test"), generic));
+    assert(ents_listed(live_entities(), built) && ents_listed(entities_by_message("hit_test"), built));
+    assert(ents_listed(live_entities(), generic) && ents_listed(entities_by_message("hit_test"), generic));
     for (i = 0; i < 4; i++) {
-        assert(!ents_listed(pico8_cv(others[i]), built) && !ents_listed(pico8_cv(others[i]), generic));
+        assert(!ents_listed(entities_by_message(others[i]), built) && !ents_listed(entities_by_message(others[i]), generic));
     }
-    assert(cls->hit_test == pico8_hd_true && cls->hit_test(generic, NULL, NULL) == 1);
+    assert(cls->hit_test == entity_registry_hit_test_always && cls->hit_test(generic, NULL, NULL) == 1);
     assert(cls->states[ENTITY_STATE_NORMAL] == NULL && cls->right_press == NULL);
     assert(((const pico8_fq_t *)built)->my == pico8_de_my());
 }
@@ -304,14 +304,14 @@ static void test_veil_gives_its_place_back(void) {
     int base;
     int ticks = 0;
 
-    pico8_jl();
+    reset_world();
     pico8_cart_vider_file_sortie();
     base = pico8_zone_interface_vivantes(PICO8_SORTE_FQ);
     veil = veil_with_my(1);
     assert(pico8_zone_interface_vivantes(PICO8_SORTE_FQ) == base + 1);
     assert(ldown(veil));
-    while (ents_listed(pico8_hv(), veil)) {
-        pico8_dg();
+    while (ents_listed(live_entities(), veil)) {
+        update_entities();
         assert(++ticks < 1000);
     }
     assert(pico8_zone_interface_vivantes(PICO8_SORTE_FQ) == base + 1 && "out of hv, still read this frame");
@@ -325,9 +325,9 @@ int main(void) {
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(p8_load_map_json(&mem, "pico8/map.json"));
     p8_input_init(&input);
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
 
     pico8_cart_load();
 

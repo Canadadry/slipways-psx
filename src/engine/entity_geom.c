@@ -7,50 +7,50 @@
 #include "engine/entity_registry.h"
 #include "engine/geom.h"
 
-static pico8_vec_t pico8_entity_geom_zero(void) {
-    return pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
+static vec_t zero_vec(void) {
+    return vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
 /* `e`'s `ra` (`p` for the second), or (0,0) when `e` is NULL or the field is nil. */
-static pico8_vec_t pico8_entity_geom_ra(const entity_t *e) {
-    const pico8_vec_t *ra = e != NULL && e->pos != NULL ? *e->pos : NULL;
+static vec_t pos_of(const entity_t *e) {
+    const vec_t *ra = e != NULL && e->pos != NULL ? *e->pos : NULL;
 
-    return ra != NULL ? *ra : pico8_entity_geom_zero();
+    return ra != NULL ? *ra : zero_vec();
 }
 
-static pico8_vec_t pico8_entity_geom_p(const entity_t *e) {
-    const pico8_vec_t *p = e != NULL && e->map_pos != NULL ? *e->map_pos : NULL;
+static vec_t map_pos_of(const entity_t *e) {
+    const vec_t *p = e != NULL && e->map_pos != NULL ? *e->map_pos : NULL;
 
-    return p != NULL ? *p : pico8_entity_geom_zero();
+    return p != NULL ? *p : zero_vec();
 }
 
-int pico8_gk(const entity_t *e, const pico8_vec_t *mp, const pico8_vec_t *rp) {
+int entity_geom_contains_cursor(const entity_t *e, const vec_t *mp, const vec_t *rp) {
     p8_fixed_t fa = e != NULL && e->layer != NULL ? *e->layer : p8_fixed_from_int(0);
-    pico8_vec_t ra = pico8_entity_geom_ra(e);
-    const pico8_vec_t *chosen;
-    pico8_vec_t point;
-    const pico8_qz_box_t *kq;
+    vec_t ra = pos_of(e);
+    const vec_t *chosen;
+    vec_t point;
+    const box_t *kq;
 
     chosen = (fa >= p8_fixed_from_int(10)) ? rp : mp;
-    point = pico8_vec_sub(chosen != NULL ? *chosen : pico8_entity_geom_zero(), ra);
+    point = vec_sub(chosen != NULL ? *chosen : zero_vec(), ra);
     kq = e != NULL ? e->hit_box : NULL;
     if (kq != NULL) {
-        return pico8_qz_call(kq, point);
+        return box_contains(kq, point);
     }
     return 0;
 }
 
-int pico8_gd(const entity_t *e) {
-    pico8_vec_t e_ra = pico8_entity_geom_ra(e);
-    pico8_vec_t mo_ra = pico8_entity_geom_ra(pico8_mo());
+int entity_geom_is_on_screen(const entity_t *e) {
+    vec_t e_pos = pos_of(e);
+    vec_t main_camera_pos = pos_of(main_camera());
     p8_fixed_t sixty_four = p8_fixed_from_int(64);
     p8_fixed_t seventy_six = p8_fixed_from_int(76);
 
-    return p8_fixed_abs(p8_fixed_sub(p8_fixed_sub(e_ra.x, mo_ra.x), sixty_four)) <= seventy_six &&
-           p8_fixed_abs(p8_fixed_sub(p8_fixed_sub(e_ra.y, mo_ra.y), sixty_four)) <= seventy_six;
+    return p8_fixed_abs(p8_fixed_sub(p8_fixed_sub(e_pos.x, main_camera_pos.x), sixty_four)) <= seventy_six &&
+           p8_fixed_abs(p8_fixed_sub(p8_fixed_sub(e_pos.y, main_camera_pos.y), sixty_four)) <= seventy_six;
 }
 
-pico8_vec_t pico8_ma(pico8_vec_t p, entity_t *e) {
+vec_t entity_geom_shake(vec_t p, entity_t *e) {
     p8_fixed_t *ma = NULL;
     p8_fixed_t decremented;
     p8_fixed_t clamped;
@@ -66,12 +66,12 @@ pico8_vec_t pico8_ma(pico8_vec_t p, entity_t *e) {
         t = e->state_time;
         *ma = clamped;
     }
-    return pico8_vec_add(p, pico8_vec_qm(clamped, p8_fixed_mul(t, P8_FIXED_LIT(0x00003333, 0.2))));
+    return vec_add(p, vec_from_polar(clamped, p8_fixed_mul(t, P8_FIXED_LIT(0x00003333, 0.2))));
 }
 
-static void ij_step(pico8_vec_t p, entity_t *o, p8_fixed_t *mk, entity_t **out_nearest) {
-    pico8_vec_t o_p = pico8_entity_geom_p(o);
-    p8_fixed_t d = pico8_vec_len_sq(pico8_vec_sub(p, o_p));
+static void nearest_step(vec_t p, entity_t *o, p8_fixed_t *mk, entity_t **out_nearest) {
+    vec_t o_p = map_pos_of(o);
+    p8_fixed_t d = vec_length_squared(vec_sub(p, o_p));
     int same_position = (p.x == o_p.x && p.y == o_p.y);
 
     if (!same_position && d < *mk) {
@@ -80,18 +80,18 @@ static void ij_step(pico8_vec_t p, entity_t *o, p8_fixed_t *mk, entity_t **out_n
     }
 }
 
-p8_fixed_t pico8_ij_ents(pico8_vec_t p, const pico8_ents_t *j_, entity_t **out_nearest) {
+p8_fixed_t entity_geom_nearest(vec_t p, const entity_list_t *j_, entity_t **out_nearest) {
     p8_fixed_t mk = p8_fixed_from_int(32767);
-    pico8_ents_iter_t it;
+    entity_list_iter_t it;
     entity_t *o;
 
     *out_nearest = NULL;
     if (j_ == NULL) {
         return mk;
     }
-    it = pico8_ents_all(j_);
-    while (pico8_ents_iter_next(&it, &o)) {
-        ij_step(p, o, &mk, out_nearest);
+    it = entity_list_all(j_);
+    while (entity_list_iter_next(&it, &o)) {
+        nearest_step(p, o, &mk, out_nearest);
     }
     return mk;
 }

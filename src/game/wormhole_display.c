@@ -8,16 +8,16 @@
 #include "p8/fixed.h"
 #include "game/wormhole.h"
 
-static pico8_vec_t pico8_mzd_ra_of_ij(const pico8_mz_t *self) {
-    const pico8_vec_t *ra = NULL;
+static vec_t pico8_mzd_ra_of_ij(const pico8_mz_t *self) {
+    const vec_t *ra = NULL;
 
     if (self->ij != NULL && self->ij->pos != NULL) {
         ra = *self->ij->pos;
     }
-    return ra != NULL ? *ra : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    return ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
-void pico8_mz_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_mz_t *self, pico8_vec_t p) {
+void pico8_mz_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_mz_t *self, vec_t p) {
     int px;
     int py;
 
@@ -29,7 +29,7 @@ void pico8_mz_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_mz_t *self, pico8_v
     py = p8_fixed_flr_int(p.y);
 
     if (self->header.state != NULL && strcmp(self->header.state, "placing") == 0) {
-        pico8_vec_t cp;
+        vec_t cp;
 
         if (self->probe->et == NULL) {
             p8_fixed_t oi = self->oi;
@@ -74,7 +74,7 @@ void pico8_mz_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_mz_t *self, pico8_v
     }
 }
 
-void pico8_mz_kj_dispatch(entity_t *self, const pico8_vec_t *ra) {
-    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    pico8_mz_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_mz_t *)self, p);
+void pico8_mz_kj_dispatch(entity_t *self, const vec_t *ra) {
+    vec_t p = ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    pico8_mz_kj(dispatch_context_gfx(), dispatch_context_mem(), (pico8_mz_t *)self, p);
 }

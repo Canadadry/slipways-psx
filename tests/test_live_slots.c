@@ -76,7 +76,7 @@ static void relever(releve_t *r, int frame) {
     r->qy_fv = pico8_zone_particules_vivantes(PICO8_PARTICULES_QY_FV);
     r->ga = pico8_zone_particules_vivantes(PICO8_PARTICULES_GA);
     r->ts = pico8_zone_particules_vivantes(PICO8_PARTICULES_TS);
-    r->partie = pico8_zone_partie_prise();
+    r->partie = game_zone_used();
 }
 
 /* Particules et listes tenues par les emetteurs inscrits dans `hv`, eclats
@@ -91,7 +91,7 @@ typedef struct {
 
 static inscrits_t compter_inscrits(void) {
     inscrits_t n = {0, 0, 0, 0};
-    const pico8_ents_t *hv = pico8_hv();
+    const entity_list_t *hv = live_entities();
     for (int i = 0; hv != NULL && i < hv->count; i++) {
         const entity_t *e = hv->items[i];
         if (e->emitter != NULL && e->emitter->qy != NULL) {
@@ -100,7 +100,7 @@ static inscrits_t compter_inscrits(void) {
         }
         if (e->class == pico8_ga_struct_class()) n.eclats++;
     }
-    const pico8_ents_t *jc = pico8_cg("slipway");
+    const entity_list_t *jc = entities_by_tag("slipway");
     for (int i = 0; jc != NULL && i < jc->count; i++) {
         const pico8_jc_t *s = (const pico8_jc_t *)jc->items[i];
         if (s->ts != NULL) n.trainees += s->ts->count;
@@ -147,9 +147,9 @@ static p8_input_t *charger(const char *e2e) {
         snprintf(path, sizeof path, strchr(e2e, '/') != NULL ? "%s" : "tests/e2e/%s.json", e2e);
         assert(pico8_input_load(&input, path));
     }
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
     pico8_cart_load();
     pico8__init();
     return &input;
@@ -169,7 +169,7 @@ static void rejouer(const char *e2e, const int *frames, int n, releve_t *out) {
     pico8_cheat_t cheat;
     pico8_cheat_init(&cheat);
     for (int i = 0; i < input->frame_count && k < n; i++) {
-        pico8_dispatch_set_input(input);
+        dispatch_context_set_input(input);
         pico8_cheat_step(&cheat, input);
         pico8__update60();
         pico8__draw();
@@ -190,7 +190,7 @@ static void rejouer_sous_invariant(const char *e2e) {
     pico8_cheat_t cheat;
     pico8_cheat_init(&cheat);
     for (int i = 0; i < input->frame_count; i++) {
-        pico8_dispatch_set_input(input);
+        dispatch_context_set_input(input);
         pico8_cheat_step(&cheat, input);
         pico8__update60();
         pico8__draw();
@@ -308,7 +308,7 @@ static int g_frame;
  * a la place de l'update60 de la frame qui suit le clic. */
 static void jouer_jusqu_a(int derniere) {
     for (; g_frame <= derniere && g_frame < g_input->frame_count; g_frame++) {
-        pico8_dispatch_set_input(g_input);
+        dispatch_context_set_input(g_input);
         pico8_cheat_step(&g_cheat, g_input);
         pico8__update60();
         pico8__draw();
@@ -324,7 +324,7 @@ static void demarrer(const char *e2e) {
 }
 
 static unsigned char *sentinelle(void) {
-    unsigned char *s = pico8_zone_alloc(pico8_zone_partie(), 64);
+    unsigned char *s = allocator_alloc(game_zone(), 64);
     for (int i = 0; i < 64; i++) s[i] = (unsigned char)i;
     return s;
 }
@@ -338,14 +338,14 @@ static void verifier_sentinelle(const unsigned char *s) {
 static void pause_restart_garde_la_partie_quittee_pendant_le_clic(void) {
     demarrer("pause_restart");
     jouer_jusqu_a(11);
-    assert(!pico8_zone_partie_en_attente());
+    assert(!game_zone_pending());
     unsigned char *s = sentinelle();
-    size_t prise = pico8_zone_partie_prise();
+    size_t prise = game_zone_used();
     jouer_jusqu_a(12);
-    assert(pico8_zone_partie_en_attente() && "le clic de f12 fait basculer la zone partie");
+    assert(game_zone_pending() && "le clic de f12 fait basculer la zone partie");
     verifier_sentinelle(s);
-    assert(pico8_zone_partie_prise() >= prise && "les octets pris comptent la partie quittee jusqu'a son rendu");
-    printf("  pause_restart f12 : partie=%lu, sentinelle lue\n", (unsigned long)pico8_zone_partie_prise());
+    assert(game_zone_used() >= prise && "les octets pris comptent la partie quittee jusqu'a son rendu");
+    printf("  pause_restart f12 : partie=%lu, sentinelle lue\n", (unsigned long)game_zone_used());
 }
 
 /* f13 : l'update60 vide la file puis rend la generation quittee. */
@@ -360,7 +360,7 @@ static void pause_restart_rend_la_partie_quittee_a_la_frame_suivante(void) {
 static const pico8_jo_t *planete_de_la_premiere_partie(void) {
     demarrer("pause_restart");
     jouer_jusqu_a(6);
-    const pico8_ents_t *jo = pico8_cg("planet");
+    const entity_list_t *jo = entities_by_tag("planet");
     assert(jo != NULL && jo->count > 0 && "la premiere partie a des planetes");
     return (const pico8_jo_t *)jo->items[0];
 }
@@ -369,7 +369,7 @@ static const pico8_jo_t *planete_de_la_premiere_partie(void) {
 static void pause_restart_garde_les_planetes_de_la_partie_quittee_pendant_le_clic(void) {
     const pico8_jo_t *p = planete_de_la_premiere_partie();
     jouer_jusqu_a(12);
-    assert(pico8_zone_partie_en_attente());
+    assert(game_zone_pending());
     g_lu = (unsigned char)p->has_jh;
 }
 
@@ -393,7 +393,7 @@ static const pico8_hy_t *economie_de_la_premiere_partie(void) {
 static void pause_restart_garde_l_economie_de_la_partie_quittee_pendant_le_clic(void) {
     const pico8_hy_t *fm = economie_de_la_premiere_partie();
     jouer_jusqu_a(12);
-    assert(pico8_zone_partie_en_attente());
+    assert(game_zone_pending());
     assert(pico8_fm_hy() != fm && "le clic de f12 fait une nouvelle economie");
     g_lu = (unsigned char)fm->nz;
 }
@@ -410,7 +410,7 @@ static void pause_restart_rend_l_economie_de_la_partie_quittee(void) {
 static const pico8_ie_t *icone_de_la_premiere_partie(void) {
     demarrer("pause_restart");
     jouer_jusqu_a(6);
-    const pico8_ents_t *hv = pico8_hv();
+    const entity_list_t *hv = live_entities();
     for (int i = 0; hv != NULL && i < hv->count; i++) {
         if (hv->items[i]->class == pico8_ie_struct_class()) return (const pico8_ie_t *)hv->items[i];
     }
@@ -422,7 +422,7 @@ static const pico8_ie_t *icone_de_la_premiere_partie(void) {
 static void pause_restart_garde_les_icones_de_la_partie_quittee_pendant_le_clic(void) {
     const pico8_ie_t *ie = icone_de_la_premiere_partie();
     jouer_jusqu_a(12);
-    assert(pico8_zone_partie_en_attente());
+    assert(game_zone_pending());
     g_lu = (unsigned char)ie->kh;
 }
 
@@ -435,7 +435,7 @@ static void pause_restart_rend_les_icones_de_la_partie_quittee(void) {
 
 /* Le `fv` de `hv`, que fait `_init`. */
 static const pico8_g__t *l_aide_de_hv(void) {
-    const pico8_ents_t *hv = pico8_hv();
+    const entity_list_t *hv = live_entities();
     for (int i = 0; hv != NULL && i < hv->count; i++) {
         if (hv->items[i]->class == pico8_fv_struct_class()) return (const pico8_g__t *)hv->items[i];
     }
@@ -469,7 +469,7 @@ static void pause_restart_garde_les_singletons_de_la_partie_quittee_pendant_le_c
     const void *s[SINGLETON_COUNT];
     singletons_de_la_partie_quittee(s);
     jouer_jusqu_a(12);
-    assert(pico8_zone_partie_en_attente());
+    assert(game_zone_pending());
     assert(pico8_mo_qb() != s[SINGLETON_MO] && pico8_ok() != s[SINGLETON_OK] && pico8_ju() != s[SINGLETON_JU] &&
            "le clic de f12 fait de nouveaux singletons");
     for (int k = 0; k < SINGLETON_COUNT; k++) g_lu = *(const unsigned char *)s[k];
@@ -491,24 +491,24 @@ static void pause_restart_garde_la_partie_a_travers_restart(void) {
     jouer_jusqu_a(6);
     unsigned char *s = sentinelle();
     jouer_jusqu_a(11);
-    assert(!pico8_zone_partie_en_attente() && "« restart » ne fait pas basculer la zone partie");
+    assert(!game_zone_pending() && "« restart » ne fait pas basculer la zone partie");
     verifier_sentinelle(s);
 }
 
 /* Octets que le bw de chaque eu prend dans sa generation : jo.oc, sa
  * source et jo.ir. */
 static size_t etats_de_bw(void) {
-    return (2 * PICO8_ZONE_CELLS(sizeof(pico8_jf_state_t)) + PICO8_ZONE_CELLS(sizeof(pico8_gn_state_t))) *
-           sizeof(pico8_zone_cell_t);
+    return (2 * ZONE_CELLS(sizeof(pico8_jf_state_t)) + ZONE_CELLS(sizeof(pico8_gn_state_t))) *
+           sizeof(zone_cell_t);
 }
 
 /* Octets qu'une liste a pris dans sa generation depuis un jl() : les
  * capacites 4, 8, ... jusqu'a la sienne, car chaque agrandissement copie et
  * laisse l'ancien bloc mort jusqu'au rendu. NULL (un `cg` jamais vu) : rien. */
-static size_t octets_d_un_registre(const pico8_ents_t *liste) {
+static size_t octets_d_un_registre(const entity_list_t *liste) {
     size_t octets = 0;
     for (int k = 4; liste != NULL && k <= liste->capacity; k *= 2) {
-        octets += PICO8_ZONE_CELLS((size_t)k * sizeof(entity_t *)) * sizeof(pico8_zone_cell_t);
+        octets += ZONE_CELLS((size_t)k * sizeof(entity_t *)) * sizeof(zone_cell_t);
     }
     return octets;
 }
@@ -516,19 +516,19 @@ static size_t octets_d_un_registre(const pico8_ents_t *liste) {
 static size_t octets_des_registres(void) {
     static const char *const CV[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
     static const char *const CG[] = {"structure", "ascension", "slipgate", "probe", "message_box", "slipway", "wormhole", "planet", "node", "targeting"};
-    size_t r = octets_d_un_registre(pico8_hv());
-    for (size_t i = 0; i < sizeof CV / sizeof CV[0]; i++) r += octets_d_un_registre(pico8_cv(CV[i]));
-    for (size_t i = 0; i < sizeof CG / sizeof CG[0]; i++) r += octets_d_un_registre(pico8_cg(CG[i]));
+    size_t r = octets_d_un_registre(live_entities());
+    for (size_t i = 0; i < sizeof CV / sizeof CV[0]; i++) r += octets_d_un_registre(entities_by_message(CV[i]));
+    for (size_t i = 0; i < sizeof CG / sizeof CG[0]; i++) r += octets_d_un_registre(entities_by_tag(CG[i]));
     return r;
 }
 
 static size_t octets_d_un_bloc(size_t taille) {
-    return PICO8_ZONE_CELLS(taille) * sizeof(pico8_zone_cell_t);
+    return ZONE_CELLS(taille) * sizeof(zone_cell_t);
 }
 
 /* Octets d'une liste de planete faite dans la generation : son conteneur,
  * puis ses blocs comme un registre. */
-static size_t octets_d_une_liste_de_planete(const pico8_ents_t *liste) {
+static size_t octets_d_une_liste_de_planete(const entity_list_t *liste) {
     if (liste == NULL) return 0;
     return octets_d_un_bloc(sizeof *liste) + octets_d_un_registre(liste);
 }
@@ -537,7 +537,7 @@ static size_t octets_d_une_liste_de_planete(const pico8_ents_t *liste) {
  * et listes `oe`, `by`, `cc`. Sans `jy` ni copies de besoins, que les
  * planetes de `bw` n'ont pas avant une action. */
 static size_t octets_des_planetes(void) {
-    const pico8_ents_t *jo = pico8_cg("planet");
+    const entity_list_t *jo = entities_by_tag("planet");
     size_t octets = 0;
     for (int i = 0; jo != NULL && i < jo->count; i++) {
         const pico8_jo_t *p = (const pico8_jo_t *)jo->items[i];
@@ -562,9 +562,9 @@ static size_t octets_de_l_economie(void) {
  * bulle `jb` refaite dans une arene de la zone frame, et la boite de `ie.gy`
  * de chaque icone revelee. */
 static size_t octets_des_icones(void) {
-    const pico8_ents_t *hv = pico8_hv();
-    const pico8_zone_choisie_t *mesure = pico8_zone_arene_prendre(pico8_zone_frame(), "mesure des bulles", 16384);
-    const size_t tete = pico8_zone_arene_prise(mesure);
+    const entity_list_t *hv = live_entities();
+    const allocator_t *mesure = arena_take(frame_zone(), "mesure des bulles", 16384);
+    const size_t tete = arena_used(mesure);
     size_t octets = 0;
     int k = 0;
     for (int i = 0; hv != NULL && i < hv->count; i++) {
@@ -573,11 +573,11 @@ static size_t octets_des_icones(void) {
         assert(k < PICO8_DR_COUNT && "plus d'icones que de bulles dans dr");
         (void)pico8_jb_new(mesure, &pico8_dr_table[k]);
         octets += octets_d_un_bloc(sizeof *ie);
-        if (ie->has_kh && ie->kh) octets += octets_d_un_bloc(sizeof(pico8_vec_t));
+        if (ie->has_kh && ie->kh) octets += octets_d_un_bloc(sizeof(vec_t));
         k++;
     }
     assert(k == PICO8_DR_COUNT && "eu fait une icone par bulle de dr");
-    return octets + pico8_zone_arene_prise(mesure) - tete;
+    return octets + arena_used(mesure) - tete;
 }
 
 /* Terme « recherche et economie » de la generation : ce que `eu` fait pour
@@ -588,7 +588,7 @@ static size_t octets_de_la_recherche_et_de_l_economie(void) {
 
 /* Le `bg` de `hv`, que `eu` fait seul. */
 static const pico8_bg_t *le_bg_de_hv(void) {
-    const pico8_ents_t *hv = pico8_hv();
+    const entity_list_t *hv = live_entities();
     const pico8_bg_t *bg = NULL;
     for (int i = 0; hv != NULL && i < hv->count; i++) {
         if (hv->items[i]->class != pico8_bg_struct_class()) continue;
@@ -618,8 +618,8 @@ static void pause_restart_borne_les_blocs_morts_des_registres(void) {
     const size_t r = octets_des_registres();
     const size_t p = octets_des_planetes();
     printf("  pause_restart f13 : partie=%lu, etats de bw=%lu, registres=%lu, planetes=%lu\n",
-           (unsigned long)pico8_zone_partie_prise(), (unsigned long)g, (unsigned long)r, (unsigned long)p);
-    assert(pico8_zone_partie_prise() == g + r + p + octets_de_la_recherche_et_de_l_economie() + octets_des_singletons() &&
+           (unsigned long)game_zone_used(), (unsigned long)g, (unsigned long)r, (unsigned long)p);
+    assert(game_zone_used() == g + r + p + octets_de_la_recherche_et_de_l_economie() + octets_des_singletons() &&
            "les registres prennent 2C - 4 pointeurs, et rien d'autre n'entre");
 }
 
@@ -628,12 +628,12 @@ static void pause_restart_borne_les_blocs_morts_des_registres(void) {
 static void pause_restart_ne_touche_pas_au_chargement(void) {
     demarrer("pause_restart");
     jouer_jusqu_a(1);
-    const size_t f1 = pico8_zone_chargement_prise();
+    const size_t f1 = load_zone_used();
     assert(f1 > 0 && "gb est dans la sous-zone chargement");
     jouer_jusqu_a(g_input->frame_count - 1);
     printf("  pause_restart : chargement=%lu a f1 et en fin de rejeu\n", (unsigned long)f1);
-    assert(pico8_zone_chargement_prise() == f1 && "une partie prend dans la sous-zone chargement");
-    assert(pico8_zone_chargement_max() == f1);
+    assert(load_zone_used() == f1 && "une partie prend dans la sous-zone chargement");
+    assert(game_zone_load_zone_max() == f1);
 }
 
 /* f12 : le bw de la nouvelle partie prend ses etats a cote de ceux de la
@@ -642,24 +642,24 @@ static void pause_restart_compte_les_etats_de_bw(void) {
     const size_t g = etats_de_bw();
     demarrer("pause_restart");
     jouer_jusqu_a(11);
-    const size_t f11 = pico8_zone_partie_prise();
+    const size_t f11 = game_zone_used();
     assert(f11 >= g && "une partie : une generation d'etats de bw");
     jouer_jusqu_a(12);
-    const size_t f12 = pico8_zone_partie_prise();
+    const size_t f12 = game_zone_used();
     assert(f12 >= f11 + g && "les etats des deux parties vivent jusqu'au rendu");
     jouer_jusqu_a(13);
-    assert(pico8_zone_partie_prise() == g + octets_des_registres() + octets_des_planetes() + octets_de_la_recherche_et_de_l_economie() +
+    assert(game_zone_used() == g + octets_des_registres() + octets_des_planetes() + octets_de_la_recherche_et_de_l_economie() +
                                              octets_des_singletons() &&
            "le rendu de f13 laisse les etats, les registres, les planetes, l'economie et les singletons de la nouvelle partie");
-    assert(pico8_zone_partie_max() >= f12);
+    assert(game_zone_max() >= f12);
     printf("  pause_restart f11/f12/f13 : partie=%lu/%lu/%lu, max=%lu\n", (unsigned long)f11, (unsigned long)f12,
-           (unsigned long)pico8_zone_partie_prise(), (unsigned long)pico8_zone_partie_max());
+           (unsigned long)game_zone_used(), (unsigned long)game_zone_max());
 }
 
 /* Octets de la generation hors registres, que `hv` peut faire grandir en
  * inscrivant des entites. */
 static size_t partie_sans_registres(void) {
-    return pico8_zone_partie_prise() - octets_des_registres();
+    return game_zone_used() - octets_des_registres();
 }
 
 /* f3-51 : 25 sauts d'annee, donc autant de `bd`, qui ne doivent pas faire
@@ -691,7 +691,7 @@ static void trade_rich_mine_bd_sur_des_routes_ne_fait_pas_grandir_la_partie(void
 }
 
 static const pico8_jo_t *planete_d_id(const char *id) {
-    const pico8_ents_t *np = pico8_cg("node");
+    const entity_list_t *np = entities_by_tag("node");
     for (int i = 0; np != NULL && i < np->count; i++) {
         const pico8_jo_t *p = (const pico8_jo_t *)np->items[i];
         if (p->id != NULL && strcmp(p->id, id) == 0) return p;
@@ -707,7 +707,7 @@ static void trade_rich_mine_une_route_gardee_survit_a_la_frame(void) {
     entity_t *rl[16];
     demarrer("trade_rich_mine");
     jouer_jusqu_a(139);
-    const pico8_ents_t *by = planete_d_id("p27")->by;
+    const entity_list_t *by = planete_d_id("p27")->by;
     assert(by != NULL && by->count > 0 && "f139 : p27 garde une route");
     const pico8_trade_t *t = (const pico8_trade_t *)by->items[by->count - 1];
     const int nlp = t->lp->count;
@@ -755,7 +755,7 @@ static void prises_refusees_ne_font_pas_grandir_la_partie(void) {
 
 /* La structure posee de f161-164, seule planete « s… » de `cg.jo`. */
 static const pico8_jo_t *la_prise_posee(void) {
-    const pico8_ents_t *jo = pico8_cg("planet");
+    const entity_list_t *jo = entities_by_tag("planet");
     const pico8_jo_t *posee = NULL;
     for (int i = 0; jo != NULL && i < jo->count; i++) {
         const pico8_jo_t *p = (const pico8_jo_t *)jo->items[i];
@@ -784,7 +784,7 @@ static void une_prise_posee_reprend_l_arene_du_mz_mort(void) {
 
 /* Une frame de rejeu ; sans `dessiner`, aucun `kj` ne remet `fo` a nil. */
 static void jouer_une_frame(int dessiner) {
-    pico8_dispatch_set_input(g_input);
+    dispatch_context_set_input(g_input);
     pico8_cheat_step(&g_cheat, g_input);
     pico8__update60();
     if (dessiner) pico8__draw();
@@ -793,7 +793,7 @@ static void jouer_une_frame(int dessiner) {
 }
 
 static pico8_jo_t *planete_dont_fo_est(const entity_t *tenue) {
-    const pico8_ents_t *np = pico8_cg("node");
+    const entity_list_t *np = entities_by_tag("node");
     for (int i = 0; np != NULL && i < np->count; i++) {
         pico8_jo_t *p = (pico8_jo_t *)np->items[i];
         if (p->fo == tenue) return p;
@@ -806,19 +806,19 @@ static pico8_jo_t *planete_dont_fo_est(const entity_t *tenue) {
  * f24, la structure est rendue au vidage de f26, et la pression de f28
  * reprend son arene : `fo` ne doit pas viser la nouvelle structure. */
 static void le_fo_d_une_planete_hors_ecran_oublie_la_prise_refusee(void) {
-    static pico8_vec_t loin;
+    static vec_t loin;
     demarrer(PRISES);
     jouer_jusqu_a(22);
-    pico8_dispatch_set_input(g_input);
+    dispatch_context_set_input(g_input);
     pico8_cheat_step(&g_cheat, g_input);
     pico8__update60();
     const entity_t *tenue = pico8_ok()->lheld;
     assert(tenue != NULL && "f23 : une structure est tenue");
     pico8_jo_t *p34 = planete_dont_fo_est(tenue);
     assert(p34 != NULL && "f23 : la structure tenue accroche le fo d'une planete");
-    loin = pico8_vec_add(*((const pico8_qb_t *)pico8_mo())->ra, pico8_vec_v(p8_fixed_from_int(500), 0));
+    loin = vec_add(*((const pico8_qb_t *)main_camera())->ra, vec_make(p8_fixed_from_int(500), 0));
     p34->ra = &loin;
-    assert(!pico8_gd(&p34->header) && "p34 est hors ecran");
+    assert(!entity_geom_is_on_screen(&p34->header) && "p34 est hors ecran");
     pico8__draw();
     assert(p34->fo == tenue && "hors ecran, kj laisse fo");
     if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
@@ -853,11 +853,11 @@ static void un_slipway_tenu_ne_fait_pas_grandir_la_partie(void) {
     demarrer(SLIPWAYS);
     jouer_jusqu_a(36);
     const pico8_jc_t *tenu = le_slipway_tenu();
-    const size_t f36 = pico8_zone_partie_prise();
+    const size_t f36 = game_zone_used();
     jouer_jusqu_a(45);
     assert(le_slipway_tenu() == tenu && tenu->re == &tenu->point.header && "f45 : tenu au-dessus du vide");
-    printf("  slipway tenu f36/f45 : partie = %lu/%lu\n", (unsigned long)f36, (unsigned long)pico8_zone_partie_prise());
-    assert(pico8_zone_partie_prise() == f36 && "un slipway tenu alloue a chaque frame");
+    printf("  slipway tenu f36/f45 : partie = %lu/%lu\n", (unsigned long)f36, (unsigned long)game_zone_used());
+    assert(game_zone_used() == f36 && "un slipway tenu alloue a chaque frame");
 }
 
 static void slipways_refuses_ne_font_pas_grandir_la_partie(void) {
@@ -884,7 +884,7 @@ static void un_slipway_pose_reprend_l_arene_du_mz_mort(void) {
     jouer_jusqu_a(356);
     const size_t apres = partie_sans_registres();
     const size_t oe = octets_des_oe_de_p27_et_p48() - oe_avant;
-    assert(pico8_cg("slipway") != NULL && pico8_cg("slipway")->count == 1 && "f338 : un slipway pose");
+    assert(entities_by_tag("slipway") != NULL && entities_by_tag("slipway")->count == 1 && "f338 : un slipway pose");
     printf("  slipway pose puis refuse : partie - registres = %lu -> %lu (oe %lu)\n", (unsigned long)avant,
            (unsigned long)apres, (unsigned long)oe);
     assert(apres == avant + oe &&
@@ -895,18 +895,18 @@ static void un_slipway_pose_reprend_l_arene_du_mz_mort(void) {
  * son chemin, qu'on pousse hors ecran : son `kj` ne remet plus `fo` a nil.
  * Refuse a f353, le slipway est rendu au vidage de f355. */
 static void le_fo_d_une_planete_hors_ecran_oublie_le_slipway_refuse(void) {
-    static pico8_vec_t loin;
+    static vec_t loin;
     demarrer(SLIPWAYS);
     jouer_jusqu_a(344);
-    pico8_dispatch_set_input(g_input);
+    dispatch_context_set_input(g_input);
     pico8_cheat_step(&g_cheat, g_input);
     pico8__update60();
     const pico8_jc_t *tenu = le_slipway_tenu();
     pico8_jo_t *p = planete_dont_fo_est(&tenu->header);
     assert(p != NULL && "f345 : le slipway tenu accroche le fo d'une planete");
-    loin = pico8_vec_add(*((const pico8_qb_t *)pico8_mo())->ra, pico8_vec_v(p8_fixed_from_int(500), 0));
+    loin = vec_add(*((const pico8_qb_t *)main_camera())->ra, vec_make(p8_fixed_from_int(500), 0));
     p->ra = &loin;
-    assert(!pico8_gd(&p->header) && "la planete est hors ecran");
+    assert(!entity_geom_is_on_screen(&p->header) && "la planete est hors ecran");
     pico8__draw();
     if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
     g_frame++;
@@ -920,9 +920,9 @@ static void le_fo_d_une_planete_hors_ecran_oublie_le_slipway_refuse(void) {
 static void un_slipway_refuse_traverse_une_nouvelle_partie(void) {
     demarrer(SLIPWAYS);
     jouer_jusqu_a(356);
-    assert(pico8_cg("slipway") != NULL && pico8_cg("slipway")->count == 1);
+    assert(entities_by_tag("slipway") != NULL && entities_by_tag("slipway")->count == 1);
     jouer_jusqu_a(371);
-    assert(pico8_cg("slipway") == NULL || pico8_cg("slipway")->count == 0);
+    assert(entities_by_tag("slipway") == NULL || entities_by_tag("slipway")->count == 0);
     assert(pico8_ok()->lheld != NULL && "f371 : une prise dans la nouvelle partie");
     jouer_jusqu_a(377);
 }
@@ -946,11 +946,11 @@ static void un_mz_tenu_ne_fait_pas_grandir_la_partie(void) {
     demarrer(PLIAGES);
     jouer_jusqu_a(4);
     const pico8_mz_t *tenu = le_mz_tenu();
-    const size_t f4 = pico8_zone_partie_prise();
+    const size_t f4 = game_zone_used();
     jouer_jusqu_a(7);
     assert(le_mz_tenu() == tenu);
-    printf("  mz tenu f4/f7 : partie = %lu/%lu\n", (unsigned long)f4, (unsigned long)pico8_zone_partie_prise());
-    assert(pico8_zone_partie_prise() == f4 && "un trou de ver tenu alloue a chaque frame");
+    printf("  mz tenu f4/f7 : partie = %lu/%lu\n", (unsigned long)f4, (unsigned long)game_zone_used());
+    assert(game_zone_used() == f4 && "un trou de ver tenu alloue a chaque frame");
 }
 
 static void mz_refuses_ne_font_pas_grandir_la_partie(void) {
@@ -968,11 +968,11 @@ static void un_mz_ouvert_rend_son_arene_a_sa_mort(void) {
     jouer_jusqu_a(143);
     const size_t avant = partie_sans_registres();
     jouer_jusqu_a(160);
-    const pico8_ents_t *mz = pico8_cg("wormhole");
+    const entity_list_t *mz = entities_by_tag("wormhole");
     assert(mz != NULL && mz->count == 1 && strcmp(((const pico8_mz_t *)mz->items[0])->header.state, "unfolding") == 0 &&
            "f160 : le trou de ver est ouvert");
     jouer_jusqu_a(193);
-    assert(pico8_cg("wormhole")->count == 1 && "f193 : seul le trou de ver de la pression vit");
+    assert(entities_by_tag("wormhole")->count == 1 && "f193 : seul le trou de ver de la pression vit");
     const size_t apres = partie_sans_registres();
     printf("  mz ouvert : partie - registres = %lu -> %lu\n", (unsigned long)avant, (unsigned long)apres);
     assert(apres == avant && "un trou de ver ouvert garde son arene apres sa mort");
@@ -1025,18 +1025,18 @@ static void chaque_sonde_refusee_reprend_l_arene_de_la_precedente(void) {
  * avant le draw. Refusee a f76, la sonde est rendue au vidage de f78, et
  * la pression de f79 reprend son arene. */
 static void le_fo_d_une_planete_hors_ecran_oublie_la_sonde_refusee(void) {
-    static pico8_vec_t loin;
+    static vec_t loin;
     demarrer(SONDES);
     jouer_jusqu_a(73);
-    pico8_dispatch_set_input(g_input);
+    dispatch_context_set_input(g_input);
     pico8_cheat_step(&g_cheat, g_input);
     pico8__update60();
     const entity_t *tenue = &la_sonde_tenue()->header;
     pico8_jo_t *p34 = planete_dont_fo_est(tenue);
     assert(p34 != NULL && "f74 : la sonde tenue accroche le fo d'une planete");
-    loin = pico8_vec_add(*((const pico8_qb_t *)pico8_mo())->ra, pico8_vec_v(p8_fixed_from_int(500), 0));
+    loin = vec_add(*((const pico8_qb_t *)main_camera())->ra, vec_make(p8_fixed_from_int(500), 0));
     p34->ra = &loin;
-    assert(!pico8_gd(&p34->header) && "p34 est hors ecran");
+    assert(!entity_geom_is_on_screen(&p34->header) && "p34 est hors ecran");
     pico8__draw();
     assert(p34->fo == tenue && "hors ecran, kj laisse fo");
     if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
@@ -1079,7 +1079,7 @@ static void une_sonde_refusee_traverse_une_nouvelle_partie(void) {
 static const pico8_mz_t *le_mz_abandonne(void) {
     demarrer(PLIAGE_ABANDONNE);
     jouer_jusqu_a(22);
-    const pico8_ents_t *mz = pico8_cg("wormhole");
+    const entity_list_t *mz = entities_by_tag("wormhole");
     assert(mz != NULL && mz->count == 1 && "f22 : un trou de ver vit");
     return (const pico8_mz_t *)mz->items[0];
 }
@@ -1087,7 +1087,7 @@ static const pico8_mz_t *le_mz_abandonne(void) {
 static void pliage_abandonne_se_relit_pendant_le_clic(void) {
     const pico8_mz_t *mz = le_mz_abandonne();
     jouer_jusqu_a(31);
-    assert(pico8_zone_partie_en_attente() && "le clic de f31 fait basculer la zone partie");
+    assert(game_zone_pending() && "le clic de f31 fait basculer la zone partie");
     g_lu = (unsigned char)mz->p_;
 }
 
@@ -1121,7 +1121,7 @@ static void pause_restart_recharge_apres_le_titre(void) {
 static void pause_restart_devoile_sur_les_etats_de_la_nouvelle_partie(void) {
     demarrer("pause_restart");
     jouer_jusqu_a(13);
-    const pico8_ents_t *jo = pico8_cg("planet");
+    const entity_list_t *jo = entities_by_tag("planet");
     const pico8_df_entry_t *ll = pico8_df_lookup("vanishing");
     int devoilees = 0;
     int par_oc = 0;
@@ -1156,7 +1156,7 @@ static void message_box_hold_reecrit_les_boites_par_tick_en_place(void) {
     const pico8_ui_t *ok = pico8_ok();
     assert(mo != NULL && je != NULL && ok != NULL);
     const void *avant[5] = {mo->p, mo->v, mo->ra, je->ra, ok->qa};
-    size_t prise = pico8_zone_partie_prise();
+    size_t prise = game_zone_used();
     jouer_jusqu_a(45);
     assert(pico8_mo_qb() == mo && pico8_je_nf() == je && pico8_ok() == ok);
     const void *apres[5] = {mo->p, mo->v, mo->ra, je->ra, ok->qa};
@@ -1165,7 +1165,7 @@ static void message_box_hold_reecrit_les_boites_par_tick_en_place(void) {
     printf("  message_box_hold f44-45 : %d / 5 boites par tick a la meme adresse\n", stables);
     fflush(stdout);
     assert(stables == 5 && "mo.p, mo.v, mo.ra, je.ra et ok.qa doivent etre reecrits en place");
-    assert(pico8_zone_partie_prise() == prise && "la zone partie prend des octets par tick");
+    assert(game_zone_used() == prise && "la zone partie prend des octets par tick");
 }
 
 static int sans_bouton(const p8_input_frame_t *f) {
@@ -1195,7 +1195,7 @@ static int fenetres_sans_action_de_l_e2e_courant(void) {
     for (int i = 0; i < g_input->frame_count; i++) {
         int calme = frame_sans_action(g_input, i);
         jouer_jusqu_a(i);
-        size_t prise = pico8_zone_partie_prise();
+        size_t prise = game_zone_used();
         if (calme && debut < 0) debut = i;
         if (calme && i == debut + 1) deuxieme = prise;
         int fin = calme && (i + 1 == g_input->frame_count || !frame_sans_action(g_input, i + 1));
@@ -1374,12 +1374,12 @@ static void le_rejeu_ecrit_le_remplissage_en_fin_de_session(void) {
                  pico8_zone_particules_max_elements((pico8_particules_sorte_t)s));
         strcat(attendu, ligne);
     }
-    snprintf(ligne, sizeof ligne, "partie %lu\nmax_octets partie %lu\n", (unsigned long)pico8_zone_partie_prise(),
-             (unsigned long)pico8_zone_partie_max());
+    snprintf(ligne, sizeof ligne, "partie %lu\nmax_octets partie %lu\n", (unsigned long)game_zone_used(),
+             (unsigned long)game_zone_max());
     strcat(attendu, ligne);
-    snprintf(ligne, sizeof ligne, "chargement %lu\n", (unsigned long)pico8_zone_chargement_prise());
+    snprintf(ligne, sizeof ligne, "chargement %lu\n", (unsigned long)load_zone_used());
     strcat(attendu, ligne);
-    snprintf(ligne, sizeof ligne, "max_octets chargement %lu\n", (unsigned long)pico8_zone_chargement_max());
+    snprintf(ligne, sizeof ligne, "max_octets chargement %lu\n", (unsigned long)game_zone_load_zone_max());
     strcat(attendu, ligne);
     size_t len;
     char *ecrit = lire_fichier(REMPLISSAGE, &len);

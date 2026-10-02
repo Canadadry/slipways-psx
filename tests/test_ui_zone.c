@@ -20,41 +20,41 @@ static volatile unsigned char sink;
 static int case_live_places_follow_takes(void) {
     for (int s = 0; s < PICO8_SORTE_COUNT; s++) assert(pico8_zone_interface_vivantes((pico8_sorte_t)s) == 0);
 
-    const pico8_zone_choisie_t *a = pico8_zone_interface_place(PICO8_SORTE_JS);
-    const pico8_zone_choisie_t *b = pico8_zone_interface_place(PICO8_SORTE_JS);
-    const pico8_zone_choisie_t *c = pico8_zone_interface_place(PICO8_SORTE_IV);
+    const allocator_t *a = pico8_zone_interface_place(PICO8_SORTE_JS);
+    const allocator_t *b = pico8_zone_interface_place(PICO8_SORTE_JS);
+    const allocator_t *c = pico8_zone_interface_place(PICO8_SORTE_IV);
     assert(pico8_zone_interface_vivantes(PICO8_SORTE_JS) == 2);
     assert(pico8_zone_interface_vivantes(PICO8_SORTE_IV) == 1);
     assert(pico8_zone_interface_vivantes(PICO8_SORTE_MH) == 0);
 
-    pico8_zone_arene_rendre(a);
+    arena_release(a);
     assert(pico8_zone_interface_vivantes(PICO8_SORTE_JS) == 1 && "rendre une place decompte sa sorte");
-    pico8_zone_arene_rendre(b);
-    pico8_zone_arene_rendre(c);
+    arena_release(b);
+    arena_release(c);
     for (int s = 0; s < PICO8_SORTE_COUNT; s++) assert(pico8_zone_interface_vivantes((pico8_sorte_t)s) == 0);
     return 0;
 }
 
 static int case_place_alive_until_released(void) {
-    const pico8_zone_choisie_t *place = pico8_zone_interface_place(PICO8_SORTE_RANGEE);
-    unsigned char *text = pico8_zone_alloc(place, 64);
+    const allocator_t *place = pico8_zone_interface_place(PICO8_SORTE_RANGEE);
+    unsigned char *text = allocator_alloc(place, 64);
     memset(text, 5, 64);
     for (int i = 0; i < 64; i++) assert(text[i] == 5);
-    pico8_zone_arene_rendre(place);
+    arena_release(place);
     return 0;
 }
 
 static int case_place_dead_after_release(void) {
-    const pico8_zone_choisie_t *place = pico8_zone_interface_place(PICO8_SORTE_RANGEE);
-    unsigned char *text = pico8_zone_alloc(place, 64);
+    const allocator_t *place = pico8_zone_interface_place(PICO8_SORTE_RANGEE);
+    unsigned char *text = allocator_alloc(place, 64);
     memset(text, 5, 64);
-    pico8_zone_arene_rendre(place);
+    arena_release(place);
     sink = text[63];
     return 0;
 }
 
 static int case_js_place_full(void) {
-    pico8_zone_alloc(pico8_zone_interface_place(PICO8_SORTE_JS), 6240);
+    allocator_alloc(pico8_zone_interface_place(PICO8_SORTE_JS), 6240);
     return 0;
 }
 
@@ -64,7 +64,7 @@ static int case_fq_zone_full(void) {
 }
 
 static int case_rangee_place_full(void) {
-    pico8_zone_alloc(pico8_zone_interface_place(PICO8_SORTE_RANGEE), 1192);
+    allocator_alloc(pico8_zone_interface_place(PICO8_SORTE_RANGEE), 1192);
     return 0;
 }
 

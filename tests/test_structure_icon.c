@@ -64,7 +64,7 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int ents_rank_in(const pico8_ents_t *list, const void *e) {
+static int ents_rank_in(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -74,7 +74,7 @@ static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     return -1;
 }
 
-static int ents_listed(const pico8_ents_t *list, const void *e) {
+static int ents_listed(const entity_list_t *list, const void *e) {
     return ents_rank_in(list, e) >= 0;
 }
 
@@ -85,7 +85,7 @@ static pico8_ie_t *as_ie(void *e) {
 
 /* `gy` and `id` are the class's shared state, no member of any icon: the
  * same answer whatever icon asks. */
-static const pico8_vec_t *shared_gy(const pico8_ie_t *icon) {
+static const vec_t *shared_gy(const pico8_ie_t *icon) {
     (void)icon;
     return pico8_ie_gy();
 }
@@ -121,7 +121,7 @@ static uint32_t m__state(const void *icon) {
     return bool_state((ie->m_ != 0), ie->m_);
 }
 
-static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
+static uint32_t fold_vec(uint32_t h, const vec_t *p) {
     if (p == NULL) {
         return fnv(h, 0xDEADu);
     }
@@ -147,7 +147,7 @@ static int is_icon(const void *e) {
 }
 
 static int icons(void *out[], int cap) {
-    const pico8_ents_t *hb = pico8_cv("refresh");
+    const entity_list_t *hb = entities_by_message("refresh");
     int n = 0;
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
@@ -222,7 +222,7 @@ static void new_game(void) {
  * reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_input(&input);
     pico8__init();
     new_game();
 }
@@ -231,14 +231,14 @@ static const entity_class_t *cls_of(const void *e) {
     return ((const entity_t *)e)->class;
 }
 
-static pico8_vec_t *vec_ref(pico8_vec_t at) {
-    pico8_vec_t *v = malloc(sizeof *v);
+static vec_t *vec_ref(vec_t at) {
+    vec_t *v = malloc(sizeof *v);
     *v = at;
     return v;
 }
 
-static pico8_vec_t v2(int x, int y) {
-    return pico8_vec_v(p8_fixed_from_int(x), p8_fixed_from_int(y));
+static vec_t v2(int x, int y) {
+    return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
 static const pico8_jb_row_t *dr_row(int i) {
@@ -258,12 +258,12 @@ static void *build_icon(const entity_kind_t *ke, pico8_jb_t *jb) {
 static uint32_t fold_kq(uint32_t h, void *icon) {
     static const int probe[][2] = {{0, 0},  {-1, 0}, {0, -1}, {8, 7},  {9, 8},  {10, 8}, {9, 9},
                                    {-1, -1}, {4, 4},  {8, 0},  {9, 0},  {0, 7},  {0, 8},  {0, 9}};
-    const pico8_qz_box_t *kq = &as_ie(icon)->def->kq;
+    const box_t *kq = &as_ie(icon)->def->kq;
     size_t i;
 
     assert(kq != NULL);
     for (i = 0; i < sizeof probe / sizeof probe[0]; i++) {
-        h = fnv(h, (uint32_t)pico8_qz_call(kq, v2(probe[i][0], probe[i][1])));
+        h = fnv(h, (uint32_t)box_contains(kq, v2(probe[i][0], probe[i][1])));
     }
     return h;
 }
@@ -287,9 +287,9 @@ static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const v
            cls_of(icon)->right_press == NULL && cls_of(icon)->accept_drop == NULL);
     assert(cls_of(icon)->hit_test != NULL && cls_of(icon)->refresh != NULL && cls_of(icon)->draw != NULL &&
            cls_of(icon)->left_press != NULL);
-    assert(ents_listed(pico8_hv(), icon) && ents_listed(pico8_cv("draw"), icon) && ents_listed(pico8_cv("hit_test"), icon) &&
-           ents_listed(pico8_cv("refresh"), icon));
-    assert(!ents_listed(pico8_cv("draw_overlay"), icon) && !ents_listed(pico8_cv("new_year"), icon));
+    assert(ents_listed(live_entities(), icon) && ents_listed(entities_by_message("draw"), icon) && ents_listed(entities_by_message("hit_test"), icon) &&
+           ents_listed(entities_by_message("refresh"), icon));
+    assert(!ents_listed(entities_by_message("draw_overlay"), icon) && !ents_listed(entities_by_message("new_year"), icon));
 
     h = fold_string(h, ie->header.state);
     h = fold_fixed(h, ie->def->fa);
@@ -321,13 +321,13 @@ static void test_construction(void) {
         assert(ie->header.state != NULL && strcmp(ie->header.state, "normal") == 0);
         assert(ie->def->fa == p8_fixed_from_int(12));
         assert(cls_of(all[i])->hit_test != NULL);
-        assert(ents_listed(pico8_hv(), all[i]) && ents_listed(pico8_cv("draw"), all[i]) && ents_listed(pico8_cv("hit_test"), all[i]));
-        assert(!ents_listed(pico8_cv("draw_overlay"), all[i]) && !ents_listed(pico8_cv("new_year"), all[i]));
+        assert(ents_listed(live_entities(), all[i]) && ents_listed(entities_by_message("draw"), all[i]) && ents_listed(entities_by_message("hit_test"), all[i]));
+        assert(!ents_listed(entities_by_message("draw_overlay"), all[i]) && !ents_listed(entities_by_message("new_year"), all[i]));
         h = fold_kq(h, all[i]);
     }
 
-    jb_a = pico8_jb_new(&zone_tas, dr_row(0));
-    jb_b = pico8_jb_new(&zone_tas, dr_row(1));
+    jb_a = pico8_jb_new(&heap_allocator, dr_row(0));
+    jb_b = pico8_jb_new(&heap_allocator, dr_row(1));
     a = build_icon(classes[0], jb_a);
     b = build_icon(classes[1], jb_b);
     h = check_fresh_icon(h, a, classes[0], jb_a);
@@ -387,11 +387,11 @@ static void test_directed(void) {
     void *shown;
     void *hidden;
     void *all[16];
-    const pico8_vec_t *gy_before;
-    const pico8_vec_t *ra_before;
+    const vec_t *gy_before;
+    const vec_t *ra_before;
     down_t made;
     p8_fixed_t id0;
-    pico8_vec_t ra;
+    vec_t ra;
     int n;
 
     start_game();
@@ -425,15 +425,15 @@ static void test_directed(void) {
 
     assert(as_ie(shown)->ra != NULL);
     ra = *as_ie(shown)->ra;
-    assert(cls_of(shown)->hit_test(shown, vec_ref(v2(-500, -500)), vec_ref(pico8_vec_add(ra, v2(1, 1)))));
-    assert(!cls_of(shown)->hit_test(shown, vec_ref(pico8_vec_add(ra, v2(1, 1))),
-                              vec_ref(pico8_vec_add(ra, v2(20, 20)))));
-    assert(!cls_of(hidden)->hit_test(hidden, vec_ref(v2(0, 0)), vec_ref(pico8_vec_add(ra, v2(1, 1)))));
+    assert(cls_of(shown)->hit_test(shown, vec_ref(v2(-500, -500)), vec_ref(vec_add(ra, v2(1, 1)))));
+    assert(!cls_of(shown)->hit_test(shown, vec_ref(vec_add(ra, v2(1, 1))),
+                              vec_ref(vec_add(ra, v2(20, 20)))));
+    assert(!cls_of(hidden)->hit_test(hidden, vec_ref(v2(0, 0)), vec_ref(vec_add(ra, v2(1, 1)))));
     {
         int dx;
         for (dx = -2; dx <= 11; dx++) {
             int hit = cls_of(shown)->hit_test(shown, vec_ref(v2(0, 0)),
-                                        vec_ref(pico8_vec_add(ra, v2(dx, dx - 1))));
+                                        vec_ref(vec_add(ra, v2(dx, dx - 1))));
             h = fnv(h, (uint32_t)hit);
         }
     }
@@ -506,7 +506,7 @@ static char *const gx_rr[7] = {NULL, NULL, "slipgates", "infraspace", "trade lea
 
 static void invent(char *rr) {
     assert(pico8_fm_hy() != NULL && pico8_fm_hy()->invented != NULL);
-    pico8_ptrs_add(pico8_fm_hy()->invented, rr);
+    pointer_list_add(pico8_fm_hy()->invented, rr);
 }
 
 /* Per icon, in `gx[]` order: `hb` reveals it exactly when `oj(self.ke.rr)`,
@@ -560,7 +560,7 @@ static void test_ke_view(void) {
 static void test_restart(void) {
     uint32_t h = 2166136261u;
     void *all[16];
-    const pico8_vec_t *gy;
+    const vec_t *gy;
     p8_fixed_t id;
     int n;
     int i;
@@ -611,7 +611,7 @@ static void test_ie_is_a_struct(void) {
     start_game();
     gx(classes);
     n = icons(all, 16);
-    built = build_icon(classes[2], pico8_jb_new(&zone_tas, dr_row(2)));
+    built = build_icon(classes[2], pico8_jb_new(&heap_allocator, dr_row(2)));
     all[n++] = built;
     for (i = 0; i < n; i++) {
         assert(is_an_ie_struct(all[i]));
@@ -626,7 +626,7 @@ static void test_ie_is_a_struct(void) {
         pico8_ie_t *no_ke;
         p8_fixed_t id0 = shared_id_fixed(as_ie(built));
 
-        jb_only.jb = pico8_jb_new(&zone_tas, NULL);
+        jb_only.jb = pico8_jb_new(&heap_allocator, NULL);
         no_ke = pico8_ie_new(&jb_only);
         assert(is_an_ie_struct(no_ke) && no_ke->ke == NULL);
         assert(shared_id_fixed(no_ke) == id0);
@@ -676,7 +676,7 @@ static void test_ke_view_is_a_struct(void) {
         pico8_ie_keys_t jb_only = {0};
         void *no_ke;
 
-        jb_only.jb = pico8_jb_new(&zone_tas, NULL);
+        jb_only.jb = pico8_jb_new(&heap_allocator, NULL);
         no_ke = pico8_ie_new(&jb_only);
         view = pico8_ie_ke_view(no_ke);
         assert(view.header.class == pico8_ie_ke_view_struct_class());
@@ -708,9 +708,9 @@ int main(void) {
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(p8_load_map_json(&mem, "pico8/map.json"));
     p8_input_init(&input);
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
 
     pico8_cart_load();
     in_fresh_child(test_construction);

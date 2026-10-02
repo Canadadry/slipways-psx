@@ -66,7 +66,7 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int ents_rank_in(const pico8_ents_t *list, const void *e) {
+static int ents_rank_in(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -76,7 +76,7 @@ static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     return -1;
 }
 
-static int ents_listed(const pico8_ents_t *list, const void *e) {
+static int ents_listed(const entity_list_t *list, const void *e) {
     return ents_rank_in(list, e) >= 0;
 }
 
@@ -101,7 +101,7 @@ static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
     return jo->def->hf ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
-static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
+static uint32_t fold_vec(uint32_t h, const vec_t *p) {
     if (p == NULL) {
         return fnv(h, 0xDEADu);
     }
@@ -110,11 +110,11 @@ static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
 }
 
 /* The item count of a list member, -1 when NULL. */
-static int ptrs_size(const pico8_ptrs_t *l) {
+static int ptrs_size(const pointer_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
-static int ents_ptrs_size(const pico8_ents_t *l) {
+static int ents_ptrs_size(const entity_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
@@ -174,19 +174,19 @@ static uint32_t screen_hash(void) {
  * reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
 }
 
-static pico8_vec_t *vec_ref(pico8_vec_t at) {
-    pico8_vec_t *v = malloc(sizeof *v);
+static vec_t *vec_ref(vec_t at) {
+    vec_t *v = malloc(sizeof *v);
     *v = at;
     return v;
 }
 
-static pico8_vec_t vec_xy(int x, int y) {
-    return pico8_vec_v(p8_fixed_from_int(x), p8_fixed_from_int(y));
+static vec_t vec_xy(int x, int y) {
+    return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
 static const entity_class_t *cls_of(const void *e) {
@@ -216,7 +216,7 @@ static void assert_members_of(const entity_class_t *c, const entity_class_t *ref
 }
 
 /* `kv["pm"]` as `jo:hu` calls it: `p`, `ra`, `id`, each only when given. */
-static void *build_protostar(const pico8_vec_t *p, const pico8_vec_t *ra, const char *id) {
+static void *build_protostar(const vec_t *p, const vec_t *ra, const char *id) {
     planet_keys_t keys;
     void *made;
 
@@ -249,13 +249,13 @@ static int is_ga(const void *e) {
 /* The `ga` that `pm:pq` spawned: registered in `hv` just before the
  * protostar, at `ra + ng`; its `qy` and `mo.ma` as `ga:pq` left them. */
 static uint32_t fold_spawned(uint32_t h, void *e) {
-    const pico8_ents_t *hv = pico8_hv();
+    const entity_list_t *hv = live_entities();
     int at = ents_rank_in(hv, e);
     const pico8_jo_t *g;
     const pico8_jo_t *pm;
-    const pico8_vec_t *ra;
-    const pico8_vec_t *ng;
-    const pico8_vec_t *gra;
+    const vec_t *ra;
+    const vec_t *ng;
+    const vec_t *gra;
 
     assert(at >= 1 && cls_of(e) == pico8_pm_struct_class());
     pm = e;
@@ -405,14 +405,14 @@ static uint32_t fold_protostar(uint32_t h, void *e) {
     h = fold_kw(h, jo);
     h = fnv(h, (uint32_t)ents_ptrs_size(jo->oe));
     h = fnv(h, (uint32_t)ptrs_size(jo->jy));
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), e));
+    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
-        h = fnv(h, (uint32_t)ents_rank_in(pico8_cv(bm[i]), e));
+        h = fnv(h, (uint32_t)ents_rank_in(entities_by_message(bm[i]), e));
     }
     for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
-        h = fnv(h, (uint32_t)ents_rank_in(pico8_cg(tags[i]), e));
+        h = fnv(h, (uint32_t)ents_rank_in(entities_by_tag(tags[i]), e));
     }
-    assert(ents_listed(pico8_cg("planet"), e) && !ents_listed(pico8_cg("structure"), e) && !ents_listed(pico8_cg("ascension"), e));
+    assert(ents_listed(entities_by_tag("planet"), e) && !ents_listed(entities_by_tag("structure"), e) && !ents_listed(entities_by_tag("ascension"), e));
     return fold_spawned(h, e);
 }
 
@@ -420,10 +420,10 @@ static uint32_t fold_protostar(uint32_t h, void *e) {
  * and a `ga` of its own. */
 static void test_built(void) {
     uint32_t h = 2166136261u;
-    pico8_vec_t pa = vec_xy(40, 50);
-    pico8_vec_t ra_a = vec_xy(7700, 7600);
-    pico8_vec_t pb = vec_xy(-30, 12);
-    pico8_vec_t ra_b = vec_xy(7650, 7720);
+    vec_t pa = vec_xy(40, 50);
+    vec_t ra_a = vec_xy(7700, 7600);
+    vec_t pb = vec_xy(-30, 12);
+    vec_t ra_b = vec_xy(7650, 7720);
     void *a;
     void *b;
 
@@ -438,7 +438,7 @@ static void test_built(void) {
 }
 
 static uint32_t fold_ra_y(uint32_t h, const pico8_jo_t *hj) {
-    const pico8_vec_t *ra = hj->ra;
+    const vec_t *ra = hj->ra;
     return ra == NULL ? fnv(h, 0xDEADu) : fnv(h, (uint32_t)ra->y);
 }
 
@@ -447,14 +447,14 @@ static uint32_t fold_dg(uint32_t h, void *e) {
     const pico8_jo_t *hj = as_hj(e);
 
     h = fold_ra_y(h, hj);
-    pico8_dg();
+    update_entities();
     h = fold_fixed_member(h, hj->header.state_time);
     return fold_ra_y(h, hj);
 }
 
 /* `jo:ib`'s container, folded as the other planet TUs' fold_ref folds the tagged list it was:
  * never in `hv`, so the tag branch. */
-static uint32_t fold_ib(uint32_t h, const pico8_ents_t *ib) {
+static uint32_t fold_ib(uint32_t h, const entity_list_t *ib) {
     if (ib == NULL) {
         return fnv(h, 0xDEADu);
     }
@@ -463,7 +463,7 @@ static uint32_t fold_ib(uint32_t h, const pico8_ents_t *ib) {
 
 /* What `bb`'s `dh`, `ib`, `gg` and `da` (qh false) give on a protostar. */
 static uint32_t fold_economy(uint32_t h, void *e) {
-    pico8_ents_t *ib = pico8_jo_ib(e);
+    entity_list_t *ib = pico8_jo_ib(e);
     h = fnv(h, (uint32_t)pico8_dh(e));
     h = fold_ib(h, ib);
     h = fnv(fnv(h, 0xB0u), pico8_jo_gg(e) ? 1u : 0u);
@@ -473,7 +473,7 @@ static uint32_t fold_economy(uint32_t h, void *e) {
 
 /* `dc("kj")` once: the screen it leaves and what `hj:kj` left in `qy`. */
 static uint32_t fold_draw(uint32_t h, void *e) {
-    pico8_dc("draw");
+    draw_layers("draw");
     h = fnv(h, screen_hash());
     return fnv(h, (uint32_t)ptrs_size(as_hj(e)->emitter->qy));
 }
@@ -484,9 +484,9 @@ static uint32_t fold_draw(uint32_t h, void *e) {
  * alone, its `ga` at `ng`. */
 static void test_life(void) {
     uint32_t h = 2166136261u;
-    const pico8_vec_t *mo_ra;
-    pico8_vec_t p = vec_xy(64, 64);
-    pico8_vec_t ra;
+    const vec_t *mo_ra;
+    vec_t p = vec_xy(64, 64);
+    vec_t ra;
     void *placed;
     void *bare;
     int i;
@@ -495,7 +495,7 @@ static void test_life(void) {
     assert(pico8_mo_qb() != NULL);
     mo_ra = pico8_mo_qb()->ra;
     assert(mo_ra != NULL);
-    ra = pico8_vec_add(*mo_ra, vec_xy(12, 108));
+    ra = vec_add(*mo_ra, vec_xy(12, 108));
     placed = build_protostar(&p, &ra, "s90");
     h = fold_spawned(h, placed);
     assert(strcmp(as_hj(placed)->header.state, "settled") == 0);
@@ -537,13 +537,13 @@ static int is_a_pm_struct(const void *e) {
 static void test_pm_is_a_struct(void) {
     const entity_class_t *cls = pico8_pm_struct_class();
     const entity_class_t *hj = pico8_hj_struct_class();
-    pico8_vec_t p = vec_xy(40, 50);
-    pico8_vec_t ra = vec_xy(7700, 7600);
+    vec_t p = vec_xy(40, 50);
+    vec_t ra = vec_xy(7700, 7600);
     void *a;
 
     start_game();
     a = build_protostar(&p, &ra, "s77");
-    assert(is_a_pm_struct(a) && cls != hj && ents_listed(pico8_cg("planet"), a) && !ents_listed(pico8_cg("ascension"), a));
+    assert(is_a_pm_struct(a) && cls != hj && ents_listed(entities_by_tag("planet"), a) && !ents_listed(entities_by_tag("ascension"), a));
     assert_qh_shape(cls);
     assert_members_of(cls, hj, 1, 1);
     assert(cls->attach_slipway == hj->attach_slipway && cls->offer_trade == hj->offer_trade && cls->spawn_particle == hj->spawn_particle);
@@ -552,7 +552,7 @@ static void test_pm_is_a_struct(void) {
         pico8_jo_t *bare = pico8_pm_new(NULL);
         assert(is_a_pm_struct(bare) && bare->id == NULL && bare->ra == NULL &&
                bare->oe != NULL && ptrs_size(bare->emitter->qy) == 0 &&
-               ents_listed(pico8_cg("planet"), bare));
+               ents_listed(entities_by_tag("planet"), bare));
     }
 }
 
@@ -604,7 +604,7 @@ static held_t held_now(void) {
 static void test_leaving_gives_back_its_particles(void) {
     held_t built;
     held_t after;
-    pico8_vec_t at = vec_xy(64, 64);
+    vec_t at = vec_xy(64, 64);
     pico8_jo_t *e;
 
     start_game();
@@ -614,7 +614,7 @@ static void test_leaving_gives_back_its_particles(void) {
     cls_of(e)->refresh(&e->header);
     assert(e->emitter->qy->count == 5);
     built = held_now();
-    pico8_he(&e->header);
+    entity_unregister(&e->header);
     pico8_cart_vider_file_sortie();
     after = held_now();
     assert(after.particules == built.particules - 5 && after.qy == built.qy - 1);
@@ -627,9 +627,9 @@ int main(void) {
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(p8_load_map_json(&mem, "pico8/map.json"));
     p8_input_init(&input);
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
 
     pico8_cart_load();
     in_fresh_child(test_built);

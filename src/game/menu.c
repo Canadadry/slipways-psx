@@ -29,16 +29,16 @@
 static int g_menu_up = 0;
 /* `ix[i].ra` and `ha.hi`/`ha.gq`, reset by each init: the buttons borrow
  * them. */
-static pico8_vec_t g_ix_ra[PICO8_IX_COUNT];
-static pico8_vec_t g_ha_hi;
-static pico8_vec_t g_ha_gq;
+static vec_t g_ix_ra[PICO8_IX_COUNT];
+static vec_t g_ha_hi;
+static vec_t g_ha_gq;
 
 static void pico8_ix4_my_dispatch(pico8_js_t *self);
 
 typedef struct {
     entity_t header;
-    pico8_vec_t *hi;
-    pico8_vec_t *gq;
+    vec_t *hi;
+    vec_t *gq;
     p8_fixed_t ca;
     int has_ca; /* 0: `ca` is nil, and `ca` is then never read */
 } pico8_ha_pz_t;
@@ -93,7 +93,7 @@ static void pico8_cr_step(const pico8_nb_entry_t *t, pico8_cr_row_t *b) {
     b->row.lq_row = &b->lq;
 
     gi_result = pico8_gi_nb(t);
-    gi_str = p8_tostr_fixed(pico8_zone_frame(), gi_result);
+    gi_str = p8_tostr_fixed(frame_zone(), gi_result);
 
     b->h_items[0] = pico8_lq_cell_row(&pair);
     b->h_items[1] = pico8_lq_cell_string(gi_str);
@@ -114,10 +114,10 @@ static void pico8_cr_step(const pico8_nb_entry_t *t, pico8_cr_row_t *b) {
 
 /* `jb` of the "n invented" row: one line per invented tech, its name (NULL
  * an empty line), in one block of the frame zone. */
-static const pico8_jb_row_t *pico8_menu_invented_lines(const pico8_ptrs_t *list) {
+static const pico8_jb_row_t *pico8_menu_invented_lines(const pointer_list_t *list) {
     int n = list != NULL ? list->count : 0;
     size_t size = sizeof(pico8_jb_row_t) + (size_t)n * sizeof(pico8_jb_item_t);
-    pico8_jb_row_t *row = (pico8_jb_row_t *)pico8_zone_alloc(pico8_zone_frame(), size);
+    pico8_jb_row_t *row = (pico8_jb_row_t *)allocator_alloc(frame_zone(), size);
     pico8_jb_item_t *items = (pico8_jb_item_t *)(row + 1);
     int i;
 
@@ -159,8 +159,8 @@ void pico8_cr(void) {
      * affordable or not. `ix[2].hb`'s bare `cb()` wants only the affordable
      * ones. The two sites do not merge. */
     cb_list = pico8_cb(1);
-    rows = (pico8_cr_row_t *)pico8_zone_alloc(pico8_zone_frame(), ((size_t)cb_list.count + 1) * sizeof *rows);
-    bs = (pico8_js_keys_t *)pico8_zone_alloc(pico8_zone_frame(), ((size_t)cb_list.count + 1) * sizeof *bs);
+    rows = (pico8_cr_row_t *)allocator_alloc(frame_zone(), ((size_t)cb_list.count + 1) * sizeof *rows);
+    bs = (pico8_js_keys_t *)allocator_alloc(frame_zone(), ((size_t)cb_list.count + 1) * sizeof *bs);
     memset(rows, 0, ((size_t)cb_list.count + 1) * sizeof *rows);
     memset(bs, 0, ((size_t)cb_list.count + 1) * sizeof *bs);
     for (i = 0; i < cb_list.count; i++) {
@@ -169,8 +169,8 @@ void pico8_cr(void) {
 
     if (gr > 0) {
         pico8_cr_row_t *extra = &rows[n++];
-        char *gr_str = p8_tostr_fixed(pico8_zone_frame(), p8_fixed_from_int(gr));
-        char *label = p8_concat2(pico8_zone_frame(), gr_str, " invented");
+        char *gr_str = p8_tostr_fixed(frame_zone(), p8_fixed_from_int(gr));
+        char *label = p8_concat2(frame_zone(), gr_str, " invented");
         extra->lq_items[0] = pico8_lq_cell_fixed(p8_fixed_from_int(30));
         extra->lq_items[1] = pico8_lq_cell_string(label);
         extra->lq.items = extra->lq_items;
@@ -200,16 +200,16 @@ void pico8_cr(void) {
             ek_tl = p8_fixed_from_int(ek);
         }
 
-        tl_str = p8_tostr_fixed(pico8_zone_frame(), tl);
-        diff1_str = p8_tostr_fixed(pico8_zone_frame(), p8_fixed_sub(p8_fixed_from_int(gr), qi));
-        diff2_str = p8_tostr_fixed(pico8_zone_frame(), p8_fixed_sub(ek_tl, qi));
+        tl_str = p8_tostr_fixed(frame_zone(), tl);
+        diff1_str = p8_tostr_fixed(frame_zone(), p8_fixed_sub(p8_fixed_from_int(gr), qi));
+        diff2_str = p8_tostr_fixed(frame_zone(), p8_fixed_sub(ek_tl, qi));
 
-        tmp1 = p8_concat2(pico8_zone_frame(), "level ", tl_str);
-        tmp2 = p8_concat2(pico8_zone_frame(), tmp1, " (");
-        tmp3 = p8_concat2(pico8_zone_frame(), tmp2, diff1_str);
-        tmp1 = p8_concat2(pico8_zone_frame(), tmp3, "/");
-        tmp2 = p8_concat2(pico8_zone_frame(), tmp1, diff2_str);
-        ep = p8_concat2(pico8_zone_frame(), tmp2, ")");
+        tmp1 = p8_concat2(frame_zone(), "level ", tl_str);
+        tmp2 = p8_concat2(frame_zone(), tmp1, " (");
+        tmp3 = p8_concat2(frame_zone(), tmp2, diff1_str);
+        tmp1 = p8_concat2(frame_zone(), tmp3, "/");
+        tmp2 = p8_concat2(frame_zone(), tmp1, diff2_str);
+        ep = p8_concat2(frame_zone(), tmp2, ")");
 
         cr->ep = ep;
         frame.ep = cr->ep;
@@ -243,7 +243,7 @@ static void pico8_ix2_hb_dispatch(pico8_js_t *self) {
     int cb_count;
     pico8_lq_cell_t item;
     pico8_lq_keys_t keys = {0};
-    const pico8_zone_choisie_t *place;
+    const allocator_t *place;
 
     if (self == NULL) {
         return;
@@ -258,7 +258,7 @@ static void pico8_ix2_hb_dispatch(pico8_js_t *self) {
     place = pico8_zone_interface_place(PICO8_SORTE_RANGEE);
     self->lq = pico8_lq_new(place, &keys);
     if (self->lq_place != NULL) {
-        pico8_zone_arene_rendre(self->lq_place);
+        arena_release(self->lq_place);
     }
     self->lq_place = place;
 }
@@ -284,7 +284,7 @@ static void pico8_ha2_my_dispatch(pico8_js_t *self) {
     int stat_val;
     p8_fixed_t s;
     (void)self;
-    stat_val = p8_stat(pico8_dispatch_input(), 20);
+    stat_val = p8_stat(dispatch_context_input(), 20);
     s = p8_fixed_sgn(p8_fixed_from_int(stat_val));
     p8_music(-p8_fixed_flr_int(s));
 }
@@ -384,11 +384,11 @@ void pico8_menu_init(void) {
     pico8_pi_init();
 
     for (i = 0; i < PICO8_IX_COUNT; i++) {
-        g_ix_ra[i] = pico8_vec_v(p8_fixed_from_int(pico8_ix_table[i].ra_x),
+        g_ix_ra[i] = vec_make(p8_fixed_from_int(pico8_ix_table[i].ra_x),
                                  p8_fixed_from_int(pico8_ix_table[i].ra_y));
     }
-    g_ha_hi = pico8_vec_v(p8_fixed_from_int(pico8_ha_tail.hi_x), p8_fixed_from_int(pico8_ha_tail.hi_y));
-    g_ha_gq = pico8_vec_v(p8_fixed_from_int(pico8_ha_tail.gq_x), p8_fixed_from_int(pico8_ha_tail.gq_y));
+    g_ha_hi = vec_make(p8_fixed_from_int(pico8_ha_tail.hi_x), p8_fixed_from_int(pico8_ha_tail.hi_y));
+    g_ha_gq = vec_make(p8_fixed_from_int(pico8_ha_tail.gq_x), p8_fixed_from_int(pico8_ha_tail.gq_y));
     g_ha_pz.hi = &g_ha_hi;
     g_ha_pz.gq = &g_ha_gq;
     g_ha_pz.ca = p8_fixed_from_int(pico8_ha_tail.ca);

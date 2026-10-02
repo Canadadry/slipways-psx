@@ -18,13 +18,13 @@ static void pico8_ui_button_rendre_js(entity_t *self) {
     pico8_js_t *js = (pico8_js_t *)self;
 
     if (js->lq_place != NULL) {
-        pico8_zone_arene_rendre(js->lq_place);
+        arena_release(js->lq_place);
     }
-    pico8_zone_arene_rendre(js->place);
+    arena_release(js->place);
 }
 
 static void pico8_ui_button_rendre_fq(entity_t *self) {
-    pico8_zone_arene_rendre(((pico8_fq_t *)self)->place);
+    arena_release(((pico8_fq_t *)self)->place);
 }
 
 static int pico8_ui_to_int(p8_fixed_t x) {
@@ -36,22 +36,22 @@ static void pico8_js_ph_dispatch(entity_t *self, p8_fixed_t t) {
     pico8_js_ph((pico8_js_t *)self);
 }
 
-static void pico8_js_ev_dispatch(entity_t *self, const pico8_vec_t *ra) {
+static void pico8_js_ev_dispatch(entity_t *self, const vec_t *ra) {
     (void)ra;
-    pico8_js_ev(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_js_t *)self);
+    pico8_js_ev(dispatch_context_gfx(), dispatch_context_mem(), (pico8_js_t *)self);
 }
 
-static void pico8_js_kj_dispatch(entity_t *self, const pico8_vec_t *ra) {
-    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    pico8_js_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_js_t *)self, p);
+static void pico8_js_kj_dispatch(entity_t *self, const vec_t *ra) {
+    vec_t p = ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    pico8_js_kj(dispatch_context_gfx(), dispatch_context_mem(), (pico8_js_t *)self, p);
 }
 
 /* `js.hd=gk`: a field assignment in the cart, not a method definition. */
-static int pico8_js_hd_dispatch(entity_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
-    return pico8_gk(self, qa, ra);
+static int pico8_js_hd_dispatch(entity_t *self, const vec_t *qa, const vec_t *ra) {
+    return entity_geom_contains_cursor(self, qa, ra);
 }
 
-static down_t pico8_js_ldown_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static down_t pico8_js_ldown_dispatch(entity_t *self, vec_t *qa, vec_t *ra) {
     (void)qa;
     (void)ra;
     return pico8_js_ldown((pico8_js_t *)self);
@@ -83,11 +83,11 @@ static const entity_class_t g_js_struct_class = {
 };
 
 static pico8_js_t *pico8_js_struct_new(const pico8_js_keys_t *keys) {
-    const pico8_zone_choisie_t *place = pico8_zone_interface_place(PICO8_SORTE_JS);
-    pico8_js_t *self = (pico8_js_t *)pico8_zone_alloc(place, sizeof *self);
+    const allocator_t *place = pico8_zone_interface_place(PICO8_SORTE_JS);
+    pico8_js_t *self = (pico8_js_t *)allocator_alloc(place, sizeof *self);
 
     self->place = place;
-    pico8_ke_struct_init(&self->header, &g_js_struct_class, pico8_js_def.me, pico8_js_def.t);
+    entity_init_instance(&self->header, &g_js_struct_class, pico8_js_def.me, pico8_js_def.t);
     self->lq = NULL;
     self->lq_place = NULL;
     self->mb = 0;
@@ -150,7 +150,7 @@ static pico8_js_t *pico8_js_struct_new(const pico8_js_keys_t *keys) {
     pico8_class_coverage_record("button");
 #endif
     pico8_js_pq(self, keys);
-    pico8_ke_struct_pq(&self->header);
+    entity_construct(&self->header);
     return self;
 }
 
@@ -177,7 +177,7 @@ pico8_js_t *pico8_js_new(const pico8_js_keys_t *keys) {
 
 /* `lq(x)` of the cart for `js.lq`: built from a row's keys, else a copy of
  * an `lq`, else an empty row. */
-static pico8_lq_t *pico8_js_lq(const pico8_zone_choisie_t *place, const pico8_lq_t *copy,
+static pico8_lq_t *pico8_js_lq(const allocator_t *place, const pico8_lq_t *copy,
                                const pico8_lq_keys_t *row) {
     if (row != NULL) {
         return pico8_lq_new(place, row);
@@ -200,7 +200,7 @@ void pico8_js_pq(pico8_js_t *self, const pico8_js_keys_t *keys) {
 
     self->lq = pico8_js_lq(self->place, keys->lq_copy, keys->lq_row);
     self->mb = p8_fixed_add(self->lq->w, p8_fixed_from_int(2));
-    self->header.hit_box = pico8_qz(self->place, p8_fixed_from_int(0), p8_fixed_from_int(-1), self->mb, p8_fixed_from_int(11));
+    self->header.hit_box = box_make(self->place, p8_fixed_from_int(0), p8_fixed_from_int(-1), self->mb, p8_fixed_from_int(11));
 
     /* TROU-23 */
     if (keys->h_row != NULL || (keys->has_h_ && !keys->h_is_false)) {
@@ -221,12 +221,12 @@ void pico8_js_ph(pico8_js_t *self) {
     }
 
     if (self->qf != NULL) {
-        pico8_vec_t qf = *self->qf;
-        pico8_vec_t ra = self->ra != NULL ? *self->ra : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
-        pico8_vec_t d = pico8_vec_sub(qf, ra);
-        p8_fixed_t len_sq = pico8_vec_len_sq(d);
-        pico8_vec_t delta = (len_sq <= p8_fixed_from_int(1)) ? d : pico8_vec_mul(d, P8_FIXED_LIT(0x00006666, 0.4));
-        self->ra_box = pico8_vec_add(ra, delta);
+        vec_t qf = *self->qf;
+        vec_t ra = self->ra != NULL ? *self->ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+        vec_t d = vec_sub(qf, ra);
+        p8_fixed_t len_sq = vec_length_squared(d);
+        vec_t delta = (len_sq <= p8_fixed_from_int(1)) ? d : vec_mul(d, P8_FIXED_LIT(0x00006666, 0.4));
+        self->ra_box = vec_add(ra, delta);
         self->ra = &self->ra_box;
     }
 }
@@ -241,7 +241,7 @@ void pico8_js_ev(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_js_t *self) {
     }
 }
 
-void pico8_js_kj(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_js_t *self, pico8_vec_t p) {
+void pico8_js_kj(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_js_t *self, vec_t p) {
     p8_fixed_t mb;
     p8_fixed_t qt;
     p8_fixed_t dn;
@@ -272,7 +272,7 @@ void pico8_js_kj(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_js_t *self, p
     p8_rectfill(gfx, mem, ix_p, iy_p, ix_qt, iy_p, has_my ? 6 : 5);
 
     if (self->lq != NULL) {
-        pico8_vec_t off = pico8_vec_add(p, pico8_vec_v(p8_fixed_from_int(1), p8_fixed_from_int(2)));
+        vec_t off = vec_add(p, vec_make(p8_fixed_from_int(1), p8_fixed_from_int(2)));
         pico8_lq_ol_default(gfx, mem, self->lq, off);
     }
 
@@ -288,8 +288,8 @@ void pico8_js_kj(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_js_t *self, p
         p8_rectfill(gfx, mem, pico8_ui_to_int(qt) + 3, iy_p + 1, pico8_ui_to_int(x2) + 4, iy_dn, bg);
 
         {
-            pico8_vec_t off2 =
-                pico8_vec_add(p, pico8_vec_v(p8_fixed_add(mb, p8_fixed_from_int(3)), p8_fixed_from_int(2)));
+            vec_t off2 =
+                vec_add(p, vec_make(p8_fixed_add(mb, p8_fixed_from_int(3)), p8_fixed_from_int(2)));
             pico8_lq_ol_default(gfx, mem, c, off2);
         }
     }
@@ -307,24 +307,24 @@ down_t pico8_js_ldown(pico8_js_t *self) {
     return out;
 }
 
-static down_t pico8_fq_ldown_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static down_t pico8_fq_ldown_dispatch(entity_t *self, vec_t *qa, vec_t *ra) {
     (void)qa;
     (void)ra;
     return pico8_fq_ldown((pico8_fq_t *)self);
 }
 
 static const entity_class_t g_fq_struct_class = {
-    .hit_test = pico8_hd_true,
+    .hit_test = entity_registry_hit_test_always,
     .left_press = pico8_fq_ldown_dispatch,
     .release = pico8_ui_button_rendre_fq,
 };
 
 static pico8_fq_t *pico8_fq_struct_new(const pico8_fq_keys_t *keys) {
-    const pico8_zone_choisie_t *place = pico8_zone_interface_place(PICO8_SORTE_FQ);
-    pico8_fq_t *self = (pico8_fq_t *)pico8_zone_alloc(place, sizeof *self);
+    const allocator_t *place = pico8_zone_interface_place(PICO8_SORTE_FQ);
+    pico8_fq_t *self = (pico8_fq_t *)allocator_alloc(place, sizeof *self);
 
     self->place = place;
-    pico8_ke_struct_init(&self->header, &g_fq_struct_class, pico8_fq_def.me, pico8_fq_def.t);
+    entity_init_instance(&self->header, &g_fq_struct_class, pico8_fq_def.me, pico8_fq_def.t);
     self->def = &pico8_fq_def;
     self->header.layer = &self->def->fa;
     self->my = NULL;
@@ -338,7 +338,7 @@ static pico8_fq_t *pico8_fq_struct_new(const pico8_fq_keys_t *keys) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("modal_backdrop");
 #endif
-    pico8_ke_struct_pq(&self->header);
+    entity_construct(&self->header);
     return self;
 }
 

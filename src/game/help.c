@@ -29,8 +29,8 @@ void pico8_help_set_eu(pico8_js_fn fn) {
     g_eu_dispatch = (fn != NULL) ? fn : pico8_fv_eu_placeholder;
 }
 
-static int pico8_fv_hd_dispatch(entity_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
-    return pico8_gk(self, qa, ra);
+static int pico8_fv_hd_dispatch(entity_t *self, const vec_t *qa, const vec_t *ra) {
+    return entity_geom_contains_cursor(self, qa, ra);
 }
 
 /* The most items a row of `bo` holds. */
@@ -75,7 +75,7 @@ void pico8_fv_pq(pico8_g__t *self) {
 /* `fv.rb` holds four articles in the cart. */
 enum { PICO8_FV_RB_CAP = 4 };
 
-void pico8_fv_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_g__t *self, pico8_vec_t p) {
+void pico8_fv_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_g__t *self, vec_t p) {
     (void)p;
 
     pico8_ei(gfx, mem, (entity_t *)self);
@@ -93,9 +93,9 @@ void pico8_fv_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_g__t *self, pico8_v
     }
 }
 
-void pico8_fv_kj_dispatch(entity_t *self, const pico8_vec_t *ra) {
-    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    pico8_fv_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_g__t *)self, p);
+void pico8_fv_kj_dispatch(entity_t *self, const vec_t *ra) {
+    vec_t p = ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    pico8_fv_kj(dispatch_context_gfx(), dispatch_context_mem(), (pico8_g__t *)self, p);
 }
 
 static const entity_class_t g_fv_struct_class = {
@@ -114,7 +114,7 @@ static pico8_g__t *pico8_fv_struct_new(void) {
     pico8_g__t *self;
 
     assert(g_fv_up && "pico8_help_init() must run first");
-    self = (pico8_g__t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *self);
+    self = (pico8_g__t *)allocator_alloc(game_zone(), sizeof *self);
     pico8_g__struct_init(self, &g_fv_struct_class, &pico8_fv_def);
     self->header.hit_box = &self->def->kq;
     self->header.cursor_sprite = &self->def->ql;
@@ -126,7 +126,7 @@ static pico8_g__t *pico8_fv_struct_new(void) {
 #endif
     pico8_fv_pq(self);
     pico8_f__dans((entity_t *)self, PICO8_PARTICULES_QY_FV);
-    pico8_ke_struct_pq(&self->header);
+    entity_construct(&self->header);
     return self;
 }
 

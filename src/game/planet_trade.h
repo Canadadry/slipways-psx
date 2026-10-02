@@ -23,7 +23,7 @@ struct pico8_jo_trade_proposal {
     pico8_trade_t *t;
     p8_fixed_t mu;
     pico8_jo_trade_proposal_kf_fn kf;
-    pico8_ents_t *ib;
+    entity_list_t *ib;
 };
 
 void pico8_jo_kf(pico8_jo_t *self, entity_t *sw);
@@ -33,6 +33,6 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw);
 /* Returns `self.by` itself when it is set, else a container made in the
  * current game generation, never given back before it; never writes
  * `self.by` back -- its caller does. */
-pico8_ents_t *pico8_jo_ib(pico8_jo_t *self);
+entity_list_t *pico8_jo_ib(pico8_jo_t *self);
 
 #endif

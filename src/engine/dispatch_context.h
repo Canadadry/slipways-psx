@@ -1,5 +1,5 @@
-#ifndef PICO8_DISPATCH_CONTEXT_H
-#define PICO8_DISPATCH_CONTEXT_H
+#ifndef ENGINE_DISPATCH_CONTEXT_H
+#define ENGINE_DISPATCH_CONTEXT_H
 
 #include "p8/gfx.h"
 #include "p8/input.h"
@@ -13,13 +13,13 @@
  * All three are borrowed, never owned, and must outlive the frames they
  * are set for. Each getter returns NULL until its setter has run. */
 
-void pico8_dispatch_set_gfx(p8_graphics_t *gfx);
-p8_graphics_t *pico8_dispatch_gfx(void);
+void dispatch_context_set_gfx(p8_graphics_t *gfx);
+p8_graphics_t *dispatch_context_gfx(void);
 
-void pico8_dispatch_set_mem(p8_memory_t *mem);
-p8_memory_t *pico8_dispatch_mem(void);
+void dispatch_context_set_mem(p8_memory_t *mem);
+p8_memory_t *dispatch_context_mem(void);
 
-void pico8_dispatch_set_input(const p8_input_t *input);
-const p8_input_t *pico8_dispatch_input(void);
+void dispatch_context_set_input(const p8_input_t *input);
+const p8_input_t *dispatch_context_input(void);
 
 #endif

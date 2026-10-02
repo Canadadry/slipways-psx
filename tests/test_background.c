@@ -74,7 +74,7 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-static int ents_listed(const pico8_ents_t *list, const void *e) {
+static int ents_listed(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -84,7 +84,7 @@ static int ents_listed(const pico8_ents_t *list, const void *e) {
     return 0;
 }
 
-static int ents_list_count(const pico8_ents_t *list) {
+static int ents_list_count(const entity_list_t *list) {
     return list == NULL ? 0 : list->count;
 }
 
@@ -92,7 +92,7 @@ static int is_me(const entity_t *ke, const char *want) {
     return ke->state != NULL && strcmp(ke->state, want) == 0;
 }
 
-static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
+static uint32_t fold_vec(uint32_t h, const vec_t *p) {
     if (p == NULL) {
         return fnv(h, 0xDEADu);
     }
@@ -101,12 +101,12 @@ static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
 }
 
 /* `mq` as the box the cart keeps: NULL while nil. */
-static const pico8_vec_t *mq_of(const pico8_bg_t *bg) {
+static const vec_t *mq_of(const pico8_bg_t *bg) {
     return bg->has_mq ? &bg->mq : NULL;
 }
 
 /* `mq` holds the value of `rp`, a copy. */
-static int mq_is(const pico8_bg_t *bg, const pico8_vec_t *rp) {
+static int mq_is(const pico8_bg_t *bg, const vec_t *rp) {
     return bg->has_mq && &bg->mq != rp && bg->mq.x == rp->x && bg->mq.y == rp->y;
 }
 
@@ -137,14 +137,14 @@ static void check_int(const char *label, int got, int want) {
  * reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
 }
 
 /* The background is the `bg` of cv.hd whose `hd` and `fa` are both 1. */
 static pico8_bg_t *find_bg(int *count) {
-    const pico8_ents_t *hd = pico8_cv("hit_test");
+    const entity_list_t *hd = entities_by_message("hit_test");
     pico8_bg_t *found = NULL;
     int i;
 
@@ -172,9 +172,9 @@ static pico8_bg_t *the_bg(void) {
     return bg;
 }
 
-static pico8_vec_t *vec_ref(int x, int y) {
-    pico8_vec_t *v = malloc(sizeof *v);
-    *v = pico8_vec_v(p8_fixed_from_int(x), p8_fixed_from_int(y));
+static vec_t *vec_ref(int x, int y) {
+    vec_t *v = malloc(sizeof *v);
+    *v = vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
     return v;
 }
 
@@ -203,8 +203,8 @@ static void check_fresh_bg(const pico8_bg_t *bg) {
     assert(cls->accept_drop == NULL && cls->states[ENTITY_STATE_NORMAL] == NULL);
     assert(cls->draw != NULL && cls->left_press != NULL && cls->right_press != NULL && cls->drag != NULL);
     assert(cls->drop == NULL);
-    assert(ents_listed(pico8_hv(), bg) && ents_listed(pico8_cv("draw"), bg) && ents_listed(pico8_cv("hit_test"), bg));
-    assert(!ents_listed(pico8_cv("draw_overlay"), bg) && !ents_listed(pico8_cv("new_year"), bg) && !ents_listed(pico8_cv("refresh"), bg));
+    assert(ents_listed(live_entities(), bg) && ents_listed(entities_by_message("draw"), bg) && ents_listed(entities_by_message("hit_test"), bg));
+    assert(!ents_listed(entities_by_message("draw_overlay"), bg) && !ents_listed(entities_by_message("new_year"), bg) && !ents_listed(entities_by_message("refresh"), bg));
 }
 
 static void test_construction(void) {
@@ -219,7 +219,7 @@ static void test_construction(void) {
     check_fresh_bg(built);
     generic = pico8_bg_new();
     check_fresh_bg(generic);
-    assert(pico8_cg("background") == NULL);
+    assert(entities_by_tag("background") == NULL);
     assert(from_eu->def == built->def && built->def == generic->def);
 }
 
@@ -265,7 +265,7 @@ static void test_map(void) {
     check("second map", map_hash(&stars, &zeros), SECOND_MAP_HASH);
 }
 
-static void hq(void *bg, pico8_vec_t *rp) {
+static void hq(void *bg, vec_t *rp) {
     pico8_bg_struct_class()->drag(bg, vec_ref(1, 2), rp);
 }
 
@@ -275,9 +275,9 @@ static void hq(void *bg, pico8_vec_t *rp) {
 static void test_drag(void) {
     uint32_t h = 2166136261u;
     pico8_bg_t *bg;
-    pico8_vec_t *rp;
+    vec_t *rp;
     down_t out;
-    pico8_vec_t v;
+    vec_t v;
     int i;
 
     start_game();
@@ -315,24 +315,24 @@ static void test_ldown(void) {
 
     start_game();
     bg = the_bg();
-    g_before = ents_list_count(pico8_cg("probe"));
-    mz_before = ents_list_count(pico8_cg("wormhole"));
+    g_before = ents_list_count(entities_by_tag("probe"));
+    mz_before = ents_list_count(entities_by_tag("wormhole"));
     check_int("ldown g_ before", g_before, LDOWN_G_BEFORE);
     check_int("ldown mz before", mz_before, LDOWN_MZ_BEFORE);
 
     out = pico8_bg_struct_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));
     assert(out.stop && out.held != NULL);
     assert(out.held->class == pico8_g__struct_class());
-    assert(ents_listed(pico8_cg("probe"), out.held));
+    assert(ents_listed(entities_by_tag("probe"), out.held));
 
     out = pico8_bg_struct_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));
     assert(out.stop && out.held != NULL);
     assert(out.held->class == pico8_mz_struct_class());
-    assert(ents_listed(pico8_cg("wormhole"), out.held));
+    assert(ents_listed(entities_by_tag("wormhole"), out.held));
     assert(is_me(&((const pico8_mz_t *)out.held)->header, "placing"));
 
-    check_int("ldown g_ after", ents_list_count(pico8_cg("probe")), LDOWN_G_AFTER);
-    check_int("ldown mz after", ents_list_count(pico8_cg("wormhole")), LDOWN_MZ_AFTER);
+    check_int("ldown g_ after", ents_list_count(entities_by_tag("probe")), LDOWN_G_AFTER);
+    check_int("ldown mz after", ents_list_count(entities_by_tag("wormhole")), LDOWN_MZ_AFTER);
 }
 
 static int in_layer(int layer, const void *e) {
@@ -364,8 +364,8 @@ static void test_hover(void) {
     input.frames = &g_void;
     input.frame_count = 1;
     input.current_frame = 0;
-    pico8_dispatch_set_input(&input);
-    pico8_dg();
+    dispatch_context_set_input(&input);
+    update_entities();
 
     pico8_ui_lj(&mem, pico8_ok());
     assert((void *)pico8_ok()->o_ == bg);
@@ -391,7 +391,7 @@ static void test_hover(void) {
 }
 
 static pico8_jo_t *first_jo_with_me(const char *me) {
-    const pico8_ents_t *list = pico8_cg("planet");
+    const entity_list_t *list = entities_by_tag("planet");
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         entity_t *e = list->items[i];
@@ -414,7 +414,7 @@ static void test_gv(void) {
     down_t r;
 
     start_game();
-    pico8_jo_hu((pico8_jo_t *)pico8_cg("planet")->items[0], pico8_hp_new(NULL));
+    pico8_jo_hu((pico8_jo_t *)entities_by_tag("planet")->items[0], pico8_hp_new(NULL));
     bg = the_bg();
     ly = first_jo_with_me("settled");
     assert(ly != NULL);
@@ -435,14 +435,14 @@ static void test_gv(void) {
 static void test_draw(void) {
     void *bg;
 
-    pico8_jl();
+    reset_world();
     bg = (void *)pico8_bg_new();
-    assert(ents_list_count(pico8_cv("draw")) == 1 && ents_listed(pico8_cv("draw"), bg));
+    assert(ents_list_count(entities_by_message("draw")) == 1 && ents_listed(entities_by_message("draw"), bg));
     p8_gfx_init(&gfx);
     p8_cls(&mem);
-    assert(pico8_mo()->class == pico8_qb_struct_class());
-    pico8_qb_md(pico8_dispatch_gfx(), (pico8_qb_t *)pico8_mo(), p8_fixed_from_int(1));
-    pico8_dc("draw");
+    assert(main_camera()->class == pico8_qb_struct_class());
+    pico8_qb_md(dispatch_context_gfx(), (pico8_qb_t *)main_camera(), p8_fixed_from_int(1));
+    draw_layers("draw");
     check("draw", screen_hash(), DRAW_HASH);
 }
 
@@ -492,7 +492,7 @@ static void test_scripted_drags(void) {
     input.frames = g_drag;
     input.frame_count = 7;
     input.current_frame = 0;
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_input(&input);
     for (i = 0; i < 7; i++) {
         int count;
 
@@ -508,7 +508,7 @@ static void test_scripted_drags(void) {
         }
     }
     p8_input_init(&input);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_input(&input);
 }
 
 static int is_a_bg_struct(const void *e) {
@@ -563,9 +563,9 @@ int main(void) {
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(p8_load_map_json(&mem, "pico8/map.json"));
     p8_input_init(&input);
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
 
     pico8_cart_load();
     in_fresh_child(test_construction);

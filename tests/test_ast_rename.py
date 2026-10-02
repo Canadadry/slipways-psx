@@ -358,6 +358,25 @@ class ApplyTest(Setup):
         write_table([("shape_count", "figure_count", "src/shapes.h")])
         self.assertRefused(apply(), before, "##")
 
+    def test_leaves_a_field_name_pasted_outside_a_member_access(self):
+        with open(os.path.join(WORK, "src", "shapes.c"), "ab") as f:
+            f.write(b"#define WITH_SUFFIX(stem) (stem##t)\n"
+                    b"static int count_t = 3;\n"
+                    b"int shape_suffixed(void) { return WITH_SUFFIX(count_); }\n")
+        write_table([("t", "turn", "src/shapes.h", "c:@SA@shape_t@FI@t")])
+        result = apply()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(b"(stem##t)", read("src/shapes.c"))
+        self.assertIn(b"int turn;", read("src/shapes.h"))
+        self.assertTrue(compiles())
+
+    def test_refuses_a_field_name_pasted_inside_a_member_access(self):
+        with open(os.path.join(WORK, "src", "shapes.c"), "ab") as f:
+            f.write(b"#define SHAPE_FIELD(s, pre) ((s)->pre##t)\n")
+        before = tree_digest()
+        write_table([("t", "turn", "src/shapes.h", "c:@SA@shape_t@FI@t")])
+        self.assertRefused(apply(), before, "##")
+
     def test_refuses_when_an_unparsed_unit_contains_the_old_name(self):
         with open(os.path.join(WORK, "src", "broken.c"), "w") as f:
             f.write('#include "missing.h"\nint broken(void) { return shape_count; }\n')

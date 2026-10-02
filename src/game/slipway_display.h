@@ -15,8 +15,8 @@
 
 /* A particle of `jc.ts`: `ra` moves by `v` and `l` counts down once a frame. */
 typedef struct {
-    pico8_vec_t ra;
-    pico8_vec_t v;
+    vec_t ra;
+    vec_t v;
     p8_fixed_t l;
 } pico8_ts_t;
 

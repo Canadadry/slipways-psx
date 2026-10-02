@@ -46,7 +46,7 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
     return h;
 }
 
-static int ents_listed(const pico8_ents_t *list, const void *e) {
+static int ents_listed(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -61,7 +61,7 @@ static int in_any_cv(const void *e) {
     int i;
 
     for (i = 0; i < 5; i++) {
-        if (ents_listed(pico8_cv(names[i]), e)) {
+        if (ents_listed(entities_by_message(names[i]), e)) {
             return 1;
         }
     }
@@ -73,12 +73,12 @@ static pico8_qb_t *mo_qb(void) {
     return pico8_mo_qb();
 }
 
-static pico8_vec_t must_vec(const pico8_vec_t *v) {
+static vec_t must_vec(const vec_t *v) {
     assert(v != NULL);
     return *v;
 }
 
-static uint32_t fold_vec(uint32_t h, const pico8_vec_t *v) {
+static uint32_t fold_vec(uint32_t h, const vec_t *v) {
     if (v == NULL) {
         return fnv(h, 0xDEADu);
     }
@@ -109,12 +109,12 @@ static void script(int n) {
     input.frames = g_frames;
     input.frame_count = n;
     input.current_frame = 0;
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_input(&input);
 }
 
 static void unscript(void) {
     p8_input_init(&input);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_input(&input);
 }
 
 static void pad(int i, int left, int right, int up, int down) {
@@ -125,7 +125,7 @@ static void pad(int i, int left, int right, int up, int down) {
     g_frames[i].dpad[3] = down;
 }
 
-static int is_vec(pico8_vec_t v, int x, int y) {
+static int is_vec(vec_t v, int x, int y) {
     return v.x == p8_fixed_from_int(x) && v.y == p8_fixed_from_int(y);
 }
 
@@ -133,11 +133,11 @@ static int is_vec(pico8_vec_t v, int x, int y) {
  * in the order left, right, up, down, and `p`/`ra` two distinct vectors. */
 static void check_fresh_mo(const pico8_qb_t *mo) {
     const pico8_vec_seq_t *pc;
-    pico8_vec_t p = must_vec(mo->p);
-    pico8_vec_t ra = must_vec(mo->ra);
-    pico8_vec_t v = must_vec(mo->v);
+    vec_t p = must_vec(mo->p);
+    vec_t ra = must_vec(mo->ra);
+    vec_t v = must_vec(mo->v);
 
-    assert(ents_listed(pico8_hv(), mo) && !in_any_cv(mo));
+    assert(ents_listed(live_entities(), mo) && !in_any_cv(mo));
     assert(p.x == p8_fixed_from_int(192) && p.y == p8_fixed_from_int(192));
     assert(ra.x == p8_fixed_from_int(192) && ra.y == p8_fixed_from_int(192));
     assert(v.x == 0 && v.y == 0);
@@ -156,21 +156,21 @@ static void check_fresh_mo(const pico8_qb_t *mo) {
 }
 
 static void test_jl_builds_a_camera(void) {
-    pico8_jl();
+    reset_world();
     check_fresh_mo(mo_qb());
 }
 
 static void md_to(p8_fixed_t fy, int want_x, int want_y) {
     p8_camera(&gfx, 7, 11);
-    assert(pico8_mo()->class == pico8_qb_struct_class());
-    pico8_qb_md(pico8_dispatch_gfx(), (pico8_qb_t *)pico8_mo(), fy);
+    assert(main_camera()->class == pico8_qb_struct_class());
+    pico8_qb_md(dispatch_context_gfx(), (pico8_qb_t *)main_camera(), fy);
     assert(gfx.camera_x == want_x && gfx.camera_y == want_y);
 }
 
 /* `md(fy)` puts the camera on `ra*fy`. The later tests of this process
  * start from the camera the last `md` leaves: 192,192. */
 static void test_md_sets_the_camera(void) {
-    pico8_jl();
+    reset_world();
     md_to(p8_fixed_from_int(1), 192, 192);
     md_to(P8_FIXED_LIT(0x00008000, 0.5), 96, 96);
     md_to(0, 0, 0);
@@ -183,7 +183,7 @@ static void test_scripted_ticks(void) {
     int bounded = 0;
     int i;
 
-    pico8_jl();
+    reset_world();
     for (i = 0; i < SCRIPTED_TICKS; i++) {
         if (i < 3) {
             pad(i, 0, 0, 0, 0);
@@ -199,7 +199,7 @@ static void test_scripted_ticks(void) {
     }
     script(SCRIPTED_TICKS);
     for (i = 0; i < SCRIPTED_TICKS; i++) {
-        pico8_dg();
+        update_entities();
         h = fold_mo(h);
         h = fnv(h, (uint32_t)mo_qb()->header.state_time);
         if (must_vec(mo_qb()->p).y == p8_fixed_from_int(320)) {
@@ -222,17 +222,17 @@ static void test_shake_decays(void) {
     int ticks = 0;
     const pico8_qb_t *mo;
 
-    pico8_jl();
+    reset_world();
     mo = mo_qb();
     mo_qb()->ma = p8_fixed_from_int(3);
     assert(mo->ma == p8_fixed_from_int(3));
     unscript();
     while (mo->ma != 0) {
-        pico8_vec_t off;
-        pico8_dg();
+        vec_t off;
+        update_entities();
         ticks++;
         assert(ticks < 100);
-        off = pico8_vec_sub(must_vec(mo->ra), must_vec(mo->p));
+        off = vec_sub(must_vec(mo->ra), must_vec(mo->p));
         h = fnv(h, (uint32_t)mo->ma);
         h = fnv(h, (uint32_t)off.x);
         h = fnv(h, (uint32_t)off.y);
@@ -248,24 +248,24 @@ static void test_shake_decays(void) {
 static void test_second_jl(void) {
     const void *first;
 
-    pico8_jl();
-    first = pico8_mo();
-    pico8_jl();
-    assert(pico8_mo() != first);
-    assert(!ents_listed(pico8_hv(), first));
+    reset_world();
+    first = main_camera();
+    reset_world();
+    assert(main_camera() != first);
+    assert(!ents_listed(live_entities(), first));
     check_fresh_mo(mo_qb());
 
-    pico8_bootstrap_shutdown();
-    pico8_jl();
+    bootstrap_shutdown();
+    reset_world();
     check_fresh_mo(mo_qb());
 }
 
 /* Before `jl()`, `mo` is the placeholder, not a qb: `md` dispatches
  * nothing and the camera stays put. */
 static void test_placeholder_mo(void) {
-    pico8_entity_init();
+    entity_registry_init();
     p8_camera(&gfx, 5, 6);
-    assert(pico8_mo()->class != pico8_qb_struct_class());
+    assert(main_camera()->class != pico8_qb_struct_class());
     assert(gfx.camera_x == 5 && gfx.camera_y == 6);
     assert(pico8_mo_qb() == NULL);
 }
@@ -273,8 +273,8 @@ static void test_placeholder_mo(void) {
 /* A game started as `eu` starts it, the right button pressed over empty
  * space then dragged: `ok` hands the press to `bg`, whose `hq` moves `mo`. */
 static void test_right_drag_moves_the_camera(void) {
-    pico8_vec_t before;
-    pico8_vec_t after;
+    vec_t before;
+    vec_t after;
     int i;
 
     pico8__init();
@@ -298,7 +298,7 @@ static void test_right_drag_moves_the_camera(void) {
 }
 
 static int ga_alive(void) {
-    const pico8_ents_t *hv = pico8_hv();
+    const entity_list_t *hv = live_entities();
     int i;
 
     for (i = 0; i < hv->count; i++) {
@@ -323,7 +323,7 @@ static void test_ga_shakes(void) {
     assert(ga_alive());
     assert(mo_qb()->ma == p8_fixed_from_int(3));
     for (i = 0; i < GEOHARVEST_WINDOW; i++) {
-        pico8_dg();
+        update_entities();
     }
     assert(mo_qb()->ma == 0);
 }
@@ -357,18 +357,18 @@ static int is_a_qb_struct(const void *e) {
 static void test_qb_is_a_struct(void) {
     pico8_qb_t *generic;
 
-    pico8_jl();
+    reset_world();
     generic = pico8_qb_new();
-    assert(is_a_qb_struct(pico8_mo()) && is_a_qb_struct(generic));
-    assert(ents_listed(pico8_hv(), generic) && !in_any_cv(generic));
+    assert(is_a_qb_struct(main_camera()) && is_a_qb_struct(generic));
+    assert(ents_listed(live_entities(), generic) && !in_any_cv(generic));
     check_fresh_mo(generic);
     assert(generic->header.pos == &generic->ra);
     assert(generic->header.map_pos == &generic->p);
     pico8_qb_struct_class()->states[ENTITY_STATE_NORMAL](&generic->header, p8_fixed_from_int(0));
-    pico8_qb_md(pico8_dispatch_gfx(), generic, p8_fixed_from_int(1));
+    pico8_qb_md(dispatch_context_gfx(), generic, p8_fixed_from_int(1));
     assert(pico8_qb_struct_class()->draw == NULL);
     {
-        pico8_vec_t p_before = must_vec(generic->p);
+        vec_t p_before = must_vec(generic->p);
 
         generic->v = NULL;
         pico8_qb_struct_class()->states[ENTITY_STATE_NORMAL](&generic->header, p8_fixed_from_int(0));
@@ -383,9 +383,9 @@ int main(void) {
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(p8_load_map_json(&mem, "pico8/map.json"));
     p8_input_init(&input);
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
 
     pico8_cart_load();
     in_fresh_child(test_right_drag_moves_the_camera);

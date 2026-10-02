@@ -78,7 +78,7 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int ents_rank_in(const pico8_ents_t *list, const void *e) {
+static int ents_rank_in(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -88,7 +88,7 @@ static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     return -1;
 }
 
-static int ents_listed(const pico8_ents_t *list, const void *e) {
+static int ents_listed(const entity_list_t *list, const void *e) {
     return ents_rank_in(list, e) >= 0;
 }
 
@@ -102,7 +102,7 @@ static pico8_jo_t *as_jo(const void *e) {
     return (pico8_jo_t *)e;
 }
 
-static pico8_vec_t vec_of(const pico8_vec_t *v) {
+static vec_t vec_of(const vec_t *v) {
     assert(v != NULL);
     return *v;
 }
@@ -132,12 +132,12 @@ static pico8_jc_too_far_t *as_too_far(const void *e) {
 }
 
 /* The mouse point's `ra` and `p`, NULL when absent. */
-static const pico8_vec_t *mouse_point_ra(const void *re) {
+static const vec_t *mouse_point_ra(const void *re) {
     assert(is_throwaway(re));
     return ((const pico8_jc_mouse_point_t *)re)->ra;
 }
 
-static const pico8_vec_t *mouse_point_p(const void *re) {
+static const vec_t *mouse_point_p(const void *re) {
     assert(is_throwaway(re));
     return ((const pico8_jc_mouse_point_t *)re)->p;
 }
@@ -152,8 +152,8 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (ref == NULL) {
         return fnv(h, 0xDEADu);
     }
-    if (ents_listed(pico8_hv(), ref)) {
-        return fnv(fnv(h, 0x4Eu), (uint32_t)ents_rank_in(pico8_hv(), ref));
+    if (ents_listed(live_entities(), ref)) {
+        return fnv(fnv(h, 0x4Eu), (uint32_t)ents_rank_in(live_entities(), ref));
     }
     /* The frozen hashes folded the `{qs}` as a class-less throwaway. */
     return fnv(h, is_too_far(ref) || is_throwaway(ref) ? 0x7Au : 0xEEEEu);
@@ -170,7 +170,7 @@ static uint32_t fold_string(uint32_t h, const char *s) {
     return s != NULL ? fnv_str(fnv(h, 0x57u), s) : fnv(h, 0xDEADu);
 }
 
-static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
+static uint32_t fold_vec(uint32_t h, const vec_t *p) {
     if (p == NULL) {
         return fnv(h, 0xDEADu);
     }
@@ -185,7 +185,7 @@ static int re_kind(const void *jc) {
     if (re == NULL) {
         return RE_ABSENT;
     }
-    if (ents_listed(pico8_cg("node"), re)) {
+    if (ents_listed(entities_by_tag("node"), re)) {
         return RE_PLANET;
     }
     if (is_throwaway(re)) {
@@ -201,10 +201,10 @@ static int et_kind(const void *jc) {
     if (et == NULL) {
         return ET_ABSENT;
     }
-    if (ents_listed(pico8_cg("node"), et)) {
+    if (ents_listed(entities_by_tag("node"), et)) {
         return ET_PLANET;
     }
-    if (ents_listed(pico8_cg("slipway"), et)) {
+    if (ents_listed(entities_by_tag("slipway"), et)) {
         return ET_JC;
     }
     if (is_too_far(et)) {
@@ -219,23 +219,23 @@ static int holder_kind(const void *fo) {
     if (fo == NULL) {
         return FO_ABSENT;
     }
-    if (ents_listed(pico8_cg("slipway"), fo)) {
+    if (ents_listed(entities_by_tag("slipway"), fo)) {
         return FO_JC;
     }
-    if (ents_listed(pico8_cg("probe"), fo)) {
+    if (ents_listed(entities_by_tag("probe"), fo)) {
         return FO_PROBE;
     }
-    if (ents_listed(pico8_cg("wormhole"), fo)) {
+    if (ents_listed(entities_by_tag("wormhole"), fo)) {
         return FO_MZ;
     }
     return FO_OTHER;
 }
 
-static int ptrs_count(const pico8_ptrs_t *l) {
+static int ptrs_count(const pointer_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
-static int ents_ptrs_count(const pico8_ents_t *l) {
+static int ents_ptrs_count(const entity_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
@@ -284,12 +284,12 @@ static p8_fixed_t credits(void) {
 }
 
 static uint32_t fold_planets(uint32_t h, int with_eb) {
-    const pico8_ents_t *np = pico8_cg("node");
+    const entity_list_t *np = entities_by_tag("node");
     int i;
 
     for (i = 0; np != NULL && i < np->count; i++) {
         void *p = np->items[i];
-        const pico8_ents_t *oe = as_jo(p)->oe;
+        const entity_list_t *oe = as_jo(p)->oe;
         h = fnv(h, (uint32_t)ents_ptrs_count(oe));
         h = fold_ref(h, as_jo(p)->fo);
         h = fnv(h, (uint32_t)holder_kind(as_jo(p)->fo));
@@ -314,28 +314,28 @@ static void check(const char *label, uint32_t got, uint32_t want) {
  * reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
 }
 
-static pico8_vec_t pos_of(const void *e) {
+static vec_t pos_of(const void *e) {
     return vec_of(as_jo(e)->p);
 }
 
-static p8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
-    pico8_vec_t d = pico8_vec_sub(a, b);
+static p8_fixed_t dist2(vec_t a, vec_t b) {
+    vec_t d = vec_sub(a, b);
     return p8_fixed_add(p8_fixed_mul(d.x, d.x), p8_fixed_mul(d.y, d.y));
 }
 
 /* A started game's first generated planet and its nearest one, both
  * colonized by a bare project. */
 static void colonized_pair(void **qu, void **re) {
-    const pico8_ents_t *jos;
+    const entity_list_t *jos;
     int i;
 
     start_game();
-    jos = pico8_cg("planet");
+    jos = entities_by_tag("planet");
     assert(jos != NULL && jos->count > 1);
     *qu = jos->items[0];
     *re = NULL;
@@ -350,20 +350,20 @@ static void colonized_pair(void **qu, void **re) {
 }
 
 static void *build_jc(void *qu);
-static void hq_over(void *jc, void *hovered, pico8_vec_t *mp);
+static void hq_over(void *jc, void *hovered, vec_t *mp);
 
 /* A slipway from `qu` dragged over `re` as `jc:hq` sees a drag (it reads the
  * hovered planet off `ok.o_`), held until its `t` reaches 15, not paid. */
 static void *dragged(void *qu, void *re) {
-    pico8_vec_t *mp = malloc(sizeof *mp);
+    vec_t *mp = malloc(sizeof *mp);
     void *jc = build_jc(qu);
 
-    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), p8_fixed_from_int(128)),
-                        pico8_vec_v(p8_fixed_from_int(1), p8_fixed_from_int(1)));
+    *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
+                        vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
     hq_over(jc, re, mp);
     pico8_ok()->o_ = NULL;
     while (as_jc(jc)->header.state_time < p8_fixed_from_int(15)) {
-        pico8_dg();
+        update_entities();
     }
     return jc;
 }
@@ -380,13 +380,13 @@ static void world(void) {
     jc = dragged(qu, re);
     pico8_jc_struct_class()->drop(jc, re);
     for (i = 0; i < SETTLE_TICKS; i++) {
-        pico8_dg();
+        update_entities();
     }
-    assert(pico8_cg("slipway") != NULL && pico8_cg("slipway")->count == 1);
+    assert(entities_by_tag("slipway") != NULL && entities_by_tag("slipway")->count == 1);
 }
 
 static void *the_slipway(void) {
-    return pico8_cg("slipway")->items[0];
+    return entities_by_tag("slipway")->items[0];
 }
 
 static void *build_jc(void *qu) {
@@ -396,20 +396,20 @@ static void *build_jc(void *qu) {
     return pico8_jc_new(&keys);
 }
 
-static pico8_vec_t *vec_ref(int x, int y) {
-    pico8_vec_t *v = malloc(sizeof *v);
-    *v = pico8_vec_v(p8_fixed_from_int(x), p8_fixed_from_int(y));
+static vec_t *vec_ref(int x, int y) {
+    vec_t *v = malloc(sizeof *v);
+    *v = vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
     return v;
 }
 
-static pico8_vec_t *vec_ref_fixed(pico8_vec_t at) {
-    pico8_vec_t *v = malloc(sizeof *v);
+static vec_t *vec_ref_fixed(vec_t at) {
+    vec_t *v = malloc(sizeof *v);
     *v = at;
     return v;
 }
 
 /* `jc:hq` reads the hovered entity off `ok.o_`. */
-static void hq_over(void *jc, void *hovered, pico8_vec_t *mp) {
+static void hq_over(void *jc, void *hovered, vec_t *mp) {
     pico8_ok()->o_ = hovered;
     cls_of(jc)->drag(jc, mp, NULL);
 }
@@ -421,7 +421,7 @@ static const entity_t *ke_of(const void *e) {
 }
 
 static void *first_with_me(const char *tag, const char *me) {
-    const pico8_ents_t *list = pico8_cg(tag);
+    const entity_list_t *list = entities_by_tag(tag);
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         const entity_t *ke = ke_of(list->items[i]);
@@ -470,9 +470,9 @@ static void check_fresh_jc(const void *e, const void *qu) {
     assert(cls_of(jc)->hit_test == NULL && cls_of(jc)->states[ENTITY_STATE_PLACING] == NULL &&
            cls_of(jc)->states[ENTITY_STATE_NORMAL] == NULL && cls_of(jc)->left_press == NULL && cls_of(jc)->accept_drop == NULL);
 
-    assert(ents_listed(pico8_hv(), jc) && ents_listed(pico8_cv("draw"), jc) && ents_listed(pico8_cv("draw_overlay"), jc));
-    assert(ents_listed(pico8_cg("slipway"), jc));
-    assert(!ents_listed(pico8_cv("hit_test"), jc) && !ents_listed(pico8_cv("new_year"), jc) && !ents_listed(pico8_cv("refresh"), jc));
+    assert(ents_listed(live_entities(), jc) && ents_listed(entities_by_message("draw"), jc) && ents_listed(entities_by_message("draw_overlay"), jc));
+    assert(ents_listed(entities_by_tag("slipway"), jc));
+    assert(!ents_listed(entities_by_message("hit_test"), jc) && !ents_listed(entities_by_message("new_year"), jc) && !ents_listed(entities_by_message("refresh"), jc));
 }
 
 static void test_construction(void) {
@@ -510,7 +510,7 @@ static void test_ey(void) {
 
     colonized_pair(&origin, &target);
     held = dragged(origin, target);
-    assert(ents_listed(pico8_cg("slipway"), held));
+    assert(ents_listed(entities_by_tag("slipway"), held));
     assert(as_jc(held)->qu == origin && as_jc(held)->re == target);
     assert(re_kind(held) == RE_PLANET && et_kind(held) == ET_ABSENT);
     assert(ents_ptrs_count(as_jo(origin)->oe) == 0 && ents_ptrs_count(as_jo(target)->oe) == 0);
@@ -625,7 +625,7 @@ static void test_draw(void) {
     uint32_t blank;
     uint32_t plain;
     uint32_t circled;
-    pico8_vec_t mo_ra;
+    vec_t mo_ra;
     void *old;
     void *origin;
     int i;
@@ -673,8 +673,8 @@ static void test_too_far(void) {
     uint32_t too_far;
     uint32_t sprite;
     uint32_t costed;
-    pico8_vec_t mo_ra;
-    pico8_vec_t mouse;
+    vec_t mo_ra;
+    vec_t mouse;
     p8_fixed_t nh;
     p8_fixed_t before;
     void *old;
@@ -708,7 +708,7 @@ static void test_too_far(void) {
     assert(et_kind(twin) == ET_JC);
     near = build_jc(origin);
     hq_over(near, NULL,
-            vec_ref_fixed(pico8_vec_add(vec_of(as_jo(origin)->ra), pico8_vec_v(p8_fixed_from_int(16), 0))));
+            vec_ref_fixed(vec_add(vec_of(as_jo(origin)->ra), vec_make(p8_fixed_from_int(16), 0))));
     assert(re_kind(near) == RE_THROWAWAY && et_kind(near) == ET_ABSENT && as_jc(near)->probe->has_od);
     assert(pico8_je_nf() != NULL);
     mouse = vec_of(pico8_je_nf()->ra);
@@ -744,12 +744,12 @@ static void test_too_far(void) {
     check("too far", h, TOO_FAR_HASH);
 }
 
-static int same_vec(pico8_vec_t a, pico8_vec_t b) {
+static int same_vec(vec_t a, vec_t b) {
     return a.x == b.x && a.y == b.y;
 }
 
 /* The cart keeps the box of `mp`, the port a copy of it. */
-static int holds_copy_of(const pico8_vec_t *ra, const pico8_vec_t *m) {
+static int holds_copy_of(const vec_t *ra, const vec_t *m) {
     return ra != NULL && ra != m && same_vec(*ra, *m);
 }
 
@@ -759,10 +759,10 @@ static int holds_copy_of(const pico8_vec_t *ra, const pico8_vec_t *m) {
  * move. */
 static void test_hq_mouse_point(void) {
     uint32_t h = 2166136261u;
-    pico8_vec_t *m1;
-    pico8_vec_t *m2;
-    pico8_vec_t p1;
-    pico8_vec_t on_camera;
+    vec_t *m1;
+    vec_t *m2;
+    vec_t p1;
+    vec_t on_camera;
     void *origin;
     void *target;
     void *a;
@@ -783,11 +783,11 @@ static void test_hq_mouse_point(void) {
     assert(r1 != NULL && re_kind(a) == RE_THROWAWAY);
     assert(holds_copy_of(mouse_point_ra(r1), m1));
     p1 = vec_of(mouse_point_p(r1));
-    assert(same_vec(p1, pico8_vec_div(vec_of(mouse_point_ra(r1)), p8_fixed_from_int(128))));
+    assert(same_vec(p1, vec_div(vec_of(mouse_point_ra(r1)), p8_fixed_from_int(128))));
     assert(mouse_point_p(r1) != m1);
     assert(*((const entity_t *)r1)->map_pos == mouse_point_p(r1));
-    assert(!pico8_gd(r1));
-    assert(!ents_listed(pico8_hv(), r1) && !ents_listed(pico8_cg("slipway"), r1) && !ents_listed(pico8_cg("node"), r1));
+    assert(!entity_geom_is_on_screen(r1));
+    assert(!ents_listed(live_entities(), r1) && !ents_listed(entities_by_tag("slipway"), r1) && !ents_listed(entities_by_tag("node"), r1));
     h = fnv(h, (uint32_t)p1.x);
     h = fnv(h, (uint32_t)p1.y);
     h = fold_jc(h, a);
@@ -797,16 +797,16 @@ static void test_hq_mouse_point(void) {
     r2 = as_jc(a)->re;
     assert(r2 == r1 && re_kind(a) == RE_THROWAWAY && "the mouse point is the slipway's own, rewritten in place");
     assert(holds_copy_of(mouse_point_ra(r2), m2));
-    assert(same_vec(vec_of(mouse_point_p(r2)), pico8_vec_div(*m2, p8_fixed_from_int(128))));
+    assert(same_vec(vec_of(mouse_point_p(r2)), vec_div(*m2, p8_fixed_from_int(128))));
     assert(!same_vec(vec_of(mouse_point_p(r2)), p1));
     h = fold_jc(h, a);
 
-    prise = pico8_zone_partie_prise();
+    prise = game_zone_used();
     for (i = 0; i < 10; i++) {
         hq_over(a, NULL, i % 2 ? m1 : m2);
         assert(as_jc(a)->re == r1);
     }
-    assert(pico8_zone_partie_prise() == prise && "a held slipway allocates nothing per hq");
+    assert(game_zone_used() == prise && "a held slipway allocates nothing per hq");
     hq_over(a, NULL, m2);
 
     b = build_jc(origin);
@@ -823,39 +823,39 @@ static void test_hq_mouse_point(void) {
     h = fold_jc(h, a);
     check("mouse point", h, MOUSE_POINT_HASH);
 
-    on_camera = pico8_vec_add(vec_of(pico8_mo_qb()->ra),
-                              pico8_vec_v(p8_fixed_from_int(64), p8_fixed_from_int(64)));
+    on_camera = vec_add(vec_of(pico8_mo_qb()->ra),
+                              vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64)));
     hq_over(b, NULL, vec_ref_fixed(on_camera));
-    assert(pico8_gd(as_jc(b)->re));
+    assert(entity_geom_is_on_screen(as_jc(b)->re));
 }
 
 /* `jc:ce` falls through to `cg("jc")` when no planet lies on the drag: a
  * drag from a nearby planet to just past the slipway's middle crosses it. */
 static void test_ce_crosses_a_slipway(void) {
-    const pico8_ents_t *jos;
+    const entity_list_t *jos;
     void *old;
-    pico8_vec_t mid;
+    vec_t mid;
     int i;
     int crossed = 0;
 
     world();
-    jos = pico8_cg("planet");
+    jos = entities_by_tag("planet");
     old = the_slipway();
-    mid = pico8_vec_div(pico8_vec_add(pos_of(as_jc(old)->qu), pos_of(as_jc(old)->re)), p8_fixed_from_int(2));
+    mid = vec_div(vec_add(pos_of(as_jc(old)->qu), pos_of(as_jc(old)->re)), p8_fixed_from_int(2));
     for (i = 0; i < jos->count && !crossed; i++) {
         void *q = jos->items[i];
-        pico8_vec_t past;
+        vec_t past;
         void *a;
 
         if (q == as_jc(old)->qu || q == as_jc(old)->re) {
             continue;
         }
-        past = pico8_vec_add(mid, pico8_vec_div(pico8_vec_sub(mid, pos_of(q)), p8_fixed_from_int(8)));
+        past = vec_add(mid, vec_div(vec_sub(mid, pos_of(q)), p8_fixed_from_int(8)));
         a = build_jc(q);
-        hq_over(a, NULL, vec_ref_fixed(pico8_vec_mul(past, p8_fixed_from_int(128))));
+        hq_over(a, NULL, vec_ref_fixed(vec_mul(past, p8_fixed_from_int(128))));
         crossed = as_jc(a)->probe->et == old;
         if (!crossed) {
-            pico8_he(a);
+            entity_unregister(a);
         }
     }
     printf("[ce] crossed from planet %d\n", i - 1);
@@ -875,7 +875,7 @@ static pico8_g__t *probe_with_zero_dw(void) {
     g_dw_zero.probe.dw = 0;
     pico8_g__struct_init(probe, pico8_g__struct_class(), &g_dw_zero);
     pico8_f_(&probe->header);
-    pico8_ke_struct_pq(&probe->header);
+    entity_construct(&probe->header);
     return probe;
 }
 
@@ -884,8 +884,8 @@ static void test_bv(void) {
     uint32_t h = 2166136261u;
     void *old;
     void *probe;
-    pico8_vec_t qu;
-    pico8_vec_t re;
+    vec_t qu;
+    vec_t re;
     int k;
 
     world();
@@ -894,9 +894,9 @@ static void test_bv(void) {
     qu = pos_of(as_jc(old)->qu);
     re = pos_of(as_jc(old)->re);
     for (k = 1; k < 8; k++) {
-        pico8_vec_t at = pico8_vec_add(qu, pico8_vec_div(pico8_vec_mul(pico8_vec_sub(re, qu), p8_fixed_from_int(k)),
+        vec_t at = vec_add(qu, vec_div(vec_mul(vec_sub(re, qu), p8_fixed_from_int(k)),
                                                          p8_fixed_from_int(8)));
-        cls_of(probe)->drag(probe, vec_ref_fixed(pico8_vec_mul(at, p8_fixed_from_int(128))),
+        cls_of(probe)->drag(probe, vec_ref_fixed(vec_mul(at, p8_fixed_from_int(128))),
                           vec_ref(64, 64));
         h = fold_ref(h, ((pico8_g__t *)probe)->probe->et);
         if (((pico8_g__t *)probe)->probe->et == old) {
@@ -919,21 +919,21 @@ static void test_bv_takes_the_first_slipway_of_cg(void) {
     void *old;
     void *twin;
     void *probe;
-    pico8_vec_t qu;
-    pico8_vec_t re;
-    pico8_vec_t at;
+    vec_t qu;
+    vec_t re;
+    vec_t at;
 
     world();
     old = the_slipway();
     twin = build_jc(as_jc(old)->re);
     as_jc(twin)->re = as_jc(old)->qu;
-    assert(pico8_cg("slipway")->count == 2 && pico8_cg("slipway")->items[0] == old &&
-           pico8_cg("slipway")->items[1] == twin);
+    assert(entities_by_tag("slipway")->count == 2 && entities_by_tag("slipway")->items[0] == old &&
+           entities_by_tag("slipway")->items[1] == twin);
     probe = probe_with_zero_dw();
     qu = pos_of(as_jc(old)->qu);
     re = pos_of(as_jc(old)->re);
-    at = pico8_vec_div(pico8_vec_add(qu, re), p8_fixed_from_int(2));
-    cls_of(probe)->drag(probe, vec_ref_fixed(pico8_vec_mul(at, p8_fixed_from_int(128))), vec_ref(64, 64));
+    at = vec_div(vec_add(qu, re), p8_fixed_from_int(2));
+    cls_of(probe)->drag(probe, vec_ref_fixed(vec_mul(at, p8_fixed_from_int(128))), vec_ref(64, 64));
     assert(((pico8_g__t *)probe)->probe->et == old);
     assert(as_jc(old)->fo == probe && as_jc(twin)->fo != probe);
 }
@@ -1040,7 +1040,7 @@ static void test_mouse_point_is_a_struct(void) {
     void *origin;
     void *jc;
     void *re;
-    pico8_vec_t p;
+    vec_t p;
 
     world();
     origin = as_jc(the_slipway())->qu;
@@ -1116,9 +1116,9 @@ int main(void) {
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(p8_load_map_json(&mem, "pico8/map.json"));
     p8_input_init(&input);
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
 
     pico8_cart_load();
     in_fresh_child(test_construction);

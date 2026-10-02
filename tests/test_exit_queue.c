@@ -23,25 +23,25 @@
 #include "game/ui.h"
 #include "game/ui_button.h"
 
-#define STDERR_LOG "tmp/test_pico8_file_sortie_stderr.txt"
+#define STDERR_LOG "tmp/test_exit_queue_stderr.txt"
 
 /* volatile : la lecture d'un pointeur perime ne doit pas etre retiree par
  * l'optimiseur, c'est elle que le cas observe. */
 static volatile unsigned char sink;
 
-static int rendus;
+static int released;
 
-static void rendre_compte(entity_t *self) {
+static void release_count(entity_t *self) {
     (void)self;
-    rendus++;
+    released++;
 }
 
-static void rendre_libere(entity_t *self) {
+static void release_frees(entity_t *self) {
     free(self);
 }
 
-static const entity_class_t counted_cls = {.release = rendre_compte};
-static const entity_class_t freed_cls = {.release = rendre_libere};
+static const entity_class_t counted_cls = {.release = release_count};
+static const entity_class_t freed_cls = {.release = release_frees};
 static const entity_class_t kept_cls = {0};
 
 /* Une boite `mh` : `kc` et `ju.ed` ne designent que des boites. `m_` vise
@@ -64,104 +64,104 @@ static void load_cart_and_start(void) {
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(p8_load_map_json(&mem, "pico8/map.json"));
     p8_input_init(&input);
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
     pico8_cart_load();
     pico8__init();
     /* Le `pz` du titre a remplace `ok.le` : la premiere frame vide la file. */
     pico8_cart_vider_file_sortie();
 }
 
-static int case_he_alive_until_flush(void) {
+static int case_entity_unregister_alive_until_flush(void) {
     load_cart_and_start();
     pico8_mh_t *e = new_entity(&freed_cls);
-    pico8_lt(&e->header);
-    pico8_he(&e->header);
-    assert(pico8_file_sortie_compte() == 1 && "he enfile une entite de hv qui a de quoi rendre");
+    entity_register(&e->header);
+    entity_unregister(&e->header);
+    assert(exit_queue_count() == 1 && "he enfile une entite de hv qui a de quoi rendre");
     sink = (unsigned char)e->p_;
     pico8__update60();
-    assert(pico8_file_sortie_compte() == 0 && "update60 vide la file");
+    assert(exit_queue_count() == 0 && "update60 vide la file");
     return 0;
 }
 
-static int case_he_released_at_flush(void) {
+static int case_entity_unregister_released_at_flush(void) {
     load_cart_and_start();
     pico8_mh_t *e = new_entity(&freed_cls);
-    pico8_lt(&e->header);
-    pico8_he(&e->header);
+    entity_register(&e->header);
+    entity_unregister(&e->header);
     pico8__update60();
     sink = (unsigned char)e->p_;
     return 0;
 }
 
 /* `cj` remplace `ok.le` ; la frame relit encore l'ancienne liste. */
-static const pico8_ents_t *replaced_le(void) {
+static const entity_list_t *replaced_ephemerals(void) {
     load_cart_and_start();
-    const pico8_ents_t *old = pico8_ok()->le;
+    const entity_list_t *old = pico8_ok()->le;
     assert(old != pico8_ui_le_shared());
     pico8_ui_cj(pico8_ok());
-    assert(pico8_file_sortie_compte() == 1 && "cj enfile la liste qu'il remplace");
+    assert(exit_queue_count() == 1 && "cj enfile la liste qu'il remplace");
     return old;
 }
 
-static int case_le_alive_until_flush(void) {
-    const pico8_ents_t *old = replaced_le();
+static int case_ephemerals_alive_until_flush(void) {
+    const entity_list_t *old = replaced_ephemerals();
     sink = (unsigned char)old->count;
     pico8__update60();
-    assert(pico8_file_sortie_compte() == 0);
+    assert(exit_queue_count() == 0);
     return 0;
 }
 
-static int case_le_released_at_flush(void) {
-    const pico8_ents_t *old = replaced_le();
+static int case_ephemerals_released_at_flush(void) {
+    const entity_list_t *old = replaced_ephemerals();
     pico8__update60();
     sink = (unsigned char)old->count;
     return 0;
 }
 
-static int case_he_outside_hv_or_without_member(void) {
+static int case_entity_unregister_outside_live_entities_or_without_member(void) {
     load_cart_and_start();
     pico8_mh_t *absent = new_entity(&counted_cls);
     pico8_mh_t *kept = new_entity(&kept_cls);
-    pico8_he(&absent->header);
-    pico8_lt(&kept->header);
-    pico8_he(&kept->header);
-    assert(pico8_file_sortie_compte() == 0);
+    entity_unregister(&absent->header);
+    entity_register(&kept->header);
+    entity_unregister(&kept->header);
+    assert(exit_queue_count() == 0);
     return 0;
 }
 
-static int registered_with_rendre(void) {
-    const pico8_ents_t *hv = pico8_hv();
+static int registered_with_release(void) {
+    const entity_list_t *hv = live_entities();
     int n = 0;
     for (int i = 0; i < hv->count; i++) n += hv->items[i]->class->release != NULL;
     return n;
 }
 
-static int case_jl_enqueues_registered(void) {
+static int case_reset_world_enqueues_registered(void) {
     load_cart_and_start();
     pico8_mh_t *counted = new_entity(&counted_cls);
     pico8_mh_t *kept = new_entity(&kept_cls);
-    pico8_lt(&counted->header);
-    pico8_lt(&kept->header);
-    int expected = registered_with_rendre();
-    pico8_jl();
-    assert(pico8_file_sortie_compte() == expected && "jl enfile chaque inscrit qui a de quoi rendre");
-    pico8_he(&counted->header);
-    assert(pico8_file_sortie_compte() == expected && "he apres jl : l'entite n'est plus dans hv, pas deux fois");
-    assert(rendus == 0 && "jl ne rend rien avant la fin de la frame");
+    entity_register(&counted->header);
+    entity_register(&kept->header);
+    int expected = registered_with_release();
+    reset_world();
+    assert(exit_queue_count() == expected && "jl enfile chaque inscrit qui a de quoi rendre");
+    entity_unregister(&counted->header);
+    assert(exit_queue_count() == expected && "he apres jl : l'entite n'est plus dans hv, pas deux fois");
+    assert(released == 0 && "jl ne rend rien avant la fin de la frame");
     pico8_cart_load();
-    assert(rendus == 1 && pico8_file_sortie_compte() == 0 && "cart_load vide la file");
+    assert(released == 1 && exit_queue_count() == 0 && "cart_load vide la file");
     return 0;
 }
 
 static int case_shutdown_drains(void) {
     load_cart_and_start();
     pico8_mh_t *e = new_entity(&counted_cls);
-    pico8_lt(&e->header);
-    pico8_he(&e->header);
+    entity_register(&e->header);
+    entity_unregister(&e->header);
     pico8_cart_shutdown();
-    assert(rendus == 1 && pico8_file_sortie_compte() == 0 &&
+    assert(released == 1 && exit_queue_count() == 0 &&
            "cart_shutdown vide la file : aucune entree ne survit jusqu'au cart_load suivant");
     return 0;
 }
@@ -170,12 +170,12 @@ static pico8_mh_t *pointed_at_everywhere(void) {
     load_cart_and_start();
     pico8_eu(NULL);
     pico8_mh_t *e = new_entity(&freed_cls);
-    pico8_lt(&e->header);
+    entity_register(&e->header);
     pico8_ok()->o_ = &e->header;
     pico8_ok()->gj = &e->header;
     pico8_msgbox_set_kc(e);
     pico8_ju()->ed = e;
-    pico8_he(&e->header);
+    entity_unregister(&e->header);
     return e;
 }
 
@@ -197,9 +197,9 @@ static int case_update60_after_forgetting(void) {
 
 /* `eu()` drops the title, and the difficulty button with it; `dk` still
  * reads it for the whole game. */
-static int case_dk_outlives_its_button(void) {
+static int case_difficulty_outlives_its_button(void) {
     load_cart_and_start();
-    const pico8_ents_t *hd = pico8_cv("hit_test");
+    const entity_list_t *hd = entities_by_message("hit_test");
     pico8_js_t *nj = NULL;
     for (int i = 0; i < hd->count && nj == NULL; i++)
         if (hd->items[i]->class == pico8_js_struct_class() && ((pico8_js_t *)hd->items[i])->has_en)
@@ -218,7 +218,7 @@ static int case_dk_outlives_its_button(void) {
 
 static int case_full(void) {
     pico8_mh_t *e = new_entity(&counted_cls);
-    for (int i = 0; i <= PICO8_FILE_SORTIE_CAP; i++) pico8_file_sortie_mettre(&e->header);
+    for (int i = 0; i <= EXIT_QUEUE_CAP; i++) exit_queue_put(&e->header);
     return 0;
 }
 
@@ -226,16 +226,16 @@ static const struct {
     const char *name;
     int (*run)(void);
 } CASES[] = {
-    {"he_alive_until_flush", case_he_alive_until_flush},
-    {"he_released_at_flush", case_he_released_at_flush},
-    {"le_alive_until_flush", case_le_alive_until_flush},
-    {"le_released_at_flush", case_le_released_at_flush},
-    {"he_outside_hv_or_without_member", case_he_outside_hv_or_without_member},
-    {"jl_enqueues_registered", case_jl_enqueues_registered},
+    {"entity_unregister_alive_until_flush", case_entity_unregister_alive_until_flush},
+    {"entity_unregister_released_at_flush", case_entity_unregister_released_at_flush},
+    {"ephemerals_alive_until_flush", case_ephemerals_alive_until_flush},
+    {"ephemerals_released_at_flush", case_ephemerals_released_at_flush},
+    {"he_outside_hv_or_without_member", case_entity_unregister_outside_live_entities_or_without_member},
+    {"reset_world_enqueues_registered", case_reset_world_enqueues_registered},
     {"shutdown_drains", case_shutdown_drains},
     {"flush_forgets_references", case_flush_forgets_references},
     {"update60_after_forgetting", case_update60_after_forgetting},
-    {"dk_outlives_its_button", case_dk_outlives_its_button},
+    {"difficulty_outlives_its_button", case_difficulty_outlives_its_button},
     {"full", case_full},
 };
 
@@ -316,22 +316,22 @@ int main(int argc, char **argv) {
     if (argc == 2) {
         for (size_t i = 0; i < CASE_COUNT; i++)
             if (strcmp(argv[1], CASES[i].name) == 0) return CASES[i].run();
-        fprintf(stderr, "test_pico8_file_sortie: cas inconnu %s\n", argv[1]);
+        fprintf(stderr, "test_exit_queue: cas inconnu %s\n", argv[1]);
         return 2;
     }
     self_path = argv[0];
-    expect_clean("he_alive_until_flush");
-    expect_freed_crash("he_released_at_flush");
-    expect_clean("le_alive_until_flush");
-    expect_poison_crash("le_released_at_flush");
+    expect_clean("entity_unregister_alive_until_flush");
+    expect_freed_crash("entity_unregister_released_at_flush");
+    expect_clean("ephemerals_alive_until_flush");
+    expect_poison_crash("ephemerals_released_at_flush");
     expect_clean("he_outside_hv_or_without_member");
-    expect_clean("jl_enqueues_registered");
+    expect_clean("reset_world_enqueues_registered");
     expect_clean("shutdown_drains");
     expect_clean("flush_forgets_references");
     expect_clean("update60_after_forgetting");
-    expect_clean("dk_outlives_its_button");
+    expect_clean("difficulty_outlives_its_button");
     expect_fatal("full", "file de sortie pleine, limite 256");
     remove(STDERR_LOG);
-    printf("test_pico8_file_sortie: all tests passed\n");
+    printf("test_exit_queue: all tests passed\n");
     return 0;
 }

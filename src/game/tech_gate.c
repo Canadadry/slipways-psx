@@ -13,7 +13,7 @@ static int g_nb_e_[PICO8_NB_COUNT];
 
 int pico8_oj(const char *px) {
     const pico8_hy_t *fm = pico8_fm_hy();
-    const pico8_ptrs_t *invented_list = NULL;
+    const pointer_list_t *invented_list = NULL;
 
     if (px == NULL) {
         return 1;
@@ -22,7 +22,7 @@ int pico8_oj(const char *px) {
         invented_list = fm->invented;
     }
     /* TROU-3 */
-    return pico8_gu_content_ptrs(invented_list, px);
+    return collect_contains_string(invented_list, px);
 }
 
 p8_fixed_t pico8_ov(const char *px, p8_fixed_t lk, p8_fixed_t mc) {

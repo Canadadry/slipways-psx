@@ -61,8 +61,8 @@ int main(int argc, char **argv) {
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(p8_load_map_json(&mem, "pico8/map.json"));
 
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
 
     pico8_raylib_backend_t backend;
     pico8_raylib_backend_init(&backend);
@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
          * pico8_raylib_backend_record_frame. */
         pico8_raylib_backend_record_frame(&backend, &frame);
         p8_input_t input = { &frame, 1, 0 };
-        pico8_dispatch_set_input(&input);
+        dispatch_context_set_input(&input);
 
         pico8_cheat_step(&cheat, &input);
         pico8__update60();

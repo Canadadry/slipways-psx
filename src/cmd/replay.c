@@ -73,10 +73,10 @@ static void write_remplissage(const char *path) {
         fprintf(out, "max_elements %s %d\n", PARTICULES_NAMES[s],
                 pico8_zone_particules_max_elements((pico8_particules_sorte_t)s));
     }
-    fprintf(out, "partie %lu\n", (unsigned long)pico8_zone_partie_prise());
-    fprintf(out, "max_octets partie %lu\n", (unsigned long)pico8_zone_partie_max());
-    fprintf(out, "chargement %lu\n", (unsigned long)pico8_zone_chargement_prise());
-    fprintf(out, "max_octets chargement %lu\n", (unsigned long)pico8_zone_chargement_max());
+    fprintf(out, "partie %lu\n", (unsigned long)game_zone_used());
+    fprintf(out, "max_octets partie %lu\n", (unsigned long)game_zone_max());
+    fprintf(out, "chargement %lu\n", (unsigned long)load_zone_used());
+    fprintf(out, "max_octets chargement %lu\n", (unsigned long)game_zone_load_zone_max());
     fclose(out);
 }
 
@@ -102,9 +102,9 @@ int main(int argc, char **argv) {
     p8_input_init(&input);
     assert(pico8_input_load(&input, events_path));
 
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
 
     pico8_cart_load();
     pico8__init();
@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
     pico8_cheat_t cheat;
     pico8_cheat_init(&cheat);
     for (int i = 0; i < frame_count; i++) {
-        pico8_dispatch_set_input(&input);
+        dispatch_context_set_input(&input);
         pico8_cheat_step(&cheat, &input);
         pico8__update60();
         pico8__draw();

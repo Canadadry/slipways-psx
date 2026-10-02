@@ -29,12 +29,12 @@ static const char g_jo_nom_prise[] = "prise";
 #define PRISES_LIBRES_MAX 8
 
 /* Non NULL seulement entre pico8_jo_prise_ouvrir et _fermer. */
-static const pico8_zone_choisie_t *g_jo_prise = NULL;
-static const pico8_zone_choisie_t *g_jo_prises_libres[PRISES_LIBRES_MAX];
+static const allocator_t *g_jo_prise = NULL;
+static const allocator_t *g_jo_prises_libres[PRISES_LIBRES_MAX];
 static int g_jo_prises_libres_n = 0;
 
-int pico8_jo_hd_dispatch(entity_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
-    return pico8_gk(self, qa, ra);
+int pico8_jo_hd_dispatch(entity_t *self, const vec_t *qa, const vec_t *ra) {
+    return entity_geom_contains_cursor(self, qa, ra);
 }
 
 void pico8_jo_hk_dispatch(entity_t *self, p8_fixed_t yr) {
@@ -67,12 +67,12 @@ static const entity_class_t g_jo_struct_class = {
 
 void pico8_jo_struct_init(pico8_jo_t *self, const entity_class_t *cls, const pico8_jo_def_t *def) {
     assert(g_jo_up && "pico8_jo_init() must run first");
-    pico8_ke_struct_init(&self->header, cls, def->me, def->t);
+    entity_init_instance(&self->header, cls, def->me, def->t);
     self->def = def;
     self->header.layer = &self->def->fa;
     /* Read-only: the planet modules write through their members. */
-    self->header.pos = (const pico8_vec_t *const *)&self->ra;
-    self->header.map_pos = (const pico8_vec_t *const *)&self->p;
+    self->header.pos = (const vec_t *const *)&self->ra;
+    self->header.map_pos = (const vec_t *const *)&self->p;
     self->header.hit_box = &self->def->kq;
     self->header.shake = &self->ma;
     self->header.fold_anchor = &self->fx;
@@ -108,7 +108,7 @@ void pico8_jo_struct_init(pico8_jo_t *self, const entity_class_t *cls, const pic
 }
 
 static pico8_jo_t *pico8_jo_struct_new(const planet_keys_t *keys) {
-    pico8_jo_t *self = (pico8_jo_t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
+    pico8_jo_t *self = (pico8_jo_t *)allocator_alloc(pico8_jo_zone_construction(), sizeof *self);
 
     pico8_jo_struct_init(self, &g_jo_struct_class, &pico8_jo_def);
     if (keys != NULL) {
@@ -126,7 +126,7 @@ static pico8_jo_t *pico8_jo_struct_new(const planet_keys_t *keys) {
     pico8_class_coverage_record("planet");
 #endif
     pico8_jo_pq(self);
-    pico8_ke_struct_pq(&self->header);
+    entity_construct(&self->header);
     return self;
 }
 
@@ -183,17 +183,17 @@ pico8_jo_t *pico8_jo_new(const planet_keys_t *keys) {
     return pico8_jo_struct_new(keys);
 }
 
-const pico8_zone_choisie_t *pico8_jo_zone_construction(void) {
-    return g_jo_prise != NULL ? g_jo_prise : pico8_zone_partie();
+const allocator_t *pico8_jo_zone_construction(void) {
+    return g_jo_prise != NULL ? g_jo_prise : game_zone();
 }
 
 void pico8_jo_prise_ouvrir(void) {
     assert(g_jo_prise == NULL && "une prise d'icone est deja ouverte");
     if (g_jo_prises_libres_n > 0) {
         g_jo_prise = g_jo_prises_libres[--g_jo_prises_libres_n];
-        pico8_zone_arene_vider(g_jo_prise);
+        arena_flush(g_jo_prise);
     } else {
-        g_jo_prise = pico8_zone_arene_prendre(pico8_zone_partie(), g_jo_nom_prise, PICO8_JO_PRISE_OCTETS);
+        g_jo_prise = arena_take(game_zone(), g_jo_nom_prise, PICO8_JO_PRISE_OCTETS);
     }
 }
 
@@ -205,14 +205,14 @@ void pico8_jo_prise_rendue(const pico8_jo_t *self) {
     pico8_jo_prise_zone_rendue(self->oe != NULL ? self->oe->zone : NULL, self->header.state);
 }
 
-void pico8_jo_prise_zone_rendue(const pico8_zone_choisie_t *zone, const char *me) {
+void pico8_jo_prise_zone_rendue(const allocator_t *zone, const char *me) {
     if (me == NULL || strcmp(me, "placing") != 0) {
         return;
     }
     pico8_jo_prise_arene_rendue(zone);
 }
 
-void pico8_jo_prise_arene_rendue(const pico8_zone_choisie_t *zone) {
+void pico8_jo_prise_arene_rendue(const allocator_t *zone) {
     if (zone == NULL || zone->bump == NULL || zone->bump->name != g_jo_nom_prise) {
         return;
     }
@@ -223,7 +223,7 @@ void pico8_jo_prise_arene_rendue(const pico8_zone_choisie_t *zone) {
 
 /* TROU-26 */
 void pico8_jo_oublier_fo(const entity_t *e) {
-    const pico8_ents_t *np = pico8_cg("node");
+    const entity_list_t *np = entities_by_tag("node");
 
     for (int i = 0; np != NULL && i < np->count; i++) {
         pico8_jo_t *p = (pico8_jo_t *)np->items[i];
@@ -243,15 +243,15 @@ void pico8_jo_pq(pico8_jo_t *self) {
     pico8_jo_pq_dans(self, pico8_jo_zone_construction());
 }
 
-void pico8_jo_pq_dans(pico8_jo_t *self, const pico8_zone_choisie_t *zone) {
-    pico8_ents_t *oe;
+void pico8_jo_pq_dans(pico8_jo_t *self, const allocator_t *zone) {
+    entity_list_t *oe;
 
     if (self == NULL) {
         return;
     }
 
-    oe = (pico8_ents_t *)pico8_zone_alloc(zone, sizeof *oe);
-    pico8_ents_init(oe, zone);
+    oe = (entity_list_t *)allocator_alloc(zone, sizeof *oe);
+    entity_list_init(oe, zone);
     self->oe = oe;
 
     if (self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) {
@@ -266,7 +266,7 @@ void pico8_jo_pq_dans(pico8_jo_t *self, const pico8_zone_choisie_t *zone) {
 /* `mw(i)`: a copy of the want, never shared with `hp.i`. */
 static int pico8_jo_lz_mw_step(void *e, void *ctx, void **out) {
     if (e != NULL) {
-        pico8_jy_t *copy = (pico8_jy_t *)pico8_zone_alloc((const pico8_zone_choisie_t *)ctx, sizeof *copy);
+        pico8_jy_t *copy = (pico8_jy_t *)allocator_alloc((const allocator_t *)ctx, sizeof *copy);
         const pico8_jy_t *i = e;
 
         *copy = *i;
@@ -277,9 +277,9 @@ static int pico8_jo_lz_mw_step(void *e, void *ctx, void **out) {
 }
 
 void pico8_jo_lz(pico8_jo_t *self, pico8_hp_t *hp_instance) {
-    const pico8_zone_choisie_t *zone = pico8_jo_zone_construction();
-    pico8_ptrs_t jy;
-    pico8_ptrs_t *jy_own;
+    const allocator_t *zone = pico8_jo_zone_construction();
+    pointer_list_t jy;
+    pointer_list_t *jy_own;
 
     pico8_hp_assert(hp_instance);
     if (self == NULL) {
@@ -289,11 +289,11 @@ void pico8_jo_lz(pico8_jo_t *self, pico8_hp_t *hp_instance) {
     self->hn = hp_instance;
     self->ep = NULL;
 
-    pico8_ptrs_init(&jy, zone);
+    pointer_list_init(&jy, zone);
     if (hp_instance != NULL && hp_instance->i != NULL) {
-        jy = pico8_nv_ptrs(zone, hp_instance->i, pico8_jo_lz_mw_step, (void *)zone);
+        jy = collect_map_pointer_list(zone, hp_instance->i, pico8_jo_lz_mw_step, (void *)zone);
     }
-    jy_own = (pico8_ptrs_t *)pico8_zone_alloc(zone, sizeof *jy_own);
+    jy_own = (pointer_list_t *)allocator_alloc(zone, sizeof *jy_own);
     *jy_own = jy;
     self->jy = jy_own;
 
@@ -359,7 +359,7 @@ void pico8_jo_hh(pico8_jo_t *self) {
     } else {
         ks_arg = "known";
     }
-    pico8_ke_ks((entity_t *)self, ks_arg);
+    entity_set_state((entity_t *)self, ks_arg);
     pico8_jo_kd(self);
 }
 
@@ -370,7 +370,7 @@ void pico8_jo_hk(const pico8_jo_t *self) {
     if (!self->has_kr || self->kr == p8_fixed_from_int(0)) {
         return;
     }
-    if (!pico8_gd((const entity_t *)self)) {
+    if (!entity_geom_is_on_screen((const entity_t *)self)) {
         return;
     }
     {
@@ -379,7 +379,7 @@ void pico8_jo_hk(const pico8_jo_t *self) {
         char *text;
 
         keys.ra = self->ra;
-        text = pico8_ne(pico8_zone_frame(), self->kr, 10, "$", &color);
+        text = collect_format_signed(frame_zone(), self->kr, 10, "$", &color);
         /* `ne()` is the last expression of the Lua constructor, so both of its
          * return values land as positional entries 1 and 2, not named fields. */
         keys.at1 = text;
@@ -389,7 +389,7 @@ void pico8_jo_hk(const pico8_jo_t *self) {
 }
 
 void pico8_na(entity_t *self, p8_fixed_t t) {
-    pico8_vec_t *ra_vec;
+    vec_t *ra_vec;
 
     assert((self == NULL || pico8_jo_is_family(self)) && "na: self is a planet (qh:ly, nl:ly) -- stop");
     ra_vec = self != NULL ? ((pico8_jo_t *)self)->ra : NULL;

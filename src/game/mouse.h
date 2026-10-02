@@ -18,8 +18,8 @@
 typedef struct {
     entity_t header;
     const pico8_nf_def_t *def;
-    pico8_vec_t *ra;
-    pico8_vec_t ra_own;
+    vec_t *ra;
+    vec_t ra_own;
 } pico8_nf_t;
 
 /* Calls pico8_pi_init(), and requires pico8_ke_init() to have run --

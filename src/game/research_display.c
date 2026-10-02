@@ -14,12 +14,12 @@
 
 /* In the frame zone. */
 static char *pico8_hp_jb_join(const pico8_hp_t *self) {
-    const pico8_ptrs_t *i_list;
+    const pointer_list_t *i_list;
     size_t cap = 16;
     size_t len = 0;
-    char *out = (char *)pico8_zone_alloc(pico8_zone_frame(), cap);
+    char *out = (char *)allocator_alloc(frame_zone(), cap);
     int first = 1;
-    pico8_ptrs_iter_t it;
+    pointer_list_iter_t it;
     void *entry;
 
     out[0] = '\0';
@@ -27,8 +27,8 @@ static char *pico8_hp_jb_join(const pico8_hp_t *self) {
         return out;
     }
     i_list = self->i;
-    it = pico8_ptrs_all(i_list);
-    while (pico8_ptrs_iter_next(&it, &entry)) {
+    it = pointer_list_all(i_list);
+    while (pointer_list_iter_next(&it, &entry)) {
         pico8_qe_t qe = {.kind = PICO8_QE_NIL};
         char *num_str;
         const char *iz_name;
@@ -39,7 +39,7 @@ static char *pico8_hp_jb_join(const pico8_hp_t *self) {
         if (entry != NULL) {
             qe = pico8_jy_qe(entry);
         }
-        num_str = qe.kind == PICO8_QE_FIXED ? p8_tostr_fixed(pico8_zone_frame(), qe.n) : NULL;
+        num_str = qe.kind == PICO8_QE_FIXED ? p8_tostr_fixed(frame_zone(), qe.n) : NULL;
         iz_name = num_str != NULL ? pico8_iz_lookup(num_str) : NULL;
         if (iz_name != NULL) {
             piece = iz_name;
@@ -50,7 +50,7 @@ static char *pico8_hp_jb_join(const pico8_hp_t *self) {
         if (len + add_len + 1 > cap) {
             size_t new_cap = (len + add_len + 1) * 2;
 
-            out = (char *)pico8_zone_grow(pico8_zone_frame(), (unsigned char *)out, cap, new_cap);
+            out = (char *)allocator_grow(frame_zone(), (unsigned char *)out, cap, new_cap);
             cap = new_cap;
         }
         if (!first) {
@@ -82,7 +82,7 @@ const pico8_jb_row_t *pico8_hp_jb(const pico8_hp_t *self) {
         return NULL;
     }
 
-    jb = (pico8_hp_jb_t *)pico8_zone_alloc(pico8_zone_frame(), sizeof *jb);
+    jb = (pico8_hp_jb_t *)allocator_alloc(frame_zone(), sizeof *jb);
     memset(jb, 0, sizeof *jb);
     jb->inner_items[0].s = pico8_hp_jb_join(self);
     jb->inner_items[1].n = 13;
@@ -90,7 +90,7 @@ const pico8_jb_row_t *pico8_hp_jb(const pico8_hp_t *self) {
     jb->inner.items = jb->inner_items;
 
     if (self->has_o) {
-        char *o_str = p8_tostr_fixed(pico8_zone_frame(), self->o);
+        char *o_str = p8_tostr_fixed(frame_zone(), self->o);
         const char *iz_o = pico8_iz_lookup(o_str);
 
         if (iz_o != NULL) {
@@ -112,7 +112,7 @@ typedef struct {
 } pico8_jo_ex_tuple_t;
 
 static pico8_jo_ex_tuple_t *pico8_jo_ex_tuple(int count) {
-    pico8_jo_ex_tuple_t *t = (pico8_jo_ex_tuple_t *)pico8_zone_alloc(pico8_zone_frame(), sizeof *t);
+    pico8_jo_ex_tuple_t *t = (pico8_jo_ex_tuple_t *)allocator_alloc(frame_zone(), sizeof *t);
 
     memset(t, 0, sizeof *t);
     t->row.count = count;
@@ -124,7 +124,7 @@ static pico8_jb_item_t pico8_jo_ex_fixed(p8_fixed_t x) {
     return (pico8_jb_item_t){.is_fixed = 1, .fixed = x};
 }
 
-pico8_lq_t *pico8_jo_ex(const pico8_zone_choisie_t *zone, const pico8_ptrs_t *is, const p8_fixed_t *o,
+pico8_lq_t *pico8_jo_ex(const allocator_t *zone, const pointer_list_t *is, const p8_fixed_t *o,
                         p8_fixed_t jq, p8_fixed_t mj, p8_fixed_t d) {
     pico8_lq_cell_t *l;
     int l_count = 0;
@@ -166,13 +166,13 @@ pico8_lq_t *pico8_jo_ex(const pico8_zone_choisie_t *zone, const pico8_ptrs_t *is
         l_cap = is_count + (is_count > 0 ? 2 : 0) + (jq > p8_fixed_from_int(5) ? 2 : 0) +
                 ml_count * (p8_fixed_flr_int(loop_bound) + 1);
     }
-    l = (pico8_lq_cell_t *)pico8_zone_alloc(pico8_zone_frame(), (size_t)l_cap * sizeof *l);
+    l = (pico8_lq_cell_t *)allocator_alloc(frame_zone(), (size_t)l_cap * sizeof *l);
 
     if (is != NULL) {
-        pico8_ptrs_iter_t it = pico8_ptrs_all(is);
+        pointer_list_iter_t it = pointer_list_all(is);
         void *entry;
 
-        while (pico8_ptrs_iter_next(&it, &entry)) {
+        while (pointer_list_iter_next(&it, &entry)) {
             pico8_jo_ex_tuple_t *tuple = pico8_jo_ex_tuple(3);
             pico8_qe_t qe = {.kind = PICO8_QE_NIL};
             int gc_zero = 0;
@@ -213,7 +213,7 @@ pico8_lq_t *pico8_jo_ex(const pico8_zone_choisie_t *zone, const pico8_ptrs_t *is
     }
 
     if (jq > p8_fixed_from_int(5)) {
-        char *jq_str = p8_tostr_fixed(pico8_zone_frame(), jq);
+        char *jq_str = p8_tostr_fixed(frame_zone(), jq);
         static const pico8_jb_item_t t3_items[] = {{.is_false = 1}, {.n = -4}};
         static const pico8_jb_row_t t3 = {.count = 2, .items = t3_items};
 
@@ -259,7 +259,7 @@ pico8_lq_t *pico8_jo_ex(const pico8_zone_choisie_t *zone, const pico8_ptrs_t *is
 
 pico8_lq_t *pico8_hp_lq(pico8_hp_t *self) {
     p8_fixed_t jq;
-    const pico8_ptrs_t *is = NULL;
+    const pointer_list_t *is = NULL;
     const pico8_hc_entry_t *po;
     pico8_lq_t *l;
 
@@ -279,7 +279,7 @@ pico8_lq_t *pico8_hp_lq(pico8_hp_t *self) {
         jq = (po1 > p8_fixed_from_int(1)) ? po1 : p8_fixed_from_int(1);
     }
 
-    l = pico8_jo_ex(pico8_zone_frame(), is, self->has_o ? &self->o : NULL, jq, p8_fixed_from_int(0), p8_fixed_from_int(1));
+    l = pico8_jo_ex(frame_zone(), is, self->has_o ? &self->o : NULL, jq, p8_fixed_from_int(0), p8_fixed_from_int(1));
     if (l == NULL) {
         return NULL;
     }

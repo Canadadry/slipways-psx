@@ -29,8 +29,8 @@ typedef struct {
  * just written it, reads it. */
 typedef struct {
     entity_t header;
-    const pico8_vec_t *hi;
-    const pico8_vec_t *gq;
+    const vec_t *hi;
+    const vec_t *gq;
     p8_fixed_t ca;
     const char *ep;
 } pico8_pj_cr_t;
@@ -72,7 +72,7 @@ typedef struct {
     pico8_jb_row_t row;
     pico8_jb_item_t items[5];
     int has[5];
-    pico8_vec_t ra;
+    vec_t ra;
     const pico8_bz_entry_t *e;
 } pico8_bz_row_t;
 

@@ -32,7 +32,7 @@
 #include "engine/game_zone.h"
 #include "engine/zone_sizes.h"
 
-#define STDERR_LOG "tmp/test_pico8_zone_partie_stderr.txt"
+#define STDERR_LOG "tmp/test_game_zone_stderr.txt"
 
 /* volatile : la lecture d'un pointeur perime ne doit pas etre retiree par
  * l'optimiseur, c'est elle que le cas observe. */
@@ -48,24 +48,24 @@ static void load_cart_and_start(void) {
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(p8_load_map_json(&mem, "pico8/map.json"));
     p8_input_init(&input);
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
     pico8_cart_load();
     pico8__init();
 }
 
 static unsigned char *counting_block(void) {
-    unsigned char *block = pico8_zone_alloc(pico8_zone_partie(), 64);
+    unsigned char *block = allocator_alloc(game_zone(), 64);
     for (int i = 0; i < 64; i++) block[i] = (unsigned char)i;
     return block;
 }
 
 static void allocate_again(void) {
-    for (int i = 0; i < 4; i++) memset(pico8_zone_alloc(pico8_zone_partie(), 64), 2, 64);
+    for (int i = 0; i < 4; i++) memset(allocator_alloc(game_zone(), 64), 2, 64);
 }
 
-static int case_alive_through_eu(void) {
+static int case_alive_through_start_game(void) {
     load_cart_and_start();
     unsigned char *block = counting_block();
     pico8_eu(NULL);
@@ -106,138 +106,138 @@ static int case_dead_after_cart_load(void) {
 
 /* Octets que le bw de chaque eu prend dans sa generation : jo.oc, sa
  * source et jo.ir. */
-static size_t etats_de_bw(void) {
-    return (2 * PICO8_ZONE_CELLS(sizeof(pico8_jf_state_t)) + PICO8_ZONE_CELLS(sizeof(pico8_gn_state_t))) *
-           sizeof(pico8_zone_cell_t);
+static size_t populate_galaxy_states(void) {
+    return (2 * ZONE_CELLS(sizeof(pico8_jf_state_t)) + ZONE_CELLS(sizeof(pico8_gn_state_t))) *
+           sizeof(zone_cell_t);
 }
 
 /* Octets qu'une liste a pris dans sa generation depuis un jl() : les
  * capacites 4, 8, ... jusqu'a la sienne, car chaque agrandissement copie et
  * laisse l'ancien bloc mort jusqu'au rendu. NULL (un `cg` jamais vu) : rien. */
-static size_t octets_d_un_registre(const pico8_ents_t *liste) {
-    size_t octets = 0;
-    for (int k = 4; liste != NULL && k <= liste->capacity; k *= 2) {
-        octets += PICO8_ZONE_CELLS((size_t)k * sizeof(entity_t *)) * sizeof(pico8_zone_cell_t);
+static size_t registry_bytes(const entity_list_t *list) {
+    size_t bytes = 0;
+    for (int k = 4; list != NULL && k <= list->capacity; k *= 2) {
+        bytes += ZONE_CELLS((size_t)k * sizeof(entity_t *)) * sizeof(zone_cell_t);
     }
-    return octets;
+    return bytes;
 }
 
-static size_t octets_des_registres(void) {
+static size_t registries_bytes(void) {
     static const char *const CV[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
     static const char *const CG[] = {"structure", "ascension", "slipgate", "probe", "message_box", "slipway", "wormhole", "planet", "node", "targeting"};
-    size_t r = octets_d_un_registre(pico8_hv());
-    for (size_t i = 0; i < sizeof CV / sizeof CV[0]; i++) r += octets_d_un_registre(pico8_cv(CV[i]));
-    for (size_t i = 0; i < sizeof CG / sizeof CG[0]; i++) r += octets_d_un_registre(pico8_cg(CG[i]));
+    size_t r = registry_bytes(live_entities());
+    for (size_t i = 0; i < sizeof CV / sizeof CV[0]; i++) r += registry_bytes(entities_by_message(CV[i]));
+    for (size_t i = 0; i < sizeof CG / sizeof CG[0]; i++) r += registry_bytes(entities_by_tag(CG[i]));
     return r;
 }
 
-static size_t octets_d_un_bloc(size_t taille) {
-    return PICO8_ZONE_CELLS(taille) * sizeof(pico8_zone_cell_t);
+static size_t block_bytes(size_t size) {
+    return ZONE_CELLS(size) * sizeof(zone_cell_t);
 }
 
 /* Octets d'une liste de planete faite dans la generation : son conteneur,
  * puis ses blocs comme un registre. */
-static size_t octets_d_une_liste_de_planete(const pico8_ents_t *liste) {
-    if (liste == NULL) return 0;
-    return octets_d_un_bloc(sizeof *liste) + octets_d_un_registre(liste);
+static size_t planet_list_bytes(const entity_list_t *list) {
+    if (list == NULL) return 0;
+    return block_bytes(sizeof *list) + registry_bytes(list);
 }
 
 /* Empreinte `P` des planetes de `cg.jo` : structure, `p`, `ra`, identifiant
  * et listes `oe`, `by`, `cc`. Sans `jy` ni copies de besoins, que les
  * planetes de `bw` n'ont pas avant une action. */
-static size_t octets_des_planetes(void) {
-    const pico8_ents_t *jo = pico8_cg("planet");
-    size_t octets = 0;
+static size_t planets_bytes(void) {
+    const entity_list_t *jo = entities_by_tag("planet");
+    size_t bytes = 0;
     for (int i = 0; jo != NULL && i < jo->count; i++) {
         const pico8_jo_t *p = (const pico8_jo_t *)jo->items[i];
         assert(p->jy == NULL && "une planete a des besoins, que P ne compte pas");
-        octets += octets_d_un_bloc(sizeof *p) + octets_d_un_bloc(sizeof *p->p) + octets_d_un_bloc(sizeof *p->ra) +
-                  octets_d_un_bloc(strlen(p->id) + 1) + octets_d_une_liste_de_planete(p->oe) +
-                  octets_d_une_liste_de_planete(p->by) + octets_d_une_liste_de_planete(p->cc);
+        bytes += block_bytes(sizeof *p) + block_bytes(sizeof *p->p) + block_bytes(sizeof *p->ra) +
+                  block_bytes(strlen(p->id) + 1) + planet_list_bytes(p->oe) +
+                  planet_list_bytes(p->by) + planet_list_bytes(p->cc);
     }
-    return octets;
+    return bytes;
 }
 
 /* Octets de l'economie `fm` faite par `eu` : sa structure et le conteneur
  * `invented`, sans elements tant que rien n'est invente. */
-static size_t octets_de_l_economie(void) {
+static size_t economy_bytes(void) {
     const pico8_hy_t *fm = pico8_fm_hy();
     assert(fm != NULL && fm->invented != NULL && "eu a fait l'economie de la partie");
     assert(fm->invented->count == 0 && fm->invented->items == NULL && "une invention, que l'economie ne compte pas");
-    return octets_d_un_bloc(sizeof *fm) + octets_d_un_bloc(sizeof *fm->invented);
+    return block_bytes(sizeof *fm) + block_bytes(sizeof *fm->invented);
 }
 
 /* Octets des sept icones `ie` de `hv`, dans l'ordre de `dr` : structure,
  * bulle `jb` refaite dans une arene de la zone frame, et la boite de `ie.gy`
  * de chaque icone revelee. */
-static size_t octets_des_icones(void) {
-    const pico8_ents_t *hv = pico8_hv();
-    const pico8_zone_choisie_t *mesure = pico8_zone_arene_prendre(pico8_zone_frame(), "mesure des bulles", 16384);
-    const size_t tete = pico8_zone_arene_prise(mesure);
-    size_t octets = 0;
+static size_t icons_bytes(void) {
+    const entity_list_t *hv = live_entities();
+    const allocator_t *mesure = arena_take(frame_zone(), "mesure des bulles", 16384);
+    const size_t head = arena_used(mesure);
+    size_t bytes = 0;
     int k = 0;
     for (int i = 0; hv != NULL && i < hv->count; i++) {
         const pico8_ie_t *ie = (const pico8_ie_t *)hv->items[i];
         if (ie->header.class != pico8_ie_struct_class()) continue;
         assert(k < PICO8_DR_COUNT && "plus d'icones que de bulles dans dr");
         (void)pico8_jb_new(mesure, &pico8_dr_table[k]);
-        octets += octets_d_un_bloc(sizeof *ie);
-        if (ie->has_kh && ie->kh) octets += octets_d_un_bloc(sizeof(pico8_vec_t));
+        bytes += block_bytes(sizeof *ie);
+        if (ie->has_kh && ie->kh) bytes += block_bytes(sizeof(vec_t));
         k++;
     }
     assert(k == PICO8_DR_COUNT && "eu fait une icone par bulle de dr");
-    return octets + pico8_zone_arene_prise(mesure) - tete;
+    return bytes + arena_used(mesure) - head;
 }
 
 /* Terme « recherche et economie » de la generation : ce que `eu` fait pour
  * `fm` et les icones. */
-static size_t octets_de_la_recherche_et_de_l_economie(void) {
-    return octets_de_l_economie() + octets_des_icones();
+static size_t research_and_economy_bytes(void) {
+    return economy_bytes() + icons_bytes();
 }
 
 /* Terme « singletons » : `mo`, `je`, `ok` du jl() de `eu`, son `bg`, seul
  * dans `hv`, et `ju`. */
-static size_t octets_des_singletons(void) {
-    const pico8_ents_t *hv = pico8_hv();
+static size_t singletons_bytes(void) {
+    const entity_list_t *hv = live_entities();
     int bg = 0;
     for (int i = 0; hv != NULL && i < hv->count; i++) bg += hv->items[i]->class == pico8_bg_struct_class();
     assert(bg == 1 && "eu fait un seul bg");
     assert(pico8_mo_qb() != NULL && pico8_je_nf() != NULL && pico8_ok() != NULL && pico8_ju() != NULL);
-    return octets_d_un_bloc(sizeof(pico8_qb_t)) + octets_d_un_bloc(sizeof(pico8_nf_t)) +
-           octets_d_un_bloc(sizeof(pico8_ui_t)) + octets_d_un_bloc(sizeof(pico8_bg_t)) +
-           octets_d_un_bloc(sizeof(pico8_pj_t));
+    return block_bytes(sizeof(pico8_qb_t)) + block_bytes(sizeof(pico8_nf_t)) +
+           block_bytes(sizeof(pico8_ui_t)) + block_bytes(sizeof(pico8_bg_t)) +
+           block_bytes(sizeof(pico8_pj_t));
 }
 
-static int case_prise_and_max(void) {
-    const size_t g = etats_de_bw();
+static int case_grab_arena_and_max(void) {
+    const size_t g = populate_galaxy_states();
     load_cart_and_start();
-    const size_t titre = pico8_zone_partie_prise();
+    const size_t title = game_zone_used();
     (void)counting_block();
-    assert(pico8_zone_partie_prise() == titre + 64);
+    assert(game_zone_used() == title + 64);
     pico8_eu(NULL);
-    const size_t partie = pico8_zone_partie_prise();
-    assert(partie >= titre + 64 + g && "les deux generations comptent jusqu'au rendu");
+    const size_t game_zone_used_before = game_zone_used();
+    assert(game_zone_used_before >= title + 64 + g && "les deux generations comptent jusqu'au rendu");
     (void)counting_block();
-    assert(pico8_zone_partie_prise() == partie + 64);
+    assert(game_zone_used() == game_zone_used_before + 64);
     pico8__update60();
-    assert(pico8_zone_partie_prise() == g + octets_des_registres() + octets_des_planetes() + octets_de_la_recherche_et_de_l_economie() +
-                                         octets_des_singletons() + 64);
-    assert(pico8_zone_partie_max() == partie + 64);
+    assert(game_zone_used() == g + registries_bytes() + planets_bytes() + research_and_economy_bytes() +
+                                         singletons_bytes() + 64);
+    assert(game_zone_max() == game_zone_used_before + 64);
     pico8_cart_shutdown();
-    assert(pico8_zone_partie_prise() == 0);
-    assert(pico8_zone_partie_max() == partie + 64 && "le maximum ne se remet qu'avec le processus");
+    assert(game_zone_used() == 0);
+    assert(game_zone_max() == game_zone_used_before + 64 && "le maximum ne se remet qu'avec le processus");
     return 0;
 }
 
-static unsigned char *counting_block_chargement(void) {
-    unsigned char *block = pico8_zone_alloc(pico8_zone_chargement(), 64);
+static unsigned char *counting_block_load_zone(void) {
+    unsigned char *block = allocator_alloc(game_zone_load_zone(), 64);
     for (int i = 0; i < 64; i++) block[i] = (unsigned char)i;
     return block;
 }
 
-static int case_chargement_survives_eu(void) {
+static int case_load_zone_survives_start_game(void) {
     load_cart_and_start();
-    unsigned char *block = counting_block_chargement();
+    unsigned char *block = counting_block_load_zone();
     pico8_eu(NULL);
     pico8__update60();
     allocate_again();
@@ -245,52 +245,52 @@ static int case_chargement_survives_eu(void) {
     return 0;
 }
 
-static int case_chargement_dead_after_cart_load(void) {
+static int case_load_zone_dead_after_cart_load(void) {
     load_cart_and_start();
-    unsigned char *block = counting_block_chargement();
+    unsigned char *block = counting_block_load_zone();
     pico8_cart_load();
-    for (int i = 0; i < 4; i++) memset(pico8_zone_alloc(pico8_zone_chargement(), 64), 2, 64);
+    for (int i = 0; i < 4; i++) memset(allocator_alloc(game_zone_load_zone(), 64), 2, 64);
     sink = block[63];
     return 0;
 }
 
-static int case_chargement_prise_and_max(void) {
+static int case_load_zone_grab_arena_and_max(void) {
     load_cart_and_start();
-    const size_t depart = pico8_zone_chargement_prise();
-    (void)counting_block_chargement();
-    assert(pico8_zone_chargement_prise() == depart + 64);
+    const size_t start = load_zone_used();
+    (void)counting_block_load_zone();
+    assert(load_zone_used() == start + 64);
     pico8_eu(NULL);
     pico8__update60();
-    assert(pico8_zone_chargement_prise() == depart + 64 && "ni eu ni le rendu ne touchent la sous-zone");
-    assert(pico8_zone_chargement_max() == depart + 64);
+    assert(load_zone_used() == start + 64 && "ni eu ni le rendu ne touchent la sous-zone");
+    assert(game_zone_load_zone_max() == start + 64);
     pico8_cart_shutdown();
-    assert(pico8_zone_chargement_prise() == 0);
-    assert(pico8_zone_chargement_max() == depart + 64 && "le maximum ne se remet qu'avec le processus");
+    assert(load_zone_used() == 0);
+    assert(game_zone_load_zone_max() == start + 64 && "le maximum ne se remet qu'avec le processus");
     return 0;
 }
 
-static int case_chargement_full(void) {
+static int case_load_zone_full(void) {
     load_cart_and_start();
-    (void)pico8_zone_alloc(pico8_zone_chargement(), PICO8_ZONE_CHARGEMENT_BYTES);
-    (void)pico8_zone_alloc(pico8_zone_chargement(), 1);
+    (void)allocator_alloc(game_zone_load_zone(), LOAD_ZONE_BYTES);
+    (void)allocator_alloc(game_zone_load_zone(), 1);
     return 0;
 }
 
-static size_t octets_de_quatre_pointeurs(void) {
-    return PICO8_ZONE_CELLS(4 * sizeof(entity_t *)) * sizeof(pico8_zone_cell_t);
+static size_t four_pointers_bytes(void) {
+    return ZONE_CELLS(4 * sizeof(entity_t *)) * sizeof(zone_cell_t);
 }
 
-static int case_listes_statiques_dans_chargement(void) {
+static int case_static_lists_in_load_zone(void) {
     static entity_t element;
     load_cart_and_start();
-    const size_t depart = pico8_zone_chargement_prise();
-    pico8_ents_t *le = pico8_ui_le_shared();
-    pico8_ents_add(le, &element);
-    assert(pico8_zone_chargement_prise() == depart + octets_de_quatre_pointeurs() &&
+    const size_t start = load_zone_used();
+    entity_list_t *le = pico8_ui_le_shared();
+    entity_list_add(le, &element);
+    assert(load_zone_used() == start + four_pointers_bytes() &&
            "la liste de depart de ok.le prend sa capacite dans la sous-zone chargement");
-    pico8_ents_t *by = pico8_ga_new(NULL)->by;
-    pico8_ents_add(by, &element);
-    assert(pico8_zone_chargement_prise() == depart + 2 * octets_de_quatre_pointeurs() &&
+    entity_list_t *by = pico8_ga_new(NULL)->by;
+    entity_list_add(by, &element);
+    assert(load_zone_used() == start + 2 * four_pointers_bytes() &&
            "le by partage des ga prend sa capacite dans la sous-zone chargement");
     pico8_cart_shutdown();
     assert(le->items == NULL && le->count == 0 && le->capacity == 0 && "ui_shutdown oublie la liste de depart");
@@ -298,7 +298,7 @@ static int case_listes_statiques_dans_chargement(void) {
     return 0;
 }
 
-static int case_double_eu_without_flush(void) {
+static int case_double_start_game_without_flush(void) {
     load_cart_and_start();
     pico8_eu(NULL);
     pico8_eu(NULL);
@@ -309,17 +309,17 @@ static const struct {
     const char *name;
     int (*run)(void);
 } CASES[] = {
-    {"alive_through_eu", case_alive_through_eu},
+    {"alive_through_start_game", case_alive_through_start_game},
     {"dead_after_next_update", case_dead_after_next_update},
     {"init_keeps_generation", case_init_keeps_generation},
     {"dead_after_cart_load", case_dead_after_cart_load},
-    {"prise_and_max", case_prise_and_max},
-    {"double_eu_without_flush", case_double_eu_without_flush},
-    {"chargement_survives_eu", case_chargement_survives_eu},
-    {"chargement_dead_after_cart_load", case_chargement_dead_after_cart_load},
-    {"chargement_prise_and_max", case_chargement_prise_and_max},
-    {"chargement_full", case_chargement_full},
-    {"listes_statiques_dans_chargement", case_listes_statiques_dans_chargement},
+    {"prise_and_max", case_grab_arena_and_max},
+    {"double_start_game_without_flush", case_double_start_game_without_flush},
+    {"load_zone_survives_start_game", case_load_zone_survives_start_game},
+    {"chargement_dead_after_cart_load", case_load_zone_dead_after_cart_load},
+    {"chargement_prise_and_max", case_load_zone_grab_arena_and_max},
+    {"chargement_full", case_load_zone_full},
+    {"listes_statiques_dans_chargement", case_static_lists_in_load_zone},
 };
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
@@ -398,22 +398,22 @@ int main(int argc, char **argv) {
     if (argc == 2) {
         for (size_t i = 0; i < CASE_COUNT; i++)
             if (strcmp(argv[1], CASES[i].name) == 0) return CASES[i].run();
-        fprintf(stderr, "test_pico8_zone_partie: cas inconnu %s\n", argv[1]);
+        fprintf(stderr, "test_game_zone: cas inconnu %s\n", argv[1]);
         return 2;
     }
     self_path = argv[0];
-    expect_clean("alive_through_eu");
+    expect_clean("alive_through_start_game");
     expect_poison_crash("dead_after_next_update");
     expect_clean("init_keeps_generation");
     expect_poison_crash("dead_after_cart_load");
     expect_clean("prise_and_max");
-    expect_assert("double_eu_without_flush", "vider la file de sortie entre deux eu");
-    expect_clean("chargement_survives_eu");
+    expect_assert("double_start_game_without_flush", "vider la file de sortie entre deux eu");
+    expect_clean("load_zone_survives_start_game");
     expect_poison_crash("chargement_dead_after_cart_load");
     expect_clean("chargement_prise_and_max");
     expect_fatal("chargement_full", "zone chargement pleine, limite 65536 octets");
     expect_clean("listes_statiques_dans_chargement");
     remove(STDERR_LOG);
-    printf("test_pico8_zone_partie: all tests passed\n");
+    printf("test_game_zone: all tests passed\n");
     return 0;
 }

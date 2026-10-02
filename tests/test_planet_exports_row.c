@@ -32,7 +32,7 @@
 #include "engine/vec.h"
 
 /* The `js` button instances `pz()` just built. */
-static const pico8_ents_t *ok_le(void) {
+static const entity_list_t *ok_le(void) {
     const pico8_ui_t *ok = pico8_ok();
     assert(ok != NULL);
     assert(ok->le != NULL);
@@ -74,11 +74,11 @@ static int lq_index_is_string(const pico8_lq_t *lq, int index, const char *expec
 static void setup_panel_state(p8_memory_t *mem, p8_graphics_t *gfx) {
     p8_mem_init(mem);
     p8_gfx_init(gfx);
-    pico8_dispatch_set_gfx(gfx);
-    pico8_dispatch_set_mem(mem);
+    dispatch_context_set_gfx(gfx);
+    dispatch_context_set_mem(mem);
 
     pico8_data_init();
-    pico8_jl();
+    reset_world();
     pico8_layout_init();
     pico8_js_init();
     pico8_jo_init();
@@ -90,8 +90,8 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     pico8_jo_t *planet;
     static pico8_kw_t kw;
     const pico8_jb_row_t *kw_row;
-    pico8_vec_t *ra;
-    const pico8_ents_t *le;
+    vec_t *ra;
+    const entity_list_t *le;
     const pico8_lq_t *exports_lq = NULL;
     pico8_lq_cell_t entry;
     int i;
@@ -111,7 +111,7 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
 
     /* `jo:gh` reads it, and the archetype's `gq`, for `pz()`'s row placement. */
     ra = malloc(sizeof *ra);
-    *ra = pico8_vec_v(p8_fixed_from_int(64), p8_fixed_from_int(64));
+    *ra = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
     planet->ra = ra;
 
     /* The call under test: this is where the overflow happened. */

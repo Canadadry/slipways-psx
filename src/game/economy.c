@@ -32,8 +32,8 @@ const pico8_hy_def_t pico8_hy_def = {
 };
 
 static pico8_hy_t *pico8_hy_struct_new(void) {
-    pico8_hy_t *self = (pico8_hy_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *self);
-    pico8_ptrs_t *invented;
+    pico8_hy_t *self = (pico8_hy_t *)allocator_alloc(game_zone(), sizeof *self);
+    pointer_list_t *invented;
 
     entity_init_header(&self->header, &g_hy_struct_class);
     self->def = &pico8_hy_def;
@@ -57,8 +57,8 @@ static pico8_hy_t *pico8_hy_struct_new(void) {
     self->ge = p8_fixed_from_int(0);
     self->jk = p8_fixed_from_int(0);
     self->ew = self->def->ew;
-    invented = (pico8_ptrs_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *invented);
-    pico8_ptrs_init(invented, pico8_zone_partie());
+    invented = (pointer_list_t *)allocator_alloc(game_zone(), sizeof *invented);
+    pointer_list_init(invented, game_zone());
     self->invented = invented;
     self->lo = self->def->lo;
     self->yr = self->def->yr;
@@ -124,8 +124,8 @@ void pico8_hy_hk(pico8_hy_t *self) {
     p8_fixed_t jk;
     p8_fixed_t new_yr;
     p8_fixed_t po_rk = p8_fixed_from_int(0);
-    const pico8_ents_t *hk_list;
-    pico8_ents_iter_t it;
+    const entity_list_t *hk_list;
+    entity_list_iter_t it;
     entity_t *qc;
 
     assert_hy(self);
@@ -151,10 +151,10 @@ void pico8_hy_hk(pico8_hy_t *self) {
 
     pico8_hy_lj(self);
 
-    hk_list = pico8_cv("new_year");
+    hk_list = entities_by_message("new_year");
     if (hk_list != NULL) {
-        it = pico8_ents_all(hk_list);
-        while (pico8_ents_iter_next(&it, &qc)) {
+        it = entity_list_all(hk_list);
+        while (entity_list_iter_next(&it, &qc)) {
             if (qc != NULL) {
                 if (qc->class->new_year != NULL) {
                     qc->class->new_year(qc, new_yr);
@@ -184,7 +184,7 @@ int pico8_hy_lu(pico8_hy_t *self, p8_fixed_t jt) {
 
     if (jt != p8_fixed_from_int(0)) {
         int color;
-        char *text = pico8_ne(pico8_zone_frame(), p8_fixed_neg(jt), 10, "$", &color);
+        char *text = collect_format_signed(frame_zone(), p8_fixed_neg(jt), 10, "$", &color);
         keys.at1 = text;
         keys.at2 = p8_fixed_from_int(color);
         pico8_iv_new(&keys);
@@ -198,8 +198,8 @@ void pico8_hy_lj(pico8_hy_t *self) {
     p8_fixed_t ge;
     p8_fixed_t happiness;
     p8_fixed_t skill_mult;
-    const pico8_ents_t *jo_list;
-    pico8_ents_iter_t it;
+    const entity_list_t *jo_list;
+    entity_list_iter_t it;
     entity_t *p;
     p8_fixed_t yr;
     p8_fixed_t nz;
@@ -220,10 +220,10 @@ void pico8_hy_lj(pico8_hy_t *self) {
     self->po = &self->po_own;
     self->fu = &self->fu_own;
 
-    jo_list = pico8_cg("planet");
+    jo_list = entities_by_tag("planet");
     if (jo_list != NULL) {
-        it = pico8_ents_all(jo_list);
-        while (pico8_ents_iter_next(&it, &p)) {
+        it = entity_list_all(jo_list);
+        while (entity_list_iter_next(&it, &p)) {
             if (p != NULL) {
                 p8_fixed_t kr = pico8_kr(p);
 
@@ -252,12 +252,12 @@ void pico8_hy_lj(pico8_hy_t *self) {
     self->has_hl = 1;
 
     {
-        const pico8_ents_t *hb_list = pico8_cv("refresh");
+        const entity_list_t *hb_list = entities_by_message("refresh");
         if (hb_list != NULL) {
-            pico8_ents_iter_t it2;
+            entity_list_iter_t it2;
             entity_t *qc;
-            it2 = pico8_ents_all(hb_list);
-            while (pico8_ents_iter_next(&it2, &qc)) {
+            it2 = entity_list_all(hb_list);
+            while (entity_list_iter_next(&it2, &qc)) {
                 if (qc != NULL) {
                     if (qc->class->refresh != NULL) {
                         qc->class->refresh(qc);
@@ -283,7 +283,7 @@ void pico8_hy_kt(pico8_hy_t *self, const pico8_nb_entry_t *t) {
 
     if (self->invented != NULL) {
         if (t != NULL && t->px != NULL) {
-            pico8_ptrs_add(self->invented, (void *)t->px);
+            pointer_list_add(self->invented, (void *)t->px);
         }
         count = self->invented->count;
     }
@@ -303,14 +303,14 @@ void pico8_hy_kt(pico8_hy_t *self, const pico8_nb_entry_t *t) {
 typedef void (*cg_visit_fn)(entity_t *e, void *ctx);
 
 static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
-    const pico8_ents_t *list = pico8_cg(tag);
-    pico8_ents_iter_t it;
+    const entity_list_t *list = entities_by_tag(tag);
+    entity_list_iter_t it;
     entity_t *e;
     if (list == NULL) {
         return;
     }
-    it = pico8_ents_all(list);
-    while (pico8_ents_iter_next(&it, &e)) {
+    it = entity_list_all(list);
+    while (entity_list_iter_next(&it, &e)) {
         if (e != NULL) {
             fn(e, ctx);
         }
@@ -345,7 +345,7 @@ void pico8_bx(pico8_qe_map_t *out) {
 
 static void ck_visit(entity_t *l, void *ctx) {
     pico8_qe_map_t *d = (pico8_qe_map_t *)ctx;
-    const pico8_ptrs_t *jy;
+    const pointer_list_t *jy;
     const pico8_jy_t *last;
     void *last_val;
     p8_fixed_t current;

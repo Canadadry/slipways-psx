@@ -1,56 +1,56 @@
 #include "engine/vec.h"
 
-pico8_vec_t pico8_vec_v(p8_fixed_t x, p8_fixed_t y) {
-    pico8_vec_t result;
+vec_t vec_make(p8_fixed_t x, p8_fixed_t y) {
+    vec_t result;
     result.x = x;
     result.y = y;
     return result;
 }
 
-pico8_vec_t pico8_vec_add(pico8_vec_t a, pico8_vec_t b) {
-    return pico8_vec_v(p8_fixed_add(a.x, b.x), p8_fixed_add(a.y, b.y));
+vec_t vec_add(vec_t a, vec_t b) {
+    return vec_make(p8_fixed_add(a.x, b.x), p8_fixed_add(a.y, b.y));
 }
 
-pico8_vec_t pico8_vec_sub(pico8_vec_t a, pico8_vec_t b) {
-    return pico8_vec_v(p8_fixed_sub(a.x, b.x), p8_fixed_sub(a.y, b.y));
+vec_t vec_sub(vec_t a, vec_t b) {
+    return vec_make(p8_fixed_sub(a.x, b.x), p8_fixed_sub(a.y, b.y));
 }
 
-pico8_vec_t pico8_vec_mul(pico8_vec_t v, p8_fixed_t m) {
-    return pico8_vec_v(p8_fixed_mul(v.x, m), p8_fixed_mul(v.y, m));
+vec_t vec_mul(vec_t v, p8_fixed_t m) {
+    return vec_make(p8_fixed_mul(v.x, m), p8_fixed_mul(v.y, m));
 }
 
-pico8_vec_t pico8_vec_div(pico8_vec_t v, p8_fixed_t d) {
-    return pico8_vec_v(p8_fixed_div(v.x, d), p8_fixed_div(v.y, d));
+vec_t vec_div(vec_t v, p8_fixed_t d) {
+    return vec_make(p8_fixed_div(v.x, d), p8_fixed_div(v.y, d));
 }
 
-pico8_vec_t pico8_vec_neg(pico8_vec_t v) {
-    return pico8_vec_v(p8_fixed_neg(v.x), p8_fixed_neg(v.y));
+vec_t vec_neg(vec_t v) {
+    return vec_make(p8_fixed_neg(v.x), p8_fixed_neg(v.y));
 }
 
-p8_fixed_t pico8_vec_rg(pico8_vec_t a, pico8_vec_t b) {
+p8_fixed_t vec_dot(vec_t a, vec_t b) {
     return p8_fixed_add(p8_fixed_mul(a.x, b.x), p8_fixed_mul(a.y, b.y));
 }
 
 /* Squared length, not length: PICO-8's `#`. */
-p8_fixed_t pico8_vec_len_sq(pico8_vec_t v) {
-    return pico8_vec_rg(v, v);
+p8_fixed_t vec_length_squared(vec_t v) {
+    return vec_dot(v, v);
 }
 
-p8_fixed_t pico8_vec_qx(pico8_vec_t v) {
-    return p8_fixed_sqrt(pico8_vec_len_sq(v));
+p8_fixed_t vec_length(vec_t v) {
+    return p8_fixed_sqrt(vec_length_squared(v));
 }
 
-pico8_vec_t pico8_vec_pa(pico8_vec_t v) {
-    return pico8_vec_v(p8_fixed_neg(v.y), v.x);
+vec_t vec_perpendicular(vec_t v) {
+    return vec_make(p8_fixed_neg(v.y), v.x);
 }
 
 /* A zero-length vector saturates each component through pico8_fixed_div
  * rather than being special-cased, as in the cart. */
-pico8_vec_t pico8_vec_nn(pico8_vec_t v) {
-    return pico8_vec_div(v, pico8_vec_qx(v));
+vec_t vec_normalize(vec_t v) {
+    return vec_div(v, vec_length(v));
 }
 
-pico8_vec_t pico8_vec_qm(p8_fixed_t fy, p8_fixed_t lx) {
-    pico8_vec_t unit = pico8_vec_v(p8_fixed_cos(lx), p8_fixed_sin(lx));
-    return pico8_vec_mul(unit, fy);
+vec_t vec_from_polar(p8_fixed_t fy, p8_fixed_t lx) {
+    vec_t unit = vec_make(p8_fixed_cos(lx), p8_fixed_sin(lx));
+    return vec_mul(unit, fy);
 }

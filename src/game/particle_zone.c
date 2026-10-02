@@ -30,18 +30,18 @@ typedef char pico8_zone_particules_arenes_max[(QY_FV_COUNT <= ARENES_MAX && GA_C
 typedef char pico8_zone_particules_tient_l_aide[PARTICULE_COUNT >= PICO8_QY_FV_CAPACITE ? 1 : -1];
 
 typedef char pico8_zone_particules_exceeded[
-    (PICO8_SLOT_ZONE_BYTES(PICO8_PARTICULE_PLACE, PARTICULE_COUNT) + PICO8_SLOT_ZONE_BYTES(QY_SIZE, QY_COUNT) +
-     PICO8_SLOT_ZONE_BYTES(QY_FV_SIZE, QY_FV_COUNT) + PICO8_SLOT_ZONE_BYTES(GA_SIZE, GA_COUNT) +
-     PICO8_SLOT_ZONE_BYTES(PICO8_TS_PLACE, TS_COUNT)
-     <= PICO8_ZONE_PARTICLES_BYTES) ? 1 : -1];
+    (SLOT_ZONE_BYTES(PICO8_PARTICULE_PLACE, PARTICULE_COUNT) + SLOT_ZONE_BYTES(QY_SIZE, QY_COUNT) +
+     SLOT_ZONE_BYTES(QY_FV_SIZE, QY_FV_COUNT) + SLOT_ZONE_BYTES(GA_SIZE, GA_COUNT) +
+     SLOT_ZONE_BYTES(PICO8_TS_PLACE, TS_COUNT)
+     <= ZONE_PARTICLES_BYTES) ? 1 : -1];
 
-PICO8_SLOT_ZONE_STORAGE(particule_cells, particule_taken, PICO8_PARTICULE_PLACE, PARTICULE_COUNT);
-PICO8_SLOT_ZONE_STORAGE(qy_cells, qy_taken, QY_SIZE, QY_COUNT);
-PICO8_SLOT_ZONE_STORAGE(qy_fv_cells, qy_fv_taken, QY_FV_SIZE, QY_FV_COUNT);
-PICO8_SLOT_ZONE_STORAGE(ga_cells, ga_taken, GA_SIZE, GA_COUNT);
-PICO8_SLOT_ZONE_STORAGE(ts_cells, ts_taken, PICO8_TS_PLACE, TS_COUNT);
+SLOT_ZONE_STORAGE(particule_cells, particule_taken, PICO8_PARTICULE_PLACE, PARTICULE_COUNT);
+SLOT_ZONE_STORAGE(qy_cells, qy_taken, QY_SIZE, QY_COUNT);
+SLOT_ZONE_STORAGE(qy_fv_cells, qy_fv_taken, QY_FV_SIZE, QY_FV_COUNT);
+SLOT_ZONE_STORAGE(ga_cells, ga_taken, GA_SIZE, GA_COUNT);
+SLOT_ZONE_STORAGE(ts_cells, ts_taken, PICO8_TS_PLACE, TS_COUNT);
 
-static const pico8_zone_sorte_t SORTES[PICO8_PARTICULES_COUNT] = {
+static const slot_kind_zone_t SORTES[PICO8_PARTICULES_COUNT] = {
     [PICO8_PARTICULES_PARTICULE] = {"particules particule", NULL, particule_cells, particule_taken,
                                     PICO8_PARTICULE_PLACE, PARTICULE_COUNT},
     [PICO8_PARTICULES_QY] = {"particules qy", "place qy", qy_cells, qy_taken, QY_SIZE, QY_COUNT},
@@ -51,8 +51,8 @@ static const pico8_zone_sorte_t SORTES[PICO8_PARTICULES_COUNT] = {
     [PICO8_PARTICULES_TS] = {"particules ts", NULL, ts_cells, ts_taken, PICO8_TS_PLACE, TS_COUNT},
 };
 
-static pico8_slot_zone_t g_zones[PICO8_PARTICULES_COUNT];
-static pico8_zone_choisie_t g_slots[PICO8_PARTICULES_COUNT];
+static slot_zone_t g_zones[PICO8_PARTICULES_COUNT];
+static allocator_t g_slots[PICO8_PARTICULES_COUNT];
 static int g_ready;
 static int g_vivantes[PICO8_PARTICULES_COUNT];
 static int g_max_vivantes[PICO8_PARTICULES_COUNT];
@@ -61,29 +61,29 @@ static int g_max_elements[PICO8_PARTICULES_COUNT];
 /* Places-arenes vivantes, mesurees a la lecture du maximum d'octets. */
 static unsigned char *g_arenes[PICO8_PARTICULES_COUNT][ARENES_MAX];
 
-static pico8_particules_sorte_t sorte_of(const pico8_zone_choisie_t *z);
+static pico8_particules_sorte_t sorte_of(const allocator_t *z);
 
 /* Paresseuse : pico8_slot_zone_init empoisonne le stockage sous ASan, ce
  * qu'un initialiseur statique ne ferait pas. */
 static void init_once(void) {
     if (g_ready) return;
-    pico8_zone_sortes_init(SORTES, PICO8_PARTICULES_COUNT, g_zones, g_slots);
+    allocator_init_slot_kinds(SORTES, PICO8_PARTICULES_COUNT, g_zones, g_slots);
     g_ready = 1;
 }
 
 static int est_arene(pico8_particules_sorte_t sorte) {
-    return SORTES[sorte].place_name != NULL;
+    return SORTES[sorte].slot_name != NULL;
 }
 
 static void relever_octets(pico8_particules_sorte_t sorte, const unsigned char *arene) {
-    size_t prise = pico8_zone_arene_prise((const pico8_zone_choisie_t *)arene);
+    size_t prise = arena_used((const allocator_t *)arene);
     if (prise > g_max_octets[sorte]) g_max_octets[sorte] = prise;
 }
 
-static unsigned char *place_alloc(const pico8_zone_choisie_t *z, size_t n) {
+static unsigned char *place_alloc(const allocator_t *z, size_t n) {
     pico8_particules_sorte_t sorte = sorte_of(z);
     init_once();
-    unsigned char *p = pico8_zone_alloc(&g_slots[sorte], n);
+    unsigned char *p = allocator_alloc(&g_slots[sorte], n);
     if (est_arene(sorte)) {
         int i = 0;
         while (g_arenes[sorte][i] != NULL) i++;
@@ -94,7 +94,7 @@ static unsigned char *place_alloc(const pico8_zone_choisie_t *z, size_t n) {
     return p;
 }
 
-static void place_release(const pico8_zone_choisie_t *z, unsigned char *p) {
+static void place_release(const allocator_t *z, unsigned char *p) {
     pico8_particules_sorte_t sorte = sorte_of(z);
     if (p == NULL) return;
     if (est_arene(sorte)) {
@@ -104,37 +104,37 @@ static void place_release(const pico8_zone_choisie_t *z, unsigned char *p) {
         g_arenes[sorte][i] = NULL;
     }
     g_vivantes[sorte]--;
-    pico8_zone_release(&g_slots[sorte], p);
+    allocator_release(&g_slots[sorte], p);
 }
 
-static const pico8_zone_choisie_t g_handles[PICO8_PARTICULES_COUNT] = {
-    [PICO8_PARTICULES_PARTICULE] = {place_alloc, pico8_zone_grow_refusee, place_release, NULL, NULL},
-    [PICO8_PARTICULES_QY] = {place_alloc, pico8_zone_grow_refusee, place_release, NULL, NULL},
-    [PICO8_PARTICULES_QY_FV] = {place_alloc, pico8_zone_grow_refusee, place_release, NULL, NULL},
-    [PICO8_PARTICULES_GA] = {place_alloc, pico8_zone_grow_refusee, place_release, NULL, NULL},
-    [PICO8_PARTICULES_TS] = {place_alloc, pico8_zone_grow_refusee, place_release, NULL, NULL},
+static const allocator_t g_handles[PICO8_PARTICULES_COUNT] = {
+    [PICO8_PARTICULES_PARTICULE] = {place_alloc, allocator_grow_refused, place_release, NULL, NULL},
+    [PICO8_PARTICULES_QY] = {place_alloc, allocator_grow_refused, place_release, NULL, NULL},
+    [PICO8_PARTICULES_QY_FV] = {place_alloc, allocator_grow_refused, place_release, NULL, NULL},
+    [PICO8_PARTICULES_GA] = {place_alloc, allocator_grow_refused, place_release, NULL, NULL},
+    [PICO8_PARTICULES_TS] = {place_alloc, allocator_grow_refused, place_release, NULL, NULL},
 };
 
-static pico8_particules_sorte_t sorte_of(const pico8_zone_choisie_t *z) {
+static pico8_particules_sorte_t sorte_of(const allocator_t *z) {
     assert(z >= g_handles && z < g_handles + PICO8_PARTICULES_COUNT && "poignee hors de la zone particules");
     return (pico8_particules_sorte_t)(z - g_handles);
 }
 
-const pico8_zone_choisie_t *pico8_zone_particules(pico8_particules_sorte_t sorte) {
+const allocator_t *pico8_zone_particules(pico8_particules_sorte_t sorte) {
     assert(sorte >= 0 && sorte < PICO8_PARTICULES_COUNT);
     return &g_handles[sorte];
 }
 
-const pico8_zone_choisie_t *pico8_zone_particules_place(pico8_particules_sorte_t sorte) {
+const allocator_t *pico8_zone_particules_place(pico8_particules_sorte_t sorte) {
     assert(sorte >= 0 && sorte < PICO8_PARTICULES_COUNT && est_arene(sorte) &&
            "une particule est une place nue, pas une arene");
-    return pico8_zone_arene_prendre(&g_handles[sorte], SORTES[sorte].place_name, SORTES[sorte].size);
+    return arena_take(&g_handles[sorte], SORTES[sorte].slot_name, SORTES[sorte].size);
 }
 
 int pico8_zone_particules_vivantes(pico8_particules_sorte_t sorte) {
     assert(sorte >= 0 && sorte < PICO8_PARTICULES_COUNT);
     init_once();
-    assert((size_t)g_vivantes[sorte] == pico8_slot_zone_taken(&g_zones[sorte]) &&
+    assert((size_t)g_vivantes[sorte] == slot_zone_taken(&g_zones[sorte]) &&
            "places vivantes : une place prise ou rendue sans passer par la poignee de la sorte");
     return g_vivantes[sorte];
 }

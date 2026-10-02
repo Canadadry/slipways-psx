@@ -29,7 +29,7 @@ static p8_memory_t mem;
 static p8_graphics_t gfx;
 static p8_input_t input;
 
-static int ents_listed(const pico8_ents_t *list, const void *e) {
+static int ents_listed(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -45,11 +45,11 @@ static int registered(const void *e, int entity_live) {
     const char *tags[] = {"je", "mouse", "ui", "camera", "entity"};
     int i;
 
-    if (ents_listed(pico8_hv(), e)) {
+    if (ents_listed(live_entities(), e)) {
         return 1;
     }
     for (i = 0; i < 5; i++) {
-        if ((entity_live && ents_listed(pico8_cv(buckets[i]), e)) || ents_listed(pico8_cg(tags[i]), e)) {
+        if ((entity_live && ents_listed(entities_by_message(buckets[i]), e)) || ents_listed(entities_by_tag(tags[i]), e)) {
             return 1;
         }
     }
@@ -83,9 +83,9 @@ static void test_placeholder_after_cart_load(void) {
  * run: no press, `qa` is `mo.ra` alone. */
 static void test_lj_on_placeholder(void) {
     pico8_ui_t *ok;
-    const pico8_vec_t *qa;
+    const vec_t *qa;
 
-    pico8_entity_init();
+    entity_registry_init();
     assert_placeholder(1);
     ok = pico8_ui_new();
     pico8_ui_lj(&mem, ok);
@@ -124,15 +124,15 @@ static void test_replaced_by_jl(void) {
 static void test_jl_without_cart_load(void) {
     /* pico8_ui_init() after jl() freed `ok`, still in `hv`: the cart
      * shutdown would abandon it, so `hv` is emptied first. */
-    pico8_bootstrap_shutdown();
+    bootstrap_shutdown();
     pico8_cart_shutdown();
-    pico8_jl();
+    reset_world();
     assert_an_nf();
-    pico8_bootstrap_shutdown();
+    bootstrap_shutdown();
     assert(pico8_je() == NULL);
-    pico8_jl();
+    reset_world();
     assert_an_nf();
-    pico8_bootstrap_shutdown();
+    bootstrap_shutdown();
 }
 
 static int is_a_struct_of(const void *e, const entity_class_t *cls) {
@@ -148,11 +148,11 @@ static void test_placeholder_is_a_struct(void) {
     pico8_cart_load();
     placeholder = pico8_je();
     assert(is_a_struct_of(placeholder, pico8_je_placeholder_struct_class()));
-    pico8_jl();
+    reset_world();
     assert(is_a_struct_of(pico8_je(), pico8_nf_struct_class()));
     pico8_ui_init();
     assert(pico8_je() == placeholder);
-    pico8_bootstrap_shutdown();
+    bootstrap_shutdown();
     pico8_cart_shutdown();
 }
 
@@ -162,9 +162,9 @@ int main(void) {
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(p8_load_map_json(&mem, "pico8/map.json"));
     p8_input_init(&input);
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
 
     pico8_cart_load();
 

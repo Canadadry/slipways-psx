@@ -110,8 +110,8 @@ pico8_qe_t pico8_jy_qe(const pico8_jy_t *i) {
     return i->row.has_qe ? (pico8_qe_t){.kind = PICO8_QE_FIXED, .n = i->row.qe} : (pico8_qe_t){.kind = PICO8_QE_NIL};
 }
 
-pico8_jy_t *pico8_jy_new(const pico8_zone_choisie_t *zone, const p8_fixed_t *qe) {
-    pico8_jy_t *i = (pico8_jy_t *)pico8_zone_alloc(zone, sizeof *i);
+pico8_jy_t *pico8_jy_new(const allocator_t *zone, const p8_fixed_t *qe) {
+    pico8_jy_t *i = (pico8_jy_t *)allocator_alloc(zone, sizeof *i);
 
     memset(i, 0, sizeof *i);
     if (qe != NULL) {
@@ -124,9 +124,9 @@ pico8_jy_t *pico8_jy_new(const pico8_zone_choisie_t *zone, const p8_fixed_t *qe)
 /* `i` must be rewritten after `ho`, which leaves the raw string in it; the
  * real `gb[px]` must hold the struct. */
 static pico8_hp_t *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
-    const pico8_zone_choisie_t *chargement = pico8_zone_chargement();
-    pico8_hp_t *self = (pico8_hp_t *)pico8_zone_alloc(chargement, sizeof *self);
-    pico8_ptrs_t *new_i;
+    const allocator_t *chargement = game_zone_load_zone();
+    pico8_hp_t *self = (pico8_hp_t *)allocator_alloc(chargement, sizeof *self);
+    pointer_list_t *new_i;
     const char *i_src = "";
     size_t c;
 
@@ -192,11 +192,11 @@ static pico8_hp_t *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
 
     /* A want for every character, never skipping one: the Lua table
      * constructor is non-nil even when `r[c]` is absent. */
-    new_i = (pico8_ptrs_t *)pico8_zone_alloc(chargement, sizeof *new_i);
+    new_i = (pointer_list_t *)allocator_alloc(chargement, sizeof *new_i);
     if (i_src[0] == '\0') {
-        pico8_ptrs_init(new_i, chargement);
+        pointer_list_init(new_i, chargement);
     } else {
-        pico8_ptrs_init_reserve(new_i, chargement, (int)strlen(i_src));
+        pointer_list_init_reserve(new_i, chargement, (int)strlen(i_src));
     }
     for (c = 0; i_src[c] != '\0'; c++) {
         char key[2] = {i_src[c], '\0'};
@@ -205,9 +205,9 @@ static pico8_hp_t *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
 
         if (pico8_r_lookup(key, &r_qe)) {
             qe = p8_fixed_from_int(r_qe);
-            pico8_ptrs_add(new_i, pico8_jy_new(chargement, &qe));
+            pointer_list_add(new_i, pico8_jy_new(chargement, &qe));
         } else {
-            pico8_ptrs_add(new_i, pico8_jy_new(chargement, NULL));
+            pointer_list_add(new_i, pico8_jy_new(chargement, NULL));
         }
     }
     self->i = new_i;

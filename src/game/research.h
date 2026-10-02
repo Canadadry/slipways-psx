@@ -21,7 +21,7 @@ typedef struct {
 pico8_qe_t pico8_jy_qe(const pico8_jy_t *i);
 
 /* A fresh want in `zone`, never freed here: `qe` NULL is nil, no `gc`. */
-pico8_jy_t *pico8_jy_new(const pico8_zone_choisie_t *zone, const p8_fixed_t *qe);
+pico8_jy_t *pico8_jy_new(const allocator_t *zone, const p8_fixed_t *qe);
 
 /* A research project of `gb`, taken with its list `i` and the wants in it
  * from the load sub-zone: they live until the next load or shutdown, never
@@ -36,7 +36,7 @@ typedef struct {
     p8_fixed_t fj;
     int has_fj; /* 0: `fj` is nil, and is then never read */
     const char *ja;
-    pico8_ptrs_t *i;
+    pointer_list_t *i;
     p8_fixed_t o;
     int has_o; /* 0: `o` is nil, and is then never read */
     const char *il;

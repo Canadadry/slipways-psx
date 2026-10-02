@@ -35,16 +35,16 @@ static pico8_g__t *new_probe(p8_fixed_t pn, p8_fixed_t t, p8_fixed_t du, p8_fixe
     return pico8_g__new(&keys);
 }
 
-static pico8_vec_t emitted_particle_p(pico8_g__t *probe) {
+static vec_t emitted_particle_p(pico8_g__t *probe) {
     void *particle;
     const pico8_qy_t *q;
-    pico8_ptrs_iter_t it;
+    pointer_list_iter_t it;
 
     pico8_ez((entity_t *)probe, p8_fixed_from_int(1));
 
     assert(probe->emitter != NULL && probe->emitter->qy != NULL);
-    it = pico8_ptrs_all(probe->emitter->qy);
-    assert(pico8_ptrs_iter_next(&it, &particle) && particle != NULL);
+    it = pointer_list_all(probe->emitter->qy);
+    assert(pointer_list_iter_next(&it, &particle) && particle != NULL);
     q = particle;
     return q->p;
 }
@@ -58,14 +58,14 @@ static void test_probe_particle_draws_rnd_pn_before_rnd_half(void) {
     int fds[2];
     pid_t child;
     int status;
-    pico8_vec_t got;
-    pico8_vec_t want;
+    vec_t got;
+    vec_t want;
     p8_fixed_t first;
     p8_fixed_t second;
     p8_fixed_t a;
 
-    pico8_entity_init();
-    pico8_ke_init();
+    entity_registry_init();
+    entity_init();
     pico8_probe_init();
     probe = new_probe(pn, t, du, py);
     assert(probe != NULL);
@@ -75,7 +75,7 @@ static void test_probe_particle_draws_rnd_pn_before_rnd_half(void) {
     child = fork();
     assert(child >= 0);
     if (child == 0) {
-        pico8_vec_t p = emitted_particle_p(probe);
+        vec_t p = emitted_particle_p(probe);
         close(fds[0]);
         _exit(write(fds[1], &p, sizeof p) == (ssize_t)sizeof p ? 0 : 1);
     }
@@ -90,7 +90,7 @@ static void test_probe_particle_draws_rnd_pn_before_rnd_half(void) {
     second = p8_fixed_rnd(P8_FIXED_LIT(0x00008000, 0.5));
     a = p8_fixed_add(p8_fixed_div(p8_fixed_add(p8_fixed_flr(first), second), pn),
                         p8_fixed_mul(t, P8_FIXED_LIT(0x00000041, 0.001)));
-    want = pico8_vec_qm(p8_fixed_add(du, p8_fixed_rnd_default()), a);
+    want = vec_from_polar(p8_fixed_add(du, p8_fixed_rnd_default()), a);
 
     if (got.x != want.x || got.y != want.y) {
         fprintf(stderr, "g_:mm particle p = (%08x,%08x), cart order gives (%08x,%08x)\n", (unsigned)got.x,

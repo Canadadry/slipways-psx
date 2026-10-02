@@ -25,11 +25,11 @@ typedef struct {
     const pico8_g__def_t *def;
     pico8_emitter_t *emitter;
     pico8_probe_t *probe;
-    const pico8_vec_t *ra;
-    const pico8_vec_t *p;
+    const vec_t *ra;
+    const vec_t *p;
     int p_;
     int m_;
-    const pico8_zone_choisie_t *prise;
+    const allocator_t *prise;
     pico8_emitter_t emitter_own;
     pico8_probe_t probe_own;
 } pico8_g__t;

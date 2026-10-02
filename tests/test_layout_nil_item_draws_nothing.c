@@ -108,11 +108,11 @@ static pico8_lq_cell_t render_one_item(pico8_jb_item_t item) {
     pico8_lq_keys_t keys = pico8_lq_keys_of_row(&row, cells, 1);
     pico8_lq_t *line;
 
-    line = pico8_lq_new(&zone_tas, &keys);
+    line = pico8_lq_new(&heap_allocator, &keys);
     assert(line != NULL && line->items_count == 1);
 
     p8_cls(&mem);
-    pico8_lq_ol_default(&gfx, &mem, line, pico8_vec_v(p8_fixed_from_int(DRAW_X), p8_fixed_from_int(DRAW_Y)));
+    pico8_lq_ol_default(&gfx, &mem, line, vec_make(p8_fixed_from_int(DRAW_X), p8_fixed_from_int(DRAW_Y)));
     return line->items[0];
 }
 

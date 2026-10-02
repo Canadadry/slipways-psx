@@ -31,16 +31,16 @@ static pico8_jc_too_far_t g_jc_too_far = {{.class = &g_jc_too_far_struct_class},
 
 static const entity_class_t g_jc_mouse_point_struct_class = {0};
 
-pico8_vec_t pico8_jc_end_p(const entity_t *end) {
-    const pico8_vec_t *p = end != NULL && end->map_pos != NULL ? *end->map_pos : NULL;
+vec_t pico8_jc_end_p(const entity_t *end) {
+    const vec_t *p = end != NULL && end->map_pos != NULL ? *end->map_pos : NULL;
 
-    return p != NULL ? *p : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    return p != NULL ? *p : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
-pico8_vec_t pico8_jc_end_ra(const entity_t *end) {
-    const pico8_vec_t *ra = end != NULL && end->pos != NULL ? *end->pos : NULL;
+vec_t pico8_jc_end_ra(const entity_t *end) {
+    const vec_t *ra = end != NULL && end->pos != NULL ? *end->pos : NULL;
 
-    return ra != NULL ? *ra : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    return ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
 static int jc_mt_of(const entity_t *e, p8_fixed_t *out) {
@@ -77,8 +77,8 @@ int pico8_jc_hg_has(const pico8_jc_hg_t *hg, const char *id) {
 }
 
 void pico8_jc_pq(pico8_jc_t *self) {
-    const pico8_zone_choisie_t *zone;
-    pico8_ptrs_t *ts;
+    const allocator_t *zone;
+    pointer_list_t *ts;
 
     if (self == NULL) {
         return;
@@ -87,15 +87,15 @@ void pico8_jc_pq(pico8_jc_t *self) {
     p8_play_sfx(p8_fixed_from_int(50));
 
     zone = pico8_jo_zone_construction();
-    ts = (pico8_ptrs_t *)pico8_zone_alloc(zone, sizeof *ts);
-    pico8_ptrs_init_reserve(ts, zone, PICO8_JC_TS_RESERVE);
+    ts = (pointer_list_t *)allocator_alloc(zone, sizeof *ts);
+    pointer_list_init_reserve(ts, zone, PICO8_JC_TS_RESERVE);
     self->ts = ts;
 
     self->hg_own.count = 0;
     self->hg = &self->hg_own;
 }
 
-void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
+void pico8_jc_hq(pico8_jc_t *self, vec_t *mp) {
     pico8_ui_t *ok;
     entity_t *hovered;
 
@@ -109,9 +109,9 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
     if (hovered != NULL && hovered->class->accept_drop != NULL) {
         self->re = hovered;
     } else {
-        self->point_ra = mp != NULL ? *mp : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
+        self->point_ra = mp != NULL ? *mp : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
         self->point.ra = mp != NULL ? &self->point_ra : NULL;
-        self->point_p = pico8_vec_div(self->point_ra, p8_fixed_from_int(128));
+        self->point_p = vec_div(self->point_ra, p8_fixed_from_int(128));
         self->re = &self->point.header;
     }
 
@@ -145,7 +145,7 @@ void pico8_jc_ey(pico8_jc_t *self, entity_t *re) {
         /* pico8_stat has no case for 19, so it reads 0 and this sfx never
          * fires; ported anyway. It dereferences `input` without checking it,
          * so the NULL guard below is load-bearing. */
-        const p8_input_t *input = pico8_dispatch_input();
+        const p8_input_t *input = dispatch_context_input();
         if (input != NULL && p8_stat(input, 19) == 50) {
             p8_play_sfx(p8_fixed_from_int(-1));
         }
@@ -176,8 +176,8 @@ void pico8_jc_ey(pico8_jc_t *self, entity_t *re) {
 }
 
 typedef struct {
-    pico8_vec_t sp;
-    pico8_vec_t dp;
+    vec_t sp;
+    vec_t dp;
 } pico8_jc_ce_np_ctx_t;
 
 /* `be()` excludes the segment's own endpoints (their projection fraction is
@@ -188,12 +188,12 @@ static int pico8_jc_ce_np_predicate(entity_t *e, void *ctx_ptr) {
     if (e == NULL) {
         return 0;
     }
-    return pico8_geom_be(ctx->sp, ctx->dp, pico8_jc_end_p(e), P8_FIXED_LIT(0x000000d1, 0.0032));
+    return geom_near_segment(ctx->sp, ctx->dp, pico8_jc_end_p(e), P8_FIXED_LIT(0x000000d1, 0.0032));
 }
 
 typedef struct {
-    pico8_vec_t sp;
-    pico8_vec_t dp;
+    vec_t sp;
+    vec_t dp;
     int self_has_mt;
     p8_fixed_t self_mt;
 } pico8_jc_ce_jc_ctx_t;
@@ -212,14 +212,14 @@ static int pico8_jc_ce_jc_predicate(entity_t *e, void *ctx_ptr) {
     if (sw->has_mt != ctx->self_has_mt || (sw->has_mt && sw->mt != ctx->self_mt)) {
         return 0;
     }
-    return pico8_geom_cl(ctx->sp, ctx->dp, pico8_jc_end_p(sw->qu), pico8_jc_end_p(sw->re));
+    return geom_segments_cross(ctx->sp, ctx->dp, pico8_jc_end_p(sw->qu), pico8_jc_end_p(sw->re));
 }
 
 entity_t *pico8_jc_ce(pico8_jc_t *self) {
     entity_t *qu;
     entity_t *re;
-    pico8_vec_t sp;
-    pico8_vec_t dp;
+    vec_t sp;
+    vec_t dp;
     p8_fixed_t threshold;
 
     if (self == NULL) {
@@ -233,21 +233,21 @@ entity_t *pico8_jc_ce(pico8_jc_t *self) {
 
     threshold = pico8_ov("space folding", P8_FIXED_LIT(0x00008000, 0.5), P8_FIXED_LIT(0x0001147a, 1.08));
 
-    if (pico8_vec_len_sq(pico8_vec_sub(sp, dp)) > threshold) {
+    if (vec_length_squared(vec_sub(sp, dp)) > threshold) {
         return &g_jc_too_far.header;
     }
 
     {
-        const pico8_ents_t *oe = NULL;
+        const entity_list_t *oe = NULL;
 
         if (qu != NULL) {
             assert(pico8_jo_is_family(qu) && "jc.qu is a planet: the constructor asserts it");
             oe = ((const pico8_jo_t *)qu)->oe;
         }
         if (oe != NULL) {
-            pico8_ents_iter_t it = pico8_ents_all(oe);
+            entity_list_iter_t it = entity_list_all(oe);
             entity_t *w;
-            while (pico8_ents_iter_next(&it, &w)) {
+            while (entity_list_iter_next(&it, &w)) {
                 if (w == NULL) {
                     continue;
                 }
@@ -263,9 +263,9 @@ entity_t *pico8_jc_ce(pico8_jc_t *self) {
     {
         pico8_jc_ce_np_ctx_t np_ctx;
         pico8_jc_ce_jc_ctx_t jc_ctx;
-        pico8_ents_t part1;
-        pico8_ents_t part2;
-        pico8_ents_t ds;
+        entity_list_t part1;
+        entity_list_t part2;
+        entity_list_t ds;
         entity_t *result = NULL;
 
         np_ctx.sp = sp;
@@ -275,9 +275,9 @@ entity_t *pico8_jc_ce(pico8_jc_t *self) {
         jc_ctx.self_has_mt = self->has_mt;
         jc_ctx.self_mt = self->mt;
 
-        part1 = pico8_jp_ents(pico8_zone_frame(), pico8_cg("node"), pico8_jc_ce_np_predicate, &np_ctx);
-        part2 = pico8_jp_ents(pico8_zone_frame(), pico8_cg("slipway"), pico8_jc_ce_jc_predicate, &jc_ctx);
-        ds = pico8_ents_cat(pico8_zone_frame(), &part1, &part2);
+        part1 = entity_list_filter(frame_zone(), entities_by_tag("node"), pico8_jc_ce_np_predicate, &np_ctx);
+        part2 = entity_list_filter(frame_zone(), entities_by_tag("slipway"), pico8_jc_ce_jc_predicate, &jc_ctx);
+        ds = entity_list_concat(frame_zone(), &part1, &part2);
 
         if (ds.count > 0) {
             result = ds.items[0];
@@ -305,11 +305,11 @@ void pico8_jc_ev(pico8_jc_t *self) {
     }
 
     if (self->qu != self->re) {
-        pico8_dl(pico8_dispatch_gfx(), pico8_dispatch_mem(), (entity_t *)self);
+        pico8_dl(dispatch_context_gfx(), dispatch_context_mem(), (entity_t *)self);
     }
 }
 
-static void pico8_jc_hq_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static void pico8_jc_hq_dispatch(entity_t *self, vec_t *qa, vec_t *ra) {
     (void)ra;
     pico8_jc_hq((pico8_jc_t *)self, qa);
 }
@@ -318,17 +318,17 @@ static void pico8_jc_ey_dispatch(entity_t *self, entity_t *kv) {
     pico8_jc_ey((pico8_jc_t *)self, kv);
 }
 
-static void pico8_jc_ev_dispatch(entity_t *self, const pico8_vec_t *ra) {
+static void pico8_jc_ev_dispatch(entity_t *self, const vec_t *ra) {
     (void)ra;
     pico8_jc_ev((pico8_jc_t *)self);
 }
 
 static void pico8_jc_rendre_dispatch(entity_t *self) {
     pico8_jc_t *jc = (pico8_jc_t *)self;
-    const pico8_zone_choisie_t *zone = jc->ts->zone;
+    const allocator_t *zone = jc->ts->zone;
 
     for (int i = 0; i < jc->ts->count; i++)
-        pico8_zone_release(pico8_zone_particules(PICO8_PARTICULES_TS), jc->ts->items[i]);
+        allocator_release(pico8_zone_particules(PICO8_PARTICULES_TS), jc->ts->items[i]);
     jc->ts->count = 0;
     pico8_jo_prise_zone_rendue(zone, jc->header.state);
 }
@@ -350,9 +350,9 @@ static pico8_jc_t *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     pico8_jc_t *self;
 
     pico8_jo_prise_ouvrir();
-    self = (pico8_jc_t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
+    self = (pico8_jc_t *)allocator_alloc(pico8_jo_zone_construction(), sizeof *self);
 
-    pico8_ke_struct_init(&self->header, &g_jc_struct_class, pico8_jc_def.me, pico8_jc_def.t);
+    entity_init_instance(&self->header, &g_jc_struct_class, pico8_jc_def.me, pico8_jc_def.t);
     self->def = &pico8_jc_def;
     self->fa = self->def->fa;
     self->header.layer = &self->fa;
@@ -378,8 +378,8 @@ static pico8_jc_t *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     self->point.header.map_pos = &self->point.p;
     self->point.ra = NULL;
     self->point.p = &self->point_p;
-    self->point_ra = pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    self->point_p = pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    self->point_ra = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    self->point_p = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     if (keys != NULL && keys->qu != NULL) {
         assert(jc_is_endpoint_class(keys->qu->class) &&
                "jc.qu: a key neither nil nor a planet a slipway starts from (jo, qh, nl, os, hj, pm, nr, fr, mx) "
@@ -391,7 +391,7 @@ static pico8_jc_t *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
 #endif
     pico8_jc_pq(self);
     pico8_jo_prise_fermer();
-    pico8_ke_struct_pq(&self->header);
+    entity_construct(&self->header);
     return self;
 }
 

@@ -74,7 +74,7 @@ def build(entries, model, files):
     _check_model_problems(renamed, model, plan)
     _check_positions(renamed, occurrences, files, plan)
     tokens = {path: lexer.tokenize(data) for path, data in sorted(files.items())}
-    _check_pasting(renamed, tokens, files, plan)
+    _check_pasting(renamed, model, tokens, files, plan)
     _check_unparsed(renamed, model, files, plan)
     _check_unaccounted(renamed, model, tokens, files, plan)
     if plan.errors:
@@ -202,15 +202,20 @@ def _check_positions(renamed, occurrences, files, plan):
                 plan.errors.append("%s:%d: overlapping rewrites" % (path, next_start))
 
 
-def _check_pasting(renamed, tokens, files, plan):
+def _check_pasting(renamed, model, tokens, files, plan):
     """`##` and `#` are not handled: a renamed name next to one in a #define
     body is refused. A renamed name passed as the argument of such a parameter
-    is not a reference for clang, so _check_unaccounted refuses it."""
+    is not a reference for clang, so _check_unaccounted refuses it. Exception:
+    a name renamed only as a field, pasted outside a member access (`raw##u`),
+    cannot name the field; it is left untouched."""
     olds = {entry.old for entry in renamed.values()}
+    fields = _field_only_olds(renamed, model)
     for path, file_tokens in tokens.items():
         for index, token in enumerate(file_tokens):
             if token.kind != lexer.IDENT or token.text not in olds \
                     or token.role != lexer.DEFINE_BODY:
+                continue
+            if token.text in fields and _pasted_outside_member_access(file_tokens, index):
                 continue
             before = file_tokens[index - 1] if index else None
             after = file_tokens[index + 1] if index + 1 < len(file_tokens) else None
@@ -240,13 +245,40 @@ def _check_unaccounted(renamed, model, tokens, files, plan):
     declaration: otherwise it sits where clang did not look (inactive branch,
     macro never expanded, unit that did not parse)."""
     olds = {entry.old for entry in renamed.values()}
+    fields = _field_only_olds(renamed, model)
     for path, file_tokens in tokens.items():
-        for token in file_tokens:
+        for index, token in enumerate(file_tokens):
             if token.kind == lexer.IDENT and token.text in olds \
                     and token.role != lexer.MACRO_PARAM \
-                    and (path, token.offset) not in model.occurrences:
+                    and (path, token.offset) not in model.occurrences \
+                    and not (token.text in fields
+                             and _pasted_outside_member_access(file_tokens, index)):
                 plan.errors.append("%s: %s:%d not accounted for by the analysis" % (
                     token.text, path, _line(files[path], token.offset)))
+
+
+def _field_only_olds(renamed, model):
+    kinds = defaultdict(set)
+    for usr, entry in renamed.items():
+        kinds[entry.old].add(model.identities[usr].kind)
+    return {old for old, found in kinds.items() if found == {"field"}}
+
+
+def _pasted_outside_member_access(file_tokens, index):
+    """True for a #define body token joined by `##` to a neighbour, whose
+    pasted chain does not follow `.` or `->`."""
+    token = file_tokens[index]
+
+    def same_define(i):
+        return 0 <= i < len(file_tokens) and \
+            file_tokens[i].define_offset == token.define_offset
+    if not ((same_define(index - 1) and file_tokens[index - 1].text == "##")
+            or (same_define(index + 1) and file_tokens[index + 1].text == "##")):
+        return False
+    start = index
+    while same_define(start - 1) and file_tokens[start - 1].text == "##":
+        start -= 2
+    return not (same_define(start - 1) and file_tokens[start - 1].text in (".", "->"))
 
 
 def _line(data, offset):

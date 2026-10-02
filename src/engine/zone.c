@@ -6,7 +6,7 @@
 #include "p8/fatal.h"
 #include "engine/zone_sizes.h"
 
-#ifdef PICO8_ZONE_ASAN
+#ifdef ZONE_ASAN
 #include <sanitizer/asan_interface.h>
 #define POISON(addr, size) ASAN_POISON_MEMORY_REGION((addr), (size))
 #define UNPOISON(addr, size) ASAN_UNPOISON_MEMORY_REGION((addr), (size))
@@ -22,34 +22,34 @@ static void zone_full(const char *name, size_t limit, const char *unit) {
     pico8_fatal(message);
 }
 
-static unsigned char *bump_half(const pico8_bump_zone_t *zone) {
-    return (unsigned char *)(zone->storage + zone->half * PICO8_ZONE_CELLS(zone->capacity));
+static unsigned char *bump_half(const bump_zone_t *zone) {
+    return (unsigned char *)(zone->storage + zone->half * ZONE_CELLS(zone->capacity));
 }
 
-void pico8_bump_zone_init(pico8_bump_zone_t *zone, const char *name,
-                          pico8_zone_cell_t *storage, size_t capacity) {
+void bump_zone_init(bump_zone_t *zone, const char *name,
+                          zone_cell_t *storage, size_t capacity) {
     zone->name = name;
     zone->storage = storage;
     zone->capacity = capacity;
     zone->used = 0;
     zone->half = 0;
-    zone->jamais_remise = 0;
-    POISON(storage, PICO8_BUMP_ZONE_HALVES * PICO8_ZONE_CELLS(capacity) * sizeof *storage);
+    zone->never_reset = 0;
+    POISON(storage, BUMP_ZONE_HALVES * ZONE_CELLS(capacity) * sizeof *storage);
 }
 
-void pico8_bump_zone_init_single(pico8_bump_zone_t *zone, const char *name,
-                                 pico8_zone_cell_t *storage, size_t capacity) {
+void bump_zone_init_single(bump_zone_t *zone, const char *name,
+                                 zone_cell_t *storage, size_t capacity) {
     zone->name = name;
     zone->storage = storage;
     zone->capacity = capacity;
     zone->used = 0;
     zone->half = 0;
-    zone->jamais_remise = 1;
-    POISON(storage, PICO8_ZONE_CELLS(capacity) * sizeof *storage);
+    zone->never_reset = 1;
+    POISON(storage, ZONE_CELLS(capacity) * sizeof *storage);
 }
 
-unsigned char *pico8_bump_zone_alloc(pico8_bump_zone_t *zone, size_t size) {
-    size_t rounded = PICO8_ZONE_CELLS(size) * sizeof(pico8_zone_cell_t);
+unsigned char *bump_zone_alloc(bump_zone_t *zone, size_t size) {
+    size_t rounded = ZONE_CELLS(size) * sizeof(zone_cell_t);
     if (rounded > zone->capacity - zone->used)
         zone_full(zone->name, zone->capacity, "octets");
     unsigned char *p = bump_half(zone) + zone->used;
@@ -61,97 +61,97 @@ unsigned char *pico8_bump_zone_alloc(pico8_bump_zone_t *zone, size_t size) {
 /* Sous ASan, chaque reset passe a l'autre moitie et empoisonne celle qu'il
  * quitte : revenir au debut rendrait ses adresses aux allocations suivantes,
  * et un pointeur perime y lirait sans planter. */
-void pico8_bump_zone_reset(pico8_bump_zone_t *zone) {
-    assert(!zone->jamais_remise &&
+void bump_zone_reset(bump_zone_t *zone) {
+    assert(!zone->never_reset &&
            "reset d'une zone a une moitie : une arene ne se remet jamais a zero, on la rend");
-    POISON(bump_half(zone), PICO8_ZONE_CELLS(zone->capacity) * sizeof(pico8_zone_cell_t));
-    zone->half = (zone->half + 1) % PICO8_BUMP_ZONE_HALVES;
+    POISON(bump_half(zone), ZONE_CELLS(zone->capacity) * sizeof(zone_cell_t));
+    zone->half = (zone->half + 1) % BUMP_ZONE_HALVES;
     zone->used = 0;
 }
 
-void pico8_bascule_zone_init(pico8_bascule_zone_t *zone, const char *name,
-                             pico8_zone_cell_t *storage, size_t capacity) {
+void flip_zone_init(flip_zone_t *zone, const char *name,
+                             zone_cell_t *storage, size_t capacity) {
     zone->name = name;
     zone->storage = storage;
     zone->capacity = capacity;
-    zone->bas = 0;
-    zone->haut = 0;
-    zone->courant_haut = 0;
-    zone->en_attente = 0;
+    zone->bottom = 0;
+    zone->top = 0;
+    zone->current_top = 0;
+    zone->pending = 0;
     zone->max = 0;
-    POISON(storage, PICO8_ZONE_CELLS(capacity) * sizeof *storage);
+    POISON(storage, ZONE_CELLS(capacity) * sizeof *storage);
 }
 
-static unsigned char *bascule_fin(const pico8_bascule_zone_t *zone) {
-    return (unsigned char *)(zone->storage + PICO8_ZONE_CELLS(zone->capacity));
+static unsigned char *flip_zone_end(const flip_zone_t *zone) {
+    return (unsigned char *)(zone->storage + ZONE_CELLS(zone->capacity));
 }
 
-unsigned char *pico8_bascule_zone_alloc(pico8_bascule_zone_t *zone, size_t size) {
-    size_t rounded = PICO8_ZONE_CELLS(size) * sizeof(pico8_zone_cell_t);
-    if (rounded > zone->capacity - zone->bas - zone->haut)
+unsigned char *flip_zone_alloc(flip_zone_t *zone, size_t size) {
+    size_t rounded = ZONE_CELLS(size) * sizeof(zone_cell_t);
+    if (rounded > zone->capacity - zone->bottom - zone->top)
         zone_full(zone->name, zone->capacity, "octets");
     unsigned char *p;
-    if (zone->courant_haut) {
-        zone->haut += rounded;
-        p = bascule_fin(zone) - zone->haut;
+    if (zone->current_top) {
+        zone->top += rounded;
+        p = flip_zone_end(zone) - zone->top;
     } else {
-        p = (unsigned char *)zone->storage + zone->bas;
-        zone->bas += rounded;
+        p = (unsigned char *)zone->storage + zone->bottom;
+        zone->bottom += rounded;
     }
-    if (zone->bas + zone->haut > zone->max) zone->max = zone->bas + zone->haut;
+    if (zone->bottom + zone->top > zone->max) zone->max = zone->bottom + zone->top;
     UNPOISON(p, size);
     return p;
 }
 
-void pico8_bascule_zone_basculer(pico8_bascule_zone_t *zone) {
-    assert(!zone->en_attente &&
+void flip_zone_flip(flip_zone_t *zone) {
+    assert(!zone->pending &&
            "bascule alors que l'ancienne generation attend son rendu : vider la file de sortie entre deux eu");
-    zone->courant_haut = !zone->courant_haut;
-    assert((zone->courant_haut ? zone->haut : zone->bas) == 0);
-    zone->en_attente = 1;
+    zone->current_top = !zone->current_top;
+    assert((zone->current_top ? zone->top : zone->bottom) == 0);
+    zone->pending = 1;
 }
 
-int pico8_bascule_zone_en_attente(const pico8_bascule_zone_t *zone) {
-    return zone->en_attente;
+int flip_zone_pending(const flip_zone_t *zone) {
+    return zone->pending;
 }
 
 /* Pas de seconde moitie sous ASan : les generations alternent deja entre les
  * bouts. Angle mort : un pointeur garde a travers deux bascules retombe sur
  * le bout reutilise et ne plante plus. */
-void pico8_bascule_zone_rendre(pico8_bascule_zone_t *zone) {
-    if (!zone->en_attente) return;
-    if (zone->courant_haut) {
-        POISON(zone->storage, zone->bas);
-        zone->bas = 0;
+void flip_zone_release(flip_zone_t *zone) {
+    if (!zone->pending) return;
+    if (zone->current_top) {
+        POISON(zone->storage, zone->bottom);
+        zone->bottom = 0;
     } else {
-        POISON(bascule_fin(zone) - zone->haut, zone->haut);
-        zone->haut = 0;
+        POISON(flip_zone_end(zone) - zone->top, zone->top);
+        zone->top = 0;
     }
-    zone->en_attente = 0;
+    zone->pending = 0;
 }
 
-void pico8_bascule_zone_reset(pico8_bascule_zone_t *zone) {
-    POISON(zone->storage, PICO8_ZONE_CELLS(zone->capacity) * sizeof(pico8_zone_cell_t));
-    zone->bas = 0;
-    zone->haut = 0;
-    zone->courant_haut = 0;
-    zone->en_attente = 0;
+void flip_zone_reset(flip_zone_t *zone) {
+    POISON(zone->storage, ZONE_CELLS(zone->capacity) * sizeof(zone_cell_t));
+    zone->bottom = 0;
+    zone->top = 0;
+    zone->current_top = 0;
+    zone->pending = 0;
 }
 
-size_t pico8_bascule_zone_prise(const pico8_bascule_zone_t *zone) {
-    return zone->bas + zone->haut;
+size_t flip_zone_used(const flip_zone_t *zone) {
+    return zone->bottom + zone->top;
 }
 
-size_t pico8_bascule_zone_max(const pico8_bascule_zone_t *zone) {
+size_t flip_zone_max(const flip_zone_t *zone) {
     return zone->max;
 }
 
-static unsigned char *slot_at(const pico8_slot_zone_t *zone, size_t index) {
-    return (unsigned char *)(zone->storage + index * PICO8_ZONE_CELLS(zone->slot_size));
+static unsigned char *slot_at(const slot_zone_t *zone, size_t index) {
+    return (unsigned char *)(zone->storage + index * ZONE_CELLS(zone->slot_size));
 }
 
-void pico8_slot_zone_init(pico8_slot_zone_t *zone, const char *name,
-                          pico8_zone_cell_t *storage, unsigned char *taken,
+void slot_zone_init(slot_zone_t *zone, const char *name,
+                          zone_cell_t *storage, unsigned char *taken,
                           size_t slot_size, size_t count) {
     assert(slot_size > 0 && count > 0);
     zone->name = name;
@@ -161,13 +161,13 @@ void pico8_slot_zone_init(pico8_slot_zone_t *zone, const char *name,
     zone->count = count;
     zone->cursor = 0;
     for (size_t i = 0; i < count; i++) taken[i] = 0;
-    POISON(storage, count * PICO8_ZONE_CELLS(slot_size) * sizeof *storage);
+    POISON(storage, count * ZONE_CELLS(slot_size) * sizeof *storage);
 }
 
 /* Curseur tournant, pas de liste libre LIFO : une place rendue n'est reprise
  * qu'apres un tour complet, sinon un pointeur vers elle retomberait tout de
  * suite sur une place redevenue valide. */
-unsigned char *pico8_slot_zone_alloc(pico8_slot_zone_t *zone) {
+unsigned char *slot_zone_alloc(slot_zone_t *zone) {
     for (size_t step = 0; step < zone->count; step++) {
         size_t i = (zone->cursor + step) % zone->count;
         if (!zone->taken[i]) {
@@ -182,8 +182,8 @@ unsigned char *pico8_slot_zone_alloc(pico8_slot_zone_t *zone) {
     return NULL;
 }
 
-void pico8_slot_zone_release(pico8_slot_zone_t *zone, unsigned char *slot) {
-    size_t stride = PICO8_ZONE_CELLS(zone->slot_size) * sizeof(pico8_zone_cell_t);
+void slot_zone_release(slot_zone_t *zone, unsigned char *slot) {
+    size_t stride = ZONE_CELLS(zone->slot_size) * sizeof(zone_cell_t);
     unsigned char *base = slot_at(zone, 0);
     assert(slot >= base && slot < base + zone->count * stride &&
            "release d'un pointeur hors de la zone");
@@ -194,7 +194,7 @@ void pico8_slot_zone_release(pico8_slot_zone_t *zone, unsigned char *slot) {
     POISON(slot, zone->slot_size);
 }
 
-size_t pico8_slot_zone_taken(const pico8_slot_zone_t *zone) {
+size_t slot_zone_taken(const slot_zone_t *zone) {
     size_t n = 0;
     for (size_t i = 0; i < zone->count; i++) n += zone->taken[i];
     return n;

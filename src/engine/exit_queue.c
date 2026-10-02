@@ -6,47 +6,47 @@
 #include "p8/fatal.h"
 
 typedef struct {
-    entity_t *entite;
-    const pico8_zone_choisie_t *arene;
-} entree_t;
+    entity_t *entity;
+    const allocator_t *arena;
+} entry_t;
 
-static entree_t g_file[PICO8_FILE_SORTIE_CAP];
-static int g_compte;
+static entry_t g_queue[EXIT_QUEUE_CAP];
+static int g_count;
 
-static void mettre(entree_t entree) {
-    if (g_compte == PICO8_FILE_SORTIE_CAP) {
+static void put(entry_t entry) {
+    if (g_count == EXIT_QUEUE_CAP) {
         char message[64];
-        snprintf(message, sizeof message, "file de sortie pleine, limite %d", PICO8_FILE_SORTIE_CAP);
+        snprintf(message, sizeof message, "file de sortie pleine, limite %d", EXIT_QUEUE_CAP);
         pico8_fatal(message);
     }
-    g_file[g_compte++] = entree;
+    g_queue[g_count++] = entry;
 }
 
-void pico8_file_sortie_mettre(entity_t *e) {
-    entree_t entree = {e, NULL};
+void exit_queue_put(entity_t *e) {
+    entry_t entry = {e, NULL};
     assert(e->class->release != NULL && "file de sortie : la classe n'a rien a rendre");
-    mettre(entree);
+    put(entry);
 }
 
-void pico8_file_sortie_mettre_arene(const pico8_zone_choisie_t *arene) {
-    entree_t entree = {NULL, arene};
-    assert(arene != NULL);
-    mettre(entree);
+void exit_queue_put_arena(const allocator_t *arena) {
+    entry_t entry = {NULL, arena};
+    assert(arena != NULL);
+    put(entry);
 }
 
-int pico8_file_sortie_compte(void) {
-    return g_compte;
+int exit_queue_count(void) {
+    return g_count;
 }
 
-void pico8_file_sortie_vider(void (*oublier)(const entity_t *e)) {
-    for (int i = 0; i < g_compte; i++) {
-        entity_t *e = g_file[i].entite;
+void exit_queue_flush(void (*forget)(const entity_t *e)) {
+    for (int i = 0; i < g_count; i++) {
+        entity_t *e = g_queue[i].entity;
         if (e == NULL) {
-            pico8_zone_arene_rendre(g_file[i].arene);
+            arena_release(g_queue[i].arena);
             continue;
         }
-        oublier(e);
+        forget(e);
         e->class->release(e);
     }
-    g_compte = 0;
+    g_count = 0;
 }

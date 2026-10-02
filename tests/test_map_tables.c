@@ -130,7 +130,7 @@ static void test_gn_pools_df_entries_by_their_r(void) {
     pico8_gn_state_t *state;
     int i;
 
-    state = pico8_gn(pico8_zone_frame(), pico8_df_table, PICO8_DF_COUNT, p8_fixed_from_int(2), never_drawn, NULL);
+    state = pico8_gn(frame_zone(), pico8_df_table, PICO8_DF_COUNT, p8_fixed_from_int(2), never_drawn, NULL);
     assert(state->oc_count == 66);
     for (i = 0; i < PICO8_DF_COUNT; i++) {
         int want = p8_fixed_flr_int(p8_fixed_mul(pico8_df_table[i].r, p8_fixed_from_int(2)));

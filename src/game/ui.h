@@ -20,7 +20,7 @@ enum { PICO8_UI_IC_LAYERS = 16 };
  * they were found; `layer_count` is always PICO8_UI_IC_LAYERS. */
 typedef struct {
     int layer_count;
-    pico8_ents_t layers[PICO8_UI_IC_LAYERS];
+    entity_list_t layers[PICO8_UI_IC_LAYERS];
 } pico8_ui_ic_t;
 
 /* `le` of a new `ui` is `pico8_ui_le_shared()`, until `cj` or `pz`
@@ -33,9 +33,9 @@ typedef struct {
 typedef struct {
     entity_t header;
     const pico8_ui_def_t *def;
-    pico8_ents_t *le;
-    pico8_vec_t *qa;
-    pico8_vec_t qa_own;
+    entity_list_t *le;
+    vec_t *qa;
+    vec_t qa_own;
     pico8_ui_ic_t *ic;
     pico8_ui_ic_t ic_own;
     entity_t *o_; /* borrowed; nil once the exit queue gives it back */
@@ -62,19 +62,19 @@ const entity_class_t *pico8_ui_struct_class(void);
 
 /* The box of the class, read by `bv`: `&pico8_ui_def.hw`, NULL before
  * `pico8_ui_init()` and after `pico8_ui_shutdown()`. */
-const pico8_qz_box_t *pico8_ui_hw(void);
+const box_t *pico8_ui_hw(void);
 
 /* The empty container every new `ui` starts with as `le`: static, never
  * freed, emptied (not freed) by each `pico8_ui_init()`. */
-pico8_ents_t *pico8_ui_le_shared(void);
+entity_list_t *pico8_ui_le_shared(void);
 
 /* An empty list in a place `le` of its own, its items grown there. */
-pico8_ents_t *pico8_ui_le_new(void);
+entity_list_t *pico8_ui_le_new(void);
 
 /* `le` from pico8_ui_le_new() becomes `self.le`; the list it replaces goes
  * to the exit queue (the frame still compares it in `lj`), unless it is
  * the shared one. */
-void pico8_ui_set_le(pico8_ui_t *self, pico8_ents_t *le);
+void pico8_ui_set_le(pico8_ui_t *self, entity_list_t *le);
 
 /* The `ui` registers itself through `lt` into `hv` and `cv.ev`, no `cg`; it
  * lives in the current game-zone generation. Asserts before the init. */
@@ -122,7 +122,7 @@ typedef enum { PICO8_JZ_LDOWN, PICO8_JZ_RDOWN, PICO8_JZ_GV } pico8_jz_slot_t;
 /* Lua's `{kv=h,kn=kn}` result, written out: returns 1 and fills `*out_kv`
  * and `*out_kn` on the first answer whose `stop` is set, or 0 leaving both
  * untouched when nothing answers. */
-int pico8_ui_jz(pico8_ui_t *self, pico8_jz_slot_t rm, pico8_vec_t *qa, pico8_vec_t *ra, const entity_t *s,
+int pico8_ui_jz(pico8_ui_t *self, pico8_jz_slot_t rm, vec_t *qa, vec_t *ra, const entity_t *s,
                 entity_t **out_kv, down_t *out_kn);
 
 void pico8_ui_cj(pico8_ui_t *self);

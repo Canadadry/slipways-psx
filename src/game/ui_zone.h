@@ -17,12 +17,12 @@ typedef enum {
 
 /* Poignee qui donne et reprend une place entiere de la sorte : alloc(n)
  * exige n <= taille de place, grow est refuse. */
-const pico8_zone_choisie_t *pico8_zone_interface(pico8_sorte_t sorte);
+const allocator_t *pico8_zone_interface(pico8_sorte_t sorte);
 
 /* Une place de la sorte, en arene nommee « place <sorte> » ; on la rend
  * par pico8_zone_arene_rendre. Zone pleine : pico8_fatal « zone interface
  * <sorte> pleine ». */
-const pico8_zone_choisie_t *pico8_zone_interface_place(pico8_sorte_t sorte);
+const allocator_t *pico8_zone_interface_place(pico8_sorte_t sorte);
 
 /* Places prises et pas encore rendues. */
 int pico8_zone_interface_vivantes(pico8_sorte_t sorte);

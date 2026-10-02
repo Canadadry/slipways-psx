@@ -43,7 +43,7 @@ void pico8_pj_hk(p8_fixed_t yr) {
         pp = item->row;
     }
 
-    yr_str = p8_tostr_fixed(pico8_zone_frame(), yr);
+    yr_str = p8_tostr_fixed(frame_zone(), yr);
     assert(strlen("year ") + strlen(yr_str) <= PICO8_PJ_TEXT_CAP && "a year is at most a 5-digit integer");
     strcpy(iw->year, "year ");
     strcat(iw->year, yr_str);
@@ -113,20 +113,20 @@ typedef struct {
 static char *pico8_pj_ph_s_str(const pico8_ky_t *s, int i) {
     switch (i) {
     case 1:
-        return p8_tostr_fixed(pico8_zone_frame(), s->di);
+        return p8_tostr_fixed(frame_zone(), s->di);
     case 2:
-        return p8_tostr_fixed(pico8_zone_frame(), s->gl);
+        return p8_tostr_fixed(frame_zone(), s->gl);
     case 3:
-        return p8_tostr_fixed(pico8_zone_frame(), s->el);
+        return p8_tostr_fixed(frame_zone(), s->el);
     case 4:
-        return p8_concat2(pico8_zone_frame(), s->happiness, "");
+        return p8_concat2(frame_zone(), s->happiness, "");
     case 5:
-        return p8_tostr_fixed(pico8_zone_frame(), s->total);
+        return p8_tostr_fixed(frame_zone(), s->total);
     case 6:
-        return p8_tostr_fixed(pico8_zone_frame(), s->tier);
+        return p8_tostr_fixed(frame_zone(), s->tier);
     default:
         /* TROU-13 */
-        return p8_concat2(pico8_zone_frame(), "", "");
+        return p8_concat2(frame_zone(), "", "");
     }
 }
 
@@ -174,9 +174,9 @@ static const pico8_jb_row_t *pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_
         if (dk != NULL && dk->px != NULL) {
             px = dk->px;
         }
-        piece1 = p8_concat2(pico8_zone_frame(), hl_str, " (");
-        piece2 = p8_concat2(pico8_zone_frame(), piece1, px);
-        label = p8_concat2(pico8_zone_frame(), piece2, ")");
+        piece1 = p8_concat2(frame_zone(), hl_str, " (");
+        piece2 = p8_concat2(frame_zone(), piece1, px);
+        label = p8_concat2(frame_zone(), piece2, ")");
         pico8_pj_ph_set(st, 1, (pico8_jb_item_t){.s = label});
     }
 
@@ -200,8 +200,8 @@ static const pico8_jb_row_t *pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_
     keys.has_score = 1;
     keys.score = p8_fixed_from_int(score_i);
     keys.ra = st->e->has_ra ? &st->ra : NULL;
-    lq_inst = pico8_lq_new(pico8_zone_frame(), &keys);
-    wrapped = (pico8_pj_ph_ld_t *)pico8_zone_alloc(pico8_zone_frame(), sizeof *wrapped);
+    lq_inst = pico8_lq_new(frame_zone(), &keys);
+    wrapped = (pico8_pj_ph_ld_t *)allocator_alloc(frame_zone(), sizeof *wrapped);
     wrapped->items[0] = (pico8_jb_item_t){.is_ref = 1, .ref = lq_inst};
     wrapped->items[1] = (pico8_jb_item_t){.is_ref = 1, .ref = keys.ra};
     wrapped->items[2] = (pico8_jb_item_t){.is_fixed = 1, .fixed = P8_FIXED_LIT(0x00008000, 0.5)};
@@ -225,8 +225,8 @@ void pico8_pj_ph(pico8_pj_t *self) {
         pico8_lq_keys_t lq2 = {0};
         pico8_js_t *made1;
         pico8_js_t *made2;
-        const pico8_vec_t ra1 = pico8_vec_v(p8_fixed_from_int(51), p8_fixed_from_int(100));
-        const pico8_vec_t ra2 = pico8_vec_v(p8_fixed_from_int(39), p8_fixed_from_int(100));
+        const vec_t ra1 = vec_make(p8_fixed_from_int(51), p8_fixed_from_int(100));
+        const vec_t ra2 = vec_make(p8_fixed_from_int(39), p8_fixed_from_int(100));
 
         (void)pico8_fq_new(NULL);
 

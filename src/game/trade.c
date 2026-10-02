@@ -23,8 +23,8 @@ int pico8_qe_equal(pico8_qe_t a, pico8_qe_t b) {
 
 static const entity_class_t g_trade_struct_class = {0};
 
-static pico8_trade_t *pico8_trade_struct_new(const pico8_zone_choisie_t *zone, const pico8_trade_keys_t *keys) {
-    pico8_trade_t *self = (pico8_trade_t *)pico8_zone_alloc(zone, sizeof *self);
+static pico8_trade_t *pico8_trade_struct_new(const allocator_t *zone, const pico8_trade_keys_t *keys) {
+    pico8_trade_t *self = (pico8_trade_t *)allocator_alloc(zone, sizeof *self);
 
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("trade");
@@ -73,24 +73,24 @@ const entity_class_t *pico8_trade_struct_class(void) {
     return &g_trade_struct_class;
 }
 
-pico8_trade_t *pico8_trade_new(const pico8_zone_choisie_t *zone, const pico8_trade_keys_t *keys) {
+pico8_trade_t *pico8_trade_new(const allocator_t *zone, const pico8_trade_keys_t *keys) {
     return pico8_trade_struct_new(zone, keys);
 }
 
-static pico8_ents_t *ents_copy(const pico8_zone_choisie_t *zone, const pico8_ents_t *src) {
-    pico8_ents_t empty;
-    pico8_ents_t *copy;
+static entity_list_t *ents_copy(const allocator_t *zone, const entity_list_t *src) {
+    entity_list_t empty;
+    entity_list_t *copy;
 
     if (src == NULL) {
         return NULL;
     }
-    pico8_ents_init(&empty, zone);
-    copy = (pico8_ents_t *)pico8_zone_alloc(zone, sizeof *copy);
-    *copy = pico8_ents_cat(zone, src, &empty);
+    entity_list_init(&empty, zone);
+    copy = (entity_list_t *)allocator_alloc(zone, sizeof *copy);
+    *copy = entity_list_concat(zone, src, &empty);
     return copy;
 }
 
-pico8_trade_t *pico8_trade_copy(const pico8_zone_choisie_t *zone, const pico8_trade_t *self) {
+pico8_trade_t *pico8_trade_copy(const allocator_t *zone, const pico8_trade_t *self) {
     pico8_trade_keys_t keys = {0};
 
     assert_trade(self);
@@ -106,7 +106,7 @@ pico8_trade_t *pico8_trade_copy(const pico8_zone_choisie_t *zone, const pico8_tr
 }
 
 int pico8_trade_to(const pico8_trade_t *self, entity_t **out) {
-    const pico8_ents_t *lp;
+    const entity_list_t *lp;
 
     assert_trade(self);
     if (self == NULL || self->lp == NULL) {
@@ -123,25 +123,25 @@ int pico8_trade_to(const pico8_trade_t *self, entity_t **out) {
 /* `{np}`/`{jc}` live in the frame zone: pico8_ents_cat copies their
  * element into the lp/rl it returns. A Lua `{x}` holds zero elements
  * when x is nil, so a NULL contributes nothing. */
-pico8_trade_t *pico8_trade_kg(const pico8_zone_choisie_t *zone, const pico8_trade_t *self,
+pico8_trade_t *pico8_trade_kg(const allocator_t *zone, const pico8_trade_t *self,
                               entity_t *np, entity_t *jc) {
     pico8_trade_keys_t keys = {0};
-    pico8_ents_t empty_lp;
-    pico8_ents_t empty_rl;
-    const pico8_ents_t *lp;
-    const pico8_ents_t *rl;
-    pico8_ents_t np_list;
-    pico8_ents_t jc_list;
-    pico8_ents_t *new_lp;
-    pico8_ents_t *new_rl;
+    entity_list_t empty_lp;
+    entity_list_t empty_rl;
+    const entity_list_t *lp;
+    const entity_list_t *rl;
+    entity_list_t np_list;
+    entity_list_t jc_list;
+    entity_list_t *new_lp;
+    entity_list_t *new_rl;
 
     assert_trade(self);
     if (self == NULL) {
         return NULL;
     }
 
-    pico8_ents_init(&empty_lp, pico8_zone_frame());
-    pico8_ents_init(&empty_rl, pico8_zone_frame());
+    entity_list_init(&empty_lp, frame_zone());
+    entity_list_init(&empty_rl, frame_zone());
     lp = self->lp != NULL ? self->lp : &empty_lp;
     rl = self->rl != NULL ? self->rl : &empty_rl;
     /* TROU-24 */
@@ -149,19 +149,19 @@ pico8_trade_t *pico8_trade_kg(const pico8_zone_choisie_t *zone, const pico8_trad
     keys.qe_is_bool = self->has_qe ? self->qe_is_bool : 1;
     keys.qe = self->has_qe ? self->qe : 0;
 
-    pico8_ents_init(&np_list, pico8_zone_frame());
+    entity_list_init(&np_list, frame_zone());
     if (np != NULL) {
-        pico8_ents_add(&np_list, np);
+        entity_list_add(&np_list, np);
     }
-    pico8_ents_init(&jc_list, pico8_zone_frame());
+    entity_list_init(&jc_list, frame_zone());
     if (jc != NULL) {
-        pico8_ents_add(&jc_list, jc);
+        entity_list_add(&jc_list, jc);
     }
 
-    new_lp = (pico8_ents_t *)pico8_zone_alloc(zone, sizeof *new_lp);
-    *new_lp = pico8_ents_cat(zone, lp, &np_list);
-    new_rl = (pico8_ents_t *)pico8_zone_alloc(zone, sizeof *new_rl);
-    *new_rl = pico8_ents_cat(zone, rl, &jc_list);
+    new_lp = (entity_list_t *)allocator_alloc(zone, sizeof *new_lp);
+    *new_lp = entity_list_concat(zone, lp, &np_list);
+    new_rl = (entity_list_t *)allocator_alloc(zone, sizeof *new_rl);
+    *new_rl = entity_list_concat(zone, rl, &jc_list);
 
     keys.lp = new_lp;
     keys.rl = new_rl;
@@ -169,7 +169,7 @@ pico8_trade_t *pico8_trade_kg(const pico8_zone_choisie_t *zone, const pico8_trad
 }
 
 int pico8_trade_eq(const pico8_trade_t *l, const pico8_trade_t *r) {
-    const pico8_ents_t *l_lp, *r_lp;
+    const entity_list_t *l_lp, *r_lp;
     const entity_t *l_first, *r_first;
     entity_t *l_last, *r_last;
 

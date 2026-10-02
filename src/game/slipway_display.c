@@ -31,18 +31,18 @@ void pico8_jc_ch(pico8_jc_t *self, const entity_t *f, const entity_t *t) {
         const char *t_id = t != NULL && pico8_jo_is_family(t) ? ((const pico8_jo_t *)t)->id : NULL;
         if (pico8_jc_hg_has(self->hg, t_id)) {
             if (self->ts != NULL) {
-                pico8_vec_t f_ra = pico8_jc_end_ra(f);
-                pico8_vec_t t_ra = pico8_jc_end_ra(t);
-                pico8_vec_t d = pico8_vec_sub(t_ra, f_ra);
-                pico8_vec_t v = pico8_vec_nn(d);
-                pico8_ts_t *particle = (pico8_ts_t *)pico8_zone_alloc(pico8_zone_particules(PICO8_PARTICULES_TS),
+                vec_t f_ra = pico8_jc_end_ra(f);
+                vec_t t_ra = pico8_jc_end_ra(t);
+                vec_t d = vec_sub(t_ra, f_ra);
+                vec_t v = vec_normalize(d);
+                pico8_ts_t *particle = (pico8_ts_t *)allocator_alloc(pico8_zone_particules(PICO8_PARTICULES_TS),
                                                                       sizeof *particle);
 
-                particle->ra = pico8_vec_add(f_ra, pico8_vec_pa(v));
+                particle->ra = vec_add(f_ra, vec_perpendicular(v));
                 particle->v = v;
-                particle->l = pico8_vec_qx(d);
+                particle->l = vec_length(d);
 
-                pico8_ptrs_add(self->ts, particle);
+                pointer_list_add(self->ts, particle);
                 pico8_zone_particules_noter_elements(PICO8_PARTICULES_TS, self->ts->count);
             }
         }
@@ -54,8 +54,8 @@ void pico8_jc_lg(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_jc_t *s
     entity_t *qu;
     entity_t *re;
     p8_fixed_t t;
-    pico8_vec_t qu_pt;
-    pico8_vec_t re_pt;
+    vec_t qu_pt;
+    vec_t re_pt;
     p8_fixed_t dx;
 
     if (self == NULL) {
@@ -69,10 +69,10 @@ void pico8_jc_lg(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_jc_t *s
     re = self->re;
     t = self->header.state_time;
 
-    qu_pt = pico8_vec_add(pico8_jc_end_ra(qu),
-                           pico8_vec_qm(P8_FIXED_LIT(0x00018000, 1.5), p8_fixed_div(t, p8_fixed_from_int(126))));
-    re_pt = pico8_vec_add(pico8_jc_end_ra(re),
-                           pico8_vec_qm(P8_FIXED_LIT(0x00018000, 1.5), p8_fixed_div(t, p8_fixed_from_int(176))));
+    qu_pt = vec_add(pico8_jc_end_ra(qu),
+                           vec_from_polar(P8_FIXED_LIT(0x00018000, 1.5), p8_fixed_div(t, p8_fixed_from_int(126))));
+    re_pt = vec_add(pico8_jc_end_ra(re),
+                           vec_from_polar(P8_FIXED_LIT(0x00018000, 1.5), p8_fixed_div(t, p8_fixed_from_int(176))));
 
     for (dx = l; dx <= h; dx = p8_fixed_add(dx, s)) {
         p8_fixed_t dy;
@@ -97,7 +97,7 @@ void pico8_jc_kj(const p8_graphics_t *gfx, p8_memory_t *mem, pico8_jc_t *self) {
     qu = self->qu;
     re = self->re;
 
-    if (pico8_gd(qu) || pico8_gd(re)) {
+    if (entity_geom_is_on_screen(qu) || entity_geom_is_on_screen(re)) {
         p8_fixed_t nh = self->nh;
         int nh_i = pico8_jc_display_to_int(nh);
         p8_fixed_t jv = p8_fixed_from_int(0);
@@ -133,19 +133,19 @@ void pico8_jc_kj(const p8_graphics_t *gfx, p8_memory_t *mem, pico8_jc_t *self) {
                     pico8_jc_display_to_int(c));
 
         {
-            pico8_ptrs_t *ts = self->ts;
+            pointer_list_t *ts = self->ts;
             if (ts != NULL) {
                 int i;
                 for (i = 0; i < ts->count; i++) {
                     pico8_ts_t *t = ts->items[i];
-                    pico8_vec_t new_ra;
+                    vec_t new_ra;
                     p8_fixed_t new_l;
 
                     if (t == NULL) {
                         continue;
                     }
 
-                    new_ra = pico8_vec_add(t->ra, t->v);
+                    new_ra = vec_add(t->ra, t->v);
                     t->ra = new_ra;
 
                     new_l = p8_fixed_sub(t->l, p8_fixed_from_int(1));
@@ -154,8 +154,8 @@ void pico8_jc_kj(const p8_graphics_t *gfx, p8_memory_t *mem, pico8_jc_t *self) {
                     /* No `else` in the Lua: an expired particle is removed
                      * and still drawn once more at its final position. */
                     if (new_l <= p8_fixed_from_int(0)) {
-                        pico8_ptrs_del(ts, t);
-                        pico8_zone_release(pico8_zone_particules(PICO8_PARTICULES_TS), (unsigned char *)t);
+                        pointer_list_del(ts, t);
+                        allocator_release(pico8_zone_particules(PICO8_PARTICULES_TS), (unsigned char *)t);
                     }
 
                     {
@@ -175,7 +175,7 @@ void pico8_jc_kj(const p8_graphics_t *gfx, p8_memory_t *mem, pico8_jc_t *self) {
     self->fo = NULL;
 }
 
-void pico8_jc_kj_dispatch(entity_t *self, const pico8_vec_t *ra) {
+void pico8_jc_kj_dispatch(entity_t *self, const vec_t *ra) {
     (void)ra;
-    pico8_jc_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_jc_t *)self);
+    pico8_jc_kj(dispatch_context_gfx(), dispatch_context_mem(), (pico8_jc_t *)self);
 }

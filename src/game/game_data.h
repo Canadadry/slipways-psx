@@ -36,7 +36,7 @@ typedef struct pico8_str_seq {
 
 typedef struct {
     int count;
-    const pico8_vec_t *items;
+    const vec_t *items;
 } pico8_vec_seq_t;
 
 /* A kind's `rr`, `s`, `me`, `od` as its chain of defaults resolves them: a
@@ -128,7 +128,7 @@ typedef struct {
     p8_fixed_t t;
     p8_fixed_t ql;
     p8_fixed_t fa;
-    pico8_qz_box_t hw;
+    box_t hw;
 } pico8_ui_def_t;
 
 typedef struct {
@@ -147,10 +147,10 @@ typedef struct {
 typedef struct {
     const char *me;
     p8_fixed_t t;
-    pico8_vec_t v;
+    vec_t v;
     p8_fixed_t ma;
-    pico8_vec_t p;
-    pico8_vec_t ra;
+    vec_t p;
+    vec_t ra;
     const pico8_vec_seq_t *pc;
 } pico8_qb_def_t;
 
@@ -171,7 +171,7 @@ typedef struct {
     p8_fixed_t t;
     p8_fixed_t fa;
     p8_fixed_t l;
-    pico8_vec_t v;
+    vec_t v;
 } pico8_iv_def_t;
 
 typedef struct {
@@ -181,10 +181,10 @@ typedef struct {
 typedef struct {
     const char *me;
     p8_fixed_t t;
-    pico8_qz_box_t kq;
+    box_t kq;
     p8_fixed_t fa;
-    pico8_vec_t ra;
-    pico8_vec_t eh;
+    vec_t ra;
+    vec_t eh;
 } pico8_ie_def_t;
 
 typedef struct {
@@ -247,14 +247,14 @@ typedef struct {
     p8_fixed_t t;
     p8_fixed_t fx;
     p8_fixed_t fa;
-    pico8_vec_t ra;
+    vec_t ra;
     int has_ra; /* 0: the instance's `ra` is NULL */
-    pico8_vec_t hi;
+    vec_t hi;
     p8_fixed_t ca;
-    pico8_vec_t gq;
+    vec_t gq;
     p8_fixed_t eo;
     p8_fixed_t ff;
-    pico8_qz_box_t kq;
+    box_t kq;
     p8_fixed_t ql;
     p8_fixed_t fg;
     const pico8_jb_row_t *rb;
@@ -272,12 +272,12 @@ typedef struct {
     int hf;
     p8_fixed_t hs;
     p8_fixed_t fa;
-    pico8_qz_box_t kq;
+    box_t kq;
     p8_fixed_t ma;
     const pico8_int_seq_t *ka;
     const pico8_jb_row_t *dz; /* PICO8_JO_DZ_COUNT rows */
     const pico8_int_seq_t *cq;
-    pico8_vec_t gq;
+    vec_t gq;
     p8_fixed_t ca;
     const pico8_jb_row_t *em;
     p8_fixed_t mi;
@@ -290,7 +290,7 @@ typedef struct {
     const char *rr;
     p8_fixed_t nl;
     p8_fixed_t qw;
-    pico8_vec_t ng;
+    vec_t ng;
     const char *fz;
     p8_fixed_t iu;
     p8_fixed_t ms;

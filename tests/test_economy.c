@@ -85,8 +85,8 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
     return h;
 }
 
-static const pico8_ptrs_t *invented_of(const pico8_hy_t *hy) {
-    const pico8_ptrs_t *l = hy->invented;
+static const pointer_list_t *invented_of(const pico8_hy_t *hy) {
+    const pointer_list_t *l = hy->invented;
     assert(l != NULL);
     return l;
 }
@@ -137,7 +137,7 @@ static uint32_t fold_fixed_member(uint32_t h, int has, p8_fixed_t v) {
     return has ? fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)v) : fold_absent(h);
 }
 
-static uint32_t fold_list_member(uint32_t h, const pico8_ptrs_t *l) {
+static uint32_t fold_list_member(uint32_t h, const pointer_list_t *l) {
     int i;
 
     if (l == NULL) {
@@ -200,7 +200,7 @@ static void new_game(void) {
  * reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
 }
@@ -210,14 +210,14 @@ static pico8_jo_t *as_jo(void *e) {
     return e;
 }
 
-static pico8_vec_t pos_of(void *e) {
-    const pico8_vec_t *p = as_jo(e)->p;
+static vec_t pos_of(void *e) {
+    const vec_t *p = as_jo(e)->p;
     assert(p != NULL);
     return *p;
 }
 
-static p8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
-    pico8_vec_t d = pico8_vec_sub(a, b);
+static p8_fixed_t dist2(vec_t a, vec_t b) {
+    vec_t d = vec_sub(a, b);
     return p8_fixed_add(p8_fixed_mul(d.x, d.x), p8_fixed_mul(d.y, d.y));
 }
 
@@ -230,16 +230,16 @@ static pico8_hp_t *project(int k) {
  * two joined by a slipway paid by `ey` as a drag pays it (`jc:hq` reads the
  * hovered planet off `ok.o_`), then left to settle. */
 static void built_world(void) {
-    const pico8_ents_t *jos;
+    const entity_list_t *jos;
     pico8_jc_keys_t jc_keys = {0};
-    pico8_vec_t *mp = malloc(sizeof *mp);
+    vec_t *mp = malloc(sizeof *mp);
     void *qu;
     void *re = NULL;
     pico8_jc_t *jc;
     int i;
 
     start_game();
-    jos = pico8_cg("planet");
+    jos = entities_by_tag("planet");
     assert(jos != NULL && jos->count > 1);
     qu = jos->items[0];
     for (i = 1; i < jos->count; i++) {
@@ -253,17 +253,17 @@ static void built_world(void) {
 
     jc_keys.qu = qu;
     jc = pico8_jc_new(&jc_keys);
-    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), p8_fixed_from_int(128)),
-                        pico8_vec_v(p8_fixed_from_int(1), p8_fixed_from_int(1)));
+    *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
+                        vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
     pico8_jc_struct_class()->drag(&jc->header, mp, NULL);
     pico8_ok()->o_ = NULL;
     while (jc->header.state_time < p8_fixed_from_int(15)) {
-        pico8_dg();
+        update_entities();
     }
     pico8_jc_struct_class()->drop(&jc->header, re);
     for (i = 0; i < 120; i++) {
-        pico8_dg();
+        update_entities();
     }
 }
 
@@ -281,7 +281,7 @@ static const entity_class_t *iv_descriptor(void) {
 /* Every entry `hv` gained since it held `from` entries: its tag, and for an
  * `iv` the text and color it shows. */
 static uint32_t fold_new_entities(uint32_t h, int from, const entity_class_t *iv_cls) {
-    const pico8_ents_t *hv = pico8_hv();
+    const entity_list_t *hv = live_entities();
     int i;
 
     h = fnv(h, (uint32_t)(hv->count - from));
@@ -304,7 +304,7 @@ static uint32_t fold_new_entities(uint32_t h, int from, const entity_class_t *iv
 static void test_construction(void) {
     uint32_t h = 2166136261u;
     pico8_hy_t *bare;
-    const pico8_ptrs_t *first;
+    const pointer_list_t *first;
 
     pico8__init();
     bare = pico8_hy_new();
@@ -354,7 +354,7 @@ static void test_nx(void) {
     assert(fm_hy()->yr == p8_fixed_add(yr, p8_fixed_from_int(1)));
     h = fold_fm(h);
 
-    pico8_ptrs_add(fm_hy()->invented, "time compression");
+    pointer_list_add(fm_hy()->invented, "time compression");
     pico8_hy_nx(fm_self(), p8_fixed_from_int(14));
     assert(fm_hy()->lo == p8_fixed_from_int(15));
     assert(fm_hy()->yr == p8_fixed_add(yr, p8_fixed_from_int(1)));
@@ -388,14 +388,14 @@ static void test_hk(void) {
     yr = fm_hy()->yr;
     h = fold_fm(h);
 
-    from = pico8_hv()->count;
+    from = live_entities()->count;
     pico8_hy_hk(fm_self());
     assert(fm_hy()->nz == p8_fixed_add(nz, ge));
     assert(fm_hy()->jk > jk);
     assert(fm_hy()->yr == p8_fixed_add(yr, p8_fixed_from_int(1)));
     h = fold_fm(h);
     h = fold_new_entities(h, from, iv_cls);
-    assert(pico8_hv()->count > from);
+    assert(live_entities()->count > from);
 
     pico8_hy_hk(NULL);
     h = fold_fm(h);
@@ -403,7 +403,7 @@ static void test_hk(void) {
 }
 
 static uint32_t lu_step(uint32_t h, pico8_hy_t *self, int jt, int want, const entity_class_t *iv_cls) {
-    int from = pico8_hv()->count;
+    int from = live_entities()->count;
     int got = pico8_hy_lu(self, p8_fixed_from_int(jt));
     assert(got == want);
     h = fnv(h, (uint32_t)got);
@@ -422,14 +422,14 @@ static void test_lu(void) {
     iv_cls = iv_descriptor();
     assert(fm_hy()->nz == p8_fixed_from_int(100));
 
-    from = pico8_hv()->count;
+    from = live_entities()->count;
     h = lu_step(h, fm_self(), 101, 0, iv_cls);
-    assert(fm_hy()->nz == p8_fixed_from_int(100) && pico8_hv()->count == from + 1);
-    assert(strcmp(((const pico8_iv_t *)pico8_hv()->items[from])->at1, "-no money-") == 0);
+    assert(fm_hy()->nz == p8_fixed_from_int(100) && live_entities()->count == from + 1);
+    assert(strcmp(((const pico8_iv_t *)live_entities()->items[from])->at1, "-no money-") == 0);
 
-    from = pico8_hv()->count;
+    from = live_entities()->count;
     h = lu_step(h, fm_self(), 0, 1, iv_cls);
-    assert(fm_hy()->nz == p8_fixed_from_int(100) && pico8_hv()->count == from);
+    assert(fm_hy()->nz == p8_fixed_from_int(100) && live_entities()->count == from);
 
     h = lu_step(h, fm_self(), 30, 1, iv_cls);
     assert(fm_hy()->nz == p8_fixed_from_int(70));
@@ -445,7 +445,7 @@ static void test_lu(void) {
 }
 
 static uint32_t fold_planets_kr(uint32_t h) {
-    const pico8_ents_t *jo = pico8_cg("planet");
+    const entity_list_t *jo = entities_by_tag("planet");
     int i;
     for (i = 0; jo != NULL && i < jo->count; i++) {
         const pico8_jo_t *p = as_jo(jo->items[i]);
@@ -462,7 +462,7 @@ static const char *hl_string(void) {
 
 /* The first producing planet of `cg.jo`: `jy` set and its own `kw`. */
 static pico8_jo_t *a_maker(void) {
-    const pico8_ents_t *jos = pico8_cg("planet");
+    const entity_list_t *jos = entities_by_tag("planet");
     int i;
 
     for (i = 0; i < jos->count; i++) {
@@ -486,7 +486,7 @@ static void test_lj(void) {
     const pico8_qe_map_t *fu;
     pico8_jo_t *maker;
     pico8_jo_t *needer;
-    pico8_ptrs_t needs;
+    pointer_list_t needs;
     p8_fixed_t need_qe = p8_fixed_from_int(99);
     pico8_jy_t *need;
     p8_fixed_t made;
@@ -541,10 +541,10 @@ static void test_lj(void) {
     check("lj", h, LJ_HASH);
 
     fu = fm_hy()->fu;
-    need = pico8_jy_new(pico8_zone_partie(), &need_qe);
+    need = pico8_jy_new(game_zone(), &need_qe);
     needer = pico8_qh_new(NULL);
-    pico8_ptrs_init(&needs, &zone_tas);
-    pico8_ptrs_add(&needs, need);
+    pointer_list_init(&needs, &heap_allocator);
+    pointer_list_add(&needs, need);
     needer->jy = &needs;
     pico8_hy_lj(fm_self());
     assert(pico8_qe_map_get(fu, p8_fixed_from_int(99), &now) && now == p8_fixed_from_int(1) - 0x2666);
@@ -703,9 +703,9 @@ int main(void) {
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(p8_load_map_json(&mem, "pico8/map.json"));
     p8_input_init(&input);
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
 
     pico8_cart_load();
     in_fresh_child(test_construction);

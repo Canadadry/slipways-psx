@@ -124,7 +124,7 @@ PTRS_NON_ENTITE="pico8_hy_t.invented pico8_jo_t.jy pico8_hp_t.i pico8_jc_t.ts"
 # enregistrements jy (planet_display.c:54) ; pico8_jp_ptrs et pico8_la_ptrs
 # sur des enregistrements jy (planet_display.c:186, planet_trade.c:128), les
 # listes d'entites passant par pico8_jp_ents et pico8_ents_cat.
-REGISTRES_NON_ENTITE="pico8_emitter_t.qy pico8_jo_gh_ctx_t.ji pico8_nv_ptrs pico8_gu_content_ptrs pico8_jo_ex pico8_jp_ptrs pico8_la_ptrs"
+REGISTRES_NON_ENTITE="pico8_emitter_t.qy pico8_jo_gh_ctx_t.ji collect_map_pointer_list collect_contains_string pico8_jo_ex collect_filter_pointer_list collect_concat_pointer_list"
 
 # En-tetes du noyau, par chemin relatif a src/ : noyau-inclut ne lit qu'eux.
 NOYAU="engine/entity_class.h engine/entity.h engine/entity_registry.h"
@@ -186,9 +186,9 @@ done < "$work/files"
 # et ses alias "typedef pico8_ptrs_t X;" de ces fichiers (un alias d'alias
 # n'est pas suivi).
 grep -v '/tests/' "$work/files" | grep -v '^tests/' | grep -v '/engine/pointer_list\.[ch]$' | grep -v '^engine/pointer_list\.[ch]$' > "$work/regfiles" || true
-REG_TYPES=pico8_ptrs_t
+REG_TYPES=pointer_list_t
 if [ -s "$work/regfiles" ]; then
-    grep -hE '^[[:space:]]*typedef[[:space:]]+(const[[:space:]]+)?pico8_ptrs_t[[:space:]*]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]*;' $(cat "$work/regfiles") > "$work/reg.alias"
+    grep -hE '^[[:space:]]*typedef[[:space:]]+(const[[:space:]]+)?pointer_list_t[[:space:]*]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]*;' $(cat "$work/regfiles") > "$work/reg.alias"
     [ $? -le 1 ] || fail "echec de grep"
     for a in $(sed -E 's/^.*[[:space:]*]([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*;.*$/\1/' "$work/reg.alias"); do
         REG_TYPES="$REG_TYPES|$a"

@@ -69,11 +69,11 @@ static uint32_t screen_hash(void) {
 static uint32_t draw_hash(void) {
     p8_gfx_init(&gfx);
     p8_cls(&mem);
-    pico8_dc("draw_overlay");
+    draw_layers("draw_overlay");
     return screen_hash();
 }
 
-static int ents_listed(const pico8_ents_t *list, const void *e) {
+static int ents_listed(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -83,7 +83,7 @@ static int ents_listed(const pico8_ents_t *list, const void *e) {
     return 0;
 }
 
-static int ents_count_of(const pico8_ents_t *list) {
+static int ents_count_of(const entity_list_t *list) {
     return list != NULL ? list->count : 0;
 }
 
@@ -101,9 +101,9 @@ static uint32_t fold_box(uint32_t h, const pico8_mh_t *e) {
         h = fnv(h, 0xDEADu);
     }
     h = fnv(h, (uint32_t)(pico8_kc() == e));
-    h = fnv(h, (uint32_t)ents_listed(pico8_hv(), e));
-    h = fnv(h, (uint32_t)ents_listed(pico8_cv("draw_overlay"), e));
-    return fnv(h, (uint32_t)ents_listed(pico8_cg("message_box"), e));
+    h = fnv(h, (uint32_t)ents_listed(live_entities(), e));
+    h = fnv(h, (uint32_t)ents_listed(entities_by_message("draw_overlay"), e));
+    return fnv(h, (uint32_t)ents_listed(entities_by_tag("message_box"), e));
 }
 
 typedef struct {
@@ -129,7 +129,7 @@ static void track(run_t *run, const pico8_mh_t *box) {
 static int any_listed(const run_t *run) {
     int i;
     for (i = 0; i < run->count; i++) {
-        if (ents_listed(pico8_hv(), run->boxes[i])) {
+        if (ents_listed(live_entities(), run->boxes[i])) {
             return 1;
         }
     }
@@ -142,7 +142,7 @@ static void tick(run_t *run) {
     uint32_t drawn;
     int i;
 
-    pico8_dg();
+    update_entities();
     drawn = draw_hash();
     p8_cls(&mem);
     run->drew |= drawn != screen_hash();
@@ -164,8 +164,8 @@ static void run_check(const run_t *run, int want_ticks, uint32_t want_sequence, 
     int i;
 
     for (i = 0; i < run->count; i++) {
-        assert(!ents_listed(pico8_cv("draw_overlay"), run->boxes[i]));
-        assert(!ents_listed(pico8_cg("message_box"), run->boxes[i]));
+        assert(!ents_listed(entities_by_message("draw_overlay"), run->boxes[i]));
+        assert(!ents_listed(entities_by_tag("message_box"), run->boxes[i]));
         assert(pico8_kc() != run->boxes[i]);
     }
     assert(run->drew);
@@ -178,13 +178,13 @@ static void run_check(const run_t *run, int want_ticks, uint32_t want_sequence, 
 /* `pj:hk` discards the box it builds; `mh:pq` has just made it `kc`. */
 static const pico8_mh_t *year_box(int yr) {
     const pico8_mh_t *box;
-    int before = ents_count_of(pico8_cg("message_box"));
+    int before = ents_count_of(entities_by_tag("message_box"));
 
     pico8_pj_hk(p8_fixed_from_int(yr));
     box = pico8_kc();
     assert(box != NULL);
-    assert(ents_count_of(pico8_cg("message_box")) == before + 1);
-    assert(ents_listed(pico8_cg("message_box"), box) && ents_listed(pico8_hv(), box) && ents_listed(pico8_cv("draw_overlay"), box));
+    assert(ents_count_of(entities_by_tag("message_box")) == before + 1);
+    assert(ents_listed(entities_by_tag("message_box"), box) && ents_listed(live_entities(), box) && ents_listed(entities_by_message("draw_overlay"), box));
     return box;
 }
 
@@ -192,7 +192,7 @@ static const pico8_mh_t *year_box(int yr) {
 static void test_year_with_a_message(void) {
     run_t run;
 
-    pico8_jl();
+    reset_world();
     pico8_cart_vider_file_sortie();
     run_start(&run);
     track(&run, year_box(3425));
@@ -206,7 +206,7 @@ static void test_year_with_a_message(void) {
 static void test_year_without_a_message(void) {
     run_t run;
 
-    pico8_jl();
+    reset_world();
     pico8_cart_vider_file_sortie();
     run_start(&run);
     track(&run, year_box(3400));
@@ -224,7 +224,7 @@ static void test_two_years_in_a_row(void) {
     const pico8_mh_t *second;
     int i;
 
-    pico8_jl();
+    reset_world();
     pico8_cart_vider_file_sortie();
     run_start(&run);
     first = year_box(3424);
@@ -238,7 +238,7 @@ static void test_two_years_in_a_row(void) {
     assert(first->p_);
     run.h = fnv(run.h, draw_hash());
     tick(&run);
-    assert(!ents_listed(pico8_hv(), first));
+    assert(!ents_listed(live_entities(), first));
     run_out(&run);
     run_check(&run, TWO_YEARS_TICKS, TWO_YEARS_SEQUENCE_HASH, "two years in a row");
 }
@@ -253,7 +253,7 @@ static void set_c_(pico8_pj_t *ju, int on) {
  * `mo`, `je` and `ok`. */
 static pico8_pj_t *game_ju(void) {
     pico8_eu(NULL);
-    pico8_jl();
+    reset_world();
     pico8_cart_vider_file_sortie();
     assert(pico8_ju() != NULL);
     return pico8_ju();
@@ -277,20 +277,20 @@ static void test_scores_box_follows_c_(void) {
     box = pico8_kc();
     assert(box != NULL);
     assert(ju->ed == box);
-    built = ents_count_of(pico8_cg("message_box"));
+    built = ents_count_of(entities_by_tag("message_box"));
     track(&run, box);
     run.h = fnv(run.h, draw_hash());
 
     for (i = 0; i < 80; i++) {
         pico8_pj_ph(ju);
-        assert(ents_count_of(pico8_cg("message_box")) == built);
+        assert(ents_count_of(entities_by_tag("message_box")) == built);
         tick(&run);
-        assert(ents_listed(pico8_hv(), box));
+        assert(ents_listed(live_entities(), box));
     }
     set_c_(ju, 0);
     while (any_listed(&run)) {
         pico8_pj_ph(ju);
-        assert(ents_count_of(pico8_cg("message_box")) == built);
+        assert(ents_count_of(entities_by_tag("message_box")) == built);
         tick(&run);
     }
     run_check(&run, SCORES_TICKS, SCORES_SEQUENCE_HASH, "scores box follows c_");
@@ -300,7 +300,7 @@ static void test_scores_box_follows_c_(void) {
 static void test_defaults_match_the_parsed_spec(void) {
     const pico8_mh_t *box;
 
-    pico8_jl();
+    reset_world();
     pico8_cart_vider_file_sortie();
     box = year_box(3400);
     assert(box->def == &pico8_mh_def);
@@ -334,7 +334,7 @@ static void test_mh_is_a_struct_registered_under_ev(void) {
     int out;
     int i;
 
-    pico8_jl();
+    reset_world();
     pico8_cart_vider_file_sortie();
     from_pj = year_box(3400);
     keys.lh = counting_lh;
@@ -343,9 +343,9 @@ static void test_mh_is_a_struct_registered_under_ev(void) {
     assert(from_pj != NULL);
     assert(generic != NULL);
     assert(pico8_kc() == generic);
-    assert(ents_listed(pico8_hv(), generic) && ents_listed(pico8_cv("draw_overlay"), generic) && ents_listed(pico8_cg("message_box"), generic));
+    assert(ents_listed(live_entities(), generic) && ents_listed(entities_by_message("draw_overlay"), generic) && ents_listed(entities_by_tag("message_box"), generic));
     for (i = 0; i < 4; i++) {
-        assert(!ents_listed(pico8_cv(others[i]), from_pj) && !ents_listed(pico8_cv(others[i]), generic));
+        assert(!ents_listed(entities_by_message(others[i]), from_pj) && !ents_listed(entities_by_message(others[i]), generic));
     }
     assert(((pico8_mh_t *)generic)->lh != NULL);
     out = ((pico8_mh_t *)generic)->lh(generic);
@@ -359,7 +359,7 @@ static void test_mh_nil_lh_key_reads_absent(void) {
     pico8_mh_keys_t keys = {0};
     pico8_mh_t *box;
 
-    pico8_jl();
+    reset_world();
     pico8_cart_vider_file_sortie();
     keys.lh = NULL;
     box = pico8_mh_new(&keys);
@@ -373,7 +373,7 @@ static void test_box_gives_its_place_back(void) {
     run_t run;
     int base;
 
-    pico8_jl();
+    reset_world();
     pico8_cart_vider_file_sortie();
     base = pico8_zone_interface_vivantes(PICO8_SORTE_MH);
     run_start(&run);
@@ -389,8 +389,8 @@ static void test_box_gives_its_place_back(void) {
 static void scribble_frame_zone(void) {
     unsigned char *reuse;
 
-    pico8_zone_frame_reset();
-    reuse = pico8_zone_alloc(pico8_zone_frame(), 4096);
+    frame_zone_reset();
+    reuse = allocator_alloc(frame_zone(), 4096);
     memset(reuse, 'X', 4096);
 }
 
@@ -415,7 +415,7 @@ static void test_scores_box_keeps_its_articles(void) {
 static void test_year_box_keeps_its_label(void) {
     uint32_t want;
 
-    pico8_jl();
+    reset_world();
     pico8_cart_vider_file_sortie();
     (void)year_box(3424);
     want = draw_hash();
@@ -451,9 +451,9 @@ int main(void) {
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(p8_load_map_json(&mem, "pico8/map.json"));
     p8_input_init(&input);
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
 
     pico8_cart_load();
     pico8__init();

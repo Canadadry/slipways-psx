@@ -17,7 +17,7 @@
 typedef struct {
     entity_t header;
     const pico8_bg_def_t *def;
-    pico8_vec_t mq;
+    vec_t mq;
     int has_mq; /* 0: `mq` is nil (no `rdown` yet, or a nil `rp`), read as the zero vector */
     int m_;
 } pico8_bg_t;
@@ -54,8 +54,8 @@ down_t pico8_bg_ldown(pico8_bg_t *self);
 
 /* Copies `rp` into `mq` and returns `self`, which becomes `ui.rheld` for as long
  * as the button stays down. */
-down_t pico8_bg_rdown(pico8_bg_t *self, pico8_vec_t *rp);
+down_t pico8_bg_rdown(pico8_bg_t *self, vec_t *rp);
 
-void pico8_bg_hq(pico8_bg_t *self, pico8_vec_t *rp);
+void pico8_bg_hq(pico8_bg_t *self, vec_t *rp);
 
 #endif

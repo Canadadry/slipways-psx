@@ -9,18 +9,18 @@
 #include "game/scroll.h"
 #include "game/ui.h"
 
-void pico8_jl(void) {
-    pico8_qb_t *real_mo;
-    pico8_nf_t *real_je;
-    pico8_ui_t *real_ok;
+void reset_world(void) {
+    pico8_qb_t *real_main_camera;
+    pico8_nf_t *real_main_mouse;
+    pico8_ui_t *real_main_ui;
 
-    pico8_entity_abandonner_hv();
-    pico8_entity_init();
+    entity_registry_abandon_live_entities();
+    entity_registry_init();
 
     /* Build once, never rebuild. `ke` must exist before `qb`/`nf`/`ui`,
      * whose inits assert it. */
-    if (!pico8_ke_ready()) {
-        pico8_ke_init();
+    if (!entity_ready()) {
+        entity_init();
     }
     if (!pico8_qb_ready()) {
         pico8_qb_init();
@@ -32,25 +32,25 @@ void pico8_jl(void) {
         pico8_ui_init();
     }
 
-    real_mo = pico8_qb_new();
-    real_je = pico8_nf_new();
-    real_ok = pico8_ui_new();
+    real_main_camera = pico8_qb_new();
+    real_main_mouse = pico8_nf_new();
+    real_main_ui = pico8_ui_new();
 
-    pico8_entity_set_mo((entity_t *)real_mo);
-    pico8_ui_set_je((entity_t *)real_je);
-    pico8_ui_set_ok(real_ok);
+    entity_registry_set_main_camera((entity_t *)real_main_camera);
+    pico8_ui_set_je((entity_t *)real_main_mouse);
+    pico8_ui_set_ok(real_main_ui);
 }
 
-void pico8_bootstrap_shutdown(void) {
+void bootstrap_shutdown(void) {
     pico8_ui_shutdown();
     pico8_nf_shutdown();
     pico8_qb_shutdown();
-    pico8_ke_shutdown();
-    pico8_entity_shutdown();
+    entity_shutdown();
+    entity_registry_shutdown();
 }
 
-void pico8_dg(void) {
-    const pico8_ents_t *hv = pico8_hv();
+void update_entities(void) {
+    const entity_list_t *hv = live_entities();
     int i;
 
     /* TROU-5 */
@@ -69,7 +69,7 @@ void pico8_dg(void) {
         }
 
         if (qc->is_dead != NULL && *qc->is_dead) {
-            pico8_he(qc);
+            entity_unregister(qc);
         }
 
         qc->state_time = p8_fixed_add(qc->state_time, p8_fixed_from_int(1));

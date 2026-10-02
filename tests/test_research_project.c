@@ -71,7 +71,7 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
     return h;
 }
 
-static int ents_rank_in(const pico8_ents_t *list, const void *e) {
+static int ents_rank_in(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -135,7 +135,7 @@ static uint32_t fold_ref(uint32_t h, const void *ref, int depth) {
     if (depth <= 0) {
         return h;
     }
-    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), ref));
+    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), ref));
     return fnv(h, (uint32_t)gb_rank(ref));
 }
 
@@ -344,7 +344,7 @@ static uint32_t screen_hash(void) {
  * reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
 }
@@ -354,14 +354,14 @@ static pico8_jo_t *as_jo(void *e) {
     return e;
 }
 
-static pico8_vec_t pos_of(void *e) {
-    const pico8_vec_t *p = as_jo(e)->p;
+static vec_t pos_of(void *e) {
+    const vec_t *p = as_jo(e)->p;
     assert(p != NULL);
     return *p;
 }
 
-static p8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
-    pico8_vec_t d = pico8_vec_sub(a, b);
+static p8_fixed_t dist2(vec_t a, vec_t b) {
+    vec_t d = vec_sub(a, b);
     return p8_fixed_add(p8_fixed_mul(d.x, d.x), p8_fixed_mul(d.y, d.y));
 }
 
@@ -369,16 +369,16 @@ static p8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
  * two joined by a slipway paid by `ey` as a drag pays it (`jc:hq` reads the
  * hovered planet off `ok.o_`), then left to settle. */
 static void built_world(void) {
-    const pico8_ents_t *jos;
+    const entity_list_t *jos;
     pico8_jc_keys_t jc_keys = {0};
-    pico8_vec_t *mp = malloc(sizeof *mp);
+    vec_t *mp = malloc(sizeof *mp);
     void *qu;
     void *re = NULL;
     pico8_jc_t *jc;
     int i;
 
     start_game();
-    jos = pico8_cg("planet");
+    jos = entities_by_tag("planet");
     assert(jos != NULL && jos->count > 1);
     qu = jos->items[0];
     for (i = 1; i < jos->count; i++) {
@@ -392,17 +392,17 @@ static void built_world(void) {
 
     jc_keys.qu = qu;
     jc = pico8_jc_new(&jc_keys);
-    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), p8_fixed_from_int(128)),
-                        pico8_vec_v(p8_fixed_from_int(1), p8_fixed_from_int(1)));
+    *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
+                        vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
     pico8_jc_struct_class()->drag(&jc->header, mp, NULL);
     pico8_ok()->o_ = NULL;
     while (jc->header.state_time < p8_fixed_from_int(15)) {
-        pico8_dg();
+        update_entities();
     }
     pico8_jc_struct_class()->drop(&jc->header, re);
     for (i = 0; i < 120; i++) {
-        pico8_dg();
+        update_entities();
     }
 }
 
@@ -437,7 +437,7 @@ static void test_gb(void) {
 
     for (k = 1; k <= GB_COUNT; k++) {
         pico8_hp_t *b = project(k);
-        const pico8_ptrs_t *i_list;
+        const pointer_list_t *i_list;
         void *found;
         int j;
 
@@ -553,27 +553,27 @@ static void test_functions(void) {
     assert(pico8_hp_jb(NULL) == NULL && pico8_hp_lq(NULL) == NULL);
 }
 
-static pico8_vec_t *vec_ref(pico8_vec_t at) {
-    pico8_vec_t *v = malloc(sizeof *v);
+static vec_t *vec_ref(vec_t at) {
+    vec_t *v = malloc(sizeof *v);
     *v = at;
     return v;
 }
 
-static pico8_vec_t vec_xy(int x, int y) {
-    return pico8_vec_v(p8_fixed_from_int(x), p8_fixed_from_int(y));
+static vec_t vec_xy(int x, int y) {
+    return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
 /* A bare planet on `id`/`p`/`ra`, `ra` offset from `mo`'s. */
 static void *new_planet(const char *id, int x, int y) {
     planet_keys_t keys;
-    const pico8_vec_t *mo_ra;
+    const vec_t *mo_ra;
 
     assert(pico8_mo_qb() != NULL);
     mo_ra = pico8_mo_qb()->ra;
     assert(mo_ra != NULL);
     keys.planet_id = id;
     keys.map_pos = vec_ref(vec_xy(x / 2, y / 2));
-    keys.pos = vec_ref(pico8_vec_add(*mo_ra, vec_xy(x, y)));
+    keys.pos = vec_ref(vec_add(*mo_ra, vec_xy(x, y)));
     return pico8_jo_new(&keys);
 }
 
@@ -617,7 +617,7 @@ static uint32_t fold_kw(uint32_t h, const pico8_jo_t *p) {
 /* A planet's `jy`, folded as the frozen hashes folded the list of tables it was:
  * each want, `qe` (nil included), then `gc` when written. */
 static uint32_t fold_jy(uint32_t h, const pico8_jo_t *p) {
-    const pico8_ptrs_t *jy = p->jy;
+    const pointer_list_t *jy = p->jy;
     int i;
 
     if (jy == NULL) {
@@ -650,7 +650,7 @@ static uint32_t fold_planet(uint32_t h, void *e) {
     h = fold_bool_member(h, (p->p_ != 0), p->p_);
     h = fold_fixed_member(h, 1, p->ma);
     h = p->nk != NULL ? fnv(h, (uint32_t)(p->nk - pico8_df_table)) : fnv(h, 0xFFFFFFFFu);
-    return fnv(h, (uint32_t)ents_rank_in(pico8_hv(), p));
+    return fnv(h, (uint32_t)ents_rank_in(live_entities(), p));
 }
 
 /* `hp:pq` makes a want per character of `i`, one of a character outside
@@ -658,7 +658,7 @@ static uint32_t fold_planet(uint32_t h, void *e) {
 static void test_wants(void) {
     pico8_fd_entry_t ri = {0};
     pico8_hp_keys_t keys = {0};
-    const pico8_ptrs_t *jy;
+    const pointer_list_t *jy;
     pico8_hp_t *b;
     void *a;
     int p;
@@ -718,12 +718,12 @@ static void test_install(void) {
         int before;
         pico8_hp_t *cw = project_with(with_cw, nth);
         a = new_planet(nth == 0 ? "p904" : "p905", 70 + 20 * nth, 18);
-        before = pico8_hv()->count;
+        before = live_entities()->count;
         pico8_jo_hu(a, cw);
         h = fold_string_member(h, cw->cw);
-        h = fnv(h, (uint32_t)(pico8_hv()->count - before));
+        h = fnv(h, (uint32_t)(live_entities()->count - before));
         h = fold_planet(h, a);
-        h = fold_planet(h, pico8_hv()->items[pico8_hv()->count - 1]);
+        h = fold_planet(h, live_entities()->items[live_entities()->count - 1]);
     }
 
     a = new_planet("p906", 110, 20);
@@ -737,12 +737,12 @@ static void test_install(void) {
  * once a frame is played and drawn. */
 static uint32_t fold_world(void) {
     uint32_t h = 2166136261u;
-    const pico8_ents_t *jo;
+    const entity_list_t *jo;
     int i;
 
     pico8__update60();
     pico8__draw();
-    jo = pico8_cg("planet");
+    jo = entities_by_tag("planet");
     for (i = 0; jo != NULL && i < jo->count; i++) {
         h = fnv(h, (uint32_t)gb_rank(as_jo(jo->items[i])->hn));
     }
@@ -761,19 +761,19 @@ static void test_harvested_world(void) {
     int i;
 
     start_game();
-    p = pico8_cg("planet")->items[0];
+    p = entities_by_tag("planet")->items[0];
     pico8_jo_hh(p);
     pico8_jo_hu(p, project_with(with_cw, 1));
-    last = pico8_hv()->items[pico8_hv()->count - 1];
+    last = live_entities()->items[live_entities()->count - 1];
     assert(last != NULL && last->class == pico8_ga_struct_class());
     for (i = 0; i < 60; i++) {
-        pico8_dg();
+        update_entities();
     }
     check("harvested world", fold_world(), HARVESTED_WORLD_HASH);
 }
 
 static size_t octets_d_un_bloc(size_t taille) {
-    return PICO8_ZONE_CELLS(taille) * sizeof(pico8_zone_cell_t);
+    return ZONE_CELLS(taille) * sizeof(zone_cell_t);
 }
 
 /* Each project of `gb`, its list `i`, its items unless empty, its wants. */
@@ -801,22 +801,22 @@ static void test_gb_in_chargement(void) {
 
     for (k = 1; k <= gb_count(); k++) {
         const pico8_hp_t *b = project(k);
-        assert(b->i->capacity == b->i->count && b->i->zone == pico8_zone_chargement());
+        assert(b->i->capacity == b->i->count && b->i->zone == game_zone_load_zone());
     }
-    printf("  chargement apres pico8_cart_load : %lu\n", (unsigned long)pico8_zone_chargement_prise());
-    assert(pico8_zone_chargement_prise() == octets_de_gb());
+    printf("  chargement apres pico8_cart_load : %lu\n", (unsigned long)load_zone_used());
+    assert(load_zone_used() == octets_de_gb());
 }
 
 /* A want is taken from the zone its caller passes. */
 static void test_jy_new_in_the_zone_passed(void) {
     const p8_fixed_t qe = p8_fixed_from_int(3);
-    const size_t chargement = pico8_zone_chargement_prise();
-    const size_t partie = pico8_zone_partie_prise();
-    pico8_jy_t *a = pico8_jy_new(pico8_zone_chargement(), &qe);
-    pico8_jy_t *b = pico8_jy_new(pico8_zone_partie(), NULL);
+    const size_t chargement = load_zone_used();
+    const size_t partie = game_zone_used();
+    pico8_jy_t *a = pico8_jy_new(game_zone_load_zone(), &qe);
+    pico8_jy_t *b = pico8_jy_new(game_zone(), NULL);
 
-    assert(pico8_zone_chargement_prise() == chargement + octets_d_un_bloc(sizeof *a));
-    assert(pico8_zone_partie_prise() == partie + octets_d_un_bloc(sizeof *b));
+    assert(load_zone_used() == chargement + octets_d_un_bloc(sizeof *a));
+    assert(game_zone_used() == partie + octets_d_un_bloc(sizeof *b));
     assert(a->row.has_qe && a->row.qe == qe && !a->has_gc);
     assert(!b->row.has_qe && !b->has_gc);
 }
@@ -841,9 +841,9 @@ static void test_rebuild_and_shutdown(void) {
     assert(pico8_hp_ready() && pico8_hp_fk() == &pico8_hp_fk_row);
     pico8_cart_load();
     test_gb();
-    k = pico8_zone_chargement_prise();
+    k = load_zone_used();
     pico8_cart_load();
-    assert(pico8_zone_chargement_prise() == k);
+    assert(load_zone_used() == k);
 }
 
 static void must_abort(void (*write)(void *), void *e) {
@@ -983,11 +983,11 @@ static void lq_on_other(void *e) {
 }
 
 static void lz_on_other(void *e) {
-    pico8_jo_lz((pico8_jo_t *)pico8_cg("planet")->items[0], e);
+    pico8_jo_lz((pico8_jo_t *)entities_by_tag("planet")->items[0], e);
 }
 
 static void hu_on_other(void *e) {
-    pico8_jo_hu((pico8_jo_t *)pico8_cg("planet")->items[0], e);
+    pico8_jo_hu((pico8_jo_t *)entities_by_tag("planet")->items[0], e);
 }
 
 /* A project is a struct whose descriptor has no method and no writer, its
@@ -1080,9 +1080,9 @@ int main(void) {
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(p8_load_map_json(&mem, "pico8/map.json"));
     p8_input_init(&input);
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
+    dispatch_context_set_input(&input);
 
     pico8_cart_load();
     in_fresh_child(test_gb);

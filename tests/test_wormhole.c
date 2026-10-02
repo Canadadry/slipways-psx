@@ -73,7 +73,7 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int ents_rank_in(const pico8_ents_t *list, const void *e) {
+static int ents_rank_in(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -83,7 +83,7 @@ static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     return -1;
 }
 
-static int ents_listed(const pico8_ents_t *list, const void *e) {
+static int ents_listed(const entity_list_t *list, const void *e) {
     return ents_rank_in(list, e) >= 0;
 }
 
@@ -108,7 +108,7 @@ static pico8_jo_t *as_jo(void *e) {
     return e;
 }
 
-static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
+static uint32_t fold_vec(uint32_t h, const vec_t *p) {
     if (p == NULL) {
         return fnv(h, 0xDEADu);
     }
@@ -150,10 +150,10 @@ static int et_kind(const pico8_mz_t *mz) {
     if (et == (const void *)pico8_mz_jj_wrapper()) {
         return ET_JJ;
     }
-    if (ents_listed(pico8_cg("slipway"), et)) {
+    if (ents_listed(entities_by_tag("slipway"), et)) {
         return ET_JC;
     }
-    if (ents_listed(pico8_cg("planet"), et)) {
+    if (ents_listed(entities_by_tag("planet"), et)) {
         return ET_JO;
     }
     if (is_bv_target(et)) {
@@ -184,19 +184,19 @@ static void check_int(const char *label, int got, int want) {
  * reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
-    pico8_dispatch_set_input(&input);
+    dispatch_context_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
 }
 
-static pico8_vec_t pos_of(void *e) {
+static vec_t pos_of(void *e) {
     const pico8_jo_t *jo = as_jo(e);
     assert(jo->p != NULL);
     return *jo->p;
 }
 
-static p8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
-    pico8_vec_t d = pico8_vec_sub(a, b);
+static p8_fixed_t dist2(vec_t a, vec_t b) {
+    vec_t d = vec_sub(a, b);
     return p8_fixed_add(p8_fixed_mul(d.x, d.x), p8_fixed_mul(d.y, d.y));
 }
 
@@ -204,16 +204,16 @@ static p8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
  * of the galaxy left unknown, then left to settle. `jc:hq` reads the hovered planet off
  * `ok.o_`. */
 static void world(void) {
-    const pico8_ents_t *jos;
+    const entity_list_t *jos;
     pico8_jc_keys_t jc_keys = {0};
-    pico8_vec_t *mp = malloc(sizeof *mp);
+    vec_t *mp = malloc(sizeof *mp);
     void *qu;
     void *re = NULL;
     pico8_jc_t *jc;
     int i;
 
     start_game();
-    jos = pico8_cg("planet");
+    jos = entities_by_tag("planet");
     assert(jos != NULL && jos->count > 1);
     qu = jos->items[0];
     for (i = 1; i < jos->count; i++) {
@@ -227,18 +227,18 @@ static void world(void) {
 
     jc_keys.qu = qu;
     jc = pico8_jc_new(&jc_keys);
-    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), p8_fixed_from_int(128)),
-                        pico8_vec_v(p8_fixed_from_int(1), p8_fixed_from_int(1)));
+    *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
+                        vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
     pico8_jc_struct_class()->drag(&jc->header, mp, NULL);
     pico8_ok()->o_ = NULL;
     while (jc->header.state_time < p8_fixed_from_int(15)) {
-        pico8_dg();
+        update_entities();
     }
     pico8_jc_struct_class()->drop(&jc->header, re);
     assert((void *)jc->re == re);
     for (i = 0; i < SETTLE_TICKS; i++) {
-        pico8_dg();
+        update_entities();
     }
 }
 
@@ -246,19 +246,19 @@ static pico8_mz_t *build_mz(void) {
     return pico8_mz_new();
 }
 
-static pico8_vec_t *vec_ref(int x, int y) {
-    pico8_vec_t *v = malloc(sizeof *v);
-    *v = pico8_vec_v(p8_fixed_from_int(x), p8_fixed_from_int(y));
+static vec_t *vec_ref(int x, int y) {
+    vec_t *v = malloc(sizeof *v);
+    *v = vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
     return v;
 }
 
-static pico8_vec_t *vec_ref_fixed(pico8_vec_t at) {
-    pico8_vec_t *v = malloc(sizeof *v);
+static vec_t *vec_ref_fixed(vec_t at) {
+    vec_t *v = malloc(sizeof *v);
     *v = at;
     return v;
 }
 
-static void hq(void *mz, pico8_vec_t *mp, pico8_vec_t *rp) {
+static void hq(void *mz, vec_t *mp, vec_t *rp) {
     pico8_mz_struct_class()->drag(mz, mp, rp);
 }
 
@@ -270,12 +270,12 @@ static void ey(void *mz) {
  * ticks by `t`, not by calls. */
 static void until_t(const pico8_mz_t *mz, int t) {
     while (mz->header.state_time < p8_fixed_from_int(t)) {
-        pico8_dg();
+        update_entities();
     }
 }
 
 static pico8_jo_t *first_jo_with_me(const char *me) {
-    const pico8_ents_t *list = pico8_cg("planet");
+    const entity_list_t *list = entities_by_tag("planet");
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         pico8_jo_t *jo = as_jo(list->items[i]);
@@ -287,8 +287,8 @@ static pico8_jo_t *first_jo_with_me(const char *me) {
 }
 
 /* The middle of `jc`, in screen units. */
-static pico8_vec_t slipway_mid(pico8_jc_t *jc) {
-    return pico8_vec_mul(pico8_vec_div(pico8_vec_add(pos_of(jc->qu), pos_of(jc->re)), p8_fixed_from_int(2)),
+static vec_t slipway_mid(pico8_jc_t *jc) {
+    return vec_mul(vec_div(vec_add(pos_of(jc->qu), pos_of(jc->re)), p8_fixed_from_int(2)),
                          p8_fixed_from_int(128));
 }
 
@@ -326,24 +326,24 @@ static void check_fresh_mz(void *e) {
     assert(mz->ra == NULL && mz->p == NULL && mz->probe->et == NULL && mz->ij == NULL && !mz->p_);
     assert(mz->ox != NULL);
 
-    assert(ents_listed(pico8_hv(), mz) && ents_listed(pico8_cv("draw"), mz) && ents_listed(pico8_cv("draw_overlay"), mz));
-    assert(ents_listed(pico8_cg("wormhole"), mz));
-    assert(!ents_listed(pico8_cv("hit_test"), mz) && !ents_listed(pico8_cv("new_year"), mz) && !ents_listed(pico8_cv("refresh"), mz));
+    assert(ents_listed(live_entities(), mz) && ents_listed(entities_by_message("draw"), mz) && ents_listed(entities_by_message("draw_overlay"), mz));
+    assert(ents_listed(entities_by_tag("wormhole"), mz));
+    assert(!ents_listed(entities_by_message("hit_test"), mz) && !ents_listed(entities_by_message("new_year"), mz) && !ents_listed(entities_by_message("refresh"), mz));
 }
 
 static void test_construction(void) {
     down_t made;
-    const pico8_ents_t *mzs;
+    const entity_list_t *mzs;
     int before;
 
     start_game();
-    assert(pico8_cg("probe") == NULL || pico8_cg("probe")->count == 0);
-    mzs = pico8_cg("wormhole");
+    assert(entities_by_tag("probe") == NULL || entities_by_tag("probe")->count == 0);
+    mzs = entities_by_tag("wormhole");
     before = mzs == NULL ? 0 : mzs->count;
     made = pico8_bg_ldown(NULL);
     assert(made.stop && made.held != NULL);
-    assert(ents_listed(pico8_cg("probe"), made.held));
-    mzs = pico8_cg("wormhole");
+    assert(ents_listed(entities_by_tag("probe"), made.held));
+    mzs = entities_by_tag("wormhole");
     assert((mzs == NULL ? 0 : mzs->count) == before);
 
     made = pico8_bg_ldown(NULL);
@@ -354,14 +354,14 @@ static void test_construction(void) {
 }
 
 static uint32_t fold_ox(uint32_t h, const pico8_mz_t *mz) {
-    const pico8_ents_t *ox;
+    const entity_list_t *ox;
     int i;
 
     assert(mz->ox != NULL);
     ox = mz->ox;
     h = fnv(h, (uint32_t)ox->count);
     for (i = 0; i < ox->count; i++) {
-        h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), ox->items[i]));
+        h = fnv(h, (uint32_t)ents_rank_in(live_entities(), ox->items[i]));
     }
     return h;
 }
@@ -374,11 +374,11 @@ static void test_ox(void) {
     pico8_jo_t *unlit = NULL;
     pico8_g__t *probe;
     pico8_jo_t *lit;
-    const pico8_ents_t *jos;
+    const entity_list_t *jos;
     int i;
 
     world();
-    jos = pico8_cg("planet");
+    jos = entities_by_tag("planet");
     for (i = 0; unlit == NULL && jos != NULL && i < jos->count; i++) {
         pico8_jo_t *jo = as_jo(jos->items[i]);
         if (jo->fx == 0) {
@@ -407,18 +407,18 @@ static void test_ox(void) {
 
 /* Bytes a registry has taken from the generation: capacities 4, 8, ... up
  * to its own, each growth leaving the old block dead. */
-static size_t registry_bytes(const pico8_ents_t *list) {
+static size_t registry_bytes(const entity_list_t *list) {
     size_t bytes = 0;
     int k;
     for (k = 4; list != NULL && k <= list->capacity; k *= 2) {
-        bytes += PICO8_ZONE_CELLS((size_t)k * sizeof(entity_t *)) * sizeof(pico8_zone_cell_t);
+        bytes += ZONE_CELLS((size_t)k * sizeof(entity_t *)) * sizeof(zone_cell_t);
     }
     return bytes;
 }
 
 static size_t generation_but_registries(void) {
-    return pico8_zone_partie_prise() - registry_bytes(pico8_hv()) - registry_bytes(pico8_cv("draw")) -
-           registry_bytes(pico8_cv("draw_overlay")) - registry_bytes(pico8_cg("wormhole"));
+    return game_zone_used() - registry_bytes(live_entities()) - registry_bytes(entities_by_message("draw")) -
+           registry_bytes(entities_by_message("draw_overlay")) - registry_bytes(entities_by_tag("wormhole"));
 }
 
 /* A built `mz` takes one grab arena, `ox` reserved to the exact count;
@@ -430,7 +430,7 @@ static void test_arena(void) {
 
     world();
     pico8_cart_vider_file_sortie();
-    assert(!pico8_zone_partie_en_attente());
+    assert(!game_zone_pending());
     build_mz();
     before = generation_but_registries();
     mz = build_mz();
@@ -439,13 +439,13 @@ static void test_arena(void) {
     assert(generation_but_registries() == before + PICO8_JO_PRISE_OCTETS);
     assert(mz->ox->count > 0 && mz->ox->count == mz->ox->capacity);
     for (i = 1; i < mz->ox->count; i++) {
-        assert(ents_rank_in(pico8_hv(), mz->ox->items[i - 1]) < ents_rank_in(pico8_hv(), mz->ox->items[i]));
+        assert(ents_rank_in(live_entities(), mz->ox->items[i - 1]) < ents_rank_in(live_entities(), mz->ox->items[i]));
     }
 
     ey(mz);
     assert(mz->p_);
-    pico8_dg();
-    assert(!ents_listed(pico8_hv(), mz));
+    update_entities();
+    assert(!ents_listed(live_entities(), mz));
     pico8_cart_vider_file_sortie();
     before = generation_but_registries();
     build_mz();
@@ -486,34 +486,34 @@ static uint32_t fold_hq(uint32_t h, const pico8_mz_t *mz, int want_kind) {
         }
     }
     assert(mz->ij != NULL);
-    return fnv(h, (uint32_t)ents_rank_in(pico8_hv(), mz->ij));
+    return fnv(h, (uint32_t)ents_rank_in(live_entities(), mz->ij));
 }
 
 /* A quarter of the slipway's length past its `qu` end: near that
  * colonized anchor, off the slipway's segment. */
-static pico8_vec_t near_anchor(void) {
-    const pico8_ents_t *jcs = pico8_cg("slipway");
+static vec_t near_anchor(void) {
+    const entity_list_t *jcs = entities_by_tag("slipway");
     const pico8_jc_t *jc;
-    pico8_vec_t qu;
-    pico8_vec_t re;
+    vec_t qu;
+    vec_t re;
 
     assert(jcs != NULL && jcs->count == 1);
     jc = as_jc(jcs->items[0]);
     qu = pos_of(jc->qu);
     re = pos_of(jc->re);
-    return pico8_vec_mul(pico8_vec_add(qu, pico8_vec_div(pico8_vec_sub(qu, re), p8_fixed_from_int(4))),
+    return vec_mul(vec_add(qu, vec_div(vec_sub(qu, re), p8_fixed_from_int(4))),
                          p8_fixed_from_int(128));
 }
 
 static void test_hq(void) {
     uint32_t h = 2166136261u;
     pico8_mz_t *mz;
-    const pico8_ents_t *jcs;
-    pico8_vec_t mid;
+    const entity_list_t *jcs;
+    vec_t mid;
 
     world();
     mz = build_mz();
-    jcs = pico8_cg("slipway");
+    jcs = entities_by_tag("slipway");
     assert(jcs != NULL && jcs->count > 0);
     mid = slipway_mid(as_jc(jcs->items[0]));
     hq(mz, vec_ref_fixed(mid), vec_ref(64, 64));
@@ -536,12 +536,12 @@ static void test_kz_ticks(void) {
     world();
     mz = build_mz();
     for (i = 0; i < KZ_TICKS; i++) {
-        pico8_dg();
+        update_entities();
         assert(p__state(mz) == 0);
         assert(mz->header.state_time == p8_fixed_from_int(i + 1));
         h = fnv(h, (uint32_t)mz->oi);
     }
-    assert(ents_listed(pico8_hv(), mz));
+    assert(ents_listed(live_entities(), mz));
     check("kz ticks", h, KZ_HASH);
 }
 
@@ -599,7 +599,7 @@ static void test_ey(void) {
 }
 
 static int unknown_count(void) {
-    const pico8_ents_t *jo = pico8_cg("planet");
+    const entity_list_t *jo = entities_by_tag("planet");
     int n = 0;
     int i;
     for (i = 0; jo != NULL && i < jo->count; i++) {
@@ -615,7 +615,7 @@ static int unknown_count(void) {
 static pico8_mz_t *paid_mz_on_unknown(void) {
     pico8_mz_t *mz = build_mz();
     pico8_jo_t *unknown = first_jo_with_me("unknown");
-    pico8_vec_t *p = malloc(sizeof *p);
+    vec_t *p = malloc(sizeof *p);
 
     assert(unknown != NULL);
     until_t(mz, 15);
@@ -637,20 +637,20 @@ static void test_pr_ticks(void) {
 
     world();
     mz = paid_mz_on_unknown();
-    while (ents_listed(pico8_hv(), mz)) {
+    while (ents_listed(live_entities(), mz)) {
         int before = unknown_count();
-        pico8_dg();
+        update_entities();
         tick++;
         assert(tick < 100);
         revealed += before - unknown_count();
         h = fnv(h, (uint32_t)(before - unknown_count()));
         h = fnv(h, p__state(mz));
-        h = fnv(h, (uint32_t)ents_listed(pico8_cv("draw"), mz));
-        h = fnv(h, (uint32_t)ents_listed(pico8_cg("wormhole"), mz));
+        h = fnv(h, (uint32_t)ents_listed(entities_by_message("draw"), mz));
+        h = fnv(h, (uint32_t)ents_listed(entities_by_tag("wormhole"), mz));
     }
     printf("[pr] left hv after %d ticks, %d planets revealed\n", tick, revealed);
     assert(revealed > 0);
-    assert(!ents_listed(pico8_cv("draw"), mz) && !ents_listed(pico8_cv("draw_overlay"), mz) && !ents_listed(pico8_cg("wormhole"), mz));
+    assert(!ents_listed(entities_by_message("draw"), mz) && !ents_listed(entities_by_message("draw_overlay"), mz) && !ents_listed(entities_by_tag("wormhole"), mz));
     check_int("pr exit tick", tick, PR_EXIT_TICK);
     check("pr ticks", h, PR_HASH);
 }
@@ -709,7 +709,7 @@ static void test_draw(void) {
 
     mz = paid_mz_on_unknown();
     for (t = 1; t <= 20; t++) {
-        pico8_dg();
+        update_entities();
         if (t == 4 || t == 9 || t == 20) {
             uint32_t d = draw(mz);
             assert(d != blank);
@@ -761,8 +761,8 @@ static void test_jj_wrapper(void) {
     void *wrapper;
     pico8_mz_t *mz;
     pico8_mz_t *other;
-    const pico8_ents_t *jcs;
-    pico8_vec_t mid;
+    const entity_list_t *jcs;
+    vec_t mid;
 
     world();
     wrapper = (void *)pico8_mz_jj_wrapper();
@@ -776,7 +776,7 @@ static void test_jj_wrapper(void) {
     assert(et_kind(mz) == ET_JJ);
     check_jj_untouched();
 
-    jcs = pico8_cg("slipway");
+    jcs = entities_by_tag("slipway");
     assert(jcs != NULL && jcs->count > 0);
     mid = slipway_mid(as_jc(jcs->items[0]));
     hq(mz, vec_ref_fixed(mid), vec_ref(64, 64));
@@ -855,8 +855,8 @@ int main(void) {
     p8_gfx_init(&gfx);
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(p8_load_map_json(&mem, "pico8/map.json"));
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
+    dispatch_context_set_gfx(&gfx);
+    dispatch_context_set_mem(&mem);
 
     pico8_cart_load();
     in_fresh_child(test_construction);

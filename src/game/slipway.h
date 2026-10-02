@@ -38,8 +38,8 @@ int pico8_jc_hg_has(const pico8_jc_hg_t *hg, const char *id);
  * a copy of the caller's `mp` (NULL for a nil `mp`), `p` at its `point_p`. */
 typedef struct {
     entity_t header;
-    const pico8_vec_t *ra;
-    const pico8_vec_t *p;
+    const vec_t *ra;
+    const vec_t *p;
 } pico8_jc_mouse_point_t;
 
 /* `ts` is this slipway's own, made by `pico8_jc_pq`, which also empties
@@ -54,7 +54,7 @@ typedef struct {
     p8_fixed_t fa;
     p8_fixed_t nh;
     entity_t *qu; /* borrowed, never freed */
-    pico8_ptrs_t *ts;
+    pointer_list_t *ts;
     pico8_jc_hg_t *hg;
     pico8_jc_hg_t hg_own;
     entity_t *re; /* borrowed, never freed */
@@ -65,8 +65,8 @@ typedef struct {
     pico8_probe_t *probe;
     pico8_probe_t probe_own;
     pico8_jc_mouse_point_t point;
-    pico8_vec_t point_ra;
-    pico8_vec_t point_p;
+    vec_t point_ra;
+    vec_t point_p;
 } pico8_jc_t;
 
 /* The one static `{qs="-too far-"}` struct `jc:ce` returns: `fo` is the last
@@ -89,8 +89,8 @@ int pico8_jc_ready(void);
 /* `p`/`ra` of an end of a slipway (a planet, or the mouse point `jc:hq`
  * hangs on `re` over nothing), read through its link: NULL, an end without
  * the link, or an absent vector reads as the zero vector. */
-pico8_vec_t pico8_jc_end_p(const entity_t *end);
-pico8_vec_t pico8_jc_end_ra(const entity_t *end);
+vec_t pico8_jc_end_p(const entity_t *end);
+vec_t pico8_jc_end_ra(const entity_t *end);
 
 /* The cart's key `qu` of a slipway: NULL is nil, else a planet a slipway
  * starts from, which the type does not enforce (an assert does). */
@@ -113,7 +113,7 @@ void pico8_jc_pq(pico8_jc_t *self);
  * `mt`, `et` and `fa`, and points the `fo` of whatever `ce()` found -- a
  * planet, another `jc` struct or the static `{qs}` struct -- back at this
  * slipway. */
-void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp);
+void pico8_jc_hq(pico8_jc_t *self, vec_t *mp);
 
 /* A NULL `re`, or a `d_()` that refuses, only raises `self.p_`; both
  * endpoints are registered on success. */
@@ -132,6 +132,6 @@ entity_t *pico8_jc_eb(const pico8_jc_t *self, const entity_t *jo_instance);
 
 void pico8_jc_ev(pico8_jc_t *self);
 
-void pico8_jc_kj_dispatch(entity_t *self, const pico8_vec_t *ra);
+void pico8_jc_kj_dispatch(entity_t *self, const vec_t *ra);
 
 #endif
