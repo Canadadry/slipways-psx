@@ -1,5 +1,5 @@
 # Table de renommage du plan 5 (docs/plan-5.md, étape 2b).
-# Statut : à valider
+# Statut : validé
 # Lignes identifiant écrites par `make rename-derive` (tools/rename_derive.py),
 # lignes chaîne et fichier par `make rename-strings` (tools/rename_strings.py) :
 # corriger docs/vocabulaire.md ou tools/rename_overrides.tsv, pas ces lignes.
