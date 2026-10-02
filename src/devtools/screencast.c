@@ -3,19 +3,19 @@
 #include <assert.h>
 #include <stddef.h>
 
-/* 8192 est une constante du format publie, mais la macro est derivee des
- * dimensions de l'ecran : cette assertion de compilation relie les deux,
- * de sorte qu'un changement de dimensions casse la construction ici au
- * lieu de changer le format en silence. */
+/* 8192 is a constant of the published format, but the macro derives from
+ * the screen size: this compile-time assertion ties the two, so that a
+ * change of screen size breaks the build here instead of silently
+ * changing the format. */
 typedef char screencast_frame_is_8192_bytes_t[(SCREENCAST_FRAME_BYTES == 8192) ? 1 : -1];
 
 int screencast_writer_open(screencast_writer_t *writer, const char *path) {
     assert(writer);
     assert(path);
 
-    /* "wb" et jamais "ab" : deux captures concatenees seraient une
-     * partie que personne n'a jouee, et leur taille resterait un
-     * multiple de 8192, donc aucune validation ne les rattraperait. */
+    /* "wb" and never "ab": two concatenated captures would be a game
+     * nobody played, and their size would still be a multiple of 8192, so
+     * no validation would catch them. */
     writer->file = fopen(path, "wb");
     return writer->file != NULL;
 }
@@ -30,9 +30,9 @@ int screencast_write_frame(screencast_writer_t *writer, const p8_memory_t *mem) 
     for (int i = 0; i < SCREENCAST_FRAME_BYTES; i++) {
         unsigned char even = p8_peek(mem, P8_ADDR_SCREEN + i * 2);
         unsigned char odd = p8_peek(mem, P8_ADDR_SCREEN + i * 2 + 1);
-        /* Un octet > 0x0f deborderait sur le quartet voisin et
-         * corromprait le pixel d'a cote, ce qui ne se verrait que plus
-         * tard, comme une divergence de rendu. */
+        /* A byte above 0x0f would spill into the neighbouring nibble and
+         * corrupt the pixel next to it, which would only show later, as a
+         * rendering divergence. */
         assert(even <= 0x0f);
         assert(odd <= 0x0f);
         packed[i] = (unsigned char)(even | (odd << 4));
@@ -105,9 +105,9 @@ int screencast_read_frame(screencast_reader_t *reader, int index, unsigned char 
         return 0;
     }
 
-    /* Le cast en long precede la multiplication, et doit y rester : sur
-     * un `int` de 32 bits, index x 8192 deborde des 262144 frames (72
-     * minutes a 60 Hz), bien avant la limite de fseek lui-meme. */
+    /* The cast to long comes before the multiplication, and must stay
+     * there: with a 32-bit `int`, index x 8192 overflows past 262144
+     * frames (72 minutes at 60 Hz), well before fseek's own limit. */
     if (fseek(reader->file, (long)index * SCREENCAST_FRAME_BYTES, SEEK_SET) != 0) {
         return 0;
     }

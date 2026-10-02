@@ -1,20 +1,20 @@
-/* Le format d'une capture, en entier. Aucun autre module ne le connait :
- * ni le pilote headless ni le visualiseur ne calculent d'offset.
- * Concatenation brute des frames dans l'ordre de capture, sans en-tete,
- * sans index, sans numero de version. Une frame occupe
- * PICO8_SCREENCAST_FRAME_BYTES = 8192 octets : les 16384 pixels de
- * l'ecran 128x128, deux pixels par octet, dans l'ordre de balayage de la
- * memoire ecran. L'octet d'indice k tient le pixel 2k dans son quartet de
- * poids FAIBLE et le pixel 2k+1 dans celui de poids fort. La frame N
- * commence donc a l'offset N x 8192, et le nombre de frames est la taille
- * du fichier divisee par 8192, jamais un compteur stocke. Ce contrat est
- * public -- un script exterieur doit pouvoir lire le fichier sans le code
- * du projet -- et tests/test_screencast.c asserte l'ordre des
- * quartets sur les octets bruts, ce qu'un aller-retour ne prouverait pas.
+/* The whole capture format; no other module knows it: neither the replay
+ * driver nor screencast_viewer computes an offset.
+ * Raw frames concatenated in capture order, with no header, no index and
+ * no version number. A frame takes SCREENCAST_FRAME_BYTES = 8192 bytes:
+ * the 16384 pixels of the 128x128 screen, two pixels per byte, in the
+ * scan order of the screen memory. Each byte holds two horizontally
+ * adjacent pixels: the even-indexed one in its LOW nibble, the
+ * odd-indexed one in its high nibble. Frame N therefore starts at offset
+ * N x 8192, and the frame count is the file size divided by 8192, never a
+ * stored counter. This contract is public -- an outside script must be
+ * able to read the file without the project's code -- and
+ * tests/test_screencast.c asserts the nibble order on the raw bytes,
+ * which a round trip would not prove.
  *
- * Rien ici n'inclut raylib.h et rien ici ne doit l'inclure : un fichier
- * qui lie raylib sort de `make unit`, donc le format, la lecture et la
- * validation de taille ne seraient plus verifiables sans fenetre. */
+ * Nothing here includes raylib.h and nothing here may: a file that links
+ * raylib leaves `make unit`, so the format, the reading and the size
+ * validation could no longer be checked without a window. */
 
 #ifndef DEVTOOLS_SCREENCAST_H
 #define DEVTOOLS_SCREENCAST_H
@@ -24,86 +24,83 @@
 
 #include <stdio.h>
 
-/* Les 16384 pixels d'une frame, un par octet : la taille du tampon que
- * pico8_screencast_read_frame remplit. */
+/* The 16384 pixels of a frame, one per byte: the size of the buffer that
+ * screencast_read_frame fills. */
 #define SCREENCAST_FRAME_PIXELS (P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT)
 
-/* Les 8192 octets qu'une frame occupe DANS LE FICHIER, deux pixels par
- * octet. */
+/* The 8192 bytes a frame takes IN THE FILE, two pixels per byte. */
 #define SCREENCAST_FRAME_BYTES (SCREENCAST_FRAME_PIXELS / 2)
 
-/* La capture en cours d'ecriture ; `file` ne s'ecrit pas directement. */
+/* The capture being written; `file` is only written through this module. */
 typedef struct {
     FILE *file;
 } screencast_writer_t;
 
-/* Commence une capture a `path`, en tronquant un fichier existant. Rend
- * 1 si le fichier est ouvert, 0 sinon ; apres un echec, `*writer` reste
- * sur a passer a pico8_screencast_writer_close. */
+/* Starts a capture at `path`, truncating an existing file. Returns 1 if
+ * the file is open, 0 otherwise; after a failure, `*writer` is safe to
+ * pass to screencast_writer_close. */
 int screencast_writer_open(screencast_writer_t *writer, const char *path);
 
-/* Ajoute une frame a la capture, lue depuis la memoire ecran de `mem`
- * (PICO8_ADDR_SCREEN) et empaquetee dans le format ci-dessus. Rend 1 si
- * les 8192 octets ont ete ecrits, 0 sinon. L'echec est rendu a
- * l'appelant et non absorbe : contrairement a pico8_session_recorder,
- * perdre une frame ici produit un fichier tronque dont on tirerait une
- * empreinte fausse. */
+/* Appends a frame to the capture, read from the screen of the PICO-8
+ * memory (P8_ADDR_SCREEN) and packed in the format above. Returns 1 if
+ * the 8192 bytes were written, 0 otherwise. The failure goes back to the
+ * caller instead of being absorbed: unlike session_recorder_record_frame,
+ * which drops a frame it cannot append, losing a frame here yields a
+ * truncated file whose sha256 would be wrong. */
 int screencast_write_frame(screencast_writer_t *writer, const p8_memory_t *mem);
 
-/* Termine la capture et rend 1 si la fermeture a reussi, 0 sinon --
- * fclose est le dernier endroit ou une ecriture tamponnee peut echouer.
- * Sur un writer dont l'ouverture avait echoue, ne fait rien et rend 1 ;
- * appeler deux fois est sans effet. */
+/* Ends the capture and returns 1 if closing succeeded, 0 otherwise --
+ * fclose is the last place where a buffered write can fail. On a writer
+ * whose opening failed, does nothing and returns 1; a second call has no
+ * effect. */
 int screencast_writer_close(screencast_writer_t *writer);
 
-/* Le sort d'une ouverture en lecture. La distinction entre les causes
- * appartient a ce module, le message a l'appelant. */
+/* The outcome of opening a capture for reading. Telling the causes apart
+ * belongs to this module, the message to the caller. */
 typedef enum {
-    /* Le fichier est ouvert et sa taille est un nombre entier et non nul
-     * de frames. */
+    /* The file is open and its size is a whole, non-zero number of
+     * frames. */
     SCREENCAST_OK = 0,
-    /* Absent, ou illisible. */
+    /* Missing, or unreadable. */
     SCREENCAST_UNREADABLE = 1,
-    /* Present et vide. Une valeur a part, et non un cas de taille
-     * invalide : zero EST un multiple de 8192, donc sans ce refus
-     * explicite un fichier vide passerait pour une capture de zero
-     * frame. */
+    /* Present and empty. A value of its own, not a case of invalid size:
+     * zero IS a multiple of 8192, so without this explicit refusal an
+     * empty file would pass for a capture of zero frames. */
     SCREENCAST_EMPTY = 2,
-    /* La taille n'est pas un multiple de PICO8_SCREENCAST_FRAME_BYTES :
-     * le fichier se termine au milieu d'une frame. */
+    /* The size is not a multiple of SCREENCAST_FRAME_BYTES: the file
+     * ends in the middle of a frame. */
     SCREENCAST_TRUNCATED = 3
 } screencast_status_t;
 
-/* Une capture ouverte en lecture. Les deux champs ne valent quelque
- * chose que si l'ouverture a rendu PICO8_SCREENCAST_OK ; dans les trois
- * autres cas le fichier est deja referme et le compte nul, de sorte que
- * pico8_screencast_reader_close soit valide quel que soit le sort. */
+/* A capture open for reading. Both fields mean something only if opening
+ * returned SCREENCAST_OK; in the three other cases the file is already
+ * closed and the count is zero, so that screencast_reader_close is valid
+ * whatever the outcome. */
 typedef struct {
     FILE *file;
     int frame_count;
 } screencast_reader_t;
 
-/* Ouvre une capture en lecture et valide sa taille. Le fichier est
- * ouvert en "rb" et JAMAIS en ecriture : relire une capture ne doit pas
- * pouvoir en changer un octet. */
+/* Opens a capture for reading and validates its size. The file is opened
+ * read-only and NEVER for writing: reading a capture back must not be
+ * able to change one of its bytes. */
 screencast_status_t screencast_reader_open(screencast_reader_t *reader, const char *path);
 
-/* Combien de frames la capture contient. 0 si l'ouverture a echoue.
- * C'est la borne des index acceptes ci-dessous. */
+/* How many frames the capture holds. 0 if opening failed. It bounds the
+ * indexes accepted below. */
 int screencast_frame_count(const screencast_reader_t *reader);
 
-/* Lit la frame `index` (0 a frame_count-1) dans `out_pixels`, qui doit
- * pouvoir tenir PICO8_SCREENCAST_FRAME_PIXELS octets. Chaque octet rendu
- * est UN pixel, de valeur 0 a 15 : le depaquetage des quartets est fait
- * ici. Rend 1 en cas de succes ; rend 0 et laisse `out_pixels` intact si
- * l'index est hors des frames du fichier ou si la lecture echoue. Rien
- * ne garde de position courante, donc les index peuvent etre demandes
- * dans n'importe quel ordre et autant de fois qu'on veut. */
+/* Reads frame `index` (0 to frame_count - 1) into `out_pixels`, which must
+ * hold SCREENCAST_FRAME_PIXELS bytes. Each byte returned is ONE pixel,
+ * from 0 to 15: the nibbles are unpacked here. Returns 1 on success;
+ * returns 0 and leaves `out_pixels` untouched if the index is outside the
+ * file's frames or if the read fails. No current position is kept, so
+ * indexes may be asked for in any order and as many times as needed. */
 int screencast_read_frame(screencast_reader_t *reader, int index, unsigned char *out_pixels);
 
-/* Referme la capture et rend `*reader` a son etat d'avant l'ouverture.
- * Sur une ouverture qui avait echoue, et sur un reader deja ferme, ne
- * fait rien. Rien ne peut echouer : aucune ecriture n'est en attente. */
+/* Closes the capture and returns `*reader` to its state before opening.
+ * On an opening that failed, and on a reader already closed, does
+ * nothing. Nothing can fail: no write is pending. */
 void screencast_reader_close(screencast_reader_t *reader);
 
 #endif

@@ -1,7 +1,7 @@
-/* Le format de capture vu du dehors : des pixels a des positions
- * donnees, un nombre de frames, des refus sur des fichiers invalides --
- * jamais la presence d'un champ, d'une fonction ou d'une structure
- * interne. Les fichiers de travail sont ecrits sous tmp/ et effaces. */
+/* The capture format seen from outside: pixels at given positions, a
+ * frame count, refusals of invalid files -- never the presence of an
+ * internal field, function or structure. The working files are written
+ * under tmp/ and removed. */
 
 #include "devtools/screencast.h"
 
@@ -12,11 +12,11 @@
 #include <stdio.h>
 #include <string.h>
 
-/* Le pixel d'indice i vaut (i + seed) & 0x0f : deux frames de seeds
- * distincts different en presque tout point, ce qui donne aux
- * assertions ci-dessous le pouvoir de distinguer la frame N de la
- * frame N+1, donc d'echouer sur un offset decale ou deux frames
- * interverties. Un motif constant les rendrait toutes aveugles. */
+/* A pixel's value is its index plus the seed, on four bits: two frames
+ * with distinct seeds differ almost everywhere, which gives the
+ * assertions below the power to tell frame N from frame N+1, and so to
+ * fail on a shifted offset or on two swapped frames. A constant pattern
+ * would make them all blind. */
 static void paint_frame(p8_memory_t *mem, int seed) {
     for (int i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
         p8_poke(mem, P8_ADDR_SCREEN + i, (unsigned char)((i + seed) & 0x0f));
@@ -31,7 +31,7 @@ static unsigned char pixel_at(const unsigned char *frame, int x, int y) {
     return frame[y * P8_SCREEN_WIDTH + x];
 }
 
-/* Ecrit `count` frames de seeds 0..count-1 a `path`. */
+/* Writes `count` frames with seeds 0..count-1 to `path`. */
 static void write_seeded_frames(const char *path, int count) {
     screencast_writer_t writer;
     p8_memory_t mem;
@@ -45,10 +45,10 @@ static void write_seeded_frames(const char *path, int count) {
     assert(screencast_writer_close(&writer) == 1);
 }
 
-/* L'aller-retour : ce qui a ete ecrit depuis la memoire du jeu se relit
- * pixel pour pixel. Les positions asserties couvrent les quatre coins et
- * le centre, et les deux quartets d'un meme octet (x pair et x impair),
- * seul endroit ou une inversion de quartets se verrait. */
+/* The round trip: what was written from the game memory reads back pixel
+ * for pixel. The asserted positions cover the four corners and the
+ * centre, and both nibbles of one byte (an even and an odd column), the
+ * only place where swapped nibbles would show. */
 static void test_written_frame_reads_back_pixel_for_pixel(void) {
     const char *path = "tmp/test_screencast_roundtrip.bin";
     screencast_reader_t reader;
@@ -70,11 +70,10 @@ static void test_written_frame_reads_back_pixel_for_pixel(void) {
     remove(path);
 }
 
-/* Le nombre de frames est la taille du fichier divisee par la taille
- * d'une frame, et rien d'autre : le format n'a ni en-tete ni index ou
- * un compteur pourrait se cacher. L'assertion sur la taille du fichier
- * est l'autre moitie de la meme affirmation, et c'est elle qui fixe les
- * 8 192 octets par frame. */
+/* The frame count is the file size divided by the size of a frame, and
+ * nothing else: the format has no header nor index where a counter could
+ * hide. The assertion on the file size is the other half of the same
+ * claim, and it is the one that pins 8 192 bytes per frame. */
 static void test_frame_count_is_file_size_divided_by_frame_size(void) {
     const char *path = "tmp/test_screencast_count.bin";
     screencast_reader_t reader;
@@ -94,10 +93,10 @@ static void test_frame_count_is_file_size_divided_by_frame_size(void) {
     remove(path);
 }
 
-/* Chaque frame du fichier est la sienne, dans l'ordre ou elle a ete
- * ecrite. Les assertions portent sur les valeurs des pixels et pas sur
- * le nombre de frames, parce qu'une source qui les servirait a l'envers
- * passerait un test qui les compterait. */
+/* Each frame of the file is its own, in the order it was written. The
+ * assertions bear on pixel values and not on the frame count, because a
+ * source that served the frames backwards would pass a test that counted
+ * them. */
 static void test_each_frame_holds_its_own_pixels_in_order(void) {
     const char *path = "tmp/test_screencast_in_order.bin";
     screencast_reader_t reader;
@@ -120,11 +119,10 @@ static void test_each_frame_holds_its_own_pixels_in_order(void) {
     remove(path);
 }
 
-/* Rien dans le format n'oblige a lire les frames dans l'ordre, et une
- * lecture qui dependrait de l'ordre ferait mentir "la frame N est a
- * l'offset N x 8192". L'ordre teste lit a rebours, saute, et relit une
- * frame deja lue ; on exige les memes pixels qu'en lecture
- * sequentielle. */
+/* Nothing in the format forces frames to be read in order, and a read
+ * that depended on the order would belie "frame N is at offset
+ * N x 8192". The tested order reads backwards, skips, and reads a frame
+ * again; the pixels must be the same as in a sequential read. */
 static void test_frames_can_be_read_out_of_sequence(void) {
     const char *path = "tmp/test_screencast_out_of_order.bin";
     screencast_reader_t reader;
@@ -148,9 +146,9 @@ static void test_frames_can_be_read_out_of_sequence(void) {
     remove(path);
 }
 
-/* Un fichier absent est refuse a l'ouverture, avec un resultat qui lui
- * est propre : une fenetre ouverte sur du noir est indiscernable d'une
- * session qui commence par un ecran noir. */
+/* A missing file is refused at opening, with a result of its own: a
+ * window opened on black cannot be told from a session that starts on a
+ * black screen. */
 static void test_missing_file_is_refused(void) {
     screencast_reader_t reader;
 
@@ -161,8 +159,8 @@ static void test_missing_file_is_refused(void) {
     screencast_reader_close(&reader);
 }
 
-/* Ecrit `size` octets arbitraires a `path`, pour fabriquer les
- * fichiers que la lecture doit refuser. */
+/* Writes `size` arbitrary bytes to `path`, to build the files that
+ * reading must refuse. */
 static void write_raw_bytes(const char *path, long size) {
     FILE *raw = fopen(path, "wb");
     assert(raw != NULL);
@@ -172,10 +170,10 @@ static void write_raw_bytes(const char *path, long size) {
     assert(fclose(raw) == 0);
 }
 
-/* Un fichier vide est refuse et n'est pas une capture de zero frame :
- * zero est un multiple de 8 192, donc sans ce refus explicite il
- * passerait la validation de taille et le visualiseur ouvrirait une
- * fenetre sur rien. */
+/* An empty file is refused and is not a capture of zero frames: zero is a
+ * multiple of 8 192, so without this explicit refusal it would pass the
+ * size validation, and screencast_viewer would reach its player with zero
+ * frames, which screencast_player_init only stops by an assert. */
 static void test_empty_file_is_refused(void) {
     const char *path = "tmp/test_screencast_empty.bin";
     screencast_reader_t reader;
@@ -189,12 +187,11 @@ static void test_empty_file_is_refused(void) {
     remove(path);
 }
 
-/* Une taille qui n'est pas un multiple de la taille d'une frame decrit
- * une frame incomplete : fichier tronque, ou ecriture interrompue. Le
- * refuser a l'ouverture est ce qui empeche de confondre un fichier
- * incomplet avec une session courte. Les deux tailles testees sont les
- * deux formes du cas : 8191 = moins d'une frame, 2 x 8192 + 1 = des
- * frames entieres suivies d'un reste. */
+/* A size that is not a multiple of the frame size describes an incomplete
+ * frame: a truncated file, or an interrupted write. Refusing it at opening
+ * is what keeps an incomplete file from being taken for a short session.
+ * The two tested sizes are the two shapes of the case: 8191, less than
+ * one frame; 2 x 8192 + 1, whole frames followed by a remainder. */
 static void test_size_that_is_not_a_whole_number_of_frames_is_refused(void) {
     const char *short_path = "tmp/test_screencast_short.bin";
     const char *ragged_path = "tmp/test_screencast_ragged.bin";
@@ -213,9 +210,9 @@ static void test_size_that_is_not_a_whole_number_of_frames_is_refused(void) {
     remove(ragged_path);
 }
 
-/* Un echec d'ecriture est rendu a l'appelant plutot que subi en
- * silence, et aucun fichier n'est laisse derriere : un fichier partiel
- * produirait une empreinte fausse, indiscernable d'une regression. */
+/* A write failure is returned to the caller rather than silently
+ * suffered, and no file is left behind: a partial file would yield a
+ * wrong sha256, indistinguishable from a regression. */
 static void test_writer_reports_a_path_it_cannot_open(void) {
     const char *path = "tmp/test_screencast_no_such_dir/capture.bin";
     screencast_writer_t writer;
@@ -227,7 +224,7 @@ static void test_writer_reports_a_path_it_cannot_open(void) {
     screencast_reader_close(&reader);
 }
 
-/* Lit tout le fichier et rend sa taille. */
+/* Reads the whole file and returns its size. */
 static long read_whole_file(const char *path, unsigned char *out, long capacity) {
     FILE *raw = fopen(path, "rb");
     assert(raw != NULL);
@@ -236,10 +233,10 @@ static long read_whole_file(const char *path, unsigned char *out, long capacity)
     return (long)got;
 }
 
-/* Un aller-retour par la lecture ne change pas un octet du fichier.
- * C'est la propriete dont depend l'empreinte de `make e2e` : le
- * jour ou une lecture modifierait le fichier qu'elle lit, regarder une
- * capture suffirait a la faire diverger. */
+/* A round trip through reading does not change one byte of the file.
+ * The sha256 of `make e2e` depends on this property: the day a read
+ * modified the file it reads, looking at a capture would be enough to
+ * make it diverge. */
 static void test_reading_leaves_the_file_byte_for_byte_unchanged(void) {
     const char *path = "tmp/test_screencast_readonly.bin";
     screencast_reader_t reader;
@@ -262,11 +259,11 @@ static void test_reading_leaves_the_file_byte_for_byte_unchanged(void) {
     remove(path);
 }
 
-/* Demander une frame que le fichier n'a pas est refuse, et le tampon de
- * l'appelant n'est pas touche : sans ce refus, le visualiseur qui
- * depasse la fin afficherait le contenu precedent de son tampon, c'est
- * a dire la derniere frame lue, et une capture finie ressemblerait a
- * une capture figee. */
+/* Asking for a frame the file does not have is refused, and the caller's
+ * buffer is left untouched: without the refusal, a caller that read past
+ * the end would take the last frame it really read, still in its buffer,
+ * for a new one. screencast_viewer never asks past the end (its player
+ * stops on the last frame), and exits on a refused read. */
 static void test_frame_index_past_the_end_is_refused(void) {
     const char *path = "tmp/test_screencast_past_end.bin";
     screencast_reader_t reader;
@@ -280,7 +277,7 @@ static void test_frame_index_past_the_end_is_refused(void) {
     assert(screencast_read_frame(&reader, 2, frame) == 0);
     assert(screencast_read_frame(&reader, 4242, frame) == 0);
 
-    /* Le tampon tient toujours la derniere frame reellement lue. */
+    /* The buffer still holds the last frame actually read. */
     assert(pixel_at(frame, 0, 0) == expected_pixel(1, 0, 0));
     assert(pixel_at(frame, 127, 127) == expected_pixel(1, 127, 127));
 
@@ -288,13 +285,13 @@ static void test_frame_index_past_the_end_is_refused(void) {
     remove(path);
 }
 
-/* Ecrire une frame ne touche pas a la memoire du jeu, ni l'ecran ni le
- * reste : une capture qui modifierait ce qu'elle observe invaliderait
- * tout l'instrument. Le `const` de la signature le dit deja au
- * compilateur ; ce test le dit sur toute la memoire, y compris ce qu'un
- * futur contournement du `const` atteindrait. L'octet pose hors ecran
- * (PICO8_ADDR_MAP) est ce qui donne a l'assertion prise sur le reste de
- * la memoire et pas seulement sur une zone laissee a zero. */
+/* Writing a frame leaves the game memory alone, the screen and the rest:
+ * a capture that changed what it observes would void the whole
+ * instrument. The `const` of the signature already tells the compiler;
+ * this test checks it on the whole memory, including what a future way
+ * around the `const` would reach. The byte set off screen (P8_ADDR_MAP)
+ * is what gives the assertion a hold on the rest of the memory, and not
+ * only on an area left at zero. */
 static void test_writing_a_frame_leaves_the_game_memory_untouched(void) {
     const char *path = "tmp/test_screencast_readonly_memory.bin";
     screencast_writer_t writer;
@@ -315,14 +312,14 @@ static void test_writing_a_frame_leaves_the_game_memory_untouched(void) {
     remove(path);
 }
 
-/* Le format vu depuis le dehors du projet : l'octet d'indice k tient le
- * pixel 2k dans son quartet de poids faible et le pixel 2k+1 dans celui
- * de poids fort. D'ou les valeurs asserties : pixels 0x03 et 0x0c
- * donnent l'octet 0xc3, pixels 0x0f et 0x00 donnent 0x0f. Un
- * aller-retour ne peut pas prouver cet ordre -- ecrire et relire avec
- * les quartets intervertis des deux cotes rendrait les memes pixels --
- * et c'est pourtant ce qui est promis a un script jetable qui lirait le
- * fichier sans dependre du code du projet. */
+/* The format as seen from outside the project: each byte holds the
+ * even-indexed pixel of its pair in its low nibble and the odd-indexed
+ * one in its high nibble. Hence the asserted values: pixels 0x03 and 0x0c
+ * give the byte 0xc3, pixels 0x0f and 0x00 give 0x0f. A round trip cannot
+ * prove this order -- writing and reading with the nibbles swapped on
+ * both sides would give back the same pixels -- yet it is what is
+ * promised to a throwaway script that reads the file without depending
+ * on the project's code. */
 static void test_on_disk_byte_holds_the_even_pixel_in_its_low_nibble(void) {
     const char *path = "tmp/test_screencast_nibbles.bin";
     screencast_writer_t writer;
