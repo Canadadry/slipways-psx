@@ -557,7 +557,7 @@ static void test_offer_trade_wildcard_want(void) {
     want = need_new(game_zone(), &any);
     pointer_list_init(jy, &heap_allocator);
     pointer_list_add(jy, want);
-    qh = pico8_qh_new(NULL);
+    qh = structure_new(NULL);
     qh->needs = jy;
     keys.has_resource = 1;
     keys.resource = p8_fixed_from_int(qh->archetype->accepted_resources->items[0]);
@@ -578,7 +578,7 @@ static void test_offer_trade_nil_want_after_extend(void) {
     start_game();
     pointer_list_init(jy, &heap_allocator);
     pointer_list_add(jy, need_new(game_zone(), NULL));
-    qh = pico8_qh_new(NULL);
+    qh = structure_new(NULL);
     qh->needs = jy;
     nil_route = trade_new(game_zone(), &(trade_keys_t){.planets = list_of(0, NULL)});
     lw.accept = count_accept;
@@ -614,7 +614,7 @@ static void test_compute_tier_counts_numbered_routes_only(void) {
     entity_list_add(cc, &nil_route->header);
     entity_list_add(cc, &trade_extend(game_zone(), nil_route, NULL, NULL)->header);
     entity_list_add(cc, &trade_new(game_zone(), &(trade_keys_t){.has_resource = 1, .resource = x})->header);
-    qh = pico8_qh_new(NULL);
+    qh = structure_new(NULL);
     qh->needs = jy;
     qh->incoming_routes = cc;
     entity_set_state(&qh->header, "settled");

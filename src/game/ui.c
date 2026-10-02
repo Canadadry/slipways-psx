@@ -332,7 +332,7 @@ void ui_update_hover(p8_memory_t *mem, ui_t *self) {
 
 static int ui_is_held_class(const entity_class_t *cls) {
     return cls == slipway_class() || cls == probe_class() || cls == wormhole_class() ||
-           (cls->states[ENTITY_STATE_SETTLED] != NULL && cls != pico8_pm_struct_class());
+           (cls->states[ENTITY_STATE_SETTLED] != NULL && cls != protostar_class());
 }
 
 void ui_handle_button(ui_t *self, const char *button) {

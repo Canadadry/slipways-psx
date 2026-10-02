@@ -173,13 +173,13 @@ static int icon_rank(const void *e) {
 }
 
 static void fill_kind_table(const entity_kind_t *out[7]) {
-    out[0] = pico8_qh_kind();
-    out[1] = pico8_os_kind();
+    out[0] = structure_kind();
+    out[1] = processor_kind();
     out[2] = slipgate_kind();
     out[3] = infraspace_gate_kind();
-    out[4] = pico8_nl_kind();
+    out[4] = trading_hub_kind();
     out[5] = synthesizer_kind();
-    out[6] = pico8_hj_kind();
+    out[6] = ascension_kind();
 }
 
 /* `gy` and `id` read off any icon: the cursor and counter every icon

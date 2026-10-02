@@ -542,7 +542,7 @@ void planet_apply_project(planet_t *self, research_project_t *research_project_i
 
         self->is_dead = 1;
 
-        target_kind = pico8_jo_kv(research_project_instance->class_name);
+        target_kind = planet_kind_named(research_project_instance->class_name);
 
         keys.map_pos = self->map_pos;
         keys.pos = self->pos;

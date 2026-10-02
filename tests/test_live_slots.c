@@ -98,7 +98,7 @@ static registered_t count_registered(void) {
             n.lists++;
             n.particle += e->emitter->particles->count;
         }
-        if (e->class == pico8_ga_struct_class()) n.bursts++;
+        if (e->class == burst_class()) n.bursts++;
     }
     const entity_list_t *jc = entities_by_tag("slipway");
     for (int i = 0; jc != NULL && i < jc->count; i++) {

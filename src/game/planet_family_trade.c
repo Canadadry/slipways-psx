@@ -173,7 +173,7 @@ static const entity_class_t g_slipgate_class = {
     .states =
         {
             [ENTITY_STATE_VANISHING] = planet_update_vanishing_method,
-            [ENTITY_STATE_SETTLED] = pico8_qh_ly_dispatch,
+            [ENTITY_STATE_SETTLED] = structure_update_settled_method,
         },
     .tags = TAG(TAG_SLIPGATE) | TAG(TAG_NODE) | TAG(TAG_TARGETING),
     .lineage = LINEAGE(LINEAGE_PLANET) | LINEAGE(LINEAGE_STRUCTURE),
@@ -184,7 +184,7 @@ static const entity_class_t g_slipgate_class = {
  * neither `pq` nor `lt`, records no coverage. Requires
  * `pico8_planet_family_trade_init()`. */
 static void slipgate_init_instance(planet_t *self, const entity_class_t *cls, const planet_archetype_t *archetype) {
-    pico8_qh_struct_init(self, cls, archetype);
+    structure_init_instance(self, cls, archetype);
 }
 
 static planet_t *slipgate_create(const planet_keys_t *keys) {
@@ -227,7 +227,7 @@ static const entity_class_t g_infraspace_gate_class = {
     .states =
         {
             [ENTITY_STATE_VANISHING] = planet_update_vanishing_method,
-            [ENTITY_STATE_SETTLED] = pico8_qh_ly_dispatch,
+            [ENTITY_STATE_SETTLED] = structure_update_settled_method,
         },
     .tags = TAG(TAG_SLIPGATE) | TAG(TAG_NODE) | TAG(TAG_TARGETING),
     .lineage = LINEAGE(LINEAGE_PLANET) | LINEAGE(LINEAGE_STRUCTURE),
@@ -305,12 +305,12 @@ static void synthesizer_attach_slipway_method(entity_t *self, entity_t *sw) {
 }
 
 static const entity_class_t g_synthesizer_class = {
-    .draw = pico8_hj_kj_dispatch,
+    .draw = ascension_draw_method,
     .draw_overlay = targeting_tooltip_method,
     .hit_test = planet_hit_test_method,
     .new_year = planet_new_year_method,
     .refresh = planet_refresh_method,
-    .release = pico8_hj_rendre_dispatch,
+    .release = ascension_release_method,
     .left_press = planet_left_press_method,
     .accept_drop = planet_accept_drop_method,
     .drag = targeting_track_method,
@@ -321,7 +321,7 @@ static const entity_class_t g_synthesizer_class = {
     .states =
         {
             [ENTITY_STATE_VANISHING] = planet_update_vanishing_method,
-            [ENTITY_STATE_SETTLED] = pico8_qh_ly_dispatch,
+            [ENTITY_STATE_SETTLED] = structure_update_settled_method,
         },
     .tags = TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING),
     .lineage = LINEAGE(LINEAGE_PLANET) | LINEAGE(LINEAGE_STRUCTURE),
@@ -331,7 +331,7 @@ static planet_t *synthesizer_create(const planet_keys_t *keys) {
     planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
-    pico8_hj_struct_init(self, &g_synthesizer_class, &synthesizer_archetype);
+    ascension_init_instance(self, &g_synthesizer_class, &synthesizer_archetype);
     self->synthesizable_resources = self->archetype->synthesizable_resources;
     if (keys != NULL) {
         assert(keys->map_pos == NULL && keys->pos == NULL &&
@@ -351,7 +351,7 @@ static planet_t *synthesizer_create(const planet_keys_t *keys) {
 }
 
 void planet_family_trade_init(void) {
-    assert(pico8_qh_ready() && pico8_hj_ready() &&
+    assert(structure_ready() && ascension_ready() &&
            "pico8_planet_family_init() must run first");
     planet_family_trade_shutdown();
     draw_functions_init();

@@ -24,14 +24,14 @@
 #include "engine/vec.h"
 
 /* The `js` buttons `pz()` just built. */
-static const entity_list_t *ok_le(void) {
+static const entity_list_t *main_ui_ephemerals(void) {
     const ui_t *ok = main_ui();
     assert(ok != NULL);
     assert(ok->ephemerals != NULL);
     return ok->ephemerals;
 }
 
-static const layout_row_t *button_lq(const void *button) {
+static const layout_row_t *button_layout_row(const void *button) {
     const layout_row_t *lq;
 
     assert(button != NULL);
@@ -41,7 +41,7 @@ static const layout_row_t *button_lq(const void *button) {
     return lq;
 }
 
-static const char *lq_index_string(const layout_row_t *lq, int index) {
+static const char *layout_row_index_string(const layout_row_t *lq, int index) {
     layout_row_cell_t v;
     if (index < 1 || index > lq->items_count) {
         return NULL;
@@ -50,8 +50,8 @@ static const char *lq_index_string(const layout_row_t *lq, int index) {
     return (v.kind == LAYOUT_ROW_CELL_STRING) ? v.as.text : NULL;
 }
 
-static int lq_index_is_string(const layout_row_t *lq, int index, const char *expected) {
-    const char *s = lq_index_string(lq, index);
+static int layout_row_index_is_string(const layout_row_t *lq, int index, const char *expected) {
+    const char *s = layout_row_index_string(lq, index);
     return s != NULL && strcmp(s, expected) == 0;
 }
 
@@ -69,7 +69,7 @@ static void setup_panel_state(p8_memory_t *mem, p8_graphics_t *gfx) {
     layout_init();
     button_init();
     planet_init();
-    pico8_planet_family_init();
+    planet_family_init();
 }
 
 /* Read on the instance's member, not the class defaults, so the test
@@ -78,76 +78,76 @@ static entity_list_t *planet_by_ref(const planet_t *planet) {
     return planet->outgoing_routes;
 }
 
-static void test_ga_export_line_counts_the_routes_in_by(void) {
+static void test_burst_export_line_counts_the_outgoing_routes(void) {
     p8_memory_t mem;
     p8_graphics_t gfx;
     planet_t *planet;
-    static production_t kw;
-    vec_t *ra;
-    entity_list_t *by;
+    static production_t production;
+    vec_t *pos;
+    entity_list_t *outgoing;
     trade_route_t *route_a;
     trade_route_t *route_b;
-    const entity_list_t *le;
-    const layout_row_t *exports_lq = NULL;
-    int i;
+    const entity_list_t *ephemerals;
+    const layout_row_t *exports_layout_row = NULL;
+    int index;
 
     setup_panel_state(&mem, &gfx);
 
-    planet = pico8_ga_new(NULL);
+    planet = burst_new(NULL);
     assert(planet != NULL);
 
     /* 99 is deliberately not one of `jo.cq`'s resources, so `jo:gh` takes
      * the else branch and builds the "exports:" row, not the "makes:" one. */
-    kw.has_resource = 1;
-    kw.resource = p8_fixed_from_int(99);
-    kw.amount = p8_fixed_from_int(2);
-    planet->production = &kw;
+    production.has_resource = 1;
+    production.resource = p8_fixed_from_int(99);
+    production.amount = p8_fixed_from_int(2);
+    planet->production = &production;
 
-    ra = malloc(sizeof *ra);
-    *ra = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
-    planet->pos = ra;
+    pos = malloc(sizeof *pos);
+    *pos = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
+    planet->pos = pos;
 
     /* A fresh `ga` exports nothing, against a capacity of `kw.mu`. */
     planet_inspection_panel(planet);
-    le = ok_le();
-    for (i = 0; i < le->count; i++) {
-        const layout_row_t *lq = button_lq(le->items[i]);
-        if (lq_index_is_string(lq, 1, "exports:")) {
-            exports_lq = lq;
+    ephemerals = main_ui_ephemerals();
+    for (index = 0; index < ephemerals->count; index++) {
+        const layout_row_t *lq = button_layout_row(ephemerals->items[index]);
+        if (layout_row_index_is_string(lq, 1, "exports:")) {
+            exports_layout_row = lq;
         }
     }
-    assert(exports_lq != NULL);
-    assert(lq_index_is_string(exports_lq, 2, "0/2"));
+    assert(exports_layout_row != NULL);
+    assert(layout_row_index_is_string(exports_layout_row, 2, "0/2"));
 
     /* Two routes, added the way `jo:ib`'s `add(ib,a)` adds them: straight
      * into whatever `self.by` already holds, here the value the `ga`
      * declaration installed. */
-    by = planet_by_ref(planet);
-    assert(by != NULL);
+    outgoing = planet_by_ref(planet);
+    assert(outgoing != NULL);
     route_a = trade_new(game_zone(), NULL);
     route_b = trade_new(game_zone(), NULL);
-    entity_list_add(by, &route_a->header);
-    entity_list_add(by, &route_b->header);
+    entity_list_add(outgoing, &route_a->header);
+    entity_list_add(outgoing, &route_b->header);
 
-    exports_lq = NULL;
+    exports_layout_row = NULL;
     planet_inspection_panel(planet);
-    le = ok_le();
-    for (i = 0; i < le->count; i++) {
-        const layout_row_t *lq = button_lq(le->items[i]);
-        if (lq_index_is_string(lq, 1, "exports:")) {
-            exports_lq = lq;
+    ephemerals = main_ui_ephemerals();
+    for (index = 0; index < ephemerals->count; index++) {
+        const layout_row_t *lq = button_layout_row(ephemerals->items[index]);
+        if (layout_row_index_is_string(lq, 1, "exports:")) {
+            exports_layout_row = lq;
         }
     }
-    assert(exports_lq != NULL);
+    assert(exports_layout_row != NULL);
 
     /* Two routes out of a capacity of two -- not "0/2", and not a number
      * assembled out of a neighbouring key. */
-    assert(lq_index_is_string(exports_lq, 2, "2/2"));
+    assert(layout_row_index_is_string(exports_layout_row, 2, "2/2"));
 }
 
 int main(void) {
-    test_ga_export_line_counts_the_routes_in_by();
+    test_burst_export_line_counts_the_outgoing_routes();
 
-    printf("test_pico8_ga_export_panel_by: all tests passed\n");
+    printf("test_burst_exports_row: all tests passed\n");
     return 0;
 }

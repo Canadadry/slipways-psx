@@ -1701,8 +1701,8 @@ pico8_cart_vider_file_sortie	cart_flush_exit_queue	src/game/cart.c	identifiant	f
 pico8_eu	cart_start_game	src/game/cart.c	identifiant	fonction	renommé	game/cart			c:@F@pico8_eu
 pico8_init_dispatch	cart_init_method	src/game/cart.c	identifiant	fonction	renommé	game/cart	_dispatch		c:@F@pico8_init_dispatch
 quitter_partie	quit_game_zone	src/game/cart.c	identifiant	fonction	renommé	game/cart	zone_partie		c:cart.c@F@quitter_partie
-gx	kind_table	src/game/cart.c	identifiant	locale	renommé	game/cart			c:cart.c@5605@F@pico8_eu@gx
-i	index	src/game/cart.c	identifiant	locale	renommé	game/cart			c:cart.c@5637@F@pico8_eu@i
+gx	kind_table	src/game/cart.c	identifiant	locale	renommé	game/cart			c:cart.c@5593@F@pico8_eu@gx
+i	index	src/game/cart.c	identifiant	locale	renommé	game/cart			c:cart.c@5625@F@pico8_eu@i
 j	j	src/game/cart.c	identifiant	locale	conservé	game/cart			c:cart.c@6225@F@pico8_eu@j
 ju	ju	src/game/cart.c	identifiant	locale	conservé	game/cart			c:cart.c@3071@F@oublier@ju
 keys	keys	src/game/cart.c	identifiant	locale	conservé	game/cart			c:cart.c@6578@F@pico8_eu@keys
@@ -1712,7 +1712,7 @@ mem	mem	src/game/cart.c	identifiant	locale	conservé	game/cart			c:cart.c@7240@F
 ok	ok	src/game/cart.c	identifiant	locale	conservé	game/cart			c:cart.c@3038@F@oublier@ok
 PICO8_CART_H	GAME_CART_H	src/game/cart.h	identifiant	macro	renommé	game/cart			macro:src/game/cart.h:PICO8_CART_H
 e	e	src/game/cart.c	identifiant	paramètre	conservé	game/cart			c:cart.c@3000@F@oublier@e
-nj	chosen_option	src/game/cart.c	identifiant	paramètre	renommé	game/cart			c:cart.c@5585@F@pico8_eu@nj
+nj	chosen_option	src/game/cart.c	identifiant	paramètre	renommé	game/cart			c:cart.c@5573@F@pico8_eu@nj
 nj	nj	src/game/cart.h	identifiant	paramètre	conservé	game/cart			c:cart.h@1556@F@pico8_eu@nj
 self	self	src/game/cart.c	identifiant	paramètre	conservé	game/cart			c:cart.c@5567@F@pico8_init_dispatch@self
 self	self	src/game/cart.h	identifiant	paramètre	conservé	game/cart			c:cart.h@1353@F@pico8_init_dispatch@self
@@ -8101,7 +8101,7 @@ lq_index_string	layout_row_index_string	tests/test_burst_exports_row.c	identifia
 ok_le	main_ui_ephemerals	tests/test_burst_exports_row.c	identifiant	fonction	renommé	tests/test_burst_exports_row	ok		c:test_burst_exports_row.c@F@ok_le
 planet_by_ref	planet_by_ref	tests/test_burst_exports_row.c	identifiant	fonction	conservé	tests/test_burst_exports_row			c:test_burst_exports_row.c@F@planet_by_ref
 setup_panel_state	setup_panel_state	tests/test_burst_exports_row.c	identifiant	fonction	conservé	tests/test_burst_exports_row			c:test_burst_exports_row.c@F@setup_panel_state
-test_ga_export_line_counts_the_routes_in_by	test_burst_export_line_counts_the_routes_in_by	tests/test_burst_exports_row.c	identifiant	fonction	renommé	tests/test_burst_exports_row	ga		c:test_burst_exports_row.c@F@test_ga_export_line_counts_the_routes_in_by
+test_ga_export_line_counts_the_routes_in_by	test_burst_export_line_counts_the_outgoing_routes	tests/test_burst_exports_row.c	identifiant	fonction	renommé	tests/test_burst_exports_row	ga		c:test_burst_exports_row.c@F@test_ga_export_line_counts_the_routes_in_by
 by	outgoing	tests/test_burst_exports_row.c	identifiant	locale	renommé	tests/test_burst_exports_row			c:test_burst_exports_row.c@2480@F@test_ga_export_line_counts_the_routes_in_by@by
 exports_lq	exports_layout_row	tests/test_burst_exports_row.c	identifiant	locale	renommé	tests/test_burst_exports_row	lq		c:test_burst_exports_row.c@2588@F@test_ga_export_line_counts_the_routes_in_by@exports_lq
 gfx	gfx	tests/test_burst_exports_row.c	identifiant	locale	conservé	tests/test_burst_exports_row			c:test_burst_exports_row.c@2382@F@test_ga_export_line_counts_the_routes_in_by@gfx

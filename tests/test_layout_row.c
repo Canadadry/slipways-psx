@@ -872,7 +872,7 @@ static void test_inspection_panel_lab_wants_its_last(void) {
     pointer_list_init(jy, &heap_allocator);
     pointer_list_add(jy, a);
     pointer_list_add(jy, b);
-    lab = pico8_qh_new(NULL);
+    lab = structure_new(NULL);
     lab->needs = jy;
     lab->has_development_tier = 1;
     lab->development_tier = p8_fixed_from_int(1);

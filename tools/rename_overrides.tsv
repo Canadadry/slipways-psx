@@ -777,6 +777,7 @@ name	pico8_trade_to	trade_last_planet
 name	pico8_ui_lj	ui_update	lj
 name	pico8_mzd_ra_of_ij	nearest_anchor_pos	ij
 name	g_ga_by_shared	g_burst_outgoing_routes	by
+name	test_ga_export_line_counts_the_routes_in_by	test_burst_export_line_counts_the_outgoing_routes	by
 name	pico8_ts_t	transit_dot_t	ts
 name	pico8_jo_trade_proposal_kf_fn	trade_offer_accept_fn_t	lw
 name	g_gb_px	g_projects_by_name	gb

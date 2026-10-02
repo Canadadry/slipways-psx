@@ -1081,7 +1081,7 @@ static void test_slipway_new_stops_off_start(void) {
     far = build_slipway(as_slipway(old)->start);
     drag_over(far, NULL, vec_ref(-640, -640));
     assert(is_throwaway(as_slipway(far)->end));
-    off[0] = pico8_ga_new(NULL);
+    off[0] = burst_new(NULL);
     off[1] = probe_new(NULL);
     off[2] = wormhole_new();
     off[3] = far;

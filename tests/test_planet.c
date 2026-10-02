@@ -320,23 +320,23 @@ enum { STRUCTURE, TRADING_HUB, PROCESSOR, ASCENSION, PROTOSTAR, SYNTHESIZER, SLI
 
 static int daughter_of(const void *e) {
     if (e != NULL &&
-        ((const entity_t *)e)->class == pico8_qh_struct_class()) {
+        ((const entity_t *)e)->class == structure_class()) {
         return STRUCTURE;
     }
     if (e != NULL &&
-        ((const entity_t *)e)->class == pico8_nl_struct_class()) {
+        ((const entity_t *)e)->class == trading_hub_class()) {
         return TRADING_HUB;
     }
     if (e != NULL &&
-        ((const entity_t *)e)->class == pico8_os_struct_class()) {
+        ((const entity_t *)e)->class == processor_class()) {
         return PROCESSOR;
     }
     if (e != NULL &&
-        ((const entity_t *)e)->class == pico8_hj_struct_class()) {
+        ((const entity_t *)e)->class == ascension_class()) {
         return ASCENSION;
     }
     if (e != NULL &&
-        ((const entity_t *)e)->class == pico8_pm_struct_class()) {
+        ((const entity_t *)e)->class == protostar_class()) {
         return PROTOSTAR;
     }
     if (e != NULL &&
@@ -352,7 +352,7 @@ static int daughter_of(const void *e) {
         return INFRASPACE_GATE;
     }
     if (e != NULL &&
-        ((const entity_t *)e)->class == pico8_ga_struct_class()) {
+        ((const entity_t *)e)->class == burst_class()) {
         return BURST;
     }
     return -1;
@@ -429,8 +429,8 @@ static void test_daughters(void) {
     static const struct {
         int daughter;
         const entity_kind_t *(*kind)(void);
-    } shop[] = {{STRUCTURE, pico8_qh_kind}, {PROCESSOR, pico8_os_kind}, {SLIPGATE, slipgate_kind}, {INFRASPACE_GATE, infraspace_gate_kind},
-                {TRADING_HUB, pico8_nl_kind}, {SYNTHESIZER, synthesizer_kind}, {ASCENSION, pico8_hj_kind}};
+    } shop[] = {{STRUCTURE, structure_kind}, {PROCESSOR, processor_kind}, {SLIPGATE, slipgate_kind}, {INFRASPACE_GATE, infraspace_gate_kind},
+                {TRADING_HUB, trading_hub_kind}, {SYNTHESIZER, synthesizer_kind}, {ASCENSION, ascension_kind}};
     void *made[DAUGHTERS] = {NULL};
     uint32_t h = 2166136261u;
     size_t i;
@@ -601,11 +601,11 @@ static void test_planet_is_a_struct(void) {
         assert(is_a_planet_struct(bare) && bare->planet_id == NULL && bare->pos == NULL && bare->slipways != NULL);
     }
 
-    (void)bought(pico8_qh_kind());
+    (void)bought(structure_kind());
     jo = entities_by_tag("structure");
     assert(jo != NULL && jo->count == 1);
     assert(jo->items[0] != NULL &&
-           ((const entity_t *)jo->items[0])->class == pico8_qh_struct_class());
+           ((const entity_t *)jo->items[0])->class == structure_class());
 }
 
 static int row_slots(void) {

@@ -200,13 +200,13 @@ static void assert_structure_links(planet_t *qh, emitter_t *emitter) {
  * stores in itself, the one its own member points at. */
 static void test_component_carriers_link_their_own(void) {
     probe_t *g_ = probe_new(NULL);
-    planet_t *nl = pico8_nl_new(NULL);
-    planet_t *os = pico8_os_new(NULL);
-    planet_t *hj = pico8_hj_new(NULL);
-    planet_t *pm = pico8_pm_new(NULL);
+    planet_t *nl = trading_hub_new(NULL);
+    planet_t *os = processor_new(NULL);
+    planet_t *hj = ascension_new(NULL);
+    planet_t *pm = protostar_new(NULL);
     planet_t *mx = synthesizer_new(NULL);
     planet_t *nr = slipgate_new(NULL);
-    planet_t *ga = pico8_ga_new(NULL);
+    planet_t *ga = burst_new(NULL);
     wormhole_t *mz = wormhole_new();
     entity_t want = planet_links(ga);
 
@@ -220,7 +220,7 @@ static void test_component_carriers_link_their_own(void) {
     assert(g_->emitter == g_->header.emitter && g_->targeting == g_->header.targeting);
     assert(*g_->header.fold_anchor == p8_fixed_from_int(1) &&
            "a probe's fx is its archetype's 1.0, Lua's true: 0 would read as nil");
-    assert_structure_links(pico8_qh_new(NULL), NULL);
+    assert_structure_links(structure_new(NULL), NULL);
     assert_structure_links(nl, NULL);
     assert_structure_links(os, NULL);
     assert_structure_links(hj, &hj->emitter_own);

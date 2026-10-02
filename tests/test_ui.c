@@ -761,8 +761,8 @@ static void test_ui_held_stops_off_row(void) {
     size_t i;
 
     entity_register(&g_giver.header);
-    left[0] = pico8_pm_new(NULL);
-    left[1] = pico8_ga_new(NULL);
+    left[0] = protostar_new(NULL);
+    left[1] = burst_new(NULL);
     left[2] = entities_by_tag("planet")->items[0];
     left[3] = the_background();
     left[4] = pico8_fv_new();
@@ -772,7 +772,7 @@ static void test_ui_held_stops_off_row(void) {
     right[0] = slipway_new(NULL);
     right[1] = probe_new(NULL);
     right[2] = wormhole_new();
-    right[3] = pico8_qh_new(NULL);
+    right[3] = structure_new(NULL);
     right[4] = left[2];
     right[5] = left[4];
 
@@ -879,12 +879,12 @@ static void test_components_carried(void) {
     entities[2] = pico8_mh_new(NULL);
     entities[3] = pico8_iv_new(NULL);
     entities[4] = planet_new(NULL);
-    entities[5] = pico8_qh_new(NULL);
-    entities[6] = pico8_nl_new(NULL);
-    entities[7] = pico8_os_new(NULL);
-    entities[8] = pico8_hj_new(NULL);
-    entities[9] = pico8_pm_new(NULL);
-    entities[10] = pico8_ga_new(NULL);
+    entities[5] = structure_new(NULL);
+    entities[6] = trading_hub_new(NULL);
+    entities[7] = processor_new(NULL);
+    entities[8] = ascension_new(NULL);
+    entities[9] = protostar_new(NULL);
+    entities[10] = burst_new(NULL);
     entities[11] = slipgate_new(NULL);
     entities[12] = infraspace_gate_new(NULL);
     entities[13] = synthesizer_new(NULL);
@@ -905,17 +905,17 @@ static void test_components_carried(void) {
         assert((header->targeting != NULL) == probe[index]);
     }
 
-    assert_own_emitter(entities[8], &pico8_hj_new(NULL)->header, sizeof(planet_t));
-    assert_own_emitter(entities[9], &pico8_pm_new(NULL)->header, sizeof(planet_t));
-    assert_own_emitter(entities[10], &pico8_ga_new(NULL)->header, sizeof(planet_t));
+    assert_own_emitter(entities[8], &ascension_new(NULL)->header, sizeof(planet_t));
+    assert_own_emitter(entities[9], &protostar_new(NULL)->header, sizeof(planet_t));
+    assert_own_emitter(entities[10], &burst_new(NULL)->header, sizeof(planet_t));
     assert_own_emitter(entities[13], &synthesizer_new(NULL)->header, sizeof(planet_t));
     assert_own_emitter(entities[14], &probe_new(NULL)->header, sizeof(probe_t));
     assert_own_emitter(entities[15], help_alone(entities[15]), sizeof(probe_t));
-    assert_own_probe(entities[5], &pico8_qh_new(NULL)->header, sizeof(planet_t));
-    assert_own_probe(entities[6], &pico8_nl_new(NULL)->header, sizeof(planet_t));
-    assert_own_probe(entities[7], &pico8_os_new(NULL)->header, sizeof(planet_t));
-    assert_own_probe(entities[8], &pico8_hj_new(NULL)->header, sizeof(planet_t));
-    assert_own_probe(entities[9], &pico8_pm_new(NULL)->header, sizeof(planet_t));
+    assert_own_probe(entities[5], &structure_new(NULL)->header, sizeof(planet_t));
+    assert_own_probe(entities[6], &trading_hub_new(NULL)->header, sizeof(planet_t));
+    assert_own_probe(entities[7], &processor_new(NULL)->header, sizeof(planet_t));
+    assert_own_probe(entities[8], &ascension_new(NULL)->header, sizeof(planet_t));
+    assert_own_probe(entities[9], &protostar_new(NULL)->header, sizeof(planet_t));
     assert_own_probe(entities[11], &slipgate_new(NULL)->header, sizeof(planet_t));
     assert_own_probe(entities[12], &infraspace_gate_new(NULL)->header, sizeof(planet_t));
     assert_own_probe(entities[13], &synthesizer_new(NULL)->header, sizeof(planet_t));
@@ -961,12 +961,12 @@ static void test_entity_state_by_name(void) {
     entities[2] = pico8_mh_new(NULL);
     entities[3] = pico8_iv_new(NULL);
     entities[4] = planet_new(NULL);
-    entities[5] = pico8_qh_new(NULL);
-    entities[6] = pico8_nl_new(NULL);
-    entities[7] = pico8_os_new(NULL);
-    entities[8] = pico8_hj_new(NULL);
-    entities[9] = pico8_pm_new(NULL);
-    entities[10] = pico8_ga_new(NULL);
+    entities[5] = structure_new(NULL);
+    entities[6] = trading_hub_new(NULL);
+    entities[7] = processor_new(NULL);
+    entities[8] = ascension_new(NULL);
+    entities[9] = protostar_new(NULL);
+    entities[10] = burst_new(NULL);
     entities[11] = slipgate_new(NULL);
     entities[12] = infraspace_gate_new(NULL);
     entities[13] = synthesizer_new(NULL);
@@ -1055,12 +1055,12 @@ static void test_entity_state_time_by_name(void) {
     entities[2] = pico8_mh_new(NULL);
     entities[3] = pico8_iv_new(NULL);
     entities[4] = planet_new(NULL);
-    entities[5] = pico8_qh_new(NULL);
-    entities[6] = pico8_nl_new(NULL);
-    entities[7] = pico8_os_new(NULL);
-    entities[8] = pico8_hj_new(NULL);
-    entities[9] = pico8_pm_new(NULL);
-    entities[10] = pico8_ga_new(NULL);
+    entities[5] = structure_new(NULL);
+    entities[6] = trading_hub_new(NULL);
+    entities[7] = processor_new(NULL);
+    entities[8] = ascension_new(NULL);
+    entities[9] = protostar_new(NULL);
+    entities[10] = burst_new(NULL);
     entities[11] = slipgate_new(NULL);
     entities[12] = infraspace_gate_new(NULL);
     entities[13] = synthesizer_new(NULL);

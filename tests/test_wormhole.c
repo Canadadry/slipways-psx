@@ -400,7 +400,7 @@ static void test_anchors(void) {
     probe = probe_new(NULL);
     assert(entity_list_listed(build_wormhole()->anchors, probe));
 
-    lit = pico8_qh_new(NULL);
+    lit = structure_new(NULL);
     lit->fold_anchor = p8_fixed_from_int(1);
     assert(entity_list_listed(build_wormhole()->anchors, lit));
 }

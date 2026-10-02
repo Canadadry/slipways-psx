@@ -288,7 +288,7 @@ static int case_static_lists_in_load_zone(void) {
     entity_list_add(le, &element);
     assert(load_zone_used() == start + four_pointers_bytes() &&
            "la liste de depart de ok.le prend sa capacite dans la sous-zone chargement");
-    entity_list_t *by = pico8_ga_new(NULL)->outgoing_routes;
+    entity_list_t *by = burst_new(NULL)->outgoing_routes;
     entity_list_add(by, &element);
     assert(load_zone_used() == start + 2 * four_pointers_bytes() &&
            "le by partage des ga prend sa capacite dans la sous-zone chargement");

@@ -42,7 +42,7 @@
 #include "heap_allocator.h"
 
 /* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
-static int ra_copies(const vec_t *ra, const vec_t *mp) {
+static int pos_copies(const vec_t *ra, const vec_t *mp) {
     return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
 }
 
@@ -63,7 +63,7 @@ static p8_memory_t mem;
 static p8_graphics_t gfx;
 static p8_input_t input;
 
-static const char *const bm[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
 static const char *const tags[] = {"planet", "node", "targeting"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -82,7 +82,7 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int ents_rank_in(const entity_list_t *list, const void *e) {
+static int entity_list_rank_in(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -92,8 +92,8 @@ static int ents_rank_in(const entity_list_t *list, const void *e) {
     return -1;
 }
 
-static int ents_listed(const entity_list_t *list, const void *e) {
-    return ents_rank_in(list, e) >= 0;
+static int entity_list_listed(const entity_list_t *list, const void *e) {
+    return entity_list_rank_in(list, e) >= 0;
 }
 
 static uint32_t fold_absent(uint32_t h) {
@@ -113,7 +113,7 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
     return s == NULL ? fold_absent(h) : fnv_str(fnv(fnv(h, 1u), 0x57u), s);
 }
 
-static uint32_t fold_hf(uint32_t h, const planet_t *jo) {
+static uint32_t fold_is_planet(uint32_t h, const planet_t *jo) {
     return jo->archetype->is_planet ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
@@ -129,22 +129,22 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (ref == NULL) {
         return fnv(h, 0xDEADu);
     }
-    if (ents_listed(live_entities(), ref)) {
-        return fnv(fnv(h, 0x4Eu), (uint32_t)ents_rank_in(live_entities(), ref));
+    if (entity_list_listed(live_entities(), ref)) {
+        return fnv(fnv(h, 0x4Eu), (uint32_t)entity_list_rank_in(live_entities(), ref));
     }
     return fnv(fnv(h, 0xEEEEu), FROZEN_STRUCT_TAG);
 }
 
 /* The item count of a list member, -1 when NULL. */
-static int ptrs_size(const pointer_list_t *l) {
+static int pointer_list_size(const pointer_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
-static int ents_ptrs_size(const entity_list_t *l) {
+static int entity_list_pointer_list_size(const entity_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
-static uint32_t fold_kw(uint32_t h, const planet_t *jo) {
+static uint32_t fold_production(uint32_t h, const planet_t *jo) {
     const production_t *k = jo->production;
 
     if (k == NULL) {
@@ -155,18 +155,18 @@ static uint32_t fold_kw(uint32_t h, const planet_t *jo) {
     return fnv(h, (uint32_t)(k == planet_shared_production()));
 }
 
-static uint32_t fold_qh(uint32_t h, const planet_t *qh) {
+static uint32_t fold_structure(uint32_t h, const planet_t *qh) {
     return qh->archetype->is_structure ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 /* `e` as an ascension, a `pm` or an `mx`: an `hj` first. */
-static planet_t *as_hj(void *e) {
+static planet_t *as_ascension(void *e) {
     const entity_class_t *c = ((const entity_t *)e)->class;
-    assert(c == pico8_hj_struct_class() || c == pico8_pm_struct_class() || c == synthesizer_class());
+    assert(c == ascension_class() || c == protostar_class() || c == synthesizer_class());
     return e;
 }
 
-static uint32_t fold_pk(uint32_t h, const planet_t *hj) {
+static uint32_t fold_quarter_turn(uint32_t h, const planet_t *hj) {
     return fold_fixed_member(h, hj->emitter->archetype->quarter_turn);
 }
 
@@ -215,14 +215,14 @@ static vec_t vec_xy(int x, int y) {
     return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
-static const entity_class_t *cls_of(const void *e) {
+static const entity_class_t *class_of(const void *e) {
     return ((const entity_t *)e)->class;
 }
 
 /* The members a planet of qh's tree holds: `kj`, `ev`, `hd`, `hk`, `hb`,
  * `ldown`, `gv`, `hq`, `ey`, `kf`, `cn` and the states `ll`, `ly`; `mm`
  * aside, no other. */
-static void assert_qh_shape(const entity_class_t *c) {
+static void assert_structure_shape(const entity_class_t *c) {
     assert(c->draw != NULL && c->draw_overlay != NULL && c->hit_test != NULL && c->new_year != NULL && c->refresh != NULL && c->left_press != NULL &&
            c->accept_drop != NULL && c->states[ENTITY_STATE_VANISHING] != NULL && c->states[ENTITY_STATE_SETTLED] != NULL);
     assert(c->has_refresh == NULL && c->right_press == NULL && c->states[ENTITY_STATE_NORMAL] == NULL &&
@@ -232,13 +232,13 @@ static void assert_qh_shape(const entity_class_t *c) {
 
 /* `c` holds `ref`'s very members but `kf`, `cn` and `mm`, `kj` and the
  * state `ly` included when `with_kj`/`with_ly`. */
-static void assert_members_of(const entity_class_t *c, const entity_class_t *ref, int with_kj,
-                              int with_ly) {
+static void assert_members_of(const entity_class_t *c, const entity_class_t *ref, int with_draw,
+                              int with_update_settled) {
     assert(c->draw_overlay == ref->draw_overlay && c->hit_test == ref->hit_test && c->new_year == ref->new_year && c->refresh == ref->refresh && c->has_refresh == ref->has_refresh &&
            c->left_press == ref->left_press && c->right_press == ref->right_press && c->accept_drop == ref->accept_drop);
     assert(c->states[ENTITY_STATE_VANISHING] == ref->states[ENTITY_STATE_VANISHING] && c->drag == ref->drag && c->drop == ref->drop);
-    assert(!with_kj || c->draw == ref->draw);
-    assert(!with_ly || c->states[ENTITY_STATE_SETTLED] == ref->states[ENTITY_STATE_SETTLED]);
+    assert(!with_draw || c->draw == ref->draw);
+    assert(!with_update_settled || c->states[ENTITY_STATE_SETTLED] == ref->states[ENTITY_STATE_SETTLED]);
 }
 
 /* The research icon whose `ke` is `kind`. */
@@ -247,7 +247,7 @@ static void *icon_of(const entity_kind_t *kind) {
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i];
-        if (cls_of(e) == structure_icon_class() && ((const structure_icon_t *)e)->kind == kind) {
+        if (class_of(e) == structure_icon_class() && ((const structure_icon_t *)e)->kind == kind) {
             return e;
         }
     }
@@ -260,7 +260,7 @@ static void *build(const entity_kind_t *kind) {
     down_t made;
 
     assert(icon != NULL);
-    made = cls_of(icon)->left_press(icon, NULL, NULL);
+    made = class_of(icon)->left_press(icon, NULL, NULL);
     assert(made.stop && made.held != NULL);
     return made.held;
 }
@@ -271,24 +271,24 @@ static void *build_synthesizer(void) {
 
 /* `mx` sets its own `px`: an entity whose `px` is the very table of mx's
  * class is a synthesizer. */
-static int is_mx(const void *e) {
-    const planet_t *jo = e != NULL && (cls_of(e)->lineage & LINEAGE(LINEAGE_STRUCTURE)) ? e : NULL;
+static int is_synthesizer(const void *e) {
+    const planet_t *jo = e != NULL && (class_of(e)->lineage & LINEAGE(LINEAGE_STRUCTURE)) ? e : NULL;
     return jo != NULL && jo->archetype->name == &synthesizer_name_row;
 }
 
 /* `ht` of an `mx`; NULL on any other struct, which has no `ht`. */
-static const int_seq_t *ht_of(const void *e) {
-    return cls_of(e) == synthesizer_class() ? ((const planet_t *)e)->synthesizable_resources : NULL;
+static const int_seq_t *synthesizable_resources_of(const void *e) {
+    return class_of(e) == synthesizer_class() ? ((const planet_t *)e)->synthesizable_resources : NULL;
 }
 
 /* The entry count of the `ht` table, -1 when absent. */
-static int ht_size(const void *e) {
-    const int_seq_t *ht = ht_of(e);
+static int synthesizable_resources_size(const void *e) {
+    const int_seq_t *ht = synthesizable_resources_of(e);
     return ht == NULL ? -1 : ht->count;
 }
 
-static int ht_is_the_class_one(const void *e) {
-    return ht_of(e) == &synthesizer_synthesizable_resources_seq;
+static int synthesizable_resources_is_the_class_one(const void *e) {
+    return synthesizable_resources_of(e) == &synthesizer_synthesizable_resources_seq;
 }
 
 /* A synthesizer as `ie:ldown`, `f_` and `jo:pq` left it: its scalars (the
@@ -296,172 +296,172 @@ static int ht_is_the_class_one(const void *e) {
  * members are set, its methods (hj's very functions but its own `kf`), which
  * default tables it shares with `mx`, `qh` and `jo`, and where `lt`
  * registered it -- in `cg.jo`/`np`/`prober`, never in `cg.qh` or `cg.hj`. */
-static uint32_t fold_synthesizer(uint32_t h, void *e) {
-    const entity_class_t *hj_cls = pico8_hj_struct_class();
-    const planet_t *hj = as_hj(e);
-    const emitter_t *em = hj->emitter;
-    const planet_t *qh = hj;
-    const planet_t *jo = qh;
-    size_t i;
+static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
+    const entity_class_t *ascension_cls = ascension_class();
+    const planet_t *ascension = as_ascension(entity);
+    const emitter_t *spacer = ascension->emitter;
+    const planet_t *structure = ascension;
+    const planet_t *planet = structure;
+    size_t index;
 
-    h = fold_string_member(h, jo->planet_id);
-    h = fold_string_member(h, jo->header.state);
-    h = fold_fixed_member(h, jo->header.state_time);
-    h = fold_string_member(h, hj->archetype->required_tech);
-    h = fold_qh(h, qh);
-    h = fold_fixed_member(h, qh->archetype->project_index);
-    h = fold_fixed_member(h, qh->sprite);
-    h = fold_fixed_member(h, qh->targeting->cost);
-    h = fold_fixed_member(h, em->speed_factor);
-    h = fold_fixed_member(h, em->archetype->lifetime);
-    h = fold_fixed_member(h, em->angle_slices);
-    h = fold_pk(h, hj);
-    h = fold_fixed_member(h, em->archetype->spawn_rate);
-    h = fold_fixed_member(h, em->base_radius);
-    h = fold_fixed_member(h, em->matrix_xx);
-    h = fold_fixed_member(h, em->matrix_xy);
-    h = fold_fixed_member(h, em->matrix_yx);
-    h = fold_fixed_member(h, em->matrix_yy);
-    h = fold_string_member(h, qh->targeting->archetype->confirmed_state);
-    h = fold_fixed_member(h, qh->targeting->archetype->clock_ticks);
-    h = fold_fixed_member(h, qh->targeting->archetype->attach_distance);
-    h = jo->has_development_tier ? fold_fixed_member(h, jo->development_tier) : fold_absent(h);
-    h = fold_hf(h, jo);
-    h = fold_fixed_member(h, jo->archetype->trade_multiplier);
-    h = fold_fixed_member(h, jo->archetype->layer);
-    h = fold_fixed_member(h, jo->shake);
-    h = fold_fixed_member(h, jo->archetype->back_color);
-    h = fold_vec(h, &jo->archetype->row_step);
-    h = fnv(h, (uint32_t)(ht_of(e) != NULL));
-    h = fnv(h, (uint32_t)ht_size(e));
+    hash = fold_string_member(hash, planet->planet_id);
+    hash = fold_string_member(hash, planet->header.state);
+    hash = fold_fixed_member(hash, planet->header.state_time);
+    hash = fold_string_member(hash, ascension->archetype->required_tech);
+    hash = fold_structure(hash, structure);
+    hash = fold_fixed_member(hash, structure->archetype->project_index);
+    hash = fold_fixed_member(hash, structure->sprite);
+    hash = fold_fixed_member(hash, structure->targeting->cost);
+    hash = fold_fixed_member(hash, spacer->speed_factor);
+    hash = fold_fixed_member(hash, spacer->archetype->lifetime);
+    hash = fold_fixed_member(hash, spacer->angle_slices);
+    hash = fold_quarter_turn(hash, ascension);
+    hash = fold_fixed_member(hash, spacer->archetype->spawn_rate);
+    hash = fold_fixed_member(hash, spacer->base_radius);
+    hash = fold_fixed_member(hash, spacer->matrix_xx);
+    hash = fold_fixed_member(hash, spacer->matrix_xy);
+    hash = fold_fixed_member(hash, spacer->matrix_yx);
+    hash = fold_fixed_member(hash, spacer->matrix_yy);
+    hash = fold_string_member(hash, structure->targeting->archetype->confirmed_state);
+    hash = fold_fixed_member(hash, structure->targeting->archetype->clock_ticks);
+    hash = fold_fixed_member(hash, structure->targeting->archetype->attach_distance);
+    hash = planet->has_development_tier ? fold_fixed_member(hash, planet->development_tier) : fold_absent(hash);
+    hash = fold_is_planet(hash, planet);
+    hash = fold_fixed_member(hash, planet->archetype->trade_multiplier);
+    hash = fold_fixed_member(hash, planet->archetype->layer);
+    hash = fold_fixed_member(hash, planet->shake);
+    hash = fold_fixed_member(hash, planet->archetype->back_color);
+    hash = fold_vec(hash, &planet->archetype->row_step);
+    hash = fnv(hash, (uint32_t)(synthesizable_resources_of(entity) != NULL));
+    hash = fnv(hash, (uint32_t)synthesizable_resources_size(entity));
     /* The 1s of hj's ten fixed emitter defaults, of `hp`, `qh`, `od`, `fp`,
      * `dw`, `s`, then of `hf`, `hs`, `fa`, `ma` and `ca`: constant by the
      * struct's shape, kept so that BUILT_HASH still proves the typed reads. */
-    h = fnv(h, (uint32_t)(hj->archetype->required_tech != NULL));
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(hj->emitter->trail_colors != NULL));
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(em->particles != NULL));
-    h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(qh->archetype->name != NULL));
-    h = fnv(h, (uint32_t)(qh->targeting->archetype->confirmed_state != NULL));
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(qh->archetype->accepted_resources != NULL));
-    h = fnv(h, qh->targeting->target != NULL ? 1u : 0u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->archetype->ring_colors != NULL));
-    h = fnv(h, (uint32_t)(jo->archetype->mood_rows != NULL));
-    h = fnv(h, (uint32_t)(jo->archetype->made_resources != NULL));
-    h = fnv(h, (uint32_t)(jo->production != NULL));
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->archetype->spacer != NULL));
-    h = fnv(h, (uint32_t)(jo->planet_id != NULL));
-    h = fnv(h, (uint32_t)(jo->map_pos != NULL));
-    h = fnv(h, (uint32_t)(jo->pos != NULL));
-    h = fnv(h, (uint32_t)(jo->slipways != NULL));
-    h = fnv(h, (uint32_t)(jo->project != NULL));
-    h = fnv(h, (uint32_t)(jo->description != NULL));
-    h = fnv(h, (uint32_t)(jo->needs != NULL));
-    h = fnv(h, (uint32_t)(jo->planet_type != NULL));
-    h = fnv(h, (uint32_t)(jo->fold_anchor != 0));
-    h = fnv(h, (uint32_t)(jo->layout_row != NULL));
-    h = fnv(h, (uint32_t)(jo->targeted_by != NULL));
-    h = fnv(h, (uint32_t)jo->has_production_bonus);
-    h = fnv(h, (uint32_t)(jo->is_dead != 0));
-    h = fnv(h, (uint32_t)jo->has_net_income);
-    h = fnv(h, (uint32_t)(jo->incoming_routes != NULL));
-    h = fnv(h, (uint32_t)(jo->outgoing_routes != NULL));
-    h = fnv(h, (uint32_t)jo->has_development_tier);
-    h = fnv(h, (uint32_t)(jo->is_hovered != 0));
-    assert(ptrs_size(em->particles) == 0);
-    assert_qh_shape(cls_of(e));
-    assert_members_of(cls_of(e), hj_cls, 1, 1);
-    assert(cls_of(e)->attach_slipway != hj_cls->attach_slipway && cls_of(e)->attach_slipway != planet_class()->attach_slipway);
-    assert(cls_of(e)->offer_trade == hj_cls->offer_trade && cls_of(e)->spawn_particle == hj_cls->spawn_particle && cls_of(e)->spawn_particle != NULL &&
-           planet_is_family(e));
-    assert(jo->header.class->tags == (TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && qh->archetype->name == &synthesizer_name_row && ht_of(e) == &synthesizer_synthesizable_resources_seq &&
-           em->trail_colors == &synthesizer_trail_colors_seq);
-    assert(jo->header.class->tags != (TAG(TAG_ASCENSION) | TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)));
-    assert(em->trail_colors != &ascension_trail_colors_seq);
-    assert(qh->archetype->accepted_resources == &structure_accepted_resources_seq);
-    assert(jo->archetype == &synthesizer_archetype);
-    assert(jo->archetype == &synthesizer_archetype);
-    assert(jo->archetype->spacer == &planet_spacer_row && jo->archetype->ring_colors == &planet_ring_colors_seq && jo->archetype->mood_rows == planet_mood_rows_rows &&
-           jo->archetype->made_resources == &planet_made_resources_seq);
-    assert(jo->production != NULL && jo->production != planet_shared_production());
+    hash = fnv(hash, (uint32_t)(ascension->archetype->required_tech != NULL));
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, (uint32_t)(ascension->emitter->trail_colors != NULL));
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, (uint32_t)(spacer->particles != NULL));
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, (uint32_t)(structure->archetype->name != NULL));
+    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != NULL));
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, (uint32_t)(structure->archetype->accepted_resources != NULL));
+    hash = fnv(hash, structure->targeting->target != NULL ? 1u : 0u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, (uint32_t)(planet->archetype->ring_colors != NULL));
+    hash = fnv(hash, (uint32_t)(planet->archetype->mood_rows != NULL));
+    hash = fnv(hash, (uint32_t)(planet->archetype->made_resources != NULL));
+    hash = fnv(hash, (uint32_t)(planet->production != NULL));
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
+    hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
+    hash = fnv(hash, (uint32_t)(planet->map_pos != NULL));
+    hash = fnv(hash, (uint32_t)(planet->pos != NULL));
+    hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
+    hash = fnv(hash, (uint32_t)(planet->project != NULL));
+    hash = fnv(hash, (uint32_t)(planet->description != NULL));
+    hash = fnv(hash, (uint32_t)(planet->needs != NULL));
+    hash = fnv(hash, (uint32_t)(planet->planet_type != NULL));
+    hash = fnv(hash, (uint32_t)(planet->fold_anchor != 0));
+    hash = fnv(hash, (uint32_t)(planet->layout_row != NULL));
+    hash = fnv(hash, (uint32_t)(planet->targeted_by != NULL));
+    hash = fnv(hash, (uint32_t)planet->has_production_bonus);
+    hash = fnv(hash, (uint32_t)(planet->is_dead != 0));
+    hash = fnv(hash, (uint32_t)planet->has_net_income);
+    hash = fnv(hash, (uint32_t)(planet->incoming_routes != NULL));
+    hash = fnv(hash, (uint32_t)(planet->outgoing_routes != NULL));
+    hash = fnv(hash, (uint32_t)planet->has_development_tier);
+    hash = fnv(hash, (uint32_t)(planet->is_hovered != 0));
+    assert(pointer_list_size(spacer->particles) == 0);
+    assert_structure_shape(class_of(entity));
+    assert_members_of(class_of(entity), ascension_cls, 1, 1);
+    assert(class_of(entity)->attach_slipway != ascension_cls->attach_slipway && class_of(entity)->attach_slipway != planet_class()->attach_slipway);
+    assert(class_of(entity)->offer_trade == ascension_cls->offer_trade && class_of(entity)->spawn_particle == ascension_cls->spawn_particle && class_of(entity)->spawn_particle != NULL &&
+           planet_is_family(entity));
+    assert(planet->header.class->tags == (TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && structure->archetype->name == &synthesizer_name_row && synthesizable_resources_of(entity) == &synthesizer_synthesizable_resources_seq &&
+           spacer->trail_colors == &synthesizer_trail_colors_seq);
+    assert(planet->header.class->tags != (TAG(TAG_ASCENSION) | TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)));
+    assert(spacer->trail_colors != &ascension_trail_colors_seq);
+    assert(structure->archetype->accepted_resources == &structure_accepted_resources_seq);
+    assert(planet->archetype == &synthesizer_archetype);
+    assert(planet->archetype == &synthesizer_archetype);
+    assert(planet->archetype->spacer == &planet_spacer_row && planet->archetype->ring_colors == &planet_ring_colors_seq && planet->archetype->mood_rows == planet_mood_rows_rows &&
+           planet->archetype->made_resources == &planet_made_resources_seq);
+    assert(planet->production != NULL && planet->production != planet_shared_production());
     assert(research_projects_at(5) != NULL);
-    assert(jo->project == research_projects_at(5));
-    h = fold_kw(h, jo);
-    h = fnv(h, (uint32_t)ents_ptrs_size(jo->slipways));
-    h = fnv(h, (uint32_t)ptrs_size(jo->needs));
-    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), e));
-    for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
-        h = fnv(h, (uint32_t)ents_rank_in(entities_by_message(bm[i]), e));
+    assert(planet->project == research_projects_at(5));
+    hash = fold_production(hash, planet);
+    hash = fnv(hash, (uint32_t)entity_list_pointer_list_size(planet->slipways));
+    hash = fnv(hash, (uint32_t)pointer_list_size(planet->needs));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), entity));
+    for (index = 0; index < sizeof messages / sizeof messages[0]; index++) {
+        hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(messages[index]), entity));
     }
-    for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
-        h = fnv(h, (uint32_t)ents_rank_in(entities_by_tag(tags[i]), e));
+    for (index = 0; index < sizeof tags / sizeof tags[0]; index++) {
+        hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(tags[index]), entity));
     }
-    assert(ents_listed(entities_by_tag("planet"), e) && !ents_listed(entities_by_tag("structure"), e) && !ents_listed(entities_by_tag("ascension"), e));
-    return h;
+    assert(entity_list_listed(entities_by_tag("planet"), entity) && !entity_list_listed(entities_by_tag("structure"), entity) && !entity_list_listed(entities_by_tag("ascension"), entity));
+    return hash;
 }
 
 /* Two synthesizers built by the shop's `ie:ldown` on `gx[5]`, each with a
  * `qy` of its own. */
 static void test_built(void) {
-    uint32_t h = 2166136261u;
+    uint32_t hash = 2166136261u;
     void *a;
     void *b;
 
     start_game();
     a = build_synthesizer();
     b = build_synthesizer();
-    assert(a != b && is_mx(a) && is_mx(b));
-    assert(as_hj(a)->emitter->particles != NULL && as_hj(a)->emitter->particles != as_hj(b)->emitter->particles);
-    h = fold_synthesizer(h, a);
-    h = fold_synthesizer(h, b);
-    check("built", h, BUILT_HASH);
+    assert(a != b && is_synthesizer(a) && is_synthesizer(b));
+    assert(as_ascension(a)->emitter->particles != NULL && as_ascension(a)->emitter->particles != as_ascension(b)->emitter->particles);
+    hash = fold_synthesizer(hash, a);
+    hash = fold_synthesizer(hash, b);
+    check("built", hash, BUILT_HASH);
 }
 
 static void set_credits(int n) {
     main_economy_typed()->credits = p8_fixed_from_int(n);
 }
 
-static uint32_t fold_ra_y(uint32_t h, const planet_t *hj) {
+static uint32_t fold_pos_y(uint32_t h, const planet_t *hj) {
     const vec_t *ra = hj->pos;
     return ra == NULL ? fnv(h, 0xDEADu) : fnv(h, (uint32_t)ra->y);
 }
 
 /* `dg` once, then what qh's `ly` (`na`) left on the synthesizer. */
-static uint32_t fold_dg(uint32_t h, void *e) {
-    const planet_t *hj = as_hj(e);
+static uint32_t fold_update_entities(uint32_t h, void *e) {
+    const planet_t *hj = as_ascension(e);
 
-    h = fold_ra_y(h, hj);
+    h = fold_pos_y(h, hj);
     update_entities();
     h = fold_fixed_member(h, hj->header.state_time);
-    return fold_ra_y(h, hj);
+    return fold_pos_y(h, hj);
 }
 
 /* `jo:ib`'s container, folded as fold_ref folded the tagged list it was:
  * never in `hv`, so the tag branch. */
-static uint32_t fold_ib(uint32_t h, const entity_list_t *ib) {
+static uint32_t fold_rebuild_trades(uint32_t h, const entity_list_t *ib) {
     if (ib == NULL) {
         return fnv(h, 0xDEADu);
     }
@@ -472,17 +472,17 @@ static uint32_t fold_ib(uint32_t h, const entity_list_t *ib) {
 static uint32_t fold_economy(uint32_t h, void *e) {
     entity_list_t *ib = planet_rebuild_trades(e);
     h = fnv(h, (uint32_t)economy_tiers_compute_tier(e));
-    h = fold_ib(h, ib);
+    h = fold_rebuild_trades(h, ib);
     h = fnv(fnv(h, 0xB0u), planet_is_colonized(e) ? 1u : 0u);
     h = fnv(h, (uint32_t)planet_upkeep(e));
-    return as_hj(e)->has_development_tier ? fold_fixed_member(h, as_hj(e)->development_tier) : fold_absent(h);
+    return as_ascension(e)->has_development_tier ? fold_fixed_member(h, as_ascension(e)->development_tier) : fold_absent(h);
 }
 
 /* `dc("kj")` once: the screen it leaves and what `hj:kj` left in `qy`. */
 static uint32_t fold_draw(uint32_t h, void *e) {
     draw_layers("draw");
     h = fnv(h, screen_hash());
-    return fnv(h, (uint32_t)ptrs_size(as_hj(e)->emitter->particles));
+    return fnv(h, (uint32_t)pointer_list_size(as_ascension(e)->emitter->particles));
 }
 
 /* Placed on screen by `hq` (`bv`) and `ey` (`d_`); `dg` on one still in
@@ -490,90 +490,90 @@ static uint32_t fold_draw(uint32_t h, void *e) {
  * `mm` (`g_.mm`, `pk` true) and `ez`; `kj` through `dc` with `mi`=1, then
  * `mi`=2 (`ei` moves and draws the particles); `dh`/`ib`/`gg`/`da`. */
 static void test_life(void) {
-    uint32_t h = 2166136261u;
+    uint32_t hash = 2166136261u;
     void *placed;
     void *idle;
-    vec_t *mp;
-    const vec_t *mo_ra;
-    int i;
+    vec_t *mouse_world;
+    const vec_t *main_camera_pos;
+    int index;
 
     start_game();
     idle = build_synthesizer();
-    h = fold_string_member(h, as_hj(idle)->header.state);
-    h = fold_dg(h, idle);
+    hash = fold_string_member(hash, as_ascension(idle)->header.state);
+    hash = fold_update_entities(hash, idle);
 
     placed = build_synthesizer();
     assert(main_camera_typed() != NULL);
-    mo_ra = main_camera_typed()->pos;
-    assert(mo_ra != NULL);
-    mp = vec_ref(vec_add(*mo_ra, vec_xy(12, 108)));
-    cls_of(placed)->drag(placed, mp, vec_ref(vec_xy(64, 64)));
-    assert(ra_copies(as_hj(placed)->pos, mp));
+    main_camera_pos = main_camera_typed()->pos;
+    assert(main_camera_pos != NULL);
+    mouse_world = vec_ref(vec_add(*main_camera_pos, vec_xy(12, 108)));
+    class_of(placed)->drag(placed, mouse_world, vec_ref(vec_xy(64, 64)));
+    assert(pos_copies(as_ascension(placed)->pos, mouse_world));
     set_credits(200);
-    assert(cls_of(placed)->drop == targeting_confirm_method);
-    h = targeting_confirm(placed) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
-    h = fold_string_member(h, as_hj(placed)->header.state);
-    assert(strcmp(as_hj(placed)->header.state, "settled") == 0);
+    assert(class_of(placed)->drop == targeting_confirm_method);
+    hash = targeting_confirm(placed) ? fnv(fnv(hash, 0xB0u), 1u) : fold_ref(hash, NULL);
+    hash = fold_string_member(hash, as_ascension(placed)->header.state);
+    assert(strcmp(as_ascension(placed)->header.state, "settled") == 0);
 
-    h = fold_economy(h, placed);
-    for (i = 0; i < 3; i++) {
-        h = fold_dg(h, placed);
+    hash = fold_economy(hash, placed);
+    for (index = 0; index < 3; index++) {
+        hash = fold_update_entities(hash, placed);
     }
 
-    h = fold_particle(h, cls_of(placed)->spawn_particle(placed));
+    hash = fold_particle(hash, class_of(placed)->spawn_particle(placed));
     emitter_spawn(placed, P8_FIXED_LIT(0x00028000, 2.5));
-    h = fnv(h, (uint32_t)ptrs_size(as_hj(placed)->emitter->particles));
-    assert(ptrs_size(as_hj(placed)->emitter->particles) >= 2);
+    hash = fnv(hash, (uint32_t)pointer_list_size(as_ascension(placed)->emitter->particles));
+    assert(pointer_list_size(as_ascension(placed)->emitter->particles) >= 2);
 
-    h = fold_draw(h, placed);
-    h = fold_draw(h, placed);
-    as_hj(placed)->development_tier = p8_fixed_from_int(2);
-    as_hj(placed)->has_development_tier = 1;
-    for (i = 0; i < 4; i++) {
-        h = fold_draw(h, placed);
+    hash = fold_draw(hash, placed);
+    hash = fold_draw(hash, placed);
+    as_ascension(placed)->development_tier = p8_fixed_from_int(2);
+    as_ascension(placed)->has_development_tier = 1;
+    for (index = 0; index < 4; index++) {
+        hash = fold_draw(hash, placed);
     }
-    h = fold_economy(h, placed);
-    check("life", h, LIFE_HASH);
+    hash = fold_economy(hash, placed);
+    check("life", hash, LIFE_HASH);
 }
 
 /* A slipway from `qu` to the synthesizer, joined by its real `ey`: `jc:ey`
  * charges the player, then runs `kf` on both ends. */
 static void *join(void *qu, void *synthesizer) {
-    slipway_keys_t jc_keys = {0};
+    slipway_keys_t slipway_keys = {0};
     void *jc;
 
-    jc_keys.start = qu;
-    jc = slipway_new(&jc_keys);
+    slipway_keys.start = qu;
+    jc = slipway_new(&slipway_keys);
     assert(jc != NULL);
     set_credits(999);
-    cls_of(jc)->drop(jc, synthesizer);
-    assert(ents_listed(as_hj(synthesizer)->slipways, jc));
+    class_of(jc)->drop(jc, synthesizer);
+    assert(entity_list_listed(as_ascension(synthesizer)->slipways, jc));
     return jc;
 }
 
 /* `mx:kf` reads the other end's `jy`: one row per resource, `gc` its
  * count of suppliers. */
 static void give_row(void *e, int qe) {
-    p8_fixed_t want_qe = p8_fixed_from_int(qe);
-    need_t *row = need_new(game_zone(), &want_qe);
+    p8_fixed_t want_resource = p8_fixed_from_int(qe);
+    need_t *row = need_new(game_zone(), &want_resource);
     pointer_list_t *jy = malloc(sizeof *jy);
 
     row->has_satisfied = 1;
     row->satisfied = p8_fixed_from_int(0);
     pointer_list_init(jy, &heap_allocator);
     pointer_list_add(jy, row);
-    as_hj(e)->needs = jy;
+    as_ascension(e)->needs = jy;
 }
 
-static uint32_t fold_kf(uint32_t h, void *e) {
-    const planet_t *jo = as_hj(e);
+static uint32_t fold_attach_slipway(uint32_t h, void *e) {
+    const planet_t *jo = as_ascension(e);
 
-    h = fnv(h, (uint32_t)ht_is_the_class_one(e));
-    h = fnv(h, (uint32_t)ht_size(e));
-    h = fold_kw(h, jo);
+    h = fnv(h, (uint32_t)synthesizable_resources_is_the_class_one(e));
+    h = fnv(h, (uint32_t)synthesizable_resources_size(e));
+    h = fold_production(h, jo);
     h = fold_fixed_member(h, jo->shake);
     h = (jo->fold_anchor != 0) ? fold_bool_member(h, jo->fold_anchor) : fold_absent(h);
-    return fnv(h, (uint32_t)ents_ptrs_size(jo->slipways));
+    return fnv(h, (uint32_t)entity_list_pointer_list_size(jo->slipways));
 }
 
 /* `mx:kf` on a slipway from an ascension whose `jy` lacks a resource of `ht`: nothing
@@ -590,36 +590,36 @@ static void test_synthesis(void) {
     const production_t *kw;
 
     start_game();
-    home = build(pico8_hj_kind());
+    home = build(ascension_kind());
     s = build_synthesizer();
-    assert(ht_is_the_class_one(s) && ht_size(s) == 4);
+    assert(synthesizable_resources_is_the_class_one(s) && synthesizable_resources_size(s) == 4);
 
     give_row(home, 7);
     (void)join(home, s);
-    assert(ht_is_the_class_one(s));
-    h = fold_kf(h, s);
-    h = fold_kf(h, home);
+    assert(synthesizable_resources_is_the_class_one(s));
+    h = fold_attach_slipway(h, s);
+    h = fold_attach_slipway(h, home);
 
     give_row(home, 20);
     (void)join(home, s);
-    assert(!ht_is_the_class_one(s) && ht_size(s) == 0);
-    kw = as_hj(s)->production;
+    assert(!synthesizable_resources_is_the_class_one(s) && synthesizable_resources_size(s) == 0);
+    kw = as_ascension(s)->production;
     assert(kw->has_resource && kw->resource == p8_fixed_from_int(20));
     assert(synthesizer_synthesizable_resources_seq.count == 4);
     assert(!planet_shared_production()->has_resource || planet_shared_production()->resource != p8_fixed_from_int(20));
-    h = fold_kf(h, s);
-    fresh = ht_of(s);
+    h = fold_attach_slipway(h, s);
+    fresh = synthesizable_resources_of(s);
 
     give_row(home, 21);
     (void)join(home, s);
-    assert(ht_of(s) == fresh && ht_size(s) == 0);
-    kw = as_hj(s)->production;
+    assert(synthesizable_resources_of(s) == fresh && synthesizable_resources_size(s) == 0);
+    kw = as_ascension(s)->production;
     assert(kw->has_resource && kw->resource == p8_fixed_from_int(20));
-    h = fold_kf(h, s);
+    h = fold_attach_slipway(h, s);
 
     other = build_synthesizer();
-    assert(ht_is_the_class_one(other) && ht_size(other) == 4);
-    h = fold_kf(h, other);
+    assert(synthesizable_resources_is_the_class_one(other) && synthesizable_resources_size(other) == 4);
+    h = fold_attach_slipway(h, other);
     check("synthesis", h, SYNTHESIS_HASH);
 }
 
@@ -648,7 +648,7 @@ static void build_with_unknown_key(void *e) {
     (void)synthesizer_new(&keys);
 }
 
-static int is_an_mx_struct(const void *e) {
+static int is_a_synthesizer_struct(const void *e) {
     return e != NULL &&
            ((const entity_t *)e)->class == synthesizer_class();
 }
@@ -657,27 +657,27 @@ static int is_an_mx_struct(const void *e) {
  * descriptor holds hj's very entries but its own `kf`; a construction key
  * other than `id` stops the run. No class of mx's chain installs a function
  * any more. */
-static void test_mx_is_a_struct(void) {
+static void test_synthesizer_is_a_struct(void) {
     const entity_class_t *cls = synthesizer_class();
-    const entity_class_t *hj = pico8_hj_struct_class();
+    const entity_class_t *hj = ascension_class();
     void *a;
 
     start_game();
     a = build_synthesizer();
-    assert(is_an_mx_struct(a) && cls != hj && ents_listed(entities_by_tag("planet"), a) && !ents_listed(entities_by_tag("ascension"), a));
+    assert(is_a_synthesizer_struct(a) && cls != hj && entity_list_listed(entities_by_tag("planet"), a) && !entity_list_listed(entities_by_tag("ascension"), a));
     assert(cls->attach_slipway != hj->attach_slipway && cls->attach_slipway != planet_class()->attach_slipway);
-    assert_qh_shape(cls);
+    assert_structure_shape(cls);
     assert_members_of(cls, hj, 1, 1);
     assert(cls->offer_trade == hj->offer_trade && cls->spawn_particle == hj->spawn_particle);
     assert(synthesizer_ready());
-    assert(pico8_hj_ready());
+    assert(ascension_ready());
 
     must_abort(build_with_unknown_key, NULL);
     {
         planet_t *bare = synthesizer_new(NULL);
-        assert(is_an_mx_struct(bare) && bare->planet_id == NULL && bare->slipways != NULL &&
-               bare->production != NULL && ptrs_size(bare->emitter->particles) == 0 &&
-               ents_listed(entities_by_tag("planet"), bare));
+        assert(is_a_synthesizer_struct(bare) && bare->planet_id == NULL && bare->slipways != NULL &&
+               bare->production != NULL && pointer_list_size(bare->emitter->particles) == 0 &&
+               entity_list_listed(entities_by_tag("planet"), bare));
     }
 }
 
@@ -709,18 +709,18 @@ static void in_fresh_child(void (*test)(void)) {
 
 /* What an emitter holds in the particle zone, by sort. */
 typedef struct {
-    int particules;
-    int qy;
-    int qy_fv;
-    int rangees;
+    int particle;
+    int particles;
+    int particles_help_screen;
+    int rows;
 } held_t;
 
 static held_t held_now(void) {
     held_t h;
-    h.particules = particle_zone_live(PARTICLE_SLOT_PARTICLE);
-    h.qy = particle_zone_live(PARTICLE_SLOT_LIST);
-    h.qy_fv = particle_zone_live(PARTICLE_SLOT_HELP_LIST);
-    h.rangees = ui_zone_live(SLOT_KIND_ROW);
+    h.particle = particle_zone_live(PARTICLE_SLOT_PARTICLE);
+    h.particles = particle_zone_live(PARTICLE_SLOT_LIST);
+    h.particles_help_screen = particle_zone_live(PARTICLE_SLOT_HELP_LIST);
+    h.rows = ui_zone_live(SLOT_KIND_ROW);
     return h;
 }
 
@@ -734,15 +734,15 @@ static void test_leaving_gives_back_its_particles(void) {
     start_game();
     pico8_cart_vider_file_sortie();
     before = held_now();
-    e = as_hj(build_synthesizer());
+    e = as_ascension(build_synthesizer());
     emitter_spawn(&e->header, p8_fixed_from_int(5));
-    cls_of(e)->refresh(&e->header);
+    class_of(e)->refresh(&e->header);
     assert(e->emitter->particles->count == 5);
-    assert(held_now().particules == before.particules + 5 && held_now().qy == before.qy + 1);
+    assert(held_now().particle == before.particle + 5 && held_now().particles == before.particles + 1);
     entity_unregister(&e->header);
     pico8_cart_vider_file_sortie();
     after = held_now();
-    assert(after.particules == before.particules && after.qy == before.qy && after.rangees == before.rangees);
+    assert(after.particle == before.particle && after.particles == before.particles && after.rows == before.rows);
     assert(e->emitter->particles == NULL && e->layout_row_slot == NULL);
 }
 
@@ -760,9 +760,9 @@ int main(void) {
     in_fresh_child(test_built);
     in_fresh_child(test_life);
     in_fresh_child(test_synthesis);
-    in_fresh_child(test_mx_is_a_struct);
+    in_fresh_child(test_synthesizer_is_a_struct);
     in_fresh_child(test_leaving_gives_back_its_particles);
 
-    printf("test_pico8_mx: all tests passed\n");
+    printf("test_synthesizer: all tests passed\n");
     return 0;
 }

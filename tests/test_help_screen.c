@@ -625,18 +625,18 @@ static void in_fresh_child(void (*test)(void)) {
 
 /* What an emitter holds in the particle zone, by sort. */
 typedef struct {
-    int particules;
-    int qy;
-    int qy_fv;
-    int rangees;
+    int particle;
+    int particles;
+    int particles_help_screen;
+    int rows;
 } held_t;
 
 static held_t held_now(void) {
     held_t h;
-    h.particules = particle_zone_live(PARTICLE_SLOT_PARTICLE);
-    h.qy = particle_zone_live(PARTICLE_SLOT_LIST);
-    h.qy_fv = particle_zone_live(PARTICLE_SLOT_HELP_LIST);
-    h.rangees = ui_zone_live(SLOT_KIND_ROW);
+    h.particle = particle_zone_live(PARTICLE_SLOT_PARTICLE);
+    h.particles = particle_zone_live(PARTICLE_SLOT_LIST);
+    h.particles_help_screen = particle_zone_live(PARTICLE_SLOT_HELP_LIST);
+    h.rows = ui_zone_live(SLOT_KIND_ROW);
     return h;
 }
 
@@ -651,12 +651,12 @@ static void test_eu_gives_back_the_help_particles(void) {
     fv = the_help();
     emitter_spawn(&fv->header, p8_fixed_from_int(5));
     title = held_now();
-    assert(title.qy_fv == 1 && fv->emitter->particles->count >= 5);
-    assert(title.particules == fv->emitter->particles->count);
+    assert(title.particles_help_screen == 1 && fv->emitter->particles->count >= 5);
+    assert(title.particle == fv->emitter->particles->count);
     pico8_eu(NULL);
     pico8_cart_vider_file_sortie();
     after = held_now();
-    assert(after.qy_fv == 0 && after.particules == 0);
+    assert(after.particles_help_screen == 0 && after.particle == 0);
     assert(fv->emitter->particles == NULL);
 }
 

@@ -39,7 +39,7 @@
 #include "heap_allocator.h"
 
 /* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
-static int ra_copies(const vec_t *ra, const vec_t *mp) {
+static int pos_copies(const vec_t *ra, const vec_t *mp) {
     return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
 }
 
@@ -59,7 +59,7 @@ static p8_memory_t mem;
 static p8_graphics_t gfx;
 static p8_input_t input;
 
-static const char *const bm[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
 static const char *const tags[] = {"slipgate", "node", "targeting"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -78,7 +78,7 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int ents_rank_in(const entity_list_t *list, const void *e) {
+static int entity_list_rank_in(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -88,8 +88,8 @@ static int ents_rank_in(const entity_list_t *list, const void *e) {
     return -1;
 }
 
-static int ents_listed(const entity_list_t *list, const void *e) {
-    return ents_rank_in(list, e) >= 0;
+static int entity_list_listed(const entity_list_t *list, const void *e) {
+    return entity_list_rank_in(list, e) >= 0;
 }
 
 static uint32_t fold_absent(uint32_t h) {
@@ -109,7 +109,7 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
     return s == NULL ? fold_absent(h) : fnv_str(fnv(fnv(h, 1u), 0x57u), s);
 }
 
-static uint32_t fold_hf(uint32_t h, const planet_t *jo) {
+static uint32_t fold_is_planet(uint32_t h, const planet_t *jo) {
     return jo->archetype->is_planet ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
@@ -125,8 +125,8 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (ref == NULL) {
         return fnv(h, 0xDEADu);
     }
-    if (ents_listed(live_entities(), ref)) {
-        return fnv(fnv(h, 0x4Eu), (uint32_t)ents_rank_in(live_entities(), ref));
+    if (entity_list_listed(live_entities(), ref)) {
+        return fnv(fnv(h, 0x4Eu), (uint32_t)entity_list_rank_in(live_entities(), ref));
     }
     return fnv(fnv(h, 0xEEEEu), FROZEN_STRUCT_TAG);
 }
@@ -142,19 +142,19 @@ static int list_size(const pointer_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
-static int ents_list_size(const entity_list_t *l) {
+static int entity_list_list_size(const entity_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
 /* `e` as a planet of qh's lineage. */
-static planet_t *as_qh(void *e) {
+static planet_t *as_structure(void *e) {
     const entity_t *h = e;
 
     assert(h != NULL && (h->class->lineage & LINEAGE(LINEAGE_STRUCTURE)));
     return e;
 }
 
-static uint32_t fold_qh(uint32_t h, const planet_t *qh) {
+static uint32_t fold_structure(uint32_t h, const planet_t *qh) {
     return qh->archetype->is_structure ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
@@ -194,14 +194,14 @@ static vec_t vec_xy(int x, int y) {
     return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
-static const entity_class_t *cls_of(const void *e) {
+static const entity_class_t *class_of(const void *e) {
     return ((const entity_t *)e)->class;
 }
 
 /* The members a planet of qh's tree holds: `kj`, `ev`, `hd`, `hk`, `hb`,
  * `ldown`, `gv`, `hq`, `ey`, `kf`, `cn` and the states `ll`, `ly`; `mm`
  * aside, no other. */
-static void assert_qh_shape(const entity_class_t *c) {
+static void assert_structure_shape(const entity_class_t *c) {
     assert(c->draw != NULL && c->draw_overlay != NULL && c->hit_test != NULL && c->new_year != NULL && c->refresh != NULL && c->left_press != NULL &&
            c->accept_drop != NULL && c->states[ENTITY_STATE_VANISHING] != NULL && c->states[ENTITY_STATE_SETTLED] != NULL);
     assert(c->has_refresh == NULL && c->right_press == NULL && c->states[ENTITY_STATE_NORMAL] == NULL &&
@@ -215,7 +215,7 @@ static void *icon_of(const entity_kind_t *kind) {
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i];
-        if (cls_of(e) == structure_icon_class() && ((const structure_icon_t *)e)->kind == kind) {
+        if (class_of(e) == structure_icon_class() && ((const structure_icon_t *)e)->kind == kind) {
             return e;
         }
     }
@@ -228,7 +228,7 @@ static void *build(const entity_kind_t *kind) {
     down_t made;
 
     assert(icon != NULL);
-    made = cls_of(icon)->left_press(icon, NULL, NULL);
+    made = class_of(icon)->left_press(icon, NULL, NULL);
     assert(made.stop && made.held != NULL);
     return made.held;
 }
@@ -237,7 +237,7 @@ static void *build_slipgate(void) {
     return build(slipgate_kind());
 }
 
-enum { NR, FR };
+enum { SLIPGATE, INFRASPACE_GATE };
 
 /* `hz` is never written on an entity: one whose `hz` is the very table of
  * nr's class is a slipgate, of fr's class an infraspace gate. -1 for
@@ -245,17 +245,17 @@ enum { NR, FR };
 static int gate_kind(const void *e) {
     const void *hz = NULL;
 
-    if (e != NULL && (cls_of(e) == slipgate_class() || cls_of(e) == infraspace_gate_class())) {
+    if (e != NULL && (class_of(e) == slipgate_class() || class_of(e) == infraspace_gate_class())) {
         hz = ((const planet_t *)e)->archetype->link_sprites;
     }
     if (hz == NULL) {
         return -1;
     }
     if (hz == &slipgate_link_sprites_seq) {
-        return NR;
+        return SLIPGATE;
     }
     if (hz == &infraspace_gate_link_sprites_seq) {
-        return FR;
+        return INFRASPACE_GATE;
     }
     return -1;
 }
@@ -265,155 +265,155 @@ static int gate_kind(const void *e) {
  * its own `gv`, `ldown`, `hb`, `cn`), which default tables it shares with
  * `nr`, `qh` and `jo`, and where `lt` registered it -- in
  * `cg.nr`/`np`/`prober`, never in `cg.jo` or `cg.qh`. */
-static uint32_t fold_slipgate(uint32_t h, const void *e) {
-    const entity_class_t *qh_cls = pico8_qh_struct_class();
-    const planet_t *nr;
-    const planet_t *qh;
-    const planet_t *jo;
-    size_t i;
+static uint32_t fold_slipgate(uint32_t hash, const void *entity) {
+    const entity_class_t *structure_cls = structure_class();
+    const planet_t *slipgate;
+    const planet_t *structure;
+    const planet_t *planet;
+    size_t index;
 
-    assert(gate_kind(e) == NR && cls_of(e) == slipgate_class());
-    nr = e;
-    qh = nr;
-    jo = qh;
-    h = fold_string_member(h, jo->planet_id);
-    h = fold_string_member(h, jo->header.state);
-    h = fold_fixed_member(h, jo->header.state_time);
-    h = fold_string_member(h, nr->archetype->required_tech);
-    h = fold_fixed_member(h, qh->archetype->project_index);
-    h = fold_fixed_member(h, qh->sprite);
-    h = fold_fixed_member(h, qh->targeting->cost);
-    h = fold_fixed_member(h, qh->targeting->archetype->clock_ticks);
-    h = fold_fixed_member(h, qh->targeting->archetype->attach_distance);
-    h = fold_string_member(h, qh->targeting->archetype->confirmed_state);
-    h = fold_qh(h, qh);
-    h = jo->has_development_tier ? fold_fixed_member(h, jo->development_tier) : fold_absent(h);
-    h = fold_hf(h, jo);
-    h = fold_fixed_member(h, jo->archetype->trade_multiplier);
-    h = fold_fixed_member(h, jo->archetype->layer);
-    h = fold_fixed_member(h, jo->shake);
-    h = fold_fixed_member(h, jo->archetype->back_color);
-    h = fold_vec(h, &jo->archetype->row_step);
-    h = fnv(h, (uint32_t)nr->archetype->link_sprites->count);
+    assert(gate_kind(entity) == SLIPGATE && class_of(entity) == slipgate_class());
+    slipgate = entity;
+    structure = slipgate;
+    planet = structure;
+    hash = fold_string_member(hash, planet->planet_id);
+    hash = fold_string_member(hash, planet->header.state);
+    hash = fold_fixed_member(hash, planet->header.state_time);
+    hash = fold_string_member(hash, slipgate->archetype->required_tech);
+    hash = fold_fixed_member(hash, structure->archetype->project_index);
+    hash = fold_fixed_member(hash, structure->sprite);
+    hash = fold_fixed_member(hash, structure->targeting->cost);
+    hash = fold_fixed_member(hash, structure->targeting->archetype->clock_ticks);
+    hash = fold_fixed_member(hash, structure->targeting->archetype->attach_distance);
+    hash = fold_string_member(hash, structure->targeting->archetype->confirmed_state);
+    hash = fold_structure(hash, structure);
+    hash = planet->has_development_tier ? fold_fixed_member(hash, planet->development_tier) : fold_absent(hash);
+    hash = fold_is_planet(hash, planet);
+    hash = fold_fixed_member(hash, planet->archetype->trade_multiplier);
+    hash = fold_fixed_member(hash, planet->archetype->layer);
+    hash = fold_fixed_member(hash, planet->shake);
+    hash = fold_fixed_member(hash, planet->archetype->back_color);
+    hash = fold_vec(hash, &planet->archetype->row_step);
+    hash = fnv(hash, (uint32_t)slipgate->archetype->link_sprites->count);
     /* The 1s of `hp`, `qh`, `od`, `fp`, `dw`, `s`, then of `hf`, `hs`, `fa`,
      * `ma` and `ca`: constant by the struct's shape, kept so that BUILT_HASH
      * still proves the typed reads. */
-    h = fnv(h, (uint32_t)(nr->archetype->link_sprites != NULL));
-    h = fnv(h, (uint32_t)(nr->archetype->required_tech != NULL));
-    h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(qh->archetype->name != NULL));
-    h = fnv(h, (uint32_t)(qh->targeting->archetype->confirmed_state != NULL));
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(qh->archetype->accepted_resources != NULL));
-    h = fnv(h, qh->targeting->target != NULL ? 1u : 0u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->archetype->ring_colors != NULL));
-    h = fnv(h, (uint32_t)(jo->archetype->mood_rows != NULL));
-    h = fnv(h, (uint32_t)(jo->archetype->made_resources != NULL));
-    h = fnv(h, (uint32_t)(jo->production != NULL));
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->archetype->spacer != NULL));
-    h = fnv(h, (uint32_t)(jo->planet_id != NULL));
-    h = fnv(h, (uint32_t)(jo->map_pos != NULL));
-    h = fnv(h, (uint32_t)(jo->pos != NULL));
-    h = fnv(h, (uint32_t)(jo->slipways != NULL));
-    h = fnv(h, (uint32_t)(jo->project != NULL));
-    h = fnv(h, (uint32_t)(jo->description != NULL));
-    h = fnv(h, (uint32_t)(jo->needs != NULL));
-    h = fnv(h, (uint32_t)(jo->planet_type != NULL));
-    h = fnv(h, (uint32_t)(jo->fold_anchor != 0));
-    h = fnv(h, (uint32_t)(jo->layout_row != NULL));
-    h = fnv(h, (uint32_t)(jo->targeted_by != NULL));
-    h = fnv(h, (uint32_t)jo->has_production_bonus);
-    h = fnv(h, (uint32_t)(jo->is_dead != 0));
-    h = fnv(h, (uint32_t)jo->has_net_income);
-    h = fnv(h, (uint32_t)(jo->incoming_routes != NULL));
-    h = fnv(h, (uint32_t)(jo->outgoing_routes != NULL));
-    h = fnv(h, (uint32_t)jo->has_development_tier);
-    h = fnv(h, (uint32_t)(jo->is_hovered != 0));
-    assert(cls_of(e)->offer_trade == slipgate_class()->offer_trade && cls_of(e)->offer_trade != qh_cls->offer_trade &&
-           cls_of(e)->offer_trade != planet_class()->offer_trade);
-    assert(cls_of(e)->attach_slipway == qh_cls->attach_slipway && cls_of(e)->drag == qh_cls->drag && cls_of(e)->drop == qh_cls->drop &&
-           cls_of(e)->spawn_particle == NULL && planet_is_family(e));
-    assert_qh_shape(cls_of(e));
-    assert(cls_of(e)->draw == qh_cls->draw && cls_of(e)->draw_overlay == qh_cls->draw_overlay && cls_of(e)->hit_test == qh_cls->hit_test &&
-           cls_of(e)->new_year == qh_cls->new_year);
-    assert(cls_of(e)->states[ENTITY_STATE_VANISHING] == qh_cls->states[ENTITY_STATE_VANISHING] &&
-           cls_of(e)->states[ENTITY_STATE_SETTLED] == qh_cls->states[ENTITY_STATE_SETTLED]);
-    assert(cls_of(e)->accept_drop != qh_cls->accept_drop && cls_of(e)->left_press != qh_cls->left_press && cls_of(e)->refresh != qh_cls->refresh);
-    assert(cls_of(e)->accept_drop != planet_class()->accept_drop && cls_of(e)->left_press != planet_class()->left_press &&
-           cls_of(e)->refresh != planet_class()->refresh);
-    assert(jo->archetype == &slipgate_archetype);
-    assert(jo->header.class->tags == (TAG(TAG_SLIPGATE) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && nr->archetype->link_sprites == &slipgate_link_sprites_seq);
-    assert(jo->header.class->tags != (TAG(TAG_STRUCTURE) | TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)));
-    assert(jo->archetype->hit_box.left != planet_archetype.hit_box.left);
-    assert(qh->archetype->name == &structure_name_row && qh->archetype->accepted_resources == &structure_accepted_resources_seq);
-    assert(jo->archetype == &slipgate_archetype);
-    assert(jo->archetype->spacer == &planet_spacer_row && jo->archetype->ring_colors == &planet_ring_colors_seq && jo->archetype->mood_rows == planet_mood_rows_rows &&
-           jo->archetype->made_resources == &planet_made_resources_seq);
-    assert(jo->production != NULL && jo->production != planet_shared_production());
+    hash = fnv(hash, (uint32_t)(slipgate->archetype->link_sprites != NULL));
+    hash = fnv(hash, (uint32_t)(slipgate->archetype->required_tech != NULL));
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, (uint32_t)(structure->archetype->name != NULL));
+    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != NULL));
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, (uint32_t)(structure->archetype->accepted_resources != NULL));
+    hash = fnv(hash, structure->targeting->target != NULL ? 1u : 0u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, (uint32_t)(planet->archetype->ring_colors != NULL));
+    hash = fnv(hash, (uint32_t)(planet->archetype->mood_rows != NULL));
+    hash = fnv(hash, (uint32_t)(planet->archetype->made_resources != NULL));
+    hash = fnv(hash, (uint32_t)(planet->production != NULL));
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
+    hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
+    hash = fnv(hash, (uint32_t)(planet->map_pos != NULL));
+    hash = fnv(hash, (uint32_t)(planet->pos != NULL));
+    hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
+    hash = fnv(hash, (uint32_t)(planet->project != NULL));
+    hash = fnv(hash, (uint32_t)(planet->description != NULL));
+    hash = fnv(hash, (uint32_t)(planet->needs != NULL));
+    hash = fnv(hash, (uint32_t)(planet->planet_type != NULL));
+    hash = fnv(hash, (uint32_t)(planet->fold_anchor != 0));
+    hash = fnv(hash, (uint32_t)(planet->layout_row != NULL));
+    hash = fnv(hash, (uint32_t)(planet->targeted_by != NULL));
+    hash = fnv(hash, (uint32_t)planet->has_production_bonus);
+    hash = fnv(hash, (uint32_t)(planet->is_dead != 0));
+    hash = fnv(hash, (uint32_t)planet->has_net_income);
+    hash = fnv(hash, (uint32_t)(planet->incoming_routes != NULL));
+    hash = fnv(hash, (uint32_t)(planet->outgoing_routes != NULL));
+    hash = fnv(hash, (uint32_t)planet->has_development_tier);
+    hash = fnv(hash, (uint32_t)(planet->is_hovered != 0));
+    assert(class_of(entity)->offer_trade == slipgate_class()->offer_trade && class_of(entity)->offer_trade != structure_cls->offer_trade &&
+           class_of(entity)->offer_trade != planet_class()->offer_trade);
+    assert(class_of(entity)->attach_slipway == structure_cls->attach_slipway && class_of(entity)->drag == structure_cls->drag && class_of(entity)->drop == structure_cls->drop &&
+           class_of(entity)->spawn_particle == NULL && planet_is_family(entity));
+    assert_structure_shape(class_of(entity));
+    assert(class_of(entity)->draw == structure_cls->draw && class_of(entity)->draw_overlay == structure_cls->draw_overlay && class_of(entity)->hit_test == structure_cls->hit_test &&
+           class_of(entity)->new_year == structure_cls->new_year);
+    assert(class_of(entity)->states[ENTITY_STATE_VANISHING] == structure_cls->states[ENTITY_STATE_VANISHING] &&
+           class_of(entity)->states[ENTITY_STATE_SETTLED] == structure_cls->states[ENTITY_STATE_SETTLED]);
+    assert(class_of(entity)->accept_drop != structure_cls->accept_drop && class_of(entity)->left_press != structure_cls->left_press && class_of(entity)->refresh != structure_cls->refresh);
+    assert(class_of(entity)->accept_drop != planet_class()->accept_drop && class_of(entity)->left_press != planet_class()->left_press &&
+           class_of(entity)->refresh != planet_class()->refresh);
+    assert(planet->archetype == &slipgate_archetype);
+    assert(planet->header.class->tags == (TAG(TAG_SLIPGATE) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && slipgate->archetype->link_sprites == &slipgate_link_sprites_seq);
+    assert(planet->header.class->tags != (TAG(TAG_STRUCTURE) | TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)));
+    assert(planet->archetype->hit_box.left != planet_archetype.hit_box.left);
+    assert(structure->archetype->name == &structure_name_row && structure->archetype->accepted_resources == &structure_accepted_resources_seq);
+    assert(planet->archetype == &slipgate_archetype);
+    assert(planet->archetype->spacer == &planet_spacer_row && planet->archetype->ring_colors == &planet_ring_colors_seq && planet->archetype->mood_rows == planet_mood_rows_rows &&
+           planet->archetype->made_resources == &planet_made_resources_seq);
+    assert(planet->production != NULL && planet->production != planet_shared_production());
     assert(research_projects_at(1) != NULL);
-    assert(jo->project == research_projects_at(1));
-    h = fnv(h, (uint32_t)ents_list_size(jo->slipways));
-    h = fnv(h, (uint32_t)list_size(jo->needs));
-    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), e));
-    for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
-        h = fnv(h, (uint32_t)ents_rank_in(entities_by_message(bm[i]), e));
+    assert(planet->project == research_projects_at(1));
+    hash = fnv(hash, (uint32_t)entity_list_list_size(planet->slipways));
+    hash = fnv(hash, (uint32_t)list_size(planet->needs));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), entity));
+    for (index = 0; index < sizeof messages / sizeof messages[0]; index++) {
+        hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(messages[index]), entity));
     }
-    for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
-        h = fnv(h, (uint32_t)ents_rank_in(entities_by_tag(tags[i]), e));
+    for (index = 0; index < sizeof tags / sizeof tags[0]; index++) {
+        hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(tags[index]), entity));
     }
-    assert(ents_listed(entities_by_tag("slipgate"), e) && !ents_listed(entities_by_tag("planet"), e) && !ents_listed(entities_by_tag("structure"), e));
-    return h;
+    assert(entity_list_listed(entities_by_tag("slipgate"), entity) && !entity_list_listed(entities_by_tag("planet"), entity) && !entity_list_listed(entities_by_tag("structure"), entity));
+    return hash;
 }
 
 /* Two slipgates built by the shop's `ie:ldown` on `gx[2]`. */
 static void test_built(void) {
-    uint32_t h = 2166136261u;
+    uint32_t hash = 2166136261u;
     void *a;
     void *b;
 
     start_game();
     a = build_slipgate();
     b = build_slipgate();
-    assert(a != b && as_qh(a)->slipways != as_qh(b)->slipways && as_qh(a)->production != as_qh(b)->production);
-    h = fold_slipgate(h, a);
-    h = fold_slipgate(h, b);
-    check("built", h, BUILT_HASH);
+    assert(a != b && as_structure(a)->slipways != as_structure(b)->slipways && as_structure(a)->production != as_structure(b)->production);
+    hash = fold_slipgate(hash, a);
+    hash = fold_slipgate(hash, b);
+    check("built", hash, BUILT_HASH);
 }
 
 static void set_credits(int n) {
     main_economy_typed()->credits = p8_fixed_from_int(n);
 }
 
-static uint32_t fold_ra_y(uint32_t h, const planet_t *qh) {
+static uint32_t fold_pos_y(uint32_t h, const planet_t *qh) {
     const vec_t *ra = qh->pos;
     return ra == NULL ? fnv(h, 0xDEADu) : fnv(h, (uint32_t)ra->y);
 }
 
 /* `dg` once, then what qh's `ly` (`na`) left on the slipgate. */
-static uint32_t fold_dg(uint32_t h, void *e) {
-    const planet_t *qh = as_qh(e);
+static uint32_t fold_update_entities(uint32_t h, void *e) {
+    const planet_t *qh = as_structure(e);
 
-    h = fold_ra_y(h, qh);
+    h = fold_pos_y(h, qh);
     update_entities();
     h = fold_fixed_member(h, qh->header.state_time);
-    return fold_ra_y(h, qh);
+    return fold_pos_y(h, qh);
 }
 
 /* `jo:ib`'s container, folded as fold_ref folded the tagged list it was:
  * never in `hv`, so the tag branch. */
-static uint32_t fold_ib(uint32_t h, const entity_list_t *ib) {
+static uint32_t fold_rebuild_trades(uint32_t h, const entity_list_t *ib) {
     if (ib == NULL) {
         return fnv(h, 0xDEADu);
     }
@@ -424,10 +424,10 @@ static uint32_t fold_ib(uint32_t h, const entity_list_t *ib) {
 static uint32_t fold_economy(uint32_t h, void *e) {
     entity_list_t *ib = planet_rebuild_trades(e);
     h = fnv(h, (uint32_t)economy_tiers_compute_tier(e));
-    h = fold_ib(h, ib);
+    h = fold_rebuild_trades(h, ib);
     h = fnv(fnv(h, 0xB0u), planet_is_colonized(e) ? 1u : 0u);
     h = fnv(h, (uint32_t)planet_upkeep(e));
-    return as_qh(e)->has_development_tier ? fold_fixed_member(h, as_qh(e)->development_tier) : fold_absent(h);
+    return as_structure(e)->has_development_tier ? fold_fixed_member(h, as_structure(e)->development_tier) : fold_absent(h);
 }
 
 /* A list of `n` copies of `item`, for `oe`: `gv`, `ldown` and `hb` only
@@ -449,95 +449,95 @@ static entity_list_t *list_of(int n, entity_t *item) {
  * whose `qu` is the slipgate) and with 3 (refused); `hb` with 0 to 3
  * links; an `fr`'s `hb`; `pico8_nr_new` with no key, then `p` and `ra`. */
 static void test_life(void) {
-    uint32_t h = 2166136261u;
+    uint32_t hash = 2166136261u;
     void *placed;
     void *idle;
-    void *fr;
+    void *infraspace_gate;
     void *bare;
-    vec_t *mp;
-    down_t jc;
-    entity_list_t *oe;
-    const vec_t *mo_ra;
-    int i;
+    vec_t *mouse_world;
+    down_t slipway;
+    entity_list_t *slipways;
+    const vec_t *main_camera_pos;
+    int index;
 
     start_game();
     idle = build_slipgate();
-    h = fold_string_member(h, as_qh(idle)->header.state);
-    h = fold_dg(h, idle);
+    hash = fold_string_member(hash, as_structure(idle)->header.state);
+    hash = fold_update_entities(hash, idle);
 
     placed = build_slipgate();
     assert(main_camera_typed() != NULL);
-    mo_ra = main_camera_typed()->pos;
-    assert(mo_ra != NULL);
-    mp = vec_ref(vec_add(*mo_ra, vec_xy(12, 108)));
-    cls_of(placed)->drag(placed, mp, vec_ref(vec_xy(64, 64)));
-    assert(ra_copies(as_qh(placed)->pos, mp));
+    main_camera_pos = main_camera_typed()->pos;
+    assert(main_camera_pos != NULL);
+    mouse_world = vec_ref(vec_add(*main_camera_pos, vec_xy(12, 108)));
+    class_of(placed)->drag(placed, mouse_world, vec_ref(vec_xy(64, 64)));
+    assert(pos_copies(as_structure(placed)->pos, mouse_world));
     set_credits(200);
-    assert(cls_of(placed)->drop == targeting_confirm_method);
-    h = targeting_confirm(placed) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
-    h = fold_string_member(h, as_qh(placed)->header.state);
-    assert(strcmp(as_qh(placed)->header.state, "settled") == 0);
-    h = fold_economy(h, placed);
-    for (i = 0; i < 3; i++) {
-        h = fold_dg(h, placed);
+    assert(class_of(placed)->drop == targeting_confirm_method);
+    hash = targeting_confirm(placed) ? fnv(fnv(hash, 0xB0u), 1u) : fold_ref(hash, NULL);
+    hash = fold_string_member(hash, as_structure(placed)->header.state);
+    assert(strcmp(as_structure(placed)->header.state, "settled") == 0);
+    hash = fold_economy(hash, placed);
+    for (index = 0; index < 3; index++) {
+        hash = fold_update_entities(hash, placed);
     }
-    for (i = 0; i < 2; i++) {
+    for (index = 0; index < 2; index++) {
         draw_layers("draw");
-        h = fnv(h, screen_hash());
+        hash = fnv(hash, screen_hash());
     }
 
-    h = fold_bool(h, cls_of(placed)->accept_drop(placed, NULL).stop);
-    h = fold_bool(h, cls_of(placed)->accept_drop(placed, idle).stop);
-    jc = cls_of(placed)->left_press(placed, NULL, NULL);
-    assert(jc.stop && jc.held != NULL);
-    assert(cls_of(jc.held) == slipway_class() && ((const slipway_t *)jc.held)->start == placed);
-    h = fnv(h, FROZEN_STRUCT_TAG);
-    h = fold_bool(h, cls_of(placed)->accept_drop(placed, jc.held).stop);
-    h = fold_bool(h, cls_of(idle)->accept_drop(idle, jc.held).stop);
+    hash = fold_bool(hash, class_of(placed)->accept_drop(placed, NULL).stop);
+    hash = fold_bool(hash, class_of(placed)->accept_drop(placed, idle).stop);
+    slipway = class_of(placed)->left_press(placed, NULL, NULL);
+    assert(slipway.stop && slipway.held != NULL);
+    assert(class_of(slipway.held) == slipway_class() && ((const slipway_t *)slipway.held)->start == placed);
+    hash = fnv(hash, FROZEN_STRUCT_TAG);
+    hash = fold_bool(hash, class_of(placed)->accept_drop(placed, slipway.held).stop);
+    hash = fold_bool(hash, class_of(idle)->accept_drop(idle, slipway.held).stop);
 
-    oe = as_qh(placed)->slipways;
-    for (i = 0; i <= 3; i++) {
-        as_qh(placed)->slipways = list_of(i, idle);
-        cls_of(placed)->refresh(placed);
-        h = fold_fixed_member(h, as_qh(placed)->sprite);
-        h = fold_bool(h, cls_of(placed)->accept_drop(placed, NULL).stop);
+    slipways = as_structure(placed)->slipways;
+    for (index = 0; index <= 3; index++) {
+        as_structure(placed)->slipways = list_of(index, idle);
+        class_of(placed)->refresh(placed);
+        hash = fold_fixed_member(hash, as_structure(placed)->sprite);
+        hash = fold_bool(hash, class_of(placed)->accept_drop(placed, NULL).stop);
     }
-    assert(as_qh(placed)->sprite == p8_fixed_from_int(168));
-    jc = cls_of(placed)->left_press(placed, NULL, NULL);
-    assert(jc.held == NULL);
-    h = fold_bool(h, jc.stop);
-    as_qh(placed)->slipways = oe;
-    cls_of(placed)->refresh(placed);
-    h = fold_fixed_member(h, as_qh(placed)->sprite);
-    h = fold_economy(h, placed);
+    assert(as_structure(placed)->sprite == p8_fixed_from_int(168));
+    slipway = class_of(placed)->left_press(placed, NULL, NULL);
+    assert(slipway.held == NULL);
+    hash = fold_bool(hash, slipway.stop);
+    as_structure(placed)->slipways = slipways;
+    class_of(placed)->refresh(placed);
+    hash = fold_fixed_member(hash, as_structure(placed)->sprite);
+    hash = fold_economy(hash, placed);
 
-    fr = build(infraspace_gate_kind());
-    assert(gate_kind(fr) == FR);
-    h = fold_fixed_member(h, as_qh(fr)->sprite);
-    cls_of(fr)->refresh(fr);
-    h = fold_fixed_member(h, as_qh(fr)->sprite);
-    assert(as_qh(fr)->sprite == p8_fixed_from_int(78));
+    infraspace_gate = build(infraspace_gate_kind());
+    assert(gate_kind(infraspace_gate) == INFRASPACE_GATE);
+    hash = fold_fixed_member(hash, as_structure(infraspace_gate)->sprite);
+    class_of(infraspace_gate)->refresh(infraspace_gate);
+    hash = fold_fixed_member(hash, as_structure(infraspace_gate)->sprite);
+    assert(as_structure(infraspace_gate)->sprite == p8_fixed_from_int(78));
 
     bare = slipgate_new(NULL);
-    assert(gate_kind(bare) == NR && as_qh(bare)->planet_id == NULL && as_qh(bare)->slipways != NULL &&
-           as_qh(bare)->production != NULL);
-    h = fnv(h, (uint32_t)ents_rank_in(entities_by_tag("slipgate"), bare));
+    assert(gate_kind(bare) == SLIPGATE && as_structure(bare)->planet_id == NULL && as_structure(bare)->slipways != NULL &&
+           as_structure(bare)->production != NULL);
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("slipgate"), bare));
     {
         planet_keys_t keys;
-        vec_t *p = vec_ref(vec_xy(3, 4));
+        vec_t *pos = vec_ref(vec_xy(3, 4));
         vec_t *ra = vec_ref(vec_xy(5, 6));
         void *with;
         keys.planet_id = NULL;
-        keys.map_pos = p;
+        keys.map_pos = pos;
         keys.pos = ra;
         with = slipgate_new(&keys);
-        assert(as_qh(with)->map_pos == p && as_qh(with)->pos == ra && as_qh(with)->planet_id == NULL);
-        h = fnv(h, (uint32_t)ents_rank_in(live_entities(), with));
+        assert(as_structure(with)->map_pos == pos && as_structure(with)->pos == ra && as_structure(with)->planet_id == NULL);
+        hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), with));
     }
-    check("life", h, LIFE_HASH);
+    check("life", hash, LIFE_HASH);
 }
 
-static int is_an_nr_struct(const void *e) {
+static int is_a_slipgate_struct(const void *e) {
     return e != NULL &&
            ((const entity_t *)e)->class == slipgate_class();
 }
@@ -545,17 +545,17 @@ static int is_an_nr_struct(const void *e) {
 /* Built by `ie:ldown` or pico8_nr_new, a slipgate is a struct whose
  * descriptor holds qh's very entries but its own `gv`, `ldown`, `hb`, `cn`,
  * which no class of its chain installs any more. */
-static void test_nr_is_a_struct(void) {
+static void test_slipgate_is_a_struct(void) {
     const entity_class_t *cls = slipgate_class();
-    const entity_class_t *qh = pico8_qh_struct_class();
+    const entity_class_t *qh = structure_class();
     void *a;
     void *fr;
 
     start_game();
     a = build_slipgate();
-    assert(is_an_nr_struct(a) && cls != qh && ents_listed(entities_by_tag("slipgate"), a));
+    assert(is_a_slipgate_struct(a) && cls != qh && entity_list_listed(entities_by_tag("slipgate"), a));
     assert(cls->offer_trade != qh->offer_trade && cls->attach_slipway == qh->attach_slipway && cls->drag == qh->drag && cls->drop == qh->drop && cls->spawn_particle == qh->spawn_particle);
-    assert_qh_shape(cls);
+    assert_structure_shape(cls);
     assert(cls->draw == qh->draw && cls->draw_overlay == qh->draw_overlay && cls->hit_test == qh->hit_test && cls->new_year == qh->new_year);
     assert(cls->states[ENTITY_STATE_VANISHING] == qh->states[ENTITY_STATE_VANISHING] &&
            cls->states[ENTITY_STATE_SETTLED] == qh->states[ENTITY_STATE_SETTLED]);
@@ -565,13 +565,13 @@ static void test_nr_is_a_struct(void) {
     assert(slipgate_ready() && infraspace_gate_ready());
     {
         planet_t *bare = slipgate_new(NULL);
-        assert(is_an_nr_struct(bare) && bare->planet_id == NULL && bare->slipways != NULL && bare->production != NULL);
+        assert(is_a_slipgate_struct(bare) && bare->planet_id == NULL && bare->slipways != NULL && bare->production != NULL);
     }
     fr = build(infraspace_gate_kind());
     assert(fr != NULL &&
            ((const entity_t *)fr)->class == infraspace_gate_class());
-    cls_of(fr)->refresh(fr);
-    assert(as_qh(fr)->sprite == p8_fixed_from_int(78));
+    class_of(fr)->refresh(fr);
+    assert(as_structure(fr)->sprite == p8_fixed_from_int(78));
 }
 
 /* Counts the offers `cn` makes, taking each as `jo:ib`'s closure does. */
@@ -587,12 +587,12 @@ static void take_offer(trade_offer_t *self, trade_route_t *a) {
  * `rl` already runs through: over `w` to a planet wanting the trade's
  * resource, a trade whose `rl` holds `w` is not offered, one whose `rl`
  * does not is, once. */
-static void test_cn_skips_a_slipway_already_in_rl(void) {
+static void test_offer_trade_skips_a_slipway_already_in_slipways(void) {
     planet_t *self;
     planet_t *other;
-    slipway_keys_t jc_keys = {0};
-    slipway_t *w;
-    pointer_list_t *jy = malloc(sizeof *jy);
+    slipway_keys_t slipway_keys = {0};
+    slipway_t *slipway;
+    pointer_list_t *needs = malloc(sizeof *needs);
     entity_list_t *with_w = malloc(sizeof *with_w);
     entity_list_t *without_w = malloc(sizeof *without_w);
     entity_list_t ib;
@@ -605,18 +605,18 @@ static void test_cn_skips_a_slipway_already_in_rl(void) {
     assert(resource_code_lookup("p", &r_p));
     qe = p8_fixed_from_int(r_p);
     self = slipgate_new(NULL);
-    other = pico8_qh_new(NULL);
-    pointer_list_init(jy, &heap_allocator);
-    pointer_list_add(jy, need_new(game_zone(), &qe));
-    other->needs = jy;
-    jc_keys.start = &self->header;
-    w = slipway_new(&jc_keys);
-    w->end = &other->header;
+    other = structure_new(NULL);
+    pointer_list_init(needs, &heap_allocator);
+    pointer_list_add(needs, need_new(game_zone(), &qe));
+    other->needs = needs;
+    slipway_keys.start = &self->header;
+    slipway = slipway_new(&slipway_keys);
+    slipway->end = &other->header;
     assert(self->slipways != NULL && self->slipways->count == 0);
-    entity_list_add(self->slipways, &w->header);
+    entity_list_add(self->slipways, &slipway->header);
 
     entity_list_init(with_w, &heap_allocator);
-    entity_list_add(with_w, &w->header);
+    entity_list_add(with_w, &slipway->header);
     entity_list_init(&ib, &heap_allocator);
     keys.has_resource = 1;
     keys.resource = qe;
@@ -675,9 +675,9 @@ int main(void) {
     pico8_cart_load();
     in_fresh_child(test_built);
     in_fresh_child(test_life);
-    in_fresh_child(test_nr_is_a_struct);
-    in_fresh_child(test_cn_skips_a_slipway_already_in_rl);
+    in_fresh_child(test_slipgate_is_a_struct);
+    in_fresh_child(test_offer_trade_skips_a_slipway_already_in_slipways);
 
-    printf("test_pico8_nr: all tests passed\n");
+    printf("test_slipgate: all tests passed\n");
     return 0;
 }

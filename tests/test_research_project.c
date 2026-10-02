@@ -765,7 +765,7 @@ static void test_harvested_world(void) {
     planet_roll_type(p);
     planet_apply_project(p, project_with(with_class_name, 1));
     last = live_entities()->items[live_entities()->count - 1];
-    assert(last != NULL && last->class == pico8_ga_struct_class());
+    assert(last != NULL && last->class == burst_class());
     for (i = 0; i < 60; i++) {
         update_entities();
     }

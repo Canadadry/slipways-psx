@@ -79,9 +79,9 @@ static void test_planet_defaults(void) {
 }
 
 static void test_structure_defaults(void) {
-    planet_t *qh = pico8_qh_new(NULL);
+    planet_t *qh = structure_new(NULL);
 
-    assert(pico8_qh_ready());
+    assert(structure_ready());
     assert_same_string(qh->header.state, structure_archetype.state);
     assert(qh->targeting->cost == structure_archetype.targeting.cost);
     assert(qh->sprite == structure_archetype.sprite);
@@ -91,9 +91,9 @@ static void test_structure_defaults(void) {
 }
 
 static void test_trading_hub_defaults(void) {
-    planet_t *nl = pico8_nl_new(NULL);
+    planet_t *nl = trading_hub_new(NULL);
 
-    assert(pico8_nl_ready());
+    assert(trading_hub_ready());
     assert(nl->sprite == trading_hub_archetype.sprite);
     assert(nl->targeting->cost == trading_hub_archetype.targeting.cost);
     assert(nl->palette_block == trading_hub_archetype.palette_block);
@@ -104,9 +104,9 @@ static void test_trading_hub_defaults(void) {
 }
 
 static void test_processor_defaults(void) {
-    planet_t *os = pico8_os_new(NULL);
+    planet_t *os = processor_new(NULL);
 
-    assert(pico8_os_ready());
+    assert(processor_ready());
     assert(os->sprite == processor_archetype.sprite);
     assert(os->targeting->cost == processor_archetype.targeting.cost);
     assert_same_string(os->header.state, processor_archetype.state);
@@ -116,9 +116,9 @@ static void test_processor_defaults(void) {
 }
 
 static void test_ascension_defaults(void) {
-    planet_t *hj = pico8_hj_new(NULL);
+    planet_t *hj = ascension_new(NULL);
 
-    assert(pico8_hj_ready());
+    assert(ascension_ready());
     assert(hj->targeting->cost == ascension_archetype.targeting.cost);
     assert(hj->sprite == ascension_archetype.sprite);
     assert_emitter(hj->emitter, &ascension_archetype);
@@ -129,9 +129,9 @@ static void test_ascension_defaults(void) {
 }
 
 static void test_protostar_defaults(void) {
-    planet_t *pm = pico8_pm_new(NULL);
+    planet_t *pm = protostar_new(NULL);
 
-    assert(pico8_pm_ready());
+    assert(protostar_ready());
     assert_same_string(pm->header.state, protostar_archetype.state);
     assert(pm->sprite == protostar_archetype.sprite);
     assert_emitter(pm->emitter, &protostar_archetype);
@@ -142,10 +142,10 @@ static void test_protostar_defaults(void) {
 }
 
 static void test_burst_defaults(void) {
-    planet_t *ga = pico8_ga_new(NULL);
-    planet_t *other = pico8_ga_new(NULL);
+    planet_t *ga = burst_new(NULL);
+    planet_t *other = burst_new(NULL);
 
-    assert(pico8_ga_ready());
+    assert(burst_ready());
     assert(ga->outgoing_routes != NULL && ga->outgoing_routes == other->outgoing_routes);
     assert(ga->emitter->archetype == &burst_archetype.emitter);
     assert(ga->emitter->matrix_xx == burst_archetype.emitter.matrix_xx);
@@ -211,12 +211,12 @@ static void test_second_reset_world_keeps_entity(void) {
     reset_world();
     assert(entity_ready());
     assert(planet_new(NULL)->header.state_time == 0);
-    assert(pico8_qh_new(NULL)->header.state_time == 0);
-    assert(pico8_nl_new(NULL)->header.state_time == 0);
-    assert(pico8_os_new(NULL)->header.state_time == 0);
-    assert(pico8_hj_new(NULL)->header.state_time == 0);
-    assert(pico8_pm_new(NULL)->header.state_time == 0);
-    assert(pico8_ga_new(NULL)->header.state_time == 0);
+    assert(structure_new(NULL)->header.state_time == 0);
+    assert(trading_hub_new(NULL)->header.state_time == 0);
+    assert(processor_new(NULL)->header.state_time == 0);
+    assert(ascension_new(NULL)->header.state_time == 0);
+    assert(protostar_new(NULL)->header.state_time == 0);
+    assert(burst_new(NULL)->header.state_time == 0);
     assert(slipgate_new(NULL)->header.state_time == 0);
     assert(infraspace_gate_new(NULL)->header.state_time == 0);
     assert(synthesizer_new(NULL)->header.state_time == 0);
@@ -233,12 +233,12 @@ int main(void) {
     dispatch_context_set_input(&input);
 
     assert(!planet_ready());
-    assert(!pico8_qh_ready());
-    assert(!pico8_nl_ready());
-    assert(!pico8_os_ready());
-    assert(!pico8_hj_ready());
-    assert(!pico8_pm_ready());
-    assert(!pico8_ga_ready());
+    assert(!structure_ready());
+    assert(!trading_hub_ready());
+    assert(!processor_ready());
+    assert(!ascension_ready());
+    assert(!protostar_ready());
+    assert(!burst_ready());
     assert(!slipgate_ready());
     assert(!infraspace_gate_ready());
     assert(!synthesizer_ready());
@@ -261,14 +261,14 @@ int main(void) {
     assert(!slipgate_ready());
     assert(!infraspace_gate_ready());
     assert(!synthesizer_ready());
-    assert(pico8_qh_ready());
-    pico8_planet_family_shutdown();
-    assert(!pico8_qh_ready());
-    assert(!pico8_nl_ready());
-    assert(!pico8_os_ready());
-    assert(!pico8_hj_ready());
-    assert(!pico8_pm_ready());
-    assert(!pico8_ga_ready());
+    assert(structure_ready());
+    planet_family_shutdown();
+    assert(!structure_ready());
+    assert(!trading_hub_ready());
+    assert(!processor_ready());
+    assert(!ascension_ready());
+    assert(!protostar_ready());
+    assert(!burst_ready());
     assert(planet_ready());
     planet_shutdown();
     assert(!planet_ready());

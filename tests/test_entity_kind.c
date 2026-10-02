@@ -33,23 +33,23 @@ static p8_input_t input;
 static const entity_kind_t *kind_of(int i) {
     switch (i) {
     case 0:
-        return pico8_qh_kind();
+        return structure_kind();
     case 1:
-        return pico8_os_kind();
+        return processor_kind();
     case 2:
         return slipgate_kind();
     case 3:
         return infraspace_gate_kind();
     case 4:
-        return pico8_nl_kind();
+        return trading_hub_kind();
     case 5:
         return synthesizer_kind();
     case 6:
-        return pico8_hj_kind();
+        return ascension_kind();
     case 7:
-        return pico8_pm_kind();
+        return protostar_kind();
     default:
-        return pico8_ga_kind();
+        return burst_kind();
     }
 }
 
@@ -67,23 +67,23 @@ static void *kind_build(int i) {
 static const entity_class_t *class_of(int i) {
     switch (i) {
     case 0:
-        return pico8_qh_struct_class();
+        return structure_class();
     case 1:
-        return pico8_os_struct_class();
+        return processor_class();
     case 2:
         return slipgate_class();
     case 3:
         return infraspace_gate_class();
     case 4:
-        return pico8_nl_struct_class();
+        return trading_hub_class();
     case 5:
         return synthesizer_class();
     case 6:
-        return pico8_hj_struct_class();
+        return ascension_class();
     case 7:
-        return pico8_pm_struct_class();
+        return protostar_class();
     default:
-        return pico8_ga_struct_class();
+        return burst_class();
     }
 }
 

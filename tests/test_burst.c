@@ -41,7 +41,7 @@
 
 
 #define BUILT_HASH 0xA539DD6Du
-#define LIFE_HASH 0x7DAF9781u
+#define LIFE_HASH 0xD3D468CEu
 #define BURST_FRAMES 86
 
 /* The tag `lq.fs` carried as a tagged list, which the frozen hashes fold:
@@ -53,7 +53,7 @@ static p8_graphics_t gfx;
 static p8_input_t input;
 
 static const char *const tags[] = {"planet", "node", "targeting", "ascension", "structure"};
-static const char *const bm[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
 
 static int tag_count(unsigned tags) {
     int t, n = 0;
@@ -80,7 +80,7 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int ents_rank_in(const entity_list_t *list, const void *e) {
+static int entity_list_rank_in(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -90,8 +90,8 @@ static int ents_rank_in(const entity_list_t *list, const void *e) {
     return -1;
 }
 
-static int ents_listed(const entity_list_t *list, const void *e) {
-    return ents_rank_in(list, e) >= 0;
+static int entity_list_listed(const entity_list_t *list, const void *e) {
+    return entity_list_rank_in(list, e) >= 0;
 }
 
 static uint32_t fold_absent(uint32_t h) {
@@ -111,11 +111,11 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
     return s == NULL ? fold_absent(h) : fnv_str(fnv(fnv(h, 1u), 0x57u), s);
 }
 
-static uint32_t fold_hf(uint32_t h, const planet_t *jo) {
+static uint32_t fold_is_planet(uint32_t h, const planet_t *jo) {
     return jo->archetype->is_planet ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
-static uint32_t fold_p_(uint32_t h, const planet_t *jo) {
+static uint32_t fold_is_dead(uint32_t h, const planet_t *jo) {
     return (jo->is_dead != 0) ? fold_bool_member(h, jo->is_dead) : fold_absent(h);
 }
 
@@ -133,11 +133,11 @@ static uint32_t fold_ref_member(uint32_t h, const void *ref) {
 }
 
 /* The item count of a list member, -1 when NULL. */
-static int ptrs_size(const pointer_list_t *l) {
+static int pointer_list_size(const pointer_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
-static int ents_ptrs_size(const entity_list_t *l) {
+static int entity_list_pointer_list_size(const entity_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
@@ -197,36 +197,36 @@ static vec_t vec_xy(int x, int y) {
     return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
-static vec_t near_mo(int x, int y) {
-    const vec_t *mo_ra;
+static vec_t near_main_camera(int x, int y) {
+    const vec_t *main_camera_pos;
 
     assert(main_camera_typed() != NULL);
-    mo_ra = main_camera_typed()->pos;
-    assert(mo_ra != NULL);
-    return vec_add(*mo_ra, vec_xy(x, y));
+    main_camera_pos = main_camera_typed()->pos;
+    assert(main_camera_pos != NULL);
+    return vec_add(*main_camera_pos, vec_xy(x, y));
 }
 
-static const entity_class_t *cls_of(const void *e) {
+static const entity_class_t *class_of(const void *e) {
     return ((const entity_t *)e)->class;
 }
 
 /* `fz` is "ga" on a burst and on nothing else. */
-static int is_ga(const void *e) {
-    return e != NULL && cls_of(e) == pico8_ga_struct_class() && ((const planet_t *)e)->archetype->class_name != NULL &&
+static int is_burst(const void *e) {
+    return e != NULL && class_of(e) == burst_class() && ((const planet_t *)e)->archetype->class_name != NULL &&
            strcmp(((const planet_t *)e)->archetype->class_name, "burst") == 0;
 }
 
-static planet_t *as_ga(void *e) {
-    assert(e != NULL && cls_of(e) == pico8_ga_struct_class());
+static planet_t *as_burst(void *e) {
+    assert(e != NULL && class_of(e) == burst_class());
     return e;
 }
 
 /* The first burst of `hv` at rank `from` or later, NULL when none. */
-static void *ga_from(int from) {
+static void *burst_from(int from) {
     const entity_list_t *hv = live_entities();
     int i;
     for (i = from; i < hv->count; i++) {
-        if (is_ga(hv->items[i])) {
+        if (is_burst(hv->items[i])) {
             return hv->items[i];
         }
     }
@@ -259,13 +259,13 @@ static void *harvest(int x, int y, const char *id) {
 
     keys.planet_id = id;
     keys.map_pos = vec_ref(vec_xy(x / 2, y / 2));
-    keys.pos = vec_ref(near_mo(x, y));
+    keys.pos = vec_ref(near_main_camera(x, y));
     planet = planet_new(&keys);
-    assert(!is_ga(planet) && live_entities()->count == before + 1);
+    assert(!is_burst(planet) && live_entities()->count == before + 1);
     planet_apply_project(planet, harvest_recipe());
-    made = ga_from(before + 1);
-    assert(made != NULL && live_entities()->count == before + 2 && ga_from(0) == made);
-    assert(as_ga(made)->pos == planet->pos && as_ga(made)->map_pos == planet->map_pos);
+    made = burst_from(before + 1);
+    assert(made != NULL && live_entities()->count == before + 2 && burst_from(0) == made);
+    assert(as_burst(made)->pos == planet->pos && as_burst(made)->map_pos == planet->map_pos);
     return made;
 }
 
@@ -278,12 +278,12 @@ static void *spawn(int x, int y, const char *id, void **protostar) {
 
     keys.planet_id = id;
     keys.map_pos = vec_ref(vec_xy(x / 2, y / 2));
-    keys.pos = vec_ref(near_mo(x, y));
-    pm = pico8_pm_new(&keys);
-    at = ents_rank_in(live_entities(), pm);
-    assert(at >= 1 && is_ga(live_entities()->items[at - 1]));
+    keys.pos = vec_ref(near_main_camera(x, y));
+    pm = protostar_new(&keys);
+    at = entity_list_rank_in(live_entities(), pm);
+    assert(at >= 1 && is_burst(live_entities()->items[at - 1]));
     {
-        const vec_t *ra = as_ga(live_entities()->items[at - 1])->pos;
+        const vec_t *ra = as_burst(live_entities()->items[at - 1])->pos;
         vec_t want = vec_add(*keys.pos, ((planet_t *)pm)->archetype->spawn_offset);
         assert(ra != keys.pos && ra->x == want.x && ra->y == want.y);
     }
@@ -297,148 +297,148 @@ static void *spawn(int x, int y, const char *id, void **protostar) {
  * which of its own and jo's names it has, its 12 methods (jo's very
  * functions but `kj` and `mm`), which default tables it shares with `ga`
  * and `jo`, where `lt` registered it -- in `hv` alone -- and `mo.ma`. */
-static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
-    const planet_t *g = as_ga(e);
-    const emitter_t *em = g->emitter;
-    const planet_t *jo = g;
-    int j;
+static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
+    const planet_t *burst = as_burst(entity);
+    const emitter_t *spacer = burst->emitter;
+    const planet_t *planet = burst;
+    int inner_index;
 
-    assert(is_ga(e));
-    h = fold_string_member(h, g->archetype->class_name);
-    h = fold_fixed_member(h, jo->archetype->layer);
-    h = fold_fixed_member(h, em->archetype->spawn_rate);
-    h = fold_fixed_member(h, em->matrix_xx);
-    h = fold_fixed_member(h, em->matrix_xy);
-    h = fold_fixed_member(h, em->matrix_yx);
-    h = fold_fixed_member(h, em->matrix_yy);
-    h = fold_fixed_member(h, g->acceleration_factor);
-    h = fold_fixed_member(h, em->speed_factor);
-    h = fold_fixed_member(h, g->speed);
-    h = fold_hf(h, jo);
-    h = fold_string_member(h, jo->header.state);
-    h = fold_fixed_member(h, jo->header.state_time);
-    h = fold_string_member(h, jo->planet_id);
-    h = fold_fixed_member(h, jo->shake);
-    h = fold_p_(h, jo);
-    h = fold_vec(h, jo->pos);
-    h = fold_vec(h, jo->map_pos);
-    h = fnv(h, (uint32_t)(em->trail_colors == NULL ? -1 : em->trail_colors->count));
-    h = fnv(h, (uint32_t)tag_count(jo->header.class->tags));
-    h = fnv(h, (uint32_t)ents_ptrs_size(jo->outgoing_routes));
-    h = fnv(h, (uint32_t)ptrs_size(em->particles));
-    h = fnv(h, (uint32_t)ents_ptrs_size(jo->slipways));
+    assert(is_burst(entity));
+    hash = fold_string_member(hash, burst->archetype->class_name);
+    hash = fold_fixed_member(hash, planet->archetype->layer);
+    hash = fold_fixed_member(hash, spacer->archetype->spawn_rate);
+    hash = fold_fixed_member(hash, spacer->matrix_xx);
+    hash = fold_fixed_member(hash, spacer->matrix_xy);
+    hash = fold_fixed_member(hash, spacer->matrix_yx);
+    hash = fold_fixed_member(hash, spacer->matrix_yy);
+    hash = fold_fixed_member(hash, burst->acceleration_factor);
+    hash = fold_fixed_member(hash, spacer->speed_factor);
+    hash = fold_fixed_member(hash, burst->speed);
+    hash = fold_is_planet(hash, planet);
+    hash = fold_string_member(hash, planet->header.state);
+    hash = fold_fixed_member(hash, planet->header.state_time);
+    hash = fold_string_member(hash, planet->planet_id);
+    hash = fold_fixed_member(hash, planet->shake);
+    hash = fold_is_dead(hash, planet);
+    hash = fold_vec(hash, planet->pos);
+    hash = fold_vec(hash, planet->map_pos);
+    hash = fnv(hash, (uint32_t)(spacer->trail_colors == NULL ? -1 : spacer->trail_colors->count));
+    hash = fnv(hash, (uint32_t)tag_count(planet->header.class->tags));
+    hash = fnv(hash, (uint32_t)entity_list_pointer_list_size(planet->outgoing_routes));
+    hash = fnv(hash, (uint32_t)pointer_list_size(spacer->particles));
+    hash = fnv(hash, (uint32_t)entity_list_pointer_list_size(planet->slipways));
     assert(main_camera_typed() != NULL);
-    h = fold_fixed_member(h, main_camera_typed()->shake);
+    hash = fold_fixed_member(hash, main_camera_typed()->shake);
     /* The 1s of `fc`, `qo`, `ro`, `qg`, `q_`, `iu`, `py`, `ms` (ga's own)
      * and of `hf`, `hs`, `fa`, `ma`, `ca` (jo's) are constant by the
      * struct's shape, kept so that BUILT_HASH still proves the typed reads. */
-    h = fnv(h, (uint32_t)(g->archetype->class_name != NULL));
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(em->trail_colors != NULL));
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(em->particles != NULL));
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->archetype->ring_colors != NULL));
-    h = fnv(h, (uint32_t)(jo->archetype->mood_rows != NULL));
-    h = fnv(h, (uint32_t)(jo->archetype->made_resources != NULL));
-    h = fnv(h, (uint32_t)(jo->production != NULL));
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->archetype->spacer != NULL));
-    h = fnv(h, (uint32_t)(jo->planet_id != NULL));
-    h = fnv(h, (uint32_t)(jo->map_pos != NULL));
-    h = fnv(h, (uint32_t)(jo->pos != NULL));
-    h = fnv(h, (uint32_t)(jo->slipways != NULL));
-    h = fnv(h, (uint32_t)(jo->project != NULL));
-    h = fnv(h, (uint32_t)(jo->description != NULL));
-    h = fnv(h, (uint32_t)(jo->needs != NULL));
-    h = fnv(h, (uint32_t)(jo->planet_type != NULL));
-    h = fnv(h, (uint32_t)(jo->fold_anchor != 0));
-    h = fnv(h, (uint32_t)(jo->layout_row != NULL));
-    h = fnv(h, (uint32_t)(jo->targeted_by != NULL));
-    h = fnv(h, (uint32_t)(jo->has_production_bonus != 0));
-    h = fnv(h, (uint32_t)(jo->is_dead != 0));
-    h = fnv(h, (uint32_t)(jo->has_net_income != 0));
-    h = fnv(h, (uint32_t)(jo->incoming_routes != NULL));
-    h = fnv(h, (uint32_t)(jo->outgoing_routes != NULL));
-    h = fnv(h, (uint32_t)(jo->has_development_tier != 0));
-    h = fnv(h, (uint32_t)(jo->is_hovered != 0));
-    assert(jo->needs == NULL && !jo->has_net_income);
-    assert(cls_of(e)->attach_slipway == planet_class()->attach_slipway && cls_of(e)->offer_trade == planet_class()->offer_trade &&
-           cls_of(e)->attach_slipway != NULL && cls_of(e)->offer_trade != NULL && planet_is_family(e));
-    assert(cls_of(e)->spawn_particle != planet_class()->spawn_particle && cls_of(e)->spawn_particle != NULL);
-    assert(cls_of(e)->draw != NULL && cls_of(e)->draw != planet_class()->draw);
-    assert(cls_of(e)->hit_test == planet_class()->hit_test && cls_of(e)->left_press == planet_class()->left_press &&
-           cls_of(e)->refresh == planet_class()->refresh && cls_of(e)->accept_drop == planet_class()->accept_drop &&
-           cls_of(e)->new_year == planet_class()->new_year &&
-           cls_of(e)->states[ENTITY_STATE_VANISHING] == planet_class()->states[ENTITY_STATE_VANISHING]);
-    assert(cls_of(e)->hit_test != NULL && cls_of(e)->left_press != NULL && cls_of(e)->refresh != NULL && cls_of(e)->accept_drop != NULL &&
-           cls_of(e)->new_year != NULL && cls_of(e)->states[ENTITY_STATE_VANISHING] != NULL);
-    assert(cls_of(e)->states[ENTITY_STATE_NORMAL] == NULL && cls_of(e)->draw_overlay == NULL &&
-           cls_of(e)->states[ENTITY_STATE_PLACING] == NULL && cls_of(e)->states[ENTITY_STATE_UNFOLDING] == NULL &&
-           cls_of(e)->right_press == NULL && cls_of(e)->states[ENTITY_STATE_SETTLED] == NULL);
-    assert(cls_of(e)->draw_at == NULL && cls_of(e)->drag == NULL && cls_of(e)->drop == NULL);
-    assert(jo->header.class->tags == 0);
-    assert(jo->archetype == &burst_archetype);
-    assert(jo->outgoing_routes != NULL);
-    if (from_pm) {
-        assert(em->trail_colors != &burst_trail_colors_seq);
-        assert(em->trail_colors != &protostar_trail_colors_seq);
+    hash = fnv(hash, (uint32_t)(burst->archetype->class_name != NULL));
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, (uint32_t)(spacer->trail_colors != NULL));
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, (uint32_t)(spacer->particles != NULL));
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, (uint32_t)(planet->archetype->ring_colors != NULL));
+    hash = fnv(hash, (uint32_t)(planet->archetype->mood_rows != NULL));
+    hash = fnv(hash, (uint32_t)(planet->archetype->made_resources != NULL));
+    hash = fnv(hash, (uint32_t)(planet->production != NULL));
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
+    hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
+    hash = fnv(hash, (uint32_t)(planet->map_pos != NULL));
+    hash = fnv(hash, (uint32_t)(planet->pos != NULL));
+    hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
+    hash = fnv(hash, (uint32_t)(planet->project != NULL));
+    hash = fnv(hash, (uint32_t)(planet->description != NULL));
+    hash = fnv(hash, (uint32_t)(planet->needs != NULL));
+    hash = fnv(hash, (uint32_t)(planet->planet_type != NULL));
+    hash = fnv(hash, (uint32_t)(planet->fold_anchor != 0));
+    hash = fnv(hash, (uint32_t)(planet->layout_row != NULL));
+    hash = fnv(hash, (uint32_t)(planet->targeted_by != NULL));
+    hash = fnv(hash, (uint32_t)(planet->has_production_bonus != 0));
+    hash = fnv(hash, (uint32_t)(planet->is_dead != 0));
+    hash = fnv(hash, (uint32_t)(planet->has_net_income != 0));
+    hash = fnv(hash, (uint32_t)(planet->incoming_routes != NULL));
+    hash = fnv(hash, (uint32_t)(planet->outgoing_routes != NULL));
+    hash = fnv(hash, (uint32_t)(planet->has_development_tier != 0));
+    hash = fnv(hash, (uint32_t)(planet->is_hovered != 0));
+    assert(planet->needs == NULL && !planet->has_net_income);
+    assert(class_of(entity)->attach_slipway == planet_class()->attach_slipway && class_of(entity)->offer_trade == planet_class()->offer_trade &&
+           class_of(entity)->attach_slipway != NULL && class_of(entity)->offer_trade != NULL && planet_is_family(entity));
+    assert(class_of(entity)->spawn_particle != planet_class()->spawn_particle && class_of(entity)->spawn_particle != NULL);
+    assert(class_of(entity)->draw != NULL && class_of(entity)->draw != planet_class()->draw);
+    assert(class_of(entity)->hit_test == planet_class()->hit_test && class_of(entity)->left_press == planet_class()->left_press &&
+           class_of(entity)->refresh == planet_class()->refresh && class_of(entity)->accept_drop == planet_class()->accept_drop &&
+           class_of(entity)->new_year == planet_class()->new_year &&
+           class_of(entity)->states[ENTITY_STATE_VANISHING] == planet_class()->states[ENTITY_STATE_VANISHING]);
+    assert(class_of(entity)->hit_test != NULL && class_of(entity)->left_press != NULL && class_of(entity)->refresh != NULL && class_of(entity)->accept_drop != NULL &&
+           class_of(entity)->new_year != NULL && class_of(entity)->states[ENTITY_STATE_VANISHING] != NULL);
+    assert(class_of(entity)->states[ENTITY_STATE_NORMAL] == NULL && class_of(entity)->draw_overlay == NULL &&
+           class_of(entity)->states[ENTITY_STATE_PLACING] == NULL && class_of(entity)->states[ENTITY_STATE_UNFOLDING] == NULL &&
+           class_of(entity)->right_press == NULL && class_of(entity)->states[ENTITY_STATE_SETTLED] == NULL);
+    assert(class_of(entity)->draw_at == NULL && class_of(entity)->drag == NULL && class_of(entity)->drop == NULL);
+    assert(planet->header.class->tags == 0);
+    assert(planet->archetype == &burst_archetype);
+    assert(planet->outgoing_routes != NULL);
+    if (from_protostar) {
+        assert(spacer->trail_colors != &burst_trail_colors_seq);
+        assert(spacer->trail_colors != &protostar_trail_colors_seq);
     } else {
-        assert(em->trail_colors == &burst_trail_colors_seq);
+        assert(spacer->trail_colors == &burst_trail_colors_seq);
     }
-    assert(jo->archetype == &burst_archetype);
-    assert(jo->production == planet_shared_production());
-    assert(jo->archetype->spacer == &planet_spacer_row);
-    assert(jo->archetype->ring_colors == &planet_ring_colors_seq);
-    assert(jo->archetype->mood_rows == planet_mood_rows_rows);
-    assert(jo->archetype->made_resources == &planet_made_resources_seq);
-    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), e));
-    for (j = 0; j < (int)(sizeof bm / sizeof bm[0]); j++) {
-        h = fnv(h, (uint32_t)ents_rank_in(entities_by_message(bm[j]), e));
+    assert(planet->archetype == &burst_archetype);
+    assert(planet->production == planet_shared_production());
+    assert(planet->archetype->spacer == &planet_spacer_row);
+    assert(planet->archetype->ring_colors == &planet_ring_colors_seq);
+    assert(planet->archetype->mood_rows == planet_mood_rows_rows);
+    assert(planet->archetype->made_resources == &planet_made_resources_seq);
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), entity));
+    for (inner_index = 0; inner_index < (int)(sizeof messages / sizeof messages[0]); inner_index++) {
+        hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(messages[inner_index]), entity));
     }
-    for (j = 0; j < (int)(sizeof tags / sizeof tags[0]); j++) {
-        assert(!ents_listed(entities_by_tag(tags[j]), e));
+    for (inner_index = 0; inner_index < (int)(sizeof tags / sizeof tags[0]); inner_index++) {
+        assert(!entity_list_listed(entities_by_tag(tags[inner_index]), entity));
     }
-    return h;
+    return hash;
 }
 
 /* One burst by each road, the first two on screen. */
 static void test_built(void) {
-    uint32_t h = 2166136261u;
+    uint32_t hash = 2166136261u;
     void *a;
     void *b;
     void *c;
 
     start_game();
-    assert(ga_from(0) == NULL);
+    assert(burst_from(0) == NULL);
     a = harvest(40, 40, "s61");
-    h = fold_burst(h, a, 0);
+    hash = fold_burst(hash, a, 0);
     b = spawn(80, 70, "s62", NULL);
-    h = fold_burst(h, b, 1);
-    c = pico8_ga_new(NULL);
-    h = fold_burst(h, c, 0);
+    hash = fold_burst(hash, b, 1);
+    c = burst_new(NULL);
+    hash = fold_burst(hash, c, 0);
     assert(a != b && b != c && a != c);
-    assert(as_ga(a)->emitter->particles != as_ga(b)->emitter->particles &&
-           as_ga(b)->emitter->particles != as_ga(c)->emitter->particles);
-    assert(as_ga(a)->slipways != as_ga(b)->slipways);
-    assert(as_ga(a)->outgoing_routes == as_ga(b)->outgoing_routes && as_ga(b)->outgoing_routes == as_ga(c)->outgoing_routes);
-    assert(as_ga(c)->pos == NULL && as_ga(c)->map_pos == NULL && as_ga(c)->planet_id == NULL);
-    assert(as_ga(a)->archetype->layer == p8_fixed_from_int(3) && as_ga(a)->speed == p8_fixed_from_int(3));
-    assert(as_ga(a)->archetype->is_planet == 0);
-    assert(as_ga(b)->speed == P8_FIXED_LIT(0x00018000, 1.5));
-    check("built", h, BUILT_HASH);
+    assert(as_burst(a)->emitter->particles != as_burst(b)->emitter->particles &&
+           as_burst(b)->emitter->particles != as_burst(c)->emitter->particles);
+    assert(as_burst(a)->slipways != as_burst(b)->slipways);
+    assert(as_burst(a)->outgoing_routes == as_burst(b)->outgoing_routes && as_burst(b)->outgoing_routes == as_burst(c)->outgoing_routes);
+    assert(as_burst(c)->pos == NULL && as_burst(c)->map_pos == NULL && as_burst(c)->planet_id == NULL);
+    assert(as_burst(a)->archetype->layer == p8_fixed_from_int(3) && as_burst(a)->speed == p8_fixed_from_int(3));
+    assert(as_burst(a)->archetype->is_planet == 0);
+    assert(as_burst(b)->speed == P8_FIXED_LIT(0x00018000, 1.5));
+    check("built", hash, BUILT_HASH);
 }
 
 static uint32_t fold_particle(uint32_t h, const particle_t *q) {
@@ -471,14 +471,14 @@ static uint32_t fold_tuple(uint32_t h, const data_row_t *t) {
         h = fold_fixed(fnv_str(h, "resource"), t->resource);
     }
     if (t->has_color) {
-        h = fold_fixed(fnv_str(h, "c"), p8_fixed_from_int(t->color));
+        h = fold_fixed(fnv_str(h, "color"), p8_fixed_from_int(t->color));
     }
     return fnv(h, (uint32_t)(t->count + (t->has_resource != 0) + (t->has_color != 0)));
 }
 
 /* A positional as the value it was sorted from folded; NOTHING as false
  * (no row folded here holds a nil at the top level). */
-static uint32_t fold_lq_positional(uint32_t h, const layout_row_t *lq, int i) {
+static uint32_t fold_layout_row_positional(uint32_t h, const layout_row_t *lq, int i) {
     layout_row_cell_t c = lq->items[i];
 
     h = fnv(h, (uint32_t)(i + 1));
@@ -496,8 +496,8 @@ static uint32_t fold_lq_positional(uint32_t h, const layout_row_t *lq, int i) {
 
 /* The row `jo:ex` built into `lq`: its first `#fs` positionals, `c`, `bg`,
  * `score`, `ra`, `fs`, `w`, the rest. */
-static uint32_t fold_lq(uint32_t h, void *e) {
-    const layout_row_t *lq = as_ga(e)->layout_row;
+static uint32_t fold_layout_row(uint32_t h, void *e) {
+    const layout_row_t *lq = as_burst(e)->layout_row;
     int n = 0;
     int k;
     int i;
@@ -508,10 +508,10 @@ static uint32_t fold_lq(uint32_t h, void *e) {
     assert(lq->placed_items != NULL);
     k = lq->placed_items_count;
     for (i = 0; i < k; i++) {
-        h = fold_lq_positional(h, lq, i);
+        h = fold_layout_row_positional(h, lq, i);
     }
     if (lq->has_color) {
-        h = fold_fixed(fnv_str(h, "c"), lq->color);
+        h = fold_fixed(fnv_str(h, "color"), lq->color);
         n++;
     }
     if (lq->has_score) {
@@ -521,15 +521,15 @@ static uint32_t fold_lq(uint32_t h, void *e) {
     assert(lq->pos == NULL && "no test folds an lq whose ra is set: to fold one, fold the key \"ra\", then 0xEEEE then 0, count it in n, as the frozen hashes did");
     /* As fold_ref folded the tagged list `fs` was: never in `hv`, so the tag branch. */
     h = fnv(fnv(fnv_str(h, "placed_items"), 0xEEEEu), FROZEN_LIST_TAG);
-    h = fold_fixed(fnv_str(h, "w"), lq->width);
+    h = fold_fixed(fnv_str(h, "width"), lq->width);
     for (i = k; i < lq->items_count; i++) {
-        h = fold_lq_positional(h, lq, i);
+        h = fold_layout_row_positional(h, lq, i);
     }
     return fnv(h, (uint32_t)(lq->items_count + n + 2));
 }
 
 /* Cuts `qy` to its first `n` particles, giving back the others. */
-static void cut_qy(pointer_list_t *qy, int n) {
+static void cut_particles(pointer_list_t *qy, int n) {
     while (qy->count > n) {
         allocator_release(particle_zone(PARTICLE_SLOT_PARTICLE), qy->items[qy->count - 1]);
         qy->count--;
@@ -538,13 +538,13 @@ static void cut_qy(pointer_list_t *qy, int n) {
 
 /* `kj` on `e` with its `qy` cut in place to `n` particles: `p_` after. */
 static uint32_t fold_cut(uint32_t h, void *e, int n) {
-    planet_t *g = as_ga(e);
+    planet_t *g = as_burst(e);
     pointer_list_t *qy = g->emitter->particles;
 
     assert(qy != NULL && qy->count >= n);
-    cut_qy(qy, n);
-    cls_of(e)->draw(e, g->pos);
-    h = fold_p_(h, g);
+    cut_particles(qy, n);
+    class_of(e)->draw(e, g->pos);
+    h = fold_is_dead(h, g);
     return fnv(h, (uint32_t)qy->count);
 }
 
@@ -554,77 +554,77 @@ static uint32_t fold_cut(uint32_t h, void *e, int n) {
  * `gg`; `hb` on jo's `kw` (no row), then on one with a `qe`, before and
  * after two routes land in the shared `by`; `hk` with no `kr`. */
 static void test_life(void) {
-    uint32_t h = 2166136261u;
-    void *a;
-    void *b;
-    void *c;
-    void *pm;
-    entity_list_t *by;
-    static production_t kw;
+    uint32_t hash = 2166136261u;
+    void *first;
+    void *second;
+    void *third;
+    void *protostar;
+    entity_list_t *outgoing;
+    static production_t production;
     uint32_t row;
-    int hv_count;
-    int i;
+    int live_entities_count;
+    int index;
 
     start_game();
-    a = harvest(40, 40, "s71");
-    b = spawn(84, 60, "s72", &pm);
-    c = pico8_ga_new(NULL);
-    h = fold_particle(h, cls_of(a)->spawn_particle(a));
-    h = fold_particle(h, cls_of(b)->spawn_particle(b));
-    h = fold_particle(h, cls_of(c)->spawn_particle(c));
-    for (i = 0; i < 3; i++) {
+    first = harvest(40, 40, "s71");
+    second = spawn(84, 60, "s72", &protostar);
+    third = burst_new(NULL);
+    hash = fold_particle(hash, class_of(first)->spawn_particle(first));
+    hash = fold_particle(hash, class_of(second)->spawn_particle(second));
+    hash = fold_particle(hash, class_of(third)->spawn_particle(third));
+    for (index = 0; index < 3; index++) {
         draw_layers("draw");
-        h = fnv(h, screen_hash());
-        h = fold_p_(h, as_ga(a));
-        h = fold_p_(h, as_ga(b));
-        h = fold_p_(h, as_ga(c));
-        h = fnv(h, (uint32_t)ptrs_size(as_ga(b)->emitter->particles));
+        hash = fnv(hash, screen_hash());
+        hash = fold_is_dead(hash, as_burst(first));
+        hash = fold_is_dead(hash, as_burst(second));
+        hash = fold_is_dead(hash, as_burst(third));
+        hash = fnv(hash, (uint32_t)pointer_list_size(as_burst(second)->emitter->particles));
     }
 
-    cut_qy(as_ga(b)->emitter->particles, 3);
-    for (i = 0; i < 3; i++) {
+    cut_particles(as_burst(second)->emitter->particles, 3);
+    for (index = 0; index < 3; index++) {
         draw_layers("draw");
-        h = fnv(h, screen_hash());
+        hash = fnv(hash, screen_hash());
     }
 
-    h = fold_cut(h, a, 3);
-    assert(!as_ga(a)->is_dead);
-    h = fold_cut(h, a, 2);
-    assert(as_ga(a)->is_dead);
-    h = fold_cut(h, a, 0);
-    assert(as_ga(a)->is_dead);
+    hash = fold_cut(hash, first, 3);
+    assert(!as_burst(first)->is_dead);
+    hash = fold_cut(hash, first, 2);
+    assert(as_burst(first)->is_dead);
+    hash = fold_cut(hash, first, 0);
+    assert(as_burst(first)->is_dead);
 
-    h = fold_bool(h, cls_of(b)->hit_test(b, as_ga(b)->pos, as_ga(b)->pos));
-    h = fold_bool(h, cls_of(b)->hit_test(b, vec_ref(near_mo(0, 0)), vec_ref(near_mo(0, 0))));
-    h = fnv(fnv(h, 0xB0u), planet_is_colonized(b) ? 1u : 0u);
-    assert(planet_is_colonized(a) == 0);
+    hash = fold_bool(hash, class_of(second)->hit_test(second, as_burst(second)->pos, as_burst(second)->pos));
+    hash = fold_bool(hash, class_of(second)->hit_test(second, vec_ref(near_main_camera(0, 0)), vec_ref(near_main_camera(0, 0))));
+    hash = fnv(fnv(hash, 0xB0u), planet_is_colonized(second) ? 1u : 0u);
+    assert(planet_is_colonized(first) == 0);
 
-    cls_of(a)->refresh(a);
-    h = fold_ref_member(h, as_ga(a)->layout_row);
-    assert(as_ga(a)->layout_row == NULL);
-    kw.has_resource = 1;
-    kw.resource = p8_fixed_from_int(12);
-    kw.amount = p8_fixed_from_int(2);
-    as_ga(a)->production = &kw;
-    cls_of(a)->refresh(a);
-    row = fold_lq(2166136261u, a);
-    h = fnv(h, row);
-    by = as_ga(c)->outgoing_routes;
-    assert(by == as_ga(a)->outgoing_routes && by->count == 0);
-    entity_list_add(by, &trade_new(game_zone(), NULL)->header);
-    entity_list_add(by, &trade_new(game_zone(), NULL)->header);
-    cls_of(a)->refresh(a);
-    assert(fold_lq(2166136261u, a) != row);
-    h = fold_lq(h, a);
-    assert(ents_ptrs_size(as_ga(b)->outgoing_routes) == 2);
+    class_of(first)->refresh(first);
+    hash = fold_ref_member(hash, as_burst(first)->layout_row);
+    assert(as_burst(first)->layout_row == NULL);
+    production.has_resource = 1;
+    production.resource = p8_fixed_from_int(12);
+    production.amount = p8_fixed_from_int(2);
+    as_burst(first)->production = &production;
+    class_of(first)->refresh(first);
+    row = fold_layout_row(2166136261u, first);
+    hash = fnv(hash, row);
+    outgoing = as_burst(third)->outgoing_routes;
+    assert(outgoing == as_burst(first)->outgoing_routes && outgoing->count == 0);
+    entity_list_add(outgoing, &trade_new(game_zone(), NULL)->header);
+    entity_list_add(outgoing, &trade_new(game_zone(), NULL)->header);
+    class_of(first)->refresh(first);
+    assert(fold_layout_row(2166136261u, first) != row);
+    hash = fold_layout_row(hash, first);
+    assert(entity_list_pointer_list_size(as_burst(second)->outgoing_routes) == 2);
     /* `jo:ib` is `self.by or {}`: the `by` held, routes kept, never a fresh one. */
-    assert(planet_rebuild_trades(as_ga(b)) == by && by->count == 2);
+    assert(planet_rebuild_trades(as_burst(second)) == outgoing && outgoing->count == 2);
 
-    hv_count = live_entities()->count;
-    cls_of(b)->new_year(b, p8_fixed_from_int(0));
-    assert(live_entities()->count == hv_count && !as_ga(b)->has_net_income);
-    h = fnv(h, screen_hash());
-    check("life", h, LIFE_HASH);
+    live_entities_count = live_entities()->count;
+    class_of(second)->new_year(second, p8_fixed_from_int(0));
+    assert(live_entities()->count == live_entities_count && !as_burst(second)->has_net_income);
+    hash = fnv(hash, screen_hash());
+    check("life", hash, LIFE_HASH);
 }
 
 /* A harvest played frame by frame: one live burst at a time, gone after
@@ -635,10 +635,10 @@ static void test_burst(void) {
 
     start_game();
     e = harvest(40, 40, "s64");
-    assert(ga_from(0) == e);
-    while (ga_from(0) != NULL) {
-        e = ga_from(0);
-        assert(ga_from(ents_rank_in(live_entities(), e) + 1) == NULL);
+    assert(burst_from(0) == e);
+    while (burst_from(0) != NULL) {
+        e = burst_from(0);
+        assert(burst_from(entity_list_rank_in(live_entities(), e) + 1) == NULL);
         pico8__update60();
         pico8__draw();
         frames++;
@@ -646,13 +646,13 @@ static void test_burst(void) {
     }
     check_int("burst frames", frames, BURST_FRAMES);
     pico8_cart_vider_file_sortie();
-    check_int("ga places after the burst", particle_zone_live(PARTICLE_SLOT_BURST), 0);
+    check_int("burst places after the burst", particle_zone_live(PARTICLE_SLOT_BURST), 0);
 }
 
 /* `ei` moves a particle of `qy` in place: `p` by the old `v`, `v` turned
  * (its second row reads the x just written), then accelerated by `a`, and
  * `l` less 0.14. A protostar's burst turns (`qg` is not 0). */
-static void test_ei_moves_a_particle_in_place(void) {
+static void test_emitter_update_moves_a_particle_in_place(void) {
     particle_t *particle = particle_take();
     vec_t p0 = vec_xy(3, -2);
     vec_t v0 = vec_make(P8_FIXED_LIT(0x00018000, 1.5), P8_FIXED_LIT(0x00004000, 0.25));
@@ -665,7 +665,7 @@ static void test_ei_moves_a_particle_in_place(void) {
 
     start_game();
     e = spawn(84, 60, "s73", NULL);
-    em = as_ga(e)->emitter;
+    em = as_burst(e)->emitter;
     assert(em->matrix_yx != 0);
     particle->pos = p0;
     particle->velocity = v0;
@@ -673,7 +673,7 @@ static void test_ei_moves_a_particle_in_place(void) {
     particle->acceleration = a0;
     particle->life = p8_fixed_from_int(5);
     qy = em->particles;
-    cut_qy(qy, 0);
+    cut_particles(qy, 0);
     pointer_list_add(qy, particle);
 
     emitter_update(&gfx, &mem, e);
@@ -687,16 +687,16 @@ static void test_ei_moves_a_particle_in_place(void) {
     assert(particle->life == p8_fixed_sub(p8_fixed_from_int(5), P8_FIXED_LIT(0x000023d7, 0.14)));
 }
 
-static int is_a_ga_struct(const void *e) {
+static int is_a_burst_struct(const void *e) {
     return e != NULL &&
-           ((const entity_t *)e)->class == pico8_ga_struct_class();
+           ((const entity_t *)e)->class == burst_class();
 }
 
 /* Built by any road, a burst is a struct whose descriptor holds jo's very
  * entries but its own `kj`, plus its own `mm`. Neither ga's class nor jo's
  * installs a function or a `pq`. */
-static void test_ga_is_a_struct(void) {
-    const entity_class_t *cls = pico8_ga_struct_class();
+static void test_burst_is_a_struct(void) {
+    const entity_class_t *cls = burst_class();
     const entity_class_t *jo = planet_class();
     void *roads[3];
     size_t i;
@@ -705,9 +705,9 @@ static void test_ga_is_a_struct(void) {
     start_game();
     roads[0] = harvest(40, 40, "s81");
     roads[1] = spawn(80, 70, "s82", NULL);
-    roads[2] = pico8_ga_new(NULL);
+    roads[2] = burst_new(NULL);
     for (i = 0; i < 3; i++) {
-        assert(is_a_ga_struct(roads[i]));
+        assert(is_a_burst_struct(roads[i]));
     }
     assert(cls->draw != NULL && cls->draw != jo->draw);
     assert(cls->draw_overlay == jo->draw_overlay && cls->hit_test == jo->hit_test && cls->new_year == jo->new_year && cls->refresh == jo->refresh &&
@@ -715,9 +715,9 @@ static void test_ga_is_a_struct(void) {
     for (j = 0; j < STATE_COUNT; j++) {
         assert(cls->states[j] == jo->states[j]);
     }
-    assert(cls->spawn_particle == pico8_ga_mm && jo->spawn_particle == NULL);
+    assert(cls->spawn_particle == burst_spawn_particle && jo->spawn_particle == NULL);
     assert(cls->drag == jo->drag && cls->drop == jo->drop && cls->attach_slipway == jo->attach_slipway && cls->offer_trade == jo->offer_trade && cls->draw_at == jo->draw_at);
-    assert(pico8_ga_ready());
+    assert(burst_ready());
     assert(planet_ready());
 }
 
@@ -741,20 +741,20 @@ static void in_fresh_child(void (*test)(void)) {
 
 /* What an emitter holds in the particle zone, by sort. */
 typedef struct {
-    int particules;
-    int qy;
-    int qy_fv;
-    int ga;
-    int rangees;
+    int particle;
+    int particles;
+    int particles_help_screen;
+    int burst;
+    int rows;
 } held_t;
 
 static held_t held_now(void) {
     held_t h;
-    h.particules = particle_zone_live(PARTICLE_SLOT_PARTICLE);
-    h.qy = particle_zone_live(PARTICLE_SLOT_LIST);
-    h.qy_fv = particle_zone_live(PARTICLE_SLOT_HELP_LIST);
-    h.ga = particle_zone_live(PARTICLE_SLOT_BURST);
-    h.rangees = ui_zone_live(SLOT_KIND_ROW);
+    h.particle = particle_zone_live(PARTICLE_SLOT_PARTICLE);
+    h.particles = particle_zone_live(PARTICLE_SLOT_LIST);
+    h.particles_help_screen = particle_zone_live(PARTICLE_SLOT_HELP_LIST);
+    h.burst = particle_zone_live(PARTICLE_SLOT_BURST);
+    h.rows = ui_zone_live(SLOT_KIND_ROW);
     return h;
 }
 
@@ -768,21 +768,21 @@ static void test_leaving_gives_back_its_particles(void) {
 
     start_game();
     pico8_cart_vider_file_sortie();
-    e = as_ga(harvest(40, 40, "s74"));
+    e = as_burst(harvest(40, 40, "s74"));
     count = e->emitter->particles->count;
     assert(count == 140);
     built = held_now();
     entity_unregister(&e->header);
     pico8_cart_vider_file_sortie();
     after = held_now();
-    assert(after.particules == built.particules - count && after.qy == built.qy - 1);
-    assert(after.ga == built.ga - 1);
+    assert(after.particle == built.particle - count && after.particles == built.particles - 1);
+    assert(after.burst == built.burst - 1);
 }
 
 /* The largest bursts: a protostar's, which copies its `ra` into its place,
  * and a harvest's, which borrows the planet's; each with its `oe`. Neither
  * stops on « zone place ga pleine ». */
-static void test_the_largest_bursts_fit_their_place(void) {
+static void test_the_largest_bursts_fit_their_slot(void) {
     held_t before;
 
     start_game();
@@ -790,15 +790,15 @@ static void test_the_largest_bursts_fit_their_place(void) {
     before = held_now();
     (void)harvest(40, 40, "s84");
     (void)spawn(80, 70, "s83", NULL);
-    assert(held_now().ga == before.ga + 2);
-    printf("ga place: %lu bytes at most\n", (unsigned long)particle_zone_max_bytes(PARTICLE_SLOT_BURST));
+    assert(held_now().burst == before.burst + 2);
+    printf("burst place: %lu bytes at most\n", (unsigned long)particle_zone_max_bytes(PARTICLE_SLOT_BURST));
 }
 
 /* A burst can be hovered, so a dragged slipway can end on it; the flush
  * that gives the burst back lets go of that end too. */
 static void test_leaving_lets_go_of_a_dragged_slipway(void) {
     planet_keys_t keys;
-    slipway_keys_t jc_keys;
+    slipway_keys_t slipway_keys;
     slipway_t *jc;
     vec_t mp = vec_xy(40, 40);
     void *e;
@@ -807,9 +807,9 @@ static void test_leaving_lets_go_of_a_dragged_slipway(void) {
     pico8_cart_vider_file_sortie();
     keys.planet_id = "s85";
     keys.map_pos = vec_ref(vec_xy(30, 30));
-    keys.pos = vec_ref(near_mo(60, 60));
-    jc_keys.start = &planet_new(&keys)->header;
-    jc = slipway_new(&jc_keys);
+    keys.pos = vec_ref(near_main_camera(60, 60));
+    slipway_keys.start = &planet_new(&keys)->header;
+    jc = slipway_new(&slipway_keys);
     e = harvest(40, 40, "s86");
     main_ui()->left_held = &jc->header;
     main_ui()->hovered = e;
@@ -834,12 +834,12 @@ int main(void) {
     in_fresh_child(test_built);
     in_fresh_child(test_life);
     in_fresh_child(test_burst);
-    in_fresh_child(test_ei_moves_a_particle_in_place);
-    in_fresh_child(test_ga_is_a_struct);
+    in_fresh_child(test_emitter_update_moves_a_particle_in_place);
+    in_fresh_child(test_burst_is_a_struct);
     in_fresh_child(test_leaving_gives_back_its_particles);
-    in_fresh_child(test_the_largest_bursts_fit_their_place);
+    in_fresh_child(test_the_largest_bursts_fit_their_slot);
     in_fresh_child(test_leaving_lets_go_of_a_dragged_slipway);
 
-    printf("test_pico8_ga: all tests passed\n");
+    printf("test_burst: all tests passed\n");
     return 0;
 }

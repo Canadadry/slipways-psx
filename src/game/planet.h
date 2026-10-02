@@ -188,6 +188,6 @@ void planet_set_vanish_roll(random_walk_t *ir);
 void planet_bob(entity_t *self, p8_fixed_t t);
 
 /* NULL when no kind has `fz`. */
-const entity_kind_t *pico8_jo_kv(const char *fz);
+const entity_kind_t *planet_kind_named(const char *fz);
 
 #endif

@@ -42,7 +42,7 @@
 #include "game/wormhole.h"
 
 /* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
-static int ra_copies(const vec_t *ra, const vec_t *mp) {
+static int pos_copies(const vec_t *ra, const vec_t *mp) {
     return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
 }
 
@@ -59,7 +59,7 @@ static p8_memory_t mem;
 static p8_graphics_t gfx;
 static p8_input_t input;
 
-static const char *const bm[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
 static const char *const tags[] = {"structure", "planet", "node", "targeting"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -78,7 +78,7 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int ents_rank_in(const entity_list_t *list, const void *e) {
+static int entity_list_rank_in(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -88,12 +88,12 @@ static int ents_rank_in(const entity_list_t *list, const void *e) {
     return -1;
 }
 
-static int ents_listed(const entity_list_t *list, const void *e) {
-    return ents_rank_in(list, e) >= 0;
+static int entity_list_listed(const entity_list_t *list, const void *e) {
+    return entity_list_rank_in(list, e) >= 0;
 }
 
 /* `e` as a planet of qh's lineage. */
-static planet_t *as_qh(void *e) {
+static planet_t *as_structure(void *e) {
     const entity_t *h = e;
 
     assert(h != NULL && (h->class->lineage & LINEAGE(LINEAGE_STRUCTURE)));
@@ -117,21 +117,21 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
     return s == NULL ? fold_absent(h) : fnv_str(fnv(fnv(h, 1u), 0x57u), s);
 }
 
-static uint32_t fold_hf(uint32_t h, const planet_t *jo) {
+static uint32_t fold_is_planet(uint32_t h, const planet_t *jo) {
     return jo->archetype->is_planet ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
-static uint32_t fold_qh(uint32_t h, const planet_t *qh) {
+static uint32_t fold_structure(uint32_t h, const planet_t *qh) {
     return qh->archetype->is_structure ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 /* 0 absent, 1 false, 2 true. */
-static uint32_t p__state(const planet_t *jo) {
+static uint32_t is_dead_state(const planet_t *jo) {
     return jo->is_dead ? 2u : 0u;
 }
 
 /* 1 no target, 3 a target: the bytes the frozen hashes fold. */
-static uint32_t et_state(const planet_t *qh) {
+static uint32_t target_state(const planet_t *qh) {
     return qh->targeting->target == NULL ? 1u : 3u;
 }
 
@@ -143,7 +143,7 @@ static uint32_t fold_vec(uint32_t h, const vec_t *p) {
     return fnv(h, (uint32_t)p->y);
 }
 
-static int is_bv_target(const void *e) {
+static int is_targeting_track_target(const void *e) {
     return e != NULL &&
            ((const entity_t *)e)->class == targeting_track_target_class();
 }
@@ -152,17 +152,17 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (ref == NULL) {
         return fnv(h, 0xDEADu);
     }
-    if (ents_listed(live_entities(), ref)) {
-        return fnv(fnv(h, 0x4Eu), (uint32_t)ents_rank_in(live_entities(), ref));
+    if (entity_list_listed(live_entities(), ref)) {
+        return fnv(fnv(h, 0x4Eu), (uint32_t)entity_list_rank_in(live_entities(), ref));
     }
     /* The frozen hashes folded the INSTANCE tag the throwaway had. */
-    assert(is_bv_target(ref) && "no test folds an entity outside hv that is not the throwaway target: to fold one, fold 0xEEEE then the frozen struct tag 0x9E5C57C7, as test_pico8_fr.c does");
+    assert(is_targeting_track_target(ref) && "no test folds an entity outside hv that is not the throwaway target: to fold one, fold 0xEEEE then the frozen struct tag 0x9E5C57C7, as test_pico8_fr.c does");
     return fnv(fnv(h, 0xEEEEu), FROZEN_INSTANCE_TAG);
 }
 
 /* `et` as qh's reader gave it: false or the target. */
-static uint32_t fold_et(uint32_t h, const planet_t *qh) {
-    switch (et_state(qh)) {
+static uint32_t fold_target(uint32_t h, const planet_t *qh) {
+    switch (target_state(qh)) {
     case 1u:
         return fold_bool_member(h, 0);
     default:
@@ -175,11 +175,11 @@ static int list_size(const pointer_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
-static int ents_list_size(const entity_list_t *l) {
+static int entity_list_list_size(const entity_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
-static uint32_t fold_kw(uint32_t h, const planet_t *jo) {
+static uint32_t fold_production(uint32_t h, const planet_t *jo) {
     const production_t *k = jo->production;
 
     if (k == NULL) {
@@ -216,14 +216,14 @@ static vec_t vec_xy(int x, int y) {
     return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
-static const entity_class_t *cls_of(const void *e) {
+static const entity_class_t *class_of(const void *e) {
     return ((const entity_t *)e)->class;
 }
 
 /* The members a planet of qh's tree holds: `kj`, `ev`, `hd`, `hk`, `hb`,
  * `ldown`, `gv`, `hq`, `ey`, `kf`, `cn` and the states `ll`, `ly`; `mm`
  * aside, no other. */
-static void assert_qh_shape(const entity_class_t *c) {
+static void assert_structure_shape(const entity_class_t *c) {
     assert(c->draw != NULL && c->draw_overlay != NULL && c->hit_test != NULL && c->new_year != NULL && c->refresh != NULL && c->left_press != NULL &&
            c->accept_drop != NULL && c->states[ENTITY_STATE_VANISHING] != NULL && c->states[ENTITY_STATE_SETTLED] != NULL);
     assert(c->has_refresh == NULL && c->right_press == NULL && c->states[ENTITY_STATE_NORMAL] == NULL &&
@@ -233,22 +233,22 @@ static void assert_qh_shape(const entity_class_t *c) {
 
 /* `c` holds `ref`'s very members but `kf`, `cn` and `mm`, `kj` and the
  * state `ly` included when `with_kj`/`with_ly`. */
-static void assert_members_of(const entity_class_t *c, const entity_class_t *ref, int with_kj,
-                              int with_ly) {
+static void assert_members_of(const entity_class_t *c, const entity_class_t *ref, int with_draw,
+                              int with_update_settled) {
     assert(c->draw_overlay == ref->draw_overlay && c->hit_test == ref->hit_test && c->new_year == ref->new_year && c->refresh == ref->refresh && c->has_refresh == ref->has_refresh &&
            c->left_press == ref->left_press && c->right_press == ref->right_press && c->accept_drop == ref->accept_drop);
     assert(c->states[ENTITY_STATE_VANISHING] == ref->states[ENTITY_STATE_VANISHING] && c->drag == ref->drag && c->drop == ref->drop);
-    assert(!with_kj || c->draw == ref->draw);
-    assert(!with_ly || c->states[ENTITY_STATE_SETTLED] == ref->states[ENTITY_STATE_SETTLED]);
+    assert(!with_draw || c->draw == ref->draw);
+    assert(!with_update_settled || c->states[ENTITY_STATE_SETTLED] == ref->states[ENTITY_STATE_SETTLED]);
 }
 
 /* The research icon whose `ke` is `gx[0]`, the laboratory. */
-static void *qh_icon(void) {
+static void *structure_icon(void) {
     const entity_list_t *hb = entities_by_message("refresh");
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i];
-        if (cls_of(e) == structure_icon_class() && ((const structure_icon_t *)e)->kind == pico8_qh_kind()) {
+        if (class_of(e) == structure_icon_class() && ((const structure_icon_t *)e)->kind == structure_kind()) {
             return e;
         }
     }
@@ -257,11 +257,11 @@ static void *qh_icon(void) {
 
 /* `ie:ldown` on the laboratory's icon, as the shop does. */
 static void *build_lab(void) {
-    void *icon = qh_icon();
+    void *icon = structure_icon();
     down_t made;
 
     assert(icon != NULL);
-    made = cls_of(icon)->left_press(icon, NULL, NULL);
+    made = class_of(icon)->left_press(icon, NULL, NULL);
     assert(made.stop && made.held != NULL);
     return made.held;
 }
@@ -270,100 +270,100 @@ static void *build_lab(void) {
  * qh's and jo's members are set, its methods (the very functions of the
  * class chain), which default tables it shares with `qh` and `jo`, and
  * where `lt` registered it. */
-static uint32_t fold_lab(uint32_t h, void *e) {
-    const planet_t *qh = as_qh(e);
-    const planet_t *jo = qh;
-    size_t i;
+static uint32_t fold_lab(uint32_t hash, void *entity) {
+    const planet_t *structure = as_structure(entity);
+    const planet_t *planet = structure;
+    size_t index;
 
-    h = fold_string_member(h, jo->planet_id);
-    h = fold_string_member(h, jo->header.state);
-    h = fold_fixed_member(h, jo->header.state_time);
-    h = fold_fixed_member(h, qh->archetype->project_index);
-    h = fold_string_member(h, qh->targeting->archetype->confirmed_state);
-    h = fold_qh(h, qh);
-    h = fold_fixed_member(h, qh->targeting->cost);
-    h = fold_fixed_member(h, qh->targeting->archetype->clock_ticks);
-    h = fold_fixed_member(h, qh->targeting->archetype->attach_distance);
-    h = jo->has_development_tier ? fold_fixed_member(h, jo->development_tier) : fold_absent(h);
-    h = fold_fixed_member(h, qh->sprite);
-    h = fold_hf(h, jo);
-    h = fold_fixed_member(h, jo->archetype->trade_multiplier);
-    h = fold_fixed_member(h, jo->archetype->layer);
-    h = fold_fixed_member(h, jo->shake);
-    h = fold_fixed_member(h, jo->archetype->back_color);
-    h = fold_vec(h, &jo->archetype->row_step);
+    hash = fold_string_member(hash, planet->planet_id);
+    hash = fold_string_member(hash, planet->header.state);
+    hash = fold_fixed_member(hash, planet->header.state_time);
+    hash = fold_fixed_member(hash, structure->archetype->project_index);
+    hash = fold_string_member(hash, structure->targeting->archetype->confirmed_state);
+    hash = fold_structure(hash, structure);
+    hash = fold_fixed_member(hash, structure->targeting->cost);
+    hash = fold_fixed_member(hash, structure->targeting->archetype->clock_ticks);
+    hash = fold_fixed_member(hash, structure->targeting->archetype->attach_distance);
+    hash = planet->has_development_tier ? fold_fixed_member(hash, planet->development_tier) : fold_absent(hash);
+    hash = fold_fixed_member(hash, structure->sprite);
+    hash = fold_is_planet(hash, planet);
+    hash = fold_fixed_member(hash, planet->archetype->trade_multiplier);
+    hash = fold_fixed_member(hash, planet->archetype->layer);
+    hash = fold_fixed_member(hash, planet->shake);
+    hash = fold_fixed_member(hash, planet->archetype->back_color);
+    hash = fold_vec(hash, &planet->archetype->row_step);
     /* The 1s of `hp`, `qh`, `od`, `fp`, `dw`, `s`, then of `hf`, `hs`, `fa`,
      * `ma` and `ca`: constant by the struct's shape, kept so that BUILT_HASH
      * still proves the typed reads. */
-    h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(qh->archetype->name != NULL));
-    h = fnv(h, (uint32_t)(qh->targeting->archetype->confirmed_state != NULL));
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(qh->archetype->accepted_resources != NULL));
-    h = fnv(h, qh->targeting->target != NULL ? 1u : 0u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->archetype->ring_colors != NULL));
-    h = fnv(h, (uint32_t)(jo->archetype->mood_rows != NULL));
-    h = fnv(h, (uint32_t)(jo->archetype->made_resources != NULL));
-    h = fnv(h, (uint32_t)(jo->production != NULL));
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->archetype->spacer != NULL));
-    h = fnv(h, (uint32_t)(jo->planet_id != NULL));
-    h = fnv(h, (uint32_t)(jo->map_pos != NULL));
-    h = fnv(h, (uint32_t)(jo->pos != NULL));
-    h = fnv(h, (uint32_t)(jo->slipways != NULL));
-    h = fnv(h, (uint32_t)(jo->project != NULL));
-    h = fnv(h, (uint32_t)(jo->description != NULL));
-    h = fnv(h, (uint32_t)(jo->needs != NULL));
-    h = fnv(h, (uint32_t)(jo->planet_type != NULL));
-    h = fnv(h, (uint32_t)(jo->fold_anchor != 0));
-    h = fnv(h, (uint32_t)(jo->layout_row != NULL));
-    h = fnv(h, (uint32_t)(jo->targeted_by != NULL));
-    h = fnv(h, (uint32_t)jo->has_production_bonus);
-    h = fnv(h, (uint32_t)(jo->is_dead != 0));
-    h = fnv(h, (uint32_t)jo->has_net_income);
-    h = fnv(h, (uint32_t)(jo->incoming_routes != NULL));
-    h = fnv(h, (uint32_t)(jo->outgoing_routes != NULL));
-    h = fnv(h, (uint32_t)jo->has_development_tier);
-    h = fnv(h, (uint32_t)(jo->is_hovered != 0));
-    assert_qh_shape(cls_of(e));
-    assert_members_of(cls_of(e), pico8_qh_struct_class(), 1, 1);
-    assert(cls_of(e)->attach_slipway == pico8_qh_struct_class()->attach_slipway && cls_of(e)->offer_trade == pico8_qh_struct_class()->offer_trade &&
-           cls_of(e)->spawn_particle == NULL && planet_is_family(e));
-    assert(jo->header.class->tags == (TAG(TAG_STRUCTURE) | TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && qh->archetype->name == &structure_name_row && qh->archetype->accepted_resources == &structure_accepted_resources_seq);
-    assert(jo->archetype == &structure_archetype);
-    assert(jo->archetype == &structure_archetype);
-    assert(jo->archetype->spacer == &planet_spacer_row && jo->archetype->ring_colors == &planet_ring_colors_seq && jo->archetype->mood_rows == planet_mood_rows_rows &&
-           jo->archetype->made_resources == &planet_made_resources_seq);
-    assert(jo->production != NULL && jo->production != planet_shared_production());
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, (uint32_t)(structure->archetype->name != NULL));
+    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != NULL));
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, (uint32_t)(structure->archetype->accepted_resources != NULL));
+    hash = fnv(hash, structure->targeting->target != NULL ? 1u : 0u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, (uint32_t)(planet->archetype->ring_colors != NULL));
+    hash = fnv(hash, (uint32_t)(planet->archetype->mood_rows != NULL));
+    hash = fnv(hash, (uint32_t)(planet->archetype->made_resources != NULL));
+    hash = fnv(hash, (uint32_t)(planet->production != NULL));
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
+    hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
+    hash = fnv(hash, (uint32_t)(planet->map_pos != NULL));
+    hash = fnv(hash, (uint32_t)(planet->pos != NULL));
+    hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
+    hash = fnv(hash, (uint32_t)(planet->project != NULL));
+    hash = fnv(hash, (uint32_t)(planet->description != NULL));
+    hash = fnv(hash, (uint32_t)(planet->needs != NULL));
+    hash = fnv(hash, (uint32_t)(planet->planet_type != NULL));
+    hash = fnv(hash, (uint32_t)(planet->fold_anchor != 0));
+    hash = fnv(hash, (uint32_t)(planet->layout_row != NULL));
+    hash = fnv(hash, (uint32_t)(planet->targeted_by != NULL));
+    hash = fnv(hash, (uint32_t)planet->has_production_bonus);
+    hash = fnv(hash, (uint32_t)(planet->is_dead != 0));
+    hash = fnv(hash, (uint32_t)planet->has_net_income);
+    hash = fnv(hash, (uint32_t)(planet->incoming_routes != NULL));
+    hash = fnv(hash, (uint32_t)(planet->outgoing_routes != NULL));
+    hash = fnv(hash, (uint32_t)planet->has_development_tier);
+    hash = fnv(hash, (uint32_t)(planet->is_hovered != 0));
+    assert_structure_shape(class_of(entity));
+    assert_members_of(class_of(entity), structure_class(), 1, 1);
+    assert(class_of(entity)->attach_slipway == structure_class()->attach_slipway && class_of(entity)->offer_trade == structure_class()->offer_trade &&
+           class_of(entity)->spawn_particle == NULL && planet_is_family(entity));
+    assert(planet->header.class->tags == (TAG(TAG_STRUCTURE) | TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && structure->archetype->name == &structure_name_row && structure->archetype->accepted_resources == &structure_accepted_resources_seq);
+    assert(planet->archetype == &structure_archetype);
+    assert(planet->archetype == &structure_archetype);
+    assert(planet->archetype->spacer == &planet_spacer_row && planet->archetype->ring_colors == &planet_ring_colors_seq && planet->archetype->mood_rows == planet_mood_rows_rows &&
+           planet->archetype->made_resources == &planet_made_resources_seq);
+    assert(planet->production != NULL && planet->production != planet_shared_production());
     assert(research_projects_at(1) != NULL);
-    assert(jo->project == research_projects_at(1));
-    h = fold_kw(h, jo);
-    h = fnv(h, (uint32_t)ents_list_size(jo->slipways));
-    h = fnv(h, (uint32_t)list_size(jo->needs));
-    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), e));
-    for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
-        h = fnv(h, (uint32_t)ents_rank_in(entities_by_message(bm[i]), e));
+    assert(planet->project == research_projects_at(1));
+    hash = fold_production(hash, planet);
+    hash = fnv(hash, (uint32_t)entity_list_list_size(planet->slipways));
+    hash = fnv(hash, (uint32_t)list_size(planet->needs));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), entity));
+    for (index = 0; index < sizeof messages / sizeof messages[0]; index++) {
+        hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(messages[index]), entity));
     }
-    for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
-        h = fnv(h, (uint32_t)ents_rank_in(entities_by_tag(tags[i]), e));
+    for (index = 0; index < sizeof tags / sizeof tags[0]; index++) {
+        hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(tags[index]), entity));
     }
-    return h;
+    return hash;
 }
 
 /* Two laboratories built by the shop's `ie:ldown` on `gx[0]`. */
 static void test_built(void) {
-    uint32_t h = 2166136261u;
+    uint32_t hash = 2166136261u;
     void *a;
     void *b;
 
@@ -371,9 +371,9 @@ static void test_built(void) {
     a = build_lab();
     b = build_lab();
     assert(a != b);
-    h = fold_lab(h, a);
-    h = fold_lab(h, b);
-    check("built", h, BUILT_HASH);
+    hash = fold_lab(hash, a);
+    hash = fold_lab(hash, b);
+    check("built", hash, BUILT_HASH);
 }
 
 static p8_fixed_t credits(void) {
@@ -388,16 +388,16 @@ static void set_credits(int n) {
 /* What `bv` left on a laboratory: `ra` (a copy of what was passed), `p`, and
  * what `et` is. */
 static uint32_t fold_held(uint32_t h, void *e, const vec_t *mp) {
-    const planet_t *qh = as_qh(e);
+    const planet_t *qh = as_structure(e);
 
-    assert(ra_copies(qh->pos, mp));
+    assert(pos_copies(qh->pos, mp));
     h = fold_vec(h, qh->map_pos);
-    h = fnv(h, et_state(qh));
-    return fold_et(h, qh);
+    h = fnv(h, target_state(qh));
+    return fold_target(h, qh);
 }
 
-static uint32_t fold_ra_y(uint32_t h, void *e) {
-    const vec_t *ra = as_qh(e)->pos;
+static uint32_t fold_pos_y(uint32_t h, void *e) {
+    const vec_t *ra = as_structure(e)->pos;
     assert(ra != NULL);
     return fnv(h, (uint32_t)ra->y);
 }
@@ -406,107 +406,107 @@ static uint32_t fold_ra_y(uint32_t h, void *e) {
  * a planet; `ey` (`d_`) with and without the credits; `dg` on a laboratory
  * in "ly" (`qh.ly` = `na`) and on one still in "kz". */
 static void test_life(void) {
-    uint32_t h = 2166136261u;
+    uint32_t hash = 2166136261u;
     void *out_lab;
     void *in_lab;
     void *poor_lab;
     void *planet;
-    vec_t *mp;
-    const vec_t *planet_p;
-    const vec_t *ra_before;
+    vec_t *mouse_world;
+    const vec_t *planet_map_pos;
+    const vec_t *pos_before;
     p8_fixed_t before;
     p8_fixed_t in_y;
-    int i;
+    int index;
 
     start_game();
 
     out_lab = build_lab();
-    mp = vec_ref(vec_xy(7680, 7680));
-    cls_of(out_lab)->drag(out_lab, mp, vec_ref(vec_xy(0, 0)));
-    h = fold_held(h, out_lab, mp);
-    assert(et_state(as_qh(out_lab)) == 3 && !ents_listed(live_entities(), as_qh(out_lab)->targeting->target));
+    mouse_world = vec_ref(vec_xy(7680, 7680));
+    class_of(out_lab)->drag(out_lab, mouse_world, vec_ref(vec_xy(0, 0)));
+    hash = fold_held(hash, out_lab, mouse_world);
+    assert(target_state(as_structure(out_lab)) == 3 && !entity_list_listed(live_entities(), as_structure(out_lab)->targeting->target));
 
     planet = entities_by_tag("planet")->items[0];
     assert(planet_is_family(planet));
-    planet_p = ((const planet_t *)planet)->map_pos;
-    assert(planet_p != NULL);
-    mp = vec_ref(vec_add(vec_mul(*planet_p, p8_fixed_from_int(128)), vec_xy(6, 0)));
-    cls_of(out_lab)->drag(out_lab, mp, vec_ref(vec_xy(64, 64)));
-    h = fold_held(h, out_lab, mp);
-    assert(as_qh(out_lab)->targeting->target == planet &&
+    planet_map_pos = ((const planet_t *)planet)->map_pos;
+    assert(planet_map_pos != NULL);
+    mouse_world = vec_ref(vec_add(vec_mul(*planet_map_pos, p8_fixed_from_int(128)), vec_xy(6, 0)));
+    class_of(out_lab)->drag(out_lab, mouse_world, vec_ref(vec_xy(64, 64)));
+    hash = fold_held(hash, out_lab, mouse_world);
+    assert(as_structure(out_lab)->targeting->target == planet &&
            ((const planet_t *)planet)->targeted_by == out_lab);
 
     poor_lab = build_lab();
-    mp = vec_ref(vec_xy(7680, 7680));
-    cls_of(poor_lab)->drag(poor_lab, mp, vec_ref(vec_xy(64, 64)));
-    h = fold_held(h, poor_lab, mp);
-    assert(et_state(as_qh(poor_lab)) == 1);
+    mouse_world = vec_ref(vec_xy(7680, 7680));
+    class_of(poor_lab)->drag(poor_lab, mouse_world, vec_ref(vec_xy(64, 64)));
+    hash = fold_held(hash, poor_lab, mouse_world);
+    assert(target_state(as_structure(poor_lab)) == 1);
     set_credits(3);
-    assert(cls_of(poor_lab)->drop == targeting_confirm_method);
-    h = targeting_confirm(poor_lab) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
-    h = fold_string_member(h, as_qh(poor_lab)->header.state);
-    h = fold_fixed_member(h, as_qh(poor_lab)->header.state_time);
-    h = fnv(h, p__state(as_qh(poor_lab)));
-    h = fnv(h, (uint32_t)credits());
-    assert(p__state(as_qh(poor_lab)) == 2 && credits() == p8_fixed_from_int(3));
+    assert(class_of(poor_lab)->drop == targeting_confirm_method);
+    hash = targeting_confirm(poor_lab) ? fnv(fnv(hash, 0xB0u), 1u) : fold_ref(hash, NULL);
+    hash = fold_string_member(hash, as_structure(poor_lab)->header.state);
+    hash = fold_fixed_member(hash, as_structure(poor_lab)->header.state_time);
+    hash = fnv(hash, is_dead_state(as_structure(poor_lab)));
+    hash = fnv(hash, (uint32_t)credits());
+    assert(is_dead_state(as_structure(poor_lab)) == 2 && credits() == p8_fixed_from_int(3));
 
     in_lab = build_lab();
-    mp = vec_ref(vec_xy(7680, 7552));
-    cls_of(in_lab)->drag(in_lab, mp, vec_ref(vec_xy(64, 64)));
+    mouse_world = vec_ref(vec_xy(7680, 7552));
+    class_of(in_lab)->drag(in_lab, mouse_world, vec_ref(vec_xy(64, 64)));
     set_credits(100);
-    assert(cls_of(in_lab)->drop == targeting_confirm_method);
-    h = targeting_confirm(in_lab) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
-    h = fold_string_member(h, as_qh(in_lab)->header.state);
-    h = fold_fixed_member(h, as_qh(in_lab)->header.state_time);
-    h = fnv(h, p__state(as_qh(in_lab)));
-    h = fnv(h, (uint32_t)credits());
-    assert(strcmp(as_qh(in_lab)->header.state, "settled") == 0 && credits() == p8_fixed_from_int(100 - 15));
-    in_y = as_qh(in_lab)->pos->y;
+    assert(class_of(in_lab)->drop == targeting_confirm_method);
+    hash = targeting_confirm(in_lab) ? fnv(fnv(hash, 0xB0u), 1u) : fold_ref(hash, NULL);
+    hash = fold_string_member(hash, as_structure(in_lab)->header.state);
+    hash = fold_fixed_member(hash, as_structure(in_lab)->header.state_time);
+    hash = fnv(hash, is_dead_state(as_structure(in_lab)));
+    hash = fnv(hash, (uint32_t)credits());
+    assert(strcmp(as_structure(in_lab)->header.state, "settled") == 0 && credits() == p8_fixed_from_int(100 - 15));
+    in_y = as_structure(in_lab)->pos->y;
 
-    ra_before = as_qh(out_lab)->pos;
-    before = ra_before->y;
-    for (i = 0; i < 4; i++) {
-        h = fold_ra_y(h, in_lab);
+    pos_before = as_structure(out_lab)->pos;
+    before = pos_before->y;
+    for (index = 0; index < 4; index++) {
+        hash = fold_pos_y(hash, in_lab);
         update_entities();
-        h = fold_fixed_member(h, as_qh(in_lab)->header.state_time);
-        assert(as_qh(out_lab)->pos == ra_before && ra_before->y == before);
+        hash = fold_fixed_member(hash, as_structure(in_lab)->header.state_time);
+        assert(as_structure(out_lab)->pos == pos_before && pos_before->y == before);
     }
-    h = fold_ra_y(h, in_lab);
-    assert(as_qh(in_lab)->pos->y != in_y);
-    h = fnv(h, (uint32_t)ents_listed(live_entities(), poor_lab));
-    check("life", h, LIFE_HASH);
+    hash = fold_pos_y(hash, in_lab);
+    assert(as_structure(in_lab)->pos->y != in_y);
+    hash = fnv(hash, (uint32_t)entity_list_listed(live_entities(), poor_lab));
+    check("life", hash, LIFE_HASH);
 }
 
-enum { NL, OS, HJ, PM, MX, NR, FR, DESCENDANTS };
+enum { TRADING_HUB, PROCESSOR, ASCENSION, PROTOSTAR, SYNTHESIZER, SLIPGATE, INFRASPACE_GATE, DESCENDANTS };
 
 static int descendant_of(const void *e) {
     if (e != NULL &&
-        ((const entity_t *)e)->class == pico8_nl_struct_class()) {
-        return NL;
+        ((const entity_t *)e)->class == trading_hub_class()) {
+        return TRADING_HUB;
     }
     if (e != NULL &&
-        ((const entity_t *)e)->class == pico8_os_struct_class()) {
-        return OS;
+        ((const entity_t *)e)->class == processor_class()) {
+        return PROCESSOR;
     }
     if (e != NULL &&
-        ((const entity_t *)e)->class == pico8_hj_struct_class()) {
-        return HJ;
+        ((const entity_t *)e)->class == ascension_class()) {
+        return ASCENSION;
     }
     if (e != NULL &&
-        ((const entity_t *)e)->class == pico8_pm_struct_class()) {
-        return PM;
+        ((const entity_t *)e)->class == protostar_class()) {
+        return PROTOSTAR;
     }
     if (e != NULL &&
         ((const entity_t *)e)->class == synthesizer_class()) {
-        return MX;
+        return SYNTHESIZER;
     }
     if (e != NULL &&
         ((const entity_t *)e)->class == slipgate_class()) {
-        return NR;
+        return SLIPGATE;
     }
     if (e != NULL &&
         ((const entity_t *)e)->class == infraspace_gate_class()) {
-        return FR;
+        return INFRASPACE_GATE;
     }
     return -1;
 }
@@ -515,29 +515,29 @@ static int descendant_of(const void *e) {
  * its tags/`px`/`ba` are qh's own, `hq`/`ev`/`ey` (qh's functions),
  * and its `ly` called once (`ra.y` before, after, then put back). */
 static uint32_t fold_descendant(uint32_t h, void *d) {
-    planet_t *qh = as_qh(d);
-    planet_t *nl = cls_of(d) == pico8_nl_struct_class() ? (planet_t *)d : NULL;
+    planet_t *qh = as_structure(d);
+    planet_t *nl = class_of(d) == trading_hub_class() ? (planet_t *)d : NULL;
     p8_fixed_t qw = nl != NULL ? nl->palette_block : 0;
 
     h = fold_string_member(h, qh->targeting->archetype->confirmed_state);
     h = fold_fixed_member(h, qh->targeting->archetype->clock_ticks);
     h = fold_fixed_member(h, qh->targeting->archetype->attach_distance);
-    h = fold_hf(h, qh);
+    h = fold_is_planet(h, qh);
     h = qh->has_development_tier ? fold_fixed_member(h, qh->development_tier) : fold_absent(h);
     h = fnv(h, (uint32_t)(qh->header.class->tags == (TAG(TAG_STRUCTURE) | TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING))));
     h = fnv(h, (uint32_t)(qh->archetype->name == &structure_name_row));
     h = fnv(h, (uint32_t)(qh->archetype->accepted_resources == &structure_accepted_resources_seq));
-    assert(cls_of(d)->drag == pico8_qh_struct_class()->drag && cls_of(d)->drop == pico8_qh_struct_class()->drop);
-    assert(cls_of(d)->draw_overlay == pico8_qh_struct_class()->draw_overlay);
+    assert(class_of(d)->drag == structure_class()->drag && class_of(d)->drop == structure_class()->drop);
+    assert(class_of(d)->draw_overlay == structure_class()->draw_overlay);
     if (qh->pos != NULL) {
         vec_t *v = qh->pos;
         p8_fixed_t y = v->y;
         h = fnv(fnv(h, 1u), (uint32_t)y);
-        cls_of(d)->states[ENTITY_STATE_SETTLED](d, p8_fixed_from_int(50));
+        class_of(d)->states[ENTITY_STATE_SETTLED](d, p8_fixed_from_int(50));
         h = fnv(h, (uint32_t)v->y);
         v->y = y;
     } else {
-        cls_of(d)->states[ENTITY_STATE_SETTLED](d, p8_fixed_from_int(50));
+        class_of(d)->states[ENTITY_STATE_SETTLED](d, p8_fixed_from_int(50));
         h = fnv(h, 0u);
     }
     h = nl != NULL ? fold_fixed_member(h, nl->palette_block) : fold_absent(h);
@@ -552,17 +552,17 @@ static uint32_t fold_descendant(uint32_t h, void *d) {
 static void *bought(const entity_kind_t *kind) {
     const entity_list_t *hb = entities_by_message("refresh");
     const camera_t *mo = main_camera_typed();
-    const vec_t *mo_ra;
+    const vec_t *main_camera_pos;
     int i;
 
     assert(mo != NULL && mo->pos != NULL);
-    mo_ra = mo->pos;
+    main_camera_pos = mo->pos;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *icon = hb->items[i];
-        if (cls_of(icon) == structure_icon_class() && ((const structure_icon_t *)icon)->kind == kind) {
-            down_t made = cls_of(icon)->left_press(icon, NULL, NULL);
+        if (class_of(icon) == structure_icon_class() && ((const structure_icon_t *)icon)->kind == kind) {
+            down_t made = class_of(icon)->left_press(icon, NULL, NULL);
             assert(made.stop && made.held != NULL);
-            cls_of(made.held)->drag(made.held, vec_ref(vec_add(*mo_ra, vec_xy(64, 64))),
+            class_of(made.held)->drag(made.held, vec_ref(vec_add(*main_camera_pos, vec_xy(64, 64))),
                                   vec_ref(vec_xy(64, 64)));
             return made.held;
         }
@@ -572,7 +572,7 @@ static void *bought(const entity_kind_t *kind) {
 }
 
 /* The project of `gb` whose `cw` names `cw`. */
-static research_project_t *cw_project(const char *cw) {
+static research_project_t *class_name_project(const char *cw) {
     int k;
 
     for (k = 1;; k++) {
@@ -589,10 +589,10 @@ static research_project_t *cw_project(const char *cw) {
  * on the collapse project (the newest entity of `hv`). */
 static void test_descendants(void) {
     static const struct {
-        int d;
+        int descendant;
         const entity_kind_t *(*kind)(void);
-    } shop[] = {{OS, pico8_os_kind}, {NR, slipgate_kind}, {FR, infraspace_gate_kind},
-                {NL, pico8_nl_kind}, {MX, synthesizer_kind}, {HJ, pico8_hj_kind}};
+    } shop[] = {{PROCESSOR, processor_kind}, {SLIPGATE, slipgate_kind}, {INFRASPACE_GATE, infraspace_gate_kind},
+                {TRADING_HUB, trading_hub_kind}, {SYNTHESIZER, synthesizer_kind}, {ASCENSION, ascension_kind}};
     void *made[DESCENDANTS] = {NULL};
     uint32_t h = 2166136261u;
     void *p;
@@ -600,14 +600,14 @@ static void test_descendants(void) {
 
     start_game();
     for (i = 0; i < sizeof shop / sizeof shop[0]; i++) {
-        made[shop[i].d] = bought(shop[i].kind());
+        made[shop[i].descendant] = bought(shop[i].kind());
     }
     p = entities_by_tag("planet")->items[0];
     planet_roll_type(p);
-    planet_apply_project(p, cw_project("protostar"));
-    made[PM] = live_entities()->items[live_entities()->count - 1];
+    planet_apply_project(p, class_name_project("protostar"));
+    made[PROTOSTAR] = live_entities()->items[live_entities()->count - 1];
     for (i = 0; i < DESCENDANTS; i++) {
-        assert(made[i] != NULL && descendant_of(made[i]) == (int)i && ents_listed(live_entities(), made[i]));
+        assert(made[i] != NULL && descendant_of(made[i]) == (int)i && entity_list_listed(live_entities(), made[i]));
         h = fold_descendant(fnv(h, (uint32_t)i), made[i]);
     }
     check("descendants", h, DESCENDANTS_HASH);
@@ -635,31 +635,31 @@ static void build_with_unknown_key(void *e) {
     keys.planet_id = NULL;
     keys.map_pos = vec_ref(vec_xy(1, 1));
     keys.pos = NULL;
-    (void)pico8_qh_new(&keys);
+    (void)structure_new(&keys);
 }
 
-static int is_a_qh_struct(const void *e) {
+static int is_a_structure_struct(const void *e) {
     return e != NULL &&
-           ((const entity_t *)e)->class == pico8_qh_struct_class();
+           ((const entity_t *)e)->class == structure_class();
 }
 
 /* Built by `ie:ldown` or pico8_qh_new, a `qh` is a struct whose descriptor
  * holds jo's very dispatchers and qh's own `hq`, `ev`, `ey`, `ly`; a
  * construction key other than `id` stops the run. Every descendant is a
  * struct under its own descriptor. */
-static void test_qh_is_a_struct(void) {
-    const entity_kind_t *const descendants[] = {pico8_nl_kind(), pico8_os_kind(), pico8_hj_kind(), pico8_pm_kind(),
+static void test_structure_is_a_struct(void) {
+    const entity_kind_t *const descendants[] = {trading_hub_kind(), processor_kind(), ascension_kind(), protostar_kind(),
                                                       synthesizer_kind(), slipgate_kind(), infraspace_gate_kind()};
-    const entity_class_t *cls = pico8_qh_struct_class();
-    void *a;
-    size_t i;
+    const entity_class_t *cls = structure_class();
+    void *built;
+    size_t index;
 
     start_game();
-    a = build_lab();
-    assert(is_a_qh_struct(a) && ents_listed(entities_by_tag("structure"), a));
-    assert(planet_upkeep(a) == p8_fixed_from_int(entities_by_tag("structure")->count));
+    built = build_lab();
+    assert(is_a_structure_struct(built) && entity_list_listed(entities_by_tag("structure"), built));
+    assert(planet_upkeep(built) == p8_fixed_from_int(entities_by_tag("structure")->count));
     assert(cls->attach_slipway == planet_class()->attach_slipway && cls->offer_trade == planet_class()->offer_trade);
-    assert_qh_shape(cls);
+    assert_structure_shape(cls);
     assert(cls->hit_test == planet_class()->hit_test && cls->draw == planet_class()->draw &&
            cls->left_press == planet_class()->left_press && cls->refresh == planet_class()->refresh &&
            cls->accept_drop == planet_class()->accept_drop && cls->new_year == planet_class()->new_year &&
@@ -669,42 +669,42 @@ static void test_qh_is_a_struct(void) {
 
     must_abort(build_with_unknown_key, NULL);
     {
-        planet_t *bare = pico8_qh_new(NULL);
-        assert(is_a_qh_struct(bare) && bare->planet_id == NULL && bare->slipways != NULL && ents_listed(entities_by_tag("structure"), bare));
+        planet_t *bare = structure_new(NULL);
+        assert(is_a_structure_struct(bare) && bare->planet_id == NULL && bare->slipways != NULL && entity_list_listed(entities_by_tag("structure"), bare));
     }
-    for (i = 0; i < sizeof descendants / sizeof descendants[0]; i++) {
+    for (index = 0; index < sizeof descendants / sizeof descendants[0]; index++) {
         planet_keys_t keys;
         void *d;
         keys.planet_id = "s99";
         keys.map_pos = NULL;
         keys.pos = NULL;
-        d = descendants[i]->new_entity(&keys);
-        if (descendants[i] == pico8_nl_kind()) {
+        d = descendants[index]->new_entity(&keys);
+        if (descendants[index] == trading_hub_kind()) {
             assert(d != NULL &&
-                   ((const entity_t *)d)->class == pico8_nl_struct_class());
+                   ((const entity_t *)d)->class == trading_hub_class());
             continue;
         }
-        if (descendants[i] == pico8_os_kind()) {
+        if (descendants[index] == processor_kind()) {
             assert(d != NULL &&
-                   ((const entity_t *)d)->class == pico8_os_struct_class());
+                   ((const entity_t *)d)->class == processor_class());
             continue;
         }
-        if (descendants[i] == pico8_hj_kind()) {
+        if (descendants[index] == ascension_kind()) {
             assert(d != NULL &&
-                   ((const entity_t *)d)->class == pico8_hj_struct_class());
+                   ((const entity_t *)d)->class == ascension_class());
             continue;
         }
-        if (descendants[i] == pico8_pm_kind()) {
+        if (descendants[index] == protostar_kind()) {
             assert(d != NULL &&
-                   ((const entity_t *)d)->class == pico8_pm_struct_class());
+                   ((const entity_t *)d)->class == protostar_class());
             continue;
         }
-        if (descendants[i] == synthesizer_kind()) {
+        if (descendants[index] == synthesizer_kind()) {
             assert(d != NULL &&
                    ((const entity_t *)d)->class == synthesizer_class());
             continue;
         }
-        if (descendants[i] == slipgate_kind()) {
+        if (descendants[index] == slipgate_kind()) {
             assert(d != NULL &&
                    ((const entity_t *)d)->class == slipgate_class());
             continue;
@@ -724,8 +724,8 @@ static unsigned lineage_of(const entity_t *e) {
 static void test_lineage_of_each_class(void) {
     const unsigned jo = LINEAGE(LINEAGE_PLANET);
     const unsigned qh = jo | LINEAGE(LINEAGE_STRUCTURE);
-    const entity_kind_t *const lineage[] = {pico8_qh_kind(), pico8_nl_kind(), pico8_os_kind(), pico8_hj_kind(),
-                                                  pico8_pm_kind(), synthesizer_kind(), slipgate_kind(), infraspace_gate_kind()};
+    const entity_kind_t *const lineage[] = {structure_kind(), trading_hub_kind(), processor_kind(), ascension_kind(),
+                                                  protostar_kind(), synthesizer_kind(), slipgate_kind(), infraspace_gate_kind()};
     planet_keys_t keys = {"s99", NULL, NULL};
     const entity_t *e;
     size_t i;
@@ -733,9 +733,9 @@ static void test_lineage_of_each_class(void) {
     start_game();
     for (i = 0; i < sizeof lineage / sizeof lineage[0]; i++) {
         e = lineage[i]->new_entity(&keys);
-        assert(lineage_of(e) == (lineage[i] == pico8_nl_kind() ? (qh | LINEAGE(LINEAGE_TRADING_HUB)) : qh));
+        assert(lineage_of(e) == (lineage[i] == trading_hub_kind() ? (qh | LINEAGE(LINEAGE_TRADING_HUB)) : qh));
     }
-    assert(lineage_of(pico8_ga_kind()->new_entity(&keys)) == jo);
+    assert(lineage_of(burst_kind()->new_entity(&keys)) == jo);
     assert(lineage_of(&planet_new(&keys)->header) == jo);
     assert(lineage_of(&probe_new(NULL)->header) == LINEAGE(LINEAGE_PROBE));
     assert(lineage_of(&pico8_fv_new()->header) == LINEAGE(LINEAGE_PROBE));
@@ -783,9 +783,9 @@ int main(void) {
     in_fresh_child(test_built);
     in_fresh_child(test_life);
     in_fresh_child(test_descendants);
-    in_fresh_child(test_qh_is_a_struct);
+    in_fresh_child(test_structure_is_a_struct);
     in_fresh_child(test_lineage_of_each_class);
 
-    printf("test_pico8_qh: all tests passed\n");
+    printf("test_structure: all tests passed\n");
     return 0;
 }

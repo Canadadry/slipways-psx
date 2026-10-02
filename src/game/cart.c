@@ -81,11 +81,11 @@ void pico8_cart_load(void) {
 
     planet_init();
     slipway_init();
-    pico8_planet_family_init();
-    assert(pico8_qh_ready() && pico8_ga_ready() && planet_ready() &&
+    planet_family_init();
+    assert(structure_ready() && burst_ready() && planet_ready() &&
            "qh and ga extend jo: pico8_jo_init() must run first");
     planet_family_trade_init();
-    assert(slipgate_ready() && synthesizer_ready() && pico8_qh_ready() && pico8_hj_ready() &&
+    assert(slipgate_ready() && synthesizer_ready() && structure_ready() && ascension_ready() &&
            "nr extends qh and mx extends hj: pico8_planet_family_init() must run first");
     wormhole_init();
 
@@ -149,7 +149,7 @@ void pico8_cart_shutdown(void) {
 
     wormhole_shutdown();
     planet_family_trade_shutdown();
-    pico8_planet_family_shutdown();
+    planet_family_shutdown();
     slipway_shutdown();
     planet_shutdown();
 
@@ -203,7 +203,7 @@ void pico8_eu(button_t *nj) {
     const entity_kind_t *gx[7];
     int i;
 
-    assert(economy_ready() && pico8_qh_ready() && "pico8_cart_load() must run before eu()");
+    assert(economy_ready() && structure_ready() && "pico8_cart_load() must run before eu()");
 
     economy_score_set_difficulty(nj);
     game_zone_flip();
@@ -225,13 +225,13 @@ void pico8_eu(button_t *nj) {
         }
     }
 
-    gx[0] = pico8_qh_kind();
-    gx[1] = pico8_os_kind();
+    gx[0] = structure_kind();
+    gx[1] = processor_kind();
     gx[2] = slipgate_kind();
     gx[3] = infraspace_gate_kind();
-    gx[4] = pico8_nl_kind();
+    gx[4] = trading_hub_kind();
     gx[5] = synthesizer_kind();
-    gx[6] = pico8_hj_kind();
+    gx[6] = ascension_kind();
 
     for (i = 0; i < 7; i++) {
         structure_icon_keys_t keys = {0};

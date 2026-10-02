@@ -542,7 +542,7 @@ static void test_recompute(void) {
 
     demand = typed_main_economy()->demand;
     need = need_new(game_zone(), &need_amount);
-    needer = pico8_qh_new(NULL);
+    needer = structure_new(NULL);
     pointer_list_init(&needs, &heap_allocator);
     pointer_list_add(&needs, need);
     needer->needs = &needs;

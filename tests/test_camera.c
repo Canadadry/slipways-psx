@@ -304,7 +304,7 @@ static int burst_alive(void) {
     for (i = 0; i < hv->count; i++) {
         const void *e = hv->items[i];
         if (e != NULL &&
-            ((const entity_t *)e)->class == pico8_ga_struct_class()) {
+            ((const entity_t *)e)->class == burst_class()) {
             return 1;
         }
     }
@@ -319,7 +319,7 @@ static void test_burst_shakes(void) {
     pico8__init();
     pico8_eu(NULL);
     assert(!burst_alive());
-    (void)pico8_ga_new(NULL);
+    (void)burst_new(NULL);
     assert(burst_alive());
     assert(typed_main_camera()->shake == p8_fixed_from_int(3));
     for (i = 0; i < GEOHARVEST_WINDOW; i++) {
