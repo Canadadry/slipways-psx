@@ -56,7 +56,7 @@ static int case_live_slots_follow_takes(void) {
     assert(particle_zone_live(PARTICLE_SLOT_BURST) == 1);
 
     release_particle(a);
-    assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 1 && "rendre une place decompte sa sorte");
+    assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 1 && "giving back a slot counts its kind down");
     release_particle(b);
     arena_release(qy);
     arena_release(fv);
@@ -121,7 +121,7 @@ static int case_maxima_keep_the_peak(void) {
     particle_t *q = particle();
     assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 1);
     assert(particle_zone_max_live(PARTICLE_SLOT_PARTICLE) == 3 &&
-           "le maximum se releve a chaque prise, pas a la lecture");
+           "the maximum is taken at every take, not at reading");
     release_particle(q);
 
     const allocator_t *released = particle_zone_slot(PARTICLE_SLOT_BURST);
@@ -129,12 +129,12 @@ static int case_maxima_keep_the_peak(void) {
     size_t grab_arena_released = arena_used(released);
     arena_release(released);
     assert(particle_zone_max_bytes(PARTICLE_SLOT_BURST) == grab_arena_released &&
-           "une place rendue garde ce qu'elle a pris");
+           "a given-back slot keeps what it took");
 
     const allocator_t *live = particle_zone_slot(PARTICLE_SLOT_BURST);
     allocator_alloc(live, 400);
     assert(particle_zone_max_bytes(PARTICLE_SLOT_BURST) == arena_used(live) &&
-           "une place encore vivante compte a la lecture");
+           "a slot still live counts at reading");
     assert(particle_zone_max_bytes(PARTICLE_SLOT_LIST) == 0);
 
     particle_zone_record_elements(PARTICLE_SLOT_LIST, 7);
@@ -157,14 +157,14 @@ static int case_particles_release_gives_back_particles_then_list(void) {
 
     emitter_release_particles(&emitter);
 
-    assert(emitter.particles == NULL && "l'hote ne vise plus la liste rendue");
+    assert(emitter.particles == NULL && "the host no longer points at the given-back list");
     assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 1 &&
-           "les particules de la liste sont rendues, pas les autres");
+           "the list's particles are given back, not the others");
     assert(particle_zone_live(PARTICLE_SLOT_LIST) == 0);
     release_particle(kept);
 
     emitter_release_particles(&emitter);
-    assert(particle_zone_live(PARTICLE_SLOT_LIST) == 0 && "un hote sans liste n'a rien a rendre");
+    assert(particle_zone_live(PARTICLE_SLOT_LIST) == 0 && "a host without a list has nothing to give back");
     return 0;
 }
 
@@ -234,8 +234,8 @@ static int case_second_emitter_init_gives_back_the_old_list(void) {
     dying(h);
     dying(h);
     emitter_init(h);
-    assert(particle_zone_live(PARTICLE_SLOT_LIST) == 1 && "l'ancienne liste est rendue");
-    assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 0 && "et ses particules avec elle");
+    assert(particle_zone_live(PARTICLE_SLOT_LIST) == 1 && "the old list is given back");
+    assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 0 && "and its particles with it");
     assert(h->emitter->particles->count == 0);
     return 0;
 }
@@ -248,7 +248,7 @@ static int case_emitter_update_gives_back_a_dying_particle(void) {
     assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 2);
     emitter_update(&g_gfx, &g_mem, h);
     assert(h->emitter->particles->count == 1);
-    assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 1 && "ei rend la particule qu'il retire");
+    assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 1 && "emitter_update gives back the particle it removes");
     return 0;
 }
 
@@ -269,7 +269,7 @@ static int case_emitter_spawn_notes_the_list_length(void) {
     g_emitter.angle_slices = 1 << 16;
     emitter_spawn(h, 3 << 16);
     assert(h->emitter->particles->count == 3);
-    assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 3 && "g_:mm prend a la poignee particule");
+    assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 3 && "probe_spawn_particle takes from the particle handle");
     assert(particle_zone_max_elements(PARTICLE_SLOT_LIST) == 3);
     return 0;
 }
@@ -287,11 +287,11 @@ static int case_transit_dots_takes_and_gives_back(void) {
     transit_dot_t *b = trail();
     assert(particle_zone_live(PARTICLE_SLOT_TRANSIT_DOT) == 2);
     release_trail(a);
-    assert(particle_zone_live(PARTICLE_SLOT_TRANSIT_DOT) == 1 && "rendre une trainee decompte sa sorte");
+    assert(particle_zone_live(PARTICLE_SLOT_TRANSIT_DOT) == 1 && "giving back a transit dot counts its kind down");
     release_trail(b);
     assert(particle_zone_live(PARTICLE_SLOT_TRANSIT_DOT) == 0);
     assert(particle_zone_max_live(PARTICLE_SLOT_TRANSIT_DOT) == 2);
-    assert(particle_zone_max_bytes(PARTICLE_SLOT_TRANSIT_DOT) == 0 && "une trainee est une place nue");
+    assert(particle_zone_max_bytes(PARTICLE_SLOT_TRANSIT_DOT) == 0 && "a transit dot is a bare slot");
     particle_zone_record_elements(PARTICLE_SLOT_TRANSIT_DOT, 5);
     particle_zone_record_elements(PARTICLE_SLOT_TRANSIT_DOT, 2);
     assert(particle_zone_max_elements(PARTICLE_SLOT_TRANSIT_DOT) == 5);
@@ -314,10 +314,10 @@ static const struct {
     const char *name;
     int (*run)(void);
 } CASES[] = {
-    {"live_places_follow_takes", case_live_slots_follow_takes},
-    {"particule_dead_after_release", case_particle_dead_after_release},
+    {"live_slots_follow_takes", case_live_slots_follow_takes},
+    {"particle_dead_after_release", case_particle_dead_after_release},
     {"burst_zone_full", case_burst_zone_full},
-    {"particule_zone_full", case_particle_zone_full},
+    {"particle_zone_full", case_particle_zone_full},
     {"particles_holds_its_capacity", case_particles_holds_its_capacity},
     {"particles_past_capacity", case_particles_past_capacity},
     {"particles_help_screen_holds_its_capacity", case_particles_help_screen_holds_its_capacity},
@@ -372,8 +372,8 @@ static void expect_clean(const char *name) {
     char *err;
     int status = run_child(name, &err);
     if (WEXITSTATUS(status) != 0 || err[0] != '\0') {
-        fprintf(stderr, "%s: attendu propre, sortie %d\n%s", name, WEXITSTATUS(status), err);
-        assert(0 && "le cas ne doit ni planter ni ecrire sur stderr");
+        fprintf(stderr, "%s: expected clean, exit %d\n%s", name, WEXITSTATUS(status), err);
+        assert(0 && "the case must neither crash nor write to stderr");
     }
     free(err);
 }
@@ -382,8 +382,8 @@ static void expect_poison_crash(const char *name) {
     char *err;
     int status = run_child(name, &err);
     if (WEXITSTATUS(status) == 0 || strstr(err, "use-after-poison") == NULL) {
-        fprintf(stderr, "%s: attendu use-after-poison, sortie %d\n%s", name, WEXITSTATUS(status), err);
-        assert(0 && "une place rendue a sa zone puis lue doit planter sous ASan");
+        fprintf(stderr, "%s: expected use-after-poison, exit %d\n%s", name, WEXITSTATUS(status), err);
+        assert(0 && "a slot given back to its zone then read must crash under ASan");
     }
     free(err);
 }
@@ -392,9 +392,9 @@ static void expect_fatal(const char *name, const char *message) {
     char *err;
     int status = run_child(name, &err);
     if (WEXITSTATUS(status) != 3 || strstr(err, message) == NULL) {
-        fprintf(stderr, "%s: attendu sortie 3 et \"%s\", sortie %d\n%s",
+        fprintf(stderr, "%s: expected exit 3 and \"%s\", exit %d\n%s",
                 name, message, WEXITSTATUS(status), err);
-        assert(0 && "une zone pleine ou une place trop petite doit appeler pico8_fatal");
+        assert(0 && "a full zone or a too small slot must call p8_fatal");
     }
     free(err);
 }
@@ -403,18 +403,18 @@ int main(int argc, char **argv) {
     if (argc == 2) {
         for (size_t i = 0; i < CASE_COUNT; i++)
             if (strcmp(argv[1], CASES[i].name) == 0) return CASES[i].run();
-        fprintf(stderr, "test_particle_zone: cas inconnu %s\n", argv[1]);
+        fprintf(stderr, "test_particle_zone: unknown case %s\n", argv[1]);
         return 2;
     }
     self_path = argv[0];
-    expect_clean("live_places_follow_takes");
-    expect_poison_crash("particule_dead_after_release");
-    expect_fatal("burst_zone_full", "zone particules burst full, limit 8 slots");
-    expect_fatal("particule_zone_full", "zone particules particule full, limit 2085 slots");
+    expect_clean("live_slots_follow_takes");
+    expect_poison_crash("particle_dead_after_release");
+    expect_fatal("burst_zone_full", "zone particles burst full, limit 8 slots");
+    expect_fatal("particle_zone_full", "zone particles particle full, limit 2085 slots");
     expect_clean("particles_holds_its_capacity");
-    expect_fatal("particles_past_capacity", "zone place particles full, limit ");
+    expect_fatal("particles_past_capacity", "zone slot particles full, limit ");
     expect_clean("particles_help_screen_holds_its_capacity");
-    expect_fatal("particles_help_screen_past_capacity", "zone place particles_help_screen full, limit ");
+    expect_fatal("particles_help_screen_past_capacity", "zone slot particles_help_screen full, limit ");
     expect_clean("maxima_keep_the_peak");
     expect_clean("particles_release_gives_back_particles_then_list");
     expect_poison_crash("particles_release_releases_the_arena");
@@ -426,7 +426,7 @@ int main(int argc, char **argv) {
     expect_clean("emitter_spawn_notes_the_list_length");
     expect_clean("transit_dots_takes_and_gives_back");
     expect_poison_crash("transit_dots_dead_after_release");
-    expect_fatal("transit_dots_zone_full", "zone particules transit_dots full, limit 680 slots");
+    expect_fatal("transit_dots_zone_full", "zone particles transit_dots full, limit 680 slots");
     remove(STDERR_LOG);
     printf("test_particle_zone: all tests passed\n");
     return 0;

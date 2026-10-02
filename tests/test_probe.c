@@ -125,7 +125,7 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
         return fnv(fnv(h, 0x4Eu), (uint32_t)entity_list_rank_in(live_entities(), ref));
     }
     /* The frozen hashes folded the INSTANCE tag the throwaway had. */
-    assert(is_targeting_track_target(ref) && "no test folds an entity outside hv that is not the throwaway target: to fold one, fold 0xEEEE then the frozen struct tag 0x9E5C57C7, as test_pico8_fr.c does");
+    assert(is_targeting_track_target(ref) && "no test folds an entity outside the live entities that is not the throwaway target: to fold one, fold 0xEEEE then the frozen struct tag 0x9E5C57C7, as test_trading_hub.c does");
     return fnv(fnv(h, 0xEEEEu), FROZEN_INSTANCE_TAG);
 }
 
@@ -612,7 +612,7 @@ static void test_drop_on(void) {
     h = fold_fixed_member(h, a->header.state_time);
     h = fold_is_dead(h, a);
     h = fold_fixed_member(h, typed_main_economy()->credits);
-    check("drop on", h, DROP_ON_HASH);
+    check("drop_on", h, DROP_ON_HASH);
 }
 
 /* `ey` with no target and enough credits: `ks(dq)`, true returned. */
@@ -632,7 +632,7 @@ static void test_drop_off(void) {
     h = fold_string_member(h, a->header.state);
     h = fold_fixed_member(h, a->header.state_time);
     h = fold_fixed_member(h, typed_main_economy()->credits);
-    check("drop off", h, DROP_OFF_HASH);
+    check("drop_off", h, DROP_OFF_HASH);
 }
 
 /* `ey` over the void, off the panel: `et` is the throwaway target, which is

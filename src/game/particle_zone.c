@@ -42,13 +42,13 @@ SLOT_ZONE_STORAGE(burst_cells, burst_taken, BURST_SIZE, BURST_COUNT);
 SLOT_ZONE_STORAGE(transit_dots_cells, transit_dots_taken, TRANSIT_DOTS_SLOT, TRANSIT_DOTS_COUNT);
 
 static const slot_kind_zone_t SLOT_KINDS[PARTICLE_SLOT_COUNT] = {
-    [PARTICLE_SLOT_PARTICLE] = {"particules particule", NULL, particle_cells, particle_taken,
+    [PARTICLE_SLOT_PARTICLE] = {"particles particle", NULL, particle_cells, particle_taken,
                                     PARTICLE_SLOT, PARTICLE_CAPACITY},
-    [PARTICLE_SLOT_LIST] = {"particules particles", "place particles", particles_cells, particles_taken, PARTICLES_SIZE, PARTICLES_COUNT},
-    [PARTICLE_SLOT_HELP_LIST] = {"particules particles_help_screen", "place particles_help_screen", particles_help_screen_cells, particles_help_screen_taken, PARTICLES_HELP_SCREEN_SIZE,
+    [PARTICLE_SLOT_LIST] = {"particles particles", "slot particles", particles_cells, particles_taken, PARTICLES_SIZE, PARTICLES_COUNT},
+    [PARTICLE_SLOT_HELP_LIST] = {"particles particles_help_screen", "slot particles_help_screen", particles_help_screen_cells, particles_help_screen_taken, PARTICLES_HELP_SCREEN_SIZE,
                                 PARTICLES_HELP_SCREEN_COUNT},
-    [PARTICLE_SLOT_BURST] = {"particules burst", "place burst", burst_cells, burst_taken, BURST_SIZE, BURST_COUNT},
-    [PARTICLE_SLOT_TRANSIT_DOT] = {"particules transit_dots", NULL, transit_dots_cells, transit_dots_taken, TRANSIT_DOTS_SLOT, TRANSIT_DOTS_COUNT},
+    [PARTICLE_SLOT_BURST] = {"particles burst", "slot burst", burst_cells, burst_taken, BURST_SIZE, BURST_COUNT},
+    [PARTICLE_SLOT_TRANSIT_DOT] = {"particles transit_dots", NULL, transit_dots_cells, transit_dots_taken, TRANSIT_DOTS_SLOT, TRANSIT_DOTS_COUNT},
 };
 
 static slot_zone_t g_zones[PARTICLE_SLOT_COUNT];
@@ -116,7 +116,7 @@ static const allocator_t g_handles[PARTICLE_SLOT_COUNT] = {
 };
 
 static particle_slot_kind_t slot_kind_of(const allocator_t *z) {
-    assert(z >= g_handles && z < g_handles + PARTICLE_SLOT_COUNT && "poignee hors de la zone particules");
+    assert(z >= g_handles && z < g_handles + PARTICLE_SLOT_COUNT && "slot_kind_of: handle outside the particle zone");
     return (particle_slot_kind_t)(z - g_handles);
 }
 
@@ -127,7 +127,7 @@ const allocator_t *particle_zone(particle_slot_kind_t slot_kind) {
 
 const allocator_t *particle_zone_slot(particle_slot_kind_t slot_kind) {
     assert(slot_kind >= 0 && slot_kind < PARTICLE_SLOT_COUNT && is_arena(slot_kind) &&
-           "une particule est une place nue, pas une arene");
+           "particle_zone_slot: a particle is a bare slot, not an arena");
     return arena_take(&g_handles[slot_kind], SLOT_KINDS[slot_kind].slot_name, SLOT_KINDS[slot_kind].size);
 }
 
@@ -135,7 +135,7 @@ int particle_zone_live(particle_slot_kind_t slot_kind) {
     assert(slot_kind >= 0 && slot_kind < PARTICLE_SLOT_COUNT);
     init_once();
     assert((size_t)g_live[slot_kind] == slot_zone_taken(&g_zones[slot_kind]) &&
-           "places vivantes : une place prise ou rendue sans passer par la poignee de la sorte");
+           "particle_zone_live: a slot taken or given back without its kind's handle");
     return g_live[slot_kind];
 }
 
@@ -155,7 +155,7 @@ size_t particle_zone_max_bytes(particle_slot_kind_t slot_kind) {
 
 void particle_zone_record_elements(particle_slot_kind_t slot_kind, int count) {
     assert((slot_kind == PARTICLE_SLOT_LIST || slot_kind == PARTICLE_SLOT_HELP_LIST || slot_kind == PARTICLE_SLOT_TRANSIT_DOT) &&
-           "seule une liste a des elements");
+           "particle_zone_record_elements: only a list has elements");
     if (count > g_max_elements[slot_kind]) g_max_elements[slot_kind] = count;
 }
 

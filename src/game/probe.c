@@ -57,7 +57,7 @@ static int targeting_track_slipway_predicate(entity_t *e, void *ctx_ptr) {
     if (e == NULL) {
         return 0;
     }
-    assert(e->class == slipway_class() && "cg.jc holds slipways only");
+    assert(e->class == slipway_class() && "the slipway tag holds slipways only");
     sw = (const slipway_t *)e;
 
     start_p = slipway_end_map_pos(sw->start);
@@ -97,7 +97,7 @@ static void probe_host_set_positions(entity_t *self, vec_t *ra, vec_t *p) {
         return;
     }
     assert(self->class == wormhole_class() &&
-           "bv: a host neither of g_'s line, of jo's family nor an mz, none of whose hq runs bv -- stop");
+           "targeting_track: a host neither a probe, of the planet family nor a wormhole, none of whose drag runs it -- stop");
     mz = (wormhole_t *)self;
     mz->pos = ra;
     mz->map_pos = p;
@@ -113,30 +113,30 @@ static int probe_is_target_class(const entity_class_t *cls) {
 void probe_link_target(entity_t *et, entity_t *self) {
     if (planet_is_family(et)) {
         assert((self->class->drag == targeting_track_method || self->class == slipway_class()) &&
-               "jo.fo: a write neither nil nor an object whose hq runs bv (g_, fv, qh, nl, os, hj, pm, nr, fr, mx) "
-               "or a jc does not fit the member's type -- stop, do not widen the member");
+               "probe_link_target: a planet's targeted_by takes NULL, a host whose drag is targeting_track_method "
+               "or a slipway, nothing else -- stop, do not widen the member");
         ((planet_t *)et)->targeted_by = self;
         return;
     }
     if (et->class == slipway_class()) {
         assert((self->class->drag == targeting_track_method || self->class == slipway_class() ||
                 self->class == wormhole_class()) &&
-               "jc.fo: a write neither nil nor what hangs fo on a slipway (an object whose hq runs bv: g_, fv, qh, "
-               "nl, os, hj, pm, nr, fr, mx; an mz; another jc) does not fit the member's type -- stop");
+               "probe_link_target: a slipway's targeted_by takes NULL, a host whose drag is targeting_track_method, "
+               "a wormhole or another slipway, nothing else -- stop");
         ((slipway_t *)et)->targeted_by = self;
         return;
     }
     if (et->class == slipway_too_far_class()) {
         assert(self->class == slipway_class() &&
-               "jc_too_far.fo: a write neither nil nor a jc does not fit the member's type "
+               "probe_link_target: the too-far slipway struct's targeted_by takes NULL or a slipway, nothing else "
                "-- stop, do not widen the member");
         ((slipway_too_far_t *)et)->targeted_by = (slipway_t *)self;
         return;
     }
-    assert(et == &g_targeting_track_target.header && "bv: et is a planet, a jc or the static throwaway struct, nothing else");
+    assert(et == &g_targeting_track_target.header && "probe_link_target: the target is a planet, a slipway or the static throwaway struct, nothing else");
     assert(targeting_track_target_is_holder_class(self->class) &&
-           "bv_et.fo: a write neither nil nor an object whose hq runs bv (g_, fv, mz, qh, nl, os, hj, pm, nr, fr, "
-           "mx) does not fit the member's type -- stop, do not widen the member");
+           "probe_link_target: the throwaway target's targeted_by takes NULL, a host whose drag is "
+           "targeting_track_method or a wormhole, nothing else -- stop, do not widen the member");
     g_targeting_track_target.targeted_by = self;
 }
 
@@ -151,7 +151,7 @@ void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
     if (self == NULL) {
         return;
     }
-    assert(self->targeting != NULL && "bv: a class that carries no probe is no receiver -- stop");
+    assert(self->targeting != NULL && "targeting_track: a class that carries no targeting is no receiver -- stop");
 
     probe = self->targeting;
     mouse_world_vec = mouse_world != NULL ? *mouse_world : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
@@ -194,8 +194,8 @@ void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
 
     assert((target == NULL ||
             probe_is_target_class(target->class)) &&
-           "bv: et is false or what bv aims at (a planet jo, qh, nl, os, hj, pm, nr, fr, mx, a jc, or the static "
-           "throwaway struct), never a bare table");
+           "targeting_track: the target is NULL or what it aims at (a planet, a class with a settled state, a slipway, "
+           "or the static throwaway struct), nothing else");
     probe->target = target;
 
     if (probe->target != NULL) {
@@ -223,7 +223,7 @@ void targeting_tooltip(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *sel
     if (self == NULL) {
         return;
     }
-    assert(self->targeting != NULL && "dl: a class that carries no probe is no receiver -- stop");
+    assert(self->targeting != NULL && "targeting_tooltip: a class that carries no targeting is no receiver -- stop");
 
     targeting_tooltip_show(gfx, mem, self->state, self->targeting);
 }
@@ -268,7 +268,7 @@ void targeting_tooltip_method(entity_t *self, const vec_t *ra) {
 /* Raises `p_`, which a host of `d_` holds for itself: `g_`'s line, jo's
  * family (qh's line), a `jc` or an `mz`. */
 static void probe_host_raise_is_dead(entity_t *self) {
-    assert(self->is_dead != NULL && "d_: a host that carries no p_, none of whose ey runs d_ -- stop");
+    assert(self->is_dead != NULL && "targeting_confirm: a host that carries no is_dead, none of whose drop runs it -- stop");
     *self->is_dead = 1;
 }
 
@@ -281,7 +281,7 @@ int targeting_confirm(entity_t *self) {
     if (self == NULL) {
         return 0;
     }
-    assert(self->targeting != NULL && "d_: a class that carries no probe is no receiver -- stop");
+    assert(self->targeting != NULL && "targeting_confirm: a class that carries no targeting is no receiver -- stop");
 
     probe = self->targeting;
     has_target = probe->target != NULL;
@@ -291,7 +291,7 @@ int targeting_confirm(entity_t *self) {
         spend_ok = economy_spend(fm, probe->has_cost ? probe->cost : p8_fixed_from_int(0));
     }
 
-    assert((!has_target || !spend_ok) && "d_: fm:lu must stay short-circuited when et is set");
+    assert((!has_target || !spend_ok) && "targeting_confirm: economy_spend must stay short-circuited when a target is set");
 
     if (!has_target && spend_ok) {
         entity_set_state(self, probe->archetype->confirmed_state != NULL ? probe->archetype->confirmed_state : "normal");
@@ -322,7 +322,7 @@ particle_t *probe_spawn_particle(entity_t *self) {
     particle_t *particle;
 
     if (self != NULL) {
-        assert(self->emitter != NULL && "g_.mm: a class that carries no particle emitter has no mm -- stop");
+        assert(self->emitter != NULL && "probe_spawn_particle: a class that carries no particle emitter spawns nothing -- stop");
         emitter = self->emitter;
         angle_slices = emitter->angle_slices;
         state_time = self->state_time;
@@ -412,7 +412,7 @@ void probe_init_instance(probe_t *self, const entity_class_t *cls, const probe_a
 static probe_t *probe_create(const probe_keys_t *keys) {
     probe_t *self;
 
-    assert(g_probe_up && "pico8_probe_init() must run first");
+    assert(g_probe_up && "probe_init() must run first");
     planet_grab_arena_open();
     self = (probe_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
     probe_init_instance(self, &g_probe_class, &probe_archetype);
@@ -479,7 +479,7 @@ economy_t *main_economy_typed(void) {
     if (g_main_economy == NULL || g_main_economy == &g_main_economy_placeholder.header) {
         return NULL;
     }
-    assert(g_main_economy->class == economy_class() && "fm: only the provisional or a hy is ever stored");
+    assert(g_main_economy->class == economy_class() && "main_economy_typed: only the placeholder or an economy is ever stored");
     return (economy_t *)g_main_economy;
 }
 

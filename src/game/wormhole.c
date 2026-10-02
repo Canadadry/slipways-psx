@@ -159,7 +159,7 @@ void wormhole_update_unfolding(wormhole_t *self, p8_fixed_t t) {
             if (planet == NULL) {
                 continue;
             }
-            assert(planet_is_family(planet) && "mz:pr: cg.jo holds planets only");
+            assert(planet_is_family(planet) && "wormhole_update_unfolding: the planet tag holds planets only");
             pt = (planet_t *)planet;
 
             if (pt->header.state != NULL && strcmp(pt->header.state, "unknown") == 0) {

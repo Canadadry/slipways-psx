@@ -93,7 +93,7 @@ static void test_probe_particle_draws_rnd_angle_slices_before_rnd_half(void) {
     want = vec_from_polar(p8_fixed_add(base_radius, p8_fixed_rnd_default()), a);
 
     if (got.x != want.x || got.y != want.y) {
-        fprintf(stderr, "probe:spawn_particle particle pos = (%08x,%08x), cart order gives (%08x,%08x)\n", (unsigned)got.x,
+        fprintf(stderr, "probe_spawn_particle particle pos = (%08x,%08x), left-to-right order gives (%08x,%08x)\n", (unsigned)got.x,
                 (unsigned)got.y, (unsigned)want.x, (unsigned)want.y);
     }
     assert(got.x == want.x && got.y == want.y);

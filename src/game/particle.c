@@ -15,7 +15,7 @@ typedef char particle_fits_its_slot_t[sizeof(particle_t) <= PARTICLE_SLOT ? 1 : 
 /* `fa`, and `ra` into `*ra` (the zero vector when nil), of the host of `ei`. */
 static p8_fixed_t emitter_host_layer_pos(const entity_t *self, vec_t *ra) {
     assert(self->layer != NULL && self->pos != NULL &&
-           "ei: a host that carries no fa or no ra, none of whose kj runs ei -- stop");
+           "emitter_update: a host that carries no layer or no pos, none of whose draw runs it -- stop");
     *ra = *self->pos != NULL ? **self->pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     return *self->layer;
 }
@@ -44,8 +44,8 @@ void emitter_init_in(entity_t *self, particle_slot_kind_t slot_kind) {
     if (self == NULL) {
         return;
     }
-    assert(self->emitter != NULL && "f_: a class that carries no particle emitter has no `qy` -- stop");
-    assert((slot_kind == PARTICLE_SLOT_LIST || slot_kind == PARTICLE_SLOT_HELP_LIST) && "f_: a qy list is a qy or a qy_fv");
+    assert(self->emitter != NULL && "emitter_init_in: a class that carries no particle emitter has no particle list -- stop");
+    assert((slot_kind == PARTICLE_SLOT_LIST || slot_kind == PARTICLE_SLOT_HELP_LIST) && "emitter_init_in: a particle list is a list or a help screen list");
 
     emitter = self->emitter;
     emitter_release_particles(emitter);
@@ -109,7 +109,7 @@ void emitter_update(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self) 
     if (self == NULL) {
         return;
     }
-    assert(self->emitter != NULL && "ei: a class that carries no particle emitter is no receiver -- stop");
+    assert(self->emitter != NULL && "emitter_update: a class that carries no particle emitter is no receiver -- stop");
 
     emitter = self->emitter;
     layer = emitter_host_layer_pos(self, &pos);

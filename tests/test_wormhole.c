@@ -449,7 +449,7 @@ static void test_arena(void) {
     cart_flush_exit_queue();
     before = generation_but_registries();
     build_wormhole();
-    assert(generation_but_registries() == before && "a dead mz gives its grab arena back to the next grab");
+    assert(generation_but_registries() == before && "a dead wormhole gives its grab arena back to the next grab");
 }
 
 /* The `fo` of the `mz`'s `et`, a slipway or the throwaway. */
@@ -542,7 +542,7 @@ static void test_update_placing_ticks(void) {
         h = fnv(h, (uint32_t)mz->radius);
     }
     assert(entity_list_listed(live_entities(), mz));
-    check("placing ticks", h, UPDATE_PLACING_HASH);
+    check("update_placing", h, UPDATE_PLACING_HASH);
 }
 
 static uint32_t fold_drop(uint32_t h, const wormhole_t *mz) {
@@ -651,8 +651,8 @@ static void test_update_unfolding_ticks(void) {
     printf("[unfolding] left live_entities after %d ticks, %d planets revealed\n", tick, revealed);
     assert(revealed > 0);
     assert(!entity_list_listed(entities_by_message("draw"), mz) && !entity_list_listed(entities_by_message("draw_overlay"), mz) && !entity_list_listed(entities_by_tag("wormhole"), mz));
-    check_int("unfolding exit tick", tick, UPDATE_UNFOLDING_EXIT_TICK);
-    check("unfolding ticks", h, UPDATE_UNFOLDING_HASH);
+    check_int("update_unfolding_exit_tick", tick, UPDATE_UNFOLDING_EXIT_TICK);
+    check("update_unfolding", h, UPDATE_UNFOLDING_HASH);
 }
 
 static uint32_t screen_hash(void) {
