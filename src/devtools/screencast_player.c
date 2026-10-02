@@ -39,24 +39,24 @@ void screencast_player_format_refusal(screencast_status_t status, const char *pa
     switch (status) {
     case SCREENCAST_UNREADABLE:
         snprintf(out, out_size,
-                 "screencast-viewer: '%s' est introuvable ou illisible -- aucune fenetre n'a ete ouverte. "
-                 "Fabriquer les pixels : make screencast EVENTS=<events.json>", path);
+                 "screencast-viewer: '%s' is missing or unreadable -- no window was opened. "
+                 "Make the pixels: make screencast EVENTS=<events.json>", path);
         break;
     case SCREENCAST_EMPTY:
         snprintf(out, out_size,
-                 "screencast-viewer: '%s' est vide -- aucune fenetre n'a ete ouverte. "
-                 "Une capture interrompue avant sa premiere frame donne ce fichier ; la refaire : make screencast EVENTS=<events.json>", path);
+                 "screencast-viewer: '%s' is empty -- no window was opened. "
+                 "A capture interrupted before its first frame leaves this file; redo it: make screencast EVENTS=<events.json>", path);
         break;
     case SCREENCAST_TRUNCATED:
         snprintf(out, out_size,
-                 "screencast-viewer: '%s' est tronque : sa taille n'est pas un multiple de %d octets, "
-                 "donc il se termine au milieu d'une frame -- aucune fenetre n'a ete ouverte. "
-                 "La refaire : make screencast EVENTS=<events.json>", path, SCREENCAST_FRAME_BYTES);
+                 "screencast-viewer: '%s' is truncated: its size is not a multiple of %d bytes, "
+                 "so it ends in the middle of a frame -- no window was opened. "
+                 "Redo it: make screencast EVENTS=<events.json>", path, SCREENCAST_FRAME_BYTES);
         break;
     case SCREENCAST_OK:
     default:
-        assert(0 && "pico8_screencast_player_format_refusal: rien a refuser");
-        snprintf(out, out_size, "screencast-viewer: '%s' : etat inattendu", path);
+        assert(0 && "screencast_player_format_refusal: nothing to refuse");
+        snprintf(out, out_size, "screencast-viewer: '%s': unexpected status", path);
         break;
     }
 }

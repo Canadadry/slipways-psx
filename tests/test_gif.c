@@ -181,7 +181,7 @@ static gif_t parse_gif(FILE *file) {
                 read_u8(&buffer);
                 assert(read_u8(&buffer) == 0);
             } else {
-                assert(!"extension inattendue");
+                assert(!"unexpected extension");
             }
             continue;
         }
