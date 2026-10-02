@@ -53,7 +53,7 @@ static void quit_game_zone(void) {
  * inits of their own (research, score-panel display); listing those
  * here would run them twice. */
 void cart_load(void) {
-    p8_memory_t *mem;
+    p8_memory_t *memory;
 
     quit_game_zone();
     entity_init();
@@ -74,8 +74,8 @@ void cart_load(void) {
     probe_init();
     economy_init();
 
-    mem = dispatch_context_mem();
-    if (mem != NULL) {
+    memory = dispatch_context_mem();
+    if (memory != NULL) {
         data_init();
     }
 

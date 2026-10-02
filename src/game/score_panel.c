@@ -127,7 +127,7 @@ void score_panel_refresh_palette(void) {
 
 void score_panel_refresh(void) {
     const economy_t *economy = main_economy_typed();
-    const main_economy_placeholder_t *provisional = main_economy_placeholder();
+    const main_economy_placeholder_t *economy_placeholder = main_economy_placeholder();
     p8_fixed_t main_economy_income = economy != NULL ? economy->income : p8_fixed_from_int(0);
     p8_fixed_t main_economy_credits = p8_fixed_from_int(0);
     data_item_t main_economy_research_points = {.is_ref = 1};
@@ -141,23 +141,23 @@ void score_panel_refresh(void) {
     char *text;
     char *credits_str;
     char *happiness_str;
-    char *plus_num;
-    int discard_color = 0;
+    char *production_text;
+    int income_color = 0;
     int index;
 
     if (economy != NULL) {
         main_economy_credits = economy->credits;
         main_economy_research_points = (data_item_t){.is_fixed = 1, .fixed = economy->research_points};
-    } else if (provisional != NULL) {
-        if (provisional->has_credits) {
-            main_economy_credits = provisional->credits;
+    } else if (economy_placeholder != NULL) {
+        if (economy_placeholder->has_credits) {
+            main_economy_credits = economy_placeholder->credits;
         }
-        if (provisional->has_research_points) {
-            main_economy_research_points = (data_item_t){.is_fixed = 1, .fixed = provisional->research_points};
+        if (economy_placeholder->has_research_points) {
+            main_economy_research_points = (data_item_t){.is_fixed = 1, .fixed = economy_placeholder->research_points};
         }
     }
 
-    text = collect_format_signed(frame_zone(), main_economy_income, 0, NULL, &discard_color);
+    text = collect_format_signed(frame_zone(), main_economy_income, 0, NULL, &income_color);
 
     credits_str = p8_tostr_fixed(frame_zone(), main_economy_credits);
     readouts[0] = (data_item_t){.text = p8_concat2(frame_zone(), credits_str, "$")};
@@ -173,9 +173,9 @@ void score_panel_refresh(void) {
             resource_map_get(main_economy_production, p8_fixed_from_int(k_key), &production_val);
         }
         /* `..` binds looser than `+`: the Lua reads `"+"..(fm.po[r.k]+1)`. */
-        plus_num =
+        production_text =
             p8_tostr_fixed(frame_zone(), p8_fixed_add(production_val, p8_fixed_from_int(1)));
-        readouts[3] = (data_item_t){.text = p8_concat2(frame_zone(), "+", plus_num)};
+        readouts[3] = (data_item_t){.text = p8_concat2(frame_zone(), "+", production_text)};
     }
 
     happiness_str = p8_tostr_fixed(frame_zone(), main_economy_happiness);

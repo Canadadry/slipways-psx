@@ -1433,6 +1433,19 @@ identity	c:test_protostar.c@20257@F@test_life@pos	map_pos
 identity	c:test_structure.c@15983@F@test_life@poor_lab	refused_lab	
 identity	c:test_structure.c@25582@F@test_structure_is_a_struct@descendants	descendant_kinds	
 identity	c:test_structure.c@25820@F@test_structure_is_a_struct@cls	lab_class	
+identity	c:cart.c@1501@F@cart_load@mem	memory	
+identity	c:menu.c@4386@F@menu_show_tech_tree_screen@era	current_era	
+identity	c:message_box.c@10335@F@message_box_open_box@pos	box_pos	
+identity	c:message_box.c@10350@F@message_box_open_box@ctx	step_context	
+identity	c:score_panel.c@3812@F@score_panel_refresh@provisional	economy_placeholder	
+identity	c:score_panel.c@4750@F@score_panel_refresh@plus_num	production_text	
+identity	c:score_panel.c@4770@F@score_panel_refresh@discard_color	income_color	
+identity	c:score_panel_display.c@977@F@score_panel_new_year@idx	countdown_index	
+identity	c:score_panel_display.c@4715@F@score_panel_update_map@ctx	context	
+identity	c:score_panel_display.c@4893@F@score_panel_update_map@wrapped	article	
+identity	c:score_panel_display.c@7615@F@score_panel_update@spec1	restart_keys	
+identity	c:score_panel_display.c@7650@F@score_panel_update@spec2	toggle_keys	
+identity	c:test_help_screen.c@8819@F@test_built@spacer	emitter	
 
 # --- tmp/ binaries and outputs (tools/rename_strings.py) ------------------------
 # A binary takes the name of its cmd/ file, except frames: tmp/frames is the

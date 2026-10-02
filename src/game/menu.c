@@ -132,7 +132,7 @@ static const data_row_t *invented_lines(const pointer_list_t *list) {
 
 void menu_show_tech_tree_screen(void) {
     const economy_t *economy = main_economy_typed();
-    p8_fixed_t era = p8_fixed_from_int(0);
+    p8_fixed_t current_era = p8_fixed_from_int(0);
     int invented_count = 0;
     p8_fixed_t next_threshold = p8_fixed_from_int(0);
     int tier_thresholds;
@@ -145,13 +145,13 @@ void menu_show_tech_tree_screen(void) {
     open_box_frame_t frame = {0};
 
     if (economy != NULL) {
-        era = economy->era;
+        current_era = economy->era;
     }
     if (economy != NULL && economy->invented != NULL) {
         invented_count = economy->invented->count;
     }
 
-    if (int_seq_at(tier_thresholds_table, TIER_THRESHOLDS_COUNT, p8_fixed_flr_int(era) - 1, &tier_thresholds)) {
+    if (int_seq_at(tier_thresholds_table, TIER_THRESHOLDS_COUNT, p8_fixed_flr_int(current_era) - 1, &tier_thresholds)) {
         next_threshold = p8_fixed_from_int(tier_thresholds);
     }
 
@@ -196,11 +196,11 @@ void menu_show_tech_tree_screen(void) {
         char *tmp3;
         char *ep;
 
-        if (int_seq_at(tier_thresholds_table, TIER_THRESHOLDS_COUNT, p8_fixed_flr_int(era), &tier_thresholds)) {
+        if (int_seq_at(tier_thresholds_table, TIER_THRESHOLDS_COUNT, p8_fixed_flr_int(current_era), &tier_thresholds)) {
             tier_thresholds_era = p8_fixed_from_int(tier_thresholds);
         }
 
-        era_str = p8_tostr_fixed(frame_zone(), era);
+        era_str = p8_tostr_fixed(frame_zone(), current_era);
         diff1_str = p8_tostr_fixed(frame_zone(), p8_fixed_sub(p8_fixed_from_int(invented_count), next_threshold));
         diff2_str = p8_tostr_fixed(frame_zone(), p8_fixed_sub(tier_thresholds_era, next_threshold));
 

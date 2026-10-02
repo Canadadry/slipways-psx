@@ -29,15 +29,15 @@ void score_panel_new_year(p8_fixed_t year) {
     const data_row_t *countdown_rows = score_panel_countdown_rows();
     const data_row_t *message = NULL;
     char *year_str;
-    int idx;
+    int countdown_index;
 
     if (year_banner == NULL) {
         return;
     }
 
-    idx = 3426 - p8_fixed_flr_int(year);
-    if (idx >= 1 && idx <= countdown_rows->count) {
-        const data_item_t *item = &countdown_rows->items[idx - 1];
+    countdown_index = 3426 - p8_fixed_flr_int(year);
+    if (countdown_index >= 1 && countdown_index <= countdown_rows->count) {
+        const data_item_t *item = &countdown_rows->items[countdown_index - 1];
 
         assert((item->row != NULL || item->is_false) && "score_panel_new_year: the countdown rows hold rows and false only");
         message = item->row;
@@ -144,13 +144,13 @@ static void score_panel_update_set(score_rows_row_t *st, int i, data_item_t item
 /* One row of `bz` as `ph` shows it: a row without a score is its own
  * article; one with a score gets `s[score]` at 3 (and more for 0 and 6),
  * then becomes the line of an article `ld`. */
-static const data_row_t *score_panel_update_map(score_rows_row_t *score_row, const score_panel_update_ctx_t *ctx) {
+static const data_row_t *score_panel_update_map(score_rows_row_t *score_row, const score_panel_update_ctx_t *context) {
     int score_i;
     char *s_str;
     layout_row_cell_t items[5];
     layout_row_keys_t keys = {0};
     layout_row_t *layout_row_inst;
-    score_panel_update_draw_row_t *wrapped;
+    score_panel_update_draw_row_t *article;
     int index;
 
     if (!score_row->entry->has_score) {
@@ -159,7 +159,7 @@ static const data_row_t *score_panel_update_map(score_rows_row_t *score_row, con
 
     score_i = score_row->entry->score;
 
-    s_str = score_panel_final_score_text(ctx->final_score, score_i);
+    s_str = score_panel_final_score_text(context->final_score, score_i);
     score_panel_update_set(score_row, 3, (data_item_t){.text = s_str});
 
     if (score_i == 0) {
@@ -183,7 +183,7 @@ static const data_row_t *score_panel_update_map(score_rows_row_t *score_row, con
     if (score_i == 6) {
         int i;
         for (i = 1; i <= 5; i++) {
-            int icon = (i <= p8_fixed_flr_int(ctx->final_score->tier)) ? 56 : 57;
+            int icon = (i <= p8_fixed_flr_int(context->final_score->tier)) ? 56 : 57;
             score_panel_update_set(score_row, i, (data_item_t){.number = icon});
         }
     }
@@ -201,12 +201,12 @@ static const data_row_t *score_panel_update_map(score_rows_row_t *score_row, con
     keys.score = p8_fixed_from_int(score_i);
     keys.pos = score_row->entry->has_pos ? &score_row->pos : NULL;
     layout_row_inst = layout_row_new(frame_zone(), &keys);
-    wrapped = (score_panel_update_draw_row_t *)allocator_alloc(frame_zone(), sizeof *wrapped);
-    wrapped->items[0] = (data_item_t){.is_ref = 1, .ref = layout_row_inst};
-    wrapped->items[1] = (data_item_t){.is_ref = 1, .ref = keys.pos};
-    wrapped->items[2] = (data_item_t){.is_fixed = 1, .fixed = P8_FIXED_LIT(0x00008000, 0.5)};
-    wrapped->row = (data_row_t){.count = 3, .items = wrapped->items, .draw_function = "draw_row"};
-    return &wrapped->row;
+    article = (score_panel_update_draw_row_t *)allocator_alloc(frame_zone(), sizeof *article);
+    article->items[0] = (data_item_t){.is_ref = 1, .ref = layout_row_inst};
+    article->items[1] = (data_item_t){.is_ref = 1, .ref = keys.pos};
+    article->items[2] = (data_item_t){.is_fixed = 1, .fixed = P8_FIXED_LIT(0x00008000, 0.5)};
+    article->row = (data_row_t){.count = 3, .items = article->items, .draw_function = "draw_row"};
+    return &article->row;
 }
 
 void score_panel_update(score_panel_t *self) {
@@ -217,8 +217,8 @@ void score_panel_update(score_panel_t *self) {
     if (has_end_status && !has_curtain) {
         static const data_item_t back_items[] = {{.number = 10}, {.number = 7}};
         static const data_row_t back = {.count = 2, .items = back_items};
-        button_keys_t spec1 = {0};
-        button_keys_t spec2 = {0};
+        button_keys_t restart_keys = {0};
+        button_keys_t toggle_keys = {0};
         layout_row_cell_t first_line_item;
         layout_row_cell_t second_line_item;
         layout_row_keys_t first_line = {0};
@@ -233,25 +233,25 @@ void score_panel_update(score_panel_t *self) {
         first_line_item = layout_row_cell_string(" again? ");
         first_line.items = &first_line_item;
         first_line.count = 1;
-        spec1.has_layer = 1;
-        spec1.layer = p8_fixed_from_int(15);
-        spec1.pos = &first_line_pos;
-        spec1.layout_row_keys = &first_line;
-        spec1.has_on_click = 1;
-        spec1.on_click = score_panel_init_field_value();
-        made1 = button_new(&spec1);
+        restart_keys.has_layer = 1;
+        restart_keys.layer = p8_fixed_from_int(15);
+        restart_keys.pos = &first_line_pos;
+        restart_keys.layout_row_keys = &first_line;
+        restart_keys.has_on_click = 1;
+        restart_keys.on_click = score_panel_init_field_value();
+        made1 = button_new(&restart_keys);
         (void)made1;
 
         second_line_item = layout_row_cell_row(&back);
         second_line.items = &second_line_item;
         second_line.count = 1;
-        spec2.has_layer = 1;
-        spec2.layer = p8_fixed_from_int(15);
-        spec2.pos = &second_line_pos;
-        spec2.layout_row_keys = &second_line;
-        spec2.has_on_click = 1;
-        spec2.on_click = score_panel_toggle_button_on_click_method;
-        made2 = button_new(&spec2);
+        toggle_keys.has_layer = 1;
+        toggle_keys.layer = p8_fixed_from_int(15);
+        toggle_keys.pos = &second_line_pos;
+        toggle_keys.layout_row_keys = &second_line;
+        toggle_keys.has_on_click = 1;
+        toggle_keys.on_click = score_panel_toggle_button_on_click_method;
+        made2 = button_new(&toggle_keys);
         (void)made2;
 
         if (self != NULL) {

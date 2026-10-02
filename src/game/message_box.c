@@ -340,8 +340,8 @@ static void open_box_add(entity_list_t *le, button_t *button) {
 
 void message_box_open_box(const open_box_frame_t *frame, const button_keys_t *buttons, int button_count) {
     layout_row_cell_t description_cell;
-    vec_t pos;
-    open_box_ctx_t ctx;
+    vec_t box_pos;
+    open_box_ctx_t step_context;
     entity_list_t *ephemerals;
     ui_t *dispatcher;
     p8_fixed_t play_sfx_arg;
@@ -372,26 +372,26 @@ void message_box_open_box(const open_box_frame_t *frame, const button_keys_t *bu
     p8_play_sfx(play_sfx_arg);
 
     if (frame->fixed_pos != NULL) {
-        pos = *frame->fixed_pos;
+        box_pos = *frame->fixed_pos;
     } else if (frame->pos != NULL) {
-        pos = *frame->pos;
+        box_pos = *frame->pos;
     } else {
-        pos = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+        box_pos = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     }
 
-    ctx.frame = frame;
-    ctx.button_pos = vec_add(pos, vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0)));
-    ctx.pos = pos;
+    step_context.frame = frame;
+    step_context.button_pos = vec_add(box_pos, vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0)));
+    step_context.pos = box_pos;
 
     dispatcher = main_ui();
     ui_clear_ephemerals(dispatcher);
 
     ephemerals = dispatcher != NULL ? ui_ephemerals_new() : NULL;
     if (has_description) {
-        open_box_add(ephemerals, open_box_step(&ctx, &description_row));
+        open_box_add(ephemerals, open_box_step(&step_context, &description_row));
     }
     for (index = 0; index < button_count; index++) {
-        open_box_add(ephemerals, open_box_step(&ctx, &buttons[index]));
+        open_box_add(ephemerals, open_box_step(&step_context, &buttons[index]));
     }
     if (dispatcher != NULL) {
         ui_set_ephemerals(dispatcher, ephemerals);

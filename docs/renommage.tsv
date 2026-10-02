@@ -1706,7 +1706,7 @@ i	index	src/game/cart.c	identifiant	locale	renommé	game/cart			c:cart.c@5625@F@
 j	j	src/game/cart.c	identifiant	locale	conservé	game/cart			c:cart.c@6225@F@pico8_eu@j
 ju	ju	src/game/cart.c	identifiant	locale	conservé	game/cart			c:cart.c@3071@F@oublier@ju
 keys	keys	src/game/cart.c	identifiant	locale	conservé	game/cart			c:cart.c@6578@F@pico8_eu@keys
-mem	mem	src/game/cart.c	identifiant	locale	conservé	game/cart			c:cart.c@1506@F@pico8_cart_load@mem
+mem	memory	src/game/cart.c	identifiant	locale	renommé	game/cart			c:cart.c@1501@F@cart_load@mem
 mem	mem	src/game/cart.c	identifiant	locale	conservé	game/cart			c:cart.c@4794@F@pico8__init@mem
 mem	mem	src/game/cart.c	identifiant	locale	conservé	game/cart			c:cart.c@7240@F@pico8__draw@mem
 ok	ok	src/game/cart.c	identifiant	locale	conservé	game/cart			c:cart.c@3038@F@oublier@ok
@@ -3518,7 +3518,7 @@ rows	rows	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@4116
 s	s	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@8807@F@pico8_ha2_my_dispatch@s
 size	size	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@3498@F@pico8_menu_invented_lines@size
 stat_val	stat_val	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@8789@F@pico8_ha2_my_dispatch@stat_val
-tl	era	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@4016@F@pico8_cr@tl
+tl	current_era	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@4386@F@menu_show_tech_tree_screen@era
 tl_str	era_str	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@6091@F@pico8_cr@tl_str
 tmp1	tmp1	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@6101@F@pico8_cr@tmp1
 tmp2	tmp2	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@6121@F@pico8_cr@tmp2
@@ -3633,7 +3633,7 @@ a_center	a_center	src/game/message_box.c	identifiant	locale	conservé	game/messa
 b	b	src/game/message_box.c	identifiant	locale	conservé	game/message_box			c:message_box.c@9055@F@pico8_pz_step@b
 color	color	src/game/message_box.c	identifiant	locale	conservé	game/message_box			c:message_box.c@6332@F@pico8_iv_kj@color
 copy	copy	src/game/message_box.c	identifiant	locale	conservé	game/message_box			c:message_box.c@2737@F@pico8_mh_article@copy
-ctx	ctx	src/game/message_box.c	identifiant	locale	conservé	game/message_box			c:message_box.c@9792@F@pico8_pz@ctx
+ctx	step_context	src/game/message_box.c	identifiant	locale	renommé	game/message_box			c:message_box.c@10350@F@message_box_open_box@ctx
 ep_cell	description_cell	src/game/message_box.c	identifiant	locale	renommé	game/message_box			c:message_box.c@9621@F@pico8_pz@ep_cell
 ep_lq	description_layout_row	src/game/message_box.c	identifiant	locale	renommé	game/message_box	lq		c:message_box.c@9782@F@pico8_pz@ep_lq
 ep_row	description_row	src/game/message_box.c	identifiant	locale	renommé	game/message_box			c:message_box.c@9750@F@pico8_pz@ep_row
@@ -3656,7 +3656,7 @@ place	slot	src/game/message_box.c	identifiant	locale	renommé	game/message_box	s
 previous	previous	src/game/message_box.c	identifiant	locale	conservé	game/message_box			c:message_box.c@613@F@pico8_mh_pq@previous
 qf	qf	src/game/message_box.c	identifiant	locale	conservé	game/message_box			c:message_box.c@9085@F@pico8_pz_step@qf
 ra	ra	src/game/message_box.c	identifiant	locale	conservé	game/message_box			c:message_box.c@2762@F@pico8_mh_article@ra
-ra	pos	src/game/message_box.c	identifiant	locale	renommé	game/message_box	ra		c:message_box.c@9652@F@pico8_pz@ra
+ra	box_pos	src/game/message_box.c	identifiant	locale	renommé	game/message_box	ra		c:message_box.c@10335@F@message_box_open_box@pos
 rh	rh	src/game/message_box.c	identifiant	locale	conservé	game/message_box			c:message_box.c@1066@F@pico8_mh_ev@rh
 rn_arg	play_sfx_arg	src/game/message_box.c	identifiant	locale	renommé	game/message_box			c:message_box.c@9727@F@pico8_pz@rn_arg
 self	self	src/game/message_box.c	identifiant	locale	conservé	game/message_box			c:message_box.c@3626@F@pico8_mh_struct_new@self
@@ -5156,7 +5156,7 @@ capped	capped	src/game/score_panel.c	identifiant	locale	conservé	game/score_pan
 cf	text	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel			c:score_panel.c@4050@F@pico8_pj_hb@cf
 combined	combined	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@6569@F@pico8_pj_kj@combined
 cur	cur	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@3118@F@pico8_eg@cur
-discard_color	discard_color	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@4149@F@pico8_pj_hb@discard_color
+discard_color	income_color	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel			c:score_panel.c@4770@F@score_panel_refresh@discard_color
 e	e	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@8922@F@pico8_score_panel_init@e
 filtered	filtered	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@2709@F@pico8_eg@filtered
 fm	economy	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel	fm		c:score_panel.c@3314@F@pico8_pj_hb@fm
@@ -5188,9 +5188,9 @@ ou	readouts	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel	
 ou_state	readouts_state	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel			c:score_panel.c@3998@F@pico8_pj_hb@ou_state
 ou_state	readouts_state	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel			c:score_panel.c@6485@F@pico8_pj_kj@ou_state
 pd	pd	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@3084@F@pico8_eg@pd
-plus_num	plus_num	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@4129@F@pico8_pj_hb@plus_num
+plus_num	production_text	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel			c:score_panel.c@4750@F@score_panel_refresh@plus_num
 po_val	production_val	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel			c:score_panel.c@4870@F@pico8_pj_hb@po_val
-provisional	provisional	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@3370@F@pico8_pj_hb@provisional
+provisional	economy_placeholder	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel			c:score_panel.c@3812@F@score_panel_refresh@provisional
 ps	ps	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@2736@F@pico8_eg@ps
 self	self	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@8181@F@pico8_pj_struct_new@self
 PICO8_SCORE_PANEL_H	GAME_SCORE_PANEL_H	src/game/score_panel.h	identifiant	macro	renommé	game/score_panel			macro:src/game/score_panel.h:PICO8_SCORE_PANEL_H
@@ -5268,7 +5268,7 @@ i	i	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel
 i	i	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@5213@F@pico8_pj_ph_map@i
 i	i	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@8831@F@pico8_pj_ph@i
 icon	icon	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@5267@F@pico8_pj_ph_map@icon
-idx	idx	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@827@F@pico8_pj_hk@idx
+idx	countdown_index	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@977@F@score_panel_new_year@idx
 item	item	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@972@F@pico8_pj_hk@item
 items	items	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@1663@F@pico8_pj_hk@items
 items	items	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@4206@F@pico8_pj_ph_map@items
@@ -5299,12 +5299,12 @@ ra2	second_line_pos	src/game/score_panel_display.c	identifiant	locale	renommé	g
 s	s	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@8585@F@pico8_pj_ph@s
 s_str	s_str	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@4189@F@pico8_pj_ph_map@s_str
 score_i	score_i	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@4172@F@pico8_pj_ph_map@score_i
-spec1	spec1	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@6674@F@pico8_pj_ph@spec1
-spec2	spec2	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@6711@F@pico8_pj_ph@spec2
-wrapped	wrapped	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@4293@F@pico8_pj_ph_map@wrapped
+spec1	restart_keys	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@7615@F@score_panel_update@spec1
+spec2	toggle_keys	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@7650@F@score_panel_update@spec2
+wrapped	article	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@4893@F@score_panel_update_map@wrapped
 yr_str	year_str	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@798@F@pico8_pj_hk@yr_str
 PICO8_SCORE_PANEL_DISPLAY_H	GAME_SCORE_PANEL_DISPLAY_H	src/game/score_panel_display.h	identifiant	macro	renommé	game/score_panel_display			macro:src/game/score_panel_display.h:PICO8_SCORE_PANEL_DISPLAY_H
-ctx	ctx	src/game/score_panel_display.c	identifiant	paramètre	conservé	game/score_panel_display			c:score_panel_display.c@4136@F@pico8_pj_ph_map@ctx
+ctx	context	src/game/score_panel_display.c	identifiant	paramètre	renommé	game/score_panel_display			c:score_panel_display.c@4715@F@score_panel_update_map@ctx
 i	i	src/game/score_panel_display.c	identifiant	paramètre	conservé	game/score_panel_display			c:score_panel_display.c@3015@F@pico8_pj_ph_s_str@i
 i	i	src/game/score_panel_display.c	identifiant	paramètre	conservé	game/score_panel_display			c:score_panel_display.c@3792@F@pico8_pj_ph_set@i
 item	item	src/game/score_panel_display.c	identifiant	paramètre	conservé	game/score_panel_display			c:score_panel_display.c@3799@F@pico8_pj_ph_set@item
@@ -10577,7 +10577,7 @@ b	b	tests/test_help_screen.c	identifiant	locale	conservé	tests/test_help_screen
 child	child	tests/test_help_screen.c	identifiant	locale	conservé	tests/test_help_screen			c:test_help_screen.c@19523@F@in_fresh_child@child
 cls	cls	tests/test_help_screen.c	identifiant	locale	conservé	tests/test_help_screen			c:test_help_screen.c@17238@F@test_fv_is_a_struct@cls
 drawn	drawn	tests/test_help_screen.c	identifiant	locale	conservé	tests/test_help_screen			c:test_help_screen.c@14530@F@test_hover@drawn
-em	spacer	tests/test_help_screen.c	identifiant	locale	renommé	tests/test_help_screen			c:test_help_screen.c@8737@F@test_built@em
+em	emitter	tests/test_help_screen.c	identifiant	locale	renommé	tests/test_help_screen			c:test_help_screen.c@8819@F@test_built@spacer
 found	found	tests/test_help_screen.c	identifiant	locale	conservé	tests/test_help_screen			c:test_help_screen.c@7602@F@the_help@found
 fv	fv	tests/test_help_screen.c	identifiant	locale	conservé	tests/test_help_screen			c:test_help_screen.c@13102@F@test_life@fv
 fv	fv	tests/test_help_screen.c	identifiant	locale	conservé	tests/test_help_screen			c:test_help_screen.c@14510@F@test_hover@fv
