@@ -11,90 +11,90 @@
 #include "engine/vec.h"
 #include "engine/game_zone.h"
 
-static int g_nf_up = 0;
-static pico8_nf_button_t g_nf_l;
-static pico8_nf_button_t g_nf_r;
+static int g_mouse_up = 0;
+static mouse_button_t g_left_button;
+static mouse_button_t g_right_button;
 /* Not in the archetype: two TUs write `je.ra` in place. */
-static vec_t g_nf_ra;
+static vec_t g_mouse_pos;
 
 /* dg() dispatches the per-tick state method as `qc[qc.me](qc,qc.t)`, so
  * `t` is the frame counter, which nf:ph does not read. */
-static void pico8_nf_ph_dispatch(entity_t *self, p8_fixed_t t) {
+static void mouse_update_method(entity_t *self, p8_fixed_t t) {
     (void)t;
-    pico8_nf_ph(dispatch_context_input(), (pico8_nf_t *)self);
+    mouse_update(dispatch_context_input(), (mouse_t *)self);
 }
 
-static const entity_class_t g_nf_struct_class = {
-    .states = {[ENTITY_STATE_NORMAL] = pico8_nf_ph_dispatch},
+static const entity_class_t g_mouse_class = {
+    .states = {[ENTITY_STATE_NORMAL] = mouse_update_method},
 };
 
-static void pico8_nf_pq(p8_memory_t *mem) {
+static void mouse_construct(p8_memory_t *mem) {
     if (mem == NULL) {
         return;
     }
     p8_poke(mem, 0x5f2d, 1);
 }
 
-static pico8_nf_t *pico8_nf_struct_new(void) {
-    pico8_nf_t *self = (pico8_nf_t *)allocator_alloc(game_zone(), sizeof *self);
+static mouse_t *mouse_create(void) {
+    mouse_t *self = (mouse_t *)allocator_alloc(game_zone(), sizeof *self);
 
-    entity_init_instance(&self->header, &g_nf_struct_class, mouse_archetype.state, mouse_archetype.state_time);
-    self->def = &mouse_archetype;
+    entity_init_instance(&self->header, &g_mouse_class, mouse_archetype.state, mouse_archetype.state_time);
+    self->archetype = &mouse_archetype;
     /* Read-only: this module writes through its member. */
-    self->header.pos = (const vec_t *const *)&self->ra;
-    self->ra = &g_nf_ra;
+    self->header.pos = (const vec_t *const *)&self->pos;
+    self->pos = &g_mouse_pos;
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("mouse");
 #endif
-    pico8_nf_pq(dispatch_context_mem());
+    mouse_construct(dispatch_context_mem());
     entity_construct(&self->header);
     return self;
 }
 
-void pico8_nf_init(void) {
-    pico8_nf_shutdown();
+void mouse_init(void) {
+    mouse_shutdown();
     draw_functions_init();
     assert(entity_ready() && "nf descends from ke");
-    g_nf_up = 1;
-    g_nf_ra = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    memset(&g_nf_l, 0, sizeof g_nf_l);
-    memset(&g_nf_r, 0, sizeof g_nf_r);
+    g_mouse_up = 1;
+    g_mouse_pos = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    memset(&g_left_button, 0, sizeof g_left_button);
+    memset(&g_right_button, 0, sizeof g_right_button);
 }
 
-void pico8_nf_shutdown(void) {
-    g_nf_up = 0;
+void mouse_shutdown(void) {
+    g_mouse_up = 0;
 }
 
-const pico8_nf_button_t *pico8_nf_l(void) {
-    return g_nf_up ? &g_nf_l : NULL;
+const mouse_button_t *mouse_left_button(void) {
+    return g_mouse_up ? &g_left_button : NULL;
 }
 
-const pico8_nf_button_t *pico8_nf_r(void) {
-    return g_nf_up ? &g_nf_r : NULL;
+const mouse_button_t *mouse_right_button(void) {
+    return g_mouse_up ? &g_right_button : NULL;
 }
 
-int pico8_nf_ready(void) {
-    return g_nf_up;
+int mouse_ready(void) {
+    return g_mouse_up;
 }
 
-const entity_class_t *pico8_nf_struct_class(void) {
-    return &g_nf_struct_class;
+const entity_class_t *mouse_class(void) {
+    return &g_mouse_class;
 }
 
-pico8_nf_t *pico8_nf_new(void) {
-    return pico8_nf_struct_new();
+mouse_t *mouse_new(void) {
+    return mouse_create();
 }
 
-void pico8_nf_ph(const p8_input_t *input, pico8_nf_t *self) {
+void mouse_update(const p8_input_t *input, mouse_t *self) {
     if (self == NULL || input == NULL) {
         return;
     }
 
-    self->ra_own = vec_make(p8_fixed_from_int(p8_stat(input, 32)), p8_fixed_from_int(p8_stat(input, 33)));
-    self->ra = &self->ra_own;
+    self->pos_own = vec_make(p8_fixed_from_int(p8_stat(input, 32)), p8_fixed_from_int(p8_stat(input, 33)));
+    self->pos = &self->pos_own;
 
-    if (g_nf_up) {
-        pico8_bu(input, &g_nf_l, 1);
-        pico8_bu(input, &g_nf_r, 6);
+    if (g_mouse_up) {
+        mouse_button_update(input, &g_left_button, 1);
+        mouse_button_update(input, &g_right_button, 6);
     }
 }

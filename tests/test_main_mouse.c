@@ -22,14 +22,14 @@
 #include "game/ui.h"
 #include "engine/vec.h"
 
-#define LJ_QA_X 0
-#define LJ_QA_Y 0
+#define RECOMPUTE_MOUSE_WORLD_X 0
+#define RECOMPUTE_MOUSE_WORLD_Y 0
 
 static p8_memory_t mem;
 static p8_graphics_t gfx;
 static p8_input_t input;
 
-static int ents_listed(const entity_list_t *list, const void *e) {
+static int entity_list_listed(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -45,11 +45,11 @@ static int registered(const void *e, int entity_live) {
     const char *tags[] = {"main_mouse", "mouse", "ui", "camera", "entity"};
     int i;
 
-    if (ents_listed(live_entities(), e)) {
+    if (entity_list_listed(live_entities(), e)) {
         return 1;
     }
     for (i = 0; i < 5; i++) {
-        if ((entity_live && ents_listed(entities_by_message(buckets[i]), e)) || ents_listed(entities_by_tag(tags[i]), e)) {
+        if ((entity_live && entity_list_listed(entities_by_message(buckets[i]), e)) || entity_list_listed(entities_by_tag(tags[i]), e)) {
             return 1;
         }
     }
@@ -58,20 +58,20 @@ static int registered(const void *e, int entity_live) {
 
 /* Not an nf; no method answers; nothing registers it. */
 static void assert_placeholder(int entity_live) {
-    entity_t *je = pico8_je();
+    entity_t *je = main_mouse();
 
-    assert(je != NULL && pico8_je_nf() == NULL);
+    assert(je != NULL && main_mouse_typed() == NULL);
     assert(je->class->states[ENTITY_STATE_NORMAL] == NULL);
     assert(je->class->draw == NULL);
     assert(!registered(je, entity_live));
 }
 
-static void assert_an_nf(void) {
-    const pico8_nf_t *nf = pico8_je_nf();
+static void assert_a_mouse(void) {
+    const mouse_t *nf = main_mouse_typed();
 
-    assert(nf != NULL && nf->ra != NULL);
-    assert(nf->ra->x == 0 && nf->ra->y == 0);
-    assert(pico8_nf_l() != NULL && pico8_nf_r() != NULL);
+    assert(nf != NULL && nf->pos != NULL);
+    assert(nf->pos->x == 0 && nf->pos->y == 0);
+    assert(mouse_left_button() != NULL && mouse_right_button() != NULL);
 }
 
 /* Between pico8_cart_load() and pico8__init(). */
@@ -81,57 +81,57 @@ static void test_placeholder_after_cart_load(void) {
 
 /* `ok`'s frame on the placeholder, `ok` built by hand since `jl()` has not
  * run: no press, `qa` is `mo.ra` alone. */
-static void test_lj_on_placeholder(void) {
-    pico8_ui_t *ok;
+static void test_recompute_on_placeholder(void) {
+    ui_t *ok;
     const vec_t *qa;
 
     entity_registry_init();
     assert_placeholder(1);
-    ok = pico8_ui_new();
-    pico8_ui_lj(&mem, ok);
-    assert(ok->lheld == NULL && ok->rheld == NULL);
-    assert(ok->qa != NULL);
-    qa = ok->qa;
-    printf("[lj qa] (%d,%d)\n", (int)qa->x, (int)qa->y);
+    ok = ui_new();
+    ui_update(&mem, ok);
+    assert(ok->left_held == NULL && ok->right_held == NULL);
+    assert(ok->mouse_world != NULL);
+    qa = ok->mouse_world;
+    printf("[update mouse_world] (%d,%d)\n", (int)qa->x, (int)qa->y);
     fflush(stdout);
-    assert(qa->x == LJ_QA_X && qa->y == LJ_QA_Y);
+    assert(qa->x == RECOMPUTE_MOUSE_WORLD_X && qa->y == RECOMPUTE_MOUSE_WORLD_Y);
 }
 
 /* Shutdown clears it; every init brings it back; a whole cart reload too. */
 static void test_shutdown_and_init_cycle(void) {
-    pico8_ui_shutdown();
-    assert(pico8_je() == NULL);
-    pico8_ui_init();
+    ui_shutdown();
+    assert(main_mouse() == NULL);
+    ui_init();
     assert_placeholder(0);
-    pico8_ui_init();
-    pico8_ui_init();
+    ui_init();
+    ui_init();
     assert_placeholder(0);
     pico8_cart_shutdown();
-    assert(pico8_je() == NULL);
+    assert(main_mouse() == NULL);
     pico8_cart_load();
     assert_placeholder(0);
 }
 
 /* `jl()` puts an `nf` in its place; pico8_ui_init() puts it back. */
-static void test_replaced_by_jl(void) {
+static void test_replaced_by_reset_world(void) {
     pico8__init();
-    assert_an_nf();
-    pico8_ui_init();
+    assert_a_mouse();
+    ui_init();
     assert_placeholder(1);
 }
 
 /* The path of a caller that never loads the cart. */
-static void test_jl_without_cart_load(void) {
+static void test_reset_world_without_cart_load(void) {
     /* pico8_ui_init() after jl() freed `ok`, still in `hv`: the cart
      * shutdown would abandon it, so `hv` is emptied first. */
     bootstrap_shutdown();
     pico8_cart_shutdown();
     reset_world();
-    assert_an_nf();
+    assert_a_mouse();
     bootstrap_shutdown();
-    assert(pico8_je() == NULL);
+    assert(main_mouse() == NULL);
     reset_world();
-    assert_an_nf();
+    assert_a_mouse();
     bootstrap_shutdown();
 }
 
@@ -146,12 +146,12 @@ static void test_placeholder_is_a_struct(void) {
     const void *placeholder;
 
     pico8_cart_load();
-    placeholder = pico8_je();
-    assert(is_a_struct_of(placeholder, pico8_je_placeholder_struct_class()));
+    placeholder = main_mouse();
+    assert(is_a_struct_of(placeholder, main_mouse_placeholder_class()));
     reset_world();
-    assert(is_a_struct_of(pico8_je(), pico8_nf_struct_class()));
-    pico8_ui_init();
-    assert(pico8_je() == placeholder);
+    assert(is_a_struct_of(main_mouse(), mouse_class()));
+    ui_init();
+    assert(main_mouse() == placeholder);
     bootstrap_shutdown();
     pico8_cart_shutdown();
 }
@@ -169,12 +169,12 @@ int main(void) {
     pico8_cart_load();
 
     test_placeholder_after_cart_load();
-    test_lj_on_placeholder();
+    test_recompute_on_placeholder();
     test_shutdown_and_init_cycle();
-    test_replaced_by_jl();
-    test_jl_without_cart_load();
+    test_replaced_by_reset_world();
+    test_reset_world_without_cart_load();
     test_placeholder_is_a_struct();
 
-    printf("test_pico8_je: all tests passed\n");
+    printf("test_main_mouse: all tests passed\n");
     return 0;
 }

@@ -10,9 +10,9 @@
 #include "game/ui.h"
 
 void reset_world(void) {
-    pico8_qb_t *real_main_camera;
-    pico8_nf_t *real_main_mouse;
-    pico8_ui_t *real_main_ui;
+    camera_t *real_main_camera;
+    mouse_t *real_main_mouse;
+    ui_t *real_main_ui;
 
     entity_registry_abandon_live_entities();
     entity_registry_init();
@@ -22,29 +22,29 @@ void reset_world(void) {
     if (!entity_ready()) {
         entity_init();
     }
-    if (!pico8_qb_ready()) {
-        pico8_qb_init();
+    if (!camera_ready()) {
+        camera_init();
     }
-    if (!pico8_nf_ready()) {
-        pico8_nf_init();
+    if (!mouse_ready()) {
+        mouse_init();
     }
-    if (!pico8_ui_ready()) {
-        pico8_ui_init();
+    if (!ui_ready()) {
+        ui_init();
     }
 
-    real_main_camera = pico8_qb_new();
-    real_main_mouse = pico8_nf_new();
-    real_main_ui = pico8_ui_new();
+    real_main_camera = camera_new();
+    real_main_mouse = mouse_new();
+    real_main_ui = ui_new();
 
     entity_registry_set_main_camera((entity_t *)real_main_camera);
-    pico8_ui_set_je((entity_t *)real_main_mouse);
-    pico8_ui_set_ok(real_main_ui);
+    ui_set_main_mouse((entity_t *)real_main_mouse);
+    ui_set_main_ui(real_main_ui);
 }
 
 void bootstrap_shutdown(void) {
-    pico8_ui_shutdown();
-    pico8_nf_shutdown();
-    pico8_qb_shutdown();
+    ui_shutdown();
+    mouse_shutdown();
+    camera_shutdown();
     entity_shutdown();
     entity_registry_shutdown();
 }

@@ -33,7 +33,7 @@ static vec_t g_ix_ra[GALAXY_MENU_COUNT];
 static vec_t g_ha_hi;
 static vec_t g_ha_gq;
 
-static void pico8_ix4_my_dispatch(pico8_js_t *self);
+static void pico8_ix4_my_dispatch(button_t *self);
 
 typedef struct {
     entity_t header;
@@ -58,18 +58,18 @@ static pico8_ha_pz_t g_ha_pz = {
 /* `_cr_t` is not a cart field: it is where pico8_cr_step stashes the row's
  * captured tech, as its entry of pico8_nb_table, read back here off the
  * button `js(b)` copied it to. */
-static void pico8_cr_row_my_dispatch(pico8_js_t *self) {
+static void pico8_cr_row_my_dispatch(button_t *self) {
     if (self == NULL) {
         return;
     }
-    if (self->_cr_t != NULL) {
-        economy_invent(main_economy_typed(), self->_cr_t);
+    if (self->technology != NULL) {
+        economy_invent(main_economy_typed(), self->technology);
     }
 }
 
 /* One row of `cr`'s `bs`: the keys and the rows its `lq`/`h_` read. */
 typedef struct {
-    pico8_js_keys_t row;
+    button_keys_t row;
     layout_row_keys_t lq;
     layout_row_cell_t lq_items[2];
     layout_row_keys_t h;
@@ -90,7 +90,7 @@ static void pico8_cr_step(const technologies_entry_t *t, pico8_cr_row_t *b) {
     b->lq.count = 2;
     b->lq.has_color = 1;
     b->lq.color = p8_fixed_from_int(6);
-    b->row.lq_row = &b->lq;
+    b->row.layout_row_keys = &b->lq;
 
     gi_result = tech_gate_research_cost(t);
     gi_str = p8_tostr_fixed(frame_zone(), gi_result);
@@ -99,16 +99,16 @@ static void pico8_cr_step(const technologies_entry_t *t, pico8_cr_row_t *b) {
     b->h_items[1] = layout_row_cell_string(gi_str);
     b->h.items = b->h_items;
     b->h.count = 2;
-    b->row.has_h_ = 1;
-    b->row.h_row = &b->h;
+    b->row.has_side_tooltip = 1;
+    b->row.side_tooltip_row = &b->h;
 
-    b->row.has_jb = 1;
-    b->row.jb_row = t->tooltip_rows;
+    b->row.has_tooltip = 1;
+    b->row.tooltip_row = t->tooltip_rows;
 
-    b->row.has_my = 1;
+    b->row.has_on_click = 1;
     if (tech_gate_affordable_flags(t)) {
-        b->row._cr_t = t;
-        b->row.my = pico8_cr_row_my_dispatch;
+        b->row.technology = t;
+        b->row.on_click = pico8_cr_row_my_dispatch;
     }
 }
 
@@ -138,7 +138,7 @@ void pico8_cr(void) {
     int ek;
     available_technologies_kept_t cb_list;
     pico8_cr_row_t *rows;
-    pico8_js_keys_t *bs;
+    button_keys_t *bs;
     int n = 0;
     int i;
     pico8_pj_cr_t *cr;
@@ -160,7 +160,7 @@ void pico8_cr(void) {
      * ones. The two sites do not merge. */
     cb_list = tech_gate_available_technologies(1);
     rows = (pico8_cr_row_t *)allocator_alloc(frame_zone(), ((size_t)cb_list.count + 1) * sizeof *rows);
-    bs = (pico8_js_keys_t *)allocator_alloc(frame_zone(), ((size_t)cb_list.count + 1) * sizeof *bs);
+    bs = (button_keys_t *)allocator_alloc(frame_zone(), ((size_t)cb_list.count + 1) * sizeof *bs);
     memset(rows, 0, ((size_t)cb_list.count + 1) * sizeof *rows);
     memset(bs, 0, ((size_t)cb_list.count + 1) * sizeof *bs);
     for (i = 0; i < cb_list.count; i++) {
@@ -177,9 +177,9 @@ void pico8_cr(void) {
         extra->lq.count = 2;
         extra->lq.has_color = 1;
         extra->lq.color = p8_fixed_from_int(3);
-        extra->row.lq_row = &extra->lq;
-        extra->row.has_jb = 1;
-        extra->row.jb_row = pico8_menu_invented_lines(fm->invented);
+        extra->row.layout_row_keys = &extra->lq;
+        extra->row.has_tooltip = 1;
+        extra->row.tooltip_row = pico8_menu_invented_lines(fm->invented);
     }
     for (i = 0; i < n; i++) {
         bs[i] = rows[i].row;
@@ -221,7 +221,7 @@ void pico8_cr(void) {
     }
 }
 
-static void pico8_ix1_my_dispatch(pico8_js_t *self) {
+static void pico8_ix1_my_dispatch(button_t *self) {
     economy_t *fm = main_economy_typed();
     (void)self;
     if (fm != NULL) {
@@ -230,7 +230,7 @@ static void pico8_ix1_my_dispatch(pico8_js_t *self) {
     economy_new_year(fm);
 }
 
-static void pico8_ix2_my_dispatch(pico8_js_t *self) {
+static void pico8_ix2_my_dispatch(button_t *self) {
     (void)self;
     pico8_cr();
 }
@@ -238,7 +238,7 @@ static void pico8_ix2_my_dispatch(pico8_js_t *self) {
 /* The bare `cb()` counts only affordable techs. pico8_cr()'s `cb(true)` is the
  * other, non-interchangeable site: passing the flag here would light the icon
  * whenever any tech of the era is left. */
-static void pico8_ix2_hb_dispatch(pico8_js_t *self) {
+static void pico8_ix2_hb_dispatch(button_t *self) {
     available_technologies_kept_t cb_list;
     int cb_count;
     layout_row_cell_t item;
@@ -255,32 +255,32 @@ static void pico8_ix2_hb_dispatch(pico8_js_t *self) {
     item = layout_row_cell_fixed(p8_fixed_from_int(cb_count > 0 ? 24 : 37));
     keys.items = &item;
     keys.count = 1;
-    place = pico8_zone_interface_place(PICO8_SORTE_RANGEE);
-    self->lq = layout_row_new(place, &keys);
-    if (self->lq_place != NULL) {
-        arena_release(self->lq_place);
+    place = ui_zone_slot(SLOT_KIND_ROW);
+    self->layout_row = layout_row_new(place, &keys);
+    if (self->layout_row_slot != NULL) {
+        arena_release(self->layout_row_slot);
     }
-    self->lq_place = place;
+    self->layout_row_slot = place;
 }
 
 /* `fq(de)` takes the `my` of the one `de` of pico8_score_panel_display.c,
  * the one `pj:ph()` uses. */
-static void pico8_ix3_my_dispatch(pico8_js_t *self) {
+static void pico8_ix3_my_dispatch(button_t *self) {
     pico8_pj_t *ju = pico8_ju();
-    pico8_fq_keys_t keys = {0};
-    pico8_fq_t *built;
+    modal_backdrop_keys_t keys = {0};
+    modal_backdrop_t *built;
     (void)self;
     if (ju != NULL) {
         ju->c_ = 1;
         ju->has_c_ = 1;
     }
-    keys.my = pico8_de_my();
-    built = pico8_fq_new(&keys);
+    keys.on_click = pico8_de_my();
+    built = modal_backdrop_new(&keys);
     (void)built;
 }
 
 /* TROU-10 */
-static void pico8_ha2_my_dispatch(pico8_js_t *self) {
+static void pico8_ha2_my_dispatch(button_t *self) {
     int stat_val;
     p8_fixed_t s;
     (void)self;
@@ -292,33 +292,33 @@ static void pico8_ha2_my_dispatch(pico8_js_t *self) {
 /* TROU-10 */
 /* `ih` is the real global of pico8_audio.c, which pico8_rn() reads; a private
  * copy here would leave that mute check on the old value. */
-static void pico8_ha3_my_dispatch(pico8_js_t *self) {
+static void pico8_ha3_my_dispatch(button_t *self) {
     (void)self;
     p8_set_sfx_muted(!p8_sfx_muted());
 }
 
-static void pico8_ha4_my_dispatch(pico8_js_t *self) {
+static void pico8_ha4_my_dispatch(button_t *self) {
     (void)self;
 }
 
-static const pico8_js_fn g_ix_my[GALAXY_MENU_COUNT] = {
+static const button_fn_t g_ix_my[GALAXY_MENU_COUNT] = {
     pico8_ix1_my_dispatch,
     pico8_ix2_my_dispatch,
     pico8_ix3_my_dispatch,
     pico8_ix4_my_dispatch,
 };
-static const pico8_js_fn g_ix_hb[GALAXY_MENU_COUNT] = {NULL, pico8_ix2_hb_dispatch, NULL, NULL};
+static const button_fn_t g_ix_hb[GALAXY_MENU_COUNT] = {NULL, pico8_ix2_hb_dispatch, NULL, NULL};
 
 /* `pz(ha,ha)`: `ha`'s rows go in as `bs`, their `my` installed on every
  * run, and `p` is the frame of `g_ha_pz`, which carries `ha`'s `hi`/`gq`/`ca`. */
-static void pico8_ix4_my_dispatch(pico8_js_t *self) {
-    const pico8_js_fn my[PAUSE_MENU_COUNT] = {
+static void pico8_ix4_my_dispatch(button_t *self) {
+    const button_fn_t my[PAUSE_MENU_COUNT] = {
         pico8_init_field_value(),
         pico8_ha2_my_dispatch,
         pico8_ha3_my_dispatch,
         pico8_ha4_my_dispatch,
     };
-    pico8_js_keys_t bs[PAUSE_MENU_COUNT];
+    button_keys_t bs[PAUSE_MENU_COUNT];
     layout_row_keys_t lq[PAUSE_MENU_COUNT];
     layout_row_cell_t items[PAUSE_MENU_COUNT][PICO8_MENU_ROW_CAP];
     pico8_pz_frame_t frame = {0};
@@ -333,11 +333,11 @@ static void pico8_ix4_my_dispatch(pico8_js_t *self) {
 
         memset(&bs[i], 0, sizeof bs[i]);
         lq[i] = layout_row_keys_of_row(e->layout_row, items[i], PICO8_MENU_ROW_CAP);
-        bs[i].lq_row = &lq[i];
-        bs[i].has_fg = e->has_gpio_signal;
-        bs[i].fg = p8_fixed_from_int(e->gpio_signal);
-        bs[i].has_my = 1;
-        bs[i].my = my[i];
+        bs[i].layout_row_keys = &lq[i];
+        bs[i].has_gpio_signal = e->has_gpio_signal;
+        bs[i].gpio_signal = p8_fixed_from_int(e->gpio_signal);
+        bs[i].has_on_click = 1;
+        bs[i].on_click = my[i];
     }
     frame.hi = g_ha_pz.hi;
     frame.has_ca = g_ha_pz.has_ca;
@@ -346,24 +346,24 @@ static void pico8_ix4_my_dispatch(pico8_js_t *self) {
     pico8_pz(&frame, bs, PAUSE_MENU_COUNT);
 }
 
-pico8_js_t *pico8_ix_button(int i) {
+button_t *pico8_ix_button(int i) {
     const galaxy_menu_entry_t *e;
-    pico8_js_keys_t keys = {0};
+    button_keys_t keys = {0};
     layout_row_keys_t lq;
     layout_row_cell_t items[PICO8_MENU_ROW_CAP];
 
     assert(g_menu_up && i >= 1 && i <= GALAXY_MENU_COUNT && "ix has PICO8_IX_COUNT rows, after pico8_menu_init()");
     e = &galaxy_menu_table[i - 1];
     lq = layout_row_keys_of_row(e->layout_row, items, PICO8_MENU_ROW_CAP);
-    keys.lq_row = &lq;
-    keys.ra = &g_ix_ra[i - 1];
-    keys.has_my = 1;
-    keys.my = g_ix_my[i - 1];
-    keys.hb = g_ix_hb[i - 1];
-    return pico8_js_new(&keys);
+    keys.layout_row_keys = &lq;
+    keys.pos = &g_ix_ra[i - 1];
+    keys.has_on_click = 1;
+    keys.on_click = g_ix_my[i - 1];
+    keys.refresh = g_ix_hb[i - 1];
+    return button_new(&keys);
 }
 
-pico8_js_fn pico8_ix_my(int i) {
+button_fn_t pico8_ix_my(int i) {
     assert(i >= 1 && i <= GALAXY_MENU_COUNT);
     return g_ix_my[i - 1];
 }

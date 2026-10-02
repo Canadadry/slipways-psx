@@ -436,8 +436,8 @@ static void place(void *e, int x, int y) {
     const vec_t *mo_ra;
     vec_t *mp;
 
-    assert(pico8_mo_qb() != NULL);
-    mo_ra = pico8_mo_qb()->ra;
+    assert(main_camera_typed() != NULL);
+    mo_ra = main_camera_typed()->pos;
     assert(mo_ra != NULL);
     mp = vec_ref(vec_add(*mo_ra, vec_xy(x, y)));
     cls_of(e)->drag(e, mp, vec_ref(vec_xy(64, 64)));

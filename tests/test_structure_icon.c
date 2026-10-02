@@ -538,8 +538,8 @@ static void test_kind_view(void) {
     {
         /* `dl` prints at `je.ra`, (0,0) here: its label would land off
          * screen. */
-        assert(pico8_je_nf() != NULL && pico8_je_nf()->ra != NULL);
-        *pico8_je_nf()->ra = vec_at(64, 64);
+        assert(main_mouse_typed() != NULL && main_mouse_typed()->pos != NULL);
+        *main_mouse_typed()->pos = vec_at(64, 64);
     }
     for (i = 0; i < n; i++) {
         uint32_t plain = draw_alone(all[i]);
@@ -634,8 +634,8 @@ static void test_structure_icon_is_a_struct(void) {
         assert(shared_id_fixed(as_structure_icon(built)) == p8_fixed_add(first_id, p8_fixed_from_int(1)));
     }
 
-    others[0] = pico8_bg_new();
-    others[1] = pico8_fq_new(NULL);
+    others[0] = background_new();
+    others[1] = modal_backdrop_new(NULL);
     others[2] = slipway_new(NULL);
     others[3] = wormhole_new();
     for (i = 0; i < 4; i++) {

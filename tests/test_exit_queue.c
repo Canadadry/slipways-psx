@@ -98,9 +98,9 @@ static int case_entity_unregister_released_at_flush(void) {
 /* `cj` remplace `ok.le` ; la frame relit encore l'ancienne liste. */
 static const entity_list_t *replaced_ephemerals(void) {
     load_cart_and_start();
-    const entity_list_t *old = pico8_ok()->le;
-    assert(old != pico8_ui_le_shared());
-    pico8_ui_cj(pico8_ok());
+    const entity_list_t *old = main_ui()->ephemerals;
+    assert(old != ui_ephemerals_shared());
+    ui_clear_ephemerals(main_ui());
     assert(exit_queue_count() == 1 && "cj enfile la liste qu'il remplace");
     return old;
 }
@@ -171,8 +171,8 @@ static pico8_mh_t *pointed_at_everywhere(void) {
     pico8_eu(NULL);
     pico8_mh_t *e = new_entity(&freed_cls);
     entity_register(&e->header);
-    pico8_ok()->o_ = &e->header;
-    pico8_ok()->gj = &e->header;
+    main_ui()->hovered = &e->header;
+    main_ui()->previous_hovered = &e->header;
     pico8_msgbox_set_kc(e);
     pico8_ju()->ed = e;
     entity_unregister(&e->header);
@@ -182,7 +182,7 @@ static pico8_mh_t *pointed_at_everywhere(void) {
 static int case_flush_forgets_references(void) {
     (void)pointed_at_everywhere();
     pico8_cart_vider_file_sortie();
-    assert(pico8_ok()->o_ == NULL && pico8_ok()->gj == NULL);
+    assert(main_ui()->hovered == NULL && main_ui()->previous_hovered == NULL);
     assert(pico8_kc() == NULL && pico8_ju()->ed == NULL);
     return 0;
 }
@@ -200,19 +200,19 @@ static int case_update60_after_forgetting(void) {
 static int case_difficulty_outlives_its_button(void) {
     load_cart_and_start();
     const entity_list_t *hd = entities_by_message("hit_test");
-    pico8_js_t *nj = NULL;
+    button_t *nj = NULL;
     for (int i = 0; i < hd->count && nj == NULL; i++)
-        if (hd->items[i]->class == pico8_js_struct_class() && ((pico8_js_t *)hd->items[i])->has_en)
-            nj = (pico8_js_t *)hd->items[i];
+        if (hd->items[i]->class == button_class() && ((button_t *)hd->items[i])->has_type_bias)
+            nj = (button_t *)hd->items[i];
     assert(nj != NULL);
-    const char *px = nj->px;
+    const char *px = nj->name;
     p8_fixed_t trade = nj->trade;
-    p8_fixed_t en = nj->en;
+    p8_fixed_t en = nj->type_bias;
     pico8_eu(nj);
     pico8__update60();
     pico8__draw();
-    const pico8_js_t *dk = economy_score_difficulty();
-    assert(dk != NULL && dk->px == px && dk->has_trade && dk->trade == trade && dk->has_en && dk->en == en);
+    const button_t *dk = economy_score_difficulty();
+    assert(dk != NULL && dk->name == px && dk->has_trade && dk->trade == trade && dk->has_type_bias && dk->type_bias == en);
     return 0;
 }
 

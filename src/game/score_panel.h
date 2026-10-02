@@ -113,8 +113,8 @@ pico8_bz_row_t *pico8_pj_bz(void);
 /* Never NULL: an inert placeholder until the real `_init` bridge is
  * installed, which a NULL argument resets. A button built earlier keeps
  * whichever value it captured then. */
-pico8_js_fn pico8_init_field_value(void);
-void pico8_score_panel_set_init(pico8_js_fn fn);
+button_fn_t pico8_init_field_value(void);
+void pico8_score_panel_set_init(button_fn_t fn);
 
 /* NULL until `eu()` builds the one `pj` instance and sets it here. The
  * setter takes no ownership. */

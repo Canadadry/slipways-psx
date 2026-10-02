@@ -33,10 +33,10 @@
 
 /* The `js` button instances `pz()` just built. */
 static const entity_list_t *main_ui_ephemerals(void) {
-    const pico8_ui_t *ok = pico8_ok();
+    const ui_t *ok = main_ui();
     assert(ok != NULL);
-    assert(ok->le != NULL);
-    return ok->le;
+    assert(ok->ephemerals != NULL);
+    return ok->ephemerals;
 }
 
 /* A button's `lq` field, after `js:pq()` replaced the raw row override
@@ -45,8 +45,8 @@ static const layout_row_t *button_layout_row(const void *button) {
     const layout_row_t *lq;
 
     assert(button != NULL);
-    assert(((const entity_t *)button)->class == pico8_js_struct_class());
-    lq = ((const pico8_js_t *)button)->lq;
+    assert(((const entity_t *)button)->class == button_class());
+    lq = ((const button_t *)button)->layout_row;
     assert(lq != NULL);
     return lq;
 }
@@ -80,7 +80,7 @@ static void setup_panel_state(p8_memory_t *mem, p8_graphics_t *gfx) {
     data_init();
     reset_world();
     layout_init();
-    pico8_js_init();
+    button_init();
     planet_init();
 }
 

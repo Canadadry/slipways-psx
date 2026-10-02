@@ -7,66 +7,66 @@
 
 /* Taille : la plus grande place que le jeu construit, en-tete d'arene
  * compris (x86-64). Nombre : ce qui vit a la fois au pire de la frame. */
-#define JS_SIZE 6240u
-#define JS_COUNT 24u
-#define FQ_SIZE 256u
-#define FQ_COUNT 4u
-#define MH_SIZE 4624u
-#define MH_COUNT 6u
-#define IV_SIZE 320u
-#define IV_COUNT 128u
-#define RANGEE_SIZE 1192u
-#define RANGEE_COUNT 100u
-#define LE_SIZE 216u
-#define LE_COUNT 16u
+#define BUTTON_SIZE 6240u
+#define BUTTON_COUNT 24u
+#define MODAL_BACKDROP_SIZE 256u
+#define MODAL_BACKDROP_COUNT 4u
+#define MESSAGE_BOX_SIZE 4624u
+#define MESSAGE_BOX_COUNT 6u
+#define TOAST_SIZE 320u
+#define TOAST_COUNT 128u
+#define ROW_SIZE 1192u
+#define ROW_COUNT 100u
+#define EPHEMERALS_SIZE 216u
+#define EPHEMERALS_COUNT 16u
 
-typedef char pico8_zone_interface_exceeded[
-    (SLOT_ZONE_BYTES(JS_SIZE, JS_COUNT) + SLOT_ZONE_BYTES(FQ_SIZE, FQ_COUNT) +
-     SLOT_ZONE_BYTES(MH_SIZE, MH_COUNT) + SLOT_ZONE_BYTES(IV_SIZE, IV_COUNT) +
-     SLOT_ZONE_BYTES(RANGEE_SIZE, RANGEE_COUNT) + SLOT_ZONE_BYTES(LE_SIZE, LE_COUNT)
+typedef char ui_zone_exceeded_t[
+    (SLOT_ZONE_BYTES(BUTTON_SIZE, BUTTON_COUNT) + SLOT_ZONE_BYTES(MODAL_BACKDROP_SIZE, MODAL_BACKDROP_COUNT) +
+     SLOT_ZONE_BYTES(MESSAGE_BOX_SIZE, MESSAGE_BOX_COUNT) + SLOT_ZONE_BYTES(TOAST_SIZE, TOAST_COUNT) +
+     SLOT_ZONE_BYTES(ROW_SIZE, ROW_COUNT) + SLOT_ZONE_BYTES(EPHEMERALS_SIZE, EPHEMERALS_COUNT)
      <= UI_ZONE_BYTES) ? 1 : -1];
 
-SLOT_ZONE_STORAGE(js_cells, js_taken, JS_SIZE, JS_COUNT);
-SLOT_ZONE_STORAGE(fq_cells, fq_taken, FQ_SIZE, FQ_COUNT);
-SLOT_ZONE_STORAGE(mh_cells, mh_taken, MH_SIZE, MH_COUNT);
-SLOT_ZONE_STORAGE(iv_cells, iv_taken, IV_SIZE, IV_COUNT);
-SLOT_ZONE_STORAGE(rangee_cells, rangee_taken, RANGEE_SIZE, RANGEE_COUNT);
-SLOT_ZONE_STORAGE(le_cells, le_taken, LE_SIZE, LE_COUNT);
+SLOT_ZONE_STORAGE(button_cells, button_taken, BUTTON_SIZE, BUTTON_COUNT);
+SLOT_ZONE_STORAGE(modal_backdrop_cells, modal_backdrop_taken, MODAL_BACKDROP_SIZE, MODAL_BACKDROP_COUNT);
+SLOT_ZONE_STORAGE(message_box_cells, message_box_taken, MESSAGE_BOX_SIZE, MESSAGE_BOX_COUNT);
+SLOT_ZONE_STORAGE(toast_cells, toast_taken, TOAST_SIZE, TOAST_COUNT);
+SLOT_ZONE_STORAGE(row_cells, row_taken, ROW_SIZE, ROW_COUNT);
+SLOT_ZONE_STORAGE(ephemerals_cells, ephemerals_taken, EPHEMERALS_SIZE, EPHEMERALS_COUNT);
 
-static const slot_kind_zone_t SORTES[PICO8_SORTE_COUNT] = {
-    [PICO8_SORTE_JS] = {"interface js", "place js", js_cells, js_taken, JS_SIZE, JS_COUNT},
-    [PICO8_SORTE_FQ] = {"interface fq", "place fq", fq_cells, fq_taken, FQ_SIZE, FQ_COUNT},
-    [PICO8_SORTE_MH] = {"interface mh", "place mh", mh_cells, mh_taken, MH_SIZE, MH_COUNT},
-    [PICO8_SORTE_IV] = {"interface iv", "place iv", iv_cells, iv_taken, IV_SIZE, IV_COUNT},
-    [PICO8_SORTE_RANGEE] = {"interface rangee", "place rangee", rangee_cells, rangee_taken, RANGEE_SIZE,
-                            RANGEE_COUNT},
-    [PICO8_SORTE_LE] = {"interface le", "place le", le_cells, le_taken, LE_SIZE, LE_COUNT},
+static const slot_kind_zone_t SLOT_KINDS[SLOT_KIND_COUNT] = {
+    [SLOT_KIND_BUTTON] = {"interface button", "place button", button_cells, button_taken, BUTTON_SIZE, BUTTON_COUNT},
+    [SLOT_KIND_MODAL_BACKDROP] = {"interface modal_backdrop", "place modal_backdrop", modal_backdrop_cells, modal_backdrop_taken, MODAL_BACKDROP_SIZE, MODAL_BACKDROP_COUNT},
+    [SLOT_KIND_MESSAGE_BOX] = {"interface message_box", "place message_box", message_box_cells, message_box_taken, MESSAGE_BOX_SIZE, MESSAGE_BOX_COUNT},
+    [SLOT_KIND_TOAST] = {"interface toast", "place toast", toast_cells, toast_taken, TOAST_SIZE, TOAST_COUNT},
+    [SLOT_KIND_ROW] = {"interface rangee", "place rangee", row_cells, row_taken, ROW_SIZE,
+                            ROW_COUNT},
+    [SLOT_KIND_EPHEMERALS] = {"interface ephemerals", "place ephemerals", ephemerals_cells, ephemerals_taken, EPHEMERALS_SIZE, EPHEMERALS_COUNT},
 };
 
-static slot_zone_t g_zones[PICO8_SORTE_COUNT];
-static allocator_t g_handles[PICO8_SORTE_COUNT];
+static slot_zone_t g_zones[SLOT_KIND_COUNT];
+static allocator_t g_handles[SLOT_KIND_COUNT];
 static int g_ready;
 
 /* Paresseuse : pico8_slot_zone_init empoisonne le stockage sous ASan, ce
  * qu'un initialiseur statique ne ferait pas. */
 static void init_once(void) {
     if (g_ready) return;
-    allocator_init_slot_kinds(SORTES, PICO8_SORTE_COUNT, g_zones, g_handles);
+    allocator_init_slot_kinds(SLOT_KINDS, SLOT_KIND_COUNT, g_zones, g_handles);
     g_ready = 1;
 }
 
-const allocator_t *pico8_zone_interface(pico8_sorte_t sorte) {
-    assert(sorte >= 0 && sorte < PICO8_SORTE_COUNT);
+const allocator_t *ui_zone(slot_kind_t slot_kind) {
+    assert(slot_kind >= 0 && slot_kind < SLOT_KIND_COUNT);
     init_once();
-    return &g_handles[sorte];
+    return &g_handles[slot_kind];
 }
 
-const allocator_t *pico8_zone_interface_place(pico8_sorte_t sorte) {
-    return arena_take(pico8_zone_interface(sorte), SORTES[sorte].slot_name, SORTES[sorte].size);
+const allocator_t *ui_zone_slot(slot_kind_t slot_kind) {
+    return arena_take(ui_zone(slot_kind), SLOT_KINDS[slot_kind].slot_name, SLOT_KINDS[slot_kind].size);
 }
 
-int pico8_zone_interface_vivantes(pico8_sorte_t sorte) {
-    assert(sorte >= 0 && sorte < PICO8_SORTE_COUNT);
+int ui_zone_live(slot_kind_t slot_kind) {
+    assert(slot_kind >= 0 && slot_kind < SLOT_KIND_COUNT);
     init_once();
-    return (int)slot_zone_taken(&g_zones[sorte]);
+    return (int)slot_zone_taken(&g_zones[slot_kind]);
 }

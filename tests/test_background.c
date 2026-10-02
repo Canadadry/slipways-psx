@@ -41,10 +41,10 @@
 #define MAP_ZEROS 625
 #define SECOND_MAP_HASH 0x2E2CECCAu
 #define DRAG_HASH 0x2CB62643u
-#define LDOWN_G_BEFORE 0
-#define LDOWN_G_AFTER 1
-#define LDOWN_MZ_BEFORE 0
-#define LDOWN_MZ_AFTER 1
+#define LEFT_PRESS_PROBE_BEFORE 0
+#define LEFT_PRESS_PROBE_AFTER 1
+#define LEFT_PRESS_WORMHOLE_BEFORE 0
+#define LEFT_PRESS_WORMHOLE_AFTER 1
 #define HOVER_HASH 0x477E2027u
 #define DRAW_HASH 0xE18E0472u
 
@@ -52,7 +52,7 @@ static p8_memory_t mem;
 static p8_graphics_t gfx;
 static p8_input_t input;
 
-static const int want_pl[15] = {0, 0, 0, 72, 73, 74, 75, 88, 89, 90, 91, 88, 91, 89, 91};
+static const int want_tile_choices[15] = {0, 0, 0, 72, 73, 74, 75, 88, 89, 90, 91, 88, 91, 89, 91};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -74,7 +74,7 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-static int ents_listed(const entity_list_t *list, const void *e) {
+static int entity_list_listed(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -84,11 +84,11 @@ static int ents_listed(const entity_list_t *list, const void *e) {
     return 0;
 }
 
-static int ents_list_count(const entity_list_t *list) {
+static int entity_list_list_count(const entity_list_t *list) {
     return list == NULL ? 0 : list->count;
 }
 
-static int is_me(const entity_t *ke, const char *want) {
+static int is_state(const entity_t *ke, const char *want) {
     return ke->state != NULL && strcmp(ke->state, want) == 0;
 }
 
@@ -101,22 +101,22 @@ static uint32_t fold_vec(uint32_t h, const vec_t *p) {
 }
 
 /* `mq` as the box the cart keeps: NULL while nil. */
-static const vec_t *mq_of(const pico8_bg_t *bg) {
-    return bg->has_mq ? &bg->mq : NULL;
+static const vec_t *drag_mouse_of(const background_t *bg) {
+    return bg->has_drag_mouse ? &bg->drag_mouse : NULL;
 }
 
 /* `mq` holds the value of `rp`, a copy. */
-static int mq_is(const pico8_bg_t *bg, const vec_t *rp) {
-    return bg->has_mq && &bg->mq != rp && bg->mq.x == rp->x && bg->mq.y == rp->y;
+static int drag_mouse_is(const background_t *bg, const vec_t *rp) {
+    return bg->has_drag_mouse && &bg->drag_mouse != rp && bg->drag_mouse.x == rp->x && bg->drag_mouse.y == rp->y;
 }
 
 /* 0 absent or false, 2 true. */
-static uint32_t m__state(const pico8_bg_t *bg) {
-    return bg->m_ ? 2 : 0;
+static uint32_t is_hovered_state(const background_t *bg) {
+    return bg->is_hovered ? 2 : 0;
 }
 
-static const pico8_qb_t *mo_qb(void) {
-    const pico8_qb_t *mo = pico8_mo_qb();
+static const camera_t *typed_main_camera(void) {
+    const camera_t *mo = main_camera_typed();
     assert(mo != NULL);
     return mo;
 }
@@ -143,21 +143,21 @@ static void start_game(void) {
 }
 
 /* The background is the `bg` of cv.hd whose `hd` and `fa` are both 1. */
-static pico8_bg_t *find_bg(int *count) {
+static background_t *find_background(int *count) {
     const entity_list_t *hd = entities_by_message("hit_test");
-    pico8_bg_t *found = NULL;
+    background_t *found = NULL;
     int i;
 
     *count = 0;
     for (i = 0; hd != NULL && i < hd->count; i++) {
         const entity_t *e = hd->items[i];
-        pico8_bg_t *bg;
+        background_t *bg;
 
-        if (e->class != pico8_bg_struct_class()) {
+        if (e->class != background_class()) {
             continue;
         }
-        bg = (pico8_bg_t *)e;
-        if (bg->def->hit_test == p8_fixed_from_int(1) && bg->def->layer == p8_fixed_from_int(1)) {
+        bg = (background_t *)e;
+        if (bg->archetype->hit_test == p8_fixed_from_int(1) && bg->archetype->layer == p8_fixed_from_int(1)) {
             found = bg;
             (*count)++;
         }
@@ -165,9 +165,9 @@ static pico8_bg_t *find_bg(int *count) {
     return found;
 }
 
-static pico8_bg_t *the_bg(void) {
+static background_t *the_background(void) {
     int count;
-    pico8_bg_t *bg = find_bg(&count);
+    background_t *bg = find_background(&count);
     assert(count == 1 && bg != NULL);
     return bg;
 }
@@ -184,49 +184,49 @@ static int mget(int x, int y) {
 
 /* A fresh `bg`: ke's `me`/`t`, the spec's `fa`/`hd`/`pl`, the four
  * methods, nothing written yet, registered in hv, cv.kj and cv.hd only. */
-static void check_fresh_bg(const pico8_bg_t *bg) {
+static void check_fresh_background(const background_t *bg) {
     const entity_class_t *cls = bg->header.class;
     const int_seq_t *pl;
     size_t i;
 
-    assert(is_me(&bg->header, "normal"));
+    assert(is_state(&bg->header, "normal"));
     assert(bg->header.state_time == 0);
-    assert(bg->def == &background_archetype);
-    assert(bg->def->layer == p8_fixed_from_int(1));
-    assert(bg->def->hit_test == p8_fixed_from_int(1));
-    pl = bg->def->tile_choices;
+    assert(bg->archetype == &background_archetype);
+    assert(bg->archetype->layer == p8_fixed_from_int(1));
+    assert(bg->archetype->hit_test == p8_fixed_from_int(1));
+    pl = bg->archetype->tile_choices;
     assert(pl == &background_tile_choices_seq && pl->count == 15);
     for (i = 0; i < 15; i++) {
-        assert(pl->items[i] == want_pl[i]);
+        assert(pl->items[i] == want_tile_choices[i]);
     }
-    assert(!bg->has_mq && !bg->m_);
+    assert(!bg->has_drag_mouse && !bg->is_hovered);
     assert(cls->accept_drop == NULL && cls->states[ENTITY_STATE_NORMAL] == NULL);
     assert(cls->draw != NULL && cls->left_press != NULL && cls->right_press != NULL && cls->drag != NULL);
     assert(cls->drop == NULL);
-    assert(ents_listed(live_entities(), bg) && ents_listed(entities_by_message("draw"), bg) && ents_listed(entities_by_message("hit_test"), bg));
-    assert(!ents_listed(entities_by_message("draw_overlay"), bg) && !ents_listed(entities_by_message("new_year"), bg) && !ents_listed(entities_by_message("refresh"), bg));
+    assert(entity_list_listed(live_entities(), bg) && entity_list_listed(entities_by_message("draw"), bg) && entity_list_listed(entities_by_message("hit_test"), bg));
+    assert(!entity_list_listed(entities_by_message("draw_overlay"), bg) && !entity_list_listed(entities_by_message("new_year"), bg) && !entity_list_listed(entities_by_message("refresh"), bg));
 }
 
 static void test_construction(void) {
-    pico8_bg_t *from_eu;
-    pico8_bg_t *built;
-    pico8_bg_t *generic;
+    background_t *from_start_game;
+    background_t *built;
+    background_t *generic;
 
     start_game();
-    from_eu = the_bg();
-    check_fresh_bg(from_eu);
-    built = pico8_bg_new();
-    check_fresh_bg(built);
-    generic = pico8_bg_new();
-    check_fresh_bg(generic);
+    from_start_game = the_background();
+    check_fresh_background(from_start_game);
+    built = background_new();
+    check_fresh_background(built);
+    generic = background_new();
+    check_fresh_background(generic);
     assert(entities_by_tag("background") == NULL);
-    assert(from_eu->def == built->def && built->def == generic->def);
+    assert(from_start_game->archetype == built->archetype && built->archetype == generic->archetype);
 }
 
-static int in_pl(int tile) {
+static int in_tile_choices(int tile) {
     int i;
     for (i = 0; i < 15; i++) {
-        if (want_pl[i] == tile) {
+        if (want_tile_choices[i] == tile) {
             return 1;
         }
     }
@@ -242,7 +242,7 @@ static uint32_t map_hash(int *stars, int *zeros) {
     for (y = 0; y < 32; y++) {
         for (x = 0; x < 32; x++) {
             int tile = mget(x, y);
-            assert(tile == 0 || in_pl(tile) || (tile >= 122 && tile <= 126));
+            assert(tile == 0 || in_tile_choices(tile) || (tile >= 122 && tile <= 126));
             *stars += tile >= 122 && tile <= 126;
             *zeros += tile == 0;
             h = fnv(h, (uint32_t)tile);
@@ -261,12 +261,12 @@ static void test_map(void) {
     check("map", first, MAP_HASH);
     check_int("map stars", stars, MAP_STARS);
     check_int("map zeros", zeros, MAP_ZEROS);
-    (void)pico8_bg_new();
+    (void)background_new();
     check("second map", map_hash(&stars, &zeros), SECOND_MAP_HASH);
 }
 
-static void hq(void *bg, vec_t *rp) {
-    pico8_bg_struct_class()->drag(bg, vec_ref(1, 2), rp);
+static void drag(void *bg, vec_t *rp) {
+    background_class()->drag(bg, vec_ref(1, 2), rp);
 }
 
 /* `hq` with no `mq` yet reads the zero vector; `rdown` keeps a copy of `rp`
@@ -274,74 +274,74 @@ static void hq(void *bg, vec_t *rp) {
  * delta and replaces `mq`. */
 static void test_drag(void) {
     uint32_t h = 2166136261u;
-    pico8_bg_t *bg;
+    background_t *bg;
     vec_t *rp;
     down_t out;
     vec_t v;
     int i;
 
     start_game();
-    bg = the_bg();
+    bg = the_background();
     rp = vec_ref(10, 20);
-    hq(bg, rp);
-    assert(mo_qb()->v != NULL);
-    v = *mo_qb()->v;
+    drag(bg, rp);
+    assert(typed_main_camera()->velocity != NULL);
+    v = *typed_main_camera()->velocity;
     assert(v.x == p8_fixed_from_int(-10) && v.y == p8_fixed_from_int(-20));
-    assert(mq_is(bg, rp));
-    h = fold_vec(h, mo_qb()->v);
+    assert(drag_mouse_is(bg, rp));
+    h = fold_vec(h, typed_main_camera()->velocity);
 
     rp = vec_ref(30, 40);
-    out = pico8_bg_struct_class()->right_press(&bg->header, vec_ref(5, 6), rp);
+    out = background_class()->right_press(&bg->header, vec_ref(5, 6), rp);
     assert(out.stop && (void *)out.held == bg);
-    assert(mq_is(bg, rp));
-    h = fold_vec(h, mq_of(bg));
+    assert(drag_mouse_is(bg, rp));
+    h = fold_vec(h, drag_mouse_of(bg));
 
     for (i = 0; i < 3; i++) {
         rp = vec_ref(33 - 7 * i, 41 + 5 * i * i);
-        hq(bg, rp);
-        assert(mq_is(bg, rp));
-        h = fold_vec(h, mo_qb()->v);
-        h = fold_vec(h, mq_of(bg));
+        drag(bg, rp);
+        assert(drag_mouse_is(bg, rp));
+        h = fold_vec(h, typed_main_camera()->velocity);
+        h = fold_vec(h, drag_mouse_of(bg));
     }
     check("drag", h, DRAG_HASH);
 }
 
 /* `ldown` builds a `g_` while cg.g_ is empty, an `mz` after. */
-static void test_ldown(void) {
+static void test_left_press(void) {
     void *bg;
     down_t out;
     int g_before;
-    int mz_before;
+    int wormhole_before;
 
     start_game();
-    bg = the_bg();
-    g_before = ents_list_count(entities_by_tag("probe"));
-    mz_before = ents_list_count(entities_by_tag("wormhole"));
-    check_int("ldown g_ before", g_before, LDOWN_G_BEFORE);
-    check_int("ldown mz before", mz_before, LDOWN_MZ_BEFORE);
+    bg = the_background();
+    g_before = entity_list_list_count(entities_by_tag("probe"));
+    wormhole_before = entity_list_list_count(entities_by_tag("wormhole"));
+    check_int("left_press probe before", g_before, LEFT_PRESS_PROBE_BEFORE);
+    check_int("left_press wormhole before", wormhole_before, LEFT_PRESS_WORMHOLE_BEFORE);
 
-    out = pico8_bg_struct_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));
+    out = background_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));
     assert(out.stop && out.held != NULL);
     assert(out.held->class == probe_class());
-    assert(ents_listed(entities_by_tag("probe"), out.held));
+    assert(entity_list_listed(entities_by_tag("probe"), out.held));
 
-    out = pico8_bg_struct_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));
+    out = background_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));
     assert(out.stop && out.held != NULL);
     assert(out.held->class == wormhole_class());
-    assert(ents_listed(entities_by_tag("wormhole"), out.held));
-    assert(is_me(&((const wormhole_t *)out.held)->header, "placing"));
+    assert(entity_list_listed(entities_by_tag("wormhole"), out.held));
+    assert(is_state(&((const wormhole_t *)out.held)->header, "placing"));
 
-    check_int("ldown g_ after", ents_list_count(entities_by_tag("probe")), LDOWN_G_AFTER);
-    check_int("ldown mz after", ents_list_count(entities_by_tag("wormhole")), LDOWN_MZ_AFTER);
+    check_int("left_press probe after", entity_list_list_count(entities_by_tag("probe")), LEFT_PRESS_PROBE_AFTER);
+    check_int("left_press wormhole after", entity_list_list_count(entities_by_tag("wormhole")), LEFT_PRESS_WORMHOLE_AFTER);
 }
 
 static int in_layer(int layer, const void *e) {
-    const pico8_ui_ic_t *ic = pico8_ok()->ic;
+    const ui_hovered_by_layer_t *ic = main_ui()->hovered_by_layer;
 
     if (ic == NULL) {
         return 0;
     }
-    return ents_listed(&ic->layers[layer], e);
+    return entity_list_listed(&ic->layers[layer], e);
 }
 
 /* Nothing else hovered: the background is `o_`, marked `m_`, in layer 1,
@@ -351,13 +351,13 @@ static p8_input_frame_t g_void;
 
 static void test_hover(void) {
     uint32_t h = 2166136261u;
-    pico8_bg_t *bg;
+    background_t *bg;
     void *veil;
     entity_t *kv = NULL;
     down_t kn;
 
     start_game();
-    bg = the_bg();
+    bg = the_background();
     memset(&g_void, 0, sizeof g_void);
     g_void.mouse_x = 64;
     g_void.mouse_y = 100;
@@ -367,37 +367,37 @@ static void test_hover(void) {
     dispatch_context_set_input(&input);
     update_entities();
 
-    pico8_ui_lj(&mem, pico8_ok());
-    assert((void *)pico8_ok()->o_ == bg);
-    assert(m__state(bg) == 2);
+    ui_update(&mem, main_ui());
+    assert((void *)main_ui()->hovered == bg);
+    assert(is_hovered_state(bg) == 2);
     assert(in_layer(1, bg));
     h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
-    h = fnv(h, m__state(bg));
+    h = fnv(h, is_hovered_state(bg));
 
-    assert(pico8_ui_jz(pico8_ok(), PICO8_JZ_LDOWN, vec_ref(1, 1), vec_ref(2, 2), NULL, &kv, &kn));
+    assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, vec_ref(1, 1), vec_ref(2, 2), NULL, &kv, &kn));
     assert((void *)kv == bg && kn.stop && kn.held != NULL && (void *)kn.held != bg);
     kv = NULL;
-    assert(pico8_ui_jz(pico8_ok(), PICO8_JZ_RDOWN, vec_ref(1, 1), vec_ref(2, 2), NULL, &kv, &kn));
+    assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_RIGHT_PRESS, vec_ref(1, 1), vec_ref(2, 2), NULL, &kv, &kn));
     assert((void *)kv == bg && kn.stop && (void *)kn.held == bg);
-    h = fold_vec(h, mq_of(bg));
+    h = fold_vec(h, drag_mouse_of(bg));
 
-    veil = (void *)pico8_fq_new(NULL);
-    pico8_ui_lj(&mem, pico8_ok());
-    assert((void *)pico8_ok()->o_ == veil);
-    assert(m__state(bg) == 0);
+    veil = (void *)modal_backdrop_new(NULL);
+    ui_update(&mem, main_ui());
+    assert((void *)main_ui()->hovered == veil);
+    assert(is_hovered_state(bg) == 0);
     h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
-    h = fnv(h, m__state(bg));
+    h = fnv(h, is_hovered_state(bg));
     check("hover", h, HOVER_HASH);
 }
 
-static planet_t *first_jo_with_me(const char *me) {
+static planet_t *first_planet_with_state(const char *me) {
     const entity_list_t *list = entities_by_tag("planet");
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         entity_t *e = list->items[i];
 
         assert(planet_is_family(e));
-        if (is_me(&((const planet_t *)e)->header, me)) {
+        if (is_state(&((const planet_t *)e)->header, me)) {
             return (planet_t *)e;
         }
     }
@@ -406,8 +406,8 @@ static planet_t *first_jo_with_me(const char *me) {
 
 /* Released over a colonized planet or a slipgate, `jz("gv",held)` reads
  * `s.qu` off the background, which it never has. */
-static void test_gv(void) {
-    pico8_bg_t *bg;
+static void test_accept_drop(void) {
+    background_t *bg;
     planet_t *ly;
     void *nr;
     planet_keys_t keys;
@@ -415,12 +415,12 @@ static void test_gv(void) {
 
     start_game();
     planet_apply_project((planet_t *)entities_by_tag("planet")->items[0], research_project_new(NULL));
-    bg = the_bg();
-    ly = first_jo_with_me("settled");
+    bg = the_background();
+    ly = first_planet_with_state("settled");
     assert(ly != NULL);
     r = planet_accept_drop(ly, &bg->header);
     assert(r.stop && r.held == NULL);
-    assert(is_me(&ly->header, "settled"));
+    assert(is_state(&ly->header, "settled"));
 
     keys.planet_id = NULL;
     keys.map_pos = ly->map_pos;
@@ -436,31 +436,31 @@ static void test_draw(void) {
     void *bg;
 
     reset_world();
-    bg = (void *)pico8_bg_new();
-    assert(ents_list_count(entities_by_message("draw")) == 1 && ents_listed(entities_by_message("draw"), bg));
+    bg = (void *)background_new();
+    assert(entity_list_list_count(entities_by_message("draw")) == 1 && entity_list_listed(entities_by_message("draw"), bg));
     p8_gfx_init(&gfx);
     p8_cls(&mem);
-    assert(main_camera()->class == pico8_qb_struct_class());
-    pico8_qb_md(dispatch_context_gfx(), (pico8_qb_t *)main_camera(), p8_fixed_from_int(1));
+    assert(main_camera()->class == camera_class());
+    camera_apply(dispatch_context_gfx(), (camera_t *)main_camera(), p8_fixed_from_int(1));
     draw_layers("draw");
     check("draw", screen_hash(), DRAW_HASH);
 }
 
-enum { HELD_ABSENT, HELD_G_STRUCT, HELD_MZ_STRUCT, HELD_OTHER };
+enum { HELD_ABSENT, HELD_PROBE_STRUCT, HELD_WORMHOLE_STRUCT, HELD_OTHER };
 
-static uint32_t lheld_kind(void) {
-    const void *held = pico8_ok()->lheld;
+static uint32_t left_held_kind(void) {
+    const void *held = main_ui()->left_held;
 
     if (held == NULL) {
         return HELD_ABSENT;
     }
     if (held != NULL &&
         ((const entity_t *)held)->class == probe_class()) {
-        return HELD_G_STRUCT;
+        return HELD_PROBE_STRUCT;
     }
     if (held != NULL &&
         ((const entity_t *)held)->class == wormhole_class()) {
-        return HELD_MZ_STRUCT;
+        return HELD_WORMHOLE_STRUCT;
     }
     return HELD_OTHER;
 }
@@ -478,11 +478,11 @@ static void drag_frame(int i, int x, int y, int buttons) {
  * until released; the left button pressed there holds the `g_` its `ldown`
  * builds. */
 static void test_scripted_drags(void) {
-    pico8_bg_t *bg;
+    background_t *bg;
     int i;
 
     start_game();
-    bg = the_bg();
+    bg = the_background();
     for (i = 0; i < 4; i++) {
         drag_frame(i, 64 + 3 * i, 100 - 2 * i, i < 3 ? 2 : 0);
     }
@@ -498,10 +498,10 @@ static void test_scripted_drags(void) {
 
         pico8__update60();
         pico8__draw();
-        assert(find_bg(&count) == bg && count == 1);
-        assert((pico8_ok()->rheld == bg) == (i < 3));
+        assert(find_background(&count) == bg && count == 1);
+        assert((main_ui()->right_held == bg) == (i < 3));
         if (i == 6) {
-            assert(lheld_kind() == HELD_G_STRUCT);
+            assert(left_held_kind() == HELD_PROBE_STRUCT);
         }
         if (i < 6) {
             p8_input_step(&input);
@@ -511,31 +511,31 @@ static void test_scripted_drags(void) {
     dispatch_context_set_input(&input);
 }
 
-static int is_a_bg_struct(const void *e) {
+static int is_a_background_struct(const void *e) {
     return e != NULL &&
-           ((const entity_t *)e)->class == pico8_bg_struct_class();
+           ((const entity_t *)e)->class == background_class();
 }
 
 /* Built by `eu()`, `pico8_bg_new` or through its class, a background is a
  * struct with `kj`, `ldown`, `rdown` and `hq` as methods. */
-static void test_bg_is_a_struct(void) {
+static void test_background_is_a_struct(void) {
     const entity_class_t *cls;
-    void *from_eu;
+    void *from_start_game;
     void *built;
     void *generic;
     void *veil;
 
     start_game();
-    from_eu = the_bg();
-    built = (void *)pico8_bg_new();
-    generic = (void *)pico8_bg_new();
-    assert(is_a_bg_struct(from_eu) && is_a_bg_struct(built) && is_a_bg_struct(generic));
+    from_start_game = the_background();
+    built = (void *)background_new();
+    generic = (void *)background_new();
+    assert(is_a_background_struct(from_start_game) && is_a_background_struct(built) && is_a_background_struct(generic));
     cls = ((const entity_t *)built)->class;
     assert(cls->draw != NULL && cls->left_press != NULL && cls->right_press != NULL && cls->drag != NULL);
     assert(cls->states[ENTITY_STATE_NORMAL] == NULL && cls->accept_drop == NULL && cls->draw_overlay == NULL);
     assert(cls->drop == NULL && cls->draw_at == NULL);
 
-    veil = (void *)pico8_fq_new(NULL);
+    veil = (void *)modal_backdrop_new(NULL);
     assert(((const entity_t *)veil)->class->right_press == NULL);
 }
 
@@ -571,13 +571,13 @@ int main(void) {
     in_fresh_child(test_construction);
     in_fresh_child(test_map);
     in_fresh_child(test_drag);
-    in_fresh_child(test_ldown);
+    in_fresh_child(test_left_press);
     in_fresh_child(test_hover);
-    in_fresh_child(test_gv);
+    in_fresh_child(test_accept_drop);
     in_fresh_child(test_draw);
     in_fresh_child(test_scripted_drags);
-    in_fresh_child(test_bg_is_a_struct);
+    in_fresh_child(test_background_is_a_struct);
 
-    printf("test_pico8_bg: all tests passed\n");
+    printf("test_background: all tests passed\n");
     return 0;
 }

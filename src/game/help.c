@@ -15,17 +15,17 @@
 
 static int g_fv_up = 0;
 
-static void pico8_fv_eu_placeholder(pico8_js_t *self) {
+static void pico8_fv_eu_placeholder(button_t *self) {
     (void)self;
 }
 
-static pico8_js_fn g_eu_dispatch = pico8_fv_eu_placeholder;
+static button_fn_t g_eu_dispatch = pico8_fv_eu_placeholder;
 
-pico8_js_fn pico8_eu_field_value(void) {
+button_fn_t pico8_eu_field_value(void) {
     return g_eu_dispatch;
 }
 
-void pico8_help_set_eu(pico8_js_fn fn) {
+void pico8_help_set_eu(button_fn_t fn) {
     g_eu_dispatch = (fn != NULL) ? fn : pico8_fv_eu_placeholder;
 }
 
@@ -38,7 +38,7 @@ static int pico8_fv_hd_dispatch(entity_t *self, const vec_t *qa, const vec_t *ra
 
 /* `pz(self, bo)`, each row's `my` the `eu` of this game. */
 void pico8_fv_pq(probe_t *self) {
-    pico8_js_keys_t bs[DIFFICULTY_OPTIONS_COUNT];
+    button_keys_t bs[DIFFICULTY_OPTIONS_COUNT];
     layout_row_keys_t lq[DIFFICULTY_OPTIONS_COUNT];
     layout_row_cell_t items[DIFFICULTY_OPTIONS_COUNT][PICO8_BO_ROW_CAP];
     pico8_pz_frame_t frame = {0};
@@ -52,14 +52,14 @@ void pico8_fv_pq(probe_t *self) {
 
         memset(&bs[i], 0, sizeof bs[i]);
         lq[i] = layout_row_keys_of_row(e->layout_row, items[i], PICO8_BO_ROW_CAP);
-        bs[i].lq_row = &lq[i];
-        bs[i].px = e->name;
+        bs[i].layout_row_keys = &lq[i];
+        bs[i].name = e->name;
         bs[i].has_trade = 1;
         bs[i].trade = p8_fixed_from_int(e->trade);
-        bs[i].has_en = 1;
-        bs[i].en = e->type_bias;
-        bs[i].has_my = 1;
-        bs[i].my = pico8_eu_field_value();
+        bs[i].has_type_bias = 1;
+        bs[i].type_bias = e->type_bias;
+        bs[i].has_on_click = 1;
+        bs[i].on_click = pico8_eu_field_value();
     }
     frame.has_eo = 1;
     frame.eo = self->archetype->open_sfx;

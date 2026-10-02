@@ -23,13 +23,13 @@
 #include "game/ui_button.h"
 #include "game/ui_zone.h"
 
-#define MY_TRUE_TICKS 6
-#define MY_TRUE_SEQUENCE_HASH 0xA6A43C27u
+#define ON_CLICK_TRUE_TICKS 6
+#define ON_CLICK_TRUE_SEQUENCE_HASH 0xA6A43C27u
 #define BARE_SEQUENCE_HASH 0x52BE382Au
 #define HOVER_SEQUENCE_HASH 0x689321F9u
 #define HOVER_CURSOR_HASH 0x04C40AB9u
 
-#define LDOWN_TICK 5
+#define LEFT_PRESS_TICK 5
 #define IDLE_TICKS 30
 
 static p8_memory_t mem;
@@ -56,7 +56,7 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-static int ents_listed(const entity_list_t *list, const void *e) {
+static int entity_list_listed(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -79,38 +79,38 @@ static uint32_t fold_bool_member(uint32_t h, int has, int b) {
 
 /* The kind words are constant by the struct's shape, kept so that the
  * sequence hashes still prove the typed reads. */
-static uint32_t fold_veil(uint32_t h, const pico8_fq_t *e) {
+static uint32_t fold_veil(uint32_t h, const modal_backdrop_t *e) {
     h = fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)e->header.state_time);
-    h = fold_bool_member(h, (e->p_ != 0), e->p_);
-    h = fold_bool_member(h, (e->m_ != 0), e->m_);
-    h = fnv(h, (uint32_t)ents_listed(live_entities(), e));
-    return fnv(h, (uint32_t)ents_listed(entities_by_message("hit_test"), e));
+    h = fold_bool_member(h, (e->is_dead != 0), e->is_dead);
+    h = fold_bool_member(h, (e->is_hovered != 0), e->is_hovered);
+    h = fnv(h, (uint32_t)entity_list_listed(live_entities(), e));
+    return fnv(h, (uint32_t)entity_list_listed(entities_by_message("hit_test"), e));
 }
 
-static const void *ok_o_(void) {
-    return pico8_ok()->o_;
+static const void *main_ui_hovered(void) {
+    return main_ui()->hovered;
 }
 
-static int g_my_calls = 0;
-static int g_my_answer = 1;
+static int g_on_click_calls = 0;
+static int g_on_click_answer = 1;
 
-static int counting_my(pico8_fq_t *self) {
+static int counting_on_click(modal_backdrop_t *self) {
     (void)self;
-    g_my_calls++;
-    return g_my_answer;
+    g_on_click_calls++;
+    return g_on_click_answer;
 }
 
-static pico8_fq_t *veil_with_my(int answer) {
-    pico8_fq_keys_t keys = {0};
+static modal_backdrop_t *veil_with_on_click(int answer) {
+    modal_backdrop_keys_t keys = {0};
 
-    g_my_calls = 0;
-    g_my_answer = answer;
-    keys.my = counting_my;
-    return pico8_fq_new(&keys);
+    g_on_click_calls = 0;
+    g_on_click_answer = answer;
+    keys.on_click = counting_on_click;
+    return modal_backdrop_new(&keys);
 }
 
-static int ldown(void *veil) {
-    down_t out = pico8_fq_struct_class()->left_press(veil, NULL, NULL);
+static int left_press(void *veil) {
+    down_t out = modal_backdrop_class()->left_press(veil, NULL, NULL);
 
     assert(out.held == NULL);
     return out.stop;
@@ -124,19 +124,19 @@ static void check(const char *label, uint32_t got, uint32_t want) {
 
 /* `fq(de)`: the click at tick LDOWN_TICK stores `my()` in `p_`, and the
  * next `dg` takes the veil out. */
-static void test_ldown_with_a_true_my_removes_the_veil(void) {
+static void test_left_press_with_a_true_on_click_removes_the_veil(void) {
     uint32_t h = 2166136261u;
-    pico8_fq_t *veil;
+    modal_backdrop_t *veil;
     int ticks = 0;
 
     reset_world();
     pico8_cart_vider_file_sortie();
-    veil = veil_with_my(1);
+    veil = veil_with_on_click(1);
     h = fold_veil(h, veil);
-    while (ents_listed(live_entities(), veil)) {
-        if (ticks == LDOWN_TICK) {
-            assert(ldown(veil));
-            assert(g_my_calls == 1);
+    while (entity_list_listed(live_entities(), veil)) {
+        if (ticks == LEFT_PRESS_TICK) {
+            assert(left_press(veil));
+            assert(g_on_click_calls == 1);
             h = fold_veil(h, veil);
         }
         update_entities();
@@ -144,65 +144,65 @@ static void test_ldown_with_a_true_my_removes_the_veil(void) {
         h = fold_veil(h, veil);
         assert(ticks < 1000);
     }
-    assert(g_my_calls == 1);
-    assert(!ents_listed(entities_by_message("hit_test"), veil));
-    printf("[my true] ticks=%d\n", ticks);
+    assert(g_on_click_calls == 1);
+    assert(!entity_list_listed(entities_by_message("hit_test"), veil));
+    printf("[on_click true] ticks=%d\n", ticks);
     fflush(stdout);
-    assert(ticks == MY_TRUE_TICKS);
-    check("my true", h, MY_TRUE_SEQUENCE_HASH);
+    assert(ticks == ON_CLICK_TRUE_TICKS);
+    check("on_click true", h, ON_CLICK_TRUE_SEQUENCE_HASH);
 }
 
 /* `fq()`: a click is swallowed, `p_` stays nil, the veil stays. */
 static void test_bare_veil_swallows_the_click_and_stays(void) {
     uint32_t h = 2166136261u;
-    pico8_fq_t *veil;
+    modal_backdrop_t *veil;
     int i;
 
     reset_world();
     pico8_cart_vider_file_sortie();
-    veil = pico8_fq_new(NULL);
+    veil = modal_backdrop_new(NULL);
     for (i = 0; i < IDLE_TICKS; i++) {
-        if (i == LDOWN_TICK) {
-            assert(ldown(veil));
-            assert(!veil->p_);
+        if (i == LEFT_PRESS_TICK) {
+            assert(left_press(veil));
+            assert(!veil->is_dead);
         }
         update_entities();
         h = fold_veil(h, veil);
     }
-    assert(ents_listed(live_entities(), veil) && ents_listed(entities_by_message("hit_test"), veil));
+    assert(entity_list_listed(live_entities(), veil) && entity_list_listed(entities_by_message("hit_test"), veil));
     check("bare", h, BARE_SEQUENCE_HASH);
 }
 
 /* A `my` answering false leaves `p_` false, which reads as nil: the veil
  * stays, as a bare one. */
-static void test_false_my_keeps_the_veil(void) {
+static void test_false_on_click_keeps_the_veil(void) {
     uint32_t h = 2166136261u;
-    pico8_fq_t *veil;
+    modal_backdrop_t *veil;
     int i;
 
     reset_world();
     pico8_cart_vider_file_sortie();
-    veil = veil_with_my(0);
+    veil = veil_with_on_click(0);
     for (i = 0; i < IDLE_TICKS; i++) {
-        if (i == LDOWN_TICK) {
-            assert(ldown(veil));
-            assert(g_my_calls == 1);
-            assert(!veil->p_);
+        if (i == LEFT_PRESS_TICK) {
+            assert(left_press(veil));
+            assert(g_on_click_calls == 1);
+            assert(!veil->is_dead);
         }
         update_entities();
         h = fold_veil(h, veil);
     }
-    assert(ents_listed(live_entities(), veil) && ents_listed(entities_by_message("hit_test"), veil));
-    check("my false", h, BARE_SEQUENCE_HASH);
+    assert(entity_list_listed(live_entities(), veil) && entity_list_listed(entities_by_message("hit_test"), veil));
+    check("on_click false", h, BARE_SEQUENCE_HASH);
 }
 
 static int in_layer(int layer, const void *e) {
-    const pico8_ui_ic_t *ic = pico8_ok()->ic;
+    const ui_hovered_by_layer_t *ic = main_ui()->hovered_by_layer;
 
     if (ic == NULL) {
         return 0;
     }
-    return ents_listed(&ic->layers[layer], e);
+    return entity_list_listed(&ic->layers[layer], e);
 }
 
 /* A started game, then `fq()`: `ok`'s hover loop makes it `o_` (hd=1 is
@@ -212,36 +212,36 @@ static void test_hover_loop_on_the_veil(void) {
     uint32_t h = 2166136261u;
     down_t kn;
     entity_t *kv = NULL;
-    pico8_fq_t *veil;
+    modal_backdrop_t *veil;
 
     pico8__init();
     pico8_eu(NULL);
-    veil = pico8_fq_new(NULL);
+    veil = modal_backdrop_new(NULL);
 
-    pico8_ui_lj(&mem, pico8_ok());
-    assert(ok_o_() == veil);
+    ui_update(&mem, main_ui());
+    assert(main_ui_hovered() == veil);
     assert(in_layer(14, veil) && !in_layer(15, veil));
-    assert(veil->m_);
+    assert(veil->is_hovered);
     h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
     h = fold_veil(h, veil);
 
     p8_gfx_init(&gfx);
     p8_cls(&mem);
-    pico8_ui_ev(&gfx, &mem, pico8_ok());
+    ui_draw_overlay(&gfx, &mem, main_ui());
     check("hover cursor", screen_hash(), HOVER_CURSOR_HASH);
 
-    assert(pico8_ui_jz(pico8_ok(), PICO8_JZ_LDOWN, NULL, NULL, NULL, &kv, &kn));
+    assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, NULL, NULL, NULL, &kv, &kn));
     assert((void *)kv == veil && kn.stop && kn.held == NULL);
     kv = NULL;
-    if (pico8_ui_jz(pico8_ok(), PICO8_JZ_RDOWN, NULL, NULL, NULL, &kv, &kn)) {
+    if (ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_RIGHT_PRESS, NULL, NULL, NULL, &kv, &kn)) {
         assert((void *)kv != veil);
     }
     h = fold_veil(h, veil);
 
     entity_unregister(&veil->header);
-    pico8_ui_lj(&mem, pico8_ok());
-    assert(ok_o_() != veil && !in_layer(14, veil));
-    assert(!veil->m_);
+    ui_update(&mem, main_ui());
+    assert(main_ui_hovered() != veil && !in_layer(14, veil));
+    assert(!veil->is_hovered);
     h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
     h = fold_veil(h, veil);
     check("hover", h, HOVER_SEQUENCE_HASH);
@@ -249,74 +249,74 @@ static void test_hover_loop_on_the_veil(void) {
 
 /* The veil's defaults are the class's generated defaults. */
 static void test_defaults_match_the_parsed_spec(void) {
-    pico8_fq_t *veil;
+    modal_backdrop_t *veil;
 
     reset_world();
     pico8_cart_vider_file_sortie();
-    veil = pico8_fq_new(NULL);
-    assert(veil->def == &modal_backdrop_archetype);
-    assert(veil->def->layer == p8_fixed_from_int(14));
-    assert(veil->def->hit_test == p8_fixed_from_int(1));
+    veil = modal_backdrop_new(NULL);
+    assert(veil->archetype == &modal_backdrop_archetype);
+    assert(veil->archetype->layer == p8_fixed_from_int(14));
+    assert(veil->archetype->hit_test == p8_fixed_from_int(1));
     assert(veil->header.state != NULL && strcmp(veil->header.state, "normal") == 0);
-    assert(pico8_fq_ready());
-    pico8_fq_shutdown();
-    assert(!pico8_fq_ready());
-    pico8_fq_init();
+    assert(modal_backdrop_ready());
+    modal_backdrop_shutdown();
+    assert(!modal_backdrop_ready());
+    modal_backdrop_init();
 }
 
 static int is_a_veil_struct(const void *e) {
     return e != NULL &&
-           ((const entity_t *)e)->class == pico8_fq_struct_class();
+           ((const entity_t *)e)->class == modal_backdrop_class();
 }
 
 /* Built by `pico8_fq_new` or through its class, a veil is a struct in hv
  * and cv.hd only; its `hd` is the constant hit of `hd=1`, and it has
  * neither `ph` nor `rdown`. */
-static void test_fq_is_a_struct_registered_under_hd(void) {
+static void test_modal_backdrop_is_a_struct_registered_under_hit_test(void) {
     const char *others[] = {"draw", "draw_overlay", "new_year", "refresh"};
-    const entity_class_t *cls = pico8_fq_struct_class();
-    pico8_fq_keys_t keys = {0};
+    const entity_class_t *cls = modal_backdrop_class();
+    modal_backdrop_keys_t keys = {0};
     void *built;
     void *generic;
     int i;
 
     reset_world();
     pico8_cart_vider_file_sortie();
-    keys.my = pico8_de_my();
-    built = pico8_fq_new(&keys);
-    generic = pico8_fq_new(NULL);
+    keys.on_click = pico8_de_my();
+    built = modal_backdrop_new(&keys);
+    generic = modal_backdrop_new(NULL);
 
     assert(is_a_veil_struct(built) && is_a_veil_struct(generic));
-    assert(ents_listed(live_entities(), built) && ents_listed(entities_by_message("hit_test"), built));
-    assert(ents_listed(live_entities(), generic) && ents_listed(entities_by_message("hit_test"), generic));
+    assert(entity_list_listed(live_entities(), built) && entity_list_listed(entities_by_message("hit_test"), built));
+    assert(entity_list_listed(live_entities(), generic) && entity_list_listed(entities_by_message("hit_test"), generic));
     for (i = 0; i < 4; i++) {
-        assert(!ents_listed(entities_by_message(others[i]), built) && !ents_listed(entities_by_message(others[i]), generic));
+        assert(!entity_list_listed(entities_by_message(others[i]), built) && !entity_list_listed(entities_by_message(others[i]), generic));
     }
     assert(cls->hit_test == entity_registry_hit_test_always && cls->hit_test(generic, NULL, NULL) == 1);
     assert(cls->states[ENTITY_STATE_NORMAL] == NULL && cls->right_press == NULL);
-    assert(((const pico8_fq_t *)built)->my == pico8_de_my());
+    assert(((const modal_backdrop_t *)built)->on_click == pico8_de_my());
 }
 
 /* A veil takes a place; once its `my` lifts `p_` and `dg` takes it out,
  * emptying the exit queue gives the place back. */
-static void test_veil_gives_its_place_back(void) {
-    pico8_fq_t *veil;
+static void test_veil_gives_its_slot_back(void) {
+    modal_backdrop_t *veil;
     int base;
     int ticks = 0;
 
     reset_world();
     pico8_cart_vider_file_sortie();
-    base = pico8_zone_interface_vivantes(PICO8_SORTE_FQ);
-    veil = veil_with_my(1);
-    assert(pico8_zone_interface_vivantes(PICO8_SORTE_FQ) == base + 1);
-    assert(ldown(veil));
-    while (ents_listed(live_entities(), veil)) {
+    base = ui_zone_live(SLOT_KIND_MODAL_BACKDROP);
+    veil = veil_with_on_click(1);
+    assert(ui_zone_live(SLOT_KIND_MODAL_BACKDROP) == base + 1);
+    assert(left_press(veil));
+    while (entity_list_listed(live_entities(), veil)) {
         update_entities();
         assert(++ticks < 1000);
     }
-    assert(pico8_zone_interface_vivantes(PICO8_SORTE_FQ) == base + 1 && "out of hv, still read this frame");
+    assert(ui_zone_live(SLOT_KIND_MODAL_BACKDROP) == base + 1 && "out of hv, still read this frame");
     pico8_cart_vider_file_sortie();
-    assert(pico8_zone_interface_vivantes(PICO8_SORTE_FQ) == base);
+    assert(ui_zone_live(SLOT_KIND_MODAL_BACKDROP) == base);
 }
 
 int main(void) {
@@ -331,14 +331,14 @@ int main(void) {
 
     pico8_cart_load();
 
-    test_ldown_with_a_true_my_removes_the_veil();
+    test_left_press_with_a_true_on_click_removes_the_veil();
     test_bare_veil_swallows_the_click_and_stays();
-    test_false_my_keeps_the_veil();
+    test_false_on_click_keeps_the_veil();
     test_hover_loop_on_the_veil();
     test_defaults_match_the_parsed_spec();
-    test_fq_is_a_struct_registered_under_hd();
-    test_veil_gives_its_place_back();
+    test_modal_backdrop_is_a_struct_registered_under_hit_test();
+    test_veil_gives_its_slot_back();
 
-    printf("test_pico8_fq: all tests passed\n");
+    printf("test_modal_backdrop: all tests passed\n");
     return 0;
 }

@@ -69,7 +69,7 @@ static int targeting_track_slipway_predicate(entity_t *e, void *ctx_ptr) {
 /* `hw` is read off the `ui` class, not off `ok`; no class reads as "the
  * point is not inside the panel". */
 static int probe_panel_box_contains(vec_t rp) {
-    const box_t *hw = pico8_ui_hw();
+    const box_t *hw = ui_panel_box();
 
     if (hw == NULL) {
         return 0;
@@ -230,15 +230,15 @@ void targeting_tooltip(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *sel
 
 void targeting_tooltip_show(const p8_graphics_t *gfx, p8_memory_t *mem, const char *me, const targeting_t *pb) {
     vec_t mp;
-    const pico8_nf_t *je;
+    const mouse_t *je;
     const char *display = "";
 
     if (me == NULL || strcmp(me, "placing") != 0) {
         return;
     }
 
-    je = pico8_je_nf();
-    mp = je != NULL && je->ra != NULL ? *je->ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    je = main_mouse_typed();
+    mp = je != NULL && je->pos != NULL ? *je->pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 
     if (pb->target != NULL) {
         const char *qs = probe_target_status_text(pb->target);

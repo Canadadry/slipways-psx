@@ -11,60 +11,60 @@
 #include "engine/allocator.h"
 #include "game/ui_zone.h"
 
-#define STDERR_LOG "tmp/test_pico8_zone_interface_stderr.txt"
+#define STDERR_LOG "tmp/test_ui_zone_stderr.txt"
 
 /* volatile : la lecture d'un pointeur perime ne doit pas etre retiree par
  * l'optimiseur, c'est elle que le cas observe. */
 static volatile unsigned char sink;
 
-static int case_live_places_follow_takes(void) {
-    for (int s = 0; s < PICO8_SORTE_COUNT; s++) assert(pico8_zone_interface_vivantes((pico8_sorte_t)s) == 0);
+static int case_live_slots_follow_takes(void) {
+    for (int s = 0; s < SLOT_KIND_COUNT; s++) assert(ui_zone_live((slot_kind_t)s) == 0);
 
-    const allocator_t *a = pico8_zone_interface_place(PICO8_SORTE_JS);
-    const allocator_t *b = pico8_zone_interface_place(PICO8_SORTE_JS);
-    const allocator_t *c = pico8_zone_interface_place(PICO8_SORTE_IV);
-    assert(pico8_zone_interface_vivantes(PICO8_SORTE_JS) == 2);
-    assert(pico8_zone_interface_vivantes(PICO8_SORTE_IV) == 1);
-    assert(pico8_zone_interface_vivantes(PICO8_SORTE_MH) == 0);
+    const allocator_t *a = ui_zone_slot(SLOT_KIND_BUTTON);
+    const allocator_t *b = ui_zone_slot(SLOT_KIND_BUTTON);
+    const allocator_t *c = ui_zone_slot(SLOT_KIND_TOAST);
+    assert(ui_zone_live(SLOT_KIND_BUTTON) == 2);
+    assert(ui_zone_live(SLOT_KIND_TOAST) == 1);
+    assert(ui_zone_live(SLOT_KIND_MESSAGE_BOX) == 0);
 
     arena_release(a);
-    assert(pico8_zone_interface_vivantes(PICO8_SORTE_JS) == 1 && "rendre une place decompte sa sorte");
+    assert(ui_zone_live(SLOT_KIND_BUTTON) == 1 && "rendre une place decompte sa sorte");
     arena_release(b);
     arena_release(c);
-    for (int s = 0; s < PICO8_SORTE_COUNT; s++) assert(pico8_zone_interface_vivantes((pico8_sorte_t)s) == 0);
+    for (int s = 0; s < SLOT_KIND_COUNT; s++) assert(ui_zone_live((slot_kind_t)s) == 0);
     return 0;
 }
 
-static int case_place_alive_until_released(void) {
-    const allocator_t *place = pico8_zone_interface_place(PICO8_SORTE_RANGEE);
-    unsigned char *text = allocator_alloc(place, 64);
+static int case_slot_alive_until_released(void) {
+    const allocator_t *slot = ui_zone_slot(SLOT_KIND_ROW);
+    unsigned char *text = allocator_alloc(slot, 64);
     memset(text, 5, 64);
     for (int i = 0; i < 64; i++) assert(text[i] == 5);
-    arena_release(place);
+    arena_release(slot);
     return 0;
 }
 
-static int case_place_dead_after_release(void) {
-    const allocator_t *place = pico8_zone_interface_place(PICO8_SORTE_RANGEE);
-    unsigned char *text = allocator_alloc(place, 64);
+static int case_slot_dead_after_release(void) {
+    const allocator_t *slot = ui_zone_slot(SLOT_KIND_ROW);
+    unsigned char *text = allocator_alloc(slot, 64);
     memset(text, 5, 64);
-    arena_release(place);
+    arena_release(slot);
     sink = text[63];
     return 0;
 }
 
-static int case_js_place_full(void) {
-    allocator_alloc(pico8_zone_interface_place(PICO8_SORTE_JS), 6240);
+static int case_button_slot_full(void) {
+    allocator_alloc(ui_zone_slot(SLOT_KIND_BUTTON), 6240);
     return 0;
 }
 
-static int case_fq_zone_full(void) {
-    for (int i = 0; i <= 4; i++) pico8_zone_interface_place(PICO8_SORTE_FQ);
+static int case_modal_backdrop_zone_full(void) {
+    for (int i = 0; i <= 4; i++) ui_zone_slot(SLOT_KIND_MODAL_BACKDROP);
     return 0;
 }
 
-static int case_rangee_place_full(void) {
-    allocator_alloc(pico8_zone_interface_place(PICO8_SORTE_RANGEE), 1192);
+static int case_row_slot_full(void) {
+    allocator_alloc(ui_zone_slot(SLOT_KIND_ROW), 1192);
     return 0;
 }
 
@@ -72,12 +72,12 @@ static const struct {
     const char *name;
     int (*run)(void);
 } CASES[] = {
-    {"live_places_follow_takes", case_live_places_follow_takes},
-    {"place_alive_until_released", case_place_alive_until_released},
-    {"place_dead_after_release", case_place_dead_after_release},
-    {"js_place_full", case_js_place_full},
-    {"rangee_place_full", case_rangee_place_full},
-    {"fq_zone_full", case_fq_zone_full},
+    {"live_slots_follow_takes", case_live_slots_follow_takes},
+    {"slot_alive_until_released", case_slot_alive_until_released},
+    {"slot_dead_after_release", case_slot_dead_after_release},
+    {"button_slot_full", case_button_slot_full},
+    {"row_slot_full", case_row_slot_full},
+    {"modal_backdrop_zone_full", case_modal_backdrop_zone_full},
 };
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
@@ -147,17 +147,17 @@ int main(int argc, char **argv) {
     if (argc == 2) {
         for (size_t i = 0; i < CASE_COUNT; i++)
             if (strcmp(argv[1], CASES[i].name) == 0) return CASES[i].run();
-        fprintf(stderr, "test_pico8_zone_interface: cas inconnu %s\n", argv[1]);
+        fprintf(stderr, "test_ui_zone: cas inconnu %s\n", argv[1]);
         return 2;
     }
     self_path = argv[0];
-    expect_clean("live_places_follow_takes");
-    expect_clean("place_alive_until_released");
-    expect_poison_crash("place_dead_after_release");
-    expect_fatal("js_place_full", "zone place js pleine, limite ");
-    expect_fatal("rangee_place_full", "zone place rangee pleine, limite ");
-    expect_fatal("fq_zone_full", "zone interface fq pleine, limite 4 places");
+    expect_clean("live_slots_follow_takes");
+    expect_clean("slot_alive_until_released");
+    expect_poison_crash("slot_dead_after_release");
+    expect_fatal("button_slot_full", "zone place button pleine, limite ");
+    expect_fatal("row_slot_full", "zone place rangee pleine, limite ");
+    expect_fatal("modal_backdrop_zone_full", "zone interface modal_backdrop pleine, limite 4 places");
     remove(STDERR_LOG);
-    printf("test_pico8_zone_interface: all tests passed\n");
+    printf("test_ui_zone: all tests passed\n");
     return 0;
 }

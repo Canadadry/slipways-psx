@@ -172,9 +172,9 @@ static void join(void *qu, void *re) {
     jc = slipway_new(&slipway_keys);
     *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
                         vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
-    pico8_ok()->o_ = re;
+    main_ui()->hovered = re;
     slipway_class()->drag(&jc->header, mp, NULL);
-    pico8_ok()->o_ = NULL;
+    main_ui()->hovered = NULL;
     while (jc->header.state_time < p8_fixed_from_int(15)) {
         update_entities();
     }
@@ -525,11 +525,11 @@ static void test_trade_is_a_struct(void) {
     must_abort(build_with_nil_resource_holding_1, NULL);
     must_abort(build_with_nil_resource_as_bool, NULL);
     must_abort(resource_of_true_route, NULL);
-    must_abort(last_planet_on_other, pico8_ok());
-    must_abort(extend_on_other, pico8_ok());
-    must_abort(copy_of_other, pico8_ok());
-    must_abort(equal_left_other, pico8_ok());
-    must_abort(equal_right_other, pico8_ok());
+    must_abort(last_planet_on_other, main_ui());
+    must_abort(extend_on_other, main_ui());
+    must_abort(copy_of_other, main_ui());
+    must_abort(equal_left_other, main_ui());
+    must_abort(equal_right_other, main_ui());
 }
 
 static int g_accept_calls = 0;

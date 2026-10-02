@@ -466,8 +466,8 @@ static void test_life(void) {
     h = fold_dg(h, idle);
 
     placed = build_slipgate();
-    assert(pico8_mo_qb() != NULL);
-    mo_ra = pico8_mo_qb()->ra;
+    assert(main_camera_typed() != NULL);
+    mo_ra = main_camera_typed()->pos;
     assert(mo_ra != NULL);
     mp = vec_ref(vec_add(*mo_ra, vec_xy(12, 108)));
     cls_of(placed)->drag(placed, mp, vec_ref(vec_xy(64, 64)));

@@ -61,10 +61,10 @@
 #define LAYERS_HASH 0xDBA4EEF8u
 #define RIGHT_HASH 0xF02024DCu
 #define LEFT_HASH 0xBD9BC256u
-#define CJ_HASH 0xD215FB81u
+#define CLEAR_EPHEMERALS_HASH 0xD215FB81u
 #define STALE_HASH 0x5B066E86u
-#define KE_ME_HASH 0xE995C6EFu
-#define KE_T_HASH 0xDE09A985u
+#define ENTITY_STATE_HASH 0xE995C6EFu
+#define ENTITY_STATE_TIME_HASH 0xDE09A985u
 
 static p8_memory_t mem;
 static p8_graphics_t gfx;
@@ -82,7 +82,7 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
     return h;
 }
 
-static int ents_rank_in(const entity_list_t *list, const void *e) {
+static int entity_list_rank_in(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -92,13 +92,13 @@ static int ents_rank_in(const entity_list_t *list, const void *e) {
     return -1;
 }
 
-static int ents_listed(const entity_list_t *list, const void *e) {
-    return ents_rank_in(list, e) >= 0;
+static int entity_list_listed(const entity_list_t *list, const void *e) {
+    return entity_list_rank_in(list, e) >= 0;
 }
 
-static const entity_list_t *le_of(const pico8_ui_t *ok) {
-    assert(ok->le != NULL);
-    return ok->le;
+static const entity_list_t *ephemerals_of(const ui_t *ok) {
+    assert(ok->ephemerals != NULL);
+    return ok->ephemerals;
 }
 
 static vec_t vec_at(const vec_t *p) {
@@ -106,25 +106,25 @@ static vec_t vec_at(const vec_t *p) {
     return *p;
 }
 
-static const pico8_nf_t *je_nf(void) {
-    const pico8_nf_t *je = pico8_je_nf();
+static const mouse_t *typed_main_mouse(void) {
+    const mouse_t *je = main_mouse_typed();
     assert(je != NULL);
     return je;
 }
 
-static const pico8_qb_t *mo_qb(void) {
-    const pico8_qb_t *mo = pico8_mo_qb();
+static const camera_t *typed_main_camera(void) {
+    const camera_t *mo = main_camera_typed();
     assert(mo != NULL);
     return mo;
 }
 
-static planet_t *as_jo(void *e) {
+static planet_t *as_planet(void *e) {
     assert(planet_is_family(e));
     return e;
 }
 
 /* 0 absent or false, 2 true. */
-static uint32_t m__state(const planet_t *jo) {
+static uint32_t is_hovered_state(const planet_t *jo) {
     return jo->is_hovered ? 2 : 0;
 }
 
@@ -135,18 +135,18 @@ static uint32_t fold_vec(uint32_t h, vec_t v) {
 /* Presence, then the rank in `hv` of an entity. */
 static uint32_t fold_entity(uint32_t h, const void *ref) {
     h = fnv(h, (uint32_t)(ref != NULL));
-    return fnv(h, (uint32_t)ents_rank_in(live_entities(), ref));
+    return fnv(h, (uint32_t)entity_list_rank_in(live_entities(), ref));
 }
 
-static int layer_count(const pico8_ui_t *ok, int mf) {
-    return ok->ic == NULL ? 0 : ok->ic->layers[mf].count;
+static int layer_count(const ui_t *ok, int mf) {
+    return ok->hovered_by_layer == NULL ? 0 : ok->hovered_by_layer->layers[mf].count;
 }
 
-static int in_layer(const pico8_ui_t *ok, int mf, const void *e) {
-    return ok->ic != NULL && ents_listed(&ok->ic->layers[mf], e);
+static int in_layer(const ui_t *ok, int mf, const void *e) {
+    return ok->hovered_by_layer != NULL && entity_list_listed(&ok->hovered_by_layer->layers[mf], e);
 }
 
-static uint32_t fold_layers(uint32_t h, const pico8_ui_t *ok) {
+static uint32_t fold_layers(uint32_t h, const ui_t *ok) {
     int mf;
     for (mf = 0; mf <= 15; mf++) {
         h = fnv(h, (uint32_t)layer_count(ok, mf));
@@ -173,11 +173,11 @@ static uint32_t screen_hash(void) {
 
 /* `ev` drawn alone on a cleared screen is exactly sprite `id` at `je.ra`. */
 static uint32_t cursor_is(int id) {
-    vec_t at = vec_at(je_nf()->ra);
+    vec_t at = vec_at(typed_main_mouse()->pos);
     uint32_t drawn;
 
     p8_cls(&mem);
-    pico8_ui_ev(&gfx, &mem, pico8_ok());
+    ui_draw_overlay(&gfx, &mem, main_ui());
     drawn = screen_hash();
     p8_cls(&mem);
     p8_spr_default(&gfx, &mem, id, p8_fixed_flr_int(at.x), p8_fixed_flr_int(at.y));
@@ -191,18 +191,18 @@ static int is_of(const void *e, const entity_class_t *cls) {
 
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
  * reads as difficulty 0. */
-static pico8_ui_t *start_game(void) {
+static ui_t *start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
     pico8_cart_vider_file_sortie();
-    assert(pico8_ok() != NULL);
-    return pico8_ok();
+    assert(main_ui() != NULL);
+    return main_ui();
 }
 
 static vec_t pos_of(void *e) {
-    return vec_at(as_jo(e)->map_pos);
+    return vec_at(as_planet(e)->map_pos);
 }
 
 static p8_fixed_t dist2(vec_t a, vec_t b) {
@@ -211,7 +211,7 @@ static p8_fixed_t dist2(vec_t a, vec_t b) {
 }
 
 static int placed(void *e) {
-    return as_jo(e)->map_pos != NULL;
+    return as_planet(e)->map_pos != NULL;
 }
 
 /* The planet of `cg.jo` nearest to `qu`, among those with a `p`. */
@@ -245,12 +245,12 @@ static void mouse_at(int x, int y, int buttons) {
     update_entities();
 }
 
-static void *the_bg(void) {
+static void *the_background(void) {
     const entity_list_t *hv = live_entities();
     void *bg = NULL;
     int i;
     for (i = 0; i < hv->count; i++) {
-        if (is_of(hv->items[i], pico8_bg_struct_class())) {
+        if (is_of(hv->items[i], background_class())) {
             assert(bg == NULL);
             bg = hv->items[i];
         }
@@ -263,42 +263,42 @@ static void *the_bg(void) {
  * defaults, the names only read elsewhere, its one method, and the class's
  * `le`/`hw` by identity. */
 static void test_built(void) {
-    uint32_t h = 2166136261u;
-    pico8_ui_t *ok = start_game();
-    size_t i;
+    uint32_t hash = 2166136261u;
+    ui_t *ok = start_game();
+    size_t index;
 
-    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), ok));
-    h = fnv(h, (uint32_t)live_entities()->count);
-    assert(ents_listed(entities_by_message("draw_overlay"), ok));
-    h = fnv(h, (uint32_t)ents_rank_in(entities_by_message("draw_overlay"), ok));
-    for (i = 0; i < sizeof not_listed / sizeof not_listed[0]; i++) {
-        assert(!ents_listed(entities_by_message(not_listed[i]), ok));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), ok));
+    hash = fnv(hash, (uint32_t)live_entities()->count);
+    assert(entity_list_listed(entities_by_message("draw_overlay"), ok));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message("draw_overlay"), ok));
+    for (index = 0; index < sizeof not_listed / sizeof not_listed[0]; index++) {
+        assert(!entity_list_listed(entities_by_message(not_listed[index]), ok));
     }
-    for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
-        assert(!ents_listed(entities_by_tag(tags[i]), ok));
+    for (index = 0; index < sizeof tags / sizeof tags[0]; index++) {
+        assert(!entity_list_listed(entities_by_tag(tags[index]), ok));
     }
 
-    assert(ok->def->cursor_sprite == p8_fixed_from_int(58));
-    assert(ok->def->layer == p8_fixed_from_int(15));
+    assert(ok->archetype->cursor_sprite == p8_fixed_from_int(58));
+    assert(ok->archetype->layer == p8_fixed_from_int(15));
     assert(ok->header.state != NULL && strcmp(ok->header.state, "normal") == 0);
     /* The presence word is constant by the struct's shape, kept so that
      * BUILT_HASH still proves the typed read. */
-    h = fnv(fnv(h, 1u), (uint32_t)ok->header.state_time);
-    assert(ok->qa == NULL && ok->ic == NULL && ok->o_ == NULL && ok->gj == NULL && ok->lheld == NULL &&
-           ok->rheld == NULL);
-    assert(pico8_ui_struct_class()->draw_overlay != NULL);
-    assert(pico8_ui_struct_class()->states[ENTITY_STATE_NORMAL] == NULL && pico8_ui_struct_class()->left_press == NULL &&
-           pico8_ui_struct_class()->right_press == NULL && pico8_ui_struct_class()->hit_test == NULL);
+    hash = fnv(fnv(hash, 1u), (uint32_t)ok->header.state_time);
+    assert(ok->mouse_world == NULL && ok->hovered_by_layer == NULL && ok->hovered == NULL && ok->previous_hovered == NULL && ok->left_held == NULL &&
+           ok->right_held == NULL);
+    assert(ui_class()->draw_overlay != NULL);
+    assert(ui_class()->states[ENTITY_STATE_NORMAL] == NULL && ui_class()->left_press == NULL &&
+           ui_class()->right_press == NULL && ui_class()->hit_test == NULL);
 
-    assert(ok->le == pico8_ui_le_shared());
-    assert(ok->def == &ui_archetype);
-    assert(ok->def->panel_box.left == p8_fixed_from_int(10) && ok->def->panel_box.top == p8_fixed_from_int(10));
-    assert(ok->def->panel_box.right == p8_fixed_from_int(118) && ok->def->panel_box.bottom == p8_fixed_from_int(118));
-    assert(le_of(ok)->count == 0);
-    check("built", h, BUILT_HASH);
+    assert(ok->ephemerals == ui_ephemerals_shared());
+    assert(ok->archetype == &ui_archetype);
+    assert(ok->archetype->panel_box.left == p8_fixed_from_int(10) && ok->archetype->panel_box.top == p8_fixed_from_int(10));
+    assert(ok->archetype->panel_box.right == p8_fixed_from_int(118) && ok->archetype->panel_box.bottom == p8_fixed_from_int(118));
+    assert(ephemerals_of(ok)->count == 0);
+    check("built", hash, BUILT_HASH);
 }
 
-static void call_ix_my(int i) {
+static void call_galaxy_menu_on_click(int i) {
     pico8_ix_my(i)(NULL);
 }
 
@@ -306,28 +306,28 @@ static void call_ix_my(int i) {
  * replaces `ok.le`, and a `p` with `ff` empties it. */
 static void test_shared(void) {
     uint32_t h = 2166136261u;
-    pico8_ui_t *ok = start_game();
-    pico8_ui_t *other = pico8_ui_new();
-    const entity_list_t *le = ok->le;
+    ui_t *ok = start_game();
+    ui_t *other = ui_new();
+    const entity_list_t *le = ok->ephemerals;
 
     assert(other != NULL && other != ok);
-    assert(other->header.cursor_sprite == &other->def->cursor_sprite);
-    assert(other->le == le && le == pico8_ui_le_shared());
-    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), other));
-    h = fnv(h, (uint32_t)ents_rank_in(entities_by_message("draw_overlay"), other));
+    assert(other->header.cursor_sprite == &other->archetype->cursor_sprite);
+    assert(other->ephemerals == le && le == ui_ephemerals_shared());
+    h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), other));
+    h = fnv(h, (uint32_t)entity_list_rank_in(entities_by_message("draw_overlay"), other));
 
-    pico8_ui_cj(other);
-    assert(other->le != le && le_of(other)->count == 0);
-    assert(ok->le == le && pico8_ui_le_shared() == le && le->count == 0);
+    ui_clear_ephemerals(other);
+    assert(other->ephemerals != le && ephemerals_of(other)->count == 0);
+    assert(ok->ephemerals == le && ui_ephemerals_shared() == le && le->count == 0);
 
-    call_ix_my(4);
-    assert(ok->le != le && other->le != ok->le);
-    h = fnv(h, (uint32_t)le_of(ok)->count);
-    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), le_of(ok)->items[0]));
-    assert(pico8_ui_le_shared() == le && le->count == 0);
+    call_galaxy_menu_on_click(4);
+    assert(ok->ephemerals != le && other->ephemerals != ok->ephemerals);
+    h = fnv(h, (uint32_t)ephemerals_of(ok)->count);
+    h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), ephemerals_of(ok)->items[0]));
+    assert(ui_ephemerals_shared() == le && le->count == 0);
 
     (void)pico8_fv_new();
-    assert(le_of(ok)->count == 0 && ok->le != le);
+    assert(ephemerals_of(ok)->count == 0 && ok->ephemerals != le);
     h = fnv(h, (uint32_t)live_entities()->count);
     check("shared", h, SHARED_HASH);
 }
@@ -336,33 +336,33 @@ static void test_shared(void) {
  * `o_`, and `ev` draws sprite 58 at `je.ra`. */
 static void test_fresh(void) {
     uint32_t h = 2166136261u;
-    pico8_ui_t *ok = start_game();
+    ui_t *ok = start_game();
     vec_t want;
 
     mouse_at(64, 100, 0);
-    pico8_ui_lj(&mem, pico8_ok());
-    want = vec_add(vec_at(je_nf()->ra), vec_at(mo_qb()->ra));
-    assert(vec_at(ok->qa).x == want.x && vec_at(ok->qa).y == want.y);
-    assert(ok->ic != NULL && ok->o_ != NULL);
-    assert(ok->gj == ok->o_);
-    assert((void *)ok->o_ == the_bg());
-    h = fold_vec(h, vec_at(ok->qa));
+    ui_update(&mem, main_ui());
+    want = vec_add(vec_at(typed_main_mouse()->pos), vec_at(typed_main_camera()->pos));
+    assert(vec_at(ok->mouse_world).x == want.x && vec_at(ok->mouse_world).y == want.y);
+    assert(ok->hovered_by_layer != NULL && ok->hovered != NULL);
+    assert(ok->previous_hovered == ok->hovered);
+    assert((void *)ok->hovered == the_background());
+    h = fold_vec(h, vec_at(ok->mouse_world));
     h = fold_layers(h, ok);
-    h = fold_entity(h, ok->o_);
+    h = fold_entity(h, ok->hovered);
     h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
     h = fnv(h, cursor_is(58));
-    assert(ok->le == pico8_ui_le_shared());
+    assert(ok->ephemerals == ui_ephemerals_shared());
     check("fresh", h, FRESH_HASH);
 }
 
 /* The first planet of `cg.jo` whose screen position is well inside. */
 static planet_t *planet_on_screen(int *sx, int *sy) {
     const entity_list_t *jo = entities_by_tag("planet");
-    vec_t cam = vec_at(mo_qb()->ra);
+    vec_t cam = vec_at(typed_main_camera()->pos);
     int i;
 
     for (i = 0; jo != NULL && i < jo->count; i++) {
-        vec_t at = vec_at(as_jo(jo->items[i])->pos);
+        vec_t at = vec_at(as_planet(jo->items[i])->pos);
         int x = p8_fixed_flr_int(p8_fixed_sub(at.x, cam.x));
         int y = p8_fixed_flr_int(p8_fixed_sub(at.y, cam.y));
         if (x >= 16 && x <= 112 && y >= 16 && y <= 112) {
@@ -379,35 +379,35 @@ static planet_t *planet_on_screen(int *sx, int *sy) {
  * at 0x5f80, `gj` on the next pass; the mouse away unmarks it. */
 static void test_hover(void) {
     uint32_t h = 2166136261u;
-    pico8_ui_t *ok = start_game();
+    ui_t *ok = start_game();
     int x;
     int y;
     planet_t *planet;
 
     mouse_at(64, 100, 0);
-    pico8_ui_lj(&mem, ok);
+    ui_update(&mem, ok);
     planet = planet_on_screen(&x, &y);
     mouse_at(x, y, 0);
-    pico8_ui_lj(&mem, ok);
-    assert((void *)ok->o_ == planet);
-    assert(m__state(planet) == 2);
+    ui_update(&mem, ok);
+    assert((void *)ok->hovered == planet);
+    assert(is_hovered_state(planet) == 2);
     /* A planet has no `fg`: 0x5f80 is poked with 0. */
     assert(p8_peek(&mem, 0x5f80) == 0);
-    assert(in_layer(ok, 6, planet) && in_layer(ok, 1, the_bg()));
-    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), planet));
+    assert(in_layer(ok, 6, planet) && in_layer(ok, 1, the_background()));
+    h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), planet));
     h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
     h = fold_layers(h, ok);
 
-    pico8_ui_lj(&mem, ok);
-    assert((void *)ok->gj == planet && (void *)ok->o_ == planet);
-    assert(m__state(planet) == 2);
+    ui_update(&mem, ok);
+    assert((void *)ok->previous_hovered == planet && (void *)ok->hovered == planet);
+    assert(is_hovered_state(planet) == 2);
     h = fnv(h, cursor_is(58));
 
     mouse_at(x + 40 > 127 ? x - 40 : x + 40, y, 0);
-    pico8_ui_lj(&mem, ok);
-    assert((void *)ok->o_ != planet);
-    assert(m__state(planet) == 0);
-    h = fold_entity(h, ok->o_);
+    ui_update(&mem, ok);
+    assert((void *)ok->hovered != planet);
+    assert(is_hovered_state(planet) == 0);
+    h = fold_entity(h, ok->hovered);
     h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
     check("hover", h, HOVER_HASH);
 }
@@ -417,7 +417,7 @@ static void test_hover(void) {
  * background, which answers itself. */
 static void test_layers(void) {
     uint32_t h = 2166136261u;
-    pico8_ui_t *ok = start_game();
+    ui_t *ok = start_game();
     entity_t *kv = NULL;
     down_t kn;
     vec_t *qa;
@@ -427,22 +427,22 @@ static void test_layers(void) {
     int y;
 
     mouse_at(64, 100, 0);
-    pico8_ui_lj(&mem, ok);
+    ui_update(&mem, ok);
     planet = planet_on_screen(&x, &y);
     mouse_at(x, y, 0);
-    pico8_ui_lj(&mem, ok);
-    qa = ok->qa;
-    ra = je_nf()->ra;
+    ui_update(&mem, ok);
+    qa = ok->mouse_world;
+    ra = typed_main_mouse()->pos;
     assert(qa != NULL && ra != NULL);
 
     entity_set_state(&planet->header, "known");
-    assert(pico8_ui_jz(pico8_ok(), PICO8_JZ_LDOWN, qa, ra, NULL, &kv, &kn));
+    assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, qa, ra, NULL, &kv, &kn));
     assert((void *)kv == planet && kn.stop && kn.held == NULL);
-    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), kv));
+    h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), kv));
     kv = NULL;
-    assert(pico8_ui_jz(pico8_ok(), PICO8_JZ_RDOWN, qa, ra, NULL, &kv, &kn));
-    assert((void *)kv == the_bg() && kn.stop && (void *)kn.held == the_bg());
-    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), kv));
+    assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_RIGHT_PRESS, qa, ra, NULL, &kv, &kn));
+    assert((void *)kv == the_background() && kn.stop && (void *)kn.held == the_background());
+    h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), kv));
     check("layers", h, LAYERS_HASH);
 }
 
@@ -451,39 +451,39 @@ static void test_layers(void) {
  * goes. */
 static void test_right(void) {
     uint32_t h = 2166136261u;
-    pico8_ui_t *ok = start_game();
+    ui_t *ok = start_game();
     void *bg;
 
     mouse_at(64, 100, 0);
-    pico8_ui_lj(&mem, ok);
-    bg = the_bg();
+    ui_update(&mem, ok);
+    bg = the_background();
     mouse_at(64, 100, 2);
-    pico8_ui_lj(&mem, ok);
-    assert((void *)ok->rheld == bg && ok->lheld == NULL);
+    ui_update(&mem, ok);
+    assert((void *)ok->right_held == bg && ok->left_held == NULL);
     h = fnv(h, cursor_is(9));
 
     mouse_at(70, 90, 2);
-    pico8_ui_lj(&mem, ok);
-    assert((void *)ok->rheld == bg);
-    h = fold_vec(h, vec_at(mo_qb()->ra));
+    ui_update(&mem, ok);
+    assert((void *)ok->right_held == bg);
+    h = fold_vec(h, vec_at(typed_main_camera()->pos));
     h = fnv(h, cursor_is(9));
 
     mouse_at(70, 90, 0);
-    pico8_ui_lj(&mem, ok);
-    assert(ok->rheld == NULL && ok->lheld == NULL);
-    h = fold_vec(h, vec_at(mo_qb()->ra));
+    ui_update(&mem, ok);
+    assert(ok->right_held == NULL && ok->left_held == NULL);
+    h = fold_vec(h, vec_at(typed_main_camera()->pos));
     h = fnv(h, cursor_is(58));
     check("right", h, RIGHT_HASH);
 }
 
-static int oe_count(void *planet) {
-    const entity_list_t *oe = as_jo(planet)->slipways;
+static int slipways_count(void *planet) {
+    const entity_list_t *oe = as_planet(planet)->slipways;
     return oe == NULL ? 0 : oe->count;
 }
 
 /* Where `e` is on screen under `mo`'s camera. */
 static void screen_of(void *e, int *x, int *y) {
-    vec_t at = vec_sub(vec_at(as_jo(e)->pos), vec_at(mo_qb()->ra));
+    vec_t at = vec_sub(vec_at(as_planet(e)->pos), vec_at(typed_main_camera()->pos));
 
     *x = p8_fixed_flr_int(at.x);
     *y = p8_fixed_flr_int(at.y);
@@ -502,21 +502,21 @@ static int on_screen(void *e) {
  * button on the one holds a new slipway `jc` in `lheld`; released over the
  * other, `ey` gets that planet and `lheld` goes. */
 static void test_left(void) {
-    uint32_t h = 2166136261u;
+    uint32_t hash = 2166136261u;
     const entity_list_t *jos;
-    pico8_ui_t *ok;
+    ui_t *dispatcher;
     void *held;
     void *origin = NULL;
     void *target;
     void *other = NULL;
-    int x;
-    int y;
-    int i;
+    int pixel_x;
+    int pixel_y;
+    int index;
 
-    ok = start_game();
+    dispatcher = start_game();
     jos = entities_by_tag("planet");
-    for (i = 0; i < jos->count && other == NULL; i++) {
-        void *e = jos->items[i];
+    for (index = 0; index < jos->count && other == NULL; index++) {
+        void *e = jos->items[index];
         if (on_screen(e) && on_screen(nearest_to(e))) {
             origin = e;
             other = nearest_to(e);
@@ -525,62 +525,62 @@ static void test_left(void) {
     assert(other != NULL);
     planet_apply_project(origin, research_project_new(NULL));
     planet_apply_project(other, research_project_new(NULL));
-    for (i = 0; i < SETTLE_TICKS; i++) {
+    for (index = 0; index < SETTLE_TICKS; index++) {
         update_entities();
     }
 
-    screen_of(origin, &x, &y);
-    mouse_at(x, y, 0);
-    pico8_ui_lj(&mem, ok);
-    mouse_at(x, y, 1);
-    pico8_ui_lj(&mem, ok);
-    held = ok->lheld;
-    assert(held != NULL && is_of(held, slipway_class()) && ok->rheld == NULL);
-    assert((void *)((const slipway_t *)held)->start == origin && oe_count(origin) == 0);
-    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), held));
-    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), origin));
-    h = fnv(h, cursor_is(58));
+    screen_of(origin, &pixel_x, &pixel_y);
+    mouse_at(pixel_x, pixel_y, 0);
+    ui_update(&mem, dispatcher);
+    mouse_at(pixel_x, pixel_y, 1);
+    ui_update(&mem, dispatcher);
+    held = dispatcher->left_held;
+    assert(held != NULL && is_of(held, slipway_class()) && dispatcher->right_held == NULL);
+    assert((void *)((const slipway_t *)held)->start == origin && slipways_count(origin) == 0);
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), held));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), origin));
+    hash = fnv(hash, cursor_is(58));
 
-    screen_of(other, &x, &y);
-    mouse_at(x, y, 1);
-    pico8_ui_lj(&mem, ok);
-    assert((void *)ok->lheld == held);
-    target = ok->o_;
+    screen_of(other, &pixel_x, &pixel_y);
+    mouse_at(pixel_x, pixel_y, 1);
+    ui_update(&mem, dispatcher);
+    assert((void *)dispatcher->left_held == held);
+    target = dispatcher->hovered;
     assert(target == other);
-    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), target));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), target));
 
-    mouse_at(x, y, 0);
-    pico8_ui_lj(&mem, ok);
-    assert(ok->lheld == NULL && ok->rheld == NULL);
-    assert(oe_count(origin) == 1 && oe_count(target) == 1);
-    h = fnv(h, (uint32_t)entities_by_tag("slipway")->count);
-    check("left", h, LEFT_HASH);
+    mouse_at(pixel_x, pixel_y, 0);
+    ui_update(&mem, dispatcher);
+    assert(dispatcher->left_held == NULL && dispatcher->right_held == NULL);
+    assert(slipways_count(origin) == 1 && slipways_count(target) == 1);
+    hash = fnv(hash, (uint32_t)entities_by_tag("slipway")->count);
+    check("left", hash, LEFT_HASH);
 }
 
 /* `cj` unregisters every entity of the old `le` and starts a new list. */
-static void test_cj(void) {
+static void test_clear_ephemerals(void) {
     uint32_t h = 2166136261u;
-    pico8_ui_t *ok = start_game();
+    ui_t *ok = start_game();
     const entity_list_t *le;
     int count;
     int i;
 
-    call_ix_my(4);
-    le = le_of(ok);
+    call_galaxy_menu_on_click(4);
+    le = ephemerals_of(ok);
     count = le->count;
     assert(count > 0);
     for (i = 0; i < count; i++) {
-        assert(ents_listed(live_entities(), le->items[i]));
-        h = fnv(h, (uint32_t)ents_rank_in(live_entities(), le->items[i]));
+        assert(entity_list_listed(live_entities(), le->items[i]));
+        h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), le->items[i]));
     }
     h = fnv(h, (uint32_t)live_entities()->count);
-    pico8_ui_cj(pico8_ok());
-    assert(ok->le != le && le_of(ok)->count == 0 && ok->le != pico8_ui_le_shared());
+    ui_clear_ephemerals(main_ui());
+    assert(ok->ephemerals != le && ephemerals_of(ok)->count == 0 && ok->ephemerals != ui_ephemerals_shared());
     for (i = 0; i < count; i++) {
-        assert(!ents_listed(live_entities(), le->items[i]));
+        assert(!entity_list_listed(live_entities(), le->items[i]));
     }
     h = fnv(h, (uint32_t)live_entities()->count);
-    check("cj", h, CJ_HASH);
+    check("clear_ephemerals", h, CLEAR_EPHEMERALS_HASH);
 }
 
 /* On the title screen, a click on a difficulty button runs `eu()` from
@@ -588,39 +588,39 @@ static void test_cj(void) {
  * old one, whose `cj` and `gj` land on it, not on the new `ok`. */
 static void test_stale(void) {
     uint32_t h = 2166136261u;
-    pico8_ui_t *old;
+    ui_t *old;
     void *button;
     const entity_list_t *le;
 
     p8_input_init(&input);
     dispatch_context_set_input(&input);
     pico8__init();
-    old = pico8_ok();
+    old = main_ui();
     mouse_at(76, 71, 0);
-    pico8_ui_lj(&mem, old);
-    button = old->o_;
-    le = le_of(old);
-    assert(button != NULL && is_of(button, pico8_js_struct_class()) && le->count == 0);
-    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), button));
+    ui_update(&mem, old);
+    button = old->hovered;
+    le = ephemerals_of(old);
+    assert(button != NULL && is_of(button, button_class()) && le->count == 0);
+    h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), button));
 
     mouse_at(76, 71, 1);
-    pico8_ui_lj(&mem, old);
-    assert(pico8_ok() != old && pico8_ok() != NULL);
-    assert(old->gj == old->o_ && old->gj != NULL && is_of(old->gj, pico8_js_struct_class()));
-    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), old->gj));
-    assert(old->le != le && le_of(old)->count == 0);
-    assert(pico8_ok()->gj == NULL && pico8_ok()->qa == NULL);
-    h = fnv(h, (uint32_t)le_of(pico8_ok())->count);
-    h = fnv(h, (uint32_t)(pico8_ok()->le == pico8_ui_le_shared()));
-    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), pico8_ok()));
+    ui_update(&mem, old);
+    assert(main_ui() != old && main_ui() != NULL);
+    assert(old->previous_hovered == old->hovered && old->previous_hovered != NULL && is_of(old->previous_hovered, button_class()));
+    h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), old->previous_hovered));
+    assert(old->ephemerals != le && ephemerals_of(old)->count == 0);
+    assert(main_ui()->previous_hovered == NULL && main_ui()->mouse_world == NULL);
+    h = fnv(h, (uint32_t)ephemerals_of(main_ui())->count);
+    h = fnv(h, (uint32_t)(main_ui()->ephemerals == ui_ephemerals_shared()));
+    h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), main_ui()));
     h = fnv(h, (uint32_t)live_entities()->count);
     check("stale", h, STALE_HASH);
 }
 
 /* With a panel up, `lj` hands the left click to an entity of `le`: the
  * third row of `ha` runs its `my`, which flips `ih`. */
-static void test_click_reaches_a_row_of_le(void) {
-    pico8_ui_t *ok = start_game();
+static void test_click_reaches_a_row_of_ephemerals(void) {
+    ui_t *ok = start_game();
     void *row;
     int ih;
     int x;
@@ -628,14 +628,14 @@ static void test_click_reaches_a_row_of_le(void) {
     int hx = -1;
     int hy = -1;
 
-    call_ix_my(4);
-    assert(le_of(ok)->count == 4);
-    row = le_of(ok)->items[2];
+    call_galaxy_menu_on_click(4);
+    assert(ephemerals_of(ok)->count == 4);
+    row = ephemerals_of(ok)->items[2];
     for (y = 0; y < 128 && hx < 0; y += 2) {
         for (x = 0; x < 128 && hx < 0; x += 2) {
             mouse_at(x, y, 0);
-            pico8_ui_lj(&mem, ok);
-            if ((void *)ok->o_ == row) {
+            ui_update(&mem, ok);
+            if ((void *)ok->hovered == row) {
                 hx = x;
                 hy = y;
             }
@@ -644,20 +644,20 @@ static void test_click_reaches_a_row_of_le(void) {
     assert(hx >= 0);
     ih = p8_sfx_muted();
     mouse_at(hx, hy, 1);
-    pico8_ui_lj(&mem, ok);
+    ui_update(&mem, ok);
     assert(p8_sfx_muted() == !ih);
     p8_set_sfx_muted(ih);
 }
 
 /* `pico8_ui_init()` empties the shared `le`. */
-static void test_init_empties_shared_le(void) {
+static void test_init_empties_shared_ephemerals(void) {
     static entity_t mark;
 
     (void)start_game();
-    entity_list_add(pico8_ui_le_shared(), &mark);
-    assert(pico8_ui_le_shared()->count == 1);
-    pico8_ui_init();
-    assert(pico8_ui_le_shared()->count == 0);
+    entity_list_add(ui_ephemerals_shared(), &mark);
+    assert(ui_ephemerals_shared()->count == 1);
+    ui_init();
+    assert(ui_ephemerals_shared()->count == 0);
 }
 
 static void must_abort(void (*write)(void *), void *e) {
@@ -676,17 +676,17 @@ static void must_abort(void (*write)(void *), void *e) {
     assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
 }
 
-static void bh_on_x(void *e) {
-    pico8_ui_bh(e, "x");
+static void handle_button_on_x(void *e) {
+    ui_handle_button(e, "x");
 }
 
 /* The game's `ok` is a struct whose descriptor holds only `ev`; it takes
  * no construction key and no button but `l`/`r`. Every
  * new `ui` starts on the class's generated defaults and its shared `le`. */
 static void test_ui_is_a_struct(void) {
-    const entity_class_t *cls = pico8_ui_struct_class();
-    pico8_ui_t *ok = start_game();
-    pico8_ui_t *other;
+    const entity_class_t *cls = ui_class();
+    ui_t *ok = start_game();
+    ui_t *other;
     int j;
 
     assert(is_of(ok, cls));
@@ -696,14 +696,14 @@ static void test_ui_is_a_struct(void) {
     for (j = 0; j < STATE_COUNT; j++) {
         assert(cls->states[j] == NULL);
     }
-    assert(pico8_ui_ready());
-    assert(ok->def == &ui_archetype);
-    assert(pico8_ui_hw() == &ok->def->panel_box);
-    assert(ok->le == pico8_ui_le_shared() && ok->le->count == 0);
-    other = pico8_ui_new();
-    assert(is_of(other, cls) && other->le == pico8_ui_le_shared() && other->def == ok->def);
+    assert(ui_ready());
+    assert(ok->archetype == &ui_archetype);
+    assert(ui_panel_box() == &ok->archetype->panel_box);
+    assert(ok->ephemerals == ui_ephemerals_shared() && ok->ephemerals->count == 0);
+    other = ui_new();
+    assert(is_of(other, cls) && other->ephemerals == ui_ephemerals_shared() && other->archetype == ok->archetype);
 
-    must_abort(bh_on_x, ok);
+    must_abort(handle_button_on_x, ok);
 }
 
 typedef struct {
@@ -724,7 +724,7 @@ static down_t giver_down(entity_t *self, vec_t *qa, vec_t *ra) {
     return out;
 }
 
-static int giver_hd(entity_t *self, const vec_t *qa, const vec_t *ra) {
+static int giver_hit_test(entity_t *self, const vec_t *qa, const vec_t *ra) {
     (void)self;
     (void)qa;
     (void)ra;
@@ -732,20 +732,20 @@ static int giver_hd(entity_t *self, const vec_t *qa, const vec_t *ra) {
 }
 
 static const entity_class_t g_giver_class = {
-    .hit_test = giver_hd,
+    .hit_test = giver_hit_test,
     .left_press = giver_down,
     .right_press = giver_down,
 };
 
-static const p8_fixed_t g_giver_fa = 0xf0000;
-static int g_giver_m_;
-static giver_t g_giver = {{.class = &g_giver_class, .layer = &g_giver_fa, .is_hovered = &g_giver_m_}};
+static const p8_fixed_t g_giver_layer = 0xf0000;
+static int g_giver_is_hovered;
+static giver_t g_giver = {{.class = &g_giver_class, .layer = &g_giver_layer, .is_hovered = &g_giver_is_hovered}};
 
 static void press(void *ok, int buttons) {
     mouse_at(64, 100, 0);
-    pico8_ui_lj(&mem, ok);
+    ui_update(&mem, ok);
     mouse_at(64, 100, buttons);
-    pico8_ui_lj(&mem, ok);
+    ui_update(&mem, ok);
 }
 
 static int g_hold_buttons;
@@ -755,7 +755,7 @@ static void hold_given(void *ok) {
 }
 
 static void test_ui_held_stops_off_row(void) {
-    pico8_ui_t *ok = start_game();
+    ui_t *ok = start_game();
     void *left[8];
     void *right[6];
     size_t i;
@@ -764,9 +764,9 @@ static void test_ui_held_stops_off_row(void) {
     left[0] = pico8_pm_new(NULL);
     left[1] = pico8_ga_new(NULL);
     left[2] = entities_by_tag("planet")->items[0];
-    left[3] = the_bg();
+    left[3] = the_background();
     left[4] = pico8_fv_new();
-    left[5] = pico8_js_new(NULL);
+    left[5] = button_new(NULL);
     left[6] = structure_icon_new(NULL);
     left[7] = wormhole_too_far_target_wrapper();
     right[0] = slipway_new(NULL);
@@ -789,13 +789,13 @@ static void test_ui_held_stops_off_row(void) {
 }
 
 /* `ks` takes a struct or NULL, and does nothing on NULL. */
-static void test_ke_closed(void) {
+static void test_entity_closed(void) {
     (void)start_game();
     entity_set_state(NULL, "normal");
 }
 
 /* Every entity struct begins with its header. */
-static entity_t *ke_of(void *e) {
+static entity_t *entity_of(void *e) {
     assert(e != NULL);
     return e;
 }
@@ -823,9 +823,9 @@ static int identity_of(const char *s) {
     return 0;
 }
 
-static uint32_t fold_ks_back(uint32_t h, void *e) {
-    assert(ke_of(e)->state_time == 0);
-    return fnv(h, (uint32_t)ke_of(e)->state_time);
+static uint32_t fold_set_state_back(uint32_t h, void *e) {
+    assert(entity_of(e)->state_time == 0);
+    return fnv(h, (uint32_t)entity_of(e)->state_time);
 }
 
 /* The component a host stores in itself: not shared with `other`, of the
@@ -870,218 +870,218 @@ static entity_t *help_alone(entity_t *first) {
 static void test_components_carried(void) {
     static const int emitter[24] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0};
     static const int probe[24] = {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1};
-    void *e[24];
-    size_t i;
+    void *entities[24];
+    size_t index;
 
     (void)start_game();
-    e[0] = pico8_bg_new();
-    e[1] = pico8_nf_new();
-    e[2] = pico8_mh_new(NULL);
-    e[3] = pico8_iv_new(NULL);
-    e[4] = planet_new(NULL);
-    e[5] = pico8_qh_new(NULL);
-    e[6] = pico8_nl_new(NULL);
-    e[7] = pico8_os_new(NULL);
-    e[8] = pico8_hj_new(NULL);
-    e[9] = pico8_pm_new(NULL);
-    e[10] = pico8_ga_new(NULL);
-    e[11] = slipgate_new(NULL);
-    e[12] = infraspace_gate_new(NULL);
-    e[13] = synthesizer_new(NULL);
-    e[14] = probe_new(NULL);
-    e[15] = pico8_fv_new();
-    e[16] = structure_icon_new(NULL);
-    e[17] = pico8_pj_new();
-    e[18] = pico8_qb_new();
-    e[19] = slipway_new(NULL);
-    e[20] = pico8_ui_new();
-    e[21] = pico8_js_new(NULL);
-    e[22] = pico8_fq_new(NULL);
-    e[23] = wormhole_new();
-    for (i = 0; i < 24; i++) {
-        const entity_t *header = e[i];
+    entities[0] = background_new();
+    entities[1] = mouse_new();
+    entities[2] = pico8_mh_new(NULL);
+    entities[3] = pico8_iv_new(NULL);
+    entities[4] = planet_new(NULL);
+    entities[5] = pico8_qh_new(NULL);
+    entities[6] = pico8_nl_new(NULL);
+    entities[7] = pico8_os_new(NULL);
+    entities[8] = pico8_hj_new(NULL);
+    entities[9] = pico8_pm_new(NULL);
+    entities[10] = pico8_ga_new(NULL);
+    entities[11] = slipgate_new(NULL);
+    entities[12] = infraspace_gate_new(NULL);
+    entities[13] = synthesizer_new(NULL);
+    entities[14] = probe_new(NULL);
+    entities[15] = pico8_fv_new();
+    entities[16] = structure_icon_new(NULL);
+    entities[17] = pico8_pj_new();
+    entities[18] = camera_new();
+    entities[19] = slipway_new(NULL);
+    entities[20] = ui_new();
+    entities[21] = button_new(NULL);
+    entities[22] = modal_backdrop_new(NULL);
+    entities[23] = wormhole_new();
+    for (index = 0; index < 24; index++) {
+        const entity_t *header = entities[index];
 
-        assert((header->emitter != NULL) == emitter[i]);
-        assert((header->targeting != NULL) == probe[i]);
+        assert((header->emitter != NULL) == emitter[index]);
+        assert((header->targeting != NULL) == probe[index]);
     }
 
-    assert_own_emitter(e[8], &pico8_hj_new(NULL)->header, sizeof(planet_t));
-    assert_own_emitter(e[9], &pico8_pm_new(NULL)->header, sizeof(planet_t));
-    assert_own_emitter(e[10], &pico8_ga_new(NULL)->header, sizeof(planet_t));
-    assert_own_emitter(e[13], &synthesizer_new(NULL)->header, sizeof(planet_t));
-    assert_own_emitter(e[14], &probe_new(NULL)->header, sizeof(probe_t));
-    assert_own_emitter(e[15], help_alone(e[15]), sizeof(probe_t));
-    assert_own_probe(e[5], &pico8_qh_new(NULL)->header, sizeof(planet_t));
-    assert_own_probe(e[6], &pico8_nl_new(NULL)->header, sizeof(planet_t));
-    assert_own_probe(e[7], &pico8_os_new(NULL)->header, sizeof(planet_t));
-    assert_own_probe(e[8], &pico8_hj_new(NULL)->header, sizeof(planet_t));
-    assert_own_probe(e[9], &pico8_pm_new(NULL)->header, sizeof(planet_t));
-    assert_own_probe(e[11], &slipgate_new(NULL)->header, sizeof(planet_t));
-    assert_own_probe(e[12], &infraspace_gate_new(NULL)->header, sizeof(planet_t));
-    assert_own_probe(e[13], &synthesizer_new(NULL)->header, sizeof(planet_t));
-    assert_own_probe(e[14], &probe_new(NULL)->header, sizeof(probe_t));
-    assert_own_probe(e[15], help_alone(e[15]), sizeof(probe_t));
-    assert_own_probe(e[19], &slipway_new(NULL)->header, sizeof(slipway_t));
-    assert_own_probe(e[23], &wormhole_new()->header, sizeof(wormhole_t));
+    assert_own_emitter(entities[8], &pico8_hj_new(NULL)->header, sizeof(planet_t));
+    assert_own_emitter(entities[9], &pico8_pm_new(NULL)->header, sizeof(planet_t));
+    assert_own_emitter(entities[10], &pico8_ga_new(NULL)->header, sizeof(planet_t));
+    assert_own_emitter(entities[13], &synthesizer_new(NULL)->header, sizeof(planet_t));
+    assert_own_emitter(entities[14], &probe_new(NULL)->header, sizeof(probe_t));
+    assert_own_emitter(entities[15], help_alone(entities[15]), sizeof(probe_t));
+    assert_own_probe(entities[5], &pico8_qh_new(NULL)->header, sizeof(planet_t));
+    assert_own_probe(entities[6], &pico8_nl_new(NULL)->header, sizeof(planet_t));
+    assert_own_probe(entities[7], &pico8_os_new(NULL)->header, sizeof(planet_t));
+    assert_own_probe(entities[8], &pico8_hj_new(NULL)->header, sizeof(planet_t));
+    assert_own_probe(entities[9], &pico8_pm_new(NULL)->header, sizeof(planet_t));
+    assert_own_probe(entities[11], &slipgate_new(NULL)->header, sizeof(planet_t));
+    assert_own_probe(entities[12], &infraspace_gate_new(NULL)->header, sizeof(planet_t));
+    assert_own_probe(entities[13], &synthesizer_new(NULL)->header, sizeof(planet_t));
+    assert_own_probe(entities[14], &probe_new(NULL)->header, sizeof(probe_t));
+    assert_own_probe(entities[15], help_alone(entities[15]), sizeof(probe_t));
+    assert_own_probe(entities[19], &slipway_new(NULL)->header, sizeof(slipway_t));
+    assert_own_probe(entities[23], &wormhole_new()->header, sizeof(wormhole_t));
 }
 
 /* The kind words the frozen hashes fold before a value: any other value
  * moves them. */
 enum { FIXED_KIND = 0, STRING_KIND = 1 };
 
-static void test_ke_me_by_name(void) {
+static void test_entity_state_by_name(void) {
     static const char *const want[24] = {"normal", "normal",      "normal", "normal", "unknown", "placing", "placing", "placing",
                                          "placing", "settled",      "unknown", "placing", "placing", "placing", "normal", "normal",
                                          "normal", "normal",      "normal", "placing", "normal", "normal", "normal", "placing"};
     static const int identity[24] = {1, 1, 1, 1, 2, 3, 3, 3, 3, 4, 2, 3, 3, 3, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0};
-    char s[] = "vanishing";
-    void *e[24];
-    const entity_list_t *hv;
-    const char *me;
-    uint32_t h = 2166136261u;
-    size_t i;
+    char state_name[] = "vanishing";
+    void *entities[24];
+    const entity_list_t *live;
+    const char *state;
+    uint32_t hash = 2166136261u;
+    size_t index;
 
     (void)start_game();
-    hv = live_entities();
-    assert(hv != NULL);
-    h = fnv(h, (uint32_t)hv->count);
+    live = live_entities();
+    assert(live != NULL);
+    hash = fnv(hash, (uint32_t)live->count);
     /* The kind word is constant by the struct's shape (`me` is a string or
      * absent), kept so that KE_ME_HASH still proves the typed reads. */
-    for (i = 0; i < (size_t)hv->count; i++) {
-        me = ke_of(hv->items[i])->state;
-        if (me != NULL) {
-            h = fold_string(fnv(fnv(h, 1u), (uint32_t)STRING_KIND), me);
+    for (index = 0; index < (size_t)live->count; index++) {
+        state = entity_of(live->items[index])->state;
+        if (state != NULL) {
+            hash = fold_string(fnv(fnv(hash, 1u), (uint32_t)STRING_KIND), state);
         } else {
-            h = fnv(h, 0u);
+            hash = fnv(hash, 0u);
         }
     }
 
-    e[0] = pico8_bg_new();
-    e[1] = pico8_nf_new();
-    e[2] = pico8_mh_new(NULL);
-    e[3] = pico8_iv_new(NULL);
-    e[4] = planet_new(NULL);
-    e[5] = pico8_qh_new(NULL);
-    e[6] = pico8_nl_new(NULL);
-    e[7] = pico8_os_new(NULL);
-    e[8] = pico8_hj_new(NULL);
-    e[9] = pico8_pm_new(NULL);
-    e[10] = pico8_ga_new(NULL);
-    e[11] = slipgate_new(NULL);
-    e[12] = infraspace_gate_new(NULL);
-    e[13] = synthesizer_new(NULL);
-    e[14] = probe_new(NULL);
-    e[15] = pico8_fv_new();
-    e[16] = structure_icon_new(NULL);
-    e[17] = pico8_pj_new();
-    e[18] = pico8_qb_new();
-    e[19] = slipway_new(NULL);
-    e[20] = pico8_ui_new();
-    e[21] = pico8_js_new(NULL);
-    e[22] = pico8_fq_new(NULL);
-    e[23] = wormhole_new();
-    for (i = 0; i < 24; i++) {
-        me = ke_of(e[i])->state;
-        assert(me != NULL);
-        assert(strcmp(me, want[i]) == 0);
-        assert(identity_of(me) == identity[i]);
-        h = fold_string(fnv(h, (uint32_t)STRING_KIND), me);
-        h = fnv(h, (uint32_t)identity_of(me));
+    entities[0] = background_new();
+    entities[1] = mouse_new();
+    entities[2] = pico8_mh_new(NULL);
+    entities[3] = pico8_iv_new(NULL);
+    entities[4] = planet_new(NULL);
+    entities[5] = pico8_qh_new(NULL);
+    entities[6] = pico8_nl_new(NULL);
+    entities[7] = pico8_os_new(NULL);
+    entities[8] = pico8_hj_new(NULL);
+    entities[9] = pico8_pm_new(NULL);
+    entities[10] = pico8_ga_new(NULL);
+    entities[11] = slipgate_new(NULL);
+    entities[12] = infraspace_gate_new(NULL);
+    entities[13] = synthesizer_new(NULL);
+    entities[14] = probe_new(NULL);
+    entities[15] = pico8_fv_new();
+    entities[16] = structure_icon_new(NULL);
+    entities[17] = pico8_pj_new();
+    entities[18] = camera_new();
+    entities[19] = slipway_new(NULL);
+    entities[20] = ui_new();
+    entities[21] = button_new(NULL);
+    entities[22] = modal_backdrop_new(NULL);
+    entities[23] = wormhole_new();
+    for (index = 0; index < 24; index++) {
+        state = entity_of(entities[index])->state;
+        assert(state != NULL);
+        assert(strcmp(state, want[index]) == 0);
+        assert(identity_of(state) == identity[index]);
+        hash = fold_string(fnv(hash, (uint32_t)STRING_KIND), state);
+        hash = fnv(hash, (uint32_t)identity_of(state));
     }
 
     /* The six strangers the reader refused, constant by the struct's shape. */
-    for (i = 0; i < 6; i++) {
-        h = fnv(h, 0u);
+    for (index = 0; index < 6; index++) {
+        hash = fnv(hash, 0u);
     }
 
-    entity_set_state(e[0], s);
-    me = ke_of(e[0])->state;
-    assert(me == s);
-    h = fold_ks_back(fold_string(fnv(h, 1u), me), e[0]);
-    entity_set_state(e[0], NULL);
-    assert(ke_of(e[0])->state == NULL);
-    h = fold_ks_back(fnv(h, 0u), e[0]);
-    entity_set_state(e[0], "normal");
-    me = ke_of(e[0])->state;
-    assert(me != NULL && strcmp(me, "normal") == 0);
-    h = fold_ks_back(fold_string(fnv(h, 1u), me), e[0]);
+    entity_set_state(entities[0], state_name);
+    state = entity_of(entities[0])->state;
+    assert(state == state_name);
+    hash = fold_set_state_back(fold_string(fnv(hash, 1u), state), entities[0]);
+    entity_set_state(entities[0], NULL);
+    assert(entity_of(entities[0])->state == NULL);
+    hash = fold_set_state_back(fnv(hash, 0u), entities[0]);
+    entity_set_state(entities[0], "normal");
+    state = entity_of(entities[0])->state;
+    assert(state != NULL && strcmp(state, "normal") == 0);
+    hash = fold_set_state_back(fold_string(fnv(hash, 1u), state), entities[0]);
 
-    entity_set_state(e[9], s);
-    me = ke_of(e[9])->state;
-    assert(me == s);
-    h = fold_ks_back(fold_string(fnv(h, 1u), me), e[9]);
+    entity_set_state(entities[9], state_name);
+    state = entity_of(entities[9])->state;
+    assert(state == state_name);
+    hash = fold_set_state_back(fold_string(fnv(hash, 1u), state), entities[9]);
 
-    check("ke_me", h, KE_ME_HASH);
+    check("entity_state", hash, ENTITY_STATE_HASH);
 }
 
 /* The kind word is constant by the struct's shape (`t` is always a fixed),
  * kept so that KE_T_HASH still proves the typed reads. */
-static uint32_t fold_t(uint32_t h, void *e) {
-    return fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)ke_of(e)->state_time);
+static uint32_t fold_state_time(uint32_t h, void *e) {
+    return fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)entity_of(e)->state_time);
 }
 
-static uint32_t fold_hv_t(uint32_t h) {
+static uint32_t fold_live_entities_state_time(uint32_t h) {
     const entity_list_t *hv = live_entities();
     int i;
 
     assert(hv != NULL);
     h = fnv(h, (uint32_t)hv->count);
     for (i = 0; i < hv->count; i++) {
-        h = fold_t(h, hv->items[i]);
+        h = fold_state_time(h, hv->items[i]);
     }
     return h;
 }
 
-static void assert_t(void *e, int want) {
-    assert(ke_of(e)->state_time == p8_fixed_from_int(want));
+static void assert_state_time(void *e, int want) {
+    assert(entity_of(e)->state_time == p8_fixed_from_int(want));
 }
 
-static void test_ke_t_by_name(void) {
-    void *e[24];
+static void test_entity_state_time_by_name(void) {
+    void *entities[24];
     probe_keys_t keyed_keys = {0};
     probe_keys_t zero_keys = {0};
     probe_t *keyed;
     probe_t *zero;
-    uint32_t h = 2166136261u;
-    size_t i;
+    uint32_t hash = 2166136261u;
+    size_t index;
 
     (void)start_game();
-    h = fold_hv_t(h);
+    hash = fold_live_entities_state_time(hash);
     update_entities();
-    h = fold_hv_t(h);
+    hash = fold_live_entities_state_time(hash);
 
-    e[0] = pico8_bg_new();
-    e[1] = pico8_nf_new();
-    e[2] = pico8_mh_new(NULL);
-    e[3] = pico8_iv_new(NULL);
-    e[4] = planet_new(NULL);
-    e[5] = pico8_qh_new(NULL);
-    e[6] = pico8_nl_new(NULL);
-    e[7] = pico8_os_new(NULL);
-    e[8] = pico8_hj_new(NULL);
-    e[9] = pico8_pm_new(NULL);
-    e[10] = pico8_ga_new(NULL);
-    e[11] = slipgate_new(NULL);
-    e[12] = infraspace_gate_new(NULL);
-    e[13] = synthesizer_new(NULL);
-    e[14] = probe_new(NULL);
-    e[15] = pico8_fv_new();
-    e[16] = structure_icon_new(NULL);
-    e[17] = pico8_pj_new();
-    e[18] = pico8_qb_new();
-    e[19] = slipway_new(NULL);
-    e[20] = pico8_ui_new();
-    e[21] = pico8_js_new(NULL);
-    e[22] = pico8_fq_new(NULL);
-    e[23] = wormhole_new();
-    for (i = 0; i < 24; i++) {
-        assert_t(e[i], 0);
-        h = fold_t(h, e[i]);
+    entities[0] = background_new();
+    entities[1] = mouse_new();
+    entities[2] = pico8_mh_new(NULL);
+    entities[3] = pico8_iv_new(NULL);
+    entities[4] = planet_new(NULL);
+    entities[5] = pico8_qh_new(NULL);
+    entities[6] = pico8_nl_new(NULL);
+    entities[7] = pico8_os_new(NULL);
+    entities[8] = pico8_hj_new(NULL);
+    entities[9] = pico8_pm_new(NULL);
+    entities[10] = pico8_ga_new(NULL);
+    entities[11] = slipgate_new(NULL);
+    entities[12] = infraspace_gate_new(NULL);
+    entities[13] = synthesizer_new(NULL);
+    entities[14] = probe_new(NULL);
+    entities[15] = pico8_fv_new();
+    entities[16] = structure_icon_new(NULL);
+    entities[17] = pico8_pj_new();
+    entities[18] = camera_new();
+    entities[19] = slipway_new(NULL);
+    entities[20] = ui_new();
+    entities[21] = button_new(NULL);
+    entities[22] = modal_backdrop_new(NULL);
+    entities[23] = wormhole_new();
+    for (index = 0; index < 24; index++) {
+        assert_state_time(entities[index], 0);
+        hash = fold_state_time(hash, entities[index]);
     }
 
     /* The six strangers the reader refused, constant by the struct's shape. */
-    for (i = 0; i < 6; i++) {
-        h = fnv(h, 0u);
+    for (index = 0; index < 6; index++) {
+        hash = fnv(hash, 0u);
     }
 
     keyed_keys.has_angle_slices = 1;
@@ -1092,40 +1092,40 @@ static void test_ke_t_by_name(void) {
     keyed_keys.has_speed_factor = 1;
     keyed_keys.speed_factor = p8_fixed_from_int(1);
     keyed = probe_new(&keyed_keys);
-    assert_t(keyed, 3);
+    assert_state_time(keyed, 3);
     assert(keyed->emitter->angle_slices == p8_fixed_from_int(7));
     assert(keyed->emitter->base_radius == p8_fixed_from_int(10));
     assert(keyed->emitter->speed_factor == p8_fixed_from_int(1));
-    h = fold_t(h, keyed);
+    hash = fold_state_time(hash, keyed);
 
     zero_keys.state_time = 0;
     zero = probe_new(&zero_keys);
-    assert_t(zero, 0);
+    assert_state_time(zero, 0);
     assert(zero->emitter->angle_slices == probe_archetype.emitter.angle_slices);
     assert(zero->emitter->base_radius == probe_archetype.emitter.base_radius);
     assert(zero->emitter->speed_factor == probe_archetype.emitter.speed_factor);
-    h = fold_t(h, zero);
+    hash = fold_state_time(hash, zero);
 
     entity_set_state(&keyed->header, "vanishing");
-    assert_t(keyed, 0);
+    assert_state_time(keyed, 0);
     assert(keyed->header.state != NULL && strcmp(keyed->header.state, "vanishing") == 0);
-    h = fold_string(fold_t(h, keyed), keyed->header.state);
+    hash = fold_string(fold_state_time(hash, keyed), keyed->header.state);
 
-    entity_set_state(e[9], "vanishing");
-    assert_t(e[9], 0);
-    h = fold_t(h, e[9]);
+    entity_set_state(entities[9], "vanishing");
+    assert_state_time(entities[9], 0);
+    hash = fold_state_time(hash, entities[9]);
 
-    check("ke_t", h, KE_T_HASH);
+    check("entity_state_time", hash, ENTITY_STATE_TIME_HASH);
 }
 
-static void test_g__t_key_stops_off_row(void) {
+static void test_probe_t_key_stops_off_row(void) {
     probe_keys_t keys = {0};
     void *made;
 
     (void)start_game();
     keys.state_time = 0;
     made = probe_new(&keys);
-    assert_t(made, 0);
+    assert_state_time(made, 0);
 }
 
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
@@ -1164,18 +1164,18 @@ int main(void) {
     in_fresh_child(test_layers);
     in_fresh_child(test_right);
     in_fresh_child(test_left);
-    in_fresh_child(test_cj);
+    in_fresh_child(test_clear_ephemerals);
     in_fresh_child(test_stale);
-    in_fresh_child(test_click_reaches_a_row_of_le);
-    in_fresh_child(test_init_empties_shared_le);
+    in_fresh_child(test_click_reaches_a_row_of_ephemerals);
+    in_fresh_child(test_init_empties_shared_ephemerals);
     in_fresh_child(test_ui_is_a_struct);
     in_fresh_child(test_ui_held_stops_off_row);
-    in_fresh_child(test_ke_closed);
-    in_fresh_child(test_ke_me_by_name);
+    in_fresh_child(test_entity_closed);
+    in_fresh_child(test_entity_state_by_name);
     in_fresh_child(test_components_carried);
-    in_fresh_child(test_ke_t_by_name);
-    in_fresh_child(test_g__t_key_stops_off_row);
+    in_fresh_child(test_entity_state_time_by_name);
+    in_fresh_child(test_probe_t_key_stops_off_row);
 
-    printf("test_pico8_ui: all tests passed\n");
+    printf("test_ui: all tests passed\n");
     return 0;
 }

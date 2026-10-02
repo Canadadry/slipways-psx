@@ -133,24 +133,24 @@ static size_t read_cells(const layout_row_t *lq) {
  * et dessine chaque bouton, bulle `jb` comprise : rend le nombre de
  * bulles dessinees. */
 static int reset_then_draw_panel(void) {
-    const entity_list_t *le = pico8_ok()->le;
+    const entity_list_t *le = main_ui()->ephemerals;
     int bubbles = 0;
 
     frame_zone_reset();
     allocate_again();
     for (int i = 0; i < le->count; i++) {
-        pico8_js_t *js = (pico8_js_t *)le->items[i];
-        vec_t p = js->ra != NULL ? *js->ra : vec_make(0, 0);
+        button_t *js = (button_t *)le->items[i];
+        vec_t p = js->pos != NULL ? *js->pos : vec_make(0, 0);
 
-        sink = (unsigned char)read_cells(js->lq);
-        if (js->h_ != NULL) sink = (unsigned char)read_cells(js->h_);
-        if (js->jb != NULL) {
-            for (int k = 0; k < js->jb->rows_count; k++) sink = (unsigned char)read_cells(js->jb->rows[k]);
+        sink = (unsigned char)read_cells(js->layout_row);
+        if (js->side_tooltip != NULL) sink = (unsigned char)read_cells(js->side_tooltip);
+        if (js->tooltip != NULL) {
+            for (int k = 0; k < js->tooltip->rows_count; k++) sink = (unsigned char)read_cells(js->tooltip->rows[k]);
             bubbles++;
         }
-        js->m_ = 1;
-        pico8_js_kj(&gfx, &mem, js, p);
-        pico8_js_ev(&gfx, &mem, js);
+        js->is_hovered = 1;
+        button_draw(&gfx, &mem, js, p);
+        button_draw_overlay(&gfx, &mem, js);
     }
     return bubbles;
 }
@@ -165,7 +165,7 @@ static int case_inspection_panel_rows_survive_reset(void) {
     kw.amount = p8_fixed_from_int(1);
     planet->production = &kw;
     planet_inspection_panel(planet);
-    assert(pico8_ok()->le->count >= 2 && "jo:gh: l'icone et la rangee exports");
+    assert(main_ui()->ephemerals->count >= 2 && "jo:gh: l'icone et la rangee exports");
     reset_then_draw_panel();
     return 0;
 }

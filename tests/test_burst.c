@@ -200,8 +200,8 @@ static vec_t vec_xy(int x, int y) {
 static vec_t near_mo(int x, int y) {
     const vec_t *mo_ra;
 
-    assert(pico8_mo_qb() != NULL);
-    mo_ra = pico8_mo_qb()->ra;
+    assert(main_camera_typed() != NULL);
+    mo_ra = main_camera_typed()->pos;
     assert(mo_ra != NULL);
     return vec_add(*mo_ra, vec_xy(x, y));
 }
@@ -327,8 +327,8 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     h = fnv(h, (uint32_t)ents_ptrs_size(jo->outgoing_routes));
     h = fnv(h, (uint32_t)ptrs_size(em->particles));
     h = fnv(h, (uint32_t)ents_ptrs_size(jo->slipways));
-    assert(pico8_mo_qb() != NULL);
-    h = fold_fixed_member(h, pico8_mo_qb()->ma);
+    assert(main_camera_typed() != NULL);
+    h = fold_fixed_member(h, main_camera_typed()->shake);
     /* The 1s of `fc`, `qo`, `ro`, `qg`, `q_`, `iu`, `py`, `ms` (ga's own)
      * and of `hf`, `hs`, `fa`, `ma`, `ca` (jo's) are constant by the
      * struct's shape, kept so that BUILT_HASH still proves the typed reads. */
@@ -754,7 +754,7 @@ static held_t held_now(void) {
     h.qy = particle_zone_live(PARTICLE_SLOT_LIST);
     h.qy_fv = particle_zone_live(PARTICLE_SLOT_HELP_LIST);
     h.ga = particle_zone_live(PARTICLE_SLOT_BURST);
-    h.rangees = pico8_zone_interface_vivantes(PICO8_SORTE_RANGEE);
+    h.rangees = ui_zone_live(SLOT_KIND_ROW);
     return h;
 }
 
@@ -811,8 +811,8 @@ static void test_leaving_lets_go_of_a_dragged_slipway(void) {
     jc_keys.start = &planet_new(&keys)->header;
     jc = slipway_new(&jc_keys);
     e = harvest(40, 40, "s86");
-    pico8_ok()->lheld = &jc->header;
-    pico8_ok()->o_ = e;
+    main_ui()->left_held = &jc->header;
+    main_ui()->hovered = e;
     slipway_drag(jc, &mp);
     assert(jc->end == e);
     entity_unregister(e);

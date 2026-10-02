@@ -25,7 +25,7 @@ void galaxy_populate(p8_fixed_t planet_count) {
     p8_fixed_t two_seventy_five = P8_FIXED_LIT(0x0002c000, 2.75);
     p8_fixed_t eighth = P8_FIXED_LIT(0x00002000, 0.125);
     p8_fixed_t planet_id;
-    const pico8_js_t *difficulty;
+    const button_t *difficulty;
     p8_fixed_t difficulty_type_bias = p8_fixed_from_int(0);
     random_walk_t *type_picker_random;
     weighted_picker_t *type_picker_state;
@@ -71,8 +71,8 @@ void galaxy_populate(p8_fixed_t planet_count) {
     /* A NULL dk or an absent "en" reads as 0 -- this port's usual
      * absent-field default, not a guess at which difficulty is meant. */
     difficulty = economy_score_difficulty();
-    if (difficulty != NULL && difficulty->has_en) {
-        difficulty_type_bias = difficulty->en;
+    if (difficulty != NULL && difficulty->has_type_bias) {
+        difficulty_type_bias = difficulty->type_bias;
     }
 
     type_picker_random = random_walk_new(game_zone(), P8_FIXED_LIT(0x00008000, 0.5), difficulty_type_bias);

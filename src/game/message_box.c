@@ -123,7 +123,7 @@ static const data_row_t *pico8_mh_article(const allocator_t *place, const data_r
 }
 
 static pico8_mh_t *pico8_mh_struct_new(const pico8_mh_keys_t *keys) {
-    const allocator_t *place = pico8_zone_interface_place(PICO8_SORTE_MH);
+    const allocator_t *place = ui_zone_slot(SLOT_KIND_MESSAGE_BOX);
     pico8_mh_t *self = (pico8_mh_t *)allocator_alloc(place, sizeof *self);
     int i;
 
@@ -186,10 +186,10 @@ void pico8_iv_pq(pico8_iv_t *self) {
     }
 
     if (self->ra == NULL) {
-        const pico8_nf_t *je = pico8_je_nf();
-        const pico8_qb_t *mo = pico8_mo_qb();
-        vec_t je_ra = pico8_iv_vec_or_zero(je != NULL ? je->ra : NULL);
-        vec_t mo_ra = pico8_iv_vec_or_zero(mo != NULL ? mo->ra : NULL);
+        const mouse_t *je = main_mouse_typed();
+        const camera_t *mo = main_camera_typed();
+        vec_t je_ra = pico8_iv_vec_or_zero(je != NULL ? je->pos : NULL);
+        vec_t mo_ra = pico8_iv_vec_or_zero(mo != NULL ? mo->pos : NULL);
         vec_t offset = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(5));
         self->ra_box = vec_sub(vec_add(je_ra, mo_ra), offset);
         self->ra = &self->ra_box;
@@ -252,7 +252,7 @@ static const entity_class_t g_iv_struct_class = {
 };
 
 static pico8_iv_t *pico8_iv_struct_new(const pico8_iv_keys_t *keys) {
-    const allocator_t *place = pico8_zone_interface_place(PICO8_SORTE_IV);
+    const allocator_t *place = ui_zone_slot(SLOT_KIND_TOAST);
     pico8_iv_t *self = (pico8_iv_t *)allocator_alloc(place, sizeof *self);
 
     self->place = place;
@@ -311,41 +311,41 @@ typedef struct {
 
 /* One row of `bs` onto a copy of its keys: the common `ra`, its own `qf`,
  * `fa` from `p.ca`; then the button. */
-static pico8_js_t *pico8_pz_step(pico8_pz_ctx_t *ctx, const pico8_js_keys_t *row) {
-    pico8_js_keys_t b = *row;
+static button_t *pico8_pz_step(pico8_pz_ctx_t *ctx, const button_keys_t *row) {
+    button_keys_t b = *row;
     vec_t qf = ctx->bp;
     vec_t gq;
 
-    b.ra = &ctx->ra;
-    b.qf = &qf;
+    b.pos = &ctx->ra;
+    b.slide_target = &qf;
 
     /* TROU-9 */
     if (ctx->frame->has_ca) {
-        b.fa = ctx->frame->ca;
-        b.has_fa = 1;
+        b.layer = ctx->frame->ca;
+        b.has_layer = 1;
     }
 
     gq = ctx->frame->gq != NULL ? *ctx->frame->gq : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     ctx->bp = vec_add(ctx->bp, gq);
 
-    return pico8_js_new(&b);
+    return button_new(&b);
 }
 
 /* With no `ok` there is no list to hold the button. */
-static void pz_add(entity_list_t *le, pico8_js_t *button) {
+static void pz_add(entity_list_t *le, button_t *button) {
     if (le != NULL) {
         entity_list_add(le, &button->header);
     }
 }
 
-void pico8_pz(const pico8_pz_frame_t *frame, const pico8_js_keys_t *bs, int n) {
+void pico8_pz(const pico8_pz_frame_t *frame, const button_keys_t *bs, int n) {
     layout_row_cell_t ep_cell;
     vec_t ra;
     pico8_pz_ctx_t ctx;
     entity_list_t *le;
-    pico8_ui_t *ok;
+    ui_t *ok;
     p8_fixed_t rn_arg;
-    pico8_js_keys_t ep_row = {0};
+    button_keys_t ep_row = {0};
     layout_row_keys_t ep_lq = {0};
     int has_ep;
     int i;
@@ -361,7 +361,7 @@ void pico8_pz(const pico8_pz_frame_t *frame, const pico8_js_keys_t *bs, int n) {
         ep_lq.count = 1;
         ep_lq.has_color = 1;
         ep_lq.color = p8_fixed_from_int(13);
-        ep_row.lq_row = &ep_lq;
+        ep_row.layout_row_keys = &ep_lq;
     }
 
     if (frame->has_eo) {
@@ -383,10 +383,10 @@ void pico8_pz(const pico8_pz_frame_t *frame, const pico8_js_keys_t *bs, int n) {
     ctx.bp = vec_add(ra, vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0)));
     ctx.ra = ra;
 
-    ok = pico8_ok();
-    pico8_ui_cj(ok);
+    ok = main_ui();
+    ui_clear_ephemerals(ok);
 
-    le = ok != NULL ? pico8_ui_le_new() : NULL;
+    le = ok != NULL ? ui_ephemerals_new() : NULL;
     if (has_ep) {
         pz_add(le, pico8_pz_step(&ctx, &ep_row));
     }
@@ -394,12 +394,12 @@ void pico8_pz(const pico8_pz_frame_t *frame, const pico8_js_keys_t *bs, int n) {
         pz_add(le, pico8_pz_step(&ctx, &bs[i]));
     }
     if (ok != NULL) {
-        pico8_ui_set_le(ok, le);
+        ui_set_ephemerals(ok, le);
     }
 
     /* The `js` buttons built just above stay registered in `hv`/`cv`/`cg`
      * once `le` no longer holds them, exactly as in the cart. */
     if (frame->ff && ok != NULL) {
-        pico8_ui_set_le(ok, pico8_ui_le_new());
+        ui_set_ephemerals(ok, ui_ephemerals_new());
     }
 }

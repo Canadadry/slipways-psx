@@ -270,7 +270,7 @@ static probe_t *the_help(void) {
 }
 
 static int in_layer(int layer, const void *e) {
-    const pico8_ui_ic_t *ic = pico8_ok()->ic;
+    const ui_hovered_by_layer_t *ic = main_ui()->hovered_by_layer;
 
     if (ic == NULL) {
         return 0;
@@ -278,9 +278,9 @@ static int in_layer(int layer, const void *e) {
     return ents_listed(&ic->layers[layer], e);
 }
 
-static const pico8_js_t *as_js(const void *e) {
+static const button_t *as_js(const void *e) {
     assert(e != NULL &&
-           ((const entity_t *)e)->class == pico8_js_struct_class());
+           ((const entity_t *)e)->class == button_class());
     return e;
 }
 
@@ -369,15 +369,15 @@ static void test_built(void) {
     h = fnv(h, (uint32_t)hv->count);
     assert(rank >= 4);
     for (k = 0; k < 4; k++) {
-        const pico8_js_t *b = as_js(hv->items[rank - 4 + k]);
+        const button_t *b = as_js(hv->items[rank - 4 + k]);
         vec_t qf;
-        assert(b->fa == p8_fixed_from_int(11));
-        assert(b->qf != NULL);
-        qf = *b->qf;
+        assert(b->layer == p8_fixed_from_int(11));
+        assert(b->slide_target != NULL);
+        qf = *b->slide_target;
         assert(qf.x == p8_fixed_from_int(34) && qf.y == p8_fixed_from_int(56 + 11 * k));
-        h = fold_vec(h, b->qf);
-        h = fold_vec(h, b->ra);
-        h = fold_fixed_member(h, b->fa);
+        h = fold_vec(h, b->slide_target);
+        h = fold_vec(h, b->pos);
+        h = fold_fixed_member(h, b->layer);
     }
     for (i = 0; i < 5; i++) {
         static const char *const bm[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
@@ -390,11 +390,11 @@ static void test_built(void) {
     assert(ents_listed(entities_by_tag("probe"), fv) && ents_listed(entities_by_tag("targeting"), fv));
 
     for (k = 0; k < 4; k++) {
-        const pico8_js_t *row = (const pico8_js_t *)hv->items[rank - 4 + k];
-        assert(row->has_my);
-        assert(row->my == pico8_eu_field_value());
+        const button_t *row = (const button_t *)hv->items[rank - 4 + k];
+        assert(row->has_on_click);
+        assert(row->on_click == pico8_eu_field_value());
     }
-    assert(pico8_ok()->le != NULL && pico8_ok()->le->count == 0);
+    assert(main_ui()->ephemerals != NULL && main_ui()->ephemerals->count == 0);
     check("built", h, BUILT_HASH);
 }
 
@@ -451,8 +451,8 @@ static void test_hover(void) {
     start_title();
     fv = the_help();
     mouse_at(64, 112);
-    pico8_ui_lj(&mem, pico8_ok());
-    assert((void *)pico8_ok()->o_ == fv);
+    ui_update(&mem, main_ui());
+    assert((void *)main_ui()->hovered == fv);
     assert(m__state(fv) == 2);
     check_int("hover 0x5f80", p8_peek(&mem, 0x5f80), 5);
     assert(in_layer(10, fv));
@@ -460,7 +460,7 @@ static void test_hover(void) {
     h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
 
     p8_cls(&mem);
-    pico8_ui_ev(&gfx, &mem, pico8_ok());
+    ui_draw_overlay(&gfx, &mem, main_ui());
     drawn = screen_hash();
     p8_cls(&mem);
     p8_spr_default(&gfx, &mem, 11, 64, 112);
@@ -468,8 +468,8 @@ static void test_hover(void) {
     h = fnv(h, drawn);
 
     mouse_at(64, 10);
-    pico8_ui_lj(&mem, pico8_ok());
-    assert((void *)pico8_ok()->o_ != fv);
+    ui_update(&mem, main_ui());
+    assert((void *)main_ui()->hovered != fv);
     assert(m__state(fv) == 0);
     assert(!in_layer(10, fv));
     h = fnv(h, m__state(fv));
@@ -636,7 +636,7 @@ static held_t held_now(void) {
     h.particules = particle_zone_live(PARTICLE_SLOT_PARTICLE);
     h.qy = particle_zone_live(PARTICLE_SLOT_LIST);
     h.qy_fv = particle_zone_live(PARTICLE_SLOT_HELP_LIST);
-    h.rangees = pico8_zone_interface_vivantes(PICO8_SORTE_RANGEE);
+    h.rangees = ui_zone_live(SLOT_KIND_ROW);
     return h;
 }
 

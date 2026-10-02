@@ -200,11 +200,11 @@ static size_t research_and_economy_bytes(void) {
 static size_t singletons_bytes(void) {
     const entity_list_t *hv = live_entities();
     int bg = 0;
-    for (int i = 0; hv != NULL && i < hv->count; i++) bg += hv->items[i]->class == pico8_bg_struct_class();
+    for (int i = 0; hv != NULL && i < hv->count; i++) bg += hv->items[i]->class == background_class();
     assert(bg == 1 && "eu fait un seul bg");
-    assert(pico8_mo_qb() != NULL && pico8_je_nf() != NULL && pico8_ok() != NULL && pico8_ju() != NULL);
-    return block_bytes(sizeof(pico8_qb_t)) + block_bytes(sizeof(pico8_nf_t)) +
-           block_bytes(sizeof(pico8_ui_t)) + block_bytes(sizeof(pico8_bg_t)) +
+    assert(main_camera_typed() != NULL && main_mouse_typed() != NULL && main_ui() != NULL && pico8_ju() != NULL);
+    return block_bytes(sizeof(camera_t)) + block_bytes(sizeof(mouse_t)) +
+           block_bytes(sizeof(ui_t)) + block_bytes(sizeof(background_t)) +
            block_bytes(sizeof(pico8_pj_t));
 }
 
@@ -284,7 +284,7 @@ static int case_static_lists_in_load_zone(void) {
     static entity_t element;
     load_cart_and_start();
     const size_t start = load_zone_used();
-    entity_list_t *le = pico8_ui_le_shared();
+    entity_list_t *le = ui_ephemerals_shared();
     entity_list_add(le, &element);
     assert(load_zone_used() == start + four_pointers_bytes() &&
            "la liste de depart de ok.le prend sa capacite dans la sous-zone chargement");

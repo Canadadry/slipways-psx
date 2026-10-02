@@ -81,17 +81,17 @@ const data_row_t *pico8_pj_gs(void) {
     return score_panel_archetype.countdown_rows;
 }
 
-static void pico8_pj_init_placeholder(pico8_js_t *self) {
+static void pico8_pj_init_placeholder(button_t *self) {
     (void)self;
 }
 
-static pico8_js_fn g_init_dispatch = pico8_pj_init_placeholder;
+static button_fn_t g_init_dispatch = pico8_pj_init_placeholder;
 
-pico8_js_fn pico8_init_field_value(void) {
+button_fn_t pico8_init_field_value(void) {
     return g_init_dispatch;
 }
 
-void pico8_score_panel_set_init(pico8_js_fn fn) {
+void pico8_score_panel_set_init(button_fn_t fn) {
     g_init_dispatch = (fn != NULL) ? fn : pico8_pj_init_placeholder;
 }
 

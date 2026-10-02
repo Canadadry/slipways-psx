@@ -52,11 +52,11 @@
 #define BEFORE_F0 (-1)
 #define MAX_READINGS 4
 
-static const char *const NAMES[PICO8_SORTE_COUNT] = {"button", "modal_backdrop", "message_box", "toast", "rangee", "le"};
+static const char *const NAMES[SLOT_KIND_COUNT] = {"button", "modal_backdrop", "message_box", "toast", "rangee", "le"};
 
 typedef struct {
     int frame;
-    int live[PICO8_SORTE_COUNT];
+    int live[SLOT_KIND_COUNT];
     int particle;
     int particles;
     int particles_help_screen;
@@ -68,8 +68,8 @@ typedef struct {
 static void take_reading(reading_t *r, int frame) {
     pico8_cart_vider_file_sortie();
     r->frame = frame;
-    for (int s = 0; s < PICO8_SORTE_COUNT; s++) {
-        r->live[s] = pico8_zone_interface_vivantes((pico8_sorte_t)s);
+    for (int s = 0; s < SLOT_KIND_COUNT; s++) {
+        r->live[s] = ui_zone_live((slot_kind_t)s);
     }
     r->particle = particle_zone_live(PARTICLE_SLOT_PARTICLE);
     r->particles = particle_zone_live(PARTICLE_SLOT_LIST);
@@ -123,7 +123,7 @@ static void check_invariant(const char *e2e, int frame) {
 
 static void print_reading(const char *e2e, const reading_t *r) {
     printf("  %s f%d :", e2e, r->frame);
-    for (int s = 0; s < PICO8_SORTE_COUNT; s++) {
+    for (int s = 0; s < SLOT_KIND_COUNT; s++) {
         printf(" %s=%d", NAMES[s], r->live[s]);
     }
     printf(" particule=%d particles=%d particles_help_screen=%d burst=%d partie=%lu\n", r->particle, r->particles, r->particles_help_screen, r->burst,
@@ -207,7 +207,7 @@ static int same_counts(const reading_t *a, const reading_t *b) {
 }
 
 static int none_rises(const reading_t *a, const reading_t *b) {
-    for (int s = 0; s < PICO8_SORTE_COUNT; s++) {
+    for (int s = 0; s < SLOT_KIND_COUNT; s++) {
         if (b->live[s] > a->live[s]) return 0;
     }
     return 1;
@@ -443,7 +443,7 @@ static const probe_t *help_screen_in_live_entities(void) {
     return NULL;
 }
 
-static const pico8_bg_t *background_in_live_entities(void);
+static const background_t *background_in_live_entities(void);
 
 enum { SINGLETON_MAIN_CAMERA, SINGLETON_MAIN_MOUSE, SINGLETON_MAIN_UI, SINGLETON_BACKGROUND, SINGLETON_MAIN_SCORE_PANEL, SINGLETON_HELP_SCREEN, SINGLETON_COUNT };
 static const char *const NAMES_OF_SINGLETONS[SINGLETON_COUNT] = {"main_camera", "main_mouse", "main_ui", "background", "main_score_panel", "help_screen"};
@@ -456,9 +456,9 @@ static void singletons_of_quit_game(const void *out[SINGLETON_COUNT]) {
     play_until(6);
     out[SINGLETON_BACKGROUND] = background_in_live_entities();
     play_until(11);
-    out[SINGLETON_MAIN_CAMERA] = pico8_mo_qb();
-    out[SINGLETON_MAIN_MOUSE] = pico8_je_nf();
-    out[SINGLETON_MAIN_UI] = pico8_ok();
+    out[SINGLETON_MAIN_CAMERA] = main_camera_typed();
+    out[SINGLETON_MAIN_MOUSE] = main_mouse_typed();
+    out[SINGLETON_MAIN_UI] = main_ui();
     out[SINGLETON_MAIN_SCORE_PANEL] = pico8_ju();
     out[SINGLETON_HELP_SCREEN] = help_screen_in_live_entities();
     for (int k = 0; k < SINGLETON_COUNT; k++) assert(out[k] != NULL && "un singleton manque a f11");
@@ -470,7 +470,7 @@ static void pause_restart_keeps_quit_singletons_during_click(void) {
     singletons_of_quit_game(s);
     play_until(12);
     assert(game_zone_pending());
-    assert(pico8_mo_qb() != s[SINGLETON_MAIN_CAMERA] && pico8_ok() != s[SINGLETON_MAIN_UI] && pico8_ju() != s[SINGLETON_MAIN_SCORE_PANEL] &&
+    assert(main_camera_typed() != s[SINGLETON_MAIN_CAMERA] && main_ui() != s[SINGLETON_MAIN_UI] && pico8_ju() != s[SINGLETON_MAIN_SCORE_PANEL] &&
            "le clic de f12 fait de nouveaux singletons");
     for (int k = 0; k < SINGLETON_COUNT; k++) g_spend = *(const unsigned char *)s[k];
 }
@@ -587,13 +587,13 @@ static size_t research_and_economy_bytes(void) {
 }
 
 /* Le `bg` de `hv`, que `eu` fait seul. */
-static const pico8_bg_t *background_in_live_entities(void) {
+static const background_t *background_in_live_entities(void) {
     const entity_list_t *hv = live_entities();
-    const pico8_bg_t *bg = NULL;
+    const background_t *bg = NULL;
     for (int i = 0; hv != NULL && i < hv->count; i++) {
-        if (hv->items[i]->class != pico8_bg_struct_class()) continue;
+        if (hv->items[i]->class != background_class()) continue;
         assert(bg == NULL && "hv tient deux bg");
-        bg = (const pico8_bg_t *)hv->items[i];
+        bg = (const background_t *)hv->items[i];
     }
     assert(bg != NULL && "eu a fait le bg de la partie");
     return bg;
@@ -601,10 +601,10 @@ static const pico8_bg_t *background_in_live_entities(void) {
 
 /* Terme « singletons » : `mo`, `je`, `ok` du jl() de `eu`, son `bg` et `ju`. */
 static size_t singletons_bytes(void) {
-    assert(pico8_mo_qb() != NULL && pico8_je_nf() != NULL && pico8_ok() != NULL && pico8_ju() != NULL);
+    assert(main_camera_typed() != NULL && main_mouse_typed() != NULL && main_ui() != NULL && pico8_ju() != NULL);
     (void)background_in_live_entities();
-    return block_bytes(sizeof(pico8_qb_t)) + block_bytes(sizeof(pico8_nf_t)) +
-           block_bytes(sizeof(pico8_ui_t)) + block_bytes(sizeof(pico8_bg_t)) +
+    return block_bytes(sizeof(camera_t)) + block_bytes(sizeof(mouse_t)) +
+           block_bytes(sizeof(ui_t)) + block_bytes(sizeof(background_t)) +
            block_bytes(sizeof(pico8_pj_t));
 }
 
@@ -812,11 +812,11 @@ static void offscreen_planet_forgets_refused_grab_arena(void) {
     dispatch_context_set_input(g_input);
     pico8_cheat_step(&g_cheat, g_input);
     pico8__update60();
-    const entity_t *held = pico8_ok()->lheld;
+    const entity_t *held = main_ui()->left_held;
     assert(held != NULL && "f23 : une structure est tenue");
     planet_t *p34 = planet_targeted_by(held);
     assert(p34 != NULL && "f23 : la structure tenue accroche le fo d'une planete");
-    far = vec_add(*((const pico8_qb_t *)main_camera())->ra, vec_make(p8_fixed_from_int(500), 0));
+    far = vec_add(*((const camera_t *)main_camera())->pos, vec_make(p8_fixed_from_int(500), 0));
     p34->pos = &far;
     assert(!entity_geom_is_on_screen(&p34->header) && "p34 est hors ecran");
     pico8__draw();
@@ -825,7 +825,7 @@ static void offscreen_planet_forgets_refused_grab_arena(void) {
     g_frame++;
     while (g_frame <= 27) play_one_frame(1);
     play_one_frame(0);
-    assert(pico8_ok()->lheld == held && "f28 : la prise suivante reprend l'arene, a la meme adresse");
+    assert(main_ui()->left_held == held && "f28 : la prise suivante reprend l'arene, a la meme adresse");
     assert(p34->targeted_by == NULL && "le fo d'une planete hors ecran vise une prise refusee recyclee");
 }
 
@@ -844,7 +844,7 @@ static void refused_grab_arena_crosses_new_game(void) {
  * partie (clic f367) ; une prise d'icone (f371-377). Un refus est relache a
  * la 11e frame du cycle et rendu au vidage de la 13e. */
 static const slipway_t *held_slipway(void) {
-    const entity_t *held = pico8_ok()->lheld;
+    const entity_t *held = main_ui()->left_held;
     assert(held != NULL && held->class == slipway_class() && "un slipway est tenu");
     return (const slipway_t *)held;
 }
@@ -904,7 +904,7 @@ static void offscreen_planet_forgets_refused_slipway(void) {
     const slipway_t *held = held_slipway();
     planet_t *p = planet_targeted_by(&held->header);
     assert(p != NULL && "f345 : le slipway tenu accroche le fo d'une planete");
-    far = vec_add(*((const pico8_qb_t *)main_camera())->ra, vec_make(p8_fixed_from_int(500), 0));
+    far = vec_add(*((const camera_t *)main_camera())->pos, vec_make(p8_fixed_from_int(500), 0));
     p->pos = &far;
     assert(!entity_geom_is_on_screen(&p->header) && "la planete est hors ecran");
     pico8__draw();
@@ -923,7 +923,7 @@ static void refused_slipway_crosses_new_game(void) {
     assert(entities_by_tag("slipway") != NULL && entities_by_tag("slipway")->count == 1);
     play_until(371);
     assert(entities_by_tag("slipway") == NULL || entities_by_tag("slipway")->count == 0);
-    assert(pico8_ok()->lheld != NULL && "f371 : une prise dans la nouvelle partie");
+    assert(main_ui()->left_held != NULL && "f371 : une prise dans la nouvelle partie");
     play_until(377);
 }
 
@@ -937,7 +937,7 @@ static void refused_slipway_crosses_new_game(void) {
  * un `mz` refuse (f218-224). Un refus est relache a la 5e frame du cycle et rendu
  * au vidage de la 7e. */
 static const wormhole_t *held_wormhole(void) {
-    const entity_t *held = pico8_ok()->lheld;
+    const entity_t *held = main_ui()->left_held;
     assert(held != NULL && held->class == wormhole_class() && "un trou de ver est tenu");
     return (const wormhole_t *)held;
 }
@@ -995,7 +995,7 @@ static void refused_wormhole_crosses_new_game(void) {
  * « restart » et nouvelle partie (clic f105) ; un refus (f109-115). Un
  * refus est relache a la 5e frame du cycle et rendu au vidage de la 7e. */
 static const probe_t *held_probe(void) {
-    const entity_t *held = pico8_ok()->lheld;
+    const entity_t *held = main_ui()->left_held;
     assert(held != NULL && held->class == probe_class() && "une sonde est tenue");
     return (const probe_t *)held;
 }
@@ -1034,7 +1034,7 @@ static void offscreen_planet_forgets_refused_probe(void) {
     const entity_t *held = &held_probe()->header;
     planet_t *p34 = planet_targeted_by(held);
     assert(p34 != NULL && "f74 : la sonde tenue accroche le fo d'une planete");
-    far = vec_add(*((const pico8_qb_t *)main_camera())->ra, vec_make(p8_fixed_from_int(500), 0));
+    far = vec_add(*((const camera_t *)main_camera())->pos, vec_make(p8_fixed_from_int(500), 0));
     p34->pos = &far;
     assert(!entity_geom_is_on_screen(&p34->header) && "p34 est hors ecran");
     pico8__draw();
@@ -1043,7 +1043,7 @@ static void offscreen_planet_forgets_refused_probe(void) {
     g_frame++;
     while (g_frame <= 78) play_one_frame(1);
     play_one_frame(0);
-    assert(pico8_ok()->lheld == held && "f79 : la sonde suivante reprend l'arene, a la meme adresse");
+    assert(main_ui()->left_held == held && "f79 : la sonde suivante reprend l'arene, a la meme adresse");
     assert(p34->targeted_by == NULL && "le fo d'une planete hors ecran vise une sonde refusee recyclee");
 }
 
@@ -1151,15 +1151,15 @@ static void message_box_hold_idle_does_not_grow(void) {
 static void message_box_hold_rewrites_boxes_in_place(void) {
     start_e2e("message_box_hold");
     play_until(44);
-    const pico8_qb_t *mo = pico8_mo_qb();
-    const pico8_nf_t *je = pico8_je_nf();
-    const pico8_ui_t *ok = pico8_ok();
+    const camera_t *mo = main_camera_typed();
+    const mouse_t *je = main_mouse_typed();
+    const ui_t *ok = main_ui();
     assert(mo != NULL && je != NULL && ok != NULL);
-    const void *before[5] = {mo->p, mo->v, mo->ra, je->ra, ok->qa};
+    const void *before[5] = {mo->pos_before_shake, mo->velocity, mo->pos, je->pos, ok->mouse_world};
     size_t grab_arena = game_zone_used();
     play_until(45);
-    assert(pico8_mo_qb() == mo && pico8_je_nf() == je && pico8_ok() == ok);
-    const void *after[5] = {mo->p, mo->v, mo->ra, je->ra, ok->qa};
+    assert(main_camera_typed() == mo && main_mouse_typed() == je && main_ui() == ok);
+    const void *after[5] = {mo->pos_before_shake, mo->velocity, mo->pos, je->pos, ok->mouse_world};
     int stables = 0;
     for (int i = 0; i < 5; i++) stables += before[i] == after[i];
     printf("  message_box_hold f44-45 : %d / 5 boites par tick a la meme adresse\n", stables);
@@ -1348,7 +1348,7 @@ static void replay_writes_fill_at_session_end(void) {
 
     char expected[1024] = "";
     char line[48];
-    for (int s = 0; s < PICO8_SORTE_COUNT; s++) {
+    for (int s = 0; s < SLOT_KIND_COUNT; s++) {
         snprintf(line, sizeof line, "%s %d\n", NAMES[s], reading[0].live[s]);
         strcat(expected, line);
     }

@@ -220,8 +220,8 @@ static void clicked_game(void) {
     pico8__init();
     hd = entities_by_message("hit_test");
     for (i = 0; i < hd->count; i++) {
-        if (((const entity_t *)hd->items[i])->class == pico8_js_struct_class() && ++buttons == 2) {
-            (void)pico8_js_ldown((pico8_js_t *)hd->items[i]);
+        if (((const entity_t *)hd->items[i])->class == button_class() && ++buttons == 2) {
+            (void)button_left_press((button_t *)hd->items[i]);
             break;
         }
     }

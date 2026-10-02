@@ -36,8 +36,8 @@ p8_fixed_t economy_score_happiness(void);
  * (pico8_cart.c) calls the setter. Once that button leaves (the `jl()` of
  * `eu()` drops it), `dk` designates a copy of what is read from it: `px`,
  * `trade`, `en` and their flags; any other member is nil there. */
-const pico8_js_t *economy_score_difficulty(void);
-void economy_score_set_difficulty(const pico8_js_t *dk);
+const button_t *economy_score_difficulty(void);
+void economy_score_set_difficulty(const button_t *dk);
 
 /* Called by the exit queue before `e` is given back. */
 void economy_score_difficulty_quits(const entity_t *e);

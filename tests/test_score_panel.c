@@ -305,7 +305,7 @@ static int fq_count(void) {
     int n = 0;
     int i;
     for (i = 0; i < hv->count; i++) {
-        n += is_of(hv->items[i], pico8_fq_struct_class());
+        n += is_of(hv->items[i], modal_backdrop_class());
     }
     return n;
 }
@@ -316,7 +316,7 @@ static int js15_count(void) {
     int i;
     for (i = 0; i < hv->count; i++) {
         const void *e = hv->items[i];
-        n += is_of(e, pico8_js_struct_class()) && ((const pico8_js_t *)e)->fa == p8_fixed_from_int(15);
+        n += is_of(e, button_class()) && ((const button_t *)e)->layer == p8_fixed_from_int(15);
     }
     return n;
 }
@@ -326,13 +326,13 @@ static int de_my(void) {
 }
 
 /* `pj:ph`'s second button, the one whose `my` is `de`'s. */
-static pico8_js_t *de_button(void) {
+static button_t *de_button(void) {
     const entity_list_t *hv = live_entities();
     int i;
     for (i = hv->count - 1; i >= 0; i--) {
-        pico8_js_t *e = (pico8_js_t *)hv->items[i];
-        if (is_of(e, pico8_js_struct_class()) && e->fa == p8_fixed_from_int(15) &&
-            e->my != pico8_init_field_value()) {
+        button_t *e = (button_t *)hv->items[i];
+        if (is_of(e, button_class()) && e->layer == p8_fixed_from_int(15) &&
+            e->on_click != pico8_init_field_value()) {
             return e;
         }
     }
@@ -480,19 +480,19 @@ static void test_life(void) {
     assert(de_my() == 1);
     assert(c__state(ju) == 2);
     {
-        pico8_js_t *de = de_button();
-        assert(de != NULL && de->has_my && de->my != NULL);
-        de->my(de);
+        button_t *de = de_button();
+        assert(de != NULL && de->has_on_click && de->on_click != NULL);
+        de->on_click(de);
         assert(c__state(ju) == 1);
-        de->my(de);
+        de->on_click(de);
         assert(c__state(ju) == 2);
     }
     h = fold_fixed_member(h, ju->fa);
     check("life", h, LIFE_HASH);
 }
 
-static const pico8_js_t *as_js(const void *e) {
-    assert(is_of(e, pico8_js_struct_class()));
+static const button_t *as_js(const void *e) {
+    assert(is_of(e, button_class()));
     return e;
 }
 
@@ -538,26 +538,26 @@ static uint32_t fold_cr_le(uint32_t h, const char **head) {
     const vec_t *ra;
     int i;
 
-    assert(pico8_ok() != NULL && pico8_ok()->le != NULL);
-    le = pico8_ok()->le;
+    assert(main_ui() != NULL && main_ui()->ephemerals != NULL);
+    le = main_ui()->ephemerals;
     assert(le->count >= 2);
     h = fnv(h, (uint32_t)le->count);
-    lq = as_js(le->items[0])->lq;
+    lq = as_js(le->items[0])->layout_row;
     assert(lq != NULL && lq->has_color && lq->color == p8_fixed_from_int(13));
     assert(row_count(lq) > 0 && row_item(lq, 0).kind == LAYOUT_ROW_CELL_STRING);
     *head = row_item(lq, 0).as.text;
     h = fnv_str(h, *head);
-    ra = as_js(le->items[0])->ra;
+    ra = as_js(le->items[0])->pos;
     for (i = 0; i < le->count; i++) {
-        const pico8_js_t *b = as_js(le->items[i]);
-        vec_t qf = vec_of(b->qf);
-        assert(b->ra != NULL && b->ra->x == ra->x && b->ra->y == ra->y);
-        assert(b->fa == p8_fixed_from_int(10));
+        const button_t *b = as_js(le->items[i]);
+        vec_t qf = vec_of(b->slide_target);
+        assert(b->pos != NULL && b->pos->x == ra->x && b->pos->y == ra->y);
+        assert(b->layer == p8_fixed_from_int(10));
         assert(qf.x == 0 && qf.y == p8_fixed_from_int(11 * (i + 1)));
-        h = fold_fixed_member(h, b->fa);
+        h = fold_fixed_member(h, b->layer);
         h = fnv(fnv(h, (uint32_t)qf.x), (uint32_t)qf.y);
-        assert(b->lq != NULL);
-        h = fold_lq(h, b->lq);
+        assert(b->layout_row != NULL);
+        h = fold_lq(h, b->layout_row);
     }
     assert(vec_of(ra).x == 0 && vec_of(ra).y == p8_fixed_from_int(11));
     return h;

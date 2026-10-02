@@ -1157,6 +1157,7 @@ field	test_ke_t_by_name.i	index
 field	test_left.i	index	
 field	test_left.x	pixel_x	
 field	test_left.y	pixel_y	
+field	test_left.ok	dispatcher	ok
 field	test_components_carried.i	index	
 field	test_ke_me_by_name.i	index	
 field	test_ke_me_by_name.s	state_name	
@@ -1287,7 +1288,7 @@ identity	c:ui.c@7866@F@pico8_ui_gw@je	mouse	je
 identity	c:ui.c@10044@F@pico8_ui_bh@je	mouse	je
 identity	c:test_score_panel.c@13213@F@test_life@ju	score_panel	ju
 identity	c:message_box.c@9838@F@pico8_pz@ok	ui	ok
-identity	c:test_ui.c@15672@F@test_left@ok	ui	ok
+identity	c:test_ui.c@15672@F@test_left@ok	dispatcher	ok
 identity	c:test_economy.c@15365@F@test_lj@need_qe	need_amount	qe
 identity	c:test_research_project.c@13698@F@test_gb@b	built	hp
 identity	c:test_trade.c@9245@F@test_kg@g	built_route	trade

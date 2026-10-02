@@ -37,78 +37,78 @@ static p8_memory_t mem;
 static p8_graphics_t gfx;
 static p8_input_t input;
 
-static pico8_nf_button_t *mouse_left_of(const pico8_nf_t *nf) {
-    assert(nf != NULL && pico8_nf_l() != NULL);
-    return (pico8_nf_button_t *)pico8_nf_l();
+static mouse_button_t *mouse_left_of(const mouse_t *nf) {
+    assert(nf != NULL && mouse_left_button() != NULL);
+    return (mouse_button_t *)mouse_left_button();
 }
 
 /* The second `jl()` (the one `eu` runs) finds `qb`, `nf` and `ui` ready and
  * leaves their state alone: a mark written into `nf`'s `l` and into the
  * shared `le` survives it; `qb` stays ready throughout. */
 static void test_second_reset_world_keeps_specs(void) {
-    pico8_nf_button_t *mouse_left = mouse_left_of(pico8_je_nf());
+    mouse_button_t *mouse_left = mouse_left_of(main_mouse_typed());
     static entity_t mark_cell;
-    entity_list_t *ui_ephemerals = pico8_ui_le_shared();
+    entity_list_t *ui_ephemerals = ui_ephemerals_shared();
     entity_t *mark = &mark_cell;
-    int hm = mouse_left->hm;
+    int hm = mouse_left->released;
     int ui_count;
 
-    assert(pico8_qb_ready());
-    mouse_left->hm = 0x7777;
+    assert(camera_ready());
+    mouse_left->released = 0x7777;
     entity_list_add(ui_ephemerals, mark);
     ui_count = ui_ephemerals->count;
 
     reset_world();
 
-    assert(pico8_qb_ready());
-    assert(mouse_left_of(pico8_je_nf()) == mouse_left && mouse_left_of(pico8_je_nf())->hm == 0x7777);
-    assert(pico8_ui_le_shared() == ui_ephemerals && pico8_ui_le_shared()->count == ui_count);
+    assert(camera_ready());
+    assert(mouse_left_of(main_mouse_typed()) == mouse_left && mouse_left_of(main_mouse_typed())->released == 0x7777);
+    assert(ui_ephemerals_shared() == ui_ephemerals && ui_ephemerals_shared()->count == ui_count);
     assert(entity_list_del(ui_ephemerals, mark));
-    mouse_left->hm = hm;
+    mouse_left->released = hm;
 }
 
 /* A fresh bg reads its archetype and starts on ke's defaults; ready until
  * its shutdown. */
 static void test_background_defaults_and_ready(void) {
-    pico8_bg_t *bg = pico8_bg_new();
+    background_t *bg = background_new();
 
-    assert(bg->def == &background_archetype && bg->def->tile_choices == &background_tile_choices_seq);
-    assert(bg->header.state == bg->def->state && strcmp(bg->header.state, "normal") == 0 && bg->header.state_time == 0);
-    assert(pico8_bg_ready());
-    pico8_bg_shutdown();
-    assert(!pico8_bg_ready());
+    assert(bg->archetype == &background_archetype && bg->archetype->tile_choices == &background_tile_choices_seq);
+    assert(bg->header.state == bg->archetype->state && strcmp(bg->header.state, "normal") == 0 && bg->header.state_time == 0);
+    assert(background_ready());
+    background_shutdown();
+    assert(!background_ready());
 }
 
 static void test_button_defaults_and_ready(void) {
-    pico8_js_t *js = pico8_js_new(NULL);
+    button_t *js = button_new(NULL);
 
-    assert(js->def == &button_archetype && js->fa == js->def->layer);
-    assert(js->header.state == js->def->state && strcmp(js->header.state, "normal") == 0 && js->header.state_time == 0);
-    assert(pico8_js_ready());
-    pico8_js_shutdown();
-    assert(!pico8_js_ready());
+    assert(js->archetype == &button_archetype && js->layer == js->archetype->layer);
+    assert(js->header.state == js->archetype->state && strcmp(js->header.state, "normal") == 0 && js->header.state_time == 0);
+    assert(button_ready());
+    button_shutdown();
+    assert(!button_ready());
 }
 
 /* `ra` is the module's shared vector, not the archetype's: two fresh
  * readers point at the same one. */
 static void test_mouse_pos_is_shared(void) {
-    const pico8_nf_t *nf = pico8_nf_new();
-    const pico8_nf_t *other = pico8_nf_new();
+    const mouse_t *nf = mouse_new();
+    const mouse_t *other = mouse_new();
 
-    assert(nf->def == &mouse_archetype);
-    assert(nf->ra != NULL && nf->ra == other->ra);
+    assert(nf->archetype == &mouse_archetype);
+    assert(nf->pos != NULL && nf->pos == other->pos);
 }
 
 /* `v`, `p` and `ra` start on the archetype's vectors. */
 static void test_camera_defaults_and_ready(void) {
-    pico8_qb_t *qb = pico8_qb_new();
+    camera_t *qb = camera_new();
 
-    assert(qb->def == &camera_archetype && qb->def->dpad_directions == &camera_dpad_directions_vecs);
-    assert(qb->v == &qb->def->velocity && qb->p == &qb->def->pos_before_shake && qb->ra == &qb->def->pos && qb->ma == qb->def->shake);
-    assert(qb->header.state == qb->def->state && strcmp(qb->header.state, "normal") == 0 && qb->header.state_time == 0);
-    assert(pico8_qb_ready());
-    pico8_qb_shutdown();
-    assert(!pico8_qb_ready());
+    assert(qb->archetype == &camera_archetype && qb->archetype->dpad_directions == &camera_dpad_directions_vecs);
+    assert(qb->velocity == &qb->archetype->velocity && qb->pos_before_shake == &qb->archetype->pos_before_shake && qb->pos == &qb->archetype->pos && qb->shake == qb->archetype->shake);
+    assert(qb->header.state == qb->archetype->state && strcmp(qb->header.state, "normal") == 0 && qb->header.state_time == 0);
+    assert(camera_ready());
+    camera_shutdown();
+    assert(!camera_ready());
 }
 
 /* mz's own `me` replaces ke's; `jj` holds the generated `qs`. */

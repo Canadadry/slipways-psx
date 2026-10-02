@@ -30,8 +30,8 @@ probe_t *pico8_fv_new(void);
 /* `pico8_eu_field_value()` never returns NULL: an inert placeholder until
  * `pico8_help_set_eu()` installs the real `eu`, which
  * `pico8_help_set_eu(NULL)` puts back. */
-pico8_js_fn pico8_eu_field_value(void);
-void pico8_help_set_eu(pico8_js_fn fn);
+button_fn_t pico8_eu_field_value(void);
+void pico8_help_set_eu(button_fn_t fn);
 
 /* Stamps the `eu` value current at call time onto every row of `bo`: rows
  * stamped before a `pico8_help_set_eu()` keep what they were given. A NULL

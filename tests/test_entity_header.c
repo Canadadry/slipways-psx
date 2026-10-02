@@ -97,10 +97,10 @@ static void assert_links(const entity_t *h, entity_t want) {
 static void test_non_carriers_have_null_links(void) {
     structure_icon_t *ie = structure_icon_new(NULL);
     structure_icon_kind_t view = structure_icon_kind_view(ie);
-    pico8_nf_t *nf = pico8_nf_new();
+    mouse_t *nf = mouse_new();
     layout_row_t *lq = layout_row_new(&heap_allocator, NULL);
 
-    assert_links(&nf->header, (entity_t){.pos = (const vec_t *const *)&nf->ra});
+    assert_links(&nf->header, (entity_t){.pos = (const vec_t *const *)&nf->pos});
     assert_links(&lq->header, (entity_t){.pos = &lq->pos});
     assert_links(&tooltip_new(&heap_allocator, NULL)->header, (entity_t){0});
     assert_links(&research_project_new(NULL)->header, (entity_t){0});
@@ -112,14 +112,14 @@ static void test_non_carriers_have_null_links(void) {
 /* Carriers: the archetype's field for a class that never writes it, the
  * instance's otherwise. */
 static void test_carriers_link_their_storage(void) {
-    pico8_bg_t *background = pico8_bg_new();
-    pico8_js_t *button = pico8_js_new(NULL);
+    background_t *background = background_new();
+    button_t *button = button_new(NULL);
     structure_icon_t *structure_icon = structure_icon_new(NULL);
-    pico8_js_keys_t with_gpio_signal = {.has_fg = 1};
-    pico8_js_t *button_gpio_signal = pico8_js_new(&with_gpio_signal);
-    pico8_fq_t *modal_backdrop = pico8_fq_new(NULL);
-    pico8_ui_t *built_ui = pico8_ui_new();
-    pico8_qb_t *camera = pico8_qb_new();
+    button_keys_t with_gpio_signal = {.has_gpio_signal = 1};
+    button_t *button_gpio_signal = button_new(&with_gpio_signal);
+    modal_backdrop_t *modal_backdrop = modal_backdrop_new(NULL);
+    ui_t *built_ui = ui_new();
+    camera_t *camera = camera_new();
     pico8_mh_t *message_box = pico8_mh_new(NULL);
     pico8_iv_t *toast = pico8_iv_new(NULL);
     probe_t *help_screen = pico8_fv_new();
@@ -127,18 +127,18 @@ static void test_carriers_link_their_storage(void) {
     planet_t *infraspace_gate = infraspace_gate_new(NULL);
     planet_t *infraspace_gate_planet = infraspace_gate;
 
-    assert_links(&background->header, (entity_t){.layer = &background->def->layer, .is_hovered = &background->m_});
+    assert_links(&background->header, (entity_t){.layer = &background->archetype->layer, .is_hovered = &background->is_hovered});
     assert_links(&button->header,
-                 (entity_t){.layer = &button->fa, .pos = &button->ra, .hit_box = button->header.hit_box, .is_hovered = &button->m_});
+                 (entity_t){.layer = &button->layer, .pos = &button->pos, .hit_box = button->header.hit_box, .is_hovered = &button->is_hovered});
     assert(button->header.hit_box != NULL);
     assert_links(&button_gpio_signal->header,
                  (entity_t){
-                     .layer = &button_gpio_signal->fa, .pos = &button_gpio_signal->ra, .hit_box = button_gpio_signal->header.hit_box, .gpio_signal = &button_gpio_signal->fg, .is_hovered = &button_gpio_signal->m_});
+                     .layer = &button_gpio_signal->layer, .pos = &button_gpio_signal->pos, .hit_box = button_gpio_signal->header.hit_box, .gpio_signal = &button_gpio_signal->gpio_signal, .is_hovered = &button_gpio_signal->is_hovered});
     assert_links(&structure_icon->header,
                  (entity_t){.layer = &structure_icon->archetype->layer, .pos = &structure_icon->pos, .hit_box = &structure_icon->archetype->hit_box, .is_hovered = &structure_icon->is_hovered});
-    assert_links(&modal_backdrop->header, (entity_t){.layer = &modal_backdrop->def->layer, .is_dead = &modal_backdrop->p_, .is_hovered = &modal_backdrop->m_});
-    assert_links(&built_ui->header, (entity_t){.layer = &built_ui->def->layer, .cursor_sprite = &built_ui->def->cursor_sprite});
-    assert_links(&camera->header, (entity_t){.pos = &camera->ra, .map_pos = &camera->p, .shake = &camera->ma});
+    assert_links(&modal_backdrop->header, (entity_t){.layer = &modal_backdrop->archetype->layer, .is_dead = &modal_backdrop->is_dead, .is_hovered = &modal_backdrop->is_hovered});
+    assert_links(&built_ui->header, (entity_t){.layer = &built_ui->archetype->layer, .cursor_sprite = &built_ui->archetype->cursor_sprite});
+    assert_links(&camera->header, (entity_t){.pos = &camera->pos, .map_pos = &camera->pos_before_shake, .shake = &camera->shake});
     assert_links(&message_box->header, (entity_t){.layer = &message_box->def->layer, .is_dead = &message_box->p_});
     assert_links(&toast->header, (entity_t){.layer = &toast->def->layer, .pos = &toast->ra, .is_dead = &toast->p_});
     assert_links(&help_screen->header, (entity_t){.layer = &help_screen->archetype->layer,
@@ -246,7 +246,7 @@ static slipway_t *slipway_dragged_over_nothing(entity_t *qu) {
     keys.start = qu;
     jc = slipway_new(&keys);
     *mp = vec_make(p8_fixed_from_int(-640), p8_fixed_from_int(-640));
-    pico8_ok()->o_ = NULL;
+    main_ui()->hovered = NULL;
     slipway_class()->drag(&jc->header, mp, NULL);
     return jc;
 }

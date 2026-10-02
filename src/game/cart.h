@@ -30,12 +30,12 @@ void pico8__init(void);
 
 /* `_init` as a button's `my`: `self`, the button, is discarded: `_init()`
  * declares no parameter. */
-void pico8_init_dispatch(pico8_js_t *self);
+void pico8_init_dispatch(button_t *self);
 
 /* Starts a game from the clicked difficulty button `nj`, which becomes `dk`
  * (borrowed, not copied); a NULL `nj` gives a NULL `dk`.
  * Requires pico8_cart_load(). */
-void pico8_eu(pico8_js_t *nj);
+void pico8_eu(button_t *nj);
 
 /* Requires pico8_cart_load() and at least one prior pico8__init()/pico8_eu();
  * a not-yet-built `ok` or `hv` is a no-op rather than an error. */

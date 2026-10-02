@@ -281,21 +281,21 @@ static const entity_class_t *class_of(const void *e) {
 }
 
 /* The background is the `bg` of cv.hd whose `hd` and `fa` are both 1. */
-static pico8_bg_t *the_background(void) {
+static background_t *the_background(void) {
     const entity_list_t *hd = entities_by_message("hit_test");
-    pico8_bg_t *found = NULL;
+    background_t *found = NULL;
     int count = 0;
     int i;
 
     for (i = 0; hd != NULL && i < hd->count; i++) {
         const entity_t *e = hd->items[i];
-        pico8_bg_t *bg;
+        background_t *bg;
 
-        if (e->class != pico8_bg_struct_class()) {
+        if (e->class != background_class()) {
             continue;
         }
-        bg = (pico8_bg_t *)e;
-        if (bg->def->hit_test == p8_fixed_from_int(1) && bg->def->layer == p8_fixed_from_int(1)) {
+        bg = (background_t *)e;
+        if (bg->archetype->hit_test == p8_fixed_from_int(1) && bg->archetype->layer == p8_fixed_from_int(1)) {
             found = bg;
             count++;
         }
@@ -319,7 +319,7 @@ static probe_t *as_probe(void *e) {
 
 /* Road (a): `bg:ldown` while cg.g_ is empty. */
 static probe_t *left_press(void) {
-    pico8_bg_t *bg = the_background();
+    background_t *bg = the_background();
     down_t out;
 
     assert(entity_list_list_count(entities_by_tag("probe")) == 0);
@@ -823,7 +823,7 @@ static held_t held_now(void) {
     h.particules = particle_zone_live(PARTICLE_SLOT_PARTICLE);
     h.qy = particle_zone_live(PARTICLE_SLOT_LIST);
     h.qy_fv = particle_zone_live(PARTICLE_SLOT_HELP_LIST);
-    h.rangees = pico8_zone_interface_vivantes(PICO8_SORTE_RANGEE);
+    h.rangees = ui_zone_live(SLOT_KIND_ROW);
     return h;
 }
 

@@ -15,6 +15,6 @@ void pico8_pj_ph(pico8_pj_t *self);
 void pico8_pj_hk(p8_fixed_t yr);
 
 /* The function `de.my` holds: `fq(de)` of `ix[3]` reads nothing else. */
-pico8_fq_my_fn pico8_de_my(void);
+modal_backdrop_on_click_fn_t pico8_de_my(void);
 
 #endif

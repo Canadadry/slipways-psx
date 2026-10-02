@@ -1,5 +1,5 @@
-#ifndef PICO8_SCROLL_H
-#define PICO8_SCROLL_H
+#ifndef GAME_SCROLL_H
+#define GAME_SCROLL_H
 
 #include "p8/fixed.h"
 #include "game/game_data.h"
@@ -18,44 +18,44 @@
  * and `ra_own`, rewritten in place from then on. Never copy the struct. */
 typedef struct {
     entity_t header;
-    const camera_archetype_t *def;
-    const vec_t *v;
-    p8_fixed_t ma;
-    const vec_t *p;
-    const vec_t *ra;
-    vec_t p_own;
-    vec_t v_own;
-    vec_t ra_own;
-} pico8_qb_t;
+    const camera_archetype_t *archetype;
+    const vec_t *velocity;
+    p8_fixed_t shake;
+    const vec_t *pos_before_shake;
+    const vec_t *pos;
+    vec_t pos_before_shake_own;
+    vec_t velocity_own;
+    vec_t pos_own;
+} camera_t;
 
 /* Calls pico8_pi_init(), and requires pico8_ke_init() to have run --
  * asserted, not repaired. qb has no `pq` of its own; it inherits ke's,
  * which is what registers the camera into hv/cv/cg. */
-void pico8_qb_init(void);
+void camera_init(void);
 
-void pico8_qb_shutdown(void);
+void camera_shutdown(void);
 
 /* 1 from pico8_qb_init() to pico8_qb_shutdown(), 0 otherwise. */
-int pico8_qb_ready(void);
-const entity_class_t *pico8_qb_struct_class(void);
+int camera_ready(void);
+const entity_class_t *camera_class(void);
 
 /* The struct registers itself through `lt`; it lives in the current
  * game-zone generation. */
-pico8_qb_t *pico8_qb_new(void);
+camera_t *camera_new(void);
 
 /* Nothing outside the camera keeps `p`, `v` or `ra`: each tick rewrites
  * them in place. */
-void pico8_qb_ph(const p8_input_t *input, pico8_qb_t *self);
+void camera_update(const p8_input_t *input, camera_t *self);
 
 /* `mo.v=v` (bg:hq): writes `v_own` and points `v` at it. */
-void pico8_qb_set_v(pico8_qb_t *self, vec_t v);
+void camera_set_velocity(camera_t *self, vec_t v);
 
 /* `fy` is `dc`'s `ci[o]`, never nil: the cart's `fy or 1` fallback has no
  * caller, so there is no separate _default entry point here. */
-void pico8_qb_md(p8_graphics_t *gfx, pico8_qb_t *self, p8_fixed_t fy);
+void camera_apply(p8_graphics_t *gfx, camera_t *self, p8_fixed_t fy);
 
 /* `mo` (pico8_entity.h) as its `qb`: NULL when there is no mo and on the
  * placeholder. */
-pico8_qb_t *pico8_mo_qb(void);
+camera_t *main_camera_typed(void);
 
 #endif

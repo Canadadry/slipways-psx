@@ -1,5 +1,5 @@
-#ifndef PICO8_MOUSE_READER_H
-#define PICO8_MOUSE_READER_H
+#ifndef GAME_MOUSE_H
+#define GAME_MOUSE_H
 
 #include "game/game_data.h"
 #include "p8/input.h"
@@ -17,34 +17,34 @@
  * from then on. Never copy the struct. */
 typedef struct {
     entity_t header;
-    const mouse_archetype_t *def;
-    vec_t *ra;
-    vec_t ra_own;
-} pico8_nf_t;
+    const mouse_archetype_t *archetype;
+    vec_t *pos;
+    vec_t pos_own;
+} mouse_t;
 
 /* Calls pico8_pi_init(), and requires pico8_ke_init() to have run --
  * asserted, not repaired. Starts the shared `l`/`r` tables afresh, as
  * rebuilding the class did in the cart. */
-void pico8_nf_init(void);
+void mouse_init(void);
 
 /* Frees the shared `l`/`r` tables. */
-void pico8_nf_shutdown(void);
+void mouse_shutdown(void);
 
 /* The shared `l`/`r` tables, NULL outside pico8_nf_init()..pico8_nf_shutdown(). */
-const pico8_nf_button_t *pico8_nf_l(void);
-const pico8_nf_button_t *pico8_nf_r(void);
+const mouse_button_t *mouse_left_button(void);
+const mouse_button_t *mouse_right_button(void);
 
 /* 1 from pico8_nf_init() to pico8_nf_shutdown(), 0 otherwise. */
-int pico8_nf_ready(void);
-const entity_class_t *pico8_nf_struct_class(void);
+int mouse_ready(void);
+const entity_class_t *mouse_class(void);
 
 /* The struct enables devkit mouse reporting, registers itself through `lt`;
  * it lives in the current game-zone generation. */
-pico8_nf_t *pico8_nf_new(void);
+mouse_t *mouse_new(void);
 
 /* Rewrites `self.ra` in place with the mouse position, then runs bu()
  * over the shared `l`/`r` tables, which are mutated in place and never
  * rebound. */
-void pico8_nf_ph(const p8_input_t *input, pico8_nf_t *self);
+void mouse_update(const p8_input_t *input, mouse_t *self);
 
 #endif

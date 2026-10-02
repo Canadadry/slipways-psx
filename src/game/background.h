@@ -1,5 +1,5 @@
-#ifndef PICO8_BG_H
-#define PICO8_BG_H
+#ifndef GAME_BACKGROUND_H
+#define GAME_BACKGROUND_H
 
 #include "game/game_data.h"
 #include "p8/gfx.h"
@@ -16,46 +16,46 @@
  * that box. */
 typedef struct {
     entity_t header;
-    const background_archetype_t *def;
-    vec_t mq;
-    int has_mq; /* 0: `mq` is nil (no `rdown` yet, or a nil `rp`), read as the zero vector */
-    int m_;
-} pico8_bg_t;
+    const background_archetype_t *archetype;
+    vec_t drag_mouse;
+    int has_drag_mouse; /* 0: `mq` is nil (no `rdown` yet, or a nil `rp`), read as the zero vector */
+    int is_hovered;
+} background_t;
 
-void pico8_bg_init(void);
+void background_init(void);
 
 /* Idempotent, and safe before the first
  * `pico8_bg_init()`. */
-void pico8_bg_shutdown(void);
+void background_shutdown(void);
 
 /* 1 from pico8_bg_init() to pico8_bg_shutdown(), 0 otherwise. */
-int pico8_bg_ready(void);
+int background_ready(void);
 
-const entity_class_t *pico8_bg_struct_class(void);
+const entity_class_t *background_class(void);
 
 /* The struct registers itself into `hv`/`cv` through `lt`; it lives in the
  * current game-zone generation. */
-pico8_bg_t *pico8_bg_new(void);
+background_t *background_new(void);
 
 /* `pl` is `self`'s, or `pico8_bg_pl_seq` for a NULL `self`: `bg.pl` in the
  * cart. An index outside `pl`'s 1..15 range -- which extreme `vh` values
  * can produce, unchecked in the cart too -- paints tile 0. */
-void pico8_bg_pq(p8_memory_t *mem, pico8_bg_t *self);
+void background_construct(p8_memory_t *mem, background_t *self);
 
 /* The second `rectfill` of the dashed grid omits its color in the cart and
  * inherits the previous call's; that previous call is the statement right
  * above it, color 1, so `1` is passed explicitly here. */
-void pico8_bg_kj(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_bg_t *self);
+void background_draw(p8_graphics_t *gfx, p8_memory_t *mem, const background_t *self);
 
 /* Returns the freshly built `mz` or `g_`, which `ui:bh` then holds as
  * `lheld`, or Lua nil when neither class is registered. Both live in a grab
  * arena: an `mz` gives it back at its death, a `g_` unless it was placed. */
-down_t pico8_bg_ldown(pico8_bg_t *self);
+down_t background_left_press(background_t *self);
 
 /* Copies `rp` into `mq` and returns `self`, which becomes `ui.rheld` for as long
  * as the button stays down. */
-down_t pico8_bg_rdown(pico8_bg_t *self, vec_t *rp);
+down_t background_right_press(background_t *self, vec_t *rp);
 
-void pico8_bg_hq(pico8_bg_t *self, vec_t *rp);
+void background_drag(background_t *self, vec_t *rp);
 
 #endif

@@ -361,7 +361,7 @@ static void *dragged(void *qu, void *re) {
     *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
                         vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
     drag_over(jc, re, mp);
-    pico8_ok()->o_ = NULL;
+    main_ui()->hovered = NULL;
     while (as_slipway(jc)->header.state_time < p8_fixed_from_int(15)) {
         update_entities();
     }
@@ -410,7 +410,7 @@ static vec_t *vec_ref_fixed(vec_t at) {
 
 /* `jc:hq` reads the hovered entity off `ok.o_`. */
 static void drag_over(void *jc, void *hovered, vec_t *mp) {
-    pico8_ok()->o_ = hovered;
+    main_ui()->hovered = hovered;
     class_of(jc)->drag(jc, mp, NULL);
 }
 
@@ -633,8 +633,8 @@ static void test_draw(void) {
     world();
     old = the_slipway();
     origin = as_slipway(old)->start;
-    assert(pico8_mo_qb() != NULL);
-    main_camera_pos = vec_of(pico8_mo_qb()->ra);
+    assert(main_camera_typed() != NULL);
+    main_camera_pos = vec_of(main_camera_typed()->pos);
     p8_camera(&gfx, p8_fixed_flr_int(main_camera_pos.x), p8_fixed_flr_int(main_camera_pos.y));
     p8_cls(&mem);
     blank = screen_hash();
@@ -693,8 +693,8 @@ static void test_too_far(void) {
     drag_over(far, NULL, vec_ref(-640, -640));
     assert(end_kind(far) == END_THROWAWAY && target_kind(far) == TARGET_STATUS_TEXT);
     assert(target_kind(old) == TARGET_ABSENT);
-    assert(pico8_mo_qb() != NULL);
-    main_camera_pos = vec_of(pico8_mo_qb()->ra);
+    assert(main_camera_typed() != NULL);
+    main_camera_pos = vec_of(main_camera_typed()->pos);
     p8_camera(&gfx, p8_fixed_flr_int(main_camera_pos.x), p8_fixed_flr_int(main_camera_pos.y));
     p8_cls(&mem);
     blank = screen_hash();
@@ -710,8 +710,8 @@ static void test_too_far(void) {
     drag_over(near, NULL,
             vec_ref_fixed(vec_add(vec_of(as_planet(origin)->pos), vec_make(p8_fixed_from_int(16), 0))));
     assert(end_kind(near) == END_THROWAWAY && target_kind(near) == TARGET_ABSENT && as_slipway(near)->targeting->has_cost);
-    assert(pico8_je_nf() != NULL);
-    mouse = vec_of(pico8_je_nf()->ra);
+    assert(main_mouse_typed() != NULL);
+    mouse = vec_of(main_mouse_typed()->pos);
     p8_camera(&gfx, p8_fixed_flr_int(mouse.x) - 64, p8_fixed_flr_int(mouse.y) - 64);
     p8_cls(&mem);
     class_of(far)->draw_overlay(far, NULL);
@@ -823,7 +823,7 @@ static void test_drag_mouse_point(void) {
     hash = fold_slipway(hash, first);
     check("mouse point", hash, MOUSE_POINT_HASH);
 
-    on_camera = vec_add(vec_of(pico8_mo_qb()->ra),
+    on_camera = vec_add(vec_of(main_camera_typed()->pos),
                               vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64)));
     drag_over(second, NULL, vec_ref_fixed(on_camera));
     assert(entity_geom_is_on_screen(as_slipway(second)->end));

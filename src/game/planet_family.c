@@ -339,7 +339,7 @@ static planet_t *pico8_pm_struct_new(const planet_keys_t *keys) {
 }
 
 void pico8_ga_pq(planet_t *self) {
-    pico8_qb_t *mo;
+    camera_t *mo;
 
     if (self == NULL) {
         return;
@@ -348,9 +348,9 @@ void pico8_ga_pq(planet_t *self) {
     emitter_spawn((entity_t *)self, p8_fixed_from_int(140));
 
     if (main_camera() != NULL) {
-        mo = pico8_mo_qb();
+        mo = main_camera_typed();
         assert(mo != NULL && "mo: the placeholder has no writer; a write before jl() stops the run");
-        mo->ma = p8_fixed_from_int(3);
+        mo->shake = p8_fixed_from_int(3);
     }
 }
 

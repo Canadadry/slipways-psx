@@ -551,12 +551,12 @@ static uint32_t fold_descendant(uint32_t h, void *d) {
  * dragged by `hq` to the middle of the screen. */
 static void *bought(const entity_kind_t *kind) {
     const entity_list_t *hb = entities_by_message("refresh");
-    const pico8_qb_t *mo = pico8_mo_qb();
+    const camera_t *mo = main_camera_typed();
     const vec_t *mo_ra;
     int i;
 
-    assert(mo != NULL && mo->ra != NULL);
-    mo_ra = mo->ra;
+    assert(mo != NULL && mo->pos != NULL);
+    mo_ra = mo->pos;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *icon = hb->items[i];
         if (cls_of(icon) == structure_icon_class() && ((const structure_icon_t *)icon)->kind == kind) {
@@ -739,7 +739,7 @@ static void test_lineage_of_each_class(void) {
     assert(lineage_of(&planet_new(&keys)->header) == jo);
     assert(lineage_of(&probe_new(NULL)->header) == LINEAGE(LINEAGE_PROBE));
     assert(lineage_of(&pico8_fv_new()->header) == LINEAGE(LINEAGE_PROBE));
-    assert(lineage_of(&pico8_qb_new()->header) == 0 && lineage_of(&pico8_bg_new()->header) == 0);
+    assert(lineage_of(&camera_new()->header) == 0 && lineage_of(&background_new()->header) == 0);
     assert(lineage_of(&wormhole_new()->header) == 0 && lineage_of(&slipway_new(NULL)->header) == 0);
 }
 

@@ -86,13 +86,13 @@ static void pico8_pj_de_toggle(void) {
     }
 }
 
-static int pico8_pj_de_my_dispatch(pico8_fq_t *self) {
+static int pico8_pj_de_my_dispatch(modal_backdrop_t *self) {
     (void)self;
     pico8_pj_de_toggle();
     return 1;
 }
 
-static void pico8_pj_de_js_my_dispatch(pico8_js_t *self) {
+static void pico8_pj_de_js_my_dispatch(button_t *self) {
     (void)self;
     pico8_pj_de_toggle();
 }
@@ -165,14 +165,14 @@ static const data_row_t *pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_ph_c
     if (score_i == 0) {
         const economy_t *fm = main_economy_typed();
         const char *hl_str = fm != NULL && fm->has_end_status && fm->end_status != NULL ? fm->end_status : "current score";
-        const pico8_js_t *dk = economy_score_difficulty();
+        const button_t *dk = economy_score_difficulty();
         const char *px = "";
         char *piece1;
         char *piece2;
         char *label;
 
-        if (dk != NULL && dk->px != NULL) {
-            px = dk->px;
+        if (dk != NULL && dk->name != NULL) {
+            px = dk->name;
         }
         piece1 = p8_concat2(frame_zone(), hl_str, " (");
         piece2 = p8_concat2(frame_zone(), piece1, px);
@@ -217,41 +217,41 @@ void pico8_pj_ph(pico8_pj_t *self) {
     if (has_hl && !has_gz) {
         static const data_item_t back_items[] = {{.number = 10}, {.number = 7}};
         static const data_row_t back = {.count = 2, .items = back_items};
-        pico8_js_keys_t spec1 = {0};
-        pico8_js_keys_t spec2 = {0};
+        button_keys_t spec1 = {0};
+        button_keys_t spec2 = {0};
         layout_row_cell_t lq1_item;
         layout_row_cell_t lq2_item;
         layout_row_keys_t lq1 = {0};
         layout_row_keys_t lq2 = {0};
-        pico8_js_t *made1;
-        pico8_js_t *made2;
+        button_t *made1;
+        button_t *made2;
         const vec_t ra1 = vec_make(p8_fixed_from_int(51), p8_fixed_from_int(100));
         const vec_t ra2 = vec_make(p8_fixed_from_int(39), p8_fixed_from_int(100));
 
-        (void)pico8_fq_new(NULL);
+        (void)modal_backdrop_new(NULL);
 
         lq1_item = layout_row_cell_string(" again? ");
         lq1.items = &lq1_item;
         lq1.count = 1;
-        spec1.has_fa = 1;
-        spec1.fa = p8_fixed_from_int(15);
-        spec1.ra = &ra1;
-        spec1.lq_row = &lq1;
-        spec1.has_my = 1;
-        spec1.my = pico8_init_field_value();
-        made1 = pico8_js_new(&spec1);
+        spec1.has_layer = 1;
+        spec1.layer = p8_fixed_from_int(15);
+        spec1.pos = &ra1;
+        spec1.layout_row_keys = &lq1;
+        spec1.has_on_click = 1;
+        spec1.on_click = pico8_init_field_value();
+        made1 = button_new(&spec1);
         (void)made1;
 
         lq2_item = layout_row_cell_row(&back);
         lq2.items = &lq2_item;
         lq2.count = 1;
-        spec2.has_fa = 1;
-        spec2.fa = p8_fixed_from_int(15);
-        spec2.ra = &ra2;
-        spec2.lq_row = &lq2;
-        spec2.has_my = 1;
-        spec2.my = pico8_pj_de_js_my_dispatch;
-        made2 = pico8_js_new(&spec2);
+        spec2.has_layer = 1;
+        spec2.layer = p8_fixed_from_int(15);
+        spec2.pos = &ra2;
+        spec2.layout_row_keys = &lq2;
+        spec2.has_on_click = 1;
+        spec2.on_click = pico8_pj_de_js_my_dispatch;
+        made2 = button_new(&spec2);
         (void)made2;
 
         if (self != NULL) {
@@ -310,7 +310,7 @@ void pico8_score_panel_display_init(void) {
 void pico8_score_panel_display_shutdown(void) {
 }
 
-pico8_fq_my_fn pico8_de_my(void) {
+modal_backdrop_on_click_fn_t pico8_de_my(void) {
     return pico8_pj_de_my_dispatch;
 }
 

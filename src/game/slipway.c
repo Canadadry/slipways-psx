@@ -96,15 +96,15 @@ void slipway_construct(slipway_t *self) {
 }
 
 void slipway_drag(slipway_t *self, vec_t *mp) {
-    pico8_ui_t *ok;
+    ui_t *ok;
     entity_t *hovered;
 
     if (self == NULL) {
         return;
     }
 
-    ok = pico8_ok();
-    hovered = ok != NULL ? ok->o_ : NULL;
+    ok = main_ui();
+    hovered = ok != NULL ? ok->hovered : NULL;
 
     if (hovered != NULL && hovered->class->accept_drop != NULL) {
         self->end = hovered;

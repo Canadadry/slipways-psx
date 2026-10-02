@@ -508,8 +508,8 @@ static void test_life(void) {
     start_game();
 
     placed = build_ascension();
-    assert(pico8_mo_qb() != NULL);
-    mo_ra = pico8_mo_qb()->ra;
+    assert(main_camera_typed() != NULL);
+    mo_ra = main_camera_typed()->pos;
     assert(mo_ra != NULL);
     mp = vec_ref(vec_add(*mo_ra, vec_xy(12, 108)));
     cls_of(placed)->drag(placed, mp, vec_ref(vec_xy(64, 64)));
@@ -698,7 +698,7 @@ static held_t held_now(void) {
     h.particules = particle_zone_live(PARTICLE_SLOT_PARTICLE);
     h.qy = particle_zone_live(PARTICLE_SLOT_LIST);
     h.qy_fv = particle_zone_live(PARTICLE_SLOT_HELP_LIST);
-    h.rangees = pico8_zone_interface_vivantes(PICO8_SORTE_RANGEE);
+    h.rangees = ui_zone_live(SLOT_KIND_ROW);
     return h;
 }
 

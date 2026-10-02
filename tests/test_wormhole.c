@@ -229,9 +229,9 @@ static void world(void) {
     jc = slipway_new(&slipway_keys);
     *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
                         vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
-    pico8_ok()->o_ = re;
+    main_ui()->hovered = re;
     slipway_class()->drag(&jc->header, mp, NULL);
-    pico8_ok()->o_ = NULL;
+    main_ui()->hovered = NULL;
     while (jc->header.state_time < p8_fixed_from_int(15)) {
         update_entities();
     }
@@ -340,13 +340,13 @@ static void test_construction(void) {
     assert(entities_by_tag("probe") == NULL || entities_by_tag("probe")->count == 0);
     mzs = entities_by_tag("wormhole");
     before = mzs == NULL ? 0 : mzs->count;
-    made = pico8_bg_ldown(NULL);
+    made = background_left_press(NULL);
     assert(made.stop && made.held != NULL);
     assert(entity_list_listed(entities_by_tag("probe"), made.held));
     mzs = entities_by_tag("wormhole");
     assert((mzs == NULL ? 0 : mzs->count) == before);
 
-    made = pico8_bg_ldown(NULL);
+    made = background_left_press(NULL);
     assert(made.stop && made.held != NULL);
     check_fresh_wormhole(made.held);
     check_fresh_wormhole(build_wormhole());
@@ -817,8 +817,8 @@ static void test_wormhole_is_a_struct(void) {
     wormhole_t *mz;
 
     start_game();
-    (void)pico8_bg_ldown(NULL);
-    made = pico8_bg_ldown(NULL);
+    (void)background_left_press(NULL);
+    made = background_left_press(NULL);
     mz = wormhole_new();
     assert(is_a_wormhole_struct(made.held) && is_a_wormhole_struct(build_wormhole()) && is_a_wormhole_struct(mz));
     assert(wormhole_class()->drag != NULL && wormhole_class()->drop != NULL);

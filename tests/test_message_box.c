@@ -375,14 +375,14 @@ static void test_box_gives_its_place_back(void) {
 
     reset_world();
     pico8_cart_vider_file_sortie();
-    base = pico8_zone_interface_vivantes(PICO8_SORTE_MH);
+    base = ui_zone_live(SLOT_KIND_MESSAGE_BOX);
     run_start(&run);
     track(&run, year_box(3400));
-    assert(pico8_zone_interface_vivantes(PICO8_SORTE_MH) == base + 1);
+    assert(ui_zone_live(SLOT_KIND_MESSAGE_BOX) == base + 1);
     run_out(&run);
-    assert(pico8_zone_interface_vivantes(PICO8_SORTE_MH) == base + 1 && "out of hv, still read this frame");
+    assert(ui_zone_live(SLOT_KIND_MESSAGE_BOX) == base + 1 && "out of hv, still read this frame");
     pico8_cart_vider_file_sortie();
-    assert(pico8_zone_interface_vivantes(PICO8_SORTE_MH) == base);
+    assert(ui_zone_live(SLOT_KIND_MESSAGE_BOX) == base);
 }
 
 /* Fills the frame zone with garbage after a reset. */
@@ -427,11 +427,11 @@ static void test_year_box_keeps_its_label(void) {
  * (`current score` and the longest difficulty) and the longest happiness
  * text, a negative fraction. Its place holds it without stopping. */
 static void test_largest_scores_box_fits_its_place(void) {
-    static pico8_js_t challenging;
+    static button_t challenging;
     pico8_pj_t *ju = game_ju();
-    const pico8_js_t *dk = economy_score_difficulty();
+    const button_t *dk = economy_score_difficulty();
 
-    challenging.px = "challenging";
+    challenging.name = "challenging";
     economy_score_set_difficulty(&challenging);
     main_economy_typed()->end_status = NULL;
     main_economy_typed()->has_end_status = 0;

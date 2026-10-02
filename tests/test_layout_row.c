@@ -516,24 +516,24 @@ static void test_research_project_layout_row_and_copy(void) {
     start_game();
     for (allocated = 0; allocated < sizeof project_ranks / sizeof project_ranks[0]; allocated++) {
         void *lq = research_project_layout_row(project(project_ranks[allocated]));
-        pico8_js_keys_t spec = {0};
-        pico8_js_t *button;
+        button_keys_t spec = {0};
+        button_t *button;
         const void *copy;
 
         assert(lq != NULL);
         assert(placed_items_count(lq) + 2 == row_count(lq));
         hash = fold_row(hash, lq);
 
-        spec.lq_copy = lq;
-        button = pico8_js_new(&spec);
-        copy = button->lq;
+        spec.layout_row_copy = lq;
+        button = button_new(&spec);
+        copy = button->layout_row;
         assert(copy != NULL && copy != lq);
         assert(placed_items_count(copy) == row_count(copy) && row_count(copy) == row_count(lq));
         hash = fold_row(hash, copy);
-        hash = fnv(hash, (uint32_t)button->mb);
+        hash = fnv(hash, (uint32_t)button->width);
         p8_gfx_init(&gfx);
         p8_cls(&mem);
-        pico8_js_kj(&gfx, &mem, button, vec_xy(10, 50));
+        button_draw(&gfx, &mem, button, vec_xy(10, 50));
         hash = fnv(hash, screen_hash());
     }
 
@@ -542,22 +542,22 @@ static void test_research_project_layout_row_and_copy(void) {
         layout_row_cell_t h_items[] = {str(allocated == 0 ? "3" : "12")};
         layout_row_keys_t row_keys = with_color(positionals(2, layout_row_items), 9);
         layout_row_keys_t h_t = with_background(with_color(positionals(1, h_items), 10), allocated == 0 ? 8 : -1);
-        pico8_js_keys_t spec = {0};
-        pico8_js_t *button;
+        button_keys_t spec = {0};
+        button_t *button;
         const void *h_;
 
-        spec.lq_row = &row_keys;
-        spec.has_h_ = 1;
-        spec.h_row = &h_t;
-        button = pico8_js_new(&spec);
-        hash = fold_row(hash, button->lq);
-        h_ = button->h_;
+        spec.layout_row_keys = &row_keys;
+        spec.has_side_tooltip = 1;
+        spec.side_tooltip_row = &h_t;
+        button = button_new(&spec);
+        hash = fold_row(hash, button->layout_row);
+        h_ = button->side_tooltip;
         assert(h_ != NULL);
         hash = fold_row(hash, h_);
-        hash = fnv(hash, (uint32_t)button->mb);
+        hash = fnv(hash, (uint32_t)button->width);
         p8_gfx_init(&gfx);
         p8_cls(&mem);
-        pico8_js_kj(&gfx, &mem, button, vec_xy(10, 50));
+        button_draw(&gfx, &mem, button, vec_xy(10, 50));
         hash = fnv(hash, screen_hash());
     }
     check("hp:lq and copy", hash, RESEARCH_PROJECT_LAYOUT_ROW_HASH);
@@ -707,9 +707,9 @@ static void built_planet_panel(void) {
     jc = slipway_new(&slipway_keys);
     *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
                         vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
-    pico8_ok()->o_ = re;
+    main_ui()->hovered = re;
     slipway_class()->drag(&jc->header, mp, NULL);
-    pico8_ok()->o_ = NULL;
+    main_ui()->hovered = NULL;
     while (jc->header.state_time < p8_fixed_from_int(15)) {
         update_entities();
     }
@@ -748,15 +748,15 @@ static void test_planet_panel(void) {
     int i;
 
     built_planet_panel();
-    le = pico8_ok()->le;
+    le = main_ui()->ephemerals;
     assert(le != NULL);
     for (i = 0; i < le->count; i++) {
         const void *button = le->items[i];
         if (button != NULL &&
-            ((const entity_t *)button)->class == pico8_js_struct_class()) {
+            ((const entity_t *)button)->class == button_class()) {
             buttons++;
-            h = fold_button_row(h, ((const pico8_js_t *)button)->lq);
-            h = fold_button_row(h, ((const pico8_js_t *)button)->h_);
+            h = fold_button_row(h, ((const button_t *)button)->layout_row);
+            h = fold_button_row(h, ((const button_t *)button)->side_tooltip);
         }
     }
     printf("  panel buttons: %d\n", buttons);
@@ -766,7 +766,7 @@ static void test_planet_panel(void) {
 
 /* The row of `ok.le` whose first item is `head`, NULL when none. */
 static const layout_row_t *panel_row(const char *head) {
-    const entity_list_t *le = pico8_ok()->le;
+    const entity_list_t *le = main_ui()->ephemerals;
     int i;
 
     for (i = 0; le != NULL && i < le->count; i++) {
@@ -774,8 +774,8 @@ static const layout_row_t *panel_row(const char *head) {
         const layout_row_t *lq;
         layout_row_cell_t v;
 
-        assert(button != NULL && button->class == pico8_js_struct_class() && "ok.le holds js buttons only");
-        lq = ((const pico8_js_t *)button)->lq;
+        assert(button != NULL && button->class == button_class() && "ok.le holds js buttons only");
+        lq = ((const button_t *)button)->layout_row;
 
         if (lq != NULL && lq->items_count > 0) {
             v = lq->items[0];
@@ -960,7 +960,7 @@ static void test_layout_row_is_a_struct(void) {
     must_abort(keys_of_row, (void *)&with_fn);
     must_abort(keys_of_row, (void *)&with_resource);
     must_abort(keys_of_row, (void *)&too_long);
-    must_abort(draw_at_on_other, pico8_ok());
+    must_abort(draw_at_on_other, main_ui());
 }
 
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
@@ -1000,7 +1000,7 @@ static void test_planet_resource_row_largest_row_fits_a_slot(void) {
     assert(is != NULL && is->count == 2 && "the most wants a project has; a longer `i` needs a bigger row place");
     assert(resource_code_lookup("w", &r_w));
     o = p8_fixed_from_int(r_w);
-    slot = pico8_zone_interface_place(PICO8_SORTE_RANGEE);
+    slot = ui_zone_slot(SLOT_KIND_ROW);
     assert(research_display_planet_resource_row(slot, is, &o, p8_fixed_from_int(5), 0, 0) != NULL);
     arena_release(slot);
 }

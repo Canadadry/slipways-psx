@@ -46,7 +46,7 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
     return h;
 }
 
-static int ents_listed(const entity_list_t *list, const void *e) {
+static int entity_list_listed(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -56,21 +56,21 @@ static int ents_listed(const entity_list_t *list, const void *e) {
     return 0;
 }
 
-static int in_any_cv(const void *e) {
+static int in_any_entities_by_message(const void *e) {
     const char *names[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
     int i;
 
     for (i = 0; i < 5; i++) {
-        if (ents_listed(entities_by_message(names[i]), e)) {
+        if (entity_list_listed(entities_by_message(names[i]), e)) {
             return 1;
         }
     }
     return 0;
 }
 
-static pico8_qb_t *mo_qb(void) {
-    assert(pico8_mo_qb() != NULL);
-    return pico8_mo_qb();
+static camera_t *typed_main_camera(void) {
+    assert(main_camera_typed() != NULL);
+    return main_camera_typed();
 }
 
 static vec_t must_vec(const vec_t *v) {
@@ -86,13 +86,13 @@ static uint32_t fold_vec(uint32_t h, const vec_t *v) {
     return fnv(h, (uint32_t)v->y);
 }
 
-static uint32_t fold_mo(uint32_t h) {
-    const pico8_qb_t *mo = mo_qb();
+static uint32_t fold_main_camera(uint32_t h) {
+    const camera_t *mo = typed_main_camera();
 
-    h = fold_vec(h, mo->p);
-    h = fold_vec(h, mo->v);
-    h = fold_vec(h, mo->ra);
-    h = fnv(h, (uint32_t)mo->ma);
+    h = fold_vec(h, mo->pos_before_shake);
+    h = fold_vec(h, mo->velocity);
+    h = fold_vec(h, mo->pos);
+    h = fnv(h, (uint32_t)mo->shake);
     h = fnv(h, (uint32_t)gfx.camera_x);
     return fnv(h, (uint32_t)gfx.camera_y);
 }
@@ -131,22 +131,22 @@ static int is_vec(vec_t v, int x, int y) {
 
 /* `jl()` builds `mo`: in hv only, the spec's defaults, ke's `me`/`t`, `pc`
  * in the order left, right, up, down, and `p`/`ra` two distinct vectors. */
-static void check_fresh_mo(const pico8_qb_t *mo) {
+static void check_fresh_main_camera(const camera_t *mo) {
     const vec_seq_t *pc;
-    vec_t p = must_vec(mo->p);
-    vec_t ra = must_vec(mo->ra);
-    vec_t v = must_vec(mo->v);
+    vec_t p = must_vec(mo->pos_before_shake);
+    vec_t ra = must_vec(mo->pos);
+    vec_t v = must_vec(mo->velocity);
 
-    assert(ents_listed(live_entities(), mo) && !in_any_cv(mo));
+    assert(entity_list_listed(live_entities(), mo) && !in_any_entities_by_message(mo));
     assert(p.x == p8_fixed_from_int(192) && p.y == p8_fixed_from_int(192));
     assert(ra.x == p8_fixed_from_int(192) && ra.y == p8_fixed_from_int(192));
     assert(v.x == 0 && v.y == 0);
-    assert(mo->ma == 0);
+    assert(mo->shake == 0);
     assert(mo->header.state_time == 0);
     assert(mo->header.state != NULL && strcmp(mo->header.state, "normal") == 0);
-    assert(mo->p != mo->ra);
+    assert(mo->pos_before_shake != mo->pos);
 
-    pc = mo->def->dpad_directions;
+    pc = mo->archetype->dpad_directions;
     assert(pc != NULL);
     assert(pc == &camera_dpad_directions_vecs && pc->count == 4);
     assert(is_vec(pc->items[0], -1, 0));
@@ -155,26 +155,26 @@ static void check_fresh_mo(const pico8_qb_t *mo) {
     assert(is_vec(pc->items[3], 0, 1));
 }
 
-static void test_jl_builds_a_camera(void) {
+static void test_reset_world_builds_a_camera(void) {
     reset_world();
-    check_fresh_mo(mo_qb());
+    check_fresh_main_camera(typed_main_camera());
 }
 
-static void md_to(p8_fixed_t fy, int want_x, int want_y) {
+static void apply_camera_to(p8_fixed_t fy, int want_x, int want_y) {
     p8_camera(&gfx, 7, 11);
-    assert(main_camera()->class == pico8_qb_struct_class());
-    pico8_qb_md(dispatch_context_gfx(), (pico8_qb_t *)main_camera(), fy);
+    assert(main_camera()->class == camera_class());
+    camera_apply(dispatch_context_gfx(), (camera_t *)main_camera(), fy);
     assert(gfx.camera_x == want_x && gfx.camera_y == want_y);
 }
 
 /* `md(fy)` puts the camera on `ra*fy`. The later tests of this process
  * start from the camera the last `md` leaves: 192,192. */
-static void test_md_sets_the_camera(void) {
+static void test_apply_camera_sets_the_camera(void) {
     reset_world();
-    md_to(p8_fixed_from_int(1), 192, 192);
-    md_to(P8_FIXED_LIT(0x00008000, 0.5), 96, 96);
-    md_to(0, 0, 0);
-    md_to(p8_fixed_from_int(1), 192, 192);
+    apply_camera_to(p8_fixed_from_int(1), 192, 192);
+    apply_camera_to(P8_FIXED_LIT(0x00008000, 0.5), 96, 96);
+    apply_camera_to(0, 0, 0);
+    apply_camera_to(p8_fixed_from_int(1), 192, 192);
 }
 
 /* Idle, left, right+up, down held into the 320 bound, then released. */
@@ -200,9 +200,9 @@ static void test_scripted_ticks(void) {
     script(SCRIPTED_TICKS);
     for (i = 0; i < SCRIPTED_TICKS; i++) {
         update_entities();
-        h = fold_mo(h);
-        h = fnv(h, (uint32_t)mo_qb()->header.state_time);
-        if (must_vec(mo_qb()->p).y == p8_fixed_from_int(320)) {
+        h = fold_main_camera(h);
+        h = fnv(h, (uint32_t)typed_main_camera()->header.state_time);
+        if (must_vec(typed_main_camera()->pos_before_shake).y == p8_fixed_from_int(320)) {
             bounded++;
         }
         if (i < SCRIPTED_TICKS - 1) {
@@ -210,7 +210,7 @@ static void test_scripted_ticks(void) {
         }
     }
     unscript();
-    printf("[scripted ticks] p.y at the 320 bound on %d ticks\n", bounded);
+    printf("[scripted ticks] pos_before_shake.y at the 320 bound on %d ticks\n", bounded);
     assert(bounded > 0);
     check("scripted ticks", h, SCRIPTED_HASH);
 }
@@ -220,24 +220,24 @@ static void test_scripted_ticks(void) {
 static void test_shake_decays(void) {
     uint32_t h = 2166136261u;
     int ticks = 0;
-    const pico8_qb_t *mo;
+    const camera_t *mo;
 
     reset_world();
-    mo = mo_qb();
-    mo_qb()->ma = p8_fixed_from_int(3);
-    assert(mo->ma == p8_fixed_from_int(3));
+    mo = typed_main_camera();
+    typed_main_camera()->shake = p8_fixed_from_int(3);
+    assert(mo->shake == p8_fixed_from_int(3));
     unscript();
-    while (mo->ma != 0) {
+    while (mo->shake != 0) {
         vec_t off;
         update_entities();
         ticks++;
         assert(ticks < 100);
-        off = vec_sub(must_vec(mo->ra), must_vec(mo->p));
-        h = fnv(h, (uint32_t)mo->ma);
+        off = vec_sub(must_vec(mo->pos), must_vec(mo->pos_before_shake));
+        h = fnv(h, (uint32_t)mo->shake);
         h = fnv(h, (uint32_t)off.x);
         h = fnv(h, (uint32_t)off.y);
     }
-    printf("[shake] ma back to 0 after %d ticks\n", ticks);
+    printf("[shake] shake back to 0 after %d ticks\n", ticks);
     fflush(stdout);
     assert(ticks == SHAKE_TICKS);
     check("shake", h, SHAKE_HASH);
@@ -245,29 +245,29 @@ static void test_shake_decays(void) {
 
 /* `eu()` runs `jl()` again over a live `mo`; a shutdown and a fresh `jl()`
  * after it must not crash either. */
-static void test_second_jl(void) {
+static void test_second_reset_world(void) {
     const void *first;
 
     reset_world();
     first = main_camera();
     reset_world();
     assert(main_camera() != first);
-    assert(!ents_listed(live_entities(), first));
-    check_fresh_mo(mo_qb());
+    assert(!entity_list_listed(live_entities(), first));
+    check_fresh_main_camera(typed_main_camera());
 
     bootstrap_shutdown();
     reset_world();
-    check_fresh_mo(mo_qb());
+    check_fresh_main_camera(typed_main_camera());
 }
 
 /* Before `jl()`, `mo` is the placeholder, not a qb: `md` dispatches
  * nothing and the camera stays put. */
-static void test_placeholder_mo(void) {
+static void test_placeholder_main_camera(void) {
     entity_registry_init();
     p8_camera(&gfx, 5, 6);
-    assert(main_camera()->class != pico8_qb_struct_class());
+    assert(main_camera()->class != camera_class());
     assert(gfx.camera_x == 5 && gfx.camera_y == 6);
-    assert(pico8_mo_qb() == NULL);
+    assert(main_camera_typed() == NULL);
 }
 
 /* A game started as `eu` starts it, the right button pressed over empty
@@ -287,17 +287,17 @@ static void test_right_drag_moves_the_camera(void) {
     }
     script(20);
     pico8__update60();
-    before = must_vec(mo_qb()->p);
+    before = must_vec(typed_main_camera()->pos_before_shake);
     for (i = 1; i < 20; i++) {
         p8_input_step(&input);
         pico8__update60();
     }
     unscript();
-    after = must_vec(mo_qb()->p);
+    after = must_vec(typed_main_camera()->pos_before_shake);
     assert(after.x != before.x || after.y != before.y);
 }
 
-static int ga_alive(void) {
+static int burst_alive(void) {
     const entity_list_t *hv = live_entities();
     int i;
 
@@ -313,19 +313,19 @@ static int ga_alive(void) {
 
 /* A `ga`'s `pq` shakes the camera: `mo.ma=3` as soon as it is built, then
  * the decay back to 0 within GEOHARVEST_WINDOW ticks. */
-static void test_ga_shakes(void) {
+static void test_burst_shakes(void) {
     int i;
 
     pico8__init();
     pico8_eu(NULL);
-    assert(!ga_alive());
+    assert(!burst_alive());
     (void)pico8_ga_new(NULL);
-    assert(ga_alive());
-    assert(mo_qb()->ma == p8_fixed_from_int(3));
+    assert(burst_alive());
+    assert(typed_main_camera()->shake == p8_fixed_from_int(3));
     for (i = 0; i < GEOHARVEST_WINDOW; i++) {
         update_entities();
     }
-    assert(mo_qb()->ma == 0);
+    assert(typed_main_camera()->shake == 0);
 }
 
 /* The galaxy depends on the rnd state, which the tests before it consume: run
@@ -347,33 +347,33 @@ static void in_fresh_child(void (*test)(void)) {
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
 }
 
-static int is_a_qb_struct(const void *e) {
+static int is_a_camera_struct(const void *e) {
     return e != NULL &&
-           ((const entity_t *)e)->class == pico8_qb_struct_class();
+           ((const entity_t *)e)->class == camera_class();
 }
 
 /* `jl()`'s `mo` and one built through the class are qb structs in hv only,
  * with `ph` and `md` as methods and no `kj`; `ph` reads a nil `v` as zero. */
-static void test_qb_is_a_struct(void) {
-    pico8_qb_t *generic;
+static void test_camera_is_a_struct(void) {
+    camera_t *generic;
 
     reset_world();
-    generic = pico8_qb_new();
-    assert(is_a_qb_struct(main_camera()) && is_a_qb_struct(generic));
-    assert(ents_listed(live_entities(), generic) && !in_any_cv(generic));
-    check_fresh_mo(generic);
-    assert(generic->header.pos == &generic->ra);
-    assert(generic->header.map_pos == &generic->p);
-    pico8_qb_struct_class()->states[ENTITY_STATE_NORMAL](&generic->header, p8_fixed_from_int(0));
-    pico8_qb_md(dispatch_context_gfx(), generic, p8_fixed_from_int(1));
-    assert(pico8_qb_struct_class()->draw == NULL);
+    generic = camera_new();
+    assert(is_a_camera_struct(main_camera()) && is_a_camera_struct(generic));
+    assert(entity_list_listed(live_entities(), generic) && !in_any_entities_by_message(generic));
+    check_fresh_main_camera(generic);
+    assert(generic->header.pos == &generic->pos);
+    assert(generic->header.map_pos == &generic->pos_before_shake);
+    camera_class()->states[ENTITY_STATE_NORMAL](&generic->header, p8_fixed_from_int(0));
+    camera_apply(dispatch_context_gfx(), generic, p8_fixed_from_int(1));
+    assert(camera_class()->draw == NULL);
     {
-        vec_t p_before = must_vec(generic->p);
+        vec_t p_before = must_vec(generic->pos_before_shake);
 
-        generic->v = NULL;
-        pico8_qb_struct_class()->states[ENTITY_STATE_NORMAL](&generic->header, p8_fixed_from_int(0));
-        assert(generic->v != NULL && generic->v->x == 0 && generic->v->y == 0);
-        assert(generic->p->x == p_before.x && generic->p->y == p_before.y);
+        generic->velocity = NULL;
+        camera_class()->states[ENTITY_STATE_NORMAL](&generic->header, p8_fixed_from_int(0));
+        assert(generic->velocity != NULL && generic->velocity->x == 0 && generic->velocity->y == 0);
+        assert(generic->pos_before_shake->x == p_before.x && generic->pos_before_shake->y == p_before.y);
     }
 }
 
@@ -389,16 +389,16 @@ int main(void) {
 
     pico8_cart_load();
     in_fresh_child(test_right_drag_moves_the_camera);
-    in_fresh_child(test_ga_shakes);
+    in_fresh_child(test_burst_shakes);
 
-    test_jl_builds_a_camera();
-    test_md_sets_the_camera();
+    test_reset_world_builds_a_camera();
+    test_apply_camera_sets_the_camera();
     test_scripted_ticks();
     test_shake_decays();
-    test_second_jl();
-    test_placeholder_mo();
-    test_qb_is_a_struct();
+    test_second_reset_world();
+    test_placeholder_main_camera();
+    test_camera_is_a_struct();
 
-    printf("test_pico8_qb: all tests passed\n");
+    printf("test_camera: all tests passed\n");
     return 0;
 }

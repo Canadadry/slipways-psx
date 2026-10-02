@@ -58,17 +58,17 @@ void pico8_cart_load(void) {
     quitter_partie();
     entity_init();
     assert(entity_ready() && "ke must be declared before every ke-descended class");
-    pico8_qb_init();
-    pico8_nf_init();
-    pico8_ui_init();
+    camera_init();
+    mouse_init();
+    ui_init();
 
     layout_init();
     draw_functions_init();
     trade_init();
 
-    pico8_js_init();
-    pico8_fq_init();
-    pico8_bg_init();
+    button_init();
+    modal_backdrop_init();
+    background_init();
     pico8_mh_init();
     pico8_iv_init();
     probe_init();
@@ -103,18 +103,18 @@ void pico8_cart_load(void) {
  * vrai pour une boite neuve, et `gj.m_` ecrirait dans un autre objet.
  * ASan ne voit pas la comparaison. */
 static void oublier(const entity_t *e) {
-    pico8_ui_t *ok = pico8_ok();
+    ui_t *ok = main_ui();
     pico8_pj_t *ju = pico8_ju();
 
-    if (ok != NULL && ok->o_ == e) {
-        ok->o_ = NULL;
+    if (ok != NULL && ok->hovered == e) {
+        ok->hovered = NULL;
     }
-    if (ok != NULL && ok->gj == e) {
-        ok->gj = NULL;
+    if (ok != NULL && ok->previous_hovered == e) {
+        ok->previous_hovered = NULL;
     }
-    if (ok != NULL && ok->lheld != NULL && ok->lheld->class == slipway_class() &&
-        ((slipway_t *)ok->lheld)->end == e) {
-        ((slipway_t *)ok->lheld)->end = NULL;
+    if (ok != NULL && ok->left_held != NULL && ok->left_held->class == slipway_class() &&
+        ((slipway_t *)ok->left_held)->end == e) {
+        ((slipway_t *)ok->left_held)->end = NULL;
     }
     if ((const entity_t *)pico8_kc() == e) {
         pico8_msgbox_set_kc(NULL);
@@ -159,16 +159,16 @@ void pico8_cart_shutdown(void) {
     probe_shutdown();
     pico8_iv_shutdown();
     pico8_mh_shutdown();
-    pico8_bg_shutdown();
-    pico8_fq_shutdown();
-    pico8_js_shutdown();
+    background_shutdown();
+    modal_backdrop_shutdown();
+    button_shutdown();
 
     trade_shutdown();
     layout_shutdown();
 
-    pico8_ui_shutdown();
-    pico8_nf_shutdown();
-    pico8_qb_shutdown();
+    ui_shutdown();
+    mouse_shutdown();
+    camera_shutdown();
     entity_shutdown();
 }
 
@@ -194,12 +194,12 @@ void pico8__init(void) {
     p8_music(0);
 }
 
-void pico8_init_dispatch(pico8_js_t *self) {
+void pico8_init_dispatch(button_t *self) {
     (void)self;
     pico8__init();
 }
 
-void pico8_eu(pico8_js_t *nj) {
+void pico8_eu(button_t *nj) {
     const entity_kind_t *gx[7];
     int i;
 
@@ -211,7 +211,7 @@ void pico8_eu(pico8_js_t *nj) {
     /* `jl()` runs a second time here, as in the cart: it unconditionally
      * rebuilds hv/cv/cg and the mo/je/ok singletons. */
     reset_world();
-    (void)pico8_bg_new();
+    (void)background_new();
     galaxy_populate(p8_fixed_from_int(90));
 
     probe_set_main_economy((entity_t *)economy_new());
@@ -252,7 +252,7 @@ void pico8__update60(void) {
     frame_zone_reset();
     pico8_cart_vider_file_sortie();
     update_entities();
-    pico8_ui_lj(dispatch_context_mem(), pico8_ok());
+    ui_update(dispatch_context_mem(), main_ui());
 }
 
 void pico8__draw(void) {

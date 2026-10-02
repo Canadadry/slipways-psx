@@ -55,7 +55,7 @@ void planet_refresh(planet_t *self) {
     }
     by_list = self->outgoing_routes;
 
-    slot = pico8_zone_interface_place(PICO8_SORTE_RANGEE);
+    slot = ui_zone_slot(SLOT_KIND_ROW);
     layout_row_result = research_display_planet_resource_row(slot, needs_list, qe, mu, p8_fixed_from_int(by_list != NULL ? by_list->count : 0),
                             p8_fixed_from_int(0));
     if (layout_row_result == NULL) {
@@ -143,7 +143,7 @@ static pico8_pz_frame_t planet_open_box_frame(const planet_t *self) {
 }
 
 void planet_inspection_panel(const planet_t *self) {
-    pico8_js_keys_t buttons[PLANET_INSPECTION_PANEL_ROWS];
+    button_keys_t buttons[PLANET_INSPECTION_PANEL_ROWS];
     layout_row_keys_t icon;
     layout_row_cell_t icon_items[PLANET_ROW_CAP];
     layout_row_keys_t h_keys;
@@ -176,9 +176,9 @@ void planet_inspection_panel(const planet_t *self) {
     }
     if (icon_row != NULL) {
         icon = layout_row_keys_of_row(icon_row, icon_items, PLANET_ROW_CAP);
-        buttons[0].lq_row = &icon;
+        buttons[0].layout_row_keys = &icon;
     }
-    buttons[0].has_h_ = 1;
+    buttons[0].has_side_tooltip = 1;
     if (self->has_net_income) {
         int discard_color = 0;
 
@@ -189,7 +189,7 @@ void planet_inspection_panel(const planet_t *self) {
         h_keys.has_background = 1;
         h_keys.background_is_bool = self->net_income < p8_fixed_from_int(0);
         h_keys.background = self->net_income >= p8_fixed_from_int(0) ? p8_fixed_from_int(1) : 0;
-        buttons[0].h_row = &h_keys;
+        buttons[0].side_tooltip_row = &h_keys;
     }
     row_count = 1;
 
@@ -280,7 +280,7 @@ void planet_inspection_panel(const planet_t *self) {
         assert(row_keys[index].count < row_cap[index] && "jo:gh: every row 2..n keeps its last cell for the gap");
         row_items[index][row_keys[index].count++] = layout_row_cell_row(&gap);
         row_keys[index].items = row_items[index];
-        buttons[index].lq_row = &row_keys[index];
+        buttons[index].layout_row_keys = &row_keys[index];
     }
 
     frame = planet_open_box_frame(self);
@@ -310,7 +310,7 @@ down_t planet_accept_drop(const planet_t *self, const entity_t *s) {
 /* C has no closures: the three values the Lua `my` callback captures ride
  * on the row as `_jo_fe_*` fields, which `pz()`'s own `js(b)` copies
  * verbatim onto the button this bridge is later dispatched on. */
-static void planet_projects_panel_on_click_method(pico8_js_t *self) {
+static void planet_projects_panel_on_click_method(button_t *self) {
     planet_t *pt;
     research_project_t *b;
     p8_fixed_t od = p8_fixed_from_int(0);
@@ -318,10 +318,10 @@ static void planet_projects_panel_on_click_method(pico8_js_t *self) {
     if (self == NULL) {
         return;
     }
-    pt = self->_jo_fe_pt;
-    b = self->_jo_fe_b;
-    if (self->has__jo_fe_od) {
-        od = self->_jo_fe_od;
+    pt = self->project_planet;
+    b = self->project;
+    if (self->has_project_cost) {
+        od = self->project_cost;
     }
 
     assert(pt != NULL && "jo:fe's my callback lost its captured planet");
@@ -339,19 +339,19 @@ typedef struct {
     layout_row_cell_t cost_item;
 } planet_projects_panel_row_t;
 
-static void planet_projects_panel_keys(planet_t *self, research_project_t *b, pico8_js_keys_t *keys, planet_projects_panel_row_t *row) {
+static void planet_projects_panel_keys(planet_t *self, research_project_t *b, button_keys_t *keys, planet_projects_panel_row_t *row) {
     p8_fixed_t od = research_project_cost(b);
 
     memset(keys, 0, sizeof *keys);
     if (b->layout_row != NULL) {
         row->layout_row = layout_row_keys_of_row(b->layout_row, row->layout_row_items, PLANET_ROW_CAP);
-        keys->lq_row = &row->layout_row;
+        keys->layout_row_keys = &row->layout_row;
     } else {
-        keys->lq_copy = research_project_layout_row(b);
+        keys->layout_row_copy = research_project_layout_row(b);
     }
 
-    keys->has_h_ = 1;
-    keys->h_is_false = od <= p8_fixed_from_int(0);
+    keys->has_side_tooltip = 1;
+    keys->side_tooltip_is_false = od <= p8_fixed_from_int(0);
     if (od > p8_fixed_from_int(0)) {
         row->cost_item = layout_row_cell_string(planet_dollar(p8_tostr_fixed(frame_zone(), od)));
         memset(&row->cost_keys, 0, sizeof row->cost_keys);
@@ -359,22 +359,22 @@ static void planet_projects_panel_keys(planet_t *self, research_project_t *b, pi
         row->cost_keys.count = 1;
         row->cost_keys.has_color = 1;
         row->cost_keys.color = p8_fixed_from_int(13);
-        keys->h_row = &row->cost_keys;
+        keys->side_tooltip_row = &row->cost_keys;
     }
 
-    keys->_jo_fe_pt = self;
-    keys->_jo_fe_b = b;
-    keys->has__jo_fe_od = 1;
-    keys->_jo_fe_od = od;
-    keys->has_my = 1;
-    keys->my = planet_projects_panel_on_click_method;
-    keys->has_jb = 1;
-    keys->jb_row = research_project_tooltip(b);
+    keys->project_planet = self;
+    keys->project = b;
+    keys->has_project_cost = 1;
+    keys->project_cost = od;
+    keys->has_on_click = 1;
+    keys->on_click = planet_projects_panel_on_click_method;
+    keys->has_tooltip = 1;
+    keys->tooltip_row = research_project_tooltip(b);
 }
 
 void planet_projects_panel(planet_t *self) {
     available_projects_kept_t available_projects_list;
-    pico8_js_keys_t *bs;
+    button_keys_t *bs;
     planet_projects_panel_row_t *rows;
     pico8_pz_frame_t frame;
     size_t cap;
@@ -387,7 +387,7 @@ void planet_projects_panel(planet_t *self) {
 
     available_projects_list = research_display_available_projects((const entity_t *)self);
     cap = available_projects_list.count > 0 ? (size_t)available_projects_list.count : 1;
-    bs = (pico8_js_keys_t *)allocator_alloc(frame_zone(), cap * sizeof *bs);
+    bs = (button_keys_t *)allocator_alloc(frame_zone(), cap * sizeof *bs);
     rows = (planet_projects_panel_row_t *)allocator_alloc(frame_zone(), cap * sizeof *rows);
     memset(bs, 0, cap * sizeof *bs);
     memset(rows, 0, cap * sizeof *rows);

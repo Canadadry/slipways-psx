@@ -44,7 +44,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static const char *const SORTE_NAMES[PICO8_SORTE_COUNT] = {"button", "modal_backdrop", "message_box", "toast", "rangee", "le"};
+static const char *const SORTE_NAMES[SLOT_KIND_COUNT] = {"button", "modal_backdrop", "message_box", "toast", "rangee", "le"};
 static const char *const PARTICULES_NAMES[PARTICLE_SLOT_COUNT] = {"particule", "qy", "qy_fv", "burst", "ts"};
 
 static void write_remplissage(const char *path) {
@@ -54,8 +54,8 @@ static void write_remplissage(const char *path) {
         return;
     }
     pico8_cart_vider_file_sortie();
-    for (int s = 0; s < PICO8_SORTE_COUNT; s++) {
-        fprintf(out, "%s %d\n", SORTE_NAMES[s], pico8_zone_interface_vivantes((pico8_sorte_t)s));
+    for (int s = 0; s < SLOT_KIND_COUNT; s++) {
+        fprintf(out, "%s %d\n", SORTE_NAMES[s], ui_zone_live((slot_kind_t)s));
     }
     for (int s = 0; s < PARTICLE_SLOT_COUNT; s++) {
         fprintf(out, "%s %d\n", PARTICULES_NAMES[s], particle_zone_live((particle_slot_kind_t)s));

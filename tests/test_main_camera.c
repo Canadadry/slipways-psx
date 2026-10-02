@@ -23,17 +23,17 @@
 #include "game/ui.h"
 #include "engine/vec.h"
 
-#define GD_NEAR 1
-#define GD_FAR 0
-#define LJ_QA_X 0
-#define LJ_QA_Y 0
-#define QB_RA 192
+#define IS_ON_SCREEN_NEAR 1
+#define IS_ON_SCREEN_FAR 0
+#define RECOMPUTE_MOUSE_WORLD_X 0
+#define RECOMPUTE_MOUSE_WORLD_Y 0
+#define CAMERA_POS 192
 
 static p8_memory_t mem;
 static p8_graphics_t gfx;
 static p8_input_t input;
 
-static int ents_listed(const entity_list_t *list, const void *e) {
+static int entity_list_listed(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -50,9 +50,9 @@ static void assert_placeholder(void) {
     entity_t *mo = main_camera();
     int i;
 
-    assert(mo != NULL && pico8_mo_qb() == NULL);
+    assert(mo != NULL && main_camera_typed() == NULL);
     p8_camera(&gfx, 5, 6);
-    assert(mo->class != pico8_qb_struct_class());
+    assert(mo->class != camera_class());
     assert(mo->class->states[ENTITY_STATE_NORMAL] == NULL && mo->class->draw == NULL);
     assert(gfx.camera_x == 5 && gfx.camera_y == 6);
     assert(live_entities()->count == 0);
@@ -61,60 +61,60 @@ static void assert_placeholder(void) {
     }
 }
 
-static void assert_a_qb(void) {
+static void assert_a_camera(void) {
     const vec_t *ra;
 
-    assert(pico8_mo_qb() != NULL && pico8_mo_qb()->ra != NULL);
-    ra = pico8_mo_qb()->ra;
-    assert(ra->x == p8_fixed_from_int(QB_RA) && ra->y == p8_fixed_from_int(QB_RA));
+    assert(main_camera_typed() != NULL && main_camera_typed()->pos != NULL);
+    ra = main_camera_typed()->pos;
+    assert(ra->x == p8_fixed_from_int(CAMERA_POS) && ra->y == p8_fixed_from_int(CAMERA_POS));
 }
 
 static void test_placeholder_after_init(void) {
     entity_registry_init();
     assert_placeholder();
-    assert(!ents_listed(live_entities(), main_camera()));
+    assert(!entity_list_listed(live_entities(), main_camera()));
 }
 
 typedef struct {
     entity_t header;
-    const vec_t *ra;
-} ra_only_t;
+    const vec_t *pos;
+} pos_only_t;
 
-static const entity_class_t g_ra_only_class = {0};
+static const entity_class_t g_pos_only_class = {0};
 
 /* `gd` reads `mo.ra` as (0,0): 64 off is inside the 76 margin, 77 is not. */
-static void test_gd_on_placeholder(void) {
-    vec_t near_ra = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
-    vec_t far_ra = vec_make(p8_fixed_from_int(64 + 77), p8_fixed_from_int(64));
-    ra_only_t near_e = {{.class = &g_ra_only_class, .pos = &near_e.ra}, NULL};
-    ra_only_t far_e = {{.class = &g_ra_only_class, .pos = &far_e.ra}, NULL};
+static void test_is_on_screen_on_placeholder(void) {
+    vec_t near_pos = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
+    vec_t far_pos = vec_make(p8_fixed_from_int(64 + 77), p8_fixed_from_int(64));
+    pos_only_t near_e = {{.class = &g_pos_only_class, .pos = &near_e.pos}, NULL};
+    pos_only_t far_e = {{.class = &g_pos_only_class, .pos = &far_e.pos}, NULL};
     int near_hit;
     int far_hit;
 
     entity_registry_init();
-    near_e.ra = &near_ra;
-    far_e.ra = &far_ra;
+    near_e.pos = &near_pos;
+    far_e.pos = &far_pos;
     near_hit = entity_geom_is_on_screen(&near_e.header);
     far_hit = entity_geom_is_on_screen(&far_e.header);
-    printf("[gd] near %d far %d\n", near_hit, far_hit);
+    printf("[is_on_screen] near %d far %d\n", near_hit, far_hit);
     fflush(stdout);
-    assert(near_hit == GD_NEAR && far_hit == GD_FAR);
+    assert(near_hit == IS_ON_SCREEN_NEAR && far_hit == IS_ON_SCREEN_FAR);
 }
 
 /* `ok`'s frame on the placeholder, `ok` built by hand since `jl()` has not
  * run: `qa` is `je.ra + mo.ra`. */
-static void test_lj_on_placeholder(void) {
-    pico8_ui_t *ok;
+static void test_recompute_on_placeholder(void) {
+    ui_t *ok;
     const vec_t *qa;
 
     entity_registry_init();
-    ok = pico8_ui_new();
-    pico8_ui_lj(&mem, ok);
-    assert(ok->qa != NULL);
-    qa = ok->qa;
-    printf("[lj qa] (%d,%d)\n", (int)qa->x, (int)qa->y);
+    ok = ui_new();
+    ui_update(&mem, ok);
+    assert(ok->mouse_world != NULL);
+    qa = ok->mouse_world;
+    printf("[update mouse_world] (%d,%d)\n", (int)qa->x, (int)qa->y);
     fflush(stdout);
-    assert(qa->x == LJ_QA_X && qa->y == LJ_QA_Y);
+    assert(qa->x == RECOMPUTE_MOUSE_WORLD_X && qa->y == RECOMPUTE_MOUSE_WORLD_Y);
 }
 
 static void test_shutdown_and_init_cycle(void) {
@@ -131,16 +131,16 @@ static void test_shutdown_and_init_cycle(void) {
 }
 
 /* `jl()` puts a `qb` in its place; pico8_entity_init() puts it back. */
-static void test_replaced_by_jl(void) {
+static void test_replaced_by_reset_world(void) {
     reset_world();
-    assert_a_qb();
+    assert_a_camera();
     entity_registry_init();
     assert_placeholder();
     reset_world();
     bootstrap_shutdown();
     assert(main_camera() == NULL);
     reset_world();
-    assert_a_qb();
+    assert_a_camera();
 }
 
 static int is_a_struct_of(const void *e, const entity_class_t *cls) {
@@ -157,7 +157,7 @@ static void test_placeholder_is_a_struct(void) {
     placeholder = main_camera();
     assert(is_a_struct_of(placeholder, main_camera_placeholder_class()));
     reset_world();
-    assert(is_a_struct_of(main_camera(), pico8_qb_struct_class()));
+    assert(is_a_struct_of(main_camera(), camera_class()));
     entity_registry_init();
     assert(main_camera() == placeholder);
     bootstrap_shutdown();
@@ -165,31 +165,31 @@ static void test_placeholder_is_a_struct(void) {
 
 /* A shaken camera: `ra` is off `p`, and off its own diagonal. `gd` reads
  * the camera's `ra`, never its `p`, and each axis on its own. */
-static void test_gd_under_a_shaken_camera(void) {
-    static const vec_t shaken_p = {0, 0};
-    static vec_t shaken_ra;
-    vec_t in_ra = vec_make(p8_fixed_from_int(200 + 64), p8_fixed_from_int(100 + 64));
-    vec_t below_ra = vec_make(p8_fixed_from_int(200 + 64), p8_fixed_from_int(100 + 64 + 77));
-    ra_only_t in_e = {{.class = &g_ra_only_class, .pos = &in_e.ra}, NULL};
-    ra_only_t below_e = {{.class = &g_ra_only_class, .pos = &below_e.ra}, NULL};
-    pico8_qb_t *qb;
+static void test_is_on_screen_under_a_shaken_camera(void) {
+    static const vec_t zero_pos_before_shake = {0, 0};
+    static vec_t shaken_pos;
+    vec_t in_pos = vec_make(p8_fixed_from_int(200 + 64), p8_fixed_from_int(100 + 64));
+    vec_t below_pos = vec_make(p8_fixed_from_int(200 + 64), p8_fixed_from_int(100 + 64 + 77));
+    pos_only_t in_e = {{.class = &g_pos_only_class, .pos = &in_e.pos}, NULL};
+    pos_only_t below_e = {{.class = &g_pos_only_class, .pos = &below_e.pos}, NULL};
+    camera_t *qb;
     const vec_t *saved_p;
-    const vec_t *saved_ra;
+    const vec_t *saved_pos;
 
     reset_world();
-    qb = pico8_mo_qb();
+    qb = main_camera_typed();
     assert(qb != NULL);
-    saved_p = qb->p;
-    saved_ra = qb->ra;
-    shaken_ra = vec_make(p8_fixed_from_int(200), p8_fixed_from_int(100));
-    qb->p = &shaken_p;
-    qb->ra = &shaken_ra;
-    in_e.ra = &in_ra;
-    below_e.ra = &below_ra;
-    assert(entity_geom_is_on_screen(&in_e.header) == GD_NEAR);
-    assert(entity_geom_is_on_screen(&below_e.header) == GD_FAR);
-    qb->p = saved_p;
-    qb->ra = saved_ra;
+    saved_p = qb->pos_before_shake;
+    saved_pos = qb->pos;
+    shaken_pos = vec_make(p8_fixed_from_int(200), p8_fixed_from_int(100));
+    qb->pos_before_shake = &zero_pos_before_shake;
+    qb->pos = &shaken_pos;
+    in_e.pos = &in_pos;
+    below_e.pos = &below_pos;
+    assert(entity_geom_is_on_screen(&in_e.header) == IS_ON_SCREEN_NEAR);
+    assert(entity_geom_is_on_screen(&below_e.header) == IS_ON_SCREEN_FAR);
+    qb->pos_before_shake = saved_p;
+    qb->pos = saved_pos;
     bootstrap_shutdown();
 }
 
@@ -206,13 +206,13 @@ int main(void) {
     pico8_cart_load();
 
     test_placeholder_after_init();
-    test_gd_on_placeholder();
-    test_lj_on_placeholder();
+    test_is_on_screen_on_placeholder();
+    test_recompute_on_placeholder();
     test_shutdown_and_init_cycle();
-    test_replaced_by_jl();
+    test_replaced_by_reset_world();
     test_placeholder_is_a_struct();
-    test_gd_under_a_shaken_camera();
+    test_is_on_screen_under_a_shaken_camera();
 
-    printf("test_pico8_mo: all tests passed\n");
+    printf("test_main_camera: all tests passed\n");
     return 0;
 }

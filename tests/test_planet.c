@@ -379,12 +379,12 @@ static uint32_t fold_daughter(uint32_t h, void *d) {
  * dragged by `hq` to the middle of the screen. */
 static void *bought(const entity_kind_t *kind) {
     const entity_list_t *hb = entities_by_message("refresh");
-    const pico8_qb_t *mo = pico8_mo_qb();
+    const camera_t *mo = main_camera_typed();
     const vec_t *main_camera_pos;
     int i;
 
-    assert(mo != NULL && mo->ra != NULL);
-    main_camera_pos = mo->ra;
+    assert(mo != NULL && mo->pos != NULL);
+    main_camera_pos = mo->pos;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *icon = hb->items[i];
         if (class_of(icon) == structure_icon_class() && ((const structure_icon_t *)icon)->kind == kind) {
@@ -609,7 +609,7 @@ static void test_planet_is_a_struct(void) {
 }
 
 static int row_slots(void) {
-    return pico8_zone_interface_vivantes(PICO8_SORTE_RANGEE);
+    return ui_zone_live(SLOT_KIND_ROW);
 }
 
 /* A galaxy planet given a `kw` of its own with a `qe`, as `lz` and `bb`

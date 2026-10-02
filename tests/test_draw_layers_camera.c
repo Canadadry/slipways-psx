@@ -85,7 +85,7 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
     *pos_heap = vec_make(p8_fixed_from_int(256), p8_fixed_from_int(256));
     planet->pos = pos_heap;
 
-    assert(camera->class == pico8_qb_struct_class());
+    assert(camera->class == camera_class());
     g_spied_planet = *planet_class();
     g_spied_planet.draw = spy_draw;
     planet->header.class = &g_spied_planet;

@@ -394,9 +394,9 @@ static void built_world(void) {
     jc = slipway_new(&slipway_keys);
     *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
                         vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
-    pico8_ok()->o_ = re;
+    main_ui()->hovered = re;
     slipway_class()->drag(&jc->header, mp, NULL);
-    pico8_ok()->o_ = NULL;
+    main_ui()->hovered = NULL;
     while (jc->header.state_time < p8_fixed_from_int(15)) {
         update_entities();
     }
@@ -568,8 +568,8 @@ static void *new_planet(const char *id, int x, int y) {
     planet_keys_t keys;
     const vec_t *main_camera_pos;
 
-    assert(pico8_mo_qb() != NULL);
-    main_camera_pos = pico8_mo_qb()->ra;
+    assert(main_camera_typed() != NULL);
+    main_camera_pos = main_camera_typed()->pos;
     assert(main_camera_pos != NULL);
     keys.planet_id = id;
     keys.map_pos = vec_ref(vec_xy(x / 2, y / 2));
@@ -1029,12 +1029,12 @@ static void test_research_project_is_a_struct(void) {
     must_abort_saying(build_with_nine_positions, NULL, "hp: fd has eight positions");
     must_abort(build_with_no_name_string, NULL);
     must_abort(build_with_no_output_number, NULL);
-    must_abort(cost_on_other, pico8_ok());
-    must_abort(production_on_other, pico8_ok());
-    must_abort(tooltip_on_other, pico8_ok());
-    must_abort(layout_row_on_other, pico8_ok());
-    must_abort(install_project_on_other, pico8_ok());
-    must_abort(apply_project_on_other, pico8_ok());
+    must_abort(cost_on_other, main_ui());
+    must_abort(production_on_other, main_ui());
+    must_abort(tooltip_on_other, main_ui());
+    must_abort(layout_row_on_other, main_ui());
+    must_abort(install_project_on_other, main_ui());
+    must_abort(apply_project_on_other, main_ui());
 }
 
 /* `gb[px]` is the last project `hp:pq` registered under that `px`, even one

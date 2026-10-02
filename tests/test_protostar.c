@@ -273,8 +273,8 @@ static uint32_t fold_spawned(uint32_t h, void *e) {
     assert(gra != ra && gra != ng);
     h = fold_vec(h, g->pos);
     h = fnv(h, (uint32_t)ptrs_size(g->emitter->particles));
-    assert(pico8_mo_qb() != NULL);
-    return fold_fixed_member(h, pico8_mo_qb()->ma);
+    assert(main_camera_typed() != NULL);
+    return fold_fixed_member(h, main_camera_typed()->shake);
 }
 
 /* A protostar as `kv["pm"]`, `pm:pq`, `f_` and `jo:pq` left it: its
@@ -492,8 +492,8 @@ static void test_life(void) {
     int i;
 
     start_game();
-    assert(pico8_mo_qb() != NULL);
-    mo_ra = pico8_mo_qb()->ra;
+    assert(main_camera_typed() != NULL);
+    mo_ra = main_camera_typed()->pos;
     assert(mo_ra != NULL);
     ra = vec_add(*mo_ra, vec_xy(12, 108));
     placed = build_protostar(&p, &ra, "s90");
@@ -595,7 +595,7 @@ static held_t held_now(void) {
     h.particules = particle_zone_live(PARTICLE_SLOT_PARTICLE);
     h.qy = particle_zone_live(PARTICLE_SLOT_LIST);
     h.qy_fv = particle_zone_live(PARTICLE_SLOT_HELP_LIST);
-    h.rangees = pico8_zone_interface_vivantes(PICO8_SORTE_RANGEE);
+    h.rangees = ui_zone_live(SLOT_KIND_ROW);
     return h;
 }
 

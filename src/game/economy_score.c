@@ -79,7 +79,7 @@ p8_fixed_t economy_score_trade_income(const entity_t *entity) {
     p8_fixed_t total = p8_fixed_from_int(0);
     const planet_t *planet;
     const entity_list_t *outgoing;
-    const pico8_js_t *difficulty = economy_score_difficulty();
+    const button_t *difficulty = economy_score_difficulty();
 
     if (entity == NULL) {
         return total;
@@ -250,28 +250,28 @@ p8_fixed_t economy_score_happiness(void) {
     return p8_fixed_add(h_val, ctx.total);
 }
 
-static const pico8_js_t *g_difficulty = NULL;
+static const button_t *g_difficulty = NULL;
 
-const pico8_js_t *economy_score_difficulty(void) {
+const button_t *economy_score_difficulty(void) {
     return g_difficulty;
 }
 
-void economy_score_set_difficulty(const pico8_js_t *dk) {
+void economy_score_set_difficulty(const button_t *dk) {
     g_difficulty = dk;
 }
 
 void economy_score_difficulty_quits(const entity_t *e) {
-    static pico8_js_t copy;
+    static button_t copy;
 
     if (g_difficulty == NULL || &g_difficulty->header != e) {
         return;
     }
     memset(&copy, 0, sizeof copy);
-    copy.px = g_difficulty->px;
+    copy.name = g_difficulty->name;
     copy.has_trade = g_difficulty->has_trade;
     copy.trade = g_difficulty->trade;
-    copy.has_en = g_difficulty->has_en;
-    copy.en = g_difficulty->en;
+    copy.has_type_bias = g_difficulty->has_type_bias;
+    copy.type_bias = g_difficulty->type_bias;
     g_difficulty = &copy;
 }
 

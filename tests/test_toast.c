@@ -93,8 +93,8 @@ static void fresh_world(void) {
 
     reset_world();
     *mouse = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
-    assert(pico8_je() != NULL && pico8_je()->class == pico8_nf_struct_class());
-    ((pico8_nf_t *)pico8_je())->ra = mouse;
+    assert(main_mouse() != NULL && main_mouse()->class == mouse_class());
+    ((mouse_t *)main_mouse())->pos = mouse;
 }
 
 static pico8_iv_t *build(const vec_t *ra, const char *text, int color) {
@@ -274,16 +274,16 @@ static void test_toast_gives_its_place_back(void) {
 
     fresh_world();
     pico8_cart_vider_file_sortie();
-    base = pico8_zone_interface_vivantes(PICO8_SORTE_IV);
+    base = ui_zone_live(SLOT_KIND_TOAST);
     e = build(NULL, "-no money-", 8);
-    assert(pico8_zone_interface_vivantes(PICO8_SORTE_IV) == base + 1);
+    assert(ui_zone_live(SLOT_KIND_TOAST) == base + 1);
     while (ents_listed(live_entities(), e)) {
         update_entities();
         assert(++ticks < 1000);
     }
-    assert(pico8_zone_interface_vivantes(PICO8_SORTE_IV) == base + 1 && "out of hv, still read this frame");
+    assert(ui_zone_live(SLOT_KIND_TOAST) == base + 1 && "out of hv, still read this frame");
     pico8_cart_vider_file_sortie();
-    assert(pico8_zone_interface_vivantes(PICO8_SORTE_IV) == base);
+    assert(ui_zone_live(SLOT_KIND_TOAST) == base);
 }
 
 /* The toast's text is made in the frame zone (`ne` of `hy:lu`, `jo:hk`):

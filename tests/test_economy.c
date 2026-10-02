@@ -255,9 +255,9 @@ static void built_world(void) {
     jc = slipway_new(&slipway_keys);
     *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
                         vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
-    pico8_ok()->o_ = re;
+    main_ui()->hovered = re;
     slipway_class()->drag(&jc->header, mp, NULL);
-    pico8_ok()->o_ = NULL;
+    main_ui()->hovered = NULL;
     while (jc->header.state_time < p8_fixed_from_int(15)) {
         update_entities();
     }
@@ -673,7 +673,7 @@ static void test_economy_is_a_struct(void) {
     bare = economy_new();
     assert(bare != NULL && bare->header.class == cls);
 
-    must_abort(spend_on_other, pico8_ok());
+    must_abort(spend_on_other, main_ui());
 
     probe_shutdown();
     assert(main_economy() == NULL && main_economy_typed() == NULL);
