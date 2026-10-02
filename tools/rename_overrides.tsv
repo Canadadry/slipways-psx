@@ -1304,6 +1304,10 @@ identity	c:entity_registry.c@5709@F@draw_layers@bucket_src	message_bucket
 identity	c:test_draw_layers_camera.c@1449@F@test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_planet_draw@mem	memory	
 identity	c:test_draw_layers_camera.c@1470@F@test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_planet_draw@gfx	graphics	
 identity	c:test_game_zone.c@6250@F@icons_bytes@mesure	measure_arena	
+identity	c:galaxy.c@612@F@galaxy_populate@one	fixed_one	
+identity	c:galaxy.c@714@F@galaxy_populate@two_seventy_five	map_span	
+identity	c:galaxy.c@780@F@galaxy_populate@eighth	map_margin	
+identity	c:test_layout_row.c@31665@F@test_layout_row_is_a_struct@cls	row_class	
 
 # --- tmp/ binaries and outputs (tools/rename_strings.py) ------------------------
 # A binary takes the name of its cmd/ file, except frames: tmp/frames is the

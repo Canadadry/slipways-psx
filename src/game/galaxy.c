@@ -20,10 +20,10 @@ static p8_fixed_t picker_random(void *ctx) {
 }
 
 void galaxy_populate(p8_fixed_t planet_count) {
-    p8_fixed_t one = p8_fixed_from_int(1);
+    p8_fixed_t fixed_one = p8_fixed_from_int(1);
     p8_fixed_t threshold = P8_FIXED_LIT(0x00000ccc, 0.05);
-    p8_fixed_t two_seventy_five = P8_FIXED_LIT(0x0002c000, 2.75);
-    p8_fixed_t eighth = P8_FIXED_LIT(0x00002000, 0.125);
+    p8_fixed_t map_span = P8_FIXED_LIT(0x0002c000, 2.75);
+    p8_fixed_t map_margin = P8_FIXED_LIT(0x00002000, 0.125);
     p8_fixed_t planet_id;
     const button_t *difficulty;
     p8_fixed_t difficulty_type_bias = p8_fixed_from_int(0);
@@ -31,7 +31,7 @@ void galaxy_populate(p8_fixed_t planet_count) {
     weighted_picker_t *type_picker_state;
     random_walk_t *vanish_roll_state;
 
-    for (planet_id = one; planet_id <= planet_count; planet_id = p8_fixed_add(planet_id, one)) {
+    for (planet_id = fixed_one; planet_id <= planet_count; planet_id = p8_fixed_add(planet_id, fixed_one)) {
         vec_t p_vec;
         vec_t *p_box;
         vec_t *pos_box;
@@ -46,8 +46,8 @@ void galaxy_populate(p8_fixed_t planet_count) {
          * are rejection-sampled against the ones already placed. Not an
          * inert loop over a list that stays empty. */
         do {
-            p8_fixed_t rx = p8_fixed_add(p8_fixed_rnd(two_seventy_five), eighth);
-            p8_fixed_t ry = p8_fixed_add(p8_fixed_rnd(two_seventy_five), eighth);
+            p8_fixed_t rx = p8_fixed_add(p8_fixed_rnd(map_span), map_margin);
+            p8_fixed_t ry = p8_fixed_add(p8_fixed_rnd(map_span), map_margin);
             p_vec = vec_make(rx, ry);
         } while (entity_geom_nearest(p_vec, entities_by_tag("planet"), &nearest) <= threshold);
 

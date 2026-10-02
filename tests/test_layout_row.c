@@ -920,7 +920,7 @@ static void test_layout_row_is_a_struct(void) {
     static const data_row_t with_resource = {.count = 1, .items = three, .has_resource = 1, .resource = 0x70000};
     static const data_row_t too_long = {.count = 3, .items = three};
     static const data_row_t nested = {.count = 2, .items = three + 1, .has_color = 1, .color = 7};
-    const entity_class_t *cls = layout_row_class();
+    const entity_class_t *row_class = layout_row_class();
     layout_row_cell_t cells[] = {str("hi"), num(12)};
     layout_row_cell_t items[2];
     layout_row_keys_t t = with_color(positionals(2, cells), 9);
@@ -931,13 +931,13 @@ static void test_layout_row_is_a_struct(void) {
     int i;
 
     lq = layout_row_new(&heap_allocator, &t);
-    assert(lq != NULL && lq->header.class == cls);
-    assert(cls->draw_at != NULL);
-    assert(cls->draw == NULL && cls->draw_overlay == NULL && cls->hit_test == NULL && cls->new_year == NULL && cls->refresh == NULL &&
-           cls->left_press == NULL && cls->right_press == NULL && cls->accept_drop == NULL && cls->drag == NULL && cls->drop == NULL &&
-           cls->attach_slipway == NULL && cls->offer_trade == NULL && cls->spawn_particle == NULL);
+    assert(lq != NULL && lq->header.class == row_class);
+    assert(row_class->draw_at != NULL);
+    assert(row_class->draw == NULL && row_class->draw_overlay == NULL && row_class->hit_test == NULL && row_class->new_year == NULL && row_class->refresh == NULL &&
+           row_class->left_press == NULL && row_class->right_press == NULL && row_class->accept_drop == NULL && row_class->drag == NULL && row_class->drop == NULL &&
+           row_class->attach_slipway == NULL && row_class->offer_trade == NULL && row_class->spawn_particle == NULL);
     for (i = 0; i < STATE_COUNT; i++) {
-        assert(cls->states[i] == NULL);
+        assert(row_class->states[i] == NULL);
     }
     assert(layout_row_ready());
     assert(lq->has_color && lq->color == p8_fixed_from_int(9));

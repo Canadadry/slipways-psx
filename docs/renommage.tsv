@@ -2196,7 +2196,7 @@ pico8_bw	galaxy_populate	src/game/galaxy.c	identifiant	fonction	renommé	game/ga
 pico8_bw_gn_r	picker_random	src/game/galaxy.c	identifiant	fonction	renommé	game/galaxy	gn		c:galaxy.c@F@pico8_bw_gn_r
 dk	difficulty	src/game/galaxy.c	identifiant	locale	renommé	game/galaxy			c:galaxy.c@838@F@pico8_bw@dk
 dk_en	difficulty_type_bias	src/game/galaxy.c	identifiant	locale	renommé	game/galaxy			c:galaxy.c@864@F@pico8_bw@dk_en
-eighth	eighth	src/game/galaxy.c	identifiant	locale	conservé	game/galaxy			c:galaxy.c@786@F@pico8_bw@eighth
+eighth	map_margin	src/game/galaxy.c	identifiant	locale	renommé	game/galaxy			c:galaxy.c@780@F@galaxy_populate@eighth
 id	planet_id	src/game/galaxy.c	identifiant	locale	renommé	game/galaxy			c:galaxy.c@819@F@pico8_bw@id
 id_num_str	id_num_str	src/game/galaxy.c	identifiant	locale	conservé	game/galaxy			c:galaxy.c@1234@F@pico8_bw@id_num_str
 id_str	id_str	src/game/galaxy.c	identifiant	locale	conservé	game/galaxy			c:galaxy.c@1260@F@pico8_bw@id_str
@@ -2206,14 +2206,14 @@ made	made	src/game/galaxy.c	identifiant	locale	conservé	game/galaxy			c:galaxy.
 nearest	nearest	src/game/galaxy.c	identifiant	locale	conservé	game/galaxy			c:galaxy.c@1194@F@pico8_bw@nearest
 oc_r_ctx	type_picker_random	src/game/galaxy.c	identifiant	locale	renommé	game/galaxy	oc		c:galaxy.c@909@F@pico8_bw@oc_r_ctx
 oc_state	type_picker_state	src/game/galaxy.c	identifiant	locale	renommé	game/galaxy	oc		c:galaxy.c@941@F@pico8_bw@oc_state
-one	one	src/game/galaxy.c	identifiant	locale	conservé	game/galaxy			c:galaxy.c@600@F@pico8_bw@one
+one	fixed_one	src/game/galaxy.c	identifiant	locale	renommé	game/galaxy			c:galaxy.c@612@F@galaxy_populate@one
 p_box	p_box	src/game/galaxy.c	identifiant	locale	conservé	game/galaxy			c:galaxy.c@1137@F@pico8_bw@p_box
 p_vec	p_vec	src/game/galaxy.c	identifiant	locale	conservé	game/galaxy			c:galaxy.c@1110@F@pico8_bw@p_vec
 ra_box	pos_box	src/game/galaxy.c	identifiant	locale	renommé	game/galaxy	ra		c:galaxy.c@1111@F@pico8_bw@ra_box
 rx	rx	src/game/galaxy.c	identifiant	locale	conservé	game/galaxy			c:galaxy.c@1630@F@pico8_bw@rx
 ry	ry	src/game/galaxy.c	identifiant	locale	conservé	game/galaxy			c:galaxy.c@1721@F@pico8_bw@ry
 threshold	threshold	src/game/galaxy.c	identifiant	locale	conservé	game/galaxy			c:galaxy.c@649@F@pico8_bw@threshold
-two_seventy_five	two_seventy_five	src/game/galaxy.c	identifiant	locale	conservé	game/galaxy			c:galaxy.c@714@F@pico8_bw@two_seventy_five
+two_seventy_five	map_span	src/game/galaxy.c	identifiant	locale	renommé	game/galaxy			c:galaxy.c@714@F@galaxy_populate@two_seventy_five
 PICO8_GALAXY_H	GAME_GALAXY_H	src/game/galaxy.h	identifiant	macro	renommé	game/galaxy			macro:src/game/galaxy.h:PICO8_GALAXY_H
 ctx	ctx	src/game/galaxy.c	identifiant	paramètre	conservé	game/galaxy			c:galaxy.c@496@F@pico8_bw_gn_r@ctx
 n	planet_count	src/game/galaxy.c	identifiant	paramètre	renommé	game/galaxy			c:galaxy.c@574@F@pico8_bw@n
@@ -11104,7 +11104,7 @@ buttons	buttons	tests/test_layout_row.c	identifiant	locale	conservé	tests/test_
 c	c	tests/test_layout_row.c	identifiant	locale	conservé	tests/test_layout_row			c:test_layout_row.c@6839@F@fold_positionals@c
 child	child	tests/test_layout_row.c	identifiant	locale	conservé	tests/test_layout_row			c:test_layout_row.c@28659@F@must_abort@child
 child	child	tests/test_layout_row.c	identifiant	locale	conservé	tests/test_layout_row			c:test_layout_row.c@32087@F@in_fresh_child@child
-cls	cls	tests/test_layout_row.c	identifiant	locale	conservé	tests/test_layout_row			c:test_layout_row.c@30111@F@test_lq_is_a_struct@cls
+cls	row_class	tests/test_layout_row.c	identifiant	locale	renommé	tests/test_layout_row			c:test_layout_row.c@31665@F@test_layout_row_is_a_struct@cls
 copy	copy	tests/test_layout_row.c	identifiant	locale	conservé	tests/test_layout_row			c:test_layout_row.c@16538@F@test_hp_lq_and_copy@copy
 copy	copy	tests/test_layout_row.c	identifiant	locale	conservé	tests/test_layout_row			c:test_layout_row.c@20271@F@drawn_after_adds@copy
 copy	copy	tests/test_layout_row.c	identifiant	locale	conservé	tests/test_layout_row			c:test_layout_row.c@30347@F@test_lq_is_a_struct@copy
