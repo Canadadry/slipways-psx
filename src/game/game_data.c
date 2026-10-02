@@ -4,25 +4,25 @@
 #include <stddef.h>
 #include <string.h>
 
-const int pico8_es_table[PICO8_ES_COUNT] = {1, 0, 1, 2};
+const int upkeep_by_tier_table[UPKEEP_BY_TIER_COUNT] = {1, 0, 1, 2};
 
-const p8_fixed_t pico8_ct_table[PICO8_CT_COUNT] = {-0x5540, 0x0, 0x4000, 0x8000};
+const p8_fixed_t partner_bonus_by_tier_table[PARTNER_BONUS_BY_TIER_COUNT] = {-0x5540, 0x0, 0x4000, 0x8000};
 
-const int pico8_b__table[PICO8_B__COUNT] = {0, 100, 200, 400};
+const int development_score_by_tier_table[DEVELOPMENT_SCORE_BY_TIER_COUNT] = {0, 100, 200, 400};
 
-const int pico8_co_table[PICO8_CO_COUNT] = {-5, 0, 1, 1};
+const int happiness_by_tier_table[HAPPINESS_BY_TIER_COUNT] = {-5, 0, 1, 1};
 
-const int pico8_fb_table[PICO8_FB_COUNT] = {2, 2, 5, 5, 7, 7, 10, 10, 14, 14, 14, 19, 19, 19};
+const int palette_offsets_table[PALETTE_OFFSETS_COUNT] = {2, 2, 5, 5, 7, 7, 10, 10, 14, 14, 14, 19, 19, 19};
 
-const int pico8_ek_table[PICO8_EK_COUNT] = {2, 4, 7, 12};
+const int tier_thresholds_table[TIER_THRESHOLDS_COUNT] = {2, 4, 7, 12};
 
-const p8_fixed_t pico8_ci_table[PICO8_CI_COUNT] = {0x8000, 0x10000, 0x10000, 0x10000, 0x10000, 0x10000, 0x10000,
+const p8_fixed_t layer_fades_table[LAYER_FADES_COUNT] = {0x8000, 0x10000, 0x10000, 0x10000, 0x10000, 0x10000, 0x10000,
     0x10000, 0x10000, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
 
-const char *const pico8_ef_table[PICO8_EF_COUNT] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP",
+const char *const period_names_table[PERIOD_NAMES_COUNT] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP",
     "OCT", "NOV", "DEC", "UND", "DUO", "TER"};
 
-const pico8_df_entry_t pico8_df_table[PICO8_DF_COUNT] = {
+const planet_types_entry_t planet_types_table[PLANET_TYPES_COUNT] = {
     {"vanishing", 45, 0x0, NULL, "vanishing"},
     {"e", 160, 0x48000, "earth-like", NULL},
     {"f", 128, 0x60000, "forgeworld", NULL},
@@ -36,676 +36,676 @@ const pico8_df_entry_t pico8_df_table[PICO8_DF_COUNT] = {
     {"g", 96, 0x40000, "gas giant", NULL},
 };
 
-static const pico8_jb_item_t ix_1_lq_1_items[] = {{.n = 15}, {.n = 7}};
-static const pico8_jb_row_t ix_1_lq_1 = {.count = 2, .items = ix_1_lq_1_items};
-static const pico8_jb_item_t ix_1_lq_items[] = {{.row = &ix_1_lq_1}};
-static const pico8_jb_row_t ix_1_lq = {.count = 1, .items = ix_1_lq_items};
-static const pico8_jb_item_t ix_2_lq_1_items[] = {{.n = 37}, {.n = 7}};
-static const pico8_jb_row_t ix_2_lq_1 = {.count = 2, .items = ix_2_lq_1_items};
-static const pico8_jb_item_t ix_2_lq_items[] = {{.row = &ix_2_lq_1}};
-static const pico8_jb_row_t ix_2_lq = {.count = 1, .items = ix_2_lq_items};
-static const pico8_jb_item_t ix_3_lq_1_items[] = {{.n = 25}, {.n = 7}};
-static const pico8_jb_row_t ix_3_lq_1 = {.count = 2, .items = ix_3_lq_1_items};
-static const pico8_jb_item_t ix_3_lq_items[] = {{.row = &ix_3_lq_1}};
-static const pico8_jb_row_t ix_3_lq = {.count = 1, .items = ix_3_lq_items};
-static const pico8_jb_item_t ix_4_lq_1_items[] = {{.n = 8}, {.n = 7}};
-static const pico8_jb_row_t ix_4_lq_1 = {.count = 2, .items = ix_4_lq_1_items};
-static const pico8_jb_item_t ix_4_lq_items[] = {{.row = &ix_4_lq_1}};
-static const pico8_jb_row_t ix_4_lq = {.count = 1, .items = ix_4_lq_items};
+static const data_item_t galaxy_menu_1_layout_row_1_items[] = {{.number = 15}, {.number = 7}};
+static const data_row_t galaxy_menu_1_layout_row_1 = {.count = 2, .items = galaxy_menu_1_layout_row_1_items};
+static const data_item_t galaxy_menu_1_layout_row_items[] = {{.row = &galaxy_menu_1_layout_row_1}};
+static const data_row_t galaxy_menu_1_layout_row = {.count = 1, .items = galaxy_menu_1_layout_row_items};
+static const data_item_t galaxy_menu_2_layout_row_1_items[] = {{.number = 37}, {.number = 7}};
+static const data_row_t galaxy_menu_2_layout_row_1 = {.count = 2, .items = galaxy_menu_2_layout_row_1_items};
+static const data_item_t galaxy_menu_2_layout_row_items[] = {{.row = &galaxy_menu_2_layout_row_1}};
+static const data_row_t galaxy_menu_2_layout_row = {.count = 1, .items = galaxy_menu_2_layout_row_items};
+static const data_item_t galaxy_menu_3_layout_row_1_items[] = {{.number = 25}, {.number = 7}};
+static const data_row_t galaxy_menu_3_layout_row_1 = {.count = 2, .items = galaxy_menu_3_layout_row_1_items};
+static const data_item_t galaxy_menu_3_layout_row_items[] = {{.row = &galaxy_menu_3_layout_row_1}};
+static const data_row_t galaxy_menu_3_layout_row = {.count = 1, .items = galaxy_menu_3_layout_row_items};
+static const data_item_t galaxy_menu_4_layout_row_1_items[] = {{.number = 8}, {.number = 7}};
+static const data_row_t galaxy_menu_4_layout_row_1 = {.count = 2, .items = galaxy_menu_4_layout_row_1_items};
+static const data_item_t galaxy_menu_4_layout_row_items[] = {{.row = &galaxy_menu_4_layout_row_1}};
+static const data_row_t galaxy_menu_4_layout_row = {.count = 1, .items = galaxy_menu_4_layout_row_items};
 
-const pico8_ix_entry_t pico8_ix_table[PICO8_IX_COUNT] = {
-    {118, 0, &ix_1_lq},
-    {0, 0, &ix_2_lq},
-    {47, 0, &ix_3_lq},
-    {0, 117, &ix_4_lq},
+const galaxy_menu_entry_t galaxy_menu_table[GALAXY_MENU_COUNT] = {
+    {118, 0, &galaxy_menu_1_layout_row},
+    {0, 0, &galaxy_menu_2_layout_row},
+    {47, 0, &galaxy_menu_3_layout_row},
+    {0, 117, &galaxy_menu_4_layout_row},
 };
 
-static const pico8_jb_item_t ha_1_lq_items[] = {{.n = 31}, {.s = "restart     "}};
-static const pico8_jb_row_t ha_1_lq = {.count = 2, .items = ha_1_lq_items};
-static const pico8_jb_item_t ha_2_lq_items[] = {{.n = 42}, {.s = "toggle music"}};
-static const pico8_jb_row_t ha_2_lq = {.count = 2, .items = ha_2_lq_items};
-static const pico8_jb_item_t ha_3_lq_items[] = {{.n = 40}, {.s = "toggle sfx  "}};
-static const pico8_jb_row_t ha_3_lq = {.count = 2, .items = ha_3_lq_items};
-static const pico8_jb_item_t ha_4_lq_items[] = {{.n = 26}, {.s = "how to play\?"}};
-static const pico8_jb_row_t ha_4_lq = {.count = 2, .items = ha_4_lq_items};
+static const data_item_t pause_menu_1_layout_row_items[] = {{.number = 31}, {.text = "restart     "}};
+static const data_row_t pause_menu_1_layout_row = {.count = 2, .items = pause_menu_1_layout_row_items};
+static const data_item_t pause_menu_2_layout_row_items[] = {{.number = 42}, {.text = "toggle music"}};
+static const data_row_t pause_menu_2_layout_row = {.count = 2, .items = pause_menu_2_layout_row_items};
+static const data_item_t pause_menu_3_layout_row_items[] = {{.number = 40}, {.text = "toggle sfx  "}};
+static const data_row_t pause_menu_3_layout_row = {.count = 2, .items = pause_menu_3_layout_row_items};
+static const data_item_t pause_menu_4_layout_row_items[] = {{.number = 26}, {.text = "how to play\?"}};
+static const data_row_t pause_menu_4_layout_row = {.count = 2, .items = pause_menu_4_layout_row_items};
 
-const pico8_ha_entry_t pico8_ha_table[PICO8_HA_COUNT] = {
-    {&ha_1_lq, 0, 0},
-    {&ha_2_lq, 0, 0},
-    {&ha_3_lq, 0, 0},
-    {&ha_4_lq, 1, 5},
+const pause_menu_entry_t pause_menu_table[PAUSE_MENU_COUNT] = {
+    {&pause_menu_1_layout_row, 0, 0},
+    {&pause_menu_2_layout_row, 0, 0},
+    {&pause_menu_3_layout_row, 0, 0},
+    {&pause_menu_4_layout_row, 1, 5},
 };
 
-const pico8_ha_tail_t pico8_ha_tail = {0, 107, 0, -11, 14};
+const pause_menu_tail_t pause_menu_tail = {0, 107, 0, -11, 14};
 
-static const pico8_jb_item_t bo_1_lq_items[] = {{.n = 49}, {.s = "forgiving   "}};
-static const pico8_jb_row_t bo_1_lq = {.count = 2, .items = bo_1_lq_items};
-static const pico8_jb_item_t bo_2_lq_items[] = {{.n = 50}, {.s = "reasonable  "}};
-static const pico8_jb_row_t bo_2_lq = {.count = 2, .items = bo_2_lq_items};
-static const pico8_jb_item_t bo_3_lq_items[] = {{.n = 51}, {.s = "challenging "}};
-static const pico8_jb_row_t bo_3_lq = {.count = 2, .items = bo_3_lq_items};
-static const pico8_jb_item_t bo_4_lq_items[] = {{.n = 52}, {.s = "tough       "}};
-static const pico8_jb_row_t bo_4_lq = {.count = 2, .items = bo_4_lq_items};
+static const data_item_t difficulty_options_1_layout_row_items[] = {{.number = 49}, {.text = "forgiving   "}};
+static const data_row_t difficulty_options_1_layout_row = {.count = 2, .items = difficulty_options_1_layout_row_items};
+static const data_item_t difficulty_options_2_layout_row_items[] = {{.number = 50}, {.text = "reasonable  "}};
+static const data_row_t difficulty_options_2_layout_row = {.count = 2, .items = difficulty_options_2_layout_row_items};
+static const data_item_t difficulty_options_3_layout_row_items[] = {{.number = 51}, {.text = "challenging "}};
+static const data_row_t difficulty_options_3_layout_row = {.count = 2, .items = difficulty_options_3_layout_row_items};
+static const data_item_t difficulty_options_4_layout_row_items[] = {{.number = 52}, {.text = "tough       "}};
+static const data_row_t difficulty_options_4_layout_row = {.count = 2, .items = difficulty_options_4_layout_row_items};
 
-const pico8_bo_entry_t pico8_bo_table[PICO8_BO_COUNT] = {
-    {&bo_1_lq, "forgiving", 7, -0xfd70},
-    {&bo_2_lq, "reasonable", 6, -0x999a},
-    {&bo_3_lq, "challenging", 5, -0x6666},
-    {&bo_4_lq, "tough", 4, -0x3334},
+const difficulty_options_entry_t difficulty_options_table[DIFFICULTY_OPTIONS_COUNT] = {
+    {&difficulty_options_1_layout_row, "forgiving", 7, -0xfd70},
+    {&difficulty_options_2_layout_row, "reasonable", 6, -0x999a},
+    {&difficulty_options_3_layout_row, "challenging", 5, -0x6666},
+    {&difficulty_options_4_layout_row, "tough", 4, -0x3334},
 };
 
-static const pico8_jb_item_t bz_1_items[] = {{.n = 26}, {.n = 86}, {.n = 0}};
-static const pico8_jb_item_t bz_2_items[] = {{.n = 51}, {.n = 59}, {.n = 1}};
-static const pico8_jb_item_t bz_3_items[] = {{.n = 76}, {.n = 77}, {.n = 1}};
-static const pico8_jb_item_t bz_4_items[] = {{.n = 24}, {.n = 25}, {.n = 1}};
-static const pico8_jb_item_t bz_5_items[] = {{.n = 33}, {.n = 41}, {.n = 1}};
-static const pico8_jb_item_t bz_6_items[] = {{.s = ""}};
-static const pico8_jb_item_t bz_7_items[] = {{.n = 55}, {.s = "planets:   "}};
-static const pico8_jb_item_t bz_8_items[] = {{.n = 19}, {.s = "population:"}};
-static const pico8_jb_item_t bz_9_items[] = {{.n = 24}, {.s = "technology:"}};
-static const pico8_jb_item_t bz_10_1_items[] = {{.n = 27}, {.n = 5}};
-static const pico8_jb_row_t bz_10_1 = {.count = 2, .items = bz_10_1_items};
-static const pico8_jb_item_t bz_10_2_items[] = {{.is_false = 1}, {.n = 0}};
-static const pico8_jb_row_t bz_10_2 = {.count = 2, .items = bz_10_2_items};
-static const pico8_jb_item_t bz_10_4_items[] = {{.n = 25}, {.n = 5}};
-static const pico8_jb_row_t bz_10_4 = {.count = 2, .items = bz_10_4_items};
-static const pico8_jb_item_t bz_10_items[] = {{.row = &bz_10_1}, {.row = &bz_10_2}, {.is_false = 1}, {.row = &bz_10_4},
-    {.s = "happiness"}};
-static const pico8_jb_item_t bz_11_items[] = {{.s = "total:"}, {.s = ""}};
+static const data_item_t score_rows_1_items[] = {{.number = 26}, {.number = 86}, {.number = 0}};
+static const data_item_t score_rows_2_items[] = {{.number = 51}, {.number = 59}, {.number = 1}};
+static const data_item_t score_rows_3_items[] = {{.number = 76}, {.number = 77}, {.number = 1}};
+static const data_item_t score_rows_4_items[] = {{.number = 24}, {.number = 25}, {.number = 1}};
+static const data_item_t score_rows_5_items[] = {{.number = 33}, {.number = 41}, {.number = 1}};
+static const data_item_t score_rows_6_items[] = {{.text = ""}};
+static const data_item_t score_rows_7_items[] = {{.number = 55}, {.text = "planets:   "}};
+static const data_item_t score_rows_8_items[] = {{.number = 19}, {.text = "population:"}};
+static const data_item_t score_rows_9_items[] = {{.number = 24}, {.text = "technology:"}};
+static const data_item_t score_rows_10_1_items[] = {{.number = 27}, {.number = 5}};
+static const data_row_t score_rows_10_1 = {.count = 2, .items = score_rows_10_1_items};
+static const data_item_t score_rows_10_2_items[] = {{.is_false = 1}, {.number = 0}};
+static const data_row_t score_rows_10_2 = {.count = 2, .items = score_rows_10_2_items};
+static const data_item_t score_rows_10_4_items[] = {{.number = 25}, {.number = 5}};
+static const data_row_t score_rows_10_4 = {.count = 2, .items = score_rows_10_4_items};
+static const data_item_t score_rows_10_items[] = {{.row = &score_rows_10_1}, {.row = &score_rows_10_2}, {.is_false = 1}, {.row = &score_rows_10_4},
+    {.text = "happiness"}};
+static const data_item_t score_rows_11_items[] = {{.text = "total:"}, {.text = ""}};
 
-const pico8_bz_entry_t pico8_bz_table[PICO8_BZ_COUNT] = {
-    {.row = {.count = 3, .items = bz_1_items}, .fn = "br"},
-    {.row = {.count = 3, .items = bz_2_items}, .fn = "br"},
-    {.row = {.count = 3, .items = bz_3_items}, .fn = "br"},
-    {.row = {.count = 3, .items = bz_4_items}, .fn = "br"},
-    {.row = {.count = 3, .items = bz_5_items}, .fn = "br"},
-    {.row = {.count = 1, .items = bz_6_items, .has_c = 1, .c = 5}, .has_score = 1, .score = 0, .has_ra = 1, .ra_x = 64,
-        .ra_y = 21},
-    {.row = {.count = 2, .items = bz_7_items}, .has_score = 1, .score = 1, .has_ra = 1, .ra_x = 64, .ra_y = 34},
-    {.row = {.count = 2, .items = bz_8_items}, .has_score = 1, .score = 2, .has_ra = 1, .ra_x = 64, .ra_y = 43},
-    {.row = {.count = 2, .items = bz_9_items}, .has_score = 1, .score = 3, .has_ra = 1, .ra_x = 64, .ra_y = 52},
-    {.row = {.count = 5, .items = bz_10_items}, .has_score = 1, .score = 4, .has_ra = 1, .ra_x = 64, .ra_y = 61},
-    {.row = {.count = 2, .items = bz_11_items}, .has_score = 1, .score = 5, .has_ra = 1, .ra_x = 64, .ra_y = 74},
-    {.row = {.count = 0, .items = NULL}, .has_score = 1, .score = 6, .has_ra = 1, .ra_x = 64, .ra_y = 82},
+const score_rows_entry_t score_rows_table[SCORE_ROWS_COUNT] = {
+    {.row = {.count = 3, .items = score_rows_1_items}, .draw_function = "br"},
+    {.row = {.count = 3, .items = score_rows_2_items}, .draw_function = "br"},
+    {.row = {.count = 3, .items = score_rows_3_items}, .draw_function = "br"},
+    {.row = {.count = 3, .items = score_rows_4_items}, .draw_function = "br"},
+    {.row = {.count = 3, .items = score_rows_5_items}, .draw_function = "br"},
+    {.row = {.count = 1, .items = score_rows_6_items, .has_color = 1, .color = 5}, .has_score = 1, .score = 0, .has_pos = 1, .pos_x = 64,
+        .pos_y = 21},
+    {.row = {.count = 2, .items = score_rows_7_items}, .has_score = 1, .score = 1, .has_pos = 1, .pos_x = 64, .pos_y = 34},
+    {.row = {.count = 2, .items = score_rows_8_items}, .has_score = 1, .score = 2, .has_pos = 1, .pos_x = 64, .pos_y = 43},
+    {.row = {.count = 2, .items = score_rows_9_items}, .has_score = 1, .score = 3, .has_pos = 1, .pos_x = 64, .pos_y = 52},
+    {.row = {.count = 5, .items = score_rows_10_items}, .has_score = 1, .score = 4, .has_pos = 1, .pos_x = 64, .pos_y = 61},
+    {.row = {.count = 2, .items = score_rows_11_items}, .has_score = 1, .score = 5, .has_pos = 1, .pos_x = 64, .pos_y = 74},
+    {.row = {.count = 0, .items = NULL}, .has_score = 1, .score = 6, .has_pos = 1, .pos_x = 64, .pos_y = 82},
 };
 
-static const int jo_ka_items[] = {2, 3, 9, 12};
-const pico8_int_seq_t pico8_jo_ka_seq = {4, jo_ka_items};
+static const int planet_ring_colors_items[] = {2, 3, 9, 12};
+const int_seq_t planet_ring_colors_seq = {4, planet_ring_colors_items};
 
-static const pico8_jb_item_t jo_dz_1_items[] = {{.s = "unhappy"}};
-static const pico8_jb_item_t jo_dz_2_items[] = {{.s = "content"}};
-static const pico8_jb_item_t jo_dz_3_items[] = {{.s = "prosperous"}};
-static const pico8_jb_item_t jo_dz_4_items[] = {{.s = "rich"}};
-const pico8_jb_row_t pico8_jo_dz_rows[PICO8_JO_DZ_COUNT] = {
-    {.count = 1, .items = jo_dz_1_items, .has_c = 1, .c = 8},
-    {.count = 1, .items = jo_dz_2_items, .has_c = 1, .c = 3},
-    {.count = 1, .items = jo_dz_3_items, .has_c = 1, .c = 9},
-    {.count = 1, .items = jo_dz_4_items, .has_c = 1, .c = 12},
+static const data_item_t planet_mood_rows_1_items[] = {{.text = "unhappy"}};
+static const data_item_t planet_mood_rows_2_items[] = {{.text = "content"}};
+static const data_item_t planet_mood_rows_3_items[] = {{.text = "prosperous"}};
+static const data_item_t planet_mood_rows_4_items[] = {{.text = "rich"}};
+const data_row_t planet_mood_rows_rows[PLANET_MOOD_ROWS_COUNT] = {
+    {.count = 1, .items = planet_mood_rows_1_items, .has_color = 1, .color = 8},
+    {.count = 1, .items = planet_mood_rows_2_items, .has_color = 1, .color = 3},
+    {.count = 1, .items = planet_mood_rows_3_items, .has_color = 1, .color = 9},
+    {.count = 1, .items = planet_mood_rows_4_items, .has_color = 1, .color = 12},
 };
 
-static const int jo_cq_items[] = {12, 36, 24, 25};
-const pico8_int_seq_t pico8_jo_cq_seq = {4, jo_cq_items};
+static const int planet_made_resources_items[] = {12, 36, 24, 25};
+const int_seq_t planet_made_resources_seq = {4, planet_made_resources_items};
 
-static const pico8_jb_item_t jo_em_items[] = {{.is_false = 1}, {.n = 3}, {.n = 0}, {.n = -1}};
-const pico8_jb_row_t pico8_jo_em_row = {.count = 4, .items = jo_em_items};
+static const data_item_t planet_spacer_items[] = {{.is_false = 1}, {.number = 3}, {.number = 0}, {.number = -1}};
+const data_row_t planet_spacer_row = {.count = 4, .items = planet_spacer_items};
 
-static const pico8_jb_item_t qh_px_items[] = {{.s = "laboratory"}};
-const pico8_jb_row_t pico8_qh_px_row = {.count = 1, .items = qh_px_items, .has_c = 1, .c = 13};
+static const data_item_t structure_name_items[] = {{.text = "laboratory"}};
+const data_row_t structure_name_row = {.count = 1, .items = structure_name_items, .has_color = 1, .color = 13};
 
-static const pico8_jb_item_t nl_px_items[] = {{.s = "trading hub"}};
-const pico8_jb_row_t pico8_nl_px_row = {.count = 1, .items = nl_px_items, .has_c = 1, .c = 13};
+static const data_item_t trading_hub_name_items[] = {{.text = "trading hub"}};
+const data_row_t trading_hub_name_row = {.count = 1, .items = trading_hub_name_items, .has_color = 1, .color = 13};
 
-static const pico8_jb_item_t os_px_items[] = {{.s = "processor"}};
-const pico8_jb_row_t pico8_os_px_row = {.count = 1, .items = os_px_items, .has_c = 1, .c = 13};
+static const data_item_t processor_name_items[] = {{.text = "processor"}};
+const data_row_t processor_name_row = {.count = 1, .items = processor_name_items, .has_color = 1, .color = 13};
 
-static const pico8_jb_item_t hj_px_items[] = {{.s = "ascension nr"}};
-const pico8_jb_row_t pico8_hj_px_row = {.count = 1, .items = hj_px_items, .has_c = 1, .c = 13};
+static const data_item_t ascension_name_items[] = {{.text = "ascension nr"}};
+const data_row_t ascension_name_row = {.count = 1, .items = ascension_name_items, .has_color = 1, .color = 13};
 
-static const pico8_jb_item_t pm_px_items[] = {{.s = "protostar"}};
-const pico8_jb_row_t pico8_pm_px_row = {.count = 1, .items = pm_px_items, .has_c = 1, .c = 13};
+static const data_item_t protostar_name_items[] = {{.text = "protostar"}};
+const data_row_t protostar_name_row = {.count = 1, .items = protostar_name_items, .has_color = 1, .color = 13};
 
-static const pico8_jb_item_t mx_px_items[] = {{.s = "synthesizer"}};
-const pico8_jb_row_t pico8_mx_px_row = {.count = 1, .items = mx_px_items, .has_c = 1, .c = 13};
+static const data_item_t synthesizer_name_items[] = {{.text = "synthesizer"}};
+const data_row_t synthesizer_name_row = {.count = 1, .items = synthesizer_name_items, .has_color = 1, .color = 13};
 
-static const int qh_ba_items[] = {28, 18, 20, 21, 22, 48};
-const pico8_int_seq_t pico8_qh_ba_seq = {6, qh_ba_items};
+static const int structure_accepted_resources_items[] = {28, 18, 20, 21, 22, 48};
+const int_seq_t structure_accepted_resources_seq = {6, structure_accepted_resources_items};
 
-static const int nl_ba_items[] = {28, 48, 18, 20, 21, 22};
-const pico8_int_seq_t pico8_nl_ba_seq = {6, nl_ba_items};
+static const int trading_hub_accepted_resources_items[] = {28, 48, 18, 20, 21, 22};
+const int_seq_t trading_hub_accepted_resources_seq = {6, trading_hub_accepted_resources_items};
 
-static const int hj_k__items[] = {1, 13, 12, 12, 12, 13, 13, 5, 1, 1, 1};
-const pico8_int_seq_t pico8_hj_k__seq = {11, hj_k__items};
+static const int ascension_trail_colors_items[] = {1, 13, 12, 12, 12, 13, 13, 5, 1, 1, 1};
+const int_seq_t ascension_trail_colors_seq = {11, ascension_trail_colors_items};
 
-static const int pm_k__items[] = {1, 2, 4, 9, 10, 7};
-const pico8_int_seq_t pico8_pm_k__seq = {6, pm_k__items};
+static const int protostar_trail_colors_items[] = {1, 2, 4, 9, 10, 7};
+const int_seq_t protostar_trail_colors_seq = {6, protostar_trail_colors_items};
 
-static const int mx_k__items[] = {1, 1, 5, 5, 3, 3, 3, 5, 5, 1};
-const pico8_int_seq_t pico8_mx_k__seq = {10, mx_k__items};
+static const int synthesizer_trail_colors_items[] = {1, 1, 5, 5, 3, 3, 3, 5, 5, 1};
+const int_seq_t synthesizer_trail_colors_seq = {10, synthesizer_trail_colors_items};
 
-static const int ga_k__items[] = {1, 2, 4, 9, 9, 10, 10, 7, 7, 7, 7, 7};
-const pico8_int_seq_t pico8_ga_k__seq = {12, ga_k__items};
+static const int burst_trail_colors_items[] = {1, 2, 4, 9, 9, 10, 10, 7, 7, 7, 7, 7};
+const int_seq_t burst_trail_colors_seq = {12, burst_trail_colors_items};
 
-static const int pm_ga_k__items[] = {1, 2, 8, 14, 14, 14, 14, 8, 8, 2, 2, 1, 1};
-const pico8_int_seq_t pico8_pm_ga_k__seq = {13, pm_ga_k__items};
+static const int protostar_burst_trail_colors_items[] = {1, 2, 8, 14, 14, 14, 14, 8, 8, 2, 2, 1, 1};
+const int_seq_t protostar_burst_trail_colors_seq = {13, protostar_burst_trail_colors_items};
 
-static const int nr_hz_items[] = {170, 170, 170, 168};
-const pico8_int_seq_t pico8_nr_hz_seq = {4, nr_hz_items};
+static const int slipgate_link_sprites_items[] = {170, 170, 170, 168};
+const int_seq_t slipgate_link_sprites_seq = {4, slipgate_link_sprites_items};
 
-static const int fr_hz_items[] = {78, 78, 78, 76};
-const pico8_int_seq_t pico8_fr_hz_seq = {4, fr_hz_items};
+static const int infraspace_gate_link_sprites_items[] = {78, 78, 78, 76};
+const int_seq_t infraspace_gate_link_sprites_seq = {4, infraspace_gate_link_sprites_items};
 
-static const int mx_ht_items[] = {28, 20, 21, 22};
-const pico8_int_seq_t pico8_mx_ht_seq = {4, mx_ht_items};
+static const int synthesizer_synthesizable_resources_items[] = {28, 20, 21, 22};
+const int_seq_t synthesizer_synthesizable_resources_seq = {4, synthesizer_synthesizable_resources_items};
 
-static const int g__k__items[] = {1, 1, 5, 13, 6};
-const pico8_int_seq_t pico8_g__k__seq = {5, g__k__items};
+static const int probe_trail_colors_items[] = {1, 1, 5, 13, 6};
+const int_seq_t probe_trail_colors_seq = {5, probe_trail_colors_items};
 
-static const int fv_k__items[] = {0, 1, 1, 2, 4, 9, 10, 9, 4, 2, 1, 1, 1};
-const pico8_int_seq_t pico8_fv_k__seq = {13, fv_k__items};
+static const int help_screen_trail_colors_items[] = {0, 1, 1, 2, 4, 9, 10, 9, 4, 2, 1, 1, 1};
+const int_seq_t help_screen_trail_colors_seq = {13, help_screen_trail_colors_items};
 
-static const int jc_k__items[] = {0, 0, 7, 7, 10, 10, 9, 9, 9, 9, 9, 9, 9, 9, 4, 4, 4, 2, 2, 1};
-const pico8_int_seq_t pico8_jc_k__seq = {20, jc_k__items};
+static const int slipway_trail_colors_items[] = {0, 0, 7, 7, 10, 10, 9, 9, 9, 9, 9, 9, 9, 9, 4, 4, 4, 2, 2, 1};
+const int_seq_t slipway_trail_colors_seq = {20, slipway_trail_colors_items};
 
-static const int mz_kk_items[] = {7, 7, 6, 13, 5, 1, 1, 1, 0};
-const pico8_int_seq_t pico8_mz_kk_seq = {9, mz_kk_items};
+static const int wormhole_color_ramp_items[] = {7, 7, 6, 13, 5, 1, 1, 1, 0};
+const int_seq_t wormhole_color_ramp_seq = {9, wormhole_color_ramp_items};
 
-static const int bg_pl_items[] = {0, 0, 0, 72, 73, 74, 75, 88, 89, 90, 91, 88, 91, 89, 91};
-const pico8_int_seq_t pico8_bg_pl_seq = {15, bg_pl_items};
+static const int background_tile_choices_items[] = {0, 0, 0, 72, 73, 74, 75, 88, 89, 90, 91, 88, 91, 89, 91};
+const int_seq_t background_tile_choices_seq = {15, background_tile_choices_items};
 
-static const vec_t qb_pc_items[] = {{-0x10000, 0x0}, {0x10000, 0x0}, {0x0, -0x10000}, {0x0, 0x10000}};
-const pico8_vec_seq_t pico8_qb_pc_vecs = {4, qb_pc_items};
+static const vec_t camera_dpad_directions_items[] = {{-0x10000, 0x0}, {0x10000, 0x0}, {0x0, -0x10000}, {0x0, 0x10000}};
+const vec_seq_t camera_dpad_directions_vecs = {4, camera_dpad_directions_items};
 
-static const pico8_jb_item_t fv_rb_1_items[] = {{.n = 192}, {.n = 0}, {.n = 11}, {.n = 16}, {.n = 4}};
-static const pico8_jb_row_t fv_rb_1 = {.count = 5, .items = fv_rb_1_items, .fn = "s"};
-static const pico8_jb_item_t fv_rb_2_items[] = {{.n = 172}, {.n = 20}, {.n = 107}, {.n = 2}, {.n = 2}};
-static const pico8_jb_row_t fv_rb_2 = {.count = 5, .items = fv_rb_2_items, .fn = "s"};
-static const pico8_jb_item_t fv_rb_3_items[] = {{.s = "need help\?"}, {.n = 40}, {.n = 110}, {.n = 13}};
-static const pico8_jb_row_t fv_rb_3 = {.count = 4, .items = fv_rb_3_items, .fn = "qr"};
-static const pico8_jb_item_t fv_rb_4_items[] = {{.s = "slipways.net/help"}, {.n = 40}, {.n = 116}, {.n = 5}};
-static const pico8_jb_row_t fv_rb_4 = {.count = 4, .items = fv_rb_4_items, .fn = "qr"};
-static const pico8_jb_item_t fv_rb_items[] = {{.row = &fv_rb_1}, {.row = &fv_rb_2}, {.row = &fv_rb_3},
-    {.row = &fv_rb_4}};
-const pico8_jb_row_t pico8_fv_rb_row = {.count = 4, .items = fv_rb_items};
+static const data_item_t help_screen_rows_1_items[] = {{.number = 192}, {.number = 0}, {.number = 11}, {.number = 16}, {.number = 4}};
+static const data_row_t help_screen_rows_1 = {.count = 5, .items = help_screen_rows_1_items, .draw_function = "s"};
+static const data_item_t help_screen_rows_2_items[] = {{.number = 172}, {.number = 20}, {.number = 107}, {.number = 2}, {.number = 2}};
+static const data_row_t help_screen_rows_2 = {.count = 5, .items = help_screen_rows_2_items, .draw_function = "s"};
+static const data_item_t help_screen_rows_3_items[] = {{.text = "need help\?"}, {.number = 40}, {.number = 110}, {.number = 13}};
+static const data_row_t help_screen_rows_3 = {.count = 4, .items = help_screen_rows_3_items, .draw_function = "qr"};
+static const data_item_t help_screen_rows_4_items[] = {{.text = "slipways.net/help"}, {.number = 40}, {.number = 116}, {.number = 5}};
+static const data_row_t help_screen_rows_4 = {.count = 4, .items = help_screen_rows_4_items, .draw_function = "qr"};
+static const data_item_t help_screen_rows_items[] = {{.row = &help_screen_rows_1}, {.row = &help_screen_rows_2}, {.row = &help_screen_rows_3},
+    {.row = &help_screen_rows_4}};
+const data_row_t help_screen_rows_row = {.count = 4, .items = help_screen_rows_items};
 
-static const pico8_jb_item_t hp_fk_items[] = {{.is_false = 1}, {.n = 2}};
-const pico8_jb_row_t pico8_hp_fk_row = {.count = 2, .items = hp_fk_items};
+static const data_item_t research_project_row_tail_items[] = {{.is_false = 1}, {.number = 2}};
+const data_row_t research_project_row_tail_row = {.count = 2, .items = research_project_row_tail_items};
 
-static const pico8_jb_item_t pj_gs_1_items[] = {{.s = "last year!"}, {.n = 64}, {.n = 48}, {.n = 9},
+static const data_item_t score_panel_countdown_rows_1_items[] = {{.text = "last year!"}, {.number = 64}, {.number = 48}, {.number = 9},
     {.is_fixed = 1, .fixed = 0x8000}};
-static const pico8_jb_row_t pj_gs_1 = {.count = 5, .items = pj_gs_1_items, .fn = "qr"};
-static const pico8_jb_item_t pj_gs_2_items[] = {{.s = "2 years remain"}, {.n = 64}, {.n = 48}, {.n = 2},
+static const data_row_t score_panel_countdown_rows_1 = {.count = 5, .items = score_panel_countdown_rows_1_items, .draw_function = "qr"};
+static const data_item_t score_panel_countdown_rows_2_items[] = {{.text = "2 years remain"}, {.number = 64}, {.number = 48}, {.number = 2},
     {.is_fixed = 1, .fixed = 0x8000}};
-static const pico8_jb_row_t pj_gs_2 = {.count = 5, .items = pj_gs_2_items, .fn = "qr"};
-static const pico8_jb_item_t pj_gs_5_items[] = {{.s = "5 years remain"}, {.n = 64}, {.n = 48}, {.n = 2},
+static const data_row_t score_panel_countdown_rows_2 = {.count = 5, .items = score_panel_countdown_rows_2_items, .draw_function = "qr"};
+static const data_item_t score_panel_countdown_rows_5_items[] = {{.text = "5 years remain"}, {.number = 64}, {.number = 48}, {.number = 2},
     {.is_fixed = 1, .fixed = 0x8000}};
-static const pico8_jb_row_t pj_gs_5 = {.count = 5, .items = pj_gs_5_items, .fn = "qr"};
-static const pico8_jb_item_t pj_gs_items[] = {{.row = &pj_gs_1}, {.row = &pj_gs_2}, {.is_false = 1}, {.is_false = 1},
-    {.row = &pj_gs_5}};
-const pico8_jb_row_t pico8_pj_gs_row = {.count = 5, .items = pj_gs_items};
+static const data_row_t score_panel_countdown_rows_5 = {.count = 5, .items = score_panel_countdown_rows_5_items, .draw_function = "qr"};
+static const data_item_t score_panel_countdown_rows_items[] = {{.row = &score_panel_countdown_rows_1}, {.row = &score_panel_countdown_rows_2}, {.is_false = 1}, {.is_false = 1},
+    {.row = &score_panel_countdown_rows_5}};
+const data_row_t score_panel_countdown_rows_row = {.count = 5, .items = score_panel_countdown_rows_items};
 
-static const pico8_jb_item_t pj_i__1_items[] = {{.n = 126}, {.n = 127}, {.n = 1}};
-static const pico8_jb_row_t pj_i__1 = {.count = 3, .items = pj_i__1_items, .fn = "br"};
-static const pico8_jb_item_t pj_i__2_items[] = {{.n = 0}, {.n = 1}, {.n = 1}};
-static const pico8_jb_row_t pj_i__2 = {.count = 3, .items = pj_i__2_items, .fn = "br"};
-static const pico8_jb_item_t pj_i__3_items[] = {{.n = 8}, {.n = 118}, {.n = 34}};
-static const pico8_jb_row_t pj_i__3 = {.count = 3, .items = pj_i__3_items, .fn = "rf"};
-static const pico8_jb_item_t pj_i__4_items[] = {{.n = 0}, {.n = -3}, {.n = 26}};
-static const pico8_jb_row_t pj_i__4 = {.count = 3, .items = pj_i__4_items, .fn = "rf"};
-static const pico8_jb_item_t pj_i__5_items[] = {{.n = 81}, {.n = -3}, {.n = 117}};
-static const pico8_jb_row_t pj_i__5 = {.count = 3, .items = pj_i__5_items, .fn = "rf"};
-static const pico8_jb_item_t pj_i__items[] = {{.row = &pj_i__1}, {.row = &pj_i__2}, {.row = &pj_i__3},
-    {.row = &pj_i__4}, {.row = &pj_i__5}};
-const pico8_jb_row_t pico8_pj_i__row = {.count = 5, .items = pj_i__items};
+static const data_item_t score_panel_frame_rows_1_items[] = {{.number = 126}, {.number = 127}, {.number = 1}};
+static const data_row_t score_panel_frame_rows_1 = {.count = 3, .items = score_panel_frame_rows_1_items, .draw_function = "br"};
+static const data_item_t score_panel_frame_rows_2_items[] = {{.number = 0}, {.number = 1}, {.number = 1}};
+static const data_row_t score_panel_frame_rows_2 = {.count = 3, .items = score_panel_frame_rows_2_items, .draw_function = "br"};
+static const data_item_t score_panel_frame_rows_3_items[] = {{.number = 8}, {.number = 118}, {.number = 34}};
+static const data_row_t score_panel_frame_rows_3 = {.count = 3, .items = score_panel_frame_rows_3_items, .draw_function = "rf"};
+static const data_item_t score_panel_frame_rows_4_items[] = {{.number = 0}, {.number = -3}, {.number = 26}};
+static const data_row_t score_panel_frame_rows_4 = {.count = 3, .items = score_panel_frame_rows_4_items, .draw_function = "rf"};
+static const data_item_t score_panel_frame_rows_5_items[] = {{.number = 81}, {.number = -3}, {.number = 117}};
+static const data_row_t score_panel_frame_rows_5 = {.count = 3, .items = score_panel_frame_rows_5_items, .draw_function = "rf"};
+static const data_item_t score_panel_frame_rows_items[] = {{.row = &score_panel_frame_rows_1}, {.row = &score_panel_frame_rows_2}, {.row = &score_panel_frame_rows_3},
+    {.row = &score_panel_frame_rows_4}, {.row = &score_panel_frame_rows_5}};
+const data_row_t score_panel_frame_rows_row = {.count = 5, .items = score_panel_frame_rows_items};
 
-static const pico8_jb_item_t pj_ea_1_items[] = {{.n = 42}, {.n = 43}, {.n = 1}};
-static const pico8_jb_row_t pj_ea_1 = {.count = 3, .items = pj_ea_1_items, .fn = "br"};
-static const pico8_jb_item_t pj_ea_2_items[] = {{.s = ""}, {.n = 64}, {.n = 40}, {.n = 6},
+static const data_item_t score_panel_year_banner_1_items[] = {{.number = 42}, {.number = 43}, {.number = 1}};
+static const data_row_t score_panel_year_banner_1 = {.count = 3, .items = score_panel_year_banner_1_items, .draw_function = "br"};
+static const data_item_t score_panel_year_banner_2_items[] = {{.text = ""}, {.number = 64}, {.number = 40}, {.number = 6},
     {.is_fixed = 1, .fixed = 0x8000}};
-static const pico8_jb_row_t pj_ea_2 = {.count = 5, .items = pj_ea_2_items, .fn = "qr"};
-static const pico8_jb_item_t pj_ea_items[] = {{.row = &pj_ea_1}, {.row = &pj_ea_2}};
-const pico8_jb_row_t pico8_pj_ea_row = {.count = 2, .items = pj_ea_items};
+static const data_row_t score_panel_year_banner_2 = {.count = 5, .items = score_panel_year_banner_2_items, .draw_function = "qr"};
+static const data_item_t score_panel_year_banner_items[] = {{.row = &score_panel_year_banner_1}, {.row = &score_panel_year_banner_2}};
+const data_row_t score_panel_year_banner_row = {.count = 2, .items = score_panel_year_banner_items};
 
-static const pico8_jb_item_t pj_ou_1_items[] = {{.is_false = 1}, {.n = 13}, {.n = 121}, {.n = 9}};
-static const pico8_jb_row_t pj_ou_1 = {.count = 4, .items = pj_ou_1_items, .fn = "qr"};
-static const pico8_jb_item_t pj_ou_2_items[] = {{.is_false = 1}, {.n = 37}, {.n = 121}, {.n = 2}};
-static const pico8_jb_row_t pj_ou_2 = {.count = 4, .items = pj_ou_2_items, .fn = "qr"};
-static const pico8_jb_item_t pj_ou_3_items[] = {{.is_false = 1}, {.n = 13}, {.n = 2}, {.n = 9}};
-static const pico8_jb_row_t pj_ou_3 = {.count = 4, .items = pj_ou_3_items, .fn = "qr"};
-static const pico8_jb_item_t pj_ou_4_items[] = {{.is_false = 1}, {.n = 29}, {.n = 2}, {.n = 2}};
-static const pico8_jb_row_t pj_ou_4 = {.count = 4, .items = pj_ou_4_items, .fn = "qr"};
-static const pico8_jb_item_t pj_ou_5_items[] = {{.is_false = 1}, {.n = 59}, {.n = 2}, {.n = 2}};
-static const pico8_jb_row_t pj_ou_5 = {.count = 4, .items = pj_ou_5_items, .fn = "qr"};
-static const pico8_jb_item_t pj_ou_6_items[] = {{.is_false = 1}, {.n = 85}, {.n = 2}, {.n = 13}};
-static const pico8_jb_row_t pj_ou_6 = {.count = 4, .items = pj_ou_6_items, .fn = "qr"};
-static const pico8_jb_item_t pj_ou_7_items[] = {{.is_false = 1}, {.n = 99}, {.n = 2}, {.n = 13}};
-static const pico8_jb_row_t pj_ou_7 = {.count = 4, .items = pj_ou_7_items, .fn = "qr"};
-static const pico8_jb_item_t pj_ou_items[] = {{.row = &pj_ou_1}, {.row = &pj_ou_2}, {.row = &pj_ou_3},
-    {.row = &pj_ou_4}, {.row = &pj_ou_5}, {.row = &pj_ou_6}, {.row = &pj_ou_7}};
-const pico8_jb_row_t pico8_pj_ou_row = {.count = 7, .items = pj_ou_items};
+static const data_item_t score_panel_readouts_1_items[] = {{.is_false = 1}, {.number = 13}, {.number = 121}, {.number = 9}};
+static const data_row_t score_panel_readouts_1 = {.count = 4, .items = score_panel_readouts_1_items, .draw_function = "qr"};
+static const data_item_t score_panel_readouts_2_items[] = {{.is_false = 1}, {.number = 37}, {.number = 121}, {.number = 2}};
+static const data_row_t score_panel_readouts_2 = {.count = 4, .items = score_panel_readouts_2_items, .draw_function = "qr"};
+static const data_item_t score_panel_readouts_3_items[] = {{.is_false = 1}, {.number = 13}, {.number = 2}, {.number = 9}};
+static const data_row_t score_panel_readouts_3 = {.count = 4, .items = score_panel_readouts_3_items, .draw_function = "qr"};
+static const data_item_t score_panel_readouts_4_items[] = {{.is_false = 1}, {.number = 29}, {.number = 2}, {.number = 2}};
+static const data_row_t score_panel_readouts_4 = {.count = 4, .items = score_panel_readouts_4_items, .draw_function = "qr"};
+static const data_item_t score_panel_readouts_5_items[] = {{.is_false = 1}, {.number = 59}, {.number = 2}, {.number = 2}};
+static const data_row_t score_panel_readouts_5 = {.count = 4, .items = score_panel_readouts_5_items, .draw_function = "qr"};
+static const data_item_t score_panel_readouts_6_items[] = {{.is_false = 1}, {.number = 85}, {.number = 2}, {.number = 13}};
+static const data_row_t score_panel_readouts_6 = {.count = 4, .items = score_panel_readouts_6_items, .draw_function = "qr"};
+static const data_item_t score_panel_readouts_7_items[] = {{.is_false = 1}, {.number = 99}, {.number = 2}, {.number = 13}};
+static const data_row_t score_panel_readouts_7 = {.count = 4, .items = score_panel_readouts_7_items, .draw_function = "qr"};
+static const data_item_t score_panel_readouts_items[] = {{.row = &score_panel_readouts_1}, {.row = &score_panel_readouts_2}, {.row = &score_panel_readouts_3},
+    {.row = &score_panel_readouts_4}, {.row = &score_panel_readouts_5}, {.row = &score_panel_readouts_6}, {.row = &score_panel_readouts_7}};
+const data_row_t score_panel_readouts_row = {.count = 7, .items = score_panel_readouts_items};
 
-const char pico8_mz_jj_qs[] = "-too far-";
+const char wormhole_too_far_target_status_text[] = "-too far-";
 
-const pico8_bg_def_t pico8_bg_def = {
-    .me = "normal",
-    .t = 0x0,
-    .fa = 0x10000,
-    .hd = 0x10000,
-    .pl = &pico8_bg_pl_seq,
+const background_archetype_t background_archetype = {
+    .state = "normal",
+    .state_time = 0x0,
+    .layer = 0x10000,
+    .hit_test = 0x10000,
+    .tile_choices = &background_tile_choices_seq,
 };
 
-const pico8_ui_def_t pico8_ui_def = {
-    .me = "normal",
-    .t = 0x0,
-    .ql = 0x3a0000,
-    .fa = 0xf0000,
-    .hw = {0xa0000, 0xa0000, 0x760000, 0x760000},
+const ui_archetype_t ui_archetype = {
+    .state = "normal",
+    .state_time = 0x0,
+    .cursor_sprite = 0x3a0000,
+    .layer = 0xf0000,
+    .panel_box = {0xa0000, 0xa0000, 0x760000, 0x760000},
 };
 
-const pico8_js_def_t pico8_js_def = {
-    .me = "normal",
-    .t = 0x0,
-    .fa = 0xb0000,
+const button_archetype_t button_archetype = {
+    .state = "normal",
+    .state_time = 0x0,
+    .layer = 0xb0000,
 };
 
-const pico8_fq_def_t pico8_fq_def = {
-    .me = "normal",
-    .t = 0x0,
-    .fa = 0xe0000,
-    .hd = 0x10000,
+const modal_backdrop_archetype_t modal_backdrop_archetype = {
+    .state = "normal",
+    .state_time = 0x0,
+    .layer = 0xe0000,
+    .hit_test = 0x10000,
 };
 
-const pico8_qb_def_t pico8_qb_def = {
-    .me = "normal",
-    .t = 0x0,
-    .v = {0x0, 0x0},
-    .ma = 0x0,
-    .p = {0xc00000, 0xc00000},
-    .ra = {0xc00000, 0xc00000},
-    .pc = &pico8_qb_pc_vecs,
+const camera_archetype_t camera_archetype = {
+    .state = "normal",
+    .state_time = 0x0,
+    .velocity = {0x0, 0x0},
+    .shake = 0x0,
+    .pos_before_shake = {0xc00000, 0xc00000},
+    .pos = {0xc00000, 0xc00000},
+    .dpad_directions = &camera_dpad_directions_vecs,
 };
 
-const pico8_nf_def_t pico8_nf_def = {
-    .me = "normal",
-    .t = 0x0,
+const mouse_archetype_t mouse_archetype = {
+    .state = "normal",
+    .state_time = 0x0,
 };
 
-const pico8_mh_def_t pico8_mh_def = {
-    .me = "normal",
-    .t = 0x0,
-    .fa = 0xe0000,
-    .rh = 0x50000,
+const message_box_archetype_t message_box_archetype = {
+    .state = "normal",
+    .state_time = 0x0,
+    .layer = 0xe0000,
+    .duration_scale = 0x50000,
 };
 
-const pico8_iv_def_t pico8_iv_def = {
-    .me = "normal",
-    .t = 0x0,
-    .fa = 0x90000,
-    .l = 0x0,
-    .v = {0x0, -0x570a},
+const toast_archetype_t toast_archetype = {
+    .state = "normal",
+    .state_time = 0x0,
+    .layer = 0x90000,
+    .fade = 0x0,
+    .velocity = {0x0, -0x570a},
 };
 
-const pico8_hp_def_t pico8_hp_def = {
-    .fk = &pico8_hp_fk_row,
+const research_project_archetype_t research_project_archetype = {
+    .row_tail = &research_project_row_tail_row,
 };
 
-const pico8_ie_def_t pico8_ie_def = {
-    .me = "normal",
-    .t = 0x0,
-    .kq = {0x0, 0x0, 0x90000, 0x80000},
-    .fa = 0xc0000,
-    .ra = {0x3e70000, 0x3e70000},
-    .eh = {0x760000, 0x780000},
+const structure_icon_archetype_t structure_icon_archetype = {
+    .state = "normal",
+    .state_time = 0x0,
+    .hit_box = {0x0, 0x0, 0x90000, 0x80000},
+    .layer = 0xc0000,
+    .pos = {0x3e70000, 0x3e70000},
+    .rest_count = {0x760000, 0x780000},
 };
 
-const pico8_pj_def_t pico8_pj_def = {
-    .me = "normal",
-    .t = 0x0,
-    .fa = 0xa0000,
-    .gs = &pico8_pj_gs_row,
-    .i_ = &pico8_pj_i__row,
+const score_panel_archetype_t score_panel_archetype = {
+    .state = "normal",
+    .state_time = 0x0,
+    .layer = 0xa0000,
+    .countdown_rows = &score_panel_countdown_rows_row,
+    .frame_rows = &score_panel_frame_rows_row,
 };
 
-const pico8_mz_def_t pico8_mz_def = {
-    .me = "placing",
-    .t = 0x0,
+const wormhole_archetype_t wormhole_archetype = {
+    .state = "placing",
+    .state_time = 0x0,
     .spawn_snd = 0x340000,
-    .oi = 0x0,
-    .fa = 0x50000,
-    .kk = &pico8_mz_kk_seq,
-    .probe = {.dw = 0x0, .od = 0x30000, .has_od = 1, .dq = "unfolding", .fp = 0x10000, .ik = 0x310000, .has_ik = 1},
+    .radius = 0x0,
+    .layer = 0x50000,
+    .color_ramp = &wormhole_color_ramp_seq,
+    .targeting = {.attach_distance = 0x0, .cost = 0x30000, .has_cost = 1, .confirmed_state = "unfolding", .clock_ticks = 0x10000, .status_sprite = 0x310000, .has_status_sprite = 1},
 };
 
-const pico8_jc_def_t pico8_jc_def = {
-    .me = "placing",
-    .t = 0x0,
-    .fa = 0x20000,
-    .k_ = &pico8_jc_k__seq,
-    .nh = 0x140000,
-    .probe = {.dw = 0x106, .od = 0x0, .has_od = 0, .dq = NULL, .fp = 0x0, .ik = 0x300000, .has_ik = 1},
+const slipway_archetype_t slipway_archetype = {
+    .state = "placing",
+    .state_time = 0x0,
+    .layer = 0x20000,
+    .trail_colors = &slipway_trail_colors_seq,
+    .fade_in_step = 0x140000,
+    .targeting = {.attach_distance = 0x106, .cost = 0x0, .has_cost = 0, .confirmed_state = NULL, .clock_ticks = 0x0, .status_sprite = 0x300000, .has_status_sprite = 1},
 };
 
-const pico8_probe_def_t pico8_probe_def_none = {
-    .dw = 0x0, .od = 0x0, .has_od = 0, .dq = NULL, .fp = 0x0, .ik = 0x0, .has_ik = 0};
+const targeting_archetype_t targeting_archetype_none = {
+    .attach_distance = 0x0, .cost = 0x0, .has_cost = 0, .confirmed_state = NULL, .clock_ticks = 0x0, .status_sprite = 0x0, .has_status_sprite = 0};
 
-const pico8_g__def_t pico8_g__def = {
-    .me = "normal",
-    .t = 0x0,
-    .fx = 0x10000,
-    .fa = 0x20000,
-    .has_ra = 0,
-    .emitter = {.pn = 0x30000, .du = 0x20000, .py = 0xf5c, .ki = 0x90000, .pk = 0x10000, .fc = 0x10000,
-                .k_ = &pico8_g__k__seq, .qo = 0x1051e, .ro = -0xd70, .qg = 0xd70, .q_ = 0x1051e},
-    .probe = {.dw = 0x666, .od = 0x0, .has_od = 1, .dq = "settled", .fp = 0x0, .ik = 0x0, .has_ik = 0},
+const probe_archetype_t probe_archetype = {
+    .state = "normal",
+    .state_time = 0x0,
+    .fold_anchor = 0x10000,
+    .layer = 0x20000,
+    .has_pos = 0,
+    .emitter = {.angle_slices = 0x30000, .base_radius = 0x20000, .speed_factor = 0xf5c, .lifetime = 0x90000, .quarter_turn = 0x10000, .spawn_rate = 0x10000,
+                .trail_colors = &probe_trail_colors_seq, .matrix_xx = 0x1051e, .matrix_xy = -0xd70, .matrix_yx = 0xd70, .matrix_yy = 0x1051e},
+    .targeting = {.attach_distance = 0x666, .cost = 0x0, .has_cost = 1, .confirmed_state = "settled", .clock_ticks = 0x0, .status_sprite = 0x0, .has_status_sprite = 0},
 };
 
-const pico8_g__def_t pico8_fv_def = {
-    .me = "normal",
-    .t = 0x0,
-    .fx = 0x10000,
-    .fa = 0xa0000,
-    .ra = {0x400000, 0x1c0000},
-    .has_ra = 1,
-    .hi = {0x220000, 0x380000},
-    .ca = 0xb0000,
-    .gq = {0x0, 0xb0000},
-    .eo = -0x10000,
-    .ff = 0x10000,
-    .kq = {-0x280000, 0x4e0000, 0x280000, 0x620000},
-    .ql = 0xb0000,
-    .fg = 0x50000,
-    .rb = &pico8_fv_rb_row,
-    .emitter = {.pn = 0x50000, .du = 0xf0000, .py = 0x1b6, .ki = 0x110000, .pk = 0x10000, .fc = 0x50000,
-                .k_ = &pico8_fv_k__seq, .qo = 0x1051e, .ro = -0x1ca, .qg = 0x1ca, .q_ = 0x1051e},
-    .probe = {.dw = 0x666, .od = 0x0, .has_od = 1, .dq = "settled", .fp = 0x0, .ik = 0x0, .has_ik = 0},
+const probe_archetype_t help_screen_archetype = {
+    .state = "normal",
+    .state_time = 0x0,
+    .fold_anchor = 0x10000,
+    .layer = 0xa0000,
+    .pos = {0x400000, 0x1c0000},
+    .has_pos = 1,
+    .fixed_pos = {0x220000, 0x380000},
+    .back_color = 0xb0000,
+    .row_step = {0x0, 0xb0000},
+    .open_sfx = -0x10000,
+    .clear_ephemerals_after = 0x10000,
+    .hit_box = {-0x280000, 0x4e0000, 0x280000, 0x620000},
+    .cursor_sprite = 0xb0000,
+    .gpio_signal = 0x50000,
+    .rows = &help_screen_rows_row,
+    .emitter = {.angle_slices = 0x50000, .base_radius = 0xf0000, .speed_factor = 0x1b6, .lifetime = 0x110000, .quarter_turn = 0x10000, .spawn_rate = 0x50000,
+                .trail_colors = &help_screen_trail_colors_seq, .matrix_xx = 0x1051e, .matrix_xy = -0x1ca, .matrix_yx = 0x1ca, .matrix_yy = 0x1051e},
+    .targeting = {.attach_distance = 0x666, .cost = 0x0, .has_cost = 1, .confirmed_state = "settled", .clock_ticks = 0x0, .status_sprite = 0x0, .has_status_sprite = 0},
 };
 
-static const char jo_me_text[] = "unknown";
-static const char qh_me_text[] = "placing";
-static const char qh_dq_text[] = "settled";
-static const char nl_rr_text[] = "trade league";
-static const char hj_rr_text[] = "ascension";
-static const char pm_fz_text[] = "protostar";
-static const char pm_me_text[] = "settled";
-static const char ga_fz_text[] = "burst";
-static const char nr_rr_text[] = "slipgates";
-static const char fr_rr_text[] = "infraspace";
-static const char mx_rr_text[] = "void synthesis";
+static const char planet_state_text[] = "unknown";
+static const char structure_state_text[] = "placing";
+static const char structure_confirmed_state_text[] = "settled";
+static const char trading_hub_required_tech_text[] = "trade league";
+static const char ascension_required_tech_text[] = "ascension";
+static const char protostar_class_name_text[] = "protostar";
+static const char protostar_state_text[] = "settled";
+static const char burst_class_name_text[] = "burst";
+static const char slipgate_required_tech_text[] = "slipgates";
+static const char infraspace_gate_required_tech_text[] = "infraspace";
+static const char synthesizer_required_tech_text[] = "void synthesis";
 
-const pico8_ga_pq_keys_t pico8_pm_ga_pq_keys = {
-    .qo = 0xf850,
-    .ro = -0x2020,
-    .qg = 0x2020,
-    .q_ = 0xf850,
-    .iu = -0x24e,
-    .py = 0x90000,
-    .ms = 0x18000,
-    .k_ = &pico8_pm_ga_k__seq,
+const burst_construct_keys_t protostar_burst_construct_keys = {
+    .matrix_xx = 0xf850,
+    .matrix_xy = -0x2020,
+    .matrix_yx = 0x2020,
+    .matrix_yy = 0xf850,
+    .acceleration_factor = -0x24e,
+    .speed_factor = 0x90000,
+    .speed = 0x18000,
+    .trail_colors = &protostar_burst_trail_colors_seq,
 };
 
-const pico8_jo_def_t pico8_jo_def = {
-    .me = jo_me_text,
-    .t = 0x0,
-    .hf = 1,
-    .hs = 0x10000,
-    .fa = 0x60000,
-    .kq = {-0x70000, -0x70000, 0x70000, 0x70000},
-    .ma = 0x0,
-    .ka = &pico8_jo_ka_seq,
-    .dz = pico8_jo_dz_rows,
-    .cq = &pico8_jo_cq_seq,
-    .gq = {0x0, 0xb0000},
-    .ca = 0x90000,
-    .em = &pico8_jo_em_row,
-    .mi = 0x0,
-    .has_mi = 0,
+const planet_archetype_t planet_archetype = {
+    .state = planet_state_text,
+    .state_time = 0x0,
+    .is_planet = 1,
+    .trade_multiplier = 0x10000,
+    .layer = 0x60000,
+    .hit_box = {-0x70000, -0x70000, 0x70000, 0x70000},
+    .shake = 0x0,
+    .ring_colors = &planet_ring_colors_seq,
+    .mood_rows = planet_mood_rows_rows,
+    .made_resources = &planet_made_resources_seq,
+    .row_step = {0x0, 0xb0000},
+    .back_color = 0x90000,
+    .spacer = &planet_spacer_row,
+    .development_tier = 0x0,
+    .has_development_tier = 0,
 };
 
-const pico8_jo_def_t pico8_qh_def = {
-    .me = qh_me_text,
-    .t = 0x0,
-    .hf = 0,
-    .hs = 0x10000,
-    .fa = 0x60000,
-    .kq = {-0x70000, -0x70000, 0x70000, 0x70000},
-    .ma = 0x0,
-    .ka = &pico8_jo_ka_seq,
-    .dz = pico8_jo_dz_rows,
-    .cq = &pico8_jo_cq_seq,
-    .gq = {0x0, 0xb0000},
-    .ca = 0x90000,
-    .em = &pico8_jo_em_row,
-    .mi = 0x10000,
-    .has_mi = 1,
-    .hp = 0x10000,
-    .px = &pico8_qh_px_row,
-    .qh = 1,
-    .s = 0xae0000,
-    .ba = &pico8_qh_ba_seq,
-    .probe = {.dw = 0x666, .od = 0xf0000, .has_od = 1, .dq = qh_dq_text, .fp = 0x20000, .ik = 0x0, .has_ik = 0},
+const planet_archetype_t structure_archetype = {
+    .state = structure_state_text,
+    .state_time = 0x0,
+    .is_planet = 0,
+    .trade_multiplier = 0x10000,
+    .layer = 0x60000,
+    .hit_box = {-0x70000, -0x70000, 0x70000, 0x70000},
+    .shake = 0x0,
+    .ring_colors = &planet_ring_colors_seq,
+    .mood_rows = planet_mood_rows_rows,
+    .made_resources = &planet_made_resources_seq,
+    .row_step = {0x0, 0xb0000},
+    .back_color = 0x90000,
+    .spacer = &planet_spacer_row,
+    .development_tier = 0x10000,
+    .has_development_tier = 1,
+    .project_index = 0x10000,
+    .name = &structure_name_row,
+    .is_structure = 1,
+    .sprite = 0xae0000,
+    .accepted_resources = &structure_accepted_resources_seq,
+    .targeting = {.attach_distance = 0x666, .cost = 0xf0000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000, .status_sprite = 0x0, .has_status_sprite = 0},
 };
 
-const pico8_jo_def_t pico8_nl_def = {
-    .me = qh_me_text,
-    .t = 0x0,
-    .hf = 0,
-    .hs = 0x10000,
-    .fa = 0x60000,
-    .kq = {-0x70000, -0x70000, 0x70000, 0x70000},
-    .ma = 0x0,
-    .ka = &pico8_jo_ka_seq,
-    .dz = pico8_jo_dz_rows,
-    .cq = &pico8_jo_cq_seq,
-    .gq = {0x0, 0xb0000},
-    .ca = 0x90000,
-    .em = &pico8_jo_em_row,
-    .mi = 0x10000,
-    .has_mi = 1,
-    .hp = 0x60000,
-    .px = &pico8_nl_px_row,
-    .qh = 0,
-    .s = 0x440000,
-    .ba = &pico8_nl_ba_seq,
-    .rr = nl_rr_text,
-    .nl = 0x10000,
-    .qw = 0xf0000,
-    .probe = {.dw = 0x666, .od = 0x140000, .has_od = 1, .dq = qh_dq_text, .fp = 0x20000, .ik = 0x0, .has_ik = 0},
+const planet_archetype_t trading_hub_archetype = {
+    .state = structure_state_text,
+    .state_time = 0x0,
+    .is_planet = 0,
+    .trade_multiplier = 0x10000,
+    .layer = 0x60000,
+    .hit_box = {-0x70000, -0x70000, 0x70000, 0x70000},
+    .shake = 0x0,
+    .ring_colors = &planet_ring_colors_seq,
+    .mood_rows = planet_mood_rows_rows,
+    .made_resources = &planet_made_resources_seq,
+    .row_step = {0x0, 0xb0000},
+    .back_color = 0x90000,
+    .spacer = &planet_spacer_row,
+    .development_tier = 0x10000,
+    .has_development_tier = 1,
+    .project_index = 0x60000,
+    .name = &trading_hub_name_row,
+    .is_structure = 0,
+    .sprite = 0x440000,
+    .accepted_resources = &trading_hub_accepted_resources_seq,
+    .required_tech = trading_hub_required_tech_text,
+    .is_trading_hub = 0x10000,
+    .palette_block = 0xf0000,
+    .targeting = {.attach_distance = 0x666, .cost = 0x140000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000, .status_sprite = 0x0, .has_status_sprite = 0},
 };
 
-const pico8_jo_def_t pico8_os_def = {
-    .me = qh_me_text,
-    .t = 0x0,
-    .hf = 0,
-    .hs = 0x8000,
-    .fa = 0x60000,
-    .kq = {-0x70000, -0x70000, 0x70000, 0x70000},
-    .ma = 0x0,
-    .ka = &pico8_jo_ka_seq,
-    .dz = pico8_jo_dz_rows,
-    .cq = &pico8_jo_cq_seq,
-    .gq = {0x0, 0xb0000},
-    .ca = 0x90000,
-    .em = &pico8_jo_em_row,
-    .mi = 0x10000,
-    .has_mi = 1,
-    .hp = 0x40000,
-    .px = &pico8_os_px_row,
-    .qh = 0,
-    .s = 0x640000,
-    .ba = &pico8_qh_ba_seq,
-    .probe = {.dw = 0x666, .od = 0xf0000, .has_od = 1, .dq = qh_dq_text, .fp = 0x20000, .ik = 0x0, .has_ik = 0},
+const planet_archetype_t processor_archetype = {
+    .state = structure_state_text,
+    .state_time = 0x0,
+    .is_planet = 0,
+    .trade_multiplier = 0x8000,
+    .layer = 0x60000,
+    .hit_box = {-0x70000, -0x70000, 0x70000, 0x70000},
+    .shake = 0x0,
+    .ring_colors = &planet_ring_colors_seq,
+    .mood_rows = planet_mood_rows_rows,
+    .made_resources = &planet_made_resources_seq,
+    .row_step = {0x0, 0xb0000},
+    .back_color = 0x90000,
+    .spacer = &planet_spacer_row,
+    .development_tier = 0x10000,
+    .has_development_tier = 1,
+    .project_index = 0x40000,
+    .name = &processor_name_row,
+    .is_structure = 0,
+    .sprite = 0x640000,
+    .accepted_resources = &structure_accepted_resources_seq,
+    .targeting = {.attach_distance = 0x666, .cost = 0xf0000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000, .status_sprite = 0x0, .has_status_sprite = 0},
 };
 
-const pico8_jo_def_t pico8_hj_def = {
-    .me = qh_me_text,
-    .t = 0x0,
-    .hf = 0,
-    .hs = 0x10000,
-    .fa = 0x60000,
-    .kq = {-0x70000, -0x70000, 0x70000, 0x70000},
-    .ma = 0x0,
-    .ka = &pico8_jo_ka_seq,
-    .dz = pico8_jo_dz_rows,
-    .cq = &pico8_jo_cq_seq,
-    .gq = {0x0, 0xb0000},
-    .ca = 0x90000,
-    .em = &pico8_jo_em_row,
-    .mi = 0x10000,
-    .has_mi = 1,
-    .hp = 0x20000,
-    .px = &pico8_hj_px_row,
-    .qh = 0,
-    .s = 0xa60000,
-    .ba = &pico8_qh_ba_seq,
-    .rr = hj_rr_text,
-    .probe = {.dw = 0x666, .od = 0x3c0000, .has_od = 1, .dq = qh_dq_text, .fp = 0x20000, .ik = 0x0, .has_ik = 0},
-    .emitter = {.pn = 0x50000, .du = 0x78000, .py = 0x1eb8, .ki = 0x90000, .pk = 0x10000, .fc = 0x8000,
-                .k_ = &pico8_hj_k__seq, .qo = 0xfae0, .ro = -0x11ec, .qg = 0x11ea, .q_ = 0xfae0},
+const planet_archetype_t ascension_archetype = {
+    .state = structure_state_text,
+    .state_time = 0x0,
+    .is_planet = 0,
+    .trade_multiplier = 0x10000,
+    .layer = 0x60000,
+    .hit_box = {-0x70000, -0x70000, 0x70000, 0x70000},
+    .shake = 0x0,
+    .ring_colors = &planet_ring_colors_seq,
+    .mood_rows = planet_mood_rows_rows,
+    .made_resources = &planet_made_resources_seq,
+    .row_step = {0x0, 0xb0000},
+    .back_color = 0x90000,
+    .spacer = &planet_spacer_row,
+    .development_tier = 0x10000,
+    .has_development_tier = 1,
+    .project_index = 0x20000,
+    .name = &ascension_name_row,
+    .is_structure = 0,
+    .sprite = 0xa60000,
+    .accepted_resources = &structure_accepted_resources_seq,
+    .required_tech = ascension_required_tech_text,
+    .targeting = {.attach_distance = 0x666, .cost = 0x3c0000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000, .status_sprite = 0x0, .has_status_sprite = 0},
+    .emitter = {.angle_slices = 0x50000, .base_radius = 0x78000, .speed_factor = 0x1eb8, .lifetime = 0x90000, .quarter_turn = 0x10000, .spawn_rate = 0x8000,
+                .trail_colors = &ascension_trail_colors_seq, .matrix_xx = 0xfae0, .matrix_xy = -0x11ec, .matrix_yx = 0x11ea, .matrix_yy = 0xfae0},
 };
 
-const pico8_jo_def_t pico8_pm_def = {
-    .me = pm_me_text,
-    .t = 0x0,
-    .hf = 0,
-    .hs = 0x10000,
-    .fa = 0x60000,
-    .kq = {-0x70000, -0x70000, 0x70000, 0x70000},
-    .ma = 0x0,
-    .ka = &pico8_jo_ka_seq,
-    .dz = pico8_jo_dz_rows,
-    .cq = &pico8_jo_cq_seq,
-    .gq = {0x0, 0xb0000},
-    .ca = 0x90000,
-    .em = &pico8_jo_em_row,
-    .mi = 0x10000,
-    .has_mi = 1,
-    .hp = 0x30000,
-    .px = &pico8_pm_px_row,
-    .qh = 0,
-    .s = 0x620000,
-    .ba = &pico8_qh_ba_seq,
-    .rr = hj_rr_text,
-    .ng = {0x10000, 0x0},
-    .fz = pm_fz_text,
-    .probe = {.dw = 0x666, .od = 0x3c0000, .has_od = 1, .dq = qh_dq_text, .fp = 0x20000, .ik = 0x0, .has_ik = 0},
-    .emitter = {.pn = 0x80000, .du = 0x20000, .py = 0xf5c, .ki = 0x90000, .pk = 0x0, .fc = 0x10000,
-                .k_ = &pico8_pm_k__seq, .qo = 0x1051e, .ro = -0xd70, .qg = 0xd70, .q_ = 0x1051e},
+const planet_archetype_t protostar_archetype = {
+    .state = protostar_state_text,
+    .state_time = 0x0,
+    .is_planet = 0,
+    .trade_multiplier = 0x10000,
+    .layer = 0x60000,
+    .hit_box = {-0x70000, -0x70000, 0x70000, 0x70000},
+    .shake = 0x0,
+    .ring_colors = &planet_ring_colors_seq,
+    .mood_rows = planet_mood_rows_rows,
+    .made_resources = &planet_made_resources_seq,
+    .row_step = {0x0, 0xb0000},
+    .back_color = 0x90000,
+    .spacer = &planet_spacer_row,
+    .development_tier = 0x10000,
+    .has_development_tier = 1,
+    .project_index = 0x30000,
+    .name = &protostar_name_row,
+    .is_structure = 0,
+    .sprite = 0x620000,
+    .accepted_resources = &structure_accepted_resources_seq,
+    .required_tech = ascension_required_tech_text,
+    .spawn_offset = {0x10000, 0x0},
+    .class_name = protostar_class_name_text,
+    .targeting = {.attach_distance = 0x666, .cost = 0x3c0000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000, .status_sprite = 0x0, .has_status_sprite = 0},
+    .emitter = {.angle_slices = 0x80000, .base_radius = 0x20000, .speed_factor = 0xf5c, .lifetime = 0x90000, .quarter_turn = 0x0, .spawn_rate = 0x10000,
+                .trail_colors = &protostar_trail_colors_seq, .matrix_xx = 0x1051e, .matrix_xy = -0xd70, .matrix_yx = 0xd70, .matrix_yy = 0x1051e},
 };
 
-const pico8_jo_def_t pico8_mx_def = {
-    .me = qh_me_text,
-    .t = 0x0,
-    .hf = 0,
-    .hs = 0x10000,
-    .fa = 0x60000,
-    .kq = {-0x70000, -0x70000, 0x70000, 0x70000},
-    .ma = 0x0,
-    .ka = &pico8_jo_ka_seq,
-    .dz = pico8_jo_dz_rows,
-    .cq = &pico8_jo_cq_seq,
-    .gq = {0x0, 0xb0000},
-    .ca = 0x90000,
-    .em = &pico8_jo_em_row,
-    .mi = 0x10000,
-    .has_mi = 1,
-    .hp = 0x50000,
-    .px = &pico8_mx_px_row,
-    .qh = 0,
-    .s = 0x420000,
-    .ba = &pico8_qh_ba_seq,
-    .rr = mx_rr_text,
-    .ht = &pico8_mx_ht_seq,
-    .probe = {.dw = 0x666, .od = 0x280000, .has_od = 1, .dq = qh_dq_text, .fp = 0x20000, .ik = 0x0, .has_ik = 0},
-    .emitter = {.pn = 0x50000, .du = 0x50000, .py = 0x1eb8, .ki = 0x90000, .pk = 0x10000, .fc = 0x4ccc,
-                .k_ = &pico8_mx_k__seq, .qo = 0xfae0, .ro = -0x11ec, .qg = 0x11ea, .q_ = 0xfae0},
+const planet_archetype_t synthesizer_archetype = {
+    .state = structure_state_text,
+    .state_time = 0x0,
+    .is_planet = 0,
+    .trade_multiplier = 0x10000,
+    .layer = 0x60000,
+    .hit_box = {-0x70000, -0x70000, 0x70000, 0x70000},
+    .shake = 0x0,
+    .ring_colors = &planet_ring_colors_seq,
+    .mood_rows = planet_mood_rows_rows,
+    .made_resources = &planet_made_resources_seq,
+    .row_step = {0x0, 0xb0000},
+    .back_color = 0x90000,
+    .spacer = &planet_spacer_row,
+    .development_tier = 0x10000,
+    .has_development_tier = 1,
+    .project_index = 0x50000,
+    .name = &synthesizer_name_row,
+    .is_structure = 0,
+    .sprite = 0x420000,
+    .accepted_resources = &structure_accepted_resources_seq,
+    .required_tech = synthesizer_required_tech_text,
+    .synthesizable_resources = &synthesizer_synthesizable_resources_seq,
+    .targeting = {.attach_distance = 0x666, .cost = 0x280000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000, .status_sprite = 0x0, .has_status_sprite = 0},
+    .emitter = {.angle_slices = 0x50000, .base_radius = 0x50000, .speed_factor = 0x1eb8, .lifetime = 0x90000, .quarter_turn = 0x10000, .spawn_rate = 0x4ccc,
+                .trail_colors = &synthesizer_trail_colors_seq, .matrix_xx = 0xfae0, .matrix_xy = -0x11ec, .matrix_yx = 0x11ea, .matrix_yy = 0xfae0},
 };
 
-const pico8_jo_def_t pico8_ga_def = {
-    .me = jo_me_text,
-    .t = 0x0,
-    .hf = 0,
-    .hs = 0x10000,
-    .fa = 0x30000,
-    .kq = {0x0, 0x0, -0x10000, -0x10000},
-    .ma = 0x0,
-    .ka = &pico8_jo_ka_seq,
-    .dz = pico8_jo_dz_rows,
-    .cq = &pico8_jo_cq_seq,
-    .gq = {0x0, 0xb0000},
-    .ca = 0x90000,
-    .em = &pico8_jo_em_row,
-    .mi = 0x0,
-    .has_mi = 0,
-    .fz = ga_fz_text,
-    .iu = -0xf5c,
-    .ms = 0x30000,
-    .emitter = {.pn = 0x0, .du = 0x0, .py = 0x60000, .ki = 0x0, .pk = 0x0, .fc = 0x0,
-                .k_ = &pico8_ga_k__seq, .qo = 0xe666, .ro = 0x0, .qg = 0x0, .q_ = 0xe666},
+const planet_archetype_t burst_archetype = {
+    .state = planet_state_text,
+    .state_time = 0x0,
+    .is_planet = 0,
+    .trade_multiplier = 0x10000,
+    .layer = 0x30000,
+    .hit_box = {0x0, 0x0, -0x10000, -0x10000},
+    .shake = 0x0,
+    .ring_colors = &planet_ring_colors_seq,
+    .mood_rows = planet_mood_rows_rows,
+    .made_resources = &planet_made_resources_seq,
+    .row_step = {0x0, 0xb0000},
+    .back_color = 0x90000,
+    .spacer = &planet_spacer_row,
+    .development_tier = 0x0,
+    .has_development_tier = 0,
+    .class_name = burst_class_name_text,
+    .acceleration_factor = -0xf5c,
+    .speed = 0x30000,
+    .emitter = {.angle_slices = 0x0, .base_radius = 0x0, .speed_factor = 0x60000, .lifetime = 0x0, .quarter_turn = 0x0, .spawn_rate = 0x0,
+                .trail_colors = &burst_trail_colors_seq, .matrix_xx = 0xe666, .matrix_xy = 0x0, .matrix_yx = 0x0, .matrix_yy = 0xe666},
 };
 
-const pico8_jo_def_t pico8_nr_def = {
-    .me = qh_me_text,
-    .t = 0x0,
-    .hf = 0,
-    .hs = 0x10000,
-    .fa = 0x60000,
-    .kq = {-0x40000, -0x40000, 0x50000, 0x50000},
-    .ma = 0x0,
-    .ka = &pico8_jo_ka_seq,
-    .dz = pico8_jo_dz_rows,
-    .cq = &pico8_jo_cq_seq,
-    .gq = {0x0, 0xb0000},
-    .ca = 0x90000,
-    .em = &pico8_jo_em_row,
-    .mi = 0x10000,
-    .has_mi = 1,
-    .hp = 0x10000,
-    .px = &pico8_qh_px_row,
-    .qh = 1,
-    .s = 0xaa0000,
-    .ba = &pico8_qh_ba_seq,
-    .rr = nr_rr_text,
-    .hz = &pico8_nr_hz_seq,
-    .probe = {.dw = 0x28e, .od = 0xa0000, .has_od = 1, .dq = qh_dq_text, .fp = 0x10000, .ik = 0x0, .has_ik = 0},
+const planet_archetype_t slipgate_archetype = {
+    .state = structure_state_text,
+    .state_time = 0x0,
+    .is_planet = 0,
+    .trade_multiplier = 0x10000,
+    .layer = 0x60000,
+    .hit_box = {-0x40000, -0x40000, 0x50000, 0x50000},
+    .shake = 0x0,
+    .ring_colors = &planet_ring_colors_seq,
+    .mood_rows = planet_mood_rows_rows,
+    .made_resources = &planet_made_resources_seq,
+    .row_step = {0x0, 0xb0000},
+    .back_color = 0x90000,
+    .spacer = &planet_spacer_row,
+    .development_tier = 0x10000,
+    .has_development_tier = 1,
+    .project_index = 0x10000,
+    .name = &structure_name_row,
+    .is_structure = 1,
+    .sprite = 0xaa0000,
+    .accepted_resources = &structure_accepted_resources_seq,
+    .required_tech = slipgate_required_tech_text,
+    .link_sprites = &slipgate_link_sprites_seq,
+    .targeting = {.attach_distance = 0x28e, .cost = 0xa0000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x10000, .status_sprite = 0x0, .has_status_sprite = 0},
 };
 
-const pico8_jo_def_t pico8_fr_def = {
-    .me = qh_me_text,
-    .t = 0x0,
-    .hf = 0,
-    .hs = 0x10000,
-    .fa = 0x60000,
-    .kq = {-0x40000, -0x40000, 0x50000, 0x50000},
-    .ma = 0x0,
-    .ka = &pico8_jo_ka_seq,
-    .dz = pico8_jo_dz_rows,
-    .cq = &pico8_jo_cq_seq,
-    .gq = {0x0, 0xb0000},
-    .ca = 0x90000,
-    .em = &pico8_jo_em_row,
-    .mi = 0x10000,
-    .has_mi = 1,
-    .hp = 0x10000,
-    .px = &pico8_qh_px_row,
-    .qh = 1,
-    .s = 0x4e0000,
-    .ba = &pico8_qh_ba_seq,
-    .rr = fr_rr_text,
-    .hz = &pico8_fr_hz_seq,
-    .mt = 0x10000,
-    .probe = {.dw = 0x28e, .od = 0x190000, .has_od = 1, .dq = qh_dq_text, .fp = 0x10000, .ik = 0x0, .has_ik = 0},
+const planet_archetype_t infraspace_gate_archetype = {
+    .state = structure_state_text,
+    .state_time = 0x0,
+    .is_planet = 0,
+    .trade_multiplier = 0x10000,
+    .layer = 0x60000,
+    .hit_box = {-0x40000, -0x40000, 0x50000, 0x50000},
+    .shake = 0x0,
+    .ring_colors = &planet_ring_colors_seq,
+    .mood_rows = planet_mood_rows_rows,
+    .made_resources = &planet_made_resources_seq,
+    .row_step = {0x0, 0xb0000},
+    .back_color = 0x90000,
+    .spacer = &planet_spacer_row,
+    .development_tier = 0x10000,
+    .has_development_tier = 1,
+    .project_index = 0x10000,
+    .name = &structure_name_row,
+    .is_structure = 1,
+    .sprite = 0x4e0000,
+    .accepted_resources = &structure_accepted_resources_seq,
+    .required_tech = infraspace_gate_required_tech_text,
+    .link_sprites = &infraspace_gate_link_sprites_seq,
+    .infraspace = 0x10000,
+    .targeting = {.attach_distance = 0x28e, .cost = 0x190000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x10000, .status_sprite = 0x0, .has_status_sprite = 0},
 };
 
-const pico8_kind_rec_t pico8_qh_kind_rec = {NULL, 1, 0xae0000, qh_me_text, 1, 0xf0000};
-const pico8_kind_rec_t pico8_nl_kind_rec = {nl_rr_text, 1, 0x440000, qh_me_text, 1, 0x140000};
-const pico8_kind_rec_t pico8_os_kind_rec = {NULL, 1, 0x640000, qh_me_text, 1, 0xf0000};
-const pico8_kind_rec_t pico8_hj_kind_rec = {hj_rr_text, 1, 0xa60000, qh_me_text, 1, 0x3c0000};
-const pico8_kind_rec_t pico8_pm_kind_rec = {hj_rr_text, 1, 0x620000, pm_me_text, 1, 0x3c0000};
-const pico8_kind_rec_t pico8_ga_kind_rec = {NULL, 0, 0x0, jo_me_text, 0, 0x0};
-const pico8_kind_rec_t pico8_nr_kind_rec = {nr_rr_text, 1, 0xaa0000, qh_me_text, 1, 0xa0000};
-const pico8_kind_rec_t pico8_fr_kind_rec = {fr_rr_text, 1, 0x4e0000, qh_me_text, 1, 0x190000};
-const pico8_kind_rec_t pico8_mx_kind_rec = {mx_rr_text, 1, 0x420000, qh_me_text, 1, 0x280000};
+const kind_record_t structure_kind_record = {NULL, 1, 0xae0000, structure_state_text, 1, 0xf0000};
+const kind_record_t trading_hub_kind_record = {trading_hub_required_tech_text, 1, 0x440000, structure_state_text, 1, 0x140000};
+const kind_record_t processor_kind_record = {NULL, 1, 0x640000, structure_state_text, 1, 0xf0000};
+const kind_record_t ascension_kind_record = {ascension_required_tech_text, 1, 0xa60000, structure_state_text, 1, 0x3c0000};
+const kind_record_t protostar_kind_record = {ascension_required_tech_text, 1, 0x620000, protostar_state_text, 1, 0x3c0000};
+const kind_record_t burst_kind_record = {NULL, 0, 0x0, planet_state_text, 0, 0x0};
+const kind_record_t slipgate_kind_record = {slipgate_required_tech_text, 1, 0xaa0000, structure_state_text, 1, 0xa0000};
+const kind_record_t infraspace_gate_kind_record = {infraspace_gate_required_tech_text, 1, 0x4e0000, structure_state_text, 1, 0x190000};
+const kind_record_t synthesizer_kind_record = {synthesizer_required_tech_text, 1, 0x420000, structure_state_text, 1, 0x280000};
 
-int pico8_int_seq_at(const int *seq, int count, int i, int *out) {
+int int_seq_at(const int *seq, int count, int i, int *out) {
     assert(seq != NULL && count >= 0 && "a sequence is a table and its length");
     if (i < 1 || i > count) {
         return 0;
@@ -714,7 +714,7 @@ int pico8_int_seq_at(const int *seq, int count, int i, int *out) {
     return 1;
 }
 
-int pico8_fixed_seq_at(const p8_fixed_t *seq, int count, int i, p8_fixed_t *out) {
+int game_data_fixed_seq_at(const p8_fixed_t *seq, int count, int i, p8_fixed_t *out) {
     assert(seq != NULL && count >= 0 && "a sequence is a table and its length");
     if (i < 1 || i > count) {
         return 0;
@@ -723,7 +723,7 @@ int pico8_fixed_seq_at(const p8_fixed_t *seq, int count, int i, p8_fixed_t *out)
     return 1;
 }
 
-int pico8_int_seq_has_fixed(const pico8_int_seq_t *seq, p8_fixed_t v) {
+int int_seq_has_fixed(const int_seq_t *seq, p8_fixed_t v) {
     int i;
 
     for (i = 0; i < seq->count; i++) {
@@ -734,24 +734,24 @@ int pico8_int_seq_has_fixed(const pico8_int_seq_t *seq, p8_fixed_t v) {
     return 0;
 }
 
-const pico8_df_entry_t *pico8_df_lookup(const char *px) {
+const planet_types_entry_t *planet_types_lookup(const char *px) {
     int i;
 
     if (px == NULL) {
         return NULL;
     }
-    for (i = 0; i < PICO8_DF_COUNT; i++) {
-        if (strcmp(pico8_df_table[i].px, px) == 0) {
-            return &pico8_df_table[i];
+    for (i = 0; i < PLANET_TYPES_COUNT; i++) {
+        if (strcmp(planet_types_table[i].name, px) == 0) {
+            return &planet_types_table[i];
         }
     }
     return NULL;
 }
 
-p8_fixed_t pico8_bn(void) {
+p8_fixed_t game_data_route_cost_factor(void) {
     return p8_fixed_from_int(6);
 }
 
-p8_fixed_t pico8_bq(void) {
+p8_fixed_t game_data_route_length_factor(void) {
     return P8_FIXED_LIT(0x00001902, 0.0977);
 }

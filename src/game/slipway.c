@@ -352,20 +352,20 @@ static pico8_jc_t *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     pico8_jo_prise_ouvrir();
     self = (pico8_jc_t *)allocator_alloc(pico8_jo_zone_construction(), sizeof *self);
 
-    entity_init_instance(&self->header, &g_jc_struct_class, pico8_jc_def.me, pico8_jc_def.t);
-    self->def = &pico8_jc_def;
-    self->fa = self->def->fa;
+    entity_init_instance(&self->header, &g_jc_struct_class, slipway_archetype.state, slipway_archetype.state_time);
+    self->def = &slipway_archetype;
+    self->fa = self->def->layer;
     self->header.layer = &self->fa;
     self->header.targeting = &self->probe_own;
     self->probe = &self->probe_own;
-    self->probe->def = &self->def->probe;
-    self->nh = self->def->nh;
+    self->probe->def = &self->def->targeting;
+    self->nh = self->def->fade_in_step;
     self->qu = NULL;
     self->ts = NULL;
     self->hg = NULL;
     self->re = NULL;
-    self->probe->od = self->def->probe.od;
-    self->probe->has_od = self->def->probe.has_od;
+    self->probe->od = self->def->targeting.cost;
+    self->probe->has_od = self->def->targeting.has_cost;
     self->mt = 0;
     self->has_mt = 0;
     self->header.infraspace = NULL;

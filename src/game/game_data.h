@@ -1,5 +1,5 @@
-#ifndef PICO8_GAME_DATA_H
-#define PICO8_GAME_DATA_H
+#ifndef GAME_GAME_DATA_H
+#define GAME_GAME_DATA_H
 
 #include "p8/fixed.h"
 #include "engine/geom.h"
@@ -7,423 +7,423 @@
 #include "engine/vec.h"
 
 enum {
-    PICO8_ES_COUNT = 4,
-    PICO8_CT_COUNT = 4,
-    PICO8_B__COUNT = 4,
-    PICO8_CO_COUNT = 4,
-    PICO8_FB_COUNT = 14,
-    PICO8_EK_COUNT = 4,
-    PICO8_CI_COUNT = 15,
-    PICO8_EF_COUNT = 15,
-    PICO8_DF_COUNT = 11,
-    PICO8_IX_COUNT = 4,
-    PICO8_HA_COUNT = 4,
-    PICO8_BO_COUNT = 4,
-    PICO8_BZ_COUNT = 12,
-    PICO8_JO_DZ_COUNT = 4
+    UPKEEP_BY_TIER_COUNT = 4,
+    PARTNER_BONUS_BY_TIER_COUNT = 4,
+    DEVELOPMENT_SCORE_BY_TIER_COUNT = 4,
+    HAPPINESS_BY_TIER_COUNT = 4,
+    PALETTE_OFFSETS_COUNT = 14,
+    TIER_THRESHOLDS_COUNT = 4,
+    LAYER_FADES_COUNT = 15,
+    PERIOD_NAMES_COUNT = 15,
+    PLANET_TYPES_COUNT = 11,
+    GALAXY_MENU_COUNT = 4,
+    PAUSE_MENU_COUNT = 4,
+    DIFFICULTY_OPTIONS_COUNT = 4,
+    SCORE_ROWS_COUNT = 12,
+    PLANET_MOOD_ROWS_COUNT = 4
 };
 
 /* items is NULL when count is 0. */
 typedef struct {
     int count;
     const int *items;
-} pico8_int_seq_t;
+} int_seq_t;
 
-typedef struct pico8_str_seq {
+typedef struct str_seq {
     int count;
     const char *const *items;
-} pico8_str_seq_t;
+} str_seq_t;
 
 typedef struct {
     int count;
     const vec_t *items;
-} pico8_vec_seq_t;
+} vec_seq_t;
 
 /* A kind's `rr`, `s`, `me`, `od` as its chain of defaults resolves them: a
  * NULL string, or has_* 0, when absent. The strings are the ones its
  * archetype points at. */
-typedef struct pico8_kind_rec {
-    const char *rr;
-    int has_s;
-    p8_fixed_t s;
-    const char *me;
-    int has_od;
-    p8_fixed_t od;
-} pico8_kind_rec_t;
+typedef struct kind_record {
+    const char *required_tech;
+    int has_sprite;
+    p8_fixed_t sprite;
+    const char *state;
+    int has_cost;
+    p8_fixed_t cost;
+} kind_record_t;
 
 /* qe is only meaningful when has_qe is set. */
 typedef struct {
-    int has_qe;
-    p8_fixed_t qe;
-    p8_fixed_t mu;
-} pico8_kw_t;
+    int has_resource;
+    p8_fixed_t resource;
+    p8_fixed_t amount;
+} production_t;
 
 /* A pico8_fixed_t below holds the 16.16 bits ob() returned for the cart's
  * literal, 0xffff.fffe mask included: -0x5540 is -0.333. */
 
 /* d is NULL for a record of 3 positionals, me NULL when absent. */
 typedef struct {
-    const char *px;
-    int s;
-    p8_fixed_t r;
-    const char *d;
-    const char *me;
-} pico8_df_entry_t;
+    const char *name;
+    int sprite;
+    p8_fixed_t weight;
+    const char *description;
+    const char *state;
+} planet_types_entry_t;
 
 /* ra, then lq. */
 typedef struct {
-    int ra_x;
-    int ra_y;
-    const pico8_jb_row_t *lq;
-} pico8_ix_entry_t;
+    int pos_x;
+    int pos_y;
+    const data_row_t *layout_row;
+} galaxy_menu_entry_t;
 
 /* fg is only meaningful when has_fg is set. */
 typedef struct {
-    const pico8_jb_row_t *lq;
-    int has_fg;
-    int fg;
-} pico8_ha_entry_t;
+    const data_row_t *layout_row;
+    int has_gpio_signal;
+    int gpio_signal;
+} pause_menu_entry_t;
 
 /* ha's named entries after its rows: hi, gq, ca. */
 typedef struct {
-    int hi_x;
-    int hi_y;
-    int gq_x;
-    int gq_y;
-    int ca;
-} pico8_ha_tail_t;
+    int fixed_pos_x;
+    int fixed_pos_y;
+    int row_step_x;
+    int row_step_y;
+    int back_color;
+} pause_menu_tail_t;
 
 typedef struct {
-    const pico8_jb_row_t *lq;
-    const char *px;
+    const data_row_t *layout_row;
+    const char *name;
     int trade;
-    p8_fixed_t en;
-} pico8_bo_entry_t;
+    p8_fixed_t type_bias;
+} difficulty_options_entry_t;
 
 /* row holds the positionals, its c coming last; then fn (NULL when absent),
  * score and ra, each only meaningful under its has_ flag. */
 typedef struct {
-    pico8_jb_row_t row;
-    const char *fn;
+    data_row_t row;
+    const char *draw_function;
     int has_score;
     int score;
-    int has_ra;
-    int ra_x;
-    int ra_y;
-} pico8_bz_entry_t;
+    int has_pos;
+    int pos_x;
+    int pos_y;
+} score_rows_entry_t;
 
 /* A class's archetype: its defaults resolved along its init chain, ke's
  * `me`/`t` first. A default that is the address of a module's static object
  * (ui.le, nf.ra, mz.jj) is not here: the module's init still sets it. */
 typedef struct {
-    const char *me;
-    p8_fixed_t t;
-    p8_fixed_t fa;
-    p8_fixed_t hd;
-    const pico8_int_seq_t *pl;
-} pico8_bg_def_t;
+    const char *state;
+    p8_fixed_t state_time;
+    p8_fixed_t layer;
+    p8_fixed_t hit_test;
+    const int_seq_t *tile_choices;
+} background_archetype_t;
 
 typedef struct {
-    const char *me;
-    p8_fixed_t t;
-    p8_fixed_t ql;
-    p8_fixed_t fa;
-    box_t hw;
-} pico8_ui_def_t;
+    const char *state;
+    p8_fixed_t state_time;
+    p8_fixed_t cursor_sprite;
+    p8_fixed_t layer;
+    box_t panel_box;
+} ui_archetype_t;
 
 typedef struct {
-    const char *me;
-    p8_fixed_t t;
-    p8_fixed_t fa;
-} pico8_js_def_t;
+    const char *state;
+    p8_fixed_t state_time;
+    p8_fixed_t layer;
+} button_archetype_t;
 
 typedef struct {
-    const char *me;
-    p8_fixed_t t;
-    p8_fixed_t fa;
-    p8_fixed_t hd;
-} pico8_fq_def_t;
+    const char *state;
+    p8_fixed_t state_time;
+    p8_fixed_t layer;
+    p8_fixed_t hit_test;
+} modal_backdrop_archetype_t;
 
 typedef struct {
-    const char *me;
-    p8_fixed_t t;
-    vec_t v;
-    p8_fixed_t ma;
-    vec_t p;
-    vec_t ra;
-    const pico8_vec_seq_t *pc;
-} pico8_qb_def_t;
+    const char *state;
+    p8_fixed_t state_time;
+    vec_t velocity;
+    p8_fixed_t shake;
+    vec_t pos_before_shake;
+    vec_t pos;
+    const vec_seq_t *dpad_directions;
+} camera_archetype_t;
 
 typedef struct {
-    const char *me;
-    p8_fixed_t t;
-} pico8_nf_def_t;
+    const char *state;
+    p8_fixed_t state_time;
+} mouse_archetype_t;
 
 typedef struct {
-    const char *me;
-    p8_fixed_t t;
-    p8_fixed_t fa;
-    p8_fixed_t rh;
-} pico8_mh_def_t;
+    const char *state;
+    p8_fixed_t state_time;
+    p8_fixed_t layer;
+    p8_fixed_t duration_scale;
+} message_box_archetype_t;
 
 typedef struct {
-    const char *me;
-    p8_fixed_t t;
-    p8_fixed_t fa;
-    p8_fixed_t l;
-    vec_t v;
-} pico8_iv_def_t;
+    const char *state;
+    p8_fixed_t state_time;
+    p8_fixed_t layer;
+    p8_fixed_t fade;
+    vec_t velocity;
+} toast_archetype_t;
 
 typedef struct {
-    const pico8_jb_row_t *fk;
-} pico8_hp_def_t;
+    const data_row_t *row_tail;
+} research_project_archetype_t;
 
 typedef struct {
-    const char *me;
-    p8_fixed_t t;
-    box_t kq;
-    p8_fixed_t fa;
-    vec_t ra;
-    vec_t eh;
-} pico8_ie_def_t;
+    const char *state;
+    p8_fixed_t state_time;
+    box_t hit_box;
+    p8_fixed_t layer;
+    vec_t pos;
+    vec_t rest_count;
+} structure_icon_archetype_t;
 
 typedef struct {
-    const char *me;
-    p8_fixed_t t;
-    p8_fixed_t fa;
-    const pico8_jb_row_t *gs;
-    const pico8_jb_row_t *i_;
-} pico8_pj_def_t;
+    const char *state;
+    p8_fixed_t state_time;
+    p8_fixed_t layer;
+    const data_row_t *countdown_rows;
+    const data_row_t *frame_rows;
+} score_panel_archetype_t;
 
 /* `dq` NULL is nil. `fp` is what `d_` hands to `fm:nx`: the cart's false is
  * held as 0, which is what `self.fp or 0` hands. */
 typedef struct {
-    p8_fixed_t dw;
-    p8_fixed_t od;
-    int has_od;
-    const char *dq;
-    p8_fixed_t fp;
-    p8_fixed_t ik;
-    int has_ik;
-} pico8_probe_def_t;
+    p8_fixed_t attach_distance;
+    p8_fixed_t cost;
+    int has_cost;
+    const char *confirmed_state;
+    p8_fixed_t clock_ticks;
+    p8_fixed_t status_sprite;
+    int has_status_sprite;
+} targeting_archetype_t;
 
 typedef struct {
-    const char *me;
-    p8_fixed_t t;
+    const char *state;
+    p8_fixed_t state_time;
     p8_fixed_t spawn_snd;
-    p8_fixed_t oi;
-    p8_fixed_t fa;
-    const pico8_int_seq_t *kk;
-    pico8_probe_def_t probe;
-} pico8_mz_def_t;
+    p8_fixed_t radius;
+    p8_fixed_t layer;
+    const int_seq_t *color_ramp;
+    targeting_archetype_t targeting;
+} wormhole_archetype_t;
 
 typedef struct {
-    const char *me;
-    p8_fixed_t t;
-    p8_fixed_t fa;
-    const pico8_int_seq_t *k_;
-    p8_fixed_t nh;
-    pico8_probe_def_t probe;
-} pico8_jc_def_t;
+    const char *state;
+    p8_fixed_t state_time;
+    p8_fixed_t layer;
+    const int_seq_t *trail_colors;
+    p8_fixed_t fade_in_step;
+    targeting_archetype_t targeting;
+} slipway_archetype_t;
 
 /* `pk` is the cart's 1 or false, false held as 0: only its truth is read. */
 typedef struct {
-    p8_fixed_t pn;
-    p8_fixed_t du;
-    p8_fixed_t py;
-    p8_fixed_t ki;
-    p8_fixed_t pk;
-    p8_fixed_t fc;
-    const pico8_int_seq_t *k_;
-    p8_fixed_t qo;
-    p8_fixed_t ro;
-    p8_fixed_t qg;
-    p8_fixed_t q_;
-} pico8_emitter_def_t;
+    p8_fixed_t angle_slices;
+    p8_fixed_t base_radius;
+    p8_fixed_t speed_factor;
+    p8_fixed_t lifetime;
+    p8_fixed_t quarter_turn;
+    p8_fixed_t spawn_rate;
+    const int_seq_t *trail_colors;
+    p8_fixed_t matrix_xx;
+    p8_fixed_t matrix_xy;
+    p8_fixed_t matrix_yx;
+    p8_fixed_t matrix_yy;
+} emitter_archetype_t;
 
 /* g_ and fv share this type; fv's own members are zero in g_'s. */
 typedef struct {
-    const char *me;
-    p8_fixed_t t;
-    p8_fixed_t fx;
-    p8_fixed_t fa;
-    vec_t ra;
-    int has_ra; /* 0: the instance's `ra` is NULL */
-    vec_t hi;
-    p8_fixed_t ca;
-    vec_t gq;
-    p8_fixed_t eo;
-    p8_fixed_t ff;
-    box_t kq;
-    p8_fixed_t ql;
-    p8_fixed_t fg;
-    const pico8_jb_row_t *rb;
-    pico8_emitter_def_t emitter;
-    pico8_probe_def_t probe;
-} pico8_g__def_t;
+    const char *state;
+    p8_fixed_t state_time;
+    p8_fixed_t fold_anchor;
+    p8_fixed_t layer;
+    vec_t pos;
+    int has_pos; /* 0: the instance's `ra` is NULL */
+    vec_t fixed_pos;
+    p8_fixed_t back_color;
+    vec_t row_step;
+    p8_fixed_t open_sfx;
+    p8_fixed_t clear_ephemerals_after;
+    box_t hit_box;
+    p8_fixed_t cursor_sprite;
+    p8_fixed_t gpio_signal;
+    const data_row_t *rows;
+    emitter_archetype_t emitter;
+    targeting_archetype_t targeting;
+} probe_archetype_t;
 
 /* The ten planet kinds share this type; a kind's value leaves at zero the
  * members of the kinds it does not descend from. `kw`, and ga's `by`, point
  * at objects their module owns, and `kw_own` only holds what `lz` writes:
  * not here. */
 typedef struct {
-    const char *me;
-    p8_fixed_t t;
-    int hf;
-    p8_fixed_t hs;
-    p8_fixed_t fa;
-    box_t kq;
-    p8_fixed_t ma;
-    const pico8_int_seq_t *ka;
-    const pico8_jb_row_t *dz; /* PICO8_JO_DZ_COUNT rows */
-    const pico8_int_seq_t *cq;
-    vec_t gq;
-    p8_fixed_t ca;
-    const pico8_jb_row_t *em;
-    p8_fixed_t mi;
-    int has_mi;
-    p8_fixed_t hp;
-    const pico8_jb_row_t *px;
-    int qh;
-    p8_fixed_t s;
-    const pico8_int_seq_t *ba;
-    const char *rr;
-    p8_fixed_t nl;
-    p8_fixed_t qw;
-    vec_t ng;
-    const char *fz;
-    p8_fixed_t iu;
-    p8_fixed_t ms;
-    const pico8_int_seq_t *hz;
-    p8_fixed_t mt;
-    const pico8_int_seq_t *ht;
-    pico8_probe_def_t probe;
-    pico8_emitter_def_t emitter;
-} pico8_jo_def_t;
+    const char *state;
+    p8_fixed_t state_time;
+    int is_planet;
+    p8_fixed_t trade_multiplier;
+    p8_fixed_t layer;
+    box_t hit_box;
+    p8_fixed_t shake;
+    const int_seq_t *ring_colors;
+    const data_row_t *mood_rows; /* PICO8_JO_DZ_COUNT rows */
+    const int_seq_t *made_resources;
+    vec_t row_step;
+    p8_fixed_t back_color;
+    const data_row_t *spacer;
+    p8_fixed_t development_tier;
+    int has_development_tier;
+    p8_fixed_t project_index;
+    const data_row_t *name;
+    int is_structure;
+    p8_fixed_t sprite;
+    const int_seq_t *accepted_resources;
+    const char *required_tech;
+    p8_fixed_t is_trading_hub;
+    p8_fixed_t palette_block;
+    vec_t spawn_offset;
+    const char *class_name;
+    p8_fixed_t acceleration_factor;
+    p8_fixed_t speed;
+    const int_seq_t *link_sprites;
+    p8_fixed_t infraspace;
+    const int_seq_t *synthesizable_resources;
+    targeting_archetype_t targeting;
+    emitter_archetype_t emitter;
+} planet_archetype_t;
 
 /* The keys pm:pq passes to the ga it spawns, besides `ra`. */
 typedef struct {
-    p8_fixed_t qo;
-    p8_fixed_t ro;
-    p8_fixed_t qg;
-    p8_fixed_t q_;
-    p8_fixed_t iu;
-    p8_fixed_t py;
-    p8_fixed_t ms;
-    const pico8_int_seq_t *k_;
-} pico8_ga_pq_keys_t;
+    p8_fixed_t matrix_xx;
+    p8_fixed_t matrix_xy;
+    p8_fixed_t matrix_yx;
+    p8_fixed_t matrix_yy;
+    p8_fixed_t acceleration_factor;
+    p8_fixed_t speed_factor;
+    p8_fixed_t speed;
+    const int_seq_t *trail_colors;
+} burst_construct_keys_t;
 
-extern const int pico8_es_table[PICO8_ES_COUNT];
-extern const p8_fixed_t pico8_ct_table[PICO8_CT_COUNT];
-extern const int pico8_b__table[PICO8_B__COUNT];
-extern const int pico8_co_table[PICO8_CO_COUNT];
-extern const int pico8_fb_table[PICO8_FB_COUNT];
-extern const int pico8_ek_table[PICO8_EK_COUNT];
-extern const p8_fixed_t pico8_ci_table[PICO8_CI_COUNT];
-extern const char *const pico8_ef_table[PICO8_EF_COUNT];
-extern const pico8_df_entry_t pico8_df_table[PICO8_DF_COUNT];
-extern const pico8_ix_entry_t pico8_ix_table[PICO8_IX_COUNT];
-extern const pico8_ha_entry_t pico8_ha_table[PICO8_HA_COUNT];
-extern const pico8_ha_tail_t pico8_ha_tail;
-extern const pico8_bo_entry_t pico8_bo_table[PICO8_BO_COUNT];
-extern const pico8_bz_entry_t pico8_bz_table[PICO8_BZ_COUNT];
+extern const int upkeep_by_tier_table[UPKEEP_BY_TIER_COUNT];
+extern const p8_fixed_t partner_bonus_by_tier_table[PARTNER_BONUS_BY_TIER_COUNT];
+extern const int development_score_by_tier_table[DEVELOPMENT_SCORE_BY_TIER_COUNT];
+extern const int happiness_by_tier_table[HAPPINESS_BY_TIER_COUNT];
+extern const int palette_offsets_table[PALETTE_OFFSETS_COUNT];
+extern const int tier_thresholds_table[TIER_THRESHOLDS_COUNT];
+extern const p8_fixed_t layer_fades_table[LAYER_FADES_COUNT];
+extern const char *const period_names_table[PERIOD_NAMES_COUNT];
+extern const planet_types_entry_t planet_types_table[PLANET_TYPES_COUNT];
+extern const galaxy_menu_entry_t galaxy_menu_table[GALAXY_MENU_COUNT];
+extern const pause_menu_entry_t pause_menu_table[PAUSE_MENU_COUNT];
+extern const pause_menu_tail_t pause_menu_tail;
+extern const difficulty_options_entry_t difficulty_options_table[DIFFICULTY_OPTIONS_COUNT];
+extern const score_rows_entry_t score_rows_table[SCORE_ROWS_COUNT];
 
 /* The table members of the jo tree, one object per class that sets it. */
-extern const pico8_int_seq_t pico8_jo_ka_seq;
-extern const pico8_jb_row_t pico8_jo_dz_rows[PICO8_JO_DZ_COUNT];
-extern const pico8_int_seq_t pico8_jo_cq_seq;
-extern const pico8_jb_row_t pico8_jo_em_row;
-extern const pico8_jb_row_t pico8_qh_px_row;
-extern const pico8_jb_row_t pico8_nl_px_row;
-extern const pico8_jb_row_t pico8_os_px_row;
-extern const pico8_jb_row_t pico8_hj_px_row;
-extern const pico8_jb_row_t pico8_pm_px_row;
-extern const pico8_jb_row_t pico8_mx_px_row;
-extern const pico8_int_seq_t pico8_qh_ba_seq;
-extern const pico8_int_seq_t pico8_nl_ba_seq;
-extern const pico8_int_seq_t pico8_hj_k__seq;
-extern const pico8_int_seq_t pico8_pm_k__seq;
-extern const pico8_int_seq_t pico8_mx_k__seq;
-extern const pico8_int_seq_t pico8_ga_k__seq;
+extern const int_seq_t planet_ring_colors_seq;
+extern const data_row_t planet_mood_rows_rows[PLANET_MOOD_ROWS_COUNT];
+extern const int_seq_t planet_made_resources_seq;
+extern const data_row_t planet_spacer_row;
+extern const data_row_t structure_name_row;
+extern const data_row_t trading_hub_name_row;
+extern const data_row_t processor_name_row;
+extern const data_row_t ascension_name_row;
+extern const data_row_t protostar_name_row;
+extern const data_row_t synthesizer_name_row;
+extern const int_seq_t structure_accepted_resources_seq;
+extern const int_seq_t trading_hub_accepted_resources_seq;
+extern const int_seq_t ascension_trail_colors_seq;
+extern const int_seq_t protostar_trail_colors_seq;
+extern const int_seq_t synthesizer_trail_colors_seq;
+extern const int_seq_t burst_trail_colors_seq;
 /* The k_ key pm:pq passes to the ga it spawns. */
-extern const pico8_int_seq_t pico8_pm_ga_k__seq;
-extern const pico8_int_seq_t pico8_nr_hz_seq;
-extern const pico8_int_seq_t pico8_fr_hz_seq;
-extern const pico8_int_seq_t pico8_mx_ht_seq;
+extern const int_seq_t protostar_burst_trail_colors_seq;
+extern const int_seq_t slipgate_link_sprites_seq;
+extern const int_seq_t infraspace_gate_link_sprites_seq;
+extern const int_seq_t synthesizer_synthesizable_resources_seq;
 
 /* The table members of the other classes, one object per class that sets it. */
-extern const pico8_int_seq_t pico8_g__k__seq;
-extern const pico8_int_seq_t pico8_fv_k__seq;
-extern const pico8_int_seq_t pico8_jc_k__seq;
-extern const pico8_int_seq_t pico8_mz_kk_seq;
-extern const pico8_int_seq_t pico8_bg_pl_seq;
-extern const pico8_vec_seq_t pico8_qb_pc_vecs;
-extern const pico8_jb_row_t pico8_hp_fk_row;
+extern const int_seq_t probe_trail_colors_seq;
+extern const int_seq_t help_screen_trail_colors_seq;
+extern const int_seq_t slipway_trail_colors_seq;
+extern const int_seq_t wormhole_color_ramp_seq;
+extern const int_seq_t background_tile_choices_seq;
+extern const vec_seq_t camera_dpad_directions_vecs;
+extern const data_row_t research_project_row_tail_row;
 /* Draw rows: each item a row of positionals then its fn; gs has two false. */
-extern const pico8_jb_row_t pico8_fv_rb_row;
-extern const pico8_jb_row_t pico8_pj_gs_row;
-extern const pico8_jb_row_t pico8_pj_i__row;
+extern const data_row_t help_screen_rows_row;
+extern const data_row_t score_panel_countdown_rows_row;
+extern const data_row_t score_panel_frame_rows_row;
 /* pj's ea and ou: the state tables pico8_score_panel_init() builds from them. */
-extern const pico8_jb_row_t pico8_pj_ea_row;
-extern const pico8_jb_row_t pico8_pj_ou_row;
+extern const data_row_t score_panel_year_banner_row;
+extern const data_row_t score_panel_readouts_row;
 
 /* lq, jb, hy and trade have an empty spec, hence no object; ui.le, nf.l and
  * nf.r are empty tables, held by their module. */
-extern const pico8_ga_pq_keys_t pico8_pm_ga_pq_keys;
-extern const pico8_bg_def_t pico8_bg_def;
-extern const pico8_ui_def_t pico8_ui_def;
-extern const pico8_js_def_t pico8_js_def;
-extern const pico8_fq_def_t pico8_fq_def;
-extern const pico8_qb_def_t pico8_qb_def;
-extern const pico8_nf_def_t pico8_nf_def;
-extern const pico8_mh_def_t pico8_mh_def;
-extern const pico8_iv_def_t pico8_iv_def;
-extern const pico8_hp_def_t pico8_hp_def;
-extern const pico8_ie_def_t pico8_ie_def;
-extern const pico8_pj_def_t pico8_pj_def;
-extern const pico8_mz_def_t pico8_mz_def;
-extern const pico8_jc_def_t pico8_jc_def;
+extern const burst_construct_keys_t protostar_burst_construct_keys;
+extern const background_archetype_t background_archetype;
+extern const ui_archetype_t ui_archetype;
+extern const button_archetype_t button_archetype;
+extern const modal_backdrop_archetype_t modal_backdrop_archetype;
+extern const camera_archetype_t camera_archetype;
+extern const mouse_archetype_t mouse_archetype;
+extern const message_box_archetype_t message_box_archetype;
+extern const toast_archetype_t toast_archetype;
+extern const research_project_archetype_t research_project_archetype;
+extern const structure_icon_archetype_t structure_icon_archetype;
+extern const score_panel_archetype_t score_panel_archetype;
+extern const wormhole_archetype_t wormhole_archetype;
+extern const slipway_archetype_t slipway_archetype;
 /* The probe of research_icon's `pb`, which has no class: every field 0. */
-extern const pico8_probe_def_t pico8_probe_def_none;
-extern const pico8_g__def_t pico8_g__def;
-extern const pico8_g__def_t pico8_fv_def;
-extern const pico8_jo_def_t pico8_jo_def;
-extern const pico8_jo_def_t pico8_qh_def;
-extern const pico8_jo_def_t pico8_nl_def;
-extern const pico8_jo_def_t pico8_os_def;
-extern const pico8_jo_def_t pico8_hj_def;
-extern const pico8_jo_def_t pico8_pm_def;
-extern const pico8_jo_def_t pico8_mx_def;
-extern const pico8_jo_def_t pico8_ga_def;
-extern const pico8_jo_def_t pico8_nr_def;
-extern const pico8_jo_def_t pico8_fr_def;
-extern const pico8_kind_rec_t pico8_qh_kind_rec;
-extern const pico8_kind_rec_t pico8_nl_kind_rec;
-extern const pico8_kind_rec_t pico8_os_kind_rec;
-extern const pico8_kind_rec_t pico8_hj_kind_rec;
-extern const pico8_kind_rec_t pico8_pm_kind_rec;
-extern const pico8_kind_rec_t pico8_ga_kind_rec;
-extern const pico8_kind_rec_t pico8_nr_kind_rec;
-extern const pico8_kind_rec_t pico8_fr_kind_rec;
-extern const pico8_kind_rec_t pico8_mx_kind_rec;
+extern const targeting_archetype_t targeting_archetype_none;
+extern const probe_archetype_t probe_archetype;
+extern const probe_archetype_t help_screen_archetype;
+extern const planet_archetype_t planet_archetype;
+extern const planet_archetype_t structure_archetype;
+extern const planet_archetype_t trading_hub_archetype;
+extern const planet_archetype_t processor_archetype;
+extern const planet_archetype_t ascension_archetype;
+extern const planet_archetype_t protostar_archetype;
+extern const planet_archetype_t synthesizer_archetype;
+extern const planet_archetype_t burst_archetype;
+extern const planet_archetype_t slipgate_archetype;
+extern const planet_archetype_t infraspace_gate_archetype;
+extern const kind_record_t structure_kind_record;
+extern const kind_record_t trading_hub_kind_record;
+extern const kind_record_t processor_kind_record;
+extern const kind_record_t ascension_kind_record;
+extern const kind_record_t protostar_kind_record;
+extern const kind_record_t burst_kind_record;
+extern const kind_record_t slipgate_kind_record;
+extern const kind_record_t infraspace_gate_kind_record;
+extern const kind_record_t synthesizer_kind_record;
 /* mz.jj's qs: the table jj=o(qs=...) of mz's spec. */
-extern const char pico8_mz_jj_qs[];
+extern const char wormhole_too_far_target_status_text[];
 
 /* Lua's seq[i], 1-based: returns 1 and writes *out when 1 <= i <= count,
  * 0 and leaves *out untouched otherwise. */
-int pico8_int_seq_at(const int *seq, int count, int i, int *out);
-int pico8_fixed_seq_at(const p8_fixed_t *seq, int count, int i, p8_fixed_t *out);
+int int_seq_at(const int *seq, int count, int i, int *out);
+int game_data_fixed_seq_at(const p8_fixed_t *seq, int count, int i, p8_fixed_t *out);
 
 /* 1 when v is pico8_fixed_from_int of an element: the cart's `gu` on integers. */
-int pico8_int_seq_has_fixed(const pico8_int_seq_t *seq, p8_fixed_t v);
+int int_seq_has_fixed(const int_seq_t *seq, p8_fixed_t v);
 
 /* The df entry whose px is `px`, NULL when none or `px` is NULL: `df[px]`
  * after the px/s/r/d pass. */
-const pico8_df_entry_t *pico8_df_lookup(const char *px);
+const planet_types_entry_t *planet_types_lookup(const char *px);
 
 /* Bare Lua number literals rather than ob() spec fields, hence scalars
  * here and not another table. */
-p8_fixed_t pico8_bn(void);
-p8_fixed_t pico8_bq(void);
+p8_fixed_t game_data_route_cost_factor(void);
+p8_fixed_t game_data_route_length_factor(void);
 
 #endif

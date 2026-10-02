@@ -15,7 +15,7 @@
 #include "engine/frame_zone.h"
 
 /* What `mx:kf` leaves in `ht` once it accepts a resource: `o()`. */
-static const pico8_int_seq_t g_mx_ht_spent = {0, NULL};
+static const int_seq_t g_mx_ht_spent = {0, NULL};
 
 static int g_family_trade_up = 0;
 
@@ -89,9 +89,9 @@ void pico8_nr_hb(pico8_jo_t *self) {
 
     oe_count = self->oe != NULL ? self->oe->count : 0;
 
-    if (self->def->hz != NULL) {
+    if (self->def->link_sprites != NULL) {
         int entry;
-        if (pico8_int_seq_at(self->def->hz->items, self->def->hz->count, oe_count + 1, &entry)) {
+        if (int_seq_at(self->def->link_sprites->items, self->def->link_sprites->count, oe_count + 1, &entry)) {
             s_val = p8_fixed_from_int(entry);
         }
     }
@@ -183,7 +183,7 @@ static const entity_class_t g_nr_struct_class = {
  * archetype: qh's part, nr having no member of its own. Reads no key, runs
  * neither `pq` nor `lt`, records no coverage. Requires
  * `pico8_planet_family_trade_init()`. */
-static void pico8_nr_struct_init(pico8_jo_t *self, const entity_class_t *cls, const pico8_jo_def_t *def) {
+static void pico8_nr_struct_init(pico8_jo_t *self, const entity_class_t *cls, const planet_archetype_t *def) {
     pico8_qh_struct_init(self, cls, def);
 }
 
@@ -191,7 +191,7 @@ static pico8_jo_t *pico8_nr_struct_new(const planet_keys_t *keys) {
     pico8_jo_t *self = (pico8_jo_t *)allocator_alloc(pico8_jo_zone_construction(), sizeof *self);
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
-    pico8_nr_struct_init(self, &g_nr_struct_class, &pico8_nr_def);
+    pico8_nr_struct_init(self, &g_nr_struct_class, &slipgate_archetype);
     if (keys != NULL) {
         if (keys->planet_id != NULL) {
             self->id = keys->planet_id;
@@ -237,8 +237,8 @@ static pico8_jo_t *pico8_fr_struct_new(const planet_keys_t *keys) {
     pico8_jo_t *self = (pico8_jo_t *)allocator_alloc(pico8_jo_zone_construction(), sizeof *self);
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
-    pico8_nr_struct_init(self, &g_fr_struct_class, &pico8_fr_def);
-    self->header.infraspace = &self->def->mt;
+    pico8_nr_struct_init(self, &g_fr_struct_class, &infraspace_gate_archetype);
+    self->header.infraspace = &self->def->infraspace;
     if (keys != NULL) {
         assert(keys->map_pos == NULL && keys->pos == NULL &&
                "fr: the only construction key is id (ie:ldown); another key has no member "
@@ -286,11 +286,11 @@ void pico8_mx_kf(pico8_jo_t *self, entity_t *sw) {
                 continue;
             }
 
-            if (i->row.has_qe && self->ht != NULL && pico8_int_seq_has_fixed(self->ht, i->row.qe)) {
-                pico8_kw_t *kw = self->kw;
+            if (i->row.has_resource && self->ht != NULL && int_seq_has_fixed(self->ht, i->row.resource)) {
+                production_t *kw = self->kw;
                 if (kw != NULL) {
-                    kw->has_qe = 1;
-                    kw->qe = i->row.qe;
+                    kw->has_resource = 1;
+                    kw->resource = i->row.resource;
                 }
                 self->ht = &g_mx_ht_spent;
             }
@@ -331,8 +331,8 @@ static pico8_jo_t *pico8_mx_struct_new(const planet_keys_t *keys) {
     pico8_jo_t *self = (pico8_jo_t *)allocator_alloc(pico8_jo_zone_construction(), sizeof *self);
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
-    pico8_hj_struct_init(self, &g_mx_struct_class, &pico8_mx_def);
-    self->ht = self->def->ht;
+    pico8_hj_struct_init(self, &g_mx_struct_class, &synthesizer_archetype);
+    self->ht = self->def->synthesizable_resources;
     if (keys != NULL) {
         assert(keys->map_pos == NULL && keys->pos == NULL &&
                "mx: the only construction key is id (ie:ldown); another key has no member "
@@ -354,7 +354,7 @@ void pico8_planet_family_trade_init(void) {
     assert(pico8_qh_ready() && pico8_hj_ready() &&
            "pico8_planet_family_init() must run first");
     pico8_planet_family_trade_shutdown();
-    pico8_pi_init();
+    draw_functions_init();
     g_family_trade_up = 1;
 }
 
@@ -370,7 +370,7 @@ static entity_t *pico8_nr_kind_new(const planet_keys_t *keys) {
     return &pico8_nr_struct_new(keys)->header;
 }
 
-static const entity_kind_t g_nr_kind = {pico8_nr_kind_new, &pico8_nr_kind_rec};
+static const entity_kind_t g_nr_kind = {pico8_nr_kind_new, &slipgate_kind_record};
 
 const entity_kind_t *pico8_nr_kind(void) {
     return &g_nr_kind;
@@ -392,7 +392,7 @@ static entity_t *pico8_fr_kind_new(const planet_keys_t *keys) {
     return &pico8_fr_struct_new(keys)->header;
 }
 
-static const entity_kind_t g_fr_kind = {pico8_fr_kind_new, &pico8_fr_kind_rec};
+static const entity_kind_t g_fr_kind = {pico8_fr_kind_new, &infraspace_gate_kind_record};
 
 const entity_kind_t *pico8_fr_kind(void) {
     return &g_fr_kind;
@@ -414,7 +414,7 @@ static entity_t *pico8_mx_kind_new(const planet_keys_t *keys) {
     return &pico8_mx_struct_new(keys)->header;
 }
 
-static const entity_kind_t g_mx_kind = {pico8_mx_kind_new, &pico8_mx_kind_rec};
+static const entity_kind_t g_mx_kind = {pico8_mx_kind_new, &synthesizer_kind_record};
 
 const entity_kind_t *pico8_mx_kind(void) {
     return &g_mx_kind;

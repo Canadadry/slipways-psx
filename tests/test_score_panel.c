@@ -96,16 +96,16 @@ static p8_fixed_t ed_fixed(const pico8_pj_t *pj) {
 
 static int is_lq(const void *e) {
     return e != NULL &&
-           ((const entity_t *)e)->class == pico8_lq_struct_class();
+           ((const entity_t *)e)->class == layout_row_class();
 }
 
 static int row_count(const void *lq) {
-    return ((const pico8_lq_t *)lq)->items_count;
+    return ((const layout_row_t *)lq)->items_count;
 }
 
-static pico8_lq_cell_t row_item(const void *lq, int i) {
+static layout_row_cell_t row_item(const void *lq, int i) {
     assert(i >= 0 && i < row_count(lq));
-    return ((const pico8_lq_t *)lq)->items[i];
+    return ((const layout_row_t *)lq)->items[i];
 }
 
 /* The words the frozen hashes fold before a value: 0xF1 a number, 0xB0 a
@@ -123,11 +123,11 @@ static uint32_t fold_string(uint32_t h, const char *s) {
 }
 
 static uint32_t fold_ref(uint32_t h, const void *ref);
-static uint32_t fold_row(uint32_t h, const pico8_jb_row_t *row);
+static uint32_t fold_row(uint32_t h, const data_row_t *row);
 
-static uint32_t fold_item(uint32_t h, const pico8_jb_item_t *item) {
-    if (item->s != NULL) {
-        return fold_string(h, item->s);
+static uint32_t fold_item(uint32_t h, const data_item_t *item) {
+    if (item->text != NULL) {
+        return fold_string(h, item->text);
     }
     if (item->is_false) {
         return fold_bool(h, 0);
@@ -135,12 +135,12 @@ static uint32_t fold_item(uint32_t h, const pico8_jb_item_t *item) {
     if (item->is_ref) {
         return fold_ref(h, item->ref);
     }
-    return fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->n));
+    return fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->number));
 }
 
 /* A row's items (a nested row folded the same way), then `c`, then `fn`;
  * `extra` more entries follow, the caller's. */
-static uint32_t fold_row_entries(uint32_t h, const pico8_jb_row_t *row) {
+static uint32_t fold_row_entries(uint32_t h, const data_row_t *row) {
     int i;
 
     for (i = 0; i < row->count; i++) {
@@ -148,20 +148,20 @@ static uint32_t fold_row_entries(uint32_t h, const pico8_jb_row_t *row) {
         h = row->items[i].row != NULL ? fold_row(fnv(h, 0x7Au), row->items[i].row)
                                       : fold_item(h, &row->items[i]);
     }
-    if (row->has_c) {
-        h = fold_fixed(fnv_str(h, "c"), p8_fixed_from_int(row->c));
+    if (row->has_color) {
+        h = fold_fixed(fnv_str(h, "c"), p8_fixed_from_int(row->color));
     }
-    if (row->fn != NULL) {
-        h = fold_string(fnv_str(h, "fn"), row->fn);
+    if (row->draw_function != NULL) {
+        h = fold_string(fnv_str(h, "fn"), row->draw_function);
     }
     return h;
 }
 
-static int row_entries(const pico8_jb_row_t *row) {
-    return row->count + (row->has_c != 0) + (row->fn != NULL);
+static int row_entries(const data_row_t *row) {
+    return row->count + (row->has_color != 0) + (row->draw_function != NULL);
 }
 
-static uint32_t fold_row(uint32_t h, const pico8_jb_row_t *row) {
+static uint32_t fold_row(uint32_t h, const data_row_t *row) {
     return fnv(fold_row_entries(h, row), (uint32_t)row_entries(row));
 }
 
@@ -181,7 +181,7 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (ents_listed(live_entities(), ref)) {
         return fnv(fnv(h, 0x4Eu), (uint32_t)ents_rank_in(live_entities(), ref));
     }
-    if (ref == (const void *)&pico8_pj_gs_row || ref == (const void *)&pico8_pj_i__row) {
+    if (ref == (const void *)&score_panel_countdown_rows_row || ref == (const void *)&score_panel_frame_rows_row) {
         return fold_row(fnv(h, 0x7Au), ref);
     }
     if (ref == (const void *)pico8_pj_ou()) {
@@ -274,14 +274,14 @@ static pico8_pj_t *start_game(void) {
     return pico8_ju();
 }
 
-static const pico8_jb_row_t *row_of(const pico8_jb_row_t *t, int i) {
+static const data_row_t *row_of(const data_row_t *t, int i) {
     assert(i <= t->count && t->items[i - 1].row != NULL);
     return t->items[i - 1].row;
 }
 
-static const char *string_at(const pico8_jb_row_t *t, int i) {
-    assert(i <= t->count && t->items[i - 1].s != NULL);
-    return t->items[i - 1].s;
+static const char *string_at(const data_row_t *t, int i) {
+    assert(i <= t->count && t->items[i - 1].text != NULL);
+    return t->items[i - 1].text;
 }
 
 /* The 7 `ou[i][1]` as `hb` wrote them. */
@@ -359,7 +359,7 @@ static void test_built(void) {
     }
 
     assert(ju->fa == p8_fixed_from_int(10));
-    assert(ju->def == &pico8_pj_def && ju->fa == ju->def->fa);
+    assert(ju->def == &score_panel_archetype && ju->fa == ju->def->layer);
     assert(ju->ed == NULL);
     assert(ju->header.state != NULL && strcmp(ju->header.state, "normal") == 0);
     h = fold_fixed_member(h, ju->header.state_time);
@@ -368,11 +368,11 @@ static void test_built(void) {
            cls_of(ju)->new_year != NULL);
     assert(cls_of(ju)->hit_test == NULL && cls_of(ju)->draw_overlay == NULL);
     h = fold_ref_member(h, pico8_pj_ea());
-    assert(ju->def->gs == &pico8_pj_gs_row);
-    h = fold_ref_member(h, ju->def->gs);
+    assert(ju->def->countdown_rows == &score_panel_countdown_rows_row);
+    h = fold_ref_member(h, ju->def->countdown_rows);
     h = fold_cr(h, pico8_pj_cr());
-    assert(ju->def->i_ == &pico8_pj_i__row);
-    h = fold_ref_member(h, ju->def->i_);
+    assert(ju->def->frame_rows == &score_panel_frame_rows_row);
+    h = fold_ref_member(h, ju->def->frame_rows);
     h = fold_ref_member(h, pico8_pj_ou());
     check("built", h, BUILT_HASH);
 }
@@ -503,26 +503,26 @@ static vec_t vec_of(const vec_t *v) {
 
 /* A positional as the value it was sorted from folded: a row as any REF,
  * NOTHING as false (no row folded here holds a nil at the top level). */
-static uint32_t fold_cell(uint32_t h, pico8_lq_cell_t c) {
+static uint32_t fold_cell(uint32_t h, layout_row_cell_t c) {
     switch (c.kind) {
-    case PICO8_LQ_CELL_ROW:
+    case LAYOUT_ROW_CELL_ROW:
         return fnv(h, 0x12u);
-    case PICO8_LQ_CELL_FIXED:
+    case LAYOUT_ROW_CELL_FIXED:
         return fold_fixed(h, c.as.fixed);
-    case PICO8_LQ_CELL_STRING:
-        return fold_string(h, c.as.s);
+    case LAYOUT_ROW_CELL_STRING:
+        return fold_string(h, c.as.text);
     default:
-        return fold_bool(h, c.kind == PICO8_LQ_CELL_TRUE);
+        return fold_bool(h, c.kind == LAYOUT_ROW_CELL_TRUE);
     }
 }
 
 /* A row's `lq` as `js:pq` built it: its `w`, its `c`, its positional items. */
-static uint32_t fold_lq(uint32_t h, const pico8_lq_t *lq) {
+static uint32_t fold_lq(uint32_t h, const layout_row_t *lq) {
     int i;
 
     assert(is_lq(lq));
-    h = fold_fixed_member(h, lq->w);
-    h = fold_opt_fixed(h, lq->has_c, lq->c);
+    h = fold_fixed_member(h, lq->width);
+    h = fold_opt_fixed(h, lq->has_color, lq->color);
     for (i = 0; i < row_count(lq); i++) {
         h = fnv(h, (uint32_t)(i + 1));
         h = fold_cell(h, row_item(lq, i));
@@ -534,7 +534,7 @@ static uint32_t fold_lq(uint32_t h, const pico8_lq_t *lq) {
  * tech, all at `fa` = `ca`, each with the `ra` = `hi`, `qf` stepped by `gq`. */
 static uint32_t fold_cr_le(uint32_t h, const char **head) {
     const entity_list_t *le;
-    const pico8_lq_t *lq;
+    const layout_row_t *lq;
     const vec_t *ra;
     int i;
 
@@ -543,9 +543,9 @@ static uint32_t fold_cr_le(uint32_t h, const char **head) {
     assert(le->count >= 2);
     h = fnv(h, (uint32_t)le->count);
     lq = as_js(le->items[0])->lq;
-    assert(lq != NULL && lq->has_c && lq->c == p8_fixed_from_int(13));
-    assert(row_count(lq) > 0 && row_item(lq, 0).kind == PICO8_LQ_CELL_STRING);
-    *head = row_item(lq, 0).as.s;
+    assert(lq != NULL && lq->has_color && lq->color == p8_fixed_from_int(13));
+    assert(row_count(lq) > 0 && row_item(lq, 0).kind == LAYOUT_ROW_CELL_STRING);
+    *head = row_item(lq, 0).as.text;
     h = fnv_str(h, *head);
     ra = as_js(le->items[0])->ra;
     for (i = 0; i < le->count; i++) {
@@ -605,20 +605,20 @@ static void test_ou_ea_start_as_their_rows(void) {
     pico8_score_panel_init();
     ou = pico8_pj_ou();
     assert(ou != NULL && pico8_pj_ea() != NULL);
-    assert(&ou->row != &pico8_pj_ou_row && &pico8_pj_ea()->row != &pico8_pj_ea_row);
-    assert(fold_row(0u, &ou->row) == fold_row(0u, &pico8_pj_ou_row));
-    assert(fold_row(0u, &pico8_pj_ea()->row) == fold_row(0u, &pico8_pj_ea_row) && pico8_pj_ea()->lh == NULL);
-    ou->sub_items[0][0] = (pico8_jb_item_t){.s = "written"};
-    pico8_pj_ea()->second_items[0] = (pico8_jb_item_t){.s = "year 3425"};
-    pico8_pj_ea()->items[2] = (pico8_jb_item_t){.row = &pico8_pj_gs_row};
+    assert(&ou->row != &score_panel_readouts_row && &pico8_pj_ea()->row != &score_panel_year_banner_row);
+    assert(fold_row(0u, &ou->row) == fold_row(0u, &score_panel_readouts_row));
+    assert(fold_row(0u, &pico8_pj_ea()->row) == fold_row(0u, &score_panel_year_banner_row) && pico8_pj_ea()->lh == NULL);
+    ou->sub_items[0][0] = (data_item_t){.text = "written"};
+    pico8_pj_ea()->second_items[0] = (data_item_t){.text = "year 3425"};
+    pico8_pj_ea()->items[2] = (data_item_t){.row = &score_panel_countdown_rows_row};
     pico8_pj_ea()->row.count = 3;
     pico8_pj_ea()->lh = pico8_pj_ea_lh_witness;
-    assert(fold_row(0u, &ou->row) != fold_row(0u, &pico8_pj_ou_row));
-    assert(fold_row(0u, &pico8_pj_ea()->row) != fold_row(0u, &pico8_pj_ea_row));
+    assert(fold_row(0u, &ou->row) != fold_row(0u, &score_panel_readouts_row));
+    assert(fold_row(0u, &pico8_pj_ea()->row) != fold_row(0u, &score_panel_year_banner_row));
     pico8_score_panel_init();
     assert(pico8_pj_ou() == ou);
-    assert(fold_row(0u, &pico8_pj_ou()->row) == fold_row(0u, &pico8_pj_ou_row));
-    assert(fold_row(0u, &pico8_pj_ea()->row) == fold_row(0u, &pico8_pj_ea_row) && pico8_pj_ea()->lh == NULL);
+    assert(fold_row(0u, &pico8_pj_ou()->row) == fold_row(0u, &score_panel_readouts_row));
+    assert(fold_row(0u, &pico8_pj_ea()->row) == fold_row(0u, &score_panel_year_banner_row) && pico8_pj_ea()->lh == NULL);
     pico8_score_panel_shutdown();
     assert(pico8_pj_ou() == NULL && pico8_pj_ea() == NULL);
 }
@@ -642,8 +642,8 @@ static void test_pj_is_a_struct(void) {
     }
     assert(pico8_pj_ready());
     assert(pico8_pj_ou() != NULL && pico8_pj_ea() != NULL && pico8_pj_cr() != NULL);
-    assert(pico8_pj_i_() == &pico8_pj_i__row && pico8_pj_gs() == &pico8_pj_gs_row);
-    assert(ju->def->gs == &pico8_pj_gs_row && ju->def->i_ == &pico8_pj_i__row);
+    assert(pico8_pj_i_() == &score_panel_frame_rows_row && pico8_pj_gs() == &score_panel_countdown_rows_row);
+    assert(ju->def->countdown_rows == &score_panel_countdown_rows_row && ju->def->frame_rows == &score_panel_frame_rows_row);
 }
 
 /* `pj.cr` is one static struct without method, holding `hi`,
@@ -719,13 +719,13 @@ static void test_ky_reads_invented_and_happiness(void) {
 
 /* Item `i` (1-based) of the line that `ph` put in the box's row `k`
  * (0-based), an article `ld`. */
-static pico8_lq_cell_t ph_row_item(const pico8_mh_t *mh, int k, int i) {
-    const pico8_jb_row_t *ld;
-    const pico8_lq_t *lq;
+static layout_row_cell_t ph_row_item(const pico8_mh_t *mh, int k, int i) {
+    const data_row_t *ld;
+    const layout_row_t *lq;
 
     assert(k < mh->items_count);
     ld = mh->items[k];
-    assert(ld->fn != NULL && strcmp(ld->fn, "ld") == 0 && ld->items[0].is_ref);
+    assert(ld->draw_function != NULL && strcmp(ld->draw_function, "draw_row") == 0 && ld->items[0].is_ref);
     lq = ld->items[0].ref;
     assert(i <= lq->items_count);
     return lq->items[i - 1];
@@ -737,8 +737,8 @@ static void test_ph_rows_show_ky(void) {
     void *ju = start_game();
     pico8_hy_t *fm = pico8_fm_hy();
     const pico8_mh_t *mh;
-    pico8_lq_cell_t total;
-    pico8_lq_cell_t icon;
+    layout_row_cell_t total;
+    layout_row_cell_t icon;
     int i;
 
     for (i = 0; i < 10; i++) {
@@ -750,12 +750,12 @@ static void test_ph_rows_show_ky(void) {
     fm->has_hl = 1;
     cls_of(ju)->states[ENTITY_STATE_NORMAL](ju, p8_fixed_from_int(0));
     mh = pico8_kc();
-    assert(mh != NULL && mh->items_count == PICO8_BZ_COUNT);
+    assert(mh != NULL && mh->items_count == SCORE_ROWS_COUNT);
     total = ph_row_item(mh, 10, 3);
-    assert(total.kind == PICO8_LQ_CELL_STRING && strcmp(total.as.s, "14") == 0);
+    assert(total.kind == LAYOUT_ROW_CELL_STRING && strcmp(total.as.text, "14") == 0);
     for (i = 1; i <= 5; i++) {
         icon = ph_row_item(mh, 11, i);
-        assert(icon.kind == PICO8_LQ_CELL_FIXED && icon.as.fixed == p8_fixed_from_int(57));
+        assert(icon.kind == LAYOUT_ROW_CELL_FIXED && icon.as.fixed == p8_fixed_from_int(57));
     }
 }
 
@@ -767,8 +767,8 @@ static void test_eg_flags_every_fb_pattern_without_ly(void) {
     (void)start_game();
     assert(entities_by_tag("planet")->count >= 2);
     pico8_eg();
-    for (i = 0; i < PICO8_FB_COUNT; i++) {
-        assert(p8_peek(&mem, 0x3101 + 4 * pico8_fb_table[i]) >= 128);
+    for (i = 0; i < PALETTE_OFFSETS_COUNT; i++) {
+        assert(p8_peek(&mem, 0x3101 + 4 * palette_offsets_table[i]) >= 128);
     }
 }
 

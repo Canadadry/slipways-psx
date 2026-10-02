@@ -17,12 +17,12 @@
 
 static int g_jo_up = 0;
 
-static pico8_gn_state_t *g_jo_oc = NULL;
-static pico8_jf_state_t *g_jo_ir = NULL;
+static weighted_picker_t *g_jo_oc = NULL;
+static random_walk_t *g_jo_ir = NULL;
 
 /* Shared by every bare planet: written in place by `bb` and `mx:kf` until
  * `lz` gives the planet its own. */
-static pico8_kw_t g_jo_kw_shared;
+static production_t g_jo_kw_shared;
 
 /* Nom des arenes de prise : son adresse les reconnait (pico8_jo_prise_arene_rendue). */
 static const char g_jo_nom_prise[] = "prise";
@@ -65,19 +65,19 @@ static const entity_class_t g_jo_struct_class = {
     .lineage = LINEAGE(LINEAGE_PLANET),
 };
 
-void pico8_jo_struct_init(pico8_jo_t *self, const entity_class_t *cls, const pico8_jo_def_t *def) {
+void pico8_jo_struct_init(pico8_jo_t *self, const entity_class_t *cls, const planet_archetype_t *def) {
     assert(g_jo_up && "pico8_jo_init() must run first");
-    entity_init_instance(&self->header, cls, def->me, def->t);
+    entity_init_instance(&self->header, cls, def->state, def->state_time);
     self->def = def;
-    self->header.layer = &self->def->fa;
+    self->header.layer = &self->def->layer;
     /* Read-only: the planet modules write through their members. */
     self->header.pos = (const vec_t *const *)&self->ra;
     self->header.map_pos = (const vec_t *const *)&self->p;
-    self->header.hit_box = &self->def->kq;
+    self->header.hit_box = &self->def->hit_box;
     self->header.shake = &self->ma;
     self->header.fold_anchor = &self->fx;
     self->header.is_dead = &self->p_;
-    self->ma = self->def->ma;
+    self->ma = self->def->shake;
     self->kw = &g_jo_kw_shared;
     self->id = NULL;
     self->p = NULL;
@@ -98,11 +98,11 @@ void pico8_jo_struct_init(pico8_jo_t *self, const entity_class_t *cls, const pic
     self->has_kr = 0;
     self->cc = NULL;
     self->by = NULL;
-    self->mi = self->def->mi;
-    self->has_mi = self->def->has_mi;
+    self->mi = self->def->development_tier;
+    self->has_mi = self->def->has_development_tier;
     self->header.is_hovered = &self->m_;
     self->m_ = 0;
-    self->kw_own = (pico8_kw_t){0};
+    self->kw_own = (production_t){0};
     self->probe = NULL;
     self->emitter = NULL;
 }
@@ -110,7 +110,7 @@ void pico8_jo_struct_init(pico8_jo_t *self, const entity_class_t *cls, const pic
 static pico8_jo_t *pico8_jo_struct_new(const planet_keys_t *keys) {
     pico8_jo_t *self = (pico8_jo_t *)allocator_alloc(pico8_jo_zone_construction(), sizeof *self);
 
-    pico8_jo_struct_init(self, &g_jo_struct_class, &pico8_jo_def);
+    pico8_jo_struct_init(self, &g_jo_struct_class, &planet_archetype);
     if (keys != NULL) {
         if (keys->map_pos != NULL) {
             self->p = keys->map_pos;
@@ -132,9 +132,9 @@ static pico8_jo_t *pico8_jo_struct_new(const planet_keys_t *keys) {
 
 void pico8_jo_init(void) {
     pico8_jo_shutdown();
-    pico8_pi_init();
+    draw_functions_init();
     g_jo_up = 1;
-    g_jo_kw_shared = (pico8_kw_t){0};
+    g_jo_kw_shared = (production_t){0};
 }
 
 void pico8_jo_shutdown(void) {
@@ -143,11 +143,11 @@ void pico8_jo_shutdown(void) {
     g_jo_ir = NULL;
 }
 
-void pico8_jo_set_oc(pico8_gn_state_t *oc) {
+void pico8_jo_set_oc(weighted_picker_t *oc) {
     g_jo_oc = oc;
 }
 
-void pico8_jo_set_ir(pico8_jf_state_t *ir) {
+void pico8_jo_set_ir(random_walk_t *ir) {
     g_jo_ir = ir;
 }
 
@@ -155,23 +155,23 @@ int pico8_jo_ready(void) {
     return g_jo_up;
 }
 
-const pico8_jb_row_t *pico8_jo_dz(void) {
-    return pico8_jo_dz_rows;
+const data_row_t *pico8_jo_dz(void) {
+    return planet_mood_rows_rows;
 }
 
-const pico8_int_seq_t *pico8_jo_cq(void) {
-    return &pico8_jo_cq_seq;
+const int_seq_t *pico8_jo_cq(void) {
+    return &planet_made_resources_seq;
 }
 
-const pico8_int_seq_t *pico8_jo_ka(void) {
-    return &pico8_jo_ka_seq;
+const int_seq_t *pico8_jo_ka(void) {
+    return &planet_ring_colors_seq;
 }
 
-const pico8_jb_row_t *pico8_jo_em(void) {
-    return &pico8_jo_em_row;
+const data_row_t *pico8_jo_em(void) {
+    return &planet_spacer_row;
 }
 
-pico8_kw_t *pico8_jo_shared_kw(void) {
+production_t *pico8_jo_shared_kw(void) {
     return &g_jo_kw_shared;
 }
 
@@ -255,7 +255,7 @@ void pico8_jo_pq_dans(pico8_jo_t *self, const allocator_t *zone) {
     self->oe = oe;
 
     if (self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) {
-        pico8_hp_t *target = pico8_gb_at(p8_fixed_flr_int(self->def->hp));
+        pico8_hp_t *target = pico8_gb_at(p8_fixed_flr_int(self->def->project_index));
 
         if (target != NULL) {
             pico8_jo_lz(self, target);
@@ -297,9 +297,9 @@ void pico8_jo_lz(pico8_jo_t *self, pico8_hp_t *hp_instance) {
     *jy_own = jy;
     self->jy = jy_own;
 
-    self->kw_own.has_qe = hp_instance != NULL && hp_instance->has_o;
-    self->kw_own.qe = self->kw_own.has_qe ? hp_instance->o : 0;
-    self->kw_own.mu = p8_fixed_from_int(0);
+    self->kw_own.has_resource = hp_instance != NULL && hp_instance->has_o;
+    self->kw_own.resource = self->kw_own.has_resource ? hp_instance->o : 0;
+    self->kw_own.amount = p8_fixed_from_int(0);
     self->kw = &self->kw_own;
 }
 
@@ -307,7 +307,7 @@ int pico8_jo_gg(const pico8_jo_t *self) {
     if (self == NULL) {
         return 0;
     }
-    if (!self->def->hf) {
+    if (!self->def->is_planet) {
         return 0;
     }
     return self->header.state != NULL && strcmp(self->header.state, "settled") == 0;
@@ -328,7 +328,7 @@ void pico8_jo_ll(pico8_jo_t *self, p8_fixed_t t) {
 }
 
 void pico8_jo_hh(pico8_jo_t *self) {
-    const pico8_df_entry_t *nk = NULL;
+    const planet_types_entry_t *nk = NULL;
     const char *ks_arg;
 
     if (self == NULL) {
@@ -336,26 +336,26 @@ void pico8_jo_hh(pico8_jo_t *self) {
     }
 
     if (g_jo_ir != NULL) {
-        p8_fixed_t roll = pico8_jf_next(g_jo_ir);
+        p8_fixed_t roll = random_walk_next(g_jo_ir);
         int use_ll = 0;
 
         /* `jo.ir()<0.45 and df.ll or jo.oc()`: a falsy `df.ll` falls through
          * to `jo.oc()` even on a winning roll -- both conditions, never the
          * roll alone. */
         if (roll < P8_FIXED_LIT(0x00007333, 0.45)) {
-            use_ll = pico8_df_lookup("vanishing") != NULL;
+            use_ll = planet_types_lookup("vanishing") != NULL;
         }
         if (use_ll) {
-            nk = pico8_df_lookup("vanishing");
+            nk = planet_types_lookup("vanishing");
         } else if (g_jo_oc != NULL) {
-            nk = pico8_gn_next(g_jo_oc);
+            nk = weighted_picker_next(g_jo_oc);
         }
     }
     self->nk = nk;
-    self->ep = nk != NULL ? nk->d : NULL;
+    self->ep = nk != NULL ? nk->description : NULL;
 
-    if (nk != NULL && nk->me != NULL) {
-        ks_arg = nk->me;
+    if (nk != NULL && nk->state != NULL) {
+        ks_arg = nk->state;
     } else {
         ks_arg = "known";
     }

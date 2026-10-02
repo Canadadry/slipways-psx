@@ -18,7 +18,7 @@
  * and `ra_own`, rewritten in place from then on. Never copy the struct. */
 typedef struct {
     entity_t header;
-    const pico8_qb_def_t *def;
+    const camera_archetype_t *def;
     const vec_t *v;
     p8_fixed_t ma;
     const vec_t *p;

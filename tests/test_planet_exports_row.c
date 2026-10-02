@@ -41,8 +41,8 @@ static const entity_list_t *ok_le(void) {
 
 /* A button's `lq` field, after `js:pq()` replaced the raw row override
  * with a real row. */
-static const pico8_lq_t *button_lq(const void *button) {
-    const pico8_lq_t *lq;
+static const layout_row_t *button_lq(const void *button) {
+    const layout_row_t *lq;
 
     assert(button != NULL);
     assert(((const entity_t *)button)->class == pico8_js_struct_class());
@@ -52,7 +52,7 @@ static const pico8_lq_t *button_lq(const void *button) {
 }
 
 /* The row's item at 1-based `index`, as a table lookup would find it. */
-static int lq_item(const pico8_lq_t *lq, int index, pico8_lq_cell_t *out) {
+static int lq_item(const layout_row_t *lq, int index, layout_row_cell_t *out) {
     if (index < 1 || index > lq->items_count) {
         return 0;
     }
@@ -60,12 +60,12 @@ static int lq_item(const pico8_lq_t *lq, int index, pico8_lq_cell_t *out) {
     return 1;
 }
 
-static int lq_index_is_string(const pico8_lq_t *lq, int index, const char *expected) {
-    pico8_lq_cell_t v;
+static int lq_index_is_string(const layout_row_t *lq, int index, const char *expected) {
+    layout_row_cell_t v;
     if (!lq_item(lq, index, &v)) {
         return 0;
     }
-    return v.kind == PICO8_LQ_CELL_STRING && strcmp(v.as.s, expected) == 0;
+    return v.kind == LAYOUT_ROW_CELL_STRING && strcmp(v.as.text, expected) == 0;
 }
 
 /* What `jo:gh` reaches when the cart calls it, built without a boot: `r`
@@ -77,9 +77,9 @@ static void setup_panel_state(p8_memory_t *mem, p8_graphics_t *gfx) {
     dispatch_context_set_gfx(gfx);
     dispatch_context_set_mem(mem);
 
-    pico8_data_init();
+    data_init();
     reset_world();
-    pico8_layout_init();
+    layout_init();
     pico8_js_init();
     pico8_jo_init();
 }
@@ -88,12 +88,12 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     p8_memory_t mem;
     p8_graphics_t gfx;
     pico8_jo_t *planet;
-    static pico8_kw_t kw;
-    const pico8_jb_row_t *kw_row;
+    static production_t kw;
+    const data_row_t *kw_row;
     vec_t *ra;
     const entity_list_t *le;
-    const pico8_lq_t *exports_lq = NULL;
-    pico8_lq_cell_t entry;
+    const layout_row_t *exports_lq = NULL;
+    layout_row_cell_t entry;
     int i;
 
     setup_panel_state(&mem, &gfx);
@@ -104,9 +104,9 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     /* 99 is deliberately not one of `jo.cq`'s resources, so `jo:gh` takes
      * the else branch and builds the 4-item "exports:" row rather than the
      * 3-item "makes:" one. */
-    kw.has_qe = 1;
-    kw.qe = p8_fixed_from_int(99);
-    kw.mu = p8_fixed_from_int(1);
+    kw.has_resource = 1;
+    kw.resource = p8_fixed_from_int(99);
+    kw.amount = p8_fixed_from_int(1);
     planet->kw = &kw;
 
     /* `jo:gh` reads it, and the archetype's `gq`, for `pz()`'s row placement. */
@@ -123,8 +123,8 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     assert(le->count >= 2);
 
     for (i = 0; i < le->count; i++) {
-        const pico8_lq_t *lq = button_lq(le->items[i]);
-        assert(lq != NULL && lq->header.class == pico8_lq_struct_class());
+        const layout_row_t *lq = button_lq(le->items[i]);
+        assert(lq != NULL && lq->header.class == layout_row_class());
         if (lq_index_is_string(lq, 1, "exports:")) {
             exports_lq = lq;
         }
@@ -138,19 +138,19 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     assert(lq_index_is_string(exports_lq, 2, "0/1"));
 
     assert(lq_item(exports_lq, 3, &entry));
-    assert(entry.kind == PICO8_LQ_CELL_ROW && entry.as.row != NULL);
+    assert(entry.kind == LAYOUT_ROW_CELL_ROW && entry.as.row != NULL);
     kw_row = entry.as.row;
-    assert(kw_row->has_qe && kw_row->qe == p8_fixed_from_int(99) && kw_row->count == 0);
+    assert(kw_row->has_resource && kw_row->resource == p8_fixed_from_int(99) && kw_row->count == 0);
 
     assert(lq_item(exports_lq, 4, &entry));
-    assert(entry.kind == PICO8_LQ_CELL_ROW && entry.as.row != NULL);
+    assert(entry.kind == LAYOUT_ROW_CELL_ROW && entry.as.row != NULL);
 
     /* No phantom fifth item from an over-long copy loop. */
     assert(!lq_item(exports_lq, 5, &entry));
 
     /* `lq:pq()` ran over exactly those four: one `fs` entry per item. */
-    assert(exports_lq->fs != NULL);
-    assert(exports_lq->fs_count == 4);
+    assert(exports_lq->placed_items != NULL);
+    assert(exports_lq->placed_items_count == 4);
 }
 
 int main(void) {

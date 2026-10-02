@@ -278,8 +278,8 @@ static void test_built(void) {
         assert(!ents_listed(entities_by_tag(tags[i]), ok));
     }
 
-    assert(ok->def->ql == p8_fixed_from_int(58));
-    assert(ok->def->fa == p8_fixed_from_int(15));
+    assert(ok->def->cursor_sprite == p8_fixed_from_int(58));
+    assert(ok->def->layer == p8_fixed_from_int(15));
     assert(ok->header.state != NULL && strcmp(ok->header.state, "normal") == 0);
     /* The presence word is constant by the struct's shape, kept so that
      * BUILT_HASH still proves the typed read. */
@@ -291,9 +291,9 @@ static void test_built(void) {
            pico8_ui_struct_class()->right_press == NULL && pico8_ui_struct_class()->hit_test == NULL);
 
     assert(ok->le == pico8_ui_le_shared());
-    assert(ok->def == &pico8_ui_def);
-    assert(ok->def->hw.left == p8_fixed_from_int(10) && ok->def->hw.top == p8_fixed_from_int(10));
-    assert(ok->def->hw.right == p8_fixed_from_int(118) && ok->def->hw.bottom == p8_fixed_from_int(118));
+    assert(ok->def == &ui_archetype);
+    assert(ok->def->panel_box.left == p8_fixed_from_int(10) && ok->def->panel_box.top == p8_fixed_from_int(10));
+    assert(ok->def->panel_box.right == p8_fixed_from_int(118) && ok->def->panel_box.bottom == p8_fixed_from_int(118));
     assert(le_of(ok)->count == 0);
     check("built", h, BUILT_HASH);
 }
@@ -311,7 +311,7 @@ static void test_shared(void) {
     const entity_list_t *le = ok->le;
 
     assert(other != NULL && other != ok);
-    assert(other->header.cursor_sprite == &other->def->ql);
+    assert(other->header.cursor_sprite == &other->def->cursor_sprite);
     assert(other->le == le && le == pico8_ui_le_shared());
     h = fnv(h, (uint32_t)ents_rank_in(live_entities(), other));
     h = fnv(h, (uint32_t)ents_rank_in(entities_by_message("draw_overlay"), other));
@@ -697,8 +697,8 @@ static void test_ui_is_a_struct(void) {
         assert(cls->states[j] == NULL);
     }
     assert(pico8_ui_ready());
-    assert(ok->def == &pico8_ui_def);
-    assert(pico8_ui_hw() == &ok->def->hw);
+    assert(ok->def == &ui_archetype);
+    assert(pico8_ui_hw() == &ok->def->panel_box);
     assert(ok->le == pico8_ui_le_shared() && ok->le->count == 0);
     other = pico8_ui_new();
     assert(is_of(other, cls) && other->le == pico8_ui_le_shared() && other->def == ok->def);
@@ -808,16 +808,16 @@ static uint32_t fold_string(uint32_t h, const char *s) {
 }
 
 static int identity_of(const char *s) {
-    if (s == pico8_bg_def.me) {
+    if (s == background_archetype.state) {
         return 1;
     }
-    if (s == pico8_jo_def.me) {
+    if (s == planet_archetype.state) {
         return 2;
     }
-    if (s == pico8_qh_def.me) {
+    if (s == structure_archetype.state) {
         return 3;
     }
-    if (s == pico8_pm_def.me) {
+    if (s == protostar_archetype.state) {
         return 4;
     }
     return 0;
@@ -1101,9 +1101,9 @@ static void test_ke_t_by_name(void) {
     zero_keys.t = 0;
     zero = pico8_g__new(&zero_keys);
     assert_t(zero, 0);
-    assert(zero->emitter->pn == pico8_g__def.emitter.pn);
-    assert(zero->emitter->du == pico8_g__def.emitter.du);
-    assert(zero->emitter->py == pico8_g__def.emitter.py);
+    assert(zero->emitter->pn == probe_archetype.emitter.angle_slices);
+    assert(zero->emitter->du == probe_archetype.emitter.base_radius);
+    assert(zero->emitter->py == probe_archetype.emitter.speed_factor);
     h = fold_t(h, zero);
 
     entity_set_state(&keyed->header, "vanishing");

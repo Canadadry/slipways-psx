@@ -165,7 +165,7 @@ void pico8_bv(entity_t *self, vec_t *mp, vec_t *rp) {
 
     et = NULL;
 
-    if (nq < probe->def->dw && c != NULL) {
+    if (nq < probe->def->attach_distance && c != NULL) {
         et = c;
     } else {
         pico8_bv_ctx_t ctx;
@@ -256,7 +256,7 @@ void pico8_dl_show(const p8_graphics_t *gfx, p8_memory_t *mem, const char *me, c
 
     if (gfx != NULL && mem != NULL) {
         p8_fixed_t a = P8_FIXED_LIT(0x00008000, 0.5);
-        pico8_io(gfx, mem, display, mp.x, p8_fixed_sub(mp.y, p8_fixed_from_int(8)), 8, &a);
+        hud_print_outlined(gfx, mem, display, mp.x, p8_fixed_sub(mp.y, p8_fixed_from_int(8)), 8, &a);
     }
 }
 
@@ -294,11 +294,11 @@ int pico8_d_(entity_t *self) {
     assert((!has_et || !lu_ok) && "d_: fm:lu must stay short-circuited when et is set");
 
     if (!has_et && lu_ok) {
-        entity_set_state(self, probe->def->dq != NULL ? probe->def->dq : "normal");
+        entity_set_state(self, probe->def->confirmed_state != NULL ? probe->def->confirmed_state : "normal");
 
-        pico8_hy_nx(pico8_fm_hy(), probe->def->fp);
+        pico8_hy_nx(pico8_fm_hy(), probe->def->clock_ticks);
 
-        p8_play_sfx(probe->def->has_ik ? probe->def->ik : p8_fixed_from_int(54));
+        p8_play_sfx(probe->def->has_status_sprite ? probe->def->status_sprite : p8_fixed_from_int(54));
 
         return 1;
     }
@@ -328,8 +328,8 @@ pico8_qy_t *pico8_g__mm(entity_t *self) {
         t = self->state_time;
         du = emitter->du;
         py = emitter->py;
-        ki = emitter->def->ki;
-        pk = emitter->def->pk != 0;
+        ki = emitter->def->lifetime;
+        pk = emitter->def->quarter_turn != 0;
     }
 
     /* Two statements, not two arguments: C leaves argument order unspecified
@@ -377,36 +377,36 @@ static const entity_class_t g_g__struct_class = {
     .lineage = LINEAGE(LINEAGE_PROBE),
 };
 
-void pico8_g__struct_init(pico8_g__t *self, const entity_class_t *cls, const pico8_g__def_t *def) {
-    entity_init_instance(&self->header, cls, def->me, def->t);
+void pico8_g__struct_init(pico8_g__t *self, const entity_class_t *cls, const probe_archetype_t *def) {
+    entity_init_instance(&self->header, cls, def->state, def->state_time);
     self->def = def;
-    self->header.layer = &self->def->fa;
+    self->header.layer = &self->def->layer;
     self->header.pos = &self->ra;
     self->header.map_pos = &self->p;
-    self->header.fold_anchor = &self->def->fx;
+    self->header.fold_anchor = &self->def->fold_anchor;
     self->header.is_dead = &self->p_;
     self->header.emitter = &self->emitter_own;
     self->header.targeting = &self->probe_own;
     self->emitter = &self->emitter_own;
     self->emitter->def = &self->def->emitter;
     self->emitter->qy = NULL;
-    self->ra = self->def->has_ra ? &self->def->ra : NULL;
+    self->ra = self->def->has_pos ? &self->def->pos : NULL;
     self->p = NULL;
     self->probe = &self->probe_own;
-    self->probe->def = &self->def->probe;
+    self->probe->def = &self->def->targeting;
     self->probe->et = NULL;
     self->p_ = 0;
     self->prise = NULL;
-    self->probe->od = self->def->probe.od;
-    self->probe->has_od = self->def->probe.has_od;
-    self->emitter->py = self->def->emitter.py;
-    self->emitter->pn = self->def->emitter.pn;
-    self->emitter->k_ = self->def->emitter.k_;
-    self->emitter->qo = self->def->emitter.qo;
-    self->emitter->ro = self->def->emitter.ro;
-    self->emitter->qg = self->def->emitter.qg;
-    self->emitter->q_ = self->def->emitter.q_;
-    self->emitter->du = self->def->emitter.du;
+    self->probe->od = self->def->targeting.cost;
+    self->probe->has_od = self->def->targeting.has_cost;
+    self->emitter->py = self->def->emitter.speed_factor;
+    self->emitter->pn = self->def->emitter.angle_slices;
+    self->emitter->k_ = self->def->emitter.trail_colors;
+    self->emitter->qo = self->def->emitter.matrix_xx;
+    self->emitter->ro = self->def->emitter.matrix_xy;
+    self->emitter->qg = self->def->emitter.matrix_yx;
+    self->emitter->q_ = self->def->emitter.matrix_yy;
+    self->emitter->du = self->def->emitter.base_radius;
 }
 
 static pico8_g__t *pico8_g__struct_new(const pico8_g__keys_t *keys) {
@@ -415,7 +415,7 @@ static pico8_g__t *pico8_g__struct_new(const pico8_g__keys_t *keys) {
     assert(g_g__up && "pico8_probe_init() must run first");
     pico8_jo_prise_ouvrir();
     self = (pico8_g__t *)allocator_alloc(pico8_jo_zone_construction(), sizeof *self);
-    pico8_g__struct_init(self, &g_g__struct_class, &pico8_g__def);
+    pico8_g__struct_init(self, &g_g__struct_class, &probe_archetype);
     self->prise = pico8_jo_zone_construction();
     pico8_jo_prise_fermer();
     if (keys != NULL) {

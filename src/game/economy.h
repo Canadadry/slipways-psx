@@ -40,7 +40,7 @@ void pico8_hy_lj(pico8_hy_t *self);
 
 /* `t` is an entry of `pico8_nb_table`, or NULL (no `px`, a cost of 0);
  * its `px` string is appended to `invented`, borrowed. */
-void pico8_hy_kt(pico8_hy_t *self, const pico8_nb_entry_t *t);
+void pico8_hy_kt(pico8_hy_t *self, const technologies_entry_t *t);
 
 /* Each empties `out` first. `bx`: `cm(0)` plus each producing planet's
  * `kw.mu`; `ck`: `cm(1)` less 0.15 per `qh` for the resource of its last

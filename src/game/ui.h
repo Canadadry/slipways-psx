@@ -32,7 +32,7 @@ typedef struct {
  * struct. */
 typedef struct {
     entity_t header;
-    const pico8_ui_def_t *def;
+    const ui_archetype_t *def;
     entity_list_t *le;
     vec_t *qa;
     vec_t qa_own;

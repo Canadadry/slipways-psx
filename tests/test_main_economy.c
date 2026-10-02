@@ -79,29 +79,29 @@ static void test_at_rest(void) {
     assert_at_rest();
 }
 
-static int cb_affordable(const pico8_nb_entry_t *t) {
+static int cb_affordable(const technologies_entry_t *t) {
     (void)pico8_cb(1);
     return pico8_nb_e_(t);
 }
 
 static void test_cheat_on_title(void) {
     void *provisional;
-    const pico8_nb_entry_t *t = pico8_nb_table;
+    const technologies_entry_t *t = technologies_table;
 
     pico8__init();
     provisional = pico8_fm();
     assert(pico8_fm_hy() == NULL && (const void *)pico8_fm_placeholder() == provisional);
     while (pico8_gi_nb(t) <= p8_fixed_from_int(0) || pico8_gi_nb(t) > p8_fixed_from_int(99)) {
         t++;
-        assert(t < pico8_nb_table + PICO8_NB_COUNT);
+        assert(t < technologies_table + TECHNOLOGIES_COUNT);
     }
     assert(cb_affordable(t) == 0);
     pico8_pj_hb();
-    assert(pico8_pj_ou()->sub_items[2][0].is_ref && strcmp(pico8_pj_ou()->sub_items[0][0].s, "0$") == 0);
+    assert(pico8_pj_ou()->sub_items[2][0].is_ref && strcmp(pico8_pj_ou()->sub_items[0][0].text, "0$") == 0);
     assert(type_cheat() == 1 && pico8_fm() == provisional);
     assert(cb_affordable(t) == 1);
     pico8_pj_hb();
-    assert(!pico8_pj_ou()->sub_items[2][0].is_ref && strcmp(pico8_pj_ou()->sub_items[0][0].s, "200$") == 0);
+    assert(!pico8_pj_ou()->sub_items[2][0].is_ref && strcmp(pico8_pj_ou()->sub_items[0][0].text, "200$") == 0);
     assert_cheated();
     assert(type_cheat() == 1 && pico8_fm() == provisional);
     assert_cheated();
@@ -169,7 +169,7 @@ static void test_fm_is_a_struct(void) {
 /* `cb` keeps a tech of the current tier until it is invented, even with `bi`. */
 static void test_cb_drops_invented(void) {
     pico8_cb_kept_t kept;
-    const pico8_nb_entry_t *t;
+    const technologies_entry_t *t;
     p8_fixed_t ew;
     int i;
 

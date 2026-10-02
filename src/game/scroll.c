@@ -40,15 +40,15 @@ static const entity_class_t g_qb_struct_class = {
 static pico8_qb_t *pico8_qb_struct_new(void) {
     pico8_qb_t *self = (pico8_qb_t *)allocator_alloc(game_zone(), sizeof *self);
 
-    entity_init_instance(&self->header, &g_qb_struct_class, pico8_qb_def.me, pico8_qb_def.t);
-    self->def = &pico8_qb_def;
+    entity_init_instance(&self->header, &g_qb_struct_class, camera_archetype.state, camera_archetype.state_time);
+    self->def = &camera_archetype;
     self->header.pos = &self->ra;
     self->header.map_pos = &self->p;
     self->header.shake = &self->ma;
-    self->v = &self->def->v;
-    self->ma = self->def->ma;
-    self->p = &self->def->p;
-    self->ra = &self->def->ra;
+    self->v = &self->def->velocity;
+    self->ma = self->def->shake;
+    self->p = &self->def->pos_before_shake;
+    self->ra = &self->def->pos;
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("camera");
 #endif
@@ -58,7 +58,7 @@ static pico8_qb_t *pico8_qb_struct_new(void) {
 
 void pico8_qb_init(void) {
     pico8_qb_shutdown();
-    pico8_pi_init();
+    draw_functions_init();
     assert(entity_ready() && "qb descends from ke");
     g_qb_up = 1;
 }
@@ -81,7 +81,7 @@ pico8_qb_t *pico8_qb_new(void) {
 
 void pico8_qb_ph(const p8_input_t *input, pico8_qb_t *self) {
     vec_t ip = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    const pico8_vec_seq_t *pc = NULL;
+    const vec_seq_t *pc = NULL;
     vec_t p;
     vec_t v;
     int b;
@@ -90,7 +90,7 @@ void pico8_qb_ph(const p8_input_t *input, pico8_qb_t *self) {
         return;
     }
 
-    pc = self->def->pc;
+    pc = self->def->dpad_directions;
 
     for (b = 0; b <= 3; b++) {
         int btn_p1 = p8_btn(input, b);

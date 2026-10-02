@@ -121,10 +121,10 @@ static void start_game(void) {
 /* Les textes seulement : une case ROW est empruntee jusqu'a la mise en
  * page (pico8_layout.h), un tuple de frame y est mort apres la remise a
  * zero. */
-static size_t read_cells(const pico8_lq_t *lq) {
+static size_t read_cells(const layout_row_t *lq) {
     size_t sum = 0;
     for (int i = 0; i < lq->items_count; i++) {
-        if (lq->items[i].kind == PICO8_LQ_CELL_STRING) sum += strlen(lq->items[i].as.s);
+        if (lq->items[i].kind == LAYOUT_ROW_CELL_STRING) sum += strlen(lq->items[i].as.text);
     }
     return sum;
 }
@@ -145,7 +145,7 @@ static int reset_then_draw_panel(void) {
         sink = (unsigned char)read_cells(js->lq);
         if (js->h_ != NULL) sink = (unsigned char)read_cells(js->h_);
         if (js->jb != NULL) {
-            for (int k = 0; k < js->jb->ls_count; k++) sink = (unsigned char)read_cells(js->jb->ls[k]);
+            for (int k = 0; k < js->jb->rows_count; k++) sink = (unsigned char)read_cells(js->jb->rows[k]);
             bubbles++;
         }
         js->m_ = 1;
@@ -156,13 +156,13 @@ static int reset_then_draw_panel(void) {
 }
 
 static int case_inspection_panel_rows_survive_reset(void) {
-    static pico8_kw_t kw = {.has_qe = 1};
+    static production_t kw = {.has_resource = 1};
     pico8_jo_t *planet;
 
     start_game();
     planet = (pico8_jo_t *)entities_by_tag("planet")->items[0];
-    kw.qe = p8_fixed_from_int(99);
-    kw.mu = p8_fixed_from_int(1);
+    kw.resource = p8_fixed_from_int(99);
+    kw.amount = p8_fixed_from_int(1);
     planet->kw = &kw;
     pico8_jo_gh(planet);
     assert(pico8_ok()->le->count >= 2 && "jo:gh: l'icone et la rangee exports");
@@ -192,11 +192,11 @@ static int case_research_project_tooltip_survives_reset(void) {
 static int happiness_cells(const pico8_mh_t *mh) {
     int found = 0;
     for (int k = 0; k < mh->items_count; k++) {
-        const pico8_jb_row_t *ld = mh->items[k];
-        if (ld->fn == NULL || strcmp(ld->fn, "ld") != 0 || !ld->items[0].is_ref) continue;
-        const pico8_lq_t *lq = ld->items[0].ref;
+        const data_row_t *ld = mh->items[k];
+        if (ld->draw_function == NULL || strcmp(ld->draw_function, "draw_row") != 0 || !ld->items[0].is_ref) continue;
+        const layout_row_t *lq = ld->items[0].ref;
         for (int i = 0; i < lq->items_count; i++)
-            found += lq->items[i].kind == PICO8_LQ_CELL_STRING && strcmp(lq->items[i].as.s, "1%") == 0;
+            found += lq->items[i].kind == LAYOUT_ROW_CELL_STRING && strcmp(lq->items[i].as.text, "1%") == 0;
     }
     return found;
 }
@@ -255,42 +255,42 @@ static char *frame_text(const char *s) {
     return p8_concat2(frame_zone(), s, "");
 }
 
-static pico8_lq_t *row_of_frame_text(const allocator_t *zone, const char *s) {
-    pico8_lq_cell_t cell = pico8_lq_cell_string(frame_text(s));
-    pico8_lq_keys_t keys = {.items = &cell, .count = 1};
-    return pico8_lq_new(zone, &keys);
+static layout_row_t *row_of_frame_text(const allocator_t *zone, const char *s) {
+    layout_row_cell_t cell = layout_row_cell_string(frame_text(s));
+    layout_row_keys_t keys = {.items = &cell, .count = 1};
+    return layout_row_new(zone, &keys);
 }
 
 /* Les textes d'une case viennent de la zone frame : apres la remise a zero,
  * le panneau dessine encore sa copie. */
 static int case_panel_texts_survive_reset(void) {
-    pico8_jb_item_t line = {.s = frame_text("bubble")};
-    pico8_jb_row_t bubble_row = {.count = 1, .items = &line};
+    data_item_t line = {.text = frame_text("bubble")};
+    data_row_t bubble_row = {.count = 1, .items = &line};
 
     load_cart_and_start();
-    pico8_lq_t *row = row_of_frame_text(&heap_allocator, "row");
-    pico8_lq_add(row, pico8_lq_cell_string(frame_text("added")));
-    pico8_lq_t *copy = pico8_lq_copy(&heap_allocator, row_of_frame_text(frame_zone(), "copy"));
-    pico8_jb_t *bubble = pico8_jb_new(&heap_allocator, &bubble_row);
-    pico8_jb_item_t tuple_items[] = {{.s = frame_text("tuple")}, {.n = 5}};
-    pico8_jb_row_t *tuple = (pico8_jb_row_t *)allocator_alloc(frame_zone(), sizeof *tuple);
-    *tuple = (pico8_jb_row_t){.count = 2, .items = tuple_items};
-    pico8_lq_cell_t tuple_cell = pico8_lq_cell_row(tuple);
-    pico8_lq_keys_t tuple_keys = {.items = &tuple_cell, .count = 1};
-    pico8_lq_t *of_tuple = pico8_lq_new(&heap_allocator, &tuple_keys);
+    layout_row_t *row = row_of_frame_text(&heap_allocator, "row");
+    layout_row_add(row, layout_row_cell_string(frame_text("added")));
+    layout_row_t *copy = layout_row_copy(&heap_allocator, row_of_frame_text(frame_zone(), "copy"));
+    tooltip_t *bubble = tooltip_new(&heap_allocator, &bubble_row);
+    data_item_t tuple_items[] = {{.text = frame_text("tuple")}, {.number = 5}};
+    data_row_t *tuple = (data_row_t *)allocator_alloc(frame_zone(), sizeof *tuple);
+    *tuple = (data_row_t){.count = 2, .items = tuple_items};
+    layout_row_cell_t tuple_cell = layout_row_cell_row(tuple);
+    layout_row_keys_t tuple_keys = {.items = &tuple_cell, .count = 1};
+    layout_row_t *of_tuple = layout_row_new(&heap_allocator, &tuple_keys);
     frame_zone_reset();
     allocate_again();
-    sink = (unsigned char)(read_cells(row) + read_cells(copy) + read_cells(bubble->ls[0]));
-    pico8_lq_ol_default(&gfx, &mem, row, vec_make(0, 0));
-    pico8_lq_ol_default(&gfx, &mem, copy, vec_make(0, 0));
-    pico8_jb_ol(&gfx, &mem, bubble, 0, 0);
-    pico8_lq_ol_default(&gfx, &mem, of_tuple, vec_make(0, 0));
+    sink = (unsigned char)(read_cells(row) + read_cells(copy) + read_cells(bubble->rows[0]));
+    layout_row_draw_at_default(&gfx, &mem, row, vec_make(0, 0));
+    layout_row_draw_at_default(&gfx, &mem, copy, vec_make(0, 0));
+    tooltip_draw_at(&gfx, &mem, bubble, 0, 0);
+    layout_row_draw_at_default(&gfx, &mem, of_tuple, vec_make(0, 0));
     return 0;
 }
 
 static int case_panel_struct_in_zone(void) {
     load_cart_and_start();
-    pico8_lq_t *row = row_of_frame_text(frame_zone(), "row");
+    layout_row_t *row = row_of_frame_text(frame_zone(), "row");
     frame_zone_reset();
     allocate_again();
     sink = (unsigned char)row->items_count;
@@ -299,10 +299,10 @@ static int case_panel_struct_in_zone(void) {
 
 static int case_bubble_struct_in_zone(void) {
     load_cart_and_start();
-    pico8_jb_t *bubble = pico8_jb_new(frame_zone(), NULL);
+    tooltip_t *bubble = tooltip_new(frame_zone(), NULL);
     frame_zone_reset();
     allocate_again();
-    sink = (unsigned char)bubble->ls_count;
+    sink = (unsigned char)bubble->rows_count;
     return 0;
 }
 

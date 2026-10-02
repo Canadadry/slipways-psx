@@ -114,7 +114,7 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
 }
 
 static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
-    return jo->def->hf ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
+    return jo->def->is_planet ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 static uint32_t fold_vec(uint32_t h, const vec_t *p) {
@@ -145,18 +145,18 @@ static int ents_ptrs_size(const entity_list_t *l) {
 }
 
 static uint32_t fold_kw(uint32_t h, const pico8_jo_t *jo) {
-    const pico8_kw_t *k = jo->kw;
+    const production_t *k = jo->kw;
 
     if (k == NULL) {
         return fnv(h, 0xA0u);
     }
-    h = k->has_qe ? fold_fixed_member(h, k->qe) : fold_absent(h);
-    h = fold_fixed_member(h, k->mu);
+    h = k->has_resource ? fold_fixed_member(h, k->resource) : fold_absent(h);
+    h = fold_fixed_member(h, k->amount);
     return fnv(h, (uint32_t)(k == pico8_jo_shared_kw()));
 }
 
 static uint32_t fold_qh(uint32_t h, const pico8_jo_t *qh) {
-    return qh->def->qh ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
+    return qh->def->is_structure ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 /* `e` as an ascension, a `pm` or an `mx`: an `hj` first. */
@@ -167,7 +167,7 @@ static pico8_jo_t *as_hj(void *e) {
 }
 
 static uint32_t fold_pk(uint32_t h, const pico8_jo_t *hj) {
-    return fold_fixed_member(h, hj->emitter->def->pk);
+    return fold_fixed_member(h, hj->emitter->def->quarter_turn);
 }
 
 /* A particle record as `g_.mm` returns it: `p`, `v`, `l`. */
@@ -273,22 +273,22 @@ static void *build_synthesizer(void) {
  * class is a synthesizer. */
 static int is_mx(const void *e) {
     const pico8_jo_t *jo = e != NULL && (cls_of(e)->lineage & LINEAGE(LINEAGE_STRUCTURE)) ? e : NULL;
-    return jo != NULL && jo->def->px == &pico8_mx_px_row;
+    return jo != NULL && jo->def->name == &synthesizer_name_row;
 }
 
 /* `ht` of an `mx`; NULL on any other struct, which has no `ht`. */
-static const pico8_int_seq_t *ht_of(const void *e) {
+static const int_seq_t *ht_of(const void *e) {
     return cls_of(e) == pico8_mx_struct_class() ? ((const pico8_jo_t *)e)->ht : NULL;
 }
 
 /* The entry count of the `ht` table, -1 when absent. */
 static int ht_size(const void *e) {
-    const pico8_int_seq_t *ht = ht_of(e);
+    const int_seq_t *ht = ht_of(e);
     return ht == NULL ? -1 : ht->count;
 }
 
 static int ht_is_the_class_one(const void *e) {
-    return ht_of(e) == &pico8_mx_ht_seq;
+    return ht_of(e) == &synthesizer_synthesizable_resources_seq;
 }
 
 /* A synthesizer as `ie:ldown`, `f_` and `jo:pq` left it: its scalars (the
@@ -307,37 +307,37 @@ static uint32_t fold_synthesizer(uint32_t h, void *e) {
     h = fold_string_member(h, jo->id);
     h = fold_string_member(h, jo->header.state);
     h = fold_fixed_member(h, jo->header.state_time);
-    h = fold_string_member(h, hj->def->rr);
+    h = fold_string_member(h, hj->def->required_tech);
     h = fold_qh(h, qh);
-    h = fold_fixed_member(h, qh->def->hp);
+    h = fold_fixed_member(h, qh->def->project_index);
     h = fold_fixed_member(h, qh->s);
     h = fold_fixed_member(h, qh->probe->od);
     h = fold_fixed_member(h, em->py);
-    h = fold_fixed_member(h, em->def->ki);
+    h = fold_fixed_member(h, em->def->lifetime);
     h = fold_fixed_member(h, em->pn);
     h = fold_pk(h, hj);
-    h = fold_fixed_member(h, em->def->fc);
+    h = fold_fixed_member(h, em->def->spawn_rate);
     h = fold_fixed_member(h, em->du);
     h = fold_fixed_member(h, em->qo);
     h = fold_fixed_member(h, em->ro);
     h = fold_fixed_member(h, em->qg);
     h = fold_fixed_member(h, em->q_);
-    h = fold_string_member(h, qh->probe->def->dq);
-    h = fold_fixed_member(h, qh->probe->def->fp);
-    h = fold_fixed_member(h, qh->probe->def->dw);
+    h = fold_string_member(h, qh->probe->def->confirmed_state);
+    h = fold_fixed_member(h, qh->probe->def->clock_ticks);
+    h = fold_fixed_member(h, qh->probe->def->attach_distance);
     h = jo->has_mi ? fold_fixed_member(h, jo->mi) : fold_absent(h);
     h = fold_hf(h, jo);
-    h = fold_fixed_member(h, jo->def->hs);
-    h = fold_fixed_member(h, jo->def->fa);
+    h = fold_fixed_member(h, jo->def->trade_multiplier);
+    h = fold_fixed_member(h, jo->def->layer);
     h = fold_fixed_member(h, jo->ma);
-    h = fold_fixed_member(h, jo->def->ca);
-    h = fold_vec(h, &jo->def->gq);
+    h = fold_fixed_member(h, jo->def->back_color);
+    h = fold_vec(h, &jo->def->row_step);
     h = fnv(h, (uint32_t)(ht_of(e) != NULL));
     h = fnv(h, (uint32_t)ht_size(e));
     /* The 1s of hj's ten fixed emitter defaults, of `hp`, `qh`, `od`, `fp`,
      * `dw`, `s`, then of `hf`, `hs`, `fa`, `ma` and `ca`: constant by the
      * struct's shape, kept so that BUILT_HASH still proves the typed reads. */
-    h = fnv(h, (uint32_t)(hj->def->rr != NULL));
+    h = fnv(h, (uint32_t)(hj->def->required_tech != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -351,14 +351,14 @@ static uint32_t fold_synthesizer(uint32_t h, void *e) {
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(em->qy != NULL));
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(qh->def->px != NULL));
-    h = fnv(h, (uint32_t)(qh->probe->def->dq != NULL));
+    h = fnv(h, (uint32_t)(qh->def->name != NULL));
+    h = fnv(h, (uint32_t)(qh->probe->def->confirmed_state != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(qh->def->ba != NULL));
+    h = fnv(h, (uint32_t)(qh->def->accepted_resources != NULL));
     h = fnv(h, qh->probe->et != NULL ? 1u : 0u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -366,13 +366,13 @@ static uint32_t fold_synthesizer(uint32_t h, void *e) {
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->def->ka != NULL));
-    h = fnv(h, (uint32_t)(jo->def->dz != NULL));
-    h = fnv(h, (uint32_t)(jo->def->cq != NULL));
+    h = fnv(h, (uint32_t)(jo->def->ring_colors != NULL));
+    h = fnv(h, (uint32_t)(jo->def->mood_rows != NULL));
+    h = fnv(h, (uint32_t)(jo->def->made_resources != NULL));
     h = fnv(h, (uint32_t)(jo->kw != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->def->em != NULL));
+    h = fnv(h, (uint32_t)(jo->def->spacer != NULL));
     h = fnv(h, (uint32_t)(jo->id != NULL));
     h = fnv(h, (uint32_t)(jo->p != NULL));
     h = fnv(h, (uint32_t)(jo->ra != NULL));
@@ -397,15 +397,15 @@ static uint32_t fold_synthesizer(uint32_t h, void *e) {
     assert(cls_of(e)->attach_slipway != hj_cls->attach_slipway && cls_of(e)->attach_slipway != pico8_jo_struct_class()->attach_slipway);
     assert(cls_of(e)->offer_trade == hj_cls->offer_trade && cls_of(e)->spawn_particle == hj_cls->spawn_particle && cls_of(e)->spawn_particle != NULL &&
            pico8_jo_is_family(e));
-    assert(jo->header.class->tags == (TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && qh->def->px == &pico8_mx_px_row && ht_of(e) == &pico8_mx_ht_seq &&
-           em->k_ == &pico8_mx_k__seq);
+    assert(jo->header.class->tags == (TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && qh->def->name == &synthesizer_name_row && ht_of(e) == &synthesizer_synthesizable_resources_seq &&
+           em->k_ == &synthesizer_trail_colors_seq);
     assert(jo->header.class->tags != (TAG(TAG_ASCENSION) | TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)));
-    assert(em->k_ != &pico8_hj_k__seq);
-    assert(qh->def->ba == &pico8_qh_ba_seq);
-    assert(jo->def == &pico8_mx_def);
-    assert(jo->def == &pico8_mx_def);
-    assert(jo->def->em == &pico8_jo_em_row && jo->def->ka == &pico8_jo_ka_seq && jo->def->dz == pico8_jo_dz_rows &&
-           jo->def->cq == &pico8_jo_cq_seq);
+    assert(em->k_ != &ascension_trail_colors_seq);
+    assert(qh->def->accepted_resources == &structure_accepted_resources_seq);
+    assert(jo->def == &synthesizer_archetype);
+    assert(jo->def == &synthesizer_archetype);
+    assert(jo->def->spacer == &planet_spacer_row && jo->def->ring_colors == &planet_ring_colors_seq && jo->def->mood_rows == planet_mood_rows_rows &&
+           jo->def->made_resources == &planet_made_resources_seq);
     assert(jo->kw != NULL && jo->kw != pico8_jo_shared_kw());
     assert(pico8_gb_at(5) != NULL);
     assert(jo->hn == pico8_gb_at(5));
@@ -587,7 +587,7 @@ static void test_synthesis(void) {
     void *s;
     void *other;
     const void *fresh;
-    const pico8_kw_t *kw;
+    const production_t *kw;
 
     start_game();
     home = build(pico8_hj_kind());
@@ -604,9 +604,9 @@ static void test_synthesis(void) {
     (void)join(home, s);
     assert(!ht_is_the_class_one(s) && ht_size(s) == 0);
     kw = as_hj(s)->kw;
-    assert(kw->has_qe && kw->qe == p8_fixed_from_int(20));
-    assert(pico8_mx_ht_seq.count == 4);
-    assert(!pico8_jo_shared_kw()->has_qe || pico8_jo_shared_kw()->qe != p8_fixed_from_int(20));
+    assert(kw->has_resource && kw->resource == p8_fixed_from_int(20));
+    assert(synthesizer_synthesizable_resources_seq.count == 4);
+    assert(!pico8_jo_shared_kw()->has_resource || pico8_jo_shared_kw()->resource != p8_fixed_from_int(20));
     h = fold_kf(h, s);
     fresh = ht_of(s);
 
@@ -614,7 +614,7 @@ static void test_synthesis(void) {
     (void)join(home, s);
     assert(ht_of(s) == fresh && ht_size(s) == 0);
     kw = as_hj(s)->kw;
-    assert(kw->has_qe && kw->qe == p8_fixed_from_int(20));
+    assert(kw->has_resource && kw->resource == p8_fixed_from_int(20));
     h = fold_kf(h, s);
 
     other = build_synthesizer();

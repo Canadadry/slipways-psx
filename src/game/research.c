@@ -11,7 +11,7 @@ static int g_hp_up = 0;
 
 /* `gb[k]`, 1-based rank k: the projects `build_gb` made, in the load
  * sub-zone. */
-static pico8_hp_t *g_gb[PICO8_FD_COUNT];
+static pico8_hp_t *g_gb[PROJECT_RECORDS_COUNT];
 static int g_gb_count = 0;
 /* `gb[px]`: the last project registered under each `px` (several share
  * one), built by `build_gb` or not. 0 until `build_gb`. `px` is the hp's own
@@ -20,7 +20,7 @@ static int g_gb_count = 0;
 static struct {
     const char *px;
     pico8_hp_t *hp;
-} g_gb_px[PICO8_FD_COUNT];
+} g_gb_px[PROJECT_RECORDS_COUNT];
 static int g_gb_px_count = 0;
 static int g_gb_up = 0;
 /* Borrowed from `pico8_fd_table`, never copied or freed here. */
@@ -40,7 +40,7 @@ static void pico8_research_gb_register(pico8_hp_t *hp) {
             return;
         }
     }
-    assert(g_gb_px_count < PICO8_FD_COUNT && "gb[px]: every px comes from fd, which has fewer names than records");
+    assert(g_gb_px_count < PROJECT_RECORDS_COUNT && "gb[px]: every px comes from fd, which has fewer names than records");
     g_gb_px[g_gb_px_count].px = hp->px;
     g_gb_px[g_gb_px_count].hp = hp;
     g_gb_px_count++;
@@ -61,7 +61,7 @@ static p8_fixed_t hp_r(const char *s) {
 
     assert(s != NULL && "hp.fj/o/dm: a position that is not a number does not fit the member's type "
                         "-- stop, do not widen the member");
-    found = pico8_r_lookup(s, &qe);
+    found = resource_code_lookup(s, &qe);
     assert(found && "hp: a value that gp maps through r is missing from r; it would stay a string in a "
                     "fixed member -- stop, do not widen the member");
     (void)found;
@@ -71,43 +71,43 @@ static p8_fixed_t hp_r(const char *s) {
 /* `ho(gb, mr, gp)` on one record of `fd`: positions 1..npos are `px`, `lr`,
  * `fj`, `ja`, `i`, `o`, `il`, `dm`. `i` gets the raw string that `hp:pq`
  * turns into its list afterwards. */
-static void hp_positions(pico8_hp_t *self, const pico8_fd_entry_t *ri, const char **i_src) {
+static void hp_positions(pico8_hp_t *self, const project_records_entry_t *ri, const char **i_src) {
     int n = ri->npos;
 
     assert(ri->header == NULL && "hp: a header entry of fd is the rr of the records after it, not a project");
     assert(n <= 8 && "hp: fd has eight positions, px to dm");
     if (n >= 1) {
-        self->px = hp_string(ri->px);
+        self->px = hp_string(ri->name);
     }
     if (n >= 2) {
-        self->lr = hp_string(ri->lr);
+        self->lr = hp_string(ri->planet_codes);
     }
     if (n >= 3) {
-        self->fj = p8_fixed_from_int(ri->fj);
+        self->fj = p8_fixed_from_int(ri->base_cost);
         self->has_fj = 1;
     }
     if (n >= 4) {
-        self->ja = hp_string(ri->ja);
+        self->ja = hp_string(ri->production_key);
     }
     if (n >= 5) {
-        *i_src = hp_string(ri->i);
+        *i_src = hp_string(ri->inputs);
     }
     if (n >= 6) {
-        self->o = hp_r(ri->o);
+        self->o = hp_r(ri->output);
         self->has_o = 1;
     }
     if (n >= 7) {
-        self->il = ri->il_false ? NULL : ri->il;
+        self->il = ri->upgrade_tech_false ? NULL : ri->upgrade_tech;
         self->has_il = 1;
     }
     if (n >= 8) {
-        self->dm = hp_r(ri->dm);
+        self->dm = hp_r(ri->byproduct);
         self->has_dm = 1;
     }
 }
 
 pico8_qe_t pico8_jy_qe(const pico8_jy_t *i) {
-    return i->row.has_qe ? (pico8_qe_t){.kind = PICO8_QE_FIXED, .n = i->row.qe} : (pico8_qe_t){.kind = PICO8_QE_NIL};
+    return i->row.has_resource ? (pico8_qe_t){.kind = PICO8_QE_FIXED, .n = i->row.resource} : (pico8_qe_t){.kind = PICO8_QE_NIL};
 }
 
 pico8_jy_t *pico8_jy_new(const allocator_t *zone, const p8_fixed_t *qe) {
@@ -115,8 +115,8 @@ pico8_jy_t *pico8_jy_new(const allocator_t *zone, const p8_fixed_t *qe) {
 
     memset(i, 0, sizeof *i);
     if (qe != NULL) {
-        i->row.has_qe = 1;
-        i->row.qe = *qe;
+        i->row.has_resource = 1;
+        i->row.resource = *qe;
     }
     return i;
 }
@@ -151,20 +151,20 @@ static pico8_hp_t *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
     self->rn = 0;
     self->has_rn = 0;
     self->lq = NULL;
-    self->def = &pico8_hp_def;
+    self->def = &research_project_archetype;
 
     if (keys != NULL && keys->ri != NULL) {
-        const pico8_fd_entry_t *ri = keys->ri;
+        const project_records_entry_t *ri = keys->ri;
 
         hp_positions(self, ri, &i_src);
-        if (ri->has_ii) {
-            self->ii = p8_fixed_from_int(ri->ii);
+        if (ri->has_icon_sprite) {
+            self->ii = p8_fixed_from_int(ri->icon_sprite);
             self->has_ii = 1;
         }
-        self->cw = ri->cw;
-        self->go = ri->go;
-        if (ri->has_rn) {
-            self->rn = p8_fixed_from_int(ri->rn);
+        self->cw = ri->class_name;
+        self->go = ri->next_type;
+        if (ri->has_play_sfx) {
+            self->rn = p8_fixed_from_int(ri->play_sfx);
             self->has_rn = 1;
         }
     }
@@ -180,13 +180,13 @@ static pico8_hp_t *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
     if (self->has_ii) {
         assert(self->px != NULL && "hp.lq: {px, 32, {ii, 8}} has no hole; a project with ii and no px "
                                    "does not fit the row -- stop, do not widen the member");
-        self->lq_inner_items[0] = (pico8_jb_item_t){.is_fixed = 1, .fixed = self->ii};
-        self->lq_inner_items[1] = (pico8_jb_item_t){.n = 8};
-        self->lq_inner = (pico8_jb_row_t){.count = 2, .items = self->lq_inner_items};
-        self->lq_own_items[0] = (pico8_jb_item_t){.s = self->px};
-        self->lq_own_items[1] = (pico8_jb_item_t){.n = 32};
-        self->lq_own_items[2] = (pico8_jb_item_t){.row = &self->lq_inner};
-        self->lq_own = (pico8_jb_row_t){.count = 3, .items = self->lq_own_items};
+        self->lq_inner_items[0] = (data_item_t){.is_fixed = 1, .fixed = self->ii};
+        self->lq_inner_items[1] = (data_item_t){.number = 8};
+        self->lq_inner = (data_row_t){.count = 2, .items = self->lq_inner_items};
+        self->lq_own_items[0] = (data_item_t){.text = self->px};
+        self->lq_own_items[1] = (data_item_t){.number = 32};
+        self->lq_own_items[2] = (data_item_t){.row = &self->lq_inner};
+        self->lq_own = (data_row_t){.count = 3, .items = self->lq_own_items};
         self->lq = &self->lq_own;
     }
 
@@ -203,7 +203,7 @@ static pico8_hp_t *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
         int r_qe;
         p8_fixed_t qe;
 
-        if (pico8_r_lookup(key, &r_qe)) {
+        if (resource_code_lookup(key, &r_qe)) {
             qe = p8_fixed_from_int(r_qe);
             pointer_list_add(new_i, pico8_jy_new(chargement, &qe));
         } else {
@@ -254,8 +254,8 @@ const entity_class_t *pico8_hp_struct_class(void) {
     return &g_hp_struct_class;
 }
 
-const pico8_jb_row_t *pico8_hp_fk(void) {
-    return pico8_hp_def.fk;
+const data_row_t *pico8_hp_fk(void) {
+    return research_project_archetype.row_tail;
 }
 
 pico8_hp_t *pico8_hp_new(const pico8_hp_keys_t *keys) {
@@ -269,8 +269,8 @@ void pico8_research_build_gb(void) {
     g_gb_up = 1;
     g_rr = NULL;
 
-    for (i = 0; i < PICO8_FD_COUNT; i++) {
-        const pico8_fd_entry_t *e = &pico8_fd_table[i];
+    for (i = 0; i < PROJECT_RECORDS_COUNT; i++) {
+        const project_records_entry_t *e = &project_records_table[i];
 
         if (e->header != NULL) {
             g_rr = e->header;
@@ -308,21 +308,21 @@ pico8_hp_t *pico8_gb_find(const char *px) {
     return NULL;
 }
 
-const pico8_hc_entry_t *pico8_hp_po(const pico8_hp_t *self) {
+const production_tables_entry_t *pico8_hp_po(const pico8_hp_t *self) {
     const char *il;
-    const pico8_hc_entry_t *qp = NULL;
+    const production_tables_entry_t *qp = NULL;
 
     pico8_hp_assert(self);
     if (self == NULL) {
         return NULL;
     }
     if (self->ja != NULL) {
-        qp = pico8_hc_lookup(self->ja);
+        qp = production_tables_lookup(self->ja);
     }
 
     il = pico8_hp_il(self);
-    if (il != NULL && pico8_oj(il) && qp != NULL && qp->mc != NULL) {
-        const pico8_hc_entry_t *hc_mc = pico8_hc_lookup(qp->mc);
+    if (il != NULL && pico8_oj(il) && qp != NULL && qp->upgraded_entry != NULL) {
+        const production_tables_entry_t *hc_mc = production_tables_lookup(qp->upgraded_entry);
 
         if (hc_mc != NULL) {
             return hc_mc;

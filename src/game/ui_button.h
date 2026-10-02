@@ -31,14 +31,14 @@ struct pico8_js {
     const allocator_t *place;
     vec_t ra_box;
     vec_t qf_box;
-    const pico8_js_def_t *def;
+    const button_archetype_t *def;
     p8_fixed_t fa;
-    pico8_lq_t *lq;
+    layout_row_t *lq;
     const allocator_t *lq_place; /* NULL: `lq` is in `place` */
     p8_fixed_t mb;
-    pico8_lq_t *h_;
+    layout_row_t *h_;
     int has_h_; /* 0: nil; 1: present, and a NULL `h_` is `false` */
-    pico8_jb_t *jb;
+    tooltip_t *jb;
     const vec_t *ra;
     vec_t *qf;
     pico8_js_fn my;
@@ -52,7 +52,7 @@ struct pico8_js {
     int has_trade; /* 0: `trade` is nil, and is then never read */
     p8_fixed_t en;
     int has_en; /* 0: `en` is nil, and is then never read */
-    const pico8_nb_entry_t *_cr_t; /* an entry of pico8_nb_table */
+    const technologies_entry_t *_cr_t; /* an entry of pico8_nb_table */
     pico8_jo_t *_jo_fe_pt;
     pico8_hp_t *_jo_fe_b;
     p8_fixed_t _jo_fe_od;
@@ -73,13 +73,13 @@ const entity_class_t *pico8_js_struct_class(void);
 typedef struct {
     int has_fa; /* 0: `fa` keeps the archetype's */
     p8_fixed_t fa;
-    const pico8_lq_t *lq_copy;
-    const pico8_lq_keys_t *lq_row;
+    const layout_row_t *lq_copy;
+    const layout_row_keys_t *lq_row;
     int has_h_; /* present without `h_row` nor `h_is_false`: an empty row (TROU-23) */
     int h_is_false;
-    const pico8_lq_keys_t *h_row;
+    const layout_row_keys_t *h_row;
     int has_jb; /* present without `jb_row`: an empty `jb` (TROU-23) */
-    const pico8_jb_row_t *jb_row;
+    const data_row_t *jb_row;
     const vec_t *ra;
     const vec_t *qf;
     int has_my; /* present, and a NULL `my` is `false` */
@@ -92,7 +92,7 @@ typedef struct {
     p8_fixed_t trade;
     int has_en;
     p8_fixed_t en;
-    const pico8_nb_entry_t *_cr_t;
+    const technologies_entry_t *_cr_t;
     pico8_jo_t *_jo_fe_pt;
     pico8_hp_t *_jo_fe_b;
     int has__jo_fe_od;
@@ -127,7 +127,7 @@ typedef int (*pico8_fq_my_fn)(pico8_fq_t *self);
 struct pico8_fq {
     entity_t header;
     const allocator_t *place;
-    const pico8_fq_def_t *def;
+    const modal_backdrop_archetype_t *def;
     pico8_fq_my_fn my;
     int p_;
     int m_;

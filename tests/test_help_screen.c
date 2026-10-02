@@ -117,7 +117,7 @@ static uint32_t fold_tags(uint32_t h, unsigned tags) {
 }
 
 /* An integer sequence: each position, then its value, then the count. */
-static uint32_t fold_seq(uint32_t h, const pico8_int_seq_t *s) {
+static uint32_t fold_seq(uint32_t h, const int_seq_t *s) {
     int i;
 
     for (i = 0; i < s->count; i++) {
@@ -129,30 +129,30 @@ static uint32_t fold_seq(uint32_t h, const pico8_int_seq_t *s) {
 
 /* A generated row: items (a nested row folded the same way), then `c`,
  * then `fn`, then the entry count. */
-static uint32_t fold_row(uint32_t h, const pico8_jb_row_t *row) {
+static uint32_t fold_row(uint32_t h, const data_row_t *row) {
     int i;
 
     for (i = 0; i < row->count; i++) {
-        const pico8_jb_item_t *item = &row->items[i];
+        const data_item_t *item = &row->items[i];
 
         h = fnv(h, (uint32_t)(i + 1));
         if (item->row != NULL) {
             h = fold_row(fnv(h, 0x7Au), item->row);
-        } else if (item->s != NULL) {
-            h = fold_string(h, item->s);
+        } else if (item->text != NULL) {
+            h = fold_string(h, item->text);
         } else if (item->is_false) {
             h = fold_bool(h, 0);
         } else {
-            h = fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->n));
+            h = fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->number));
         }
     }
-    if (row->has_c) {
-        h = fold_fixed(fnv_str(h, "c"), p8_fixed_from_int(row->c));
+    if (row->has_color) {
+        h = fold_fixed(fnv_str(h, "c"), p8_fixed_from_int(row->color));
     }
-    if (row->fn != NULL) {
-        h = fold_string(fnv_str(h, "fn"), row->fn);
+    if (row->draw_function != NULL) {
+        h = fold_string(fnv_str(h, "fn"), row->draw_function);
     }
-    return fnv(h, (uint32_t)(row->count + (row->has_c != 0) + (row->fn != NULL)));
+    return fnv(h, (uint32_t)(row->count + (row->has_color != 0) + (row->draw_function != NULL)));
 }
 
 static uint32_t fold_ref(uint32_t h, const void *ref) {
@@ -162,10 +162,10 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (ents_listed(live_entities(), ref)) {
         return fnv(fnv(h, 0x4Eu), (uint32_t)ents_rank_in(live_entities(), ref));
     }
-    if (ref == (const void *)&pico8_fv_k__seq) {
+    if (ref == (const void *)&help_screen_trail_colors_seq) {
         return fold_seq(fnv(h, 0x7Au), ref);
     }
-    if (ref == (const void *)&pico8_fv_rb_row) {
+    if (ref == (const void *)&help_screen_rows_row) {
         return fold_row(fnv(h, 0x7Au), ref);
     }
     return fnv(fnv(h, 0xEEEEu), 0u);
@@ -251,7 +251,7 @@ static void start_title(void) {
 static int is_help(entity_t *e) {
     const pico8_g__t *g_ =
         e != NULL && (e->class->lineage & LINEAGE(LINEAGE_PROBE)) ? (const pico8_g__t *)e : NULL;
-    return g_ != NULL && g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)) && g_->def->fa == p8_fixed_from_int(10);
+    return g_ != NULL && g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)) && g_->def->layer == p8_fixed_from_int(10);
 }
 
 static pico8_g__t *the_help(void) {
@@ -307,20 +307,20 @@ static void test_built(void) {
     pr = g_->probe;
     hv = live_entities();
 
-    assert(g_->def->fa == p8_fixed_from_int(10));
-    assert(em->def->ki == p8_fixed_from_int(17));
-    assert(g_->def->ca == p8_fixed_from_int(11));
+    assert(g_->def->layer == p8_fixed_from_int(10));
+    assert(em->def->lifetime == p8_fixed_from_int(17));
+    assert(g_->def->back_color == p8_fixed_from_int(11));
     assert(g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
     assert(g_->ra != NULL && em->k_ != NULL);
-    assert(g_->def->rb != NULL && pr->def->dq != NULL);
-    h = fold_fixed_member(h, g_->def->fa);
+    assert(g_->def->rows != NULL && pr->def->confirmed_state != NULL);
+    h = fold_fixed_member(h, g_->def->layer);
     h = fold_ref_member(h, g_->ra);
-    h = fold_ref_member(h, &g_->def->hi);
-    h = fold_fixed_member(h, g_->def->ca);
-    h = fold_ref_member(h, &g_->def->gq);
-    h = fold_fixed_member(h, g_->def->eo);
-    h = fold_fixed_member(h, g_->def->ff);
-    h = fold_fixed_member(h, em->def->fc);
+    h = fold_ref_member(h, &g_->def->fixed_pos);
+    h = fold_fixed_member(h, g_->def->back_color);
+    h = fold_ref_member(h, &g_->def->row_step);
+    h = fold_fixed_member(h, g_->def->open_sfx);
+    h = fold_fixed_member(h, g_->def->clear_ephemerals_after);
+    h = fold_fixed_member(h, em->def->spawn_rate);
     h = fold_ref_member(h, em->k_);
     h = fold_fixed_member(h, em->qo);
     h = fold_fixed_member(h, em->ro);
@@ -329,26 +329,26 @@ static void test_built(void) {
     h = fold_fixed_member(h, em->pn);
     h = fold_fixed_member(h, em->du);
     h = fold_fixed_member(h, em->py);
-    h = fold_fixed_member(h, em->def->pk);
-    h = fold_fixed_member(h, em->def->ki);
-    h = fold_ref_member(h, &g_->def->kq);
-    h = fold_fixed_member(h, g_->def->ql);
-    h = fold_fixed_member(h, g_->def->fg);
-    h = fold_ref_member(h, g_->def->rb);
+    h = fold_fixed_member(h, em->def->quarter_turn);
+    h = fold_fixed_member(h, em->def->lifetime);
+    h = fold_ref_member(h, &g_->def->hit_box);
+    h = fold_fixed_member(h, g_->def->cursor_sprite);
+    h = fold_fixed_member(h, g_->def->gpio_signal);
+    h = fold_ref_member(h, g_->def->rows);
     h = fold_tags(fnv(fnv(h, 1u), 0x7Au), g_->header.class->tags);
-    h = fold_fixed_member(h, g_->def->fx);
-    h = fold_string_member(h, pr->def->dq);
+    h = fold_fixed_member(h, g_->def->fold_anchor);
+    h = fold_string_member(h, pr->def->confirmed_state);
     h = fold_fixed_member(h, pr->od);
-    h = fold_bool_member(h, pr->def->fp != 0);
-    h = fold_fixed_member(h, pr->def->dw);
+    h = fold_bool_member(h, pr->def->clock_ticks != 0);
+    h = fold_fixed_member(h, pr->def->attach_distance);
     h = fold_vec(h, g_->ra);
-    h = fold_vec(h, &g_->def->hi);
-    h = fold_vec(h, &g_->def->gq);
-    h = fold_box(h, &g_->def->kq);
-    assert(g_->def == &pico8_fv_def && g_->ra == &pico8_fv_def.ra);
-    assert(em->k_ == &pico8_fv_k__seq);
-    assert(em->k_ != &pico8_g__k__seq);
-    assert(g_->def->rb == &pico8_fv_rb_row);
+    h = fold_vec(h, &g_->def->fixed_pos);
+    h = fold_vec(h, &g_->def->row_step);
+    h = fold_box(h, &g_->def->hit_box);
+    assert(g_->def == &help_screen_archetype && g_->ra == &help_screen_archetype.pos);
+    assert(em->k_ == &help_screen_trail_colors_seq);
+    assert(em->k_ != &probe_trail_colors_seq);
+    assert(g_->def->rows == &help_screen_rows_row);
     h = fold_string_member(h, g_->header.state);
     h = fold_fixed_member(h, g_->header.state_time);
     h = fnv(h, (uint32_t)size_of(em->qy));
@@ -512,7 +512,7 @@ static void test_particle_takes_the_help_palette(void) {
     at = P8_ADDR_SCREEN + p8_fixed_flr_int(ra.y) * P8_SCREEN_WIDTH + p8_fixed_flr_int(ra.x);
     p8_poke(&mem, at, 3);
     pico8_ei(&gfx, &mem, &fv->header);
-    assert(p8_peek(&mem, at) == pico8_fv_k__seq.items[5] && pico8_fv_k__seq.items[5] == 9);
+    assert(p8_peek(&mem, at) == help_screen_trail_colors_seq.items[5] && help_screen_trail_colors_seq.items[5] == 9);
 }
 
 static void test_eu_retires_the_help(void) {

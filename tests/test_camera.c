@@ -132,7 +132,7 @@ static int is_vec(vec_t v, int x, int y) {
 /* `jl()` builds `mo`: in hv only, the spec's defaults, ke's `me`/`t`, `pc`
  * in the order left, right, up, down, and `p`/`ra` two distinct vectors. */
 static void check_fresh_mo(const pico8_qb_t *mo) {
-    const pico8_vec_seq_t *pc;
+    const vec_seq_t *pc;
     vec_t p = must_vec(mo->p);
     vec_t ra = must_vec(mo->ra);
     vec_t v = must_vec(mo->v);
@@ -146,9 +146,9 @@ static void check_fresh_mo(const pico8_qb_t *mo) {
     assert(mo->header.state != NULL && strcmp(mo->header.state, "normal") == 0);
     assert(mo->p != mo->ra);
 
-    pc = mo->def->pc;
+    pc = mo->def->dpad_directions;
     assert(pc != NULL);
-    assert(pc == &pico8_qb_pc_vecs && pc->count == 4);
+    assert(pc == &camera_dpad_directions_vecs && pc->count == 4);
     assert(is_vec(pc->items[0], -1, 0));
     assert(is_vec(pc->items[1], 1, 0));
     assert(is_vec(pc->items[2], 0, -1));

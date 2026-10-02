@@ -27,9 +27,9 @@
  * particle place) and goes back with it. */
 typedef struct {
     entity_t header;
-    const pico8_jo_def_t *def;
+    const planet_archetype_t *def;
     p8_fixed_t ma;
-    pico8_kw_t *kw;
+    production_t *kw;
     const char *id;
     vec_t *p;
     vec_t *ra;
@@ -37,9 +37,9 @@ typedef struct {
     pico8_hp_t *hn;
     const char *ep;
     pointer_list_t *jy;
-    const pico8_df_entry_t *nk;
+    const planet_types_entry_t *nk;
     p8_fixed_t fx;
-    pico8_lq_t *lq;
+    layout_row_t *lq;
     const allocator_t *lq_place; /* where `lq` lives; NULL when `lq` is */
     entity_t *fo;
     p8_fixed_t jh;
@@ -52,11 +52,11 @@ typedef struct {
     p8_fixed_t mi;
     int has_mi;
     int m_;
-    pico8_kw_t kw_own;
+    production_t kw_own;
     p8_fixed_t s;           /* qh's lineage */
     p8_fixed_t qw;          /* nl */
     p8_fixed_t iu, ms;      /* ga */
-    const pico8_int_seq_t *ht; /* mx */
+    const int_seq_t *ht; /* mx */
     pico8_probe_t *probe;      /* qh's lineage */
     pico8_emitter_t *emitter;  /* hj, pm, mx, ga */
     pico8_probe_t probe_own;
@@ -79,14 +79,14 @@ const entity_class_t *pico8_jo_struct_class(void);
 
 /* `jo.dz` (PICO8_JO_DZ_COUNT rows), `jo.cq`, `jo.ka`, `jo.em`: jo's
  * generated data, never NULL, init or not. */
-const pico8_jb_row_t *pico8_jo_dz(void);
-const pico8_int_seq_t *pico8_jo_cq(void);
-const pico8_int_seq_t *pico8_jo_ka(void);
-const pico8_jb_row_t *pico8_jo_em(void);
+const data_row_t *pico8_jo_dz(void);
+const int_seq_t *pico8_jo_cq(void);
+const int_seq_t *pico8_jo_ka(void);
+const data_row_t *pico8_jo_em(void);
 
 /* The `kw` every bare planet points at; each `pico8_jo_init()` resets it to
  * `{mu=0}`. */
-pico8_kw_t *pico8_jo_shared_kw(void);
+production_t *pico8_jo_shared_kw(void);
 
 /* `keys` (NULL means none) is read, not kept. The new planet registers
  * itself into `hv`/`cv`/`cg` through `lt`, and lives in the construction
@@ -97,7 +97,7 @@ pico8_jo_t *pico8_jo_new(const planet_keys_t *keys);
  * `def` kept, the members it holds copied from it, the others nil. Neither
  * runs `jo:pq` nor `lt`: a daughter's constructor does, after its own
  * defaults. Requires `pico8_jo_init()`. */
-void pico8_jo_struct_init(pico8_jo_t *self, const entity_class_t *cls, const pico8_jo_def_t *def);
+void pico8_jo_struct_init(pico8_jo_t *self, const entity_class_t *cls, const planet_archetype_t *def);
 
 /* Bytes of the arena a held icon, a drawn slipway or a wormhole builds its
  * object in. */
@@ -179,8 +179,8 @@ down_t pico8_jo_ldown(pico8_jo_t *self);
 /* The state passed must live until the next call; the previous one is not
  * freed. NULL is the valid way back to "none". Both start NULL -- only
  * `bw()` sets them. */
-void pico8_jo_set_oc(pico8_gn_state_t *oc);
-void pico8_jo_set_ir(pico8_jf_state_t *ir);
+void pico8_jo_set_oc(weighted_picker_t *oc);
+void pico8_jo_set_ir(random_walk_t *ir);
 
 /* Mutates the pico8_vec_t `self.ra` points at, in place: every other holder
  * of that vector -- the `iv` toast `jo:hk` builds from `self.ra` -- sees the

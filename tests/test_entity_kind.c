@@ -53,8 +53,8 @@ static const entity_kind_t *kind_of(int i) {
     }
 }
 
-static const pico8_kind_rec_t *record_of(int i) {
-    const pico8_kind_rec_t *record = kind_of(i)->record;
+static const kind_record_t *record_of(int i) {
+    const kind_record_t *record = kind_of(i)->record;
 
     assert(record != NULL);
     return record;
@@ -132,13 +132,13 @@ static void test_kind_fields_and_build(void) {
     int i;
 
     for (i = 0; i < KIND_COUNT; i++) {
-        const pico8_kind_rec_t *record = record_of(i);
+        const kind_record_t *record = record_of(i);
         void *made;
 
-        h = fold_string_member(h, record->rr);
-        h = fold_fixed_member(h, record->has_s, record->s);
-        h = fold_string_member(h, record->me);
-        h = fold_fixed_member(h, record->has_od, record->od);
+        h = fold_string_member(h, record->required_tech);
+        h = fold_fixed_member(h, record->has_sprite, record->sprite);
+        h = fold_string_member(h, record->state);
+        h = fold_fixed_member(h, record->has_cost, record->cost);
         made = kind_build(i);
         assert(made != NULL &&
                ((const entity_t *)made)->class == class_of(i));
@@ -150,61 +150,61 @@ static void test_kind_fields_and_build(void) {
 /* Each kind's `rec` holds the generated default of the class that sets
  * each name. */
 static void test_kind_reader_serves_the_generated_defaults(void) {
-    const pico8_kind_rec_t *record;
+    const kind_record_t *record;
 
     record = record_of(0);
-    assert(record->rr == NULL);
-    assert(record->has_s && record->s == pico8_qh_def.s);
-    assert(record->me == pico8_qh_def.me);
-    assert(record->has_od && record->od == pico8_qh_def.probe.od);
+    assert(record->required_tech == NULL);
+    assert(record->has_sprite && record->sprite == structure_archetype.sprite);
+    assert(record->state == structure_archetype.state);
+    assert(record->has_cost && record->cost == structure_archetype.targeting.cost);
 
     record = record_of(1);
-    assert(record->rr == NULL);
-    assert(record->has_s && record->s == pico8_os_def.s);
-    assert(record->me == pico8_qh_def.me);
-    assert(record->has_od && record->od == pico8_os_def.probe.od);
+    assert(record->required_tech == NULL);
+    assert(record->has_sprite && record->sprite == processor_archetype.sprite);
+    assert(record->state == structure_archetype.state);
+    assert(record->has_cost && record->cost == processor_archetype.targeting.cost);
 
     record = record_of(2);
-    assert(record->rr == pico8_nr_def.rr);
-    assert(record->has_s && record->s == pico8_nr_def.s);
-    assert(record->me == pico8_qh_def.me);
-    assert(record->has_od && record->od == pico8_nr_def.probe.od);
+    assert(record->required_tech == slipgate_archetype.required_tech);
+    assert(record->has_sprite && record->sprite == slipgate_archetype.sprite);
+    assert(record->state == structure_archetype.state);
+    assert(record->has_cost && record->cost == slipgate_archetype.targeting.cost);
 
     record = record_of(3);
-    assert(record->rr == pico8_fr_def.rr);
-    assert(record->has_s && record->s == pico8_fr_def.s);
-    assert(record->me == pico8_qh_def.me);
-    assert(record->has_od && record->od == pico8_fr_def.probe.od);
+    assert(record->required_tech == infraspace_gate_archetype.required_tech);
+    assert(record->has_sprite && record->sprite == infraspace_gate_archetype.sprite);
+    assert(record->state == structure_archetype.state);
+    assert(record->has_cost && record->cost == infraspace_gate_archetype.targeting.cost);
 
     record = record_of(4);
-    assert(record->rr == pico8_nl_def.rr);
-    assert(record->has_s && record->s == pico8_nl_def.s);
-    assert(record->me == pico8_qh_def.me);
-    assert(record->has_od && record->od == pico8_nl_def.probe.od);
+    assert(record->required_tech == trading_hub_archetype.required_tech);
+    assert(record->has_sprite && record->sprite == trading_hub_archetype.sprite);
+    assert(record->state == structure_archetype.state);
+    assert(record->has_cost && record->cost == trading_hub_archetype.targeting.cost);
 
     record = record_of(5);
-    assert(record->rr == pico8_mx_def.rr);
-    assert(record->has_s && record->s == pico8_mx_def.s);
-    assert(record->me == pico8_qh_def.me);
-    assert(record->has_od && record->od == pico8_mx_def.probe.od);
+    assert(record->required_tech == synthesizer_archetype.required_tech);
+    assert(record->has_sprite && record->sprite == synthesizer_archetype.sprite);
+    assert(record->state == structure_archetype.state);
+    assert(record->has_cost && record->cost == synthesizer_archetype.targeting.cost);
 
     record = record_of(6);
-    assert(record->rr == pico8_hj_def.rr);
-    assert(record->has_s && record->s == pico8_hj_def.s);
-    assert(record->me == pico8_qh_def.me);
-    assert(record->has_od && record->od == pico8_hj_def.probe.od);
+    assert(record->required_tech == ascension_archetype.required_tech);
+    assert(record->has_sprite && record->sprite == ascension_archetype.sprite);
+    assert(record->state == structure_archetype.state);
+    assert(record->has_cost && record->cost == ascension_archetype.targeting.cost);
 
     record = record_of(7);
-    assert(record->rr == pico8_pm_def.rr);
-    assert(record->has_s && record->s == pico8_pm_def.s);
-    assert(record->me == pico8_pm_def.me);
-    assert(record->has_od && record->od == pico8_pm_def.probe.od);
+    assert(record->required_tech == protostar_archetype.required_tech);
+    assert(record->has_sprite && record->sprite == protostar_archetype.sprite);
+    assert(record->state == protostar_archetype.state);
+    assert(record->has_cost && record->cost == protostar_archetype.targeting.cost);
 
     record = record_of(8);
-    assert(record->rr == NULL);
-    assert(!record->has_s && record->s == 0);
-    assert(record->me == pico8_jo_def.me);
-    assert(!record->has_od && record->od == 0);
+    assert(record->required_tech == NULL);
+    assert(!record->has_sprite && record->sprite == 0);
+    assert(record->state == planet_archetype.state);
+    assert(!record->has_cost && record->cost == 0);
 }
 
 /* `kv[hp.cw]` only ever sees "pm" or "ga": every research of `gb` carries

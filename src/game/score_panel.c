@@ -22,7 +22,7 @@
 #include "engine/game_zone.h"
 
 static int g_pj_up = 0;
-static pico8_bz_row_t g_bz[PICO8_BZ_COUNT];
+static pico8_bz_row_t g_bz[SCORE_ROWS_COUNT];
 static pico8_pj_t *g_ju = NULL;
 
 static p8_fixed_t fixed_min(p8_fixed_t a, p8_fixed_t b) {
@@ -36,7 +36,7 @@ static pico8_pj_ea_t g_pj_ea;
 
 /* Copies `src` into `dst` and its item storage (`cap` items), `fn` and `c`
  * included; nested rows stay the generated ones. */
-static void pj_row_copy(pico8_jb_row_t *dst, pico8_jb_item_t *items, int cap, const pico8_jb_row_t *src) {
+static void pj_row_copy(data_row_t *dst, data_item_t *items, int cap, const data_row_t *src) {
     int i;
 
     assert(src->count <= cap && "a copied row of pj holds no more items than its generated row");
@@ -73,12 +73,12 @@ const entity_class_t *pico8_pj_cr_struct_class(void) {
     return &g_pj_cr_struct_class;
 }
 
-const pico8_jb_row_t *pico8_pj_i_(void) {
-    return pico8_pj_def.i_;
+const data_row_t *pico8_pj_i_(void) {
+    return score_panel_archetype.frame_rows;
 }
 
-const pico8_jb_row_t *pico8_pj_gs(void) {
-    return pico8_pj_def.gs;
+const data_row_t *pico8_pj_gs(void) {
+    return score_panel_archetype.countdown_rows;
 }
 
 static void pico8_pj_init_placeholder(pico8_js_t *self) {
@@ -116,8 +116,8 @@ void pico8_eg(void) {
         return;
     }
 
-    for (i = 1; i <= PICO8_FB_COUNT; i++) {
-        int ny = pico8_fb_table[i - 1];
+    for (i = 1; i <= PALETTE_OFFSETS_COUNT; i++) {
+        int ny = palette_offsets_table[i - 1];
         int pd = 0x3101 + 4 * ny;
         unsigned char cur = p8_peek(mem, pd);
         int newval = (cur % 128) + ((ps < p8_fixed_from_int(i)) ? 128 : 0);
@@ -130,14 +130,14 @@ void pico8_pj_hb(void) {
     const pico8_fm_placeholder_t *provisional = pico8_fm_placeholder();
     p8_fixed_t fm_ge = fm != NULL ? fm->ge : p8_fixed_from_int(0);
     p8_fixed_t fm_nz = p8_fixed_from_int(0);
-    pico8_jb_item_t fm_jk = {.is_ref = 1};
+    data_item_t fm_jk = {.is_ref = 1};
     p8_fixed_t fm_happiness = fm != NULL && fm->has_happiness ? fm->happiness : p8_fixed_from_int(0);
     p8_fixed_t fm_lo = fm != NULL ? fm->lo : p8_fixed_from_int(0);
-    pico8_jb_item_t fm_yr = fm != NULL ? (pico8_jb_item_t){.is_fixed = 1, .fixed = fm->yr}
-                                       : (pico8_jb_item_t){.is_ref = 1};
+    data_item_t fm_yr = fm != NULL ? (data_item_t){.is_fixed = 1, .fixed = fm->yr}
+                                       : (data_item_t){.is_ref = 1};
     const pico8_qe_map_t *fm_po = fm != NULL ? fm->po : NULL;
     pico8_pj_ou_t *ou_state;
-    pico8_jb_item_t ou[7];
+    data_item_t ou[7];
     char *cf;
     char *nz_str;
     char *happiness_str;
@@ -147,44 +147,44 @@ void pico8_pj_hb(void) {
 
     if (fm != NULL) {
         fm_nz = fm->nz;
-        fm_jk = (pico8_jb_item_t){.is_fixed = 1, .fixed = fm->jk};
+        fm_jk = (data_item_t){.is_fixed = 1, .fixed = fm->jk};
     } else if (provisional != NULL) {
         if (provisional->has_nz) {
             fm_nz = provisional->nz;
         }
         if (provisional->has_jk) {
-            fm_jk = (pico8_jb_item_t){.is_fixed = 1, .fixed = provisional->jk};
+            fm_jk = (data_item_t){.is_fixed = 1, .fixed = provisional->jk};
         }
     }
 
     cf = collect_format_signed(frame_zone(), fm_ge, 0, NULL, &discard_color);
 
     nz_str = p8_tostr_fixed(frame_zone(), fm_nz);
-    ou[0] = (pico8_jb_item_t){.s = p8_concat2(frame_zone(), nz_str, "$")};
+    ou[0] = (data_item_t){.text = p8_concat2(frame_zone(), nz_str, "$")};
 
-    ou[1] = (pico8_jb_item_t){.s = cf};
+    ou[1] = (data_item_t){.text = cf};
 
     ou[2] = fm_jk;
 
     {
         int k_key;
         p8_fixed_t po_val = p8_fixed_from_int(0);
-        if (pico8_r_lookup("k", &k_key)) {
+        if (resource_code_lookup("k", &k_key)) {
             pico8_qe_map_get(fm_po, p8_fixed_from_int(k_key), &po_val);
         }
         /* `..` binds looser than `+`: the Lua reads `"+"..(fm.po[r.k]+1)`. */
         plus_num =
             p8_tostr_fixed(frame_zone(), p8_fixed_add(po_val, p8_fixed_from_int(1)));
-        ou[3] = (pico8_jb_item_t){.s = p8_concat2(frame_zone(), "+", plus_num)};
+        ou[3] = (data_item_t){.text = p8_concat2(frame_zone(), "+", plus_num)};
     }
 
     happiness_str = p8_tostr_fixed(frame_zone(), fm_happiness);
-    ou[4] = (pico8_jb_item_t){.s = p8_concat2(frame_zone(), happiness_str, "%")};
+    ou[4] = (data_item_t){.text = p8_concat2(frame_zone(), happiness_str, "%")};
 
     {
         int lo = p8_fixed_flr_int(fm_lo);
-        ou[5] = (lo >= 1 && lo <= PICO8_EF_COUNT) ? (pico8_jb_item_t){.s = pico8_ef_table[lo - 1]}
-                                                  : (pico8_jb_item_t){.is_ref = 1};
+        ou[5] = (lo >= 1 && lo <= PERIOD_NAMES_COUNT) ? (data_item_t){.text = period_names_table[lo - 1]}
+                                                  : (data_item_t){.is_ref = 1};
     }
 
     ou[6] = fm_yr;
@@ -192,10 +192,10 @@ void pico8_pj_hb(void) {
     ou_state = pico8_pj_ou();
     if (ou_state != NULL) {
         for (i = 0; i < 7; i++) {
-            if (ou[i].s != NULL) {
-                assert(strlen(ou[i].s) <= PICO8_PJ_TEXT_CAP && "an ou text is a number with its suffix, or a month");
-                strcpy(ou_state->texts[i], ou[i].s);
-                ou[i].s = ou_state->texts[i];
+            if (ou[i].text != NULL) {
+                assert(strlen(ou[i].text) <= PICO8_PJ_TEXT_CAP && "an ou text is a number with its suffix, or a month");
+                strcpy(ou_state->texts[i], ou[i].text);
+                ou[i].text = ou_state->texts[i];
             }
             ou_state->sub_items[i][0] = ou[i];
         }
@@ -213,9 +213,9 @@ static void pico8_pj_hb_dispatch(entity_t *self) {
 enum { PICO8_PJ_KJ_ARTICLES_CAP = 5 + 7 };
 
 void pico8_pj_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_pj_t *self) {
-    const pico8_jb_row_t *i_ = pico8_pj_i_();
+    const data_row_t *i_ = pico8_pj_i_();
     pico8_pj_ou_t *ou_state = pico8_pj_ou();
-    const pico8_jb_row_t *combined[PICO8_PJ_KJ_ARTICLES_CAP];
+    const data_row_t *combined[PICO8_PJ_KJ_ARTICLES_CAP];
     int n = 0;
     int i;
 
@@ -228,7 +228,7 @@ void pico8_pj_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_pj_t *self) {
         combined[n++] = ou_state->row.items[i].row;
     }
 
-    pico8_bl_default(gfx, mem, combined, n);
+    draw_functions_draw_rows_default(gfx, mem, combined, n);
 
     if (self != NULL && self->has_gz) {
         p8_fixed_t gz = p8_fixed_add(self->gz, P8_FIXED_LIT(0x00003333, 0.2));
@@ -236,11 +236,11 @@ void pico8_pj_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_pj_t *self) {
         p8_fixed_t h = p8_fixed_mul(capped, capped);
 
         self->gz = gz;
-        pico8_rk(gfx, mem, p8_fixed_from_int(0), h, 0);
+        hud_draw_bar(gfx, mem, p8_fixed_from_int(0), h, 0);
         /* The cart's only colour-less `rk`: the bottom bar inherits the pen
          * colour the line above leaves behind. Passing a colour here would
          * change what is drawn. */
-        pico8_rk_default(gfx, mem, p8_fixed_sub(p8_fixed_from_int(127), h), p8_fixed_from_int(127));
+        hud_draw_bar_default(gfx, mem, p8_fixed_sub(p8_fixed_from_int(127), h), p8_fixed_from_int(127));
     }
 }
 
@@ -261,9 +261,9 @@ static pico8_pj_t *pico8_pj_struct_new(void) {
 
     assert(g_pj_up && "pico8_score_panel_init() must run first");
     self = (pico8_pj_t *)allocator_alloc(game_zone(), sizeof *self);
-    entity_init_instance(&self->header, &g_pj_struct_class, pico8_pj_def.me, pico8_pj_def.t);
-    self->def = &pico8_pj_def;
-    self->fa = self->def->fa;
+    entity_init_instance(&self->header, &g_pj_struct_class, score_panel_archetype.state, score_panel_archetype.state_time);
+    self->def = &score_panel_archetype;
+    self->fa = self->def->layer;
     self->header.layer = &self->fa;
     self->ed = NULL;
     self->c_ = 0;
@@ -282,30 +282,30 @@ void pico8_score_panel_init(void) {
 
     pico8_score_panel_shutdown();
 
-    pico8_pi_init();
+    draw_functions_init();
 
-    for (i = 0; i < PICO8_BZ_COUNT; i++) {
-        const pico8_bz_entry_t *e = &pico8_bz_table[i];
+    for (i = 0; i < SCORE_ROWS_COUNT; i++) {
+        const score_rows_entry_t *e = &score_rows_table[i];
         pico8_bz_row_t *b = &g_bz[i];
         int k;
 
         pj_row_copy(&b->row, b->items, 5, &e->row);
-        b->row.fn = e->fn;
+        b->row.draw_function = e->draw_function;
         for (k = 0; k < 5; k++) {
             b->has[k] = k < e->row.count;
         }
-        b->ra = vec_make(p8_fixed_from_int(e->ra_x), p8_fixed_from_int(e->ra_y));
+        b->ra = vec_make(p8_fixed_from_int(e->pos_x), p8_fixed_from_int(e->pos_y));
         b->e = e;
     }
 
     g_pj_up = 1;
-    pj_row_copy(&g_pj_ou.row, g_pj_ou.items, 7, &pico8_pj_ou_row);
+    pj_row_copy(&g_pj_ou.row, g_pj_ou.items, 7, &score_panel_readouts_row);
     for (i = 0; i < g_pj_ou.row.count; i++) {
-        pj_row_copy(&g_pj_ou.subs[i], g_pj_ou.sub_items[i], 4, pico8_pj_ou_row.items[i].row);
+        pj_row_copy(&g_pj_ou.subs[i], g_pj_ou.sub_items[i], 4, score_panel_readouts_row.items[i].row);
         g_pj_ou.items[i].row = &g_pj_ou.subs[i];
     }
-    pj_row_copy(&g_pj_ea.row, g_pj_ea.items, 3, &pico8_pj_ea_row);
-    pj_row_copy(&g_pj_ea.second, g_pj_ea.second_items, 5, pico8_pj_ea_row.items[1].row);
+    pj_row_copy(&g_pj_ea.row, g_pj_ea.items, 3, &score_panel_year_banner_row);
+    pj_row_copy(&g_pj_ea.second, g_pj_ea.second_items, 5, score_panel_year_banner_row.items[1].row);
     g_pj_ea.items[1].row = &g_pj_ea.second;
     g_pj_ea.lh = NULL;
     g_pj_cr.ep = NULL;

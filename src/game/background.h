@@ -16,7 +16,7 @@
  * that box. */
 typedef struct {
     entity_t header;
-    const pico8_bg_def_t *def;
+    const background_archetype_t *def;
     vec_t mq;
     int has_mq; /* 0: `mq` is nil (no `rdown` yet, or a nil `rp`), read as the zero vector */
     int m_;

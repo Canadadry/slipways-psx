@@ -50,7 +50,7 @@ typedef struct {
  * puts back on the free grabs. */
 typedef struct {
     entity_t header;
-    const pico8_jc_def_t *def;
+    const slipway_archetype_t *def;
     p8_fixed_t fa;
     p8_fixed_t nh;
     entity_t *qu; /* borrowed, never freed */

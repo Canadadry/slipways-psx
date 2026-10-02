@@ -48,7 +48,7 @@ void pico8_mz_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_mz_t *self, vec_t p
     } else {
         p8_fixed_t t = self->header.state_time;
         p8_fixed_t oi = self->oi;
-        int has_kk = self->def->kk != NULL;
+        int has_kk = self->def->color_ramp != NULL;
         int dt;
 
         for (dt = 0; dt <= 8; dt += 2) {
@@ -63,7 +63,7 @@ void pico8_mz_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_mz_t *self, vec_t p
                     p8_fixed_t ratio = p8_fixed_mul(p8_fixed_div(sr, oi), p8_fixed_from_int(8));
                     int idx = p8_fixed_flr_int(p8_fixed_flr(ratio));
 
-                    pico8_int_seq_at(self->def->kk->items, self->def->kk->count, idx, &color);
+                    int_seq_at(self->def->color_ramp->items, self->def->color_ramp->count, idx, &color);
                 }
 
                 if (gfx != NULL && mem != NULL) {

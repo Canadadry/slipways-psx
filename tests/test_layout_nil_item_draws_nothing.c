@@ -17,7 +17,7 @@
  *
  * `pico8_lq_mn` is static to src/game/layout.c, so this test never names
  * it: it builds a real `lq` holding ONE positional item -- the shape of
- * every `lq({...})` call site -- and renders it with pico8_lq_ol_default(),
+ * every `lq({...})` call site -- and renders it with layout_row_draw_at_default(),
  * which is how the cart reaches `lq:mn` too. */
 
 #include <assert.h>
@@ -49,7 +49,7 @@
 static p8_memory_t mem;
 static p8_graphics_t gfx;
 
-static int screen_px(int x, int y) {
+static int screen_pixel(int x, int y) {
     return p8_peek(&mem, P8_ADDR_SCREEN + y * P8_SCREEN_WIDTH + x);
 }
 
@@ -68,7 +68,7 @@ static int sprite0_bottom_row_hits(int *out_x, int *out_y) {
         for (x = 0; x + SPRITE0_ROW_PIXELS <= P8_SCREEN_WIDTH; x++) {
             int match = 1;
             for (i = 0; i < SPRITE0_ROW_PIXELS; i++) {
-                if (screen_px(x + i, y) != wanted[i]) {
+                if (screen_pixel(x + i, y) != wanted[i]) {
                     match = 0;
                     break;
                 }
@@ -91,7 +91,7 @@ static int pixels_drawn(void) {
     int x, y, n = 0;
     for (y = 0; y < P8_SCREEN_HEIGHT; y++) {
         for (x = 0; x < P8_SCREEN_WIDTH; x++) {
-            if (screen_px(x, y) != 0) {
+            if (screen_pixel(x, y) != 0) {
                 n++;
             }
         }
@@ -102,17 +102,17 @@ static int pixels_drawn(void) {
 /* `lq({item}):ol(v(DRAW_X,DRAW_Y))` -- one real row holding one generated
  * item, its keys taken by pico8_lq_keys_of_row, rendered onto a cleared
  * screen. Returns its one cell, as the keys sorted `item` into it. */
-static pico8_lq_cell_t render_one_item(pico8_jb_item_t item) {
-    const pico8_jb_row_t row = {.count = 1, .items = &item};
-    pico8_lq_cell_t cells[1];
-    pico8_lq_keys_t keys = pico8_lq_keys_of_row(&row, cells, 1);
-    pico8_lq_t *line;
+static layout_row_cell_t render_one_item(data_item_t item) {
+    const data_row_t row = {.count = 1, .items = &item};
+    layout_row_cell_t cells[1];
+    layout_row_keys_t keys = layout_row_keys_of_row(&row, cells, 1);
+    layout_row_t *line;
 
-    line = pico8_lq_new(&heap_allocator, &keys);
+    line = layout_row_new(&heap_allocator, &keys);
     assert(line != NULL && line->items_count == 1);
 
     p8_cls(&mem);
-    pico8_lq_ol_default(&gfx, &mem, line, vec_make(p8_fixed_from_int(DRAW_X), p8_fixed_from_int(DRAW_Y)));
+    layout_row_draw_at_default(&gfx, &mem, line, vec_make(p8_fixed_from_int(DRAW_X), p8_fixed_from_int(DRAW_Y)));
     return line->items[0];
 }
 
@@ -120,10 +120,10 @@ static pico8_lq_cell_t render_one_item(pico8_jb_item_t item) {
 static void test_nil_item_draws_nothing(void) {
     int hit_x = -1, hit_y = -1;
     int hits, drawn;
-    pico8_lq_cell_t cell;
+    layout_row_cell_t cell;
 
-    cell = render_one_item((pico8_jb_item_t){.is_ref = 1});
-    assert(cell.kind == PICO8_LQ_CELL_NOTHING);
+    cell = render_one_item((data_item_t){.is_ref = 1});
+    assert(cell.kind == LAYOUT_ROW_CELL_NOTHING);
 
     hits = sprite0_bottom_row_hits(&hit_x, &hit_y);
     drawn = pixels_drawn();
@@ -147,10 +147,10 @@ static void test_nil_item_draws_nothing(void) {
 static void test_numeric_item_still_draws_its_sprite(void) {
     int hit_x = -1, hit_y = -1;
     int hits, drawn;
-    pico8_lq_cell_t cell;
+    layout_row_cell_t cell;
 
-    cell = render_one_item((pico8_jb_item_t){.n = 0});
-    assert(cell.kind == PICO8_LQ_CELL_FIXED && cell.as.fixed == p8_fixed_from_int(0));
+    cell = render_one_item((data_item_t){.number = 0});
+    assert(cell.kind == LAYOUT_ROW_CELL_FIXED && cell.as.fixed == p8_fixed_from_int(0));
 
     hits = sprite0_bottom_row_hits(&hit_x, &hit_y);
     drawn = pixels_drawn();
@@ -172,9 +172,9 @@ int main(void) {
     /* `cu()` fills the 0x5000 palette-block table that `dv()` copies slices
      * of. `lq:mn`'s sprite branch calls `dv(qw)`/`dv()` around its `spr()`,
      * so the control only draws what the cart would draw once it has run. */
-    pico8_cu(&mem);
+    hud_build_palette_table(&mem);
 
-    pico8_layout_init();
+    layout_init();
 
     test_nil_item_draws_nothing();
     test_numeric_item_still_draws_its_sprite();

@@ -104,7 +104,7 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
 }
 
 static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
-    return jo->def->hf ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
+    return jo->def->is_planet ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 /* 0 absent, 1 false, 2 true. */
@@ -136,13 +136,13 @@ static int ents_list_size(const entity_list_t *l) {
 }
 
 static uint32_t fold_kw(uint32_t h, const pico8_jo_t *jo) {
-    const pico8_kw_t *k = jo->kw;
+    const production_t *k = jo->kw;
 
     if (k == NULL) {
         return fnv(h, 0xA0u);
     }
-    h = k->has_qe ? fold_fixed_member(h, k->qe) : fold_absent(h);
-    h = fold_fixed_member(h, k->mu);
+    h = k->has_resource ? fold_fixed_member(h, k->resource) : fold_absent(h);
+    h = fold_fixed_member(h, k->amount);
     return fnv(h, (uint32_t)(k == pico8_jo_shared_kw()));
 }
 
@@ -223,13 +223,13 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
     h = fold_fixed_member(h, jo->header.state_time);
     h = fold_string_member(h, jo->id);
     h = fold_hf(h, jo);
-    h = fold_fixed_member(h, jo->def->hs);
-    h = fold_fixed_member(h, jo->def->fa);
+    h = fold_fixed_member(h, jo->def->trade_multiplier);
+    h = fold_fixed_member(h, jo->def->layer);
     h = fold_fixed_member(h, jo->ma);
-    h = fold_fixed_member(h, jo->def->ca);
+    h = fold_fixed_member(h, jo->def->back_color);
     h = fold_vec(h, jo->p);
     h = fold_vec(h, jo->ra);
-    h = fold_vec(h, &jo->def->gq);
+    h = fold_vec(h, &jo->def->row_step);
     /* The 1s of `hf`, `hs`, `fa`, `ma` and `ca`: constant by the struct's
      * shape, kept so that GALAXY_HASH and NEW_PLANET_HASH still prove the
      * typed reads. */
@@ -239,13 +239,13 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->def->ka != NULL));
-    h = fnv(h, (uint32_t)(jo->def->dz != NULL));
-    h = fnv(h, (uint32_t)(jo->def->cq != NULL));
+    h = fnv(h, (uint32_t)(jo->def->ring_colors != NULL));
+    h = fnv(h, (uint32_t)(jo->def->mood_rows != NULL));
+    h = fnv(h, (uint32_t)(jo->def->made_resources != NULL));
     h = fnv(h, (uint32_t)(jo->kw != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->def->em != NULL));
+    h = fnv(h, (uint32_t)(jo->def->spacer != NULL));
     h = fnv(h, (uint32_t)(jo->id != NULL));
     h = fnv(h, (uint32_t)(jo->p != NULL));
     h = fnv(h, (uint32_t)(jo->ra != NULL));
@@ -265,9 +265,9 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
     h = fnv(h, (uint32_t)jo->has_mi);
     h = fnv(h, (uint32_t)(jo->m_ != 0));
     assert_jo_members(cls_of(e));
-    assert(jo->def == &pico8_jo_def);
-    assert(jo->def == &pico8_jo_def);
-    assert(jo->header.class->tags == (TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && jo->kw == pico8_jo_shared_kw() && jo->def->em == &pico8_jo_em_row);
+    assert(jo->def == &planet_archetype);
+    assert(jo->def == &planet_archetype);
+    assert(jo->header.class->tags == (TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && jo->kw == pico8_jo_shared_kw() && jo->def->spacer == &planet_spacer_row);
     h = fnv(h, (uint32_t)ents_rank_in(live_entities(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
         h = fnv(h, (uint32_t)ents_rank_in(entities_by_message(bm[i]), e));
@@ -364,9 +364,9 @@ static uint32_t fold_daughter(uint32_t h, void *d) {
     const pico8_jo_t *jo = as_jo(d);
     vec_t ra;
 
-    h = fold_fixed_member(h, jo->def->ca);
-    h = fold_vec(h, &jo->def->gq);
-    assert(jo->def->em == &pico8_jo_em_row);
+    h = fold_fixed_member(h, jo->def->back_color);
+    h = fold_vec(h, &jo->def->row_step);
+    assert(jo->def->spacer == &planet_spacer_row);
     h = fnv(fnv(h, 0xB0u), pico8_jo_gg(jo) ? 1u : 0u);
     assert(jo->ra != NULL);
     ra = *jo->ra;
@@ -512,7 +512,7 @@ static void test_ll(void) {
 static void test_kw_shared(void) {
     pico8_jo_t *a;
     pico8_jo_t *b;
-    pico8_kw_t *kw;
+    production_t *kw;
     pico8_hp_t *hp;
     pico8_qe_map_t po_before;
     pico8_qe_map_t po_after;
@@ -524,29 +524,29 @@ static void test_kw_shared(void) {
     b = new_planet("p903", 7, 8);
     kw = a->kw;
     assert(kw == pico8_jo_shared_kw() && b->kw == kw);
-    kw->mu = p8_fixed_from_int(7);
-    assert(b->kw->mu == p8_fixed_from_int(7));
-    assert(pico8_jo_shared_kw()->mu == p8_fixed_from_int(7));
+    kw->amount = p8_fixed_from_int(7);
+    assert(b->kw->amount == p8_fixed_from_int(7));
+    assert(pico8_jo_shared_kw()->amount == p8_fixed_from_int(7));
 
     assert(pico8_gb_count() > 0);
     hp = pico8_gb_find("");
     assert(hp != NULL);
     pico8_jo_lz(a, hp);
     assert(a->kw != NULL && a->kw != pico8_jo_shared_kw());
-    assert(a->kw->mu == p8_fixed_from_int(0));
+    assert(a->kw->amount == p8_fixed_from_int(0));
     assert(b->kw == pico8_jo_shared_kw());
     assert(a->hn == hp && list_size(a->jy) >= 0);
 
     pico8_bx(&po_before);
-    kw->has_qe = 1;
-    kw->qe = p8_fixed_from_int(28);
+    kw->has_resource = 1;
+    kw->resource = p8_fixed_from_int(28);
     pico8_bx(&po_after);
-    pico8_qe_map_get(&po_before, kw->qe, &before);
-    pico8_qe_map_get(&po_after, kw->qe, &after);
+    pico8_qe_map_get(&po_before, kw->resource, &before);
+    pico8_qe_map_get(&po_after, kw->resource, &after);
     assert(after == before);
     pico8_jo_init();
     assert(b->kw == pico8_jo_shared_kw());
-    assert(!kw->has_qe && kw->mu == p8_fixed_from_int(0));
+    assert(!kw->has_resource && kw->amount == p8_fixed_from_int(0));
 }
 
 /* `jo:hh` takes `df.ll` itself on a roll of `jo.ir()` under 0.45, and its
@@ -564,8 +564,8 @@ static void test_hh_takes_ll(void) {
         snprintf(id, sizeof id, "p%d", 950 + i);
         p = new_planet(id, i, i);
         pico8_jo_hh(p);
-        assert(p->nk != NULL && p->ep == p->nk->d);
-        took_ll = p->nk == pico8_df_lookup("vanishing");
+        assert(p->nk != NULL && p->ep == p->nk->description);
+        took_ll = p->nk == planet_types_lookup("vanishing");
         assert(strcmp(p->header.state, took_ll ? "vanishing" : "known") == 0);
     }
     assert(took_ll);
@@ -591,8 +591,8 @@ static void test_jo_is_a_struct(void) {
     assert_jo_members(pico8_jo_struct_class());
     assert(pico8_jo_ready());
 
-    assert(pico8_jo_dz() == pico8_jo_dz_rows && pico8_jo_cq() == &pico8_jo_cq_seq &&
-           pico8_jo_ka() == &pico8_jo_ka_seq && pico8_jo_em() == &pico8_jo_em_row);
+    assert(pico8_jo_dz() == planet_mood_rows_rows && pico8_jo_cq() == &planet_made_resources_seq &&
+           pico8_jo_ka() == &planet_ring_colors_seq && pico8_jo_em() == &planet_spacer_row);
 
     a = new_planet("p904", 9, 10);
     assert(is_a_jo_struct(a));
@@ -618,9 +618,9 @@ static pico8_jo_t *planet_with_a_row(void) {
     pico8_jo_t *a = (pico8_jo_t *)entities_by_tag("planet")->items[0];
 
     a->kw = &a->kw_own;
-    a->kw_own.has_qe = 1;
-    a->kw_own.qe = p8_fixed_from_int(28);
-    a->kw_own.mu = p8_fixed_from_int(2);
+    a->kw_own.has_resource = 1;
+    a->kw_own.resource = p8_fixed_from_int(28);
+    a->kw_own.amount = p8_fixed_from_int(2);
     return a;
 }
 
@@ -655,7 +655,7 @@ static void test_hb_without_qe_takes_no_place(void) {
 
     start_title();
     a = new_planet("p903", 7, 8);
-    assert(a->kw != NULL && !a->kw->has_qe);
+    assert(a->kw != NULL && !a->kw->has_resource);
     before = rangee_places();
     cls_of(a)->refresh(&a->header);
     assert(a->lq == NULL && rangee_places() == before);

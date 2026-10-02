@@ -89,11 +89,11 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
         t_qe = pico8_trade_qe(t);
     }
 
-    have_r_e = pico8_r_lookup("e", &qe);
+    have_r_e = resource_code_lookup("e", &qe);
     if (have_r_e) {
         r_e = (pico8_qe_t){.kind = PICO8_QE_FIXED, .n = p8_fixed_from_int(qe)};
     }
-    have_r_q = pico8_r_lookup("?", &qe);
+    have_r_q = resource_code_lookup("?", &qe);
     if (have_r_q) {
         r_q = (pico8_qe_t){.kind = PICO8_QE_FIXED, .n = p8_fixed_from_int(qe)};
     }
@@ -150,13 +150,13 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
         if (have_r_q && pico8_qe_equal(qe_val, r_q)) {
             int accepted = 0;
 
-            if ((self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && self->def->ba != NULL) {
-                accepted = t_qe.kind == PICO8_QE_FIXED && pico8_int_seq_has_fixed(self->def->ba, t_qe.n);
+            if ((self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && self->def->accepted_resources != NULL) {
+                accepted = t_qe.kind == PICO8_QE_FIXED && int_seq_has_fixed(self->def->accepted_resources, t_qe.n);
             }
             if (accepted) {
                 assert(t_qe.kind == PICO8_QE_FIXED && "a want's qe is a resource of r, never a boolean");
-                i->row.has_qe = 1;
-                i->row.qe = t_qe.n;
+                i->row.has_resource = 1;
+                i->row.resource = t_qe.n;
                 qe_val = t_qe;
             }
         }
@@ -191,11 +191,11 @@ entity_list_t *pico8_jo_ib(pico8_jo_t *self) {
     }
 
     if (self->kw != NULL) {
-        if (self->kw->has_qe) {
+        if (self->kw->has_resource) {
             keys.has_qe = 1;
-            keys.qe = self->kw->qe;
+            keys.qe = self->kw->resource;
         }
-        mu = self->kw->mu;
+        mu = self->kw->amount;
     }
 
     oe = self->oe;

@@ -157,7 +157,7 @@ static pico8_bg_t *find_bg(int *count) {
             continue;
         }
         bg = (pico8_bg_t *)e;
-        if (bg->def->hd == p8_fixed_from_int(1) && bg->def->fa == p8_fixed_from_int(1)) {
+        if (bg->def->hit_test == p8_fixed_from_int(1) && bg->def->layer == p8_fixed_from_int(1)) {
             found = bg;
             (*count)++;
         }
@@ -186,16 +186,16 @@ static int mget(int x, int y) {
  * methods, nothing written yet, registered in hv, cv.kj and cv.hd only. */
 static void check_fresh_bg(const pico8_bg_t *bg) {
     const entity_class_t *cls = bg->header.class;
-    const pico8_int_seq_t *pl;
+    const int_seq_t *pl;
     size_t i;
 
     assert(is_me(&bg->header, "normal"));
     assert(bg->header.state_time == 0);
-    assert(bg->def == &pico8_bg_def);
-    assert(bg->def->fa == p8_fixed_from_int(1));
-    assert(bg->def->hd == p8_fixed_from_int(1));
-    pl = bg->def->pl;
-    assert(pl == &pico8_bg_pl_seq && pl->count == 15);
+    assert(bg->def == &background_archetype);
+    assert(bg->def->layer == p8_fixed_from_int(1));
+    assert(bg->def->hit_test == p8_fixed_from_int(1));
+    pl = bg->def->tile_choices;
+    assert(pl == &background_tile_choices_seq && pl->count == 15);
     for (i = 0; i < 15; i++) {
         assert(pl->items[i] == want_pl[i]);
     }

@@ -10,7 +10,7 @@
  * no-op. */
 
 /* `r`'s 13 resources and at most 3 more. */
-enum { PICO8_QE_MAP_CAP = PICO8_R_COUNT + 3 };
+enum { PICO8_QE_MAP_CAP = RESOURCE_CODE_COUNT + 3 };
 
 /* A table keyed by resource (`qe`, floored to an integer as Lua indexes
  * it), entries in insertion order. */

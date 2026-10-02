@@ -32,11 +32,11 @@ typedef struct pico8_qy {
  * host, whose `rendre` gives it back by pico8_qy_rendre. `pn`, `du`
  * are read by `g_:mm` only: a `ga` leaves them unwritten. */
 typedef struct pico8_emitter {
-    const pico8_emitter_def_t *def;
+    const emitter_archetype_t *def;
     p8_fixed_t pn;
     p8_fixed_t du;
     p8_fixed_t py;
-    const pico8_int_seq_t *k_; /* NULL: absent, every particle drawn in colour 0 */
+    const int_seq_t *k_; /* NULL: absent, every particle drawn in colour 0 */
     p8_fixed_t qo;
     p8_fixed_t ro;
     p8_fixed_t qg;

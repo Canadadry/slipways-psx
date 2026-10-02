@@ -192,16 +192,16 @@ static int in_gb(const void *e) {
 
 static int is_lq(const void *e) {
     return e != NULL &&
-           ((const entity_t *)e)->class == pico8_lq_struct_class();
+           ((const entity_t *)e)->class == layout_row_class();
 }
 
 static int row_count(const void *lq) {
-    return ((const pico8_lq_t *)lq)->items_count;
+    return ((const layout_row_t *)lq)->items_count;
 }
 
-static pico8_lq_cell_t row_item(const void *lq, int i) {
+static layout_row_cell_t row_item(const void *lq, int i) {
     assert(i >= 0 && i < row_count(lq));
-    return ((const pico8_lq_t *)lq)->items[i];
+    return ((const layout_row_t *)lq)->items[i];
 }
 
 static uint32_t fold_ref(uint32_t h, const void *ref) {
@@ -256,25 +256,25 @@ static uint32_t fold_opt_ref(uint32_t h, const void *ref) {
 
 /* A positional as the value it was sorted from folded: a row as any REF,
  * NOTHING as false (no row folded here holds a nil at the top level). */
-static uint32_t fold_cell(uint32_t h, pico8_lq_cell_t c) {
+static uint32_t fold_cell(uint32_t h, layout_row_cell_t c) {
     switch (c.kind) {
-    case PICO8_LQ_CELL_ROW:
+    case LAYOUT_ROW_CELL_ROW:
         return fnv(h, 0x12u);
-    case PICO8_LQ_CELL_FIXED:
+    case LAYOUT_ROW_CELL_FIXED:
         return fold_fixed(h, c.as.fixed);
-    case PICO8_LQ_CELL_STRING:
-        return fold_string(h, c.as.s);
+    case LAYOUT_ROW_CELL_STRING:
+        return fold_string(h, c.as.text);
     default:
-        return fold_bool(h, c.kind == PICO8_LQ_CELL_TRUE);
+        return fold_bool(h, c.kind == LAYOUT_ROW_CELL_TRUE);
     }
 }
 
 /* A row by its width and its positional items. */
-static uint32_t fold_lq(uint32_t h, const pico8_lq_t *lq) {
+static uint32_t fold_lq(uint32_t h, const layout_row_t *lq) {
     int i;
 
     assert(is_lq(lq));
-    h = fold_fixed(h, lq->w);
+    h = fold_fixed(h, lq->width);
     for (i = 0; i < row_count(lq); i++) {
         h = fnv(h, (uint32_t)(i + 1));
         h = fold_cell(h, row_item(lq, i));
@@ -367,9 +367,9 @@ static uint32_t fold_button(uint32_t h, const void *e) {
     h = fold_opt_ref(h, b->_jo_fe_b);
     h = fold_opt_fixed(h, b->has__jo_fe_od, b->_jo_fe_od);
     if (b->_cr_t != NULL) {
-        const pico8_nb_entry_t *t = b->_cr_t;
-        assert(t == pico8_nb_lookup(t->px));
-        h = fold_fixed(fnv(h, 1u), p8_fixed_from_int(t->nk));
+        const technologies_entry_t *t = b->_cr_t;
+        assert(t == map_tables_technologies_lookup(t->name));
+        h = fold_fixed(fnv(h, 1u), p8_fixed_from_int(t->icon));
     } else {
         h = fnv(h, 0u);
     }
@@ -660,8 +660,8 @@ static void invent(char *rr) {
 static void test_research(void) {
     uint32_t h = 2166136261u;
     const entity_list_t *le;
-    const pico8_jb_t *jb;
-    const pico8_lq_t *line;
+    const tooltip_t *jb;
+    const layout_row_t *line;
     int unaffordable = 0;
     int i;
 
@@ -679,10 +679,10 @@ static void test_research(void) {
     assert(unaffordable >= 1);
     assert(!js_of(le->items[le->count - 1])->has_my && js_of(le->items[le->count - 1])->jb != NULL);
     jb = js_of(le->items[le->count - 1])->jb;
-    assert(jb->ls_count == 1);
-    line = jb->ls[0];
-    assert(line->items_count == 1 && line->items[0].kind == PICO8_LQ_CELL_STRING);
-    assert(strcmp(line->items[0].as.s, "slipgates") == 0);
+    assert(jb->rows_count == 1);
+    line = jb->rows[0];
+    assert(line->items_count == 1 && line->items[0].kind == LAYOUT_ROW_CELL_STRING);
+    assert(strcmp(line->items[0].as.text, "slipgates") == 0);
     h = fold_le(h, "research");
     check("research", h, RESEARCH_HASH);
 }
@@ -785,20 +785,20 @@ static vec_t *vec_at(int x, int y) {
 /* A button of `keys` whose `lq` is `{lq_text}`, and whose `h_`, when
  * `h_text` is not NULL, is `{h_text,c=13}`. */
 static void *build(pico8_js_keys_t keys, const char *lq_text, const char *h_text) {
-    pico8_lq_cell_t lq_item = pico8_lq_cell_string(lq_text);
-    pico8_lq_cell_t h_item;
-    pico8_lq_keys_t lq = {0};
-    pico8_lq_keys_t h_ = {0};
+    layout_row_cell_t lq_item = layout_row_cell_string(lq_text);
+    layout_row_cell_t h_item;
+    layout_row_keys_t lq = {0};
+    layout_row_keys_t h_ = {0};
 
     lq.items = &lq_item;
     lq.count = 1;
     keys.lq_row = &lq;
     if (h_text != NULL) {
-        h_item = pico8_lq_cell_string(h_text);
+        h_item = layout_row_cell_string(h_text);
         h_.items = &h_item;
         h_.count = 1;
-        h_.has_c = 1;
-        h_.c = p8_fixed_from_int(13);
+        h_.has_color = 1;
+        h_.color = p8_fixed_from_int(13);
         keys.has_h_ = 1;
         keys.h_row = &h_;
     }
@@ -885,11 +885,11 @@ static void test_ldown(void) {
 }
 
 static uint32_t lq_first(const void *b) {
-    const pico8_lq_t *lq = js_of(b)->lq;
-    pico8_lq_cell_t v;
+    const layout_row_t *lq = js_of(b)->lq;
+    layout_row_cell_t v;
     assert(lq != NULL && row_count(lq) > 0);
     v = row_item(lq, 0);
-    assert(v.kind == PICO8_LQ_CELL_FIXED);
+    assert(v.kind == LAYOUT_ROW_CELL_FIXED);
     return (uint32_t)p8_fixed_flr_int(v.as.fixed);
 }
 
@@ -914,7 +914,7 @@ static void test_hb(void) {
     assert(js_of(ix[1])->lq != before);
     assert(lq_first(ix[1]) == (affordable ? 24u : 37u));
     h = fnv(h, lq_first(ix[1]));
-    h = fold_fixed(h, js_of(ix[1])->lq->w);
+    h = fold_fixed(h, js_of(ix[1])->lq->width);
     h = fold_fixed(h, js_of(ix[1])->mb);
     check("refresh", h, HB_HASH);
 }
@@ -1006,7 +1006,7 @@ static void test_draw(void) {
     free_keys.h_is_false = 1;
     free_ = build(free_keys, "plain", NULL);
     tooltip = build(at(10, 20), "plain", NULL);
-    ((pico8_js_t *)tooltip)->jb = pico8_jb_new(&heap_allocator, &pico8_dr_table[0]);
+    ((pico8_js_t *)tooltip)->jb = tooltip_new(&heap_allocator, &icon_tooltips_table[0]);
 
     px[0] = draw_alone(plain);
     px[1] = draw_alone(with_my);
@@ -1040,7 +1040,7 @@ static void test_nil_keys(void) {
     nil_keys = pico8_js_new(&b);
     assert(!js_of(no_keys)->has_h_ && js_of(no_keys)->jb == NULL);
     assert(js_of(nil_keys)->has_h_ && is_lq(js_of(nil_keys)->h_));
-    assert(js_of(nil_keys)->h_->w == 0);
+    assert(js_of(nil_keys)->h_->width == 0);
     assert(js_of(nil_keys)->jb != NULL);
 }
 
@@ -1121,7 +1121,7 @@ static uint32_t fold_member_ref(uint32_t h, const void *ref) {
     if (is_lq(ref)) {
         return fold_lq(fnv(h, 0xA2u), ref);
     }
-    if (is_of_class(ref, pico8_jb_struct_class())) {
+    if (is_of_class(ref, tooltip_class())) {
         return fnv(h, 0xB1u);
     }
     if (is_of_class(ref, pico8_jo_struct_class())) {
@@ -1173,9 +1173,9 @@ static uint32_t fold_js_members(uint32_t h, const void *e) {
     h = fold_member_fixed(h, b->has_trade, b->trade);
     h = fold_member_fixed(h, b->has_en, b->en);
     if (b->_cr_t != NULL) {
-        const pico8_nb_entry_t *t = b->_cr_t;
-        assert(t == pico8_nb_lookup(t->px));
-        h = fold_fixed(fnv(fold_kind(h, REF_KIND), 0xB4u), p8_fixed_from_int(t->nk));
+        const technologies_entry_t *t = b->_cr_t;
+        assert(t == map_tables_technologies_lookup(t->name));
+        h = fold_fixed(fnv(fold_kind(h, REF_KIND), 0xB4u), p8_fixed_from_int(t->icon));
     } else {
         h = fnv(h, 0u);
     }
@@ -1234,7 +1234,7 @@ static uint32_t fold_written(uint32_t h, void *e, void *other) {
     pico8_js_t *b = js_of(e);
     const box_t *kq_before = b->header.hit_box;
     p8_fixed_t mb = b->mb;
-    pico8_lq_t *row;
+    layout_row_t *row;
     int i;
 
     assert(kq_before != NULL);
@@ -1262,7 +1262,7 @@ static uint32_t fold_written(uint32_t h, void *e, void *other) {
     assert(row != NULL);
     b->lq = row;
     h = fold_js_members(h, e);
-    row = pico8_lq_new(&heap_allocator, NULL);
+    row = layout_row_new(&heap_allocator, NULL);
     b->lq = row;
     h = fold_js_members(h, e);
     b->lq = NULL;
@@ -1295,11 +1295,11 @@ static uint32_t fold_and_drop(uint32_t h, pico8_js_t *b) {
 /* Each optional key unset, the fixed ones and `my` given at zero, `h_`
  * false, TROU-23, an `h_` copied from an `lq` (written on the member: no
  * key builds it), a row's keys as `lq(x)`'s argument. */
-static uint32_t fold_keys(uint32_t h, pico8_lq_t *row) {
+static uint32_t fold_keys(uint32_t h, layout_row_t *row) {
     const pico8_js_keys_t none = {0};
     pico8_js_keys_t k;
-    pico8_lq_cell_t from_keys[2];
-    pico8_lq_keys_t from = {0};
+    layout_row_cell_t from_keys[2];
+    layout_row_keys_t from = {0};
     pico8_js_t *b;
     int i;
 
@@ -1345,12 +1345,12 @@ static uint32_t fold_keys(uint32_t h, pico8_lq_t *row) {
     k = none;
     k.has_h_ = 1;
     b = built(k);
-    assert(b->has_h_ && is_lq(b->h_) && b->h_->w == 0);
+    assert(b->has_h_ && is_lq(b->h_) && b->h_->width == 0);
     h = fold_and_drop(h, b);
     k = none;
     k.has_jb = 1;
     b = built(k);
-    assert(b->jb != NULL && is_of_class(b->jb, pico8_jb_struct_class()));
+    assert(b->jb != NULL && is_of_class(b->jb, tooltip_class()));
     h = fold_and_drop(h, b);
     k = none;
     b = built(k);
@@ -1360,12 +1360,12 @@ static uint32_t fold_keys(uint32_t h, pico8_lq_t *row) {
     k = none;
     k.has_h_ = 1;
     b = built(k);
-    b->h_ = pico8_lq_copy(&heap_allocator, row);
+    b->h_ = layout_row_copy(&heap_allocator, row);
     assert(b->has_h_ && is_lq(b->h_) && b->h_ != row);
     h = fold_and_drop(h, b);
 
-    from_keys[0] = pico8_lq_cell_string("from a list");
-    from_keys[1] = pico8_lq_cell_fixed(p8_fixed_from_int(3));
+    from_keys[0] = layout_row_cell_string("from a list");
+    from_keys[1] = layout_row_cell_fixed(p8_fixed_from_int(3));
     from.items = from_keys;
     from.count = 2;
     k = none;
@@ -1397,7 +1397,7 @@ static uint32_t members_title_and_game(void) {
             assert(n < 4);
             title[n++] = e;
             assert(js_of(e)->px != NULL);
-            assert(js_of(e)->fa == pico8_fv_def.ca);
+            assert(js_of(e)->fa == help_screen_archetype.back_color);
             h = fold_js_members(h, e);
         }
     }
@@ -1421,10 +1421,10 @@ static uint32_t members_title_and_game(void) {
     fresh[1] = pico8_js_new(&empty);
     for (k = 0; k < 2; k++) {
         const pico8_js_t *b = js_of(fresh[k]);
-        const pico8_lq_t *lq = b->lq;
+        const layout_row_t *lq = b->lq;
         assert(lq != NULL && is_lq(lq) && row_count(lq) == 0);
         assert(b->fa == p8_fixed_from_int(11));
-        assert(b->mb == p8_fixed_add(lq->w, p8_fixed_from_int(2)));
+        assert(b->mb == p8_fixed_add(lq->width, p8_fixed_from_int(2)));
         assert(b->header.hit_box != NULL);
         assert(!b->has_h_ && b->jb == NULL && b->ra == NULL && b->qf == NULL && !b->m_);
         assert(!b->has_fg && b->px == NULL && !b->has_trade && !b->has_en && b->_cr_t == NULL);
@@ -1463,12 +1463,12 @@ static uint32_t members_research(void) {
     int affordable = 0;
     int i;
 
-    for (i = 0; i < PICO8_NB_COUNT; i++) {
-        assert(pico8_nb_table[i].oy != NULL);
+    for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
+        assert(technologies_table[i].tooltip_rows != NULL);
     }
     /* The frozen hash folded the count of the old nb table: each record
      * under its rank and under its px. */
-    h = fnv(h, (uint32_t)(2 * PICO8_NB_COUNT));
+    h = fnv(h, (uint32_t)(2 * TECHNOLOGIES_COUNT));
 
     tech_screen();
     le = ok_le();
@@ -1482,11 +1482,11 @@ static uint32_t members_research(void) {
             assert(js_of(b)->_cr_t == NULL);
             dear++;
         } else {
-            const pico8_nb_entry_t *t = js_of(b)->_cr_t;
-            const pico8_lq_t *lq = js_of(b)->lq;
+            const technologies_entry_t *t = js_of(b)->_cr_t;
+            const layout_row_t *lq = js_of(b)->lq;
             assert(my_state(b) == 3 && lq != NULL);
-            assert(lq->items_count >= 2 && lq->items[1].kind == PICO8_LQ_CELL_STRING);
-            assert(t != NULL && t == pico8_nb_lookup(lq->items[1].as.s));
+            assert(lq->items_count >= 2 && lq->items[1].kind == LAYOUT_ROW_CELL_STRING);
+            assert(t != NULL && t == map_tables_technologies_lookup(lq->items[1].as.text));
             affordable++;
         }
         assert(js_of(b)->has_h_ && is_lq(js_of(b)->h_));
@@ -1520,7 +1520,7 @@ static uint32_t members_fe(void) {
         assert(b->_jo_fe_b != NULL && is_of_class(b->_jo_fe_b, pico8_hp_struct_class()));
         assert(b->has__jo_fe_od);
         assert(b->my != NULL);
-        assert(b->jb != NULL && is_of_class(b->jb, pico8_jb_struct_class()));
+        assert(b->jb != NULL && is_of_class(b->jb, tooltip_class()));
         if (b->_jo_fe_od > 0) {
             assert(b->has_h_ && is_lq(b->h_));
         } else {
@@ -1680,8 +1680,8 @@ static void test_cb_writes_every_e_(void) {
     pico8_fm_hy()->jk = p8_fixed_from_int(12);
     jk = pico8_fm_hy()->jk;
     kept = pico8_cb(0);
-    for (i = 0; i < PICO8_NB_COUNT; i++) {
-        const pico8_nb_entry_t *t = &pico8_nb_table[i];
+    for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
+        const technologies_entry_t *t = &technologies_table[i];
         int affordable = pico8_gi_nb(t) <= jk;
         int k;
         int is_kept = 0;
@@ -1695,12 +1695,12 @@ static void test_cb_writes_every_e_(void) {
     assert(dropped_affordable > 0);
     pico8_fm_hy()->jk = p8_fixed_from_int(999);
     (void)pico8_cb(0);
-    for (i = 0; i < PICO8_NB_COUNT; i++) {
-        assert(pico8_nb_e_(&pico8_nb_table[i]) == 1);
+    for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
+        assert(pico8_nb_e_(&technologies_table[i]) == 1);
     }
-    pico8_data_init();
-    for (i = 0; i < PICO8_NB_COUNT; i++) {
-        assert(pico8_nb_e_(&pico8_nb_table[i]) == 0);
+    data_init();
+    for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
+        assert(pico8_nb_e_(&technologies_table[i]) == 0);
     }
 }
 
@@ -1893,29 +1893,29 @@ static void test_largest_buttons_fit_their_places(void) {
     start_game();
     fm = pico8_fm_hy();
     fm->jk = p8_fixed_from_int(9999);
-    for (i = 0; i < PICO8_NB_COUNT; i++) {
-        fm->ew = p8_fixed_from_int(pico8_nb_table[i].lv);
+    for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
+        fm->ew = p8_fixed_from_int(technologies_table[i].era);
         pico8_cr();
         one_frame();
     }
-    for (i = 0; i < PICO8_NB_COUNT; i++) {
-        invent((char *)pico8_nb_table[i].px);
+    for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
+        invent((char *)technologies_table[i].name);
     }
     pico8_cr();
-    assert(js_of(ok_le()->items[ok_le()->count - 1])->jb->ls_count == PICO8_NB_COUNT);
+    assert(js_of(ok_le()->items[ok_le()->count - 1])->jb->rows_count == TECHNOLOGIES_COUNT);
     one_frame();
 
     for (k = 1; k <= pico8_gb_count(); k++) {
         pico8_hp_t *b = pico8_gb_at(k);
-        pico8_lq_cell_t lq_items[8];
-        pico8_lq_keys_t lq;
-        pico8_lq_cell_t h_item = pico8_lq_cell_string(
+        layout_row_cell_t lq_items[8];
+        layout_row_keys_t lq;
+        layout_row_cell_t h_item = layout_row_cell_string(
             p8_concat2(frame_zone(), "$", p8_tostr_fixed(frame_zone(), pico8_hp_od(b))));
-        pico8_lq_keys_t h = {.items = &h_item, .count = 1};
+        layout_row_keys_t h = {.items = &h_item, .count = 1};
         pico8_js_keys_t keys = {.has_h_ = 1, .h_row = &h, .has_jb = 1};
 
         if (b->lq != NULL) {
-            lq = pico8_lq_keys_of_row(b->lq, lq_items, 8);
+            lq = layout_row_keys_of_row(b->lq, lq_items, 8);
             keys.lq_row = &lq;
         } else {
             keys.lq_copy = pico8_hp_lq(b);

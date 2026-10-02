@@ -31,8 +31,8 @@ static const entity_list_t *ok_le(void) {
     return ok->le;
 }
 
-static const pico8_lq_t *button_lq(const void *button) {
-    const pico8_lq_t *lq;
+static const layout_row_t *button_lq(const void *button) {
+    const layout_row_t *lq;
 
     assert(button != NULL);
     assert(((const entity_t *)button)->class == pico8_js_struct_class());
@@ -41,16 +41,16 @@ static const pico8_lq_t *button_lq(const void *button) {
     return lq;
 }
 
-static const char *lq_index_string(const pico8_lq_t *lq, int index) {
-    pico8_lq_cell_t v;
+static const char *lq_index_string(const layout_row_t *lq, int index) {
+    layout_row_cell_t v;
     if (index < 1 || index > lq->items_count) {
         return NULL;
     }
     v = lq->items[index - 1];
-    return (v.kind == PICO8_LQ_CELL_STRING) ? v.as.s : NULL;
+    return (v.kind == LAYOUT_ROW_CELL_STRING) ? v.as.text : NULL;
 }
 
-static int lq_index_is_string(const pico8_lq_t *lq, int index, const char *expected) {
+static int lq_index_is_string(const layout_row_t *lq, int index, const char *expected) {
     const char *s = lq_index_string(lq, index);
     return s != NULL && strcmp(s, expected) == 0;
 }
@@ -64,9 +64,9 @@ static void setup_panel_state(p8_memory_t *mem, p8_graphics_t *gfx) {
     dispatch_context_set_gfx(gfx);
     dispatch_context_set_mem(mem);
 
-    pico8_data_init();
+    data_init();
     reset_world();
-    pico8_layout_init();
+    layout_init();
     pico8_js_init();
     pico8_jo_init();
     pico8_planet_family_init();
@@ -82,13 +82,13 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
     p8_memory_t mem;
     p8_graphics_t gfx;
     pico8_jo_t *planet;
-    static pico8_kw_t kw;
+    static production_t kw;
     vec_t *ra;
     entity_list_t *by;
     pico8_trade_t *route_a;
     pico8_trade_t *route_b;
     const entity_list_t *le;
-    const pico8_lq_t *exports_lq = NULL;
+    const layout_row_t *exports_lq = NULL;
     int i;
 
     setup_panel_state(&mem, &gfx);
@@ -98,9 +98,9 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
 
     /* 99 is deliberately not one of `jo.cq`'s resources, so `jo:gh` takes
      * the else branch and builds the "exports:" row, not the "makes:" one. */
-    kw.has_qe = 1;
-    kw.qe = p8_fixed_from_int(99);
-    kw.mu = p8_fixed_from_int(2);
+    kw.has_resource = 1;
+    kw.resource = p8_fixed_from_int(99);
+    kw.amount = p8_fixed_from_int(2);
     planet->kw = &kw;
 
     ra = malloc(sizeof *ra);
@@ -111,7 +111,7 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
     pico8_jo_gh(planet);
     le = ok_le();
     for (i = 0; i < le->count; i++) {
-        const pico8_lq_t *lq = button_lq(le->items[i]);
+        const layout_row_t *lq = button_lq(le->items[i]);
         if (lq_index_is_string(lq, 1, "exports:")) {
             exports_lq = lq;
         }
@@ -133,7 +133,7 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
     pico8_jo_gh(planet);
     le = ok_le();
     for (i = 0; i < le->count; i++) {
-        const pico8_lq_t *lq = button_lq(le->items[i]);
+        const layout_row_t *lq = button_lq(le->items[i]);
         if (lq_index_is_string(lq, 1, "exports:")) {
             exports_lq = lq;
         }

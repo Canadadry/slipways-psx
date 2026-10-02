@@ -254,9 +254,9 @@ static void test_defaults_match_the_parsed_spec(void) {
     reset_world();
     pico8_cart_vider_file_sortie();
     veil = pico8_fq_new(NULL);
-    assert(veil->def == &pico8_fq_def);
-    assert(veil->def->fa == p8_fixed_from_int(14));
-    assert(veil->def->hd == p8_fixed_from_int(1));
+    assert(veil->def == &modal_backdrop_archetype);
+    assert(veil->def->layer == p8_fixed_from_int(14));
+    assert(veil->def->hit_test == p8_fixed_from_int(1));
     assert(veil->header.state != NULL && strcmp(veil->header.state, "normal") == 0);
     assert(pico8_fq_ready());
     pico8_fq_shutdown();

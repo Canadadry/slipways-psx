@@ -133,8 +133,8 @@ typedef void (*state_fn_t)(entity_t *self, p8_fixed_t t);
 
 struct pico8_qy;
 struct pico8_jo_trade_proposal;
-struct pico8_str_seq;
-struct pico8_kind_rec;
+struct str_seq;
+struct kind_record;
 
 /* One `static const` per converted class. A NULL member: the class has no
  * such method. `kj`, `ev` and `hd` read the vectors they get and never keep
@@ -185,7 +185,7 @@ typedef struct {
  * `s`, `me` and `od` whether its modules are up or down. */
 typedef struct {
     entity_t *(*new_entity)(const planet_keys_t *keys);
-    const struct pico8_kind_rec *record;
+    const struct kind_record *record;
 } entity_kind_t;
 
 /* Here, not in pico8_slipway.h / pico8_probe.h: ui.c compares against

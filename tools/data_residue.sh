@@ -46,7 +46,7 @@ pattern() {
 # Ces sept _default sont des variantes a argument omis du cart, pas des defauts
 # de classe : les compter rendrait spec impossible a eteindre. Pas de \b ici,
 # le sed BSD ne le connait pas.
-SPEC_EXCLUSION='s/(p8_spr|p8_fixed_rnd|pico8_dv|pico8_io|pico8_lq_ol|pico8_bl|pico8_rk)_default//g'
+SPEC_EXCLUSION='s/(p8_spr|p8_fixed_rnd|hud_select_palette_block|hud_print_outlined|layout_row_draw_at|draw_functions_draw_rows|hud_draw_bar)_default//g'
 
 mode=count
 checked=

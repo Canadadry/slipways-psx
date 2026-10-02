@@ -14,7 +14,7 @@
  * research_icon's `pb`). `et` is borrowed; NULL is nil or false, which no
  * reader tells apart. */
 typedef struct pico8_probe {
-    const pico8_probe_def_t *def;
+    const targeting_archetype_t *def;
     entity_t *et;
     p8_fixed_t od;
     int has_od; /* 0: `od` is nil, and is then never read */

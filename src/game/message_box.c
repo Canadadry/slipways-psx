@@ -71,7 +71,7 @@ void pico8_mh_ev(p8_graphics_t *gfx, p8_memory_t *mem, pico8_mh_t *self) {
     nc = p8_fixed_div(p8_fixed_neg(t3), p8_fixed_from_int(9));
 
     if (gfx != NULL && mem != NULL) {
-        pico8_bl(gfx, mem, self->items, self->items_count, nc);
+        draw_functions_draw_rows(gfx, mem, self->items, self->items_count, nc);
         p8_camera_reset(gfx);
     }
 
@@ -94,17 +94,17 @@ static const entity_class_t g_mh_struct_class = {
 
 /* An article `ld` copied into a box's place, its vector by value. */
 typedef struct {
-    pico8_jb_row_t row;
-    pico8_jb_item_t items[3];
+    data_row_t row;
+    data_item_t items[3];
     vec_t ra;
 } pico8_mh_ld_t;
 
 /* `e` itself, or its copy in `place` when it is an article `ld`. */
-static const pico8_jb_row_t *pico8_mh_article(const allocator_t *place, const pico8_jb_row_t *e) {
+static const data_row_t *pico8_mh_article(const allocator_t *place, const data_row_t *e) {
     pico8_mh_ld_t *copy;
     const vec_t *ra;
 
-    if (e->fn == NULL || strcmp(e->fn, "ld") != 0) {
+    if (e->draw_function == NULL || strcmp(e->draw_function, "draw_row") != 0) {
         return e;
     }
     assert(e->count == 3 && e->items[0].is_ref && e->items[1].is_ref &&
@@ -114,8 +114,8 @@ static const pico8_jb_row_t *pico8_mh_article(const allocator_t *place, const pi
     if (ra != NULL) {
         copy->ra = *ra;
     }
-    copy->items[0] = (pico8_jb_item_t){.is_ref = 1, .ref = pico8_lq_copy(place, e->items[0].ref)};
-    copy->items[1] = (pico8_jb_item_t){.is_ref = 1, .ref = ra != NULL ? &copy->ra : NULL};
+    copy->items[0] = (data_item_t){.is_ref = 1, .ref = layout_row_copy(place, e->items[0].ref)};
+    copy->items[1] = (data_item_t){.is_ref = 1, .ref = ra != NULL ? &copy->ra : NULL};
     copy->items[2] = e->items[2];
     copy->row = *e;
     copy->row.items = copy->items;
@@ -128,10 +128,10 @@ static pico8_mh_t *pico8_mh_struct_new(const pico8_mh_keys_t *keys) {
     int i;
 
     self->place = place;
-    entity_init_instance(&self->header, &g_mh_struct_class, pico8_mh_def.me, pico8_mh_def.t);
-    self->def = &pico8_mh_def;
-    self->header.layer = &self->def->fa;
-    self->rh = self->def->rh;
+    entity_init_instance(&self->header, &g_mh_struct_class, message_box_archetype.state, message_box_archetype.state_time);
+    self->def = &message_box_archetype;
+    self->header.layer = &self->def->layer;
+    self->rh = self->def->duration_scale;
     self->lh = NULL;
     self->header.is_dead = &self->p_;
     self->p_ = 0;
@@ -203,7 +203,7 @@ void pico8_iv_ph(pico8_iv_t *self) {
         return;
     }
 
-    self->ra_box = vec_add(pico8_iv_vec_or_zero(self->ra), pico8_iv_vec_or_zero(&self->def->v));
+    self->ra_box = vec_add(pico8_iv_vec_or_zero(self->ra), pico8_iv_vec_or_zero(&self->def->velocity));
     self->ra = &self->ra_box;
 
     new_l = p8_fixed_add(self->l, P8_FIXED_LIT(0x00001999, 0.1));
@@ -226,14 +226,14 @@ void pico8_iv_kj(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_iv_t *s
         return;
     }
 
-    pico8_dv(mem, self->l);
+    hud_select_palette_block(mem, self->l);
 
     text = self->at1 != NULL ? self->at1 : "";
     color = p8_fixed_flr_int(self->at2);
 
-    pico8_io(gfx, mem, text, p.x, p.y, color, &a_center);
+    hud_print_outlined(gfx, mem, text, p.x, p.y, color, &a_center);
 
-    pico8_dv_default(mem);
+    hud_select_palette_block_default(mem);
 }
 
 static void pico8_iv_kj_dispatch(entity_t *self, const vec_t *ra) {
@@ -257,11 +257,11 @@ static pico8_iv_t *pico8_iv_struct_new(const pico8_iv_keys_t *keys) {
 
     self->place = place;
 
-    entity_init_instance(&self->header, &g_iv_struct_class, pico8_iv_def.me, pico8_iv_def.t);
-    self->def = &pico8_iv_def;
-    self->header.layer = &self->def->fa;
+    entity_init_instance(&self->header, &g_iv_struct_class, toast_archetype.state, toast_archetype.state_time);
+    self->def = &toast_archetype;
+    self->header.layer = &self->def->layer;
     self->header.pos = &self->ra;
-    self->l = self->def->l;
+    self->l = self->def->fade;
     self->ra = NULL;
     self->header.is_dead = &self->p_;
     self->p_ = 0;
@@ -287,7 +287,7 @@ static pico8_iv_t *pico8_iv_struct_new(const pico8_iv_keys_t *keys) {
 
 void pico8_iv_init(void) {
     pico8_iv_shutdown();
-    pico8_pi_init();
+    draw_functions_init();
     g_iv_up = 1;
 }
 
@@ -339,14 +339,14 @@ static void pz_add(entity_list_t *le, pico8_js_t *button) {
 }
 
 void pico8_pz(const pico8_pz_frame_t *frame, const pico8_js_keys_t *bs, int n) {
-    pico8_lq_cell_t ep_cell;
+    layout_row_cell_t ep_cell;
     vec_t ra;
     pico8_pz_ctx_t ctx;
     entity_list_t *le;
     pico8_ui_t *ok;
     p8_fixed_t rn_arg;
     pico8_js_keys_t ep_row = {0};
-    pico8_lq_keys_t ep_lq = {0};
+    layout_row_keys_t ep_lq = {0};
     int has_ep;
     int i;
 
@@ -356,11 +356,11 @@ void pico8_pz(const pico8_pz_frame_t *frame, const pico8_js_keys_t *bs, int n) {
 
     has_ep = frame->ep != NULL;
     if (has_ep) {
-        ep_cell = pico8_lq_cell_string(frame->ep);
+        ep_cell = layout_row_cell_string(frame->ep);
         ep_lq.items = &ep_cell;
         ep_lq.count = 1;
-        ep_lq.has_c = 1;
-        ep_lq.c = p8_fixed_from_int(13);
+        ep_lq.has_color = 1;
+        ep_lq.color = p8_fixed_from_int(13);
         ep_row.lq_row = &ep_lq;
     }
 

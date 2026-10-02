@@ -27,12 +27,12 @@
 
 /* `kw` as `lq:mn` reads it, `{qe=kw.qe}` (`mu` is never read there), in
  * the frame zone. */
-static const pico8_jb_row_t *jo_kw_tuple(const pico8_kw_t *kw) {
-    pico8_jb_row_t *t = (pico8_jb_row_t *)allocator_alloc(frame_zone(), sizeof *t);
+static const data_row_t *jo_kw_tuple(const production_t *kw) {
+    data_row_t *t = (data_row_t *)allocator_alloc(frame_zone(), sizeof *t);
 
     memset(t, 0, sizeof *t);
-    t->has_qe = kw->has_qe;
-    t->qe = kw->qe;
+    t->has_resource = kw->has_resource;
+    t->resource = kw->resource;
     return t;
 }
 
@@ -41,7 +41,7 @@ void pico8_jo_hb(pico8_jo_t *self) {
     const entity_list_t *by_list;
     const p8_fixed_t *qe = NULL;
     p8_fixed_t mu = p8_fixed_from_int(0);
-    pico8_lq_t *lq_result;
+    layout_row_t *lq_result;
     const allocator_t *place;
 
     if (self == NULL) {
@@ -50,8 +50,8 @@ void pico8_jo_hb(pico8_jo_t *self) {
 
     jy_list = self->jy;
     if (self->kw != NULL) {
-        qe = self->kw->has_qe ? &self->kw->qe : NULL;
-        mu = self->kw->mu;
+        qe = self->kw->has_resource ? &self->kw->resource : NULL;
+        mu = self->kw->amount;
     }
     by_list = self->by;
 
@@ -121,8 +121,8 @@ static int pico8_jo_gh_jp_step(void *e, void *ctx_ptr) {
 #define PICO8_JO_GH_LB_CAP 4
 
 /* Room for `n` positionals of a row of `jo:gh`, the gap's cell included. */
-static pico8_lq_cell_t *jo_gh_row_items(int n) {
-    return (pico8_lq_cell_t *)allocator_alloc(frame_zone(), (size_t)n * sizeof(pico8_lq_cell_t));
+static layout_row_cell_t *jo_gh_row_items(int n) {
+    return (layout_row_cell_t *)allocator_alloc(frame_zone(), (size_t)n * sizeof(layout_row_cell_t));
 }
 
 /* `s` followed by `$`, in the frame zone. */
@@ -136,22 +136,22 @@ static pico8_pz_frame_t jo_pz_frame(const pico8_jo_t *self) {
 
     frame.ep = self->ep;
     frame.has_ca = 1;
-    frame.ca = self->def->ca;
-    frame.gq = &self->def->gq;
+    frame.ca = self->def->back_color;
+    frame.gq = &self->def->row_step;
     frame.ra = self->ra;
     return frame;
 }
 
 void pico8_jo_gh(const pico8_jo_t *self) {
     pico8_js_keys_t bs[PICO8_JO_GH_ROWS];
-    pico8_lq_keys_t icon;
-    pico8_lq_cell_t icon_items[PICO8_JO_ROW_CAP];
-    pico8_lq_keys_t h_keys;
-    pico8_lq_cell_t h_item;
+    layout_row_keys_t icon;
+    layout_row_cell_t icon_items[PICO8_JO_ROW_CAP];
+    layout_row_keys_t h_keys;
+    layout_row_cell_t h_item;
     int n = 0;
-    const pico8_jb_row_t *icon_row = NULL;
-    pico8_lq_keys_t row_keys[PICO8_JO_GH_ROWS];
-    pico8_lq_cell_t *row_items[PICO8_JO_GH_ROWS];
+    const data_row_t *icon_row = NULL;
+    layout_row_keys_t row_keys[PICO8_JO_GH_ROWS];
+    layout_row_cell_t *row_items[PICO8_JO_GH_ROWS];
     int row_cap[PICO8_JO_GH_ROWS];
     pico8_jo_gh_ctx_t ctx;
     const pointer_list_t *jy;
@@ -165,30 +165,30 @@ void pico8_jo_gh(const pico8_jo_t *self) {
 
     memset(bs, 0, sizeof bs);
     memset(row_keys, 0, sizeof row_keys);
-    if ((self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && self->def->px != NULL) {
-        icon_row = self->def->px;
+    if ((self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && self->def->name != NULL) {
+        icon_row = self->def->name;
     } else if (self->has_mi) {
         int mi = p8_fixed_flr_int(self->mi);
 
-        if (mi >= 1 && mi <= PICO8_JO_DZ_COUNT) {
+        if (mi >= 1 && mi <= PLANET_MOOD_ROWS_COUNT) {
             icon_row = &pico8_jo_dz()[mi - 1];
         }
     }
     if (icon_row != NULL) {
-        icon = pico8_lq_keys_of_row(icon_row, icon_items, PICO8_JO_ROW_CAP);
+        icon = layout_row_keys_of_row(icon_row, icon_items, PICO8_JO_ROW_CAP);
         bs[0].lq_row = &icon;
     }
     bs[0].has_h_ = 1;
     if (self->has_kr) {
         int discard_color = 0;
 
-        h_item = pico8_lq_cell_string(jo_dollar(collect_format_signed(frame_zone(), self->kr, 0, NULL, &discard_color)));
+        h_item = layout_row_cell_string(jo_dollar(collect_format_signed(frame_zone(), self->kr, 0, NULL, &discard_color)));
         memset(&h_keys, 0, sizeof h_keys);
         h_keys.items = &h_item;
         h_keys.count = 1;
-        h_keys.has_bg = 1;
-        h_keys.bg_is_bool = self->kr < p8_fixed_from_int(0);
-        h_keys.bg = self->kr >= p8_fixed_from_int(0) ? p8_fixed_from_int(1) : 0;
+        h_keys.has_background = 1;
+        h_keys.background_is_bool = self->kr < p8_fixed_from_int(0);
+        h_keys.background = self->kr >= p8_fixed_from_int(0) ? p8_fixed_from_int(1) : 0;
         bs[0].h_row = &h_keys;
     }
     n = 1;
@@ -201,30 +201,30 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     if (jx.count > 0) {
         row_cap[n] = 1 + jx.count + 1;
         row_items[n] = jo_gh_row_items(row_cap[n]);
-        row_items[n][row_keys[n].count++] = pico8_lq_cell_string("needs:");
+        row_items[n][row_keys[n].count++] = layout_row_cell_string("needs:");
         for (i = 0; i < jx.count; i++) {
-            row_items[n][row_keys[n].count++] = pico8_lq_cell_row(jx.items[i]);
+            row_items[n][row_keys[n].count++] = layout_row_cell_row(jx.items[i]);
         }
         n++;
     } else {
         p8_fixed_t mi_fixed = self->has_mi ? self->mi : p8_fixed_from_int(0);
-        const pico8_kw_t *kw = self->kw;
+        const production_t *kw = self->kw;
         int r_w;
         int qe_is_r_w;
 
-        qe_is_r_w = kw != NULL && kw->has_qe && pico8_r_lookup("w", &r_w) && kw->qe == p8_fixed_from_int(r_w);
+        qe_is_r_w = kw != NULL && kw->has_resource && resource_code_lookup("w", &r_w) && kw->resource == p8_fixed_from_int(r_w);
 
         if (mi_fixed < p8_fixed_from_int(4) && jy != NULL && jy->count > 0 && !qe_is_r_w) {
-            int last_only = (self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && self->def->qh;
+            int last_only = (self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && self->def->is_structure;
 
             row_cap[n] = 1 + (last_only ? 1 : jy->count) + 1;
             row_items[n] = jo_gh_row_items(row_cap[n]);
-            row_items[n][row_keys[n].count++] = pico8_lq_cell_string("wants more:");
+            row_items[n][row_keys[n].count++] = layout_row_cell_string("wants more:");
             if (last_only) {
-                row_items[n][row_keys[n].count++] = pico8_lq_cell_row(jy->items[jy->count - 1]);
+                row_items[n][row_keys[n].count++] = layout_row_cell_row(jy->items[jy->count - 1]);
             } else {
                 for (i = 0; i < jy->count; i++) {
-                    row_items[n][row_keys[n].count++] = pico8_lq_cell_row(jy->items[i]);
+                    row_items[n][row_keys[n].count++] = layout_row_cell_row(jy->items[i]);
                 }
             }
             n++;
@@ -236,37 +236,37 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     if (ctx.ji.count >= 1) {
         row_cap[n] = 1 + ctx.ji.count + 1;
         row_items[n] = jo_gh_row_items(row_cap[n]);
-        row_items[n][row_keys[n].count++] = pico8_lq_cell_string("receives:");
+        row_items[n][row_keys[n].count++] = layout_row_cell_string("receives:");
         for (i = 0; i < ctx.ji.count; i++) {
-            row_items[n][row_keys[n].count++] = pico8_lq_cell_row(ctx.ji.items[i]);
+            row_items[n][row_keys[n].count++] = layout_row_cell_row(ctx.ji.items[i]);
         }
         n++;
     }
 
     {
-        const pico8_kw_t *kw = self->kw;
-        p8_fixed_t mu = kw != NULL ? kw->mu : p8_fixed_from_int(0);
+        const production_t *kw = self->kw;
+        p8_fixed_t mu = kw != NULL ? kw->amount : p8_fixed_from_int(0);
 
         if (mu > p8_fixed_from_int(0)) {
-            int makes = kw->has_qe && pico8_int_seq_has_fixed(pico8_jo_cq(), kw->qe);
+            int makes = kw->has_resource && int_seq_has_fixed(pico8_jo_cq(), kw->resource);
 
             row_cap[n] = PICO8_JO_GH_LB_CAP;
             row_items[n] = jo_gh_row_items(row_cap[n]);
 
             if (makes) {
                 char *mu_str = p8_tostr_fixed(frame_zone(), mu);
-                row_items[n][row_keys[n].count++] = pico8_lq_cell_string("makes:");
-                row_items[n][row_keys[n].count++] = pico8_lq_cell_string(mu_str);
+                row_items[n][row_keys[n].count++] = layout_row_cell_string("makes:");
+                row_items[n][row_keys[n].count++] = layout_row_cell_string(mu_str);
             } else {
                 const entity_list_t *by = self->by;
                 int by_count = (by != NULL) ? by->count : 0;
                 char *count_str = p8_tostr_fixed(frame_zone(), p8_fixed_from_int(by_count));
                 char *mu_str = p8_tostr_fixed(frame_zone(), mu);
                 char *combined = p8_concat2(frame_zone(), p8_concat2(frame_zone(), count_str, "/"), mu_str);
-                row_items[n][row_keys[n].count++] = pico8_lq_cell_string("exports:");
-                row_items[n][row_keys[n].count++] = pico8_lq_cell_string(combined);
+                row_items[n][row_keys[n].count++] = layout_row_cell_string("exports:");
+                row_items[n][row_keys[n].count++] = layout_row_cell_string(combined);
             }
-            row_items[n][row_keys[n].count++] = pico8_lq_cell_row(jo_kw_tuple(kw));
+            row_items[n][row_keys[n].count++] = layout_row_cell_row(jo_kw_tuple(kw));
             n++;
         }
     }
@@ -274,11 +274,11 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     /* From the second row on: the first row's `lq` is a single icon, not a
      * list. */
     for (i = 1; i < n; i++) {
-        static const pico8_jb_item_t gap_items[] = {{.is_false = 1}, {.n = 1}};
-        static const pico8_jb_row_t gap = {.count = 2, .items = gap_items};
+        static const data_item_t gap_items[] = {{.is_false = 1}, {.number = 1}};
+        static const data_row_t gap = {.count = 2, .items = gap_items};
 
         assert(row_keys[i].count < row_cap[i] && "jo:gh: every row 2..n keeps its last cell for the gap");
-        row_items[i][row_keys[i].count++] = pico8_lq_cell_row(&gap);
+        row_items[i][row_keys[i].count++] = layout_row_cell_row(&gap);
         row_keys[i].items = row_items[i];
         bs[i].lq_row = &row_keys[i];
     }
@@ -333,10 +333,10 @@ static void pico8_jo_fe_my_dispatch(pico8_js_t *self) {
 /* One button of `jo:fe`: its keys and the rows they point at, alive until
  * `pz` returns. */
 typedef struct {
-    pico8_lq_keys_t lq;
-    pico8_lq_cell_t lq_items[PICO8_JO_ROW_CAP];
-    pico8_lq_keys_t h;
-    pico8_lq_cell_t h_item;
+    layout_row_keys_t lq;
+    layout_row_cell_t lq_items[PICO8_JO_ROW_CAP];
+    layout_row_keys_t h;
+    layout_row_cell_t h_item;
 } pico8_jo_fe_row_t;
 
 static void pico8_jo_fe_keys(pico8_jo_t *self, pico8_hp_t *b, pico8_js_keys_t *keys, pico8_jo_fe_row_t *row) {
@@ -344,7 +344,7 @@ static void pico8_jo_fe_keys(pico8_jo_t *self, pico8_hp_t *b, pico8_js_keys_t *k
 
     memset(keys, 0, sizeof *keys);
     if (b->lq != NULL) {
-        row->lq = pico8_lq_keys_of_row(b->lq, row->lq_items, PICO8_JO_ROW_CAP);
+        row->lq = layout_row_keys_of_row(b->lq, row->lq_items, PICO8_JO_ROW_CAP);
         keys->lq_row = &row->lq;
     } else {
         keys->lq_copy = pico8_hp_lq(b);
@@ -353,12 +353,12 @@ static void pico8_jo_fe_keys(pico8_jo_t *self, pico8_hp_t *b, pico8_js_keys_t *k
     keys->has_h_ = 1;
     keys->h_is_false = od <= p8_fixed_from_int(0);
     if (od > p8_fixed_from_int(0)) {
-        row->h_item = pico8_lq_cell_string(jo_dollar(p8_tostr_fixed(frame_zone(), od)));
+        row->h_item = layout_row_cell_string(jo_dollar(p8_tostr_fixed(frame_zone(), od)));
         memset(&row->h, 0, sizeof row->h);
         row->h.items = &row->h_item;
         row->h.count = 1;
-        row->h.has_c = 1;
-        row->h.c = p8_fixed_from_int(13);
+        row->h.has_color = 1;
+        row->h.color = p8_fixed_from_int(13);
         keys->h_row = &row->h;
     }
 
@@ -429,24 +429,24 @@ void pico8_jo_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_jo_t *self, vec_t p
     p8_circfill(gfx, mem, px, py, 7, 0);
 
     /* An absent `qw` reads as 0, i.e. the default palette block. */
-    pico8_dv(mem, (self->header.class->lineage & LINEAGE(LINEAGE_TRADING_HUB)) ? self->qw : p8_fixed_from_int(0));
+    hud_select_palette_block(mem, (self->header.class->lineage & LINEAGE(LINEAGE_TRADING_HUB)) ? self->qw : p8_fixed_from_int(0));
     p8_palt(mem, 3, 0);
     p8_palt(mem, 0, 1);
 
     /* `A and B or C`: `nk.s` is never absent, so only a nil `nk` falls
      * through to `self.s`, then to the literal 43. */
     if (self->nk != NULL) {
-        spr_index = self->nk->s;
+        spr_index = self->nk->sprite;
     } else if (self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) {
         spr_index = p8_fixed_flr_int(self->s);
     }
     p8_spr(gfx, mem, spr_index, px - 4, py - 4, 2, 2);
-    pico8_dv_default(mem);
+    hud_select_palette_block_default(mem);
 
     if (pico8_jo_gg(self)) {
         int mi = p8_fixed_flr_int(self->has_mi ? self->mi : p8_fixed_from_int(0));
         int color = 0;
-        pico8_int_seq_at(pico8_jo_ka()->items, pico8_jo_ka()->count, mi, &color);
+        int_seq_at(pico8_jo_ka()->items, pico8_jo_ka()->count, mi, &color);
         p8_circ(gfx, mem, px, py, 6, color);
         p8_spr_default(gfx, mem, mi + 1, px - 3, py - 6);
     }
@@ -467,7 +467,7 @@ void pico8_jo_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_jo_t *self, vec_t p
             int radius;
 
             if (self->fo->targeting != NULL) {
-                dw = self->fo->targeting->def->dw;
+                dw = self->fo->targeting->def->attach_distance;
             }
             radius_f = p8_fixed_mul(p8_fixed_sqrt(dw), p8_fixed_from_int(128));
             radius = p8_fixed_flr_int(radius_f);
@@ -550,7 +550,7 @@ void pico8_jo_hu(pico8_jo_t *self, pico8_hp_t *hp_instance) {
 
         working_self = (target_kind != NULL) ? (pico8_jo_t *)target_kind->new_entity(&keys) : NULL;
     } else if (hp_instance != NULL && hp_instance->go != NULL) {
-        self->nk = pico8_df_lookup(hp_instance->go);
+        self->nk = planet_types_lookup(hp_instance->go);
     } else {
         entity_set_state((entity_t *)self, "settled");
         pico8_jo_lz(self, hp_instance);

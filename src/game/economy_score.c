@@ -43,7 +43,7 @@ static int call_gg_truthy(entity_t *pt) {
 }
 
 p8_fixed_t pico8_da(entity_t *pt) {
-    if (pt != NULL && (pt->class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && ((const pico8_jo_t *)pt)->def->qh) {
+    if (pt != NULL && (pt->class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && ((const pico8_jo_t *)pt)->def->is_structure) {
         const entity_list_t *qh_list = entities_by_tag("structure");
         return p8_fixed_from_int(qh_list != NULL ? qh_list->count : 0);
     }
@@ -51,7 +51,7 @@ p8_fixed_t pico8_da(entity_t *pt) {
         const pico8_jo_t *jo = (const pico8_jo_t *)pt;
         int es;
         if (jo->has_mi &&
-            pico8_int_seq_at(pico8_es_table, PICO8_ES_COUNT, p8_fixed_flr_int(jo->mi), &es)) {
+            int_seq_at(upkeep_by_tier_table, UPKEEP_BY_TIER_COUNT, p8_fixed_flr_int(jo->mi), &es)) {
             return p8_fixed_from_int(es);
         }
     }
@@ -103,9 +103,9 @@ p8_fixed_t pico8_db(const entity_t *pt) {
                 const pico8_jo_t *oz;
                 assert(pico8_jo_is_family(oz_val) && "db: a trade leads to a planet");
                 oz = (const pico8_jo_t *)oz_val;
-                if (oz->def->hf) {
+                if (oz->def->is_planet) {
                     p8_fixed_t trade_mult = p8_fixed_from_int(0);
-                    p8_fixed_t hs = jo->def->hs;
+                    p8_fixed_t hs = jo->def->trade_multiplier;
                     p8_fixed_t ct_pt = p8_fixed_from_int(0);
                     p8_fixed_t ct_oz = p8_fixed_from_int(0);
                     p8_fixed_t bonus;
@@ -114,10 +114,10 @@ p8_fixed_t pico8_db(const entity_t *pt) {
                         trade_mult = dk->trade;
                     }
                     if (jo->has_mi) {
-                        pico8_fixed_seq_at(pico8_ct_table, PICO8_CT_COUNT, p8_fixed_flr_int(jo->mi), &ct_pt);
+                        game_data_fixed_seq_at(partner_bonus_by_tier_table, PARTNER_BONUS_BY_TIER_COUNT, p8_fixed_flr_int(jo->mi), &ct_pt);
                     }
                     if (oz->has_mi) {
-                        pico8_fixed_seq_at(pico8_ct_table, PICO8_CT_COUNT, p8_fixed_flr_int(oz->mi),
+                        game_data_fixed_seq_at(partner_bonus_by_tier_table, PARTNER_BONUS_BY_TIER_COUNT, p8_fixed_flr_int(oz->mi),
                                            &ct_oz);
                     }
                     bonus = p8_fixed_add(p8_fixed_from_int(1), p8_fixed_add(ct_pt, ct_oz));
@@ -128,11 +128,11 @@ p8_fixed_t pico8_db(const entity_t *pt) {
     }
 
     {
-        const pico8_kw_t *kw = jo->kw;
+        const production_t *kw = jo->kw;
         if (kw != NULL) {
             int w;
-            if (kw->has_qe && pico8_r_lookup("w", &w) && kw->qe == p8_fixed_from_int(w)) {
-                p8_fixed_t mu = kw->mu;
+            if (kw->has_resource && resource_code_lookup("w", &w) && kw->resource == p8_fixed_from_int(w)) {
+                p8_fixed_t mu = kw->amount;
                 p8_fixed_t trade_mult = p8_fixed_from_int(0);
                 if (dk != NULL && dk->has_trade) {
                     trade_mult = dk->trade;
@@ -161,7 +161,7 @@ static void sum_by_mi_visit(entity_t *pt, void *ctx_) {
     }
     jo = (const pico8_jo_t *)pt;
     if (jo->has_mi &&
-        pico8_int_seq_at(ctx->seq, ctx->count, p8_fixed_flr_int(jo->mi), &v)) {
+        int_seq_at(ctx->seq, ctx->count, p8_fixed_flr_int(jo->mi), &v)) {
         ctx->total = p8_fixed_add(ctx->total, p8_fixed_from_int(v));
     }
 }
@@ -190,14 +190,14 @@ pico8_ky_t pico8_ky(void) {
     pico8_ky_t result;
 
     di_ctx.total = p8_fixed_from_int(0);
-    di_ctx.seq = pico8_b__table;
-    di_ctx.count = PICO8_B__COUNT;
+    di_ctx.seq = development_score_by_tier_table;
+    di_ctx.count = DEVELOPMENT_SCORE_BY_TIER_COUNT;
     for_each_cg("planet", sum_by_mi_visit, &di_ctx);
 
     if (fm_po != NULL) {
         int p;
         p8_fixed_t gl_val;
-        if (pico8_r_lookup("p", &p) && pico8_qe_map_get(fm_po, p8_fixed_from_int(p), &gl_val)) {
+        if (resource_code_lookup("p", &p) && pico8_qe_map_get(fm_po, p8_fixed_from_int(p), &gl_val)) {
             gl = p8_fixed_mul(gl_val, p8_fixed_from_int(40));
         }
     }
@@ -232,10 +232,10 @@ p8_fixed_t pico8_bf(void) {
     if (fm_po != NULL) {
         int h_key;
         int w_key;
-        if (pico8_r_lookup("h", &h_key)) {
+        if (resource_code_lookup("h", &h_key)) {
             pico8_qe_map_get(fm_po, p8_fixed_from_int(h_key), &r_h);
         }
-        if (pico8_r_lookup("w", &w_key)) {
+        if (resource_code_lookup("w", &w_key)) {
             pico8_qe_map_get(fm_po, p8_fixed_from_int(w_key), &r_w);
         }
     }
@@ -243,8 +243,8 @@ p8_fixed_t pico8_bf(void) {
         p8_fixed_add(p8_fixed_from_int(100), p8_fixed_mul(p8_fixed_from_int(2), p8_fixed_add(r_h, r_w)));
 
     ctx.total = p8_fixed_from_int(0);
-    ctx.seq = pico8_co_table;
-    ctx.count = PICO8_CO_COUNT;
+    ctx.seq = happiness_by_tier_table;
+    ctx.count = HAPPINESS_BY_TIER_COUNT;
     for_each_cg("planet", sum_by_mi_visit, &ctx);
 
     return p8_fixed_add(h_val, ctx.total);

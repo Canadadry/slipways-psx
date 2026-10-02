@@ -436,22 +436,22 @@ static void *first_with_me(const char *tag, const char *me) {
  * `pq` made; registered like any `ke` entity with `kj` and `ev`. */
 static void check_fresh_jc(const void *e, const void *qu) {
     const pico8_jc_t *jc = as_jc(e);
-    const pico8_int_seq_t *k_;
+    const int_seq_t *k_;
     const pico8_jc_hg_t *hg;
     size_t i;
 
-    assert(jc->def == &pico8_jc_def && jc->probe->def == &pico8_jc_def.probe);
+    assert(jc->def == &slipway_archetype && jc->probe->def == &slipway_archetype.targeting);
     assert(jc->header.state != NULL && strcmp(jc->header.state, "placing") == 0);
     assert(jc->header.state_time == 0);
     assert(jc->fa == p8_fixed_from_int(2));
-    assert(jc->probe->def->fp == 0);
-    assert(jc->probe->def->ik == p8_fixed_from_int(48) && jc->probe->def->has_ik == 1);
-    printf("[dw] 0x%08X\n", (unsigned)jc->probe->def->dw);
-    assert(jc->probe->def->dw == (p8_fixed_t)DW_BITS);
+    assert(jc->probe->def->clock_ticks == 0);
+    assert(jc->probe->def->status_sprite == p8_fixed_from_int(48) && jc->probe->def->has_status_sprite == 1);
+    printf("[dw] 0x%08X\n", (unsigned)jc->probe->def->attach_distance);
+    assert(jc->probe->def->attach_distance == (p8_fixed_t)DW_BITS);
     assert(jc->nh == p8_fixed_from_int(20));
 
-    k_ = jc->def->k_;
-    assert(k_ == &pico8_jc_k__seq && k_->count == 20);
+    k_ = jc->def->trail_colors;
+    assert(k_ == &slipway_trail_colors_seq && k_->count == 20);
     for (i = 0; i < 20; i++) {
         assert(k_->items[i] == want_k_[i]);
     }
@@ -578,7 +578,7 @@ static void test_hq_takes_mt_from_its_start(void) {
     assert(!as_jc(from_jo)->has_mt && as_jc(from_jo)->header.infraspace == NULL);
     from_fr = build_jc(pico8_fr_new(NULL));
     hq_over(from_fr, NULL, vec_ref(-640, -640));
-    assert(as_jc(from_fr)->has_mt && as_jc(from_fr)->mt == pico8_fr_def.mt);
+    assert(as_jc(from_fr)->has_mt && as_jc(from_fr)->mt == infraspace_gate_archetype.infraspace);
     assert(as_jc(from_fr)->header.infraspace == &as_jc(from_fr)->mt);
 }
 
@@ -865,14 +865,14 @@ static void test_ce_crosses_a_slipway(void) {
 /* g_'s archetype with the probe's `dw` zeroed, as `mz`'s is: every point of
  * this short slipway lies within a `g_`'s `dw` of one of its own planets,
  * which would win. */
-static pico8_g__def_t g_dw_zero;
+static probe_archetype_t g_dw_zero;
 
 /* A `g_` built as `pico8_g__new(NULL)` builds one, on `g_dw_zero`. */
 static pico8_g__t *probe_with_zero_dw(void) {
     pico8_g__t *probe = malloc(sizeof *probe);
 
-    g_dw_zero = pico8_g__def;
-    g_dw_zero.probe.dw = 0;
+    g_dw_zero = probe_archetype;
+    g_dw_zero.targeting.attach_distance = 0;
     pico8_g__struct_init(probe, pico8_g__struct_class(), &g_dw_zero);
     pico8_f_(&probe->header);
     entity_construct(&probe->header);

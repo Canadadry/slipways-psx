@@ -20,7 +20,7 @@ static const entity_class_t g_mz_jj_struct_class = {0};
  * reaching it stops the run. */
 static pico8_mz_jj_t g_mz_jj_wrapper = {
     {.class = &g_mz_jj_struct_class},
-    pico8_mz_jj_qs,
+    wormhole_too_far_target_status_text,
 };
 
 static int pico8_mz_ancrage(const entity_t *p) {
@@ -220,17 +220,17 @@ static pico8_mz_t *pico8_mz_struct_new(void) {
     pico8_jo_prise_ouvrir();
     self = (pico8_mz_t *)allocator_alloc(pico8_jo_zone_construction(), sizeof *self);
 
-    entity_init_instance(&self->header, &g_mz_struct_class, pico8_mz_def.me, pico8_mz_def.t);
-    self->def = &pico8_mz_def;
-    self->header.layer = &self->def->fa;
+    entity_init_instance(&self->header, &g_mz_struct_class, wormhole_archetype.state, wormhole_archetype.state_time);
+    self->def = &wormhole_archetype;
+    self->header.layer = &self->def->layer;
     self->header.pos = &self->ra;
     self->header.map_pos = &self->p;
     self->header.targeting = &self->probe_own;
     self->probe = &self->probe_own;
-    self->probe->def = &self->def->probe;
-    self->oi = self->def->oi;
-    self->probe->od = self->def->probe.od;
-    self->probe->has_od = self->def->probe.has_od;
+    self->probe->def = &self->def->targeting;
+    self->oi = self->def->radius;
+    self->probe->od = self->def->targeting.cost;
+    self->probe->has_od = self->def->targeting.has_cost;
     self->jj = &g_mz_jj_wrapper;
     self->ox = NULL;
     self->ra = NULL;

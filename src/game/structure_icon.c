@@ -51,12 +51,12 @@ pico8_ie_ke_t pico8_ie_ke_view(const pico8_ie_t *self) {
     view.od = 0;
     view.has_od = 0;
     if (kind != NULL) {
-        view.rr = kind->record->rr;
-        view.s = kind->record->s;
-        view.has_s = kind->record->has_s;
-        view.me = kind->record->me;
-        view.od = kind->record->od;
-        view.has_od = kind->record->has_od;
+        view.rr = kind->record->required_tech;
+        view.s = kind->record->sprite;
+        view.has_s = kind->record->has_sprite;
+        view.me = kind->record->state;
+        view.od = kind->record->cost;
+        view.has_od = kind->record->has_cost;
     }
     return view;
 }
@@ -168,14 +168,14 @@ void pico8_ie_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_ie_t *self, vec_t p
      * kind-level build cost. */
     if (self->m_) {
         if (ie_self_ke_kind(self) != NULL) {
-            pico8_probe_t pb = {.def = &pico8_probe_def_none};
+            pico8_probe_t pb = {.def = &targeting_archetype_none};
 
             pb.has_od = view.has_od;
             pb.od = view.od;
             pico8_dl_show(gfx, mem, view.me, &pb);
         }
         if (self->jb != NULL) {
-            pico8_jb_ol(gfx, mem, self->jb, p8_fixed_from_int(0), p8_fixed_from_int(0));
+            tooltip_draw_at(gfx, mem, self->jb, p8_fixed_from_int(0), p8_fixed_from_int(0));
         }
     }
 
@@ -204,12 +204,12 @@ static pico8_ie_t *pico8_ie_struct_new(const pico8_ie_keys_t *keys) {
     pico8_ie_t *self = (pico8_ie_t *)allocator_alloc(game_zone(), sizeof *self);
 
     assert(g_ie_up && "pico8_research_icon_init() must run before an ie is built");
-    entity_init_instance(&self->header, &g_ie_struct_class, pico8_ie_def.me, pico8_ie_def.t);
-    self->def = &pico8_ie_def;
-    self->header.layer = &self->def->fa;
+    entity_init_instance(&self->header, &g_ie_struct_class, structure_icon_archetype.state, structure_icon_archetype.state_time);
+    self->def = &structure_icon_archetype;
+    self->header.layer = &self->def->layer;
     self->header.pos = &self->ra;
-    self->header.hit_box = &self->def->kq;
-    self->ra = &self->def->ra;
+    self->header.hit_box = &self->def->hit_box;
+    self->ra = &self->def->pos;
     self->ke = NULL;
     self->jb = NULL;
     self->kh = 0;
@@ -230,7 +230,7 @@ static pico8_ie_t *pico8_ie_struct_new(const pico8_ie_keys_t *keys) {
 void pico8_research_icon_init(void) {
     pico8_research_icon_shutdown();
 
-    pico8_pi_init();
+    draw_functions_init();
 
     g_ie_up = 1;
     g_ie_gy = NULL;
@@ -256,7 +256,7 @@ pico8_ie_t *pico8_ie_new(const pico8_ie_keys_t *keys) {
 }
 
 const vec_t *pico8_ie_eh(void) {
-    return g_ie_up ? &pico8_ie_def.eh : NULL;
+    return g_ie_up ? &structure_icon_archetype.rest_count : NULL;
 }
 
 const vec_t *pico8_ie_gy(void) {

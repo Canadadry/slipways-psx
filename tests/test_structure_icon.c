@@ -241,12 +241,12 @@ static vec_t v2(int x, int y) {
     return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
-static const pico8_jb_row_t *dr_row(int i) {
-    assert(i < PICO8_DR_COUNT);
-    return &pico8_dr_table[i];
+static const data_row_t *dr_row(int i) {
+    assert(i < ICON_TOOLTIPS_COUNT);
+    return &icon_tooltips_table[i];
 }
 
-static void *build_icon(const entity_kind_t *ke, pico8_jb_t *jb) {
+static void *build_icon(const entity_kind_t *ke, tooltip_t *jb) {
     pico8_ie_keys_t keys = {0};
 
     keys.ke = ke;
@@ -258,7 +258,7 @@ static void *build_icon(const entity_kind_t *ke, pico8_jb_t *jb) {
 static uint32_t fold_kq(uint32_t h, void *icon) {
     static const int probe[][2] = {{0, 0},  {-1, 0}, {0, -1}, {8, 7},  {9, 8},  {10, 8}, {9, 9},
                                    {-1, -1}, {4, 4},  {8, 0},  {9, 0},  {0, 7},  {0, 8},  {0, 9}};
-    const box_t *kq = &as_ie(icon)->def->kq;
+    const box_t *kq = &as_ie(icon)->def->hit_box;
     size_t i;
 
     assert(kq != NULL);
@@ -275,11 +275,11 @@ static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const v
 
     assert(ie->header.state != NULL && strcmp(ie->header.state, "normal") == 0);
     assert(ie->header.state_time == 0);
-    assert(ie->def == &pico8_ie_def);
-    assert(ie->def->fa == p8_fixed_from_int(12));
-    assert(ie->ra == &ie->def->ra);
+    assert(ie->def == &structure_icon_archetype);
+    assert(ie->def->layer == p8_fixed_from_int(12));
+    assert(ie->ra == &ie->def->pos);
     assert(ie->ra->x == p8_fixed_from_int(999) && ie->ra->y == p8_fixed_from_int(999));
-    assert(ie->def->eh.x == p8_fixed_from_int(118) && ie->def->eh.y == p8_fixed_from_int(120));
+    assert(ie->def->rest_count.x == p8_fixed_from_int(118) && ie->def->rest_count.y == p8_fixed_from_int(120));
     assert((const void *)ie->ke == ke);
     assert((const void *)ie->jb == jb);
     assert(!ie->has_kh && !ie->m_);
@@ -292,10 +292,10 @@ static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const v
     assert(!ents_listed(entities_by_message("draw_overlay"), icon) && !ents_listed(entities_by_message("new_year"), icon));
 
     h = fold_string(h, ie->header.state);
-    h = fold_fixed(h, ie->def->fa);
+    h = fold_fixed(h, ie->def->layer);
     h = fold_kq(h, icon);
     h = fold_vec(h, ie->ra);
-    h = fold_vec(h, &ie->def->eh);
+    h = fold_vec(h, &ie->def->rest_count);
     return fold_shared(h, icon);
 }
 
@@ -305,8 +305,8 @@ static void test_construction(void) {
     void *all[16];
     void *a;
     void *b;
-    pico8_jb_t *jb_a;
-    pico8_jb_t *jb_b;
+    tooltip_t *jb_a;
+    tooltip_t *jb_b;
     int n;
     int i;
 
@@ -319,15 +319,15 @@ static void test_construction(void) {
         assert(ie->ke == classes[i]);
         assert(ie->jb != NULL);
         assert(ie->header.state != NULL && strcmp(ie->header.state, "normal") == 0);
-        assert(ie->def->fa == p8_fixed_from_int(12));
+        assert(ie->def->layer == p8_fixed_from_int(12));
         assert(cls_of(all[i])->hit_test != NULL);
         assert(ents_listed(live_entities(), all[i]) && ents_listed(entities_by_message("draw"), all[i]) && ents_listed(entities_by_message("hit_test"), all[i]));
         assert(!ents_listed(entities_by_message("draw_overlay"), all[i]) && !ents_listed(entities_by_message("new_year"), all[i]));
         h = fold_kq(h, all[i]);
     }
 
-    jb_a = pico8_jb_new(&heap_allocator, dr_row(0));
-    jb_b = pico8_jb_new(&heap_allocator, dr_row(1));
+    jb_a = tooltip_new(&heap_allocator, dr_row(0));
+    jb_b = tooltip_new(&heap_allocator, dr_row(1));
     a = build_icon(classes[0], jb_a);
     b = build_icon(classes[1], jb_b);
     h = check_fresh_icon(h, a, classes[0], jb_a);
@@ -358,7 +358,7 @@ static void test_start(void) {
     }
     printf("[start] first revealed icon %d\n", first);
     assert(first >= 0);
-    assert(as_ie(all[first])->ra == &as_ie(all[first])->def->eh);
+    assert(as_ie(all[first])->ra == &as_ie(all[first])->def->rest_count);
     for (i = 0; i < n; i++) {
         if (kh_state(all[i]) != 2) {
             assert(as_ie(all[i])->ra != as_ie(all[first])->ra);
@@ -571,7 +571,7 @@ static void test_restart(void) {
     gy = shared_gy(as_ie(all[0]));
     id = shared_id_fixed(as_ie(all[0]));
     assert(id == p8_fixed_from_int(1));
-    assert(gy != &as_ie(all[0])->def->eh);
+    assert(gy != &as_ie(all[0])->def->rest_count);
 
     new_game();
     n = icons(all, 16);
@@ -580,14 +580,14 @@ static void test_restart(void) {
     assert(shared_gy(as_ie(all[0])) != gy);
     for (i = 0; i < n; i++) {
         if (kh_state(all[i]) == 2) {
-            assert(as_ie(all[i])->ra != &as_ie(all[i])->def->eh);
+            assert(as_ie(all[i])->ra != &as_ie(all[i])->def->rest_count);
         }
         h = fold_icon(h, all[i]);
     }
     h = fold_shared(h, all[0]);
 
     pico8__init();
-    assert(shared_gy(as_ie(all[0])) == &as_ie(all[0])->def->eh);
+    assert(shared_gy(as_ie(all[0])) == &as_ie(all[0])->def->rest_count);
     assert(shared_id_fixed(as_ie(all[0])) == id);
     h = fold_shared(h, all[0]);
     check("restart", h, RESTART_HASH);
@@ -611,7 +611,7 @@ static void test_ie_is_a_struct(void) {
     start_game();
     gx(classes);
     n = icons(all, 16);
-    built = build_icon(classes[2], pico8_jb_new(&heap_allocator, dr_row(2)));
+    built = build_icon(classes[2], tooltip_new(&heap_allocator, dr_row(2)));
     all[n++] = built;
     for (i = 0; i < n; i++) {
         assert(is_an_ie_struct(all[i]));
@@ -626,7 +626,7 @@ static void test_ie_is_a_struct(void) {
         pico8_ie_t *no_ke;
         p8_fixed_t id0 = shared_id_fixed(as_ie(built));
 
-        jb_only.jb = pico8_jb_new(&heap_allocator, NULL);
+        jb_only.jb = tooltip_new(&heap_allocator, NULL);
         no_ke = pico8_ie_new(&jb_only);
         assert(is_an_ie_struct(no_ke) && no_ke->ke == NULL);
         assert(shared_id_fixed(no_ke) == id0);
@@ -676,7 +676,7 @@ static void test_ke_view_is_a_struct(void) {
         pico8_ie_keys_t jb_only = {0};
         void *no_ke;
 
-        jb_only.jb = pico8_jb_new(&heap_allocator, NULL);
+        jb_only.jb = tooltip_new(&heap_allocator, NULL);
         no_ke = pico8_ie_new(&jb_only);
         view = pico8_ie_ke_view(no_ke);
         assert(view.header.class == pico8_ie_ke_view_struct_class());

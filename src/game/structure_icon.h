@@ -23,10 +23,10 @@
  * current at its construction, and dies with it. */
 typedef struct {
     entity_t header;
-    const pico8_ie_def_t *def;
+    const structure_icon_archetype_t *def;
     const vec_t *ra;
     const entity_kind_t *ke;
-    pico8_jb_t *jb;
+    tooltip_t *jb;
     int kh;
     int has_kh; /* 0: `kh` is nil, and is then never read */
     int m_;
@@ -59,7 +59,7 @@ const entity_class_t *pico8_ie_struct_class(void);
  * planet-upgrade kind) and `jb` (a tooltip struct) are borrowed. */
 typedef struct {
     const entity_kind_t *ke;
-    pico8_jb_t *jb;
+    tooltip_t *jb;
 } pico8_ie_keys_t;
 
 /* `keys` NULL means none. The struct, made in the current game generation,

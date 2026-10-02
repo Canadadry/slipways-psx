@@ -12,11 +12,11 @@ p8_fixed_t pico8_ov(const char *px, p8_fixed_t lk, p8_fixed_t mc);
 
 /* The cost of the tech `t`, an entry of `pico8_nb_table`; a NULL `t` costs
  * 0. */
-p8_fixed_t pico8_gi_nb(const pico8_nb_entry_t *t);
+p8_fixed_t pico8_gi_nb(const technologies_entry_t *t);
 
 /* The entries of `pico8_nb_table` that `cb` keeps, in table order. */
 typedef struct {
-    const pico8_nb_entry_t *items[PICO8_NB_COUNT];
+    const technologies_entry_t *items[TECHNOLOGIES_COUNT];
     int count;
 } pico8_cb_kept_t;
 
@@ -25,7 +25,7 @@ typedef struct {
 pico8_cb_kept_t pico8_cb(int bi);
 
 /* `t.e_` as `cb` last wrote it: 1 for true, 0 for false or never written. */
-int pico8_nb_e_(const pico8_nb_entry_t *t);
+int pico8_nb_e_(const technologies_entry_t *t);
 
 /* Every `e_` back to never written, as the cart's `nb` starts. */
 void pico8_nb_e_reset(void);

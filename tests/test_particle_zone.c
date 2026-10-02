@@ -180,7 +180,7 @@ static int case_qy_rendre_releases_the_arena(void) {
 
 /* Un hote d'emetteur reduit a ce que lisent `f_` et `ei` : `fa` 10, donc
  * dessine sans `gd`, et `fc` 0, donc sans naissance. */
-static const pico8_emitter_def_t g_sans_naissance;
+static const emitter_archetype_t g_sans_naissance;
 static const entity_class_t g_hote_cls;
 static const p8_fixed_t g_fa_dix = 10 << 16;
 static const vec_t *const g_ra_nil = NULL;
@@ -262,7 +262,7 @@ static int case_particle_dead_after_ei(void) {
 
 static int case_ez_notes_the_list_length(void) {
     static const entity_class_t cls = {.spawn_particle = pico8_g__mm};
-    static const pico8_emitter_def_t def = {.ki = 9 << 16, .fc = 1 << 16};
+    static const emitter_archetype_t def = {.lifetime = 9 << 16, .spawn_rate = 1 << 16};
     entity_t *h = hote();
     g_hote.class = &cls;
     g_emitter.def = &def;

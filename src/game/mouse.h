@@ -17,7 +17,7 @@
  * from then on. Never copy the struct. */
 typedef struct {
     entity_t header;
-    const pico8_nf_def_t *def;
+    const mouse_archetype_t *def;
     vec_t *ra;
     vec_t ra_own;
 } pico8_nf_t;

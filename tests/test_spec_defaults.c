@@ -37,7 +37,7 @@ static p8_memory_t mem;
 static p8_graphics_t gfx;
 static p8_input_t input;
 
-static pico8_nf_button_t *nf_l_of(const pico8_nf_t *nf) {
+static pico8_nf_button_t *mouse_left_of(const pico8_nf_t *nf) {
     assert(nf != NULL && pico8_nf_l() != NULL);
     return (pico8_nf_button_t *)pico8_nf_l();
 }
@@ -45,45 +45,45 @@ static pico8_nf_button_t *nf_l_of(const pico8_nf_t *nf) {
 /* The second `jl()` (the one `eu` runs) finds `qb`, `nf` and `ui` ready and
  * leaves their state alone: a mark written into `nf`'s `l` and into the
  * shared `le` survives it; `qb` stays ready throughout. */
-static void test_second_jl_keeps_specs(void) {
-    pico8_nf_button_t *nf_l = nf_l_of(pico8_je_nf());
+static void test_second_reset_world_keeps_specs(void) {
+    pico8_nf_button_t *mouse_left = mouse_left_of(pico8_je_nf());
     static entity_t mark_cell;
-    entity_list_t *ui_le = pico8_ui_le_shared();
+    entity_list_t *ui_ephemerals = pico8_ui_le_shared();
     entity_t *mark = &mark_cell;
-    int hm = nf_l->hm;
+    int hm = mouse_left->hm;
     int ui_count;
 
     assert(pico8_qb_ready());
-    nf_l->hm = 0x7777;
-    entity_list_add(ui_le, mark);
-    ui_count = ui_le->count;
+    mouse_left->hm = 0x7777;
+    entity_list_add(ui_ephemerals, mark);
+    ui_count = ui_ephemerals->count;
 
     reset_world();
 
     assert(pico8_qb_ready());
-    assert(nf_l_of(pico8_je_nf()) == nf_l && nf_l_of(pico8_je_nf())->hm == 0x7777);
-    assert(pico8_ui_le_shared() == ui_le && pico8_ui_le_shared()->count == ui_count);
-    assert(entity_list_del(ui_le, mark));
-    nf_l->hm = hm;
+    assert(mouse_left_of(pico8_je_nf()) == mouse_left && mouse_left_of(pico8_je_nf())->hm == 0x7777);
+    assert(pico8_ui_le_shared() == ui_ephemerals && pico8_ui_le_shared()->count == ui_count);
+    assert(entity_list_del(ui_ephemerals, mark));
+    mouse_left->hm = hm;
 }
 
 /* A fresh bg reads its archetype and starts on ke's defaults; ready until
  * its shutdown. */
-static void test_bg_defaults_and_ready(void) {
+static void test_background_defaults_and_ready(void) {
     pico8_bg_t *bg = pico8_bg_new();
 
-    assert(bg->def == &pico8_bg_def && bg->def->pl == &pico8_bg_pl_seq);
-    assert(bg->header.state == bg->def->me && strcmp(bg->header.state, "normal") == 0 && bg->header.state_time == 0);
+    assert(bg->def == &background_archetype && bg->def->tile_choices == &background_tile_choices_seq);
+    assert(bg->header.state == bg->def->state && strcmp(bg->header.state, "normal") == 0 && bg->header.state_time == 0);
     assert(pico8_bg_ready());
     pico8_bg_shutdown();
     assert(!pico8_bg_ready());
 }
 
-static void test_js_defaults_and_ready(void) {
+static void test_button_defaults_and_ready(void) {
     pico8_js_t *js = pico8_js_new(NULL);
 
-    assert(js->def == &pico8_js_def && js->fa == js->def->fa);
-    assert(js->header.state == js->def->me && strcmp(js->header.state, "normal") == 0 && js->header.state_time == 0);
+    assert(js->def == &button_archetype && js->fa == js->def->layer);
+    assert(js->header.state == js->def->state && strcmp(js->header.state, "normal") == 0 && js->header.state_time == 0);
     assert(pico8_js_ready());
     pico8_js_shutdown();
     assert(!pico8_js_ready());
@@ -91,63 +91,63 @@ static void test_js_defaults_and_ready(void) {
 
 /* `ra` is the module's shared vector, not the archetype's: two fresh
  * readers point at the same one. */
-static void test_nf_ra_is_shared(void) {
+static void test_mouse_pos_is_shared(void) {
     const pico8_nf_t *nf = pico8_nf_new();
     const pico8_nf_t *other = pico8_nf_new();
 
-    assert(nf->def == &pico8_nf_def);
+    assert(nf->def == &mouse_archetype);
     assert(nf->ra != NULL && nf->ra == other->ra);
 }
 
 /* `v`, `p` and `ra` start on the archetype's vectors. */
-static void test_qb_defaults_and_ready(void) {
+static void test_camera_defaults_and_ready(void) {
     pico8_qb_t *qb = pico8_qb_new();
 
-    assert(qb->def == &pico8_qb_def && qb->def->pc == &pico8_qb_pc_vecs);
-    assert(qb->v == &qb->def->v && qb->p == &qb->def->p && qb->ra == &qb->def->ra && qb->ma == qb->def->ma);
-    assert(qb->header.state == qb->def->me && strcmp(qb->header.state, "normal") == 0 && qb->header.state_time == 0);
+    assert(qb->def == &camera_archetype && qb->def->dpad_directions == &camera_dpad_directions_vecs);
+    assert(qb->v == &qb->def->velocity && qb->p == &qb->def->pos_before_shake && qb->ra == &qb->def->pos && qb->ma == qb->def->shake);
+    assert(qb->header.state == qb->def->state && strcmp(qb->header.state, "normal") == 0 && qb->header.state_time == 0);
     assert(pico8_qb_ready());
     pico8_qb_shutdown();
     assert(!pico8_qb_ready());
 }
 
 /* mz's own `me` replaces ke's; `jj` holds the generated `qs`. */
-static void test_mz_defaults_and_ready(void) {
+static void test_wormhole_defaults_and_ready(void) {
     pico8_mz_t *mz = pico8_mz_new();
 
-    assert(mz->def == &pico8_mz_def && mz->probe->def == &pico8_mz_def.probe);
-    assert(mz->header.state == mz->def->me && strcmp(mz->header.state, "placing") == 0 && mz->header.state_time == 0);
-    assert(mz->oi == mz->def->oi);
-    assert(mz->probe->od == mz->def->probe.od && mz->probe->od == p8_fixed_from_int(3));
-    assert(mz->probe->has_od == mz->def->probe.has_od);
-    assert(mz->jj == pico8_mz_jj_wrapper() && mz->jj->qs == pico8_mz_jj_qs);
+    assert(mz->def == &wormhole_archetype && mz->probe->def == &wormhole_archetype.targeting);
+    assert(mz->header.state == mz->def->state && strcmp(mz->header.state, "placing") == 0 && mz->header.state_time == 0);
+    assert(mz->oi == mz->def->radius);
+    assert(mz->probe->od == mz->def->targeting.cost && mz->probe->od == p8_fixed_from_int(3));
+    assert(mz->probe->has_od == mz->def->targeting.has_cost);
+    assert(mz->jj == pico8_mz_jj_wrapper() && mz->jj->qs == wormhole_too_far_target_status_text);
     assert(pico8_mz_ready());
     pico8_wormhole_shutdown();
     assert(!pico8_mz_ready());
 }
 
 static void test_layout_ready(void) {
-    assert(pico8_lq_ready() && pico8_jb_ready());
-    pico8_layout_shutdown();
-    assert(!pico8_lq_ready() && !pico8_jb_ready());
+    assert(layout_row_ready() && tooltip_ready());
+    layout_shutdown();
+    assert(!layout_row_ready() && !tooltip_ready());
 }
 
 /* A fresh fv: its archetype's defaults copied, ke's under them. */
-static void test_fv_defaults_and_ready(void) {
+static void test_help_screen_defaults_and_ready(void) {
     const pico8_g__t *g_ = pico8_fv_new();
 
-    assert(g_->def == &pico8_fv_def && g_->emitter->def == &pico8_fv_def.emitter &&
-           g_->probe->def == &pico8_fv_def.probe);
-    assert(g_->ra == &g_->def->ra);
-    assert(g_->emitter->k_ == g_->def->emitter.k_);
-    assert(g_->emitter->qo == g_->def->emitter.qo && g_->emitter->ro == g_->def->emitter.ro);
-    assert(g_->emitter->qg == g_->def->emitter.qg && g_->emitter->q_ == g_->def->emitter.q_);
-    assert(g_->emitter->pn == g_->def->emitter.pn && g_->emitter->du == g_->def->emitter.du);
-    assert(g_->emitter->py == g_->def->emitter.py);
-    assert(g_->probe->od == g_->def->probe.od);
-    assert(g_->probe->has_od == g_->def->probe.has_od);
-    assert(g_->probe->has_od == 1 && g_->probe->def->ik == 0 && g_->probe->def->has_ik == 0);
-    assert(g_->header.state == g_->def->me && strcmp(g_->header.state, "normal") == 0 && g_->header.state_time == 0);
+    assert(g_->def == &help_screen_archetype && g_->emitter->def == &help_screen_archetype.emitter &&
+           g_->probe->def == &help_screen_archetype.targeting);
+    assert(g_->ra == &g_->def->pos);
+    assert(g_->emitter->k_ == g_->def->emitter.trail_colors);
+    assert(g_->emitter->qo == g_->def->emitter.matrix_xx && g_->emitter->ro == g_->def->emitter.matrix_xy);
+    assert(g_->emitter->qg == g_->def->emitter.matrix_yx && g_->emitter->q_ == g_->def->emitter.matrix_yy);
+    assert(g_->emitter->pn == g_->def->emitter.angle_slices && g_->emitter->du == g_->def->emitter.base_radius);
+    assert(g_->emitter->py == g_->def->emitter.speed_factor);
+    assert(g_->probe->od == g_->def->targeting.cost);
+    assert(g_->probe->has_od == g_->def->targeting.has_cost);
+    assert(g_->probe->has_od == 1 && g_->probe->def->status_sprite == 0 && g_->probe->def->has_status_sprite == 0);
+    assert(g_->header.state == g_->def->state && strcmp(g_->header.state, "normal") == 0 && g_->header.state_time == 0);
     assert(pico8_fv_ready());
     pico8_help_shutdown();
     assert(!pico8_fv_ready());
@@ -155,65 +155,65 @@ static void test_fv_defaults_and_ready(void) {
 
 /* A fresh probe: its archetype's defaults copied, ke's under them; no `ra`
  * yet. */
-static void test_g__defaults_and_ready(void) {
+static void test_probe_defaults_and_ready(void) {
     pico8_g__t *g_ = pico8_g__new(NULL);
 
-    assert(g_->def == &pico8_g__def && g_->emitter->def == &pico8_g__def.emitter &&
-           g_->probe->def == &pico8_g__def.probe);
-    assert(g_->probe->od == g_->def->probe.od);
-    assert(g_->probe->has_od == g_->def->probe.has_od && g_->probe->has_od == 1);
-    assert(g_->probe->def->ik == 0 && g_->probe->def->has_ik == 0);
-    assert(g_->emitter->py == g_->def->emitter.py);
-    assert(g_->emitter->pn == g_->def->emitter.pn);
-    assert(g_->emitter->k_ == g_->def->emitter.k_);
-    assert(g_->emitter->qo == g_->def->emitter.qo && g_->emitter->ro == g_->def->emitter.ro);
-    assert(g_->emitter->qg == g_->def->emitter.qg && g_->emitter->q_ == g_->def->emitter.q_);
-    assert(g_->emitter->du == g_->def->emitter.du);
+    assert(g_->def == &probe_archetype && g_->emitter->def == &probe_archetype.emitter &&
+           g_->probe->def == &probe_archetype.targeting);
+    assert(g_->probe->od == g_->def->targeting.cost);
+    assert(g_->probe->has_od == g_->def->targeting.has_cost && g_->probe->has_od == 1);
+    assert(g_->probe->def->status_sprite == 0 && g_->probe->def->has_status_sprite == 0);
+    assert(g_->emitter->py == g_->def->emitter.speed_factor);
+    assert(g_->emitter->pn == g_->def->emitter.angle_slices);
+    assert(g_->emitter->k_ == g_->def->emitter.trail_colors);
+    assert(g_->emitter->qo == g_->def->emitter.matrix_xx && g_->emitter->ro == g_->def->emitter.matrix_xy);
+    assert(g_->emitter->qg == g_->def->emitter.matrix_yx && g_->emitter->q_ == g_->def->emitter.matrix_yy);
+    assert(g_->emitter->du == g_->def->emitter.base_radius);
     assert(g_->ra == NULL);
-    assert(g_->header.state == g_->def->me && strcmp(g_->header.state, "normal") == 0 && g_->header.state_time == 0);
+    assert(g_->header.state == g_->def->state && strcmp(g_->header.state, "normal") == 0 && g_->header.state_time == 0);
     assert(pico8_g__ready());
     pico8_probe_shutdown();
     assert(!pico8_g__ready());
 }
 
-static void test_hp_defaults_and_ready(void) {
+static void test_research_project_defaults_and_ready(void) {
     pico8_hp_t *hp = pico8_hp_new(NULL);
 
-    assert(hp->def == &pico8_hp_def && hp->def->fk == &pico8_hp_fk_row);
+    assert(hp->def == &research_project_archetype && hp->def->row_tail == &research_project_row_tail_row);
     assert(pico8_hp_ready());
     pico8_research_shutdown();
     assert(!pico8_hp_ready());
 }
 
 /* `ra` starts on the archetype's vector. */
-static void test_ie_defaults_and_ready(void) {
+static void test_structure_icon_defaults_and_ready(void) {
     pico8_ie_t *ie = pico8_ie_new(NULL);
 
-    assert(ie->def == &pico8_ie_def && ie->ra == &ie->def->ra);
-    assert(ie->header.state == ie->def->me && strcmp(ie->header.state, "normal") == 0 && ie->header.state_time == 0);
+    assert(ie->def == &structure_icon_archetype && ie->ra == &ie->def->pos);
+    assert(ie->header.state == ie->def->state && strcmp(ie->header.state, "normal") == 0 && ie->header.state_time == 0);
     assert(pico8_ie_ready());
     pico8_research_icon_shutdown();
     assert(!pico8_ie_ready());
 }
 
 /* `cr` holds the spec's record. */
-static void test_pj_defaults_and_ready(void) {
+static void test_score_panel_defaults_and_ready(void) {
     pico8_pj_t *pj = pico8_pj_new();
     const pico8_pj_cr_t *cr = pico8_pj_cr();
 
-    assert(pj->def == &pico8_pj_def && pj->fa == pj->def->fa);
+    assert(pj->def == &score_panel_archetype && pj->fa == pj->def->layer);
     assert(pj->ed == NULL);
     assert(cr->hi->x == 0 && cr->hi->y == p8_fixed_from_int(11));
     assert(cr->gq->x == 0 && cr->gq->y == p8_fixed_from_int(11));
     assert(cr->ca == p8_fixed_from_int(10));
-    assert(pj->header.state == pj->def->me && strcmp(pj->header.state, "normal") == 0 && pj->header.state_time == 0);
+    assert(pj->header.state == pj->def->state && strcmp(pj->header.state, "normal") == 0 && pj->header.state_time == 0);
     assert(pico8_pj_ready());
     pico8_score_panel_shutdown();
     assert(!pico8_pj_ready());
 }
 
 /* hy and trade: an empty spec, a root struct. */
-static void test_hy_ready(void) {
+static void test_economy_ready(void) {
     pico8_hy_t *hy = pico8_hy_new();
 
     assert(hy->header.class == pico8_hy_struct_class());
@@ -251,21 +251,21 @@ int main(void) {
     pico8_cart_load();
     reset_world();
 
-    test_second_jl_keeps_specs();
-    test_bg_defaults_and_ready();
-    test_js_defaults_and_ready();
-    test_qb_defaults_and_ready();
-    test_nf_ra_is_shared();
-    test_mz_defaults_and_ready();
+    test_second_reset_world_keeps_specs();
+    test_background_defaults_and_ready();
+    test_button_defaults_and_ready();
+    test_camera_defaults_and_ready();
+    test_mouse_pos_is_shared();
+    test_wormhole_defaults_and_ready();
     test_layout_ready();
-    test_fv_defaults_and_ready();
-    test_g__defaults_and_ready();
-    test_hp_defaults_and_ready();
-    test_ie_defaults_and_ready();
-    test_pj_defaults_and_ready();
-    test_hy_ready();
+    test_help_screen_defaults_and_ready();
+    test_probe_defaults_and_ready();
+    test_research_project_defaults_and_ready();
+    test_structure_icon_defaults_and_ready();
+    test_score_panel_defaults_and_ready();
+    test_economy_ready();
     test_trade_ready();
 
-    printf("test_pico8_spec_defaults: all tests passed\n");
+    printf("test_spec_defaults: all tests passed\n");
     return 0;
 }

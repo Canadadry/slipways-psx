@@ -8,63 +8,63 @@
 #include "game/hud.h"
 
 static int g_layout_up = 0;
-static const entity_class_t g_lq_struct_class;
+static const entity_class_t g_layout_row_class;
 
-pico8_lq_cell_t pico8_lq_cell_nothing(void) {
-    pico8_lq_cell_t cell = {.kind = PICO8_LQ_CELL_NOTHING};
+layout_row_cell_t layout_row_cell_nothing(void) {
+    layout_row_cell_t cell = {.kind = LAYOUT_ROW_CELL_NOTHING};
     return cell;
 }
 
-pico8_lq_cell_t pico8_lq_cell_fixed(p8_fixed_t x) {
-    pico8_lq_cell_t cell = {.kind = PICO8_LQ_CELL_FIXED, .as.fixed = x};
+layout_row_cell_t layout_row_cell_fixed(p8_fixed_t x) {
+    layout_row_cell_t cell = {.kind = LAYOUT_ROW_CELL_FIXED, .as.fixed = x};
     return cell;
 }
 
-pico8_lq_cell_t pico8_lq_cell_string(const char *s) {
-    pico8_lq_cell_t cell = {.kind = PICO8_LQ_CELL_STRING, .as.s = s};
+layout_row_cell_t layout_row_cell_string(const char *s) {
+    layout_row_cell_t cell = {.kind = LAYOUT_ROW_CELL_STRING, .as.text = s};
 
     assert(s != NULL && "lq: no producer writes a NULL string; its kind would have no reader in lq:mn");
     return cell;
 }
 
-pico8_lq_cell_t pico8_lq_cell_row(const pico8_jb_row_t *row) {
-    pico8_lq_cell_t cell = {.kind = PICO8_LQ_CELL_ROW, .as.row = row};
+layout_row_cell_t layout_row_cell_row(const data_row_t *row) {
+    layout_row_cell_t cell = {.kind = LAYOUT_ROW_CELL_ROW, .as.row = row};
 
     /* Not optional: a nil read as anything but NOTHING falls through `elseif f`
      * of `lq:mn` into a sprite 0, a block of raw data on screen
      * (layout_nil_item_draws_nothing). */
     if (row == NULL) {
-        return pico8_lq_cell_nothing();
+        return layout_row_cell_nothing();
     }
     return cell;
 }
 
-pico8_lq_cell_t pico8_lq_cell_item(const pico8_jb_item_t *item) {
+layout_row_cell_t layout_row_cell_item(const data_item_t *item) {
     if (item->row != NULL) {
-        return pico8_lq_cell_row(item->row);
+        return layout_row_cell_row(item->row);
     }
-    if (item->s != NULL) {
-        return pico8_lq_cell_string(item->s);
+    if (item->text != NULL) {
+        return layout_row_cell_string(item->text);
     }
     if (item->is_false) {
-        return pico8_lq_cell_nothing();
+        return layout_row_cell_nothing();
     }
     if (item->is_ref) {
-        return pico8_lq_cell_row(item->ref);
+        return layout_row_cell_row(item->ref);
     }
     if (item->is_fixed) {
-        return pico8_lq_cell_fixed(item->fixed);
+        return layout_row_cell_fixed(item->fixed);
     }
-    return pico8_lq_cell_fixed(p8_fixed_from_int(item->n));
+    return layout_row_cell_fixed(p8_fixed_from_int(item->number));
 }
 
 /* A tuple's `f[1..4]` or an item of a line. */
-static pico8_lq_cell_t pico8_lq_scalar_item(const pico8_jb_item_t *item) {
+static layout_row_cell_t row_scalar_item(const data_item_t *item) {
     assert(item->row == NULL && "a tuple or a line holds scalar items only; a row inside one has no reader here");
-    return pico8_lq_cell_item(item);
+    return layout_row_cell_item(item);
 }
 
-static const char *pico8_lq_copy_text(const allocator_t *zone, const char *s) {
+static const char *row_copy_text(const allocator_t *zone, const char *s) {
     size_t n = strlen(s) + 1;
     char *copy = (char *)allocator_alloc(zone, n);
 
@@ -73,9 +73,9 @@ static const char *pico8_lq_copy_text(const allocator_t *zone, const char *s) {
 }
 
 /* A STRING cell points at its copy in `zone`; any other cell is kept as is. */
-static pico8_lq_cell_t pico8_lq_own_cell(const allocator_t *zone, pico8_lq_cell_t cell) {
-    if (cell.kind == PICO8_LQ_CELL_STRING) {
-        cell.as.s = pico8_lq_copy_text(zone, cell.as.s);
+static layout_row_cell_t row_own_cell(const allocator_t *zone, layout_row_cell_t cell) {
+    if (cell.kind == LAYOUT_ROW_CELL_STRING) {
+        cell.as.text = row_copy_text(zone, cell.as.text);
     }
     return cell;
 }
@@ -83,392 +83,392 @@ static pico8_lq_cell_t pico8_lq_own_cell(const allocator_t *zone, pico8_lq_cell_
 /* Writes out_item plus mn's second and third Lua return values (out_w,
  * out_qv). `self` may be NULL; it is only read for the TEXT branch's colour.
  * A non-FIXED f[2]/f[3]/f[4] reads as 0. */
-static void pico8_lq_mn(const pico8_lq_t *self, pico8_lq_cell_t f, pico8_lq_item_t *out_item,
-                         p8_fixed_t *out_w, p8_fixed_t *out_qv) {
-    p8_fixed_t w = p8_fixed_from_int(6);
-    p8_fixed_t qw = p8_fixed_from_int(0);
-    int have_qv = 0;
-    p8_fixed_t qv = p8_fixed_from_int(0);
+static void row_measure_item(const layout_row_t *self, layout_row_cell_t cell, layout_row_item_t *out_item,
+                         p8_fixed_t *out_w, p8_fixed_t *out_spacing) {
+    p8_fixed_t width = p8_fixed_from_int(6);
+    p8_fixed_t palette_block = p8_fixed_from_int(0);
+    int have_spacing = 0;
+    p8_fixed_t spacing = p8_fixed_from_int(0);
 
-    if (f.kind == PICO8_LQ_CELL_ROW) {
-        const pico8_jb_row_t *t = f.as.row;
-        const pico8_jb_item_t wrap[] = {{.is_fixed = 1, .fixed = t->qe}, {.n = 5}};
-        const pico8_jb_item_t *items = t->has_qe ? wrap : t->items;
-        int count = t->has_qe ? 2 : t->count;
-        pico8_lq_cell_t f1, f2, f3, f4;
+    if (cell.kind == LAYOUT_ROW_CELL_ROW) {
+        const data_row_t *t = cell.as.row;
+        const data_item_t wrap[] = {{.is_fixed = 1, .fixed = t->resource}, {.number = 5}};
+        const data_item_t *items = t->has_resource ? wrap : t->items;
+        int count = t->has_resource ? 2 : t->count;
+        layout_row_cell_t f1, f2, f3, f4;
         int have_f1 = count >= 1;
         int have_f2 = count >= 2;
         int have_f3 = count >= 3;
         int have_f4 = count >= 4;
 
-        f1 = have_f1 ? pico8_lq_scalar_item(&items[0]) : pico8_lq_cell_nothing();
-        f2 = have_f2 ? pico8_lq_scalar_item(&items[1]) : pico8_lq_cell_nothing();
-        f3 = have_f3 ? pico8_lq_scalar_item(&items[2]) : pico8_lq_cell_nothing();
-        f4 = have_f4 ? pico8_lq_scalar_item(&items[3]) : pico8_lq_cell_nothing();
+        f1 = have_f1 ? row_scalar_item(&items[0]) : layout_row_cell_nothing();
+        f2 = have_f2 ? row_scalar_item(&items[1]) : layout_row_cell_nothing();
+        f3 = have_f3 ? row_scalar_item(&items[2]) : layout_row_cell_nothing();
+        f4 = have_f4 ? row_scalar_item(&items[3]) : layout_row_cell_nothing();
 
-        f = f1;
-        if (have_f2 && f2.kind == PICO8_LQ_CELL_FIXED) {
-            w = f2.as.fixed;
+        cell = f1;
+        if (have_f2 && f2.kind == LAYOUT_ROW_CELL_FIXED) {
+            width = f2.as.fixed;
         }
-        if (have_f3 && f3.kind == PICO8_LQ_CELL_FIXED) {
-            qw = f3.as.fixed;
+        if (have_f3 && f3.kind == LAYOUT_ROW_CELL_FIXED) {
+            palette_block = f3.as.fixed;
         }
-        if (have_f4 && f4.kind != PICO8_LQ_CELL_NOTHING) {
-            have_qv = 1;
-            qv = (f4.kind == PICO8_LQ_CELL_FIXED) ? f4.as.fixed : p8_fixed_from_int(0);
+        if (have_f4 && f4.kind != LAYOUT_ROW_CELL_NOTHING) {
+            have_spacing = 1;
+            spacing = (f4.kind == LAYOUT_ROW_CELL_FIXED) ? f4.as.fixed : p8_fixed_from_int(0);
         }
     }
 
-    if (f.kind == PICO8_LQ_CELL_STRING) {
+    if (cell.kind == LAYOUT_ROW_CELL_STRING) {
         p8_fixed_t c = p8_fixed_from_int(6);
 
-        if (self != NULL && self->has_c) {
-            c = self->c;
+        if (self != NULL && self->has_color) {
+            c = self->color;
         }
-        out_item->kind = PICO8_LQ_ITEM_TEXT;
-        out_item->text = f.as.s;
+        out_item->kind = LAYOUT_ROW_ITEM_TEXT;
+        out_item->text = cell.as.text;
         out_item->color = c;
-        *out_w = p8_fixed_from_int((int)strlen(f.as.s) * 4 + 3);
-        *out_qv = p8_fixed_from_int(1);
+        *out_w = p8_fixed_from_int((int)strlen(cell.as.text) * 4 + 3);
+        *out_spacing = p8_fixed_from_int(1);
         return;
     }
 
-    if (f.kind != PICO8_LQ_CELL_NOTHING) {
-        out_item->kind = PICO8_LQ_ITEM_SPRITE;
-        out_item->sprite_id = (f.kind == PICO8_LQ_CELL_FIXED) ? f.as.fixed : p8_fixed_from_int(0);
-        out_item->sprite_qw = qw;
+    if (cell.kind != LAYOUT_ROW_CELL_NOTHING) {
+        out_item->kind = LAYOUT_ROW_ITEM_SPRITE;
+        out_item->sprite_id = (cell.kind == LAYOUT_ROW_CELL_FIXED) ? cell.as.fixed : p8_fixed_from_int(0);
+        out_item->sprite_palette_block = palette_block;
     } else {
-        out_item->kind = PICO8_LQ_ITEM_NONE;
+        out_item->kind = LAYOUT_ROW_ITEM_NONE;
     }
-    *out_w = w;
-    *out_qv = have_qv ? qv : p8_fixed_from_int(2);
+    *out_w = width;
+    *out_spacing = have_spacing ? spacing : p8_fixed_from_int(2);
 }
 
 /* `fs`, the last item's spacing, starts at 0 where Lua's own starts nil, so
  * a zero-item lq() yields w=0 here and would error in Lua. No call site
  * builds one. */
-static void pico8_lq_pq(pico8_lq_t *self) {
+static void layout_row_construct(layout_row_t *self) {
     p8_fixed_t w = p8_fixed_from_int(0);
     p8_fixed_t fs = p8_fixed_from_int(0);
     int n = self->items_count;
     int i;
 
-    self->fs = (pico8_lq_item_t *)allocator_alloc(self->zone, (size_t)(n > 0 ? n : 1) * sizeof *self->fs);
+    self->placed_items = (layout_row_item_t *)allocator_alloc(self->zone, (size_t)(n > 0 ? n : 1) * sizeof *self->placed_items);
     for (i = 0; i < n; i++) {
         p8_fixed_t w_i = p8_fixed_from_int(0);
-        p8_fixed_t qv_i = p8_fixed_from_int(0);
+        p8_fixed_t spacing_i = p8_fixed_from_int(0);
         p8_fixed_t x = w;
 
-        pico8_lq_mn(self, self->items[i], &self->fs[i], &w_i, &qv_i);
+        row_measure_item(self, self->items[i], &self->placed_items[i], &w_i, &spacing_i);
         /* A tuple is borrowed until this layout only: its text is copied. */
-        if (self->items[i].kind == PICO8_LQ_CELL_ROW && self->fs[i].kind == PICO8_LQ_ITEM_TEXT) {
-            self->fs[i].text = pico8_lq_copy_text(self->zone, self->fs[i].text);
+        if (self->items[i].kind == LAYOUT_ROW_CELL_ROW && self->placed_items[i].kind == LAYOUT_ROW_ITEM_TEXT) {
+            self->placed_items[i].text = row_copy_text(self->zone, self->placed_items[i].text);
         }
-        self->fs[i].d = vec_make(x, p8_fixed_from_int(0));
-        w = p8_fixed_add(w, p8_fixed_add(w_i, qv_i));
-        fs = qv_i;
+        self->placed_items[i].offset = vec_make(x, p8_fixed_from_int(0));
+        w = p8_fixed_add(w, p8_fixed_add(w_i, spacing_i));
+        fs = spacing_i;
     }
-    self->fs_count = n;
-    self->w = p8_fixed_sub(w, fs);
+    self->placed_items_count = n;
+    self->width = p8_fixed_sub(w, fs);
 }
 
-static void pico8_lq_ol_item_draw(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_lq_item_t *item,
+static void row_draw_at_item_draw(const p8_graphics_t *gfx, p8_memory_t *mem, const layout_row_item_t *item,
                                    vec_t p) {
-    vec_t pos = vec_add(p, item->d);
+    vec_t pos = vec_add(p, item->offset);
 
     switch (item->kind) {
-    case PICO8_LQ_ITEM_TEXT:
-        pico8_io_default(gfx, mem, item->text, p8_fixed_add(pos.x, p8_fixed_from_int(2)),
+    case LAYOUT_ROW_ITEM_TEXT:
+        hud_print_outlined_default(gfx, mem, item->text, p8_fixed_add(pos.x, p8_fixed_from_int(2)),
                           p8_fixed_add(pos.y, p8_fixed_from_int(1)),
                           p8_fixed_flr_int(item->color));
         break;
-    case PICO8_LQ_ITEM_SPRITE:
-        pico8_dv(mem, item->sprite_qw);
+    case LAYOUT_ROW_ITEM_SPRITE:
+        hud_select_palette_block(mem, item->sprite_palette_block);
         p8_spr_default(gfx, mem, p8_fixed_flr_int(item->sprite_id),
                            p8_fixed_flr_int(pos.x),
                            p8_fixed_flr_int(pos.y));
-        pico8_dv_default(mem);
+        hud_select_palette_block_default(mem);
         break;
-    case PICO8_LQ_ITEM_NONE:
+    case LAYOUT_ROW_ITEM_NONE:
     default:
         break;
     }
 }
 
-void pico8_lq_ol(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_lq_t *self, vec_t p, p8_fixed_t a) {
+void layout_row_draw_at(const p8_graphics_t *gfx, p8_memory_t *mem, const layout_row_t *self, vec_t p, p8_fixed_t a) {
     p8_fixed_t w;
     int i;
 
     if (self == NULL) {
         return;
     }
-    assert(self->header.class == &g_lq_struct_class &&
+    assert(self->header.class == &g_layout_row_class &&
            "lq:ol: every row reaching it (jo.lq, js.lq/h_, jb.ls, pi.ld) is an lq; anything else would be read "
            "through the wrong layout");
-    w = self->w;
+    w = self->width;
     p = vec_sub(p, vec_make(p8_fixed_mul(a, w), p8_fixed_from_int(0)));
 
-    if (self->fs == NULL) {
+    if (self->placed_items == NULL) {
         return;
     }
-    for (i = 0; i < self->fs_count; i++) {
-        pico8_lq_ol_item_draw(gfx, mem, &self->fs[i], p);
+    for (i = 0; i < self->placed_items_count; i++) {
+        row_draw_at_item_draw(gfx, mem, &self->placed_items[i], p);
     }
 }
 
-void pico8_lq_ol_default(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_lq_t *self, vec_t p) {
-    pico8_lq_ol(gfx, mem, self, p, p8_fixed_from_int(0));
+void layout_row_draw_at_default(const p8_graphics_t *gfx, p8_memory_t *mem, const layout_row_t *self, vec_t p) {
+    layout_row_draw_at(gfx, mem, self, p, p8_fixed_from_int(0));
 }
 
 /* The longest line of the cart's bubbles, `nb_9_oy_1`. */
-#define PICO8_JB_LINE_CAP 7
+#define TOOLTIP_LINE_CAP 7
 
 /* The line `jb:pq` builds from one item of its row. */
-static pico8_lq_t *pico8_jb_line(const allocator_t *zone, const pico8_jb_item_t *item) {
-    pico8_lq_keys_t keys = {0};
-    pico8_lq_cell_t s;
-    pico8_lq_cell_t items[PICO8_JB_LINE_CAP];
+static layout_row_t *tooltip_line(const allocator_t *zone, const data_item_t *item) {
+    layout_row_keys_t keys = {0};
+    layout_row_cell_t s;
+    layout_row_cell_t items[TOOLTIP_LINE_CAP];
     int i;
 
-    if (item->s != NULL) {
-        s = pico8_lq_cell_string(item->s);
+    if (item->text != NULL) {
+        s = layout_row_cell_string(item->text);
         keys.items = &s;
         keys.count = 1;
-        return pico8_lq_new(zone, &keys);
+        return layout_row_new(zone, &keys);
     }
     if (item->row == NULL) {
-        return pico8_lq_new(zone, NULL);
+        return layout_row_new(zone, NULL);
     }
-    assert(item->row->fn == NULL && "jb: a line's named keys are c only; fn has no member -- stop, do not add one");
-    assert(item->row->count <= PICO8_JB_LINE_CAP &&
+    assert(item->row->draw_function == NULL && "jb: a line's named keys are c only; fn has no member -- stop, do not add one");
+    assert(item->row->count <= TOOLTIP_LINE_CAP &&
            "jb: the cart's longest bubble line (nb_9_oy_1) has 7 items; a longer one needs a bigger array");
     for (i = 0; i < item->row->count; i++) {
-        items[i] = pico8_lq_scalar_item(&item->row->items[i]);
+        items[i] = row_scalar_item(&item->row->items[i]);
     }
     keys.items = items;
     keys.count = item->row->count;
-    keys.has_c = item->row->has_c;
-    keys.c = p8_fixed_from_int(item->row->c);
-    return pico8_lq_new(zone, &keys);
+    keys.has_color = item->row->has_color;
+    keys.color = p8_fixed_from_int(item->row->color);
+    return layout_row_new(zone, &keys);
 }
 
 /* `ls` is allocated even for no line: `jb:ol` draws the frame of an empty
  * `jb`, and skips one whose `ls` is NULL. */
-static void pico8_jb_pq(pico8_jb_t *self, const pico8_jb_row_t *row) {
+static void tooltip_construct(tooltip_t *self, const data_row_t *row) {
     int n = row != NULL ? row->count : 0;
     int i;
 
-    self->ls = (pico8_lq_t **)allocator_alloc(self->zone, (size_t)(n > 0 ? n : 1) * sizeof *self->ls);
+    self->rows = (layout_row_t **)allocator_alloc(self->zone, (size_t)(n > 0 ? n : 1) * sizeof *self->rows);
     for (i = 0; i < n; i++) {
-        self->ls[i] = pico8_jb_line(self->zone, &row->items[i]);
+        self->rows[i] = tooltip_line(self->zone, &row->items[i]);
     }
-    self->ls_count = n;
+    self->rows_count = n;
 }
 
 /* Lua's `#self` is read here as `ls_count`: jb:pq contributes exactly one
  * `ls` entry per positional item, so the two counts never differ. */
-void pico8_jb_ol(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_jb_t *self, p8_fixed_t om,
+void tooltip_draw_at(p8_graphics_t *gfx, p8_memory_t *mem, const tooltip_t *self, p8_fixed_t om,
                   p8_fixed_t a) {
     p8_fixed_t h;
     p8_fixed_t dn;
     int i;
 
-    if (self == NULL || self->ls == NULL) {
+    if (self == NULL || self->rows == NULL) {
         return;
     }
 
-    h = p8_fixed_add(p8_fixed_mul(p8_fixed_from_int(self->ls_count), p8_fixed_from_int(8)),
+    h = p8_fixed_add(p8_fixed_mul(p8_fixed_from_int(self->rows_count), p8_fixed_from_int(8)),
                          p8_fixed_from_int(2));
     om = p8_fixed_sub(om, p8_fixed_mul(h, a));
     dn = p8_fixed_add(om, h);
 
     p8_fillp(gfx, 0x0F0F);
-    pico8_rk(gfx, mem, om, dn, 0x10);
+    hud_draw_bar(gfx, mem, om, dn, 0x10);
     p8_fillp_reset(gfx);
 
-    for (i = 0; i < self->ls_count; i++) {
+    for (i = 0; i < self->rows_count; i++) {
         vec_t pos = vec_make(p8_fixed_from_int(64), p8_fixed_add(om, p8_fixed_from_int(2)));
-        pico8_lq_ol(gfx, mem, self->ls[i], pos, P8_FIXED_LIT(0x00008000, 0.5));
+        layout_row_draw_at(gfx, mem, self->rows[i], pos, P8_FIXED_LIT(0x00008000, 0.5));
         om = p8_fixed_add(om, p8_fixed_from_int(8));
     }
 }
 
-static void pico8_lq_ol_dispatch(entity_t *self, vec_t p, p8_fixed_t a) {
-    pico8_lq_ol(dispatch_context_gfx(), dispatch_context_mem(), (const pico8_lq_t *)self, p, a);
+static void layout_row_draw_at_method(entity_t *self, vec_t p, p8_fixed_t a) {
+    layout_row_draw_at(dispatch_context_gfx(), dispatch_context_mem(), (const layout_row_t *)self, p, a);
 }
 
 /* No launcher reaches it (`jo.lq` is an `lq`); a vector `om` counts as 0. */
-static void pico8_jb_ol_dispatch(entity_t *self, vec_t p, p8_fixed_t a) {
+static void tooltip_draw_at_method(entity_t *self, vec_t p, p8_fixed_t a) {
     (void)p;
-    pico8_jb_ol(dispatch_context_gfx(), dispatch_context_mem(), (const pico8_jb_t *)self, p8_fixed_from_int(0), a);
+    tooltip_draw_at(dispatch_context_gfx(), dispatch_context_mem(), (const tooltip_t *)self, p8_fixed_from_int(0), a);
 }
 
-static const entity_class_t g_lq_struct_class = {
-    .draw_at = pico8_lq_ol_dispatch,
+static const entity_class_t g_layout_row_class = {
+    .draw_at = layout_row_draw_at_method,
 };
 
 /* The row with room for `n` cells, members at nil, not laid out. */
-static pico8_lq_t *pico8_lq_struct_alloc(const allocator_t *zone, int n) {
-    pico8_lq_t *self;
+static layout_row_t *row_struct_alloc(const allocator_t *zone, int n) {
+    layout_row_t *self;
 
     assert(zone != NULL && "lq: a row without a zone would have nowhere to keep its cells");
-    self = (pico8_lq_t *)allocator_alloc(zone, sizeof *self);
+    self = (layout_row_t *)allocator_alloc(zone, sizeof *self);
 
-    entity_init_header(&self->header, &g_lq_struct_class);
-    self->header.pos = &self->ra;
-    self->c = 0;
-    self->has_c = 0;
-    self->bg = 0;
-    self->has_bg = 0;
-    self->bg_is_bool = 0;
+    entity_init_header(&self->header, &g_layout_row_class);
+    self->header.pos = &self->pos;
+    self->color = 0;
+    self->has_color = 0;
+    self->background = 0;
+    self->has_background = 0;
+    self->background_is_bool = 0;
     self->score = 0;
     self->has_score = 0;
-    self->ra = NULL;
-    self->fs = NULL;
-    self->fs_count = 0;
-    self->w = 0;
+    self->pos = NULL;
+    self->placed_items = NULL;
+    self->placed_items_count = 0;
+    self->width = 0;
     self->zone = zone;
-    self->items = (pico8_lq_cell_t *)allocator_alloc(zone, (size_t)(n > 0 ? n : 1) * sizeof *self->items);
+    self->items = (layout_row_cell_t *)allocator_alloc(zone, (size_t)(n > 0 ? n : 1) * sizeof *self->items);
     self->items_count = n;
     return self;
 }
 
-static pico8_lq_t *pico8_lq_struct_finish(pico8_lq_t *self) {
-    pico8_lq_pq(self);
+static layout_row_t *row_struct_finish(layout_row_t *self) {
+    layout_row_construct(self);
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("layout_row");
 #endif
     return self;
 }
 
-static pico8_lq_t *pico8_lq_struct_new(const allocator_t *zone, const pico8_lq_keys_t *keys) {
-    pico8_lq_t *self = pico8_lq_struct_alloc(zone, keys != NULL ? keys->count : 0);
+static layout_row_t *row_create(const allocator_t *zone, const layout_row_keys_t *keys) {
+    layout_row_t *self = row_struct_alloc(zone, keys != NULL ? keys->count : 0);
     int k;
 
     if (keys != NULL) {
         for (k = 0; k < keys->count; k++) {
-            self->items[k] = pico8_lq_own_cell(zone, keys->items[k]);
+            self->items[k] = row_own_cell(zone, keys->items[k]);
         }
-        if (keys->has_c) {
-            self->c = keys->c;
-            self->has_c = 1;
+        if (keys->has_color) {
+            self->color = keys->color;
+            self->has_color = 1;
         }
-        if (keys->has_bg) {
-            self->bg = keys->bg;
-            self->has_bg = 1;
-            self->bg_is_bool = keys->bg_is_bool;
+        if (keys->has_background) {
+            self->background = keys->background;
+            self->has_background = 1;
+            self->background_is_bool = keys->background_is_bool;
         }
         if (keys->has_score) {
             self->score = keys->score;
             self->has_score = 1;
         }
-        self->ra = keys->ra;
+        self->pos = keys->pos;
     }
-    return pico8_lq_struct_finish(self);
+    return row_struct_finish(self);
 }
 
-pico8_lq_keys_t pico8_lq_keys_of_row(const pico8_jb_row_t *row, pico8_lq_cell_t *cells, int cap) {
-    pico8_lq_keys_t keys = {0};
+layout_row_keys_t layout_row_keys_of_row(const data_row_t *row, layout_row_cell_t *cells, int cap) {
+    layout_row_keys_t keys = {0};
     int i;
 
-    assert(row->count <= cap && row->fn == NULL && !row->has_qe &&
+    assert(row->count <= cap && row->draw_function == NULL && !row->has_resource &&
            "lq: a row passes positionals and c; fn or qe has no member -- stop, do not add one");
     for (i = 0; i < row->count; i++) {
-        cells[i] = pico8_lq_cell_item(&row->items[i]);
+        cells[i] = layout_row_cell_item(&row->items[i]);
     }
     keys.items = cells;
     keys.count = row->count;
-    keys.has_c = row->has_c;
-    keys.c = p8_fixed_from_int(row->c);
+    keys.has_color = row->has_color;
+    keys.color = p8_fixed_from_int(row->color);
     return keys;
 }
 
-pico8_lq_t *pico8_lq_copy(const allocator_t *zone, const pico8_lq_t *row) {
-    pico8_lq_t *self = pico8_lq_struct_alloc(zone, row->items_count);
+layout_row_t *layout_row_copy(const allocator_t *zone, const layout_row_t *row) {
+    layout_row_t *self = row_struct_alloc(zone, row->items_count);
     int k;
 
     for (k = 0; k < row->items_count; k++) {
-        self->items[k] = pico8_lq_own_cell(zone, row->items[k]);
+        self->items[k] = row_own_cell(zone, row->items[k]);
     }
-    self->c = row->c;
-    self->has_c = row->has_c;
-    self->bg = row->bg;
-    self->has_bg = row->has_bg;
-    self->bg_is_bool = row->bg_is_bool;
+    self->color = row->color;
+    self->has_color = row->has_color;
+    self->background = row->background;
+    self->has_background = row->has_background;
+    self->background_is_bool = row->background_is_bool;
     self->score = row->score;
     self->has_score = row->has_score;
-    self->ra = row->ra;
-    return pico8_lq_struct_finish(self);
+    self->pos = row->pos;
+    return row_struct_finish(self);
 }
 
-void pico8_lq_add(pico8_lq_t *self, pico8_lq_cell_t cell) {
-    self->items = (pico8_lq_cell_t *)allocator_grow(self->zone, (unsigned char *)self->items,
+void layout_row_add(layout_row_t *self, layout_row_cell_t cell) {
+    self->items = (layout_row_cell_t *)allocator_grow(self->zone, (unsigned char *)self->items,
                                                      (size_t)self->items_count * sizeof *self->items,
                                                      (size_t)(self->items_count + 1) * sizeof *self->items);
-    self->items[self->items_count] = pico8_lq_own_cell(self->zone, cell);
+    self->items[self->items_count] = row_own_cell(self->zone, cell);
     self->items_count++;
 }
 
-static const entity_class_t g_jb_struct_class = {
-    .draw_at = pico8_jb_ol_dispatch,
+static const entity_class_t g_tooltip_class = {
+    .draw_at = tooltip_draw_at_method,
 };
 
 /* The `jb` itself, before its lines. */
-static pico8_jb_t *pico8_jb_struct_alloc(const allocator_t *zone) {
-    pico8_jb_t *self;
+static tooltip_t *tooltip_struct_alloc(const allocator_t *zone) {
+    tooltip_t *self;
 
     assert(zone != NULL && "jb: a bubble without a zone would have nowhere to keep its lines");
-    self = (pico8_jb_t *)allocator_alloc(zone, sizeof *self);
+    self = (tooltip_t *)allocator_alloc(zone, sizeof *self);
 
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("tooltip");
 #endif
-    entity_init_header(&self->header, &g_jb_struct_class);
+    entity_init_header(&self->header, &g_tooltip_class);
     self->zone = zone;
-    self->ls = NULL;
-    self->ls_count = 0;
+    self->rows = NULL;
+    self->rows_count = 0;
     return self;
 }
 
-static pico8_jb_t *pico8_jb_struct_new(const allocator_t *zone, const pico8_jb_row_t *row) {
-    pico8_jb_t *self;
+static tooltip_t *tooltip_create(const allocator_t *zone, const data_row_t *row) {
+    tooltip_t *self;
 
-    assert((row == NULL || (!row->has_c && row->fn == NULL)) &&
+    assert((row == NULL || (!row->has_color && row->draw_function == NULL)) &&
            "jb: every line is positional; a named key has no member -- stop, do not add one");
-    self = pico8_jb_struct_alloc(zone);
-    pico8_jb_pq(self, row);
+    self = tooltip_struct_alloc(zone);
+    tooltip_construct(self, row);
     return self;
 }
 
-void pico8_layout_init(void) {
-    pico8_layout_shutdown();
+void layout_init(void) {
+    layout_shutdown();
     g_layout_up = 1;
 }
 
-void pico8_layout_shutdown(void) {
+void layout_shutdown(void) {
     g_layout_up = 0;
 }
 
-int pico8_lq_ready(void) {
+int layout_row_ready(void) {
     return g_layout_up;
 }
 
-int pico8_jb_ready(void) {
+int tooltip_ready(void) {
     return g_layout_up;
 }
 
-const entity_class_t *pico8_lq_struct_class(void) {
-    return &g_lq_struct_class;
+const entity_class_t *layout_row_class(void) {
+    return &g_layout_row_class;
 }
 
-const entity_class_t *pico8_jb_struct_class(void) {
-    return &g_jb_struct_class;
+const entity_class_t *tooltip_class(void) {
+    return &g_tooltip_class;
 }
 
-pico8_lq_t *pico8_lq_new(const allocator_t *zone, const pico8_lq_keys_t *keys) {
-    return pico8_lq_struct_new(zone, keys);
+layout_row_t *layout_row_new(const allocator_t *zone, const layout_row_keys_t *keys) {
+    return row_create(zone, keys);
 }
 
-pico8_jb_t *pico8_jb_new(const allocator_t *zone, const pico8_jb_row_t *row) {
-    return pico8_jb_struct_new(zone, row);
+tooltip_t *tooltip_new(const allocator_t *zone, const data_row_t *row) {
+    return tooltip_create(zone, row);
 }

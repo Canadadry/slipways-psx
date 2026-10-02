@@ -176,17 +176,17 @@ static uint32_t fold_defaults(uint32_t h, const pico8_g__t *g_) {
     const pico8_probe_t *pr = g_->probe;
 
     h = fold_ref_member(h, &g_->header.class->tags);
-    h = fold_fixed_member(h, g_->def->fx);
-    h = fold_string_member(h, pr->def->dq);
+    h = fold_fixed_member(h, g_->def->fold_anchor);
+    h = fold_string_member(h, pr->def->confirmed_state);
     h = fold_fixed_member(h, pr->od);
-    h = fold_bool_member(h, pr->def->fp != 0);
-    h = fold_fixed_member(h, g_->def->fa);
-    h = fold_fixed_member(h, pr->def->dw);
+    h = fold_bool_member(h, pr->def->clock_ticks != 0);
+    h = fold_fixed_member(h, g_->def->layer);
+    h = fold_fixed_member(h, pr->def->attach_distance);
     h = fold_fixed_member(h, em->py);
-    h = fold_fixed_member(h, em->def->ki);
+    h = fold_fixed_member(h, em->def->lifetime);
     h = fold_fixed_member(h, em->pn);
-    h = fold_fixed_member(h, em->def->pk);
-    h = fold_fixed_member(h, em->def->fc);
+    h = fold_fixed_member(h, em->def->quarter_turn);
+    h = fold_fixed_member(h, em->def->spawn_rate);
     h = fold_ref_member(h, em->k_);
     h = fold_fixed_member(h, em->qo);
     h = fold_fixed_member(h, em->ro);
@@ -224,7 +224,7 @@ static uint32_t fold_tags(uint32_t h, unsigned tags) {
 }
 
 /* An integer sequence: each position, then its value, then the count. */
-static uint32_t fold_seq(uint32_t h, const pico8_int_seq_t *s) {
+static uint32_t fold_seq(uint32_t h, const int_seq_t *s) {
     int i;
 
     for (i = 0; i < s->count; i++) {
@@ -295,7 +295,7 @@ static pico8_bg_t *the_bg(void) {
             continue;
         }
         bg = (pico8_bg_t *)e;
-        if (bg->def->hd == p8_fixed_from_int(1) && bg->def->fa == p8_fixed_from_int(1)) {
+        if (bg->def->hit_test == p8_fixed_from_int(1) && bg->def->layer == p8_fixed_from_int(1)) {
             found = bg;
             count++;
         }
@@ -308,7 +308,7 @@ static pico8_bg_t *the_bg(void) {
 static int is_probe(entity_t *e) {
     const pico8_g__t *g_ =
         e != NULL && (e->class->lineage & LINEAGE(LINEAGE_PROBE)) ? (const pico8_g__t *)e : NULL;
-    return g_ != NULL && g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)) && g_->def->fa == p8_fixed_from_int(2);
+    return g_ != NULL && g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)) && g_->def->layer == p8_fixed_from_int(2);
 }
 
 static pico8_g__t *as_g_(void *e) {
@@ -352,17 +352,17 @@ static uint32_t fold_probe(uint32_t h, pico8_g__t *e) {
 
     assert(is_probe(&e->header));
     assert(e->header.map_pos == &e->p);
-    h = fold_fixed_member(h, e->def->fx);
-    h = fold_string_member(h, pr->def->dq);
+    h = fold_fixed_member(h, e->def->fold_anchor);
+    h = fold_string_member(h, pr->def->confirmed_state);
     h = fold_fixed_member(h, pr->od);
-    h = fold_bool_member(h, pr->def->fp != 0);
-    h = fold_fixed_member(h, e->def->fa);
-    h = fold_fixed_member(h, pr->def->dw);
+    h = fold_bool_member(h, pr->def->clock_ticks != 0);
+    h = fold_fixed_member(h, e->def->layer);
+    h = fold_fixed_member(h, pr->def->attach_distance);
     h = fold_fixed_member(h, em->py);
-    h = fold_fixed_member(h, em->def->ki);
+    h = fold_fixed_member(h, em->def->lifetime);
     h = fold_fixed_member(h, em->pn);
-    h = fold_fixed_member(h, em->def->pk);
-    h = fold_fixed_member(h, em->def->fc);
+    h = fold_fixed_member(h, em->def->quarter_turn);
+    h = fold_fixed_member(h, em->def->spawn_rate);
     h = fold_fixed_member(h, em->qo);
     h = fold_fixed_member(h, em->ro);
     h = fold_fixed_member(h, em->qg);
@@ -370,11 +370,11 @@ static uint32_t fold_probe(uint32_t h, pico8_g__t *e) {
     h = fold_fixed_member(h, em->du);
     h = fold_string_member(h, e->header.state);
     h = fold_fixed_member(h, e->header.state_time);
-    assert(pr->def->dq != NULL && em->k_ != NULL);
+    assert(pr->def->confirmed_state != NULL && em->k_ != NULL);
     h = fold_tags(h, e->header.class->tags);
     h = fold_seq(h, em->k_);
     assert(e->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
-    assert(em->k_ == &pico8_g__k__seq);
+    assert(em->k_ == &probe_trail_colors_seq);
     h = fnv(h, (uint32_t)size_of(em->qy));
     assert(size_of(em->qy) == 0);
     assert(e->ra == NULL && e->p == NULL && pr->et == NULL && !e->p_);
@@ -413,8 +413,8 @@ static void test_built(void) {
     h = fold_probe(h, c);
     assert(a != b && b != c && a != c);
     assert(a->emitter->qy != b->emitter->qy && b->emitter->qy != c->emitter->qy);
-    assert(a->def->fa == p8_fixed_from_int(2) && a->emitter->def->ki == p8_fixed_from_int(9));
-    assert(a->probe->def->dw == 0x666);
+    assert(a->def->layer == p8_fixed_from_int(2) && a->emitter->def->lifetime == p8_fixed_from_int(9));
+    assert(a->probe->def->attach_distance == 0x666);
     assert(c->emitter->pn == p8_fixed_from_int(7) && c->header.state_time == p8_fixed_from_int(3) &&
            c->emitter->du == p8_fixed_from_int(10) && c->emitter->py == p8_fixed_from_int(1));
     assert(b->emitter->pn == p8_fixed_from_int(3) && b->header.state_time == p8_fixed_from_int(0));
@@ -667,7 +667,7 @@ static void test_ey_void(void) {
 static int is_help(entity_t *e) {
     const pico8_g__t *g_ =
         e != NULL && (e->class->lineage & LINEAGE(LINEAGE_PROBE)) ? (const pico8_g__t *)e : NULL;
-    return g_ != NULL && g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)) && g_->def->fa == p8_fixed_from_int(10);
+    return g_ != NULL && g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)) && g_->def->layer == p8_fixed_from_int(10);
 }
 
 /* The title screen's `fv`, of `g_`'s lineage: its
@@ -693,11 +693,11 @@ static void test_fv(void) {
     assert(found != NULL && !is_probe(found));
     fv = (const pico8_g__t *)found;
     assert(fv->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
-    assert(fv->def->fx == p8_fixed_from_int(1));
-    assert(fv->probe->def->dq != NULL && strcmp(fv->probe->def->dq, "settled") == 0);
-    assert(fv->def->fa == p8_fixed_from_int(10));
-    assert(fv->emitter->k_ == &pico8_fv_k__seq);
-    assert(fv->emitter->k_ != &pico8_g__k__seq);
+    assert(fv->def->fold_anchor == p8_fixed_from_int(1));
+    assert(fv->probe->def->confirmed_state != NULL && strcmp(fv->probe->def->confirmed_state, "settled") == 0);
+    assert(fv->def->layer == p8_fixed_from_int(10));
+    assert(fv->emitter->k_ == &help_screen_trail_colors_seq);
+    assert(fv->emitter->k_ != &probe_trail_colors_seq);
     assert(cls_of(fv)->draw_overlay == pico8_dl_dispatch);
     assert(cls_of(fv)->spawn_particle == pico8_g__mm);
     assert(cls_of(fv)->drag == pico8_bv_dispatch);
@@ -754,10 +754,10 @@ static void test_g__is_a_struct(void) {
     assert(pico8_g__ready());
 
     {
-        pico8_g__def_t fa_zero = pico8_g__def;
+        probe_archetype_t fa_zero = probe_archetype;
         pico8_g__t bare;
 
-        fa_zero.fa = 0;
+        fa_zero.layer = 0;
         pico8_g__struct_init(&bare, cls, &fa_zero);
         assert(is_a_g__struct(&bare) && !is_probe(&bare.header));
     }

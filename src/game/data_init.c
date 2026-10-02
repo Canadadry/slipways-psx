@@ -3,7 +3,7 @@
 #include "game/research.h"
 #include "game/tech_gate.h"
 
-void pico8_data_init(void) {
+void data_init(void) {
     /* hp must be ready before build_gb builds one. */
     pico8_research_init();
     pico8_research_build_gb();
@@ -11,6 +11,6 @@ void pico8_data_init(void) {
     pico8_nb_e_reset();
 }
 
-void pico8_data_shutdown(void) {
+void data_init_data_shutdown(void) {
     pico8_research_shutdown();
 }

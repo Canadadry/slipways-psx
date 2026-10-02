@@ -62,8 +62,8 @@ void pico8_cart_load(void) {
     pico8_nf_init();
     pico8_ui_init();
 
-    pico8_layout_init();
-    pico8_pi_init();
+    layout_init();
+    draw_functions_init();
     pico8_trade_init();
 
     pico8_js_init();
@@ -76,7 +76,7 @@ void pico8_cart_load(void) {
 
     mem = dispatch_context_mem();
     if (mem != NULL) {
-        pico8_data_init();
+        data_init();
     }
 
     pico8_jo_init();
@@ -153,7 +153,7 @@ void pico8_cart_shutdown(void) {
     pico8_jc_shutdown();
     pico8_jo_shutdown();
 
-    pico8_data_shutdown();
+    data_init_data_shutdown();
 
     pico8_economy_shutdown();
     pico8_probe_shutdown();
@@ -164,7 +164,7 @@ void pico8_cart_shutdown(void) {
     pico8_js_shutdown();
 
     pico8_trade_shutdown();
-    pico8_layout_shutdown();
+    layout_shutdown();
 
     pico8_ui_shutdown();
     pico8_nf_shutdown();
@@ -181,7 +181,7 @@ void pico8__init(void) {
            "pico8_help_init()/pico8_score_panel_init() reset these bridges, so pico8_cart_load() must "
            "install them afterwards: every button copies the value when it is built");
 
-    pico8_cu(mem);
+    hud_build_palette_table(mem);
     reset_world();
 
     /* `ie.gy,kc=ie.eh`: Lua pads the extra name with nil, so `gy` takes `eh`
@@ -212,7 +212,7 @@ void pico8_eu(pico8_js_t *nj) {
      * rebuilds hv/cv/cg and the mo/je/ok singletons. */
     reset_world();
     (void)pico8_bg_new();
-    pico8_bw(p8_fixed_from_int(90));
+    galaxy_populate(p8_fixed_from_int(90));
 
     pico8_probe_set_fm((entity_t *)pico8_hy_new());
     pico8_pj_set_ju(pico8_pj_new());
@@ -220,7 +220,7 @@ void pico8_eu(pico8_js_t *nj) {
     if (pico8_ha_pz() != NULL) {
         int j;
 
-        for (j = 1; j <= PICO8_IX_COUNT; j++) {
+        for (j = 1; j <= GALAXY_MENU_COUNT; j++) {
             (void)pico8_ix_button(j);
         }
     }
@@ -237,7 +237,7 @@ void pico8_eu(pico8_js_t *nj) {
         pico8_ie_keys_t keys = {0};
 
         keys.ke = gx[i];
-        keys.jb = pico8_jb_new(game_zone(), &pico8_dr_table[i]);
+        keys.jb = tooltip_new(game_zone(), &icon_tooltips_table[i]);
         (void)pico8_ie_new(&keys);
     }
 
@@ -259,7 +259,7 @@ void pico8__draw(void) {
     p8_memory_t *mem = dispatch_context_mem();
 
     p8_cls(mem);
-    pico8_dv_default(mem);
+    hud_select_palette_block_default(mem);
     draw_layers("draw");
     draw_layers("draw_overlay");
 }

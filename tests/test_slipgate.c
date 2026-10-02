@@ -110,7 +110,7 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
 }
 
 static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
-    return jo->def->hf ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
+    return jo->def->is_planet ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 static uint32_t fold_vec(uint32_t h, const vec_t *p) {
@@ -155,7 +155,7 @@ static pico8_jo_t *as_qh(void *e) {
 }
 
 static uint32_t fold_qh(uint32_t h, const pico8_jo_t *qh) {
-    return qh->def->qh ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
+    return qh->def->is_structure ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
@@ -246,15 +246,15 @@ static int gate_kind(const void *e) {
     const void *hz = NULL;
 
     if (e != NULL && (cls_of(e) == pico8_nr_struct_class() || cls_of(e) == pico8_fr_struct_class())) {
-        hz = ((const pico8_jo_t *)e)->def->hz;
+        hz = ((const pico8_jo_t *)e)->def->link_sprites;
     }
     if (hz == NULL) {
         return -1;
     }
-    if (hz == &pico8_nr_hz_seq) {
+    if (hz == &slipgate_link_sprites_seq) {
         return NR;
     }
-    if (hz == &pico8_fr_hz_seq) {
+    if (hz == &infraspace_gate_link_sprites_seq) {
         return FR;
     }
     return -1;
@@ -279,36 +279,36 @@ static uint32_t fold_slipgate(uint32_t h, const void *e) {
     h = fold_string_member(h, jo->id);
     h = fold_string_member(h, jo->header.state);
     h = fold_fixed_member(h, jo->header.state_time);
-    h = fold_string_member(h, nr->def->rr);
-    h = fold_fixed_member(h, qh->def->hp);
+    h = fold_string_member(h, nr->def->required_tech);
+    h = fold_fixed_member(h, qh->def->project_index);
     h = fold_fixed_member(h, qh->s);
     h = fold_fixed_member(h, qh->probe->od);
-    h = fold_fixed_member(h, qh->probe->def->fp);
-    h = fold_fixed_member(h, qh->probe->def->dw);
-    h = fold_string_member(h, qh->probe->def->dq);
+    h = fold_fixed_member(h, qh->probe->def->clock_ticks);
+    h = fold_fixed_member(h, qh->probe->def->attach_distance);
+    h = fold_string_member(h, qh->probe->def->confirmed_state);
     h = fold_qh(h, qh);
     h = jo->has_mi ? fold_fixed_member(h, jo->mi) : fold_absent(h);
     h = fold_hf(h, jo);
-    h = fold_fixed_member(h, jo->def->hs);
-    h = fold_fixed_member(h, jo->def->fa);
+    h = fold_fixed_member(h, jo->def->trade_multiplier);
+    h = fold_fixed_member(h, jo->def->layer);
     h = fold_fixed_member(h, jo->ma);
-    h = fold_fixed_member(h, jo->def->ca);
-    h = fold_vec(h, &jo->def->gq);
-    h = fnv(h, (uint32_t)nr->def->hz->count);
+    h = fold_fixed_member(h, jo->def->back_color);
+    h = fold_vec(h, &jo->def->row_step);
+    h = fnv(h, (uint32_t)nr->def->link_sprites->count);
     /* The 1s of `hp`, `qh`, `od`, `fp`, `dw`, `s`, then of `hf`, `hs`, `fa`,
      * `ma` and `ca`: constant by the struct's shape, kept so that BUILT_HASH
      * still proves the typed reads. */
-    h = fnv(h, (uint32_t)(nr->def->hz != NULL));
-    h = fnv(h, (uint32_t)(nr->def->rr != NULL));
+    h = fnv(h, (uint32_t)(nr->def->link_sprites != NULL));
+    h = fnv(h, (uint32_t)(nr->def->required_tech != NULL));
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(qh->def->px != NULL));
-    h = fnv(h, (uint32_t)(qh->probe->def->dq != NULL));
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
+    h = fnv(h, (uint32_t)(qh->def->name != NULL));
+    h = fnv(h, (uint32_t)(qh->probe->def->confirmed_state != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(qh->def->ba != NULL));
+    h = fnv(h, 1u);
+    h = fnv(h, 1u);
+    h = fnv(h, (uint32_t)(qh->def->accepted_resources != NULL));
     h = fnv(h, qh->probe->et != NULL ? 1u : 0u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -316,13 +316,13 @@ static uint32_t fold_slipgate(uint32_t h, const void *e) {
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->def->ka != NULL));
-    h = fnv(h, (uint32_t)(jo->def->dz != NULL));
-    h = fnv(h, (uint32_t)(jo->def->cq != NULL));
+    h = fnv(h, (uint32_t)(jo->def->ring_colors != NULL));
+    h = fnv(h, (uint32_t)(jo->def->mood_rows != NULL));
+    h = fnv(h, (uint32_t)(jo->def->made_resources != NULL));
     h = fnv(h, (uint32_t)(jo->kw != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->def->em != NULL));
+    h = fnv(h, (uint32_t)(jo->def->spacer != NULL));
     h = fnv(h, (uint32_t)(jo->id != NULL));
     h = fnv(h, (uint32_t)(jo->p != NULL));
     h = fnv(h, (uint32_t)(jo->ra != NULL));
@@ -353,14 +353,14 @@ static uint32_t fold_slipgate(uint32_t h, const void *e) {
     assert(cls_of(e)->accept_drop != qh_cls->accept_drop && cls_of(e)->left_press != qh_cls->left_press && cls_of(e)->refresh != qh_cls->refresh);
     assert(cls_of(e)->accept_drop != pico8_jo_struct_class()->accept_drop && cls_of(e)->left_press != pico8_jo_struct_class()->left_press &&
            cls_of(e)->refresh != pico8_jo_struct_class()->refresh);
-    assert(jo->def == &pico8_nr_def);
-    assert(jo->header.class->tags == (TAG(TAG_SLIPGATE) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && nr->def->hz == &pico8_nr_hz_seq);
+    assert(jo->def == &slipgate_archetype);
+    assert(jo->header.class->tags == (TAG(TAG_SLIPGATE) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && nr->def->link_sprites == &slipgate_link_sprites_seq);
     assert(jo->header.class->tags != (TAG(TAG_STRUCTURE) | TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)));
-    assert(jo->def->kq.left != pico8_jo_def.kq.left);
-    assert(qh->def->px == &pico8_qh_px_row && qh->def->ba == &pico8_qh_ba_seq);
-    assert(jo->def == &pico8_nr_def);
-    assert(jo->def->em == &pico8_jo_em_row && jo->def->ka == &pico8_jo_ka_seq && jo->def->dz == pico8_jo_dz_rows &&
-           jo->def->cq == &pico8_jo_cq_seq);
+    assert(jo->def->hit_box.left != planet_archetype.hit_box.left);
+    assert(qh->def->name == &structure_name_row && qh->def->accepted_resources == &structure_accepted_resources_seq);
+    assert(jo->def == &slipgate_archetype);
+    assert(jo->def->spacer == &planet_spacer_row && jo->def->ring_colors == &planet_ring_colors_seq && jo->def->mood_rows == planet_mood_rows_rows &&
+           jo->def->made_resources == &planet_made_resources_seq);
     assert(jo->kw != NULL && jo->kw != pico8_jo_shared_kw());
     assert(pico8_gb_at(1) != NULL);
     assert(jo->hn == pico8_gb_at(1));
@@ -602,7 +602,7 @@ static void test_cn_skips_a_slipway_already_in_rl(void) {
     int r_p;
 
     start_game();
-    assert(pico8_r_lookup("p", &r_p));
+    assert(resource_code_lookup("p", &r_p));
     qe = p8_fixed_from_int(r_p);
     self = pico8_nr_new(NULL);
     other = pico8_qh_new(NULL);

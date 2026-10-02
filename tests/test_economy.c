@@ -467,7 +467,7 @@ static pico8_jo_t *a_maker(void) {
 
     for (i = 0; i < jos->count; i++) {
         pico8_jo_t *p = as_jo(jos->items[i]);
-        if (p->jy != NULL && p->kw != NULL && p->kw->has_qe) {
+        if (p->jy != NULL && p->kw != NULL && p->kw->has_resource) {
             return p;
         }
     }
@@ -498,13 +498,13 @@ static void test_lj(void) {
     fu = fm_hy()->fu;
     assert(po != NULL && fu != NULL);
     maker = a_maker();
-    qe = maker->kw->qe;
-    assert(pico8_qe_map_get(po, qe, &made) && maker->kw->mu > 0);
-    maker->kw->qe = p8_fixed_from_int(99);
+    qe = maker->kw->resource;
+    assert(pico8_qe_map_get(po, qe, &made) && maker->kw->amount > 0);
+    maker->kw->resource = p8_fixed_from_int(99);
     pico8_hy_lj(fm_self());
-    assert(pico8_qe_map_get(po, p8_fixed_from_int(99), &now) && now == maker->kw->mu);
-    assert(pico8_qe_map_get(po, qe, &now) && now == p8_fixed_sub(made, maker->kw->mu));
-    maker->kw->qe = qe;
+    assert(pico8_qe_map_get(po, p8_fixed_from_int(99), &now) && now == maker->kw->amount);
+    assert(pico8_qe_map_get(po, qe, &now) && now == p8_fixed_sub(made, maker->kw->amount));
+    maker->kw->resource = qe;
     pico8_hy_lj(fm_self());
     assert(!pico8_qe_map_get(po, p8_fixed_from_int(99), &now));
     assert(pico8_qe_map_get(po, qe, &now) && now == made);
@@ -555,10 +555,10 @@ static void test_lj(void) {
 
 /* An nb entry of cost `od` whose `nk` (0) no resource of `r` is: gi reads
  * no `fu` for it. Never freed. */
-static const pico8_nb_entry_t *tech(const char *px, int od) {
-    pico8_nb_entry_t *t = malloc(sizeof *t);
+static const technologies_entry_t *tech(const char *px, int od) {
+    technologies_entry_t *t = malloc(sizeof *t);
 
-    *t = (pico8_nb_entry_t){px, 0, NULL, 0, od, NULL};
+    *t = (technologies_entry_t){px, 0, NULL, 0, od, NULL};
     return t;
 }
 

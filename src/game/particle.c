@@ -102,7 +102,7 @@ void pico8_ei(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self) {
     p8_fixed_t qg;
     p8_fixed_t ro;
     p8_fixed_t q_;
-    const pico8_int_seq_t *cs;
+    const int_seq_t *cs;
     pointer_list_t *qy;
     int i;
 
@@ -163,7 +163,7 @@ void pico8_ei(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self) {
                 int idx = pico8_particle_to_int(p8_fixed_flr(p->l));
 
                 if (cs != NULL) {
-                    pico8_int_seq_at(cs->items, cs->count, idx, &col);
+                    int_seq_at(cs->items, cs->count, idx, &col);
                 }
 
                 p8_pset(gfx, mem, px, py, col);
@@ -171,7 +171,7 @@ void pico8_ei(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self) {
         }
     }
 
-    pico8_ez(self, emitter->def->fc);
+    pico8_ez(self, emitter->def->spawn_rate);
 }
 
 void pico8_ei_dispatch(entity_t *self, const vec_t *ra) {

@@ -498,7 +498,7 @@ static void pause_restart_garde_la_partie_a_travers_restart(void) {
 /* Octets que le bw de chaque eu prend dans sa generation : jo.oc, sa
  * source et jo.ir. */
 static size_t etats_de_bw(void) {
-    return (2 * ZONE_CELLS(sizeof(pico8_jf_state_t)) + ZONE_CELLS(sizeof(pico8_gn_state_t))) *
+    return (2 * ZONE_CELLS(sizeof(random_walk_t)) + ZONE_CELLS(sizeof(weighted_picker_t))) *
            sizeof(zone_cell_t);
 }
 
@@ -570,13 +570,13 @@ static size_t octets_des_icones(void) {
     for (int i = 0; hv != NULL && i < hv->count; i++) {
         const pico8_ie_t *ie = (const pico8_ie_t *)hv->items[i];
         if (ie->header.class != pico8_ie_struct_class()) continue;
-        assert(k < PICO8_DR_COUNT && "plus d'icones que de bulles dans dr");
-        (void)pico8_jb_new(mesure, &pico8_dr_table[k]);
+        assert(k < ICON_TOOLTIPS_COUNT && "plus d'icones que de bulles dans dr");
+        (void)tooltip_new(mesure, &icon_tooltips_table[k]);
         octets += octets_d_un_bloc(sizeof *ie);
         if (ie->has_kh && ie->kh) octets += octets_d_un_bloc(sizeof(vec_t));
         k++;
     }
-    assert(k == PICO8_DR_COUNT && "eu fait une icone par bulle de dr");
+    assert(k == ICON_TOOLTIPS_COUNT && "eu fait une icone par bulle de dr");
     return octets + arena_used(mesure) - tete;
 }
 
@@ -1122,7 +1122,7 @@ static void pause_restart_devoile_sur_les_etats_de_la_nouvelle_partie(void) {
     demarrer("pause_restart");
     jouer_jusqu_a(13);
     const entity_list_t *jo = entities_by_tag("planet");
-    const pico8_df_entry_t *ll = pico8_df_lookup("vanishing");
+    const planet_types_entry_t *ll = planet_types_lookup("vanishing");
     int devoilees = 0;
     int par_oc = 0;
     for (int i = 0; jo != NULL && i < jo->count && devoilees < 5; i++) {

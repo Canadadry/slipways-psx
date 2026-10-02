@@ -1,5 +1,5 @@
-#ifndef PICO8_HUD_H
-#define PICO8_HUD_H
+#ifndef GAME_HUD_H
+#define GAME_HUD_H
 
 #include "p8/fixed.h"
 #include "p8/gfx.h"
@@ -17,32 +17,32 @@
  * copies from -- PICO-8's trick of encoding palette swaps as sprite-sheet
  * pixels. Color 3's byte gets the 0x80 transparency bit in every block, so
  * activating any block makes color 3 invisible. Takes no gfx. */
-void pico8_cu(p8_memory_t *mem);
+void hud_build_palette_table(p8_memory_t *mem);
 
 /* Activates block `no` of the 16 cu() built, by copying its 16 bytes into
  * the draw palette at 0x5f00 -- overwriting whatever palt() had set there.
  * `no` omitted means block 0. */
-void pico8_dv(p8_memory_t *mem, p8_fixed_t no);
-void pico8_dv_default(p8_memory_t *mem);
+void hud_select_palette_block(p8_memory_t *mem, p8_fixed_t no);
+void hud_select_palette_block_default(p8_memory_t *mem);
 
 /* Full-width horizontal bar. An explicit `col` also becomes the current
- * pen color (gfx->pen_color), which is what pico8_rk_default then draws
+ * pen color (gfx->pen_color), which is what hud_draw_bar_default then draws
  * with -- the cart has exactly one col-omitted call site, `rk(127-h,127)`
  * in pj:kj. That write is why `gfx` is not const here. */
-void pico8_rk(p8_graphics_t *gfx, p8_memory_t *mem, p8_fixed_t y1, p8_fixed_t y2, int col);
-void pico8_rk_y1(p8_graphics_t *gfx, p8_memory_t *mem, p8_fixed_t y1, int col);
-void pico8_rk_default(p8_graphics_t *gfx, p8_memory_t *mem, p8_fixed_t y1, p8_fixed_t y2);
+void hud_draw_bar(p8_graphics_t *gfx, p8_memory_t *mem, p8_fixed_t y1, p8_fixed_t y2, int col);
+void hud_draw_bar_y1(p8_graphics_t *gfx, p8_memory_t *mem, p8_fixed_t y1, int col);
+void hud_draw_bar_default(p8_graphics_t *gfx, p8_memory_t *mem, p8_fixed_t y1, p8_fixed_t y2);
 
-void pico8_eq(const p8_graphics_t *gfx, p8_memory_t *mem, p8_fixed_t x1, p8_fixed_t y1, p8_fixed_t x2);
+void hud_draw_help_frame(const p8_graphics_t *gfx, p8_memory_t *mem, p8_fixed_t x1, p8_fixed_t y1, p8_fixed_t x2);
 
 /* Outlined text: the same string printed at the 8 neighbouring pixels in
  * black, then once at the center in `c`. band(0,c) is 0 and band(15,c) is
  * c, which is how one loop over `er` draws both. `a` is the optional
  * centering factor, NULL meaning omitted: Lua's `if (a)` never evaluates
- * `a*4*#t` at all, so pico8_io_default must not either. */
-void pico8_io(const p8_graphics_t *gfx, p8_memory_t *mem, const char *t, p8_fixed_t x, p8_fixed_t y, int c,
+ * `a*4*#t` at all, so hud_print_outlined_default must not either. */
+void hud_print_outlined(const p8_graphics_t *gfx, p8_memory_t *mem, const char *t, p8_fixed_t x, p8_fixed_t y, int c,
               const p8_fixed_t *a);
-void pico8_io_default(const p8_graphics_t *gfx, p8_memory_t *mem, const char *t, p8_fixed_t x, p8_fixed_t y,
+void hud_print_outlined_default(const p8_graphics_t *gfx, p8_memory_t *mem, const char *t, p8_fixed_t x, p8_fixed_t y,
                        int c);
 
 #endif

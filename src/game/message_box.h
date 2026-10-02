@@ -18,7 +18,7 @@ typedef int (*pico8_mh_lh_fn)(pico8_mh_t *self);
 
 /* The cart builds a box twice: `pj:hk` (up to 3 articles) and `pj:ph`
  * (one per row of `bz`). */
-enum { PICO8_MH_ITEMS_CAP = PICO8_BZ_COUNT };
+enum { PICO8_MH_ITEMS_CAP = SCORE_ROWS_COUNT };
 
 /* `items` is the cart's `self[1..n]`, the option row `mh:ev` lays out
  * through `bl`, in the order the construction table stored them. An
@@ -29,11 +29,11 @@ enum { PICO8_MH_ITEMS_CAP = PICO8_BZ_COUNT };
 struct pico8_mh {
     entity_t header;
     const allocator_t *place;
-    const pico8_mh_def_t *def;
+    const message_box_archetype_t *def;
     p8_fixed_t rh;
     pico8_mh_lh_fn lh; /* NULL: `lh` is nil */
     int p_;
-    const pico8_jb_row_t *items[PICO8_MH_ITEMS_CAP];
+    const data_row_t *items[PICO8_MH_ITEMS_CAP];
     int items_count;
 };
 
@@ -57,7 +57,7 @@ int pico8_mh_ready(void);
  * an article of `bl` (an article `ld` copied, any other borrowed for the
  * box's life), `rh` under its flag, `lh` NULL for nil. */
 typedef struct {
-    const pico8_jb_row_t *const *items;
+    const data_row_t *const *items;
     int count;
     int has_rh; /* 0: `rh` keeps the archetype's */
     p8_fixed_t rh;
@@ -92,7 +92,7 @@ typedef struct {
     const allocator_t *place;
     vec_t ra_box;
     char at1_buf[PICO8_IV_TEXT_CAP + 1];
-    const pico8_iv_def_t *def;
+    const toast_archetype_t *def;
     p8_fixed_t l;
     const vec_t *ra;
     int p_;

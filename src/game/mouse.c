@@ -38,8 +38,8 @@ static void pico8_nf_pq(p8_memory_t *mem) {
 static pico8_nf_t *pico8_nf_struct_new(void) {
     pico8_nf_t *self = (pico8_nf_t *)allocator_alloc(game_zone(), sizeof *self);
 
-    entity_init_instance(&self->header, &g_nf_struct_class, pico8_nf_def.me, pico8_nf_def.t);
-    self->def = &pico8_nf_def;
+    entity_init_instance(&self->header, &g_nf_struct_class, mouse_archetype.state, mouse_archetype.state_time);
+    self->def = &mouse_archetype;
     /* Read-only: this module writes through its member. */
     self->header.pos = (const vec_t *const *)&self->ra;
     self->ra = &g_nf_ra;
@@ -53,7 +53,7 @@ static pico8_nf_t *pico8_nf_struct_new(void) {
 
 void pico8_nf_init(void) {
     pico8_nf_shutdown();
-    pico8_pi_init();
+    draw_functions_init();
     assert(entity_ready() && "nf descends from ke");
     g_nf_up = 1;
     g_nf_ra = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));

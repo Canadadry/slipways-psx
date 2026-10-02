@@ -15,7 +15,7 @@
 /* `ed` NULL reads as the class's `ed`, the number 1, never nil. */
 typedef struct {
     entity_t header;
-    const pico8_pj_def_t *def;
+    const score_panel_archetype_t *def;
     p8_fixed_t fa;
     pico8_mh_t *ed;
     int c_;
@@ -43,10 +43,10 @@ enum { PICO8_PJ_TEXT_CAP = 16 };
  * (item 1 of each), each an article of `bl`; a text `hb` writes is a copy
  * in `texts[i]`. */
 typedef struct {
-    pico8_jb_row_t row;
-    pico8_jb_item_t items[7];
-    pico8_jb_row_t subs[7];
-    pico8_jb_item_t sub_items[7][4];
+    data_row_t row;
+    data_item_t items[7];
+    data_row_t subs[7];
+    data_item_t sub_items[7][4];
     char texts[7][PICO8_PJ_TEXT_CAP + 1];
 } pico8_pj_ou_t;
 
@@ -54,10 +54,10 @@ typedef struct {
  * item 1 `hk` rewrites, to a copy in `year`) and `ea[3]` when set (a row of
  * `gs`); `lh` NULL is nil. */
 typedef struct {
-    pico8_jb_row_t row;
-    pico8_jb_item_t items[3];
-    pico8_jb_row_t second;
-    pico8_jb_item_t second_items[5];
+    data_row_t row;
+    data_item_t items[3];
+    data_row_t second;
+    data_item_t second_items[5];
     char year[PICO8_PJ_TEXT_CAP + 1];
     pico8_mh_lh_fn lh;
 } pico8_pj_ea_t;
@@ -69,11 +69,11 @@ typedef struct {
  * frame-zone texts, dangling after the next reset; only `pj:ph`, which has
  * just written them, reads them. */
 typedef struct {
-    pico8_jb_row_t row;
-    pico8_jb_item_t items[5];
+    data_row_t row;
+    data_item_t items[5];
     int has[5];
     vec_t ra;
-    const pico8_bz_entry_t *e;
+    const score_rows_entry_t *e;
 } pico8_bz_row_t;
 
 /* Calls `pico8_pi_init()` first. Resets `bz`, `ou` and `ea` to their
@@ -98,8 +98,8 @@ pico8_pj_ea_t *pico8_pj_ea(void);
 pico8_pj_cr_t *pico8_pj_cr(void);
 const entity_class_t *pico8_pj_cr_struct_class(void);
 /* `pico8_pj_i__row`, `pico8_pj_gs_row`: never NULL. */
-const pico8_jb_row_t *pico8_pj_i_(void);
-const pico8_jb_row_t *pico8_pj_gs(void);
+const data_row_t *pico8_pj_i_(void);
+const data_row_t *pico8_pj_gs(void);
 
 /* The panel registers itself through `lt` into `hv`, `cv.kj`, `cv.hk`,
  * `cv.hb` and no `cg`; it lives in the game-zone generation `eu` opens. Asserts when called before the

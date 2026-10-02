@@ -100,14 +100,14 @@ static void test_overlapping_categories_count_each_but_footer_counts_distinct_li
 static void test_omitted_argument_defaults_are_not_class_specs(void) {
     setup();
     write_file(SRC "/g.c", "p8_" "spr_default(gfx, mem, 1, 0, 0);\n"
-                           "pico8_" "io_default(x);\n"
-                           "pico8_" "rk_default(gfx, mem, y1, y2);\n");
+                           "hud_" "print_outlined_default(x);\n"
+                           "hud_" "draw_bar_default(gfx, mem, y1, y2);\n");
     assert(run_residue(TREE) == 0);
     assert(strcmp(read_file(OUT), EMPTY_FOOTER) == 0);
     write_file(SRC "/g.c", "p8_" "spr_default(gfx, mem, 1, 0, 0);\n"
                            "pico8_" "jo_default(\"nu\", &k);\n"
                            "int f = jo_" "default_fixed(x);\n"
-                           "pico8_" "io_default(x);\n");
+                           "hud_" "print_outlined_default(x);\n");
     assert(run_residue(TREE) == 0);
     assert(strcmp(read_file(OUT), "spec\t2\t1\n"
                                   "résidu D : 2 ligne(s), 1 fichier(s)\n") == 0);

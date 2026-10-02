@@ -45,18 +45,18 @@ void pico8_cm(pico8_qe_map_t *out, p8_fixed_t jm) {
     int i;
 
     out->count = 0;
-    for (i = 0; i < PICO8_R_COUNT; i++) {
-        pico8_qe_map_set(out, p8_fixed_from_int(pico8_r_table[i].qe), jm);
+    for (i = 0; i < RESOURCE_CODE_COUNT; i++) {
+        pico8_qe_map_set(out, p8_fixed_from_int(resource_codes[i].resource), jm);
     }
 }
 
 p8_fixed_t pico8_dj(vec_t pb_p, vec_t to_p) {
     vec_t diff = vec_sub(to_p, pb_p);
     p8_fixed_t len_sq = vec_length_squared(diff);
-    p8_fixed_t x = p8_fixed_div(len_sq, pico8_bq());
+    p8_fixed_t x = p8_fixed_div(len_sq, game_data_route_length_factor());
     p8_fixed_t ec = p8_fixed_pow075(x);
     p8_fixed_t clamped = fixed_max(P8_FIXED_LIT(0x00008000, 0.5), ec);
-    p8_fixed_t scale = p8_fixed_mul(pico8_bn(), pico8_bk());
+    p8_fixed_t scale = p8_fixed_mul(game_data_route_cost_factor(), pico8_bk());
     p8_fixed_t cost = p8_fixed_flr(p8_fixed_mul(scale, clamped));
     return cost;
 }

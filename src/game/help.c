@@ -38,38 +38,38 @@ static int pico8_fv_hd_dispatch(entity_t *self, const vec_t *qa, const vec_t *ra
 
 /* `pz(self, bo)`, each row's `my` the `eu` of this game. */
 void pico8_fv_pq(pico8_g__t *self) {
-    pico8_js_keys_t bs[PICO8_BO_COUNT];
-    pico8_lq_keys_t lq[PICO8_BO_COUNT];
-    pico8_lq_cell_t items[PICO8_BO_COUNT][PICO8_BO_ROW_CAP];
+    pico8_js_keys_t bs[DIFFICULTY_OPTIONS_COUNT];
+    layout_row_keys_t lq[DIFFICULTY_OPTIONS_COUNT];
+    layout_row_cell_t items[DIFFICULTY_OPTIONS_COUNT][PICO8_BO_ROW_CAP];
     pico8_pz_frame_t frame = {0};
     int i;
 
     if (self == NULL) {
         return;
     }
-    for (i = 0; i < PICO8_BO_COUNT; i++) {
-        const pico8_bo_entry_t *e = &pico8_bo_table[i];
+    for (i = 0; i < DIFFICULTY_OPTIONS_COUNT; i++) {
+        const difficulty_options_entry_t *e = &difficulty_options_table[i];
 
         memset(&bs[i], 0, sizeof bs[i]);
-        lq[i] = pico8_lq_keys_of_row(e->lq, items[i], PICO8_BO_ROW_CAP);
+        lq[i] = layout_row_keys_of_row(e->layout_row, items[i], PICO8_BO_ROW_CAP);
         bs[i].lq_row = &lq[i];
-        bs[i].px = e->px;
+        bs[i].px = e->name;
         bs[i].has_trade = 1;
         bs[i].trade = p8_fixed_from_int(e->trade);
         bs[i].has_en = 1;
-        bs[i].en = e->en;
+        bs[i].en = e->type_bias;
         bs[i].has_my = 1;
         bs[i].my = pico8_eu_field_value();
     }
     frame.has_eo = 1;
-    frame.eo = self->def->eo;
-    frame.hi = &self->def->hi;
+    frame.eo = self->def->open_sfx;
+    frame.hi = &self->def->fixed_pos;
     frame.ff = 1;
     frame.has_ca = 1;
-    frame.ca = self->def->ca;
-    frame.gq = &self->def->gq;
+    frame.ca = self->def->back_color;
+    frame.gq = &self->def->row_step;
     frame.ra = self->ra;
-    pico8_pz(&frame, bs, PICO8_BO_COUNT);
+    pico8_pz(&frame, bs, DIFFICULTY_OPTIONS_COUNT);
 }
 
 /* `fv.rb` holds four articles in the cart. */
@@ -81,15 +81,15 @@ void pico8_fv_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_g__t *self, vec_t p
     pico8_ei(gfx, mem, (entity_t *)self);
 
     if (gfx != NULL && mem != NULL) {
-        const pico8_jb_row_t *items[PICO8_FV_RB_CAP];
+        const data_row_t *items[PICO8_FV_RB_CAP];
         int n = 0;
         int i;
 
-        for (i = 0; self != NULL && self->def->rb != NULL && i < self->def->rb->count; i++) {
+        for (i = 0; self != NULL && self->def->rows != NULL && i < self->def->rows->count; i++) {
             assert(n < PICO8_FV_RB_CAP && "fv.rb has four articles in the cart");
-            items[n++] = self->def->rb->items[i].row;
+            items[n++] = self->def->rows->items[i].row;
         }
-        pico8_bl_default(gfx, mem, items, n);
+        draw_functions_draw_rows_default(gfx, mem, items, n);
     }
 }
 
@@ -115,10 +115,10 @@ static pico8_g__t *pico8_fv_struct_new(void) {
 
     assert(g_fv_up && "pico8_help_init() must run first");
     self = (pico8_g__t *)allocator_alloc(game_zone(), sizeof *self);
-    pico8_g__struct_init(self, &g_fv_struct_class, &pico8_fv_def);
-    self->header.hit_box = &self->def->kq;
-    self->header.cursor_sprite = &self->def->ql;
-    self->header.gpio_signal = &self->def->fg;
+    pico8_g__struct_init(self, &g_fv_struct_class, &help_screen_archetype);
+    self->header.hit_box = &self->def->hit_box;
+    self->header.cursor_sprite = &self->def->cursor_sprite;
+    self->header.gpio_signal = &self->def->gpio_signal;
     self->header.is_hovered = &self->m_;
     self->m_ = 0;
 #ifdef PICO8_CLASS_COVERAGE
@@ -133,7 +133,7 @@ static pico8_g__t *pico8_fv_struct_new(void) {
 /* This module, unlike most, does not call pico8_pi_init() itself, and `fv`
  * is built by `g_`'s init: both preconditions are asserted, not repaired. */
 void pico8_help_init(void) {
-    assert(pico8_pi_dispatch_lookup("s") != NULL && "pico8_help_init() runs after pico8_pi_init()");
+    assert(draw_functions_dispatch_lookup("s") != NULL && "pico8_help_init() runs after pico8_pi_init()");
     assert(pico8_g__ready() && "pico8_help_init() runs after pico8_probe_init()");
 
     pico8_help_shutdown();

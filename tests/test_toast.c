@@ -229,10 +229,10 @@ static void test_defaults_match_the_parsed_spec(void) {
 
     fresh_world();
     e = build(NULL, "x", 7);
-    assert(e->def == &pico8_iv_def);
-    assert(e->def->v.x == 0 && e->def->v.y == -0x570a);
-    assert(e->def->fa == p8_fixed_from_int(9));
-    assert(e->l == e->def->l);
+    assert(e->def == &toast_archetype);
+    assert(e->def->velocity.x == 0 && e->def->velocity.y == -0x570a);
+    assert(e->def->layer == p8_fixed_from_int(9));
+    assert(e->l == e->def->fade);
     assert(e->header.state != NULL && strcmp(e->header.state, "normal") == 0);
     assert(e->header.state_time == 0);
     assert(build(NULL, "y", 7)->def == e->def);
@@ -328,7 +328,7 @@ static void test_toast_follows_the_borrowed_ra_until_its_first_ph(void) {
     moved = *planet_ra;
     assert(e->ra->x == moved.x && e->ra->y == moved.y);
     pico8_iv_ph(e);
-    after = vec_add(moved, e->def->v);
+    after = vec_add(moved, e->def->velocity);
     assert(e->ra->x == after.x && e->ra->y == after.y);
     *planet_ra = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     free(planet_ra);

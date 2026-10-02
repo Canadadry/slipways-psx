@@ -173,7 +173,7 @@ static void bb_visit(entity_t *pt, void *ctx) {
     if (mi != p8_fixed_from_int(0)) {
         pico8_hp_t *hn = jo->hn;
         if (hn != NULL) {
-            const pico8_hc_entry_t *po = pico8_hp_po(hn);
+            const production_tables_entry_t *po = pico8_hp_po(hn);
             if (po != NULL) {
                 int idx = p8_fixed_flr_int(mi);
                 int clamped_idx = (idx < po->count) ? idx : po->count;
@@ -187,7 +187,7 @@ static void bb_visit(entity_t *pt, void *ctx) {
                     jh = jo->jh;
                 }
                 if (jo->kw != NULL) {
-                    jo->kw->mu = p8_fixed_add(base, jh);
+                    jo->kw->amount = p8_fixed_add(base, jh);
                 }
             }
         }
@@ -274,7 +274,7 @@ p8_fixed_t pico8_dh(const entity_t *pt) {
         return fixed_min(p8_fixed_from_int(count), p8_fixed_from_int(3));
     }
 
-    if (!jo->def->hf) {
+    if (!jo->def->is_planet) {
         if (jy != NULL && jy->count > 0) {
             void *last_val = jy->items[jy->count - 1];
             if (last_val != NULL) {

@@ -250,7 +250,7 @@ void draw_layers(const char *message) {
         if (is_draw && bucket->count > 0) {
             p8_fixed_t ci;
             /* The placeholder mo, before jl(), has no `md`. */
-            if (pico8_fixed_seq_at(pico8_ci_table, PICO8_CI_COUNT, layer_index, &ci) && g_main_camera != NULL &&
+            if (game_data_fixed_seq_at(layer_fades_table, LAYER_FADES_COUNT, layer_index, &ci) && g_main_camera != NULL &&
                 g_main_camera->class->apply_camera != NULL) {
                 g_main_camera->class->apply_camera(g_main_camera, ci);
             }

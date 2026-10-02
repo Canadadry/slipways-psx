@@ -60,9 +60,9 @@ static void pico8_bg_set_mq(pico8_bg_t *self, const vec_t *rp) {
 static pico8_bg_t *pico8_bg_struct_new(void) {
     pico8_bg_t *self = (pico8_bg_t *)allocator_alloc(game_zone(), sizeof *self);
 
-    entity_init_instance(&self->header, &g_bg_struct_class, pico8_bg_def.me, pico8_bg_def.t);
-    self->def = &pico8_bg_def;
-    self->header.layer = &self->def->fa;
+    entity_init_instance(&self->header, &g_bg_struct_class, background_archetype.state, background_archetype.state_time);
+    self->def = &background_archetype;
+    self->header.layer = &self->def->layer;
     pico8_bg_set_mq(self, NULL);
     self->header.is_hovered = &self->m_;
     self->m_ = 0;
@@ -101,8 +101,8 @@ void pico8_bg_pq(p8_memory_t *mem, pico8_bg_t *self) {
     p8_fixed_t vs[32];
     int vs_set[32];
     p8_fixed_t vh = p8_fixed_from_int(0);
-    pico8_jf_state_t *oh;
-    const pico8_int_seq_t *pl = self != NULL && self->def->pl != NULL ? self->def->pl : &pico8_bg_pl_seq;
+    random_walk_t *oh;
+    const int_seq_t *pl = self != NULL && self->def->tile_choices != NULL ? self->def->tile_choices : &background_tile_choices_seq;
     int x, y;
 
     if (mem == NULL) {
@@ -113,13 +113,13 @@ void pico8_bg_pq(p8_memory_t *mem, pico8_bg_t *self) {
         vs_set[x] = 0;
     }
 
-    oh = pico8_jf(frame_zone(), P8_FIXED_LIT(0x00001999, 0.1), p8_fixed_from_int(0));
+    oh = random_walk_new(frame_zone(), P8_FIXED_LIT(0x00001999, 0.1), p8_fixed_from_int(0));
 
     for (y = 0; y <= 31; y++) {
         for (x = 0; x <= 31; x++) {
             p8_fixed_t prev = vs_set[x] ? vs[x] : p8_fixed_from_int(1);
             p8_fixed_t step =
-                p8_fixed_sub(p8_fixed_mul(pico8_jf_next(oh), p8_fixed_from_int(8)), p8_fixed_from_int(4));
+                p8_fixed_sub(p8_fixed_mul(random_walk_next(oh), p8_fixed_from_int(8)), p8_fixed_from_int(4));
             p8_fixed_t roll;
             int tile;
 
@@ -135,7 +135,7 @@ void pico8_bg_pq(p8_memory_t *mem, pico8_bg_t *self) {
                 int idx = pico8_bg_to_int(idx_f);
 
                 tile = 0;
-                pico8_int_seq_at(pl->items, pl->count, idx, &tile);
+                int_seq_at(pl->items, pl->count, idx, &tile);
             }
 
             p8_mset(mem, x, y, tile);

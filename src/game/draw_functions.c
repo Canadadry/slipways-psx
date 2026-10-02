@@ -10,53 +10,53 @@
 #include "engine/frame_zone.h"
 
 typedef struct {
-    char name[8];
-    pico8_pi_fn fn;
-} pico8_pi_dispatch_entry_t;
+    char name[16];
+    draw_functions_fn_t draw;
+} draw_functions_dispatch_entry_t;
 
-static pico8_pi_dispatch_entry_t g_pi_dispatch[PICO8_PI_DISPATCH_CAPACITY];
-static int g_pi_dispatch_count = 0;
+static draw_functions_dispatch_entry_t g_draw_functions_method[DRAW_FUNCTIONS_DISPATCH_CAPACITY];
+static int g_draw_functions_dispatch_count = 0;
 
-/* Borrowed, never owned: set by pico8_bl/pico8_bl_default right before
- * each dispatch, so the functions below can reach a real drawing function
- * that an article cannot carry. */
-static p8_graphics_t *g_pi_gfx = NULL;
-static p8_memory_t *g_pi_mem = NULL;
+/* Borrowed, never owned: set by draw_functions_draw_rows(_default) right
+ * before each dispatch, so the functions below can reach a real drawing
+ * function that an article cannot carry. */
+static p8_graphics_t *g_draw_functions_gfx = NULL;
+static p8_memory_t *g_draw_functions_mem = NULL;
 
-void pico8_pi_dispatch_register(const char *name, pico8_pi_fn fn) {
+void draw_functions_dispatch_register(const char *name, draw_functions_fn_t fn) {
     int i;
-    for (i = 0; i < g_pi_dispatch_count; i++) {
-        if (strcmp(g_pi_dispatch[i].name, name) == 0) {
-            g_pi_dispatch[i].fn = fn;
+    for (i = 0; i < g_draw_functions_dispatch_count; i++) {
+        if (strcmp(g_draw_functions_method[i].name, name) == 0) {
+            g_draw_functions_method[i].draw = fn;
             return;
         }
     }
-    assert(g_pi_dispatch_count < PICO8_PI_DISPATCH_CAPACITY && "pi dispatch table full");
-    assert(strlen(name) < sizeof g_pi_dispatch[0].name && "pi dispatch name would be truncated");
-    strncpy(g_pi_dispatch[g_pi_dispatch_count].name, name, sizeof g_pi_dispatch[g_pi_dispatch_count].name - 1);
-    g_pi_dispatch[g_pi_dispatch_count].name[sizeof g_pi_dispatch[g_pi_dispatch_count].name - 1] = '\0';
-    g_pi_dispatch[g_pi_dispatch_count].fn = fn;
-    g_pi_dispatch_count++;
+    assert(g_draw_functions_dispatch_count < DRAW_FUNCTIONS_DISPATCH_CAPACITY && "pi dispatch table full");
+    assert(strlen(name) < sizeof g_draw_functions_method[0].name && "pi dispatch name would be truncated");
+    strncpy(g_draw_functions_method[g_draw_functions_dispatch_count].name, name, sizeof g_draw_functions_method[g_draw_functions_dispatch_count].name - 1);
+    g_draw_functions_method[g_draw_functions_dispatch_count].name[sizeof g_draw_functions_method[g_draw_functions_dispatch_count].name - 1] = '\0';
+    g_draw_functions_method[g_draw_functions_dispatch_count].draw = fn;
+    g_draw_functions_dispatch_count++;
 }
 
-pico8_pi_fn pico8_pi_dispatch_lookup(const char *name) {
+draw_functions_fn_t draw_functions_dispatch_lookup(const char *name) {
     int i;
-    for (i = 0; i < g_pi_dispatch_count; i++) {
-        if (strcmp(g_pi_dispatch[i].name, name) == 0) {
-            return g_pi_dispatch[i].fn;
+    for (i = 0; i < g_draw_functions_dispatch_count; i++) {
+        if (strcmp(g_draw_functions_method[i].name, name) == 0) {
+            return g_draw_functions_method[i].draw;
         }
     }
     return NULL;
 }
 
-void pico8_pi_dispatch_clear(void) {
-    g_pi_dispatch_count = 0;
+void draw_functions_dispatch_clear(void) {
+    g_draw_functions_dispatch_count = 0;
 }
 
 /* `e[i]`, 1-based; NULL past the end, where the cart's `oo` unpacked
  * nil. */
-static const pico8_jb_item_t *pico8_pi_arg(const pico8_jb_row_t *e, int i) {
-    const pico8_jb_item_t *item;
+static const data_item_t *draw_functions_arg(const data_row_t *e, int i) {
+    const data_item_t *item;
 
     if (i > e->count) {
         return NULL;
@@ -66,9 +66,9 @@ static const pico8_jb_item_t *pico8_pi_arg(const pico8_jb_row_t *e, int i) {
     return item;
 }
 
-static int pico8_pi_is_number(const pico8_jb_row_t *e, int i) {
-    const pico8_jb_item_t *item = pico8_pi_arg(e, i);
-    if (item == NULL || item->s != NULL) {
+static int is_number(const data_row_t *e, int i) {
+    const data_item_t *item = draw_functions_arg(e, i);
+    if (item == NULL || item->text != NULL) {
         return 0;
     }
     if (item->is_false || item->is_ref) {
@@ -78,119 +78,119 @@ static int pico8_pi_is_number(const pico8_jb_row_t *e, int i) {
 }
 
 /* 0 when `e[i]` is not a number. */
-static p8_fixed_t pico8_pi_number(const pico8_jb_row_t *e, int i) {
-    const pico8_jb_item_t *item = pico8_pi_arg(e, i);
-    if (!pico8_pi_is_number(e, i)) {
+static p8_fixed_t number(const data_row_t *e, int i) {
+    const data_item_t *item = draw_functions_arg(e, i);
+    if (!is_number(e, i)) {
         return p8_fixed_from_int(0);
     }
-    return item->is_fixed ? item->fixed : p8_fixed_from_int(item->n);
+    return item->is_fixed ? item->fixed : p8_fixed_from_int(item->number);
 }
 
 /* NULL when `e[i]` is not a pointer. */
-static const void *pico8_pi_ref(const pico8_jb_row_t *e, int i) {
-    const pico8_jb_item_t *item = pico8_pi_arg(e, i);
-    return (item != NULL && item->s == NULL && !item->is_false && item->is_ref) ? item->ref : NULL;
+static const void *draw_functions_ref(const data_row_t *e, int i) {
+    const data_item_t *item = draw_functions_arg(e, i);
+    return (item != NULL && item->text == NULL && !item->is_false && item->is_ref) ? item->ref : NULL;
 }
 
 /* An absent `col` draws in colour 0 here, where PICO-8 would keep the
  * current pen colour -- no bl()-dispatched call site omits it. */
-static void pico8_pi_rk_draw(const pico8_jb_row_t *e) {
-    p8_fixed_t y1 = pico8_pi_number(e, 1);
+static void draw_bar_entry(const data_row_t *e) {
+    p8_fixed_t y1 = number(e, 1);
     int col;
-    col = p8_fixed_flr_int(pico8_pi_number(e, 3));
-    if (pico8_pi_is_number(e, 2)) {
-        pico8_rk(g_pi_gfx, g_pi_mem, y1, pico8_pi_number(e, 2), col);
+    col = p8_fixed_flr_int(number(e, 3));
+    if (is_number(e, 2)) {
+        hud_draw_bar(g_draw_functions_gfx, g_draw_functions_mem, y1, number(e, 2), col);
     } else {
-        pico8_rk_y1(g_pi_gfx, g_pi_mem, y1, col);
+        hud_draw_bar_y1(g_draw_functions_gfx, g_draw_functions_mem, y1, col);
     }
 }
 
 /* `a1` is a number as often as a string, and print() renders a number as
  * its decimals: substituting "" for one blanks the year and the
  * technology counter in the top menu bar. Other kinds do fall back to "". */
-static void pico8_pi_io_draw(const pico8_jb_row_t *e) {
-    const pico8_jb_item_t *a1 = pico8_pi_arg(e, 1);
-    char *owned = pico8_pi_is_number(e, 1) ? p8_tostr_fixed(frame_zone(), pico8_pi_number(e, 1)) : NULL;
-    const char *t = a1 != NULL && a1->s != NULL ? a1->s : (owned != NULL ? owned : "");
-    p8_fixed_t x = pico8_pi_number(e, 2);
-    p8_fixed_t y = pico8_pi_number(e, 3);
-    int c = p8_fixed_flr_int(pico8_pi_number(e, 4));
-    if (pico8_pi_is_number(e, 5)) {
-        p8_fixed_t a_val = pico8_pi_number(e, 5);
-        pico8_io(g_pi_gfx, g_pi_mem, t, x, y, c, &a_val);
+static void print_outlined_entry(const data_row_t *e) {
+    const data_item_t *a1 = draw_functions_arg(e, 1);
+    char *owned = is_number(e, 1) ? p8_tostr_fixed(frame_zone(), number(e, 1)) : NULL;
+    const char *t = a1 != NULL && a1->text != NULL ? a1->text : (owned != NULL ? owned : "");
+    p8_fixed_t x = number(e, 2);
+    p8_fixed_t y = number(e, 3);
+    int c = p8_fixed_flr_int(number(e, 4));
+    if (is_number(e, 5)) {
+        p8_fixed_t a_val = number(e, 5);
+        hud_print_outlined(g_draw_functions_gfx, g_draw_functions_mem, t, x, y, c, &a_val);
     } else {
-        pico8_io_default(g_pi_gfx, g_pi_mem, t, x, y, c);
+        hud_print_outlined_default(g_draw_functions_gfx, g_draw_functions_mem, t, x, y, c);
     }
 }
 
-static void pico8_pi_eq_draw(const pico8_jb_row_t *e) {
-    pico8_eq(g_pi_gfx, g_pi_mem, pico8_pi_number(e, 1), pico8_pi_number(e, 2), pico8_pi_number(e, 3));
+static void draw_help_frame_entry(const data_row_t *e) {
+    hud_draw_help_frame(g_draw_functions_gfx, g_draw_functions_mem, number(e, 1), number(e, 2), number(e, 3));
 }
 
 /* w/h are supplied both or neither, as in real spr(). */
-static void pico8_pi_spr_draw(const pico8_jb_row_t *e) {
-    int n = p8_fixed_flr_int(pico8_pi_number(e, 1));
-    int x = p8_fixed_flr_int(pico8_pi_number(e, 2));
-    int y = p8_fixed_flr_int(pico8_pi_number(e, 3));
-    if (pico8_pi_is_number(e, 4) && pico8_pi_is_number(e, 5)) {
-        int w = p8_fixed_flr_int(pico8_pi_number(e, 4));
-        int h = p8_fixed_flr_int(pico8_pi_number(e, 5));
-        p8_spr(g_pi_gfx, g_pi_mem, n, x, y, w, h);
+static void spr_entry(const data_row_t *e) {
+    int n = p8_fixed_flr_int(number(e, 1));
+    int x = p8_fixed_flr_int(number(e, 2));
+    int y = p8_fixed_flr_int(number(e, 3));
+    if (is_number(e, 4) && is_number(e, 5)) {
+        int w = p8_fixed_flr_int(number(e, 4));
+        int h = p8_fixed_flr_int(number(e, 5));
+        p8_spr(g_draw_functions_gfx, g_draw_functions_mem, n, x, y, w, h);
     } else {
-        p8_spr_default(g_pi_gfx, g_pi_mem, n, x, y);
+        p8_spr_default(g_draw_functions_gfx, g_draw_functions_mem, n, x, y);
     }
 }
 
 /* lq.ol is registered UNBOUND, so e[1] is lq:ol's own `self`, e[2] the
  * position vector and e[3] the alignment factor. */
-static void pico8_pi_ld_draw(const pico8_jb_row_t *e) {
-    const pico8_lq_t *self = pico8_pi_ref(e, 1);
-    const vec_t *at = pico8_pi_ref(e, 2);
+static void draw_row_entry(const data_row_t *e) {
+    const layout_row_t *self = draw_functions_ref(e, 1);
+    const vec_t *at = draw_functions_ref(e, 2);
     vec_t p = at != NULL
                         ? *at
                         : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    p8_fixed_t a = pico8_pi_number(e, 3);
-    pico8_lq_ol(g_pi_gfx, g_pi_mem, self, p, a);
+    p8_fixed_t a = number(e, 3);
+    layout_row_draw_at(g_draw_functions_gfx, g_draw_functions_mem, self, p, a);
 }
 
 /* oo(pi[e.fn],e) -- bl()'s inner step, shared by both entry points. The
  * dispatch context has to be set before every call, not once per list. */
-static void pico8_bl_dispatch_one(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_jb_row_t *e) {
-    pico8_pi_fn fn = NULL;
+static void draw_rows_dispatch_one(p8_graphics_t *gfx, p8_memory_t *mem, const data_row_t *e) {
+    draw_functions_fn_t fn = NULL;
 
-    g_pi_gfx = gfx;
-    g_pi_mem = mem;
+    g_draw_functions_gfx = gfx;
+    g_draw_functions_mem = mem;
 
-    if (e->fn != NULL) {
-        fn = pico8_pi_dispatch_lookup(e->fn);
+    if (e->draw_function != NULL) {
+        fn = draw_functions_dispatch_lookup(e->draw_function);
     }
     if (fn != NULL) {
         fn(e);
     }
 }
 
-void pico8_bl(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_jb_row_t *const *rb, int n, p8_fixed_t nc) {
+void draw_functions_draw_rows(p8_graphics_t *gfx, p8_memory_t *mem, const data_row_t *const *rb, int n, p8_fixed_t nc) {
     int i;
 
     for (i = 0; i < n; i++) {
         p8_camera(gfx, p8_fixed_flr_int(nc), 0);
         nc = p8_fixed_neg(nc);
-        pico8_bl_dispatch_one(gfx, mem, rb[i]);
+        draw_rows_dispatch_one(gfx, mem, rb[i]);
     }
 }
 
-void pico8_bl_default(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_jb_row_t *const *rb, int n) {
+void draw_functions_draw_rows_default(p8_graphics_t *gfx, p8_memory_t *mem, const data_row_t *const *rb, int n) {
     int i;
 
     for (i = 0; i < n; i++) {
-        pico8_bl_dispatch_one(gfx, mem, rb[i]);
+        draw_rows_dispatch_one(gfx, mem, rb[i]);
     }
 }
 
-void pico8_pi_init(void) {
-    pico8_pi_dispatch_register("br", pico8_pi_rk_draw);
-    pico8_pi_dispatch_register("qr", pico8_pi_io_draw);
-    pico8_pi_dispatch_register("rf", pico8_pi_eq_draw);
-    pico8_pi_dispatch_register("s", pico8_pi_spr_draw);
-    pico8_pi_dispatch_register("ld", pico8_pi_ld_draw);
+void draw_functions_init(void) {
+    draw_functions_dispatch_register("br", draw_bar_entry);
+    draw_functions_dispatch_register("qr", print_outlined_entry);
+    draw_functions_dispatch_register("rf", draw_help_frame_entry);
+    draw_functions_dispatch_register("s", spr_entry);
+    draw_functions_dispatch_register("draw_row", draw_row_entry);
 }

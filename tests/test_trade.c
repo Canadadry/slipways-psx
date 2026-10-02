@@ -552,7 +552,7 @@ static void test_cn_wildcard_want(void) {
     int any_qe;
 
     start_game();
-    assert(pico8_r_lookup("?", &any_qe));
+    assert(resource_code_lookup("?", &any_qe));
     any = p8_fixed_from_int(any_qe);
     want = pico8_jy_new(game_zone(), &any);
     pointer_list_init(jy, &heap_allocator);
@@ -560,11 +560,11 @@ static void test_cn_wildcard_want(void) {
     qh = pico8_qh_new(NULL);
     qh->jy = jy;
     keys.has_qe = 1;
-    keys.qe = p8_fixed_from_int(qh->def->ba->items[0]);
+    keys.qe = p8_fixed_from_int(qh->def->accepted_resources->items[0]);
     lw.t = pico8_trade_new(game_zone(), &keys);
     lw.kf = count_kf;
     pico8_jo_cn(qh, &lw);
-    assert(want->row.has_qe && want->row.qe == keys.qe && g_kf_calls == 1);
+    assert(want->row.has_resource && want->row.resource == keys.qe && g_kf_calls == 1);
 }
 
 /* A route through `kg` holds false, not nil: it no longer answers a want

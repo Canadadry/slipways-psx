@@ -139,7 +139,7 @@ void pico8_hy_hk(pico8_hy_t *self) {
 
     if (self->po != NULL) {
         int k;
-        if (pico8_r_lookup("k", &k)) {
+        if (resource_code_lookup("k", &k)) {
             pico8_qe_map_get(self->po, p8_fixed_from_int(k), &po_rk);
         }
     }
@@ -268,7 +268,7 @@ void pico8_hy_lj(pico8_hy_t *self) {
     }
 }
 
-void pico8_hy_kt(pico8_hy_t *self, const pico8_nb_entry_t *t) {
+void pico8_hy_kt(pico8_hy_t *self, const technologies_entry_t *t) {
     p8_fixed_t jk;
     p8_fixed_t ew;
     int count = 0;
@@ -282,8 +282,8 @@ void pico8_hy_kt(pico8_hy_t *self, const pico8_nb_entry_t *t) {
     self->jk = p8_fixed_sub(jk, pico8_gi_nb(t));
 
     if (self->invented != NULL) {
-        if (t != NULL && t->px != NULL) {
-            pointer_list_add(self->invented, (void *)t->px);
+        if (t != NULL && t->name != NULL) {
+            pointer_list_add(self->invented, (void *)t->name);
         }
         count = self->invented->count;
     }
@@ -291,7 +291,7 @@ void pico8_hy_kt(pico8_hy_t *self, const pico8_nb_entry_t *t) {
     ew = self->ew;
     if (ew < p8_fixed_from_int(4)) {
         int threshold;
-        if (pico8_int_seq_at(pico8_ek_table, PICO8_EK_COUNT, p8_fixed_flr_int(ew), &threshold) &&
+        if (int_seq_at(tier_thresholds_table, TIER_THRESHOLDS_COUNT, p8_fixed_flr_int(ew), &threshold) &&
             p8_fixed_from_int(count) >= p8_fixed_from_int(threshold)) {
             self->ew = p8_fixed_add(ew, p8_fixed_from_int(1));
         }
@@ -320,7 +320,7 @@ static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
 static void bx_visit(entity_t *pt, void *ctx) {
     pico8_qe_map_t *p = (pico8_qe_map_t *)ctx;
     const pico8_jo_t *jo;
-    const pico8_kw_t *kw;
+    const production_t *kw;
     p8_fixed_t current;
 
     assert(pico8_jo_is_family(pt) && "bx: pt is a planet of cg.jo");
@@ -329,13 +329,13 @@ static void bx_visit(entity_t *pt, void *ctx) {
         return;
     }
     kw = jo->kw;
-    if (kw == NULL || !kw->has_qe) {
+    if (kw == NULL || !kw->has_resource) {
         return;
     }
-    if (!pico8_qe_map_get(p, kw->qe, &current)) {
+    if (!pico8_qe_map_get(p, kw->resource, &current)) {
         current = p8_fixed_from_int(0);
     }
-    pico8_qe_map_set(p, kw->qe, p8_fixed_add(current, kw->mu));
+    pico8_qe_map_set(p, kw->resource, p8_fixed_add(current, kw->amount));
 }
 
 void pico8_bx(pico8_qe_map_t *out) {
@@ -360,15 +360,15 @@ static void ck_visit(entity_t *l, void *ctx) {
         return;
     }
     last = last_val;
-    if (!last->row.has_qe) {
+    if (!last->row.has_resource) {
         return;
     }
     /* Fallback 1, not 0: `cm(1)` seeded every key of `r`, so an absent one
      * is a resource `r` never listed, treated as that same seed. */
-    if (!pico8_qe_map_get(d, last->row.qe, &current)) {
+    if (!pico8_qe_map_get(d, last->row.resource, &current)) {
         current = p8_fixed_from_int(1);
     }
-    pico8_qe_map_set(d, last->row.qe, p8_fixed_sub(current, P8_FIXED_LIT(0x00002666, 0.15)));
+    pico8_qe_map_set(d, last->row.resource, p8_fixed_sub(current, P8_FIXED_LIT(0x00002666, 0.15)));
 }
 
 void pico8_ck(pico8_qe_map_t *out) {

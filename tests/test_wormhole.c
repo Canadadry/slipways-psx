@@ -296,25 +296,25 @@ static vec_t slipway_mid(pico8_jc_t *jc) {
  * `ox`, registered like any `ke` entity with `kj` and `ev`. */
 static void check_fresh_mz(void *e) {
     const pico8_mz_t *mz = as_mz(e);
-    const pico8_int_seq_t *kk;
+    const int_seq_t *kk;
     const pico8_mz_jj_t *jj;
     static const int want_kk[9] = {7, 7, 6, 13, 5, 1, 1, 1, 0};
     int i;
 
     assert(is_me(&mz->header, "placing"));
     assert(mz->header.state_time == 0);
-    assert(mz->probe->def->dw == 0);
-    assert(mz->probe->def->dq != NULL && strcmp(mz->probe->def->dq, "unfolding") == 0);
+    assert(mz->probe->def->attach_distance == 0);
+    assert(mz->probe->def->confirmed_state != NULL && strcmp(mz->probe->def->confirmed_state, "unfolding") == 0);
     assert(mz->def->spawn_snd == p8_fixed_from_int(52));
-    assert(mz->probe->def->ik == p8_fixed_from_int(49) && mz->probe->def->has_ik == 1);
+    assert(mz->probe->def->status_sprite == p8_fixed_from_int(49) && mz->probe->def->has_status_sprite == 1);
     assert(mz->oi == 0);
     assert(mz->probe->od == p8_fixed_from_int(3));
-    assert(mz->probe->def->fp == p8_fixed_from_int(1));
-    assert(mz->def->fa == p8_fixed_from_int(5));
-    assert(mz->header.layer == &mz->def->fa);
+    assert(mz->probe->def->clock_ticks == p8_fixed_from_int(1));
+    assert(mz->def->layer == p8_fixed_from_int(5));
+    assert(mz->header.layer == &mz->def->layer);
 
-    kk = mz->def->kk;
-    assert(kk == &pico8_mz_kk_seq && kk->count == 9);
+    kk = mz->def->color_ramp;
+    assert(kk == &wormhole_color_ramp_seq && kk->count == 9);
     for (i = 0; i < 9; i++) {
         assert(kk->items[i] == want_kk[i]);
     }

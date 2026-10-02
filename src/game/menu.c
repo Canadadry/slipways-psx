@@ -29,7 +29,7 @@
 static int g_menu_up = 0;
 /* `ix[i].ra` and `ha.hi`/`ha.gq`, reset by each init: the buttons borrow
  * them. */
-static vec_t g_ix_ra[PICO8_IX_COUNT];
+static vec_t g_ix_ra[GALAXY_MENU_COUNT];
 static vec_t g_ha_hi;
 static vec_t g_ha_gq;
 
@@ -70,40 +70,40 @@ static void pico8_cr_row_my_dispatch(pico8_js_t *self) {
 /* One row of `cr`'s `bs`: the keys and the rows its `lq`/`h_` read. */
 typedef struct {
     pico8_js_keys_t row;
-    pico8_lq_keys_t lq;
-    pico8_lq_cell_t lq_items[2];
-    pico8_lq_keys_t h;
-    pico8_lq_cell_t h_items[2];
+    layout_row_keys_t lq;
+    layout_row_cell_t lq_items[2];
+    layout_row_keys_t h;
+    layout_row_cell_t h_items[2];
 } pico8_cr_row_t;
 
 /* An unaffordable tech gets "my" = false, not an absent field: `t.e_` is a
  * comparison result in `cb()`, so Lua's `and` yields the boolean here. */
-static void pico8_cr_step(const pico8_nb_entry_t *t, pico8_cr_row_t *b) {
-    static const pico8_jb_item_t pair_items[] = {{.n = 24}, {.n = 5}};
-    static const pico8_jb_row_t pair = {.count = 2, .items = pair_items};
+static void pico8_cr_step(const technologies_entry_t *t, pico8_cr_row_t *b) {
+    static const data_item_t pair_items[] = {{.number = 24}, {.number = 5}};
+    static const data_row_t pair = {.count = 2, .items = pair_items};
     p8_fixed_t gi_result;
     char *gi_str;
 
-    b->lq_items[0] = pico8_lq_cell_fixed(p8_fixed_from_int(t->nk));
-    b->lq_items[1] = pico8_lq_cell_string(t->px);
+    b->lq_items[0] = layout_row_cell_fixed(p8_fixed_from_int(t->icon));
+    b->lq_items[1] = layout_row_cell_string(t->name);
     b->lq.items = b->lq_items;
     b->lq.count = 2;
-    b->lq.has_c = 1;
-    b->lq.c = p8_fixed_from_int(6);
+    b->lq.has_color = 1;
+    b->lq.color = p8_fixed_from_int(6);
     b->row.lq_row = &b->lq;
 
     gi_result = pico8_gi_nb(t);
     gi_str = p8_tostr_fixed(frame_zone(), gi_result);
 
-    b->h_items[0] = pico8_lq_cell_row(&pair);
-    b->h_items[1] = pico8_lq_cell_string(gi_str);
+    b->h_items[0] = layout_row_cell_row(&pair);
+    b->h_items[1] = layout_row_cell_string(gi_str);
     b->h.items = b->h_items;
     b->h.count = 2;
     b->row.has_h_ = 1;
     b->row.h_row = &b->h;
 
     b->row.has_jb = 1;
-    b->row.jb_row = t->oy;
+    b->row.jb_row = t->tooltip_rows;
 
     b->row.has_my = 1;
     if (pico8_nb_e_(t)) {
@@ -114,16 +114,16 @@ static void pico8_cr_step(const pico8_nb_entry_t *t, pico8_cr_row_t *b) {
 
 /* `jb` of the "n invented" row: one line per invented tech, its name (NULL
  * an empty line), in one block of the frame zone. */
-static const pico8_jb_row_t *pico8_menu_invented_lines(const pointer_list_t *list) {
+static const data_row_t *pico8_menu_invented_lines(const pointer_list_t *list) {
     int n = list != NULL ? list->count : 0;
-    size_t size = sizeof(pico8_jb_row_t) + (size_t)n * sizeof(pico8_jb_item_t);
-    pico8_jb_row_t *row = (pico8_jb_row_t *)allocator_alloc(frame_zone(), size);
-    pico8_jb_item_t *items = (pico8_jb_item_t *)(row + 1);
+    size_t size = sizeof(data_row_t) + (size_t)n * sizeof(data_item_t);
+    data_row_t *row = (data_row_t *)allocator_alloc(frame_zone(), size);
+    data_item_t *items = (data_item_t *)(row + 1);
     int i;
 
     memset(row, 0, size);
     for (i = 0; i < n; i++) {
-        items[i].s = list->items[i];
+        items[i].text = list->items[i];
     }
     row->count = n;
     row->items = items;
@@ -151,7 +151,7 @@ void pico8_cr(void) {
         gr = fm->invented->count;
     }
 
-    if (pico8_int_seq_at(pico8_ek_table, PICO8_EK_COUNT, p8_fixed_flr_int(tl) - 1, &ek)) {
+    if (int_seq_at(tier_thresholds_table, TIER_THRESHOLDS_COUNT, p8_fixed_flr_int(tl) - 1, &ek)) {
         qi = p8_fixed_from_int(ek);
     }
 
@@ -171,12 +171,12 @@ void pico8_cr(void) {
         pico8_cr_row_t *extra = &rows[n++];
         char *gr_str = p8_tostr_fixed(frame_zone(), p8_fixed_from_int(gr));
         char *label = p8_concat2(frame_zone(), gr_str, " invented");
-        extra->lq_items[0] = pico8_lq_cell_fixed(p8_fixed_from_int(30));
-        extra->lq_items[1] = pico8_lq_cell_string(label);
+        extra->lq_items[0] = layout_row_cell_fixed(p8_fixed_from_int(30));
+        extra->lq_items[1] = layout_row_cell_string(label);
         extra->lq.items = extra->lq_items;
         extra->lq.count = 2;
-        extra->lq.has_c = 1;
-        extra->lq.c = p8_fixed_from_int(3);
+        extra->lq.has_color = 1;
+        extra->lq.color = p8_fixed_from_int(3);
         extra->row.lq_row = &extra->lq;
         extra->row.has_jb = 1;
         extra->row.jb_row = pico8_menu_invented_lines(fm->invented);
@@ -196,7 +196,7 @@ void pico8_cr(void) {
         char *tmp3;
         char *ep;
 
-        if (pico8_int_seq_at(pico8_ek_table, PICO8_EK_COUNT, p8_fixed_flr_int(tl), &ek)) {
+        if (int_seq_at(tier_thresholds_table, TIER_THRESHOLDS_COUNT, p8_fixed_flr_int(tl), &ek)) {
             ek_tl = p8_fixed_from_int(ek);
         }
 
@@ -241,8 +241,8 @@ static void pico8_ix2_my_dispatch(pico8_js_t *self) {
 static void pico8_ix2_hb_dispatch(pico8_js_t *self) {
     pico8_cb_kept_t cb_list;
     int cb_count;
-    pico8_lq_cell_t item;
-    pico8_lq_keys_t keys = {0};
+    layout_row_cell_t item;
+    layout_row_keys_t keys = {0};
     const allocator_t *place;
 
     if (self == NULL) {
@@ -252,11 +252,11 @@ static void pico8_ix2_hb_dispatch(pico8_js_t *self) {
     cb_list = pico8_cb(0);
     cb_count = cb_list.count;
 
-    item = pico8_lq_cell_fixed(p8_fixed_from_int(cb_count > 0 ? 24 : 37));
+    item = layout_row_cell_fixed(p8_fixed_from_int(cb_count > 0 ? 24 : 37));
     keys.items = &item;
     keys.count = 1;
     place = pico8_zone_interface_place(PICO8_SORTE_RANGEE);
-    self->lq = pico8_lq_new(place, &keys);
+    self->lq = layout_row_new(place, &keys);
     if (self->lq_place != NULL) {
         arena_release(self->lq_place);
     }
@@ -301,26 +301,26 @@ static void pico8_ha4_my_dispatch(pico8_js_t *self) {
     (void)self;
 }
 
-static const pico8_js_fn g_ix_my[PICO8_IX_COUNT] = {
+static const pico8_js_fn g_ix_my[GALAXY_MENU_COUNT] = {
     pico8_ix1_my_dispatch,
     pico8_ix2_my_dispatch,
     pico8_ix3_my_dispatch,
     pico8_ix4_my_dispatch,
 };
-static const pico8_js_fn g_ix_hb[PICO8_IX_COUNT] = {NULL, pico8_ix2_hb_dispatch, NULL, NULL};
+static const pico8_js_fn g_ix_hb[GALAXY_MENU_COUNT] = {NULL, pico8_ix2_hb_dispatch, NULL, NULL};
 
 /* `pz(ha,ha)`: `ha`'s rows go in as `bs`, their `my` installed on every
  * run, and `p` is the frame of `g_ha_pz`, which carries `ha`'s `hi`/`gq`/`ca`. */
 static void pico8_ix4_my_dispatch(pico8_js_t *self) {
-    const pico8_js_fn my[PICO8_HA_COUNT] = {
+    const pico8_js_fn my[PAUSE_MENU_COUNT] = {
         pico8_init_field_value(),
         pico8_ha2_my_dispatch,
         pico8_ha3_my_dispatch,
         pico8_ha4_my_dispatch,
     };
-    pico8_js_keys_t bs[PICO8_HA_COUNT];
-    pico8_lq_keys_t lq[PICO8_HA_COUNT];
-    pico8_lq_cell_t items[PICO8_HA_COUNT][PICO8_MENU_ROW_CAP];
+    pico8_js_keys_t bs[PAUSE_MENU_COUNT];
+    layout_row_keys_t lq[PAUSE_MENU_COUNT];
+    layout_row_cell_t items[PAUSE_MENU_COUNT][PICO8_MENU_ROW_CAP];
     pico8_pz_frame_t frame = {0};
     int i;
     (void)self;
@@ -328,14 +328,14 @@ static void pico8_ix4_my_dispatch(pico8_js_t *self) {
     if (!g_menu_up) {
         return;
     }
-    for (i = 0; i < PICO8_HA_COUNT; i++) {
-        const pico8_ha_entry_t *e = &pico8_ha_table[i];
+    for (i = 0; i < PAUSE_MENU_COUNT; i++) {
+        const pause_menu_entry_t *e = &pause_menu_table[i];
 
         memset(&bs[i], 0, sizeof bs[i]);
-        lq[i] = pico8_lq_keys_of_row(e->lq, items[i], PICO8_MENU_ROW_CAP);
+        lq[i] = layout_row_keys_of_row(e->layout_row, items[i], PICO8_MENU_ROW_CAP);
         bs[i].lq_row = &lq[i];
-        bs[i].has_fg = e->has_fg;
-        bs[i].fg = p8_fixed_from_int(e->fg);
+        bs[i].has_fg = e->has_gpio_signal;
+        bs[i].fg = p8_fixed_from_int(e->gpio_signal);
         bs[i].has_my = 1;
         bs[i].my = my[i];
     }
@@ -343,18 +343,18 @@ static void pico8_ix4_my_dispatch(pico8_js_t *self) {
     frame.has_ca = g_ha_pz.has_ca;
     frame.ca = g_ha_pz.ca;
     frame.gq = g_ha_pz.gq;
-    pico8_pz(&frame, bs, PICO8_HA_COUNT);
+    pico8_pz(&frame, bs, PAUSE_MENU_COUNT);
 }
 
 pico8_js_t *pico8_ix_button(int i) {
-    const pico8_ix_entry_t *e;
+    const galaxy_menu_entry_t *e;
     pico8_js_keys_t keys = {0};
-    pico8_lq_keys_t lq;
-    pico8_lq_cell_t items[PICO8_MENU_ROW_CAP];
+    layout_row_keys_t lq;
+    layout_row_cell_t items[PICO8_MENU_ROW_CAP];
 
-    assert(g_menu_up && i >= 1 && i <= PICO8_IX_COUNT && "ix has PICO8_IX_COUNT rows, after pico8_menu_init()");
-    e = &pico8_ix_table[i - 1];
-    lq = pico8_lq_keys_of_row(e->lq, items, PICO8_MENU_ROW_CAP);
+    assert(g_menu_up && i >= 1 && i <= GALAXY_MENU_COUNT && "ix has PICO8_IX_COUNT rows, after pico8_menu_init()");
+    e = &galaxy_menu_table[i - 1];
+    lq = layout_row_keys_of_row(e->layout_row, items, PICO8_MENU_ROW_CAP);
     keys.lq_row = &lq;
     keys.ra = &g_ix_ra[i - 1];
     keys.has_my = 1;
@@ -364,7 +364,7 @@ pico8_js_t *pico8_ix_button(int i) {
 }
 
 pico8_js_fn pico8_ix_my(int i) {
-    assert(i >= 1 && i <= PICO8_IX_COUNT);
+    assert(i >= 1 && i <= GALAXY_MENU_COUNT);
     return g_ix_my[i - 1];
 }
 
@@ -381,17 +381,17 @@ void pico8_menu_init(void) {
 
     pico8_menu_shutdown();
 
-    pico8_pi_init();
+    draw_functions_init();
 
-    for (i = 0; i < PICO8_IX_COUNT; i++) {
-        g_ix_ra[i] = vec_make(p8_fixed_from_int(pico8_ix_table[i].ra_x),
-                                 p8_fixed_from_int(pico8_ix_table[i].ra_y));
+    for (i = 0; i < GALAXY_MENU_COUNT; i++) {
+        g_ix_ra[i] = vec_make(p8_fixed_from_int(galaxy_menu_table[i].pos_x),
+                                 p8_fixed_from_int(galaxy_menu_table[i].pos_y));
     }
-    g_ha_hi = vec_make(p8_fixed_from_int(pico8_ha_tail.hi_x), p8_fixed_from_int(pico8_ha_tail.hi_y));
-    g_ha_gq = vec_make(p8_fixed_from_int(pico8_ha_tail.gq_x), p8_fixed_from_int(pico8_ha_tail.gq_y));
+    g_ha_hi = vec_make(p8_fixed_from_int(pause_menu_tail.fixed_pos_x), p8_fixed_from_int(pause_menu_tail.fixed_pos_y));
+    g_ha_gq = vec_make(p8_fixed_from_int(pause_menu_tail.row_step_x), p8_fixed_from_int(pause_menu_tail.row_step_y));
     g_ha_pz.hi = &g_ha_hi;
     g_ha_pz.gq = &g_ha_gq;
-    g_ha_pz.ca = p8_fixed_from_int(pico8_ha_tail.ca);
+    g_ha_pz.ca = p8_fixed_from_int(pause_menu_tail.back_color);
     g_ha_pz.has_ca = 1;
     g_menu_up = 1;
 }

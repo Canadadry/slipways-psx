@@ -22,7 +22,7 @@
  * in, NULL for `fv`. */
 typedef struct {
     entity_t header;
-    const pico8_g__def_t *def;
+    const probe_archetype_t *def;
     pico8_emitter_t *emitter;
     pico8_probe_t *probe;
     const vec_t *ra;
@@ -49,7 +49,7 @@ int pico8_g__ready(void);
 /* Initializes an allocated pico8_g__t under `cls`: ke's part, g_'s 4
  * written members nil, `prise` NULL, `def` kept, `ra`, the emitter and the probe copied
  * from it. Reads no key, runs neither `pq` nor `lt`, records no coverage. */
-void pico8_g__struct_init(pico8_g__t *self, const entity_class_t *cls, const pico8_g__def_t *def);
+void pico8_g__struct_init(pico8_g__t *self, const entity_class_t *cls, const probe_archetype_t *def);
 
 /* The keys of `pico8_g__new`, read, not kept. `t` is `header.t`, whose default
  * is 0: no flag. `pn`, `du`, `py` have non-zero defaults, so a key at 0

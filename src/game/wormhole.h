@@ -24,7 +24,7 @@ typedef struct {
  * arena, which its `rendre` gives back whatever its state. */
 typedef struct {
     entity_t header;
-    const pico8_mz_def_t *def;
+    const wormhole_archetype_t *def;
     p8_fixed_t oi;
     pico8_mz_jj_t *jj;
     entity_list_t *ox;

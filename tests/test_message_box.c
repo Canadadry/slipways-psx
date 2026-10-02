@@ -303,9 +303,9 @@ static void test_defaults_match_the_parsed_spec(void) {
     reset_world();
     pico8_cart_vider_file_sortie();
     box = year_box(3400);
-    assert(box->def == &pico8_mh_def);
-    assert(box->def->fa == p8_fixed_from_int(14));
-    assert(box->rh == box->def->rh);
+    assert(box->def == &message_box_archetype);
+    assert(box->def->layer == p8_fixed_from_int(14));
+    assert(box->rh == box->def->duration_scale);
     assert(box->rh == p8_fixed_from_int(5));
     assert(box->header.class->tags == TAG(TAG_MESSAGE_BOX));
     assert(box->header.state != NULL && strcmp(box->header.state, "normal") == 0);

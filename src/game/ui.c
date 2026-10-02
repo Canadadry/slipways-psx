@@ -24,7 +24,7 @@ static pico8_ui_t *g_ok = NULL;
 static entity_list_t g_shared_le;
 
 const box_t *pico8_ui_hw(void) {
-    return g_ui_up ? &pico8_ui_def.hw : NULL;
+    return g_ui_up ? &ui_archetype.panel_box : NULL;
 }
 
 entity_list_t *pico8_ui_le_shared(void) {
@@ -116,10 +116,10 @@ static pico8_ui_t *pico8_ui_struct_new(void) {
 
     assert(g_ui_up && "pico8_ui_init() must run first");
     self = (pico8_ui_t *)allocator_alloc(game_zone(), sizeof *self);
-    entity_init_instance(&self->header, &g_ui_struct_class, pico8_ui_def.me, pico8_ui_def.t);
-    self->def = &pico8_ui_def;
-    self->header.layer = &self->def->fa;
-    self->header.cursor_sprite = &self->def->ql;
+    entity_init_instance(&self->header, &g_ui_struct_class, ui_archetype.state, ui_archetype.state_time);
+    self->def = &ui_archetype;
+    self->header.layer = &self->def->layer;
+    self->header.cursor_sprite = &self->def->cursor_sprite;
     self->le = &g_shared_le;
     self->qa = NULL;
     self->ic = NULL;
@@ -140,7 +140,7 @@ static pico8_ui_t *pico8_ui_struct_new(void) {
 
 void pico8_ui_init(void) {
     pico8_ui_shutdown();
-    pico8_pi_init();
+    draw_functions_init();
     entity_list_init(&g_shared_le, game_zone_load_zone());
     g_ui_up = 1;
 
@@ -258,9 +258,9 @@ void pico8_ui_ev(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_ui_t *s
     if (self->rheld != NULL) {
         spr_id = 9;
     } else if (self->o_ != NULL) {
-        spr_id = pico8_ui_to_int(self->o_->cursor_sprite != NULL ? *self->o_->cursor_sprite : self->def->ql);
+        spr_id = pico8_ui_to_int(self->o_->cursor_sprite != NULL ? *self->o_->cursor_sprite : self->def->cursor_sprite);
     } else {
-        spr_id = pico8_ui_to_int(self->def->ql);
+        spr_id = pico8_ui_to_int(self->def->cursor_sprite);
     }
 
     je = pico8_je_nf();

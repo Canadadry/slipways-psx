@@ -12,7 +12,7 @@
  * `economy_tiers` writes it. `row` comes first and holds `qe` (has_qe 0:
  * nil) and no item: a REF to a want is the `{qe=x}` tuple `lq:mn` reads. */
 typedef struct {
-    pico8_jb_row_t row;
+    data_row_t row;
     int has_gc; /* 0: `gc` is nil, and is then never read */
     p8_fixed_t gc;
 } pico8_jy_t;
@@ -30,7 +30,7 @@ pico8_jy_t *pico8_jy_new(const allocator_t *zone, const p8_fixed_t *qe);
  * NULL. The struct is never copied: `lq` points into it. */
 typedef struct {
     entity_t header;
-    const pico8_hp_def_t *def;
+    const research_project_archetype_t *def;
     const char *px;
     const char *lr;
     p8_fixed_t fj;
@@ -50,11 +50,11 @@ typedef struct {
     const char *go;
     p8_fixed_t rn;
     int has_rn; /* 0: `rn` is nil, and is then never read */
-    const pico8_jb_row_t *lq;
-    pico8_jb_row_t lq_own;
-    pico8_jb_item_t lq_own_items[3];
-    pico8_jb_row_t lq_inner;
-    pico8_jb_item_t lq_inner_items[2];
+    const data_row_t *lq;
+    data_row_t lq_own;
+    data_item_t lq_own_items[3];
+    data_row_t lq_inner;
+    data_item_t lq_inner_items[2];
 } pico8_hp_t;
 
 /* Throughout this module -- this file and its `_display` sibling -- a NULL
@@ -72,7 +72,7 @@ int pico8_hp_ready(void);
 const entity_class_t *pico8_hp_struct_class(void);
 
 /* The class's `fk`: `pico8_hp_fk_row`, never NULL. */
-const pico8_jb_row_t *pico8_hp_fk(void);
+const data_row_t *pico8_hp_fk(void);
 
 /* `il` as the cart reads it: NULL when nil, false or `self` is NULL. */
 const char *pico8_hp_il(const pico8_hp_t *self);
@@ -84,7 +84,7 @@ void pico8_hp_assert(const pico8_hp_t *self);
  * never a header (NULL: no positional, nor `ii`, `cw`, `go`, `rn`), and the
  * `rr` category (NULL: nil). Their strings are borrowed. */
 typedef struct {
-    const pico8_fd_entry_t *ri;
+    const project_records_entry_t *ri;
     const char *rr;
 } pico8_hp_keys_t;
 
@@ -107,7 +107,7 @@ pico8_hp_t *pico8_gb_find(const char *px);
 
 /* Returns an entry of pico8_hc_table, never a copy, or NULL when `self.ja`
  * does not resolve to one. */
-const pico8_hc_entry_t *pico8_hp_po(const pico8_hp_t *self);
+const production_tables_entry_t *pico8_hp_po(const pico8_hp_t *self);
 
 p8_fixed_t pico8_hp_od(const pico8_hp_t *self);
 

@@ -87,7 +87,7 @@ static pico8_js_t *pico8_js_struct_new(const pico8_js_keys_t *keys) {
     pico8_js_t *self = (pico8_js_t *)allocator_alloc(place, sizeof *self);
 
     self->place = place;
-    entity_init_instance(&self->header, &g_js_struct_class, pico8_js_def.me, pico8_js_def.t);
+    entity_init_instance(&self->header, &g_js_struct_class, button_archetype.state, button_archetype.state_time);
     self->lq = NULL;
     self->lq_place = NULL;
     self->mb = 0;
@@ -113,8 +113,8 @@ static pico8_js_t *pico8_js_struct_new(const pico8_js_keys_t *keys) {
     self->_jo_fe_b = NULL;
     self->_jo_fe_od = 0;
     self->has__jo_fe_od = 0;
-    self->def = &pico8_js_def;
-    self->fa = self->def->fa;
+    self->def = &button_archetype;
+    self->fa = self->def->layer;
     self->header.layer = &self->fa;
     self->header.pos = &self->ra;
     if (keys != NULL) {
@@ -177,15 +177,15 @@ pico8_js_t *pico8_js_new(const pico8_js_keys_t *keys) {
 
 /* `lq(x)` of the cart for `js.lq`: built from a row's keys, else a copy of
  * an `lq`, else an empty row. */
-static pico8_lq_t *pico8_js_lq(const allocator_t *place, const pico8_lq_t *copy,
-                               const pico8_lq_keys_t *row) {
+static layout_row_t *pico8_js_lq(const allocator_t *place, const layout_row_t *copy,
+                               const layout_row_keys_t *row) {
     if (row != NULL) {
-        return pico8_lq_new(place, row);
+        return layout_row_new(place, row);
     }
     if (copy == NULL) {
-        return pico8_lq_new(place, NULL);
+        return layout_row_new(place, NULL);
     }
-    return pico8_lq_copy(place, copy);
+    return layout_row_copy(place, copy);
 }
 
 void pico8_js_pq(pico8_js_t *self, const pico8_js_keys_t *keys) {
@@ -199,19 +199,19 @@ void pico8_js_pq(pico8_js_t *self, const pico8_js_keys_t *keys) {
     }
 
     self->lq = pico8_js_lq(self->place, keys->lq_copy, keys->lq_row);
-    self->mb = p8_fixed_add(self->lq->w, p8_fixed_from_int(2));
+    self->mb = p8_fixed_add(self->lq->width, p8_fixed_from_int(2));
     self->header.hit_box = box_make(self->place, p8_fixed_from_int(0), p8_fixed_from_int(-1), self->mb, p8_fixed_from_int(11));
 
     /* TROU-23 */
     if (keys->h_row != NULL || (keys->has_h_ && !keys->h_is_false)) {
-        self->h_ = pico8_lq_new(self->place, keys->h_row);
+        self->h_ = layout_row_new(self->place, keys->h_row);
         self->has_h_ = 1;
     } else if (keys->has_h_) {
         self->h_ = NULL;
         self->has_h_ = 1;
     }
     if (keys->jb_row != NULL || keys->has_jb) {
-        self->jb = pico8_jb_new(self->place, keys->jb_row);
+        self->jb = tooltip_new(self->place, keys->jb_row);
     }
 }
 
@@ -237,7 +237,7 @@ void pico8_js_ev(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_js_t *self) {
     }
 
     if (self->jb != NULL && self->m_) {
-        pico8_jb_ol(gfx, mem, self->jb, p8_fixed_from_int(127), p8_fixed_from_int(1));
+        tooltip_draw_at(gfx, mem, self->jb, p8_fixed_from_int(127), p8_fixed_from_int(1));
     }
 }
 
@@ -273,24 +273,24 @@ void pico8_js_kj(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_js_t *self, v
 
     if (self->lq != NULL) {
         vec_t off = vec_add(p, vec_make(p8_fixed_from_int(1), p8_fixed_from_int(2)));
-        pico8_lq_ol_default(gfx, mem, self->lq, off);
+        layout_row_draw_at_default(gfx, mem, self->lq, off);
     }
 
     if (self->h_ != NULL) {
-        const pico8_lq_t *c = self->h_;
-        p8_fixed_t c_w = c->w;
+        const layout_row_t *c = self->h_;
+        p8_fixed_t c_w = c->width;
         int bg = 2;
         p8_fixed_t x2 = p8_fixed_add(qt, c_w);
 
-        if (c->has_bg && !c->bg_is_bool) {
-            bg = pico8_ui_to_int(c->bg);
+        if (c->has_background && !c->background_is_bool) {
+            bg = pico8_ui_to_int(c->background);
         }
         p8_rectfill(gfx, mem, pico8_ui_to_int(qt) + 3, iy_p + 1, pico8_ui_to_int(x2) + 4, iy_dn, bg);
 
         {
             vec_t off2 =
                 vec_add(p, vec_make(p8_fixed_add(mb, p8_fixed_from_int(3)), p8_fixed_from_int(2)));
-            pico8_lq_ol_default(gfx, mem, c, off2);
+            layout_row_draw_at_default(gfx, mem, c, off2);
         }
     }
 }
@@ -324,9 +324,9 @@ static pico8_fq_t *pico8_fq_struct_new(const pico8_fq_keys_t *keys) {
     pico8_fq_t *self = (pico8_fq_t *)allocator_alloc(place, sizeof *self);
 
     self->place = place;
-    entity_init_instance(&self->header, &g_fq_struct_class, pico8_fq_def.me, pico8_fq_def.t);
-    self->def = &pico8_fq_def;
-    self->header.layer = &self->def->fa;
+    entity_init_instance(&self->header, &g_fq_struct_class, modal_backdrop_archetype.state, modal_backdrop_archetype.state_time);
+    self->def = &modal_backdrop_archetype;
+    self->header.layer = &self->def->layer;
     self->my = NULL;
     self->header.is_dead = &self->p_;
     self->p_ = 0;

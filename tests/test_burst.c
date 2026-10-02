@@ -112,7 +112,7 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
 }
 
 static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
-    return jo->def->hf ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
+    return jo->def->is_planet ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 static uint32_t fold_p_(uint32_t h, const pico8_jo_t *jo) {
@@ -212,8 +212,8 @@ static const entity_class_t *cls_of(const void *e) {
 
 /* `fz` is "ga" on a burst and on nothing else. */
 static int is_ga(const void *e) {
-    return e != NULL && cls_of(e) == pico8_ga_struct_class() && ((const pico8_jo_t *)e)->def->fz != NULL &&
-           strcmp(((const pico8_jo_t *)e)->def->fz, "burst") == 0;
+    return e != NULL && cls_of(e) == pico8_ga_struct_class() && ((const pico8_jo_t *)e)->def->class_name != NULL &&
+           strcmp(((const pico8_jo_t *)e)->def->class_name, "burst") == 0;
 }
 
 static pico8_jo_t *as_ga(void *e) {
@@ -284,7 +284,7 @@ static void *spawn(int x, int y, const char *id, void **protostar) {
     assert(at >= 1 && is_ga(live_entities()->items[at - 1]));
     {
         const vec_t *ra = as_ga(live_entities()->items[at - 1])->ra;
-        vec_t want = vec_add(*keys.pos, ((pico8_jo_t *)pm)->def->ng);
+        vec_t want = vec_add(*keys.pos, ((pico8_jo_t *)pm)->def->spawn_offset);
         assert(ra != keys.pos && ra->x == want.x && ra->y == want.y);
     }
     if (protostar != NULL) {
@@ -304,9 +304,9 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     int j;
 
     assert(is_ga(e));
-    h = fold_string_member(h, g->def->fz);
-    h = fold_fixed_member(h, jo->def->fa);
-    h = fold_fixed_member(h, em->def->fc);
+    h = fold_string_member(h, g->def->class_name);
+    h = fold_fixed_member(h, jo->def->layer);
+    h = fold_fixed_member(h, em->def->spawn_rate);
     h = fold_fixed_member(h, em->qo);
     h = fold_fixed_member(h, em->ro);
     h = fold_fixed_member(h, em->qg);
@@ -332,7 +332,7 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     /* The 1s of `fc`, `qo`, `ro`, `qg`, `q_`, `iu`, `py`, `ms` (ga's own)
      * and of `hf`, `hs`, `fa`, `ma`, `ca` (jo's) are constant by the
      * struct's shape, kept so that BUILT_HASH still proves the typed reads. */
-    h = fnv(h, (uint32_t)(g->def->fz != NULL));
+    h = fnv(h, (uint32_t)(g->def->class_name != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -349,13 +349,13 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->def->ka != NULL));
-    h = fnv(h, (uint32_t)(jo->def->dz != NULL));
-    h = fnv(h, (uint32_t)(jo->def->cq != NULL));
+    h = fnv(h, (uint32_t)(jo->def->ring_colors != NULL));
+    h = fnv(h, (uint32_t)(jo->def->mood_rows != NULL));
+    h = fnv(h, (uint32_t)(jo->def->made_resources != NULL));
     h = fnv(h, (uint32_t)(jo->kw != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->def->em != NULL));
+    h = fnv(h, (uint32_t)(jo->def->spacer != NULL));
     h = fnv(h, (uint32_t)(jo->id != NULL));
     h = fnv(h, (uint32_t)(jo->p != NULL));
     h = fnv(h, (uint32_t)(jo->ra != NULL));
@@ -390,20 +390,20 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
            cls_of(e)->right_press == NULL && cls_of(e)->states[ENTITY_STATE_SETTLED] == NULL);
     assert(cls_of(e)->draw_at == NULL && cls_of(e)->drag == NULL && cls_of(e)->drop == NULL);
     assert(jo->header.class->tags == 0);
-    assert(jo->def == &pico8_ga_def);
+    assert(jo->def == &burst_archetype);
     assert(jo->by != NULL);
     if (from_pm) {
-        assert(em->k_ != &pico8_ga_k__seq);
-        assert(em->k_ != &pico8_pm_k__seq);
+        assert(em->k_ != &burst_trail_colors_seq);
+        assert(em->k_ != &protostar_trail_colors_seq);
     } else {
-        assert(em->k_ == &pico8_ga_k__seq);
+        assert(em->k_ == &burst_trail_colors_seq);
     }
-    assert(jo->def == &pico8_ga_def);
+    assert(jo->def == &burst_archetype);
     assert(jo->kw == pico8_jo_shared_kw());
-    assert(jo->def->em == &pico8_jo_em_row);
-    assert(jo->def->ka == &pico8_jo_ka_seq);
-    assert(jo->def->dz == pico8_jo_dz_rows);
-    assert(jo->def->cq == &pico8_jo_cq_seq);
+    assert(jo->def->spacer == &planet_spacer_row);
+    assert(jo->def->ring_colors == &planet_ring_colors_seq);
+    assert(jo->def->mood_rows == planet_mood_rows_rows);
+    assert(jo->def->made_resources == &planet_made_resources_seq);
     h = fnv(h, (uint32_t)ents_rank_in(live_entities(), e));
     for (j = 0; j < (int)(sizeof bm / sizeof bm[0]); j++) {
         h = fnv(h, (uint32_t)ents_rank_in(entities_by_message(bm[j]), e));
@@ -435,8 +435,8 @@ static void test_built(void) {
     assert(as_ga(a)->oe != as_ga(b)->oe);
     assert(as_ga(a)->by == as_ga(b)->by && as_ga(b)->by == as_ga(c)->by);
     assert(as_ga(c)->ra == NULL && as_ga(c)->p == NULL && as_ga(c)->id == NULL);
-    assert(as_ga(a)->def->fa == p8_fixed_from_int(3) && as_ga(a)->ms == p8_fixed_from_int(3));
-    assert(as_ga(a)->def->hf == 0);
+    assert(as_ga(a)->def->layer == p8_fixed_from_int(3) && as_ga(a)->ms == p8_fixed_from_int(3));
+    assert(as_ga(a)->def->is_planet == 0);
     assert(as_ga(b)->ms == P8_FIXED_LIT(0x00018000, 1.5));
     check("built", h, BUILT_HASH);
 }
@@ -451,77 +451,77 @@ static uint32_t fold_particle(uint32_t h, const pico8_qy_t *q) {
 }
 
 /* A tuple of `lq:mn`: items, `qe`, `c`, then the entry count. */
-static uint32_t fold_tuple(uint32_t h, const pico8_jb_row_t *t) {
+static uint32_t fold_tuple(uint32_t h, const data_row_t *t) {
     int i;
 
     for (i = 0; i < t->count; i++) {
-        const pico8_jb_item_t *item = &t->items[i];
+        const data_item_t *item = &t->items[i];
 
         h = fnv(h, (uint32_t)(i + 1));
-        if (item->s != NULL) {
-            h = fold_string(h, item->s);
+        if (item->text != NULL) {
+            h = fold_string(h, item->text);
         } else if (item->is_false) {
             h = fold_bool(h, 0);
         } else {
             assert(!item->is_ref && "no test folds a tuple item that points: to fold one, fold 0xDEAD if NULL, else 0xEEEE then 0, as the frozen hashes did");
-            h = fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->n));
+            h = fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->number));
         }
     }
-    if (t->has_qe) {
-        h = fold_fixed(fnv_str(h, "qe"), t->qe);
+    if (t->has_resource) {
+        h = fold_fixed(fnv_str(h, "resource"), t->resource);
     }
-    if (t->has_c) {
-        h = fold_fixed(fnv_str(h, "c"), p8_fixed_from_int(t->c));
+    if (t->has_color) {
+        h = fold_fixed(fnv_str(h, "c"), p8_fixed_from_int(t->color));
     }
-    return fnv(h, (uint32_t)(t->count + (t->has_qe != 0) + (t->has_c != 0)));
+    return fnv(h, (uint32_t)(t->count + (t->has_resource != 0) + (t->has_color != 0)));
 }
 
 /* A positional as the value it was sorted from folded; NOTHING as false
  * (no row folded here holds a nil at the top level). */
-static uint32_t fold_lq_positional(uint32_t h, const pico8_lq_t *lq, int i) {
-    pico8_lq_cell_t c = lq->items[i];
+static uint32_t fold_lq_positional(uint32_t h, const layout_row_t *lq, int i) {
+    layout_row_cell_t c = lq->items[i];
 
     h = fnv(h, (uint32_t)(i + 1));
     switch (c.kind) {
-    case PICO8_LQ_CELL_ROW:
+    case LAYOUT_ROW_CELL_ROW:
         return fold_tuple(h, c.as.row);
-    case PICO8_LQ_CELL_FIXED:
+    case LAYOUT_ROW_CELL_FIXED:
         return fold_fixed(h, c.as.fixed);
-    case PICO8_LQ_CELL_STRING:
-        return fold_string(h, c.as.s);
+    case LAYOUT_ROW_CELL_STRING:
+        return fold_string(h, c.as.text);
     default:
-        return fold_bool(h, c.kind == PICO8_LQ_CELL_TRUE);
+        return fold_bool(h, c.kind == LAYOUT_ROW_CELL_TRUE);
     }
 }
 
 /* The row `jo:ex` built into `lq`: its first `#fs` positionals, `c`, `bg`,
  * `score`, `ra`, `fs`, `w`, the rest. */
 static uint32_t fold_lq(uint32_t h, void *e) {
-    const pico8_lq_t *lq = as_ga(e)->lq;
+    const layout_row_t *lq = as_ga(e)->lq;
     int n = 0;
     int k;
     int i;
 
     assert(lq != NULL &&
-           lq->header.class == pico8_lq_struct_class());
-    assert(!lq->has_bg);
-    assert(lq->fs != NULL);
-    k = lq->fs_count;
+           lq->header.class == layout_row_class());
+    assert(!lq->has_background);
+    assert(lq->placed_items != NULL);
+    k = lq->placed_items_count;
     for (i = 0; i < k; i++) {
         h = fold_lq_positional(h, lq, i);
     }
-    if (lq->has_c) {
-        h = fold_fixed(fnv_str(h, "c"), lq->c);
+    if (lq->has_color) {
+        h = fold_fixed(fnv_str(h, "c"), lq->color);
         n++;
     }
     if (lq->has_score) {
         h = fold_fixed(fnv_str(h, "score"), lq->score);
         n++;
     }
-    assert(lq->ra == NULL && "no test folds an lq whose ra is set: to fold one, fold the key \"ra\", then 0xEEEE then 0, count it in n, as the frozen hashes did");
+    assert(lq->pos == NULL && "no test folds an lq whose ra is set: to fold one, fold the key \"ra\", then 0xEEEE then 0, count it in n, as the frozen hashes did");
     /* As fold_ref folded the tagged list `fs` was: never in `hv`, so the tag branch. */
     h = fnv(fnv(fnv_str(h, "fs"), 0xEEEEu), FROZEN_LIST_TAG);
-    h = fold_fixed(fnv_str(h, "w"), lq->w);
+    h = fold_fixed(fnv_str(h, "w"), lq->width);
     for (i = k; i < lq->items_count; i++) {
         h = fold_lq_positional(h, lq, i);
     }
@@ -560,7 +560,7 @@ static void test_life(void) {
     void *c;
     void *pm;
     entity_list_t *by;
-    static pico8_kw_t kw;
+    static production_t kw;
     uint32_t row;
     int hv_count;
     int i;
@@ -602,9 +602,9 @@ static void test_life(void) {
     cls_of(a)->refresh(a);
     h = fold_ref_member(h, as_ga(a)->lq);
     assert(as_ga(a)->lq == NULL);
-    kw.has_qe = 1;
-    kw.qe = p8_fixed_from_int(12);
-    kw.mu = p8_fixed_from_int(2);
+    kw.has_resource = 1;
+    kw.resource = p8_fixed_from_int(12);
+    kw.amount = p8_fixed_from_int(2);
     as_ga(a)->kw = &kw;
     cls_of(a)->refresh(a);
     row = fold_lq(2166136261u, a);

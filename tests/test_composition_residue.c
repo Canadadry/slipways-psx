@@ -136,7 +136,7 @@ static void test_other_witnesses_of_each_pattern_bite(void) {
                                   "défauts\t2\t1\n"
                                   "résidu 2 : 5 ligne(s), 1 fichier(s)\n") == 0);
     setup();
-    write_file(SRC "/w.c", "extern const pico8_str_seq_t pico8_nl_n" "u_tags;\n"
+    write_file(SRC "/w.c", "extern const str_seq_t pico8_nl_n" "u_tags;\n"
                            "int k = x_n" "u_items;\n"
                            "if (pico8_ho_" "gp_has(self->g" "p, name)) {}\n"
                            "q = pico8_hp_" "mr_names;\n"
@@ -164,11 +164,11 @@ static void test_named_false_positives_do_not_bite(void) {
     assert_alone_is_empty(SRC "/f.c", "int get_pos_x;\n");
     assert_alone_is_empty(SRC "/f.c", "int run_start;\n");
     assert_alone_is_empty(SRC "/f.c", "int number;\n");
-    assert_alone_is_empty(SRC "/f.c", "pico8_pi_number(e, 1);\n");
+    assert_alone_is_empty(SRC "/f.c", "number(e, 1);\n");
     assert_alone_is_empty(TST "/f.c", "\"pico8_jo_" "default(\\\"n" "u\\\", &k);\\n\"\n");
     assert_alone_is_empty(SRC "/f.c", "int mr = 0;\n");
     assert_alone_is_empty(SRC "/f.c", "self->qe_is_bool = 0;\n");
-    assert_alone_is_empty(SRC "/f.c", "self->bg_is_bool = 0;\n");
+    assert_alone_is_empty(SRC "/f.c", "self->background_is_bool = 0;\n");
     assert_alone_is_empty(SRC "/f.c", "k.h_is_false = 1;\n");
     assert_alone_is_empty(SRC "/engine/entity_class.h", "#include \"engine/vec.h\"\n");
     assert_alone_is_empty(SRC "/pico8_planet.h", "#include \"game/" "game_data.h\"\n");
@@ -186,7 +186,7 @@ static void test_exclusions_edit_the_text_not_the_whole_line(void) {
 
 static void test_overlapping_categories_count_each_but_footer_counts_distinct_lines(void) {
     setup();
-    write_file(SRC "/o.h", "const pico8_str_seq_t *pico8_jo_get" "_n" "u(const void *" "self);\n");
+    write_file(SRC "/o.h", "const str_seq_t *pico8_jo_get" "_n" "u(const void *" "self);\n");
     assert(run_residue(TREE) == 0);
     assert(strcmp(read_file(OUT), "accesseurs-q6\t1\t1\n"
                                   "n" "u\t1\t1\n"
@@ -246,7 +246,7 @@ static void test_registres_reads_declaration_points_outside_entity_types(void) {
                            "emitter_t;\n"
                            "typedef struct {\n    void *(*new_entity)(int k);\n    void (*kj)(void *" "self);\n} k_t;\n"
                            "const pointer_" "list_t *live_" "entities(void);\n"
-                           "pico8_lq_t *pico8_" "jo_ex(const pointer_" "list_t *is,\n    int o);\n"
+                           "layout_row_t *pico8_" "jo_ex(const pointer_" "list_t *is,\n    int o);\n"
                            "typedef int (*pico8_" "fn)(const pointer_" "list_t *p);\n");
     write_file(SRC "/r.c", "static pointer_" "list_t g_live_entities;\n"
                            "static pointer_" "list_t *g_list = 0;\n"

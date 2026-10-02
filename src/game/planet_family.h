@@ -36,7 +36,7 @@ const entity_class_t *pico8_qh_struct_class(void);
  * archetype: jo's part, then `s` and the probe copied from `def`. Reads no
  * key, runs neither `pq` nor `lt`, records no coverage. Requires
  * `pico8_planet_family_init()`. */
-void pico8_qh_struct_init(pico8_jo_t *self, const entity_class_t *cls, const pico8_jo_def_t *def);
+void pico8_qh_struct_init(pico8_jo_t *self, const entity_class_t *cls, const planet_archetype_t *def);
 
 /* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
  * NULL. The new laboratory registers itself into `hv`/`cv`/`cg` through `lt`, and it
@@ -80,7 +80,7 @@ pico8_jo_t *pico8_hj_new(const planet_keys_t *keys);
  * archetype: qh's part, then the emitter copied from `def`, `qy` nil. Reads
  * no key, runs neither `pq` nor `lt`, records no coverage. Requires
  * `pico8_planet_family_init()`. */
-void pico8_hj_struct_init(pico8_jo_t *self, const entity_class_t *cls, const pico8_jo_def_t *def);
+void pico8_hj_struct_init(pico8_jo_t *self, const entity_class_t *cls, const planet_archetype_t *def);
 
 /* The dispatchers hj's descriptor holds, for a daughter's `static const`
  * descriptor to name. */
@@ -122,7 +122,7 @@ const entity_class_t *pico8_ga_struct_class(void);
 typedef struct {
     planet_keys_t jo;
     const vec_t *ra_copie;
-    const pico8_ga_pq_keys_t *pq;
+    const burst_construct_keys_t *pq;
 } pico8_ga_keys_t;
 
 /* `keys` (NULL means none) is not kept. The new burst lives, with its `oe`

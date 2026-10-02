@@ -107,7 +107,7 @@ static int case_dead_after_cart_load(void) {
 /* Octets que le bw de chaque eu prend dans sa generation : jo.oc, sa
  * source et jo.ir. */
 static size_t populate_galaxy_states(void) {
-    return (2 * ZONE_CELLS(sizeof(pico8_jf_state_t)) + ZONE_CELLS(sizeof(pico8_gn_state_t))) *
+    return (2 * ZONE_CELLS(sizeof(random_walk_t)) + ZONE_CELLS(sizeof(weighted_picker_t))) *
            sizeof(zone_cell_t);
 }
 
@@ -179,13 +179,13 @@ static size_t icons_bytes(void) {
     for (int i = 0; hv != NULL && i < hv->count; i++) {
         const pico8_ie_t *ie = (const pico8_ie_t *)hv->items[i];
         if (ie->header.class != pico8_ie_struct_class()) continue;
-        assert(k < PICO8_DR_COUNT && "plus d'icones que de bulles dans dr");
-        (void)pico8_jb_new(mesure, &pico8_dr_table[k]);
+        assert(k < ICON_TOOLTIPS_COUNT && "plus d'icones que de bulles dans dr");
+        (void)tooltip_new(mesure, &icon_tooltips_table[k]);
         bytes += block_bytes(sizeof *ie);
         if (ie->has_kh && ie->kh) bytes += block_bytes(sizeof(vec_t));
         k++;
     }
-    assert(k == PICO8_DR_COUNT && "eu fait une icone par bulle de dr");
+    assert(k == ICON_TOOLTIPS_COUNT && "eu fait une icone par bulle de dr");
     return bytes + arena_used(mesure) - head;
 }
 
