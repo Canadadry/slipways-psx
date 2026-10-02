@@ -165,8 +165,17 @@
 # make rename-rekey-check SUBSTEP=<3x> -> chaque identité renommée des
 #                       sous-étapes suivantes est dans tmp/ast_rename/declarations.tsv
 #                       avec son nom et son fichier ; échoue sinon, hors suite
+# make scope-count-test -> les tests de tools/scope_count.py sur une
+#                       mini-extraction, dans make test
+# make scope-count [MODULES="<module>..." | SUBSTEP=<3x>] -> garde de portée en
+#                       compteur : déclarations de 1 ou 2 caractères refusées
+#                       (type, fonction, champ, constante, macro, statique,
+#                       globale ; locale ou paramètre de portée > 40 lignes),
+#                       par module, hors tools/scope_exceptions.txt ; lit
+#                       tmp/ast_rename/declarations.tsv (make rename-extract
+#                       d'abord), n'échoue jamais, hors suite
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test rename-count-test cart-names-count rename-substeps-test rename-substeps-check rename-strings-verify-test rename-strings-verify rename-rekey-test rename-rekey rename-rekey-check
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test rename-count-test cart-names-count rename-substeps-test rename-substeps-check rename-strings-verify-test rename-strings-verify rename-rekey-test rename-rekey rename-rekey-check scope-count-test scope-count
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -849,7 +858,7 @@ endif
 replay: $(TMP_DIR)/pico8_replay
 	./$(TMP_DIR)/pico8_replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard rename-derive-test rename-strings-test rename-check-test rename-slice-test rename-count-test rename-substeps-test rename-substeps-check rename-strings-verify-test rename-rekey-test
+test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard rename-derive-test rename-strings-test rename-check-test rename-slice-test rename-count-test rename-substeps-test rename-substeps-check rename-strings-verify-test rename-rekey-test scope-count-test
 
 test-all: test e2e
 
@@ -1238,6 +1247,14 @@ rename-strings-verify:
 	python3 tools/rename_strings_verify.py --table docs/renommage.tsv \
 	    --substeps $(RENAME_SUBSTEPS) --substep $(SUBSTEP) --root .
 
+scope-count-test:
+	python3 tests/test_scope_count.py
+
+scope-count:
+	python3 tools/scope_count.py --declarations $(AST_RENAME_DIR)/declarations.tsv \
+	    --exceptions tools/scope_exceptions.txt --root . $(foreach m,$(MODULES),--module '$(m)') \
+	    $(if $(SUBSTEP),--substep $(SUBSTEP) --substeps $(RENAME_SUBSTEPS))
+
 rename-apply:
 	@test -n "$(TABLE)" || { echo "usage: make rename-apply TABLE=<table>" >&2; exit 1; }
 	@mkdir -p $(AST_RENAME_DIR)
@@ -1252,3 +1269,4 @@ rename-apply:
 -include $(wildcard $(OBJ_COVERAGE_DIR)/src/*/*.d $(OBJ_COVERAGE_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_GCOV_DIR)/src/*/*.d $(OBJ_GCOV_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_SANITIZE_DIR)/src/*/*.d $(OBJ_SANITIZE_DIR)/tests/*.d)
+
