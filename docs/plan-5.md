@@ -68,7 +68,7 @@ Exceptions à la règle des deux lettres : `x` et `y` comme champs d'un vecteur.
 
 ## 5. Invariant et gardes
 
-**Invariant de chaque commit** (à l'étape 1, de chaque paire déplacement + retouches, cf. §6) : `make test-all` passe et tous les `*.sha256` de `tests/e2e/` restent identiques. **En fin de chaque PRD**, s'y ajoutent les cibles hors suite qui compilent du code ou lisent des noms et des chemins : `make raylib` et `screencast-viewer` (après `raylib-vendor-setup`), `class-coverage-net`, `e2e-gap`, et `rename-tool-test` dès que l'outil de 2a existe ; à l'étape 3, le compteur se lit après un `make rename-extract` frais, sans ligne `warning:`. Renommer ne change pas un pixel. Les références qui contiennent des chemins ou des noms (`line_coverage_reference.txt`, listes d'exceptions de `tools/`) sont mises à jour dans le même commit que ce qui les invalide, jamais régénérées pour masquer une différence de contenu.
+**Invariant de chaque commit** (à l'étape 1, de chaque paire déplacement + retouches, cf. §6) : `make test-all` passe et tous les `*.sha256` de `tests/e2e/` restent identiques. **En fin de chaque PRD**, s'y ajoutent les cibles hors suite qui compilent du code ou lisent des noms et des chemins : `make raylib` et `screencast-viewer` (après `raylib-vendor-setup`), `class-coverage-net`, `e2e-gap`, et `rename-tool-test` dès que l'outil de 2a existe ; aux étapes 3 et 4, les compteurs se lisent après un `make rename-extract` frais, sans ligne `warning:`. Renommer ne change pas un pixel. Les références qui contiennent des chemins ou des noms (`line_coverage_reference.txt`, listes d'exceptions de `tools/`) sont mises à jour dans le même commit que ce qui les invalide, jamais régénérées pour masquer une différence de contenu.
 
 **Deux gardes permanentes**, branchées tôt en compteur non bloquant par module, puis rendues bloquantes dans `make test` à l'étape 5 :
 
@@ -479,6 +479,16 @@ Chacune est une PRD, poussée sur la branche du chantier, et respecte l'invarian
 4. **Commentaires, asserts, locales** — une PRD par sous-étape, sur la même liste qu'à l'étape 3. La note « Découvert » de la première sous-étape corrige la consigne des agents avant les suivantes. Un agent par module : commentaires et messages d'`assert` réécrits en anglais sans citer le cart (§4), mots français restants retirés, locales cryptiques à longue portée renommées. Le skill `reprendre-les-commentaires` cadre le travail. Un troisième compteur, de **français résiduel** (commentaires, chaînes, asserts), est branché au début de l'étape. Fin d'une sous-étape : les trois compteurs à zéro sur ses modules, toutes catégories, mentions entre backticks comprises.
 
    **Sous-étapes** : les modules, tests et données de `tools/` de la sous-étape 3 de même lettre ; l'étape 3 finie, aucun résidu d'une sous-étape suivante ne reste.
+
+   **Méthode de l'étape 4** (consultation `plan-review` de fin d'étape 3) :
+   - *Trois sortes de commit, trois preuves.* Commentaires seuls : sortie de `gcc -fpreprocessed -dD -E -P` identique avant et après, nombre de lignes de code inchangé, ni essai à blanc ni TSV. Chaînes et messages d'`assert` : la rigueur de l'étape 3 (essai à blanc, test rouge avant la correction, tampons vérifiés). Locales renommées : par `rename-slice`/`rename-apply` seulement, ajoutées au TSV et aux surcharges.
+   - *Propriété des chaînes.* Une chaîne française ou qui cite le cart, lue par un test ou par la sortie d'un binaire (`expect_fatal`, `must_abort_saying`, noms de zone, sortie `REPLAY_FILL`), est traduite par la sous-étape qui tient son site écrivain, à tous ses sites d'un coup ; le commit de chaînes liste d'abord ses sites lecteurs hors de ses modules.
+   - *Extraction fraîche.* Chaque 4x finit par `rename-extract`, `rename-rekey`, `rename-rekey-check` sur toutes les sous-étapes, puis les compteurs. Les outils reçoivent la sous-étape 4x sous le nom `SUBSTEP=3x`.
+   - *Locales cryptiques.* 4a définit une liste candidate mesurable tirée de `declarations.tsv` (locale ou paramètre de portée > 40 lignes, nom de trois caractères ou moins ou non découpé en mots) ; chaque sous-étape la relève avant et après. Pour les 12 statiques locales proposées en exception, l'étape 4 propose aussi un nom dans « Découvert », pour que l'un ou l'autre verdict s'applique mécaniquement à l'étape 5.
+   - *Compteur de français.* Construit par 4a, d'abord, test d'abord : liste de mots-outils français choisis plus détection des accents (le code est en ASCII sans accents) ; fichier d'exceptions au format de `scope_exceptions.txt` ; mêmes colonnes et même scission fait / suivantes que `cart-names-count` ; jamais bloquant ; fixtures de détection, d'homographes (`place`, `file`, `limite`) et d'exception. Sa mesure de départ par sous-étape va dans la note de 4a ; une sous-étape hors norme est coupée, comme 3l.
+   - *Consigne des agents.* La PRD de 4a porte une version étape 4 de `consigne-agent.md` de `reprendre-les-commentaires`, qui lève point par point ses contradictions avec l'étape (code non modifié, assertions intouchables, chaîne humaine signalée sans correction, sortie du préprocesseur identique, destination glossaire) ; la note de 4a l'amende ensuite.
+   - *Citations du cart.* Relevé non bloquant par sous-étape, avant et après : commentaires qui citent `cart` (hors module `game/cart`), `Lua`, `lua.lua`, et noms du TSV d'une ou deux lettres employés nus.
+   - *Registre des décisions humaines.* `docs/decisions-plan-5.md` : une entrée numérotée par question (origine, question, options, nombre de sites, proposition prête à appliquer), ouverte par 4a à partir des notes de 3a–3l, complétée par chaque 4x, close par 4l. Une décision de nommage précise qu'elle s'applique aussi aux mentions entre backticks et en commentaire, avec un contrôle sur le nom remplacé.
 4a. **Commentaires — en-tête commun et vtable.** Modules et tests de 3a.
 4b. **Commentaires — runtime PICO-8.** Modules, tests et données de `tools/` de 3b.
 4c. **Commentaires — socle.** Modules et tests de 3c.
@@ -491,7 +501,7 @@ Chacune est une PRD, poussée sur la branche du chantier, et respecte l'invarian
 4j. **Commentaires — boîtes, panneaux, menus, cart.** Modules et tests de 3j.
 4k. **Commentaires — outils sans fenêtre.** Modules et tests de 3k.
 4l. **Commentaires — plateforme, binaires, outils.** Modules, tests, scripts et données de `tools/` de 3l, et le `Makefile`.
-5. **Clôture.**
+5. **Clôture.** Condition d'entrée : chaque entrée de `docs/decisions-plan-5.md` porte un verdict humain.
    - `TROU-N` → `GAP-N` dans le code et comme clé dans `docs/trous-de-portage.md`, qui reste en français mais décrit chaque écart avec les nouveaux noms C ; le nom Lua n'apparaît qu'en tête de chaque GAP.
    - Les deux gardes du §5 dans `make test`, vertes ; l'étape tranche si le compteur de français devient une troisième garde permanente.
    - `CLAUDE.md` : nouvelle arborescence, renvoi `TROU-7` → `GAP-7`.
