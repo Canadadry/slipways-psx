@@ -1,10 +1,11 @@
-/* tmp/pico8_replay rejoue tout fichier depuis l'ecran titre : le clic de
- * difficulte du fichier choisit la difficulte, le pilote n'en choisit
- * aucune avant la frame 0.
+/* tmp/replay replays every file from the title screen: the file's
+ * difficulty click picks the difficulty, and the driver picks none before
+ * the first frame.
  *
- * Les deux fixtures ne different que par la ligne cliquee a la frame 60
- * (forgiving, reasonable) ; elles ouvrent ensuite le panneau de score,
- * dont le titre porte dk.px (lua.lua:885). */
+ * The two fixtures differ only by the row they point at from frame 50 to
+ * 69 and click at frame 60 (forgiving, reasonable); they then open the
+ * score panel, whose score row shows the name of the chosen difficulty
+ * button (economy_score_difficulty, read by score_panel_display.c). */
 
 #include <assert.h>
 #include <stdio.h>
@@ -18,7 +19,7 @@
 #define DUMP_A "tmp/test_replay_from_title_a.txt"
 #define DUMP_B "tmp/test_replay_from_title_b.txt"
 
-/* Tampon alloue, que l'appelant libere. */
+/* Allocated buffer, freed by the caller. */
 static char *read_whole_file(const char *path, size_t *out_len) {
     FILE *file = fopen(path, "rb");
     assert(file != NULL);

@@ -1,17 +1,17 @@
 pico-8 cartridge // http://www.pico-8.com
 version 32
 __lua__
--- probe -- releve de reference pico-8
--- des valeurs fixes 16.16
+-- probe -- pico-8 reference readings
+-- of 16.16 fixed-point values
 --
--- tout est releve en bits bruts via
--- tostr(x,true) : pico-8 est en
--- virgule fixe 16.16, ses nombres
--- SONT des entiers. le decimal est
--- ambigu, l'hexa ne l'est pas.
+-- everything is read as raw bits
+-- through tostr(value,true): pico-8
+-- is 16.16 fixed point, its numbers
+-- ARE integers. decimal is
+-- ambiguous, hexadecimal is not.
 --
--- ecrit pico8_reference_probe_out.txt et affiche
--- un resume a l'ecran.
+-- writes pico8_reference_probe_out.txt and shows
+-- a summary on screen.
 
 local first=true
 function o(s)
@@ -31,10 +31,10 @@ o("# probe v1")
 o("# pico-8 version: <to fill in>")
 
 -- ================================
--- bloc a : les 54 litteraux
--- decimaux de pico8/lua.lua
--- (0b1010101010101010.1 ligne 549
---  exclu : motif binaire fillp)
+-- block A: the 54 decimal
+-- literals the game uses
+-- (0b1010101010101010.1 left
+--  out: a fillp binary pattern)
 -- ================================
 o("## a literals")
 local lits={
@@ -71,25 +71,25 @@ for p in all(lits) do
 end
 
 -- ================================
--- bloc b : arrondi
+-- block B: rounding
 -- ================================
 o("## b rounding")
 
--- b1 : flr sur negatifs
+-- B1: flr on negative numbers
 local fs={-1.5,-0.5,-0.9,-1,-2.5,
           1.5,0.5,0.9,1,0}
 for v in all(fs) do
  o("flr "..h(v).." -> "..h(flr(v)))
 end
 
--- b2 : arrondi reel de spr(), relu
--- au pixel. sprite 0 recoit un seul
--- pixel allume, a l'offset local
--- (7,0) : les deux reponses
--- possibles (troncature vs flr)
--- restent alors a l'ecran.
---   x=-0.5 : trunc -> col 7
---            flr   -> col 6
+-- B2: the actual rounding of spr(),
+-- read back from the pixels. sprite
+-- 0 gets one lit pixel, at local
+-- offset (7,0): both possible
+-- answers (truncation or flr) then
+-- stay on screen.
+--   at -0.5: truncation -> column 7
+--            flr        -> column 6
 sset(7,0,7)
 
 function sprat(x,y)
@@ -113,7 +113,7 @@ o("spr(3.9,20) -> "..sprat(3.9,20))
 o("spr(4,-0.5) -> "..sprat(4,-0.5))
 o("spr(4,3.5) -> "..sprat(4,3.5))
 
--- b3 : cles de table fractionnaires
+-- B3: fractional table keys
 local t={}
 t[1.5]="a"
 t[2]="b"
@@ -122,9 +122,9 @@ o("t[1.5]=a; t[1.5] -> "..tostr(t[1.5]))
 o("t[2]=b; t[2.5] -> "..tostr(t[2.5]))
 
 -- ================================
--- bloc c : tostr decimal
--- (la forme que le jeu affiche)
--- en regard de l'hexa exact
+-- block C: decimal tostr
+-- (the form the game prints)
+-- next to the exact hexadecimal
 -- ================================
 o("## c tostr")
 local ds={-1.5,1,0,0.15,0.27,
@@ -137,8 +137,8 @@ o("d [1/3 ="..tostr(1/3).."] x "..h(1/3))
 o("d [2/3 ="..tostr(2/3).."] x "..h(2/3))
 
 -- ================================
--- bloc d : ^0.75
--- (economy_formulas.c:196)
+-- block D: ^0.75
+-- (p8_fixed_pow075)
 -- ================================
 o("## d pow075")
 local ps={0.25,0.5,0.75,1,1.5,2,3,
@@ -148,9 +148,9 @@ for v in all(ps) do
 end
 
 -- ================================
--- bloc e : sqrt / sin / cos
--- vecteurs de pico8_fixed_sqrt
--- et de la table sin/cos.
+-- block E: sqrt / sin / cos
+-- test vectors of p8_fixed_sqrt
+-- and of the sin/cos table.
 -- ================================
 o("## e sqrt")
 for v in all(ps) do
@@ -166,8 +166,8 @@ for i=0,63 do
 end
 
 -- ================================
--- bloc f : rnd
--- CAPTURE, PAS EXPLOITE (idem).
+-- block F: rnd
+-- RECORDED, READ BY NO TEST.
 -- ================================
 o("## f rnd")
 srand(1)
@@ -186,10 +186,10 @@ o("rnd() "..h(rnd()))
 o("# end")
 
 -- ================================
--- resume ecran (secours si le
--- fichier est introuvable : le
--- bloc b tient a l'ecran, c'est
--- lui qui debloque les 76 casts)
+-- screen summary (a fallback if
+-- the file cannot be found: the
+-- main readings of block B fit
+-- on the screen)
 -- ================================
 cls(0)
 print("probe done",0,0,11)

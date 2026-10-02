@@ -1,21 +1,19 @@
-/* Le visualiseur de screencast : une fenetre raylib qui joue le fichier
- * de pixels fabrique par `make screencast`, pour qu'un humain puisse
- * regarder une session.
+/* The screencast viewer: a raylib window that plays the pixel file made
+ * by `make screencast`, so that a human can watch a session.
  *
- * Il n'ouvre rien en ecriture, nulle part : un aller-retour par le
- * visualiseur qui changerait un octet ferait diverger l'empreinte de
- * `make e2e`. C'est pourquoi il n'appelle pas
- * pico8_raylib_backend_init()/present() -- init() ouvre un enregistrement
- * de session et present() lit la memoire d'un jeu qui tourne. Les deux
- * seules fonctions du backend qu'il emprunte sont celles qui ne recoivent
- * pas de backend, et leur signature est la garantie.
+ * It opens nothing for writing, anywhere: a round trip through the viewer
+ * that changed a byte would make the hash of `make e2e` diverge. That is
+ * why it calls neither raylib_backend_init() nor raylib_backend_present():
+ * the first opens a session recording, the second reads the memory of a
+ * running game. From the backend it takes only RAYLIB_BACKEND_SCALE and
+ * the two functions that receive no backend, and their signatures are the
+ * guarantee.
  *
- * Toutes les decisions sont ailleurs et toutes y sont testees : le format
- * et la lecture indexee dans pico8_screencast, le curseur de lecture et
- * la phrase de refus dans pico8_screencast_player, la vitesse et la ligne
- * d'etat dans pico8_replay_control, les seize couleurs dans
- * pico8_palette. Ce qui reste ici demande une fenetre, donc `make unit`
- * ne l'exerce pas. */
+ * Every decision lives elsewhere, with its tests: the format and the
+ * indexed read in devtools/screencast, the playback cursor and the refusal
+ * sentence in devtools/screencast_player, the speed and the status line in
+ * devtools/replay_control, the sixteen colors in p8/palette. What is left
+ * here needs a window, so `make unit` does not exercise it. */
 
 #include "devtools/screencast.h"
 #include "devtools/screencast_player.h"
@@ -28,16 +26,14 @@
 
 #include <stdio.h>
 
-/* Les pixels de la frame courante (un octet par pixel) et leur
- * conversion en couleurs. Statiques parce que 16 Ko + 64 Ko n'ont rien a
- * faire dans un cadre de pile. */
+/* The pixels of the current frame (one byte per pixel) and their colors.
+ * Static because 16 KiB plus 64 KiB have no business in a stack frame. */
 static unsigned char g_frame_pixels[SCREENCAST_FRAME_PIXELS];
 static Color g_frame_colors[SCREENCAST_FRAME_PIXELS];
 
 int main(int argc, char **argv) {
-    /* Pas de chemin par defaut, volontairement : il ouvrirait une fenetre
-     * sur une capture qui n'est pas celle que l'humain croit regarder, et
-     * c'est sur cette confiance que repose la signature d'empreinte. */
+    /* No default path, on purpose: it would open a window on a capture
+     * that is not the one the human believes they are watching. */
     if (argc != 2) {
         fprintf(stderr,
                 "screencast-viewer: usage: %s <pixel file>\n"
@@ -47,9 +43,9 @@ int main(int argc, char **argv) {
     }
     const char *path = argv[1];
 
-    /* Le refus arrive avant le moindre appel a raylib : une fenetre qui
-     * s'ouvre sur du noir est indiscernable d'une session qui commence
-     * par un ecran noir. */
+    /* The refusal comes before any raylib call: a window that opens on
+     * black cannot be told apart from a session that starts on a black
+     * screen. */
     screencast_reader_t reader;
     screencast_status_t status = screencast_reader_open(&reader, path);
     if (status != SCREENCAST_OK) {
@@ -79,26 +75,25 @@ int main(int argc, char **argv) {
     Image blank = GenImageColor(P8_SCREEN_WIDTH, P8_SCREEN_HEIGHT, BLACK);
     Texture2D screen_texture = LoadTextureFromImage(blank);
     UnloadImage(blank);
-    /* Au plus proche voisin : lisser rendrait flou exactement ce qu'un
-     * humain vient verifier, le pixel. */
+    /* Nearest neighbour: smoothing would blur exactly what a human comes
+     * to check, the pixel. */
     SetTextureFilter(screen_texture, TEXTURE_FILTER_POINT);
 
     int exit_code = 0;
     while (!WindowShouldClose()) {
         raylib_backend_poll_replay_controls(&control);
-        /* `replay_active` vaut toujours 1, y compris une fois la lecture
-         * figee : il n'y a ici aucune partie vivante a qui rendre les 60
-         * FPS du jeu, et passer 0 annulerait silencieusement l'echelle de
-         * vitesse. */
+        /* The replay_active argument is always 1, even once playback is
+         * held on the last frame: there is no live game here to hand the
+         * game's 60 FPS back to, and 0 would silently cancel the speed
+         * scale. */
         raylib_backend_set_frame_rate_cap(replay_control_target_fps(&control, 1));
 
         int index = screencast_player_current_frame(&player);
         if (!screencast_read_frame(&reader, index, g_frame_pixels)) {
-            /* L'index vient du curseur et ne sort jamais du fichier :
-             * arriver ici, c'est la lecture elle-meme qui a echoue. On
-             * sort en erreur plutot que de continuer a afficher la frame
-             * precedente, qui ferait passer une panne pour une image
-             * figee. */
+            /* The index comes from the cursor and never leaves the
+             * file: getting here means the read itself failed. Exit in
+             * error rather than keep showing the previous frame, which
+             * would pass a failure off as a held image. */
             fprintf(stderr, "screencast-viewer: cannot read frame %d of '%s' -- stopping.\n", index, path);
             exit_code = 1;
             break;
@@ -110,23 +105,23 @@ int main(int argc, char **argv) {
         }
         UpdateTexture(screen_texture, g_frame_colors);
 
-        /* format_status compte les frames a partir de 1, `index` a partir
-         * de 0 : d'ou le +1. */
+        /* replay_control_format_status counts frames from 1, the cursor
+         * index from 0: hence the + 1. */
         char status_line[REPLAY_CONTROL_STATUS_MAX];
         replay_control_format_status(&control, index + 1, frame_count, status_line, sizeof status_line);
 
         BeginDrawing();
         ClearBackground(BLACK);
         DrawTextureEx(screen_texture, (Vector2){ 0, 0 }, 0.0f, (float)RAYLIB_BACKEND_SCALE, WHITE);
-        /* Bandeau translucide : la ligne doit rester lisible quelle que
-         * soit l'image qui defile dessous. */
+        /* Translucent band: the line must stay readable whatever image
+         * moves underneath. */
         DrawRectangle(0, 0, P8_SCREEN_WIDTH * RAYLIB_BACKEND_SCALE, 26, (Color){ 0, 0, 0, 190 });
         DrawText(status_line, 8, 5, 18, RAYWHITE);
         EndDrawing();
 
-        /* Avance APRES l'affichage : la premiere frame du fichier est la
-         * premiere montree. Aucune condition de fin ici -- le curseur se
-         * fige tout seul sur la derniere frame. */
+        /* Advances AFTER the display: the first frame of the file is the
+         * first one shown. No end condition here -- the cursor holds on the
+         * last frame by itself. */
         screencast_player_advance(&player);
     }
 

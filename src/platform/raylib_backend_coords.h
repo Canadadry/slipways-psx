@@ -1,7 +1,7 @@
-/* The one piece of the raylib presentation/input concern that can be
- * tested: kept out of pico8_raylib_backend.c, which includes raylib.h and
- * can therefore be neither built nor run here, so
- * tests/test_raylib_backend_coords.c links this .c alone. */
+/* The one piece of the raylib presentation and input concern that can be
+ * tested: kept out of raylib_backend.c, which includes raylib.h and is
+ * therefore neither built by `make unit` nor run (only `make raylib` builds
+ * it), so tests/test_raylib_backend_coords.c links this file alone. */
 
 #ifndef PLATFORM_RAYLIB_BACKEND_COORDS_H
 #define PLATFORM_RAYLIB_BACKEND_COORDS_H

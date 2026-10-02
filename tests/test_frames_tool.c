@@ -1,6 +1,6 @@
-/* L'outil d'emission de frames, lance tel que les messages de make e2e-ref
- * le proposent, sur une capture faite par le vrai pilote de rejeu. Comme
- * test_pico8_headless_capture, ce test reecrit le dump du pilote. */
+/* The frame tool, run the way the messages of make e2e-ref suggest, on a
+ * capture made by the real replay driver. Like test_headless_capture,
+ * this test rewrites the driver's dump. */
 
 #include "devtools/screencast.h"
 
@@ -19,9 +19,9 @@
 #define BAD_CAPTURE "tmp/test_frames_tool_bad.bin"
 #define MISSING_CAPTURE "tmp/no_such_capture_for_frames_tool.bin"
 
-/* Le contenu entier de `path`, termine par un NUL en plus de `*out_len`
- * octets. Tampon alloue : l'appelant le libere. Rend NULL si le fichier
- * n'existe pas. */
+/* The whole content of `path`, followed by one NUL byte beyond the
+ * `*out_len` bytes. Allocated buffer: the caller frees it. Returns NULL if
+ * the file does not exist. */
 static char *read_whole_file(const char *path, size_t *out_len) {
     FILE *file = fopen(path, "rb");
     if (!file) {
@@ -75,8 +75,8 @@ static void test_emitted_last_frame_is_the_driver_dump(void) {
     assert(frame_len == dump_len);
     assert(memcmp(frame, dump, dump_len) == 0);
 
-    /* La frame d'avant differe du dump : un index decale d'une unite
-     * n'aurait pas passe la comparaison ci-dessus par accident. */
+    /* The frame before differs from the dump: an index off by one would
+     * not have passed the comparison above by accident. */
     snprintf(command, sizeof(command), TOOL " frame " CAPTURE " %d > " FRAME_OUT, last - 1);
     assert(system(command) == 0);
     free(frame);

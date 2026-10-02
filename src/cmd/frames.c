@@ -1,6 +1,7 @@
-/* Outil d'hote sur une capture de pico8_replay :
- *   pico8_frames frame <capture> <N>  la frame N sur stdout, au format de pico8_dump_screen
- * Sur echec : code non nul, message sur stderr. */
+/* Host tool over a capture written by tmp/replay:
+ *   frames_tool frame <capture> <index>  that frame, counted from 0, on
+ *                                        stdout, in the format of dump_screen
+ * On failure: non-zero exit code, message on stderr. */
 
 #include "devtools/dump.h"
 #include "devtools/screencast.h"

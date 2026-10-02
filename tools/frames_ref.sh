@@ -1,10 +1,10 @@
 #!/bin/sh
-# usage: frames_ref.sh <outil pico8_frames> <dossier des captures> <dossier des worktrees>
-#                      [<events> <reference .sha256> <empreinte courante> <capture>]...
-# Pour chaque rejeu divergent, rejoue le fichier d'evenements au commit qui a
-# pose sa reference et laisse la capture obtenue dans <dossier>/<events>.ref.bin.
-# Rend non nul si une reference n'est pas commitee, si un vieux commit ne
-# compile pas ou si un rejeu echoue.
+# usage: frames_ref.sh <frames_tool> <capture directory> <worktree directory>
+#                      [<events> <reference .sha256> <current hash> <capture>]...
+# For each diverging replay, replays the events file at the commit that set
+# its reference and leaves the capture in
+# <capture directory>/<events>.ref.bin. Returns non-zero if a reference is
+# not committed, if an old commit does not build or if a replay fails.
 
 set -u
 LC_ALL=C
@@ -19,7 +19,7 @@ shift 3
 
 root=$(pwd)
 worktree=
-# Une ligne par rejeu divergent : <commit> <events> <capture>.
+# One line per diverging replay: <commit> <events> <capture>.
 pending=$root/$frames_dir/frames-ref.pending
 
 remove_worktree() {
@@ -56,8 +56,8 @@ while [ $# -ge 4 ]; do
     fi
     [ "$(cat "$reference")" = "$(cat "$current")" ] && continue
 
-    # Hors du depot, ou pas encore commitee, la ligne n'a pas de commit :
-    # git blame echoue, ou la designe par un hash tout a zero.
+    # Outside the repository, or not committed yet, the line has no commit:
+    # git blame fails, or names it by an all-zero hash.
     commit=$(git blame --porcelain -L 1,1 -- "$reference" 2> /dev/null | sed -n '1s/ .*//p')
     case $commit in
         '' | *[!0]*) ;;
@@ -76,9 +76,9 @@ if [ ! -s "$pending" ]; then
     exit 0
 fi
 
-# Rend la premiere frame qui differe entre deux captures, ou rien si elles
-# sont identiques. Sur un prefixe commun, c'est la frame qui suit la fin de
-# la plus courte.
+# Prints the first frame that differs between two captures, or nothing if
+# they are identical. When one is a prefix of the other, it is the frame
+# that follows the end of the shorter one.
 first_divergent_frame() {
     out=$(cmp "$1" "$2" 2> /dev/null)
     status=$?
@@ -117,8 +117,8 @@ for commit in $(cut -d' ' -f1 "$pending" | sort -u); do
         exit 1
     fi
 
-    # Avant le retrait du raccourci de difficulte, le pilote ne partait de
-    # l'ecran titre qu'avec ce drapeau ; les e2e partent tous du titre.
+    # Before the difficulty shortcut was removed, the driver started from
+    # the title screen only with this flag; every e2e starts from the title.
     flag=
     grep -q -e '--from-title' "$worktree/src/main.c" && flag=--from-title
 

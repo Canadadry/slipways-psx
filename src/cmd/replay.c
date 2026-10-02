@@ -1,31 +1,31 @@
-/* The headless replay driver: loads the cart's assets, boots the cart, steps it
- * one frame per events.json entry, and dumps the final framebuffer as text.
- * It asserts nothing about the game itself -- that is
- * what tests/ is for.
+/* The headless replay driver: loads pico8/gfx.json and pico8/map.json,
+ * calls cart_load() and cart_init(), steps the game one frame per
+ * events.json entry, and dumps the final framebuffer as text. It asserts
+ * nothing about the game itself -- that is what tests/ is for.
  *
  * argv[1], required, names the script to replay; without it the driver
  * prints its usage and exits 2.
  *
- * argv[2], optional, is where each frame's pixels are written. Absent means no
- * capture, and the driver then behaves exactly as it did before capture
- * existed -- tests/test_headless_capture.c asserts that.
+ * argv[2], optional, is where each frame's pixels are written. Without it,
+ * nothing is captured and the final dump is the same as with it --
+ * tests/test_headless_capture.c asserts that.
  *
  * argv[3], optional, is where the text dump goes; absent means
- * tmp/pico8_replay_dump.txt. Giving it requires giving argv[2].
+ * tmp/replay_dump.txt. Giving it requires giving argv[2].
  *
  * Every replay starts on the title screen: the file itself clicks the
  * difficulty. The driver takes no option; an argument starting with '-'
  * gets the usage and exit 2.
  *
- * PICO8_REMPLISSAGE=<file>, optional, is where the live places of each
- * interface sort, then of each particle sort, are written after the last
- * frame, one "<sort> <count>" line each, read after flushing the exit
- * queue; then the session's maxima of each particle sort, one
- * "max_vivantes|max_octets|max_elements <sort> <n>" line each; then the
- * bytes taken in the game zone, "partie <n>", and their session maximum,
- * "max_octets partie <n>"; then the same two for the loading sub-zone,
- * "chargement <n>" and "max_octets chargement <n>". Capture, dump and exit
- * code stay the same. */
+ * REPLAY_FILL=<file>, optional, gets after the dump, once the exit queue
+ * is flushed: one "<sort> <count>" line of live places per interface sort
+ * ("button" to "ephemerals"), then per particle sort; "max_live <sort>
+ * <count>" per particle sort; "max_bytes <sort> <bytes>", then
+ * "max_elements <sort> <count>", for the list sorts only, burst without
+ * max_elements; then "game <bytes>", "max_bytes game <bytes>", "load
+ * <bytes>", "max_bytes load <bytes>": the game zone, its loading sub-zone
+ * and their session maxima. Capture, dump and exit code stay the same; a
+ * fill file that cannot be opened gets a message on stderr, still exit 0. */
 
 #include "p8/mem.h"
 #include "p8/assets.h"
@@ -109,9 +109,9 @@ int main(int argc, char **argv) {
     cart_load();
     cart_init();
 
-    /* Un echec tue le processus : une capture absente ou tronquee
-     * produirait une empreinte fausse, indiscernable d'une regression.
-     * fprintf plutot qu'un assert, pour que le message nomme le chemin. */
+    /* A failure prints its message and returns 1: a missing or truncated
+     * capture would yield a wrong hash, indistinguishable from a
+     * regression. fprintf rather than assert, so the message names the path. */
     screencast_writer_t capture = { NULL };
     if (capture_path && !screencast_writer_open(&capture, capture_path)) {
         fprintf(stderr, "replay: cannot open the capture file '%s'\n",
@@ -127,11 +127,11 @@ int main(int argc, char **argv) {
         cheat_step(&cheat, &input);
         cart_update60();
         cart_draw();
-        /* APRES pico8__draw() et avant la frame suivante : c'est le seul
-         * instant ou la memoire ecran tient la frame i complete. En tete
-         * de boucle, la capture entiere serait decalee d'une frame --
-         * tests/test_headless_capture.c le detecte en comparant la
-         * derniere frame capturee au dump texte. */
+        /* AFTER cart_draw() and before the next frame: the only moment
+         * the screen memory holds the whole frame just drawn. At the top
+         * of the loop, the whole capture would be shifted by one frame --
+         * tests/test_headless_capture.c catches that by comparing the
+         * last captured frame with the text dump. */
         if (capture_path && !screencast_write_frame(&capture, &memory)) {
             fprintf(stderr, "replay: cannot write frame %d to '%s'\n",
                     i, capture_path);
@@ -143,11 +143,11 @@ int main(int argc, char **argv) {
         }
     }
 
-    /* La fermeture est verifiee au meme titre que les ecritures : fclose
-     * est le dernier endroit ou une ecriture tamponnee peut echouer.
-     * Elle a lieu AVANT le dump texte, et un echec renonce donc a
-     * l'ecrire : un dump frais ferait passer pour
-     * normale une execution dont la capture est perdue. */
+    /* The close is checked like the writes: fclose is the last place
+     * where a buffered write can fail. It comes BEFORE the text dump, and
+     * a failure therefore skips the dump: a fresh dump would make a run
+     * whose capture is lost look normal to whoever reads only the
+     * dump. */
     if (capture_path && !screencast_writer_close(&capture)) {
         fprintf(stderr, "replay: cannot close the capture file '%s'\n",
                 capture_path);

@@ -1,8 +1,8 @@
-/* Rejoue argv[1] comme src/cmd/replay.c, depuis l'écran titre, sans capture ni
- * dump, puis imprime une ligne `<classe> <instanciations>` par nom de
- * KNOWN[]. Rend 2 si le fichier ne se charge pas : tools/class_coverage.sh
- * le signale alors « illisible ». Rend 3, le nom fautif sur stderr, si un
- * nom compté manque à KNOWN[]. */
+/* Replays argv[1] like src/cmd/replay.c, from the title screen, with no
+ * capture and no dump, then prints one `<class> <instances>` line per name
+ * of KNOWN[]; another argument count fails the usage assert. Returns 2 if
+ * the file does not load (tools/class_coverage.sh reports `unreadable:`),
+ * 3 if a counted class has no name or one missing from KNOWN[] (stderr). */
 
 #include "p8/mem.h"
 #include "p8/assets.h"

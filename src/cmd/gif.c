@@ -1,8 +1,8 @@
-/* Outil d'hôte de make gif :
- *   pico8_gif <capture.bin> <events.json> <sortie.gif>
- * La frame n de la capture reçoit la souris de l'event n ; au-delà du
- * dernier event, pas de souris. Sur échec : code non nul, message sur
- * stderr. */
+/* Host tool of make gif:
+ *   gif <capture.bin> <events.json> <output.gif>
+ * Each frame of the capture gets the mouse of the event at the same index;
+ * past the last event, no mouse. On failure: non-zero exit code, message
+ * on stderr. */
 
 #include "devtools/gif.h"
 #include "p8/input.h"

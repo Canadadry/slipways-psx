@@ -1,12 +1,13 @@
-/* Outil d'hôte du minimiseur, lu et écrit par pico8_input :
- *   pico8_minimize mechanical <entrée> <sortie>   l'étage mécanique
- *   pico8_minimize drop <entrée> <sortie> <première> <nombre>
- *                                                 retire ces frames
- *   pico8_minimize rewrite <entrée> <sortie>      les mêmes frames, écrites
- *                                                 par pico8_input_save
- *   pico8_minimize count <entrée>                 le nombre de frames
- * Sur échec : code non nul, message sur stderr, <sortie> non écrite. drop
- * échoue sur une plage hors du fichier ou qui le viderait. */
+/* Host tool of the minimizer, reading and writing events files through
+ * p8_input_load and p8_input_save:
+ *   minimize mechanical <input> <output>   the mechanical pass
+ *   minimize drop <input> <output> <first> <count>
+ *                                          removes these frames
+ *   minimize rewrite <input> <output>      the same frames, written by
+ *                                          p8_input_save
+ *   minimize count <input>                 the number of frames
+ * On failure: non-zero exit code, message on stderr, <output> not written.
+ * drop fails on a range outside the file or one that would empty it. */
 
 #include "p8/input.h"
 #include "devtools/minimize.h"

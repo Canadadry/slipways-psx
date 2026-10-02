@@ -1,13 +1,12 @@
-/* The interactive PC driver: same boot sequence as src/cmd/replay.c up to
- * pico8_cart_load()/pico8__init(), but its per-frame input comes from a
+/* The interactive PC driver: the same boot as src/cmd/replay.c up to
+ * cart_load() and cart_init(), but the input of each frame comes from a
  * live raylib window, or from a recording given as the one optional
  * positional argument, and the framebuffer is presented as a texture
- * instead of dumped as text. src/cmd/replay.c is never modified by this file.
+ * instead of dumped as text.
  *
- * Unlike main.c, this driver must NOT pre-click a difficulty button with
- * pico8_eu(): a recording made here starts on the title screen and holds
- * its own click, so a pre-clicked driver desynchronises every recording
- * it replays. */
+ * The driver must NOT click a difficulty button itself: a recording made
+ * here starts on the title screen and holds its own click, so a driver
+ * that clicked first would desynchronise every recording it replays. */
 
 #include "p8/mem.h"
 #include "p8/assets.h"
@@ -71,10 +70,10 @@ int main(int argc, char **argv) {
     cart_init();
 
     /* One loop for replay and live play, with one call site for
-     * update60(), draw() and present(): they differ only in where the
-     * frame came from. Every recorded frame is stepped AND drawn --
-     * drawing has measured side effects on game state, so skipping either
-     * misses the recorded state. */
+     * cart_update60(), cart_draw() and raylib_backend_present(): they
+     * differ only in where the frame came from. Every recorded frame is
+     * stepped AND drawn -- drawing has measured side effects on game
+     * state, so skipping either misses the recorded state. */
     cheat_t cheat;
     cheat_init(&cheat);
     while (raylib_backend_should_continue(&backend)) {
@@ -92,7 +91,7 @@ int main(int argc, char **argv) {
         }
         raylib_backend_set_frame_rate_cap(replay_control_target_fps(&replay_control, from_recording));
         /* Recorded before the game steps, and unconditionally: see
-         * pico8_raylib_backend_record_frame. */
+         * raylib_backend_record_frame. */
         raylib_backend_record_frame(&backend, &frame);
         p8_input_t input = { &frame, 1, 0 };
         dispatch_context_set_input(&input);

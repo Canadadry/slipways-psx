@@ -1,6 +1,5 @@
-/* Le pilote de rejeu n'a pas de fichier d'evenements par defaut : sans
- * lui, il affiche son usage et echoue au lieu de rejouer quelque chose
- * en silence. */
+/* The replay driver has no default events file: without one, it prints
+ * its usage and fails instead of silently replaying something. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -11,7 +10,7 @@
 #define DRIVER "./tmp/replay"
 #define STDERR_LOG "tmp/test_replay_usage_stderr.txt"
 
-/* Tampon alloue, termine par un nul, que l'appelant libere. */
+/* Allocated buffer, NUL-terminated, freed by the caller. */
 static char *read_whole_file(const char *path) {
     FILE *file = fopen(path, "rb");
     assert(file != NULL);
@@ -43,8 +42,8 @@ static void test_no_argument_prints_usage_and_fails(void) {
     assert_usage_and_failure("");
 }
 
-/* Le pilote ne prend aucune option : un argument en tiret n'est pas pris
- * pour un fichier d'evenements. */
+/* The driver takes no option: an argument starting with a dash is not
+ * taken for an events file. */
 static void test_option_prints_usage_and_fails(void) {
     assert_usage_and_failure(" --from-title tests/fixtures/title_click_forgiving.json");
 }

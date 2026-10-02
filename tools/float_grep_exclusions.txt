@@ -1,7 +1,7 @@
-# Fichiers de src/ hors du coeur sans flottant, lus par
-# tools/float_grep.sh via make float-grep. Une ligne "<chemin> | <justification>".
-# Tout .c/.h de src/ est soit dans le coeur (CORE_SRCS et leurs en-tetes, -MM),
-# soit ici ; un fichier du coeur ici fait echouer la cible.
+# Files of src/ outside the float-free core, read by tools/float_grep.sh
+# through make float-grep. One line "<path> | <justification>".
+# Every `.c` or `.h` file of src/ is either in the core (CORE_SRCS and the
+# headers `-MM` finds for them) or here; a core file listed here fails the target.
 src/cmd/replay.c | entry point of the headless replay, host tool
 src/cmd/class_coverage.c | entry point of the class coverage tool (PICO8_CLASS_COVERAGE), host tool
 src/cmd/frames.c | entry point of frames_tool, which prints a frame of a capture, host tool

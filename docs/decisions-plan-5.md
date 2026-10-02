@@ -83,6 +83,8 @@
 | D-56 | 4l1 | Citations `cart`/`lua` irréductibles de la légende du `Makefile` | 6 + 2 |
 | D-57 | 4e, 4l2 | Noms du cart dans les fixtures de `tests/test_composition_residue.c` | 83 |
 | D-58 | 4l2 | Macro `ATT` de `tests/test_composition_residue.c` | 7 |
+| D-59 | 4b, 4l3 | Faux positifs des compteurs dans le relevé figé `tools/pico8_reference_probe_out.txt` | 8 + 7 |
+| D-60 | 4l3 | `blank` et `screen_texture` du `main` de `src/cmd/screencast_viewer.c` | 2 (+ 2) |
 
 ## Entrées
 
@@ -95,6 +97,7 @@
 - **Proposition prête à appliquer** : (a). À l'étape 5, quand la garde devient bloquante, `tools/rename_count.py` lit un fichier `tools/cart_names_exceptions.txt` au format de `tools/scope_exceptions.txt` (`colonne<TAB>module<TAB>nom`, « seule une décision humaine ajoute une ligne »), avec l'unique ligne `string	tools/frames_ref	tmp/pico8_replay` ; changement d'outil, donc test d'abord dans `tests/test_rename_count.py` (une ligne retire exactement son triplet).
 - **Contrôle** : `make cart-names-count` sans `SUBSTEP` : `TOTAL` 0 dans les quatre colonnes.
 - **Complément (4k1)** : le site de commentaire de `tests/test_headless_capture.c:5` (« `tmp/pico8_replay` est invoqué par `system()` ») est réécrit au nom du binaire réel, `tmp/replay` ; restent 2 sites en commentaire (`src/cmd/frames.c:1`, `tests/test_replay_from_title.c:1`, 4l) et le site de code.
+- **Complément (4l3)** : les deux sites de commentaire restants (`src/cmd/frames.c:1`, `tests/test_replay_from_title.c:1`) sont réécrits au nom du binaire réel (`tmp/replay`) ; reste le site de code (`tools/frames_ref.sh:113`), seule `string` de `cart-names-count` (`MODULES=<4l3>` 0/0/1/0 ; sans `SUBSTEP`, `TOTAL` 1).
 - **Verdict** :
 
 ### D-2 — `PICO8_CLASS_COVERAGE`
@@ -107,6 +110,7 @@
 - **Contrôle** : `make class-coverage` et `make test-all` verts ; `make rename-extract` sans `warning:` (les 4 lignes `partial` de `class_coverage` attendues) ; `make float-grep` vert ; `grep -rn PICO8_CLASS_COVERAGE src tests tools Makefile` hors outils du dictionnaire rend 0.
 - **Portée** : s'applique aussi aux mentions en commentaire et entre backticks.
 - **Complément (4l1)** : le commentaire de la règle de `tmp/class_coverage`, traduit, garde le nom `PICO8_CLASS_COVERAGE` (ligne 995) ; le `-D` passe à la ligne 247. Les deux sites du `Makefile` restent, 35 sites inchangés.
+- **Complément (4l3)** : les deux justifications de `tools/float_grep_exclusions.txt` traduites (`src/cmd/class_coverage.c`, `src/devtools/class_coverage.c`) gardent `PICO8_CLASS_COVERAGE` ; sites inchangés.
 - **Verdict** :
 
 ### D-3 — `PICO8_MALLOC_FILLS`
@@ -402,6 +406,7 @@
 - **Sites** : 5 fonctions (occurrences : 28, 12, 8, 34, 6).
 - **Proposition prête à appliquer** : (a), rien à éditer.
 - **Complément (4k3)** : les commentaires d'`src/devtools/input_json.c` réécrits par 4k3 nomment `p8_input_save` et `p8_input_append` (au lieu de `pico8_input_save`, `pico8_input_append`), définis là et déclarés dans `src/p8/input.h` (« see p8_input_append's contract in p8/input.h ») ; rien d'autre ne change.
+- **Complément (4l3)** : `p8_fatal` toujours défini dans `src/platform/fatal_pc.c`, qui n'a pas de commentaire ; rien d'autre.
 - **Verdict** :
 
 ### D-26 — Lignes `chaîne` `pz` et `go` éditées hors de `rename-strings`
@@ -556,6 +561,7 @@
 - **Sites** : 10 déclarations, 5 `main` : `tests/test_allocator` (43 lignes), `cmd/class_coverage` (58), `cmd/game` (95), `cmd/replay` (94), `cmd/screencast_viewer` (102) ; `make cryptic-locals` sans `SUBSTEP`, après `rename-extract` frais à la fin de 4c1.
 - **Proposition prête à appliquer** : (a). Contrôle : `make cryptic-locals` sans `SUBSTEP` rend 10 candidats de moins, `make scope-count-test` vert.
 - **Portée** : la règle ne touche que la liste des locales cryptiques ; aucune mention en commentaire ni entre backticks n'est en cause.
+- **Complément (4l3)** : après 4l3, `cryptic-locals` garde les 8 `argc`/`argv` des `main` de `cmd/class_coverage` (58), `cmd/game` (95), `cmd/replay` (94), `cmd/screencast_viewer` (100 ; 102 avant ses commentaires) et les 2 de `tests/test_allocator.c` ; inchangé.
 - **Verdict** :
 
 ### D-38 — Statiques de fichier `mem`/`gfx` des tests
@@ -627,6 +633,7 @@
 - **Complément (4i)** : après 4i, `grep -rnE 'p8_graphics_t \*gfx\b' src | wc -l` 88, `'p8_memory_t \*mem\b'` 116 (`burst_draw` et son prototype renommés) ; restent à courte portée, dans les fichiers de 4i, `ascension_draw` et son prototype, et les paramètres de `setup_panel_state` (`tests/test_burst_exports_row.c`, portée 13).
 - **Complément (4j)** : après 4j, `grep -rnE 'p8_graphics_t \*gfx\b' src | wc -l` 88, `'p8_memory_t \*mem\b'` 115 (la locale `mem` de `cart_load` renommée `memory`) ; restent à courte portée, dans les fichiers de 4j, `message_box_draw_overlay`, `toast_draw`, `help_screen_draw`, `score_panel_draw` et leurs prototypes, et les locales `mem` de `cart_init`, `cart_draw`, `score_panel_refresh_palette`.
 - **Complément (4k2)** : après 4k2, `grep -rnE 'p8_graphics_t \*gfx\b' src | wc -l` 88, `'p8_memory_t \*mem\b'` 115, inchangés ; restent à courte portée, dans les fichiers de 4k2, `dump_screen` et son prototype, et les locales `mem`/`gfx` de `test_dump_of_hand_drawn_pattern_matches_exact_text` (`tests/test_dump.c`, portées 36 et 35).
+- **Complément (4l3)** : les locales `mem`/`gfx` des `main` de `src/cmd/replay.c`, `src/cmd/game.c` et `src/cmd/class_coverage.c` sont renommées `memory`/`graphics` (des structs, hors du `grep` de l'entrée) : 88 et 115 inchangés ; reste à courte portée, dans les fichiers de 4l3, le paramètre `mem` de `raylib_backend_present` et de son prototype.
 - **Verdict** :
 
 ### D-44 — Champ `planet_inspection_panel_ctx_t.unmet_needs`, qui tient les besoins reçus
@@ -728,6 +735,7 @@
 - **Sites** : 1 (`tests/test_class_coverage.c:61`).
 - **Proposition prête à appliquer** : (c), commit `test:` ; contrôle : `make test` vert, et une violation plantée (un rejeu qui rend 3) qui le fait échouer, jouée hors du dépôt.
 - **Portée** : aucune mention en commentaire. Note pour 4l3 : si son message traduit de `src/cmd/class_coverage.c:73` (aujourd'hui « le nom %s n'est pas dans KNOWN[] », sur `stderr`, que le script recopie) contient `unknown`, (a) redevient une garde.
+- **Complément (4l3)** : le message de `src/cmd/class_coverage.c` (nom absent de `KNOWN[]`) est traduit sans `unknown` : `the name %s is not in KNOWN[]` (et `an instantiated class has no coverage name (name "")`) ; l'assertion reste vide, et sous (a) elle ne redevient pas une garde. Le message d'`assert` d'usage dit `usage: class_coverage <events.json>`.
 - **Verdict** :
 
 ### D-54 — Préfixe `k_` des tableaux `static const` du morceau 4k3
@@ -781,4 +789,24 @@
 - **Proposition prête à appliquer** : (a), procédure N (identité `macro:tests/test_composition_residue.c:ATT`, ligne `renommé` au TSV et `name` aux surcharges).
 - **Contrôle** : `make test` vert ; `grep -cw ATT tests/test_composition_residue.c` rend 0.
 - **Portée** : aucune mention en commentaire.
+- **Verdict** :
+
+### D-59 — Faux positifs des compteurs dans le relevé figé `tools/pico8_reference_probe_out.txt`
+
+- **Origine** : 4b (« la sonde et son relevé à 4l3 »), 4l3.
+- **Question** : le relevé est la mesure faite sur PICO-8 0.2.6b, qu'on ne peut ni régénérer ici ni retoucher (§5 : une référence n'est jamais réécrite pour masquer). `french-count` y lit `ce` dans huit nombres hexadécimaux (`0x0000.ce4f`, `0xffff.ce0f`… ; lignes 97, 131, 159, 212, 240, 285, 312, 314) et `cart-citations` compte en `short` les sept lettres de ses en-têtes de bloc (`## b rounding`, `## c tostr`, `## d pow075`, `## e sqrt`, `## e sin`, `## e cos`, `## f rnd`), écrits par la sonde et lus par `tools/constants_compare.sh` (`## a literals`). Que faire de ce reste ?
+- **Options** : (a) la ligne d'exception `string<TAB>tools/pico8_reference_probe_out<TAB>ce` dans `tools/french_exceptions.txt`, et le reste `short` accepté (le relevé des citations n'est pas une garde du §5, comme D-56) ; (b) (a), plus `tools/cart_citations.py` qui ne lit pas ce fichier (test d'abord) ; (c) réécrire les en-têtes à la main, avec la sonde et leurs lecteurs.
+- **Sites** : 8 (`french-count`, `string`) + 7 (`cart-citations`, `short`).
+- **Proposition prête à appliquer** : (a). Contrôle, fait par 4l3 sur une copie du fichier d'exceptions (`tmp/4l3_s3/fe_copy.txt`) : `french-count MODULES=tools/pico8_reference_probe_out` 8 → 0 ; `make cart-citations MODULES=tools/pico8_reference_probe_out` rend exactement 0/0/7.
+- **Portée** : aucune mention en commentaire (la sonde, réécrite par 4l3, écrit ses blocs « block A » à « block F »).
+- **Verdict** :
+
+### D-60 — `blank` et `screen_texture` du `main` de `src/cmd/screencast_viewer.c`
+
+- **Origine** : 4l3 (`cryptic-locals`).
+- **Question** : la liste des locales cryptiques relève ces deux locales (portées 59 et 58 après 4l3 ; 60 et 59 avant ses commentaires) parce que `blank` et `texture` ne sont la partie d'aucun nom neuf du TSV ; ce sont les mots de l'API raylib (`Image` laissée noire, `Texture2D` de l'écran), et `src/platform/raylib_backend.c` nomme pareil le même rôle (locale `blank` de `raylib_backend_init`, portée courte ; champ `screen_texture` de `raylib_backend_t`). Les renommer seules créerait deux noms pour un même rôle, et le champ n'est pas une locale de l'étape 4.
+- **Options** : (a) garder (exception de la liste, ou règle : un mot d'un type de l'API raylib vaut validé, test d'abord dans `tests/test_scope_count.py`) ; (b) renommer les deux locales et leurs homologues du backend en mots validés (`black_frame`, `screen_display`…), par la procédure N, champ compris.
+- **Sites** : 2 déclarations (et 2 homologues : la locale `blank` de `raylib_backend_init`, le champ `raylib_backend_t.screen_texture`).
+- **Proposition prête à appliquer** : (a), par une règle plutôt qu'une liste ; contrôle : `make cryptic-locals MODULES=cmd/screencast_viewer` rend 2 candidats de moins.
+- **Portée** : aucune mention en commentaire (relevé à la fin de l'état 3 de 4l3).
 - **Verdict** :

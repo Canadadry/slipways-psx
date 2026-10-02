@@ -1,10 +1,10 @@
 /* The raylib-facing half of the interactive PC driver: the window, the
  * upload of the 128x128 PICO-8 framebuffer, the live input poll, and this
  * session's always-on recording. This file includes raylib.h, so nothing
- * in it can be built or exercised by `make unit` -- every piece of the
- * driver that can be decided without a window lives in a raylib-free
- * module instead (pico8_raylib_backend_coords, pico8_replay_source,
- * pico8_session_recorder, pico8_replay_control). */
+ * in it is built or exercised by `make unit` -- every piece of the driver
+ * that can be decided without a window lives in a module without raylib
+ * instead (platform/raylib_backend_coords, devtools/replay_source,
+ * devtools/session_recorder, devtools/replay_control). */
 
 #ifndef PLATFORM_RAYLIB_BACKEND_H
 #define PLATFORM_RAYLIB_BACKEND_H
@@ -33,9 +33,10 @@ typedef struct {
 /* Opens the window, starts this session's (still empty) recording at
  * tmp/events_recorded_<timestamp>.json and mints the paired marker path
  * tmp/events_recorded_<timestamp>.markers.txt from the same timestamp.
- * Also hides the host cursor: the cart pokes PICO-8's "enable mouse" flag
- * once at boot (nf:pq, pico8_mouse_reader.c) and draws its own cursor, so
- * both would otherwise be visible; shutdown restores it. Must be called
+ * Also hides the host cursor: the game sets PICO-8's "enable mouse" flag
+ * whenever it builds its mouse (mouse_construct, src/game/mouse.c) and
+ * draws its own cursor, so both would otherwise be visible; shutdown
+ * restores it. Must be called
  * exactly once, before any other call on this backend. */
 void raylib_backend_init(raylib_backend_t *backend);
 
@@ -44,26 +45,27 @@ void raylib_backend_init(raylib_backend_t *backend);
 int raylib_backend_should_continue(const raylib_backend_t *backend);
 
 /* Fills *out_frame from live hardware: the mouse position converted to
- * the 128x128 space (pico8_raylib_backend_window_to_pico8), the left/
- * right/middle buttons as bits 0/1/2 of stat(34)'s layout, and the four
- * arrow keys as btn(0..3) for player 0. Records and presents nothing.
+ * the 128x128 space (raylib_backend_window_to_screen), the left/right/
+ * middle buttons as bits 0/1/2 of stat(34)'s layout, and the d-pad of the
+ * only player: the four arrow keys as entries 0 to 3, Z and X as entries
+ * 4 and 5. Records and presents nothing.
  *
  * Not a pure read: releasing the space bar appends the current frame's
  * 0-based index in the recording to the marker file, as a playtest
  * bookmark with no effect on *out_frame. The index comes from
- * pico8_session_recorder_frame_count: stop recording replayed frames and
+ * session_recorder_frame_count: stop recording replayed frames and
  * every marker of a resumed session silently shifts by the replay's
  * length (tests/test_marker_coherence.c). */
 void raylib_backend_poll_input(raylib_backend_t *backend, p8_input_frame_t *out_frame);
 
-/* Uploads the current framebuffer (pico8_peek from PICO8_ADDR_SCREEN, one
+/* Uploads the current framebuffer (p8_peek from P8_ADDR_SCREEN, one
  * palette lookup per pixel) and draws it scaled to fill the window.
- * Called once per loop iteration, after pico8__update60()/pico8__draw().
+ * Called once per loop iteration, after cart_update60() and cart_draw().
  * Records nothing. `frame` is unused and kept only for the call shape.
  *
  * `replay_status`, when non-NULL, is drawn over the presented texture as
- * plain raylib text -- the only pixels in this port that do not come from
- * the cart. It is drawn after the blit, so it cannot alter the PICO-8
+ * plain raylib text -- the only pixels on screen that the game does not
+ * draw itself. It is drawn after the blit, so it cannot alter the PICO-8
  * framebuffer or the recorded frames, and NULL (live play, and every
  * frame once the recording runs out) draws nothing at all. */
 void raylib_backend_present(raylib_backend_t *backend, const p8_memory_t *mem, const p8_input_frame_t *frame, const char *replay_status);
@@ -77,7 +79,7 @@ void raylib_backend_present(raylib_backend_t *backend, const p8_memory_t *mem, c
 void raylib_backend_poll_replay_controls(replay_control_t *control);
 
 /* Applies the cap for the frame about to be presented, straight from
- * pico8_replay_control_target_fps; 0 is raylib's own "do not wait between
+ * replay_control_target_fps; 0 is raylib's own "do not wait between
  * frames". Shortening the wait is the whole abbreviation mechanism -- no
  * recorded frame is ever skipped, or the replayed state is no longer the
  * recorded one. Called every frame rather than on change, so no path can
@@ -85,8 +87,8 @@ void raylib_backend_poll_replay_controls(replay_control_t *control);
 void raylib_backend_set_frame_rate_cap(int target_fps);
 
 /* Adds *frame to the session's recording. Called once per loop iteration
- * on the frame about to be played, BEFORE pico8__update60()/pico8__draw(),
- * so a frame whose update60() crashes is already on disk -- that frame is
+ * on the frame about to be played, BEFORE cart_update60() and cart_draw(),
+ * so a frame whose update crashes is already on disk -- that frame is
  * the one a crash report needs. A failed append drops the frame rather
  * than killing a live session. Takes replayed and live frames alike, which
  * is what keeps a resumed session's recording complete and replayable in

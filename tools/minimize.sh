@@ -1,16 +1,16 @@
 #!/bin/sh
 # usage: minimize.sh <minimize tool> [--min-chunk N] <input> <output> [<oracle>...]
-# Sans oracle : l'étage mécanique seul.
-# Avec : `<oracle>... <events>` doit écrire sur stdout l'ensemble de lignes
-# couvertes par ce fichier (line_coverage.sh cover), code non nul s'il
-# échoue. Un candidat n'est gardé que si son ensemble est exactement celui
-# de l'entrée réécrite par l'outil. Le premier candidat est la sortie de
-# l'étage mécanique ; s'il change l'ensemble, la passe repart de l'entrée.
-# Puis des tranches de frames de plus en plus petites (moitié, quart...
-# jusqu'à N, défaut 1) sont retirées tant que l'ensemble ne bouge pas. Un
-# appel d'oracle par candidat : lent sur une vraie couverture, d'où
-# --min-chunk. Les mots de l'oracle ne doivent pas contenir d'espace.
-# Rend 1, sans écrire <sortie>, si l'oracle échoue sur l'entrée.
+# Without an oracle: the mechanical pass alone.
+# With one: `<oracle>... <events>` must print on stdout the set of lines
+# covered by that file (`line_coverage.sh cover`), with a non-zero exit
+# code if it fails. A candidate is kept only if its set is exactly that of
+# the input rewritten by the tool. The first candidate is the output of the
+# mechanical pass; if it changes the set, the guided pass starts again from
+# the input. Then ever smaller chunks of frames (half, quarter... down to
+# the --min-chunk size, 1 by default) are removed as long as the set does
+# not move. One oracle call per candidate: slow on a real coverage, hence
+# --min-chunk. The words of the oracle must not contain a space.
+# Returns 1, without writing <output>, if the oracle fails on the input.
 
 set -u
 
@@ -40,7 +40,7 @@ work=$(mktemp -d "${TMPDIR:-/tmp}/minimize.XXXXXX") || exit 1
 trap 'rm -rf "$work"' EXIT
 
 calls=0
-# Rend 0 si l'ensemble de $1 est celui de la session brute.
+# Returns 0 if the set of the candidate file is that of the raw session.
 same_lines() {
     calls=$((calls + 1))
     "$oracle_cmd" $oracle_args "$1" > "$work/candidate.lines" 2> /dev/null || return 1
@@ -51,9 +51,9 @@ oracle_cmd=$1
 shift
 oracle_args=$*
 
-# Toute sortie passe par pico8_input_save, qui écrit toujours un d-pad de
-# 6 booléens : juger contre l'entrée telle quelle ferait de la ligne du
-# chargeur qui complète un d-pad de 4 une ligne que nul candidat ne couvre.
+# Every output goes through p8_input_save, which always writes a d-pad of
+# six booleans: judging against the input as it is would make the loader
+# line that completes a four-entry d-pad a line no candidate covers.
 "$tool" rewrite "$input" "$work/raw.json" || exit 1
 if ! "$oracle_cmd" $oracle_args "$work/raw.json" > "$work/raw.lines"; then
     echo "minimize: the oracle fails on $input" >&2

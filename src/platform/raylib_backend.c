@@ -7,9 +7,10 @@
 #include <stdio.h>
 #include <time.h>
 
-/* La table partagée est sans raylib (trois octets par couleur) pour que
- * `make unit` l'asserte sans fenêtre ; l'alpha, toujours opaque, s'ajoute
- * ici. Le second binaire raylib la lit là aussi et n'en redéfinit pas. */
+/* The shared table has no raylib (three bytes per color) so that
+ * `make unit` can assert it without a window; the alpha, always opaque, is
+ * added here. The screencast viewer and the GIF writer read the same table
+ * and convert it themselves. */
 static Color palette_color(unsigned char index) {
     p8_rgb_t rgb = P8_PALETTE_RGB[index & 0x0f];
     return (Color){ rgb.red, rgb.green, rgb.blue, 0xFF };
@@ -34,8 +35,8 @@ void raylib_backend_init(raylib_backend_t *backend) {
     UnloadImage(blank);
     SetTextureFilter(backend->screen_texture, TEXTURE_FILTER_POINT);
 
-    /* Hidden once, not polled per frame: nf:pq() pokes 0x5f2d on every
-     * boot and never clears it. */
+    /* Hidden once, not polled per frame: the game sets 0x5f2d each time
+     * it builds its mouse and never clears it. */
     HideCursor();
 }
 
@@ -114,8 +115,8 @@ void raylib_backend_present(raylib_backend_t *backend, const p8_memory_t *mem, c
     BeginDrawing();
     ClearBackground(BLACK);
     DrawTextureEx(backend->screen_texture, (Vector2){ 0, 0 }, 0.0f, (float)RAYLIB_BACKEND_SCALE, WHITE);
-    /* The band behind the text is there because the cart owns every pixel
-     * underneath. */
+    /* The band behind the text is there because the game draws every
+     * pixel underneath. */
     if (replay_status) {
         DrawRectangle(0, 0, P8_SCREEN_WIDTH * RAYLIB_BACKEND_SCALE, 26, (Color){ 0, 0, 0, 190 });
         DrawText(replay_status, 8, 5, 18, RAYWHITE);
