@@ -27,14 +27,9 @@
  * "chargement <n>" and "max_octets chargement <n>". Capture, dump and exit
  * code stay the same. */
 
-#include "pico8_mem.h"
-#include "pico8_assets.h"
-#include "pico8_gfx.h"
-#include "pico8_input.h"
-#include "pico8_cheat.h"
 #include "pico8_dump.h"
+#include "pico8_rejeu.h"
 #include "pico8_screencast.h"
-#include "pico8_dispatch_context.h"
 #include "pico8_cart.h"
 #include "pico8_zone_interface.h"
 #include "pico8_zone_particules.h"
@@ -89,25 +84,8 @@ int main(int argc, char **argv) {
     const char *capture_path = (argc > 2) ? argv[2] : NULL;
     const char *dump_path = (argc > 3) ? argv[3] : "tmp/pico8_replay_dump.txt";
 
-    pico8_mem_t mem;
-    pico8_mem_init(&mem);
-
-    pico8_gfx_t gfx;
-    pico8_gfx_init(&gfx);
-
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-
-    pico8_input_t input;
-    pico8_input_init(&input);
-    assert(pico8_input_load(&input, events_path));
-
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
-
-    pico8_cart_load();
-    pico8__init();
+    static pico8_rejeu_t rejeu;
+    pico8_rejeu_ouvrir(&rejeu, events_path);
 
     /* Un echec tue le processus : une capture absente ou tronquee
      * produirait une empreinte fausse, indiscernable d'une regression.
@@ -119,27 +97,19 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    int frame_count = input.frame_count;
-    pico8_cheat_t cheat;
-    pico8_cheat_init(&cheat);
+    int frame_count = pico8_rejeu_frames(&rejeu);
     for (int i = 0; i < frame_count; i++) {
-        pico8_dispatch_set_input(&input);
-        pico8_cheat_step(&cheat, &input);
-        pico8__update60();
-        pico8__draw();
-        /* APRES pico8__draw() et avant la frame suivante : c'est le seul
+        pico8_rejeu_jouer_frame(&rejeu, i);
+        /* APRES la frame i et avant la suivante : c'est le seul
          * instant ou la memoire ecran tient la frame i complete. En tete
          * de boucle, la capture entiere serait decalee d'une frame --
          * tests/test_pico8_headless_capture.c le detecte en comparant la
          * derniere frame capturee au dump texte. */
-        if (capture_path && !pico8_screencast_write_frame(&capture, &mem)) {
+        if (capture_path && !pico8_screencast_write_frame(&capture, &rejeu.mem)) {
             fprintf(stderr, "pico8 replay: echec d'ecriture de la frame %d dans '%s'\n",
                     i, capture_path);
             pico8_screencast_writer_close(&capture);
             return 1;
-        }
-        if (i < frame_count - 1) {
-            pico8_input_step(&input);
         }
     }
 
@@ -156,7 +126,7 @@ int main(int argc, char **argv) {
 
     FILE *dump_out = fopen(dump_path, "w");
     assert(dump_out != NULL);
-    int dump_ok = pico8_dump_screen(&mem, dump_out);
+    int dump_ok = pico8_dump_screen(&rejeu.mem, dump_out);
     fclose(dump_out);
     assert(dump_ok);
 
@@ -165,7 +135,7 @@ int main(int argc, char **argv) {
         write_remplissage(remplissage_path);
     }
 
-    pico8_input_free(&input);
+    pico8_rejeu_fermer(&rejeu);
 
     printf("pico8 replay: %d frame(s) run against %s; framebuffer dumped to %s\n",
            frame_count, events_path, dump_path);

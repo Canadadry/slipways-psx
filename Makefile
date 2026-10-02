@@ -16,6 +16,10 @@
 # make unit          -> les binaires de tests/, compilés et lancés
 # make replay EVENTS=<events> -> rejoue ce fichier dans le moteur headless, dump
 #                       du framebuffer dans tmp/pico8_replay_dump.txt ; hors suite
+# make etat EVENTS=<events> -> rejoue ce fichier comme make replay, puis écrit
+#                       l'état de la dernière frame (horloge, planètes,
+#                       slipways, structures) et le pic de chaque zone et de
+#                       chaque cap dans tmp/etat.txt ; hors suite
 # make screencast EVENTS=<events> -> refabrique les pixels de chaque frame de ce
 #                       rejeu dans tmp/screencast.bin, pour screencast-viewer
 # make e2e-baseline  -> (re)pose les .json.sha256 de tests/e2e/ sur le code
@@ -90,7 +94,7 @@
 #                       (les deux exigent make raylib-vendor-setup au préalable)
 # make psx-hello     -> projet PSX de test (nécessite psn00bsdk-toolchain-setup)
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay etat test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -570,13 +574,20 @@ $(TMP_DIR)/test_pico8_planet_kj_dispatch: $(call objs,tests/test_pico8_planet_kj
 $(TMP_DIR)/test_pico8_demo: $(call objs,tests/test_pico8_demo.c src/pico8_mem.c src/pico8_assets.c src/pico8_gfx.c src/pico8_input.c src/pico8_input_json.c src/pico8_dump.c) tests/fixtures/demo_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-REPLAY_SRCS := src/main.c src/pico8_screencast.c $(ENGINE_SRCS)
+REPLAY_SRCS := src/main.c src/pico8_rejeu.c src/pico8_screencast.c $(ENGINE_SRCS)
+ETAT_SRCS := src/main_etat.c src/pico8_rejeu.c src/pico8_etat.c $(ENGINE_SRCS)
 
 $(TMP_DIR)/pico8_replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/pico8_replay_gcov: $(call gcov_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(GCOV_CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/pico8_etat: $(call objs,$(ETAT_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_pico8_etat: $(call objs,tests/test_pico8_etat.c src/pico8_rejeu.c src/pico8_etat.c $(ENGINE_SRCS)) $(TMP_DIR)/pico8_etat $(TMP_DIR)/pico8_replay | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_pico8_bg_kj: $(call objs,tests/test_pico8_bg_kj.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
@@ -679,6 +690,7 @@ UNIT_TESTS := \
     test_pico8_iv \
     test_pico8_mh \
     test_pico8_places_vivantes \
+    test_pico8_etat \
     test_pico8_fq \
     test_pico8_nf \
     test_pico8_je \
@@ -763,14 +775,17 @@ unit-run-test_pico8_frames_tool: | unit-run-test_pico8_headless_capture
 .PHONY: $(UNIT_RUNS)
 
 # Échoue avant toute compilation plutôt que de rejouer un fichier par défaut.
-ifneq ($(filter replay screencast,$(MAKECMDGOALS)),)
+ifneq ($(filter replay screencast etat,$(MAKECMDGOALS)),)
     ifeq ($(strip $(EVENTS)),)
-        $(error EVENTS manque : make $(filter replay screencast,$(MAKECMDGOALS)) EVENTS=<events.json>)
+        $(error EVENTS manque : make $(filter replay screencast etat,$(MAKECMDGOALS)) EVENTS=<events.json>)
     endif
 endif
 
 replay: $(TMP_DIR)/pico8_replay
 	./$(TMP_DIR)/pico8_replay $(EVENTS)
+
+etat: $(TMP_DIR)/pico8_etat
+	./$(TMP_DIR)/pico8_etat $(EVENTS) $(TMP_DIR)/etat.txt
 
 test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard
 

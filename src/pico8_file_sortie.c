@@ -12,6 +12,7 @@ typedef struct {
 
 static entree_t g_file[PICO8_FILE_SORTIE_CAP];
 static int g_compte;
+static int g_max;
 
 static void mettre(entree_t entree) {
     if (g_compte == PICO8_FILE_SORTIE_CAP) {
@@ -20,6 +21,7 @@ static void mettre(entree_t entree) {
         pico8_fatal(message);
     }
     g_file[g_compte++] = entree;
+    if (g_compte > g_max) g_max = g_compte;
 }
 
 void pico8_file_sortie_mettre(pico8_struct_header_t *e) {
@@ -36,6 +38,10 @@ void pico8_file_sortie_mettre_arene(const pico8_zone_choisie_t *arene) {
 
 int pico8_file_sortie_compte(void) {
     return g_compte;
+}
+
+int pico8_file_sortie_max(void) {
+    return g_max;
 }
 
 void pico8_file_sortie_vider(void (*oublier)(const pico8_struct_header_t *e)) {

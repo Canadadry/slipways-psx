@@ -70,3 +70,19 @@ int pico8_zone_interface_vivantes(pico8_sorte_t sorte) {
     init_once();
     return (int)pico8_slot_zone_taken(&g_zones[sorte]);
 }
+
+int pico8_zone_interface_max_vivantes(pico8_sorte_t sorte) {
+    assert(sorte >= 0 && sorte < PICO8_SORTE_COUNT);
+    init_once();
+    return (int)pico8_slot_zone_max_taken(&g_zones[sorte]);
+}
+
+int pico8_zone_interface_capacite(pico8_sorte_t sorte) {
+    assert(sorte >= 0 && sorte < PICO8_SORTE_COUNT);
+    return (int)SORTES[sorte].count;
+}
+
+size_t pico8_zone_interface_taille(pico8_sorte_t sorte) {
+    assert(sorte >= 0 && sorte < PICO8_SORTE_COUNT);
+    return SORTES[sorte].size;
+}

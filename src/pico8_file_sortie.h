@@ -15,7 +15,9 @@ void pico8_file_sortie_mettre(pico8_struct_header_t *e);
  * entiere au vidage. Meme limite que les entites. */
 void pico8_file_sortie_mettre_arene(const pico8_zone_choisie_t *arene);
 
+/* Entrees en attente, et leur maximum sur la session. */
 int pico8_file_sortie_compte(void);
+int pico8_file_sortie_max(void);
 
 /* Pour chaque entree, dans l'ordre : une entite passe par `oublier(e)`, qui
  * remet a nil ce qui la designe encore, puis par `rendre` ; une arene est

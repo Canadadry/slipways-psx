@@ -24,7 +24,11 @@ const pico8_zone_choisie_t *pico8_zone_interface(pico8_sorte_t sorte);
  * <sorte> pleine ». */
 const pico8_zone_choisie_t *pico8_zone_interface_place(pico8_sorte_t sorte);
 
-/* Places prises et pas encore rendues. */
+/* Places prises et pas encore rendues, et leur maximum sur la session. */
 int pico8_zone_interface_vivantes(pico8_sorte_t sorte);
+int pico8_zone_interface_max_vivantes(pico8_sorte_t sorte);
+/* Places de la sorte, et octets d'une place. */
+int pico8_zone_interface_capacite(pico8_sorte_t sorte);
+size_t pico8_zone_interface_taille(pico8_sorte_t sorte);
 
 #endif

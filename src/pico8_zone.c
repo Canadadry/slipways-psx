@@ -160,6 +160,8 @@ void pico8_slot_zone_init(pico8_slot_zone_t *zone, const char *name,
     zone->slot_size = slot_size;
     zone->count = count;
     zone->cursor = 0;
+    zone->prises = 0;
+    zone->max_prises = 0;
     for (size_t i = 0; i < count; i++) taken[i] = 0;
     POISON(storage, count * PICO8_ZONE_CELLS(slot_size) * sizeof *storage);
 }
@@ -173,6 +175,8 @@ unsigned char *pico8_slot_zone_alloc(pico8_slot_zone_t *zone) {
         if (!zone->taken[i]) {
             zone->taken[i] = 1;
             zone->cursor = (i + 1) % zone->count;
+            zone->prises++;
+            if (zone->prises > zone->max_prises) zone->max_prises = zone->prises;
             unsigned char *p = slot_at(zone, i);
             UNPOISON(p, zone->slot_size);
             return p;
@@ -191,11 +195,14 @@ void pico8_slot_zone_release(pico8_slot_zone_t *zone, unsigned char *slot) {
     assert(slot == slot_at(zone, i) && "release d'un pointeur qui n'est pas un debut de place");
     assert(zone->taken[i] && "release d'une place deja rendue");
     zone->taken[i] = 0;
+    zone->prises--;
     POISON(slot, zone->slot_size);
 }
 
 size_t pico8_slot_zone_taken(const pico8_slot_zone_t *zone) {
-    size_t n = 0;
-    for (size_t i = 0; i < zone->count; i++) n += zone->taken[i];
-    return n;
+    return zone->prises;
+}
+
+size_t pico8_slot_zone_max_taken(const pico8_slot_zone_t *zone) {
+    return zone->max_prises;
 }

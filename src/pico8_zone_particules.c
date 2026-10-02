@@ -163,3 +163,13 @@ int pico8_zone_particules_max_elements(pico8_particules_sorte_t sorte) {
     assert(sorte >= 0 && sorte < PICO8_PARTICULES_COUNT);
     return g_max_elements[sorte];
 }
+
+int pico8_zone_particules_capacite(pico8_particules_sorte_t sorte) {
+    assert(sorte >= 0 && sorte < PICO8_PARTICULES_COUNT);
+    return (int)SORTES[sorte].count;
+}
+
+size_t pico8_zone_particules_taille(pico8_particules_sorte_t sorte) {
+    assert(sorte >= 0 && sorte < PICO8_PARTICULES_COUNT);
+    return SORTES[sorte].size;
+}
