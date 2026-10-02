@@ -1350,6 +1350,15 @@ identity	c:test_slipway.c@22729@F@test_too_far@end	end_before_drop
 identity	c:test_slipway.c@26013@F@test_drag_mouse_point@origin	start_planet	
 identity	c:test_slipway.c@26127@F@test_drag_mouse_point@rows	other_end	
 identity	c:test_slipway.c@26143@F@test_drag_mouse_point@grab_arena	used_before	
+identity	c:test_live_slots.c@11775@F@pause_restart_keeps_quit_game_during_click@grab_arena	used_before	
+identity	c:test_live_slots.c@21199@F@icons_bytes@mesure	measure_arena	
+identity	c:test_live_slots.c@35343@F@refused_slipways_do_not_grow_game@un	first_refusal	
+identity	c:test_live_slots.c@39700@F@refused_wormholes_do_not_grow_game@un	first_refusal	
+identity	c:test_live_slots.c@45916@F@pause_restart_reloads_after_title@neuf	fresh	
+identity	c:test_live_slots.c@48373@F@message_box_hold_rewrites_boxes_in_place@grab_arena	used_before	
+identity	c:test_live_slots.c@50114@F@idle_windows_of_current_e2e@grab_arena	used	
+identity	c:test_live_slots.c@58186@F@fill_value@motif	pattern	
+identity	c:test_live_slots.c@59578@F@main@e2e	e2e_count	
 
 # --- tmp/ binaries and outputs (tools/rename_strings.py) ------------------------
 # A binary takes the name of its cmd/ file, except frames: tmp/frames is the

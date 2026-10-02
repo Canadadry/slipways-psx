@@ -340,11 +340,11 @@ static void pause_restart_keeps_quit_game_during_click(void) {
     play_until(11);
     assert(!game_zone_pending());
     unsigned char *s = sentinel();
-    size_t grab_arena = game_zone_used();
+    size_t used_before = game_zone_used();
     play_until(12);
     assert(game_zone_pending() && "the f12 click flips the game zone");
     check_sentinel(s);
-    assert(game_zone_used() >= grab_arena && "the used bytes count the quit game until it is released");
+    assert(game_zone_used() >= used_before && "the used bytes count the quit game until it is released");
     printf("  pause_restart f12: game=%lu, sentinel read\n", (unsigned long)game_zone_used());
 }
 
@@ -563,21 +563,21 @@ static size_t economy_bytes(void) {
  * de chaque icone revelee. */
 static size_t icons_bytes(void) {
     const entity_list_t *hv = live_entities();
-    const allocator_t *mesure = arena_take(frame_zone(), "tooltip-measure", 16384);
-    const size_t head = arena_used(mesure);
+    const allocator_t *measure_arena = arena_take(frame_zone(), "tooltip-measure", 16384);
+    const size_t head = arena_used(measure_arena);
     size_t bytes = 0;
     int k = 0;
     for (int i = 0; hv != NULL && i < hv->count; i++) {
         const structure_icon_t *ie = (const structure_icon_t *)hv->items[i];
         if (ie->header.class != structure_icon_class()) continue;
         assert(k < ICON_TOOLTIPS_COUNT && "more structure icons than icon tooltips");
-        (void)tooltip_new(mesure, &icon_tooltips_table[k]);
+        (void)tooltip_new(measure_arena, &icon_tooltips_table[k]);
         bytes += block_bytes(sizeof *ie);
         if (ie->has_is_revealed && ie->is_revealed) bytes += block_bytes(sizeof(vec_t));
         k++;
     }
     assert(k == ICON_TOOLTIPS_COUNT && "cart_start_game makes one structure icon per icon tooltip");
-    return bytes + arena_used(mesure) - head;
+    return bytes + arena_used(measure_arena) - head;
 }
 
 /* Terme « recherche et economie » de la generation : ce que `eu` fait pour
@@ -863,11 +863,11 @@ static void held_slipway_does_not_grow_game(void) {
 static void refused_slipways_do_not_grow_game(void) {
     start_e2e(SLIPWAYS);
     play_until(49);
-    const size_t un = game_without_registries();
+    const size_t first_refusal = game_without_registries();
     play_until(334);
     const size_t twenty = game_without_registries();
-    printf("  refused slipways 1/20: game - registries = %lu/%lu\n", (unsigned long)un, (unsigned long)twenty);
-    assert(un == twenty && "a refused slipway leaves its arena in the generation");
+    printf("  refused slipways 1/20: game - registries = %lu/%lu\n", (unsigned long)first_refusal, (unsigned long)twenty);
+    assert(first_refusal == twenty && "a refused slipway leaves its arena in the generation");
 }
 
 static size_t slipways_of_p27_and_p48_bytes(void) {
@@ -956,11 +956,11 @@ static void held_wormhole_does_not_grow_game(void) {
 static void refused_wormholes_do_not_grow_game(void) {
     start_e2e(WORMHOLES);
     play_until(10);
-    const size_t un = game_without_registries();
+    const size_t first_refusal = game_without_registries();
     play_until(143);
     const size_t twenty = game_without_registries();
-    printf("  refused wormholes 1/20: game - registries = %lu/%lu\n", (unsigned long)un, (unsigned long)twenty);
-    assert(un == twenty && "a refused wormhole leaves its arena in the generation");
+    printf("  refused wormholes 1/20: game - registries = %lu/%lu\n", (unsigned long)first_refusal, (unsigned long)twenty);
+    assert(first_refusal == twenty && "a refused wormhole leaves its arena in the generation");
 }
 
 static void open_wormhole_releases_arena_on_death(void) {
@@ -1100,9 +1100,9 @@ static void abandoned_wormhole_dies_with_its_game(void) {
 /* f11 : titre apres « restart ». Recharger rend les places des entites de
  * hv, et le jl() d'_init ne relit pas les registres remis a zero. */
 static void pause_restart_reloads_after_title(void) {
-    reading_t neuf, title, reloads;
+    reading_t fresh, title, reloads;
     start_e2e("pause_restart");
-    take_reading(&neuf, BEFORE_F0);
+    take_reading(&fresh, BEFORE_F0);
     play_until(11);
     take_reading(&title, 11);
     print_reading("pause_restart", &title);
@@ -1113,7 +1113,7 @@ static void pause_restart_reloads_after_title(void) {
     cart_draw();
     take_reading(&reloads, 0);
     print_reading("pause_restart reload", &reloads);
-    assert(same_counts(&neuf, &reloads) && "reloading must give back the slots of the live entities");
+    assert(same_counts(&fresh, &reloads) && "reloading must give back the slots of the live entities");
 }
 
 /* Apres le rendu de f13, jo.ir et jo.oc doivent viser la nouvelle
@@ -1156,7 +1156,7 @@ static void message_box_hold_rewrites_boxes_in_place(void) {
     const ui_t *ok = main_ui();
     assert(mo != NULL && je != NULL && ok != NULL);
     const void *before[5] = {mo->pos_before_shake, mo->velocity, mo->pos, je->pos, ok->mouse_world};
-    size_t grab_arena = game_zone_used();
+    size_t used_before = game_zone_used();
     play_until(45);
     assert(main_camera_typed() == mo && main_mouse_typed() == je && main_ui() == ok);
     const void *after[5] = {mo->pos_before_shake, mo->velocity, mo->pos, je->pos, ok->mouse_world};
@@ -1165,7 +1165,7 @@ static void message_box_hold_rewrites_boxes_in_place(void) {
     printf("  message_box_hold f44-45: %d / 5 per-tick boxes at the same address\n", stables);
     fflush(stdout);
     assert(stables == 5 && "the camera's pos_before_shake, velocity and pos, the mouse's pos and main_ui's mouse_world must be rewritten in place");
-    assert(game_zone_used() == grab_arena && "the game zone takes bytes every tick");
+    assert(game_zone_used() == used_before && "the game zone takes bytes every tick");
 }
 
 static int no_button(const p8_input_frame_t *f) {
@@ -1195,14 +1195,14 @@ static int idle_windows_of_current_e2e(void) {
     for (int i = 0; i < g_input->frame_count; i++) {
         int idle = idle_frame(g_input, i);
         play_until(i);
-        size_t grab_arena = game_zone_used();
+        size_t used = game_zone_used();
         if (idle && start < 0) start = i;
-        if (idle && i == start + 1) second = grab_arena;
+        if (idle && i == start + 1) second = used;
         int end = idle && (i + 1 == g_input->frame_count || !idle_frame(g_input, i + 1));
         if (end && i > start) {
-            if (grab_arena != second) {
+            if (used != second) {
                 fprintf(stderr, "  %s f%d-%d: game %lu -> %lu\n", g_e2e, start, i, (unsigned long)second,
-                        (unsigned long)grab_arena);
+                        (unsigned long)used);
                 assert(0 && "the generation grows during an idle window");
             }
             windows++;
@@ -1395,12 +1395,12 @@ static void replay_writes_fill_at_session_end(void) {
 
 /* La valeur de la ligne « <cle> <n> » du remplissage. */
 static long fill_value(const char *fill, const char *key) {
-    char motif[64];
+    char pattern[64];
     long n;
-    snprintf(motif, sizeof motif, "\n%s ", key);
-    const char *l = strstr(fill, motif);
+    snprintf(pattern, sizeof pattern, "\n%s ", key);
+    const char *l = strstr(fill, pattern);
     assert(l != NULL && "key missing from the fill file");
-    assert(sscanf(l + strlen(motif), "%ld", &n) == 1);
+    assert(sscanf(l + strlen(pattern), "%ld", &n) == 1);
     return n;
 }
 
@@ -1426,9 +1426,9 @@ static void replay_writes_session_peak(void) {
 }
 
 int main(void) {
-    int e2e = invariant_on_all_e2e();
-    printf("  invariant particle = sum of the registered #particles, transit_dots = sum of the #transit_dots of entities_by_tag(slipway): %d e2e, every frame\n", e2e);
-    assert(e2e == 26 && "tests/e2e/ holds 26 replays");
+    int e2e_count = invariant_on_all_e2e();
+    printf("  invariant particle = sum of the registered #particles, transit_dots = sum of the #transit_dots of entities_by_tag(slipway): %d e2e, every frame\n", e2e_count);
+    assert(e2e_count == 26 && "tests/e2e/ holds 26 replays");
     in_child(pause_restart_returns_to_title);
     in_child(pause_restart_keeps_quit_game_during_click);
     in_child_dying_by_asan(pause_restart_releases_quit_game_next_frame);

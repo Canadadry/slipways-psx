@@ -11534,7 +11534,7 @@ dir	dir	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slo
 dix	ten	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots			c:test_live_slots.c@42066@F@sondes_refusees_ne_font_pas_grandir_la_partie@dix
 e	e	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@2871@F@compter_inscrits@e
 e	e	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@44278@F@un_mz_ne_vise_que_la_sonde_posee@e
-e2e	e2e	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@59872@F@main@e2e
+e2e	e2e_count	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots			c:test_live_slots.c@59578@F@main@e2e
 ecrit	writes	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots			c:test_live_slots.c@58069@F@le_rejeu_ecrit_le_remplissage_en_fin_de_session@ecrit
 ecrit	writes	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots			c:test_live_slots.c@59275@F@le_rejeu_ecrit_le_pic_de_la_session@ecrit
 ent	ent	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@51451@F@fenetres_sans_action_sur_tous_les_e2e@ent
@@ -11622,9 +11622,9 @@ listes	lists	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live
 ll	ll	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@46827@F@pause_restart_devoile_sur_les_etats_de_la_nouvelle_partie@ll
 lp	lp	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@27917@F@trade_rich_mine_une_route_gardee_survit_a_la_frame@lp
 max_particule	max_particle	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots	qy		c:test_live_slots.c@59375@F@le_rejeu_ecrit_le_pic_de_la_session@max_particule
-mesure	mesure	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@21105@F@octets_des_icones@mesure
+mesure	measure_arena	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots			c:test_live_slots.c@21199@F@icons_bytes@mesure
 mo	mo	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@48174@F@message_box_hold_reecrit_les_boites_par_tick_en_place@mo
-motif	motif	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@58468@F@valeur@motif
+motif	pattern	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots			c:test_live_slots.c@58186@F@fill_value@motif
 mz	mz	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@40258@F@un_mz_ouvert_rend_son_arene_a_sa_mort@mz
 mz	mz	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@44151@F@un_mz_ne_vise_que_la_sonde_posee@mz
 mz	mz	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@45251@F@le_mz_abandonne@mz
@@ -11635,7 +11635,7 @@ n	n	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots		
 n	n	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@51001@F@compter_dans_un_enfant@n
 n	n	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@58488@F@valeur@n
 n	n	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@8962@F@invariant_sur_tous_les_e2e@n
-neuf	neuf	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@46046@F@pause_restart_recharge_apres_le_titre@neuf
+neuf	fresh	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots			c:test_live_slots.c@45916@F@pause_restart_reloads_after_title@neuf
 nlp	nlp	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@28249@F@trade_rich_mine_une_route_gardee_survit_a_la_frame@nlp
 np	np	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@27400@F@planete_d_id@np
 np	np	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@32224@F@planete_dont_fo_est@np
@@ -11669,9 +11669,9 @@ posee	placed	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live
 posee	placed	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots			c:test_live_slots.c@31348@F@une_prise_posee_reprend_l_arene_du_mz_mort@posee
 posee	placed	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots			c:test_live_slots.c@44283@F@un_mz_ne_vise_que_la_sonde_posee@posee
 premiere	first	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots			c:test_live_slots.c@42429@F@chaque_sonde_refusee_reprend_l_arene_de_la_precedente@premiere
-prise	grab_arena	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots	prise		c:test_live_slots.c@11670@F@pause_restart_garde_la_partie_quittee_pendant_le_clic@prise
-prise	grab_arena	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots	prise		c:test_live_slots.c@48559@F@message_box_hold_reecrit_les_boites_par_tick_en_place@prise
-prise	grab_arena	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots	prise		c:test_live_slots.c@50232@F@fenetres_sans_action_de_l_e2e_courant@prise
+prise	used_before	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots	prise		c:test_live_slots.c@11775@F@pause_restart_keeps_quit_game_during_click@grab_arena
+prise	used_before	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots	prise		c:test_live_slots.c@48373@F@message_box_hold_rewrites_boxes_in_place@grab_arena
+prise	used	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots	prise		c:test_live_slots.c@50114@F@idle_windows_of_current_e2e@grab_arena
 r	r	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@18801@F@octets_des_registres@r
 r	r	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@23469@F@pause_restart_borne_les_blocs_morts_des_registres@r
 r	r	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@3547@F@verifier_invariant@r
@@ -11715,8 +11715,8 @@ tenue	held	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_s
 tete	head	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots			c:test_live_slots.c@21275@F@octets_des_icones@tete
 titre	title	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots			c:test_live_slots.c@46137@F@pause_restart_recharge_apres_le_titre@titre
 total	total	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@51475@F@fenetres_sans_action_sur_tous_les_e2e@total
-un	un	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@35467@F@slipways_refuses_ne_font_pas_grandir_la_partie@un
-un	un	tests/test_live_slots.c	identifiant	locale	conservé	tests/test_live_slots			c:test_live_slots.c@39760@F@mz_refuses_ne_font_pas_grandir_la_partie@un
+un	first_refusal	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots			c:test_live_slots.c@35343@F@refused_slipways_do_not_grow_game@un
+un	first_refusal	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots			c:test_live_slots.c@39700@F@refused_wormholes_do_not_grow_game@un
 une	a	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots			c:test_live_slots.c@30107@F@prises_refusees_ne_font_pas_grandir_la_partie@une
 une	a	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots			c:test_live_slots.c@41995@F@sondes_refusees_ne_font_pas_grandir_la_partie@une
 vingt	twenty	tests/test_live_slots.c	identifiant	locale	renommé	tests/test_live_slots			c:test_live_slots.c@30179@F@prises_refusees_ne_font_pas_grandir_la_partie@vingt
