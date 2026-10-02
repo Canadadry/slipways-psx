@@ -33,6 +33,12 @@ def write(path, text):
         f.write(text)
 
 
+SUBSTEPS = ("substep\tbound\tmodules\n"
+            "3a\t7\tengine/entity_class\n"
+            "3b\t2\tgame/planet\n"
+            "3c\t0\tgame/ui\n")
+
+
 def run(rows=None, files=None, occurrences=None, extra=()):
     rows = ROWS if rows is None else rows
     files = FILES if files is None else files
@@ -46,6 +52,7 @@ def run(rows=None, files=None, occurrences=None, extra=()):
           + "".join("\t".join(r) + "\n" for r in rows))
     for path, text in files.items():
         write(os.path.join(root, path), text)
+    write(os.path.join(WORK, "rename_substeps.tsv"), SUBSTEPS)
     write(occ, "identity\tfile\toffset\tlength\torigin\n"
           + "".join("\t".join(map(str, o)) + "\n" for o in occurrences))
     args = [sys.executable, SCRIPT, "--table", table, "--occurrences", occ, "--root", root]
@@ -65,6 +72,22 @@ def counts(stdout):
         if header and len(cells) == len(header) + 1 and all(c.isdigit() for c in cells[1:]):
             table[cells[0]] = dict(zip(header, map(int, cells[1:])))
     return table
+
+
+def parts(stdout):
+    """{(module, part): {column: n}} and the residue line of a --substep run."""
+    table = {}
+    header = None
+    residue = None
+    for line in stdout.splitlines():
+        cells = line.split()
+        if cells[:2] == ["module", "part"]:
+            header = cells[2:]
+        elif cells[:1] == ["residue"]:
+            residue = line
+        elif header and len(cells) == len(header) + 2 and all(c.isdigit() for c in cells[2:]):
+            table[(cells[0], cells[1])] = dict(zip(header, map(int, cells[2:])))
+    return table, residue
 
 
 class Count(unittest.TestCase):
@@ -146,6 +169,86 @@ class Count(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(sorted(table), ["TOTAL", "game/ui"], result.stdout)
         self.assertIn("rename-extract", result.stdout)
+
+
+class Substep(unittest.TestCase):
+    """--substep: the files of the sub-step's modules, each mention filed
+    under done (its name's sub-step is this one or an earlier one) or later."""
+
+    ROWS = [
+        ["pico8_jo_kj", "planet_draw", "src/game/planet.h", "identifiant", "fonction", "renommé",
+         "game/planet", "jo", "", "c:@F@pico8_jo_kj"],
+        ["pico8_ui_kj", "ui_draw", "src/game/ui.h", "identifiant", "fonction", "renommé",
+         "game/ui", "ui", "", "c:@F@pico8_ui_kj"],
+        ["pico8_shared", "planet_shared", "src/game/planet.c", "identifiant", "statique",
+         "renommé", "game/planet", "", "", "c:planet.c@pico8_shared"],
+        ["pico8_shared", "ui_shared", "src/game/ui.c", "identifiant", "statique",
+         "renommé", "game/ui", "", "", "c:ui.c@pico8_shared"],
+        ["p", "map_pos", "src/engine/entity_class.h", "identifiant", "champ", "renommé",
+         "engine/entity_class", "p", "", "c:@S@h@FI@p"],
+        ["p", "pos", "src/game/ui.h", "identifiant", "champ", "renommé",
+         "game/ui", "p", "", "c:@S@u@FI@p"],
+        ["jo", "planet", "src/game/planet.c", "chaîne", "clé d'étiquette", "renommé",
+         "game/planet", "jo", "lecteur", "chaîne:jo"],
+        ["jo", "planet", "src/game/ui.c", "identifiant", "locale", "renommé",
+         "game/ui", "jo", "", "c:ui.c@12@F@f@jo"],
+    ]
+    PLANET = ("void f(h_t *e, u_t *u) {\n"
+              "    pico8_jo_kj(); pico8_ui_kj(); pico8_shared();\n"
+              "    e->p = u->p;\n"
+              "    lookup(\"jo\");\n"
+              "}\n"
+              "/* see `pico8_ui_kj` */\n")
+    FILES = {"src/game/planet.c": PLANET,
+             "src/game/ui.c": "void g(void) { pico8_jo_kj(); pico8_ui_kj(); }\n"}
+    OCCURRENCES = [
+        ["c:@S@h@FI@p", "src/game/planet.c", PLANET.index("e->p") + 3, 1, "ref"],
+        ["c:@S@u@FI@p", "src/game/planet.c", PLANET.index("u->p") + 3, 1, "ref"],
+    ]
+
+    def run_substep(self, substep):
+        return run(self.ROWS, self.FILES, self.OCCURRENCES,
+                   extra=["--substep", substep,
+                          "--substeps", os.path.join(WORK, "rename_substeps.tsv")])
+
+    def test_mentions_split_between_done_and_later(self):
+        result, _ = self.run_substep("3b")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        table, residue = parts(result.stdout)
+        self.assertEqual(table[("game/planet", "done")],
+                         {"identifier": 2, "backtick": 0, "string": 1, "comment": 0,
+                          "total": 3}, result.stdout)
+        self.assertEqual(table[("game/planet", "later")],
+                         {"identifier": 3, "backtick": 1, "string": 0, "comment": 0,
+                          "total": 4}, result.stdout)
+        self.assertNotIn(("game/ui", "done"), table)
+        self.assertEqual(table[("TOTAL", "done")]["identifier"], 2, result.stdout)
+        self.assertEqual(table[("TOTAL", "later")]["identifier"], 3, result.stdout)
+        self.assertEqual(residue, "residue 3b: later identifier 3, bound 2", result.stdout)
+
+    def test_a_homonym_found_by_text_follows_the_identity_the_ast_puts_there(self):
+        rows = self.ROWS + [
+            ["cls_of", "class_of", "src/game/planet.c", "identifiant", "statique", "renommé",
+             "game/planet", "", "", "c:planet.c@cls_of"],
+            ["cls_of", "class_of", "src/game/ui.c", "identifiant", "statique", "renommé",
+             "game/ui", "", "", "c:ui.c@cls_of"],
+        ]
+        planet = "/* \u00e9t\u00e9 */ static int cls_of(void);\n#define C cls_of\n"
+        occurrences = [["c:planet.c@cls_of", "src/game/planet.c",
+                        len(planet[:planet.index("cls_of")].encode("utf-8")), 6, "decl"]]
+        result, _ = run(rows, {"src/game/planet.c": planet}, occurrences,
+                        extra=["--substep", "3b",
+                               "--substeps", os.path.join(WORK, "rename_substeps.tsv")])
+        table, _ = parts(result.stdout)
+        self.assertEqual(table[("game/planet", "done")]["identifier"], 1, result.stdout)
+        self.assertEqual(table[("game/planet", "later")]["identifier"], 1, result.stdout)
+
+    def test_last_substep_has_nothing_later(self):
+        result, _ = self.run_substep("3c")
+        table, residue = parts(result.stdout)
+        self.assertEqual(table[("game/ui", "done")]["identifier"], 2, result.stdout)
+        self.assertEqual(table[("TOTAL", "later")]["total"], 0, result.stdout)
+        self.assertEqual(residue, "residue 3c: later identifier 0, bound 0", result.stdout)
 
 
 if __name__ == "__main__":

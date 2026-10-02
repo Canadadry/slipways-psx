@@ -120,10 +120,13 @@
 #                       noms cibles de fichiers ; échoue sur une violation,
 #                       hors suite
 # make rename-slice-test -> les tests de tools/rename_slice.py, dans make test
-# make rename-slice MODULES="<module>..." -> les lignes identifiant renommées de
-#                       ces modules de docs/renommage.tsv (motifs du shell sur
-#                       la colonne module : game/planet*), au format de
-#                       rename-apply, dans tmp/ast_rename/slice.tsv, hors suite
+# make rename-slice MODULES="<module>..." | SUBSTEP=<3x> -> les lignes
+#                       identifiant renommées de ces modules de
+#                       docs/renommage.tsv (motifs du shell sur la colonne
+#                       module : game/planet*), ou exactement des modules de
+#                       la sous-étape dans tools/rename_substeps.tsv, au
+#                       format de rename-apply, dans tmp/ast_rename/slice.tsv,
+#                       hors suite
 # make rename-apply TABLE=<table> -> renomme aux positions de l'AST les entrées
 #                       de la table (ancien, nouveau, fichier[, identité]) ;
 #                       n'écrit rien au premier refus, rapport dans
@@ -135,9 +138,35 @@
 #                       dans le code, par module et catégorie (noms courts par
 #                       tmp/ast_rename/occurrences.tsv, make rename-extract
 #                       d'abord) ; copie dans tmp/ast_rename/cart_names_count.txt,
-#                       n'échoue jamais, hors suite
+#                       n'échoue jamais, hors suite ; SUBSTEP=<3x> : les modules
+#                       de la sous-étape, chaque mention rangée en done (nom de
+#                       la sous-étape ou d'une précédente) ou later, puis la
+#                       borne de résidu
+# make rename-substeps-test -> les tests de tools/rename_substeps.py sur une
+#                       mini-table, dans make test
+# make rename-substeps-check -> chaque module de docs/renommage.tsv dans
+#                       exactement une sous-étape de tools/rename_substeps.tsv,
+#                       chaque sous-étape avec sa borne, dans make test
+# make rename-strings-verify-test -> les tests de
+#                       tools/rename_strings_verify.py sur un mini-arbre, dans
+#                       make test
+# make rename-strings-verify SUBSTEP=<3x> -> à chaque site des lignes chaîne et
+#                       fichier renommées de la sous-étape, le nouveau nom
+#                       présent et l'ancien absent ; échoue sinon, hors suite
+# make rename-rekey-test -> les tests de tools/rename_rekey.py sur des
+#                       mini-extractions, dans make test
+# make rename-rekey [BEFORE=<declarations>] -> après rename-apply et un
+#                       rename-extract frais : réécrit dans docs/renommage.tsv
+#                       les seules cellules identité des lignes pas encore
+#                       appliquées que l'application a décalées, depuis la copie
+#                       d'avant (tmp/ast_rename/declarations_before.tsv par
+#                       défaut) ; n'écrit rien sur une correspondance absente ou
+#                       double, hors suite
+# make rename-rekey-check SUBSTEP=<3x> -> chaque identité renommée des
+#                       sous-étapes suivantes est dans tmp/ast_rename/declarations.tsv
+#                       avec son nom et son fichier ; échoue sinon, hors suite
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test rename-count-test cart-names-count
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test rename-count-test cart-names-count rename-substeps-test rename-substeps-check rename-strings-verify-test rename-strings-verify rename-rekey-test rename-rekey rename-rekey-check
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -820,7 +849,7 @@ endif
 replay: $(TMP_DIR)/pico8_replay
 	./$(TMP_DIR)/pico8_replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard rename-derive-test rename-strings-test rename-check-test rename-slice-test rename-count-test
+test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard rename-derive-test rename-strings-test rename-check-test rename-slice-test rename-count-test rename-substeps-test rename-substeps-check rename-strings-verify-test rename-rekey-test
 
 test-all: test e2e
 
@@ -1116,6 +1145,7 @@ AST_RENAME_BINDINGS := $(CURDIR)/third_party/clang-python
 LIBCLANG ?= /usr/lib/llvm-18/lib/libclang-18.so.1
 AST_RENAME_ENV := PYTHONPATH=$(CURDIR)/tools:$(AST_RENAME_BINDINGS) LIBCLANG=$(LIBCLANG)
 AST_RENAME_DIR := $(TMP_DIR)/ast_rename
+RENAME_SUBSTEPS := tools/rename_substeps.tsv
 # Pathspec ':!' : git's '*' crosses '/', so tests/fixtures/ would match tests/*.c.
 AST_RENAME_UNITS = $(shell git ls-files 'src/*.c' 'tests/*.c' 'tools/*.c' ':!tests/fixtures/*')
 AST_RENAME_ANALYSIS = --root . --exclude-dir third_party --cflags "$(CFLAGS)" \
@@ -1164,10 +1194,10 @@ rename-slice-test:
 	python3 tests/test_rename_slice.py
 
 rename-slice:
-	@test -n "$(MODULES)" || { echo "usage: make rename-slice MODULES=\"<module>...\"" >&2; exit 1; }
+	@test -n "$(MODULES)$(SUBSTEP)" || { echo "usage: make rename-slice MODULES=\"<module>...\" | SUBSTEP=<3x>" >&2; exit 1; }
 	@mkdir -p $(AST_RENAME_DIR)
 	python3 tools/rename_slice.py --table docs/renommage.tsv $(foreach m,$(MODULES),--module '$(m)') \
-	    -o $(AST_RENAME_DIR)/slice.tsv
+	    $(if $(SUBSTEP),--substep $(SUBSTEP) --substeps $(RENAME_SUBSTEPS)) -o $(AST_RENAME_DIR)/slice.tsv
 
 rename-count-test:
 	python3 tests/test_rename_count.py
@@ -1176,7 +1206,37 @@ cart-names-count:
 	@mkdir -p $(AST_RENAME_DIR)
 	python3 tools/rename_count.py --table docs/renommage.tsv \
 	    --occurrences $(AST_RENAME_DIR)/occurrences.tsv --root . \
-	    $(foreach m,$(MODULES),--module '$(m)') | tee $(AST_RENAME_DIR)/cart_names_count.txt
+	    $(foreach m,$(MODULES),--module '$(m)') \
+	    $(if $(SUBSTEP),--substep $(SUBSTEP) --substeps $(RENAME_SUBSTEPS)) \
+	    | tee $(AST_RENAME_DIR)/cart_names_count.txt
+
+rename-substeps-test:
+	python3 tests/test_rename_substeps.py
+
+rename-substeps-check:
+	python3 tools/rename_substeps.py --table docs/renommage.tsv --substeps $(RENAME_SUBSTEPS)
+
+rename-rekey-test:
+	python3 tests/test_rename_rekey.py
+
+rename-rekey:
+	python3 tools/rename_rekey.py --table docs/renommage.tsv \
+	    --before $(or $(BEFORE),$(AST_RENAME_DIR)/declarations_before.tsv) \
+	    --after $(AST_RENAME_DIR)/declarations.tsv --slice $(AST_RENAME_DIR)/slice.tsv
+
+rename-rekey-check:
+	@test -n "$(SUBSTEP)" || { echo "usage: make rename-rekey-check SUBSTEP=<3x>" >&2; exit 1; }
+	python3 tools/rename_rekey.py --table docs/renommage.tsv --check \
+	    --declarations $(AST_RENAME_DIR)/declarations.tsv \
+	    --substeps $(RENAME_SUBSTEPS) --substep $(SUBSTEP)
+
+rename-strings-verify-test:
+	python3 tests/test_rename_strings_verify.py
+
+rename-strings-verify:
+	@test -n "$(SUBSTEP)" || { echo "usage: make rename-strings-verify SUBSTEP=<3x>" >&2; exit 1; }
+	python3 tools/rename_strings_verify.py --table docs/renommage.tsv \
+	    --substeps $(RENAME_SUBSTEPS) --substep $(SUBSTEP) --root .
 
 rename-apply:
 	@test -n "$(TABLE)" || { echo "usage: make rename-apply TABLE=<table>" >&2; exit 1; }

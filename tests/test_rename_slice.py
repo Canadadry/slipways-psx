@@ -24,17 +24,28 @@ ROWS = [
      "renommé", "game/planet_display", "jo", "", "c:@F@pico8_jo_ev"],
     ["pico8_jc_kj", "slipway_draw", "src/game/slipway.h", "identifiant", "fonction", "renommé",
      "game/slipway", "jc", "", "c:@F@pico8_jc_kj"],
+    ["pico8_qh_kj", "structure_draw", "src/game/planet_family.c", "identifiant", "fonction",
+     "renommé", "game/planet_family", "qh", "", "c:@F@pico8_qh_kj"],
     ["jo", "planet", "src/game/planet.c", "chaîne", "clé", "renommé",
      "game/planet", "jo", "lecteur", "chaîne:jo"],
 ]
 
 
-def run(*modules):
+SUBSTEPS = ("substep\tbound\tmodules\n"
+            "3a\t0\tgame/slipway\n"
+            "3b\t0\tgame/planet game/planet_display\n"
+            "3c\t0\tgame/planet_family\n")
+
+
+def run(*modules, substep=None):
     if os.path.isdir(WORK):
         shutil.rmtree(WORK)
     os.makedirs(WORK)
     table = os.path.join(WORK, "renommage.tsv")
     out = os.path.join(WORK, "slice.tsv")
+    steps = os.path.join(WORK, "rename_substeps.tsv")
+    with open(steps, "w") as f:
+        f.write(SUBSTEPS)
     with open(table, "w") as f:
         f.write("# Statut : à valider\n" + "\t".join(COLUMNS) + "\n")
         for row in ROWS:
@@ -42,6 +53,8 @@ def run(*modules):
     args = [sys.executable, SCRIPT, "--table", table, "-o", out]
     for module in modules:
         args += ["--module", module]
+    if substep:
+        args += ["--substep", substep, "--substeps", steps]
     result = subprocess.run(args, capture_output=True, text=True)
     lines = []
     if os.path.exists(out):
@@ -59,12 +72,26 @@ class Slice(unittest.TestCase):
             "ancien\tnouveau\tfichier\tidentité",
             "pico8_jo_kj\tplanet_draw\tsrc/game/planet.h\tc:@F@pico8_jo_kj",
             "pico8_jo_ev\tplanet_draw_overlay\tsrc/game/planet_display.c\tc:@F@pico8_jo_ev",
+            "pico8_qh_kj\tstructure_draw\tsrc/game/planet_family.c\tc:@F@pico8_qh_kj",
         ])
 
     def test_exact_module_and_no_module_given(self):
         result, lines = run("game/planet")
         self.assertEqual(len(lines), 2)
         result, _ = run()
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_substep_selects_exactly_its_modules_without_patterns(self):
+        result, lines = run(substep="3b")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(lines, [
+            "ancien\tnouveau\tfichier\tidentité",
+            "pico8_jo_kj\tplanet_draw\tsrc/game/planet.h\tc:@F@pico8_jo_kj",
+            "pico8_jo_ev\tplanet_draw_overlay\tsrc/game/planet_display.c\tc:@F@pico8_jo_ev",
+        ])
+
+    def test_unknown_substep_fails(self):
+        result, _ = run(substep="3z")
         self.assertNotEqual(result.returncode, 0)
 
 
