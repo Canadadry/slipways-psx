@@ -1,8 +1,10 @@
-/* Places vivantes des zones interface et particules, sur rejeu d'un e2e de tests/e2e/
- * pilote comme main.c : apres une session, chaque sorte revient a son
- * niveau de depart, et aucune ne monte pendant une phase sans action.
- * Chaque compte est lu apres un vidage de la file de sortie. Un rejeu par
- * processus enfant : le cart n'est charge qu'une fois par processus. */
+/* Live slots of the UI and particle zones, and the bytes of the game zone,
+ * on replays of tests/e2e/ and tests/fixtures/ driven as src/cmd/game.c
+ * drives a frame (cheat_step, cart_update60, cart_draw): after a session each
+ * slot kind returns to its starting level, and none rises during an idle
+ * window. Each count is read after a flush of the exit queue. One replay per
+ * child process: the zone maxima and module state last as long as the
+ * process. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -79,9 +81,9 @@ static void take_reading(reading_t *r, int frame) {
     r->game_zone = game_zone_used();
 }
 
-/* Particules et listes tenues par les emetteurs inscrits dans `hv`, eclats
- * inscrits, trainees des slipways de `cg.jc` : ce que les comptes de la
- * zone particules doivent dire. */
+/* Particles and lists held by the emitters among the live entities,
+ * registered bursts, and transit dots of the slipways under the slipway tag:
+ * what the particle zone counts must say. */
 typedef struct {
     int particle;
     int lists;
@@ -108,8 +110,8 @@ static registered_t count_registered(void) {
     return n;
 }
 
-/* Lu apres un vidage : une particule, une liste ou un eclat perdu le casse
- * a la frame meme ou il l'est. */
+/* Read after a flush: a lost particle, list or burst breaks it on the very
+ * frame it is lost. */
 static void check_invariant(const char *e2e, int frame) {
     reading_t r;
     take_reading(&r, frame);
@@ -130,8 +132,8 @@ static void print_reading(const char *e2e, const reading_t *r) {
            (unsigned long)r->game_zone);
 }
 
-/* Charge le cart pour rejouer `e2e` (NULL : aucune entree ; un chemin s'il
- * contient un « / ») et rend ses entrees, statiques. */
+/* Runs cart_load and cart_init to replay the named e2e (NULL: no input; a
+ * path when the name holds a '/') and returns its input, which is static. */
 static p8_input_t *load_e2e(const char *e2e) {
     static p8_memory_t mem;
     static p8_graphics_t gfx;
@@ -155,8 +157,8 @@ static p8_input_t *load_e2e(const char *e2e) {
     return &input;
 }
 
-/* Releve les comptes apres chaque frame de `frames` (AVANT_F0 : apres
- * _init, avant la frame 0), et rend la derniere frame jouee. */
+/* Takes and prints a reading after each listed frame (BEFORE_F0: after
+ * cart_init, before frame 0); every listed frame must lie in the replay. */
 static void replay_e2e(const char *e2e, const int *frames, int n, reading_t *out) {
     p8_input_t *input = load_e2e(e2e);
     int k = 0;
@@ -183,7 +185,7 @@ static void replay_e2e(const char *e2e, const int *frames, int n, reading_t *out
     assert(k == n && "a reading frame lies past the end of the replay");
 }
 
-/* Rejoue `e2e` en entier, l'invariant verifie a chaque frame. */
+/* Replays the whole e2e, checking the invariant after every frame. */
 static void replay_under_invariant(const char *e2e) {
     p8_input_t *input = load_e2e(e2e);
     check_invariant(e2e, BEFORE_F0);
@@ -199,8 +201,8 @@ static void replay_under_invariant(const char *e2e) {
     }
 }
 
-/* Tout sauf `particule`, qu'un emetteur actif fait varier sans rien
- * perdre : l'invariant le suit frame par frame. */
+/* Everything but the particle count, which an active emitter moves without
+ * losing anything: the invariant follows it frame by frame. */
 static int same_counts(const reading_t *a, const reading_t *b) {
     return memcmp(a->live, b->live, sizeof a->live) == 0 && a->particles == b->particles && a->particles_help_screen == b->particles_help_screen &&
            a->burst == b->burst;
@@ -231,7 +233,7 @@ static void in_child(void (*test)(void)) {
 
 static char *read_file(const char *path, size_t *len);
 
-/* L'enfant doit mourir par ASan en relisant un bloc rendu. */
+/* The child must die under ASan, reading back a released block. */
 static void in_child_dying_by_asan(void (*test)(void)) {
     fflush(stdout);
     remove(ASAN_LOG);
@@ -265,7 +267,7 @@ static void invariant_on_current_e2e(void) {
     replay_under_invariant(g_e2e);
 }
 
-/* Chaque frame de chaque e2e de tests/e2e/ ; rend le nombre d'e2e. */
+/* Every frame of every e2e of tests/e2e/; returns how many e2e ran. */
 static int invariant_on_all_e2e(void) {
     DIR *dir = opendir("tests/e2e");
     struct dirent *ent;
@@ -284,28 +286,29 @@ static int invariant_on_all_e2e(void) {
     return n;
 }
 
-/* f7 : « restart » ; f11 : ecran titre, avant le clic de f12. */
+/* f7: 'restart'; f11: title screen, before the f12 click. */
 static void pause_restart_returns_to_title(void) {
     const int frames[] = {BEFORE_F0, 11};
     reading_t r[2];
     replay_e2e("pause_restart", frames, 2, r);
     assert(same_counts(&r[0], &r[1]) && "reset_world must give back every slot it drops");
     assert(r[0].particles_help_screen == 1 && r[0].particles == 0 && r[0].burst == 0);
-    /* Aucune particule de l'aide ne meurt avant 115 frames : 5 par draw,
-     * aucun draw avant f0, ceux de f7 a f11 pour l'aide du « restart ». */
+    /* No help screen particle dies before 115 draws: 5 per draw, no draw
+     * before f0, and the draws of f7 to f11 for the help screen of 'restart'. */
     assert(r[0].particle == 0 && r[1].particle == 5 * 5 && "reset_world must give back the help screen particles");
 }
 
-/* volatile : la lecture d'une sentinelle rendue ne doit pas etre retiree
- * par l'optimiseur, c'est elle que le cas observe. */
+/* volatile: the optimizer must not drop the read of a released sentinel,
+ * the very read the case observes. */
 static volatile unsigned char g_spend;
 
 static p8_input_t *g_input;
 static cheat_t g_cheat;
 static int g_frame;
 
-/* Sans `relever` : son vidage de la file rendrait la generation lui-meme,
- * a la place de l'update60 de la frame qui suit le clic. */
+/* Without take_reading: its flush of the exit queue would release the
+ * generation itself, instead of the cart_update60 of the frame after the
+ * click. */
 static void play_until(int last) {
     for (; g_frame <= last && g_frame < g_input->frame_count; g_frame++) {
         dispatch_context_set_input(g_input);
@@ -333,8 +336,9 @@ static void check_sentinel(const unsigned char *s) {
     for (int i = 0; i < 64; i++) assert(s[i] == i && "the game zone sentinel changed");
 }
 
-/* f12 : clic « challenging », donc `eu` : la zone bascule, la generation
- * de la partie quittee (et du titre de f7) vit jusqu'a la fin de la frame. */
+/* f12: 'challenging' click, so cart_start_game: the zone flips, and the
+ * generation of the quit game (and of the f7 title) lives until the end of
+ * the frame. */
 static void pause_restart_keeps_quit_game_during_click(void) {
     start_e2e("pause_restart");
     play_until(11);
@@ -348,7 +352,8 @@ static void pause_restart_keeps_quit_game_during_click(void) {
     printf("  pause_restart f12: game=%lu, sentinel read\n", (unsigned long)game_zone_used());
 }
 
-/* f13 : l'update60 vide la file puis rend la generation quittee. */
+/* f13: cart_update60 flushes the exit queue, then releases the quit
+ * generation. */
 static void pause_restart_releases_quit_game_next_frame(void) {
     start_e2e("pause_restart");
     play_until(11);
@@ -365,7 +370,7 @@ static const planet_t *planet_of_first_game(void) {
     return (const planet_t *)jo->items[0];
 }
 
-/* f12 : le clic bascule ; les planetes de la partie quittee vivent encore. */
+/* f12: the click flips the zone; the planets of the quit game still live. */
 static void pause_restart_keeps_quit_planets_during_click(void) {
     const planet_t *p = planet_of_first_game();
     play_until(12);
@@ -373,14 +378,14 @@ static void pause_restart_keeps_quit_planets_during_click(void) {
     g_spend = (unsigned char)p->has_production_bonus;
 }
 
-/* f13 : elles meurent avec leur generation. */
+/* f13: they die with their generation. */
 static void pause_restart_releases_quit_planets(void) {
     const planet_t *p = planet_of_first_game();
     play_until(13);
     g_spend = (unsigned char)p->has_production_bonus;
 }
 
-/* f11 : l'ecran titre lit encore l'economie de la partie quittee. */
+/* f11: the title screen still reads the economy of the quit game. */
 static const economy_t *economy_of_first_game(void) {
     start_e2e("pause_restart");
     play_until(11);
@@ -389,7 +394,8 @@ static const economy_t *economy_of_first_game(void) {
     return fm;
 }
 
-/* f12 : `eu` la remplace, sa generation vit jusqu'a la fin de la frame. */
+/* f12: cart_start_game replaces it; its generation lives until the end of
+ * the frame. */
 static void pause_restart_keeps_quit_economy_during_click(void) {
     const economy_t *fm = economy_of_first_game();
     play_until(12);
@@ -398,15 +404,15 @@ static void pause_restart_keeps_quit_economy_during_click(void) {
     g_spend = (unsigned char)fm->credits;
 }
 
-/* f13 : elle meurt avec sa generation. */
+/* f13: it dies with its generation. */
 static void pause_restart_releases_quit_economy(void) {
     const economy_t *fm = economy_of_first_game();
     play_until(13);
     g_spend = (unsigned char)fm->credits;
 }
 
-/* f6 : `hv` tient les icones de la premiere partie ; le `jl()` de `_init`
- * les en retire avant f11. */
+/* f6: the live entities hold the structure icons of the first game; the
+ * reset_world of cart_init removes them before f11. */
 static const structure_icon_t *icon_of_first_game(void) {
     start_e2e("pause_restart");
     play_until(6);
@@ -418,7 +424,8 @@ static const structure_icon_t *icon_of_first_game(void) {
     return NULL;
 }
 
-/* f12 : `eu` en fait de nouvelles, sa generation vit jusqu'a la fin de la frame. */
+/* f12: cart_start_game makes new ones; their generation lives until the end
+ * of the frame. */
 static void pause_restart_keeps_quit_icons_during_click(void) {
     const structure_icon_t *ie = icon_of_first_game();
     play_until(12);
@@ -426,14 +433,14 @@ static void pause_restart_keeps_quit_icons_during_click(void) {
     g_spend = (unsigned char)ie->is_revealed;
 }
 
-/* f13 : elles meurent avec leur generation. */
+/* f13: they die with their generation. */
 static void pause_restart_releases_quit_icons(void) {
     const structure_icon_t *ie = icon_of_first_game();
     play_until(13);
     g_spend = (unsigned char)ie->is_revealed;
 }
 
-/* Le `fv` de `hv`, que fait `_init`. */
+/* The help screen among the live entities, made by cart_init. */
 static const probe_t *help_screen_in_live_entities(void) {
     const entity_list_t *hv = live_entities();
     for (int i = 0; hv != NULL && i < hv->count; i++) {
@@ -448,9 +455,9 @@ static const background_t *background_in_live_entities(void);
 enum { SINGLETON_MAIN_CAMERA, SINGLETON_MAIN_MOUSE, SINGLETON_MAIN_UI, SINGLETON_BACKGROUND, SINGLETON_MAIN_SCORE_PANEL, SINGLETON_HELP_SCREEN, SINGLETON_COUNT };
 static const char *const NAMES_OF_SINGLETONS[SINGLETON_COUNT] = {"main_camera", "main_mouse", "main_ui", "background", "main_score_panel", "help_screen"};
 
-/* f6 : le `bg` du eu de la premiere partie ; f11 : `mo`, `je`, `ok` et
- * l'aide `fv` du `_init` de f7, `ju` du eu. Tous dans la generation de la
- * premiere partie. */
+/* f6: the background made by the first cart_start_game; f11: the camera,
+ * mouse, main_ui and help screen of the f7 cart_init, and the score panel of
+ * the first cart_start_game. All in the generation of the first game. */
 static void singletons_of_quit_game(const void *out[SINGLETON_COUNT]) {
     start_e2e("pause_restart");
     play_until(6);
@@ -464,7 +471,8 @@ static void singletons_of_quit_game(const void *out[SINGLETON_COUNT]) {
     for (int k = 0; k < SINGLETON_COUNT; k++) assert(out[k] != NULL && "a singleton is missing at f11");
 }
 
-/* f12 : le clic bascule ; le `ok` quitte finit son lj apres le jl() de `eu`. */
+/* f12: the click flips the zone; the quit main_ui finishes its update after
+ * the reset_world of cart_start_game. */
 static void pause_restart_keeps_quit_singletons_during_click(void) {
     const void *s[SINGLETON_COUNT];
     singletons_of_quit_game(s);
@@ -477,7 +485,7 @@ static void pause_restart_keeps_quit_singletons_during_click(void) {
 
 static int g_singleton;
 
-/* f13 : chacun meurt avec sa generation. */
+/* f13: each one dies with its generation. */
 static void pause_restart_releases_quit_singleton(void) {
     const void *s[SINGLETON_COUNT];
     singletons_of_quit_game(s);
@@ -485,7 +493,7 @@ static void pause_restart_releases_quit_singleton(void) {
     g_spend = *(const unsigned char *)s[g_singleton];
 }
 
-/* f7 : « restart » (`_init`) ne bascule pas. */
+/* f7: 'restart' (cart_init) does not flip the zone. */
 static void pause_restart_keeps_game_across_restart(void) {
     start_e2e("pause_restart");
     play_until(6);
@@ -495,16 +503,17 @@ static void pause_restart_keeps_game_across_restart(void) {
     check_sentinel(s);
 }
 
-/* Octets que le bw de chaque eu prend dans sa generation : jo.oc, sa
- * source et jo.ir. */
+/* Bytes that galaxy_populate takes in the generation of each
+ * cart_start_game: the type picker, its random walk and the vanish roll. */
 static size_t populate_galaxy_states(void) {
     return (2 * ZONE_CELLS(sizeof(random_walk_t)) + ZONE_CELLS(sizeof(weighted_picker_t))) *
            sizeof(zone_cell_t);
 }
 
-/* Octets qu'une liste a pris dans sa generation depuis un jl() : les
- * capacites 4, 8, ... jusqu'a la sienne, car chaque agrandissement copie et
- * laisse l'ancien bloc mort jusqu'au rendu. NULL (un `cg` jamais vu) : rien. */
+/* Bytes a list has taken in its generation since a reset_world: the
+ * capacities 4, 8, ... up to its own, as each growth copies and leaves the
+ * old block dead until the release. NULL (a tag nothing registered under
+ * yet): none. */
 static size_t registry_bytes(const entity_list_t *list) {
     size_t bytes = 0;
     for (int k = 4; list != NULL && k <= list->capacity; k *= 2) {
@@ -526,16 +535,17 @@ static size_t block_bytes(size_t size) {
     return ZONE_CELLS(size) * sizeof(zone_cell_t);
 }
 
-/* Octets d'une liste de planete faite dans la generation : son conteneur,
- * puis ses blocs comme un registre. */
+/* Bytes of a planet list made in the generation: its container, then its
+ * blocks as for a registry. */
 static size_t planet_list_bytes(const entity_list_t *list) {
     if (list == NULL) return 0;
     return block_bytes(sizeof *list) + registry_bytes(list);
 }
 
-/* Empreinte `P` des planetes de `cg.jo` : structure, `p`, `ra`, identifiant
- * et listes `oe`, `by`, `cc`. Sans `jy` ni copies de besoins, que les
- * planetes de `bw` n'ont pas avant une action. */
+/* Footprint of the planets under the planet tag: struct, map_pos and pos
+ * boxes, planet_id, and the slipways, outgoing_routes and incoming_routes
+ * lists. No needs list nor copies of needs, which the planets of
+ * galaxy_populate lack before any action. */
 static size_t planets_bytes(void) {
     const entity_list_t *jo = entities_by_tag("planet");
     size_t bytes = 0;
@@ -549,8 +559,8 @@ static size_t planets_bytes(void) {
     return bytes;
 }
 
-/* Octets de l'economie `fm` faite par `eu` : sa structure et le conteneur
- * `invented`, sans elements tant que rien n'est invente. */
+/* Bytes of the main economy made by cart_start_game: its struct and the
+ * invented container, with no items while nothing is invented. */
 static size_t economy_bytes(void) {
     const economy_t *fm = main_economy_typed();
     assert(fm != NULL && fm->invented != NULL && "cart_start_game made the game economy");
@@ -558,9 +568,10 @@ static size_t economy_bytes(void) {
     return block_bytes(sizeof *fm) + block_bytes(sizeof *fm->invented);
 }
 
-/* Octets des sept icones `ie` de `hv`, dans l'ordre de `dr` : structure,
- * bulle `jb` refaite dans une arene de la zone frame, et la boite de `ie.gy`
- * de chaque icone revelee. */
+/* Bytes of the seven structure icons among the live entities, in the order
+ * of icon_tooltips_table: struct, tooltip (rebuilt in a frame zone arena to
+ * measure it), and for each revealed icon the box of the shared icon cursor
+ * it moved. */
 static size_t icons_bytes(void) {
     const entity_list_t *hv = live_entities();
     const allocator_t *measure_arena = arena_take(frame_zone(), "tooltip-measure", 16384);
@@ -580,13 +591,14 @@ static size_t icons_bytes(void) {
     return bytes + arena_used(measure_arena) - head;
 }
 
-/* Terme « recherche et economie » de la generation : ce que `eu` fait pour
- * `fm` et les icones. */
+/* The 'research and economy' term of the generation: what cart_start_game
+ * makes for the main economy and the structure icons. */
 static size_t research_and_economy_bytes(void) {
     return economy_bytes() + icons_bytes();
 }
 
-/* Le `bg` de `hv`, que `eu` fait seul. */
+/* The background among the live entities, which only cart_start_game
+ * makes. */
 static const background_t *background_in_live_entities(void) {
     const entity_list_t *hv = live_entities();
     const background_t *bg = NULL;
@@ -599,7 +611,8 @@ static const background_t *background_in_live_entities(void) {
     return bg;
 }
 
-/* Terme « singletons » : `mo`, `je`, `ok` du jl() de `eu`, son `bg` et `ju`. */
+/* The 'singletons' term: the camera, mouse and main_ui of the reset_world of
+ * cart_start_game, its background and its score panel. */
 static size_t singletons_bytes(void) {
     assert(main_camera_typed() != NULL && main_mouse_typed() != NULL && main_ui() != NULL && main_score_panel() != NULL);
     (void)background_in_live_entities();
@@ -608,9 +621,10 @@ static size_t singletons_bytes(void) {
            block_bytes(sizeof(score_panel_t));
 }
 
-/* Apres le rendu de f13, la generation ne tient que ce qu'a fait le eu de
- * f12 et ce qui a grandi depuis : les etats de bw, les registres, blocs
- * morts compris, ses planetes, son economie et ses singletons. */
+/* After the f13 release, the generation holds only what the f12
+ * cart_start_game made and what has grown since: the galaxy_populate states,
+ * the registries with their dead blocks, its planets, its economy and
+ * structure icons, and its singletons. */
 static void pause_restart_bounds_dead_registry_blocks(void) {
     const size_t g = populate_galaxy_states();
     start_e2e("pause_restart");
@@ -623,8 +637,7 @@ static void pause_restart_bounds_dead_registry_blocks(void) {
            "the registries take 2C - 4 pointers, and nothing else gets in");
 }
 
-/* Seul le chargement remplit la sous-zone chargement : deux parties n'y
- * ajoutent rien. */
+/* Only cart_load fills the load zone: two games add nothing to it. */
 static void pause_restart_leaves_load_zone_alone(void) {
     start_e2e("pause_restart");
     play_until(1);
@@ -636,8 +649,8 @@ static void pause_restart_leaves_load_zone_alone(void) {
     assert(game_zone_load_zone_max() == f1);
 }
 
-/* f12 : le bw de la nouvelle partie prend ses etats a cote de ceux de la
- * partie quittee, rendus a f13. */
+/* f12: the galaxy_populate of the new game takes its states beside those of
+ * the quit game, released at f13. */
 static void pause_restart_counts_populate_galaxy_states(void) {
     const size_t g = populate_galaxy_states();
     start_e2e("pause_restart");
@@ -656,14 +669,15 @@ static void pause_restart_counts_populate_galaxy_states(void) {
            (unsigned long)game_zone_used(), (unsigned long)game_zone_max());
 }
 
-/* Octets de la generation hors registres, que `hv` peut faire grandir en
- * inscrivant des entites. */
+/* Bytes of the generation outside the registries, which grow whenever an
+ * entity registers. */
 static size_t game_without_registries(void) {
     return game_zone_used() - registries_bytes();
 }
 
-/* f3-51 : 25 sauts d'annee, donc autant de `bd`, qui ne doivent pas faire
- * grandir la generation : `cc` est videe en place. */
+/* f3-51: 25 year jumps, so as many economy_tiers_rebuild_incoming_routes
+ * calls, which must not grow the generation: each incoming_routes list is
+ * emptied in place. */
 static void game_end_final_score_rebuild_does_not_grow_game(void) {
     start_e2e("game_end_final_score");
     play_until(2);
@@ -674,10 +688,11 @@ static void game_end_final_score_rebuild_does_not_grow_game(void) {
     assert(f2 == f51 && "an incoming routes rebuild grows the generation");
 }
 
-/* f140-151 : saut d'annee de f140 sur sept slipways poses, donc `jo:ib`,
- * `jo:cn` et `nr:cn`, qui reproposent des routes connues. Le `bd` de f139
- * garde, lui, la route du slipway pose a f136. Le slipway refuse du clic
- * de f142 prend une arene, que celui de f148 reprend. */
+/* f140-151: the f140 year jump over seven placed slipways, so
+ * planet_rebuild_trades, planet_offer_trade and slipgate_offer_trade, which
+ * offer known routes again. The f139 rebuild keeps the route of the slipway
+ * placed at f136. The refused slipway of the f142 click takes an arena, which
+ * the f148 one reuses. */
 static void trade_rich_mine_route_rebuild_does_not_grow_game(void) {
     start_e2e("trade_rich_mine");
     play_until(139);
@@ -700,8 +715,8 @@ static const planet_t *planet_with_id(const char *id) {
     return NULL;
 }
 
-/* Une route de `by` gardee par le `bd` de f139 se relit a f151, apres douze
- * remises a zero de la frame ou ses candidates sont faites. */
+/* A route of outgoing_routes kept by the f139 rebuild reads back at f151,
+ * after twelve resets of the frame zone where its candidates are made. */
 static void trade_rich_mine_kept_route_survives_frame(void) {
     entity_t *lp[16];
     entity_t *rl[16];
@@ -721,8 +736,9 @@ static void trade_rich_mine_kept_route_survives_frame(void) {
     printf("  trade_rich_mine: p27 route (%d planets, %d slipways) read back at f151\n", nlp, nrl);
 }
 
-/* Les trainees encore vivantes en fin de partie reviennent a la zone
- * particules par le `rendre` des slipways, au chargement suivant. */
+/* The transit dots still alive at the end of the game go back to the
+ * particle zone through the release method of the slipway class, on the next
+ * cart_load. */
 static void trade_rich_mine_releases_trails_on_reload(void) {
     start_e2e("trade_rich_mine");
     play_until(g_input->frame_count - 1);
@@ -738,11 +754,10 @@ static void trade_rich_mine_releases_trails_on_reload(void) {
 
 #define GRAB_ARENAS "tests/fixtures/grab_arenas_refused.json"
 
-/* Fixture PRISES : f0-20 d'empty_planet_fade ; puis des prises de 7 frames
- * (pression sur l'icone (122,124), glisse, relache, trois d'attente) :
- * vingt refusees sur p34 (f21-160), une posee (f161-167), une refusee
- * (f168-174) ; « restart » et nouvelle partie (clic f185) ; une prise
- * (f189-195). */
+/* GRAB_ARENAS: f0-20 of empty_planet_fade; then 7-frame grabs (press on the
+ * icon at (122,124), drag, release, three frames of waiting): twenty refused
+ * over p34 (f21-160), one placed (f161-167), one refused (f168-174); 'restart'
+ * and a new game (click at f185); one grab (f189-195). */
 static void refused_grab_arenas_do_not_grow_game(void) {
     start_e2e(GRAB_ARENAS);
     play_until(27);
@@ -753,7 +768,8 @@ static void refused_grab_arenas_do_not_grow_game(void) {
     assert(a == twenty && "a refused grab leaves its structure in the generation");
 }
 
-/* La structure posee de f161-164, seule planete « s… » de `cg.jo`. */
+/* The structure placed at f161-164, the only planet under the planet tag
+ * whose identifier starts with an 's'. */
 static const planet_t *placed_grab_arena(void) {
     const entity_list_t *jo = entities_by_tag("planet");
     const planet_t *placed = NULL;
@@ -767,7 +783,8 @@ static const planet_t *placed_grab_arena(void) {
     return placed;
 }
 
-/* Le `bd` de la pose fait `by` et `cc` dans la generation, hors de l'arene. */
+/* The rebuild after the placement makes the outgoing_routes and
+ * incoming_routes lists in the generation, outside the arena. */
 static void placed_grab_arena_reuses_dead_wormhole_arena(void) {
     start_e2e(GRAB_ARENAS);
     play_until(160);
@@ -782,7 +799,7 @@ static void placed_grab_arena_reuses_dead_wormhole_arena(void) {
            "the placed grab reuses the free arena of the f4 wormhole (released at f48), and only adds its route lists");
 }
 
-/* Une frame de rejeu ; sans `dessiner`, aucun `kj` ne remet `fo` a nil. */
+/* One replay frame; when draw is 0, no draw method clears targeted_by. */
 static void play_one_frame(int draw) {
     dispatch_context_set_input(g_input);
     cheat_step(&g_cheat, g_input);
@@ -801,10 +818,10 @@ static planet_t *planet_targeted_by(const entity_t *held) {
     return NULL;
 }
 
-/* f23 : la structure tenue sur p34 y accroche son `fo` ; p34 passe hors
- * ecran avant le draw, son `kj` sort sans remettre `fo` a nil. Refusee a
- * f24, la structure est rendue au vidage de f26, et la pression de f28
- * reprend son arene : `fo` ne doit pas viser la nouvelle structure. */
+/* f23: the structure held over p34 sets its targeted_by; p34 moves off
+ * screen before the draw, and its draw returns without clearing targeted_by.
+ * Refused at f24, the structure is freed by the f26 flush, and the f28 press
+ * reuses its arena: targeted_by must not point at the new structure. */
 static void offscreen_planet_forgets_refused_grab_arena(void) {
     static vec_t far;
     start_e2e(GRAB_ARENAS);
@@ -836,13 +853,13 @@ static void refused_grab_arena_crosses_new_game(void) {
 
 #define SLIPWAYS "tests/fixtures/slipways_refused.json"
 
-/* Fixture SLIPWAYS : f0-34 de slipway_build (« p27 » et « p48 »
- * colonisees) ; puis des cycles de 15 frames : pression sur « p27 » (88,37),
- * dix frames tenues, relache, trois d'attente. Vingt refus tenus en (40,100)
- * (f35-334), un glisse pose de p27 a p48 (f335-338, attente f339-341), un
- * refus tenu en (73,91), au-dela de p48 (f342-356) ; « restart » et nouvelle
- * partie (clic f367) ; une prise d'icone (f371-377). Un refus est relache a
- * la 11e frame du cycle et rendu au vidage de la 13e. */
+/* SLIPWAYS: f0-34 of slipway_build (p27 and p48 settled); then 15-frame
+ * cycles: press on p27 at (88,37), ten frames held, release, three frames of
+ * waiting. Twenty refusals held at (40,100) (f35-334), one drag placed from
+ * p27 to p48 (f335-338, waiting f339-341), one refusal held at (73,91),
+ * beyond p48 (f342-356); 'restart' and a new game (click at f367); one icon
+ * grab (f371-377). A refusal is released on the 12th frame of its cycle and
+ * freed by the flush of the 14th. */
 static const slipway_t *held_slipway(void) {
     const entity_t *held = main_ui()->left_held;
     assert(held != NULL && held->class == slipway_class() && "a slipway is held");
@@ -874,8 +891,8 @@ static size_t slipways_of_p27_and_p48_bytes(void) {
     return registry_bytes(planet_with_id("p27")->slipways) + registry_bytes(planet_with_id("p48")->slipways);
 }
 
-/* Le `kf` de la pose fait grandir `oe` aux deux bouts, dans la generation,
- * hors de l'arene. */
+/* The planet_attach_slipway of the placement grows the slipways lists at
+ * both ends, in the generation, outside the arena. */
 static void placed_slipway_reuses_dead_wormhole_arena(void) {
     start_e2e(SLIPWAYS);
     play_until(334);
@@ -891,9 +908,9 @@ static void placed_slipway_reuses_dead_wormhole_arena(void) {
            "the placed slipway reuses the free arena of the f4 wormhole (released at f48), the next refused one the other");
 }
 
-/* f345 : le slipway tenu de p27 vers (73,91) accroche le `fo` de p48, sur
- * son chemin, qu'on pousse hors ecran : son `kj` ne remet plus `fo` a nil.
- * Refuse a f353, le slipway est rendu au vidage de f355. */
+/* f345: the slipway held from p27 towards (73,91) sets the targeted_by of
+ * p48, on its way, which is pushed off screen: its draw no longer clears
+ * targeted_by. Refused at f353, the slipway is freed by the f355 flush. */
 static void offscreen_planet_forgets_refused_slipway(void) {
     static vec_t far;
     start_e2e(SLIPWAYS);
@@ -929,13 +946,13 @@ static void refused_slipway_crosses_new_game(void) {
 
 #define WORMHOLES "tests/fixtures/wormholes.json"
 
-/* Fixture PLIAGES : f0-3 de slipway_build (sonde a f2) ; puis des cycles de
- * 7 frames en (80,55) : quatre tenues des la pression, trois relachees.
- * Vingt `mz` refuses (f4-143), un tenu seize frames (f144-159) et ouvert au
- * relache de f160, rendu a f188 ; une pression refusee (f193-199) ;
- * « restart » et nouvelle partie (clic f210) ; une sonde en (55,50) (f216),
- * un `mz` refuse (f218-224). Un refus est relache a la 5e frame du cycle et rendu
- * au vidage de la 7e. */
+/* WORMHOLES: f0-3 of slipway_build (probe at f2); then 7-frame cycles at
+ * (80,55): four frames held from the press, three released. Twenty refused
+ * wormholes (f4-143), one held sixteen frames (f144-159) and opened by the
+ * f160 release, freed at f188; one refused press (f193-199); 'restart' and a
+ * new game (click at f210); one probe at (55,50) (f216), one refused wormhole
+ * (f218-224). A refusal is released on the 5th frame of its cycle and freed
+ * by the flush of the 7th. */
 static const wormhole_t *held_wormhole(void) {
     const entity_t *held = main_ui()->left_held;
     assert(held != NULL && held->class == wormhole_class() && "a wormhole is held");
@@ -987,13 +1004,14 @@ static void refused_wormhole_crosses_new_game(void) {
 
 #define PROBES "tests/fixtures/probes_refused.json"
 
-/* Fixture SONDES : clic « reasonable » (f0-1) ; puis des cycles de 7 frames
- * dans le vide, hors du panneau `hw`, en (5,100) : quatre tenues des la
- * pression, trois relachees. Dix sondes refusees (f2-71) ; une pressee en
- * (5,100) a f72, glissee et relachee sur p34 (31,84) (f73-78) ; un refus
- * (f79-85) ; une sonde posee en (55,50) (f86-87) ; un `mz` tenu (f88-94) ;
- * « restart » et nouvelle partie (clic f105) ; un refus (f109-115). Un
- * refus est relache a la 5e frame du cycle et rendu au vidage de la 7e. */
+/* PROBES: 'reasonable' click (f0-1); then 7-frame cycles over empty space,
+ * outside the UI panel (ui_panel_box), at (5,100): four frames held from the
+ * press, three released. Ten refused probes (f2-71); one pressed at (5,100)
+ * at f72, dragged and released over p34 at (31,84) (f73-78); one refusal
+ * (f79-85); one probe placed at (55,50) (f86-87); one wormhole held
+ * (f88-94); 'restart' and a new game (click at f105); one refusal
+ * (f109-115). A refusal is released on the 5th frame of its cycle and freed
+ * by the flush of the 7th. */
 static const probe_t *held_probe(void) {
     const entity_t *held = main_ui()->left_held;
     assert(held != NULL && held->class == probe_class() && "a probe is held");
@@ -1021,9 +1039,9 @@ static void each_refused_probe_reuses_previous_arena(void) {
     printf("  refused probes: ten probes at the same address\n");
 }
 
-/* f74 : la sonde tenue sur p34 y accroche son `fo` ; p34 passe hors ecran
- * avant le draw. Refusee a f76, la sonde est rendue au vidage de f78, et
- * la pression de f79 reprend son arene. */
+/* f74: the probe held over p34 sets its targeted_by; p34 moves off screen
+ * before the draw. Refused at f76, the probe is freed by the f78 flush, and
+ * the f79 press reuses its arena. */
 static void offscreen_planet_forgets_refused_probe(void) {
     static vec_t far;
     start_e2e(PROBES);
@@ -1047,8 +1065,8 @@ static void offscreen_planet_forgets_refused_probe(void) {
     assert(p34->targeted_by == NULL && "an off-screen planet's targeted_by points at a refused, recycled probe");
 }
 
-/* f90 : `ox` du `mz` tenu ne garde que des sondes posees ; la sonde posee
- * garde son arene, le `mz` en prend une autre. */
+/* f90: the anchors of the held wormhole keep only placed probes; the placed
+ * probe keeps its arena, and the wormhole takes another one. */
 static void wormhole_targets_only_placed_probe(void) {
     start_e2e(PROBES);
     play_until(90);
@@ -1073,9 +1091,9 @@ static void refused_probe_crosses_new_game(void) {
 
 #define WORMHOLE_ABANDONED "tests/fixtures/wormhole_abandoned.json"
 
-/* Fixture PLIAGE_ABANDONNE : f0-20 de slipway_build (`mz` ouvert a f20),
- * puis f2-17 de pause_restart : « restart » a f26 abandonne le `mz`, le clic
- * « challenging » de f31 bascule la zone partie. */
+/* WORMHOLE_ABANDONED: f0-20 of slipway_build (wormhole opened at f20), then
+ * f2-17 of pause_restart: 'restart' at f26 abandons the wormhole, and the
+ * 'challenging' click at f31 flips the game zone. */
 static const wormhole_t *abandoned_wormhole(void) {
     start_e2e(WORMHOLE_ABANDONED);
     play_until(22);
@@ -1097,8 +1115,9 @@ static void abandoned_wormhole_dies_with_its_game(void) {
     g_spend = (unsigned char)mz->is_dead;
 }
 
-/* f11 : titre apres « restart ». Recharger rend les places des entites de
- * hv, et le jl() d'_init ne relit pas les registres remis a zero. */
+/* f11: title after 'restart'. Reloading gives back the slots of the live
+ * entities, and the reset_world of cart_init does not read back the
+ * registries cleared by cart_load. */
 static void pause_restart_reloads_after_title(void) {
     reading_t fresh, title, reloads;
     start_e2e("pause_restart");
@@ -1116,8 +1135,8 @@ static void pause_restart_reloads_after_title(void) {
     assert(same_counts(&fresh, &reloads) && "reloading must give back the slots of the live entities");
 }
 
-/* Apres le rendu de f13, jo.ir et jo.oc doivent viser la nouvelle
- * generation : sinon ASan plante a la premiere lecture. */
+/* After the f13 release, the vanish roll and the type picker must point
+ * into the new generation, or ASan stops at the first read. */
 static void pause_restart_reveals_on_new_game_states(void) {
     start_e2e("pause_restart");
     play_until(13);
@@ -1137,7 +1156,8 @@ static void pause_restart_reveals_on_new_game_states(void) {
     printf("  pause_restart f13: %d planets revealed, %d through the type picker\n", revealed, from_type_picker);
 }
 
-/* f42-90 : la boite de l'annee retenue par son lh, sans clic. */
+/* f42-90: the year's message box kept open by its keep_open callback, with
+ * no click. */
 static void message_box_hold_idle_does_not_grow(void) {
     const int frames[] = {45, 90};
     reading_t r[2];
@@ -1146,8 +1166,8 @@ static void message_box_hold_idle_does_not_grow(void) {
     assert(r[0].game_zone == r[1].game_zone && "the game zone takes bytes every tick");
 }
 
-/* f44-45 : la boite de l'annee retenue, sans action. Les boites refaites
- * par tick sont reecrites en place : elles gardent leur adresse. */
+/* f44-45: the year's message box kept open, with no action. The boxes
+ * remade every tick are rewritten in place: they keep their address. */
 static void message_box_hold_rewrites_boxes_in_place(void) {
     start_e2e("message_box_hold");
     play_until(44);
@@ -1183,10 +1203,10 @@ static int idle_frame(const p8_input_t *input, int i) {
            f->mouse_y == before->mouse_y;
 }
 
-/* Une fenetre : au moins deux frames sans bouton ni D-pad, souris immobile,
- * la frame d'avant comprise. La generation de sa deuxieme frame (la premiere
- * peut encore vider ce que l'action d'avant a laisse) est celle de sa
- * derniere. Sans `relever`, dont le vidage rendrait la generation en avance. */
+/* A window: at least two frames with no button nor D-pad and a still
+ * mouse, the frame before included. The generation at its second frame (the
+ * first may still flush what the action before left) is the one at its last.
+ * Without take_reading, whose flush would release the generation early. */
 static int idle_windows_of_current_e2e(void) {
     start_e2e(g_e2e);
     int start = -1;
@@ -1212,7 +1232,7 @@ static int idle_windows_of_current_e2e(void) {
     return windows;
 }
 
-/* Rend ce que rend `test`, joue dans un enfant (moins de 256). */
+/* Returns what the case returns, run in a child (below 255). */
 static int count_in_child(int (*test)(void)) {
     fflush(stdout);
     pid_t pid = fork();
@@ -1228,7 +1248,7 @@ static int count_in_child(int (*test)(void)) {
     return WEXITSTATUS(status);
 }
 
-/* Rend le nombre de fenetres sans action des e2e de tests/e2e/. */
+/* Returns the number of idle windows of the e2e of tests/e2e/. */
 static int idle_windows_on_all_e2e(void) {
     DIR *dir = opendir("tests/e2e");
     struct dirent *ent;
@@ -1246,7 +1266,7 @@ static int idle_windows_on_all_e2e(void) {
     return total;
 }
 
-/* f25-94 : « p40 » s'efface ; sa rangee rendue peut faire baisser `rangee`. */
+/* f25-94: p40 fades; its released row may lower the row slot count. */
 static void empty_planet_fade_does_not_grow(void) {
     const int frames[] = {25, 94};
     reading_t r[2];
@@ -1254,9 +1274,9 @@ static void empty_planet_fade_does_not_grow(void) {
     assert(none_rises(&r[0], &r[1]) && "a slot kind rises while p40 fades");
 }
 
-/* f56 : « harvest », p27 devient un eclat. A f139, sa troisieme particule
- * vit encore : on prolonge le rejeu sans action (la souris reste en
- * (100,62), sans clic) jusqu'a son extinction. */
+/* f56: 'harvest', p27 becomes a burst. At f139 the burst still lives: the
+ * replay goes on with no action (the mouse stays at (100,62), no click)
+ * until it burns out. */
 static void tech_geoharvesting_burst_releases_burst(void) {
     const int frames[] = {55, 56, 139};
     reading_t r[3];
@@ -1276,8 +1296,8 @@ static void tech_geoharvesting_burst_releases_burst(void) {
     assert(end.particles == r[0].particles && "a burnt-out burst must give back its list");
 }
 
-/* Sans entree, l'aide emet 5 particules par draw et chacune vit 115
- * frames : au-dela, le compte plafonne. */
+/* With no input, the help screen emits 5 particles per draw and each lives
+ * 115 draws: past that, the count levels off. */
 static void idle_title_screen_settles(void) {
     int ceiling[4] = {0, 0, 0, 0};
     load_e2e(NULL);
@@ -1294,7 +1314,7 @@ static void idle_title_screen_settles(void) {
     assert(ceiling[3] <= ceiling[2] && "the help screen particle count still rises past their lifetime");
 }
 
-/* Tampon alloue, termine par un nul, que l'appelant libere. */
+/* Allocated buffer, NUL-terminated, that the caller frees. */
 static char *read_file(const char *path, size_t *len) {
     FILE *f = fopen(path, "rb");
     assert(f != NULL);
@@ -1328,12 +1348,12 @@ static int same_bytes(const char *a_path, const char *b_path) {
 #define DUMP_A "tmp/test_live_slots_a.txt"
 #define DUMP_B "tmp/test_live_slots_b.txt"
 
-/* PICO8_REMPLISSAGE=<fichier> : le rejeu y ecrit une ligne « <sorte>
- * <vivantes> » par sorte d'interface puis de particules, les maxima de
- * la session par sorte de particules, puis les octets pris de la zone
- * partie et leur maximum, puis ceux de la sous-zone chargement, en fin de
- * session, sans toucher capture, dump ni
- * code de sortie. */
+/* REPLAY_FILL=<file>: at the end of the session, the replay writes there a
+ * '<name> <live count>' line per UI slot kind then per particle slot kind,
+ * the session maxima of the particle slot kinds (live count, bytes,
+ * elements), then the used bytes of the game zone and their maximum, then
+ * those of the load zone, leaving the capture, the dump and the exit status
+ * alone. */
 static void replay_writes_fill_at_session_end(void) {
     const int frames[] = {17};
     reading_t reading[1];
@@ -1393,7 +1413,7 @@ static void replay_writes_fill_at_session_end(void) {
     remove(DUMP_B);
 }
 
-/* La valeur de la ligne « <cle> <n> » du remplissage. */
+/* The value of the '<key> <count>' line of the fill file. */
 static long fill_value(const char *fill, const char *key) {
     char pattern[64];
     long n;
@@ -1404,9 +1424,9 @@ static long fill_value(const char *fill, const char *key) {
     return n;
 }
 
-/* L'eclat de f56 meurt a f141, apres la fin du rejeu (f139), mais ses 140
- * particules naissent d'un coup et la plupart sont mortes a f139 : un
- * maximum lu en fin de session seulement resterait sous 140. */
+/* The f56 burst dies at f141, after the end of the replay (f139), but its
+ * 140 particles are born at once and most are dead by f139: a maximum read
+ * only at the end of the session would stay under 140. */
 static void replay_writes_session_peak(void) {
     remove(FILL);
     assert(system("REPLAY_FILL=" FILL " " DRIVER " tests/e2e/tech_geoharvesting_burst.json " CAPTURE_A
