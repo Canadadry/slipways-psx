@@ -51,8 +51,8 @@
 #define PROJECTS_NAMED 26
 #define PROJECTS_HASH 0x537BCD0Fu
 #define DEFAULTS_HASH 0x4FE030B1u
-#define FUNCTIONS_HASH 0x6841C3AEu
-#define FUNCTIONS_INVENTED_HASH 0x418A4B5Eu
+#define FUNCTIONS_HASH 0xA90BEF24u
+#define FUNCTIONS_INVENTED_HASH 0x5F2D2AD4u
 #define INSTALL_HASH 0x45B1D201u
 #define BUILT_WORLD_HASH 0xDF3A48A1u
 #define HARVESTED_WORLD_HASH 0xE7F2768Cu
@@ -142,7 +142,7 @@ static uint32_t fold_ref(uint32_t h, const void *ref, int depth) {
 /* A want's `qe` with the bytes the frozen hashes fold for it, which the frozen
  * hashes hold: kind word 0 then the number; kind word 3 then 0xDEAD for nil. */
 static uint32_t fold_resource(uint32_t h, resource_t qe) {
-    assert(qe.kind != RESOURCE_FALSE && "a want's qe is never false");
+    assert(qe.kind != RESOURCE_FALSE && "fold_resource: a need's resource is never false");
     return qe.kind == RESOURCE_FIXED ? fnv(fnv(h, 0u), qe.number) : fnv(fnv(h, 3u), 0xDEADu);
 }
 
@@ -253,7 +253,7 @@ static uint32_t fold_row(uint32_t h, const data_row_t *row, int depth) {
         h = fold_item(fold_view_index(h, i + 1), &row->items[i], depth - 1);
     }
     if (row->has_color) {
-        h = fold_fixed(fold_view_name(h, "c"), p8_fixed_from_int(row->color));
+        h = fold_fixed(fold_view_name(h, "color"), p8_fixed_from_int(row->color));
     }
     if (row->draw_function != NULL) {
         h = fold_string(fold_view_name(h, "draw_function"), row->draw_function);
@@ -296,7 +296,7 @@ static uint32_t fold_layout_row_instance(uint32_t h, const void *l) {
         h = fold_layout_row_item(fold_view_index(h, i + 1), lq->items[i], 3);
     }
     if (lq->has_color) {
-        h = fold_fixed(fold_view_name(h, "c"), lq->color);
+        h = fold_fixed(fold_view_name(h, "color"), lq->color);
     }
     if (lq->has_score) {
         h = fold_fixed(fold_view_name(h, "score"), lq->score);
@@ -310,7 +310,7 @@ static uint32_t fold_layout_row_instance(uint32_t h, const void *l) {
     for (i = 0; i < lq->placed_items_count; i++) {
         h = fold_ref(h, &lq->placed_items[i], 2);
     }
-    h = fold_fixed(fold_view_name(h, "w"), lq->width);
+    h = fold_fixed(fold_view_name(h, "width"), lq->width);
     for (i = k; i < lq->items_count; i++) {
         h = fold_layout_row_item(fold_view_index(h, i + 1), lq->items[i], 3);
     }
@@ -429,11 +429,11 @@ static void test_projects(void) {
     int named = 0;
     int index;
 
-    check_count("projects", projects_count(), PROJECTS_COUNT);
+    check_count("projects_count", projects_count(), PROJECTS_COUNT);
     for (index = 1; index <= projects_count(); index++) {
         named += research_projects_find(((const research_project_t *)project(index))->name) == project(index);
     }
-    check_count("projects named", named, PROJECTS_NAMED);
+    check_count("projects_named", named, PROJECTS_NAMED);
 
     for (index = 1; index <= PROJECTS_COUNT; index++) {
         research_project_t *built = project(index);
@@ -493,7 +493,7 @@ static void test_projects(void) {
     hash_by_name = fold_names(hash_by_name, &CART_ROUTED_POSITIONS);
     hash_by_name = fold_row(hash_by_name, row_tail, 2);
     check("projects", hash, PROJECTS_HASH);
-    check("positions routed_positions row_tail", hash_by_name, DEFAULTS_HASH);
+    check("defaults", hash_by_name, DEFAULTS_HASH);
 }
 
 /* Per project: `po` as its entry in `hc`, `od`, `jb`, `lq`, and what `b.lq`
@@ -547,7 +547,7 @@ static void test_functions(void) {
             invent(b->upgrade_tech);
         }
     }
-    check("functions invented", fold_functions(2166136261u), FUNCTIONS_INVENTED_HASH);
+    check("functions_invented", fold_functions(2166136261u), FUNCTIONS_INVENTED_HASH);
 
     assert(research_project_production(NULL) == NULL && research_project_cost(NULL) == 0);
     assert(research_project_tooltip(NULL) == NULL && research_project_layout_row(NULL) == NULL);
@@ -751,7 +751,7 @@ static uint32_t fold_world(void) {
 
 static void test_built_world(void) {
     built_world();
-    check("built world", fold_world(), BUILT_WORLD_HASH);
+    check("built_world", fold_world(), BUILT_WORLD_HASH);
 }
 
 /* A discovered planet harvested (`cw` "ga"): `jo:hu` swaps it for a `ga`. */
@@ -769,7 +769,7 @@ static void test_harvested_world(void) {
     for (i = 0; i < 60; i++) {
         update_entities();
     }
-    check("harvested world", fold_world(), HARVESTED_WORLD_HASH);
+    check("harvested_world", fold_world(), HARVESTED_WORLD_HASH);
 }
 
 static size_t block_bytes(size_t size) {
@@ -803,7 +803,7 @@ static void test_projects_in_load_zone(void) {
         const research_project_t *b = project(k);
         assert(b->inputs->capacity == b->inputs->count && b->inputs->zone == game_zone_load_zone());
     }
-    printf("  chargement apres cart_load : %lu\n", (unsigned long)load_zone_used());
+    printf("  load after cart_load: %lu\n", (unsigned long)load_zone_used());
     assert(load_zone_used() == projects_bytes());
 }
 
@@ -914,7 +914,7 @@ static void build_with_output_missing_from_resource_codes(void *e) {
     ri.base_cost = 1;
     ri.production_key = "z";
     ri.inputs = "";
-    ri.output = "not a key of r";
+    ri.output = "not a resource code";
     keys.record = &ri;
     (void)research_project_new(&keys);
 }
@@ -1026,7 +1026,7 @@ static void test_research_project_is_a_struct(void) {
     must_abort(build_with_header, NULL);
     must_abort(build_with_output_missing_from_resource_codes, NULL);
     must_abort(build_with_icon_sprite_and_no_name, NULL);
-    must_abort_saying(build_with_nine_positions, NULL, "hp: fd has eight positions");
+    must_abort_saying(build_with_nine_positions, NULL, "research_project_positions: a record has eight positions");
     must_abort(build_with_no_name_string, NULL);
     must_abort(build_with_no_output_number, NULL);
     must_abort(cost_on_other, main_ui());

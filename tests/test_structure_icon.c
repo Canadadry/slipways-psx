@@ -552,7 +552,7 @@ static void test_kind_view(void) {
         hash = fnv(hash, plain);
         hash = fnv(hash, hovered);
     }
-    check("kind view", hash, KIND_VIEW_HASH);
+    check("kind_view", hash, KIND_VIEW_HASH);
 }
 
 /* A second `eu` keeps `gy` and `id` where the last game left them; only

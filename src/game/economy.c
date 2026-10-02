@@ -72,7 +72,7 @@ static economy_t *economy_create(void) {
 static void assert_economy(const economy_t *self) {
     assert((self == NULL ||
             self->header.class == &g_economy_class) &&
-           "hy: every measured call passes the hy of fm; anything else would be read through the wrong layout");
+           "assert_economy: every measured call passes the main economy; anything else would be read through the wrong layout");
 }
 
 void economy_init(void) {
@@ -323,7 +323,7 @@ static void total_production_visit(entity_t *pt, void *ctx) {
     const production_t *kw;
     p8_fixed_t current;
 
-    assert(planet_is_family(pt) && "bx: pt is a planet of cg.jo");
+    assert(planet_is_family(pt) && "total_production_visit: the planet tag holds planets only");
     jo = (const planet_t *)pt;
     if (jo->needs == NULL) {
         return;
@@ -350,7 +350,7 @@ static void crowding_penalty_visit(entity_t *l, void *ctx) {
     void *last_val;
     p8_fixed_t current;
 
-    assert(planet_is_family(l) && "ck: l is a planet of cg.qh");
+    assert(planet_is_family(l) && "crowding_penalty_visit: the structure tag holds planets only");
     jy = ((const planet_t *)l)->needs;
     if (jy == NULL || jy->count == 0) {
         return;

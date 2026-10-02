@@ -35,7 +35,7 @@ void resource_map_set(resource_map_t *map, p8_fixed_t qe, p8_fixed_t v) {
         }
     }
     assert(map->count < RESOURCE_MAP_CAP &&
-           "a resource key outside r's 13 and the 3 spares -- stop, do not widen");
+           "resource_map_set: a resource key outside the 13 resources and the 3 spares -- stop, do not widen");
     map->entries[map->count].resource = key;
     map->entries[map->count].value = v;
     map->count++;

@@ -40,7 +40,7 @@ static void rebuild_incoming_routes_reset_visit(entity_t *pt, void *ctx) {
     if (pt == NULL) {
         return;
     }
-    assert(planet_is_family(pt) && "bd: pt is a planet of cg.jo");
+    assert(planet_is_family(pt) && "rebuild_incoming_routes_reset_visit: the planet tag holds planets only");
     jo = (planet_t *)pt;
     if (jo->incoming_routes != NULL) {
         entity_list_clear(jo->incoming_routes);
@@ -61,7 +61,7 @@ static void rebuild_incoming_routes_route_visit(entity_t *entity, void *ctx) {
         return;
     }
 
-    assert(planet_is_family(entity) && "ib: pt is a planet of cg.jo");
+    assert(planet_is_family(entity) && "rebuild_incoming_routes_route_visit: the planet tag holds planets only");
     from_planet = (planet_t *)entity;
     outgoing = planet_rebuild_trades(from_planet);
     from_planet->outgoing_routes = outgoing;
@@ -81,7 +81,7 @@ static void rebuild_incoming_routes_route_visit(entity_t *entity, void *ctx) {
         if (element == NULL) {
             continue;
         }
-        assert(element->class == trade_class() && "jo.by holds trades only");
+        assert(element->class == trade_class() && "rebuild_incoming_routes_route_visit: outgoing_routes holds trades only");
         route = (const trade_route_t *)element;
         slipways = route->slipways;
         planets = route->planets;
@@ -103,12 +103,12 @@ static void rebuild_incoming_routes_route_visit(entity_t *entity, void *ctx) {
                 if (planet_val == NULL) {
                     continue;
                 }
-                assert(planet_is_family(planet_val) && "trade.lp holds planets only");
+                assert(planet_is_family(planet_val) && "rebuild_incoming_routes_route_visit: a trade's planets list holds planets only");
                 planet = (const planet_t *)planet_val;
                 if (planet->planet_id == NULL) {
                     continue;
                 }
-                assert(w_val->class == slipway_class() && "trade.rl holds slipways only");
+                assert(w_val->class == slipway_class() && "rebuild_incoming_routes_route_visit: a trade's slipways list holds slipways only");
                 w = (const slipway_t *)w_val;
                 /* A slipway with no `hg` set is skipped; Lua would error
                  * indexing nil here. */
@@ -122,7 +122,7 @@ static void rebuild_incoming_routes_route_visit(entity_t *entity, void *ctx) {
         if (trade_last_planet(route, &to_val) && to_val != NULL) {
             planet_t *dest;
 
-            assert(planet_is_family(to_val) && "a trade leads to a planet");
+            assert(planet_is_family(to_val) && "rebuild_incoming_routes_route_visit: a trade leads to a planet");
             dest = (planet_t *)to_val;
             if (dest->incoming_routes != NULL) {
                 entity_list_add(dest->incoming_routes, element);
@@ -147,7 +147,7 @@ static void update_tiers_visit(entity_t *entity, void *ctx) {
         return;
     }
     tier = economy_tiers_compute_tier(entity);
-    assert(planet_is_family(entity) && "bb: pt is a planet of cg.jo");
+    assert(planet_is_family(entity) && "update_tiers_visit: the planet tag holds planets only");
     planet = (planet_t *)entity;
     has_development_tier = planet->has_development_tier;
     if (has_development_tier) {
@@ -210,7 +210,7 @@ p8_fixed_t economy_tiers_compute_tier(const entity_t *entity) {
     if (entity == NULL) {
         return p8_fixed_from_int(0);
     }
-    assert(planet_is_family(entity) && "dh: pt is a planet of cg.jo");
+    assert(planet_is_family(entity) && "economy_tiers_compute_tier: the entity is a planet");
     planet = (const planet_t *)entity;
     if (planet->header.state == NULL || strcmp(planet->header.state, "settled") != 0) {
         return p8_fixed_from_int(0);
@@ -238,7 +238,7 @@ p8_fixed_t economy_tiers_compute_tier(const entity_t *entity) {
                     if (incoming == NULL) {
                         continue;
                     }
-                    assert(incoming->class == trade_class() && "jo.cc holds trades only");
+                    assert(incoming->class == trade_class() && "economy_tiers_compute_tier: incoming_routes holds trades only");
                     im = (const trade_route_t *)incoming;
                     /* TROU-24 */
                     if (im->has_resource && resource_equal(trade_resource(im), resource_val)) {

@@ -40,7 +40,7 @@ static void projects_register(research_project_t *hp) {
             return;
         }
     }
-    assert(g_projects_by_name_count < PROJECT_RECORDS_COUNT && "gb[px]: every px comes from fd, which has fewer names than records");
+    assert(g_projects_by_name_count < PROJECT_RECORDS_COUNT && "projects_register: every name comes from the project records, which have fewer names than records");
     g_projects_by_name[g_projects_by_name_count].name = hp->name;
     g_projects_by_name[g_projects_by_name_count].project = hp;
     g_projects_by_name_count++;
@@ -49,7 +49,7 @@ static void projects_register(research_project_t *hp) {
 static const entity_class_t g_research_project_class = {0};
 
 static const char *research_project_string(const char *s) {
-    assert(s != NULL && "hp.px/lr/ja/i: a position that is not a string does not fit the member's type "
+    assert(s != NULL && "research_project_string: a position that is not a string does not fit the member's type "
                         "-- stop, do not widen the member");
     return s;
 }
@@ -59,10 +59,10 @@ static p8_fixed_t resource_code_of(const char *s) {
     int qe = 0;
     int found;
 
-    assert(s != NULL && "hp.fj/o/dm: a position that is not a number does not fit the member's type "
+    assert(s != NULL && "resource_code_of: a position that is not a number does not fit the member's type "
                         "-- stop, do not widen the member");
     found = resource_code_lookup(s, &qe);
-    assert(found && "hp: a value that gp maps through r is missing from r; it would stay a string in a "
+    assert(found && "resource_code_of: a routed position missing from the resource codes would stay a string in a "
                     "fixed member -- stop, do not widen the member");
     (void)found;
     return p8_fixed_from_int(qe);
@@ -74,8 +74,8 @@ static p8_fixed_t resource_code_of(const char *s) {
 static void research_project_positions(research_project_t *self, const project_records_entry_t *ri, const char **i_src) {
     int n = ri->npos;
 
-    assert(ri->header == NULL && "hp: a header entry of fd is the rr of the records after it, not a project");
-    assert(n <= 8 && "hp: fd has eight positions, px to dm");
+    assert(ri->header == NULL && "research_project_positions: a header entry sets the required_tech of the records after it, it is not a project");
+    assert(n <= 8 && "research_project_positions: a record has eight positions, name to byproduct");
     if (n >= 1) {
         self->name = research_project_string(ri->name);
     }
@@ -173,12 +173,12 @@ static research_project_t *project_create(const research_project_keys_t *keys) {
     }
 
     if (self->name != NULL) {
-        assert(g_projects_up && "hp:pq registers itself in gb: build gb before instantiating an hp");
+        assert(g_projects_up && "project_create: a named project registers itself, so research_build_projects() runs first");
         projects_register(self);
     }
 
     if (self->has_icon_sprite) {
-        assert(self->name != NULL && "hp.lq: {px, 32, {ii, 8}} has no hole; a project with ii and no px "
+        assert(self->name != NULL && "project_create: the row {name, 32, {icon_sprite, 8}} has no hole; a project with an icon_sprite and no name "
                                    "does not fit the row -- stop, do not widen the member");
         self->layout_row_inner_items[0] = (data_item_t){.is_fixed = 1, .fixed = self->icon_sprite};
         self->layout_row_inner_items[1] = (data_item_t){.number = 8};
@@ -228,7 +228,7 @@ const char *research_project_upgrade_tech(const research_project_t *self) {
 void research_project_assert(const research_project_t *self) {
     assert((self == NULL ||
             self->header.class == &g_research_project_class) &&
-           "hp: every gb entry, every planet's hn and every row's project is an hp; anything else would be read "
+           "research_project_assert: every listed project, every planet's project and every row's project is a research project; anything else would be read "
            "through the wrong layout");
     (void)self;
 }

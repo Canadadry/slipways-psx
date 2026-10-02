@@ -38,7 +38,7 @@ static int is_colonized_truthy(entity_t *pt) {
     if (pt == NULL) {
         return 0;
     }
-    assert(planet_is_family(pt) && "gg: pt is a planet of cg.jo");
+    assert(planet_is_family(pt) && "is_colonized_truthy: the entity is a planet");
     return planet_is_colonized((const planet_t *)pt);
 }
 
@@ -84,7 +84,7 @@ p8_fixed_t economy_score_trade_income(const entity_t *entity) {
     if (entity == NULL) {
         return total;
     }
-    assert(planet_is_family(entity) && "db: pt is a planet of cg.jo");
+    assert(planet_is_family(entity) && "economy_score_trade_income: the entity is a planet");
     planet = (const planet_t *)entity;
     outgoing = planet->outgoing_routes;
 
@@ -101,7 +101,7 @@ p8_fixed_t economy_score_trade_income(const entity_t *entity) {
             }
             {
                 const planet_t *oz;
-                assert(planet_is_family(partner) && "db: a trade leads to a planet");
+                assert(planet_is_family(partner) && "economy_score_trade_income: a trade leads to a planet");
                 oz = (const planet_t *)partner;
                 if (oz->archetype->is_planet) {
                     p8_fixed_t trade_mult = p8_fixed_from_int(0);
@@ -279,7 +279,7 @@ p8_fixed_t economy_score_net_income(entity_t *p) {
     p8_fixed_t kr = p8_fixed_flr(p8_fixed_sub(economy_score_trade_income(p), planet_upkeep(p)));
     planet_t *jo;
 
-    assert(planet_is_family(p) && "hy:lj: cg.jo holds planets only");
+    assert(planet_is_family(p) && "economy_score_net_income: the planet tag holds planets only");
     jo = (planet_t *)p;
     jo->net_income = kr;
     jo->has_net_income = 1;

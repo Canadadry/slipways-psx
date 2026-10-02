@@ -93,7 +93,7 @@ available_technologies_kept_t tech_gate_available_technologies(int bi) {
     result.count = 0;
     for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
         if (available_technologies_predicate(&technologies_table[i], bi)) {
-            assert(result.count < TECHNOLOGIES_COUNT && "cb keeps entries of nb only: #nb bounds the result");
+            assert(result.count < TECHNOLOGIES_COUNT && "tech_gate_available_technologies: it keeps technologies_table entries only, so their count bounds the result");
             result.items[result.count++] = &technologies_table[i];
         }
     }
@@ -101,7 +101,7 @@ available_technologies_kept_t tech_gate_available_technologies(int bi) {
 }
 
 int tech_gate_affordable_flags(const technologies_entry_t *t) {
-    assert(t >= technologies_table && t < technologies_table + TECHNOLOGIES_COUNT && "e_ is kept for entries of nb only");
+    assert(t >= technologies_table && t < technologies_table + TECHNOLOGIES_COUNT && "tech_gate_affordable_flags: the flag is kept for technologies_table entries only");
     return g_affordable_flags[t - technologies_table];
 }
 

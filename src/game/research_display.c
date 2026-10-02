@@ -249,7 +249,7 @@ layout_row_t *research_display_planet_resource_row(const allocator_t *zone, cons
         }
     }
 
-    assert(l_count == l_cap && "jo.ex: its row is sized at entry from #is, jq and ml; a positional more or less "
+    assert(l_count == l_cap && "research_display_planet_resource_row: the row is sized at entry from the inputs, the amount and the outputs; a positional more or less "
                                "is a miscount of that size");
     keys.items = cells;
     keys.count = l_count;
@@ -307,7 +307,7 @@ static int available_projects_predicate(const research_project_t *b, const entit
     if (planet_instance != NULL) {
         const planet_t *jo;
 
-        assert(planet_is_family(planet_instance) && "bj: jo:ex passes its own planet");
+        assert(planet_is_family(planet_instance) && "available_projects_predicate: the planet display passes its own planet");
         jo = (const planet_t *)planet_instance;
         if (jo->planet_type != NULL) {
             name_str = jo->planet_type->name;
@@ -332,7 +332,7 @@ available_projects_kept_t research_display_available_projects(const entity_t *pl
     available_projects_kept_t result;
     int k;
 
-    assert(research_projects_count() <= PROJECT_RECORDS_COUNT && "gb holds one hp per entry of fd at most: #fd bounds bj");
+    assert(research_projects_count() <= PROJECT_RECORDS_COUNT && "research_display_available_projects: one project per record at most, so the record count bounds the result");
     result.count = 0;
     for (k = 1; k <= research_projects_count(); k++) {
         research_project_t *b = research_projects_at(k);
