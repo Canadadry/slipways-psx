@@ -55,7 +55,7 @@ static void test_probe_particle_draws_rnd_angle_slices_before_rnd_half(void) {
     p8_fixed_t base_radius = p8_fixed_from_int(10);
     p8_fixed_t speed_factor = p8_fixed_from_int(1);
     probe_t *probe;
-    int fds[2];
+    int pipe_ends[2];
     pid_t child;
     int status;
     vec_t got;
@@ -70,18 +70,18 @@ static void test_probe_particle_draws_rnd_angle_slices_before_rnd_half(void) {
     probe = new_probe(angle_slices, state_time, base_radius, speed_factor);
     assert(probe != NULL);
 
-    assert(pipe(fds) == 0);
+    assert(pipe(pipe_ends) == 0);
     fflush(stdout);
     child = fork();
     assert(child >= 0);
     if (child == 0) {
         vec_t p = emitted_particle_pos(probe);
-        close(fds[0]);
-        _exit(write(fds[1], &p, sizeof p) == (ssize_t)sizeof p ? 0 : 1);
+        close(pipe_ends[0]);
+        _exit(write(pipe_ends[1], &p, sizeof p) == (ssize_t)sizeof p ? 0 : 1);
     }
-    close(fds[1]);
-    assert(read(fds[0], &got, sizeof got) == (ssize_t)sizeof got);
-    close(fds[0]);
+    close(pipe_ends[1]);
+    assert(read(pipe_ends[0], &got, sizeof got) == (ssize_t)sizeof got);
+    close(pipe_ends[0]);
     assert(waitpid(child, &status, 0) == child && WIFEXITED(status) && WEXITSTATUS(status) == 0);
 
     /* ez's loop test `rnd()<n`, then lua.lua:727-728 in Lua's order. */

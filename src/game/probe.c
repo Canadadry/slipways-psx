@@ -141,7 +141,7 @@ void probe_link_target(entity_t *et, entity_t *self) {
 }
 
 void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
-    targeting_t *probe;
+    targeting_t *targeting;
     vec_t mouse_world_vec;
     vec_t p_vec;
     p8_fixed_t distance;
@@ -153,19 +153,19 @@ void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
     }
     assert(self->targeting != NULL && "targeting_track: a class that carries no targeting is no receiver -- stop");
 
-    probe = self->targeting;
+    targeting = self->targeting;
     mouse_world_vec = mouse_world != NULL ? *mouse_world : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     p_vec = vec_div(mouse_world_vec, p8_fixed_from_int(128));
-    probe->track_pos = mouse_world_vec;
-    probe->track_map_pos = p_vec;
-    probe_host_set_positions(self, mouse_world != NULL ? &probe->track_pos : NULL, &probe->track_map_pos);
+    targeting->track_pos = mouse_world_vec;
+    targeting->track_map_pos = p_vec;
+    probe_host_set_positions(self, mouse_world != NULL ? &targeting->track_pos : NULL, &targeting->track_map_pos);
 
     candidate = NULL;
     distance = entity_geom_nearest(p_vec, entities_by_tag("node"), &candidate);
 
     target = NULL;
 
-    if (distance < probe->archetype->attach_distance && candidate != NULL) {
+    if (distance < targeting->archetype->attach_distance && candidate != NULL) {
         target = candidate;
     } else {
         targeting_track_ctx_t ctx;
@@ -196,10 +196,10 @@ void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
             probe_is_target_class(target->class)) &&
            "targeting_track: the target is NULL or what it aims at (a planet, a class with a settled state, a slipway, "
            "or the static throwaway struct), nothing else");
-    probe->target = target;
+    targeting->target = target;
 
-    if (probe->target != NULL) {
-        probe_link_target(probe->target, self);
+    if (targeting->target != NULL) {
+        probe_link_target(targeting->target, self);
     }
 }
 
@@ -273,7 +273,7 @@ static void probe_host_raise_is_dead(entity_t *self) {
 }
 
 int targeting_confirm(entity_t *self) {
-    const targeting_t *probe;
+    const targeting_t *targeting;
     int has_target;
     economy_t *fm;
     int spend_ok = 0;
@@ -283,22 +283,22 @@ int targeting_confirm(entity_t *self) {
     }
     assert(self->targeting != NULL && "targeting_confirm: a class that carries no targeting is no receiver -- stop");
 
-    probe = self->targeting;
-    has_target = probe->target != NULL;
+    targeting = self->targeting;
+    has_target = targeting->target != NULL;
 
     fm = main_economy_typed();
     if (!has_target) {
-        spend_ok = economy_spend(fm, probe->has_cost ? probe->cost : p8_fixed_from_int(0));
+        spend_ok = economy_spend(fm, targeting->has_cost ? targeting->cost : p8_fixed_from_int(0));
     }
 
     assert((!has_target || !spend_ok) && "targeting_confirm: economy_spend must stay short-circuited when a target is set");
 
     if (!has_target && spend_ok) {
-        entity_set_state(self, probe->archetype->confirmed_state != NULL ? probe->archetype->confirmed_state : "normal");
+        entity_set_state(self, targeting->archetype->confirmed_state != NULL ? targeting->archetype->confirmed_state : "normal");
 
-        economy_advance_clock(main_economy_typed(), probe->archetype->clock_ticks);
+        economy_advance_clock(main_economy_typed(), targeting->archetype->clock_ticks);
 
-        p8_play_sfx(probe->archetype->has_status_sprite ? probe->archetype->status_sprite : p8_fixed_from_int(54));
+        p8_play_sfx(targeting->archetype->has_status_sprite ? targeting->archetype->status_sprite : p8_fixed_from_int(54));
 
         return 1;
     }

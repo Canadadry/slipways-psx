@@ -74,7 +74,7 @@ void emitter_spawn(entity_t *self, p8_fixed_t n);
 /* Takes gfx/mem explicitly, for the classes whose own `kj` calls it as a
  * plain function; `pico8_ei_dispatch` below is the same work reached
  * through a `kj` field, reading both from the dispatch context instead. */
-void emitter_update(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self);
+void emitter_update(const p8_graphics_t *graphics, p8_memory_t *memory, entity_t *self);
 
 /* `ra` is never read: `ei` declares only `self`, so Lua drops the
  * `entity.ra` argument `dc()` passes. */

@@ -92,10 +92,10 @@ void emitter_spawn(entity_t *self, p8_fixed_t n) {
     }
 }
 
-void emitter_update(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self) {
+void emitter_update(const p8_graphics_t *graphics, p8_memory_t *memory, entity_t *self) {
     const emitter_t *emitter;
     p8_fixed_t layer;
-    vec_t pos;
+    vec_t screen_pos;
     p8_fixed_t center_x;
     p8_fixed_t center_y;
     p8_fixed_t matrix_xx;
@@ -112,13 +112,13 @@ void emitter_update(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self) 
     assert(self->emitter != NULL && "emitter_update: a class that carries no particle emitter is no receiver -- stop");
 
     emitter = self->emitter;
-    layer = emitter_host_layer_pos(self, &pos);
+    layer = emitter_host_layer_pos(self, &screen_pos);
     if (layer < p8_fixed_from_int(10) && !entity_geom_is_on_screen(self)) {
         return;
     }
 
-    center_x = pos.x;
-    center_y = pos.y;
+    center_x = screen_pos.x;
+    center_y = screen_pos.y;
     matrix_xx = emitter->matrix_xx;
     matrix_yx = emitter->matrix_yx;
     matrix_xy = emitter->matrix_xy;
@@ -166,7 +166,7 @@ void emitter_update(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self) 
                     int_seq_at(colors->items, colors->count, idx, &col);
                 }
 
-                p8_pset(gfx, mem, px, py, col);
+                p8_pset(graphics, memory, px, py, col);
             }
         }
     }

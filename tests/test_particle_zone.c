@@ -126,9 +126,9 @@ static int case_maxima_keep_the_peak(void) {
 
     const allocator_t *released = particle_zone_slot(PARTICLE_SLOT_BURST);
     allocator_alloc(released, 200);
-    size_t grab_arena_released = arena_used(released);
+    size_t released_used = arena_used(released);
     arena_release(released);
-    assert(particle_zone_max_bytes(PARTICLE_SLOT_BURST) == grab_arena_released &&
+    assert(particle_zone_max_bytes(PARTICLE_SLOT_BURST) == released_used &&
            "a given-back slot keeps what it took");
 
     const allocator_t *live = particle_zone_slot(PARTICLE_SLOT_BURST);

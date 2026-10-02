@@ -76,8 +76,8 @@ static int is_arena(particle_slot_kind_t slot_kind) {
 }
 
 static void read_bytes(particle_slot_kind_t slot_kind, const unsigned char *arena) {
-    size_t grab_arena = arena_used((const allocator_t *)arena);
-    if (grab_arena > g_max_bytes[slot_kind]) g_max_bytes[slot_kind] = grab_arena;
+    size_t used = arena_used((const allocator_t *)arena);
+    if (used > g_max_bytes[slot_kind]) g_max_bytes[slot_kind] = used;
 }
 
 static unsigned char *slot_alloc(const allocator_t *z, size_t n) {

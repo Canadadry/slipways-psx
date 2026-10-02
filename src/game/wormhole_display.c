@@ -17,33 +17,33 @@ static vec_t nearest_anchor_pos(const wormhole_t *self) {
     return ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
-void wormhole_draw(p8_graphics_t *gfx, p8_memory_t *mem, wormhole_t *self, vec_t pos) {
-    int name;
-    int speed_factor;
+void wormhole_draw(p8_graphics_t *graphics, p8_memory_t *memory, wormhole_t *self, vec_t screen_pos) {
+    int screen_x;
+    int screen_y;
 
     if (self == NULL) {
         return;
     }
 
-    name = p8_fixed_flr_int(pos.x);
-    speed_factor = p8_fixed_flr_int(pos.y);
+    screen_x = p8_fixed_flr_int(screen_pos.x);
+    screen_y = p8_fixed_flr_int(screen_pos.y);
 
     if (self->header.state != NULL && strcmp(self->header.state, "placing") == 0) {
         vec_t cp;
 
         if (self->targeting->target == NULL) {
             p8_fixed_t oi = self->radius;
-            if (gfx != NULL && mem != NULL) {
-                p8_circ(gfx, mem, name, speed_factor, p8_fixed_flr_int(oi), 1);
+            if (graphics != NULL && memory != NULL) {
+                p8_circ(graphics, memory, screen_x, screen_y, p8_fixed_flr_int(oi), 1);
             }
         }
 
         /* Runs whether or not a target was found: the `if not self.et`
          * above guards the ring alone. */
         cp = nearest_anchor_pos(self);
-        if (gfx != NULL && mem != NULL) {
-            p8_line(gfx, mem, p8_fixed_flr_int(cp.x), p8_fixed_flr_int(cp.y), name, speed_factor, 1);
-            p8_spr_default(gfx, mem, 7, name - 4, speed_factor - 4);
+        if (graphics != NULL && memory != NULL) {
+            p8_line(graphics, memory, p8_fixed_flr_int(cp.x), p8_fixed_flr_int(cp.y), screen_x, screen_y, 1);
+            p8_spr_default(graphics, memory, 7, screen_x - 4, screen_y - 4);
         }
     } else {
         p8_fixed_t t = self->header.state_time;
@@ -66,8 +66,8 @@ void wormhole_draw(p8_graphics_t *gfx, p8_memory_t *mem, wormhole_t *self, vec_t
                     int_seq_at(self->archetype->color_ramp->items, self->archetype->color_ramp->count, idx, &color);
                 }
 
-                if (gfx != NULL && mem != NULL) {
-                    p8_circ(gfx, mem, name, speed_factor, p8_fixed_flr_int(sr), color);
+                if (graphics != NULL && memory != NULL) {
+                    p8_circ(graphics, memory, screen_x, screen_y, p8_fixed_flr_int(sr), color);
                 }
             }
         }

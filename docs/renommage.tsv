@@ -3832,15 +3832,15 @@ qy	qy	src/game/particle.c	identifiant	locale	conservé	game/particle			c:particl
 qy	qy	src/game/particle.c	identifiant	locale	conservé	game/particle			c:particle.c@2116@F@pico8_qy_rendre@qy
 qy	qy	src/game/particle.c	identifiant	locale	conservé	game/particle			c:particle.c@2622@F@pico8_ez@qy
 qy	particles	src/game/particle.c	identifiant	locale	renommé	game/particle	qy		c:particle.c@3277@F@pico8_ei@qy
-ra	pos	src/game/particle.c	identifiant	locale	renommé	game/particle	ra		c:particle.c@3124@F@pico8_ei@ra
+ra	screen_pos	src/game/particle.c	identifiant	locale	renommé	game/particle	ra		c:particle.c@3221@F@emitter_update@pos
 ro	matrix_xy	src/game/particle.c	identifiant	locale	renommé	game/particle			c:particle.c@3214@F@pico8_ei@ro
 PICO8_PARTICLE_H	GAME_PARTICLE_H	src/game/particle.h	identifiant	macro	renommé	game/particle			macro:src/game/particle.h:PICO8_PARTICLE_H
 emitter	emitter	src/game/particle.c	identifiant	paramètre	conservé	game/particle			c:particle.c@2084@F@pico8_qy_rendre@emitter
 emitter	emitter	src/game/particle.h	identifiant	paramètre	conservé	game/particle			c:particle.h@2624@F@pico8_qy_rendre@emitter
-gfx	gfx	src/game/particle.c	identifiant	paramètre	conservé	game/particle			c:particle.c@3082@F@pico8_ei@gfx
-gfx	gfx	src/game/particle.h	identifiant	paramètre	conservé	game/particle			c:particle.h@3195@F@pico8_ei@gfx
-mem	mem	src/game/particle.c	identifiant	paramètre	conservé	game/particle			c:particle.c@3106@F@pico8_ei@mem
-mem	mem	src/game/particle.h	identifiant	paramètre	conservé	game/particle			c:particle.h@3219@F@pico8_ei@mem
+gfx	graphics	src/game/particle.c	identifiant	paramètre	renommé	game/particle			c:particle.c@3103@F@emitter_update@gfx
+gfx	graphics	src/game/particle.h	identifiant	paramètre	renommé	game/particle			c:particle.h@3218@F@emitter_update@gfx
+mem	memory	src/game/particle.c	identifiant	paramètre	renommé	game/particle			c:particle.c@3129@F@emitter_update@mem
+mem	memory	src/game/particle.h	identifiant	paramètre	renommé	game/particle			c:particle.h@3244@F@emitter_update@mem
 n	n	src/game/particle.c	identifiant	paramètre	conservé	game/particle			c:particle.c@2569@F@pico8_ez@n
 n	n	src/game/particle.h	identifiant	paramètre	conservé	game/particle			c:particle.h@2942@F@pico8_ez@n
 ra	ra	src/game/particle.c	identifiant	paramètre	conservé	game/particle			c:particle.c@494@F@emitter_host_fa_ra@ra
@@ -3888,7 +3888,7 @@ i	i	src/game/particle_zone.c	identifiant	locale	conservé	game/particle_zone			c
 i	i	src/game/particle_zone.c	identifiant	locale	conservé	game/particle_zone			c:particle_zone.c@4531@F@place_release@i
 i	i	src/game/particle_zone.c	identifiant	locale	conservé	game/particle_zone			c:particle_zone.c@6745@F@pico8_zone_particules_max_octets@i
 p	p	src/game/particle_zone.c	identifiant	locale	conservé	game/particle_zone			c:particle_zone.c@4015@F@place_alloc@p
-prise	grab_arena	src/game/particle_zone.c	identifiant	locale	renommé	game/particle_zone	prise		c:particle_zone.c@3632@F@relever_octets@prise
+prise	used	src/game/particle_zone.c	identifiant	locale	renommé	game/particle_zone	prise		c:particle_zone.c@4134@F@read_bytes@grab_arena
 sorte	slot_kind	src/game/particle_zone.c	identifiant	locale	renommé	game/particle_zone	sorte		c:particle_zone.c@3828@F@place_alloc@sorte
 sorte	slot_kind	src/game/particle_zone.c	identifiant	locale	renommé	game/particle_zone	sorte		c:particle_zone.c@4292@F@place_release@sorte
 ARENES_MAX	ARENAS_MAX	src/game/particle_zone.c	identifiant	macro	renommé	game/particle_zone	arene		macro:src/game/particle_zone.c:ARENES_MAX
@@ -4792,8 +4792,8 @@ p_vec	p_vec	src/game/probe.c	identifiant	locale	conservé	game/probe			c:probe.c
 particle	particle	src/game/probe.c	identifiant	locale	conservé	game/probe			c:probe.c@10711@F@pico8_g__mm@particle
 pk	pk	src/game/probe.c	identifiant	locale	conservé	game/probe			c:probe.c@10634@F@pico8_g__mm@pk
 pn	angle_slices	src/game/probe.c	identifiant	locale	renommé	game/probe			c:probe.c@10298@F@pico8_g__mm@pn
-probe	probe	src/game/probe.c	identifiant	locale	conservé	game/probe			c:probe.c@5102@F@pico8_bv@probe
-probe	probe	src/game/probe.c	identifiant	locale	conservé	game/probe			c:probe.c@9486@F@pico8_d_@probe
+probe	targeting	src/game/probe.c	identifiant	locale	renommé	game/probe			c:probe.c@5220@F@targeting_track@probe
+probe	targeting	src/game/probe.c	identifiant	locale	renommé	game/probe			c:probe.c@9940@F@targeting_confirm@probe
 py	speed_factor	src/game/probe.c	identifiant	locale	renommé	game/probe			c:probe.c@10298@F@pico8_g__mm@py
 qs	qs	src/game/probe.c	identifiant	locale	conservé	game/probe			c:probe.c@8235@F@pico8_dl_show@qs
 qu_p	start_p	src/game/probe.c	identifiant	locale	renommé	game/probe	qu		c:probe.c@1493@F@pico8_bv_jc_predicate@qu_p
@@ -6413,19 +6413,19 @@ idx	idx	src/game/wormhole_display.c	identifiant	locale	conservé	game/wormhole_d
 oi	oi	src/game/wormhole_display.c	identifiant	locale	conservé	game/wormhole_display			c:wormhole_display.c@1447@F@pico8_mz_kj@oi
 oi	oi	src/game/wormhole_display.c	identifiant	locale	conservé	game/wormhole_display			c:wormhole_display.c@845@F@pico8_mz_kj@oi
 p	p	src/game/wormhole_display.c	identifiant	locale	conservé	game/wormhole_display			c:wormhole_display.c@2584@F@pico8_mz_kj_dispatch@p
-px	name	src/game/wormhole_display.c	identifiant	locale	renommé	game/wormhole_display	px		c:wormhole_display.c@534@F@pico8_mz_kj@px
-py	speed_factor	src/game/wormhole_display.c	identifiant	locale	renommé	game/wormhole_display			c:wormhole_display.c@546@F@pico8_mz_kj@py
+px	screen_x	src/game/wormhole_display.c	identifiant	locale	renommé	game/wormhole_display	px		c:wormhole_display.c@550@F@wormhole_draw@name
+py	screen_y	src/game/wormhole_display.c	identifiant	locale	renommé	game/wormhole_display			c:wormhole_display.c@564@F@wormhole_draw@speed_factor
 ra	ra	src/game/wormhole_display.c	identifiant	locale	conservé	game/wormhole_display			c:wormhole_display.c@252@F@pico8_mzd_ra_of_ij@ra
 ratio	ratio	src/game/wormhole_display.c	identifiant	locale	conservé	game/wormhole_display			c:wormhole_display.c@2038@F@pico8_mz_kj@ratio
 sr	sr	src/game/wormhole_display.c	identifiant	locale	conservé	game/wormhole_display			c:wormhole_display.c@1642@F@pico8_mz_kj@sr
 t	t	src/game/wormhole_display.c	identifiant	locale	conservé	game/wormhole_display			c:wormhole_display.c@1405@F@pico8_mz_kj@t
 PICO8_WORMHOLE_DISPLAY_H	GAME_WORMHOLE_DISPLAY_H	src/game/wormhole_display.h	identifiant	macro	renommé	game/wormhole_display			macro:src/game/wormhole_display.h:PICO8_WORMHOLE_DISPLAY_H
-gfx	gfx	src/game/wormhole_display.c	identifiant	paramètre	conservé	game/wormhole_display			c:wormhole_display.c@482@F@pico8_mz_kj@gfx
-gfx	gfx	src/game/wormhole_display.h	identifiant	paramètre	conservé	game/wormhole_display			c:wormhole_display.h@330@F@pico8_mz_kj@gfx
-mem	mem	src/game/wormhole_display.c	identifiant	paramètre	conservé	game/wormhole_display			c:wormhole_display.c@500@F@pico8_mz_kj@mem
-mem	mem	src/game/wormhole_display.h	identifiant	paramètre	conservé	game/wormhole_display			c:wormhole_display.h@348@F@pico8_mz_kj@mem
-p	pos	src/game/wormhole_display.c	identifiant	paramètre	renommé	game/wormhole_display			c:wormhole_display.c@519@F@pico8_mz_kj@p
-p	pos	src/game/wormhole_display.h	identifiant	paramètre	renommé	game/wormhole_display			c:wormhole_display.h@386@F@pico8_mz_kj@p
+gfx	graphics	src/game/wormhole_display.c	identifiant	paramètre	renommé	game/wormhole_display			c:wormhole_display.c@477@F@wormhole_draw@gfx
+gfx	graphics	src/game/wormhole_display.h	identifiant	paramètre	renommé	game/wormhole_display			c:wormhole_display.h@330@F@wormhole_draw@gfx
+mem	memory	src/game/wormhole_display.c	identifiant	paramètre	renommé	game/wormhole_display			c:wormhole_display.c@497@F@wormhole_draw@mem
+mem	memory	src/game/wormhole_display.h	identifiant	paramètre	renommé	game/wormhole_display			c:wormhole_display.h@350@F@wormhole_draw@mem
+p	screen_pos	src/game/wormhole_display.c	identifiant	paramètre	renommé	game/wormhole_display			c:wormhole_display.c@533@F@wormhole_draw@pos
+p	screen_pos	src/game/wormhole_display.h	identifiant	paramètre	renommé	game/wormhole_display			c:wormhole_display.h@386@F@wormhole_draw@pos
 ra	ra	src/game/wormhole_display.c	identifiant	paramètre	conservé	game/wormhole_display			c:wormhole_display.c@2555@F@pico8_mz_kj_dispatch@ra
 self	self	src/game/wormhole_display.c	identifiant	paramètre	conservé	game/wormhole_display			c:wormhole_display.c@222@F@pico8_mzd_ra_of_ij@self
 self	self	src/game/wormhole_display.c	identifiant	paramètre	conservé	game/wormhole_display			c:wormhole_display.c@2526@F@pico8_mz_kj_dispatch@self
@@ -12554,7 +12554,7 @@ p	p	tests/test_particle_zone.c	identifiant	locale	conservé	tests/test_particle_
 p	p	tests/test_particle_zone.c	identifiant	locale	conservé	tests/test_particle_zone			c:test_particle_zone.c@8077@F@mourante@p
 p	p	tests/test_particle_zone.c	identifiant	locale	conservé	tests/test_particle_zone			c:test_particle_zone.c@9872@F@case_particle_dead_after_ei@p
 place	slot	tests/test_particle_zone.c	identifiant	locale	renommé	tests/test_particle_zone	sorte		c:test_particle_zone.c@1207@F@liste@place
-prise_rendue	grab_arena_released	tests/test_particle_zone.c	identifiant	locale	renommé	tests/test_particle_zone	prise		c:test_particle_zone.c@4802@F@case_maxima_keep_the_peak@prise_rendue
+prise_rendue	released_used	tests/test_particle_zone.c	identifiant	locale	renommé	tests/test_particle_zone	prise		c:test_particle_zone.c@4620@F@case_maxima_keep_the_peak@grab_arena_released
 q	q	tests/test_particle_zone.c	identifiant	locale	conservé	tests/test_particle_zone			c:test_particle_zone.c@4464@F@case_maxima_keep_the_peak@q
 qy	qy	tests/test_particle_zone.c	identifiant	locale	conservé	tests/test_particle_zone			c:test_particle_zone.c@1283@F@liste@qy
 qy	qy	tests/test_particle_zone.c	identifiant	locale	conservé	tests/test_particle_zone			c:test_particle_zone.c@1678@F@case_live_places_follow_takes@qy
@@ -13047,18 +13047,18 @@ bg	bg	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_
 bg	bg	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@9790@F@ldown@bg
 c	c	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@13178@F@test_built@c
 child	child	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@26220@F@in_fresh_child@child
-cls	cls	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@24087@F@test_g__is_a_struct@cls
+cls	descriptor	tests/test_probe.c	identifiant	locale	renommé	tests/test_probe			c:test_probe.c@27182@F@test_probe_is_a_struct@cls
 count	count	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@8669@F@the_bg@count
 e	e	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@15425@F@a_planet@e
 e	e	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@22189@F@test_fv@e
 e	e	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@25248@F@test_g__is_a_struct@e
 e	e	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@8756@F@the_bg@e
-em	spacer	tests/test_probe.c	identifiant	locale	renommé	tests/test_probe			c:test_probe.c@10716@F@fold_probe@em
+em	emitter	tests/test_probe.c	identifiant	locale	renommé	tests/test_probe			c:test_probe.c@11128@F@fold_probe@spacer
 em	em	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@5279@F@fold_defaults@em
 et	et	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@14821@F@et_fo@et
 et	et	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@25672@F@test_bv_et_is_a_struct@et
 fa_zero	layer_zero	tests/test_probe.c	identifiant	locale	renommé	tests/test_probe	fa		c:test_probe.c@25510@F@test_g__is_a_struct@fa_zero
-found	found	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@21960@F@test_fv@found
+found	help_entity	tests/test_probe.c	identifiant	locale	renommé	tests/test_probe			c:test_probe.c@24496@F@test_help_screen@found
 found	found	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@8639@F@the_bg@found
 fv	help_screen	tests/test_probe.c	identifiant	locale	renommé	tests/test_probe	fv		c:test_probe.c@22367@F@test_fv@fv
 g_	g_	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@21471@F@is_help@g_
@@ -13092,7 +13092,7 @@ keys	keys	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:t
 keys	keys	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@15933@F@a_slipway@keys
 kind	kind	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@17039@F@fold_hq@kind
 me	me	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@20811@F@test_ey_void@me
-middle	middle	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@17705@F@test_life@middle
+middle	slipway_center	tests/test_probe.c	identifiant	locale	renommé	tests/test_probe			c:test_probe.c@19443@F@test_life@middle
 middle	middle	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@20765@F@test_ey_void@middle
 middle	middle	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@25686@F@test_bv_et_is_a_struct@middle
 mp	mp	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@17003@F@fold_hq@mp
@@ -13109,7 +13109,7 @@ qu_p	start_p	tests/test_probe.c	identifiant	locale	renommé	tests/test_probe	qu	
 re	re	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@16008@F@a_slipway@re
 re_p	end_p	tests/test_probe.c	identifiant	locale	renommé	tests/test_probe	qu		c:test_probe.c@16388@F@a_slipway@re_p
 ref	ref	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@14354@F@et_kind@ref
-roads	roads	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@24178@F@test_g__is_a_struct@roads
+roads	probes	tests/test_probe.c	identifiant	locale	renommé	tests/test_probe			c:test_probe.c@27260@F@test_probe_is_a_struct@roads
 status	status	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@26237@F@in_fresh_child@status
 t	t	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@6729@F@fold_tags@t
 v	v	tests/test_probe.c	identifiant	locale	conservé	tests/test_probe			c:test_probe.c@8183@F@vec_ref@v
@@ -13201,7 +13201,7 @@ test_probe_particle_draws_rnd_pn_before_rnd_half	test_probe_particle_draws_rnd_a
 a	a	tests/test_probe_spawn_particle_order.c	identifiant	locale	conservé	tests/test_probe_spawn_particle_order			c:test_probe_spawn_particle_order.c@1916@F@test_probe_particle_draws_rnd_pn_before_rnd_half@a
 child	child	tests/test_probe_spawn_particle_order.c	identifiant	locale	conservé	tests/test_probe_spawn_particle_order			c:test_probe_spawn_particle_order.c@1789@F@test_probe_particle_draws_rnd_pn_before_rnd_half@child
 du	base_radius	tests/test_probe_spawn_particle_order.c	identifiant	locale	renommé	tests/test_probe_spawn_particle_order			c:test_probe_spawn_particle_order.c@1613@F@test_probe_particle_draws_rnd_pn_before_rnd_half@du
-fds	fds	tests/test_probe_spawn_particle_order.c	identifiant	locale	conservé	tests/test_probe_spawn_particle_order			c:test_probe_spawn_particle_order.c@1773@F@test_probe_particle_draws_rnd_pn_before_rnd_half@fds
+fds	pipe_ends	tests/test_probe_spawn_particle_order.c	identifiant	locale	renommé	tests/test_probe_spawn_particle_order			c:test_probe_spawn_particle_order.c@1844@F@test_probe_particle_draws_rnd_angle_slices_before_rnd_half@fds
 first	first	tests/test_probe_spawn_particle_order.c	identifiant	locale	conservé	tests/test_probe_spawn_particle_order			c:test_probe_spawn_particle_order.c@1865@F@test_probe_particle_draws_rnd_pn_before_rnd_half@first
 got	got	tests/test_probe_spawn_particle_order.c	identifiant	locale	conservé	tests/test_probe_spawn_particle_order			c:test_probe_spawn_particle_order.c@1822@F@test_probe_particle_draws_rnd_pn_before_rnd_half@got
 it	it	tests/test_probe_spawn_particle_order.c	identifiant	locale	conservé	tests/test_probe_spawn_particle_order			c:test_probe_spawn_particle_order.c@1171@F@emitted_particle_p@it

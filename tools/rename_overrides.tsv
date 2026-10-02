@@ -1359,6 +1359,29 @@ identity	c:test_live_slots.c@48373@F@message_box_hold_rewrites_boxes_in_place@gr
 identity	c:test_live_slots.c@50114@F@idle_windows_of_current_e2e@grab_arena	used	
 identity	c:test_live_slots.c@58186@F@fill_value@motif	pattern	
 identity	c:test_live_slots.c@59578@F@main@e2e	e2e_count	
+identity	c:particle.c@3103@F@emitter_update@gfx	graphics	
+identity	c:particle.c@3129@F@emitter_update@mem	memory	
+identity	c:particle.c@3221@F@emitter_update@pos	screen_pos	
+identity	c:particle.h@3218@F@emitter_update@gfx	graphics	
+identity	c:particle.h@3244@F@emitter_update@mem	memory	
+identity	c:particle_zone.c@4134@F@read_bytes@grab_arena	used	
+identity	c:probe.c@5220@F@targeting_track@probe	targeting	
+identity	c:probe.c@9940@F@targeting_confirm@probe	targeting	
+identity	c:wormhole_display.c@477@F@wormhole_draw@gfx	graphics	
+identity	c:wormhole_display.c@497@F@wormhole_draw@mem	memory	
+identity	c:wormhole_display.c@533@F@wormhole_draw@pos	screen_pos	
+identity	c:wormhole_display.c@550@F@wormhole_draw@name	screen_x	
+identity	c:wormhole_display.c@564@F@wormhole_draw@speed_factor	screen_y	
+identity	c:wormhole_display.h@330@F@wormhole_draw@gfx	graphics	
+identity	c:wormhole_display.h@350@F@wormhole_draw@mem	memory	
+identity	c:wormhole_display.h@386@F@wormhole_draw@pos	screen_pos	
+identity	c:test_particle_zone.c@4620@F@case_maxima_keep_the_peak@grab_arena_released	released_used	
+identity	c:test_probe.c@11128@F@fold_probe@spacer	emitter	
+identity	c:test_probe.c@19443@F@test_life@middle	slipway_center	
+identity	c:test_probe.c@24496@F@test_help_screen@found	help_entity	
+identity	c:test_probe.c@27182@F@test_probe_is_a_struct@cls	descriptor	
+identity	c:test_probe.c@27260@F@test_probe_is_a_struct@roads	probes	
+identity	c:test_probe_spawn_particle_order.c@1844@F@test_probe_particle_draws_rnd_angle_slices_before_rnd_half@fds	pipe_ends	
 
 # --- tmp/ binaries and outputs (tools/rename_strings.py) ------------------------
 # A binary takes the name of its cmd/ file, except frames: tmp/frames is the

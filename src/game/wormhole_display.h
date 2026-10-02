@@ -9,6 +9,6 @@
 /* TROU-3 */
 /* `p` is the struct's `ra`, as `dc("kj")` passes it. A NULL `self` draws
  * nothing; a NULL `gfx` or `mem` skips the drawing calls only. */
-void wormhole_draw(p8_graphics_t *gfx, p8_memory_t *mem, wormhole_t *self, vec_t pos);
+void wormhole_draw(p8_graphics_t *graphics, p8_memory_t *memory, wormhole_t *self, vec_t screen_pos);
 
 #endif

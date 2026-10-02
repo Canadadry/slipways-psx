@@ -346,7 +346,7 @@ static probe_t *keyed(void) {
  * its tables' contents, its empty `qy`; none of the names only `bv`/`d_`
  * write; its 5 methods, the public functions; where `lt` registered it. */
 static uint32_t fold_probe(uint32_t hash, probe_t *entity) {
-    const emitter_t *spacer = entity->emitter;
+    const emitter_t *emitter = entity->emitter;
     const targeting_t *targeting = entity->targeting;
     size_t index;
 
@@ -358,25 +358,25 @@ static uint32_t fold_probe(uint32_t hash, probe_t *entity) {
     hash = fold_bool_member(hash, targeting->archetype->clock_ticks != 0);
     hash = fold_fixed_member(hash, entity->archetype->layer);
     hash = fold_fixed_member(hash, targeting->archetype->attach_distance);
-    hash = fold_fixed_member(hash, spacer->speed_factor);
-    hash = fold_fixed_member(hash, spacer->archetype->lifetime);
-    hash = fold_fixed_member(hash, spacer->angle_slices);
-    hash = fold_fixed_member(hash, spacer->archetype->quarter_turn);
-    hash = fold_fixed_member(hash, spacer->archetype->spawn_rate);
-    hash = fold_fixed_member(hash, spacer->matrix_xx);
-    hash = fold_fixed_member(hash, spacer->matrix_xy);
-    hash = fold_fixed_member(hash, spacer->matrix_yx);
-    hash = fold_fixed_member(hash, spacer->matrix_yy);
-    hash = fold_fixed_member(hash, spacer->base_radius);
+    hash = fold_fixed_member(hash, emitter->speed_factor);
+    hash = fold_fixed_member(hash, emitter->archetype->lifetime);
+    hash = fold_fixed_member(hash, emitter->angle_slices);
+    hash = fold_fixed_member(hash, emitter->archetype->quarter_turn);
+    hash = fold_fixed_member(hash, emitter->archetype->spawn_rate);
+    hash = fold_fixed_member(hash, emitter->matrix_xx);
+    hash = fold_fixed_member(hash, emitter->matrix_xy);
+    hash = fold_fixed_member(hash, emitter->matrix_yx);
+    hash = fold_fixed_member(hash, emitter->matrix_yy);
+    hash = fold_fixed_member(hash, emitter->base_radius);
     hash = fold_string_member(hash, entity->header.state);
     hash = fold_fixed_member(hash, entity->header.state_time);
-    assert(targeting->archetype->confirmed_state != NULL && spacer->trail_colors != NULL);
+    assert(targeting->archetype->confirmed_state != NULL && emitter->trail_colors != NULL);
     hash = fold_tags(hash, entity->header.class->tags);
-    hash = fold_seq(hash, spacer->trail_colors);
+    hash = fold_seq(hash, emitter->trail_colors);
     assert(entity->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
-    assert(spacer->trail_colors == &probe_trail_colors_seq);
-    hash = fnv(hash, (uint32_t)size_of(spacer->particles));
-    assert(size_of(spacer->particles) == 0);
+    assert(emitter->trail_colors == &probe_trail_colors_seq);
+    hash = fnv(hash, (uint32_t)size_of(emitter->particles));
+    assert(size_of(emitter->particles) == 0);
     assert(entity->pos == NULL && entity->map_pos == NULL && targeting->target == NULL && !entity->is_dead);
     assert(class_of(entity)->hit_test == NULL && class_of(entity)->new_year == NULL && class_of(entity)->refresh == NULL &&
            class_of(entity)->states[ENTITY_STATE_SETTLED] == NULL && class_of(entity)->states[ENTITY_STATE_NORMAL] == NULL);
@@ -546,21 +546,21 @@ static void test_life(void) {
     probe_t *first;
     probe_t *second;
     slipway_t *slipway;
-    vec_t middle;
+    vec_t slipway_center;
     int index;
 
     start_game();
     first = left_press();
     second = probe_new(NULL);
-    slipway = a_slipway(&middle);
+    slipway = a_slipway(&slipway_center);
     hash = fold_particle(hash, class_of(first)->spawn_particle(&first->header));
     hash = fold_particle(hash, class_of(second)->spawn_particle(&second->header));
 
     hash = fold_drag(hash, first, planet_map_pos(), 64, 2);
-    hash = fold_drag(hash, first, middle, 64, 3);
+    hash = fold_drag(hash, first, slipway_center, 64, 3);
     assert((void *)slipway->targeted_by == first);
-    hash = fold_drag(hash, first, vec_add(middle, vec_xy(0, 3)), 64, 1);
-    hash = fold_drag(hash, first, vec_add(middle, vec_xy(0, 3)), 2, 4);
+    hash = fold_drag(hash, first, vec_add(slipway_center, vec_xy(0, 3)), 64, 1);
+    hash = fold_drag(hash, first, vec_add(slipway_center, vec_xy(0, 3)), 2, 4);
 
     entity_set_state(&first->header, "placing");
     entity_set_state(&second->header, "placing");
@@ -675,7 +675,7 @@ static int is_help(entity_t *e) {
 static void test_help_screen(void) {
     uint32_t hash = 2166136261u;
     const entity_list_t *live;
-    entity_t *found = NULL;
+    entity_t *help_entity = NULL;
     const probe_t *help_screen;
     int index;
 
@@ -686,12 +686,12 @@ static void test_help_screen(void) {
     for (index = 0; index < live->count; index++) {
         entity_t *e = live->items[index];
         if (is_help(e)) {
-            assert(found == NULL);
-            found = e;
+            assert(help_entity == NULL);
+            help_entity = e;
         }
     }
-    assert(found != NULL && !is_probe(found));
-    help_screen = (const probe_t *)found;
+    assert(help_entity != NULL && !is_probe(help_entity));
+    help_screen = (const probe_t *)help_entity;
     assert(help_screen->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
     assert(help_screen->archetype->fold_anchor == p8_fixed_from_int(1));
     assert(help_screen->targeting->archetype->confirmed_state != NULL && strcmp(help_screen->targeting->archetype->confirmed_state, "settled") == 0);
@@ -730,26 +730,26 @@ static int is_a_probe_struct(const void *e) {
  * public functions of `g_`, which its class no longer installs. The title's
  * `fv` is a struct of its own. */
 static void test_probe_is_a_struct(void) {
-    const entity_class_t *cls = probe_class();
+    const entity_class_t *descriptor = probe_class();
     const entity_list_t *live;
-    probe_t *roads[3];
+    probe_t *probes[3];
     size_t index;
     int j;
 
     start_game();
-    roads[0] = left_press();
-    roads[1] = probe_new(NULL);
-    roads[2] = keyed();
+    probes[0] = left_press();
+    probes[1] = probe_new(NULL);
+    probes[2] = keyed();
     for (index = 0; index < 3; index++) {
-        assert(is_a_probe_struct(roads[index]));
+        assert(is_a_probe_struct(probes[index]));
     }
-    assert(cls->drag == targeting_track_method && cls->drop == targeting_confirm_method && cls->draw_overlay == targeting_tooltip_method &&
-           cls->draw == emitter_update_method && cls->spawn_particle == probe_spawn_particle);
-    assert(cls->attach_slipway == NULL && cls->offer_trade == NULL && cls->draw_at == NULL);
-    assert(cls->hit_test == NULL && cls->new_year == NULL && cls->refresh == NULL && cls->has_refresh == NULL && cls->left_press == NULL &&
-           cls->right_press == NULL && cls->accept_drop == NULL);
+    assert(descriptor->drag == targeting_track_method && descriptor->drop == targeting_confirm_method && descriptor->draw_overlay == targeting_tooltip_method &&
+           descriptor->draw == emitter_update_method && descriptor->spawn_particle == probe_spawn_particle);
+    assert(descriptor->attach_slipway == NULL && descriptor->offer_trade == NULL && descriptor->draw_at == NULL);
+    assert(descriptor->hit_test == NULL && descriptor->new_year == NULL && descriptor->refresh == NULL && descriptor->has_refresh == NULL && descriptor->left_press == NULL &&
+           descriptor->right_press == NULL && descriptor->accept_drop == NULL);
     for (j = 0; j < STATE_COUNT; j++) {
-        assert(cls->states[j] == NULL);
+        assert(descriptor->states[j] == NULL);
     }
     assert(probe_ready());
 
@@ -758,7 +758,7 @@ static void test_probe_is_a_struct(void) {
         probe_t bare;
 
         layer_zero.layer = 0;
-        probe_init_instance(&bare, cls, &layer_zero);
+        probe_init_instance(&bare, descriptor, &layer_zero);
         assert(is_a_probe_struct(&bare) && !is_probe(&bare.header));
     }
 
