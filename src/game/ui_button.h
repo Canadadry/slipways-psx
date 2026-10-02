@@ -110,7 +110,7 @@ void button_update(button_t *self);
 
 void button_draw_overlay(p8_graphics_t *gfx, p8_memory_t *mem, const button_t *self);
 
-void button_draw(p8_graphics_t *gfx, p8_memory_t *mem, const button_t *self, vec_t pos);
+void button_draw(p8_graphics_t *graphics, p8_memory_t *memory, const button_t *self, vec_t draw_pos);
 
 /* Always returns true: the click is consumed whether or not a `my` callback
  * was there to run. */

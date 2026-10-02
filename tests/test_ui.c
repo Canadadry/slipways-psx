@@ -503,10 +503,10 @@ static int on_screen(void *e) {
  * other, `ey` gets that planet and `lheld` goes. */
 static void test_left(void) {
     uint32_t hash = 2166136261u;
-    const entity_list_t *jos;
+    const entity_list_t *planets;
     ui_t *dispatcher;
     void *held;
-    void *origin = NULL;
+    void *start_planet = NULL;
     void *target;
     void *other = NULL;
     int pixel_x;
@@ -514,31 +514,31 @@ static void test_left(void) {
     int index;
 
     dispatcher = start_game();
-    jos = entities_by_tag("planet");
-    for (index = 0; index < jos->count && other == NULL; index++) {
-        void *e = jos->items[index];
+    planets = entities_by_tag("planet");
+    for (index = 0; index < planets->count && other == NULL; index++) {
+        void *e = planets->items[index];
         if (on_screen(e) && on_screen(nearest_to(e))) {
-            origin = e;
+            start_planet = e;
             other = nearest_to(e);
         }
     }
     assert(other != NULL);
-    planet_apply_project(origin, research_project_new(NULL));
+    planet_apply_project(start_planet, research_project_new(NULL));
     planet_apply_project(other, research_project_new(NULL));
     for (index = 0; index < SETTLE_TICKS; index++) {
         update_entities();
     }
 
-    screen_of(origin, &pixel_x, &pixel_y);
+    screen_of(start_planet, &pixel_x, &pixel_y);
     mouse_at(pixel_x, pixel_y, 0);
     ui_update(&mem, dispatcher);
     mouse_at(pixel_x, pixel_y, 1);
     ui_update(&mem, dispatcher);
     held = dispatcher->left_held;
     assert(held != NULL && is_of(held, slipway_class()) && dispatcher->right_held == NULL);
-    assert((void *)((const slipway_t *)held)->start == origin && slipways_count(origin) == 0);
+    assert((void *)((const slipway_t *)held)->start == start_planet && slipways_count(start_planet) == 0);
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), held));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), origin));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), start_planet));
     hash = fnv(hash, cursor_is(58));
 
     screen_of(other, &pixel_x, &pixel_y);
@@ -552,7 +552,7 @@ static void test_left(void) {
     mouse_at(pixel_x, pixel_y, 0);
     ui_update(&mem, dispatcher);
     assert(dispatcher->left_held == NULL && dispatcher->right_held == NULL);
-    assert(slipways_count(origin) == 1 && slipways_count(target) == 1);
+    assert(slipways_count(start_planet) == 1 && slipways_count(target) == 1);
     hash = fnv(hash, (uint32_t)entities_by_tag("slipway")->count);
     check("left", hash, LEFT_HASH);
 }

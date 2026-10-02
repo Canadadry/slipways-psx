@@ -271,14 +271,14 @@ void ui_draw_overlay(const p8_graphics_t *gfx, p8_memory_t *mem, const ui_t *sel
 /* Lua's `(self.gj or {}).m_=false` writes onto a throwaway table when the
  * field is absent, with no observable effect, so the write is simply
  * skipped here rather than allocating a table nothing reads. */
-void ui_update_hover(p8_memory_t *mem, ui_t *self) {
+void ui_update_hover(p8_memory_t *memory, ui_t *self) {
     const mouse_t *mouse;
     const vec_t *main_mouse_pos;
     const entity_list_t *hit_test_bucket;
     int index;
     int poke_val;
 
-    if (self == NULL || mem == NULL) {
+    if (self == NULL || memory == NULL) {
         return;
     }
 
@@ -324,10 +324,10 @@ void ui_update_hover(p8_memory_t *mem, ui_t *self) {
     if (self->hovered != NULL) {
         poke_val = ui_to_int(self->hovered->gpio_signal != NULL ? *self->hovered->gpio_signal : p8_fixed_from_int(0));
     } else {
-        int prev = p8_peek(mem, 0x5f80);
+        int prev = p8_peek(memory, 0x5f80);
         poke_val = (prev - 1 > 0) ? prev - 1 : 0;
     }
-    p8_poke(mem, 0x5f80, (unsigned char)poke_val);
+    p8_poke(memory, 0x5f80, (unsigned char)poke_val);
 }
 
 static int ui_is_held_class(const entity_class_t *cls) {
@@ -397,7 +397,7 @@ void ui_handle_button(ui_t *self, const char *button) {
 /* Layers descend from 15 to 0 and the first truthy answer wins: that order
  * is the dispatch priority between overlapping entities, not an arbitrary
  * walk. */
-int ui_send_to_hovered(ui_t *self, send_to_hovered_slot_t message, vec_t *mouse_world, vec_t *pos, const entity_t *held,
+int ui_send_to_hovered(ui_t *self, send_to_hovered_slot_t message, vec_t *mouse_world, vec_t *mouse_screen, const entity_t *held,
                 entity_t **out_target, down_t *out_down) {
     int layer;
 
@@ -420,12 +420,12 @@ int ui_send_to_hovered(ui_t *self, send_to_hovered_slot_t message, vec_t *mouse_
             switch (message) {
             case SEND_TO_HOVERED_LEFT_PRESS:
                 if (h->class->left_press != NULL) {
-                    kn = h->class->left_press(h, mouse_world, pos);
+                    kn = h->class->left_press(h, mouse_world, mouse_screen);
                 }
                 break;
             case SEND_TO_HOVERED_RIGHT_PRESS:
                 if (h->class->right_press != NULL) {
-                    kn = h->class->right_press(h, mouse_world, pos);
+                    kn = h->class->right_press(h, mouse_world, mouse_screen);
                 }
                 break;
             case SEND_TO_HOVERED_ACCEPT_DROP:

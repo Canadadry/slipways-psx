@@ -1397,6 +1397,26 @@ identity	c:test_research_project.c@14392@F@test_projects@found	project_by_name
 identity	c:test_structure_icon.c@12568@F@test_directed@all	all_icons	
 identity	c:test_structure_icon.c@12698@F@test_directed@pos	icon_pos	
 identity	c:test_structure_icon.c@20667@F@test_structure_icon_is_a_struct@classes	kinds	
+identity	c:background.c@2899@F@background_construct@mem	memory	
+identity	c:background.h@1459@F@background_construct@mem	memory	
+identity	c:ui.c@8246@F@ui_update_hover@mem	memory	
+identity	c:ui.h@4480@F@ui_update_hover@mem	memory	
+identity	c:ui.c@13179@F@ui_send_to_hovered@pos	mouse_screen	
+identity	c:ui.h@5172@F@ui_send_to_hovered@qa	mouse_world	
+identity	c:ui.h@5183@F@ui_send_to_hovered@ra	mouse_screen	
+identity	c:ui_button.c@7614@F@button_draw@gfx	graphics	
+identity	c:ui_button.c@7634@F@button_draw@mem	memory	
+identity	c:ui_button.c@7674@F@button_draw@pos	draw_pos	
+identity	c:ui_button.c@7780@F@button_draw@m_flag	hovered	
+identity	c:ui_button.h@4129@F@button_draw@gfx	graphics	
+identity	c:ui_button.h@4149@F@button_draw@mem	memory	
+identity	c:ui_button.h@4189@F@button_draw@pos	draw_pos	
+identity	c:test_background.c@9181@F@test_left_press@g_before	probes_before	
+identity	c:test_button.c@39800@F@fold_written@row	layout_row	
+identity	c:test_button.c@41899@F@fold_keys@row	source_row	
+identity	c:test_button.c@45210@F@members_title_and_game@plain	ordinary_button	
+identity	c:test_ui.c@16621@F@test_left@jos	planets	
+identity	c:test_ui.c@16689@F@test_left@origin	start_planet	
 
 # --- tmp/ binaries and outputs (tools/rename_strings.py) ------------------------
 # A binary takes the name of its cmd/ file, except frames: tmp/frames is the

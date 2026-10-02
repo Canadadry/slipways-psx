@@ -310,14 +310,14 @@ static void test_drag(void) {
 static void test_left_press(void) {
     void *bg;
     down_t out;
-    int g_before;
+    int probes_before;
     int wormhole_before;
 
     start_game();
     bg = the_background();
-    g_before = entity_list_list_count(entities_by_tag("probe"));
+    probes_before = entity_list_list_count(entities_by_tag("probe"));
     wormhole_before = entity_list_list_count(entities_by_tag("wormhole"));
-    check_int("left_press_probe_before", g_before, LEFT_PRESS_PROBE_BEFORE);
+    check_int("left_press_probe_before", probes_before, LEFT_PRESS_PROBE_BEFORE);
     check_int("left_press_wormhole_before", wormhole_before, LEFT_PRESS_WORMHOLE_BEFORE);
 
     out = background_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));

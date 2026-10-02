@@ -40,7 +40,7 @@ background_t *background_new(void);
 /* `pl` is `self`'s, or `pico8_bg_pl_seq` for a NULL `self`: `bg.pl` in the
  * cart. An index outside `pl`'s 1..15 range -- which extreme `vh` values
  * can produce, unchecked in the cart too -- paints tile 0. */
-void background_construct(p8_memory_t *mem, background_t *self);
+void background_construct(p8_memory_t *memory, background_t *self);
 
 /* The second `rectfill` of the dashed grid omits its color in the cart and
  * inherits the previous call's; that previous call is the statement right

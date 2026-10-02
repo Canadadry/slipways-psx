@@ -1652,9 +1652,9 @@ zero	zero	src/game/background.c	identifiant	locale	conservé	game/background			c
 PICO8_BG_H	GAME_BACKGROUND_H	src/game/background.h	identifiant	macro	renommé	game/background			macro:src/game/background.h:PICO8_BG_H
 gfx	gfx	src/game/background.c	identifiant	paramètre	conservé	game/background			c:background.c@4340@F@pico8_bg_kj@gfx
 gfx	gfx	src/game/background.h	identifiant	paramètre	conservé	game/background			c:background.h@1681@F@pico8_bg_kj@gfx
-mem	mem	src/game/background.c	identifiant	paramètre	conservé	game/background			c:background.c@2761@F@pico8_bg_pq@mem
+mem	memory	src/game/background.c	identifiant	paramètre	renommé	game/background			c:background.c@2899@F@background_construct@mem
 mem	mem	src/game/background.c	identifiant	paramètre	conservé	game/background			c:background.c@4358@F@pico8_bg_kj@mem
-mem	mem	src/game/background.h	identifiant	paramètre	conservé	game/background			c:background.h@1416@F@pico8_bg_pq@mem
+mem	memory	src/game/background.h	identifiant	paramètre	renommé	game/background			c:background.h@1459@F@background_construct@mem
 mem	mem	src/game/background.h	identifiant	paramètre	conservé	game/background			c:background.h@1699@F@pico8_bg_kj@mem
 qa	qa	src/game/background.c	identifiant	paramètre	conservé	game/background			c:background.c@1123@F@pico8_bg_hq_dispatch@qa
 qa	qa	src/game/background.c	identifiant	paramètre	conservé	game/background			c:background.c@770@F@pico8_bg_ldown_dispatch@qa
@@ -5998,19 +5998,19 @@ le	le	src/game/ui.c	identifiant	paramètre	conservé	game/ui			c:ui.c@1063@F@pic
 le	le	src/game/ui.h	identifiant	paramètre	conservé	game/ui			c:ui.h@3033@F@pico8_ui_set_le@le
 mem	mem	src/game/ui.c	identifiant	paramètre	conservé	game/ui			c:ui.c@5918@F@pico8_ui_lj@mem
 mem	mem	src/game/ui.c	identifiant	paramètre	conservé	game/ui			c:ui.c@6981@F@pico8_ui_ev@mem
-mem	mem	src/game/ui.c	identifiant	paramètre	conservé	game/ui			c:ui.c@7824@F@pico8_ui_gw@mem
+mem	memory	src/game/ui.c	identifiant	paramètre	renommé	game/ui			c:ui.c@8246@F@ui_update_hover@mem
 mem	mem	src/game/ui.h	identifiant	paramètre	conservé	game/ui			c:ui.h@4405@F@pico8_ui_lj@mem
 mem	mem	src/game/ui.h	identifiant	paramètre	conservé	game/ui			c:ui.h@4484@F@pico8_ui_ev@mem
-mem	mem	src/game/ui.h	identifiant	paramètre	conservé	game/ui			c:ui.h@4545@F@pico8_ui_gw@mem
+mem	memory	src/game/ui.h	identifiant	paramètre	renommé	game/ui			c:ui.h@4480@F@ui_update_hover@mem
 out_kn	out_down	src/game/ui.c	identifiant	paramètre	renommé	game/ui			c:ui.c@12109@F@pico8_ui_jz@out_kn
 out_kn	out_down	src/game/ui.h	identifiant	paramètre	renommé	game/ui			c:ui.h@5151@F@pico8_ui_jz@out_kn
 out_kv	out_target	src/game/ui.c	identifiant	paramètre	renommé	game/ui			c:ui.c@12090@F@pico8_ui_jz@out_kv
 out_kv	out_target	src/game/ui.h	identifiant	paramètre	renommé	game/ui			c:ui.h@5132@F@pico8_ui_jz@out_kv
 qa	mouse_world	src/game/ui.c	identifiant	paramètre	renommé	game/ui			c:ui.c@12033@F@pico8_ui_jz@qa
-qa	qa	src/game/ui.h	identifiant	paramètre	conservé	game/ui			c:ui.h@5179@F@pico8_ui_jz@qa
-ra	pos	src/game/ui.c	identifiant	paramètre	renommé	game/ui	ra		c:ui.c@12044@F@pico8_ui_jz@ra
+qa	mouse_world	src/game/ui.h	identifiant	paramètre	renommé	game/ui			c:ui.h@5172@F@ui_send_to_hovered@qa
+ra	mouse_screen	src/game/ui.c	identifiant	paramètre	renommé	game/ui	ra		c:ui.c@13179@F@ui_send_to_hovered@pos
 ra	ra	src/game/ui.c	identifiant	paramètre	conservé	game/ui			c:ui.c@2757@F@pico8_ui_ev_dispatch@ra
-ra	ra	src/game/ui.h	identifiant	paramètre	conservé	game/ui			c:ui.h@5196@F@pico8_ui_jz@ra
+ra	mouse_screen	src/game/ui.h	identifiant	paramètre	renommé	game/ui			c:ui.h@5183@F@ui_send_to_hovered@ra
 rm	message	src/game/ui.c	identifiant	paramètre	renommé	game/ui			c:ui.c@12013@F@pico8_ui_jz@rm
 rm	message	src/game/ui.h	identifiant	paramètre	renommé	game/ui			c:ui.h@5055@F@pico8_ui_jz@rm
 s	held	src/game/ui.c	identifiant	paramètre	renommé	game/ui			c:ui.c@12055@F@pico8_ui_jz@s
@@ -6158,7 +6158,7 @@ iy_p	top_pixel	src/game/ui_button.c	identifiant	locale	renommé	game/ui_button		
 js	js	src/game/ui_button.c	identifiant	locale	conservé	game/ui_button			c:ui_button.c@2105@F@pico8_js_hb_dispatch@js
 js	js	src/game/ui_button.c	identifiant	locale	conservé	game/ui_button			c:ui_button.c@403@F@pico8_ui_button_rendre_js@js
 len_sq	length_squared	src/game/ui_button.c	identifiant	locale	renommé	game/ui_button	km		c:ui_button.c@6529@F@pico8_js_ph@len_sq
-m_flag	m_flag	src/game/ui_button.c	identifiant	locale	conservé	game/ui_button			c:ui_button.c@7389@F@pico8_js_kj@m_flag
+m_flag	hovered	src/game/ui_button.c	identifiant	locale	renommé	game/ui_button			c:ui_button.c@7780@F@button_draw@m_flag
 mb	width	src/game/ui_button.c	identifiant	locale	renommé	game/ui_button			c:ui_button.c@7124@F@pico8_js_kj@mb
 off	off	src/game/ui_button.c	identifiant	locale	conservé	game/ui_button			c:ui_button.c@8111@F@pico8_js_kj@off
 off2	off2	src/game/ui_button.c	identifiant	locale	conservé	game/ui_button			c:ui_button.c@8669@F@pico8_js_kj@off2
@@ -6176,9 +6176,9 @@ x2	x2	src/game/ui_button.c	identifiant	locale	conservé	game/ui_button			c:ui_bu
 PICO8_UI_BUTTON_H	GAME_UI_BUTTON_H	src/game/ui_button.h	identifiant	macro	renommé	game/ui_button			macro:src/game/ui_button.h:PICO8_UI_BUTTON_H
 copy	copy	src/game/ui_button.c	identifiant	paramètre	conservé	game/ui_button			c:ui_button.c@5236@F@pico8_js_lq@copy
 gfx	gfx	src/game/ui_button.c	identifiant	paramètre	conservé	game/ui_button			c:ui_button.c@6958@F@pico8_js_ev@gfx
-gfx	gfx	src/game/ui_button.c	identifiant	paramètre	conservé	game/ui_button			c:ui_button.c@7226@F@pico8_js_kj@gfx
+gfx	graphics	src/game/ui_button.c	identifiant	paramètre	renommé	game/ui_button			c:ui_button.c@7614@F@button_draw@gfx
 gfx	gfx	src/game/ui_button.h	identifiant	paramètre	conservé	game/ui_button			c:ui_button.h@3862@F@pico8_js_ev@gfx
-gfx	gfx	src/game/ui_button.h	identifiant	paramètre	conservé	game/ui_button			c:ui_button.h@3941@F@pico8_js_kj@gfx
+gfx	graphics	src/game/ui_button.h	identifiant	paramètre	renommé	game/ui_button			c:ui_button.h@4129@F@button_draw@gfx
 keys	keys	src/game/ui_button.c	identifiant	paramètre	conservé	game/ui_button			c:ui_button.c@10498@F@pico8_fq_new@keys
 keys	keys	src/game/ui_button.c	identifiant	paramètre	conservé	game/ui_button			c:ui_button.c@2592@F@pico8_js_struct_new@keys
 keys	keys	src/game/ui_button.c	identifiant	paramètre	conservé	game/ui_button			c:ui_button.c@4988@F@pico8_js_new@keys
@@ -6188,11 +6188,11 @@ keys	keys	src/game/ui_button.h	identifiant	paramètre	conservé	game/ui_button		
 keys	keys	src/game/ui_button.h	identifiant	paramètre	conservé	game/ui_button			c:ui_button.h@3777@F@pico8_js_pq@keys
 keys	keys	src/game/ui_button.h	identifiant	paramètre	conservé	game/ui_button			c:ui_button.h@5135@F@pico8_fq_new@keys
 mem	mem	src/game/ui_button.c	identifiant	paramètre	conservé	game/ui_button			c:ui_button.c@6976@F@pico8_js_ev@mem
-mem	mem	src/game/ui_button.c	identifiant	paramètre	conservé	game/ui_button			c:ui_button.c@7244@F@pico8_js_kj@mem
+mem	memory	src/game/ui_button.c	identifiant	paramètre	renommé	game/ui_button			c:ui_button.c@7634@F@button_draw@mem
 mem	mem	src/game/ui_button.h	identifiant	paramètre	conservé	game/ui_button			c:ui_button.h@3880@F@pico8_js_ev@mem
-mem	mem	src/game/ui_button.h	identifiant	paramètre	conservé	game/ui_button			c:ui_button.h@3959@F@pico8_js_kj@mem
-p	pos	src/game/ui_button.c	identifiant	paramètre	renommé	game/ui_button			c:ui_button.c@7109@F@pico8_js_kj@p
-p	pos	src/game/ui_button.h	identifiant	paramètre	renommé	game/ui_button			c:ui_button.h@3928@F@pico8_js_kj@p
+mem	memory	src/game/ui_button.h	identifiant	paramètre	renommé	game/ui_button			c:ui_button.h@4149@F@button_draw@mem
+p	draw_pos	src/game/ui_button.c	identifiant	paramètre	renommé	game/ui_button			c:ui_button.c@7674@F@button_draw@pos
+p	draw_pos	src/game/ui_button.h	identifiant	paramètre	renommé	game/ui_button			c:ui_button.h@4189@F@button_draw@pos
 place	slot	src/game/ui_button.c	identifiant	paramètre	renommé	game/ui_button	sorte		c:ui_button.c@5084@F@pico8_js_lq@place
 qa	qa	src/game/ui_button.c	identifiant	paramètre	conservé	game/ui_button			c:ui_button.c@1514@F@pico8_js_hd_dispatch@qa
 qa	qa	src/game/ui_button.c	identifiant	paramètre	conservé	game/ui_button			c:ui_button.c@1673@F@pico8_js_ldown_dispatch@qa
@@ -7738,7 +7738,7 @@ first	first	tests/test_background.c	identifiant	locale	conservé	tests/test_back
 found	found	tests/test_background.c	identifiant	locale	conservé	tests/test_background			c:test_background.c@3790@F@find_bg@found
 from_eu	from_start_game	tests/test_background.c	identifiant	locale	renommé	tests/test_background			c:test_background.c@15170@F@test_bg_is_a_struct@from_eu
 from_eu	from_start_game	tests/test_background.c	identifiant	locale	renommé	tests/test_background			c:test_background.c@5966@F@test_construction@from_eu
-g_before	g_before	tests/test_background.c	identifiant	locale	conservé	tests/test_background			c:test_background.c@8518@F@test_ldown@g_before
+g_before	probes_before	tests/test_background.c	identifiant	locale	renommé	tests/test_background			c:test_background.c@9181@F@test_left_press@g_before
 generic	generic	tests/test_background.c	identifiant	locale	conservé	tests/test_background			c:test_background.c@15040@F@test_bg_is_a_struct@generic
 generic	generic	tests/test_background.c	identifiant	locale	conservé	tests/test_background			c:test_background.c@5915@F@test_construction@generic
 h	h	tests/test_background.c	identifiant	locale	conservé	tests/test_background			c:test_background.c@1625@F@screen_hash@h
@@ -8483,7 +8483,7 @@ p	p	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_
 p	p	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@22011@F@vec_at@p
 p	p	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@8891@F@fold_kq@p
 plain	plain	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@28274@F@test_draw@plain
-plain	plain	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@40470@F@members_title_and_game@plain
+plain	ordinary_button	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@45210@F@members_title_and_game@plain
 priced	priced	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@28310@F@test_draw@priced
 pt	pt	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@26322@F@test_fe_my@pt
 pt	pt	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@44337@F@members_fe@pt
@@ -8492,7 +8492,7 @@ px	px	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:tes
 qu	qu	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@14541@F@built_world@qu
 r	r	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@24393@F@test_ldown@r
 re	re	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@14555@F@built_world@re
-row	row	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@36414@F@fold_written@row
+row	layout_row	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@39800@F@fold_written@row
 row	row	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@47703@F@test_fe_free_row@row
 row	row	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@48942@F@test_pz_fa_only_from_ca@row
 rows	rows	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@44394@F@members_fe@rows
@@ -8636,7 +8636,7 @@ ref	ref	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button		
 ref	ref	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@5315@F@fold_ref@ref
 ref	ref	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@6870@F@fold_opt_ref@ref
 ref	ref	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@7974@F@fold_built@ref
-row	row	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@38045@F@fold_keys@row
+row	source_row	tests/test_button.c	identifiant	paramètre	renommé	tests/test_button			c:test_button.c@41899@F@fold_keys@row
 rr	rr	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@18584@F@invent@rr
 s	s	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@2520@F@fnv_str@s
 s	s	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@6119@F@fold_string@s
@@ -16308,7 +16308,7 @@ ih	ih	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@1
 j	j	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@21323@F@test_ui_is_a_struct@j
 je	je	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@2951@F@je_nf@je
 jo	jo	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@10959@F@planet_on_screen@jo
-jos	jos	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@15643@F@test_left@jos
+jos	planets	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui			c:test_ui.c@16621@F@test_left@jos
 jos	jos	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@5894@F@nearest_to@jos
 keyed	keyed	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@32744@F@test_ke_t_by_name@keyed
 keyed_keys	keyed_keys	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@32669@F@test_ke_t_by_name@keyed_keys
@@ -16338,7 +16338,7 @@ ok	ok	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@2
 ok	ok	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@7206@F@test_built@ok
 ok	ok	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@9062@F@test_shared@ok
 old	old	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@18298@F@test_stale@old
-origin	origin	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@15708@F@test_left@origin
+origin	start_planet	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui			c:test_ui.c@16689@F@test_left@origin
 other	other	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@15751@F@test_left@other
 other	other	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@21300@F@test_ui_is_a_struct@other
 other	other	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@9097@F@test_shared@other

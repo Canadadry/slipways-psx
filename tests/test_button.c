@@ -1234,7 +1234,7 @@ static uint32_t fold_written(uint32_t hash, void *entity, void *other) {
     button_t *button = button_of(entity);
     const box_t *hit_box_before = button->header.hit_box;
     p8_fixed_t width = button->width;
-    layout_row_t *row;
+    layout_row_t *layout_row;
     int index;
 
     assert(hit_box_before != NULL);
@@ -1258,18 +1258,18 @@ static uint32_t fold_written(uint32_t hash, void *entity, void *other) {
     assert(!button->is_hovered);
     hash = fold_button_members(hash, entity);
 
-    row = button_of(other)->layout_row;
-    assert(row != NULL);
-    button->layout_row = row;
+    layout_row = button_of(other)->layout_row;
+    assert(layout_row != NULL);
+    button->layout_row = layout_row;
     hash = fold_button_members(hash, entity);
-    row = layout_row_new(&heap_allocator, NULL);
-    button->layout_row = row;
+    layout_row = layout_row_new(&heap_allocator, NULL);
+    button->layout_row = layout_row;
     hash = fold_button_members(hash, entity);
     button->layout_row = NULL;
     assert(button->header.hit_box == hit_box_before);
     assert(button->width == width);
     hash = fold_button_members(hash, entity);
-    button->layout_row = row;
+    button->layout_row = layout_row;
 
     write_is_hovered(button, 1, 1);
     for (index = 0; index < 15 + 8; index++) {
@@ -1295,7 +1295,7 @@ static uint32_t fold_and_drop(uint32_t h, button_t *b) {
 /* Each optional key unset, the fixed ones and `my` given at zero, `h_`
  * false, TROU-23, an `h_` copied from an `lq` (written on the member: no
  * key builds it), a row's keys as `lq(x)`'s argument. */
-static uint32_t fold_keys(uint32_t hash, layout_row_t *row) {
+static uint32_t fold_keys(uint32_t hash, layout_row_t *source_row) {
     const button_keys_t none = {0};
     button_keys_t keys;
     layout_row_cell_t from_keys[2];
@@ -1360,8 +1360,8 @@ static uint32_t fold_keys(uint32_t hash, layout_row_t *row) {
     keys = none;
     keys.has_side_tooltip = 1;
     button = built(keys);
-    button->side_tooltip = layout_row_copy(&heap_allocator, row);
-    assert(button->has_side_tooltip && is_layout_row(button->side_tooltip) && button->side_tooltip != row);
+    button->side_tooltip = layout_row_copy(&heap_allocator, source_row);
+    assert(button->has_side_tooltip && is_layout_row(button->side_tooltip) && button->side_tooltip != source_row);
     hash = fold_and_drop(hash, button);
 
     from_keys[0] = layout_row_cell_string("from a list");
@@ -1383,7 +1383,7 @@ static uint32_t members_title_and_game(void) {
     void *galaxy_menu[4];
     void *fresh[3];
     void *chosen_option;
-    void *plain;
+    void *ordinary_button;
     void *on_click_false;
     int count = 0;
     int index;
@@ -1444,9 +1444,9 @@ static uint32_t members_title_and_game(void) {
     assert(button_of(galaxy_menu[2])->layout_row != NULL);
     hash = fold_keys(hash, button_of(galaxy_menu[2])->layout_row);
 
-    plain = build(button_at(10, 20), "plain", NULL);
+    ordinary_button = build(button_at(10, 20), "plain", NULL);
     on_click_false = build(keyed_on_click(button_at(10, 20), NULL), "plain", NULL);
-    assert(draw_alone(on_click_false) == draw_alone(plain));
+    assert(draw_alone(on_click_false) == draw_alone(ordinary_button));
     hash = fnv(hash, draw_alone(on_click_false));
 
     /* 10 strangers the name reader refused: constant by the struct's shape. */

@@ -109,7 +109,7 @@ void ui_update(p8_memory_t *mem, ui_t *self);
 
 void ui_draw_overlay(const p8_graphics_t *gfx, p8_memory_t *mem, const ui_t *self);
 
-void ui_update_hover(p8_memory_t *mem, ui_t *self);
+void ui_update_hover(p8_memory_t *memory, ui_t *self);
 
 /* `bt` is "l" or "r", anything else asserts: it picks the member
  * `lheld`/`rheld` and the method `ldown`/`rdown`. */
@@ -122,7 +122,7 @@ typedef enum { SEND_TO_HOVERED_LEFT_PRESS, SEND_TO_HOVERED_RIGHT_PRESS, SEND_TO_
 /* Lua's `{kv=h,kn=kn}` result, written out: returns 1 and fills `*out_kv`
  * and `*out_kn` on the first answer whose `stop` is set, or 0 leaving both
  * untouched when nothing answers. */
-int ui_send_to_hovered(ui_t *self, send_to_hovered_slot_t message, vec_t *qa, vec_t *ra, const entity_t *held,
+int ui_send_to_hovered(ui_t *self, send_to_hovered_slot_t message, vec_t *mouse_world, vec_t *mouse_screen, const entity_t *held,
                 entity_t **out_target, down_t *out_down);
 
 void ui_clear_ephemerals(ui_t *self);

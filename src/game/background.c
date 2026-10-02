@@ -97,7 +97,7 @@ background_t *background_new(void) {
 
 /* `vs[x] or 1` is only ever taken on row y=0; every later row reads back the
  * previous row's own `vh`. `oh` is local to the call. */
-void background_construct(p8_memory_t *mem, background_t *self) {
+void background_construct(p8_memory_t *memory, background_t *self) {
     p8_fixed_t row_values[32];
     int row_values_set[32];
     p8_fixed_t value = p8_fixed_from_int(0);
@@ -105,7 +105,7 @@ void background_construct(p8_memory_t *mem, background_t *self) {
     const int_seq_t *pl = self != NULL && self->archetype->tile_choices != NULL ? self->archetype->tile_choices : &background_tile_choices_seq;
     int x, y;
 
-    if (mem == NULL) {
+    if (memory == NULL) {
         return;
     }
 
@@ -138,7 +138,7 @@ void background_construct(p8_memory_t *mem, background_t *self) {
                 int_seq_at(pl->items, pl->count, idx, &tile);
             }
 
-            p8_mset(mem, x, y, tile);
+            p8_mset(memory, x, y, tile);
         }
     }
 }

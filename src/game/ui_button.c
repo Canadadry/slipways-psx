@@ -241,12 +241,12 @@ void button_draw_overlay(p8_graphics_t *gfx, p8_memory_t *mem, const button_t *s
     }
 }
 
-void button_draw(p8_graphics_t *gfx, p8_memory_t *mem, const button_t *self, vec_t pos) {
+void button_draw(p8_graphics_t *graphics, p8_memory_t *memory, const button_t *self, vec_t draw_pos) {
     p8_fixed_t width;
     p8_fixed_t right;
     p8_fixed_t bottom;
     int has_on_click;
-    int m_flag;
+    int hovered;
     int left_pixel;
     int top_pixel;
     int right_pixel;
@@ -257,23 +257,23 @@ void button_draw(p8_graphics_t *gfx, p8_memory_t *mem, const button_t *self, vec
     }
 
     width = self->width;
-    right = p8_fixed_sub(p8_fixed_add(pos.x, width), p8_fixed_from_int(1));
-    bottom = p8_fixed_add(pos.y, p8_fixed_from_int(9));
+    right = p8_fixed_sub(p8_fixed_add(draw_pos.x, width), p8_fixed_from_int(1));
+    bottom = p8_fixed_add(draw_pos.y, p8_fixed_from_int(9));
     has_on_click = self->on_click != NULL;
-    m_flag = self->is_hovered;
+    hovered = self->is_hovered;
 
-    left_pixel = ui_to_int(pos.x);
-    top_pixel = ui_to_int(pos.y);
+    left_pixel = ui_to_int(draw_pos.x);
+    top_pixel = ui_to_int(draw_pos.y);
     right_pixel = ui_to_int(right);
     bottom_pixel = ui_to_int(bottom);
 
-    p8_rect(gfx, mem, left_pixel - 1, top_pixel, right_pixel + 1, bottom_pixel + 1, 1);
-    p8_rectfill(gfx, mem, left_pixel, top_pixel, right_pixel, bottom_pixel, has_on_click ? (m_flag ? 12 : 13) : 5);
-    p8_rectfill(gfx, mem, left_pixel, top_pixel, right_pixel, top_pixel, has_on_click ? 6 : 5);
+    p8_rect(graphics, memory, left_pixel - 1, top_pixel, right_pixel + 1, bottom_pixel + 1, 1);
+    p8_rectfill(graphics, memory, left_pixel, top_pixel, right_pixel, bottom_pixel, has_on_click ? (hovered ? 12 : 13) : 5);
+    p8_rectfill(graphics, memory, left_pixel, top_pixel, right_pixel, top_pixel, has_on_click ? 6 : 5);
 
     if (self->layout_row != NULL) {
-        vec_t off = vec_add(pos, vec_make(p8_fixed_from_int(1), p8_fixed_from_int(2)));
-        layout_row_draw_at_default(gfx, mem, self->layout_row, off);
+        vec_t off = vec_add(draw_pos, vec_make(p8_fixed_from_int(1), p8_fixed_from_int(2)));
+        layout_row_draw_at_default(graphics, memory, self->layout_row, off);
     }
 
     if (self->side_tooltip != NULL) {
@@ -285,12 +285,12 @@ void button_draw(p8_graphics_t *gfx, p8_memory_t *mem, const button_t *self, vec
         if (c->has_background && !c->background_is_bool) {
             bg = ui_to_int(c->background);
         }
-        p8_rectfill(gfx, mem, ui_to_int(right) + 3, top_pixel + 1, ui_to_int(x2) + 4, bottom_pixel, bg);
+        p8_rectfill(graphics, memory, ui_to_int(right) + 3, top_pixel + 1, ui_to_int(x2) + 4, bottom_pixel, bg);
 
         {
             vec_t off2 =
-                vec_add(pos, vec_make(p8_fixed_add(width, p8_fixed_from_int(3)), p8_fixed_from_int(2)));
-            layout_row_draw_at_default(gfx, mem, c, off2);
+                vec_add(draw_pos, vec_make(p8_fixed_add(width, p8_fixed_from_int(3)), p8_fixed_from_int(2)));
+            layout_row_draw_at_default(graphics, memory, c, off2);
         }
     }
 }
