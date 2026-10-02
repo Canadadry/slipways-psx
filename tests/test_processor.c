@@ -1,6 +1,7 @@
-/* The processor `os`, read and written on its struct members and the
- * generated defaults (pico8_game_data.h), and driven through the real `ie:ldown`/`mv`/`dg`, in games started
- * directly: no events file. */
+/* The processor, read and written on its struct members and the generated
+ * defaults (game/game_data.h), and driven through the real
+ * structure_icon_left_press, its class methods and update_entities, in
+ * games started directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -38,7 +39,7 @@
 #include "engine/vec.h"
 #include "heap_allocator.h"
 
-/* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
+/* The first vector copies the second: another box, same x and y; NULL for NULL. */
 static int pos_copies(const vec_t *ra, const vec_t *mp) {
     return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
 }
@@ -55,8 +56,8 @@ static int pos_copies(const vec_t *ra, const vec_t *mp) {
 #define BUILT_HASH 0x00652D27u
 #define LIFE_HASH 0x754B6F4Cu
 
-/* The tag `jo:ib`'s list carried as a tagged list, which the frozen hashes
- * fold: any other value moves every *_HASH. */
+/* The tag planet_rebuild_trades's list carried as a tagged list, which the
+ * frozen hashes fold: any other value moves every *_HASH. */
 #define FROZEN_LIST_TAG 0x9E5C1157u
 
 static p8_memory_t mem;
@@ -164,7 +165,7 @@ static uint32_t fold_production(uint32_t h, const planet_t *jo) {
     return fnv(h, (uint32_t)(k == planet_shared_production()));
 }
 
-/* `e` as a planet of qh's lineage. */
+/* The entity as a planet of the laboratory's lineage (asserted). */
 static planet_t *as_structure(void *e) {
     const entity_t *h = e;
 
@@ -181,7 +182,7 @@ static uint32_t target_state(const planet_t *qh) {
     return qh->targeting->target == NULL ? 1u : 3u;
 }
 
-/* `et` as qh's reader gave it: false or the target. */
+/* The laboratory's target as its targeting holds it: false or the target. */
 static uint32_t fold_target(uint32_t h, const planet_t *qh) {
     switch (target_state(qh)) {
     case 1u:
@@ -197,8 +198,8 @@ static void check(const char *label, uint32_t got, uint32_t want) {
     assert(got == want);
 }
 
-/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
- * reads as difficulty 0. */
+/* A game started as cart_start_game starts it, with no difficulty picked:
+ * a NULL difficulty reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
@@ -207,9 +208,9 @@ static void start_game(void) {
 }
 
 /* A game started from the title screen as a click on its second
- * difficulty button starts it: `js:ldown` runs the `my` that `fv:pq`
- * stamped, `eu` on that button. `db` reads `dk.trade`, which a NULL `dk`
- * lacks. */
+ * difficulty button starts it: button_left_press runs the on_click that
+ * help_screen_construct stamped, cart_start_game on that button. The trade
+ * income reads the difficulty's trade, which a NULL difficulty lacks. */
 static void clicked_game(void) {
     const entity_list_t *hd;
     int buttons = 0;
@@ -242,9 +243,10 @@ static const entity_class_t *class_of(const void *e) {
     return ((const entity_t *)e)->class;
 }
 
-/* The members a planet of qh's tree holds: `kj`, `ev`, `hd`, `hk`, `hb`,
- * `ldown`, `gv`, `hq`, `ey`, `kf`, `cn` and the states `ll`, `ly`; `mm`
- * aside, no other. */
+/* The members a planet of the laboratory's tree holds: draw, draw_overlay,
+ * hit_test, new_year, refresh, left_press, accept_drop, drag, drop,
+ * attach_slipway, offer_trade and the vanishing and settled states;
+ * spawn_particle aside, no other. */
 static void assert_structure_shape(const entity_class_t *c) {
     assert(c->draw != NULL && c->draw_overlay != NULL && c->hit_test != NULL && c->new_year != NULL && c->refresh != NULL && c->left_press != NULL &&
            c->accept_drop != NULL && c->states[ENTITY_STATE_VANISHING] != NULL && c->states[ENTITY_STATE_SETTLED] != NULL);
@@ -253,8 +255,9 @@ static void assert_structure_shape(const entity_class_t *c) {
     assert(c->drag != NULL && c->drop != NULL && c->attach_slipway != NULL && c->offer_trade != NULL && c->draw_at == NULL);
 }
 
-/* `c` holds `ref`'s very members but `kf`, `cn` and `mm`, `kj` and the
- * state `ly` included when `with_kj`/`with_ly`. */
+/* The class holds the reference class's very members but attach_slipway,
+ * offer_trade and spawn_particle; draw and the settled state included when
+ * with_draw and with_update_settled are set. */
 static void assert_members_of(const entity_class_t *c, const entity_class_t *ref, int with_draw,
                               int with_update_settled) {
     assert(c->draw_overlay == ref->draw_overlay && c->hit_test == ref->hit_test && c->new_year == ref->new_year && c->refresh == ref->refresh && c->has_refresh == ref->has_refresh &&
@@ -264,7 +267,7 @@ static void assert_members_of(const entity_class_t *c, const entity_class_t *ref
     assert(!with_update_settled || c->states[ENTITY_STATE_SETTLED] == ref->states[ENTITY_STATE_SETTLED]);
 }
 
-/* The research icon whose `ke` is `gx[1]`, the processor. */
+/* The structure icon whose kind is the shop's second, the processor. */
 static void *processor_icon(void) {
     const entity_list_t *hb = entities_by_message("refresh");
     int i;
@@ -277,7 +280,7 @@ static void *processor_icon(void) {
     return NULL;
 }
 
-/* `ie:ldown` on the processor's icon, as the shop does. */
+/* A left press on the processor's icon, as the shop does. */
 static void *build_processor(void) {
     void *icon = processor_icon();
     down_t made;
@@ -288,17 +291,19 @@ static void *build_processor(void) {
     return made.held;
 }
 
-/* A processor is the only entity whose `px` is os's own table. */
+/* A processor is the only entity whose name is the processor's own row. */
 static int is_processor(const void *e) {
     const planet_t *jo = e != NULL && (class_of(e)->lineage & LINEAGE(LINEAGE_STRUCTURE)) ? e : NULL;
     return jo != NULL && jo->archetype->name == &processor_name_row;
 }
 
-/* A processor as `ie:ldown` and `jo:pq` left it: its scalars (`hs` is jo's
- * name, overridden by os), which of qh's and jo's members are set, its
- * methods (qh's chain's very functions, `ly` included), which default tables
- * it shares with `os`, `qh` and `jo`, and where `lt` registered it -- never
- * in `cg.qh`. */
+/* A processor as structure_icon_left_press and planet_construct left it:
+ * its scalars (trade_multiplier, a planet field, overridden by the
+ * processor's archetype), which of the laboratory's and the planet's
+ * members are set, its methods (the laboratory chain's very functions, the
+ * settled update included), which default tables it shares with the
+ * processor, laboratory and planet archetypes, and where entity_register
+ * filed it -- never under the structure tag. */
 static uint32_t fold_processor(uint32_t hash, void *entity) {
     const planet_t *structure = as_structure(entity);
     const planet_t *planet = structure;
@@ -321,9 +326,9 @@ static uint32_t fold_processor(uint32_t hash, void *entity) {
     hash = fold_fixed_member(hash, planet->shake);
     hash = fold_fixed_member(hash, planet->archetype->back_color);
     hash = fold_vec(hash, &planet->archetype->row_step);
-    /* The 1s of `hp`, `qh`, `od`, `fp`, `dw`, `s`, then of `hf`, `hs`, `fa`,
-     * `ma` and `ca`: constant by the struct's shape, kept so that BUILT_HASH
-     * still proves the typed reads. */
+    /* The 1s of project_index, is_structure, cost, clock_ticks, attach_distance,
+     * sprite, is_planet, trade_multiplier, layer, shake and back_color: constant
+     * by the struct's shape, kept so that BUILT_HASH still proves the typed reads. */
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(structure->archetype->name != NULL));
     hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != NULL));
@@ -393,7 +398,7 @@ static uint32_t fold_processor(uint32_t hash, void *entity) {
     return hash;
 }
 
-/* Two processors built by the shop's `ie:ldown` on `gx[1]`. */
+/* Two processors built by the shop's left press on its second icon. */
 static void test_built(void) {
     uint32_t hash = 2166136261u;
     void *a;
@@ -422,7 +427,7 @@ static uint32_t fold_pos_y(uint32_t h, const planet_t *qh) {
     return ra == NULL ? fnv(h, 0xDEADu) : fnv(h, (uint32_t)ra->y);
 }
 
-/* `dg` once, then what qh's `ly` (`na`) left on the processor. */
+/* update_entities once, then what the laboratory's settled update left. */
 static uint32_t fold_update_entities(uint32_t h, void *e) {
     const planet_t *qh = as_structure(e);
 
@@ -432,8 +437,8 @@ static uint32_t fold_update_entities(uint32_t h, void *e) {
     return fold_pos_y(h, qh);
 }
 
-/* `jo:ib`'s container, folded as fold_ref folded the tagged list it was:
- * never in `hv`, so the tag branch. */
+/* planet_rebuild_trades's list, folded as fold_ref folded the tagged list
+ * it was: never a live entity, so the tag branch. */
 static uint32_t fold_rebuild_trades(uint32_t h, const entity_list_t *ib) {
     if (ib == NULL) {
         return fnv(h, 0xDEADu);
@@ -441,8 +446,9 @@ static uint32_t fold_rebuild_trades(uint32_t h, const entity_list_t *ib) {
     return fnv(fnv(h, 0xEEEEu), FROZEN_LIST_TAG);
 }
 
-/* What `bb`'s `dh` (no `pt.nl`, `pt.hf` false), `ib`, `gg` and `da` (qh
- * false) give on a processor. */
+/* What economy_tiers_compute_tier (no trading hub flag, is_planet false),
+ * planet_rebuild_trades, planet_is_colonized and planet_upkeep
+ * (is_structure false) give on a processor. */
 static uint32_t fold_economy(uint32_t h, void *e) {
     entity_list_t *ib = planet_rebuild_trades(e);
     h = fnv(h, (uint32_t)economy_tiers_compute_tier(e));
@@ -452,8 +458,9 @@ static uint32_t fold_economy(uint32_t h, void *e) {
     return as_structure(e)->has_development_tier ? fold_fixed_member(h, as_structure(e)->development_tier) : fold_absent(h);
 }
 
-/* `pt.by` holding one export from `pt` to `oz`, as `jo:ib` leaves it: a
- * trade whose `lp` starts at `pt` and ends at `oz`. */
+/* The first planet's outgoing routes holding one export to the second, as
+ * planet_rebuild_trades leaves them: a trade whose planets start at the
+ * first and end at the second. */
 static void export_to(void *pt, void *oz) {
     trade_keys_t keys = {0};
     entity_list_t *lp = malloc(sizeof *lp);
@@ -471,8 +478,9 @@ static void export_to(void *pt, void *oz) {
     ((planet_t *)pt)->outgoing_routes = by;
 }
 
-/* `db` of a processor and of a bare planet, at the same tier, each exporting
- * to the same bare planet (`hf` true): only `pt.hs` tells them apart. */
+/* The trade income of a processor and of a bare planet, at the same tier,
+ * each exporting to the same bare planet (is_planet true): only the
+ * exporter's trade multiplier tells them apart. */
 static uint32_t fold_trade_income(uint32_t h, void *processor) {
     planet_t *bare = planet_new(NULL);
     planet_t *oz = planet_new(NULL);
@@ -493,9 +501,11 @@ static uint32_t fold_trade_income(uint32_t h, void *processor) {
     return fnv(h, (uint32_t)bare_trade_income);
 }
 
-/* `hq` (`bv`) in the panel then `ey` (`d_`) with the credits; `dg` in "ly"
- * (qh's `ly`, `na`); `bb`/`ib`/`gg`/`da` on it; `db` with an export to a
- * planet whose `hf` is true; `dg` on a processor still in "kz". */
+/* The drag method (targeting_track) in the panel then the drop method
+ * (targeting_confirm) with the credits; update_entities in "settled" (the
+ * laboratory's settled update); the economy reads on it; the trade income
+ * with an export to a planet whose is_planet is true; update_entities on a
+ * processor still in "placing". */
 static void test_life(void) {
     uint32_t hash = 2166136261u;
     void *placed;
@@ -563,9 +573,9 @@ static int is_a_processor_struct(const void *e) {
            ((const entity_t *)e)->class == processor_class();
 }
 
-/* Built by `ie:ldown` or pico8_os_new, a processor is a struct whose
- * descriptor is its own but holds qh's very entries; a construction key
- * other than `id` stops the run. */
+/* Built by structure_icon_left_press or processor_new, a processor is a
+ * struct whose class is its own but holds the laboratory's very entries; a
+ * construction key other than planet_id stops the run. */
 static void test_processor_is_a_struct(void) {
     const entity_class_t *cls = processor_class();
     const entity_class_t *qh = structure_class();
@@ -587,7 +597,7 @@ static void test_processor_is_a_struct(void) {
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked
- * right after pico8_cart_load(), as a fresh process would start it. */
+ * right after cart_load(), as a fresh process would start it. */
 static pid_t spawn(void (*test)(void)) {
     pid_t child;
 

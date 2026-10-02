@@ -1,5 +1,6 @@
-/* The "exports:" row of `jo:gh` counts the routes held in the `by` a `ga`
- * receives at construction, read on the member itself. */
+/* The "exports:" row of planet_inspection_panel counts the routes held in
+ * the outgoing routes list a burst receives at construction, read on the
+ * member itself. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -23,7 +24,7 @@
 #include "game/ui_button.h"
 #include "engine/vec.h"
 
-/* The `js` buttons `pz()` just built. */
+/* The buttons planet_inspection_panel just built. */
 static const entity_list_t *main_ui_ephemerals(void) {
     const ui_t *ok = main_ui();
     assert(ok != NULL);
@@ -55,9 +56,9 @@ static int layout_row_index_is_string(const layout_row_t *lq, int index, const c
     return s != NULL && strcmp(s, expected) == 0;
 }
 
-/* What `jo:gh` reaches when the cart calls it on a `ga`, built without a
- * boot: `r` (from pico8_data_init), the jo/ga/lq/js classes, and the `ok`
- * singleton `pz()` fills. */
+/* What planet_inspection_panel reaches when called on a burst, built
+ * without a boot: the data tables (data_init), the planet, burst, layout
+ * row and button classes, and the main_ui singleton the panel fills. */
 static void setup_panel_state(p8_memory_t *mem, p8_graphics_t *gfx) {
     p8_mem_init(mem);
     p8_gfx_init(gfx);
@@ -96,8 +97,8 @@ static void test_burst_export_line_counts_the_outgoing_routes(void) {
     planet = burst_new(NULL);
     assert(planet != NULL);
 
-    /* 99 is deliberately not one of `jo.cq`'s resources, so `jo:gh` takes
-     * the else branch and builds the "exports:" row, not the "makes:" one. */
+    /* 99 is deliberately not one of planet_made_resources(), so the panel
+     * takes the else branch and builds the "exports:" row, not the "makes:" one. */
     production.has_resource = 1;
     production.resource = p8_fixed_from_int(99);
     production.amount = p8_fixed_from_int(2);
@@ -107,7 +108,7 @@ static void test_burst_export_line_counts_the_outgoing_routes(void) {
     *planet_pos = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
     planet->pos = planet_pos;
 
-    /* A fresh `ga` exports nothing, against a capacity of `kw.mu`. */
+    /* A fresh burst exports nothing, against a capacity of the production amount. */
     planet_inspection_panel(planet);
     ephemerals = main_ui_ephemerals();
     for (index = 0; index < ephemerals->count; index++) {
@@ -119,9 +120,9 @@ static void test_burst_export_line_counts_the_outgoing_routes(void) {
     assert(exports_layout_row != NULL);
     assert(layout_row_index_is_string(exports_layout_row, 2, "0/2"));
 
-    /* Two routes, added the way `jo:ib`'s `add(ib,a)` adds them: straight
-     * into whatever `self.by` already holds, here the value the `ga`
-     * declaration installed. */
+    /* Two routes, added the way planet_rebuild_trades adds them: straight
+     * into whatever the outgoing routes list already holds, here the shared
+     * list burst_create installed. */
     outgoing = planet_by_ref(planet);
     assert(outgoing != NULL);
     route_a = trade_new(game_zone(), NULL);

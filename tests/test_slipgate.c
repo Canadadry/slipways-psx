@@ -1,6 +1,8 @@
-/* The slipgate `nr`, read and written on its struct members and the
- * generated defaults (pico8_game_data.h), built as the shop builds it (`ie:ldown` on `gx[2]`, `id`) and driven
- * through the real `mv`/`dg`/`dc`, in games started directly: no events file. */
+/* The slipgate, read and written on its struct members and the generated
+ * defaults (game/game_data.h), built as the shop builds it (a left press on
+ * its third icon, with a planet_id) and driven through the real class
+ * methods, update_entities and draw_layers, in games started directly: no
+ * events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -38,7 +40,7 @@
 #include "engine/vec.h"
 #include "heap_allocator.h"
 
-/* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
+/* The first vector copies the second: another box, same x and y; NULL for NULL. */
 static int pos_copies(const vec_t *ra, const vec_t *mp) {
     return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
 }
@@ -47,8 +49,8 @@ static int pos_copies(const vec_t *ra, const vec_t *mp) {
 #define BUILT_HASH 0xBAF7572Fu
 #define LIFE_HASH 0xC22C89F7u
 
-/* The tag `jo:ib`'s list carried as a tagged list, which the frozen hashes
- * fold: any other value moves every *_HASH. */
+/* The tag planet_rebuild_trades's list carried as a tagged list, which the
+ * frozen hashes fold: any other value moves every *_HASH. */
 #define FROZEN_LIST_TAG 0x9E5C1157u
 
 /* The tag entity structs carried, which the frozen hashes fold: any other
@@ -146,7 +148,7 @@ static int entity_list_list_size(const entity_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
-/* `e` as a planet of qh's lineage. */
+/* The entity as a planet of the laboratory's lineage (asserted). */
 static planet_t *as_structure(void *e) {
     const entity_t *h = e;
 
@@ -175,8 +177,8 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
- * reads as difficulty 0. */
+/* A game started as cart_start_game starts it, with no difficulty picked:
+ * a NULL difficulty reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
@@ -198,9 +200,10 @@ static const entity_class_t *class_of(const void *e) {
     return ((const entity_t *)e)->class;
 }
 
-/* The members a planet of qh's tree holds: `kj`, `ev`, `hd`, `hk`, `hb`,
- * `ldown`, `gv`, `hq`, `ey`, `kf`, `cn` and the states `ll`, `ly`; `mm`
- * aside, no other. */
+/* The members a planet of the laboratory's tree holds: draw, draw_overlay,
+ * hit_test, new_year, refresh, left_press, accept_drop, drag, drop,
+ * attach_slipway, offer_trade and the vanishing and settled states;
+ * spawn_particle aside, no other. */
 static void assert_structure_shape(const entity_class_t *c) {
     assert(c->draw != NULL && c->draw_overlay != NULL && c->hit_test != NULL && c->new_year != NULL && c->refresh != NULL && c->left_press != NULL &&
            c->accept_drop != NULL && c->states[ENTITY_STATE_VANISHING] != NULL && c->states[ENTITY_STATE_SETTLED] != NULL);
@@ -209,7 +212,7 @@ static void assert_structure_shape(const entity_class_t *c) {
     assert(c->drag != NULL && c->drop != NULL && c->attach_slipway != NULL && c->offer_trade != NULL && c->draw_at == NULL);
 }
 
-/* The research icon whose `ke` is `kind`. */
+/* The structure icon whose kind is the given one. */
 static void *icon_of(const entity_kind_t *kind) {
     const entity_list_t *hb = entities_by_message("refresh");
     int i;
@@ -222,7 +225,7 @@ static void *icon_of(const entity_kind_t *kind) {
     return NULL;
 }
 
-/* `ie:ldown` on the icon of `kind`, as the shop does. */
+/* A left press on the icon of the given kind, as the shop does. */
 static void *build(const entity_kind_t *kind) {
     void *icon = icon_of(kind);
     down_t made;
@@ -239,9 +242,9 @@ static void *build_slipgate(void) {
 
 enum { SLIPGATE, INFRASPACE_GATE };
 
-/* `hz` is never written on an entity: one whose `hz` is the very table of
- * nr's class is a slipgate, of fr's class an infraspace gate. -1 for
- * anything else. */
+/* link_sprites is never written on an entity: one whose link_sprites is
+ * the very table of the slipgate archetype is a slipgate, of the infraspace
+ * gate archetype an infraspace gate. -1 for anything else. */
 static int gate_kind(const void *e) {
     const void *hz = NULL;
 
@@ -260,11 +263,13 @@ static int gate_kind(const void *e) {
     return -1;
 }
 
-/* A slipgate as `ie:ldown` and `jo:pq` left it: its scalars, which of its
- * own, qh's and jo's members are set, its methods (qh's very functions but
- * its own `gv`, `ldown`, `hb`, `cn`), which default tables it shares with
- * `nr`, `qh` and `jo`, and where `lt` registered it -- in
- * `cg.nr`/`np`/`prober`, never in `cg.jo` or `cg.qh`. */
+/* A slipgate as structure_icon_left_press and planet_construct left it:
+ * its scalars, which of its own, the laboratory's and the planet's members
+ * are set, its methods (the laboratory's very functions but its own
+ * accept_drop, left_press, refresh, offer_trade), which default tables it
+ * shares with the slipgate, laboratory and planet archetypes, and where
+ * entity_register filed it -- under the slipgate, node and targeting tags,
+ * never under the planet or structure tag. */
 static uint32_t fold_slipgate(uint32_t hash, const void *entity) {
     const entity_class_t *structure_cls = structure_class();
     const planet_t *slipgate;
@@ -295,9 +300,9 @@ static uint32_t fold_slipgate(uint32_t hash, const void *entity) {
     hash = fold_fixed_member(hash, planet->archetype->back_color);
     hash = fold_vec(hash, &planet->archetype->row_step);
     hash = fnv(hash, (uint32_t)slipgate->archetype->link_sprites->count);
-    /* The 1s of `hp`, `qh`, `od`, `fp`, `dw`, `s`, then of `hf`, `hs`, `fa`,
-     * `ma` and `ca`: constant by the struct's shape, kept so that BUILT_HASH
-     * still proves the typed reads. */
+    /* The 1s of project_index, is_structure, cost, clock_ticks, attach_distance,
+     * sprite, is_planet, trade_multiplier, layer, shake and back_color: constant
+     * by the struct's shape, kept so that BUILT_HASH still proves the typed reads. */
     hash = fnv(hash, (uint32_t)(slipgate->archetype->link_sprites != NULL));
     hash = fnv(hash, (uint32_t)(slipgate->archetype->required_tech != NULL));
     hash = fnv(hash, 1u);
@@ -377,7 +382,7 @@ static uint32_t fold_slipgate(uint32_t hash, const void *entity) {
     return hash;
 }
 
-/* Two slipgates built by the shop's `ie:ldown` on `gx[2]`. */
+/* Two slipgates built by the shop's left press on its third icon. */
 static void test_built(void) {
     uint32_t hash = 2166136261u;
     void *a;
@@ -401,7 +406,7 @@ static uint32_t fold_pos_y(uint32_t h, const planet_t *qh) {
     return ra == NULL ? fnv(h, 0xDEADu) : fnv(h, (uint32_t)ra->y);
 }
 
-/* `dg` once, then what qh's `ly` (`na`) left on the slipgate. */
+/* update_entities once, then what the laboratory's settled update left. */
 static uint32_t fold_update_entities(uint32_t h, void *e) {
     const planet_t *qh = as_structure(e);
 
@@ -411,8 +416,8 @@ static uint32_t fold_update_entities(uint32_t h, void *e) {
     return fold_pos_y(h, qh);
 }
 
-/* `jo:ib`'s container, folded as fold_ref folded the tagged list it was:
- * never in `hv`, so the tag branch. */
+/* planet_rebuild_trades's list, folded as fold_ref folded the tagged list
+ * it was: never a live entity, so the tag branch. */
 static uint32_t fold_rebuild_trades(uint32_t h, const entity_list_t *ib) {
     if (ib == NULL) {
         return fnv(h, 0xDEADu);
@@ -420,7 +425,8 @@ static uint32_t fold_rebuild_trades(uint32_t h, const entity_list_t *ib) {
     return fnv(fnv(h, 0xEEEEu), FROZEN_LIST_TAG);
 }
 
-/* What `bb`'s `dh`, `ib`, `gg` and `da` give on a slipgate. */
+/* What economy_tiers_compute_tier, planet_rebuild_trades,
+ * planet_is_colonized and planet_upkeep give on a slipgate. */
 static uint32_t fold_economy(uint32_t h, void *e) {
     entity_list_t *ib = planet_rebuild_trades(e);
     h = fnv(h, (uint32_t)economy_tiers_compute_tier(e));
@@ -430,8 +436,8 @@ static uint32_t fold_economy(uint32_t h, void *e) {
     return as_structure(e)->has_development_tier ? fold_fixed_member(h, as_structure(e)->development_tier) : fold_absent(h);
 }
 
-/* A list of `n` copies of `item`, for `oe`: `gv`, `ldown` and `hb` only
- * count it. */
+/* A list of the given count of copies of an item, for the slipways list:
+ * accept_drop, left_press and refresh only count it. */
 static entity_list_t *list_of(int n, entity_t *item) {
     entity_list_t *l = malloc(sizeof *l);
     int i;
@@ -443,11 +449,13 @@ static entity_list_t *list_of(int n, entity_t *item) {
     return l;
 }
 
-/* Placed on screen by `hq` (`bv`) and `ey` (`d_`); `dg` on one still in
- * "kz", then in "ly"; `kj` through `dc`; `gv` against no argument, another
- * slipgate and a slipway drawn from itself; `ldown` with no link (a `jc`
- * whose `qu` is the slipgate) and with 3 (refused); `hb` with 0 to 3
- * links; an `fr`'s `hb`; `pico8_nr_new` with no key, then `p` and `ra`. */
+/* Placed on screen by the drag method (targeting_track) and the drop method
+ * (targeting_confirm); update_entities on one still in "placing", then in
+ * "settled"; draw through draw_layers; accept_drop against no argument,
+ * another slipgate and a slipway drawn from itself; left_press with no link
+ * (a slipway whose start is the slipgate) and with 3 (refused); refresh
+ * with 0 to 3 links; an infraspace gate's refresh; slipgate_new with no
+ * key, then with map_pos and pos. */
 static void test_life(void) {
     uint32_t hash = 2166136261u;
     void *placed;
@@ -542,9 +550,9 @@ static int is_a_slipgate_struct(const void *e) {
            ((const entity_t *)e)->class == slipgate_class();
 }
 
-/* Built by `ie:ldown` or pico8_nr_new, a slipgate is a struct whose
- * descriptor holds qh's very entries but its own `gv`, `ldown`, `hb`, `cn`,
- * which no class of its chain installs any more. */
+/* Built by structure_icon_left_press or slipgate_new, a slipgate is a
+ * struct whose class holds the laboratory's very entries but its own
+ * accept_drop, left_press, refresh and offer_trade. */
 static void test_slipgate_is_a_struct(void) {
     const entity_class_t *cls = slipgate_class();
     const entity_class_t *qh = structure_class();
@@ -574,7 +582,7 @@ static void test_slipgate_is_a_struct(void) {
     assert(as_structure(fr)->sprite == p8_fixed_from_int(78));
 }
 
-/* Counts the offers `cn` makes, taking each as `jo:ib`'s closure does. */
+/* Counts the offers offer_trade makes, taking each as planet_rebuild_trades's accept does. */
 static int g_offers = 0;
 
 static void take_offer(trade_offer_t *self, trade_route_t *a) {
@@ -583,10 +591,10 @@ static void take_offer(trade_offer_t *self, trade_route_t *a) {
     g_offers++;
 }
 
-/* `nr:cn` forwards a trade over each of its slipways but one the trade's
- * `rl` already runs through: over `w` to a planet wanting the trade's
- * resource, a trade whose `rl` holds `w` is not offered, one whose `rl`
- * does not is, once. */
+/* slipgate_offer_trade forwards a trade over each of its slipways but one
+ * the trade's slipways already run through: over a slipway to a planet
+ * wanting the trade's resource, a trade whose slipways hold it is not
+ * offered, one whose slipways do not is, once. */
 static void test_offer_trade_skips_a_slipway_already_in_slipways(void) {
     planet_t *self;
     planet_t *other;
@@ -637,7 +645,7 @@ static void test_offer_trade_skips_a_slipway_already_in_slipways(void) {
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked
- * right after pico8_cart_load(), as a fresh process would start it. */
+ * right after cart_load(), as a fresh process would start it. */
 static pid_t spawn(void (*test)(void)) {
     pid_t child;
 

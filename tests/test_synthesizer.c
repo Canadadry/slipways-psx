@@ -1,7 +1,8 @@
-/* The synthesizer `mx`, read and written on its struct members and the
- * generated defaults (pico8_game_data.h), built as the shop builds it (`ie:ldown` on
- * `gx[5]`, `id`) and driven through the real `mv`/`dg`/`dc` and a slipway's
- * `ey`, in games started directly: no events file. */
+/* The synthesizer, read and written on its struct members and the
+ * generated defaults (game/game_data.h), built as the shop builds it (a
+ * left press on its sixth icon, with a planet_id) and driven through the
+ * real class methods, update_entities, draw_layers and a slipway's drop, in
+ * games started directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -41,7 +42,7 @@
 #include "engine/game_zone.h"
 #include "heap_allocator.h"
 
-/* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
+/* The first vector copies the second: another box, same x and y; NULL for NULL. */
 static int pos_copies(const vec_t *ra, const vec_t *mp) {
     return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
 }
@@ -51,8 +52,8 @@ static int pos_copies(const vec_t *ra, const vec_t *mp) {
 #define LIFE_HASH 0xF71C0563u
 #define SYNTHESIS_HASH 0x2DBF1611u
 
-/* The tag `jo:ib`'s list carried as a tagged list, which the frozen hashes
- * fold: any other value moves every *_HASH. */
+/* The tag planet_rebuild_trades's list carried as a tagged list, which the
+ * frozen hashes fold: any other value moves every *_HASH. */
 #define FROZEN_LIST_TAG 0x9E5C1157u
 
 /* The tag entity structs carried, which the frozen hashes fold: any other
@@ -159,7 +160,7 @@ static uint32_t fold_structure(uint32_t h, const planet_t *qh) {
     return qh->archetype->is_structure ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
-/* `e` as an ascension, a `pm` or an `mx`: an `hj` first. */
+/* The entity as an ascension, a protostar or a synthesizer (asserted). */
 static planet_t *as_ascension(void *e) {
     const entity_class_t *c = ((const entity_t *)e)->class;
     assert(c == ascension_class() || c == protostar_class() || c == synthesizer_class());
@@ -170,7 +171,7 @@ static uint32_t fold_quarter_turn(uint32_t h, const planet_t *hj) {
     return fold_fixed_member(h, hj->emitter->archetype->quarter_turn);
 }
 
-/* A particle record as `g_.mm` returns it: `p`, `v`, `l`. */
+/* A particle record as probe_spawn_particle returns it: pos, velocity, life. */
 static uint32_t fold_particle(uint32_t h, const particle_t *q) {
     assert(q != NULL);
     assert(!q->has_acceleration);
@@ -196,8 +197,8 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
- * reads as difficulty 0. */
+/* A game started as cart_start_game starts it, with no difficulty picked:
+ * a NULL difficulty reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
@@ -219,9 +220,10 @@ static const entity_class_t *class_of(const void *e) {
     return ((const entity_t *)e)->class;
 }
 
-/* The members a planet of qh's tree holds: `kj`, `ev`, `hd`, `hk`, `hb`,
- * `ldown`, `gv`, `hq`, `ey`, `kf`, `cn` and the states `ll`, `ly`; `mm`
- * aside, no other. */
+/* The members a planet of the laboratory's tree holds: draw, draw_overlay,
+ * hit_test, new_year, refresh, left_press, accept_drop, drag, drop,
+ * attach_slipway, offer_trade and the vanishing and settled states;
+ * spawn_particle aside, no other. */
 static void assert_structure_shape(const entity_class_t *c) {
     assert(c->draw != NULL && c->draw_overlay != NULL && c->hit_test != NULL && c->new_year != NULL && c->refresh != NULL && c->left_press != NULL &&
            c->accept_drop != NULL && c->states[ENTITY_STATE_VANISHING] != NULL && c->states[ENTITY_STATE_SETTLED] != NULL);
@@ -230,8 +232,9 @@ static void assert_structure_shape(const entity_class_t *c) {
     assert(c->drag != NULL && c->drop != NULL && c->attach_slipway != NULL && c->offer_trade != NULL && c->draw_at == NULL);
 }
 
-/* `c` holds `ref`'s very members but `kf`, `cn` and `mm`, `kj` and the
- * state `ly` included when `with_kj`/`with_ly`. */
+/* The class holds the reference class's very members but attach_slipway,
+ * offer_trade and spawn_particle; draw and the settled state included when
+ * with_draw and with_update_settled are set. */
 static void assert_members_of(const entity_class_t *c, const entity_class_t *ref, int with_draw,
                               int with_update_settled) {
     assert(c->draw_overlay == ref->draw_overlay && c->hit_test == ref->hit_test && c->new_year == ref->new_year && c->refresh == ref->refresh && c->has_refresh == ref->has_refresh &&
@@ -241,7 +244,7 @@ static void assert_members_of(const entity_class_t *c, const entity_class_t *ref
     assert(!with_update_settled || c->states[ENTITY_STATE_SETTLED] == ref->states[ENTITY_STATE_SETTLED]);
 }
 
-/* The research icon whose `ke` is `kind`. */
+/* The structure icon whose kind is the given one. */
 static void *icon_of(const entity_kind_t *kind) {
     const entity_list_t *hb = entities_by_message("refresh");
     int i;
@@ -254,7 +257,7 @@ static void *icon_of(const entity_kind_t *kind) {
     return NULL;
 }
 
-/* `ie:ldown` on the icon of `kind`, as the shop does. */
+/* A left press on the icon of the given kind, as the shop does. */
 static void *build(const entity_kind_t *kind) {
     void *icon = icon_of(kind);
     down_t made;
@@ -269,19 +272,19 @@ static void *build_synthesizer(void) {
     return build(synthesizer_kind());
 }
 
-/* `mx` sets its own `px`: an entity whose `px` is the very table of mx's
- * class is a synthesizer. */
+/* The synthesizer has its own name: an entity whose name is the very row
+ * of the synthesizer archetype is a synthesizer. */
 static int is_synthesizer(const void *e) {
     const planet_t *jo = e != NULL && (class_of(e)->lineage & LINEAGE(LINEAGE_STRUCTURE)) ? e : NULL;
     return jo != NULL && jo->archetype->name == &synthesizer_name_row;
 }
 
-/* `ht` of an `mx`; NULL on any other struct, which has no `ht`. */
+/* The synthesizable resources of a synthesizer; NULL on any other struct. */
 static const int_seq_t *synthesizable_resources_of(const void *e) {
     return class_of(e) == synthesizer_class() ? ((const planet_t *)e)->synthesizable_resources : NULL;
 }
 
-/* The entry count of the `ht` table, -1 when absent. */
+/* The entry count of the synthesizable resources, -1 when absent. */
 static int synthesizable_resources_size(const void *e) {
     const int_seq_t *ht = synthesizable_resources_of(e);
     return ht == NULL ? -1 : ht->count;
@@ -291,11 +294,14 @@ static int synthesizable_resources_is_the_class_one(const void *e) {
     return synthesizable_resources_of(e) == &synthesizer_synthesizable_resources_seq;
 }
 
-/* A synthesizer as `ie:ldown`, `f_` and `jo:pq` left it: its scalars (the
- * 12 emitter defaults among them), which of its own, hj's, qh's and jo's
- * members are set, its methods (hj's very functions but its own `kf`), which
- * default tables it shares with `mx`, `qh` and `jo`, and where `lt`
- * registered it -- in `cg.jo`/`np`/`prober`, never in `cg.qh` or `cg.hj`. */
+/* A synthesizer as structure_icon_left_press, emitter_init and
+ * planet_construct left it: its scalars (the 12 emitter defaults among
+ * them), which of its own, the ascension's, the laboratory's and the
+ * planet's members are set, its methods (the ascension's very functions
+ * but its own attach_slipway), which default tables it shares with the
+ * synthesizer, laboratory and planet archetypes, and where entity_register
+ * filed it -- under the planet, node and targeting tags, never under the
+ * structure or ascension tag. */
 static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     const entity_class_t *ascension_cls = ascension_class();
     const planet_t *ascension = as_ascension(entity);
@@ -334,9 +340,9 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     hash = fold_vec(hash, &planet->archetype->row_step);
     hash = fnv(hash, (uint32_t)(synthesizable_resources_of(entity) != NULL));
     hash = fnv(hash, (uint32_t)synthesizable_resources_size(entity));
-    /* The 1s of hj's ten fixed emitter defaults, of `hp`, `qh`, `od`, `fp`,
-     * `dw`, `s`, then of `hf`, `hs`, `fa`, `ma` and `ca`: constant by the
-     * struct's shape, kept so that BUILT_HASH still proves the typed reads. */
+    /* The 1s of the ten fixed emitter defaults, project_index, is_structure,
+     * cost, clock_ticks, attach_distance, sprite, is_planet, trade_multiplier,
+     * layer, shake, back_color: constant by the shape, so BUILT_HASH proves the reads. */
     hash = fnv(hash, (uint32_t)(ascension->archetype->required_tech != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
@@ -423,8 +429,8 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     return hash;
 }
 
-/* Two synthesizers built by the shop's `ie:ldown` on `gx[5]`, each with a
- * `qy` of its own. */
+/* Two synthesizers built by the shop's left press on its sixth icon, each
+ * with a particle list of its own. */
 static void test_built(void) {
     uint32_t hash = 2166136261u;
     void *a;
@@ -449,7 +455,7 @@ static uint32_t fold_pos_y(uint32_t h, const planet_t *hj) {
     return ra == NULL ? fnv(h, 0xDEADu) : fnv(h, (uint32_t)ra->y);
 }
 
-/* `dg` once, then what qh's `ly` (`na`) left on the synthesizer. */
+/* update_entities once, then what the laboratory's settled update left. */
 static uint32_t fold_update_entities(uint32_t h, void *e) {
     const planet_t *hj = as_ascension(e);
 
@@ -459,8 +465,8 @@ static uint32_t fold_update_entities(uint32_t h, void *e) {
     return fold_pos_y(h, hj);
 }
 
-/* `jo:ib`'s container, folded as fold_ref folded the tagged list it was:
- * never in `hv`, so the tag branch. */
+/* planet_rebuild_trades's list, folded as fold_ref folded the tagged list
+ * it was: never a live entity, so the tag branch. */
 static uint32_t fold_rebuild_trades(uint32_t h, const entity_list_t *ib) {
     if (ib == NULL) {
         return fnv(h, 0xDEADu);
@@ -468,7 +474,9 @@ static uint32_t fold_rebuild_trades(uint32_t h, const entity_list_t *ib) {
     return fnv(fnv(h, 0xEEEEu), FROZEN_LIST_TAG);
 }
 
-/* What `bb`'s `dh`, `ib`, `gg` and `da` (qh false) give on a synthesizer. */
+/* What economy_tiers_compute_tier, planet_rebuild_trades,
+ * planet_is_colonized and planet_upkeep (is_structure false) give on a
+ * synthesizer. */
 static uint32_t fold_economy(uint32_t h, void *e) {
     entity_list_t *ib = planet_rebuild_trades(e);
     h = fnv(h, (uint32_t)economy_tiers_compute_tier(e));
@@ -478,17 +486,19 @@ static uint32_t fold_economy(uint32_t h, void *e) {
     return as_ascension(e)->has_development_tier ? fold_fixed_member(h, as_ascension(e)->development_tier) : fold_absent(h);
 }
 
-/* `dc("kj")` once: the screen it leaves and what `hj:kj` left in `qy`. */
+/* draw_layers("draw") once: the screen it leaves and what ascension_draw left in the particle list. */
 static uint32_t fold_draw(uint32_t h, void *e) {
     draw_layers("draw");
     h = fnv(h, screen_hash());
     return fnv(h, (uint32_t)pointer_list_size(as_ascension(e)->emitter->particles));
 }
 
-/* Placed on screen by `hq` (`bv`) and `ey` (`d_`); `dg` on one still in
- * "kz" (no `kz` method: nothing moves), then in "ly" (qh's `ly`, `na`);
- * `mm` (`g_.mm`, `pk` true) and `ez`; `kj` through `dc` with `mi`=1, then
- * `mi`=2 (`ei` moves and draws the particles); `dh`/`ib`/`gg`/`da`. */
+/* Placed on screen by the drag method (targeting_track) and the drop method
+ * (targeting_confirm); update_entities on one still in "placing" (no
+ * placing method: nothing moves), then in "settled" (the laboratory's
+ * settled update); spawn_particle (probe_spawn_particle, quarter_turn true)
+ * and emitter_spawn; draw through draw_layers at development tier 1, then
+ * 2 (emitter_update moves and draws the particles); the economy reads. */
 static void test_life(void) {
     uint32_t hash = 2166136261u;
     void *placed;
@@ -536,8 +546,8 @@ static void test_life(void) {
     check("life", hash, LIFE_HASH);
 }
 
-/* A slipway from `qu` to the synthesizer, joined by its real `ey`: `jc:ey`
- * charges the player, then runs `kf` on both ends. */
+/* A slipway from the given start to the synthesizer, joined by its real
+ * drop, which charges the player, then runs attach_slipway on both ends. */
 static void *join(void *qu, void *synthesizer) {
     slipway_keys_t slipway_keys = {0};
     void *jc;
@@ -551,8 +561,8 @@ static void *join(void *qu, void *synthesizer) {
     return jc;
 }
 
-/* `mx:kf` reads the other end's `jy`: one row per resource, `gc` its
- * count of suppliers. */
+/* synthesizer_attach_slipway reads the other end's needs: one row per
+ * resource, its satisfied field its count of suppliers. */
 static void give_row(void *e, int qe) {
     p8_fixed_t want_resource = p8_fixed_from_int(qe);
     need_t *row = need_new(game_zone(), &want_resource);
@@ -576,11 +586,13 @@ static uint32_t fold_attach_slipway(uint32_t h, void *e) {
     return fnv(h, (uint32_t)entity_list_pointer_list_size(jo->slipways));
 }
 
-/* `mx:kf` on a slipway from an ascension whose `jy` lacks a resource of `ht`: nothing
- * but `jo:kf`; then on one whose unsupplied row is `qe`=20, one of `ht`:
- * `kw.qe` takes it and `ht` becomes a fresh empty table, the class one
- * untouched; a later slipway finds `ht` empty and leaves it as it is. A
- * second synthesizer still starts from the class `ht`. */
+/* synthesizer_attach_slipway on a slipway from an ascension whose needs
+ * lack a synthesizable resource: nothing but planet_attach_slipway; then on
+ * one whose unsupplied row is resource 20, a synthesizable one: the
+ * production's resource takes it and the synthesizable resources become a
+ * fresh empty table, the class one untouched; a later slipway finds them
+ * empty and leaves them as they are. A second synthesizer still starts from
+ * the class table. */
 static void test_synthesis(void) {
     uint32_t h = 2166136261u;
     void *home;
@@ -653,10 +665,9 @@ static int is_a_synthesizer_struct(const void *e) {
            ((const entity_t *)e)->class == synthesizer_class();
 }
 
-/* Built by `ie:ldown` or pico8_mx_new, a synthesizer is a struct whose
- * descriptor holds hj's very entries but its own `kf`; a construction key
- * other than `id` stops the run. No class of mx's chain installs a function
- * any more. */
+/* Built by structure_icon_left_press or synthesizer_new, a synthesizer is
+ * a struct whose class holds the ascension's very entries but its own
+ * attach_slipway; a construction key other than planet_id stops the run. */
 static void test_synthesizer_is_a_struct(void) {
     const entity_class_t *cls = synthesizer_class();
     const entity_class_t *hj = ascension_class();
@@ -682,7 +693,7 @@ static void test_synthesizer_is_a_struct(void) {
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked
- * right after pico8_cart_load(), as a fresh process would start it. */
+ * right after cart_load(), as a fresh process would start it. */
 static pid_t spawn(void (*test)(void)) {
     pid_t child;
 
@@ -707,7 +718,7 @@ static void in_fresh_child(void (*test)(void)) {
     reap(spawn(test));
 }
 
-/* What an emitter holds in the particle zone, by sort. */
+/* What an emitter holds in the particle zone, by slot kind. */
 typedef struct {
     int particle;
     int particles;
@@ -724,8 +735,9 @@ static held_t held_now(void) {
     return h;
 }
 
-/* A synthesizer that leaves (`he`, then the exit queue's flush) gives
- * back its particles, its `qy` and its row, and keeps its struct. */
+/* A synthesizer that leaves (entity_unregister, then the exit queue's
+ * flush) gives back its particles, its particle list and its row, and keeps
+ * its struct. */
 static void test_leaving_gives_back_its_particles(void) {
     held_t before;
     held_t after;

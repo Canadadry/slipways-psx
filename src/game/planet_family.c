@@ -17,7 +17,7 @@
 #include "engine/game_zone.h"
 
 static int g_family_up = 0;
-/* Every burst's `by`, which `ib` extends in place; each init empties it. */
+/* The outgoing routes every burst shares; each init empties them. */
 static entity_list_t g_burst_outgoing_routes;
 
 void structure_update_settled_method(entity_t *self, p8_fixed_t t) {
@@ -425,10 +425,10 @@ void burst_draw(p8_graphics_t *graphics, p8_memory_t *memory, planet_t *self, ve
             p8_circ(graphics, memory, screen_x, screen_y, p8_fixed_flr_int(vec_length(pt->pos)), color);
         }
 
-        /* Lua's `pt` outlives the loop, so `p_` follows the THIRD slot
-         * alone: the burst dies when fewer than 3 particles remain, not
-         * when none do. A flag, not `pt`: `ei` may give that particle
-         * back before `p_` is written. */
+        /* Only the THIRD slot decides is_dead: the burst dies when fewer
+         * than 3 particles remain, not when none do. A flag, not the
+         * particle: emitter_update may give it back before is_dead is
+         * written. */
         third_taken = pt != NULL;
     }
 
@@ -441,8 +441,8 @@ static void burst_draw_method(entity_t *self, const vec_t *ra) {
     burst_draw(dispatch_context_gfx(), dispatch_context_mem(), (planet_t *)self, p);
 }
 
-/* A burst's place is the zone of its `oe` (pico8_ga_struct_new): given
- * back last, the struct and `oe` with it. */
+/* A burst's slot is the zone of its slipways list (burst_create): given
+ * back last, the struct and the list with it. */
 static void burst_release_method(entity_t *self) {
     const allocator_t *slot = ((planet_t *)self)->slipways->zone;
 
@@ -462,7 +462,7 @@ static const entity_class_t g_burst_class = {
     .offer_trade = planet_offer_trade_method,
     .spawn_particle = burst_spawn_particle,
     .states = {[ENTITY_STATE_VANISHING] = planet_update_vanishing_method},
-    /* ga's cart list of tags is empty and replaces jo's: never jo's. */
+    /* A burst carries no tag, not even a planet's. */
     .tags = 0,
     .lineage = LINEAGE(LINEAGE_PLANET),
 };
@@ -650,7 +650,7 @@ int burst_ready(void) {
     return g_family_up;
 }
 
-/* `kv["ga"]` (jo:hu): jo's keys, no `pq`. */
+/* planet_kind_named("burst"): a planet's keys, no construction group. */
 static entity_t *burst_kind_new(const planet_keys_t *keys) {
     burst_keys_t burst_keys;
 
@@ -677,8 +677,8 @@ planet_t *burst_new(const burst_keys_t *keys) {
     return burst_create(keys);
 }
 
-/* `kv`, indexed by `fz`: `pm` and `ga` are the only kinds whose spec sets
- * one. */
+/* The table planet_kind_named reads, by class name: protostar and burst
+ * are the only kinds a research project turns a planet into. */
 static const struct {
     const char *class_name;
     const entity_kind_t *(*kind)(void);

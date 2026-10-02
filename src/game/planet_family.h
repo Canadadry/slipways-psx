@@ -9,49 +9,51 @@
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
-/* Throughout this module -- this file and its `_trade` sibling -- a NULL
- * instance, gfx or mem argument is a safe no-op, and an absent or
- * wrong-kind field reads as its zero/false default rather than crashing. */
+/* A NULL instance returns at once from trading_hub_update_settled,
+ * ascension_draw, protostar_construct, burst_construct and burst_draw; the
+ * other functions dereference it. */
 
 /* TROU-8 */
-/* Calls `pico8_pi_init()` first. */
+/* Requires planet_init() (asserted); calls planet_family_shutdown(), then
+ * draw_functions_init(). */
 void planet_family_init(void);
 
-/* Frees no instance; ga's shared `by` is forgotten without being read, its
- * array going with the loading sub-zone. Idempotent, and safe before the
- * first `pico8_planet_family_init()`. */
+/* Frees no instance; the outgoing routes list every burst shares gives its
+ * array back to the loading sub-zone (entity_list_free). Idempotent, and
+ * safe before the first planet_family_init(). */
 void planet_family_shutdown(void);
 
-/* Every `_ready` below is 1 from `pico8_planet_family_init()` to
- * `pico8_planet_family_shutdown()`, 0 otherwise. A `_kind` accessor is never
- * NULL. */
+/* Every _ready below is 1 from planet_family_init() to
+ * planet_family_shutdown(), 0 otherwise. A _kind accessor is never NULL. */
 
-/* A laboratory: a planet whose `s` and probe are copied from its kind's
- * archetype, the probe's with `et`, which its own `hq` (`bv`) writes. */
+/* A laboratory: a planet whose sprite and targeting are copied from its
+ * kind's archetype, the targeting with a target, which its own drag method
+ * (targeting_track) writes. */
 int structure_ready(void);
 const entity_kind_t *structure_kind(void);
 const entity_class_t *structure_class(void);
 
-/* Initializes an allocated pico8_jo_t under `cls` and `def`, its kind's
- * archetype: jo's part, then `s` and the probe copied from `def`. Reads no
- * key, runs neither `pq` nor `lt`, records no coverage. Requires
- * `pico8_planet_family_init()`. */
+/* Initializes an allocated planet_t under the given class and archetype:
+ * the planet's part, then the sprite and the targeting copied from the
+ * archetype. Reads no key, runs neither planet_construct nor
+ * entity_construct, records no coverage. Requires planet_init(), which
+ * planet_init_instance asserts. */
 void structure_init_instance(planet_t *self, const entity_class_t *cls, const planet_archetype_t *archetype);
 
-/* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
- * NULL. The new laboratory registers itself into `hv`/`cv`/`cg` through `lt`, and it
- * lives in the game generation. Requires `pico8_planet_family_init()`. */
+/* `keys` (NULL means none) is not kept: planet_id only, borrowed; map_pos
+ * and pos NULL (asserted). The new laboratory registers itself (entity_register),
+ * and lives in the construction zone. Requires planet_family_init(). */
 planet_t *structure_new(const planet_keys_t *keys);
 
-/* A trading hub: a laboratory whose `qw` is copied from its archetype and
- * written by its own `ly`. */
+/* A trading hub: a laboratory whose palette block is copied from its
+ * archetype and written by its own settled update. */
 int trading_hub_ready(void);
 const entity_kind_t *trading_hub_kind(void);
 const entity_class_t *trading_hub_class(void);
 
-/* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
- * NULL. The new trading hub registers itself into `hv`/`cv`/`cg` through `lt`, and
- * it lives in the game generation. Requires `pico8_planet_family_init()`. */
+/* `keys` (NULL means none) is not kept: planet_id only, borrowed; map_pos
+ * and pos NULL (asserted). The new trading hub registers itself (entity_register),
+ * and lives in the construction zone. Requires planet_family_init(). */
 planet_t *trading_hub_new(const planet_keys_t *keys);
 
 /* A processor: a laboratory and nothing of its own; its defaults are its
@@ -60,37 +62,41 @@ int processor_ready(void);
 const entity_kind_t *processor_kind(void);
 const entity_class_t *processor_class(void);
 
-/* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
- * NULL. The new processor registers itself into `hv`/`cv`/`cg` through `lt`, and it
- * lives in the game generation. Requires `pico8_planet_family_init()`. */
+/* `keys` (NULL means none) is not kept: planet_id only, borrowed; map_pos
+ * and pos NULL (asserted). The new processor registers itself (entity_register),
+ * and lives in the construction zone. Requires planet_family_init(). */
 planet_t *processor_new(const planet_keys_t *keys);
 
 /* An ascension: a laboratory whose emitter is copied from its kind's
- * archetype, with `qy`, which its own `pq` (`f_`) writes. */
+ * archetype, with a particle list, which its construction (emitter_init)
+ * writes. */
 int ascension_ready(void);
 const entity_kind_t *ascension_kind(void);
 const entity_class_t *ascension_class(void);
 
-/* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
- * NULL. The new ascension registers itself into `hv`/`cv`/`cg` through `lt`, and it
- * lives in the game generation. Requires `pico8_planet_family_init()`. */
+/* `keys` (NULL means none) is not kept: planet_id only, borrowed; map_pos
+ * and pos NULL (asserted). The new ascension registers itself (entity_register),
+ * and lives in the construction zone. Requires planet_family_init(). */
 planet_t *ascension_new(const planet_keys_t *keys);
 
-/* Initializes an allocated pico8_jo_t under `cls` and `def`, its kind's
- * archetype: qh's part, then the emitter copied from `def`, `qy` nil. Reads
- * no key, runs neither `pq` nor `lt`, records no coverage. Requires
- * `pico8_planet_family_init()`. */
+/* Initializes an allocated planet_t under the given class and archetype:
+ * the laboratory's part (structure_init_instance), then the emitter copied
+ * from the archetype, its particle list NULL. Reads no key, runs neither
+ * emitter_init, planet_construct nor entity_construct, records no
+ * coverage. Requires planet_init(), which planet_init_instance asserts. */
 void ascension_init_instance(planet_t *self, const entity_class_t *cls, const planet_archetype_t *archetype);
 
-/* The dispatchers hj's descriptor holds, for a daughter's `static const`
- * descriptor to name. */
+/* The methods the ascension class holds, for a derived class's static
+ * const class to name. */
 void structure_update_settled_method(entity_t *self, p8_fixed_t t);
 void ascension_draw_method(entity_t *self, const vec_t *ra);
-/* pico8_jo_rendre_dispatch, then the planet's `qy`. */
+/* planet_release_row, then the particles (emitter_release_particles),
+ * then planet_grab_arena_released. */
 void ascension_release_method(entity_t *self);
 
-/* `pm` and `ga` are the only classes here whose spec sets `fz`: the two
- * kinds `jo:hu`'s `kv[hp.cw]` can resolve. */
+/* Protostar and burst are the only classes here with a class name in the
+ * table of planet_kind_named: the two kinds planet_apply_project can turn
+ * a planet into, by its research project's class name. */
 
 /* A protostar: an ascension and nothing of its own; its defaults are its
  * archetype's. */
@@ -98,38 +104,44 @@ int protostar_ready(void);
 const entity_kind_t *protostar_kind(void);
 const entity_class_t *protostar_class(void);
 
-/* `keys` (NULL means none) is read, not kept. The new protostar first
- * spawns its `ga` at `ra + ng`, then registers itself into `hv`/`cv`/`cg`
- * through `lt`, after that `ga`; it lives in the game generation. Requires
- * `pico8_planet_family_init()`. */
+/* `keys` (NULL means none) is not kept; its map_pos, pos and planet_id
+ * are borrowed. The new protostar first spawns its burst at its position
+ * plus the archetype's spawn_offset, then registers itself
+ * (entity_register), after that burst; it lives in the construction zone.
+ * Requires planet_family_init(). */
 planet_t *protostar_new(const planet_keys_t *keys);
 
-/* A particle burst: a planet whose `iu`, `ms` and emitter are copied from
- * its archetype, with `qy`, which its own `pq` (`f_`) writes; the emitter's
- * `pn`, `du` are left unwritten, read by `g_:mm` only. `by` is the one list
- * every burst shares, which `ib` extends in place and each init empties. A
- * burst spawned by `pm:pq` takes `iu`, `ms`, `py`, `k_`, `qo`, `ro`, `qg`,
- * `q_` from its keys instead. */
+/* A particle burst: a planet whose acceleration factor, speed and emitter
+ * are copied from its archetype, with a particle list, which its
+ * construction (emitter_init) writes; the emitter's angle slices and base
+ * radius are left unwritten, read by probe_spawn_particle only. Its
+ * outgoing routes are the one list every burst shares, which
+ * planet_rebuild_trades extends in place and each init empties. A burst
+ * spawned by a protostar's construction takes the acceleration factor,
+ * speed, speed factor, trail colors and the four matrix entries from its
+ * keys instead. */
 int burst_ready(void);
 const entity_kind_t *burst_kind(void);
 const entity_class_t *burst_class(void);
 
-/* A burst's construction keys: `jo`'s (jo:hu), whose `p`, `ra`, `id` the
- * burst borrows, then the group pm:pq passes (`pq` NULL: ga's own defaults
- * stand; its `k_` NULL: `k_` is nil). `ra_copie`, when not NULL, is copied
- * into the burst's own place and becomes its `ra`; `jo.ra` must then be
- * NULL. */
+/* A burst's construction keys: a planet's keys (planet_apply_project),
+ * whose map_pos, pos and planet_id the burst borrows, then the group a
+ * protostar's construction passes (construct NULL: the archetype's own
+ * values stand; its trail_colors NULL: the burst has none). pos_copy, when
+ * not NULL, is copied into the burst's own slot and becomes its pos;
+ * planet.pos must then be NULL (asserted). */
 typedef struct {
     planet_keys_t planet;
     const vec_t *pos_copy;
     const burst_construct_keys_t *construct;
 } burst_keys_t;
 
-/* `keys` (NULL means none) is not kept. The new burst lives, with its `oe`
- * and its copied `ra`, in one place of the `ga` sort, and registers itself
- * into `hv`/`cv`, in no `cg`, through `lt`; its `rendre` gives that place
- * back once it leaves through the exit queue. Requires
- * `pico8_planet_family_init()`. */
+/* `keys` (NULL means none) is not kept; its map_pos, pos and planet_id
+ * are borrowed. The new burst lives, with its slipways list and its copied
+ * position, in one slot of the burst kind (particle_burst_slot_take), and
+ * registers itself (entity_register) under no tag; its release method
+ * gives that slot back once it leaves through the exit queue. Requires
+ * planet_family_init(). */
 planet_t *burst_new(const burst_keys_t *keys);
 
 void trading_hub_update_settled(planet_t *self, p8_fixed_t t);
@@ -140,8 +152,8 @@ void protostar_construct(planet_t *self);
 
 void burst_construct(planet_t *self);
 
-/* A particle (`has_a` 1) from pico8_particule_prendre, which `ez` stores
- * into `self.qy`. */
+/* A particle with an acceleration, from particle_take, which emitter_spawn
+ * stores into the burst's particle list. */
 particle_t *burst_spawn_particle(entity_t *self);
 
 void burst_draw(p8_graphics_t *graphics, p8_memory_t *memory, planet_t *self, vec_t screen_pos);

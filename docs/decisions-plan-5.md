@@ -73,6 +73,7 @@
 | D-46 | 4f2 | Fonctions de `main_economy.h` définies dans `probe.c` (`probe_set_main_economy`) | 3 + 159 |
 | D-47 | 4g | `structure_icon_sprite_counter` compte des identifiants de planète, pas des sprites | 4 + 5 + 5 |
 | D-48 | 4h | Noms de test qui décrivent l'API générique disparue ou la méthode du cart (`test_ui.c`, `test_main_mouse.c`, `test_main_camera.c`) | 2 + 2 + 4 + 8 |
+| D-49 | 4i | Assistants de test qui citent un digramme du cart ou un surnom (`planet_by_ref`, `build_plate`, `fold_plate`, `is_plate`) | 2 + 6 + 3 + 3 |
 
 ## Entrées
 
@@ -584,6 +585,7 @@
 - **Complément (4f1, 4f2)** : 4f1 ajoute 3 lignes de cette forme (`prise` → `grab_arena` → `used_before`/`used`), 4f2 en ajoute 8 (`ra`/`p` → `pos` → `screen_pos` ×3, `px` → `name` → `screen_x`, `py` → `speed_factor` → `screen_y`, `prise` → `grab_arena` → `used`, `prise_rendue` → `grab_arena_released` → `released_used`, `em` → `spacer` → `emitter`) : 25 lignes en tout. `rename-table-check` sur l'extraction de l'état des chaînes de 4f2 : 27 708 → 27 670.
 - **Complément (4g)** : 4g ajoute 1 ligne de cette forme (`ra` → `pos` → `icon_pos`, `test_directed` de `tests/test_structure_icon.c`) : 26 lignes en tout. `rename-table-check` sur l'extraction de l'état des chaînes de 4g : 27 708 → 27 679 (30 violations tombent, celle-ci apparaît).
 - **Complément (4h)** : 4h ajoute 3 lignes de cette forme (`ra` → `pos` → `mouse_screen`, `ui_send_to_hovered` de `src/game/ui.c` ; `p` → `pos` → `draw_pos`, `button_draw` de `src/game/ui_button.c` et son prototype de `ui_button.h`) : 29 lignes en tout. `rename-table-check` sur l'extraction de l'état des chaînes de 4h : 27 708 → 27 671 (40 violations tombent, ces 3 apparaissent).
+- **Complément (4i)** : 4i ajoute 6 lignes de cette forme (`p` → `pos` → `screen_pos` ×2, `px` → `name` → `screen_x`, `py` → `speed_factor` → `screen_y`, `burst_draw` de `src/game/planet_family.c` et son prototype de `planet_family.h` ; `ra` → `pos` → `planet_pos`, `test_burst_export_line_counts_the_outgoing_routes` de `tests/test_burst_exports_row.c` ; `p` → `pos` → `map_pos`, `test_life` de `tests/test_protostar.c`) : 35 lignes en tout. `rename-table-check` sur l'extraction de l'état des chaînes de 4i : 27 708 → 27 682 (32 violations tombent, ces 6 apparaissent).
 - **Verdict** :
 
 ### D-43 — Paramètres `gfx`/`mem` des fonctions de dessin
@@ -596,6 +598,7 @@
 - **Portée** : sous (b), s'applique aussi aux mentions entre backticks et en commentaire ; contrôle : les deux `grep` ci-dessus rendent 0.
 - **Complément (4f2)** : après 4f2, `grep -rnE 'p8_graphics_t \*gfx\b' src | wc -l` 92, `'p8_memory_t \*mem\b'` 124 (`emitter_update` et `wormhole_draw` renommés, prototypes compris) ; restent à courte portée, dans les fichiers de 4f2, `targeting_tooltip` et `targeting_tooltip_show`.
 - **Complément (4h)** : après 4h, `grep -rnE 'p8_graphics_t \*gfx\b' src | wc -l` 90, `'p8_memory_t \*mem\b'` 118 (`button_draw`, `background_construct`, `ui_update_hover` renommés, prototypes compris) ; restent à courte portée, dans les fichiers de 4h, `ui_update`, `ui_draw_overlay`, `button_draw_overlay`, `background_draw`, `camera_apply`, leurs prototypes et la statique `mouse_construct`.
+- **Complément (4i)** : après 4i, `grep -rnE 'p8_graphics_t \*gfx\b' src | wc -l` 88, `'p8_memory_t \*mem\b'` 116 (`burst_draw` et son prototype renommés) ; restent à courte portée, dans les fichiers de 4i, `ascension_draw` et son prototype, et les paramètres de `setup_panel_state` (`tests/test_burst_exports_row.c`, portée 13).
 - **Verdict** :
 
 ### D-44 — Champ `planet_inspection_panel_ctx_t.unmet_needs`, qui tient les besoins reçus
@@ -647,4 +650,14 @@
 - **Sites** (`grep` des conventions, fin de 4h) : `test_ui_held_stops_off_row` 2 et `test_probe_t_key_stops_off_row` 2 (définition, appel de `main`) ; `test_recompute_on_placeholder` 4 (deux fichiers) ; `RECOMPUTE_MOUSE_WORLD_X` 4 et `RECOMPUTE_MOUSE_WORLD_Y` 4 (définition et emploi dans chacun des deux fichiers). Noms neufs : 0 site.
 - **Proposition prête à appliquer** : (a), procédure N, identités relevées dans `declarations.tsv` à la fin de 4h : `test_ui_held_stops_off_row	test_ui_held_aborts_on_other_classes	tests/test_ui.c	c:test_ui.c@F@test_ui_held_stops_off_row`, `test_probe_t_key_stops_off_row	test_probe_state_time_key_at_zero	tests/test_ui.c	c:test_ui.c@F@test_probe_t_key_stops_off_row`, `test_recompute_on_placeholder	test_update_on_placeholder	tests/test_main_mouse.c	c:test_main_mouse.c@F@test_recompute_on_placeholder`, `test_recompute_on_placeholder	test_update_on_placeholder	tests/test_main_camera.c	c:test_main_camera.c@F@test_recompute_on_placeholder`, `RECOMPUTE_MOUSE_WORLD_X	UPDATE_MOUSE_WORLD_X	tests/test_main_mouse.c	macro:tests/test_main_mouse.c:RECOMPUTE_MOUSE_WORLD_X` et ses trois pendants (`_Y`, et les deux de `tests/test_main_camera.c`) ; les lignes de `docs/renommage.tsv` passent aux noms neufs. Renommer ne change aucun hachage (aucun nom n'est plié).
 - **Portée** : s'applique aussi aux mentions en commentaire (aucune après 4h) ; contrôle : le `grep` des conventions sur les cinq anciens noms rend 0.
+- **Verdict** :
+
+### D-49 — Assistants de test qui citent un digramme du cart ou un surnom
+
+- **Origine** : 4i (commit de commentaires, relecture de `tests/test_burst_exports_row.c` et `tests/test_trading_hub.c`).
+- **Question** : `planet_by_ref` (`tests/test_burst_exports_row.c`) rend `planet->outgoing_routes` ; `by` est le digramme du cart de ce champ, que le §1 interdit et que 3i a déjà retiré du nom du test `test_burst_export_line_counts_the_outgoing_routes`. `build_plate`, `fold_plate`, `is_plate` (`tests/test_trading_hub.c`) disent « plate », surnom de test du plateau commercial que rien d'autre dans le dépôt ne dit ; `is_plate` lit `archetype->is_trading_hub`. Aucun compteur ne les voit : le nom entier n'est pas un ancien nom, `by` et `plate` sont des mots anglais. Les renommer ?
+- **Options** : (a) `outgoing_routes_of`, `build_trading_hub`, `fold_trading_hub`, `is_trading_hub_archetype` (pas `is_trading_hub`, homonyme du champ d'archétype : espace de noms à part, mais lecture trompeuse), procédure N ; (b) garder.
+- **Sites** (`grep` des conventions, fin de 4i) : `planet_by_ref` 2 (définition, appel), `build_plate` 6, `fold_plate` 3, `is_plate` 3 ; noms neufs : 0 site.
+- **Proposition prête à appliquer** : (a), procédure N, identités relevées dans `declarations.tsv` à la fin de 4i : `planet_by_ref	outgoing_routes_of	tests/test_burst_exports_row.c	c:test_burst_exports_row.c@F@planet_by_ref`, `build_plate	build_trading_hub	tests/test_trading_hub.c	c:test_trading_hub.c@F@build_plate`, `fold_plate	fold_trading_hub	tests/test_trading_hub.c	c:test_trading_hub.c@F@fold_plate`, `is_plate	is_trading_hub_archetype	tests/test_trading_hub.c	c:test_trading_hub.c@F@is_plate` ; les lignes de `docs/renommage.tsv` passent aux noms neufs. Renommer ne change aucun hachage (aucun nom n'est plié).
+- **Portée** : s'applique aussi aux mentions en commentaire ; le mot « plate » des commentaires de `tests/test_trading_hub.c` est déjà réécrit « trading hub » par 4i (`grep -rnw 'plate\|plates' src tests` ne rend que les trois noms). Contrôle : le `grep` des conventions sur les quatre anciens noms rend 0.
 - **Verdict** :

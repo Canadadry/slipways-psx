@@ -1,5 +1,6 @@
-/* The trading hub `nl`, read and written on its struct members and the
- * generated defaults (pico8_game_data.h), and driven through the real `ie:ldown`/`mv`/`dg`, in
+/* The trading hub, read and written on its struct members and the
+ * generated defaults (game/game_data.h), and driven through the real
+ * structure_icon_left_press, its class methods and update_entities, in
  * games built directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
@@ -34,7 +35,7 @@
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
-/* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
+/* The first vector copies the second: another box, same x and y; NULL for NULL. */
 static int pos_copies(const vec_t *ra, const vec_t *mp) {
     return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
 }
@@ -43,8 +44,8 @@ static int pos_copies(const vec_t *ra, const vec_t *mp) {
 #define BUILT_HASH 0x067C3AC7u
 #define LIFE_HASH 0x31386BDAu
 
-/* The tag `jo:ib`'s list carried as a tagged list, which the frozen hashes
- * fold: any other value moves every *_HASH. */
+/* The tag planet_rebuild_trades's list carried as a tagged list, which the
+ * frozen hashes fold: any other value moves every *_HASH. */
 #define FROZEN_LIST_TAG 0x9E5C1157u
 
 /* The tag entity structs carried, which the frozen hashes fold: any other
@@ -147,7 +148,7 @@ static uint32_t fold_production(uint32_t h, const planet_t *jo) {
     return fnv(h, (uint32_t)(k == planet_shared_production()));
 }
 
-/* `e` as a planet of qh's lineage. */
+/* The entity as a planet of the laboratory's lineage (asserted). */
 static planet_t *as_structure(void *e) {
     const entity_t *h = e;
 
@@ -164,7 +165,7 @@ static uint32_t target_state(const planet_t *qh) {
     return qh->targeting->target == NULL ? 1u : 3u;
 }
 
-/* `et` as qh's reader gave it: false or the target. */
+/* The laboratory's target as its targeting holds it: false or the target. */
 static uint32_t fold_target(uint32_t h, const planet_t *qh) {
     switch (target_state(qh)) {
     case 1u:
@@ -180,8 +181,8 @@ static void check(const char *label, uint32_t got, uint32_t want) {
     assert(got == want);
 }
 
-/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
- * reads as difficulty 0. */
+/* A game started as cart_start_game starts it, with no difficulty picked:
+ * a NULL difficulty reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
@@ -203,15 +204,16 @@ static const entity_class_t *class_of(const void *e) {
     return ((const entity_t *)e)->class;
 }
 
-/* `e` as a planet of nl's lineage. */
+/* The entity as a planet of the trading hub's lineage (asserted). */
 static const planet_t *as_trading_hub(const void *e) {
     assert(e != NULL && (class_of(e)->lineage & LINEAGE(LINEAGE_TRADING_HUB)));
     return e;
 }
 
-/* The members a planet of qh's tree holds: `kj`, `ev`, `hd`, `hk`, `hb`,
- * `ldown`, `gv`, `hq`, `ey`, `kf`, `cn` and the states `ll`, `ly`; `mm`
- * aside, no other. */
+/* The members a planet of the laboratory's tree holds: draw, draw_overlay,
+ * hit_test, new_year, refresh, left_press, accept_drop, drag, drop,
+ * attach_slipway, offer_trade and the vanishing and settled states;
+ * spawn_particle aside, no other. */
 static void assert_structure_shape(const entity_class_t *c) {
     assert(c->draw != NULL && c->draw_overlay != NULL && c->hit_test != NULL && c->new_year != NULL && c->refresh != NULL && c->left_press != NULL &&
            c->accept_drop != NULL && c->states[ENTITY_STATE_VANISHING] != NULL && c->states[ENTITY_STATE_SETTLED] != NULL);
@@ -220,8 +222,9 @@ static void assert_structure_shape(const entity_class_t *c) {
     assert(c->drag != NULL && c->drop != NULL && c->attach_slipway != NULL && c->offer_trade != NULL && c->draw_at == NULL);
 }
 
-/* `c` holds `ref`'s very members but `kf`, `cn` and `mm`, `kj` and the
- * state `ly` included when `with_kj`/`with_ly`. */
+/* The class holds the reference class's very members but attach_slipway,
+ * offer_trade and spawn_particle; draw and the settled state included when
+ * with_draw and with_update_settled are set. */
 static void assert_members_of(const entity_class_t *c, const entity_class_t *ref, int with_draw,
                               int with_update_settled) {
     assert(c->draw_overlay == ref->draw_overlay && c->hit_test == ref->hit_test && c->new_year == ref->new_year && c->refresh == ref->refresh && c->has_refresh == ref->has_refresh &&
@@ -231,7 +234,7 @@ static void assert_members_of(const entity_class_t *c, const entity_class_t *ref
     assert(!with_update_settled || c->states[ENTITY_STATE_SETTLED] == ref->states[ENTITY_STATE_SETTLED]);
 }
 
-/* The research icon whose `ke` is `gx[4]`, the trading hub. */
+/* The structure icon whose kind is the shop's fifth, the trading hub. */
 static void *trading_hub_icon(void) {
     const entity_list_t *hb = entities_by_message("refresh");
     int i;
@@ -244,7 +247,7 @@ static void *trading_hub_icon(void) {
     return NULL;
 }
 
-/* `ie:ldown` on the trading hub's icon, as the shop does. */
+/* A left press on the trading hub's icon, as the shop does. */
 static void *build_plate(void) {
     void *icon = trading_hub_icon();
     down_t made;
@@ -255,16 +258,18 @@ static void *build_plate(void) {
     return made.held;
 }
 
-/* A plate is the only entity whose chain holds `nl`, and its `nl` is 1. */
+/* A trading hub is the only entity of the trading hub lineage, and its is_trading_hub is 1. */
 static int is_plate(const void *e) {
     const planet_t *jo = e != NULL && (class_of(e)->lineage & LINEAGE(LINEAGE_TRADING_HUB)) ? e : NULL;
     return jo != NULL && jo->archetype->is_trading_hub == p8_fixed_from_int(1);
 }
 
-/* A plate as `ie:ldown` and `jo:pq` left it: its scalars, which of nl's,
- * qh's and jo's members are set, its methods (qh's chain's very
- * functions, but its own `ly`), which default tables it shares with `nl`
- * and `jo`, and where `lt` registered it -- never in `cg.qh`. */
+/* A trading hub as structure_icon_left_press and planet_construct left it:
+ * its scalars, which of its own, the laboratory's and the planet's members
+ * are set, its methods (the laboratory chain's very functions, but its own
+ * settled update), which default tables it shares with the trading hub and
+ * planet archetypes, and where entity_register filed it -- never under the
+ * structure tag. */
 static uint32_t fold_plate(uint32_t hash, const void *entity) {
     const planet_t *trading_hub = as_trading_hub(entity);
     const planet_t *structure;
@@ -293,9 +298,9 @@ static uint32_t fold_plate(uint32_t hash, const void *entity) {
     hash = fold_fixed_member(hash, planet->shake);
     hash = fold_fixed_member(hash, planet->archetype->back_color);
     hash = fold_vec(hash, &planet->archetype->row_step);
-    /* The 1s of `nl` and `qw`, of `hp`, `qh`, `od`, `fp`, `dw`, `s`, then of
-     * `hf`, `hs`, `fa`, `ma` and `ca`: constant by the struct's shape, kept
-     * so that BUILT_HASH still proves the typed reads. */
+    /* The 1s of is_trading_hub, palette_block, project_index, is_structure, cost,
+     * clock_ticks, attach_distance, sprite, is_planet, trade_multiplier, layer,
+     * shake and back_color: constant by the shape, kept so BUILT_HASH proves the reads. */
     hash = fnv(hash, (uint32_t)(trading_hub->archetype->required_tech != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
@@ -370,7 +375,7 @@ static uint32_t fold_plate(uint32_t hash, const void *entity) {
     return hash;
 }
 
-/* Two plates built by the shop's `ie:ldown` on `gx[4]`. */
+/* Two trading hubs built by the shop's left press on its fifth icon. */
 static void test_built(void) {
     uint32_t hash = 2166136261u;
     void *a;
@@ -399,7 +404,7 @@ static uint32_t fold_pos_y(uint32_t h, const planet_t *nl) {
     return ra == NULL ? fnv(h, 0xDEADu) : fnv(h, (uint32_t)ra->y);
 }
 
-/* `dg` once, then what `nl:ly` left on the plate. */
+/* update_entities once, then what trading_hub_update_settled left. */
 static uint32_t fold_update_entities(uint32_t h, const void *e) {
     const planet_t *nl = as_trading_hub(e);
 
@@ -410,8 +415,8 @@ static uint32_t fold_update_entities(uint32_t h, const void *e) {
     return fold_fixed_member(h, nl->palette_block);
 }
 
-/* `jo:ib`'s container, folded as fold_ref folded the tagged list it was:
- * never in `hv`, so the tag branch. */
+/* planet_rebuild_trades's list, folded as fold_ref folded the tagged list
+ * it was: never a live entity, so the tag branch. */
 static uint32_t fold_rebuild_trades(uint32_t h, const entity_list_t *ib) {
     if (ib == NULL) {
         return fnv(h, 0xDEADu);
@@ -419,8 +424,9 @@ static uint32_t fold_rebuild_trades(uint32_t h, const entity_list_t *ib) {
     return fnv(fnv(h, 0xEEEEu), FROZEN_LIST_TAG);
 }
 
-/* What `bb`'s `dh` (the `pt.nl` branch), `ib`, `gg` and `da` (qh false)
- * give on a plate. */
+/* What economy_tiers_compute_tier (its trading hub branch),
+ * planet_rebuild_trades, planet_is_colonized and planet_upkeep
+ * (is_structure false) give on a trading hub. */
 static uint32_t fold_economy(uint32_t h, void *e) {
     entity_list_t *ib = planet_rebuild_trades(e);
     h = fnv(h, (uint32_t)economy_tiers_compute_tier(e));
@@ -430,9 +436,11 @@ static uint32_t fold_economy(uint32_t h, void *e) {
     return as_structure(e)->has_development_tier ? fold_fixed_member(h, as_structure(e)->development_tier) : fold_absent(h);
 }
 
-/* `hq` (`bv`) in the panel then `ey` (`d_`) with the credits; `dg` in "ly"
- * with `mi`=1 (`qw` stays), then `mi` at 2 and 3 (`qw` = 8+t%42/6); `dg`
- * on a plate still in "kz". */
+/* The drag method (targeting_track) in the panel then the drop method
+ * (targeting_confirm) with the credits; update_entities in "settled" with
+ * development tier 1 (the palette block stays), then at tiers 2 and 3 (the
+ * palette block is 8 + (time mod 42) / 6); update_entities on a trading hub
+ * still in "placing". */
 static void test_life(void) {
     uint32_t hash = 2166136261u;
     planet_t *placed;
@@ -480,8 +488,6 @@ static void test_life(void) {
     check("life", hash, LIFE_HASH);
 }
 
-/* Per frame, every plate in `hv`: what the shop, `bv`, `d_`, `dg`, `nl:ly`
- * and `jo`'s functions write on it; plus the screen. */
 static void must_abort(void (*write)(void *), void *e) {
     pid_t child;
     int status;
@@ -512,9 +518,9 @@ static int is_a_trading_hub_struct(const void *e) {
            ((const entity_t *)e)->class == trading_hub_class();
 }
 
-/* Built by `ie:ldown` or pico8_nl_new, a plate is a struct whose descriptor
- * holds qh's very entries but its own `ly`, which nl's class no longer
- * carries; a construction key other than `id` stops the run. */
+/* Built by structure_icon_left_press or trading_hub_new, a trading hub is
+ * a struct whose class holds the laboratory's very entries but its own
+ * settled update; a construction key other than planet_id stops the run. */
 static void test_trading_hub_is_a_struct(void) {
     const entity_class_t *cls = trading_hub_class();
     const entity_class_t *qh = structure_class();
@@ -537,7 +543,7 @@ static void test_trading_hub_is_a_struct(void) {
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked
- * right after pico8_cart_load(), as a fresh process would start it. */
+ * right after cart_load(), as a fresh process would start it. */
 static pid_t spawn(void (*test)(void)) {
     pid_t child;
 

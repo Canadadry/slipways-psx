@@ -1,7 +1,8 @@
-/* The protostar `pm`, read and written on its struct members and the
- * generated defaults (pico8_game_data.h), built as `jo:hu` builds it
- * (`kv["pm"]` on `p`, `ra`, `id`) and driven through the real
- * `mv`/`dg`/`dc`, in games started directly: no events file. */
+/* The protostar, read and written on its struct members and the generated
+ * defaults (game/game_data.h), built as planet_apply_project builds it (its
+ * kind on map_pos, pos and planet_id) and driven through the real class
+ * methods, update_entities and draw_layers, in games started directly: no
+ * events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -39,8 +40,8 @@
 #define BUILT_HASH 0x9F8A0FC3u
 #define LIFE_HASH 0x3F990656u
 
-/* The tag `jo:ib`'s list carried as a tagged list, which the frozen hashes
- * fold: any other value moves every *_HASH. */
+/* The tag planet_rebuild_trades's list carried as a tagged list, which the
+ * frozen hashes fold: any other value moves every *_HASH. */
 #define FROZEN_LIST_TAG 0x9E5C1157u
 
 static p8_memory_t mem;
@@ -133,7 +134,7 @@ static uint32_t fold_structure(uint32_t h, const planet_t *qh) {
     return qh->archetype->is_structure ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
-/* `e` as an ascension, a `pm` or an `mx`: an `hj` first. */
+/* The entity as an ascension, a protostar or a synthesizer (asserted). */
 static planet_t *as_ascension(void *e) {
     const entity_class_t *c = ((const entity_t *)e)->class;
     assert(c == ascension_class() || c == protostar_class() || c == synthesizer_class());
@@ -144,7 +145,7 @@ static uint32_t fold_quarter_turn(uint32_t h, const planet_t *hj) {
     return fold_bool_member(h, hj->emitter->archetype->quarter_turn != 0);
 }
 
-/* A particle record as `g_.mm` returns it: `p`, `v`, `l`. */
+/* A particle record as probe_spawn_particle returns it: pos, velocity, life. */
 static uint32_t fold_particle(uint32_t h, const particle_t *q) {
     assert(q != NULL);
     assert(!q->has_acceleration);
@@ -170,8 +171,8 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
- * reads as difficulty 0. */
+/* A game started as cart_start_game starts it, with no difficulty picked:
+ * a NULL difficulty reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
@@ -193,9 +194,10 @@ static const entity_class_t *class_of(const void *e) {
     return ((const entity_t *)e)->class;
 }
 
-/* The members a planet of qh's tree holds: `kj`, `ev`, `hd`, `hk`, `hb`,
- * `ldown`, `gv`, `hq`, `ey`, `kf`, `cn` and the states `ll`, `ly`; `mm`
- * aside, no other. */
+/* The members a planet of the laboratory's tree holds: draw, draw_overlay,
+ * hit_test, new_year, refresh, left_press, accept_drop, drag, drop,
+ * attach_slipway, offer_trade and the vanishing and settled states;
+ * spawn_particle aside, no other. */
 static void assert_structure_shape(const entity_class_t *c) {
     assert(c->draw != NULL && c->draw_overlay != NULL && c->hit_test != NULL && c->new_year != NULL && c->refresh != NULL && c->left_press != NULL &&
            c->accept_drop != NULL && c->states[ENTITY_STATE_VANISHING] != NULL && c->states[ENTITY_STATE_SETTLED] != NULL);
@@ -204,8 +206,9 @@ static void assert_structure_shape(const entity_class_t *c) {
     assert(c->drag != NULL && c->drop != NULL && c->attach_slipway != NULL && c->offer_trade != NULL && c->draw_at == NULL);
 }
 
-/* `c` holds `ref`'s very members but `kf`, `cn` and `mm`, `kj` and the
- * state `ly` included when `with_kj`/`with_ly`. */
+/* The class holds the reference class's very members but attach_slipway,
+ * offer_trade and spawn_particle; draw and the settled state included when
+ * with_draw and with_update_settled are set. */
 static void assert_members_of(const entity_class_t *c, const entity_class_t *ref, int with_draw,
                               int with_update_settled) {
     assert(c->draw_overlay == ref->draw_overlay && c->hit_test == ref->hit_test && c->new_year == ref->new_year && c->refresh == ref->refresh && c->has_refresh == ref->has_refresh &&
@@ -215,7 +218,7 @@ static void assert_members_of(const entity_class_t *c, const entity_class_t *ref
     assert(!with_update_settled || c->states[ENTITY_STATE_SETTLED] == ref->states[ENTITY_STATE_SETTLED]);
 }
 
-/* `kv["pm"]` as `jo:hu` calls it: `p`, `ra`, `id`, each only when given. */
+/* protostar_new as planet_apply_project calls it: map_pos, pos and planet_id, each only when given. */
 static void *build_protostar(const vec_t *p, const vec_t *ra, const char *id) {
     planet_keys_t keys;
     void *made;
@@ -234,8 +237,8 @@ static void *build_protostar(const vec_t *p, const vec_t *ra, const char *id) {
     return made;
 }
 
-/* `pm` sets its own `px`: an entity whose `px` is the very table of pm's
- * class is a protostar. */
+/* The protostar has its own name: an entity whose name is the very row of
+ * the protostar archetype is a protostar. */
 static int is_protostar(const void *e) {
     const planet_t *jo = e != NULL && (class_of(e)->lineage & LINEAGE(LINEAGE_STRUCTURE)) ? e : NULL;
     return jo != NULL && jo->archetype->name == &protostar_name_row;
@@ -246,8 +249,9 @@ static int is_burst(const void *e) {
            strcmp(((const planet_t *)e)->archetype->class_name, "burst") == 0;
 }
 
-/* The `ga` that `pm:pq` spawned: registered in `hv` just before the
- * protostar, at `ra + ng`; its `qy` and `mo.ma` as `ga:pq` left them. */
+/* The burst that protostar_construct spawned: registered just before the
+ * protostar, at its pos plus the spawn offset; its particle list and the
+ * camera's shake as burst_construct left them. */
 static uint32_t fold_spawned(uint32_t h, void *e) {
     const entity_list_t *hv = live_entities();
     int at = entity_list_rank_in(hv, e);
@@ -277,11 +281,13 @@ static uint32_t fold_spawned(uint32_t h, void *e) {
     return fold_fixed_member(h, main_camera_typed()->shake);
 }
 
-/* A protostar as `kv["pm"]`, `pm:pq`, `f_` and `jo:pq` left it: its
- * scalars, which of its own, hj's, qh's and jo's members are set, its
- * methods (hj's very functions), which default tables it shares with `pm`,
- * `qh` and `jo`, where `lt` registered it -- in `cg.jo`/`np`/`prober`,
- * never in `cg.qh` or `cg.hj` -- and the `ga` it spawned. */
+/* A protostar as protostar_new, protostar_construct, emitter_init and
+ * planet_construct left it: its scalars, which of its own, the
+ * ascension's, the laboratory's and the planet's members are set, its
+ * methods (the ascension's very functions), which default tables it shares
+ * with the protostar, laboratory and planet archetypes, where
+ * entity_register filed it -- under the planet, node and targeting tags,
+ * never under the structure or ascension tag -- and the burst it spawned. */
 static uint32_t fold_protostar(uint32_t hash, void *entity) {
     const planet_t *ascension = as_ascension(entity);
     const planet_t *protostar;
@@ -324,9 +330,9 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     hash = fold_vec(hash, &planet->archetype->row_step);
     hash = fold_vec(hash, planet->pos);
     hash = fold_vec(hash, planet->map_pos);
-    /* The 1s of hj's ten fixed emitter defaults, of `hp`, `qh`, `od`, `fp`,
-     * `dw`, `s`, then of `hf`, `hs`, `fa`, `ma` and `ca`: constant by the
-     * struct's shape, kept so that BUILT_HASH still proves the typed reads. */
+    /* The 1s of the ten fixed emitter defaults, project_index, is_structure,
+     * cost, clock_ticks, attach_distance, sprite, is_planet, trade_multiplier,
+     * layer, shake, back_color: constant by the shape, so BUILT_HASH proves the reads. */
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(protostar->archetype->class_name != NULL));
     hash = fnv(hash, (uint32_t)(ascension->archetype->required_tech != NULL));
@@ -416,8 +422,8 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     return fold_spawned(hash, entity);
 }
 
-/* Two protostars built as `jo:hu` builds them, each with a `qy` of its own
- * and a `ga` of its own. */
+/* Two protostars built as planet_apply_project builds them, each with a
+ * particle list of its own and a burst of its own. */
 static void test_built(void) {
     uint32_t hash = 2166136261u;
     vec_t pa = vec_xy(40, 50);
@@ -442,7 +448,7 @@ static uint32_t fold_pos_y(uint32_t h, const planet_t *hj) {
     return ra == NULL ? fnv(h, 0xDEADu) : fnv(h, (uint32_t)ra->y);
 }
 
-/* `dg` once, then what qh's `ly` (`na`) left on the protostar. */
+/* update_entities once, then what the laboratory's settled update left. */
 static uint32_t fold_update_entities(uint32_t h, void *e) {
     const planet_t *hj = as_ascension(e);
 
@@ -452,8 +458,8 @@ static uint32_t fold_update_entities(uint32_t h, void *e) {
     return fold_pos_y(h, hj);
 }
 
-/* `jo:ib`'s container, folded as the other planet TUs' fold_ref folds the tagged list it was:
- * never in `hv`, so the tag branch. */
+/* planet_rebuild_trades's list, folded as the other planet tests' fold_ref
+ * folds the tagged list it was: never a live entity, so the tag branch. */
 static uint32_t fold_rebuild_trades(uint32_t h, const entity_list_t *ib) {
     if (ib == NULL) {
         return fnv(h, 0xDEADu);
@@ -461,7 +467,9 @@ static uint32_t fold_rebuild_trades(uint32_t h, const entity_list_t *ib) {
     return fnv(fnv(h, 0xEEEEu), FROZEN_LIST_TAG);
 }
 
-/* What `bb`'s `dh`, `ib`, `gg` and `da` (qh false) give on a protostar. */
+/* What economy_tiers_compute_tier, planet_rebuild_trades,
+ * planet_is_colonized and planet_upkeep (is_structure false) give on a
+ * protostar. */
 static uint32_t fold_economy(uint32_t h, void *e) {
     entity_list_t *ib = planet_rebuild_trades(e);
     h = fnv(h, (uint32_t)economy_tiers_compute_tier(e));
@@ -471,17 +479,18 @@ static uint32_t fold_economy(uint32_t h, void *e) {
     return as_ascension(e)->has_development_tier ? fold_fixed_member(h, as_ascension(e)->development_tier) : fold_absent(h);
 }
 
-/* `dc("kj")` once: the screen it leaves and what `hj:kj` left in `qy`. */
+/* draw_layers("draw") once: the screen it leaves and what ascension_draw left in the particle list. */
 static uint32_t fold_draw(uint32_t h, void *e) {
     draw_layers("draw");
     h = fnv(h, screen_hash());
     return fnv(h, (uint32_t)pointer_list_size(as_ascension(e)->emitter->particles));
 }
 
-/* `dg` in "ly" (qh's `ly`, `na`); `mm` (`g_.mm`, `pk` false: no rotation)
- * and `ez`; `kj` through `dc` with `mi`=1, then `mi`=2 (`ei` moves and
- * draws the particles); `dh`/`ib`/`gg`/`da`; a protostar built on `id`
- * alone, its `ga` at `ng`. */
+/* update_entities in "settled" (the laboratory's settled update);
+ * spawn_particle (probe_spawn_particle, quarter_turn false: no rotation)
+ * and emitter_spawn; draw through draw_layers at development tier 1, then
+ * 2 (emitter_update moves and draws the particles); the economy reads; a
+ * protostar built on a planet_id alone, its burst at the spawn offset. */
 static void test_life(void) {
     uint32_t hash = 2166136261u;
     const vec_t *main_camera_pos;
@@ -532,8 +541,8 @@ static int is_a_protostar_struct(const void *e) {
            ((const entity_t *)e)->class == protostar_class();
 }
 
-/* Built by `kv["pm"]` or pico8_pm_new, a protostar is a struct whose
- * descriptor holds hj's very entries. pm's class keeps no `pq` of its own. */
+/* Built by its kind or protostar_new, a protostar is a struct whose class
+ * holds the ascension's very entries. */
 static void test_protostar_is_a_struct(void) {
     const entity_class_t *cls = protostar_class();
     const entity_class_t *hj = ascension_class();
@@ -557,7 +566,7 @@ static void test_protostar_is_a_struct(void) {
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked
- * right after pico8_cart_load(), as a fresh process would start it. */
+ * right after cart_load(), as a fresh process would start it. */
 static pid_t spawn(void (*test)(void)) {
     pid_t child;
 
@@ -582,7 +591,7 @@ static void in_fresh_child(void (*test)(void)) {
     reap(spawn(test));
 }
 
-/* What an emitter holds in the particle zone, by sort. */
+/* What an emitter holds in the particle zone, by slot kind. */
 typedef struct {
     int particle;
     int particles;
@@ -599,8 +608,9 @@ static held_t held_now(void) {
     return h;
 }
 
-/* A protostar that leaves (`he`, then the exit queue's flush) gives back
- * its particles and its `qy`, not those of the burst it spawned. */
+/* A protostar that leaves (entity_unregister, then the exit queue's
+ * flush) gives back its particles and its particle list, not those of the
+ * burst it spawned. */
 static void test_leaving_gives_back_its_particles(void) {
     held_t built;
     held_t after;

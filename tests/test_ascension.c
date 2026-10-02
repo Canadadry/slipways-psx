@@ -1,6 +1,7 @@
-/* The ascension `hj`, read and written on its struct members and the
- * generated defaults (pico8_game_data.h), and driven through the real
- * `ie:ldown`/`mv`/`dg`/`dc`, in games started directly: no events file. */
+/* The ascension, read and written on its struct members and the generated
+ * defaults (game/game_data.h), and driven through the real
+ * structure_icon_left_press, its class methods, update_entities and
+ * draw_layers, in games started directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -38,7 +39,7 @@
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
-/* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
+/* The first vector copies the second: another box, same x and y; NULL for NULL. */
 static int pos_copies(const vec_t *ra, const vec_t *mp) {
     return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
 }
@@ -56,8 +57,8 @@ static int pos_copies(const vec_t *ra, const vec_t *mp) {
 #define LIFE_HASH 0x7CA7348Bu
 #define HEIRS_HASH 0x2E00DEDDu
 
-/* The tag `jo:ib`'s list carried as a tagged list, which the frozen hashes
- * fold: any other value moves every *_HASH. */
+/* The tag planet_rebuild_trades's list carried as a tagged list, which the
+ * frozen hashes fold: any other value moves every *_HASH. */
 #define FROZEN_LIST_TAG 0x9E5C1157u
 
 static p8_memory_t mem;
@@ -174,7 +175,7 @@ static uint32_t target_state(const planet_t *qh) {
     return qh->targeting->target == NULL ? 1u : 3u;
 }
 
-/* `et` as qh's reader gave it: false or the target. */
+/* The laboratory's target as its targeting holds it: false or the target. */
 static uint32_t fold_target(uint32_t h, const planet_t *qh) {
     switch (target_state(qh)) {
     case 1u:
@@ -184,7 +185,7 @@ static uint32_t fold_target(uint32_t h, const planet_t *qh) {
     }
 }
 
-/* `e` as an ascension, a `pm` or an `mx`: an `hj` first. */
+/* The entity as an ascension, a protostar or a synthesizer (asserted). */
 static planet_t *as_ascension(void *e) {
     const entity_class_t *c = ((const entity_t *)e)->class;
     assert(c == ascension_class() || c == protostar_class() || c == synthesizer_class());
@@ -196,7 +197,7 @@ static uint32_t fold_quarter_turn(uint32_t h, const planet_t *hj) {
                                                            : fold_fixed_member(h, hj->emitter->archetype->quarter_turn);
 }
 
-/* A particle record as `g_.mm` returns it: `p`, `v`, `l`. */
+/* A particle record as probe_spawn_particle returns it: pos, velocity, life. */
 static uint32_t fold_particle(uint32_t h, const particle_t *q) {
     assert(q != NULL);
     assert(!q->has_acceleration);
@@ -222,8 +223,8 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
- * reads as difficulty 0. */
+/* A game started as cart_start_game starts it, with no difficulty picked:
+ * a NULL difficulty reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
@@ -245,8 +246,8 @@ static const entity_class_t *class_of(const void *e) {
     return ((const entity_t *)e)->class;
 }
 
-/* `c` holds qh's very members, but its own `kj` and `mm` (`mm` checked
- * apart). */
+/* The class holds the laboratory's very members, but its own draw and
+ * spawn_particle (spawn_particle checked apart). */
 static void assert_structure_members_but_draw(const entity_class_t *c) {
     const entity_class_t *qh = structure_class();
     int j;
@@ -265,7 +266,7 @@ static void assert_structure_members_but_draw(const entity_class_t *c) {
            c->states[ENTITY_STATE_UNFOLDING] == NULL);
 }
 
-/* The research icon whose `ke` is `kind`. */
+/* The structure icon whose kind is the given one. */
 static void *icon_of(const entity_kind_t *kind) {
     const entity_list_t *hb = entities_by_message("refresh");
     int i;
@@ -278,7 +279,7 @@ static void *icon_of(const entity_kind_t *kind) {
     return NULL;
 }
 
-/* `ie:ldown` on the icon of `kind`, as the shop does. */
+/* A left press on the icon of the given kind, as the shop does. */
 static void *build(const entity_kind_t *kind) {
     void *icon = icon_of(kind);
     down_t made;
@@ -293,18 +294,20 @@ static void *build_ascension(void) {
     return build(ascension_kind());
 }
 
-/* `pm` and `mx` each set their own `px`: an entity whose `px` is the very
- * row `px` is one of that kind. */
+/* The protostar and the synthesizer each have their own name: an entity
+ * whose name is the very given row is one of that kind. */
 static int is_of(const void *e, const data_row_t *px) {
     const planet_t *jo = e != NULL && (class_of(e)->lineage & LINEAGE(LINEAGE_STRUCTURE)) ? e : NULL;
     return jo != NULL && jo->archetype->name == px;
 }
 
-/* An ascension as `ie:ldown`, `f_` and `jo:pq` left it: its scalars (the 12
- * emitter defaults among them), which of its own, qh's and jo's members
- * are set, its methods (qh's chain's very functions but `kj`, its own, and
- * `mm`, `g_`'s), which default tables it shares with `hj`, `qh` and `jo`,
- * and where `lt` registered it -- in `cg.hj`, never in `cg.qh`. */
+/* An ascension as structure_icon_left_press, emitter_init and
+ * planet_construct left it: its scalars (the 12 emitter defaults among
+ * them), which of its own, the laboratory's and the planet's members are
+ * set, its methods (the laboratory chain's very functions but its own draw
+ * and the probe's spawn_particle), which default tables it shares with the
+ * ascension, laboratory and planet archetypes, and where entity_register
+ * filed it -- under the ascension tag, never under the structure tag. */
 static uint32_t fold_ascension(uint32_t hash, void *entity) {
     const planet_t *ascension = as_ascension(entity);
     const emitter_t *spacer = ascension->emitter;
@@ -340,9 +343,9 @@ static uint32_t fold_ascension(uint32_t hash, void *entity) {
     hash = fold_fixed_member(hash, planet->shake);
     hash = fold_fixed_member(hash, planet->archetype->back_color);
     hash = fold_vec(hash, &planet->archetype->row_step);
-    /* The 1s of the ten fixed emitter defaults, of `hp`, `qh`, `od`, `fp`,
-     * `dw`, `s`, then of `hf`, `hs`, `fa`, `ma` and `ca`: constant by the
-     * struct's shape, kept so that BUILT_HASH still proves the typed reads. */
+    /* The 1s of the ten fixed emitter defaults, project_index, is_structure,
+     * cost, clock_ticks, attach_distance, sprite, is_planet, trade_multiplier,
+     * layer, shake, back_color: constant by the shape, so BUILT_HASH proves the reads. */
     hash = fnv(hash, (uint32_t)(ascension->archetype->required_tech != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
@@ -425,8 +428,8 @@ static uint32_t fold_ascension(uint32_t hash, void *entity) {
     return hash;
 }
 
-/* Two ascensions built by the shop's `ie:ldown` on `gx[6]`, each with a
- * `qy` of its own. */
+/* Two ascensions built by the shop's left press on its seventh icon, each
+ * with a particle list of its own. */
 static void test_built(void) {
     uint32_t hash = 2166136261u;
     void *a;
@@ -456,7 +459,7 @@ static uint32_t fold_pos_y(uint32_t h, const planet_t *hj) {
     return ra == NULL ? fnv(h, 0xDEADu) : fnv(h, (uint32_t)ra->y);
 }
 
-/* `dg` once, then what qh's `ly` (`na`) left on the ascension. */
+/* update_entities once, then what the laboratory's settled update left. */
 static uint32_t fold_update_entities(uint32_t h, void *e) {
     const planet_t *hj = as_ascension(e);
 
@@ -466,8 +469,8 @@ static uint32_t fold_update_entities(uint32_t h, void *e) {
     return fold_pos_y(h, hj);
 }
 
-/* `jo:ib`'s container, folded as fold_ref folded the tagged list it was:
- * never in `hv`, so the tag branch. */
+/* planet_rebuild_trades's list, folded as fold_ref folded the tagged list
+ * it was: never a live entity, so the tag branch. */
 static uint32_t fold_rebuild_trades(uint32_t h, const entity_list_t *ib) {
     if (ib == NULL) {
         return fnv(h, 0xDEADu);
@@ -475,8 +478,9 @@ static uint32_t fold_rebuild_trades(uint32_t h, const entity_list_t *ib) {
     return fnv(fnv(h, 0xEEEEu), FROZEN_LIST_TAG);
 }
 
-/* What `bb`'s `dh` (no `pt.nl`, `pt.hf` false), `ib`, `gg` and `da` (qh
- * false) give on an ascension. */
+/* What economy_tiers_compute_tier (no trading hub flag, is_planet false),
+ * planet_rebuild_trades, planet_is_colonized and planet_upkeep
+ * (is_structure false) give on an ascension. */
 static uint32_t fold_economy(uint32_t h, void *e) {
     entity_list_t *ib = planet_rebuild_trades(e);
     h = fnv(h, (uint32_t)economy_tiers_compute_tier(e));
@@ -486,17 +490,19 @@ static uint32_t fold_economy(uint32_t h, void *e) {
     return as_ascension(e)->has_development_tier ? fold_fixed_member(h, as_ascension(e)->development_tier) : fold_absent(h);
 }
 
-/* `dc("kj")` once: the screen it leaves and what `hj:kj` left in `qy`. */
+/* draw_layers("draw") once: the screen it leaves and what ascension_draw left in the particle list. */
 static uint32_t fold_draw(uint32_t h, void *e) {
     draw_layers("draw");
     h = fnv(h, screen_hash());
     return fnv(h, (uint32_t)pointer_list_size(as_ascension(e)->emitter->particles));
 }
 
-/* `hq` (`bv`) on screen then `ey` (`d_`) with the credits; `bb`/`ib`/`gg`/
- * `da`; `dg` in "ly" (qh's `ly`, `na`); `mm` (`g_.mm`, `pk` true) and `ez`;
- * `kj` through `dc` with `mi`=1, then `mi`=2 (`ei` moves and draws the
- * particles); `dg` on an ascension still in "kz". */
+/* The drag method (targeting_track) on screen then the drop method
+ * (targeting_confirm) with the credits; the economy reads; update_entities
+ * in "settled" (the laboratory's settled update); spawn_particle
+ * (probe_spawn_particle, quarter_turn true) and emitter_spawn; draw through
+ * draw_layers at development tier 1, then 2 (emitter_update moves and draws
+ * the particles); update_entities on an ascension still in "placing". */
 static void test_life(void) {
     uint32_t hash = 2166136261u;
     void *placed;
@@ -550,9 +556,9 @@ static void test_life(void) {
     check("life", hash, LIFE_HASH);
 }
 
-/* A `pm` as `jo:hu` builds it (`p`, `ra`, `id`) or an `mx` by `ie:ldown`
- * on `gx[5]`, each a struct under its own descriptor holding hj's `kj` and
- * `mm`. */
+/* A protostar as planet_apply_project builds it (map_pos, pos, planet_id)
+ * or a synthesizer by a left press on the shop's sixth icon, each a struct
+ * under its own class holding the ascension's draw and spawn_particle. */
 static uint32_t fold_heir(uint32_t h, void *e, const entity_class_t *cls) {
     const planet_t *hj;
 
@@ -630,10 +636,11 @@ static int is_an_ascension_struct(const void *e) {
            ((const entity_t *)e)->class == ascension_class();
 }
 
-/* Built by `ie:ldown` or pico8_hj_new, an ascension is a struct whose
- * descriptor holds qh's very entries but its own `kj` and `g_`'s `mm`; a
- * construction key other than `id` stops the run. No other descriptor but
- * pm's and mx's has an `mm`. */
+/* Built by structure_icon_left_press or ascension_new, an ascension is a
+ * struct whose class holds the laboratory's very entries but its own draw
+ * and the probe's spawn_particle; a construction key other than planet_id
+ * stops the run. The planet, laboratory, trading hub and processor classes
+ * have no spawn_particle. */
 static void test_ascension_is_a_struct(void) {
     const entity_class_t *const no_spawn_particle[] = {planet_class(), structure_class(),
                                                  trading_hub_class(), processor_class()};
@@ -660,7 +667,7 @@ static void test_ascension_is_a_struct(void) {
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked
- * right after pico8_cart_load(), as a fresh process would start it. */
+ * right after cart_load(), as a fresh process would start it. */
 static pid_t spawn(void (*test)(void)) {
     pid_t child;
 
@@ -685,7 +692,7 @@ static void in_fresh_child(void (*test)(void)) {
     reap(spawn(test));
 }
 
-/* What an emitter holds in the particle zone, by sort. */
+/* What an emitter holds in the particle zone, by slot kind. */
 typedef struct {
     int particle;
     int particles;
@@ -702,8 +709,9 @@ static held_t held_now(void) {
     return h;
 }
 
-/* An ascension that leaves (`he`, then the exit queue's flush) gives back
- * its particles, its `qy` and its row, and keeps its struct. */
+/* An ascension that leaves (entity_unregister, then the exit queue's
+ * flush) gives back its particles, its particle list and its row, and
+ * keeps its struct. */
 static void test_leaving_gives_back_its_particles(void) {
     held_t before;
     held_t after;

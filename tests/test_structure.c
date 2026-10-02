@@ -1,7 +1,8 @@
-/* The laboratory `qh`, read on its struct members and the generated
- * defaults (pico8_game_data.h), and driven through the real
- * `ie:ldown`/`mv`/`dg`. Its descendants are read the same way. Games are
- * started directly: no events file. */
+/* The laboratory, read on its struct members and the generated defaults
+ * (game/game_data.h), and driven through the real
+ * structure_icon_left_press, its class methods and update_entities. Its
+ * descendants are read the same way. Games are started directly: no events
+ * file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -41,7 +42,7 @@
 #include "engine/vec.h"
 #include "game/wormhole.h"
 
-/* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
+/* The first vector copies the second: another box, same x and y; NULL for NULL. */
 static int pos_copies(const vec_t *ra, const vec_t *mp) {
     return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
 }
@@ -92,7 +93,7 @@ static int entity_list_listed(const entity_list_t *list, const void *e) {
     return entity_list_rank_in(list, e) >= 0;
 }
 
-/* `e` as a planet of qh's lineage. */
+/* The entity as a planet of the laboratory's lineage (asserted). */
 static planet_t *as_structure(void *e) {
     const entity_t *h = e;
 
@@ -160,7 +161,7 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     return fnv(fnv(h, 0xEEEEu), FROZEN_INSTANCE_TAG);
 }
 
-/* `et` as qh's reader gave it: false or the target. */
+/* The laboratory's target as its targeting holds it: false or the target. */
 static uint32_t fold_target(uint32_t h, const planet_t *qh) {
     switch (target_state(qh)) {
     case 1u:
@@ -196,8 +197,8 @@ static void check(const char *label, uint32_t got, uint32_t want) {
     assert(got == want);
 }
 
-/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
- * reads as difficulty 0. */
+/* A game started as cart_start_game starts it, with no difficulty picked:
+ * a NULL difficulty reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
@@ -220,9 +221,10 @@ static const entity_class_t *class_of(const void *e) {
     return ((const entity_t *)e)->class;
 }
 
-/* The members a planet of qh's tree holds: `kj`, `ev`, `hd`, `hk`, `hb`,
- * `ldown`, `gv`, `hq`, `ey`, `kf`, `cn` and the states `ll`, `ly`; `mm`
- * aside, no other. */
+/* The members a planet of the laboratory's tree holds: draw, draw_overlay,
+ * hit_test, new_year, refresh, left_press, accept_drop, drag, drop,
+ * attach_slipway, offer_trade and the vanishing and settled states;
+ * spawn_particle aside, no other. */
 static void assert_structure_shape(const entity_class_t *c) {
     assert(c->draw != NULL && c->draw_overlay != NULL && c->hit_test != NULL && c->new_year != NULL && c->refresh != NULL && c->left_press != NULL &&
            c->accept_drop != NULL && c->states[ENTITY_STATE_VANISHING] != NULL && c->states[ENTITY_STATE_SETTLED] != NULL);
@@ -231,8 +233,9 @@ static void assert_structure_shape(const entity_class_t *c) {
     assert(c->drag != NULL && c->drop != NULL && c->attach_slipway != NULL && c->offer_trade != NULL && c->draw_at == NULL);
 }
 
-/* `c` holds `ref`'s very members but `kf`, `cn` and `mm`, `kj` and the
- * state `ly` included when `with_kj`/`with_ly`. */
+/* The class holds the reference class's very members but attach_slipway,
+ * offer_trade and spawn_particle; draw and the settled state included when
+ * with_draw and with_update_settled are set. */
 static void assert_members_of(const entity_class_t *c, const entity_class_t *ref, int with_draw,
                               int with_update_settled) {
     assert(c->draw_overlay == ref->draw_overlay && c->hit_test == ref->hit_test && c->new_year == ref->new_year && c->refresh == ref->refresh && c->has_refresh == ref->has_refresh &&
@@ -242,7 +245,7 @@ static void assert_members_of(const entity_class_t *c, const entity_class_t *ref
     assert(!with_update_settled || c->states[ENTITY_STATE_SETTLED] == ref->states[ENTITY_STATE_SETTLED]);
 }
 
-/* The research icon whose `ke` is `gx[0]`, the laboratory. */
+/* The structure icon whose kind is the shop's first, the laboratory. */
 static void *structure_icon(void) {
     const entity_list_t *hb = entities_by_message("refresh");
     int i;
@@ -255,7 +258,7 @@ static void *structure_icon(void) {
     return NULL;
 }
 
-/* `ie:ldown` on the laboratory's icon, as the shop does. */
+/* A left press on the laboratory's icon, as the shop does. */
 static void *build_lab(void) {
     void *icon = structure_icon();
     down_t made;
@@ -266,10 +269,11 @@ static void *build_lab(void) {
     return made.held;
 }
 
-/* A laboratory as `ie:ldown` and `jo:pq` left it: its scalars, which of
- * qh's and jo's members are set, its methods (the very functions of the
- * class chain), which default tables it shares with `qh` and `jo`, and
- * where `lt` registered it. */
+/* A laboratory as structure_icon_left_press and planet_construct left it:
+ * its scalars, which of the laboratory's and the planet's members are set,
+ * its methods (the very functions of the class chain), which default
+ * tables it shares with the laboratory and the planet archetypes, and
+ * where entity_register filed it. */
 static uint32_t fold_lab(uint32_t hash, void *entity) {
     const planet_t *structure = as_structure(entity);
     const planet_t *planet = structure;
@@ -292,9 +296,9 @@ static uint32_t fold_lab(uint32_t hash, void *entity) {
     hash = fold_fixed_member(hash, planet->shake);
     hash = fold_fixed_member(hash, planet->archetype->back_color);
     hash = fold_vec(hash, &planet->archetype->row_step);
-    /* The 1s of `hp`, `qh`, `od`, `fp`, `dw`, `s`, then of `hf`, `hs`, `fa`,
-     * `ma` and `ca`: constant by the struct's shape, kept so that BUILT_HASH
-     * still proves the typed reads. */
+    /* The 1s of project_index, is_structure, cost, clock_ticks, attach_distance,
+     * sprite, is_planet, trade_multiplier, layer, shake and back_color: constant
+     * by the struct's shape, kept so that BUILT_HASH still proves the typed reads. */
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(structure->archetype->name != NULL));
     hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != NULL));
@@ -361,7 +365,7 @@ static uint32_t fold_lab(uint32_t hash, void *entity) {
     return hash;
 }
 
-/* Two laboratories built by the shop's `ie:ldown` on `gx[0]`. */
+/* Two laboratories built by the shop's left press on its first icon. */
 static void test_built(void) {
     uint32_t hash = 2166136261u;
     void *a;
@@ -385,8 +389,8 @@ static void set_credits(int n) {
     main_economy_typed()->credits = p8_fixed_from_int(n);
 }
 
-/* What `bv` left on a laboratory: `ra` (a copy of what was passed), `p`, and
- * what `et` is. */
+/* What targeting_track left on a laboratory: its pos (a copy of the mouse
+ * position passed), its map_pos, and what its target is. */
 static uint32_t fold_held(uint32_t h, void *e, const vec_t *mp) {
     const planet_t *qh = as_structure(e);
 
@@ -402,9 +406,10 @@ static uint32_t fold_pos_y(uint32_t h, void *e) {
     return fnv(h, (uint32_t)ra->y);
 }
 
-/* `hq` (`bv`) at an empty point, in the panel and out of it, then next to
- * a planet; `ey` (`d_`) with and without the credits; `dg` on a laboratory
- * in "ly" (`qh.ly` = `na`) and on one still in "kz". */
+/* The drag method (targeting_track) at an empty point, in the panel and
+ * out of it, then next to a planet; the drop method (targeting_confirm)
+ * with and without the credits; update_entities on a laboratory in
+ * "settled", which bobs, and on one still in "placing", which does not. */
 static void test_life(void) {
     uint32_t hash = 2166136261u;
     void *out_lab;
@@ -511,9 +516,11 @@ static int descendant_of(const void *e) {
     return -1;
 }
 
-/* What a descendant inherits from `qh`: `dq`, `fp`, `dw`, `hf`, whether
- * its tags/`px`/`ba` are qh's own, `hq`/`ev`/`ey` (qh's functions),
- * and its `ly` called once (`ra.y` before, after, then put back). */
+/* What a descendant inherits from the laboratory: confirmed_state,
+ * clock_ticks, attach_distance, is_planet, whether its tags, name and
+ * accepted resources are the laboratory's own, drag, draw_overlay and drop
+ * (the laboratory's functions), and its settled update called once (the
+ * y of its pos before, after, then put back). */
 static uint32_t fold_descendant(uint32_t h, void *d) {
     planet_t *qh = as_structure(d);
     planet_t *nl = class_of(d) == trading_hub_class() ? (planet_t *)d : NULL;
@@ -547,8 +554,8 @@ static uint32_t fold_descendant(uint32_t h, void *d) {
     return h;
 }
 
-/* The shop's `ie:ldown` on the icon of `kind`, as the player buys it, then
- * dragged by `hq` to the middle of the screen. */
+/* The shop's left press on the icon of the kind, as the player buys it,
+ * then dragged by its drag method to the middle of the screen. */
 static void *bought(const entity_kind_t *kind) {
     const entity_list_t *hb = entities_by_message("refresh");
     const camera_t *mo = main_camera_typed();
@@ -571,7 +578,7 @@ static void *bought(const entity_kind_t *kind) {
     return NULL;
 }
 
-/* The project of `gb` whose `cw` names `cw`. */
+/* The research project whose class name is the given one. */
 static research_project_t *class_name_project(const char *cw) {
     int k;
 
@@ -585,8 +592,8 @@ static research_project_t *class_name_project(const char *cw) {
 }
 
 /* Each descendant by the road a game takes to it: the six of the shop
- * bought from their icons, `pm` turned from a generated planet by `jo:hu`
- * on the collapse project (the newest entity of `hv`). */
+ * bought from their icons, the protostar turned from a generated planet by
+ * planet_apply_project on the collapse project (the newest live entity). */
 static void test_descendants(void) {
     static const struct {
         int descendant;
@@ -643,10 +650,11 @@ static int is_a_structure_struct(const void *e) {
            ((const entity_t *)e)->class == structure_class();
 }
 
-/* Built by `ie:ldown` or pico8_qh_new, a `qh` is a struct whose descriptor
- * holds jo's very dispatchers and qh's own `hq`, `ev`, `ey`, `ly`; a
- * construction key other than `id` stops the run. Every descendant is a
- * struct under its own descriptor. */
+/* Built by structure_icon_left_press or structure_new, a laboratory is a
+ * struct whose class holds the planet's very methods and its own drag,
+ * draw_overlay, drop and settled update; a construction key other than
+ * planet_id stops the run. Every descendant is a struct under its own
+ * class. */
 static void test_structure_is_a_struct(void) {
     const entity_kind_t *const descendant_kinds[] = {trading_hub_kind(), processor_kind(), ascension_kind(), protostar_kind(),
                                                       synthesizer_kind(), slipgate_kind(), infraspace_gate_kind()};
@@ -718,9 +726,10 @@ static unsigned lineage_of(const entity_t *e) {
     return e->class->lineage;
 }
 
-/* The eight kinds of qh's lineage are of jo's and qh's, nl alone of nl's
- * too; ga and jo of jo's alone, g_ and fv of g_'s alone, the other classes
- * of none. */
+/* The eight kinds of the laboratory's lineage are of the planet's and the
+ * structure's, the trading hub alone of its own too; the burst and the
+ * planet of the planet's alone, the probe and the help screen of the
+ * probe's alone, the other classes of none. */
 static void test_lineage_of_each_class(void) {
     const unsigned jo = LINEAGE(LINEAGE_PLANET);
     const unsigned qh = jo | LINEAGE(LINEAGE_STRUCTURE);
@@ -744,7 +753,7 @@ static void test_lineage_of_each_class(void) {
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked
- * right after pico8_cart_load(), as a fresh process would start it. */
+ * right after cart_load(), as a fresh process would start it. */
 static pid_t spawn(void (*test)(void)) {
     pid_t child;
 

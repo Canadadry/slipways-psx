@@ -1,8 +1,9 @@
-/* The particle burst `ga`, read and written on its struct members and the
- * generated defaults (pico8_game_data.h), built by its three roads (`jo:hu`
- * on the harvest recipe, `pm:pq`, `pico8_ga_new(NULL)`) and driven through
- * the real `mv`/`dc`. jo's methods are named by `pico8_jo_struct_class()`.
- * No events file. */
+/* The particle burst, read and written on its struct members and the
+ * generated defaults (game/game_data.h), built by its three roads
+ * (planet_apply_project on the harvest recipe, protostar_construct,
+ * burst_new(NULL)) and driven through the real class methods and
+ * draw_layers. The planet's methods are named by planet_class(). No events
+ * file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -44,8 +45,8 @@
 #define LIFE_HASH 0xD3D468CEu
 #define BURST_FRAMES 86
 
-/* The tag `lq.fs` carried as a tagged list, which the frozen hashes fold:
- * any other value moves every *_HASH. */
+/* The tag a layout row's placed items carried as a tagged list, which the
+ * frozen hashes fold: any other value moves every *_HASH. */
 #define FROZEN_LIST_TAG 0x9E5C1157u
 
 static p8_memory_t mem;
@@ -178,8 +179,8 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
- * reads as difficulty 0. */
+/* A game started as cart_start_game starts it, with no difficulty picked:
+ * a NULL difficulty reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
@@ -210,7 +211,7 @@ static const entity_class_t *class_of(const void *e) {
     return ((const entity_t *)e)->class;
 }
 
-/* `fz` is "ga" on a burst and on nothing else. */
+/* The class name is "burst" on a burst and on nothing else. */
 static int is_burst(const void *e) {
     return e != NULL && class_of(e) == burst_class() && ((const planet_t *)e)->archetype->class_name != NULL &&
            strcmp(((const planet_t *)e)->archetype->class_name, "burst") == 0;
@@ -221,7 +222,7 @@ static planet_t *as_burst(void *e) {
     return e;
 }
 
-/* The first burst of `hv` at rank `from` or later, NULL when none. */
+/* The first live burst at the given rank or later, NULL when none. */
 static void *burst_from(int from) {
     const entity_list_t *hv = live_entities();
     int i;
@@ -233,7 +234,7 @@ static void *burst_from(int from) {
     return NULL;
 }
 
-/* The recipe of `gb` whose `cw` names "ga": the harvest. */
+/* The research project whose class name is "burst": the harvest. */
 static void *harvest_recipe(void) {
     void *found = NULL;
     int i;
@@ -249,8 +250,8 @@ static void *harvest_recipe(void) {
     return found;
 }
 
-/* Road (a): a bare planet on `id`/`p`/`ra`, harvested by `jo:hu`; the burst
- * is the one `hv` gained. */
+/* First road: a bare planet on planet_id, map_pos and pos, harvested by
+ * planet_apply_project; the burst is the one the live entities gained. */
 static void *harvest(int x, int y, const char *id) {
     planet_keys_t keys;
     planet_t *planet;
@@ -269,8 +270,8 @@ static void *harvest(int x, int y, const char *id) {
     return made;
 }
 
-/* Road (b): `kv["pm"]` on `p`/`ra`/`id`; its burst is registered just
- * before the protostar. */
+/* Second road: protostar_new on map_pos, pos and planet_id; its burst is
+ * registered just before the protostar. */
 static void *spawn(int x, int y, const char *id, void **protostar) {
     planet_keys_t keys;
     void *pm;
@@ -293,10 +294,12 @@ static void *spawn(int x, int y, const char *id, void **protostar) {
     return live_entities()->items[at - 1];
 }
 
-/* A burst as its road and `ga:pq`, `jo:pq`, `ke:pq` left it: its scalars,
- * which of its own and jo's names it has, its 12 methods (jo's very
- * functions but `kj` and `mm`), which default tables it shares with `ga`
- * and `jo`, where `lt` registered it -- in `hv` alone -- and `mo.ma`. */
+/* A burst as its road and burst_construct, planet_construct_in and
+ * entity_construct left it: its scalars, which of its own and the planet's
+ * names it has, its 12 methods (the planet's very functions but draw and
+ * spawn_particle), which default tables it shares with the burst and planet
+ * archetypes, where entity_register filed it -- among the live entities
+ * and the messages, under no tag -- and the camera's shake. */
 static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     const planet_t *burst = as_burst(entity);
     const emitter_t *spacer = burst->emitter;
@@ -329,9 +332,9 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fnv(hash, (uint32_t)entity_list_pointer_list_size(planet->slipways));
     assert(main_camera_typed() != NULL);
     hash = fold_fixed_member(hash, main_camera_typed()->shake);
-    /* The 1s of `fc`, `qo`, `ro`, `qg`, `q_`, `iu`, `py`, `ms` (ga's own)
-     * and of `hf`, `hs`, `fa`, `ma`, `ca` (jo's) are constant by the
-     * struct's shape, kept so that BUILT_HASH still proves the typed reads. */
+    /* The 1s of spawn_rate, the four matrix entries, acceleration_factor,
+     * speed_factor, speed (the burst's) and of is_planet, trade_multiplier, layer,
+     * shake, back_color (the planet's): constant, so BUILT_HASH proves the reads. */
     hash = fnv(hash, (uint32_t)(burst->archetype->class_name != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
@@ -450,7 +453,7 @@ static uint32_t fold_particle(uint32_t h, const particle_t *q) {
     return fnv(h, (uint32_t)q->life);
 }
 
-/* A tuple of `lq:mn`: items, `qe`, `c`, then the entry count. */
+/* A row among a layout row's items: its items, resource, color, then the entry count. */
 static uint32_t fold_tuple(uint32_t h, const data_row_t *t) {
     int i;
 
@@ -477,7 +480,7 @@ static uint32_t fold_tuple(uint32_t h, const data_row_t *t) {
 }
 
 /* A positional as the value it was sorted from folded; NOTHING as false
- * (no row folded here holds a nil at the top level). */
+ * (no row folded here holds an absent value at the top level). */
 static uint32_t fold_layout_row_positional(uint32_t h, const layout_row_t *lq, int i) {
     layout_row_cell_t c = lq->items[i];
 
@@ -494,8 +497,9 @@ static uint32_t fold_layout_row_positional(uint32_t h, const layout_row_t *lq, i
     }
 }
 
-/* The row `jo:ex` built into `lq`: its first `#fs` positionals, `c`, `bg`,
- * `score`, `ra`, `fs`, `w`, the rest. */
+/* The row planet_inspection_panel built into the layout row: its first
+ * placed_items_count positionals, color, background, score, pos,
+ * placed_items, width, the rest. */
 static uint32_t fold_layout_row(uint32_t h, void *e) {
     const layout_row_t *lq = as_burst(e)->layout_row;
     int n = 0;
@@ -519,7 +523,7 @@ static uint32_t fold_layout_row(uint32_t h, void *e) {
         n++;
     }
     assert(lq->pos == NULL && "fold_layout_row: no test folds a layout row whose pos is set: to fold one, fold the key \"pos\", then 0xEEEE then 0, count it with the other keys, as the frozen hashes did");
-    /* As fold_ref folded the tagged list `fs` was: never in `hv`, so the tag branch. */
+    /* As fold_ref folded the tagged list placed_items was: never live, so the tag branch. */
     h = fnv(fnv(fnv_str(h, "placed_items"), 0xEEEEu), FROZEN_LIST_TAG);
     h = fold_fixed(fnv_str(h, "width"), lq->width);
     for (i = k; i < lq->items_count; i++) {
@@ -528,7 +532,7 @@ static uint32_t fold_layout_row(uint32_t h, void *e) {
     return fnv(h, (uint32_t)(lq->items_count + n + 2));
 }
 
-/* Cuts `qy` to its first `n` particles, giving back the others. */
+/* Cuts the particle list to the given count, giving back the others. */
 static void cut_particles(pointer_list_t *qy, int n) {
     while (qy->count > n) {
         allocator_release(particle_zone(PARTICLE_SLOT_PARTICLE), qy->items[qy->count - 1]);
@@ -536,7 +540,7 @@ static void cut_particles(pointer_list_t *qy, int n) {
     }
 }
 
-/* `kj` on `e` with its `qy` cut in place to `n` particles: `p_` after. */
+/* The draw method on a burst whose particle list is cut in place to the given count: is_dead after. */
 static uint32_t fold_cut(uint32_t h, void *e, int n) {
     planet_t *g = as_burst(e);
     pointer_list_t *qy = g->emitter->particles;
@@ -548,11 +552,14 @@ static uint32_t fold_cut(uint32_t h, void *e, int n) {
     return fnv(h, (uint32_t)qy->count);
 }
 
-/* `mm` on each burst; `dc("kj")` three times, then three more with the
- * protostar burst cut to 3 particles, so that its circles, drawn in the
- * class `k_` (TROU-21), are not all covered by `ei`'s dots in its own; `p_` once `qy` holds 3, 2, 0 particles; `hd` on and off the burst,
- * `gg`; `hb` on jo's `kw` (no row), then on one with a `qe`, before and
- * after two routes land in the shared `by`; `hk` with no `kr`. */
+/* spawn_particle on each burst; draw_layers("draw") three times, then three
+ * more with the protostar's burst cut to 3 particles, so that its circles,
+ * drawn in the class trail colors (TROU-21), are not all covered by
+ * emitter_update's dots in its own; is_dead once the particle list holds 3,
+ * 2, 0 particles; hit_test on and off the burst, planet_is_colonized;
+ * refresh on the planet's shared production (no row), then on one with a
+ * resource, before and after two routes land in the shared outgoing
+ * routes; new_year with no net income. */
 static void test_life(void) {
     uint32_t hash = 2166136261u;
     void *first;
@@ -617,7 +624,7 @@ static void test_life(void) {
     assert(fold_layout_row(2166136261u, first) != row_hash);
     hash = fold_layout_row(hash, first);
     assert(entity_list_pointer_list_size(as_burst(second)->outgoing_routes) == 2);
-    /* `jo:ib` is `self.by or {}`: the `by` held, routes kept, never a fresh one. */
+    /* planet_rebuild_trades reuses the outgoing routes held: routes kept, no fresh list. */
     assert(planet_rebuild_trades(as_burst(second)) == outgoing && outgoing->count == 2);
 
     live_entities_count = live_entities()->count;
@@ -649,9 +656,10 @@ static void test_burst(void) {
     check_int("burst slots after the burst", particle_zone_live(PARTICLE_SLOT_BURST), 0);
 }
 
-/* `ei` moves a particle of `qy` in place: `p` by the old `v`, `v` turned
- * (its second row reads the x just written), then accelerated by `a`, and
- * `l` less 0.14. A protostar's burst turns (`qg` is not 0). */
+/* emitter_update moves a particle of the list in place: its pos by the old
+ * velocity, the velocity turned (its second row reads the x just written),
+ * then accelerated by its acceleration, and its life less 0.14. A
+ * protostar's burst turns (matrix_yx is not 0). */
 static void test_emitter_update_moves_a_particle_in_place(void) {
     particle_t *particle = particle_take();
     vec_t p0 = vec_xy(3, -2);
@@ -692,9 +700,8 @@ static int is_a_burst_struct(const void *e) {
            ((const entity_t *)e)->class == burst_class();
 }
 
-/* Built by any road, a burst is a struct whose descriptor holds jo's very
- * entries but its own `kj`, plus its own `mm`. Neither ga's class nor jo's
- * installs a function or a `pq`. */
+/* Built by any road, a burst is a struct whose class holds the planet's
+ * very entries but its own draw, plus its own spawn_particle. */
 static void test_burst_is_a_struct(void) {
     const entity_class_t *cls = burst_class();
     const entity_class_t *jo = planet_class();
@@ -721,7 +728,7 @@ static void test_burst_is_a_struct(void) {
     assert(planet_ready());
 }
 
-/* Each scenario runs in a child forked right after pico8_cart_load(), as a
+/* Each scenario runs in a child forked right after cart_load(), as a
  * fresh process would start it: the rnd state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
     pid_t child;
@@ -739,7 +746,7 @@ static void in_fresh_child(void (*test)(void)) {
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
 }
 
-/* What an emitter holds in the particle zone, by sort. */
+/* What an emitter holds in the particle zone, by slot kind. */
 typedef struct {
     int particle;
     int particles;
@@ -758,8 +765,9 @@ static held_t held_now(void) {
     return h;
 }
 
-/* A burst that leaves (`he`, then the exit queue's flush) gives back the
- * particles it still holds, its `qy`, then its own place. */
+/* A burst that leaves (entity_unregister, then the exit queue's flush)
+ * gives back the particles it still holds, its particle list, then its own
+ * slot. */
 static void test_leaving_gives_back_its_particles(void) {
     held_t built;
     held_t after;
@@ -779,9 +787,9 @@ static void test_leaving_gives_back_its_particles(void) {
     assert(after.burst == built.burst - 1);
 }
 
-/* The largest bursts: a protostar's, which copies its `ra` into its place,
- * and a harvest's, which borrows the planet's; each with its `oe`. Neither
- * stops on « zone place ga pleine ». */
+/* The largest bursts: a protostar's, which copies its position into its
+ * slot, and a harvest's, which borrows the planet's; each with its slipways
+ * list. Neither stops on a full burst slot kind. */
 static void test_the_largest_bursts_fit_their_slot(void) {
     held_t before;
 
