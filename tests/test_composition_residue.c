@@ -16,9 +16,9 @@
 #define OUT DIR "/out.txt"
 #define ERR DIR "/err.txt"
 #define TREE SRC " " TST
-#define ATT DIR "/atteinte.txt"
+#define ATT DIR "/reachability.txt"
 #define RESIDUE_2_SITES DIR "/r2.txt"
-#define EMPTY_FOOTER "résidu 2 : 0 ligne(s), 0 fichier(s)\n"
+#define EMPTY_FOOTER "residue 2: 0 line(s), 0 file(s)\n"
 
 /* Tampon statique, termine par NUL, ecrase a chaque appel. */
 static const char *read_file(const char *path) {
@@ -44,7 +44,7 @@ static void write_file(const char *path, const char *text) {
 static int run_residue(const char *args) {
     char cmd[1024];
     snprintf(cmd, sizeof cmd,
-             "COMPOSITION_ATTEINTE=" ATT " COMPOSITION_R2=" RESIDUE_2_SITES
+             "COMPOSITION_REACHABILITY=" ATT " COMPOSITION_R2=" RESIDUE_2_SITES
              " sh tools/composition_residue.sh %s > " OUT " 2> " ERR "; echo $? > " DIR "/code",
              args);
     assert(system(cmd) == 0);
@@ -98,21 +98,21 @@ static void test_one_occurrence_per_category_in_table_order(void) {
     write_file(SRC "/l.h", "int l_g(void);\n");
     write_file(SRC "/l.c", "int l = k_f();\n");
     assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "parente\t1\t1\n"
-                                  "lien-parent\t1\t1\n"
-                                  "accesseurs-q6\t1\t1\n"
-                                  "défauts\t1\t1\n"
+    assert(strcmp(read_file(OUT), "parent\t1\t1\n"
+                                  "parent-link\t1\t1\n"
+                                  "header-accessors\t1\t1\n"
+                                  "defaults\t1\t1\n"
                                   "n" "u\t1\t1\n"
-                                  "aiguillage-nom\t1\t1\n"
-                                  "un-ou-faux\t1\t1\n"
+                                  "name-dispatch\t1\t1\n"
+                                  "one-or-false\t1\t1\n"
                                   "void-ptr\t1\t1\n"
                                   "void-self\t1\t1\n"
-                                  "ptrs-entité\t1\t1\n"
-                                  "noyau-inclut\t1\t1\n"
-                                  "atteinte-à-prouver\t1\t1\n"
-                                  "inclusion-mutuelle\t1\t2\n"
-                                  "usage-mutuel\t1\t2\n"
-                                  "résidu 2 : 15 ligne(s), 15 fichier(s)\n") == 0);
+                                  "entity-ptrs\t1\t1\n"
+                                  "core-includes\t1\t1\n"
+                                  "reachability-to-prove\t1\t1\n"
+                                  "mutual-inclusion\t1\t2\n"
+                                  "mutual-usage\t1\t2\n"
+                                  "residue 2: 15 line(s), 15 file(s)\n") == 0);
 }
 
 static void test_other_witnesses_of_each_pattern_bite(void) {
@@ -123,8 +123,8 @@ static void test_other_witnesses_of_each_pattern_bite(void) {
                            "q = emitter" "_of(self);\n"
                            "q = g__probe" "_of(self);\n");
     assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "lien-parent\t5\t1\n"
-                                  "résidu 2 : 5 ligne(s), 1 fichier(s)\n") == 0);
+    assert(strcmp(read_file(OUT), "parent-link\t5\t1\n"
+                                  "residue 2: 5 line(s), 1 file(s)\n") == 0);
     setup();
     write_file(SRC "/w.c", "int a = pico8_jo_get" "_fold_anchor(self);\n"
                            "int b = X_get" "_is_dead(self);\n"
@@ -132,9 +132,9 @@ static void test_other_witnesses_of_each_pattern_bite(void) {
                            "pico8_" "nl_start_t s;\n"
                            "pico8_" "jo_kw_start;\n");
     assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "accesseurs-q6\t3\t1\n"
-                                  "défauts\t2\t1\n"
-                                  "résidu 2 : 5 ligne(s), 1 fichier(s)\n") == 0);
+    assert(strcmp(read_file(OUT), "header-accessors\t3\t1\n"
+                                  "defaults\t2\t1\n"
+                                  "residue 2: 5 line(s), 1 file(s)\n") == 0);
     setup();
     write_file(SRC "/w.c", "extern const str_seq_t pico8_nl_n" "u_tags;\n"
                            "int k = x_n" "u_items;\n"
@@ -145,15 +145,15 @@ static void test_other_witnesses_of_each_pattern_bite(void) {
                            "self->probe->fp_" "is_bool = 1;\n");
     assert(run_residue(TREE) == 0);
     assert(strcmp(read_file(OUT), "n" "u\t2\t1\n"
-                                  "aiguillage-nom\t4\t1\n"
-                                  "un-ou-faux\t1\t1\n"
-                                  "résidu 2 : 7 ligne(s), 1 fichier(s)\n") == 0);
+                                  "name-dispatch\t4\t1\n"
+                                  "one-or-false\t1\t1\n"
+                                  "residue 2: 7 line(s), 1 file(s)\n") == 0);
     setup();
     write_file(SRC "/engine/entity.h", "#include \"game/" "map_tables.h\"\n");
     write_file(SRC "/engine/entity_registry.h", "#include \"game/" "data_init.h\"\n");
     assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "noyau-inclut\t2\t2\n"
-                                  "résidu 2 : 2 ligne(s), 2 fichier(s)\n") == 0);
+    assert(strcmp(read_file(OUT), "core-includes\t2\t2\n"
+                                  "residue 2: 2 line(s), 2 file(s)\n") == 0);
 }
 
 static void test_named_false_positives_do_not_bite(void) {
@@ -179,19 +179,19 @@ static void test_exclusions_edit_the_text_not_the_whole_line(void) {
     write_file(SRC "/x.c", "if (entity_" "state_of(me) && pico8_" "qh_of(pt)) {}\n");
     write_file(TST "/x.c", "\"k(\\\"n" "u\\\")\" ; q = self->n" "u;\n");
     assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "lien-parent\t1\t1\n"
+    assert(strcmp(read_file(OUT), "parent-link\t1\t1\n"
                                   "n" "u\t1\t1\n"
-                                  "résidu 2 : 2 ligne(s), 2 fichier(s)\n") == 0);
+                                  "residue 2: 2 line(s), 2 file(s)\n") == 0);
 }
 
 static void test_overlapping_categories_count_each_but_footer_counts_distinct_lines(void) {
     setup();
     write_file(SRC "/o.h", "const str_seq_t *pico8_jo_get" "_n" "u(const void *" "self);\n");
     assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "accesseurs-q6\t1\t1\n"
+    assert(strcmp(read_file(OUT), "header-accessors\t1\t1\n"
                                   "n" "u\t1\t1\n"
                                   "void-self\t1\t1\n"
-                                  "résidu 2 : 1 ligne(s), 1 fichier(s)\n") == 0);
+                                  "residue 2: 1 line(s), 1 file(s)\n") == 0);
 }
 
 static void test_entity_reader_finds_embedded_parents_by_closure(void) {
@@ -202,14 +202,14 @@ static void test_entity_reader_finds_embedded_parents_by_closure(void) {
                               "struct pico8_" "mh {\n    /* c */\n\n    entity_" "root_t ke;\n};\n"
                               "typedef struct pico8_" "mh pico8_" "mh_t;\n"
                               "struct pico8_" "x {\n    pico8_" "mh_t mh;\n};\n");
-    assert(run_residue("--check parente " TREE) == 1);
-    assert(strcmp(read_file(OUT), "parente: " SRC "/c.h:2:    pico8_" "nl_t nl;\n"
-                                  "parente: " SRC "/d.h:2:    pico8_" "qh_t qh;\n"
-                                  "parente: " SRC "/e.h:5:    entity_" "root_t ke;\n"
-                                  "parente: " SRC "/e.h:9:    pico8_" "jo_t jo;\n"
-                                  "parente: " SRC "/e.h:14:    entity_" "root_t ke;\n"
-                                  "parente: " SRC "/e.h:18:    pico8_" "mh_t mh;\n"
-                                  "résidu gardé (parente) : 6 ligne(s)\n") == 0);
+    assert(run_residue("--check parent " TREE) == 1);
+    assert(strcmp(read_file(OUT), "parent: " SRC "/c.h:2:    pico8_" "nl_t nl;\n"
+                                  "parent: " SRC "/d.h:2:    pico8_" "qh_t qh;\n"
+                                  "parent: " SRC "/e.h:5:    entity_" "root_t ke;\n"
+                                  "parent: " SRC "/e.h:9:    pico8_" "jo_t jo;\n"
+                                  "parent: " SRC "/e.h:14:    entity_" "root_t ke;\n"
+                                  "parent: " SRC "/e.h:18:    pico8_" "mh_t mh;\n"
+                                  "guarded residue (parent): 6 line(s)\n") == 0);
 }
 
 static void test_entity_reader_ignores_what_is_not_an_embedded_parent(void) {
@@ -222,8 +222,8 @@ static void test_entity_reader_ignores_what_is_not_an_embedded_parent(void) {
                            "void g(void) {\nstruct local {\n    pico8_" "jo_t jo;\n} l;\n}\n"
                            "typedef struct {\n    pico8_" "jo_t jo;\n} after_t;\n");
     assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "parente\t2\t2\n"
-                                  "résidu 2 : 2 ligne(s), 2 fichier(s)\n") == 0);
+    assert(strcmp(read_file(OUT), "parent\t2\t2\n"
+                                  "residue 2: 2 line(s), 2 file(s)\n") == 0);
 }
 
 static void test_pointer_list_members_count_only_on_entity_types(void) {
@@ -233,9 +233,9 @@ static void test_pointer_list_members_count_only_on_entity_types(void) {
                            "list_t *needs;\n} planet_" "t;\n"
                            "typedef struct {\n    int a;\n    pointer_" "list_t *qy;\n} other_t;\n"
                            "void f(void) {\n    pointer_" "list_t list;\n}\n");
-    assert(run_residue("--check ptrs-entité " TREE) == 1);
-    assert(strcmp(read_file(OUT), "ptrs-entité: " SRC "/e.h:6:    pointer_" "list_t *oe;\n"
-                                  "résidu gardé (ptrs-entité) : 1 ligne(s)\n") == 0);
+    assert(run_residue("--check entity-ptrs " TREE) == 1);
+    assert(strcmp(read_file(OUT), "entity-ptrs: " SRC "/e.h:6:    pointer_" "list_t *oe;\n"
+                                  "guarded residue (entity-ptrs): 1 line(s)\n") == 0);
 }
 
 static void test_registries_reads_declaration_points_outside_entity_types(void) {
@@ -255,13 +255,13 @@ static void test_registries_reads_declaration_points_outside_entity_types(void) 
     write_file(SRC "/engine/pointer_list.h", "typedef struct {\n    const pointer_" "list_t *ptrs;\n} pointer_" "list_iter_t;\n"
                                     "void pointer_" "list_add(pointer_" "list_t *p, void *e);\n");
     write_file(TST "/t.c", "static pointer_" "list_t g_t;\n");
-    assert(run_residue("--check registres " TREE) == 1);
-    assert(strcmp(read_file(OUT), "registres: " SRC "/e.h:6:    pointer_" "list_t layers[16];\n"
-                                  "registres: " SRC "/e.h:10:    void *(*new_entity)(int k);\n"
-                                  "registres: " SRC "/e.h:13:const pointer_" "list_t *live_" "entities(void);\n"
-                                  "registres: " SRC "/r.c:1:static pointer_" "list_t g_live_entities;\n"
-                                  "registres: " SRC "/r.c:2:static pointer_" "list_t *g_list = 0;\n"
-                                  "résidu gardé (registres) : 5 ligne(s)\n") == 0);
+    assert(run_residue("--check registries " TREE) == 1);
+    assert(strcmp(read_file(OUT), "registries: " SRC "/e.h:6:    pointer_" "list_t layers[16];\n"
+                                  "registries: " SRC "/e.h:10:    void *(*new_entity)(int k);\n"
+                                  "registries: " SRC "/e.h:13:const pointer_" "list_t *live_" "entities(void);\n"
+                                  "registries: " SRC "/r.c:1:static pointer_" "list_t g_live_entities;\n"
+                                  "registries: " SRC "/r.c:2:static pointer_" "list_t *g_list = 0;\n"
+                                  "guarded residue (registries): 5 line(s)\n") == 0);
 }
 
 /* Formes d'un registre que le lecteur voit (F) et limites qu'il ne voit pas
@@ -315,27 +315,27 @@ static void test_registries_sees_hidden_forms_and_not_its_named_limits(void) {
                            "    return p->count;\n"
                            "}\n");
     write_file(TST "/t.c", "static void *g_t[4];\n");
-    assert(run_residue("--check registres " TREE) == 1);
-    assert(strcmp(read_file(OUT), "registres: " SRC "/f.c:2:    static pointer_" "list_t reg;\n"
-                                  "registres: " SRC "/f.c:5:        pointer_" "list_t l;\n"
-                                  "registres: " SRC "/f.c:9:static reg_t g_alias;\n"
-                                  "registres: " SRC "/f.c:12:    pointer_" "list_t list;\n"
-                                  "registres: " SRC "/f.c:15:    pointer_" "list_t list;\n"
-                                  "registres: " SRC "/f.c:17:static struct { pointer_" "list_t l; } g_one;\n"
-                                  "registres: " SRC "/f.c:18:static void *g_void[64];\n"
-                                  "registres: " SRC "/f.c:19:static pointer_" "list_t g_a, g_b;\n"
-                                  "registres: " SRC "/f.c:20:pointer_" "list_t g_pub;\n"
-                                  "registres: " SRC "/f.h:4:    pointer_" "list_t *a, *b;\n"
-                                  "registres: " SRC "/f.h:5:    pointer_" "list_t **pp;\n"
-                                  "registres: " SRC "/f.h:6:    const pointer_" "list_t *const x;\n"
-                                  "registres: " SRC "/f.h:7:    void **items;\n"
-                                  "registres: " SRC "/f.h:8:    pointer_" "list_t (*get)(void);\n"
-                                  "registres: " SRC "/f.h:9:    void *slots[8];\n"
-                                  "registres: " SRC "/f.h:15:static inline const pointer_" "list_t *reg_get(void) { return 0; }\n"
-                                  "registres: " SRC "/f.h:16:void **pico8_" "reg_items(void);\n"
-                                  "registres: " SRC "/f.h:17:extern pointer_" "list_t g_reg;\n"
-                                  "registres: " SRC "/f.h:18:typedef struct { pointer_" "list_t l; } one_t;\n"
-                                  "résidu gardé (registres) : 19 ligne(s)\n") == 0);
+    assert(run_residue("--check registries " TREE) == 1);
+    assert(strcmp(read_file(OUT), "registries: " SRC "/f.c:2:    static pointer_" "list_t reg;\n"
+                                  "registries: " SRC "/f.c:5:        pointer_" "list_t l;\n"
+                                  "registries: " SRC "/f.c:9:static reg_t g_alias;\n"
+                                  "registries: " SRC "/f.c:12:    pointer_" "list_t list;\n"
+                                  "registries: " SRC "/f.c:15:    pointer_" "list_t list;\n"
+                                  "registries: " SRC "/f.c:17:static struct { pointer_" "list_t l; } g_one;\n"
+                                  "registries: " SRC "/f.c:18:static void *g_void[64];\n"
+                                  "registries: " SRC "/f.c:19:static pointer_" "list_t g_a, g_b;\n"
+                                  "registries: " SRC "/f.c:20:pointer_" "list_t g_pub;\n"
+                                  "registries: " SRC "/f.h:4:    pointer_" "list_t *a, *b;\n"
+                                  "registries: " SRC "/f.h:5:    pointer_" "list_t **pp;\n"
+                                  "registries: " SRC "/f.h:6:    const pointer_" "list_t *const x;\n"
+                                  "registries: " SRC "/f.h:7:    void **items;\n"
+                                  "registries: " SRC "/f.h:8:    pointer_" "list_t (*get)(void);\n"
+                                  "registries: " SRC "/f.h:9:    void *slots[8];\n"
+                                  "registries: " SRC "/f.h:15:static inline const pointer_" "list_t *reg_get(void) { return 0; }\n"
+                                  "registries: " SRC "/f.h:16:void **pico8_" "reg_items(void);\n"
+                                  "registries: " SRC "/f.h:17:extern pointer_" "list_t g_reg;\n"
+                                  "registries: " SRC "/f.h:18:typedef struct { pointer_" "list_t l; } one_t;\n"
+                                  "guarded residue (registries): 19 line(s)\n") == 0);
 }
 
 /* ptrs-entité lit les membres d'un type d'entité comme registres lit ceux des
@@ -367,22 +367,22 @@ static void test_pointer_list_entity_reads_entity_members_like_registries(void) 
                            "    planet_" "t jo;\n"
                            "    void **more;\n"
                            "} pico8_" "nl_t;\n");
-    assert(run_residue("--check registres " TREE) == 0);
-    assert(run_residue("--check ptrs-entité " TREE) == 1);
-    assert(strcmp(read_file(OUT), "ptrs-entité: " SRC "/e.h:6:    void **items;\n"
-                                  "ptrs-entité: " SRC "/e.h:7:    void *slots[8];\n"
-                                  "ptrs-entité: " SRC "/e.h:8:    reg17_t l;\n"
-                                  "ptrs-entité: " SRC "/e.h:9:    pointer_" "list_t arr[4];\n"
-                                  "ptrs-entité: " SRC "/e.h:10:    pointer_" "list_t **pp;\n"
-                                  "ptrs-entité: " SRC "/e.h:11:    pointer_" "list_t *a, *b;\n"
-                                  "ptrs-entité: " SRC "/e.h:12:    const pointer_" "list_t *const x;\n"
-                                  "ptrs-entité: " SRC "/e.h:13:    void *(*get)(void);\n"
-                                  "ptrs-entité: " SRC "/e.h:14:    _Alignas(8) void **al;\n"
-                                  "ptrs-entité: " SRC "/e.h:16:    pointer_" "list_t *needs, *other_needs;\n"
-                                  "ptrs-entité: " SRC "/e.h:17:    pointer_" "list_t (*mk)(void);\n"
-                                  "ptrs-entité: " SRC "/e.h:18:    _Alignas (8) void **al2;\n"
-                                  "ptrs-entité: " SRC "/e.h:23:    void **more;\n"
-                                  "résidu gardé (ptrs-entité) : 13 ligne(s)\n") == 0);
+    assert(run_residue("--check registries " TREE) == 0);
+    assert(run_residue("--check entity-ptrs " TREE) == 1);
+    assert(strcmp(read_file(OUT), "entity-ptrs: " SRC "/e.h:6:    void **items;\n"
+                                  "entity-ptrs: " SRC "/e.h:7:    void *slots[8];\n"
+                                  "entity-ptrs: " SRC "/e.h:8:    reg17_t l;\n"
+                                  "entity-ptrs: " SRC "/e.h:9:    pointer_" "list_t arr[4];\n"
+                                  "entity-ptrs: " SRC "/e.h:10:    pointer_" "list_t **pp;\n"
+                                  "entity-ptrs: " SRC "/e.h:11:    pointer_" "list_t *a, *b;\n"
+                                  "entity-ptrs: " SRC "/e.h:12:    const pointer_" "list_t *const x;\n"
+                                  "entity-ptrs: " SRC "/e.h:13:    void *(*get)(void);\n"
+                                  "entity-ptrs: " SRC "/e.h:14:    _Alignas(8) void **al;\n"
+                                  "entity-ptrs: " SRC "/e.h:16:    pointer_" "list_t *needs, *other_needs;\n"
+                                  "entity-ptrs: " SRC "/e.h:17:    pointer_" "list_t (*mk)(void);\n"
+                                  "entity-ptrs: " SRC "/e.h:18:    _Alignas (8) void **al2;\n"
+                                  "entity-ptrs: " SRC "/e.h:23:    void **more;\n"
+                                  "guarded residue (entity-ptrs): 13 line(s)\n") == 0);
 }
 
 /* Deux types d'entité de deux fichiers, un membre au même numéro de ligne :
@@ -393,10 +393,10 @@ static void test_pointer_list_entity_keeps_one_line_number_in_two_files(void) {
                            "typedef struct {\n    entity_" "root_t ke;\n    void **items;\n} pico8_" "jo_t;\n");
     write_file(SRC "/g.h", "/* g */\n\n\n"
                            "typedef struct {\n    entity_" "root_t ke;\n    void **more;\n} pico8_" "qh_t;\n");
-    assert(run_residue("--check ptrs-entité " TREE) == 1);
-    assert(strcmp(read_file(OUT), "ptrs-entité: " SRC "/e.h:6:    void **items;\n"
-                                  "ptrs-entité: " SRC "/g.h:6:    void **more;\n"
-                                  "résidu gardé (ptrs-entité) : 2 ligne(s)\n") == 0);
+    assert(run_residue("--check entity-ptrs " TREE) == 1);
+    assert(strcmp(read_file(OUT), "entity-ptrs: " SRC "/e.h:6:    void **items;\n"
+                                  "entity-ptrs: " SRC "/g.h:6:    void **more;\n"
+                                  "guarded residue (entity-ptrs): 2 line(s)\n") == 0);
 }
 
 /* const et volatile autour de void et des *, plusieurs déclarations sur une
@@ -438,21 +438,21 @@ static void test_readers_see_qualifiers_split_declarations_and_nested_attributes
     write_file(SRC "/f.h", "void const **pico8_" "reg_c(void);\n"
                            "void *volatile *pico8_" "reg_v(void);\n"
                            "const char **pico8_" "names(void);\n");
-    assert(run_residue("--check ptrs-entité,registres " TREE) == 1);
-    assert(strcmp(read_file(OUT), "ptrs-entité: " SRC "/e.h:6:    void const **q1;\n"
-                                  "ptrs-entité: " SRC "/e.h:7:    volatile void **q2;\n"
-                                  "ptrs-entité: " SRC "/e.h:8:    void * volatile *q3;\n"
-                                  "ptrs-entité: " SRC "/e.h:9:    int k2; void **items;\n"
-                                  "ptrs-entité: " SRC "/e.h:10:    pointer_" "list_t *needs; pointer_" "list_t *hidden;\n"
-                                  "ptrs-entité: " SRC "/e.h:11:    void **d1; void **d2;\n"
-                                  "ptrs-entité: " SRC "/e.h:12:    void **\n"
-                                  "ptrs-entité: " SRC "/e.h:14:    pointer_" "list_t\n"
-                                  "ptrs-entité: " SRC "/e.h:16:    void **nested __attribute__((aligned(sizeof(int))));\n"
-                                  "ptrs-entité: " SRC "/e.h:17:    _Alignas(sizeof(int)) void **al;\n"
-                                  "registres: " SRC "/f.c:1:static void const *g_c[4];\n"
-                                  "registres: " SRC "/f.h:1:void const **pico8_" "reg_c(void);\n"
-                                  "registres: " SRC "/f.h:2:void *volatile *pico8_" "reg_v(void);\n"
-                                  "résidu gardé (ptrs-entité,registres) : 13 ligne(s)\n") == 0);
+    assert(run_residue("--check entity-ptrs,registries " TREE) == 1);
+    assert(strcmp(read_file(OUT), "entity-ptrs: " SRC "/e.h:6:    void const **q1;\n"
+                                  "entity-ptrs: " SRC "/e.h:7:    volatile void **q2;\n"
+                                  "entity-ptrs: " SRC "/e.h:8:    void * volatile *q3;\n"
+                                  "entity-ptrs: " SRC "/e.h:9:    int k2; void **items;\n"
+                                  "entity-ptrs: " SRC "/e.h:10:    pointer_" "list_t *needs; pointer_" "list_t *hidden;\n"
+                                  "entity-ptrs: " SRC "/e.h:11:    void **d1; void **d2;\n"
+                                  "entity-ptrs: " SRC "/e.h:12:    void **\n"
+                                  "entity-ptrs: " SRC "/e.h:14:    pointer_" "list_t\n"
+                                  "entity-ptrs: " SRC "/e.h:16:    void **nested __attribute__((aligned(sizeof(int))));\n"
+                                  "entity-ptrs: " SRC "/e.h:17:    _Alignas(sizeof(int)) void **al;\n"
+                                  "registries: " SRC "/f.c:1:static void const *g_c[4];\n"
+                                  "registries: " SRC "/f.h:1:void const **pico8_" "reg_c(void);\n"
+                                  "registries: " SRC "/f.h:2:void *volatile *pico8_" "reg_v(void);\n"
+                                  "guarded residue (entity-ptrs,registries): 13 line(s)\n") == 0);
 }
 
 /* Accolade à la ligne, union, __attribute__ et _Alignas : vus. Une union
@@ -504,21 +504,21 @@ static void test_registries_sees_split_braces_unions_and_attributes(void) {
                            "    (void)u;\n"
                            "    (void)s;\n"
                            "}\n");
-    assert(run_residue("--check registres " TREE) == 1);
-    assert(strcmp(read_file(OUT), "registres: " SRC "/f.c:1:_Alignas(8) static pointer_" "list_t g_al;\n"
-                                  "registres: " SRC "/f.c:2:_Alignas(8) static void *g_slots[8];\n"
-                                  "registres: " SRC "/f.c:4:    pointer_" "list_t l;\n"
-                                  "registres: " SRC "/f.c:8:    pointer_" "list_t l;\n"
-                                  "registres: " SRC "/f.c:11:    pointer_" "list_t l;\n"
-                                  "registres: " SRC "/f.c:15:        pointer_" "list_t l;\n"
-                                  "registres: " SRC "/f.c:19:        pointer_" "list_t l;\n"
-                                  "registres: " SRC "/f.h:3:    pointer_" "list_t l;\n"
-                                  "registres: " SRC "/f.h:6:    pointer_" "list_t l;\n"
-                                  "registres: " SRC "/f.h:9:typedef union { pointer_" "list_t l; } reg_u1_t;\n"
-                                  "registres: " SRC "/f.h:11:    pointer_" "list_t l;\n"
-                                  "registres: " SRC "/f.h:14:    void **items __attribute__((aligned(8)));\n"
-                                  "registres: " SRC "/f.h:17:    _Alignas(8) void **items;\n"
-                                  "résidu gardé (registres) : 13 ligne(s)\n") == 0);
+    assert(run_residue("--check registries " TREE) == 1);
+    assert(strcmp(read_file(OUT), "registries: " SRC "/f.c:1:_Alignas(8) static pointer_" "list_t g_al;\n"
+                                  "registries: " SRC "/f.c:2:_Alignas(8) static void *g_slots[8];\n"
+                                  "registries: " SRC "/f.c:4:    pointer_" "list_t l;\n"
+                                  "registries: " SRC "/f.c:8:    pointer_" "list_t l;\n"
+                                  "registries: " SRC "/f.c:11:    pointer_" "list_t l;\n"
+                                  "registries: " SRC "/f.c:15:        pointer_" "list_t l;\n"
+                                  "registries: " SRC "/f.c:19:        pointer_" "list_t l;\n"
+                                  "registries: " SRC "/f.h:3:    pointer_" "list_t l;\n"
+                                  "registries: " SRC "/f.h:6:    pointer_" "list_t l;\n"
+                                  "registries: " SRC "/f.h:9:typedef union { pointer_" "list_t l; } reg_u1_t;\n"
+                                  "registries: " SRC "/f.h:11:    pointer_" "list_t l;\n"
+                                  "registries: " SRC "/f.h:14:    void **items __attribute__((aligned(8)));\n"
+                                  "registries: " SRC "/f.h:17:    _Alignas(8) void **items;\n"
+                                  "guarded residue (registries): 13 line(s)\n") == 0);
 }
 
 static void test_void_ptr_reads_joined_public_prototypes(void) {
@@ -531,7 +531,7 @@ static void test_void_ptr_reads_joined_public_prototypes(void) {
     assert(strcmp(read_file(OUT), "void-ptr: " SRC "/v.h:1:particle_t *pico8_" "g__mm(void *" "self);\n"
                                   "void-ptr: " SRC "/v.h:2:const void *pico8_" "ha_pz(void);\n"
                                   "void-ptr: " SRC "/v.h:3:int pico8_" "two(int a,\n"
-                                  "résidu gardé (void-ptr) : 3 ligne(s)\n") == 0);
+                                  "guarded residue (void-ptr): 3 line(s)\n") == 0);
     setup();
     write_file(SRC "/v.h", "void pico8_" "ei_dispatch(void *" "self, int x);\n"
                            "int pico8_jo_get" "_fold_anchor(const void *" "self);\n"
@@ -543,11 +543,11 @@ static void test_void_ptr_reads_joined_public_prototypes(void) {
     write_file(SRC "/p.c", "void pico8_" "x(void *e);\n");
     write_file(SRC "/i.h", "static inline int f(int x) {\nreturn pico8_" "g((void *)0) + x;\n}\n");
     assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "accesseurs-q6\t1\t1\n"
+    assert(strcmp(read_file(OUT), "header-accessors\t1\t1\n"
                                   "void-ptr\t1\t1\n"
                                   "void-self\t3\t1\n"
-                                  "registres\t1\t1\n"
-                                  "résidu 2 : 4 ligne(s), 1 fichier(s)\n") == 0);
+                                  "registries\t1\t1\n"
+                                  "residue 2: 4 line(s), 1 file(s)\n") == 0);
 }
 
 /* Un receveur d'objet du jeu non type : membre, typedef, definition, locale,
@@ -570,29 +570,29 @@ static void test_void_self_sees_every_untyped_receiver(void) {
                                   "void-self: " SRC "/s.h:1:typedef void (*pico8_" "state_fn)(void *" "self, int t);\n"
                                   "void-self: " SRC "/s.h:3:    int (*has_refresh)(const void *" "self);\n"
                                   "void-self: " TST "/t.c:1:static void spy(void *" "self, int x) {\n"
-                                  "résidu gardé (void-self) : 6 ligne(s)\n") == 0);
+                                  "guarded residue (void-self): 6 line(s)\n") == 0);
 }
 
 static void test_detail_prints_r2_sites_under_void_ptr_and_the_info_line(void) {
     setup();
-    write_file(RESIDUE_2_SITES, "pico8_" "f\tsrc/x.c\tamont(void *" "self)\tpreuve\n");
+    write_file(RESIDUE_2_SITES, "pico8_" "f\tsrc/x.c\tupstream(void *" "self)\tproof\n");
     write_file(SRC "/game/game_data.h", "int a;\nint b;\n");
     write_file(SRC "/v.h", "void pico8_" "g(void *e);\n");
     assert(run_residue("--detail " TREE) == 0);
     assert(strcmp(read_file(OUT), "void-ptr\t" SRC "/v.h\t1\n"
-                                  "void-ptr-r2\tpico8_" "f\tamont(void *" "self)\n"
-                                  "info\t" SRC "/game/game_data.h\t2 lignes\n"
-                                  "résidu 2 : 1 ligne(s), 1 fichier(s)\n") == 0);
+                                  "void-ptr-r2\tpico8_" "f\tupstream(void *" "self)\n"
+                                  "info\t" SRC "/game/game_data.h\t2 lines\n"
+                                  "residue 2: 1 line(s), 1 file(s)\n") == 0);
 }
 
 static void test_attainment_list_counts_only_useful_lines(void) {
     setup();
     write_file(ATT, "# c\n\nq1\tx\n");
     assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "atteinte-à-prouver\t1\t1\n"
-                                  "résidu 2 : 1 ligne(s), 1 fichier(s)\n") == 0);
-    assert(run_residue("--check atteinte-à-prouver " TREE) == 1);
-    assert(strstr(read_file(OUT), "atteinte-à-prouver: " ATT ":3:q1\tx\n") != NULL);
+    assert(strcmp(read_file(OUT), "reachability-to-prove\t1\t1\n"
+                                  "residue 2: 1 line(s), 1 file(s)\n") == 0);
+    assert(run_residue("--check reachability-to-prove " TREE) == 1);
+    assert(strstr(read_file(OUT), "reachability-to-prove: " ATT ":3:q1\tx\n") != NULL);
 }
 
 static void test_mutual_inclusion_counts_its_include_lines_in_the_footer(void) {
@@ -604,27 +604,27 @@ static void test_mutual_inclusion_counts_its_include_lines_in_the_footer(void) {
     write_file(TST "/d.c", "#include \"e.h\"\n");
     write_file(TST "/e.h", "#include \"d.h\"\n");
     assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "inclusion-mutuelle\t1\t2\n"
-                                  "résidu 2 : 3 ligne(s), 3 fichier(s)\n") == 0);
+    assert(strcmp(read_file(OUT), "mutual-inclusion\t1\t2\n"
+                                  "residue 2: 3 line(s), 3 file(s)\n") == 0);
     assert(run_residue("--detail " TREE) == 0);
-    assert(strcmp(read_file(OUT), "inclusion-mutuelle\ta\tb\n"
-                                  "résidu 2 : 3 ligne(s), 3 fichier(s)\n") == 0);
-    assert(run_residue("--check inclusion-mutuelle " TREE) == 1);
-    assert(strcmp(read_file(OUT), "inclusion-mutuelle: " SRC "/a.c:1:#include \"b.h\"\n"
-                                  "inclusion-mutuelle: " SRC "/a.h:1:#include \"b.h\"\n"
-                                  "inclusion-mutuelle: " SRC "/b.c:2:#include \"a.h\"\n"
-                                  "résidu gardé (inclusion-mutuelle) : 3 ligne(s)\n") == 0);
+    assert(strcmp(read_file(OUT), "mutual-inclusion\ta\tb\n"
+                                  "residue 2: 3 line(s), 3 file(s)\n") == 0);
+    assert(run_residue("--check mutual-inclusion " TREE) == 1);
+    assert(strcmp(read_file(OUT), "mutual-inclusion: " SRC "/a.c:1:#include \"b.h\"\n"
+                                  "mutual-inclusion: " SRC "/a.h:1:#include \"b.h\"\n"
+                                  "mutual-inclusion: " SRC "/b.c:2:#include \"a.h\"\n"
+                                  "guarded residue (mutual-inclusion): 3 line(s)\n") == 0);
     setup();
     write_file(SRC "/a.h", "#include \"b.h\"\n");
-    assert(run_residue("--check inclusion-mutuelle " TREE) == 0);
-    assert(strcmp(read_file(OUT), "résidu gardé (inclusion-mutuelle) : 0 ligne(s)\n") == 0);
+    assert(run_residue("--check mutual-inclusion " TREE) == 0);
+    assert(strcmp(read_file(OUT), "guarded residue (mutual-inclusion): 0 line(s)\n") == 0);
     setup();
     write_file(SRC "/game/a.h", "#include \"game/b.h\"\n");
     write_file(SRC "/game/b.h", "#include \"game/a.h\"\n");
-    assert(run_residue("--check inclusion-mutuelle " TREE) == 1);
-    assert(strcmp(read_file(OUT), "inclusion-mutuelle: " SRC "/game/a.h:1:#include \"game/b.h\"\n"
-                                  "inclusion-mutuelle: " SRC "/game/b.h:1:#include \"game/a.h\"\n"
-                                  "résidu gardé (inclusion-mutuelle) : 2 ligne(s)\n") == 0);
+    assert(run_residue("--check mutual-inclusion " TREE) == 1);
+    assert(strcmp(read_file(OUT), "mutual-inclusion: " SRC "/game/a.h:1:#include \"game/b.h\"\n"
+                                  "mutual-inclusion: " SRC "/game/b.h:1:#include \"game/a.h\"\n"
+                                  "guarded residue (mutual-inclusion): 2 line(s)\n") == 0);
 }
 
 /* a et b s'emploient, mais a.c ne recoit b.h que par c.h : inclusion-mutuelle
@@ -649,18 +649,18 @@ static void test_usage_pairs_see_a_detour_not_a_shared_name_nor_a_comment(void) 
     write_file(SRC "/f.c", "/* g_h */\nconst char *f_n = \"g_h\";\nint f_k(void) { return 0; }\n");
     write_file(SRC "/g.c", "#include \"f.h\"\nint g_h(void) { return f_k(); }\n");
     assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "usage-mutuel\t1\t2\n"
-                                  "résidu 2 : 2 ligne(s), 2 fichier(s)\n") == 0);
+    assert(strcmp(read_file(OUT), "mutual-usage\t1\t2\n"
+                                  "residue 2: 2 line(s), 2 file(s)\n") == 0);
     assert(run_residue("--detail " TREE) == 0);
-    assert(strcmp(read_file(OUT), "usage-mutuel\ta\tb\n"
-                                  "résidu 2 : 2 ligne(s), 2 fichier(s)\n") == 0);
-    assert(run_residue("--check inclusion-mutuelle,usage-mutuel " TREE) == 1);
-    assert(strcmp(read_file(OUT), "usage-mutuel: " SRC "/a.c:4:    return b_g();\n"
-                                  "usage-mutuel: " SRC "/b.c:3:    return a_f();\n"
-                                  "résidu gardé (inclusion-mutuelle,usage-mutuel) : 2 ligne(s)\n") == 0);
+    assert(strcmp(read_file(OUT), "mutual-usage\ta\tb\n"
+                                  "residue 2: 2 line(s), 2 file(s)\n") == 0);
+    assert(run_residue("--check mutual-inclusion,mutual-usage " TREE) == 1);
+    assert(strcmp(read_file(OUT), "mutual-usage: " SRC "/a.c:4:    return b_g();\n"
+                                  "mutual-usage: " SRC "/b.c:3:    return a_f();\n"
+                                  "guarded residue (mutual-inclusion,mutual-usage): 2 line(s)\n") == 0);
     assert(system("rm " SRC "/a.c") == 0);
-    assert(run_residue("--check usage-mutuel " TREE) == 0);
-    assert(strcmp(read_file(OUT), "résidu gardé (usage-mutuel) : 0 ligne(s)\n") == 0);
+    assert(run_residue("--check mutual-usage " TREE) == 0);
+    assert(strcmp(read_file(OUT), "guarded residue (mutual-usage): 0 line(s)\n") == 0);
 }
 
 /* Une fonction static inline definie dans un en-tete est un nom qu'il
@@ -673,10 +673,10 @@ static void test_usage_pairs_read_a_static_inline_of_a_header(void) {
     write_file(SRC "/b.h", "int b_g(void);\n");
     write_file(SRC "/a.c", "#include \"a.h\"\n#include \"b.h\"\nint a_k(void) {\n    return b_g();\n}\n");
     write_file(SRC "/b.c", "#include \"a.h\"\n#include \"b.h\"\nint b_g(void) {\n    return a_f(0);\n}\n");
-    assert(run_residue("--check usage-mutuel " TREE) == 1);
-    assert(strcmp(read_file(OUT), "usage-mutuel: " SRC "/a.c:4:    return b_g();\n"
-                                  "usage-mutuel: " SRC "/b.c:4:    return a_f(0);\n"
-                                  "résidu gardé (usage-mutuel) : 2 ligne(s)\n") == 0);
+    assert(run_residue("--check mutual-usage " TREE) == 1);
+    assert(strcmp(read_file(OUT), "mutual-usage: " SRC "/a.c:4:    return b_g();\n"
+                                  "mutual-usage: " SRC "/b.c:4:    return a_f(0);\n"
+                                  "guarded residue (mutual-usage): 2 line(s)\n") == 0);
 }
 
 static void test_detail_sorts_by_category_then_file(void) {
@@ -684,10 +684,10 @@ static void test_detail_sorts_by_category_then_file(void) {
     write_file(SRC "/b.c", "q = pico8_" "qh_of(b);\n");
     write_file(SRC "/a.c", "q = pico8_" "qh_of(a);\nq = pico8_" "qh_of(a);\ne->pk_" "is_bool = 0;\n");
     assert(run_residue("--detail " TREE) == 0);
-    const char *expected = "lien-parent\t" SRC "/a.c\t2\n"
-                           "lien-parent\t" SRC "/b.c\t1\n"
-                           "un-ou-faux\t" SRC "/a.c\t1\n"
-                           "résidu 2 : 4 ligne(s), 2 fichier(s)\n";
+    const char *expected = "parent-link\t" SRC "/a.c\t2\n"
+                           "parent-link\t" SRC "/b.c\t1\n"
+                           "one-or-false\t" SRC "/a.c\t1\n"
+                           "residue 2: 4 line(s), 2 file(s)\n";
     assert(strcmp(read_file(OUT), expected) == 0);
     assert(system("cp " OUT " " DIR "/one.txt") == 0);
     assert(run_residue("--detail " TREE) == 0);
@@ -697,38 +697,38 @@ static void test_detail_sorts_by_category_then_file(void) {
 static void test_check_fails_only_on_a_named_category_present(void) {
     setup();
     write_file(SRC "/r.c", "int a;\ne->fp_" "is_bool = 1;\n");
-    assert(run_residue("--check un-ou-faux " TREE) == 1);
+    assert(run_residue("--check one-or-false " TREE) == 1);
     const char *out = read_file(OUT);
-    assert(strstr(out, "un-ou-faux: " SRC "/r.c:2:e->fp_" "is_bool = 1;\n") != NULL);
-    assert(strstr(out, "résidu gardé (un-ou-faux) : 1 ligne(s)\n") != NULL);
-    assert(run_residue("--check défauts " TREE) == 0);
-    assert(strcmp(read_file(OUT), "résidu gardé (défauts) : 0 ligne(s)\n") == 0);
-    assert(run_residue("--check défauts,un-ou-faux " TREE) == 1);
+    assert(strstr(out, "one-or-false: " SRC "/r.c:2:e->fp_" "is_bool = 1;\n") != NULL);
+    assert(strstr(out, "guarded residue (one-or-false): 1 line(s)\n") != NULL);
+    assert(run_residue("--check defaults " TREE) == 0);
+    assert(strcmp(read_file(OUT), "guarded residue (defaults): 0 line(s)\n") == 0);
+    assert(run_residue("--check defaults,one-or-false " TREE) == 1);
     assert(run_residue("--check nope " TREE) == 2);
     assert(strstr(read_file(ERR), "nope") != NULL);
     assert(run_residue("--check '' " TREE) == 2);
-    assert(run_residue("--check défauts,,un-ou-faux " TREE) == 2);
+    assert(run_residue("--check defaults,,one-or-false " TREE) == 2);
     assert(run_residue("--check") == 2);
 }
 
 static void test_measure_on_nothing_is_an_error_not_an_empty_residue(void) {
     setup();
     assert(run_residue(SRC " " DIR "/absent") == 2);
-    assert(strstr(read_file(OUT), "résidu 2 : 0") == NULL);
+    assert(strstr(read_file(OUT), "residue 2: 0") == NULL);
     assert(system("mkdir -p " DIR "/bare && echo x > " DIR "/bare/notes.txt") == 0);
     assert(run_residue(DIR "/bare") == 2);
-    assert(strstr(read_file(OUT), "résidu 2 : 0") == NULL);
-    assert(run_residue("--check défauts " DIR "/bare") == 2);
+    assert(strstr(read_file(OUT), "residue 2: 0") == NULL);
+    assert(run_residue("--check defaults " DIR "/bare") == 2);
     assert(run_residue("--bogus " TREE) == 2);
     setup();
     assert(system("rm " ATT) == 0);
     assert(run_residue(TREE) == 2);
-    assert(strstr(read_file(OUT), "résidu 2 : 0") == NULL);
-    assert(run_residue("--check défauts " TREE) == 2);
+    assert(strstr(read_file(OUT), "residue 2: 0") == NULL);
+    assert(run_residue("--check defaults " TREE) == 2);
     setup();
     assert(system("rm " RESIDUE_2_SITES) == 0);
     assert(run_residue("--detail " TREE) == 2);
-    assert(strstr(read_file(OUT), "résidu 2 : 0") == NULL);
+    assert(strstr(read_file(OUT), "residue 2: 0") == NULL);
 }
 
 static void test_fields_counts_writes_and_writes_outside_constructors(void) {
@@ -747,13 +747,13 @@ static void test_fields_counts_writes_and_writes_outside_constructors(void) {
                            "    if (self->b == 1) {}\n"
                            "}\n");
     write_file(TST "/e.c", "void t(void) { q->a = 1; q->z = 1; }\n");
-    assert(run_residue("--champs " TREE) == 0);
+    assert(run_residue("--fields " TREE) == 0);
     assert(strcmp(read_file(OUT), "pico8_" "jo_t\ta\t0\t0\n"
                                   "pico8_" "jo_t\tb\t1\t0\n"
                                   "pico8_" "jo_t\tc\t1\t1\n"
-                                  "champs : 3 ; 0 écriture : 1 ; 0 hors constructeur : 2\n") == 0);
+                                  "fields: 3; no write: 1; no write outside a constructor: 2\n") == 0);
     write_file(SRC "/k.c", "static pico8_" "jo_t k = { .b = 2 };\n");
-    assert(run_residue("--champs " TREE) == 0);
+    assert(run_residue("--fields " TREE) == 0);
     assert(strstr(read_file(OUT), "pico8_" "jo_t\tb\t2\t1\n") != NULL);
 }
 
@@ -769,8 +769,8 @@ static void test_accessors_bite_on_every_header_field_name(void) {
                            "a = x_get" "_fold_anchor(self);\n"
                            "a = x_get" "_is_dead(self);\n"
                            "x_set" "_is_hovered(self, 1);\n");
-    assert(run_residue("--check accesseurs-q6 " TREE) == 1);
-    assert(strstr(read_file(OUT), "résidu gardé (accesseurs-q6) : 10 ligne(s)\n") != NULL);
+    assert(run_residue("--check header-accessors " TREE) == 1);
+    assert(strstr(read_file(OUT), "guarded residue (header-accessors): 10 line(s)\n") != NULL);
 }
 
 int main(void) {

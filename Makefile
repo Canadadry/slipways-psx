@@ -1098,7 +1098,7 @@ composition-residue: tools/composition_residue.sh
 
 # The categories of the composition counter that have fallen to 0,
 # comma-separated.
-COMPOSITION_RESIDUE_GUARD := noyau-inclut,un-ou-faux,aiguillage-nom,atteinte-à-prouver,nu,ptrs-entité,registres,défauts,accesseurs-q6,lien-parent,parente,void-ptr,inclusion-mutuelle,usage-mutuel,void-self
+COMPOSITION_RESIDUE_GUARD := core-includes,one-or-false,name-dispatch,reachability-to-prove,nu,entity-ptrs,registries,defaults,header-accessors,parent-link,parent,void-ptr,mutual-inclusion,mutual-usage,void-self
 
 composition-guard: tools/composition_residue.sh
 	@sh tools/composition_residue.sh --check $(COMPOSITION_RESIDUE_GUARD) src tests

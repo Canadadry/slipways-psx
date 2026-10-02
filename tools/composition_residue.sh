@@ -44,10 +44,10 @@
 
 set -u
 
-CATEGORIES="parente lien-parent accesseurs-q6 défauts nu aiguillage-nom un-ou-faux void-ptr void-self ptrs-entité registres noyau-inclut atteinte-à-prouver inclusion-mutuelle usage-mutuel"
+CATEGORIES="parent parent-link header-accessors defaults nu name-dispatch one-or-false void-ptr void-self entity-ptrs registries core-includes reachability-to-prove mutual-inclusion mutual-usage"
 
 # Categories comptees dans le pied.
-SORTIE="parente lien-parent accesseurs-q6 défauts nu aiguillage-nom un-ou-faux void-ptr void-self ptrs-entité registres noyau-inclut atteinte-à-prouver inclusion-mutuelle usage-mutuel"
+SORTIE="parent parent-link header-accessors defaults nu name-dispatch one-or-false void-ptr void-self entity-ptrs registries core-includes reachability-to-prove mutual-inclusion mutual-usage"
 
 fail() {
     echo "composition_residue: $1" >&2
@@ -56,14 +56,14 @@ fail() {
 
 pattern() {
     case $1 in
-        lien-parent) printf '%s\n' '\bpico8_[a-z0-9_]+_of\b|\b[a-z0-9_]*(emitter|probe)_of\b|(->|\.|\(\*)parent\b' ;;
-        accesseurs-q6) printf '%s\n' '(\b|_)(get_(nu|layer|pos|map_pos|hit_box|cursor_sprite|gpio_signal|infraspace|fold_anchor|is_dead)|set_is_hovered)\b' ;;
-        défauts) printf '%s\n' '\bpico8_[a-z0-9_]+_start(_t)?\b' ;;
+        parent-link) printf '%s\n' '\bpico8_[a-z0-9_]+_of\b|\b[a-z0-9_]*(emitter|probe)_of\b|(->|\.|\(\*)parent\b' ;;
+        header-accessors) printf '%s\n' '(\b|_)(get_(nu|layer|pos|map_pos|hit_box|cursor_sprite|gpio_signal|infraspace|fold_anchor|is_dead)|set_is_hovered)\b' ;;
+        defaults) printf '%s\n' '\bpico8_[a-z0-9_]+_start(_t)?\b' ;;
         nu) printf '%s\n' '\bnu\b|get_nu\b|_nu_(tags|items)\b' ;;
-        aiguillage-nom) printf '%s\n' '\bhp_(pose|ho)\b|\bpico8_ho_gp_has\b|\bpico8_hp_(mr|gp)_names\b|(->|\.)(mr|gp)\b' ;;
-        un-ou-faux) printf '%s\n' '\b(pk|fp)_is_bool\b' ;;
+        name-dispatch) printf '%s\n' '\bhp_(pose|ho)\b|\bpico8_ho_gp_has\b|\bpico8_hp_(mr|gp)_names\b|(->|\.)(mr|gp)\b' ;;
+        one-or-false) printf '%s\n' '\b(pk|fp)_is_bool\b' ;;
         void-self) printf '%s\n' '\bvoid[[:space:]]*\*[[:space:]]*(const[[:space:]]+)?self' ;;
-        noyau-inclut) printf '%s\n' '^#include "game/(game_data|map_tables|data_init)\.h"' ;;
+        core-includes) printf '%s\n' '^#include "game/(game_data|map_tables|data_init)\.h"' ;;
         *) return 1 ;;
     esac
 }
@@ -76,7 +76,7 @@ NU_EXCLUSION='s/\\"nu\\"//g'
 
 exclusion() {
     case $1 in
-        lien-parent) printf '%s\n' "$LIEN_EXCLUSION" ;;
+        parent-link) printf '%s\n' "$LIEN_EXCLUSION" ;;
         nu) printf '%s\n' "$NU_EXCLUSION" ;;
     esac
 }
@@ -130,7 +130,7 @@ REGISTRES_NON_ENTITE="emitter_t.particles planet_inspection_panel_ctx_t.unmet_ne
 # En-tetes du noyau, par chemin relatif a src/ : noyau-inclut ne lit qu'eux.
 NOYAU="engine/entity_class.h engine/entity.h engine/entity_registry.h"
 
-ATTEINTE=${COMPOSITION_ATTEINTE:-tools/reachability_questions.txt}
+ATTEINTE=${COMPOSITION_REACHABILITY:-tools/reachability_questions.txt}
 R2=${COMPOSITION_R2:-tools/composition_residue_sites.txt}
 
 known() {
@@ -144,21 +144,21 @@ mode=count
 checked=
 case ${1:-} in
     --detail) mode=detail; shift ;;
-    --champs) mode=champs; shift ;;
+    --fields) mode=champs; shift ;;
     --check)
         mode=check
-        [ $# -ge 2 ] || fail "--check sans categorie"
+        [ $# -ge 2 ] || fail "--check without a category"
         checked=$2
         shift 2
-        [ -n "$checked" ] || fail "--check sans categorie"
+        [ -n "$checked" ] || fail "--check without a category"
         for cat in $(printf '%s\n' "$checked" | tr ',' ' '); do
-            known "$cat" || fail "categorie inconnue : $cat"
+            known "$cat" || fail "unknown category: $cat"
         done
         case ,$checked, in
-            *,,*) fail "categorie vide dans : $checked" ;;
+            *,,*) fail "empty category in: $checked" ;;
         esac
         ;;
-    -*) fail "option inconnue : $1" ;;
+    -*) fail "unknown option: $1" ;;
 esac
 [ $# -gt 0 ] || set -- src tests
 
@@ -169,12 +169,12 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
 for dir in "$@"; do
-    [ -d "$dir" ] || fail "dossier absent : $dir"
+    [ -d "$dir" ] || fail "missing directory: $dir"
 done
 find "$@" \( -name '*.c' -o -name '*.h' \) -type f | sort > "$work/files"
-[ -s "$work/files" ] || fail "aucun .c/.h dans : $*"
-[ -f "$ATTEINTE" ] || fail "liste d'atteinte absente : $ATTEINTE"
-[ -f "$R2" ] || fail "liste R2 absente : $R2"
+[ -s "$work/files" ] || fail "no .c or .h file in: $*"
+[ -f "$ATTEINTE" ] || fail "missing reachability list: $ATTEINTE"
+[ -f "$R2" ] || fail "missing R2 list: $R2"
 
 : > "$work/noyau"
 while IFS= read -r file; do
@@ -190,7 +190,7 @@ grep -v '/tests/' "$work/files" | grep -v '^tests/' | grep -v '/engine/pointer_l
 REG_TYPES=pointer_list_t
 if [ -s "$work/regfiles" ]; then
     grep -hE '^[[:space:]]*typedef[[:space:]]+(const[[:space:]]+)?pointer_list_t[[:space:]*]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]*;' $(cat "$work/regfiles") > "$work/reg.alias"
-    [ $? -le 1 ] || fail "echec de grep"
+    [ $? -le 1 ] || fail "grep failed"
     for a in $(sed -E 's/^.*[[:space:]*]([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*;.*$/\1/' "$work/reg.alias"); do
         REG_TYPES="$REG_TYPES|$a"
     done
@@ -241,9 +241,9 @@ function braces(s,    t, n) {
 # $work/ptrs-entité les lignes "<fichier>:<ligne>:<texte>", et dans
 # $work/members les "<type>\t<membre>" que lit --champs.
 read_structs() {
-    awk -v non_entite=" $PTRS_NON_ENTITE " -v out_parente="$work/parente" \
-        -v reg_non_entite=" $REGISTRES_NON_ENTITE " -v out_reg="$work/registres.structs" -v reg_types="$REG_TYPES" \
-        -v out_ptrs="$work/ptrs-entité" -v out_members="$work/members" "$CLEAN_AWK"'
+    awk -v non_entite=" $PTRS_NON_ENTITE " -v out_parente="$work/parent" \
+        -v reg_non_entite=" $REGISTRES_NON_ENTITE " -v out_reg="$work/registries.structs" -v reg_types="$REG_TYPES" \
+        -v out_ptrs="$work/entity-ptrs" -v out_members="$work/members" "$CLEAN_AWK"'
     FNR == 1 { depth = 0; incomment = 0; inbody = 0; base = 0; phead = ""; mpend = "" }
     {
         c = unattr(clean($0))
@@ -388,7 +388,7 @@ read_structs() {
                 }
             }
         }
-    }' $(cat "$work/files") || fail "echec de awk"
+    }' $(cat "$work/files") || fail "awk failed"
 }
 
 # Lecteur de prototypes : dans les .h, une declaration de premier niveau,
@@ -413,9 +413,9 @@ read_prototypes() {
             }
         }
         braces(c)
-    }' $(cat "$work/headers") > "$work/protos" || fail "echec de awk"
+    }' $(cat "$work/headers") > "$work/protos" || fail "awk failed"
     cut -d"$sep" -f1 "$work/protos" > "$work/protos.where"
-    cut -d"$sep" -f2- "$work/protos" | sed -E "$VOID_EXCLUSION" > "$work/protos.text" || fail "echec de sed"
+    cut -d"$sep" -f2- "$work/protos" | sed -E "$VOID_EXCLUSION" > "$work/protos.text" || fail "sed failed"
     paste -d"$sep" "$work/protos.where" "$work/protos.text" | awk -F"$sep" '
     {
         t = $2
@@ -424,15 +424,15 @@ read_prototypes() {
         name = substr(t, RSTART, RLENGTH - 1); sub(/^[^p]*/, "", name)
         if (name ~ /_get_[a-z0-9_]+$/) next
         print $1
-    }' > "$work/void-ptr" || fail "echec de awk"
+    }' > "$work/void-ptr" || fail "awk failed"
 }
 
 # registres, suite : objets pico8_ptrs_t de portee fichier des .c et
 # prototypes des .h (hors engine/pointer_list.h), hors tests/, joints comme ceux de
 # void-ptr ; un nom de REGISTRES_NON_ENTITE est exempte.
 read_registres() {
-    [ -f "$work/parente" ] || read_structs
-    : > "$work/registres.decl"
+    [ -f "$work/parent" ] || read_structs
+    : > "$work/registries.decl"
     if [ -s "$work/regfiles" ]; then
         awk -v non=" $REGISTRES_NON_ENTITE " -v reg_types="$REG_TYPES" "$CLEAN_AWK"'
         FNR == 1 { depth = 0; incomment = 0; acc = "" }
@@ -457,9 +457,9 @@ read_registres() {
                 }
             }
             braces(c)
-        }' $(cat "$work/regfiles") > "$work/registres.decl" || fail "echec de awk"
+        }' $(cat "$work/regfiles") > "$work/registries.decl" || fail "awk failed"
     fi
-    cat "$work/registres.structs" "$work/registres.decl" | sort -u -t: -k1,1 -k2,2n > "$work/registres"
+    cat "$work/registries.structs" "$work/registries.decl" | sort -u -t: -k1,1 -k2,2n > "$work/registries"
 }
 
 # Paires {a, b} de modules hors tests/ ou chacun inclut l'en-tete de l'autre,
@@ -467,13 +467,13 @@ read_registres() {
 # lignes #include qui realisent ces paires, au format des autres categories.
 read_inclusions() {
     grep -v '/tests/' "$work/files" | grep -v '^tests/' > "$work/modfiles" || true
-    : > "$work/inclusion-mutuelle.pairs"
-    : > "$work/inclusion-mutuelle"
+    : > "$work/mutual-inclusion.pairs"
+    : > "$work/mutual-inclusion"
     [ -s "$work/modfiles" ] || return 0
     status=0
     grep -HnE '^#include "[^"]+\.h"' $(cat "$work/modfiles") > "$work/includes" || status=$?
-    [ "$status" -le 1 ] || fail "echec de grep"
-    awk -v pairs="$work/inclusion-mutuelle.pairs" '
+    [ "$status" -le 1 ] || fail "grep failed"
+    awk -v pairs="$work/mutual-inclusion.pairs" '
     NR == FNR { f = $0; sub(/.*\//, "", f); sub(/\.[ch]$/, "", f); mod[f] = 1; next }
     {
         path = $0; sub(/:.*/, "", path)
@@ -490,9 +490,9 @@ read_inclusions() {
         }
         for (i = 1; i <= n; i++)
             if (to[i] != from[i] && ((to[i], from[i]) in edge)) print line[i]
-    }' "$work/modfiles" "$work/includes" > "$work/inclusion-mutuelle" || fail "echec de awk"
-    sort "$work/inclusion-mutuelle.pairs" > "$work/sorted" && mv "$work/sorted" "$work/inclusion-mutuelle.pairs"
-    sort -t: -k1,1 -k2,2n "$work/inclusion-mutuelle" > "$work/sorted" && mv "$work/sorted" "$work/inclusion-mutuelle"
+    }' "$work/modfiles" "$work/includes" > "$work/mutual-inclusion" || fail "awk failed"
+    sort "$work/mutual-inclusion.pairs" > "$work/sorted" && mv "$work/sorted" "$work/mutual-inclusion.pairs"
+    sort -t: -k1,1 -k2,2n "$work/mutual-inclusion" > "$work/sorted" && mv "$work/sorted" "$work/mutual-inclusion"
 }
 
 # Graphe d'usage de l'etude 2.11 (usegraph.py) : a -> b quand un .c/.h de a
@@ -509,11 +509,11 @@ read_inclusions() {
 # premier emploi de chaque sens (ordre de $work/files, puis des lignes).
 read_usages() {
     grep -v '/tests/' "$work/files" | grep -v '^tests/' > "$work/modfiles" || true
-    : > "$work/usage-mutuel.pairs"
-    : > "$work/usage-mutuel"
+    : > "$work/mutual-usage.pairs"
+    : > "$work/mutual-usage"
     [ -s "$work/modfiles" ] || return 0
     grep '\.h$' "$work/modfiles" > "$work/modheaders" || true
-    awk -v pairs="$work/usage-mutuel.pairs" "$CLEAN_AWK"'
+    awk -v pairs="$work/mutual-usage.pairs" "$CLEAN_AWK"'
     function mod(path,    m) {
         m = path; sub(/.*\//, "", m); sub(/\.[ch]$/, "", m)
         return m
@@ -592,9 +592,9 @@ read_usages() {
             }
         }
     }
-    ' pass=1 $(cat "$work/modheaders") pass=2 $(cat "$work/modfiles") > "$work/usage-mutuel" || fail "echec de awk"
-    sort "$work/usage-mutuel.pairs" > "$work/sorted" && mv "$work/sorted" "$work/usage-mutuel.pairs"
-    sort -u -t: -k1,1 -k2,2n "$work/usage-mutuel" > "$work/sorted" && mv "$work/sorted" "$work/usage-mutuel"
+    ' pass=1 $(cat "$work/modheaders") pass=2 $(cat "$work/modfiles") > "$work/mutual-usage" || fail "awk failed"
+    sort "$work/mutual-usage.pairs" > "$work/sorted" && mv "$work/sorted" "$work/mutual-usage.pairs"
+    sort -u -t: -k1,1 -k2,2n "$work/mutual-usage" > "$work/sorted" && mv "$work/sorted" "$work/mutual-usage"
 }
 
 # Rend dans $work/<cat> les lignes "<fichier>:<ligne>:<texte>", dans l'ordre
@@ -603,39 +603,39 @@ read_usages() {
 # un filtre cacherait une vraie occurrence voisine.
 collect() {
     case $1 in
-        parente | ptrs-entité)
-            [ -f "$work/parente" ] || read_structs
+        parent | entity-ptrs)
+            [ -f "$work/parent" ] || read_structs
             sort -t: -k1,1 -k2,2n "$work/$1" > "$work/sorted" && mv "$work/sorted" "$work/$1"
             return 0 ;;
         void-ptr) read_prototypes; return 0 ;;
-        registres) read_registres; return 0 ;;
-        inclusion-mutuelle) read_inclusions; return 0 ;;
-        usage-mutuel) read_usages; return 0 ;;
-        atteinte-à-prouver)
+        registries) read_registres; return 0 ;;
+        mutual-inclusion) read_inclusions; return 0 ;;
+        mutual-usage) read_usages; return 0 ;;
+        reachability-to-prove)
             status=0
             grep -nE '^[^#[:space:]]' "$ATTEINTE" > "$work/numbers" || status=$?
-            [ "$status" -le 1 ] || fail "echec de grep"
+            [ "$status" -le 1 ] || fail "grep failed"
             sed "s|^|$ATTEINTE:|" "$work/numbers" > "$work/$1"
             return 0 ;;
     esac
     list="$work/files"
-    [ "$1" = noyau-inclut ] && list="$work/noyau"
+    [ "$1" = core-includes ] && list="$work/noyau"
     : > "$work/$1"
     [ -s "$list" ] || return 0
     status=0
     excl=$(exclusion "$1")
     if [ -z "$excl" ]; then
         grep -HnE "$(pattern "$1")" $(cat "$list") > "$work/$1" || status=$?
-        [ "$status" -le 1 ] || fail "echec de grep"
+        [ "$status" -le 1 ] || fail "grep failed"
         return 0
     fi
     grep -lE "$(pattern "$1")" $(cat "$list") > "$work/candidates" || status=$?
-    [ "$status" -le 1 ] || fail "echec de grep"
+    [ "$status" -le 1 ] || fail "grep failed"
     while IFS= read -r file; do
         status=0
-        sed -E "$excl" "$file" > "$work/excluded" || fail "echec de sed"
+        sed -E "$excl" "$file" > "$work/excluded" || fail "sed failed"
         grep -nE "$(pattern "$1")" "$work/excluded" > "$work/numbers" || status=$?
-        [ "$status" -le 1 ] || fail "echec de grep"
+        [ "$status" -le 1 ] || fail "grep failed"
         cut -d: -f1 "$work/numbers" > "$work/numbers.cut"
         awk -v f="$file" 'NR == FNR { keep[$1] = 1; next } FNR in keep { print f ":" FNR ":" $0 }' \
             "$work/numbers.cut" "$file" >> "$work/$1"
@@ -683,14 +683,14 @@ champs() {
     }
     END {
         for (m in want) printf "%s\t%d\t%d\n", m, w[m], h[m] > (ARGV[1] ".counts")
-    }' "$work/members.sorted" $(cat "$work/sources") || fail "echec de awk"
+    }' "$work/members.sorted" $(cat "$work/sources") || fail "awk failed"
     awk -F'\t' '
     NR == FNR { c[$1] = $2 "\t" $3; next }
     { print $1 "\t" $2 "\t" c[$2] }' "$work/members.sorted.counts" "$work/members.sorted" \
-        | sort -t"$(printf '\t')" -k1,1 -k2,2 > "$work/champs" || fail "echec de awk"
+        | sort -t"$(printf '\t')" -k1,1 -k2,2 > "$work/champs" || fail "awk failed"
     cat "$work/champs"
     awk -F'\t' '{ n++; if ($3 == 0) k++; if ($4 == 0) z++ }
-    END { printf "champs : %d ; 0 écriture : %d ; 0 hors constructeur : %d\n", n, k, z }' "$work/champs"
+    END { printf "fields: %d; no write: %d; no write outside a constructor: %d\n", n, k, z }' "$work/champs"
 }
 
 if [ "$mode" = champs ]; then
@@ -706,7 +706,7 @@ if [ "$mode" = check ]; then
         cut -d: -f1,2 "$work/$cat" >> "$work/all"
     done
     n=$(sort -u "$work/all" | wc -l | tr -d ' ')
-    echo "résidu gardé ($checked) : $n ligne(s)"
+    echo "guarded residue ($checked): $n line(s)"
     [ "$n" -eq 0 ]
     exit
 fi
@@ -738,9 +738,9 @@ for cat in $CATEGORIES; do
 done
 if [ "$mode" = detail ]; then
     grep '/game/game_data\.h$\|^game/game_data\.h$' "$work/files" | while IFS= read -r file; do
-        printf 'info\t%s\t%s lignes\n' "$file" "$(wc -l < "$file" | tr -d ' ')"
+        printf 'info\t%s\t%s lines\n' "$file" "$(wc -l < "$file" | tr -d ' ')"
     done
 fi
 lines=$(sort -u "$work/all" | wc -l | tr -d ' ')
 files=$(cut -d: -f1 "$work/all" | sort -u | wc -l | tr -d ' ')
-echo "résidu 2 : $lines ligne(s), $files fichier(s)"
+echo "residue 2: $lines line(s), $files file(s)"
