@@ -7,7 +7,7 @@ static unsigned char *bump_alloc(const allocator_t *z, size_t n) {
     return bump_zone_alloc(z->bump, n);
 }
 
-/* Copie, pas de realloc : le bloc vit dans la zone, pas dans le tas. */
+/* Copies, no realloc: the block lives in the zone, not on the heap. */
 static unsigned char *bump_grow(const allocator_t *z, unsigned char *p,
                                 size_t old_n, size_t new_n) {
     unsigned char *q = bump_zone_alloc(z->bump, new_n);
@@ -100,7 +100,7 @@ void allocator_release(const allocator_t *z, unsigned char *p) {
     z->release(z, p);
 }
 
-/* `handle` en premier : l'adresse de la poignee est celle du bloc. */
+/* handle first: the handle's address is the block's. */
 typedef struct {
     allocator_t handle;
     bump_zone_t bump;
@@ -109,8 +109,8 @@ typedef struct {
 
 #define ARENA_HEAD_CELLS ZONE_CELLS(sizeof(arena_t))
 
-/* Piege : pas de pico8_bump_zone_init, qui empoisonne deux moities sous
- * ASan, donc au-dela du bloc ; et pas de reset, l'arene se rend entiere. */
+/* Trap: no bump_zone_init, which poisons two halves under ASan, hence past
+ * the block; and no reset, the arena is released whole. */
 const allocator_t *arena_take(const allocator_t *from,
                                                      const char *name, size_t size) {
     size_t cells = size / sizeof(zone_cell_t);

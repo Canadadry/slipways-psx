@@ -5,32 +5,32 @@
 
 #include "engine/zone.h"
 
-/* Zone designee : la poignee qu'un proprietaire ou un appelant passe aux
- * fonctions partagees qui allouent pour lui. Un bloc n'est agrandi ou rendu
- * que par la poignee qui l'a alloue. */
+/* The handle an owner or a caller passes to the shared functions that
+ * allocate on its behalf. A block is grown or released only through the
+ * handle that allocated it. */
 typedef struct allocator {
     unsigned char *(*alloc)(const struct allocator *z, size_t n);
     unsigned char *(*grow)(const struct allocator *z, unsigned char *p,
                            size_t old_n, size_t new_n);
     void (*release)(const struct allocator *z, unsigned char *p);
-    bump_zone_t *bump; /* NULL hors zone a pointeur montant */
-    slot_zone_t *slot; /* NULL hors zone a places */
+    bump_zone_t *bump; /* NULL unless a bump zone */
+    slot_zone_t *slot; /* NULL unless a slot zone */
 } allocator_t;
 
-/* Poignee sur une zone deja initialisee, qui doit lui survivre. Rendre n'y
- * fait rien : la memoire repart au reset de la zone. */
+/* Handle on an already initialised zone, which must outlive it. Release
+ * does nothing: the memory comes back at the zone's reset. */
 allocator_t allocator_from_bump_zone(bump_zone_t *bump);
 
-/* Poignee sur une zone a places deja initialisee, qui doit lui survivre :
- * chaque bloc est une place entiere. alloc(n) exige n <= taille de place,
- * grow est refuse, rendre rend la place. */
+/* Handle on an already initialised slot zone, which must outlive it: each
+ * block is a whole slot. alloc asks for at most the slot size, grow is
+ * refused, release gives the slot back. */
 allocator_t allocator_from_slot_zone(slot_zone_t *slot);
 
-/* Le grow d'une poignee sur places : assert, rend NULL. */
+/* The grow of a slot zone handle: asserts, returns NULL. */
 unsigned char *allocator_grow_refused(const allocator_t *z, unsigned char *p,
                                        size_t old_n, size_t new_n);
 
-/* Une sorte de places ; place_name NULL quand la place n'est pas une arene. */
+/* One kind of slot; slot_name is NULL when the slot is not an arena. */
 typedef struct {
     const char *zone_name;
     const char *slot_name;
@@ -40,48 +40,49 @@ typedef struct {
     size_t count;
 } slot_kind_zone_t;
 
-/* Initialise zones[i] sur s[i] et range dans handles[i] sa poignee, pour i < n. */
+/* For each kind, initialises the zone at the same index and stores its
+ * handle at that index of handles. */
 void allocator_init_slot_kinds(const slot_kind_zone_t *s, int n, slot_zone_t *zones,
                             allocator_t *handles);
 
-/* Poignee sur la generation courante d'une zone a deux bouts, rangee dans
- * un stockage a part : un champ de plus dans pico8_zone_choisie_t grossirait
- * la tete de chaque arene, et les places sont taillees au plus juste. */
+/* Handle on the current generation of a two-ended zone, kept in separate
+ * storage: one more field in allocator_t would grow the header of every
+ * arena, and slots are sized to fit exactly. */
 typedef struct {
-    allocator_t handle; /* en premier : son adresse est celle du tout */
+    allocator_t handle; /* first: its address is the whole struct's */
     flip_zone_t *zone;
 } flip_zone_allocator_t;
 
-/* Range dans `storage` une poignee sur `zone`, deja initialisee, et la rend ;
- * storage et zone doivent survivre a la poignee. Rendre n'y fait rien et
- * agrandir copie : la memoire repart au rendu de sa generation. */
+/* Stores in storage a handle on the already initialised zone and returns
+ * it; storage and zone must outlive the handle. Release does nothing and
+ * grow copies: the memory comes back when its generation is released. */
 const allocator_t *allocator_from_flip_zone(flip_zone_allocator_t *storage,
                                                        flip_zone_t *zone);
 
-/* Memoire non initialisee ; pico8_fatal si la zone est pleine. */
+/* Uninitialised memory; p8_fatal when the zone is full. */
 unsigned char *allocator_alloc(const allocator_t *z, size_t n);
-/* Rend un bloc de new_n octets qui commence par les old_n octets de p ; p,
- * peut-etre NULL avec old_n nul, ne doit plus servir. */
+/* Returns a block of new_n bytes that starts with the old_n bytes of the
+ * old block; the old block, NULL only when old_n is 0, is not used again. */
 unsigned char *allocator_grow(const allocator_t *z, unsigned char *p,
                                size_t old_n, size_t new_n);
-/* p peut etre NULL. */
+/* The block may be NULL. */
 void allocator_release(const allocator_t *z, unsigned char *p);
 
-/* Arene : un bloc de `size` octets pris a `from`, qui range dans sa tete
- * une zone montante privee et la poignee rendue, laquelle vit autant que le
- * bloc. Ce qu'on y alloue vit jusqu'a pico8_zone_arene_rendre ; y rendre un
- * bloc ne fait rien, y agrandir copie et laisse l'ancien bloc mort. `name`
- * doit vivre autant que l'arene : il compose « zone <name> pleine ». */
+/* Arena: a block of size bytes taken from the from handle, whose header
+ * holds a private bump zone and the returned handle, which lives as long as
+ * the block. What is allocated there lives until arena_release; releasing a
+ * block there does nothing, growing copies and leaves the old block dead.
+ * The name must live as long as the arena: it makes up "zone <name> full". */
 const allocator_t *arena_take(const allocator_t *from,
                                                      const char *name, size_t size);
-/* Octets pris dans le bloc, tete comprise. */
+/* Bytes taken in the block, header included. */
 size_t arena_used(const allocator_t *arena);
-/* Remet l'arene a sa seule tete et empoisonne le reste de son bloc ; le
- * bloc reste pris a sa zone. Angle mort ASan : les allocations suivantes
- * reprennent les memes adresses, un pointeur garde d'avant le vidage y lit
- * le nouveau bloc sans planter. */
+/* Brings the arena back to its header alone and poisons the rest of its
+ * block; the block stays taken from its zone. ASan blind spot: the next
+ * allocations reuse the same addresses, so a pointer kept from before the
+ * flush reads the new block there without crashing. */
 void arena_flush(const allocator_t *arena);
-/* Rend le bloc entier a la poignee qui l'a donne. */
+/* Releases the whole block to the handle it was taken from. */
 void arena_release(const allocator_t *arena);
 
 #endif

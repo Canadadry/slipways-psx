@@ -39,12 +39,15 @@ Il n'y a plus de nom minifié. Le glossaire (`docs/glossaire-noms.md`) se lit se
 - Une chaîne française ou qui cite le cart **se corrige** à l'étape 4, mais par l'orchestrateur, selon la règle de propriété des chaînes (§6 du plan : la sous-étape qui tient le site écrivain la traduit à tous ses sites).
 - L'agent la liste avec trois choses : sa proposition, ses lecteurs (`grep`), et si un test la lit.
 - Une chaîne qui décrit un comportement disparu reste un `fix:` à part, comme dans le skill.
+- *Amendé par 4c1.* Le compteur de français ne voit pas les mots de contenu (`pleine`, `limite`, `octets`, `essai`, `bascule`…) : ses mots-outils seuls laissent passer « zone … pleine, limite 4 places ». L'agent lit donc chaque chaîne et chaque message d'`assert` de ses fichiers, et propose aussi ceux que le compteur ne marque pas.
+- *Amendé par 4c1.* Les lecteurs d'un message fatal composé (`p8_fatal`, `expect_fatal`) se cherchent par `grep` de chaque fragment du gabarit, sur tout `tests/` : la PRD de 4c1 avait manqué `tests/test_frame_zone.c`, trouvé ainsi avant le rouge.
 
 ## 7. Tests
 
 - Le commentaire d'un test garde « pourquoi cette valeur-là ».
 - Une assertion ne change ni de condition ni de présence. Son message peut seulement être proposé réécrit (point 5).
 - Aucune assertion n'est ajoutée à l'étape 4 (la permission du skill d'en ajouter une prouvée tombe).
+- *Amendé par 4c1.* Un nom de cas d'un test à processus enfant (`CASES[]`, lu par les `expect_*` de `main`) est le nom de sa fonction sans `case_` ; un nom français ou du cart se propose sous cette règle, à la rubrique 10.
 
 ## 8. Contrôles de l'agent
 

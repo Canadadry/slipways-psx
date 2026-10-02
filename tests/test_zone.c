@@ -1,5 +1,5 @@
-/* Lie sous ASan. Chaque cas tourne dans un processus enfant : ce binaire se
- * relance lui-meme avec le nom du cas, et le parent lit son statut et son
+/* Linked under ASan. Each case runs in a child process: this binary reruns
+ * itself with the case name, and the parent reads its exit status and its
  * stderr. */
 
 #include <assert.h>
@@ -26,8 +26,8 @@ static void init_zones(void) {
     flip_zone_init(&flip_zone, "test-flip", flip_zone_cells, 64);
 }
 
-/* volatile : la lecture d'un pointeur perime ne doit pas etre retiree par
- * l'optimiseur, c'est elle que le cas observe. */
+/* volatile: the read through a stale pointer must not be dropped by the
+ * optimiser, it is what the case observes. */
 static volatile unsigned char sink;
 
 static int case_control(void) {
@@ -129,8 +129,8 @@ static int case_flip_zone_old_generation_lives(void) {
     return 0;
 }
 
-/* Une generation par bout : rend le premier bloc de la generation `gen`
- * (0 au bas, 1 en haut), apres que la suivante a servi trois blocs. */
+/* One generation per end: returns the first block of generation gen (0 at
+ * the bottom, 1 at the top), after the next one has served three blocks. */
 static unsigned char *flip_zone_then_serve(int gen) {
     unsigned char *kept = NULL;
     for (int g = 0; g <= gen + 1; g++) {
@@ -190,7 +190,7 @@ static int case_flip_zone_max_keeps_peak(void) {
     return 0;
 }
 
-/* Deux generations vivantes, puis la remise complete. */
+/* Two live generations, then the full reset. */
 static unsigned char *reset_both_ends(unsigned char **top) {
     unsigned char *bottom = flip_zone_alloc(&flip_zone, 24);
     bottom[0] = 1;
@@ -252,7 +252,7 @@ static const struct {
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
 
-/* Tampon alloue, termine par un nul, que l'appelant libere. */
+/* Allocated NUL-terminated buffer, freed by the caller. */
 static char *read_whole_file(const char *path) {
     FILE *file = fopen(path, "rb");
     assert(file != NULL);
@@ -270,8 +270,8 @@ static char *read_whole_file(const char *path) {
 
 static const char *self_path;
 
-/* Rend le statut brut de system() ; *err recoit le stderr de l'enfant, que
- * l'appelant libere. */
+/* Returns the raw status of system(); *err receives the child's stderr,
+ * freed by the caller. */
 static int run_child(const char *name, char **err) {
     char cmd[512];
     remove(STDERR_LOG);

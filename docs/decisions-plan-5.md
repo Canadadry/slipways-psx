@@ -61,6 +61,8 @@
 | D-34 | 4a | Assertion faible `strstr(log, "exempt")` de `test_class_coverage.c` | 1 |
 | D-35 | 4b | Noms d'identifiant qui citent Lua ou le cart (`P8_FIXED_LIT`, trois tests) | 8 |
 | D-36 | 4b | `` `mem` `` et `` `gfx` `` comptés en `backtick` après le renommage des locales de `test_demo.c` | 23 |
+| D-37 | 4c1 | `argc`/`argv` de `main` dans la liste des locales cryptiques | 10 déclarations |
+| D-38 | 4c1 | Statiques de fichier `mem`/`gfx` des tests | 80 déclarations |
 
 ## Entrées
 
@@ -500,4 +502,24 @@
 - **Options** : (a) les sous-étapes suivantes réécrivent (« the memory », « the graphics state ») ; (b) règle du compteur : un nom ambigu dont toutes les lignes `renommé` sont des locales ou des paramètres ne compte en `backtick` que dans le fichier de ces lignes (test d'abord dans `tests/test_rename_count.py`) ; (c) exceptions par module.
 - **Sites** : 23 : `src/game/message_box.h` 4, `src/game/ui.h` 3, `background.h`, `draw_functions.h`, `probe.h`, `slipway_display.h`, `structure_icon.h`, `wormhole_display.h` 2 chacun, `hud.h`, `mouse.h`, `scroll.h`, `src/devtools/screencast.h` 1 chacun (``grep -rnoE '`(mem|gfx)`' src tests tools``).
 - **Proposition prête à appliquer** : (b), qui vaut aussi pour les renommages de locales des 4x suivantes ; contrôle : `make cart-names-count` sans `SUBSTEP` rend 26 `backtick` de moins qu'avant la règle, et `make rename-count-test` vert.
+- **Verdict** :
+
+### D-37 — `argc`/`argv` de `main` dans la liste des locales cryptiques
+
+- **Origine** : 4c1 (mesure de `make cryptic-locals MODULES=<4c1>`).
+- **Question** : la liste des locales cryptiques (portée > 40 lignes, nom de trois caractères ou moins ou non découpé en mots) relève `argc` et `argv`, l'idiome C des paramètres de `main`, dès que `main` dépasse 40 lignes. Les renommer, ou sortir l'idiome de la règle ?
+- **Options** : (a) règle de `tools/scope_count.py --cryptic` : un paramètre `argc` ou `argv` d'une fonction `main` n'est pas cryptique (test d'abord dans `tests/test_scope_count.py`) ; (b) renommer (`arg_count`/`args`) par la procédure N ; (c) exceptions par module.
+- **Sites** : 10 déclarations, 5 `main` : `tests/test_allocator` (43 lignes), `cmd/class_coverage` (58), `cmd/game` (95), `cmd/replay` (94), `cmd/screencast_viewer` (102) ; `make cryptic-locals` sans `SUBSTEP`, après `rename-extract` frais à la fin de 4c1.
+- **Proposition prête à appliquer** : (a). Contrôle : `make cryptic-locals` sans `SUBSTEP` rend 10 candidats de moins, `make scope-count-test` vert.
+- **Portée** : la règle ne touche que la liste des locales cryptiques ; aucune mention en commentaire ni entre backticks n'est en cause.
+- **Verdict** :
+
+### D-38 — Statiques de fichier `mem`/`gfx` des tests
+
+- **Origine** : 4c1 (`tests/test_exit_queue.c` en déclare).
+- **Question** : 40 tests déclarent `static p8_memory_t mem;` et `static p8_graphics_t gfx;` (80 déclarations), `conservé` au TSV. Le §4 veut pour une globale un nom complet, et `g_` pour une statique mutable de fichier ; 4b a renommé les locales homonymes de `test_demo.c` en `memory`/`graphics`, et `tests/test_particle_zone.c` porte déjà `g_mem`/`g_gfx`. Les renommer ?
+- **Options** : (a) garder ; (b) `memory`/`graphics` ; (c) `g_memory`/`g_graphics` (§4 à la lettre).
+- **Sites** : 80 déclarations dans 40 fichiers (`grep -rhE '^static p8_(memory|graphics)_t (mem|gfx);' tests | wc -l`), plus leurs emplois, à mesurer par le `grep` des conventions sur chaque fichier.
+- **Proposition prête à appliquer** : (b), procédure N, en un passage à l'étape 5 ; avec D-36 (b), les mentions entre backticks ne comptent pas hors de leur fichier.
+- **Portée** : s'applique aussi aux mentions entre backticks et en commentaire des 40 fichiers ; contrôle : le `grep` des sites ci-dessus rend 0.
 - **Verdict** :

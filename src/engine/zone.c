@@ -58,9 +58,9 @@ unsigned char *bump_zone_alloc(bump_zone_t *zone, size_t size) {
     return p;
 }
 
-/* Sous ASan, chaque reset passe a l'autre moitie et empoisonne celle qu'il
- * quitte : revenir au debut rendrait ses adresses aux allocations suivantes,
- * et un pointeur perime y lirait sans planter. */
+/* Under ASan, each reset moves to the other half and poisons the one it
+ * leaves: going back to the start would hand its addresses to the next
+ * allocations, and a stale pointer would read there without crashing. */
 void bump_zone_reset(bump_zone_t *zone) {
     assert(!zone->never_reset &&
            "reset of a single-half zone: an arena is never reset, it is released");
@@ -115,9 +115,9 @@ int flip_zone_pending(const flip_zone_t *zone) {
     return zone->pending;
 }
 
-/* Pas de seconde moitie sous ASan : les generations alternent deja entre les
- * bouts. Angle mort : un pointeur garde a travers deux bascules retombe sur
- * le bout reutilise et ne plante plus. */
+/* No second half under ASan: the generations already alternate between the
+ * ends. Blind spot: a pointer kept across two flips lands on the reused end
+ * and no longer crashes. */
 void flip_zone_release(flip_zone_t *zone) {
     if (!zone->pending) return;
     if (zone->current_top) {
@@ -164,9 +164,9 @@ void slot_zone_init(slot_zone_t *zone, const char *name,
     POISON(storage, count * ZONE_CELLS(slot_size) * sizeof *storage);
 }
 
-/* Curseur tournant, pas de liste libre LIFO : une place rendue n'est reprise
- * qu'apres un tour complet, sinon un pointeur vers elle retomberait tout de
- * suite sur une place redevenue valide. */
+/* Rotating cursor, no LIFO free list: a released slot is taken again only
+ * after a full turn, otherwise a pointer to it would at once land on a slot
+ * that is valid again. */
 unsigned char *slot_zone_alloc(slot_zone_t *zone) {
     for (size_t step = 0; step < zone->count; step++) {
         size_t i = (zone->cursor + step) % zone->count;

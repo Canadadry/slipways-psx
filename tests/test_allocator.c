@@ -1,5 +1,5 @@
-/* Lie sous ASan. Chaque cas tourne dans un processus enfant : ce binaire se
- * relance lui-meme avec le nom du cas, et le parent lit son statut et son
+/* Linked under ASan. Each case runs in a child process: this binary reruns
+ * itself with the case name, and the parent reads its exit status and its
  * stderr. */
 
 #include <assert.h>
@@ -24,12 +24,12 @@ BUMP_ZONE_STORAGE(bump_cells, CAPACITY);
 static bump_zone_t bump;
 static allocator_t handle;
 
-/* volatile : la lecture d'un pointeur perime ne doit pas etre retiree par
- * l'optimiseur, c'est elle que le cas observe. */
+/* volatile: the read through a stale pointer must not be dropped by the
+ * optimiser, it is what the case observes. */
 static volatile unsigned char sink;
 
-/* Fait grandir un tableau de 1 a 64 octets en doublant, comme le font les
- * tableaux croissants, en ecrivant i a l'indice i. */
+/* Grows an array from 1 to 64 bytes by doubling, as growable arrays do,
+ * writing each index as the byte at that index. */
 static unsigned char *grow_counting(const allocator_t *z) {
     size_t capacity = 1;
     unsigned char *items = allocator_alloc(z, capacity);
@@ -243,8 +243,8 @@ static int case_arena_flush_back_to_head(void) {
     arena_flush(arena);
     assert(arena_used(arena) == head && "a flushed arena holds only its header");
     unsigned char *after = arena_counting(arena);
-    /* L'angle mort du recyclage : la meme adresse revient, un pointeur
-     * perime y lirait le nouveau bloc sans planter. */
+    /* The recycling blind spot: the same address comes back, so a stale
+     * pointer would read the new block there without crashing. */
     assert(after == before && "a flushed arena restarts at the start of its block");
     expect_counting(after);
     arena_release(arena);
@@ -261,8 +261,8 @@ static int case_arena_flush_kills_old_block(void) {
 
 #define RESERVED 40
 
-/* Une arene qui tient juste la liste et ses RESERVED elements : un seul
- * agrandissement la ferait deborder. */
+/* An arena that holds exactly the list and its RESERVED items: a single
+ * grow would overflow it. */
 static const allocator_t *reserved_list(pointer_list_t **out) {
     const allocator_t *probe = arena_take(&heap_allocator, "probe-arena", ARENA_SIZE);
     size_t head = arena_used(probe);
@@ -295,8 +295,8 @@ static int case_pointer_list_reserved_overflow(void) {
     return 0;
 }
 
-/* Les places voisines d'une arene, hors du bloc qu'elle a pris : sous ASan,
- * l'arene ne doit pas les empoisonner. */
+/* The cells next to an arena, outside the block it took: under ASan, the
+ * arena must not poison them. */
 static zone_cell_t neighbours[2 * ZONE_CELLS(ARENA_SIZE)];
 
 static unsigned char *first_neighbour(const allocator_t *z, size_t n) {
@@ -371,7 +371,7 @@ static flip_zone_t flip_zone;
 static flip_zone_allocator_t flip_zone_storage;
 static const allocator_t *flip_zone_handle;
 
-/* Un bloc de 8 octets a 6, agrandi a 16 : l'ancien bloc et sa copie. */
+/* An 8-byte block filled with 6, grown to 16: the old block and its copy. */
 static unsigned char *flip_zone_grown(unsigned char **copy) {
     unsigned char *old = allocator_alloc(flip_zone_handle, 8);
     memset(old, 6, 8);
@@ -442,7 +442,7 @@ static const struct {
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
 
-/* Tampon alloue, termine par un nul, que l'appelant libere. */
+/* Allocated NUL-terminated buffer, freed by the caller. */
 static char *read_whole_file(const char *path) {
     FILE *file = fopen(path, "rb");
     assert(file != NULL);
@@ -460,8 +460,8 @@ static char *read_whole_file(const char *path) {
 
 static const char *self_path;
 
-/* Rend le statut brut de system() ; *err recoit le stderr de l'enfant, que
- * l'appelant libere. */
+/* Returns the raw status of system(); *err receives the child's stderr,
+ * freed by the caller. */
 static int run_child(const char *name, char **err) {
     char cmd[512];
     remove(STDERR_LOG);

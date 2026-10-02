@@ -6,20 +6,20 @@
 
 #define EXIT_QUEUE_CAP 256
 
-/* Une entite qui a quitte hv, et dont la classe a `rendre` : la frame en
- * cours la relit encore, on ne la rend qu'au vidage. pico8_fatal si la file
- * est pleine. */
+/* An entity that has left live_entities and whose class has a release: the
+ * current frame may still read it, so it is released only at the flush.
+ * p8_fatal when the queue is full. */
 void exit_queue_put(entity_t *e);
 
-/* Une arene que plus rien ne designe hors de la frame en cours, rendue
- * entiere au vidage. Meme limite que les entites. */
+/* An arena nothing outside the current frame points to any more, released
+ * whole at the flush. Same limit as the entities. */
 void exit_queue_put_arena(const allocator_t *arena);
 
 int exit_queue_count(void);
 
-/* Pour chaque entree, dans l'ordre : une entite passe par `oublier(e)`, qui
- * remet a nil ce qui la designe encore, puis par `rendre` ; une arene est
- * rendue. La file est vide au retour. */
+/* For each entry, in order: an entity goes through forget, which sets to
+ * NULL whatever still points to it, then through its class's release; an
+ * arena is released. The queue is empty on return. */
 void exit_queue_flush(void (*forget)(const entity_t *e));
 
 #endif

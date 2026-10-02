@@ -1,5 +1,5 @@
-/* Lie sous ASan. Chaque cas tourne dans un processus enfant : ce binaire se
- * relance lui-meme avec le nom du cas, et le parent lit son statut et son
+/* Linked under ASan. Each case runs in a child process: this binary reruns
+ * itself with the case name, and the parent reads its exit status and its
  * stderr. */
 
 #include <assert.h>
@@ -25,8 +25,8 @@
 
 #define STDERR_LOG "tmp/test_exit_queue_stderr.txt"
 
-/* volatile : la lecture d'un pointeur perime ne doit pas etre retiree par
- * l'optimiseur, c'est elle que le cas observe. */
+/* volatile: the read through a stale pointer must not be dropped by the
+ * optimiser, it is what the case observes. */
 static volatile unsigned char sink;
 
 static int released;
@@ -44,8 +44,9 @@ static const entity_class_t counted_cls = {.release = release_count};
 static const entity_class_t freed_cls = {.release = release_frees};
 static const entity_class_t kept_cls = {0};
 
-/* Une boite `mh` : `kc` et `ju.ed` ne designent que des boites. `m_` vise
- * un champ a elle, pour que `ui:gw` puisse l'ecrire par `gj`. */
+/* A message box: the shown message box and the score panel's last box only
+ * ever point to boxes. is_hovered points to a field of its own, so that
+ * ui_update_hover can write it through previous_hovered. */
 static message_box_t *new_entity(const entity_class_t *cls) {
     message_box_t *mh = calloc(1, sizeof *mh);
     assert(mh != NULL);
@@ -69,7 +70,8 @@ static void load_cart_and_start(void) {
     dispatch_context_set_input(&input);
     cart_load();
     cart_init();
-    /* Le `pz` du titre a remplace `ok.le` : la premiere frame vide la file. */
+    /* The title's message box replaced the ui's ephemerals: the first frame
+     * flushes the queue. */
     cart_flush_exit_queue();
 }
 
@@ -95,7 +97,8 @@ static int case_entity_unregister_released_at_flush(void) {
     return 0;
 }
 
-/* `cj` remplace `ok.le` ; la frame relit encore l'ancienne liste. */
+/* ui_clear_ephemerals replaces the ui's ephemerals; the frame still reads
+ * the old list. */
 static const entity_list_t *replaced_ephemerals(void) {
     load_cart_and_start();
     const entity_list_t *old = main_ui()->ephemerals;
@@ -195,8 +198,8 @@ static int case_update60_after_forgetting(void) {
     return 0;
 }
 
-/* `eu()` drops the title, and the difficulty button with it; `dk` still
- * reads it for the whole game. */
+/* cart_start_game drops the title, and the difficulty button with it;
+ * economy_score_difficulty still returns it for the whole game. */
 static int case_difficulty_outlives_its_button(void) {
     load_cart_and_start();
     const entity_list_t *hd = entities_by_message("hit_test");
@@ -241,7 +244,7 @@ static const struct {
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
 
-/* Tampon alloue, termine par un nul, que l'appelant libere. */
+/* Allocated NUL-terminated buffer, freed by the caller. */
 static char *read_whole_file(const char *path) {
     FILE *file = fopen(path, "rb");
     assert(file != NULL);
@@ -259,8 +262,8 @@ static char *read_whole_file(const char *path) {
 
 static const char *self_path;
 
-/* Rend le statut brut de system() ; *err recoit le stderr de l'enfant, que
- * l'appelant libere. */
+/* Returns the raw status of system(); *err receives the child's stderr,
+ * freed by the caller. */
 static int run_child(const char *name, char **err) {
     char cmd[512];
     remove(STDERR_LOG);

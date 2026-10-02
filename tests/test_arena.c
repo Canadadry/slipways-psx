@@ -1,5 +1,5 @@
-/* Lie sans ASan, expres : la garde qui interdit de remettre une arene a zero
- * doit mordre dans le build ou PICO8_BUMP_ZONE_HALVES vaut 1. */
+/* Linked without ASan on purpose: the guard that forbids resetting an arena
+ * must bite in the build where BUMP_ZONE_HALVES is 1. */
 
 #define _POSIX_C_SOURCE 200809L
 
