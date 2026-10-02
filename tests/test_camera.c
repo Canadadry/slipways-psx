@@ -142,8 +142,8 @@ static void check_fresh_mo(const pico8_qb_t *mo) {
     assert(ra.x == pico8_fixed_from_int(192) && ra.y == pico8_fixed_from_int(192));
     assert(v.x == 0 && v.y == 0);
     assert(mo->ma == 0);
-    assert(mo->header.t == 0);
-    assert(mo->header.me != NULL && strcmp(mo->header.me, "ph") == 0);
+    assert(mo->header.state_time == 0);
+    assert(mo->header.state != NULL && strcmp(mo->header.state, "ph") == 0);
     assert(mo->p != mo->ra);
 
     pc = mo->def->pc;
@@ -162,7 +162,7 @@ static void test_jl_builds_a_camera(void) {
 
 static void md_to(pico8_fixed_t fy, int want_x, int want_y) {
     pico8_camera(&gfx, 7, 11);
-    assert(pico8_mo()->cls == pico8_qb_struct_class());
+    assert(pico8_mo()->class == pico8_qb_struct_class());
     pico8_qb_md(pico8_dispatch_gfx(), (pico8_qb_t *)pico8_mo(), fy);
     assert(gfx.camera_x == want_x && gfx.camera_y == want_y);
 }
@@ -201,7 +201,7 @@ static void test_scripted_ticks(void) {
     for (i = 0; i < SCRIPTED_TICKS; i++) {
         pico8_dg();
         h = fold_mo(h);
-        h = fnv(h, (uint32_t)mo_qb()->header.t);
+        h = fnv(h, (uint32_t)mo_qb()->header.state_time);
         if (must_vec(mo_qb()->p).y == pico8_fixed_from_int(320)) {
             bounded++;
         }
@@ -265,7 +265,7 @@ static void test_second_jl(void) {
 static void test_placeholder_mo(void) {
     pico8_entity_init();
     pico8_camera(&gfx, 5, 6);
-    assert(pico8_mo()->cls != pico8_qb_struct_class());
+    assert(pico8_mo()->class != pico8_qb_struct_class());
     assert(gfx.camera_x == 5 && gfx.camera_y == 6);
     assert(pico8_mo_qb() == NULL);
 }
@@ -304,7 +304,7 @@ static int ga_alive(void) {
     for (i = 0; i < hv->count; i++) {
         const void *e = hv->items[i];
         if (e != NULL &&
-            ((const pico8_struct_header_t *)e)->cls == pico8_ga_struct_class()) {
+            ((const entity_t *)e)->class == pico8_ga_struct_class()) {
             return 1;
         }
     }
@@ -349,7 +349,7 @@ static void in_fresh_child(void (*test)(void)) {
 
 static int is_a_qb_struct(const void *e) {
     return e != NULL &&
-           ((const pico8_struct_header_t *)e)->cls == pico8_qb_struct_class();
+           ((const entity_t *)e)->class == pico8_qb_struct_class();
 }
 
 /* `jl()`'s `mo` and one built through the class are qb structs in hv only,
@@ -362,16 +362,16 @@ static void test_qb_is_a_struct(void) {
     assert(is_a_qb_struct(pico8_mo()) && is_a_qb_struct(generic));
     assert(ents_listed(pico8_hv(), generic) && !in_any_cv(generic));
     check_fresh_mo(generic);
-    assert(generic->header.ra == &generic->ra);
-    assert(generic->header.p == &generic->p);
-    pico8_qb_struct_class()->states[PICO8_STATE_PH](&generic->header, pico8_fixed_from_int(0));
+    assert(generic->header.pos == &generic->ra);
+    assert(generic->header.map_pos == &generic->p);
+    pico8_qb_struct_class()->states[ENTITY_STATE_NORMAL](&generic->header, pico8_fixed_from_int(0));
     pico8_qb_md(pico8_dispatch_gfx(), generic, pico8_fixed_from_int(1));
-    assert(pico8_qb_struct_class()->kj == NULL);
+    assert(pico8_qb_struct_class()->draw == NULL);
     {
         pico8_vec_t p_before = must_vec(generic->p);
 
         generic->v = NULL;
-        pico8_qb_struct_class()->states[PICO8_STATE_PH](&generic->header, pico8_fixed_from_int(0));
+        pico8_qb_struct_class()->states[ENTITY_STATE_NORMAL](&generic->header, pico8_fixed_from_int(0));
         assert(generic->v != NULL && generic->v->x == 0 && generic->v->y == 0);
         assert(generic->p->x == p_before.x && generic->p->y == p_before.y);
     }

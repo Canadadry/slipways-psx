@@ -8,7 +8,7 @@
 #include "game/hud.h"
 
 static int g_layout_up = 0;
-static const pico8_struct_class_t g_lq_struct_class;
+static const entity_class_t g_lq_struct_class;
 
 pico8_lq_cell_t pico8_lq_cell_nothing(void) {
     pico8_lq_cell_t cell = {.kind = PICO8_LQ_CELL_NOTHING};
@@ -202,7 +202,7 @@ void pico8_lq_ol(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_lq_t *sel
     if (self == NULL) {
         return;
     }
-    assert(self->header.cls == &g_lq_struct_class &&
+    assert(self->header.class == &g_lq_struct_class &&
            "lq:ol: every row reaching it (jo.lq, js.lq/h_, jb.ls, pi.ld) is an lq; anything else would be read "
            "through the wrong layout");
     w = self->w;
@@ -293,18 +293,18 @@ void pico8_jb_ol(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jb_t *self, pic
     }
 }
 
-static void pico8_lq_ol_dispatch(pico8_struct_header_t *self, pico8_vec_t p, pico8_fixed_t a) {
+static void pico8_lq_ol_dispatch(entity_t *self, pico8_vec_t p, pico8_fixed_t a) {
     pico8_lq_ol(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_lq_t *)self, p, a);
 }
 
 /* No launcher reaches it (`jo.lq` is an `lq`); a vector `om` counts as 0. */
-static void pico8_jb_ol_dispatch(pico8_struct_header_t *self, pico8_vec_t p, pico8_fixed_t a) {
+static void pico8_jb_ol_dispatch(entity_t *self, pico8_vec_t p, pico8_fixed_t a) {
     (void)p;
     pico8_jb_ol(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_jb_t *)self, pico8_fixed_from_int(0), a);
 }
 
-static const pico8_struct_class_t g_lq_struct_class = {
-    .ol = pico8_lq_ol_dispatch,
+static const entity_class_t g_lq_struct_class = {
+    .draw_at = pico8_lq_ol_dispatch,
 };
 
 /* The row with room for `n` cells, members at nil, not laid out. */
@@ -314,8 +314,8 @@ static pico8_lq_t *pico8_lq_struct_alloc(const pico8_zone_choisie_t *zone, int n
     assert(zone != NULL && "lq: a row without a zone would have nowhere to keep its cells");
     self = (pico8_lq_t *)pico8_zone_alloc(zone, sizeof *self);
 
-    pico8_struct_header_init(&self->header, &g_lq_struct_class);
-    self->header.ra = &self->ra;
+    entity_init_header(&self->header, &g_lq_struct_class);
+    self->header.pos = &self->ra;
     self->c = 0;
     self->has_c = 0;
     self->bg = 0;
@@ -409,8 +409,8 @@ void pico8_lq_add(pico8_lq_t *self, pico8_lq_cell_t cell) {
     self->items_count++;
 }
 
-static const pico8_struct_class_t g_jb_struct_class = {
-    .ol = pico8_jb_ol_dispatch,
+static const entity_class_t g_jb_struct_class = {
+    .draw_at = pico8_jb_ol_dispatch,
 };
 
 /* The `jb` itself, before its lines. */
@@ -423,7 +423,7 @@ static pico8_jb_t *pico8_jb_struct_alloc(const pico8_zone_choisie_t *zone) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("jb");
 #endif
-    pico8_struct_header_init(&self->header, &g_jb_struct_class);
+    entity_init_header(&self->header, &g_jb_struct_class);
     self->zone = zone;
     self->ls = NULL;
     self->ls_count = 0;
@@ -457,11 +457,11 @@ int pico8_jb_ready(void) {
     return g_layout_up;
 }
 
-const pico8_struct_class_t *pico8_lq_struct_class(void) {
+const entity_class_t *pico8_lq_struct_class(void) {
     return &g_lq_struct_class;
 }
 
-const pico8_struct_class_t *pico8_jb_struct_class(void) {
+const entity_class_t *pico8_jb_struct_class(void) {
     return &g_jb_struct_class;
 }
 

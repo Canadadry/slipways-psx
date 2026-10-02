@@ -8,7 +8,7 @@
 
 /* `lp`/`rl` are the containers the keys held, borrowed, not copied. */
 typedef struct {
-    pico8_struct_header_t header;
+    entity_t header;
     pico8_ents_t *lp;
     pico8_ents_t *rl;
     pico8_fixed_t qe;
@@ -29,7 +29,7 @@ void pico8_trade_shutdown(void);
 
 /* 1 from pico8_trade_init() to pico8_trade_shutdown(), 0 otherwise. */
 int pico8_trade_ready(void);
-const pico8_struct_class_t *pico8_trade_struct_class(void);
+const entity_class_t *pico8_trade_struct_class(void);
 
 /* A route's or a want's `qe`: `n` is read only for FIXED. */
 typedef struct {
@@ -65,14 +65,14 @@ pico8_qe_t pico8_trade_qe(const pico8_trade_t *self);
 
 /* Returns 1 and writes *out (the last of "lp") for a non-empty "lp"; returns
  * 0 with *out untouched for a NULL self, or a nil or empty "lp". */
-int pico8_trade_to(const pico8_trade_t *self, pico8_struct_header_t **out);
+int pico8_trade_to(const pico8_trade_t *self, entity_t **out);
 
 /* Returns a brand-new route made in `zone`, never mutating self; NULL for a
  * NULL self.
  * A nil "lp"/"rl" on self reads as an empty list, a nil "qe" as false
  * (TROU-24). A NULL `np`/`jc` is nil: it contributes nothing to "lp"/"rl". */
 pico8_trade_t *pico8_trade_kg(const pico8_zone_choisie_t *zone, const pico8_trade_t *self,
-                              pico8_struct_header_t *np, pico8_struct_header_t *jc);
+                              entity_t *np, entity_t *jc);
 
 /* Two trades are equal iff they start (`lp[1]`) and end (`:to()`) at the
  * same planet, compared by pointer identity, whatever lies between. Returns 0

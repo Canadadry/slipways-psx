@@ -56,7 +56,7 @@ fail() {
 pattern() {
     case $1 in
         lien-parent) printf '%s\n' '\bpico8_[a-z0-9_]+_of\b|\b[a-z0-9_]*(emitter|probe)_of\b|(->|\.|\(\*)parent\b' ;;
-        accesseurs-q6) printf '%s\n' '(\b|_)(get_(nu|fa|ra|p|kq|ql|fg|mt|fx|p_)|set_m_)\b' ;;
+        accesseurs-q6) printf '%s\n' '(\b|_)(get_(nu|layer|pos|map_pos|hit_box|cursor_sprite|gpio_signal|infraspace|fold_anchor|is_dead)|set_is_hovered)\b' ;;
         défauts) printf '%s\n' '\bpico8_[a-z0-9_]+_start(_t)?\b' ;;
         nu) printf '%s\n' '\bnu\b|get_nu\b|_nu_(tags|items)\b' ;;
         aiguillage-nom) printf '%s\n' '\bhp_(pose|ho)\b|\bpico8_ho_gp_has\b|\bpico8_hp_(mr|gp)_names\b|(->|\.)(mr|gp)\b' ;;
@@ -67,8 +67,8 @@ pattern() {
     esac
 }
 
-# pico8_state_of rend un enum depuis un nom d'etat : ce n'est pas une lignee.
-LIEN_EXCLUSION='s/pico8_state_of//g'
+# entity_state_of rend un enum depuis un nom d'etat : ce n'est pas une lignee.
+LIEN_EXCLUSION='s/entity_state_of//g'
 # Le "nu" echappe de la fixture de test_data_residue.c est une chaine de
 # test, pas le champ. Pas de \b dans ces sed, le sed BSD ne le connait pas.
 NU_EXCLUSION='s/\\"nu\\"//g'
@@ -234,7 +234,7 @@ function braces(s,    t, n) {
 
 # Lecteur E. Un corps de struct de premier niveau s'ouvre par une ligne
 # "struct ... {" hors de tout corps : une locale de fonction n'est pas un
-# membre. E est la fermeture depuis pico8_struct_header_t par le premier
+# membre. E est la fermeture depuis entity_t par le premier
 # membre non pointeur ; l'etiquette, le typedef de "} nom;" et celui de
 # "typedef struct X Y;" nomment le meme type. Rend dans $work/parente et
 # $work/ptrs-entité les lignes "<fichier>:<ligne>:<texte>", et dans
@@ -334,7 +334,7 @@ read_structs() {
         return 0
     }
     END {
-        e["pico8_struct_header_t"] = 1
+        e["entity_t"] = 1
         do {
             grown = 0
             for (k = 1; k <= n; k++) {
@@ -355,7 +355,7 @@ read_structs() {
         printf "" > out_reg
         for (i = 1; i <= alias_n; i++) alias_of[alias_a[i]] = alias_b[i]
         for (k = 1; k <= n; k++) {
-            if (!sobj[k] && first[k] in e && first[k] != "pico8_struct_header_t")
+            if (!sobj[k] && first[k] in e && first[k] != "entity_t")
                 print sfile[k] ":" firstline[k] ":" firsttext[k] > out_parente
             if (!in_e(k) && sfile[k] !~ /(^|\/)tests\// && sfile[k] !~ /(^|\/)engine\/pointer_list\.[ch]$/) {
                 m = split(names[k], nm, " ")

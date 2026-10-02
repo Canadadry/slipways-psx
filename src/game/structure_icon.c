@@ -33,17 +33,17 @@ static int ie_to_int(pico8_fixed_t x) {
 
 /* Returns the kind held in `self.ke`, or NULL when the member is nil. The
  * result is borrowed. */
-static const pico8_entity_kind_t *ie_self_ke_kind(const pico8_ie_t *self) {
+static const entity_kind_t *ie_self_ke_kind(const pico8_ie_t *self) {
     return self != NULL ? self->ke : NULL;
 }
 
-static const pico8_struct_class_t g_ie_ke_view_struct_class = {0};
+static const entity_class_t g_ie_ke_view_struct_class = {0};
 
 pico8_ie_ke_t pico8_ie_ke_view(const pico8_ie_t *self) {
-    const pico8_entity_kind_t *kind = ie_self_ke_kind(self);
+    const entity_kind_t *kind = ie_self_ke_kind(self);
     pico8_ie_ke_t view;
 
-    pico8_struct_header_init(&view.header, &g_ie_ke_view_struct_class);
+    entity_init_header(&view.header, &g_ie_ke_view_struct_class);
     view.rr = NULL;
     view.s = 0;
     view.has_s = 0;
@@ -51,17 +51,17 @@ pico8_ie_ke_t pico8_ie_ke_view(const pico8_ie_t *self) {
     view.od = 0;
     view.has_od = 0;
     if (kind != NULL) {
-        view.rr = kind->rec->rr;
-        view.s = kind->rec->s;
-        view.has_s = kind->rec->has_s;
-        view.me = kind->rec->me;
-        view.od = kind->rec->od;
-        view.has_od = kind->rec->has_od;
+        view.rr = kind->record->rr;
+        view.s = kind->record->s;
+        view.has_s = kind->record->has_s;
+        view.me = kind->record->me;
+        view.od = kind->record->od;
+        view.has_od = kind->record->has_od;
     }
     return view;
 }
 
-const pico8_struct_class_t *pico8_ie_ke_view_struct_class(void) {
+const entity_class_t *pico8_ie_ke_view_struct_class(void) {
     return &g_ie_ke_view_struct_class;
 }
 
@@ -103,17 +103,17 @@ void pico8_ie_hb(pico8_ie_t *self) {
     }
 }
 
-static void pico8_ie_hb_dispatch(pico8_struct_header_t *self) {
+static void pico8_ie_hb_dispatch(entity_t *self) {
     pico8_ie_hb((pico8_ie_t *)self);
 }
 
-pico8_down_t pico8_ie_ldown(pico8_ie_t *self) {
+down_t pico8_ie_ldown(pico8_ie_t *self) {
     pico8_fixed_t new_id;
-    const pico8_entity_kind_t *ke_kind;
+    const entity_kind_t *ke_kind;
     char *id_num_str;
     char *id_str;
-    pico8_jo_keys_t keys;
-    pico8_down_t out = {0, NULL};
+    planet_keys_t keys;
+    down_t out = {0, NULL};
 
     assert(g_ie_up && "pico8_research_icon_init() must run before ie:ldown writes ie.id");
     new_id = pico8_fixed_add(g_ie_has_id ? g_ie_id : pico8_fixed_from_int(0),
@@ -131,16 +131,16 @@ pico8_down_t pico8_ie_ldown(pico8_ie_t *self) {
     pico8_jo_prise_ouvrir();
     id_num_str = pico8_tostr_fixed(pico8_zone_frame(), new_id);
     id_str = pico8_concat2(pico8_jo_zone_construction(), "s", id_num_str);
-    keys.id = id_str;
-    keys.p = NULL;
-    keys.ra = NULL;
+    keys.planet_id = id_str;
+    keys.map_pos = NULL;
+    keys.pos = NULL;
     out.held = ke_kind->new_entity(&keys);
     pico8_jo_prise_fermer();
     out.stop = out.held != NULL;
     return out;
 }
 
-static pico8_down_t pico8_ie_ldown_dispatch(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static down_t pico8_ie_ldown_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     (void)qa;
     (void)ra;
     return pico8_ie_ldown((pico8_ie_t *)self);
@@ -183,21 +183,21 @@ void pico8_ie_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ie_t *self, pico8_vec
 }
 
 /* `dc("kj")` calls `qc[nt](qc,qc.ra)`, so `ra` is always `self.ra`. */
-static void pico8_ie_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
+static void pico8_ie_kj_dispatch(entity_t *self, const pico8_vec_t *ra) {
     pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     pico8_ie_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_ie_t *)self, p);
 }
 
 /* `ie.hd=gk`: a field assignment in the cart, not a method definition. */
-static int pico8_ie_hd_dispatch(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
+static int pico8_ie_hd_dispatch(entity_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
     return pico8_gk(self, qa, ra);
 }
 
-static const pico8_struct_class_t g_ie_struct_class = {
-    .kj = pico8_ie_kj_dispatch,
-    .hd = pico8_ie_hd_dispatch,
-    .hb = pico8_ie_hb_dispatch,
-    .ldown = pico8_ie_ldown_dispatch,
+static const entity_class_t g_ie_struct_class = {
+    .draw = pico8_ie_kj_dispatch,
+    .hit_test = pico8_ie_hd_dispatch,
+    .refresh = pico8_ie_hb_dispatch,
+    .left_press = pico8_ie_ldown_dispatch,
 };
 
 static pico8_ie_t *pico8_ie_struct_new(const pico8_ie_keys_t *keys) {
@@ -206,15 +206,15 @@ static pico8_ie_t *pico8_ie_struct_new(const pico8_ie_keys_t *keys) {
     assert(g_ie_up && "pico8_research_icon_init() must run before an ie is built");
     pico8_ke_struct_init(&self->header, &g_ie_struct_class, pico8_ie_def.me, pico8_ie_def.t);
     self->def = &pico8_ie_def;
-    self->header.fa = &self->def->fa;
-    self->header.ra = &self->ra;
-    self->header.kq = &self->def->kq;
+    self->header.layer = &self->def->fa;
+    self->header.pos = &self->ra;
+    self->header.hit_box = &self->def->kq;
     self->ra = &self->def->ra;
     self->ke = NULL;
     self->jb = NULL;
     self->kh = 0;
     self->has_kh = 0;
-    self->header.m_ = &self->m_;
+    self->header.is_hovered = &self->m_;
     self->m_ = 0;
     if (keys != NULL) {
         self->ke = keys->ke;
@@ -247,7 +247,7 @@ int pico8_ie_ready(void) {
     return g_ie_up;
 }
 
-const pico8_struct_class_t *pico8_ie_struct_class(void) {
+const entity_class_t *pico8_ie_struct_class(void) {
     return &g_ie_struct_class;
 }
 

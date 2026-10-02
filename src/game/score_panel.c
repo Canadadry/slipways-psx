@@ -47,10 +47,10 @@ static void pj_row_copy(pico8_jb_row_t *dst, pico8_jb_item_t *items, int cap, co
     dst->items = items;
 }
 
-static const pico8_struct_class_t g_pj_cr_struct_class = {0};
+static const entity_class_t g_pj_cr_struct_class = {0};
 
 static pico8_pj_cr_t g_pj_cr = {
-    {.cls = &g_pj_cr_struct_class},
+    {.class = &g_pj_cr_struct_class},
     &(const pico8_vec_t){0x0, 0xb0000},
     &(const pico8_vec_t){0x0, 0xb0000},
     0xa0000,
@@ -69,7 +69,7 @@ pico8_pj_cr_t *pico8_pj_cr(void) {
     return g_pj_up ? &g_pj_cr : NULL;
 }
 
-const pico8_struct_class_t *pico8_pj_cr_struct_class(void) {
+const entity_class_t *pico8_pj_cr_struct_class(void) {
     return &g_pj_cr_struct_class;
 }
 
@@ -95,7 +95,7 @@ void pico8_score_panel_set_init(pico8_js_fn fn) {
     g_init_dispatch = (fn != NULL) ? fn : pico8_pj_init_placeholder;
 }
 
-static int pico8_eg_gg_pred(pico8_struct_header_t *e, void *ctx) {
+static int pico8_eg_gg_pred(entity_t *e, void *ctx) {
     (void)ctx;
     if (e == NULL) {
         return 0;
@@ -204,7 +204,7 @@ void pico8_pj_hb(void) {
     pico8_eg();
 }
 
-static void pico8_pj_hb_dispatch(pico8_struct_header_t *self) {
+static void pico8_pj_hb_dispatch(entity_t *self) {
     (void)self;
     pico8_pj_hb();
 }
@@ -244,16 +244,16 @@ void pico8_pj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_pj_t *self) {
     }
 }
 
-static void pico8_pj_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
+static void pico8_pj_kj_dispatch(entity_t *self, const pico8_vec_t *ra) {
     (void)ra;
     pico8_pj_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_pj_t *)self);
 }
 
-static const pico8_struct_class_t g_pj_struct_class = {
-    .kj = pico8_pj_kj_dispatch,
-    .hk = pico8_pj_hk_dispatch,
-    .hb = pico8_pj_hb_dispatch,
-    .states = {[PICO8_STATE_PH] = pico8_pj_ph_dispatch},
+static const entity_class_t g_pj_struct_class = {
+    .draw = pico8_pj_kj_dispatch,
+    .new_year = pico8_pj_hk_dispatch,
+    .refresh = pico8_pj_hb_dispatch,
+    .states = {[ENTITY_STATE_NORMAL] = pico8_pj_ph_dispatch},
 };
 
 static pico8_pj_t *pico8_pj_struct_new(void) {
@@ -264,7 +264,7 @@ static pico8_pj_t *pico8_pj_struct_new(void) {
     pico8_ke_struct_init(&self->header, &g_pj_struct_class, pico8_pj_def.me, pico8_pj_def.t);
     self->def = &pico8_pj_def;
     self->fa = self->def->fa;
-    self->header.fa = &self->fa;
+    self->header.layer = &self->fa;
     self->ed = NULL;
     self->c_ = 0;
     self->has_c_ = 0;
@@ -327,7 +327,7 @@ int pico8_pj_ready(void) {
     return g_pj_up;
 }
 
-const pico8_struct_class_t *pico8_pj_struct_class(void) {
+const entity_class_t *pico8_pj_struct_class(void) {
     return &g_pj_struct_class;
 }
 

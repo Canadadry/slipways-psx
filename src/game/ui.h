@@ -31,16 +31,16 @@ typedef struct {
  * points at `qa_own`, rewritten in place by each `lj`. Never copy the
  * struct. */
 typedef struct {
-    pico8_struct_header_t header;
+    entity_t header;
     const pico8_ui_def_t *def;
     pico8_ents_t *le;
     pico8_vec_t *qa;
     pico8_vec_t qa_own;
     pico8_ui_ic_t *ic;
     pico8_ui_ic_t ic_own;
-    pico8_struct_header_t *o_; /* borrowed; nil once the exit queue gives it back */
-    pico8_struct_header_t *gj; /* borrowed; nil once the exit queue gives it back */
-    pico8_struct_header_t *lheld; /* borrowed, never freed */
+    entity_t *o_; /* borrowed; nil once the exit queue gives it back */
+    entity_t *gj; /* borrowed; nil once the exit queue gives it back */
+    entity_t *lheld; /* borrowed, never freed */
     pico8_bg_t *rheld; /* borrowed, never freed */
 } pico8_ui_t;
 
@@ -58,7 +58,7 @@ void pico8_ui_shutdown(void);
 /* 1 from pico8_ui_init() to pico8_ui_shutdown(), 0 otherwise. */
 int pico8_ui_ready(void);
 
-const pico8_struct_class_t *pico8_ui_struct_class(void);
+const entity_class_t *pico8_ui_struct_class(void);
 
 /* The box of the class, read by `bv`: `&pico8_ui_def.hw`, NULL before
  * `pico8_ui_init()` and after `pico8_ui_shutdown()`. */
@@ -83,17 +83,17 @@ pico8_ui_t *pico8_ui_new(void);
 /* Between `pico8_ui_init()` and `pico8_ui_set_je()` this is the placeholder
  * struct, with no member and no method; after `pico8_jl()` it is an `nf` struct
  * (pico8_mouse_reader.h). Its members are read through `pico8_je_nf()`. */
-pico8_struct_header_t *pico8_je(void);
+entity_t *pico8_je(void);
 
 /* `je` as its `nf`: NULL when there is no je and on the placeholder. */
 pico8_nf_t *pico8_je_nf(void);
 
-const pico8_struct_class_t *pico8_je_placeholder_struct_class(void);
+const entity_class_t *pico8_je_placeholder_struct_class(void);
 
 /* Makes `instance` the new `je`. The outgoing instance is NOT freed -- see
  * the comment at the definition. NULL goes back to "no je", and passing back
  * the current `pico8_je()` is a no-op. */
-void pico8_ui_set_je(pico8_struct_header_t *instance);
+void pico8_ui_set_je(entity_t *instance);
 
 /* NULL until `pico8_jl()` (pico8_bootstrap.c) calls `pico8_ui_set_ok()`, and
  * again after `pico8_ui_shutdown()`. */
@@ -122,8 +122,8 @@ typedef enum { PICO8_JZ_LDOWN, PICO8_JZ_RDOWN, PICO8_JZ_GV } pico8_jz_slot_t;
 /* Lua's `{kv=h,kn=kn}` result, written out: returns 1 and fills `*out_kv`
  * and `*out_kn` on the first answer whose `stop` is set, or 0 leaving both
  * untouched when nothing answers. */
-int pico8_ui_jz(pico8_ui_t *self, pico8_jz_slot_t rm, pico8_vec_t *qa, pico8_vec_t *ra, const pico8_struct_header_t *s,
-                pico8_struct_header_t **out_kv, pico8_down_t *out_kn);
+int pico8_ui_jz(pico8_ui_t *self, pico8_jz_slot_t rm, pico8_vec_t *qa, pico8_vec_t *ra, const entity_t *s,
+                entity_t **out_kv, down_t *out_kn);
 
 void pico8_ui_cj(pico8_ui_t *self);
 

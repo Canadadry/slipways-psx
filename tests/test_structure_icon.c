@@ -79,7 +79,7 @@ static int ents_listed(const pico8_ents_t *list, const void *e) {
 }
 
 static pico8_ie_t *as_ie(void *e) {
-    assert(e != NULL && ((const pico8_struct_header_t *)e)->cls == pico8_ie_struct_class());
+    assert(e != NULL && ((const entity_t *)e)->class == pico8_ie_struct_class());
     return e;
 }
 
@@ -142,7 +142,7 @@ static uint32_t fold_string(uint32_t h, const char *s) {
 /* An icon is the one entity of `cv.hb` whose `ke` holds a kind, not an
  * entity: there is no `cg.ie`. */
 static int is_icon(const void *e) {
-    return e != NULL && ((const pico8_struct_header_t *)e)->cls == pico8_ie_struct_class() &&
+    return e != NULL && ((const entity_t *)e)->class == pico8_ie_struct_class() &&
            ((const pico8_ie_t *)e)->ke != NULL;
 }
 
@@ -172,7 +172,7 @@ static int icon_rank(const void *e) {
     return -1;
 }
 
-static void gx(const pico8_entity_kind_t *out[7]) {
+static void gx(const entity_kind_t *out[7]) {
     out[0] = pico8_qh_kind();
     out[1] = pico8_os_kind();
     out[2] = pico8_nr_kind();
@@ -198,7 +198,7 @@ static uint32_t fold_icon(uint32_t h, void *icon) {
     h = fnv(h, kh_state(ie));
     h = fold_vec(h, ie->ra);
     h = fnv(h, m__state(ie));
-    return fold_fixed(h, ie->header.t);
+    return fold_fixed(h, ie->header.state_time);
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
@@ -227,8 +227,8 @@ static void start_game(void) {
     new_game();
 }
 
-static const pico8_struct_class_t *cls_of(const void *e) {
-    return ((const pico8_struct_header_t *)e)->cls;
+static const entity_class_t *cls_of(const void *e) {
+    return ((const entity_t *)e)->class;
 }
 
 static pico8_vec_t *vec_ref(pico8_vec_t at) {
@@ -246,7 +246,7 @@ static const pico8_jb_row_t *dr_row(int i) {
     return &pico8_dr_table[i];
 }
 
-static void *build_icon(const pico8_entity_kind_t *ke, pico8_jb_t *jb) {
+static void *build_icon(const entity_kind_t *ke, pico8_jb_t *jb) {
     pico8_ie_keys_t keys = {0};
 
     keys.ke = ke;
@@ -273,8 +273,8 @@ static uint32_t fold_kq(uint32_t h, void *icon) {
 static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const void *jb) {
     const pico8_ie_t *ie = as_ie(icon);
 
-    assert(ie->header.me != NULL && strcmp(ie->header.me, "ph") == 0);
-    assert(ie->header.t == 0);
+    assert(ie->header.state != NULL && strcmp(ie->header.state, "ph") == 0);
+    assert(ie->header.state_time == 0);
     assert(ie->def == &pico8_ie_def);
     assert(ie->def->fa == pico8_fixed_from_int(12));
     assert(ie->ra == &ie->def->ra);
@@ -283,15 +283,15 @@ static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const v
     assert((const void *)ie->ke == ke);
     assert((const void *)ie->jb == jb);
     assert(!ie->has_kh && !ie->m_);
-    assert(cls_of(icon)->states[PICO8_STATE_PH] == NULL && cls_of(icon)->ev == NULL && cls_of(icon)->hk == NULL &&
-           cls_of(icon)->rdown == NULL && cls_of(icon)->gv == NULL);
-    assert(cls_of(icon)->hd != NULL && cls_of(icon)->hb != NULL && cls_of(icon)->kj != NULL &&
-           cls_of(icon)->ldown != NULL);
+    assert(cls_of(icon)->states[ENTITY_STATE_NORMAL] == NULL && cls_of(icon)->draw_overlay == NULL && cls_of(icon)->new_year == NULL &&
+           cls_of(icon)->right_press == NULL && cls_of(icon)->accept_drop == NULL);
+    assert(cls_of(icon)->hit_test != NULL && cls_of(icon)->refresh != NULL && cls_of(icon)->draw != NULL &&
+           cls_of(icon)->left_press != NULL);
     assert(ents_listed(pico8_hv(), icon) && ents_listed(pico8_cv("kj"), icon) && ents_listed(pico8_cv("hd"), icon) &&
            ents_listed(pico8_cv("hb"), icon));
     assert(!ents_listed(pico8_cv("ev"), icon) && !ents_listed(pico8_cv("hk"), icon));
 
-    h = fold_string(h, ie->header.me);
+    h = fold_string(h, ie->header.state);
     h = fold_fixed(h, ie->def->fa);
     h = fold_kq(h, icon);
     h = fold_vec(h, ie->ra);
@@ -301,7 +301,7 @@ static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const v
 
 static void test_construction(void) {
     uint32_t h = 2166136261u;
-    const pico8_entity_kind_t *classes[7];
+    const entity_kind_t *classes[7];
     void *all[16];
     void *a;
     void *b;
@@ -318,9 +318,9 @@ static void test_construction(void) {
         const pico8_ie_t *ie = as_ie(all[i]);
         assert(ie->ke == classes[i]);
         assert(ie->jb != NULL);
-        assert(ie->header.me != NULL && strcmp(ie->header.me, "ph") == 0);
+        assert(ie->header.state != NULL && strcmp(ie->header.state, "ph") == 0);
         assert(ie->def->fa == pico8_fixed_from_int(12));
-        assert(cls_of(all[i])->hd != NULL);
+        assert(cls_of(all[i])->hit_test != NULL);
         assert(ents_listed(pico8_hv(), all[i]) && ents_listed(pico8_cv("kj"), all[i]) && ents_listed(pico8_cv("hd"), all[i]));
         assert(!ents_listed(pico8_cv("ev"), all[i]) && !ents_listed(pico8_cv("hk"), all[i]));
         h = fold_kq(h, all[i]);
@@ -389,7 +389,7 @@ static void test_directed(void) {
     void *all[16];
     const pico8_vec_t *gy_before;
     const pico8_vec_t *ra_before;
-    pico8_down_t made;
+    down_t made;
     pico8_fixed_t id0;
     pico8_vec_t ra;
     int n;
@@ -402,21 +402,21 @@ static void test_directed(void) {
 
     gy_before = shared_gy(as_ie(shown));
     ra_before = as_ie(shown)->ra;
-    cls_of(shown)->hb(shown);
+    cls_of(shown)->refresh(shown);
     assert(as_ie(shown)->ra == ra_before && shared_gy(as_ie(shown)) == gy_before);
-    cls_of(hidden)->hb(hidden);
+    cls_of(hidden)->refresh(hidden);
     assert(kh_state(hidden) == 0 && shared_gy(as_ie(hidden)) == gy_before);
     h = fold_icon(h, shown);
     h = fold_icon(h, hidden);
     h = fold_shared(h, hidden);
 
     id0 = shared_id_fixed(as_ie(all[0]));
-    made = cls_of(all[0])->ldown(all[0], NULL, NULL);
+    made = cls_of(all[0])->left_press(all[0], NULL, NULL);
     assert(made.stop && made.held != NULL && pico8_jo_is_family(made.held));
     assert(strcmp(((const pico8_jo_t *)made.held)->id, "s1") == 0);
     assert(shared_id_fixed(as_ie(all[n - 1])) == pico8_fixed_add(id0, pico8_fixed_from_int(1)));
     h = fold_string(h, ((const pico8_jo_t *)made.held)->id);
-    made = cls_of(all[n - 1])->ldown(all[n - 1], NULL, NULL);
+    made = cls_of(all[n - 1])->left_press(all[n - 1], NULL, NULL);
     assert(made.held != NULL && pico8_jo_is_family(made.held));
     assert(strcmp(((const pico8_jo_t *)made.held)->id, "s2") == 0);
     assert(shared_id_fixed(as_ie(all[0])) == pico8_fixed_add(id0, pico8_fixed_from_int(2)));
@@ -425,14 +425,14 @@ static void test_directed(void) {
 
     assert(as_ie(shown)->ra != NULL);
     ra = *as_ie(shown)->ra;
-    assert(cls_of(shown)->hd(shown, vec_ref(v2(-500, -500)), vec_ref(pico8_vec_add(ra, v2(1, 1)))));
-    assert(!cls_of(shown)->hd(shown, vec_ref(pico8_vec_add(ra, v2(1, 1))),
+    assert(cls_of(shown)->hit_test(shown, vec_ref(v2(-500, -500)), vec_ref(pico8_vec_add(ra, v2(1, 1)))));
+    assert(!cls_of(shown)->hit_test(shown, vec_ref(pico8_vec_add(ra, v2(1, 1))),
                               vec_ref(pico8_vec_add(ra, v2(20, 20)))));
-    assert(!cls_of(hidden)->hd(hidden, vec_ref(v2(0, 0)), vec_ref(pico8_vec_add(ra, v2(1, 1)))));
+    assert(!cls_of(hidden)->hit_test(hidden, vec_ref(v2(0, 0)), vec_ref(pico8_vec_add(ra, v2(1, 1)))));
     {
         int dx;
         for (dx = -2; dx <= 11; dx++) {
-            int hit = cls_of(shown)->hd(shown, vec_ref(v2(0, 0)),
+            int hit = cls_of(shown)->hit_test(shown, vec_ref(v2(0, 0)),
                                         vec_ref(pico8_vec_add(ra, v2(dx, dx - 1))));
             h = fnv(h, (uint32_t)hit);
         }
@@ -454,7 +454,7 @@ static uint32_t screen_hash(void) {
 static uint32_t draw_alone(void *icon) {
     pico8_camera(&gfx, 0, 0);
     pico8_cls(&mem);
-    cls_of(icon)->kj(icon, as_ie(icon)->ra);
+    cls_of(icon)->draw(icon, as_ie(icon)->ra);
     return screen_hash();
 }
 
@@ -489,9 +489,9 @@ static void test_draw(void) {
     assert(hovered_px != shown_px);
     as_ie(shown)->m_ = 0;
     assert(draw_alone(shown) == shown_px);
-    *as_ie(shown)->header.m_ = 1;
+    *as_ie(shown)->header.is_hovered = 1;
     assert(m__state(shown) == 2);
-    *as_ie(shown)->header.m_ = 0;
+    *as_ie(shown)->header.is_hovered = 0;
     assert(m__state(shown) == 0);
 
     h = fnv(h, hidden_px);
@@ -523,12 +523,12 @@ static void test_ke_view(void) {
     check_int("ke view icons", n, 7);
     for (i = 0; i < n; i++) {
         uint32_t before;
-        cls_of(all[i])->hb(all[i]);
+        cls_of(all[i])->refresh(all[i]);
         before = kh_state(all[i]);
         assert(before == (gx_rr[i] == NULL ? 2u : 0u));
         if (gx_rr[i] != NULL) {
             invent(gx_rr[i]);
-            cls_of(all[i])->hb(all[i]);
+            cls_of(all[i])->refresh(all[i]);
         }
         assert(kh_state(all[i]) == 2);
         h = fnv(h, before);
@@ -567,7 +567,7 @@ static void test_restart(void) {
 
     start_game();
     n = icons(all, 16);
-    (void)cls_of(all[0])->ldown(all[0], NULL, NULL);
+    (void)cls_of(all[0])->left_press(all[0], NULL, NULL);
     gy = shared_gy(as_ie(all[0]));
     id = shared_id_fixed(as_ie(all[0]));
     assert(id == pico8_fixed_from_int(1));
@@ -595,13 +595,13 @@ static void test_restart(void) {
 
 static int is_an_ie_struct(const void *e) {
     return e != NULL &&
-           ((const pico8_struct_header_t *)e)->cls == pico8_ie_struct_class();
+           ((const entity_t *)e)->class == pico8_ie_struct_class();
 }
 
 /* Built by `eu` or directly, an `ie` is a struct with its four methods, and
  * no other struct answers to `hb`. */
 static void test_ie_is_a_struct(void) {
-    const pico8_entity_kind_t *classes[7];
+    const entity_kind_t *classes[7];
     void *all[16];
     void *built;
     void *others[4];
@@ -615,10 +615,10 @@ static void test_ie_is_a_struct(void) {
     all[n++] = built;
     for (i = 0; i < n; i++) {
         assert(is_an_ie_struct(all[i]));
-        assert(cls_of(all[i])->hd != NULL && cls_of(all[i])->hb != NULL && cls_of(all[i])->kj != NULL &&
-               cls_of(all[i])->ldown != NULL);
-        assert(cls_of(all[i])->states[PICO8_STATE_PH] == NULL && cls_of(all[i])->ev == NULL &&
-               cls_of(all[i])->hk == NULL && cls_of(all[i])->rdown == NULL && cls_of(all[i])->gv == NULL);
+        assert(cls_of(all[i])->hit_test != NULL && cls_of(all[i])->refresh != NULL && cls_of(all[i])->draw != NULL &&
+               cls_of(all[i])->left_press != NULL);
+        assert(cls_of(all[i])->states[ENTITY_STATE_NORMAL] == NULL && cls_of(all[i])->draw_overlay == NULL &&
+               cls_of(all[i])->new_year == NULL && cls_of(all[i])->right_press == NULL && cls_of(all[i])->accept_drop == NULL);
     }
 
     {
@@ -630,7 +630,7 @@ static void test_ie_is_a_struct(void) {
         no_ke = pico8_ie_new(&jb_only);
         assert(is_an_ie_struct(no_ke) && no_ke->ke == NULL);
         assert(shared_id_fixed(no_ke) == id0);
-        (void)cls_of(no_ke)->ldown(&no_ke->header, NULL, NULL);
+        (void)cls_of(no_ke)->left_press(&no_ke->header, NULL, NULL);
         assert(shared_id_fixed(as_ie(built)) == pico8_fixed_add(id0, pico8_fixed_from_int(1)));
     }
 
@@ -639,7 +639,7 @@ static void test_ie_is_a_struct(void) {
     others[2] = pico8_jc_new(NULL);
     others[3] = pico8_mz_new();
     for (i = 0; i < 4; i++) {
-        assert(cls_of(others[i])->hb == NULL);
+        assert(cls_of(others[i])->refresh == NULL);
     }
 }
 
@@ -648,7 +648,7 @@ static void test_ie_is_a_struct(void) {
 static void test_ke_view_is_a_struct(void) {
     static const int s[7] = {174, 100, 170, 78, 68, 66, 166};
     static const int od[7] = {15, 15, 10, 25, 20, 40, 60};
-    const pico8_entity_kind_t *classes[7];
+    const entity_kind_t *classes[7];
     void *all[16];
     pico8_ie_ke_t view;
     int n;
@@ -661,7 +661,7 @@ static void test_ke_view_is_a_struct(void) {
     for (i = 0; i < n; i++) {
         assert(as_ie(all[i])->ke == classes[i]);
         view = pico8_ie_ke_view(all[i]);
-        assert(view.header.cls == pico8_ie_ke_view_struct_class());
+        assert(view.header.class == pico8_ie_ke_view_struct_class());
         if (gx_rr[i] == NULL) {
             assert(view.rr == NULL);
         } else {
@@ -679,7 +679,7 @@ static void test_ke_view_is_a_struct(void) {
         jb_only.jb = pico8_jb_new(&zone_tas, NULL);
         no_ke = pico8_ie_new(&jb_only);
         view = pico8_ie_ke_view(no_ke);
-        assert(view.header.cls == pico8_ie_ke_view_struct_class());
+        assert(view.header.class == pico8_ie_ke_view_struct_class());
         assert(view.rr == NULL && !view.has_s && view.me == NULL && !view.has_od);
     }
 }

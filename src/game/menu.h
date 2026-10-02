@@ -21,8 +21,8 @@ pico8_js_fn pico8_ix_my(int i);
 
 /* The struct `ix[4]`'s callback hands `pz` for `ha`, with `ha`'s own
  * `hi`/`gq`/`ca`; NULL before the init and after the shutdown. */
-const pico8_struct_header_t *pico8_ha_pz(void);
-const pico8_struct_class_t *pico8_ha_pz_struct_class(void);
+const entity_t *pico8_ha_pz(void);
+const entity_class_t *pico8_ha_pz_struct_class(void);
 
 /* An init resets `ix`'s `ra` and `ha`'s `hi`/`gq` to their generated
  * values. */

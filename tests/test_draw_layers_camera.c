@@ -27,7 +27,7 @@ static int g_camera_y_at_kj;
  * then forwards to the real `pico8_jo_kj`, so the order is observed without
  * stubbing the behaviour out. Installed on the planet alone, through a copy
  * of jo's class whose `kj` is this spy, so no other `jo` sees it. */
-static void spy_kj(pico8_struct_header_t *self, const pico8_vec_t *ra) {
+static void spy_kj(entity_t *self, const pico8_vec_t *ra) {
     pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 
     g_kj_calls++;
@@ -36,13 +36,13 @@ static void spy_kj(pico8_struct_header_t *self, const pico8_vec_t *ra) {
     pico8_jo_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_jo_t *)self, p);
 }
 
-static pico8_struct_class_t g_spied_jo;
+static entity_class_t g_spied_jo;
 
 static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
     pico8_mem_t mem;
     pico8_gfx_t gfx;
     pico8_jo_t *planet;
-    pico8_struct_header_t *mo;
+    entity_t *mo;
     pico8_vec_t *ra_heap;
     int screen_pixel_addr;
     unsigned char pixel_before;
@@ -72,7 +72,7 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
         int i;
         assert(bucket != NULL);
         for (i = 0; i < bucket->count; i++) {
-            if (bucket->items[i] == (pico8_struct_header_t *)planet) {
+            if (bucket->items[i] == (entity_t *)planet) {
                 found = 1;
             }
         }
@@ -85,10 +85,10 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
     *ra_heap = pico8_vec_v(pico8_fixed_from_int(256), pico8_fixed_from_int(256));
     planet->ra = ra_heap;
 
-    assert(mo->cls == pico8_qb_struct_class());
+    assert(mo->class == pico8_qb_struct_class());
     g_spied_jo = *pico8_jo_struct_class();
-    g_spied_jo.kj = spy_kj;
-    planet->header.cls = &g_spied_jo;
+    g_spied_jo.draw = spy_kj;
+    planet->header.class = &g_spied_jo;
 
     /* `kj` paints colour 0, which is also the framebuffer's cleared value,
      * so reading 0 back proves nothing unless the byte held something else
@@ -125,7 +125,7 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
 
     assert(pico8_mo() == mo);
 
-    planet->header.cls = pico8_jo_struct_class();
+    planet->header.class = pico8_jo_struct_class();
     pico8_jo_shutdown();
     pico8_bootstrap_shutdown();
 }

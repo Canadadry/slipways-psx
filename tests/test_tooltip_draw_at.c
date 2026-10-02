@@ -81,10 +81,10 @@ static void test_jb_is_a_struct_with_its_method_table(void) {
     const pico8_jb_t *direct = pico8_jb_new(&zone_tas, NULL);
     const pico8_jb_t *generic = pico8_jb_new(&zone_tas, NULL);
 
-    assert(direct->header.cls == pico8_jb_struct_class());
-    assert(generic->header.cls == pico8_jb_struct_class());
-    assert(direct->header.cls == generic->header.cls);
-    assert(direct->header.cls->ol != NULL);
+    assert(direct->header.class == pico8_jb_struct_class());
+    assert(generic->header.class == pico8_jb_struct_class());
+    assert(direct->header.class == generic->header.class);
+    assert(direct->header.class->draw_at != NULL);
     assert(direct->ls != NULL && direct->ls_count == 0);
 
     pico8_dispatch_set_gfx(&gfx);
@@ -99,7 +99,7 @@ static void test_jb_is_a_struct_with_its_method_table(void) {
         uint32_t via_slot;
 
         pico8_cls(&mem);
-        direct->header.cls->ol((void *)pico8_jb_new(&zone_tas, &pico8_dr_table[0]),
+        direct->header.class->draw_at((void *)pico8_jb_new(&zone_tas, &pico8_dr_table[0]),
                                pico8_vec_v(pico8_fixed_from_int(127), pico8_fixed_from_int(0)), pico8_fixed_from_int(1));
         via_slot = screen_hash();
         pico8_cls(&mem);
@@ -125,7 +125,7 @@ static uint32_t draw_by_name(pico8_jb_t *jb, pico8_fixed_t om, pico8_fixed_t a) 
 
 static void test_jb_state_by_name(void) {
     pico8_jb_t *jb = pico8_jb_new(&zone_tas, NULL);
-    const pico8_struct_class_t *cls = jb->header.cls;
+    const entity_class_t *cls = jb->header.class;
     static const pico8_jb_item_t row_items[] = {{.s = "gamma"}};
     static const pico8_jb_row_t row = {.count = 1, .items = row_items};
     static const pico8_jb_item_t mixed_items[] = {{.s = "alpha"}, {.row = &row}, {.n = 5}, {.s = "delta"}};
@@ -133,7 +133,7 @@ static void test_jb_state_by_name(void) {
     uint32_t h = 2166136261u;
     int i;
 
-    assert(cls->ol != NULL);
+    assert(cls->draw_at != NULL);
 
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);

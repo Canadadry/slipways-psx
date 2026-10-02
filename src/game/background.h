@@ -15,7 +15,7 @@
 /* `mq` is a copy of the mouse position `rdown`/`hq` were last given, not
  * that box. */
 typedef struct {
-    pico8_struct_header_t header;
+    entity_t header;
     const pico8_bg_def_t *def;
     pico8_vec_t mq;
     int has_mq; /* 0: `mq` is nil (no `rdown` yet, or a nil `rp`), read as the zero vector */
@@ -31,7 +31,7 @@ void pico8_bg_shutdown(void);
 /* 1 from pico8_bg_init() to pico8_bg_shutdown(), 0 otherwise. */
 int pico8_bg_ready(void);
 
-const pico8_struct_class_t *pico8_bg_struct_class(void);
+const entity_class_t *pico8_bg_struct_class(void);
 
 /* The struct registers itself into `hv`/`cv` through `lt`; it lives in the
  * current game-zone generation. */
@@ -50,11 +50,11 @@ void pico8_bg_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_bg_t *self);
 /* Returns the freshly built `mz` or `g_`, which `ui:bh` then holds as
  * `lheld`, or Lua nil when neither class is registered. Both live in a grab
  * arena: an `mz` gives it back at its death, a `g_` unless it was placed. */
-pico8_down_t pico8_bg_ldown(pico8_bg_t *self);
+down_t pico8_bg_ldown(pico8_bg_t *self);
 
 /* Copies `rp` into `mq` and returns `self`, which becomes `ui.rheld` for as long
  * as the button stays down. */
-pico8_down_t pico8_bg_rdown(pico8_bg_t *self, pico8_vec_t *rp);
+down_t pico8_bg_rdown(pico8_bg_t *self, pico8_vec_t *rp);
 
 void pico8_bg_hq(pico8_bg_t *self, pico8_vec_t *rp);
 

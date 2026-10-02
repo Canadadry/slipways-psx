@@ -22,7 +22,7 @@ typedef struct {
 
 /* Appends one particle to `self.ts`, in a place of the particles zone's
  * `ts` sort, given back by `kj` when it dies or by the slipway's `rendre`. */
-void pico8_jc_ch(pico8_jc_t *self, const pico8_struct_header_t *f, const pico8_struct_header_t *t);
+void pico8_jc_ch(pico8_jc_t *self, const entity_t *f, const entity_t *t);
 
 /* The nested loops only ascend: `s` must be positive. */
 void pico8_jc_lg(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jc_t *self, pico8_fixed_t l,

@@ -143,19 +143,19 @@ static void test_replacement(void) {
 /* The provisional is one static struct whose descriptor has no method;
  * `eu()` puts a `hy` in its place. */
 static void test_fm_is_a_struct(void) {
-    const pico8_struct_class_t *cls = pico8_fm_placeholder_struct_class();
+    const entity_class_t *cls = pico8_fm_placeholder_struct_class();
     void *provisional;
     int j;
 
     pico8__init();
     provisional = pico8_fm();
     assert(provisional != NULL);
-    assert(((const pico8_struct_header_t *)provisional)->cls == cls);
-    assert(cls->kj == NULL && cls->ev == NULL && cls->hd == NULL && cls->hk == NULL && cls->hb == NULL &&
-           cls->has_hb == NULL && cls->ldown == NULL && cls->rdown == NULL && cls->gv == NULL);
-    assert(cls->hq == NULL && cls->ey == NULL && cls->kf == NULL && cls->cn == NULL && cls->ol == NULL &&
-           cls->mm == NULL);
-    for (j = 0; j < PICO8_STATE_COUNT; j++) {
+    assert(((const entity_t *)provisional)->class == cls);
+    assert(cls->draw == NULL && cls->draw_overlay == NULL && cls->hit_test == NULL && cls->new_year == NULL && cls->refresh == NULL &&
+           cls->has_refresh == NULL && cls->left_press == NULL && cls->right_press == NULL && cls->accept_drop == NULL);
+    assert(cls->drag == NULL && cls->drop == NULL && cls->attach_slipway == NULL && cls->offer_trade == NULL && cls->draw_at == NULL &&
+           cls->spawn_particle == NULL);
+    for (j = 0; j < STATE_COUNT; j++) {
         assert(cls->states[j] == NULL);
     }
 
@@ -163,7 +163,7 @@ static void test_fm_is_a_struct(void) {
     assert(pico8_fm() == provisional);
 
     new_game();
-    assert(((const pico8_struct_header_t *)pico8_fm())->cls == pico8_hy_struct_class());
+    assert(((const entity_t *)pico8_fm())->class == pico8_hy_struct_class());
 }
 
 /* `cb` keeps a tech of the current tier until it is invented, even with `bi`. */

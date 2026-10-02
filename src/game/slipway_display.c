@@ -16,7 +16,7 @@ static int pico8_jc_display_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
 }
 
-void pico8_jc_ch(pico8_jc_t *self, const pico8_struct_header_t *f, const pico8_struct_header_t *t) {
+void pico8_jc_ch(pico8_jc_t *self, const entity_t *f, const entity_t *t) {
     if (self == NULL) {
         return;
     }
@@ -51,8 +51,8 @@ void pico8_jc_ch(pico8_jc_t *self, const pico8_struct_header_t *f, const pico8_s
 
 void pico8_jc_lg(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jc_t *self, pico8_fixed_t l,
                   pico8_fixed_t h, pico8_fixed_t s, int c) {
-    pico8_struct_header_t *qu;
-    pico8_struct_header_t *re;
+    entity_t *qu;
+    entity_t *re;
     pico8_fixed_t t;
     pico8_vec_t qu_pt;
     pico8_vec_t re_pt;
@@ -67,7 +67,7 @@ void pico8_jc_lg(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jc_t *sel
 
     qu = self->qu;
     re = self->re;
-    t = self->header.t;
+    t = self->header.state_time;
 
     qu_pt = pico8_vec_add(pico8_jc_end_ra(qu),
                            pico8_vec_qm(PICO8_FIXED_LIT(0x00018000, 1.5), pico8_fixed_div(t, pico8_fixed_from_int(126))));
@@ -87,8 +87,8 @@ void pico8_jc_lg(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jc_t *sel
 }
 
 void pico8_jc_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jc_t *self) {
-    pico8_struct_header_t *qu;
-    pico8_struct_header_t *re;
+    entity_t *qu;
+    entity_t *re;
 
     if (self == NULL) {
         return;
@@ -175,7 +175,7 @@ void pico8_jc_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jc_t *self) {
     self->fo = NULL;
 }
 
-void pico8_jc_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
+void pico8_jc_kj_dispatch(entity_t *self, const pico8_vec_t *ra) {
     (void)ra;
     pico8_jc_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_jc_t *)self);
 }

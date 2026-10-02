@@ -37,7 +37,7 @@ int pico8_jc_hg_has(const pico8_jc_hg_t *hg, const char *id);
  * rewritten in place at each call; `ra` points at the slipway's `point_ra`,
  * a copy of the caller's `mp` (NULL for a nil `mp`), `p` at its `point_p`. */
 typedef struct {
-    pico8_struct_header_t header;
+    entity_t header;
     const pico8_vec_t *ra;
     const pico8_vec_t *p;
 } pico8_jc_mouse_point_t;
@@ -49,18 +49,18 @@ typedef struct {
  * grab arena (`pico8_jo_prise_ouvrir`), which a refused slipway's `rendre`
  * puts back on the free grabs. */
 typedef struct {
-    pico8_struct_header_t header;
+    entity_t header;
     const pico8_jc_def_t *def;
     pico8_fixed_t fa;
     pico8_fixed_t nh;
-    pico8_struct_header_t *qu; /* borrowed, never freed */
+    entity_t *qu; /* borrowed, never freed */
     pico8_ptrs_t *ts;
     pico8_jc_hg_t *hg;
     pico8_jc_hg_t hg_own;
-    pico8_struct_header_t *re; /* borrowed, never freed */
+    entity_t *re; /* borrowed, never freed */
     pico8_fixed_t mt;
     int has_mt;                /* 0: `mt` is nil, and is then never read */
-    pico8_struct_header_t *fo; /* borrowed, never freed */
+    entity_t *fo; /* borrowed, never freed */
     int p_;
     pico8_probe_t *probe;
     pico8_probe_t probe_own;
@@ -72,7 +72,7 @@ typedef struct {
 /* The one static `{qs="-too far-"}` struct `jc:ce` returns: `fo` is the last
  * slipway that hung itself on it, borrowed. */
 typedef struct {
-    pico8_struct_header_t header;
+    entity_t header;
     const char *qs;
     pico8_jc_t *fo;
 } pico8_jc_too_far_t;
@@ -89,13 +89,13 @@ int pico8_jc_ready(void);
 /* `p`/`ra` of an end of a slipway (a planet, or the mouse point `jc:hq`
  * hangs on `re` over nothing), read through its link: NULL, an end without
  * the link, or an absent vector reads as the zero vector. */
-pico8_vec_t pico8_jc_end_p(const pico8_struct_header_t *end);
-pico8_vec_t pico8_jc_end_ra(const pico8_struct_header_t *end);
+pico8_vec_t pico8_jc_end_p(const entity_t *end);
+pico8_vec_t pico8_jc_end_ra(const entity_t *end);
 
 /* The cart's key `qu` of a slipway: NULL is nil, else a planet a slipway
  * starts from, which the type does not enforce (an assert does). */
 typedef struct {
-    pico8_struct_header_t *qu;
+    entity_t *qu;
 } pico8_jc_keys_t;
 
 /* `keys` is read, not kept (NULL: none). The struct registers itself into
@@ -117,21 +117,21 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp);
 
 /* A NULL `re`, or a `d_()` that refuses, only raises `self.p_`; both
  * endpoints are registered on success. */
-void pico8_jc_ey(pico8_jc_t *self, pico8_struct_header_t *re);
+void pico8_jc_ey(pico8_jc_t *self, entity_t *re);
 
 /* Returns the existing slipway to reuse, the first planet or slipway in
  * the way, the one static `{qs="-too far-"}` struct, or NULL. */
-pico8_struct_header_t *pico8_jc_ce(pico8_jc_t *self);
+entity_t *pico8_jc_ce(pico8_jc_t *self);
 
-const pico8_struct_class_t *pico8_jc_too_far_struct_class(void);
+const entity_class_t *pico8_jc_too_far_struct_class(void);
 
-const pico8_struct_class_t *pico8_jc_mouse_point_struct_class(void);
+const entity_class_t *pico8_jc_mouse_point_struct_class(void);
 
 /* The other end of the slipway seen from `jo_instance`; NULL for nil. */
-pico8_struct_header_t *pico8_jc_eb(const pico8_jc_t *self, const pico8_struct_header_t *jo_instance);
+entity_t *pico8_jc_eb(const pico8_jc_t *self, const entity_t *jo_instance);
 
 void pico8_jc_ev(pico8_jc_t *self);
 
-void pico8_jc_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra);
+void pico8_jc_kj_dispatch(entity_t *self, const pico8_vec_t *ra);
 
 #endif

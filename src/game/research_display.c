@@ -294,7 +294,7 @@ pico8_lq_t *pico8_hp_lq(pico8_hp_t *self) {
 
 /* `jo.nk.px` is one character wide by construction, so `k==jo.nk.px` is a
  * plain char comparison here -- no string identity involved. */
-static int pico8_bj_predicate(const pico8_hp_t *b, const pico8_struct_header_t *jo_instance) {
+static int pico8_bj_predicate(const pico8_hp_t *b, const entity_t *jo_instance) {
     const char *px_str = NULL;
     int mg = 0;
 
@@ -328,7 +328,7 @@ static int pico8_bj_predicate(const pico8_hp_t *b, const pico8_struct_header_t *
     return mg;
 }
 
-pico8_bj_kept_t pico8_bj(const pico8_struct_header_t *jo_instance) {
+pico8_bj_kept_t pico8_bj(const entity_t *jo_instance) {
     pico8_bj_kept_t result;
     int k;
 

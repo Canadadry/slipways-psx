@@ -22,21 +22,21 @@ int pico8_ke_ready(void) {
     return g_ke_up;
 }
 
-void pico8_ke_ks(pico8_struct_header_t *self, const char *me) {
+void pico8_ke_ks(entity_t *self, const char *me) {
     if (self == NULL) {
         return;
     }
-    self->me = me;
-    self->t = pico8_fixed_from_int(0);
+    self->state = me;
+    self->state_time = pico8_fixed_from_int(0);
 }
 
-void pico8_ke_struct_init(pico8_struct_header_t *self, const pico8_struct_class_t *cls, const char *me,
+void pico8_ke_struct_init(entity_t *self, const entity_class_t *cls, const char *me,
                           pico8_fixed_t t) {
-    pico8_struct_header_init(self, cls);
-    self->me = me;
-    self->t = t;
+    entity_init_header(self, cls);
+    self->state = me;
+    self->state_time = t;
 }
 
-void pico8_ke_struct_pq(pico8_struct_header_t *self) {
+void pico8_ke_struct_pq(entity_t *self) {
     pico8_lt(self);
 }

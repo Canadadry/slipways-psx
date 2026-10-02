@@ -315,6 +315,18 @@ class ApplyTest(Setup):
         write_table([("shape_count", "shape_area", "src/shapes.h")])
         self.assertRefused(apply(), before, "shape_count -> shape_area: collides")
 
+    def test_refuses_a_local_named_like_a_static_of_its_own_file(self):
+        before = tree_digest()
+        write_table([("label", "unit_shape", "src/shapes.c")])
+        self.assertRefused(apply(), before, "label -> unit_shape: collides")
+
+    def test_accepts_a_local_named_like_a_static_of_another_file(self):
+        write_table([("camera", "unit_shape", "src/main.c")])
+        result = apply()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(b"camera_t unit_shape = { 0 };", read("src/main.c"))
+        self.assertTrue(compiles())
+
     def test_refuses_two_entries_giving_the_same_new_name(self):
         before = tree_digest()
         write_table([("shape_count", "total", "src/shapes.h"),

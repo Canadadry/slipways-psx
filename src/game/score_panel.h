@@ -14,7 +14,7 @@
 
 /* `ed` NULL reads as the class's `ed`, the number 1, never nil. */
 typedef struct {
-    pico8_struct_header_t header;
+    entity_t header;
     const pico8_pj_def_t *def;
     pico8_fixed_t fa;
     pico8_mh_t *ed;
@@ -28,7 +28,7 @@ typedef struct {
  * frame-zone text, dangling after the next reset; only `cr()`, which has
  * just written it, reads it. */
 typedef struct {
-    pico8_struct_header_t header;
+    entity_t header;
     const pico8_vec_t *hi;
     const pico8_vec_t *gq;
     pico8_fixed_t ca;
@@ -86,7 +86,7 @@ void pico8_score_panel_shutdown(void);
 
 /* 1 from pico8_score_panel_init() to pico8_score_panel_shutdown(), 0 otherwise. */
 int pico8_pj_ready(void);
-const pico8_struct_class_t *pico8_pj_struct_class(void);
+const entity_class_t *pico8_pj_struct_class(void);
 
 /* Shared by every panel, past and future: `hb` rewrites `ou`, `hk` rewrites
  * `ea`, in place; both are statics of this module. `cr` is the one static
@@ -96,7 +96,7 @@ const pico8_struct_class_t *pico8_pj_struct_class(void);
 pico8_pj_ou_t *pico8_pj_ou(void);
 pico8_pj_ea_t *pico8_pj_ea(void);
 pico8_pj_cr_t *pico8_pj_cr(void);
-const pico8_struct_class_t *pico8_pj_cr_struct_class(void);
+const entity_class_t *pico8_pj_cr_struct_class(void);
 /* `pico8_pj_i__row`, `pico8_pj_gs_row`: never NULL. */
 const pico8_jb_row_t *pico8_pj_i_(void);
 const pico8_jb_row_t *pico8_pj_gs(void);
@@ -127,8 +127,8 @@ void pico8_pj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_pj_t *self);
 
 void pico8_eg(void);
 
-void pico8_pj_hk_dispatch(pico8_struct_header_t *self, pico8_fixed_t yr);
-void pico8_pj_ph_dispatch(pico8_struct_header_t *self, pico8_fixed_t t);
+void pico8_pj_hk_dispatch(entity_t *self, pico8_fixed_t yr);
+void pico8_pj_ph_dispatch(entity_t *self, pico8_fixed_t t);
 
 void pico8_score_panel_display_init(void);
 void pico8_score_panel_display_shutdown(void);

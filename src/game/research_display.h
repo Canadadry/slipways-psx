@@ -35,6 +35,6 @@ typedef struct {
 /* The Lua parameter is literally named `jo`: a local shadowing the class,
  * naming the planet the projects are offered on. A `jo_instance` without
  * `.nk.px` matches nothing. */
-pico8_bj_kept_t pico8_bj(const pico8_struct_header_t *jo_instance);
+pico8_bj_kept_t pico8_bj(const entity_t *jo_instance);
 
 #endif

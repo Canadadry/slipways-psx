@@ -117,7 +117,7 @@ static size_t etats_de_bw(void) {
 static size_t octets_d_un_registre(const pico8_ents_t *liste) {
     size_t octets = 0;
     for (int k = 4; liste != NULL && k <= liste->capacity; k *= 2) {
-        octets += PICO8_ZONE_CELLS((size_t)k * sizeof(pico8_struct_header_t *)) * sizeof(pico8_zone_cell_t);
+        octets += PICO8_ZONE_CELLS((size_t)k * sizeof(entity_t *)) * sizeof(pico8_zone_cell_t);
     }
     return octets;
 }
@@ -178,7 +178,7 @@ static size_t octets_des_icones(void) {
     int k = 0;
     for (int i = 0; hv != NULL && i < hv->count; i++) {
         const pico8_ie_t *ie = (const pico8_ie_t *)hv->items[i];
-        if (ie->header.cls != pico8_ie_struct_class()) continue;
+        if (ie->header.class != pico8_ie_struct_class()) continue;
         assert(k < PICO8_DR_COUNT && "plus d'icones que de bulles dans dr");
         (void)pico8_jb_new(mesure, &pico8_dr_table[k]);
         octets += octets_d_un_bloc(sizeof *ie);
@@ -200,7 +200,7 @@ static size_t octets_de_la_recherche_et_de_l_economie(void) {
 static size_t octets_des_singletons(void) {
     const pico8_ents_t *hv = pico8_hv();
     int bg = 0;
-    for (int i = 0; hv != NULL && i < hv->count; i++) bg += hv->items[i]->cls == pico8_bg_struct_class();
+    for (int i = 0; hv != NULL && i < hv->count; i++) bg += hv->items[i]->class == pico8_bg_struct_class();
     assert(bg == 1 && "eu fait un seul bg");
     assert(pico8_mo_qb() != NULL && pico8_je_nf() != NULL && pico8_ok() != NULL && pico8_ju() != NULL);
     return octets_d_un_bloc(sizeof(pico8_qb_t)) + octets_d_un_bloc(sizeof(pico8_nf_t)) +
@@ -277,11 +277,11 @@ static int case_chargement_full(void) {
 }
 
 static size_t octets_de_quatre_pointeurs(void) {
-    return PICO8_ZONE_CELLS(4 * sizeof(pico8_struct_header_t *)) * sizeof(pico8_zone_cell_t);
+    return PICO8_ZONE_CELLS(4 * sizeof(entity_t *)) * sizeof(pico8_zone_cell_t);
 }
 
 static int case_listes_statiques_dans_chargement(void) {
-    static pico8_struct_header_t element;
+    static entity_t element;
     load_cart_and_start();
     const size_t depart = pico8_zone_chargement_prise();
     pico8_ents_t *le = pico8_ui_le_shared();

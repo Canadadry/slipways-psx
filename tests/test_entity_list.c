@@ -6,7 +6,7 @@
 #include "heap_allocator.h"
 
 static void test_add_grows_past_four_keeps_order_and_free_empties(void) {
-    pico8_struct_header_t cells[5];
+    entity_t cells[5];
     int i;
     pico8_ents_t ents;
     pico8_ents_init(&ents, &zone_tas);
@@ -25,7 +25,7 @@ static void test_add_grows_past_four_keeps_order_and_free_empties(void) {
 }
 
 static void test_del_first_identical_and_has(void) {
-    pico8_struct_header_t a, b, c, absent;
+    entity_t a, b, c, absent;
     pico8_ents_t ents;
     pico8_ents_init(&ents, &zone_tas);
     pico8_ents_add(&ents, &a);
@@ -51,7 +51,7 @@ static void test_del_first_identical_and_has(void) {
 }
 
 static void test_cat_copies_a_then_b_and_leaves_them(void) {
-    pico8_struct_header_t a, b, c;
+    entity_t a, b, c;
     pico8_ents_t l, r, t;
     pico8_ents_init(&l, &zone_tas);
     pico8_ents_init(&r, &zone_tas);
@@ -71,9 +71,9 @@ static void test_cat_copies_a_then_b_and_leaves_them(void) {
 }
 
 static void test_all_sees_each_when_the_returned_one_is_deleted(void) {
-    pico8_struct_header_t a, b, c;
-    pico8_struct_header_t *seen[3];
-    pico8_struct_header_t *e;
+    entity_t a, b, c;
+    entity_t *seen[3];
+    entity_t *e;
     int n = 0;
     pico8_ents_t ents;
     pico8_ents_iter_t it;
@@ -95,13 +95,13 @@ static void test_all_sees_each_when_the_returned_one_is_deleted(void) {
     pico8_ents_free(&ents);
 }
 
-static int odd_rank(pico8_struct_header_t *e, void *ctx) {
-    const pico8_struct_header_t *cells = ctx;
+static int odd_rank(entity_t *e, void *ctx) {
+    const entity_t *cells = ctx;
     return (e - cells) % 2 == 1;
 }
 
 static void test_jp_keeps_what_the_predicate_keeps_in_order(void) {
-    pico8_struct_header_t cells[5];
+    entity_t cells[5];
     pico8_ents_t src;
     pico8_ents_t kept;
     int i;
@@ -125,7 +125,7 @@ static void test_jp_keeps_what_the_predicate_keeps_in_order(void) {
 }
 
 static void test_clear_keeps_items_and_capacity_and_takes_nothing_until_past_them(void) {
-    pico8_struct_header_t cells[9];
+    entity_t cells[9];
     pico8_ents_t ents;
     const pico8_zone_choisie_t *arene = pico8_zone_arene_prendre(&zone_tas, "tu ents", 1024);
     int i;
@@ -133,7 +133,7 @@ static void test_clear_keeps_items_and_capacity_and_takes_nothing_until_past_the
     for (i = 0; i < 5; i++) {
         pico8_ents_add(&ents, &cells[i]);
     }
-    pico8_struct_header_t **items = ents.items;
+    entity_t **items = ents.items;
     const int capacity = ents.capacity;
     const size_t prise = pico8_zone_arene_prise(arene);
 
@@ -151,7 +151,7 @@ static void test_clear_keeps_items_and_capacity_and_takes_nothing_until_past_the
 }
 
 static void test_reserved_list_fills_its_capacity_without_taking_then_grows(void) {
-    pico8_struct_header_t cells[4];
+    entity_t cells[4];
     pico8_ents_t ents;
     const pico8_zone_choisie_t *arene = pico8_zone_arene_prendre(&zone_tas, "tu ents", 1024);
     int i;

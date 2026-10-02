@@ -22,32 +22,32 @@
 
 static int g_jc_up = 0;
 
-static const pico8_struct_class_t g_jc_too_far_struct_class = {0};
+static const entity_class_t g_jc_too_far_struct_class = {0};
 
 /* The `{qs="-too far-"}` `jc:ce` returns beyond range: never allocated,
  * never freed; `qs` is fixed, only `fo` is written, and the next `hq`
  * overwrites it. */
-static pico8_jc_too_far_t g_jc_too_far = {{.cls = &g_jc_too_far_struct_class}, "-too far-", NULL};
+static pico8_jc_too_far_t g_jc_too_far = {{.class = &g_jc_too_far_struct_class}, "-too far-", NULL};
 
-static const pico8_struct_class_t g_jc_mouse_point_struct_class = {0};
+static const entity_class_t g_jc_mouse_point_struct_class = {0};
 
-pico8_vec_t pico8_jc_end_p(const pico8_struct_header_t *end) {
-    const pico8_vec_t *p = end != NULL && end->p != NULL ? *end->p : NULL;
+pico8_vec_t pico8_jc_end_p(const entity_t *end) {
+    const pico8_vec_t *p = end != NULL && end->map_pos != NULL ? *end->map_pos : NULL;
 
     return p != NULL ? *p : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
-pico8_vec_t pico8_jc_end_ra(const pico8_struct_header_t *end) {
-    const pico8_vec_t *ra = end != NULL && end->ra != NULL ? *end->ra : NULL;
+pico8_vec_t pico8_jc_end_ra(const entity_t *end) {
+    const pico8_vec_t *ra = end != NULL && end->pos != NULL ? *end->pos : NULL;
 
     return ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
-static int jc_mt_of(const pico8_struct_header_t *e, pico8_fixed_t *out) {
-    if (e == NULL || e->mt == NULL) {
+static int jc_mt_of(const entity_t *e, pico8_fixed_t *out) {
+    if (e == NULL || e->infraspace == NULL) {
         return 0;
     }
-    *out = *e->mt;
+    *out = *e->infraspace;
     return 1;
 }
 
@@ -97,7 +97,7 @@ void pico8_jc_pq(pico8_jc_t *self) {
 
 void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
     pico8_ui_t *ok;
-    pico8_struct_header_t *hovered;
+    entity_t *hovered;
 
     if (self == NULL) {
         return;
@@ -106,7 +106,7 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
     ok = pico8_ok();
     hovered = ok != NULL ? ok->o_ : NULL;
 
-    if (hovered != NULL && hovered->cls->gv != NULL) {
+    if (hovered != NULL && hovered->class->accept_drop != NULL) {
         self->re = hovered;
     } else {
         self->point_ra = mp != NULL ? *mp : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
@@ -121,7 +121,7 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
     /* A fixed is always true in Lua: `qu.mt or re.mt` takes the first present. */
     self->mt = pico8_fixed_from_int(0);
     self->has_mt = jc_mt_of(self->qu, &self->mt) || jc_mt_of(self->re, &self->mt);
-    self->header.mt = self->has_mt ? &self->mt : NULL;
+    self->header.infraspace = self->has_mt ? &self->mt : NULL;
 
     self->probe->et = pico8_jc_ce(self);
     if (self->probe->et != NULL) {
@@ -131,7 +131,7 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
     self->fa = self->has_mt ? pico8_fixed_from_int(2) : pico8_fixed_from_int(4);
 }
 
-void pico8_jc_ey(pico8_jc_t *self, pico8_struct_header_t *re) {
+void pico8_jc_ey(pico8_jc_t *self, entity_t *re) {
     int should_fail;
 
     if (self == NULL) {
@@ -140,7 +140,7 @@ void pico8_jc_ey(pico8_jc_t *self, pico8_struct_header_t *re) {
 
     /* `d_()` charges the player and advances the clock, so it must stay
      * behind the `re == NULL` short-circuit. */
-    should_fail = (re == NULL) || !pico8_d_((pico8_struct_header_t *)self);
+    should_fail = (re == NULL) || !pico8_d_((entity_t *)self);
     if (should_fail) {
         /* pico8_stat has no case for 19, so it reads 0 and this sfx never
          * fires; ported anyway. It dereferences `input` without checking it,
@@ -157,15 +157,15 @@ void pico8_jc_ey(pico8_jc_t *self, pico8_struct_header_t *re) {
     self->re = re;
 
     {
-        pico8_struct_header_t *qu = self->qu;
-        int qu_registered = qu != NULL && qu->cls->kf != NULL;
+        entity_t *qu = self->qu;
+        int qu_registered = qu != NULL && qu->class->attach_slipway != NULL;
         int re_registered;
         if (qu_registered) {
-            qu->cls->kf(qu, &self->header);
+            qu->class->attach_slipway(qu, &self->header);
         }
-        re_registered = re != NULL && re->cls->kf != NULL;
+        re_registered = re != NULL && re->class->attach_slipway != NULL;
         if (re_registered) {
-            re->cls->kf(re, &self->header);
+            re->class->attach_slipway(re, &self->header);
         }
         assert(qu_registered && re_registered &&
                "jc:ey: both endpoints must expose \"kf\", or the slipway never joins their `oe`");
@@ -182,7 +182,7 @@ typedef struct {
 
 /* `be()` excludes the segment's own endpoints (their projection fraction is
  * exactly 0 or 1), so `qu` and `re` never match themselves here. */
-static int pico8_jc_ce_np_predicate(pico8_struct_header_t *e, void *ctx_ptr) {
+static int pico8_jc_ce_np_predicate(entity_t *e, void *ctx_ptr) {
     const pico8_jc_ce_np_ctx_t *ctx = (const pico8_jc_ce_np_ctx_t *)ctx_ptr;
 
     if (e == NULL) {
@@ -200,14 +200,14 @@ typedef struct {
 
 /* `self` is already registered in `cg("jc")` when this runs; `cl()` of a
  * segment against itself is always false, so no self-exclusion is needed. */
-static int pico8_jc_ce_jc_predicate(pico8_struct_header_t *e, void *ctx_ptr) {
+static int pico8_jc_ce_jc_predicate(entity_t *e, void *ctx_ptr) {
     const pico8_jc_ce_jc_ctx_t *ctx = (const pico8_jc_ce_jc_ctx_t *)ctx_ptr;
     const pico8_jc_t *sw;
 
     if (e == NULL) {
         return 0;
     }
-    assert(e->cls == pico8_jc_struct_class() && "cg.jc holds slipways only");
+    assert(e->class == pico8_jc_struct_class() && "cg.jc holds slipways only");
     sw = (const pico8_jc_t *)e;
     if (sw->has_mt != ctx->self_has_mt || (sw->has_mt && sw->mt != ctx->self_mt)) {
         return 0;
@@ -215,9 +215,9 @@ static int pico8_jc_ce_jc_predicate(pico8_struct_header_t *e, void *ctx_ptr) {
     return pico8_geom_cl(ctx->sp, ctx->dp, pico8_jc_end_p(sw->qu), pico8_jc_end_p(sw->re));
 }
 
-pico8_struct_header_t *pico8_jc_ce(pico8_jc_t *self) {
-    pico8_struct_header_t *qu;
-    pico8_struct_header_t *re;
+entity_t *pico8_jc_ce(pico8_jc_t *self) {
+    entity_t *qu;
+    entity_t *re;
     pico8_vec_t sp;
     pico8_vec_t dp;
     pico8_fixed_t threshold;
@@ -246,12 +246,12 @@ pico8_struct_header_t *pico8_jc_ce(pico8_jc_t *self) {
         }
         if (oe != NULL) {
             pico8_ents_iter_t it = pico8_ents_all(oe);
-            pico8_struct_header_t *w;
+            entity_t *w;
             while (pico8_ents_iter_next(&it, &w)) {
                 if (w == NULL) {
                     continue;
                 }
-                assert(w->cls == pico8_jc_struct_class() &&
+                assert(w->class == pico8_jc_struct_class() &&
                        "qu.oe must hold jc structs: only jo:kf adds to it, and only slipways");
                 if (pico8_jc_eb((const pico8_jc_t *)w, qu) == re) {
                     return w;
@@ -266,7 +266,7 @@ pico8_struct_header_t *pico8_jc_ce(pico8_jc_t *self) {
         pico8_ents_t part1;
         pico8_ents_t part2;
         pico8_ents_t ds;
-        pico8_struct_header_t *result = NULL;
+        entity_t *result = NULL;
 
         np_ctx.sp = sp;
         np_ctx.dp = dp;
@@ -286,7 +286,7 @@ pico8_struct_header_t *pico8_jc_ce(pico8_jc_t *self) {
     }
 }
 
-pico8_struct_header_t *pico8_jc_eb(const pico8_jc_t *self, const pico8_struct_header_t *jo_instance) {
+entity_t *pico8_jc_eb(const pico8_jc_t *self, const entity_t *jo_instance) {
     if (self == NULL) {
         return NULL;
     }
@@ -305,45 +305,45 @@ void pico8_jc_ev(pico8_jc_t *self) {
     }
 
     if (self->qu != self->re) {
-        pico8_dl(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_struct_header_t *)self);
+        pico8_dl(pico8_dispatch_gfx(), pico8_dispatch_mem(), (entity_t *)self);
     }
 }
 
-static void pico8_jc_hq_dispatch(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static void pico8_jc_hq_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     (void)ra;
     pico8_jc_hq((pico8_jc_t *)self, qa);
 }
 
-static void pico8_jc_ey_dispatch(pico8_struct_header_t *self, pico8_struct_header_t *kv) {
+static void pico8_jc_ey_dispatch(entity_t *self, entity_t *kv) {
     pico8_jc_ey((pico8_jc_t *)self, kv);
 }
 
-static void pico8_jc_ev_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
+static void pico8_jc_ev_dispatch(entity_t *self, const pico8_vec_t *ra) {
     (void)ra;
     pico8_jc_ev((pico8_jc_t *)self);
 }
 
-static void pico8_jc_rendre_dispatch(pico8_struct_header_t *self) {
+static void pico8_jc_rendre_dispatch(entity_t *self) {
     pico8_jc_t *jc = (pico8_jc_t *)self;
     const pico8_zone_choisie_t *zone = jc->ts->zone;
 
     for (int i = 0; i < jc->ts->count; i++)
         pico8_zone_release(pico8_zone_particules(PICO8_PARTICULES_TS), jc->ts->items[i]);
     jc->ts->count = 0;
-    pico8_jo_prise_zone_rendue(zone, jc->header.me);
+    pico8_jo_prise_zone_rendue(zone, jc->header.state);
 }
 
-static int jc_is_endpoint_class(const pico8_struct_class_t *cls) {
-    return cls->states[PICO8_STATE_LY] != NULL || cls == pico8_jo_struct_class();
+static int jc_is_endpoint_class(const entity_class_t *cls) {
+    return cls->states[ENTITY_STATE_SETTLED] != NULL || cls == pico8_jo_struct_class();
 }
 
-static const pico8_struct_class_t g_jc_struct_class = {
-    .kj = pico8_jc_kj_dispatch,
-    .ev = pico8_jc_ev_dispatch,
-    .hq = pico8_jc_hq_dispatch,
-    .ey = pico8_jc_ey_dispatch,
-    .rendre = pico8_jc_rendre_dispatch,
-    .tags = PICO8_TAG(PICO8_TAG_JC),
+static const entity_class_t g_jc_struct_class = {
+    .draw = pico8_jc_kj_dispatch,
+    .draw_overlay = pico8_jc_ev_dispatch,
+    .drag = pico8_jc_hq_dispatch,
+    .drop = pico8_jc_ey_dispatch,
+    .release = pico8_jc_rendre_dispatch,
+    .tags = TAG(TAG_SLIPWAY),
 };
 
 static pico8_jc_t *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
@@ -355,8 +355,8 @@ static pico8_jc_t *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     pico8_ke_struct_init(&self->header, &g_jc_struct_class, pico8_jc_def.me, pico8_jc_def.t);
     self->def = &pico8_jc_def;
     self->fa = self->def->fa;
-    self->header.fa = &self->fa;
-    self->header.probe = &self->probe_own;
+    self->header.layer = &self->fa;
+    self->header.targeting = &self->probe_own;
     self->probe = &self->probe_own;
     self->probe->def = &self->def->probe;
     self->nh = self->def->nh;
@@ -368,20 +368,20 @@ static pico8_jc_t *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     self->probe->has_od = self->def->probe.has_od;
     self->mt = 0;
     self->has_mt = 0;
-    self->header.mt = NULL;
+    self->header.infraspace = NULL;
     self->probe->et = NULL;
     self->fo = NULL;
-    self->header.p_ = &self->p_;
+    self->header.is_dead = &self->p_;
     self->p_ = 0;
-    pico8_struct_header_init(&self->point.header, &g_jc_mouse_point_struct_class);
-    self->point.header.ra = &self->point.ra;
-    self->point.header.p = &self->point.p;
+    entity_init_header(&self->point.header, &g_jc_mouse_point_struct_class);
+    self->point.header.pos = &self->point.ra;
+    self->point.header.map_pos = &self->point.p;
     self->point.ra = NULL;
     self->point.p = &self->point_p;
     self->point_ra = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     self->point_p = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     if (keys != NULL && keys->qu != NULL) {
-        assert(jc_is_endpoint_class(keys->qu->cls) &&
+        assert(jc_is_endpoint_class(keys->qu->class) &&
                "jc.qu: a key neither nil nor a planet a slipway starts from (jo, qh, nl, os, hj, pm, nr, fr, mx) "
                "does not fit the member's type -- stop, do not widen the member");
         self->qu = keys->qu;
@@ -408,7 +408,7 @@ int pico8_jc_ready(void) {
     return g_jc_up;
 }
 
-const pico8_struct_class_t *pico8_jc_struct_class(void) {
+const entity_class_t *pico8_jc_struct_class(void) {
     return &g_jc_struct_class;
 }
 
@@ -416,10 +416,10 @@ pico8_jc_t *pico8_jc_new(const pico8_jc_keys_t *keys) {
     return pico8_jc_struct_new(keys);
 }
 
-const pico8_struct_class_t *pico8_jc_too_far_struct_class(void) {
+const entity_class_t *pico8_jc_too_far_struct_class(void) {
     return &g_jc_too_far_struct_class;
 }
 
-const pico8_struct_class_t *pico8_jc_mouse_point_struct_class(void) {
+const entity_class_t *pico8_jc_mouse_point_struct_class(void) {
     return &g_jc_mouse_point_struct_class;
 }

@@ -14,7 +14,7 @@
 static int g_js_up = 0;
 static int g_fq_up = 0;
 
-static void pico8_ui_button_rendre_js(pico8_struct_header_t *self) {
+static void pico8_ui_button_rendre_js(entity_t *self) {
     pico8_js_t *js = (pico8_js_t *)self;
 
     if (js->lq_place != NULL) {
@@ -23,7 +23,7 @@ static void pico8_ui_button_rendre_js(pico8_struct_header_t *self) {
     pico8_zone_arene_rendre(js->place);
 }
 
-static void pico8_ui_button_rendre_fq(pico8_struct_header_t *self) {
+static void pico8_ui_button_rendre_fq(entity_t *self) {
     pico8_zone_arene_rendre(((pico8_fq_t *)self)->place);
 }
 
@@ -31,27 +31,27 @@ static int pico8_ui_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
 }
 
-static void pico8_js_ph_dispatch(pico8_struct_header_t *self, pico8_fixed_t t) {
+static void pico8_js_ph_dispatch(entity_t *self, pico8_fixed_t t) {
     (void)t;
     pico8_js_ph((pico8_js_t *)self);
 }
 
-static void pico8_js_ev_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
+static void pico8_js_ev_dispatch(entity_t *self, const pico8_vec_t *ra) {
     (void)ra;
     pico8_js_ev(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_js_t *)self);
 }
 
-static void pico8_js_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
+static void pico8_js_kj_dispatch(entity_t *self, const pico8_vec_t *ra) {
     pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     pico8_js_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_js_t *)self, p);
 }
 
 /* `js.hd=gk`: a field assignment in the cart, not a method definition. */
-static int pico8_js_hd_dispatch(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
+static int pico8_js_hd_dispatch(entity_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
     return pico8_gk(self, qa, ra);
 }
 
-static pico8_down_t pico8_js_ldown_dispatch(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static down_t pico8_js_ldown_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     (void)qa;
     (void)ra;
     return pico8_js_ldown((pico8_js_t *)self);
@@ -59,11 +59,11 @@ static pico8_down_t pico8_js_ldown_dispatch(pico8_struct_header_t *self, pico8_v
 
 /* `js.hb` is the row's own callback, set by only one row of `ix`: a button
  * without one has no `hb` and stays out of `cv.hb`. */
-static int pico8_js_has_hb(const pico8_struct_header_t *self) {
+static int pico8_js_has_hb(const entity_t *self) {
     return ((const pico8_js_t *)self)->hb != NULL;
 }
 
-static void pico8_js_hb_dispatch(pico8_struct_header_t *self) {
+static void pico8_js_hb_dispatch(entity_t *self) {
     pico8_js_t *js = (pico8_js_t *)self;
 
     if (js->hb != NULL) {
@@ -71,15 +71,15 @@ static void pico8_js_hb_dispatch(pico8_struct_header_t *self) {
     }
 }
 
-static const pico8_struct_class_t g_js_struct_class = {
-    .kj = pico8_js_kj_dispatch,
-    .ev = pico8_js_ev_dispatch,
-    .hd = pico8_js_hd_dispatch,
-    .hb = pico8_js_hb_dispatch,
-    .has_hb = pico8_js_has_hb,
-    .ldown = pico8_js_ldown_dispatch,
-    .states = {[PICO8_STATE_PH] = pico8_js_ph_dispatch},
-    .rendre = pico8_ui_button_rendre_js,
+static const entity_class_t g_js_struct_class = {
+    .draw = pico8_js_kj_dispatch,
+    .draw_overlay = pico8_js_ev_dispatch,
+    .hit_test = pico8_js_hd_dispatch,
+    .refresh = pico8_js_hb_dispatch,
+    .has_refresh = pico8_js_has_hb,
+    .left_press = pico8_js_ldown_dispatch,
+    .states = {[ENTITY_STATE_NORMAL] = pico8_js_ph_dispatch},
+    .release = pico8_ui_button_rendre_js,
 };
 
 static pico8_js_t *pico8_js_struct_new(const pico8_js_keys_t *keys) {
@@ -98,7 +98,7 @@ static pico8_js_t *pico8_js_struct_new(const pico8_js_keys_t *keys) {
     self->qf = NULL;
     self->my = NULL;
     self->has_my = 0;
-    self->header.m_ = &self->m_;
+    self->header.is_hovered = &self->m_;
     self->m_ = 0;
     self->hb = NULL;
     self->fg = 0;
@@ -115,8 +115,8 @@ static pico8_js_t *pico8_js_struct_new(const pico8_js_keys_t *keys) {
     self->has__jo_fe_od = 0;
     self->def = &pico8_js_def;
     self->fa = self->def->fa;
-    self->header.fa = &self->fa;
-    self->header.ra = &self->ra;
+    self->header.layer = &self->fa;
+    self->header.pos = &self->ra;
     if (keys != NULL) {
         if (keys->has_fa) {
             self->fa = keys->fa;
@@ -145,7 +145,7 @@ static pico8_js_t *pico8_js_struct_new(const pico8_js_keys_t *keys) {
         self->_jo_fe_od = keys->_jo_fe_od;
         self->has__jo_fe_od = keys->has__jo_fe_od;
     }
-    self->header.fg = self->has_fg ? &self->fg : NULL;
+    self->header.gpio_signal = self->has_fg ? &self->fg : NULL;
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("js");
 #endif
@@ -167,7 +167,7 @@ int pico8_js_ready(void) {
     return g_js_up;
 }
 
-const pico8_struct_class_t *pico8_js_struct_class(void) {
+const entity_class_t *pico8_js_struct_class(void) {
     return &g_js_struct_class;
 }
 
@@ -200,7 +200,7 @@ void pico8_js_pq(pico8_js_t *self, const pico8_js_keys_t *keys) {
 
     self->lq = pico8_js_lq(self->place, keys->lq_copy, keys->lq_row);
     self->mb = pico8_fixed_add(self->lq->w, pico8_fixed_from_int(2));
-    self->header.kq = pico8_qz(self->place, pico8_fixed_from_int(0), pico8_fixed_from_int(-1), self->mb, pico8_fixed_from_int(11));
+    self->header.hit_box = pico8_qz(self->place, pico8_fixed_from_int(0), pico8_fixed_from_int(-1), self->mb, pico8_fixed_from_int(11));
 
     /* TROU-23 */
     if (keys->h_row != NULL || (keys->has_h_ && !keys->h_is_false)) {
@@ -295,9 +295,9 @@ void pico8_js_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_js_t *self, pic
     }
 }
 
-pico8_down_t pico8_js_ldown(pico8_js_t *self) {
+down_t pico8_js_ldown(pico8_js_t *self) {
     int has_my = self != NULL && self->my != NULL;
-    pico8_down_t out = {1, NULL};
+    down_t out = {1, NULL};
 
     if (has_my) {
         pico8_rn(pico8_fixed_from_int(60));
@@ -307,16 +307,16 @@ pico8_down_t pico8_js_ldown(pico8_js_t *self) {
     return out;
 }
 
-static pico8_down_t pico8_fq_ldown_dispatch(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static down_t pico8_fq_ldown_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     (void)qa;
     (void)ra;
     return pico8_fq_ldown((pico8_fq_t *)self);
 }
 
-static const pico8_struct_class_t g_fq_struct_class = {
-    .hd = pico8_hd_true,
-    .ldown = pico8_fq_ldown_dispatch,
-    .rendre = pico8_ui_button_rendre_fq,
+static const entity_class_t g_fq_struct_class = {
+    .hit_test = pico8_hd_true,
+    .left_press = pico8_fq_ldown_dispatch,
+    .release = pico8_ui_button_rendre_fq,
 };
 
 static pico8_fq_t *pico8_fq_struct_new(const pico8_fq_keys_t *keys) {
@@ -326,11 +326,11 @@ static pico8_fq_t *pico8_fq_struct_new(const pico8_fq_keys_t *keys) {
     self->place = place;
     pico8_ke_struct_init(&self->header, &g_fq_struct_class, pico8_fq_def.me, pico8_fq_def.t);
     self->def = &pico8_fq_def;
-    self->header.fa = &self->def->fa;
+    self->header.layer = &self->def->fa;
     self->my = NULL;
-    self->header.p_ = &self->p_;
+    self->header.is_dead = &self->p_;
     self->p_ = 0;
-    self->header.m_ = &self->m_;
+    self->header.is_hovered = &self->m_;
     self->m_ = 0;
     if (keys != NULL) {
         self->my = keys->my;
@@ -355,7 +355,7 @@ int pico8_fq_ready(void) {
     return g_fq_up;
 }
 
-const pico8_struct_class_t *pico8_fq_struct_class(void) {
+const entity_class_t *pico8_fq_struct_class(void) {
     return &g_fq_struct_class;
 }
 
@@ -363,8 +363,8 @@ pico8_fq_t *pico8_fq_new(const pico8_fq_keys_t *keys) {
     return pico8_fq_struct_new(keys);
 }
 
-pico8_down_t pico8_fq_ldown(pico8_fq_t *self) {
-    pico8_down_t out = {1, NULL};
+down_t pico8_fq_ldown(pico8_fq_t *self) {
+    down_t out = {1, NULL};
 
     if (self == NULL) {
         return out;

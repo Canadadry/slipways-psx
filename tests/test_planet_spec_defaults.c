@@ -68,7 +68,7 @@ static void test_jo_defaults(void) {
     pico8_jo_t *jo = pico8_jo_new(NULL);
 
     assert(pico8_jo_ready());
-    assert_same_string(jo->header.me, jo->def->me);
+    assert_same_string(jo->header.state, jo->def->me);
     assert_jo_box(&jo->def->kq);
     assert_jo_tail(jo, &pico8_jo_def);
     assert(jo->def->ka == &pico8_jo_ka_seq && jo->def->dz == pico8_jo_dz_rows && jo->def->cq == &pico8_jo_cq_seq);
@@ -82,7 +82,7 @@ static void test_qh_defaults(void) {
     pico8_jo_t *qh = pico8_qh_new(NULL);
 
     assert(pico8_qh_ready());
-    assert_same_string(qh->header.me, pico8_qh_def.me);
+    assert_same_string(qh->header.state, pico8_qh_def.me);
     assert(qh->probe->od == pico8_qh_def.probe.od);
     assert(qh->s == pico8_qh_def.s);
     assert_qh_tail(qh, &pico8_qh_def);
@@ -97,7 +97,7 @@ static void test_nl_defaults(void) {
     assert(nl->s == pico8_nl_def.s);
     assert(nl->probe->od == pico8_nl_def.probe.od);
     assert(nl->qw == pico8_nl_def.qw);
-    assert_same_string(nl->header.me, pico8_nl_def.me);
+    assert_same_string(nl->header.state, pico8_nl_def.me);
     assert_qh_tail(nl, &pico8_nl_def);
     assert_jo_box(&nl->def->kq);
     assert_jo_tail(nl, &pico8_nl_def);
@@ -109,7 +109,7 @@ static void test_os_defaults(void) {
     assert(pico8_os_ready());
     assert(os->s == pico8_os_def.s);
     assert(os->probe->od == pico8_os_def.probe.od);
-    assert_same_string(os->header.me, pico8_os_def.me);
+    assert_same_string(os->header.state, pico8_os_def.me);
     assert_qh_tail(os, &pico8_os_def);
     assert_jo_box(&os->def->kq);
     assert_jo_tail(os, &pico8_os_def);
@@ -122,7 +122,7 @@ static void test_hj_defaults(void) {
     assert(hj->probe->od == pico8_hj_def.probe.od);
     assert(hj->s == pico8_hj_def.s);
     assert_emitter(hj->emitter, &pico8_hj_def);
-    assert_same_string(hj->header.me, pico8_hj_def.me);
+    assert_same_string(hj->header.state, pico8_hj_def.me);
     assert_qh_tail(hj, &pico8_hj_def);
     assert_jo_box(&hj->def->kq);
     assert_jo_tail(hj, &pico8_hj_def);
@@ -132,7 +132,7 @@ static void test_pm_defaults(void) {
     pico8_jo_t *pm = pico8_pm_new(NULL);
 
     assert(pico8_pm_ready());
-    assert_same_string(pm->header.me, pico8_pm_def.me);
+    assert_same_string(pm->header.state, pico8_pm_def.me);
     assert(pm->s == pico8_pm_def.s);
     assert_emitter(pm->emitter, &pico8_pm_def);
     assert(pm->probe->od == pico8_pm_def.probe.od);
@@ -157,7 +157,7 @@ static void test_ga_defaults(void) {
     assert(ga->emitter->py == pico8_ga_def.emitter.py);
     assert(ga->ms == pico8_ga_def.ms);
     assert_box(&ga->def->kq, 0, 0, -1, -1);
-    assert_same_string(ga->header.me, ga->def->me);
+    assert_same_string(ga->header.state, ga->def->me);
     assert_jo_tail(ga, &pico8_ga_def);
     assert(ga->def->hs == pico8_fixed_from_int(1));
     assert(ga->mi == 0 && !ga->has_mi);
@@ -171,7 +171,7 @@ static void assert_nr_inherited(const pico8_jo_t *nr, const pico8_jo_def_t *def)
     assert(nr->probe->od == def->probe.od);
     assert(nr->s == def->s);
     assert_box(&nr->def->kq, -4, -4, 5, 5);
-    assert_same_string(nr->header.me, def->me);
+    assert_same_string(nr->header.state, def->me);
     assert_qh_tail(nr, def);
     assert_jo_tail(nr, def);
 }
@@ -198,7 +198,7 @@ static void test_mx_defaults(void) {
     assert(mx->probe->od == pico8_mx_def.probe.od);
     assert(mx->ht == pico8_mx_def.ht);
     assert_emitter(mx->emitter, &pico8_mx_def);
-    assert_same_string(mx->header.me, pico8_mx_def.me);
+    assert_same_string(mx->header.state, pico8_mx_def.me);
     assert_qh_tail(mx, &pico8_mx_def);
     assert_jo_box(&mx->def->kq);
     assert_jo_tail(mx, &pico8_mx_def);
@@ -210,16 +210,16 @@ static void test_second_jl_keeps_ke(void) {
     assert(pico8_ke_ready());
     pico8_jl();
     assert(pico8_ke_ready());
-    assert(pico8_jo_new(NULL)->header.t == 0);
-    assert(pico8_qh_new(NULL)->header.t == 0);
-    assert(pico8_nl_new(NULL)->header.t == 0);
-    assert(pico8_os_new(NULL)->header.t == 0);
-    assert(pico8_hj_new(NULL)->header.t == 0);
-    assert(pico8_pm_new(NULL)->header.t == 0);
-    assert(pico8_ga_new(NULL)->header.t == 0);
-    assert(pico8_nr_new(NULL)->header.t == 0);
-    assert(pico8_fr_new(NULL)->header.t == 0);
-    assert(pico8_mx_new(NULL)->header.t == 0);
+    assert(pico8_jo_new(NULL)->header.state_time == 0);
+    assert(pico8_qh_new(NULL)->header.state_time == 0);
+    assert(pico8_nl_new(NULL)->header.state_time == 0);
+    assert(pico8_os_new(NULL)->header.state_time == 0);
+    assert(pico8_hj_new(NULL)->header.state_time == 0);
+    assert(pico8_pm_new(NULL)->header.state_time == 0);
+    assert(pico8_ga_new(NULL)->header.state_time == 0);
+    assert(pico8_nr_new(NULL)->header.state_time == 0);
+    assert(pico8_fr_new(NULL)->header.state_time == 0);
+    assert(pico8_mx_new(NULL)->header.state_time == 0);
 }
 
 int main(void) {

@@ -31,26 +31,26 @@ static volatile unsigned char sink;
 
 static int rendus;
 
-static void rendre_compte(pico8_struct_header_t *self) {
+static void rendre_compte(entity_t *self) {
     (void)self;
     rendus++;
 }
 
-static void rendre_libere(pico8_struct_header_t *self) {
+static void rendre_libere(entity_t *self) {
     free(self);
 }
 
-static const pico8_struct_class_t counted_cls = {.rendre = rendre_compte};
-static const pico8_struct_class_t freed_cls = {.rendre = rendre_libere};
-static const pico8_struct_class_t kept_cls = {0};
+static const entity_class_t counted_cls = {.release = rendre_compte};
+static const entity_class_t freed_cls = {.release = rendre_libere};
+static const entity_class_t kept_cls = {0};
 
 /* Une boite `mh` : `kc` et `ju.ed` ne designent que des boites. `m_` vise
  * un champ a elle, pour que `ui:gw` puisse l'ecrire par `gj`. */
-static pico8_mh_t *new_entity(const pico8_struct_class_t *cls) {
+static pico8_mh_t *new_entity(const entity_class_t *cls) {
     pico8_mh_t *mh = calloc(1, sizeof *mh);
     assert(mh != NULL);
-    mh->header.cls = cls;
-    mh->header.m_ = &mh->p_;
+    mh->header.class = cls;
+    mh->header.is_hovered = &mh->p_;
     return mh;
 }
 
@@ -134,7 +134,7 @@ static int case_he_outside_hv_or_without_member(void) {
 static int registered_with_rendre(void) {
     const pico8_ents_t *hv = pico8_hv();
     int n = 0;
-    for (int i = 0; i < hv->count; i++) n += hv->items[i]->cls->rendre != NULL;
+    for (int i = 0; i < hv->count; i++) n += hv->items[i]->class->release != NULL;
     return n;
 }
 
@@ -202,7 +202,7 @@ static int case_dk_outlives_its_button(void) {
     const pico8_ents_t *hd = pico8_cv("hd");
     pico8_js_t *nj = NULL;
     for (int i = 0; i < hd->count && nj == NULL; i++)
-        if (hd->items[i]->cls == pico8_js_struct_class() && ((pico8_js_t *)hd->items[i])->has_en)
+        if (hd->items[i]->class == pico8_js_struct_class() && ((pico8_js_t *)hd->items[i])->has_en)
             nj = (pico8_js_t *)hd->items[i];
     assert(nj != NULL);
     const char *px = nj->px;

@@ -88,8 +88,8 @@ static int ents_list_count(const pico8_ents_t *list) {
     return list == NULL ? 0 : list->count;
 }
 
-static int is_me(const pico8_struct_header_t *ke, const char *want) {
-    return ke->me != NULL && strcmp(ke->me, want) == 0;
+static int is_me(const entity_t *ke, const char *want) {
+    return ke->state != NULL && strcmp(ke->state, want) == 0;
 }
 
 static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
@@ -150,10 +150,10 @@ static pico8_bg_t *find_bg(int *count) {
 
     *count = 0;
     for (i = 0; hd != NULL && i < hd->count; i++) {
-        const pico8_struct_header_t *e = hd->items[i];
+        const entity_t *e = hd->items[i];
         pico8_bg_t *bg;
 
-        if (e->cls != pico8_bg_struct_class()) {
+        if (e->class != pico8_bg_struct_class()) {
             continue;
         }
         bg = (pico8_bg_t *)e;
@@ -185,12 +185,12 @@ static int mget(int x, int y) {
 /* A fresh `bg`: ke's `me`/`t`, the spec's `fa`/`hd`/`pl`, the four
  * methods, nothing written yet, registered in hv, cv.kj and cv.hd only. */
 static void check_fresh_bg(const pico8_bg_t *bg) {
-    const pico8_struct_class_t *cls = bg->header.cls;
+    const entity_class_t *cls = bg->header.class;
     const pico8_int_seq_t *pl;
     size_t i;
 
     assert(is_me(&bg->header, "ph"));
-    assert(bg->header.t == 0);
+    assert(bg->header.state_time == 0);
     assert(bg->def == &pico8_bg_def);
     assert(bg->def->fa == pico8_fixed_from_int(1));
     assert(bg->def->hd == pico8_fixed_from_int(1));
@@ -200,9 +200,9 @@ static void check_fresh_bg(const pico8_bg_t *bg) {
         assert(pl->items[i] == want_pl[i]);
     }
     assert(!bg->has_mq && !bg->m_);
-    assert(cls->gv == NULL && cls->states[PICO8_STATE_PH] == NULL);
-    assert(cls->kj != NULL && cls->ldown != NULL && cls->rdown != NULL && cls->hq != NULL);
-    assert(cls->ey == NULL);
+    assert(cls->accept_drop == NULL && cls->states[ENTITY_STATE_NORMAL] == NULL);
+    assert(cls->draw != NULL && cls->left_press != NULL && cls->right_press != NULL && cls->drag != NULL);
+    assert(cls->drop == NULL);
     assert(ents_listed(pico8_hv(), bg) && ents_listed(pico8_cv("kj"), bg) && ents_listed(pico8_cv("hd"), bg));
     assert(!ents_listed(pico8_cv("ev"), bg) && !ents_listed(pico8_cv("hk"), bg) && !ents_listed(pico8_cv("hb"), bg));
 }
@@ -266,7 +266,7 @@ static void test_map(void) {
 }
 
 static void hq(void *bg, pico8_vec_t *rp) {
-    pico8_bg_struct_class()->hq(bg, vec_ref(1, 2), rp);
+    pico8_bg_struct_class()->drag(bg, vec_ref(1, 2), rp);
 }
 
 /* `hq` with no `mq` yet reads the zero vector; `rdown` keeps a copy of `rp`
@@ -276,7 +276,7 @@ static void test_drag(void) {
     uint32_t h = 2166136261u;
     pico8_bg_t *bg;
     pico8_vec_t *rp;
-    pico8_down_t out;
+    down_t out;
     pico8_vec_t v;
     int i;
 
@@ -291,7 +291,7 @@ static void test_drag(void) {
     h = fold_vec(h, mo_qb()->v);
 
     rp = vec_ref(30, 40);
-    out = pico8_bg_struct_class()->rdown(&bg->header, vec_ref(5, 6), rp);
+    out = pico8_bg_struct_class()->right_press(&bg->header, vec_ref(5, 6), rp);
     assert(out.stop && (void *)out.held == bg);
     assert(mq_is(bg, rp));
     h = fold_vec(h, mq_of(bg));
@@ -309,7 +309,7 @@ static void test_drag(void) {
 /* `ldown` builds a `g_` while cg.g_ is empty, an `mz` after. */
 static void test_ldown(void) {
     void *bg;
-    pico8_down_t out;
+    down_t out;
     int g_before;
     int mz_before;
 
@@ -320,14 +320,14 @@ static void test_ldown(void) {
     check_int("ldown g_ before", g_before, LDOWN_G_BEFORE);
     check_int("ldown mz before", mz_before, LDOWN_MZ_BEFORE);
 
-    out = pico8_bg_struct_class()->ldown(bg, vec_ref(1, 1), vec_ref(2, 2));
+    out = pico8_bg_struct_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));
     assert(out.stop && out.held != NULL);
-    assert(out.held->cls == pico8_g__struct_class());
+    assert(out.held->class == pico8_g__struct_class());
     assert(ents_listed(pico8_cg("g_"), out.held));
 
-    out = pico8_bg_struct_class()->ldown(bg, vec_ref(1, 1), vec_ref(2, 2));
+    out = pico8_bg_struct_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));
     assert(out.stop && out.held != NULL);
-    assert(out.held->cls == pico8_mz_struct_class());
+    assert(out.held->class == pico8_mz_struct_class());
     assert(ents_listed(pico8_cg("mz"), out.held));
     assert(is_me(&((const pico8_mz_t *)out.held)->header, "kz"));
 
@@ -353,8 +353,8 @@ static void test_hover(void) {
     uint32_t h = 2166136261u;
     pico8_bg_t *bg;
     void *veil;
-    pico8_struct_header_t *kv = NULL;
-    pico8_down_t kn;
+    entity_t *kv = NULL;
+    down_t kn;
 
     start_game();
     bg = the_bg();
@@ -394,7 +394,7 @@ static pico8_jo_t *first_jo_with_me(const char *me) {
     const pico8_ents_t *list = pico8_cg("jo");
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        pico8_struct_header_t *e = list->items[i];
+        entity_t *e = list->items[i];
 
         assert(pico8_jo_is_family(e));
         if (is_me(&((const pico8_jo_t *)e)->header, me)) {
@@ -410,8 +410,8 @@ static void test_gv(void) {
     pico8_bg_t *bg;
     pico8_jo_t *ly;
     void *nr;
-    pico8_jo_keys_t keys;
-    pico8_down_t r;
+    planet_keys_t keys;
+    down_t r;
 
     start_game();
     pico8_jo_hu((pico8_jo_t *)pico8_cg("jo")->items[0], pico8_hp_new(NULL));
@@ -422,9 +422,9 @@ static void test_gv(void) {
     assert(r.stop && r.held == NULL);
     assert(is_me(&ly->header, "ly"));
 
-    keys.id = NULL;
-    keys.p = ly->p;
-    keys.ra = ly->ra;
+    keys.planet_id = NULL;
+    keys.map_pos = ly->p;
+    keys.pos = ly->ra;
     nr = pico8_nr_new(&keys);
     r = pico8_nr_gv(nr, &bg->header);
     assert(r.stop && r.held == NULL);
@@ -440,7 +440,7 @@ static void test_draw(void) {
     assert(ents_list_count(pico8_cv("kj")) == 1 && ents_listed(pico8_cv("kj"), bg));
     pico8_gfx_init(&gfx);
     pico8_cls(&mem);
-    assert(pico8_mo()->cls == pico8_qb_struct_class());
+    assert(pico8_mo()->class == pico8_qb_struct_class());
     pico8_qb_md(pico8_dispatch_gfx(), (pico8_qb_t *)pico8_mo(), pico8_fixed_from_int(1));
     pico8_dc("kj");
     check("draw", screen_hash(), DRAW_HASH);
@@ -455,11 +455,11 @@ static uint32_t lheld_kind(void) {
         return HELD_ABSENT;
     }
     if (held != NULL &&
-        ((const pico8_struct_header_t *)held)->cls == pico8_g__struct_class()) {
+        ((const entity_t *)held)->class == pico8_g__struct_class()) {
         return HELD_G_STRUCT;
     }
     if (held != NULL &&
-        ((const pico8_struct_header_t *)held)->cls == pico8_mz_struct_class()) {
+        ((const entity_t *)held)->class == pico8_mz_struct_class()) {
         return HELD_MZ_STRUCT;
     }
     return HELD_OTHER;
@@ -513,13 +513,13 @@ static void test_scripted_drags(void) {
 
 static int is_a_bg_struct(const void *e) {
     return e != NULL &&
-           ((const pico8_struct_header_t *)e)->cls == pico8_bg_struct_class();
+           ((const entity_t *)e)->class == pico8_bg_struct_class();
 }
 
 /* Built by `eu()`, `pico8_bg_new` or through its class, a background is a
  * struct with `kj`, `ldown`, `rdown` and `hq` as methods. */
 static void test_bg_is_a_struct(void) {
-    const pico8_struct_class_t *cls;
+    const entity_class_t *cls;
     void *from_eu;
     void *built;
     void *generic;
@@ -530,13 +530,13 @@ static void test_bg_is_a_struct(void) {
     built = (void *)pico8_bg_new();
     generic = (void *)pico8_bg_new();
     assert(is_a_bg_struct(from_eu) && is_a_bg_struct(built) && is_a_bg_struct(generic));
-    cls = ((const pico8_struct_header_t *)built)->cls;
-    assert(cls->kj != NULL && cls->ldown != NULL && cls->rdown != NULL && cls->hq != NULL);
-    assert(cls->states[PICO8_STATE_PH] == NULL && cls->gv == NULL && cls->ev == NULL);
-    assert(cls->ey == NULL && cls->ol == NULL);
+    cls = ((const entity_t *)built)->class;
+    assert(cls->draw != NULL && cls->left_press != NULL && cls->right_press != NULL && cls->drag != NULL);
+    assert(cls->states[ENTITY_STATE_NORMAL] == NULL && cls->accept_drop == NULL && cls->draw_overlay == NULL);
+    assert(cls->drop == NULL && cls->draw_at == NULL);
 
     veil = (void *)pico8_fq_new(NULL);
-    assert(((const pico8_struct_header_t *)veil)->cls->rdown == NULL);
+    assert(((const entity_t *)veil)->class->right_press == NULL);
 }
 
 /* A scenario depends on the rnd state: run each in a child forked right

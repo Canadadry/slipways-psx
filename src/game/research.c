@@ -46,7 +46,7 @@ static void pico8_research_gb_register(pico8_hp_t *hp) {
     g_gb_px_count++;
 }
 
-static const pico8_struct_class_t g_hp_struct_class = {0};
+static const entity_class_t g_hp_struct_class = {0};
 
 static const char *hp_string(const char *s) {
     assert(s != NULL && "hp.px/lr/ja/i: a position that is not a string does not fit the member's type "
@@ -130,7 +130,7 @@ static pico8_hp_t *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
     const char *i_src = "";
     size_t c;
 
-    pico8_struct_header_init(&self->header, &g_hp_struct_class);
+    entity_init_header(&self->header, &g_hp_struct_class);
     self->px = NULL;
     self->lr = NULL;
     self->fj = 0;
@@ -227,7 +227,7 @@ const char *pico8_hp_il(const pico8_hp_t *self) {
 
 void pico8_hp_assert(const pico8_hp_t *self) {
     assert((self == NULL ||
-            self->header.cls == &g_hp_struct_class) &&
+            self->header.class == &g_hp_struct_class) &&
            "hp: every gb entry, every planet's hn and every row's project is an hp; anything else would be read "
            "through the wrong layout");
     (void)self;
@@ -250,7 +250,7 @@ int pico8_hp_ready(void) {
     return g_hp_up;
 }
 
-const pico8_struct_class_t *pico8_hp_struct_class(void) {
+const entity_class_t *pico8_hp_struct_class(void) {
     return &g_hp_struct_class;
 }
 

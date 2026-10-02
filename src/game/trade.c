@@ -21,7 +21,7 @@ int pico8_qe_equal(pico8_qe_t a, pico8_qe_t b) {
     return a.kind == b.kind && (a.kind != PICO8_QE_FIXED || a.n == b.n);
 }
 
-static const pico8_struct_class_t g_trade_struct_class = {0};
+static const entity_class_t g_trade_struct_class = {0};
 
 static pico8_trade_t *pico8_trade_struct_new(const pico8_zone_choisie_t *zone, const pico8_trade_keys_t *keys) {
     pico8_trade_t *self = (pico8_trade_t *)pico8_zone_alloc(zone, sizeof *self);
@@ -29,7 +29,7 @@ static pico8_trade_t *pico8_trade_struct_new(const pico8_zone_choisie_t *zone, c
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("trade");
 #endif
-    pico8_struct_header_init(&self->header, &g_trade_struct_class);
+    entity_init_header(&self->header, &g_trade_struct_class);
     self->lp = NULL;
     self->rl = NULL;
     self->qe = 0;
@@ -51,7 +51,7 @@ static pico8_trade_t *pico8_trade_struct_new(const pico8_zone_choisie_t *zone, c
 
 static void assert_trade(const pico8_trade_t *self) {
     assert((self == NULL ||
-            self->header.cls == &g_trade_struct_class) &&
+            self->header.class == &g_trade_struct_class) &&
            "trade: every by/cc element and every proposal's t is a route; anything else would be read "
            "through the wrong layout");
 }
@@ -69,7 +69,7 @@ int pico8_trade_ready(void) {
     return g_trade_up;
 }
 
-const pico8_struct_class_t *pico8_trade_struct_class(void) {
+const entity_class_t *pico8_trade_struct_class(void) {
     return &g_trade_struct_class;
 }
 
@@ -105,7 +105,7 @@ pico8_trade_t *pico8_trade_copy(const pico8_zone_choisie_t *zone, const pico8_tr
     return pico8_trade_new(zone, &keys);
 }
 
-int pico8_trade_to(const pico8_trade_t *self, pico8_struct_header_t **out) {
+int pico8_trade_to(const pico8_trade_t *self, entity_t **out) {
     const pico8_ents_t *lp;
 
     assert_trade(self);
@@ -124,7 +124,7 @@ int pico8_trade_to(const pico8_trade_t *self, pico8_struct_header_t **out) {
  * element into the lp/rl it returns. A Lua `{x}` holds zero elements
  * when x is nil, so a NULL contributes nothing. */
 pico8_trade_t *pico8_trade_kg(const pico8_zone_choisie_t *zone, const pico8_trade_t *self,
-                              pico8_struct_header_t *np, pico8_struct_header_t *jc) {
+                              entity_t *np, entity_t *jc) {
     pico8_trade_keys_t keys = {0};
     pico8_ents_t empty_lp;
     pico8_ents_t empty_rl;
@@ -170,8 +170,8 @@ pico8_trade_t *pico8_trade_kg(const pico8_zone_choisie_t *zone, const pico8_trad
 
 int pico8_trade_eq(const pico8_trade_t *l, const pico8_trade_t *r) {
     const pico8_ents_t *l_lp, *r_lp;
-    const pico8_struct_header_t *l_first, *r_first;
-    pico8_struct_header_t *l_last, *r_last;
+    const entity_t *l_first, *r_first;
+    entity_t *l_last, *r_last;
 
     assert_trade(l);
     assert_trade(r);

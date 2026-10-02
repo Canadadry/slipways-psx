@@ -17,12 +17,12 @@ static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
     return (a < b) ? a : b;
 }
 
-typedef void (*cg_visit_fn)(pico8_struct_header_t *e, void *ctx);
+typedef void (*cg_visit_fn)(entity_t *e, void *ctx);
 
 static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
     const pico8_ents_t *list = pico8_cg(tag);
     pico8_ents_iter_t it;
-    pico8_struct_header_t *e;
+    entity_t *e;
     if (list == NULL) {
         return;
     }
@@ -34,7 +34,7 @@ static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
     }
 }
 
-static int call_gg_truthy(pico8_struct_header_t *pt) {
+static int call_gg_truthy(entity_t *pt) {
     if (pt == NULL) {
         return 0;
     }
@@ -42,8 +42,8 @@ static int call_gg_truthy(pico8_struct_header_t *pt) {
     return pico8_jo_gg((const pico8_jo_t *)pt);
 }
 
-pico8_fixed_t pico8_da(pico8_struct_header_t *pt) {
-    if (pt != NULL && (pt->cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_QH)) && ((const pico8_jo_t *)pt)->def->qh) {
+pico8_fixed_t pico8_da(entity_t *pt) {
+    if (pt != NULL && (pt->class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && ((const pico8_jo_t *)pt)->def->qh) {
         const pico8_ents_t *qh_list = pico8_cg("qh");
         return pico8_fixed_from_int(qh_list != NULL ? qh_list->count : 0);
     }
@@ -58,7 +58,7 @@ pico8_fixed_t pico8_da(pico8_struct_header_t *pt) {
     return pico8_fixed_from_int(0);
 }
 
-static int cz_predicate(pico8_struct_header_t *e, void *ctx) {
+static int cz_predicate(entity_t *e, void *ctx) {
     (void)ctx;
     if (e == NULL) {
         return 0;
@@ -75,7 +75,7 @@ pico8_fixed_t pico8_cz(void) {
     return pico8_fixed_flr(result);
 }
 
-pico8_fixed_t pico8_db(const pico8_struct_header_t *pt) {
+pico8_fixed_t pico8_db(const entity_t *pt) {
     pico8_fixed_t total = pico8_fixed_from_int(0);
     const pico8_jo_t *jo;
     const pico8_ents_t *by;
@@ -91,8 +91,8 @@ pico8_fixed_t pico8_db(const pico8_struct_header_t *pt) {
     if (by != NULL) {
         int i;
         for (i = 0; i < by->count; i++) {
-            pico8_struct_header_t *e = by->items[i];
-            pico8_struct_header_t *oz_val;
+            entity_t *e = by->items[i];
+            entity_t *oz_val;
             if (e == NULL) {
                 continue;
             }
@@ -152,7 +152,7 @@ typedef struct {
     int count;
 } sum_by_mi_ctx_t;
 
-static void sum_by_mi_visit(pico8_struct_header_t *pt, void *ctx_) {
+static void sum_by_mi_visit(entity_t *pt, void *ctx_) {
     sum_by_mi_ctx_t *ctx = (sum_by_mi_ctx_t *)ctx_;
     const pico8_jo_t *jo;
     int v;
@@ -260,7 +260,7 @@ void pico8_economy_set_dk(const pico8_js_t *dk) {
     g_dk = dk;
 }
 
-void pico8_economy_dk_quitte(const pico8_struct_header_t *e) {
+void pico8_economy_dk_quitte(const entity_t *e) {
     static pico8_js_t copie;
 
     if (g_dk == NULL || &g_dk->header != e) {
@@ -275,7 +275,7 @@ void pico8_economy_dk_quitte(const pico8_struct_header_t *e) {
     g_dk = &copie;
 }
 
-pico8_fixed_t pico8_kr(pico8_struct_header_t *p) {
+pico8_fixed_t pico8_kr(entity_t *p) {
     pico8_fixed_t kr = pico8_fixed_flr(pico8_fixed_sub(pico8_db(p), pico8_da(p)));
     pico8_jo_t *jo;
 

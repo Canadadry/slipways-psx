@@ -16,12 +16,12 @@ static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
     return (a < b) ? a : b;
 }
 
-typedef void (*cg_visit_fn)(pico8_struct_header_t *e, void *ctx);
+typedef void (*cg_visit_fn)(entity_t *e, void *ctx);
 
 static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
     const pico8_ents_t *list = pico8_cg(tag);
     pico8_ents_iter_t it;
-    pico8_struct_header_t *e;
+    entity_t *e;
     if (list == NULL) {
         return;
     }
@@ -33,7 +33,7 @@ static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
     }
 }
 
-static void bd_reset_visit(pico8_struct_header_t *pt, void *ctx) {
+static void bd_reset_visit(entity_t *pt, void *ctx) {
     pico8_jo_t *jo;
     pico8_ents_t *cc;
     (void)ctx;
@@ -51,11 +51,11 @@ static void bd_reset_visit(pico8_struct_header_t *pt, void *ctx) {
     jo->cc = cc;
 }
 
-static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
+static void bd_route_visit(entity_t *pt, void *ctx) {
     pico8_jo_t *jo;
     pico8_ents_t *by;
     pico8_ents_iter_t it;
-    pico8_struct_header_t *e;
+    entity_t *e;
     (void)ctx;
     if (pt == NULL) {
         return;
@@ -75,22 +75,22 @@ static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
         const pico8_trade_t *route;
         const pico8_ents_t *rl;
         const pico8_ents_t *lp;
-        pico8_struct_header_t *to_val;
+        entity_t *to_val;
         int i;
 
         if (e == NULL) {
             continue;
         }
-        assert(e->cls == pico8_trade_struct_class() && "jo.by holds trades only");
+        assert(e->class == pico8_trade_struct_class() && "jo.by holds trades only");
         route = (const pico8_trade_t *)e;
         rl = route->rl;
         lp = route->lp;
 
         if (rl != NULL && lp != NULL) {
             for (i = 0; i < rl->count; i++) {
-                const pico8_struct_header_t *w_val = rl->items[i];
+                const entity_t *w_val = rl->items[i];
                 const pico8_jc_t *w;
-                const pico8_struct_header_t *planet_val;
+                const entity_t *planet_val;
                 const pico8_jo_t *planet;
 
                 if (w_val == NULL) {
@@ -108,7 +108,7 @@ static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
                 if (planet->id == NULL) {
                     continue;
                 }
-                assert(w_val->cls == pico8_jc_struct_class() && "trade.rl holds slipways only");
+                assert(w_val->class == pico8_jc_struct_class() && "trade.rl holds slipways only");
                 w = (const pico8_jc_t *)w_val;
                 /* A slipway with no `hg` set is skipped; Lua would error
                  * indexing nil here. */
@@ -136,7 +136,7 @@ void pico8_bd(void) {
     for_each_cg("jo", bd_route_visit, NULL);
 }
 
-static void bb_visit(pico8_struct_header_t *pt, void *ctx) {
+static void bb_visit(entity_t *pt, void *ctx) {
     int *jg = (int *)ctx;
     pico8_jo_t *jo;
     pico8_fixed_t jw;
@@ -200,7 +200,7 @@ int pico8_bb(void) {
     return jg;
 }
 
-pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
+pico8_fixed_t pico8_dh(const entity_t *pt) {
     const pico8_jo_t *jo;
     const pico8_ptrs_t *jy;
     const pico8_ents_t *cc;
@@ -212,7 +212,7 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
     }
     assert(pico8_jo_is_family(pt) && "dh: pt is a planet of cg.jo");
     jo = (const pico8_jo_t *)pt;
-    if (jo->header.me == NULL || strcmp(jo->header.me, "ly") != 0) {
+    if (jo->header.state == NULL || strcmp(jo->header.state, "ly") != 0) {
         return pico8_fixed_from_int(0);
     }
 
@@ -233,12 +233,12 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
             qe_val = pico8_jy_qe(want);
             if (cc != NULL) {
                 for (j = 0; j < cc->count; j++) {
-                    const pico8_struct_header_t *im_val = cc->items[j];
+                    const entity_t *im_val = cc->items[j];
                     const pico8_trade_t *im;
                     if (im_val == NULL) {
                         continue;
                     }
-                    assert(im_val->cls == pico8_trade_struct_class() && "jo.cc holds trades only");
+                    assert(im_val->class == pico8_trade_struct_class() && "jo.cc holds trades only");
                     im = (const pico8_trade_t *)im_val;
                     /* TROU-24 */
                     if (im->has_qe && pico8_qe_equal(pico8_trade_qe(im), qe_val)) {
@@ -256,7 +256,7 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
         return pico8_fixed_from_int(1);
     }
 
-    if (pt->cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_NL)) {
+    if (pt->class->lineage & LINEAGE(LINEAGE_TRADING_HUB)) {
         int count = 0;
         if (jy != NULL) {
             for (i = 0; i < jy->count; i++) {

@@ -1,5 +1,5 @@
-#ifndef PICO8_STRUCT_H
-#define PICO8_STRUCT_H
+#ifndef ENGINE_ENTITY_CLASS_H
+#define ENGINE_ENTITY_CLASS_H
 
 #include <string.h>
 
@@ -10,26 +10,26 @@
 
 /* The states `dg` runs as `qc[qc.me](qc,qc.t)`. */
 typedef enum {
-    PICO8_STATE_PH,
-    PICO8_STATE_LY,
-    PICO8_STATE_LL,
-    PICO8_STATE_KZ,
-    PICO8_STATE_PR,
-    PICO8_STATE_COUNT
-} pico8_state_t;
+    ENTITY_STATE_NORMAL,
+    ENTITY_STATE_SETTLED,
+    ENTITY_STATE_VANISHING,
+    ENTITY_STATE_PLACING,
+    ENTITY_STATE_UNFOLDING,
+    STATE_COUNT
+} state_t;
 
 /* The state named `me`, or -1 for any other name (`unknown`, `known`). */
-static inline int pico8_state_of(const char *me) {
-    static const char *const names[PICO8_STATE_COUNT] = {
-        [PICO8_STATE_PH] = "ph",
-        [PICO8_STATE_LY] = "ly",
-        [PICO8_STATE_LL] = "ll",
-        [PICO8_STATE_KZ] = "kz",
-        [PICO8_STATE_PR] = "pr",
+static inline int entity_state_of(const char *me) {
+    static const char *const names[STATE_COUNT] = {
+        [ENTITY_STATE_NORMAL] = "ph",
+        [ENTITY_STATE_SETTLED] = "ly",
+        [ENTITY_STATE_VANISHING] = "ll",
+        [ENTITY_STATE_PLACING] = "kz",
+        [ENTITY_STATE_UNFOLDING] = "pr",
     };
     int i;
 
-    for (i = 0; i < PICO8_STATE_COUNT; i++) {
+    for (i = 0; i < STATE_COUNT; i++) {
         if (strcmp(names[i], me) == 0) {
             return i;
         }
@@ -40,42 +40,42 @@ static inline int pico8_state_of(const char *me) {
 /* The ten tags `cg` indexes entities under, in the order
  * every class lists its own. */
 typedef enum {
-    PICO8_TAG_QH,
-    PICO8_TAG_HJ,
-    PICO8_TAG_NR,
-    PICO8_TAG_G_,
-    PICO8_TAG_MH,
-    PICO8_TAG_JC,
-    PICO8_TAG_MZ,
-    PICO8_TAG_JO,
-    PICO8_TAG_NP,
-    PICO8_TAG_PROBER,
-    PICO8_TAG_COUNT
-} pico8_tag_t;
+    TAG_STRUCTURE,
+    TAG_ASCENSION,
+    TAG_SLIPGATE,
+    TAG_PROBE,
+    TAG_MESSAGE_BOX,
+    TAG_SLIPWAY,
+    TAG_WORMHOLE,
+    TAG_PLANET,
+    TAG_NODE,
+    TAG_TARGETING,
+    TAG_COUNT
+} tag_t;
 
-#define PICO8_TAG(t) (1u << (t))
+#define TAG(t) (1u << (t))
 
 /* The four classes whose descendants the code asks after. */
 typedef enum {
-    PICO8_LINEAGE_JO,
-    PICO8_LINEAGE_QH,
-    PICO8_LINEAGE_NL,
-    PICO8_LINEAGE_G_,
-} pico8_lineage_t;
+    LINEAGE_PLANET,
+    LINEAGE_STRUCTURE,
+    LINEAGE_TRADING_HUB,
+    LINEAGE_PROBE,
+} lineage_t;
 
-#define PICO8_LINEAGE(l) (1u << (l))
+#define LINEAGE(l) (1u << (l))
 
 /* The tag named `name`, or -1 for any other name. */
-static inline int pico8_tag_named(const char *name) {
-    static const char *const names[PICO8_TAG_COUNT] = {
-        [PICO8_TAG_QH] = "qh", [PICO8_TAG_HJ] = "hj", [PICO8_TAG_NR] = "nr",
-        [PICO8_TAG_G_] = "g_", [PICO8_TAG_MH] = "mh", [PICO8_TAG_JC] = "jc",
-        [PICO8_TAG_MZ] = "mz", [PICO8_TAG_JO] = "jo", [PICO8_TAG_NP] = "np",
-        [PICO8_TAG_PROBER] = "prober",
+static inline int entity_tag_named(const char *name) {
+    static const char *const names[TAG_COUNT] = {
+        [TAG_STRUCTURE] = "qh", [TAG_ASCENSION] = "hj", [TAG_SLIPGATE] = "nr",
+        [TAG_PROBE] = "g_", [TAG_MESSAGE_BOX] = "mh", [TAG_SLIPWAY] = "jc",
+        [TAG_WORMHOLE] = "mz", [TAG_PLANET] = "jo", [TAG_NODE] = "np",
+        [TAG_TARGETING] = "prober",
     };
     int i;
 
-    for (i = 0; i < PICO8_TAG_COUNT; i++) {
+    for (i = 0; i < TAG_COUNT; i++) {
         if (strcmp(names[i], name) == 0) {
             return i;
         }
@@ -83,7 +83,7 @@ static inline int pico8_tag_named(const char *name) {
     return -1;
 }
 
-typedef struct pico8_struct_class pico8_struct_class_t;
+typedef struct entity_class entity_class_t;
 struct pico8_emitter;
 struct pico8_probe;
 
@@ -95,29 +95,29 @@ struct pico8_probe;
  * and the particle emitter and the probe, which the instance stores in
  * itself, by their modules. `*fx` 0 is nil. */
 typedef struct {
-    const pico8_struct_class_t *cls;
-    const char *me;
-    pico8_fixed_t t;
-    const pico8_fixed_t *fa;
-    const pico8_vec_t *const *ra;
-    const pico8_vec_t *const *p;
-    const pico8_qz_box_t *kq;
-    const pico8_fixed_t *ql;
-    const pico8_fixed_t *fg;
-    const pico8_fixed_t *mt;
-    pico8_fixed_t *ma;
-    const pico8_fixed_t *fx;
-    int *p_;
-    int *m_;
+    const entity_class_t *class;
+    const char *state;
+    pico8_fixed_t state_time;
+    const pico8_fixed_t *layer;
+    const pico8_vec_t *const *pos;
+    const pico8_vec_t *const *map_pos;
+    const pico8_qz_box_t *hit_box;
+    const pico8_fixed_t *cursor_sprite;
+    const pico8_fixed_t *gpio_signal;
+    const pico8_fixed_t *infraspace;
+    pico8_fixed_t *shake;
+    const pico8_fixed_t *fold_anchor;
+    int *is_dead;
+    int *is_hovered;
     struct pico8_emitter *emitter;
-    struct pico8_probe *probe;
-} pico8_struct_header_t;
+    struct pico8_probe *targeting;
+} entity_t;
 
 /* Every constructor calls it first: its zone block leaves the header
  * indeterminate, and a reader would follow a link left unset. `me` is nil,
  * `t` 0 and every link NULL until the constructor sets its own. */
-static inline void pico8_struct_header_init(pico8_struct_header_t *self, const pico8_struct_class_t *cls) {
-    *self = (pico8_struct_header_t){.cls = cls};
+static inline void entity_init_header(entity_t *self, const entity_class_t *cls) {
+    *self = (entity_t){.class = cls};
 }
 
 /* What `ldown`, `rdown` and `gv` return: `stop` is the Lua truth of the
@@ -126,10 +126,10 @@ static inline void pico8_struct_header_init(pico8_struct_header_t *self, const p
  * the entity it returned, NULL otherwise. `held` != NULL implies `stop`. */
 typedef struct {
     int stop;
-    pico8_struct_header_t *held;
-} pico8_down_t;
+    entity_t *held;
+} down_t;
 
-typedef void (*pico8_state_fn)(pico8_struct_header_t *self, pico8_fixed_t t);
+typedef void (*state_fn_t)(entity_t *self, pico8_fixed_t t);
 
 struct pico8_qy;
 struct pico8_jo_trade_proposal;
@@ -141,31 +141,31 @@ struct pico8_kind_rec;
  * them; `ldown`, `rdown` and `hq` may keep theirs. NULL `ra`: nil. `has_hb`
  * is NULL when a non-NULL `hb` is enough for `e.hb` to exist; otherwise the
  * instance decides. `mm` returns a fresh particle the caller owns. */
-struct pico8_struct_class {
-    void (*kj)(pico8_struct_header_t *self, const pico8_vec_t *ra);
-    void (*ev)(pico8_struct_header_t *self, const pico8_vec_t *ra);
-    int (*hd)(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra);
-    void (*hk)(pico8_struct_header_t *self, pico8_fixed_t yr);
-    void (*hb)(pico8_struct_header_t *self);
-    int (*has_hb)(const pico8_struct_header_t *self);
-    pico8_down_t (*ldown)(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra);
-    pico8_down_t (*rdown)(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra);
-    pico8_down_t (*gv)(pico8_struct_header_t *self, const pico8_struct_header_t *s);
-    void (*hq)(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra);
-    void (*ey)(pico8_struct_header_t *self, pico8_struct_header_t *kv);
-    void (*kf)(pico8_struct_header_t *self, pico8_struct_header_t *sw);
-    void (*cn)(pico8_struct_header_t *self, struct pico8_jo_trade_proposal *lw);
-    void (*ol)(pico8_struct_header_t *self, pico8_vec_t p, pico8_fixed_t a);
-    struct pico8_qy *(*mm)(pico8_struct_header_t *self);
-    pico8_state_fn states[PICO8_STATE_COUNT];
+struct entity_class {
+    void (*draw)(entity_t *self, const pico8_vec_t *ra);
+    void (*draw_overlay)(entity_t *self, const pico8_vec_t *ra);
+    int (*hit_test)(entity_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra);
+    void (*new_year)(entity_t *self, pico8_fixed_t yr);
+    void (*refresh)(entity_t *self);
+    int (*has_refresh)(const entity_t *self);
+    down_t (*left_press)(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra);
+    down_t (*right_press)(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra);
+    down_t (*accept_drop)(entity_t *self, const entity_t *s);
+    void (*drag)(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra);
+    void (*drop)(entity_t *self, entity_t *kv);
+    void (*attach_slipway)(entity_t *self, entity_t *sw);
+    void (*offer_trade)(entity_t *self, struct pico8_jo_trade_proposal *lw);
+    void (*draw_at)(entity_t *self, pico8_vec_t p, pico8_fixed_t a);
+    struct pico8_qy *(*spawn_particle)(entity_t *self);
+    state_fn_t states[STATE_COUNT];
     /* `PICO8_TAG(t)` set: lt() registers every instance under tag t. */
     unsigned tags;
     /* `PICO8_LINEAGE(l)` set: the class is l's or descends from it. */
     unsigned lineage;
-    void (*md)(pico8_struct_header_t *self, pico8_fixed_t fy);
+    void (*apply_camera)(entity_t *self, pico8_fixed_t fy);
     /* Releases what the instance holds in the interface and particle
      * zones; only the exit queue's flush calls it (pico8_file_sortie.h). */
-    void (*rendre)(pico8_struct_header_t *self);
+    void (*release)(entity_t *self);
 };
 
 /* The construction keys of the jo tree (the cart's `mw(ob)` in `kv:jr`).
@@ -173,10 +173,10 @@ struct pico8_struct_class {
  * constructor reads the struct, never keeps it, and adopts the string and
  * vectors it points at, without copying them. */
 typedef struct {
-    const char *id;
-    pico8_vec_t *p;
-    pico8_vec_t *ra;
-} pico8_jo_keys_t;
+    const char *planet_id;
+    pico8_vec_t *map_pos;
+    pico8_vec_t *pos;
+} planet_keys_t;
 
 /* A kind the cart handles as a value (`gx[]`, `ie.ke`, `kv[hp.cw]`): one
  * `static const` per kind, never freed. Not an entity: it has no
@@ -184,13 +184,13 @@ typedef struct {
  * its header (pico8_X_kind_new). `rec`, never NULL, holds the kind's `rr`,
  * `s`, `me` and `od` whether its modules are up or down. */
 typedef struct {
-    pico8_struct_header_t *(*new_entity)(const pico8_jo_keys_t *keys);
-    const struct pico8_kind_rec *rec;
-} pico8_entity_kind_t;
+    entity_t *(*new_entity)(const planet_keys_t *keys);
+    const struct pico8_kind_rec *record;
+} entity_kind_t;
 
 /* Here, not in pico8_slipway.h / pico8_probe.h: ui.c compares against
  * them, and including either header from ui.c makes an include pair. */
-const pico8_struct_class_t *pico8_jc_struct_class(void);
-const pico8_struct_class_t *pico8_g__struct_class(void);
+const entity_class_t *pico8_jc_struct_class(void);
+const entity_class_t *pico8_g__struct_class(void);
 
 #endif

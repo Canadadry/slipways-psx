@@ -45,29 +45,29 @@ const pico8_ents_t *pico8_cg(const char *tag);
 
 /* Only pico8_ke_struct_pq calls it outside tests: every entity of `hv` has
  * had `me` and `t` set by pico8_ke_struct_init, and pico8_dg() reads them. */
-pico8_struct_header_t *pico8_lt(pico8_struct_header_t *e);
+entity_t *pico8_lt(entity_t *e);
 /* `e` taken out of `hv` here, with a class that has `rendre`, goes to the
  * exit queue: once only, even if he() runs again after jl(). */
-void pico8_he(pico8_struct_header_t *e);
+void pico8_he(entity_t *e);
 
 /* `nt` is "kj" or "ev" (asserted). */
 void pico8_dc(const char *nt);
 
 /* `hd=1` of `bg` and `fq`: the hover test that every point passes. */
-int pico8_hd_true(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra);
+int pico8_hd_true(entity_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra);
 
 /* Until pico8_jl() runs, the placeholder struct, with no member and no
  * `md`: dc() calls `mo:md(ci[o])` on a `qb` only; afterwards the
  * real `qb` struct (pico8_scroll.h). Its members are read and written
  * through pico8_mo_qb(). Callers must not free it. */
-pico8_struct_header_t *pico8_mo(void);
+entity_t *pico8_mo(void);
 
-const pico8_struct_class_t *pico8_mo_placeholder_struct_class(void);
+const entity_class_t *pico8_mo_placeholder_struct_class(void);
 
 /* Makes `instance` what pico8_mo() returns. The outgoing one lives on
  * with its generation: pico8_jl() can run from inside a dispatch chain
  * that still holds the old mo. NULL is a valid
  * "no mo"; passing back the current pico8_mo() is a no-op. */
-void pico8_entity_set_mo(pico8_struct_header_t *instance);
+void pico8_entity_set_mo(entity_t *instance);
 
 #endif

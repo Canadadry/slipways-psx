@@ -22,7 +22,7 @@
 
 static int g_hy_up = 0;
 
-static const pico8_struct_class_t g_hy_struct_class = {0};
+static const entity_class_t g_hy_struct_class = {0};
 
 const pico8_hy_def_t pico8_hy_def = {
     .nz = 0x640000,
@@ -35,7 +35,7 @@ static pico8_hy_t *pico8_hy_struct_new(void) {
     pico8_hy_t *self = (pico8_hy_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *self);
     pico8_ptrs_t *invented;
 
-    pico8_struct_header_init(&self->header, &g_hy_struct_class);
+    entity_init_header(&self->header, &g_hy_struct_class);
     self->def = &pico8_hy_def;
     self->nz = pico8_fixed_from_int(0);
     self->ge = pico8_fixed_from_int(0);
@@ -71,7 +71,7 @@ static pico8_hy_t *pico8_hy_struct_new(void) {
 
 static void assert_hy(const pico8_hy_t *self) {
     assert((self == NULL ||
-            self->header.cls == &g_hy_struct_class) &&
+            self->header.class == &g_hy_struct_class) &&
            "hy: every measured call passes the hy of fm; anything else would be read through the wrong layout");
 }
 
@@ -88,7 +88,7 @@ int pico8_hy_ready(void) {
     return g_hy_up;
 }
 
-const pico8_struct_class_t *pico8_hy_struct_class(void) {
+const entity_class_t *pico8_hy_struct_class(void) {
     return &g_hy_struct_class;
 }
 
@@ -126,7 +126,7 @@ void pico8_hy_hk(pico8_hy_t *self) {
     pico8_fixed_t po_rk = pico8_fixed_from_int(0);
     const pico8_ents_t *hk_list;
     pico8_ents_iter_t it;
-    pico8_struct_header_t *qc;
+    entity_t *qc;
 
     assert_hy(self);
     if (self == NULL) {
@@ -156,8 +156,8 @@ void pico8_hy_hk(pico8_hy_t *self) {
         it = pico8_ents_all(hk_list);
         while (pico8_ents_iter_next(&it, &qc)) {
             if (qc != NULL) {
-                if (qc->cls->hk != NULL) {
-                    qc->cls->hk(qc, new_yr);
+                if (qc->class->new_year != NULL) {
+                    qc->class->new_year(qc, new_yr);
                 }
             }
         }
@@ -200,7 +200,7 @@ void pico8_hy_lj(pico8_hy_t *self) {
     pico8_fixed_t skill_mult;
     const pico8_ents_t *jo_list;
     pico8_ents_iter_t it;
-    pico8_struct_header_t *p;
+    entity_t *p;
     pico8_fixed_t yr;
     pico8_fixed_t nz;
 
@@ -255,12 +255,12 @@ void pico8_hy_lj(pico8_hy_t *self) {
         const pico8_ents_t *hb_list = pico8_cv("hb");
         if (hb_list != NULL) {
             pico8_ents_iter_t it2;
-            pico8_struct_header_t *qc;
+            entity_t *qc;
             it2 = pico8_ents_all(hb_list);
             while (pico8_ents_iter_next(&it2, &qc)) {
                 if (qc != NULL) {
-                    if (qc->cls->hb != NULL) {
-                        qc->cls->hb(qc);
+                    if (qc->class->refresh != NULL) {
+                        qc->class->refresh(qc);
                     }
                 }
             }
@@ -300,12 +300,12 @@ void pico8_hy_kt(pico8_hy_t *self, const pico8_nb_entry_t *t) {
     pico8_hy_lj(self);
 }
 
-typedef void (*cg_visit_fn)(pico8_struct_header_t *e, void *ctx);
+typedef void (*cg_visit_fn)(entity_t *e, void *ctx);
 
 static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
     const pico8_ents_t *list = pico8_cg(tag);
     pico8_ents_iter_t it;
-    pico8_struct_header_t *e;
+    entity_t *e;
     if (list == NULL) {
         return;
     }
@@ -317,7 +317,7 @@ static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
     }
 }
 
-static void bx_visit(pico8_struct_header_t *pt, void *ctx) {
+static void bx_visit(entity_t *pt, void *ctx) {
     pico8_qe_map_t *p = (pico8_qe_map_t *)ctx;
     const pico8_jo_t *jo;
     const pico8_kw_t *kw;
@@ -343,7 +343,7 @@ void pico8_bx(pico8_qe_map_t *out) {
     for_each_cg("jo", bx_visit, out);
 }
 
-static void ck_visit(pico8_struct_header_t *l, void *ctx) {
+static void ck_visit(entity_t *l, void *ctx) {
     pico8_qe_map_t *d = (pico8_qe_map_t *)ctx;
     const pico8_ptrs_t *jy;
     const pico8_jy_t *last;

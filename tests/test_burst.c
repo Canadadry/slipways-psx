@@ -58,8 +58,8 @@ static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
 static int tag_count(unsigned tags) {
     int t, n = 0;
 
-    for (t = 0; t < PICO8_TAG_COUNT; t++) {
-        n += (tags & PICO8_TAG(t)) != 0;
+    for (t = 0; t < TAG_COUNT; t++) {
+        n += (tags & TAG(t)) != 0;
     }
     return n;
 }
@@ -206,8 +206,8 @@ static pico8_vec_t near_mo(int x, int y) {
     return pico8_vec_add(*mo_ra, vec_xy(x, y));
 }
 
-static const pico8_struct_class_t *cls_of(const void *e) {
-    return ((const pico8_struct_header_t *)e)->cls;
+static const entity_class_t *cls_of(const void *e) {
+    return ((const entity_t *)e)->class;
 }
 
 /* `fz` is "ga" on a burst and on nothing else. */
@@ -252,14 +252,14 @@ static void *harvest_recipe(void) {
 /* Road (a): a bare planet on `id`/`p`/`ra`, harvested by `jo:hu`; the burst
  * is the one `hv` gained. */
 static void *harvest(int x, int y, const char *id) {
-    pico8_jo_keys_t keys;
+    planet_keys_t keys;
     pico8_jo_t *planet;
     void *made;
     int before = pico8_hv()->count;
 
-    keys.id = id;
-    keys.p = vec_ref(vec_xy(x / 2, y / 2));
-    keys.ra = vec_ref(near_mo(x, y));
+    keys.planet_id = id;
+    keys.map_pos = vec_ref(vec_xy(x / 2, y / 2));
+    keys.pos = vec_ref(near_mo(x, y));
     planet = pico8_jo_new(&keys);
     assert(!is_ga(planet) && pico8_hv()->count == before + 1);
     pico8_jo_hu(planet, harvest_recipe());
@@ -272,20 +272,20 @@ static void *harvest(int x, int y, const char *id) {
 /* Road (b): `kv["pm"]` on `p`/`ra`/`id`; its burst is registered just
  * before the protostar. */
 static void *spawn(int x, int y, const char *id, void **protostar) {
-    pico8_jo_keys_t keys;
+    planet_keys_t keys;
     void *pm;
     int at;
 
-    keys.id = id;
-    keys.p = vec_ref(vec_xy(x / 2, y / 2));
-    keys.ra = vec_ref(near_mo(x, y));
+    keys.planet_id = id;
+    keys.map_pos = vec_ref(vec_xy(x / 2, y / 2));
+    keys.pos = vec_ref(near_mo(x, y));
     pm = pico8_pm_new(&keys);
     at = ents_rank_in(pico8_hv(), pm);
     assert(at >= 1 && is_ga(pico8_hv()->items[at - 1]));
     {
         const pico8_vec_t *ra = as_ga(pico8_hv()->items[at - 1])->ra;
-        pico8_vec_t want = pico8_vec_add(*keys.ra, ((pico8_jo_t *)pm)->def->ng);
-        assert(ra != keys.ra && ra->x == want.x && ra->y == want.y);
+        pico8_vec_t want = pico8_vec_add(*keys.pos, ((pico8_jo_t *)pm)->def->ng);
+        assert(ra != keys.pos && ra->x == want.x && ra->y == want.y);
     }
     if (protostar != NULL) {
         *protostar = pm;
@@ -315,15 +315,15 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     h = fold_fixed_member(h, em->py);
     h = fold_fixed_member(h, g->ms);
     h = fold_hf(h, jo);
-    h = fold_string_member(h, jo->header.me);
-    h = fold_fixed_member(h, jo->header.t);
+    h = fold_string_member(h, jo->header.state);
+    h = fold_fixed_member(h, jo->header.state_time);
     h = fold_string_member(h, jo->id);
     h = fold_fixed_member(h, jo->ma);
     h = fold_p_(h, jo);
     h = fold_vec(h, jo->ra);
     h = fold_vec(h, jo->p);
     h = fnv(h, (uint32_t)(em->k_ == NULL ? -1 : em->k_->count));
-    h = fnv(h, (uint32_t)tag_count(jo->header.cls->tags));
+    h = fnv(h, (uint32_t)tag_count(jo->header.class->tags));
     h = fnv(h, (uint32_t)ents_ptrs_size(jo->by));
     h = fnv(h, (uint32_t)ptrs_size(em->qy));
     h = fnv(h, (uint32_t)ents_ptrs_size(jo->oe));
@@ -375,21 +375,21 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     h = fnv(h, (uint32_t)(jo->has_mi != 0));
     h = fnv(h, (uint32_t)(jo->m_ != 0));
     assert(jo->jy == NULL && !jo->has_kr);
-    assert(cls_of(e)->kf == pico8_jo_struct_class()->kf && cls_of(e)->cn == pico8_jo_struct_class()->cn &&
-           cls_of(e)->kf != NULL && cls_of(e)->cn != NULL && pico8_jo_is_family(e));
-    assert(cls_of(e)->mm != pico8_jo_struct_class()->mm && cls_of(e)->mm != NULL);
-    assert(cls_of(e)->kj != NULL && cls_of(e)->kj != pico8_jo_struct_class()->kj);
-    assert(cls_of(e)->hd == pico8_jo_struct_class()->hd && cls_of(e)->ldown == pico8_jo_struct_class()->ldown &&
-           cls_of(e)->hb == pico8_jo_struct_class()->hb && cls_of(e)->gv == pico8_jo_struct_class()->gv &&
-           cls_of(e)->hk == pico8_jo_struct_class()->hk &&
-           cls_of(e)->states[PICO8_STATE_LL] == pico8_jo_struct_class()->states[PICO8_STATE_LL]);
-    assert(cls_of(e)->hd != NULL && cls_of(e)->ldown != NULL && cls_of(e)->hb != NULL && cls_of(e)->gv != NULL &&
-           cls_of(e)->hk != NULL && cls_of(e)->states[PICO8_STATE_LL] != NULL);
-    assert(cls_of(e)->states[PICO8_STATE_PH] == NULL && cls_of(e)->ev == NULL &&
-           cls_of(e)->states[PICO8_STATE_KZ] == NULL && cls_of(e)->states[PICO8_STATE_PR] == NULL &&
-           cls_of(e)->rdown == NULL && cls_of(e)->states[PICO8_STATE_LY] == NULL);
-    assert(cls_of(e)->ol == NULL && cls_of(e)->hq == NULL && cls_of(e)->ey == NULL);
-    assert(jo->header.cls->tags == 0);
+    assert(cls_of(e)->attach_slipway == pico8_jo_struct_class()->attach_slipway && cls_of(e)->offer_trade == pico8_jo_struct_class()->offer_trade &&
+           cls_of(e)->attach_slipway != NULL && cls_of(e)->offer_trade != NULL && pico8_jo_is_family(e));
+    assert(cls_of(e)->spawn_particle != pico8_jo_struct_class()->spawn_particle && cls_of(e)->spawn_particle != NULL);
+    assert(cls_of(e)->draw != NULL && cls_of(e)->draw != pico8_jo_struct_class()->draw);
+    assert(cls_of(e)->hit_test == pico8_jo_struct_class()->hit_test && cls_of(e)->left_press == pico8_jo_struct_class()->left_press &&
+           cls_of(e)->refresh == pico8_jo_struct_class()->refresh && cls_of(e)->accept_drop == pico8_jo_struct_class()->accept_drop &&
+           cls_of(e)->new_year == pico8_jo_struct_class()->new_year &&
+           cls_of(e)->states[ENTITY_STATE_VANISHING] == pico8_jo_struct_class()->states[ENTITY_STATE_VANISHING]);
+    assert(cls_of(e)->hit_test != NULL && cls_of(e)->left_press != NULL && cls_of(e)->refresh != NULL && cls_of(e)->accept_drop != NULL &&
+           cls_of(e)->new_year != NULL && cls_of(e)->states[ENTITY_STATE_VANISHING] != NULL);
+    assert(cls_of(e)->states[ENTITY_STATE_NORMAL] == NULL && cls_of(e)->draw_overlay == NULL &&
+           cls_of(e)->states[ENTITY_STATE_PLACING] == NULL && cls_of(e)->states[ENTITY_STATE_UNFOLDING] == NULL &&
+           cls_of(e)->right_press == NULL && cls_of(e)->states[ENTITY_STATE_SETTLED] == NULL);
+    assert(cls_of(e)->draw_at == NULL && cls_of(e)->drag == NULL && cls_of(e)->drop == NULL);
+    assert(jo->header.class->tags == 0);
     assert(jo->def == &pico8_ga_def);
     assert(jo->by != NULL);
     if (from_pm) {
@@ -503,7 +503,7 @@ static uint32_t fold_lq(uint32_t h, void *e) {
     int i;
 
     assert(lq != NULL &&
-           lq->header.cls == pico8_lq_struct_class());
+           lq->header.class == pico8_lq_struct_class());
     assert(!lq->has_bg);
     assert(lq->fs != NULL);
     k = lq->fs_count;
@@ -543,7 +543,7 @@ static uint32_t fold_cut(uint32_t h, void *e, int n) {
 
     assert(qy != NULL && qy->count >= n);
     cut_qy(qy, n);
-    cls_of(e)->kj(e, g->ra);
+    cls_of(e)->draw(e, g->ra);
     h = fold_p_(h, g);
     return fnv(h, (uint32_t)qy->count);
 }
@@ -569,9 +569,9 @@ static void test_life(void) {
     a = harvest(40, 40, "s71");
     b = spawn(84, 60, "s72", &pm);
     c = pico8_ga_new(NULL);
-    h = fold_particle(h, cls_of(a)->mm(a));
-    h = fold_particle(h, cls_of(b)->mm(b));
-    h = fold_particle(h, cls_of(c)->mm(c));
+    h = fold_particle(h, cls_of(a)->spawn_particle(a));
+    h = fold_particle(h, cls_of(b)->spawn_particle(b));
+    h = fold_particle(h, cls_of(c)->spawn_particle(c));
     for (i = 0; i < 3; i++) {
         pico8_dc("kj");
         h = fnv(h, screen_hash());
@@ -594,26 +594,26 @@ static void test_life(void) {
     h = fold_cut(h, a, 0);
     assert(as_ga(a)->p_);
 
-    h = fold_bool(h, cls_of(b)->hd(b, as_ga(b)->ra, as_ga(b)->ra));
-    h = fold_bool(h, cls_of(b)->hd(b, vec_ref(near_mo(0, 0)), vec_ref(near_mo(0, 0))));
+    h = fold_bool(h, cls_of(b)->hit_test(b, as_ga(b)->ra, as_ga(b)->ra));
+    h = fold_bool(h, cls_of(b)->hit_test(b, vec_ref(near_mo(0, 0)), vec_ref(near_mo(0, 0))));
     h = fnv(fnv(h, 0xB0u), pico8_jo_gg(b) ? 1u : 0u);
     assert(pico8_jo_gg(a) == 0);
 
-    cls_of(a)->hb(a);
+    cls_of(a)->refresh(a);
     h = fold_ref_member(h, as_ga(a)->lq);
     assert(as_ga(a)->lq == NULL);
     kw.has_qe = 1;
     kw.qe = pico8_fixed_from_int(12);
     kw.mu = pico8_fixed_from_int(2);
     as_ga(a)->kw = &kw;
-    cls_of(a)->hb(a);
+    cls_of(a)->refresh(a);
     row = fold_lq(2166136261u, a);
     h = fnv(h, row);
     by = as_ga(c)->by;
     assert(by == as_ga(a)->by && by->count == 0);
     pico8_ents_add(by, &pico8_trade_new(pico8_zone_partie(), NULL)->header);
     pico8_ents_add(by, &pico8_trade_new(pico8_zone_partie(), NULL)->header);
-    cls_of(a)->hb(a);
+    cls_of(a)->refresh(a);
     assert(fold_lq(2166136261u, a) != row);
     h = fold_lq(h, a);
     assert(ents_ptrs_size(as_ga(b)->by) == 2);
@@ -621,7 +621,7 @@ static void test_life(void) {
     assert(pico8_jo_ib(as_ga(b)) == by && by->count == 2);
 
     hv_count = pico8_hv()->count;
-    cls_of(b)->hk(b, pico8_fixed_from_int(0));
+    cls_of(b)->new_year(b, pico8_fixed_from_int(0));
     assert(pico8_hv()->count == hv_count && !as_ga(b)->has_kr);
     h = fnv(h, screen_hash());
     check("life", h, LIFE_HASH);
@@ -689,15 +689,15 @@ static void test_ei_moves_a_particle_in_place(void) {
 
 static int is_a_ga_struct(const void *e) {
     return e != NULL &&
-           ((const pico8_struct_header_t *)e)->cls == pico8_ga_struct_class();
+           ((const entity_t *)e)->class == pico8_ga_struct_class();
 }
 
 /* Built by any road, a burst is a struct whose descriptor holds jo's very
  * entries but its own `kj`, plus its own `mm`. Neither ga's class nor jo's
  * installs a function or a `pq`. */
 static void test_ga_is_a_struct(void) {
-    const pico8_struct_class_t *cls = pico8_ga_struct_class();
-    const pico8_struct_class_t *jo = pico8_jo_struct_class();
+    const entity_class_t *cls = pico8_ga_struct_class();
+    const entity_class_t *jo = pico8_jo_struct_class();
     void *roads[3];
     size_t i;
     int j;
@@ -709,14 +709,14 @@ static void test_ga_is_a_struct(void) {
     for (i = 0; i < 3; i++) {
         assert(is_a_ga_struct(roads[i]));
     }
-    assert(cls->kj != NULL && cls->kj != jo->kj);
-    assert(cls->ev == jo->ev && cls->hd == jo->hd && cls->hk == jo->hk && cls->hb == jo->hb &&
-           cls->has_hb == jo->has_hb && cls->ldown == jo->ldown && cls->rdown == jo->rdown && cls->gv == jo->gv);
-    for (j = 0; j < PICO8_STATE_COUNT; j++) {
+    assert(cls->draw != NULL && cls->draw != jo->draw);
+    assert(cls->draw_overlay == jo->draw_overlay && cls->hit_test == jo->hit_test && cls->new_year == jo->new_year && cls->refresh == jo->refresh &&
+           cls->has_refresh == jo->has_refresh && cls->left_press == jo->left_press && cls->right_press == jo->right_press && cls->accept_drop == jo->accept_drop);
+    for (j = 0; j < STATE_COUNT; j++) {
         assert(cls->states[j] == jo->states[j]);
     }
-    assert(cls->mm == pico8_ga_mm && jo->mm == NULL);
-    assert(cls->hq == jo->hq && cls->ey == jo->ey && cls->kf == jo->kf && cls->cn == jo->cn && cls->ol == jo->ol);
+    assert(cls->spawn_particle == pico8_ga_mm && jo->spawn_particle == NULL);
+    assert(cls->drag == jo->drag && cls->drop == jo->drop && cls->attach_slipway == jo->attach_slipway && cls->offer_trade == jo->offer_trade && cls->draw_at == jo->draw_at);
     assert(pico8_ga_ready());
     assert(pico8_jo_ready());
 }
@@ -797,7 +797,7 @@ static void test_the_largest_bursts_fit_their_place(void) {
 /* A burst can be hovered, so a dragged slipway can end on it; the flush
  * that gives the burst back lets go of that end too. */
 static void test_leaving_lets_go_of_a_dragged_slipway(void) {
-    pico8_jo_keys_t keys;
+    planet_keys_t keys;
     pico8_jc_keys_t jc_keys;
     pico8_jc_t *jc;
     pico8_vec_t mp = vec_xy(40, 40);
@@ -805,9 +805,9 @@ static void test_leaving_lets_go_of_a_dragged_slipway(void) {
 
     start_game();
     pico8_cart_vider_file_sortie();
-    keys.id = "s85";
-    keys.p = vec_ref(vec_xy(30, 30));
-    keys.ra = vec_ref(near_mo(60, 60));
+    keys.planet_id = "s85";
+    keys.map_pos = vec_ref(vec_xy(30, 30));
+    keys.pos = vec_ref(near_mo(60, 60));
     jc_keys.qu = &pico8_jo_new(&keys)->header;
     jc = pico8_jc_new(&jc_keys);
     e = harvest(40, 40, "s86");

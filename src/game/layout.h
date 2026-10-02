@@ -57,7 +57,7 @@ typedef struct {
  * the vector the keys held, borrowed, never copied. The row, `items`, `fs`
  * and the texts are in `zone`, given by the creator: they go with it. */
 typedef struct {
-    pico8_struct_header_t header;
+    entity_t header;
     const pico8_zone_choisie_t *zone;
     pico8_lq_cell_t *items;
     int items_count;
@@ -77,7 +77,7 @@ typedef struct {
 /* `ls` NULL: not laid out yet. The bubble, `ls` and its lines are in
  * `zone`, given by the creator: they go with it. */
 typedef struct {
-    pico8_struct_header_t header;
+    entity_t header;
     const pico8_zone_choisie_t *zone;
     pico8_lq_t **ls;
     int ls_count;
@@ -94,8 +94,8 @@ int pico8_lq_ready(void);
 /* 1 from pico8_layout_init() to pico8_layout_shutdown(), 0 otherwise. */
 int pico8_jb_ready(void);
 
-const pico8_struct_class_t *pico8_lq_struct_class(void);
-const pico8_struct_class_t *pico8_jb_struct_class(void);
+const entity_class_t *pico8_lq_struct_class(void);
+const entity_class_t *pico8_jb_struct_class(void);
 
 /* The cart's keys of a row. `items` are its positionals in order, each a
  * cell copied into `lq.items` (a text copied too, a ROW borrowed); `c`, `bg` and

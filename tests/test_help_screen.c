@@ -97,17 +97,17 @@ static uint32_t fold_string(uint32_t h, const char *s) {
 /* A class's tags, in enum order: each position, then its name, then
  * the count. */
 static uint32_t fold_tags(uint32_t h, unsigned tags) {
-    static const char *const names[PICO8_TAG_COUNT] = {
-        [PICO8_TAG_QH] = "qh", [PICO8_TAG_HJ] = "hj", [PICO8_TAG_NR] = "nr",
-        [PICO8_TAG_G_] = "g_", [PICO8_TAG_MH] = "mh", [PICO8_TAG_JC] = "jc",
-        [PICO8_TAG_MZ] = "mz", [PICO8_TAG_JO] = "jo", [PICO8_TAG_NP] = "np",
-        [PICO8_TAG_PROBER] = "prober",
+    static const char *const names[TAG_COUNT] = {
+        [TAG_STRUCTURE] = "qh", [TAG_ASCENSION] = "hj", [TAG_SLIPGATE] = "nr",
+        [TAG_PROBE] = "g_", [TAG_MESSAGE_BOX] = "mh", [TAG_SLIPWAY] = "jc",
+        [TAG_WORMHOLE] = "mz", [TAG_PLANET] = "jo", [TAG_NODE] = "np",
+        [TAG_TARGETING] = "prober",
     };
     uint32_t k = 0;
     int t;
 
-    for (t = 0; t < PICO8_TAG_COUNT; t++) {
-        if (tags & PICO8_TAG(t)) {
+    for (t = 0; t < TAG_COUNT; t++) {
+        if (tags & TAG(t)) {
             k++;
             h = fnv(h, k);
             h = fold_string(h, names[t]);
@@ -237,8 +237,8 @@ static pico8_vec_t *vec_ref(int x, int y) {
     return v;
 }
 
-static const pico8_struct_class_t *cls_of(const void *e) {
-    return ((const pico8_struct_header_t *)e)->cls;
+static const entity_class_t *cls_of(const void *e) {
+    return ((const entity_t *)e)->class;
 }
 
 static void start_title(void) {
@@ -248,15 +248,15 @@ static void start_title(void) {
 }
 
 /* The help, whatever its form: `g_`'s tags and `fa`=10 (a probe has 2). */
-static int is_help(pico8_struct_header_t *e) {
+static int is_help(entity_t *e) {
     const pico8_g__t *g_ =
-        e != NULL && (e->cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_G_)) ? (const pico8_g__t *)e : NULL;
-    return g_ != NULL && g_->header.cls->tags == (PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER)) && g_->def->fa == pico8_fixed_from_int(10);
+        e != NULL && (e->class->lineage & LINEAGE(LINEAGE_PROBE)) ? (const pico8_g__t *)e : NULL;
+    return g_ != NULL && g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)) && g_->def->fa == pico8_fixed_from_int(10);
 }
 
 static pico8_g__t *the_help(void) {
     const pico8_ents_t *hv = pico8_hv();
-    pico8_struct_header_t *found = NULL;
+    entity_t *found = NULL;
     int i;
 
     for (i = 0; i < hv->count; i++) {
@@ -265,7 +265,7 @@ static pico8_g__t *the_help(void) {
             found = hv->items[i];
         }
     }
-    assert(found != NULL && found->cls == pico8_fv_struct_class());
+    assert(found != NULL && found->class == pico8_fv_struct_class());
     return (pico8_g__t *)found;
 }
 
@@ -280,7 +280,7 @@ static int in_layer(int layer, const void *e) {
 
 static const pico8_js_t *as_js(const void *e) {
     assert(e != NULL &&
-           ((const pico8_struct_header_t *)e)->cls == pico8_js_struct_class());
+           ((const entity_t *)e)->class == pico8_js_struct_class());
     return e;
 }
 
@@ -310,7 +310,7 @@ static void test_built(void) {
     assert(g_->def->fa == pico8_fixed_from_int(10));
     assert(em->def->ki == pico8_fixed_from_int(17));
     assert(g_->def->ca == pico8_fixed_from_int(11));
-    assert(g_->header.cls->tags == (PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER)));
+    assert(g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
     assert(g_->ra != NULL && em->k_ != NULL);
     assert(g_->def->rb != NULL && pr->def->dq != NULL);
     h = fold_fixed_member(h, g_->def->fa);
@@ -335,7 +335,7 @@ static void test_built(void) {
     h = fold_fixed_member(h, g_->def->ql);
     h = fold_fixed_member(h, g_->def->fg);
     h = fold_ref_member(h, g_->def->rb);
-    h = fold_tags(fnv(fnv(h, 1u), 0x7Au), g_->header.cls->tags);
+    h = fold_tags(fnv(fnv(h, 1u), 0x7Au), g_->header.class->tags);
     h = fold_fixed_member(h, g_->def->fx);
     h = fold_string_member(h, pr->def->dq);
     h = fold_fixed_member(h, pr->od);
@@ -349,20 +349,20 @@ static void test_built(void) {
     assert(em->k_ == &pico8_fv_k__seq);
     assert(em->k_ != &pico8_g__k__seq);
     assert(g_->def->rb == &pico8_fv_rb_row);
-    h = fold_string_member(h, g_->header.me);
-    h = fold_fixed_member(h, g_->header.t);
+    h = fold_string_member(h, g_->header.state);
+    h = fold_fixed_member(h, g_->header.state_time);
     h = fnv(h, (uint32_t)size_of(em->qy));
     assert(size_of(em->qy) == 0);
     assert(!fv->m_ && g_->p == NULL && pr->et == NULL && !g_->p_);
-    assert(cls_of(fv)->hk == NULL && cls_of(fv)->hb == NULL && cls_of(fv)->states[PICO8_STATE_PH] == NULL &&
-           cls_of(fv)->ldown == NULL);
+    assert(cls_of(fv)->new_year == NULL && cls_of(fv)->refresh == NULL && cls_of(fv)->states[ENTITY_STATE_NORMAL] == NULL &&
+           cls_of(fv)->left_press == NULL);
 
-    assert(cls_of(fv)->kj == pico8_fv_kj_dispatch);
-    assert(cls_of(fv)->ev == pico8_dl_dispatch);
-    assert(cls_of(fv)->mm == pico8_g__mm);
-    assert(cls_of(fv)->hq == pico8_bv_dispatch);
-    assert(cls_of(fv)->ey == pico8_d__dispatch);
-    assert(cls_of(fv)->hd != NULL);
+    assert(cls_of(fv)->draw == pico8_fv_kj_dispatch);
+    assert(cls_of(fv)->draw_overlay == pico8_dl_dispatch);
+    assert(cls_of(fv)->spawn_particle == pico8_g__mm);
+    assert(cls_of(fv)->drag == pico8_bv_dispatch);
+    assert(cls_of(fv)->drop == pico8_d__dispatch);
+    assert(cls_of(fv)->hit_test != NULL);
 
     rank = ents_rank_in(hv, fv);
     h = fnv(h, (uint32_t)rank);
@@ -416,14 +416,14 @@ static void test_life(void) {
     h = fnv(h, screen_hash());
     for (i = 0; i < 3; i++) {
         pico8_dg();
-        h = fold_fixed_member(h, fv->header.t);
-        h = fold_string_member(h, fv->header.me);
+        h = fold_fixed_member(h, fv->header.state_time);
+        h = fold_string_member(h, fv->header.state);
         assert(ents_listed(pico8_hv(), fv));
     }
-    assert(cls_of(fv)->hd(&fv->header, vec_ref(64, 10), vec_ref(64, 112)) == 1);
-    assert(cls_of(fv)->hd(&fv->header, vec_ref(64, 112), vec_ref(64, 10)) == 0);
-    assert(cls_of(fv)->hd(&fv->header, vec_ref(24, 106), vec_ref(24, 106)) == 1);
-    assert(cls_of(fv)->hd(&fv->header, vec_ref(23, 106), vec_ref(23, 106)) == 0);
+    assert(cls_of(fv)->hit_test(&fv->header, vec_ref(64, 10), vec_ref(64, 112)) == 1);
+    assert(cls_of(fv)->hit_test(&fv->header, vec_ref(64, 112), vec_ref(64, 10)) == 0);
+    assert(cls_of(fv)->hit_test(&fv->header, vec_ref(24, 106), vec_ref(24, 106)) == 1);
+    assert(cls_of(fv)->hit_test(&fv->header, vec_ref(23, 106), vec_ref(23, 106)) == 0);
     h = fnv(h, (uint32_t)size_of(fv->emitter->qy));
     check("life", h, LIFE_HASH);
 }
@@ -529,22 +529,22 @@ static void test_eu_retires_the_help(void) {
  * entries and holds its own `kj`, `hd`. Ready from its init to its
  * shutdown. */
 static void test_fv_is_a_struct(void) {
-    const pico8_struct_class_t *cls = pico8_fv_struct_class();
-    const pico8_struct_class_t *g_ = pico8_g__struct_class();
+    const entity_class_t *cls = pico8_fv_struct_class();
+    const entity_class_t *g_ = pico8_g__struct_class();
     void *fv;
     int j;
 
     start_title();
     fv = the_help();
-    assert(fv != NULL && ((const pico8_struct_header_t *)fv)->cls == cls);
-    assert(cls->hq != NULL && cls->hq == g_->hq && cls->ey != NULL && cls->ey == g_->ey && cls->mm != NULL &&
-           cls->mm == g_->mm);
-    assert(cls->kf == NULL && cls->cn == NULL && cls->ol == NULL);
-    assert(cls->ev != NULL && cls->ev == g_->ev);
-    assert(cls->kj == pico8_fv_kj_dispatch && cls->hd != NULL);
-    assert(cls->hk == NULL && cls->hb == NULL && cls->has_hb == NULL && cls->ldown == NULL && cls->rdown == NULL &&
-           cls->gv == NULL);
-    for (j = 0; j < PICO8_STATE_COUNT; j++) {
+    assert(fv != NULL && ((const entity_t *)fv)->class == cls);
+    assert(cls->drag != NULL && cls->drag == g_->drag && cls->drop != NULL && cls->drop == g_->drop && cls->spawn_particle != NULL &&
+           cls->spawn_particle == g_->spawn_particle);
+    assert(cls->attach_slipway == NULL && cls->offer_trade == NULL && cls->draw_at == NULL);
+    assert(cls->draw_overlay != NULL && cls->draw_overlay == g_->draw_overlay);
+    assert(cls->draw == pico8_fv_kj_dispatch && cls->hit_test != NULL);
+    assert(cls->new_year == NULL && cls->refresh == NULL && cls->has_refresh == NULL && cls->left_press == NULL && cls->right_press == NULL &&
+           cls->accept_drop == NULL);
+    for (j = 0; j < STATE_COUNT; j++) {
         assert(cls->states[j] == NULL);
     }
     assert(pico8_fv_ready());

@@ -40,7 +40,7 @@ static pico8_vec_t emitted_particle_p(pico8_g__t *probe) {
     const pico8_qy_t *q;
     pico8_ptrs_iter_t it;
 
-    pico8_ez((pico8_struct_header_t *)probe, pico8_fixed_from_int(1));
+    pico8_ez((entity_t *)probe, pico8_fixed_from_int(1));
 
     assert(probe->emitter != NULL && probe->emitter->qy != NULL);
     it = pico8_ptrs_all(probe->emitter->qy);

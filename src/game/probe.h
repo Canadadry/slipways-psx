@@ -21,7 +21,7 @@
  * link and leaves it indeterminate. `prise` is the grab arena a `g_` lives
  * in, NULL for `fv`. */
 typedef struct {
-    pico8_struct_header_t header;
+    entity_t header;
     const pico8_g__def_t *def;
     pico8_emitter_t *emitter;
     pico8_probe_t *probe;
@@ -49,7 +49,7 @@ int pico8_g__ready(void);
 /* Initializes an allocated pico8_g__t under `cls`: ke's part, g_'s 4
  * written members nil, `prise` NULL, `def` kept, `ra`, the emitter and the probe copied
  * from it. Reads no key, runs neither `pq` nor `lt`, records no coverage. */
-void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls, const pico8_g__def_t *def);
+void pico8_g__struct_init(pico8_g__t *self, const entity_class_t *cls, const pico8_g__def_t *def);
 
 /* The keys of `pico8_g__new`, read, not kept. `t` is `header.t`, whose default
  * is 0: no flag. `pn`, `du`, `py` have non-zero defaults, so a key at 0
@@ -72,11 +72,11 @@ pico8_g__t *pico8_g__new(const pico8_g__keys_t *keys);
 
 /* A particle (`has_a` 0) from pico8_particule_prendre, which `ez` appends
  * to `qy`. */
-pico8_qy_t *pico8_g__mm(pico8_struct_header_t *self);
+pico8_qy_t *pico8_g__mm(entity_t *self);
 
 /* `rendre` of `g_` and `fv`: gives back their `qy`, and the grab arena of
  * a `g_` not placed (`me` other than "ly"); a placed one keeps it until the
  * generation is given back. */
-void pico8_g__rendre_dispatch(pico8_struct_header_t *self);
+void pico8_g__rendre_dispatch(entity_t *self);
 
 #endif

@@ -286,7 +286,7 @@ static uint32_t fold_lq_instance(uint32_t h, const void *l) {
     if (l == NULL) {
         return fnv(h, 0xDEADu);
     }
-    assert(lq != NULL && lq->header.cls == pico8_lq_struct_class());
+    assert(lq != NULL && lq->header.class == pico8_lq_struct_class());
     assert(!lq->has_bg);
     assert(lq->fs != NULL);
     k = lq->fs_count;
@@ -395,12 +395,12 @@ static void built_world(void) {
     *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
                         pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
-    pico8_jc_struct_class()->hq(&jc->header, mp, NULL);
+    pico8_jc_struct_class()->drag(&jc->header, mp, NULL);
     pico8_ok()->o_ = NULL;
-    while (jc->header.t < pico8_fixed_from_int(15)) {
+    while (jc->header.state_time < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
-    pico8_jc_struct_class()->ey(&jc->header, re);
+    pico8_jc_struct_class()->drop(&jc->header, re);
     for (i = 0; i < 120; i++) {
         pico8_dg();
     }
@@ -565,15 +565,15 @@ static pico8_vec_t vec_xy(int x, int y) {
 
 /* A bare planet on `id`/`p`/`ra`, `ra` offset from `mo`'s. */
 static void *new_planet(const char *id, int x, int y) {
-    pico8_jo_keys_t keys;
+    planet_keys_t keys;
     const pico8_vec_t *mo_ra;
 
     assert(pico8_mo_qb() != NULL);
     mo_ra = pico8_mo_qb()->ra;
     assert(mo_ra != NULL);
-    keys.id = id;
-    keys.p = vec_ref(vec_xy(x / 2, y / 2));
-    keys.ra = vec_ref(pico8_vec_add(*mo_ra, vec_xy(x, y)));
+    keys.planet_id = id;
+    keys.map_pos = vec_ref(vec_xy(x / 2, y / 2));
+    keys.pos = vec_ref(pico8_vec_add(*mo_ra, vec_xy(x, y)));
     return pico8_jo_new(&keys);
 }
 
@@ -645,7 +645,7 @@ static uint32_t fold_planet(uint32_t h, void *e) {
     h = fold_string_member(h, p->ep);
     h = fold_jy(h, p);
     h = fold_kw(h, p);
-    h = fold_string_member(h, p->header.me);
+    h = fold_string_member(h, p->header.state);
     h = fold_bool_member(h, (p->fx != 0), p->fx);
     h = fold_bool_member(h, (p->p_ != 0), p->p_);
     h = fold_fixed_member(h, 1, p->ma);
@@ -756,7 +756,7 @@ static void test_built_world(void) {
 
 /* A discovered planet harvested (`cw` "ga"): `jo:hu` swaps it for a `ga`. */
 static void test_harvested_world(void) {
-    const pico8_struct_header_t *last;
+    const entity_t *last;
     void *p;
     int i;
 
@@ -765,7 +765,7 @@ static void test_harvested_world(void) {
     pico8_jo_hh(p);
     pico8_jo_hu(p, project_with(with_cw, 1));
     last = pico8_hv()->items[pico8_hv()->count - 1];
-    assert(last != NULL && last->cls == pico8_ga_struct_class());
+    assert(last != NULL && last->class == pico8_ga_struct_class());
     for (i = 0; i < 60; i++) {
         pico8_dg();
     }
@@ -997,24 +997,24 @@ static void hu_on_other(void *e) {
  * refuse anything that is not a project. With no key, only `fk`, an empty `i` and the `lq`
  * method. */
 static void test_hp_is_a_struct(void) {
-    const pico8_struct_class_t *cls = pico8_hp_struct_class();
+    const entity_class_t *cls = pico8_hp_struct_class();
     pico8_hp_t *b = project(1);
     pico8_hp_t *bare;
     int j;
 
-    assert(b != NULL && b->header.cls == cls);
-    assert(cls->kj == NULL && cls->ev == NULL && cls->hd == NULL && cls->hk == NULL && cls->hb == NULL &&
-           cls->has_hb == NULL && cls->ldown == NULL && cls->rdown == NULL && cls->gv == NULL);
-    assert(cls->hq == NULL && cls->ey == NULL && cls->kf == NULL && cls->cn == NULL && cls->ol == NULL &&
-           cls->mm == NULL);
-    for (j = 0; j < PICO8_STATE_COUNT; j++) {
+    assert(b != NULL && b->header.class == cls);
+    assert(cls->draw == NULL && cls->draw_overlay == NULL && cls->hit_test == NULL && cls->new_year == NULL && cls->refresh == NULL &&
+           cls->has_refresh == NULL && cls->left_press == NULL && cls->right_press == NULL && cls->accept_drop == NULL);
+    assert(cls->drag == NULL && cls->drop == NULL && cls->attach_slipway == NULL && cls->offer_trade == NULL && cls->draw_at == NULL &&
+           cls->spawn_particle == NULL);
+    for (j = 0; j < STATE_COUNT; j++) {
         assert(cls->states[j] == NULL);
     }
     assert(pico8_hp_ready());
     assert(b->def->fk != NULL && b->def->fk == pico8_hp_fk());
 
     bare = pico8_hp_new(NULL);
-    assert(bare != NULL && bare->header.cls == cls);
+    assert(bare != NULL && bare->header.class == cls);
     assert(bare->def == &pico8_hp_def && bare->def == b->def);
     assert(bare->i != NULL && bare->i->count == 0);
     assert(bare->lq == NULL);

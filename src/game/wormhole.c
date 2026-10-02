@@ -14,24 +14,24 @@
 
 static int g_mz_up = 0;
 
-static const pico8_struct_class_t g_mz_jj_struct_class = {0};
+static const entity_class_t g_mz_jj_struct_class = {0};
 
 /* The only one: never allocated, never freed; no writer, so a write
  * reaching it stops the run. */
 static pico8_mz_jj_t g_mz_jj_wrapper = {
-    {.cls = &g_mz_jj_struct_class},
+    {.class = &g_mz_jj_struct_class},
     pico8_mz_jj_qs,
 };
 
-static int pico8_mz_ancrage(const pico8_struct_header_t *p) {
-    return p != NULL && p->fx != NULL && *p->fx != 0;
+static int pico8_mz_ancrage(const entity_t *p) {
+    return p != NULL && p->fold_anchor != NULL && *p->fold_anchor != 0;
 }
 
 void pico8_mz_pq(pico8_mz_t *self) {
     const pico8_zone_choisie_t *zone = pico8_jo_zone_construction();
     pico8_ents_t *ox;
     pico8_ents_iter_t it;
-    pico8_struct_header_t *p;
+    entity_t *p;
     int n = 0;
 
     if (self == NULL) {
@@ -58,11 +58,11 @@ void pico8_mz_pq(pico8_mz_t *self) {
 
 void pico8_mz_hq(pico8_mz_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     pico8_vec_t p_vec;
-    pico8_struct_header_t *nearest = NULL;
+    entity_t *nearest = NULL;
     pico8_fixed_t nq;
     pico8_fixed_t threshold;
 
-    pico8_bv((pico8_struct_header_t *)self, mp, rp);
+    pico8_bv((entity_t *)self, mp, rp);
     if (self == NULL) {
         return;
     }
@@ -74,11 +74,11 @@ void pico8_mz_hq(pico8_mz_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     threshold = pico8_ov("space folding", PICO8_FIXED_LIT(0x000030a3, 0.19), PICO8_FIXED_LIT(0x0000451e, 0.27));
 
     if (nq > threshold) {
-        self->probe->et = (pico8_struct_header_t *)pico8_mz_jj_wrapper();
+        self->probe->et = (entity_t *)pico8_mz_jj_wrapper();
     }
 }
 
-static void pico8_mz_hq_dispatch(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static void pico8_mz_hq_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     pico8_mz_hq((pico8_mz_t *)self, qa, ra);
 }
 
@@ -106,7 +106,7 @@ void pico8_mz_kz(pico8_mz_t *self, pico8_fixed_t t) {
     self->oi = result;
 }
 
-static void pico8_mz_kz_dispatch(pico8_struct_header_t *self, pico8_fixed_t t) {
+static void pico8_mz_kz_dispatch(entity_t *self, pico8_fixed_t t) {
     pico8_mz_kz((pico8_mz_t *)self, t);
 }
 
@@ -118,20 +118,20 @@ void pico8_mz_ey(pico8_mz_t *self) {
         return;
     }
 
-    t = self->header.t;
+    t = self->header.state_time;
 
     /* The `or` short-circuits: `d_`'s side effects must not run before tick
      * 15, so this call cannot be hoisted out of the else branch. */
     if (t < pico8_fixed_from_int(15)) {
         result = 1;
     } else {
-        result = !pico8_d_((pico8_struct_header_t *)self);
+        result = !pico8_d_((entity_t *)self);
     }
 
     self->p_ = result;
 }
 
-static void pico8_mz_ey_dispatch(pico8_struct_header_t *self, pico8_struct_header_t *kv) {
+static void pico8_mz_ey_dispatch(entity_t *self, entity_t *kv) {
     (void)kv;
     pico8_mz_ey((pico8_mz_t *)self);
 }
@@ -153,7 +153,7 @@ void pico8_mz_pr(pico8_mz_t *self, pico8_fixed_t t) {
     jo_list = pico8_cg("jo");
     if (jo_list != NULL) {
         for (i = 0; i < jo_list->count; i++) {
-            pico8_struct_header_t *pt_val = jo_list->items[i];
+            entity_t *pt_val = jo_list->items[i];
             pico8_jo_t *pt;
 
             if (pt_val == NULL) {
@@ -162,7 +162,7 @@ void pico8_mz_pr(pico8_mz_t *self, pico8_fixed_t t) {
             assert(pico8_jo_is_family(pt_val) && "mz:pr: cg.jo holds planets only");
             pt = (pico8_jo_t *)pt_val;
 
-            if (pt->header.me != NULL && strcmp(pt->header.me, "unknown") == 0) {
+            if (pt->header.state != NULL && strcmp(pt->header.state, "unknown") == 0) {
                 pico8_vec_t pt_p =
                     pt->p != NULL ? *pt->p : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
                 pico8_vec_t diff = pico8_vec_sub(pt_p, self_p);
@@ -176,7 +176,7 @@ void pico8_mz_pr(pico8_mz_t *self, pico8_fixed_t t) {
     self->p_ = t > pico8_fixed_from_int(25);
 }
 
-static void pico8_mz_pr_dispatch(pico8_struct_header_t *self, pico8_fixed_t t) {
+static void pico8_mz_pr_dispatch(entity_t *self, pico8_fixed_t t) {
     pico8_mz_pr((pico8_mz_t *)self, t);
 }
 
@@ -192,7 +192,7 @@ pico8_fixed_t pico8_mz_ej(pico8_mz_t *self, pico8_fixed_t t) {
     return pico8_fixed_mul(min_val, oi);
 }
 
-static void pico8_mz_rendre_dispatch(pico8_struct_header_t *self) {
+static void pico8_mz_rendre_dispatch(entity_t *self) {
     pico8_jo_prise_arene_rendue(((pico8_mz_t *)self)->ox->zone);
 }
 
@@ -200,18 +200,18 @@ static void pico8_mz_rendre_dispatch(pico8_struct_header_t *self) {
  * so only that second definition is ever reachable. Putting
  * pico8_bv_dispatch in the HQ entry instead would look faithful and would
  * drop the nearest-anchor search. */
-static const pico8_struct_class_t g_mz_struct_class = {
-    .kj = pico8_mz_kj_dispatch,
-    .ev = pico8_dl_dispatch,
-    .hq = pico8_mz_hq_dispatch,
-    .ey = pico8_mz_ey_dispatch,
-    .rendre = pico8_mz_rendre_dispatch,
+static const entity_class_t g_mz_struct_class = {
+    .draw = pico8_mz_kj_dispatch,
+    .draw_overlay = pico8_dl_dispatch,
+    .drag = pico8_mz_hq_dispatch,
+    .drop = pico8_mz_ey_dispatch,
+    .release = pico8_mz_rendre_dispatch,
     .states =
         {
-            [PICO8_STATE_KZ] = pico8_mz_kz_dispatch,
-            [PICO8_STATE_PR] = pico8_mz_pr_dispatch,
+            [ENTITY_STATE_PLACING] = pico8_mz_kz_dispatch,
+            [ENTITY_STATE_UNFOLDING] = pico8_mz_pr_dispatch,
         },
-    .tags = PICO8_TAG(PICO8_TAG_MZ),
+    .tags = TAG(TAG_WORMHOLE),
 };
 
 static pico8_mz_t *pico8_mz_struct_new(void) {
@@ -222,10 +222,10 @@ static pico8_mz_t *pico8_mz_struct_new(void) {
 
     pico8_ke_struct_init(&self->header, &g_mz_struct_class, pico8_mz_def.me, pico8_mz_def.t);
     self->def = &pico8_mz_def;
-    self->header.fa = &self->def->fa;
-    self->header.ra = &self->ra;
-    self->header.p = &self->p;
-    self->header.probe = &self->probe_own;
+    self->header.layer = &self->def->fa;
+    self->header.pos = &self->ra;
+    self->header.map_pos = &self->p;
+    self->header.targeting = &self->probe_own;
     self->probe = &self->probe_own;
     self->probe->def = &self->def->probe;
     self->oi = self->def->oi;
@@ -237,7 +237,7 @@ static pico8_mz_t *pico8_mz_struct_new(void) {
     self->p = NULL;
     self->probe->et = NULL;
     self->ij = NULL;
-    self->header.p_ = &self->p_;
+    self->header.is_dead = &self->p_;
     self->p_ = 0;
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("mz");
@@ -261,7 +261,7 @@ int pico8_mz_ready(void) {
     return g_mz_up;
 }
 
-const pico8_struct_class_t *pico8_mz_struct_class(void) {
+const entity_class_t *pico8_mz_struct_class(void) {
     return &g_mz_struct_class;
 }
 
@@ -273,6 +273,6 @@ pico8_mz_jj_t *pico8_mz_jj_wrapper(void) {
     return &g_mz_jj_wrapper;
 }
 
-const pico8_struct_class_t *pico8_mz_jj_struct_class(void) {
+const entity_class_t *pico8_mz_jj_struct_class(void) {
     return &g_mz_jj_struct_class;
 }

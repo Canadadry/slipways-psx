@@ -19,7 +19,7 @@ void pico8_ents_init_reserve(pico8_ents_t *ents, const pico8_zone_choisie_t *zon
     if (capacity == 0) {
         return;
     }
-    ents->items = (pico8_struct_header_t **)pico8_zone_alloc(zone, (size_t)capacity * sizeof *ents->items);
+    ents->items = (entity_t **)pico8_zone_alloc(zone, (size_t)capacity * sizeof *ents->items);
     ents->capacity = capacity;
 }
 
@@ -41,13 +41,13 @@ void pico8_ents_clear(pico8_ents_t *ents) {
 static void pico8_ents_grow(pico8_ents_t *ents) {
     int new_capacity = ents->capacity == 0 ? PICO8_ENTS_INITIAL_CAPACITY : ents->capacity * 2;
     assert(ents->zone != NULL && "ents_add on a list pico8_ents_init never gave a zone");
-    ents->items = (pico8_struct_header_t **)pico8_zone_grow(
+    ents->items = (entity_t **)pico8_zone_grow(
         ents->zone, (unsigned char *)ents->items, (size_t)ents->capacity * sizeof *ents->items,
         (size_t)new_capacity * sizeof *ents->items);
     ents->capacity = new_capacity;
 }
 
-void pico8_ents_add(pico8_ents_t *ents, pico8_struct_header_t *e) {
+void pico8_ents_add(pico8_ents_t *ents, entity_t *e) {
     assert(ents != NULL && "ents primitive called on a NULL container");
     if (ents->count == ents->capacity) {
         pico8_ents_grow(ents);
@@ -56,7 +56,7 @@ void pico8_ents_add(pico8_ents_t *ents, pico8_struct_header_t *e) {
     ents->count++;
 }
 
-int pico8_ents_del(pico8_ents_t *ents, const pico8_struct_header_t *e) {
+int pico8_ents_del(pico8_ents_t *ents, const entity_t *e) {
     int i;
     assert(ents != NULL && "ents primitive called on a NULL container");
     for (i = 0; i < ents->count; i++) {
@@ -72,7 +72,7 @@ int pico8_ents_del(pico8_ents_t *ents, const pico8_struct_header_t *e) {
     return 0;
 }
 
-int pico8_ents_has(const pico8_ents_t *ents, const pico8_struct_header_t *e) {
+int pico8_ents_has(const pico8_ents_t *ents, const entity_t *e) {
     int i;
     if (ents == NULL) {
         return 0;
@@ -104,7 +104,7 @@ pico8_ents_t pico8_jp_ents(const pico8_zone_choisie_t *zone, const pico8_ents_t 
                            pico8_jp_ents_predicate_fn ow, void *ctx) {
     pico8_ents_t f;
     pico8_ents_iter_t it;
-    pico8_struct_header_t *e;
+    entity_t *e;
     pico8_ents_init(&f, zone);
     if (qk == NULL) {
         return f;
@@ -127,7 +127,7 @@ pico8_ents_iter_t pico8_ents_all(const pico8_ents_t *ents) {
     return it;
 }
 
-int pico8_ents_iter_next(pico8_ents_iter_t *iter, pico8_struct_header_t **out) {
+int pico8_ents_iter_next(pico8_ents_iter_t *iter, entity_t **out) {
     int next_index;
 
     if (iter->index < 0) {

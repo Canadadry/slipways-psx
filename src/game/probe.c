@@ -23,22 +23,22 @@
 #include "engine/frame_zone.h"
 
 static int g_g__up = 0;
-static pico8_struct_header_t *g_fm = NULL;
+static entity_t *g_fm = NULL;
 
-static const pico8_struct_class_t g_fm_placeholder_struct_class = {0};
+static const entity_class_t g_fm_placeholder_struct_class = {0};
 
 static pico8_fm_placeholder_t g_fm_placeholder = {
-    {.cls = &g_fm_placeholder_struct_class}, 0, 0, 0, 0};
+    {.class = &g_fm_placeholder_struct_class}, 0, 0, 0, 0};
 
-static int bv_et_is_holder_class(const pico8_struct_class_t *cls) {
-    return cls->hq == pico8_bv_dispatch || cls == pico8_mz_struct_class();
+static int bv_et_is_holder_class(const entity_class_t *cls) {
+    return cls->drag == pico8_bv_dispatch || cls == pico8_mz_struct_class();
 }
 
-static const pico8_struct_class_t g_bv_et_struct_class = {0};
+static const entity_class_t g_bv_et_struct_class = {0};
 
 /* The `{}` `bv` puts in `et` over the void, off the panel: never allocated,
  * never freed; only `fo` is written, and the next `bv` overwrites it. */
-static pico8_bv_et_t g_bv_et = {{.cls = &g_bv_et_struct_class}, NULL};
+static pico8_bv_et_t g_bv_et = {{.class = &g_bv_et_struct_class}, NULL};
 
 static int pico8_probe_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
@@ -48,7 +48,7 @@ typedef struct {
     pico8_vec_t self_p;
 } pico8_bv_ctx_t;
 
-static int pico8_bv_jc_predicate(pico8_struct_header_t *e, void *ctx_ptr) {
+static int pico8_bv_jc_predicate(entity_t *e, void *ctx_ptr) {
     const pico8_bv_ctx_t *ctx = (const pico8_bv_ctx_t *)ctx_ptr;
     const pico8_jc_t *sw;
     pico8_vec_t qu_p;
@@ -57,7 +57,7 @@ static int pico8_bv_jc_predicate(pico8_struct_header_t *e, void *ctx_ptr) {
     if (e == NULL) {
         return 0;
     }
-    assert(e->cls == pico8_jc_struct_class() && "cg.jc holds slipways only");
+    assert(e->class == pico8_jc_struct_class() && "cg.jc holds slipways only");
     sw = (const pico8_jc_t *)e;
 
     qu_p = pico8_jc_end_p(sw->qu);
@@ -79,12 +79,12 @@ static int pico8_probe_ui_hw_call(pico8_vec_t rp) {
 
 /* `ra` and `p`, which a host of `bv` holds for itself: `g_`'s line, jo's
  * family (qh's line) or an `mz`. */
-static void probe_host_set_ra_p(pico8_struct_header_t *self, pico8_vec_t *ra, pico8_vec_t *p) {
+static void probe_host_set_ra_p(entity_t *self, pico8_vec_t *ra, pico8_vec_t *p) {
     pico8_g__t *g_;
     pico8_jo_t *jo;
     pico8_mz_t *mz;
 
-    if (self->cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_G_)) {
+    if (self->class->lineage & LINEAGE(LINEAGE_PROBE)) {
         g_ = (pico8_g__t *)self;
         g_->ra = ra;
         g_->p = p;
@@ -96,7 +96,7 @@ static void probe_host_set_ra_p(pico8_struct_header_t *self, pico8_vec_t *ra, pi
         jo->p = p;
         return;
     }
-    assert(self->cls == pico8_mz_struct_class() &&
+    assert(self->class == pico8_mz_struct_class() &&
            "bv: a host neither of g_'s line, of jo's family nor an mz, none of whose hq runs bv -- stop");
     mz = (pico8_mz_t *)self;
     mz->ra = ra;
@@ -105,55 +105,55 @@ static void probe_host_set_ra_p(pico8_struct_header_t *self, pico8_vec_t *ra, pi
 
 /* What `bv` aims at: `cg.np` (jo, and qh's tree: exactly the descriptors
  * holding `ly`), a `jc`, or the throwaway target. */
-static int g__is_target_class(const pico8_struct_class_t *cls) {
-    return cls->states[PICO8_STATE_LY] != NULL || cls == pico8_jo_struct_class() ||
+static int g__is_target_class(const entity_class_t *cls) {
+    return cls->states[ENTITY_STATE_SETTLED] != NULL || cls == pico8_jo_struct_class() ||
            cls == pico8_jc_struct_class() || cls == pico8_bv_et_struct_class();
 }
 
-void pico8_probe_et_hang_fo(pico8_struct_header_t *et, pico8_struct_header_t *self) {
+void pico8_probe_et_hang_fo(entity_t *et, entity_t *self) {
     if (pico8_jo_is_family(et)) {
-        assert((self->cls->hq == pico8_bv_dispatch || self->cls == pico8_jc_struct_class()) &&
+        assert((self->class->drag == pico8_bv_dispatch || self->class == pico8_jc_struct_class()) &&
                "jo.fo: a write neither nil nor an object whose hq runs bv (g_, fv, qh, nl, os, hj, pm, nr, fr, mx) "
                "or a jc does not fit the member's type -- stop, do not widen the member");
         ((pico8_jo_t *)et)->fo = self;
         return;
     }
-    if (et->cls == pico8_jc_struct_class()) {
-        assert((self->cls->hq == pico8_bv_dispatch || self->cls == pico8_jc_struct_class() ||
-                self->cls == pico8_mz_struct_class()) &&
+    if (et->class == pico8_jc_struct_class()) {
+        assert((self->class->drag == pico8_bv_dispatch || self->class == pico8_jc_struct_class() ||
+                self->class == pico8_mz_struct_class()) &&
                "jc.fo: a write neither nil nor what hangs fo on a slipway (an object whose hq runs bv: g_, fv, qh, "
                "nl, os, hj, pm, nr, fr, mx; an mz; another jc) does not fit the member's type -- stop");
         ((pico8_jc_t *)et)->fo = self;
         return;
     }
-    if (et->cls == pico8_jc_too_far_struct_class()) {
-        assert(self->cls == pico8_jc_struct_class() &&
+    if (et->class == pico8_jc_too_far_struct_class()) {
+        assert(self->class == pico8_jc_struct_class() &&
                "jc_too_far.fo: a write neither nil nor a jc does not fit the member's type "
                "-- stop, do not widen the member");
         ((pico8_jc_too_far_t *)et)->fo = (pico8_jc_t *)self;
         return;
     }
     assert(et == &g_bv_et.header && "bv: et is a planet, a jc or the static throwaway struct, nothing else");
-    assert(bv_et_is_holder_class(self->cls) &&
+    assert(bv_et_is_holder_class(self->class) &&
            "bv_et.fo: a write neither nil nor an object whose hq runs bv (g_, fv, mz, qh, nl, os, hj, pm, nr, fr, "
            "mx) does not fit the member's type -- stop, do not widen the member");
     g_bv_et.fo = self;
 }
 
-void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
+void pico8_bv(entity_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     pico8_probe_t *probe;
     pico8_vec_t mp_vec;
     pico8_vec_t p_vec;
     pico8_fixed_t nq;
-    pico8_struct_header_t *c;
-    pico8_struct_header_t *et;
+    entity_t *c;
+    entity_t *et;
 
     if (self == NULL) {
         return;
     }
-    assert(self->probe != NULL && "bv: a class that carries no probe is no receiver -- stop");
+    assert(self->targeting != NULL && "bv: a class that carries no probe is no receiver -- stop");
 
-    probe = self->probe;
+    probe = self->targeting;
     mp_vec = mp != NULL ? *mp : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     p_vec = pico8_vec_div(mp_vec, pico8_fixed_from_int(128));
     probe->bv_ra = mp_vec;
@@ -171,7 +171,7 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
         pico8_bv_ctx_t ctx;
         pico8_ents_t filtered;
         int have_first = 0;
-        pico8_struct_header_t *first = NULL;
+        entity_t *first = NULL;
 
         ctx.self_p = p_vec;
         filtered = pico8_jp_ents(pico8_zone_frame(), pico8_cg("jc"), pico8_bv_jc_predicate, &ctx);
@@ -193,7 +193,7 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     }
 
     assert((et == NULL ||
-            g__is_target_class(et->cls)) &&
+            g__is_target_class(et->class)) &&
            "bv: et is false or what bv aims at (a planet jo, qh, nl, os, hj, pm, nr, fr, mx, a jc, or the static "
            "throwaway struct), never a bare table");
     probe->et = et;
@@ -203,29 +203,29 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     }
 }
 
-void pico8_bv_dispatch(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+void pico8_bv_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     pico8_bv(self, qa, ra);
 }
 
 /* `qs` of `dl`'s target: `mz.jj` and `jc:ce`'s "too far" struct have one;
  * any other target (a planet, a `jc`, the throwaway) reads as absent, NULL. */
-static const char *probe_et_qs(const pico8_struct_header_t *et) {
-    if (et->cls == pico8_mz_jj_struct_class()) {
+static const char *probe_et_qs(const entity_t *et) {
+    if (et->class == pico8_mz_jj_struct_class()) {
         return ((const pico8_mz_jj_t *)et)->qs;
     }
-    if (et->cls == pico8_jc_too_far_struct_class()) {
+    if (et->class == pico8_jc_too_far_struct_class()) {
         return ((const pico8_jc_too_far_t *)et)->qs;
     }
     return NULL;
 }
 
-void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *self) {
+void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, entity_t *self) {
     if (self == NULL) {
         return;
     }
-    assert(self->probe != NULL && "dl: a class that carries no probe is no receiver -- stop");
+    assert(self->targeting != NULL && "dl: a class that carries no probe is no receiver -- stop");
 
-    pico8_dl_show(gfx, mem, self->me, self->probe);
+    pico8_dl_show(gfx, mem, self->state, self->targeting);
 }
 
 void pico8_dl_show(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *me, const pico8_probe_t *pb) {
@@ -260,19 +260,19 @@ void pico8_dl_show(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *me, con
     }
 }
 
-void pico8_dl_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
+void pico8_dl_dispatch(entity_t *self, const pico8_vec_t *ra) {
     (void)ra;
     pico8_dl(pico8_dispatch_gfx(), pico8_dispatch_mem(), self);
 }
 
 /* Raises `p_`, which a host of `d_` holds for itself: `g_`'s line, jo's
  * family (qh's line), a `jc` or an `mz`. */
-static void probe_host_raise_p_(pico8_struct_header_t *self) {
-    assert(self->p_ != NULL && "d_: a host that carries no p_, none of whose ey runs d_ -- stop");
-    *self->p_ = 1;
+static void probe_host_raise_p_(entity_t *self) {
+    assert(self->is_dead != NULL && "d_: a host that carries no p_, none of whose ey runs d_ -- stop");
+    *self->is_dead = 1;
 }
 
-int pico8_d_(pico8_struct_header_t *self) {
+int pico8_d_(entity_t *self) {
     const pico8_probe_t *probe;
     int has_et;
     pico8_hy_t *fm;
@@ -281,9 +281,9 @@ int pico8_d_(pico8_struct_header_t *self) {
     if (self == NULL) {
         return 0;
     }
-    assert(self->probe != NULL && "d_: a class that carries no probe is no receiver -- stop");
+    assert(self->targeting != NULL && "d_: a class that carries no probe is no receiver -- stop");
 
-    probe = self->probe;
+    probe = self->targeting;
     has_et = probe->et != NULL;
 
     fm = pico8_fm_hy();
@@ -308,12 +308,12 @@ int pico8_d_(pico8_struct_header_t *self) {
     return 0;
 }
 
-void pico8_d__dispatch(pico8_struct_header_t *self, pico8_struct_header_t *kv) {
+void pico8_d__dispatch(entity_t *self, entity_t *kv) {
     (void)kv;
     (void)pico8_d_(self);
 }
 
-pico8_qy_t *pico8_g__mm(pico8_struct_header_t *self) {
+pico8_qy_t *pico8_g__mm(entity_t *self) {
     const pico8_emitter_t *emitter = NULL;
     pico8_fixed_t pn = 0, t = 0, du = 0, py = 0, ki = 0;
     int pk = 0;
@@ -325,7 +325,7 @@ pico8_qy_t *pico8_g__mm(pico8_struct_header_t *self) {
         assert(self->emitter != NULL && "g_.mm: a class that carries no particle emitter has no mm -- stop");
         emitter = self->emitter;
         pn = emitter->pn;
-        t = self->t;
+        t = self->state_time;
         du = emitter->du;
         py = emitter->py;
         ki = emitter->def->ki;
@@ -357,36 +357,36 @@ pico8_qy_t *pico8_g__mm(pico8_struct_header_t *self) {
     return particle;
 }
 
-void pico8_g__rendre_dispatch(pico8_struct_header_t *self) {
+void pico8_g__rendre_dispatch(entity_t *self) {
     const pico8_g__t *g_ = (const pico8_g__t *)self;
 
     pico8_qy_rendre(self->emitter);
-    if (g_->prise != NULL && (self->me == NULL || strcmp(self->me, "ly") != 0)) {
+    if (g_->prise != NULL && (self->state == NULL || strcmp(self->state, "ly") != 0)) {
         pico8_jo_prise_arene_rendue(g_->prise);
     }
 }
 
-static const pico8_struct_class_t g_g__struct_class = {
-    .kj = pico8_ei_dispatch,
-    .ev = pico8_dl_dispatch,
-    .hq = pico8_bv_dispatch,
-    .ey = pico8_d__dispatch,
-    .mm = pico8_g__mm,
-    .rendre = pico8_g__rendre_dispatch,
-    .tags = PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER),
-    .lineage = PICO8_LINEAGE(PICO8_LINEAGE_G_),
+static const entity_class_t g_g__struct_class = {
+    .draw = pico8_ei_dispatch,
+    .draw_overlay = pico8_dl_dispatch,
+    .drag = pico8_bv_dispatch,
+    .drop = pico8_d__dispatch,
+    .spawn_particle = pico8_g__mm,
+    .release = pico8_g__rendre_dispatch,
+    .tags = TAG(TAG_PROBE) | TAG(TAG_TARGETING),
+    .lineage = LINEAGE(LINEAGE_PROBE),
 };
 
-void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls, const pico8_g__def_t *def) {
+void pico8_g__struct_init(pico8_g__t *self, const entity_class_t *cls, const pico8_g__def_t *def) {
     pico8_ke_struct_init(&self->header, cls, def->me, def->t);
     self->def = def;
-    self->header.fa = &self->def->fa;
-    self->header.ra = &self->ra;
-    self->header.p = &self->p;
-    self->header.fx = &self->def->fx;
-    self->header.p_ = &self->p_;
+    self->header.layer = &self->def->fa;
+    self->header.pos = &self->ra;
+    self->header.map_pos = &self->p;
+    self->header.fold_anchor = &self->def->fx;
+    self->header.is_dead = &self->p_;
     self->header.emitter = &self->emitter_own;
-    self->header.probe = &self->probe_own;
+    self->header.targeting = &self->probe_own;
     self->emitter = &self->emitter_own;
     self->emitter->def = &self->def->emitter;
     self->emitter->qy = NULL;
@@ -419,7 +419,7 @@ static pico8_g__t *pico8_g__struct_new(const pico8_g__keys_t *keys) {
     self->prise = pico8_jo_zone_construction();
     pico8_jo_prise_fermer();
     if (keys != NULL) {
-        self->header.t = keys->t;
+        self->header.state_time = keys->t;
         if (keys->has_pn) {
             self->emitter->pn = keys->pn;
         }
@@ -433,7 +433,7 @@ static pico8_g__t *pico8_g__struct_new(const pico8_g__keys_t *keys) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("g_");
 #endif
-    pico8_f_((pico8_struct_header_t *)self);
+    pico8_f_((entity_t *)self);
     pico8_ke_struct_pq(&self->header);
     return self;
 }
@@ -447,7 +447,7 @@ void pico8_probe_init(void) {
     g_fm_placeholder.has_jk = 0;
     g_fm_placeholder.nz = 0;
     g_fm_placeholder.has_nz = 0;
-    g_fm = (pico8_struct_header_t *)&g_fm_placeholder;
+    g_fm = (entity_t *)&g_fm_placeholder;
 }
 
 void pico8_probe_shutdown(void) {
@@ -459,7 +459,7 @@ int pico8_g__ready(void) {
     return g_g__up;
 }
 
-const pico8_struct_class_t *pico8_g__struct_class(void) {
+const entity_class_t *pico8_g__struct_class(void) {
     return &g_g__struct_class;
 }
 
@@ -467,11 +467,11 @@ pico8_g__t *pico8_g__new(const pico8_g__keys_t *keys) {
     return pico8_g__struct_new(keys);
 }
 
-const pico8_struct_class_t *pico8_fm_placeholder_struct_class(void) {
+const entity_class_t *pico8_fm_placeholder_struct_class(void) {
     return &g_fm_placeholder_struct_class;
 }
 
-pico8_struct_header_t *pico8_fm(void) {
+entity_t *pico8_fm(void) {
     return g_fm;
 }
 
@@ -479,7 +479,7 @@ pico8_hy_t *pico8_fm_hy(void) {
     if (g_fm == NULL || g_fm == &g_fm_placeholder.header) {
         return NULL;
     }
-    assert(g_fm->cls == pico8_hy_struct_class() && "fm: only the provisional or a hy is ever stored");
+    assert(g_fm->class == pico8_hy_struct_class() && "fm: only the provisional or a hy is ever stored");
     return (pico8_hy_t *)g_fm;
 }
 
@@ -487,10 +487,10 @@ const pico8_fm_placeholder_t *pico8_fm_placeholder(void) {
     return g_fm == &g_fm_placeholder.header ? &g_fm_placeholder : NULL;
 }
 
-void pico8_probe_set_fm(pico8_struct_header_t *instance) {
+void pico8_probe_set_fm(entity_t *instance) {
     g_fm = instance;
 }
 
-const pico8_struct_class_t *pico8_bv_et_struct_class(void) {
+const entity_class_t *pico8_bv_et_struct_class(void) {
     return &g_bv_et_struct_class;
 }

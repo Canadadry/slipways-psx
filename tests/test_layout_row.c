@@ -70,7 +70,7 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
 
 static const pico8_lq_t *as_lq(const void *lq) {
     assert(lq != NULL &&
-           ((const pico8_struct_header_t *)lq)->cls == pico8_lq_struct_class());
+           ((const entity_t *)lq)->class == pico8_lq_struct_class());
     return lq;
 }
 
@@ -340,7 +340,7 @@ static uint32_t fold_built_from(uint32_t h, const char *label, const pico8_lq_ke
     const void *lq = pico8_lq_new(&zone_tas, k);
     uint32_t one = fold_row_from(2166136261u, lq, k, nil_at);
 
-    assert(((const pico8_struct_header_t *)lq)->ra == &as_lq(lq)->ra);
+    assert(((const entity_t *)lq)->pos == &as_lq(lq)->ra);
 
     printf("  %s: w=%d fs=%d n=%d 0x%08X\n", label, pico8_fixed_flr_int(w_of(lq)), fs_count(lq), row_count(lq),
            (unsigned)one);
@@ -591,7 +591,7 @@ static void test_calls(void) {
     h = fnv(h, want);
     pico8_gfx_init(&gfx);
     pico8_cls(&mem);
-    pico8_lq_struct_class()->ol(lq, vec_xy(64, 30), PICO8_FIXED_LIT(0x00008000, 0.5));
+    pico8_lq_struct_class()->draw_at(lq, vec_xy(64, 30), PICO8_FIXED_LIT(0x00008000, 0.5));
     assert(screen_hash() == want);
 
     entry_items[0] = (pico8_jb_item_t){.is_ref = 1, .ref = lq};
@@ -708,12 +708,12 @@ static void built_planet_panel(void) {
     *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
                         pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
-    pico8_jc_struct_class()->hq(&jc->header, mp, NULL);
+    pico8_jc_struct_class()->drag(&jc->header, mp, NULL);
     pico8_ok()->o_ = NULL;
-    while (jc->header.t < pico8_fixed_from_int(15)) {
+    while (jc->header.state_time < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
-    pico8_jc_struct_class()->ey(&jc->header, re);
+    pico8_jc_struct_class()->drop(&jc->header, re);
     for (i = 0; i < 120; i++) {
         pico8_dg();
     }
@@ -753,7 +753,7 @@ static void test_planet_panel(void) {
     for (i = 0; i < le->count; i++) {
         const void *button = le->items[i];
         if (button != NULL &&
-            ((const pico8_struct_header_t *)button)->cls == pico8_js_struct_class()) {
+            ((const entity_t *)button)->class == pico8_js_struct_class()) {
             buttons++;
             h = fold_button_row(h, ((const pico8_js_t *)button)->lq);
             h = fold_button_row(h, ((const pico8_js_t *)button)->h_);
@@ -770,11 +770,11 @@ static const pico8_lq_t *panel_row(const char *head) {
     int i;
 
     for (i = 0; le != NULL && i < le->count; i++) {
-        const pico8_struct_header_t *button = le->items[i];
+        const entity_t *button = le->items[i];
         const pico8_lq_t *lq;
         pico8_lq_cell_t v;
 
-        assert(button != NULL && button->cls == pico8_js_struct_class() && "ok.le holds js buttons only");
+        assert(button != NULL && button->class == pico8_js_struct_class() && "ok.le holds js buttons only");
         lq = ((const pico8_js_t *)button)->lq;
 
         if (lq != NULL && lq->items_count > 0) {
@@ -920,7 +920,7 @@ static void test_lq_is_a_struct(void) {
     static const pico8_jb_row_t with_qe = {.count = 1, .items = three, .has_qe = 1, .qe = 0x70000};
     static const pico8_jb_row_t too_long = {.count = 3, .items = three};
     static const pico8_jb_row_t nested = {.count = 2, .items = three + 1, .has_c = 1, .c = 7};
-    const pico8_struct_class_t *cls = pico8_lq_struct_class();
+    const entity_class_t *cls = pico8_lq_struct_class();
     pico8_lq_cell_t a[] = {str("hi"), num(12)};
     pico8_lq_cell_t items[2];
     pico8_lq_keys_t t = with_c(positionals(2, a), 9);
@@ -931,12 +931,12 @@ static void test_lq_is_a_struct(void) {
     int i;
 
     lq = pico8_lq_new(&zone_tas, &t);
-    assert(lq != NULL && lq->header.cls == cls);
-    assert(cls->ol != NULL);
-    assert(cls->kj == NULL && cls->ev == NULL && cls->hd == NULL && cls->hk == NULL && cls->hb == NULL &&
-           cls->ldown == NULL && cls->rdown == NULL && cls->gv == NULL && cls->hq == NULL && cls->ey == NULL &&
-           cls->kf == NULL && cls->cn == NULL && cls->mm == NULL);
-    for (i = 0; i < PICO8_STATE_COUNT; i++) {
+    assert(lq != NULL && lq->header.class == cls);
+    assert(cls->draw_at != NULL);
+    assert(cls->draw == NULL && cls->draw_overlay == NULL && cls->hit_test == NULL && cls->new_year == NULL && cls->refresh == NULL &&
+           cls->left_press == NULL && cls->right_press == NULL && cls->accept_drop == NULL && cls->drag == NULL && cls->drop == NULL &&
+           cls->attach_slipway == NULL && cls->offer_trade == NULL && cls->spawn_particle == NULL);
+    for (i = 0; i < STATE_COUNT; i++) {
         assert(cls->states[i] == NULL);
     }
     assert(pico8_lq_ready());

@@ -19,7 +19,7 @@ void pico8_help_shutdown(void);
 
 /* 1 from pico8_help_init() to pico8_help_shutdown(), 0 otherwise. */
 int pico8_fv_ready(void);
-const pico8_struct_class_t *pico8_fv_struct_class(void);
+const entity_class_t *pico8_fv_struct_class(void);
 
 /* TROU-8 */
 /* The help's class carries `g_`'s tags, so `lt` registers it into `cg.g_` and
@@ -40,6 +40,6 @@ void pico8_fv_pq(pico8_g__t *self);
 
 void pico8_fv_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_g__t *self, pico8_vec_t p);
 
-void pico8_fv_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra);
+void pico8_fv_kj_dispatch(entity_t *self, const pico8_vec_t *ra);
 
 #endif

@@ -68,7 +68,7 @@ static int ents_rank_in(const pico8_ents_t *list, const void *e) {
 }
 
 static pico8_trade_t *as_trade(void *e) {
-    assert(e != NULL && ((const pico8_struct_header_t *)e)->cls == pico8_trade_struct_class());
+    assert(e != NULL && ((const entity_t *)e)->class == pico8_trade_struct_class());
     return e;
 }
 
@@ -120,7 +120,7 @@ static uint32_t fold_ranks(uint32_t h, const pico8_ents_t *l) {
 /* A route: the ranks in `hv` of its `lp` planets and `rl` slipways, its
  * `qe`, and the rank of `to()`. */
 static uint32_t fold_route(uint32_t h, const pico8_trade_t *t) {
-    pico8_struct_header_t *to;
+    entity_t *to;
     h = fold_ranks(h, t->lp);
     h = fold_ranks(h, t->rl);
     h = fold_qe(h, t);
@@ -173,12 +173,12 @@ static void join(void *qu, void *re) {
     *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
                         pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
-    pico8_jc_struct_class()->hq(&jc->header, mp, NULL);
+    pico8_jc_struct_class()->drag(&jc->header, mp, NULL);
     pico8_ok()->o_ = NULL;
-    while (jc->header.t < pico8_fixed_from_int(15)) {
+    while (jc->header.state_time < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
-    pico8_jc_struct_class()->ey(&jc->header, re);
+    pico8_jc_struct_class()->drop(&jc->header, re);
 }
 
 static pico8_ents_t *list_of(int n, void *const *items) {
@@ -272,10 +272,10 @@ static void test_construction(void) {
 /* `to` is the last of `lp`; an empty or missing `lp` gives nothing and
  * leaves the output alone. */
 static void test_to(void) {
-    static pico8_struct_header_t sentinel_target;
-    pico8_struct_header_t *const sentinel = &sentinel_target;
+    static entity_t sentinel_target;
+    entity_t *const sentinel = &sentinel_target;
     void *items[3];
-    pico8_struct_header_t *out;
+    entity_t *out;
     pico8_trade_t *t;
 
     (void)game_route();
@@ -293,7 +293,7 @@ static void test_to(void) {
     assert(!pico8_trade_to(NULL, &out) && out == sentinel);
 }
 
-static int list_is(const pico8_ents_t *l, int n, pico8_struct_header_t *const *items) {
+static int list_is(const pico8_ents_t *l, int n, entity_t *const *items) {
     int i;
     if (l == NULL || l->count != n) {
         return 0;
@@ -317,7 +317,7 @@ static void test_kg(void) {
     const int rl_n = rl->count;
     void *np = planet(3);
     void *jc = rl->items[0];
-    pico8_struct_header_t *want[16];
+    entity_t *want[16];
     pico8_trade_t *k;
     int i;
 
@@ -384,8 +384,8 @@ static void test_copy_outlives_the_frame(void) {
     pico8_trade_t *g = game_route();
     pico8_trade_t *k = pico8_trade_kg(pico8_zone_frame(), g, planet(3), g->rl->items[0]);
     pico8_trade_t *c = pico8_trade_copy(pico8_zone_partie(), k);
-    pico8_struct_header_t *lp_want[16];
-    pico8_struct_header_t *rl_want[16];
+    entity_t *lp_want[16];
+    entity_t *rl_want[16];
     const int lp_n = k->lp->count;
     const int rl_n = k->rl->count;
     const int qe_is_bool = k->qe_is_bool;
@@ -400,7 +400,7 @@ static void test_copy_outlives_the_frame(void) {
     for (i = 0; i < rl_n; i++) {
         rl_want[i] = k->rl->items[i];
     }
-    assert(c != NULL && c != k && c->header.cls == pico8_trade_struct_class());
+    assert(c != NULL && c != k && c->header.class == pico8_trade_struct_class());
     assert(c->lp != k->lp && c->rl != k->rl && c->lp->items != k->lp->items && c->rl->items != k->rl->items);
     assert(pico8_trade_eq(c, k));
 
@@ -481,7 +481,7 @@ static void qe_of_true_route(void *e) {
 }
 
 static void to_on_other(void *e) {
-    pico8_struct_header_t *out;
+    entity_t *out;
     (void)pico8_trade_to(e, &out);
 }
 
@@ -505,17 +505,17 @@ static void eq_right_other(void *e) {
  * a `qe` key its member could not hold stops the run, as does reading a true
  * `qe`, and `to`/`kg`/`copy`/`eq` refuse anything that is not a route. */
 static void test_trade_is_a_struct(void) {
-    const pico8_struct_class_t *cls = pico8_trade_struct_class();
+    const entity_class_t *cls = pico8_trade_struct_class();
     pico8_trade_t *g = game_route();
     pico8_trade_t *t = pico8_trade_new(pico8_zone_partie(), NULL);
     int j;
 
-    assert(g != NULL && g->header.cls == cls);
-    assert(t != NULL && t->header.cls == cls);
-    assert(cls->kj == NULL && cls->ev == NULL && cls->hd == NULL && cls->hk == NULL && cls->hb == NULL &&
-           cls->ldown == NULL && cls->rdown == NULL && cls->gv == NULL && cls->hq == NULL && cls->ey == NULL &&
-           cls->kf == NULL && cls->cn == NULL && cls->ol == NULL && cls->mm == NULL);
-    for (j = 0; j < PICO8_STATE_COUNT; j++) {
+    assert(g != NULL && g->header.class == cls);
+    assert(t != NULL && t->header.class == cls);
+    assert(cls->draw == NULL && cls->draw_overlay == NULL && cls->hit_test == NULL && cls->new_year == NULL && cls->refresh == NULL &&
+           cls->left_press == NULL && cls->right_press == NULL && cls->accept_drop == NULL && cls->drag == NULL && cls->drop == NULL &&
+           cls->attach_slipway == NULL && cls->offer_trade == NULL && cls->draw_at == NULL && cls->spawn_particle == NULL);
+    for (j = 0; j < STATE_COUNT; j++) {
         assert(cls->states[j] == NULL);
     }
     assert(pico8_trade_ready());

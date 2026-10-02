@@ -26,21 +26,21 @@ typedef struct {
     pico8_ents_t list;
 } pico8_cg_entry_t;
 
-static pico8_cg_entry_t g_cg[PICO8_TAG_COUNT];
+static pico8_cg_entry_t g_cg[TAG_COUNT];
 
 static pico8_ents_t g_hv;
-static pico8_struct_header_t *g_mo = NULL;
+static entity_t *g_mo = NULL;
 static int g_initialized = 0;
 
-static const pico8_struct_class_t g_mo_placeholder_struct_class = {0};
+static const entity_class_t g_mo_placeholder_struct_class = {0};
 
 typedef struct {
-    pico8_struct_header_t header;
+    entity_t header;
 } pico8_mo_placeholder_t;
 
 /* The only one: never allocated, never freed; no field, and no writer, so
  * a write reaching it stops the run. */
-static pico8_mo_placeholder_t g_mo_placeholder = {{.cls = &g_mo_placeholder_struct_class}};
+static pico8_mo_placeholder_t g_mo_placeholder = {{.class = &g_mo_placeholder_struct_class}};
 
 /* See pico8_entity.h's own comment on this declaration for what is and
  * is not freed here. */
@@ -58,7 +58,7 @@ void pico8_entity_shutdown(void) {
         g_cv[i].name = NULL;
     }
 
-    for (i = 0; i < PICO8_TAG_COUNT; i++) {
+    for (i = 0; i < TAG_COUNT; i++) {
         pico8_ents_free(&g_cg[i].list);
         g_cg[i].seen = 0;
     }
@@ -80,11 +80,11 @@ void pico8_entity_init(void) {
         pico8_ents_init(&g_cv[i].list, pico8_zone_partie());
     }
 
-    for (i = 0; i < PICO8_TAG_COUNT; i++) {
+    for (i = 0; i < TAG_COUNT; i++) {
         pico8_ents_init(&g_cg[i].list, pico8_zone_partie());
     }
 
-    g_mo = (pico8_struct_header_t *)&g_mo_placeholder;
+    g_mo = (entity_t *)&g_mo_placeholder;
 
     g_initialized = 1;
 }
@@ -93,7 +93,7 @@ void pico8_entity_abandonner_hv(void) {
     int i;
 
     for (i = 0; i < g_hv.count; i++) {
-        if (g_hv.items[i]->cls->rendre != NULL) {
+        if (g_hv.items[i]->class->release != NULL) {
             pico8_file_sortie_mettre(g_hv.items[i]);
         }
     }
@@ -112,7 +112,7 @@ void pico8_entity_oublier_registres(void) {
     for (i = 0; i < PICO8_BM_COUNT; i++) {
         oublier_liste(&g_cv[i].list);
     }
-    for (i = 0; i < PICO8_TAG_COUNT; i++) {
+    for (i = 0; i < TAG_COUNT; i++) {
         oublier_liste(&g_cg[i].list);
         g_cg[i].seen = 0;
     }
@@ -135,26 +135,26 @@ const pico8_ents_t *pico8_cv(const char *name) {
 
 /* `e[bm[i]]` exists: the member of `e`'s class for the i-th name of
  * g_bm_names. */
-static int pico8_bm_has(const pico8_struct_header_t *e, int i) {
-    const pico8_struct_class_t *cls;
+static int pico8_bm_has(const entity_t *e, int i) {
+    const entity_class_t *cls;
 
-    cls = e->cls;
+    cls = e->class;
 
     switch (i) {
     case 0:
-        return cls->kj != NULL;
+        return cls->draw != NULL;
     case 1:
-        return cls->ev != NULL;
+        return cls->draw_overlay != NULL;
     case 2:
-        return cls->hd != NULL;
+        return cls->hit_test != NULL;
     case 3:
-        return cls->hk != NULL;
+        return cls->new_year != NULL;
     default:
-        return cls->hb != NULL && (cls->has_hb == NULL || cls->has_hb(e));
+        return cls->refresh != NULL && (cls->has_refresh == NULL || cls->has_refresh(e));
     }
 }
 
-int pico8_hd_true(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
+int pico8_hd_true(entity_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
     (void)self;
     (void)qa;
     (void)ra;
@@ -162,11 +162,11 @@ int pico8_hd_true(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico
 }
 
 const pico8_ents_t *pico8_cg(const char *tag) {
-    int t = pico8_tag_named(tag);
+    int t = entity_tag_named(tag);
     return t >= 0 && g_cg[t].seen ? &g_cg[t].list : NULL;
 }
 
-pico8_struct_header_t *pico8_lt(pico8_struct_header_t *e) {
+entity_t *pico8_lt(entity_t *e) {
     int i;
 
     pico8_ents_add(&g_hv, e);
@@ -177,8 +177,8 @@ pico8_struct_header_t *pico8_lt(pico8_struct_header_t *e) {
         }
     }
 
-    for (i = 0; i < PICO8_TAG_COUNT; i++) {
-        if (e->cls->tags & PICO8_TAG(i)) {
+    for (i = 0; i < TAG_COUNT; i++) {
+        if (e->class->tags & TAG(i)) {
             g_cg[i].seen = 1;
             pico8_ents_add(&g_cg[i].list, e);
         }
@@ -190,11 +190,11 @@ pico8_struct_header_t *pico8_lt(pico8_struct_header_t *e) {
 /* `e` must be unregistered under exactly the fields it was registered
  * under: a bm field changed since lt() leaves `e` in a list this never
  * removes it from. */
-void pico8_he(pico8_struct_header_t *e) {
+void pico8_he(entity_t *e) {
     int i;
 
     /* TROU-5 */
-    if (pico8_ents_del(&g_hv, e) && e->cls->rendre != NULL) {
+    if (pico8_ents_del(&g_hv, e) && e->class->release != NULL) {
         pico8_file_sortie_mettre(e);
     }
 
@@ -206,8 +206,8 @@ void pico8_he(pico8_struct_header_t *e) {
 
     /* A tag never lt()'d: Lua would error on indexing its bucket, this
      * port deletes from an empty list. */
-    for (i = 0; i < PICO8_TAG_COUNT; i++) {
-        if (e->cls->tags & PICO8_TAG(i)) {
+    for (i = 0; i < TAG_COUNT; i++) {
+        if (e->class->tags & TAG(i)) {
             pico8_ents_del(&g_cg[i].list, e);
         }
     }
@@ -228,15 +228,15 @@ void pico8_dc(const char *nt) {
     bucket_src = pico8_cv(nt);
     if (bucket_src != NULL) {
         for (i = 0; i < bucket_src->count; i++) {
-            pico8_struct_header_t *qc = bucket_src->items[i];
+            entity_t *qc = bucket_src->items[i];
             int layer;
 
             /* An entity whose `.fa` is absent or outside 1..15 is dropped
              * from every layer, where Lua would error on the nil key. */
-            if (qc->fa == NULL) {
+            if (qc->layer == NULL) {
                 continue;
             }
-            layer = pico8_fixed_flr_int(*qc->fa);
+            layer = pico8_fixed_flr_int(*qc->layer);
             if (layer < 1 || layer > 15) {
                 continue;
             }
@@ -251,15 +251,15 @@ void pico8_dc(const char *nt) {
             pico8_fixed_t ci;
             /* The placeholder mo, before jl(), has no `md`. */
             if (pico8_fixed_seq_at(pico8_ci_table, PICO8_CI_COUNT, o, &ci) && g_mo != NULL &&
-                g_mo->cls->md != NULL) {
-                g_mo->cls->md(g_mo, ci);
+                g_mo->class->apply_camera != NULL) {
+                g_mo->class->apply_camera(g_mo, ci);
             }
         }
 
         for (i = 0; i < bucket->count; i++) {
-            pico8_struct_header_t *qc = bucket->items[i];
-            void (*draw)(pico8_struct_header_t *self, const pico8_vec_t *ra) = kj ? qc->cls->kj : qc->cls->ev;
-            const pico8_vec_t *ra = qc->ra != NULL ? *qc->ra : NULL;
+            entity_t *qc = bucket->items[i];
+            void (*draw)(entity_t *self, const pico8_vec_t *ra) = kj ? qc->class->draw : qc->class->draw_overlay;
+            const pico8_vec_t *ra = qc->pos != NULL ? *qc->pos : NULL;
 
             if (draw != NULL) {
                 draw(qc, ra);
@@ -268,17 +268,17 @@ void pico8_dc(const char *nt) {
     }
 }
 
-const pico8_struct_class_t *pico8_mo_placeholder_struct_class(void) {
+const entity_class_t *pico8_mo_placeholder_struct_class(void) {
     return &g_mo_placeholder_struct_class;
 }
 
-pico8_struct_header_t *pico8_mo(void) {
+entity_t *pico8_mo(void) {
     return g_mo;
 }
 
 /* See pico8_entity.h's own comment on this declaration: the outgoing mo
  * lives on in its generation, given back when that generation is reset. */
-void pico8_entity_set_mo(pico8_struct_header_t *instance) {
+void pico8_entity_set_mo(entity_t *instance) {
     if (instance == g_mo) {
         return;
     }

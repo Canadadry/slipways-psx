@@ -9,14 +9,14 @@
  * zero/false default rather than crashing, and a NULL instance is a safe
  * no-op. */
 
-pico8_fixed_t pico8_da(pico8_struct_header_t *pt);
+pico8_fixed_t pico8_da(entity_t *pt);
 
 /* Lua passes the raw method value `jo.gg` as `jp`'s predicate, which calls
  * it as `e:gg()`; the direct pico8_jo_gg() call here is that same call, not
  * an approximation of it. */
 pico8_fixed_t pico8_cz(void);
 
-pico8_fixed_t pico8_db(const pico8_struct_header_t *pt);
+pico8_fixed_t pico8_db(const entity_t *pt);
 
 /* `ky()`'s six results, `s[1..6]` in the cart, in that order. */
 typedef struct {
@@ -40,9 +40,9 @@ const pico8_js_t *pico8_dk(void);
 void pico8_economy_set_dk(const pico8_js_t *dk);
 
 /* Called by the exit queue before `e` is given back. */
-void pico8_economy_dk_quitte(const pico8_struct_header_t *e);
+void pico8_economy_dk_quitte(const entity_t *e);
 
 /* Writes `kr` into planet `p` (asserted) and returns it. */
-pico8_fixed_t pico8_kr(pico8_struct_header_t *p);
+pico8_fixed_t pico8_kr(entity_t *p);
 
 #endif

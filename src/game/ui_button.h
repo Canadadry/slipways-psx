@@ -27,7 +27,7 @@ typedef void (*pico8_js_fn)(pico8_js_t *self);
  * given back by the exit queue once `he` takes the button out -- but for an
  * `lq` a `hb` rebuilt, which lives in `lq_place` and goes with the button. */
 struct pico8_js {
-    pico8_struct_header_t header;
+    entity_t header;
     const pico8_zone_choisie_t *place;
     pico8_vec_t ra_box;
     pico8_vec_t qf_box;
@@ -64,7 +64,7 @@ void pico8_js_shutdown(void);
 
 /* 1 from pico8_js_init() to pico8_js_shutdown(), 0 otherwise. */
 int pico8_js_ready(void);
-const pico8_struct_class_t *pico8_js_struct_class(void);
+const entity_class_t *pico8_js_struct_class(void);
 
 /* The cart's keys of a button, each typed as the member it fills (NULL
  * or an unset flag: absent). The rows `lq_row`, `h_row`, `jb_row` and the
@@ -114,7 +114,7 @@ void pico8_js_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_js_t *self, pic
 
 /* Always returns true: the click is consumed whether or not a `my` callback
  * was there to run. */
-pico8_down_t pico8_js_ldown(pico8_js_t *self);
+down_t pico8_js_ldown(pico8_js_t *self);
 
 typedef struct pico8_fq pico8_fq_t;
 
@@ -125,7 +125,7 @@ typedef int (*pico8_fq_my_fn)(pico8_fq_t *self);
  * a field, not a method. The struct lives in `place`, given back by the
  * exit queue once `he` takes the veil out. */
 struct pico8_fq {
-    pico8_struct_header_t header;
+    entity_t header;
     const pico8_zone_choisie_t *place;
     const pico8_fq_def_t *def;
     pico8_fq_my_fn my;
@@ -138,7 +138,7 @@ void pico8_fq_shutdown(void);
 
 /* 1 from pico8_fq_init() to pico8_fq_shutdown(), 0 otherwise. */
 int pico8_fq_ready(void);
-const pico8_struct_class_t *pico8_fq_struct_class(void);
+const entity_class_t *pico8_fq_struct_class(void);
 
 /* The cart's key `my` of a veil: NULL is nil. */
 typedef struct {
@@ -149,6 +149,6 @@ typedef struct {
  * through `lt`. */
 pico8_fq_t *pico8_fq_new(const pico8_fq_keys_t *keys);
 
-pico8_down_t pico8_fq_ldown(pico8_fq_t *self);
+down_t pico8_fq_ldown(pico8_fq_t *self);
 
 #endif

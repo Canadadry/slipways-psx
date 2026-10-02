@@ -22,33 +22,33 @@ static int pico8_bg_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
 }
 
-static void pico8_bg_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
+static void pico8_bg_kj_dispatch(entity_t *self, const pico8_vec_t *ra) {
     (void)ra;
     pico8_bg_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_bg_t *)self);
 }
 
-static pico8_down_t pico8_bg_ldown_dispatch(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static down_t pico8_bg_ldown_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     (void)qa;
     (void)ra;
     return pico8_bg_ldown((pico8_bg_t *)self);
 }
 
-static pico8_down_t pico8_bg_rdown_dispatch(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static down_t pico8_bg_rdown_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     (void)qa;
     return pico8_bg_rdown((pico8_bg_t *)self, ra);
 }
 
-static void pico8_bg_hq_dispatch(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+static void pico8_bg_hq_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     (void)qa;
     pico8_bg_hq((pico8_bg_t *)self, ra);
 }
 
-static const pico8_struct_class_t g_bg_struct_class = {
-    .kj = pico8_bg_kj_dispatch,
-    .hd = pico8_hd_true,
-    .ldown = pico8_bg_ldown_dispatch,
-    .rdown = pico8_bg_rdown_dispatch,
-    .hq = pico8_bg_hq_dispatch,
+static const entity_class_t g_bg_struct_class = {
+    .draw = pico8_bg_kj_dispatch,
+    .hit_test = pico8_hd_true,
+    .left_press = pico8_bg_ldown_dispatch,
+    .right_press = pico8_bg_rdown_dispatch,
+    .drag = pico8_bg_hq_dispatch,
 };
 
 /* A nil `rp` reads as the zero vector, as an unset `mq` does. */
@@ -62,9 +62,9 @@ static pico8_bg_t *pico8_bg_struct_new(void) {
 
     pico8_ke_struct_init(&self->header, &g_bg_struct_class, pico8_bg_def.me, pico8_bg_def.t);
     self->def = &pico8_bg_def;
-    self->header.fa = &self->def->fa;
+    self->header.layer = &self->def->fa;
     pico8_bg_set_mq(self, NULL);
-    self->header.m_ = &self->m_;
+    self->header.is_hovered = &self->m_;
     self->m_ = 0;
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("bg");
@@ -87,7 +87,7 @@ int pico8_bg_ready(void) {
     return g_bg_up;
 }
 
-const pico8_struct_class_t *pico8_bg_struct_class(void) {
+const entity_class_t *pico8_bg_struct_class(void) {
     return &g_bg_struct_class;
 }
 
@@ -162,11 +162,11 @@ void pico8_bg_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_bg_t *self) {
     pico8_rect(gfx, mem, 0, 0, 262, 262, 5);
 }
 
-pico8_down_t pico8_bg_ldown(pico8_bg_t *self) {
+down_t pico8_bg_ldown(pico8_bg_t *self) {
     const pico8_ents_t *g_tag;
     int count;
-    pico8_struct_header_t *made;
-    pico8_down_t out;
+    entity_t *made;
+    down_t out;
 
     (void)self;
 
@@ -174,17 +174,17 @@ pico8_down_t pico8_bg_ldown(pico8_bg_t *self) {
     count = (g_tag != NULL) ? g_tag->count : 0;
     if (count > 0) {
         assert(pico8_mz_ready() && "pico8_wormhole_init() must run before bg:ldown builds an mz");
-        made = (pico8_struct_header_t *)pico8_mz_new();
+        made = (entity_t *)pico8_mz_new();
     } else {
-        made = (pico8_struct_header_t *)pico8_g__new(NULL);
+        made = (entity_t *)pico8_g__new(NULL);
     }
     out.stop = made != NULL;
     out.held = made;
     return out;
 }
 
-pico8_down_t pico8_bg_rdown(pico8_bg_t *self, pico8_vec_t *rp) {
-    pico8_down_t out = {0, NULL};
+down_t pico8_bg_rdown(pico8_bg_t *self, pico8_vec_t *rp) {
+    down_t out = {0, NULL};
 
     if (self != NULL) {
         pico8_bg_set_mq(self, rp);

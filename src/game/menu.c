@@ -36,19 +36,19 @@ static pico8_vec_t g_ha_gq;
 static void pico8_ix4_my_dispatch(pico8_js_t *self);
 
 typedef struct {
-    pico8_struct_header_t header;
+    entity_t header;
     pico8_vec_t *hi;
     pico8_vec_t *gq;
     pico8_fixed_t ca;
     int has_ca; /* 0: `ca` is nil, and `ca` is then never read */
 } pico8_ha_pz_t;
 
-static const pico8_struct_class_t g_ha_pz_struct_class = {0};
+static const entity_class_t g_ha_pz_struct_class = {0};
 
 /* Never allocated nor freed: `pico8_menu_init()` points its `hi`/`gq`/`ca`
  * at `ha`'s own values, `pico8_menu_shutdown()` resets them to nil. */
 static pico8_ha_pz_t g_ha_pz = {
-    {.cls = &g_ha_pz_struct_class},
+    {.class = &g_ha_pz_struct_class},
     NULL,
     NULL,
     0,
@@ -368,11 +368,11 @@ pico8_js_fn pico8_ix_my(int i) {
     return g_ix_my[i - 1];
 }
 
-const pico8_struct_header_t *pico8_ha_pz(void) {
+const entity_t *pico8_ha_pz(void) {
     return g_menu_up ? &g_ha_pz.header : NULL;
 }
 
-const pico8_struct_class_t *pico8_ha_pz_struct_class(void) {
+const entity_class_t *pico8_ha_pz_struct_class(void) {
     return &g_ha_pz_struct_class;
 }
 

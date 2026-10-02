@@ -94,7 +94,7 @@ enum { FIXED_KIND = 0, BOOL_KIND = 2 };
 /* The kind words are constant by the struct's shape, kept so that the
  * sequence hashes still prove the typed reads. */
 static uint32_t fold_box(uint32_t h, const pico8_mh_t *e) {
-    h = fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)e->header.t);
+    h = fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)e->header.state_time);
     if (e->p_) {
         h = fnv(fnv(h, (uint32_t)BOOL_KIND), (uint32_t)e->p_);
     } else {
@@ -307,8 +307,8 @@ static void test_defaults_match_the_parsed_spec(void) {
     assert(box->def->fa == pico8_fixed_from_int(14));
     assert(box->rh == box->def->rh);
     assert(box->rh == pico8_fixed_from_int(5));
-    assert(box->header.cls->tags == PICO8_TAG(PICO8_TAG_MH));
-    assert(box->header.me != NULL && strcmp(box->header.me, "ph") == 0);
+    assert(box->header.class->tags == TAG(TAG_MESSAGE_BOX));
+    assert(box->header.state != NULL && strcmp(box->header.state, "ph") == 0);
     assert(pico8_mh_ready());
     pico8_mh_shutdown();
     assert(!pico8_mh_ready());
@@ -350,7 +350,7 @@ static void test_mh_is_a_struct_registered_under_ev(void) {
     assert(((pico8_mh_t *)generic)->lh != NULL);
     out = ((pico8_mh_t *)generic)->lh(generic);
     assert(g_lh_calls == 1 && out);
-    assert(((const pico8_struct_header_t *)generic)->cls->states[PICO8_STATE_PH] == NULL);
+    assert(((const entity_t *)generic)->class->states[ENTITY_STATE_NORMAL] == NULL);
 }
 
 /* A nil `lh` key (NULL) leaves the box without `lh`, as a box built with no

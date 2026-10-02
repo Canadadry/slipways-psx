@@ -23,18 +23,18 @@ static pico8_vec_t pico8_qb_vec(const pico8_vec_t *v) {
 
 /* dg() dispatches the per-tick state method as `qc[qc.me](qc,qc.t)`, so
  * `t` is the frame counter, which qb:ph does not read. */
-static void pico8_qb_ph_dispatch(pico8_struct_header_t *self, pico8_fixed_t t) {
+static void pico8_qb_ph_dispatch(entity_t *self, pico8_fixed_t t) {
     (void)t;
     pico8_qb_ph(pico8_dispatch_input(), (pico8_qb_t *)self);
 }
 
-static void pico8_qb_md_dispatch(pico8_struct_header_t *self, pico8_fixed_t fy) {
+static void pico8_qb_md_dispatch(entity_t *self, pico8_fixed_t fy) {
     pico8_qb_md(pico8_dispatch_gfx(), (pico8_qb_t *)self, fy);
 }
 
-static const pico8_struct_class_t g_qb_struct_class = {
-    .states = {[PICO8_STATE_PH] = pico8_qb_ph_dispatch},
-    .md = pico8_qb_md_dispatch,
+static const entity_class_t g_qb_struct_class = {
+    .states = {[ENTITY_STATE_NORMAL] = pico8_qb_ph_dispatch},
+    .apply_camera = pico8_qb_md_dispatch,
 };
 
 static pico8_qb_t *pico8_qb_struct_new(void) {
@@ -42,9 +42,9 @@ static pico8_qb_t *pico8_qb_struct_new(void) {
 
     pico8_ke_struct_init(&self->header, &g_qb_struct_class, pico8_qb_def.me, pico8_qb_def.t);
     self->def = &pico8_qb_def;
-    self->header.ra = &self->ra;
-    self->header.p = &self->p;
-    self->header.ma = &self->ma;
+    self->header.pos = &self->ra;
+    self->header.map_pos = &self->p;
+    self->header.shake = &self->ma;
     self->v = &self->def->v;
     self->ma = self->def->ma;
     self->p = &self->def->p;
@@ -71,7 +71,7 @@ int pico8_qb_ready(void) {
     return g_qb_up;
 }
 
-const pico8_struct_class_t *pico8_qb_struct_class(void) {
+const entity_class_t *pico8_qb_struct_class(void) {
     return &g_qb_struct_class;
 }
 
@@ -119,7 +119,7 @@ void pico8_qb_ph(const pico8_input_t *input, pico8_qb_t *self) {
     self->p = &self->p_own;
     pico8_qb_set_v(self, v);
 
-    self->ra_own = pico8_ma(p, (pico8_struct_header_t *)self);
+    self->ra_own = pico8_ma(p, (entity_t *)self);
     self->ra = &self->ra_own;
 }
 
@@ -140,11 +140,11 @@ void pico8_qb_md(pico8_gfx_t *gfx, pico8_qb_t *self, pico8_fixed_t fy) {
 }
 
 pico8_qb_t *pico8_mo_qb(void) {
-    pico8_struct_header_t *mo = pico8_mo();
+    entity_t *mo = pico8_mo();
 
-    if (mo == NULL || mo->cls == pico8_mo_placeholder_struct_class()) {
+    if (mo == NULL || mo->class == pico8_mo_placeholder_struct_class()) {
         return NULL;
     }
-    assert(mo->cls == pico8_qb_struct_class() && "mo: only the placeholder or a qb is ever stored");
+    assert(mo->class == pico8_qb_struct_class() && "mo: only the placeholder or a qb is ever stored");
     return (pico8_qb_t *)mo;
 }

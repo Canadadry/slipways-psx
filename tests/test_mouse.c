@@ -257,7 +257,7 @@ static void test_launch_with_left_held(void) {
 
 static int is_an_nf_struct(const void *e) {
     return e != NULL &&
-           ((const pico8_struct_header_t *)e)->cls == pico8_nf_struct_class();
+           ((const entity_t *)e)->class == pico8_nf_struct_class();
 }
 
 /* Built by `pico8_nf_new` or through its class, an nf is a struct in hv
@@ -274,11 +274,11 @@ static void test_nf_is_a_struct_sharing_its_buttons(void) {
     assert(is_an_nf_struct(built) && is_an_nf_struct(generic) && is_an_nf_struct(pico8_je()));
     assert(ents_listed(pico8_hv(), built) && !in_any_cv(built));
     assert(ents_listed(pico8_hv(), generic) && !in_any_cv(generic));
-    assert(((const pico8_struct_header_t *)generic)->cls->states[PICO8_STATE_PH] != NULL);
-    assert(((const pico8_struct_header_t *)generic)->cls->kj == NULL);
+    assert(((const entity_t *)generic)->class->states[ENTITY_STATE_NORMAL] != NULL);
+    assert(((const entity_t *)generic)->class->draw == NULL);
     assert(pico8_nf_l() != NULL && pico8_nf_r() != NULL);
     assert(pico8_nf_l() != pico8_nf_r());
-    assert(*((const pico8_struct_header_t *)built)->ra == ((const pico8_nf_t *)built)->ra);
+    assert(*((const entity_t *)built)->pos == ((const pico8_nf_t *)built)->ra);
 }
 
 int main(void) {

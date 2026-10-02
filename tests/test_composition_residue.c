@@ -1,7 +1,7 @@
 /* tools/composition_residue.sh, le corps de `make composition-residue`, sur un
  * mini-arbre fabrique.
  * Le script lit tests/ : chaque jeton de fixture est coupe en deux litteraux
- * ("get" "_ra", "n" "u"), sinon ce fichier entrerait dans le residu qu'il
+ * ("get" "_pos", "n" "u"), sinon ce fichier entrerait dans le residu qu'il
  * mesure. Il ne porte non plus aucun jeton de tools/data_residue.sh, que
  * make test garde a 0 dans tests/. */
 
@@ -61,7 +61,7 @@ static void setup(void) {
 
 /* Deux types d'entite : ke (en-tete en premier membre, pas une parente) et
  * jo (ke en premier membre, une parente). */
-#define KE_JO "typedef struct {\n    pico8_struct_" "header_t header;\n} pico8_" "ke_t;\n" \
+#define KE_JO "typedef struct {\n    entity" "_t header;\n} pico8_" "ke_t;\n" \
               "typedef struct {\n    pico8_" "ke_t ke;\n    int a;\n} pico8_" "jo_t;\n"
 
 static void assert_alone_is_empty(const char *path, const char *text) {
@@ -80,13 +80,13 @@ static void test_clean_tree_prints_only_the_empty_footer(void) {
 static void test_one_occurrence_per_category_in_table_order(void) {
     setup();
     write_file(SRC "/c1.c", "if (pico8_" "qh_of(pt) != 0) {}\n");
-    write_file(SRC "/c2.c", "int r = self->get" "_ra(self);\n");
+    write_file(SRC "/c2.c", "int r = self->get" "_pos(self);\n");
     write_file(SRC "/c3.c", "self->rr = pico8_" "nl_start.rr;\n");
     write_file(SRC "/c4.c", "return self->n" "u;\n");
     write_file(TST "/c5.c", "hp_" "pose(self, p);\n");
     write_file(TST "/c6.c", "e->pk_" "is_bool = 1;\n");
     write_file(SRC "/engine/entity_class.h", "#include \"game/" "game_data.h\"\n");
-    write_file(SRC "/e.h", "typedef struct {\n    pico8_struct_" "header_t header;\n    pico8_" "ptrs_t *oe;\n} pico8_"
+    write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n    pico8_" "ptrs_t *oe;\n} pico8_"
                            "jo_t;\n");
     write_file(SRC "/p.h", "typedef struct {\n    pico8_" "jo_t jo;\n} pico8_" "qh_t;\n");
     write_file(SRC "/v.h", "pico8_qy_t *pico8_" "g__mm(void *" "self);\n");
@@ -126,9 +126,9 @@ static void test_other_witnesses_of_each_pattern_bite(void) {
     assert(strcmp(read_file(OUT), "lien-parent\t5\t1\n"
                                   "résidu 2 : 5 ligne(s), 1 fichier(s)\n") == 0);
     setup();
-    write_file(SRC "/w.c", "int a = pico8_jo_get" "_fx(self);\n"
-                           "int b = X_get" "_p_(self);\n"
-                           "pico8_jo_set" "_m_(self, v);\n"
+    write_file(SRC "/w.c", "int a = pico8_jo_get" "_fold_anchor(self);\n"
+                           "int b = X_get" "_is_dead(self);\n"
+                           "pico8_jo_set" "_is_hovered(self, v);\n"
                            "pico8_" "nl_start_t s;\n"
                            "pico8_" "jo_kw_start;\n");
     assert(run_residue(TREE) == 0);
@@ -157,11 +157,11 @@ static void test_other_witnesses_of_each_pattern_bite(void) {
 }
 
 static void test_named_false_positives_do_not_bite(void) {
-    assert_alone_is_empty(SRC "/f.c", "e = pico8_" "state_of(me);\n");
+    assert_alone_is_empty(SRC "/f.c", "e = entity_" "state_of(me);\n");
     assert_alone_is_empty(SRC "/f.c", "/* the parent struct */\n");
-    assert_alone_is_empty(SRC "/f.c", "int budget_p;\n");
-    assert_alone_is_empty(SRC "/f.c", "int get_pa;\n");
-    assert_alone_is_empty(SRC "/f.c", "int get_p_x;\n");
+    assert_alone_is_empty(SRC "/f.c", "int budget_pos;\n");
+    assert_alone_is_empty(SRC "/f.c", "int get_posa;\n");
+    assert_alone_is_empty(SRC "/f.c", "int get_pos_x;\n");
     assert_alone_is_empty(SRC "/f.c", "int run_start;\n");
     assert_alone_is_empty(SRC "/f.c", "int number;\n");
     assert_alone_is_empty(SRC "/f.c", "pico8_pi_number(e, 1);\n");
@@ -176,7 +176,7 @@ static void test_named_false_positives_do_not_bite(void) {
 
 static void test_exclusions_edit_the_text_not_the_whole_line(void) {
     setup();
-    write_file(SRC "/x.c", "if (pico8_" "state_of(me) && pico8_" "qh_of(pt)) {}\n");
+    write_file(SRC "/x.c", "if (entity_" "state_of(me) && pico8_" "qh_of(pt)) {}\n");
     write_file(TST "/x.c", "\"k(\\\"n" "u\\\")\" ; q = self->n" "u;\n");
     assert(run_residue(TREE) == 0);
     assert(strcmp(read_file(OUT), "lien-parent\t1\t1\n"
@@ -228,7 +228,7 @@ static void test_entity_reader_ignores_what_is_not_an_embedded_parent(void) {
 
 static void test_ptrs_members_count_only_on_entity_types(void) {
     setup();
-    write_file(SRC "/e.h", "typedef struct {\n    pico8_struct_" "header_t header;\n} pico8_" "ke_t;\n"
+    write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} pico8_" "ke_t;\n"
                            "typedef struct {\n    pico8_" "ke_t ke;\n    pico8_" "ptrs_t *oe;\n    pico8_"
                            "ptrs_t *jy;\n} pico8_" "jo_t;\n"
                            "typedef struct {\n    int a;\n    pico8_" "ptrs_t *qy;\n} other_t;\n"
@@ -240,7 +240,7 @@ static void test_ptrs_members_count_only_on_entity_types(void) {
 
 static void test_registres_reads_declaration_points_outside_entity_types(void) {
     setup();
-    write_file(SRC "/e.h", "typedef struct {\n    pico8_struct_" "header_t header;\n    pico8_"
+    write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n    pico8_"
                            "ptrs_t *oe;\n} pico8_" "ke_t;\n"
                            "typedef struct {\n    pico8_" "ptrs_t layers[16];\n    pico8_" "ptrs_t *qy;\n} pico8_"
                            "emitter_t;\n"
@@ -345,7 +345,7 @@ static void test_registres_sees_hidden_forms_and_not_its_named_limits(void) {
 static void test_ptrs_entite_reads_entity_members_like_registres(void) {
     setup();
     write_file(SRC "/a.h", "typedef pico8_" "ptrs_t reg17_t;\n");
-    write_file(SRC "/e.h", "typedef struct {\n    pico8_struct_" "header_t header;\n} pico8_" "ke_t;\n"
+    write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} pico8_" "ke_t;\n"
                            "typedef struct {\n"
                            "    pico8_" "ke_t ke;\n"
                            "    void **items;\n"
@@ -389,7 +389,7 @@ static void test_ptrs_entite_reads_entity_members_like_registres(void) {
  * deux lignes, la clé qui les dédoublonne tient au type, pas au numéro. */
 static void test_ptrs_entite_keeps_one_line_number_in_two_files(void) {
     setup();
-    write_file(SRC "/e.h", "typedef struct {\n    pico8_struct_" "header_t header;\n} pico8_" "ke_t;\n"
+    write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} pico8_" "ke_t;\n"
                            "typedef struct {\n    pico8_" "ke_t ke;\n    void **items;\n} pico8_" "jo_t;\n");
     write_file(SRC "/g.h", "/* g */\n\n\n"
                            "typedef struct {\n    pico8_" "ke_t ke;\n    void **more;\n} pico8_" "qh_t;\n");
@@ -406,7 +406,7 @@ static void test_ptrs_entite_keeps_one_line_number_in_two_files(void) {
  * e.h:19 à :27, f.c:2, f.h:3. */
 static void test_readers_see_qualifiers_split_declarations_and_nested_attributes(void) {
     setup();
-    write_file(SRC "/e.h", "typedef struct {\n    pico8_struct_" "header_t header;\n} pico8_" "ke_t;\n"
+    write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} pico8_" "ke_t;\n"
                            "typedef struct {\n"
                            "    pico8_" "ke_t ke;\n"
                            "    void const **q1;\n"
@@ -534,7 +534,7 @@ static void test_void_ptr_reads_joined_public_prototypes(void) {
                                   "résidu gardé (void-ptr) : 3 ligne(s)\n") == 0);
     setup();
     write_file(SRC "/v.h", "void pico8_" "ei_dispatch(void *" "self, int x);\n"
-                           "int pico8_jo_get" "_fx(const void *" "self);\n"
+                           "int pico8_jo_get" "_fold_anchor(const void *" "self);\n"
                            "pico8_ptrs_t pico8_" "jp_ptrs(int a, void *ctx);\n"
                            "void pico8_" "gn(int a, void *r_ctx);\n"
                            "typedef int pico8_" "fn(void *e);\n"
@@ -561,7 +561,7 @@ static void test_void_self_sees_every_untyped_receiver(void) {
                            "void (*draw)(void*" "self) = 0;\n"
                            "int pico8_" "ga_mm(void * const " "self_ptr);\n");
     write_file(SRC "/n.c", "static int step(void *e, void *ctx);\n"
-                           "static void f(pico8_struct_" "header_t *self);\n");
+                           "static void f(entity" "_t *self);\n");
     write_file(TST "/t.c", "static void spy(void *" "self, int x) {\n}\n");
     assert(run_residue("--check void-self " TREE) == 1);
     assert(strcmp(read_file(OUT), "void-self: " SRC "/s.c:1:static void pico8_" "bg_kj_dispatch(void *" "self) {\n"
@@ -733,7 +733,7 @@ static void test_measure_on_nothing_is_an_error_not_an_empty_residue(void) {
 
 static void test_champs_counts_writes_and_writes_outside_constructors(void) {
     setup();
-    write_file(SRC "/e.h", "typedef struct {\n    pico8_struct_" "header_t header;\n} pico8_" "ke_t;\n"
+    write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} pico8_" "ke_t;\n"
                            "typedef struct {\n    pico8_" "ke_t ke;\n    int a;\n    int b;\n"
                            "    int c; /* (x) */\n    void (*f)(int k);\n} pico8_" "jo_t;\n");
     write_file(TST "/fake.h", "typedef struct {\n    pico8_" "ke_t ke;\n    int z;\n} fake_t;\n");
@@ -757,10 +757,27 @@ static void test_champs_counts_writes_and_writes_outside_constructors(void) {
     assert(strstr(read_file(OUT), "pico8_" "jo_t\tb\t2\t1\n") != NULL);
 }
 
+static void test_accessors_bite_on_every_header_field_name(void) {
+    setup();
+    write_file(SRC "/w.c", "a = x_get" "_layer(self);\n"
+                           "a = x_get" "_pos(self);\n"
+                           "a = x_get" "_map_pos(self);\n"
+                           "a = x_get" "_hit_box(self);\n"
+                           "a = x_get" "_cursor_sprite(self);\n"
+                           "a = x_get" "_gpio_signal(self);\n"
+                           "a = x_get" "_infraspace(self);\n"
+                           "a = x_get" "_fold_anchor(self);\n"
+                           "a = x_get" "_is_dead(self);\n"
+                           "x_set" "_is_hovered(self, 1);\n");
+    assert(run_residue("--check accesseurs-q6 " TREE) == 1);
+    assert(strstr(read_file(OUT), "résidu gardé (accesseurs-q6) : 10 ligne(s)\n") != NULL);
+}
+
 int main(void) {
     test_clean_tree_prints_only_the_empty_footer();
     test_one_occurrence_per_category_in_table_order();
     test_other_witnesses_of_each_pattern_bite();
+    test_accessors_bite_on_every_header_field_name();
     test_named_false_positives_do_not_bite();
     test_exclusions_edit_the_text_not_the_whole_line();
     test_overlapping_categories_count_each_but_footer_counts_distinct_lines();

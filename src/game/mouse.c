@@ -19,13 +19,13 @@ static pico8_vec_t g_nf_ra;
 
 /* dg() dispatches the per-tick state method as `qc[qc.me](qc,qc.t)`, so
  * `t` is the frame counter, which nf:ph does not read. */
-static void pico8_nf_ph_dispatch(pico8_struct_header_t *self, pico8_fixed_t t) {
+static void pico8_nf_ph_dispatch(entity_t *self, pico8_fixed_t t) {
     (void)t;
     pico8_nf_ph(pico8_dispatch_input(), (pico8_nf_t *)self);
 }
 
-static const pico8_struct_class_t g_nf_struct_class = {
-    .states = {[PICO8_STATE_PH] = pico8_nf_ph_dispatch},
+static const entity_class_t g_nf_struct_class = {
+    .states = {[ENTITY_STATE_NORMAL] = pico8_nf_ph_dispatch},
 };
 
 static void pico8_nf_pq(pico8_mem_t *mem) {
@@ -41,7 +41,7 @@ static pico8_nf_t *pico8_nf_struct_new(void) {
     pico8_ke_struct_init(&self->header, &g_nf_struct_class, pico8_nf_def.me, pico8_nf_def.t);
     self->def = &pico8_nf_def;
     /* Read-only: this module writes through its member. */
-    self->header.ra = (const pico8_vec_t *const *)&self->ra;
+    self->header.pos = (const pico8_vec_t *const *)&self->ra;
     self->ra = &g_nf_ra;
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("nf");
@@ -77,7 +77,7 @@ int pico8_nf_ready(void) {
     return g_nf_up;
 }
 
-const pico8_struct_class_t *pico8_nf_struct_class(void) {
+const entity_class_t *pico8_nf_struct_class(void) {
     return &g_nf_struct_class;
 }
 

@@ -135,7 +135,7 @@ static uint32_t fold_qh(uint32_t h, const pico8_jo_t *qh) {
 
 /* `e` as an ascension, a `pm` or an `mx`: an `hj` first. */
 static pico8_jo_t *as_hj(void *e) {
-    const pico8_struct_class_t *c = ((const pico8_struct_header_t *)e)->cls;
+    const entity_class_t *c = ((const entity_t *)e)->class;
     assert(c == pico8_hj_struct_class() || c == pico8_pm_struct_class() || c == pico8_mx_struct_class());
     return e;
 }
@@ -189,46 +189,46 @@ static pico8_vec_t vec_xy(int x, int y) {
     return pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
 }
 
-static const pico8_struct_class_t *cls_of(const void *e) {
-    return ((const pico8_struct_header_t *)e)->cls;
+static const entity_class_t *cls_of(const void *e) {
+    return ((const entity_t *)e)->class;
 }
 
 /* The members a planet of qh's tree holds: `kj`, `ev`, `hd`, `hk`, `hb`,
  * `ldown`, `gv`, `hq`, `ey`, `kf`, `cn` and the states `ll`, `ly`; `mm`
  * aside, no other. */
-static void assert_qh_shape(const pico8_struct_class_t *c) {
-    assert(c->kj != NULL && c->ev != NULL && c->hd != NULL && c->hk != NULL && c->hb != NULL && c->ldown != NULL &&
-           c->gv != NULL && c->states[PICO8_STATE_LL] != NULL && c->states[PICO8_STATE_LY] != NULL);
-    assert(c->has_hb == NULL && c->rdown == NULL && c->states[PICO8_STATE_PH] == NULL &&
-           c->states[PICO8_STATE_KZ] == NULL && c->states[PICO8_STATE_PR] == NULL);
-    assert(c->hq != NULL && c->ey != NULL && c->kf != NULL && c->cn != NULL && c->ol == NULL);
+static void assert_qh_shape(const entity_class_t *c) {
+    assert(c->draw != NULL && c->draw_overlay != NULL && c->hit_test != NULL && c->new_year != NULL && c->refresh != NULL && c->left_press != NULL &&
+           c->accept_drop != NULL && c->states[ENTITY_STATE_VANISHING] != NULL && c->states[ENTITY_STATE_SETTLED] != NULL);
+    assert(c->has_refresh == NULL && c->right_press == NULL && c->states[ENTITY_STATE_NORMAL] == NULL &&
+           c->states[ENTITY_STATE_PLACING] == NULL && c->states[ENTITY_STATE_UNFOLDING] == NULL);
+    assert(c->drag != NULL && c->drop != NULL && c->attach_slipway != NULL && c->offer_trade != NULL && c->draw_at == NULL);
 }
 
 /* `c` holds `ref`'s very members but `kf`, `cn` and `mm`, `kj` and the
  * state `ly` included when `with_kj`/`with_ly`. */
-static void assert_members_of(const pico8_struct_class_t *c, const pico8_struct_class_t *ref, int with_kj,
+static void assert_members_of(const entity_class_t *c, const entity_class_t *ref, int with_kj,
                               int with_ly) {
-    assert(c->ev == ref->ev && c->hd == ref->hd && c->hk == ref->hk && c->hb == ref->hb && c->has_hb == ref->has_hb &&
-           c->ldown == ref->ldown && c->rdown == ref->rdown && c->gv == ref->gv);
-    assert(c->states[PICO8_STATE_LL] == ref->states[PICO8_STATE_LL] && c->hq == ref->hq && c->ey == ref->ey);
-    assert(!with_kj || c->kj == ref->kj);
-    assert(!with_ly || c->states[PICO8_STATE_LY] == ref->states[PICO8_STATE_LY]);
+    assert(c->draw_overlay == ref->draw_overlay && c->hit_test == ref->hit_test && c->new_year == ref->new_year && c->refresh == ref->refresh && c->has_refresh == ref->has_refresh &&
+           c->left_press == ref->left_press && c->right_press == ref->right_press && c->accept_drop == ref->accept_drop);
+    assert(c->states[ENTITY_STATE_VANISHING] == ref->states[ENTITY_STATE_VANISHING] && c->drag == ref->drag && c->drop == ref->drop);
+    assert(!with_kj || c->draw == ref->draw);
+    assert(!with_ly || c->states[ENTITY_STATE_SETTLED] == ref->states[ENTITY_STATE_SETTLED]);
 }
 
 /* `kv["pm"]` as `jo:hu` calls it: `p`, `ra`, `id`, each only when given. */
 static void *build_protostar(const pico8_vec_t *p, const pico8_vec_t *ra, const char *id) {
-    pico8_jo_keys_t keys;
+    planet_keys_t keys;
     void *made;
 
-    keys.p = NULL;
-    keys.ra = NULL;
+    keys.map_pos = NULL;
+    keys.pos = NULL;
     if (p != NULL) {
-        keys.p = vec_ref(*p);
+        keys.map_pos = vec_ref(*p);
     }
     if (ra != NULL) {
-        keys.ra = vec_ref(*ra);
+        keys.pos = vec_ref(*ra);
     }
-    keys.id = id;
+    keys.planet_id = id;
     made = pico8_pm_new(&keys);
     assert(made != NULL);
     return made;
@@ -237,7 +237,7 @@ static void *build_protostar(const pico8_vec_t *p, const pico8_vec_t *ra, const 
 /* `pm` sets its own `px`: an entity whose `px` is the very table of pm's
  * class is a protostar. */
 static int is_pm(const void *e) {
-    const pico8_jo_t *jo = e != NULL && (cls_of(e)->lineage & PICO8_LINEAGE(PICO8_LINEAGE_QH)) ? e : NULL;
+    const pico8_jo_t *jo = e != NULL && (cls_of(e)->lineage & LINEAGE(LINEAGE_STRUCTURE)) ? e : NULL;
     return jo != NULL && jo->def->px == &pico8_pm_px_row;
 }
 
@@ -293,8 +293,8 @@ static uint32_t fold_protostar(uint32_t h, void *e) {
     assert(cls_of(e) == pico8_pm_struct_class());
     pm = e;
     h = fold_string_member(h, jo->id);
-    h = fold_string_member(h, jo->header.me);
-    h = fold_fixed_member(h, jo->header.t);
+    h = fold_string_member(h, jo->header.state);
+    h = fold_fixed_member(h, jo->header.state_time);
     h = fold_string_member(h, pm->def->fz);
     h = fold_string_member(h, hj->def->rr);
     h = fold_qh(h, qh);
@@ -386,13 +386,13 @@ static uint32_t fold_protostar(uint32_t h, void *e) {
     assert(ptrs_size(em->qy) == 0);
     assert_qh_shape(cls_of(e));
     assert_members_of(cls_of(e), pico8_qh_struct_class(), 0, 1);
-    assert(cls_of(e)->kf == pico8_qh_struct_class()->kf && cls_of(e)->cn == pico8_qh_struct_class()->cn &&
+    assert(cls_of(e)->attach_slipway == pico8_qh_struct_class()->attach_slipway && cls_of(e)->offer_trade == pico8_qh_struct_class()->offer_trade &&
            pico8_jo_is_family(e));
-    assert(cls_of(e)->mm == pico8_hj_struct_class()->mm && cls_of(e)->mm != NULL);
-    assert(cls_of(e)->kj == pico8_hj_struct_class()->kj);
+    assert(cls_of(e)->spawn_particle == pico8_hj_struct_class()->spawn_particle && cls_of(e)->spawn_particle != NULL);
+    assert(cls_of(e)->draw == pico8_hj_struct_class()->draw);
     assert(pm->def->ng.x == pico8_fixed_from_int(1) && pm->def->ng.y == 0);
-    assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)) && qh->def->px == &pico8_pm_px_row && em->k_ == &pico8_pm_k__seq);
-    assert(jo->header.cls->tags != (PICO8_TAG(PICO8_TAG_HJ) | PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)));
+    assert(jo->header.class->tags == (TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && qh->def->px == &pico8_pm_px_row && em->k_ == &pico8_pm_k__seq);
+    assert(jo->header.class->tags != (TAG(TAG_ASCENSION) | TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)));
     assert(em->k_ != &pico8_hj_k__seq);
     assert(qh->def->ba == &pico8_qh_ba_seq);
     assert(jo->def == &pico8_pm_def);
@@ -448,7 +448,7 @@ static uint32_t fold_dg(uint32_t h, void *e) {
 
     h = fold_ra_y(h, hj);
     pico8_dg();
-    h = fold_fixed_member(h, hj->header.t);
+    h = fold_fixed_member(h, hj->header.state_time);
     return fold_ra_y(h, hj);
 }
 
@@ -498,14 +498,14 @@ static void test_life(void) {
     ra = pico8_vec_add(*mo_ra, vec_xy(12, 108));
     placed = build_protostar(&p, &ra, "s90");
     h = fold_spawned(h, placed);
-    assert(strcmp(as_hj(placed)->header.me, "ly") == 0);
+    assert(strcmp(as_hj(placed)->header.state, "ly") == 0);
 
     h = fold_economy(h, placed);
     for (i = 0; i < 3; i++) {
         h = fold_dg(h, placed);
     }
 
-    h = fold_particle(h, cls_of(placed)->mm(placed));
+    h = fold_particle(h, cls_of(placed)->spawn_particle(placed));
     pico8_ez(placed, PICO8_FIXED_LIT(0x00028000, 2.5));
     h = fnv(h, (uint32_t)ptrs_size(as_hj(placed)->emitter->qy));
     assert(ptrs_size(as_hj(placed)->emitter->qy) >= 2);
@@ -529,14 +529,14 @@ static void test_life(void) {
 
 static int is_a_pm_struct(const void *e) {
     return e != NULL &&
-           ((const pico8_struct_header_t *)e)->cls == pico8_pm_struct_class();
+           ((const entity_t *)e)->class == pico8_pm_struct_class();
 }
 
 /* Built by `kv["pm"]` or pico8_pm_new, a protostar is a struct whose
  * descriptor holds hj's very entries. pm's class keeps no `pq` of its own. */
 static void test_pm_is_a_struct(void) {
-    const pico8_struct_class_t *cls = pico8_pm_struct_class();
-    const pico8_struct_class_t *hj = pico8_hj_struct_class();
+    const entity_class_t *cls = pico8_pm_struct_class();
+    const entity_class_t *hj = pico8_hj_struct_class();
     pico8_vec_t p = vec_xy(40, 50);
     pico8_vec_t ra = vec_xy(7700, 7600);
     void *a;
@@ -546,7 +546,7 @@ static void test_pm_is_a_struct(void) {
     assert(is_a_pm_struct(a) && cls != hj && ents_listed(pico8_cg("jo"), a) && !ents_listed(pico8_cg("hj"), a));
     assert_qh_shape(cls);
     assert_members_of(cls, hj, 1, 1);
-    assert(cls->kf == hj->kf && cls->cn == hj->cn && cls->mm == hj->mm);
+    assert(cls->attach_slipway == hj->attach_slipway && cls->offer_trade == hj->offer_trade && cls->spawn_particle == hj->spawn_particle);
     assert(pico8_pm_ready());
     {
         pico8_jo_t *bare = pico8_pm_new(NULL);
@@ -611,7 +611,7 @@ static void test_leaving_gives_back_its_particles(void) {
     pico8_cart_vider_file_sortie();
     e = as_hj(build_protostar(&at, &at, "s90"));
     pico8_ez(&e->header, pico8_fixed_from_int(5));
-    cls_of(e)->hb(&e->header);
+    cls_of(e)->refresh(&e->header);
     assert(e->emitter->qy->count == 5);
     built = held_now();
     pico8_he(&e->header);

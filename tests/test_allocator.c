@@ -78,7 +78,7 @@ static int case_bump_grow_past_capacity(void) {
 
 #define LIST_LENGTH 12
 
-static pico8_struct_header_t cells[LIST_LENGTH];
+static entity_t cells[LIST_LENGTH];
 
 static pico8_ents_t grown_ents(void) {
     pico8_ents_t ents;
@@ -87,7 +87,7 @@ static pico8_ents_t grown_ents(void) {
     return ents;
 }
 
-static int is_even_cell(pico8_struct_header_t *e, void *ctx) {
+static int is_even_cell(entity_t *e, void *ctx) {
     (void)ctx;
     return (e - cells) % 2 == 0;
 }
@@ -106,7 +106,7 @@ static int case_ents_grow_keeps_order(void) {
     for (int i = 0; i < LIST_LENGTH / 2; i++) assert(even.items[i] == &cells[2 * i]);
 
     pico8_ents_iter_t it = pico8_ents_all(&ents);
-    pico8_struct_header_t *e;
+    entity_t *e;
     int seen = 0;
     while (pico8_ents_iter_next(&it, &e)) {
         assert(e == &cells[seen] && "all() voit chaque element malgre la suppression");

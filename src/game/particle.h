@@ -48,8 +48,8 @@ typedef struct pico8_emitter {
 /* Gives back the list `self` already has (pico8_qy_rendre), then takes a
  * fresh one, reserved to its capacity: `fv` takes `qy_fv`, every other
  * host `qy` by pico8_f_. */
-void pico8_f_(pico8_struct_header_t *self);
-void pico8_f__dans(pico8_struct_header_t *self, pico8_particules_sorte_t sorte);
+void pico8_f_(entity_t *self);
+void pico8_f__dans(entity_t *self, pico8_particules_sorte_t sorte);
 
 /* An uninitialised place of the `particule` sort; given back by `ei` or
  * pico8_qy_rendre once in a `qy`. */
@@ -69,15 +69,15 @@ void pico8_qy_rendre(pico8_emitter_t *emitter);
  * from `n` each turn: a fractional `n` genuinely has a chance of spawning
  * one more particle than `flr(n)`. A `self` whose class chain has no `mm`
  * adds nothing. */
-void pico8_ez(pico8_struct_header_t *self, pico8_fixed_t n);
+void pico8_ez(entity_t *self, pico8_fixed_t n);
 
 /* Takes gfx/mem explicitly, for the classes whose own `kj` calls it as a
  * plain function; `pico8_ei_dispatch` below is the same work reached
  * through a `kj` field, reading both from the dispatch context instead. */
-void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *self);
+void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, entity_t *self);
 
 /* `ra` is never read: `ei` declares only `self`, so Lua drops the
  * `entity.ra` argument `dc()` passes. */
-void pico8_ei_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra);
+void pico8_ei_dispatch(entity_t *self, const pico8_vec_t *ra);
 
 #endif

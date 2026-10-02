@@ -16,7 +16,7 @@
  * every nf shares; the first `ph` points it at `ra_own`, rewritten in place
  * from then on. Never copy the struct. */
 typedef struct {
-    pico8_struct_header_t header;
+    entity_t header;
     const pico8_nf_def_t *def;
     pico8_vec_t *ra;
     pico8_vec_t ra_own;
@@ -36,7 +36,7 @@ const pico8_nf_button_t *pico8_nf_r(void);
 
 /* 1 from pico8_nf_init() to pico8_nf_shutdown(), 0 otherwise. */
 int pico8_nf_ready(void);
-const pico8_struct_class_t *pico8_nf_struct_class(void);
+const entity_class_t *pico8_nf_struct_class(void);
 
 /* The struct enables devkit mouse reporting, registers itself through `lt`;
  * it lives in the current game-zone generation. */

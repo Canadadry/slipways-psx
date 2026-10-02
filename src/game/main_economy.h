@@ -20,7 +20,7 @@ typedef struct {
  * at `po_own`/`fu_own`, which every pico8_hy_lj() refills in place. `hl` is
  * absent before the first pico8_hy_lj(). */
 typedef struct {
-    pico8_struct_header_t header;
+    entity_t header;
     const pico8_hy_def_t *def;
     pico8_fixed_t nz;
     pico8_fixed_t ge;
@@ -43,14 +43,14 @@ typedef struct {
  * no method and no writer; `jk`/`nz` are written only by the cheat code, and
  * set back to nil by every `pico8_probe_init()`. */
 typedef struct {
-    pico8_struct_header_t header;
+    entity_t header;
     pico8_fixed_t jk;
     int has_jk; /* 0: `jk` is nil, and is then never read */
     pico8_fixed_t nz;
     int has_nz; /* 0: `nz` is nil, and is then never read */
 } pico8_fm_placeholder_t;
 
-const pico8_struct_class_t *pico8_fm_placeholder_struct_class(void);
+const entity_class_t *pico8_fm_placeholder_struct_class(void);
 
 /* `fm`: the provisional, a static struct that has only `jk`/`nz` (written by
  * the cheat code), which `pico8_probe_init()` installs, then, from `eu()` on,
@@ -58,8 +58,8 @@ const pico8_struct_class_t *pico8_fm_placeholder_struct_class(void);
  * NULL before init and after shutdown, which several callers test for. The
  * setter only repoints: from `_init` to the next `eu()` the slot still holds
  * the quit game's `hy`, alive until the flush that follows that `eu()`. */
-pico8_struct_header_t *pico8_fm(void);
-void pico8_probe_set_fm(pico8_struct_header_t *instance);
+entity_t *pico8_fm(void);
+void pico8_probe_set_fm(entity_t *instance);
 
 /* The `hy` of `fm`, NULL when the slot is empty and on the provisional. */
 pico8_hy_t *pico8_fm_hy(void);

@@ -80,7 +80,7 @@ static uint32_t fold_bool_member(uint32_t h, int has, int b) {
 /* The kind words are constant by the struct's shape, kept so that the
  * sequence hashes still prove the typed reads. */
 static uint32_t fold_veil(uint32_t h, const pico8_fq_t *e) {
-    h = fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)e->header.t);
+    h = fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)e->header.state_time);
     h = fold_bool_member(h, (e->p_ != 0), e->p_);
     h = fold_bool_member(h, (e->m_ != 0), e->m_);
     h = fnv(h, (uint32_t)ents_listed(pico8_hv(), e));
@@ -110,7 +110,7 @@ static pico8_fq_t *veil_with_my(int answer) {
 }
 
 static int ldown(void *veil) {
-    pico8_down_t out = pico8_fq_struct_class()->ldown(veil, NULL, NULL);
+    down_t out = pico8_fq_struct_class()->left_press(veil, NULL, NULL);
 
     assert(out.held == NULL);
     return out.stop;
@@ -210,8 +210,8 @@ static int in_layer(int layer, const void *e) {
  * and, once the veil is gone, unmarks it through `gj`. */
 static void test_hover_loop_on_the_veil(void) {
     uint32_t h = 2166136261u;
-    pico8_down_t kn;
-    pico8_struct_header_t *kv = NULL;
+    down_t kn;
+    entity_t *kv = NULL;
     pico8_fq_t *veil;
 
     pico8__init();
@@ -257,7 +257,7 @@ static void test_defaults_match_the_parsed_spec(void) {
     assert(veil->def == &pico8_fq_def);
     assert(veil->def->fa == pico8_fixed_from_int(14));
     assert(veil->def->hd == pico8_fixed_from_int(1));
-    assert(veil->header.me != NULL && strcmp(veil->header.me, "ph") == 0);
+    assert(veil->header.state != NULL && strcmp(veil->header.state, "ph") == 0);
     assert(pico8_fq_ready());
     pico8_fq_shutdown();
     assert(!pico8_fq_ready());
@@ -266,7 +266,7 @@ static void test_defaults_match_the_parsed_spec(void) {
 
 static int is_a_veil_struct(const void *e) {
     return e != NULL &&
-           ((const pico8_struct_header_t *)e)->cls == pico8_fq_struct_class();
+           ((const entity_t *)e)->class == pico8_fq_struct_class();
 }
 
 /* Built by `pico8_fq_new` or through its class, a veil is a struct in hv
@@ -274,7 +274,7 @@ static int is_a_veil_struct(const void *e) {
  * neither `ph` nor `rdown`. */
 static void test_fq_is_a_struct_registered_under_hd(void) {
     const char *others[] = {"kj", "ev", "hk", "hb"};
-    const pico8_struct_class_t *cls = pico8_fq_struct_class();
+    const entity_class_t *cls = pico8_fq_struct_class();
     pico8_fq_keys_t keys = {0};
     void *built;
     void *generic;
@@ -292,8 +292,8 @@ static void test_fq_is_a_struct_registered_under_hd(void) {
     for (i = 0; i < 4; i++) {
         assert(!ents_listed(pico8_cv(others[i]), built) && !ents_listed(pico8_cv(others[i]), generic));
     }
-    assert(cls->hd == pico8_hd_true && cls->hd(generic, NULL, NULL) == 1);
-    assert(cls->states[PICO8_STATE_PH] == NULL && cls->rdown == NULL);
+    assert(cls->hit_test == pico8_hd_true && cls->hit_test(generic, NULL, NULL) == 1);
+    assert(cls->states[ENTITY_STATE_NORMAL] == NULL && cls->right_press == NULL);
     assert(((const pico8_fq_t *)built)->my == pico8_de_my());
 }
 

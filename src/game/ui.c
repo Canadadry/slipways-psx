@@ -19,7 +19,7 @@
 #include "engine/game_zone.h"
 
 static int g_ui_up = 0;
-static pico8_struct_header_t *g_je = NULL;
+static entity_t *g_je = NULL;
 static pico8_ui_t *g_ok = NULL;
 static pico8_ents_t g_shared_le;
 
@@ -48,14 +48,14 @@ void pico8_ui_set_le(pico8_ui_t *self, pico8_ents_t *le) {
     }
 }
 
-static const pico8_struct_class_t g_je_placeholder_struct_class = {0};
+static const entity_class_t g_je_placeholder_struct_class = {0};
 
 typedef struct {
-    pico8_struct_header_t header;
+    entity_t header;
 } pico8_je_placeholder_t;
 
 /* The only one: never allocated, never freed. */
-static pico8_je_placeholder_t g_je_placeholder = {{.cls = &g_je_placeholder_struct_class}};
+static pico8_je_placeholder_t g_je_placeholder = {{.class = &g_je_placeholder_struct_class}};
 
 static int pico8_ui_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
@@ -89,7 +89,7 @@ static int pico8_ui_je_button_field_bool(const char *bt, const char *field) {
     return b->hm;
 }
 
-static void pico8_ui_ev_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
+static void pico8_ui_ev_dispatch(entity_t *self, const pico8_vec_t *ra) {
     (void)ra;
     pico8_ui_ev(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_ui_t *)self);
 }
@@ -101,13 +101,13 @@ static void pico8_ui_le_rendre(pico8_ui_t *self) {
     self->le = NULL;
 }
 
-static void pico8_ui_rendre_dispatch(pico8_struct_header_t *self) {
+static void pico8_ui_rendre_dispatch(entity_t *self) {
     pico8_ui_le_rendre((pico8_ui_t *)self);
 }
 
-static const pico8_struct_class_t g_ui_struct_class = {
-    .ev = pico8_ui_ev_dispatch,
-    .rendre = pico8_ui_rendre_dispatch,
+static const entity_class_t g_ui_struct_class = {
+    .draw_overlay = pico8_ui_ev_dispatch,
+    .release = pico8_ui_rendre_dispatch,
 };
 
 static pico8_ui_t *pico8_ui_struct_new(void) {
@@ -118,8 +118,8 @@ static pico8_ui_t *pico8_ui_struct_new(void) {
     self = (pico8_ui_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *self);
     pico8_ke_struct_init(&self->header, &g_ui_struct_class, pico8_ui_def.me, pico8_ui_def.t);
     self->def = &pico8_ui_def;
-    self->header.fa = &self->def->fa;
-    self->header.ql = &self->def->ql;
+    self->header.layer = &self->def->fa;
+    self->header.cursor_sprite = &self->def->ql;
     self->le = &g_shared_le;
     self->qa = NULL;
     self->ic = NULL;
@@ -144,7 +144,7 @@ void pico8_ui_init(void) {
     pico8_ents_init(&g_shared_le, pico8_zone_chargement());
     g_ui_up = 1;
 
-    g_je = (pico8_struct_header_t *)&g_je_placeholder;
+    g_je = (entity_t *)&g_je_placeholder;
 }
 
 void pico8_ui_shutdown(void) {
@@ -154,7 +154,7 @@ void pico8_ui_shutdown(void) {
     g_ok = NULL;
 }
 
-const pico8_struct_class_t *pico8_je_placeholder_struct_class(void) {
+const entity_class_t *pico8_je_placeholder_struct_class(void) {
     return &g_je_placeholder_struct_class;
 }
 
@@ -162,7 +162,7 @@ int pico8_ui_ready(void) {
     return g_ui_up;
 }
 
-const pico8_struct_class_t *pico8_ui_struct_class(void) {
+const entity_class_t *pico8_ui_struct_class(void) {
     return &g_ui_struct_class;
 }
 
@@ -170,7 +170,7 @@ pico8_ui_t *pico8_ui_new(void) {
     return pico8_ui_struct_new();
 }
 
-pico8_struct_header_t *pico8_je(void) {
+entity_t *pico8_je(void) {
     return g_je;
 }
 
@@ -178,14 +178,14 @@ pico8_nf_t *pico8_je_nf(void) {
     if (g_je == NULL || g_je == &g_je_placeholder.header) {
         return NULL;
     }
-    assert(g_je->cls == pico8_nf_struct_class() && "je: only the placeholder or an nf is ever stored");
+    assert(g_je->class == pico8_nf_struct_class() && "je: only the placeholder or an nf is ever stored");
     return (pico8_nf_t *)g_je;
 }
 
 /* The outgoing instance lives on with its generation. `pico8_jl()` rebuilds
  * je/ok mid-frame, reachable from a click dispatched inside pico8_ui_lj,
  * whose `self` is still the old `ok` after the callback returns. */
-void pico8_ui_set_je(pico8_struct_header_t *instance) {
+void pico8_ui_set_je(entity_t *instance) {
     if (instance == g_je) {
         return;
     }
@@ -258,7 +258,7 @@ void pico8_ui_ev(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_ui_t *sel
     if (self->rheld != NULL) {
         spr_id = 9;
     } else if (self->o_ != NULL) {
-        spr_id = pico8_ui_to_int(self->o_->ql != NULL ? *self->o_->ql : self->def->ql);
+        spr_id = pico8_ui_to_int(self->o_->cursor_sprite != NULL ? *self->o_->cursor_sprite : self->def->ql);
     } else {
         spr_id = pico8_ui_to_int(self->def->ql);
     }
@@ -294,11 +294,11 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
     hd_bucket = pico8_cv("hd");
     if (hd_bucket != NULL) {
         for (i = 0; i < hd_bucket->count; i++) {
-            pico8_struct_header_t *e = hd_bucket->items[i];
+            entity_t *e = hd_bucket->items[i];
 
-            if (e->cls->hd != NULL && e->cls->hd(e, self->qa, je_ra)) {
-                if (e->fa != NULL) {
-                    int fa = pico8_ui_to_int(*e->fa);
+            if (e->class->hit_test != NULL && e->class->hit_test(e, self->qa, je_ra)) {
+                if (e->layer != NULL) {
+                    int fa = pico8_ui_to_int(*e->layer);
 
                     assert(fa >= 0 && fa < PICO8_UI_IC_LAYERS &&
                            "ui.ic: a hovered entity's fa outside 0..15, the layers jz walks -- stop, do not widen");
@@ -310,19 +310,19 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
     }
 
     if (self->gj != NULL) {
-        assert(self->gj->m_ != NULL &&
+        assert(self->gj->is_hovered != NULL &&
                "entity: a generic write names a field this struct has no member for -- stop, do not add a member");
-        *self->gj->m_ = 0;
+        *self->gj->is_hovered = 0;
     }
 
     if (self->o_ != NULL) {
-        assert(self->o_->m_ != NULL &&
+        assert(self->o_->is_hovered != NULL &&
                "entity: a generic write names a field this struct has no member for -- stop, do not add a member");
-        *self->o_->m_ = 1;
+        *self->o_->is_hovered = 1;
     }
 
     if (self->o_ != NULL) {
-        poke_val = pico8_ui_to_int(self->o_->fg != NULL ? *self->o_->fg : pico8_fixed_from_int(0));
+        poke_val = pico8_ui_to_int(self->o_->gpio_signal != NULL ? *self->o_->gpio_signal : pico8_fixed_from_int(0));
     } else {
         int prev = pico8_peek(mem, 0x5f80);
         poke_val = (prev - 1 > 0) ? prev - 1 : 0;
@@ -330,14 +330,14 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
     pico8_poke(mem, 0x5f80, (unsigned char)poke_val);
 }
 
-static int ui_is_held_class(const pico8_struct_class_t *cls) {
+static int ui_is_held_class(const entity_class_t *cls) {
     return cls == pico8_jc_struct_class() || cls == pico8_g__struct_class() || cls == pico8_mz_struct_class() ||
-           (cls->states[PICO8_STATE_LY] != NULL && cls != pico8_pm_struct_class());
+           (cls->states[ENTITY_STATE_SETTLED] != NULL && cls != pico8_pm_struct_class());
 }
 
 void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
     int l;
-    pico8_struct_header_t *held_inst;
+    entity_t *held_inst;
     pico8_nf_t *je;
     pico8_vec_t *je_ra;
 
@@ -352,18 +352,18 @@ void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
     je_ra = je != NULL ? je->ra : NULL;
 
     if (pico8_ui_je_button_field_bool(bt, "jn")) {
-        pico8_struct_header_t *kv = NULL;
-        pico8_down_t kn;
+        entity_t *kv = NULL;
+        down_t kn;
 
         if (pico8_ui_jz(self, l ? PICO8_JZ_LDOWN : PICO8_JZ_RDOWN, self->qa, je_ra, NULL, &kv, &kn) &&
             kn.held != NULL) {
             if (l) {
-                assert(ui_is_held_class(kn.held->cls) &&
+                assert(ui_is_held_class(kn.held->class) &&
                        "ui.lheld: what an ldown hands over is a jc; a g_ or an mz from bg; a qh, os, nr, fr, nl, mx "
                        "or hj from an ie");
                 self->lheld = kn.held;
             } else {
-                assert(kn.held->cls == pico8_bg_struct_class() && "ui.rheld: what an rdown hands over is the bg");
+                assert(kn.held->class == pico8_bg_struct_class() && "ui.rheld: what an rdown hands over is the bg");
                 self->rheld = (pico8_bg_t *)kn.held;
             }
         }
@@ -371,20 +371,20 @@ void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
 
     held_inst = l ? self->lheld : (self->rheld != NULL ? &self->rheld->header : NULL);
 
-    if (held_inst != NULL && held_inst->cls->hq != NULL) {
-        held_inst->cls->hq(held_inst, self->qa, je_ra);
+    if (held_inst != NULL && held_inst->class->drag != NULL) {
+        held_inst->class->drag(held_inst, self->qa, je_ra);
     }
 
     if (pico8_ui_je_button_field_bool(bt, "hm") && held_inst != NULL) {
-        pico8_struct_header_t *nw_kv = NULL;
-        pico8_down_t nw_kn;
+        entity_t *nw_kv = NULL;
+        down_t nw_kn;
 
         /* `ey`'s argument is the entity `jz` found, not a field read on
          * `held`: no object in this cart carries a "kv" field. */
         (void)pico8_ui_jz(self, PICO8_JZ_GV, NULL, NULL, held_inst, &nw_kv, &nw_kn);
 
-        if (held_inst->cls->ey != NULL) {
-            held_inst->cls->ey(held_inst, nw_kv);
+        if (held_inst->class->drop != NULL) {
+            held_inst->class->drop(held_inst, nw_kv);
         }
         if (l) {
             self->lheld = NULL;
@@ -397,8 +397,8 @@ void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
 /* Layers descend from 15 to 0 and the first truthy answer wins: that order
  * is the dispatch priority between overlapping entities, not an arbitrary
  * walk. */
-int pico8_ui_jz(pico8_ui_t *self, pico8_jz_slot_t rm, pico8_vec_t *qa, pico8_vec_t *ra, const pico8_struct_header_t *s,
-                pico8_struct_header_t **out_kv, pico8_down_t *out_kn) {
+int pico8_ui_jz(pico8_ui_t *self, pico8_jz_slot_t rm, pico8_vec_t *qa, pico8_vec_t *ra, const entity_t *s,
+                entity_t **out_kv, down_t *out_kn) {
     int mf;
 
     if (self == NULL) {
@@ -414,23 +414,23 @@ int pico8_ui_jz(pico8_ui_t *self, pico8_jz_slot_t rm, pico8_vec_t *qa, pico8_vec
         int i;
 
         for (i = 0; i < bucket->count; i++) {
-            pico8_struct_header_t *h = bucket->items[i];
-            pico8_down_t kn = {0, NULL};
+            entity_t *h = bucket->items[i];
+            down_t kn = {0, NULL};
 
             switch (rm) {
             case PICO8_JZ_LDOWN:
-                if (h->cls->ldown != NULL) {
-                    kn = h->cls->ldown(h, qa, ra);
+                if (h->class->left_press != NULL) {
+                    kn = h->class->left_press(h, qa, ra);
                 }
                 break;
             case PICO8_JZ_RDOWN:
-                if (h->cls->rdown != NULL) {
-                    kn = h->cls->rdown(h, qa, ra);
+                if (h->class->right_press != NULL) {
+                    kn = h->class->right_press(h, qa, ra);
                 }
                 break;
             case PICO8_JZ_GV:
-                if (h->cls->gv != NULL) {
-                    kn = h->cls->gv(h, s);
+                if (h->class->accept_drop != NULL) {
+                    kn = h->class->accept_drop(h, s);
                 }
                 break;
             }
@@ -452,7 +452,7 @@ void pico8_ui_cj(pico8_ui_t *self) {
 
     if (self->le != NULL) {
         pico8_ents_iter_t it = pico8_ents_all(self->le);
-        pico8_struct_header_t *e;
+        entity_t *e;
         while (pico8_ents_iter_next(&it, &e)) {
             if (e != NULL) {
                 pico8_he(e);

@@ -42,7 +42,7 @@ void pico8_mh_pq(pico8_mh_t *self) {
     pico8_msgbox_set_kc(self);
 }
 
-static void pico8_mh_ev_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
+static void pico8_mh_ev_dispatch(entity_t *self, const pico8_vec_t *ra) {
     (void)ra;
     pico8_mh_ev(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_mh_t *)self);
 }
@@ -54,13 +54,13 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self) {
         return;
     }
 
-    self_t = self->header.t;
+    self_t = self->header.state_time;
     rh = self->rh;
     t = pico8_fixed_sub(pico8_fixed_div(self_t, rh), pico8_fixed_from_int(10));
 
     if (t >= 0) {
         if (self->lh != NULL && self->lh(self)) {
-            self->header.t = pico8_fixed_mul(rh, pico8_fixed_from_int(10));
+            self->header.state_time = pico8_fixed_mul(rh, pico8_fixed_from_int(10));
             t = pico8_fixed_from_int(0);
         }
     }
@@ -82,14 +82,14 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self) {
     }
 }
 
-static void pico8_mh_rendre(pico8_struct_header_t *self) {
+static void pico8_mh_rendre(entity_t *self) {
     pico8_zone_arene_rendre(((pico8_mh_t *)self)->place);
 }
 
-static const pico8_struct_class_t g_mh_struct_class = {
-    .ev = pico8_mh_ev_dispatch,
-    .tags = PICO8_TAG(PICO8_TAG_MH),
-    .rendre = pico8_mh_rendre,
+static const entity_class_t g_mh_struct_class = {
+    .draw_overlay = pico8_mh_ev_dispatch,
+    .tags = TAG(TAG_MESSAGE_BOX),
+    .release = pico8_mh_rendre,
 };
 
 /* An article `ld` copied into a box's place, its vector by value. */
@@ -130,10 +130,10 @@ static pico8_mh_t *pico8_mh_struct_new(const pico8_mh_keys_t *keys) {
     self->place = place;
     pico8_ke_struct_init(&self->header, &g_mh_struct_class, pico8_mh_def.me, pico8_mh_def.t);
     self->def = &pico8_mh_def;
-    self->header.fa = &self->def->fa;
+    self->header.layer = &self->def->fa;
     self->rh = self->def->rh;
     self->lh = NULL;
-    self->header.p_ = &self->p_;
+    self->header.is_dead = &self->p_;
     self->p_ = 0;
     self->items_count = 0;
     if (keys != NULL) {
@@ -212,7 +212,7 @@ void pico8_iv_ph(pico8_iv_t *self) {
     self->p_ = new_l >= pico8_fixed_from_int(5);
 }
 
-static void pico8_iv_ph_dispatch(pico8_struct_header_t *self, pico8_fixed_t t) {
+static void pico8_iv_ph_dispatch(entity_t *self, pico8_fixed_t t) {
     (void)t;
     pico8_iv_ph((pico8_iv_t *)self);
 }
@@ -236,19 +236,19 @@ void pico8_iv_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_iv_t *sel
     pico8_dv_default(mem);
 }
 
-static void pico8_iv_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
+static void pico8_iv_kj_dispatch(entity_t *self, const pico8_vec_t *ra) {
     pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     pico8_iv_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_iv_t *)self, p);
 }
 
-static void pico8_iv_rendre(pico8_struct_header_t *self) {
+static void pico8_iv_rendre(entity_t *self) {
     pico8_zone_arene_rendre(((pico8_iv_t *)self)->place);
 }
 
-static const pico8_struct_class_t g_iv_struct_class = {
-    .kj = pico8_iv_kj_dispatch,
-    .states = {[PICO8_STATE_PH] = pico8_iv_ph_dispatch},
-    .rendre = pico8_iv_rendre,
+static const entity_class_t g_iv_struct_class = {
+    .draw = pico8_iv_kj_dispatch,
+    .states = {[ENTITY_STATE_NORMAL] = pico8_iv_ph_dispatch},
+    .release = pico8_iv_rendre,
 };
 
 static pico8_iv_t *pico8_iv_struct_new(const pico8_iv_keys_t *keys) {
@@ -259,11 +259,11 @@ static pico8_iv_t *pico8_iv_struct_new(const pico8_iv_keys_t *keys) {
 
     pico8_ke_struct_init(&self->header, &g_iv_struct_class, pico8_iv_def.me, pico8_iv_def.t);
     self->def = &pico8_iv_def;
-    self->header.fa = &self->def->fa;
-    self->header.ra = &self->ra;
+    self->header.layer = &self->def->fa;
+    self->header.pos = &self->ra;
     self->l = self->def->l;
     self->ra = NULL;
-    self->header.p_ = &self->p_;
+    self->header.is_dead = &self->p_;
     self->p_ = 0;
     self->at1 = NULL;
     self->at2 = pico8_fixed_from_int(0);

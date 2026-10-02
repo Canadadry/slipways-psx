@@ -111,8 +111,8 @@ static int ents_listed(const pico8_ents_t *list, const void *e) {
     return ents_rank_in(list, e) >= 0;
 }
 
-static const pico8_struct_class_t *cls_of(const void *e) {
-    return ((const pico8_struct_header_t *)e)->cls;
+static const entity_class_t *cls_of(const void *e) {
+    return ((const entity_t *)e)->class;
 }
 
 static int is_js(const void *e) {
@@ -192,7 +192,7 @@ static int in_gb(const void *e) {
 
 static int is_lq(const void *e) {
     return e != NULL &&
-           ((const pico8_struct_header_t *)e)->cls == pico8_lq_struct_class();
+           ((const entity_t *)e)->class == pico8_lq_struct_class();
 }
 
 static int row_count(const void *lq) {
@@ -304,7 +304,7 @@ static uint32_t fold_built_h_(uint32_t h, const pico8_js_t *b) {
 
 static uint32_t fold_kq(uint32_t h, const pico8_js_t *b) {
     static const int dy[] = {-2, -1, 0, 5, 9, 10, 11};
-    const pico8_qz_box_t *kq = b->header.kq;
+    const pico8_qz_box_t *kq = b->header.hit_box;
     int mb = pico8_fixed_flr_int(b->mb);
     int dx[6];
     size_t i;
@@ -337,8 +337,8 @@ static uint32_t fold_button(uint32_t h, const void *e) {
     const pico8_js_t *b = js_of(e);
     size_t i;
 
-    assert(b->header.me != NULL && strcmp(b->header.me, "ph") == 0);
-    h = fold_fixed(h, b->header.t);
+    assert(b->header.state != NULL && strcmp(b->header.state, "ph") == 0);
+    h = fold_fixed(h, b->header.state_time);
     h = fold_fixed(h, b->fa);
     h = fold_fixed(h, b->mb);
     h = fold_kq(h, b);
@@ -374,9 +374,9 @@ static uint32_t fold_button(uint32_t h, const void *e) {
         h = fnv(h, 0u);
     }
     h = fnv(h, m__state(b));
-    assert(cls_of(b)->states[PICO8_STATE_PH] != NULL && cls_of(b)->kj != NULL && cls_of(b)->ev != NULL &&
-           cls_of(b)->ldown != NULL && cls_of(b)->hd != NULL);
-    assert(cls_of(b)->rdown == NULL && cls_of(b)->gv == NULL && cls_of(b)->hk == NULL);
+    assert(cls_of(b)->states[ENTITY_STATE_NORMAL] != NULL && cls_of(b)->draw != NULL && cls_of(b)->draw_overlay != NULL &&
+           cls_of(b)->left_press != NULL && cls_of(b)->hit_test != NULL);
+    assert(cls_of(b)->right_press == NULL && cls_of(b)->accept_drop == NULL && cls_of(b)->new_year == NULL);
     h = fnv(h, (uint32_t)ents_listed(pico8_hv(), b));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
         h = fnv(h, (uint32_t)ents_listed(pico8_cv(bm[i]), b));
@@ -431,7 +431,7 @@ static void check_int(const char *label, int got, int want) {
 static void sortir_l_aide(void) {
     const pico8_ents_t *hv = pico8_hv();
     for (int i = 0; i < hv->count; i++) {
-        if (hv->items[i]->cls == pico8_fv_struct_class()) {
+        if (hv->items[i]->class == pico8_fv_struct_class()) {
             pico8_he(hv->items[i]);
             pico8_cart_vider_file_sortie();
             return;
@@ -519,12 +519,12 @@ static void *built_world(void) {
     *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
                         pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
-    pico8_jc_struct_class()->hq(&jc->header, mp, NULL);
+    pico8_jc_struct_class()->drag(&jc->header, mp, NULL);
     pico8_ok()->o_ = NULL;
-    while (jc->header.t < pico8_fixed_from_int(15)) {
+    while (jc->header.state_time < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
-    pico8_jc_struct_class()->ey(&jc->header, re);
+    pico8_jc_struct_class()->drop(&jc->header, re);
     for (i = 0; i < 120; i++) {
         pico8_dg();
     }
@@ -564,14 +564,14 @@ static void tech_screen(void) {
 
 /* The game's end: `pj:ph` once `hy.hl` is "final score". */
 static void game_end(void) {
-    pico8_struct_header_t *ju;
+    entity_t *ju;
 
     start_game();
     pico8_fm_hy()->hl = "final score";
     pico8_fm_hy()->has_hl = 1;
-    ju = (pico8_struct_header_t *)pico8_ju();
-    assert(ju->cls->states[PICO8_STATE_PH] != NULL);
-    ju->cls->states[PICO8_STATE_PH](ju, pico8_fixed_from_int(0));
+    ju = (entity_t *)pico8_ju();
+    assert(ju->class->states[ENTITY_STATE_NORMAL] != NULL);
+    ju->class->states[ENTITY_STATE_NORMAL](ju, pico8_fixed_from_int(0));
     one_frame();
 }
 
@@ -838,7 +838,7 @@ static void test_ph(void) {
     first_at = vec_of(first);
     while (steps < 40) {
         pico8_vec_t before = vec_of(js_of(b)->ra);
-        cls_of(b)->states[PICO8_STATE_PH](b, pico8_fixed_from_int(0));
+        cls_of(b)->states[ENTITY_STATE_NORMAL](b, pico8_fixed_from_int(0));
         steps++;
         h = fold_vec(h, js_of(b)->ra);
         if (vec_of(js_of(b)->ra).x == before.x && vec_of(js_of(b)->ra).y == before.y) {
@@ -863,7 +863,7 @@ static void counting_my(pico8_js_t *self) {
 static void test_ldown(void) {
     uint32_t h = 2166136261u;
     const pico8_js_keys_t none = {0};
-    pico8_down_t r;
+    down_t r;
     void *with_my;
     void *with_false;
 
@@ -871,10 +871,10 @@ static void test_ldown(void) {
     with_my = build(keyed_my(none, counting_my), "a", NULL);
     with_false = build(keyed_my(none, NULL), "b", NULL);
 
-    r = cls_of(with_my)->ldown(with_my, NULL, NULL);
+    r = cls_of(with_my)->left_press(with_my, NULL, NULL);
     assert(r.stop && r.held == NULL);
     assert(my_calls == 1 && my_self == with_my);
-    r = cls_of(with_false)->ldown(with_false, NULL, NULL);
+    r = cls_of(with_false)->left_press(with_false, NULL, NULL);
     assert(r.stop && r.held == NULL);
     assert(my_calls == 1);
     assert(my_state(with_false) == 1);
@@ -905,10 +905,10 @@ static void test_hb(void) {
     start_game();
     assert(ix_buttons(ix) == 4);
     for (i = 0; i < 4; i++) {
-        assert(cls_of(ix[i])->has_hb(ix[i]) == (i == 1));
+        assert(cls_of(ix[i])->has_refresh(ix[i]) == (i == 1));
     }
     before = js_of(ix[1])->lq;
-    cls_of(ix[1])->hb(ix[1]);
+    cls_of(ix[1])->refresh(ix[1]);
     cb = pico8_cb(0);
     affordable = cb.count > 0;
     assert(js_of(ix[1])->lq != before);
@@ -934,12 +934,12 @@ static void test_fe_my(void) {
             continue;
         }
         pt = js_of(b)->_jo_fe_pt;
-        h = fold_string_or_nil(h, pt->header.me);
+        h = fold_string_or_nil(h, pt->header.state);
         h = fnv(h, (uint32_t)pico8_hv()->count);
         call_my(b);
         printf("[fe my] row %d: planet me=%s, %d entities\n", i,
-               pt->header.me != NULL && strcmp(pt->header.me, "ly") == 0 ? "ly" : "not ly", pico8_hv()->count);
-        h = fold_string_or_nil(h, pt->header.me);
+               pt->header.state != NULL && strcmp(pt->header.state, "ly") == 0 ? "ly" : "not ly", pico8_hv()->count);
+        h = fold_string_or_nil(h, pt->header.state);
         h = fnv(h, (uint32_t)pico8_hv()->count);
         break;
     }
@@ -979,8 +979,8 @@ static void test_cr_my(void) {
 static uint32_t draw_alone(void *b) {
     pico8_camera(&gfx, 0, 0);
     pico8_cls(&mem);
-    cls_of(b)->kj(b, js_of(b)->ra);
-    cls_of(b)->ev(b, NULL);
+    cls_of(b)->draw(b, js_of(b)->ra);
+    cls_of(b)->draw_overlay(b, NULL);
     return screen_hash();
 }
 
@@ -1070,9 +1070,9 @@ static void test_js_is_a_struct(void) {
     assert(ix_buttons(ix) == 4);
     check_int("struct eu", all_buttons_are_structs(), 4);
     for (i = 0; i < 4; i++) {
-        assert(cls_of(ix[i])->has_hb(ix[i]) == (i == 1));
+        assert(cls_of(ix[i])->has_refresh(ix[i]) == (i == 1));
         if (i == 1) {
-            cls_of(ix[i])->hb(ix[i]);
+            cls_of(ix[i])->refresh(ix[i]);
         }
     }
     call_my(ix[3]);
@@ -1091,8 +1091,8 @@ static void test_js_is_a_struct(void) {
  * enum entries are gone. Any other value moves them. */
 enum { FIXED_KIND = 0, STRING_KIND = 1, BOOL_KIND = 2, REF_KIND = 3, FUNCTION_KIND = 4 };
 
-static int is_of_class(const void *ref, const pico8_struct_class_t *cls) {
-    return ref != NULL && ((const pico8_struct_header_t *)ref)->cls == cls;
+static int is_of_class(const void *ref, const entity_class_t *cls) {
+    return ref != NULL && ((const entity_t *)ref)->class == cls;
 }
 
 /* `my` or `hb` from its member, in the bytes the name reader's value folded
@@ -1156,7 +1156,7 @@ static uint32_t fold_js_members(uint32_t h, const void *e) {
     h = fold_member_fixed(h, 1, b->fa);
     h = fold_member_opt_ref(h, b->lq);
     h = fold_member_fixed(h, 1, b->mb);
-    h = b->header.kq != NULL ? fold_kq(fold_kind(h, REF_KIND), b) : fnv(h, 0u);
+    h = b->header.hit_box != NULL ? fold_kq(fold_kind(h, REF_KIND), b) : fnv(h, 0u);
     if (b->has_h_ && b->h_ == NULL) {
         h = fold_bool(fold_kind(h, BOOL_KIND), 0);
     } else {
@@ -1232,7 +1232,7 @@ static void write_m_(pico8_js_t *b, int present, int value) {
  * the typed reads. */
 static uint32_t fold_written(uint32_t h, void *e, void *other) {
     pico8_js_t *b = js_of(e);
-    const pico8_qz_box_t *kq_before = b->header.kq;
+    const pico8_qz_box_t *kq_before = b->header.hit_box;
     pico8_fixed_t mb = b->mb;
     pico8_lq_t *row;
     int i;
@@ -1266,7 +1266,7 @@ static uint32_t fold_written(uint32_t h, void *e, void *other) {
     b->lq = row;
     h = fold_js_members(h, e);
     b->lq = NULL;
-    assert(b->header.kq == kq_before);
+    assert(b->header.hit_box == kq_before);
     assert(b->mb == mb);
     h = fold_js_members(h, e);
     b->lq = row;
@@ -1425,7 +1425,7 @@ static uint32_t members_title_and_game(void) {
         assert(lq != NULL && is_lq(lq) && row_count(lq) == 0);
         assert(b->fa == pico8_fixed_from_int(11));
         assert(b->mb == pico8_fixed_add(lq->w, pico8_fixed_from_int(2)));
-        assert(b->header.kq != NULL);
+        assert(b->header.hit_box != NULL);
         assert(!b->has_h_ && b->jb == NULL && b->ra == NULL && b->qf == NULL && !b->m_);
         assert(!b->has_fg && b->px == NULL && !b->has_trade && !b->has_en && b->_cr_t == NULL);
         assert(b->_jo_fe_pt == NULL && b->_jo_fe_b == NULL && !b->has__jo_fe_od);
@@ -1634,18 +1634,18 @@ static void test_fe_free_row(void) {
 /* What `ix[4].my` hands `pz` as `p`: a struct without method, for as long
  * as `ha` lives. */
 static void test_ha_pz_is_a_struct(void) {
-    const pico8_struct_header_t *o;
+    const entity_t *o;
     size_t i;
 
     start_game();
     o = pico8_ha_pz();
-    assert(o != NULL && o->cls == pico8_ha_pz_struct_class());
-    assert(o->cls->kj == NULL && o->cls->ev == NULL && o->cls->hd == NULL && o->cls->hk == NULL &&
-           o->cls->hb == NULL && o->cls->ldown == NULL && o->cls->rdown == NULL && o->cls->gv == NULL);
-    assert(o->cls->hq == NULL && o->cls->ey == NULL && o->cls->kf == NULL && o->cls->cn == NULL && o->cls->ol == NULL &&
-           o->cls->mm == NULL);
-    for (i = 0; i < PICO8_STATE_COUNT; i++) {
-        assert(o->cls->states[i] == NULL);
+    assert(o != NULL && o->class == pico8_ha_pz_struct_class());
+    assert(o->class->draw == NULL && o->class->draw_overlay == NULL && o->class->hit_test == NULL && o->class->new_year == NULL &&
+           o->class->refresh == NULL && o->class->left_press == NULL && o->class->right_press == NULL && o->class->accept_drop == NULL);
+    assert(o->class->drag == NULL && o->class->drop == NULL && o->class->attach_slipway == NULL && o->class->offer_trade == NULL && o->class->draw_at == NULL &&
+           o->class->spawn_particle == NULL);
+    for (i = 0; i < STATE_COUNT; i++) {
+        assert(o->class->states[i] == NULL);
     }
 
     pico8_menu_shutdown();
@@ -1811,10 +1811,10 @@ static void test_ix2_row_places(void) {
     start_game();
     one_frame();
     assert(ix_buttons(ix) == 4);
-    cls_of(ix[1])->hb(ix[1]);
+    cls_of(ix[1])->refresh(ix[1]);
     once = rangee_places();
     for (i = 0; i < 5; i++) {
-        cls_of(ix[1])->hb(ix[1]);
+        cls_of(ix[1])->refresh(ix[1]);
         assert(rangee_places() == once && "the replaced row gives its place back on the spot");
     }
     pico8_he(&js_of(ix[1])->header);

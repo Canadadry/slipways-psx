@@ -256,12 +256,12 @@ static void built_world(void) {
     *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
                         pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
-    pico8_jc_struct_class()->hq(&jc->header, mp, NULL);
+    pico8_jc_struct_class()->drag(&jc->header, mp, NULL);
     pico8_ok()->o_ = NULL;
-    while (jc->header.t < pico8_fixed_from_int(15)) {
+    while (jc->header.state_time < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
-    pico8_jc_struct_class()->ey(&jc->header, re);
+    pico8_jc_struct_class()->drop(&jc->header, re);
     for (i = 0; i < 120; i++) {
         pico8_dg();
     }
@@ -269,18 +269,18 @@ static void built_world(void) {
 
 /* The descriptor every `iv` shares, taken off one built for that purpose;
  * it stays in `hv`. */
-static const pico8_struct_class_t *iv_descriptor(void) {
+static const entity_class_t *iv_descriptor(void) {
     pico8_iv_keys_t keys = {0};
     const pico8_iv_t *ref;
 
     keys.at1 = "ref";
     ref = pico8_iv_new(&keys);
-    return ref->header.cls;
+    return ref->header.class;
 }
 
 /* Every entry `hv` gained since it held `from` entries: its tag, and for an
  * `iv` the text and color it shows. */
-static uint32_t fold_new_entities(uint32_t h, int from, const pico8_struct_class_t *iv_cls) {
+static uint32_t fold_new_entities(uint32_t h, int from, const entity_class_t *iv_cls) {
     const pico8_ents_t *hv = pico8_hv();
     int i;
 
@@ -288,7 +288,7 @@ static uint32_t fold_new_entities(uint32_t h, int from, const pico8_struct_class
     for (i = from; i < hv->count; i++) {
         const void *e = hv->items[i];
         h = fnv(h, FROZEN_STRUCT_TAG);
-        if (((const pico8_struct_header_t *)e)->cls == iv_cls) {
+        if (((const entity_t *)e)->class == iv_cls) {
             const pico8_iv_t *iv = e;
             h = iv->at1 != NULL ? fold_string(fnv(h, (uint32_t)STRING_KIND), iv->at1)
                                 : fnv(fnv(h, (uint32_t)REF_KIND), 0xDEADu);
@@ -373,7 +373,7 @@ static void test_nx(void) {
  * and each planet of `cv.hk` shows its income. */
 static void test_hk(void) {
     uint32_t h = 2166136261u;
-    const pico8_struct_class_t *iv_cls;
+    const entity_class_t *iv_cls;
     pico8_fixed_t nz;
     pico8_fixed_t ge;
     pico8_fixed_t jk;
@@ -402,7 +402,7 @@ static void test_hk(void) {
     check("hk", h, HK_HASH);
 }
 
-static uint32_t lu_step(uint32_t h, pico8_hy_t *self, int jt, int want, const pico8_struct_class_t *iv_cls) {
+static uint32_t lu_step(uint32_t h, pico8_hy_t *self, int jt, int want, const entity_class_t *iv_cls) {
     int from = pico8_hv()->count;
     int got = pico8_hy_lu(self, pico8_fixed_from_int(jt));
     assert(got == want);
@@ -415,7 +415,7 @@ static uint32_t lu_step(uint32_t h, pico8_hy_t *self, int jt, int want, const pi
  * a payment: `nz` and the amount shown; a NULL `hy` holds no credits. */
 static void test_lu(void) {
     uint32_t h = 2166136261u;
-    const pico8_struct_class_t *iv_cls;
+    const entity_class_t *iv_cls;
     int from;
 
     start_game();
@@ -650,28 +650,28 @@ static void lu_on_other(void *e) {
  * `hy` takes no key, its functions refuse anything but a `hy`, and the
  * provisional `fm` is never handed to them. */
 static void test_hy_is_a_struct(void) {
-    const pico8_struct_class_t *cls = pico8_hy_struct_class();
+    const entity_class_t *cls = pico8_hy_struct_class();
     pico8_hy_t *bare;
     int j;
 
     assert(pico8_hy_ready());
     pico8__init();
-    assert(pico8_fm() != NULL && ((const pico8_struct_header_t *)pico8_fm())->cls == pico8_fm_placeholder_struct_class());
+    assert(pico8_fm() != NULL && ((const entity_t *)pico8_fm())->class == pico8_fm_placeholder_struct_class());
     assert(pico8_fm_hy() == NULL);
 
     new_game();
     assert(pico8_fm() != NULL);
-    assert(((const pico8_struct_header_t *)pico8_fm())->cls == cls && pico8_fm_hy() == (void *)pico8_fm());
-    assert(cls->kj == NULL && cls->ev == NULL && cls->hd == NULL && cls->hk == NULL && cls->hb == NULL &&
-           cls->has_hb == NULL && cls->ldown == NULL && cls->rdown == NULL && cls->gv == NULL);
-    assert(cls->hq == NULL && cls->ey == NULL && cls->kf == NULL && cls->cn == NULL && cls->ol == NULL &&
-           cls->mm == NULL);
-    for (j = 0; j < PICO8_STATE_COUNT; j++) {
+    assert(((const entity_t *)pico8_fm())->class == cls && pico8_fm_hy() == (void *)pico8_fm());
+    assert(cls->draw == NULL && cls->draw_overlay == NULL && cls->hit_test == NULL && cls->new_year == NULL && cls->refresh == NULL &&
+           cls->has_refresh == NULL && cls->left_press == NULL && cls->right_press == NULL && cls->accept_drop == NULL);
+    assert(cls->drag == NULL && cls->drop == NULL && cls->attach_slipway == NULL && cls->offer_trade == NULL && cls->draw_at == NULL &&
+           cls->spawn_particle == NULL);
+    for (j = 0; j < STATE_COUNT; j++) {
         assert(cls->states[j] == NULL);
     }
 
     bare = pico8_hy_new();
-    assert(bare != NULL && bare->header.cls == cls);
+    assert(bare != NULL && bare->header.class == cls);
 
     must_abort(lu_on_other, pico8_ok());
 

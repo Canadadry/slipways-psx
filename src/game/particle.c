@@ -13,11 +13,11 @@
 typedef char pico8_qy_fits_its_place[sizeof(pico8_qy_t) <= PICO8_PARTICULE_PLACE ? 1 : -1];
 
 /* `fa`, and `ra` into `*ra` (the zero vector when nil), of the host of `ei`. */
-static pico8_fixed_t emitter_host_fa_ra(const pico8_struct_header_t *self, pico8_vec_t *ra) {
-    assert(self->fa != NULL && self->ra != NULL &&
+static pico8_fixed_t emitter_host_fa_ra(const entity_t *self, pico8_vec_t *ra) {
+    assert(self->layer != NULL && self->pos != NULL &&
            "ei: a host that carries no fa or no ra, none of whose kj runs ei -- stop");
-    *ra = *self->ra != NULL ? **self->ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-    return *self->fa;
+    *ra = *self->pos != NULL ? **self->pos : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    return *self->layer;
 }
 
 static int pico8_particle_to_int(pico8_fixed_t x) {
@@ -32,11 +32,11 @@ const pico8_zone_choisie_t *pico8_ga_place_prendre(void) {
     return pico8_zone_particules_place(PICO8_PARTICULES_GA);
 }
 
-void pico8_f_(pico8_struct_header_t *self) {
+void pico8_f_(entity_t *self) {
     pico8_f__dans(self, PICO8_PARTICULES_QY);
 }
 
-void pico8_f__dans(pico8_struct_header_t *self, pico8_particules_sorte_t sorte) {
+void pico8_f__dans(entity_t *self, pico8_particules_sorte_t sorte) {
     const pico8_zone_choisie_t *place;
     pico8_emitter_t *emitter;
     pico8_ptrs_t *qy;
@@ -73,7 +73,7 @@ void pico8_qy_rendre(pico8_emitter_t *emitter) {
     emitter->qy = NULL;
 }
 
-void pico8_ez(pico8_struct_header_t *self, pico8_fixed_t n) {
+void pico8_ez(entity_t *self, pico8_fixed_t n) {
     pico8_emitter_t *emitter;
     pico8_ptrs_t *qy;
 
@@ -84,15 +84,15 @@ void pico8_ez(pico8_struct_header_t *self, pico8_fixed_t n) {
     qy = emitter != NULL ? emitter->qy : NULL;
 
     while (pico8_fixed_rnd_default() < n) {
-        if (qy != NULL && self->cls->mm != NULL) {
-            pico8_ptrs_add(qy, self->cls->mm(self));
+        if (qy != NULL && self->class->spawn_particle != NULL) {
+            pico8_ptrs_add(qy, self->class->spawn_particle(self));
             pico8_zone_particules_noter_elements(emitter->qy_sorte, qy->count);
         }
         n = pico8_fixed_sub(n, pico8_fixed_from_int(1));
     }
 }
 
-void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *self) {
+void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, entity_t *self) {
     const pico8_emitter_t *emitter;
     pico8_fixed_t fa;
     pico8_vec_t ra;
@@ -174,7 +174,7 @@ void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *s
     pico8_ez(self, emitter->def->fc);
 }
 
-void pico8_ei_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
+void pico8_ei_dispatch(entity_t *self, const pico8_vec_t *ra) {
     (void)ra;
     pico8_ei(pico8_dispatch_gfx(), pico8_dispatch_mem(), self);
 }

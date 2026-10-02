@@ -120,7 +120,8 @@ def _check_names(renamed, model, plan):
     """The new name must not meet another declaration where both are visible:
     a macro meets every name; file-scope names meet each other unless both are
     static in different files, and meet the locals they would shadow; fields
-    meet the fields of their struct; locals the locals of their function."""
+    meet the fields of their struct; locals the locals of their function, and
+    the file-scope names of a header, of external linkage or of their file."""
     final = {}
     for usr, identity in model.identities.items():
         final[usr] = renamed[usr].new if usr in renamed else identity.name
@@ -147,10 +148,18 @@ def _visible_together(a, b):
     if a_local and b_local:
         return a.parent == b.parent and a.file == b.file
     if a_local or b_local:
-        return True
+        outer = b if a_local else a
+        local = a if a_local else b
+        return _shared(outer) or outer.file == local.file
     if a.linkage == "static" and b.linkage == "static":
         return a.file == b.file
     return True
+
+
+def _shared(identity):
+    """Seen outside its file: declared in a header, or with external linkage
+    (the same rule as tools/rename_check.py)."""
+    return identity.file.endswith(".h") or identity.linkage == "extern"
 
 
 def _is_local(identity):

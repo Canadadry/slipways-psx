@@ -212,7 +212,7 @@ static int case_ky_happiness_survives_reset(void) {
     fm->hl = "final score";
     fm->has_hl = 1;
     ju = pico8_ju();
-    ju->header.cls->states[PICO8_STATE_PH](&ju->header, 0);
+    ju->header.class->states[ENTITY_STATE_NORMAL](&ju->header, 0);
     assert(pico8_kc() != NULL && "pj:ph: une partie finie ouvre la boite du score");
     pico8_zone_frame_reset();
     allocate_again();
@@ -222,9 +222,9 @@ static int case_ky_happiness_survives_reset(void) {
 
 #define LIST_LENGTH 12
 
-static pico8_struct_header_t cells[LIST_LENGTH];
+static entity_t cells[LIST_LENGTH];
 
-static int is_even_cell(pico8_struct_header_t *e, void *ctx) {
+static int is_even_cell(entity_t *e, void *ctx) {
     (void)ctx;
     return (e - cells) % 2 == 0;
 }

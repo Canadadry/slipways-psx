@@ -58,11 +58,11 @@ static int registered(const void *e, int entity_live) {
 
 /* Not an nf; no method answers; nothing registers it. */
 static void assert_placeholder(int entity_live) {
-    pico8_struct_header_t *je = pico8_je();
+    entity_t *je = pico8_je();
 
     assert(je != NULL && pico8_je_nf() == NULL);
-    assert(je->cls->states[PICO8_STATE_PH] == NULL);
-    assert(je->cls->kj == NULL);
+    assert(je->class->states[ENTITY_STATE_NORMAL] == NULL);
+    assert(je->class->draw == NULL);
     assert(!registered(je, entity_live));
 }
 
@@ -135,9 +135,9 @@ static void test_jl_without_cart_load(void) {
     pico8_bootstrap_shutdown();
 }
 
-static int is_a_struct_of(const void *e, const pico8_struct_class_t *cls) {
+static int is_a_struct_of(const void *e, const entity_class_t *cls) {
     return e != NULL &&
-           ((const pico8_struct_header_t *)e)->cls == cls;
+           ((const entity_t *)e)->class == cls;
 }
 
 /* A struct of its own class, one object for the whole process; an `nf`

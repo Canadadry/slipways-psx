@@ -19,7 +19,7 @@ void pico8_economy_shutdown(void);
 
 /* 1 from pico8_economy_init() to pico8_economy_shutdown(), 0 otherwise. */
 int pico8_hy_ready(void);
-const pico8_struct_class_t *pico8_hy_struct_class(void);
+const entity_class_t *pico8_hy_struct_class(void);
 
 /* Takes no key. Built in the game's generation (pico8_zone_partie()),
  * never freed. */

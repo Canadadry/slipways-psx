@@ -87,19 +87,19 @@ static int ents_listed(const pico8_ents_t *list, const void *e) {
     return ents_rank_in(list, e) >= 0;
 }
 
-static int is_me(const pico8_struct_header_t *ke, const char *want) {
-    return ke->me != NULL && strcmp(ke->me, want) == 0;
+static int is_me(const entity_t *ke, const char *want) {
+    return ke->state != NULL && strcmp(ke->state, want) == 0;
 }
 
 static pico8_mz_t *as_mz(void *e) {
     assert(e != NULL &&
-           ((const pico8_struct_header_t *)e)->cls == pico8_mz_struct_class());
+           ((const entity_t *)e)->class == pico8_mz_struct_class());
     return e;
 }
 
 static pico8_jc_t *as_jc(void *e) {
     assert(e != NULL &&
-           ((const pico8_struct_header_t *)e)->cls == pico8_jc_struct_class());
+           ((const entity_t *)e)->class == pico8_jc_struct_class());
     return e;
 }
 
@@ -132,7 +132,7 @@ enum { ET_ABSENT, ET_FALSE, ET_JJ, ET_JC, ET_JO, ET_THROWAWAY, ET_OTHER };
 
 static int is_bv_target(const void *e) {
     return e != NULL &&
-           ((const pico8_struct_header_t *)e)->cls == pico8_bv_et_struct_class();
+           ((const entity_t *)e)->class == pico8_bv_et_struct_class();
 }
 
 /* The throwaway target's `fo`, NULL when absent. */
@@ -230,12 +230,12 @@ static void world(void) {
     *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
                         pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
-    pico8_jc_struct_class()->hq(&jc->header, mp, NULL);
+    pico8_jc_struct_class()->drag(&jc->header, mp, NULL);
     pico8_ok()->o_ = NULL;
-    while (jc->header.t < pico8_fixed_from_int(15)) {
+    while (jc->header.state_time < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
-    pico8_jc_struct_class()->ey(&jc->header, re);
+    pico8_jc_struct_class()->drop(&jc->header, re);
     assert((void *)jc->re == re);
     for (i = 0; i < SETTLE_TICKS; i++) {
         pico8_dg();
@@ -259,17 +259,17 @@ static pico8_vec_t *vec_ref_fixed(pico8_vec_t at) {
 }
 
 static void hq(void *mz, pico8_vec_t *mp, pico8_vec_t *rp) {
-    pico8_mz_struct_class()->hq(mz, mp, rp);
+    pico8_mz_struct_class()->drag(mz, mp, rp);
 }
 
 static void ey(void *mz) {
-    pico8_mz_struct_class()->ey(mz, NULL);
+    pico8_mz_struct_class()->drop(mz, NULL);
 }
 
 /* `dg` skips the entity after one it takes out of `hv` (TROU-5): count
  * ticks by `t`, not by calls. */
 static void until_t(const pico8_mz_t *mz, int t) {
-    while (mz->header.t < pico8_fixed_from_int(t)) {
+    while (mz->header.state_time < pico8_fixed_from_int(t)) {
         pico8_dg();
     }
 }
@@ -302,7 +302,7 @@ static void check_fresh_mz(void *e) {
     int i;
 
     assert(is_me(&mz->header, "kz"));
-    assert(mz->header.t == 0);
+    assert(mz->header.state_time == 0);
     assert(mz->probe->def->dw == 0);
     assert(mz->probe->def->dq != NULL && strcmp(mz->probe->def->dq, "pr") == 0);
     assert(mz->def->spawn_snd == pico8_fixed_from_int(52));
@@ -311,14 +311,14 @@ static void check_fresh_mz(void *e) {
     assert(mz->probe->od == pico8_fixed_from_int(3));
     assert(mz->probe->def->fp == pico8_fixed_from_int(1));
     assert(mz->def->fa == pico8_fixed_from_int(5));
-    assert(mz->header.fa == &mz->def->fa);
+    assert(mz->header.layer == &mz->def->fa);
 
     kk = mz->def->kk;
     assert(kk == &pico8_mz_kk_seq && kk->count == 9);
     for (i = 0; i < 9; i++) {
         assert(kk->items[i] == want_kk[i]);
     }
-    assert(mz->header.cls->tags == PICO8_TAG(PICO8_TAG_MZ));
+    assert(mz->header.class->tags == TAG(TAG_WORMHOLE));
     jj = mz->jj;
     assert(jj != NULL && jj->qs != NULL && strcmp(jj->qs, "-too far-") == 0);
     assert(pico8_mz_jj_wrapper() == jj);
@@ -332,7 +332,7 @@ static void check_fresh_mz(void *e) {
 }
 
 static void test_construction(void) {
-    pico8_down_t made;
+    down_t made;
     const pico8_ents_t *mzs;
     int before;
 
@@ -411,7 +411,7 @@ static size_t registry_bytes(const pico8_ents_t *list) {
     size_t bytes = 0;
     int k;
     for (k = 4; list != NULL && k <= list->capacity; k *= 2) {
-        bytes += PICO8_ZONE_CELLS((size_t)k * sizeof(pico8_struct_header_t *)) * sizeof(pico8_zone_cell_t);
+        bytes += PICO8_ZONE_CELLS((size_t)k * sizeof(entity_t *)) * sizeof(pico8_zone_cell_t);
     }
     return bytes;
 }
@@ -454,31 +454,31 @@ static void test_arena(void) {
 
 /* The `fo` of the `mz`'s `et`, a slipway or the throwaway. */
 static const void *et_fo(const pico8_mz_t *mz) {
-    pico8_struct_header_t *et = mz->probe->et;
+    entity_t *et = mz->probe->et;
 
     assert(et != NULL);
-    if (et->cls == pico8_jc_struct_class()) {
+    if (et->class == pico8_jc_struct_class()) {
         return ((const pico8_jc_t *)et)->fo;
     }
     return bv_et_fo(et);
 }
 
 static uint32_t fold_hq(uint32_t h, const pico8_mz_t *mz, int want_kind) {
-    const pico8_struct_header_t *et = mz->probe->et;
+    const entity_t *et = mz->probe->et;
     int kind = et_kind(mz);
 
     printf("[hq] et kind %d\n", kind);
     fflush(stdout);
     assert(kind == want_kind);
-    assert(mz->header.ra == &mz->ra && mz->header.p == &mz->p);
+    assert(mz->header.pos == &mz->ra && mz->header.map_pos == &mz->p);
     h = fold_vec(h, mz->ra);
     h = fold_vec(h, mz->p);
     h = fnv(h, (uint32_t)kind);
     if (et != NULL) {
-        if (et->cls == pico8_mz_jj_struct_class() && ((const pico8_mz_jj_t *)et)->qs != NULL) {
+        if (et->class == pico8_mz_jj_struct_class() && ((const pico8_mz_jj_t *)et)->qs != NULL) {
             h = fnv_str(h, ((const pico8_mz_jj_t *)et)->qs);
         }
-        if (et->cls == pico8_jc_too_far_struct_class() && ((const pico8_jc_too_far_t *)et)->qs != NULL) {
+        if (et->class == pico8_jc_too_far_struct_class() && ((const pico8_jc_too_far_t *)et)->qs != NULL) {
             h = fnv_str(h, ((const pico8_jc_too_far_t *)et)->qs);
         }
         if (kind == ET_JC || kind == ET_THROWAWAY) {
@@ -538,7 +538,7 @@ static void test_kz_ticks(void) {
     for (i = 0; i < KZ_TICKS; i++) {
         pico8_dg();
         assert(p__state(mz) == 0);
-        assert(mz->header.t == pico8_fixed_from_int(i + 1));
+        assert(mz->header.state_time == pico8_fixed_from_int(i + 1));
         h = fnv(h, (uint32_t)mz->oi);
     }
     assert(ents_listed(pico8_hv(), mz));
@@ -546,8 +546,8 @@ static void test_kz_ticks(void) {
 }
 
 static uint32_t fold_ey(uint32_t h, const pico8_mz_t *mz) {
-    h = fold_string(h, mz->header.me);
-    h = fnv(h, (uint32_t)mz->header.t);
+    h = fold_string(h, mz->header.state);
+    h = fnv(h, (uint32_t)mz->header.state_time);
     h = fnv(h, p__state(mz));
     return fnv(h, (uint32_t)credits());
 }
@@ -583,7 +583,7 @@ static void test_ey(void) {
     hq(paid, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
     assert(et_kind(paid) == ET_FALSE);
     ey(paid);
-    assert(is_me(&paid->header, "pr") && paid->header.t == 0 && p__state(paid) == 0);
+    assert(is_me(&paid->header, "pr") && paid->header.state_time == 0 && p__state(paid) == 0);
     assert(credits() == pico8_fixed_sub(before, pico8_fixed_from_int(3)));
     h = fold_ey(h, paid);
 
@@ -669,12 +669,12 @@ static uint32_t screen_hash(void) {
 /* `kj` is given the screen centre rather than `ra`, which is in world
  * coordinates, off the uncamera'd screen. */
 static uint32_t draw(void *mz) {
-    const pico8_struct_class_t *cls = ((const pico8_struct_header_t *)mz)->cls;
+    const entity_class_t *cls = ((const entity_t *)mz)->class;
 
     pico8_gfx_init(&gfx);
     pico8_cls(&mem);
-    cls->kj(mz, vec_ref(64, 64));
-    cls->ev(mz, NULL);
+    cls->draw(mz, vec_ref(64, 64));
+    cls->draw_overlay(mz, NULL);
     return screen_hash();
 }
 
@@ -725,8 +725,8 @@ static void test_gv(void) {
     pico8_mz_t *mz;
     pico8_jo_t *ly;
     void *nr;
-    pico8_jo_keys_t keys;
-    pico8_down_t r;
+    planet_keys_t keys;
+    down_t r;
 
     world();
     mz = build_mz();
@@ -735,9 +735,9 @@ static void test_gv(void) {
     r = pico8_jo_gv(ly, &mz->header);
     assert(r.stop && r.held == NULL);
 
-    keys.id = NULL;
-    keys.p = ly->p;
-    keys.ra = ly->ra;
+    keys.planet_id = NULL;
+    keys.map_pos = ly->p;
+    keys.pos = ly->ra;
     nr = pico8_nr_new(&keys);
     r = pico8_nr_gv(nr, &mz->header);
     assert(r.stop && r.held == NULL);
@@ -767,9 +767,9 @@ static void test_jj_wrapper(void) {
     world();
     wrapper = (void *)pico8_mz_jj_wrapper();
     check_jj_untouched();
-    assert(((const pico8_struct_header_t *)wrapper)->cls->kj == NULL &&
-           ((const pico8_struct_header_t *)wrapper)->cls->ev == NULL &&
-           ((const pico8_struct_header_t *)wrapper)->cls->hq == NULL);
+    assert(((const entity_t *)wrapper)->class->draw == NULL &&
+           ((const entity_t *)wrapper)->class->draw_overlay == NULL &&
+           ((const entity_t *)wrapper)->class->drag == NULL);
 
     mz = build_mz();
     hq(mz, vec_ref(-640, -640), vec_ref(64, 64));
@@ -801,8 +801,8 @@ static void test_jj_wrapper(void) {
     check_jj_untouched();
 }
 
-static int is_a_struct_of(const void *e, const pico8_struct_class_t *cls) {
-    return e != NULL && ((const pico8_struct_header_t *)e)->cls == cls;
+static int is_a_struct_of(const void *e, const entity_class_t *cls) {
+    return e != NULL && ((const entity_t *)e)->class == cls;
 }
 
 static int is_an_mz_struct(const void *e) {
@@ -813,7 +813,7 @@ static int is_an_mz_struct(const void *e) {
  * struct with its six methods; the `jj` wrapper is a struct too, the very
  * object of the `jj` member. */
 static void test_mz_is_a_struct(void) {
-    pico8_down_t made;
+    down_t made;
     pico8_mz_t *mz;
 
     start_game();
@@ -821,12 +821,12 @@ static void test_mz_is_a_struct(void) {
     made = pico8_bg_ldown(NULL);
     mz = pico8_mz_new();
     assert(is_an_mz_struct(made.held) && is_an_mz_struct(build_mz()) && is_an_mz_struct(mz));
-    assert(pico8_mz_struct_class()->hq != NULL && pico8_mz_struct_class()->ey != NULL);
-    assert(pico8_mz_struct_class()->ol == NULL);
-    assert(pico8_mz_struct_class()->states[PICO8_STATE_KZ] != NULL &&
-           pico8_mz_struct_class()->states[PICO8_STATE_PR] != NULL && pico8_mz_struct_class()->kj != NULL &&
-           pico8_mz_struct_class()->ev != NULL);
-    assert(pico8_mz_struct_class()->states[PICO8_STATE_PH] == NULL && pico8_mz_struct_class()->ldown == NULL);
+    assert(pico8_mz_struct_class()->drag != NULL && pico8_mz_struct_class()->drop != NULL);
+    assert(pico8_mz_struct_class()->draw_at == NULL);
+    assert(pico8_mz_struct_class()->states[ENTITY_STATE_PLACING] != NULL &&
+           pico8_mz_struct_class()->states[ENTITY_STATE_UNFOLDING] != NULL && pico8_mz_struct_class()->draw != NULL &&
+           pico8_mz_struct_class()->draw_overlay != NULL);
+    assert(pico8_mz_struct_class()->states[ENTITY_STATE_NORMAL] == NULL && pico8_mz_struct_class()->left_press == NULL);
 
     assert(is_a_struct_of(pico8_mz_jj_wrapper(), pico8_mz_jj_struct_class()));
     assert(mz->jj == pico8_mz_jj_wrapper());

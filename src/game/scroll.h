@@ -17,7 +17,7 @@
  * shares and nothing writes; the first `ph` points them at `v_own`, `p_own`
  * and `ra_own`, rewritten in place from then on. Never copy the struct. */
 typedef struct {
-    pico8_struct_header_t header;
+    entity_t header;
     const pico8_qb_def_t *def;
     const pico8_vec_t *v;
     pico8_fixed_t ma;
@@ -37,7 +37,7 @@ void pico8_qb_shutdown(void);
 
 /* 1 from pico8_qb_init() to pico8_qb_shutdown(), 0 otherwise. */
 int pico8_qb_ready(void);
-const pico8_struct_class_t *pico8_qb_struct_class(void);
+const entity_class_t *pico8_qb_struct_class(void);
 
 /* The struct registers itself through `lt`; it lives in the current
  * game-zone generation. */

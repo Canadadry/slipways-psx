@@ -35,10 +35,10 @@ void pico8_bw(pico8_fixed_t n) {
         pico8_vec_t p_vec;
         pico8_vec_t *p_box;
         pico8_vec_t *ra_box;
-        pico8_struct_header_t *nearest;
+        entity_t *nearest;
         char *id_num_str;
         char *id_str;
-        pico8_jo_keys_t keys;
+        planet_keys_t keys;
         pico8_jo_t *made;
 
         /* cg.jo is empty only on the very first trial: every accepted
@@ -59,9 +59,9 @@ void pico8_bw(pico8_fixed_t n) {
         id_num_str = pico8_tostr_fixed(pico8_zone_frame(), id);
         id_str = pico8_concat2(pico8_zone_partie(), "p", id_num_str);
 
-        keys.id = id_str;
-        keys.p = p_box;
-        keys.ra = ra_box;
+        keys.planet_id = id_str;
+        keys.map_pos = p_box;
+        keys.pos = ra_box;
 
         /* Built for the side effect of self-registering into hv/cv/cg. */
         made = pico8_jo_new(&keys);

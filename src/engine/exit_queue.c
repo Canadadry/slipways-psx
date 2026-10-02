@@ -6,7 +6,7 @@
 #include "p8/fatal.h"
 
 typedef struct {
-    pico8_struct_header_t *entite;
+    entity_t *entite;
     const pico8_zone_choisie_t *arene;
 } entree_t;
 
@@ -22,9 +22,9 @@ static void mettre(entree_t entree) {
     g_file[g_compte++] = entree;
 }
 
-void pico8_file_sortie_mettre(pico8_struct_header_t *e) {
+void pico8_file_sortie_mettre(entity_t *e) {
     entree_t entree = {e, NULL};
-    assert(e->cls->rendre != NULL && "file de sortie : la classe n'a rien a rendre");
+    assert(e->class->release != NULL && "file de sortie : la classe n'a rien a rendre");
     mettre(entree);
 }
 
@@ -38,15 +38,15 @@ int pico8_file_sortie_compte(void) {
     return g_compte;
 }
 
-void pico8_file_sortie_vider(void (*oublier)(const pico8_struct_header_t *e)) {
+void pico8_file_sortie_vider(void (*oublier)(const entity_t *e)) {
     for (int i = 0; i < g_compte; i++) {
-        pico8_struct_header_t *e = g_file[i].entite;
+        entity_t *e = g_file[i].entite;
         if (e == NULL) {
             pico8_zone_arene_rendre(g_file[i].arene);
             continue;
         }
         oublier(e);
-        e->cls->rendre(e);
+        e->class->release(e);
     }
     g_compte = 0;
 }

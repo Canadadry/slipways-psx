@@ -102,7 +102,7 @@ void pico8_cart_load(void) {
 /* Une place rendue peut revenir a la meme adresse : `kc == ju.ed` serait
  * vrai pour une boite neuve, et `gj.m_` ecrirait dans un autre objet.
  * ASan ne voit pas la comparaison. */
-static void oublier(const pico8_struct_header_t *e) {
+static void oublier(const entity_t *e) {
     pico8_ui_t *ok = pico8_ok();
     pico8_pj_t *ju = pico8_ju();
 
@@ -112,14 +112,14 @@ static void oublier(const pico8_struct_header_t *e) {
     if (ok != NULL && ok->gj == e) {
         ok->gj = NULL;
     }
-    if (ok != NULL && ok->lheld != NULL && ok->lheld->cls == pico8_jc_struct_class() &&
+    if (ok != NULL && ok->lheld != NULL && ok->lheld->class == pico8_jc_struct_class() &&
         ((pico8_jc_t *)ok->lheld)->re == e) {
         ((pico8_jc_t *)ok->lheld)->re = NULL;
     }
-    if ((const pico8_struct_header_t *)pico8_kc() == e) {
+    if ((const entity_t *)pico8_kc() == e) {
         pico8_msgbox_set_kc(NULL);
     }
-    if (ju != NULL && (const pico8_struct_header_t *)ju->ed == e) {
+    if (ju != NULL && (const entity_t *)ju->ed == e) {
         ju->ed = NULL;
     }
     pico8_economy_dk_quitte(e);
@@ -200,7 +200,7 @@ void pico8_init_dispatch(pico8_js_t *self) {
 }
 
 void pico8_eu(pico8_js_t *nj) {
-    const pico8_entity_kind_t *gx[7];
+    const entity_kind_t *gx[7];
     int i;
 
     assert(pico8_hy_ready() && pico8_qh_ready() && "pico8_cart_load() must run before eu()");
@@ -214,7 +214,7 @@ void pico8_eu(pico8_js_t *nj) {
     (void)pico8_bg_new();
     pico8_bw(pico8_fixed_from_int(90));
 
-    pico8_probe_set_fm((pico8_struct_header_t *)pico8_hy_new());
+    pico8_probe_set_fm((entity_t *)pico8_hy_new());
     pico8_pj_set_ju(pico8_pj_new());
 
     if (pico8_ha_pz() != NULL) {

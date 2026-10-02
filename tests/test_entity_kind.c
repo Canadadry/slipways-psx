@@ -30,7 +30,7 @@ static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
 
-static const pico8_entity_kind_t *kind_of(int i) {
+static const entity_kind_t *kind_of(int i) {
     switch (i) {
     case 0:
         return pico8_qh_kind();
@@ -53,18 +53,18 @@ static const pico8_entity_kind_t *kind_of(int i) {
     }
 }
 
-static const pico8_kind_rec_t *rec_of(int i) {
-    const pico8_kind_rec_t *rec = kind_of(i)->rec;
+static const pico8_kind_rec_t *record_of(int i) {
+    const pico8_kind_rec_t *record = kind_of(i)->record;
 
-    assert(rec != NULL);
-    return rec;
+    assert(record != NULL);
+    return record;
 }
 
 static void *kind_build(int i) {
     return kind_of(i)->new_entity(NULL);
 }
 
-static const pico8_struct_class_t *struct_class_of(int i) {
+static const entity_class_t *class_of(int i) {
     switch (i) {
     case 0:
         return pico8_qh_struct_class();
@@ -132,16 +132,16 @@ static void test_kind_fields_and_build(void) {
     int i;
 
     for (i = 0; i < KIND_COUNT; i++) {
-        const pico8_kind_rec_t *rec = rec_of(i);
+        const pico8_kind_rec_t *record = record_of(i);
         void *made;
 
-        h = fold_string_member(h, rec->rr);
-        h = fold_fixed_member(h, rec->has_s, rec->s);
-        h = fold_string_member(h, rec->me);
-        h = fold_fixed_member(h, rec->has_od, rec->od);
+        h = fold_string_member(h, record->rr);
+        h = fold_fixed_member(h, record->has_s, record->s);
+        h = fold_string_member(h, record->me);
+        h = fold_fixed_member(h, record->has_od, record->od);
         made = kind_build(i);
         assert(made != NULL &&
-               ((const pico8_struct_header_t *)made)->cls == struct_class_of(i));
+               ((const entity_t *)made)->class == class_of(i));
         h = fnv(h, (uint32_t)i);
     }
     check("kind", h, KIND_HASH);
@@ -150,67 +150,67 @@ static void test_kind_fields_and_build(void) {
 /* Each kind's `rec` holds the generated default of the class that sets
  * each name. */
 static void test_kind_reader_serves_the_generated_defaults(void) {
-    const pico8_kind_rec_t *rec;
+    const pico8_kind_rec_t *record;
 
-    rec = rec_of(0);
-    assert(rec->rr == NULL);
-    assert(rec->has_s && rec->s == pico8_qh_def.s);
-    assert(rec->me == pico8_qh_def.me);
-    assert(rec->has_od && rec->od == pico8_qh_def.probe.od);
+    record = record_of(0);
+    assert(record->rr == NULL);
+    assert(record->has_s && record->s == pico8_qh_def.s);
+    assert(record->me == pico8_qh_def.me);
+    assert(record->has_od && record->od == pico8_qh_def.probe.od);
 
-    rec = rec_of(1);
-    assert(rec->rr == NULL);
-    assert(rec->has_s && rec->s == pico8_os_def.s);
-    assert(rec->me == pico8_qh_def.me);
-    assert(rec->has_od && rec->od == pico8_os_def.probe.od);
+    record = record_of(1);
+    assert(record->rr == NULL);
+    assert(record->has_s && record->s == pico8_os_def.s);
+    assert(record->me == pico8_qh_def.me);
+    assert(record->has_od && record->od == pico8_os_def.probe.od);
 
-    rec = rec_of(2);
-    assert(rec->rr == pico8_nr_def.rr);
-    assert(rec->has_s && rec->s == pico8_nr_def.s);
-    assert(rec->me == pico8_qh_def.me);
-    assert(rec->has_od && rec->od == pico8_nr_def.probe.od);
+    record = record_of(2);
+    assert(record->rr == pico8_nr_def.rr);
+    assert(record->has_s && record->s == pico8_nr_def.s);
+    assert(record->me == pico8_qh_def.me);
+    assert(record->has_od && record->od == pico8_nr_def.probe.od);
 
-    rec = rec_of(3);
-    assert(rec->rr == pico8_fr_def.rr);
-    assert(rec->has_s && rec->s == pico8_fr_def.s);
-    assert(rec->me == pico8_qh_def.me);
-    assert(rec->has_od && rec->od == pico8_fr_def.probe.od);
+    record = record_of(3);
+    assert(record->rr == pico8_fr_def.rr);
+    assert(record->has_s && record->s == pico8_fr_def.s);
+    assert(record->me == pico8_qh_def.me);
+    assert(record->has_od && record->od == pico8_fr_def.probe.od);
 
-    rec = rec_of(4);
-    assert(rec->rr == pico8_nl_def.rr);
-    assert(rec->has_s && rec->s == pico8_nl_def.s);
-    assert(rec->me == pico8_qh_def.me);
-    assert(rec->has_od && rec->od == pico8_nl_def.probe.od);
+    record = record_of(4);
+    assert(record->rr == pico8_nl_def.rr);
+    assert(record->has_s && record->s == pico8_nl_def.s);
+    assert(record->me == pico8_qh_def.me);
+    assert(record->has_od && record->od == pico8_nl_def.probe.od);
 
-    rec = rec_of(5);
-    assert(rec->rr == pico8_mx_def.rr);
-    assert(rec->has_s && rec->s == pico8_mx_def.s);
-    assert(rec->me == pico8_qh_def.me);
-    assert(rec->has_od && rec->od == pico8_mx_def.probe.od);
+    record = record_of(5);
+    assert(record->rr == pico8_mx_def.rr);
+    assert(record->has_s && record->s == pico8_mx_def.s);
+    assert(record->me == pico8_qh_def.me);
+    assert(record->has_od && record->od == pico8_mx_def.probe.od);
 
-    rec = rec_of(6);
-    assert(rec->rr == pico8_hj_def.rr);
-    assert(rec->has_s && rec->s == pico8_hj_def.s);
-    assert(rec->me == pico8_qh_def.me);
-    assert(rec->has_od && rec->od == pico8_hj_def.probe.od);
+    record = record_of(6);
+    assert(record->rr == pico8_hj_def.rr);
+    assert(record->has_s && record->s == pico8_hj_def.s);
+    assert(record->me == pico8_qh_def.me);
+    assert(record->has_od && record->od == pico8_hj_def.probe.od);
 
-    rec = rec_of(7);
-    assert(rec->rr == pico8_pm_def.rr);
-    assert(rec->has_s && rec->s == pico8_pm_def.s);
-    assert(rec->me == pico8_pm_def.me);
-    assert(rec->has_od && rec->od == pico8_pm_def.probe.od);
+    record = record_of(7);
+    assert(record->rr == pico8_pm_def.rr);
+    assert(record->has_s && record->s == pico8_pm_def.s);
+    assert(record->me == pico8_pm_def.me);
+    assert(record->has_od && record->od == pico8_pm_def.probe.od);
 
-    rec = rec_of(8);
-    assert(rec->rr == NULL);
-    assert(!rec->has_s && rec->s == 0);
-    assert(rec->me == pico8_jo_def.me);
-    assert(!rec->has_od && rec->od == 0);
+    record = record_of(8);
+    assert(record->rr == NULL);
+    assert(!record->has_s && record->s == 0);
+    assert(record->me == pico8_jo_def.me);
+    assert(!record->has_od && record->od == 0);
 }
 
 /* `kv[hp.cw]` only ever sees "pm" or "ga": every research of `gb` carries
  * one of them as `cw`, or none. */
-static void test_every_cw_is_pm_or_ga(void) {
-    int with_cw = 0;
+static void test_every_class_name_is_protostar_or_burst(void) {
+    int with_class_name = 0;
     int k;
 
     assert(pico8_gb_count() > 0);
@@ -224,10 +224,10 @@ static void test_every_cw_is_pm_or_ga(void) {
             continue;
         }
         assert(strcmp(cw, "pm") == 0 || strcmp(cw, "ga") == 0);
-        with_cw++;
+        with_class_name++;
     }
-    printf("[cw] %d of %d researches\n", with_cw, pico8_gb_count());
-    assert(with_cw > 0);
+    printf("[cw] %d of %d researches\n", with_class_name, pico8_gb_count());
+    assert(with_class_name > 0);
 }
 
 int main(void) {
@@ -241,7 +241,7 @@ int main(void) {
     pico8_dispatch_set_input(&input);
 
     pico8_cart_load();
-    test_every_cw_is_pm_or_ga();
+    test_every_class_name_is_protostar_or_burst();
     pico8_jl();
     test_kind_fields_and_build();
     test_kind_reader_serves_the_generated_defaults();

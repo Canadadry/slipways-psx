@@ -29,7 +29,7 @@ pico8_jy_t *pico8_jy_new(const pico8_zone_choisie_t *zone, const pico8_fixed_t *
  * except `lq`, which points at `lq_own` (its third item `lq_inner`) or is
  * NULL. The struct is never copied: `lq` points into it. */
 typedef struct {
-    pico8_struct_header_t header;
+    entity_t header;
     const pico8_hp_def_t *def;
     const char *px;
     const char *lr;
@@ -69,7 +69,7 @@ void pico8_research_shutdown(void);
 
 /* 1 from pico8_research_init() to pico8_research_shutdown(), 0 otherwise. */
 int pico8_hp_ready(void);
-const pico8_struct_class_t *pico8_hp_struct_class(void);
+const entity_class_t *pico8_hp_struct_class(void);
 
 /* The class's `fk`: `pico8_hp_fk_row`, never NULL. */
 const pico8_jb_row_t *pico8_hp_fk(void);

@@ -16,7 +16,7 @@
  * identity would never match. NULL-safe on `list`. */
 static int gu_trade(const pico8_ents_t *list, const pico8_trade_t *v) {
     pico8_ents_iter_t it;
-    pico8_struct_header_t *e;
+    entity_t *e;
 
     if (list == NULL) {
         return 0;
@@ -42,9 +42,9 @@ static void pico8_jo_ib_kf_closure(pico8_jo_trade_proposal_t *self, pico8_trade_
     }
 }
 
-void pico8_jo_kf(pico8_jo_t *self, pico8_struct_header_t *sw) {
+void pico8_jo_kf(pico8_jo_t *self, entity_t *sw) {
     pico8_ents_t *oe = NULL;
-    pico8_struct_header_t *other = NULL;
+    entity_t *other = NULL;
 
     if (self == NULL) {
         return;
@@ -56,8 +56,8 @@ void pico8_jo_kf(pico8_jo_t *self, pico8_struct_header_t *sw) {
     }
 
     if (sw != NULL) {
-        assert(sw->cls == pico8_jc_struct_class() && "jo:kf: sw is the slipway jc:ey registers");
-        other = pico8_jc_eb((const pico8_jc_t *)sw, (const pico8_struct_header_t *)self);
+        assert(sw->class == pico8_jc_struct_class() && "jo:kf: sw is the slipway jc:ey registers");
+        other = pico8_jc_eb((const pico8_jc_t *)sw, (const entity_t *)self);
     }
     if (other != NULL) {
         assert(pico8_jo_is_family(other) && "jo:kf: the other end of a registered slipway is a planet");
@@ -150,7 +150,7 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
         if (have_r_q && pico8_qe_equal(qe_val, r_q)) {
             int accepted = 0;
 
-            if ((self->header.cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_QH)) && self->def->ba != NULL) {
+            if ((self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && self->def->ba != NULL) {
                 accepted = t_qe.kind == PICO8_QE_FIXED && pico8_int_seq_has_fixed(self->def->ba, t_qe.n);
             }
             if (accepted) {
@@ -177,7 +177,7 @@ pico8_ents_t *pico8_jo_ib(pico8_jo_t *self) {
     pico8_fixed_t mu = pico8_fixed_from_int(0);
     const pico8_ents_t *oe = NULL;
     pico8_ents_iter_t it;
-    pico8_struct_header_t *w_val;
+    entity_t *w_val;
 
     if (self == NULL) {
         return NULL;
@@ -202,11 +202,11 @@ pico8_ents_t *pico8_jo_ib(pico8_jo_t *self) {
 
     it = pico8_ents_all(oe);
     while (pico8_ents_iter_next(&it, &w_val)) {
-        pico8_struct_header_t *w;
+        entity_t *w;
         pico8_jo_trade_proposal_t lw;
         pico8_ents_t *lp_list;
         pico8_ents_t *rl_list;
-        pico8_struct_header_t *other;
+        entity_t *other;
 
         if (w_val == NULL) {
             continue;
@@ -235,20 +235,20 @@ pico8_ents_t *pico8_jo_ib(pico8_jo_t *self) {
 
         /* `lw` is on the stack: a callee that keeps the REF past this
          * iteration holds a dangling pointer. `nr:cn` copies it instead. */
-        assert(w->cls == pico8_jc_struct_class() && "jo.oe holds slipways only: jo:kf adds to it");
-        other = pico8_jc_eb((const pico8_jc_t *)w, (const pico8_struct_header_t *)self);
-        if (other != NULL && other->cls->cn != NULL) {
-            other->cls->cn(other, &lw);
+        assert(w->class == pico8_jc_struct_class() && "jo.oe holds slipways only: jo:kf adds to it");
+        other = pico8_jc_eb((const pico8_jc_t *)w, (const entity_t *)self);
+        if (other != NULL && other->class->offer_trade != NULL) {
+            other->class->offer_trade(other, &lw);
         }
     }
 
     return ib;
 }
 
-void pico8_jo_kf_dispatch(pico8_struct_header_t *self, pico8_struct_header_t *sw) {
+void pico8_jo_kf_dispatch(entity_t *self, entity_t *sw) {
     pico8_jo_kf((pico8_jo_t *)self, sw);
 }
 
-void pico8_jo_cn_dispatch(pico8_struct_header_t *self, struct pico8_jo_trade_proposal *lw) {
+void pico8_jo_cn_dispatch(entity_t *self, struct pico8_jo_trade_proposal *lw) {
     pico8_jo_cn((pico8_jo_t *)self, lw);
 }

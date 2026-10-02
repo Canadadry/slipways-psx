@@ -96,7 +96,7 @@ static pico8_fixed_t ed_fixed(const pico8_pj_t *pj) {
 
 static int is_lq(const void *e) {
     return e != NULL &&
-           ((const pico8_struct_header_t *)e)->cls == pico8_lq_struct_class();
+           ((const entity_t *)e)->class == pico8_lq_struct_class();
 }
 
 static int row_count(const void *lq) {
@@ -257,8 +257,8 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-static const pico8_struct_class_t *cls_of(const void *e) {
-    return ((const pico8_struct_header_t *)e)->cls;
+static const entity_class_t *cls_of(const void *e) {
+    return ((const entity_t *)e)->class;
 }
 
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
@@ -296,8 +296,8 @@ static uint32_t fold_ou_heads(uint32_t h) {
     return h;
 }
 
-static int is_of(const void *e, const pico8_struct_class_t *cls) {
-    return e != NULL && ((const pico8_struct_header_t *)e)->cls == cls;
+static int is_of(const void *e, const entity_class_t *cls) {
+    return e != NULL && ((const entity_t *)e)->class == cls;
 }
 
 static int fq_count(void) {
@@ -361,12 +361,12 @@ static void test_built(void) {
     assert(ju->fa == pico8_fixed_from_int(10));
     assert(ju->def == &pico8_pj_def && ju->fa == ju->def->fa);
     assert(ju->ed == NULL);
-    assert(ju->header.me != NULL && strcmp(ju->header.me, "ph") == 0);
-    h = fold_fixed_member(h, ju->header.t);
+    assert(ju->header.state != NULL && strcmp(ju->header.state, "ph") == 0);
+    h = fold_fixed_member(h, ju->header.state_time);
     assert(!ju->has_c_ && !ju->has_gz);
-    assert(cls_of(ju)->kj != NULL && cls_of(ju)->states[PICO8_STATE_PH] != NULL && cls_of(ju)->hb != NULL &&
-           cls_of(ju)->hk != NULL);
-    assert(cls_of(ju)->hd == NULL && cls_of(ju)->ev == NULL);
+    assert(cls_of(ju)->draw != NULL && cls_of(ju)->states[ENTITY_STATE_NORMAL] != NULL && cls_of(ju)->refresh != NULL &&
+           cls_of(ju)->new_year != NULL);
+    assert(cls_of(ju)->hit_test == NULL && cls_of(ju)->draw_overlay == NULL);
     h = fold_ref_member(h, pico8_pj_ea());
     assert(ju->def->gs == &pico8_pj_gs_row);
     h = fold_ref_member(h, ju->def->gs);
@@ -390,10 +390,10 @@ static void test_shared(void) {
     assert(other->def == ju->def);
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), other));
 
-    cls_of(ju)->hb(&ju->header);
+    cls_of(ju)->refresh(&ju->header);
     h = fold_ou_heads(h);
 
-    cls_of(ju)->hk(&ju->header, pico8_fixed_from_int(3425));
+    cls_of(ju)->new_year(&ju->header, pico8_fixed_from_int(3425));
     ea = pico8_pj_ea();
     assert(strcmp(string_at(row_of(&ea->row, 2), 1), "year 3425") == 0);
     assert(ea->row.count == 3 && ea->lh != NULL);
@@ -401,7 +401,7 @@ static void test_shared(void) {
 
     pico8_fm_hy()->hl = "final score";
     pico8_fm_hy()->has_hl = 1;
-    cls_of(ju)->states[PICO8_STATE_PH](&ju->header, pico8_fixed_from_int(0));
+    cls_of(ju)->states[ENTITY_STATE_NORMAL](&ju->header, pico8_fixed_from_int(0));
     assert(ju->fa == pico8_fixed_from_int(13));
     assert(c__state(ju) == 2);
     assert(other->fa == pico8_fixed_from_int(10));
@@ -426,11 +426,11 @@ static void test_life(void) {
     int boxes;
     size_t i;
 
-    cls_of(ju)->hb(&ju->header);
+    cls_of(ju)->refresh(&ju->header);
     h = fold_ou_heads(h);
 
     for (i = 0; i < sizeof years / sizeof years[0]; i++) {
-        cls_of(ju)->hk(&ju->header, pico8_fixed_from_int(years[i]));
+        cls_of(ju)->new_year(&ju->header, pico8_fixed_from_int(years[i]));
         h = fnv(h, (uint32_t)(ea->row.count >= 3));
         h = fnv(h, (uint32_t)(ea->lh != NULL));
         h = fnv_str(h, string_at(row_of(&ea->row, 2), 1));
@@ -445,7 +445,7 @@ static void test_life(void) {
     h = fnv_str(h, cr->ep);
 
     for (i = 0; i < 2; i++) {
-        cls_of(ju)->kj(&ju->header, NULL);
+        cls_of(ju)->draw(&ju->header, NULL);
         h = fnv(h, screen_hash());
     }
     assert(!ju->has_gz);
@@ -454,7 +454,7 @@ static void test_life(void) {
     js_before = js15_count();
     pico8_fm_hy()->hl = "final score";
     pico8_fm_hy()->has_hl = 1;
-    cls_of(ju)->states[PICO8_STATE_PH](&ju->header, pico8_fixed_from_int(0));
+    cls_of(ju)->states[ENTITY_STATE_NORMAL](&ju->header, pico8_fixed_from_int(0));
     assert(c__state(ju) == 2);
     assert(ju->has_gz && ju->gz == 0);
     assert(ju->fa == pico8_fixed_from_int(13));
@@ -464,12 +464,12 @@ static void test_life(void) {
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), pico8_kc()));
     h = fnv(h, (uint32_t)pico8_hv()->count);
 
-    cls_of(ju)->states[PICO8_STATE_PH](&ju->header, pico8_fixed_from_int(0));
+    cls_of(ju)->states[ENTITY_STATE_NORMAL](&ju->header, pico8_fixed_from_int(0));
     assert(ents_count_of(pico8_cg("mh")) == boxes);
     assert(ju->ed == pico8_kc());
 
     for (i = 0; i < 3; i++) {
-        cls_of(ju)->kj(&ju->header, NULL);
+        cls_of(ju)->draw(&ju->header, NULL);
         h = fold_opt_fixed(h, ju->has_gz, ju->gz);
         h = fnv(h, screen_hash());
     }
@@ -627,18 +627,18 @@ static void test_ou_ea_start_as_their_rows(void) {
  * `hk`, `ph`; it takes no construction key. `ea`, `cr`, `ou`
  * are the class's shared state; `gs`, `i_` are the generated rows. */
 static void test_pj_is_a_struct(void) {
-    const pico8_struct_class_t *cls = pico8_pj_struct_class();
+    const entity_class_t *cls = pico8_pj_struct_class();
     pico8_pj_t *ju = start_game();
     int j;
 
     assert(is_of(ju, cls));
-    assert(cls->hq == NULL && cls->ey == NULL && cls->kf == NULL && cls->cn == NULL && cls->ol == NULL &&
-           cls->mm == NULL);
-    assert(cls->hb != NULL && cls->kj != NULL && cls->hk != NULL && cls->states[PICO8_STATE_PH] != NULL);
-    assert(cls->ev == NULL && cls->hd == NULL && cls->has_hb == NULL && cls->ldown == NULL && cls->rdown == NULL &&
-           cls->gv == NULL);
-    for (j = 0; j < PICO8_STATE_COUNT; j++) {
-        assert((cls->states[j] != NULL) == (j == PICO8_STATE_PH));
+    assert(cls->drag == NULL && cls->drop == NULL && cls->attach_slipway == NULL && cls->offer_trade == NULL && cls->draw_at == NULL &&
+           cls->spawn_particle == NULL);
+    assert(cls->refresh != NULL && cls->draw != NULL && cls->new_year != NULL && cls->states[ENTITY_STATE_NORMAL] != NULL);
+    assert(cls->draw_overlay == NULL && cls->hit_test == NULL && cls->has_refresh == NULL && cls->left_press == NULL && cls->right_press == NULL &&
+           cls->accept_drop == NULL);
+    for (j = 0; j < STATE_COUNT; j++) {
+        assert((cls->states[j] != NULL) == (j == ENTITY_STATE_NORMAL));
     }
     assert(pico8_pj_ready());
     assert(pico8_pj_ou() != NULL && pico8_pj_ea() != NULL && pico8_pj_cr() != NULL);
@@ -650,18 +650,18 @@ static void test_pj_is_a_struct(void) {
  * `gq`, `ca` and, once `cr()` ran, `ep`; the init resets `ep`, the shutdown
  * hides it. */
 static void test_cr_is_a_struct(void) {
-    const pico8_struct_class_t *cls = pico8_pj_cr_struct_class();
+    const entity_class_t *cls = pico8_pj_cr_struct_class();
     pico8_pj_cr_t *cr;
     int j;
 
     (void)start_game();
     cr = pico8_pj_cr();
     assert(cr != NULL && is_of(cr, cls));
-    assert(cls->kj == NULL && cls->ev == NULL && cls->hd == NULL && cls->hk == NULL && cls->hb == NULL &&
-           cls->ldown == NULL && cls->rdown == NULL && cls->gv == NULL);
-    assert(cls->hq == NULL && cls->ey == NULL && cls->kf == NULL && cls->cn == NULL && cls->ol == NULL &&
-           cls->mm == NULL);
-    for (j = 0; j < PICO8_STATE_COUNT; j++) {
+    assert(cls->draw == NULL && cls->draw_overlay == NULL && cls->hit_test == NULL && cls->new_year == NULL && cls->refresh == NULL &&
+           cls->left_press == NULL && cls->right_press == NULL && cls->accept_drop == NULL);
+    assert(cls->drag == NULL && cls->drop == NULL && cls->attach_slipway == NULL && cls->offer_trade == NULL && cls->draw_at == NULL &&
+           cls->spawn_particle == NULL);
+    for (j = 0; j < STATE_COUNT; j++) {
         assert(cls->states[j] == NULL);
     }
     assert(cr->hi != NULL);
@@ -748,7 +748,7 @@ static void test_ph_rows_show_ky(void) {
     fm->has_happiness = 1;
     fm->hl = "final score";
     fm->has_hl = 1;
-    cls_of(ju)->states[PICO8_STATE_PH](ju, pico8_fixed_from_int(0));
+    cls_of(ju)->states[ENTITY_STATE_NORMAL](ju, pico8_fixed_from_int(0));
     mh = pico8_kc();
     assert(mh != NULL && mh->items_count == PICO8_BZ_COUNT);
     total = ph_row_item(mh, 10, 3);

@@ -93,7 +93,7 @@ static void fresh_world(void) {
 
     pico8_jl();
     *mouse = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
-    assert(pico8_je() != NULL && pico8_je()->cls == pico8_nf_struct_class());
+    assert(pico8_je() != NULL && pico8_je()->class == pico8_nf_struct_class());
     ((pico8_nf_t *)pico8_je())->ra = mouse;
 }
 
@@ -130,7 +130,7 @@ static void live(pico8_iv_t *e, int want_ticks, uint32_t want_sequence, uint32_t
         h = fnv(h, (uint32_t)ra.x);
         h = fnv(h, (uint32_t)ra.y);
         h = fnv(h, (uint32_t)e->l);
-        h = fnv(h, (uint32_t)e->header.t);
+        h = fnv(h, (uint32_t)e->header.state_time);
         h = fnv(h, (uint32_t)ents_listed(pico8_cv("kj"), e));
         h = fnv(h, draw_hash());
         pico8_dg();
@@ -138,7 +138,7 @@ static void live(pico8_iv_t *e, int want_ticks, uint32_t want_sequence, uint32_t
     }
     assert(!ents_listed(pico8_cv("kj"), e));
     h = fnv(h, (uint32_t)e->l);
-    h = fnv(h, (uint32_t)e->header.t);
+    h = fnv(h, (uint32_t)e->header.state_time);
 
     printf("[%s] ticks=%d sequence=0x%08Xu first_draw=0x%08Xu\n", label, ticks, (unsigned)h, (unsigned)first_draw);
     fflush(stdout);
@@ -179,14 +179,14 @@ static void test_mz_scan_skips_a_live_toast(void) {
 /* dg on a ke struct: the method named by `me` is called with `t`, `t` is
  * bumped on the struct itself, and a truthy `p_` takes it out of hv. */
 typedef struct {
-    pico8_struct_header_t header;
+    entity_t header;
     int p_;
 } fake_toast_t;
 
 static int g_fake_ph_calls = 0;
 static pico8_fixed_t g_fake_ph_last_t;
 
-static void fake_toast_ph(pico8_struct_header_t *self, pico8_fixed_t t) {
+static void fake_toast_ph(entity_t *self, pico8_fixed_t t) {
     fake_toast_t *f = (fake_toast_t *)self;
     g_fake_ph_calls++;
     g_fake_ph_last_t = t;
@@ -195,8 +195,8 @@ static void fake_toast_ph(pico8_struct_header_t *self, pico8_fixed_t t) {
     }
 }
 
-static const pico8_struct_class_t g_fake_toast_class = {
-    .states = {[PICO8_STATE_PH] = fake_toast_ph},
+static const entity_class_t g_fake_toast_class = {
+    .states = {[ENTITY_STATE_NORMAL] = fake_toast_ph},
 };
 
 static void test_dg_drives_a_ke_struct(void) {
@@ -205,7 +205,7 @@ static void test_dg_drives_a_ke_struct(void) {
 
     fresh_world();
     pico8_ke_struct_init(&f->header, &g_fake_toast_class, "ph", 0);
-    f->header.p_ = &f->p_;
+    f->header.is_dead = &f->p_;
     f->p_ = 0;
     pico8_ke_struct_pq(&f->header);
     assert(ents_listed(pico8_hv(), f));
@@ -213,13 +213,13 @@ static void test_dg_drives_a_ke_struct(void) {
     for (i = 0; i < 2; i++) {
         pico8_dg();
         assert(g_fake_ph_calls == i + 1 && g_fake_ph_last_t == pico8_fixed_from_int(i));
-        assert(f->header.t == pico8_fixed_from_int(i + 1));
+        assert(f->header.state_time == pico8_fixed_from_int(i + 1));
         assert(ents_listed(pico8_hv(), f));
     }
     pico8_dg();
     assert(g_fake_ph_calls == 3 && g_fake_ph_last_t == pico8_fixed_from_int(2));
     assert(!ents_listed(pico8_hv(), f));
-    assert(f->header.t == pico8_fixed_from_int(3));
+    assert(f->header.state_time == pico8_fixed_from_int(3));
 }
 
 /* The struct's defaults are its archetype's, whose `fa` and `v` are the
@@ -233,8 +233,8 @@ static void test_defaults_match_the_parsed_spec(void) {
     assert(e->def->v.x == 0 && e->def->v.y == -0x570a);
     assert(e->def->fa == pico8_fixed_from_int(9));
     assert(e->l == e->def->l);
-    assert(e->header.me != NULL && strcmp(e->header.me, "ph") == 0);
-    assert(e->header.t == 0);
+    assert(e->header.state != NULL && strcmp(e->header.state, "ph") == 0);
+    assert(e->header.state_time == 0);
     assert(build(NULL, "y", 7)->def == e->def);
     assert(pico8_iv_ready());
     pico8_iv_shutdown();

@@ -15,7 +15,7 @@
  * reader tells apart. */
 typedef struct pico8_probe {
     const pico8_probe_def_t *def;
-    pico8_struct_header_t *et;
+    entity_t *et;
     pico8_fixed_t od;
     int has_od; /* 0: `od` is nil, and is then never read */
     pico8_vec_t bv_ra;
@@ -28,39 +28,39 @@ typedef struct pico8_probe {
  * static struct with no readable field but `fo`, or literal `false` -- of
  * which only `false` is falsy; collapsing the throwaway to nil would change
  * `d_`. */
-void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp);
+void pico8_bv(entity_t *self, pico8_vec_t *mp, pico8_vec_t *rp);
 
-void pico8_bv_dispatch(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra);
+void pico8_bv_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra);
 
 /* Points the `fo` of `et` back at `self`, which it borrows: `et` is a planet
  * of jo's family, a `jc`, the `jc_too_far` struct or `bv`'s throwaway target
  * (asserted, as is the class of `self` each accepts). */
-void pico8_probe_et_hang_fo(pico8_struct_header_t *et, pico8_struct_header_t *self);
+void pico8_probe_et_hang_fo(entity_t *et, entity_t *self);
 
 /* The `{}` `bv` puts in `et` over the void: one static struct, never
  * allocated nor freed; only `fo` is written, by pico8_probe_et_hang_fo(),
  * and the next `bv` overwrites it. */
 typedef struct {
-    pico8_struct_header_t header;
-    pico8_struct_header_t *fo;
+    entity_t header;
+    entity_t *fo;
 } pico8_bv_et_t;
 
-const pico8_struct_class_t *pico8_bv_et_struct_class(void);
+const entity_class_t *pico8_bv_et_struct_class(void);
 
 /* The tooltip of a probe host: `self` must carry a probe (asserted), and is
  * read, never retained. */
-void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *self);
+void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, entity_t *self);
 
 /* The same, for a caller that is not a host (the research icon): `me` NULL
  * is nil, `pb` is read during the call only. */
 void pico8_dl_show(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *me, const pico8_probe_t *pb);
 
-void pico8_dl_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra);
+void pico8_dl_dispatch(entity_t *self, const pico8_vec_t *ra);
 
 /* Returns 1 on the success branch (Lua true), 0 on the other (nil); `jc:ey`
  * and `mz:ey` consume it. */
-int pico8_d_(pico8_struct_header_t *self);
+int pico8_d_(entity_t *self);
 
-void pico8_d__dispatch(pico8_struct_header_t *self, pico8_struct_header_t *kv);
+void pico8_d__dispatch(entity_t *self, entity_t *kv);
 
 #endif

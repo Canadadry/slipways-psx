@@ -27,7 +27,7 @@ enum { PICO8_MH_ITEMS_CAP = PICO8_BZ_COUNT };
  * its table, shares the rows of `pj.ea` and `bz`. The struct lives in
  * `place`, given back by the exit queue once `he` takes the box out. */
 struct pico8_mh {
-    pico8_struct_header_t header;
+    entity_t header;
     const pico8_zone_choisie_t *place;
     const pico8_mh_def_t *def;
     pico8_fixed_t rh;
@@ -88,7 +88,7 @@ enum { PICO8_IV_TEXT_CAP = 16 };
  * toast itself, `ra` points at `ra_box`. The struct lives in `place`, given
  * back by the exit queue once `he` takes the toast out. */
 typedef struct {
-    pico8_struct_header_t header;
+    entity_t header;
     const pico8_zone_choisie_t *place;
     pico8_vec_t ra_box;
     char at1_buf[PICO8_IV_TEXT_CAP + 1];

@@ -29,7 +29,7 @@ void pico8_help_set_eu(pico8_js_fn fn) {
     g_eu_dispatch = (fn != NULL) ? fn : pico8_fv_eu_placeholder;
 }
 
-static int pico8_fv_hd_dispatch(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
+static int pico8_fv_hd_dispatch(entity_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
     return pico8_gk(self, qa, ra);
 }
 
@@ -78,7 +78,7 @@ enum { PICO8_FV_RB_CAP = 4 };
 void pico8_fv_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_g__t *self, pico8_vec_t p) {
     (void)p;
 
-    pico8_ei(gfx, mem, (pico8_struct_header_t *)self);
+    pico8_ei(gfx, mem, (entity_t *)self);
 
     if (gfx != NULL && mem != NULL) {
         const pico8_jb_row_t *items[PICO8_FV_RB_CAP];
@@ -93,21 +93,21 @@ void pico8_fv_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_g__t *self, pico8_vec
     }
 }
 
-void pico8_fv_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
+void pico8_fv_kj_dispatch(entity_t *self, const pico8_vec_t *ra) {
     pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     pico8_fv_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_g__t *)self, p);
 }
 
-static const pico8_struct_class_t g_fv_struct_class = {
-    .kj = pico8_fv_kj_dispatch,
-    .ev = pico8_dl_dispatch,
-    .hd = pico8_fv_hd_dispatch,
-    .hq = pico8_bv_dispatch,
-    .ey = pico8_d__dispatch,
-    .mm = pico8_g__mm,
-    .rendre = pico8_g__rendre_dispatch,
-    .tags = PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER),
-    .lineage = PICO8_LINEAGE(PICO8_LINEAGE_G_),
+static const entity_class_t g_fv_struct_class = {
+    .draw = pico8_fv_kj_dispatch,
+    .draw_overlay = pico8_dl_dispatch,
+    .hit_test = pico8_fv_hd_dispatch,
+    .drag = pico8_bv_dispatch,
+    .drop = pico8_d__dispatch,
+    .spawn_particle = pico8_g__mm,
+    .release = pico8_g__rendre_dispatch,
+    .tags = TAG(TAG_PROBE) | TAG(TAG_TARGETING),
+    .lineage = LINEAGE(LINEAGE_PROBE),
 };
 
 static pico8_g__t *pico8_fv_struct_new(void) {
@@ -116,16 +116,16 @@ static pico8_g__t *pico8_fv_struct_new(void) {
     assert(g_fv_up && "pico8_help_init() must run first");
     self = (pico8_g__t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *self);
     pico8_g__struct_init(self, &g_fv_struct_class, &pico8_fv_def);
-    self->header.kq = &self->def->kq;
-    self->header.ql = &self->def->ql;
-    self->header.fg = &self->def->fg;
-    self->header.m_ = &self->m_;
+    self->header.hit_box = &self->def->kq;
+    self->header.cursor_sprite = &self->def->ql;
+    self->header.gpio_signal = &self->def->fg;
+    self->header.is_hovered = &self->m_;
     self->m_ = 0;
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("fv");
 #endif
     pico8_fv_pq(self);
-    pico8_f__dans((pico8_struct_header_t *)self, PICO8_PARTICULES_QY_FV);
+    pico8_f__dans((entity_t *)self, PICO8_PARTICULES_QY_FV);
     pico8_ke_struct_pq(&self->header);
     return self;
 }
@@ -152,7 +152,7 @@ int pico8_fv_ready(void) {
     return g_fv_up;
 }
 
-const pico8_struct_class_t *pico8_fv_struct_class(void) {
+const entity_class_t *pico8_fv_struct_class(void) {
     return &g_fv_struct_class;
 }
 

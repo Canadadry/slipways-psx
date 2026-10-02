@@ -36,8 +36,8 @@ void pico8_jl(void) {
     real_je = pico8_nf_new();
     real_ok = pico8_ui_new();
 
-    pico8_entity_set_mo((pico8_struct_header_t *)real_mo);
-    pico8_ui_set_je((pico8_struct_header_t *)real_je);
+    pico8_entity_set_mo((entity_t *)real_mo);
+    pico8_ui_set_je((entity_t *)real_je);
     pico8_ui_set_ok(real_ok);
 }
 
@@ -55,23 +55,23 @@ void pico8_dg(void) {
 
     /* TROU-5 */
     for (i = 0; i < hv->count; i++) {
-        pico8_struct_header_t *qc = hv->items[i];
+        entity_t *qc = hv->items[i];
 
         /* The only caller of the state methods (`ph`, `ly`, `ll`, ...): the
          * name comes from `me` at run time, so no site ever writes `:ly(`
          * and a grep reads them as dead code. */
-        if (qc->me != NULL) {
-            int state = pico8_state_of(qc->me);
+        if (qc->state != NULL) {
+            int state = entity_state_of(qc->state);
 
-            if (state >= 0 && qc->cls->states[state] != NULL) {
-                qc->cls->states[state](qc, qc->t);
+            if (state >= 0 && qc->class->states[state] != NULL) {
+                qc->class->states[state](qc, qc->state_time);
             }
         }
 
-        if (qc->p_ != NULL && *qc->p_) {
+        if (qc->is_dead != NULL && *qc->is_dead) {
             pico8_he(qc);
         }
 
-        qc->t = pico8_fixed_add(qc->t, pico8_fixed_from_int(1));
+        qc->state_time = pico8_fixed_add(qc->state_time, pico8_fixed_from_int(1));
     }
 }

@@ -35,7 +35,7 @@ static const pico8_lq_t *button_lq(const void *button) {
     const pico8_lq_t *lq;
 
     assert(button != NULL);
-    assert(((const pico8_struct_header_t *)button)->cls == pico8_js_struct_class());
+    assert(((const entity_t *)button)->class == pico8_js_struct_class());
     lq = ((const pico8_js_t *)button)->lq;
     assert(lq != NULL);
     return lq;

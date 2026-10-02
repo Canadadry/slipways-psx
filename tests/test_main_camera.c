@@ -47,13 +47,13 @@ static int ents_listed(const pico8_ents_t *list, const void *e) {
  * empty. */
 static void assert_placeholder(void) {
     const char *buckets[] = {"kj", "ev", "hd", "hk", "hb"};
-    pico8_struct_header_t *mo = pico8_mo();
+    entity_t *mo = pico8_mo();
     int i;
 
     assert(mo != NULL && pico8_mo_qb() == NULL);
     pico8_camera(&gfx, 5, 6);
-    assert(mo->cls != pico8_qb_struct_class());
-    assert(mo->cls->states[PICO8_STATE_PH] == NULL && mo->cls->kj == NULL);
+    assert(mo->class != pico8_qb_struct_class());
+    assert(mo->class->states[ENTITY_STATE_NORMAL] == NULL && mo->class->draw == NULL);
     assert(gfx.camera_x == 5 && gfx.camera_y == 6);
     assert(pico8_hv()->count == 0);
     for (i = 0; i < 5; i++) {
@@ -76,18 +76,18 @@ static void test_placeholder_after_init(void) {
 }
 
 typedef struct {
-    pico8_struct_header_t header;
+    entity_t header;
     const pico8_vec_t *ra;
 } ra_only_t;
 
-static const pico8_struct_class_t g_ra_only_class = {0};
+static const entity_class_t g_ra_only_class = {0};
 
 /* `gd` reads `mo.ra` as (0,0): 64 off is inside the 76 margin, 77 is not. */
 static void test_gd_on_placeholder(void) {
     pico8_vec_t near_ra = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
     pico8_vec_t far_ra = pico8_vec_v(pico8_fixed_from_int(64 + 77), pico8_fixed_from_int(64));
-    ra_only_t near_e = {{.cls = &g_ra_only_class, .ra = &near_e.ra}, NULL};
-    ra_only_t far_e = {{.cls = &g_ra_only_class, .ra = &far_e.ra}, NULL};
+    ra_only_t near_e = {{.class = &g_ra_only_class, .pos = &near_e.ra}, NULL};
+    ra_only_t far_e = {{.class = &g_ra_only_class, .pos = &far_e.ra}, NULL};
     int near_hit;
     int far_hit;
 
@@ -143,9 +143,9 @@ static void test_replaced_by_jl(void) {
     assert_a_qb();
 }
 
-static int is_a_struct_of(const void *e, const pico8_struct_class_t *cls) {
+static int is_a_struct_of(const void *e, const entity_class_t *cls) {
     return e != NULL &&
-           ((const pico8_struct_header_t *)e)->cls == cls;
+           ((const entity_t *)e)->class == cls;
 }
 
 /* A struct of its own class, one object for the whole process. A `qb`
@@ -170,8 +170,8 @@ static void test_gd_under_a_shaken_camera(void) {
     static pico8_vec_t shaken_ra;
     pico8_vec_t in_ra = pico8_vec_v(pico8_fixed_from_int(200 + 64), pico8_fixed_from_int(100 + 64));
     pico8_vec_t below_ra = pico8_vec_v(pico8_fixed_from_int(200 + 64), pico8_fixed_from_int(100 + 64 + 77));
-    ra_only_t in_e = {{.cls = &g_ra_only_class, .ra = &in_e.ra}, NULL};
-    ra_only_t below_e = {{.cls = &g_ra_only_class, .ra = &below_e.ra}, NULL};
+    ra_only_t in_e = {{.class = &g_ra_only_class, .pos = &in_e.ra}, NULL};
+    ra_only_t below_e = {{.class = &g_ra_only_class, .pos = &below_e.ra}, NULL};
     pico8_qb_t *qb;
     const pico8_vec_t *saved_p;
     const pico8_vec_t *saved_ra;

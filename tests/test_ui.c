@@ -185,8 +185,8 @@ static uint32_t cursor_is(int id) {
     return drawn;
 }
 
-static int is_of(const void *e, const pico8_struct_class_t *cls) {
-    return e != NULL && ((const pico8_struct_header_t *)e)->cls == cls;
+static int is_of(const void *e, const entity_class_t *cls) {
+    return e != NULL && ((const entity_t *)e)->class == cls;
 }
 
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
@@ -280,15 +280,15 @@ static void test_built(void) {
 
     assert(ok->def->ql == pico8_fixed_from_int(58));
     assert(ok->def->fa == pico8_fixed_from_int(15));
-    assert(ok->header.me != NULL && strcmp(ok->header.me, "ph") == 0);
+    assert(ok->header.state != NULL && strcmp(ok->header.state, "ph") == 0);
     /* The presence word is constant by the struct's shape, kept so that
      * BUILT_HASH still proves the typed read. */
-    h = fnv(fnv(h, 1u), (uint32_t)ok->header.t);
+    h = fnv(fnv(h, 1u), (uint32_t)ok->header.state_time);
     assert(ok->qa == NULL && ok->ic == NULL && ok->o_ == NULL && ok->gj == NULL && ok->lheld == NULL &&
            ok->rheld == NULL);
-    assert(pico8_ui_struct_class()->ev != NULL);
-    assert(pico8_ui_struct_class()->states[PICO8_STATE_PH] == NULL && pico8_ui_struct_class()->ldown == NULL &&
-           pico8_ui_struct_class()->rdown == NULL && pico8_ui_struct_class()->hd == NULL);
+    assert(pico8_ui_struct_class()->draw_overlay != NULL);
+    assert(pico8_ui_struct_class()->states[ENTITY_STATE_NORMAL] == NULL && pico8_ui_struct_class()->left_press == NULL &&
+           pico8_ui_struct_class()->right_press == NULL && pico8_ui_struct_class()->hit_test == NULL);
 
     assert(ok->le == pico8_ui_le_shared());
     assert(ok->def == &pico8_ui_def);
@@ -311,7 +311,7 @@ static void test_shared(void) {
     const pico8_ents_t *le = ok->le;
 
     assert(other != NULL && other != ok);
-    assert(other->header.ql == &other->def->ql);
+    assert(other->header.cursor_sprite == &other->def->ql);
     assert(other->le == le && le == pico8_ui_le_shared());
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), other));
     h = fnv(h, (uint32_t)ents_rank_in(pico8_cv("ev"), other));
@@ -418,8 +418,8 @@ static void test_hover(void) {
 static void test_layers(void) {
     uint32_t h = 2166136261u;
     pico8_ui_t *ok = start_game();
-    pico8_struct_header_t *kv = NULL;
-    pico8_down_t kn;
+    entity_t *kv = NULL;
+    down_t kn;
     pico8_vec_t *qa;
     pico8_vec_t *ra;
     pico8_jo_t *planet;
@@ -651,7 +651,7 @@ static void test_click_reaches_a_row_of_le(void) {
 
 /* `pico8_ui_init()` empties the shared `le`. */
 static void test_init_empties_shared_le(void) {
-    static pico8_struct_header_t mark;
+    static entity_t mark;
 
     (void)start_game();
     pico8_ents_add(pico8_ui_le_shared(), &mark);
@@ -684,16 +684,16 @@ static void bh_on_x(void *e) {
  * no construction key and no button but `l`/`r`. Every
  * new `ui` starts on the class's generated defaults and its shared `le`. */
 static void test_ui_is_a_struct(void) {
-    const pico8_struct_class_t *cls = pico8_ui_struct_class();
+    const entity_class_t *cls = pico8_ui_struct_class();
     pico8_ui_t *ok = start_game();
     pico8_ui_t *other;
     int j;
 
     assert(is_of(ok, cls));
-    assert(cls->ev != NULL && cls->kj == NULL && cls->hd == NULL && cls->hk == NULL && cls->hb == NULL &&
-           cls->ldown == NULL && cls->rdown == NULL && cls->gv == NULL && cls->hq == NULL && cls->ey == NULL &&
-           cls->kf == NULL && cls->cn == NULL && cls->ol == NULL && cls->mm == NULL);
-    for (j = 0; j < PICO8_STATE_COUNT; j++) {
+    assert(cls->draw_overlay != NULL && cls->draw == NULL && cls->hit_test == NULL && cls->new_year == NULL && cls->refresh == NULL &&
+           cls->left_press == NULL && cls->right_press == NULL && cls->accept_drop == NULL && cls->drag == NULL && cls->drop == NULL &&
+           cls->attach_slipway == NULL && cls->offer_trade == NULL && cls->draw_at == NULL && cls->spawn_particle == NULL);
+    for (j = 0; j < STATE_COUNT; j++) {
         assert(cls->states[j] == NULL);
     }
     assert(pico8_ui_ready());
@@ -707,14 +707,14 @@ static void test_ui_is_a_struct(void) {
 }
 
 typedef struct {
-    pico8_struct_header_t header;
+    entity_t header;
 } giver_t;
 
-static pico8_struct_header_t *g_given;
+static entity_t *g_given;
 static int g_giver_hovered = 1;
 
-static pico8_down_t giver_down(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
-    pico8_down_t out;
+static down_t giver_down(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+    down_t out;
 
     (void)self;
     (void)qa;
@@ -724,22 +724,22 @@ static pico8_down_t giver_down(pico8_struct_header_t *self, pico8_vec_t *qa, pic
     return out;
 }
 
-static int giver_hd(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
+static int giver_hd(entity_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
     (void)self;
     (void)qa;
     (void)ra;
     return g_giver_hovered;
 }
 
-static const pico8_struct_class_t g_giver_class = {
-    .hd = giver_hd,
-    .ldown = giver_down,
-    .rdown = giver_down,
+static const entity_class_t g_giver_class = {
+    .hit_test = giver_hd,
+    .left_press = giver_down,
+    .right_press = giver_down,
 };
 
 static const pico8_fixed_t g_giver_fa = 0xf0000;
 static int g_giver_m_;
-static giver_t g_giver = {{.cls = &g_giver_class, .fa = &g_giver_fa, .m_ = &g_giver_m_}};
+static giver_t g_giver = {{.class = &g_giver_class, .layer = &g_giver_fa, .is_hovered = &g_giver_m_}};
 
 static void press(void *ok, int buttons) {
     mouse_at(64, 100, 0);
@@ -795,7 +795,7 @@ static void test_ke_closed(void) {
 }
 
 /* Every entity struct begins with its header. */
-static pico8_struct_header_t *ke_of(void *e) {
+static entity_t *ke_of(void *e) {
     assert(e != NULL);
     return e;
 }
@@ -824,37 +824,37 @@ static int identity_of(const char *s) {
 }
 
 static uint32_t fold_ks_back(uint32_t h, void *e) {
-    assert(ke_of(e)->t == 0);
-    return fnv(h, (uint32_t)ke_of(e)->t);
+    assert(ke_of(e)->state_time == 0);
+    return fnv(h, (uint32_t)ke_of(e)->state_time);
 }
 
 /* The component a host stores in itself: not shared with `other`, of the
  * same class, and inside the host's own `size` bytes. */
-static void assert_own_emitter(pico8_struct_header_t *self, pico8_struct_header_t *other, size_t size) {
-    pico8_struct_header_t *e = self;
-    pico8_struct_header_t *o = other;
+static void assert_own_emitter(entity_t *self, entity_t *other, size_t size) {
+    entity_t *e = self;
+    entity_t *o = other;
     const char *at = (const char *)e->emitter;
 
-    assert(e->cls == o->cls);
+    assert(e->class == o->class);
     assert((const void *)at != (const void *)o->emitter);
     assert(at >= (const char *)self && at < (const char *)self + size);
 }
 
-static void assert_own_probe(pico8_struct_header_t *self, pico8_struct_header_t *other, size_t size) {
-    pico8_struct_header_t *e = self;
-    pico8_struct_header_t *o = other;
-    const char *at = (const char *)e->probe;
+static void assert_own_probe(entity_t *self, entity_t *other, size_t size) {
+    entity_t *e = self;
+    entity_t *o = other;
+    const char *at = (const char *)e->targeting;
 
-    assert(e->cls == o->cls);
-    assert((const void *)at != (const void *)o->probe);
+    assert(e->class == o->class);
+    assert((const void *)at != (const void *)o->targeting);
     assert(at >= (const char *)self && at < (const char *)self + size);
 }
 
 /* A second help, built once `first` gave back its list: the qy_fv sort
  * holds one help's list at a time. */
-static pico8_struct_header_t *help_alone(pico8_struct_header_t *first) {
-    static pico8_struct_header_t *previous;
-    pico8_struct_header_t *fresh;
+static entity_t *help_alone(entity_t *first) {
+    static entity_t *previous;
+    entity_t *fresh;
 
     pico8_qy_rendre(first->emitter);
     if (previous != NULL) {
@@ -899,10 +899,10 @@ static void test_components_carried(void) {
     e[22] = pico8_fq_new(NULL);
     e[23] = pico8_mz_new();
     for (i = 0; i < 24; i++) {
-        const pico8_struct_header_t *header = e[i];
+        const entity_t *header = e[i];
 
         assert((header->emitter != NULL) == emitter[i]);
-        assert((header->probe != NULL) == probe[i]);
+        assert((header->targeting != NULL) == probe[i]);
     }
 
     assert_own_emitter(e[8], &pico8_hj_new(NULL)->header, sizeof(pico8_jo_t));
@@ -948,7 +948,7 @@ static void test_ke_me_by_name(void) {
     /* The kind word is constant by the struct's shape (`me` is a string or
      * absent), kept so that KE_ME_HASH still proves the typed reads. */
     for (i = 0; i < (size_t)hv->count; i++) {
-        me = ke_of(hv->items[i])->me;
+        me = ke_of(hv->items[i])->state;
         if (me != NULL) {
             h = fold_string(fnv(fnv(h, 1u), (uint32_t)STRING_KIND), me);
         } else {
@@ -981,7 +981,7 @@ static void test_ke_me_by_name(void) {
     e[22] = pico8_fq_new(NULL);
     e[23] = pico8_mz_new();
     for (i = 0; i < 24; i++) {
-        me = ke_of(e[i])->me;
+        me = ke_of(e[i])->state;
         assert(me != NULL);
         assert(strcmp(me, want[i]) == 0);
         assert(identity_of(me) == identity[i]);
@@ -995,19 +995,19 @@ static void test_ke_me_by_name(void) {
     }
 
     pico8_ke_ks(e[0], s);
-    me = ke_of(e[0])->me;
+    me = ke_of(e[0])->state;
     assert(me == s);
     h = fold_ks_back(fold_string(fnv(h, 1u), me), e[0]);
     pico8_ke_ks(e[0], NULL);
-    assert(ke_of(e[0])->me == NULL);
+    assert(ke_of(e[0])->state == NULL);
     h = fold_ks_back(fnv(h, 0u), e[0]);
     pico8_ke_ks(e[0], "ph");
-    me = ke_of(e[0])->me;
+    me = ke_of(e[0])->state;
     assert(me != NULL && strcmp(me, "ph") == 0);
     h = fold_ks_back(fold_string(fnv(h, 1u), me), e[0]);
 
     pico8_ke_ks(e[9], s);
-    me = ke_of(e[9])->me;
+    me = ke_of(e[9])->state;
     assert(me == s);
     h = fold_ks_back(fold_string(fnv(h, 1u), me), e[9]);
 
@@ -1017,7 +1017,7 @@ static void test_ke_me_by_name(void) {
 /* The kind word is constant by the struct's shape (`t` is always a fixed),
  * kept so that KE_T_HASH still proves the typed reads. */
 static uint32_t fold_t(uint32_t h, void *e) {
-    return fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)ke_of(e)->t);
+    return fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)ke_of(e)->state_time);
 }
 
 static uint32_t fold_hv_t(uint32_t h) {
@@ -1033,7 +1033,7 @@ static uint32_t fold_hv_t(uint32_t h) {
 }
 
 static void assert_t(void *e, int want) {
-    assert(ke_of(e)->t == pico8_fixed_from_int(want));
+    assert(ke_of(e)->state_time == pico8_fixed_from_int(want));
 }
 
 static void test_ke_t_by_name(void) {
@@ -1108,8 +1108,8 @@ static void test_ke_t_by_name(void) {
 
     pico8_ke_ks(&keyed->header, "ll");
     assert_t(keyed, 0);
-    assert(keyed->header.me != NULL && strcmp(keyed->header.me, "ll") == 0);
-    h = fold_string(fold_t(h, keyed), keyed->header.me);
+    assert(keyed->header.state != NULL && strcmp(keyed->header.state, "ll") == 0);
+    h = fold_string(fold_t(h, keyed), keyed->header.state);
 
     pico8_ke_ks(e[9], "ll");
     assert_t(e[9], 0);

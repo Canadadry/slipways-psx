@@ -11,8 +11,8 @@
 static pico8_vec_t pico8_mzd_ra_of_ij(const pico8_mz_t *self) {
     const pico8_vec_t *ra = NULL;
 
-    if (self->ij != NULL && self->ij->ra != NULL) {
-        ra = *self->ij->ra;
+    if (self->ij != NULL && self->ij->pos != NULL) {
+        ra = *self->ij->pos;
     }
     return ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
@@ -28,7 +28,7 @@ void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mz_t *self, pico8_vec
     px = pico8_fixed_flr_int(p.x);
     py = pico8_fixed_flr_int(p.y);
 
-    if (self->header.me != NULL && strcmp(self->header.me, "kz") == 0) {
+    if (self->header.state != NULL && strcmp(self->header.state, "kz") == 0) {
         pico8_vec_t cp;
 
         if (self->probe->et == NULL) {
@@ -46,7 +46,7 @@ void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mz_t *self, pico8_vec
             pico8_spr_default(gfx, mem, 7, px - 4, py - 4);
         }
     } else {
-        pico8_fixed_t t = self->header.t;
+        pico8_fixed_t t = self->header.state_time;
         pico8_fixed_t oi = self->oi;
         int has_kk = self->def->kk != NULL;
         int dt;
@@ -74,7 +74,7 @@ void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mz_t *self, pico8_vec
     }
 }
 
-void pico8_mz_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
+void pico8_mz_kj_dispatch(entity_t *self, const pico8_vec_t *ra) {
     pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     pico8_mz_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_mz_t *)self, p);
 }
