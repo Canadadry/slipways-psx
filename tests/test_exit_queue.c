@@ -78,10 +78,10 @@ static int case_entity_unregister_alive_until_flush(void) {
     message_box_t *e = new_entity(&freed_cls);
     entity_register(&e->header);
     entity_unregister(&e->header);
-    assert(exit_queue_count() == 1 && "he enfile une entite de hv qui a de quoi rendre");
+    assert(exit_queue_count() == 1 && "entity_unregister queues a live entity that has something to release");
     sink = (unsigned char)e->is_dead;
     cart_update60();
-    assert(exit_queue_count() == 0 && "update60 vide la file");
+    assert(exit_queue_count() == 0 && "cart_update60 flushes the queue");
     return 0;
 }
 
@@ -101,7 +101,7 @@ static const entity_list_t *replaced_ephemerals(void) {
     const entity_list_t *old = main_ui()->ephemerals;
     assert(old != ui_ephemerals_shared());
     ui_clear_ephemerals(main_ui());
-    assert(exit_queue_count() == 1 && "cj enfile la liste qu'il remplace");
+    assert(exit_queue_count() == 1 && "ui_clear_ephemerals queues the list it replaces");
     return old;
 }
 
@@ -146,12 +146,12 @@ static int case_reset_world_enqueues_registered(void) {
     entity_register(&kept->header);
     int expected = registered_with_release();
     reset_world();
-    assert(exit_queue_count() == expected && "jl enfile chaque inscrit qui a de quoi rendre");
+    assert(exit_queue_count() == expected && "reset_world queues every registered entity that has something to release");
     entity_unregister(&counted->header);
-    assert(exit_queue_count() == expected && "he apres jl : l'entite n'est plus dans hv, pas deux fois");
-    assert(released == 0 && "jl ne rend rien avant la fin de la frame");
+    assert(exit_queue_count() == expected && "entity_unregister after reset_world: the entity is no longer live, not queued twice");
+    assert(released == 0 && "reset_world releases nothing before the end of the frame");
     cart_load();
-    assert(released == 1 && exit_queue_count() == 0 && "cart_load vide la file");
+    assert(released == 1 && exit_queue_count() == 0 && "cart_load flushes the queue");
     return 0;
 }
 
@@ -162,7 +162,7 @@ static int case_shutdown_drains(void) {
     entity_unregister(&e->header);
     cart_shutdown();
     assert(released == 1 && exit_queue_count() == 0 &&
-           "cart_shutdown vide la file : aucune entree ne survit jusqu'au cart_load suivant");
+           "cart_shutdown flushes the queue: no entry survives until the next cart_load");
     return 0;
 }
 
@@ -230,7 +230,7 @@ static const struct {
     {"entity_unregister_released_at_flush", case_entity_unregister_released_at_flush},
     {"ephemerals_alive_until_flush", case_ephemerals_alive_until_flush},
     {"ephemerals_released_at_flush", case_ephemerals_released_at_flush},
-    {"he_outside_hv_or_without_member", case_entity_unregister_outside_live_entities_or_without_member},
+    {"entity_unregister_outside_live_entities_or_without_member", case_entity_unregister_outside_live_entities_or_without_member},
     {"reset_world_enqueues_registered", case_reset_world_enqueues_registered},
     {"shutdown_drains", case_shutdown_drains},
     {"flush_forgets_references", case_flush_forgets_references},
@@ -275,8 +275,8 @@ static void expect_clean(const char *name) {
     char *err;
     int status = run_child(name, &err);
     if (WEXITSTATUS(status) != 0 || err[0] != '\0') {
-        fprintf(stderr, "%s: attendu propre, sortie %d\n%s", name, WEXITSTATUS(status), err);
-        assert(0 && "le cas ne doit ni planter ni ecrire sur stderr");
+        fprintf(stderr, "%s: expected clean, exit %d\n%s", name, WEXITSTATUS(status), err);
+        assert(0 && "the case must neither crash nor write to stderr");
     }
     free(err);
 }
@@ -285,8 +285,8 @@ static void expect_freed_crash(const char *name) {
     char *err;
     int status = run_child(name, &err);
     if (WEXITSTATUS(status) == 0 || strstr(err, "heap-use-after-free") == NULL) {
-        fprintf(stderr, "%s: attendu heap-use-after-free, sortie %d\n%s", name, WEXITSTATUS(status), err);
-        assert(0 && "une entite lue apres le vidage de la file doit planter sous ASan");
+        fprintf(stderr, "%s: expected heap-use-after-free, exit %d\n%s", name, WEXITSTATUS(status), err);
+        assert(0 && "an entity read after the queue flush must crash under ASan");
     }
     free(err);
 }
@@ -295,8 +295,8 @@ static void expect_poison_crash(const char *name) {
     char *err;
     int status = run_child(name, &err);
     if (WEXITSTATUS(status) == 0 || strstr(err, "use-after-poison") == NULL) {
-        fprintf(stderr, "%s: attendu use-after-poison, sortie %d\n%s", name, WEXITSTATUS(status), err);
-        assert(0 && "une liste lue apres le vidage de la file doit planter sous ASan");
+        fprintf(stderr, "%s: expected use-after-poison, exit %d\n%s", name, WEXITSTATUS(status), err);
+        assert(0 && "a list read after the queue flush must crash under ASan");
     }
     free(err);
 }
@@ -305,9 +305,9 @@ static void expect_fatal(const char *name, const char *message) {
     char *err;
     int status = run_child(name, &err);
     if (WEXITSTATUS(status) != 3 || strstr(err, message) == NULL) {
-        fprintf(stderr, "%s: attendu sortie 3 et \"%s\", sortie %d\n%s",
+        fprintf(stderr, "%s: expected exit 3 and \"%s\", exit %d\n%s",
                 name, message, WEXITSTATUS(status), err);
-        assert(0 && "une file de sortie pleine doit appeler pico8_fatal");
+        assert(0 && "a full exit queue must call p8_fatal");
     }
     free(err);
 }
@@ -316,7 +316,7 @@ int main(int argc, char **argv) {
     if (argc == 2) {
         for (size_t i = 0; i < CASE_COUNT; i++)
             if (strcmp(argv[1], CASES[i].name) == 0) return CASES[i].run();
-        fprintf(stderr, "test_exit_queue: cas inconnu %s\n", argv[1]);
+        fprintf(stderr, "test_exit_queue: unknown case %s\n", argv[1]);
         return 2;
     }
     self_path = argv[0];
@@ -324,13 +324,13 @@ int main(int argc, char **argv) {
     expect_freed_crash("entity_unregister_released_at_flush");
     expect_clean("ephemerals_alive_until_flush");
     expect_poison_crash("ephemerals_released_at_flush");
-    expect_clean("he_outside_hv_or_without_member");
+    expect_clean("entity_unregister_outside_live_entities_or_without_member");
     expect_clean("reset_world_enqueues_registered");
     expect_clean("shutdown_drains");
     expect_clean("flush_forgets_references");
     expect_clean("update60_after_forgetting");
     expect_clean("difficulty_outlives_its_button");
-    expect_fatal("full", "file de sortie pleine, limite 256");
+    expect_fatal("full", "exit queue full, limit 256");
     remove(STDERR_LOG);
     printf("test_exit_queue: all tests passed\n");
     return 0;

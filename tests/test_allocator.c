@@ -44,7 +44,7 @@ static unsigned char *grow_counting(const allocator_t *z) {
 }
 
 static void expect_counting(const unsigned char *items) {
-    for (size_t i = 0; i < 64; i++) assert(items[i] == i && "agrandir garde le contenu, dans l'ordre");
+    for (size_t i = 0; i < 64; i++) assert(items[i] == i && "growing keeps the contents, in order");
 }
 
 static int case_bump_grow_keeps_order(void) {
@@ -109,7 +109,7 @@ static int case_entity_list_grow_keeps_order(void) {
     entity_t *e;
     int seen = 0;
     while (entity_list_iter_next(&it, &e)) {
-        assert(e == &cells[seen] && "all() voit chaque element malgre la suppression");
+        assert(e == &cells[seen] && "all() sees every item despite the removal");
         seen++;
         entity_list_del(&entity_list, e);
     }
@@ -133,7 +133,7 @@ static int case_pointer_list_grow_keeps_order(void) {
     void *e;
     int seen = 0;
     while (pointer_list_iter_next(&it, &e)) {
-        assert(e == &cells[seen] && "all() voit chaque element malgre la suppression");
+        assert(e == &cells[seen] && "all() sees every item despite the removal");
         seen++;
         pointer_list_del(&pointer_list, e);
     }
@@ -160,7 +160,7 @@ static int case_entity_list_stale_after_reset(void) {
 }
 
 static void expect_text(char *got, const char *expected) {
-    if (strcmp(got, expected) != 0) fprintf(stderr, "attendu \"%s\", obtenu \"%s\"\n", expected, got);
+    if (strcmp(got, expected) != 0) fprintf(stderr, "expected \"%s\", got \"%s\"\n", expected, got);
     assert(strcmp(got, expected) == 0);
 }
 
@@ -200,7 +200,7 @@ static unsigned char *arena_counting(const allocator_t *arena) {
 }
 
 static int case_arena_alive_until_released(void) {
-    const allocator_t *arena = arena_take(&heap_allocator, "place essai", ARENA_SIZE);
+    const allocator_t *arena = arena_take(&heap_allocator, "test-arena", ARENA_SIZE);
     unsigned char *items = arena_counting(arena);
     unsigned char *grown = grow_counting(arena);
     allocator_release(arena, items);
@@ -211,7 +211,7 @@ static int case_arena_alive_until_released(void) {
 }
 
 static int case_arena_dead_after_release(void) {
-    const allocator_t *arena = arena_take(&heap_allocator, "place essai", ARENA_SIZE);
+    const allocator_t *arena = arena_take(&heap_allocator, "test-arena", ARENA_SIZE);
     unsigned char *items = arena_counting(arena);
     arena_release(arena);
     sink = items[63];
@@ -219,40 +219,40 @@ static int case_arena_dead_after_release(void) {
 }
 
 static int case_arena_full(void) {
-    const allocator_t *arena = arena_take(&heap_allocator, "place essai", ARENA_SIZE);
+    const allocator_t *arena = arena_take(&heap_allocator, "test-arena", ARENA_SIZE);
     allocator_alloc(arena, ARENA_SIZE);
     return 0;
 }
 
 static int case_arena_taken_counts_head_and_blocks(void) {
-    const allocator_t *arena = arena_take(&heap_allocator, "place essai", ARENA_SIZE);
+    const allocator_t *arena = arena_take(&heap_allocator, "test-arena", ARENA_SIZE);
     size_t head = arena_used(arena);
-    assert(head > 0 && head < (size_t)ARENA_SIZE && "la tete de l'arene compte dans ce qu'elle a pris");
+    assert(head > 0 && head < (size_t)ARENA_SIZE && "the arena header counts in what it took");
     allocator_alloc(arena, 10);
-    assert(arena_used(arena) == head + 16 && "un bloc compte en cellules entieres");
+    assert(arena_used(arena) == head + 16 && "a block counts in whole cells");
     allocator_alloc(arena, ARENA_SIZE - head - 16);
-    assert(arena_used(arena) == (size_t)ARENA_SIZE && "une arene pleine a tout pris");
+    assert(arena_used(arena) == (size_t)ARENA_SIZE && "a full arena took everything");
     arena_release(arena);
     return 0;
 }
 
 static int case_arena_flush_back_to_head(void) {
-    const allocator_t *arena = arena_take(&heap_allocator, "place essai", ARENA_SIZE);
+    const allocator_t *arena = arena_take(&heap_allocator, "test-arena", ARENA_SIZE);
     size_t head = arena_used(arena);
     unsigned char *before = arena_counting(arena);
     arena_flush(arena);
-    assert(arena_used(arena) == head && "une arene videe n'a plus que sa tete");
+    assert(arena_used(arena) == head && "a flushed arena holds only its header");
     unsigned char *after = arena_counting(arena);
     /* L'angle mort du recyclage : la meme adresse revient, un pointeur
      * perime y lirait le nouveau bloc sans planter. */
-    assert(after == before && "une arene videe reprend depuis le debut de son bloc");
+    assert(after == before && "a flushed arena restarts at the start of its block");
     expect_counting(after);
     arena_release(arena);
     return 0;
 }
 
 static int case_arena_flush_kills_old_block(void) {
-    const allocator_t *arena = arena_take(&heap_allocator, "place essai", ARENA_SIZE);
+    const allocator_t *arena = arena_take(&heap_allocator, "test-arena", ARENA_SIZE);
     unsigned char *items = arena_counting(arena);
     arena_flush(arena);
     sink = items[63];
@@ -264,12 +264,12 @@ static int case_arena_flush_kills_old_block(void) {
 /* Une arene qui tient juste la liste et ses RESERVED elements : un seul
  * agrandissement la ferait deborder. */
 static const allocator_t *reserved_list(pointer_list_t **out) {
-    const allocator_t *probe = arena_take(&heap_allocator, "sonde", ARENA_SIZE);
+    const allocator_t *probe = arena_take(&heap_allocator, "probe-arena", ARENA_SIZE);
     size_t head = arena_used(probe);
     arena_release(probe);
     size_t size = head + ZONE_CELLS(sizeof(pointer_list_t)) * sizeof(zone_cell_t) +
                   RESERVED * sizeof(void *);
-    const allocator_t *arena = arena_take(&heap_allocator, "place essai", size);
+    const allocator_t *arena = arena_take(&heap_allocator, "test-arena", size);
     pointer_list_t *pointer_list = (pointer_list_t *)allocator_alloc(arena, sizeof *pointer_list);
     pointer_list_init_reserve(pointer_list, arena, RESERVED);
     assert(arena_used(arena) == size);
@@ -314,7 +314,7 @@ static int case_arena_spares_neighbour(void) {
     static const allocator_t neighbour_allocator = {first_neighbour, NULL, no_grow_release, NULL, NULL};
     unsigned char *next = (unsigned char *)neighbours + ARENA_SIZE;
     memset(next, 7, ARENA_SIZE);
-    const allocator_t *arena = arena_take(&neighbour_allocator, "place essai", ARENA_SIZE);
+    const allocator_t *arena = arena_take(&neighbour_allocator, "test-arena", ARENA_SIZE);
     for (int i = 0; i < ARENA_SIZE; i++) assert(next[i] == 7);
     sink = arena_counting(arena)[63];
     arena_release(arena);
@@ -335,7 +335,7 @@ static int case_slot_handle_round_trip(void) {
     *b = 5;
     assert(slot_zone_taken(&slots) == 2);
     allocator_release(&slot_handle, a);
-    assert(slot_zone_taken(&slots) == 1 && "rendre par la poignee rend la place");
+    assert(slot_zone_taken(&slots) == 1 && "releasing through the handle releases the slot");
     assert(*b == 5);
     allocator_release(&slot_handle, NULL);
     assert(slot_zone_taken(&slots) == 1);
@@ -385,16 +385,16 @@ static int case_flip_zone_handle_round_trip(void) {
     size_t grab_arena = flip_zone_used(&flip_zone);
     allocator_release(flip_zone_handle, items);
     allocator_release(flip_zone_handle, NULL);
-    assert(flip_zone_used(&flip_zone) == grab_arena && "rendre par la poignee ne fait rien");
+    assert(flip_zone_used(&flip_zone) == grab_arena && "releasing through the handle does nothing");
     expect_counting(items);
     unsigned char *copy;
     unsigned char *old = flip_zone_grown(&copy);
-    for (size_t i = 0; i < 8; i++) assert(copy[i] == 6 && "agrandir copie");
+    for (size_t i = 0; i < 8; i++) assert(copy[i] == 6 && "growing copies");
     memset(copy + 8, 7, 8);
     flip_zone_flip(&flip_zone);
     memset(allocator_alloc(flip_zone_handle, 64), 2, 64);
     for (size_t i = 0; i < 8; i++)
-        assert(old[i] == 6 && copy[i] == 6 && "l'ancienne generation vit jusqu'a son rendu");
+        assert(old[i] == 6 && copy[i] == 6 && "the old generation lives until its release");
     expect_counting(items);
     return 0;
 }
@@ -418,25 +418,25 @@ static const struct {
     {"slot_handle_no_grow", case_slot_handle_no_grow},
     {"slot_handle_stale_after_release", case_slot_handle_stale_after_release},
     {"slot_handle_full", case_slot_handle_full},
-    {"bascule_handle_round_trip", case_flip_zone_handle_round_trip},
-    {"bascule_handle_stale_after_rendre", case_flip_zone_handle_stale_after_release},
+    {"flip_zone_handle_round_trip", case_flip_zone_handle_round_trip},
+    {"flip_zone_handle_stale_after_release", case_flip_zone_handle_stale_after_release},
     {"arena_alive_until_released", case_arena_alive_until_released},
     {"arena_dead_after_release", case_arena_dead_after_release},
     {"arena_full", case_arena_full},
     {"arena_spares_neighbour", case_arena_spares_neighbour},
     {"arena_taken_counts_head_and_blocks", case_arena_taken_counts_head_and_blocks},
     {"arena_flush_back_to_head", case_arena_flush_back_to_head},
-    {"arena_vider_kills_old_block", case_arena_flush_kills_old_block},
-    {"ptrs_reserved_fills_without_growing", case_pointer_list_reserved_fills_without_growing},
-    {"ptrs_reserved_overflow", case_pointer_list_reserved_overflow},
+    {"arena_flush_kills_old_block", case_arena_flush_kills_old_block},
+    {"pointer_list_reserved_fills_without_growing", case_pointer_list_reserved_fills_without_growing},
+    {"pointer_list_reserved_overflow", case_pointer_list_reserved_overflow},
     {"bump_grow_keeps_order", case_bump_grow_keeps_order},
     {"bump_read_before_reset", case_bump_read_before_reset},
     {"bump_stale_after_reset", case_bump_stale_after_reset},
     {"bump_grow_past_capacity", case_bump_grow_past_capacity},
-    {"ents_grow_keeps_order", case_entity_list_grow_keeps_order},
-    {"ptrs_grow_keeps_order", case_pointer_list_grow_keeps_order},
-    {"ents_read_before_reset", case_entity_list_read_before_reset},
-    {"ents_stale_after_reset", case_entity_list_stale_after_reset},
+    {"entity_list_grow_keeps_order", case_entity_list_grow_keeps_order},
+    {"pointer_list_grow_keeps_order", case_pointer_list_grow_keeps_order},
+    {"entity_list_read_before_reset", case_entity_list_read_before_reset},
+    {"entity_list_stale_after_reset", case_entity_list_stale_after_reset},
     {"texts_in_bump", case_texts_in_bump},
 };
 
@@ -476,8 +476,8 @@ static void expect_clean(const char *name) {
     char *err;
     int status = run_child(name, &err);
     if (WEXITSTATUS(status) != 0 || err[0] != '\0') {
-        fprintf(stderr, "%s: attendu propre, sortie %d\n%s", name, WEXITSTATUS(status), err);
-        assert(0 && "le cas ne doit ni planter ni ecrire sur stderr");
+        fprintf(stderr, "%s: expected clean, exit %d\n%s", name, WEXITSTATUS(status), err);
+        assert(0 && "the case must neither crash nor write to stderr");
     }
     free(err);
 }
@@ -486,8 +486,8 @@ static void expect_poison_crash(const char *name) {
     char *err;
     int status = run_child(name, &err);
     if (WEXITSTATUS(status) == 0 || strstr(err, "use-after-poison") == NULL) {
-        fprintf(stderr, "%s: attendu use-after-poison, sortie %d\n%s", name, WEXITSTATUS(status), err);
-        assert(0 && "l'acces hors duree de vie doit planter sous ASan");
+        fprintf(stderr, "%s: expected use-after-poison, exit %d\n%s", name, WEXITSTATUS(status), err);
+        assert(0 && "an access outside the lifetime must crash under ASan");
     }
     free(err);
 }
@@ -496,8 +496,8 @@ static void expect_freed_crash(const char *name) {
     char *err;
     int status = run_child(name, &err);
     if (WEXITSTATUS(status) == 0 || strstr(err, "heap-use-after-free") == NULL) {
-        fprintf(stderr, "%s: attendu heap-use-after-free, sortie %d\n%s", name, WEXITSTATUS(status), err);
-        assert(0 && "un bloc d'arene lu apres le rendu de l'arene doit planter sous ASan");
+        fprintf(stderr, "%s: expected heap-use-after-free, exit %d\n%s", name, WEXITSTATUS(status), err);
+        assert(0 && "an arena block read after the arena is released must crash under ASan");
     }
     free(err);
 }
@@ -506,8 +506,8 @@ static void expect_assert(const char *name, const char *message) {
     char *err;
     int status = run_child(name, &err);
     if (WEXITSTATUS(status) == 0 || strstr(err, message) == NULL) {
-        fprintf(stderr, "%s: attendu un assert \"%s\", sortie %d\n%s", name, message, WEXITSTATUS(status), err);
-        assert(0 && "la poignee d'une zone a places refuse ce qu'une place ne tient pas");
+        fprintf(stderr, "%s: expected an assert \"%s\", exit %d\n%s", name, message, WEXITSTATUS(status), err);
+        assert(0 && "a slot zone handle refuses what a slot cannot hold");
     }
     free(err);
 }
@@ -516,52 +516,52 @@ static void expect_fatal(const char *name, const char *message) {
     char *err;
     int status = run_child(name, &err);
     if (WEXITSTATUS(status) != 3 || strstr(err, message) == NULL) {
-        fprintf(stderr, "%s: attendu sortie 3 et \"%s\", sortie %d\n%s",
+        fprintf(stderr, "%s: expected exit 3 and \"%s\", exit %d\n%s",
                 name, message, WEXITSTATUS(status), err);
-        assert(0 && "une croissance qui remplit la zone doit appeler pico8_fatal");
+        assert(0 && "a growth that fills the zone must call p8_fatal");
     }
     free(err);
 }
 
 int main(int argc, char **argv) {
-    bump_zone_init(&bump, "essai-liste", bump_cells, CAPACITY);
+    bump_zone_init(&bump, "test-list", bump_cells, CAPACITY);
     handle = allocator_from_bump_zone(&bump);
-    slot_zone_init(&slots, "essai-places", slot_cells, slot_taken, SLOT_SIZE, 2);
+    slot_zone_init(&slots, "test-slots", slot_cells, slot_taken, SLOT_SIZE, 2);
     slot_handle = allocator_from_slot_zone(&slots);
-    flip_zone_init(&flip_zone, "essai-partie", flip_zone_cells, CAPACITY);
+    flip_zone_init(&flip_zone, "test-flip", flip_zone_cells, CAPACITY);
     flip_zone_handle = allocator_from_flip_zone(&flip_zone_storage, &flip_zone);
     if (argc == 2) {
         for (size_t i = 0; i < CASE_COUNT; i++)
             if (strcmp(argv[1], CASES[i].name) == 0) return CASES[i].run();
-        fprintf(stderr, "test_allocator: cas inconnu %s\n", argv[1]);
+        fprintf(stderr, "test_allocator: unknown case %s\n", argv[1]);
         return 2;
     }
     self_path = argv[0];
     expect_clean("bump_grow_keeps_order");
     expect_clean("slot_handle_round_trip");
-    expect_assert("slot_handle_too_big", "plus grand qu'une place");
-    expect_assert("slot_handle_no_grow", "une place ne grandit pas");
+    expect_assert("slot_handle_too_big", "larger than a slot");
+    expect_assert("slot_handle_no_grow", "a slot does not grow");
     expect_poison_crash("slot_handle_stale_after_release");
-    expect_fatal("slot_handle_full", "zone essai-places pleine, limite 2 places");
-    expect_clean("bascule_handle_round_trip");
-    expect_poison_crash("bascule_handle_stale_after_rendre");
+    expect_fatal("slot_handle_full", "zone test-slots full, limit 2 slots");
+    expect_clean("flip_zone_handle_round_trip");
+    expect_poison_crash("flip_zone_handle_stale_after_release");
     expect_clean("bump_read_before_reset");
     expect_poison_crash("bump_stale_after_reset");
-    expect_fatal("bump_grow_past_capacity", "zone essai-liste pleine, limite 1024 octets");
-    expect_clean("ents_grow_keeps_order");
-    expect_clean("ptrs_grow_keeps_order");
-    expect_clean("ents_read_before_reset");
-    expect_poison_crash("ents_stale_after_reset");
+    expect_fatal("bump_grow_past_capacity", "zone test-list full, limit 1024 bytes");
+    expect_clean("entity_list_grow_keeps_order");
+    expect_clean("pointer_list_grow_keeps_order");
+    expect_clean("entity_list_read_before_reset");
+    expect_poison_crash("entity_list_stale_after_reset");
     expect_clean("texts_in_bump");
     expect_clean("arena_alive_until_released");
     expect_freed_crash("arena_dead_after_release");
-    expect_fatal("arena_full", "zone place essai pleine, limite ");
+    expect_fatal("arena_full", "zone test-arena full, limit ");
     expect_clean("arena_spares_neighbour");
     expect_clean("arena_taken_counts_head_and_blocks");
     expect_clean("arena_flush_back_to_head");
-    expect_poison_crash("arena_vider_kills_old_block");
-    expect_clean("ptrs_reserved_fills_without_growing");
-    expect_fatal("ptrs_reserved_overflow", "zone place essai pleine, limite ");
+    expect_poison_crash("arena_flush_kills_old_block");
+    expect_clean("pointer_list_reserved_fills_without_growing");
+    expect_fatal("pointer_list_reserved_overflow", "zone test-arena full, limit ");
     remove(STDERR_LOG);
     printf("test_allocator: all tests passed\n");
     return 0;

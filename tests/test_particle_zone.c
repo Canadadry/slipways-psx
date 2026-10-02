@@ -409,12 +409,12 @@ int main(int argc, char **argv) {
     self_path = argv[0];
     expect_clean("live_places_follow_takes");
     expect_poison_crash("particule_dead_after_release");
-    expect_fatal("burst_zone_full", "zone particules burst pleine, limite 8 places");
-    expect_fatal("particule_zone_full", "zone particules particule pleine, limite 2085 places");
+    expect_fatal("burst_zone_full", "zone particules burst full, limit 8 slots");
+    expect_fatal("particule_zone_full", "zone particules particule full, limit 2085 slots");
     expect_clean("particles_holds_its_capacity");
-    expect_fatal("particles_past_capacity", "zone place particles pleine, limite ");
+    expect_fatal("particles_past_capacity", "zone place particles full, limit ");
     expect_clean("particles_help_screen_holds_its_capacity");
-    expect_fatal("particles_help_screen_past_capacity", "zone place particles_help_screen pleine, limite ");
+    expect_fatal("particles_help_screen_past_capacity", "zone place particles_help_screen full, limit ");
     expect_clean("maxima_keep_the_peak");
     expect_clean("particles_release_gives_back_particles_then_list");
     expect_poison_crash("particles_release_releases_the_arena");
@@ -426,7 +426,7 @@ int main(int argc, char **argv) {
     expect_clean("emitter_spawn_notes_the_list_length");
     expect_clean("transit_dots_takes_and_gives_back");
     expect_poison_crash("transit_dots_dead_after_release");
-    expect_fatal("transit_dots_zone_full", "zone particules transit_dots pleine, limite 680 places");
+    expect_fatal("transit_dots_zone_full", "zone particules transit_dots full, limit 680 slots");
     remove(STDERR_LOG);
     printf("test_particle_zone: all tests passed\n");
     return 0;

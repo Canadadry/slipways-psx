@@ -407,11 +407,11 @@ int main(int argc, char **argv) {
     expect_clean("init_keeps_generation");
     expect_poison_crash("dead_after_cart_load");
     expect_clean("prise_and_max");
-    expect_assert("double_start_game_without_flush", "vider la file de sortie entre deux eu");
+    expect_assert("double_start_game_without_flush", "flush the exit queue between two game starts");
     expect_clean("load_zone_survives_start_game");
     expect_poison_crash("chargement_dead_after_cart_load");
     expect_clean("chargement_prise_and_max");
-    expect_fatal("chargement_full", "zone chargement pleine, limite 65536 octets");
+    expect_fatal("chargement_full", "zone chargement full, limit 65536 bytes");
     expect_clean("listes_statiques_dans_chargement");
     remove(STDERR_LOG);
     printf("test_game_zone: all tests passed\n");

@@ -413,7 +413,7 @@ int main(int argc, char **argv) {
     expect_poison_crash("update60_resets");
     expect_clean("list_alive_within_frame");
     expect_poison_crash("list_dead_next_frame");
-    expect_fatal("full", "zone frame pleine, limite 262144 octets");
+    expect_fatal("full", "zone frame full, limit 262144 bytes");
     expect_clean("inspection_panel_rows_survive_reset");
     expect_clean("invented_lines_survive_reset");
     expect_clean("research_project_tooltip_survives_reset");

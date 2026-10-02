@@ -21,13 +21,13 @@ static void release_nothing(const allocator_t *z, unsigned char *p) {
 }
 
 allocator_t allocator_from_bump_zone(bump_zone_t *bump) {
-    assert(bump != NULL && "poignee sur une zone absente");
+    assert(bump != NULL && "handle on a missing zone");
     allocator_t z = {bump_alloc, bump_grow, release_nothing, bump, NULL};
     return z;
 }
 
 static unsigned char *slot_alloc(const allocator_t *z, size_t n) {
-    assert(n <= z->slot->slot_size && "zone a places : bloc plus grand qu'une place");
+    assert(n <= z->slot->slot_size && "slot zone: block larger than a slot");
     return slot_zone_alloc(z->slot);
 }
 
@@ -37,7 +37,7 @@ unsigned char *allocator_grow_refused(const allocator_t *z, unsigned char *p,
     (void)p;
     (void)old_n;
     (void)new_n;
-    assert(0 && "zone a places : une place ne grandit pas");
+    assert(0 && "slot zone: a slot does not grow");
     return NULL;
 }
 
@@ -46,7 +46,7 @@ static void slot_release(const allocator_t *z, unsigned char *p) {
 }
 
 allocator_t allocator_from_slot_zone(slot_zone_t *slot) {
-    assert(slot != NULL && "poignee sur une zone absente");
+    assert(slot != NULL && "handle on a missing zone");
     allocator_t z = {slot_alloc, allocator_grow_refused, slot_release, NULL, slot};
     return z;
 }
@@ -76,7 +76,7 @@ static unsigned char *flip_zone_handle_grow(const allocator_t *z, unsigned char 
 
 const allocator_t *allocator_from_flip_zone(flip_zone_allocator_t *storage,
                                                        flip_zone_t *zone) {
-    assert(storage != NULL && zone != NULL && "poignee sur une zone absente");
+    assert(storage != NULL && zone != NULL && "handle on a missing zone");
     allocator_t z = {flip_zone_handle_alloc, flip_zone_handle_grow, release_nothing, NULL, NULL};
     storage->handle = z;
     storage->zone = zone;
@@ -84,19 +84,19 @@ const allocator_t *allocator_from_flip_zone(flip_zone_allocator_t *storage,
 }
 
 unsigned char *allocator_alloc(const allocator_t *z, size_t n) {
-    assert(z != NULL && "allocation sans zone designee");
+    assert(z != NULL && "alloc without an allocator");
     return z->alloc(z, n);
 }
 
 unsigned char *allocator_grow(const allocator_t *z, unsigned char *p,
                                size_t old_n, size_t new_n) {
-    assert(z != NULL && "agrandissement sans zone designee");
+    assert(z != NULL && "grow without an allocator");
     assert(old_n <= new_n && (p != NULL || old_n == 0));
     return z->grow(z, p, old_n, new_n);
 }
 
 void allocator_release(const allocator_t *z, unsigned char *p) {
-    assert(z != NULL && "rendu sans zone designee");
+    assert(z != NULL && "release without an allocator");
     z->release(z, p);
 }
 
@@ -114,7 +114,7 @@ typedef struct {
 const allocator_t *arena_take(const allocator_t *from,
                                                      const char *name, size_t size) {
     size_t cells = size / sizeof(zone_cell_t);
-    assert(cells > ARENA_HEAD_CELLS && "arene plus petite que sa tete");
+    assert(cells > ARENA_HEAD_CELLS && "arena smaller than its header");
     zone_cell_t *block = (zone_cell_t *)allocator_alloc(from, size);
     arena_t *arena = (arena_t *)block;
     bump_zone_init_single(&arena->bump, name, block + ARENA_HEAD_CELLS,
@@ -126,18 +126,18 @@ const allocator_t *arena_take(const allocator_t *from,
 
 size_t arena_used(const allocator_t *arena) {
     const arena_t *a = (const arena_t *)arena;
-    assert(arena != NULL && arena->bump == &a->bump && "mesure d'une poignee qui n'est pas une arene");
+    assert(arena != NULL && arena->bump == &a->bump && "usage of a handle that is not an arena");
     return ARENA_HEAD_CELLS * sizeof(zone_cell_t) + a->bump.used;
 }
 
 void arena_flush(const allocator_t *arena) {
     arena_t *a = (arena_t *)arena;
-    assert(arena != NULL && arena->bump == &a->bump && "vidage d'une poignee qui n'est pas une arene");
+    assert(arena != NULL && arena->bump == &a->bump && "flush of a handle that is not an arena");
     bump_zone_init_single(&a->bump, a->bump.name, a->bump.storage, a->bump.capacity);
 }
 
 void arena_release(const allocator_t *arena) {
     const arena_t *a = (const arena_t *)arena;
-    assert(arena != NULL && arena->bump == &a->bump && "rendu d'une poignee qui n'est pas une arene");
+    assert(arena != NULL && arena->bump == &a->bump && "release of a handle that is not an arena");
     allocator_release(a->from, (unsigned char *)a);
 }

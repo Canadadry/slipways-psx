@@ -17,7 +17,7 @@
 
 static void zone_full(const char *name, size_t limit, const char *unit) {
     char message[160];
-    snprintf(message, sizeof message, "zone %s pleine, limite %lu %s",
+    snprintf(message, sizeof message, "zone %s full, limit %lu %s",
              name, (unsigned long)limit, unit);
     p8_fatal(message);
 }
@@ -51,7 +51,7 @@ void bump_zone_init_single(bump_zone_t *zone, const char *name,
 unsigned char *bump_zone_alloc(bump_zone_t *zone, size_t size) {
     size_t rounded = ZONE_CELLS(size) * sizeof(zone_cell_t);
     if (rounded > zone->capacity - zone->used)
-        zone_full(zone->name, zone->capacity, "octets");
+        zone_full(zone->name, zone->capacity, "bytes");
     unsigned char *p = bump_half(zone) + zone->used;
     zone->used += rounded;
     UNPOISON(p, size);
@@ -63,7 +63,7 @@ unsigned char *bump_zone_alloc(bump_zone_t *zone, size_t size) {
  * et un pointeur perime y lirait sans planter. */
 void bump_zone_reset(bump_zone_t *zone) {
     assert(!zone->never_reset &&
-           "reset d'une zone a une moitie : une arene ne se remet jamais a zero, on la rend");
+           "reset of a single-half zone: an arena is never reset, it is released");
     POISON(bump_half(zone), ZONE_CELLS(zone->capacity) * sizeof(zone_cell_t));
     zone->half = (zone->half + 1) % BUMP_ZONE_HALVES;
     zone->used = 0;
@@ -89,7 +89,7 @@ static unsigned char *flip_zone_end(const flip_zone_t *zone) {
 unsigned char *flip_zone_alloc(flip_zone_t *zone, size_t size) {
     size_t rounded = ZONE_CELLS(size) * sizeof(zone_cell_t);
     if (rounded > zone->capacity - zone->bottom - zone->top)
-        zone_full(zone->name, zone->capacity, "octets");
+        zone_full(zone->name, zone->capacity, "bytes");
     unsigned char *p;
     if (zone->current_top) {
         zone->top += rounded;
@@ -105,7 +105,7 @@ unsigned char *flip_zone_alloc(flip_zone_t *zone, size_t size) {
 
 void flip_zone_flip(flip_zone_t *zone) {
     assert(!zone->pending &&
-           "bascule alors que l'ancienne generation attend son rendu : vider la file de sortie entre deux eu");
+           "flip while the old generation awaits its release: flush the exit queue between two game starts");
     zone->current_top = !zone->current_top;
     assert((zone->current_top ? zone->top : zone->bottom) == 0);
     zone->pending = 1;
@@ -178,7 +178,7 @@ unsigned char *slot_zone_alloc(slot_zone_t *zone) {
             return p;
         }
     }
-    zone_full(zone->name, zone->count, "places");
+    zone_full(zone->name, zone->count, "slots");
     return NULL;
 }
 
@@ -186,10 +186,10 @@ void slot_zone_release(slot_zone_t *zone, unsigned char *slot) {
     size_t stride = ZONE_CELLS(zone->slot_size) * sizeof(zone_cell_t);
     unsigned char *base = slot_at(zone, 0);
     assert(slot >= base && slot < base + zone->count * stride &&
-           "release d'un pointeur hors de la zone");
+           "release of a pointer outside the zone");
     size_t i = (size_t)(slot - base) / stride;
-    assert(slot == slot_at(zone, i) && "release d'un pointeur qui n'est pas un debut de place");
-    assert(zone->taken[i] && "release d'une place deja rendue");
+    assert(slot == slot_at(zone, i) && "release of a pointer that is not the start of a slot");
+    assert(zone->taken[i] && "release of a slot already released");
     zone->taken[i] = 0;
     POISON(slot, zone->slot_size);
 }

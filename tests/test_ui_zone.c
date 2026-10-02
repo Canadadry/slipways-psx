@@ -154,9 +154,9 @@ int main(int argc, char **argv) {
     expect_clean("live_slots_follow_takes");
     expect_clean("slot_alive_until_released");
     expect_poison_crash("slot_dead_after_release");
-    expect_fatal("button_slot_full", "zone place button pleine, limite ");
-    expect_fatal("row_slot_full", "zone place rangee pleine, limite ");
-    expect_fatal("modal_backdrop_zone_full", "zone interface modal_backdrop pleine, limite 4 places");
+    expect_fatal("button_slot_full", "zone place button full, limit ");
+    expect_fatal("row_slot_full", "zone place rangee full, limit ");
+    expect_fatal("modal_backdrop_zone_full", "zone interface modal_backdrop full, limit 4 slots");
     remove(STDERR_LOG);
     printf("test_ui_zone: all tests passed\n");
     return 0;

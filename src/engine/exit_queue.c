@@ -16,7 +16,7 @@ static int g_count;
 static void put(entry_t entry) {
     if (g_count == EXIT_QUEUE_CAP) {
         char message[64];
-        snprintf(message, sizeof message, "file de sortie pleine, limite %d", EXIT_QUEUE_CAP);
+        snprintf(message, sizeof message, "exit queue full, limit %d", EXIT_QUEUE_CAP);
         p8_fatal(message);
     }
     g_queue[g_count++] = entry;
@@ -24,7 +24,7 @@ static void put(entry_t entry) {
 
 void exit_queue_put(entity_t *e) {
     entry_t entry = {e, NULL};
-    assert(e->class->release != NULL && "file de sortie : la classe n'a rien a rendre");
+    assert(e->class->release != NULL && "exit queue: the class has nothing to release");
     put(entry);
 }
 

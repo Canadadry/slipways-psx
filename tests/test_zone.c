@@ -21,9 +21,9 @@ static slot_zone_t slots;
 static flip_zone_t flip_zone;
 
 static void init_zones(void) {
-    bump_zone_init(&bump, "essai-frame", bump_cells, 64);
-    slot_zone_init(&slots, "essai-places", slot_cells, slot_taken, 16, 4);
-    flip_zone_init(&flip_zone, "essai-partie", flip_zone_cells, 64);
+    bump_zone_init(&bump, "test-frame", bump_cells, 64);
+    slot_zone_init(&slots, "test-slots", slot_cells, slot_taken, 16, 4);
+    flip_zone_init(&flip_zone, "test-flip", flip_zone_cells, 64);
 }
 
 /* volatile : la lecture d'un pointeur perime ne doit pas etre retiree par
@@ -94,7 +94,7 @@ static int case_slot_taken_follows(void) {
     unsigned char *b = slot_zone_alloc(&slots);
     assert(slot_zone_taken(&slots) == 2);
     slot_zone_release(&slots, a);
-    assert(slot_zone_taken(&slots) == 1 && "rendre une place la decompte");
+    assert(slot_zone_taken(&slots) == 1 && "releasing a slot stops counting it");
     slot_zone_release(&slots, b);
     assert(slot_zone_taken(&slots) == 0);
     return 0;
@@ -108,7 +108,7 @@ static int case_slot_full(void) {
 static int case_flip_zone_grab_arena_follows(void) {
     assert(flip_zone_used(&flip_zone) == 0);
     memset(flip_zone_alloc(&flip_zone, 5), 1, 5);
-    assert(flip_zone_used(&flip_zone) == 8 && "arrondi a la cellule");
+    assert(flip_zone_used(&flip_zone) == 8 && "rounded up to the cell");
     memset(flip_zone_alloc(&flip_zone, 16), 1, 16);
     assert(flip_zone_used(&flip_zone) == 24);
     assert(flip_zone_max(&flip_zone) == 24);
@@ -116,7 +116,7 @@ static int case_flip_zone_grab_arena_follows(void) {
 }
 
 static void expect_filled(const unsigned char *p, size_t n, unsigned char v) {
-    for (size_t i = 0; i < n; i++) assert(p[i] == v && "bloc recouvert");
+    for (size_t i = 0; i < n; i++) assert(p[i] == v && "block overwritten");
 }
 
 static int case_flip_zone_old_generation_lives(void) {
@@ -125,7 +125,7 @@ static int case_flip_zone_old_generation_lives(void) {
     flip_zone_flip(&flip_zone);
     for (int i = 0; i < 5; i++) memset(flip_zone_alloc(&flip_zone, 8), 9, 8);
     expect_filled(a, 24, 7);
-    assert(flip_zone_used(&flip_zone) == 64 && "les deux generations comptent");
+    assert(flip_zone_used(&flip_zone) == 64 && "both generations count");
     return 0;
 }
 
@@ -173,7 +173,7 @@ static int case_flip_zone_ends_meet(void) {
     memset(flip_zone_alloc(&flip_zone, 40), 1, 40);
     flip_zone_flip(&flip_zone);
     memset(flip_zone_alloc(&flip_zone, 24), 2, 24);
-    fprintf(stderr, "remplie\n");
+    fprintf(stderr, "filled\n");
     flip_zone_alloc(&flip_zone, 8);
     return 0;
 }
@@ -183,10 +183,10 @@ static int case_flip_zone_max_keeps_peak(void) {
     flip_zone_flip(&flip_zone);
     flip_zone_alloc(&flip_zone, 16);
     flip_zone_release(&flip_zone);
-    assert(flip_zone_used(&flip_zone) == 16 && "le rendu decompte l'ancienne generation");
+    assert(flip_zone_used(&flip_zone) == 16 && "the release stops counting the old generation");
     flip_zone_alloc(&flip_zone, 8);
     assert(flip_zone_used(&flip_zone) == 24);
-    assert(flip_zone_max(&flip_zone) == 40 && "le maximum garde la frame de bascule");
+    assert(flip_zone_max(&flip_zone) == 40 && "the maximum keeps the flip frame");
     return 0;
 }
 
@@ -205,7 +205,7 @@ static int case_flip_zone_reset_empties(void) {
     unsigned char *top;
     reset_both_ends(&top);
     assert(flip_zone_used(&flip_zone) == 0);
-    assert(flip_zone_max(&flip_zone) == 40 && "la remise ne touche pas au maximum de session");
+    assert(flip_zone_max(&flip_zone) == 40 && "the reset leaves the session maximum alone");
     flip_zone_flip(&flip_zone);
     memset(flip_zone_alloc(&flip_zone, 64), 3, 64);
     return 0;
@@ -237,17 +237,17 @@ static const struct {
     {"bump_full", case_bump_full},
     {"slot_taken_follows", case_slot_taken_follows},
     {"slot_full", case_slot_full},
-    {"bascule_prise_follows", case_flip_zone_grab_arena_follows},
-    {"bascule_old_generation_lives", case_flip_zone_old_generation_lives},
-    {"bascule_new_generation_after_rendre", case_flip_zone_new_generation_after_release},
-    {"bascule_stale_bas_after_rendre", case_flip_zone_stale_bottom_after_release},
-    {"bascule_stale_haut_after_rendre", case_flip_zone_stale_top_after_release},
-    {"bascule_twice_without_rendre", case_flip_zone_twice_without_release},
-    {"bascule_ends_meet", case_flip_zone_ends_meet},
-    {"bascule_max_keeps_peak", case_flip_zone_max_keeps_peak},
-    {"bascule_reset_empties", case_flip_zone_reset_empties},
-    {"bascule_stale_bas_after_reset", case_flip_zone_stale_bottom_after_reset},
-    {"bascule_stale_haut_after_reset", case_flip_zone_stale_top_after_reset},
+    {"flip_zone_grab_arena_follows", case_flip_zone_grab_arena_follows},
+    {"flip_zone_old_generation_lives", case_flip_zone_old_generation_lives},
+    {"flip_zone_new_generation_after_release", case_flip_zone_new_generation_after_release},
+    {"flip_zone_stale_bottom_after_release", case_flip_zone_stale_bottom_after_release},
+    {"flip_zone_stale_top_after_release", case_flip_zone_stale_top_after_release},
+    {"flip_zone_twice_without_release", case_flip_zone_twice_without_release},
+    {"flip_zone_ends_meet", case_flip_zone_ends_meet},
+    {"flip_zone_max_keeps_peak", case_flip_zone_max_keeps_peak},
+    {"flip_zone_reset_empties", case_flip_zone_reset_empties},
+    {"flip_zone_stale_bottom_after_reset", case_flip_zone_stale_bottom_after_reset},
+    {"flip_zone_stale_top_after_reset", case_flip_zone_stale_top_after_reset},
 };
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
@@ -286,8 +286,8 @@ static void expect_clean(const char *name) {
     char *err;
     int status = run_child(name, &err);
     if (WEXITSTATUS(status) != 0 || err[0] != '\0') {
-        fprintf(stderr, "%s: attendu propre, sortie %d\n%s", name, WEXITSTATUS(status), err);
-        assert(0 && "le cas de controle ne doit pas planter");
+        fprintf(stderr, "%s: expected clean, exit %d\n%s", name, WEXITSTATUS(status), err);
+        assert(0 && "the control case must not crash");
     }
     free(err);
 }
@@ -296,8 +296,8 @@ static void expect_poison_crash(const char *name) {
     char *err;
     int status = run_child(name, &err);
     if (WEXITSTATUS(status) == 0 || strstr(err, "use-after-poison") == NULL) {
-        fprintf(stderr, "%s: attendu use-after-poison, sortie %d\n%s", name, WEXITSTATUS(status), err);
-        assert(0 && "l'acces hors duree de vie doit planter sous ASan");
+        fprintf(stderr, "%s: expected use-after-poison, exit %d\n%s", name, WEXITSTATUS(status), err);
+        assert(0 && "an access outside the lifetime must crash under ASan");
     }
     free(err);
 }
@@ -306,8 +306,8 @@ static void expect_assert(const char *name, const char *message) {
     char *err;
     int status = run_child(name, &err);
     if (WEXITSTATUS(status) == 0 || strstr(err, message) == NULL) {
-        fprintf(stderr, "%s: attendu un assert \"%s\", sortie %d\n%s", name, message, WEXITSTATUS(status), err);
-        assert(0 && "le cas doit echouer par cet assert");
+        fprintf(stderr, "%s: expected an assert \"%s\", exit %d\n%s", name, message, WEXITSTATUS(status), err);
+        assert(0 && "the case must fail on this assert");
     }
     free(err);
 }
@@ -316,9 +316,9 @@ static void expect_fatal(const char *name, const char *zone, const char *limit) 
     char *err;
     int status = run_child(name, &err);
     if (WEXITSTATUS(status) != 3 || strstr(err, zone) == NULL || strstr(err, limit) == NULL) {
-        fprintf(stderr, "%s: attendu sortie 3 nommant %s et %s, sortie %d\n%s",
+        fprintf(stderr, "%s: expected exit 3 naming %s and %s, exit %d\n%s",
                 name, zone, limit, WEXITSTATUS(status), err);
-        assert(0 && "une zone pleine doit appeler pico8_fatal");
+        assert(0 && "a full zone must call p8_fatal");
     }
     free(err);
 }
@@ -328,28 +328,28 @@ int main(int argc, char **argv) {
     if (argc == 2) {
         for (size_t i = 0; i < CASE_COUNT; i++)
             if (strcmp(argv[1], CASES[i].name) == 0) return CASES[i].run();
-        fprintf(stderr, "test_zone: cas inconnu %s\n", argv[1]);
+        fprintf(stderr, "test_zone: unknown case %s\n", argv[1]);
         return 2;
     }
     self_path = argv[0];
     expect_clean("control");
     expect_clean("slot_taken_follows");
-    expect_clean("bascule_prise_follows");
-    expect_clean("bascule_old_generation_lives");
-    expect_clean("bascule_new_generation_after_rendre");
-    expect_clean("bascule_max_keeps_peak");
-    expect_clean("bascule_reset_empties");
+    expect_clean("flip_zone_grab_arena_follows");
+    expect_clean("flip_zone_old_generation_lives");
+    expect_clean("flip_zone_new_generation_after_release");
+    expect_clean("flip_zone_max_keeps_peak");
+    expect_clean("flip_zone_reset_empties");
     expect_poison_crash("bump_stale_after_reset");
     expect_poison_crash("slot_stale_after_release");
     expect_poison_crash("bump_overflow_past_object");
-    expect_poison_crash("bascule_stale_bas_after_rendre");
-    expect_poison_crash("bascule_stale_haut_after_rendre");
-    expect_poison_crash("bascule_stale_bas_after_reset");
-    expect_poison_crash("bascule_stale_haut_after_reset");
-    expect_assert("bascule_twice_without_rendre", "vider la file de sortie entre deux eu");
-    expect_fatal("bump_full", "essai-frame", " 64 ");
-    expect_fatal("slot_full", "essai-places", " 4 ");
-    expect_fatal("bascule_ends_meet", "remplie\np8_fatal: zone essai-partie pleine", " 64 ");
+    expect_poison_crash("flip_zone_stale_bottom_after_release");
+    expect_poison_crash("flip_zone_stale_top_after_release");
+    expect_poison_crash("flip_zone_stale_bottom_after_reset");
+    expect_poison_crash("flip_zone_stale_top_after_reset");
+    expect_assert("flip_zone_twice_without_release", "flush the exit queue between two game starts");
+    expect_fatal("bump_full", "test-frame", " 64 ");
+    expect_fatal("slot_full", "test-slots", " 4 ");
+    expect_fatal("flip_zone_ends_meet", "filled\np8_fatal: zone test-flip full", " 64 ");
     remove(STDERR_LOG);
     printf("test_zone: all tests passed\n");
     return 0;
