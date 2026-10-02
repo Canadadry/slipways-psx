@@ -1,6 +1,6 @@
-/* Le minimiseur : l'étage mécanique sur des frames fabriquées, puis l'outil
- * pico8_minimize et tools/minimize.sh sur des fichiers d'événements
- * fabriqués, la couverture remplacée par un oracle en script. */
+/* The minimizer: the mechanical pass on made-up frames, then the tool
+ * tmp/minimize (src/cmd/minimize.c) and tools/minimize.sh on made-up event
+ * files, with coverage replaced by a script oracle. */
 
 #include "devtools/minimize.h"
 
@@ -50,9 +50,9 @@ static int contains(const p8_input_frame_t *frames, int n, p8_input_frame_t f) {
     return 0;
 }
 
-/* Appui, relâchement (qui ressemble à une frame inactive), appui du d-pad et
- * clic droit pendant un glisser : aucune transition ne disparaît, même
- * noyée dans des déplacements. */
+/* A press, a release (which looks like an idle frame), a d-pad press and a
+ * right click during a drag: no transition disappears, even buried among
+ * moves. */
 static void test_button_transitions_are_always_kept(void) {
     p8_input_frame_t in[MAX_FRAMES];
     int n = 0;
@@ -80,8 +80,8 @@ static void test_button_transitions_are_always_kept(void) {
     }
 }
 
-/* Entre deux transitions : au moins 80 % des déplacements retirés, et la
- * frame juste avant la transition est à la position finale. */
+/* Between two transitions: at least 80% of the moves are removed, and the
+ * frame just before the transition is at the final position. */
 static void test_at_least_80_percent_of_moves_between_transitions_are_removed(void) {
     p8_input_frame_t in[MAX_FRAMES];
     int n = 0;
@@ -104,7 +104,7 @@ static void test_at_least_80_percent_of_moves_between_transitions_are_removed(vo
     assert(same(out[kept - 2], frame(42, 79, 0)));
 }
 
-/* Glisser : bouton tenu, souris en mouvement ; ce sont des déplacements. */
+/* A drag: a button held, the mouse moving; those are moves. */
 static void test_drag_moves_are_thinned_but_hold_still_frames_kept(void) {
     p8_input_frame_t in[MAX_FRAMES];
     int n = 0;
@@ -122,8 +122,7 @@ static void test_drag_moves_are_thinned_but_hold_still_frames_kept(void) {
     assert(same(out[kept - 2], frame(60, 10, 1)));
 }
 
-/* Que des transitions et des tenues immobiles, aucune frame inactive ni
- * aucun déplacement. */
+/* Only transitions and still holds, with no idle frame and no move. */
 static void test_already_minimal_frames_are_unchanged(void) {
     p8_input_frame_t in[] = {
         frame(30, 40, 1), frame(30, 40, 0), frame(70, 12, 1),
@@ -135,8 +134,9 @@ static void test_already_minimal_frames_are_unchanged(void) {
     assert(memcmp(in, out, sizeof in) == 0);
 }
 
-/* floor(m / 5) déplacements gardés : 0 sur 4, 2 sur 10 dont le dernier. La
- * transition porte sa propre position, le clic tombe au même endroit. */
+/* A fifth of the moves kept, rounded down: none out of 4, 2 out of 10, the
+ * last one among them. The transition carries its own position, so the
+ * click lands on the same spot. */
 static void test_segments_keep_a_fifth_of_their_moves_rounded_down(void) {
     p8_input_frame_t in[MAX_FRAMES];
     int n = 0;
@@ -161,8 +161,8 @@ static void test_segments_keep_a_fifth_of_their_moves_rounded_down(void) {
     assert(same(out[6], in[n - 1]));
 }
 
-/* Un fichier sans transition ni tenue n'est pas vidé : reste sa dernière
- * frame. */
+/* A file with no transition and no hold is not emptied: its last frame
+ * remains. */
 static void test_a_file_of_few_moves_keeps_its_last_frame(void) {
     p8_input_frame_t in[] = {frame(1, 1, 0), frame(2, 2, 0), frame(3, 3, 0)};
     p8_input_frame_t out[MAX_FRAMES];
@@ -172,7 +172,7 @@ static void test_a_file_of_few_moves_keeps_its_last_frame(void) {
     assert(same(out[0], in[0]));
 }
 
-/* Un trajet revenu à son point de départ ne laisse pas de frame inactive. */
+/* A path that comes back to its starting point leaves no idle frame. */
 static void test_no_output_frame_is_idle_after_its_kept_predecessor(void) {
     p8_input_frame_t in[MAX_FRAMES];
     int n = 0;
@@ -211,8 +211,8 @@ static int load_events(const char *path, p8_input_t *input) {
     return p8_input_load(input, path);
 }
 
-/* La sortie de l'outil est relue par le chargeur, et ce sont les frames que
- * rend l'étage mécanique. */
+/* The tool's output is read back by the loader, and holds the frames the
+ * mechanical pass returns. */
 static void test_tool_output_is_reread_by_the_loader(void) {
     p8_input_frame_t in[MAX_FRAMES];
     int n = 0;
@@ -253,8 +253,8 @@ static void test_tool_drop_removes_a_range_and_never_empties_the_file(void) {
 }
 
 #define SCRIPT "sh tools/minimize.sh " TOOL
-/* Oracles en script à la place de line_coverage.sh cover : l'ensemble de
- * lignes d'un fichier d'événements sur stdout, code non nul s'il échoue. */
+/* Script oracles in place of line_coverage.sh cover: the set of lines of an
+ * event file on stdout, a non-zero exit status if it fails. */
 #define CLICKS_ORACLE DIR "/clicks.sh"
 #define CONSTANT_ORACLE DIR "/constant.sh"
 #define AT_LEAST_3_ORACLE DIR "/at_least_3.sh"
@@ -276,7 +276,7 @@ static void write_oracles(void) {
     write_file(DPAD_WIDTH_ORACLE, "grep -q 'false, false, false, false, false' \"$1\" && echo six || echo four\n");
 }
 
-/* Deux clics tenus à deux endroits dans une session de 80 frames. */
+/* Two clicks held at two spots in a session of 80 frames. */
 static int write_session(const char *path) {
     p8_input_frame_t in[MAX_FRAMES];
     int n = 0;
@@ -311,7 +311,7 @@ static int same_oracle_output(const char *oracle, const char *a, const char *b) 
     return system(cmd) == 0;
 }
 
-/* Sans oracle, le script ne fait que l'étage mécanique. */
+/* Without an oracle, the script only runs the mechanical pass. */
 static void test_script_without_oracle_is_the_mechanical_stage(void) {
     write_session(DIR "/session.json");
     assert(run(SCRIPT " " DIR "/session.json " DIR "/mech.json") == 0);
@@ -319,8 +319,8 @@ static void test_script_without_oracle_is_the_mechanical_stage(void) {
     assert(run("cmp " DIR "/mech.json " DIR "/expected.json") == 0);
 }
 
-/* La passe guidée garde exactement les lignes de la session brute et
- * descend jusqu'au minimum que l'oracle admet. */
+/* The guided pass keeps exactly the lines of the raw session and goes down
+ * to the minimum the oracle accepts. */
 static void test_coverage_pass_keeps_raw_lines_and_goes_to_the_minimum(void) {
     int raw = write_session(DIR "/session.json");
     assert(run(SCRIPT " " DIR "/session.json " DIR "/clicks.json sh " CLICKS_ORACLE) == 0);
@@ -332,8 +332,8 @@ static void test_coverage_pass_keeps_raw_lines_and_goes_to_the_minimum(void) {
     assert(frame_count(DIR "/constant.json") == 1);
 }
 
-/* Un candidat sur lequel l'oracle échoue est rejeté ; une session brute sur
- * laquelle il échoue fait échouer le script sans écrire la sortie. */
+/* A candidate the oracle fails on is rejected; a raw session it fails on
+ * makes the script fail without writing the output file. */
 static void test_coverage_pass_rejects_candidates_the_oracle_fails_on(void) {
     write_session(DIR "/session.json");
     assert(run(SCRIPT " " DIR "/session.json " DIR "/three.json sh " AT_LEAST_3_ORACLE) == 0);
@@ -345,8 +345,9 @@ static void test_coverage_pass_rejects_candidates_the_oracle_fails_on(void) {
     assert(run("test -e " DIR "/none.json") != 0);
 }
 
-/* L'étage mécanique retire les frames en x = 7 et change donc les lignes :
- * la passe repart de la session brute et les garde toutes. */
+/* The mechanical pass removes frames at mouse_x 7, and so changes the
+ * lines: the guided pass starts again from the raw session and keeps them
+ * all. */
 static void test_coverage_pass_restarts_from_raw_when_mechanical_stage_changes_lines(void) {
     p8_input_frame_t in[MAX_FRAMES];
     int n = 0;
@@ -359,9 +360,9 @@ static void test_coverage_pass_restarts_from_raw_when_mechanical_stage_changes_l
     assert(frame_count(DIR "/x7.json") == 20);
 }
 
-/* Une session à d-pad de 4 booléens : l'écrivain en écrit toujours 6, et
- * la ligne du chargeur qui complète les 4 n'est plus jamais couverte. Les
- * lignes de référence sont celles de la session réécrite. */
+/* A session with a d-pad of 4 booleans: the writer always writes 6, so the
+ * loader line that pads the 4 is never covered again. The reference lines
+ * are those of the rewritten raw session. */
 static void test_coverage_pass_judges_against_the_rewritten_raw_session(void) {
     write_file(DIR "/four.json", "{ \"frames\": [\n"
                "{ \"mouse_x\": 1, \"mouse_y\": 1, \"mouse_buttons\": 0, \"dpad\": [false, false, false, false] },\n"

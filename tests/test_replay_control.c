@@ -1,8 +1,9 @@
 /* What a key press and an overlay reduce to without a window: which
  * frame-rate cap a speed level means, and what the progress line says.
- * That a key reaches `pico8_replay_control_faster()` and that the string
- * reaches DrawText is a few lines of `main_raylib.c`, and is not checked
- * here -- it needs a real window and a real keyboard.
+ * That a key reaches `replay_control_faster()` (through
+ * raylib_backend_poll_replay_controls) and that the string is drawn (by
+ * raylib_backend_present, and by src/cmd/screencast_viewer.c) is not
+ * checked here -- it needs a real window and a real keyboard.
  *
  * The numbers are asserted exactly rather than as ranges: "faster than
  * before" would pass on a ladder that went 60, 61, 62, and the point of
@@ -64,8 +65,8 @@ static void test_the_ladder_clamps_at_both_ends(void) {
     assert(replay_control_target_fps(&control, 1) == 0);
 }
 
-/* 0 is not a sentinel this port invented: it is what raylib's SetTargetFPS
- * takes as "do not wait between frames at all".
+/* 0 is what raylib's SetTargetFPS takes as "do not wait between frames at
+ * all".
  *
  * Note what is absent: no frame count, no stride, no "skip to frame N".
  * Abbreviating shortens the wait between frames and never skips one, or the
@@ -138,7 +139,7 @@ static void test_progress_line_reports_the_current_speed(void) {
     assert(strcmp(status, "replay 50/200 (25%) speed max") == 0);
 }
 
-/* One frame is the shortest valid replay -- `pico8_input_load` rejects an
+/* One frame is the shortest valid replay -- `p8_input_load` rejects an
  * empty recording -- and the percentage must not divide by zero on the way
  * there. A total of zero is pinned too: a comfort overlay must never be
  * what kills the session. */

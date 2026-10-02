@@ -8,7 +8,7 @@
  * new game, which would look to the player like a lost save.
  *
  * The failure fixtures are the ones `tests/test_input.c` uses: this
- * module delegates "valid recording" to `pico8_input_load`, so it must be
+ * module delegates "valid recording" to `p8_input_load`, so it must be
  * tested against that function's idea of a bad file, not a second one. */
 
 #include "devtools/replay_source.h"
@@ -147,7 +147,7 @@ static void test_no_recording_is_exhausted_from_the_first_frame(void) {
 /* An accessor on the cursor this module already keeps, not a second
  * counter the driver maintains: two counters drift, and a progress line
  * that disagrees with the replay is worse than none. Counted in frames
- * SERVED, so 1 on the first frame and N on the last -- one ahead of the
+ * served, so 1 on the first frame and N on the last -- one ahead of the
  * 0-based index the marker file writes. */
 static void test_frames_served_tracks_the_replay_position(void) {
     replay_source_t source;

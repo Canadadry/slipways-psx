@@ -1,6 +1,6 @@
-/* tools/class_coverage.sh, le corps de `make class-coverage`, sur un dossier
- * fabrique : un rejeu court depuis l'ecran titre et un fichier malforme. Puis
- * le compteur de couverture, seul. */
+/* tools/class_coverage.sh, the body of `make class-coverage`, on a made-up
+ * directory: a short replay from the title screen and a malformed file.
+ * Then the coverage counter, alone. */
 
 #include "devtools/class_coverage.h"
 
@@ -28,7 +28,7 @@ static char *read_log(void) {
     return read_file(LOG);
 }
 
-/* Rend le compte total imprime pour `name`, -1 si la ligne manque. */
+/* Returns the total count printed for `name`, -1 if its line is missing. */
 static long count_of(const char *log, const char *name) {
     char prefix[32];
     snprintf(prefix, sizeof prefix, "\n%s ", name);
@@ -61,7 +61,7 @@ static void test_short_replay_and_malformed_file(void) {
     assert(strstr(log, "unknown") == NULL);
 }
 
-/* Une exemption pour chaque classe a 0 : le verdict passe. */
+/* One exemption for every class at 0: the verdict passes. */
 static void test_exempting_every_zero_class_passes(void) {
     assert(system("awk '$2 == 0 { print $1, \"test\" }' " LOG " > " EXEMPT) == 0);
     assert(run(EXEMPT) == 0);
@@ -87,8 +87,8 @@ static void test_expect_missing_file_fails(void) {
     assert(run_with("--expect " DIR "/absent.txt", EXEMPT) != 0);
 }
 
-/* Les cas s'enchainent dans un seul processus : les comptes s'accumulent.
- * Le nom "" vient en dernier, restant compte ensuite. */
+/* The calls share one process, so the counts accumulate. The name "" comes
+ * last: once recorded, it stays counted for every later call. */
 static void test_coverage_hook_first_unknown_name(void) {
     static const char *const known_dummy[] = {"aa"};
 

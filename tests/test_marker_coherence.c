@@ -5,7 +5,7 @@
  *
  * A resumed session is where that can break: it replays N frames the player
  * did not play before recording any they did. The marker index comes from
- * `pico8_session_recorder_frame_count()`, so everything turns on whether
+ * `session_recorder_frame_count()`, so everything turns on whether
  * that counter counts the replayed frames too -- it does, because every
  * frame about to be played is recorded, replayed or live alike.
  *
@@ -57,12 +57,15 @@ static void assert_frame_equals(const p8_input_frame_t *got, const p8_input_fram
     assert(got->dpad[3] == want->dpad[3]);
 }
 
-/* `main_raylib.c`'s loop, with the hardware calls scripted and the game
- * step dropped. `marker_for_iteration[i]` is what a space-bar release on
- * iteration i would write, read exactly where the backend reads it: just
- * BEFORE the frame is recorded. That placement is the whole arithmetic --
- * the count is the index the next recorded frame will take, so one line
- * later it would name the following frame. */
+/* The loop of src/cmd/game.c, with the hardware calls scripted and the
+ * game step dropped. `marker_for_iteration` holds, for every iteration,
+ * the count read where raylib_backend_poll_input reads it: just before
+ * the frame is recorded. On a live frame, that is what a space-bar release
+ * writes; the game does not read the keyboard on a replayed frame, so no
+ * marker is written there, but the count is checked all the same. That
+ * placement is the whole arithmetic -- the count is the index the next
+ * recorded frame will take, so one line later it would name the following
+ * frame. */
 static void run_resumed_session(const char *source_path, const char *resumed_path, int *marker_for_iteration) {
     replay_source_t replay;
     assert(replay_source_open(&replay, source_path) == REPLAY_SOURCE_LOADED);
@@ -86,14 +89,15 @@ static void run_resumed_session(const char *source_path, const char *resumed_pat
     replay_source_close(&replay);
 }
 
-/* A marker on the k-th live frame of a resumed session must be N+k, not k:
- * the recording it indexes into opens with the N replayed frames. */
+/* A marker on a live frame of a resumed session must be N plus that
+ * frame's rank among the live frames, not the rank alone: the recording it
+ * indexes into opens with the N replayed frames. */
 static void test_marker_index_counts_the_replayed_frames_too(void) {
     const char *source_path = "tmp/test_marker_coherence_source.json";
     const char *resumed_path = "tmp/test_marker_coherence_resumed.json";
     int marker_for_iteration[TOTAL_FRAME_COUNT];
 
-    /* Written by `pico8_input_save`, not by the recorder under test. */
+    /* Written by `p8_input_save`, not by the recorder under test. */
     assert(p8_input_save(k_replayed_frames, REPLAYED_FRAME_COUNT, source_path));
 
     run_resumed_session(source_path, resumed_path, marker_for_iteration);
@@ -110,8 +114,8 @@ static void test_marker_index_counts_the_replayed_frames_too(void) {
     remove(resumed_path);
 }
 
-/* The half arithmetic cannot reach: N+k is only right if the file on disk
- * really does hold the replayed frames first. */
+/* The half arithmetic cannot reach: N plus the rank is only right if the
+ * file on disk really does hold the replayed frames first. */
 static void test_marker_index_names_the_frame_that_was_on_screen(void) {
     const char *source_path = "tmp/test_marker_coherence_resolve_source.json";
     const char *resumed_path = "tmp/test_marker_coherence_resolve_resumed.json";

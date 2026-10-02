@@ -16,7 +16,7 @@ replay_source_status_t replay_source_open(replay_source_t *source, const char *p
     }
 
     /* Missing, unreadable, malformed and empty all collapse into one
-     * outcome: pico8_input_load reports them the same way, nothing is
+     * outcome: p8_input_load reports them the same way, nothing is
      * half-loaded, and the caller's message names the path, which is what
      * tells them apart for a human. */
     if (!p8_input_load(&source->recording, path)) {

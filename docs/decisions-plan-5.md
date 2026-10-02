@@ -77,6 +77,8 @@
 | D-50 | 4j | Locales courtes dont le nom porte un digramme du cart (`c_truthy`, `s_str`) | 2 + 3 |
 | D-51 | 4j | `spacer` qui tient un émetteur dans quatre tests de 3i | 55 |
 | D-52 | 4k2 | Nom de test `test_the_shared_palette_is_the_published_pico8_one` | 2 |
+| D-53 | 4a, 4k3 | Assertion d'absence `"unknown"` sans écrivain (`test_class_coverage.c`) | 1 |
+| D-54 | 4k3 | Préfixe `k_` des tableaux `static const` du morceau 4k3 | 26 |
 
 ## Entrées
 
@@ -387,6 +389,7 @@
 - **Options** : (a) garder (scission d'en-tête hors périmètre, §7) ; (b) scinder `p8/input.h`.
 - **Sites** : 5 fonctions (occurrences : 28, 12, 8, 34, 6).
 - **Proposition prête à appliquer** : (a), rien à éditer.
+- **Complément (4k3)** : les commentaires d'`src/devtools/input_json.c` réécrits par 4k3 nomment `p8_input_save` et `p8_input_append` (au lieu de `pico8_input_save`, `pico8_input_append`), définis là et déclarés dans `src/p8/input.h` (« see p8_input_append's contract in p8/input.h ») ; rien d'autre ne change.
 - **Verdict** :
 
 ### D-26 — Lignes `chaîne` `pz` et `go` éditées hors de `rename-strings`
@@ -529,6 +532,7 @@
 - **Complément (4h)** : 4h renomme deux locales `row` de `tests/test_button.c` (`fold_written` → `layout_row`, `fold_keys` → `source_row`, portées 44 et 79). Sans `SUBSTEP`, sur l'arbre de l'état des locales extrait, TSV d'avant puis d'après : `backtick` 1 560 → 1 570 (+10) ; `cart-citations` identique (66/20/1 289). Mentions : `src/game/layout.h:40`, `:128`, `:140`, `:150`, `:152`, `src/game/map_tables.h:34`, `src/game/game_data.h:103` (3d, close, +7 `later`) et `src/game/research.h:12` (3g, close, +1 `later`), réécrites par 4h sans backticks et à hauteur constante (« the row field », « the row argument », « the given row ») ; `src/game/score_panel.h:53`, `:66` (3j, +2), laissées à leur sous-étape. Un mot anglais de trois lettres qui nomme aussi des champs et des paramètres légitimes (`row` de `data_row_t`, de `layout_row_cell_t`) compte autant que la locale renommée. La règle (b) l'aurait évité.
 - **Complément (4k1)** : 4k1 réécrit la mention `` `mem` `` de `src/devtools/screencast.h:45` (« the PICO-8 memory ») ; elle était l'une des 23 du relevé de 4b.
 - **Complément (4k2)** : 4k2 réécrit les mentions `` `out` `` de `src/devtools/screencast_player.h:42`, `src/devtools/dump.h:8`, `tests/test_screencast_player.c:126` (« the buffer », « the stream », « the 16-byte buffer ») et `` `len` `` de `tests/test_gif.c:64` (`` `data_length` ``, nom de la locale après le commit de locales de 4k2) : 4 des 6 de 3k relevées par 4g ; restent `src/devtools/replay_control.h:63` et `src/devtools/minimize.h:6` (4k3). Les « un » de 4k2 (38) sont partis avec le français. Les locales renommées par 4k2 (`eoi`, `prev`, `clears`, `bitpos`, `written`, `packed`) deviennent d'anciens noms sans aucune mention entre backticks dans le dépôt ; `gif` garde son ancien `g` (D-42) : aucun effet de bord mesuré (compteurs sans `SUBSTEP`, TSV d'avant puis d'après, identiques à l'octet).
+- **Complément (4k3)** : 4k3 réécrit les deux dernières mentions `` `out` `` de 3k relevées par 4g : `src/devtools/replay_control.h:63` (« the buffer ») et `src/devtools/minimize.h:6` (`` `kept_frames` ``, nom du paramètre après le commit de locales de 4k3) ; les six de 3k sont réécrites. Les « un » de 4k3 (11) sont partis avec le français. Les locales renommées par 4k3 (`obj_start`, `obj_end`, `obj_len`, `obj_buf`, `tmp_len`) deviennent d'anciens noms distinctifs (un `_`), comptés par texte en mot entier, nus compris : seule la mention nue `tmp_len` du commentaire `src/devtools/input_json.c:229` comptait (+1 `comment` sans `SUBSTEP`, TSV d'avant puis d'après, sur l'arbre de l'état des locales ; réécrite `tmp_path_size` par le commit de commentaires, à hauteur constante). `out` était déjà un ancien nom : aucun effet.
 - **Verdict** :
 
 ### D-37 — `argc`/`argv` de `main` dans la liste des locales cryptiques
@@ -701,4 +705,24 @@
 - **Sites** : 2 (définition `tests/test_screencast_player.c:147`, appel de `main` `:168`, numéros de fin de 4k2).
 - **Proposition prête à appliquer** : (a) ; sous (b), contrôle : `grep -rn pico8_one tests` rend 0.
 - **Portée** : aucune mention en commentaire ni entre backticks.
+- **Verdict** :
+
+### D-53 — Assertion d'absence `"unknown"` sans écrivain (`tests/test_class_coverage.c`)
+
+- **Origine** : 4a (laissée « sans écrivain, à 4k »), 4k3 (commit de chaîne).
+- **Question** : `assert(strstr(log, "unknown") == NULL)` (ex-`"inconnue"`, traduit par 4k3) gardait l'absence de la ligne `inconnue <n>` que l'ancien binaire de couverture imprimait ; elle a disparu à `536ddd4`. Aucun écrivain n'imprime plus ce mot (sortie réelle de `tools/class_coverage.sh` sur la fixture et le fichier malformé du test : ni `inconnue` ni `unknown`), et un nom inconnu fait aujourd'hui rendre 3 au binaire (`src/cmd/class_coverage.c:68-76`), que le script imprime sous `failed:`. L'assertion ne peut pas échouer. Que faire ?
+- **Options** : (a) garder ; (b) la retirer ; (c) la pointer sur ce qui signale vraiment un échec de rejeu : `strstr(log, "failed:") == NULL` (les rejeux du test ne rendent que 0 et 2, `unreadable:`).
+- **Sites** : 1 (`tests/test_class_coverage.c:61`).
+- **Proposition prête à appliquer** : (c), commit `test:` ; contrôle : `make test` vert, et une violation plantée (un rejeu qui rend 3) qui le fait échouer, jouée hors du dépôt.
+- **Portée** : aucune mention en commentaire. Note pour 4l3 : si son message traduit de `src/cmd/class_coverage.c:73` (aujourd'hui « le nom %s n'est pas dans KNOWN[] », sur `stderr`, que le script recopie) contient `unknown`, (a) redevient une garde.
+- **Verdict** :
+
+### D-54 — Préfixe `k_` des tableaux `static const` du morceau 4k3
+
+- **Origine** : 4k3 (relecture des tests de reprise).
+- **Question** : `k_multiplier` (`src/devtools/replay_control.c`), `k_replayed_frames`, `k_live_frames` (`tests/test_marker_coherence.c`), `k_source_frames`, `k_live_frames` (`tests/test_recording_continuity.c`), `k_events_valid`, `k_events_valid_count` (`tests/test_replay_source.c`) portent un préfixe de constante à la hongroise que le §4 ne prévoit pas (nom complet ; `g_` pour une statique mutable seulement) ; aucun compteur ne le voit. Le retirer ?
+- **Options** : (a) garder ; (b) retirer le préfixe, procédure N : `level_multipliers`, `replayed_frames`, `live_frames` (×2), `source_frames`, `events_valid_frames`, `events_valid_count`.
+- **Sites** (mot entier, `src tests`) : 26 (`k_multiplier` 2, `k_replayed_frames` 4, `k_live_frames` 8, `k_source_frames` 5, `k_events_valid` 3, `k_events_valid_count` 4) ; noms neufs : 0 site, 0 déclaration. Identités (stables) : `c:replay_control.c@k_multiplier`, `c:test_marker_coherence.c@k_replayed_frames`, `c:test_marker_coherence.c@k_live_frames`, `c:test_recording_continuity.c@k_source_frames`, `c:test_recording_continuity.c@k_live_frames`, `c:test_replay_source.c@k_events_valid`, `c:test_replay_source.c@k_events_valid_count`.
+- **Proposition prête à appliquer** : (b), sans hachage en jeu.
+- **Portée** : s'applique aux mentions en commentaire (aucune) ; contrôle : `git grep -nwE 'k_(multiplier|replayed_frames|live_frames|source_frames|events_valid|events_valid_count)' -- src tests` rend 0. Hors morceau, `k_entry` (`src/game/planet_family.c`) et `k_key` (`src/game/score_panel.c`) sont des locales qui gardent le digramme `k` (famille de D-50), non comprises ici.
 - **Verdict** :

@@ -189,10 +189,10 @@ int p8_input_load(p8_input_t *input, const char *path) {
 }
 
 /* The file's fixed head and tail, and the single spelling of a frame line,
- * shared by pico8_input_save and pico8_input_append: the two writers must
- * not drift into different bytes for the same frames (see
- * pico8_input_append's contract). Frame lines are joined by
- * FRAME_SEPARATOR, the last one followed by JSON_SUFFIX. */
+ * shared by p8_input_save and p8_input_append: the two writers must not
+ * drift into different bytes for the same frames (see p8_input_append's
+ * contract in p8/input.h). Frame lines are joined by FRAME_SEPARATOR, the
+ * last one followed by JSON_SUFFIX. */
 #define JSON_PREFIX "{\n  \"frames\": [\n"
 #define JSON_SUFFIX "\n  ]\n}\n"
 #define FRAME_SEPARATOR ",\n"
@@ -226,8 +226,8 @@ int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *p
         return 0;
     }
     snprintf(tmp_path, tmp_path_size, "%s.tmp", path);
-    /* tmp_len was sized for this exact suffix; a longer one would silently
-     * truncate the path and rename over the wrong file. */
+    /* tmp_path_size was sized for this exact suffix; a longer one would
+     * silently truncate the path and rename over the wrong file. */
     assert(strlen(tmp_path) == strlen(path) + 4);
 
     FILE *f = fopen(tmp_path, "wb");
@@ -281,7 +281,7 @@ int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_
         return 0;
     }
 
-    /* `*io_tail_offset` is where JSON_SUFFIX currently starts. Writing
+    /* `*tail_offset` is where JSON_SUFFIX currently starts. Writing
      * there turns that suffix into a separator, the new line and a fresh
      * suffix -- strictly longer, so the file only grows and nothing ever
      * needs truncating. */

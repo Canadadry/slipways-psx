@@ -1,10 +1,10 @@
 /* The memory of the session currently being recorded -- where the
  * recording lives, how many frames it holds, where the next one goes --
  * and the one operation that moves it forward. Kept outside
- * pico8_raylib_backend.c, which includes raylib.h and can therefore be
- * neither built nor run by `make unit`, so that the continuity of a
- * resumed recording can be tested (tests/test_recording_
- * continuity.c). Nothing here includes raylib.h. */
+ * src/platform/raylib_backend.c, which includes raylib.h and is neither
+ * built nor run by `make unit`, so that the continuity of a resumed
+ * recording can be tested (tests/test_recording_continuity.c). Nothing
+ * here includes raylib.h. */
 
 #ifndef DEVTOOLS_SESSION_RECORDER_H
 #define DEVTOOLS_SESSION_RECORDER_H
@@ -18,7 +18,7 @@
 /* `path` is copied in, so the caller need not keep its buffer alive.
  * `frame_count` is how many frames have landed in the file -- equivalently
  * the 0-based index the next one will occupy -- and `tail_offset` is
- * pico8_input_append's resume point. Read `frame_count` through the
+ * p8_input_append's resume point. Read `frame_count` through the
  * accessor below; no field is meant to be written directly. */
 typedef struct {
     char path[SESSION_RECORDER_PATH_MAX];
@@ -30,7 +30,7 @@ typedef struct {
  * first recorded frame, not here, so a session that plays nothing leaves
  * no file; an existing file at `path` is truncated by that first frame,
  * never appended to. `path` must be shorter than
- * PICO8_SESSION_RECORDER_PATH_MAX -- a longer one aborts. */
+ * SESSION_RECORDER_PATH_MAX -- a longer one aborts. */
 void session_recorder_open(session_recorder_t *recorder, const char *path);
 
 /* Adds one played frame to the recording, replayed or live alike -- this

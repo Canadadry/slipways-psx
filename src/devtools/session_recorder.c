@@ -12,7 +12,7 @@ void session_recorder_open(session_recorder_t *recorder, const char *path) {
            "a truncated path records to a file the caller did not name, and one that no longer pairs with the marker file");
 
     recorder->frame_count = 0;
-    /* 0 is pico8_input_append's "start a new recording": the first frame
+    /* 0 is p8_input_append's "start a new recording": the first frame
      * creates or truncates the file. */
     recorder->tail_offset = 0;
 }
@@ -23,13 +23,13 @@ int session_recorder_record_frame(session_recorder_t *recorder, const p8_input_f
 
     /* Appending, never rewriting: a frame must not cost more as the
      * session grows. The file must stay byte-identical to what
-     * pico8_input_save writes for the same frames, or a resumed recording
+     * p8_input_save writes for the same frames, or a resumed recording
      * replays to another state. */
     if (!p8_input_append(frame, recorder->path, &recorder->tail_offset)) {
         /* Dropped, not fatal: a live playtest outranks a frame of its own
-         * recording. append leaves *tail_offset untouched on failure, so
-         * the next frame takes the slot this one never reached, and the
-         * count is left alone to match. */
+         * recording. p8_input_append leaves *tail_offset untouched on
+         * failure, so the next frame takes the slot this one never
+         * reached, and the count is left alone to match. */
         return 0;
     }
 

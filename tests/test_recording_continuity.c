@@ -1,7 +1,7 @@
 /* The seam between the replay source and the session recorder, which each
  * have their own tests and neither of which says what happens where they
  * meet -- the only place a resume can go wrong. The loop below drives both
- * real modules in `main_raylib.c`'s order, replacing only the hardware
+ * real modules in the order of src/cmd/game.c, replacing only the hardware
  * poll.
  *
  * Frames are compared field by field and in order: a count of N+M would
@@ -50,16 +50,16 @@ static void assert_frame_equals(const p8_input_frame_t *got, const p8_input_fram
     assert(got->dpad[3] == want->dpad[3]);
 }
 
-/* Stands in for `pico8_raylib_backend_poll_input`, the one call below that
+/* Stands in for `raylib_backend_poll_input`, the one call below that
  * needs a window. */
 static void poll_simulated_live_frame(int live_index, p8_input_frame_t *out_frame) {
     assert(live_index >= 0 && live_index < LIVE_FRAME_COUNT);
     *out_frame = k_live_frames[live_index];
 }
 
-/* `main_raylib.c`'s loop, with that call replaced and the game step
- * dropped. The frame is recorded before anything else happens to it, an
- * ordering a playtest segfault forced and this test must not reverse. */
+/* The loop of src/cmd/game.c, with that call replaced and the game step
+ * dropped. The frame is recorded before the game steps on it, and
+ * unconditionally, as the game does: this test must not reverse that. */
 static void run_resumed_session(const char *source_path, const char *resumed_path, int iterations) {
     replay_source_t replay;
     assert(replay_source_open(&replay, source_path) == REPLAY_SOURCE_LOADED);
@@ -117,7 +117,7 @@ static void test_resumed_session_records_replayed_frames_then_new_ones(void) {
     const char *source_path = "tmp/test_recording_continuity_source.json";
     const char *resumed_path = "tmp/test_recording_continuity_resumed.json";
 
-    /* Written by `pico8_input_save`, not by the recorder under test. */
+    /* Written by `p8_input_save`, not by the recorder under test. */
     assert(p8_input_save(k_source_frames, SOURCE_FRAME_COUNT, source_path));
 
     run_resumed_session(source_path, resumed_path, SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT);

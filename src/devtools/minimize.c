@@ -29,8 +29,8 @@ static frame_kind_t kind_after(const p8_input_frame_t *prev, const p8_input_fram
     return nothing_pressed(f) ? KIND_IDLE : KIND_HOLD;
 }
 
-/* Garde m / 5 des m déplacements, espacés régulièrement, le dernier
- * compris dès qu'on en garde un. */
+/* Keeps a fifth of the moves, rounded down, evenly spaced, the last one
+ * included as soon as any is kept. */
 static void keep_moves(const int *moves, int m, char *keep) {
     int k = m / 5;
     for (int j = 0; j < k; j++) {
@@ -46,8 +46,8 @@ int minimize_mechanical(const p8_input_frame_t *frames, int frame_count, p8_inpu
 
     int m = 0;
     for (int i = 0; i < frame_count; i++) {
-        /* La frame 0 pose la position de la souris : un déplacement, sauf
-         * si elle appuie déjà. */
+        /* Frame 0 sets the mouse position: a move, unless something is
+         * already pressed on it. */
         frame_kind_t kind = i == 0 ? (nothing_pressed(&frames[0]) ? KIND_MOVE : KIND_TRANSITION)
                                    : kind_after(&frames[i - 1], &frames[i]);
         switch (kind) {
