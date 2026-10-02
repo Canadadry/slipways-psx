@@ -31,7 +31,7 @@ p8_fixed_t vec_dot(vec_t a, vec_t b) {
     return p8_fixed_add(p8_fixed_mul(a.x, b.x), p8_fixed_mul(a.y, b.y));
 }
 
-/* Squared length, not length: PICO-8's `#`. */
+/* Squared length, not length. */
 p8_fixed_t vec_length_squared(vec_t v) {
     return vec_dot(v, v);
 }
@@ -44,8 +44,8 @@ vec_t vec_perpendicular(vec_t v) {
     return vec_make(p8_fixed_neg(v.y), v.x);
 }
 
-/* A zero-length vector saturates each component through pico8_fixed_div
- * rather than being special-cased, as in the cart. */
+/* A zero-length vector saturates each component through p8_fixed_div
+ * rather than being special-cased. */
 vec_t vec_normalize(vec_t v) {
     return vec_div(v, vec_length(v));
 }

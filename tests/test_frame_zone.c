@@ -1,5 +1,5 @@
-/* Lie sous ASan. Chaque cas tourne dans un processus enfant : ce binaire se
- * relance lui-meme avec le nom du cas, et le parent lit son statut et son
+/* Linked under ASan. Each case runs in a child process: this binary reruns
+ * itself with the case name, and the parent reads its exit status and its
  * stderr. */
 
 #include <assert.h>
@@ -34,8 +34,8 @@
 
 #define STDERR_LOG "tmp/test_frame_zone_stderr.txt"
 
-/* volatile : la lecture d'un pointeur perime ne doit pas etre retiree par
- * l'optimiseur, c'est elle que le cas observe. */
+/* volatile: the read through a stale pointer must not be dropped by the
+ * optimiser, it is what the case observes. */
 static volatile unsigned char sink;
 
 static unsigned char *counting_block(void) {
@@ -118,9 +118,8 @@ static void start_game(void) {
     cart_start_game(NULL);
 }
 
-/* Les textes seulement : une case ROW est empruntee jusqu'a la mise en
- * page (pico8_layout.h), un tuple de frame y est mort apres la remise a
- * zero. */
+/* Texts only: a ROW cell is borrowed until the layout (game/layout.h), a
+ * frame tuple in it is dead after the reset. */
 static size_t read_cells(const layout_row_t *lq) {
     size_t sum = 0;
     for (int i = 0; i < lq->items_count; i++) {
@@ -129,9 +128,8 @@ static size_t read_cells(const layout_row_t *lq) {
     return sum;
 }
 
-/* Remet la zone frame a zero apres la construction du panneau, puis relit
- * et dessine chaque bouton, bulle `jb` comprise : rend le nombre de
- * bulles dessinees. */
+/* Resets the frame zone once the panel is built, then rereads and draws
+ * each button, tooltip included: returns the number of tooltips drawn. */
 static int reset_then_draw_panel(void) {
     const entity_list_t *le = main_ui()->ephemerals;
     int bubbles = 0;
@@ -261,8 +259,8 @@ static layout_row_t *row_of_frame_text(const allocator_t *zone, const char *s) {
     return layout_row_new(zone, &keys);
 }
 
-/* Les textes d'une case viennent de la zone frame : apres la remise a zero,
- * le panneau dessine encore sa copie. */
+/* The texts of a cell come from the frame zone: after the reset, the panel
+ * still draws its copy. */
 static int case_panel_texts_survive_reset(void) {
     data_item_t line = {.text = frame_text("bubble")};
     data_row_t bubble_row = {.count = 1, .items = &line};
@@ -336,7 +334,7 @@ static const struct {
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
 
-/* Tampon alloue, termine par un nul, que l'appelant libere. */
+/* Allocated NUL-terminated buffer, freed by the caller. */
 static char *read_whole_file(const char *path) {
     FILE *file = fopen(path, "rb");
     assert(file != NULL);
@@ -354,8 +352,8 @@ static char *read_whole_file(const char *path) {
 
 static const char *self_path;
 
-/* Rend le statut brut de system() ; *err recoit le stderr de l'enfant, que
- * l'appelant libere. */
+/* Returns the raw status of system(); *err receives the child's stderr,
+ * freed by the caller. */
 static int run_child(const char *name, char **err) {
     char cmd[512];
     remove(STDERR_LOG);

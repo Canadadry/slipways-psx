@@ -11,7 +11,7 @@ static vec_t zero_vec(void) {
     return vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
-/* `e`'s `ra` (`p` for the second), or (0,0) when `e` is NULL or the field is nil. */
+/* The position (map position for the second), or (0,0) when NULL or absent. */
 static vec_t pos_of(const entity_t *e) {
     const vec_t *ra = e != NULL && e->pos != NULL ? *e->pos : NULL;
 

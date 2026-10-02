@@ -136,7 +136,7 @@ static void test_all_tolerates_deleting_the_current_element(void) {
 }
 
 /* Tolerance only for the element just returned: deleting another one makes
- * the walk re-read the current slot, so `b` is visited twice. */
+ * the walk re-read the current slot, so the second element comes twice. */
 static void test_all_revisits_when_another_element_is_deleted(void) {
     int a, b, c, d;
     void *visited[5];

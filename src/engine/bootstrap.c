@@ -17,8 +17,8 @@ void reset_world(void) {
     entity_registry_abandon_live_entities();
     entity_registry_init();
 
-    /* Build once, never rebuild. `ke` must exist before `qb`/`nf`/`ui`,
-     * whose inits assert it. */
+    /* Build once, never rebuild. The entity module must be ready before the
+     * camera and mouse modules, whose inits assert it. */
     if (!entity_ready()) {
         entity_init();
     }
@@ -57,8 +57,8 @@ void update_entities(void) {
     for (i = 0; i < hv->count; i++) {
         entity_t *qc = hv->items[i];
 
-        /* The only caller of the state methods (`ph`, `ly`, `ll`, ...): the
-         * name comes from `me` at run time, so no site ever writes `:ly(`
+        /* The only caller of the state methods: the state comes from the
+         * entity's state name at run time, so no site calls one by name
          * and a grep reads them as dead code. */
         if (qc->state != NULL) {
             int state = entity_state_of(qc->state);

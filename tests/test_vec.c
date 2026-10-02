@@ -71,9 +71,10 @@ static void test_length_length_of_3_4_5_triangle(void) {
 }
 
 static void test_length_and_length_squared_agree_within_fixed_point_rounding(void) {
-    /* qx(v)^2 ~= __len(v) (== rg(v,v)), modulo fixed-point rounding: qx
-     * truncates rather than rounds (see pico8_fixed_sqrt), so squaring it
-     * back can land slightly below the exact squared length. */
+    /* The length squared ~= vec_length_squared (== the dot product with
+     * itself), modulo fixed-point rounding: vec_length truncates rather than
+     * rounds (see p8_fixed_sqrt), so squaring it back can land slightly below
+     * the exact squared length. */
     vec_t v = vec_make(fixed_test_double_from_double(7.0), fixed_test_double_from_double(-2.0));
     p8_fixed_t length = vec_length(v);
     p8_fixed_t length_squared = p8_fixed_mul(length, length);
@@ -96,21 +97,20 @@ static void test_perpendicular_perpendicular(void) {
 static void test_normalize_normalizes_to_unit_length(void) {
     vec_t v = vec_make(fixed_test_double_from_double(3.0), fixed_test_double_from_double(4.0));
     vec_t result = vec_normalize(v);
-    /* qx(v) == 5, so nn(v) == v/5 == (0.6, 0.8), modulo the fixed-point
-     * division's own truncation (pico8_fixed_div truncates toward zero,
-     * so e.g. 3/5's raw result can land one 1/65536th below the nearest
-     * rounded 0.6) -- compared with a small tolerance rather than exact
-     * equality for that reason. */
+    /* The length is 5, so the normalized vector is (3,4)/5 == (0.6, 0.8),
+     * modulo the fixed-point division's own truncation (p8_fixed_div
+     * truncates toward zero, so e.g. 3/5's raw result can land one 1/65536th
+     * below the nearest rounded 0.6) -- compared with a small tolerance
+     * rather than exact equality for that reason. */
     assert(fabs(fixed_test_double_to_double(result.x) - 0.6) < 0.0001);
     assert(fabs(fixed_test_double_to_double(result.y) - 0.8) < 0.0001);
 }
 
 static void test_normalize_zero_length_vector_saturates_via_fixed_div_by_zero(void) {
-    /* qx((0,0)) == 0, so nn((0,0)) == (0,0)/0, which -- per pico8_fixed_div
-     * -- saturates each component to +0x7fff.ffff rather than crashing or
-     * invoking C's own undefined behavior for integer division by zero.
-     * This is the original Lua's actual behavior too: nn() has no
-     * zero-length special case, so it inherits whatever v/0 does. */
+    /* The length of (0,0) is 0, so normalizing divides (0,0) by 0, which --
+     * per p8_fixed_div -- saturates each component to +0x7fff.ffff rather
+     * than crashing or invoking C's own undefined behavior for integer
+     * division by zero: vec_normalize has no zero-length special case. */
     vec_t zero = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     vec_t result = vec_normalize(zero);
     assert(result.x == P8_FIXED_DIV0_POS);
@@ -118,8 +118,9 @@ static void test_normalize_zero_length_vector_saturates_via_fixed_div_by_zero(vo
 }
 
 static void test_from_polar_polar_to_cartesian_zero_turns(void) {
-    /* qm(fy,lx) = v(cos(lx),sin(lx))*fy. At lx=0 turns, cos(0)=1, sin(0)=0
-     * (see pico8_fixed_cos/pico8_fixed_sin), so qm(fy,0) == (fy, 0). */
+    /* The result is (cos(angle), sin(angle)) times the magnitude. At 0 turns,
+     * cos(0)=1 and sin(0)=0 (see p8_fixed_cos/p8_fixed_sin), so the result is
+     * (magnitude, 0). */
     p8_fixed_t magnitude = fixed_test_double_from_double(10.0);
     vec_t result = vec_from_polar(magnitude, p8_fixed_from_int(0));
     assert(fabs(fixed_test_double_to_double(result.x) - 10.0) < 0.01);
@@ -127,8 +128,8 @@ static void test_from_polar_polar_to_cartesian_zero_turns(void) {
 }
 
 static void test_from_polar_polar_to_cartesian_quarter_turn(void) {
-    /* At lx=0.25 turns, cos=0, sin's PICO-8 sign-inverted value is -1, so
-     * qm(fy,0.25) == (0, -fy). */
+    /* At 0.25 turns, cos=0 and sin's PICO-8 sign-inverted value is -1, so
+     * the result is (0, -magnitude). */
     p8_fixed_t magnitude = fixed_test_double_from_double(4.0);
     vec_t result = vec_from_polar(magnitude, fixed_test_double_from_double(0.25));
     assert(fabs(fixed_test_double_to_double(result.x) - 0.0) < 0.01);

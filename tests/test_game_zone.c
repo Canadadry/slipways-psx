@@ -1,5 +1,5 @@
-/* Lie sous ASan. Chaque cas tourne dans un processus enfant : ce binaire se
- * relance lui-meme avec le nom du cas, et le parent lit son statut et son
+/* Linked under ASan. Each case runs in a child process: this binary reruns
+ * itself with the case name, and the parent reads its exit status and its
  * stderr. */
 
 #include <assert.h>
@@ -34,8 +34,8 @@
 
 #define STDERR_LOG "tmp/test_game_zone_stderr.txt"
 
-/* volatile : la lecture d'un pointeur perime ne doit pas etre retiree par
- * l'optimiseur, c'est elle que le cas observe. */
+/* volatile: the read through a stale pointer must not be dropped by the
+ * optimiser, it is what the case observes. */
 static volatile unsigned char sink;
 
 static p8_memory_t mem;
@@ -104,16 +104,16 @@ static int case_dead_after_cart_load(void) {
     return 0;
 }
 
-/* Octets que le bw de chaque eu prend dans sa generation : jo.oc, sa
- * source et jo.ir. */
+/* Bytes galaxy_populate takes in the generation of each game: the type
+ * picker, its random source and the vanish roll. */
 static size_t populate_galaxy_states(void) {
     return (2 * ZONE_CELLS(sizeof(random_walk_t)) + ZONE_CELLS(sizeof(weighted_picker_t))) *
            sizeof(zone_cell_t);
 }
 
-/* Octets qu'une liste a pris dans sa generation depuis un jl() : les
- * capacites 4, 8, ... jusqu'a la sienne, car chaque agrandissement copie et
- * laisse l'ancien bloc mort jusqu'au rendu. NULL (un `cg` jamais vu) : rien. */
+/* Bytes a list has taken in its generation since a reset_world(): the
+ * capacities 4, 8, ... up to its own, since each growth copies and leaves
+ * the old block dead until the release. NULL (a tag never seen): none. */
 static size_t registry_bytes(const entity_list_t *list) {
     size_t bytes = 0;
     for (int k = 4; list != NULL && k <= list->capacity; k *= 2) {
@@ -135,16 +135,16 @@ static size_t block_bytes(size_t size) {
     return ZONE_CELLS(size) * sizeof(zone_cell_t);
 }
 
-/* Octets d'une liste de planete faite dans la generation : son conteneur,
- * puis ses blocs comme un registre. */
+/* Bytes of a planet list made in the generation: its container, then its
+ * blocks as for a registry. */
 static size_t planet_list_bytes(const entity_list_t *list) {
     if (list == NULL) return 0;
     return block_bytes(sizeof *list) + registry_bytes(list);
 }
 
-/* Empreinte `P` des planetes de `cg.jo` : structure, `p`, `ra`, identifiant
- * et listes `oe`, `by`, `cc`. Sans `jy` ni copies de besoins, que les
- * planetes de `bw` n'ont pas avant une action. */
+/* Footprint of the tagged planets: struct, map position, position,
+ * identifier and the slipways, outgoing and incoming route lists. No needs
+ * nor copies of needs, which populated planets lack before an action. */
 static size_t planets_bytes(void) {
     const entity_list_t *jo = entities_by_tag("planet");
     size_t bytes = 0;
@@ -158,8 +158,8 @@ static size_t planets_bytes(void) {
     return bytes;
 }
 
-/* Octets de l'economie `fm` faite par `eu` : sa structure et le conteneur
- * `invented`, sans elements tant que rien n'est invente. */
+/* Bytes of the economy cart_start_game makes: its struct and the
+ * `invented` container, with no element while nothing is invented. */
 static size_t economy_bytes(void) {
     const economy_t *fm = main_economy_typed();
     assert(fm != NULL && fm->invented != NULL && "cart_start_game built the economy of the game");
@@ -167,9 +167,9 @@ static size_t economy_bytes(void) {
     return block_bytes(sizeof *fm) + block_bytes(sizeof *fm->invented);
 }
 
-/* Octets des sept icones `ie` de `hv`, dans l'ordre de `dr` : structure,
- * bulle `jb` refaite dans une arene de la zone frame, et la boite de `ie.gy`
- * de chaque icone revelee. */
+/* Bytes of the seven structure icons among the live entities, in table
+ * order: struct, tooltip remade in a frame-zone arena, and the vector box
+ * of each revealed icon. */
 static size_t icons_bytes(void) {
     const entity_list_t *hv = live_entities();
     const allocator_t *measure_arena = arena_take(frame_zone(), "tooltip-measure", 16384);
@@ -189,14 +189,15 @@ static size_t icons_bytes(void) {
     return bytes + arena_used(measure_arena) - head;
 }
 
-/* Terme « recherche et economie » de la generation : ce que `eu` fait pour
- * `fm` et les icones. */
+/* The "research and economy" term of the generation: what cart_start_game
+ * makes for the economy and the icons. */
 static size_t research_and_economy_bytes(void) {
     return economy_bytes() + icons_bytes();
 }
 
-/* Terme « singletons » : `mo`, `je`, `ok` du jl() de `eu`, son `bg`, seul
- * dans `hv`, et `ju`. */
+/* The "singletons" term: main camera, mouse and user interface of the
+ * reset_world() of cart_start_game, its background, alone among the live
+ * entities, and the score panel. */
 static size_t singletons_bytes(void) {
     const entity_list_t *hv = live_entities();
     int bg = 0;
@@ -324,7 +325,7 @@ static const struct {
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
 
-/* Tampon alloue, termine par un nul, que l'appelant libere. */
+/* Allocated NUL-terminated buffer, freed by the caller. */
 static char *read_whole_file(const char *path) {
     FILE *file = fopen(path, "rb");
     assert(file != NULL);
@@ -342,8 +343,8 @@ static char *read_whole_file(const char *path) {
 
 static const char *self_path;
 
-/* Rend le statut brut de system() ; *err recoit le stderr de l'enfant, que
- * l'appelant libere. */
+/* Returns the raw status of system(); *err receives the child's stderr,
+ * freed by the caller. */
 static int run_child(const char *name, char **err) {
     char cmd[512];
     remove(STDERR_LOG);

@@ -5,26 +5,26 @@
 
 #include "engine/allocator.h"
 
-/* Zone partie : une generation par partie, de `eu` a `eu`. Un bloc qu'elle
- * alloue vit jusqu'au rendu de sa generation, fait par le vidage de la file
- * qui suit la bascule. Jamais de free sur ce bloc. La zone s'initialise au
- * premier appel de l'une des fonctions. */
+/* Game zone: one generation per game, from one cart_start_game() to the
+ * next. A block it allocates lives until its generation is released, by the
+ * exit-queue flush that follows the flip. Never free such a block. The zone
+ * initialises itself on the first call to any of these functions. */
 const allocator_t *game_zone(void);
 void game_zone_flip(void);
 int game_zone_pending(void);
-/* Sans generation en attente, ne fait rien. */
+/* Does nothing when no generation is pending. */
 void game_zone_release(void);
-/* Remet aussi la sous-zone chargement a zero. */
+/* Also resets the load sub-zone. */
 void game_zone_reset(void);
-/* Octets pris par les deux generations, et leur maximum sur la session. */
+/* Bytes taken by both generations, and their maximum over the session. */
 size_t game_zone_used(void);
 size_t game_zone_max(void);
 
-/* Sous-zone chargement : un bloc qu'elle alloue vit jusqu'au prochain
- * pico8_zone_partie_reset(), donc au chargement ou a l'arret suivant ; ni la
- * bascule ni le rendu ne la touchent. Jamais de free sur ce bloc. */
+/* Load sub-zone: a block it allocates lives until the next
+ * game_zone_reset(), so until the next cart_load() or cart_shutdown();
+ * neither the flip nor the release touches it. Never free such a block. */
 const allocator_t *game_zone_load_zone(void);
-/* Octets pris, et leur maximum sur la session, que le reset garde. */
+/* Bytes taken, and their maximum over the session, which the reset keeps. */
 size_t load_zone_used(void);
 size_t game_zone_load_zone_max(void);
 

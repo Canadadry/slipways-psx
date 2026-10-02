@@ -15,18 +15,19 @@
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
-/* `dc("kj")`'s `mo:md(ci[o])` special case, which needs both a real `mo`
- * and a real entity registered under "kj" to run at all: `jl()`, a real
- * `jo` and real gfx/mem. */
+/* The main camera's apply_camera call inside draw_layers("draw"), which
+ * needs both a real camera and a real entity registered under "draw" to
+ * run at all: reset_world(), a real planet and real graphics and memory. */
 
 static int g_draw_calls = 0;
 static int g_camera_x_at_draw;
 static int g_camera_y_at_draw;
 
-/* Records the camera `mo:md` has left by the time the planet's "kj" runs,
- * then forwards to the real `pico8_jo_kj`, so the order is observed without
- * stubbing the behaviour out. Installed on the planet alone, through a copy
- * of jo's class whose `kj` is this spy, so no other `jo` sees it. */
+/* Records the camera apply_camera has left by the time the planet's draw
+ * runs, then forwards to the real planet_draw, so the order is observed
+ * without stubbing the behaviour out. Installed on the planet alone, through
+ * a copy of the planet class whose draw is this spy, so no other planet sees
+ * it. */
 static void spy_draw(entity_t *self, const vec_t *ra) {
     vec_t p = ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 
@@ -55,7 +56,7 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
 
     g_draw_calls = 0;
 
-    /* `jl()` builds the real `hv`/`cv`/`cg` and the real `mo=qb()`. */
+    /* reset_world() builds the real registries and the real main camera. */
     reset_world();
     camera = main_camera();
     assert(camera != NULL);
@@ -64,8 +65,8 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
     planet = planet_new(NULL);
     assert(planet != NULL);
 
-    /* `jo` wires "kj" as a class default, so the instance must land in the
-     * real `cv["kj"]` bucket. */
+    /* The planet class has a draw, so the instance must land in the real
+     * entities_by_message("draw") bucket. */
     {
         const entity_list_t *bucket = entities_by_message("draw");
         int found = 0;
@@ -79,8 +80,9 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
         assert(found);
     }
 
-    /* An "ra" inside `mo`'s default (192,192) viewport, so `kj`'s `gd(self)`
-     * early return is not taken and the real draw body runs. */
+    /* A position inside the camera's default (192,192) viewport, so the
+     * off-screen early return of planet_draw is not taken and the real draw
+     * body runs. */
     pos_heap = malloc(sizeof *pos_heap);
     *pos_heap = vec_make(p8_fixed_from_int(256), p8_fixed_from_int(256));
     planet->pos = pos_heap;
@@ -90,12 +92,12 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
     g_spied_planet.draw = spy_draw;
     planet->header.class = &g_spied_planet;
 
-    /* `kj` paints colour 0, which is also the framebuffer's cleared value,
-     * so reading 0 back proves nothing unless the byte held something else
-     * first -- hence the sentinel 9. The address is world (256,256) minus
-     * the camera (192,192) that `mo:md` sets inside this same `dc("kj")`,
-     * hardcoded here because the camera is not set yet, and cross-checked
-     * against the real camera below. */
+    /* planet_draw paints colour 0, which is also the framebuffer's cleared
+     * value, so reading 0 back proves nothing unless the byte held something
+     * else first -- hence the sentinel 9. The address is world (256,256)
+     * minus the camera (192,192) that apply_camera sets inside this same
+     * draw_layers("draw"), hardcoded here because the camera is not set yet,
+     * and cross-checked against the real camera below. */
     screen_pixel_addr = P8_ADDR_SCREEN + (256 - 192) * P8_SCREEN_WIDTH + (256 - 192);
     p8_poke(&memory, screen_pixel_addr, 9);
     pixel_before = p8_peek(&memory, screen_pixel_addr);
@@ -104,13 +106,13 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
     assert(graphics.camera_x == 0 && graphics.camera_y == 0);
     draw_layers("draw");
 
-    /* Order, never the reverse: within a layer, the "kj" special case runs
-     * before the per-entity loop, so the real `kj` already sees its camera. */
+    /* Order, never the reverse: within a layer, the camera call runs before
+     * the per-entity loop, so the real planet_draw already sees its camera. */
     assert(g_draw_calls == 1);
     assert(g_camera_x_at_draw == 192 && g_camera_y_at_draw == 192);
 
-    /* `mo:md` really ran: the camera lands on `qb`'s spec `ra=v(192,192)`,
-     * `self.ma` having decayed to its 0 default so the shake adds nothing. */
+    /* apply_camera really ran: the camera lands on its spec position
+     * (192,192), its shake having decayed to its 0 default so it adds nothing. */
     assert(graphics.camera_x == 192);
     assert(graphics.camera_y == 192);
 
@@ -118,8 +120,8 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
      * cannot drift apart. */
     assert(screen_pixel_addr == P8_ADDR_SCREEN + (256 - graphics.camera_y) * P8_SCREEN_WIDTH + (256 - graphics.camera_x));
 
-    /* `circfill(p.x,p.y,7,0)` paints a black disc on world (256,256), i.e.
-     * screen (64,64): the sentinel is gone. */
+    /* planet_draw's filled circle of radius 7 in colour 0 paints a black disc on
+     * world (256,256), i.e. screen (64,64): the sentinel is gone. */
     pixel_after = p8_peek(&memory, screen_pixel_addr);
     assert(pixel_after == 0);
 

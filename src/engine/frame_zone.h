@@ -3,9 +3,9 @@
 
 #include "engine/allocator.h"
 
-/* Zone frame : un bloc qu'elle alloue vit jusqu'a la prochaine remise a
- * zero, faite en tete de pico8__update60(). Jamais de free sur ce bloc.
- * La zone s'initialise au premier appel de l'une ou l'autre fonction. */
+/* Frame zone: a block it allocates lives until the next reset, made at the
+ * top of cart_update60(). Never free such a block. The zone initialises
+ * itself on the first call to either function. */
 const allocator_t *frame_zone(void);
 void frame_zone_reset(void);
 

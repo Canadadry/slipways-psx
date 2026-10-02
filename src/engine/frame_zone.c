@@ -5,12 +5,12 @@
 BUMP_ZONE_STORAGE(frame_cells, FRAME_ZONE_BYTES);
 
 static bump_zone_t frame;
-/* Statique : une liste ents/ptrs garde un pointeur vers sa zone. */
+/* Static: an entity_list_t or pointer_list_t keeps a pointer to its zone. */
 static allocator_t frame_handle;
 static int frame_ready;
 
-/* Paresseuse : pico8_bump_zone_init empoisonne le stockage sous ASan, ce
- * qu'un initialiseur statique ne ferait pas. */
+/* Lazy: bump_zone_init poisons the storage under ASan, which a static
+ * initialiser would not do. */
 static void frame_init_once(void) {
     if (frame_ready) return;
     bump_zone_init(&frame, "frame", frame_cells, FRAME_ZONE_BYTES);

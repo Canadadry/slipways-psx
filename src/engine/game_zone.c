@@ -6,15 +6,15 @@ FLIP_ZONE_STORAGE(game_zone_cells, ZONE_GENERATION_BYTES);
 BUMP_ZONE_STORAGE(load_zone_cells, LOAD_ZONE_BYTES);
 
 static flip_zone_t game_zone_storage;
-/* Statique : une liste ents/ptrs garde un pointeur vers sa zone. */
+/* Static: an entity_list_t or pointer_list_t keeps a pointer to its zone. */
 static flip_zone_allocator_t game_zone_handle;
 static const allocator_t *game_zone_allocator;
 static bump_zone_t load_zone_storage;
 static allocator_t load_zone_handle;
 static size_t load_zone_max_used;
 
-/* Paresseuse : pico8_bascule_zone_init empoisonne le stockage sous ASan, ce
- * qu'un initialiseur statique ne ferait pas. */
+/* Lazy: flip_zone_init and bump_zone_init poison the storage under ASan,
+ * which a static initialiser would not do. */
 static void game_zone_init_once(void) {
     if (game_zone_allocator != NULL) return;
     flip_zone_init(&game_zone_storage, "game", game_zone_cells, ZONE_GENERATION_BYTES);
@@ -23,9 +23,9 @@ static void game_zone_init_once(void) {
     load_zone_handle = allocator_from_bump_zone(&load_zone_storage);
 }
 
-/* La zone montante ne garde pas son pic : `used` ne fait que monter entre
- * deux resets, donc le relire avant chaque reset et a chaque lecture du
- * maximum suffit. */
+/* The bump zone keeps no peak: `used` only grows between two resets, so
+ * reading it before each reset and on each read of the maximum is
+ * enough. */
 static void load_zone_record_max(void) {
     if (load_zone_storage.used > load_zone_max_used) load_zone_max_used = load_zone_storage.used;
 }

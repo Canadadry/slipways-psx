@@ -6,7 +6,7 @@
 #include "p8/mem.h"
 
 /* The current frame's gfx/mem/input, for the methods reached through a
- * member of pico8_struct_class_t and for the callbacks rows carry, whose
+ * member of entity_class_t and for the callbacks rows carry, whose
  * signatures have no slot for them. The frame loop sets these; the callee
  * reads them.
  *

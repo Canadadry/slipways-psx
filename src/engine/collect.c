@@ -77,8 +77,8 @@ char *collect_format_signed(const allocator_t *zone, p8_fixed_t d, int c, const 
     char *result;
     size_t prefix_len;
 
-    /* d < 0 keeps the '-' pico8_tostr_fixed already wrote; only the '+' of a
-     * positive is added here. */
+    /* A negative value keeps the '-' p8_tostr_fixed already wrote; only the
+     * '+' of a positive one is added here. */
     if (d >= 0) {
         *out_color = c;
         prefix_len = 1 + strlen(num_str);

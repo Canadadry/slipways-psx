@@ -13,14 +13,14 @@
 static const char *const g_message_names[MESSAGE_COUNT] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
 
 typedef struct {
-    const char *name; /* borrowed from g_bm_names -- not owned here */
+    const char *name; /* borrowed from g_message_names -- not owned here */
     entity_list_t list;
 } entities_by_message_entry_t;
 
 static entities_by_message_entry_t g_entities_by_message[MESSAGE_COUNT];
 
-/* `seen`: an entity carrying the tag has been lt()'d since
- * pico8_entity_init(); until then pico8_cg() returns NULL for it. */
+/* `seen`: an entity carrying the tag has been registered since
+ * entity_registry_init(); until then entities_by_tag() returns NULL. */
 typedef struct {
     int seen;
     entity_list_t list;
@@ -42,8 +42,8 @@ typedef struct {
  * a write reaching it stops the run. */
 static main_camera_placeholder_t g_main_camera_placeholder = {{.class = &g_main_camera_placeholder_class}};
 
-/* See pico8_entity.h's own comment on this declaration for what is and
- * is not freed here. */
+/* See engine/entity_registry.h on this declaration for what is and is
+ * not freed here. */
 void entity_registry_shutdown(void) {
     int i;
 
@@ -133,8 +133,8 @@ const entity_list_t *entities_by_message(const char *name) {
     return NULL;
 }
 
-/* `e[bm[i]]` exists: the member of `e`'s class for the i-th name of
- * g_bm_names. */
+/* The entity's class has the member for the i-th name of
+ * g_message_names. */
 static int is_message_name(const entity_t *e, int i) {
     const entity_class_t *cls;
 
@@ -187,9 +187,9 @@ entity_t *entity_register(entity_t *e) {
     return e;
 }
 
-/* `e` must be unregistered under exactly the fields it was registered
- * under: a bm field changed since lt() leaves `e` in a list this never
- * removes it from. */
+/* An entity must be unregistered under exactly the messages it was
+ * registered under: a message member changed since entity_register() leaves
+ * it in a list this never removes it from. */
 void entity_unregister(entity_t *e) {
     int i;
 
@@ -204,8 +204,8 @@ void entity_unregister(entity_t *e) {
         }
     }
 
-    /* A tag never lt()'d: Lua would error on indexing its bucket, this
-     * port deletes from an empty list. */
+    /* A tag never registered has an empty list here: the deletion finds
+     * nothing and does nothing. */
     for (i = 0; i < TAG_COUNT; i++) {
         if (e->class->tags & TAG(i)) {
             entity_list_del(&g_entities_by_tag[i].list, e);
@@ -231,8 +231,8 @@ void draw_layers(const char *message) {
             entity_t *qc = message_bucket->items[index];
             int layer;
 
-            /* An entity whose `.fa` is absent or outside 1..15 is dropped
-             * from every layer, where Lua would error on the nil key. */
+            /* An entity whose layer is absent or outside 1..15 is dropped
+             * from every layer. */
             if (qc->layer == NULL) {
                 continue;
             }
@@ -249,7 +249,7 @@ void draw_layers(const char *message) {
 
         if (is_draw && bucket->count > 0) {
             p8_fixed_t ci;
-            /* The placeholder mo, before jl(), has no `md`. */
+            /* The placeholder camera, before reset_world(), has no apply_camera. */
             if (game_data_fixed_seq_at(layer_fades_table, LAYER_FADES_COUNT, layer_index, &ci) && g_main_camera != NULL &&
                 g_main_camera->class->apply_camera != NULL) {
                 g_main_camera->class->apply_camera(g_main_camera, ci);
@@ -276,7 +276,7 @@ entity_t *main_camera(void) {
     return g_main_camera;
 }
 
-/* See pico8_entity.h's own comment on this declaration: the outgoing mo
+/* See engine/entity_registry.h on this declaration: the outgoing camera
  * lives on in its generation, given back when that generation is reset. */
 void entity_registry_set_main_camera(entity_t *instance) {
     if (instance == g_main_camera) {

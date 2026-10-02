@@ -41,6 +41,8 @@ Il n'y a plus de nom minifié. Le glossaire (`docs/glossaire-noms.md`) se lit se
 - Une chaîne qui décrit un comportement disparu reste un `fix:` à part, comme dans le skill.
 - *Amendé par 4c1.* Le compteur de français ne voit pas les mots de contenu (`pleine`, `limite`, `octets`, `essai`, `bascule`…) : ses mots-outils seuls laissent passer « zone … pleine, limite 4 places ». L'agent lit donc chaque chaîne et chaque message d'`assert` de ses fichiers, et propose aussi ceux que le compteur ne marque pas.
 - *Amendé par 4c1.* Les lecteurs d'un message fatal composé (`p8_fatal`, `expect_fatal`) se cherchent par `grep` de chaque fragment du gabarit, sur tout `tests/` : la PRD de 4c1 avait manqué `tests/test_frame_zone.c`, trouvé ainsi avant le rouge.
+- *Amendé par 4c2.* Un même mot français peut être deux chaînes d'écrivains différents : `partie` est un nom de zone écrit par `engine/game_zone` (lu par le gabarit fatal de `engine/zone.c`) et une étiquette de la sortie `REPLAY_FILL` écrite par `cmd/replay.c`. La propriété se décide par l'écrivain de la chaîne lue, pas par le mot : le `grep` du mot propose des lecteurs, la lecture du code qui compose la chaîne les confirme.
+- *Amendé par 4c2.* `cart-citations` lit aussi les messages d'`assert` : un nom de paramètre d'une ou deux lettres cité dans un message (`"n adds into a list reserved for n take nothing"`) compte en `short`. La liste des chaînes à traduire se relève donc aussi avec `cart-citations`, pas seulement avec le compteur de français et les mots de contenu.
 
 ## 7. Tests
 

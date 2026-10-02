@@ -1,23 +1,23 @@
 #ifndef ENGINE_BOOTSTRAP_H
 #define ENGINE_BOOTSTRAP_H
 
-/* Rebuilds `hv`/`cv`/`cg` and `mo`/`je`/`ok` from scratch on every call --
- * the cart calls it once from `_init()` and again from `eu()`. It builds
- * `ke`/`qb`/`nf`/`ui` only when they are missing, so a caller that skipped
- * pico8_cart_load() still gets them; what it creates registers itself into
- * `hv`/`cv`/`cg` through `lt`. Every entity still in `hv` whose class has
- * `rendre` goes to the exit queue first (pico8_file_sortie.h), released at
- * the next flush, never during this call. `mo` and `je` are never freed,
- * `ok` not until pico8_bootstrap_shutdown(). */
+/* Rebuilds the registries and the main camera, mouse and user interface
+ * from scratch on every call: cart_init() calls it, and cart_start_game()
+ * again. It initialises the entity, camera, mouse and user-interface modules
+ * only when they are not ready, so a caller that skipped cart_load() still
+ * gets them; what it creates registers itself through entity_register().
+ * Every live entity whose class has a release goes to the exit queue first
+ * (engine/exit_queue.h), released at the next flush, never during this
+ * call. The three instances live in the game zone: never freed. */
 void reset_world(void);
 
-/* Frees the `ok` instance through its owning module; `mo` and `je` are
- * never freed.
- * Idempotent, and safe before the first pico8_jl(). No Lua equivalent. */
+/* Shuts down every module reset_world() initialises; the main camera,
+ * mouse and user interface stay in the game zone, never freed. Idempotent,
+ * and safe before the first reset_world(). */
 void bootstrap_shutdown(void);
 
-/* One frame of entity logic. Requires pico8_jl() (or at least
- * pico8_entity_init()); an empty `hv` is a no-op. */
+/* One frame of entity logic. Requires reset_world() (or at least
+ * entity_registry_init()); an empty live list is a no-op. */
 void update_entities(void);
 
 #endif
