@@ -349,7 +349,7 @@ int main(int argc, char **argv) {
     expect_assert("bascule_twice_without_rendre", "vider la file de sortie entre deux eu");
     expect_fatal("bump_full", "essai-frame", " 64 ");
     expect_fatal("slot_full", "essai-places", " 4 ");
-    expect_fatal("bascule_ends_meet", "remplie\npico8_fatal: zone essai-partie pleine", " 64 ");
+    expect_fatal("bascule_ends_meet", "remplie\np8_fatal: zone essai-partie pleine", " 64 ");
     remove(STDERR_LOG);
     printf("test_zone: all tests passed\n");
     return 0;

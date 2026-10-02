@@ -10,7 +10,7 @@ static int clamp_0_127(int v) {
     return v;
 }
 
-void pico8_raylib_backend_window_to_pico8(int window_x, int window_y, int scale, int *out_x, int *out_y) {
+void raylib_backend_window_to_screen(int window_x, int window_y, int scale, int *out_x, int *out_y) {
     int px = 0;
     int py = 0;
     if (scale > 0) {

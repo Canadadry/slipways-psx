@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
             "screencast-viewer: PAGE UP plus vite, PAGE DOWN moins vite, END sans plafond ; fermer la fenetre pour quitter.\n",
             path, frame_count);
 
-    InitWindow(P8_SCREEN_WIDTH * PICO8_RAYLIB_BACKEND_SCALE, P8_SCREEN_HEIGHT * PICO8_RAYLIB_BACKEND_SCALE,
+    InitWindow(P8_SCREEN_WIDTH * RAYLIB_BACKEND_SCALE, P8_SCREEN_HEIGHT * RAYLIB_BACKEND_SCALE,
                "Slipways screencast viewer");
 
     Image blank = GenImageColor(P8_SCREEN_WIDTH, P8_SCREEN_HEIGHT, BLACK);
@@ -85,12 +85,12 @@ int main(int argc, char **argv) {
 
     int exit_code = 0;
     while (!WindowShouldClose()) {
-        pico8_raylib_backend_poll_replay_controls(&control);
+        raylib_backend_poll_replay_controls(&control);
         /* `replay_active` vaut toujours 1, y compris une fois la lecture
          * figee : il n'y a ici aucune partie vivante a qui rendre les 60
          * FPS du jeu, et passer 0 annulerait silencieusement l'echelle de
          * vitesse. */
-        pico8_raylib_backend_set_frame_rate_cap(replay_control_target_fps(&control, 1));
+        raylib_backend_set_frame_rate_cap(replay_control_target_fps(&control, 1));
 
         int index = screencast_player_current_frame(&player);
         if (!screencast_read_frame(&reader, index, g_frame_pixels)) {
@@ -117,10 +117,10 @@ int main(int argc, char **argv) {
 
         BeginDrawing();
         ClearBackground(BLACK);
-        DrawTextureEx(screen_texture, (Vector2){ 0, 0 }, 0.0f, (float)PICO8_RAYLIB_BACKEND_SCALE, WHITE);
+        DrawTextureEx(screen_texture, (Vector2){ 0, 0 }, 0.0f, (float)RAYLIB_BACKEND_SCALE, WHITE);
         /* Bandeau translucide : la ligne doit rester lisible quelle que
          * soit l'image qui defile dessous. */
-        DrawRectangle(0, 0, P8_SCREEN_WIDTH * PICO8_RAYLIB_BACKEND_SCALE, 26, (Color){ 0, 0, 0, 190 });
+        DrawRectangle(0, 0, P8_SCREEN_WIDTH * RAYLIB_BACKEND_SCALE, 26, (Color){ 0, 0, 0, 190 });
         DrawText(status_line, 8, 5, 18, RAYWHITE);
         EndDrawing();
 

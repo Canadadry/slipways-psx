@@ -44,10 +44,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static const char *const SORTE_NAMES[SLOT_KIND_COUNT] = {"button", "modal_backdrop", "message_box", "toast", "rangee", "le"};
-static const char *const PARTICULES_NAMES[PARTICLE_SLOT_COUNT] = {"particule", "qy", "qy_fv", "burst", "ts"};
+static const char *const SLOT_KIND_NAMES[SLOT_KIND_COUNT] = {"button", "modal_backdrop", "message_box", "toast", "rangee", "le"};
+static const char *const PARTICLE_NAMES[PARTICLE_SLOT_COUNT] = {"particule", "qy", "qy_fv", "burst", "ts"};
 
-static void write_remplissage(const char *path) {
+static void write_fill(const char *path) {
     FILE *out = fopen(path, "w");
     if (out == NULL) {
         fprintf(stderr, "pico8 replay: impossible d'ouvrir le fichier de remplissage '%s'\n", path);
@@ -55,22 +55,22 @@ static void write_remplissage(const char *path) {
     }
     cart_flush_exit_queue();
     for (int s = 0; s < SLOT_KIND_COUNT; s++) {
-        fprintf(out, "%s %d\n", SORTE_NAMES[s], ui_zone_live((slot_kind_t)s));
+        fprintf(out, "%s %d\n", SLOT_KIND_NAMES[s], ui_zone_live((slot_kind_t)s));
     }
     for (int s = 0; s < PARTICLE_SLOT_COUNT; s++) {
-        fprintf(out, "%s %d\n", PARTICULES_NAMES[s], particle_zone_live((particle_slot_kind_t)s));
+        fprintf(out, "%s %d\n", PARTICLE_NAMES[s], particle_zone_live((particle_slot_kind_t)s));
     }
     for (int s = 0; s < PARTICLE_SLOT_COUNT; s++) {
-        fprintf(out, "max_vivantes %s %d\n", PARTICULES_NAMES[s],
+        fprintf(out, "max_vivantes %s %d\n", PARTICLE_NAMES[s],
                 particle_zone_max_live((particle_slot_kind_t)s));
     }
     for (int s = PARTICLE_SLOT_LIST; s < PARTICLE_SLOT_COUNT; s++) {
-        fprintf(out, "max_octets %s %lu\n", PARTICULES_NAMES[s],
+        fprintf(out, "max_octets %s %lu\n", PARTICLE_NAMES[s],
                 (unsigned long)particle_zone_max_bytes((particle_slot_kind_t)s));
     }
     for (int s = PARTICLE_SLOT_LIST; s < PARTICLE_SLOT_COUNT; s++) {
         if (s == PARTICLE_SLOT_BURST) continue;
-        fprintf(out, "max_elements %s %d\n", PARTICULES_NAMES[s],
+        fprintf(out, "max_elements %s %d\n", PARTICLE_NAMES[s],
                 particle_zone_max_elements((particle_slot_kind_t)s));
     }
     fprintf(out, "partie %lu\n", (unsigned long)game_zone_used());
@@ -160,9 +160,9 @@ int main(int argc, char **argv) {
     fclose(dump_out);
     assert(dump_ok);
 
-    const char *remplissage_path = getenv("PICO8_REMPLISSAGE");
-    if (remplissage_path != NULL) {
-        write_remplissage(remplissage_path);
+    const char *fill_path = getenv("PICO8_REMPLISSAGE");
+    if (fill_path != NULL) {
+        write_fill(fill_path);
     }
 
     p8_input_free(&input);

@@ -17,7 +17,7 @@ static void put(entry_t entry) {
     if (g_count == EXIT_QUEUE_CAP) {
         char message[64];
         snprintf(message, sizeof message, "file de sortie pleine, limite %d", EXIT_QUEUE_CAP);
-        pico8_fatal(message);
+        p8_fatal(message);
     }
     g_queue[g_count++] = entry;
 }

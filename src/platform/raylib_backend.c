@@ -15,7 +15,7 @@ static Color palette_color(unsigned char index) {
     return (Color){ rgb.red, rgb.green, rgb.blue, 0xFF };
 }
 
-void pico8_raylib_backend_init(pico8_raylib_backend_t *backend) {
+void raylib_backend_init(raylib_backend_t *backend) {
     /* One time(NULL) for both names: the marker file is only usable if a
      * human can pair it with its recording by name, and two clock reads
      * could straddle a second. */
@@ -25,7 +25,7 @@ void pico8_raylib_backend_init(pico8_raylib_backend_t *backend) {
     snprintf(backend->markers_path, sizeof(backend->markers_path), "tmp/events_recorded_%ld.markers.txt", (long)now);
     session_recorder_open(&backend->recorder, record_path);
 
-    InitWindow(P8_SCREEN_WIDTH * PICO8_RAYLIB_BACKEND_SCALE, P8_SCREEN_HEIGHT * PICO8_RAYLIB_BACKEND_SCALE,
+    InitWindow(P8_SCREEN_WIDTH * RAYLIB_BACKEND_SCALE, P8_SCREEN_HEIGHT * RAYLIB_BACKEND_SCALE,
                "Slipways (raylib PC port)");
     SetTargetFPS(60);
 
@@ -39,15 +39,15 @@ void pico8_raylib_backend_init(pico8_raylib_backend_t *backend) {
     HideCursor();
 }
 
-int pico8_raylib_backend_should_continue(const pico8_raylib_backend_t *backend) {
+int raylib_backend_should_continue(const raylib_backend_t *backend) {
     (void)backend;
     return !WindowShouldClose();
 }
 
-void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, p8_input_frame_t *out_frame) {
+void raylib_backend_poll_input(raylib_backend_t *backend, p8_input_frame_t *out_frame) {
     int px;
     int py;
-    pico8_raylib_backend_window_to_pico8(GetMouseX(), GetMouseY(), PICO8_RAYLIB_BACKEND_SCALE, &px, &py);
+    raylib_backend_window_to_screen(GetMouseX(), GetMouseY(), RAYLIB_BACKEND_SCALE, &px, &py);
     out_frame->mouse_x = px;
     out_frame->mouse_y = py;
 
@@ -86,7 +86,7 @@ void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, p8_input_f
     }
 }
 
-void pico8_raylib_backend_poll_replay_controls(replay_control_t *control) {
+void raylib_backend_poll_replay_controls(replay_control_t *control) {
     if (IsKeyPressed(KEY_PAGE_UP)) {
         replay_control_faster(control);
     }
@@ -98,11 +98,11 @@ void pico8_raylib_backend_poll_replay_controls(replay_control_t *control) {
     }
 }
 
-void pico8_raylib_backend_set_frame_rate_cap(int target_fps) {
+void raylib_backend_set_frame_rate_cap(int target_fps) {
     SetTargetFPS(target_fps);
 }
 
-void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const p8_memory_t *mem, const p8_input_frame_t *frame, const char *replay_status) {
+void raylib_backend_present(raylib_backend_t *backend, const p8_memory_t *mem, const p8_input_frame_t *frame, const char *replay_status) {
     for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
         for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
             unsigned char idx = p8_peek(mem, P8_ADDR_SCREEN + y * P8_SCREEN_WIDTH + x);
@@ -113,11 +113,11 @@ void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const p8_memo
 
     BeginDrawing();
     ClearBackground(BLACK);
-    DrawTextureEx(backend->screen_texture, (Vector2){ 0, 0 }, 0.0f, (float)PICO8_RAYLIB_BACKEND_SCALE, WHITE);
+    DrawTextureEx(backend->screen_texture, (Vector2){ 0, 0 }, 0.0f, (float)RAYLIB_BACKEND_SCALE, WHITE);
     /* The band behind the text is there because the cart owns every pixel
      * underneath. */
     if (replay_status) {
-        DrawRectangle(0, 0, P8_SCREEN_WIDTH * PICO8_RAYLIB_BACKEND_SCALE, 26, (Color){ 0, 0, 0, 190 });
+        DrawRectangle(0, 0, P8_SCREEN_WIDTH * RAYLIB_BACKEND_SCALE, 26, (Color){ 0, 0, 0, 190 });
         DrawText(replay_status, 8, 5, 18, RAYWHITE);
     }
     EndDrawing();
@@ -125,14 +125,14 @@ void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const p8_memo
     (void)frame;
 }
 
-void pico8_raylib_backend_record_frame(pico8_raylib_backend_t *backend, const p8_input_frame_t *frame) {
+void raylib_backend_record_frame(raylib_backend_t *backend, const p8_input_frame_t *frame) {
     /* The return value is ignored on purpose: the recorder leaves its own
      * count alone on failure, so the marker file keeps naming the right
      * frame. */
     (void)session_recorder_record_frame(&backend->recorder, frame);
 }
 
-void pico8_raylib_backend_shutdown(pico8_raylib_backend_t *backend) {
+void raylib_backend_shutdown(raylib_backend_t *backend) {
     UnloadTexture(backend->screen_texture);
     ShowCursor();
     CloseWindow();

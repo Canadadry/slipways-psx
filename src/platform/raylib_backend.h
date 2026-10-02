@@ -6,8 +6,8 @@
  * module instead (pico8_raylib_backend_coords, pico8_replay_source,
  * pico8_session_recorder, pico8_replay_control). */
 
-#ifndef PICO8_RAYLIB_BACKEND_H
-#define PICO8_RAYLIB_BACKEND_H
+#ifndef PLATFORM_RAYLIB_BACKEND_H
+#define PLATFORM_RAYLIB_BACKEND_H
 
 #include "p8/mem.h"
 #include "p8/input.h"
@@ -18,7 +18,7 @@
 
 /* Fixed integer scale of the 128x128 framebuffer -> window pixels. The
  * window is not resizable. */
-#define PICO8_RAYLIB_BACKEND_SCALE 6
+#define RAYLIB_BACKEND_SCALE 6
 
 /* Owns the raylib window and texture, this session's recording and the
  * paired marker file. Played frames are never kept in memory. No field is
@@ -28,7 +28,7 @@ typedef struct {
     Color pixel_buffer[128 * 128];
     session_recorder_t recorder;
     char markers_path[64];
-} pico8_raylib_backend_t;
+} raylib_backend_t;
 
 /* Opens the window, starts this session's (still empty) recording at
  * tmp/events_recorded_<timestamp>.json and mints the paired marker path
@@ -37,11 +37,11 @@ typedef struct {
  * once at boot (nf:pq, pico8_mouse_reader.c) and draws its own cursor, so
  * both would otherwise be visible; shutdown restores it. Must be called
  * exactly once, before any other call on this backend. */
-void pico8_raylib_backend_init(pico8_raylib_backend_t *backend);
+void raylib_backend_init(raylib_backend_t *backend);
 
 /* Wraps WindowShouldClose(): 0 once the window has been closed or the
  * platform quit key pressed, 1 otherwise. The main loop's condition. */
-int pico8_raylib_backend_should_continue(const pico8_raylib_backend_t *backend);
+int raylib_backend_should_continue(const raylib_backend_t *backend);
 
 /* Fills *out_frame from live hardware: the mouse position converted to
  * the 128x128 space (pico8_raylib_backend_window_to_pico8), the left/
@@ -54,7 +54,7 @@ int pico8_raylib_backend_should_continue(const pico8_raylib_backend_t *backend);
  * pico8_session_recorder_frame_count: stop recording replayed frames and
  * every marker of a resumed session silently shifts by the replay's
  * length (tests/test_marker_coherence.c). */
-void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, p8_input_frame_t *out_frame);
+void raylib_backend_poll_input(raylib_backend_t *backend, p8_input_frame_t *out_frame);
 
 /* Uploads the current framebuffer (pico8_peek from PICO8_ADDR_SCREEN, one
  * palette lookup per pixel) and draws it scaled to fill the window.
@@ -66,7 +66,7 @@ void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, p8_input_f
  * the cart. It is drawn after the blit, so it cannot alter the PICO-8
  * framebuffer or the recorded frames, and NULL (live play, and every
  * frame once the recording runs out) draws nothing at all. */
-void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const p8_memory_t *mem, const p8_input_frame_t *frame, const char *replay_status);
+void raylib_backend_present(raylib_backend_t *backend, const p8_memory_t *mem, const p8_input_frame_t *frame, const char *replay_status);
 
 /* Reads the replay's three keys -- Page Up faster, Page Down slower, End
  * uncapped -- and applies them to *control. Pressed, not held: one tap is
@@ -74,7 +74,7 @@ void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const p8_memo
  * read: a space bar tapped during a replay would bookmark a frame the
  * player is only watching. Not given the backend, so it cannot reach the
  * recording or the markers. */
-void pico8_raylib_backend_poll_replay_controls(replay_control_t *control);
+void raylib_backend_poll_replay_controls(replay_control_t *control);
 
 /* Applies the cap for the frame about to be presented, straight from
  * pico8_replay_control_target_fps; 0 is raylib's own "do not wait between
@@ -82,7 +82,7 @@ void pico8_raylib_backend_poll_replay_controls(replay_control_t *control);
  * recorded frame is ever skipped, or the replayed state is no longer the
  * recorded one. Called every frame rather than on change, so no path can
  * leave a live frame running at replay speed. */
-void pico8_raylib_backend_set_frame_rate_cap(int target_fps);
+void raylib_backend_set_frame_rate_cap(int target_fps);
 
 /* Adds *frame to the session's recording. Called once per loop iteration
  * on the frame about to be played, BEFORE pico8__update60()/pico8__draw(),
@@ -91,11 +91,11 @@ void pico8_raylib_backend_set_frame_rate_cap(int target_fps);
  * than killing a live session. Takes replayed and live frames alike, which
  * is what keeps a resumed session's recording complete and replayable in
  * its turn (tests/test_recording_continuity.c). */
-void pico8_raylib_backend_record_frame(pico8_raylib_backend_t *backend, const p8_input_frame_t *frame);
+void raylib_backend_record_frame(raylib_backend_t *backend, const p8_input_frame_t *frame);
 
 /* Restores the host cursor, unloads the texture, closes the window and
  * ends the recording; the file on disk is left in place, already complete.
  * Call once, after init, on an initialized backend. */
-void pico8_raylib_backend_shutdown(pico8_raylib_backend_t *backend);
+void raylib_backend_shutdown(raylib_backend_t *backend);
 
 #endif

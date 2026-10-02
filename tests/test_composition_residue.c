@@ -17,7 +17,7 @@
 #define ERR DIR "/err.txt"
 #define TREE SRC " " TST
 #define ATT DIR "/atteinte.txt"
-#define R2 DIR "/r2.txt"
+#define RESIDUE_2_SITES DIR "/r2.txt"
 #define EMPTY_FOOTER "résidu 2 : 0 ligne(s), 0 fichier(s)\n"
 
 /* Tampon statique, termine par NUL, ecrase a chaque appel. */
@@ -44,7 +44,7 @@ static void write_file(const char *path, const char *text) {
 static int run_residue(const char *args) {
     char cmd[1024];
     snprintf(cmd, sizeof cmd,
-             "COMPOSITION_ATTEINTE=" ATT " COMPOSITION_R2=" R2
+             "COMPOSITION_ATTEINTE=" ATT " COMPOSITION_R2=" RESIDUE_2_SITES
              " sh tools/composition_residue.sh %s > " OUT " 2> " ERR "; echo $? > " DIR "/code",
              args);
     assert(system(cmd) == 0);
@@ -56,12 +56,12 @@ static void setup(void) {
     write_file(SRC "/clean.c", "int main(void) { return 0; }\n");
     write_file(TST "/clean_test.c", "int helper(int x) { return x + 1; }\n");
     write_file(ATT, "");
-    write_file(R2, "");
+    write_file(RESIDUE_2_SITES, "");
 }
 
 /* Deux types d'entite : ke (en-tete en premier membre, pas une parente) et
  * jo (ke en premier membre, une parente). */
-#define KE_JO "typedef struct {\n    entity" "_t header;\n} pico8_" "ke_t;\n" \
+#define ENTITY_PLANET "typedef struct {\n    entity" "_t header;\n} pico8_" "ke_t;\n" \
               "typedef struct {\n    pico8_" "ke_t ke;\n    int a;\n} pico8_" "jo_t;\n"
 
 static void assert_alone_is_empty(const char *path, const char *text) {
@@ -198,7 +198,7 @@ static void test_entity_reader_finds_embedded_parents_by_closure(void) {
     setup();
     write_file(SRC "/c.h", "typedef struct {\n    pico8_" "nl_t nl;\n} pico8_" "os_t;\n");
     write_file(SRC "/d.h", "typedef struct {\n    pico8_" "qh_t qh;\n} pico8_" "nl_t;\n");
-    write_file(SRC "/e.h", KE_JO "typedef struct {\n    pico8_" "jo_t jo;\n} pico8_" "qh_t;\n"
+    write_file(SRC "/e.h", ENTITY_PLANET "typedef struct {\n    pico8_" "jo_t jo;\n} pico8_" "qh_t;\n"
                               "struct pico8_" "mh {\n    /* c */\n\n    pico8_" "ke_t ke;\n};\n"
                               "typedef struct pico8_" "mh pico8_" "mh_t;\n"
                               "struct pico8_" "x {\n    pico8_" "mh_t mh;\n};\n");
@@ -214,7 +214,7 @@ static void test_entity_reader_finds_embedded_parents_by_closure(void) {
 
 static void test_entity_reader_ignores_what_is_not_an_embedded_parent(void) {
     setup();
-    write_file(SRC "/e.h", KE_JO);
+    write_file(SRC "/e.h", ENTITY_PLANET);
     write_file(SRC "/f.c", "typedef struct {\n    pico8_" "jo_t *jo;\n} ptr_t;\n"
                            "typedef struct {\n    int a;\n    pico8_" "jo_t jo;\n} second_t;\n"
                            "int f(void) {\n    pico8_" "jo_t jo;\n    return 0;\n}\n"
@@ -226,7 +226,7 @@ static void test_entity_reader_ignores_what_is_not_an_embedded_parent(void) {
                                   "résidu 2 : 2 ligne(s), 2 fichier(s)\n") == 0);
 }
 
-static void test_ptrs_members_count_only_on_entity_types(void) {
+static void test_pointer_list_members_count_only_on_entity_types(void) {
     setup();
     write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} pico8_" "ke_t;\n"
                            "typedef struct {\n    pico8_" "ke_t ke;\n    pointer_" "list_t *oe;\n    pointer_"
@@ -238,7 +238,7 @@ static void test_ptrs_members_count_only_on_entity_types(void) {
                                   "résidu gardé (ptrs-entité) : 1 ligne(s)\n") == 0);
 }
 
-static void test_registres_reads_declaration_points_outside_entity_types(void) {
+static void test_registries_reads_declaration_points_outside_entity_types(void) {
     setup();
     write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n    pointer_"
                            "list_t *oe;\n} pico8_" "ke_t;\n"
@@ -267,7 +267,7 @@ static void test_registres_reads_declaration_points_outside_entity_types(void) {
 /* Formes d'un registre que le lecteur voit (F) et limites qu'il ne voit pas
  * (L), chacune a sa ligne : une limite qui se met a compter change
  * l'attendu. */
-static void test_registres_sees_hidden_forms_and_not_its_named_limits(void) {
+static void test_registries_sees_hidden_forms_and_not_its_named_limits(void) {
     setup();
     write_file(SRC "/f.h", "typedef pointer_" "list_t reg_t;\n"
                            "typedef reg_t reg2_t;\n"
@@ -342,7 +342,7 @@ static void test_registres_sees_hidden_forms_and_not_its_named_limits(void) {
  * autres structs, avec les mêmes limites (void *owner, :15). needs est exempté
  * seul, pas other_needs sur sa ligne (:16) ; (*mk) n'a pas de nom lisible
  * (:17). */
-static void test_ptrs_entite_reads_entity_members_like_registres(void) {
+static void test_pointer_list_entity_reads_entity_members_like_registries(void) {
     setup();
     write_file(SRC "/a.h", "typedef pointer_" "list_t reg17_t;\n");
     write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} pico8_" "ke_t;\n"
@@ -387,7 +387,7 @@ static void test_ptrs_entite_reads_entity_members_like_registres(void) {
 
 /* Deux types d'entité de deux fichiers, un membre au même numéro de ligne :
  * deux lignes, la clé qui les dédoublonne tient au type, pas au numéro. */
-static void test_ptrs_entite_keeps_one_line_number_in_two_files(void) {
+static void test_pointer_list_entity_keeps_one_line_number_in_two_files(void) {
     setup();
     write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} pico8_" "ke_t;\n"
                            "typedef struct {\n    pico8_" "ke_t ke;\n    void **items;\n} pico8_" "jo_t;\n");
@@ -458,7 +458,7 @@ static void test_readers_see_qualifiers_split_declarations_and_nested_attributes
 /* Accolade à la ligne, union, __attribute__ et _Alignas : vus. Une union
  * imbriquée sur plusieurs lignes (f.h:19) reste une limite, comme la struct
  * imbriquée. */
-static void test_registres_sees_split_braces_unions_and_attributes(void) {
+static void test_registries_sees_split_braces_unions_and_attributes(void) {
     setup();
     write_file(SRC "/f.h", "typedef struct reg_s\n"
                            "{\n"
@@ -575,7 +575,7 @@ static void test_void_self_sees_every_untyped_receiver(void) {
 
 static void test_detail_prints_r2_sites_under_void_ptr_and_the_info_line(void) {
     setup();
-    write_file(R2, "pico8_" "f\tsrc/x.c\tamont(void *" "self)\tpreuve\n");
+    write_file(RESIDUE_2_SITES, "pico8_" "f\tsrc/x.c\tamont(void *" "self)\tpreuve\n");
     write_file(SRC "/game/game_data.h", "int a;\nint b;\n");
     write_file(SRC "/v.h", "void pico8_" "g(void *e);\n");
     assert(run_residue("--detail " TREE) == 0);
@@ -726,12 +726,12 @@ static void test_measure_on_nothing_is_an_error_not_an_empty_residue(void) {
     assert(strstr(read_file(OUT), "résidu 2 : 0") == NULL);
     assert(run_residue("--check défauts " TREE) == 2);
     setup();
-    assert(system("rm " R2) == 0);
+    assert(system("rm " RESIDUE_2_SITES) == 0);
     assert(run_residue("--detail " TREE) == 2);
     assert(strstr(read_file(OUT), "résidu 2 : 0") == NULL);
 }
 
-static void test_champs_counts_writes_and_writes_outside_constructors(void) {
+static void test_fields_counts_writes_and_writes_outside_constructors(void) {
     setup();
     write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} pico8_" "ke_t;\n"
                            "typedef struct {\n    pico8_" "ke_t ke;\n    int a;\n    int b;\n"
@@ -783,13 +783,13 @@ int main(void) {
     test_overlapping_categories_count_each_but_footer_counts_distinct_lines();
     test_entity_reader_finds_embedded_parents_by_closure();
     test_entity_reader_ignores_what_is_not_an_embedded_parent();
-    test_ptrs_members_count_only_on_entity_types();
-    test_registres_reads_declaration_points_outside_entity_types();
-    test_registres_sees_hidden_forms_and_not_its_named_limits();
-    test_ptrs_entite_reads_entity_members_like_registres();
-    test_ptrs_entite_keeps_one_line_number_in_two_files();
+    test_pointer_list_members_count_only_on_entity_types();
+    test_registries_reads_declaration_points_outside_entity_types();
+    test_registries_sees_hidden_forms_and_not_its_named_limits();
+    test_pointer_list_entity_reads_entity_members_like_registries();
+    test_pointer_list_entity_keeps_one_line_number_in_two_files();
     test_readers_see_qualifiers_split_declarations_and_nested_attributes();
-    test_registres_sees_split_braces_unions_and_attributes();
+    test_registries_sees_split_braces_unions_and_attributes();
     test_void_ptr_reads_joined_public_prototypes();
     test_void_self_sees_every_untyped_receiver();
     test_detail_prints_r2_sites_under_void_ptr_and_the_info_line();
@@ -800,7 +800,7 @@ int main(void) {
     test_detail_sorts_by_category_then_file();
     test_check_fails_only_on_a_named_category_present();
     test_measure_on_nothing_is_an_error_not_an_empty_residue();
-    test_champs_counts_writes_and_writes_outside_constructors();
+    test_fields_counts_writes_and_writes_outside_constructors();
     assert(system("rm -rf " DIR) == 0);
     printf("test_composition_residue: all tests passed\n");
     return 0;

@@ -64,7 +64,7 @@ static int run(const char *cmd) {
     return system(full);
 }
 
-static void test_table_marks_exact_ok_and_truncated_ecart(void) {
+static void test_table_marks_exact_ok_and_truncated_gap(void) {
     reset();
     assert(run(COMPARE) == 0);
     const char *out = read_file(OUT);
@@ -73,7 +73,7 @@ static void test_table_marks_exact_ok_and_truncated_ecart(void) {
     assert(strstr(out, "litteraux 2 | sites 3 | ok 1 | ecart 1\n") != NULL);
 }
 
-static void test_expected_list_equal_to_ecarts_passes(void) {
+static void test_expected_list_equal_to_gaps_passes(void) {
     reset();
     assert(run(CHECK) == 0);
     assert(strstr(read_file(OUT), "litteraux 2 | sites 3 | ok 1 | ecart 1\n") != NULL);
@@ -89,7 +89,7 @@ static void test_listed_literal_that_passes_fails_as_stale(void) {
     assert(strstr(out, "regression") == NULL);
 }
 
-static void test_unlisted_ecart_fails_as_regression(void) {
+static void test_unlisted_gap_fails_as_regression(void) {
     reset();
     write_file(EXPECTED, "");
     assert(run(CHECK) != 0);
@@ -146,7 +146,7 @@ static void test_macro_sites_are_read_from_the_sources(void) {
 }
 
 /* Un site juste ne couvre pas son frere faux. */
-static void test_two_sites_of_one_literal_with_two_values_are_ecart(void) {
+static void test_two_sites_of_one_literal_with_two_values_are_gap(void) {
     reset();
     write_sources("x = P8_FIXED_LIT(0x0000451e, 0.27);\n",
                   "y = P8_FIXED_LIT(0x0000451f, 0.27);\n");
@@ -195,7 +195,7 @@ static void test_no_source_fails(void) {
     assert(strstr(read_file(OUT), "aucune source") != NULL);
 }
 
-static void test_unlisted_macro_ecart_fails_as_regression(void) {
+static void test_unlisted_macro_gap_fails_as_regression(void) {
     reset();
     write_sources("x = P8_FIXED_LIT(0x00008000, 0.5);\n",
                   "y = P8_FIXED_LIT(0x0000451f, 0.27);\n");
@@ -207,21 +207,21 @@ static void test_unlisted_macro_ecart_fails_as_regression(void) {
 }
 
 int main(void) {
-    test_table_marks_exact_ok_and_truncated_ecart();
-    test_expected_list_equal_to_ecarts_passes();
+    test_table_marks_exact_ok_and_truncated_gap();
+    test_expected_list_equal_to_gaps_passes();
     test_listed_literal_that_passes_fails_as_stale();
-    test_unlisted_ecart_fails_as_regression();
+    test_unlisted_gap_fails_as_regression();
     test_listed_literal_absent_from_sources_fails();
     test_literal_absent_from_block_a_fails();
     test_missing_block_a_fails();
     test_block_after_a_is_not_read_as_literals();
     test_macro_sites_are_read_from_the_sources();
-    test_two_sites_of_one_literal_with_two_values_are_ecart();
+    test_two_sites_of_one_literal_with_two_values_are_gap();
     test_malformed_macro_call_fails_naming_its_file();
     test_macro_literal_absent_from_block_a_fails();
     test_no_constant_under_any_form_fails();
     test_no_source_fails();
-    test_unlisted_macro_ecart_fails_as_regression();
+    test_unlisted_macro_gap_fails_as_regression();
     assert(system("rm -rf " DIR) == 0);
     printf("test_constants_check: all tests passed\n");
     return 0;

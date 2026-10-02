@@ -19,7 +19,7 @@ static void zone_full(const char *name, size_t limit, const char *unit) {
     char message[160];
     snprintf(message, sizeof message, "zone %s pleine, limite %lu %s",
              name, (unsigned long)limit, unit);
-    pico8_fatal(message);
+    p8_fatal(message);
 }
 
 static unsigned char *bump_half(const bump_zone_t *zone) {

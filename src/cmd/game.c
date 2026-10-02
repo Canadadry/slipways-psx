@@ -64,8 +64,8 @@ int main(int argc, char **argv) {
     dispatch_context_set_gfx(&gfx);
     dispatch_context_set_mem(&mem);
 
-    pico8_raylib_backend_t backend;
-    pico8_raylib_backend_init(&backend);
+    raylib_backend_t backend;
+    raylib_backend_init(&backend);
 
     cart_load();
     cart_init();
@@ -77,23 +77,23 @@ int main(int argc, char **argv) {
      * misses the recorded state. */
     cheat_t cheat;
     cheat_init(&cheat);
-    while (pico8_raylib_backend_should_continue(&backend)) {
+    while (raylib_backend_should_continue(&backend)) {
         p8_input_frame_t frame;
         int from_recording = replay_source_next_frame(&replay, &frame);
         if (!from_recording) {
-            pico8_raylib_backend_poll_input(&backend, &frame);
+            raylib_backend_poll_input(&backend, &frame);
         } else {
             /* poll_input is not called while the file drives: live
              * hardware has no say in a replayed frame, and a space bar
              * tapped here would bookmark a frame the player is only
              * watching. raylib still pumps events in present(), so the
              * window stays closable. */
-            pico8_raylib_backend_poll_replay_controls(&replay_control);
+            raylib_backend_poll_replay_controls(&replay_control);
         }
-        pico8_raylib_backend_set_frame_rate_cap(replay_control_target_fps(&replay_control, from_recording));
+        raylib_backend_set_frame_rate_cap(replay_control_target_fps(&replay_control, from_recording));
         /* Recorded before the game steps, and unconditionally: see
          * pico8_raylib_backend_record_frame. */
-        pico8_raylib_backend_record_frame(&backend, &frame);
+        raylib_backend_record_frame(&backend, &frame);
         p8_input_t input = { &frame, 1, 0 };
         dispatch_context_set_input(&input);
 
@@ -110,10 +110,10 @@ int main(int argc, char **argv) {
                                                replay_status_text, sizeof replay_status_text);
             replay_status = replay_status_text;
         }
-        pico8_raylib_backend_present(&backend, &mem, &frame, replay_status);
+        raylib_backend_present(&backend, &mem, &frame, replay_status);
     }
 
-    pico8_raylib_backend_shutdown(&backend);
+    raylib_backend_shutdown(&backend);
     replay_source_close(&replay);
 
     return 0;

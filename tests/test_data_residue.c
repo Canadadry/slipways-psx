@@ -129,7 +129,7 @@ static void test_word_boundaries_and_value_truthy(void) {
                                   "résidu D : 3 ligne(s), 1 fichier(s)\n") == 0);
 }
 
-static void test_liste_word_boundaries(void) {
+static void test_list_word_boundaries(void) {
     setup();
     write_file(SRC "/l.c", "int mypico8_" "list_t;\n"
                            "int pico8_" "listing;\n"
@@ -195,7 +195,7 @@ int main(void) {
     test_overlapping_categories_count_each_but_footer_counts_distinct_lines();
     test_omitted_argument_defaults_are_not_class_specs();
     test_word_boundaries_and_value_truthy();
-    test_liste_word_boundaries();
+    test_list_word_boundaries();
     test_detail_sorts_by_category_then_file();
     test_check_fails_only_on_a_named_category_present();
     test_measure_on_nothing_is_an_error_not_an_empty_residue();
