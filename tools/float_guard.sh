@@ -19,7 +19,7 @@ if [ $# -eq 0 ]; then
 fi
 
 mkdir -p "$work"
-failed=$work/echecs.txt
+failed=$work/failed.txt
 : > "$failed"
 for src in "$@"; do
     base=$work/$(echo "$src" | tr '/' '_')

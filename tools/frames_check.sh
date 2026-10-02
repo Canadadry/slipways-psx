@@ -23,18 +23,18 @@ while [ $# -ge 3 ]; do
         continue
     fi
 
-    attendue=$(cat "$reference")
-    obtenue=$(cat "$current")
-    if [ "$attendue" = "$obtenue" ]; then
-        echo "frames: $events: matches ($obtenue)"
+    expected=$(cat "$reference")
+    actual=$(cat "$current")
+    if [ "$expected" = "$actual" ]; then
+        echo "frames: $events: matches ($actual)"
         continue
     fi
 
     failed=1
     {
         echo "frames: DIVERGENT $events -- the game no longer draws the same thing."
-        echo "frames:   expected ($reference): $attendue"
-        echo "frames:   actual   ($current): $obtenue"
+        echo "frames:   expected ($reference): $expected"
+        echo "frames:   actual   ($current): $actual"
         echo "frames:   rebuild the reference and find the first diverging frame: make e2e-ref"
         echo "frames:   if the divergence is intended: make e2e-baseline"
     } >&2
