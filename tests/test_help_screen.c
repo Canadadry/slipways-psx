@@ -37,7 +37,7 @@
 #include "engine/vec.h"
 
 
-#define BUILT_HASH 0x088E67AEu
+#define BUILT_HASH 0xABEBF0FEu
 #define LIFE_HASH 0x64B6480Bu
 #define HOVER_HASH 0xEE114A89u
 

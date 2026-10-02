@@ -63,8 +63,8 @@ weighted_picker_t *weighted_picker_new(const allocator_t *zone, const planet_typ
         count_fixed = p8_fixed_flr(p8_fixed_mul(entity->weight, og));
         count = p8_fixed_flr_int(count_fixed);
         for (n = 1; n <= count; n++) {
-            assert(state->tickets_count < WEIGHTED_PICKER_TICKETS_CAP &&
-                   "gn: the pool is bounded by the cart's only gn(df,2): a larger df or og needs a larger array");
+            assert(state->tickets_count < WEIGHTED_PICKER_TICKETS_CAP && "weighted_picker_new: the ticket pool is sized for its one game call, "
+                   "planet_types_table at a multiplier of 2; a larger table or multiplier needs a larger WEIGHTED_PICKER_TICKETS_CAP");
             state->tickets[state->tickets_count++] = entity;
         }
     }

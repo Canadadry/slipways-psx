@@ -58,7 +58,7 @@ static void check(const char *label, uint32_t got, uint32_t want) {
 
 /* `js:ev`'s call, on the cart's own first `dr` entry. */
 static void test_icon_tooltips_entry_draws_as_before(void) {
-    check("dr[1]", draw_tooltip(tooltip_new(&heap_allocator, &icon_tooltips_table[0]), p8_fixed_from_int(127), p8_fixed_from_int(1)),
+    check("icon_tooltips_first_entry", draw_tooltip(tooltip_new(&heap_allocator, &icon_tooltips_table[0]), p8_fixed_from_int(127), p8_fixed_from_int(1)),
           ICON_TOOLTIPS_FIRST_ENTRY_HASH);
 }
 
@@ -92,7 +92,7 @@ static void test_tooltip_is_a_struct_with_its_method_table(void) {
     p8_gfx_init(&gfx);
     p8_cls(&mem);
     tooltip_draw_at(&gfx, &mem, tooltip_new(&heap_allocator, &icon_tooltips_table[0]), p8_fixed_from_int(127), p8_fixed_from_int(1));
-    check("table ol", screen_hash(), ICON_TOOLTIPS_FIRST_ENTRY_HASH);
+    check("icon_tooltips_first_entry drawn", screen_hash(), ICON_TOOLTIPS_FIRST_ENTRY_HASH);
 
     /* The class's `ol` gets a vector no launcher passes it: `om` is 0. */
     {
@@ -141,7 +141,7 @@ static void test_tooltip_state_by_name(void) {
         h ^= draw_by_name(tooltip_new(&heap_allocator, &icon_tooltips_table[i - 1]), p8_fixed_from_int(127), p8_fixed_from_int(1));
         h *= 16777619u;
     }
-    printf("[dr all by name] 0x%08Xu\n", (unsigned)h);
+    printf("[icon_tooltips_all_by_name] 0x%08Xu\n", (unsigned)h);
     fflush(stdout);
     assert(h == ICON_TOOLTIPS_ALL_BY_NAME_HASH);
 

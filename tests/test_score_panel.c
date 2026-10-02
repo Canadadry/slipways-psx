@@ -35,8 +35,8 @@
 #include "game/ui_button.h"
 #include "engine/vec.h"
 
-#define BUILT_HASH 0x5EC1E758u
-#define SHARED_HASH 0x387783BAu
+#define BUILT_HASH 0xC419CD23u
+#define SHARED_HASH 0x1F82BA04u
 #define LIFE_HASH 0xDDBCC765u
 #define TECH_TREE_SCREEN_HASH 0x7D1C5B1Fu
 

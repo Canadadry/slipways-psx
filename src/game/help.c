@@ -133,7 +133,7 @@ static probe_t *screen_create(void) {
 /* This module, unlike most, does not call pico8_pi_init() itself, and `fv`
  * is built by `g_`'s init: both preconditions are asserted, not repaired. */
 void help_init(void) {
-    assert(draw_functions_dispatch_lookup("s") != NULL && "pico8_help_init() runs after pico8_pi_init()");
+    assert(draw_functions_dispatch_lookup("spr") != NULL && "pico8_help_init() runs after pico8_pi_init()");
     assert(probe_ready() && "pico8_help_init() runs after pico8_probe_init()");
 
     help_shutdown();

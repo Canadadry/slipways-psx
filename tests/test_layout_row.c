@@ -121,7 +121,7 @@ static uint32_t fold_tuple_item(uint32_t h, const data_item_t *item) {
     if (item->is_false) {
         return fold_bool(h, 0);
     }
-    assert(!item->is_ref && "no test folds a tuple item that points (row, lq, vector): to fold one, fold REF_KIND then 0xDEAD if NULL, else 0 with no rank, as the frozen hashes did");
+    assert(!item->is_ref && "no test folds a tuple item that points (row, layout row, vector): to fold one, fold REF_KIND then 0xDEAD if NULL, else 0 with no rank, as the frozen hashes did");
     return fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->number));
 }
 
@@ -143,7 +143,7 @@ static uint32_t fold_tuple(uint32_t h, const data_row_t *t, int depth) {
         h = fold_fixed(fold_tuple_name(h, "resource"), t->resource);
     }
     if (t->has_color) {
-        h = fold_fixed(fold_tuple_name(h, "c"), p8_fixed_from_int(t->color));
+        h = fold_fixed(fold_tuple_name(h, "color"), p8_fixed_from_int(t->color));
     }
     return h;
 }
@@ -207,7 +207,7 @@ static uint32_t fold_positionals(uint32_t h, const void *lq, const layout_row_ke
     int n = row_count(lq);
     int i;
     assert(from == NULL || from->count == n);
-    assert((from != NULL || nil_at == 0) && "nil_at: only keys the test wrote can say nil");
+    assert((from != NULL || nil_at == 0) && "nil_at: only keys the test wrote can be absent");
     assert((nil_at >> n) == 0 && "nil_at: a bit past the last key");
     h = fnv(h, (uint32_t)n);
     for (i = 0; i < n; i++) {
@@ -396,7 +396,7 @@ static void test_constructions(void) {
     {
         layout_row_cell_t a[] = {str("hello")};
         keys = with_color(positionals(1, a), 13);
-        hash = fold_built_from(hash, "string c", &keys, 0u);
+        hash = fold_built_from(hash, "string color", &keys, 0u);
     }
     {
         layout_row_cell_t a[] = {num(12)};
@@ -408,7 +408,7 @@ static void test_constructions(void) {
         layout_row_cell_t a[1];
         a[0] = tuple_of(4, f);
         keys = positionals(1, a);
-        hash = fold_built_from(hash, "spr w qw qv", &keys, 0u);
+        hash = fold_built_from(hash, "sprite_id width sprite_palette_block spacing", &keys, 0u);
         assert(layout_row_new(&heap_allocator, &keys)->placed_items[0].sprite_palette_block == p8_fixed_from_int(3));
     }
     {
@@ -428,7 +428,7 @@ static void test_constructions(void) {
     {
         layout_row_cell_t a[] = {layout_row_cell_nothing()};
         keys = positionals(1, a);
-        hash = fold_built_from(hash, "nil", &keys, 1u << 0);
+        hash = fold_built_from(hash, "nothing", &keys, 1u << 0);
     }
     {
         static const int f[] = {13, 8};
@@ -436,7 +436,7 @@ static void test_constructions(void) {
                                layout_row_cell_nothing(), num(40)};
         a[2] = tuple_of(2, f);
         keys = with_color(positionals(7, a), 9);
-        hash = fold_built_from(hash, "mixed c", &keys, 1u << 5);
+        hash = fold_built_from(hash, "mixed color", &keys, 1u << 5);
     }
     hash = fold_built_from(hash, "NULL", NULL, 0u);
     {
@@ -457,7 +457,7 @@ static void test_constructions(void) {
     {
         layout_row_cell_t a[] = {str("4")};
         keys = with_background(positionals(1, a), -1);
-        hash = fold_built_from(hash, "bg false", &keys, 0u);
+        hash = fold_built_from(hash, "background false", &keys, 0u);
     }
     check("constructions", hash, CONSTRUCTIONS_HASH);
 }
@@ -500,7 +500,7 @@ static void test_planet_resource_row(void) {
         h = fold_row(h, lq);
     }
     assert(research_display_planet_resource_row(frame_zone(), NULL, NULL, p8_fixed_from_int(1), 0, 0) == NULL);
-    check("jo.ex", h, PLANET_RESOURCE_ROW_HASH);
+    check("planet_resource_row", h, PLANET_RESOURCE_ROW_HASH);
 }
 
 static void start_game(void);
@@ -560,7 +560,7 @@ static void test_research_project_layout_row_and_copy(void) {
         button_draw(&gfx, &mem, button, vec_xy(10, 50));
         hash = fnv(hash, screen_hash());
     }
-    check("hp:lq and copy", hash, RESEARCH_PROJECT_LAYOUT_ROW_HASH);
+    check("research_project_layout_row", hash, RESEARCH_PROJECT_LAYOUT_ROW_HASH);
 }
 
 static uint32_t drawn_by_draw_at(const void *lq, vec_t at, p8_fixed_t a) {
@@ -647,7 +647,7 @@ static void test_layout_row_add_in_bump_zone(void) {
     allocator_t handle;
     uint32_t want = drawn_after_adds(&heap_allocator);
 
-    bump_zone_init(&bump, "essai-panneau", panel_cells, 4096);
+    bump_zone_init(&bump, "test-panel", panel_cells, 4096);
     handle = allocator_from_bump_zone(&bump);
     assert(drawn_after_adds(&handle) == want);
 }
@@ -774,7 +774,7 @@ static const layout_row_t *panel_row(const char *head) {
         const layout_row_t *lq;
         layout_row_cell_t v;
 
-        assert(button != NULL && button->class == button_class() && "ok.le holds js buttons only");
+        assert(button != NULL && button->class == button_class() && "the main ui's ephemerals hold buttons only");
         lq = ((const button_t *)button)->layout_row;
 
         if (lq != NULL && lq->items_count > 0) {
@@ -997,7 +997,7 @@ static void test_planet_resource_row_largest_row_fits_a_slot(void) {
             is = p->inputs;
         }
     }
-    assert(is != NULL && is->count == 2 && "the most wants a project has; a longer `i` needs a bigger row place");
+    assert(is != NULL && is->count == 2 && "the most wants a project has; a longer input list needs a bigger row slot");
     assert(resource_code_lookup("w", &r_w));
     o = p8_fixed_from_int(r_w);
     slot = ui_zone_slot(SLOT_KIND_ROW);

@@ -127,7 +127,7 @@ static void test_nil_item_draws_nothing(void) {
 
     hits = sprite0_bottom_row_hits(&hit_x, &hit_y);
     drawn = pixels_drawn();
-    printf("[nil]     lq({nil}):ol() drew %d pixel(s); sprite #0's bottom row appears %d time(s)\n", drawn, hits);
+    printf("[nil]     layout_row_draw_at of a row with an absent cell drew %d pixel(s); sprite #0's bottom row appears %d time(s)\n", drawn, hits);
     if (hits > 0) {
         printf("[nil]     first occurrence at (%d,%d)\n", hit_x, hit_y);
     }
@@ -154,7 +154,7 @@ static void test_numeric_item_still_draws_its_sprite(void) {
 
     hits = sprite0_bottom_row_hits(&hit_x, &hit_y);
     drawn = pixels_drawn();
-    printf("[control] lq({0}):ol() drew %d pixel(s); sprite #0's bottom row appears %d time(s) at (%d,%d)\n", drawn,
+    printf("[control] layout_row_draw_at of a row with a 0 cell drew %d pixel(s); sprite #0's bottom row appears %d time(s) at (%d,%d)\n", drawn,
            hits, hit_x, hit_y);
     fflush(stdout);
     assert(hits == 1);
@@ -179,6 +179,6 @@ int main(void) {
     test_nil_item_draws_nothing();
     test_numeric_item_still_draws_its_sprite();
 
-    printf("lq nil-item tests passed\n");
+    printf("test_layout_nil_item_draws_nothing: all tests passed\n");
     return 0;
 }

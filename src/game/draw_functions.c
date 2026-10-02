@@ -31,8 +31,8 @@ void draw_functions_dispatch_register(const char *name, draw_functions_fn_t fn) 
             return;
         }
     }
-    assert(g_draw_functions_dispatch_count < DRAW_FUNCTIONS_DISPATCH_CAPACITY && "pi dispatch table full");
-    assert(strlen(name) < sizeof g_draw_functions_method[0].name && "pi dispatch name would be truncated");
+    assert(g_draw_functions_dispatch_count < DRAW_FUNCTIONS_DISPATCH_CAPACITY && "draw_functions dispatch table full");
+    assert(strlen(name) < sizeof g_draw_functions_method[0].name && "draw_functions dispatch name would be truncated");
     strncpy(g_draw_functions_method[g_draw_functions_dispatch_count].name, name, sizeof g_draw_functions_method[g_draw_functions_dispatch_count].name - 1);
     g_draw_functions_method[g_draw_functions_dispatch_count].name[sizeof g_draw_functions_method[g_draw_functions_dispatch_count].name - 1] = '\0';
     g_draw_functions_method[g_draw_functions_dispatch_count].draw = fn;
@@ -62,7 +62,7 @@ static const data_item_t *draw_functions_arg(const data_row_t *e, int i) {
         return NULL;
     }
     item = &e->items[i - 1];
-    assert(item->row == NULL && "an article of bl holds no nested row");
+    assert(item->row == NULL && "a row drawn by draw_functions_draw_rows holds no nested row");
     return item;
 }
 
@@ -188,9 +188,9 @@ void draw_functions_draw_rows_default(p8_graphics_t *gfx, p8_memory_t *mem, cons
 }
 
 void draw_functions_init(void) {
-    draw_functions_dispatch_register("br", draw_bar_entry);
-    draw_functions_dispatch_register("qr", print_outlined_entry);
-    draw_functions_dispatch_register("rf", draw_help_frame_entry);
-    draw_functions_dispatch_register("s", spr_entry);
+    draw_functions_dispatch_register("draw_bar", draw_bar_entry);
+    draw_functions_dispatch_register("print_outlined", print_outlined_entry);
+    draw_functions_dispatch_register("draw_help_frame", draw_help_frame_entry);
+    draw_functions_dispatch_register("spr", spr_entry);
     draw_functions_dispatch_register("draw_row", draw_row_entry);
 }

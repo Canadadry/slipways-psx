@@ -19,8 +19,8 @@ const production_tables_entry_t production_tables_table[PRODUCTION_TABLES_COUNT]
     {"f+", 4, {0, 2, 3, 4}, NULL},
     {"-", 3, {1, 2, 3}, "+"},
     {"+", 3, {2, 3, 4}, NULL},
-    {"structure", 4, {0, 1, 3, 5}, "qh+"},
-    {"qh+", 4, {0, 2, 5, 8}, NULL},
+    {"structure", 4, {0, 1, 3, 5}, "structure+"},
+    {"structure+", 4, {0, 2, 5, 8}, NULL},
 };
 
 const project_records_entry_t project_records_table[PROJECT_RECORDS_COUNT] = {
@@ -276,7 +276,7 @@ const technologies_entry_t technologies_table[TECHNOLOGIES_COUNT] = {
 int resource_code_lookup(const char *key, int *out_resource) {
     int i;
 
-    assert(key != NULL && "r lookup: key must be a string -- a number never keys r");
+    assert(key != NULL && "resource_code_lookup: key must not be NULL");
     for (i = 0; i < RESOURCE_CODE_COUNT; i++) {
         if (strcmp(resource_codes[i].key, key) == 0) {
             *out_resource = resource_codes[i].resource;
@@ -289,7 +289,7 @@ int resource_code_lookup(const char *key, int *out_resource) {
 const char *resource_names_lookup(const char *key) {
     int i;
 
-    assert(key != NULL && "iz lookup: key must be a string -- a number never keys iz");
+    assert(key != NULL && "resource_names_lookup: key must not be NULL");
     for (i = 0; i < RESOURCE_NAMES_COUNT; i++) {
         if (strcmp(resource_names_table[i].key, key) == 0) {
             return resource_names_table[i].name;
@@ -301,7 +301,7 @@ const char *resource_names_lookup(const char *key) {
 const production_tables_entry_t *production_tables_lookup(const char *key) {
     int i;
 
-    assert(key != NULL && "hc lookup: key must be a string -- a number never keys hc");
+    assert(key != NULL && "production_tables_lookup: key must not be NULL");
     for (i = 0; i < PRODUCTION_TABLES_COUNT; i++) {
         if (strcmp(production_tables_table[i].key, key) == 0) {
             return &production_tables_table[i];

@@ -20,7 +20,7 @@ static void test_production_tables_project_records_icon_tooltips_technologies_de
 
     assert(PRODUCTION_TABLES_COUNT == 6);
     assert(production_tables_lookup("f-") != NULL);
-    assert(production_tables_lookup("qh+") != NULL);
+    assert(production_tables_lookup("structure+") != NULL);
     assert(production_tables_lookup("does-not-exist") == NULL);
 
     assert(PROJECT_RECORDS_COUNT == 42);

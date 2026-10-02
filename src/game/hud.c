@@ -45,7 +45,7 @@ void hud_select_palette_block_default(p8_memory_t *mem) {
 }
 
 void hud_draw_bar(p8_graphics_t *gfx, p8_memory_t *mem, p8_fixed_t y1, p8_fixed_t y2, int col) {
-    assert(gfx != NULL && "rk: pico8_rectfill dereferences gfx, so a NULL one is not a no-op");
+    assert(gfx != NULL && "hud_draw_bar: p8_rectfill dereferences the graphics state, so a NULL one is not a no-op");
     if (gfx != NULL) {
         gfx->pen_color = col;
     }

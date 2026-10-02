@@ -23,7 +23,7 @@ layout_row_cell_t layout_row_cell_fixed(p8_fixed_t x) {
 layout_row_cell_t layout_row_cell_string(const char *s) {
     layout_row_cell_t cell = {.kind = LAYOUT_ROW_CELL_STRING, .as.text = s};
 
-    assert(s != NULL && "lq: no producer writes a NULL string; its kind would have no reader in lq:mn");
+    assert(s != NULL && "layout_row_cell_string: no producer writes a NULL string; its kind would have no reader in row_measure_item");
     return cell;
 }
 
@@ -203,8 +203,8 @@ void layout_row_draw_at(const p8_graphics_t *gfx, p8_memory_t *mem, const layout
         return;
     }
     assert(self->header.class == &g_layout_row_class &&
-           "lq:ol: every row reaching it (jo.lq, js.lq/h_, jb.ls, pi.ld) is an lq; anything else would be read "
-           "through the wrong layout");
+           "layout_row_draw_at: every row reaching it (a planet's or a button's layout_row, a button's side_tooltip, "
+           "a tooltip's rows, the draw_row dispatch) is a layout row; anything else would be read through the wrong layout");
     w = self->width;
     p = vec_sub(p, vec_make(p8_fixed_mul(a, w), p8_fixed_from_int(0)));
 
@@ -239,9 +239,9 @@ static layout_row_t *tooltip_line(const allocator_t *zone, const data_item_t *it
     if (item->row == NULL) {
         return layout_row_new(zone, NULL);
     }
-    assert(item->row->draw_function == NULL && "jb: a line's named keys are c only; fn has no member -- stop, do not add one");
+    assert(item->row->draw_function == NULL && "tooltip_line: a line's only named key is its color; a draw_function has no member -- stop, do not add one");
     assert(item->row->count <= TOOLTIP_LINE_CAP &&
-           "jb: the cart's longest bubble line (nb_9_oy_1) has 7 items; a longer one needs a bigger array");
+           "tooltip_line: the longest tooltip line of the data (technologies_9_tooltip_rows_1) has 7 items; a longer one needs a bigger array");
     for (i = 0; i < item->row->count; i++) {
         items[i] = row_scalar_item(&item->row->items[i]);
     }
@@ -311,7 +311,7 @@ static const entity_class_t g_layout_row_class = {
 static layout_row_t *row_struct_alloc(const allocator_t *zone, int n) {
     layout_row_t *self;
 
-    assert(zone != NULL && "lq: a row without a zone would have nowhere to keep its cells");
+    assert(zone != NULL && "row_struct_alloc: a row without a zone would have nowhere to keep its cells");
     self = (layout_row_t *)allocator_alloc(zone, sizeof *self);
 
     entity_init_header(&self->header, &g_layout_row_class);
@@ -372,7 +372,7 @@ layout_row_keys_t layout_row_keys_of_row(const data_row_t *row, layout_row_cell_
     int i;
 
     assert(row->count <= cap && row->draw_function == NULL && !row->has_resource &&
-           "lq: a row passes positionals and c; fn or qe has no member -- stop, do not add one");
+           "layout_row_keys_of_row: a row passes positional items and a color; a draw_function or a resource has no member -- stop, do not add one");
     for (i = 0; i < row->count; i++) {
         cells[i] = layout_row_cell_item(&row->items[i]);
     }
@@ -417,7 +417,7 @@ static const entity_class_t g_tooltip_class = {
 static tooltip_t *tooltip_struct_alloc(const allocator_t *zone) {
     tooltip_t *self;
 
-    assert(zone != NULL && "jb: a bubble without a zone would have nowhere to keep its lines");
+    assert(zone != NULL && "tooltip_struct_alloc: a tooltip without a zone would have nowhere to keep its lines");
     self = (tooltip_t *)allocator_alloc(zone, sizeof *self);
 
 #ifdef PICO8_CLASS_COVERAGE
@@ -434,7 +434,7 @@ static tooltip_t *tooltip_create(const allocator_t *zone, const data_row_t *row)
     tooltip_t *self;
 
     assert((row == NULL || (!row->has_color && row->draw_function == NULL)) &&
-           "jb: every line is positional; a named key has no member -- stop, do not add one");
+           "tooltip_create: every line is positional; a named key has no member -- stop, do not add one");
     self = tooltip_struct_alloc(zone);
     tooltip_construct(self, row);
     return self;
