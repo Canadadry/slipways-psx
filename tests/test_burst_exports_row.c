@@ -68,25 +68,25 @@ static void setup_panel_state(p8_memory_t *mem, p8_graphics_t *gfx) {
     reset_world();
     layout_init();
     pico8_js_init();
-    pico8_jo_init();
+    planet_init();
     pico8_planet_family_init();
 }
 
 /* Read on the instance's member, not the class defaults, so the test
  * says nothing about where the value comes from. */
-static entity_list_t *planet_by_ref(const pico8_jo_t *planet) {
-    return planet->by;
+static entity_list_t *planet_by_ref(const planet_t *planet) {
+    return planet->outgoing_routes;
 }
 
 static void test_ga_export_line_counts_the_routes_in_by(void) {
     p8_memory_t mem;
     p8_graphics_t gfx;
-    pico8_jo_t *planet;
+    planet_t *planet;
     static production_t kw;
     vec_t *ra;
     entity_list_t *by;
-    pico8_trade_t *route_a;
-    pico8_trade_t *route_b;
+    trade_route_t *route_a;
+    trade_route_t *route_b;
     const entity_list_t *le;
     const layout_row_t *exports_lq = NULL;
     int i;
@@ -101,14 +101,14 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
     kw.has_resource = 1;
     kw.resource = p8_fixed_from_int(99);
     kw.amount = p8_fixed_from_int(2);
-    planet->kw = &kw;
+    planet->production = &kw;
 
     ra = malloc(sizeof *ra);
     *ra = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
-    planet->ra = ra;
+    planet->pos = ra;
 
     /* A fresh `ga` exports nothing, against a capacity of `kw.mu`. */
-    pico8_jo_gh(planet);
+    planet_inspection_panel(planet);
     le = ok_le();
     for (i = 0; i < le->count; i++) {
         const layout_row_t *lq = button_lq(le->items[i]);
@@ -124,13 +124,13 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
      * declaration installed. */
     by = planet_by_ref(planet);
     assert(by != NULL);
-    route_a = pico8_trade_new(game_zone(), NULL);
-    route_b = pico8_trade_new(game_zone(), NULL);
+    route_a = trade_new(game_zone(), NULL);
+    route_b = trade_new(game_zone(), NULL);
     entity_list_add(by, &route_a->header);
     entity_list_add(by, &route_b->header);
 
     exports_lq = NULL;
-    pico8_jo_gh(planet);
+    planet_inspection_panel(planet);
     le = ok_le();
     for (i = 0; i < le->count; i++) {
         const layout_row_t *lq = button_lq(le->items[i]);

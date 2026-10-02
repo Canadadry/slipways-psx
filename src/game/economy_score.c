@@ -38,20 +38,20 @@ static int call_gg_truthy(entity_t *pt) {
     if (pt == NULL) {
         return 0;
     }
-    assert(pico8_jo_is_family(pt) && "gg: pt is a planet of cg.jo");
-    return pico8_jo_gg((const pico8_jo_t *)pt);
+    assert(planet_is_family(pt) && "gg: pt is a planet of cg.jo");
+    return planet_is_colonized((const planet_t *)pt);
 }
 
 p8_fixed_t pico8_da(entity_t *pt) {
-    if (pt != NULL && (pt->class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && ((const pico8_jo_t *)pt)->def->is_structure) {
+    if (pt != NULL && (pt->class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && ((const planet_t *)pt)->archetype->is_structure) {
         const entity_list_t *qh_list = entities_by_tag("structure");
         return p8_fixed_from_int(qh_list != NULL ? qh_list->count : 0);
     }
     if (call_gg_truthy(pt)) {
-        const pico8_jo_t *jo = (const pico8_jo_t *)pt;
+        const planet_t *jo = (const planet_t *)pt;
         int es;
-        if (jo->has_mi &&
-            int_seq_at(upkeep_by_tier_table, UPKEEP_BY_TIER_COUNT, p8_fixed_flr_int(jo->mi), &es)) {
+        if (jo->has_development_tier &&
+            int_seq_at(upkeep_by_tier_table, UPKEEP_BY_TIER_COUNT, p8_fixed_flr_int(jo->development_tier), &es)) {
             return p8_fixed_from_int(es);
         }
     }
@@ -77,16 +77,16 @@ p8_fixed_t pico8_cz(void) {
 
 p8_fixed_t pico8_db(const entity_t *pt) {
     p8_fixed_t total = p8_fixed_from_int(0);
-    const pico8_jo_t *jo;
+    const planet_t *jo;
     const entity_list_t *by;
     const pico8_js_t *dk = pico8_dk();
 
     if (pt == NULL) {
         return total;
     }
-    assert(pico8_jo_is_family(pt) && "db: pt is a planet of cg.jo");
-    jo = (const pico8_jo_t *)pt;
-    by = jo->by;
+    assert(planet_is_family(pt) && "db: pt is a planet of cg.jo");
+    jo = (const planet_t *)pt;
+    by = jo->outgoing_routes;
 
     if (by != NULL) {
         int i;
@@ -96,16 +96,16 @@ p8_fixed_t pico8_db(const entity_t *pt) {
             if (e == NULL) {
                 continue;
             }
-            if (!pico8_trade_to((const pico8_trade_t *)e, &oz_val) || oz_val == NULL) {
+            if (!trade_last_planet((const trade_route_t *)e, &oz_val) || oz_val == NULL) {
                 continue;
             }
             {
-                const pico8_jo_t *oz;
-                assert(pico8_jo_is_family(oz_val) && "db: a trade leads to a planet");
-                oz = (const pico8_jo_t *)oz_val;
-                if (oz->def->is_planet) {
+                const planet_t *oz;
+                assert(planet_is_family(oz_val) && "db: a trade leads to a planet");
+                oz = (const planet_t *)oz_val;
+                if (oz->archetype->is_planet) {
                     p8_fixed_t trade_mult = p8_fixed_from_int(0);
-                    p8_fixed_t hs = jo->def->trade_multiplier;
+                    p8_fixed_t hs = jo->archetype->trade_multiplier;
                     p8_fixed_t ct_pt = p8_fixed_from_int(0);
                     p8_fixed_t ct_oz = p8_fixed_from_int(0);
                     p8_fixed_t bonus;
@@ -113,11 +113,11 @@ p8_fixed_t pico8_db(const entity_t *pt) {
                     if (dk != NULL && dk->has_trade) {
                         trade_mult = dk->trade;
                     }
-                    if (jo->has_mi) {
-                        game_data_fixed_seq_at(partner_bonus_by_tier_table, PARTNER_BONUS_BY_TIER_COUNT, p8_fixed_flr_int(jo->mi), &ct_pt);
+                    if (jo->has_development_tier) {
+                        game_data_fixed_seq_at(partner_bonus_by_tier_table, PARTNER_BONUS_BY_TIER_COUNT, p8_fixed_flr_int(jo->development_tier), &ct_pt);
                     }
-                    if (oz->has_mi) {
-                        game_data_fixed_seq_at(partner_bonus_by_tier_table, PARTNER_BONUS_BY_TIER_COUNT, p8_fixed_flr_int(oz->mi),
+                    if (oz->has_development_tier) {
+                        game_data_fixed_seq_at(partner_bonus_by_tier_table, PARTNER_BONUS_BY_TIER_COUNT, p8_fixed_flr_int(oz->development_tier),
                                            &ct_oz);
                     }
                     bonus = p8_fixed_add(p8_fixed_from_int(1), p8_fixed_add(ct_pt, ct_oz));
@@ -128,7 +128,7 @@ p8_fixed_t pico8_db(const entity_t *pt) {
     }
 
     {
-        const production_t *kw = jo->kw;
+        const production_t *kw = jo->production;
         if (kw != NULL) {
             int w;
             if (kw->has_resource && resource_code_lookup("w", &w) && kw->resource == p8_fixed_from_int(w)) {
@@ -154,14 +154,14 @@ typedef struct {
 
 static void sum_by_mi_visit(entity_t *pt, void *ctx_) {
     sum_by_mi_ctx_t *ctx = (sum_by_mi_ctx_t *)ctx_;
-    const pico8_jo_t *jo;
+    const planet_t *jo;
     int v;
     if (!call_gg_truthy(pt)) {
         return;
     }
-    jo = (const pico8_jo_t *)pt;
-    if (jo->has_mi &&
-        int_seq_at(ctx->seq, ctx->count, p8_fixed_flr_int(jo->mi), &v)) {
+    jo = (const planet_t *)pt;
+    if (jo->has_development_tier &&
+        int_seq_at(ctx->seq, ctx->count, p8_fixed_flr_int(jo->development_tier), &v)) {
         ctx->total = p8_fixed_add(ctx->total, p8_fixed_from_int(v));
     }
 }
@@ -277,11 +277,11 @@ void pico8_economy_dk_quitte(const entity_t *e) {
 
 p8_fixed_t pico8_kr(entity_t *p) {
     p8_fixed_t kr = p8_fixed_flr(p8_fixed_sub(pico8_db(p), pico8_da(p)));
-    pico8_jo_t *jo;
+    planet_t *jo;
 
-    assert(pico8_jo_is_family(p) && "hy:lj: cg.jo holds planets only");
-    jo = (pico8_jo_t *)p;
-    jo->kr = kr;
-    jo->has_kr = 1;
+    assert(planet_is_family(p) && "hy:lj: cg.jo holds planets only");
+    jo = (planet_t *)p;
+    jo->net_income = kr;
+    jo->has_net_income = 1;
     return kr;
 }

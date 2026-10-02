@@ -223,12 +223,12 @@ static void test_economy_ready(void) {
 }
 
 static void test_trade_ready(void) {
-    pico8_trade_t *trade = pico8_trade_new(game_zone(), NULL);
+    trade_route_t *trade = trade_new(game_zone(), NULL);
 
-    assert(trade->header.class == pico8_trade_struct_class());
-    assert(pico8_trade_ready());
-    pico8_trade_shutdown();
-    assert(!pico8_trade_ready());
+    assert(trade->header.class == trade_class());
+    assert(trade_ready());
+    trade_shutdown();
+    assert(!trade_ready());
 }
 
 int main(void) {
@@ -241,7 +241,7 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    assert(!pico8_trade_ready());
+    assert(!trade_ready());
     assert(!pico8_hy_ready());
     assert(!pico8_hp_ready());
     assert(!pico8_pj_ready());

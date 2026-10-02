@@ -42,13 +42,13 @@
 #define GALAXY_HASH 0xE70E2EE3u
 #define DAUGHTERS_HASH 0x668D1EBEu
 #define NEW_PLANET_HASH 0x48C32418u
-#define LL_DG_CALLS 62
+#define UPDATE_VANISHING_UPDATE_ENTITIES_CALLS 62
 
 static p8_memory_t mem;
 static p8_graphics_t gfx;
 static p8_input_t input;
 
-static const char *const bm[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
 static const char *const tags[] = {"planet", "node", "targeting"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -67,7 +67,7 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int ents_rank_in(const entity_list_t *list, const void *e) {
+static int entity_list_rank_in(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -77,12 +77,12 @@ static int ents_rank_in(const entity_list_t *list, const void *e) {
     return -1;
 }
 
-static int ents_listed(const entity_list_t *list, const void *e) {
-    return ents_rank_in(list, e) >= 0;
+static int entity_list_listed(const entity_list_t *list, const void *e) {
+    return entity_list_rank_in(list, e) >= 0;
 }
 
-static const pico8_jo_t *as_jo(const void *e) {
-    assert(pico8_jo_is_family(e));
+static const planet_t *as_planet(const void *e) {
+    assert(planet_is_family(e));
     return e;
 }
 
@@ -103,13 +103,13 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
     return s == NULL ? fold_absent(h) : fnv_str(fnv(fnv(h, 1u), 0x57u), s);
 }
 
-static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
-    return jo->def->is_planet ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
+static uint32_t fold_is_planet(uint32_t h, const planet_t *jo) {
+    return jo->archetype->is_planet ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 /* 0 absent, 1 false, 2 true. */
-static uint32_t p__state(const pico8_jo_t *jo) {
-    return jo->p_ ? 2u : 0u;
+static uint32_t is_dead_state(const planet_t *jo) {
+    return jo->is_dead ? 2u : 0u;
 }
 
 static uint32_t fold_vec(uint32_t h, const vec_t *p) {
@@ -131,19 +131,19 @@ static int list_size(const pointer_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
-static int ents_list_size(const entity_list_t *l) {
+static int entity_list_list_size(const entity_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
-static uint32_t fold_kw(uint32_t h, const pico8_jo_t *jo) {
-    const production_t *k = jo->kw;
+static uint32_t fold_production(uint32_t h, const planet_t *jo) {
+    const production_t *k = jo->production;
 
     if (k == NULL) {
         return fnv(h, 0xA0u);
     }
     h = k->has_resource ? fold_fixed_member(h, k->resource) : fold_absent(h);
     h = fold_fixed_member(h, k->amount);
-    return fnv(h, (uint32_t)(k == pico8_jo_shared_kw()));
+    return fnv(h, (uint32_t)(k == planet_shared_production()));
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
@@ -160,7 +160,7 @@ static void check_int(const char *label, int got, int want) {
 
 /* Un _init sur l'ecran titre, sans frame : l'aide d'avant rend sa place
  * qy_fv, unique, avant que la nouvelle la prenne. */
-static void sortir_l_aide(void) {
+static void leave_help_screen(void) {
     const entity_list_t *hv = live_entities();
     for (int i = 0; i < hv->count; i++) {
         if (hv->items[i]->class == pico8_fv_struct_class()) {
@@ -174,7 +174,7 @@ static void sortir_l_aide(void) {
 static void start_title(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
-    sortir_l_aide();
+    leave_help_screen();
     pico8__init();
 }
 
@@ -192,14 +192,14 @@ static vec_t *vec_ref(vec_t at) {
     return v;
 }
 
-static const entity_class_t *cls_of(const void *e) {
+static const entity_class_t *class_of(const void *e) {
     return ((const entity_t *)e)->class;
 }
 
 /* jo's own members: `hd`, `kj`, `ldown`, `hb`, `gv`, `hk`, `kf`, `cn` and
  * the state `ll`; no other. */
-static void assert_jo_members(const entity_class_t *c) {
-    const entity_class_t *jo = pico8_jo_struct_class();
+static void assert_planet_members(const entity_class_t *c) {
+    const entity_class_t *jo = planet_class();
 
     assert(c->hit_test == jo->hit_test && c->draw == jo->draw && c->left_press == jo->left_press && c->refresh == jo->refresh && c->accept_drop == jo->accept_drop &&
            c->new_year == jo->new_year && c->states[ENTITY_STATE_VANISHING] == jo->states[ENTITY_STATE_VANISHING]);
@@ -215,67 +215,67 @@ static void assert_jo_members(const entity_class_t *c) {
 /* A bare planet as `jo(...)` and `jo:pq` left it: the scalars, which of
  * its 31 members are set, its methods, which default tables it shares
  * with the class, and where `lt` registered it. */
-static uint32_t fold_planet(uint32_t h, const void *e) {
-    const pico8_jo_t *jo = as_jo(e);
-    size_t i;
+static uint32_t fold_planet(uint32_t hash, const void *entity) {
+    const planet_t *planet = as_planet(entity);
+    size_t index;
 
-    h = fold_string_member(h, jo->header.state);
-    h = fold_fixed_member(h, jo->header.state_time);
-    h = fold_string_member(h, jo->id);
-    h = fold_hf(h, jo);
-    h = fold_fixed_member(h, jo->def->trade_multiplier);
-    h = fold_fixed_member(h, jo->def->layer);
-    h = fold_fixed_member(h, jo->ma);
-    h = fold_fixed_member(h, jo->def->back_color);
-    h = fold_vec(h, jo->p);
-    h = fold_vec(h, jo->ra);
-    h = fold_vec(h, &jo->def->row_step);
+    hash = fold_string_member(hash, planet->header.state);
+    hash = fold_fixed_member(hash, planet->header.state_time);
+    hash = fold_string_member(hash, planet->planet_id);
+    hash = fold_is_planet(hash, planet);
+    hash = fold_fixed_member(hash, planet->archetype->trade_multiplier);
+    hash = fold_fixed_member(hash, planet->archetype->layer);
+    hash = fold_fixed_member(hash, planet->shake);
+    hash = fold_fixed_member(hash, planet->archetype->back_color);
+    hash = fold_vec(hash, planet->map_pos);
+    hash = fold_vec(hash, planet->pos);
+    hash = fold_vec(hash, &planet->archetype->row_step);
     /* The 1s of `hf`, `hs`, `fa`, `ma` and `ca`: constant by the struct's
      * shape, kept so that GALAXY_HASH and NEW_PLANET_HASH still prove the
      * typed reads. */
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->def->ring_colors != NULL));
-    h = fnv(h, (uint32_t)(jo->def->mood_rows != NULL));
-    h = fnv(h, (uint32_t)(jo->def->made_resources != NULL));
-    h = fnv(h, (uint32_t)(jo->kw != NULL));
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->def->spacer != NULL));
-    h = fnv(h, (uint32_t)(jo->id != NULL));
-    h = fnv(h, (uint32_t)(jo->p != NULL));
-    h = fnv(h, (uint32_t)(jo->ra != NULL));
-    h = fnv(h, (uint32_t)(jo->oe != NULL));
-    h = fnv(h, (uint32_t)(jo->hn != NULL));
-    h = fnv(h, (uint32_t)(jo->ep != NULL));
-    h = fnv(h, (uint32_t)(jo->jy != NULL));
-    h = fnv(h, (uint32_t)(jo->nk != NULL));
-    h = fnv(h, (uint32_t)(jo->fx != 0));
-    h = fnv(h, (uint32_t)(jo->lq != NULL));
-    h = fnv(h, (uint32_t)(jo->fo != NULL));
-    h = fnv(h, (uint32_t)jo->has_jh);
-    h = fnv(h, (uint32_t)(jo->p_ != 0));
-    h = fnv(h, (uint32_t)jo->has_kr);
-    h = fnv(h, (uint32_t)(jo->cc != NULL));
-    h = fnv(h, (uint32_t)(jo->by != NULL));
-    h = fnv(h, (uint32_t)jo->has_mi);
-    h = fnv(h, (uint32_t)(jo->m_ != 0));
-    assert_jo_members(cls_of(e));
-    assert(jo->def == &planet_archetype);
-    assert(jo->def == &planet_archetype);
-    assert(jo->header.class->tags == (TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && jo->kw == pico8_jo_shared_kw() && jo->def->spacer == &planet_spacer_row);
-    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), e));
-    for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
-        h = fnv(h, (uint32_t)ents_rank_in(entities_by_message(bm[i]), e));
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, (uint32_t)(planet->archetype->ring_colors != NULL));
+    hash = fnv(hash, (uint32_t)(planet->archetype->mood_rows != NULL));
+    hash = fnv(hash, (uint32_t)(planet->archetype->made_resources != NULL));
+    hash = fnv(hash, (uint32_t)(planet->production != NULL));
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, 1u);
+    hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
+    hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
+    hash = fnv(hash, (uint32_t)(planet->map_pos != NULL));
+    hash = fnv(hash, (uint32_t)(planet->pos != NULL));
+    hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
+    hash = fnv(hash, (uint32_t)(planet->project != NULL));
+    hash = fnv(hash, (uint32_t)(planet->description != NULL));
+    hash = fnv(hash, (uint32_t)(planet->needs != NULL));
+    hash = fnv(hash, (uint32_t)(planet->planet_type != NULL));
+    hash = fnv(hash, (uint32_t)(planet->fold_anchor != 0));
+    hash = fnv(hash, (uint32_t)(planet->layout_row != NULL));
+    hash = fnv(hash, (uint32_t)(planet->targeted_by != NULL));
+    hash = fnv(hash, (uint32_t)planet->has_production_bonus);
+    hash = fnv(hash, (uint32_t)(planet->is_dead != 0));
+    hash = fnv(hash, (uint32_t)planet->has_net_income);
+    hash = fnv(hash, (uint32_t)(planet->incoming_routes != NULL));
+    hash = fnv(hash, (uint32_t)(planet->outgoing_routes != NULL));
+    hash = fnv(hash, (uint32_t)planet->has_development_tier);
+    hash = fnv(hash, (uint32_t)(planet->is_hovered != 0));
+    assert_planet_members(class_of(entity));
+    assert(planet->archetype == &planet_archetype);
+    assert(planet->archetype == &planet_archetype);
+    assert(planet->header.class->tags == (TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && planet->production == planet_shared_production() && planet->archetype->spacer == &planet_spacer_row);
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), entity));
+    for (index = 0; index < sizeof messages / sizeof messages[0]; index++) {
+        hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(messages[index]), entity));
     }
-    for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
-        h = fnv(h, (uint32_t)ents_rank_in(entities_by_tag(tags[i]), e));
+    for (index = 0; index < sizeof tags / sizeof tags[0]; index++) {
+        hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(tags[index]), entity));
     }
-    return h;
+    return hash;
 }
 
 /* After `eu`: the 90 planets `bw` built. */
@@ -294,66 +294,66 @@ static void test_galaxy(void) {
 }
 
 static uint32_t fold_live(uint32_t h, const void *e) {
-    const pico8_jo_t *jo = as_jo(e);
+    const planet_t *jo = as_planet(e);
 
     h = fold_string_member(h, jo->header.state);
     h = fold_fixed_member(h, jo->header.state_time);
-    h = fold_fixed_member(h, jo->ma);
-    h = (jo->fx != 0) ? fold_bool_member(h, jo->fx) : fold_absent(h);
-    h = jo->has_mi ? fold_fixed_member(h, jo->mi) : fold_absent(h);
-    h = jo->has_kr ? fold_fixed_member(h, jo->kr) : fold_absent(h);
-    h = fold_string_member(h, jo->ep);
-    h = fnv(h, p__state(jo));
-    h = fold_kw(h, jo);
-    h = fnv(h, (uint32_t)ents_list_size(jo->oe));
-    h = fnv(h, (uint32_t)list_size(jo->jy));
-    h = fnv(h, (uint32_t)ents_list_size(jo->by));
-    h = fnv(h, (uint32_t)ents_list_size(jo->cc));
-    h = fnv(h, (uint32_t)(jo->fo != NULL));
-    h = fnv(h, (uint32_t)(jo->nk != NULL));
-    h = fnv(h, (uint32_t)(jo->lq != NULL));
-    h = fnv(h, (uint32_t)(jo->m_ != 0));
+    h = fold_fixed_member(h, jo->shake);
+    h = (jo->fold_anchor != 0) ? fold_bool_member(h, jo->fold_anchor) : fold_absent(h);
+    h = jo->has_development_tier ? fold_fixed_member(h, jo->development_tier) : fold_absent(h);
+    h = jo->has_net_income ? fold_fixed_member(h, jo->net_income) : fold_absent(h);
+    h = fold_string_member(h, jo->description);
+    h = fnv(h, is_dead_state(jo));
+    h = fold_production(h, jo);
+    h = fnv(h, (uint32_t)entity_list_list_size(jo->slipways));
+    h = fnv(h, (uint32_t)list_size(jo->needs));
+    h = fnv(h, (uint32_t)entity_list_list_size(jo->outgoing_routes));
+    h = fnv(h, (uint32_t)entity_list_list_size(jo->incoming_routes));
+    h = fnv(h, (uint32_t)(jo->targeted_by != NULL));
+    h = fnv(h, (uint32_t)(jo->planet_type != NULL));
+    h = fnv(h, (uint32_t)(jo->layout_row != NULL));
+    h = fnv(h, (uint32_t)(jo->is_hovered != 0));
     return h;
 }
 
-enum { QH, NL, OS, HJ, PM, MX, NR, FR, GA, DAUGHTERS };
+enum { STRUCTURE, TRADING_HUB, PROCESSOR, ASCENSION, PROTOSTAR, SYNTHESIZER, SLIPGATE, INFRASPACE_GATE, BURST, DAUGHTERS };
 
 static int daughter_of(const void *e) {
     if (e != NULL &&
         ((const entity_t *)e)->class == pico8_qh_struct_class()) {
-        return QH;
+        return STRUCTURE;
     }
     if (e != NULL &&
         ((const entity_t *)e)->class == pico8_nl_struct_class()) {
-        return NL;
+        return TRADING_HUB;
     }
     if (e != NULL &&
         ((const entity_t *)e)->class == pico8_os_struct_class()) {
-        return OS;
+        return PROCESSOR;
     }
     if (e != NULL &&
         ((const entity_t *)e)->class == pico8_hj_struct_class()) {
-        return HJ;
+        return ASCENSION;
     }
     if (e != NULL &&
         ((const entity_t *)e)->class == pico8_pm_struct_class()) {
-        return PM;
+        return PROTOSTAR;
     }
     if (e != NULL &&
-        ((const entity_t *)e)->class == pico8_mx_struct_class()) {
-        return MX;
+        ((const entity_t *)e)->class == synthesizer_class()) {
+        return SYNTHESIZER;
     }
     if (e != NULL &&
-        ((const entity_t *)e)->class == pico8_nr_struct_class()) {
-        return NR;
+        ((const entity_t *)e)->class == slipgate_class()) {
+        return SLIPGATE;
     }
     if (e != NULL &&
-        ((const entity_t *)e)->class == pico8_fr_struct_class()) {
-        return FR;
+        ((const entity_t *)e)->class == infraspace_gate_class()) {
+        return INFRASPACE_GATE;
     }
     if (e != NULL &&
         ((const entity_t *)e)->class == pico8_ga_struct_class()) {
-        return GA;
+        return BURST;
     }
     return -1;
 }
@@ -361,18 +361,18 @@ static int daughter_of(const void *e) {
 /* What a daughter inherits from `jo`: `ca`, `gq`, the `em` table itself,
  * and `jo`'s `gg` and `hd` called on it. */
 static uint32_t fold_daughter(uint32_t h, void *d) {
-    const pico8_jo_t *jo = as_jo(d);
+    const planet_t *jo = as_planet(d);
     vec_t ra;
 
-    h = fold_fixed_member(h, jo->def->back_color);
-    h = fold_vec(h, &jo->def->row_step);
-    assert(jo->def->spacer == &planet_spacer_row);
-    h = fnv(fnv(h, 0xB0u), pico8_jo_gg(jo) ? 1u : 0u);
-    assert(jo->ra != NULL);
-    ra = *jo->ra;
-    h = fold_bool(h, cls_of(d)->hit_test(d, vec_ref(ra), vec_ref(ra)));
+    h = fold_fixed_member(h, jo->archetype->back_color);
+    h = fold_vec(h, &jo->archetype->row_step);
+    assert(jo->archetype->spacer == &planet_spacer_row);
+    h = fnv(fnv(h, 0xB0u), planet_is_colonized(jo) ? 1u : 0u);
+    assert(jo->pos != NULL);
+    ra = *jo->pos;
+    h = fold_bool(h, class_of(d)->hit_test(d, vec_ref(ra), vec_ref(ra)));
     ra = vec_add(ra, vec_make(p8_fixed_from_int(8), p8_fixed_from_int(8)));
-    return fold_bool(h, cls_of(d)->hit_test(d, vec_ref(ra), vec_ref(ra)));
+    return fold_bool(h, class_of(d)->hit_test(d, vec_ref(ra), vec_ref(ra)));
 }
 
 /* The shop's `ie:ldown` on the icon of `kind`, as the player buys it, then
@@ -380,18 +380,18 @@ static uint32_t fold_daughter(uint32_t h, void *d) {
 static void *bought(const entity_kind_t *kind) {
     const entity_list_t *hb = entities_by_message("refresh");
     const pico8_qb_t *mo = pico8_mo_qb();
-    const vec_t *mo_ra;
+    const vec_t *main_camera_pos;
     int i;
 
     assert(mo != NULL && mo->ra != NULL);
-    mo_ra = mo->ra;
+    main_camera_pos = mo->ra;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *icon = hb->items[i];
-        if (cls_of(icon) == pico8_ie_struct_class() && ((const pico8_ie_t *)icon)->ke == kind) {
-            down_t made = cls_of(icon)->left_press(icon, NULL, NULL);
+        if (class_of(icon) == pico8_ie_struct_class() && ((const pico8_ie_t *)icon)->ke == kind) {
+            down_t made = class_of(icon)->left_press(icon, NULL, NULL);
             vec_t middle = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
             assert(made.stop && made.held != NULL);
-            cls_of(made.held)->drag(made.held, vec_ref(vec_add(*mo_ra, middle)), vec_ref(middle));
+            class_of(made.held)->drag(made.held, vec_ref(vec_add(*main_camera_pos, middle)), vec_ref(middle));
             return made.held;
         }
     }
@@ -400,7 +400,7 @@ static void *bought(const entity_kind_t *kind) {
 }
 
 /* The project of `gb` whose `cw` names `cw`. */
-static pico8_hp_t *cw_project(const char *cw) {
+static pico8_hp_t *class_name_project(const char *cw) {
     int k;
 
     for (k = 1;; k++) {
@@ -417,8 +417,8 @@ static pico8_hp_t *cw_project(const char *cw) {
 static void *turned(int planet, const char *cw) {
     void *p = entities_by_tag("planet")->items[planet];
 
-    pico8_jo_hh(p);
-    pico8_jo_hu(p, cw_project(cw));
+    planet_roll_type(p);
+    planet_apply_project(p, class_name_project(cw));
     return live_entities()->items[live_entities()->count - 1];
 }
 
@@ -427,22 +427,22 @@ static void *turned(int planet, const char *cw) {
  * collapse and harvest projects. */
 static void test_daughters(void) {
     static const struct {
-        int d;
+        int daughter;
         const entity_kind_t *(*kind)(void);
-    } shop[] = {{QH, pico8_qh_kind}, {OS, pico8_os_kind}, {NR, pico8_nr_kind}, {FR, pico8_fr_kind},
-                {NL, pico8_nl_kind}, {MX, pico8_mx_kind}, {HJ, pico8_hj_kind}};
+    } shop[] = {{STRUCTURE, pico8_qh_kind}, {PROCESSOR, pico8_os_kind}, {SLIPGATE, slipgate_kind}, {INFRASPACE_GATE, infraspace_gate_kind},
+                {TRADING_HUB, pico8_nl_kind}, {SYNTHESIZER, synthesizer_kind}, {ASCENSION, pico8_hj_kind}};
     void *made[DAUGHTERS] = {NULL};
     uint32_t h = 2166136261u;
     size_t i;
 
     start_game();
     for (i = 0; i < sizeof shop / sizeof shop[0]; i++) {
-        made[shop[i].d] = bought(shop[i].kind());
+        made[shop[i].daughter] = bought(shop[i].kind());
     }
-    made[PM] = turned(0, "protostar");
-    made[GA] = turned(1, "burst");
+    made[PROTOSTAR] = turned(0, "protostar");
+    made[BURST] = turned(1, "burst");
     for (i = 0; i < DAUGHTERS; i++) {
-        assert(made[i] != NULL && daughter_of(made[i]) == (int)i && ents_listed(live_entities(), made[i]));
+        assert(made[i] != NULL && daughter_of(made[i]) == (int)i && entity_list_listed(live_entities(), made[i]));
         h = fold_daughter(fnv(h, (uint32_t)i), made[i]);
     }
     check("daughters", h, DAUGHTERS_HASH);
@@ -454,7 +454,7 @@ static void *new_planet(const char *id, int x, int y) {
     keys.planet_id = id;
     keys.map_pos = vec_ref(vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y)));
     keys.pos = vec_ref(vec_make(p8_fixed_from_int(x * 128), p8_fixed_from_int(y * 128)));
-    return pico8_jo_new(&keys);
+    return planet_new(&keys);
 }
 
 static void test_new_planet(void) {
@@ -463,7 +463,7 @@ static void test_new_planet(void) {
 
     start_title();
     a = new_planet("p900", 1, 2);
-    assert(ents_listed(live_entities(), a) && ents_listed(entities_by_tag("planet"), a));
+    assert(entity_list_listed(live_entities(), a) && entity_list_listed(entities_by_tag("planet"), a));
     h = fold_planet(h, a);
     h = fold_live(h, a);
     check("new planet", h, NEW_PLANET_HASH);
@@ -471,7 +471,7 @@ static void test_new_planet(void) {
 
 /* cg answers NULL for a tag that no entity has carried since
  * pico8_entity_init(), known or not, and keeps a list once emptied. */
-static void test_cg_null_until_seen(void) {
+static void test_entities_by_tag_null_until_seen(void) {
     void *a;
 
     start_title();
@@ -488,97 +488,97 @@ static void test_cg_null_until_seen(void) {
 
 /* `dg` calls `qc[qc.me]`: a planet whose `me` is "ll" runs `jo:ll` until
  * its `t` passes 60, then leaves `hv`. */
-static void test_ll(void) {
-    pico8_jo_t *a;
+static void test_update_vanishing(void) {
+    planet_t *a;
     int calls = 0;
 
     start_title();
     a = new_planet("p901", 3, 4);
     update_entities();
-    assert(p__state(a) == 0);
+    assert(is_dead_state(a) == 0);
     entity_set_state(&a->header, "vanishing");
-    while (ents_listed(live_entities(), a) && calls < 200) {
+    while (entity_list_listed(live_entities(), a) && calls < 200) {
         update_entities();
         calls++;
     }
-    assert(p__state(a) == 2);
-    assert(!ents_listed(live_entities(), a) && !ents_listed(entities_by_tag("planet"), a));
-    check_int("ll dg calls", calls, LL_DG_CALLS);
+    assert(is_dead_state(a) == 2);
+    assert(!entity_list_listed(live_entities(), a) && !entity_list_listed(entities_by_tag("planet"), a));
+    check_int("ll dg calls", calls, UPDATE_VANISHING_UPDATE_ENTITIES_CALLS);
 }
 
 /* `kw` of a planet that never ran `lz` is the class's shared one: an
  * in-place write to it is seen by every such planet and by the class, until
  * the next pico8_jo_init() puts it back to `{mu=0}`. */
-static void test_kw_shared(void) {
-    pico8_jo_t *a;
-    pico8_jo_t *b;
+static void test_production_shared(void) {
+    planet_t *a;
+    planet_t *b;
     production_t *kw;
     pico8_hp_t *hp;
-    pico8_qe_map_t po_before;
-    pico8_qe_map_t po_after;
+    pico8_qe_map_t production_before;
+    pico8_qe_map_t production_after;
     p8_fixed_t before = p8_fixed_from_int(0);
     p8_fixed_t after = p8_fixed_from_int(0);
 
     start_title();
     a = new_planet("p902", 5, 6);
     b = new_planet("p903", 7, 8);
-    kw = a->kw;
-    assert(kw == pico8_jo_shared_kw() && b->kw == kw);
+    kw = a->production;
+    assert(kw == planet_shared_production() && b->production == kw);
     kw->amount = p8_fixed_from_int(7);
-    assert(b->kw->amount == p8_fixed_from_int(7));
-    assert(pico8_jo_shared_kw()->amount == p8_fixed_from_int(7));
+    assert(b->production->amount == p8_fixed_from_int(7));
+    assert(planet_shared_production()->amount == p8_fixed_from_int(7));
 
     assert(pico8_gb_count() > 0);
     hp = pico8_gb_find("");
     assert(hp != NULL);
-    pico8_jo_lz(a, hp);
-    assert(a->kw != NULL && a->kw != pico8_jo_shared_kw());
-    assert(a->kw->amount == p8_fixed_from_int(0));
-    assert(b->kw == pico8_jo_shared_kw());
-    assert(a->hn == hp && list_size(a->jy) >= 0);
+    planet_install_project(a, hp);
+    assert(a->production != NULL && a->production != planet_shared_production());
+    assert(a->production->amount == p8_fixed_from_int(0));
+    assert(b->production == planet_shared_production());
+    assert(a->project == hp && list_size(a->needs) >= 0);
 
-    pico8_bx(&po_before);
+    pico8_bx(&production_before);
     kw->has_resource = 1;
     kw->resource = p8_fixed_from_int(28);
-    pico8_bx(&po_after);
-    pico8_qe_map_get(&po_before, kw->resource, &before);
-    pico8_qe_map_get(&po_after, kw->resource, &after);
+    pico8_bx(&production_after);
+    pico8_qe_map_get(&production_before, kw->resource, &before);
+    pico8_qe_map_get(&production_after, kw->resource, &after);
     assert(after == before);
-    pico8_jo_init();
-    assert(b->kw == pico8_jo_shared_kw());
+    planet_init();
+    assert(b->production == planet_shared_production());
     assert(!kw->has_resource && kw->amount == p8_fixed_from_int(0));
 }
 
 /* `jo:hh` takes `df.ll` itself on a roll of `jo.ir()` under 0.45, and its
  * `me` for the planet's state; any other draw is a `jo.oc()` entry, and
  * `known`. */
-static void test_hh_takes_ll(void) {
+static void test_roll_type_takes_vanishing(void) {
     char id[8];
-    int took_ll = 0;
+    int took_vanishing = 0;
     int i;
 
     start_game();
-    for (i = 0; i < 20 && !took_ll; i++) {
-        pico8_jo_t *p;
+    for (i = 0; i < 20 && !took_vanishing; i++) {
+        planet_t *p;
 
         snprintf(id, sizeof id, "p%d", 950 + i);
         p = new_planet(id, i, i);
-        pico8_jo_hh(p);
-        assert(p->nk != NULL && p->ep == p->nk->description);
-        took_ll = p->nk == planet_types_lookup("vanishing");
-        assert(strcmp(p->header.state, took_ll ? "vanishing" : "known") == 0);
+        planet_roll_type(p);
+        assert(p->planet_type != NULL && p->description == p->planet_type->description);
+        took_vanishing = p->planet_type == planet_types_lookup("vanishing");
+        assert(strcmp(p->header.state, took_vanishing ? "vanishing" : "known") == 0);
     }
-    assert(took_ll);
+    assert(took_vanishing);
 }
 
-static int is_a_jo_struct(const void *e) {
+static int is_a_planet_struct(const void *e) {
     return e != NULL &&
-           ((const entity_t *)e)->class == pico8_jo_struct_class();
+           ((const entity_t *)e)->class == planet_class();
 }
 
 /* Built by `bw` or pico8_jo_new, a `jo` is a struct whose descriptor holds
  * jo's 11 dispatchers, and its class installs none of them, nor a `pq`. */
-static void test_jo_is_a_struct(void) {
+static void test_planet_is_a_struct(void) {
     const entity_list_t *jo;
     void *a;
     int j;
@@ -586,19 +586,19 @@ static void test_jo_is_a_struct(void) {
     start_game();
     jo = entities_by_tag("planet");
     for (j = 0; j < jo->count; j++) {
-        assert(is_a_jo_struct(jo->items[j]));
+        assert(is_a_planet_struct(jo->items[j]));
     }
-    assert_jo_members(pico8_jo_struct_class());
-    assert(pico8_jo_ready());
+    assert_planet_members(planet_class());
+    assert(planet_ready());
 
-    assert(pico8_jo_dz() == planet_mood_rows_rows && pico8_jo_cq() == &planet_made_resources_seq &&
-           pico8_jo_ka() == &planet_ring_colors_seq && pico8_jo_em() == &planet_spacer_row);
+    assert(planet_mood_rows() == planet_mood_rows_rows && planet_made_resources() == &planet_made_resources_seq &&
+           planet_ring_colors() == &planet_ring_colors_seq && planet_spacer() == &planet_spacer_row);
 
     a = new_planet("p904", 9, 10);
-    assert(is_a_jo_struct(a));
+    assert(is_a_planet_struct(a));
     {
-        pico8_jo_t *bare = pico8_jo_new(NULL);
-        assert(is_a_jo_struct(bare) && bare->id == NULL && bare->ra == NULL && bare->oe != NULL);
+        planet_t *bare = planet_new(NULL);
+        assert(is_a_planet_struct(bare) && bare->planet_id == NULL && bare->pos == NULL && bare->slipways != NULL);
     }
 
     (void)bought(pico8_qh_kind());
@@ -608,57 +608,57 @@ static void test_jo_is_a_struct(void) {
            ((const entity_t *)jo->items[0])->class == pico8_qh_struct_class());
 }
 
-static int rangee_places(void) {
+static int row_slots(void) {
     return pico8_zone_interface_vivantes(PICO8_SORTE_RANGEE);
 }
 
 /* A galaxy planet given a `kw` of its own with a `qe`, as `lz` and `bb`
  * would: `jo:hb` then gives it a row. */
-static pico8_jo_t *planet_with_a_row(void) {
-    pico8_jo_t *a = (pico8_jo_t *)entities_by_tag("planet")->items[0];
+static planet_t *planet_with_a_row(void) {
+    planet_t *a = (planet_t *)entities_by_tag("planet")->items[0];
 
-    a->kw = &a->kw_own;
-    a->kw_own.has_resource = 1;
-    a->kw_own.resource = p8_fixed_from_int(28);
-    a->kw_own.amount = p8_fixed_from_int(2);
+    a->production = &a->production_own;
+    a->production_own.has_resource = 1;
+    a->production_own.resource = p8_fixed_from_int(28);
+    a->production_own.amount = p8_fixed_from_int(2);
     return a;
 }
 
 /* `jo:hb` rebuilds the planet's row in a place of its own and gives the
  * replaced one back on the spot; once the planet leaves `hv`, emptying the
  * exit queue gives its row's place back. */
-static void test_hb_row_place(void) {
-    pico8_jo_t *a;
+static void test_refresh_row_slot(void) {
+    planet_t *a;
     int once;
     int i;
 
     start_game();
     pico8_cart_vider_file_sortie();
     a = planet_with_a_row();
-    cls_of(a)->refresh(&a->header);
-    once = rangee_places();
-    assert(a->lq != NULL && once > 0);
+    class_of(a)->refresh(&a->header);
+    once = row_slots();
+    assert(a->layout_row != NULL && once > 0);
     for (i = 0; i < 5; i++) {
-        cls_of(a)->refresh(&a->header);
-        assert(rangee_places() == once && "the replaced row gives its place back on the spot");
+        class_of(a)->refresh(&a->header);
+        assert(row_slots() == once && "the replaced row gives its place back on the spot");
     }
     entity_unregister(&a->header);
-    assert(rangee_places() == once && "out of hv, the planet is still read this frame");
+    assert(row_slots() == once && "out of hv, the planet is still read this frame");
     pico8_cart_vider_file_sortie();
-    assert(rangee_places() == once - 1 && a->lq == NULL);
+    assert(row_slots() == once - 1 && a->layout_row == NULL);
 }
 
 /* A planet whose `kw` has no `qe` gets no row from `jo.ex`, and no place. */
-static void test_hb_without_qe_takes_no_place(void) {
-    pico8_jo_t *a;
+static void test_refresh_without_resource_takes_no_slot(void) {
+    planet_t *a;
     int before;
 
     start_title();
     a = new_planet("p903", 7, 8);
-    assert(a->kw != NULL && !a->kw->has_resource);
-    before = rangee_places();
-    cls_of(a)->refresh(&a->header);
-    assert(a->lq == NULL && rangee_places() == before);
+    assert(a->production != NULL && !a->production->has_resource);
+    before = row_slots();
+    class_of(a)->refresh(&a->header);
+    assert(a->layout_row == NULL && row_slots() == before);
 }
 
 /* `jl()` hands every planet to the exit queue: a title after a game whose
@@ -670,17 +670,17 @@ static void test_rows_given_back_after_restart(void) {
 
     start_title();
     pico8_cart_vider_file_sortie();
-    title = rangee_places();
+    title = row_slots();
     start_game();
     jo = entities_by_tag("planet");
     (void)planet_with_a_row();
     for (i = 0; i < jo->count; i++) {
-        cls_of(jo->items[i])->refresh(jo->items[i]);
+        class_of(jo->items[i])->refresh(jo->items[i]);
     }
-    assert(rangee_places() > title);
+    assert(row_slots() > title);
     start_title();
     pico8_cart_vider_file_sortie();
-    assert(rangee_places() == title);
+    assert(row_slots() == title);
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked
@@ -723,15 +723,15 @@ int main(void) {
     in_fresh_child(test_galaxy);
     in_fresh_child(test_daughters);
     in_fresh_child(test_new_planet);
-    in_fresh_child(test_cg_null_until_seen);
-    in_fresh_child(test_ll);
-    in_fresh_child(test_kw_shared);
-    in_fresh_child(test_hh_takes_ll);
-    in_fresh_child(test_jo_is_a_struct);
-    in_fresh_child(test_hb_row_place);
-    in_fresh_child(test_hb_without_qe_takes_no_place);
+    in_fresh_child(test_entities_by_tag_null_until_seen);
+    in_fresh_child(test_update_vanishing);
+    in_fresh_child(test_production_shared);
+    in_fresh_child(test_roll_type_takes_vanishing);
+    in_fresh_child(test_planet_is_a_struct);
+    in_fresh_child(test_refresh_row_slot);
+    in_fresh_child(test_refresh_without_resource_takes_no_slot);
     in_fresh_child(test_rows_given_back_after_restart);
 
-    printf("test_pico8_jo: all tests passed\n");
+    printf("test_planet: all tests passed\n");
     return 0;
 }

@@ -319,16 +319,16 @@ static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
 
 static void bx_visit(entity_t *pt, void *ctx) {
     pico8_qe_map_t *p = (pico8_qe_map_t *)ctx;
-    const pico8_jo_t *jo;
+    const planet_t *jo;
     const production_t *kw;
     p8_fixed_t current;
 
-    assert(pico8_jo_is_family(pt) && "bx: pt is a planet of cg.jo");
-    jo = (const pico8_jo_t *)pt;
-    if (jo->jy == NULL) {
+    assert(planet_is_family(pt) && "bx: pt is a planet of cg.jo");
+    jo = (const planet_t *)pt;
+    if (jo->needs == NULL) {
         return;
     }
-    kw = jo->kw;
+    kw = jo->production;
     if (kw == NULL || !kw->has_resource) {
         return;
     }
@@ -350,8 +350,8 @@ static void ck_visit(entity_t *l, void *ctx) {
     void *last_val;
     p8_fixed_t current;
 
-    assert(pico8_jo_is_family(l) && "ck: l is a planet of cg.qh");
-    jy = ((const pico8_jo_t *)l)->jy;
+    assert(planet_is_family(l) && "ck: l is a planet of cg.qh");
+    jy = ((const planet_t *)l)->needs;
     if (jy == NULL || jy->count == 0) {
         return;
     }

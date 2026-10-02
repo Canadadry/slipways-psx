@@ -390,15 +390,15 @@ static void test_hover(void) {
     check("hover", h, HOVER_HASH);
 }
 
-static pico8_jo_t *first_jo_with_me(const char *me) {
+static planet_t *first_jo_with_me(const char *me) {
     const entity_list_t *list = entities_by_tag("planet");
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         entity_t *e = list->items[i];
 
-        assert(pico8_jo_is_family(e));
-        if (is_me(&((const pico8_jo_t *)e)->header, me)) {
-            return (pico8_jo_t *)e;
+        assert(planet_is_family(e));
+        if (is_me(&((const planet_t *)e)->header, me)) {
+            return (planet_t *)e;
         }
     }
     return NULL;
@@ -408,25 +408,25 @@ static pico8_jo_t *first_jo_with_me(const char *me) {
  * `s.qu` off the background, which it never has. */
 static void test_gv(void) {
     pico8_bg_t *bg;
-    pico8_jo_t *ly;
+    planet_t *ly;
     void *nr;
     planet_keys_t keys;
     down_t r;
 
     start_game();
-    pico8_jo_hu((pico8_jo_t *)entities_by_tag("planet")->items[0], pico8_hp_new(NULL));
+    planet_apply_project((planet_t *)entities_by_tag("planet")->items[0], pico8_hp_new(NULL));
     bg = the_bg();
     ly = first_jo_with_me("settled");
     assert(ly != NULL);
-    r = pico8_jo_gv(ly, &bg->header);
+    r = planet_accept_drop(ly, &bg->header);
     assert(r.stop && r.held == NULL);
     assert(is_me(&ly->header, "settled"));
 
     keys.planet_id = NULL;
-    keys.map_pos = ly->p;
-    keys.pos = ly->ra;
-    nr = pico8_nr_new(&keys);
-    r = pico8_nr_gv(nr, &bg->header);
+    keys.map_pos = ly->map_pos;
+    keys.pos = ly->pos;
+    nr = slipgate_new(&keys);
+    r = slipgate_accept_drop(nr, &bg->header);
     assert(r.stop && r.held == NULL);
 }
 

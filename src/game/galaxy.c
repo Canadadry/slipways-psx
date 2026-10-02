@@ -39,7 +39,7 @@ void galaxy_populate(p8_fixed_t planet_count) {
         char *id_num_str;
         char *id_str;
         planet_keys_t keys;
-        pico8_jo_t *made;
+        planet_t *made;
 
         /* cg.jo is empty only on the very first trial: every accepted
          * planet below self-registers into it, so later candidates really
@@ -64,7 +64,7 @@ void galaxy_populate(p8_fixed_t planet_count) {
         keys.pos = pos_box;
 
         /* Built for the side effect of self-registering into hv/cv/cg. */
-        made = pico8_jo_new(&keys);
+        made = planet_new(&keys);
         (void)made;
     }
 
@@ -78,8 +78,8 @@ void galaxy_populate(p8_fixed_t planet_count) {
     type_picker_random = random_walk_new(game_zone(), P8_FIXED_LIT(0x00008000, 0.5), difficulty_type_bias);
     type_picker_state = weighted_picker_new(game_zone(), planet_types_table, PLANET_TYPES_COUNT, p8_fixed_from_int(2), picker_random,
                         type_picker_random);
-    pico8_jo_set_oc(type_picker_state);
+    planet_set_type_picker(type_picker_state);
 
     vanish_roll_state = random_walk_new(game_zone(), P8_FIXED_LIT(0x0000cccc, 0.8), P8_FIXED_LIT(0x00008000, 0.5));
-    pico8_jo_set_ir(vanish_roll_state);
+    planet_set_vanish_roll(vanish_roll_state);
 }

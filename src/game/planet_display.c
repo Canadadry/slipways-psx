@@ -27,7 +27,7 @@
 
 /* `kw` as `lq:mn` reads it, `{qe=kw.qe}` (`mu` is never read there), in
  * the frame zone. */
-static const data_row_t *jo_kw_tuple(const production_t *kw) {
+static const data_row_t *planet_production_tuple(const production_t *kw) {
     data_row_t *t = (data_row_t *)allocator_alloc(frame_zone(), sizeof *t);
 
     memset(t, 0, sizeof *t);
@@ -36,62 +36,62 @@ static const data_row_t *jo_kw_tuple(const production_t *kw) {
     return t;
 }
 
-void pico8_jo_hb(pico8_jo_t *self) {
-    const pointer_list_t *jy_list;
+void planet_refresh(planet_t *self) {
+    const pointer_list_t *needs_list;
     const entity_list_t *by_list;
     const p8_fixed_t *qe = NULL;
     p8_fixed_t mu = p8_fixed_from_int(0);
-    layout_row_t *lq_result;
-    const allocator_t *place;
+    layout_row_t *layout_row_result;
+    const allocator_t *slot;
 
     if (self == NULL) {
         return;
     }
 
-    jy_list = self->jy;
-    if (self->kw != NULL) {
-        qe = self->kw->has_resource ? &self->kw->resource : NULL;
-        mu = self->kw->amount;
+    needs_list = self->needs;
+    if (self->production != NULL) {
+        qe = self->production->has_resource ? &self->production->resource : NULL;
+        mu = self->production->amount;
     }
-    by_list = self->by;
+    by_list = self->outgoing_routes;
 
-    place = pico8_zone_interface_place(PICO8_SORTE_RANGEE);
-    lq_result = pico8_jo_ex(place, jy_list, qe, mu, p8_fixed_from_int(by_list != NULL ? by_list->count : 0),
+    slot = pico8_zone_interface_place(PICO8_SORTE_RANGEE);
+    layout_row_result = pico8_jo_ex(slot, needs_list, qe, mu, p8_fixed_from_int(by_list != NULL ? by_list->count : 0),
                             p8_fixed_from_int(0));
-    if (lq_result == NULL) {
-        arena_release(place);
-        place = NULL;
+    if (layout_row_result == NULL) {
+        arena_release(slot);
+        slot = NULL;
     }
-    if (self->lq_place != NULL) {
-        arena_release(self->lq_place);
+    if (self->layout_row_slot != NULL) {
+        arena_release(self->layout_row_slot);
     }
-    self->lq = lq_result;
-    self->lq_place = place;
+    self->layout_row = layout_row_result;
+    self->layout_row_slot = slot;
 }
 
-void pico8_jo_rendre_rangee(entity_t *self) {
-    pico8_jo_t *jo = (pico8_jo_t *)self;
+void planet_release_row(entity_t *self) {
+    planet_t *jo = (planet_t *)self;
 
-    if (jo->lq_place != NULL) {
-        arena_release(jo->lq_place);
+    if (jo->layout_row_slot != NULL) {
+        arena_release(jo->layout_row_slot);
     }
-    jo->lq = NULL;
-    jo->lq_place = NULL;
+    jo->layout_row = NULL;
+    jo->layout_row_slot = NULL;
 }
 
-void pico8_jo_rendre_dispatch(entity_t *self) {
-    pico8_jo_rendre_rangee(self);
-    pico8_jo_prise_rendue((const pico8_jo_t *)self);
+void planet_release_method(entity_t *self) {
+    planet_release_row(self);
+    planet_grab_arena_released((const planet_t *)self);
 }
 
 typedef struct {
-    pointer_list_t ji;
-} pico8_jo_gh_ctx_t;
+    pointer_list_t unmet_needs;
+} planet_inspection_panel_ctx_t;
 
 /* Filters on `gc == 0`, and also appends the element to `ji` in `ctx` once
  * per `gc`: the Lua predicate has that side effect. */
-static int pico8_jo_gh_jp_step(void *e, void *ctx_ptr) {
-    pico8_jo_gh_ctx_t *ctx = (pico8_jo_gh_ctx_t *)ctx_ptr;
+static int planet_inspection_panel_filter_step(void *e, void *ctx_ptr) {
+    planet_inspection_panel_ctx_t *ctx = (planet_inspection_panel_ctx_t *)ctx_ptr;
     p8_fixed_t gc = p8_fixed_from_int(0);
     int count;
     int j;
@@ -104,203 +104,203 @@ static int pico8_jo_gh_jp_step(void *e, void *ctx_ptr) {
     }
     count = p8_fixed_flr_int(gc);
     for (j = 0; j < count; j++) {
-        pointer_list_add(&ctx->ji, e);
+        pointer_list_add(&ctx->unmet_needs, e);
     }
     return gc == p8_fixed_from_int(0);
 }
 
 /* The most items an icon row of `jo:gh`, or an `lq` row of `jo:fe`, holds. */
-#define PICO8_JO_ROW_CAP 8
+#define PLANET_ROW_CAP 8
 
 /* The most rows `jo:gh` passes to `pz`: the icon, needs or wants more,
  * receives, makes or exports. */
-#define PICO8_JO_GH_ROWS 4
+#define PLANET_INSPECTION_PANEL_ROWS 4
 
 /* The cart's makes or exports row: its head, the count, the tuple, then
  * the gap. */
-#define PICO8_JO_GH_LB_CAP 4
+#define PLANET_INSPECTION_PANEL_EXPORTS_CAP 4
 
 /* Room for `n` positionals of a row of `jo:gh`, the gap's cell included. */
-static layout_row_cell_t *jo_gh_row_items(int n) {
+static layout_row_cell_t *planet_inspection_panel_row_items(int n) {
     return (layout_row_cell_t *)allocator_alloc(frame_zone(), (size_t)n * sizeof(layout_row_cell_t));
 }
 
 /* `s` followed by `$`, in the frame zone. */
-static char *jo_dollar(const char *s) {
+static char *planet_dollar(const char *s) {
     return p8_concat2(frame_zone(), s, "$");
 }
 
 /* A planet's `pz` frame: `ep` and `ra` nil when NULL, `ca` and `gq` always. */
-static pico8_pz_frame_t jo_pz_frame(const pico8_jo_t *self) {
+static pico8_pz_frame_t planet_open_box_frame(const planet_t *self) {
     pico8_pz_frame_t frame = {0};
 
-    frame.ep = self->ep;
+    frame.ep = self->description;
     frame.has_ca = 1;
-    frame.ca = self->def->back_color;
-    frame.gq = &self->def->row_step;
-    frame.ra = self->ra;
+    frame.ca = self->archetype->back_color;
+    frame.gq = &self->archetype->row_step;
+    frame.ra = self->pos;
     return frame;
 }
 
-void pico8_jo_gh(const pico8_jo_t *self) {
-    pico8_js_keys_t bs[PICO8_JO_GH_ROWS];
+void planet_inspection_panel(const planet_t *self) {
+    pico8_js_keys_t buttons[PLANET_INSPECTION_PANEL_ROWS];
     layout_row_keys_t icon;
-    layout_row_cell_t icon_items[PICO8_JO_ROW_CAP];
+    layout_row_cell_t icon_items[PLANET_ROW_CAP];
     layout_row_keys_t h_keys;
     layout_row_cell_t h_item;
-    int n = 0;
+    int row_count = 0;
     const data_row_t *icon_row = NULL;
-    layout_row_keys_t row_keys[PICO8_JO_GH_ROWS];
-    layout_row_cell_t *row_items[PICO8_JO_GH_ROWS];
-    int row_cap[PICO8_JO_GH_ROWS];
-    pico8_jo_gh_ctx_t ctx;
-    const pointer_list_t *jy;
-    pointer_list_t jx;
+    layout_row_keys_t row_keys[PLANET_INSPECTION_PANEL_ROWS];
+    layout_row_cell_t *row_items[PLANET_INSPECTION_PANEL_ROWS];
+    int row_cap[PLANET_INSPECTION_PANEL_ROWS];
+    planet_inspection_panel_ctx_t ctx;
+    const pointer_list_t *needs;
+    pointer_list_t unmet_needs;
     pico8_pz_frame_t frame;
-    int i;
+    int index;
 
     if (self == NULL) {
         return;
     }
 
-    memset(bs, 0, sizeof bs);
+    memset(buttons, 0, sizeof buttons);
     memset(row_keys, 0, sizeof row_keys);
-    if ((self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && self->def->name != NULL) {
-        icon_row = self->def->name;
-    } else if (self->has_mi) {
-        int mi = p8_fixed_flr_int(self->mi);
+    if ((self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && self->archetype->name != NULL) {
+        icon_row = self->archetype->name;
+    } else if (self->has_development_tier) {
+        int mi = p8_fixed_flr_int(self->development_tier);
 
         if (mi >= 1 && mi <= PLANET_MOOD_ROWS_COUNT) {
-            icon_row = &pico8_jo_dz()[mi - 1];
+            icon_row = &planet_mood_rows()[mi - 1];
         }
     }
     if (icon_row != NULL) {
-        icon = layout_row_keys_of_row(icon_row, icon_items, PICO8_JO_ROW_CAP);
-        bs[0].lq_row = &icon;
+        icon = layout_row_keys_of_row(icon_row, icon_items, PLANET_ROW_CAP);
+        buttons[0].lq_row = &icon;
     }
-    bs[0].has_h_ = 1;
-    if (self->has_kr) {
+    buttons[0].has_h_ = 1;
+    if (self->has_net_income) {
         int discard_color = 0;
 
-        h_item = layout_row_cell_string(jo_dollar(collect_format_signed(frame_zone(), self->kr, 0, NULL, &discard_color)));
+        h_item = layout_row_cell_string(planet_dollar(collect_format_signed(frame_zone(), self->net_income, 0, NULL, &discard_color)));
         memset(&h_keys, 0, sizeof h_keys);
         h_keys.items = &h_item;
         h_keys.count = 1;
         h_keys.has_background = 1;
-        h_keys.background_is_bool = self->kr < p8_fixed_from_int(0);
-        h_keys.background = self->kr >= p8_fixed_from_int(0) ? p8_fixed_from_int(1) : 0;
-        bs[0].h_row = &h_keys;
+        h_keys.background_is_bool = self->net_income < p8_fixed_from_int(0);
+        h_keys.background = self->net_income >= p8_fixed_from_int(0) ? p8_fixed_from_int(1) : 0;
+        buttons[0].h_row = &h_keys;
     }
-    n = 1;
+    row_count = 1;
 
-    pointer_list_init(&ctx.ji, frame_zone());
+    pointer_list_init(&ctx.unmet_needs, frame_zone());
 
-    jy = self->jy;
-    jx = collect_filter_pointer_list(frame_zone(), jy, pico8_jo_gh_jp_step, &ctx);
+    needs = self->needs;
+    unmet_needs = collect_filter_pointer_list(frame_zone(), needs, planet_inspection_panel_filter_step, &ctx);
 
-    if (jx.count > 0) {
-        row_cap[n] = 1 + jx.count + 1;
-        row_items[n] = jo_gh_row_items(row_cap[n]);
-        row_items[n][row_keys[n].count++] = layout_row_cell_string("needs:");
-        for (i = 0; i < jx.count; i++) {
-            row_items[n][row_keys[n].count++] = layout_row_cell_row(jx.items[i]);
+    if (unmet_needs.count > 0) {
+        row_cap[row_count] = 1 + unmet_needs.count + 1;
+        row_items[row_count] = planet_inspection_panel_row_items(row_cap[row_count]);
+        row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string("needs:");
+        for (index = 0; index < unmet_needs.count; index++) {
+            row_items[row_count][row_keys[row_count].count++] = layout_row_cell_row(unmet_needs.items[index]);
         }
-        n++;
+        row_count++;
     } else {
-        p8_fixed_t mi_fixed = self->has_mi ? self->mi : p8_fixed_from_int(0);
-        const production_t *kw = self->kw;
+        p8_fixed_t development_tier_fixed = self->has_development_tier ? self->development_tier : p8_fixed_from_int(0);
+        const production_t *kw = self->production;
         int r_w;
-        int qe_is_r_w;
+        int resource_is_r_w;
 
-        qe_is_r_w = kw != NULL && kw->has_resource && resource_code_lookup("w", &r_w) && kw->resource == p8_fixed_from_int(r_w);
+        resource_is_r_w = kw != NULL && kw->has_resource && resource_code_lookup("w", &r_w) && kw->resource == p8_fixed_from_int(r_w);
 
-        if (mi_fixed < p8_fixed_from_int(4) && jy != NULL && jy->count > 0 && !qe_is_r_w) {
-            int last_only = (self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && self->def->is_structure;
+        if (development_tier_fixed < p8_fixed_from_int(4) && needs != NULL && needs->count > 0 && !resource_is_r_w) {
+            int last_only = (self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && self->archetype->is_structure;
 
-            row_cap[n] = 1 + (last_only ? 1 : jy->count) + 1;
-            row_items[n] = jo_gh_row_items(row_cap[n]);
-            row_items[n][row_keys[n].count++] = layout_row_cell_string("wants more:");
+            row_cap[row_count] = 1 + (last_only ? 1 : needs->count) + 1;
+            row_items[row_count] = planet_inspection_panel_row_items(row_cap[row_count]);
+            row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string("wants more:");
             if (last_only) {
-                row_items[n][row_keys[n].count++] = layout_row_cell_row(jy->items[jy->count - 1]);
+                row_items[row_count][row_keys[row_count].count++] = layout_row_cell_row(needs->items[needs->count - 1]);
             } else {
-                for (i = 0; i < jy->count; i++) {
-                    row_items[n][row_keys[n].count++] = layout_row_cell_row(jy->items[i]);
+                for (index = 0; index < needs->count; index++) {
+                    row_items[row_count][row_keys[row_count].count++] = layout_row_cell_row(needs->items[index]);
                 }
             }
-            n++;
+            row_count++;
         }
     }
 
     /* A `ji` the predicate appended nothing to leaves no row at all, not a
      * row holding false: Lua's `add(t,nil)` is a no-op. */
-    if (ctx.ji.count >= 1) {
-        row_cap[n] = 1 + ctx.ji.count + 1;
-        row_items[n] = jo_gh_row_items(row_cap[n]);
-        row_items[n][row_keys[n].count++] = layout_row_cell_string("receives:");
-        for (i = 0; i < ctx.ji.count; i++) {
-            row_items[n][row_keys[n].count++] = layout_row_cell_row(ctx.ji.items[i]);
+    if (ctx.unmet_needs.count >= 1) {
+        row_cap[row_count] = 1 + ctx.unmet_needs.count + 1;
+        row_items[row_count] = planet_inspection_panel_row_items(row_cap[row_count]);
+        row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string("receives:");
+        for (index = 0; index < ctx.unmet_needs.count; index++) {
+            row_items[row_count][row_keys[row_count].count++] = layout_row_cell_row(ctx.unmet_needs.items[index]);
         }
-        n++;
+        row_count++;
     }
 
     {
-        const production_t *kw = self->kw;
+        const production_t *kw = self->production;
         p8_fixed_t mu = kw != NULL ? kw->amount : p8_fixed_from_int(0);
 
         if (mu > p8_fixed_from_int(0)) {
-            int makes = kw->has_resource && int_seq_has_fixed(pico8_jo_cq(), kw->resource);
+            int makes = kw->has_resource && int_seq_has_fixed(planet_made_resources(), kw->resource);
 
-            row_cap[n] = PICO8_JO_GH_LB_CAP;
-            row_items[n] = jo_gh_row_items(row_cap[n]);
+            row_cap[row_count] = PLANET_INSPECTION_PANEL_EXPORTS_CAP;
+            row_items[row_count] = planet_inspection_panel_row_items(row_cap[row_count]);
 
             if (makes) {
-                char *mu_str = p8_tostr_fixed(frame_zone(), mu);
-                row_items[n][row_keys[n].count++] = layout_row_cell_string("makes:");
-                row_items[n][row_keys[n].count++] = layout_row_cell_string(mu_str);
+                char *amount_str = p8_tostr_fixed(frame_zone(), mu);
+                row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string("makes:");
+                row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string(amount_str);
             } else {
-                const entity_list_t *by = self->by;
+                const entity_list_t *by = self->outgoing_routes;
                 int by_count = (by != NULL) ? by->count : 0;
                 char *count_str = p8_tostr_fixed(frame_zone(), p8_fixed_from_int(by_count));
-                char *mu_str = p8_tostr_fixed(frame_zone(), mu);
-                char *combined = p8_concat2(frame_zone(), p8_concat2(frame_zone(), count_str, "/"), mu_str);
-                row_items[n][row_keys[n].count++] = layout_row_cell_string("exports:");
-                row_items[n][row_keys[n].count++] = layout_row_cell_string(combined);
+                char *amount_str = p8_tostr_fixed(frame_zone(), mu);
+                char *combined = p8_concat2(frame_zone(), p8_concat2(frame_zone(), count_str, "/"), amount_str);
+                row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string("exports:");
+                row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string(combined);
             }
-            row_items[n][row_keys[n].count++] = layout_row_cell_row(jo_kw_tuple(kw));
-            n++;
+            row_items[row_count][row_keys[row_count].count++] = layout_row_cell_row(planet_production_tuple(kw));
+            row_count++;
         }
     }
 
     /* From the second row on: the first row's `lq` is a single icon, not a
      * list. */
-    for (i = 1; i < n; i++) {
+    for (index = 1; index < row_count; index++) {
         static const data_item_t gap_items[] = {{.is_false = 1}, {.number = 1}};
         static const data_row_t gap = {.count = 2, .items = gap_items};
 
-        assert(row_keys[i].count < row_cap[i] && "jo:gh: every row 2..n keeps its last cell for the gap");
-        row_items[i][row_keys[i].count++] = layout_row_cell_row(&gap);
-        row_keys[i].items = row_items[i];
-        bs[i].lq_row = &row_keys[i];
+        assert(row_keys[index].count < row_cap[index] && "jo:gh: every row 2..n keeps its last cell for the gap");
+        row_items[index][row_keys[index].count++] = layout_row_cell_row(&gap);
+        row_keys[index].items = row_items[index];
+        buttons[index].lq_row = &row_keys[index];
     }
 
-    frame = jo_pz_frame(self);
-    pico8_pz(&frame, bs, n);
+    frame = planet_open_box_frame(self);
+    pico8_pz(&frame, buttons, row_count);
 }
 
-down_t pico8_jo_gv(const pico8_jo_t *self, const entity_t *s) {
-    const char *me_val;
+down_t planet_accept_drop(const planet_t *self, const entity_t *s) {
+    const char *state_val;
     down_t out = {0, NULL};
 
     if (self == NULL) {
         return out;
     }
-    me_val = self->header.state;
-    if (me_val == NULL || strcmp(me_val, "settled") != 0) {
+    state_val = self->header.state;
+    if (state_val == NULL || strcmp(state_val, "settled") != 0) {
         return out;
     }
     /* Only a held `jc` carries `qu`: a held `bg`, `mz` or planet reads it absent. */
-    if (s != NULL && s->class == pico8_jc_struct_class() && ((const pico8_jc_t *)s)->qu == &self->header) {
-        pico8_jo_gh(self);
+    if (s != NULL && s->class == slipway_class() && ((const slipway_t *)s)->start == &self->header) {
+        planet_inspection_panel(self);
         return out;
     }
     out.stop = 1;
@@ -310,8 +310,8 @@ down_t pico8_jo_gv(const pico8_jo_t *self, const entity_t *s) {
 /* C has no closures: the three values the Lua `my` callback captures ride
  * on the row as `_jo_fe_*` fields, which `pz()`'s own `js(b)` copies
  * verbatim onto the button this bridge is later dispatched on. */
-static void pico8_jo_fe_my_dispatch(pico8_js_t *self) {
-    pico8_jo_t *pt;
+static void planet_projects_panel_on_click_method(pico8_js_t *self) {
+    planet_t *pt;
     pico8_hp_t *b;
     p8_fixed_t od = p8_fixed_from_int(0);
 
@@ -326,26 +326,26 @@ static void pico8_jo_fe_my_dispatch(pico8_js_t *self) {
 
     assert(pt != NULL && "jo:fe's my callback lost its captured planet");
     if (pico8_hy_lu(pico8_fm_hy(), od)) {
-        pico8_jo_hu(pt, b);
+        planet_apply_project(pt, b);
     }
 }
 
 /* One button of `jo:fe`: its keys and the rows they point at, alive until
  * `pz` returns. */
 typedef struct {
-    layout_row_keys_t lq;
-    layout_row_cell_t lq_items[PICO8_JO_ROW_CAP];
-    layout_row_keys_t h;
-    layout_row_cell_t h_item;
-} pico8_jo_fe_row_t;
+    layout_row_keys_t layout_row;
+    layout_row_cell_t layout_row_items[PLANET_ROW_CAP];
+    layout_row_keys_t cost_keys;
+    layout_row_cell_t cost_item;
+} planet_projects_panel_row_t;
 
-static void pico8_jo_fe_keys(pico8_jo_t *self, pico8_hp_t *b, pico8_js_keys_t *keys, pico8_jo_fe_row_t *row) {
+static void planet_projects_panel_keys(planet_t *self, pico8_hp_t *b, pico8_js_keys_t *keys, planet_projects_panel_row_t *row) {
     p8_fixed_t od = pico8_hp_od(b);
 
     memset(keys, 0, sizeof *keys);
     if (b->lq != NULL) {
-        row->lq = layout_row_keys_of_row(b->lq, row->lq_items, PICO8_JO_ROW_CAP);
-        keys->lq_row = &row->lq;
+        row->layout_row = layout_row_keys_of_row(b->lq, row->layout_row_items, PLANET_ROW_CAP);
+        keys->lq_row = &row->layout_row;
     } else {
         keys->lq_copy = pico8_hp_lq(b);
     }
@@ -353,13 +353,13 @@ static void pico8_jo_fe_keys(pico8_jo_t *self, pico8_hp_t *b, pico8_js_keys_t *k
     keys->has_h_ = 1;
     keys->h_is_false = od <= p8_fixed_from_int(0);
     if (od > p8_fixed_from_int(0)) {
-        row->h_item = layout_row_cell_string(jo_dollar(p8_tostr_fixed(frame_zone(), od)));
-        memset(&row->h, 0, sizeof row->h);
-        row->h.items = &row->h_item;
-        row->h.count = 1;
-        row->h.has_color = 1;
-        row->h.color = p8_fixed_from_int(13);
-        keys->h_row = &row->h;
+        row->cost_item = layout_row_cell_string(planet_dollar(p8_tostr_fixed(frame_zone(), od)));
+        memset(&row->cost_keys, 0, sizeof row->cost_keys);
+        row->cost_keys.items = &row->cost_item;
+        row->cost_keys.count = 1;
+        row->cost_keys.has_color = 1;
+        row->cost_keys.color = p8_fixed_from_int(13);
+        keys->h_row = &row->cost_keys;
     }
 
     keys->_jo_fe_pt = self;
@@ -367,15 +367,15 @@ static void pico8_jo_fe_keys(pico8_jo_t *self, pico8_hp_t *b, pico8_js_keys_t *k
     keys->has__jo_fe_od = 1;
     keys->_jo_fe_od = od;
     keys->has_my = 1;
-    keys->my = pico8_jo_fe_my_dispatch;
+    keys->my = planet_projects_panel_on_click_method;
     keys->has_jb = 1;
     keys->jb_row = pico8_hp_jb(b);
 }
 
-void pico8_jo_fe(pico8_jo_t *self) {
-    pico8_bj_kept_t bj_list;
+void planet_projects_panel(planet_t *self) {
+    pico8_bj_kept_t available_projects_list;
     pico8_js_keys_t *bs;
-    pico8_jo_fe_row_t *rows;
+    planet_projects_panel_row_t *rows;
     pico8_pz_frame_t frame;
     size_t cap;
     int n = 0;
@@ -385,26 +385,26 @@ void pico8_jo_fe(pico8_jo_t *self) {
         return;
     }
 
-    bj_list = pico8_bj((const entity_t *)self);
-    cap = bj_list.count > 0 ? (size_t)bj_list.count : 1;
+    available_projects_list = pico8_bj((const entity_t *)self);
+    cap = available_projects_list.count > 0 ? (size_t)available_projects_list.count : 1;
     bs = (pico8_js_keys_t *)allocator_alloc(frame_zone(), cap * sizeof *bs);
-    rows = (pico8_jo_fe_row_t *)allocator_alloc(frame_zone(), cap * sizeof *rows);
+    rows = (planet_projects_panel_row_t *)allocator_alloc(frame_zone(), cap * sizeof *rows);
     memset(bs, 0, cap * sizeof *bs);
     memset(rows, 0, cap * sizeof *rows);
-    for (i = 0; i < bj_list.count; i++) {
-        pico8_jo_fe_keys(self, bj_list.items[i], &bs[n], &rows[n]);
+    for (i = 0; i < available_projects_list.count; i++) {
+        planet_projects_panel_keys(self, available_projects_list.items[i], &bs[n], &rows[n]);
         n++;
     }
 
-    frame = jo_pz_frame(self);
+    frame = planet_open_box_frame(self);
     pico8_pz(&frame, bs, n);
 }
 
-void pico8_jo_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_jo_t *self, vec_t p) {
+void planet_draw(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t pos) {
     vec_t adjusted;
-    const char *me_val;
-    int px;
-    int py;
+    const char *state_val;
+    int name;
+    int speed_factor;
     int spr_index = 43;
 
     if (self == NULL || !entity_geom_is_on_screen((const entity_t *)self)) {
@@ -413,61 +413,61 @@ void pico8_jo_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_jo_t *self, vec_t p
 
     /* Also decays `self.ma`. Everything below draws at `adjusted`, never
      * at the `p` that was passed in. */
-    adjusted = entity_geom_shake(p, (entity_t *)self);
+    adjusted = entity_geom_shake(pos, (entity_t *)self);
 
-    me_val = self->header.state;
-    if (me_val != NULL && strcmp(me_val, "vanishing") == 0) {
+    state_val = self->header.state;
+    if (state_val != NULL && strcmp(state_val, "vanishing") == 0) {
         p8_fixed_t t = self->header.state_time;
         if (p8_fixed_rnd(p8_fixed_from_int(30)) < p8_fixed_sub(t, p8_fixed_from_int(30))) {
             return;
         }
     }
 
-    px = p8_fixed_flr_int(adjusted.x);
-    py = p8_fixed_flr_int(adjusted.y);
+    name = p8_fixed_flr_int(adjusted.x);
+    speed_factor = p8_fixed_flr_int(adjusted.y);
 
-    p8_circfill(gfx, mem, px, py, 7, 0);
+    p8_circfill(gfx, mem, name, speed_factor, 7, 0);
 
     /* An absent `qw` reads as 0, i.e. the default palette block. */
-    hud_select_palette_block(mem, (self->header.class->lineage & LINEAGE(LINEAGE_TRADING_HUB)) ? self->qw : p8_fixed_from_int(0));
+    hud_select_palette_block(mem, (self->header.class->lineage & LINEAGE(LINEAGE_TRADING_HUB)) ? self->palette_block : p8_fixed_from_int(0));
     p8_palt(mem, 3, 0);
     p8_palt(mem, 0, 1);
 
     /* `A and B or C`: `nk.s` is never absent, so only a nil `nk` falls
      * through to `self.s`, then to the literal 43. */
-    if (self->nk != NULL) {
-        spr_index = self->nk->sprite;
+    if (self->planet_type != NULL) {
+        spr_index = self->planet_type->sprite;
     } else if (self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) {
-        spr_index = p8_fixed_flr_int(self->s);
+        spr_index = p8_fixed_flr_int(self->sprite);
     }
-    p8_spr(gfx, mem, spr_index, px - 4, py - 4, 2, 2);
+    p8_spr(gfx, mem, spr_index, name - 4, speed_factor - 4, 2, 2);
     hud_select_palette_block_default(mem);
 
-    if (pico8_jo_gg(self)) {
-        int mi = p8_fixed_flr_int(self->has_mi ? self->mi : p8_fixed_from_int(0));
+    if (planet_is_colonized(self)) {
+        int mi = p8_fixed_flr_int(self->has_development_tier ? self->development_tier : p8_fixed_from_int(0));
         int color = 0;
-        int_seq_at(pico8_jo_ka()->items, pico8_jo_ka()->count, mi, &color);
-        p8_circ(gfx, mem, px, py, 6, color);
-        p8_spr_default(gfx, mem, mi + 1, px - 3, py - 6);
+        int_seq_at(planet_ring_colors()->items, planet_ring_colors()->count, mi, &color);
+        p8_circ(gfx, mem, name, speed_factor, 6, color);
+        p8_spr_default(gfx, mem, mi + 1, name - 3, speed_factor - 6);
     }
 
     {
-        if (self->lq != NULL) {
+        if (self->layout_row != NULL) {
             vec_t offset =
                 vec_add(adjusted, vec_make(p8_fixed_from_int(0), p8_fixed_from_int(7)));
-            assert(self->lq->header.class->draw_at != NULL && "lq must have an `ol`");
-            self->lq->header.class->draw_at(&self->lq->header, offset, P8_FIXED_LIT(0x00008000, 0.5));
+            assert(self->layout_row->header.class->draw_at != NULL && "lq must have an `ol`");
+            self->layout_row->header.class->draw_at(&self->layout_row->header, offset, P8_FIXED_LIT(0x00008000, 0.5));
         }
     }
 
     {
-        if (self->fo != NULL) {
+        if (self->targeted_by != NULL) {
             p8_fixed_t dw = p8_fixed_from_int(0);
             p8_fixed_t radius_f;
             int radius;
 
-            if (self->fo->targeting != NULL) {
-                dw = self->fo->targeting->def->attach_distance;
+            if (self->targeted_by->targeting != NULL) {
+                dw = self->targeted_by->targeting->def->attach_distance;
             }
             radius_f = p8_fixed_mul(p8_fixed_sqrt(dw), p8_fixed_from_int(128));
             radius = p8_fixed_flr_int(radius_f);
@@ -476,95 +476,95 @@ void pico8_jo_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_jo_t *self, vec_t p
              * transparency flag: its set bits leave the screen untouched,
              * so this is `_transparent`, not plain `pico8_fillp`. */
             p8_fillp_transparent(gfx, 0xAAAAu);
-            p8_circfill(gfx, mem, px, py, radius, 2);
+            p8_circfill(gfx, mem, name, speed_factor, radius, 2);
             p8_fillp_reset(gfx);
-            self->fo = NULL;
+            self->targeted_by = NULL;
         }
     }
 }
 
-void pico8_jo_hb_dispatch(entity_t *self) {
-    pico8_jo_hb((pico8_jo_t *)self);
+void planet_refresh_method(entity_t *self) {
+    planet_refresh((planet_t *)self);
 }
 
-down_t pico8_jo_gv_dispatch(entity_t *self, const entity_t *s) {
-    return pico8_jo_gv((const pico8_jo_t *)self, s);
+down_t planet_accept_drop_method(entity_t *self, const entity_t *s) {
+    return planet_accept_drop((const planet_t *)self, s);
 }
 
-void pico8_jo_kj_dispatch(entity_t *self, const vec_t *ra) {
+void planet_draw_method(entity_t *self, const vec_t *ra) {
     vec_t p = ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    pico8_jo_kj(dispatch_context_gfx(), dispatch_context_mem(), (pico8_jo_t *)self, p);
+    planet_draw(dispatch_context_gfx(), dispatch_context_mem(), (planet_t *)self, p);
 }
 
-down_t pico8_jo_ldown_dispatch(entity_t *self, vec_t *qa, vec_t *ra) {
+down_t planet_left_press_method(entity_t *self, vec_t *qa, vec_t *ra) {
     (void)qa;
     (void)ra;
-    return pico8_jo_ldown((pico8_jo_t *)self);
+    return planet_left_press((planet_t *)self);
 }
 
-down_t pico8_jo_ldown(pico8_jo_t *self) {
-    const char *me_val;
+down_t planet_left_press(planet_t *self) {
+    const char *state_val;
     down_t out = {0, NULL};
 
     if (self == NULL || self->header.state == NULL) {
         return out;
     }
-    me_val = self->header.state;
-    if (strcmp(me_val, "known") == 0) {
-        pico8_jo_fe(self);
+    state_val = self->header.state;
+    if (strcmp(state_val, "known") == 0) {
+        planet_projects_panel(self);
         out.stop = 1;
         return out;
     }
-    if (strcmp(me_val, "settled") == 0) {
-        pico8_jc_keys_t keys = {0};
+    if (strcmp(state_val, "settled") == 0) {
+        slipway_keys_t keys = {0};
 
-        assert(pico8_jc_ready() && "pico8_jc_init() must run before jo:ldown builds a jc");
-        keys.qu = (entity_t *)self;
-        out.held = (entity_t *)pico8_jc_new(&keys);
+        assert(slipway_ready() && "pico8_jc_init() must run before jo:ldown builds a jc");
+        keys.start = (entity_t *)self;
+        out.held = (entity_t *)slipway_new(&keys);
         out.stop = out.held != NULL;
     }
     return out;
 }
 
-void pico8_jo_hu(pico8_jo_t *self, pico8_hp_t *hp_instance) {
-    pico8_jo_t *working_self;
+void planet_apply_project(planet_t *self, pico8_hp_t *research_project_instance) {
+    planet_t *working_self;
     p8_fixed_t fp = p8_fixed_from_int(2);
 
-    pico8_hp_assert(hp_instance);
+    pico8_hp_assert(research_project_instance);
     if (self == NULL) {
         return;
     }
     working_self = self;
 
-    if (hp_instance != NULL && hp_instance->cw != NULL) {
+    if (research_project_instance != NULL && research_project_instance->cw != NULL) {
         const entity_kind_t *target_kind = NULL;
         planet_keys_t keys;
 
-        self->p_ = 1;
+        self->is_dead = 1;
 
-        target_kind = pico8_jo_kv(hp_instance->cw);
+        target_kind = pico8_jo_kv(research_project_instance->cw);
 
-        keys.map_pos = self->p;
-        keys.pos = self->ra;
-        keys.planet_id = self->id;
+        keys.map_pos = self->map_pos;
+        keys.pos = self->pos;
+        keys.planet_id = self->planet_id;
 
-        working_self = (target_kind != NULL) ? (pico8_jo_t *)target_kind->new_entity(&keys) : NULL;
-    } else if (hp_instance != NULL && hp_instance->go != NULL) {
-        self->nk = planet_types_lookup(hp_instance->go);
+        working_self = (target_kind != NULL) ? (planet_t *)target_kind->new_entity(&keys) : NULL;
+    } else if (research_project_instance != NULL && research_project_instance->go != NULL) {
+        self->planet_type = planet_types_lookup(research_project_instance->go);
     } else {
         entity_set_state((entity_t *)self, "settled");
-        pico8_jo_lz(self, hp_instance);
-        self->fx = p8_fixed_from_int(1);
+        planet_install_project(self, research_project_instance);
+        self->fold_anchor = p8_fixed_from_int(1);
         fp = pico8_ov("autoassemblers", p8_fixed_from_int(3), p8_fixed_from_int(2));
     }
 
     pico8_hy_nx(pico8_fm_hy(), fp);
 
-    if (hp_instance != NULL && hp_instance->has_rn) {
-        p8_play_sfx(hp_instance->rn);
+    if (research_project_instance != NULL && research_project_instance->has_rn) {
+        p8_play_sfx(research_project_instance->rn);
     } else {
         p8_play_sfx(p8_fixed_from_int(55));
     }
 
-    pico8_jo_kd(working_self);
+    planet_restart_shake(working_self);
 }

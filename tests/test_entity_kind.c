@@ -37,13 +37,13 @@ static const entity_kind_t *kind_of(int i) {
     case 1:
         return pico8_os_kind();
     case 2:
-        return pico8_nr_kind();
+        return slipgate_kind();
     case 3:
-        return pico8_fr_kind();
+        return infraspace_gate_kind();
     case 4:
         return pico8_nl_kind();
     case 5:
-        return pico8_mx_kind();
+        return synthesizer_kind();
     case 6:
         return pico8_hj_kind();
     case 7:
@@ -71,13 +71,13 @@ static const entity_class_t *class_of(int i) {
     case 1:
         return pico8_os_struct_class();
     case 2:
-        return pico8_nr_struct_class();
+        return slipgate_class();
     case 3:
-        return pico8_fr_struct_class();
+        return infraspace_gate_class();
     case 4:
         return pico8_nl_struct_class();
     case 5:
-        return pico8_mx_struct_class();
+        return synthesizer_class();
     case 6:
         return pico8_hj_struct_class();
     case 7:

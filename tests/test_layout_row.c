@@ -661,13 +661,13 @@ static void start_game(void) {
     pico8_eu(NULL);
 }
 
-static pico8_jo_t *as_planet(void *e) {
-    assert(pico8_jo_is_family(e));
+static planet_t *as_planet(void *e) {
+    assert(planet_is_family(e));
     return e;
 }
 
 static vec_t pos_of(void *e) {
-    const vec_t *p = as_planet(e)->p;
+    const vec_t *p = as_planet(e)->map_pos;
     assert(p != NULL);
     return *p;
 }
@@ -683,11 +683,11 @@ static p8_fixed_t dist2(vec_t a, vec_t b) {
  * `jo:gh`, up and drawn. */
 static void built_planet_panel(void) {
     const entity_list_t *jos;
-    pico8_jc_keys_t slipway_keys = {0};
+    slipway_keys_t slipway_keys = {0};
     vec_t *mp = malloc(sizeof *mp);
     void *qu;
     void *re = NULL;
-    pico8_jc_t *jc;
+    slipway_t *jc;
     int i;
 
     start_game();
@@ -700,24 +700,24 @@ static void built_planet_panel(void) {
             re = e;
         }
     }
-    pico8_jo_hu(qu, project(COLONY));
-    pico8_jo_hu(re, project(EXPORTER));
+    planet_apply_project(qu, project(COLONY));
+    planet_apply_project(re, project(EXPORTER));
 
-    slipway_keys.qu = qu;
-    jc = pico8_jc_new(&slipway_keys);
+    slipway_keys.start = qu;
+    jc = slipway_new(&slipway_keys);
     *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
                         vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
-    pico8_jc_struct_class()->drag(&jc->header, mp, NULL);
+    slipway_class()->drag(&jc->header, mp, NULL);
     pico8_ok()->o_ = NULL;
     while (jc->header.state_time < p8_fixed_from_int(15)) {
         update_entities();
     }
-    pico8_jc_struct_class()->drop(&jc->header, re);
+    slipway_class()->drop(&jc->header, re);
     for (i = 0; i < 120; i++) {
         update_entities();
     }
-    pico8_jo_gh(qu);
+    planet_inspection_panel(qu);
     pico8__update60();
     pico8__draw();
 }
@@ -795,7 +795,7 @@ static void test_inspection_panel_wants_more(void) {
     pico8_jy_t *a = pico8_jy_new(game_zone(), &ore);
     pico8_jy_t *b = pico8_jy_new(game_zone(), NULL);
     pointer_list_t *jy = malloc(sizeof *jy);
-    pico8_jo_t *planet;
+    planet_t *planet;
     const layout_row_t *wants;
     const layout_row_t *receives;
 
@@ -807,13 +807,13 @@ static void test_inspection_panel_wants_more(void) {
     pointer_list_init(jy, &heap_allocator);
     pointer_list_add(jy, a);
     pointer_list_add(jy, b);
-    planet = pico8_jo_new(NULL);
-    planet->jy = jy;
-    planet->has_mi = 1;
-    planet->mi = p8_fixed_from_int(1);
-    planet->ra = malloc(sizeof *planet->ra);
-    *planet->ra = vec_xy(64, 64);
-    pico8_jo_gh(planet);
+    planet = planet_new(NULL);
+    planet->needs = jy;
+    planet->has_development_tier = 1;
+    planet->development_tier = p8_fixed_from_int(1);
+    planet->pos = malloc(sizeof *planet->pos);
+    *planet->pos = vec_xy(64, 64);
+    planet_inspection_panel(planet);
 
     wants = panel_row("wants more:");
     receives = panel_row("receives:");
@@ -833,7 +833,7 @@ static void test_inspection_panel_w_maker_wants_no_more(void) {
     pico8_jy_t *a = pico8_jy_new(game_zone(), &ore);
     pointer_list_t *jy = malloc(sizeof *jy);
     production_t *kw = calloc(1, sizeof *kw);
-    pico8_jo_t *planet;
+    planet_t *planet;
     int r_w;
 
     start_game();
@@ -844,14 +844,14 @@ static void test_inspection_panel_w_maker_wants_no_more(void) {
     a->gc = p8_fixed_from_int(1);
     pointer_list_init(jy, &heap_allocator);
     pointer_list_add(jy, a);
-    planet = pico8_jo_new(NULL);
-    planet->jy = jy;
-    planet->kw = kw;
-    planet->has_mi = 1;
-    planet->mi = p8_fixed_from_int(1);
-    planet->ra = malloc(sizeof *planet->ra);
-    *planet->ra = vec_xy(64, 64);
-    pico8_jo_gh(planet);
+    planet = planet_new(NULL);
+    planet->needs = jy;
+    planet->production = kw;
+    planet->has_development_tier = 1;
+    planet->development_tier = p8_fixed_from_int(1);
+    planet->pos = malloc(sizeof *planet->pos);
+    *planet->pos = vec_xy(64, 64);
+    planet_inspection_panel(planet);
 
     assert(panel_row("wants more:") == NULL && panel_row("needs:") == NULL);
 }
@@ -861,7 +861,7 @@ static void test_inspection_panel_lab_wants_its_last(void) {
     pico8_jy_t *a = pico8_jy_new(game_zone(), NULL);
     pico8_jy_t *b = pico8_jy_new(game_zone(), NULL);
     pointer_list_t *jy = malloc(sizeof *jy);
-    pico8_jo_t *lab;
+    planet_t *lab;
     const layout_row_t *wants;
 
     start_game();
@@ -873,12 +873,12 @@ static void test_inspection_panel_lab_wants_its_last(void) {
     pointer_list_add(jy, a);
     pointer_list_add(jy, b);
     lab = pico8_qh_new(NULL);
-    lab->jy = jy;
-    lab->has_mi = 1;
-    lab->mi = p8_fixed_from_int(1);
-    lab->ra = malloc(sizeof *lab->ra);
-    *lab->ra = vec_xy(64, 64);
-    pico8_jo_gh(lab);
+    lab->needs = jy;
+    lab->has_development_tier = 1;
+    lab->development_tier = p8_fixed_from_int(1);
+    lab->pos = malloc(sizeof *lab->pos);
+    *lab->pos = vec_xy(64, 64);
+    planet_inspection_panel(lab);
 
     wants = panel_row("wants more:");
     assert(wants != NULL && wants->items_count == 3 && wants->items[1].as.row == &b->row);

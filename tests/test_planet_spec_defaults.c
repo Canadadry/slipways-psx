@@ -32,10 +32,10 @@ static void assert_same_string(const char *a, const char *b) {
 /* The members of jo every class of the tree inherits, and its kind's
  * archetype; kw aside, which `lz` points at the planet's own when it has an
  * `hp`. */
-static void assert_jo_tail(const pico8_jo_t *jo, const planet_archetype_t *def) {
-    assert(jo->def == def);
-    assert(jo->ma == def->shake);
-    assert(jo->mi == def->development_tier && jo->has_mi == def->has_development_tier);
+static void assert_planet_tail(const planet_t *jo, const planet_archetype_t *archetype) {
+    assert(jo->archetype == archetype);
+    assert(jo->shake == archetype->shake);
+    assert(jo->development_tier == archetype->development_tier && jo->has_development_tier == archetype->has_development_tier);
 }
 
 static void assert_box(const box_t *kq, int xl, int yt, int xr, int yb) {
@@ -44,182 +44,182 @@ static void assert_box(const box_t *kq, int xl, int yt, int xr, int yb) {
 }
 
 /* jo's box, which ga and nr replace. */
-static void assert_jo_box(const box_t *kq) {
+static void assert_planet_box(const box_t *kq) {
     assert_box(kq, -7, -7, 7, 7);
 }
 
 /* The members of qh every class below it inherits, its probe's archetype, and
  * the probe's init literals. */
-static void assert_qh_tail(const pico8_jo_t *qh, const planet_archetype_t *def) {
-    assert(qh->probe->def == &def->targeting);
-    assert(qh->mi == def->development_tier && qh->has_mi == 1);
-    assert(qh->probe->has_od == 1 && qh->probe->def->status_sprite == 0 && qh->probe->def->has_status_sprite == 0);
+static void assert_structure_tail(const planet_t *qh, const planet_archetype_t *archetype) {
+    assert(qh->targeting->def == &archetype->targeting);
+    assert(qh->development_tier == archetype->development_tier && qh->has_development_tier == 1);
+    assert(qh->targeting->has_od == 1 && qh->targeting->def->status_sprite == 0 && qh->targeting->def->has_status_sprite == 0);
 }
 
 /* The emitter of an ascension, pm or mx, and its archetype. */
-static void assert_emitter(const pico8_emitter_t *em, const planet_archetype_t *def) {
-    assert(em->def == &def->emitter);
-    assert(em->py == def->emitter.speed_factor && em->pn == def->emitter.angle_slices && em->k_ == def->emitter.trail_colors);
-    assert(em->du == def->emitter.base_radius && em->qo == def->emitter.matrix_xx && em->ro == def->emitter.matrix_xy);
-    assert(em->qg == def->emitter.matrix_yx && em->q_ == def->emitter.matrix_yy);
+static void assert_emitter(const pico8_emitter_t *em, const planet_archetype_t *archetype) {
+    assert(em->def == &archetype->emitter);
+    assert(em->py == archetype->emitter.speed_factor && em->pn == archetype->emitter.angle_slices && em->k_ == archetype->emitter.trail_colors);
+    assert(em->du == archetype->emitter.base_radius && em->qo == archetype->emitter.matrix_xx && em->ro == archetype->emitter.matrix_xy);
+    assert(em->qg == archetype->emitter.matrix_yx && em->q_ == archetype->emitter.matrix_yy);
 }
 
-static void test_jo_defaults(void) {
-    pico8_jo_t *jo = pico8_jo_new(NULL);
+static void test_planet_defaults(void) {
+    planet_t *jo = planet_new(NULL);
 
-    assert(pico8_jo_ready());
-    assert_same_string(jo->header.state, jo->def->state);
-    assert_jo_box(&jo->def->hit_box);
-    assert_jo_tail(jo, &planet_archetype);
-    assert(jo->def->ring_colors == &planet_ring_colors_seq && jo->def->mood_rows == planet_mood_rows_rows && jo->def->made_resources == &planet_made_resources_seq);
-    assert(jo->mi == 0 && !jo->has_mi);
-    assert(jo->kw == pico8_jo_shared_kw());
-    assert(jo->kw->amount == 0 && !jo->kw->has_resource);
-    assert(jo->kw_own.amount == 0 && !jo->kw_own.has_resource && jo->kw_own.resource == 0);
+    assert(planet_ready());
+    assert_same_string(jo->header.state, jo->archetype->state);
+    assert_planet_box(&jo->archetype->hit_box);
+    assert_planet_tail(jo, &planet_archetype);
+    assert(jo->archetype->ring_colors == &planet_ring_colors_seq && jo->archetype->mood_rows == planet_mood_rows_rows && jo->archetype->made_resources == &planet_made_resources_seq);
+    assert(jo->development_tier == 0 && !jo->has_development_tier);
+    assert(jo->production == planet_shared_production());
+    assert(jo->production->amount == 0 && !jo->production->has_resource);
+    assert(jo->production_own.amount == 0 && !jo->production_own.has_resource && jo->production_own.resource == 0);
 }
 
-static void test_qh_defaults(void) {
-    pico8_jo_t *qh = pico8_qh_new(NULL);
+static void test_structure_defaults(void) {
+    planet_t *qh = pico8_qh_new(NULL);
 
     assert(pico8_qh_ready());
     assert_same_string(qh->header.state, structure_archetype.state);
-    assert(qh->probe->od == structure_archetype.targeting.cost);
-    assert(qh->s == structure_archetype.sprite);
-    assert_qh_tail(qh, &structure_archetype);
-    assert_jo_box(&qh->def->hit_box);
-    assert_jo_tail(qh, &structure_archetype);
+    assert(qh->targeting->od == structure_archetype.targeting.cost);
+    assert(qh->sprite == structure_archetype.sprite);
+    assert_structure_tail(qh, &structure_archetype);
+    assert_planet_box(&qh->archetype->hit_box);
+    assert_planet_tail(qh, &structure_archetype);
 }
 
-static void test_nl_defaults(void) {
-    pico8_jo_t *nl = pico8_nl_new(NULL);
+static void test_trading_hub_defaults(void) {
+    planet_t *nl = pico8_nl_new(NULL);
 
     assert(pico8_nl_ready());
-    assert(nl->s == trading_hub_archetype.sprite);
-    assert(nl->probe->od == trading_hub_archetype.targeting.cost);
-    assert(nl->qw == trading_hub_archetype.palette_block);
+    assert(nl->sprite == trading_hub_archetype.sprite);
+    assert(nl->targeting->od == trading_hub_archetype.targeting.cost);
+    assert(nl->palette_block == trading_hub_archetype.palette_block);
     assert_same_string(nl->header.state, trading_hub_archetype.state);
-    assert_qh_tail(nl, &trading_hub_archetype);
-    assert_jo_box(&nl->def->hit_box);
-    assert_jo_tail(nl, &trading_hub_archetype);
+    assert_structure_tail(nl, &trading_hub_archetype);
+    assert_planet_box(&nl->archetype->hit_box);
+    assert_planet_tail(nl, &trading_hub_archetype);
 }
 
-static void test_os_defaults(void) {
-    pico8_jo_t *os = pico8_os_new(NULL);
+static void test_processor_defaults(void) {
+    planet_t *os = pico8_os_new(NULL);
 
     assert(pico8_os_ready());
-    assert(os->s == processor_archetype.sprite);
-    assert(os->probe->od == processor_archetype.targeting.cost);
+    assert(os->sprite == processor_archetype.sprite);
+    assert(os->targeting->od == processor_archetype.targeting.cost);
     assert_same_string(os->header.state, processor_archetype.state);
-    assert_qh_tail(os, &processor_archetype);
-    assert_jo_box(&os->def->hit_box);
-    assert_jo_tail(os, &processor_archetype);
+    assert_structure_tail(os, &processor_archetype);
+    assert_planet_box(&os->archetype->hit_box);
+    assert_planet_tail(os, &processor_archetype);
 }
 
-static void test_hj_defaults(void) {
-    pico8_jo_t *hj = pico8_hj_new(NULL);
+static void test_ascension_defaults(void) {
+    planet_t *hj = pico8_hj_new(NULL);
 
     assert(pico8_hj_ready());
-    assert(hj->probe->od == ascension_archetype.targeting.cost);
-    assert(hj->s == ascension_archetype.sprite);
+    assert(hj->targeting->od == ascension_archetype.targeting.cost);
+    assert(hj->sprite == ascension_archetype.sprite);
     assert_emitter(hj->emitter, &ascension_archetype);
     assert_same_string(hj->header.state, ascension_archetype.state);
-    assert_qh_tail(hj, &ascension_archetype);
-    assert_jo_box(&hj->def->hit_box);
-    assert_jo_tail(hj, &ascension_archetype);
+    assert_structure_tail(hj, &ascension_archetype);
+    assert_planet_box(&hj->archetype->hit_box);
+    assert_planet_tail(hj, &ascension_archetype);
 }
 
-static void test_pm_defaults(void) {
-    pico8_jo_t *pm = pico8_pm_new(NULL);
+static void test_protostar_defaults(void) {
+    planet_t *pm = pico8_pm_new(NULL);
 
     assert(pico8_pm_ready());
     assert_same_string(pm->header.state, protostar_archetype.state);
-    assert(pm->s == protostar_archetype.sprite);
+    assert(pm->sprite == protostar_archetype.sprite);
     assert_emitter(pm->emitter, &protostar_archetype);
-    assert(pm->probe->od == protostar_archetype.targeting.cost);
-    assert_qh_tail(pm, &protostar_archetype);
-    assert_jo_box(&pm->def->hit_box);
-    assert_jo_tail(pm, &protostar_archetype);
+    assert(pm->targeting->od == protostar_archetype.targeting.cost);
+    assert_structure_tail(pm, &protostar_archetype);
+    assert_planet_box(&pm->archetype->hit_box);
+    assert_planet_tail(pm, &protostar_archetype);
 }
 
-static void test_ga_defaults(void) {
-    pico8_jo_t *ga = pico8_ga_new(NULL);
-    pico8_jo_t *other = pico8_ga_new(NULL);
+static void test_burst_defaults(void) {
+    planet_t *ga = pico8_ga_new(NULL);
+    planet_t *other = pico8_ga_new(NULL);
 
     assert(pico8_ga_ready());
-    assert(ga->by != NULL && ga->by == other->by);
+    assert(ga->outgoing_routes != NULL && ga->outgoing_routes == other->outgoing_routes);
     assert(ga->emitter->def == &burst_archetype.emitter);
     assert(ga->emitter->qo == burst_archetype.emitter.matrix_xx);
     assert(ga->emitter->ro == burst_archetype.emitter.matrix_xy);
     assert(ga->emitter->qg == burst_archetype.emitter.matrix_yx);
     assert(ga->emitter->q_ == burst_archetype.emitter.matrix_yy);
     assert(ga->emitter->k_ == burst_archetype.emitter.trail_colors);
-    assert(ga->iu == burst_archetype.acceleration_factor);
+    assert(ga->acceleration_factor == burst_archetype.acceleration_factor);
     assert(ga->emitter->py == burst_archetype.emitter.speed_factor);
-    assert(ga->ms == burst_archetype.speed);
-    assert_box(&ga->def->hit_box, 0, 0, -1, -1);
-    assert_same_string(ga->header.state, ga->def->state);
-    assert_jo_tail(ga, &burst_archetype);
-    assert(ga->def->trade_multiplier == p8_fixed_from_int(1));
-    assert(ga->mi == 0 && !ga->has_mi);
-    assert(ga->kw == pico8_jo_shared_kw());
-    assert(ga->kw->amount == 0 && !ga->kw->has_resource);
-    assert(ga->kw_own.amount == 0 && !ga->kw_own.has_resource && ga->kw_own.resource == 0);
+    assert(ga->speed == burst_archetype.speed);
+    assert_box(&ga->archetype->hit_box, 0, 0, -1, -1);
+    assert_same_string(ga->header.state, ga->archetype->state);
+    assert_planet_tail(ga, &burst_archetype);
+    assert(ga->archetype->trade_multiplier == p8_fixed_from_int(1));
+    assert(ga->development_tier == 0 && !ga->has_development_tier);
+    assert(ga->production == planet_shared_production());
+    assert(ga->production->amount == 0 && !ga->production->has_resource);
+    assert(ga->production_own.amount == 0 && !ga->production_own.has_resource && ga->production_own.resource == 0);
 }
 
 /* What nr and fr inherit from qh and jo, and nr's box, which fr keeps. */
-static void assert_nr_inherited(const pico8_jo_t *nr, const planet_archetype_t *def) {
-    assert(nr->probe->od == def->targeting.cost);
-    assert(nr->s == def->sprite);
-    assert_box(&nr->def->hit_box, -4, -4, 5, 5);
-    assert_same_string(nr->header.state, def->state);
-    assert_qh_tail(nr, def);
-    assert_jo_tail(nr, def);
+static void assert_slipgate_inherited(const planet_t *nr, const planet_archetype_t *archetype) {
+    assert(nr->targeting->od == archetype->targeting.cost);
+    assert(nr->sprite == archetype->sprite);
+    assert_box(&nr->archetype->hit_box, -4, -4, 5, 5);
+    assert_same_string(nr->header.state, archetype->state);
+    assert_structure_tail(nr, archetype);
+    assert_planet_tail(nr, archetype);
 }
 
-static void test_nr_defaults(void) {
-    pico8_jo_t *nr = pico8_nr_new(NULL);
+static void test_slipgate_defaults(void) {
+    planet_t *nr = slipgate_new(NULL);
 
-    assert(pico8_nr_ready());
-    assert_nr_inherited(nr, &slipgate_archetype);
+    assert(slipgate_ready());
+    assert_slipgate_inherited(nr, &slipgate_archetype);
 }
 
-static void test_fr_defaults(void) {
-    pico8_jo_t *fr = pico8_fr_new(NULL);
+static void test_infraspace_gate_defaults(void) {
+    planet_t *fr = infraspace_gate_new(NULL);
 
-    assert(pico8_fr_ready());
-    assert_nr_inherited(fr, &infraspace_gate_archetype);
+    assert(infraspace_gate_ready());
+    assert_slipgate_inherited(fr, &infraspace_gate_archetype);
 }
 
-static void test_mx_defaults(void) {
-    pico8_jo_t *mx = pico8_mx_new(NULL);
+static void test_synthesizer_defaults(void) {
+    planet_t *mx = synthesizer_new(NULL);
 
-    assert(pico8_mx_ready());
-    assert(mx->s == synthesizer_archetype.sprite);
-    assert(mx->probe->od == synthesizer_archetype.targeting.cost);
-    assert(mx->ht == synthesizer_archetype.synthesizable_resources);
+    assert(synthesizer_ready());
+    assert(mx->sprite == synthesizer_archetype.sprite);
+    assert(mx->targeting->od == synthesizer_archetype.targeting.cost);
+    assert(mx->synthesizable_resources == synthesizer_archetype.synthesizable_resources);
     assert_emitter(mx->emitter, &synthesizer_archetype);
     assert_same_string(mx->header.state, synthesizer_archetype.state);
-    assert_qh_tail(mx, &synthesizer_archetype);
-    assert_jo_box(&mx->def->hit_box);
-    assert_jo_tail(mx, &synthesizer_archetype);
+    assert_structure_tail(mx, &synthesizer_archetype);
+    assert_planet_box(&mx->archetype->hit_box);
+    assert_planet_tail(mx, &synthesizer_archetype);
 }
 
 /* The second `jl()` (the one `eu` runs) finds `ke` ready and leaves it
  * alone: a fresh struct of each module still holds `t` 0. */
-static void test_second_jl_keeps_ke(void) {
+static void test_second_reset_world_keeps_entity(void) {
     assert(entity_ready());
     reset_world();
     assert(entity_ready());
-    assert(pico8_jo_new(NULL)->header.state_time == 0);
+    assert(planet_new(NULL)->header.state_time == 0);
     assert(pico8_qh_new(NULL)->header.state_time == 0);
     assert(pico8_nl_new(NULL)->header.state_time == 0);
     assert(pico8_os_new(NULL)->header.state_time == 0);
     assert(pico8_hj_new(NULL)->header.state_time == 0);
     assert(pico8_pm_new(NULL)->header.state_time == 0);
     assert(pico8_ga_new(NULL)->header.state_time == 0);
-    assert(pico8_nr_new(NULL)->header.state_time == 0);
-    assert(pico8_fr_new(NULL)->header.state_time == 0);
-    assert(pico8_mx_new(NULL)->header.state_time == 0);
+    assert(slipgate_new(NULL)->header.state_time == 0);
+    assert(infraspace_gate_new(NULL)->header.state_time == 0);
+    assert(synthesizer_new(NULL)->header.state_time == 0);
 }
 
 int main(void) {
@@ -232,35 +232,35 @@ int main(void) {
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
 
-    assert(!pico8_jo_ready());
+    assert(!planet_ready());
     assert(!pico8_qh_ready());
     assert(!pico8_nl_ready());
     assert(!pico8_os_ready());
     assert(!pico8_hj_ready());
     assert(!pico8_pm_ready());
     assert(!pico8_ga_ready());
-    assert(!pico8_nr_ready());
-    assert(!pico8_fr_ready());
-    assert(!pico8_mx_ready());
+    assert(!slipgate_ready());
+    assert(!infraspace_gate_ready());
+    assert(!synthesizer_ready());
     pico8_cart_load();
     reset_world();
 
-    test_second_jl_keeps_ke();
-    test_jo_defaults();
-    test_qh_defaults();
-    test_nl_defaults();
-    test_os_defaults();
-    test_hj_defaults();
-    test_pm_defaults();
-    test_ga_defaults();
-    test_nr_defaults();
-    test_fr_defaults();
-    test_mx_defaults();
+    test_second_reset_world_keeps_entity();
+    test_planet_defaults();
+    test_structure_defaults();
+    test_trading_hub_defaults();
+    test_processor_defaults();
+    test_ascension_defaults();
+    test_protostar_defaults();
+    test_burst_defaults();
+    test_slipgate_defaults();
+    test_infraspace_gate_defaults();
+    test_synthesizer_defaults();
 
-    pico8_planet_family_trade_shutdown();
-    assert(!pico8_nr_ready());
-    assert(!pico8_fr_ready());
-    assert(!pico8_mx_ready());
+    planet_family_trade_shutdown();
+    assert(!slipgate_ready());
+    assert(!infraspace_gate_ready());
+    assert(!synthesizer_ready());
     assert(pico8_qh_ready());
     pico8_planet_family_shutdown();
     assert(!pico8_qh_ready());
@@ -269,13 +269,13 @@ int main(void) {
     assert(!pico8_hj_ready());
     assert(!pico8_pm_ready());
     assert(!pico8_ga_ready());
-    assert(pico8_jo_ready());
-    pico8_jo_shutdown();
-    assert(!pico8_jo_ready());
+    assert(planet_ready());
+    planet_shutdown();
+    assert(!planet_ready());
     assert(entity_ready());
     entity_shutdown();
     assert(!entity_ready());
 
-    printf("test_pico8_jo_spec_defaults: all tests passed\n");
+    printf("test_planet_spec_defaults: all tests passed\n");
     return 0;
 }

@@ -132,7 +132,7 @@ typedef struct {
 typedef void (*state_fn_t)(entity_t *self, p8_fixed_t t);
 
 struct pico8_qy;
-struct pico8_jo_trade_proposal;
+struct trade_offer;
 struct str_seq;
 struct kind_record;
 
@@ -154,7 +154,7 @@ struct entity_class {
     void (*drag)(entity_t *self, vec_t *qa, vec_t *ra);
     void (*drop)(entity_t *self, entity_t *kv);
     void (*attach_slipway)(entity_t *self, entity_t *sw);
-    void (*offer_trade)(entity_t *self, struct pico8_jo_trade_proposal *lw);
+    void (*offer_trade)(entity_t *self, struct trade_offer *lw);
     void (*draw_at)(entity_t *self, vec_t p, p8_fixed_t a);
     struct pico8_qy *(*spawn_particle)(entity_t *self);
     state_fn_t states[STATE_COUNT];
@@ -190,7 +190,7 @@ typedef struct {
 
 /* Here, not in pico8_slipway.h / pico8_probe.h: ui.c compares against
  * them, and including either header from ui.c makes an include pair. */
-const entity_class_t *pico8_jc_struct_class(void);
+const entity_class_t *slipway_class(void);
 const entity_class_t *pico8_g__struct_class(void);
 
 #endif

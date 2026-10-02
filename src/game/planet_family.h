@@ -36,12 +36,12 @@ const entity_class_t *pico8_qh_struct_class(void);
  * archetype: jo's part, then `s` and the probe copied from `def`. Reads no
  * key, runs neither `pq` nor `lt`, records no coverage. Requires
  * `pico8_planet_family_init()`. */
-void pico8_qh_struct_init(pico8_jo_t *self, const entity_class_t *cls, const planet_archetype_t *def);
+void pico8_qh_struct_init(planet_t *self, const entity_class_t *cls, const planet_archetype_t *def);
 
 /* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
  * NULL. The new laboratory registers itself into `hv`/`cv`/`cg` through `lt`, and it
  * lives in the game generation. Requires `pico8_planet_family_init()`. */
-pico8_jo_t *pico8_qh_new(const planet_keys_t *keys);
+planet_t *pico8_qh_new(const planet_keys_t *keys);
 
 /* A trading hub: a laboratory whose `qw` is copied from its archetype and
  * written by its own `ly`. */
@@ -52,7 +52,7 @@ const entity_class_t *pico8_nl_struct_class(void);
 /* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
  * NULL. The new trading hub registers itself into `hv`/`cv`/`cg` through `lt`, and
  * it lives in the game generation. Requires `pico8_planet_family_init()`. */
-pico8_jo_t *pico8_nl_new(const planet_keys_t *keys);
+planet_t *pico8_nl_new(const planet_keys_t *keys);
 
 /* A processor: a laboratory and nothing of its own; its defaults are its
  * archetype's. */
@@ -63,7 +63,7 @@ const entity_class_t *pico8_os_struct_class(void);
 /* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
  * NULL. The new processor registers itself into `hv`/`cv`/`cg` through `lt`, and it
  * lives in the game generation. Requires `pico8_planet_family_init()`. */
-pico8_jo_t *pico8_os_new(const planet_keys_t *keys);
+planet_t *pico8_os_new(const planet_keys_t *keys);
 
 /* An ascension: a laboratory whose emitter is copied from its kind's
  * archetype, with `qy`, which its own `pq` (`f_`) writes. */
@@ -74,13 +74,13 @@ const entity_class_t *pico8_hj_struct_class(void);
 /* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
  * NULL. The new ascension registers itself into `hv`/`cv`/`cg` through `lt`, and it
  * lives in the game generation. Requires `pico8_planet_family_init()`. */
-pico8_jo_t *pico8_hj_new(const planet_keys_t *keys);
+planet_t *pico8_hj_new(const planet_keys_t *keys);
 
 /* Initializes an allocated pico8_jo_t under `cls` and `def`, its kind's
  * archetype: qh's part, then the emitter copied from `def`, `qy` nil. Reads
  * no key, runs neither `pq` nor `lt`, records no coverage. Requires
  * `pico8_planet_family_init()`. */
-void pico8_hj_struct_init(pico8_jo_t *self, const entity_class_t *cls, const planet_archetype_t *def);
+void pico8_hj_struct_init(planet_t *self, const entity_class_t *cls, const planet_archetype_t *def);
 
 /* The dispatchers hj's descriptor holds, for a daughter's `static const`
  * descriptor to name. */
@@ -102,7 +102,7 @@ const entity_class_t *pico8_pm_struct_class(void);
  * spawns its `ga` at `ra + ng`, then registers itself into `hv`/`cv`/`cg`
  * through `lt`, after that `ga`; it lives in the game generation. Requires
  * `pico8_planet_family_init()`. */
-pico8_jo_t *pico8_pm_new(const planet_keys_t *keys);
+planet_t *pico8_pm_new(const planet_keys_t *keys);
 
 /* A particle burst: a planet whose `iu`, `ms` and emitter are copied from
  * its archetype, with `qy`, which its own `pq` (`f_`) writes; the emitter's
@@ -130,20 +130,20 @@ typedef struct {
  * into `hv`/`cv`, in no `cg`, through `lt`; its `rendre` gives that place
  * back once it leaves through the exit queue. Requires
  * `pico8_planet_family_init()`. */
-pico8_jo_t *pico8_ga_new(const pico8_ga_keys_t *keys);
+planet_t *pico8_ga_new(const pico8_ga_keys_t *keys);
 
-void pico8_nl_ly(pico8_jo_t *self, p8_fixed_t t);
+void pico8_nl_ly(planet_t *self, p8_fixed_t t);
 
-void pico8_hj_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_jo_t *self, vec_t p);
+void pico8_hj_kj(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t p);
 
-void pico8_pm_pq(pico8_jo_t *self);
+void pico8_pm_pq(planet_t *self);
 
-void pico8_ga_pq(pico8_jo_t *self);
+void pico8_ga_pq(planet_t *self);
 
 /* A particle (`has_a` 1) from pico8_particule_prendre, which `ez` stores
  * into `self.qy`. */
 pico8_qy_t *pico8_ga_mm(entity_t *self);
 
-void pico8_ga_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_jo_t *self, vec_t p);
+void pico8_ga_kj(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t p);
 
 #endif

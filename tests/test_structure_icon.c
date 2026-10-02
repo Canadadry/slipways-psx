@@ -175,10 +175,10 @@ static int icon_rank(const void *e) {
 static void gx(const entity_kind_t *out[7]) {
     out[0] = pico8_qh_kind();
     out[1] = pico8_os_kind();
-    out[2] = pico8_nr_kind();
-    out[3] = pico8_fr_kind();
+    out[2] = slipgate_kind();
+    out[3] = infraspace_gate_kind();
     out[4] = pico8_nl_kind();
-    out[5] = pico8_mx_kind();
+    out[5] = synthesizer_kind();
     out[6] = pico8_hj_kind();
 }
 
@@ -412,15 +412,15 @@ static void test_directed(void) {
 
     id0 = shared_id_fixed(as_ie(all[0]));
     made = cls_of(all[0])->left_press(all[0], NULL, NULL);
-    assert(made.stop && made.held != NULL && pico8_jo_is_family(made.held));
-    assert(strcmp(((const pico8_jo_t *)made.held)->id, "s1") == 0);
+    assert(made.stop && made.held != NULL && planet_is_family(made.held));
+    assert(strcmp(((const planet_t *)made.held)->planet_id, "s1") == 0);
     assert(shared_id_fixed(as_ie(all[n - 1])) == p8_fixed_add(id0, p8_fixed_from_int(1)));
-    h = fold_string(h, ((const pico8_jo_t *)made.held)->id);
+    h = fold_string(h, ((const planet_t *)made.held)->planet_id);
     made = cls_of(all[n - 1])->left_press(all[n - 1], NULL, NULL);
-    assert(made.held != NULL && pico8_jo_is_family(made.held));
-    assert(strcmp(((const pico8_jo_t *)made.held)->id, "s2") == 0);
+    assert(made.held != NULL && planet_is_family(made.held));
+    assert(strcmp(((const planet_t *)made.held)->planet_id, "s2") == 0);
     assert(shared_id_fixed(as_ie(all[0])) == p8_fixed_add(id0, p8_fixed_from_int(2)));
-    h = fold_string(h, ((const pico8_jo_t *)made.held)->id);
+    h = fold_string(h, ((const planet_t *)made.held)->planet_id);
     h = fold_shared(h, all[3]);
 
     assert(as_ie(shown)->ra != NULL);
@@ -636,7 +636,7 @@ static void test_ie_is_a_struct(void) {
 
     others[0] = pico8_bg_new();
     others[1] = pico8_fq_new(NULL);
-    others[2] = pico8_jc_new(NULL);
+    others[2] = slipway_new(NULL);
     others[3] = pico8_mz_new();
     for (i = 0; i < 4; i++) {
         assert(cls_of(others[i])->refresh == NULL);

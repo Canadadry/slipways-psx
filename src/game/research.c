@@ -106,8 +106,8 @@ static void hp_positions(pico8_hp_t *self, const project_records_entry_t *ri, co
     }
 }
 
-pico8_qe_t pico8_jy_qe(const pico8_jy_t *i) {
-    return i->row.has_resource ? (pico8_qe_t){.kind = PICO8_QE_FIXED, .n = i->row.resource} : (pico8_qe_t){.kind = PICO8_QE_NIL};
+resource_t pico8_jy_qe(const pico8_jy_t *i) {
+    return i->row.has_resource ? (resource_t){.kind = RESOURCE_FIXED, .number = i->row.resource} : (resource_t){.kind = RESOURCE_NIL};
 }
 
 pico8_jy_t *pico8_jy_new(const allocator_t *zone, const p8_fixed_t *qe) {

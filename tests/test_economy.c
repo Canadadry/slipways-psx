@@ -205,13 +205,13 @@ static void start_game(void) {
     pico8_eu(NULL);
 }
 
-static pico8_jo_t *as_jo(void *e) {
-    assert(pico8_jo_is_family(e));
+static planet_t *as_jo(void *e) {
+    assert(planet_is_family(e));
     return e;
 }
 
 static vec_t pos_of(void *e) {
-    const vec_t *p = as_jo(e)->p;
+    const vec_t *p = as_jo(e)->map_pos;
     assert(p != NULL);
     return *p;
 }
@@ -231,11 +231,11 @@ static pico8_hp_t *project(int k) {
  * hovered planet off `ok.o_`), then left to settle. */
 static void built_world(void) {
     const entity_list_t *jos;
-    pico8_jc_keys_t jc_keys = {0};
+    slipway_keys_t jc_keys = {0};
     vec_t *mp = malloc(sizeof *mp);
     void *qu;
     void *re = NULL;
-    pico8_jc_t *jc;
+    slipway_t *jc;
     int i;
 
     start_game();
@@ -248,20 +248,20 @@ static void built_world(void) {
             re = e;
         }
     }
-    pico8_jo_hu(qu, project(COLONY));
-    pico8_jo_hu(re, project(EXPORTER));
+    planet_apply_project(qu, project(COLONY));
+    planet_apply_project(re, project(EXPORTER));
 
-    jc_keys.qu = qu;
-    jc = pico8_jc_new(&jc_keys);
+    jc_keys.start = qu;
+    jc = slipway_new(&jc_keys);
     *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
                         vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
-    pico8_jc_struct_class()->drag(&jc->header, mp, NULL);
+    slipway_class()->drag(&jc->header, mp, NULL);
     pico8_ok()->o_ = NULL;
     while (jc->header.state_time < p8_fixed_from_int(15)) {
         update_entities();
     }
-    pico8_jc_struct_class()->drop(&jc->header, re);
+    slipway_class()->drop(&jc->header, re);
     for (i = 0; i < 120; i++) {
         update_entities();
     }
@@ -448,8 +448,8 @@ static uint32_t fold_planets_kr(uint32_t h) {
     const entity_list_t *jo = entities_by_tag("planet");
     int i;
     for (i = 0; jo != NULL && i < jo->count; i++) {
-        const pico8_jo_t *p = as_jo(jo->items[i]);
-        h = fold_fixed_member(h, p->has_kr, p->kr);
+        const planet_t *p = as_jo(jo->items[i]);
+        h = fold_fixed_member(h, p->has_net_income, p->net_income);
     }
     return h;
 }
@@ -461,13 +461,13 @@ static const char *hl_string(void) {
 }
 
 /* The first producing planet of `cg.jo`: `jy` set and its own `kw`. */
-static pico8_jo_t *a_maker(void) {
+static planet_t *a_maker(void) {
     const entity_list_t *jos = entities_by_tag("planet");
     int i;
 
     for (i = 0; i < jos->count; i++) {
-        pico8_jo_t *p = as_jo(jos->items[i]);
-        if (p->jy != NULL && p->kw != NULL && p->kw->has_resource) {
+        planet_t *p = as_jo(jos->items[i]);
+        if (p->needs != NULL && p->production != NULL && p->production->has_resource) {
             return p;
         }
     }
@@ -484,8 +484,8 @@ static void test_lj(void) {
     uint32_t h = 2166136261u;
     const pico8_qe_map_t *po;
     const pico8_qe_map_t *fu;
-    pico8_jo_t *maker;
-    pico8_jo_t *needer;
+    planet_t *maker;
+    planet_t *needer;
     pointer_list_t needs;
     p8_fixed_t need_qe = p8_fixed_from_int(99);
     pico8_jy_t *need;
@@ -498,13 +498,13 @@ static void test_lj(void) {
     fu = fm_hy()->fu;
     assert(po != NULL && fu != NULL);
     maker = a_maker();
-    qe = maker->kw->resource;
-    assert(pico8_qe_map_get(po, qe, &made) && maker->kw->amount > 0);
-    maker->kw->resource = p8_fixed_from_int(99);
+    qe = maker->production->resource;
+    assert(pico8_qe_map_get(po, qe, &made) && maker->production->amount > 0);
+    maker->production->resource = p8_fixed_from_int(99);
     pico8_hy_lj(fm_self());
-    assert(pico8_qe_map_get(po, p8_fixed_from_int(99), &now) && now == maker->kw->amount);
-    assert(pico8_qe_map_get(po, qe, &now) && now == p8_fixed_sub(made, maker->kw->amount));
-    maker->kw->resource = qe;
+    assert(pico8_qe_map_get(po, p8_fixed_from_int(99), &now) && now == maker->production->amount);
+    assert(pico8_qe_map_get(po, qe, &now) && now == p8_fixed_sub(made, maker->production->amount));
+    maker->production->resource = qe;
     pico8_hy_lj(fm_self());
     assert(!pico8_qe_map_get(po, p8_fixed_from_int(99), &now));
     assert(pico8_qe_map_get(po, qe, &now) && now == made);
@@ -545,10 +545,10 @@ static void test_lj(void) {
     needer = pico8_qh_new(NULL);
     pointer_list_init(&needs, &heap_allocator);
     pointer_list_add(&needs, need);
-    needer->jy = &needs;
+    needer->needs = &needs;
     pico8_hy_lj(fm_self());
     assert(pico8_qe_map_get(fu, p8_fixed_from_int(99), &now) && now == p8_fixed_from_int(1) - 0x2666);
-    needer->jy = NULL;
+    needer->needs = NULL;
     pico8_hy_lj(fm_self());
     assert(!pico8_qe_map_get(fu, p8_fixed_from_int(99), &now));
 }

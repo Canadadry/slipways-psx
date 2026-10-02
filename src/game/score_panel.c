@@ -100,7 +100,7 @@ static int pico8_eg_gg_pred(entity_t *e, void *ctx) {
     if (e == NULL) {
         return 0;
     }
-    return pico8_jo_gg((const pico8_jo_t *)e);
+    return planet_is_colonized((const planet_t *)e);
 }
 
 void pico8_eg(void) {

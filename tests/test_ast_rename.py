@@ -327,6 +327,34 @@ class ApplyTest(Setup):
         self.assertIn(b"camera_t unit_shape = { 0 };", read("src/main.c"))
         self.assertTrue(compiles())
 
+    def plant_sibling_locals(self, nested):
+        inner = b"        int low_part = n - 1;\n        return low_part;\n"
+        with open(os.path.join(WORK, "src", "shapes.c"), "ab") as f:
+            f.write(b"int shape_split(int n) {\n"
+                    b"    if (n > 0) {\n"
+                    b"        int high_part = n + 1;\n"
+                    + (inner + b"    }\n" if nested else
+                       b"        return high_part;\n    } else {\n        n = -n;\n" + inner + b"    }\n")
+                    + b"    return 0;\n}\n")
+
+    def test_accepts_two_locals_of_disjoint_blocks_given_the_same_name(self):
+        self.plant_sibling_locals(nested=False)
+        write_table([("high_part", "part", "src/shapes.c"),
+                     ("low_part", "part", "src/shapes.c")])
+        result = apply()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        source = read("src/shapes.c")
+        self.assertIn(b"int part = n + 1;", source)
+        self.assertIn(b"int part = n - 1;", source)
+        self.assertTrue(compiles())
+
+    def test_refuses_two_locals_of_overlapping_scopes_given_the_same_name(self):
+        self.plant_sibling_locals(nested=True)
+        before = tree_digest()
+        write_table([("high_part", "part", "src/shapes.c"),
+                     ("low_part", "part", "src/shapes.c")])
+        self.assertRefused(apply(), before, "collides")
+
     def plant_main_macro(self):
         with open(os.path.join(WORK, "src", "main.c"), "ab") as f:
             f.write(b"#define MAIN_LIMIT 2\nint main_limit(void) { return MAIN_LIMIT; }\n")

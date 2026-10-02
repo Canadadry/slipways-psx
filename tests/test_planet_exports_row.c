@@ -32,7 +32,7 @@
 #include "engine/vec.h"
 
 /* The `js` button instances `pz()` just built. */
-static const entity_list_t *ok_le(void) {
+static const entity_list_t *main_ui_ephemerals(void) {
     const pico8_ui_t *ok = pico8_ok();
     assert(ok != NULL);
     assert(ok->le != NULL);
@@ -41,7 +41,7 @@ static const entity_list_t *ok_le(void) {
 
 /* A button's `lq` field, after `js:pq()` replaced the raw row override
  * with a real row. */
-static const layout_row_t *button_lq(const void *button) {
+static const layout_row_t *button_layout_row(const void *button) {
     const layout_row_t *lq;
 
     assert(button != NULL);
@@ -52,7 +52,7 @@ static const layout_row_t *button_lq(const void *button) {
 }
 
 /* The row's item at 1-based `index`, as a table lookup would find it. */
-static int lq_item(const layout_row_t *lq, int index, layout_row_cell_t *out) {
+static int layout_row_item(const layout_row_t *lq, int index, layout_row_cell_t *out) {
     if (index < 1 || index > lq->items_count) {
         return 0;
     }
@@ -60,9 +60,9 @@ static int lq_item(const layout_row_t *lq, int index, layout_row_cell_t *out) {
     return 1;
 }
 
-static int lq_index_is_string(const layout_row_t *lq, int index, const char *expected) {
+static int layout_row_index_is_string(const layout_row_t *lq, int index, const char *expected) {
     layout_row_cell_t v;
-    if (!lq_item(lq, index, &v)) {
+    if (!layout_row_item(lq, index, &v)) {
         return 0;
     }
     return v.kind == LAYOUT_ROW_CELL_STRING && strcmp(v.as.text, expected) == 0;
@@ -81,81 +81,81 @@ static void setup_panel_state(p8_memory_t *mem, p8_graphics_t *gfx) {
     reset_world();
     layout_init();
     pico8_js_init();
-    pico8_jo_init();
+    planet_init();
 }
 
-static void test_gh_exports_row_lq_receives_its_four_items(void) {
+static void test_inspection_panel_exports_row_layout_row_receives_its_four_items(void) {
     p8_memory_t mem;
     p8_graphics_t gfx;
-    pico8_jo_t *planet;
-    static production_t kw;
-    const data_row_t *kw_row;
-    vec_t *ra;
-    const entity_list_t *le;
-    const layout_row_t *exports_lq = NULL;
+    planet_t *planet;
+    static production_t production;
+    const data_row_t *production_row;
+    vec_t *pos;
+    const entity_list_t *ephemerals;
+    const layout_row_t *exports_layout_row = NULL;
     layout_row_cell_t entry;
-    int i;
+    int index;
 
     setup_panel_state(&mem, &gfx);
 
-    planet = pico8_jo_new(NULL);
+    planet = planet_new(NULL);
     assert(planet != NULL);
 
     /* 99 is deliberately not one of `jo.cq`'s resources, so `jo:gh` takes
      * the else branch and builds the 4-item "exports:" row rather than the
      * 3-item "makes:" one. */
-    kw.has_resource = 1;
-    kw.resource = p8_fixed_from_int(99);
-    kw.amount = p8_fixed_from_int(1);
-    planet->kw = &kw;
+    production.has_resource = 1;
+    production.resource = p8_fixed_from_int(99);
+    production.amount = p8_fixed_from_int(1);
+    planet->production = &production;
 
     /* `jo:gh` reads it, and the archetype's `gq`, for `pz()`'s row placement. */
-    ra = malloc(sizeof *ra);
-    *ra = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
-    planet->ra = ra;
+    pos = malloc(sizeof *pos);
+    *pos = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
+    planet->pos = pos;
 
     /* The call under test: this is where the overflow happened. */
-    pico8_jo_gh(planet);
+    planet_inspection_panel(planet);
 
-    le = ok_le();
+    ephemerals = main_ui_ephemerals();
     /* The icon row, whose "lq" really is an ob_table, plus the "exports:"
      * row. */
-    assert(le->count >= 2);
+    assert(ephemerals->count >= 2);
 
-    for (i = 0; i < le->count; i++) {
-        const layout_row_t *lq = button_lq(le->items[i]);
+    for (index = 0; index < ephemerals->count; index++) {
+        const layout_row_t *lq = button_layout_row(ephemerals->items[index]);
         assert(lq != NULL && lq->header.class == layout_row_class());
-        if (lq_index_is_string(lq, 1, "exports:")) {
-            exports_lq = lq;
+        if (layout_row_index_is_string(lq, 1, "exports:")) {
+            exports_layout_row = lq;
         }
     }
-    assert(exports_lq != NULL);
+    assert(exports_layout_row != NULL);
 
     /* The four items the row holds, in order and at the right element
      * stride: "exports:", "<#by>/<mu>", the `{qe=kw.qe}` of `kw`, and the
      * `{false,1}` tuple `jo:gh` appends to every row after the first. */
-    assert(lq_index_is_string(exports_lq, 1, "exports:"));
-    assert(lq_index_is_string(exports_lq, 2, "0/1"));
+    assert(layout_row_index_is_string(exports_layout_row, 1, "exports:"));
+    assert(layout_row_index_is_string(exports_layout_row, 2, "0/1"));
 
-    assert(lq_item(exports_lq, 3, &entry));
+    assert(layout_row_item(exports_layout_row, 3, &entry));
     assert(entry.kind == LAYOUT_ROW_CELL_ROW && entry.as.row != NULL);
-    kw_row = entry.as.row;
-    assert(kw_row->has_resource && kw_row->resource == p8_fixed_from_int(99) && kw_row->count == 0);
+    production_row = entry.as.row;
+    assert(production_row->has_resource && production_row->resource == p8_fixed_from_int(99) && production_row->count == 0);
 
-    assert(lq_item(exports_lq, 4, &entry));
+    assert(layout_row_item(exports_layout_row, 4, &entry));
     assert(entry.kind == LAYOUT_ROW_CELL_ROW && entry.as.row != NULL);
 
     /* No phantom fifth item from an over-long copy loop. */
-    assert(!lq_item(exports_lq, 5, &entry));
+    assert(!layout_row_item(exports_layout_row, 5, &entry));
 
     /* `lq:pq()` ran over exactly those four: one `fs` entry per item. */
-    assert(exports_lq->placed_items != NULL);
-    assert(exports_lq->placed_items_count == 4);
+    assert(exports_layout_row->placed_items != NULL);
+    assert(exports_layout_row->placed_items_count == 4);
 }
 
 int main(void) {
-    test_gh_exports_row_lq_receives_its_four_items();
+    test_inspection_panel_exports_row_layout_row_receives_its_four_items();
 
-    printf("test_pico8_planet_gh_row_lq: all tests passed\n");
+    printf("test_planet_exports_row: all tests passed\n");
     return 0;
 }

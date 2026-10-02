@@ -588,7 +588,7 @@ static void call_gk(void *e) {
 }
 
 static void call_na(void *e) {
-    pico8_na(e, p8_fixed_from_int(1));
+    planet_bob(e, p8_fixed_from_int(1));
 }
 
 /* On NULL `self`: `d_`, `gk` return 0; `g__mm` draws three `rnd`, divides by

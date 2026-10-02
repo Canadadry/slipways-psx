@@ -121,8 +121,8 @@ def _check_names(renamed, model, plan):
     a macro of a header meets every name, a macro of a .c file the names of a
     header, of external linkage or of its file; file-scope names meet each other unless both are
     static in different files, and meet the locals they would shadow; fields
-    meet the fields of their struct; locals the locals of their function, and
-    the file-scope names of a header, of external linkage or of their file."""
+    meet the fields of their struct; locals the locals of their function whose
+    scope overlaps theirs, and the file-scope names of a header, of external linkage or of their file."""
     final = {}
     for usr, identity in model.identities.items():
         final[usr] = renamed[usr].new if usr in renamed else identity.name
@@ -148,7 +148,7 @@ def _visible_together(a, b):
         return a.kind == b.kind
     a_local, b_local = _is_local(a), _is_local(b)
     if a_local and b_local:
-        return a.parent == b.parent and a.file == b.file
+        return a.parent == b.parent and a.file == b.file and _scopes_overlap(a, b)
     if a_local or b_local:
         outer = b if a_local else a
         local = a if a_local else b
@@ -156,6 +156,16 @@ def _visible_together(a, b):
     if a.linkage == "static" and b.linkage == "static":
         return a.file == b.file
     return True
+
+
+def _scopes_overlap(a, b):
+    """Lines from the declaration to its scope end; an unknown scope runs to
+    the end of the file (the rule of overlap() in tools/rename_check.py)."""
+    def lines(identity):
+        end = identity.line + identity.scope_lines if identity.scope_lines >= 0 else 10 ** 9
+        return identity.line, end
+    (a0, a1), (b0, b1) = lines(a), lines(b)
+    return a0 <= b1 and b0 <= a1
 
 
 def _shared(identity):

@@ -1,5 +1,5 @@
-#ifndef PICO8_TRADE_H
-#define PICO8_TRADE_H
+#ifndef GAME_TRADE_H
+#define GAME_TRADE_H
 
 #include "engine/entity_list.h"
 #include "p8/fixed.h"
@@ -9,12 +9,12 @@
 /* `lp`/`rl` are the containers the keys held, borrowed, not copied. */
 typedef struct {
     entity_t header;
-    entity_list_t *lp;
-    entity_list_t *rl;
-    p8_fixed_t qe;
-    int has_qe;     /* 0: `qe` is nil, and `qe` is then never read */
-    int qe_is_bool; /* 1: `qe` holds a boolean (0/1), 0: a fixed; read only when `has_qe` */
-} pico8_trade_t;
+    entity_list_t *planets;
+    entity_list_t *slipways;
+    p8_fixed_t resource;
+    int has_resource;     /* 0: `qe` is nil, and `qe` is then never read */
+    int resource_is_bool; /* 1: `qe` holds a boolean (0/1), 0: a fixed; read only when `has_qe` */
+} trade_route_t;
 
 /* `trade` is a root class with an empty spec and no `pq`, not
  * ke-descended, so it never self-registers into hv/cv/cg.
@@ -24,59 +24,59 @@ typedef struct {
  * therefore compares two trades by pointer identity, not by pico8_trade_eq;
  * membership that must honour trade equality goes
  * through `gu_trade` (src/game/planet_trade.c). */
-void pico8_trade_init(void);
-void pico8_trade_shutdown(void);
+void trade_init(void);
+void trade_shutdown(void);
 
 /* 1 from pico8_trade_init() to pico8_trade_shutdown(), 0 otherwise. */
-int pico8_trade_ready(void);
-const entity_class_t *pico8_trade_struct_class(void);
+int trade_ready(void);
+const entity_class_t *trade_class(void);
 
 /* A route's or a want's `qe`: `n` is read only for FIXED. */
 typedef struct {
-    enum { PICO8_QE_NIL, PICO8_QE_FALSE, PICO8_QE_FIXED } kind;
-    p8_fixed_t n;
-} pico8_qe_t;
+    enum { RESOURCE_NIL, RESOURCE_FALSE, RESOURCE_FIXED } kind;
+    p8_fixed_t number;
+} resource_t;
 
 /* Lua's `==` on two `qe`: nil equals nil, false equals false, nil is not
  * false; numbers by value. */
-int pico8_qe_equal(pico8_qe_t a, pico8_qe_t b);
+int resource_equal(resource_t a, resource_t b);
 
 /* The keys of `pico8_trade_new`: `lp`/`rl` NULL are nil, kept as given;
  * `has_qe`, `qe_is_bool`, `qe` as in `pico8_trade_t`, all 0 for a nil `qe`. */
 typedef struct {
-    entity_list_t *lp;
-    entity_list_t *rl;
-    p8_fixed_t qe;
-    int has_qe;
-    int qe_is_bool;
-} pico8_trade_keys_t;
+    entity_list_t *planets;
+    entity_list_t *slipways;
+    p8_fixed_t resource;
+    int has_resource;
+    int resource_is_bool;
+} trade_keys_t;
 
 /* The struct is made in `zone`; `keys` NULL means none: every member nil. */
-pico8_trade_t *pico8_trade_new(const allocator_t *zone, const pico8_trade_keys_t *keys);
+trade_route_t *trade_new(const allocator_t *zone, const trade_keys_t *keys);
 
 /* A copy made wholly in `zone`: struct, `lp`, `rl` and their items are new,
  * so it shares nothing with `self` and outlives it. A nil `lp`/`rl` stays
  * nil; NULL for a NULL self. */
-pico8_trade_t *pico8_trade_copy(const allocator_t *zone, const pico8_trade_t *self);
+trade_route_t *trade_copy(const allocator_t *zone, const trade_route_t *self);
 
 /* `qe` as the cart compares it: nil for a nil `qe` or a NULL self, false
  * only as `kg` writes it (TROU-24); a true `qe` stops the run. */
-pico8_qe_t pico8_trade_qe(const pico8_trade_t *self);
+resource_t trade_resource(const trade_route_t *self);
 
 /* Returns 1 and writes *out (the last of "lp") for a non-empty "lp"; returns
  * 0 with *out untouched for a NULL self, or a nil or empty "lp". */
-int pico8_trade_to(const pico8_trade_t *self, entity_t **out);
+int trade_last_planet(const trade_route_t *self, entity_t **out);
 
 /* Returns a brand-new route made in `zone`, never mutating self; NULL for a
  * NULL self.
  * A nil "lp"/"rl" on self reads as an empty list, a nil "qe" as false
  * (TROU-24). A NULL `np`/`jc` is nil: it contributes nothing to "lp"/"rl". */
-pico8_trade_t *pico8_trade_kg(const allocator_t *zone, const pico8_trade_t *self,
+trade_route_t *trade_extend(const allocator_t *zone, const trade_route_t *self,
                               entity_t *np, entity_t *jc);
 
 /* Two trades are equal iff they start (`lp[1]`) and end (`:to()`) at the
  * same planet, compared by pointer identity, whatever lies between. Returns 0
  * for a NULL l/r or a nil or empty "lp" on either side. */
-int pico8_trade_eq(const pico8_trade_t *l, const pico8_trade_t *r);
+int trade_equal(const trade_route_t *l, const trade_route_t *r);
 
 #endif

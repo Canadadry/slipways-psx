@@ -128,14 +128,14 @@ down_t pico8_ie_ldown(pico8_ie_t *self) {
 
     /* The grab opens before `id_str` is made: the planet keeps that exact
      * pointer as its `id`, so it must live and die with the grab's arena. */
-    pico8_jo_prise_ouvrir();
+    planet_grab_arena_open();
     id_num_str = p8_tostr_fixed(frame_zone(), new_id);
-    id_str = p8_concat2(pico8_jo_zone_construction(), "s", id_num_str);
+    id_str = p8_concat2(planet_zone_construction(), "s", id_num_str);
     keys.planet_id = id_str;
     keys.map_pos = NULL;
     keys.pos = NULL;
     out.held = ke_kind->new_entity(&keys);
-    pico8_jo_prise_fermer();
+    planet_grab_arena_close();
     out.stop = out.held != NULL;
     return out;
 }

@@ -33,8 +33,9 @@
 #                 .c hors tests/ qui affecte, incremente ou decremente
 #                 (->|.)<membre>, copie du defaut pico8_X_start.<membre>
 #                 retiree ; elle est hors constructeur sauf dans une fonction
-#                 qui finit par _new ou _init. Recherche par nom :
-#                 un majorant, un membre court compte pour tous ses types.
+#                 qui finit par _new, _init, _create ou _init_instance.
+#                 Recherche par nom : un majorant, un membre court compte
+#                 pour tous ses types.
 # Vide (sortie de la phase 2) : aucune ligne de categorie de SORTIE, et le pied
 # "résidu 2 : 0 ligne(s), 0 fichier(s)".
 # Code 2 sur option ou categorie inconnue, dossier absent, aucun .c/.h, liste
@@ -97,7 +98,7 @@ VOID_EXCLUSION='s/void \*+(r_)?ctx\b//g'
 # enregistrements jy (research.c:233), jc.ts des particules
 # (slipway_display.c:43). L'exemption va nom par nom : une ligne compte des
 # qu'un de ses noms, ou une declaration sans nom lisible, n'est pas exempte.
-PTRS_NON_ENTITE="pico8_hy_t.invented pico8_jo_t.jy pico8_hp_t.i pico8_jc_t.ts"
+PTRS_NON_ENTITE="pico8_hy_t.invented planet_t.needs pico8_hp_t.i slipway_t.transit_dots"
 
 # registres : hors tests/ et engine/pointer_list.[ch], les points de declaration qui
 # tiennent des entites par void * hors des types d'entite (que ptrs-entite
@@ -124,7 +125,7 @@ PTRS_NON_ENTITE="pico8_hy_t.invented pico8_jo_t.jy pico8_hp_t.i pico8_jc_t.ts"
 # enregistrements jy (planet_display.c:54) ; pico8_jp_ptrs et pico8_la_ptrs
 # sur des enregistrements jy (planet_display.c:186, planet_trade.c:128), les
 # listes d'entites passant par pico8_jp_ents et pico8_ents_cat.
-REGISTRES_NON_ENTITE="pico8_emitter_t.qy pico8_jo_gh_ctx_t.ji collect_map_pointer_list collect_contains_string pico8_jo_ex collect_filter_pointer_list collect_concat_pointer_list"
+REGISTRES_NON_ENTITE="pico8_emitter_t.qy planet_inspection_panel_ctx_t.unmet_needs collect_map_pointer_list collect_contains_string pico8_jo_ex collect_filter_pointer_list collect_concat_pointer_list"
 
 # En-tetes du noyau, par chemin relatif a src/ : noyau-inclut ne lit qu'eux.
 NOYAU="engine/entity_class.h engine/entity.h engine/entity_registry.h"
@@ -676,7 +677,7 @@ champs() {
             if (s ~ ("(->|\\.)" m "[ \t]*(=[^=]|\\+=|-=|\\*=|/=|\\+\\+|--)") ||
                 s ~ ("(\\+\\+|--)[A-Za-z0-9_>.()-]*(->|\\.)" m "([^A-Za-z0-9_]|$)")) {
                 w[m]++
-                if (fn !~ /(_new|_init)$/) h[m]++
+                if (fn !~ /(_new|_init|_create|_init_instance)$/) h[m]++
             }
         }
     }

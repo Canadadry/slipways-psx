@@ -50,18 +50,18 @@ typedef struct {
 
 static int pico8_bv_jc_predicate(entity_t *e, void *ctx_ptr) {
     const pico8_bv_ctx_t *ctx = (const pico8_bv_ctx_t *)ctx_ptr;
-    const pico8_jc_t *sw;
+    const slipway_t *sw;
     vec_t qu_p;
     vec_t re_p;
 
     if (e == NULL) {
         return 0;
     }
-    assert(e->class == pico8_jc_struct_class() && "cg.jc holds slipways only");
-    sw = (const pico8_jc_t *)e;
+    assert(e->class == slipway_class() && "cg.jc holds slipways only");
+    sw = (const slipway_t *)e;
 
-    qu_p = pico8_jc_end_p(sw->qu);
-    re_p = pico8_jc_end_p(sw->re);
+    qu_p = slipway_end_map_pos(sw->start);
+    re_p = slipway_end_map_pos(sw->end);
 
     return geom_near_segment(qu_p, re_p, ctx->self_p, P8_FIXED_LIT(0x000000d1, 0.0032));
 }
@@ -81,7 +81,7 @@ static int pico8_probe_ui_hw_call(vec_t rp) {
  * family (qh's line) or an `mz`. */
 static void probe_host_set_ra_p(entity_t *self, vec_t *ra, vec_t *p) {
     pico8_g__t *g_;
-    pico8_jo_t *jo;
+    planet_t *jo;
     pico8_mz_t *mz;
 
     if (self->class->lineage & LINEAGE(LINEAGE_PROBE)) {
@@ -90,10 +90,10 @@ static void probe_host_set_ra_p(entity_t *self, vec_t *ra, vec_t *p) {
         g_->p = p;
         return;
     }
-    if (pico8_jo_is_family(self)) {
-        jo = (pico8_jo_t *)self;
-        jo->ra = ra;
-        jo->p = p;
+    if (planet_is_family(self)) {
+        jo = (planet_t *)self;
+        jo->pos = ra;
+        jo->map_pos = p;
         return;
     }
     assert(self->class == pico8_mz_struct_class() &&
@@ -106,31 +106,31 @@ static void probe_host_set_ra_p(entity_t *self, vec_t *ra, vec_t *p) {
 /* What `bv` aims at: `cg.np` (jo, and qh's tree: exactly the descriptors
  * holding `ly`), a `jc`, or the throwaway target. */
 static int g__is_target_class(const entity_class_t *cls) {
-    return cls->states[ENTITY_STATE_SETTLED] != NULL || cls == pico8_jo_struct_class() ||
-           cls == pico8_jc_struct_class() || cls == pico8_bv_et_struct_class();
+    return cls->states[ENTITY_STATE_SETTLED] != NULL || cls == planet_class() ||
+           cls == slipway_class() || cls == pico8_bv_et_struct_class();
 }
 
 void pico8_probe_et_hang_fo(entity_t *et, entity_t *self) {
-    if (pico8_jo_is_family(et)) {
-        assert((self->class->drag == pico8_bv_dispatch || self->class == pico8_jc_struct_class()) &&
+    if (planet_is_family(et)) {
+        assert((self->class->drag == pico8_bv_dispatch || self->class == slipway_class()) &&
                "jo.fo: a write neither nil nor an object whose hq runs bv (g_, fv, qh, nl, os, hj, pm, nr, fr, mx) "
                "or a jc does not fit the member's type -- stop, do not widen the member");
-        ((pico8_jo_t *)et)->fo = self;
+        ((planet_t *)et)->targeted_by = self;
         return;
     }
-    if (et->class == pico8_jc_struct_class()) {
-        assert((self->class->drag == pico8_bv_dispatch || self->class == pico8_jc_struct_class() ||
+    if (et->class == slipway_class()) {
+        assert((self->class->drag == pico8_bv_dispatch || self->class == slipway_class() ||
                 self->class == pico8_mz_struct_class()) &&
                "jc.fo: a write neither nil nor what hangs fo on a slipway (an object whose hq runs bv: g_, fv, qh, "
                "nl, os, hj, pm, nr, fr, mx; an mz; another jc) does not fit the member's type -- stop");
-        ((pico8_jc_t *)et)->fo = self;
+        ((slipway_t *)et)->targeted_by = self;
         return;
     }
-    if (et->class == pico8_jc_too_far_struct_class()) {
-        assert(self->class == pico8_jc_struct_class() &&
+    if (et->class == slipway_too_far_class()) {
+        assert(self->class == slipway_class() &&
                "jc_too_far.fo: a write neither nil nor a jc does not fit the member's type "
                "-- stop, do not widen the member");
-        ((pico8_jc_too_far_t *)et)->fo = (pico8_jc_t *)self;
+        ((slipway_too_far_t *)et)->targeted_by = (slipway_t *)self;
         return;
     }
     assert(et == &g_bv_et.header && "bv: et is a planet, a jc or the static throwaway struct, nothing else");
@@ -213,8 +213,8 @@ static const char *probe_et_qs(const entity_t *et) {
     if (et->class == pico8_mz_jj_struct_class()) {
         return ((const pico8_mz_jj_t *)et)->qs;
     }
-    if (et->class == pico8_jc_too_far_struct_class()) {
-        return ((const pico8_jc_too_far_t *)et)->qs;
+    if (et->class == slipway_too_far_class()) {
+        return ((const slipway_too_far_t *)et)->status_text;
     }
     return NULL;
 }
@@ -362,7 +362,7 @@ void pico8_g__rendre_dispatch(entity_t *self) {
 
     pico8_qy_rendre(self->emitter);
     if (g_->prise != NULL && (self->state == NULL || strcmp(self->state, "settled") != 0)) {
-        pico8_jo_prise_arene_rendue(g_->prise);
+        planet_grab_arena_arena_released(g_->prise);
     }
 }
 
@@ -413,11 +413,11 @@ static pico8_g__t *pico8_g__struct_new(const pico8_g__keys_t *keys) {
     pico8_g__t *self;
 
     assert(g_g__up && "pico8_probe_init() must run first");
-    pico8_jo_prise_ouvrir();
-    self = (pico8_g__t *)allocator_alloc(pico8_jo_zone_construction(), sizeof *self);
+    planet_grab_arena_open();
+    self = (pico8_g__t *)allocator_alloc(planet_zone_construction(), sizeof *self);
     pico8_g__struct_init(self, &g_g__struct_class, &probe_archetype);
-    self->prise = pico8_jo_zone_construction();
-    pico8_jo_prise_fermer();
+    self->prise = planet_zone_construction();
+    planet_grab_arena_close();
     if (keys != NULL) {
         self->header.state_time = keys->t;
         if (keys->has_pn) {

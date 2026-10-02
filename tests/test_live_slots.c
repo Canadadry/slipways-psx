@@ -102,8 +102,8 @@ static inscrits_t compter_inscrits(void) {
     }
     const entity_list_t *jc = entities_by_tag("slipway");
     for (int i = 0; jc != NULL && i < jc->count; i++) {
-        const pico8_jc_t *s = (const pico8_jc_t *)jc->items[i];
-        if (s->ts != NULL) n.trainees += s->ts->count;
+        const slipway_t *s = (const slipway_t *)jc->items[i];
+        if (s->transit_dots != NULL) n.trainees += s->transit_dots->count;
     }
     return n;
 }
@@ -357,27 +357,27 @@ static void pause_restart_rend_la_partie_quittee_a_la_frame_suivante(void) {
     g_lu = s[63];
 }
 
-static const pico8_jo_t *planete_de_la_premiere_partie(void) {
+static const planet_t *planete_de_la_premiere_partie(void) {
     demarrer("pause_restart");
     jouer_jusqu_a(6);
     const entity_list_t *jo = entities_by_tag("planet");
     assert(jo != NULL && jo->count > 0 && "la premiere partie a des planetes");
-    return (const pico8_jo_t *)jo->items[0];
+    return (const planet_t *)jo->items[0];
 }
 
 /* f12 : le clic bascule ; les planetes de la partie quittee vivent encore. */
 static void pause_restart_garde_les_planetes_de_la_partie_quittee_pendant_le_clic(void) {
-    const pico8_jo_t *p = planete_de_la_premiere_partie();
+    const planet_t *p = planete_de_la_premiere_partie();
     jouer_jusqu_a(12);
     assert(game_zone_pending());
-    g_lu = (unsigned char)p->has_jh;
+    g_lu = (unsigned char)p->has_production_bonus;
 }
 
 /* f13 : elles meurent avec leur generation. */
 static void pause_restart_rend_les_planetes_de_la_partie_quittee(void) {
-    const pico8_jo_t *p = planete_de_la_premiere_partie();
+    const planet_t *p = planete_de_la_premiere_partie();
     jouer_jusqu_a(13);
-    g_lu = (unsigned char)p->has_jh;
+    g_lu = (unsigned char)p->has_production_bonus;
 }
 
 /* f11 : l'ecran titre lit encore l'economie de la partie quittee. */
@@ -540,11 +540,11 @@ static size_t octets_des_planetes(void) {
     const entity_list_t *jo = entities_by_tag("planet");
     size_t octets = 0;
     for (int i = 0; jo != NULL && i < jo->count; i++) {
-        const pico8_jo_t *p = (const pico8_jo_t *)jo->items[i];
-        assert(p->jy == NULL && "une planete a des besoins, que P ne compte pas");
-        octets += octets_d_un_bloc(sizeof *p) + octets_d_un_bloc(sizeof *p->p) + octets_d_un_bloc(sizeof *p->ra) +
-                  octets_d_un_bloc(strlen(p->id) + 1) + octets_d_une_liste_de_planete(p->oe) +
-                  octets_d_une_liste_de_planete(p->by) + octets_d_une_liste_de_planete(p->cc);
+        const planet_t *p = (const planet_t *)jo->items[i];
+        assert(p->needs == NULL && "une planete a des besoins, que P ne compte pas");
+        octets += octets_d_un_bloc(sizeof *p) + octets_d_un_bloc(sizeof *p->map_pos) + octets_d_un_bloc(sizeof *p->pos) +
+                  octets_d_un_bloc(strlen(p->planet_id) + 1) + octets_d_une_liste_de_planete(p->slipways) +
+                  octets_d_une_liste_de_planete(p->outgoing_routes) + octets_d_une_liste_de_planete(p->incoming_routes);
     }
     return octets;
 }
@@ -686,15 +686,15 @@ static void trade_rich_mine_bd_sur_des_routes_ne_fait_pas_grandir_la_partie(void
     const size_t f151 = partie_sans_registres();
     printf("  trade_rich_mine f139/f151 : partie - registres = %lu/%lu\n", (unsigned long)f139,
            (unsigned long)f151);
-    assert(f151 == f139 + PICO8_JO_PRISE_OCTETS &&
+    assert(f151 == f139 + PLANET_GRAB_ARENA_BYTES &&
            "un bd sur des routes fait grandir la generation, ou le refus de f148 ne reprend pas l'arene de f142");
 }
 
-static const pico8_jo_t *planete_d_id(const char *id) {
+static const planet_t *planete_d_id(const char *id) {
     const entity_list_t *np = entities_by_tag("node");
     for (int i = 0; np != NULL && i < np->count; i++) {
-        const pico8_jo_t *p = (const pico8_jo_t *)np->items[i];
-        if (p->id != NULL && strcmp(p->id, id) == 0) return p;
+        const planet_t *p = (const planet_t *)np->items[i];
+        if (p->planet_id != NULL && strcmp(p->planet_id, id) == 0) return p;
     }
     assert(0 && "planete introuvable dans cg.np");
     return NULL;
@@ -707,17 +707,17 @@ static void trade_rich_mine_une_route_gardee_survit_a_la_frame(void) {
     entity_t *rl[16];
     demarrer("trade_rich_mine");
     jouer_jusqu_a(139);
-    const entity_list_t *by = planete_d_id("p27")->by;
+    const entity_list_t *by = planete_d_id("p27")->outgoing_routes;
     assert(by != NULL && by->count > 0 && "f139 : p27 garde une route");
-    const pico8_trade_t *t = (const pico8_trade_t *)by->items[by->count - 1];
-    const int nlp = t->lp->count;
-    const int nrl = t->rl->count;
+    const trade_route_t *t = (const trade_route_t *)by->items[by->count - 1];
+    const int nlp = t->planets->count;
+    const int nrl = t->slipways->count;
     assert(nlp <= 16 && nrl <= 16);
-    memcpy(lp, t->lp->items, (size_t)nlp * sizeof *lp);
-    memcpy(rl, t->rl->items, (size_t)nrl * sizeof *rl);
+    memcpy(lp, t->planets->items, (size_t)nlp * sizeof *lp);
+    memcpy(rl, t->slipways->items, (size_t)nrl * sizeof *rl);
     jouer_jusqu_a(151);
-    assert(t->lp->count == nlp && memcmp(lp, t->lp->items, (size_t)nlp * sizeof *lp) == 0);
-    assert(t->rl->count == nrl && memcmp(rl, t->rl->items, (size_t)nrl * sizeof *rl) == 0);
+    assert(t->planets->count == nlp && memcmp(lp, t->planets->items, (size_t)nlp * sizeof *lp) == 0);
+    assert(t->slipways->count == nrl && memcmp(rl, t->slipways->items, (size_t)nrl * sizeof *rl) == 0);
     printf("  trade_rich_mine : route de p27 (%d planetes, %d slipways) relue a f151\n", nlp, nrl);
 }
 
@@ -754,12 +754,12 @@ static void prises_refusees_ne_font_pas_grandir_la_partie(void) {
 }
 
 /* La structure posee de f161-164, seule planete « s… » de `cg.jo`. */
-static const pico8_jo_t *la_prise_posee(void) {
+static const planet_t *la_prise_posee(void) {
     const entity_list_t *jo = entities_by_tag("planet");
-    const pico8_jo_t *posee = NULL;
+    const planet_t *posee = NULL;
     for (int i = 0; jo != NULL && i < jo->count; i++) {
-        const pico8_jo_t *p = (const pico8_jo_t *)jo->items[i];
-        if (p->id[0] != 's') continue;
+        const planet_t *p = (const planet_t *)jo->items[i];
+        if (p->planet_id[0] != 's') continue;
         assert(posee == NULL && "une seule prise a ete posee");
         posee = p;
     }
@@ -774,8 +774,8 @@ static void une_prise_posee_reprend_l_arene_du_mz_mort(void) {
     const size_t avant = partie_sans_registres();
     jouer_jusqu_a(174);
     const size_t apres = partie_sans_registres();
-    const pico8_jo_t *posee = la_prise_posee();
-    const size_t listes = octets_d_une_liste_de_planete(posee->by) + octets_d_une_liste_de_planete(posee->cc);
+    const planet_t *posee = la_prise_posee();
+    const size_t listes = octets_d_une_liste_de_planete(posee->outgoing_routes) + octets_d_une_liste_de_planete(posee->incoming_routes);
     printf("  prise posee : partie - registres = %lu -> %lu (by/cc %lu)\n", (unsigned long)avant,
            (unsigned long)apres, (unsigned long)listes);
     assert(apres == avant + listes &&
@@ -792,11 +792,11 @@ static void jouer_une_frame(int dessiner) {
     g_frame++;
 }
 
-static pico8_jo_t *planete_dont_fo_est(const entity_t *tenue) {
+static planet_t *planete_dont_fo_est(const entity_t *tenue) {
     const entity_list_t *np = entities_by_tag("node");
     for (int i = 0; np != NULL && i < np->count; i++) {
-        pico8_jo_t *p = (pico8_jo_t *)np->items[i];
-        if (p->fo == tenue) return p;
+        planet_t *p = (planet_t *)np->items[i];
+        if (p->targeted_by == tenue) return p;
     }
     return NULL;
 }
@@ -814,19 +814,19 @@ static void le_fo_d_une_planete_hors_ecran_oublie_la_prise_refusee(void) {
     pico8__update60();
     const entity_t *tenue = pico8_ok()->lheld;
     assert(tenue != NULL && "f23 : une structure est tenue");
-    pico8_jo_t *p34 = planete_dont_fo_est(tenue);
+    planet_t *p34 = planete_dont_fo_est(tenue);
     assert(p34 != NULL && "f23 : la structure tenue accroche le fo d'une planete");
     loin = vec_add(*((const pico8_qb_t *)main_camera())->ra, vec_make(p8_fixed_from_int(500), 0));
-    p34->ra = &loin;
+    p34->pos = &loin;
     assert(!entity_geom_is_on_screen(&p34->header) && "p34 est hors ecran");
     pico8__draw();
-    assert(p34->fo == tenue && "hors ecran, kj laisse fo");
+    assert(p34->targeted_by == tenue && "hors ecran, kj laisse fo");
     if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
     g_frame++;
     while (g_frame <= 27) jouer_une_frame(1);
     jouer_une_frame(0);
     assert(pico8_ok()->lheld == tenue && "f28 : la prise suivante reprend l'arene, a la meme adresse");
-    assert(p34->fo == NULL && "le fo d'une planete hors ecran vise une prise refusee recyclee");
+    assert(p34->targeted_by == NULL && "le fo d'une planete hors ecran vise une prise refusee recyclee");
 }
 
 static void une_prise_refusee_traverse_une_nouvelle_partie(void) {
@@ -843,19 +843,19 @@ static void une_prise_refusee_traverse_une_nouvelle_partie(void) {
  * refus tenu en (73,91), au-dela de p48 (f342-356) ; « restart » et nouvelle
  * partie (clic f367) ; une prise d'icone (f371-377). Un refus est relache a
  * la 11e frame du cycle et rendu au vidage de la 13e. */
-static const pico8_jc_t *le_slipway_tenu(void) {
+static const slipway_t *le_slipway_tenu(void) {
     const entity_t *tenu = pico8_ok()->lheld;
-    assert(tenu != NULL && tenu->class == pico8_jc_struct_class() && "un slipway est tenu");
-    return (const pico8_jc_t *)tenu;
+    assert(tenu != NULL && tenu->class == slipway_class() && "un slipway est tenu");
+    return (const slipway_t *)tenu;
 }
 
 static void un_slipway_tenu_ne_fait_pas_grandir_la_partie(void) {
     demarrer(SLIPWAYS);
     jouer_jusqu_a(36);
-    const pico8_jc_t *tenu = le_slipway_tenu();
+    const slipway_t *tenu = le_slipway_tenu();
     const size_t f36 = game_zone_used();
     jouer_jusqu_a(45);
-    assert(le_slipway_tenu() == tenu && tenu->re == &tenu->point.header && "f45 : tenu au-dessus du vide");
+    assert(le_slipway_tenu() == tenu && tenu->end == &tenu->point.header && "f45 : tenu au-dessus du vide");
     printf("  slipway tenu f36/f45 : partie = %lu/%lu\n", (unsigned long)f36, (unsigned long)game_zone_used());
     assert(game_zone_used() == f36 && "un slipway tenu alloue a chaque frame");
 }
@@ -871,7 +871,7 @@ static void slipways_refuses_ne_font_pas_grandir_la_partie(void) {
 }
 
 static size_t octets_des_oe_de_p27_et_p48(void) {
-    return octets_d_un_registre(planete_d_id("p27")->oe) + octets_d_un_registre(planete_d_id("p48")->oe);
+    return octets_d_un_registre(planete_d_id("p27")->slipways) + octets_d_un_registre(planete_d_id("p48")->slipways);
 }
 
 /* Le `kf` de la pose fait grandir `oe` aux deux bouts, dans la generation,
@@ -901,20 +901,20 @@ static void le_fo_d_une_planete_hors_ecran_oublie_le_slipway_refuse(void) {
     dispatch_context_set_input(g_input);
     pico8_cheat_step(&g_cheat, g_input);
     pico8__update60();
-    const pico8_jc_t *tenu = le_slipway_tenu();
-    pico8_jo_t *p = planete_dont_fo_est(&tenu->header);
+    const slipway_t *tenu = le_slipway_tenu();
+    planet_t *p = planete_dont_fo_est(&tenu->header);
     assert(p != NULL && "f345 : le slipway tenu accroche le fo d'une planete");
     loin = vec_add(*((const pico8_qb_t *)main_camera())->ra, vec_make(p8_fixed_from_int(500), 0));
-    p->ra = &loin;
+    p->pos = &loin;
     assert(!entity_geom_is_on_screen(&p->header) && "la planete est hors ecran");
     pico8__draw();
     if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
     g_frame++;
     jouer_jusqu_a(354);
-    assert(p->fo == &tenu->header && "hors ecran, kj laisse fo");
+    assert(p->targeted_by == &tenu->header && "hors ecran, kj laisse fo");
     jouer_jusqu_a(355);
-    printf("  slipway refuse : fo de %s coupe au vidage de f355\n", p->id);
-    assert(p->fo == NULL && "le fo d'une planete hors ecran vise un slipway refuse rendu");
+    printf("  slipway refuse : fo de %s coupe au vidage de f355\n", p->planet_id);
+    assert(p->targeted_by == NULL && "le fo d'une planete hors ecran vise un slipway refuse rendu");
 }
 
 static void un_slipway_refuse_traverse_une_nouvelle_partie(void) {
@@ -1032,19 +1032,19 @@ static void le_fo_d_une_planete_hors_ecran_oublie_la_sonde_refusee(void) {
     pico8_cheat_step(&g_cheat, g_input);
     pico8__update60();
     const entity_t *tenue = &la_sonde_tenue()->header;
-    pico8_jo_t *p34 = planete_dont_fo_est(tenue);
+    planet_t *p34 = planete_dont_fo_est(tenue);
     assert(p34 != NULL && "f74 : la sonde tenue accroche le fo d'une planete");
     loin = vec_add(*((const pico8_qb_t *)main_camera())->ra, vec_make(p8_fixed_from_int(500), 0));
-    p34->ra = &loin;
+    p34->pos = &loin;
     assert(!entity_geom_is_on_screen(&p34->header) && "p34 est hors ecran");
     pico8__draw();
-    assert(p34->fo == tenue && "hors ecran, kj laisse fo");
+    assert(p34->targeted_by == tenue && "hors ecran, kj laisse fo");
     if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
     g_frame++;
     while (g_frame <= 78) jouer_une_frame(1);
     jouer_une_frame(0);
     assert(pico8_ok()->lheld == tenue && "f79 : la sonde suivante reprend l'arene, a la meme adresse");
-    assert(p34->fo == NULL && "le fo d'une planete hors ecran vise une sonde refusee recyclee");
+    assert(p34->targeted_by == NULL && "le fo d'une planete hors ecran vise une sonde refusee recyclee");
 }
 
 /* f90 : `ox` du `mz` tenu ne garde que des sondes posees ; la sonde posee
@@ -1126,11 +1126,11 @@ static void pause_restart_devoile_sur_les_etats_de_la_nouvelle_partie(void) {
     int devoilees = 0;
     int par_oc = 0;
     for (int i = 0; jo != NULL && i < jo->count && devoilees < 5; i++) {
-        pico8_jo_t *p = (pico8_jo_t *)jo->items[i];
+        planet_t *p = (planet_t *)jo->items[i];
         if (p->header.state == NULL || strcmp(p->header.state, "unknown") != 0) continue;
-        pico8_jo_hh(p);
+        planet_roll_type(p);
         devoilees++;
-        par_oc += p->nk != NULL && p->nk != ll;
+        par_oc += p->planet_type != NULL && p->planet_type != ll;
     }
     assert(devoilees > 0 && "la nouvelle partie a des planetes unknown");
     assert(par_oc > 0 && "aucun devoilement n'a lu jo.oc");

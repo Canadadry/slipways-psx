@@ -442,7 +442,7 @@ static uint32_t et_kind(const pico8_g__t *e) {
         return 2;
     }
     if (ref != NULL &&
-        ((const entity_t *)ref)->class == pico8_jc_struct_class()) {
+        ((const entity_t *)ref)->class == slipway_class()) {
         return 3;
     }
     assert(is_bv_target(ref));
@@ -454,11 +454,11 @@ static const void *et_fo(const pico8_g__t *e) {
     entity_t *et = e->probe->et;
 
     assert(et != NULL);
-    if (pico8_jo_is_family(et)) {
-        return ((const pico8_jo_t *)et)->fo;
+    if (planet_is_family(et)) {
+        return ((const planet_t *)et)->targeted_by;
     }
-    if (et->class == pico8_jc_struct_class()) {
-        return ((const pico8_jc_t *)et)->fo;
+    if (et->class == slipway_class()) {
+        return ((const slipway_t *)et)->targeted_by;
     }
     return bv_et_fo(et);
 }
@@ -472,29 +472,29 @@ static uint32_t fold_et(uint32_t h, const pico8_g__t *e) {
 }
 
 /* The first planet of cg.np. */
-static pico8_jo_t *a_planet(void) {
+static planet_t *a_planet(void) {
     entity_t *e;
 
     assert(ents_list_count(entities_by_tag("node")) > 0);
     e = entities_by_tag("node")->items[0];
-    assert(pico8_jo_is_family(e));
-    return (pico8_jo_t *)e;
+    assert(planet_is_family(e));
+    return (planet_t *)e;
 }
 
 static vec_t planet_p(void) {
-    const pico8_jo_t *planet = a_planet();
-    assert(planet->p != NULL);
-    return *planet->p;
+    const planet_t *planet = a_planet();
+    assert(planet->map_pos != NULL);
+    return *planet->map_pos;
 }
 
 /* A slipway between two bare planets far from each other and from the
  * rest, its `re` set directly; its middle is the returned point. */
-static pico8_jc_t *a_slipway(vec_t *middle) {
+static slipway_t *a_slipway(vec_t *middle) {
     planet_keys_t keys;
-    pico8_jc_keys_t jc_keys = {0};
+    slipway_keys_t jc_keys = {0};
     void *qu;
     void *re;
-    pico8_jc_t *jc;
+    slipway_t *jc;
     vec_t base = planet_p();
     vec_t qu_p = vec_add(base, vec_xy(0, 1));
     vec_t re_p = vec_add(base, vec_xy(1, 1));
@@ -502,13 +502,13 @@ static pico8_jc_t *a_slipway(vec_t *middle) {
     keys.map_pos = vec_ref(qu_p);
     keys.pos = NULL;
     keys.planet_id = "s91";
-    qu = pico8_jo_new(&keys);
+    qu = planet_new(&keys);
     keys.map_pos = vec_ref(re_p);
     keys.planet_id = "s92";
-    re = pico8_jo_new(&keys);
-    jc_keys.qu = qu;
-    jc = pico8_jc_new(&jc_keys);
-    jc->re = re;
+    re = planet_new(&keys);
+    jc_keys.start = qu;
+    jc = slipway_new(&jc_keys);
+    jc->end = re;
     *middle = vec_div(vec_add(qu_p, re_p), p8_fixed_from_int(2));
     return jc;
 }
@@ -545,7 +545,7 @@ static void test_life(void) {
     uint32_t h = 2166136261u;
     pico8_g__t *a;
     pico8_g__t *b;
-    pico8_jc_t *jc;
+    slipway_t *jc;
     vec_t middle;
     int i;
 
@@ -558,7 +558,7 @@ static void test_life(void) {
 
     h = fold_hq(h, a, planet_p(), 64, 2);
     h = fold_hq(h, a, middle, 64, 3);
-    assert((void *)jc->fo == a);
+    assert((void *)jc->targeted_by == a);
     h = fold_hq(h, a, vec_add(middle, vec_xy(0, 3)), 64, 1);
     h = fold_hq(h, a, vec_add(middle, vec_xy(0, 3)), 2, 4);
 

@@ -46,7 +46,7 @@ static void quitter_partie(void) {
     pico8_cart_vider_file_sortie();
     game_zone_reset();
     entity_registry_forget_registries();
-    pico8_jo_oublier_prises();
+    planet_forget_grab_arenas();
 }
 
 /* pico8_data_init() and pico8_score_panel_init() each run further module
@@ -64,7 +64,7 @@ void pico8_cart_load(void) {
 
     layout_init();
     draw_functions_init();
-    pico8_trade_init();
+    trade_init();
 
     pico8_js_init();
     pico8_fq_init();
@@ -79,13 +79,13 @@ void pico8_cart_load(void) {
         data_init();
     }
 
-    pico8_jo_init();
-    pico8_jc_init();
+    planet_init();
+    slipway_init();
     pico8_planet_family_init();
-    assert(pico8_qh_ready() && pico8_ga_ready() && pico8_jo_ready() &&
+    assert(pico8_qh_ready() && pico8_ga_ready() && planet_ready() &&
            "qh and ga extend jo: pico8_jo_init() must run first");
-    pico8_planet_family_trade_init();
-    assert(pico8_nr_ready() && pico8_mx_ready() && pico8_qh_ready() && pico8_hj_ready() &&
+    planet_family_trade_init();
+    assert(slipgate_ready() && synthesizer_ready() && pico8_qh_ready() && pico8_hj_ready() &&
            "nr extends qh and mx extends hj: pico8_planet_family_init() must run first");
     pico8_wormhole_init();
 
@@ -112,9 +112,9 @@ static void oublier(const entity_t *e) {
     if (ok != NULL && ok->gj == e) {
         ok->gj = NULL;
     }
-    if (ok != NULL && ok->lheld != NULL && ok->lheld->class == pico8_jc_struct_class() &&
-        ((pico8_jc_t *)ok->lheld)->re == e) {
-        ((pico8_jc_t *)ok->lheld)->re = NULL;
+    if (ok != NULL && ok->lheld != NULL && ok->lheld->class == slipway_class() &&
+        ((slipway_t *)ok->lheld)->end == e) {
+        ((slipway_t *)ok->lheld)->end = NULL;
     }
     if ((const entity_t *)pico8_kc() == e) {
         pico8_msgbox_set_kc(NULL);
@@ -123,13 +123,13 @@ static void oublier(const entity_t *e) {
         ju->ed = NULL;
     }
     pico8_economy_dk_quitte(e);
-    pico8_jo_oublier_fo(e);
+    planet_forget_targeted_by(e);
 }
 
 /* Point d'oubli de partie : coupe les references a la generation que
  * pico8_zone_partie_rendre va rendre. */
 static void oublier_partie(void) {
-    pico8_jo_oublier_prises();
+    planet_forget_grab_arenas();
 }
 
 void pico8_cart_vider_file_sortie(void) {
@@ -148,10 +148,10 @@ void pico8_cart_shutdown(void) {
     pico8_help_shutdown();
 
     pico8_wormhole_shutdown();
-    pico8_planet_family_trade_shutdown();
+    planet_family_trade_shutdown();
     pico8_planet_family_shutdown();
-    pico8_jc_shutdown();
-    pico8_jo_shutdown();
+    slipway_shutdown();
+    planet_shutdown();
 
     data_init_data_shutdown();
 
@@ -163,7 +163,7 @@ void pico8_cart_shutdown(void) {
     pico8_fq_shutdown();
     pico8_js_shutdown();
 
-    pico8_trade_shutdown();
+    trade_shutdown();
     layout_shutdown();
 
     pico8_ui_shutdown();
@@ -227,10 +227,10 @@ void pico8_eu(pico8_js_t *nj) {
 
     gx[0] = pico8_qh_kind();
     gx[1] = pico8_os_kind();
-    gx[2] = pico8_nr_kind();
-    gx[3] = pico8_fr_kind();
+    gx[2] = slipgate_kind();
+    gx[3] = infraspace_gate_kind();
     gx[4] = pico8_nl_kind();
-    gx[5] = pico8_mx_kind();
+    gx[5] = synthesizer_kind();
     gx[6] = pico8_hj_kind();
 
     for (i = 0; i < 7; i++) {

@@ -18,7 +18,7 @@ typedef struct {
 } pico8_jy_t;
 
 /* `i.qe`: nil or a number, never false. */
-pico8_qe_t pico8_jy_qe(const pico8_jy_t *i);
+resource_t pico8_jy_qe(const pico8_jy_t *i);
 
 /* A fresh want in `zone`, never freed here: `qe` NULL is nil, no `gc`. */
 pico8_jy_t *pico8_jy_new(const allocator_t *zone, const p8_fixed_t *qe);

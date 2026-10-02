@@ -141,9 +141,9 @@ static uint32_t fold_ref(uint32_t h, const void *ref, int depth) {
 
 /* A want's `qe` with the bytes the frozen hashes fold for it, which the frozen
  * hashes hold: kind word 0 then the number; kind word 3 then 0xDEAD for nil. */
-static uint32_t fold_qe(uint32_t h, pico8_qe_t qe) {
-    assert(qe.kind != PICO8_QE_FALSE && "a want's qe is never false");
-    return qe.kind == PICO8_QE_FIXED ? fnv(fnv(h, 0u), qe.n) : fnv(fnv(h, 3u), 0xDEADu);
+static uint32_t fold_qe(uint32_t h, resource_t qe) {
+    assert(qe.kind != RESOURCE_FALSE && "a want's qe is never false");
+    return qe.kind == RESOURCE_FIXED ? fnv(fnv(h, 0u), qe.number) : fnv(fnv(h, 3u), 0xDEADu);
 }
 
 /* The frozen hashes were taken when rows were ob views and name lists ob
@@ -349,13 +349,13 @@ static void start_game(void) {
     pico8_eu(NULL);
 }
 
-static pico8_jo_t *as_jo(void *e) {
-    assert(pico8_jo_is_family(e));
+static planet_t *as_jo(void *e) {
+    assert(planet_is_family(e));
     return e;
 }
 
 static vec_t pos_of(void *e) {
-    const vec_t *p = as_jo(e)->p;
+    const vec_t *p = as_jo(e)->map_pos;
     assert(p != NULL);
     return *p;
 }
@@ -370,11 +370,11 @@ static p8_fixed_t dist2(vec_t a, vec_t b) {
  * hovered planet off `ok.o_`), then left to settle. */
 static void built_world(void) {
     const entity_list_t *jos;
-    pico8_jc_keys_t jc_keys = {0};
+    slipway_keys_t jc_keys = {0};
     vec_t *mp = malloc(sizeof *mp);
     void *qu;
     void *re = NULL;
-    pico8_jc_t *jc;
+    slipway_t *jc;
     int i;
 
     start_game();
@@ -387,20 +387,20 @@ static void built_world(void) {
             re = e;
         }
     }
-    pico8_jo_hu(qu, project(COLONY));
-    pico8_jo_hu(re, project(EXPORTER));
+    planet_apply_project(qu, project(COLONY));
+    planet_apply_project(re, project(EXPORTER));
 
-    jc_keys.qu = qu;
-    jc = pico8_jc_new(&jc_keys);
+    jc_keys.start = qu;
+    jc = slipway_new(&jc_keys);
     *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
                         vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
-    pico8_jc_struct_class()->drag(&jc->header, mp, NULL);
+    slipway_class()->drag(&jc->header, mp, NULL);
     pico8_ok()->o_ = NULL;
     while (jc->header.state_time < p8_fixed_from_int(15)) {
         update_entities();
     }
-    pico8_jc_struct_class()->drop(&jc->header, re);
+    slipway_class()->drop(&jc->header, re);
     for (i = 0; i < 120; i++) {
         update_entities();
     }
@@ -458,7 +458,7 @@ static void test_gb(void) {
         assert(i_list != NULL);
         h = fnv(h, (uint32_t)i_list->count);
         for (j = 0; j < i_list->count; j++) {
-            pico8_qe_t qe;
+            resource_t qe;
             qe = pico8_jy_qe(i_list->items[j]);
             h = fold_qe(h, qe);
         }
@@ -574,7 +574,7 @@ static void *new_planet(const char *id, int x, int y) {
     keys.planet_id = id;
     keys.map_pos = vec_ref(vec_xy(x / 2, y / 2));
     keys.pos = vec_ref(vec_add(*mo_ra, vec_xy(x, y)));
-    return pico8_jo_new(&keys);
+    return planet_new(&keys);
 }
 
 static int with_go(const pico8_hp_t *b) {
@@ -603,8 +603,8 @@ static void *project_with(int (*match)(const pico8_hp_t *), int nth) {
 }
 
 /* `kw` by content: a pico8_kw_t has no tag to fold. */
-static uint32_t fold_kw(uint32_t h, const pico8_jo_t *p) {
-    const production_t *k = p->kw;
+static uint32_t fold_kw(uint32_t h, const planet_t *p) {
+    const production_t *k = p->production;
 
     if (k == NULL) {
         return fnv(h, 0xFFFFFFFFu);
@@ -616,8 +616,8 @@ static uint32_t fold_kw(uint32_t h, const pico8_jo_t *p) {
 
 /* A planet's `jy`, folded as the frozen hashes folded the list of tables it was:
  * each want, `qe` (nil included), then `gc` when written. */
-static uint32_t fold_jy(uint32_t h, const pico8_jo_t *p) {
-    const pointer_list_t *jy = p->jy;
+static uint32_t fold_jy(uint32_t h, const planet_t *p) {
+    const pointer_list_t *jy = p->needs;
     int i;
 
     if (jy == NULL) {
@@ -638,18 +638,18 @@ static uint32_t fold_jy(uint32_t h, const pico8_jo_t *p) {
 }
 
 static uint32_t fold_planet(uint32_t h, void *e) {
-    const pico8_jo_t *p = as_jo(e);
+    const planet_t *p = as_jo(e);
 
-    h = fnv(h, (uint32_t)gb_rank(p->hn));
-    h = fnv(h, (uint32_t)(p->hn != NULL));
-    h = fold_string_member(h, p->ep);
+    h = fnv(h, (uint32_t)gb_rank(p->project));
+    h = fnv(h, (uint32_t)(p->project != NULL));
+    h = fold_string_member(h, p->description);
     h = fold_jy(h, p);
     h = fold_kw(h, p);
     h = fold_string_member(h, p->header.state);
-    h = fold_bool_member(h, (p->fx != 0), p->fx);
-    h = fold_bool_member(h, (p->p_ != 0), p->p_);
-    h = fold_fixed_member(h, 1, p->ma);
-    h = p->nk != NULL ? fnv(h, (uint32_t)(p->nk - planet_types_table)) : fnv(h, 0xFFFFFFFFu);
+    h = fold_bool_member(h, (p->fold_anchor != 0), p->fold_anchor);
+    h = fold_bool_member(h, (p->is_dead != 0), p->is_dead);
+    h = fold_fixed_member(h, 1, p->shake);
+    h = p->planet_type != NULL ? fnv(h, (uint32_t)(p->planet_type - planet_types_table)) : fnv(h, 0xFFFFFFFFu);
     return fnv(h, (uint32_t)ents_rank_in(live_entities(), p));
 }
 
@@ -679,8 +679,8 @@ static void test_wants(void) {
     assert(!((const pico8_jy_t *)b->i->items[1])->row.has_resource);
 
     a = new_planet("p950", 12, 16);
-    pico8_jo_lz(a, b);
-    jy = as_jo(a)->jy;
+    planet_install_project(a, b);
+    jy = as_jo(a)->needs;
     assert(jy != NULL && jy->count == 2);
     for (k = 0; k < 2; k++) {
         assert(jy->items[k] != b->i->items[k]);
@@ -699,19 +699,19 @@ static void test_install(void) {
     plain = project_with(ordinary, 0);
 
     a = new_planet("p901", 10, 12);
-    pico8_jo_lz(a, plain);
-    assert((void *)as_jo(a)->hn == plain && as_jo(a)->ep == NULL);
+    planet_install_project(a, plain);
+    assert((void *)as_jo(a)->project == plain && as_jo(a)->description == NULL);
     h = fold_planet(h, a);
 
     a = new_planet("p902", 30, 14);
-    pico8_jo_hu(a, plain);
-    assert((void *)as_jo(a)->hn == plain);
+    planet_apply_project(a, plain);
+    assert((void *)as_jo(a)->project == plain);
     h = fold_planet(h, a);
 
     go_project = project_with(with_go, 0);
     a = new_planet("p903", 50, 16);
-    pico8_jo_hu(a, go_project);
-    assert(as_jo(a)->nk != NULL);
+    planet_apply_project(a, go_project);
+    assert(as_jo(a)->planet_type != NULL);
     h = fold_planet(h, a);
 
     for (nth = 0; nth < 2; nth++) {
@@ -719,7 +719,7 @@ static void test_install(void) {
         pico8_hp_t *cw = project_with(with_cw, nth);
         a = new_planet(nth == 0 ? "p904" : "p905", 70 + 20 * nth, 18);
         before = live_entities()->count;
-        pico8_jo_hu(a, cw);
+        planet_apply_project(a, cw);
         h = fold_string_member(h, cw->cw);
         h = fnv(h, (uint32_t)(live_entities()->count - before));
         h = fold_planet(h, a);
@@ -727,8 +727,8 @@ static void test_install(void) {
     }
 
     a = new_planet("p906", 110, 20);
-    pico8_jo_hu(a, NULL);
-    assert(as_jo(a)->hn == NULL);
+    planet_apply_project(a, NULL);
+    assert(as_jo(a)->project == NULL);
     h = fold_planet(h, a);
     check("install", h, INSTALL_HASH);
 }
@@ -744,7 +744,7 @@ static uint32_t fold_world(void) {
     pico8__draw();
     jo = entities_by_tag("planet");
     for (i = 0; jo != NULL && i < jo->count; i++) {
-        h = fnv(h, (uint32_t)gb_rank(as_jo(jo->items[i])->hn));
+        h = fnv(h, (uint32_t)gb_rank(as_jo(jo->items[i])->project));
     }
     return fnv(h, screen_hash());
 }
@@ -762,8 +762,8 @@ static void test_harvested_world(void) {
 
     start_game();
     p = entities_by_tag("planet")->items[0];
-    pico8_jo_hh(p);
-    pico8_jo_hu(p, project_with(with_cw, 1));
+    planet_roll_type(p);
+    planet_apply_project(p, project_with(with_cw, 1));
     last = live_entities()->items[live_entities()->count - 1];
     assert(last != NULL && last->class == pico8_ga_struct_class());
     for (i = 0; i < 60; i++) {
@@ -983,11 +983,11 @@ static void lq_on_other(void *e) {
 }
 
 static void lz_on_other(void *e) {
-    pico8_jo_lz((pico8_jo_t *)entities_by_tag("planet")->items[0], e);
+    planet_install_project((planet_t *)entities_by_tag("planet")->items[0], e);
 }
 
 static void hu_on_other(void *e) {
-    pico8_jo_hu((pico8_jo_t *)entities_by_tag("planet")->items[0], e);
+    planet_apply_project((planet_t *)entities_by_tag("planet")->items[0], e);
 }
 
 /* A project is a struct whose descriptor has no method and no writer, its

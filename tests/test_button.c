@@ -470,13 +470,13 @@ static void *title_button(int i) {
     return NULL;
 }
 
-static pico8_jo_t *as_jo(void *e) {
-    assert(pico8_jo_is_family(e));
+static planet_t *as_jo(void *e) {
+    assert(planet_is_family(e));
     return e;
 }
 
 static vec_t pos_of(void *e) {
-    return vec_of(as_jo(e)->p);
+    return vec_of(as_jo(e)->map_pos);
 }
 
 static p8_fixed_t dist2(vec_t a, vec_t b) {
@@ -494,11 +494,11 @@ static pico8_hp_t *project(int k) {
  * hovered planet off `ok.o_`), then left to settle; returns the colony. */
 static void *built_world(void) {
     const entity_list_t *jos;
-    pico8_jc_keys_t jc_keys = {0};
+    slipway_keys_t jc_keys = {0};
     vec_t *mp = malloc(sizeof *mp);
     void *qu;
     void *re = NULL;
-    pico8_jc_t *jc;
+    slipway_t *jc;
     int i;
 
     start_game();
@@ -511,20 +511,20 @@ static void *built_world(void) {
             re = e;
         }
     }
-    pico8_jo_hu(qu, project(COLONY));
-    pico8_jo_hu(re, project(EXPORTER));
+    planet_apply_project(qu, project(COLONY));
+    planet_apply_project(re, project(EXPORTER));
 
-    jc_keys.qu = qu;
-    jc = pico8_jc_new(&jc_keys);
+    jc_keys.start = qu;
+    jc = slipway_new(&jc_keys);
     *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
                         vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
-    pico8_jc_struct_class()->drag(&jc->header, mp, NULL);
+    slipway_class()->drag(&jc->header, mp, NULL);
     pico8_ok()->o_ = NULL;
     while (jc->header.state_time < p8_fixed_from_int(15)) {
         update_entities();
     }
-    pico8_jc_struct_class()->drop(&jc->header, re);
+    slipway_class()->drop(&jc->header, re);
     for (i = 0; i < 120; i++) {
         update_entities();
     }
@@ -542,14 +542,14 @@ static void known_panel(void) {
 
     start_game();
     p = entities_by_tag("planet")->items[0];
-    pico8_jo_hh(p);
-    (void)pico8_jo_ldown(p);
+    planet_roll_type(p);
+    (void)planet_left_press(p);
     one_frame();
 }
 
 /* built_world's colony with its panel, `jo:gh`, up. */
 static void built_panel(void) {
-    pico8_jo_gh(built_world());
+    planet_inspection_panel(built_world());
     one_frame();
 }
 
@@ -758,7 +758,7 @@ static void test_dk(void) {
         printf("[dk] bo[%d]: %d planet(s)\n", i, jo->count);
         h = fnv(h, (uint32_t)jo->count);
         for (j = 0; j < jo->count; j++) {
-            h = fold_vec(h, as_jo(jo->items[j])->ra);
+            h = fold_vec(h, as_jo(jo->items[j])->pos);
         }
     }
     check("dk", h, DK_HASH);
@@ -929,7 +929,7 @@ static void test_fe_my(void) {
     le = ok_le();
     for (i = 0; i < le->count; i++) {
         void *b = le->items[i];
-        const pico8_jo_t *pt;
+        const planet_t *pt;
         if (js_of(b)->_jo_fe_pt == NULL) {
             continue;
         }
@@ -1124,7 +1124,7 @@ static uint32_t fold_member_ref(uint32_t h, const void *ref) {
     if (is_of_class(ref, tooltip_class())) {
         return fnv(h, 0xB1u);
     }
-    if (is_of_class(ref, pico8_jo_struct_class())) {
+    if (is_of_class(ref, planet_class())) {
         return fnv(h, 0xB2u);
     }
     if (is_of_class(ref, pico8_hp_struct_class())) {
@@ -1516,7 +1516,7 @@ static uint32_t members_fe(void) {
             pt = b->_jo_fe_pt;
         }
         assert(b->_jo_fe_pt == pt);
-        assert(is_of_class(pt, pico8_jo_struct_class()) && ents_listed(entities_by_tag("planet"), pt));
+        assert(is_of_class(pt, planet_class()) && ents_listed(entities_by_tag("planet"), pt));
         assert(b->_jo_fe_b != NULL && is_of_class(b->_jo_fe_b, pico8_hp_struct_class()));
         assert(b->has__jo_fe_od);
         assert(b->my != NULL);
@@ -1605,7 +1605,7 @@ static void test_js_members_by_name(void) {
 static void test_fe_free_row(void) {
     const entity_list_t *le;
     pico8_hp_t *b = NULL;
-    pico8_jo_t *pt = NULL;
+    planet_t *pt = NULL;
     int found = 0;
     int i;
 
@@ -1618,7 +1618,7 @@ static void test_fe_free_row(void) {
     assert(b != NULL && pt != NULL);
     b->has_fj = 1;
     b->fj = 0;
-    pico8_jo_fe(pt);
+    planet_projects_panel(pt);
     le = ok_le();
     for (i = 0; i < le->count; i++) {
         const pico8_js_t *row = js_of(le->items[i]);

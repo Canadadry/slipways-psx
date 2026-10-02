@@ -10,13 +10,13 @@
 #include "engine/vec.h"
 #include "game/particle_zone.h"
 
-typedef char pico8_ts_tient_sa_place[sizeof(pico8_ts_t) <= PICO8_TS_PLACE ? 1 : -1];
+typedef char transit_dot_fits_its_slot_t[sizeof(transit_dot_t) <= PICO8_TS_PLACE ? 1 : -1];
 
-static int pico8_jc_display_to_int(p8_fixed_t x) {
+static int to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
 }
 
-void pico8_jc_ch(pico8_jc_t *self, const entity_t *f, const entity_t *t) {
+void slipway_spawn_transit_dot(slipway_t *self, const entity_t *f, const entity_t *t) {
     if (self == NULL) {
         return;
     }
@@ -26,36 +26,36 @@ void pico8_jc_ch(pico8_jc_t *self, const entity_t *f, const entity_t *t) {
         return;
     }
 
-    if (self->hg != NULL) {
+    if (self->served_planets != NULL) {
         /* The mouse point jc:hq hangs on `re` has no `id`. */
-        const char *t_id = t != NULL && pico8_jo_is_family(t) ? ((const pico8_jo_t *)t)->id : NULL;
-        if (pico8_jc_hg_has(self->hg, t_id)) {
-            if (self->ts != NULL) {
-                vec_t f_ra = pico8_jc_end_ra(f);
-                vec_t t_ra = pico8_jc_end_ra(t);
-                vec_t d = vec_sub(t_ra, f_ra);
+        const char *t_id = t != NULL && planet_is_family(t) ? ((const planet_t *)t)->planet_id : NULL;
+        if (slipway_served_planets_has(self->served_planets, t_id)) {
+            if (self->transit_dots != NULL) {
+                vec_t f_pos = slipway_end_pos(f);
+                vec_t t_pos = slipway_end_pos(t);
+                vec_t d = vec_sub(t_pos, f_pos);
                 vec_t v = vec_normalize(d);
-                pico8_ts_t *particle = (pico8_ts_t *)allocator_alloc(pico8_zone_particules(PICO8_PARTICULES_TS),
+                transit_dot_t *particle = (transit_dot_t *)allocator_alloc(pico8_zone_particules(PICO8_PARTICULES_TS),
                                                                       sizeof *particle);
 
-                particle->ra = vec_add(f_ra, vec_perpendicular(v));
-                particle->v = v;
-                particle->l = vec_length(d);
+                particle->pos = vec_add(f_pos, vec_perpendicular(v));
+                particle->velocity = v;
+                particle->life = vec_length(d);
 
-                pointer_list_add(self->ts, particle);
-                pico8_zone_particules_noter_elements(PICO8_PARTICULES_TS, self->ts->count);
+                pointer_list_add(self->transit_dots, particle);
+                pico8_zone_particules_noter_elements(PICO8_PARTICULES_TS, self->transit_dots->count);
             }
         }
     }
 }
 
-void pico8_jc_lg(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_jc_t *self, p8_fixed_t l,
+void slipway_draw_line(const p8_graphics_t *gfx, p8_memory_t *mem, const slipway_t *self, p8_fixed_t l,
                   p8_fixed_t h, p8_fixed_t s, int c) {
     entity_t *qu;
     entity_t *re;
     p8_fixed_t t;
-    vec_t qu_pt;
-    vec_t re_pt;
+    vec_t start_point;
+    vec_t end_point;
     p8_fixed_t dx;
 
     if (self == NULL) {
@@ -65,91 +65,91 @@ void pico8_jc_lg(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_jc_t *s
     assert(s > p8_fixed_from_int(0) && "jc:lg only ascends: a zero step hangs, a negative one draws nothing");
     assert(gfx != NULL && mem != NULL && "pico8_line dereferences gfx and mem: neither may be NULL here");
 
-    qu = self->qu;
-    re = self->re;
+    qu = self->start;
+    re = self->end;
     t = self->header.state_time;
 
-    qu_pt = vec_add(pico8_jc_end_ra(qu),
+    start_point = vec_add(slipway_end_pos(qu),
                            vec_from_polar(P8_FIXED_LIT(0x00018000, 1.5), p8_fixed_div(t, p8_fixed_from_int(126))));
-    re_pt = vec_add(pico8_jc_end_ra(re),
+    end_point = vec_add(slipway_end_pos(re),
                            vec_from_polar(P8_FIXED_LIT(0x00018000, 1.5), p8_fixed_div(t, p8_fixed_from_int(176))));
 
     for (dx = l; dx <= h; dx = p8_fixed_add(dx, s)) {
         p8_fixed_t dy;
         for (dy = l; dy <= h; dy = p8_fixed_add(dy, s)) {
-            int x1 = pico8_jc_display_to_int(p8_fixed_add(qu_pt.x, dx));
-            int y1 = pico8_jc_display_to_int(p8_fixed_add(qu_pt.y, dy));
-            int x2 = pico8_jc_display_to_int(p8_fixed_add(re_pt.x, dx));
-            int y2 = pico8_jc_display_to_int(p8_fixed_add(re_pt.y, dy));
+            int x1 = to_int(p8_fixed_add(start_point.x, dx));
+            int y1 = to_int(p8_fixed_add(start_point.y, dy));
+            int x2 = to_int(p8_fixed_add(end_point.x, dx));
+            int y2 = to_int(p8_fixed_add(end_point.y, dy));
             p8_line(gfx, mem, x1, y1, x2, y2, c);
         }
     }
 }
 
-void pico8_jc_kj(const p8_graphics_t *gfx, p8_memory_t *mem, pico8_jc_t *self) {
-    entity_t *qu;
-    entity_t *re;
+void slipway_draw(const p8_graphics_t *gfx, p8_memory_t *mem, slipway_t *self) {
+    entity_t *start;
+    entity_t *end;
 
     if (self == NULL) {
         return;
     }
 
-    qu = self->qu;
-    re = self->re;
+    start = self->start;
+    end = self->end;
 
-    if (entity_geom_is_on_screen(qu) || entity_geom_is_on_screen(re)) {
-        p8_fixed_t nh = self->nh;
-        int nh_i = pico8_jc_display_to_int(nh);
-        p8_fixed_t jv = p8_fixed_from_int(0);
-        int et_or_fo;
-        int mt_truthy;
-        p8_fixed_t c;
-        p8_fixed_t bc;
-        p8_fixed_t tc;
+    if (entity_geom_is_on_screen(start) || entity_geom_is_on_screen(end)) {
+        p8_fixed_t fade_in_step = self->fade_in_step;
+        int fade_in_step_i = to_int(fade_in_step);
+        p8_fixed_t fade_color = p8_fixed_from_int(0);
+        int target_or_targeted_by;
+        int infraspace_truthy;
+        p8_fixed_t line_color;
+        p8_fixed_t border_color;
+        p8_fixed_t dot_color;
 
-        assert(nh_i >= 1 && "k_ is 1-based: an nh of 0 would silently draw the slipway black");
+        assert(fade_in_step_i >= 1 && "k_ is 1-based: an nh of 0 would silently draw the slipway black");
 
-        if (self->def->trail_colors != NULL) {
+        if (self->archetype->trail_colors != NULL) {
             int entry;
-            if (int_seq_at(self->def->trail_colors->items, self->def->trail_colors->count, nh_i, &entry)) {
-                jv = p8_fixed_from_int(entry);
+            if (int_seq_at(self->archetype->trail_colors->items, self->archetype->trail_colors->count, fade_in_step_i, &entry)) {
+                fade_color = p8_fixed_from_int(entry);
             }
         }
 
-        if (nh < p8_fixed_from_int(20)) {
-            self->nh = p8_fixed_add(nh, p8_fixed_from_int(1));
+        if (fade_in_step < p8_fixed_from_int(20)) {
+            self->fade_in_step = p8_fixed_add(fade_in_step, p8_fixed_from_int(1));
         }
 
-        et_or_fo = self->probe->et != NULL || self->fo != NULL;
-        mt_truthy = self->has_mt;
+        target_or_targeted_by = self->targeting->et != NULL || self->targeted_by != NULL;
+        infraspace_truthy = self->has_infraspace;
 
-        c = et_or_fo ? p8_fixed_from_int(2) : (mt_truthy ? p8_fixed_from_int(0) : jv);
-        bc = mt_truthy ? jv : p8_fixed_from_int(0);
-        tc = mt_truthy ? p8_fixed_from_int(5) : p8_fixed_from_int(13);
+        line_color = target_or_targeted_by ? p8_fixed_from_int(2) : (infraspace_truthy ? p8_fixed_from_int(0) : fade_color);
+        border_color = infraspace_truthy ? fade_color : p8_fixed_from_int(0);
+        dot_color = infraspace_truthy ? p8_fixed_from_int(5) : p8_fixed_from_int(13);
 
-        pico8_jc_lg(gfx, mem, self, p8_fixed_from_int(-1), p8_fixed_from_int(2), p8_fixed_from_int(3),
-                    pico8_jc_display_to_int(bc));
-        pico8_jc_lg(gfx, mem, self, p8_fixed_from_int(0), p8_fixed_from_int(1), p8_fixed_from_int(1),
-                    pico8_jc_display_to_int(c));
+        slipway_draw_line(gfx, mem, self, p8_fixed_from_int(-1), p8_fixed_from_int(2), p8_fixed_from_int(3),
+                    to_int(border_color));
+        slipway_draw_line(gfx, mem, self, p8_fixed_from_int(0), p8_fixed_from_int(1), p8_fixed_from_int(1),
+                    to_int(line_color));
 
         {
-            pointer_list_t *ts = self->ts;
+            pointer_list_t *ts = self->transit_dots;
             if (ts != NULL) {
                 int i;
                 for (i = 0; i < ts->count; i++) {
-                    pico8_ts_t *t = ts->items[i];
-                    vec_t new_ra;
+                    transit_dot_t *t = ts->items[i];
+                    vec_t new_pos;
                     p8_fixed_t new_l;
 
                     if (t == NULL) {
                         continue;
                     }
 
-                    new_ra = vec_add(t->ra, t->v);
-                    t->ra = new_ra;
+                    new_pos = vec_add(t->pos, t->velocity);
+                    t->pos = new_pos;
 
-                    new_l = p8_fixed_sub(t->l, p8_fixed_from_int(1));
-                    t->l = new_l;
+                    new_l = p8_fixed_sub(t->life, p8_fixed_from_int(1));
+                    t->life = new_l;
 
                     /* No `else` in the Lua: an expired particle is removed
                      * and still drawn once more at its final position. */
@@ -159,23 +159,23 @@ void pico8_jc_kj(const p8_graphics_t *gfx, p8_memory_t *mem, pico8_jc_t *self) {
                     }
 
                     {
-                        int x = pico8_jc_display_to_int(new_ra.x);
-                        int y = pico8_jc_display_to_int(new_ra.y);
+                        int x = to_int(new_pos.x);
+                        int y = to_int(new_pos.y);
                         p8_rectfill(gfx, mem, x, y, x + 1, y + 1, 0);
-                        p8_pset(gfx, mem, x, y, pico8_jc_display_to_int(tc));
+                        p8_pset(gfx, mem, x, y, to_int(dot_color));
                     }
                 }
             }
         }
 
-        pico8_jc_ch(self, qu, re);
-        pico8_jc_ch(self, re, qu);
+        slipway_spawn_transit_dot(self, start, end);
+        slipway_spawn_transit_dot(self, end, start);
     }
 
-    self->fo = NULL;
+    self->targeted_by = NULL;
 }
 
-void pico8_jc_kj_dispatch(entity_t *self, const vec_t *ra) {
+void slipway_draw_method(entity_t *self, const vec_t *ra) {
     (void)ra;
-    pico8_jc_kj(dispatch_context_gfx(), dispatch_context_mem(), (pico8_jc_t *)self);
+    slipway_draw(dispatch_context_gfx(), dispatch_context_mem(), (slipway_t *)self);
 }

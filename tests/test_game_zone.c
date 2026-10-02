@@ -149,11 +149,11 @@ static size_t planets_bytes(void) {
     const entity_list_t *jo = entities_by_tag("planet");
     size_t bytes = 0;
     for (int i = 0; jo != NULL && i < jo->count; i++) {
-        const pico8_jo_t *p = (const pico8_jo_t *)jo->items[i];
-        assert(p->jy == NULL && "une planete a des besoins, que P ne compte pas");
-        bytes += block_bytes(sizeof *p) + block_bytes(sizeof *p->p) + block_bytes(sizeof *p->ra) +
-                  block_bytes(strlen(p->id) + 1) + planet_list_bytes(p->oe) +
-                  planet_list_bytes(p->by) + planet_list_bytes(p->cc);
+        const planet_t *p = (const planet_t *)jo->items[i];
+        assert(p->needs == NULL && "une planete a des besoins, que P ne compte pas");
+        bytes += block_bytes(sizeof *p) + block_bytes(sizeof *p->map_pos) + block_bytes(sizeof *p->pos) +
+                  block_bytes(strlen(p->planet_id) + 1) + planet_list_bytes(p->slipways) +
+                  planet_list_bytes(p->outgoing_routes) + planet_list_bytes(p->incoming_routes);
     }
     return bytes;
 }
@@ -288,7 +288,7 @@ static int case_static_lists_in_load_zone(void) {
     entity_list_add(le, &element);
     assert(load_zone_used() == start + four_pointers_bytes() &&
            "la liste de depart de ok.le prend sa capacite dans la sous-zone chargement");
-    entity_list_t *by = pico8_ga_new(NULL)->by;
+    entity_list_t *by = pico8_ga_new(NULL)->outgoing_routes;
     entity_list_add(by, &element);
     assert(load_zone_used() == start + 2 * four_pointers_bytes() &&
            "le by partage des ga prend sa capacite dans la sous-zone chargement");

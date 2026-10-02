@@ -105,7 +105,7 @@ static void test_non_carriers_have_null_links(void) {
     assert_links(&tooltip_new(&heap_allocator, NULL)->header, (entity_t){0});
     assert_links(&pico8_hp_new(NULL)->header, (entity_t){0});
     assert_links(&pico8_hy_new()->header, (entity_t){0});
-    assert_links(&pico8_trade_new(game_zone(), NULL)->header, (entity_t){0});
+    assert_links(&trade_new(game_zone(), NULL)->header, (entity_t){0});
     assert_links(&view.header, (entity_t){0});
 }
 
@@ -123,9 +123,9 @@ static void test_carriers_link_their_storage(void) {
     pico8_mh_t *message_box = pico8_mh_new(NULL);
     pico8_iv_t *toast = pico8_iv_new(NULL);
     pico8_g__t *help_screen = pico8_fv_new();
-    pico8_jo_t *planet = pico8_jo_new(NULL);
-    pico8_jo_t *infraspace_gate = pico8_fr_new(NULL);
-    pico8_jo_t *infraspace_gate_planet = infraspace_gate;
+    planet_t *planet = planet_new(NULL);
+    planet_t *infraspace_gate = infraspace_gate_new(NULL);
+    planet_t *infraspace_gate_planet = infraspace_gate;
 
     assert_links(&background->header, (entity_t){.layer = &background->def->layer, .is_hovered = &background->m_});
     assert_links(&button->header,
@@ -154,59 +154,59 @@ static void test_carriers_link_their_storage(void) {
                                                          .targeting = &help_screen->probe_own});
     assert(*help_screen->header.fold_anchor == p8_fixed_from_int(1) &&
            "a probe's fx is its archetype's 1.0, Lua's true: 0 would read as nil");
-    assert_links(&planet->header, (entity_t){.layer = &planet->def->layer,
-                                                      .pos = (const vec_t *const *)&planet->ra,
-                                                      .map_pos = (const vec_t *const *)&planet->p,
-                                                      .hit_box = &planet->def->hit_box,
-                                                      .shake = &planet->ma,
-                                                      .fold_anchor = &planet->fx,
-                                                      .is_dead = &planet->p_,
-                                                      .is_hovered = &planet->m_});
-    assert(planet->probe == NULL && planet->emitter == NULL);
-    assert_links(&infraspace_gate_planet->header, (entity_t){.layer = &infraspace_gate_planet->def->layer,
-                                                         .pos = (const vec_t *const *)&infraspace_gate_planet->ra,
-                                                         .map_pos = (const vec_t *const *)&infraspace_gate_planet->p,
-                                                         .hit_box = &infraspace_gate_planet->def->hit_box,
-                                                         .infraspace = &infraspace_gate_planet->def->infraspace,
-                                                         .shake = &infraspace_gate_planet->ma,
-                                                         .fold_anchor = &infraspace_gate_planet->fx,
-                                                         .is_dead = &infraspace_gate_planet->p_,
-                                                         .is_hovered = &infraspace_gate_planet->m_,
+    assert_links(&planet->header, (entity_t){.layer = &planet->archetype->layer,
+                                                      .pos = (const vec_t *const *)&planet->pos,
+                                                      .map_pos = (const vec_t *const *)&planet->map_pos,
+                                                      .hit_box = &planet->archetype->hit_box,
+                                                      .shake = &planet->shake,
+                                                      .fold_anchor = &planet->fold_anchor,
+                                                      .is_dead = &planet->is_dead,
+                                                      .is_hovered = &planet->is_hovered});
+    assert(planet->targeting == NULL && planet->emitter == NULL);
+    assert_links(&infraspace_gate_planet->header, (entity_t){.layer = &infraspace_gate_planet->archetype->layer,
+                                                         .pos = (const vec_t *const *)&infraspace_gate_planet->pos,
+                                                         .map_pos = (const vec_t *const *)&infraspace_gate_planet->map_pos,
+                                                         .hit_box = &infraspace_gate_planet->archetype->hit_box,
+                                                         .infraspace = &infraspace_gate_planet->archetype->infraspace,
+                                                         .shake = &infraspace_gate_planet->shake,
+                                                         .fold_anchor = &infraspace_gate_planet->fold_anchor,
+                                                         .is_dead = &infraspace_gate_planet->is_dead,
+                                                         .is_hovered = &infraspace_gate_planet->is_hovered,
                                                          .targeting = &infraspace_gate->probe_own});
 }
 
 /* A planet's links, but for its emitter and probe. */
-static entity_t planet_links(pico8_jo_t *jo) {
-    return (entity_t){.layer = &jo->def->layer,
-                                   .pos = (const vec_t *const *)&jo->ra,
-                                   .map_pos = (const vec_t *const *)&jo->p,
-                                   .hit_box = &jo->def->hit_box,
-                                   .shake = &jo->ma,
-                                   .fold_anchor = &jo->fx,
-                                   .is_dead = &jo->p_,
-                                   .is_hovered = &jo->m_};
+static entity_t planet_links(planet_t *jo) {
+    return (entity_t){.layer = &jo->archetype->layer,
+                                   .pos = (const vec_t *const *)&jo->pos,
+                                   .map_pos = (const vec_t *const *)&jo->map_pos,
+                                   .hit_box = &jo->archetype->hit_box,
+                                   .shake = &jo->shake,
+                                   .fold_anchor = &jo->fold_anchor,
+                                   .is_dead = &jo->is_dead,
+                                   .is_hovered = &jo->is_hovered};
 }
 
-static void assert_structure_links(pico8_jo_t *qh, pico8_emitter_t *emitter) {
+static void assert_structure_links(planet_t *qh, pico8_emitter_t *emitter) {
     entity_t want = planet_links(qh);
 
     want.emitter = emitter;
     want.targeting = &qh->probe_own;
     assert_links(&qh->header, want);
-    assert(qh->probe == qh->header.targeting && qh->emitter == qh->header.emitter);
+    assert(qh->targeting == qh->header.targeting && qh->emitter == qh->header.emitter);
 }
 
 /* Emitter and probe carriers: each link is the component the instance
  * stores in itself, the one its own member points at. */
 static void test_component_carriers_link_their_own(void) {
     pico8_g__t *g_ = pico8_g__new(NULL);
-    pico8_jo_t *nl = pico8_nl_new(NULL);
-    pico8_jo_t *os = pico8_os_new(NULL);
-    pico8_jo_t *hj = pico8_hj_new(NULL);
-    pico8_jo_t *pm = pico8_pm_new(NULL);
-    pico8_jo_t *mx = pico8_mx_new(NULL);
-    pico8_jo_t *nr = pico8_nr_new(NULL);
-    pico8_jo_t *ga = pico8_ga_new(NULL);
+    planet_t *nl = pico8_nl_new(NULL);
+    planet_t *os = pico8_os_new(NULL);
+    planet_t *hj = pico8_hj_new(NULL);
+    planet_t *pm = pico8_pm_new(NULL);
+    planet_t *mx = synthesizer_new(NULL);
+    planet_t *nr = slipgate_new(NULL);
+    planet_t *ga = pico8_ga_new(NULL);
     pico8_mz_t *mz = pico8_mz_new();
     entity_t want = planet_links(ga);
 
@@ -229,7 +229,7 @@ static void test_component_carriers_link_their_own(void) {
     assert_structure_links(nr, NULL);
     want.emitter = &ga->emitter_own;
     assert_links(&ga->header, want);
-    assert(ga->emitter == ga->header.emitter && ga->probe == NULL);
+    assert(ga->emitter == ga->header.emitter && ga->targeting == NULL);
     assert_links(&mz->header, (entity_t){.layer = &mz->def->layer,
                                                       .pos = &mz->ra,
                                                       .map_pos = &mz->p,
@@ -238,35 +238,35 @@ static void test_component_carriers_link_their_own(void) {
     assert(mz->probe == mz->header.targeting);
 }
 
-static pico8_jc_t *slipway_dragged_over_nothing(entity_t *qu) {
-    pico8_jc_keys_t keys = {0};
+static slipway_t *slipway_dragged_over_nothing(entity_t *qu) {
+    slipway_keys_t keys = {0};
     vec_t *mp = malloc(sizeof *mp);
-    pico8_jc_t *jc;
+    slipway_t *jc;
 
-    keys.qu = qu;
-    jc = pico8_jc_new(&keys);
+    keys.start = qu;
+    jc = slipway_new(&keys);
     *mp = vec_make(p8_fixed_from_int(-640), p8_fixed_from_int(-640));
     pico8_ok()->o_ = NULL;
-    pico8_jc_struct_class()->drag(&jc->header, mp, NULL);
+    slipway_class()->drag(&jc->header, mp, NULL);
     return jc;
 }
 
 /* The point `jc:hq` builds over nothing carries `ra` and `p` alone; the
  * slipway's `mt` is its start's, else nil. */
 static void test_mouse_point_has_null_links(void) {
-    pico8_jc_t *jc = slipway_dragged_over_nothing(&pico8_jo_new(NULL)->header);
-    pico8_jc_mouse_point_t *point = (pico8_jc_mouse_point_t *)jc->re;
-    pico8_jc_t *from_infraspace_gate = slipway_dragged_over_nothing(&pico8_fr_new(NULL)->header);
+    slipway_t *jc = slipway_dragged_over_nothing(&planet_new(NULL)->header);
+    slipway_mouse_point_t *point = (slipway_mouse_point_t *)jc->end;
+    slipway_t *from_infraspace_gate = slipway_dragged_over_nothing(&infraspace_gate_new(NULL)->header);
 
-    assert(point != NULL && point->header.class == pico8_jc_mouse_point_struct_class());
-    assert_links(&point->header, (entity_t){.pos = &point->ra, .map_pos = &point->p});
-    assert(!jc->has_mt && jc->fa == p8_fixed_from_int(4));
-    assert_links(&jc->header, (entity_t){.layer = &jc->fa, .is_dead = &jc->p_, .targeting = &jc->probe_own});
-    assert(jc->probe == jc->header.targeting);
-    assert(from_infraspace_gate->has_mt && from_infraspace_gate->mt == infraspace_gate_archetype.infraspace && from_infraspace_gate->fa == p8_fixed_from_int(2));
+    assert(point != NULL && point->header.class == slipway_mouse_point_class());
+    assert_links(&point->header, (entity_t){.pos = &point->pos, .map_pos = &point->map_pos});
+    assert(!jc->has_infraspace && jc->layer == p8_fixed_from_int(4));
+    assert_links(&jc->header, (entity_t){.layer = &jc->layer, .is_dead = &jc->is_dead, .targeting = &jc->probe_own});
+    assert(jc->targeting == jc->header.targeting);
+    assert(from_infraspace_gate->has_infraspace && from_infraspace_gate->infraspace == infraspace_gate_archetype.infraspace && from_infraspace_gate->layer == p8_fixed_from_int(2));
     assert_links(&from_infraspace_gate->header,
                  (entity_t){
-                     .layer = &from_infraspace_gate->fa, .infraspace = &from_infraspace_gate->mt, .is_dead = &from_infraspace_gate->p_, .targeting = &from_infraspace_gate->probe_own});
+                     .layer = &from_infraspace_gate->layer, .infraspace = &from_infraspace_gate->infraspace, .is_dead = &from_infraspace_gate->is_dead, .targeting = &from_infraspace_gate->probe_own});
 }
 
 int main(int argc, char **argv) {

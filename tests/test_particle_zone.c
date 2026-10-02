@@ -274,17 +274,17 @@ static int case_ez_notes_the_list_length(void) {
     return 0;
 }
 
-static pico8_ts_t *trainee(void) {
-    return (pico8_ts_t *)allocator_alloc(pico8_zone_particules(PICO8_PARTICULES_TS), sizeof(pico8_ts_t));
+static transit_dot_t *trainee(void) {
+    return (transit_dot_t *)allocator_alloc(pico8_zone_particules(PICO8_PARTICULES_TS), sizeof(transit_dot_t));
 }
 
-static void rendre_trainee(pico8_ts_t *t) {
+static void rendre_trainee(transit_dot_t *t) {
     allocator_release(pico8_zone_particules(PICO8_PARTICULES_TS), (unsigned char *)t);
 }
 
 static int case_ts_takes_and_gives_back(void) {
-    pico8_ts_t *a = trainee();
-    pico8_ts_t *b = trainee();
+    transit_dot_t *a = trainee();
+    transit_dot_t *b = trainee();
     assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_TS) == 2);
     rendre_trainee(a);
     assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_TS) == 1 && "rendre une trainee decompte sa sorte");
@@ -299,7 +299,7 @@ static int case_ts_takes_and_gives_back(void) {
 }
 
 static int case_ts_dead_after_release(void) {
-    pico8_ts_t *t = trainee();
+    transit_dot_t *t = trainee();
     rendre_trainee(t);
     sink = ((volatile unsigned char *)t)[0];
     return 0;

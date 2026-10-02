@@ -28,7 +28,7 @@ static int pico8_mz_ancrage(const entity_t *p) {
 }
 
 void pico8_mz_pq(pico8_mz_t *self) {
-    const allocator_t *zone = pico8_jo_zone_construction();
+    const allocator_t *zone = planet_zone_construction();
     entity_list_t *ox;
     entity_list_iter_t it;
     entity_t *p;
@@ -154,20 +154,20 @@ void pico8_mz_pr(pico8_mz_t *self, p8_fixed_t t) {
     if (jo_list != NULL) {
         for (i = 0; i < jo_list->count; i++) {
             entity_t *pt_val = jo_list->items[i];
-            pico8_jo_t *pt;
+            planet_t *pt;
 
             if (pt_val == NULL) {
                 continue;
             }
-            assert(pico8_jo_is_family(pt_val) && "mz:pr: cg.jo holds planets only");
-            pt = (pico8_jo_t *)pt_val;
+            assert(planet_is_family(pt_val) && "mz:pr: cg.jo holds planets only");
+            pt = (planet_t *)pt_val;
 
             if (pt->header.state != NULL && strcmp(pt->header.state, "unknown") == 0) {
                 vec_t pt_p =
-                    pt->p != NULL ? *pt->p : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+                    pt->map_pos != NULL ? *pt->map_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
                 vec_t diff = vec_sub(pt_p, self_p);
                 if (vec_length(diff) < sr) {
-                    pico8_jo_hh(pt);
+                    planet_roll_type(pt);
                 }
             }
         }
@@ -193,7 +193,7 @@ p8_fixed_t pico8_mz_ej(pico8_mz_t *self, p8_fixed_t t) {
 }
 
 static void pico8_mz_rendre_dispatch(entity_t *self) {
-    pico8_jo_prise_arene_rendue(((pico8_mz_t *)self)->ox->zone);
+    planet_grab_arena_arena_released(((pico8_mz_t *)self)->ox->zone);
 }
 
 /* Lua's `mz.hq=bv` is rebound three statements later by `function mz:hq`,
@@ -217,8 +217,8 @@ static const entity_class_t g_mz_struct_class = {
 static pico8_mz_t *pico8_mz_struct_new(void) {
     pico8_mz_t *self;
 
-    pico8_jo_prise_ouvrir();
-    self = (pico8_mz_t *)allocator_alloc(pico8_jo_zone_construction(), sizeof *self);
+    planet_grab_arena_open();
+    self = (pico8_mz_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
     entity_init_instance(&self->header, &g_mz_struct_class, wormhole_archetype.state, wormhole_archetype.state_time);
     self->def = &wormhole_archetype;
@@ -243,7 +243,7 @@ static pico8_mz_t *pico8_mz_struct_new(void) {
     pico8_class_coverage_record("wormhole");
 #endif
     pico8_mz_pq(self);
-    pico8_jo_prise_fermer();
+    planet_grab_arena_close();
     entity_construct(&self->header);
     return self;
 }

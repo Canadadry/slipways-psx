@@ -8,76 +8,76 @@
 
 static int g_trade_up = 0;
 
-pico8_qe_t pico8_trade_qe(const pico8_trade_t *self) {
-    if (self == NULL || !self->has_qe) {
-        return (pico8_qe_t){.kind = PICO8_QE_NIL};
+resource_t trade_resource(const trade_route_t *self) {
+    if (self == NULL || !self->has_resource) {
+        return (resource_t){.kind = RESOURCE_NIL};
     }
-    assert(!(self->qe_is_bool && self->qe != 0) && "no route of src/ holds true: `pico8_qe_t` has no kind for it");
-    return self->qe_is_bool ? (pico8_qe_t){.kind = PICO8_QE_FALSE}
-                            : (pico8_qe_t){.kind = PICO8_QE_FIXED, .n = self->qe};
+    assert(!(self->resource_is_bool && self->resource != 0) && "no route of src/ holds true: `pico8_qe_t` has no kind for it");
+    return self->resource_is_bool ? (resource_t){.kind = RESOURCE_FALSE}
+                            : (resource_t){.kind = RESOURCE_FIXED, .number = self->resource};
 }
 
-int pico8_qe_equal(pico8_qe_t a, pico8_qe_t b) {
-    return a.kind == b.kind && (a.kind != PICO8_QE_FIXED || a.n == b.n);
+int resource_equal(resource_t a, resource_t b) {
+    return a.kind == b.kind && (a.kind != RESOURCE_FIXED || a.number == b.number);
 }
 
-static const entity_class_t g_trade_struct_class = {0};
+static const entity_class_t g_trade_class = {0};
 
-static pico8_trade_t *pico8_trade_struct_new(const allocator_t *zone, const pico8_trade_keys_t *keys) {
-    pico8_trade_t *self = (pico8_trade_t *)allocator_alloc(zone, sizeof *self);
+static trade_route_t *trade_create(const allocator_t *zone, const trade_keys_t *keys) {
+    trade_route_t *self = (trade_route_t *)allocator_alloc(zone, sizeof *self);
 
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("trade");
 #endif
-    entity_init_header(&self->header, &g_trade_struct_class);
-    self->lp = NULL;
-    self->rl = NULL;
-    self->qe = 0;
-    self->has_qe = 0;
-    self->qe_is_bool = 0;
+    entity_init_header(&self->header, &g_trade_class);
+    self->planets = NULL;
+    self->slipways = NULL;
+    self->resource = 0;
+    self->has_resource = 0;
+    self->resource_is_bool = 0;
     if (keys != NULL) {
-        assert((!keys->qe_is_bool || keys->qe == 0 || keys->qe == 1) &&
+        assert((!keys->resource_is_bool || keys->resource == 0 || keys->resource == 1) &&
                "trade.qe: a boolean key holds 0 or 1; `pico8_trade_qe` would read any other as a fixed");
-        assert((keys->has_qe || (!keys->qe_is_bool && keys->qe == 0)) &&
+        assert((keys->has_resource || (!keys->resource_is_bool && keys->resource == 0)) &&
                "trade.qe: a nil key carries neither a kind nor a value; the member reads 0 for nil");
-        self->lp = keys->lp;
-        self->rl = keys->rl;
-        self->qe = keys->qe;
-        self->has_qe = keys->has_qe;
-        self->qe_is_bool = keys->qe_is_bool;
+        self->planets = keys->planets;
+        self->slipways = keys->slipways;
+        self->resource = keys->resource;
+        self->has_resource = keys->has_resource;
+        self->resource_is_bool = keys->resource_is_bool;
     }
     return self;
 }
 
-static void assert_trade(const pico8_trade_t *self) {
+static void assert_trade(const trade_route_t *self) {
     assert((self == NULL ||
-            self->header.class == &g_trade_struct_class) &&
+            self->header.class == &g_trade_class) &&
            "trade: every by/cc element and every proposal's t is a route; anything else would be read "
            "through the wrong layout");
 }
 
-void pico8_trade_init(void) {
-    pico8_trade_shutdown();
+void trade_init(void) {
+    trade_shutdown();
     g_trade_up = 1;
 }
 
-void pico8_trade_shutdown(void) {
+void trade_shutdown(void) {
     g_trade_up = 0;
 }
 
-int pico8_trade_ready(void) {
+int trade_ready(void) {
     return g_trade_up;
 }
 
-const entity_class_t *pico8_trade_struct_class(void) {
-    return &g_trade_struct_class;
+const entity_class_t *trade_class(void) {
+    return &g_trade_class;
 }
 
-pico8_trade_t *pico8_trade_new(const allocator_t *zone, const pico8_trade_keys_t *keys) {
-    return pico8_trade_struct_new(zone, keys);
+trade_route_t *trade_new(const allocator_t *zone, const trade_keys_t *keys) {
+    return trade_create(zone, keys);
 }
 
-static entity_list_t *ents_copy(const allocator_t *zone, const entity_list_t *src) {
+static entity_list_t *entity_list_copy(const allocator_t *zone, const entity_list_t *src) {
     entity_list_t empty;
     entity_list_t *copy;
 
@@ -90,29 +90,29 @@ static entity_list_t *ents_copy(const allocator_t *zone, const entity_list_t *sr
     return copy;
 }
 
-pico8_trade_t *pico8_trade_copy(const allocator_t *zone, const pico8_trade_t *self) {
-    pico8_trade_keys_t keys = {0};
+trade_route_t *trade_copy(const allocator_t *zone, const trade_route_t *self) {
+    trade_keys_t keys = {0};
 
     assert_trade(self);
     if (self == NULL) {
         return NULL;
     }
-    keys.lp = ents_copy(zone, self->lp);
-    keys.rl = ents_copy(zone, self->rl);
-    keys.qe = self->qe;
-    keys.has_qe = self->has_qe;
-    keys.qe_is_bool = self->qe_is_bool;
-    return pico8_trade_new(zone, &keys);
+    keys.planets = entity_list_copy(zone, self->planets);
+    keys.slipways = entity_list_copy(zone, self->slipways);
+    keys.resource = self->resource;
+    keys.has_resource = self->has_resource;
+    keys.resource_is_bool = self->resource_is_bool;
+    return trade_new(zone, &keys);
 }
 
-int pico8_trade_to(const pico8_trade_t *self, entity_t **out) {
+int trade_last_planet(const trade_route_t *self, entity_t **out) {
     const entity_list_t *lp;
 
     assert_trade(self);
-    if (self == NULL || self->lp == NULL) {
+    if (self == NULL || self->planets == NULL) {
         return 0;
     }
-    lp = self->lp;
+    lp = self->planets;
     if (lp->count == 0) {
         return 0;
     }
@@ -123,53 +123,53 @@ int pico8_trade_to(const pico8_trade_t *self, entity_t **out) {
 /* `{np}`/`{jc}` live in the frame zone: pico8_ents_cat copies their
  * element into the lp/rl it returns. A Lua `{x}` holds zero elements
  * when x is nil, so a NULL contributes nothing. */
-pico8_trade_t *pico8_trade_kg(const allocator_t *zone, const pico8_trade_t *self,
-                              entity_t *np, entity_t *jc) {
-    pico8_trade_keys_t keys = {0};
-    entity_list_t empty_lp;
-    entity_list_t empty_rl;
+trade_route_t *trade_extend(const allocator_t *zone, const trade_route_t *self,
+                              entity_t *node, entity_t *slipway) {
+    trade_keys_t keys = {0};
+    entity_list_t empty_planets;
+    entity_list_t empty_slipways;
     const entity_list_t *lp;
     const entity_list_t *rl;
-    entity_list_t np_list;
-    entity_list_t jc_list;
-    entity_list_t *new_lp;
-    entity_list_t *new_rl;
+    entity_list_t node_list;
+    entity_list_t slipway_list;
+    entity_list_t *new_planets;
+    entity_list_t *new_slipways;
 
     assert_trade(self);
     if (self == NULL) {
         return NULL;
     }
 
-    entity_list_init(&empty_lp, frame_zone());
-    entity_list_init(&empty_rl, frame_zone());
-    lp = self->lp != NULL ? self->lp : &empty_lp;
-    rl = self->rl != NULL ? self->rl : &empty_rl;
+    entity_list_init(&empty_planets, frame_zone());
+    entity_list_init(&empty_slipways, frame_zone());
+    lp = self->planets != NULL ? self->planets : &empty_planets;
+    rl = self->slipways != NULL ? self->slipways : &empty_slipways;
     /* TROU-24 */
-    keys.has_qe = 1;
-    keys.qe_is_bool = self->has_qe ? self->qe_is_bool : 1;
-    keys.qe = self->has_qe ? self->qe : 0;
+    keys.has_resource = 1;
+    keys.resource_is_bool = self->has_resource ? self->resource_is_bool : 1;
+    keys.resource = self->has_resource ? self->resource : 0;
 
-    entity_list_init(&np_list, frame_zone());
-    if (np != NULL) {
-        entity_list_add(&np_list, np);
+    entity_list_init(&node_list, frame_zone());
+    if (node != NULL) {
+        entity_list_add(&node_list, node);
     }
-    entity_list_init(&jc_list, frame_zone());
-    if (jc != NULL) {
-        entity_list_add(&jc_list, jc);
+    entity_list_init(&slipway_list, frame_zone());
+    if (slipway != NULL) {
+        entity_list_add(&slipway_list, slipway);
     }
 
-    new_lp = (entity_list_t *)allocator_alloc(zone, sizeof *new_lp);
-    *new_lp = entity_list_concat(zone, lp, &np_list);
-    new_rl = (entity_list_t *)allocator_alloc(zone, sizeof *new_rl);
-    *new_rl = entity_list_concat(zone, rl, &jc_list);
+    new_planets = (entity_list_t *)allocator_alloc(zone, sizeof *new_planets);
+    *new_planets = entity_list_concat(zone, lp, &node_list);
+    new_slipways = (entity_list_t *)allocator_alloc(zone, sizeof *new_slipways);
+    *new_slipways = entity_list_concat(zone, rl, &slipway_list);
 
-    keys.lp = new_lp;
-    keys.rl = new_rl;
-    return pico8_trade_new(zone, &keys);
+    keys.planets = new_planets;
+    keys.slipways = new_slipways;
+    return trade_new(zone, &keys);
 }
 
-int pico8_trade_eq(const pico8_trade_t *l, const pico8_trade_t *r) {
-    const entity_list_t *l_lp, *r_lp;
+int trade_equal(const trade_route_t *l, const trade_route_t *r) {
+    const entity_list_t *l_planets, *r_planets;
     const entity_t *l_first, *r_first;
     entity_t *l_last, *r_last;
 
@@ -178,21 +178,21 @@ int pico8_trade_eq(const pico8_trade_t *l, const pico8_trade_t *r) {
     if (l == NULL || r == NULL) {
         return 0;
     }
-    if (l->lp == NULL || r->lp == NULL) {
+    if (l->planets == NULL || r->planets == NULL) {
         return 0;
     }
-    l_lp = l->lp;
-    r_lp = r->lp;
-    if (l_lp->count == 0 || r_lp->count == 0) {
+    l_planets = l->planets;
+    r_planets = r->planets;
+    if (l_planets->count == 0 || r_planets->count == 0) {
         return 0;
     }
-    l_first = l_lp->items[0];
-    r_first = r_lp->items[0];
+    l_first = l_planets->items[0];
+    r_first = r_planets->items[0];
 
     if (l_first != r_first) {
         return 0;
     }
-    if (!pico8_trade_to(l, &l_last) || !pico8_trade_to(r, &r_last)) {
+    if (!trade_last_planet(l, &l_last) || !trade_last_planet(r, &r_last)) {
         return 0;
     }
     return l_last == r_last;

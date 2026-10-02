@@ -157,14 +157,14 @@ static int reset_then_draw_panel(void) {
 
 static int case_inspection_panel_rows_survive_reset(void) {
     static production_t kw = {.has_resource = 1};
-    pico8_jo_t *planet;
+    planet_t *planet;
 
     start_game();
-    planet = (pico8_jo_t *)entities_by_tag("planet")->items[0];
+    planet = (planet_t *)entities_by_tag("planet")->items[0];
     kw.resource = p8_fixed_from_int(99);
     kw.amount = p8_fixed_from_int(1);
-    planet->kw = &kw;
-    pico8_jo_gh(planet);
+    planet->production = &kw;
+    planet_inspection_panel(planet);
     assert(pico8_ok()->le->count >= 2 && "jo:gh: l'icone et la rangee exports");
     reset_then_draw_panel();
     return 0;
@@ -179,12 +179,12 @@ static int case_invented_lines_survive_reset(void) {
 }
 
 static int case_research_project_tooltip_survives_reset(void) {
-    pico8_jo_t *planet;
+    planet_t *planet;
 
     start_game();
-    planet = (pico8_jo_t *)entities_by_tag("planet")->items[0];
-    pico8_jo_hh(planet);
-    (void)pico8_jo_ldown(planet);
+    planet = (planet_t *)entities_by_tag("planet")->items[0];
+    planet_roll_type(planet);
+    (void)planet_left_press(planet);
     assert(reset_then_draw_panel() >= 1 && "jo:fe: un batiment porte la bulle de hp:jb");
     return 0;
 }

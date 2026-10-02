@@ -33,7 +33,7 @@ static void spy_draw(entity_t *self, const vec_t *ra) {
     g_draw_calls++;
     g_camera_x_at_draw = dispatch_context_gfx()->camera_x;
     g_camera_y_at_draw = dispatch_context_gfx()->camera_y;
-    pico8_jo_kj(dispatch_context_gfx(), dispatch_context_mem(), (pico8_jo_t *)self, p);
+    planet_draw(dispatch_context_gfx(), dispatch_context_mem(), (planet_t *)self, p);
 }
 
 static entity_class_t g_spied_planet;
@@ -41,7 +41,7 @@ static entity_class_t g_spied_planet;
 static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_planet_draw(void) {
     p8_memory_t mem;
     p8_graphics_t gfx;
-    pico8_jo_t *planet;
+    planet_t *planet;
     entity_t *camera;
     vec_t *pos_heap;
     int screen_pixel_addr;
@@ -60,8 +60,8 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
     camera = main_camera();
     assert(camera != NULL);
 
-    pico8_jo_init();
-    planet = pico8_jo_new(NULL);
+    planet_init();
+    planet = planet_new(NULL);
     assert(planet != NULL);
 
     /* `jo` wires "kj" as a class default, so the instance must land in the
@@ -83,10 +83,10 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
      * early return is not taken and the real draw body runs. */
     pos_heap = malloc(sizeof *pos_heap);
     *pos_heap = vec_make(p8_fixed_from_int(256), p8_fixed_from_int(256));
-    planet->ra = pos_heap;
+    planet->pos = pos_heap;
 
     assert(camera->class == pico8_qb_struct_class());
-    g_spied_planet = *pico8_jo_struct_class();
+    g_spied_planet = *planet_class();
     g_spied_planet.draw = spy_draw;
     planet->header.class = &g_spied_planet;
 
@@ -125,8 +125,8 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
 
     assert(main_camera() == camera);
 
-    planet->header.class = pico8_jo_struct_class();
-    pico8_jo_shutdown();
+    planet->header.class = planet_class();
+    planet_shutdown();
     bootstrap_shutdown();
 }
 

@@ -167,7 +167,7 @@ static void test_named_false_positives_do_not_bite(void) {
     assert_alone_is_empty(SRC "/f.c", "number(e, 1);\n");
     assert_alone_is_empty(TST "/f.c", "\"pico8_jo_" "default(\\\"n" "u\\\", &k);\\n\"\n");
     assert_alone_is_empty(SRC "/f.c", "int mr = 0;\n");
-    assert_alone_is_empty(SRC "/f.c", "self->qe_is_bool = 0;\n");
+    assert_alone_is_empty(SRC "/f.c", "self->resource_is_bool = 0;\n");
     assert_alone_is_empty(SRC "/f.c", "self->background_is_bool = 0;\n");
     assert_alone_is_empty(SRC "/f.c", "k.h_is_false = 1;\n");
     assert_alone_is_empty(SRC "/engine/entity_class.h", "#include \"engine/vec.h\"\n");
@@ -230,7 +230,7 @@ static void test_ptrs_members_count_only_on_entity_types(void) {
     setup();
     write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} pico8_" "ke_t;\n"
                            "typedef struct {\n    pico8_" "ke_t ke;\n    pointer_" "list_t *oe;\n    pointer_"
-                           "list_t *jy;\n} pico8_" "jo_t;\n"
+                           "list_t *needs;\n} planet_" "t;\n"
                            "typedef struct {\n    int a;\n    pointer_" "list_t *qy;\n} other_t;\n"
                            "void f(void) {\n    pointer_" "list_t list;\n}\n");
     assert(run_residue("--check ptrs-entité " TREE) == 1);
@@ -339,8 +339,8 @@ static void test_registres_sees_hidden_forms_and_not_its_named_limits(void) {
 }
 
 /* ptrs-entité lit les membres d'un type d'entité comme registres lit ceux des
- * autres structs, avec les mêmes limites (void *owner, :15). jy est exempté
- * seul, pas other_jy sur sa ligne (:16) ; (*mk) n'a pas de nom lisible
+ * autres structs, avec les mêmes limites (void *owner, :15). needs est exempté
+ * seul, pas other_needs sur sa ligne (:16) ; (*mk) n'a pas de nom lisible
  * (:17). */
 static void test_ptrs_entite_reads_entity_members_like_registres(void) {
     setup();
@@ -358,13 +358,13 @@ static void test_ptrs_entite_reads_entity_members_like_registres(void) {
                            "    void *(*get)(void);\n"
                            "    _Alignas(8) void **al;\n"
                            "    void *owner;\n"
-                           "    pointer_" "list_t *jy, *other_jy;\n"
+                           "    pointer_" "list_t *needs, *other_needs;\n"
                            "    pointer_" "list_t (*mk)(void);\n"
                            "    _Alignas (8) void **al2;\n"
-                           "} pico8_" "jo_t;\n"
+                           "} planet_" "t;\n"
                            "typedef struct pico8_" "nl_s\n"
                            "{\n"
-                           "    pico8_" "jo_t jo;\n"
+                           "    planet_" "t jo;\n"
                            "    void **more;\n"
                            "} pico8_" "nl_t;\n");
     assert(run_residue("--check registres " TREE) == 0);
@@ -378,7 +378,7 @@ static void test_ptrs_entite_reads_entity_members_like_registres(void) {
                                   "ptrs-entité: " SRC "/e.h:12:    const pointer_" "list_t *const x;\n"
                                   "ptrs-entité: " SRC "/e.h:13:    void *(*get)(void);\n"
                                   "ptrs-entité: " SRC "/e.h:14:    _Alignas(8) void **al;\n"
-                                  "ptrs-entité: " SRC "/e.h:16:    pointer_" "list_t *jy, *other_jy;\n"
+                                  "ptrs-entité: " SRC "/e.h:16:    pointer_" "list_t *needs, *other_needs;\n"
                                   "ptrs-entité: " SRC "/e.h:17:    pointer_" "list_t (*mk)(void);\n"
                                   "ptrs-entité: " SRC "/e.h:18:    _Alignas (8) void **al2;\n"
                                   "ptrs-entité: " SRC "/e.h:23:    void **more;\n"
@@ -413,7 +413,7 @@ static void test_readers_see_qualifiers_split_declarations_and_nested_attributes
                            "    volatile void **q2;\n"
                            "    void * volatile *q3;\n"
                            "    int k2; void **items;\n"
-                           "    pointer_" "list_t *jy; pointer_" "list_t *hidden;\n"
+                           "    pointer_" "list_t *needs; pointer_" "list_t *hidden;\n"
                            "    void **d1; void **d2;\n"
                            "    void **\n"
                            "        split;\n"
@@ -431,7 +431,7 @@ static void test_readers_see_qualifiers_split_declarations_and_nested_attributes
                            "    int k3; void *other;\n"
                            "    void (*cb2)(void *a,\n"
                            "        int b);\n"
-                           "} pico8_" "jo_t;\n");
+                           "} planet_" "t;\n");
     write_file(SRC "/f.c", "static void const *g_c[4];\n"
                            "static const char **g_names;\n"
                            "static pointer_" "list_t collect_" "filter_pointer_list; static pointer_" "list_t g_second;\n");
@@ -443,7 +443,7 @@ static void test_readers_see_qualifiers_split_declarations_and_nested_attributes
                                   "ptrs-entité: " SRC "/e.h:7:    volatile void **q2;\n"
                                   "ptrs-entité: " SRC "/e.h:8:    void * volatile *q3;\n"
                                   "ptrs-entité: " SRC "/e.h:9:    int k2; void **items;\n"
-                                  "ptrs-entité: " SRC "/e.h:10:    pointer_" "list_t *jy; pointer_" "list_t *hidden;\n"
+                                  "ptrs-entité: " SRC "/e.h:10:    pointer_" "list_t *needs; pointer_" "list_t *hidden;\n"
                                   "ptrs-entité: " SRC "/e.h:11:    void **d1; void **d2;\n"
                                   "ptrs-entité: " SRC "/e.h:12:    void **\n"
                                   "ptrs-entité: " SRC "/e.h:14:    pointer_" "list_t\n"
@@ -737,12 +737,12 @@ static void test_champs_counts_writes_and_writes_outside_constructors(void) {
                            "typedef struct {\n    pico8_" "ke_t ke;\n    int a;\n    int b;\n"
                            "    int c; /* (x) */\n    void (*f)(int k);\n} pico8_" "jo_t;\n");
     write_file(TST "/fake.h", "typedef struct {\n    pico8_" "ke_t ke;\n    int z;\n} fake_t;\n");
-    write_file(SRC "/e.c", "void pico8_jo_struct_init(pico8_" "jo_t *self,\n"
-                           "                         int k) {\n"
+    write_file(SRC "/e.c", "void planet_init_instance(pico8_" "jo_t *self,\n"
+                           "                          int k) {\n"
                            "    self->a = pico8_" "jo_start.a;\n"
                            "    self->b = 1;\n"
                            "}\n"
-                           "static void pico8_jo_hk(pico8_" "jo_t *self) {\n"
+                           "static void planet_new_year(pico8_" "jo_t *self) {\n"
                            "    self->c += 2;\n"
                            "    if (self->b == 1) {}\n"
                            "}\n");

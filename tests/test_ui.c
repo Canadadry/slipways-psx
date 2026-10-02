@@ -118,14 +118,14 @@ static const pico8_qb_t *mo_qb(void) {
     return mo;
 }
 
-static pico8_jo_t *as_jo(void *e) {
-    assert(pico8_jo_is_family(e));
+static planet_t *as_jo(void *e) {
+    assert(planet_is_family(e));
     return e;
 }
 
 /* 0 absent or false, 2 true. */
-static uint32_t m__state(const pico8_jo_t *jo) {
-    return jo->m_ ? 2 : 0;
+static uint32_t m__state(const planet_t *jo) {
+    return jo->is_hovered ? 2 : 0;
 }
 
 static uint32_t fold_vec(uint32_t h, vec_t v) {
@@ -202,7 +202,7 @@ static pico8_ui_t *start_game(void) {
 }
 
 static vec_t pos_of(void *e) {
-    return vec_at(as_jo(e)->p);
+    return vec_at(as_jo(e)->map_pos);
 }
 
 static p8_fixed_t dist2(vec_t a, vec_t b) {
@@ -211,7 +211,7 @@ static p8_fixed_t dist2(vec_t a, vec_t b) {
 }
 
 static int placed(void *e) {
-    return as_jo(e)->p != NULL;
+    return as_jo(e)->map_pos != NULL;
 }
 
 /* The planet of `cg.jo` nearest to `qu`, among those with a `p`. */
@@ -356,19 +356,19 @@ static void test_fresh(void) {
 }
 
 /* The first planet of `cg.jo` whose screen position is well inside. */
-static pico8_jo_t *planet_on_screen(int *sx, int *sy) {
+static planet_t *planet_on_screen(int *sx, int *sy) {
     const entity_list_t *jo = entities_by_tag("planet");
     vec_t cam = vec_at(mo_qb()->ra);
     int i;
 
     for (i = 0; jo != NULL && i < jo->count; i++) {
-        vec_t at = vec_at(as_jo(jo->items[i])->ra);
+        vec_t at = vec_at(as_jo(jo->items[i])->pos);
         int x = p8_fixed_flr_int(p8_fixed_sub(at.x, cam.x));
         int y = p8_fixed_flr_int(p8_fixed_sub(at.y, cam.y));
         if (x >= 16 && x <= 112 && y >= 16 && y <= 112) {
             *sx = x;
             *sy = y;
-            return (pico8_jo_t *)jo->items[i];
+            return (planet_t *)jo->items[i];
         }
     }
     assert(0 && "no planet on screen");
@@ -382,7 +382,7 @@ static void test_hover(void) {
     pico8_ui_t *ok = start_game();
     int x;
     int y;
-    pico8_jo_t *planet;
+    planet_t *planet;
 
     mouse_at(64, 100, 0);
     pico8_ui_lj(&mem, ok);
@@ -422,7 +422,7 @@ static void test_layers(void) {
     down_t kn;
     vec_t *qa;
     vec_t *ra;
-    pico8_jo_t *planet;
+    planet_t *planet;
     int x;
     int y;
 
@@ -477,13 +477,13 @@ static void test_right(void) {
 }
 
 static int oe_count(void *planet) {
-    const entity_list_t *oe = as_jo(planet)->oe;
+    const entity_list_t *oe = as_jo(planet)->slipways;
     return oe == NULL ? 0 : oe->count;
 }
 
 /* Where `e` is on screen under `mo`'s camera. */
 static void screen_of(void *e, int *x, int *y) {
-    vec_t at = vec_sub(vec_at(as_jo(e)->ra), vec_at(mo_qb()->ra));
+    vec_t at = vec_sub(vec_at(as_jo(e)->pos), vec_at(mo_qb()->ra));
 
     *x = p8_fixed_flr_int(at.x);
     *y = p8_fixed_flr_int(at.y);
@@ -523,8 +523,8 @@ static void test_left(void) {
         }
     }
     assert(other != NULL);
-    pico8_jo_hu(origin, pico8_hp_new(NULL));
-    pico8_jo_hu(other, pico8_hp_new(NULL));
+    planet_apply_project(origin, pico8_hp_new(NULL));
+    planet_apply_project(other, pico8_hp_new(NULL));
     for (i = 0; i < SETTLE_TICKS; i++) {
         update_entities();
     }
@@ -535,8 +535,8 @@ static void test_left(void) {
     mouse_at(x, y, 1);
     pico8_ui_lj(&mem, ok);
     held = ok->lheld;
-    assert(held != NULL && is_of(held, pico8_jc_struct_class()) && ok->rheld == NULL);
-    assert((void *)((const pico8_jc_t *)held)->qu == origin && oe_count(origin) == 0);
+    assert(held != NULL && is_of(held, slipway_class()) && ok->rheld == NULL);
+    assert((void *)((const slipway_t *)held)->start == origin && oe_count(origin) == 0);
     h = fnv(h, (uint32_t)ents_rank_in(live_entities(), held));
     h = fnv(h, (uint32_t)ents_rank_in(live_entities(), origin));
     h = fnv(h, cursor_is(58));
@@ -769,7 +769,7 @@ static void test_ui_held_stops_off_row(void) {
     left[5] = pico8_js_new(NULL);
     left[6] = pico8_ie_new(NULL);
     left[7] = pico8_mz_jj_wrapper();
-    right[0] = pico8_jc_new(NULL);
+    right[0] = slipway_new(NULL);
     right[1] = pico8_g__new(NULL);
     right[2] = pico8_mz_new();
     right[3] = pico8_qh_new(NULL);
@@ -878,22 +878,22 @@ static void test_components_carried(void) {
     e[1] = pico8_nf_new();
     e[2] = pico8_mh_new(NULL);
     e[3] = pico8_iv_new(NULL);
-    e[4] = pico8_jo_new(NULL);
+    e[4] = planet_new(NULL);
     e[5] = pico8_qh_new(NULL);
     e[6] = pico8_nl_new(NULL);
     e[7] = pico8_os_new(NULL);
     e[8] = pico8_hj_new(NULL);
     e[9] = pico8_pm_new(NULL);
     e[10] = pico8_ga_new(NULL);
-    e[11] = pico8_nr_new(NULL);
-    e[12] = pico8_fr_new(NULL);
-    e[13] = pico8_mx_new(NULL);
+    e[11] = slipgate_new(NULL);
+    e[12] = infraspace_gate_new(NULL);
+    e[13] = synthesizer_new(NULL);
     e[14] = pico8_g__new(NULL);
     e[15] = pico8_fv_new();
     e[16] = pico8_ie_new(NULL);
     e[17] = pico8_pj_new();
     e[18] = pico8_qb_new();
-    e[19] = pico8_jc_new(NULL);
+    e[19] = slipway_new(NULL);
     e[20] = pico8_ui_new();
     e[21] = pico8_js_new(NULL);
     e[22] = pico8_fq_new(NULL);
@@ -905,23 +905,23 @@ static void test_components_carried(void) {
         assert((header->targeting != NULL) == probe[i]);
     }
 
-    assert_own_emitter(e[8], &pico8_hj_new(NULL)->header, sizeof(pico8_jo_t));
-    assert_own_emitter(e[9], &pico8_pm_new(NULL)->header, sizeof(pico8_jo_t));
-    assert_own_emitter(e[10], &pico8_ga_new(NULL)->header, sizeof(pico8_jo_t));
-    assert_own_emitter(e[13], &pico8_mx_new(NULL)->header, sizeof(pico8_jo_t));
+    assert_own_emitter(e[8], &pico8_hj_new(NULL)->header, sizeof(planet_t));
+    assert_own_emitter(e[9], &pico8_pm_new(NULL)->header, sizeof(planet_t));
+    assert_own_emitter(e[10], &pico8_ga_new(NULL)->header, sizeof(planet_t));
+    assert_own_emitter(e[13], &synthesizer_new(NULL)->header, sizeof(planet_t));
     assert_own_emitter(e[14], &pico8_g__new(NULL)->header, sizeof(pico8_g__t));
     assert_own_emitter(e[15], help_alone(e[15]), sizeof(pico8_g__t));
-    assert_own_probe(e[5], &pico8_qh_new(NULL)->header, sizeof(pico8_jo_t));
-    assert_own_probe(e[6], &pico8_nl_new(NULL)->header, sizeof(pico8_jo_t));
-    assert_own_probe(e[7], &pico8_os_new(NULL)->header, sizeof(pico8_jo_t));
-    assert_own_probe(e[8], &pico8_hj_new(NULL)->header, sizeof(pico8_jo_t));
-    assert_own_probe(e[9], &pico8_pm_new(NULL)->header, sizeof(pico8_jo_t));
-    assert_own_probe(e[11], &pico8_nr_new(NULL)->header, sizeof(pico8_jo_t));
-    assert_own_probe(e[12], &pico8_fr_new(NULL)->header, sizeof(pico8_jo_t));
-    assert_own_probe(e[13], &pico8_mx_new(NULL)->header, sizeof(pico8_jo_t));
+    assert_own_probe(e[5], &pico8_qh_new(NULL)->header, sizeof(planet_t));
+    assert_own_probe(e[6], &pico8_nl_new(NULL)->header, sizeof(planet_t));
+    assert_own_probe(e[7], &pico8_os_new(NULL)->header, sizeof(planet_t));
+    assert_own_probe(e[8], &pico8_hj_new(NULL)->header, sizeof(planet_t));
+    assert_own_probe(e[9], &pico8_pm_new(NULL)->header, sizeof(planet_t));
+    assert_own_probe(e[11], &slipgate_new(NULL)->header, sizeof(planet_t));
+    assert_own_probe(e[12], &infraspace_gate_new(NULL)->header, sizeof(planet_t));
+    assert_own_probe(e[13], &synthesizer_new(NULL)->header, sizeof(planet_t));
     assert_own_probe(e[14], &pico8_g__new(NULL)->header, sizeof(pico8_g__t));
     assert_own_probe(e[15], help_alone(e[15]), sizeof(pico8_g__t));
-    assert_own_probe(e[19], &pico8_jc_new(NULL)->header, sizeof(pico8_jc_t));
+    assert_own_probe(e[19], &slipway_new(NULL)->header, sizeof(slipway_t));
     assert_own_probe(e[23], &pico8_mz_new()->header, sizeof(pico8_mz_t));
 }
 
@@ -960,22 +960,22 @@ static void test_ke_me_by_name(void) {
     e[1] = pico8_nf_new();
     e[2] = pico8_mh_new(NULL);
     e[3] = pico8_iv_new(NULL);
-    e[4] = pico8_jo_new(NULL);
+    e[4] = planet_new(NULL);
     e[5] = pico8_qh_new(NULL);
     e[6] = pico8_nl_new(NULL);
     e[7] = pico8_os_new(NULL);
     e[8] = pico8_hj_new(NULL);
     e[9] = pico8_pm_new(NULL);
     e[10] = pico8_ga_new(NULL);
-    e[11] = pico8_nr_new(NULL);
-    e[12] = pico8_fr_new(NULL);
-    e[13] = pico8_mx_new(NULL);
+    e[11] = slipgate_new(NULL);
+    e[12] = infraspace_gate_new(NULL);
+    e[13] = synthesizer_new(NULL);
     e[14] = pico8_g__new(NULL);
     e[15] = pico8_fv_new();
     e[16] = pico8_ie_new(NULL);
     e[17] = pico8_pj_new();
     e[18] = pico8_qb_new();
-    e[19] = pico8_jc_new(NULL);
+    e[19] = slipway_new(NULL);
     e[20] = pico8_ui_new();
     e[21] = pico8_js_new(NULL);
     e[22] = pico8_fq_new(NULL);
@@ -1054,22 +1054,22 @@ static void test_ke_t_by_name(void) {
     e[1] = pico8_nf_new();
     e[2] = pico8_mh_new(NULL);
     e[3] = pico8_iv_new(NULL);
-    e[4] = pico8_jo_new(NULL);
+    e[4] = planet_new(NULL);
     e[5] = pico8_qh_new(NULL);
     e[6] = pico8_nl_new(NULL);
     e[7] = pico8_os_new(NULL);
     e[8] = pico8_hj_new(NULL);
     e[9] = pico8_pm_new(NULL);
     e[10] = pico8_ga_new(NULL);
-    e[11] = pico8_nr_new(NULL);
-    e[12] = pico8_fr_new(NULL);
-    e[13] = pico8_mx_new(NULL);
+    e[11] = slipgate_new(NULL);
+    e[12] = infraspace_gate_new(NULL);
+    e[13] = synthesizer_new(NULL);
     e[14] = pico8_g__new(NULL);
     e[15] = pico8_fv_new();
     e[16] = pico8_ie_new(NULL);
     e[17] = pico8_pj_new();
     e[18] = pico8_qb_new();
-    e[19] = pico8_jc_new(NULL);
+    e[19] = slipway_new(NULL);
     e[20] = pico8_ui_new();
     e[21] = pico8_js_new(NULL);
     e[22] = pico8_fq_new(NULL);

@@ -105,8 +105,8 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
     return s == NULL ? fold_absent(h) : fnv_str(fnv(fnv(h, 1u), 0x57u), s);
 }
 
-static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
-    return jo->def->is_planet ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
+static uint32_t fold_hf(uint32_t h, const planet_t *jo) {
+    return jo->archetype->is_planet ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 static uint32_t fold_vec(uint32_t h, const vec_t *p) {
@@ -136,41 +136,41 @@ static int ents_list_size(const entity_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
-static uint32_t fold_kw(uint32_t h, const pico8_jo_t *jo) {
-    const production_t *k = jo->kw;
+static uint32_t fold_kw(uint32_t h, const planet_t *jo) {
+    const production_t *k = jo->production;
 
     if (k == NULL) {
         return fnv(h, 0xA0u);
     }
     h = k->has_resource ? fold_fixed_member(h, k->resource) : fold_absent(h);
     h = fold_fixed_member(h, k->amount);
-    return fnv(h, (uint32_t)(k == pico8_jo_shared_kw()));
+    return fnv(h, (uint32_t)(k == planet_shared_production()));
 }
 
 /* `e` as a planet of qh's lineage. */
-static pico8_jo_t *as_qh(void *e) {
+static planet_t *as_qh(void *e) {
     const entity_t *h = e;
 
     assert(h != NULL && (h->class->lineage & LINEAGE(LINEAGE_STRUCTURE)));
     return e;
 }
 
-static uint32_t fold_qh(uint32_t h, const pico8_jo_t *qh) {
-    return qh->def->is_structure ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
+static uint32_t fold_qh(uint32_t h, const planet_t *qh) {
+    return qh->archetype->is_structure ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 /* 1 no target, 3 a target: the bytes the frozen hashes fold. */
-static uint32_t et_state(const pico8_jo_t *qh) {
-    return qh->probe->et == NULL ? 1u : 3u;
+static uint32_t et_state(const planet_t *qh) {
+    return qh->targeting->et == NULL ? 1u : 3u;
 }
 
 /* `et` as qh's reader gave it: false or the target. */
-static uint32_t fold_et(uint32_t h, const pico8_jo_t *qh) {
+static uint32_t fold_et(uint32_t h, const planet_t *qh) {
     switch (et_state(qh)) {
     case 1u:
         return fold_bool_member(h, 0);
     default:
-        return fold_ref(fnv(h, 1u), qh->probe->et);
+        return fold_ref(fnv(h, 1u), qh->targeting->et);
     }
 }
 
@@ -204,7 +204,7 @@ static const entity_class_t *cls_of(const void *e) {
 }
 
 /* `e` as a planet of nl's lineage. */
-static const pico8_jo_t *as_nl(const void *e) {
+static const planet_t *as_nl(const void *e) {
     assert(e != NULL && (cls_of(e)->lineage & LINEAGE(LINEAGE_TRADING_HUB)));
     return e;
 }
@@ -257,8 +257,8 @@ static void *build_plate(void) {
 
 /* A plate is the only entity whose chain holds `nl`, and its `nl` is 1. */
 static int is_plate(const void *e) {
-    const pico8_jo_t *jo = e != NULL && (cls_of(e)->lineage & LINEAGE(LINEAGE_TRADING_HUB)) ? e : NULL;
-    return jo != NULL && jo->def->is_trading_hub == p8_fixed_from_int(1);
+    const planet_t *jo = e != NULL && (cls_of(e)->lineage & LINEAGE(LINEAGE_TRADING_HUB)) ? e : NULL;
+    return jo != NULL && jo->archetype->is_trading_hub == p8_fixed_from_int(1);
 }
 
 /* A plate as `ie:ldown` and `jo:pq` left it: its scalars, which of nl's,
@@ -266,99 +266,99 @@ static int is_plate(const void *e) {
  * functions, but its own `ly`), which default tables it shares with `nl`
  * and `jo`, and where `lt` registered it -- never in `cg.qh`. */
 static uint32_t fold_plate(uint32_t h, const void *e) {
-    const pico8_jo_t *nl = as_nl(e);
-    const pico8_jo_t *qh;
-    const pico8_jo_t *jo;
+    const planet_t *nl = as_nl(e);
+    const planet_t *qh;
+    const planet_t *jo;
     size_t i;
 
     qh = nl;
     jo = qh;
-    h = fold_string_member(h, jo->id);
+    h = fold_string_member(h, jo->planet_id);
     h = fold_string_member(h, jo->header.state);
     h = fold_fixed_member(h, jo->header.state_time);
-    h = fold_string_member(h, nl->def->required_tech);
-    h = fold_fixed_member(h, nl->def->is_trading_hub);
+    h = fold_string_member(h, nl->archetype->required_tech);
+    h = fold_fixed_member(h, nl->archetype->is_trading_hub);
     h = fold_qh(h, qh);
-    h = fold_fixed_member(h, qh->def->project_index);
-    h = fold_fixed_member(h, qh->s);
-    h = fold_fixed_member(h, qh->probe->od);
-    h = fold_fixed_member(h, nl->qw);
-    h = fold_string_member(h, qh->probe->def->confirmed_state);
-    h = fold_fixed_member(h, qh->probe->def->clock_ticks);
-    h = fold_fixed_member(h, qh->probe->def->attach_distance);
-    h = jo->has_mi ? fold_fixed_member(h, jo->mi) : fold_absent(h);
+    h = fold_fixed_member(h, qh->archetype->project_index);
+    h = fold_fixed_member(h, qh->sprite);
+    h = fold_fixed_member(h, qh->targeting->od);
+    h = fold_fixed_member(h, nl->palette_block);
+    h = fold_string_member(h, qh->targeting->def->confirmed_state);
+    h = fold_fixed_member(h, qh->targeting->def->clock_ticks);
+    h = fold_fixed_member(h, qh->targeting->def->attach_distance);
+    h = jo->has_development_tier ? fold_fixed_member(h, jo->development_tier) : fold_absent(h);
     h = fold_hf(h, jo);
-    h = fold_fixed_member(h, jo->def->trade_multiplier);
-    h = fold_fixed_member(h, jo->def->layer);
-    h = fold_fixed_member(h, jo->ma);
-    h = fold_fixed_member(h, jo->def->back_color);
-    h = fold_vec(h, &jo->def->row_step);
+    h = fold_fixed_member(h, jo->archetype->trade_multiplier);
+    h = fold_fixed_member(h, jo->archetype->layer);
+    h = fold_fixed_member(h, jo->shake);
+    h = fold_fixed_member(h, jo->archetype->back_color);
+    h = fold_vec(h, &jo->archetype->row_step);
     /* The 1s of `nl` and `qw`, of `hp`, `qh`, `od`, `fp`, `dw`, `s`, then of
      * `hf`, `hs`, `fa`, `ma` and `ca`: constant by the struct's shape, kept
      * so that BUILT_HASH still proves the typed reads. */
-    h = fnv(h, (uint32_t)(nl->def->required_tech != NULL));
+    h = fnv(h, (uint32_t)(nl->archetype->required_tech != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(qh->def->name != NULL));
-    h = fnv(h, (uint32_t)(qh->probe->def->confirmed_state != NULL));
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(qh->def->accepted_resources != NULL));
-    h = fnv(h, qh->probe->et != NULL ? 1u : 0u);
+    h = fnv(h, (uint32_t)(qh->archetype->name != NULL));
+    h = fnv(h, (uint32_t)(qh->targeting->def->confirmed_state != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->def->ring_colors != NULL));
-    h = fnv(h, (uint32_t)(jo->def->mood_rows != NULL));
-    h = fnv(h, (uint32_t)(jo->def->made_resources != NULL));
-    h = fnv(h, (uint32_t)(jo->kw != NULL));
+    h = fnv(h, (uint32_t)(qh->archetype->accepted_resources != NULL));
+    h = fnv(h, qh->targeting->et != NULL ? 1u : 0u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->def->spacer != NULL));
-    h = fnv(h, (uint32_t)(jo->id != NULL));
-    h = fnv(h, (uint32_t)(jo->p != NULL));
-    h = fnv(h, (uint32_t)(jo->ra != NULL));
-    h = fnv(h, (uint32_t)(jo->oe != NULL));
-    h = fnv(h, (uint32_t)(jo->hn != NULL));
-    h = fnv(h, (uint32_t)(jo->ep != NULL));
-    h = fnv(h, (uint32_t)(jo->jy != NULL));
-    h = fnv(h, (uint32_t)(jo->nk != NULL));
-    h = fnv(h, (uint32_t)(jo->fx != 0));
-    h = fnv(h, (uint32_t)(jo->lq != NULL));
-    h = fnv(h, (uint32_t)(jo->fo != NULL));
-    h = fnv(h, (uint32_t)jo->has_jh);
-    h = fnv(h, (uint32_t)(jo->p_ != 0));
-    h = fnv(h, (uint32_t)jo->has_kr);
-    h = fnv(h, (uint32_t)(jo->cc != NULL));
-    h = fnv(h, (uint32_t)(jo->by != NULL));
-    h = fnv(h, (uint32_t)jo->has_mi);
-    h = fnv(h, (uint32_t)(jo->m_ != 0));
-    assert(pico8_jo_is_family(e));
+    h = fnv(h, 1u);
+    h = fnv(h, 1u);
+    h = fnv(h, 1u);
+    h = fnv(h, 1u);
+    h = fnv(h, (uint32_t)(jo->archetype->ring_colors != NULL));
+    h = fnv(h, (uint32_t)(jo->archetype->mood_rows != NULL));
+    h = fnv(h, (uint32_t)(jo->archetype->made_resources != NULL));
+    h = fnv(h, (uint32_t)(jo->production != NULL));
+    h = fnv(h, 1u);
+    h = fnv(h, 1u);
+    h = fnv(h, (uint32_t)(jo->archetype->spacer != NULL));
+    h = fnv(h, (uint32_t)(jo->planet_id != NULL));
+    h = fnv(h, (uint32_t)(jo->map_pos != NULL));
+    h = fnv(h, (uint32_t)(jo->pos != NULL));
+    h = fnv(h, (uint32_t)(jo->slipways != NULL));
+    h = fnv(h, (uint32_t)(jo->project != NULL));
+    h = fnv(h, (uint32_t)(jo->description != NULL));
+    h = fnv(h, (uint32_t)(jo->needs != NULL));
+    h = fnv(h, (uint32_t)(jo->planet_type != NULL));
+    h = fnv(h, (uint32_t)(jo->fold_anchor != 0));
+    h = fnv(h, (uint32_t)(jo->layout_row != NULL));
+    h = fnv(h, (uint32_t)(jo->targeted_by != NULL));
+    h = fnv(h, (uint32_t)jo->has_production_bonus);
+    h = fnv(h, (uint32_t)(jo->is_dead != 0));
+    h = fnv(h, (uint32_t)jo->has_net_income);
+    h = fnv(h, (uint32_t)(jo->incoming_routes != NULL));
+    h = fnv(h, (uint32_t)(jo->outgoing_routes != NULL));
+    h = fnv(h, (uint32_t)jo->has_development_tier);
+    h = fnv(h, (uint32_t)(jo->is_hovered != 0));
+    assert(planet_is_family(e));
     assert_qh_shape(cls_of(e));
     assert_members_of(cls_of(e), pico8_qh_struct_class(), 1, 0);
     assert(cls_of(e)->attach_slipway == pico8_qh_struct_class()->attach_slipway && cls_of(e)->offer_trade == pico8_qh_struct_class()->offer_trade &&
            cls_of(e)->spawn_particle == NULL);
     assert(cls_of(e)->states[ENTITY_STATE_SETTLED] != pico8_qh_struct_class()->states[ENTITY_STATE_SETTLED]);
     assert(jo->header.class->tags == (TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)));
-    assert(qh->def->name == &trading_hub_name_row && qh->def->name != &structure_name_row);
-    assert(qh->def->accepted_resources == &trading_hub_accepted_resources_seq && qh->def->accepted_resources != &structure_accepted_resources_seq);
-    assert(jo->def == &trading_hub_archetype);
-    assert(jo->def == &trading_hub_archetype);
-    assert(jo->def->spacer == &planet_spacer_row && jo->def->ring_colors == &planet_ring_colors_seq && jo->def->mood_rows == planet_mood_rows_rows &&
-           jo->def->made_resources == &planet_made_resources_seq);
-    assert(jo->kw != NULL && jo->kw != pico8_jo_shared_kw());
+    assert(qh->archetype->name == &trading_hub_name_row && qh->archetype->name != &structure_name_row);
+    assert(qh->archetype->accepted_resources == &trading_hub_accepted_resources_seq && qh->archetype->accepted_resources != &structure_accepted_resources_seq);
+    assert(jo->archetype == &trading_hub_archetype);
+    assert(jo->archetype == &trading_hub_archetype);
+    assert(jo->archetype->spacer == &planet_spacer_row && jo->archetype->ring_colors == &planet_ring_colors_seq && jo->archetype->mood_rows == planet_mood_rows_rows &&
+           jo->archetype->made_resources == &planet_made_resources_seq);
+    assert(jo->production != NULL && jo->production != planet_shared_production());
     assert(pico8_gb_at(6) != NULL);
-    assert(jo->hn == pico8_gb_at(6));
+    assert(jo->project == pico8_gb_at(6));
     h = fold_kw(h, jo);
-    h = fnv(h, (uint32_t)ents_list_size(jo->oe));
-    h = fnv(h, (uint32_t)list_size(jo->jy));
+    h = fnv(h, (uint32_t)ents_list_size(jo->slipways));
+    h = fnv(h, (uint32_t)list_size(jo->needs));
     h = fnv(h, (uint32_t)ents_rank_in(live_entities(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
         h = fnv(h, (uint32_t)ents_rank_in(entities_by_message(bm[i]), e));
@@ -394,20 +394,20 @@ static void set_credits(int n) {
     pico8_fm_hy()->nz = p8_fixed_from_int(n);
 }
 
-static uint32_t fold_ra_y(uint32_t h, const pico8_jo_t *nl) {
-    const vec_t *ra = nl->ra;
+static uint32_t fold_ra_y(uint32_t h, const planet_t *nl) {
+    const vec_t *ra = nl->pos;
     return ra == NULL ? fnv(h, 0xDEADu) : fnv(h, (uint32_t)ra->y);
 }
 
 /* `dg` once, then what `nl:ly` left on the plate. */
 static uint32_t fold_dg(uint32_t h, const void *e) {
-    const pico8_jo_t *nl = as_nl(e);
+    const planet_t *nl = as_nl(e);
 
     h = fold_ra_y(h, nl);
     update_entities();
     h = fold_fixed_member(h, nl->header.state_time);
     h = fold_ra_y(h, nl);
-    return fold_fixed_member(h, nl->qw);
+    return fold_fixed_member(h, nl->palette_block);
 }
 
 /* `jo:ib`'s container, folded as fold_ref folded the tagged list it was:
@@ -422,12 +422,12 @@ static uint32_t fold_ib(uint32_t h, const entity_list_t *ib) {
 /* What `bb`'s `dh` (the `pt.nl` branch), `ib`, `gg` and `da` (qh false)
  * give on a plate. */
 static uint32_t fold_economy(uint32_t h, void *e) {
-    entity_list_t *ib = pico8_jo_ib(e);
+    entity_list_t *ib = planet_rebuild_trades(e);
     h = fnv(h, (uint32_t)pico8_dh(e));
     h = fold_ib(h, ib);
-    h = fnv(fnv(h, 0xB0u), pico8_jo_gg(e) ? 1u : 0u);
+    h = fnv(fnv(h, 0xB0u), planet_is_colonized(e) ? 1u : 0u);
     h = fnv(h, (uint32_t)pico8_da(e));
-    return as_qh(e)->has_mi ? fold_fixed_member(h, as_qh(e)->mi) : fold_absent(h);
+    return as_qh(e)->has_development_tier ? fold_fixed_member(h, as_qh(e)->development_tier) : fold_absent(h);
 }
 
 /* `hq` (`bv`) in the panel then `ey` (`d_`) with the credits; `dg` in "ly"
@@ -435,8 +435,8 @@ static uint32_t fold_economy(uint32_t h, void *e) {
  * on a plate still in "kz". */
 static void test_life(void) {
     uint32_t h = 2166136261u;
-    pico8_jo_t *placed;
-    pico8_jo_t *idle;
+    planet_t *placed;
+    planet_t *idle;
     vec_t *mp;
     int i;
 
@@ -445,8 +445,8 @@ static void test_life(void) {
     placed = build_plate();
     mp = vec_ref(vec_xy(7680, 7552));
     cls_of(placed)->drag(&placed->header, mp, vec_ref(vec_xy(64, 64)));
-    assert(ra_copies(placed->ra, mp));
-    h = fold_vec(h, placed->p);
+    assert(ra_copies(placed->pos, mp));
+    h = fold_vec(h, placed->map_pos);
     h = fnv(h, et_state(placed));
     h = fold_et(h, placed);
     set_credits(100);
@@ -462,21 +462,21 @@ static void test_life(void) {
     for (i = 0; i < 3; i++) {
         h = fold_dg(h, placed);
     }
-    assert(placed->qw == p8_fixed_from_int(15));
-    placed->mi = p8_fixed_from_int(2);
-    placed->has_mi = 1;
+    assert(placed->palette_block == p8_fixed_from_int(15));
+    placed->development_tier = p8_fixed_from_int(2);
+    placed->has_development_tier = 1;
     h = fold_dg(h, placed);
     h = fold_dg(h, placed);
-    placed->mi = p8_fixed_from_int(3);
-    placed->has_mi = 1;
+    placed->development_tier = p8_fixed_from_int(3);
+    placed->has_development_tier = 1;
     h = fold_dg(h, placed);
-    assert(placed->qw != p8_fixed_from_int(15));
+    assert(placed->palette_block != p8_fixed_from_int(15));
     h = fold_economy(h, placed);
 
     idle = build_plate();
     h = fold_string_member(h, idle->header.state);
     h = fold_dg(h, idle);
-    assert(idle->qw == p8_fixed_from_int(15));
+    assert(idle->palette_block == p8_fixed_from_int(15));
     check("life", h, LIFE_HASH);
 }
 
@@ -530,8 +530,8 @@ static void test_nl_is_a_struct(void) {
 
     must_abort(build_with_unknown_key, NULL);
     {
-        pico8_jo_t *bare = pico8_nl_new(NULL);
-        assert(is_an_nl_struct(bare) && bare->id == NULL && bare->oe != NULL &&
+        planet_t *bare = pico8_nl_new(NULL);
+        assert(is_an_nl_struct(bare) && bare->planet_id == NULL && bare->slipways != NULL &&
                ents_listed(entities_by_tag("planet"), bare));
     }
 }
