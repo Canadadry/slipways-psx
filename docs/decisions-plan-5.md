@@ -59,6 +59,8 @@
 | D-32 | 2b (échantillon) | Champs de l'icône de structure : `rest_count` est une position | 22 |
 | D-33 | 4a | Exceptions du compteur de français : schéma du TSV et fixtures françaises (3a) | 26 |
 | D-34 | 4a | Assertion faible `strstr(log, "exempt")` de `test_class_coverage.c` | 1 |
+| D-35 | 4b | Noms d'identifiant qui citent Lua ou le cart (`P8_FIXED_LIT`, trois tests) | 8 |
+| D-36 | 4b | `` `mem` `` et `` `gfx` `` comptés en `backtick` après le renommage des locales de `test_demo.c` | 23 |
 
 ## Entrées
 
@@ -479,4 +481,23 @@
 - **Options** : (a) resserrer sur la forme d'une ligne exemptée ; (b) garder.
 - **Sites** : 1 (`tests/test_class_coverage.c:69`).
 - **Proposition prête à appliquer** : (a), `strstr(log, "  exempt (test)") != NULL` (la raison `test` est celle qu'écrit l'`awk` du même cas), commit `test:` ; contrôle : `make test` vert.
+- **Verdict** :
+
+### D-35 — Noms d'identifiant qui citent Lua ou le cart (3b)
+
+- **Origine** : 4b (commit de commentaires ; le relevé des citations ne lit que les commentaires).
+- **Question** : quatre identifiants de 3b citent encore Lua ou le cart : le paramètre `lua` de la macro `P8_FIXED_LIT(raw, lua)` (`src/p8/fixed.h`, le littéral décimal, jamais évalué), et trois fonctions de test, `test_mod_negative_dividend_matches_lua_floor_semantics` (`tests/test_fixed.c`), `test_sget_reads_known_pixel_from_loaded_cart_data` et `test_map_and_mset_round_trip_against_real_cart_data` (`tests/test_gfx.c`). Les renommer ?
+- **Options** : (a) renommer ; (b) garder (le §2 vise les commentaires et le code ; ici « cart » désigne les données de `pico8/`).
+- **Sites** : 8 (paramètre : 1, la liste de paramètres, le corps ne l'emploie pas ; fonctions : 7, définitions, appels de `main` et une mention en commentaire de `test_gfx.c`).
+- **Proposition prête à appliquer** : (a). Paramètre : `lua` → `decimal`, édition à la main de la ligne de `#define` (paramètre de macro, hors extraction), commit `refactor:` ; sortie du préprocesseur des appelants inchangée (le paramètre n'est pas utilisé). Fonctions, procédure N : `test_mod_negative_dividend_matches_lua_floor_semantics	test_mod_negative_dividend_floors	tests/test_fixed.c	c:test_fixed.c@F@test_mod_negative_dividend_matches_lua_floor_semantics`, `test_sget_reads_known_pixel_from_loaded_cart_data	test_sget_reads_known_pixel_from_loaded_sheet	tests/test_gfx.c	c:test_gfx.c@F@test_sget_reads_known_pixel_from_loaded_cart_data`, `test_map_and_mset_round_trip_against_real_cart_data	test_map_and_mset_round_trip_against_real_sheet	tests/test_gfx.c	c:test_gfx.c@F@test_map_and_mset_round_trip_against_real_cart_data` (noms neufs : 0 site).
+- **Portée** : s'applique aussi aux mentions en commentaire ; contrôle : `grep -rnwiE '[a-z_]*(lua|cart)[a-z_]*' src/p8 tests/test_fixed.c tests/test_gfx.c` ne rend que `cart_draw`.
+- **Verdict** :
+
+### D-36 — `` `mem` `` et `` `gfx` `` comptés en `backtick` après le renommage de 4b
+
+- **Origine** : 4b (commit de locales).
+- **Question** : `mem` → `memory` et `gfx` → `graphics` (locales de `main` de `tests/test_demo.c`) font de `mem` et `gfx` d'anciens noms ambigus du TSV ; `tools/rename_count.py` compte alors toute mention entre backticks égale au nom, partout, même quand elle désigne un paramètre `mem` ou `gfx` conservé d'une autre fonction. 3b a réécrit ses 3 mentions ; 23 restent dans des en-têtes de sous-étapes suivantes, qu'elles devront réécrire sans backticks pour atteindre 0. Faut-il plutôt changer la règle du compteur ?
+- **Options** : (a) les sous-étapes suivantes réécrivent (« the memory », « the graphics state ») ; (b) règle du compteur : un nom ambigu dont toutes les lignes `renommé` sont des locales ou des paramètres ne compte en `backtick` que dans le fichier de ces lignes (test d'abord dans `tests/test_rename_count.py`) ; (c) exceptions par module.
+- **Sites** : 23 : `src/game/message_box.h` 4, `src/game/ui.h` 3, `background.h`, `draw_functions.h`, `probe.h`, `slipway_display.h`, `structure_icon.h`, `wormhole_display.h` 2 chacun, `hud.h`, `mouse.h`, `scroll.h`, `src/devtools/screencast.h` 1 chacun (``grep -rnoE '`(mem|gfx)`' src tests tools``).
+- **Proposition prête à appliquer** : (b), qui vaut aussi pour les renommages de locales des 4x suivantes ; contrôle : `make cart-names-count` sans `SUBSTEP` rend 26 `backtick` de moins qu'avant la règle, et `make rename-count-test` vert.
 - **Verdict** :

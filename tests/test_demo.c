@@ -25,8 +25,8 @@ int main(void) {
     assert(p8_load_map_json(&memory, "pico8/map.json"));
 
     assert(p8_sget(&memory, 16, 0) == 3);
-    /* map.json's cells row 0 lands in PICO8_ADDR_SPRITE_MAP_SHARED on the
-     * real cart (confirmed against pico8/original.p8.png's decoded ROM). */
+    /* map.json's cells row 0 lands in P8_ADDR_SPRITE_MAP_SHARED (confirmed
+     * against pico8/original.p8.png's decoded ROM). */
     assert(p8_peek(&memory, P8_ADDR_SPRITE_MAP_SHARED + 1) == 81);
 
     p8_cls(&memory);
@@ -68,9 +68,9 @@ int main(void) {
     assert(screen_pixel(&memory, 1, 90) == 0);
 
     p8_map(&graphics, &memory, 0, 0, 0, 100, 4, 1);
-    /* The cart's map cell (0,0) is 0, and `map()` takes sprite 0 to mean
-     * empty and does not draw it, so the whole first 8x8 block stays
-     * cleared -- this cart's sprite 0 is palette data, not a tile. */
+    /* Map cell (0,0) is 0, and `map()` takes sprite 0 to mean empty and
+     * does not draw it, so the whole first 8x8 block stays cleared -- the
+     * game's sprite 0 is palette data, not a tile. */
     for (int y = 100; y <= 107; y++) {
         for (int x = 0; x <= 7; x++) {
             assert(screen_pixel(&memory, x, y) == 0);
@@ -88,15 +88,11 @@ int main(void) {
     assert(screen_pixel(&memory, 4, 116) == 0);
     assert(screen_pixel(&memory, 5, 116) == 11);
 
-    /* This block asserts the Phase-1 four-frame scenario's exact stat()/
-     * btn() values, so it needs that exact scenario -- not whatever the
-     * root events.json happens to hold. It read "events.json" until
-     * 741d633 ("chore: use segfault recording as root events.json")
-     * replaced that file with a 9729-frame playtest recording, which
-     * aborted this test on its first assertion. The scenario now lives in
-     * a fixture of its own, where a recording swap cannot reach it; the
-     * root recording is still covered, for shape and loadability rather
-     * than fixed values, by tests/test_input.c. */
+    /* This block asserts the four-frame scenario's exact stat()/btn()
+     * values, so it reads a fixture of its own, never the root
+     * events.json: a playtest recording can replace that file at any time.
+     * The root recording is covered, for shape and loadability rather than
+     * fixed values, by tests/test_input.c. */
     p8_input_t input;
     p8_input_init(&input);
     assert(p8_input_load(&input, DEMO_EVENTS_PATH));

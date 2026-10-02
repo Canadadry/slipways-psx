@@ -11,13 +11,14 @@ typedef int32_t p8_fixed_t;
 #define P8_FIXED_SHIFT 16
 
 /* What a division by zero saturates to: +0x7fff.ffff / -0x7fff.ffff. See
- * pico8_fixed_div. */
+ * p8_fixed_div. */
 #define P8_FIXED_DIV0_POS ((p8_fixed_t)0x7FFFFFFF)
 #define P8_FIXED_DIV0_NEG ((p8_fixed_t)(-0x7FFFFFFF))
 
-/* raw: the 8 hex digits of tools/pico8_reference_probe_out.txt block A, point removed; lua:
- * the cart's literal, for grep and tools/constants_compare.sh -- never
- * evaluated. */
+/* First argument: the 8 hex digits of block A of
+ * tools/pico8_reference_probe_out.txt, point removed. Second: the decimal
+ * literal as the source writes it, for grep and tools/constants_compare.sh
+ * -- never evaluated. */
 #define P8_FIXED_LIT(raw, lua) ((p8_fixed_t)(uint32_t)(raw##u))
 
 p8_fixed_t p8_fixed_from_int(int32_t i);
@@ -32,10 +33,10 @@ p8_fixed_t p8_fixed_sub(p8_fixed_t a, p8_fixed_t b);
  * to 32 bits; that truncation is where PICO-8's multiply overflow wraps. */
 p8_fixed_t p8_fixed_mul(p8_fixed_t a, p8_fixed_t b);
 
-/* (a << 16) / b, truncated the same way, except for b == 0: the PICO-8
- * manual documents that as saturating to +0x7fff.ffff for a non-negative
- * dividend, -0x7fff.ffff for a negative one. 0/0 counts as non-negative
- * and saturates positive. */
+/* The dividend shifted left by 16, divided by the divisor, truncated the
+ * same way, except for a zero divisor: the PICO-8 manual documents that as
+ * saturating to +0x7fff.ffff for a non-negative dividend, -0x7fff.ffff for
+ * a negative one. 0/0 counts as non-negative and saturates positive. */
 p8_fixed_t p8_fixed_div(p8_fixed_t a, p8_fixed_t b);
 
 /* 0 - x, under the same wraparound as + and -, so negating the
@@ -50,29 +51,31 @@ p8_fixed_t p8_fixed_flr(p8_fixed_t x);
  * zero: raw -1 gives -1, not 0. */
 int32_t p8_fixed_flr_int(p8_fixed_t x);
 
-/* Inherits pico8_fixed_neg's wraparound: abs of the most-negative value is
+/* Inherits p8_fixed_neg's wraparound: abs of the most-negative value is
  * itself. */
 p8_fixed_t p8_fixed_abs(p8_fixed_t x);
 
 /* sgn(0) == 1, not 0. */
 p8_fixed_t p8_fixed_sgn(p8_fixed_t x);
 
-/* Median of the three arguments, so mid(lo,hi,v) clamps v into [lo,hi]
- * whatever order the call site uses. mid(lo,hi,v) == v is this port's
- * membership test -- it says v was already inside (see pico8_qz_call). */
+/* Median of the three arguments, so it clamps a value between two bounds
+ * whatever order the call site passes them in. A median equal to the value
+ * is this port's membership test -- it says the value was already inside
+ * (see box_contains). */
 p8_fixed_t p8_fixed_mid(p8_fixed_t a, p8_fixed_t b, p8_fixed_t c);
 
 /* Bitwise on the raw 32-bit representation, not on the "human" value. */
 p8_fixed_t p8_fixed_band(p8_fixed_t a, p8_fixed_t b);
 p8_fixed_t p8_fixed_bor(p8_fixed_t a, p8_fixed_t b);
 
-/* Lua's floor-based modulo, a-flr(a/b)*b. b == 0 is not special-cased: it
- * inherits pico8_fixed_div's saturation. */
+/* PICO-8's floor-based modulo: the dividend minus flr(dividend / divisor)
+ * times the divisor. A zero divisor is not special-cased: it inherits
+ * p8_fixed_div's saturation. */
 p8_fixed_t p8_fixed_mod(p8_fixed_t a, p8_fixed_t b);
 
-/* Shifts the raw representation. n is a plain shift count, not a fixed
- * value. n outside [0,31] returns 0 -- this port's own defensive answer to
- * what C leaves undefined, not sourced PICO-8 behavior. */
+/* Shifts the raw representation. The count is a plain integer, not a fixed
+ * value. A count outside [0,31] returns 0 -- this port's own defensive
+ * answer to what C leaves undefined, not sourced PICO-8 behavior. */
 p8_fixed_t p8_fixed_shl(p8_fixed_t x, int32_t n);
 
 /* sqrt(x < 0) is 0. Otherwise the largest fixed value whose square does
@@ -80,8 +83,9 @@ p8_fixed_t p8_fixed_shl(p8_fixed_t x, int32_t n);
  * square root on the raw bits, with no host floating point. */
 p8_fixed_t p8_fixed_sqrt(p8_fixed_t x);
 
-/* x^0.75 as PICO-8 computes it (tools/pico8_reference_probe_out.txt block D): s*sqrt(s)
- * with s = sqrt(x), each step truncated. 0 and negative x give 0. */
+/* x^0.75 as PICO-8 computes it (tools/pico8_reference_probe_out.txt block
+ * D): sqrt(x) times the square root of sqrt(x), each step truncated. 0 and
+ * negative x give 0. */
 p8_fixed_t p8_fixed_pow075(p8_fixed_t x);
 
 /* Deterministic placeholder generator, NOT PICO-8's: it satisfies the

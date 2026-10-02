@@ -1,16 +1,17 @@
 #!/bin/sh
-# usage: constants_compare.sh <releve> <p8/fixed.c> <repertoire de travail> <source.c>...
-# Une ligne par litteral distinct des appels PICO8_FIXED_LIT(<hexa>, <litteral>)
-# des sources :
-#   <litteral> | <hexa releve> | <hexa C> | ok|ECART | <sites>
-# puis la ligne des comptes. Un litteral est ECART si une de ses valeurs
-# differe du releve ; <hexa C> liste alors ses valeurs distinctes, separees
-# par des virgules. La valeur C vient d'un programme engendre dans le
-# repertoire de travail, qui compile le texte exact de chaque appel contre le
-# vrai p8/fixed.h. Rend 0 si la table est complete, meme avec des ECART ;
-# 1 si le bloc A manque, si un litteral n'y figure pas, s'il n'y a aucune
-# constante, si un appel PICO8_FIXED_LIT n'a pas la forme stricte, ou si le
-# programme ne compile pas.
+# usage: constants_compare.sh <probe output> <p8/fixed.c> <work dir>
+#                             <source.c>...
+# One line per distinct literal of the P8_FIXED_LIT(<hex>, <literal>) calls
+# of the sources:
+#   <literal> | <probe hex> | <C hex> | ok|GAP | <sites>
+# then the counts line. A literal is a GAP if one of its values differs
+# from the probe; <C hex> then lists its distinct values, separated by
+# commas. The C value comes from a program generated in the work dir,
+# which compiles the exact text of each call against the real p8/fixed.h.
+# Exits 0 if the table is complete, even with GAPs; 1 if block A is
+# missing, if a literal is not in it, if there is no constant, if a
+# P8_FIXED_LIT call is not in the strict form, or if the program does not
+# compile.
 
 set -u
 

@@ -31,35 +31,35 @@ void p8_input_init(p8_input_t *input);
 int p8_input_load(p8_input_t *input, const char *path);
 
 /* Writes `frame_count` frames to `path` as a complete events.json file --
- * always a full rewrite -- in the exact shape pico8_input_load parses:
+ * always a full rewrite -- in the exact shape p8_input_load parses:
  * {"frames": [ { "mouse_x": ..., "mouse_y": ..., "mouse_buttons": ...,
  * "dpad": [6 bools] }, ... ]}, nonzero dpad written as
  * true. Returns 1 on success, 0 on a NULL `frames`, a non-positive
- * `frame_count` (it never writes a file pico8_input_load would reject), or
+ * `frame_count` (it never writes a file p8_input_load would reject), or
  * a file error. No partial file is left behind: `path` is replaced only
  * once every frame is written and the file has closed. */
 int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *path);
 
 /* Adds one frame to the recording at `path` without re-serializing the
  * frames already there, so recording one frame costs the same whatever the
- * session's length. `*io_tail_offset` is the writer's whole memory of the
+ * session's length. `*tail_offset` is the writer's whole memory of the
  * recording: set it to 0 to start one -- `path` is then created or
  * truncated -- and pass the same variable back untouched on every later
  * call.
  *
  * After each successful call `path` holds a complete events.json that is
- * byte-for-byte what pico8_input_save(frames, n, path) writes for the same
- * n frames. That identity is the contract the whole replay toolchain rests
+ * byte-for-byte what p8_input_save writes for the same frames. That
+ * identity is the contract the whole replay toolchain rests
  * on: break it and a recorded session no longer replays as one that was
  * saved. It is why the caller need not keep the frames it has recorded.
  *
  * Returns 1 on success, 0 on a NULL argument or a file error, leaving
- * `*io_tail_offset` unchanged so the next call rewrites the same slot
+ * `*tail_offset` unchanged so the next call rewrites the same slot
  * rather than writing past a frame that never landed. */
 int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_offset);
 
-/* Releases the frame array. Safe on an input that was only
- * pico8_input_init'd, and safe to call again before a fresh load. */
+/* Releases the frame array. Safe on an input that only went through
+ * p8_input_init, and safe to call again before a fresh load. */
 void p8_input_free(p8_input_t *input);
 
 /* Advances to the next scripted frame. Stepping off the last frame of the
@@ -67,12 +67,12 @@ void p8_input_free(p8_input_t *input);
  * script it was given. No looping, no clamping. */
 void p8_input_step(p8_input_t *input);
 
-/* `b` is 0 (left), 1 (right), 2 (up), 3 (down), 4 (O) or 5 (X); any
- * other index returns 0. */
+/* The button index is 0 (left), 1 (right), 2 (up), 3 (down), 4 (O) or 5
+ * (X); any other index returns 0. */
 int p8_btn(const p8_input_t *input, int b);
 
-/* `n` is 32 (mouse x), 33 (mouse y) or 34 (mouse button bitmask, bit 0 =
- * left, bit 1 = right, bit 2 = middle); any other index returns 0. */
+/* The index is 32 (mouse x), 33 (mouse y) or 34 (mouse button bitmask,
+ * bit 0 = left, bit 1 = right, bit 2 = middle); any other index returns 0. */
 int p8_stat(const p8_input_t *input, int n);
 
 #endif

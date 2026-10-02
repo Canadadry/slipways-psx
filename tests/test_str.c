@@ -97,7 +97,7 @@ static void test_tostr_exact_ties_round_half_to_even(void) {
     assert_tostr_raw(0x00001800u, "0.0938");
 }
 
-/* The pre-D2 tostr, byte for byte, kept as the oracle of the exhaustive
+/* The former tostr, byte for byte, kept as the oracle of the exhaustive
  * test: host glibc "%.4f" rounds the exact binary value half to even. */
 static void old_tostr_percent_4f_for_test(int32_t raw, char *buf, size_t size) {
     double d = raw / 65536.0;

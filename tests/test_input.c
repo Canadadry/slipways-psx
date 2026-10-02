@@ -225,7 +225,7 @@ static void test_save_writes_events_json_schema_shape(void) {
     free(written_json);
     free(real_events_json);
 
-    /* That recording must itself load through pico8_input_load (sanity: the
+    /* That recording must itself load through p8_input_load (sanity: the
      * shape assumptions above are grounded in a file the loader actually
      * accepts, not just string content). */
     p8_input_t input;
@@ -293,7 +293,7 @@ static void test_append_does_not_rewrite_already_recorded_frames(void) {
 }
 
 /* The recording must stay exactly the recording it was: after every single
- * appended frame the file on disk is byte-for-byte what pico8_input_save
+ * appended frame the file on disk is byte-for-byte what p8_input_save
  * would have written for the same frames, so a session recorded through
  * the append path replays identically to one recorded through the full
  * rewrite it replaces. */

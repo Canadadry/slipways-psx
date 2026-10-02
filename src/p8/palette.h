@@ -1,27 +1,24 @@
-/* Les seize couleurs de la palette par defaut de PICO-8, en un seul
- * endroit pour les deux programmes raylib du depot : le pilote interactif
- * (src/platform/raylib_backend.c) et le visualiseur de screencast
- * (src/cmd/screencast_viewer.c). Aucun des deux ne redefinit la sienne ;
- * deux tables recopiees finiraient par diverger, et le visualiseur
- * montrerait alors autre chose que le jeu.
+/* PICO-8's sixteen default palette colors, defined once for every program
+ * that turns screen memory into pixels: the interactive driver
+ * (src/platform/raylib_backend.c), the screencast viewer
+ * (src/cmd/screencast_viewer.c) and the GIF writer (src/devtools/gif.c).
+ * None redefines its own; copied tables would drift apart, and the viewer
+ * would then show something other than the game.
  *
- * Ce sont les valeurs publiees de la palette par defaut de PICO-8, de la
- * plomberie de presentation et non une fonction portee depuis
- * pico8/lua.lua. La transparence de PICO-8 (palt()) est deja resolue par
- * pico8_gfx.c avant qu'un pixel n'atteigne la memoire ecran, donc l'alpha
- * est toujours opaque.
+ * These are PICO-8's published default palette values. PICO-8 transparency
+ * (palt()) is already resolved by p8/gfx.c before a pixel reaches screen
+ * memory, so alpha is always opaque.
  *
- * Des triplets d'octets et non des `Color` : un `Color` imposerait
- * raylib.h a ce fichier et le sortirait de `make unit`, alors que
- * quarante-huit octets hexadecimaux sont exactement l'endroit ou une
- * faute de frappe ne se voit qu'a l'oeil, dans une fenetre.
- * tests/test_screencast_player.c les asserte une par une ; chaque
- * fichier raylib fabrique son `Color` au point d'usage. */
+ * Byte triplets rather than a `Color`: a `Color` would force raylib.h on
+ * this file and take it out of `make unit`, while forty-eight hex bytes are
+ * exactly where a typo only shows by eye, in a window.
+ * tests/test_screencast_player.c asserts them one by one; each raylib file
+ * builds its `Color` where it uses it. */
 
 #ifndef P8_PALETTE_H
 #define P8_PALETTE_H
 
-/* Les seize index que la memoire ecran de PICO-8 peut contenir. */
+/* The sixteen indices PICO-8 screen memory can hold. */
 #define P8_PALETTE_COLORS 16
 
 typedef struct {
@@ -30,7 +27,7 @@ typedef struct {
     unsigned char blue;
 } p8_rgb_t;
 
-/* PICO8_PALETTE_RGB[i] est la couleur de l'index i, 0 <= i <= 15. */
+/* P8_PALETTE_RGB[index] is the color of that index, 0 to 15. */
 extern const p8_rgb_t P8_PALETTE_RGB[P8_PALETTE_COLORS];
 
 #endif

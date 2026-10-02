@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-/* `pico8_mem_init` leaves exactly one region non-zero, the 16-byte draw
+/* `p8_mem_init` leaves exactly one region non-zero, the 16-byte draw
  * palette. Every "nothing was written" whole-memory scan here skips it. */
 static int is_default_draw_palette_addr(int addr) {
     return addr >= P8_ADDR_DRAW_PALETTE && addr < P8_ADDR_DRAW_PALETTE + 16;

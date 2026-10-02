@@ -17,6 +17,7 @@ Pour l'orchestrateur : remplacer `<MODULE>` et les chemins de la consigne du ski
 - Un renvoi à un fichier, une fonction ou un champ disparu (`pico8_*.h`, `pico8_X_kind_new`…) est vérifié par `grep`, puis corrigé ou supprimé.
 - Un nom court du cart encore porté par une locale ou un paramètre conservé (`ra`, `qa`, `me`…, registre D-29) n'est pas cité entre backticks : le compteur anti-cart le compterait. Le commentaire décrit son rôle (« the cursor position », « the year »).
 - *Amendé par 4a.* Le relevé des citations compte en `short` tout mot nu d'une ou deux lettres qui est un ancien nom, même quand la prose ne pense pas au cart : un indice de boucle (« `states[i]`, i looked up… »), un nom de module (« the ui hover »), un mot de `awk` (`NR`), une marque de pluriel collée à un backtick (« `` `malloc`s `` »). On réécrit la phrase (« calls `malloc` », « game/ui.c »), on ne propose pas d'exception.
+- *Amendé par 4b.* Une mention entre backticks d'un nom court qu'une ligne `renommé` du TSV porte comme ancien nom (`` `mem` ``, `` `gfx` `` depuis 4b, `` `ok` ``…) compte en `backtick`, même quand elle désigne un paramètre conservé d'une autre fonction : décrire le rôle (« PICO-8 memory », « the graphics state ») plutôt que citer le paramètre (D-36). Un nom de paramètre d'une ou deux lettres cité nu (`n`, `b`, `s`, `lo`/`hi`) se réécrit aussi (« the count », « the divisor »).
 - *Amendé par 4a.* Remplacer un digramme par le nom C allonge souvent le commentaire (`entity_class.h` : 40 → 48 lignes). À l'étape 4, le ratio se relève mais n'est pas un objectif : la cible est le zéro des compteurs et un texte juste ; le récit de chantier part quand même au message de commit.
 
 ## 3. Destination 1 supprimée
@@ -63,6 +64,7 @@ Sans `make` (le répertoire de build est partagé) : l'agent appelle les scripts
   ```
 
   Elle ne voit ni un commentaire en fin de ligne de code (`cmd  # …`) ni un `#` dans un here-document : un tel commentaire se laisse tel quel ou se signale à l'orchestrateur.
+- *Hauteur des blocs* (*amendé par 4b*) : dans un `.c` de `src/` cité par `tools/line_coverage_reference.txt` (`cut -d: -f1 tools/line_coverage_reference.txt | sort -u`), chaque bloc de commentaire garde son nombre de lignes : `e2e-gap` compare des numéros de ligne, et un bloc qui grandit ou rétrécit décale tout le code qui suit (72 lignes de plus en défaut à 4b). Contrôle : les lignes qui ne sont pas des commentaires restent aux mêmes numéros, et `make e2e-gap` rend la même sortie à l'octet. Les en-têtes et les tests ne sont pas concernés.
 - *Fichier d'avant* (*amendé par 4a*, pour l'orchestrateur) : quand le commit de chaînes et le commit de commentaires touchent le même fichier, l'« avant » des commentaires est l'état d'après les chaînes ; l'orchestrateur en garde une copie sous `tmp/` avant de lancer les agents, puisque les deux commits ne sont faits qu'à la fin.
 - *Compteurs*, colonnes `backtick` et `comment` à zéro sur ses fichiers, hors messages d'`assert` qu'il a proposés :
 

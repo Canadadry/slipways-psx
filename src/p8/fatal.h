@@ -7,8 +7,8 @@
 #define P8_NORETURN
 #endif
 
-/* Fournie par la plateforme, pas par le coeur : ne rend jamais la main. Sur
- * PC (pico8_fatal_pc.c), ecrit message sur stderr et sort avec le code 3. */
+/* Provided by the platform, not the core: never returns. On PC
+ * (platform/fatal_pc.c), writes the message to stderr and exits with code 3. */
 void p8_fatal(const char *message) P8_NORETURN;
 
 #endif

@@ -30,7 +30,7 @@ static void test_mul_representative_values(void) {
 static void test_mul_overflow_wraps(void) {
     /* 200*200 = 40000, which exceeds the 16-bit signed integer part's
      * range (max 32767), so the truncation wraps it to 40000 - 65536 =
-     * -25536, per pico8_fixed_mul's documented truncation behavior. */
+     * -25536, per p8_fixed_mul's documented truncation behavior. */
     p8_fixed_t a = p8_fixed_from_int(200);
     p8_fixed_t b = p8_fixed_from_int(200);
     p8_fixed_t result = p8_fixed_mul(a, b);
@@ -132,8 +132,8 @@ static void test_flr_exact_integer_is_unchanged(void) {
 }
 
 static void test_flr_int_matches_probe_block_b(void) {
-    /* tools/pico8_reference_probe_out.txt, "## b rounding": copied from the probe, never
-     * derived. */
+    /* Block B (rounding) of tools/pico8_reference_probe_out.txt: copied
+     * from the probe, never derived. */
     static const struct { uint32_t raw; int32_t expected; } probe[] = {
         {0xFFFE8000u, -2}, {0xFFFF8000u, -1}, {0xFFFF199Au, -1},
         {0xFFFF0000u, -1}, {0xFFFD8000u, -3}, {0x00018000u, 1},
@@ -167,21 +167,21 @@ static void test_flr_int_raw_minus_one_is_minus_one_not_zero(void) {
 }
 
 static void test_mod_positive_operands(void) {
-    /* 45 % 42 == 3: the shape `nl:ly`'s `t%42/6` needs. */
+    /* 45 % 42 == 3: the shape trading_hub_update_settled's `% 42` needs. */
     p8_fixed_t a = p8_fixed_from_int(45);
     p8_fixed_t b = p8_fixed_from_int(42);
     assert(p8_fixed_mod(a, b) == p8_fixed_from_int(3));
 }
 
 static void test_mod_fractional_operand(void) {
-    /* a-flr(a/b)*b: 5.5 % 2 == 1.5. */
+    /* dividend - flr(dividend / divisor) * divisor: 5.5 % 2 == 1.5. */
     p8_fixed_t a = fixed_test_double_from_double(5.5);
     p8_fixed_t b = p8_fixed_from_int(2);
     assert(p8_fixed_mod(a, b) == fixed_test_double_from_double(1.5));
 }
 
 static void test_mod_negative_dividend_matches_lua_floor_semantics(void) {
-    /* Lua's floor-based modulo (not C's truncating "%"): -1 % 3 == 2, not
+    /* PICO-8's floor-based modulo (not C's truncating "%"): -1 % 3 == 2, not
      * -1, since flr(-1/3)==-1 and -1-(-1*3)==2. */
     p8_fixed_t a = p8_fixed_from_int(-1);
     p8_fixed_t b = p8_fixed_from_int(3);
@@ -246,7 +246,7 @@ static void test_mid_is_order_independent(void) {
     p8_fixed_t lo = p8_fixed_from_int(0);
     p8_fixed_t hi = p8_fixed_from_int(10);
     p8_fixed_t v = p8_fixed_from_int(4);
-    p8_fixed_t expected = v; /* v already within [lo,hi] */
+    p8_fixed_t expected = v; /* already within the bounds */
 
     assert(p8_fixed_mid(lo, hi, v) == expected);
     assert(p8_fixed_mid(hi, lo, v) == expected);
@@ -302,14 +302,15 @@ static void test_bor_negative_raw_operand(void) {
 }
 
 static void test_shl_positive_raw_operand(void) {
-    /* `shl` shifts the raw representation; the cart's own use is
-     * `shl(flr(no),4)`, times sixteen on an integer value. */
+    /* p8_fixed_shl shifts the raw representation; its one game use,
+     * hud_select_palette_block, shifts a floored value by 4: times sixteen
+     * on an integer value. */
     p8_fixed_t x = p8_fixed_from_int(5);
     assert(p8_fixed_shl(x, 4) == p8_fixed_from_int(80));
 }
 
 static void test_shl_negative_raw_operand(void) {
-    /* Same shift UB as in `pico8_fixed_div`: shifting a negative signed
+    /* Same shift UB as in `p8_fixed_div`: shifting a negative signed
      * value must go through the unsigned reinterpretation. -1, raw
      * 0xFFFFFFFF, shifted by 1 is 0xFFFFFFFE. */
     p8_fixed_t x = (p8_fixed_t)0xFFFFFFFFu;
@@ -344,8 +345,8 @@ static void test_sqrt_negative_value_is_zero(void) {
 }
 
 static void test_sqrt_matches_probe_block_e(void) {
-    /* tools/pico8_reference_probe_out.txt, "## e sqrt": copied from the probe, never
-     * derived. */
+    /* Block E (sqrt) of tools/pico8_reference_probe_out.txt: copied from
+     * the probe, never derived. */
     static const struct { uint32_t raw; uint32_t expected; } probe[] = {
         {0x00004000u, 0x00008000u}, {0x00008000u, 0x0000B504u},
         {0x0000C000u, 0x0000DDB3u}, {0x00010000u, 0x00010000u},
@@ -362,8 +363,8 @@ static void test_sqrt_matches_probe_block_e(void) {
 }
 
 static void test_pow075_matches_probe_block_d(void) {
-    /* tools/pico8_reference_probe_out.txt, "## d pow075": copied from the probe, never
-     * derived. */
+    /* Block D (pow075) of tools/pico8_reference_probe_out.txt: copied from
+     * the probe, never derived. */
     static const struct { uint32_t raw; uint32_t expected; } probe[] = {
         {0x00004000u, 0x00005A82u}, {0x00008000u, 0x00009836u},
         {0x0000C000u, 0x0000CE4Fu}, {0x00010000u, 0x00010000u},
@@ -420,11 +421,11 @@ static void test_rnd_default_behaves_as_rnd_one(void) {
     }
 }
 
-/* sin/cos are bit-exact at the 64 probed points i/64 only. */
+/* sin/cos are bit-exact only at the 64 probed points, every 1/64 turn. */
 /* TROU-1 */
 static void test_sin_matches_probe_block_e(void) {
-    /* tools/pico8_reference_probe_out.txt, "## e sin": copied from the probe, never
-     * derived. The argument is i/64 turns, raw i * 0x400. */
+    /* Block E (sin) of tools/pico8_reference_probe_out.txt: copied from the
+     * probe, never derived. The arguments step by 1/64 turn, raw 0x400. */
     static const struct { uint32_t raw; uint32_t expected; } probe[] = {
         {0x00000000u, 0x00000000u}, {0x00000400u, 0xFFFFE6E8u}, {0x00000800u, 0xFFFFCE0Fu},
         {0x00000C00u, 0xFFFFB5B0u}, {0x00001000u, 0xFFFF9E08u}, {0x00001400u, 0xFFFF8753u},
@@ -455,8 +456,8 @@ static void test_sin_matches_probe_block_e(void) {
 }
 
 static void test_cos_matches_probe_block_e(void) {
-    /* tools/pico8_reference_probe_out.txt, "## e cos": copied from the probe, never
-     * derived. The argument is i/64 turns, raw i * 0x400. */
+    /* Block E (cos) of tools/pico8_reference_probe_out.txt: copied from the
+     * probe, never derived. The arguments step by 1/64 turn, raw 0x400. */
     static const struct { uint32_t raw; uint32_t expected; } probe[] = {
         {0x00000000u, 0x00010000u}, {0x00000400u, 0x0000FEC4u}, {0x00000800u, 0x0000FB15u},
         {0x00000C00u, 0x0000F4FAu}, {0x00001000u, 0x0000EC83u}, {0x00001400u, 0x0000E1C6u},
@@ -512,7 +513,7 @@ static void test_sin_is_odd_and_cos_is_even(void) {
 }
 
 /* The pre-table sin/cos, kept here verbatim (same 2*pi, same rounding as
- * pico8_fixed_from_double) so the generated table stays pinned to it. */
+ * fixed_test_double_from_double) so the generated table stays pinned to it. */
 #define OLD_TWO_PI 6.28318530717958647692528676655900576839433879875021
 
 static p8_fixed_t old_round_to_fixed(double d) {

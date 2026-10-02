@@ -79,7 +79,7 @@ static void test_camera_reset_restores_zero_offset(void) {
 }
 
 /* `palt()` stores into the draw palette in memory, so the PICO-8 default --
- * every colour opaque but colour 0 -- is `pico8_mem_init`'s power-on state,
+ * every colour opaque but colour 0 -- is `p8_mem_init`'s power-on state,
  * not a gfx-side flag array. */
 static void test_mem_init_default_transparency_is_color_0_only(void) {
     p8_memory_t mem;
@@ -105,9 +105,10 @@ static void test_palt_marks_color_transparent_and_opaque(void) {
     assert(!p8_gfx_is_transparent(&mem, 3));
 }
 
-/* The consequence of that single store, which this cart depends on: `dv()`'s
- * memcpy into 0x5f00 replaces whatever `palt()` last said. The cart undoes
- * its `palt(0,true)` with a bare `dv()`, never with `palt(0,false)`. */
+/* The consequence of that single store, which the game depends on:
+ * hud_select_palette_block()'s memcpy into 0x5f00 replaces whatever
+ * `palt()` last said. The game undoes its p8_palt(mem, 0, 1) with
+ * hud_select_palette_block_default(), never with p8_palt(mem, 0, 0). */
 static void test_draw_palette_write_overrides_a_previous_palt(void) {
     p8_memory_t mem;
     p8_mem_init(&mem);
@@ -329,7 +330,8 @@ static void test_fillp_pattern_alters_rectfill_output(void) {
 static void test_sget_reads_known_pixel_from_loaded_cart_data(void) {
     /* The three known-good values, in raw sheet pixel coordinates, not
      * sprite index plus offset: (16,0) is sprite 2's top-left, (2,64) is
-     * sprite 128's (dx=2,dy=0), (0,127) is sprite 240's bottom-left. */
+     * sprite 128's top row two pixels in, (0,127) is sprite 240's
+     * bottom-left. */
     p8_memory_t mem;
     p8_mem_init(&mem);
     int ok = p8_load_gfx_json(&mem, "pico8/gfx.json");
@@ -356,7 +358,7 @@ static void test_sget_out_of_range_returns_zero(void) {
 static void test_spr_default_draws_1x1_sprite_at_world_position(void) {
     /* Sprite 5 lives at sheet pixel (40,0) (col 5*8, row 0*8, since 16
      * sprites/row). Poke two of its pixels directly and draw it with the
-     * 3-arg convenience wrapper (defaults w=h=1). */
+     * 3-arg convenience wrapper (width and height default to 1). */
     p8_memory_t mem;
     p8_graphics_t gfx;
     p8_mem_init(&mem);
@@ -375,9 +377,9 @@ static void test_spr_default_draws_1x1_sprite_at_world_position(void) {
 
 static void test_spr_with_explicit_width_height_draws_multi_block_sprite(void) {
     /* Sprite 0 spans a 2x2-sprite (16x16 pixel) area starting at sheet
-     * (0,0) when w=2,h=2: it reads pixels from sprite 0's own block plus
-     * sprite 1 (to its right), sprite 16 (below), and sprite 17
-     * (diagonal) -- real PICO-8's multi-cell sprite behavior. */
+     * (0,0) when drawn 2 cells wide and 2 tall: it reads pixels from sprite
+     * 0's own block plus sprite 1 (to its right), sprite 16 (below), and
+     * sprite 17 (diagonal) -- real PICO-8's multi-cell sprite behavior. */
     p8_memory_t mem;
     p8_graphics_t gfx;
     p8_mem_init(&mem);
@@ -420,9 +422,9 @@ static void test_spr_skips_pixels_marked_transparent_by_palt(void) {
 }
 
 static void test_mset_writes_base_region_cell(void) {
-    /* Cel rows 0-31 (the "base" JSON/map rows) land in the real cart's
-     * PICO8_ADDR_SPRITE_MAP_SHARED region, confirmed by decoding
-     * pico8/original.p8.png's cart ROM byte-for-byte. */
+    /* Cel rows 0-31 (the "base" JSON/map rows) land in the
+     * P8_ADDR_SPRITE_MAP_SHARED region, confirmed by decoding the ROM of
+     * pico8/original.p8.png byte for byte. */
     p8_memory_t mem;
     p8_mem_init(&mem);
 
@@ -434,7 +436,7 @@ static void test_mset_writes_base_region_cell(void) {
 }
 
 static void test_mset_writes_shared_upper_region_cell(void) {
-    /* Cel rows 32-63 land in the real cart's PICO8_ADDR_MAP region. */
+    /* Cel rows 32-63 land in the P8_ADDR_MAP region. */
     p8_memory_t mem;
     p8_mem_init(&mem);
 
@@ -464,9 +466,10 @@ static void test_mset_out_of_range_is_noop(void) {
 
 static void test_map_draws_cells_via_sprite_drawing_logic(void) {
     /* A 2x2-cell region, cell (1,0) pointing to sprite 5, the rest to
-     * sprite 0. map() draws each cell as a 1x1 spr() call at
-     * sx+c*8, sy+r*8 -- confirmed by cell (1,0) landing sprite 5's known
-     * pixel at screen column 8 (the second cell), not column 0. */
+     * sprite 0. map() draws each cell as a 1x1 spr() call, cells 8 pixels
+     * apart from the drawing origin -- confirmed by cell (1,0) landing
+     * sprite 5's known pixel at screen column 8 (the second cell), not
+     * column 0. */
     p8_memory_t mem;
     p8_graphics_t gfx;
     p8_mem_init(&mem);
@@ -487,10 +490,10 @@ static void test_map_draws_cells_via_sprite_drawing_logic(void) {
 static void test_map_treats_sprite_0_cells_as_empty(void) {
     /* Real PICO-8's map() "takes sprite 0 to mean empty and does not draw
      * it" (PICO-8 manual, MAP()); the opt-out POKE(0x5F36,0x8) is never
-     * poked by this cart. So a cell holding 0 leaves its 8x8 block alone
-     * even when sprite 0's own pixels are opaque -- which they are in this
-     * cart, whose sprite 0 is palette data, not artwork. Direct spr(0,...)
-     * is unaffected by that rule and still draws. */
+     * poked by the game. So a cell holding 0 leaves its 8x8 block alone
+     * even when sprite 0's own pixels are opaque -- which they are in the
+     * game's sheet, whose sprite 0 is palette data, not artwork. Direct
+     * spr(0,...) is unaffected by that rule and still draws. */
     p8_memory_t mem;
     p8_graphics_t gfx;
     p8_mem_init(&mem);
@@ -509,7 +512,7 @@ static void test_map_treats_sprite_0_cells_as_empty(void) {
 
 static void test_map_and_mset_round_trip_against_real_cart_data(void) {
     /* `sget`'s read of a sprite-sheet pixel and the framebuffer `map()`
-     * draws from that same sprite must agree, on real cart data. */
+     * draws from that same sprite must agree, on the real pico8/gfx.json. */
     p8_memory_t mem;
     p8_graphics_t gfx;
     p8_mem_init(&mem);
@@ -522,7 +525,7 @@ static void test_map_and_mset_round_trip_against_real_cart_data(void) {
     unsigned char expected = p8_sget(&mem, 16, 0);
     assert(expected == 3);
 
-    p8_mset(&mem, 4, 40, 2); /* row 40 >= 32 lands in PICO8_ADDR_MAP */
+    p8_mset(&mem, 4, 40, 2); /* row 40 >= 32 lands in P8_ADDR_MAP */
     p8_map(&gfx, &mem, 4, 40, 0, 0, 1, 1);
 
     assert(p8_peek(&mem, P8_ADDR_MAP + (40 - 32) * 128 + 4) == 2);
@@ -531,7 +534,7 @@ static void test_map_and_mset_round_trip_against_real_cart_data(void) {
 
 static void test_print_draws_known_glyph_pixels(void) {
     /* Spot-check the hand-authored 'a' glyph: a 3-wide x 5-tall bitmap
-     * (see PICO8_FONT_GLYPH_WIDTH/HEIGHT) left-aligned at (x,y), with
+     * (see P8_FONT_GLYPH_WIDTH/HEIGHT) left-aligned at (x,y), with
      * column x+3 (the 4th column of the 4px advance cell) always blank. */
     p8_memory_t mem;
     p8_graphics_t gfx;
@@ -584,7 +587,7 @@ static void test_print_advances_cursor_by_cell_width_between_chars(void) {
 }
 
 static void test_print_unmapped_character_draws_placeholder_block(void) {
-    /* A character outside the documented covered set (see pico8_gfx.c)
+    /* A character outside the documented covered set (see p8/gfx.c)
      * draws a solid 3x5 block rather than staying blank, so a missing
      * mapping is visually obvious. */
     p8_memory_t mem;
@@ -617,8 +620,8 @@ static void test_print_space_is_blank(void) {
 }
 
 static void test_print_respects_camera_offset(void) {
-    /* Consistent with every other pico8_gfx primitive: print goes through
-     * pico8_pset, so a camera offset shifts world coordinates the same
+    /* Consistent with every other p8/gfx.c primitive: print goes through
+     * p8_pset, so a camera offset shifts world coordinates the same
      * way it would for pset/line/etc. */
     p8_memory_t mem;
     p8_graphics_t gfx;
@@ -636,7 +639,7 @@ static void test_print_respects_camera_offset(void) {
 
 static void test_print_digit_and_punctuation_glyphs(void) {
     /* Spot-check a digit and a punctuation glyph from the covered set
-     * documented in pico8_gfx.c (this cart's UI text uses digits for
+     * documented in p8/gfx.c (the game's UI text uses digits for
      * scores/years/percentages and ':' for labels like "population:"). */
     p8_memory_t mem;
     p8_graphics_t gfx;

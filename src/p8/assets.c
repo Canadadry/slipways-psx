@@ -111,9 +111,9 @@ int p8_load_gfx_json(p8_memory_t *mem, const char *path) {
 
 #define P8_MAP_BASE_ROWS 32
 
-/* The map is split across two regions: its first PICO8_MAP_BASE_ROWS rows
+/* The map is split across two regions: its first P8_MAP_BASE_ROWS rows
  * live in the memory shared with the top of the sprite sheet, the rest at
- * PICO8_ADDR_MAP. */
+ * P8_ADDR_MAP. */
 static void map_cell_sink(int index, int value, void *ctx_ptr) {
     asset_sink_ctx_t *ctx = (asset_sink_ctx_t *)ctx_ptr;
     int row = index / ctx->width;

@@ -1,7 +1,7 @@
 /* Host tool behind make sin-table: writes src/p8/quarter_wave.h on stdout.
- * Entry r is the pre-table pico8_fixed_sin/cos expression, standard sign, at
- * the fraction of a turn r/65536: same 2*pi, same rounding as
- * pico8_fixed_from_double. */
+ * Each entry is the floating-point sine p8_fixed_sin/cos computed before the
+ * table, standard sign, at its index / 65536 of a turn: same 2*pi, same
+ * rounding as fixed_test_double_from_double. */
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>

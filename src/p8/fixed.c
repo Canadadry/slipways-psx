@@ -23,7 +23,7 @@ p8_fixed_t p8_fixed_mul(p8_fixed_t a, p8_fixed_t b) {
     return (p8_fixed_t)(uint32_t)rescaled;
 }
 
-/* b == 0 saturates by the sign of the dividend; see pico8_fixed.h. */
+/* A zero divisor saturates by the sign of the dividend; see p8/fixed.h. */
 p8_fixed_t p8_fixed_div(p8_fixed_t a, p8_fixed_t b) {
     if (b == 0) {
         return a < 0 ? P8_FIXED_DIV0_NEG : P8_FIXED_DIV0_POS;
@@ -88,8 +88,8 @@ p8_fixed_t p8_fixed_mod(p8_fixed_t a, p8_fixed_t b) {
     return p8_fixed_sub(a, p8_fixed_mul(p8_fixed_flr(p8_fixed_div(a, b)), b));
 }
 
-/* n outside [0,31] would be undefined behavior to shift by in C; 0 is this
- * port's own defensive answer, not sourced PICO-8 behavior. */
+/* A count outside [0,31] would be undefined behavior to shift by in C; 0
+ * is this port's own defensive answer, not sourced PICO-8 behavior. */
 p8_fixed_t p8_fixed_shl(p8_fixed_t x, int32_t n) {
     if (n < 0 || n >= 32) {
         return 0;
@@ -97,8 +97,8 @@ p8_fixed_t p8_fixed_shl(p8_fixed_t x, int32_t n) {
     return (p8_fixed_t)((uint32_t)x << (uint32_t)n);
 }
 
-/* Largest y such that y*y <= n, by binary search. y fits in 32 bits for
- * every n pico8_fixed_sqrt passes in. */
+/* Largest root whose square is at most the argument, by binary search;
+ * it fits in 32 bits for every argument p8_fixed_sqrt passes in. */
 static uint32_t isqrt_u64(uint64_t n) {
     uint64_t lo = 0;
     uint64_t hi = 0xFFFFFFFFu;
@@ -130,8 +130,8 @@ p8_fixed_t p8_fixed_pow075(p8_fixed_t x) {
 }
 
 /* Placeholder generator: a linear-congruential one with Numerical Recipes'
- * constants and a fixed seed. Not PICO-8's own, so no sequence matches the
- * real cart -- only rnd()'s documented range does. */
+ * constants and a fixed seed. Not PICO-8's own, so no sequence matches a
+ * real PICO-8 -- only rnd()'s documented range does. */
 #define P8_RND_LCG_MULTIPLIER 1664525u
 #define P8_RND_LCG_INCREMENT 1013904223u
 #define P8_RND_DEFAULT_SEED 0x2545F491u
@@ -161,8 +161,8 @@ p8_fixed_t p8_fixed_rnd_default(void) {
     return p8_fixed_rnd(p8_fixed_from_int(1));
 }
 
-/* Standard-sign sin of the turn fraction f (the low 16 bits of the
- * argument): the quadrant folds f onto the quarter wave and sets the sign. */
+/* Standard-sign sin of the turn fraction (the low 16 bits of the argument):
+ * the quadrant folds it onto the quarter wave and sets the sign. */
 static p8_fixed_t quarter_wave_at(uint32_t f) {
     uint32_t quadrant = (f >> 14) & 3u;
     uint32_t r = f & 0x3FFFu;

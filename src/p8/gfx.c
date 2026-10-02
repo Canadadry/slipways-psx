@@ -7,9 +7,9 @@ void p8_gfx_init(p8_graphics_t *gfx) {
     gfx->camera_y = 0;
     gfx->fillp_pattern = 0;
     gfx->fillp_transparent = 0;
-    /* 6 is PICO-8's power-on pen color. The cart's one col-omitted draw
-     * call always follows an explicit-col one, so this default is never
-     * observed today. */
+    /* 6 is PICO-8's power-on pen color. The one draw call that omits the
+     * color (game/score_panel.c) always follows one that gives it, so this
+     * default is never observed today. */
     gfx->pen_color = 6;
 }
 
@@ -89,7 +89,7 @@ void p8_line(const p8_graphics_t *gfx, p8_memory_t *mem, int x1, int y1, int x2,
 
 /* The 16-bit pattern is a 4x4 grid read most-significant-bit first,
  * row-major from the top left: bit 15 is (row 0, col 0), bit 0 is
- * (row 3, col 3). Only the fills consult it -- the cart always resets the
+ * (row 3, col 3). Only the fills consult it -- the game always resets the
  * pattern before any line/rect/circ, so those need not. */
 static int fillp_bit_set(const p8_graphics_t *gfx, int x, int y) {
     int row = ((y % 4) + 4) % 4;
@@ -100,10 +100,10 @@ static int fillp_bit_set(const p8_graphics_t *gfx, int x, int y) {
 
 /* A fill pattern is two-colored and the `col` parameter carries both: the
  * clear bits draw its low nibble, the set bits its high nibble, or nothing
- * at all (-1 here) when the transparency flag is set. So `rk(om,dn,0x10)`
- * means colors 0 and 1, not color 16. The masking happens here, not in
- * pico8_pset, which stays unmasked so pico8_dump.c's assert keeps catching
- * any primitive that stores an index above 0x0f. */
+ * at all (-1 here) when the transparency flag is set. So game/layout.c's
+ * 0x10 to hud_draw_bar means colors 0 and 1, not color 16. The masking is
+ * here, not in p8_pset, which stays unmasked so devtools/dump.c's assert
+ * keeps catching any primitive that stores an index above 0x0f. */
 static int fillp_color(const p8_graphics_t *gfx, int x, int y, int col) {
     if (!fillp_bit_set(gfx, x, y)) {
         return col & 0x0F;
@@ -227,13 +227,13 @@ unsigned char p8_sget(const p8_memory_t *mem, int x, int y) {
     return p8_peek(mem, P8_ADDR_SPRITE_SHEET + y * P8_SPRITE_SHEET_WIDTH + x);
 }
 
-/* Sprite n's top-left pixel is at ((n % 16) * 8, (n / 16) * 8) on the
- * 128x128 sheet; w/h count 8px cells, so a multi-cell sprite reads one
- * larger rectangle and spills into its neighbours, as on real hardware.
+/* A sprite's top-left pixel is at ((index % 16) * 8, (index / 16) * 8) on
+ * the 128x128 sheet; width and height count 8px cells, so a multi-cell
+ * sprite reads one larger rectangle and spills over, as on real hardware.
  *
  * A source pixel is transparent when its draw-palette byte has the 0x80
- * bit. That is how color 3, not color 0, is the invisible one here: cu()
- * bakes the bit in and _draw()'s bare dv() re-activates it every frame.
+ * bit. That is how color 3, not color 0, is the invisible one here:
+ * hud_build_palette_table() bakes it in, cart_draw() reselects it per frame.
  * Consulting a gfx-side flag instead drew a green band behind the title
  * logo, whose art fills with color 3.
  *
@@ -263,8 +263,8 @@ void p8_spr_default(const p8_graphics_t *gfx, p8_memory_t *mem, int n, int x, in
 }
 
 /* Cell rows 0-31 live in the shared sprite-sheet/map region, rows 32-63
- * in the base map region -- the cart's map is 128x64, larger than the
- * 128x32 base. pico8_assets.c's map_cell_sink holds the same split and is
+ * in the base map region -- the game's map is 128x64, larger than the
+ * 128x32 base. p8/assets.c's map_cell_sink holds the same split and is
  * kept in sync by hand. */
 #define P8_MAP_BASE_ROWS 32
 
@@ -299,9 +299,9 @@ void p8_map(const p8_graphics_t *gfx, p8_memory_t *mem, int cel_x, int cel_y, in
         for (int c = 0; c < cel_w; c++) {
             unsigned char sprite_n = map_cell_get(mem, cel_x + c, cel_y + r);
             /* map() takes sprite 0 as empty and skips it; spr(0,...)
-             * still draws it. The distinction matters: this cart's sprite
-             * 0 is part of the pixel block cu() reads as its palette
-             * table, and bg writes cell value 0 over most of the sky.
+             * still draws it. The distinction matters: sprite 0 is part of
+             * the palette table hud_build_palette_table() reads, and
+             * game/background.c writes cell value 0 over most of the sky.
              * (PICO-8's opt-out, POKE(0x5F36,0x8), is never poked here.) */
             if (sprite_n == 0) {
                 continue;
@@ -312,16 +312,16 @@ void p8_map(const p8_graphics_t *gfx, p8_memory_t *mem, int cel_x, int cel_y, in
 }
 
 /* Hand-authored bitmap font, not PICO-8's own glyphs: the real ones live
- * in the runtime, not in the extracted cart assets. It only has to make
+ * in the PICO-8 runtime, not in the extracted assets. It only has to make
  * one character tellable from another in a text dump. Each row is a 3-bit
  * value, MSB the leftmost column of the 3x5 bitmap.
  *
- * Covered: space, 0-9, A-Z and a-z, and ! $ % ' ( ) + , - . / : = ?. Case
- * shares a bitmap, as do 'u' and 'v': at 3x5 there is no room to tell
- * them apart. Anything uncovered draws PICO8_FONT_ROWS_PLACEHOLDER, a
- * solid block, on purpose -- a missing glyph must not read as whitespace.
- * The cart's strings written as decimal escapes (`\74\65\78` is "JAN")
- * are easy to miss when checking coverage by grep. */
+ * Covered: space, 0-9, A-Z and a-z, and ! $ % ' ( ) + , - . / : = ?
+ * (font_glyph_rows below is the list). Case shares a bitmap, as do 'u' and
+ * 'v': at 3x5 there is no room to tell them apart.
+ *
+ * Anything uncovered draws FONT_ROWS_PLACEHOLDER, a solid block, on
+ * purpose -- a missing glyph must not read as whitespace. */
 static const unsigned char FONT_ROWS_PLACEHOLDER[P8_FONT_GLYPH_HEIGHT] = {7, 7, 7, 7, 7};
 static const unsigned char FONT_ROWS_SPACE[P8_FONT_GLYPH_HEIGHT] = {0, 0, 0, 0, 0};
 
@@ -411,7 +411,7 @@ static const unsigned char *font_glyph_rows(char character) {
         case 'S': case 's': return FONT_ROWS_S;
         case 'T': case 't': return FONT_ROWS_T;
         case 'U': case 'u': return FONT_ROWS_U;
-        case 'V': case 'v': return FONT_ROWS_U; /* shared with u on purpose */
+        case 'V': case 'v': return FONT_ROWS_U; /* shares the U bitmap on purpose */
         case 'W': case 'w': return FONT_ROWS_W;
         case 'X': case 'x': return FONT_ROWS_X;
         case 'Y': case 'y': return FONT_ROWS_Y;

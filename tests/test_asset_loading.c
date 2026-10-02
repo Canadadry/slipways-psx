@@ -26,9 +26,9 @@ static void test_gfx_json_loads_full_128x128_range(void) {
 }
 
 static void test_map_json_loads_base_region(void) {
-    /* map.json's cells rows 0-31 (the "base" JSON rows) land in the real
-     * cart's PICO8_ADDR_SPRITE_MAP_SHARED region (0x1000), confirmed by
-     * decoding pico8/original.p8.png's cart ROM byte-for-byte. */
+    /* map.json's cells rows 0-31 (the "base" JSON rows) land in the
+     * P8_ADDR_SPRITE_MAP_SHARED region (0x1000), confirmed by decoding the
+     * ROM of pico8/original.p8.png byte for byte. */
     p8_memory_t mem;
     p8_mem_init(&mem);
 
@@ -41,8 +41,8 @@ static void test_map_json_loads_base_region(void) {
 }
 
 static void test_map_json_loads_shared_region_for_rows_32_to_63(void) {
-    /* map.json's cells rows 32-63 land in the real cart's PICO8_ADDR_MAP
-     * region (0x2000), confirmed the same way. */
+    /* map.json's cells rows 32-63 land in the P8_ADDR_MAP region (0x2000),
+     * confirmed the same way. */
     p8_memory_t mem;
     p8_mem_init(&mem);
 
@@ -55,7 +55,7 @@ static void test_map_json_loads_shared_region_for_rows_32_to_63(void) {
 }
 
 static void test_gfx_and_map_loaded_into_same_instance(void) {
-    /* Both loads land in one `pico8_mem_t`, as they do on the real cart,
+    /* Both loads land in one `p8_memory_t`, as they do on a real PICO-8,
      * and must not clobber each other: an unpacked 128x128 sprite sheet
      * needs 0x4000 bytes, and a packed hardware-sized region spilled into
      * the map's own span. */

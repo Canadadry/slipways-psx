@@ -11,7 +11,7 @@
 
 /* The live draw palette: one byte per source color 0-15, low bits giving
  * the color it is actually drawn as, bit 0x80 meaning "not drawn at all".
- * pico8_palt() and dv() write these same bytes. */
+ * p8_palt() and hud_select_palette_block() write these same bytes. */
 #define P8_ADDR_DRAW_PALETTE 0x5f00
 #define P8_DRAW_PALETTE_TRANSPARENT_BIT 0x80
 
@@ -23,8 +23,8 @@ typedef struct {
 
 void p8_mem_init(p8_memory_t *mem);
 
-/* An out-of-range address is ignored rather than an error: pico8_peek
- * returns 0, pico8_poke and pico8_memcpy write nothing at all. Overlapping
+/* An out-of-range address is ignored rather than an error: p8_peek
+ * returns 0, p8_poke and p8_memcpy write nothing at all. Overlapping
  * source and destination are allowed. */
 unsigned char p8_peek(const p8_memory_t *mem, int addr);
 
