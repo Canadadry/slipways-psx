@@ -22,7 +22,7 @@
 #include "game/probe.h"
 #include "engine/vec.h"
 
-static pico8_g__t *new_probe(pico8_fixed_t pn, pico8_fixed_t t, pico8_fixed_t du, pico8_fixed_t py) {
+static pico8_g__t *new_probe(p8_fixed_t pn, p8_fixed_t t, p8_fixed_t du, p8_fixed_t py) {
     pico8_g__keys_t keys = {0};
 
     keys.has_pn = 1;
@@ -40,7 +40,7 @@ static pico8_vec_t emitted_particle_p(pico8_g__t *probe) {
     const pico8_qy_t *q;
     pico8_ptrs_iter_t it;
 
-    pico8_ez((entity_t *)probe, pico8_fixed_from_int(1));
+    pico8_ez((entity_t *)probe, p8_fixed_from_int(1));
 
     assert(probe->emitter != NULL && probe->emitter->qy != NULL);
     it = pico8_ptrs_all(probe->emitter->qy);
@@ -50,19 +50,19 @@ static pico8_vec_t emitted_particle_p(pico8_g__t *probe) {
 }
 
 static void test_probe_particle_draws_rnd_pn_before_rnd_half(void) {
-    pico8_fixed_t pn = pico8_fixed_from_int(7);
-    pico8_fixed_t t = pico8_fixed_from_int(3);
-    pico8_fixed_t du = pico8_fixed_from_int(10);
-    pico8_fixed_t py = pico8_fixed_from_int(1);
+    p8_fixed_t pn = p8_fixed_from_int(7);
+    p8_fixed_t t = p8_fixed_from_int(3);
+    p8_fixed_t du = p8_fixed_from_int(10);
+    p8_fixed_t py = p8_fixed_from_int(1);
     pico8_g__t *probe;
     int fds[2];
     pid_t child;
     int status;
     pico8_vec_t got;
     pico8_vec_t want;
-    pico8_fixed_t first;
-    pico8_fixed_t second;
-    pico8_fixed_t a;
+    p8_fixed_t first;
+    p8_fixed_t second;
+    p8_fixed_t a;
 
     pico8_entity_init();
     pico8_ke_init();
@@ -85,12 +85,12 @@ static void test_probe_particle_draws_rnd_pn_before_rnd_half(void) {
     assert(waitpid(child, &status, 0) == child && WIFEXITED(status) && WEXITSTATUS(status) == 0);
 
     /* ez's loop test `rnd()<n`, then lua.lua:727-728 in Lua's order. */
-    (void)pico8_fixed_rnd_default();
-    first = pico8_fixed_rnd(pn);
-    second = pico8_fixed_rnd(PICO8_FIXED_LIT(0x00008000, 0.5));
-    a = pico8_fixed_add(pico8_fixed_div(pico8_fixed_add(pico8_fixed_flr(first), second), pn),
-                        pico8_fixed_mul(t, PICO8_FIXED_LIT(0x00000041, 0.001)));
-    want = pico8_vec_qm(pico8_fixed_add(du, pico8_fixed_rnd_default()), a);
+    (void)p8_fixed_rnd_default();
+    first = p8_fixed_rnd(pn);
+    second = p8_fixed_rnd(P8_FIXED_LIT(0x00008000, 0.5));
+    a = p8_fixed_add(p8_fixed_div(p8_fixed_add(p8_fixed_flr(first), second), pn),
+                        p8_fixed_mul(t, P8_FIXED_LIT(0x00000041, 0.001)));
+    want = pico8_vec_qm(p8_fixed_add(du, p8_fixed_rnd_default()), a);
 
     if (got.x != want.x || got.y != want.y) {
         fprintf(stderr, "g_:mm particle p = (%08x,%08x), cart order gives (%08x,%08x)\n", (unsigned)got.x,

@@ -11,8 +11,8 @@
 
 #define MAX_FRAMES 256
 
-static pico8_input_frame_t frame(int x, int y, int buttons) {
-    pico8_input_frame_t f;
+static p8_input_frame_t frame(int x, int y, int buttons) {
+    p8_input_frame_t f;
     memset(&f, 0, sizeof f);
     f.mouse_x = x;
     f.mouse_y = y;
@@ -20,28 +20,28 @@ static pico8_input_frame_t frame(int x, int y, int buttons) {
     return f;
 }
 
-static int same(pico8_input_frame_t a, pico8_input_frame_t b) {
+static int same(p8_input_frame_t a, p8_input_frame_t b) {
     return memcmp(&a, &b, sizeof a) == 0;
 }
 
-static int minimize(const pico8_input_frame_t *in, int n, pico8_input_frame_t *out) {
+static int minimize(const p8_input_frame_t *in, int n, p8_input_frame_t *out) {
     assert(n <= MAX_FRAMES);
     return pico8_minimize_mechanical(in, n, out);
 }
 
 static void test_idle_frames_are_removed(void) {
-    pico8_input_frame_t in[] = {
+    p8_input_frame_t in[] = {
         frame(10, 10, 0), frame(10, 10, 0), frame(10, 10, 0), frame(10, 10, 1),
         frame(10, 10, 0), frame(10, 10, 0), frame(10, 10, 0),
     };
-    pico8_input_frame_t out[MAX_FRAMES];
+    p8_input_frame_t out[MAX_FRAMES];
     int n = minimize(in, 7, out);
     assert(n == 2);
     assert(same(out[0], in[3]));
     assert(same(out[1], in[4]));
 }
 
-static int contains(const pico8_input_frame_t *frames, int n, pico8_input_frame_t f) {
+static int contains(const p8_input_frame_t *frames, int n, p8_input_frame_t f) {
     for (int i = 0; i < n; i++) {
         if (same(frames[i], f)) {
             return 1;
@@ -54,7 +54,7 @@ static int contains(const pico8_input_frame_t *frames, int n, pico8_input_frame_
  * clic droit pendant un glisser : aucune transition ne disparaît, même
  * noyée dans des déplacements. */
 static void test_button_transitions_are_always_kept(void) {
-    pico8_input_frame_t in[MAX_FRAMES];
+    p8_input_frame_t in[MAX_FRAMES];
     int n = 0;
     in[n++] = frame(0, 0, 0);
     for (int i = 1; i <= 20; i++) {
@@ -72,7 +72,7 @@ static void test_button_transitions_are_always_kept(void) {
     in[n++] = frame(40, 0, 0);
     int transitions[] = {21, 42, 43, 44, 45, 46};
 
-    pico8_input_frame_t out[MAX_FRAMES];
+    p8_input_frame_t out[MAX_FRAMES];
     int kept = minimize(in, n, out);
     assert(kept < n);
     for (size_t t = 0; t < sizeof transitions / sizeof transitions[0]; t++) {
@@ -83,7 +83,7 @@ static void test_button_transitions_are_always_kept(void) {
 /* Entre deux transitions : au moins 80 % des déplacements retirés, et la
  * frame juste avant la transition est à la position finale. */
 static void test_at_least_80_percent_of_moves_between_transitions_are_removed(void) {
-    pico8_input_frame_t in[MAX_FRAMES];
+    p8_input_frame_t in[MAX_FRAMES];
     int n = 0;
     in[n++] = frame(5, 5, 1);
     in[n++] = frame(5, 5, 0);
@@ -93,7 +93,7 @@ static void test_at_least_80_percent_of_moves_between_transitions_are_removed(vo
     }
     in[n++] = frame(42, 79, 1);
 
-    pico8_input_frame_t out[MAX_FRAMES];
+    p8_input_frame_t out[MAX_FRAMES];
     int kept = minimize(in, n, out);
     int moves = kept - 3;
     assert(moves >= 1);
@@ -106,7 +106,7 @@ static void test_at_least_80_percent_of_moves_between_transitions_are_removed(vo
 
 /* Glisser : bouton tenu, souris en mouvement ; ce sont des déplacements. */
 static void test_drag_moves_are_thinned_but_hold_still_frames_kept(void) {
-    pico8_input_frame_t in[MAX_FRAMES];
+    p8_input_frame_t in[MAX_FRAMES];
     int n = 0;
     in[n++] = frame(10, 10, 1);
     in[n++] = frame(10, 10, 1);
@@ -116,7 +116,7 @@ static void test_drag_moves_are_thinned_but_hold_still_frames_kept(void) {
     }
     in[n++] = frame(60, 10, 0);
 
-    pico8_input_frame_t out[MAX_FRAMES];
+    p8_input_frame_t out[MAX_FRAMES];
     int kept = minimize(in, n, out);
     assert(kept == 3 + 10 + 1);
     assert(same(out[kept - 2], frame(60, 10, 1)));
@@ -125,12 +125,12 @@ static void test_drag_moves_are_thinned_but_hold_still_frames_kept(void) {
 /* Que des transitions et des tenues immobiles, aucune frame inactive ni
  * aucun déplacement. */
 static void test_already_minimal_frames_are_unchanged(void) {
-    pico8_input_frame_t in[] = {
+    p8_input_frame_t in[] = {
         frame(30, 40, 1), frame(30, 40, 0), frame(70, 12, 1),
         frame(70, 12, 1), frame(90, 12, 0), frame(90, 12, 2),
     };
     int n = (int)(sizeof in / sizeof in[0]);
-    pico8_input_frame_t out[MAX_FRAMES];
+    p8_input_frame_t out[MAX_FRAMES];
     assert(minimize(in, n, out) == n);
     assert(memcmp(in, out, sizeof in) == 0);
 }
@@ -138,7 +138,7 @@ static void test_already_minimal_frames_are_unchanged(void) {
 /* floor(m / 5) déplacements gardés : 0 sur 4, 2 sur 10 dont le dernier. La
  * transition porte sa propre position, le clic tombe au même endroit. */
 static void test_segments_keep_a_fifth_of_their_moves_rounded_down(void) {
-    pico8_input_frame_t in[MAX_FRAMES];
+    p8_input_frame_t in[MAX_FRAMES];
     int n = 0;
     in[n++] = frame(0, 0, 1);
     in[n++] = frame(0, 0, 0);
@@ -152,7 +152,7 @@ static void test_segments_keep_a_fifth_of_their_moves_rounded_down(void) {
     }
     in[n++] = frame(5, 11, 1);
 
-    pico8_input_frame_t out[MAX_FRAMES];
+    p8_input_frame_t out[MAX_FRAMES];
     int kept = minimize(in, n, out);
     assert(kept == 7);
     assert(same(out[2], in[6]));
@@ -164,8 +164,8 @@ static void test_segments_keep_a_fifth_of_their_moves_rounded_down(void) {
 /* Un fichier sans transition ni tenue n'est pas vidé : reste sa dernière
  * frame. */
 static void test_a_file_of_few_moves_keeps_its_last_frame(void) {
-    pico8_input_frame_t in[] = {frame(1, 1, 0), frame(2, 2, 0), frame(3, 3, 0)};
-    pico8_input_frame_t out[MAX_FRAMES];
+    p8_input_frame_t in[] = {frame(1, 1, 0), frame(2, 2, 0), frame(3, 3, 0)};
+    p8_input_frame_t out[MAX_FRAMES];
     assert(minimize(in, 3, out) == 1);
     assert(same(out[0], in[2]));
     assert(minimize(in, 1, out) == 1);
@@ -174,7 +174,7 @@ static void test_a_file_of_few_moves_keeps_its_last_frame(void) {
 
 /* Un trajet revenu à son point de départ ne laisse pas de frame inactive. */
 static void test_no_output_frame_is_idle_after_its_kept_predecessor(void) {
-    pico8_input_frame_t in[MAX_FRAMES];
+    p8_input_frame_t in[MAX_FRAMES];
     int n = 0;
     in[n++] = frame(0, 0, 1);
     in[n++] = frame(0, 0, 0);
@@ -184,7 +184,7 @@ static void test_no_output_frame_is_idle_after_its_kept_predecessor(void) {
     for (int i = 9; i >= 0; i--) {
         in[n++] = frame(i, 0, 0);
     }
-    pico8_input_frame_t out[MAX_FRAMES];
+    p8_input_frame_t out[MAX_FRAMES];
     int kept = minimize(in, n, out);
     for (int i = 1; i < kept; i++) {
         assert(!(out[i].mouse_x == out[i - 1].mouse_x && out[i].mouse_y == out[i - 1].mouse_y &&
@@ -202,19 +202,19 @@ static int run(const char *cmd) {
     return system(full);
 }
 
-static void write_events(const char *path, const pico8_input_frame_t *frames, int n) {
+static void write_events(const char *path, const p8_input_frame_t *frames, int n) {
     assert(pico8_input_save(frames, n, path));
 }
 
-static int load_events(const char *path, pico8_input_t *input) {
-    pico8_input_init(input);
+static int load_events(const char *path, p8_input_t *input) {
+    p8_input_init(input);
     return pico8_input_load(input, path);
 }
 
 /* La sortie de l'outil est relue par le chargeur, et ce sont les frames que
  * rend l'étage mécanique. */
 static void test_tool_output_is_reread_by_the_loader(void) {
-    pico8_input_frame_t in[MAX_FRAMES];
+    p8_input_frame_t in[MAX_FRAMES];
     int n = 0;
     for (int i = 0; i < 30; i++) {
         in[n++] = frame(i, 100 - i, 0);
@@ -226,9 +226,9 @@ static void test_tool_output_is_reread_by_the_loader(void) {
     write_events(DIR "/raw.json", in, n);
     assert(run(TOOL " mechanical " DIR "/raw.json " DIR "/out.json") == 0);
 
-    pico8_input_frame_t expected[MAX_FRAMES];
+    p8_input_frame_t expected[MAX_FRAMES];
     int kept = minimize(in, n, expected);
-    pico8_input_t loaded;
+    p8_input_t loaded;
     assert(load_events(DIR "/out.json", &loaded));
     assert(loaded.frame_count == kept);
     assert(memcmp(loaded.frames, expected, sizeof expected[0] * (size_t)kept) == 0);
@@ -236,10 +236,10 @@ static void test_tool_output_is_reread_by_the_loader(void) {
 }
 
 static void test_tool_drop_removes_a_range_and_never_empties_the_file(void) {
-    pico8_input_frame_t in[] = {frame(1, 1, 0), frame(2, 2, 0), frame(3, 3, 1), frame(4, 4, 0)};
+    p8_input_frame_t in[] = {frame(1, 1, 0), frame(2, 2, 0), frame(3, 3, 1), frame(4, 4, 0)};
     write_events(DIR "/four.json", in, 4);
     assert(run(TOOL " drop " DIR "/four.json " DIR "/two.json 1 2") == 0);
-    pico8_input_t loaded;
+    p8_input_t loaded;
     assert(load_events(DIR "/two.json", &loaded));
     assert(loaded.frame_count == 2);
     assert(same(loaded.frames[0], in[0]));
@@ -278,7 +278,7 @@ static void write_oracles(void) {
 
 /* Deux clics tenus à deux endroits dans une session de 80 frames. */
 static int write_session(const char *path) {
-    pico8_input_frame_t in[MAX_FRAMES];
+    p8_input_frame_t in[MAX_FRAMES];
     int n = 0;
     for (int i = 0; i < 30; i++) {
         in[n++] = frame(i, i, 0);
@@ -297,7 +297,7 @@ static int write_session(const char *path) {
 }
 
 static int frame_count(const char *path) {
-    pico8_input_t loaded;
+    p8_input_t loaded;
     assert(load_events(path, &loaded));
     int n = loaded.frame_count;
     pico8_input_free(&loaded);
@@ -339,7 +339,7 @@ static void test_coverage_pass_rejects_candidates_the_oracle_fails_on(void) {
     assert(run(SCRIPT " " DIR "/session.json " DIR "/three.json sh " AT_LEAST_3_ORACLE) == 0);
     assert(frame_count(DIR "/three.json") == 3);
 
-    pico8_input_frame_t two[] = {frame(1, 1, 0), frame(2, 2, 0)};
+    p8_input_frame_t two[] = {frame(1, 1, 0), frame(2, 2, 0)};
     write_events(DIR "/two.json", two, 2);
     assert(run(SCRIPT " " DIR "/two.json " DIR "/none.json sh " AT_LEAST_3_ORACLE) != 0);
     assert(run("test -e " DIR "/none.json") != 0);
@@ -348,7 +348,7 @@ static void test_coverage_pass_rejects_candidates_the_oracle_fails_on(void) {
 /* L'étage mécanique retire les frames en x = 7 et change donc les lignes :
  * la passe repart de la session brute et les garde toutes. */
 static void test_coverage_pass_restarts_from_raw_when_mechanical_stage_changes_lines(void) {
-    pico8_input_frame_t in[MAX_FRAMES];
+    p8_input_frame_t in[MAX_FRAMES];
     int n = 0;
     for (int i = 0; i < 40; i++) {
         in[n++] = frame(i % 2 ? 7 : 8, i, 0);

@@ -32,7 +32,7 @@ typedef enum {
 typedef struct {
     pico8_replay_source_status_t status;
     const char *path;
-    pico8_input_t recording;
+    p8_input_t recording;
     int next_frame_index;
 } pico8_replay_source_t;
 
@@ -67,7 +67,7 @@ int pico8_replay_source_frames_served(const pico8_replay_source_t *source);
  *
  * The frame is copied rather than returned by pointer so that a replayed
  * and a live frame are the same shape at the call site. */
-int pico8_replay_source_next_frame(pico8_replay_source_t *source, pico8_input_frame_t *out_frame);
+int pico8_replay_source_next_frame(pico8_replay_source_t *source, p8_input_frame_t *out_frame);
 
 /* Releases the loaded frames (pico8_input_free) and returns `*source` to
  * the PICO8_REPLAY_SOURCE_NONE state. Safe on a source that loaded

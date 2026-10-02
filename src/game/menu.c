@@ -39,7 +39,7 @@ typedef struct {
     entity_t header;
     pico8_vec_t *hi;
     pico8_vec_t *gq;
-    pico8_fixed_t ca;
+    p8_fixed_t ca;
     int has_ca; /* 0: `ca` is nil, and `ca` is then never read */
 } pico8_ha_pz_t;
 
@@ -81,19 +81,19 @@ typedef struct {
 static void pico8_cr_step(const pico8_nb_entry_t *t, pico8_cr_row_t *b) {
     static const pico8_jb_item_t pair_items[] = {{.n = 24}, {.n = 5}};
     static const pico8_jb_row_t pair = {.count = 2, .items = pair_items};
-    pico8_fixed_t gi_result;
+    p8_fixed_t gi_result;
     char *gi_str;
 
-    b->lq_items[0] = pico8_lq_cell_fixed(pico8_fixed_from_int(t->nk));
+    b->lq_items[0] = pico8_lq_cell_fixed(p8_fixed_from_int(t->nk));
     b->lq_items[1] = pico8_lq_cell_string(t->px);
     b->lq.items = b->lq_items;
     b->lq.count = 2;
     b->lq.has_c = 1;
-    b->lq.c = pico8_fixed_from_int(6);
+    b->lq.c = p8_fixed_from_int(6);
     b->row.lq_row = &b->lq;
 
     gi_result = pico8_gi_nb(t);
-    gi_str = pico8_tostr_fixed(pico8_zone_frame(), gi_result);
+    gi_str = p8_tostr_fixed(pico8_zone_frame(), gi_result);
 
     b->h_items[0] = pico8_lq_cell_row(&pair);
     b->h_items[1] = pico8_lq_cell_string(gi_str);
@@ -132,9 +132,9 @@ static const pico8_jb_row_t *pico8_menu_invented_lines(const pico8_ptrs_t *list)
 
 void pico8_cr(void) {
     const pico8_hy_t *fm = pico8_fm_hy();
-    pico8_fixed_t tl = pico8_fixed_from_int(0);
+    p8_fixed_t tl = p8_fixed_from_int(0);
     int gr = 0;
-    pico8_fixed_t qi = pico8_fixed_from_int(0);
+    p8_fixed_t qi = p8_fixed_from_int(0);
     int ek;
     pico8_cb_kept_t cb_list;
     pico8_cr_row_t *rows;
@@ -151,8 +151,8 @@ void pico8_cr(void) {
         gr = fm->invented->count;
     }
 
-    if (pico8_int_seq_at(pico8_ek_table, PICO8_EK_COUNT, pico8_fixed_flr_int(tl) - 1, &ek)) {
-        qi = pico8_fixed_from_int(ek);
+    if (pico8_int_seq_at(pico8_ek_table, PICO8_EK_COUNT, p8_fixed_flr_int(tl) - 1, &ek)) {
+        qi = p8_fixed_from_int(ek);
     }
 
     /* `true` is the ignore-cost flag: this screen lists every tech of the era,
@@ -169,14 +169,14 @@ void pico8_cr(void) {
 
     if (gr > 0) {
         pico8_cr_row_t *extra = &rows[n++];
-        char *gr_str = pico8_tostr_fixed(pico8_zone_frame(), pico8_fixed_from_int(gr));
-        char *label = pico8_concat2(pico8_zone_frame(), gr_str, " invented");
-        extra->lq_items[0] = pico8_lq_cell_fixed(pico8_fixed_from_int(30));
+        char *gr_str = p8_tostr_fixed(pico8_zone_frame(), p8_fixed_from_int(gr));
+        char *label = p8_concat2(pico8_zone_frame(), gr_str, " invented");
+        extra->lq_items[0] = pico8_lq_cell_fixed(p8_fixed_from_int(30));
         extra->lq_items[1] = pico8_lq_cell_string(label);
         extra->lq.items = extra->lq_items;
         extra->lq.count = 2;
         extra->lq.has_c = 1;
-        extra->lq.c = pico8_fixed_from_int(3);
+        extra->lq.c = p8_fixed_from_int(3);
         extra->row.lq_row = &extra->lq;
         extra->row.has_jb = 1;
         extra->row.jb_row = pico8_menu_invented_lines(fm->invented);
@@ -187,7 +187,7 @@ void pico8_cr(void) {
 
     cr = pico8_pj_cr();
     if (cr != NULL) {
-        pico8_fixed_t ek_tl = pico8_fixed_from_int(0);
+        p8_fixed_t ek_tl = p8_fixed_from_int(0);
         char *tl_str;
         char *diff1_str;
         char *diff2_str;
@@ -196,20 +196,20 @@ void pico8_cr(void) {
         char *tmp3;
         char *ep;
 
-        if (pico8_int_seq_at(pico8_ek_table, PICO8_EK_COUNT, pico8_fixed_flr_int(tl), &ek)) {
-            ek_tl = pico8_fixed_from_int(ek);
+        if (pico8_int_seq_at(pico8_ek_table, PICO8_EK_COUNT, p8_fixed_flr_int(tl), &ek)) {
+            ek_tl = p8_fixed_from_int(ek);
         }
 
-        tl_str = pico8_tostr_fixed(pico8_zone_frame(), tl);
-        diff1_str = pico8_tostr_fixed(pico8_zone_frame(), pico8_fixed_sub(pico8_fixed_from_int(gr), qi));
-        diff2_str = pico8_tostr_fixed(pico8_zone_frame(), pico8_fixed_sub(ek_tl, qi));
+        tl_str = p8_tostr_fixed(pico8_zone_frame(), tl);
+        diff1_str = p8_tostr_fixed(pico8_zone_frame(), p8_fixed_sub(p8_fixed_from_int(gr), qi));
+        diff2_str = p8_tostr_fixed(pico8_zone_frame(), p8_fixed_sub(ek_tl, qi));
 
-        tmp1 = pico8_concat2(pico8_zone_frame(), "level ", tl_str);
-        tmp2 = pico8_concat2(pico8_zone_frame(), tmp1, " (");
-        tmp3 = pico8_concat2(pico8_zone_frame(), tmp2, diff1_str);
-        tmp1 = pico8_concat2(pico8_zone_frame(), tmp3, "/");
-        tmp2 = pico8_concat2(pico8_zone_frame(), tmp1, diff2_str);
-        ep = pico8_concat2(pico8_zone_frame(), tmp2, ")");
+        tmp1 = p8_concat2(pico8_zone_frame(), "level ", tl_str);
+        tmp2 = p8_concat2(pico8_zone_frame(), tmp1, " (");
+        tmp3 = p8_concat2(pico8_zone_frame(), tmp2, diff1_str);
+        tmp1 = p8_concat2(pico8_zone_frame(), tmp3, "/");
+        tmp2 = p8_concat2(pico8_zone_frame(), tmp1, diff2_str);
+        ep = p8_concat2(pico8_zone_frame(), tmp2, ")");
 
         cr->ep = ep;
         frame.ep = cr->ep;
@@ -225,7 +225,7 @@ static void pico8_ix1_my_dispatch(pico8_js_t *self) {
     pico8_hy_t *fm = pico8_fm_hy();
     (void)self;
     if (fm != NULL) {
-        fm->lo = pico8_fixed_from_int(1);
+        fm->lo = p8_fixed_from_int(1);
     }
     pico8_hy_hk(fm);
 }
@@ -252,7 +252,7 @@ static void pico8_ix2_hb_dispatch(pico8_js_t *self) {
     cb_list = pico8_cb(0);
     cb_count = cb_list.count;
 
-    item = pico8_lq_cell_fixed(pico8_fixed_from_int(cb_count > 0 ? 24 : 37));
+    item = pico8_lq_cell_fixed(p8_fixed_from_int(cb_count > 0 ? 24 : 37));
     keys.items = &item;
     keys.count = 1;
     place = pico8_zone_interface_place(PICO8_SORTE_RANGEE);
@@ -282,11 +282,11 @@ static void pico8_ix3_my_dispatch(pico8_js_t *self) {
 /* TROU-10 */
 static void pico8_ha2_my_dispatch(pico8_js_t *self) {
     int stat_val;
-    pico8_fixed_t s;
+    p8_fixed_t s;
     (void)self;
-    stat_val = pico8_stat(pico8_dispatch_input(), 20);
-    s = pico8_fixed_sgn(pico8_fixed_from_int(stat_val));
-    pico8_music(-pico8_fixed_flr_int(s));
+    stat_val = p8_stat(pico8_dispatch_input(), 20);
+    s = p8_fixed_sgn(p8_fixed_from_int(stat_val));
+    p8_music(-p8_fixed_flr_int(s));
 }
 
 /* TROU-10 */
@@ -294,7 +294,7 @@ static void pico8_ha2_my_dispatch(pico8_js_t *self) {
  * copy here would leave that mute check on the old value. */
 static void pico8_ha3_my_dispatch(pico8_js_t *self) {
     (void)self;
-    pico8_set_ih(!pico8_ih());
+    p8_set_sfx_muted(!p8_sfx_muted());
 }
 
 static void pico8_ha4_my_dispatch(pico8_js_t *self) {
@@ -335,7 +335,7 @@ static void pico8_ix4_my_dispatch(pico8_js_t *self) {
         lq[i] = pico8_lq_keys_of_row(e->lq, items[i], PICO8_MENU_ROW_CAP);
         bs[i].lq_row = &lq[i];
         bs[i].has_fg = e->has_fg;
-        bs[i].fg = pico8_fixed_from_int(e->fg);
+        bs[i].fg = p8_fixed_from_int(e->fg);
         bs[i].has_my = 1;
         bs[i].my = my[i];
     }
@@ -384,14 +384,14 @@ void pico8_menu_init(void) {
     pico8_pi_init();
 
     for (i = 0; i < PICO8_IX_COUNT; i++) {
-        g_ix_ra[i] = pico8_vec_v(pico8_fixed_from_int(pico8_ix_table[i].ra_x),
-                                 pico8_fixed_from_int(pico8_ix_table[i].ra_y));
+        g_ix_ra[i] = pico8_vec_v(p8_fixed_from_int(pico8_ix_table[i].ra_x),
+                                 p8_fixed_from_int(pico8_ix_table[i].ra_y));
     }
-    g_ha_hi = pico8_vec_v(pico8_fixed_from_int(pico8_ha_tail.hi_x), pico8_fixed_from_int(pico8_ha_tail.hi_y));
-    g_ha_gq = pico8_vec_v(pico8_fixed_from_int(pico8_ha_tail.gq_x), pico8_fixed_from_int(pico8_ha_tail.gq_y));
+    g_ha_hi = pico8_vec_v(p8_fixed_from_int(pico8_ha_tail.hi_x), p8_fixed_from_int(pico8_ha_tail.hi_y));
+    g_ha_gq = pico8_vec_v(p8_fixed_from_int(pico8_ha_tail.gq_x), p8_fixed_from_int(pico8_ha_tail.gq_y));
     g_ha_pz.hi = &g_ha_hi;
     g_ha_pz.gq = &g_ha_gq;
-    g_ha_pz.ca = pico8_fixed_from_int(pico8_ha_tail.ca);
+    g_ha_pz.ca = p8_fixed_from_int(pico8_ha_tail.ca);
     g_ha_pz.has_ca = 1;
     g_menu_up = 1;
 }

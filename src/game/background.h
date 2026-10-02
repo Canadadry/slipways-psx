@@ -40,12 +40,12 @@ pico8_bg_t *pico8_bg_new(void);
 /* `pl` is `self`'s, or `pico8_bg_pl_seq` for a NULL `self`: `bg.pl` in the
  * cart. An index outside `pl`'s 1..15 range -- which extreme `vh` values
  * can produce, unchecked in the cart too -- paints tile 0. */
-void pico8_bg_pq(pico8_mem_t *mem, pico8_bg_t *self);
+void pico8_bg_pq(p8_memory_t *mem, pico8_bg_t *self);
 
 /* The second `rectfill` of the dashed grid omits its color in the cart and
  * inherits the previous call's; that previous call is the statement right
  * above it, color 1, so `1` is passed explicitly here. */
-void pico8_bg_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_bg_t *self);
+void pico8_bg_kj(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_bg_t *self);
 
 /* Returns the freshly built `mz` or `g_`, which `ui:bh` then holds as
  * `lheld`, or Lua nil when neither class is registered. Both live in a grab

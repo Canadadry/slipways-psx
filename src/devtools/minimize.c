@@ -6,20 +6,20 @@
 
 typedef enum { KIND_TRANSITION, KIND_IDLE, KIND_MOVE, KIND_HOLD } frame_kind_t;
 
-static int same_buttons(const pico8_input_frame_t *a, const pico8_input_frame_t *b) {
+static int same_buttons(const p8_input_frame_t *a, const p8_input_frame_t *b) {
     return a->mouse_buttons == b->mouse_buttons && memcmp(a->dpad, b->dpad, sizeof a->dpad) == 0;
 }
 
-static int nothing_pressed(const pico8_input_frame_t *f) {
+static int nothing_pressed(const p8_input_frame_t *f) {
     static const int released[6];
     return f->mouse_buttons == 0 && memcmp(f->dpad, released, sizeof released) == 0;
 }
 
-static int same_position(const pico8_input_frame_t *a, const pico8_input_frame_t *b) {
+static int same_position(const p8_input_frame_t *a, const p8_input_frame_t *b) {
     return a->mouse_x == b->mouse_x && a->mouse_y == b->mouse_y;
 }
 
-static frame_kind_t kind_after(const pico8_input_frame_t *prev, const pico8_input_frame_t *f) {
+static frame_kind_t kind_after(const p8_input_frame_t *prev, const p8_input_frame_t *f) {
     if (!same_buttons(prev, f)) {
         return KIND_TRANSITION;
     }
@@ -38,7 +38,7 @@ static void keep_moves(const int *moves, int m, char *keep) {
     }
 }
 
-int pico8_minimize_mechanical(const pico8_input_frame_t *frames, int frame_count, pico8_input_frame_t *out) {
+int pico8_minimize_mechanical(const p8_input_frame_t *frames, int frame_count, p8_input_frame_t *out) {
     assert(frames != NULL && out != NULL && frame_count >= 1);
     char *keep = calloc((size_t)frame_count, 1);
     int *moves = malloc(sizeof *moves * (size_t)frame_count);

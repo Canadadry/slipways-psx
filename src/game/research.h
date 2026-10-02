@@ -14,14 +14,14 @@
 typedef struct {
     pico8_jb_row_t row;
     int has_gc; /* 0: `gc` is nil, and is then never read */
-    pico8_fixed_t gc;
+    p8_fixed_t gc;
 } pico8_jy_t;
 
 /* `i.qe`: nil or a number, never false. */
 pico8_qe_t pico8_jy_qe(const pico8_jy_t *i);
 
 /* A fresh want in `zone`, never freed here: `qe` NULL is nil, no `gc`. */
-pico8_jy_t *pico8_jy_new(const pico8_zone_choisie_t *zone, const pico8_fixed_t *qe);
+pico8_jy_t *pico8_jy_new(const pico8_zone_choisie_t *zone, const p8_fixed_t *qe);
 
 /* A research project of `gb`, taken with its list `i` and the wants in it
  * from the load sub-zone: they live until the next load or shutdown, never
@@ -33,22 +33,22 @@ typedef struct {
     const pico8_hp_def_t *def;
     const char *px;
     const char *lr;
-    pico8_fixed_t fj;
+    p8_fixed_t fj;
     int has_fj; /* 0: `fj` is nil, and is then never read */
     const char *ja;
     pico8_ptrs_t *i;
-    pico8_fixed_t o;
+    p8_fixed_t o;
     int has_o; /* 0: `o` is nil, and is then never read */
     const char *il;
     int has_il; /* 0: `il` is nil; 1 with `il` NULL: `il` is false */
-    pico8_fixed_t dm;
+    p8_fixed_t dm;
     int has_dm; /* 0: `dm` is nil, and is then never read */
     const char *rr;
-    pico8_fixed_t ii;
+    p8_fixed_t ii;
     int has_ii; /* 0: `ii` is nil, and is then never read */
     const char *cw;
     const char *go;
-    pico8_fixed_t rn;
+    p8_fixed_t rn;
     int has_rn; /* 0: `rn` is nil, and is then never read */
     const pico8_jb_row_t *lq;
     pico8_jb_row_t lq_own;
@@ -109,6 +109,6 @@ pico8_hp_t *pico8_gb_find(const char *px);
  * does not resolve to one. */
 const pico8_hc_entry_t *pico8_hp_po(const pico8_hp_t *self);
 
-pico8_fixed_t pico8_hp_od(const pico8_hp_t *self);
+p8_fixed_t pico8_hp_od(const pico8_hp_t *self);
 
 #endif

@@ -46,11 +46,11 @@
 #define SPRITE0_ROW_PIXELS 8
 #define SPRITE0_BOTTOM_ROW_Y 7
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
 
 static int screen_px(int x, int y) {
-    return pico8_peek(&mem, PICO8_ADDR_SCREEN + y * PICO8_SCREEN_WIDTH + x);
+    return p8_peek(&mem, P8_ADDR_SCREEN + y * P8_SCREEN_WIDTH + x);
 }
 
 /* How many places sprite #0's bottom row appears in the framebuffer, with
@@ -61,11 +61,11 @@ static int sprite0_bottom_row_hits(int *out_x, int *out_y) {
     int i, x, y, hits = 0;
 
     for (i = 0; i < SPRITE0_ROW_PIXELS; i++) {
-        wanted[i] = pico8_sget(&mem, i, SPRITE0_BOTTOM_ROW_Y);
+        wanted[i] = p8_sget(&mem, i, SPRITE0_BOTTOM_ROW_Y);
     }
 
-    for (y = 0; y < PICO8_SCREEN_HEIGHT; y++) {
-        for (x = 0; x + SPRITE0_ROW_PIXELS <= PICO8_SCREEN_WIDTH; x++) {
+    for (y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (x = 0; x + SPRITE0_ROW_PIXELS <= P8_SCREEN_WIDTH; x++) {
             int match = 1;
             for (i = 0; i < SPRITE0_ROW_PIXELS; i++) {
                 if (screen_px(x + i, y) != wanted[i]) {
@@ -89,8 +89,8 @@ static int sprite0_bottom_row_hits(int *out_x, int *out_y) {
  * this render actually drew. */
 static int pixels_drawn(void) {
     int x, y, n = 0;
-    for (y = 0; y < PICO8_SCREEN_HEIGHT; y++) {
-        for (x = 0; x < PICO8_SCREEN_WIDTH; x++) {
+    for (y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (x = 0; x < P8_SCREEN_WIDTH; x++) {
             if (screen_px(x, y) != 0) {
                 n++;
             }
@@ -111,8 +111,8 @@ static pico8_lq_cell_t render_one_item(pico8_jb_item_t item) {
     line = pico8_lq_new(&zone_tas, &keys);
     assert(line != NULL && line->items_count == 1);
 
-    pico8_cls(&mem);
-    pico8_lq_ol_default(&gfx, &mem, line, pico8_vec_v(pico8_fixed_from_int(DRAW_X), pico8_fixed_from_int(DRAW_Y)));
+    p8_cls(&mem);
+    pico8_lq_ol_default(&gfx, &mem, line, pico8_vec_v(p8_fixed_from_int(DRAW_X), p8_fixed_from_int(DRAW_Y)));
     return line->items[0];
 }
 
@@ -150,7 +150,7 @@ static void test_numeric_item_still_draws_its_sprite(void) {
     pico8_lq_cell_t cell;
 
     cell = render_one_item((pico8_jb_item_t){.n = 0});
-    assert(cell.kind == PICO8_LQ_CELL_FIXED && cell.as.fixed == pico8_fixed_from_int(0));
+    assert(cell.kind == PICO8_LQ_CELL_FIXED && cell.as.fixed == p8_fixed_from_int(0));
 
     hits = sprite0_bottom_row_hits(&hit_x, &hit_y);
     drawn = pixels_drawn();
@@ -164,10 +164,10 @@ static void test_numeric_item_still_draws_its_sprite(void) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
 
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
 
     /* `cu()` fills the 0x5000 palette-block table that `dv()` copies slices
      * of. `lq:mn`'s sprite branch calls `dv(qw)`/`dv()` around its `spr()`,

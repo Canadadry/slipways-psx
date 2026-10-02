@@ -8,11 +8,11 @@
  * unlocked one. */
 int pico8_oj(const char *px);
 
-pico8_fixed_t pico8_ov(const char *px, pico8_fixed_t lk, pico8_fixed_t mc);
+p8_fixed_t pico8_ov(const char *px, p8_fixed_t lk, p8_fixed_t mc);
 
 /* The cost of the tech `t`, an entry of `pico8_nb_table`; a NULL `t` costs
  * 0. */
-pico8_fixed_t pico8_gi_nb(const pico8_nb_entry_t *t);
+p8_fixed_t pico8_gi_nb(const pico8_nb_entry_t *t);
 
 /* The entries of `pico8_nb_table` that `cb` keeps, in table order. */
 typedef struct {

@@ -18,6 +18,6 @@ void pico8_cheat_init(pico8_cheat_t *cheat);
  * Counts rising edges of O and X only; one out of sequence restarts the
  * count from zero, arrows and mouse leave it alone. On the last press it
  * assigns fm.jk = 99 and fm.nz = 200 and returns 1, else returns 0. */
-int pico8_cheat_step(pico8_cheat_t *cheat, const pico8_input_t *input);
+int pico8_cheat_step(pico8_cheat_t *cheat, const p8_input_t *input);
 
 #endif

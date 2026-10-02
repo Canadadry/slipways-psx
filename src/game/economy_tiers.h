@@ -19,6 +19,6 @@ int pico8_bb(void);
 
 /* Writes the match count back onto each want's `gc` field: the side effect
  * is what `dh`'s own later branches, and `jo`'s display, read. */
-pico8_fixed_t pico8_dh(const entity_t *pt);
+p8_fixed_t pico8_dh(const entity_t *pt);
 
 #endif

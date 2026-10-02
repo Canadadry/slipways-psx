@@ -44,9 +44,9 @@
 
 #define GAME_ROUTE_HASH 0x93A4DA45u
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -139,7 +139,7 @@ static void check(const char *label, uint32_t got, uint32_t want) {
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
  * reads as difficulty 0. */
 static void start_game(void) {
-    pico8_input_init(&input);
+    p8_input_init(&input);
     pico8_dispatch_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
@@ -151,9 +151,9 @@ static pico8_vec_t pos_of(void *e) {
     return *p;
 }
 
-static pico8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
+static p8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
     pico8_vec_t d = pico8_vec_sub(a, b);
-    return pico8_fixed_add(pico8_fixed_mul(d.x, d.x), pico8_fixed_mul(d.y, d.y));
+    return p8_fixed_add(p8_fixed_mul(d.x, d.x), p8_fixed_mul(d.y, d.y));
 }
 
 static pico8_hp_t *project(int k) {
@@ -170,12 +170,12 @@ static void join(void *qu, void *re) {
 
     jc_keys.qu = qu;
     jc = pico8_jc_new(&jc_keys);
-    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
-                        pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
+    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), p8_fixed_from_int(128)),
+                        pico8_vec_v(p8_fixed_from_int(1), p8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
     pico8_jc_struct_class()->drag(&jc->header, mp, NULL);
     pico8_ok()->o_ = NULL;
-    while (jc->header.state_time < pico8_fixed_from_int(15)) {
+    while (jc->header.state_time < p8_fixed_from_int(15)) {
         pico8_dg();
     }
     pico8_jc_struct_class()->drop(&jc->header, re);
@@ -192,7 +192,7 @@ static pico8_ents_t *list_of(int n, void *const *items) {
 }
 
 /* NULL `lp`/`rl` are nil; `has_qe` 0 is a nil `qe`. */
-static pico8_trade_t *route(pico8_ents_t *lp, pico8_ents_t *rl, int has_qe, int qe_is_bool, pico8_fixed_t qe) {
+static pico8_trade_t *route(pico8_ents_t *lp, pico8_ents_t *rl, int has_qe, int qe_is_bool, p8_fixed_t qe) {
     pico8_trade_keys_t keys = {0};
 
     keys.lp = lp;
@@ -389,7 +389,7 @@ static void test_copy_outlives_the_frame(void) {
     const int lp_n = k->lp->count;
     const int rl_n = k->rl->count;
     const int qe_is_bool = k->qe_is_bool;
-    const pico8_fixed_t qe = k->qe;
+    const p8_fixed_t qe = k->qe;
     pico8_trade_t *nil_copy;
     int i;
 
@@ -548,19 +548,19 @@ static void test_cn_wildcard_want(void) {
     pico8_ptrs_t *jy = malloc(sizeof *jy);
     pico8_jo_t *qh;
     pico8_jy_t *want;
-    pico8_fixed_t any;
+    p8_fixed_t any;
     int any_qe;
 
     start_game();
     assert(pico8_r_lookup("?", &any_qe));
-    any = pico8_fixed_from_int(any_qe);
+    any = p8_fixed_from_int(any_qe);
     want = pico8_jy_new(pico8_zone_partie(), &any);
     pico8_ptrs_init(jy, &zone_tas);
     pico8_ptrs_add(jy, want);
     qh = pico8_qh_new(NULL);
     qh->jy = jy;
     keys.has_qe = 1;
-    keys.qe = pico8_fixed_from_int(qh->def->ba->items[0]);
+    keys.qe = p8_fixed_from_int(qh->def->ba->items[0]);
     lw.t = pico8_trade_new(pico8_zone_partie(), &keys);
     lw.kf = count_kf;
     pico8_jo_cn(qh, &lw);
@@ -600,7 +600,7 @@ static void test_dh_counts_numbered_routes_only(void) {
     pico8_jo_t *qh;
     pico8_jy_t *nil_want;
     pico8_jy_t *x_want;
-    pico8_fixed_t x = pico8_fixed_from_int(2);
+    p8_fixed_t x = p8_fixed_from_int(2);
     pico8_trade_t *nil_route;
 
     start_game();
@@ -619,8 +619,8 @@ static void test_dh_counts_numbered_routes_only(void) {
     qh->cc = cc;
     pico8_ke_ks(&qh->header, "settled");
     (void)pico8_dh(&qh->header);
-    assert(nil_want->has_gc && nil_want->gc == pico8_fixed_from_int(0));
-    assert(x_want->has_gc && x_want->gc == pico8_fixed_from_int(1));
+    assert(nil_want->has_gc && nil_want->gc == p8_fixed_from_int(0));
+    assert(x_want->has_gc && x_want->gc == p8_fixed_from_int(1));
 }
 
 /* `pico8_qe_equal` is Lua's `==` both ways, `n` unread outside FIXED; and
@@ -629,10 +629,10 @@ static void test_qe_equal(void) {
     const pico8_qe_t nil = {.kind = PICO8_QE_NIL};
     const pico8_qe_t no = {.kind = PICO8_QE_FALSE};
     const pico8_qe_t n0 = {.kind = PICO8_QE_FIXED, .n = 0};
-    const pico8_qe_t n2 = {.kind = PICO8_QE_FIXED, .n = pico8_fixed_from_int(2)};
-    const pico8_qe_t n3 = {.kind = PICO8_QE_FIXED, .n = pico8_fixed_from_int(3)};
+    const pico8_qe_t n2 = {.kind = PICO8_QE_FIXED, .n = p8_fixed_from_int(2)};
+    const pico8_qe_t n3 = {.kind = PICO8_QE_FIXED, .n = p8_fixed_from_int(3)};
     pico8_trade_t *nil_route = pico8_trade_new(pico8_zone_partie(), NULL);
-    pico8_trade_t *two = pico8_trade_new(pico8_zone_partie(), &(pico8_trade_keys_t){.has_qe = 1, .qe = pico8_fixed_from_int(2)});
+    pico8_trade_t *two = pico8_trade_new(pico8_zone_partie(), &(pico8_trade_keys_t){.has_qe = 1, .qe = p8_fixed_from_int(2)});
     pico8_qe_t got;
 
     assert(pico8_qe_equal(nil, nil) && pico8_qe_equal(no, no) && pico8_qe_equal(n2, n2));
@@ -647,7 +647,7 @@ static void test_qe_equal(void) {
     assert(pico8_trade_qe(nil_route).kind == PICO8_QE_NIL);
     assert(pico8_trade_qe(pico8_trade_kg(pico8_zone_partie(), nil_route, NULL, NULL)).kind == PICO8_QE_FALSE);
     got = pico8_trade_qe(two);
-    assert(got.kind == PICO8_QE_FIXED && got.n == pico8_fixed_from_int(2));
+    assert(got.kind == PICO8_QE_FIXED && got.n == p8_fixed_from_int(2));
 }
 
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
@@ -669,11 +669,11 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

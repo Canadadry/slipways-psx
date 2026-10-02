@@ -151,13 +151,13 @@ static gif_t parse_gif(FILE *file) {
     g.height = u16(&b);
     int packed = u8(&b);
     assert(packed & 0x80);
-    assert((2 << (packed & 7)) == PICO8_PALETTE_COLORS);
+    assert((2 << (packed & 7)) == P8_PALETTE_COLORS);
     u8(&b);
     u8(&b);
-    for (int i = 0; i < PICO8_PALETTE_COLORS; i++) {
-        assert(u8(&b) == PICO8_PALETTE_RGB[i].r);
-        assert(u8(&b) == PICO8_PALETTE_RGB[i].g);
-        assert(u8(&b) == PICO8_PALETTE_RGB[i].b);
+    for (int i = 0; i < P8_PALETTE_COLORS; i++) {
+        assert(u8(&b) == P8_PALETTE_RGB[i].red);
+        assert(u8(&b) == P8_PALETTE_RGB[i].green);
+        assert(u8(&b) == P8_PALETTE_RGB[i].blue);
     }
     for (;;) {
         int tag = u8(&b);
@@ -217,7 +217,7 @@ static void assert_scaled(const gif_t *g, int frame, const unsigned char *src) {
     }
 }
 
-static gif_t encode(const unsigned char *frames, int n, const pico8_input_frame_t *events) {
+static gif_t encode(const unsigned char *frames, int n, const p8_input_frame_t *events) {
     FILE *file = tmpfile();
     assert(file != NULL);
     pico8_gif_writer_t writer;
@@ -253,7 +253,7 @@ static void test_mouse_marker_overlays_the_event(void) {
     static unsigned char frames[2 * SRC * SRC];
     static unsigned char expected[2 * SRC * SRC];
     memset(frames, 1, sizeof frames);
-    pico8_input_frame_t events[2];
+    p8_input_frame_t events[2];
     memset(events, 0, sizeof events);
     events[0].mouse_x = 10;
     events[0].mouse_y = 20;
@@ -299,7 +299,7 @@ static void test_mouse_marker_overlays_the_event(void) {
 static void test_mouse_marker_is_clipped_at_the_edge(void) {
     static unsigned char frames[SRC * SRC];
     memset(frames, 3, sizeof frames);
-    pico8_input_frame_t event;
+    p8_input_frame_t event;
     memset(&event, 0, sizeof event);
     event.mouse_x = 127;
     event.mouse_y = 0;

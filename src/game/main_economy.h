@@ -9,10 +9,10 @@
 /* hy's archetype, here and not with the others: pico8_fm.h does not include
  * pico8_game_data.h. */
 typedef struct {
-    pico8_fixed_t nz;
-    pico8_fixed_t ew;
-    pico8_fixed_t lo;
-    pico8_fixed_t yr;
+    p8_fixed_t nz;
+    p8_fixed_t ew;
+    p8_fixed_t lo;
+    p8_fixed_t yr;
 } pico8_hy_def_t;
 
 /* The economy, one per game, in that game's generation with `invented`;
@@ -22,18 +22,18 @@ typedef struct {
 typedef struct {
     entity_t header;
     const pico8_hy_def_t *def;
-    pico8_fixed_t nz;
-    pico8_fixed_t ge;
-    pico8_fixed_t jk;
-    pico8_fixed_t ew;
+    p8_fixed_t nz;
+    p8_fixed_t ge;
+    p8_fixed_t jk;
+    p8_fixed_t ew;
     pico8_ptrs_t *invented;
-    pico8_fixed_t lo;
-    pico8_fixed_t yr;
+    p8_fixed_t lo;
+    p8_fixed_t yr;
     pico8_qe_map_t *po;
     pico8_qe_map_t *fu;
     pico8_qe_map_t po_own;
     pico8_qe_map_t fu_own;
-    pico8_fixed_t happiness;
+    p8_fixed_t happiness;
     int has_happiness; /* 0: `happiness` is nil, and is then never read */
     const char *hl;
     int has_hl; /* 0: `hl` is nil; 1 with `hl` NULL: `hl` is false */
@@ -44,9 +44,9 @@ typedef struct {
  * set back to nil by every `pico8_probe_init()`. */
 typedef struct {
     entity_t header;
-    pico8_fixed_t jk;
+    p8_fixed_t jk;
     int has_jk; /* 0: `jk` is nil, and is then never read */
-    pico8_fixed_t nz;
+    p8_fixed_t nz;
     int has_nz; /* 0: `nz` is nil, and is then never read */
 } pico8_fm_placeholder_t;
 

@@ -36,9 +36,9 @@
 #define PRICE_SEQUENCE_HASH 0xA692DEE9u
 #define PRICE_FIRST_DRAW_HASH 0x884AD566u
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -53,24 +53,24 @@ static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
     int i;
 
-    for (i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)pico8_peek(&mem, PICO8_ADDR_SCREEN + i);
+    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
+        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
 }
 
 static uint32_t draw_hash(void) {
-    pico8_gfx_init(&gfx);
-    pico8_cls(&mem);
+    p8_gfx_init(&gfx);
+    p8_cls(&mem);
     pico8_dc("draw");
     return screen_hash();
 }
 
 /* One toast's `kj` alone, as `dc("kj")` would place it. */
 static uint32_t draw_hash_of(const pico8_iv_t *e) {
-    pico8_gfx_init(&gfx);
-    pico8_cls(&mem);
+    p8_gfx_init(&gfx);
+    p8_cls(&mem);
     pico8_iv_kj(&gfx, &mem, e, *e->ra);
     return screen_hash();
 }
@@ -92,7 +92,7 @@ static void fresh_world(void) {
     pico8_vec_t *mouse = malloc(sizeof *mouse);
 
     pico8_jl();
-    *mouse = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
+    *mouse = pico8_vec_v(p8_fixed_from_int(64), p8_fixed_from_int(64));
     assert(pico8_je() != NULL && pico8_je()->class == pico8_nf_struct_class());
     ((pico8_nf_t *)pico8_je())->ra = mouse;
 }
@@ -106,7 +106,7 @@ static pico8_iv_t *build(const pico8_vec_t *ra, const char *text, int color) {
         keys.ra = heap_ra;
     }
     keys.at1 = text;
-    keys.at2 = pico8_fixed_from_int(color);
+    keys.at2 = p8_fixed_from_int(color);
     return pico8_iv_new(&keys);
 }
 
@@ -118,7 +118,7 @@ static void live(pico8_iv_t *e, int want_ticks, uint32_t want_sequence, uint32_t
     uint32_t blank;
     int ticks = 0;
 
-    pico8_cls(&mem);
+    p8_cls(&mem);
     blank = screen_hash();
     first_draw = draw_hash();
 
@@ -156,7 +156,7 @@ static void test_no_money_toast_lives_as_before(void) {
 
 /* `jo:hk`'s price: the planet's own `ra` is kept. */
 static void test_price_toast_lives_as_before(void) {
-    pico8_vec_t ra = pico8_vec_v(pico8_fixed_from_int(250), pico8_fixed_from_int(260));
+    pico8_vec_t ra = pico8_vec_v(p8_fixed_from_int(250), p8_fixed_from_int(260));
     fresh_world();
     live(build(&ra, "+12$", 11), PRICE_TICKS, PRICE_SEQUENCE_HASH, PRICE_FIRST_DRAW_HASH, "price");
 }
@@ -164,7 +164,7 @@ static void test_price_toast_lives_as_before(void) {
 /* A toast alive when a wormhole is built is scanned by `mz:pq` for `fx`,
  * which it does not have. */
 static void test_mz_scan_skips_a_live_toast(void) {
-    pico8_vec_t ra = pico8_vec_v(pico8_fixed_from_int(40), pico8_fixed_from_int(60));
+    pico8_vec_t ra = pico8_vec_v(p8_fixed_from_int(40), p8_fixed_from_int(60));
     void *e;
     pico8_mz_t *mz;
 
@@ -184,13 +184,13 @@ typedef struct {
 } fake_toast_t;
 
 static int g_fake_ph_calls = 0;
-static pico8_fixed_t g_fake_ph_last_t;
+static p8_fixed_t g_fake_ph_last_t;
 
-static void fake_toast_ph(entity_t *self, pico8_fixed_t t) {
+static void fake_toast_ph(entity_t *self, p8_fixed_t t) {
     fake_toast_t *f = (fake_toast_t *)self;
     g_fake_ph_calls++;
     g_fake_ph_last_t = t;
-    if (t >= pico8_fixed_from_int(2)) {
+    if (t >= p8_fixed_from_int(2)) {
         f->p_ = 1;
     }
 }
@@ -212,14 +212,14 @@ static void test_dg_drives_a_ke_struct(void) {
 
     for (i = 0; i < 2; i++) {
         pico8_dg();
-        assert(g_fake_ph_calls == i + 1 && g_fake_ph_last_t == pico8_fixed_from_int(i));
-        assert(f->header.state_time == pico8_fixed_from_int(i + 1));
+        assert(g_fake_ph_calls == i + 1 && g_fake_ph_last_t == p8_fixed_from_int(i));
+        assert(f->header.state_time == p8_fixed_from_int(i + 1));
         assert(ents_listed(pico8_hv(), f));
     }
     pico8_dg();
-    assert(g_fake_ph_calls == 3 && g_fake_ph_last_t == pico8_fixed_from_int(2));
+    assert(g_fake_ph_calls == 3 && g_fake_ph_last_t == p8_fixed_from_int(2));
     assert(!ents_listed(pico8_hv(), f));
-    assert(f->header.state_time == pico8_fixed_from_int(3));
+    assert(f->header.state_time == p8_fixed_from_int(3));
 }
 
 /* The struct's defaults are its archetype's, whose `fa` and `v` are the
@@ -231,7 +231,7 @@ static void test_defaults_match_the_parsed_spec(void) {
     e = build(NULL, "x", 7);
     assert(e->def == &pico8_iv_def);
     assert(e->def->v.x == 0 && e->def->v.y == -0x570a);
-    assert(e->def->fa == pico8_fixed_from_int(9));
+    assert(e->def->fa == p8_fixed_from_int(9));
     assert(e->l == e->def->l);
     assert(e->header.state != NULL && strcmp(e->header.state, "normal") == 0);
     assert(e->header.state_time == 0);
@@ -289,7 +289,7 @@ static void test_toast_gives_its_place_back(void) {
 /* The toast's text is made in the frame zone (`ne` of `hy:lu`, `jo:hk`):
  * the toast draws it on later frames, after the zone is reset and reused. */
 static void test_toast_keeps_a_copy_of_its_text(void) {
-    pico8_vec_t ra = pico8_vec_v(pico8_fixed_from_int(250), pico8_fixed_from_int(260));
+    pico8_vec_t ra = pico8_vec_v(p8_fixed_from_int(250), p8_fixed_from_int(260));
     uint32_t want;
     char *text;
     char *reuse;
@@ -319,28 +319,28 @@ static void test_toast_follows_the_borrowed_ra_until_its_first_ph(void) {
     pico8_iv_t *e;
 
     fresh_world();
-    *planet_ra = pico8_vec_v(pico8_fixed_from_int(100), pico8_fixed_from_int(100));
+    *planet_ra = pico8_vec_v(p8_fixed_from_int(100), p8_fixed_from_int(100));
     keys.ra = planet_ra;
     keys.at1 = "+1$";
-    keys.at2 = pico8_fixed_from_int(11);
+    keys.at2 = p8_fixed_from_int(11);
     e = pico8_iv_new(&keys);
-    *planet_ra = pico8_vec_v(pico8_fixed_from_int(110), PICO8_FIXED_LIT(0x00648000, 100.5));
+    *planet_ra = pico8_vec_v(p8_fixed_from_int(110), P8_FIXED_LIT(0x00648000, 100.5));
     moved = *planet_ra;
     assert(e->ra->x == moved.x && e->ra->y == moved.y);
     pico8_iv_ph(e);
     after = pico8_vec_add(moved, e->def->v);
     assert(e->ra->x == after.x && e->ra->y == after.y);
-    *planet_ra = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    *planet_ra = pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
     free(planet_ra);
     assert(e->ra->x == after.x && e->ra->y == after.y);
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

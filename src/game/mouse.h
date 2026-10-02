@@ -45,6 +45,6 @@ pico8_nf_t *pico8_nf_new(void);
 /* Rewrites `self.ra` in place with the mouse position, then runs bu()
  * over the shared `l`/`r` tables, which are mutated in place and never
  * rebound. */
-void pico8_nf_ph(const pico8_input_t *input, pico8_nf_t *self);
+void pico8_nf_ph(const p8_input_t *input, pico8_nf_t *self);
 
 #endif

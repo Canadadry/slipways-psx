@@ -57,12 +57,12 @@ typedef struct {
 /* The only one: never allocated, never freed. */
 static pico8_je_placeholder_t g_je_placeholder = {{.class = &g_je_placeholder_struct_class}};
 
-static int pico8_ui_to_int(pico8_fixed_t x) {
-    return pico8_fixed_flr_int(x);
+static int pico8_ui_to_int(p8_fixed_t x) {
+    return p8_fixed_flr_int(x);
 }
 
 static pico8_vec_t pico8_ui_vec_or_zero(const pico8_vec_t *v) {
-    return v != NULL ? *v : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    return v != NULL ? *v : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
 /* je[bt] (bt "l" or "r"): NULL when `je` has no such button state,
@@ -206,7 +206,7 @@ void pico8_ui_set_ok(pico8_ui_t *ui) {
 
 /* `le` is read before gw()/bh() run: the `self.le == le` test further down
  * is a pointer identity check against the list this frame started with. */
-void pico8_ui_lj(pico8_mem_t *mem, pico8_ui_t *self) {
+void pico8_ui_lj(p8_memory_t *mem, pico8_ui_t *self) {
     pico8_ents_t *le_ptr_before;
     int le_count;
     pico8_vec_t qa;
@@ -246,7 +246,7 @@ void pico8_ui_lj(pico8_mem_t *mem, pico8_ui_t *self) {
 
 /* `(rheld and 9) or (o_ and o_.ql) or self.ql`: a hovered entity whose own
  * `ql` is absent falls through to self's own cursor sprite. */
-void pico8_ui_ev(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_ui_t *self) {
+void pico8_ui_ev(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_ui_t *self) {
     pico8_vec_t je_ra;
     const pico8_nf_t *je;
     int spr_id = 0;
@@ -265,13 +265,13 @@ void pico8_ui_ev(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_ui_t *sel
 
     je = pico8_je_nf();
     je_ra = pico8_ui_vec_or_zero(je != NULL ? je->ra : NULL);
-    pico8_spr_default(gfx, mem, spr_id, pico8_ui_to_int(je_ra.x), pico8_ui_to_int(je_ra.y));
+    p8_spr_default(gfx, mem, spr_id, pico8_ui_to_int(je_ra.x), pico8_ui_to_int(je_ra.y));
 }
 
 /* Lua's `(self.gj or {}).m_=false` writes onto a throwaway table when the
  * field is absent, with no observable effect, so the write is simply
  * skipped here rather than allocating a table nothing reads. */
-void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
+void pico8_ui_gw(p8_memory_t *mem, pico8_ui_t *self) {
     const pico8_nf_t *je;
     const pico8_vec_t *je_ra;
     const pico8_ents_t *hd_bucket;
@@ -322,12 +322,12 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
     }
 
     if (self->o_ != NULL) {
-        poke_val = pico8_ui_to_int(self->o_->gpio_signal != NULL ? *self->o_->gpio_signal : pico8_fixed_from_int(0));
+        poke_val = pico8_ui_to_int(self->o_->gpio_signal != NULL ? *self->o_->gpio_signal : p8_fixed_from_int(0));
     } else {
-        int prev = pico8_peek(mem, 0x5f80);
+        int prev = p8_peek(mem, 0x5f80);
         poke_val = (prev - 1 > 0) ? prev - 1 : 0;
     }
-    pico8_poke(mem, 0x5f80, (unsigned char)poke_val);
+    p8_poke(mem, 0x5f80, (unsigned char)poke_val);
 }
 
 static int ui_is_held_class(const entity_class_t *cls) {

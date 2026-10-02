@@ -22,7 +22,7 @@
 /* The session that is resumed: every field distinct, all coordinates
  * below 50, so a live frame can never be mistaken for a replayed one. */
 #define SOURCE_FRAME_COUNT 5
-static const pico8_input_frame_t k_source_frames[SOURCE_FRAME_COUNT] = {
+static const p8_input_frame_t k_source_frames[SOURCE_FRAME_COUNT] = {
     { 10, 11, 0, { 0, 0, 0, 0 } },
     { 12, 13, 1, { 1, 0, 0, 0 } },
     { 14, 15, 2, { 0, 1, 0, 0 } },
@@ -33,14 +33,14 @@ static const pico8_input_frame_t k_source_frames[SOURCE_FRAME_COUNT] = {
 /* What the player does after getting the controls back, in a value range
  * the replayed frames never reach. */
 #define LIVE_FRAME_COUNT 4
-static const pico8_input_frame_t k_live_frames[LIVE_FRAME_COUNT] = {
+static const p8_input_frame_t k_live_frames[LIVE_FRAME_COUNT] = {
     { 90, 91, 1, { 1, 1, 0, 0 } },
     { 92, 93, 5, { 0, 0, 1, 1 } },
     { 94, 95, 7, { 1, 0, 1, 0 } },
     { 96, 97, 6, { 0, 1, 0, 1 } },
 };
 
-static void assert_frame_equals(const pico8_input_frame_t *got, const pico8_input_frame_t *want) {
+static void assert_frame_equals(const p8_input_frame_t *got, const p8_input_frame_t *want) {
     assert(got->mouse_x == want->mouse_x);
     assert(got->mouse_y == want->mouse_y);
     assert(got->mouse_buttons == want->mouse_buttons);
@@ -52,7 +52,7 @@ static void assert_frame_equals(const pico8_input_frame_t *got, const pico8_inpu
 
 /* Stands in for `pico8_raylib_backend_poll_input`, the one call below that
  * needs a window. */
-static void poll_simulated_live_frame(int live_index, pico8_input_frame_t *out_frame) {
+static void poll_simulated_live_frame(int live_index, p8_input_frame_t *out_frame) {
     assert(live_index >= 0 && live_index < LIVE_FRAME_COUNT);
     *out_frame = k_live_frames[live_index];
 }
@@ -69,7 +69,7 @@ static void run_resumed_session(const char *source_path, const char *resumed_pat
 
     int live_index = 0;
     for (int i = 0; i < iterations; i++) {
-        pico8_input_frame_t frame;
+        p8_input_frame_t frame;
         if (!pico8_replay_source_next_frame(&replay, &frame)) {
             poll_simulated_live_frame(live_index, &frame);
             live_index++;
@@ -84,7 +84,7 @@ static void run_resumed_session(const char *source_path, const char *resumed_pat
 
 static void test_recorder_writes_a_loadable_recording(void) {
     const char *path = "tmp/test_recording_continuity_basic.json";
-    pico8_input_frame_t frames[2] = {
+    p8_input_frame_t frames[2] = {
         { 11, 22, 1, { 1, 0, 0, 0 } },
         { 33, 44, 2, { 0, 1, 0, 0 } },
     };
@@ -99,8 +99,8 @@ static void test_recorder_writes_a_loadable_recording(void) {
     }
     pico8_session_recorder_close(&recorder);
 
-    pico8_input_t loaded;
-    pico8_input_init(&loaded);
+    p8_input_t loaded;
+    p8_input_init(&loaded);
     assert(pico8_input_load(&loaded, path));
     assert(loaded.frame_count == 2);
     for (int i = 0; i < 2; i++) {
@@ -122,8 +122,8 @@ static void test_resumed_session_records_replayed_frames_then_new_ones(void) {
 
     run_resumed_session(source_path, resumed_path, SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT);
 
-    pico8_input_t resumed;
-    pico8_input_init(&resumed);
+    p8_input_t resumed;
+    p8_input_init(&resumed);
     assert(pico8_input_load(&resumed, resumed_path));
     assert(resumed.frame_count == SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT);
 
@@ -155,7 +155,7 @@ static void test_resumed_recording_is_itself_resumable(void) {
     assert(pico8_replay_source_frame_count(&second) == total);
 
     for (int i = 0; i < total; i++) {
-        pico8_input_frame_t frame;
+        p8_input_frame_t frame;
         assert(pico8_replay_source_next_frame(&second, &frame) == 1);
         if (i < SOURCE_FRAME_COUNT) {
             assert_frame_equals(&frame, &k_source_frames[i]);
@@ -164,7 +164,7 @@ static void test_resumed_recording_is_itself_resumable(void) {
         }
     }
 
-    pico8_input_frame_t after;
+    p8_input_frame_t after;
     assert(pico8_replay_source_next_frame(&second, &after) == 0);
 
     pico8_replay_source_close(&second);

@@ -13,7 +13,7 @@
 #include "game/trade.h"
 #include "engine/frame_zone.h"
 
-static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
+static p8_fixed_t fixed_min(p8_fixed_t a, p8_fixed_t b) {
     return (a < b) ? a : b;
 }
 
@@ -42,20 +42,20 @@ static int call_gg_truthy(entity_t *pt) {
     return pico8_jo_gg((const pico8_jo_t *)pt);
 }
 
-pico8_fixed_t pico8_da(entity_t *pt) {
+p8_fixed_t pico8_da(entity_t *pt) {
     if (pt != NULL && (pt->class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && ((const pico8_jo_t *)pt)->def->qh) {
         const pico8_ents_t *qh_list = pico8_cg("structure");
-        return pico8_fixed_from_int(qh_list != NULL ? qh_list->count : 0);
+        return p8_fixed_from_int(qh_list != NULL ? qh_list->count : 0);
     }
     if (call_gg_truthy(pt)) {
         const pico8_jo_t *jo = (const pico8_jo_t *)pt;
         int es;
         if (jo->has_mi &&
-            pico8_int_seq_at(pico8_es_table, PICO8_ES_COUNT, pico8_fixed_flr_int(jo->mi), &es)) {
-            return pico8_fixed_from_int(es);
+            pico8_int_seq_at(pico8_es_table, PICO8_ES_COUNT, p8_fixed_flr_int(jo->mi), &es)) {
+            return p8_fixed_from_int(es);
         }
     }
-    return pico8_fixed_from_int(0);
+    return p8_fixed_from_int(0);
 }
 
 static int cz_predicate(entity_t *e, void *ctx) {
@@ -66,17 +66,17 @@ static int cz_predicate(entity_t *e, void *ctx) {
     return call_gg_truthy(e);
 }
 
-pico8_fixed_t pico8_cz(void) {
+p8_fixed_t pico8_cz(void) {
     const pico8_ents_t *jo_list = pico8_cg("planet");
     pico8_ents_t filtered = pico8_jp_ents(pico8_zone_frame(), jo_list, cz_predicate, NULL);
     int mu = filtered.count;
-    pico8_fixed_t result;
-    result = pico8_fixed_mul(PICO8_FIXED_LIT(0x00002e14, 0.18), pico8_fixed_from_int(mu * mu));
-    return pico8_fixed_flr(result);
+    p8_fixed_t result;
+    result = p8_fixed_mul(P8_FIXED_LIT(0x00002e14, 0.18), p8_fixed_from_int(mu * mu));
+    return p8_fixed_flr(result);
 }
 
-pico8_fixed_t pico8_db(const entity_t *pt) {
-    pico8_fixed_t total = pico8_fixed_from_int(0);
+p8_fixed_t pico8_db(const entity_t *pt) {
+    p8_fixed_t total = p8_fixed_from_int(0);
     const pico8_jo_t *jo;
     const pico8_ents_t *by;
     const pico8_js_t *dk = pico8_dk();
@@ -104,24 +104,24 @@ pico8_fixed_t pico8_db(const entity_t *pt) {
                 assert(pico8_jo_is_family(oz_val) && "db: a trade leads to a planet");
                 oz = (const pico8_jo_t *)oz_val;
                 if (oz->def->hf) {
-                    pico8_fixed_t trade_mult = pico8_fixed_from_int(0);
-                    pico8_fixed_t hs = jo->def->hs;
-                    pico8_fixed_t ct_pt = pico8_fixed_from_int(0);
-                    pico8_fixed_t ct_oz = pico8_fixed_from_int(0);
-                    pico8_fixed_t bonus;
+                    p8_fixed_t trade_mult = p8_fixed_from_int(0);
+                    p8_fixed_t hs = jo->def->hs;
+                    p8_fixed_t ct_pt = p8_fixed_from_int(0);
+                    p8_fixed_t ct_oz = p8_fixed_from_int(0);
+                    p8_fixed_t bonus;
 
                     if (dk != NULL && dk->has_trade) {
                         trade_mult = dk->trade;
                     }
                     if (jo->has_mi) {
-                        pico8_fixed_seq_at(pico8_ct_table, PICO8_CT_COUNT, pico8_fixed_flr_int(jo->mi), &ct_pt);
+                        pico8_fixed_seq_at(pico8_ct_table, PICO8_CT_COUNT, p8_fixed_flr_int(jo->mi), &ct_pt);
                     }
                     if (oz->has_mi) {
-                        pico8_fixed_seq_at(pico8_ct_table, PICO8_CT_COUNT, pico8_fixed_flr_int(oz->mi),
+                        pico8_fixed_seq_at(pico8_ct_table, PICO8_CT_COUNT, p8_fixed_flr_int(oz->mi),
                                            &ct_oz);
                     }
-                    bonus = pico8_fixed_add(pico8_fixed_from_int(1), pico8_fixed_add(ct_pt, ct_oz));
-                    total = pico8_fixed_add(total, pico8_fixed_mul(pico8_fixed_mul(trade_mult, hs), bonus));
+                    bonus = p8_fixed_add(p8_fixed_from_int(1), p8_fixed_add(ct_pt, ct_oz));
+                    total = p8_fixed_add(total, p8_fixed_mul(p8_fixed_mul(trade_mult, hs), bonus));
                 }
             }
         }
@@ -131,14 +131,14 @@ pico8_fixed_t pico8_db(const entity_t *pt) {
         const pico8_kw_t *kw = jo->kw;
         if (kw != NULL) {
             int w;
-            if (kw->has_qe && pico8_r_lookup("w", &w) && kw->qe == pico8_fixed_from_int(w)) {
-                pico8_fixed_t mu = kw->mu;
-                pico8_fixed_t trade_mult = pico8_fixed_from_int(0);
+            if (kw->has_qe && pico8_r_lookup("w", &w) && kw->qe == p8_fixed_from_int(w)) {
+                p8_fixed_t mu = kw->mu;
+                p8_fixed_t trade_mult = p8_fixed_from_int(0);
                 if (dk != NULL && dk->has_trade) {
                     trade_mult = dk->trade;
                 }
-                total = pico8_fixed_add(
-                    total, pico8_fixed_mul(pico8_fixed_mul(mu, trade_mult), PICO8_FIXED_LIT(0x00018000, 1.5)));
+                total = p8_fixed_add(
+                    total, p8_fixed_mul(p8_fixed_mul(mu, trade_mult), P8_FIXED_LIT(0x00018000, 1.5)));
             }
         }
     }
@@ -147,7 +147,7 @@ pico8_fixed_t pico8_db(const entity_t *pt) {
 }
 
 typedef struct {
-    pico8_fixed_t total;
+    p8_fixed_t total;
     const int *seq;
     int count;
 } sum_by_mi_ctx_t;
@@ -161,8 +161,8 @@ static void sum_by_mi_visit(entity_t *pt, void *ctx_) {
     }
     jo = (const pico8_jo_t *)pt;
     if (jo->has_mi &&
-        pico8_int_seq_at(ctx->seq, ctx->count, pico8_fixed_flr_int(jo->mi), &v)) {
-        ctx->total = pico8_fixed_add(ctx->total, pico8_fixed_from_int(v));
+        pico8_int_seq_at(ctx->seq, ctx->count, p8_fixed_flr_int(jo->mi), &v)) {
+        ctx->total = p8_fixed_add(ctx->total, p8_fixed_from_int(v));
     }
 }
 
@@ -177,77 +177,77 @@ static char *concat_percent(const char *s) {
 
 pico8_ky_t pico8_ky(void) {
     sum_by_mi_ctx_t di_ctx;
-    pico8_fixed_t gl = pico8_fixed_from_int(0);
-    pico8_fixed_t base;
-    pico8_fixed_t el;
-    pico8_fixed_t total;
+    p8_fixed_t gl = p8_fixed_from_int(0);
+    p8_fixed_t base;
+    p8_fixed_t el;
+    p8_fixed_t total;
     const pico8_hy_t *fm = pico8_fm_hy();
-    pico8_fixed_t happiness = fm != NULL && fm->has_happiness ? fm->happiness : pico8_fixed_from_int(0);
+    p8_fixed_t happiness = fm != NULL && fm->has_happiness ? fm->happiness : p8_fixed_from_int(0);
     const pico8_ptrs_t *invented = fm != NULL ? fm->invented : NULL;
     int invented_count = (invented != NULL) ? invented->count : 0;
     const pico8_qe_map_t *fm_po = fm != NULL ? fm->po : NULL;
     char *happiness_str;
     pico8_ky_t result;
 
-    di_ctx.total = pico8_fixed_from_int(0);
+    di_ctx.total = p8_fixed_from_int(0);
     di_ctx.seq = pico8_b__table;
     di_ctx.count = PICO8_B__COUNT;
     for_each_cg("planet", sum_by_mi_visit, &di_ctx);
 
     if (fm_po != NULL) {
         int p;
-        pico8_fixed_t gl_val;
-        if (pico8_r_lookup("p", &p) && pico8_qe_map_get(fm_po, pico8_fixed_from_int(p), &gl_val)) {
-            gl = pico8_fixed_mul(gl_val, pico8_fixed_from_int(40));
+        p8_fixed_t gl_val;
+        if (pico8_r_lookup("p", &p) && pico8_qe_map_get(fm_po, p8_fixed_from_int(p), &gl_val)) {
+            gl = p8_fixed_mul(gl_val, p8_fixed_from_int(40));
         }
     }
 
-    base = pico8_fixed_mul(pico8_fixed_from_int(invented_count), PICO8_FIXED_LIT(0x00013333, 1.2));
-    el = pico8_fixed_mul(pico8_fixed_flr(pico8_fixed_mul(base, base)), pico8_fixed_from_int(10));
+    base = p8_fixed_mul(p8_fixed_from_int(invented_count), P8_FIXED_LIT(0x00013333, 1.2));
+    el = p8_fixed_mul(p8_fixed_flr(p8_fixed_mul(base, base)), p8_fixed_from_int(10));
 
-    total = pico8_fixed_flr(pico8_fixed_mul(
-        pico8_fixed_mul(pico8_fixed_add(pico8_fixed_add(di_ctx.total, gl), el), PICO8_FIXED_LIT(0x0000028f, 0.01)),
+    total = p8_fixed_flr(p8_fixed_mul(
+        p8_fixed_mul(p8_fixed_add(p8_fixed_add(di_ctx.total, gl), el), P8_FIXED_LIT(0x0000028f, 0.01)),
         happiness));
 
-    happiness_str = pico8_tostr_fixed(pico8_zone_frame(), happiness);
+    happiness_str = p8_tostr_fixed(pico8_zone_frame(), happiness);
 
     result.di = di_ctx.total;
     result.gl = gl;
     result.el = el;
     result.happiness = concat_percent(happiness_str);
     result.total = total;
-    result.tier = fixed_min(pico8_fixed_flr(pico8_fixed_div(total, pico8_fixed_from_int(2000))),
-                            pico8_fixed_from_int(5));
+    result.tier = fixed_min(p8_fixed_flr(p8_fixed_div(total, p8_fixed_from_int(2000))),
+                            p8_fixed_from_int(5));
     return result;
 }
 
-pico8_fixed_t pico8_bf(void) {
+p8_fixed_t pico8_bf(void) {
     const pico8_hy_t *fm = pico8_fm_hy();
     const pico8_qe_map_t *fm_po = fm != NULL ? fm->po : NULL;
-    pico8_fixed_t r_h = pico8_fixed_from_int(0);
-    pico8_fixed_t r_w = pico8_fixed_from_int(0);
-    pico8_fixed_t h_val;
+    p8_fixed_t r_h = p8_fixed_from_int(0);
+    p8_fixed_t r_w = p8_fixed_from_int(0);
+    p8_fixed_t h_val;
     sum_by_mi_ctx_t ctx;
 
     if (fm_po != NULL) {
         int h_key;
         int w_key;
         if (pico8_r_lookup("h", &h_key)) {
-            pico8_qe_map_get(fm_po, pico8_fixed_from_int(h_key), &r_h);
+            pico8_qe_map_get(fm_po, p8_fixed_from_int(h_key), &r_h);
         }
         if (pico8_r_lookup("w", &w_key)) {
-            pico8_qe_map_get(fm_po, pico8_fixed_from_int(w_key), &r_w);
+            pico8_qe_map_get(fm_po, p8_fixed_from_int(w_key), &r_w);
         }
     }
     h_val =
-        pico8_fixed_add(pico8_fixed_from_int(100), pico8_fixed_mul(pico8_fixed_from_int(2), pico8_fixed_add(r_h, r_w)));
+        p8_fixed_add(p8_fixed_from_int(100), p8_fixed_mul(p8_fixed_from_int(2), p8_fixed_add(r_h, r_w)));
 
-    ctx.total = pico8_fixed_from_int(0);
+    ctx.total = p8_fixed_from_int(0);
     ctx.seq = pico8_co_table;
     ctx.count = PICO8_CO_COUNT;
     for_each_cg("planet", sum_by_mi_visit, &ctx);
 
-    return pico8_fixed_add(h_val, ctx.total);
+    return p8_fixed_add(h_val, ctx.total);
 }
 
 static const pico8_js_t *g_dk = NULL;
@@ -275,8 +275,8 @@ void pico8_economy_dk_quitte(const entity_t *e) {
     g_dk = &copie;
 }
 
-pico8_fixed_t pico8_kr(entity_t *p) {
-    pico8_fixed_t kr = pico8_fixed_flr(pico8_fixed_sub(pico8_db(p), pico8_da(p)));
+p8_fixed_t pico8_kr(entity_t *p) {
+    p8_fixed_t kr = p8_fixed_flr(p8_fixed_sub(pico8_db(p), pico8_da(p)));
     pico8_jo_t *jo;
 
     assert(pico8_jo_is_family(p) && "hy:lj: cg.jo holds planets only");

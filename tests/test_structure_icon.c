@@ -44,9 +44,9 @@
 #define RESTART_HASH 0xB33A149Au
 #define KE_VIEW_HASH 0xD0C93314u
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -91,13 +91,13 @@ static const pico8_vec_t *shared_gy(const pico8_ie_t *icon) {
 }
 
 /* 0 while `id` is nil. */
-static int shared_id(const pico8_ie_t *icon, pico8_fixed_t *out) {
+static int shared_id(const pico8_ie_t *icon, p8_fixed_t *out) {
     (void)icon;
     return pico8_ie_id(out);
 }
 
-static pico8_fixed_t shared_id_fixed(const pico8_ie_t *icon) {
-    pico8_fixed_t id = 0;
+static p8_fixed_t shared_id_fixed(const pico8_ie_t *icon) {
+    p8_fixed_t id = 0;
     int present = shared_id(icon, &id);
     assert(present);
     return id;
@@ -131,7 +131,7 @@ static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
 
 /* The kind bytes the frozen constants were folded with (0xF1 a number,
  * 0x57 a string, 0xDEAD absent); a NULL string is absent. */
-static uint32_t fold_fixed(uint32_t h, pico8_fixed_t v) {
+static uint32_t fold_fixed(uint32_t h, p8_fixed_t v) {
     return fnv(fnv(h, 0xF1u), (uint32_t)v);
 }
 
@@ -185,7 +185,7 @@ static void gx(const entity_kind_t *out[7]) {
 /* `gy` and `id` read off any icon: the cursor and counter every icon
  * shares. */
 static uint32_t fold_shared(uint32_t h, void *icon) {
-    pico8_fixed_t id = 0;
+    p8_fixed_t id = 0;
 
     h = fold_vec(h, shared_gy(as_ie(icon)));
     return shared_id(as_ie(icon), &id) ? fold_fixed(h, id) : fnv(h, 0xDEADu);
@@ -221,7 +221,7 @@ static void new_game(void) {
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
  * reads as difficulty 0. */
 static void start_game(void) {
-    pico8_input_init(&input);
+    p8_input_init(&input);
     pico8_dispatch_set_input(&input);
     pico8__init();
     new_game();
@@ -238,7 +238,7 @@ static pico8_vec_t *vec_ref(pico8_vec_t at) {
 }
 
 static pico8_vec_t v2(int x, int y) {
-    return pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
+    return pico8_vec_v(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
 static const pico8_jb_row_t *dr_row(int i) {
@@ -276,10 +276,10 @@ static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const v
     assert(ie->header.state != NULL && strcmp(ie->header.state, "normal") == 0);
     assert(ie->header.state_time == 0);
     assert(ie->def == &pico8_ie_def);
-    assert(ie->def->fa == pico8_fixed_from_int(12));
+    assert(ie->def->fa == p8_fixed_from_int(12));
     assert(ie->ra == &ie->def->ra);
-    assert(ie->ra->x == pico8_fixed_from_int(999) && ie->ra->y == pico8_fixed_from_int(999));
-    assert(ie->def->eh.x == pico8_fixed_from_int(118) && ie->def->eh.y == pico8_fixed_from_int(120));
+    assert(ie->ra->x == p8_fixed_from_int(999) && ie->ra->y == p8_fixed_from_int(999));
+    assert(ie->def->eh.x == p8_fixed_from_int(118) && ie->def->eh.y == p8_fixed_from_int(120));
     assert((const void *)ie->ke == ke);
     assert((const void *)ie->jb == jb);
     assert(!ie->has_kh && !ie->m_);
@@ -319,7 +319,7 @@ static void test_construction(void) {
         assert(ie->ke == classes[i]);
         assert(ie->jb != NULL);
         assert(ie->header.state != NULL && strcmp(ie->header.state, "normal") == 0);
-        assert(ie->def->fa == pico8_fixed_from_int(12));
+        assert(ie->def->fa == p8_fixed_from_int(12));
         assert(cls_of(all[i])->hit_test != NULL);
         assert(ents_listed(pico8_hv(), all[i]) && ents_listed(pico8_cv("draw"), all[i]) && ents_listed(pico8_cv("hit_test"), all[i]));
         assert(!ents_listed(pico8_cv("draw_overlay"), all[i]) && !ents_listed(pico8_cv("new_year"), all[i]));
@@ -390,7 +390,7 @@ static void test_directed(void) {
     const pico8_vec_t *gy_before;
     const pico8_vec_t *ra_before;
     down_t made;
-    pico8_fixed_t id0;
+    p8_fixed_t id0;
     pico8_vec_t ra;
     int n;
 
@@ -414,12 +414,12 @@ static void test_directed(void) {
     made = cls_of(all[0])->left_press(all[0], NULL, NULL);
     assert(made.stop && made.held != NULL && pico8_jo_is_family(made.held));
     assert(strcmp(((const pico8_jo_t *)made.held)->id, "s1") == 0);
-    assert(shared_id_fixed(as_ie(all[n - 1])) == pico8_fixed_add(id0, pico8_fixed_from_int(1)));
+    assert(shared_id_fixed(as_ie(all[n - 1])) == p8_fixed_add(id0, p8_fixed_from_int(1)));
     h = fold_string(h, ((const pico8_jo_t *)made.held)->id);
     made = cls_of(all[n - 1])->left_press(all[n - 1], NULL, NULL);
     assert(made.held != NULL && pico8_jo_is_family(made.held));
     assert(strcmp(((const pico8_jo_t *)made.held)->id, "s2") == 0);
-    assert(shared_id_fixed(as_ie(all[0])) == pico8_fixed_add(id0, pico8_fixed_from_int(2)));
+    assert(shared_id_fixed(as_ie(all[0])) == p8_fixed_add(id0, p8_fixed_from_int(2)));
     h = fold_string(h, ((const pico8_jo_t *)made.held)->id);
     h = fold_shared(h, all[3]);
 
@@ -444,16 +444,16 @@ static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
     int i;
 
-    for (i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)pico8_peek(&mem, PICO8_ADDR_SCREEN + i);
+    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
+        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
 }
 
 static uint32_t draw_alone(void *icon) {
-    pico8_camera(&gfx, 0, 0);
-    pico8_cls(&mem);
+    p8_camera(&gfx, 0, 0);
+    p8_cls(&mem);
     cls_of(icon)->draw(icon, as_ie(icon)->ra);
     return screen_hash();
 }
@@ -472,8 +472,8 @@ static void test_draw(void) {
     start_game();
     shown = first_icon_with_kh(2);
     hidden = first_icon_with_kh(0);
-    pico8_camera(&gfx, 0, 0);
-    pico8_cls(&mem);
+    p8_camera(&gfx, 0, 0);
+    p8_cls(&mem);
     blank = screen_hash();
 
     hidden_px = draw_alone(hidden);
@@ -561,7 +561,7 @@ static void test_restart(void) {
     uint32_t h = 2166136261u;
     void *all[16];
     const pico8_vec_t *gy;
-    pico8_fixed_t id;
+    p8_fixed_t id;
     int n;
     int i;
 
@@ -570,7 +570,7 @@ static void test_restart(void) {
     (void)cls_of(all[0])->left_press(all[0], NULL, NULL);
     gy = shared_gy(as_ie(all[0]));
     id = shared_id_fixed(as_ie(all[0]));
-    assert(id == pico8_fixed_from_int(1));
+    assert(id == p8_fixed_from_int(1));
     assert(gy != &as_ie(all[0])->def->eh);
 
     new_game();
@@ -624,14 +624,14 @@ static void test_ie_is_a_struct(void) {
     {
         pico8_ie_keys_t jb_only = {0};
         pico8_ie_t *no_ke;
-        pico8_fixed_t id0 = shared_id_fixed(as_ie(built));
+        p8_fixed_t id0 = shared_id_fixed(as_ie(built));
 
         jb_only.jb = pico8_jb_new(&zone_tas, NULL);
         no_ke = pico8_ie_new(&jb_only);
         assert(is_an_ie_struct(no_ke) && no_ke->ke == NULL);
         assert(shared_id_fixed(no_ke) == id0);
         (void)cls_of(no_ke)->left_press(&no_ke->header, NULL, NULL);
-        assert(shared_id_fixed(as_ie(built)) == pico8_fixed_add(id0, pico8_fixed_from_int(1)));
+        assert(shared_id_fixed(as_ie(built)) == p8_fixed_add(id0, p8_fixed_from_int(1)));
     }
 
     others[0] = pico8_bg_new();
@@ -667,8 +667,8 @@ static void test_ke_view_is_a_struct(void) {
         } else {
             assert(view.rr != NULL && strcmp(view.rr, gx_rr[i]) == 0);
         }
-        assert(view.has_s && view.s == pico8_fixed_from_int(s[i]));
-        assert(view.has_od && view.od == pico8_fixed_from_int(od[i]));
+        assert(view.has_s && view.s == p8_fixed_from_int(s[i]));
+        assert(view.has_od && view.od == p8_fixed_from_int(od[i]));
         assert(view.me != NULL && strcmp(view.me, "placing") == 0);
     }
 
@@ -703,11 +703,11 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

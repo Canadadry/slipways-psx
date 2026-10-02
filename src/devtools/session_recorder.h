@@ -39,7 +39,7 @@ void pico8_session_recorder_open(pico8_session_recorder_t *recorder, const char 
  * which case the recording and the frame count are left exactly as they
  * were and the session carries on. After a successful call the file on
  * disk is already a complete, valid events.json. */
-int pico8_session_recorder_record_frame(pico8_session_recorder_t *recorder, const pico8_input_frame_t *frame);
+int pico8_session_recorder_record_frame(pico8_session_recorder_t *recorder, const p8_input_frame_t *frame);
 
 /* How many frames have been recorded, i.e. the 0-based index of the next
  * recorded frame in the file. A frame whose append failed is neither in

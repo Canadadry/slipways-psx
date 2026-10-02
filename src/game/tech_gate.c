@@ -25,7 +25,7 @@ int pico8_oj(const char *px) {
     return pico8_gu_content_ptrs(invented_list, px);
 }
 
-pico8_fixed_t pico8_ov(const char *px, pico8_fixed_t lk, pico8_fixed_t mc) {
+p8_fixed_t pico8_ov(const char *px, p8_fixed_t lk, p8_fixed_t mc) {
     if (pico8_oj(px)) {
         return mc;
     }
@@ -33,25 +33,25 @@ pico8_fixed_t pico8_ov(const char *px, pico8_fixed_t lk, pico8_fixed_t mc) {
 }
 
 /* `flr(od*max(fm.fu[nk], 0.55))`, an absent `fu[nk]` reading as 0. */
-static pico8_fixed_t pico8_gi_cost(pico8_fixed_t od, int has_nk, pico8_fixed_t nk) {
+static p8_fixed_t pico8_gi_cost(p8_fixed_t od, int has_nk, p8_fixed_t nk) {
     const pico8_hy_t *fm = pico8_fm_hy();
-    pico8_fixed_t fu = pico8_fixed_from_int(0);
-    pico8_fixed_t threshold = PICO8_FIXED_LIT(0x00008ccc, 0.55);
-    pico8_fixed_t factor;
+    p8_fixed_t fu = p8_fixed_from_int(0);
+    p8_fixed_t threshold = P8_FIXED_LIT(0x00008ccc, 0.55);
+    p8_fixed_t factor;
 
     if (has_nk && fm != NULL && fm->fu != NULL) {
         pico8_qe_map_get(fm->fu, nk, &fu);
     }
 
     factor = (fu > threshold) ? fu : threshold;
-    return pico8_fixed_flr(pico8_fixed_mul(od, factor));
+    return p8_fixed_flr(p8_fixed_mul(od, factor));
 }
 
-pico8_fixed_t pico8_gi_nb(const pico8_nb_entry_t *t) {
+p8_fixed_t pico8_gi_nb(const pico8_nb_entry_t *t) {
     if (t == NULL) {
-        return pico8_gi_cost(pico8_fixed_from_int(0), 0, 0);
+        return pico8_gi_cost(p8_fixed_from_int(0), 0, 0);
     }
-    return pico8_gi_cost(pico8_fixed_from_int(t->od), 1, pico8_fixed_from_int(t->nk));
+    return pico8_gi_cost(p8_fixed_from_int(t->od), 1, p8_fixed_from_int(t->nk));
 }
 
 /* The `e_` write below happens for every `t`, before any early return:
@@ -60,8 +60,8 @@ pico8_fixed_t pico8_gi_nb(const pico8_nb_entry_t *t) {
 static int pico8_cb_predicate(const pico8_nb_entry_t *t, int bi) {
     const pico8_hy_t *fm = pico8_fm_hy();
     const pico8_fm_placeholder_t *provisional = pico8_fm_placeholder();
-    pico8_fixed_t jk = pico8_fixed_from_int(0);
-    pico8_fixed_t ew = pico8_fixed_from_int(0);
+    p8_fixed_t jk = p8_fixed_from_int(0);
+    p8_fixed_t ew = p8_fixed_from_int(0);
     int affordable;
 
     if (fm != NULL) {
@@ -75,7 +75,7 @@ static int pico8_cb_predicate(const pico8_nb_entry_t *t, int bi) {
     if (fm != NULL) {
         ew = fm->ew;
     }
-    if (pico8_fixed_from_int(t->lv) != ew) {
+    if (p8_fixed_from_int(t->lv) != ew) {
         return 0;
     }
 

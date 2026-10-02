@@ -20,7 +20,7 @@ int pico8_screencast_writer_open(pico8_screencast_writer_t *writer, const char *
     return writer->file != NULL;
 }
 
-int pico8_screencast_write_frame(pico8_screencast_writer_t *writer, const pico8_mem_t *mem) {
+int pico8_screencast_write_frame(pico8_screencast_writer_t *writer, const p8_memory_t *mem) {
     unsigned char packed[PICO8_SCREENCAST_FRAME_BYTES];
 
     assert(writer);
@@ -28,8 +28,8 @@ int pico8_screencast_write_frame(pico8_screencast_writer_t *writer, const pico8_
     assert(mem);
 
     for (int i = 0; i < PICO8_SCREENCAST_FRAME_BYTES; i++) {
-        unsigned char even = pico8_peek(mem, PICO8_ADDR_SCREEN + i * 2);
-        unsigned char odd = pico8_peek(mem, PICO8_ADDR_SCREEN + i * 2 + 1);
+        unsigned char even = p8_peek(mem, P8_ADDR_SCREEN + i * 2);
+        unsigned char odd = p8_peek(mem, P8_ADDR_SCREEN + i * 2 + 1);
         /* Un octet > 0x0f deborderait sur le quartet voisin et
          * corromprait le pixel d'a cote, ce qui ne se verrait que plus
          * tard, comme une divergence de rendu. */

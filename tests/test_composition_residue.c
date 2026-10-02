@@ -218,7 +218,7 @@ static void test_entity_reader_ignores_what_is_not_an_embedded_parent(void) {
     write_file(SRC "/f.c", "typedef struct {\n    pico8_" "jo_t *jo;\n} ptr_t;\n"
                            "typedef struct {\n    int a;\n    pico8_" "jo_t jo;\n} second_t;\n"
                            "int f(void) {\n    pico8_" "jo_t jo;\n    return 0;\n}\n"
-                           "typedef struct {\n    pico8_fixed_t x;\n} fixed_first_t;\n"
+                           "typedef struct {\n    p8_fixed_t x;\n} fixed_first_t;\n"
                            "void g(void) {\nstruct local {\n    pico8_" "jo_t jo;\n} l;\n}\n"
                            "typedef struct {\n    pico8_" "jo_t jo;\n} after_t;\n");
     assert(run_residue(TREE) == 0);

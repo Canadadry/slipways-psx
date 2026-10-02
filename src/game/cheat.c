@@ -27,15 +27,15 @@ static void apply(void) {
     }
     if (((const entity_t *)fm)->class == pico8_fm_placeholder_struct_class()) {
         pico8_fm_placeholder_t *provisional = (pico8_fm_placeholder_t *)fm;
-        provisional->jk = pico8_fixed_from_int(99);
+        provisional->jk = p8_fixed_from_int(99);
         provisional->has_jk = 1;
-        provisional->nz = pico8_fixed_from_int(200);
+        provisional->nz = p8_fixed_from_int(200);
         provisional->has_nz = 1;
         return;
     }
     hy = pico8_fm_hy();
-    hy->jk = pico8_fixed_from_int(99);
-    hy->nz = pico8_fixed_from_int(200);
+    hy->jk = p8_fixed_from_int(99);
+    hy->nz = p8_fixed_from_int(200);
 }
 
 static int feed(pico8_cheat_t *cheat, int button) {
@@ -52,9 +52,9 @@ static int feed(pico8_cheat_t *cheat, int button) {
     return 1;
 }
 
-int pico8_cheat_step(pico8_cheat_t *cheat, const pico8_input_t *input) {
-    int o = pico8_btn(input, BTN_O);
-    int x = pico8_btn(input, BTN_X);
+int pico8_cheat_step(pico8_cheat_t *cheat, const p8_input_t *input) {
+    int o = p8_btn(input, BTN_O);
+    int x = p8_btn(input, BTN_X);
     int o_edge = o && !cheat->prev_o;
     int x_edge = x && !cheat->prev_x;
     int fired = 0;

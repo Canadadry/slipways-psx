@@ -55,9 +55,9 @@ static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {
 #define LIFE_HASH 0x37B44597u
 #define DESCENDANTS_HASH 0x129E3D90u
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static const char *const bm[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
 static const char *const tags[] = {"structure", "planet", "node", "targeting"};
@@ -104,7 +104,7 @@ static uint32_t fold_absent(uint32_t h) {
     return fnv(h, 0u);
 }
 
-static uint32_t fold_fixed_member(uint32_t h, pico8_fixed_t v) {
+static uint32_t fold_fixed_member(uint32_t h, p8_fixed_t v) {
     return fnv(fnv(fnv(h, 1u), 0xF1u), (uint32_t)v);
 }
 
@@ -118,11 +118,11 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
 }
 
 static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
-    return jo->def->hf ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
+    return jo->def->hf ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 static uint32_t fold_qh(uint32_t h, const pico8_jo_t *qh) {
-    return qh->def->qh ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
+    return qh->def->qh ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 /* 0 absent, 1 false, 2 true. */
@@ -199,7 +199,7 @@ static void check(const char *label, uint32_t got, uint32_t want) {
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
  * reads as difficulty 0. */
 static void start_game(void) {
-    pico8_input_init(&input);
+    p8_input_init(&input);
     pico8_dispatch_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
@@ -213,7 +213,7 @@ static pico8_vec_t *vec_ref(pico8_vec_t at) {
 }
 
 static pico8_vec_t vec_xy(int x, int y) {
-    return pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
+    return pico8_vec_v(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
 static const entity_class_t *cls_of(const void *e) {
@@ -376,13 +376,13 @@ static void test_built(void) {
     check("built", h, BUILT_HASH);
 }
 
-static pico8_fixed_t credits(void) {
+static p8_fixed_t credits(void) {
     assert(pico8_fm_hy() != NULL);
     return pico8_fm_hy()->nz;
 }
 
 static void set_credits(int n) {
-    pico8_fm_hy()->nz = pico8_fixed_from_int(n);
+    pico8_fm_hy()->nz = p8_fixed_from_int(n);
 }
 
 /* What `bv` left on a laboratory: `ra` (a copy of what was passed), `p`, and
@@ -414,8 +414,8 @@ static void test_life(void) {
     pico8_vec_t *mp;
     const pico8_vec_t *planet_p;
     const pico8_vec_t *ra_before;
-    pico8_fixed_t before;
-    pico8_fixed_t in_y;
+    p8_fixed_t before;
+    p8_fixed_t in_y;
     int i;
 
     start_game();
@@ -430,7 +430,7 @@ static void test_life(void) {
     assert(pico8_jo_is_family(planet));
     planet_p = ((const pico8_jo_t *)planet)->p;
     assert(planet_p != NULL);
-    mp = vec_ref(pico8_vec_add(pico8_vec_mul(*planet_p, pico8_fixed_from_int(128)), vec_xy(6, 0)));
+    mp = vec_ref(pico8_vec_add(pico8_vec_mul(*planet_p, p8_fixed_from_int(128)), vec_xy(6, 0)));
     cls_of(out_lab)->drag(out_lab, mp, vec_ref(vec_xy(64, 64)));
     h = fold_held(h, out_lab, mp);
     assert(as_qh(out_lab)->probe->et == planet &&
@@ -448,7 +448,7 @@ static void test_life(void) {
     h = fold_fixed_member(h, as_qh(poor_lab)->header.state_time);
     h = fnv(h, p__state(as_qh(poor_lab)));
     h = fnv(h, (uint32_t)credits());
-    assert(p__state(as_qh(poor_lab)) == 2 && credits() == pico8_fixed_from_int(3));
+    assert(p__state(as_qh(poor_lab)) == 2 && credits() == p8_fixed_from_int(3));
 
     in_lab = build_lab();
     mp = vec_ref(vec_xy(7680, 7552));
@@ -460,7 +460,7 @@ static void test_life(void) {
     h = fold_fixed_member(h, as_qh(in_lab)->header.state_time);
     h = fnv(h, p__state(as_qh(in_lab)));
     h = fnv(h, (uint32_t)credits());
-    assert(strcmp(as_qh(in_lab)->header.state, "settled") == 0 && credits() == pico8_fixed_from_int(100 - 15));
+    assert(strcmp(as_qh(in_lab)->header.state, "settled") == 0 && credits() == p8_fixed_from_int(100 - 15));
     in_y = as_qh(in_lab)->ra->y;
 
     ra_before = as_qh(out_lab)->ra;
@@ -517,7 +517,7 @@ static int descendant_of(const void *e) {
 static uint32_t fold_descendant(uint32_t h, void *d) {
     pico8_jo_t *qh = as_qh(d);
     pico8_jo_t *nl = cls_of(d) == pico8_nl_struct_class() ? (pico8_jo_t *)d : NULL;
-    pico8_fixed_t qw = nl != NULL ? nl->qw : 0;
+    p8_fixed_t qw = nl != NULL ? nl->qw : 0;
 
     h = fold_string_member(h, qh->probe->def->dq);
     h = fold_fixed_member(h, qh->probe->def->fp);
@@ -531,13 +531,13 @@ static uint32_t fold_descendant(uint32_t h, void *d) {
     assert(cls_of(d)->draw_overlay == pico8_qh_struct_class()->draw_overlay);
     if (qh->ra != NULL) {
         pico8_vec_t *v = qh->ra;
-        pico8_fixed_t y = v->y;
+        p8_fixed_t y = v->y;
         h = fnv(fnv(h, 1u), (uint32_t)y);
-        cls_of(d)->states[ENTITY_STATE_SETTLED](d, pico8_fixed_from_int(50));
+        cls_of(d)->states[ENTITY_STATE_SETTLED](d, p8_fixed_from_int(50));
         h = fnv(h, (uint32_t)v->y);
         v->y = y;
     } else {
-        cls_of(d)->states[ENTITY_STATE_SETTLED](d, pico8_fixed_from_int(50));
+        cls_of(d)->states[ENTITY_STATE_SETTLED](d, p8_fixed_from_int(50));
         h = fnv(h, 0u);
     }
     h = nl != NULL ? fold_fixed_member(h, nl->qw) : fold_absent(h);
@@ -657,7 +657,7 @@ static void test_qh_is_a_struct(void) {
     start_game();
     a = build_lab();
     assert(is_a_qh_struct(a) && ents_listed(pico8_cg("structure"), a));
-    assert(pico8_da(a) == pico8_fixed_from_int(pico8_cg("structure")->count));
+    assert(pico8_da(a) == p8_fixed_from_int(pico8_cg("structure")->count));
     assert(cls->attach_slipway == pico8_jo_struct_class()->attach_slipway && cls->offer_trade == pico8_jo_struct_class()->offer_trade);
     assert_qh_shape(cls);
     assert(cls->hit_test == pico8_jo_struct_class()->hit_test && cls->draw == pico8_jo_struct_class()->draw &&
@@ -770,11 +770,11 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

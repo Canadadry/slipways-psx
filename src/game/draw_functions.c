@@ -20,8 +20,8 @@ static int g_pi_dispatch_count = 0;
 /* Borrowed, never owned: set by pico8_bl/pico8_bl_default right before
  * each dispatch, so the functions below can reach a real drawing function
  * that an article cannot carry. */
-static pico8_gfx_t *g_pi_gfx = NULL;
-static pico8_mem_t *g_pi_mem = NULL;
+static p8_graphics_t *g_pi_gfx = NULL;
+static p8_memory_t *g_pi_mem = NULL;
 
 void pico8_pi_dispatch_register(const char *name, pico8_pi_fn fn) {
     int i;
@@ -78,12 +78,12 @@ static int pico8_pi_is_number(const pico8_jb_row_t *e, int i) {
 }
 
 /* 0 when `e[i]` is not a number. */
-static pico8_fixed_t pico8_pi_number(const pico8_jb_row_t *e, int i) {
+static p8_fixed_t pico8_pi_number(const pico8_jb_row_t *e, int i) {
     const pico8_jb_item_t *item = pico8_pi_arg(e, i);
     if (!pico8_pi_is_number(e, i)) {
-        return pico8_fixed_from_int(0);
+        return p8_fixed_from_int(0);
     }
-    return item->is_fixed ? item->fixed : pico8_fixed_from_int(item->n);
+    return item->is_fixed ? item->fixed : p8_fixed_from_int(item->n);
 }
 
 /* NULL when `e[i]` is not a pointer. */
@@ -95,9 +95,9 @@ static const void *pico8_pi_ref(const pico8_jb_row_t *e, int i) {
 /* An absent `col` draws in colour 0 here, where PICO-8 would keep the
  * current pen colour -- no bl()-dispatched call site omits it. */
 static void pico8_pi_rk_draw(const pico8_jb_row_t *e) {
-    pico8_fixed_t y1 = pico8_pi_number(e, 1);
+    p8_fixed_t y1 = pico8_pi_number(e, 1);
     int col;
-    col = pico8_fixed_flr_int(pico8_pi_number(e, 3));
+    col = p8_fixed_flr_int(pico8_pi_number(e, 3));
     if (pico8_pi_is_number(e, 2)) {
         pico8_rk(g_pi_gfx, g_pi_mem, y1, pico8_pi_number(e, 2), col);
     } else {
@@ -110,13 +110,13 @@ static void pico8_pi_rk_draw(const pico8_jb_row_t *e) {
  * technology counter in the top menu bar. Other kinds do fall back to "". */
 static void pico8_pi_io_draw(const pico8_jb_row_t *e) {
     const pico8_jb_item_t *a1 = pico8_pi_arg(e, 1);
-    char *owned = pico8_pi_is_number(e, 1) ? pico8_tostr_fixed(pico8_zone_frame(), pico8_pi_number(e, 1)) : NULL;
+    char *owned = pico8_pi_is_number(e, 1) ? p8_tostr_fixed(pico8_zone_frame(), pico8_pi_number(e, 1)) : NULL;
     const char *t = a1 != NULL && a1->s != NULL ? a1->s : (owned != NULL ? owned : "");
-    pico8_fixed_t x = pico8_pi_number(e, 2);
-    pico8_fixed_t y = pico8_pi_number(e, 3);
-    int c = pico8_fixed_flr_int(pico8_pi_number(e, 4));
+    p8_fixed_t x = pico8_pi_number(e, 2);
+    p8_fixed_t y = pico8_pi_number(e, 3);
+    int c = p8_fixed_flr_int(pico8_pi_number(e, 4));
     if (pico8_pi_is_number(e, 5)) {
-        pico8_fixed_t a_val = pico8_pi_number(e, 5);
+        p8_fixed_t a_val = pico8_pi_number(e, 5);
         pico8_io(g_pi_gfx, g_pi_mem, t, x, y, c, &a_val);
     } else {
         pico8_io_default(g_pi_gfx, g_pi_mem, t, x, y, c);
@@ -129,15 +129,15 @@ static void pico8_pi_eq_draw(const pico8_jb_row_t *e) {
 
 /* w/h are supplied both or neither, as in real spr(). */
 static void pico8_pi_spr_draw(const pico8_jb_row_t *e) {
-    int n = pico8_fixed_flr_int(pico8_pi_number(e, 1));
-    int x = pico8_fixed_flr_int(pico8_pi_number(e, 2));
-    int y = pico8_fixed_flr_int(pico8_pi_number(e, 3));
+    int n = p8_fixed_flr_int(pico8_pi_number(e, 1));
+    int x = p8_fixed_flr_int(pico8_pi_number(e, 2));
+    int y = p8_fixed_flr_int(pico8_pi_number(e, 3));
     if (pico8_pi_is_number(e, 4) && pico8_pi_is_number(e, 5)) {
-        int w = pico8_fixed_flr_int(pico8_pi_number(e, 4));
-        int h = pico8_fixed_flr_int(pico8_pi_number(e, 5));
-        pico8_spr(g_pi_gfx, g_pi_mem, n, x, y, w, h);
+        int w = p8_fixed_flr_int(pico8_pi_number(e, 4));
+        int h = p8_fixed_flr_int(pico8_pi_number(e, 5));
+        p8_spr(g_pi_gfx, g_pi_mem, n, x, y, w, h);
     } else {
-        pico8_spr_default(g_pi_gfx, g_pi_mem, n, x, y);
+        p8_spr_default(g_pi_gfx, g_pi_mem, n, x, y);
     }
 }
 
@@ -148,14 +148,14 @@ static void pico8_pi_ld_draw(const pico8_jb_row_t *e) {
     const pico8_vec_t *at = pico8_pi_ref(e, 2);
     pico8_vec_t p = at != NULL
                         ? *at
-                        : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-    pico8_fixed_t a = pico8_pi_number(e, 3);
+                        : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    p8_fixed_t a = pico8_pi_number(e, 3);
     pico8_lq_ol(g_pi_gfx, g_pi_mem, self, p, a);
 }
 
 /* oo(pi[e.fn],e) -- bl()'s inner step, shared by both entry points. The
  * dispatch context has to be set before every call, not once per list. */
-static void pico8_bl_dispatch_one(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jb_row_t *e) {
+static void pico8_bl_dispatch_one(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_jb_row_t *e) {
     pico8_pi_fn fn = NULL;
 
     g_pi_gfx = gfx;
@@ -169,17 +169,17 @@ static void pico8_bl_dispatch_one(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico
     }
 }
 
-void pico8_bl(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jb_row_t *const *rb, int n, pico8_fixed_t nc) {
+void pico8_bl(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_jb_row_t *const *rb, int n, p8_fixed_t nc) {
     int i;
 
     for (i = 0; i < n; i++) {
-        pico8_camera(gfx, pico8_fixed_flr_int(nc), 0);
-        nc = pico8_fixed_neg(nc);
+        p8_camera(gfx, p8_fixed_flr_int(nc), 0);
+        nc = p8_fixed_neg(nc);
         pico8_bl_dispatch_one(gfx, mem, rb[i]);
     }
 }
 
-void pico8_bl_default(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jb_row_t *const *rb, int n) {
+void pico8_bl_default(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_jb_row_t *const *rb, int n) {
     int i;
 
     for (i = 0; i < n; i++) {

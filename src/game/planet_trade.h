@@ -21,7 +21,7 @@ typedef void (*pico8_jo_trade_proposal_kf_fn)(pico8_jo_trade_proposal_t *self, p
  * `pico8_jo_ib()` call shares and appends to. */
 struct pico8_jo_trade_proposal {
     pico8_trade_t *t;
-    pico8_fixed_t mu;
+    p8_fixed_t mu;
     pico8_jo_trade_proposal_kf_fn kf;
     pico8_ents_t *ib;
 };

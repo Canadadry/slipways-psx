@@ -1,29 +1,29 @@
 #include "p8/audio.h"
 
-static int g_ih = 0;
+static int g_sfx_muted = 0;
 
 /* TROU-10 */
-void pico8_sfx(int n, int channel) {
+void p8_sfx(int n, int channel) {
     (void)n;
     (void)channel;
 }
 
 /* TROU-10 */
-void pico8_music(int n) {
+void p8_music(int n) {
     (void)n;
 }
 
-int pico8_ih(void) {
-    return g_ih;
+int p8_sfx_muted(void) {
+    return g_sfx_muted;
 }
 
-void pico8_set_ih(int value) {
-    g_ih = value;
+void p8_set_sfx_muted(int value) {
+    g_sfx_muted = value;
 }
 
-void pico8_rn(pico8_fixed_t no) {
-    if (!pico8_ih()) {
-        int n = pico8_fixed_flr_int(no);
-        pico8_sfx(n, 3);
+void p8_play_sfx(p8_fixed_t no) {
+    if (!p8_sfx_muted()) {
+        int n = p8_fixed_flr_int(no);
+        p8_sfx(n, 3);
     }
 }

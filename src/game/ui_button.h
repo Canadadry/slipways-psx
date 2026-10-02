@@ -32,10 +32,10 @@ struct pico8_js {
     pico8_vec_t ra_box;
     pico8_vec_t qf_box;
     const pico8_js_def_t *def;
-    pico8_fixed_t fa;
+    p8_fixed_t fa;
     pico8_lq_t *lq;
     const pico8_zone_choisie_t *lq_place; /* NULL: `lq` is in `place` */
-    pico8_fixed_t mb;
+    p8_fixed_t mb;
     pico8_lq_t *h_;
     int has_h_; /* 0: nil; 1: present, and a NULL `h_` is `false` */
     pico8_jb_t *jb;
@@ -45,17 +45,17 @@ struct pico8_js {
     int has_my; /* 0: nil; 1: present, and a NULL `my` is `false` */
     int m_;
     pico8_js_fn hb;
-    pico8_fixed_t fg;
+    p8_fixed_t fg;
     int has_fg; /* 0: `fg` is nil, and is then never read */
     const char *px;
-    pico8_fixed_t trade;
+    p8_fixed_t trade;
     int has_trade; /* 0: `trade` is nil, and is then never read */
-    pico8_fixed_t en;
+    p8_fixed_t en;
     int has_en; /* 0: `en` is nil, and is then never read */
     const pico8_nb_entry_t *_cr_t; /* an entry of pico8_nb_table */
     pico8_jo_t *_jo_fe_pt;
     pico8_hp_t *_jo_fe_b;
-    pico8_fixed_t _jo_fe_od;
+    p8_fixed_t _jo_fe_od;
     int has__jo_fe_od; /* 0: `_jo_fe_od` is nil, and is then never read */
 };
 
@@ -72,7 +72,7 @@ const entity_class_t *pico8_js_struct_class(void);
  * row `lq_row`, else a copy of `lq_copy`, else an empty row. */
 typedef struct {
     int has_fa; /* 0: `fa` keeps the archetype's */
-    pico8_fixed_t fa;
+    p8_fixed_t fa;
     const pico8_lq_t *lq_copy;
     const pico8_lq_keys_t *lq_row;
     int has_h_; /* present without `h_row` nor `h_is_false`: an empty row (TROU-23) */
@@ -86,17 +86,17 @@ typedef struct {
     pico8_js_fn my;
     pico8_js_fn hb;
     int has_fg;
-    pico8_fixed_t fg;
+    p8_fixed_t fg;
     const char *px;
     int has_trade;
-    pico8_fixed_t trade;
+    p8_fixed_t trade;
     int has_en;
-    pico8_fixed_t en;
+    p8_fixed_t en;
     const pico8_nb_entry_t *_cr_t;
     pico8_jo_t *_jo_fe_pt;
     pico8_hp_t *_jo_fe_b;
     int has__jo_fe_od;
-    pico8_fixed_t _jo_fe_od;
+    p8_fixed_t _jo_fe_od;
 } pico8_js_keys_t;
 
 /* `keys` is read, not kept (NULL: none). The struct registers itself
@@ -108,9 +108,9 @@ void pico8_js_pq(pico8_js_t *self, const pico8_js_keys_t *keys);
 
 void pico8_js_ph(pico8_js_t *self);
 
-void pico8_js_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_js_t *self);
+void pico8_js_ev(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_js_t *self);
 
-void pico8_js_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_js_t *self, pico8_vec_t p);
+void pico8_js_kj(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_js_t *self, pico8_vec_t p);
 
 /* Always returns true: the click is consumed whether or not a `my` callback
  * was there to run. */

@@ -26,7 +26,7 @@
 
 /* Les 16384 pixels d'une frame, un par octet : la taille du tampon que
  * pico8_screencast_read_frame remplit. */
-#define PICO8_SCREENCAST_FRAME_PIXELS (PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT)
+#define PICO8_SCREENCAST_FRAME_PIXELS (P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT)
 
 /* Les 8192 octets qu'une frame occupe DANS LE FICHIER, deux pixels par
  * octet. */
@@ -48,7 +48,7 @@ int pico8_screencast_writer_open(pico8_screencast_writer_t *writer, const char *
  * l'appelant et non absorbe : contrairement a pico8_session_recorder,
  * perdre une frame ici produit un fichier tronque dont on tirerait une
  * empreinte fausse. */
-int pico8_screencast_write_frame(pico8_screencast_writer_t *writer, const pico8_mem_t *mem);
+int pico8_screencast_write_frame(pico8_screencast_writer_t *writer, const p8_memory_t *mem);
 
 /* Termine la capture et rend 1 si la fermeture a reussi, 0 sinon --
  * fclose est le dernier endroit ou une ecriture tamponnee peut echouer.

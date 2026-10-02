@@ -20,7 +20,7 @@ void pico8_ke_ks(entity_t *self, const char *me);
 /* Tags `self` as a struct of class `cls` and sets `me` and `t`, its class's
  * archetype's. `me` is borrowed. */
 void pico8_ke_struct_init(entity_t *self, const entity_class_t *cls, const char *me,
-                          pico8_fixed_t t);
+                          p8_fixed_t t);
 
 /* ke's pq for a struct. A child calls it exactly once, after its own pq,
  * or alone when it has none: the class walk's derived-to-base order and

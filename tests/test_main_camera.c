@@ -29,9 +29,9 @@
 #define LJ_QA_Y 0
 #define QB_RA 192
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static int ents_listed(const pico8_ents_t *list, const void *e) {
     int i;
@@ -51,7 +51,7 @@ static void assert_placeholder(void) {
     int i;
 
     assert(mo != NULL && pico8_mo_qb() == NULL);
-    pico8_camera(&gfx, 5, 6);
+    p8_camera(&gfx, 5, 6);
     assert(mo->class != pico8_qb_struct_class());
     assert(mo->class->states[ENTITY_STATE_NORMAL] == NULL && mo->class->draw == NULL);
     assert(gfx.camera_x == 5 && gfx.camera_y == 6);
@@ -66,7 +66,7 @@ static void assert_a_qb(void) {
 
     assert(pico8_mo_qb() != NULL && pico8_mo_qb()->ra != NULL);
     ra = pico8_mo_qb()->ra;
-    assert(ra->x == pico8_fixed_from_int(QB_RA) && ra->y == pico8_fixed_from_int(QB_RA));
+    assert(ra->x == p8_fixed_from_int(QB_RA) && ra->y == p8_fixed_from_int(QB_RA));
 }
 
 static void test_placeholder_after_init(void) {
@@ -84,8 +84,8 @@ static const entity_class_t g_ra_only_class = {0};
 
 /* `gd` reads `mo.ra` as (0,0): 64 off is inside the 76 margin, 77 is not. */
 static void test_gd_on_placeholder(void) {
-    pico8_vec_t near_ra = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
-    pico8_vec_t far_ra = pico8_vec_v(pico8_fixed_from_int(64 + 77), pico8_fixed_from_int(64));
+    pico8_vec_t near_ra = pico8_vec_v(p8_fixed_from_int(64), p8_fixed_from_int(64));
+    pico8_vec_t far_ra = pico8_vec_v(p8_fixed_from_int(64 + 77), p8_fixed_from_int(64));
     ra_only_t near_e = {{.class = &g_ra_only_class, .pos = &near_e.ra}, NULL};
     ra_only_t far_e = {{.class = &g_ra_only_class, .pos = &far_e.ra}, NULL};
     int near_hit;
@@ -168,8 +168,8 @@ static void test_placeholder_is_a_struct(void) {
 static void test_gd_under_a_shaken_camera(void) {
     static const pico8_vec_t shaken_p = {0, 0};
     static pico8_vec_t shaken_ra;
-    pico8_vec_t in_ra = pico8_vec_v(pico8_fixed_from_int(200 + 64), pico8_fixed_from_int(100 + 64));
-    pico8_vec_t below_ra = pico8_vec_v(pico8_fixed_from_int(200 + 64), pico8_fixed_from_int(100 + 64 + 77));
+    pico8_vec_t in_ra = pico8_vec_v(p8_fixed_from_int(200 + 64), p8_fixed_from_int(100 + 64));
+    pico8_vec_t below_ra = pico8_vec_v(p8_fixed_from_int(200 + 64), p8_fixed_from_int(100 + 64 + 77));
     ra_only_t in_e = {{.class = &g_ra_only_class, .pos = &in_e.ra}, NULL};
     ra_only_t below_e = {{.class = &g_ra_only_class, .pos = &below_e.ra}, NULL};
     pico8_qb_t *qb;
@@ -181,7 +181,7 @@ static void test_gd_under_a_shaken_camera(void) {
     assert(qb != NULL);
     saved_p = qb->p;
     saved_ra = qb->ra;
-    shaken_ra = pico8_vec_v(pico8_fixed_from_int(200), pico8_fixed_from_int(100));
+    shaken_ra = pico8_vec_v(p8_fixed_from_int(200), p8_fixed_from_int(100));
     qb->p = &shaken_p;
     qb->ra = &shaken_ra;
     in_e.ra = &in_ra;
@@ -194,11 +194,11 @@ static void test_gd_under_a_shaken_camera(void) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

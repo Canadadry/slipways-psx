@@ -60,9 +60,9 @@ static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {
  * fold: any other value moves every *_HASH. */
 #define FROZEN_LIST_TAG 0x9E5C1157u
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static const char *const bm[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
 static const char *const tags[] = {"ascension", "planet", "node", "targeting"};
@@ -101,7 +101,7 @@ static uint32_t fold_absent(uint32_t h) {
     return fnv(h, 0u);
 }
 
-static uint32_t fold_fixed_member(uint32_t h, pico8_fixed_t v) {
+static uint32_t fold_fixed_member(uint32_t h, p8_fixed_t v) {
     return fnv(fnv(fnv(h, 1u), 0xF1u), (uint32_t)v);
 }
 
@@ -115,7 +115,7 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
 }
 
 static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
-    return jo->def->hf ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
+    return jo->def->hf ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
@@ -166,7 +166,7 @@ static uint32_t fold_kw(uint32_t h, const pico8_jo_t *jo) {
 }
 
 static uint32_t fold_qh(uint32_t h, const pico8_jo_t *qh) {
-    return qh->def->qh ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
+    return qh->def->qh ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 /* 1 no target, 3 a target: the bytes the frozen hashes fold. */
@@ -215,8 +215,8 @@ static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
     int i;
 
-    for (i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)pico8_peek(&mem, PICO8_ADDR_SCREEN + i);
+    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
+        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
@@ -225,7 +225,7 @@ static uint32_t screen_hash(void) {
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
  * reads as difficulty 0. */
 static void start_game(void) {
-    pico8_input_init(&input);
+    p8_input_init(&input);
     pico8_dispatch_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
@@ -238,7 +238,7 @@ static pico8_vec_t *vec_ref(pico8_vec_t at) {
 }
 
 static pico8_vec_t vec_xy(int x, int y) {
-    return pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
+    return pico8_vec_v(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
 static const entity_class_t *cls_of(const void *e) {
@@ -442,13 +442,13 @@ static void test_built(void) {
     check("built", h, BUILT_HASH);
 }
 
-static pico8_fixed_t credits(void) {
+static p8_fixed_t credits(void) {
     assert(pico8_fm_hy() != NULL);
     return pico8_fm_hy()->nz;
 }
 
 static void set_credits(int n) {
-    pico8_fm_hy()->nz = pico8_fixed_from_int(n);
+    pico8_fm_hy()->nz = p8_fixed_from_int(n);
 }
 
 static uint32_t fold_ra_y(uint32_t h, const pico8_jo_t *hj) {
@@ -531,13 +531,13 @@ static void test_life(void) {
     }
 
     h = fold_particle(h, cls_of(placed)->spawn_particle(placed));
-    pico8_ez(placed, PICO8_FIXED_LIT(0x00028000, 2.5));
+    pico8_ez(placed, P8_FIXED_LIT(0x00028000, 2.5));
     h = fnv(h, (uint32_t)ptrs_size(as_hj(placed)->emitter->qy));
     assert(ptrs_size(as_hj(placed)->emitter->qy) >= 2);
 
     h = fold_draw(h, placed);
     h = fold_draw(h, placed);
-    as_hj(placed)->mi = pico8_fixed_from_int(2);
+    as_hj(placed)->mi = p8_fixed_from_int(2);
     as_hj(placed)->has_mi = 1;
     for (i = 0; i < 4; i++) {
         h = fold_draw(h, placed);
@@ -593,7 +593,7 @@ static void test_heirs(void) {
     pm = pico8_pm_new(&keys);
 
     assert(strcmp(as_hj(pm)->def->rr, "ascension") == 0 && as_hj(pm)->emitter->def->pk == 0);
-    assert(as_hj(pm)->probe->od == pico8_fixed_from_int(60));
+    assert(as_hj(pm)->probe->od == p8_fixed_from_int(60));
     assert(strcmp(as_hj(mx)->def->rr, "void synthesis") == 0);
     h = fold_heir(h, pm, pico8_pm_struct_class());
     h = fold_heir(h, mx, pico8_mx_struct_class());
@@ -713,7 +713,7 @@ static void test_leaving_gives_back_its_particles(void) {
     pico8_cart_vider_file_sortie();
     before = held_now();
     e = as_hj(build_ascension());
-    pico8_ez(&e->header, pico8_fixed_from_int(5));
+    pico8_ez(&e->header, p8_fixed_from_int(5));
     cls_of(e)->refresh(&e->header);
     assert(e->emitter->qy->count == 5);
     assert(held_now().particules == before.particules + 5 && held_now().qy == before.qy + 1);
@@ -725,11 +725,11 @@ static void test_leaving_gives_back_its_particles(void) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

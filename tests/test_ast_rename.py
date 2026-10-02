@@ -327,6 +327,24 @@ class ApplyTest(Setup):
         self.assertIn(b"camera_t unit_shape = { 0 };", read("src/main.c"))
         self.assertTrue(compiles())
 
+    def plant_main_macro(self):
+        with open(os.path.join(WORK, "src", "main.c"), "ab") as f:
+            f.write(b"#define MAIN_LIMIT 2\nint main_limit(void) { return MAIN_LIMIT; }\n")
+
+    def test_accepts_a_macro_of_a_c_file_named_like_a_macro_of_another_c_file(self):
+        self.plant_main_macro()
+        write_table([("MAIN_LIMIT", "SHAPE_SIZE", "src/main.c")])
+        result = apply()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(b"return SHAPE_SIZE; }", read("src/main.c"))
+        self.assertTrue(compiles())
+
+    def test_refuses_a_macro_of_a_c_file_named_like_a_name_of_a_header(self):
+        self.plant_main_macro()
+        before = tree_digest()
+        write_table([("MAIN_LIMIT", "shape_count", "src/main.c")])
+        self.assertRefused(apply(), before, "MAIN_LIMIT -> shape_count: collides")
+
     def test_refuses_two_entries_giving_the_same_new_name(self):
         before = tree_digest()
         write_table([("shape_count", "total", "src/shapes.h"),

@@ -53,7 +53,7 @@ static void quitter_partie(void) {
  * inits of their own (research, score-panel display); listing those
  * here would run them twice. */
 void pico8_cart_load(void) {
-    pico8_mem_t *mem;
+    p8_memory_t *mem;
 
     quitter_partie();
     pico8_ke_init();
@@ -173,7 +173,7 @@ void pico8_cart_shutdown(void) {
 }
 
 void pico8__init(void) {
-    pico8_mem_t *mem = pico8_dispatch_mem();
+    p8_memory_t *mem = pico8_dispatch_mem();
 
     assert(pico8_ie_ready() && "pico8_cart_load() must run before _init()");
     assert(pico8_eu_field_value() == pico8_eu &&
@@ -191,7 +191,7 @@ void pico8__init(void) {
 
     (void)pico8_fv_new();
     /* TROU-10 */
-    pico8_music(0);
+    p8_music(0);
 }
 
 void pico8_init_dispatch(pico8_js_t *self) {
@@ -212,7 +212,7 @@ void pico8_eu(pico8_js_t *nj) {
      * rebuilds hv/cv/cg and the mo/je/ok singletons. */
     pico8_jl();
     (void)pico8_bg_new();
-    pico8_bw(pico8_fixed_from_int(90));
+    pico8_bw(p8_fixed_from_int(90));
 
     pico8_probe_set_fm((entity_t *)pico8_hy_new());
     pico8_pj_set_ju(pico8_pj_new());
@@ -256,9 +256,9 @@ void pico8__update60(void) {
 }
 
 void pico8__draw(void) {
-    pico8_mem_t *mem = pico8_dispatch_mem();
+    p8_memory_t *mem = pico8_dispatch_mem();
 
-    pico8_cls(mem);
+    p8_cls(mem);
     pico8_dv_default(mem);
     pico8_dc("draw");
     pico8_dc("draw_overlay");

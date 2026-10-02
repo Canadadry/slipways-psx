@@ -27,15 +27,15 @@ static const char *const KNOWN[] = {
 int main(int argc, char **argv) {
     assert(argc == 2 && "usage: pico8_class_coverage <events.json>");
 
-    pico8_mem_t mem;
-    pico8_mem_init(&mem);
-    pico8_gfx_t gfx;
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
+    p8_memory_t mem;
+    p8_mem_init(&mem);
+    p8_graphics_t gfx;
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
 
-    pico8_input_t input;
-    pico8_input_init(&input);
+    p8_input_t input;
+    p8_input_init(&input);
     if (!pico8_input_load(&input, argv[1])) {
         fprintf(stderr, "pico8_class_coverage: %s ne se charge pas\n", argv[1]);
         return 2;
@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
         pico8__update60();
         pico8__draw();
         if (i < input.frame_count - 1) {
-            pico8_input_step(&input);
+            p8_input_step(&input);
         }
     }
 

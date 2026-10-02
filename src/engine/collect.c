@@ -70,9 +70,9 @@ int pico8_gu_content_ptrs(const pico8_ptrs_t *qk, const char *kb) {
     return 0;
 }
 
-char *pico8_ne(const pico8_zone_choisie_t *zone, pico8_fixed_t d, int c, const char *ku,
+char *pico8_ne(const pico8_zone_choisie_t *zone, p8_fixed_t d, int c, const char *ku,
                int *out_color) {
-    char *num_str = pico8_tostr_fixed(zone, d);
+    char *num_str = p8_tostr_fixed(zone, d);
     const char *suffix = ku != NULL ? ku : "";
     char *result;
     size_t prefix_len;

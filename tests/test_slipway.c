@@ -52,9 +52,9 @@
 #define TOO_FAR_HASH 0x65AE0C50u
 #define MOUSE_POINT_HASH 0x4C9D6519u
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static const int want_k_[20] = {0, 0, 7, 7, 10, 10, 9, 9, 9, 9, 9, 9, 9, 9, 4, 4, 4, 2, 2, 1};
 
@@ -162,7 +162,7 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
 /* A member as the frozen hashes fold what the name reader gave: nil when
  * absent; the 0xF1 of a fixed and the 0x57 of a string are constant by the
  * struct's shape, kept so that the hashes still prove the typed reads. */
-static uint32_t fold_fixed(uint32_t h, int has, pico8_fixed_t f) {
+static uint32_t fold_fixed(uint32_t h, int has, p8_fixed_t f) {
     return has ? fnv(fnv(h, 0xF1u), (uint32_t)f) : fnv(h, 0xDEADu);
 }
 
@@ -278,7 +278,7 @@ static uint32_t fold_jc(uint32_t h, const void *e) {
     return fold_hg(h, jc);
 }
 
-static pico8_fixed_t credits(void) {
+static p8_fixed_t credits(void) {
     assert(pico8_fm_hy() != NULL);
     return pico8_fm_hy()->nz;
 }
@@ -313,7 +313,7 @@ static void check(const char *label, uint32_t got, uint32_t want) {
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
  * reads as difficulty 0. */
 static void start_game(void) {
-    pico8_input_init(&input);
+    p8_input_init(&input);
     pico8_dispatch_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
@@ -323,9 +323,9 @@ static pico8_vec_t pos_of(const void *e) {
     return vec_of(as_jo(e)->p);
 }
 
-static pico8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
+static p8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
     pico8_vec_t d = pico8_vec_sub(a, b);
-    return pico8_fixed_add(pico8_fixed_mul(d.x, d.x), pico8_fixed_mul(d.y, d.y));
+    return p8_fixed_add(p8_fixed_mul(d.x, d.x), p8_fixed_mul(d.y, d.y));
 }
 
 /* A started game's first generated planet and its nearest one, both
@@ -358,11 +358,11 @@ static void *dragged(void *qu, void *re) {
     pico8_vec_t *mp = malloc(sizeof *mp);
     void *jc = build_jc(qu);
 
-    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
-                        pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
+    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), p8_fixed_from_int(128)),
+                        pico8_vec_v(p8_fixed_from_int(1), p8_fixed_from_int(1)));
     hq_over(jc, re, mp);
     pico8_ok()->o_ = NULL;
-    while (as_jc(jc)->header.state_time < pico8_fixed_from_int(15)) {
+    while (as_jc(jc)->header.state_time < p8_fixed_from_int(15)) {
         pico8_dg();
     }
     return jc;
@@ -398,7 +398,7 @@ static void *build_jc(void *qu) {
 
 static pico8_vec_t *vec_ref(int x, int y) {
     pico8_vec_t *v = malloc(sizeof *v);
-    *v = pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
+    *v = pico8_vec_v(p8_fixed_from_int(x), p8_fixed_from_int(y));
     return v;
 }
 
@@ -443,12 +443,12 @@ static void check_fresh_jc(const void *e, const void *qu) {
     assert(jc->def == &pico8_jc_def && jc->probe->def == &pico8_jc_def.probe);
     assert(jc->header.state != NULL && strcmp(jc->header.state, "placing") == 0);
     assert(jc->header.state_time == 0);
-    assert(jc->fa == pico8_fixed_from_int(2));
+    assert(jc->fa == p8_fixed_from_int(2));
     assert(jc->probe->def->fp == 0);
-    assert(jc->probe->def->ik == pico8_fixed_from_int(48) && jc->probe->def->has_ik == 1);
+    assert(jc->probe->def->ik == p8_fixed_from_int(48) && jc->probe->def->has_ik == 1);
     printf("[dw] 0x%08X\n", (unsigned)jc->probe->def->dw);
-    assert(jc->probe->def->dw == (pico8_fixed_t)DW_BITS);
-    assert(jc->nh == pico8_fixed_from_int(20));
+    assert(jc->probe->def->dw == (p8_fixed_t)DW_BITS);
+    assert(jc->nh == p8_fixed_from_int(20));
 
     k_ = jc->def->k_;
     assert(k_ == &pico8_jc_k__seq && k_->count == 20);
@@ -505,8 +505,8 @@ static void test_ey(void) {
     void *origin;
     void *target;
     void *refused;
-    pico8_fixed_t before;
-    pico8_fixed_t od;
+    p8_fixed_t before;
+    p8_fixed_t od;
 
     colonized_pair(&origin, &target);
     held = dragged(origin, target);
@@ -526,11 +526,11 @@ static void test_ey(void) {
     h = fold_jc(h, refused);
 
     cls_of(held)->drop(held, target);
-    assert(as_jc(held)->nh == pico8_fixed_from_int(1));
+    assert(as_jc(held)->nh == p8_fixed_from_int(1));
     assert(as_jc(held)->re == target);
     assert(p__state(as_jc(held)) == 0);
     assert(ents_ptrs_count(as_jo(origin)->oe) == 1 && ents_ptrs_count(as_jo(target)->oe) == 1);
-    assert(credits() == pico8_fixed_sub(before, od));
+    assert(credits() == p8_fixed_sub(before, od));
     h = fold_jc(h, held);
     h = fold_planets(h, 1);
     h = fnv(h, (uint32_t)credits());
@@ -611,8 +611,8 @@ static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
     int i;
 
-    for (i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)pico8_peek(&mem, PICO8_ADDR_SCREEN + i);
+    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
+        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
@@ -635,13 +635,13 @@ static void test_draw(void) {
     origin = as_jc(old)->qu;
     assert(pico8_mo_qb() != NULL);
     mo_ra = vec_of(pico8_mo_qb()->ra);
-    pico8_camera(&gfx, pico8_fixed_flr_int(mo_ra.x), pico8_fixed_flr_int(mo_ra.y));
-    pico8_cls(&mem);
+    p8_camera(&gfx, p8_fixed_flr_int(mo_ra.x), p8_fixed_flr_int(mo_ra.y));
+    p8_cls(&mem);
     blank = screen_hash();
 
     for (i = 0; i < 3; i++) {
         as_jc(old)->fo = old;
-        pico8_cls(&mem);
+        p8_cls(&mem);
         cls_of(old)->draw(old, NULL);
         assert(as_jc(old)->fo == NULL);
         assert(screen_hash() != blank);
@@ -649,11 +649,11 @@ static void test_draw(void) {
         h = fold_jc(h, old);
     }
 
-    pico8_cls(&mem);
+    p8_cls(&mem);
     cls_of(origin)->draw(origin, vec_ref_fixed(vec_of(as_jo(origin)->ra)));
     plain = screen_hash();
     as_jo(origin)->fo = old;
-    pico8_cls(&mem);
+    p8_cls(&mem);
     cls_of(origin)->draw(origin, vec_ref_fixed(vec_of(as_jo(origin)->ra)));
     circled = screen_hash();
     assert(as_jo(origin)->fo == NULL);
@@ -675,8 +675,8 @@ static void test_too_far(void) {
     uint32_t costed;
     pico8_vec_t mo_ra;
     pico8_vec_t mouse;
-    pico8_fixed_t nh;
-    pico8_fixed_t before;
+    p8_fixed_t nh;
+    p8_fixed_t before;
     void *old;
     void *origin;
     void *target;
@@ -695,8 +695,8 @@ static void test_too_far(void) {
     assert(et_kind(old) == ET_ABSENT);
     assert(pico8_mo_qb() != NULL);
     mo_ra = vec_of(pico8_mo_qb()->ra);
-    pico8_camera(&gfx, pico8_fixed_flr_int(mo_ra.x), pico8_fixed_flr_int(mo_ra.y));
-    pico8_cls(&mem);
+    p8_camera(&gfx, p8_fixed_flr_int(mo_ra.x), p8_fixed_flr_int(mo_ra.y));
+    p8_cls(&mem);
     blank = screen_hash();
 
     cls_of(far)->draw(far, NULL);
@@ -708,18 +708,18 @@ static void test_too_far(void) {
     assert(et_kind(twin) == ET_JC);
     near = build_jc(origin);
     hq_over(near, NULL,
-            vec_ref_fixed(pico8_vec_add(vec_of(as_jo(origin)->ra), pico8_vec_v(pico8_fixed_from_int(16), 0))));
+            vec_ref_fixed(pico8_vec_add(vec_of(as_jo(origin)->ra), pico8_vec_v(p8_fixed_from_int(16), 0))));
     assert(re_kind(near) == RE_THROWAWAY && et_kind(near) == ET_ABSENT && as_jc(near)->probe->has_od);
     assert(pico8_je_nf() != NULL);
     mouse = vec_of(pico8_je_nf()->ra);
-    pico8_camera(&gfx, pico8_fixed_flr_int(mouse.x) - 64, pico8_fixed_flr_int(mouse.y) - 64);
-    pico8_cls(&mem);
+    p8_camera(&gfx, p8_fixed_flr_int(mouse.x) - 64, p8_fixed_flr_int(mouse.y) - 64);
+    p8_cls(&mem);
     cls_of(far)->draw_overlay(far, NULL);
     too_far = screen_hash();
-    pico8_cls(&mem);
+    p8_cls(&mem);
     cls_of(twin)->draw_overlay(twin, NULL);
     sprite = screen_hash();
-    pico8_cls(&mem);
+    p8_cls(&mem);
     cls_of(near)->draw_overlay(near, NULL);
     costed = screen_hash();
     assert(too_far != blank && sprite != blank && costed != blank);
@@ -783,7 +783,7 @@ static void test_hq_mouse_point(void) {
     assert(r1 != NULL && re_kind(a) == RE_THROWAWAY);
     assert(holds_copy_of(mouse_point_ra(r1), m1));
     p1 = vec_of(mouse_point_p(r1));
-    assert(same_vec(p1, pico8_vec_div(vec_of(mouse_point_ra(r1)), pico8_fixed_from_int(128))));
+    assert(same_vec(p1, pico8_vec_div(vec_of(mouse_point_ra(r1)), p8_fixed_from_int(128))));
     assert(mouse_point_p(r1) != m1);
     assert(*((const entity_t *)r1)->map_pos == mouse_point_p(r1));
     assert(!pico8_gd(r1));
@@ -797,7 +797,7 @@ static void test_hq_mouse_point(void) {
     r2 = as_jc(a)->re;
     assert(r2 == r1 && re_kind(a) == RE_THROWAWAY && "the mouse point is the slipway's own, rewritten in place");
     assert(holds_copy_of(mouse_point_ra(r2), m2));
-    assert(same_vec(vec_of(mouse_point_p(r2)), pico8_vec_div(*m2, pico8_fixed_from_int(128))));
+    assert(same_vec(vec_of(mouse_point_p(r2)), pico8_vec_div(*m2, p8_fixed_from_int(128))));
     assert(!same_vec(vec_of(mouse_point_p(r2)), p1));
     h = fold_jc(h, a);
 
@@ -824,7 +824,7 @@ static void test_hq_mouse_point(void) {
     check("mouse point", h, MOUSE_POINT_HASH);
 
     on_camera = pico8_vec_add(vec_of(pico8_mo_qb()->ra),
-                              pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64)));
+                              pico8_vec_v(p8_fixed_from_int(64), p8_fixed_from_int(64)));
     hq_over(b, NULL, vec_ref_fixed(on_camera));
     assert(pico8_gd(as_jc(b)->re));
 }
@@ -841,7 +841,7 @@ static void test_ce_crosses_a_slipway(void) {
     world();
     jos = pico8_cg("planet");
     old = the_slipway();
-    mid = pico8_vec_div(pico8_vec_add(pos_of(as_jc(old)->qu), pos_of(as_jc(old)->re)), pico8_fixed_from_int(2));
+    mid = pico8_vec_div(pico8_vec_add(pos_of(as_jc(old)->qu), pos_of(as_jc(old)->re)), p8_fixed_from_int(2));
     for (i = 0; i < jos->count && !crossed; i++) {
         void *q = jos->items[i];
         pico8_vec_t past;
@@ -850,9 +850,9 @@ static void test_ce_crosses_a_slipway(void) {
         if (q == as_jc(old)->qu || q == as_jc(old)->re) {
             continue;
         }
-        past = pico8_vec_add(mid, pico8_vec_div(pico8_vec_sub(mid, pos_of(q)), pico8_fixed_from_int(8)));
+        past = pico8_vec_add(mid, pico8_vec_div(pico8_vec_sub(mid, pos_of(q)), p8_fixed_from_int(8)));
         a = build_jc(q);
-        hq_over(a, NULL, vec_ref_fixed(pico8_vec_mul(past, pico8_fixed_from_int(128))));
+        hq_over(a, NULL, vec_ref_fixed(pico8_vec_mul(past, p8_fixed_from_int(128))));
         crossed = as_jc(a)->probe->et == old;
         if (!crossed) {
             pico8_he(a);
@@ -894,9 +894,9 @@ static void test_bv(void) {
     qu = pos_of(as_jc(old)->qu);
     re = pos_of(as_jc(old)->re);
     for (k = 1; k < 8; k++) {
-        pico8_vec_t at = pico8_vec_add(qu, pico8_vec_div(pico8_vec_mul(pico8_vec_sub(re, qu), pico8_fixed_from_int(k)),
-                                                         pico8_fixed_from_int(8)));
-        cls_of(probe)->drag(probe, vec_ref_fixed(pico8_vec_mul(at, pico8_fixed_from_int(128))),
+        pico8_vec_t at = pico8_vec_add(qu, pico8_vec_div(pico8_vec_mul(pico8_vec_sub(re, qu), p8_fixed_from_int(k)),
+                                                         p8_fixed_from_int(8)));
+        cls_of(probe)->drag(probe, vec_ref_fixed(pico8_vec_mul(at, p8_fixed_from_int(128))),
                           vec_ref(64, 64));
         h = fold_ref(h, ((pico8_g__t *)probe)->probe->et);
         if (((pico8_g__t *)probe)->probe->et == old) {
@@ -932,8 +932,8 @@ static void test_bv_takes_the_first_slipway_of_cg(void) {
     probe = probe_with_zero_dw();
     qu = pos_of(as_jc(old)->qu);
     re = pos_of(as_jc(old)->re);
-    at = pico8_vec_div(pico8_vec_add(qu, re), pico8_fixed_from_int(2));
-    cls_of(probe)->drag(probe, vec_ref_fixed(pico8_vec_mul(at, pico8_fixed_from_int(128))), vec_ref(64, 64));
+    at = pico8_vec_div(pico8_vec_add(qu, re), p8_fixed_from_int(2));
+    cls_of(probe)->drag(probe, vec_ref_fixed(pico8_vec_mul(at, p8_fixed_from_int(128))), vec_ref(64, 64));
     assert(((pico8_g__t *)probe)->probe->et == old);
     assert(as_jc(old)->fo == probe && as_jc(twin)->fo != probe);
 }
@@ -1111,11 +1111,11 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

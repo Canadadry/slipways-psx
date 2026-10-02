@@ -26,9 +26,9 @@
 
 #define KIND_COUNT 9
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static const entity_kind_t *kind_of(int i) {
     switch (i) {
@@ -114,7 +114,7 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
     return s == NULL ? h : fold_string(fnv(h, (uint32_t)STRING_KIND), s);
 }
 
-static uint32_t fold_fixed_member(uint32_t h, int has, pico8_fixed_t v) {
+static uint32_t fold_fixed_member(uint32_t h, int has, p8_fixed_t v) {
     h = fnv(h, (uint32_t)(has != 0));
     return has ? fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)v) : h;
 }
@@ -231,11 +231,11 @@ static void test_every_class_name_is_protostar_or_burst(void) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

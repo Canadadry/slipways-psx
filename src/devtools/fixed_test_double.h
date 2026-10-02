@@ -5,9 +5,9 @@
 
 /* Rounds to the nearest representable 16.16 value -- not PICO-8's
  * truncation, which PICO8_FIXED_LIT carries. */
-pico8_fixed_t pico8_fixed_from_double(double d);
+p8_fixed_t pico8_fixed_from_double(double d);
 
 /* Exact. */
-double pico8_fixed_to_double(pico8_fixed_t x);
+double pico8_fixed_to_double(p8_fixed_t x);
 
 #endif

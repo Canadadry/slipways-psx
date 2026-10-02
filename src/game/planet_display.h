@@ -30,7 +30,7 @@ void pico8_jo_fe(pico8_jo_t *self);
 
 /* Draws, and mutates `self`: `ma()` decays the halo, and the `fo` flash is
  * cleared once drawn. */
-void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec_t p);
+void pico8_jo_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_jo_t *self, pico8_vec_t p);
 
 /* In the `hp.cw` branch `self` is marked for removal and the tail of the
  * work lands on a fresh planet the caller never sees -- or on nothing,

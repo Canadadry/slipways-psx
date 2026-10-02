@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-char *pico8_sub(const pico8_zone_choisie_t *zone, const char *s, int i, int j) {
+char *p8_sub(const pico8_zone_choisie_t *zone, const char *s, int i, int j) {
     int len = (int)strlen(s);
 
     if (i < 1) {
@@ -27,7 +27,7 @@ char *pico8_sub(const pico8_zone_choisie_t *zone, const char *s, int i, int j) {
     return out;
 }
 
-char *pico8_tostr_fixed(const pico8_zone_choisie_t *zone, pico8_fixed_t x) {
+char *p8_tostr_fixed(const pico8_zone_choisie_t *zone, p8_fixed_t x) {
     char buf[64];
 
     /* TROU-22 */
@@ -66,7 +66,7 @@ char *pico8_tostr_fixed(const pico8_zone_choisie_t *zone, pico8_fixed_t x) {
     return out;
 }
 
-char *pico8_concat2(const pico8_zone_choisie_t *zone, const char *a, const char *b) {
+char *p8_concat2(const pico8_zone_choisie_t *zone, const char *a, const char *b) {
     size_t la = strlen(a);
     size_t lb = strlen(b);
     char *out = (char *)pico8_zone_alloc(zone, la + lb + 1);

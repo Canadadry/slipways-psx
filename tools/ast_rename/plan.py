@@ -118,7 +118,8 @@ def _resolve(entries, model, plan):
 
 def _check_names(renamed, model, plan):
     """The new name must not meet another declaration where both are visible:
-    a macro meets every name; file-scope names meet each other unless both are
+    a macro of a header meets every name, a macro of a .c file the names of a
+    header, of external linkage or of its file; file-scope names meet each other unless both are
     static in different files, and meet the locals they would shadow; fields
     meet the fields of their struct; locals the locals of their function, and
     the file-scope names of a header, of external linkage or of their file."""
@@ -139,7 +140,8 @@ def _check_names(renamed, model, plan):
 
 def _visible_together(a, b):
     if a.kind == "macro" or b.kind == "macro":
-        return True
+        macro, other = (a, b) if a.kind == "macro" else (b, a)
+        return _shared(macro) or _shared(other) or macro.file == other.file
     if a.kind == "field" or b.kind == "field":
         return a.kind == b.kind and _record_of(a) == _record_of(b)
     if a.kind == "tag" or b.kind == "tag":

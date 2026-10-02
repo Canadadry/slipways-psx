@@ -8,7 +8,7 @@ pico8_replay_source_status_t pico8_replay_source_open(pico8_replay_source_t *sou
 
     source->path = path;
     source->next_frame_index = 0;
-    pico8_input_init(&source->recording);
+    p8_input_init(&source->recording);
 
     if (!path) {
         source->status = PICO8_REPLAY_SOURCE_NONE;
@@ -40,7 +40,7 @@ int pico8_replay_source_frames_served(const pico8_replay_source_t *source) {
     return source->next_frame_index;
 }
 
-int pico8_replay_source_next_frame(pico8_replay_source_t *source, pico8_input_frame_t *out_frame) {
+int pico8_replay_source_next_frame(pico8_replay_source_t *source, p8_input_frame_t *out_frame) {
     assert(source);
     assert(out_frame);
 

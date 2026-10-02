@@ -24,7 +24,7 @@ int pico8_gif_open(pico8_gif_writer_t *writer, FILE *file);
  * l'ordre de pico8_screencast_read_frame). Avec `event` non NULL, la souris
  * de cet event est dessinée par-dessus : anneau de rayon 2 en couleur 7 sans
  * bouton, de rayon 3 en couleur 8 avec un bouton. `pixels` n'est pas modifié. */
-int pico8_gif_write_frame(pico8_gif_writer_t *writer, const unsigned char *pixels, const pico8_input_frame_t *event);
+int pico8_gif_write_frame(pico8_gif_writer_t *writer, const unsigned char *pixels, const p8_input_frame_t *event);
 
 /* Écrit le trailer ; rend 1 si aucune écriture n'a échoué depuis l'ouverture.
  * Ne ferme pas le fichier. */

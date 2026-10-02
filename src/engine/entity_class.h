@@ -97,16 +97,16 @@ struct pico8_probe;
 typedef struct {
     const entity_class_t *class;
     const char *state;
-    pico8_fixed_t state_time;
-    const pico8_fixed_t *layer;
+    p8_fixed_t state_time;
+    const p8_fixed_t *layer;
     const pico8_vec_t *const *pos;
     const pico8_vec_t *const *map_pos;
     const pico8_qz_box_t *hit_box;
-    const pico8_fixed_t *cursor_sprite;
-    const pico8_fixed_t *gpio_signal;
-    const pico8_fixed_t *infraspace;
-    pico8_fixed_t *shake;
-    const pico8_fixed_t *fold_anchor;
+    const p8_fixed_t *cursor_sprite;
+    const p8_fixed_t *gpio_signal;
+    const p8_fixed_t *infraspace;
+    p8_fixed_t *shake;
+    const p8_fixed_t *fold_anchor;
     int *is_dead;
     int *is_hovered;
     struct pico8_emitter *emitter;
@@ -129,7 +129,7 @@ typedef struct {
     entity_t *held;
 } down_t;
 
-typedef void (*state_fn_t)(entity_t *self, pico8_fixed_t t);
+typedef void (*state_fn_t)(entity_t *self, p8_fixed_t t);
 
 struct pico8_qy;
 struct pico8_jo_trade_proposal;
@@ -145,7 +145,7 @@ struct entity_class {
     void (*draw)(entity_t *self, const pico8_vec_t *ra);
     void (*draw_overlay)(entity_t *self, const pico8_vec_t *ra);
     int (*hit_test)(entity_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra);
-    void (*new_year)(entity_t *self, pico8_fixed_t yr);
+    void (*new_year)(entity_t *self, p8_fixed_t yr);
     void (*refresh)(entity_t *self);
     int (*has_refresh)(const entity_t *self);
     down_t (*left_press)(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra);
@@ -155,14 +155,14 @@ struct entity_class {
     void (*drop)(entity_t *self, entity_t *kv);
     void (*attach_slipway)(entity_t *self, entity_t *sw);
     void (*offer_trade)(entity_t *self, struct pico8_jo_trade_proposal *lw);
-    void (*draw_at)(entity_t *self, pico8_vec_t p, pico8_fixed_t a);
+    void (*draw_at)(entity_t *self, pico8_vec_t p, p8_fixed_t a);
     struct pico8_qy *(*spawn_particle)(entity_t *self);
     state_fn_t states[STATE_COUNT];
     /* `PICO8_TAG(t)` set: lt() registers every instance under tag t. */
     unsigned tags;
     /* `PICO8_LINEAGE(l)` set: the class is l's or descends from it. */
     unsigned lineage;
-    void (*apply_camera)(entity_t *self, pico8_fixed_t fy);
+    void (*apply_camera)(entity_t *self, p8_fixed_t fy);
     /* Releases what the instance holds in the interface and particle
      * zones; only the exit queue's flush calls it (pico8_file_sortie.h). */
     void (*release)(entity_t *self);

@@ -47,8 +47,8 @@ static void pico8_mh_ev_dispatch(entity_t *self, const pico8_vec_t *ra) {
     pico8_mh_ev(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_mh_t *)self);
 }
 
-void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self) {
-    pico8_fixed_t self_t, rh, t, nc, t3;
+void pico8_mh_ev(p8_graphics_t *gfx, p8_memory_t *mem, pico8_mh_t *self) {
+    p8_fixed_t self_t, rh, t, nc, t3;
 
     if (self == NULL) {
         return;
@@ -56,26 +56,26 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self) {
 
     self_t = self->header.state_time;
     rh = self->rh;
-    t = pico8_fixed_sub(pico8_fixed_div(self_t, rh), pico8_fixed_from_int(10));
+    t = p8_fixed_sub(p8_fixed_div(self_t, rh), p8_fixed_from_int(10));
 
     if (t >= 0) {
         if (self->lh != NULL && self->lh(self)) {
-            self->header.state_time = pico8_fixed_mul(rh, pico8_fixed_from_int(10));
-            t = pico8_fixed_from_int(0);
+            self->header.state_time = p8_fixed_mul(rh, p8_fixed_from_int(10));
+            t = p8_fixed_from_int(0);
         }
     }
 
     /* `-t^3/9` is `(-(t^3))/9`: in Lua `^` binds tighter than unary `-`,
      * which in turn binds tighter than `/`. */
-    t3 = pico8_fixed_mul(pico8_fixed_mul(t, t), t);
-    nc = pico8_fixed_div(pico8_fixed_neg(t3), pico8_fixed_from_int(9));
+    t3 = p8_fixed_mul(p8_fixed_mul(t, t), t);
+    nc = p8_fixed_div(p8_fixed_neg(t3), p8_fixed_from_int(9));
 
     if (gfx != NULL && mem != NULL) {
         pico8_bl(gfx, mem, self->items, self->items_count, nc);
-        pico8_camera_reset(gfx);
+        p8_camera_reset(gfx);
     }
 
-    if (t > PICO8_FIXED_LIT(0x000a8000, 10.5)) {
+    if (t > P8_FIXED_LIT(0x000a8000, 10.5)) {
         self->p_ = 1;
         pico8_msgbox_set_kc(NULL);
         assert(pico8_kc() == NULL && "`self.p_,kc=true` is one value for two targets: kc gets nil, not true");
@@ -177,7 +177,7 @@ static pico8_vec_t pico8_iv_vec_or_zero(const pico8_vec_t *p) {
     if (p != NULL) {
         return *p;
     }
-    return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    return pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
 void pico8_iv_pq(pico8_iv_t *self) {
@@ -190,14 +190,14 @@ void pico8_iv_pq(pico8_iv_t *self) {
         const pico8_qb_t *mo = pico8_mo_qb();
         pico8_vec_t je_ra = pico8_iv_vec_or_zero(je != NULL ? je->ra : NULL);
         pico8_vec_t mo_ra = pico8_iv_vec_or_zero(mo != NULL ? mo->ra : NULL);
-        pico8_vec_t offset = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(5));
+        pico8_vec_t offset = pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(5));
         self->ra_box = pico8_vec_sub(pico8_vec_add(je_ra, mo_ra), offset);
         self->ra = &self->ra_box;
     }
 }
 
 void pico8_iv_ph(pico8_iv_t *self) {
-    pico8_fixed_t new_l;
+    p8_fixed_t new_l;
 
     if (self == NULL) {
         return;
@@ -206,21 +206,21 @@ void pico8_iv_ph(pico8_iv_t *self) {
     self->ra_box = pico8_vec_add(pico8_iv_vec_or_zero(self->ra), pico8_iv_vec_or_zero(&self->def->v));
     self->ra = &self->ra_box;
 
-    new_l = pico8_fixed_add(self->l, PICO8_FIXED_LIT(0x00001999, 0.1));
+    new_l = p8_fixed_add(self->l, P8_FIXED_LIT(0x00001999, 0.1));
     self->l = new_l;
 
-    self->p_ = new_l >= pico8_fixed_from_int(5);
+    self->p_ = new_l >= p8_fixed_from_int(5);
 }
 
-static void pico8_iv_ph_dispatch(entity_t *self, pico8_fixed_t t) {
+static void pico8_iv_ph_dispatch(entity_t *self, p8_fixed_t t) {
     (void)t;
     pico8_iv_ph((pico8_iv_t *)self);
 }
 
-void pico8_iv_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_iv_t *self, pico8_vec_t p) {
+void pico8_iv_kj(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_iv_t *self, pico8_vec_t p) {
     const char *text;
     int color;
-    pico8_fixed_t a_center = PICO8_FIXED_LIT(0x00008000, 0.5);
+    p8_fixed_t a_center = P8_FIXED_LIT(0x00008000, 0.5);
 
     if (self == NULL || gfx == NULL || mem == NULL) {
         return;
@@ -229,7 +229,7 @@ void pico8_iv_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_iv_t *sel
     pico8_dv(mem, self->l);
 
     text = self->at1 != NULL ? self->at1 : "";
-    color = pico8_fixed_flr_int(self->at2);
+    color = p8_fixed_flr_int(self->at2);
 
     pico8_io(gfx, mem, text, p.x, p.y, color, &a_center);
 
@@ -237,7 +237,7 @@ void pico8_iv_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_iv_t *sel
 }
 
 static void pico8_iv_kj_dispatch(entity_t *self, const pico8_vec_t *ra) {
-    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
     pico8_iv_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_iv_t *)self, p);
 }
 
@@ -266,7 +266,7 @@ static pico8_iv_t *pico8_iv_struct_new(const pico8_iv_keys_t *keys) {
     self->header.is_dead = &self->p_;
     self->p_ = 0;
     self->at1 = NULL;
-    self->at2 = pico8_fixed_from_int(0);
+    self->at2 = p8_fixed_from_int(0);
     if (keys != NULL) {
         self->ra = keys->ra;
         if (keys->at1 != NULL) {
@@ -325,7 +325,7 @@ static pico8_js_t *pico8_pz_step(pico8_pz_ctx_t *ctx, const pico8_js_keys_t *row
         b.has_fa = 1;
     }
 
-    gq = ctx->frame->gq != NULL ? *ctx->frame->gq : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    gq = ctx->frame->gq != NULL ? *ctx->frame->gq : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
     ctx->bp = pico8_vec_add(ctx->bp, gq);
 
     return pico8_js_new(&b);
@@ -344,7 +344,7 @@ void pico8_pz(const pico8_pz_frame_t *frame, const pico8_js_keys_t *bs, int n) {
     pico8_pz_ctx_t ctx;
     pico8_ents_t *le;
     pico8_ui_t *ok;
-    pico8_fixed_t rn_arg;
+    p8_fixed_t rn_arg;
     pico8_js_keys_t ep_row = {0};
     pico8_lq_keys_t ep_lq = {0};
     int has_ep;
@@ -360,27 +360,27 @@ void pico8_pz(const pico8_pz_frame_t *frame, const pico8_js_keys_t *bs, int n) {
         ep_lq.items = &ep_cell;
         ep_lq.count = 1;
         ep_lq.has_c = 1;
-        ep_lq.c = pico8_fixed_from_int(13);
+        ep_lq.c = p8_fixed_from_int(13);
         ep_row.lq_row = &ep_lq;
     }
 
     if (frame->has_eo) {
         rn_arg = frame->eo;
     } else {
-        rn_arg = pico8_fixed_from_int(62);
+        rn_arg = p8_fixed_from_int(62);
     }
-    pico8_rn(rn_arg);
+    p8_play_sfx(rn_arg);
 
     if (frame->hi != NULL) {
         ra = *frame->hi;
     } else if (frame->ra != NULL) {
         ra = *frame->ra;
     } else {
-        ra = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+        ra = pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
     }
 
     ctx.frame = frame;
-    ctx.bp = pico8_vec_add(ra, pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0)));
+    ctx.bp = pico8_vec_add(ra, pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0)));
     ctx.ra = ra;
 
     ok = pico8_ok();

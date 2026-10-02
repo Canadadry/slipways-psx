@@ -55,13 +55,13 @@ void pico8_g__struct_init(pico8_g__t *self, const entity_class_t *cls, const pic
  * is 0: no flag. `pn`, `du`, `py` have non-zero defaults, so a key at 0
  * needs its `has_` flag. */
 typedef struct {
-    pico8_fixed_t t;
+    p8_fixed_t t;
     int has_pn;
-    pico8_fixed_t pn;
+    p8_fixed_t pn;
     int has_du;
-    pico8_fixed_t du;
+    p8_fixed_t du;
     int has_py;
-    pico8_fixed_t py;
+    p8_fixed_t py;
 } pico8_g__keys_t;
 
 /* `keys` NULL means none. Built in a grab arena (`pico8_jo_prise_ouvrir`),

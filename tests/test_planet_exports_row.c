@@ -71,9 +71,9 @@ static int lq_index_is_string(const pico8_lq_t *lq, int index, const char *expec
 /* What `jo:gh` reaches when the cart calls it, built without a boot: `r`
  * (from pico8_data_init), the jo/lq/js classes, and the `ok` singleton `pz()`
  * fills. */
-static void setup_panel_state(pico8_mem_t *mem, pico8_gfx_t *gfx) {
-    pico8_mem_init(mem);
-    pico8_gfx_init(gfx);
+static void setup_panel_state(p8_memory_t *mem, p8_graphics_t *gfx) {
+    p8_mem_init(mem);
+    p8_gfx_init(gfx);
     pico8_dispatch_set_gfx(gfx);
     pico8_dispatch_set_mem(mem);
 
@@ -85,8 +85,8 @@ static void setup_panel_state(pico8_mem_t *mem, pico8_gfx_t *gfx) {
 }
 
 static void test_gh_exports_row_lq_receives_its_four_items(void) {
-    pico8_mem_t mem;
-    pico8_gfx_t gfx;
+    p8_memory_t mem;
+    p8_graphics_t gfx;
     pico8_jo_t *planet;
     static pico8_kw_t kw;
     const pico8_jb_row_t *kw_row;
@@ -105,13 +105,13 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
      * the else branch and builds the 4-item "exports:" row rather than the
      * 3-item "makes:" one. */
     kw.has_qe = 1;
-    kw.qe = pico8_fixed_from_int(99);
-    kw.mu = pico8_fixed_from_int(1);
+    kw.qe = p8_fixed_from_int(99);
+    kw.mu = p8_fixed_from_int(1);
     planet->kw = &kw;
 
     /* `jo:gh` reads it, and the archetype's `gq`, for `pz()`'s row placement. */
     ra = malloc(sizeof *ra);
-    *ra = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
+    *ra = pico8_vec_v(p8_fixed_from_int(64), p8_fixed_from_int(64));
     planet->ra = ra;
 
     /* The call under test: this is where the overflow happened. */
@@ -140,7 +140,7 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     assert(lq_item(exports_lq, 3, &entry));
     assert(entry.kind == PICO8_LQ_CELL_ROW && entry.as.row != NULL);
     kw_row = entry.as.row;
-    assert(kw_row->has_qe && kw_row->qe == pico8_fixed_from_int(99) && kw_row->count == 0);
+    assert(kw_row->has_qe && kw_row->qe == p8_fixed_from_int(99) && kw_row->count == 0);
 
     assert(lq_item(exports_lq, 4, &entry));
     assert(entry.kind == PICO8_LQ_CELL_ROW && entry.as.row != NULL);

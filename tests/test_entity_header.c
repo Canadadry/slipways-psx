@@ -39,9 +39,9 @@
 #include "game/wormhole.h"
 #include "heap_allocator.h"
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static void rerun_with_malloc_filling(char **argv) {
     if (getenv("PICO8_MALLOC_FILLS") != NULL) {
@@ -152,7 +152,7 @@ static void test_carriers_link_their_storage(void) {
                                                          .is_hovered = &help_screen->m_,
                                                          .emitter = &help_screen->emitter_own,
                                                          .targeting = &help_screen->probe_own});
-    assert(*help_screen->header.fold_anchor == pico8_fixed_from_int(1) &&
+    assert(*help_screen->header.fold_anchor == p8_fixed_from_int(1) &&
            "a probe's fx is its archetype's 1.0, Lua's true: 0 would read as nil");
     assert_links(&planet->header, (entity_t){.layer = &planet->def->fa,
                                                       .pos = (const pico8_vec_t *const *)&planet->ra,
@@ -218,7 +218,7 @@ static void test_component_carriers_link_their_own(void) {
                                                       .emitter = &g_->emitter_own,
                                                       .targeting = &g_->probe_own});
     assert(g_->emitter == g_->header.emitter && g_->probe == g_->header.targeting);
-    assert(*g_->header.fold_anchor == pico8_fixed_from_int(1) &&
+    assert(*g_->header.fold_anchor == p8_fixed_from_int(1) &&
            "a probe's fx is its archetype's 1.0, Lua's true: 0 would read as nil");
     assert_structure_links(pico8_qh_new(NULL), NULL);
     assert_structure_links(nl, NULL);
@@ -245,7 +245,7 @@ static pico8_jc_t *slipway_dragged_over_nothing(entity_t *qu) {
 
     keys.qu = qu;
     jc = pico8_jc_new(&keys);
-    *mp = pico8_vec_v(pico8_fixed_from_int(-640), pico8_fixed_from_int(-640));
+    *mp = pico8_vec_v(p8_fixed_from_int(-640), p8_fixed_from_int(-640));
     pico8_ok()->o_ = NULL;
     pico8_jc_struct_class()->drag(&jc->header, mp, NULL);
     return jc;
@@ -260,10 +260,10 @@ static void test_mouse_point_has_null_links(void) {
 
     assert(point != NULL && point->header.class == pico8_jc_mouse_point_struct_class());
     assert_links(&point->header, (entity_t){.pos = &point->ra, .map_pos = &point->p});
-    assert(!jc->has_mt && jc->fa == pico8_fixed_from_int(4));
+    assert(!jc->has_mt && jc->fa == p8_fixed_from_int(4));
     assert_links(&jc->header, (entity_t){.layer = &jc->fa, .is_dead = &jc->p_, .targeting = &jc->probe_own});
     assert(jc->probe == jc->header.targeting);
-    assert(from_infraspace_gate->has_mt && from_infraspace_gate->mt == pico8_fr_def.mt && from_infraspace_gate->fa == pico8_fixed_from_int(2));
+    assert(from_infraspace_gate->has_mt && from_infraspace_gate->mt == pico8_fr_def.mt && from_infraspace_gate->fa == p8_fixed_from_int(2));
     assert_links(&from_infraspace_gate->header,
                  (entity_t){
                      .layer = &from_infraspace_gate->fa, .infraspace = &from_infraspace_gate->mt, .is_dead = &from_infraspace_gate->p_, .targeting = &from_infraspace_gate->probe_own});
@@ -272,11 +272,11 @@ static void test_mouse_point_has_null_links(void) {
 int main(int argc, char **argv) {
     (void)argc;
     rerun_with_malloc_filling(argv);
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

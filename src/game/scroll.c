@@ -18,17 +18,17 @@ static pico8_vec_t pico8_qb_vec(const pico8_vec_t *v) {
     if (v != NULL) {
         return *v;
     }
-    return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    return pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
 /* dg() dispatches the per-tick state method as `qc[qc.me](qc,qc.t)`, so
  * `t` is the frame counter, which qb:ph does not read. */
-static void pico8_qb_ph_dispatch(entity_t *self, pico8_fixed_t t) {
+static void pico8_qb_ph_dispatch(entity_t *self, p8_fixed_t t) {
     (void)t;
     pico8_qb_ph(pico8_dispatch_input(), (pico8_qb_t *)self);
 }
 
-static void pico8_qb_md_dispatch(entity_t *self, pico8_fixed_t fy) {
+static void pico8_qb_md_dispatch(entity_t *self, p8_fixed_t fy) {
     pico8_qb_md(pico8_dispatch_gfx(), (pico8_qb_t *)self, fy);
 }
 
@@ -79,8 +79,8 @@ pico8_qb_t *pico8_qb_new(void) {
     return pico8_qb_struct_new();
 }
 
-void pico8_qb_ph(const pico8_input_t *input, pico8_qb_t *self) {
-    pico8_vec_t ip = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+void pico8_qb_ph(const p8_input_t *input, pico8_qb_t *self) {
+    pico8_vec_t ip = pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
     const pico8_vec_seq_t *pc = NULL;
     pico8_vec_t p;
     pico8_vec_t v;
@@ -93,16 +93,16 @@ void pico8_qb_ph(const pico8_input_t *input, pico8_qb_t *self) {
     pc = self->def->pc;
 
     for (b = 0; b <= 3; b++) {
-        int btn_p1 = pico8_btn(input, b);
+        int btn_p1 = p8_btn(input, b);
         /* TROU-2 */
         int btn_p2 = 0;
 
         if (btn_p1 || btn_p2) {
-            pico8_vec_t dir = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+            pico8_vec_t dir = pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
             if (pc != NULL && b < pc->count) {
                 dir = pc->items[b];
             }
-            ip = pico8_vec_add(ip, pico8_vec_mul(dir, pico8_fixed_from_int(3)));
+            ip = pico8_vec_add(ip, pico8_vec_mul(dir, p8_fixed_from_int(3)));
         }
     }
 
@@ -110,10 +110,10 @@ void pico8_qb_ph(const pico8_input_t *input, pico8_qb_t *self) {
     v = pico8_qb_vec(self->v);
 
     p = pico8_vec_add(p, v);
-    v = pico8_vec_add(v, pico8_vec_mul(pico8_vec_sub(ip, v), PICO8_FIXED_LIT(0x00003333, 0.2)));
+    v = pico8_vec_add(v, pico8_vec_mul(pico8_vec_sub(ip, v), P8_FIXED_LIT(0x00003333, 0.2)));
 
-    p.x = pico8_fixed_mid(pico8_fixed_from_int(-64), pico8_fixed_from_int(320), p.x);
-    p.y = pico8_fixed_mid(pico8_fixed_from_int(-64), pico8_fixed_from_int(320), p.y);
+    p.x = p8_fixed_mid(p8_fixed_from_int(-64), p8_fixed_from_int(320), p.x);
+    p.y = p8_fixed_mid(p8_fixed_from_int(-64), p8_fixed_from_int(320), p.y);
 
     self->p_own = p;
     self->p = &self->p_own;
@@ -128,7 +128,7 @@ void pico8_qb_set_v(pico8_qb_t *self, pico8_vec_t v) {
     self->v = &self->v_own;
 }
 
-void pico8_qb_md(pico8_gfx_t *gfx, pico8_qb_t *self, pico8_fixed_t fy) {
+void pico8_qb_md(p8_graphics_t *gfx, pico8_qb_t *self, p8_fixed_t fy) {
     pico8_vec_t cp;
 
     if (self == NULL || gfx == NULL) {
@@ -136,7 +136,7 @@ void pico8_qb_md(pico8_gfx_t *gfx, pico8_qb_t *self, pico8_fixed_t fy) {
     }
 
     cp = pico8_vec_mul(pico8_qb_vec(self->ra), fy);
-    pico8_camera(gfx, pico8_fixed_flr_int(cp.x), pico8_fixed_flr_int(cp.y));
+    p8_camera(gfx, p8_fixed_flr_int(cp.x), p8_fixed_flr_int(cp.y));
 }
 
 pico8_qb_t *pico8_mo_qb(void) {

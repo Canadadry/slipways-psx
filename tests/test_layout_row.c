@@ -55,9 +55,9 @@
 #define CALLS_HASH 0x26A3DB53u
 #define PANEL_HASH 0xDA5A7F3Eu
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -89,7 +89,7 @@ static pico8_lq_cell_t row_item(const void *lq, int i) {
  * moves them. */
 enum { FIXED_KIND = 0, STRING_KIND = 1, BOOL_KIND = 2, REF_KIND = 3 };
 
-static uint32_t fold_fixed(uint32_t h, pico8_fixed_t x) {
+static uint32_t fold_fixed(uint32_t h, p8_fixed_t x) {
     return fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)x);
 }
 
@@ -122,7 +122,7 @@ static uint32_t fold_tuple_item(uint32_t h, const pico8_jb_item_t *item) {
         return fold_bool(h, 0);
     }
     assert(!item->is_ref && "no test folds a tuple item that points (row, lq, vector): to fold one, fold REF_KIND then 0xDEAD if NULL, else 0 with no rank, as the frozen hashes did");
-    return fold_fixed(h, item->is_fixed ? item->fixed : pico8_fixed_from_int(item->n));
+    return fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->n));
 }
 
 /* A tuple folded as the frozen hashes folded the table it was: items, then `qe`,
@@ -143,7 +143,7 @@ static uint32_t fold_tuple(uint32_t h, const pico8_jb_row_t *t, int depth) {
         h = fold_fixed(fold_tuple_name(h, "qe"), t->qe);
     }
     if (t->has_c) {
-        h = fold_fixed(fold_tuple_name(h, "c"), pico8_fixed_from_int(t->c));
+        h = fold_fixed(fold_tuple_name(h, "c"), p8_fixed_from_int(t->c));
     }
     return h;
 }
@@ -227,13 +227,13 @@ static int fs_count(const void *lq) {
     return as_lq(lq)->fs_count;
 }
 
-static pico8_fixed_t w_of(const void *lq) {
+static p8_fixed_t w_of(const void *lq) {
     return as_lq(lq)->w;
 }
 
 /* A number's or a boolean's kind word and value; an unset flag folds as
  * absent. */
-static uint32_t fold_fixed_member(uint32_t h, int has, pico8_fixed_t v) {
+static uint32_t fold_fixed_member(uint32_t h, int has, p8_fixed_t v) {
     return has ? fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)v) : fnv(h, 0xFFFFFFFFu);
 }
 
@@ -264,8 +264,8 @@ static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
     int i;
 
-    for (i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)pico8_peek(&mem, PICO8_ADDR_SCREEN + i);
+    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
+        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
@@ -278,7 +278,7 @@ static void check(const char *label, uint32_t got, uint32_t want) {
 }
 
 static pico8_vec_t vec_xy(int x, int y) {
-    return pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
+    return pico8_vec_v(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
 static pico8_vec_t *vec_ref(pico8_vec_t at) {
@@ -288,7 +288,7 @@ static pico8_vec_t *vec_ref(pico8_vec_t at) {
 }
 
 static pico8_lq_cell_t num(int n) {
-    return pico8_lq_cell_fixed(pico8_fixed_from_int(n));
+    return pico8_lq_cell_fixed(p8_fixed_from_int(n));
 }
 
 static pico8_lq_cell_t str(const char *s) {
@@ -310,12 +310,12 @@ static pico8_lq_cell_t tuple_of(int n, const int *items) {
 
 /* `ol` of `lq` on a cleared screen, at `a` 0, 0.5 and 1. */
 static uint32_t fold_drawn(uint32_t h, const void *lq) {
-    static const pico8_fixed_t as[] = {0, PICO8_FIXED_LIT(0x00008000, 0.5), PICO8_FIXED_LIT(0x00010000, 1.0)};
+    static const p8_fixed_t as[] = {0, P8_FIXED_LIT(0x00008000, 0.5), P8_FIXED_LIT(0x00010000, 1.0)};
     size_t n;
 
     for (n = 0; n < sizeof as / sizeof as[0]; n++) {
-        pico8_gfx_init(&gfx);
-        pico8_cls(&mem);
+        p8_gfx_init(&gfx);
+        p8_cls(&mem);
         pico8_lq_ol(&gfx, &mem, lq, vec_xy(64, 60), as[n]);
         h = fnv(h, screen_hash());
     }
@@ -342,7 +342,7 @@ static uint32_t fold_built_from(uint32_t h, const char *label, const pico8_lq_ke
 
     assert(((const entity_t *)lq)->pos == &as_lq(lq)->ra);
 
-    printf("  %s: w=%d fs=%d n=%d 0x%08X\n", label, pico8_fixed_flr_int(w_of(lq)), fs_count(lq), row_count(lq),
+    printf("  %s: w=%d fs=%d n=%d 0x%08X\n", label, p8_fixed_flr_int(w_of(lq)), fs_count(lq), row_count(lq),
            (unsigned)one);
     return fnv(h, one);
 }
@@ -358,7 +358,7 @@ static pico8_lq_keys_t positionals(int n, const pico8_lq_cell_t *items) {
 
 static pico8_lq_keys_t with_c(pico8_lq_keys_t k, int c) {
     k.has_c = 1;
-    k.c = pico8_fixed_from_int(c);
+    k.c = p8_fixed_from_int(c);
     return k;
 }
 
@@ -366,13 +366,13 @@ static pico8_lq_keys_t with_c(pico8_lq_keys_t k, int c) {
 static pico8_lq_keys_t with_bg(pico8_lq_keys_t k, int bg) {
     k.has_bg = 1;
     k.bg_is_bool = bg < 0;
-    k.bg = bg < 0 ? 0 : pico8_fixed_from_int(bg);
+    k.bg = bg < 0 ? 0 : p8_fixed_from_int(bg);
     return k;
 }
 
 static pico8_lq_keys_t with_score(pico8_lq_keys_t k, int score) {
     k.has_score = 1;
-    k.score = pico8_fixed_from_int(score);
+    k.score = p8_fixed_from_int(score);
     return k;
 }
 
@@ -409,13 +409,13 @@ static void test_constructions(void) {
         a[0] = tuple_of(4, f);
         k = positionals(1, a);
         h = fold_built_from(h, "spr w qw qv", &k, 0u);
-        assert(pico8_lq_new(&zone_tas, &k)->fs[0].sprite_qw == pico8_fixed_from_int(3));
+        assert(pico8_lq_new(&zone_tas, &k)->fs[0].sprite_qw == p8_fixed_from_int(3));
     }
     {
         pico8_jb_row_t *qe = calloc(1, sizeof *qe);
         pico8_lq_cell_t a[1];
         qe->has_qe = 1;
-        qe->qe = pico8_fixed_from_int(14);
+        qe->qe = p8_fixed_from_int(14);
         a[0] = pico8_lq_cell_row(qe);
         k = positionals(1, a);
         h = fold_built_from(h, "qe", &k, 0u);
@@ -475,7 +475,7 @@ static void test_jo_ex(void) {
     uint32_t h = 2166136261u;
     size_t a;
     size_t b;
-    pico8_fixed_t o;
+    p8_fixed_t o;
 
     for (a = 0; a < sizeof ks / sizeof ks[0]; a++) {
         const pico8_hp_t *p = project(ks[a]);
@@ -483,23 +483,23 @@ static void test_jo_ex(void) {
         assert(p->has_o);
         o = p->o;
         for (b = 0; b < sizeof jqs / sizeof jqs[0]; b++) {
-            const void *lq = pico8_jo_ex(pico8_zone_frame(), is, &o, pico8_fixed_from_int(jqs[b]),
-                                         pico8_fixed_from_int((int)b % 3), pico8_fixed_from_int((int)b % 2));
+            const void *lq = pico8_jo_ex(pico8_zone_frame(), is, &o, p8_fixed_from_int(jqs[b]),
+                                         p8_fixed_from_int((int)b % 3), p8_fixed_from_int((int)b % 2));
             assert(lq != NULL);
             assert(as_lq(lq)->has_c == (jqs[b] > 5));
             if (jqs[b] > 5) {
-                assert(as_lq(lq)->c == pico8_fixed_from_int(13));
+                assert(as_lq(lq)->c == p8_fixed_from_int(13));
             }
             h = fold_row(h, lq);
         }
     }
     {
         const void *lq =
-            pico8_jo_ex(pico8_zone_frame(), NULL, &o, pico8_fixed_from_int(2), 0, pico8_fixed_from_int(1));
+            pico8_jo_ex(pico8_zone_frame(), NULL, &o, p8_fixed_from_int(2), 0, p8_fixed_from_int(1));
         assert(lq != NULL);
         h = fold_row(h, lq);
     }
-    assert(pico8_jo_ex(pico8_zone_frame(), NULL, NULL, pico8_fixed_from_int(1), 0, 0) == NULL);
+    assert(pico8_jo_ex(pico8_zone_frame(), NULL, NULL, p8_fixed_from_int(1), 0, 0) == NULL);
     check("jo.ex", h, JO_EX_HASH);
 }
 
@@ -531,8 +531,8 @@ static void test_hp_lq_and_copy(void) {
         assert(fs_count(copy) == row_count(copy) && row_count(copy) == row_count(lq));
         h = fold_row(h, copy);
         h = fnv(h, (uint32_t)button->mb);
-        pico8_gfx_init(&gfx);
-        pico8_cls(&mem);
+        p8_gfx_init(&gfx);
+        p8_cls(&mem);
         pico8_js_kj(&gfx, &mem, button, vec_xy(10, 50));
         h = fnv(h, screen_hash());
     }
@@ -555,17 +555,17 @@ static void test_hp_lq_and_copy(void) {
         assert(h_ != NULL);
         h = fold_row(h, h_);
         h = fnv(h, (uint32_t)button->mb);
-        pico8_gfx_init(&gfx);
-        pico8_cls(&mem);
+        p8_gfx_init(&gfx);
+        p8_cls(&mem);
         pico8_js_kj(&gfx, &mem, button, vec_xy(10, 50));
         h = fnv(h, screen_hash());
     }
     check("hp:lq and copy", h, HP_LQ_HASH);
 }
 
-static uint32_t drawn_by_ol(const void *lq, pico8_vec_t at, pico8_fixed_t a) {
-    pico8_gfx_init(&gfx);
-    pico8_cls(&mem);
+static uint32_t drawn_by_ol(const void *lq, pico8_vec_t at, p8_fixed_t a) {
+    p8_gfx_init(&gfx);
+    p8_cls(&mem);
     pico8_lq_ol(&gfx, &mem, lq, at, a);
     return screen_hash();
 }
@@ -587,34 +587,34 @@ static void test_calls(void) {
     t = with_c(positionals(3, a), 11);
     lq = pico8_lq_new(&zone_tas, &t);
 
-    want = drawn_by_ol(lq, vec_xy(64, 30), PICO8_FIXED_LIT(0x00008000, 0.5));
+    want = drawn_by_ol(lq, vec_xy(64, 30), P8_FIXED_LIT(0x00008000, 0.5));
     h = fnv(h, want);
-    pico8_gfx_init(&gfx);
-    pico8_cls(&mem);
-    pico8_lq_struct_class()->draw_at(lq, vec_xy(64, 30), PICO8_FIXED_LIT(0x00008000, 0.5));
+    p8_gfx_init(&gfx);
+    p8_cls(&mem);
+    pico8_lq_struct_class()->draw_at(lq, vec_xy(64, 30), P8_FIXED_LIT(0x00008000, 0.5));
     assert(screen_hash() == want);
 
     entry_items[0] = (pico8_jb_item_t){.is_ref = 1, .ref = lq};
     entry_items[1] = (pico8_jb_item_t){.is_ref = 1, .ref = vec_ref(vec_xy(64, 30))};
-    entry_items[2] = (pico8_jb_item_t){.is_fixed = 1, .fixed = PICO8_FIXED_LIT(0x00008000, 0.5)};
+    entry_items[2] = (pico8_jb_item_t){.is_fixed = 1, .fixed = P8_FIXED_LIT(0x00008000, 0.5)};
     entry.count = 3;
     entry.items = entry_items;
     entry.fn = "ld";
     rb[0] = &entry;
-    pico8_gfx_init(&gfx);
-    pico8_cls(&mem);
+    p8_gfx_init(&gfx);
+    p8_cls(&mem);
     pico8_bl_default(&gfx, &mem, rb, 1);
     assert(screen_hash() == want);
 
     want = drawn_by_ol(lq, vec_xy(20, 90), 0);
     h = fnv(h, want);
-    pico8_gfx_init(&gfx);
-    pico8_cls(&mem);
+    p8_gfx_init(&gfx);
+    p8_cls(&mem);
     pico8_lq_ol_default(&gfx, &mem, lq, vec_xy(20, 90));
     assert(screen_hash() == want);
 
-    pico8_gfx_init(&gfx);
-    pico8_cls(&mem);
+    p8_gfx_init(&gfx);
+    p8_cls(&mem);
     want = screen_hash();
     pico8_lq_ol(&gfx, &mem, NULL, vec_xy(20, 90), 0);
     assert(screen_hash() == want);
@@ -637,7 +637,7 @@ static uint32_t drawn_after_adds(const pico8_zone_choisie_t *zone) {
     }
     copy = pico8_lq_copy(zone, lq);
     assert(row_count(copy) == 8);
-    return drawn_by_ol(copy, vec_xy(64, 60), PICO8_FIXED_LIT(0x00008000, 0.5));
+    return drawn_by_ol(copy, vec_xy(64, 60), P8_FIXED_LIT(0x00008000, 0.5));
 }
 
 /* `lq_add` grows `items` in the zone the panel kept: a panel in a bump
@@ -655,7 +655,7 @@ static void test_lq_add_in_bump_zone(void) {
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
  * reads as difficulty 0. */
 static void start_game(void) {
-    pico8_input_init(&input);
+    p8_input_init(&input);
     pico8_dispatch_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
@@ -672,9 +672,9 @@ static pico8_vec_t pos_of(void *e) {
     return *p;
 }
 
-static pico8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
+static p8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
     pico8_vec_t d = pico8_vec_sub(a, b);
-    return pico8_fixed_add(pico8_fixed_mul(d.x, d.x), pico8_fixed_mul(d.y, d.y));
+    return p8_fixed_add(p8_fixed_mul(d.x, d.x), p8_fixed_mul(d.y, d.y));
 }
 
 /* A generated planet colonized by COLONY, its nearest one by EXPORTER, the
@@ -705,12 +705,12 @@ static void built_planet_panel(void) {
 
     jc_keys.qu = qu;
     jc = pico8_jc_new(&jc_keys);
-    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
-                        pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
+    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), p8_fixed_from_int(128)),
+                        pico8_vec_v(p8_fixed_from_int(1), p8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
     pico8_jc_struct_class()->drag(&jc->header, mp, NULL);
     pico8_ok()->o_ = NULL;
-    while (jc->header.state_time < pico8_fixed_from_int(15)) {
+    while (jc->header.state_time < p8_fixed_from_int(15)) {
         pico8_dg();
     }
     pico8_jc_struct_class()->drop(&jc->header, re);
@@ -791,7 +791,7 @@ static const pico8_lq_t *panel_row(const char *head) {
  * `gc` times under "receives:", as the `{qe=x}` `lq:mn` reads: a want of a
  * resource draws it 5 wide, a want of none nothing, 6 wide. */
 static void test_gh_wants_more(void) {
-    pico8_fixed_t ore = pico8_fixed_from_int(21);
+    p8_fixed_t ore = p8_fixed_from_int(21);
     pico8_jy_t *a = pico8_jy_new(pico8_zone_partie(), &ore);
     pico8_jy_t *b = pico8_jy_new(pico8_zone_partie(), NULL);
     pico8_ptrs_t *jy = malloc(sizeof *jy);
@@ -801,16 +801,16 @@ static void test_gh_wants_more(void) {
 
     start_game();
     a->has_gc = 1;
-    a->gc = pico8_fixed_from_int(1);
+    a->gc = p8_fixed_from_int(1);
     b->has_gc = 1;
-    b->gc = pico8_fixed_from_int(2);
+    b->gc = p8_fixed_from_int(2);
     pico8_ptrs_init(jy, &zone_tas);
     pico8_ptrs_add(jy, a);
     pico8_ptrs_add(jy, b);
     planet = pico8_jo_new(NULL);
     planet->jy = jy;
     planet->has_mi = 1;
-    planet->mi = pico8_fixed_from_int(1);
+    planet->mi = p8_fixed_from_int(1);
     planet->ra = malloc(sizeof *planet->ra);
     *planet->ra = vec_xy(64, 64);
     pico8_jo_gh(planet);
@@ -822,14 +822,14 @@ static void test_gh_wants_more(void) {
     assert(wants->items[1].as.row == &a->row && wants->items[2].as.row == &b->row);
     assert(receives->items[1].as.row == &a->row && receives->items[2].as.row == &b->row &&
            receives->items[3].as.row == &b->row);
-    printf("  wants more: w=%d, receives: w=%d\n", pico8_fixed_flr_int(wants->w), pico8_fixed_flr_int(receives->w));
-    assert(wants->w == pico8_fixed_from_int(64) && receives->w == pico8_fixed_from_int(64));
+    printf("  wants more: w=%d, receives: w=%d\n", p8_fixed_flr_int(wants->w), p8_fixed_flr_int(receives->w));
+    assert(wants->w == p8_fixed_from_int(64) && receives->w == p8_fixed_from_int(64));
 }
 
 /* A planet whose `kw.qe` is `r.w` has no "wants more:" row, though every
  * want arrives. */
 static void test_gh_w_maker_wants_no_more(void) {
-    pico8_fixed_t ore = pico8_fixed_from_int(21);
+    p8_fixed_t ore = p8_fixed_from_int(21);
     pico8_jy_t *a = pico8_jy_new(pico8_zone_partie(), &ore);
     pico8_ptrs_t *jy = malloc(sizeof *jy);
     pico8_kw_t *kw = calloc(1, sizeof *kw);
@@ -839,16 +839,16 @@ static void test_gh_w_maker_wants_no_more(void) {
     start_game();
     assert(pico8_r_lookup("w", &r_w));
     kw->has_qe = 1;
-    kw->qe = pico8_fixed_from_int(r_w);
+    kw->qe = p8_fixed_from_int(r_w);
     a->has_gc = 1;
-    a->gc = pico8_fixed_from_int(1);
+    a->gc = p8_fixed_from_int(1);
     pico8_ptrs_init(jy, &zone_tas);
     pico8_ptrs_add(jy, a);
     planet = pico8_jo_new(NULL);
     planet->jy = jy;
     planet->kw = kw;
     planet->has_mi = 1;
-    planet->mi = pico8_fixed_from_int(1);
+    planet->mi = p8_fixed_from_int(1);
     planet->ra = malloc(sizeof *planet->ra);
     *planet->ra = vec_xy(64, 64);
     pico8_jo_gh(planet);
@@ -866,16 +866,16 @@ static void test_gh_lab_wants_its_last(void) {
 
     start_game();
     a->has_gc = 1;
-    a->gc = pico8_fixed_from_int(1);
+    a->gc = p8_fixed_from_int(1);
     b->has_gc = 1;
-    b->gc = pico8_fixed_from_int(1);
+    b->gc = p8_fixed_from_int(1);
     pico8_ptrs_init(jy, &zone_tas);
     pico8_ptrs_add(jy, a);
     pico8_ptrs_add(jy, b);
     lab = pico8_qh_new(NULL);
     lab->jy = jy;
     lab->has_mi = 1;
-    lab->mi = pico8_fixed_from_int(1);
+    lab->mi = p8_fixed_from_int(1);
     lab->ra = malloc(sizeof *lab->ra);
     *lab->ra = vec_xy(64, 64);
     pico8_jo_gh(lab);
@@ -940,14 +940,14 @@ static void test_lq_is_a_struct(void) {
         assert(cls->states[i] == NULL);
     }
     assert(pico8_lq_ready());
-    assert(lq->has_c && lq->c == pico8_fixed_from_int(9));
+    assert(lq->has_c && lq->c == p8_fixed_from_int(9));
     assert(!lq->has_bg);
     copy = pico8_lq_copy(&zone_tas, lq);
     assert(copy != lq && copy->items != lq->items && copy->items_count == 2);
-    assert(copy->has_c && copy->c == pico8_fixed_from_int(9) && copy->fs_count == 2 && copy->w == lq->w);
+    assert(copy->has_c && copy->c == p8_fixed_from_int(9) && copy->fs_count == 2 && copy->w == lq->w);
 
     t = pico8_lq_keys_of_row(&nested, items, 2);
-    assert(t.items == items && t.count == 2 && t.has_c && t.c == pico8_fixed_from_int(7));
+    assert(t.items == items && t.count == 2 && t.has_c && t.c == p8_fixed_from_int(7));
     assert(!t.has_bg && !t.has_score && t.ra == NULL);
     assert(items[0].kind == PICO8_LQ_CELL_FIXED && items[0].as.fixed == 0x8000);
     assert(items[1].kind == PICO8_LQ_CELL_ROW && items[1].as.row == &pico8_dr_table[0]);
@@ -987,7 +987,7 @@ static void in_fresh_child(void (*test)(void)) {
 static void test_jo_ex_largest_row_fits_a_place(void) {
     const pico8_ptrs_t *is = NULL;
     const pico8_zone_choisie_t *place;
-    pico8_fixed_t o;
+    p8_fixed_t o;
     int r_w;
     int k;
 
@@ -999,18 +999,18 @@ static void test_jo_ex_largest_row_fits_a_place(void) {
     }
     assert(is != NULL && is->count == 2 && "the most wants a project has; a longer `i` needs a bigger row place");
     assert(pico8_r_lookup("w", &r_w));
-    o = pico8_fixed_from_int(r_w);
+    o = p8_fixed_from_int(r_w);
     place = pico8_zone_interface_place(PICO8_SORTE_RANGEE);
-    assert(pico8_jo_ex(place, is, &o, pico8_fixed_from_int(5), 0, 0) != NULL);
+    assert(pico8_jo_ex(place, is, &o, p8_fixed_from_int(5), 0, 0) != NULL);
     pico8_zone_arene_rendre(place);
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

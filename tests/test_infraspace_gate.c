@@ -55,9 +55,9 @@ static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {
  * value moves every *_HASH. */
 #define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static const char *const bm[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
 static const char *const tags[] = {"slipgate", "node", "targeting"};
@@ -96,7 +96,7 @@ static uint32_t fold_absent(uint32_t h) {
     return fnv(h, 0u);
 }
 
-static uint32_t fold_fixed_member(uint32_t h, pico8_fixed_t v) {
+static uint32_t fold_fixed_member(uint32_t h, p8_fixed_t v) {
     return fnv(fnv(fnv(h, 1u), 0xF1u), (uint32_t)v);
 }
 
@@ -110,7 +110,7 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
 }
 
 static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
-    return jo->def->hf ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
+    return jo->def->hf ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
@@ -155,7 +155,7 @@ static pico8_jo_t *as_qh(void *e) {
 }
 
 static uint32_t fold_qh(uint32_t h, const pico8_jo_t *qh) {
-    return qh->def->qh ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
+    return qh->def->qh ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
@@ -168,8 +168,8 @@ static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
     int i;
 
-    for (i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)pico8_peek(&mem, PICO8_ADDR_SCREEN + i);
+    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
+        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
@@ -189,7 +189,7 @@ static pico8_vec_t *vec_ref(pico8_vec_t at) {
 }
 
 static pico8_vec_t vec_xy(int x, int y) {
-    return pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
+    return pico8_vec_v(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
 static const entity_class_t *cls_of(const void *e) {
@@ -382,7 +382,7 @@ static void test_built(void) {
 }
 
 static void set_credits(int n) {
-    pico8_fm_hy()->nz = pico8_fixed_from_int(n);
+    pico8_fm_hy()->nz = p8_fixed_from_int(n);
 }
 
 static uint32_t fold_ra_y(uint32_t h, const pico8_jo_t *qh) {
@@ -458,7 +458,7 @@ static uint32_t fold_route(uint32_t h, void *from) {
     assert(ra != NULL);
     cls_of(jc.held)->drag(jc.held, vec_ref(pico8_vec_add(*ra, vec_xy(20, 0))), NULL);
     assert(made->has_mt == from_has_mt);
-    assert(made->fa == pico8_fixed_from_int(from_has_mt ? 2 : 4));
+    assert(made->fa == p8_fixed_from_int(from_has_mt ? 2 : 4));
     h = made->has_mt ? fold_fixed_member(h, made->mt) : fold_absent(h);
     return fold_fixed_member(h, made->fa);
 }
@@ -514,18 +514,18 @@ static void test_life(void) {
         h = fold_fixed_member(h, as_qh(placed)->s);
         h = fold_bool(h, cls_of(placed)->accept_drop(placed, NULL).stop);
     }
-    assert(as_qh(placed)->s == pico8_fixed_from_int(76));
+    assert(as_qh(placed)->s == p8_fixed_from_int(76));
     jc = cls_of(placed)->left_press(placed, NULL, NULL);
     assert(jc.held == NULL);
     h = fold_bool(h, jc.stop);
     as_qh(placed)->oe = oe;
     cls_of(placed)->refresh(placed);
     h = fold_fixed_member(h, as_qh(placed)->s);
-    assert(as_qh(placed)->s == pico8_fixed_from_int(78));
+    assert(as_qh(placed)->s == p8_fixed_from_int(78));
     h = fold_economy(h, placed);
 
     h = fold_route(h, placed);
-    assert(is_a_gate(placed) && ((const pico8_jo_t *)placed)->def->mt == pico8_fixed_from_int(1));
+    assert(is_a_gate(placed) && ((const pico8_jo_t *)placed)->def->mt == p8_fixed_from_int(1));
     slipgate = build(pico8_nr_kind());
     place(slipgate, 40, 108);
     h = fold_route(h, slipgate);
@@ -612,11 +612,11 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

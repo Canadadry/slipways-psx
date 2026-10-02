@@ -32,7 +32,7 @@ int pico8_gu_content_ptrs(const pico8_ptrs_t *qk, const char *kb);
 /* Returns a string in `zone`, released by that zone, and writes the
  * color into *out_color: `c` when d >= 0, 8 when d < 0. `ku` may be NULL
  * (no suffix). A caller that wants only the string may pass any `c`. */
-char *pico8_ne(const pico8_zone_choisie_t *zone, pico8_fixed_t d, int c, const char *ku,
+char *pico8_ne(const pico8_zone_choisie_t *zone, p8_fixed_t d, int c, const char *ku,
                int *out_color);
 
 #endif

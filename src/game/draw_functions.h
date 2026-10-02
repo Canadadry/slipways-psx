@@ -29,8 +29,8 @@ void pico8_pi_dispatch_clear(void);
  * pico8_bl_default is the `nc == nil` case, where the camera-shake branch
  * never runs at all. `gfx`/`mem` are borrowed, and also stashed in this
  * module's dispatch context for the drawing functions to read. */
-void pico8_bl(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jb_row_t *const *rb, int n, pico8_fixed_t nc);
-void pico8_bl_default(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jb_row_t *const *rb, int n);
+void pico8_bl(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_jb_row_t *const *rb, int n, p8_fixed_t nc);
+void pico8_bl_default(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_jb_row_t *const *rb, int n);
 
 /* Fills the registry; idempotent.
  *

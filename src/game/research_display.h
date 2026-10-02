@@ -23,8 +23,8 @@ const pico8_jb_row_t *pico8_hp_jb(const pico8_hp_t *self);
  * carries no `qe`. `o` is read during the call only. Its tuples are in the
  * frame zone: a pico8_lq_copy of the row is only valid in the frame that
  * built it. */
-pico8_lq_t *pico8_jo_ex(const pico8_zone_choisie_t *zone, const pico8_ptrs_t *is, const pico8_fixed_t *o,
-                        pico8_fixed_t jq, pico8_fixed_t mj, pico8_fixed_t d);
+pico8_lq_t *pico8_jo_ex(const pico8_zone_choisie_t *zone, const pico8_ptrs_t *is, const p8_fixed_t *o,
+                        p8_fixed_t jq, p8_fixed_t mj, p8_fixed_t d);
 
 /* The projects of `gb` that `bj` keeps, in `gb` order. */
 typedef struct {

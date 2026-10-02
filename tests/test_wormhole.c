@@ -53,9 +53,9 @@
 #define PR_EXIT_TICK 27
 #define DRAW_HASH 0xD124A50Cu
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -162,7 +162,7 @@ static int et_kind(const pico8_mz_t *mz) {
     return ET_OTHER;
 }
 
-static pico8_fixed_t credits(void) {
+static p8_fixed_t credits(void) {
     const pico8_hy_t *hy = pico8_fm_hy();
     assert(hy != NULL);
     return hy->nz;
@@ -183,7 +183,7 @@ static void check_int(const char *label, int got, int want) {
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
  * reads as difficulty 0. */
 static void start_game(void) {
-    pico8_input_init(&input);
+    p8_input_init(&input);
     pico8_dispatch_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
@@ -195,9 +195,9 @@ static pico8_vec_t pos_of(void *e) {
     return *jo->p;
 }
 
-static pico8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
+static p8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
     pico8_vec_t d = pico8_vec_sub(a, b);
-    return pico8_fixed_add(pico8_fixed_mul(d.x, d.x), pico8_fixed_mul(d.y, d.y));
+    return p8_fixed_add(p8_fixed_mul(d.x, d.x), p8_fixed_mul(d.y, d.y));
 }
 
 /* Two generated planets colonized and joined by a paid slipway, the rest
@@ -227,12 +227,12 @@ static void world(void) {
 
     jc_keys.qu = qu;
     jc = pico8_jc_new(&jc_keys);
-    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
-                        pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
+    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), p8_fixed_from_int(128)),
+                        pico8_vec_v(p8_fixed_from_int(1), p8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
     pico8_jc_struct_class()->drag(&jc->header, mp, NULL);
     pico8_ok()->o_ = NULL;
-    while (jc->header.state_time < pico8_fixed_from_int(15)) {
+    while (jc->header.state_time < p8_fixed_from_int(15)) {
         pico8_dg();
     }
     pico8_jc_struct_class()->drop(&jc->header, re);
@@ -248,7 +248,7 @@ static pico8_mz_t *build_mz(void) {
 
 static pico8_vec_t *vec_ref(int x, int y) {
     pico8_vec_t *v = malloc(sizeof *v);
-    *v = pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
+    *v = pico8_vec_v(p8_fixed_from_int(x), p8_fixed_from_int(y));
     return v;
 }
 
@@ -269,7 +269,7 @@ static void ey(void *mz) {
 /* `dg` skips the entity after one it takes out of `hv` (TROU-5): count
  * ticks by `t`, not by calls. */
 static void until_t(const pico8_mz_t *mz, int t) {
-    while (mz->header.state_time < pico8_fixed_from_int(t)) {
+    while (mz->header.state_time < p8_fixed_from_int(t)) {
         pico8_dg();
     }
 }
@@ -288,8 +288,8 @@ static pico8_jo_t *first_jo_with_me(const char *me) {
 
 /* The middle of `jc`, in screen units. */
 static pico8_vec_t slipway_mid(pico8_jc_t *jc) {
-    return pico8_vec_mul(pico8_vec_div(pico8_vec_add(pos_of(jc->qu), pos_of(jc->re)), pico8_fixed_from_int(2)),
-                         pico8_fixed_from_int(128));
+    return pico8_vec_mul(pico8_vec_div(pico8_vec_add(pos_of(jc->qu), pos_of(jc->re)), p8_fixed_from_int(2)),
+                         p8_fixed_from_int(128));
 }
 
 /* A fresh `mz`: the spec's defaults, ke's `t`, nothing written yet but
@@ -305,12 +305,12 @@ static void check_fresh_mz(void *e) {
     assert(mz->header.state_time == 0);
     assert(mz->probe->def->dw == 0);
     assert(mz->probe->def->dq != NULL && strcmp(mz->probe->def->dq, "unfolding") == 0);
-    assert(mz->def->spawn_snd == pico8_fixed_from_int(52));
-    assert(mz->probe->def->ik == pico8_fixed_from_int(49) && mz->probe->def->has_ik == 1);
+    assert(mz->def->spawn_snd == p8_fixed_from_int(52));
+    assert(mz->probe->def->ik == p8_fixed_from_int(49) && mz->probe->def->has_ik == 1);
     assert(mz->oi == 0);
-    assert(mz->probe->od == pico8_fixed_from_int(3));
-    assert(mz->probe->def->fp == pico8_fixed_from_int(1));
-    assert(mz->def->fa == pico8_fixed_from_int(5));
+    assert(mz->probe->od == p8_fixed_from_int(3));
+    assert(mz->probe->def->fp == p8_fixed_from_int(1));
+    assert(mz->def->fa == p8_fixed_from_int(5));
     assert(mz->header.layer == &mz->def->fa);
 
     kk = mz->def->kk;
@@ -401,7 +401,7 @@ static void test_ox(void) {
     assert(ents_listed(build_mz()->ox, probe));
 
     lit = pico8_qh_new(NULL);
-    lit->fx = pico8_fixed_from_int(1);
+    lit->fx = p8_fixed_from_int(1);
     assert(ents_listed(build_mz()->ox, lit));
 }
 
@@ -501,8 +501,8 @@ static pico8_vec_t near_anchor(void) {
     jc = as_jc(jcs->items[0]);
     qu = pos_of(jc->qu);
     re = pos_of(jc->re);
-    return pico8_vec_mul(pico8_vec_add(qu, pico8_vec_div(pico8_vec_sub(qu, re), pico8_fixed_from_int(4))),
-                         pico8_fixed_from_int(128));
+    return pico8_vec_mul(pico8_vec_add(qu, pico8_vec_div(pico8_vec_sub(qu, re), p8_fixed_from_int(4))),
+                         p8_fixed_from_int(128));
 }
 
 static void test_hq(void) {
@@ -538,7 +538,7 @@ static void test_kz_ticks(void) {
     for (i = 0; i < KZ_TICKS; i++) {
         pico8_dg();
         assert(p__state(mz) == 0);
-        assert(mz->header.state_time == pico8_fixed_from_int(i + 1));
+        assert(mz->header.state_time == p8_fixed_from_int(i + 1));
         h = fnv(h, (uint32_t)mz->oi);
     }
     assert(ents_listed(pico8_hv(), mz));
@@ -556,7 +556,7 @@ static uint32_t fold_ey(uint32_t h, const pico8_mz_t *mz) {
  * one pays `od` and turns to `pr`, and too few credits refuse. */
 static void test_ey(void) {
     uint32_t h = 2166136261u;
-    pico8_fixed_t before;
+    p8_fixed_t before;
     pico8_mz_t *early;
     pico8_mz_t *targeted;
     pico8_mz_t *paid;
@@ -584,16 +584,16 @@ static void test_ey(void) {
     assert(et_kind(paid) == ET_FALSE);
     ey(paid);
     assert(is_me(&paid->header, "unfolding") && paid->header.state_time == 0 && p__state(paid) == 0);
-    assert(credits() == pico8_fixed_sub(before, pico8_fixed_from_int(3)));
+    assert(credits() == p8_fixed_sub(before, p8_fixed_from_int(3)));
     h = fold_ey(h, paid);
 
     broke = build_mz();
     until_t(broke, 15);
     hq(broke, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
-    pico8_fm_hy()->nz = pico8_fixed_from_int(2);
+    pico8_fm_hy()->nz = p8_fixed_from_int(2);
     ey(broke);
     assert(is_me(&broke->header, "placing") && p__state(broke) == 2);
-    assert(credits() == pico8_fixed_from_int(2));
+    assert(credits() == p8_fixed_from_int(2));
     h = fold_ey(h, broke);
     check("drop", h, EY_HASH);
 }
@@ -659,8 +659,8 @@ static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
     int i;
 
-    for (i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)pico8_peek(&mem, PICO8_ADDR_SCREEN + i);
+    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
+        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
@@ -671,8 +671,8 @@ static uint32_t screen_hash(void) {
 static uint32_t draw(void *mz) {
     const entity_class_t *cls = ((const entity_t *)mz)->class;
 
-    pico8_gfx_init(&gfx);
-    pico8_cls(&mem);
+    p8_gfx_init(&gfx);
+    p8_cls(&mem);
     cls->draw(mz, vec_ref(64, 64));
     cls->draw_overlay(mz, NULL);
     return screen_hash();
@@ -689,8 +689,8 @@ static void test_draw(void) {
     int t;
 
     world();
-    pico8_gfx_init(&gfx);
-    pico8_cls(&mem);
+    p8_gfx_init(&gfx);
+    p8_cls(&mem);
     blank = screen_hash();
 
     bare = build_mz();
@@ -851,10 +851,10 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
 

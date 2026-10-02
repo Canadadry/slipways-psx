@@ -13,13 +13,13 @@
  * All three are borrowed, never owned, and must outlive the frames they
  * are set for. Each getter returns NULL until its setter has run. */
 
-void pico8_dispatch_set_gfx(pico8_gfx_t *gfx);
-pico8_gfx_t *pico8_dispatch_gfx(void);
+void pico8_dispatch_set_gfx(p8_graphics_t *gfx);
+p8_graphics_t *pico8_dispatch_gfx(void);
 
-void pico8_dispatch_set_mem(pico8_mem_t *mem);
-pico8_mem_t *pico8_dispatch_mem(void);
+void pico8_dispatch_set_mem(p8_memory_t *mem);
+p8_memory_t *pico8_dispatch_mem(void);
 
-void pico8_dispatch_set_input(const pico8_input_t *input);
-const pico8_input_t *pico8_dispatch_input(void);
+void pico8_dispatch_set_input(const p8_input_t *input);
+const p8_input_t *pico8_dispatch_input(void);
 
 #endif

@@ -57,9 +57,9 @@
 #define BUILT_WORLD_HASH 0xDF3A48A1u
 #define HARVESTED_WORLD_HASH 0xE7F2768Cu
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -107,7 +107,7 @@ static int gb_rank(const void *e) {
  * enum entries are gone. Any other value moves them. */
 enum { FIXED_KIND = 0, STRING_KIND = 1, BOOL_KIND = 2, REF_KIND = 3, FUNCTION_KIND = 4 };
 
-static uint32_t fold_fixed(uint32_t h, pico8_fixed_t x) {
+static uint32_t fold_fixed(uint32_t h, p8_fixed_t x) {
     return fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)x);
 }
 
@@ -192,7 +192,7 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static uint32_t fold_fixed_member(uint32_t h, int has, pico8_fixed_t v) {
+static uint32_t fold_fixed_member(uint32_t h, int has, p8_fixed_t v) {
     return has ? fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)v) : fold_absent(h);
 }
 
@@ -237,7 +237,7 @@ static uint32_t fold_item(uint32_t h, const pico8_jb_item_t *item, int depth) {
     if (item->is_ref) {
         return fold_ref(h, item->ref, depth);
     }
-    return fold_fixed(h, item->is_fixed ? item->fixed : pico8_fixed_from_int(item->n));
+    return fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->n));
 }
 
 /* A generated or built row, folded as the frozen hashes folded its view: items,
@@ -253,7 +253,7 @@ static uint32_t fold_row(uint32_t h, const pico8_jb_row_t *row, int depth) {
         h = fold_item(fold_view_index(h, i + 1), &row->items[i], depth - 1);
     }
     if (row->has_c) {
-        h = fold_fixed(fold_view_name(h, "c"), pico8_fixed_from_int(row->c));
+        h = fold_fixed(fold_view_name(h, "c"), p8_fixed_from_int(row->c));
     }
     if (row->fn != NULL) {
         h = fold_string(fold_view_name(h, "fn"), row->fn);
@@ -333,8 +333,8 @@ static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
     int i;
 
-    for (i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)pico8_peek(&mem, PICO8_ADDR_SCREEN + i);
+    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
+        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
@@ -343,7 +343,7 @@ static uint32_t screen_hash(void) {
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
  * reads as difficulty 0. */
 static void start_game(void) {
-    pico8_input_init(&input);
+    p8_input_init(&input);
     pico8_dispatch_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
@@ -360,9 +360,9 @@ static pico8_vec_t pos_of(void *e) {
     return *p;
 }
 
-static pico8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
+static p8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
     pico8_vec_t d = pico8_vec_sub(a, b);
-    return pico8_fixed_add(pico8_fixed_mul(d.x, d.x), pico8_fixed_mul(d.y, d.y));
+    return p8_fixed_add(p8_fixed_mul(d.x, d.x), p8_fixed_mul(d.y, d.y));
 }
 
 /* A generated planet colonized by COLONY, its nearest one by EXPORTER, the
@@ -392,12 +392,12 @@ static void built_world(void) {
 
     jc_keys.qu = qu;
     jc = pico8_jc_new(&jc_keys);
-    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
-                        pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
+    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), p8_fixed_from_int(128)),
+                        pico8_vec_v(p8_fixed_from_int(1), p8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
     pico8_jc_struct_class()->drag(&jc->header, mp, NULL);
     pico8_ok()->o_ = NULL;
-    while (jc->header.state_time < pico8_fixed_from_int(15)) {
+    while (jc->header.state_time < p8_fixed_from_int(15)) {
         pico8_dg();
     }
     pico8_jc_struct_class()->drop(&jc->header, re);
@@ -560,7 +560,7 @@ static pico8_vec_t *vec_ref(pico8_vec_t at) {
 }
 
 static pico8_vec_t vec_xy(int x, int y) {
-    return pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
+    return pico8_vec_v(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
 /* A bare planet on `id`/`p`/`ra`, `ra` offset from `mo`'s. */
@@ -675,7 +675,7 @@ static void test_wants(void) {
     b = pico8_hp_new(&keys);
     assert(b->i->count == 2 && pico8_r_lookup("p", &p));
     assert(((const pico8_jy_t *)b->i->items[0])->row.has_qe);
-    assert(((const pico8_jy_t *)b->i->items[0])->row.qe == pico8_fixed_from_int(p));
+    assert(((const pico8_jy_t *)b->i->items[0])->row.qe == p8_fixed_from_int(p));
     assert(!((const pico8_jy_t *)b->i->items[1])->row.has_qe);
 
     a = new_planet("p950", 12, 16);
@@ -809,7 +809,7 @@ static void test_gb_in_chargement(void) {
 
 /* A want is taken from the zone its caller passes. */
 static void test_jy_new_in_the_zone_passed(void) {
-    const pico8_fixed_t qe = pico8_fixed_from_int(3);
+    const p8_fixed_t qe = p8_fixed_from_int(3);
     const size_t chargement = pico8_zone_chargement_prise();
     const size_t partie = pico8_zone_partie_prise();
     pico8_jy_t *a = pico8_jy_new(pico8_zone_chargement(), &qe);
@@ -1075,11 +1075,11 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

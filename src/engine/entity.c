@@ -27,11 +27,11 @@ void pico8_ke_ks(entity_t *self, const char *me) {
         return;
     }
     self->state = me;
-    self->state_time = pico8_fixed_from_int(0);
+    self->state_time = p8_fixed_from_int(0);
 }
 
 void pico8_ke_struct_init(entity_t *self, const entity_class_t *cls, const char *me,
-                          pico8_fixed_t t) {
+                          p8_fixed_t t) {
     entity_init_header(self, cls);
     self->state = me;
     self->state_time = t;

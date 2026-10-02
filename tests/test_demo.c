@@ -10,40 +10,40 @@
 
 #define DEMO_EVENTS_PATH "tests/fixtures/demo_events.json"
 
-static unsigned char screen_pixel(const pico8_mem_t *mem, int x, int y) {
-    return pico8_peek(mem, PICO8_ADDR_SCREEN + y * PICO8_SCREEN_WIDTH + x);
+static unsigned char screen_pixel(const p8_memory_t *mem, int x, int y) {
+    return p8_peek(mem, P8_ADDR_SCREEN + y * P8_SCREEN_WIDTH + x);
 }
 
 int main(void) {
-    pico8_mem_t mem;
-    pico8_mem_init(&mem);
+    p8_memory_t mem;
+    p8_mem_init(&mem);
 
-    pico8_gfx_t gfx;
-    pico8_gfx_init(&gfx);
+    p8_graphics_t gfx;
+    p8_gfx_init(&gfx);
 
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
 
-    assert(pico8_sget(&mem, 16, 0) == 3);
+    assert(p8_sget(&mem, 16, 0) == 3);
     /* map.json's cells row 0 lands in PICO8_ADDR_SPRITE_MAP_SHARED on the
      * real cart (confirmed against pico8/original.p8.png's decoded ROM). */
-    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 1) == 81);
+    assert(p8_peek(&mem, P8_ADDR_SPRITE_MAP_SHARED + 1) == 81);
 
-    pico8_cls(&mem);
+    p8_cls(&mem);
     assert(screen_pixel(&mem, 0, 0) == 0);
     assert(screen_pixel(&mem, 127, 127) == 0);
 
-    pico8_line(&gfx, &mem, 0, 5, 4, 5, 8);
+    p8_line(&gfx, &mem, 0, 5, 4, 5, 8);
     for (int x = 0; x <= 4; x++) {
         assert(screen_pixel(&mem, x, 5) == 8);
     }
     assert(screen_pixel(&mem, 5, 5) == 0);
 
-    pico8_pset(&gfx, &mem, 10, 20, 7);
+    p8_pset(&gfx, &mem, 10, 20, 7);
     assert(screen_pixel(&mem, 10, 20) == 7);
     assert(screen_pixel(&mem, 11, 20) == 0);
 
-    pico8_rect(&gfx, &mem, 30, 30, 34, 34, 9);
+    p8_rect(&gfx, &mem, 30, 30, 34, 34, 9);
     for (int x = 30; x <= 34; x++) {
         assert(screen_pixel(&mem, x, 30) == 9);
         assert(screen_pixel(&mem, x, 34) == 9);
@@ -54,20 +54,20 @@ int main(void) {
     }
     assert(screen_pixel(&mem, 32, 32) == 0);
 
-    pico8_circ(&gfx, &mem, 60, 60, 3, 10);
+    p8_circ(&gfx, &mem, 60, 60, 3, 10);
     assert(screen_pixel(&mem, 63, 60) == 10);
     assert(screen_pixel(&mem, 57, 60) == 10);
     assert(screen_pixel(&mem, 60, 63) == 10);
     assert(screen_pixel(&mem, 60, 57) == 10);
     assert(screen_pixel(&mem, 60, 60) == 0);
 
-    pico8_spr(&gfx, &mem, 2, 0, 90, 1, 1);
+    p8_spr(&gfx, &mem, 2, 0, 90, 1, 1);
     assert(screen_pixel(&mem, 0, 90) == 3);
     assert(screen_pixel(&mem, 7, 90) == 3);
     assert(screen_pixel(&mem, 2, 91) == 4);
     assert(screen_pixel(&mem, 1, 90) == 0);
 
-    pico8_map(&gfx, &mem, 0, 0, 0, 100, 4, 1);
+    p8_map(&gfx, &mem, 0, 0, 0, 100, 4, 1);
     /* The cart's map cell (0,0) is 0, and `map()` takes sprite 0 to mean
      * empty and does not draw it, so the whole first 8x8 block stays
      * cleared -- this cart's sprite 0 is palette data, not a tile. */
@@ -80,7 +80,7 @@ int main(void) {
     assert(screen_pixel(&mem, 16, 100) == 1);
     assert(screen_pixel(&mem, 31, 107) == 6);
 
-    pico8_print(&gfx, &mem, "hi", 0, 115, 11);
+    p8_print(&gfx, &mem, "hi", 0, 115, 11);
     assert(screen_pixel(&mem, 0, 115) == 11);
     assert(screen_pixel(&mem, 1, 115) == 0);
     assert(screen_pixel(&mem, 2, 117) == 11);
@@ -97,27 +97,27 @@ int main(void) {
      * a fixture of its own, where a recording swap cannot reach it; the
      * root recording is still covered, for shape and loadability rather
      * than fixed values, by tests/test_input.c. */
-    pico8_input_t input;
-    pico8_input_init(&input);
+    p8_input_t input;
+    p8_input_init(&input);
     assert(pico8_input_load(&input, DEMO_EVENTS_PATH));
 
-    assert(pico8_stat(&input, 32) == 64);
-    assert(pico8_stat(&input, 33) == 32);
-    assert(pico8_stat(&input, 34) == 1);
-    assert(pico8_btn(&input, 0) == 0);
-    assert(pico8_btn(&input, 1) == 1);
-    assert(pico8_btn(&input, 2) == 0);
-    assert(pico8_btn(&input, 3) == 0);
+    assert(p8_stat(&input, 32) == 64);
+    assert(p8_stat(&input, 33) == 32);
+    assert(p8_stat(&input, 34) == 1);
+    assert(p8_btn(&input, 0) == 0);
+    assert(p8_btn(&input, 1) == 1);
+    assert(p8_btn(&input, 2) == 0);
+    assert(p8_btn(&input, 3) == 0);
 
-    pico8_input_step(&input);
+    p8_input_step(&input);
 
-    assert(pico8_stat(&input, 32) == 70);
-    assert(pico8_stat(&input, 33) == 40);
-    assert(pico8_stat(&input, 34) == 0);
-    assert(pico8_btn(&input, 0) == 0);
-    assert(pico8_btn(&input, 1) == 0);
-    assert(pico8_btn(&input, 2) == 1);
-    assert(pico8_btn(&input, 3) == 0);
+    assert(p8_stat(&input, 32) == 70);
+    assert(p8_stat(&input, 33) == 40);
+    assert(p8_stat(&input, 34) == 0);
+    assert(p8_btn(&input, 0) == 0);
+    assert(p8_btn(&input, 1) == 0);
+    assert(p8_btn(&input, 2) == 1);
+    assert(p8_btn(&input, 3) == 0);
 
     pico8_input_free(&input);
 

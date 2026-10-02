@@ -52,14 +52,14 @@ int main(int argc, char **argv) {
     pico8_replay_control_t replay_control;
     pico8_replay_control_init(&replay_control);
 
-    pico8_mem_t mem;
-    pico8_mem_init(&mem);
+    p8_memory_t mem;
+    p8_mem_init(&mem);
 
-    pico8_gfx_t gfx;
-    pico8_gfx_init(&gfx);
+    p8_graphics_t gfx;
+    p8_gfx_init(&gfx);
 
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
 
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
     pico8_cheat_t cheat;
     pico8_cheat_init(&cheat);
     while (pico8_raylib_backend_should_continue(&backend)) {
-        pico8_input_frame_t frame;
+        p8_input_frame_t frame;
         int from_recording = pico8_replay_source_next_frame(&replay, &frame);
         if (!from_recording) {
             pico8_raylib_backend_poll_input(&backend, &frame);
@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
         /* Recorded before the game steps, and unconditionally: see
          * pico8_raylib_backend_record_frame. */
         pico8_raylib_backend_record_frame(&backend, &frame);
-        pico8_input_t input = { &frame, 1, 0 };
+        p8_input_t input = { &frame, 1, 0 };
         pico8_dispatch_set_input(&input);
 
         pico8_cheat_step(&cheat, &input);

@@ -37,7 +37,7 @@ int pico8_jo_hd_dispatch(entity_t *self, const pico8_vec_t *qa, const pico8_vec_
     return pico8_gk(self, qa, ra);
 }
 
-void pico8_jo_hk_dispatch(entity_t *self, pico8_fixed_t yr) {
+void pico8_jo_hk_dispatch(entity_t *self, p8_fixed_t yr) {
     (void)yr;
     pico8_jo_hk((const pico8_jo_t *)self);
 }
@@ -46,7 +46,7 @@ int pico8_jo_is_family(const entity_t *e) {
     return (e->class->lineage & LINEAGE(LINEAGE_PLANET)) != 0;
 }
 
-void pico8_jo_ll_dispatch(entity_t *self, pico8_fixed_t t) {
+void pico8_jo_ll_dispatch(entity_t *self, p8_fixed_t t) {
     pico8_jo_ll((pico8_jo_t *)self, t);
 }
 
@@ -255,7 +255,7 @@ void pico8_jo_pq_dans(pico8_jo_t *self, const pico8_zone_choisie_t *zone) {
     self->oe = oe;
 
     if (self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) {
-        pico8_hp_t *target = pico8_gb_at(pico8_fixed_flr_int(self->def->hp));
+        pico8_hp_t *target = pico8_gb_at(p8_fixed_flr_int(self->def->hp));
 
         if (target != NULL) {
             pico8_jo_lz(self, target);
@@ -299,7 +299,7 @@ void pico8_jo_lz(pico8_jo_t *self, pico8_hp_t *hp_instance) {
 
     self->kw_own.has_qe = hp_instance != NULL && hp_instance->has_o;
     self->kw_own.qe = self->kw_own.has_qe ? hp_instance->o : 0;
-    self->kw_own.mu = pico8_fixed_from_int(0);
+    self->kw_own.mu = p8_fixed_from_int(0);
     self->kw = &self->kw_own;
 }
 
@@ -317,14 +317,14 @@ void pico8_jo_kd(pico8_jo_t *self) {
     if (self == NULL) {
         return;
     }
-    self->ma = PICO8_FIXED_LIT(0x00014000, 1.25);
+    self->ma = P8_FIXED_LIT(0x00014000, 1.25);
 }
 
-void pico8_jo_ll(pico8_jo_t *self, pico8_fixed_t t) {
+void pico8_jo_ll(pico8_jo_t *self, p8_fixed_t t) {
     if (self == NULL) {
         return;
     }
-    self->p_ = t > pico8_fixed_from_int(60);
+    self->p_ = t > p8_fixed_from_int(60);
 }
 
 void pico8_jo_hh(pico8_jo_t *self) {
@@ -336,13 +336,13 @@ void pico8_jo_hh(pico8_jo_t *self) {
     }
 
     if (g_jo_ir != NULL) {
-        pico8_fixed_t roll = pico8_jf_next(g_jo_ir);
+        p8_fixed_t roll = pico8_jf_next(g_jo_ir);
         int use_ll = 0;
 
         /* `jo.ir()<0.45 and df.ll or jo.oc()`: a falsy `df.ll` falls through
          * to `jo.oc()` even on a winning roll -- both conditions, never the
          * roll alone. */
-        if (roll < PICO8_FIXED_LIT(0x00007333, 0.45)) {
+        if (roll < P8_FIXED_LIT(0x00007333, 0.45)) {
             use_ll = pico8_df_lookup("vanishing") != NULL;
         }
         if (use_ll) {
@@ -367,7 +367,7 @@ void pico8_jo_hk(const pico8_jo_t *self) {
     if (self == NULL) {
         return;
     }
-    if (!self->has_kr || self->kr == pico8_fixed_from_int(0)) {
+    if (!self->has_kr || self->kr == p8_fixed_from_int(0)) {
         return;
     }
     if (!pico8_gd((const entity_t *)self)) {
@@ -383,19 +383,19 @@ void pico8_jo_hk(const pico8_jo_t *self) {
         /* `ne()` is the last expression of the Lua constructor, so both of its
          * return values land as positional entries 1 and 2, not named fields. */
         keys.at1 = text;
-        keys.at2 = pico8_fixed_from_int(color);
+        keys.at2 = p8_fixed_from_int(color);
         pico8_iv_new(&keys);
     }
 }
 
-void pico8_na(entity_t *self, pico8_fixed_t t) {
+void pico8_na(entity_t *self, p8_fixed_t t) {
     pico8_vec_t *ra_vec;
 
     assert((self == NULL || pico8_jo_is_family(self)) && "na: self is a planet (qh:ly, nl:ly) -- stop");
     ra_vec = self != NULL ? ((pico8_jo_t *)self)->ra : NULL;
     if (ra_vec != NULL) {
-        pico8_fixed_t delta = pico8_fixed_mul(pico8_fixed_sin(pico8_fixed_mul(t, PICO8_FIXED_LIT(0x00000147, 0.005))),
-                                               PICO8_FIXED_LIT(0x00000f5c, 0.06));
-        ra_vec->y = pico8_fixed_add(ra_vec->y, delta);
+        p8_fixed_t delta = p8_fixed_mul(p8_fixed_sin(p8_fixed_mul(t, P8_FIXED_LIT(0x00000147, 0.005))),
+                                               P8_FIXED_LIT(0x00000f5c, 0.06));
+        ra_vec->y = p8_fixed_add(ra_vec->y, delta);
     }
 }

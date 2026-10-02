@@ -236,7 +236,7 @@ void pico8_dc(const char *nt) {
             if (qc->layer == NULL) {
                 continue;
             }
-            layer = pico8_fixed_flr_int(*qc->layer);
+            layer = p8_fixed_flr_int(*qc->layer);
             if (layer < 1 || layer > 15) {
                 continue;
             }
@@ -248,7 +248,7 @@ void pico8_dc(const char *nt) {
         pico8_ents_t *bucket = &layers[o - 1];
 
         if (kj && bucket->count > 0) {
-            pico8_fixed_t ci;
+            p8_fixed_t ci;
             /* The placeholder mo, before jl(), has no `md`. */
             if (pico8_fixed_seq_at(pico8_ci_table, PICO8_CI_COUNT, o, &ci) && g_mo != NULL &&
                 g_mo->class->apply_camera != NULL) {

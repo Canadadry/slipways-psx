@@ -37,25 +37,25 @@ static pico8_hy_t *pico8_hy_struct_new(void) {
 
     entity_init_header(&self->header, &g_hy_struct_class);
     self->def = &pico8_hy_def;
-    self->nz = pico8_fixed_from_int(0);
-    self->ge = pico8_fixed_from_int(0);
-    self->jk = pico8_fixed_from_int(0);
-    self->ew = pico8_fixed_from_int(0);
+    self->nz = p8_fixed_from_int(0);
+    self->ge = p8_fixed_from_int(0);
+    self->jk = p8_fixed_from_int(0);
+    self->ew = p8_fixed_from_int(0);
     self->invented = NULL;
-    self->lo = pico8_fixed_from_int(0);
-    self->yr = pico8_fixed_from_int(0);
+    self->lo = p8_fixed_from_int(0);
+    self->yr = p8_fixed_from_int(0);
     self->po = NULL;
     self->fu = NULL;
     self->po_own.count = 0;
     self->fu_own.count = 0;
-    self->happiness = pico8_fixed_from_int(0);
+    self->happiness = p8_fixed_from_int(0);
     self->has_happiness = 0;
     self->hl = NULL;
     self->has_hl = 0;
 
     self->nz = self->def->nz;
-    self->ge = pico8_fixed_from_int(0);
-    self->jk = pico8_fixed_from_int(0);
+    self->ge = p8_fixed_from_int(0);
+    self->jk = p8_fixed_from_int(0);
     self->ew = self->def->ew;
     invented = (pico8_ptrs_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *invented);
     pico8_ptrs_init(invented, pico8_zone_partie());
@@ -96,34 +96,34 @@ pico8_hy_t *pico8_hy_new(void) {
     return pico8_hy_struct_new();
 }
 
-void pico8_hy_nx(pico8_hy_t *self, pico8_fixed_t hx) {
-    pico8_fixed_t kx;
-    pico8_fixed_t lo;
+void pico8_hy_nx(pico8_hy_t *self, p8_fixed_t hx) {
+    p8_fixed_t kx;
+    p8_fixed_t lo;
 
     assert_hy(self);
     if (self == NULL) {
         return;
     }
 
-    kx = pico8_ov("time compression", pico8_fixed_from_int(12), pico8_fixed_from_int(15));
+    kx = pico8_ov("time compression", p8_fixed_from_int(12), p8_fixed_from_int(15));
 
-    lo = pico8_fixed_add(self->lo, hx);
+    lo = p8_fixed_add(self->lo, hx);
     self->lo = lo;
 
     pico8_hy_lj(self);
 
     if (lo > kx) {
-        self->lo = pico8_fixed_sub(lo, kx);
+        self->lo = p8_fixed_sub(lo, kx);
         pico8_hy_hk(self);
     }
 }
 
 void pico8_hy_hk(pico8_hy_t *self) {
-    pico8_fixed_t nz;
-    pico8_fixed_t ge;
-    pico8_fixed_t jk;
-    pico8_fixed_t new_yr;
-    pico8_fixed_t po_rk = pico8_fixed_from_int(0);
+    p8_fixed_t nz;
+    p8_fixed_t ge;
+    p8_fixed_t jk;
+    p8_fixed_t new_yr;
+    p8_fixed_t po_rk = p8_fixed_from_int(0);
     const pico8_ents_t *hk_list;
     pico8_ents_iter_t it;
     entity_t *qc;
@@ -140,13 +140,13 @@ void pico8_hy_hk(pico8_hy_t *self) {
     if (self->po != NULL) {
         int k;
         if (pico8_r_lookup("k", &k)) {
-            pico8_qe_map_get(self->po, pico8_fixed_from_int(k), &po_rk);
+            pico8_qe_map_get(self->po, p8_fixed_from_int(k), &po_rk);
         }
     }
 
-    self->nz = pico8_fixed_add(nz, ge);
-    self->jk = pico8_fixed_add(pico8_fixed_add(jk, po_rk), pico8_fixed_from_int(1));
-    new_yr = pico8_fixed_add(self->yr, pico8_fixed_from_int(1));
+    self->nz = p8_fixed_add(nz, ge);
+    self->jk = p8_fixed_add(p8_fixed_add(jk, po_rk), p8_fixed_from_int(1));
+    new_yr = p8_fixed_add(self->yr, p8_fixed_from_int(1));
     self->yr = new_yr;
 
     pico8_hy_lj(self);
@@ -164,29 +164,29 @@ void pico8_hy_hk(pico8_hy_t *self) {
     }
 }
 
-int pico8_hy_lu(pico8_hy_t *self, pico8_fixed_t jt) {
-    pico8_fixed_t nz;
+int pico8_hy_lu(pico8_hy_t *self, p8_fixed_t jt) {
+    p8_fixed_t nz;
     pico8_iv_keys_t keys = {0};
 
     assert_hy(self);
-    nz = self != NULL ? self->nz : pico8_fixed_from_int(0);
+    nz = self != NULL ? self->nz : p8_fixed_from_int(0);
 
     if (nz < jt) {
         keys.at1 = "-no money-";
-        keys.at2 = pico8_fixed_from_int(8);
+        keys.at2 = p8_fixed_from_int(8);
         pico8_iv_new(&keys);
         return 0;
     }
 
     if (self != NULL) {
-        self->nz = pico8_fixed_sub(nz, jt);
+        self->nz = p8_fixed_sub(nz, jt);
     }
 
-    if (jt != pico8_fixed_from_int(0)) {
+    if (jt != p8_fixed_from_int(0)) {
         int color;
-        char *text = pico8_ne(pico8_zone_frame(), pico8_fixed_neg(jt), 10, "$", &color);
+        char *text = pico8_ne(pico8_zone_frame(), p8_fixed_neg(jt), 10, "$", &color);
         keys.at1 = text;
-        keys.at2 = pico8_fixed_from_int(color);
+        keys.at2 = p8_fixed_from_int(color);
         pico8_iv_new(&keys);
     }
 
@@ -194,15 +194,15 @@ int pico8_hy_lu(pico8_hy_t *self, pico8_fixed_t jt) {
 }
 
 void pico8_hy_lj(pico8_hy_t *self) {
-    pico8_fixed_t dd = pico8_fixed_from_int(0);
-    pico8_fixed_t ge;
-    pico8_fixed_t happiness;
-    pico8_fixed_t skill_mult;
+    p8_fixed_t dd = p8_fixed_from_int(0);
+    p8_fixed_t ge;
+    p8_fixed_t happiness;
+    p8_fixed_t skill_mult;
     const pico8_ents_t *jo_list;
     pico8_ents_iter_t it;
     entity_t *p;
-    pico8_fixed_t yr;
-    pico8_fixed_t nz;
+    p8_fixed_t yr;
+    p8_fixed_t nz;
 
     assert_hy(self);
     if (self == NULL) {
@@ -225,15 +225,15 @@ void pico8_hy_lj(pico8_hy_t *self) {
         it = pico8_ents_all(jo_list);
         while (pico8_ents_iter_next(&it, &p)) {
             if (p != NULL) {
-                pico8_fixed_t kr = pico8_kr(p);
+                p8_fixed_t kr = pico8_kr(p);
 
-                dd = pico8_fixed_add(dd, kr);
+                dd = p8_fixed_add(dd, kr);
             }
         }
     }
 
-    skill_mult = pico8_ov("skill implants", pico8_fixed_from_int(1), PICO8_FIXED_LIT(0x00012666, 1.15));
-    ge = pico8_fixed_sub(pico8_fixed_flr(pico8_fixed_mul(dd, skill_mult)), pico8_cz());
+    skill_mult = pico8_ov("skill implants", p8_fixed_from_int(1), P8_FIXED_LIT(0x00012666, 1.15));
+    ge = p8_fixed_sub(p8_fixed_flr(p8_fixed_mul(dd, skill_mult)), pico8_cz());
     self->ge = ge;
 
     happiness = pico8_bf();
@@ -242,9 +242,9 @@ void pico8_hy_lj(pico8_hy_t *self) {
 
     yr = self->yr;
     nz = self->nz;
-    if (yr >= pico8_fixed_from_int(3426)) {
+    if (yr >= p8_fixed_from_int(3426)) {
         self->hl = "final score";
-    } else if (ge <= pico8_fixed_from_int(0) && nz < pico8_fixed_from_int(3)) {
+    } else if (ge <= p8_fixed_from_int(0) && nz < p8_fixed_from_int(3)) {
         self->hl = "bankrupt";
     } else {
         self->hl = NULL;
@@ -269,8 +269,8 @@ void pico8_hy_lj(pico8_hy_t *self) {
 }
 
 void pico8_hy_kt(pico8_hy_t *self, const pico8_nb_entry_t *t) {
-    pico8_fixed_t jk;
-    pico8_fixed_t ew;
+    p8_fixed_t jk;
+    p8_fixed_t ew;
     int count = 0;
 
     assert_hy(self);
@@ -279,7 +279,7 @@ void pico8_hy_kt(pico8_hy_t *self, const pico8_nb_entry_t *t) {
     }
 
     jk = self->jk;
-    self->jk = pico8_fixed_sub(jk, pico8_gi_nb(t));
+    self->jk = p8_fixed_sub(jk, pico8_gi_nb(t));
 
     if (self->invented != NULL) {
         if (t != NULL && t->px != NULL) {
@@ -289,11 +289,11 @@ void pico8_hy_kt(pico8_hy_t *self, const pico8_nb_entry_t *t) {
     }
 
     ew = self->ew;
-    if (ew < pico8_fixed_from_int(4)) {
+    if (ew < p8_fixed_from_int(4)) {
         int threshold;
-        if (pico8_int_seq_at(pico8_ek_table, PICO8_EK_COUNT, pico8_fixed_flr_int(ew), &threshold) &&
-            pico8_fixed_from_int(count) >= pico8_fixed_from_int(threshold)) {
-            self->ew = pico8_fixed_add(ew, pico8_fixed_from_int(1));
+        if (pico8_int_seq_at(pico8_ek_table, PICO8_EK_COUNT, p8_fixed_flr_int(ew), &threshold) &&
+            p8_fixed_from_int(count) >= p8_fixed_from_int(threshold)) {
+            self->ew = p8_fixed_add(ew, p8_fixed_from_int(1));
         }
     }
 
@@ -321,7 +321,7 @@ static void bx_visit(entity_t *pt, void *ctx) {
     pico8_qe_map_t *p = (pico8_qe_map_t *)ctx;
     const pico8_jo_t *jo;
     const pico8_kw_t *kw;
-    pico8_fixed_t current;
+    p8_fixed_t current;
 
     assert(pico8_jo_is_family(pt) && "bx: pt is a planet of cg.jo");
     jo = (const pico8_jo_t *)pt;
@@ -333,13 +333,13 @@ static void bx_visit(entity_t *pt, void *ctx) {
         return;
     }
     if (!pico8_qe_map_get(p, kw->qe, &current)) {
-        current = pico8_fixed_from_int(0);
+        current = p8_fixed_from_int(0);
     }
-    pico8_qe_map_set(p, kw->qe, pico8_fixed_add(current, kw->mu));
+    pico8_qe_map_set(p, kw->qe, p8_fixed_add(current, kw->mu));
 }
 
 void pico8_bx(pico8_qe_map_t *out) {
-    pico8_cm(out, pico8_fixed_from_int(0));
+    pico8_cm(out, p8_fixed_from_int(0));
     for_each_cg("planet", bx_visit, out);
 }
 
@@ -348,7 +348,7 @@ static void ck_visit(entity_t *l, void *ctx) {
     const pico8_ptrs_t *jy;
     const pico8_jy_t *last;
     void *last_val;
-    pico8_fixed_t current;
+    p8_fixed_t current;
 
     assert(pico8_jo_is_family(l) && "ck: l is a planet of cg.qh");
     jy = ((const pico8_jo_t *)l)->jy;
@@ -366,12 +366,12 @@ static void ck_visit(entity_t *l, void *ctx) {
     /* Fallback 1, not 0: `cm(1)` seeded every key of `r`, so an absent one
      * is a resource `r` never listed, treated as that same seed. */
     if (!pico8_qe_map_get(d, last->row.qe, &current)) {
-        current = pico8_fixed_from_int(1);
+        current = p8_fixed_from_int(1);
     }
-    pico8_qe_map_set(d, last->row.qe, pico8_fixed_sub(current, PICO8_FIXED_LIT(0x00002666, 0.15)));
+    pico8_qe_map_set(d, last->row.qe, p8_fixed_sub(current, P8_FIXED_LIT(0x00002666, 0.15)));
 }
 
 void pico8_ck(pico8_qe_map_t *out) {
-    pico8_cm(out, pico8_fixed_from_int(1));
+    pico8_cm(out, p8_fixed_from_int(1));
     for_each_cg("structure", ck_visit, out);
 }

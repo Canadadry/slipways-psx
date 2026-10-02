@@ -11,7 +11,7 @@ typedef struct {
     entity_t header;
     pico8_ents_t *lp;
     pico8_ents_t *rl;
-    pico8_fixed_t qe;
+    p8_fixed_t qe;
     int has_qe;     /* 0: `qe` is nil, and `qe` is then never read */
     int qe_is_bool; /* 1: `qe` holds a boolean (0/1), 0: a fixed; read only when `has_qe` */
 } pico8_trade_t;
@@ -34,7 +34,7 @@ const entity_class_t *pico8_trade_struct_class(void);
 /* A route's or a want's `qe`: `n` is read only for FIXED. */
 typedef struct {
     enum { PICO8_QE_NIL, PICO8_QE_FALSE, PICO8_QE_FIXED } kind;
-    pico8_fixed_t n;
+    p8_fixed_t n;
 } pico8_qe_t;
 
 /* Lua's `==` on two `qe`: nil equals nil, false equals false, nil is not
@@ -46,7 +46,7 @@ int pico8_qe_equal(pico8_qe_t a, pico8_qe_t b);
 typedef struct {
     pico8_ents_t *lp;
     pico8_ents_t *rl;
-    pico8_fixed_t qe;
+    p8_fixed_t qe;
     int has_qe;
     int qe_is_bool;
 } pico8_trade_keys_t;

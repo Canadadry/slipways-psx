@@ -89,17 +89,17 @@ int main(int argc, char **argv) {
     const char *capture_path = (argc > 2) ? argv[2] : NULL;
     const char *dump_path = (argc > 3) ? argv[3] : "tmp/pico8_replay_dump.txt";
 
-    pico8_mem_t mem;
-    pico8_mem_init(&mem);
+    p8_memory_t mem;
+    p8_mem_init(&mem);
 
-    pico8_gfx_t gfx;
-    pico8_gfx_init(&gfx);
+    p8_graphics_t gfx;
+    p8_gfx_init(&gfx);
 
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
 
-    pico8_input_t input;
-    pico8_input_init(&input);
+    p8_input_t input;
+    p8_input_init(&input);
     assert(pico8_input_load(&input, events_path));
 
     pico8_dispatch_set_gfx(&gfx);
@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
             return 1;
         }
         if (i < frame_count - 1) {
-            pico8_input_step(&input);
+            p8_input_step(&input);
         }
     }
 

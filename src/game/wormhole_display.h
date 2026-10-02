@@ -9,6 +9,6 @@
 /* TROU-3 */
 /* `p` is the struct's `ra`, as `dc("kj")` passes it. A NULL `self` draws
  * nothing; a NULL `gfx` or `mem` skips the drawing calls only. */
-void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mz_t *self, pico8_vec_t p);
+void pico8_mz_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_mz_t *self, pico8_vec_t p);
 
 #endif

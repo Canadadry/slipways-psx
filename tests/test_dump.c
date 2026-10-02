@@ -8,11 +8,11 @@
 #include <string.h>
 
 #define DUMP_HEADER "128 128\n"
-#define DUMP_ROW_CHARS (PICO8_SCREEN_WIDTH)
+#define DUMP_ROW_CHARS (P8_SCREEN_WIDTH)
 #define DUMP_LINE_LEN (DUMP_ROW_CHARS + 1)
-#define DUMP_SIZE (sizeof(DUMP_HEADER) - 1 + (size_t)DUMP_LINE_LEN * PICO8_SCREEN_HEIGHT)
+#define DUMP_SIZE (sizeof(DUMP_HEADER) - 1 + (size_t)DUMP_LINE_LEN * P8_SCREEN_HEIGHT)
 
-static char *dump_to_buffer(const pico8_mem_t *mem, size_t *out_len) {
+static char *dump_to_buffer(const p8_memory_t *mem, size_t *out_len) {
     FILE *tmp = tmpfile();
     assert(tmp != NULL);
 
@@ -40,9 +40,9 @@ static void set_expected_pixel(char *expected, int x, int y, char hex_digit) {
 }
 
 static void test_dump_of_cleared_screen_is_all_zero_grid(void) {
-    pico8_mem_t mem;
-    pico8_mem_init(&mem);
-    pico8_cls(&mem);
+    p8_memory_t mem;
+    p8_mem_init(&mem);
+    p8_cls(&mem);
 
     size_t actual_len;
     char *actual = dump_to_buffer(&mem, &actual_len);
@@ -51,7 +51,7 @@ static void test_dump_of_cleared_screen_is_all_zero_grid(void) {
     assert(expected != NULL);
     memcpy(expected, DUMP_HEADER, strlen(DUMP_HEADER));
     size_t offset = strlen(DUMP_HEADER);
-    for (int row = 0; row < PICO8_SCREEN_HEIGHT; row++) {
+    for (int row = 0; row < P8_SCREEN_HEIGHT; row++) {
         memset(expected + offset, '0', DUMP_ROW_CHARS);
         offset += DUMP_ROW_CHARS;
         expected[offset++] = '\n';
@@ -66,16 +66,16 @@ static void test_dump_of_cleared_screen_is_all_zero_grid(void) {
 }
 
 static void test_dump_of_hand_drawn_pattern_matches_exact_text(void) {
-    pico8_mem_t mem;
-    pico8_gfx_t gfx;
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
+    p8_memory_t mem;
+    p8_graphics_t gfx;
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
 
-    pico8_cls(&mem);
-    pico8_pset(&gfx, &mem, 0, 0, 10);
-    pico8_pset(&gfx, &mem, 127, 0, 1);
-    pico8_pset(&gfx, &mem, 64, 64, 15);
-    pico8_pset(&gfx, &mem, 0, 127, 9);
+    p8_cls(&mem);
+    p8_pset(&gfx, &mem, 0, 0, 10);
+    p8_pset(&gfx, &mem, 127, 0, 1);
+    p8_pset(&gfx, &mem, 64, 64, 15);
+    p8_pset(&gfx, &mem, 0, 127, 9);
 
     size_t actual_len;
     char *actual = dump_to_buffer(&mem, &actual_len);
@@ -84,7 +84,7 @@ static void test_dump_of_hand_drawn_pattern_matches_exact_text(void) {
     assert(expected != NULL);
     memcpy(expected, DUMP_HEADER, strlen(DUMP_HEADER));
     size_t offset = strlen(DUMP_HEADER);
-    for (int row = 0; row < PICO8_SCREEN_HEIGHT; row++) {
+    for (int row = 0; row < P8_SCREEN_HEIGHT; row++) {
         memset(expected + offset, '0', DUMP_ROW_CHARS);
         offset += DUMP_ROW_CHARS;
         expected[offset++] = '\n';
@@ -129,12 +129,12 @@ static int write_pixels(const void *pixels, FILE *out) {
 }
 
 static void test_dump_of_pixel_buffer_matches_dump_of_same_screen(void) {
-    static unsigned char pixels[PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT];
-    pico8_mem_t mem;
-    pico8_mem_init(&mem);
+    static unsigned char pixels[P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT];
+    p8_memory_t mem;
+    p8_mem_init(&mem);
     for (int i = 0; i < (int)sizeof(pixels); i++) {
-        pixels[i] = (unsigned char)((i * 7 + i / PICO8_SCREEN_WIDTH) % 16);
-        pico8_poke(&mem, PICO8_ADDR_SCREEN + i, pixels[i]);
+        pixels[i] = (unsigned char)((i * 7 + i / P8_SCREEN_WIDTH) % 16);
+        p8_poke(&mem, P8_ADDR_SCREEN + i, pixels[i]);
     }
 
     size_t from_screen_len;

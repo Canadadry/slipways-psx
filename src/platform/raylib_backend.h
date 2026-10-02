@@ -54,7 +54,7 @@ int pico8_raylib_backend_should_continue(const pico8_raylib_backend_t *backend);
  * pico8_session_recorder_frame_count: stop recording replayed frames and
  * every marker of a resumed session silently shifts by the replay's
  * length (tests/test_marker_coherence.c). */
-void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, pico8_input_frame_t *out_frame);
+void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, p8_input_frame_t *out_frame);
 
 /* Uploads the current framebuffer (pico8_peek from PICO8_ADDR_SCREEN, one
  * palette lookup per pixel) and draws it scaled to fill the window.
@@ -66,7 +66,7 @@ void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, pico8_inpu
  * the cart. It is drawn after the blit, so it cannot alter the PICO-8
  * framebuffer or the recorded frames, and NULL (live play, and every
  * frame once the recording runs out) draws nothing at all. */
-void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const pico8_mem_t *mem, const pico8_input_frame_t *frame, const char *replay_status);
+void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const p8_memory_t *mem, const p8_input_frame_t *frame, const char *replay_status);
 
 /* Reads the replay's three keys -- Page Up faster, Page Down slower, End
  * uncapped -- and applies them to *control. Pressed, not held: one tap is
@@ -91,7 +91,7 @@ void pico8_raylib_backend_set_frame_rate_cap(int target_fps);
  * than killing a live session. Takes replayed and live frames alike, which
  * is what keeps a resumed session's recording complete and replayable in
  * its turn (tests/test_recording_continuity.c). */
-void pico8_raylib_backend_record_frame(pico8_raylib_backend_t *backend, const pico8_input_frame_t *frame);
+void pico8_raylib_backend_record_frame(pico8_raylib_backend_t *backend, const p8_input_frame_t *frame);
 
 /* Restores the host cursor, unloads the texture, closes the window and
  * ends the recording; the file on disk is left in place, already complete.

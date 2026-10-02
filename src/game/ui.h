@@ -105,11 +105,11 @@ void pico8_ui_set_ok(pico8_ui_t *ui);
 /* Called once per frame by `pico8__update60()` (pico8_cart.c). `mem` is an
  * explicit parameter because that call is direct, not routed through
  * a class member or `dc()` and their shared dispatch context. */
-void pico8_ui_lj(pico8_mem_t *mem, pico8_ui_t *self);
+void pico8_ui_lj(p8_memory_t *mem, pico8_ui_t *self);
 
-void pico8_ui_ev(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_ui_t *self);
+void pico8_ui_ev(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_ui_t *self);
 
-void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self);
+void pico8_ui_gw(p8_memory_t *mem, pico8_ui_t *self);
 
 /* `bt` is "l" or "r", anything else asserts: it picks the member
  * `lheld`/`rheld` and the method `ldown`/`rdown`. */

@@ -61,9 +61,9 @@
  * any other value moves every *_HASH. */
 #define FROZEN_LIST_TAG 0x9E5C1157u
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 static pico8_cheat_t cheat;
 
 /* NULL on the provisional `fm`, as the functions of `hy` take it. */
@@ -102,7 +102,7 @@ static uint32_t fold_string(uint32_t h, const char *s) {
  * moves them. */
 enum { FIXED_KIND = 0, STRING_KIND = 1, BOOL_KIND = 2, REF_KIND = 3 };
 
-static uint32_t fold_fixed(uint32_t h, pico8_fixed_t x) {
+static uint32_t fold_fixed(uint32_t h, p8_fixed_t x) {
     return fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)x);
 }
 
@@ -133,7 +133,7 @@ static uint32_t fold_absent(uint32_t h) {
 /* A member of one kind: the kind word and the list's tag are constant by
  * the struct's shape, kept so that the frozen constants still prove the typed
  * reads. An unset flag or a NULL member folds as absent. */
-static uint32_t fold_fixed_member(uint32_t h, int has, pico8_fixed_t v) {
+static uint32_t fold_fixed_member(uint32_t h, int has, p8_fixed_t v) {
     return has ? fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)v) : fold_absent(h);
 }
 
@@ -199,7 +199,7 @@ static void new_game(void) {
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
  * reads as difficulty 0. */
 static void start_game(void) {
-    pico8_input_init(&input);
+    p8_input_init(&input);
     pico8_dispatch_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
@@ -216,9 +216,9 @@ static pico8_vec_t pos_of(void *e) {
     return *p;
 }
 
-static pico8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
+static p8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
     pico8_vec_t d = pico8_vec_sub(a, b);
-    return pico8_fixed_add(pico8_fixed_mul(d.x, d.x), pico8_fixed_mul(d.y, d.y));
+    return p8_fixed_add(p8_fixed_mul(d.x, d.x), p8_fixed_mul(d.y, d.y));
 }
 
 static pico8_hp_t *project(int k) {
@@ -253,12 +253,12 @@ static void built_world(void) {
 
     jc_keys.qu = qu;
     jc = pico8_jc_new(&jc_keys);
-    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
-                        pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
+    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), p8_fixed_from_int(128)),
+                        pico8_vec_v(p8_fixed_from_int(1), p8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
     pico8_jc_struct_class()->drag(&jc->header, mp, NULL);
     pico8_ok()->o_ = NULL;
-    while (jc->header.state_time < pico8_fixed_from_int(15)) {
+    while (jc->header.state_time < p8_fixed_from_int(15)) {
         pico8_dg();
     }
     pico8_jc_struct_class()->drop(&jc->header, re);
@@ -312,7 +312,7 @@ static void test_construction(void) {
     assert(!bare->has_hl);
     h = fold_hy(h, bare);
     assert(invented_of(bare)->count == 0);
-    assert(bare->nz == pico8_fixed_from_int(100) && bare->yr == pico8_fixed_from_int(3401));
+    assert(bare->nz == p8_fixed_from_int(100) && bare->yr == p8_fixed_from_int(3401));
 
     new_game();
     assert(fm_hy()->invented != NULL && fm_hy()->po != NULL && fm_hy()->fu != NULL);
@@ -337,34 +337,34 @@ static uint32_t fold_lo_yr(uint32_t h) {
  * the year turns once and `lo` drops by that bound. */
 static void test_nx(void) {
     uint32_t h = 2166136261u;
-    pico8_fixed_t yr;
+    p8_fixed_t yr;
 
     start_game();
     yr = fm_hy()->yr;
-    assert(fm_hy()->lo == pico8_fixed_from_int(1));
+    assert(fm_hy()->lo == p8_fixed_from_int(1));
 
-    pico8_hy_nx(fm_self(), pico8_fixed_from_int(3));
-    assert(fm_hy()->lo == pico8_fixed_from_int(4) && fm_hy()->yr == yr);
+    pico8_hy_nx(fm_self(), p8_fixed_from_int(3));
+    assert(fm_hy()->lo == p8_fixed_from_int(4) && fm_hy()->yr == yr);
     h = fold_lo_yr(h);
-    pico8_hy_nx(fm_self(), pico8_fixed_from_int(8));
-    assert(fm_hy()->lo == pico8_fixed_from_int(12) && fm_hy()->yr == yr);
+    pico8_hy_nx(fm_self(), p8_fixed_from_int(8));
+    assert(fm_hy()->lo == p8_fixed_from_int(12) && fm_hy()->yr == yr);
     h = fold_lo_yr(h);
-    pico8_hy_nx(fm_self(), pico8_fixed_from_int(1));
-    assert(fm_hy()->lo == pico8_fixed_from_int(1));
-    assert(fm_hy()->yr == pico8_fixed_add(yr, pico8_fixed_from_int(1)));
+    pico8_hy_nx(fm_self(), p8_fixed_from_int(1));
+    assert(fm_hy()->lo == p8_fixed_from_int(1));
+    assert(fm_hy()->yr == p8_fixed_add(yr, p8_fixed_from_int(1)));
     h = fold_fm(h);
 
     pico8_ptrs_add(fm_hy()->invented, "time compression");
-    pico8_hy_nx(fm_self(), pico8_fixed_from_int(14));
-    assert(fm_hy()->lo == pico8_fixed_from_int(15));
-    assert(fm_hy()->yr == pico8_fixed_add(yr, pico8_fixed_from_int(1)));
+    pico8_hy_nx(fm_self(), p8_fixed_from_int(14));
+    assert(fm_hy()->lo == p8_fixed_from_int(15));
+    assert(fm_hy()->yr == p8_fixed_add(yr, p8_fixed_from_int(1)));
     h = fold_lo_yr(h);
-    pico8_hy_nx(fm_self(), PICO8_FIXED_LIT(0x00008000, 0.5));
-    assert(fm_hy()->lo == PICO8_FIXED_LIT(0x00008000, 0.5));
-    assert(fm_hy()->yr == pico8_fixed_add(yr, pico8_fixed_from_int(2)));
+    pico8_hy_nx(fm_self(), P8_FIXED_LIT(0x00008000, 0.5));
+    assert(fm_hy()->lo == P8_FIXED_LIT(0x00008000, 0.5));
+    assert(fm_hy()->yr == p8_fixed_add(yr, p8_fixed_from_int(2)));
     h = fold_fm(h);
 
-    pico8_hy_nx(NULL, pico8_fixed_from_int(20));
+    pico8_hy_nx(NULL, p8_fixed_from_int(20));
     h = fold_fm(h);
     check("nx", h, NX_HASH);
 }
@@ -374,10 +374,10 @@ static void test_nx(void) {
 static void test_hk(void) {
     uint32_t h = 2166136261u;
     const entity_class_t *iv_cls;
-    pico8_fixed_t nz;
-    pico8_fixed_t ge;
-    pico8_fixed_t jk;
-    pico8_fixed_t yr;
+    p8_fixed_t nz;
+    p8_fixed_t ge;
+    p8_fixed_t jk;
+    p8_fixed_t yr;
     int from;
 
     built_world();
@@ -390,9 +390,9 @@ static void test_hk(void) {
 
     from = pico8_hv()->count;
     pico8_hy_hk(fm_self());
-    assert(fm_hy()->nz == pico8_fixed_add(nz, ge));
+    assert(fm_hy()->nz == p8_fixed_add(nz, ge));
     assert(fm_hy()->jk > jk);
-    assert(fm_hy()->yr == pico8_fixed_add(yr, pico8_fixed_from_int(1)));
+    assert(fm_hy()->yr == p8_fixed_add(yr, p8_fixed_from_int(1)));
     h = fold_fm(h);
     h = fold_new_entities(h, from, iv_cls);
     assert(pico8_hv()->count > from);
@@ -404,7 +404,7 @@ static void test_hk(void) {
 
 static uint32_t lu_step(uint32_t h, pico8_hy_t *self, int jt, int want, const entity_class_t *iv_cls) {
     int from = pico8_hv()->count;
-    int got = pico8_hy_lu(self, pico8_fixed_from_int(jt));
+    int got = pico8_hy_lu(self, p8_fixed_from_int(jt));
     assert(got == want);
     h = fnv(h, (uint32_t)got);
     h = fold_fixed_member(h, 1, fm_hy()->nz);
@@ -420,23 +420,23 @@ static void test_lu(void) {
 
     start_game();
     iv_cls = iv_descriptor();
-    assert(fm_hy()->nz == pico8_fixed_from_int(100));
+    assert(fm_hy()->nz == p8_fixed_from_int(100));
 
     from = pico8_hv()->count;
     h = lu_step(h, fm_self(), 101, 0, iv_cls);
-    assert(fm_hy()->nz == pico8_fixed_from_int(100) && pico8_hv()->count == from + 1);
+    assert(fm_hy()->nz == p8_fixed_from_int(100) && pico8_hv()->count == from + 1);
     assert(strcmp(((const pico8_iv_t *)pico8_hv()->items[from])->at1, "-no money-") == 0);
 
     from = pico8_hv()->count;
     h = lu_step(h, fm_self(), 0, 1, iv_cls);
-    assert(fm_hy()->nz == pico8_fixed_from_int(100) && pico8_hv()->count == from);
+    assert(fm_hy()->nz == p8_fixed_from_int(100) && pico8_hv()->count == from);
 
     h = lu_step(h, fm_self(), 30, 1, iv_cls);
-    assert(fm_hy()->nz == pico8_fixed_from_int(70));
+    assert(fm_hy()->nz == p8_fixed_from_int(70));
     h = lu_step(h, fm_self(), -20, 1, iv_cls);
-    assert(fm_hy()->nz == pico8_fixed_from_int(90));
+    assert(fm_hy()->nz == p8_fixed_from_int(90));
     h = lu_step(h, fm_self(), 90, 1, iv_cls);
-    assert(fm_hy()->nz == pico8_fixed_from_int(0));
+    assert(fm_hy()->nz == p8_fixed_from_int(0));
 
     h = lu_step(h, NULL, 5, 0, iv_cls);
     h = lu_step(h, NULL, 0, 1, iv_cls);
@@ -487,11 +487,11 @@ static void test_lj(void) {
     pico8_jo_t *maker;
     pico8_jo_t *needer;
     pico8_ptrs_t needs;
-    pico8_fixed_t need_qe = pico8_fixed_from_int(99);
+    p8_fixed_t need_qe = p8_fixed_from_int(99);
     pico8_jy_t *need;
-    pico8_fixed_t made;
-    pico8_fixed_t now;
-    pico8_fixed_t qe;
+    p8_fixed_t made;
+    p8_fixed_t now;
+    p8_fixed_t qe;
 
     built_world();
     po = fm_hy()->po;
@@ -500,38 +500,38 @@ static void test_lj(void) {
     maker = a_maker();
     qe = maker->kw->qe;
     assert(pico8_qe_map_get(po, qe, &made) && maker->kw->mu > 0);
-    maker->kw->qe = pico8_fixed_from_int(99);
+    maker->kw->qe = p8_fixed_from_int(99);
     pico8_hy_lj(fm_self());
-    assert(pico8_qe_map_get(po, pico8_fixed_from_int(99), &now) && now == maker->kw->mu);
-    assert(pico8_qe_map_get(po, qe, &now) && now == pico8_fixed_sub(made, maker->kw->mu));
+    assert(pico8_qe_map_get(po, p8_fixed_from_int(99), &now) && now == maker->kw->mu);
+    assert(pico8_qe_map_get(po, qe, &now) && now == p8_fixed_sub(made, maker->kw->mu));
     maker->kw->qe = qe;
     pico8_hy_lj(fm_self());
-    assert(!pico8_qe_map_get(po, pico8_fixed_from_int(99), &now));
+    assert(!pico8_qe_map_get(po, p8_fixed_from_int(99), &now));
     assert(pico8_qe_map_get(po, qe, &now) && now == made);
     assert(fm_hy()->po == po && fm_hy()->fu == fu);
     assert(hl_string() == NULL);
     h = fold_fm(h);
     h = fold_planets_kr(h);
 
-    fm_hy()->yr = pico8_fixed_from_int(3426);
+    fm_hy()->yr = p8_fixed_from_int(3426);
     pico8_hy_lj(fm_self());
     assert(hl_string() != NULL && strcmp(hl_string(), "final score") == 0);
     h = fold_fm(h);
 
-    fm_hy()->yr = pico8_fixed_from_int(3425);
-    fm_hy()->nz = pico8_fixed_from_int(2);
+    fm_hy()->yr = p8_fixed_from_int(3425);
+    fm_hy()->nz = p8_fixed_from_int(2);
     pico8_hy_lj(fm_self());
     h = fold_fm(h);
     h = fnv(h, (uint32_t)(hl_string() == NULL));
 
     pico8_cart_vider_file_sortie();
     new_game();
-    fm_hy()->nz = pico8_fixed_from_int(2);
+    fm_hy()->nz = p8_fixed_from_int(2);
     pico8_hy_lj(fm_self());
-    assert(fm_hy()->ge <= pico8_fixed_from_int(0));
+    assert(fm_hy()->ge <= p8_fixed_from_int(0));
     assert(hl_string() != NULL && strcmp(hl_string(), "bankrupt") == 0);
     h = fold_fm(h);
-    fm_hy()->nz = pico8_fixed_from_int(3);
+    fm_hy()->nz = p8_fixed_from_int(3);
     pico8_hy_lj(fm_self());
     assert(hl_string() == NULL);
     h = fold_fm(h);
@@ -547,10 +547,10 @@ static void test_lj(void) {
     pico8_ptrs_add(&needs, need);
     needer->jy = &needs;
     pico8_hy_lj(fm_self());
-    assert(pico8_qe_map_get(fu, pico8_fixed_from_int(99), &now) && now == pico8_fixed_from_int(1) - 0x2666);
+    assert(pico8_qe_map_get(fu, p8_fixed_from_int(99), &now) && now == p8_fixed_from_int(1) - 0x2666);
     needer->jy = NULL;
     pico8_hy_lj(fm_self());
-    assert(!pico8_qe_map_get(fu, pico8_fixed_from_int(99), &now));
+    assert(!pico8_qe_map_get(fu, p8_fixed_from_int(99), &now));
 }
 
 /* An nb entry of cost `od` whose `nk` (0) no resource of `r` is: gi reads
@@ -570,11 +570,11 @@ static void test_kt(void) {
     size_t k;
 
     start_game();
-    fm_hy()->jk = pico8_fixed_from_int(500);
+    fm_hy()->jk = p8_fixed_from_int(500);
 
     pico8_hy_kt(fm_self(), tech(NULL, 10));
-    assert(fm_hy()->jk == pico8_fixed_from_int(495));
-    assert(invented_of(fm_hy())->count == 0 && fm_hy()->ew == pico8_fixed_from_int(1));
+    assert(fm_hy()->jk == p8_fixed_from_int(495));
+    assert(invented_of(fm_hy())->count == 0 && fm_hy()->ew == p8_fixed_from_int(1));
     h = fold_fm(h);
 
     for (k = 0; k < sizeof pxs / sizeof pxs[0]; k++) {
@@ -583,7 +583,7 @@ static void test_kt(void) {
         h = fnv(h, (uint32_t)fm_hy()->ew);
         h = fnv(h, (uint32_t)fm_hy()->jk);
     }
-    assert(fm_hy()->ew == pico8_fixed_from_int(4));
+    assert(fm_hy()->ew == p8_fixed_from_int(4));
     h = fold_fm(h);
 
     pico8_hy_kt(fm_self(), NULL);
@@ -597,8 +597,8 @@ static void test_kt(void) {
  * the `hy` of the game then starts from its own spec. */
 static void test_cheat_on_provisional(void) {
     static const int presses[] = {4, 4, 5, 5, 4, 4, 5, 5};
-    pico8_input_frame_t frames[16];
-    pico8_input_t pad;
+    p8_input_frame_t frames[16];
+    p8_input_t pad;
     const pico8_fm_placeholder_t *provisional;
     int fired = 0;
     int i;
@@ -618,12 +618,12 @@ static void test_cheat_on_provisional(void) {
         fired += pico8_cheat_step(&cheat, &pad);
     }
     assert(fired == 1 && pico8_fm_placeholder() == provisional);
-    assert(provisional->has_jk && provisional->jk == pico8_fixed_from_int(99));
-    assert(provisional->has_nz && provisional->nz == pico8_fixed_from_int(200));
+    assert(provisional->has_jk && provisional->jk == p8_fixed_from_int(99));
+    assert(provisional->has_nz && provisional->nz == p8_fixed_from_int(200));
 
     new_game();
-    assert(fm_hy()->jk == pico8_fixed_from_int(0));
-    assert(fm_hy()->nz == pico8_fixed_from_int(100));
+    assert(fm_hy()->jk == p8_fixed_from_int(0));
+    assert(fm_hy()->nz == p8_fixed_from_int(100));
 }
 
 static void must_abort(void (*write)(void *), void *e) {
@@ -643,7 +643,7 @@ static void must_abort(void (*write)(void *), void *e) {
 }
 
 static void lu_on_other(void *e) {
-    (void)pico8_hy_lu(e, pico8_fixed_from_int(1));
+    (void)pico8_hy_lu(e, p8_fixed_from_int(1));
 }
 
 /* `fm` is a struct whose descriptor has no method;
@@ -698,11 +698,11 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

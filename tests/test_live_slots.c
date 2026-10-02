@@ -132,17 +132,17 @@ static void imprimer(const char *e2e, const releve_t *r) {
 
 /* Charge le cart pour rejouer `e2e` (NULL : aucune entree ; un chemin s'il
  * contient un « / ») et rend ses entrees, statiques. */
-static pico8_input_t *charger(const char *e2e) {
-    static pico8_mem_t mem;
-    static pico8_gfx_t gfx;
-    static pico8_input_t input;
+static p8_input_t *charger(const char *e2e) {
+    static p8_memory_t mem;
+    static p8_graphics_t gfx;
+    static p8_input_t input;
     char path[256];
 
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     if (e2e != NULL) {
         snprintf(path, sizeof path, strchr(e2e, '/') != NULL ? "%s" : "tests/e2e/%s.json", e2e);
         assert(pico8_input_load(&input, path));
@@ -158,7 +158,7 @@ static pico8_input_t *charger(const char *e2e) {
 /* Releve les comptes apres chaque frame de `frames` (AVANT_F0 : apres
  * _init, avant la frame 0), et rend la derniere frame jouee. */
 static void rejouer(const char *e2e, const int *frames, int n, releve_t *out) {
-    pico8_input_t *input = charger(e2e);
+    p8_input_t *input = charger(e2e);
     int k = 0;
 
     if (k < n && frames[k] == AVANT_F0) {
@@ -178,14 +178,14 @@ static void rejouer(const char *e2e, const int *frames, int n, releve_t *out) {
             imprimer(e2e, &out[k]);
             k++;
         }
-        if (i < input->frame_count - 1) pico8_input_step(input);
+        if (i < input->frame_count - 1) p8_input_step(input);
     }
     assert(k == n && "une frame de releve est hors du rejeu");
 }
 
 /* Rejoue `e2e` en entier, l'invariant verifie a chaque frame. */
 static void rejouer_sous_invariant(const char *e2e) {
-    pico8_input_t *input = charger(e2e);
+    p8_input_t *input = charger(e2e);
     verifier_invariant(e2e, AVANT_F0);
     pico8_cheat_t cheat;
     pico8_cheat_init(&cheat);
@@ -195,7 +195,7 @@ static void rejouer_sous_invariant(const char *e2e) {
         pico8__update60();
         pico8__draw();
         verifier_invariant(e2e, i);
-        if (i < input->frame_count - 1) pico8_input_step(input);
+        if (i < input->frame_count - 1) p8_input_step(input);
     }
 }
 
@@ -300,7 +300,7 @@ static void pause_restart_revient_au_titre(void) {
  * par l'optimiseur, c'est elle que le cas observe. */
 static volatile unsigned char g_lu;
 
-static pico8_input_t *g_input;
+static p8_input_t *g_input;
 static pico8_cheat_t g_cheat;
 static int g_frame;
 
@@ -312,7 +312,7 @@ static void jouer_jusqu_a(int derniere) {
         pico8_cheat_step(&g_cheat, g_input);
         pico8__update60();
         pico8__draw();
-        if (g_frame < g_input->frame_count - 1) pico8_input_step(g_input);
+        if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
     }
     assert(g_frame == derniere + 1 && "une frame de sentinelle est hors du rejeu");
 }
@@ -788,7 +788,7 @@ static void jouer_une_frame(int dessiner) {
     pico8_cheat_step(&g_cheat, g_input);
     pico8__update60();
     if (dessiner) pico8__draw();
-    if (g_frame < g_input->frame_count - 1) pico8_input_step(g_input);
+    if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
     g_frame++;
 }
 
@@ -816,12 +816,12 @@ static void le_fo_d_une_planete_hors_ecran_oublie_la_prise_refusee(void) {
     assert(tenue != NULL && "f23 : une structure est tenue");
     pico8_jo_t *p34 = planete_dont_fo_est(tenue);
     assert(p34 != NULL && "f23 : la structure tenue accroche le fo d'une planete");
-    loin = pico8_vec_add(*((const pico8_qb_t *)pico8_mo())->ra, pico8_vec_v(pico8_fixed_from_int(500), 0));
+    loin = pico8_vec_add(*((const pico8_qb_t *)pico8_mo())->ra, pico8_vec_v(p8_fixed_from_int(500), 0));
     p34->ra = &loin;
     assert(!pico8_gd(&p34->header) && "p34 est hors ecran");
     pico8__draw();
     assert(p34->fo == tenue && "hors ecran, kj laisse fo");
-    if (g_frame < g_input->frame_count - 1) pico8_input_step(g_input);
+    if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
     g_frame++;
     while (g_frame <= 27) jouer_une_frame(1);
     jouer_une_frame(0);
@@ -904,11 +904,11 @@ static void le_fo_d_une_planete_hors_ecran_oublie_le_slipway_refuse(void) {
     const pico8_jc_t *tenu = le_slipway_tenu();
     pico8_jo_t *p = planete_dont_fo_est(&tenu->header);
     assert(p != NULL && "f345 : le slipway tenu accroche le fo d'une planete");
-    loin = pico8_vec_add(*((const pico8_qb_t *)pico8_mo())->ra, pico8_vec_v(pico8_fixed_from_int(500), 0));
+    loin = pico8_vec_add(*((const pico8_qb_t *)pico8_mo())->ra, pico8_vec_v(p8_fixed_from_int(500), 0));
     p->ra = &loin;
     assert(!pico8_gd(&p->header) && "la planete est hors ecran");
     pico8__draw();
-    if (g_frame < g_input->frame_count - 1) pico8_input_step(g_input);
+    if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
     g_frame++;
     jouer_jusqu_a(354);
     assert(p->fo == &tenu->header && "hors ecran, kj laisse fo");
@@ -1034,12 +1034,12 @@ static void le_fo_d_une_planete_hors_ecran_oublie_la_sonde_refusee(void) {
     const entity_t *tenue = &la_sonde_tenue()->header;
     pico8_jo_t *p34 = planete_dont_fo_est(tenue);
     assert(p34 != NULL && "f74 : la sonde tenue accroche le fo d'une planete");
-    loin = pico8_vec_add(*((const pico8_qb_t *)pico8_mo())->ra, pico8_vec_v(pico8_fixed_from_int(500), 0));
+    loin = pico8_vec_add(*((const pico8_qb_t *)pico8_mo())->ra, pico8_vec_v(p8_fixed_from_int(500), 0));
     p34->ra = &loin;
     assert(!pico8_gd(&p34->header) && "p34 est hors ecran");
     pico8__draw();
     assert(p34->fo == tenue && "hors ecran, kj laisse fo");
-    if (g_frame < g_input->frame_count - 1) pico8_input_step(g_input);
+    if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
     g_frame++;
     while (g_frame <= 78) jouer_une_frame(1);
     jouer_une_frame(0);
@@ -1168,7 +1168,7 @@ static void message_box_hold_reecrit_les_boites_par_tick_en_place(void) {
     assert(pico8_zone_partie_prise() == prise && "la zone partie prend des octets par tick");
 }
 
-static int sans_bouton(const pico8_input_frame_t *f) {
+static int sans_bouton(const p8_input_frame_t *f) {
     if (f->mouse_buttons != 0) return 0;
     for (int b = 0; b < 6; b++) {
         if (f->dpad[b]) return 0;
@@ -1176,9 +1176,9 @@ static int sans_bouton(const pico8_input_frame_t *f) {
     return 1;
 }
 
-static int frame_sans_action(const pico8_input_t *input, int i) {
-    const pico8_input_frame_t *f = &input->frames[i];
-    const pico8_input_frame_t *avant = &input->frames[i - (i > 0)];
+static int frame_sans_action(const p8_input_t *input, int i) {
+    const p8_input_frame_t *f = &input->frames[i];
+    const p8_input_frame_t *avant = &input->frames[i - (i > 0)];
     return i > 0 && sans_bouton(f) && sans_bouton(avant) && f->mouse_x == avant->mouse_x &&
            f->mouse_y == avant->mouse_y;
 }

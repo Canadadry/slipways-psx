@@ -45,17 +45,17 @@ typedef struct {
 typedef struct pico8_kind_rec {
     const char *rr;
     int has_s;
-    pico8_fixed_t s;
+    p8_fixed_t s;
     const char *me;
     int has_od;
-    pico8_fixed_t od;
+    p8_fixed_t od;
 } pico8_kind_rec_t;
 
 /* qe is only meaningful when has_qe is set. */
 typedef struct {
     int has_qe;
-    pico8_fixed_t qe;
-    pico8_fixed_t mu;
+    p8_fixed_t qe;
+    p8_fixed_t mu;
 } pico8_kw_t;
 
 /* A pico8_fixed_t below holds the 16.16 bits ob() returned for the cart's
@@ -65,7 +65,7 @@ typedef struct {
 typedef struct {
     const char *px;
     int s;
-    pico8_fixed_t r;
+    p8_fixed_t r;
     const char *d;
     const char *me;
 } pico8_df_entry_t;
@@ -97,7 +97,7 @@ typedef struct {
     const pico8_jb_row_t *lq;
     const char *px;
     int trade;
-    pico8_fixed_t en;
+    p8_fixed_t en;
 } pico8_bo_entry_t;
 
 /* row holds the positionals, its c coming last; then fn (NULL when absent),
@@ -117,38 +117,38 @@ typedef struct {
  * (ui.le, nf.ra, mz.jj) is not here: the module's init still sets it. */
 typedef struct {
     const char *me;
-    pico8_fixed_t t;
-    pico8_fixed_t fa;
-    pico8_fixed_t hd;
+    p8_fixed_t t;
+    p8_fixed_t fa;
+    p8_fixed_t hd;
     const pico8_int_seq_t *pl;
 } pico8_bg_def_t;
 
 typedef struct {
     const char *me;
-    pico8_fixed_t t;
-    pico8_fixed_t ql;
-    pico8_fixed_t fa;
+    p8_fixed_t t;
+    p8_fixed_t ql;
+    p8_fixed_t fa;
     pico8_qz_box_t hw;
 } pico8_ui_def_t;
 
 typedef struct {
     const char *me;
-    pico8_fixed_t t;
-    pico8_fixed_t fa;
+    p8_fixed_t t;
+    p8_fixed_t fa;
 } pico8_js_def_t;
 
 typedef struct {
     const char *me;
-    pico8_fixed_t t;
-    pico8_fixed_t fa;
-    pico8_fixed_t hd;
+    p8_fixed_t t;
+    p8_fixed_t fa;
+    p8_fixed_t hd;
 } pico8_fq_def_t;
 
 typedef struct {
     const char *me;
-    pico8_fixed_t t;
+    p8_fixed_t t;
     pico8_vec_t v;
-    pico8_fixed_t ma;
+    p8_fixed_t ma;
     pico8_vec_t p;
     pico8_vec_t ra;
     const pico8_vec_seq_t *pc;
@@ -156,21 +156,21 @@ typedef struct {
 
 typedef struct {
     const char *me;
-    pico8_fixed_t t;
+    p8_fixed_t t;
 } pico8_nf_def_t;
 
 typedef struct {
     const char *me;
-    pico8_fixed_t t;
-    pico8_fixed_t fa;
-    pico8_fixed_t rh;
+    p8_fixed_t t;
+    p8_fixed_t fa;
+    p8_fixed_t rh;
 } pico8_mh_def_t;
 
 typedef struct {
     const char *me;
-    pico8_fixed_t t;
-    pico8_fixed_t fa;
-    pico8_fixed_t l;
+    p8_fixed_t t;
+    p8_fixed_t fa;
+    p8_fixed_t l;
     pico8_vec_t v;
 } pico8_iv_def_t;
 
@@ -180,17 +180,17 @@ typedef struct {
 
 typedef struct {
     const char *me;
-    pico8_fixed_t t;
+    p8_fixed_t t;
     pico8_qz_box_t kq;
-    pico8_fixed_t fa;
+    p8_fixed_t fa;
     pico8_vec_t ra;
     pico8_vec_t eh;
 } pico8_ie_def_t;
 
 typedef struct {
     const char *me;
-    pico8_fixed_t t;
-    pico8_fixed_t fa;
+    p8_fixed_t t;
+    p8_fixed_t fa;
     const pico8_jb_row_t *gs;
     const pico8_jb_row_t *i_;
 } pico8_pj_def_t;
@@ -198,65 +198,65 @@ typedef struct {
 /* `dq` NULL is nil. `fp` is what `d_` hands to `fm:nx`: the cart's false is
  * held as 0, which is what `self.fp or 0` hands. */
 typedef struct {
-    pico8_fixed_t dw;
-    pico8_fixed_t od;
+    p8_fixed_t dw;
+    p8_fixed_t od;
     int has_od;
     const char *dq;
-    pico8_fixed_t fp;
-    pico8_fixed_t ik;
+    p8_fixed_t fp;
+    p8_fixed_t ik;
     int has_ik;
 } pico8_probe_def_t;
 
 typedef struct {
     const char *me;
-    pico8_fixed_t t;
-    pico8_fixed_t spawn_snd;
-    pico8_fixed_t oi;
-    pico8_fixed_t fa;
+    p8_fixed_t t;
+    p8_fixed_t spawn_snd;
+    p8_fixed_t oi;
+    p8_fixed_t fa;
     const pico8_int_seq_t *kk;
     pico8_probe_def_t probe;
 } pico8_mz_def_t;
 
 typedef struct {
     const char *me;
-    pico8_fixed_t t;
-    pico8_fixed_t fa;
+    p8_fixed_t t;
+    p8_fixed_t fa;
     const pico8_int_seq_t *k_;
-    pico8_fixed_t nh;
+    p8_fixed_t nh;
     pico8_probe_def_t probe;
 } pico8_jc_def_t;
 
 /* `pk` is the cart's 1 or false, false held as 0: only its truth is read. */
 typedef struct {
-    pico8_fixed_t pn;
-    pico8_fixed_t du;
-    pico8_fixed_t py;
-    pico8_fixed_t ki;
-    pico8_fixed_t pk;
-    pico8_fixed_t fc;
+    p8_fixed_t pn;
+    p8_fixed_t du;
+    p8_fixed_t py;
+    p8_fixed_t ki;
+    p8_fixed_t pk;
+    p8_fixed_t fc;
     const pico8_int_seq_t *k_;
-    pico8_fixed_t qo;
-    pico8_fixed_t ro;
-    pico8_fixed_t qg;
-    pico8_fixed_t q_;
+    p8_fixed_t qo;
+    p8_fixed_t ro;
+    p8_fixed_t qg;
+    p8_fixed_t q_;
 } pico8_emitter_def_t;
 
 /* g_ and fv share this type; fv's own members are zero in g_'s. */
 typedef struct {
     const char *me;
-    pico8_fixed_t t;
-    pico8_fixed_t fx;
-    pico8_fixed_t fa;
+    p8_fixed_t t;
+    p8_fixed_t fx;
+    p8_fixed_t fa;
     pico8_vec_t ra;
     int has_ra; /* 0: the instance's `ra` is NULL */
     pico8_vec_t hi;
-    pico8_fixed_t ca;
+    p8_fixed_t ca;
     pico8_vec_t gq;
-    pico8_fixed_t eo;
-    pico8_fixed_t ff;
+    p8_fixed_t eo;
+    p8_fixed_t ff;
     pico8_qz_box_t kq;
-    pico8_fixed_t ql;
-    pico8_fixed_t fg;
+    p8_fixed_t ql;
+    p8_fixed_t fg;
     const pico8_jb_row_t *rb;
     pico8_emitter_def_t emitter;
     pico8_probe_def_t probe;
@@ -268,34 +268,34 @@ typedef struct {
  * not here. */
 typedef struct {
     const char *me;
-    pico8_fixed_t t;
+    p8_fixed_t t;
     int hf;
-    pico8_fixed_t hs;
-    pico8_fixed_t fa;
+    p8_fixed_t hs;
+    p8_fixed_t fa;
     pico8_qz_box_t kq;
-    pico8_fixed_t ma;
+    p8_fixed_t ma;
     const pico8_int_seq_t *ka;
     const pico8_jb_row_t *dz; /* PICO8_JO_DZ_COUNT rows */
     const pico8_int_seq_t *cq;
     pico8_vec_t gq;
-    pico8_fixed_t ca;
+    p8_fixed_t ca;
     const pico8_jb_row_t *em;
-    pico8_fixed_t mi;
+    p8_fixed_t mi;
     int has_mi;
-    pico8_fixed_t hp;
+    p8_fixed_t hp;
     const pico8_jb_row_t *px;
     int qh;
-    pico8_fixed_t s;
+    p8_fixed_t s;
     const pico8_int_seq_t *ba;
     const char *rr;
-    pico8_fixed_t nl;
-    pico8_fixed_t qw;
+    p8_fixed_t nl;
+    p8_fixed_t qw;
     pico8_vec_t ng;
     const char *fz;
-    pico8_fixed_t iu;
-    pico8_fixed_t ms;
+    p8_fixed_t iu;
+    p8_fixed_t ms;
     const pico8_int_seq_t *hz;
-    pico8_fixed_t mt;
+    p8_fixed_t mt;
     const pico8_int_seq_t *ht;
     pico8_probe_def_t probe;
     pico8_emitter_def_t emitter;
@@ -303,23 +303,23 @@ typedef struct {
 
 /* The keys pm:pq passes to the ga it spawns, besides `ra`. */
 typedef struct {
-    pico8_fixed_t qo;
-    pico8_fixed_t ro;
-    pico8_fixed_t qg;
-    pico8_fixed_t q_;
-    pico8_fixed_t iu;
-    pico8_fixed_t py;
-    pico8_fixed_t ms;
+    p8_fixed_t qo;
+    p8_fixed_t ro;
+    p8_fixed_t qg;
+    p8_fixed_t q_;
+    p8_fixed_t iu;
+    p8_fixed_t py;
+    p8_fixed_t ms;
     const pico8_int_seq_t *k_;
 } pico8_ga_pq_keys_t;
 
 extern const int pico8_es_table[PICO8_ES_COUNT];
-extern const pico8_fixed_t pico8_ct_table[PICO8_CT_COUNT];
+extern const p8_fixed_t pico8_ct_table[PICO8_CT_COUNT];
 extern const int pico8_b__table[PICO8_B__COUNT];
 extern const int pico8_co_table[PICO8_CO_COUNT];
 extern const int pico8_fb_table[PICO8_FB_COUNT];
 extern const int pico8_ek_table[PICO8_EK_COUNT];
-extern const pico8_fixed_t pico8_ci_table[PICO8_CI_COUNT];
+extern const p8_fixed_t pico8_ci_table[PICO8_CI_COUNT];
 extern const char *const pico8_ef_table[PICO8_EF_COUNT];
 extern const pico8_df_entry_t pico8_df_table[PICO8_DF_COUNT];
 extern const pico8_ix_entry_t pico8_ix_table[PICO8_IX_COUNT];
@@ -412,10 +412,10 @@ extern const char pico8_mz_jj_qs[];
 /* Lua's seq[i], 1-based: returns 1 and writes *out when 1 <= i <= count,
  * 0 and leaves *out untouched otherwise. */
 int pico8_int_seq_at(const int *seq, int count, int i, int *out);
-int pico8_fixed_seq_at(const pico8_fixed_t *seq, int count, int i, pico8_fixed_t *out);
+int pico8_fixed_seq_at(const p8_fixed_t *seq, int count, int i, p8_fixed_t *out);
 
 /* 1 when v is pico8_fixed_from_int of an element: the cart's `gu` on integers. */
-int pico8_int_seq_has_fixed(const pico8_int_seq_t *seq, pico8_fixed_t v);
+int pico8_int_seq_has_fixed(const pico8_int_seq_t *seq, p8_fixed_t v);
 
 /* The df entry whose px is `px`, NULL when none or `px` is NULL: `df[px]`
  * after the px/s/r/d pass. */
@@ -423,7 +423,7 @@ const pico8_df_entry_t *pico8_df_lookup(const char *px);
 
 /* Bare Lua number literals rather than ob() spec fields, hence scalars
  * here and not another table. */
-pico8_fixed_t pico8_bn(void);
-pico8_fixed_t pico8_bq(void);
+p8_fixed_t pico8_bn(void);
+p8_fixed_t pico8_bq(void);
 
 #endif

@@ -12,7 +12,7 @@
 #include "game/trade.h"
 #include "engine/game_zone.h"
 
-static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
+static p8_fixed_t fixed_min(p8_fixed_t a, p8_fixed_t b) {
     return (a < b) ? a : b;
 }
 
@@ -139,9 +139,9 @@ void pico8_bd(void) {
 static void bb_visit(entity_t *pt, void *ctx) {
     int *jg = (int *)ctx;
     pico8_jo_t *jo;
-    pico8_fixed_t jw;
+    p8_fixed_t jw;
     int has_mi;
-    pico8_fixed_t mi = pico8_fixed_from_int(0);
+    p8_fixed_t mi = p8_fixed_from_int(0);
 
     if (pt == NULL) {
         return;
@@ -155,7 +155,7 @@ static void bb_visit(entity_t *pt, void *ctx) {
     }
 
     if (!has_mi || jw > mi) {
-        if (has_mi && mi == pico8_fixed_from_int(1)) {
+        if (has_mi && mi == p8_fixed_from_int(1)) {
             pico8_hp_t *hn = jo->hn;
             if (hn != NULL && hn->has_dm) {
                 if (jo->jy != NULL) {
@@ -170,24 +170,24 @@ static void bb_visit(entity_t *pt, void *ctx) {
         *jg = 1;
     }
 
-    if (mi != pico8_fixed_from_int(0)) {
+    if (mi != p8_fixed_from_int(0)) {
         pico8_hp_t *hn = jo->hn;
         if (hn != NULL) {
             const pico8_hc_entry_t *po = pico8_hp_po(hn);
             if (po != NULL) {
-                int idx = pico8_fixed_flr_int(mi);
+                int idx = p8_fixed_flr_int(mi);
                 int clamped_idx = (idx < po->count) ? idx : po->count;
-                pico8_fixed_t base = pico8_fixed_from_int(0);
-                pico8_fixed_t jh = pico8_fixed_from_int(0);
+                p8_fixed_t base = p8_fixed_from_int(0);
+                p8_fixed_t jh = p8_fixed_from_int(0);
 
                 if (clamped_idx >= 1) {
-                    base = pico8_fixed_from_int(po->values[clamped_idx - 1]);
+                    base = p8_fixed_from_int(po->values[clamped_idx - 1]);
                 }
                 if (jo->has_jh) {
                     jh = jo->jh;
                 }
                 if (jo->kw != NULL) {
-                    jo->kw->mu = pico8_fixed_add(base, jh);
+                    jo->kw->mu = p8_fixed_add(base, jh);
                 }
             }
         }
@@ -200,20 +200,20 @@ int pico8_bb(void) {
     return jg;
 }
 
-pico8_fixed_t pico8_dh(const entity_t *pt) {
+p8_fixed_t pico8_dh(const entity_t *pt) {
     const pico8_jo_t *jo;
     const pico8_ptrs_t *jy;
     const pico8_ents_t *cc;
-    pico8_fixed_t jd = pico8_fixed_from_int(1);
+    p8_fixed_t jd = p8_fixed_from_int(1);
     int i;
 
     if (pt == NULL) {
-        return pico8_fixed_from_int(0);
+        return p8_fixed_from_int(0);
     }
     assert(pico8_jo_is_family(pt) && "dh: pt is a planet of cg.jo");
     jo = (const pico8_jo_t *)pt;
     if (jo->header.state == NULL || strcmp(jo->header.state, "settled") != 0) {
-        return pico8_fixed_from_int(0);
+        return p8_fixed_from_int(0);
     }
 
     jy = jo->jy;
@@ -247,13 +247,13 @@ pico8_fixed_t pico8_dh(const entity_t *pt) {
                 }
             }
             want->has_gc = 1;
-            want->gc = pico8_fixed_from_int(gc);
-            jd = pico8_fixed_mul(jd, pico8_fixed_from_int(gc));
+            want->gc = p8_fixed_from_int(gc);
+            jd = p8_fixed_mul(jd, p8_fixed_from_int(gc));
         }
     }
 
-    if (jd == pico8_fixed_from_int(0)) {
-        return pico8_fixed_from_int(1);
+    if (jd == p8_fixed_from_int(0)) {
+        return p8_fixed_from_int(1);
     }
 
     if (pt->class->lineage & LINEAGE(LINEAGE_TRADING_HUB)) {
@@ -266,12 +266,12 @@ pico8_fixed_t pico8_dh(const entity_t *pt) {
                     continue;
                 }
                 want = i_val;
-                if (want->has_gc && want->gc > pico8_fixed_from_int(0)) {
+                if (want->has_gc && want->gc > p8_fixed_from_int(0)) {
                     count++;
                 }
             }
         }
-        return fixed_min(pico8_fixed_from_int(count), pico8_fixed_from_int(3));
+        return fixed_min(p8_fixed_from_int(count), p8_fixed_from_int(3));
     }
 
     if (!jo->def->hf) {
@@ -280,19 +280,19 @@ pico8_fixed_t pico8_dh(const entity_t *pt) {
             if (last_val != NULL) {
                 const pico8_jy_t *last = last_val;
                 if (last->has_gc) {
-                    return fixed_min(pico8_fixed_add(last->gc, pico8_fixed_from_int(1)), pico8_fixed_from_int(4));
+                    return fixed_min(p8_fixed_add(last->gc, p8_fixed_from_int(1)), p8_fixed_from_int(4));
                 }
             }
         }
-        return pico8_fixed_from_int(2);
+        return p8_fixed_from_int(2);
     }
 
     {
         const pico8_ents_t *by = jo->by;
         int by_count = (by != NULL) ? by->count : 0;
         int cc_count = (cc != NULL) ? cc->count : 0;
-        pico8_fixed_t mid_val =
-            pico8_fixed_mid(pico8_fixed_from_int(by_count), pico8_fixed_from_int(cc_count), pico8_fixed_from_int(1));
-        return fixed_min(pico8_fixed_from_int(4), pico8_fixed_add(pico8_fixed_from_int(1), mid_val));
+        p8_fixed_t mid_val =
+            p8_fixed_mid(p8_fixed_from_int(by_count), p8_fixed_from_int(cc_count), p8_fixed_from_int(1));
+        return fixed_min(p8_fixed_from_int(4), p8_fixed_add(p8_fixed_from_int(1), mid_val));
     }
 }

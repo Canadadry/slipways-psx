@@ -84,7 +84,7 @@ void pico8_hj_struct_init(pico8_jo_t *self, const entity_class_t *cls, const pic
 
 /* The dispatchers hj's descriptor holds, for a daughter's `static const`
  * descriptor to name. */
-void pico8_qh_ly_dispatch(entity_t *self, pico8_fixed_t t);
+void pico8_qh_ly_dispatch(entity_t *self, p8_fixed_t t);
 void pico8_hj_kj_dispatch(entity_t *self, const pico8_vec_t *ra);
 /* pico8_jo_rendre_dispatch, then the planet's `qy`. */
 void pico8_hj_rendre_dispatch(entity_t *self);
@@ -132,9 +132,9 @@ typedef struct {
  * `pico8_planet_family_init()`. */
 pico8_jo_t *pico8_ga_new(const pico8_ga_keys_t *keys);
 
-void pico8_nl_ly(pico8_jo_t *self, pico8_fixed_t t);
+void pico8_nl_ly(pico8_jo_t *self, p8_fixed_t t);
 
-void pico8_hj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec_t p);
+void pico8_hj_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_jo_t *self, pico8_vec_t p);
 
 void pico8_pm_pq(pico8_jo_t *self);
 
@@ -144,6 +144,6 @@ void pico8_ga_pq(pico8_jo_t *self);
  * into `self.qy`. */
 pico8_qy_t *pico8_ga_mm(entity_t *self);
 
-void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec_t p);
+void pico8_ga_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_jo_t *self, pico8_vec_t p);
 
 #endif

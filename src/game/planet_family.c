@@ -20,7 +20,7 @@ static int g_family_up = 0;
 /* Every burst's `by`, which `ib` extends in place; each init empties it. */
 static pico8_ents_t g_ga_by_shared;
 
-void pico8_qh_ly_dispatch(entity_t *self, pico8_fixed_t t) {
+void pico8_qh_ly_dispatch(entity_t *self, p8_fixed_t t) {
     pico8_na(self, t);
 }
 
@@ -78,21 +78,21 @@ static pico8_jo_t *pico8_qh_struct_new(const planet_keys_t *keys) {
     return self;
 }
 
-void pico8_nl_ly(pico8_jo_t *self, pico8_fixed_t t) {
+void pico8_nl_ly(pico8_jo_t *self, p8_fixed_t t) {
     if (self == NULL) {
         return;
     }
     pico8_na((entity_t *)self, t);
 
     assert(self->has_mi && "nl:ly reads self.mi unguarded, unlike hj:kj");
-    if (self->has_mi && self->mi >= pico8_fixed_from_int(2)) {
+    if (self->has_mi && self->mi >= p8_fixed_from_int(2)) {
         self->qw =
-            pico8_fixed_add(pico8_fixed_from_int(8),
-                            pico8_fixed_div(pico8_fixed_mod(t, pico8_fixed_from_int(42)), pico8_fixed_from_int(6)));
+            p8_fixed_add(p8_fixed_from_int(8),
+                            p8_fixed_div(p8_fixed_mod(t, p8_fixed_from_int(42)), p8_fixed_from_int(6)));
     }
 }
 
-static void pico8_nl_ly_dispatch(entity_t *self, pico8_fixed_t t) {
+static void pico8_nl_ly_dispatch(entity_t *self, p8_fixed_t t) {
     pico8_nl_ly((pico8_jo_t *)self, t);
 }
 
@@ -183,18 +183,18 @@ static pico8_jo_t *pico8_os_struct_new(const planet_keys_t *keys) {
     return self;
 }
 
-void pico8_hj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec_t p) {
+void pico8_hj_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_jo_t *self, pico8_vec_t p) {
     if (self == NULL) {
         return;
     }
-    if (self->has_mi && self->mi >= pico8_fixed_from_int(2)) {
+    if (self->has_mi && self->mi >= p8_fixed_from_int(2)) {
         pico8_ei(gfx, mem, (entity_t *)self);
     }
     pico8_jo_kj(gfx, mem, self, p);
 }
 
 void pico8_hj_kj_dispatch(entity_t *self, const pico8_vec_t *ra) {
-    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
     pico8_hj_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_jo_t *)self, p);
 }
 
@@ -276,7 +276,7 @@ void pico8_pm_pq(pico8_jo_t *self) {
     }
 
     ra = self->ra;
-    spawn_ra = pico8_vec_add(ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0)),
+    spawn_ra = pico8_vec_add(ra != NULL ? *ra : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0)),
                              self->def->ng);
 
     keys.jo.planet_id = NULL;
@@ -345,32 +345,32 @@ void pico8_ga_pq(pico8_jo_t *self) {
         return;
     }
     pico8_f_((entity_t *)self);
-    pico8_ez((entity_t *)self, pico8_fixed_from_int(140));
+    pico8_ez((entity_t *)self, p8_fixed_from_int(140));
 
     if (pico8_mo() != NULL) {
         mo = pico8_mo_qb();
         assert(mo != NULL && "mo: the placeholder has no writer; a write before jl() stops the run");
-        mo->ma = pico8_fixed_from_int(3);
+        mo->ma = p8_fixed_from_int(3);
     }
 }
 
 pico8_qy_t *pico8_ga_mm(entity_t *self_ptr) {
     const pico8_jo_t *self = (const pico8_jo_t *)self_ptr;
-    pico8_fixed_t qd;
-    pico8_fixed_t ms;
-    pico8_fixed_t iu;
-    pico8_fixed_t py;
+    p8_fixed_t qd;
+    p8_fixed_t ms;
+    p8_fixed_t iu;
+    p8_fixed_t py;
     pico8_vec_t p;
     pico8_vec_t v;
     pico8_vec_t a;
     pico8_qy_t *particle;
 
-    qd = pico8_fixed_add(pico8_fixed_rnd(PICO8_FIXED_LIT(0x00018000, 1.5)), PICO8_FIXED_LIT(0x00008000, 0.5));
-    if (pico8_fixed_rnd_default() < PICO8_FIXED_LIT(0x00009999, 0.6)) {
-        qd = pico8_fixed_mul(pico8_fixed_flr(pico8_fixed_div(qd, PICO8_FIXED_LIT(0x00008000, 0.5))),
-                              PICO8_FIXED_LIT(0x00008000, 0.5));
+    qd = p8_fixed_add(p8_fixed_rnd(P8_FIXED_LIT(0x00018000, 1.5)), P8_FIXED_LIT(0x00008000, 0.5));
+    if (p8_fixed_rnd_default() < P8_FIXED_LIT(0x00009999, 0.6)) {
+        qd = p8_fixed_mul(p8_fixed_flr(p8_fixed_div(qd, P8_FIXED_LIT(0x00008000, 0.5))),
+                              P8_FIXED_LIT(0x00008000, 0.5));
     }
-    p = pico8_vec_qm(qd, pico8_fixed_rnd_default());
+    p = pico8_vec_qm(qd, p8_fixed_rnd_default());
 
     ms = self->ms;
     iu = self->iu;
@@ -384,12 +384,12 @@ pico8_qy_t *pico8_ga_mm(entity_t *self_ptr) {
     particle->v = v;
     particle->has_a = 1;
     particle->a = a;
-    particle->l = pico8_fixed_add(pico8_fixed_rnd(py), py);
+    particle->l = p8_fixed_add(p8_fixed_rnd(py), py);
 
     return particle;
 }
 
-void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec_t p) {
+void pico8_ga_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_jo_t *self, pico8_vec_t p) {
     const pico8_ptrs_t *qy = NULL;
     int third_taken = 0;
     int i;
@@ -402,8 +402,8 @@ void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
 
     qy = self->emitter->qy;
 
-    px = pico8_fixed_flr_int(p.x);
-    py = pico8_fixed_flr_int(p.y);
+    px = p8_fixed_flr_int(p.x);
+    py = p8_fixed_flr_int(p.y);
 
     for (i = 1; i <= 3; i++) {
         const pico8_qy_t *pt = NULL;
@@ -417,12 +417,12 @@ void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
             int color = 0;
             int k_entry;
 
-            idx = pico8_fixed_flr_int(pico8_fixed_flr(pico8_fixed_div(pt->l, pico8_fixed_from_int(2))));
+            idx = p8_fixed_flr_int(p8_fixed_flr(p8_fixed_div(pt->l, p8_fixed_from_int(2))));
             /* TROU-21 */
             if (pico8_int_seq_at(pico8_ga_k__seq.items, pico8_ga_k__seq.count, idx, &k_entry)) {
                 color = k_entry;
             }
-            pico8_circ(gfx, mem, px, py, pico8_fixed_flr_int(pico8_vec_qx(pt->p)), color);
+            p8_circ(gfx, mem, px, py, p8_fixed_flr_int(pico8_vec_qx(pt->p)), color);
         }
 
         /* Lua's `pt` outlives the loop, so `p_` follows the THIRD slot
@@ -437,7 +437,7 @@ void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
 }
 
 static void pico8_ga_kj_dispatch(entity_t *self, const pico8_vec_t *ra) {
-    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
     pico8_ga_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_jo_t *)self, p);
 }
 

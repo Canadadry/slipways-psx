@@ -76,16 +76,16 @@ static int case_dead_next_frame(void) {
     return 0;
 }
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static void load_cart_and_start(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);
@@ -161,8 +161,8 @@ static int case_gh_rows_survive_reset(void) {
 
     start_game();
     planet = (pico8_jo_t *)pico8_cg("planet")->items[0];
-    kw.qe = pico8_fixed_from_int(99);
-    kw.mu = pico8_fixed_from_int(1);
+    kw.qe = p8_fixed_from_int(99);
+    kw.mu = p8_fixed_from_int(1);
     planet->kw = &kw;
     pico8_jo_gh(planet);
     assert(pico8_ok()->le->count >= 2 && "jo:gh: l'icone et la rangee exports");
@@ -207,7 +207,7 @@ static int case_ky_happiness_survives_reset(void) {
 
     start_game();
     fm = pico8_fm_hy();
-    fm->happiness = pico8_fixed_from_int(1);
+    fm->happiness = p8_fixed_from_int(1);
     fm->has_happiness = 1;
     fm->hl = "final score";
     fm->has_hl = 1;
@@ -252,7 +252,7 @@ static int case_list_dead_next_frame(void) {
 }
 
 static char *frame_text(const char *s) {
-    return pico8_concat2(pico8_zone_frame(), s, "");
+    return p8_concat2(pico8_zone_frame(), s, "");
 }
 
 static pico8_lq_t *row_of_frame_text(const pico8_zone_choisie_t *zone, const char *s) {

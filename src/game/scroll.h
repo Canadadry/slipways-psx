@@ -20,7 +20,7 @@ typedef struct {
     entity_t header;
     const pico8_qb_def_t *def;
     const pico8_vec_t *v;
-    pico8_fixed_t ma;
+    p8_fixed_t ma;
     const pico8_vec_t *p;
     const pico8_vec_t *ra;
     pico8_vec_t p_own;
@@ -45,14 +45,14 @@ pico8_qb_t *pico8_qb_new(void);
 
 /* Nothing outside the camera keeps `p`, `v` or `ra`: each tick rewrites
  * them in place. */
-void pico8_qb_ph(const pico8_input_t *input, pico8_qb_t *self);
+void pico8_qb_ph(const p8_input_t *input, pico8_qb_t *self);
 
 /* `mo.v=v` (bg:hq): writes `v_own` and points `v` at it. */
 void pico8_qb_set_v(pico8_qb_t *self, pico8_vec_t v);
 
 /* `fy` is `dc`'s `ci[o]`, never nil: the cart's `fy or 1` fallback has no
  * caller, so there is no separate _default entry point here. */
-void pico8_qb_md(pico8_gfx_t *gfx, pico8_qb_t *self, pico8_fixed_t fy);
+void pico8_qb_md(p8_graphics_t *gfx, pico8_qb_t *self, p8_fixed_t fy);
 
 /* `mo` (pico8_entity.h) as its `qb`: NULL when there is no mo and on the
  * placeholder. */

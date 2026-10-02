@@ -16,7 +16,7 @@
 typedef struct pico8_probe {
     const pico8_probe_def_t *def;
     entity_t *et;
-    pico8_fixed_t od;
+    p8_fixed_t od;
     int has_od; /* 0: `od` is nil, and is then never read */
     pico8_vec_t bv_ra;
     pico8_vec_t bv_p;
@@ -49,11 +49,11 @@ const entity_class_t *pico8_bv_et_struct_class(void);
 
 /* The tooltip of a probe host: `self` must carry a probe (asserted), and is
  * read, never retained. */
-void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, entity_t *self);
+void pico8_dl(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self);
 
 /* The same, for a caller that is not a host (the research icon): `me` NULL
  * is nil, `pb` is read during the call only. */
-void pico8_dl_show(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *me, const pico8_probe_t *pb);
+void pico8_dl_show(const p8_graphics_t *gfx, p8_memory_t *mem, const char *me, const pico8_probe_t *pb);
 
 void pico8_dl_dispatch(entity_t *self, const pico8_vec_t *ra);
 

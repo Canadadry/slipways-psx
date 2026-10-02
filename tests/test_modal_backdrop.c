@@ -32,9 +32,9 @@
 #define LDOWN_TICK 5
 #define IDLE_TICKS 30
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -49,8 +49,8 @@ static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
     int i;
 
-    for (i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)pico8_peek(&mem, PICO8_ADDR_SCREEN + i);
+    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
+        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
@@ -222,11 +222,11 @@ static void test_hover_loop_on_the_veil(void) {
     assert(ok_o_() == veil);
     assert(in_layer(14, veil) && !in_layer(15, veil));
     assert(veil->m_);
-    h = fnv(h, (uint32_t)pico8_peek(&mem, 0x5f80));
+    h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
     h = fold_veil(h, veil);
 
-    pico8_gfx_init(&gfx);
-    pico8_cls(&mem);
+    p8_gfx_init(&gfx);
+    p8_cls(&mem);
     pico8_ui_ev(&gfx, &mem, pico8_ok());
     check("hover cursor", screen_hash(), HOVER_CURSOR_HASH);
 
@@ -242,7 +242,7 @@ static void test_hover_loop_on_the_veil(void) {
     pico8_ui_lj(&mem, pico8_ok());
     assert(ok_o_() != veil && !in_layer(14, veil));
     assert(!veil->m_);
-    h = fnv(h, (uint32_t)pico8_peek(&mem, 0x5f80));
+    h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
     h = fold_veil(h, veil);
     check("hover", h, HOVER_SEQUENCE_HASH);
 }
@@ -255,8 +255,8 @@ static void test_defaults_match_the_parsed_spec(void) {
     pico8_cart_vider_file_sortie();
     veil = pico8_fq_new(NULL);
     assert(veil->def == &pico8_fq_def);
-    assert(veil->def->fa == pico8_fixed_from_int(14));
-    assert(veil->def->hd == pico8_fixed_from_int(1));
+    assert(veil->def->fa == p8_fixed_from_int(14));
+    assert(veil->def->hd == p8_fixed_from_int(1));
     assert(veil->header.state != NULL && strcmp(veil->header.state, "normal") == 0);
     assert(pico8_fq_ready());
     pico8_fq_shutdown();
@@ -320,11 +320,11 @@ static void test_veil_gives_its_place_back(void) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

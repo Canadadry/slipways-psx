@@ -41,7 +41,7 @@ typedef struct {
     const pico8_jb_row_t *row;
     int is_false;
     int is_fixed;
-    pico8_fixed_t fixed;
+    p8_fixed_t fixed;
     int is_ref;
     const void *ref;
 } pico8_jb_item_t;
@@ -56,7 +56,7 @@ struct pico8_jb_row {
     int c;
     const char *fn;
     int has_qe;
-    pico8_fixed_t qe;
+    p8_fixed_t qe;
 };
 
 /* A non-NULL header makes the entry a bare string, the rr of the records that

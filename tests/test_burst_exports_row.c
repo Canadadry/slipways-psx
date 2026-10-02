@@ -58,9 +58,9 @@ static int lq_index_is_string(const pico8_lq_t *lq, int index, const char *expec
 /* What `jo:gh` reaches when the cart calls it on a `ga`, built without a
  * boot: `r` (from pico8_data_init), the jo/ga/lq/js classes, and the `ok`
  * singleton `pz()` fills. */
-static void setup_panel_state(pico8_mem_t *mem, pico8_gfx_t *gfx) {
-    pico8_mem_init(mem);
-    pico8_gfx_init(gfx);
+static void setup_panel_state(p8_memory_t *mem, p8_graphics_t *gfx) {
+    p8_mem_init(mem);
+    p8_gfx_init(gfx);
     pico8_dispatch_set_gfx(gfx);
     pico8_dispatch_set_mem(mem);
 
@@ -79,8 +79,8 @@ static pico8_ents_t *planet_by_ref(const pico8_jo_t *planet) {
 }
 
 static void test_ga_export_line_counts_the_routes_in_by(void) {
-    pico8_mem_t mem;
-    pico8_gfx_t gfx;
+    p8_memory_t mem;
+    p8_graphics_t gfx;
     pico8_jo_t *planet;
     static pico8_kw_t kw;
     pico8_vec_t *ra;
@@ -99,12 +99,12 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
     /* 99 is deliberately not one of `jo.cq`'s resources, so `jo:gh` takes
      * the else branch and builds the "exports:" row, not the "makes:" one. */
     kw.has_qe = 1;
-    kw.qe = pico8_fixed_from_int(99);
-    kw.mu = pico8_fixed_from_int(2);
+    kw.qe = p8_fixed_from_int(99);
+    kw.mu = p8_fixed_from_int(2);
     planet->kw = &kw;
 
     ra = malloc(sizeof *ra);
-    *ra = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
+    *ra = pico8_vec_v(p8_fixed_from_int(64), p8_fixed_from_int(64));
     planet->ra = ra;
 
     /* A fresh `ga` exports nothing, against a capacity of `kw.mu`. */

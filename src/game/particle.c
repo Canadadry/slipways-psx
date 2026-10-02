@@ -13,15 +13,15 @@
 typedef char pico8_qy_fits_its_place[sizeof(pico8_qy_t) <= PICO8_PARTICULE_PLACE ? 1 : -1];
 
 /* `fa`, and `ra` into `*ra` (the zero vector when nil), of the host of `ei`. */
-static pico8_fixed_t emitter_host_fa_ra(const entity_t *self, pico8_vec_t *ra) {
+static p8_fixed_t emitter_host_fa_ra(const entity_t *self, pico8_vec_t *ra) {
     assert(self->layer != NULL && self->pos != NULL &&
            "ei: a host that carries no fa or no ra, none of whose kj runs ei -- stop");
-    *ra = *self->pos != NULL ? **self->pos : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    *ra = *self->pos != NULL ? **self->pos : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
     return *self->layer;
 }
 
-static int pico8_particle_to_int(pico8_fixed_t x) {
-    return pico8_fixed_flr_int(x);
+static int pico8_particle_to_int(p8_fixed_t x) {
+    return p8_fixed_flr_int(x);
 }
 
 pico8_qy_t *pico8_particule_prendre(void) {
@@ -73,7 +73,7 @@ void pico8_qy_rendre(pico8_emitter_t *emitter) {
     emitter->qy = NULL;
 }
 
-void pico8_ez(entity_t *self, pico8_fixed_t n) {
+void pico8_ez(entity_t *self, p8_fixed_t n) {
     pico8_emitter_t *emitter;
     pico8_ptrs_t *qy;
 
@@ -83,25 +83,25 @@ void pico8_ez(entity_t *self, pico8_fixed_t n) {
     emitter = self->emitter;
     qy = emitter != NULL ? emitter->qy : NULL;
 
-    while (pico8_fixed_rnd_default() < n) {
+    while (p8_fixed_rnd_default() < n) {
         if (qy != NULL && self->class->spawn_particle != NULL) {
             pico8_ptrs_add(qy, self->class->spawn_particle(self));
             pico8_zone_particules_noter_elements(emitter->qy_sorte, qy->count);
         }
-        n = pico8_fixed_sub(n, pico8_fixed_from_int(1));
+        n = p8_fixed_sub(n, p8_fixed_from_int(1));
     }
 }
 
-void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, entity_t *self) {
+void pico8_ei(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self) {
     const pico8_emitter_t *emitter;
-    pico8_fixed_t fa;
+    p8_fixed_t fa;
     pico8_vec_t ra;
-    pico8_fixed_t cx;
-    pico8_fixed_t cy;
-    pico8_fixed_t qo;
-    pico8_fixed_t qg;
-    pico8_fixed_t ro;
-    pico8_fixed_t q_;
+    p8_fixed_t cx;
+    p8_fixed_t cy;
+    p8_fixed_t qo;
+    p8_fixed_t qg;
+    p8_fixed_t ro;
+    p8_fixed_t q_;
     const pico8_int_seq_t *cs;
     pico8_ptrs_t *qy;
     int i;
@@ -113,7 +113,7 @@ void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, entity_t *self) {
 
     emitter = self->emitter;
     fa = emitter_host_fa_ra(self, &ra);
-    if (fa < pico8_fixed_from_int(10) && !pico8_gd(self)) {
+    if (fa < p8_fixed_from_int(10) && !pico8_gd(self)) {
         return;
     }
 
@@ -138,35 +138,35 @@ void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, entity_t *self) {
 
             p->p = pico8_vec_add(p->p, pv);
 
-            p->v.x = pico8_fixed_add(pico8_fixed_mul(qo, pv.x), pico8_fixed_mul(ro, pv.y));
+            p->v.x = p8_fixed_add(p8_fixed_mul(qo, pv.x), p8_fixed_mul(ro, pv.y));
             /* In Lua `pv` aliases `p.v`, so the second row reads the x
              * just written. Passing the snapshot's `pv.x` here instead
              * would be a silent divergence. */
-            p->v.y = pico8_fixed_add(pico8_fixed_mul(qg, p->v.x), pico8_fixed_mul(q_, pv.y));
+            p->v.y = p8_fixed_add(p8_fixed_mul(qg, p->v.x), p8_fixed_mul(q_, pv.y));
 
             if (p->has_a) {
                 p->v = pico8_vec_add(p->v, p->a);
             }
 
-            p->l = pico8_fixed_sub(p->l, PICO8_FIXED_LIT(0x000023d7, 0.14));
+            p->l = p8_fixed_sub(p->l, P8_FIXED_LIT(0x000023d7, 0.14));
 
-            if (p->l <= pico8_fixed_from_int(1)) {
+            if (p->l <= p8_fixed_from_int(1)) {
                 /* The Lua loop is `pairs()`, not `all()`: the element
                  * that slides into the vacated slot is skipped this
                  * frame. Reproduced by never compensating the index. */
                 pico8_ptrs_del(qy, p);
                 pico8_zone_release(pico8_zone_particules(PICO8_PARTICULES_PARTICULE), (unsigned char *)p);
             } else {
-                int px = pico8_particle_to_int(pico8_fixed_add(cx, p->p.x));
-                int py = pico8_particle_to_int(pico8_fixed_add(cy, p->p.y));
+                int px = pico8_particle_to_int(p8_fixed_add(cx, p->p.x));
+                int py = pico8_particle_to_int(p8_fixed_add(cy, p->p.y));
                 int col = 0;
-                int idx = pico8_particle_to_int(pico8_fixed_flr(p->l));
+                int idx = pico8_particle_to_int(p8_fixed_flr(p->l));
 
                 if (cs != NULL) {
                     pico8_int_seq_at(cs->items, cs->count, idx, &col);
                 }
 
-                pico8_pset(gfx, mem, px, py, col);
+                p8_pset(gfx, mem, px, py, col);
             }
         }
     }

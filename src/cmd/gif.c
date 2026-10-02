@@ -20,8 +20,8 @@ int main(int argc, char **argv) {
         fprintf(stderr, "pico8_gif: capture %s illisible, vide ou tronquée\n", argv[1]);
         return 1;
     }
-    pico8_input_t input;
-    pico8_input_init(&input);
+    p8_input_t input;
+    p8_input_init(&input);
     if (!pico8_input_load(&input, argv[2])) {
         fprintf(stderr, "pico8_gif: %s absent ou malformé\n", argv[2]);
         pico8_screencast_reader_close(&reader);

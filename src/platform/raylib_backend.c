@@ -11,8 +11,8 @@
  * `make unit` l'asserte sans fenêtre ; l'alpha, toujours opaque, s'ajoute
  * ici. Le second binaire raylib la lit là aussi et n'en redéfinit pas. */
 static Color palette_color(unsigned char index) {
-    pico8_rgb_t rgb = PICO8_PALETTE_RGB[index & 0x0f];
-    return (Color){ rgb.r, rgb.g, rgb.b, 0xFF };
+    p8_rgb_t rgb = P8_PALETTE_RGB[index & 0x0f];
+    return (Color){ rgb.red, rgb.green, rgb.blue, 0xFF };
 }
 
 void pico8_raylib_backend_init(pico8_raylib_backend_t *backend) {
@@ -25,11 +25,11 @@ void pico8_raylib_backend_init(pico8_raylib_backend_t *backend) {
     snprintf(backend->markers_path, sizeof(backend->markers_path), "tmp/events_recorded_%ld.markers.txt", (long)now);
     pico8_session_recorder_open(&backend->recorder, record_path);
 
-    InitWindow(PICO8_SCREEN_WIDTH * PICO8_RAYLIB_BACKEND_SCALE, PICO8_SCREEN_HEIGHT * PICO8_RAYLIB_BACKEND_SCALE,
+    InitWindow(P8_SCREEN_WIDTH * PICO8_RAYLIB_BACKEND_SCALE, P8_SCREEN_HEIGHT * PICO8_RAYLIB_BACKEND_SCALE,
                "Slipways (raylib PC port)");
     SetTargetFPS(60);
 
-    Image blank = GenImageColor(PICO8_SCREEN_WIDTH, PICO8_SCREEN_HEIGHT, BLACK);
+    Image blank = GenImageColor(P8_SCREEN_WIDTH, P8_SCREEN_HEIGHT, BLACK);
     backend->screen_texture = LoadTextureFromImage(blank);
     UnloadImage(blank);
     SetTextureFilter(backend->screen_texture, TEXTURE_FILTER_POINT);
@@ -44,7 +44,7 @@ int pico8_raylib_backend_should_continue(const pico8_raylib_backend_t *backend) 
     return !WindowShouldClose();
 }
 
-void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, pico8_input_frame_t *out_frame) {
+void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, p8_input_frame_t *out_frame) {
     int px;
     int py;
     pico8_raylib_backend_window_to_pico8(GetMouseX(), GetMouseY(), PICO8_RAYLIB_BACKEND_SCALE, &px, &py);
@@ -102,11 +102,11 @@ void pico8_raylib_backend_set_frame_rate_cap(int target_fps) {
     SetTargetFPS(target_fps);
 }
 
-void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const pico8_mem_t *mem, const pico8_input_frame_t *frame, const char *replay_status) {
-    for (int y = 0; y < PICO8_SCREEN_HEIGHT; y++) {
-        for (int x = 0; x < PICO8_SCREEN_WIDTH; x++) {
-            unsigned char idx = pico8_peek(mem, PICO8_ADDR_SCREEN + y * PICO8_SCREEN_WIDTH + x);
-            backend->pixel_buffer[y * PICO8_SCREEN_WIDTH + x] = palette_color(idx);
+void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const p8_memory_t *mem, const p8_input_frame_t *frame, const char *replay_status) {
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            unsigned char idx = p8_peek(mem, P8_ADDR_SCREEN + y * P8_SCREEN_WIDTH + x);
+            backend->pixel_buffer[y * P8_SCREEN_WIDTH + x] = palette_color(idx);
         }
     }
     UpdateTexture(backend->screen_texture, backend->pixel_buffer);
@@ -117,7 +117,7 @@ void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const pico8_m
     /* The band behind the text is there because the cart owns every pixel
      * underneath. */
     if (replay_status) {
-        DrawRectangle(0, 0, PICO8_SCREEN_WIDTH * PICO8_RAYLIB_BACKEND_SCALE, 26, (Color){ 0, 0, 0, 190 });
+        DrawRectangle(0, 0, P8_SCREEN_WIDTH * PICO8_RAYLIB_BACKEND_SCALE, 26, (Color){ 0, 0, 0, 190 });
         DrawText(replay_status, 8, 5, 18, RAYWHITE);
     }
     EndDrawing();
@@ -125,7 +125,7 @@ void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const pico8_m
     (void)frame;
 }
 
-void pico8_raylib_backend_record_frame(pico8_raylib_backend_t *backend, const pico8_input_frame_t *frame) {
+void pico8_raylib_backend_record_frame(pico8_raylib_backend_t *backend, const p8_input_frame_t *frame) {
     /* The return value is ignored on purpose: the recorder leaves its own
      * count alone on failure, so the marker file keeps naming the right
      * frame. */

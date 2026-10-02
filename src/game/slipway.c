@@ -34,16 +34,16 @@ static const entity_class_t g_jc_mouse_point_struct_class = {0};
 pico8_vec_t pico8_jc_end_p(const entity_t *end) {
     const pico8_vec_t *p = end != NULL && end->map_pos != NULL ? *end->map_pos : NULL;
 
-    return p != NULL ? *p : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    return p != NULL ? *p : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
 pico8_vec_t pico8_jc_end_ra(const entity_t *end) {
     const pico8_vec_t *ra = end != NULL && end->pos != NULL ? *end->pos : NULL;
 
-    return ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    return ra != NULL ? *ra : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
-static int jc_mt_of(const entity_t *e, pico8_fixed_t *out) {
+static int jc_mt_of(const entity_t *e, p8_fixed_t *out) {
     if (e == NULL || e->infraspace == NULL) {
         return 0;
     }
@@ -84,7 +84,7 @@ void pico8_jc_pq(pico8_jc_t *self) {
         return;
     }
 
-    pico8_rn(pico8_fixed_from_int(50));
+    p8_play_sfx(p8_fixed_from_int(50));
 
     zone = pico8_jo_zone_construction();
     ts = (pico8_ptrs_t *)pico8_zone_alloc(zone, sizeof *ts);
@@ -109,9 +109,9 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
     if (hovered != NULL && hovered->class->accept_drop != NULL) {
         self->re = hovered;
     } else {
-        self->point_ra = mp != NULL ? *mp : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+        self->point_ra = mp != NULL ? *mp : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
         self->point.ra = mp != NULL ? &self->point_ra : NULL;
-        self->point_p = pico8_vec_div(self->point_ra, pico8_fixed_from_int(128));
+        self->point_p = pico8_vec_div(self->point_ra, p8_fixed_from_int(128));
         self->re = &self->point.header;
     }
 
@@ -119,7 +119,7 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
     self->probe->has_od = 1;
 
     /* A fixed is always true in Lua: `qu.mt or re.mt` takes the first present. */
-    self->mt = pico8_fixed_from_int(0);
+    self->mt = p8_fixed_from_int(0);
     self->has_mt = jc_mt_of(self->qu, &self->mt) || jc_mt_of(self->re, &self->mt);
     self->header.infraspace = self->has_mt ? &self->mt : NULL;
 
@@ -128,7 +128,7 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
         pico8_probe_et_hang_fo(self->probe->et, &self->header);
     }
 
-    self->fa = self->has_mt ? pico8_fixed_from_int(2) : pico8_fixed_from_int(4);
+    self->fa = self->has_mt ? p8_fixed_from_int(2) : p8_fixed_from_int(4);
 }
 
 void pico8_jc_ey(pico8_jc_t *self, entity_t *re) {
@@ -145,15 +145,15 @@ void pico8_jc_ey(pico8_jc_t *self, entity_t *re) {
         /* pico8_stat has no case for 19, so it reads 0 and this sfx never
          * fires; ported anyway. It dereferences `input` without checking it,
          * so the NULL guard below is load-bearing. */
-        const pico8_input_t *input = pico8_dispatch_input();
-        if (input != NULL && pico8_stat(input, 19) == 50) {
-            pico8_rn(pico8_fixed_from_int(-1));
+        const p8_input_t *input = pico8_dispatch_input();
+        if (input != NULL && p8_stat(input, 19) == 50) {
+            p8_play_sfx(p8_fixed_from_int(-1));
         }
         self->p_ = 1;
         return;
     }
 
-    self->nh = pico8_fixed_from_int(1);
+    self->nh = p8_fixed_from_int(1);
     self->re = re;
 
     {
@@ -171,7 +171,7 @@ void pico8_jc_ey(pico8_jc_t *self, entity_t *re) {
                "jc:ey: both endpoints must expose \"kf\", or the slipway never joins their `oe`");
         (void)qu_registered;
         (void)re_registered;
-        pico8_hy_nx(pico8_fm_hy(), pico8_fixed_from_int(1));
+        pico8_hy_nx(pico8_fm_hy(), p8_fixed_from_int(1));
     }
 }
 
@@ -188,14 +188,14 @@ static int pico8_jc_ce_np_predicate(entity_t *e, void *ctx_ptr) {
     if (e == NULL) {
         return 0;
     }
-    return pico8_geom_be(ctx->sp, ctx->dp, pico8_jc_end_p(e), PICO8_FIXED_LIT(0x000000d1, 0.0032));
+    return pico8_geom_be(ctx->sp, ctx->dp, pico8_jc_end_p(e), P8_FIXED_LIT(0x000000d1, 0.0032));
 }
 
 typedef struct {
     pico8_vec_t sp;
     pico8_vec_t dp;
     int self_has_mt;
-    pico8_fixed_t self_mt;
+    p8_fixed_t self_mt;
 } pico8_jc_ce_jc_ctx_t;
 
 /* `self` is already registered in `cg("jc")` when this runs; `cl()` of a
@@ -220,7 +220,7 @@ entity_t *pico8_jc_ce(pico8_jc_t *self) {
     entity_t *re;
     pico8_vec_t sp;
     pico8_vec_t dp;
-    pico8_fixed_t threshold;
+    p8_fixed_t threshold;
 
     if (self == NULL) {
         return NULL;
@@ -231,7 +231,7 @@ entity_t *pico8_jc_ce(pico8_jc_t *self) {
     sp = pico8_jc_end_p(qu);
     dp = pico8_jc_end_p(re);
 
-    threshold = pico8_ov("space folding", PICO8_FIXED_LIT(0x00008000, 0.5), PICO8_FIXED_LIT(0x0001147a, 1.08));
+    threshold = pico8_ov("space folding", P8_FIXED_LIT(0x00008000, 0.5), P8_FIXED_LIT(0x0001147a, 1.08));
 
     if (pico8_vec_len_sq(pico8_vec_sub(sp, dp)) > threshold) {
         return &g_jc_too_far.header;
@@ -378,8 +378,8 @@ static pico8_jc_t *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     self->point.header.map_pos = &self->point.p;
     self->point.ra = NULL;
     self->point.p = &self->point_p;
-    self->point_ra = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-    self->point_p = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    self->point_ra = pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    self->point_p = pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
     if (keys != NULL && keys->qu != NULL) {
         assert(jc_is_endpoint_class(keys->qu->class) &&
                "jc.qu: a key neither nil nor a planet a slipway starts from (jo, qh, nl, os, hj, pm, nr, fr, mx) "

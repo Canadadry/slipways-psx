@@ -28,7 +28,7 @@ static int g_camera_y_at_kj;
  * stubbing the behaviour out. Installed on the planet alone, through a copy
  * of jo's class whose `kj` is this spy, so no other `jo` sees it. */
 static void spy_kj(entity_t *self, const pico8_vec_t *ra) {
-    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
 
     g_kj_calls++;
     g_camera_x_at_kj = pico8_dispatch_gfx()->camera_x;
@@ -39,8 +39,8 @@ static void spy_kj(entity_t *self, const pico8_vec_t *ra) {
 static entity_class_t g_spied_jo;
 
 static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
-    pico8_mem_t mem;
-    pico8_gfx_t gfx;
+    p8_memory_t mem;
+    p8_graphics_t gfx;
     pico8_jo_t *planet;
     entity_t *mo;
     pico8_vec_t *ra_heap;
@@ -48,8 +48,8 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
     unsigned char pixel_before;
     unsigned char pixel_after;
 
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
 
@@ -82,7 +82,7 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
     /* An "ra" inside `mo`'s default (192,192) viewport, so `kj`'s `gd(self)`
      * early return is not taken and the real draw body runs. */
     ra_heap = malloc(sizeof *ra_heap);
-    *ra_heap = pico8_vec_v(pico8_fixed_from_int(256), pico8_fixed_from_int(256));
+    *ra_heap = pico8_vec_v(p8_fixed_from_int(256), p8_fixed_from_int(256));
     planet->ra = ra_heap;
 
     assert(mo->class == pico8_qb_struct_class());
@@ -96,9 +96,9 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
      * the camera (192,192) that `mo:md` sets inside this same `dc("kj")`,
      * hardcoded here because the camera is not set yet, and cross-checked
      * against the real camera below. */
-    screen_pixel_addr = PICO8_ADDR_SCREEN + (256 - 192) * PICO8_SCREEN_WIDTH + (256 - 192);
-    pico8_poke(&mem, screen_pixel_addr, 9);
-    pixel_before = pico8_peek(&mem, screen_pixel_addr);
+    screen_pixel_addr = P8_ADDR_SCREEN + (256 - 192) * P8_SCREEN_WIDTH + (256 - 192);
+    p8_poke(&mem, screen_pixel_addr, 9);
+    pixel_before = p8_peek(&mem, screen_pixel_addr);
     assert(pixel_before == 9);
 
     assert(gfx.camera_x == 0 && gfx.camera_y == 0);
@@ -116,11 +116,11 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
 
     /* The sentinel address against the camera actually set, so the two
      * cannot drift apart. */
-    assert(screen_pixel_addr == PICO8_ADDR_SCREEN + (256 - gfx.camera_y) * PICO8_SCREEN_WIDTH + (256 - gfx.camera_x));
+    assert(screen_pixel_addr == P8_ADDR_SCREEN + (256 - gfx.camera_y) * P8_SCREEN_WIDTH + (256 - gfx.camera_x));
 
     /* `circfill(p.x,p.y,7,0)` paints a black disc on world (256,256), i.e.
      * screen (64,64): the sentinel is gone. */
-    pixel_after = pico8_peek(&mem, screen_pixel_addr);
+    pixel_after = p8_peek(&mem, screen_pixel_addr);
     assert(pixel_after == 0);
 
     assert(pico8_mo() == mo);

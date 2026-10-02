@@ -18,19 +18,19 @@
  * tests/test_screencast_player.c les asserte une par une ; chaque
  * fichier raylib fabrique son `Color` au point d'usage. */
 
-#ifndef PICO8_PALETTE_H
-#define PICO8_PALETTE_H
+#ifndef P8_PALETTE_H
+#define P8_PALETTE_H
 
 /* Les seize index que la memoire ecran de PICO-8 peut contenir. */
-#define PICO8_PALETTE_COLORS 16
+#define P8_PALETTE_COLORS 16
 
 typedef struct {
-    unsigned char r;
-    unsigned char g;
-    unsigned char b;
-} pico8_rgb_t;
+    unsigned char red;
+    unsigned char green;
+    unsigned char blue;
+} p8_rgb_t;
 
 /* PICO8_PALETTE_RGB[i] est la couleur de l'index i, 0 <= i <= 15. */
-extern const pico8_rgb_t PICO8_PALETTE_RGB[PICO8_PALETTE_COLORS];
+extern const p8_rgb_t P8_PALETTE_RGB[P8_PALETTE_COLORS];
 
 #endif

@@ -72,6 +72,6 @@ void pico8_dg(void) {
             pico8_he(qc);
         }
 
-        qc->state_time = pico8_fixed_add(qc->state_time, pico8_fixed_from_int(1));
+        qc->state_time = p8_fixed_add(qc->state_time, p8_fixed_from_int(1));
     }
 }

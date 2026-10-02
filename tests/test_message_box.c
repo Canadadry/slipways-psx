@@ -42,9 +42,9 @@
 
 #define MAX_BOXES 4
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -59,16 +59,16 @@ static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
     int i;
 
-    for (i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)pico8_peek(&mem, PICO8_ADDR_SCREEN + i);
+    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
+        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
 }
 
 static uint32_t draw_hash(void) {
-    pico8_gfx_init(&gfx);
-    pico8_cls(&mem);
+    p8_gfx_init(&gfx);
+    p8_cls(&mem);
     pico8_dc("draw_overlay");
     return screen_hash();
 }
@@ -144,7 +144,7 @@ static void tick(run_t *run) {
 
     pico8_dg();
     drawn = draw_hash();
-    pico8_cls(&mem);
+    p8_cls(&mem);
     run->drew |= drawn != screen_hash();
     run->h = fnv(run->h, drawn);
     for (i = 0; i < run->count; i++) {
@@ -180,7 +180,7 @@ static const pico8_mh_t *year_box(int yr) {
     const pico8_mh_t *box;
     int before = ents_count_of(pico8_cg("message_box"));
 
-    pico8_pj_hk(pico8_fixed_from_int(yr));
+    pico8_pj_hk(p8_fixed_from_int(yr));
     box = pico8_kc();
     assert(box != NULL);
     assert(ents_count_of(pico8_cg("message_box")) == before + 1);
@@ -268,7 +268,7 @@ static void test_scores_box_follows_c_(void) {
     int built;
     int i;
 
-    ju->gz = pico8_fixed_from_int(0);
+    ju->gz = p8_fixed_from_int(0);
     ju->has_gz = 1;
     set_c_(ju, 1);
     run_start(&run);
@@ -304,9 +304,9 @@ static void test_defaults_match_the_parsed_spec(void) {
     pico8_cart_vider_file_sortie();
     box = year_box(3400);
     assert(box->def == &pico8_mh_def);
-    assert(box->def->fa == pico8_fixed_from_int(14));
+    assert(box->def->fa == p8_fixed_from_int(14));
     assert(box->rh == box->def->rh);
-    assert(box->rh == pico8_fixed_from_int(5));
+    assert(box->rh == p8_fixed_from_int(5));
     assert(box->header.class->tags == TAG(TAG_MESSAGE_BOX));
     assert(box->header.state != NULL && strcmp(box->header.state, "normal") == 0);
     assert(pico8_mh_ready());
@@ -400,7 +400,7 @@ static void test_scores_box_keeps_its_articles(void) {
     pico8_pj_t *ju = game_ju();
     uint32_t want;
 
-    ju->gz = pico8_fixed_from_int(0);
+    ju->gz = p8_fixed_from_int(0);
     ju->has_gz = 1;
     set_c_(ju, 1);
     pico8_pj_ph(ju);
@@ -435,9 +435,9 @@ static void test_largest_scores_box_fits_its_place(void) {
     pico8_economy_set_dk(&challenging);
     pico8_fm_hy()->hl = NULL;
     pico8_fm_hy()->has_hl = 0;
-    pico8_fm_hy()->happiness = PICO8_FIXED_LIT(0x80000007, -32767.9999);
+    pico8_fm_hy()->happiness = P8_FIXED_LIT(0x80000007, -32767.9999);
     pico8_fm_hy()->has_happiness = 1;
-    ju->gz = pico8_fixed_from_int(0);
+    ju->gz = p8_fixed_from_int(0);
     ju->has_gz = 1;
     set_c_(ju, 1);
     pico8_pj_ph(ju);
@@ -446,11 +446,11 @@ static void test_largest_scores_box_fits_its_place(void) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

@@ -51,14 +51,14 @@ typedef struct {
 typedef struct {
     entity_t header;
     const pico8_jc_def_t *def;
-    pico8_fixed_t fa;
-    pico8_fixed_t nh;
+    p8_fixed_t fa;
+    p8_fixed_t nh;
     entity_t *qu; /* borrowed, never freed */
     pico8_ptrs_t *ts;
     pico8_jc_hg_t *hg;
     pico8_jc_hg_t hg_own;
     entity_t *re; /* borrowed, never freed */
-    pico8_fixed_t mt;
+    p8_fixed_t mt;
     int has_mt;                /* 0: `mt` is nil, and is then never read */
     entity_t *fo; /* borrowed, never freed */
     int p_;

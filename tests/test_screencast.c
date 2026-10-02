@@ -17,26 +17,26 @@
  * assertions ci-dessous le pouvoir de distinguer la frame N de la
  * frame N+1, donc d'echouer sur un offset decale ou deux frames
  * interverties. Un motif constant les rendrait toutes aveugles. */
-static void paint_frame(pico8_mem_t *mem, int seed) {
-    for (int i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
-        pico8_poke(mem, PICO8_ADDR_SCREEN + i, (unsigned char)((i + seed) & 0x0f));
+static void paint_frame(p8_memory_t *mem, int seed) {
+    for (int i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
+        p8_poke(mem, P8_ADDR_SCREEN + i, (unsigned char)((i + seed) & 0x0f));
     }
 }
 
 static unsigned char expected_pixel(int seed, int x, int y) {
-    return (unsigned char)(((y * PICO8_SCREEN_WIDTH + x) + seed) & 0x0f);
+    return (unsigned char)(((y * P8_SCREEN_WIDTH + x) + seed) & 0x0f);
 }
 
 static unsigned char pixel_at(const unsigned char *frame, int x, int y) {
-    return frame[y * PICO8_SCREEN_WIDTH + x];
+    return frame[y * P8_SCREEN_WIDTH + x];
 }
 
 /* Ecrit `count` frames de seeds 0..count-1 a `path`. */
 static void write_seeded_frames(const char *path, int count) {
     pico8_screencast_writer_t writer;
-    pico8_mem_t mem;
+    p8_memory_t mem;
 
-    pico8_mem_init(&mem);
+    p8_mem_init(&mem);
     assert(pico8_screencast_writer_open(&writer, path) == 1);
     for (int seed = 0; seed < count; seed++) {
         paint_frame(&mem, seed);
@@ -298,12 +298,12 @@ static void test_frame_index_past_the_end_is_refused(void) {
 static void test_writing_a_frame_leaves_the_game_memory_untouched(void) {
     const char *path = "tmp/test_screencast_readonly_memory.bin";
     pico8_screencast_writer_t writer;
-    static pico8_mem_t mem;
-    static pico8_mem_t before;
+    static p8_memory_t mem;
+    static p8_memory_t before;
 
-    pico8_mem_init(&mem);
+    p8_mem_init(&mem);
     paint_frame(&mem, 7);
-    pico8_poke(&mem, PICO8_ADDR_MAP, 0x42);
+    p8_poke(&mem, P8_ADDR_MAP, 0x42);
     before = mem;
 
     assert(pico8_screencast_writer_open(&writer, path) == 1);
@@ -326,15 +326,15 @@ static void test_writing_a_frame_leaves_the_game_memory_untouched(void) {
 static void test_on_disk_byte_holds_the_even_pixel_in_its_low_nibble(void) {
     const char *path = "tmp/test_screencast_nibbles.bin";
     pico8_screencast_writer_t writer;
-    pico8_mem_t mem;
+    p8_memory_t mem;
     static unsigned char raw[8192];
 
-    pico8_mem_init(&mem);
+    p8_mem_init(&mem);
     paint_frame(&mem, 0);
-    pico8_poke(&mem, PICO8_ADDR_SCREEN + 0, 0x03);
-    pico8_poke(&mem, PICO8_ADDR_SCREEN + 1, 0x0c);
-    pico8_poke(&mem, PICO8_ADDR_SCREEN + 2, 0x0f);
-    pico8_poke(&mem, PICO8_ADDR_SCREEN + 3, 0x00);
+    p8_poke(&mem, P8_ADDR_SCREEN + 0, 0x03);
+    p8_poke(&mem, P8_ADDR_SCREEN + 1, 0x0c);
+    p8_poke(&mem, P8_ADDR_SCREEN + 2, 0x0f);
+    p8_poke(&mem, P8_ADDR_SCREEN + 3, 0x00);
 
     assert(pico8_screencast_writer_open(&writer, path) == 1);
     assert(pico8_screencast_write_frame(&writer, &mem) == 1);

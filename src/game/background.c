@@ -18,8 +18,8 @@
 
 static int g_bg_up = 0;
 
-static int pico8_bg_to_int(pico8_fixed_t x) {
-    return pico8_fixed_flr_int(x);
+static int pico8_bg_to_int(p8_fixed_t x) {
+    return p8_fixed_flr_int(x);
 }
 
 static void pico8_bg_kj_dispatch(entity_t *self, const pico8_vec_t *ra) {
@@ -54,7 +54,7 @@ static const entity_class_t g_bg_struct_class = {
 /* A nil `rp` reads as the zero vector, as an unset `mq` does. */
 static void pico8_bg_set_mq(pico8_bg_t *self, const pico8_vec_t *rp) {
     self->has_mq = rp != NULL;
-    self->mq = rp != NULL ? *rp : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    self->mq = rp != NULL ? *rp : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
 static pico8_bg_t *pico8_bg_struct_new(void) {
@@ -97,10 +97,10 @@ pico8_bg_t *pico8_bg_new(void) {
 
 /* `vs[x] or 1` is only ever taken on row y=0; every later row reads back the
  * previous row's own `vh`. `oh` is local to the call. */
-void pico8_bg_pq(pico8_mem_t *mem, pico8_bg_t *self) {
-    pico8_fixed_t vs[32];
+void pico8_bg_pq(p8_memory_t *mem, pico8_bg_t *self) {
+    p8_fixed_t vs[32];
     int vs_set[32];
-    pico8_fixed_t vh = pico8_fixed_from_int(0);
+    p8_fixed_t vh = p8_fixed_from_int(0);
     pico8_jf_state_t *oh;
     const pico8_int_seq_t *pl = self != NULL && self->def->pl != NULL ? self->def->pl : &pico8_bg_pl_seq;
     int x, y;
@@ -113,37 +113,37 @@ void pico8_bg_pq(pico8_mem_t *mem, pico8_bg_t *self) {
         vs_set[x] = 0;
     }
 
-    oh = pico8_jf(pico8_zone_frame(), PICO8_FIXED_LIT(0x00001999, 0.1), pico8_fixed_from_int(0));
+    oh = pico8_jf(pico8_zone_frame(), P8_FIXED_LIT(0x00001999, 0.1), p8_fixed_from_int(0));
 
     for (y = 0; y <= 31; y++) {
         for (x = 0; x <= 31; x++) {
-            pico8_fixed_t prev = vs_set[x] ? vs[x] : pico8_fixed_from_int(1);
-            pico8_fixed_t step =
-                pico8_fixed_sub(pico8_fixed_mul(pico8_jf_next(oh), pico8_fixed_from_int(8)), pico8_fixed_from_int(4));
-            pico8_fixed_t roll;
+            p8_fixed_t prev = vs_set[x] ? vs[x] : p8_fixed_from_int(1);
+            p8_fixed_t step =
+                p8_fixed_sub(p8_fixed_mul(pico8_jf_next(oh), p8_fixed_from_int(8)), p8_fixed_from_int(4));
+            p8_fixed_t roll;
             int tile;
 
-            vh = pico8_fixed_add(step, pico8_fixed_mul(pico8_fixed_add(vh, prev), PICO8_FIXED_LIT(0x00008000, 0.5)));
+            vh = p8_fixed_add(step, p8_fixed_mul(p8_fixed_add(vh, prev), P8_FIXED_LIT(0x00008000, 0.5)));
             vs[x] = vh;
             vs_set[x] = 1;
 
-            roll = pico8_fixed_rnd_default();
-            if (roll < PICO8_FIXED_LIT(0x00000106, 0.004)) {
-                tile = 122 + pico8_bg_to_int(pico8_fixed_rnd(pico8_fixed_from_int(5)));
+            roll = p8_fixed_rnd_default();
+            if (roll < P8_FIXED_LIT(0x00000106, 0.004)) {
+                tile = 122 + pico8_bg_to_int(p8_fixed_rnd(p8_fixed_from_int(5)));
             } else {
-                pico8_fixed_t idx_f = pico8_fixed_flr(pico8_fixed_add(vh, pico8_fixed_rnd(pico8_fixed_from_int(4))));
+                p8_fixed_t idx_f = p8_fixed_flr(p8_fixed_add(vh, p8_fixed_rnd(p8_fixed_from_int(4))));
                 int idx = pico8_bg_to_int(idx_f);
 
                 tile = 0;
                 pico8_int_seq_at(pl->items, pl->count, idx, &tile);
             }
 
-            pico8_mset(mem, x, y, tile);
+            p8_mset(mem, x, y, tile);
         }
     }
 }
 
-void pico8_bg_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_bg_t *self) {
+void pico8_bg_kj(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_bg_t *self) {
     int xy;
 
     (void)self;
@@ -152,14 +152,14 @@ void pico8_bg_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_bg_t *self) {
         return;
     }
 
-    pico8_map(gfx, mem, 0, 0, 0, 0, 32, 32);
-    pico8_fillp(gfx, 0xA5A5u);
+    p8_map(gfx, mem, 0, 0, 0, 0, 32, 32);
+    p8_fillp(gfx, 0xA5A5u);
     for (xy = 3; xy <= 262; xy += 32) {
-        pico8_rectfill(gfx, mem, xy, 0, xy, 262, 1);
-        pico8_rectfill(gfx, mem, 0, xy, 262, xy, 1);
+        p8_rectfill(gfx, mem, xy, 0, xy, 262, 1);
+        p8_rectfill(gfx, mem, 0, xy, 262, xy, 1);
     }
-    pico8_fillp_reset(gfx);
-    pico8_rect(gfx, mem, 0, 0, 262, 262, 5);
+    p8_fillp_reset(gfx);
+    p8_rect(gfx, mem, 0, 0, 262, 262, 5);
 }
 
 down_t pico8_bg_ldown(pico8_bg_t *self) {
@@ -197,7 +197,7 @@ down_t pico8_bg_rdown(pico8_bg_t *self, pico8_vec_t *rp) {
 /* `self.mq` is read here and overwritten by the last statement of the
  * function: that read-then-replace is the drag delta itself. */
 void pico8_bg_hq(pico8_bg_t *self, pico8_vec_t *rp) {
-    pico8_vec_t zero = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    pico8_vec_t zero = pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
     pico8_vec_t mq;
     pico8_vec_t rp_vec;
     pico8_qb_t *mo;

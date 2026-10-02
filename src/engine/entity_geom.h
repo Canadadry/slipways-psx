@@ -24,6 +24,6 @@ pico8_vec_t pico8_ma(pico8_vec_t p, entity_t *e);
 /* Reads every element of `j_` as an entity instance. `*out_nearest` is
  * NULL -- Lua's nil -- when `j_` is NULL, empty, or holds
  * nothing away from `p`; the returned distance is then 32767. */
-pico8_fixed_t pico8_ij_ents(pico8_vec_t p, const pico8_ents_t *j_, entity_t **out_nearest);
+p8_fixed_t pico8_ij_ents(pico8_vec_t p, const pico8_ents_t *j_, entity_t **out_nearest);
 
 #endif

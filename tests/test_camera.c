@@ -33,9 +33,9 @@
 #define SHAKE_HASH 0xF1E7A593u
 #define GEOHARVEST_WINDOW 60
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -103,7 +103,7 @@ static void check(const char *label, uint32_t got, uint32_t want) {
     assert(got == want);
 }
 
-static pico8_input_frame_t g_frames[SCRIPTED_TICKS];
+static p8_input_frame_t g_frames[SCRIPTED_TICKS];
 
 static void script(int n) {
     input.frames = g_frames;
@@ -113,7 +113,7 @@ static void script(int n) {
 }
 
 static void unscript(void) {
-    pico8_input_init(&input);
+    p8_input_init(&input);
     pico8_dispatch_set_input(&input);
 }
 
@@ -126,7 +126,7 @@ static void pad(int i, int left, int right, int up, int down) {
 }
 
 static int is_vec(pico8_vec_t v, int x, int y) {
-    return v.x == pico8_fixed_from_int(x) && v.y == pico8_fixed_from_int(y);
+    return v.x == p8_fixed_from_int(x) && v.y == p8_fixed_from_int(y);
 }
 
 /* `jl()` builds `mo`: in hv only, the spec's defaults, ke's `me`/`t`, `pc`
@@ -138,8 +138,8 @@ static void check_fresh_mo(const pico8_qb_t *mo) {
     pico8_vec_t v = must_vec(mo->v);
 
     assert(ents_listed(pico8_hv(), mo) && !in_any_cv(mo));
-    assert(p.x == pico8_fixed_from_int(192) && p.y == pico8_fixed_from_int(192));
-    assert(ra.x == pico8_fixed_from_int(192) && ra.y == pico8_fixed_from_int(192));
+    assert(p.x == p8_fixed_from_int(192) && p.y == p8_fixed_from_int(192));
+    assert(ra.x == p8_fixed_from_int(192) && ra.y == p8_fixed_from_int(192));
     assert(v.x == 0 && v.y == 0);
     assert(mo->ma == 0);
     assert(mo->header.state_time == 0);
@@ -160,8 +160,8 @@ static void test_jl_builds_a_camera(void) {
     check_fresh_mo(mo_qb());
 }
 
-static void md_to(pico8_fixed_t fy, int want_x, int want_y) {
-    pico8_camera(&gfx, 7, 11);
+static void md_to(p8_fixed_t fy, int want_x, int want_y) {
+    p8_camera(&gfx, 7, 11);
     assert(pico8_mo()->class == pico8_qb_struct_class());
     pico8_qb_md(pico8_dispatch_gfx(), (pico8_qb_t *)pico8_mo(), fy);
     assert(gfx.camera_x == want_x && gfx.camera_y == want_y);
@@ -171,10 +171,10 @@ static void md_to(pico8_fixed_t fy, int want_x, int want_y) {
  * start from the camera the last `md` leaves: 192,192. */
 static void test_md_sets_the_camera(void) {
     pico8_jl();
-    md_to(pico8_fixed_from_int(1), 192, 192);
-    md_to(PICO8_FIXED_LIT(0x00008000, 0.5), 96, 96);
+    md_to(p8_fixed_from_int(1), 192, 192);
+    md_to(P8_FIXED_LIT(0x00008000, 0.5), 96, 96);
     md_to(0, 0, 0);
-    md_to(pico8_fixed_from_int(1), 192, 192);
+    md_to(p8_fixed_from_int(1), 192, 192);
 }
 
 /* Idle, left, right+up, down held into the 320 bound, then released. */
@@ -202,11 +202,11 @@ static void test_scripted_ticks(void) {
         pico8_dg();
         h = fold_mo(h);
         h = fnv(h, (uint32_t)mo_qb()->header.state_time);
-        if (must_vec(mo_qb()->p).y == pico8_fixed_from_int(320)) {
+        if (must_vec(mo_qb()->p).y == p8_fixed_from_int(320)) {
             bounded++;
         }
         if (i < SCRIPTED_TICKS - 1) {
-            pico8_input_step(&input);
+            p8_input_step(&input);
         }
     }
     unscript();
@@ -224,8 +224,8 @@ static void test_shake_decays(void) {
 
     pico8_jl();
     mo = mo_qb();
-    mo_qb()->ma = pico8_fixed_from_int(3);
-    assert(mo->ma == pico8_fixed_from_int(3));
+    mo_qb()->ma = p8_fixed_from_int(3);
+    assert(mo->ma == p8_fixed_from_int(3));
     unscript();
     while (mo->ma != 0) {
         pico8_vec_t off;
@@ -264,7 +264,7 @@ static void test_second_jl(void) {
  * nothing and the camera stays put. */
 static void test_placeholder_mo(void) {
     pico8_entity_init();
-    pico8_camera(&gfx, 5, 6);
+    p8_camera(&gfx, 5, 6);
     assert(pico8_mo()->class != pico8_qb_struct_class());
     assert(gfx.camera_x == 5 && gfx.camera_y == 6);
     assert(pico8_mo_qb() == NULL);
@@ -289,7 +289,7 @@ static void test_right_drag_moves_the_camera(void) {
     pico8__update60();
     before = must_vec(mo_qb()->p);
     for (i = 1; i < 20; i++) {
-        pico8_input_step(&input);
+        p8_input_step(&input);
         pico8__update60();
     }
     unscript();
@@ -321,7 +321,7 @@ static void test_ga_shakes(void) {
     assert(!ga_alive());
     (void)pico8_ga_new(NULL);
     assert(ga_alive());
-    assert(mo_qb()->ma == pico8_fixed_from_int(3));
+    assert(mo_qb()->ma == p8_fixed_from_int(3));
     for (i = 0; i < GEOHARVEST_WINDOW; i++) {
         pico8_dg();
     }
@@ -364,25 +364,25 @@ static void test_qb_is_a_struct(void) {
     check_fresh_mo(generic);
     assert(generic->header.pos == &generic->ra);
     assert(generic->header.map_pos == &generic->p);
-    pico8_qb_struct_class()->states[ENTITY_STATE_NORMAL](&generic->header, pico8_fixed_from_int(0));
-    pico8_qb_md(pico8_dispatch_gfx(), generic, pico8_fixed_from_int(1));
+    pico8_qb_struct_class()->states[ENTITY_STATE_NORMAL](&generic->header, p8_fixed_from_int(0));
+    pico8_qb_md(pico8_dispatch_gfx(), generic, p8_fixed_from_int(1));
     assert(pico8_qb_struct_class()->draw == NULL);
     {
         pico8_vec_t p_before = must_vec(generic->p);
 
         generic->v = NULL;
-        pico8_qb_struct_class()->states[ENTITY_STATE_NORMAL](&generic->header, pico8_fixed_from_int(0));
+        pico8_qb_struct_class()->states[ENTITY_STATE_NORMAL](&generic->header, p8_fixed_from_int(0));
         assert(generic->v != NULL && generic->v->x == 0 && generic->v->y == 0);
         assert(generic->p->x == p_before.x && generic->p->y == p_before.y);
     }
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

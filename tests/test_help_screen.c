@@ -41,9 +41,9 @@
 #define LIFE_HASH 0x64B6480Bu
 #define HOVER_HASH 0xEE114A89u
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -82,7 +82,7 @@ static uint32_t m__state(const pico8_g__t *fv) {
 
 /* The words the frozen hashes fold before a value: 0xF1 a number, 0xB0 a
  * boolean (then 0 or 1), 0x57 a string; any other moves every *_HASH. */
-static uint32_t fold_fixed(uint32_t h, pico8_fixed_t x) {
+static uint32_t fold_fixed(uint32_t h, p8_fixed_t x) {
     return fnv(fnv(h, 0xF1u), (uint32_t)x);
 }
 
@@ -122,7 +122,7 @@ static uint32_t fold_seq(uint32_t h, const pico8_int_seq_t *s) {
 
     for (i = 0; i < s->count; i++) {
         h = fnv(h, (uint32_t)(i + 1));
-        h = fold_fixed(h, pico8_fixed_from_int(s->items[i]));
+        h = fold_fixed(h, p8_fixed_from_int(s->items[i]));
     }
     return fnv(h, (uint32_t)s->count);
 }
@@ -143,11 +143,11 @@ static uint32_t fold_row(uint32_t h, const pico8_jb_row_t *row) {
         } else if (item->is_false) {
             h = fold_bool(h, 0);
         } else {
-            h = fold_fixed(h, item->is_fixed ? item->fixed : pico8_fixed_from_int(item->n));
+            h = fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->n));
         }
     }
     if (row->has_c) {
-        h = fold_fixed(fnv_str(h, "c"), pico8_fixed_from_int(row->c));
+        h = fold_fixed(fnv_str(h, "c"), p8_fixed_from_int(row->c));
     }
     if (row->fn != NULL) {
         h = fold_string(fnv_str(h, "fn"), row->fn);
@@ -174,7 +174,7 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
 /* A member the reader always answers: its presence bit and kind byte are
  * constant by the struct's shape, kept so that BUILT_HASH and LIFE_HASH
  * still prove the typed reads. */
-static uint32_t fold_fixed_member(uint32_t h, pico8_fixed_t x) {
+static uint32_t fold_fixed_member(uint32_t h, p8_fixed_t x) {
     return fnv(fnv(fnv(h, 1u), 0xF1u), (uint32_t)x);
 }
 
@@ -224,8 +224,8 @@ static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
     int i;
 
-    for (i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)pico8_peek(&mem, PICO8_ADDR_SCREEN + i);
+    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
+        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
@@ -233,7 +233,7 @@ static uint32_t screen_hash(void) {
 
 static pico8_vec_t *vec_ref(int x, int y) {
     pico8_vec_t *v = malloc(sizeof *v);
-    *v = pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
+    *v = pico8_vec_v(p8_fixed_from_int(x), p8_fixed_from_int(y));
     return v;
 }
 
@@ -242,7 +242,7 @@ static const entity_class_t *cls_of(const void *e) {
 }
 
 static void start_title(void) {
-    pico8_input_init(&input);
+    p8_input_init(&input);
     pico8_dispatch_set_input(&input);
     pico8__init();
 }
@@ -251,7 +251,7 @@ static void start_title(void) {
 static int is_help(entity_t *e) {
     const pico8_g__t *g_ =
         e != NULL && (e->class->lineage & LINEAGE(LINEAGE_PROBE)) ? (const pico8_g__t *)e : NULL;
-    return g_ != NULL && g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)) && g_->def->fa == pico8_fixed_from_int(10);
+    return g_ != NULL && g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)) && g_->def->fa == p8_fixed_from_int(10);
 }
 
 static pico8_g__t *the_help(void) {
@@ -307,9 +307,9 @@ static void test_built(void) {
     pr = g_->probe;
     hv = pico8_hv();
 
-    assert(g_->def->fa == pico8_fixed_from_int(10));
-    assert(em->def->ki == pico8_fixed_from_int(17));
-    assert(g_->def->ca == pico8_fixed_from_int(11));
+    assert(g_->def->fa == p8_fixed_from_int(10));
+    assert(em->def->ki == p8_fixed_from_int(17));
+    assert(g_->def->ca == p8_fixed_from_int(11));
     assert(g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
     assert(g_->ra != NULL && em->k_ != NULL);
     assert(g_->def->rb != NULL && pr->def->dq != NULL);
@@ -371,10 +371,10 @@ static void test_built(void) {
     for (k = 0; k < 4; k++) {
         const pico8_js_t *b = as_js(hv->items[rank - 4 + k]);
         pico8_vec_t qf;
-        assert(b->fa == pico8_fixed_from_int(11));
+        assert(b->fa == p8_fixed_from_int(11));
         assert(b->qf != NULL);
         qf = *b->qf;
-        assert(qf.x == pico8_fixed_from_int(34) && qf.y == pico8_fixed_from_int(56 + 11 * k));
+        assert(qf.x == p8_fixed_from_int(34) && qf.y == p8_fixed_from_int(56 + 11 * k));
         h = fold_vec(h, b->qf);
         h = fold_vec(h, b->ra);
         h = fold_fixed_member(h, b->fa);
@@ -428,7 +428,7 @@ static void test_life(void) {
     check("life", h, LIFE_HASH);
 }
 
-static pico8_input_frame_t g_mouse;
+static p8_input_frame_t g_mouse;
 
 static void mouse_at(int x, int y) {
     memset(&g_mouse, 0, sizeof g_mouse);
@@ -454,16 +454,16 @@ static void test_hover(void) {
     pico8_ui_lj(&mem, pico8_ok());
     assert((void *)pico8_ok()->o_ == fv);
     assert(m__state(fv) == 2);
-    check_int("hover 0x5f80", pico8_peek(&mem, 0x5f80), 5);
+    check_int("hover 0x5f80", p8_peek(&mem, 0x5f80), 5);
     assert(in_layer(10, fv));
     h = fnv(h, m__state(fv));
-    h = fnv(h, (uint32_t)pico8_peek(&mem, 0x5f80));
+    h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
 
-    pico8_cls(&mem);
+    p8_cls(&mem);
     pico8_ui_ev(&gfx, &mem, pico8_ok());
     drawn = screen_hash();
-    pico8_cls(&mem);
-    pico8_spr_default(&gfx, &mem, 11, 64, 112);
+    p8_cls(&mem);
+    p8_spr_default(&gfx, &mem, 11, 64, 112);
     assert(drawn == screen_hash());
     h = fnv(h, drawn);
 
@@ -473,7 +473,7 @@ static void test_hover(void) {
     assert(m__state(fv) == 0);
     assert(!in_layer(10, fv));
     h = fnv(h, m__state(fv));
-    h = fnv(h, (uint32_t)pico8_peek(&mem, 0x5f80));
+    h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
     check("hover", h, HOVER_HASH);
 }
 
@@ -504,15 +504,15 @@ static void test_particle_takes_the_help_palette(void) {
     particle->p = pico8_vec_v(0, 0);
     particle->v = pico8_vec_v(0, 0);
     particle->has_a = 0;
-    particle->l = PICO8_FIXED_LIT(0x00068000, 6.5);
+    particle->l = P8_FIXED_LIT(0x00068000, 6.5);
     qy = fv->emitter->qy;
     empty_qy(qy);
     pico8_ptrs_add(qy, particle);
-    pico8_camera_reset(&gfx);
-    at = PICO8_ADDR_SCREEN + pico8_fixed_flr_int(ra.y) * PICO8_SCREEN_WIDTH + pico8_fixed_flr_int(ra.x);
-    pico8_poke(&mem, at, 3);
+    p8_camera_reset(&gfx);
+    at = P8_ADDR_SCREEN + p8_fixed_flr_int(ra.y) * P8_SCREEN_WIDTH + p8_fixed_flr_int(ra.x);
+    p8_poke(&mem, at, 3);
     pico8_ei(&gfx, &mem, &fv->header);
-    assert(pico8_peek(&mem, at) == pico8_fv_k__seq.items[5] && pico8_fv_k__seq.items[5] == 9);
+    assert(p8_peek(&mem, at) == pico8_fv_k__seq.items[5] && pico8_fv_k__seq.items[5] == 9);
 }
 
 static void test_eu_retires_the_help(void) {
@@ -560,7 +560,7 @@ static void call_f_(void *e) {
 }
 
 static void call_ez(void *e) {
-    pico8_ez(e, pico8_fixed_from_int(1));
+    pico8_ez(e, p8_fixed_from_int(1));
 }
 
 static void call_ei(void *e) {
@@ -588,7 +588,7 @@ static void call_gk(void *e) {
 }
 
 static void call_na(void *e) {
-    pico8_na(e, pico8_fixed_from_int(1));
+    pico8_na(e, p8_fixed_from_int(1));
 }
 
 /* On NULL `self`: `d_`, `gk` return 0; `g__mm` draws three `rnd`, divides by
@@ -649,7 +649,7 @@ static void test_eu_gives_back_the_help_particles(void) {
 
     start_title();
     fv = the_help();
-    pico8_ez(&fv->header, pico8_fixed_from_int(5));
+    pico8_ez(&fv->header, p8_fixed_from_int(5));
     title = held_now();
     assert(title.qy_fv == 1 && fv->emitter->qy->count >= 5);
     assert(title.particules == fv->emitter->qy->count);
@@ -661,11 +661,11 @@ static void test_eu_gives_back_the_help_particles(void) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

@@ -54,9 +54,9 @@ static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {
 #define EY_OFF_HASH 0x3EA86A53u
 #define FV_HASH 0x938EC51Bu
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static const char *const bm[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
 
@@ -131,7 +131,7 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
 
 /* The words the frozen hashes fold before a value: 0xF1 a number, 0x57 a
  * string; any other moves every *_HASH. */
-static uint32_t fold_fixed(uint32_t h, pico8_fixed_t x) {
+static uint32_t fold_fixed(uint32_t h, p8_fixed_t x) {
     return fnv(fnv(h, 0xF1u), (uint32_t)x);
 }
 
@@ -142,7 +142,7 @@ static uint32_t fold_string(uint32_t h, const char *s) {
 /* A member the reader always answers: its presence bit and kind byte are
  * constant by the struct's shape, kept so that the hashes still prove the
  * typed reads. */
-static uint32_t fold_fixed_member(uint32_t h, pico8_fixed_t x) {
+static uint32_t fold_fixed_member(uint32_t h, p8_fixed_t x) {
     return fnv(fnv(fnv(h, 1u), 0xF1u), (uint32_t)x);
 }
 
@@ -229,7 +229,7 @@ static uint32_t fold_seq(uint32_t h, const pico8_int_seq_t *s) {
 
     for (i = 0; i < s->count; i++) {
         h = fnv(h, (uint32_t)(i + 1));
-        h = fold_fixed(h, pico8_fixed_from_int(s->items[i]));
+        h = fold_fixed(h, p8_fixed_from_int(s->items[i]));
     }
     return fnv(h, (uint32_t)s->count);
 }
@@ -249,8 +249,8 @@ static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
     int i;
 
-    for (i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)pico8_peek(&mem, PICO8_ADDR_SCREEN + i);
+    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
+        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
@@ -259,7 +259,7 @@ static uint32_t screen_hash(void) {
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
  * reads as difficulty 0. */
 static void start_game(void) {
-    pico8_input_init(&input);
+    p8_input_init(&input);
     pico8_dispatch_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
@@ -273,7 +273,7 @@ static pico8_vec_t *vec_ref(pico8_vec_t at) {
 }
 
 static pico8_vec_t vec_xy(int x, int y) {
-    return pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
+    return pico8_vec_v(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
 static const entity_class_t *cls_of(const void *e) {
@@ -295,7 +295,7 @@ static pico8_bg_t *the_bg(void) {
             continue;
         }
         bg = (pico8_bg_t *)e;
-        if (bg->def->hd == pico8_fixed_from_int(1) && bg->def->fa == pico8_fixed_from_int(1)) {
+        if (bg->def->hd == p8_fixed_from_int(1) && bg->def->fa == p8_fixed_from_int(1)) {
             found = bg;
             count++;
         }
@@ -308,7 +308,7 @@ static pico8_bg_t *the_bg(void) {
 static int is_probe(entity_t *e) {
     const pico8_g__t *g_ =
         e != NULL && (e->class->lineage & LINEAGE(LINEAGE_PROBE)) ? (const pico8_g__t *)e : NULL;
-    return g_ != NULL && g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)) && g_->def->fa == pico8_fixed_from_int(2);
+    return g_ != NULL && g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)) && g_->def->fa == p8_fixed_from_int(2);
 }
 
 static pico8_g__t *as_g_(void *e) {
@@ -333,12 +333,12 @@ static pico8_g__t *keyed(void) {
     pico8_g__keys_t keys = {0};
 
     keys.has_pn = 1;
-    keys.pn = pico8_fixed_from_int(7);
-    keys.t = pico8_fixed_from_int(3);
+    keys.pn = p8_fixed_from_int(7);
+    keys.t = p8_fixed_from_int(3);
     keys.has_du = 1;
-    keys.du = pico8_fixed_from_int(10);
+    keys.du = p8_fixed_from_int(10);
     keys.has_py = 1;
-    keys.py = pico8_fixed_from_int(1);
+    keys.py = p8_fixed_from_int(1);
     return pico8_g__new(&keys);
 }
 
@@ -413,11 +413,11 @@ static void test_built(void) {
     h = fold_probe(h, c);
     assert(a != b && b != c && a != c);
     assert(a->emitter->qy != b->emitter->qy && b->emitter->qy != c->emitter->qy);
-    assert(a->def->fa == pico8_fixed_from_int(2) && a->emitter->def->ki == pico8_fixed_from_int(9));
+    assert(a->def->fa == p8_fixed_from_int(2) && a->emitter->def->ki == p8_fixed_from_int(9));
     assert(a->probe->def->dw == 0x666);
-    assert(c->emitter->pn == pico8_fixed_from_int(7) && c->header.state_time == pico8_fixed_from_int(3) &&
-           c->emitter->du == pico8_fixed_from_int(10) && c->emitter->py == pico8_fixed_from_int(1));
-    assert(b->emitter->pn == pico8_fixed_from_int(3) && b->header.state_time == pico8_fixed_from_int(0));
+    assert(c->emitter->pn == p8_fixed_from_int(7) && c->header.state_time == p8_fixed_from_int(3) &&
+           c->emitter->du == p8_fixed_from_int(10) && c->emitter->py == p8_fixed_from_int(1));
+    assert(b->emitter->pn == p8_fixed_from_int(3) && b->header.state_time == p8_fixed_from_int(0));
     check("built", h, BUILT_HASH);
 }
 
@@ -509,14 +509,14 @@ static pico8_jc_t *a_slipway(pico8_vec_t *middle) {
     jc_keys.qu = qu;
     jc = pico8_jc_new(&jc_keys);
     jc->re = re;
-    *middle = pico8_vec_div(pico8_vec_add(qu_p, re_p), pico8_fixed_from_int(2));
+    *middle = pico8_vec_div(pico8_vec_add(qu_p, re_p), p8_fixed_from_int(2));
     return jc;
 }
 
 /* The mouse one pixel off `at` (world units, as `p`): `ij` skips an entity
  * at the very position. */
 static pico8_vec_t *mouse_at(pico8_vec_t at) {
-    return vec_ref(pico8_vec_add(pico8_vec_mul(at, pico8_fixed_from_int(128)), vec_xy(1, 1)));
+    return vec_ref(pico8_vec_add(pico8_vec_mul(at, p8_fixed_from_int(128)), vec_xy(1, 1)));
 }
 
 /* `hq` at `at`, the raw mouse at `rp`: `et`'s kind, the target's `fo`,
@@ -628,7 +628,7 @@ static void test_ey_off(void) {
     assert(out == 1);
     assert(!a->p_);
     assert(is_me(&a->header, "settled"));
-    assert(a->header.state_time == pico8_fixed_from_int(0));
+    assert(a->header.state_time == p8_fixed_from_int(0));
     h = fold_string_member(h, a->header.state);
     h = fold_fixed_member(h, a->header.state_time);
     h = fold_fixed_member(h, fm_hy()->nz);
@@ -640,7 +640,7 @@ static void test_ey_off(void) {
 static void test_ey_void(void) {
     pico8_g__t *a;
     pico8_vec_t middle;
-    pico8_fixed_t nz;
+    p8_fixed_t nz;
     const char *me;
     int out;
 
@@ -667,7 +667,7 @@ static void test_ey_void(void) {
 static int is_help(entity_t *e) {
     const pico8_g__t *g_ =
         e != NULL && (e->class->lineage & LINEAGE(LINEAGE_PROBE)) ? (const pico8_g__t *)e : NULL;
-    return g_ != NULL && g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)) && g_->def->fa == pico8_fixed_from_int(10);
+    return g_ != NULL && g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)) && g_->def->fa == p8_fixed_from_int(10);
 }
 
 /* The title screen's `fv`, of `g_`'s lineage: its
@@ -679,7 +679,7 @@ static void test_fv(void) {
     const pico8_g__t *fv;
     int i;
 
-    pico8_input_init(&input);
+    p8_input_init(&input);
     pico8_dispatch_set_input(&input);
     pico8__init();
     hv = pico8_hv();
@@ -693,9 +693,9 @@ static void test_fv(void) {
     assert(found != NULL && !is_probe(found));
     fv = (const pico8_g__t *)found;
     assert(fv->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
-    assert(fv->def->fx == pico8_fixed_from_int(1));
+    assert(fv->def->fx == p8_fixed_from_int(1));
     assert(fv->probe->def->dq != NULL && strcmp(fv->probe->def->dq, "settled") == 0);
-    assert(fv->def->fa == pico8_fixed_from_int(10));
+    assert(fv->def->fa == p8_fixed_from_int(10));
     assert(fv->emitter->k_ == &pico8_fv_k__seq);
     assert(fv->emitter->k_ != &pico8_g__k__seq);
     assert(cls_of(fv)->draw_overlay == pico8_dl_dispatch);
@@ -837,7 +837,7 @@ static void test_leaving_gives_back_its_particles(void) {
     start_game();
     before = held_now();
     a = ldown();
-    pico8_ez(&a->header, pico8_fixed_from_int(5));
+    pico8_ez(&a->header, p8_fixed_from_int(5));
     assert(a->emitter->qy->count == 5);
     assert(held_now().particules == before.particules + 5 && held_now().qy == before.qy + 1);
     pico8_he(&a->header);
@@ -848,11 +848,11 @@ static void test_leaving_gives_back_its_particles(void) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

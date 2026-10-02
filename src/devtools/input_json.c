@@ -86,14 +86,14 @@ static int find_dpad_field(const char *obj, int dpad_out[6]) {
     return 1;
 }
 
-void pico8_input_free(pico8_input_t *input) {
+void pico8_input_free(p8_input_t *input) {
     free(input->frames);
     input->frames = NULL;
     input->frame_count = 0;
     input->current_frame = 0;
 }
 
-int pico8_input_load(pico8_input_t *input, const char *path) {
+int pico8_input_load(p8_input_t *input, const char *path) {
     char *json = read_whole_file(path);
     if (!json) {
         return 0;
@@ -114,7 +114,7 @@ int pico8_input_load(pico8_input_t *input, const char *path) {
     int capacity = 4;
     int count = 0;
     int ok = 1;
-    pico8_input_frame_t *frames = malloc(sizeof(pico8_input_frame_t) * (size_t)capacity);
+    p8_input_frame_t *frames = malloc(sizeof(p8_input_frame_t) * (size_t)capacity);
     if (!frames) {
         free(json);
         return 0;
@@ -148,7 +148,7 @@ int pico8_input_load(pico8_input_t *input, const char *path) {
         memcpy(obj_buf, obj_start, obj_len);
         obj_buf[obj_len] = '\0';
 
-        pico8_input_frame_t frame;
+        p8_input_frame_t frame;
         int found = find_int_field(obj_buf, "\"mouse_x\":", &frame.mouse_x) &&
                     find_int_field(obj_buf, "\"mouse_y\":", &frame.mouse_y) &&
                     find_int_field(obj_buf, "\"mouse_buttons\":", &frame.mouse_buttons) &&
@@ -162,7 +162,7 @@ int pico8_input_load(pico8_input_t *input, const char *path) {
 
         if (count == capacity) {
             capacity *= 2;
-            pico8_input_frame_t *bigger = realloc(frames, sizeof(pico8_input_frame_t) * (size_t)capacity);
+            p8_input_frame_t *bigger = realloc(frames, sizeof(p8_input_frame_t) * (size_t)capacity);
             if (!bigger) {
                 ok = 0;
                 break;
@@ -198,7 +198,7 @@ int pico8_input_load(pico8_input_t *input, const char *path) {
 #define FRAME_SEPARATOR ",\n"
 #define FRAME_LINE_MAX 160
 
-static int format_frame_line(char *buf, size_t size, const pico8_input_frame_t *fr) {
+static int format_frame_line(char *buf, size_t size, const p8_input_frame_t *fr) {
     int rc = snprintf(
         buf,
         size,
@@ -215,7 +215,7 @@ static int format_frame_line(char *buf, size_t size, const pico8_input_frame_t *
     return rc > 0 && (size_t)rc < size;
 }
 
-int pico8_input_save(const pico8_input_frame_t *frames, int frame_count, const char *path) {
+int pico8_input_save(const p8_input_frame_t *frames, int frame_count, const char *path) {
     if (!frames || frame_count <= 0) {
         return 0;
     }
@@ -271,7 +271,7 @@ int pico8_input_save(const pico8_input_frame_t *frames, int frame_count, const c
     return 1;
 }
 
-int pico8_input_append(const pico8_input_frame_t *frame, const char *path, long *io_tail_offset) {
+int pico8_input_append(const p8_input_frame_t *frame, const char *path, long *io_tail_offset) {
     if (!frame || !path || !io_tail_offset) {
         return 0;
     }

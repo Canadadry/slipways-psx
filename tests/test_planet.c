@@ -44,9 +44,9 @@
 #define NEW_PLANET_HASH 0x48C32418u
 #define LL_DG_CALLS 62
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static const char *const bm[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
 static const char *const tags[] = {"planet", "node", "targeting"};
@@ -90,7 +90,7 @@ static uint32_t fold_absent(uint32_t h) {
     return fnv(h, 0u);
 }
 
-static uint32_t fold_fixed_member(uint32_t h, pico8_fixed_t v) {
+static uint32_t fold_fixed_member(uint32_t h, p8_fixed_t v) {
     return fnv(fnv(fnv(h, 1u), 0xF1u), (uint32_t)v);
 }
 
@@ -104,7 +104,7 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
 }
 
 static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
-    return jo->def->hf ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
+    return jo->def->hf ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 /* 0 absent, 1 false, 2 true. */
@@ -172,7 +172,7 @@ static void sortir_l_aide(void) {
 }
 
 static void start_title(void) {
-    pico8_input_init(&input);
+    p8_input_init(&input);
     pico8_dispatch_set_input(&input);
     sortir_l_aide();
     pico8__init();
@@ -371,7 +371,7 @@ static uint32_t fold_daughter(uint32_t h, void *d) {
     assert(jo->ra != NULL);
     ra = *jo->ra;
     h = fold_bool(h, cls_of(d)->hit_test(d, vec_ref(ra), vec_ref(ra)));
-    ra = pico8_vec_add(ra, pico8_vec_v(pico8_fixed_from_int(8), pico8_fixed_from_int(8)));
+    ra = pico8_vec_add(ra, pico8_vec_v(p8_fixed_from_int(8), p8_fixed_from_int(8)));
     return fold_bool(h, cls_of(d)->hit_test(d, vec_ref(ra), vec_ref(ra)));
 }
 
@@ -389,7 +389,7 @@ static void *bought(const entity_kind_t *kind) {
         void *icon = hb->items[i];
         if (cls_of(icon) == pico8_ie_struct_class() && ((const pico8_ie_t *)icon)->ke == kind) {
             down_t made = cls_of(icon)->left_press(icon, NULL, NULL);
-            pico8_vec_t middle = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
+            pico8_vec_t middle = pico8_vec_v(p8_fixed_from_int(64), p8_fixed_from_int(64));
             assert(made.stop && made.held != NULL);
             cls_of(made.held)->drag(made.held, vec_ref(pico8_vec_add(*mo_ra, middle)), vec_ref(middle));
             return made.held;
@@ -452,8 +452,8 @@ static void *new_planet(const char *id, int x, int y) {
     planet_keys_t keys;
 
     keys.planet_id = id;
-    keys.map_pos = vec_ref(pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y)));
-    keys.pos = vec_ref(pico8_vec_v(pico8_fixed_from_int(x * 128), pico8_fixed_from_int(y * 128)));
+    keys.map_pos = vec_ref(pico8_vec_v(p8_fixed_from_int(x), p8_fixed_from_int(y)));
+    keys.pos = vec_ref(pico8_vec_v(p8_fixed_from_int(x * 128), p8_fixed_from_int(y * 128)));
     return pico8_jo_new(&keys);
 }
 
@@ -516,37 +516,37 @@ static void test_kw_shared(void) {
     pico8_hp_t *hp;
     pico8_qe_map_t po_before;
     pico8_qe_map_t po_after;
-    pico8_fixed_t before = pico8_fixed_from_int(0);
-    pico8_fixed_t after = pico8_fixed_from_int(0);
+    p8_fixed_t before = p8_fixed_from_int(0);
+    p8_fixed_t after = p8_fixed_from_int(0);
 
     start_title();
     a = new_planet("p902", 5, 6);
     b = new_planet("p903", 7, 8);
     kw = a->kw;
     assert(kw == pico8_jo_shared_kw() && b->kw == kw);
-    kw->mu = pico8_fixed_from_int(7);
-    assert(b->kw->mu == pico8_fixed_from_int(7));
-    assert(pico8_jo_shared_kw()->mu == pico8_fixed_from_int(7));
+    kw->mu = p8_fixed_from_int(7);
+    assert(b->kw->mu == p8_fixed_from_int(7));
+    assert(pico8_jo_shared_kw()->mu == p8_fixed_from_int(7));
 
     assert(pico8_gb_count() > 0);
     hp = pico8_gb_find("");
     assert(hp != NULL);
     pico8_jo_lz(a, hp);
     assert(a->kw != NULL && a->kw != pico8_jo_shared_kw());
-    assert(a->kw->mu == pico8_fixed_from_int(0));
+    assert(a->kw->mu == p8_fixed_from_int(0));
     assert(b->kw == pico8_jo_shared_kw());
     assert(a->hn == hp && list_size(a->jy) >= 0);
 
     pico8_bx(&po_before);
     kw->has_qe = 1;
-    kw->qe = pico8_fixed_from_int(28);
+    kw->qe = p8_fixed_from_int(28);
     pico8_bx(&po_after);
     pico8_qe_map_get(&po_before, kw->qe, &before);
     pico8_qe_map_get(&po_after, kw->qe, &after);
     assert(after == before);
     pico8_jo_init();
     assert(b->kw == pico8_jo_shared_kw());
-    assert(!kw->has_qe && kw->mu == pico8_fixed_from_int(0));
+    assert(!kw->has_qe && kw->mu == p8_fixed_from_int(0));
 }
 
 /* `jo:hh` takes `df.ll` itself on a roll of `jo.ir()` under 0.45, and its
@@ -619,8 +619,8 @@ static pico8_jo_t *planet_with_a_row(void) {
 
     a->kw = &a->kw_own;
     a->kw_own.has_qe = 1;
-    a->kw_own.qe = pico8_fixed_from_int(28);
-    a->kw_own.mu = pico8_fixed_from_int(2);
+    a->kw_own.qe = p8_fixed_from_int(28);
+    a->kw_own.mu = p8_fixed_from_int(2);
     return a;
 }
 
@@ -710,11 +710,11 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

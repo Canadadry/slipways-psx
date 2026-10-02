@@ -33,9 +33,9 @@
 #include "game/ui_button.h"
 #include "game/wormhole.h"
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static pico8_nf_button_t *nf_l_of(const pico8_nf_t *nf) {
     assert(nf != NULL && pico8_nf_l() != NULL);
@@ -118,7 +118,7 @@ static void test_mz_defaults_and_ready(void) {
     assert(mz->def == &pico8_mz_def && mz->probe->def == &pico8_mz_def.probe);
     assert(mz->header.state == mz->def->me && strcmp(mz->header.state, "placing") == 0 && mz->header.state_time == 0);
     assert(mz->oi == mz->def->oi);
-    assert(mz->probe->od == mz->def->probe.od && mz->probe->od == pico8_fixed_from_int(3));
+    assert(mz->probe->od == mz->def->probe.od && mz->probe->od == p8_fixed_from_int(3));
     assert(mz->probe->has_od == mz->def->probe.has_od);
     assert(mz->jj == pico8_mz_jj_wrapper() && mz->jj->qs == pico8_mz_jj_qs);
     assert(pico8_mz_ready());
@@ -203,9 +203,9 @@ static void test_pj_defaults_and_ready(void) {
 
     assert(pj->def == &pico8_pj_def && pj->fa == pj->def->fa);
     assert(pj->ed == NULL);
-    assert(cr->hi->x == 0 && cr->hi->y == pico8_fixed_from_int(11));
-    assert(cr->gq->x == 0 && cr->gq->y == pico8_fixed_from_int(11));
-    assert(cr->ca == pico8_fixed_from_int(10));
+    assert(cr->hi->x == 0 && cr->hi->y == p8_fixed_from_int(11));
+    assert(cr->gq->x == 0 && cr->gq->y == p8_fixed_from_int(11));
+    assert(cr->ca == p8_fixed_from_int(10));
     assert(pj->header.state == pj->def->me && strcmp(pj->header.state, "normal") == 0 && pj->header.state_time == 0);
     assert(pico8_pj_ready());
     pico8_score_panel_shutdown();
@@ -232,11 +232,11 @@ static void test_trade_ready(void) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

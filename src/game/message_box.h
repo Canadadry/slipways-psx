@@ -30,7 +30,7 @@ struct pico8_mh {
     entity_t header;
     const pico8_zone_choisie_t *place;
     const pico8_mh_def_t *def;
-    pico8_fixed_t rh;
+    p8_fixed_t rh;
     pico8_mh_lh_fn lh; /* NULL: `lh` is nil */
     int p_;
     const pico8_jb_row_t *items[PICO8_MH_ITEMS_CAP];
@@ -60,7 +60,7 @@ typedef struct {
     const pico8_jb_row_t *const *items;
     int count;
     int has_rh; /* 0: `rh` keeps the archetype's */
-    pico8_fixed_t rh;
+    p8_fixed_t rh;
     pico8_mh_lh_fn lh;
 } pico8_mh_keys_t;
 
@@ -72,7 +72,7 @@ void pico8_mh_pq(pico8_mh_t *self);
 
 /* A NULL `gfx`/`mem` skips the drawing and the camera reset only; the
  * closing timer and the `kc` bookkeeping still run. */
-void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self);
+void pico8_mh_ev(p8_graphics_t *gfx, p8_memory_t *mem, pico8_mh_t *self);
 
 /* Calls pico8_pi_init(). */
 void pico8_iv_init(void);
@@ -93,11 +93,11 @@ typedef struct {
     pico8_vec_t ra_box;
     char at1_buf[PICO8_IV_TEXT_CAP + 1];
     const pico8_iv_def_t *def;
-    pico8_fixed_t l;
+    p8_fixed_t l;
     const pico8_vec_t *ra;
     int p_;
     const char *at1;
-    pico8_fixed_t at2;
+    p8_fixed_t at2;
 } pico8_iv_t;
 
 void pico8_iv_shutdown(void);
@@ -110,7 +110,7 @@ int pico8_iv_ready(void);
 typedef struct {
     const pico8_vec_t *ra;
     const char *at1;
-    pico8_fixed_t at2;
+    p8_fixed_t at2;
 } pico8_iv_keys_t;
 
 /* `keys` is read, not kept (NULL: none), but for `ra`, borrowed until the
@@ -121,7 +121,7 @@ void pico8_iv_pq(pico8_iv_t *self);
 void pico8_iv_ph(pico8_iv_t *self);
 
 /* A NULL `gfx`/`mem` makes the whole call a no-op. */
-void pico8_iv_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_iv_t *self, pico8_vec_t p);
+void pico8_iv_kj(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_iv_t *self, pico8_vec_t p);
 
 /* What `pz` reads of its `p`, filled by the caller from its own members: a
  * NULL pointer or a 0 has_* is nil; `ff` is the Lua truth of `p.ff`. `pz`
@@ -129,11 +129,11 @@ void pico8_iv_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_iv_t *sel
 typedef struct {
     const char *ep;
     int has_eo;
-    pico8_fixed_t eo;
+    p8_fixed_t eo;
     const pico8_vec_t *hi;
     int ff;
     int has_ca;
-    pico8_fixed_t ca;
+    p8_fixed_t ca;
     const pico8_vec_t *gq;
     const pico8_vec_t *ra;
 } pico8_pz_frame_t;

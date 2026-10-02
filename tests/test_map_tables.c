@@ -23,8 +23,8 @@ static void check_int_seq(const int *seq, int count) {
     assert(out == -12345);
 }
 
-static void check_fixed_seq(const pico8_fixed_t *seq, int count) {
-    pico8_fixed_t out = -12345;
+static void check_fixed_seq(const p8_fixed_t *seq, int count) {
+    p8_fixed_t out = -12345;
     int i;
 
     for (i = 0; i < count; i++) {
@@ -119,7 +119,7 @@ static void test_df_lookup_finds_each_px(void) {
     assert(pico8_df_lookup(NULL) == NULL);
 }
 
-static pico8_fixed_t never_drawn(void *ctx) {
+static p8_fixed_t never_drawn(void *ctx) {
     (void)ctx;
     assert(0 && "the pool is built without a draw");
     return 0;
@@ -130,10 +130,10 @@ static void test_gn_pools_df_entries_by_their_r(void) {
     pico8_gn_state_t *state;
     int i;
 
-    state = pico8_gn(pico8_zone_frame(), pico8_df_table, PICO8_DF_COUNT, pico8_fixed_from_int(2), never_drawn, NULL);
+    state = pico8_gn(pico8_zone_frame(), pico8_df_table, PICO8_DF_COUNT, p8_fixed_from_int(2), never_drawn, NULL);
     assert(state->oc_count == 66);
     for (i = 0; i < PICO8_DF_COUNT; i++) {
-        int want = pico8_fixed_flr_int(pico8_fixed_mul(pico8_df_table[i].r, pico8_fixed_from_int(2)));
+        int want = p8_fixed_flr_int(p8_fixed_mul(pico8_df_table[i].r, p8_fixed_from_int(2)));
         int got = 0;
         int j;
 
@@ -178,17 +178,17 @@ static void test_nb_lookup_finds_each_px(void) {
 /* Keys floored as Lua indexes a table, one entry per key, insertion order. */
 static void test_qe_map_keeps_one_entry_per_key_in_order(void) {
     pico8_qe_map_t map = {0, {{0, 0}}};
-    pico8_fixed_t v = 0x1234;
+    p8_fixed_t v = 0x1234;
 
-    assert(!pico8_qe_map_get(&map, pico8_fixed_from_int(21), &v) && v == 0x1234);
-    pico8_qe_map_set(&map, pico8_fixed_from_int(21), pico8_fixed_from_int(3));
-    pico8_qe_map_set(&map, pico8_fixed_from_int(12), pico8_fixed_from_int(5));
-    pico8_qe_map_set(&map, pico8_fixed_from_int(21), pico8_fixed_from_int(7));
+    assert(!pico8_qe_map_get(&map, p8_fixed_from_int(21), &v) && v == 0x1234);
+    pico8_qe_map_set(&map, p8_fixed_from_int(21), p8_fixed_from_int(3));
+    pico8_qe_map_set(&map, p8_fixed_from_int(12), p8_fixed_from_int(5));
+    pico8_qe_map_set(&map, p8_fixed_from_int(21), p8_fixed_from_int(7));
     assert(map.count == 2 && map.entries[0].qe == 21 && map.entries[1].qe == 12);
-    assert(pico8_qe_map_get(&map, pico8_fixed_from_int(21), &v) && v == pico8_fixed_from_int(7));
-    assert(pico8_qe_map_get(&map, pico8_fixed_from_int(12) + 0x8000, &v) && v == pico8_fixed_from_int(5));
-    assert(!pico8_qe_map_get(&map, pico8_fixed_from_int(13), &v) && v == pico8_fixed_from_int(5));
-    pico8_qe_map_set(&map, pico8_fixed_from_int(99) + 0x4000, pico8_fixed_from_int(1));
+    assert(pico8_qe_map_get(&map, p8_fixed_from_int(21), &v) && v == p8_fixed_from_int(7));
+    assert(pico8_qe_map_get(&map, p8_fixed_from_int(12) + 0x8000, &v) && v == p8_fixed_from_int(5));
+    assert(!pico8_qe_map_get(&map, p8_fixed_from_int(13), &v) && v == p8_fixed_from_int(5));
+    pico8_qe_map_set(&map, p8_fixed_from_int(99) + 0x4000, p8_fixed_from_int(1));
     assert(map.count == 3 && map.entries[2].qe == 99);
 }
 
@@ -198,12 +198,12 @@ static void test_int_seq_has_fixed_keeps_gu_on_integers(void) {
     int i;
 
     for (i = 0; i < seq->count; i++) {
-        assert(pico8_int_seq_has_fixed(seq, pico8_fixed_from_int(seq->items[i])));
-        assert(!pico8_int_seq_has_fixed(seq, pico8_fixed_from_int(seq->items[i]) + 0x8000));
+        assert(pico8_int_seq_has_fixed(seq, p8_fixed_from_int(seq->items[i])));
+        assert(!pico8_int_seq_has_fixed(seq, p8_fixed_from_int(seq->items[i]) + 0x8000));
     }
-    assert(!pico8_int_seq_has_fixed(seq, pico8_fixed_from_int(99)));
-    assert(!pico8_int_seq_has_fixed(seq, (pico8_fixed_t)seq->items[0]));
-    assert(!pico8_int_seq_has_fixed(&empty, pico8_fixed_from_int(0)));
+    assert(!pico8_int_seq_has_fixed(seq, p8_fixed_from_int(99)));
+    assert(!pico8_int_seq_has_fixed(seq, (p8_fixed_t)seq->items[0]));
+    assert(!pico8_int_seq_has_fixed(&empty, p8_fixed_from_int(0)));
 }
 
 int main(void) {

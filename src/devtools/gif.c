@@ -5,7 +5,7 @@
 
 #include <string.h>
 
-#define SIDE (PICO8_SCREEN_WIDTH * PICO8_GIF_SCALE)
+#define SIDE (P8_SCREEN_WIDTH * PICO8_GIF_SCALE)
 #define MIN_CODE_SIZE 4
 #define CLEAR_CODE (1 << MIN_CODE_SIZE)
 #define EOI_CODE (CLEAR_CODE + 1)
@@ -37,10 +37,10 @@ int pico8_gif_open(pico8_gif_writer_t *writer, FILE *file) {
     put_byte(writer, 0xF3);
     put_byte(writer, 0);
     put_byte(writer, 0);
-    for (int i = 0; i < PICO8_PALETTE_COLORS; i++) {
-        put_byte(writer, PICO8_PALETTE_RGB[i].r);
-        put_byte(writer, PICO8_PALETTE_RGB[i].g);
-        put_byte(writer, PICO8_PALETTE_RGB[i].b);
+    for (int i = 0; i < P8_PALETTE_COLORS; i++) {
+        put_byte(writer, P8_PALETTE_RGB[i].red);
+        put_byte(writer, P8_PALETTE_RGB[i].green);
+        put_byte(writer, P8_PALETTE_RGB[i].blue);
     }
     put_byte(writer, 0x21);
     put_byte(writer, 0xFF);
@@ -93,7 +93,7 @@ static void sink_flush(bit_sink_t *s) {
 
 /* child[code][c] : le code de la chaîne `code` suivie de l'index c, 0 si
  * absente (0 n'est jamais un code d'enfant, les enfants commencent à 18). */
-static unsigned short child[MAX_CODES][PICO8_PALETTE_COLORS];
+static unsigned short child[MAX_CODES][P8_PALETTE_COLORS];
 
 static void lzw_encode(pico8_gif_writer_t *w, const unsigned char *pixels, long count) {
     bit_sink_t s;
@@ -139,15 +139,15 @@ static void draw_ring(unsigned char *screen, int cx, int cy, int radius, unsigne
     for (int dy = -radius; dy <= radius; dy++) {
         for (int dx = -radius; dx <= radius; dx++) {
             int d2 = dx * dx + dy * dy, x = cx + dx, y = cy + dy;
-            if (d2 >= lo && d2 <= hi && x >= 0 && x < PICO8_SCREEN_WIDTH && y >= 0 && y < PICO8_SCREEN_HEIGHT) {
-                screen[y * PICO8_SCREEN_WIDTH + x] = color;
+            if (d2 >= lo && d2 <= hi && x >= 0 && x < P8_SCREEN_WIDTH && y >= 0 && y < P8_SCREEN_HEIGHT) {
+                screen[y * P8_SCREEN_WIDTH + x] = color;
             }
         }
     }
 }
 
-int pico8_gif_write_frame(pico8_gif_writer_t *writer, const unsigned char *pixels, const pico8_input_frame_t *event) {
-    static unsigned char screen[PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT];
+int pico8_gif_write_frame(pico8_gif_writer_t *writer, const unsigned char *pixels, const p8_input_frame_t *event) {
+    static unsigned char screen[P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT];
     static unsigned char scaled[SIDE * SIDE];
     memcpy(screen, pixels, sizeof screen);
     if (event != NULL) {
@@ -159,7 +159,7 @@ int pico8_gif_write_frame(pico8_gif_writer_t *writer, const unsigned char *pixel
     }
     for (int y = 0; y < SIDE; y++) {
         for (int x = 0; x < SIDE; x++) {
-            scaled[y * SIDE + x] = screen[(y / PICO8_GIF_SCALE) * PICO8_SCREEN_WIDTH + x / PICO8_GIF_SCALE] & 15;
+            scaled[y * SIDE + x] = screen[(y / PICO8_GIF_SCALE) * P8_SCREEN_WIDTH + x / PICO8_GIF_SCALE] & 15;
         }
     }
     /* Graphic Control Extension : pas de transparence, délai 3 cs. */

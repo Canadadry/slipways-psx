@@ -19,7 +19,7 @@ static pico8_vec_t g_nf_ra;
 
 /* dg() dispatches the per-tick state method as `qc[qc.me](qc,qc.t)`, so
  * `t` is the frame counter, which nf:ph does not read. */
-static void pico8_nf_ph_dispatch(entity_t *self, pico8_fixed_t t) {
+static void pico8_nf_ph_dispatch(entity_t *self, p8_fixed_t t) {
     (void)t;
     pico8_nf_ph(pico8_dispatch_input(), (pico8_nf_t *)self);
 }
@@ -28,11 +28,11 @@ static const entity_class_t g_nf_struct_class = {
     .states = {[ENTITY_STATE_NORMAL] = pico8_nf_ph_dispatch},
 };
 
-static void pico8_nf_pq(pico8_mem_t *mem) {
+static void pico8_nf_pq(p8_memory_t *mem) {
     if (mem == NULL) {
         return;
     }
-    pico8_poke(mem, 0x5f2d, 1);
+    p8_poke(mem, 0x5f2d, 1);
 }
 
 static pico8_nf_t *pico8_nf_struct_new(void) {
@@ -56,7 +56,7 @@ void pico8_nf_init(void) {
     pico8_pi_init();
     assert(pico8_ke_ready() && "nf descends from ke");
     g_nf_up = 1;
-    g_nf_ra = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    g_nf_ra = pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
     memset(&g_nf_l, 0, sizeof g_nf_l);
     memset(&g_nf_r, 0, sizeof g_nf_r);
 }
@@ -85,12 +85,12 @@ pico8_nf_t *pico8_nf_new(void) {
     return pico8_nf_struct_new();
 }
 
-void pico8_nf_ph(const pico8_input_t *input, pico8_nf_t *self) {
+void pico8_nf_ph(const p8_input_t *input, pico8_nf_t *self) {
     if (self == NULL || input == NULL) {
         return;
     }
 
-    self->ra_own = pico8_vec_v(pico8_fixed_from_int(pico8_stat(input, 32)), pico8_fixed_from_int(pico8_stat(input, 33)));
+    self->ra_own = pico8_vec_v(p8_fixed_from_int(p8_stat(input, 32)), p8_fixed_from_int(p8_stat(input, 33)));
     self->ra = &self->ra_own;
 
     if (g_nf_up) {

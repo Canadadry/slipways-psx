@@ -55,7 +55,7 @@ static const char *hp_string(const char *s) {
 }
 
 /* `r[s]`, for the two positions `gp` names: `o` and `dm`. */
-static pico8_fixed_t hp_r(const char *s) {
+static p8_fixed_t hp_r(const char *s) {
     int qe = 0;
     int found;
 
@@ -65,7 +65,7 @@ static pico8_fixed_t hp_r(const char *s) {
     assert(found && "hp: a value that gp maps through r is missing from r; it would stay a string in a "
                     "fixed member -- stop, do not widen the member");
     (void)found;
-    return pico8_fixed_from_int(qe);
+    return p8_fixed_from_int(qe);
 }
 
 /* `ho(gb, mr, gp)` on one record of `fd`: positions 1..npos are `px`, `lr`,
@@ -83,7 +83,7 @@ static void hp_positions(pico8_hp_t *self, const pico8_fd_entry_t *ri, const cha
         self->lr = hp_string(ri->lr);
     }
     if (n >= 3) {
-        self->fj = pico8_fixed_from_int(ri->fj);
+        self->fj = p8_fixed_from_int(ri->fj);
         self->has_fj = 1;
     }
     if (n >= 4) {
@@ -110,7 +110,7 @@ pico8_qe_t pico8_jy_qe(const pico8_jy_t *i) {
     return i->row.has_qe ? (pico8_qe_t){.kind = PICO8_QE_FIXED, .n = i->row.qe} : (pico8_qe_t){.kind = PICO8_QE_NIL};
 }
 
-pico8_jy_t *pico8_jy_new(const pico8_zone_choisie_t *zone, const pico8_fixed_t *qe) {
+pico8_jy_t *pico8_jy_new(const pico8_zone_choisie_t *zone, const p8_fixed_t *qe) {
     pico8_jy_t *i = (pico8_jy_t *)pico8_zone_alloc(zone, sizeof *i);
 
     memset(i, 0, sizeof *i);
@@ -158,13 +158,13 @@ static pico8_hp_t *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
 
         hp_positions(self, ri, &i_src);
         if (ri->has_ii) {
-            self->ii = pico8_fixed_from_int(ri->ii);
+            self->ii = p8_fixed_from_int(ri->ii);
             self->has_ii = 1;
         }
         self->cw = ri->cw;
         self->go = ri->go;
         if (ri->has_rn) {
-            self->rn = pico8_fixed_from_int(ri->rn);
+            self->rn = p8_fixed_from_int(ri->rn);
             self->has_rn = 1;
         }
     }
@@ -201,10 +201,10 @@ static pico8_hp_t *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
     for (c = 0; i_src[c] != '\0'; c++) {
         char key[2] = {i_src[c], '\0'};
         int r_qe;
-        pico8_fixed_t qe;
+        p8_fixed_t qe;
 
         if (pico8_r_lookup(key, &r_qe)) {
-            qe = pico8_fixed_from_int(r_qe);
+            qe = p8_fixed_from_int(r_qe);
             pico8_ptrs_add(new_i, pico8_jy_new(chargement, &qe));
         } else {
             pico8_ptrs_add(new_i, pico8_jy_new(chargement, NULL));
@@ -331,8 +331,8 @@ const pico8_hc_entry_t *pico8_hp_po(const pico8_hp_t *self) {
     return qp;
 }
 
-pico8_fixed_t pico8_hp_od(const pico8_hp_t *self) {
-    pico8_fixed_t od = pico8_fixed_from_int(0);
+p8_fixed_t pico8_hp_od(const pico8_hp_t *self) {
+    p8_fixed_t od = p8_fixed_from_int(0);
     const char *il;
     int has_ii;
 
@@ -342,11 +342,11 @@ pico8_fixed_t pico8_hp_od(const pico8_hp_t *self) {
         od = self->fj;
     }
     if (self != NULL && il != NULL && pico8_oj(il)) {
-        od = pico8_fixed_mul(od, PICO8_FIXED_LIT(0x00018000, 1.5));
+        od = p8_fixed_mul(od, P8_FIXED_LIT(0x00018000, 1.5));
     }
     has_ii = self != NULL && self->has_ii;
     if (!has_ii && pico8_oj("nanomaterials")) {
-        od = pico8_fixed_mul(od, PICO8_FIXED_LIT(0x0000d999, 0.85));
+        od = p8_fixed_mul(od, P8_FIXED_LIT(0x0000d999, 0.85));
     }
-    return pico8_fixed_flr(od);
+    return p8_fixed_flr(od);
 }

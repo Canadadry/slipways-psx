@@ -48,9 +48,9 @@
 #define HOVER_HASH 0x477E2027u
 #define DRAW_HASH 0xE18E0472u
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static const int want_pl[15] = {0, 0, 0, 72, 73, 74, 75, 88, 89, 90, 91, 88, 91, 89, 91};
 
@@ -67,8 +67,8 @@ static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
     int i;
 
-    for (i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)pico8_peek(&mem, PICO8_ADDR_SCREEN + i);
+    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
+        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
@@ -136,7 +136,7 @@ static void check_int(const char *label, int got, int want) {
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
  * reads as difficulty 0. */
 static void start_game(void) {
-    pico8_input_init(&input);
+    p8_input_init(&input);
     pico8_dispatch_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
@@ -157,7 +157,7 @@ static pico8_bg_t *find_bg(int *count) {
             continue;
         }
         bg = (pico8_bg_t *)e;
-        if (bg->def->hd == pico8_fixed_from_int(1) && bg->def->fa == pico8_fixed_from_int(1)) {
+        if (bg->def->hd == p8_fixed_from_int(1) && bg->def->fa == p8_fixed_from_int(1)) {
             found = bg;
             (*count)++;
         }
@@ -174,12 +174,12 @@ static pico8_bg_t *the_bg(void) {
 
 static pico8_vec_t *vec_ref(int x, int y) {
     pico8_vec_t *v = malloc(sizeof *v);
-    *v = pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
+    *v = pico8_vec_v(p8_fixed_from_int(x), p8_fixed_from_int(y));
     return v;
 }
 
 static int mget(int x, int y) {
-    return pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + y * PICO8_MAP_WIDTH + x);
+    return p8_peek(&mem, P8_ADDR_SPRITE_MAP_SHARED + y * P8_MAP_WIDTH + x);
 }
 
 /* A fresh `bg`: ke's `me`/`t`, the spec's `fa`/`hd`/`pl`, the four
@@ -192,8 +192,8 @@ static void check_fresh_bg(const pico8_bg_t *bg) {
     assert(is_me(&bg->header, "normal"));
     assert(bg->header.state_time == 0);
     assert(bg->def == &pico8_bg_def);
-    assert(bg->def->fa == pico8_fixed_from_int(1));
-    assert(bg->def->hd == pico8_fixed_from_int(1));
+    assert(bg->def->fa == p8_fixed_from_int(1));
+    assert(bg->def->hd == p8_fixed_from_int(1));
     pl = bg->def->pl;
     assert(pl == &pico8_bg_pl_seq && pl->count == 15);
     for (i = 0; i < 15; i++) {
@@ -286,7 +286,7 @@ static void test_drag(void) {
     hq(bg, rp);
     assert(mo_qb()->v != NULL);
     v = *mo_qb()->v;
-    assert(v.x == pico8_fixed_from_int(-10) && v.y == pico8_fixed_from_int(-20));
+    assert(v.x == p8_fixed_from_int(-10) && v.y == p8_fixed_from_int(-20));
     assert(mq_is(bg, rp));
     h = fold_vec(h, mo_qb()->v);
 
@@ -347,7 +347,7 @@ static int in_layer(int layer, const void *e) {
 /* Nothing else hovered: the background is `o_`, marked `m_`, in layer 1,
  * and answers both `ldown` and `rdown`; a veil built over it takes `o_`,
  * and the next hover pass unmarks it through `gj`. */
-static pico8_input_frame_t g_void;
+static p8_input_frame_t g_void;
 
 static void test_hover(void) {
     uint32_t h = 2166136261u;
@@ -371,7 +371,7 @@ static void test_hover(void) {
     assert((void *)pico8_ok()->o_ == bg);
     assert(m__state(bg) == 2);
     assert(in_layer(1, bg));
-    h = fnv(h, (uint32_t)pico8_peek(&mem, 0x5f80));
+    h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
     h = fnv(h, m__state(bg));
 
     assert(pico8_ui_jz(pico8_ok(), PICO8_JZ_LDOWN, vec_ref(1, 1), vec_ref(2, 2), NULL, &kv, &kn));
@@ -385,7 +385,7 @@ static void test_hover(void) {
     pico8_ui_lj(&mem, pico8_ok());
     assert((void *)pico8_ok()->o_ == veil);
     assert(m__state(bg) == 0);
-    h = fnv(h, (uint32_t)pico8_peek(&mem, 0x5f80));
+    h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
     h = fnv(h, m__state(bg));
     check("hover", h, HOVER_HASH);
 }
@@ -438,10 +438,10 @@ static void test_draw(void) {
     pico8_jl();
     bg = (void *)pico8_bg_new();
     assert(ents_list_count(pico8_cv("draw")) == 1 && ents_listed(pico8_cv("draw"), bg));
-    pico8_gfx_init(&gfx);
-    pico8_cls(&mem);
+    p8_gfx_init(&gfx);
+    p8_cls(&mem);
     assert(pico8_mo()->class == pico8_qb_struct_class());
-    pico8_qb_md(pico8_dispatch_gfx(), (pico8_qb_t *)pico8_mo(), pico8_fixed_from_int(1));
+    pico8_qb_md(pico8_dispatch_gfx(), (pico8_qb_t *)pico8_mo(), p8_fixed_from_int(1));
     pico8_dc("draw");
     check("draw", screen_hash(), DRAW_HASH);
 }
@@ -465,7 +465,7 @@ static uint32_t lheld_kind(void) {
     return HELD_OTHER;
 }
 
-static pico8_input_frame_t g_drag[8];
+static p8_input_frame_t g_drag[8];
 
 static void drag_frame(int i, int x, int y, int buttons) {
     memset(&g_drag[i], 0, sizeof g_drag[i]);
@@ -504,10 +504,10 @@ static void test_scripted_drags(void) {
             assert(lheld_kind() == HELD_G_STRUCT);
         }
         if (i < 6) {
-            pico8_input_step(&input);
+            p8_input_step(&input);
         }
     }
-    pico8_input_init(&input);
+    p8_input_init(&input);
     pico8_dispatch_set_input(&input);
 }
 
@@ -558,11 +558,11 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

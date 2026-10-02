@@ -55,9 +55,9 @@ static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {
  * value moves every *_HASH. */
 #define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static const char *const bm[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
 static const char *const tags[] = {"slipgate", "node", "targeting"};
@@ -96,7 +96,7 @@ static uint32_t fold_absent(uint32_t h) {
     return fnv(h, 0u);
 }
 
-static uint32_t fold_fixed_member(uint32_t h, pico8_fixed_t v) {
+static uint32_t fold_fixed_member(uint32_t h, p8_fixed_t v) {
     return fnv(fnv(fnv(h, 1u), 0xF1u), (uint32_t)v);
 }
 
@@ -110,7 +110,7 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
 }
 
 static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
-    return jo->def->hf ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
+    return jo->def->hf ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
@@ -155,7 +155,7 @@ static pico8_jo_t *as_qh(void *e) {
 }
 
 static uint32_t fold_qh(uint32_t h, const pico8_jo_t *qh) {
-    return qh->def->qh ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
+    return qh->def->qh ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
@@ -168,8 +168,8 @@ static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
     int i;
 
-    for (i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)pico8_peek(&mem, PICO8_ADDR_SCREEN + i);
+    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
+        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
@@ -178,7 +178,7 @@ static uint32_t screen_hash(void) {
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
  * reads as difficulty 0. */
 static void start_game(void) {
-    pico8_input_init(&input);
+    p8_input_init(&input);
     pico8_dispatch_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
@@ -191,7 +191,7 @@ static pico8_vec_t *vec_ref(pico8_vec_t at) {
 }
 
 static pico8_vec_t vec_xy(int x, int y) {
-    return pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
+    return pico8_vec_v(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
 static const entity_class_t *cls_of(const void *e) {
@@ -393,7 +393,7 @@ static void test_built(void) {
 }
 
 static void set_credits(int n) {
-    pico8_fm_hy()->nz = pico8_fixed_from_int(n);
+    pico8_fm_hy()->nz = p8_fixed_from_int(n);
 }
 
 static uint32_t fold_ra_y(uint32_t h, const pico8_jo_t *qh) {
@@ -502,7 +502,7 @@ static void test_life(void) {
         h = fold_fixed_member(h, as_qh(placed)->s);
         h = fold_bool(h, cls_of(placed)->accept_drop(placed, NULL).stop);
     }
-    assert(as_qh(placed)->s == pico8_fixed_from_int(168));
+    assert(as_qh(placed)->s == p8_fixed_from_int(168));
     jc = cls_of(placed)->left_press(placed, NULL, NULL);
     assert(jc.held == NULL);
     h = fold_bool(h, jc.stop);
@@ -516,7 +516,7 @@ static void test_life(void) {
     h = fold_fixed_member(h, as_qh(fr)->s);
     cls_of(fr)->refresh(fr);
     h = fold_fixed_member(h, as_qh(fr)->s);
-    assert(as_qh(fr)->s == pico8_fixed_from_int(78));
+    assert(as_qh(fr)->s == p8_fixed_from_int(78));
 
     bare = pico8_nr_new(NULL);
     assert(gate_kind(bare) == NR && as_qh(bare)->id == NULL && as_qh(bare)->oe != NULL &&
@@ -571,7 +571,7 @@ static void test_nr_is_a_struct(void) {
     assert(fr != NULL &&
            ((const entity_t *)fr)->class == pico8_fr_struct_class());
     cls_of(fr)->refresh(fr);
-    assert(as_qh(fr)->s == pico8_fixed_from_int(78));
+    assert(as_qh(fr)->s == p8_fixed_from_int(78));
 }
 
 /* Counts the offers `cn` makes, taking each as `jo:ib`'s closure does. */
@@ -579,7 +579,7 @@ static int g_offers = 0;
 
 static void take_offer(pico8_jo_trade_proposal_t *self, pico8_trade_t *a) {
     pico8_ents_add(self->ib, &a->header);
-    self->mu -= pico8_fixed_from_int(1);
+    self->mu -= p8_fixed_from_int(1);
     g_offers++;
 }
 
@@ -598,12 +598,12 @@ static void test_cn_skips_a_slipway_already_in_rl(void) {
     pico8_ents_t ib;
     pico8_trade_keys_t keys = {0};
     pico8_jo_trade_proposal_t lw = {0};
-    pico8_fixed_t qe;
+    p8_fixed_t qe;
     int r_p;
 
     start_game();
     assert(pico8_r_lookup("p", &r_p));
-    qe = pico8_fixed_from_int(r_p);
+    qe = p8_fixed_from_int(r_p);
     self = pico8_nr_new(NULL);
     other = pico8_qh_new(NULL);
     pico8_ptrs_init(jy, &zone_tas);
@@ -622,17 +622,17 @@ static void test_cn_skips_a_slipway_already_in_rl(void) {
     keys.qe = qe;
     keys.rl = with_w;
     lw.t = pico8_trade_new(pico8_zone_partie(), &keys);
-    lw.mu = pico8_fixed_from_int(2);
+    lw.mu = p8_fixed_from_int(2);
     lw.kf = take_offer;
     lw.ib = &ib;
     pico8_nr_cn(self, &lw);
-    assert(g_offers == 0 && ib.count == 0 && lw.mu == pico8_fixed_from_int(2));
+    assert(g_offers == 0 && ib.count == 0 && lw.mu == p8_fixed_from_int(2));
 
     pico8_ents_init(without_w, &zone_tas);
     keys.rl = without_w;
     lw.t = pico8_trade_new(pico8_zone_partie(), &keys);
     pico8_nr_cn(self, &lw);
-    assert(g_offers == 1 && ib.count == 1 && lw.mu == pico8_fixed_from_int(1));
+    assert(g_offers == 1 && ib.count == 1 && lw.mu == p8_fixed_from_int(1));
     pico8_ents_free(&ib);
 }
 
@@ -663,11 +663,11 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

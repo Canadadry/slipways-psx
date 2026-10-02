@@ -26,7 +26,7 @@
  * frames below stay above it, so a marker pointing into the wrong half
  * names a visibly different frame rather than just an unequal number. */
 #define REPLAYED_FRAME_COUNT 6
-static const pico8_input_frame_t k_replayed_frames[REPLAYED_FRAME_COUNT] = {
+static const p8_input_frame_t k_replayed_frames[REPLAYED_FRAME_COUNT] = {
     { 20, 21, 0, { 0, 0, 0, 0 } },
     { 22, 23, 1, { 1, 0, 0, 0 } },
     { 24, 25, 2, { 0, 1, 0, 0 } },
@@ -37,7 +37,7 @@ static const pico8_input_frame_t k_replayed_frames[REPLAYED_FRAME_COUNT] = {
 
 /* What the player does once the controls come back. */
 #define LIVE_FRAME_COUNT 5
-static const pico8_input_frame_t k_live_frames[LIVE_FRAME_COUNT] = {
+static const p8_input_frame_t k_live_frames[LIVE_FRAME_COUNT] = {
     { 80, 81, 1, { 1, 0, 1, 0 } },
     { 82, 83, 2, { 0, 1, 0, 1 } },
     { 84, 85, 4, { 1, 1, 1, 0 } },
@@ -47,7 +47,7 @@ static const pico8_input_frame_t k_live_frames[LIVE_FRAME_COUNT] = {
 
 #define TOTAL_FRAME_COUNT (REPLAYED_FRAME_COUNT + LIVE_FRAME_COUNT)
 
-static void assert_frame_equals(const pico8_input_frame_t *got, const pico8_input_frame_t *want) {
+static void assert_frame_equals(const p8_input_frame_t *got, const p8_input_frame_t *want) {
     assert(got->mouse_x == want->mouse_x);
     assert(got->mouse_y == want->mouse_y);
     assert(got->mouse_buttons == want->mouse_buttons);
@@ -72,7 +72,7 @@ static void run_resumed_session(const char *source_path, const char *resumed_pat
 
     int live_index = 0;
     for (int i = 0; i < TOTAL_FRAME_COUNT; i++) {
-        pico8_input_frame_t frame;
+        p8_input_frame_t frame;
         if (!pico8_replay_source_next_frame(&replay, &frame)) {
             frame = k_live_frames[live_index];
             live_index++;
@@ -120,15 +120,15 @@ static void test_marker_index_names_the_frame_that_was_on_screen(void) {
     assert(pico8_input_save(k_replayed_frames, REPLAYED_FRAME_COUNT, source_path));
     run_resumed_session(source_path, resumed_path, marker_for_iteration);
 
-    pico8_input_t resumed;
-    pico8_input_init(&resumed);
+    p8_input_t resumed;
+    p8_input_init(&resumed);
     assert(pico8_input_load(&resumed, resumed_path));
     assert(resumed.frame_count == TOTAL_FRAME_COUNT);
 
     for (int i = 0; i < TOTAL_FRAME_COUNT; i++) {
         int marked = marker_for_iteration[i];
         assert(marked >= 0 && marked < resumed.frame_count);
-        const pico8_input_frame_t *want = (i < REPLAYED_FRAME_COUNT)
+        const p8_input_frame_t *want = (i < REPLAYED_FRAME_COUNT)
                                               ? &k_replayed_frames[i]
                                               : &k_live_frames[i - REPLAYED_FRAME_COUNT];
         assert_frame_equals(&resumed.frames[marked], want);
@@ -152,7 +152,7 @@ static void test_markers_are_unchanged_when_no_recording_is_replayed(void) {
     pico8_session_recorder_open(&recorder, path);
 
     for (int i = 0; i < LIVE_FRAME_COUNT; i++) {
-        pico8_input_frame_t frame;
+        p8_input_frame_t frame;
         assert(pico8_replay_source_next_frame(&replay, &frame) == 0);
         frame = k_live_frames[i];
         assert(pico8_session_recorder_frame_count(&recorder) == i);

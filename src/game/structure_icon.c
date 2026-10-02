@@ -24,11 +24,11 @@ static int g_ie_up = 0;
  * written through: an icon's `ra`, and `eh`, may hold its REF. Only `_init`
  * resets `gy`, only pico8_research_icon_init() resets `id`. */
 static const pico8_vec_t *g_ie_gy = NULL;
-static pico8_fixed_t g_ie_id = 0;
+static p8_fixed_t g_ie_id = 0;
 static int g_ie_has_id = 0;
 
-static int ie_to_int(pico8_fixed_t x) {
-    return pico8_fixed_flr_int(x);
+static int ie_to_int(p8_fixed_t x) {
+    return p8_fixed_flr_int(x);
 }
 
 /* Returns the kind held in `self.ke`, or NULL when the member is nil. The
@@ -95,8 +95,8 @@ void pico8_ie_hb(pico8_ie_t *self) {
 
     {
         pico8_vec_t current =
-            g_ie_gy != NULL ? *g_ie_gy : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-        pico8_vec_t delta = pico8_vec_v(pico8_fixed_from_int(10), pico8_fixed_from_int(0));
+            g_ie_gy != NULL ? *g_ie_gy : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
+        pico8_vec_t delta = pico8_vec_v(p8_fixed_from_int(10), p8_fixed_from_int(0));
         pico8_vec_t *box = (pico8_vec_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *box);
         *box = pico8_vec_sub(current, delta);
         g_ie_gy = box;
@@ -108,7 +108,7 @@ static void pico8_ie_hb_dispatch(entity_t *self) {
 }
 
 down_t pico8_ie_ldown(pico8_ie_t *self) {
-    pico8_fixed_t new_id;
+    p8_fixed_t new_id;
     const entity_kind_t *ke_kind;
     char *id_num_str;
     char *id_str;
@@ -116,8 +116,8 @@ down_t pico8_ie_ldown(pico8_ie_t *self) {
     down_t out = {0, NULL};
 
     assert(g_ie_up && "pico8_research_icon_init() must run before ie:ldown writes ie.id");
-    new_id = pico8_fixed_add(g_ie_has_id ? g_ie_id : pico8_fixed_from_int(0),
-                             pico8_fixed_from_int(1));
+    new_id = p8_fixed_add(g_ie_has_id ? g_ie_id : p8_fixed_from_int(0),
+                             p8_fixed_from_int(1));
     g_ie_id = new_id;
     g_ie_has_id = 1;
 
@@ -129,8 +129,8 @@ down_t pico8_ie_ldown(pico8_ie_t *self) {
     /* The grab opens before `id_str` is made: the planet keeps that exact
      * pointer as its `id`, so it must live and die with the grab's arena. */
     pico8_jo_prise_ouvrir();
-    id_num_str = pico8_tostr_fixed(pico8_zone_frame(), new_id);
-    id_str = pico8_concat2(pico8_jo_zone_construction(), "s", id_num_str);
+    id_num_str = p8_tostr_fixed(pico8_zone_frame(), new_id);
+    id_str = p8_concat2(pico8_jo_zone_construction(), "s", id_num_str);
     keys.planet_id = id_str;
     keys.map_pos = NULL;
     keys.pos = NULL;
@@ -146,7 +146,7 @@ static down_t pico8_ie_ldown_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec
     return pico8_ie_ldown((pico8_ie_t *)self);
 }
 
-void pico8_ie_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ie_t *self, pico8_vec_t p) {
+void pico8_ie_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_ie_t *self, pico8_vec_t p) {
     pico8_ie_ke_t view;
 
     /* An icon not yet revealed by `ie:hb` draws nothing at all. */
@@ -157,10 +157,10 @@ void pico8_ie_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ie_t *self, pico8_vec
         return;
     }
 
-    pico8_palt(mem, 3, 0);
+    p8_palt(mem, 3, 0);
 
     view = pico8_ie_ke_view(self);
-    pico8_spr_default(gfx, mem, view.has_s ? ie_to_int(view.s) : 0, ie_to_int(p.x),
+    p8_spr_default(gfx, mem, view.has_s ? ie_to_int(view.s) : 0, ie_to_int(p.x),
                       ie_to_int(p.y));
 
     /* `dl(self.ke)` is not inert: every kind `self.ke` can hold inherits
@@ -175,16 +175,16 @@ void pico8_ie_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ie_t *self, pico8_vec
             pico8_dl_show(gfx, mem, view.me, &pb);
         }
         if (self->jb != NULL) {
-            pico8_jb_ol(gfx, mem, self->jb, pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+            pico8_jb_ol(gfx, mem, self->jb, p8_fixed_from_int(0), p8_fixed_from_int(0));
         }
     }
 
-    pico8_palt(mem, 3, 1);
+    p8_palt(mem, 3, 1);
 }
 
 /* `dc("kj")` calls `qc[nt](qc,qc.ra)`, so `ra` is always `self.ra`. */
 static void pico8_ie_kj_dispatch(entity_t *self, const pico8_vec_t *ra) {
-    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
     pico8_ie_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_ie_t *)self, p);
 }
 
@@ -234,7 +234,7 @@ void pico8_research_icon_init(void) {
 
     g_ie_up = 1;
     g_ie_gy = NULL;
-    g_ie_id = pico8_fixed_from_int(0);
+    g_ie_id = p8_fixed_from_int(0);
     g_ie_has_id = 1;
 }
 
@@ -263,7 +263,7 @@ const pico8_vec_t *pico8_ie_gy(void) {
     return g_ie_gy;
 }
 
-int pico8_ie_id(pico8_fixed_t *out) {
+int pico8_ie_id(p8_fixed_t *out) {
     if (!g_ie_has_id) {
         return 0;
     }

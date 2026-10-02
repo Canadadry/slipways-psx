@@ -48,9 +48,9 @@
  * any other value moves every *_HASH. */
 #define FROZEN_LIST_TAG 0x9E5C1157u
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static const char *const tags[] = {"planet", "node", "targeting", "ascension", "structure"};
 static const char *const bm[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
@@ -98,7 +98,7 @@ static uint32_t fold_absent(uint32_t h) {
     return fnv(h, 0u);
 }
 
-static uint32_t fold_fixed_member(uint32_t h, pico8_fixed_t v) {
+static uint32_t fold_fixed_member(uint32_t h, p8_fixed_t v) {
     return fnv(fnv(fnv(h, 1u), 0xF1u), (uint32_t)v);
 }
 
@@ -112,7 +112,7 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
 }
 
 static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
-    return jo->def->hf ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
+    return jo->def->hf ? fold_fixed_member(h, p8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 static uint32_t fold_p_(uint32_t h, const pico8_jo_t *jo) {
@@ -143,7 +143,7 @@ static int ents_ptrs_size(const pico8_ents_t *l) {
 
 /* The words the frozen hashes fold before a value: 0xF1 a number, 0xB0 a
  * boolean (then 0 or 1), 0x57 a string; any other moves every *_HASH. */
-static uint32_t fold_fixed(uint32_t h, pico8_fixed_t x) {
+static uint32_t fold_fixed(uint32_t h, p8_fixed_t x) {
     return fnv(fnv(h, 0xF1u), (uint32_t)x);
 }
 
@@ -171,8 +171,8 @@ static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
     int i;
 
-    for (i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)pico8_peek(&mem, PICO8_ADDR_SCREEN + i);
+    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
+        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
@@ -181,7 +181,7 @@ static uint32_t screen_hash(void) {
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
  * reads as difficulty 0. */
 static void start_game(void) {
-    pico8_input_init(&input);
+    p8_input_init(&input);
     pico8_dispatch_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
@@ -194,7 +194,7 @@ static pico8_vec_t *vec_ref(pico8_vec_t at) {
 }
 
 static pico8_vec_t vec_xy(int x, int y) {
-    return pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
+    return pico8_vec_v(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
 static pico8_vec_t near_mo(int x, int y) {
@@ -435,9 +435,9 @@ static void test_built(void) {
     assert(as_ga(a)->oe != as_ga(b)->oe);
     assert(as_ga(a)->by == as_ga(b)->by && as_ga(b)->by == as_ga(c)->by);
     assert(as_ga(c)->ra == NULL && as_ga(c)->p == NULL && as_ga(c)->id == NULL);
-    assert(as_ga(a)->def->fa == pico8_fixed_from_int(3) && as_ga(a)->ms == pico8_fixed_from_int(3));
+    assert(as_ga(a)->def->fa == p8_fixed_from_int(3) && as_ga(a)->ms == p8_fixed_from_int(3));
     assert(as_ga(a)->def->hf == 0);
-    assert(as_ga(b)->ms == PICO8_FIXED_LIT(0x00018000, 1.5));
+    assert(as_ga(b)->ms == P8_FIXED_LIT(0x00018000, 1.5));
     check("built", h, BUILT_HASH);
 }
 
@@ -464,14 +464,14 @@ static uint32_t fold_tuple(uint32_t h, const pico8_jb_row_t *t) {
             h = fold_bool(h, 0);
         } else {
             assert(!item->is_ref && "no test folds a tuple item that points: to fold one, fold 0xDEAD if NULL, else 0xEEEE then 0, as the frozen hashes did");
-            h = fold_fixed(h, item->is_fixed ? item->fixed : pico8_fixed_from_int(item->n));
+            h = fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->n));
         }
     }
     if (t->has_qe) {
         h = fold_fixed(fnv_str(h, "qe"), t->qe);
     }
     if (t->has_c) {
-        h = fold_fixed(fnv_str(h, "c"), pico8_fixed_from_int(t->c));
+        h = fold_fixed(fnv_str(h, "c"), p8_fixed_from_int(t->c));
     }
     return fnv(h, (uint32_t)(t->count + (t->has_qe != 0) + (t->has_c != 0)));
 }
@@ -603,8 +603,8 @@ static void test_life(void) {
     h = fold_ref_member(h, as_ga(a)->lq);
     assert(as_ga(a)->lq == NULL);
     kw.has_qe = 1;
-    kw.qe = pico8_fixed_from_int(12);
-    kw.mu = pico8_fixed_from_int(2);
+    kw.qe = p8_fixed_from_int(12);
+    kw.mu = p8_fixed_from_int(2);
     as_ga(a)->kw = &kw;
     cls_of(a)->refresh(a);
     row = fold_lq(2166136261u, a);
@@ -621,7 +621,7 @@ static void test_life(void) {
     assert(pico8_jo_ib(as_ga(b)) == by && by->count == 2);
 
     hv_count = pico8_hv()->count;
-    cls_of(b)->new_year(b, pico8_fixed_from_int(0));
+    cls_of(b)->new_year(b, p8_fixed_from_int(0));
     assert(pico8_hv()->count == hv_count && !as_ga(b)->has_kr);
     h = fnv(h, screen_hash());
     check("life", h, LIFE_HASH);
@@ -655,11 +655,11 @@ static void test_burst(void) {
 static void test_ei_moves_a_particle_in_place(void) {
     pico8_qy_t *particle = pico8_particule_prendre();
     pico8_vec_t p0 = vec_xy(3, -2);
-    pico8_vec_t v0 = pico8_vec_v(PICO8_FIXED_LIT(0x00018000, 1.5), PICO8_FIXED_LIT(0x00004000, 0.25));
-    pico8_vec_t a0 = pico8_vec_v(PICO8_FIXED_LIT(0x00002000, 0.125), PICO8_FIXED_LIT(0xFFFF8000, -0.5));
+    pico8_vec_t v0 = pico8_vec_v(P8_FIXED_LIT(0x00018000, 1.5), P8_FIXED_LIT(0x00004000, 0.25));
+    pico8_vec_t a0 = pico8_vec_v(P8_FIXED_LIT(0x00002000, 0.125), P8_FIXED_LIT(0xFFFF8000, -0.5));
     pico8_ptrs_t *qy;
-    pico8_fixed_t vx;
-    pico8_fixed_t vy;
+    p8_fixed_t vx;
+    p8_fixed_t vy;
     void *e;
     const pico8_emitter_t *em;
 
@@ -671,20 +671,20 @@ static void test_ei_moves_a_particle_in_place(void) {
     particle->v = v0;
     particle->has_a = 1;
     particle->a = a0;
-    particle->l = pico8_fixed_from_int(5);
+    particle->l = p8_fixed_from_int(5);
     qy = em->qy;
     cut_qy(qy, 0);
     pico8_ptrs_add(qy, particle);
 
     pico8_ei(&gfx, &mem, e);
 
-    vx = pico8_fixed_add(pico8_fixed_mul(em->qo, v0.x), pico8_fixed_mul(em->ro, v0.y));
-    vy = pico8_fixed_add(pico8_fixed_mul(em->qg, vx), pico8_fixed_mul(em->q_, v0.y));
+    vx = p8_fixed_add(p8_fixed_mul(em->qo, v0.x), p8_fixed_mul(em->ro, v0.y));
+    vy = p8_fixed_add(p8_fixed_mul(em->qg, vx), p8_fixed_mul(em->q_, v0.y));
     assert(qy->count >= 1 && qy->items[0] == particle);
-    assert(particle->p.x == pico8_fixed_add(p0.x, v0.x) && particle->p.y == pico8_fixed_add(p0.y, v0.y));
-    assert(particle->v.x == pico8_fixed_add(vx, a0.x) && particle->v.y == pico8_fixed_add(vy, a0.y));
+    assert(particle->p.x == p8_fixed_add(p0.x, v0.x) && particle->p.y == p8_fixed_add(p0.y, v0.y));
+    assert(particle->v.x == p8_fixed_add(vx, a0.x) && particle->v.y == p8_fixed_add(vy, a0.y));
     assert(particle->a.x == a0.x && particle->a.y == a0.y);
-    assert(particle->l == pico8_fixed_sub(pico8_fixed_from_int(5), PICO8_FIXED_LIT(0x000023d7, 0.14)));
+    assert(particle->l == p8_fixed_sub(p8_fixed_from_int(5), P8_FIXED_LIT(0x000023d7, 0.14)));
 }
 
 static int is_a_ga_struct(const void *e) {
@@ -821,11 +821,11 @@ static void test_leaving_lets_go_of_a_dragged_slipway(void) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

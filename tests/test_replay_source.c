@@ -58,14 +58,14 @@ static void test_malformed_recording_reports_load_failure(void) {
 /* The three frames of tests/fixtures/events_valid.json, transcribed: the
  * exact values are what catch an off-by-one, a reversed order or a frame
  * served twice. */
-static const pico8_input_frame_t k_events_valid[] = {
+static const p8_input_frame_t k_events_valid[] = {
     { 64, 64, 1, { 0, 1, 0, 0 } },
     { 10, 20, 3, { 1, 0, 1, 0 } },
     { 0, 127, 4, { 0, 0, 0, 1 } }
 };
 static const int k_events_valid_count = 3;
 
-static void assert_frame_equals(const pico8_input_frame_t *got, const pico8_input_frame_t *want) {
+static void assert_frame_equals(const p8_input_frame_t *got, const p8_input_frame_t *want) {
     assert(got->mouse_x == want->mouse_x);
     assert(got->mouse_y == want->mouse_y);
     assert(got->mouse_buttons == want->mouse_buttons);
@@ -77,7 +77,7 @@ static void assert_frame_equals(const pico8_input_frame_t *got, const pico8_inpu
 
 static void test_loaded_recording_serves_its_first_frame(void) {
     pico8_replay_source_t source;
-    pico8_input_frame_t frame;
+    p8_input_frame_t frame;
 
     assert(pico8_replay_source_open(&source, "tests/fixtures/events_valid.json") ==
            PICO8_REPLAY_SOURCE_LOADED);
@@ -98,7 +98,7 @@ static void test_loaded_recording_serves_every_frame_in_order(void) {
     assert(pico8_replay_source_frame_count(&source) == k_events_valid_count);
 
     for (int i = 0; i < k_events_valid_count; i++) {
-        pico8_input_frame_t frame;
+        p8_input_frame_t frame;
         assert(pico8_replay_source_next_frame(&source, &frame) == 1);
         assert_frame_equals(&frame, &k_events_valid[i]);
     }
@@ -113,7 +113,7 @@ static void test_loaded_recording_serves_every_frame_in_order(void) {
  * longer than the recording on purpose: exhaustion is a terminal state. */
 static void test_exhausted_recording_reports_exhaustion_forever(void) {
     pico8_replay_source_t source;
-    pico8_input_frame_t frame;
+    p8_input_frame_t frame;
 
     assert(pico8_replay_source_open(&source, "tests/fixtures/events_valid.json") ==
            PICO8_REPLAY_SOURCE_LOADED);
@@ -134,7 +134,7 @@ static void test_exhausted_recording_reports_exhaustion_forever(void) {
  * "take your frames from the hardware". */
 static void test_no_recording_is_exhausted_from_the_first_frame(void) {
     pico8_replay_source_t source;
-    pico8_input_frame_t frame;
+    p8_input_frame_t frame;
 
     assert(pico8_replay_source_open(&source, NULL) == PICO8_REPLAY_SOURCE_NONE);
 
@@ -151,7 +151,7 @@ static void test_no_recording_is_exhausted_from_the_first_frame(void) {
  * 0-based index the marker file writes. */
 static void test_frames_served_tracks_the_replay_position(void) {
     pico8_replay_source_t source;
-    pico8_input_frame_t frame;
+    p8_input_frame_t frame;
 
     assert(pico8_replay_source_open(&source, "tests/fixtures/events_valid.json") ==
            PICO8_REPLAY_SOURCE_LOADED);

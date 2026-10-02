@@ -29,9 +29,9 @@
 #include "game/tech_gate.h"
 #include "engine/entity_class.h"
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static void assert_at_rest(void) {
     const pico8_fm_placeholder_t *fm = pico8_fm_placeholder();
@@ -43,8 +43,8 @@ static void assert_at_rest(void) {
 /* A A B B A A B B, one press every other frame; returns how often it fired. */
 static int type_cheat(void) {
     static const int presses[] = {4, 4, 5, 5, 4, 4, 5, 5};
-    pico8_input_frame_t frames[16];
-    pico8_input_t pad;
+    p8_input_frame_t frames[16];
+    p8_input_t pad;
     pico8_cheat_t cheat;
     int fired = 0;
     int i;
@@ -66,8 +66,8 @@ static void assert_cheated(void) {
     const pico8_fm_placeholder_t *fm = pico8_fm_placeholder();
 
     assert(fm != NULL);
-    assert(fm->has_jk && fm->jk == pico8_fixed_from_int(99));
-    assert(fm->has_nz && fm->nz == pico8_fixed_from_int(200));
+    assert(fm->has_jk && fm->jk == p8_fixed_from_int(99));
+    assert(fm->has_nz && fm->nz == p8_fixed_from_int(200));
 }
 
 static void new_game(void) {
@@ -91,7 +91,7 @@ static void test_cheat_on_title(void) {
     pico8__init();
     provisional = pico8_fm();
     assert(pico8_fm_hy() == NULL && (const void *)pico8_fm_placeholder() == provisional);
-    while (pico8_gi_nb(t) <= pico8_fixed_from_int(0) || pico8_gi_nb(t) > pico8_fixed_from_int(99)) {
+    while (pico8_gi_nb(t) <= p8_fixed_from_int(0) || pico8_gi_nb(t) > p8_fixed_from_int(99)) {
         t++;
         assert(t < pico8_nb_table + PICO8_NB_COUNT);
     }
@@ -134,8 +134,8 @@ static void test_replacement(void) {
     assert(type_cheat() == 1);
     new_game();
     assert(pico8_fm_placeholder() == NULL && (void *)pico8_fm_hy() == (void *)pico8_fm());
-    assert(pico8_fm_hy()->jk == pico8_fixed_from_int(0));
-    assert(pico8_fm_hy()->nz == pico8_fixed_from_int(100));
+    assert(pico8_fm_hy()->jk == p8_fixed_from_int(0));
+    assert(pico8_fm_hy()->nz == p8_fixed_from_int(100));
     pico8_probe_init();
     assert_at_rest();
 }
@@ -170,7 +170,7 @@ static void test_fm_is_a_struct(void) {
 static void test_cb_drops_invented(void) {
     pico8_cb_kept_t kept;
     const pico8_nb_entry_t *t;
-    pico8_fixed_t ew;
+    p8_fixed_t ew;
     int i;
 
     pico8__init();
@@ -206,11 +206,11 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

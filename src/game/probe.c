@@ -40,8 +40,8 @@ static const entity_class_t g_bv_et_struct_class = {0};
  * never freed; only `fo` is written, and the next `bv` overwrites it. */
 static pico8_bv_et_t g_bv_et = {{.class = &g_bv_et_struct_class}, NULL};
 
-static int pico8_probe_to_int(pico8_fixed_t x) {
-    return pico8_fixed_flr_int(x);
+static int pico8_probe_to_int(p8_fixed_t x) {
+    return p8_fixed_flr_int(x);
 }
 
 typedef struct {
@@ -63,7 +63,7 @@ static int pico8_bv_jc_predicate(entity_t *e, void *ctx_ptr) {
     qu_p = pico8_jc_end_p(sw->qu);
     re_p = pico8_jc_end_p(sw->re);
 
-    return pico8_geom_be(qu_p, re_p, ctx->self_p, PICO8_FIXED_LIT(0x000000d1, 0.0032));
+    return pico8_geom_be(qu_p, re_p, ctx->self_p, P8_FIXED_LIT(0x000000d1, 0.0032));
 }
 
 /* `hw` is read off the `ui` class, not off `ok`; no class reads as "the
@@ -144,7 +144,7 @@ void pico8_bv(entity_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     pico8_probe_t *probe;
     pico8_vec_t mp_vec;
     pico8_vec_t p_vec;
-    pico8_fixed_t nq;
+    p8_fixed_t nq;
     entity_t *c;
     entity_t *et;
 
@@ -154,8 +154,8 @@ void pico8_bv(entity_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     assert(self->targeting != NULL && "bv: a class that carries no probe is no receiver -- stop");
 
     probe = self->targeting;
-    mp_vec = mp != NULL ? *mp : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-    p_vec = pico8_vec_div(mp_vec, pico8_fixed_from_int(128));
+    mp_vec = mp != NULL ? *mp : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    p_vec = pico8_vec_div(mp_vec, p8_fixed_from_int(128));
     probe->bv_ra = mp_vec;
     probe->bv_p = p_vec;
     probe_host_set_ra_p(self, mp != NULL ? &probe->bv_ra : NULL, &probe->bv_p);
@@ -183,7 +183,7 @@ void pico8_bv(entity_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
         if (have_first && first != NULL) {
             et = first;
         } else {
-            pico8_vec_t rp_vec = rp != NULL ? *rp : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+            pico8_vec_t rp_vec = rp != NULL ? *rp : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
             if (!pico8_probe_ui_hw_call(rp_vec)) {
                 et = &g_bv_et.header;
             } else {
@@ -219,7 +219,7 @@ static const char *probe_et_qs(const entity_t *et) {
     return NULL;
 }
 
-void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, entity_t *self) {
+void pico8_dl(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self) {
     if (self == NULL) {
         return;
     }
@@ -228,7 +228,7 @@ void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, entity_t *self) {
     pico8_dl_show(gfx, mem, self->state, self->targeting);
 }
 
-void pico8_dl_show(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *me, const pico8_probe_t *pb) {
+void pico8_dl_show(const p8_graphics_t *gfx, p8_memory_t *mem, const char *me, const pico8_probe_t *pb) {
     pico8_vec_t mp;
     const pico8_nf_t *je;
     const char *display = "";
@@ -238,7 +238,7 @@ void pico8_dl_show(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *me, con
     }
 
     je = pico8_je_nf();
-    mp = je != NULL && je->ra != NULL ? *je->ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    mp = je != NULL && je->ra != NULL ? *je->ra : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
 
     if (pb->et != NULL) {
         const char *qs = probe_et_qs(pb->et);
@@ -246,17 +246,17 @@ void pico8_dl_show(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *me, con
             display = qs;
         } else {
             if (gfx != NULL && mem != NULL) {
-                pico8_spr_default(gfx, mem, 31, pico8_probe_to_int(pico8_fixed_sub(mp.x, pico8_fixed_from_int(3))),
-                                   pico8_probe_to_int(pico8_fixed_sub(mp.y, pico8_fixed_from_int(8))));
+                p8_spr_default(gfx, mem, 31, pico8_probe_to_int(p8_fixed_sub(mp.x, p8_fixed_from_int(3))),
+                                   pico8_probe_to_int(p8_fixed_sub(mp.y, p8_fixed_from_int(8))));
             }
         }
     } else if (pb->has_od) {
-        display = pico8_concat2(pico8_zone_frame(), pico8_tostr_fixed(pico8_zone_frame(), pb->od), "$");
+        display = p8_concat2(pico8_zone_frame(), p8_tostr_fixed(pico8_zone_frame(), pb->od), "$");
     }
 
     if (gfx != NULL && mem != NULL) {
-        pico8_fixed_t a = PICO8_FIXED_LIT(0x00008000, 0.5);
-        pico8_io(gfx, mem, display, mp.x, pico8_fixed_sub(mp.y, pico8_fixed_from_int(8)), 8, &a);
+        p8_fixed_t a = P8_FIXED_LIT(0x00008000, 0.5);
+        pico8_io(gfx, mem, display, mp.x, p8_fixed_sub(mp.y, p8_fixed_from_int(8)), 8, &a);
     }
 }
 
@@ -288,7 +288,7 @@ int pico8_d_(entity_t *self) {
 
     fm = pico8_fm_hy();
     if (!has_et) {
-        lu_ok = pico8_hy_lu(fm, probe->has_od ? probe->od : pico8_fixed_from_int(0));
+        lu_ok = pico8_hy_lu(fm, probe->has_od ? probe->od : p8_fixed_from_int(0));
     }
 
     assert((!has_et || !lu_ok) && "d_: fm:lu must stay short-circuited when et is set");
@@ -298,12 +298,12 @@ int pico8_d_(entity_t *self) {
 
         pico8_hy_nx(pico8_fm_hy(), probe->def->fp);
 
-        pico8_rn(probe->def->has_ik ? probe->def->ik : pico8_fixed_from_int(54));
+        p8_play_sfx(probe->def->has_ik ? probe->def->ik : p8_fixed_from_int(54));
 
         return 1;
     }
 
-    pico8_rn(pico8_fixed_from_int(57));
+    p8_play_sfx(p8_fixed_from_int(57));
     probe_host_raise_p_(self);
     return 0;
 }
@@ -315,9 +315,9 @@ void pico8_d__dispatch(entity_t *self, entity_t *kv) {
 
 pico8_qy_t *pico8_g__mm(entity_t *self) {
     const pico8_emitter_t *emitter = NULL;
-    pico8_fixed_t pn = 0, t = 0, du = 0, py = 0, ki = 0;
+    p8_fixed_t pn = 0, t = 0, du = 0, py = 0, ki = 0;
     int pk = 0;
-    pico8_fixed_t a, rnd_pn, rnd_half;
+    p8_fixed_t a, rnd_pn, rnd_half;
     pico8_vec_t p, v;
     pico8_qy_t *particle;
 
@@ -334,13 +334,13 @@ pico8_qy_t *pico8_g__mm(entity_t *self) {
 
     /* Two statements, not two arguments: C leaves argument order unspecified
      * (gcc drew rnd(0.5) first), Lua draws rnd(self.pn) first. */
-    rnd_pn = pico8_fixed_rnd(pn);
-    rnd_half = pico8_fixed_rnd(PICO8_FIXED_LIT(0x00008000, 0.5));
-    a = pico8_fixed_add(
-        pico8_fixed_div(pico8_fixed_add(pico8_fixed_flr(rnd_pn), rnd_half), pn),
-        pico8_fixed_mul(t, PICO8_FIXED_LIT(0x00000041, 0.001)));
+    rnd_pn = p8_fixed_rnd(pn);
+    rnd_half = p8_fixed_rnd(P8_FIXED_LIT(0x00008000, 0.5));
+    a = p8_fixed_add(
+        p8_fixed_div(p8_fixed_add(p8_fixed_flr(rnd_pn), rnd_half), pn),
+        p8_fixed_mul(t, P8_FIXED_LIT(0x00000041, 0.001)));
 
-    p = pico8_vec_qm(pico8_fixed_add(du, pico8_fixed_rnd_default()), a);
+    p = pico8_vec_qm(p8_fixed_add(du, p8_fixed_rnd_default()), a);
     v = pico8_vec_mul(p, py);
 
     if (pk) {
@@ -351,7 +351,7 @@ pico8_qy_t *pico8_g__mm(entity_t *self) {
     particle->p = p;
     particle->v = v;
     particle->has_a = 0;
-    particle->a = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    particle->a = pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
     particle->l = ki;
 
     return particle;

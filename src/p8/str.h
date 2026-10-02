@@ -1,5 +1,5 @@
-#ifndef PICO8_STR_H
-#define PICO8_STR_H
+#ifndef P8_STR_H
+#define P8_STR_H
 
 #include "p8/fixed.h"
 #include "engine/allocator.h"
@@ -11,7 +11,7 @@
  *
  * Returns a NUL-terminated string in `zone`, released by that zone --
  * never a view into `s`. */
-char *pico8_sub(const pico8_zone_choisie_t *zone, const char *s, int i, int j);
+char *p8_sub(const pico8_zone_choisie_t *zone, const char *s, int i, int j);
 
 /* tostr(x) of a number: 4 fractional digits rounded half to even, then
  * trailing zeros and a bare trailing '.' are trimmed, so an exact 3
@@ -19,9 +19,9 @@ char *pico8_sub(const pico8_zone_choisie_t *zone, const char *s, int i, int j);
  * witnesses of tools/pico8_reference_probe_out.txt; magnitudes below 0.0001 are TROU-22.
  *
  * Returns a NUL-terminated string in `zone`, as pico8_sub does. */
-char *pico8_tostr_fixed(const pico8_zone_choisie_t *zone, pico8_fixed_t x);
+char *p8_tostr_fixed(const pico8_zone_choisie_t *zone, p8_fixed_t x);
 
 /* Lua's `a..b` of two strings, in `zone`, as pico8_sub does. */
-char *pico8_concat2(const pico8_zone_choisie_t *zone, const char *a, const char *b);
+char *p8_concat2(const pico8_zone_choisie_t *zone, const char *a, const char *b);
 
 #endif

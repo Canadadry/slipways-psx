@@ -25,13 +25,13 @@ const entity_class_t *pico8_hy_struct_class(void);
  * never freed. */
 pico8_hy_t *pico8_hy_new(void);
 
-void pico8_hy_nx(pico8_hy_t *self, pico8_fixed_t hx);
+void pico8_hy_nx(pico8_hy_t *self, p8_fixed_t hx);
 
 void pico8_hy_hk(pico8_hy_t *self);
 
 /* Returns 1 once `jt` is paid, 0 when credits were short. A NULL `self`
  * has 0 credits, so any positive `jt` fails. */
-int pico8_hy_lu(pico8_hy_t *self, pico8_fixed_t jt);
+int pico8_hy_lu(pico8_hy_t *self, p8_fixed_t jt);
 
 /* Refills `po`/`fu` in place, so what a caller read through either before
  * the call no longer holds after it. `hl` is BOOL(0), not a string, when

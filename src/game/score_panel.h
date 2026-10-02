@@ -16,11 +16,11 @@
 typedef struct {
     entity_t header;
     const pico8_pj_def_t *def;
-    pico8_fixed_t fa;
+    p8_fixed_t fa;
     pico8_mh_t *ed;
     int c_;
     int has_c_;
-    pico8_fixed_t gz;
+    p8_fixed_t gz;
     int has_gz;
 } pico8_pj_t;
 
@@ -31,7 +31,7 @@ typedef struct {
     entity_t header;
     const pico8_vec_t *hi;
     const pico8_vec_t *gq;
-    pico8_fixed_t ca;
+    p8_fixed_t ca;
     const char *ep;
 } pico8_pj_cr_t;
 
@@ -123,12 +123,12 @@ void pico8_pj_set_ju(pico8_pj_t *instance);
 
 void pico8_pj_hb(void);
 
-void pico8_pj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_pj_t *self);
+void pico8_pj_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_pj_t *self);
 
 void pico8_eg(void);
 
-void pico8_pj_hk_dispatch(entity_t *self, pico8_fixed_t yr);
-void pico8_pj_ph_dispatch(entity_t *self, pico8_fixed_t t);
+void pico8_pj_hk_dispatch(entity_t *self, p8_fixed_t yr);
+void pico8_pj_ph_dispatch(entity_t *self, p8_fixed_t t);
 
 void pico8_score_panel_display_init(void);
 void pico8_score_panel_display_shutdown(void);

@@ -34,20 +34,22 @@ bin=$work/constants_values
 awk '
 {
     rest = $0
-    while ((p = index(rest, "PICO8_FIXED_LIT")) > 0) {
+    while ((p = index(rest, "P8_FIXED_LIT")) > 0) {
         rest = substr(rest, p)
-        if (!match(rest, /^PICO8_FIXED_LIT\(0x[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f], [0-9]*\.?[0-9]+\)/)) {
-            printf "constants_compare: %s:%d : appel PICO8_FIXED_LIT hors de la forme stricte\n", FILENAME, FNR > "/dev/stderr"
+        if (!match(rest, /^P8_FIXED_LIT\(0x[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f], [0-9]*\.?[0-9]+\)/)) {
+            printf "constants_compare: %s:%d : appel P8_FIXED_LIT hors de la forme stricte\n", FILENAME, FNR > "/dev/stderr"
             bad = 1
             break
         }
         call = substr(rest, 1, RLENGTH)
-        lit = substr(call, 29, length(call) - 29)
+        lit = call
+        sub(/^[^,]*, /, "", lit)
+        sub(/\)$/, "", lit)
         print lit "\t" call
         rest = substr(rest, RLENGTH + 1)
     }
 }
-END { exit bad }' "$@" > "$sites" || fail "appel PICO8_FIXED_LIT mal forme"
+END { exit bad }' "$@" > "$sites" || fail "appel P8_FIXED_LIT mal forme"
 [ -s "$sites" ] || fail "aucune constante dans les sources"
 
 awk '/^## a literals$/ { in_a = 1; found = 1; next }
@@ -63,7 +65,7 @@ missing=$(awk -F'\t' 'NR == FNR { split($0, f, " "); seen[f[1]] = 1; next } !($1
     echo '#include <stdint.h>'
     echo '#include <stdio.h>'
     echo '#include "p8/fixed.h"'
-    echo 'static void show(int call, pico8_fixed_t v) {'
+    echo 'static void show(int call, p8_fixed_t v) {'
     echo '    uint32_t u = (uint32_t)v;'
     printf '%s\n' '    printf("%d 0x%04x.%04x\n", call, (unsigned)(u >> 16), (unsigned)(u & 0xffffu));'
     echo '}'

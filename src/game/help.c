@@ -55,7 +55,7 @@ void pico8_fv_pq(pico8_g__t *self) {
         bs[i].lq_row = &lq[i];
         bs[i].px = e->px;
         bs[i].has_trade = 1;
-        bs[i].trade = pico8_fixed_from_int(e->trade);
+        bs[i].trade = p8_fixed_from_int(e->trade);
         bs[i].has_en = 1;
         bs[i].en = e->en;
         bs[i].has_my = 1;
@@ -75,7 +75,7 @@ void pico8_fv_pq(pico8_g__t *self) {
 /* `fv.rb` holds four articles in the cart. */
 enum { PICO8_FV_RB_CAP = 4 };
 
-void pico8_fv_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_g__t *self, pico8_vec_t p) {
+void pico8_fv_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_g__t *self, pico8_vec_t p) {
     (void)p;
 
     pico8_ei(gfx, mem, (entity_t *)self);
@@ -94,7 +94,7 @@ void pico8_fv_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_g__t *self, pico8_vec
 }
 
 void pico8_fv_kj_dispatch(entity_t *self, const pico8_vec_t *ra) {
-    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
     pico8_fv_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_g__t *)self, p);
 }
 

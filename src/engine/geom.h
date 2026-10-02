@@ -24,19 +24,19 @@ int pico8_geom_cl(pico8_vec_t p1, pico8_vec_t p2, pico8_vec_t q1, pico8_vec_t q2
 
 /* Returns 1/0. `fh` is a squared distance, and so is the distance it is
  * compared against. */
-int pico8_geom_be(pico8_vec_t a, pico8_vec_t b, pico8_vec_t c, pico8_fixed_t fh);
+int pico8_geom_be(pico8_vec_t a, pico8_vec_t b, pico8_vec_t c, p8_fixed_t fh);
 
 typedef struct {
-    pico8_fixed_t xl;
-    pico8_fixed_t yt;
-    pico8_fixed_t xr;
-    pico8_fixed_t yb;
+    p8_fixed_t xl;
+    p8_fixed_t yt;
+    p8_fixed_t xr;
+    p8_fixed_t yb;
 } pico8_qz_box_t;
 
 /* C has no closures, so the predicate the cart returns becomes this box
  * plus pico8_qz_call. The box lives in `zone` and belongs to the caller,
  * which parks it in a link (`js`'s `header.kq`) and never releases it. */
-pico8_qz_box_t *pico8_qz(const pico8_zone_choisie_t *zone, pico8_fixed_t xl, pico8_fixed_t yt, pico8_fixed_t xr, pico8_fixed_t yb);
+pico8_qz_box_t *pico8_qz(const pico8_zone_choisie_t *zone, p8_fixed_t xl, p8_fixed_t yt, p8_fixed_t xr, p8_fixed_t yb);
 
 /* True iff p is inside [xl,xr]x[yt,yb], by mid()'s clamp-then-compare
  * idiom (pico8_fixed_mid). `box` must not be NULL: the caller guards it. */

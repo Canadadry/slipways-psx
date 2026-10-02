@@ -38,7 +38,7 @@ static void pico8_jo_ib_kf_closure(pico8_jo_trade_proposal_t *self, pico8_trade_
         assert(self->ib->zone == pico8_zone_partie() &&
                "jo:ib: a kept route is copied into the generation; a list of another zone would outlive it");
         pico8_ents_add(self->ib, &pico8_trade_copy(pico8_zone_partie(), a)->header);
-        self->mu -= pico8_fixed_from_int(1);
+        self->mu -= p8_fixed_from_int(1);
     }
 }
 
@@ -62,7 +62,7 @@ void pico8_jo_kf(pico8_jo_t *self, entity_t *sw) {
     if (other != NULL) {
         assert(pico8_jo_is_family(other) && "jo:kf: the other end of a registered slipway is a planet");
         if (((const pico8_jo_t *)other)->fx != 0) {
-            self->fx = pico8_fixed_from_int(1);
+            self->fx = p8_fixed_from_int(1);
         }
     }
 
@@ -91,11 +91,11 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
 
     have_r_e = pico8_r_lookup("e", &qe);
     if (have_r_e) {
-        r_e = (pico8_qe_t){.kind = PICO8_QE_FIXED, .n = pico8_fixed_from_int(qe)};
+        r_e = (pico8_qe_t){.kind = PICO8_QE_FIXED, .n = p8_fixed_from_int(qe)};
     }
     have_r_q = pico8_r_lookup("?", &qe);
     if (have_r_q) {
-        r_q = (pico8_qe_t){.kind = PICO8_QE_FIXED, .n = pico8_fixed_from_int(qe)};
+        r_q = (pico8_qe_t){.kind = PICO8_QE_FIXED, .n = p8_fixed_from_int(qe)};
     }
 
     jy = self->jy;
@@ -105,11 +105,11 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
         while (pico8_ptrs_iter_next(&it, &e)) {
             if (e != NULL) {
                 const pico8_jy_t *i = e;
-                pico8_fixed_t gc = i->has_gc ? i->gc : pico8_fixed_from_int(0);
+                p8_fixed_t gc = i->has_gc ? i->gc : p8_fixed_from_int(0);
                 int qe_is_r_q;
 
                 qe_is_r_q = have_r_q && pico8_qe_equal(pico8_jy_qe(i), r_q);
-                if (gc == pico8_fixed_from_int(0) && !qe_is_r_q) {
+                if (gc == p8_fixed_from_int(0) && !qe_is_r_q) {
                     pico8_ptrs_del(jy, e);
                     break;
                 }
@@ -117,7 +117,7 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
         }
 
         {
-            pico8_fixed_t e_qe = r_e.n;
+            p8_fixed_t e_qe = r_e.n;
             pico8_jy_t *fresh = pico8_jy_new(pico8_zone_partie(), &e_qe);
             pico8_ptrs_t prefix;
             pico8_ptrs_t merged;
@@ -132,7 +132,7 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
             self->jy = merged_own;
             jy = merged_own;
         }
-        self->jh = pico8_fixed_from_int(1);
+        self->jh = p8_fixed_from_int(1);
         self->has_jh = 1;
     }
 
@@ -174,7 +174,7 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
 pico8_ents_t *pico8_jo_ib(pico8_jo_t *self) {
     pico8_ents_t *ib;
     pico8_trade_keys_t keys = {0};
-    pico8_fixed_t mu = pico8_fixed_from_int(0);
+    p8_fixed_t mu = p8_fixed_from_int(0);
     const pico8_ents_t *oe = NULL;
     pico8_ents_iter_t it;
     entity_t *w_val;
@@ -225,11 +225,11 @@ pico8_ents_t *pico8_jo_ib(pico8_jo_t *self) {
         lw.t = pico8_trade_new(pico8_zone_frame(), &keys);
         /* Recomputed each iteration: an earlier proposal's `kf` may already
          * have grown `ib`. */
-        lw.mu = mu - pico8_fixed_from_int(ib->count);
+        lw.mu = mu - p8_fixed_from_int(ib->count);
         lw.kf = pico8_jo_ib_kf_closure;
         lw.ib = ib;
 
-        if (lw.mu == pico8_fixed_from_int(0)) {
+        if (lw.mu == p8_fixed_from_int(0)) {
             break;
         }
 

@@ -81,7 +81,7 @@ static down_t pico8_nr_ldown_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec
 
 void pico8_nr_hb(pico8_jo_t *self) {
     int oe_count = 0;
-    pico8_fixed_t s_val = pico8_fixed_from_int(0);
+    p8_fixed_t s_val = p8_fixed_from_int(0);
 
     if (self == NULL) {
         return;
@@ -92,7 +92,7 @@ void pico8_nr_hb(pico8_jo_t *self) {
     if (self->def->hz != NULL) {
         int entry;
         if (pico8_int_seq_at(self->def->hz->items, self->def->hz->count, oe_count + 1, &entry)) {
-            s_val = pico8_fixed_from_int(entry);
+            s_val = p8_fixed_from_int(entry);
         }
     }
 
@@ -124,7 +124,7 @@ void pico8_nr_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
             continue;
         }
 
-        if (lw->mu <= pico8_fixed_from_int(0)) {
+        if (lw->mu <= p8_fixed_from_int(0)) {
             continue;
         }
 
@@ -274,15 +274,15 @@ void pico8_mx_kf(pico8_jo_t *self, entity_t *sw) {
         it = pico8_ptrs_all(jy);
         while (pico8_ptrs_iter_next(&it, &i_val)) {
             const pico8_jy_t *i;
-            pico8_fixed_t gc;
+            p8_fixed_t gc;
 
             if (i_val == NULL) {
                 continue;
             }
             i = i_val;
 
-            gc = i->has_gc ? i->gc : pico8_fixed_from_int(0);
-            if (gc != pico8_fixed_from_int(0)) {
+            gc = i->has_gc ? i->gc : p8_fixed_from_int(0);
+            if (gc != p8_fixed_from_int(0)) {
                 continue;
             }
 

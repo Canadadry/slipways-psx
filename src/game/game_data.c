@@ -6,7 +6,7 @@
 
 const int pico8_es_table[PICO8_ES_COUNT] = {1, 0, 1, 2};
 
-const pico8_fixed_t pico8_ct_table[PICO8_CT_COUNT] = {-0x5540, 0x0, 0x4000, 0x8000};
+const p8_fixed_t pico8_ct_table[PICO8_CT_COUNT] = {-0x5540, 0x0, 0x4000, 0x8000};
 
 const int pico8_b__table[PICO8_B__COUNT] = {0, 100, 200, 400};
 
@@ -16,7 +16,7 @@ const int pico8_fb_table[PICO8_FB_COUNT] = {2, 2, 5, 5, 7, 7, 10, 10, 14, 14, 14
 
 const int pico8_ek_table[PICO8_EK_COUNT] = {2, 4, 7, 12};
 
-const pico8_fixed_t pico8_ci_table[PICO8_CI_COUNT] = {0x8000, 0x10000, 0x10000, 0x10000, 0x10000, 0x10000, 0x10000,
+const p8_fixed_t pico8_ci_table[PICO8_CI_COUNT] = {0x8000, 0x10000, 0x10000, 0x10000, 0x10000, 0x10000, 0x10000,
     0x10000, 0x10000, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
 
 const char *const pico8_ef_table[PICO8_EF_COUNT] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP",
@@ -714,7 +714,7 @@ int pico8_int_seq_at(const int *seq, int count, int i, int *out) {
     return 1;
 }
 
-int pico8_fixed_seq_at(const pico8_fixed_t *seq, int count, int i, pico8_fixed_t *out) {
+int pico8_fixed_seq_at(const p8_fixed_t *seq, int count, int i, p8_fixed_t *out) {
     assert(seq != NULL && count >= 0 && "a sequence is a table and its length");
     if (i < 1 || i > count) {
         return 0;
@@ -723,11 +723,11 @@ int pico8_fixed_seq_at(const pico8_fixed_t *seq, int count, int i, pico8_fixed_t
     return 1;
 }
 
-int pico8_int_seq_has_fixed(const pico8_int_seq_t *seq, pico8_fixed_t v) {
+int pico8_int_seq_has_fixed(const pico8_int_seq_t *seq, p8_fixed_t v) {
     int i;
 
     for (i = 0; i < seq->count; i++) {
-        if (pico8_fixed_from_int(seq->items[i]) == v) {
+        if (p8_fixed_from_int(seq->items[i]) == v) {
             return 1;
         }
     }
@@ -748,10 +748,10 @@ const pico8_df_entry_t *pico8_df_lookup(const char *px) {
     return NULL;
 }
 
-pico8_fixed_t pico8_bn(void) {
-    return pico8_fixed_from_int(6);
+p8_fixed_t pico8_bn(void) {
+    return p8_fixed_from_int(6);
 }
 
-pico8_fixed_t pico8_bq(void) {
-    return PICO8_FIXED_LIT(0x00001902, 0.0977);
+p8_fixed_t pico8_bq(void) {
+    return P8_FIXED_LIT(0x00001902, 0.0977);
 }

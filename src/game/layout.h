@@ -20,9 +20,9 @@ typedef enum {
 typedef struct {
     pico8_lq_item_kind_t kind;
     const char *text;        /* TEXT only; a copy in the row's zone */
-    pico8_fixed_t color;     /* TEXT only: self.c or 6 */
-    pico8_fixed_t sprite_id; /* SPRITE only: f */
-    pico8_fixed_t sprite_qw; /* SPRITE only: dv()'s palette-block arg */
+    p8_fixed_t color;     /* TEXT only: self.c or 6 */
+    p8_fixed_t sprite_id; /* SPRITE only: f */
+    p8_fixed_t sprite_qw; /* SPRITE only: dv()'s palette-block arg */
     pico8_vec_t d;           /* offset within the line; set by lq:pq, not by lq:mn */
 } pico8_lq_item_t;
 
@@ -45,7 +45,7 @@ typedef enum {
 typedef struct {
     pico8_lq_cell_kind_t kind;
     union {
-        pico8_fixed_t fixed;
+        p8_fixed_t fixed;
         const char *s;
         const pico8_jb_row_t *row;
     } as;
@@ -61,17 +61,17 @@ typedef struct {
     const pico8_zone_choisie_t *zone;
     pico8_lq_cell_t *items;
     int items_count;
-    pico8_fixed_t c;
+    p8_fixed_t c;
     int has_c; /* 0: `c` is nil, and `c` is then never read */
-    pico8_fixed_t bg;
+    p8_fixed_t bg;
     int has_bg;     /* 0: `bg` is nil, and `bg` is then never read */
     int bg_is_bool; /* 1: `bg` holds a boolean (0/1), 0: a fixed; read only when `has_bg` */
-    pico8_fixed_t score;
+    p8_fixed_t score;
     int has_score; /* 0: `score` is nil, and `score` is then never read */
     const pico8_vec_t *ra;
     pico8_lq_item_t *fs; /* NULL: not laid out yet */
     int fs_count;
-    pico8_fixed_t w;
+    p8_fixed_t w;
 } pico8_lq_t;
 
 /* `ls` NULL: not laid out yet. The bubble, `ls` and its lines are in
@@ -104,12 +104,12 @@ typedef struct {
     const pico8_lq_cell_t *items;
     int count;
     int has_c;
-    pico8_fixed_t c;
+    p8_fixed_t c;
     int has_bg;
     int bg_is_bool; /* read only when `has_bg`, as in `pico8_lq_t` */
-    pico8_fixed_t bg;
+    p8_fixed_t bg;
     int has_score;
-    pico8_fixed_t score;
+    p8_fixed_t score;
     pico8_vec_t *ra;
 } pico8_lq_keys_t;
 
@@ -119,7 +119,7 @@ pico8_lq_t *pico8_lq_new(const pico8_zone_choisie_t *zone, const pico8_lq_keys_t
 
 /* Cells as the producers of keys write them. */
 pico8_lq_cell_t pico8_lq_cell_nothing(void);
-pico8_lq_cell_t pico8_lq_cell_fixed(pico8_fixed_t x);
+pico8_lq_cell_t pico8_lq_cell_fixed(p8_fixed_t x);
 /* `s` borrowed until a row copies it; a NULL `s` stops the run: no
  * producer writes one. */
 pico8_lq_cell_t pico8_lq_cell_string(const char *s);
@@ -153,11 +153,11 @@ pico8_jb_t *pico8_jb_new(const pico8_zone_choisie_t *zone, const pico8_jb_row_t 
 /* Omitting `a` is numerically the same as `a` of 0, so pico8_lq_ol_default
  * passes 0 rather than carrying a "was it provided" flag. A NULL self draws
  * nothing. */
-void pico8_lq_ol(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_lq_t *self, pico8_vec_t p, pico8_fixed_t a);
-void pico8_lq_ol_default(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_lq_t *self, pico8_vec_t p);
+void pico8_lq_ol(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_lq_t *self, pico8_vec_t p, p8_fixed_t a);
+void pico8_lq_ol_default(const p8_graphics_t *gfx, p8_memory_t *mem, const pico8_lq_t *self, pico8_vec_t p);
 
 /* A NULL self, or one whose `ls` is nil, draws nothing -- not even the
  * frame. */
-void pico8_jb_ol(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jb_t *self, pico8_fixed_t om, pico8_fixed_t a);
+void pico8_jb_ol(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_jb_t *self, p8_fixed_t om, p8_fixed_t a);
 
 #endif

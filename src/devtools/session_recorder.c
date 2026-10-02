@@ -17,7 +17,7 @@ void pico8_session_recorder_open(pico8_session_recorder_t *recorder, const char 
     recorder->tail_offset = 0;
 }
 
-int pico8_session_recorder_record_frame(pico8_session_recorder_t *recorder, const pico8_input_frame_t *frame) {
+int pico8_session_recorder_record_frame(pico8_session_recorder_t *recorder, const p8_input_frame_t *frame) {
     assert(recorder);
     assert(frame);
 

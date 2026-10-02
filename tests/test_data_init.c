@@ -11,10 +11,10 @@
 #include "game/research.h"
 
 static void test_hc_fd_dr_nb_decode_real_cart_content(void) {
-    pico8_mem_t mem;
+    p8_memory_t mem;
 
-    pico8_mem_init(&mem);
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
+    p8_mem_init(&mem);
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
 
     pico8_data_init();
 

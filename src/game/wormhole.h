@@ -25,7 +25,7 @@ typedef struct {
 typedef struct {
     entity_t header;
     const pico8_mz_def_t *def;
-    pico8_fixed_t oi;
+    p8_fixed_t oi;
     pico8_mz_jj_t *jj;
     pico8_ents_t *ox;
     const pico8_vec_t *ra;
@@ -63,15 +63,15 @@ void pico8_mz_pq(pico8_mz_t *self);
  * the "too far" branch here then overwrites `et`. */
 void pico8_mz_hq(pico8_mz_t *self, pico8_vec_t *mp, pico8_vec_t *rp);
 
-void pico8_mz_kz(pico8_mz_t *self, pico8_fixed_t t);
+void pico8_mz_kz(pico8_mz_t *self, p8_fixed_t t);
 
 void pico8_mz_ey(pico8_mz_t *self);
 
 /* TROU-3 */
-void pico8_mz_pr(pico8_mz_t *self, pico8_fixed_t t);
+void pico8_mz_pr(pico8_mz_t *self, p8_fixed_t t);
 
 /* Reads `self.oi` only; `self` is non-const for signature uniformity. */
-pico8_fixed_t pico8_mz_ej(pico8_mz_t *self, pico8_fixed_t t);
+p8_fixed_t pico8_mz_ej(pico8_mz_t *self, p8_fixed_t t);
 
 void pico8_mz_kj_dispatch(entity_t *self, const pico8_vec_t *ra);
 

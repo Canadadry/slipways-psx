@@ -27,11 +27,11 @@ static void pico8_ui_button_rendre_fq(entity_t *self) {
     pico8_zone_arene_rendre(((pico8_fq_t *)self)->place);
 }
 
-static int pico8_ui_to_int(pico8_fixed_t x) {
-    return pico8_fixed_flr_int(x);
+static int pico8_ui_to_int(p8_fixed_t x) {
+    return p8_fixed_flr_int(x);
 }
 
-static void pico8_js_ph_dispatch(entity_t *self, pico8_fixed_t t) {
+static void pico8_js_ph_dispatch(entity_t *self, p8_fixed_t t) {
     (void)t;
     pico8_js_ph((pico8_js_t *)self);
 }
@@ -42,7 +42,7 @@ static void pico8_js_ev_dispatch(entity_t *self, const pico8_vec_t *ra) {
 }
 
 static void pico8_js_kj_dispatch(entity_t *self, const pico8_vec_t *ra) {
-    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
     pico8_js_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_js_t *)self, p);
 }
 
@@ -199,8 +199,8 @@ void pico8_js_pq(pico8_js_t *self, const pico8_js_keys_t *keys) {
     }
 
     self->lq = pico8_js_lq(self->place, keys->lq_copy, keys->lq_row);
-    self->mb = pico8_fixed_add(self->lq->w, pico8_fixed_from_int(2));
-    self->header.hit_box = pico8_qz(self->place, pico8_fixed_from_int(0), pico8_fixed_from_int(-1), self->mb, pico8_fixed_from_int(11));
+    self->mb = p8_fixed_add(self->lq->w, p8_fixed_from_int(2));
+    self->header.hit_box = pico8_qz(self->place, p8_fixed_from_int(0), p8_fixed_from_int(-1), self->mb, p8_fixed_from_int(11));
 
     /* TROU-23 */
     if (keys->h_row != NULL || (keys->has_h_ && !keys->h_is_false)) {
@@ -222,29 +222,29 @@ void pico8_js_ph(pico8_js_t *self) {
 
     if (self->qf != NULL) {
         pico8_vec_t qf = *self->qf;
-        pico8_vec_t ra = self->ra != NULL ? *self->ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+        pico8_vec_t ra = self->ra != NULL ? *self->ra : pico8_vec_v(p8_fixed_from_int(0), p8_fixed_from_int(0));
         pico8_vec_t d = pico8_vec_sub(qf, ra);
-        pico8_fixed_t len_sq = pico8_vec_len_sq(d);
-        pico8_vec_t delta = (len_sq <= pico8_fixed_from_int(1)) ? d : pico8_vec_mul(d, PICO8_FIXED_LIT(0x00006666, 0.4));
+        p8_fixed_t len_sq = pico8_vec_len_sq(d);
+        pico8_vec_t delta = (len_sq <= p8_fixed_from_int(1)) ? d : pico8_vec_mul(d, P8_FIXED_LIT(0x00006666, 0.4));
         self->ra_box = pico8_vec_add(ra, delta);
         self->ra = &self->ra_box;
     }
 }
 
-void pico8_js_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_js_t *self) {
+void pico8_js_ev(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_js_t *self) {
     if (self == NULL) {
         return;
     }
 
     if (self->jb != NULL && self->m_) {
-        pico8_jb_ol(gfx, mem, self->jb, pico8_fixed_from_int(127), pico8_fixed_from_int(1));
+        pico8_jb_ol(gfx, mem, self->jb, p8_fixed_from_int(127), p8_fixed_from_int(1));
     }
 }
 
-void pico8_js_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_js_t *self, pico8_vec_t p) {
-    pico8_fixed_t mb;
-    pico8_fixed_t qt;
-    pico8_fixed_t dn;
+void pico8_js_kj(p8_graphics_t *gfx, p8_memory_t *mem, const pico8_js_t *self, pico8_vec_t p) {
+    p8_fixed_t mb;
+    p8_fixed_t qt;
+    p8_fixed_t dn;
     int has_my;
     int m_flag;
     int ix_p;
@@ -257,8 +257,8 @@ void pico8_js_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_js_t *self, pic
     }
 
     mb = self->mb;
-    qt = pico8_fixed_sub(pico8_fixed_add(p.x, mb), pico8_fixed_from_int(1));
-    dn = pico8_fixed_add(p.y, pico8_fixed_from_int(9));
+    qt = p8_fixed_sub(p8_fixed_add(p.x, mb), p8_fixed_from_int(1));
+    dn = p8_fixed_add(p.y, p8_fixed_from_int(9));
     has_my = self->my != NULL;
     m_flag = self->m_;
 
@@ -267,29 +267,29 @@ void pico8_js_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_js_t *self, pic
     ix_qt = pico8_ui_to_int(qt);
     iy_dn = pico8_ui_to_int(dn);
 
-    pico8_rect(gfx, mem, ix_p - 1, iy_p, ix_qt + 1, iy_dn + 1, 1);
-    pico8_rectfill(gfx, mem, ix_p, iy_p, ix_qt, iy_dn, has_my ? (m_flag ? 12 : 13) : 5);
-    pico8_rectfill(gfx, mem, ix_p, iy_p, ix_qt, iy_p, has_my ? 6 : 5);
+    p8_rect(gfx, mem, ix_p - 1, iy_p, ix_qt + 1, iy_dn + 1, 1);
+    p8_rectfill(gfx, mem, ix_p, iy_p, ix_qt, iy_dn, has_my ? (m_flag ? 12 : 13) : 5);
+    p8_rectfill(gfx, mem, ix_p, iy_p, ix_qt, iy_p, has_my ? 6 : 5);
 
     if (self->lq != NULL) {
-        pico8_vec_t off = pico8_vec_add(p, pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(2)));
+        pico8_vec_t off = pico8_vec_add(p, pico8_vec_v(p8_fixed_from_int(1), p8_fixed_from_int(2)));
         pico8_lq_ol_default(gfx, mem, self->lq, off);
     }
 
     if (self->h_ != NULL) {
         const pico8_lq_t *c = self->h_;
-        pico8_fixed_t c_w = c->w;
+        p8_fixed_t c_w = c->w;
         int bg = 2;
-        pico8_fixed_t x2 = pico8_fixed_add(qt, c_w);
+        p8_fixed_t x2 = p8_fixed_add(qt, c_w);
 
         if (c->has_bg && !c->bg_is_bool) {
             bg = pico8_ui_to_int(c->bg);
         }
-        pico8_rectfill(gfx, mem, pico8_ui_to_int(qt) + 3, iy_p + 1, pico8_ui_to_int(x2) + 4, iy_dn, bg);
+        p8_rectfill(gfx, mem, pico8_ui_to_int(qt) + 3, iy_p + 1, pico8_ui_to_int(x2) + 4, iy_dn, bg);
 
         {
             pico8_vec_t off2 =
-                pico8_vec_add(p, pico8_vec_v(pico8_fixed_add(mb, pico8_fixed_from_int(3)), pico8_fixed_from_int(2)));
+                pico8_vec_add(p, pico8_vec_v(p8_fixed_add(mb, p8_fixed_from_int(3)), p8_fixed_from_int(2)));
             pico8_lq_ol_default(gfx, mem, c, off2);
         }
     }
@@ -300,7 +300,7 @@ down_t pico8_js_ldown(pico8_js_t *self) {
     down_t out = {1, NULL};
 
     if (has_my) {
-        pico8_rn(pico8_fixed_from_int(60));
+        p8_play_sfx(p8_fixed_from_int(60));
         self->my(self);
     }
 

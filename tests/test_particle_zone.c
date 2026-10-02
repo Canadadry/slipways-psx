@@ -182,16 +182,16 @@ static int case_qy_rendre_releases_the_arena(void) {
  * dessine sans `gd`, et `fc` 0, donc sans naissance. */
 static const pico8_emitter_def_t g_sans_naissance;
 static const entity_class_t g_hote_cls;
-static const pico8_fixed_t g_fa_dix = 10 << 16;
+static const p8_fixed_t g_fa_dix = 10 << 16;
 static const pico8_vec_t *const g_ra_nil = NULL;
 static pico8_emitter_t g_emitter;
 static entity_t g_hote;
-static pico8_gfx_t g_gfx;
-static pico8_mem_t g_mem;
+static p8_graphics_t g_gfx;
+static p8_memory_t g_mem;
 
 static entity_t *hote(void) {
-    pico8_gfx_init(&g_gfx);
-    pico8_mem_init(&g_mem);
+    p8_gfx_init(&g_gfx);
+    p8_mem_init(&g_mem);
     entity_init_header(&g_hote, &g_hote_cls);
     memset(&g_emitter, 0, sizeof g_emitter);
     g_emitter.def = &g_sans_naissance;

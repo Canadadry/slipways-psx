@@ -73,10 +73,10 @@ int main(int argc, char **argv) {
             "screencast-viewer: PAGE UP plus vite, PAGE DOWN moins vite, END sans plafond ; fermer la fenetre pour quitter.\n",
             path, frame_count);
 
-    InitWindow(PICO8_SCREEN_WIDTH * PICO8_RAYLIB_BACKEND_SCALE, PICO8_SCREEN_HEIGHT * PICO8_RAYLIB_BACKEND_SCALE,
+    InitWindow(P8_SCREEN_WIDTH * PICO8_RAYLIB_BACKEND_SCALE, P8_SCREEN_HEIGHT * PICO8_RAYLIB_BACKEND_SCALE,
                "Slipways screencast viewer");
 
-    Image blank = GenImageColor(PICO8_SCREEN_WIDTH, PICO8_SCREEN_HEIGHT, BLACK);
+    Image blank = GenImageColor(P8_SCREEN_WIDTH, P8_SCREEN_HEIGHT, BLACK);
     Texture2D screen_texture = LoadTextureFromImage(blank);
     UnloadImage(blank);
     /* Au plus proche voisin : lisser rendrait flou exactement ce qu'un
@@ -105,8 +105,8 @@ int main(int argc, char **argv) {
         }
 
         for (int i = 0; i < PICO8_SCREENCAST_FRAME_PIXELS; i++) {
-            pico8_rgb_t rgb = PICO8_PALETTE_RGB[g_frame_pixels[i] & 0x0f];
-            g_frame_colors[i] = (Color){ rgb.r, rgb.g, rgb.b, 0xFF };
+            p8_rgb_t rgb = P8_PALETTE_RGB[g_frame_pixels[i] & 0x0f];
+            g_frame_colors[i] = (Color){ rgb.red, rgb.green, rgb.blue, 0xFF };
         }
         UpdateTexture(screen_texture, g_frame_colors);
 
@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
         DrawTextureEx(screen_texture, (Vector2){ 0, 0 }, 0.0f, (float)PICO8_RAYLIB_BACKEND_SCALE, WHITE);
         /* Bandeau translucide : la ligne doit rester lisible quelle que
          * soit l'image qui defile dessous. */
-        DrawRectangle(0, 0, PICO8_SCREEN_WIDTH * PICO8_RAYLIB_BACKEND_SCALE, 26, (Color){ 0, 0, 0, 190 });
+        DrawRectangle(0, 0, P8_SCREEN_WIDTH * PICO8_RAYLIB_BACKEND_SCALE, 26, (Color){ 0, 0, 0, 190 });
         DrawText(status_line, 8, 5, 18, RAYWHITE);
         EndDrawing();
 

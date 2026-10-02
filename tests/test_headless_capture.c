@@ -73,10 +73,10 @@ static char *read_whole_file(const char *path, size_t *out_len) {
  * NUL (a la difference de read_whole_file ci-dessus) : seul memcmp sur
  * `*out_len` est licite dessus. */
 static char *dump_text_of_pixels(const unsigned char *pixels, size_t *out_len) {
-    pico8_mem_t mem;
-    pico8_mem_init(&mem);
+    p8_memory_t mem;
+    p8_mem_init(&mem);
     for (int i = 0; i < PICO8_SCREENCAST_FRAME_PIXELS; i++) {
-        pico8_poke(&mem, PICO8_ADDR_SCREEN + i, pixels[i]);
+        p8_poke(&mem, P8_ADDR_SCREEN + i, pixels[i]);
     }
 
     FILE *tmp = tmpfile();
@@ -101,8 +101,8 @@ static char *dump_text_of_pixels(const unsigned char *pixels, size_t *out_len) {
  * seulement "huit", et cesserait de parler de rejeu le jour ou la
  * fixture change. */
 static int fixture_frame_count(void) {
-    pico8_input_t input;
-    pico8_input_init(&input);
+    p8_input_t input;
+    p8_input_init(&input);
     assert(pico8_input_load(&input, FIXTURE));
     int count = input.frame_count;
     pico8_input_free(&input);

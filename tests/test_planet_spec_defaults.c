@@ -20,9 +20,9 @@
 #include "game/planet_family.h"
 #include "game/planet_family_trade.h"
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 /* The very string of the generated data, not a copy. */
 static void assert_same_string(const char *a, const char *b) {
@@ -39,8 +39,8 @@ static void assert_jo_tail(const pico8_jo_t *jo, const pico8_jo_def_t *def) {
 }
 
 static void assert_box(const pico8_qz_box_t *kq, int xl, int yt, int xr, int yb) {
-    assert(kq->xl == pico8_fixed_from_int(xl) && kq->yt == pico8_fixed_from_int(yt) &&
-           kq->xr == pico8_fixed_from_int(xr) && kq->yb == pico8_fixed_from_int(yb));
+    assert(kq->xl == p8_fixed_from_int(xl) && kq->yt == p8_fixed_from_int(yt) &&
+           kq->xr == p8_fixed_from_int(xr) && kq->yb == p8_fixed_from_int(yb));
 }
 
 /* jo's box, which ga and nr replace. */
@@ -159,7 +159,7 @@ static void test_ga_defaults(void) {
     assert_box(&ga->def->kq, 0, 0, -1, -1);
     assert_same_string(ga->header.state, ga->def->me);
     assert_jo_tail(ga, &pico8_ga_def);
-    assert(ga->def->hs == pico8_fixed_from_int(1));
+    assert(ga->def->hs == p8_fixed_from_int(1));
     assert(ga->mi == 0 && !ga->has_mi);
     assert(ga->kw == pico8_jo_shared_kw());
     assert(ga->kw->mu == 0 && !ga->kw->has_qe);
@@ -223,11 +223,11 @@ static void test_second_jl_keeps_ke(void) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

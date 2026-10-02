@@ -25,9 +25,9 @@
 #define SCRIPTED_TICKS 12
 #define SCRIPTED_HASH 0xEB03D064u
 
-static pico8_mem_t mem;
-static pico8_gfx_t gfx;
-static pico8_input_t input;
+static p8_memory_t mem;
+static p8_graphics_t gfx;
+static p8_input_t input;
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -120,7 +120,7 @@ static void check(const char *label, uint32_t got, uint32_t want) {
     assert(got == want);
 }
 
-static pico8_input_frame_t g_frames[64];
+static p8_input_frame_t g_frames[64];
 
 /* Points the dispatch input at `n` frames of g_frames, positioned at 0. */
 static void script(int n) {
@@ -131,7 +131,7 @@ static void script(int n) {
 }
 
 static void unscript(void) {
-    pico8_input_init(&input);
+    p8_input_init(&input);
     pico8_dispatch_set_input(&input);
 }
 
@@ -148,10 +148,10 @@ static void test_jl_builds_a_mouse_reader(void) {
     const void *je;
     pico8_vec_t ra;
 
-    pico8_poke(&mem, 0x5f2d, 0);
+    p8_poke(&mem, 0x5f2d, 0);
     pico8_jl();
     je = pico8_je();
-    assert(pico8_peek(&mem, 0x5f2d) == 1);
+    assert(p8_peek(&mem, 0x5f2d) == 1);
     assert(ents_listed(pico8_hv(), je) && !in_any_cv(je));
     assert(ra_of_je(&ra) && ra.x == 0 && ra.y == 0);
     assert(je_l() != NULL && je_r() != NULL && je_l() != je_r());
@@ -174,7 +174,7 @@ static void test_scripted_ticks(void) {
         pico8_dg();
         h = fold_je(h);
         if (i < SCRIPTED_TICKS - 1) {
-            pico8_input_step(&input);
+            p8_input_step(&input);
         }
     }
     unscript();
@@ -192,13 +192,13 @@ static void test_buttons_survive_jl(void) {
     frame(2, 42, 42, 1);
     script(3);
     pico8_dg();
-    pico8_input_step(&input);
+    p8_input_step(&input);
     pico8_dg();
     assert(on_of(je_l()) == 1);
     l_before = je_l();
 
     pico8_jl();
-    pico8_input_step(&input);
+    p8_input_step(&input);
     pico8_dg();
     unscript();
     assert(je_l() == l_before);
@@ -246,10 +246,10 @@ static void test_launch_with_left_held(void) {
     frame(2, 64, 64, 1);
     script(3);
     pico8_dg();
-    pico8_input_step(&input);
+    p8_input_step(&input);
     pico8_eu(NULL);
     assert(pico8_je() != first_je);
-    pico8_input_step(&input);
+    p8_input_step(&input);
     pico8_dg();
     unscript();
     assert(on_of(je_l()) == 1);
@@ -282,11 +282,11 @@ static void test_nf_is_a_struct_sharing_its_buttons(void) {
 }
 
 int main(void) {
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
+    p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
+    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);

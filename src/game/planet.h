@@ -28,7 +28,7 @@
 typedef struct {
     entity_t header;
     const pico8_jo_def_t *def;
-    pico8_fixed_t ma;
+    p8_fixed_t ma;
     pico8_kw_t *kw;
     const char *id;
     pico8_vec_t *p;
@@ -38,24 +38,24 @@ typedef struct {
     const char *ep;
     pico8_ptrs_t *jy;
     const pico8_df_entry_t *nk;
-    pico8_fixed_t fx;
+    p8_fixed_t fx;
     pico8_lq_t *lq;
     const pico8_zone_choisie_t *lq_place; /* where `lq` lives; NULL when `lq` is */
     entity_t *fo;
-    pico8_fixed_t jh;
+    p8_fixed_t jh;
     int has_jh;
     int p_;
-    pico8_fixed_t kr;
+    p8_fixed_t kr;
     int has_kr;
     pico8_ents_t *cc;
     pico8_ents_t *by;
-    pico8_fixed_t mi;
+    p8_fixed_t mi;
     int has_mi;
     int m_;
     pico8_kw_t kw_own;
-    pico8_fixed_t s;           /* qh's lineage */
-    pico8_fixed_t qw;          /* nl */
-    pico8_fixed_t iu, ms;      /* ga */
+    p8_fixed_t s;           /* qh's lineage */
+    p8_fixed_t qw;          /* nl */
+    p8_fixed_t iu, ms;      /* ga */
     const pico8_int_seq_t *ht; /* mx */
     pico8_probe_t *probe;      /* qh's lineage */
     pico8_emitter_t *emitter;  /* hj, pm, mx, ga */
@@ -144,7 +144,7 @@ void pico8_jo_rendre_rangee(entity_t *self);
 /* `pico8_jo_rendre_rangee`, then `pico8_jo_prise_rendue`. */
 void pico8_jo_rendre_dispatch(entity_t *self);
 down_t pico8_jo_gv_dispatch(entity_t *self, const entity_t *s);
-void pico8_jo_hk_dispatch(entity_t *self, pico8_fixed_t yr);
+void pico8_jo_hk_dispatch(entity_t *self, p8_fixed_t yr);
 void pico8_jo_kj_dispatch(entity_t *self, const pico8_vec_t *ra);
 down_t pico8_jo_ldown_dispatch(entity_t *self, pico8_vec_t *qa, pico8_vec_t *ra);
 void pico8_jo_kf_dispatch(entity_t *self, entity_t *sw);
@@ -153,7 +153,7 @@ void pico8_jo_kf_dispatch(entity_t *self, entity_t *sw);
  * `ll` is jo's. */
 int pico8_jo_is_family(const entity_t *e);
 void pico8_jo_cn_dispatch(entity_t *self, struct pico8_jo_trade_proposal *lw);
-void pico8_jo_ll_dispatch(entity_t *self, pico8_fixed_t t);
+void pico8_jo_ll_dispatch(entity_t *self, p8_fixed_t t);
 
 void pico8_jo_lz(pico8_jo_t *self, pico8_hp_t *hp_instance);
 
@@ -165,7 +165,7 @@ void pico8_jo_kd(pico8_jo_t *self);
 
 /* No textual `:ll(` call site exists: `dg()` reaches this by state name
  * (`qc[qc.me]`), through the `LL` entry of a planet's descriptor. */
-void pico8_jo_ll(pico8_jo_t *self, pico8_fixed_t t);
+void pico8_jo_ll(pico8_jo_t *self, p8_fixed_t t);
 
 void pico8_jo_hh(pico8_jo_t *self);
 
@@ -185,7 +185,7 @@ void pico8_jo_set_ir(pico8_jf_state_t *ir);
 /* Mutates the pico8_vec_t `self.ra` points at, in place: every other holder
  * of that vector -- the `iv` toast `jo:hk` builds from `self.ra` -- sees the
  * bob. Rebinding the field to a fresh vector, as `qb:kj` does, would not. */
-void pico8_na(entity_t *self, pico8_fixed_t t);
+void pico8_na(entity_t *self, p8_fixed_t t);
 
 /* NULL when no kind has `fz`. */
 const entity_kind_t *pico8_jo_kv(const char *fz);
