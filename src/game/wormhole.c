@@ -240,7 +240,7 @@ static wormhole_t *wormhole_create(void) {
     self->header.is_dead = &self->is_dead;
     self->is_dead = 0;
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("wormhole");
+    class_coverage_record("wormhole");
 #endif
     wormhole_construct(self);
     planet_grab_arena_close();

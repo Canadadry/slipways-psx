@@ -99,7 +99,7 @@ int main(void) {
      * than fixed values, by tests/test_input.c. */
     p8_input_t input;
     p8_input_init(&input);
-    assert(pico8_input_load(&input, DEMO_EVENTS_PATH));
+    assert(p8_input_load(&input, DEMO_EVENTS_PATH));
 
     assert(p8_stat(&input, 32) == 64);
     assert(p8_stat(&input, 33) == 32);
@@ -119,11 +119,11 @@ int main(void) {
     assert(p8_btn(&input, 2) == 1);
     assert(p8_btn(&input, 3) == 0);
 
-    pico8_input_free(&input);
+    p8_input_free(&input);
 
     FILE *dump_out = fopen("tmp/pico8_demo_dump.txt", "w");
     assert(dump_out != NULL);
-    int dump_ok = pico8_dump_screen(&mem, dump_out);
+    int dump_ok = dump_screen(&mem, dump_out);
     fclose(dump_out);
     assert(dump_ok);
 

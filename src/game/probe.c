@@ -431,7 +431,7 @@ static probe_t *probe_create(const probe_keys_t *keys) {
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("probe");
+    class_coverage_record("probe");
 #endif
     emitter_init((entity_t *)self);
     entity_construct(&self->header);

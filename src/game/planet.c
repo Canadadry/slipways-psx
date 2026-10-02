@@ -123,7 +123,7 @@ static planet_t *planet_create(const planet_keys_t *keys) {
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("planet");
+    class_coverage_record("planet");
 #endif
     planet_construct(self);
     entity_construct(&self->header);

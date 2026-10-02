@@ -122,7 +122,7 @@ static probe_t *screen_create(void) {
     self->header.is_hovered = &self->is_hovered;
     self->is_hovered = 0;
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("help_screen");
+    class_coverage_record("help_screen");
 #endif
     help_screen_construct(self);
     emitter_init_in((entity_t *)self, PARTICLE_SLOT_HELP_LIST);

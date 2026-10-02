@@ -67,7 +67,7 @@ static background_t *background_create(void) {
     self->header.is_hovered = &self->is_hovered;
     self->is_hovered = 0;
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("background");
+    class_coverage_record("background");
 #endif
     background_construct(dispatch_context_mem(), self);
     entity_construct(&self->header);

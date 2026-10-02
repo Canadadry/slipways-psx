@@ -148,7 +148,7 @@ static message_box_t *message_box_create(const message_box_keys_t *keys) {
         self->keep_open = keys->keep_open;
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("message_box");
+    class_coverage_record("message_box");
 #endif
     message_box_construct(self);
     entity_construct(&self->header);
@@ -278,7 +278,7 @@ static toast_t *toast_create(const toast_keys_t *keys) {
         self->color = keys->color;
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("toast");
+    class_coverage_record("toast");
 #endif
     toast_construct(self);
     entity_construct(&self->header);

@@ -28,7 +28,7 @@ void p8_input_init(p8_input_t *input);
  * booleans, or an empty frames array. A 4-boolean dpad loads with O and X
  * released. There is no partial load: on 0,
  * `input` is left untouched and the caller has nothing to replay. */
-int pico8_input_load(p8_input_t *input, const char *path);
+int p8_input_load(p8_input_t *input, const char *path);
 
 /* Writes `frame_count` frames to `path` as a complete events.json file --
  * always a full rewrite -- in the exact shape pico8_input_load parses:
@@ -38,7 +38,7 @@ int pico8_input_load(p8_input_t *input, const char *path);
  * `frame_count` (it never writes a file pico8_input_load would reject), or
  * a file error. No partial file is left behind: `path` is replaced only
  * once every frame is written and the file has closed. */
-int pico8_input_save(const p8_input_frame_t *frames, int frame_count, const char *path);
+int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *path);
 
 /* Adds one frame to the recording at `path` without re-serializing the
  * frames already there, so recording one frame costs the same whatever the
@@ -56,11 +56,11 @@ int pico8_input_save(const p8_input_frame_t *frames, int frame_count, const char
  * Returns 1 on success, 0 on a NULL argument or a file error, leaving
  * `*io_tail_offset` unchanged so the next call rewrites the same slot
  * rather than writing past a frame that never landed. */
-int pico8_input_append(const p8_input_frame_t *frame, const char *path, long *print_outlined_tail_offset);
+int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_offset);
 
 /* Releases the frame array. Safe on an input that was only
  * pico8_input_init'd, and safe to call again before a fresh load. */
-void pico8_input_free(p8_input_t *input);
+void p8_input_free(p8_input_t *input);
 
 /* Advances to the next scripted frame. Stepping off the last frame of the
  * script is a hard error: it means the replay is running longer than the

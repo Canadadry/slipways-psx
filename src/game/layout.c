@@ -336,7 +336,7 @@ static layout_row_t *row_struct_alloc(const allocator_t *zone, int n) {
 static layout_row_t *row_struct_finish(layout_row_t *self) {
     layout_row_construct(self);
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("layout_row");
+    class_coverage_record("layout_row");
 #endif
     return self;
 }
@@ -421,7 +421,7 @@ static tooltip_t *tooltip_struct_alloc(const allocator_t *zone) {
     self = (tooltip_t *)allocator_alloc(zone, sizeof *self);
 
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("tooltip");
+    class_coverage_record("tooltip");
 #endif
     entity_init_header(&self->header, &g_tooltip_class);
     self->zone = zone;

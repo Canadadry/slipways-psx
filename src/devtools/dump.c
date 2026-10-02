@@ -6,7 +6,7 @@
 
 static const char HEX_DIGITS[] = "0123456789abcdef";
 
-int pico8_dump_pixels(const unsigned char *pixels, FILE *out) {
+int dump_pixels(const unsigned char *pixels, FILE *out) {
     if (fprintf(out, "%d %d\n", P8_SCREEN_WIDTH, P8_SCREEN_HEIGHT) < 0) {
         return 0;
     }
@@ -27,10 +27,10 @@ int pico8_dump_pixels(const unsigned char *pixels, FILE *out) {
     return 1;
 }
 
-int pico8_dump_screen(const p8_memory_t *mem, FILE *out) {
+int dump_screen(const p8_memory_t *mem, FILE *out) {
     unsigned char pixels[P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT];
     for (int i = 0; i < (int)sizeof(pixels); i++) {
         pixels[i] = p8_peek(mem, P8_ADDR_SCREEN + i);
     }
-    return pico8_dump_pixels(pixels, out);
+    return dump_pixels(pixels, out);
 }

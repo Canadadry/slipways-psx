@@ -1261,6 +1261,7 @@ identity	c:test_probe.c@F@fm_hy	typed_main_economy	fm
 identity	c:test_ui.c@F@je_nf	typed_main_mouse	je
 identity	c:test_layout_row.c@16266@F@test_hp_lq_and_copy@ks	project_ranks	
 field	pico8_input_load.ok	succeeded	
+field	pico8_input_append.io_tail_offset	tail_offset	
 field	pico8_cr.cr	layout_block	cr
 field	pico8_jo_ib.ib	accepted_routes	ib
 field	pico8_pj_hk.iw	year_banner	ea

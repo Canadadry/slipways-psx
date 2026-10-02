@@ -44,24 +44,24 @@ static void test_segments_cross_clear_non_crossing_case(void) {
 static void test_near_segment_within_margin_and_within_distance_is_true(void) {
     vec_t a = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     vec_t b = vec_make(p8_fixed_from_int(10), p8_fixed_from_int(0));
-    vec_t c = vec_make(pico8_fixed_from_double(0.5), p8_fixed_from_int(0));
-    p8_fixed_t fh = pico8_fixed_from_double(1.0);
+    vec_t c = vec_make(fixed_test_double_from_double(0.5), p8_fixed_from_int(0));
+    p8_fixed_t fh = fixed_test_double_from_double(1.0);
     assert(geom_near_segment(a, b, c, fh));
 }
 
 static void test_near_segment_outside_margin_near_start_is_false(void) {
     vec_t a = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     vec_t b = vec_make(p8_fixed_from_int(10), p8_fixed_from_int(0));
-    vec_t c = vec_make(pico8_fixed_from_double(0.05), p8_fixed_from_int(0));
-    p8_fixed_t fh = pico8_fixed_from_double(1.0);
+    vec_t c = vec_make(fixed_test_double_from_double(0.05), p8_fixed_from_int(0));
+    p8_fixed_t fh = fixed_test_double_from_double(1.0);
     assert(!geom_near_segment(a, b, c, fh));
 }
 
 static void test_near_segment_outside_margin_near_end_is_false(void) {
     vec_t a = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     vec_t b = vec_make(p8_fixed_from_int(10), p8_fixed_from_int(0));
-    vec_t c = vec_make(pico8_fixed_from_double(9.95), p8_fixed_from_int(0));
-    p8_fixed_t fh = pico8_fixed_from_double(1.0);
+    vec_t c = vec_make(fixed_test_double_from_double(9.95), p8_fixed_from_int(0));
+    p8_fixed_t fh = fixed_test_double_from_double(1.0);
     assert(!geom_near_segment(a, b, c, fh));
 }
 
@@ -69,7 +69,7 @@ static void test_near_segment_within_margin_but_outside_distance_is_false(void) 
     vec_t a = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     vec_t b = vec_make(p8_fixed_from_int(10), p8_fixed_from_int(0));
     vec_t c = vec_make(p8_fixed_from_int(5), p8_fixed_from_int(3));
-    p8_fixed_t fh = pico8_fixed_from_double(4.0);
+    p8_fixed_t fh = fixed_test_double_from_double(4.0);
     assert(!geom_near_segment(a, b, c, fh));
 }
 

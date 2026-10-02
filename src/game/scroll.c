@@ -50,7 +50,7 @@ static camera_t *camera_create(void) {
     self->pos_before_shake = &self->archetype->pos_before_shake;
     self->pos = &self->archetype->pos;
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("camera");
+    class_coverage_record("camera");
 #endif
     entity_construct(&self->header);
     return self;

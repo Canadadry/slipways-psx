@@ -31,8 +31,8 @@
 /* Les pixels de la frame courante (un octet par pixel) et leur
  * conversion en couleurs. Statiques parce que 16 Ko + 64 Ko n'ont rien a
  * faire dans un cadre de pile. */
-static unsigned char g_frame_pixels[PICO8_SCREENCAST_FRAME_PIXELS];
-static Color g_frame_colors[PICO8_SCREENCAST_FRAME_PIXELS];
+static unsigned char g_frame_pixels[SCREENCAST_FRAME_PIXELS];
+static Color g_frame_colors[SCREENCAST_FRAME_PIXELS];
 
 int main(int argc, char **argv) {
     /* Pas de chemin par defaut, volontairement : il ouvrirait une fenetre
@@ -50,23 +50,23 @@ int main(int argc, char **argv) {
     /* Le refus arrive avant le moindre appel a raylib : une fenetre qui
      * s'ouvre sur du noir est indiscernable d'une session qui commence
      * par un ecran noir. */
-    pico8_screencast_reader_t reader;
-    pico8_screencast_status_t status = pico8_screencast_reader_open(&reader, path);
-    if (status != PICO8_SCREENCAST_OK) {
-        char refusal[PICO8_SCREENCAST_PLAYER_REFUSAL_MAX];
-        pico8_screencast_player_format_refusal(status, path, refusal, sizeof refusal);
+    screencast_reader_t reader;
+    screencast_status_t status = screencast_reader_open(&reader, path);
+    if (status != SCREENCAST_OK) {
+        char refusal[SCREENCAST_PLAYER_REFUSAL_MAX];
+        screencast_player_format_refusal(status, path, refusal, sizeof refusal);
         fprintf(stderr, "%s\n", refusal);
-        pico8_screencast_reader_close(&reader);
+        screencast_reader_close(&reader);
         return 1;
     }
 
-    int frame_count = pico8_screencast_frame_count(&reader);
+    int frame_count = screencast_frame_count(&reader);
 
-    pico8_screencast_player_t player;
-    pico8_screencast_player_init(&player, frame_count);
+    screencast_player_t player;
+    screencast_player_init(&player, frame_count);
 
-    pico8_replay_control_t control;
-    pico8_replay_control_init(&control);
+    replay_control_t control;
+    replay_control_init(&control);
 
     fprintf(stderr,
             "screencast-viewer: '%s', %d frames, lecture en boucle.\n"
@@ -90,10 +90,10 @@ int main(int argc, char **argv) {
          * figee : il n'y a ici aucune partie vivante a qui rendre les 60
          * FPS du jeu, et passer 0 annulerait silencieusement l'echelle de
          * vitesse. */
-        pico8_raylib_backend_set_frame_rate_cap(pico8_replay_control_target_fps(&control, 1));
+        pico8_raylib_backend_set_frame_rate_cap(replay_control_target_fps(&control, 1));
 
-        int index = pico8_screencast_player_current_frame(&player);
-        if (!pico8_screencast_read_frame(&reader, index, g_frame_pixels)) {
+        int index = screencast_player_current_frame(&player);
+        if (!screencast_read_frame(&reader, index, g_frame_pixels)) {
             /* L'index vient du curseur et ne sort jamais du fichier :
              * arriver ici, c'est la lecture elle-meme qui a echoue. On
              * sort en erreur plutot que de continuer a afficher la frame
@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
             break;
         }
 
-        for (int i = 0; i < PICO8_SCREENCAST_FRAME_PIXELS; i++) {
+        for (int i = 0; i < SCREENCAST_FRAME_PIXELS; i++) {
             p8_rgb_t rgb = P8_PALETTE_RGB[g_frame_pixels[i] & 0x0f];
             g_frame_colors[i] = (Color){ rgb.red, rgb.green, rgb.blue, 0xFF };
         }
@@ -112,8 +112,8 @@ int main(int argc, char **argv) {
 
         /* format_status compte les frames a partir de 1, `index` a partir
          * de 0 : d'ou le +1. */
-        char status_line[PICO8_REPLAY_CONTROL_STATUS_MAX];
-        pico8_replay_control_format_status(&control, index + 1, frame_count, status_line, sizeof status_line);
+        char status_line[REPLAY_CONTROL_STATUS_MAX];
+        replay_control_format_status(&control, index + 1, frame_count, status_line, sizeof status_line);
 
         BeginDrawing();
         ClearBackground(BLACK);
@@ -127,12 +127,12 @@ int main(int argc, char **argv) {
         /* Avance APRES l'affichage : la premiere frame du fichier est la
          * premiere montree. Aucune condition de fin ici -- le curseur se
          * fige tout seul sur la derniere frame. */
-        pico8_screencast_player_advance(&player);
+        screencast_player_advance(&player);
     }
 
     UnloadTexture(screen_texture);
     CloseWindow();
-    pico8_screencast_reader_close(&reader);
+    screencast_reader_close(&reader);
 
     return exit_code;
 }

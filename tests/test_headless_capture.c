@@ -75,13 +75,13 @@ static char *read_whole_file(const char *path, size_t *out_len) {
 static char *dump_text_of_pixels(const unsigned char *pixels, size_t *out_len) {
     p8_memory_t mem;
     p8_mem_init(&mem);
-    for (int i = 0; i < PICO8_SCREENCAST_FRAME_PIXELS; i++) {
+    for (int i = 0; i < SCREENCAST_FRAME_PIXELS; i++) {
         p8_poke(&mem, P8_ADDR_SCREEN + i, pixels[i]);
     }
 
     FILE *tmp = tmpfile();
     assert(tmp != NULL);
-    assert(pico8_dump_screen(&mem, tmp));
+    assert(dump_screen(&mem, tmp));
     long size = ftell(tmp);
     assert(size > 0);
     rewind(tmp);
@@ -103,9 +103,9 @@ static char *dump_text_of_pixels(const unsigned char *pixels, size_t *out_len) {
 static int fixture_frame_count(void) {
     p8_input_t input;
     p8_input_init(&input);
-    assert(pico8_input_load(&input, FIXTURE));
+    assert(p8_input_load(&input, FIXTURE));
     int count = input.frame_count;
-    pico8_input_free(&input);
+    p8_input_free(&input);
     return count;
 }
 
@@ -113,10 +113,10 @@ static void test_capture_holds_exactly_the_replayed_frames(void) {
     remove(CAPTURE);
     assert(system(DRIVER " " FIXTURE " " CAPTURE " > /dev/null") == 0);
 
-    pico8_screencast_reader_t reader;
-    assert(pico8_screencast_reader_open(&reader, CAPTURE) == PICO8_SCREENCAST_OK);
-    assert(pico8_screencast_frame_count(&reader) == fixture_frame_count());
-    pico8_screencast_reader_close(&reader);
+    screencast_reader_t reader;
+    assert(screencast_reader_open(&reader, CAPTURE) == SCREENCAST_OK);
+    assert(screencast_frame_count(&reader) == fixture_frame_count());
+    screencast_reader_close(&reader);
 
     remove(CAPTURE);
 }
@@ -133,23 +133,23 @@ static void test_last_captured_frame_matches_the_text_dump(void) {
     size_t dump_len;
     char *dump = read_whole_file(DRIVER_DUMP, &dump_len);
 
-    pico8_screencast_reader_t reader;
-    assert(pico8_screencast_reader_open(&reader, CAPTURE) == PICO8_SCREENCAST_OK);
-    int last = pico8_screencast_frame_count(&reader) - 1;
+    screencast_reader_t reader;
+    assert(screencast_reader_open(&reader, CAPTURE) == SCREENCAST_OK);
+    int last = screencast_frame_count(&reader) - 1;
     assert(last > 0);
 
-    unsigned char last_pixels[PICO8_SCREENCAST_FRAME_PIXELS];
-    assert(pico8_screencast_read_frame(&reader, last, last_pixels));
+    unsigned char last_pixels[SCREENCAST_FRAME_PIXELS];
+    assert(screencast_read_frame(&reader, last, last_pixels));
 
     /* L'avant-derniere frame sert de temoin, et pas de sujet : elle
      * etablit que cette fixture dessine deux images DIFFERENTES a la
      * fin. Sans cela, une capture decalee d'une frame passerait la
      * comparaison ci-dessous par accident, et ce test ne prouverait
      * plus rien du moment ou l'ecriture a lieu. */
-    unsigned char previous_pixels[PICO8_SCREENCAST_FRAME_PIXELS];
-    assert(pico8_screencast_read_frame(&reader, last - 1, previous_pixels));
+    unsigned char previous_pixels[SCREENCAST_FRAME_PIXELS];
+    assert(screencast_read_frame(&reader, last - 1, previous_pixels));
     assert(memcmp(previous_pixels, last_pixels, sizeof(last_pixels)) != 0);
-    pico8_screencast_reader_close(&reader);
+    screencast_reader_close(&reader);
 
     size_t captured_len;
     char *captured = dump_text_of_pixels(last_pixels, &captured_len);
@@ -256,6 +256,6 @@ int main(void) {
     test_capturing_changes_nothing_the_replay_produces();
     test_unopenable_capture_path_is_fatal_and_names_the_path();
     test_third_argument_redirects_the_text_dump();
-    printf("test_pico8_headless_capture: all tests passed\n");
+    printf("test_headless_capture: all tests passed\n");
     return 0;
 }

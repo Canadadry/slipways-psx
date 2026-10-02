@@ -26,7 +26,7 @@ static int same(p8_input_frame_t a, p8_input_frame_t b) {
 
 static int minimize(const p8_input_frame_t *in, int n, p8_input_frame_t *out) {
     assert(n <= MAX_FRAMES);
-    return pico8_minimize_mechanical(in, n, out);
+    return minimize_mechanical(in, n, out);
 }
 
 static void test_idle_frames_are_removed(void) {
@@ -193,7 +193,7 @@ static void test_no_output_frame_is_idle_after_its_kept_predecessor(void) {
 }
 
 #define TOOL "./tmp/pico8_minimize"
-#define DIR "tmp/test_pico8_minimize_work"
+#define DIR "tmp/test_minimize_work"
 #define LOG DIR "/log.txt"
 
 static int run(const char *cmd) {
@@ -203,12 +203,12 @@ static int run(const char *cmd) {
 }
 
 static void write_events(const char *path, const p8_input_frame_t *frames, int n) {
-    assert(pico8_input_save(frames, n, path));
+    assert(p8_input_save(frames, n, path));
 }
 
 static int load_events(const char *path, p8_input_t *input) {
     p8_input_init(input);
-    return pico8_input_load(input, path);
+    return p8_input_load(input, path);
 }
 
 /* La sortie de l'outil est relue par le chargeur, et ce sont les frames que
@@ -232,7 +232,7 @@ static void test_tool_output_is_reread_by_the_loader(void) {
     assert(load_events(DIR "/out.json", &loaded));
     assert(loaded.frame_count == kept);
     assert(memcmp(loaded.frames, expected, sizeof expected[0] * (size_t)kept) == 0);
-    pico8_input_free(&loaded);
+    p8_input_free(&loaded);
 }
 
 static void test_tool_drop_removes_a_range_and_never_empties_the_file(void) {
@@ -244,7 +244,7 @@ static void test_tool_drop_removes_a_range_and_never_empties_the_file(void) {
     assert(loaded.frame_count == 2);
     assert(same(loaded.frames[0], in[0]));
     assert(same(loaded.frames[1], in[3]));
-    pico8_input_free(&loaded);
+    p8_input_free(&loaded);
 
     assert(run(TOOL " drop " DIR "/four.json " DIR "/none.json 0 4") != 0);
     assert(run(TOOL " drop " DIR "/four.json " DIR "/none.json 3 2") != 0);
@@ -300,7 +300,7 @@ static int frame_count(const char *path) {
     p8_input_t loaded;
     assert(load_events(path, &loaded));
     int n = loaded.frame_count;
-    pico8_input_free(&loaded);
+    p8_input_free(&loaded);
     return n;
 }
 
@@ -394,6 +394,6 @@ int main(void) {
     test_segments_keep_a_fifth_of_their_moves_rounded_down();
     test_a_file_of_few_moves_keeps_its_last_frame();
     test_no_output_frame_is_idle_after_its_kept_predecessor();
-    printf("test_pico8_minimize: ok\n");
+    printf("test_minimize: ok\n");
     return 0;
 }

@@ -7,24 +7,24 @@
 #include <stdio.h>
 
 static void test_add_representative_values(void) {
-    p8_fixed_t a = pico8_fixed_from_double(2.5);
-    p8_fixed_t b = pico8_fixed_from_double(1.25);
+    p8_fixed_t a = fixed_test_double_from_double(2.5);
+    p8_fixed_t b = fixed_test_double_from_double(1.25);
     p8_fixed_t result = p8_fixed_add(a, b);
-    assert(result == pico8_fixed_from_double(3.75));
+    assert(result == fixed_test_double_from_double(3.75));
 }
 
 static void test_sub_representative_values(void) {
-    p8_fixed_t a = pico8_fixed_from_double(5.5);
-    p8_fixed_t b = pico8_fixed_from_double(2.25);
+    p8_fixed_t a = fixed_test_double_from_double(5.5);
+    p8_fixed_t b = fixed_test_double_from_double(2.25);
     p8_fixed_t result = p8_fixed_sub(a, b);
-    assert(result == pico8_fixed_from_double(3.25));
+    assert(result == fixed_test_double_from_double(3.25));
 }
 
 static void test_mul_representative_values(void) {
-    p8_fixed_t a = pico8_fixed_from_double(2.5);
-    p8_fixed_t b = pico8_fixed_from_double(4.0);
+    p8_fixed_t a = fixed_test_double_from_double(2.5);
+    p8_fixed_t b = fixed_test_double_from_double(4.0);
     p8_fixed_t result = p8_fixed_mul(a, b);
-    assert(result == pico8_fixed_from_double(10.0));
+    assert(result == fixed_test_double_from_double(10.0));
 }
 
 static void test_mul_overflow_wraps(void) {
@@ -51,10 +51,10 @@ static void test_add_overflow_128_squared_twice_wraps_to_min(void) {
 }
 
 static void test_div_representative_value(void) {
-    p8_fixed_t a = pico8_fixed_from_double(10.0);
-    p8_fixed_t b = pico8_fixed_from_double(4.0);
+    p8_fixed_t a = fixed_test_double_from_double(10.0);
+    p8_fixed_t b = fixed_test_double_from_double(4.0);
     p8_fixed_t result = p8_fixed_div(a, b);
-    assert(result == pico8_fixed_from_double(2.5));
+    assert(result == fixed_test_double_from_double(2.5));
 }
 
 static void test_div_negative_dividend_nonzero_divisor(void) {
@@ -64,7 +64,7 @@ static void test_div_negative_dividend_nonzero_divisor(void) {
     p8_fixed_t a = p8_fixed_from_int(-10);
     p8_fixed_t b = p8_fixed_from_int(4);
     p8_fixed_t result = p8_fixed_div(a, b);
-    assert(result == pico8_fixed_from_double(-2.5));
+    assert(result == fixed_test_double_from_double(-2.5));
 }
 
 static void test_div_by_zero_positive_dividend_saturates_positive(void) {
@@ -94,9 +94,9 @@ static void test_div_zero_by_zero_saturates_positive(void) {
 }
 
 static void test_neg_representative_value(void) {
-    p8_fixed_t a = pico8_fixed_from_double(3.5);
+    p8_fixed_t a = fixed_test_double_from_double(3.5);
     p8_fixed_t result = p8_fixed_neg(a);
-    assert(result == pico8_fixed_from_double(-3.5));
+    assert(result == fixed_test_double_from_double(-3.5));
 }
 
 static void test_neg_most_negative_value_wraps_to_itself(void) {
@@ -115,14 +115,14 @@ static void test_neg_most_negative_value_wraps_to_itself(void) {
 static void test_flr_positive_truncates_fraction(void) {
     /* flr truncates toward negative infinity on the fixed value: 3.75
      * floors to 3.0. */
-    p8_fixed_t x = pico8_fixed_from_double(3.75);
+    p8_fixed_t x = fixed_test_double_from_double(3.75);
     assert(p8_fixed_flr(x) == p8_fixed_from_int(3));
 }
 
 static void test_flr_negative_rounds_toward_negative_infinity(void) {
     /* -3.25 floors to -4.0, not -3.0 -- toward negative infinity, not
      * toward zero. */
-    p8_fixed_t x = pico8_fixed_from_double(-3.25);
+    p8_fixed_t x = fixed_test_double_from_double(-3.25);
     assert(p8_fixed_flr(x) == p8_fixed_from_int(-4));
 }
 
@@ -149,7 +149,7 @@ static void test_lit_is_the_raw_probe_value(void) {
     assert(P8_FIXED_LIT(0x0000451e, 0.27) == 17694);
     assert(P8_FIXED_LIT(0x000a8000, 10.5) == (p8_fixed_t)0x000A8000u);
     assert(P8_FIXED_LIT(0x0000fd70, 0.99) == 0xFD70);
-    assert(P8_FIXED_LIT(0x00008000, 0.5) == pico8_fixed_from_double(0.5));
+    assert(P8_FIXED_LIT(0x00008000, 0.5) == fixed_test_double_from_double(0.5));
 }
 
 /* Compiles only if the macro drops its second argument unevaluated. */
@@ -175,9 +175,9 @@ static void test_mod_positive_operands(void) {
 
 static void test_mod_fractional_operand(void) {
     /* a-flr(a/b)*b: 5.5 % 2 == 1.5. */
-    p8_fixed_t a = pico8_fixed_from_double(5.5);
+    p8_fixed_t a = fixed_test_double_from_double(5.5);
     p8_fixed_t b = p8_fixed_from_int(2);
-    assert(p8_fixed_mod(a, b) == pico8_fixed_from_double(1.5));
+    assert(p8_fixed_mod(a, b) == fixed_test_double_from_double(1.5));
 }
 
 static void test_mod_negative_dividend_matches_lua_floor_semantics(void) {
@@ -196,13 +196,13 @@ static void test_mod_result_less_than_divisor_when_exact(void) {
 }
 
 static void test_abs_negative_value(void) {
-    p8_fixed_t x = pico8_fixed_from_double(-3.5);
-    assert(p8_fixed_abs(x) == pico8_fixed_from_double(3.5));
+    p8_fixed_t x = fixed_test_double_from_double(-3.5);
+    assert(p8_fixed_abs(x) == fixed_test_double_from_double(3.5));
 }
 
 static void test_abs_positive_value_is_unchanged(void) {
-    p8_fixed_t x = pico8_fixed_from_double(3.5);
-    assert(p8_fixed_abs(x) == pico8_fixed_from_double(3.5));
+    p8_fixed_t x = fixed_test_double_from_double(3.5);
+    assert(p8_fixed_abs(x) == fixed_test_double_from_double(3.5));
 }
 
 static void test_abs_zero_is_zero(void) {
@@ -217,12 +217,12 @@ static void test_abs_most_negative_value_wraps_to_itself(void) {
 }
 
 static void test_sgn_positive_value_is_one(void) {
-    p8_fixed_t x = pico8_fixed_from_double(3.5);
+    p8_fixed_t x = fixed_test_double_from_double(3.5);
     assert(p8_fixed_sgn(x) == p8_fixed_from_int(1));
 }
 
 static void test_sgn_negative_value_is_negative_one(void) {
-    p8_fixed_t x = pico8_fixed_from_double(-3.5);
+    p8_fixed_t x = fixed_test_double_from_double(-3.5);
     assert(p8_fixed_sgn(x) == p8_fixed_from_int(-1));
 }
 
@@ -283,7 +283,7 @@ static void test_band_negative_raw_operand(void) {
     /* -1 is raw 0xFFFFFFFF (all bits set). AND with any value returns
      * that value unchanged. */
     p8_fixed_t all_ones = (p8_fixed_t)0xFFFFFFFFu;
-    p8_fixed_t x = pico8_fixed_from_double(2.5);
+    p8_fixed_t x = fixed_test_double_from_double(2.5);
     assert(p8_fixed_band(all_ones, x) == x);
 }
 
@@ -297,7 +297,7 @@ static void test_bor_negative_raw_operand(void) {
     /* OR with all-bits-set (-1) always yields all-bits-set, regardless of
      * the other operand. */
     p8_fixed_t all_ones = (p8_fixed_t)0xFFFFFFFFu;
-    p8_fixed_t x = pico8_fixed_from_double(2.5);
+    p8_fixed_t x = fixed_test_double_from_double(2.5);
     assert(p8_fixed_bor(all_ones, x) == all_ones);
 }
 
@@ -318,7 +318,7 @@ static void test_shl_negative_raw_operand(void) {
 }
 
 static void test_shl_by_zero_is_unchanged(void) {
-    p8_fixed_t x = pico8_fixed_from_double(2.5);
+    p8_fixed_t x = fixed_test_double_from_double(2.5);
     assert(p8_fixed_shl(x, 0) == x);
 }
 
@@ -328,8 +328,8 @@ static void test_sqrt_perfect_square(void) {
 }
 
 static void test_sqrt_perfect_square_fractional(void) {
-    p8_fixed_t x = pico8_fixed_from_double(0.25);
-    assert(p8_fixed_sqrt(x) == pico8_fixed_from_double(0.5));
+    p8_fixed_t x = fixed_test_double_from_double(0.25);
+    assert(p8_fixed_sqrt(x) == fixed_test_double_from_double(0.5));
 }
 
 static void test_sqrt_zero_is_zero(void) {
@@ -547,19 +547,19 @@ static void test_sin_quarter_turn_sign_is_inverted(void) {
      * screen-space y, so sin(0.25 turns) == -1 exactly -- this pins down
      * the sign-inversion convention itself, not an arbitrary computed
      * decimal. */
-    p8_fixed_t quarter_turn = pico8_fixed_from_double(0.25);
+    p8_fixed_t quarter_turn = fixed_test_double_from_double(0.25);
     assert(p8_fixed_sin(quarter_turn) == p8_fixed_from_int(-1));
 }
 
 static void test_cos_quarter_turn_is_zero(void) {
     /* Another documented identity: cos(pi/2) == 0, unaffected by sin's
      * sign inversion since cos follows the standard convention. */
-    p8_fixed_t quarter_turn = pico8_fixed_from_double(0.25);
+    p8_fixed_t quarter_turn = fixed_test_double_from_double(0.25);
     assert(p8_fixed_cos(quarter_turn) == p8_fixed_from_int(0));
 }
 
 static void test_cos_half_turn_is_negative_one(void) {
-    p8_fixed_t half_turn = pico8_fixed_from_double(0.5);
+    p8_fixed_t half_turn = fixed_test_double_from_double(0.5);
     assert(p8_fixed_cos(half_turn) == p8_fixed_from_int(-1));
 }
 

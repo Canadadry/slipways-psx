@@ -44,7 +44,7 @@ static mouse_t *mouse_create(void) {
     self->header.pos = (const vec_t *const *)&self->pos;
     self->pos = &g_mouse_pos;
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("mouse");
+    class_coverage_record("mouse");
 #endif
     mouse_construct(dispatch_context_mem());
     entity_construct(&self->header);

@@ -387,7 +387,7 @@ static slipway_t *slipway_create(const slipway_keys_t *keys) {
         self->start = keys->start;
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("slipway");
+    class_coverage_record("slipway");
 #endif
     slipway_construct(self);
     planet_grab_arena_close();

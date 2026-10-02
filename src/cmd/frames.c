@@ -11,23 +11,23 @@
 #include <stdlib.h>
 #include <string.h>
 
-static const char *status_text(pico8_screencast_status_t status) {
+static const char *status_text(screencast_status_t status) {
     switch (status) {
-    case PICO8_SCREENCAST_OK:
+    case SCREENCAST_OK:
         return "ok";
-    case PICO8_SCREENCAST_UNREADABLE:
+    case SCREENCAST_UNREADABLE:
         return "illisible ou absente";
-    case PICO8_SCREENCAST_EMPTY:
+    case SCREENCAST_EMPTY:
         return "vide";
-    case PICO8_SCREENCAST_TRUNCATED:
+    case SCREENCAST_TRUNCATED:
         return "tronquee (taille non multiple d'une frame)";
     }
     return "etat inconnu";
 }
 
-static int open_capture(pico8_screencast_reader_t *reader, const char *path) {
-    pico8_screencast_status_t status = pico8_screencast_reader_open(reader, path);
-    if (status != PICO8_SCREENCAST_OK) {
+static int open_capture(screencast_reader_t *reader, const char *path) {
+    screencast_status_t status = screencast_reader_open(reader, path);
+    if (status != SCREENCAST_OK) {
         fprintf(stderr, "pico8_frames: capture %s : %s\n", path, status_text(status));
         return 0;
     }
@@ -52,22 +52,22 @@ static int write_frame(const char *capture_path, const char *index_text) {
         return 0;
     }
 
-    pico8_screencast_reader_t reader;
+    screencast_reader_t reader;
     if (!open_capture(&reader, capture_path)) {
         return 0;
     }
 
-    static unsigned char pixels[PICO8_SCREENCAST_FRAME_PIXELS];
-    int count = pico8_screencast_frame_count(&reader);
-    int read_ok = pico8_screencast_read_frame(&reader, index, pixels);
-    pico8_screencast_reader_close(&reader);
+    static unsigned char pixels[SCREENCAST_FRAME_PIXELS];
+    int count = screencast_frame_count(&reader);
+    int read_ok = screencast_read_frame(&reader, index, pixels);
+    screencast_reader_close(&reader);
     if (!read_ok) {
         fprintf(stderr, "pico8_frames: capture %s : pas de frame %d (%d frame(s), index 0 a %d)\n",
                 capture_path, index, count, count - 1);
         return 0;
     }
 
-    if (!pico8_dump_pixels(pixels, stdout) || fflush(stdout) != 0) {
+    if (!dump_pixels(pixels, stdout) || fflush(stdout) != 0) {
         fprintf(stderr, "pico8_frames: ecriture de la frame %d impossible\n", index);
         return 0;
     }

@@ -132,7 +132,7 @@ static ui_t *ui_create(void) {
     self->left_held = NULL;
     self->right_held = NULL;
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("ui");
+    class_coverage_record("ui");
 #endif
     entity_construct(&self->header);
     return self;

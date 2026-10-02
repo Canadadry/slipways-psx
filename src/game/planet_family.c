@@ -71,7 +71,7 @@ static planet_t *structure_create(const planet_keys_t *keys) {
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("structure");
+    class_coverage_record("structure");
 #endif
     planet_construct(self);
     entity_construct(&self->header);
@@ -133,7 +133,7 @@ static planet_t *trading_hub_create(const planet_keys_t *keys) {
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("trading_hub");
+    class_coverage_record("trading_hub");
 #endif
     planet_construct(self);
     entity_construct(&self->header);
@@ -176,7 +176,7 @@ static planet_t *processor_create(const planet_keys_t *keys) {
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("processor");
+    class_coverage_record("processor");
 #endif
     planet_construct(self);
     entity_construct(&self->header);
@@ -257,7 +257,7 @@ static planet_t *ascension_create(const planet_keys_t *keys) {
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("ascension");
+    class_coverage_record("ascension");
 #endif
     emitter_init((entity_t *)self);
     planet_construct(self);
@@ -329,7 +329,7 @@ static planet_t *protostar_create(const planet_keys_t *keys) {
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("protostar");
+    class_coverage_record("protostar");
 #endif
     protostar_construct(self);
     emitter_init((entity_t *)self);
@@ -515,7 +515,7 @@ static planet_t *burst_create(const burst_keys_t *keys) {
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("burst");
+    class_coverage_record("burst");
 #endif
     burst_construct(self);
     planet_construct_in(self, slot);

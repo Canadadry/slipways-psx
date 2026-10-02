@@ -30,7 +30,7 @@ static int parse_int(const char *text, int *out) {
 
 static int load(p8_input_t *input, const char *path) {
     p8_input_init(input);
-    if (!pico8_input_load(input, path)) {
+    if (!p8_input_load(input, path)) {
         fprintf(stderr, "pico8_minimize: %s absent ou malformé\n", path);
         return 0;
     }
@@ -38,7 +38,7 @@ static int load(p8_input_t *input, const char *path) {
 }
 
 static int save(const p8_input_frame_t *frames, int n, const char *path) {
-    if (!pico8_input_save(frames, n, path)) {
+    if (!p8_input_save(frames, n, path)) {
         fprintf(stderr, "pico8_minimize: écriture de %s impossible\n", path);
         return 0;
     }
@@ -51,9 +51,9 @@ static int mechanical(const char *in_path, const char *out_path) {
         return 1;
     }
     p8_input_frame_t *out = malloc(sizeof *out * (size_t)input.frame_count);
-    int ok = out != NULL && save(out, pico8_minimize_mechanical(input.frames, input.frame_count, out), out_path);
+    int ok = out != NULL && save(out, minimize_mechanical(input.frames, input.frame_count, out), out_path);
     free(out);
-    pico8_input_free(&input);
+    p8_input_free(&input);
     return !ok;
 }
 
@@ -72,13 +72,13 @@ static int drop(const char *in_path, const char *out_path, const char *first_tex
     if (count == 0 || first >= n || count > n - first || count == n) {
         fprintf(stderr, "pico8_minimize: plage %d+%d hors des %d frames de %s ou qui le viderait\n", first, count,
                 n, in_path);
-        pico8_input_free(&input);
+        p8_input_free(&input);
         return 1;
     }
     memmove(&input.frames[first], &input.frames[first + count],
             sizeof *input.frames * (size_t)(n - first - count));
     int ok = save(input.frames, n - count, out_path);
-    pico8_input_free(&input);
+    p8_input_free(&input);
     return !ok;
 }
 
@@ -88,7 +88,7 @@ static int rewrite(const char *in_path, const char *out_path) {
         return 1;
     }
     int ok = save(input.frames, input.frame_count, out_path);
-    pico8_input_free(&input);
+    p8_input_free(&input);
     return !ok;
 }
 
@@ -98,7 +98,7 @@ static int count_frames(const char *in_path) {
         return 1;
     }
     printf("%d\n", input.frame_count);
-    pico8_input_free(&input);
+    p8_input_free(&input);
     return 0;
 }
 

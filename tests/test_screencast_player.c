@@ -28,18 +28,18 @@
  * le format et la lecture indexee sont dans pico8_screencast, la
  * vitesse dans pico8_replay_control. */
 static void test_playback_starts_at_the_first_frame_and_walks_in_order(void) {
-    pico8_screencast_player_t player;
-    pico8_screencast_player_init(&player, 5);
+    screencast_player_t player;
+    screencast_player_init(&player, 5);
 
-    assert(pico8_screencast_player_current_frame(&player) == 0);
-    pico8_screencast_player_advance(&player);
-    assert(pico8_screencast_player_current_frame(&player) == 1);
-    pico8_screencast_player_advance(&player);
-    assert(pico8_screencast_player_current_frame(&player) == 2);
-    pico8_screencast_player_advance(&player);
-    assert(pico8_screencast_player_current_frame(&player) == 3);
-    pico8_screencast_player_advance(&player);
-    assert(pico8_screencast_player_current_frame(&player) == 4);
+    assert(screencast_player_current_frame(&player) == 0);
+    screencast_player_advance(&player);
+    assert(screencast_player_current_frame(&player) == 1);
+    screencast_player_advance(&player);
+    assert(screencast_player_current_frame(&player) == 2);
+    screencast_player_advance(&player);
+    assert(screencast_player_current_frame(&player) == 3);
+    screencast_player_advance(&player);
+    assert(screencast_player_current_frame(&player) == 4);
 }
 
 /* LA FIN DU FICHIER, QUI EST LA VRAIE DECISION DE CE MODULE. La lecture
@@ -53,20 +53,20 @@ static void test_playback_starts_at_the_first_frame_and_walks_in_order(void) {
  * repartirait, ou qui deborderait a la deuxieme avance de trop,
  * passerait un test qui s'arreterait a la premiere. */
 static void test_playback_freezes_on_the_last_frame(void) {
-    pico8_screencast_player_t player;
-    pico8_screencast_player_init(&player, 3);
+    screencast_player_t player;
+    screencast_player_init(&player, 3);
 
-    assert(pico8_screencast_player_current_frame(&player) == 0);
-    pico8_screencast_player_advance(&player);
-    assert(pico8_screencast_player_current_frame(&player) == 1);
-    pico8_screencast_player_advance(&player);
-    assert(pico8_screencast_player_current_frame(&player) == 2);
+    assert(screencast_player_current_frame(&player) == 0);
+    screencast_player_advance(&player);
+    assert(screencast_player_current_frame(&player) == 1);
+    screencast_player_advance(&player);
+    assert(screencast_player_current_frame(&player) == 2);
 
     /* La derniere frame est atteinte : a partir d'ici, plus rien ne
      * bouge, et surtout jamais vers 0. */
     for (int i = 0; i < 50; i++) {
-        pico8_screencast_player_advance(&player);
-        assert(pico8_screencast_player_current_frame(&player) == 2);
+        screencast_player_advance(&player);
+        assert(screencast_player_current_frame(&player) == 2);
     }
 }
 
@@ -76,12 +76,12 @@ static void test_playback_freezes_on_the_last_frame(void) {
  * bornes ne doit jamais etre demande a pico8_screencast_read_frame, qui
  * le refuserait. */
 static void test_a_single_frame_capture_stays_on_its_only_frame(void) {
-    pico8_screencast_player_t player;
-    pico8_screencast_player_init(&player, 1);
+    screencast_player_t player;
+    screencast_player_init(&player, 1);
 
     for (int i = 0; i < 100; i++) {
-        assert(pico8_screencast_player_current_frame(&player) == 0);
-        pico8_screencast_player_advance(&player);
+        assert(screencast_player_current_frame(&player) == 0);
+        screencast_player_advance(&player);
     }
 }
 
@@ -100,19 +100,19 @@ static void test_a_single_frame_capture_stays_on_its_only_frame(void) {
  * pas toujours celui qu'on croit), dit la cause, et dit qu'aucune
  * fenetre ne s'est ouverte. */
 static void test_each_refusal_names_the_path_and_its_own_reason(void) {
-    char out[PICO8_SCREENCAST_PLAYER_REFUSAL_MAX];
+    char out[SCREENCAST_PLAYER_REFUSAL_MAX];
 
-    pico8_screencast_player_format_refusal(PICO8_SCREENCAST_UNREADABLE, "tmp/absent.bin", out, sizeof out);
+    screencast_player_format_refusal(SCREENCAST_UNREADABLE, "tmp/absent.bin", out, sizeof out);
     assert(strcmp(out,
                   "screencast-viewer: 'tmp/absent.bin' est introuvable ou illisible -- aucune fenetre n'a ete ouverte. "
                   "Fabriquer les pixels : make screencast EVENTS=<events.json>") == 0);
 
-    pico8_screencast_player_format_refusal(PICO8_SCREENCAST_EMPTY, "tmp/vide.bin", out, sizeof out);
+    screencast_player_format_refusal(SCREENCAST_EMPTY, "tmp/vide.bin", out, sizeof out);
     assert(strcmp(out,
                   "screencast-viewer: 'tmp/vide.bin' est vide -- aucune fenetre n'a ete ouverte. "
                   "Une capture interrompue avant sa premiere frame donne ce fichier ; la refaire : make screencast EVENTS=<events.json>") == 0);
 
-    pico8_screencast_player_format_refusal(PICO8_SCREENCAST_TRUNCATED, "tmp/coupe.bin", out, sizeof out);
+    screencast_player_format_refusal(SCREENCAST_TRUNCATED, "tmp/coupe.bin", out, sizeof out);
     assert(strcmp(out,
                   "screencast-viewer: 'tmp/coupe.bin' est tronque : sa taille n'est pas un multiple de 8192 octets, "
                   "donc il se termine au milieu d'une frame -- aucune fenetre n'a ete ouverte. "
@@ -130,7 +130,7 @@ static void test_a_refusal_truncates_rather_than_overflowing(void) {
     char guard[8];
 
     memset(guard, 0x7f, sizeof guard);
-    pico8_screencast_player_format_refusal(PICO8_SCREENCAST_UNREADABLE, "tmp/absent.bin", out, sizeof out);
+    screencast_player_format_refusal(SCREENCAST_UNREADABLE, "tmp/absent.bin", out, sizeof out);
 
     assert(out[sizeof out - 1] == '\0');
     assert(strlen(out) < sizeof out);
@@ -177,6 +177,6 @@ int main(void) {
     test_a_refusal_truncates_rather_than_overflowing();
     test_the_shared_palette_is_the_published_pico8_one();
 
-    printf("test_pico8_screencast_player: OK\n");
+    printf("test_screencast_player: OK\n");
     return 0;
 }

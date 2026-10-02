@@ -5,31 +5,31 @@
 
 #include <string.h>
 
-#define SIDE (P8_SCREEN_WIDTH * PICO8_GIF_SCALE)
+#define SIDE (P8_SCREEN_WIDTH * GIF_SCALE)
 #define MIN_CODE_SIZE 4
 #define CLEAR_CODE (1 << MIN_CODE_SIZE)
 #define EOI_CODE (CLEAR_CODE + 1)
 #define MAX_CODES 4096
 
-static void put(pico8_gif_writer_t *w, const void *bytes, size_t n) {
-    if (w->ok && fwrite(bytes, 1, n, w->file) != n) {
-        w->ok = 0;
+static void put(gif_writer_t *w, const void *bytes, size_t n) {
+    if (w->succeeded && fwrite(bytes, 1, n, w->file) != n) {
+        w->succeeded = 0;
     }
 }
 
-static void put_byte(pico8_gif_writer_t *w, int b) {
+static void put_byte(gif_writer_t *w, int b) {
     unsigned char c = (unsigned char)b;
     put(w, &c, 1);
 }
 
-static void put_u16(pico8_gif_writer_t *w, int v) {
+static void put_u16(gif_writer_t *w, int v) {
     put_byte(w, v & 0xFF);
     put_byte(w, (v >> 8) & 0xFF);
 }
 
-int pico8_gif_open(pico8_gif_writer_t *writer, FILE *file) {
+int gif_open(gif_writer_t *writer, FILE *file) {
     writer->file = file;
-    writer->ok = file != NULL;
+    writer->succeeded = file != NULL;
     put(writer, "GIF89a", 6);
     put_u16(writer, SIDE);
     put_u16(writer, SIDE);
@@ -50,11 +50,11 @@ int pico8_gif_open(pico8_gif_writer_t *writer, FILE *file) {
     put_byte(writer, 1);
     put_u16(writer, 0);
     put_byte(writer, 0);
-    return writer->ok;
+    return writer->succeeded;
 }
 
 typedef struct {
-    pico8_gif_writer_t *w;
+    gif_writer_t *writer;
     unsigned char block[255];
     int block_len;
     unsigned long bits;
@@ -64,8 +64,8 @@ typedef struct {
 static void sink_byte(bit_sink_t *s, unsigned char b) {
     s->block[s->block_len++] = b;
     if (s->block_len == 255) {
-        put_byte(s->w, 255);
-        put(s->w, s->block, 255);
+        put_byte(s->writer, 255);
+        put(s->writer, s->block, 255);
         s->block_len = 0;
     }
 }
@@ -85,20 +85,20 @@ static void sink_flush(bit_sink_t *s) {
         sink_byte(s, (unsigned char)(s->bits & 0xFF));
     }
     if (s->block_len > 0) {
-        put_byte(s->w, s->block_len);
-        put(s->w, s->block, (size_t)s->block_len);
+        put_byte(s->writer, s->block_len);
+        put(s->writer, s->block, (size_t)s->block_len);
     }
-    put_byte(s->w, 0);
+    put_byte(s->writer, 0);
 }
 
 /* child[code][c] : le code de la chaîne `code` suivie de l'index c, 0 si
  * absente (0 n'est jamais un code d'enfant, les enfants commencent à 18). */
 static unsigned short child[MAX_CODES][P8_PALETTE_COLORS];
 
-static void lzw_encode(pico8_gif_writer_t *w, const unsigned char *pixels, long count) {
+static void lzw_encode(gif_writer_t *w, const unsigned char *pixels, long count) {
     bit_sink_t s;
     memset(&s, 0, sizeof s);
-    s.w = w;
+    s.writer = w;
     int width = MIN_CODE_SIZE + 1;
     int next = EOI_CODE + 1;
     memset(child, 0, sizeof child);
@@ -146,7 +146,7 @@ static void draw_ring(unsigned char *screen, int cx, int cy, int radius, unsigne
     }
 }
 
-int pico8_gif_write_frame(pico8_gif_writer_t *writer, const unsigned char *pixels, const p8_input_frame_t *event) {
+int gif_write_frame(gif_writer_t *writer, const unsigned char *pixels, const p8_input_frame_t *event) {
     static unsigned char screen[P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT];
     static unsigned char scaled[SIDE * SIDE];
     memcpy(screen, pixels, sizeof screen);
@@ -159,7 +159,7 @@ int pico8_gif_write_frame(pico8_gif_writer_t *writer, const unsigned char *pixel
     }
     for (int y = 0; y < SIDE; y++) {
         for (int x = 0; x < SIDE; x++) {
-            scaled[y * SIDE + x] = screen[(y / PICO8_GIF_SCALE) * P8_SCREEN_WIDTH + x / PICO8_GIF_SCALE] & 15;
+            scaled[y * SIDE + x] = screen[(y / GIF_SCALE) * P8_SCREEN_WIDTH + x / GIF_SCALE] & 15;
         }
     }
     /* Graphic Control Extension : pas de transparence, délai 3 cs. */
@@ -178,10 +178,10 @@ int pico8_gif_write_frame(pico8_gif_writer_t *writer, const unsigned char *pixel
     put_byte(writer, 0);
     put_byte(writer, MIN_CODE_SIZE);
     lzw_encode(writer, scaled, (long)SIDE * SIDE);
-    return writer->ok;
+    return writer->succeeded;
 }
 
-int pico8_gif_close(pico8_gif_writer_t *writer) {
+int gif_close(gif_writer_t *writer) {
     put_byte(writer, 0x3B);
-    return writer->ok;
+    return writer->succeeded;
 }

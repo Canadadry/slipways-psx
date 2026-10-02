@@ -17,42 +17,42 @@
 #include <stdio.h>
 
 static void test_no_path_requests_no_recording(void) {
-    pico8_replay_source_t source;
+    replay_source_t source;
 
-    assert(pico8_replay_source_open(&source, NULL) == PICO8_REPLAY_SOURCE_NONE);
-    assert(pico8_replay_source_frame_count(&source) == 0);
+    assert(replay_source_open(&source, NULL) == REPLAY_SOURCE_NONE);
+    assert(replay_source_frame_count(&source) == 0);
 
-    pico8_replay_source_close(&source);
+    replay_source_close(&source);
 }
 
 static void test_valid_recording_loads_with_its_frame_count(void) {
-    pico8_replay_source_t source;
+    replay_source_t source;
 
-    assert(pico8_replay_source_open(&source, "tests/fixtures/events_valid.json") ==
-           PICO8_REPLAY_SOURCE_LOADED);
-    assert(pico8_replay_source_frame_count(&source) == 3);
+    assert(replay_source_open(&source, "tests/fixtures/events_valid.json") ==
+           REPLAY_SOURCE_LOADED);
+    assert(replay_source_frame_count(&source) == 3);
 
-    pico8_replay_source_close(&source);
+    replay_source_close(&source);
 }
 
 static void test_missing_path_reports_load_failure(void) {
-    pico8_replay_source_t source;
+    replay_source_t source;
 
-    assert(pico8_replay_source_open(&source, "tests/fixtures/no_such_recording.json") ==
-           PICO8_REPLAY_SOURCE_LOAD_FAILED);
-    assert(pico8_replay_source_frame_count(&source) == 0);
+    assert(replay_source_open(&source, "tests/fixtures/no_such_recording.json") ==
+           REPLAY_SOURCE_LOAD_FAILED);
+    assert(replay_source_frame_count(&source) == 0);
 
-    pico8_replay_source_close(&source);
+    replay_source_close(&source);
 }
 
 static void test_malformed_recording_reports_load_failure(void) {
-    pico8_replay_source_t source;
+    replay_source_t source;
 
-    assert(pico8_replay_source_open(&source, "tests/fixtures/events_malformed_missing_field.json") ==
-           PICO8_REPLAY_SOURCE_LOAD_FAILED);
-    assert(pico8_replay_source_frame_count(&source) == 0);
+    assert(replay_source_open(&source, "tests/fixtures/events_malformed_missing_field.json") ==
+           REPLAY_SOURCE_LOAD_FAILED);
+    assert(replay_source_frame_count(&source) == 0);
 
-    pico8_replay_source_close(&source);
+    replay_source_close(&source);
 }
 
 /* The three frames of tests/fixtures/events_valid.json, transcribed: the
@@ -76,34 +76,34 @@ static void assert_frame_equals(const p8_input_frame_t *got, const p8_input_fram
 }
 
 static void test_loaded_recording_serves_its_first_frame(void) {
-    pico8_replay_source_t source;
+    replay_source_t source;
     p8_input_frame_t frame;
 
-    assert(pico8_replay_source_open(&source, "tests/fixtures/events_valid.json") ==
-           PICO8_REPLAY_SOURCE_LOADED);
+    assert(replay_source_open(&source, "tests/fixtures/events_valid.json") ==
+           REPLAY_SOURCE_LOADED);
 
-    assert(pico8_replay_source_next_frame(&source, &frame) == 1);
+    assert(replay_source_next_frame(&source, &frame) == 1);
     assert_frame_equals(&frame, &k_events_valid[0]);
 
-    pico8_replay_source_close(&source);
+    replay_source_close(&source);
 }
 
 /* A recording of N frames must feed the game those N frames, in the order
  * they were played, and nothing else. */
 static void test_loaded_recording_serves_every_frame_in_order(void) {
-    pico8_replay_source_t source;
+    replay_source_t source;
 
-    assert(pico8_replay_source_open(&source, "tests/fixtures/events_valid.json") ==
-           PICO8_REPLAY_SOURCE_LOADED);
-    assert(pico8_replay_source_frame_count(&source) == k_events_valid_count);
+    assert(replay_source_open(&source, "tests/fixtures/events_valid.json") ==
+           REPLAY_SOURCE_LOADED);
+    assert(replay_source_frame_count(&source) == k_events_valid_count);
 
     for (int i = 0; i < k_events_valid_count; i++) {
         p8_input_frame_t frame;
-        assert(pico8_replay_source_next_frame(&source, &frame) == 1);
+        assert(replay_source_next_frame(&source, &frame) == 1);
         assert_frame_equals(&frame, &k_events_valid[i]);
     }
 
-    pico8_replay_source_close(&source);
+    replay_source_close(&source);
 }
 
 /* The end of the recording is where the player gets the controls back, so
@@ -112,36 +112,36 @@ static void test_loaded_recording_serves_every_frame_in_order(void) {
  * crash or keep driving the game from a file that ran out. The loop is far
  * longer than the recording on purpose: exhaustion is a terminal state. */
 static void test_exhausted_recording_reports_exhaustion_forever(void) {
-    pico8_replay_source_t source;
+    replay_source_t source;
     p8_input_frame_t frame;
 
-    assert(pico8_replay_source_open(&source, "tests/fixtures/events_valid.json") ==
-           PICO8_REPLAY_SOURCE_LOADED);
+    assert(replay_source_open(&source, "tests/fixtures/events_valid.json") ==
+           REPLAY_SOURCE_LOADED);
 
     for (int i = 0; i < k_events_valid_count; i++) {
-        assert(pico8_replay_source_next_frame(&source, &frame) == 1);
+        assert(replay_source_next_frame(&source, &frame) == 1);
     }
 
     for (int i = 0; i < 100; i++) {
-        assert(pico8_replay_source_next_frame(&source, &frame) == 0);
+        assert(replay_source_next_frame(&source, &frame) == 0);
     }
 
-    pico8_replay_source_close(&source);
+    replay_source_close(&source);
 }
 
 /* Why the driver needs no mode flag: launching without an argument is a
  * replay that is over before it starts, so the first call already says
  * "take your frames from the hardware". */
 static void test_no_recording_is_exhausted_from_the_first_frame(void) {
-    pico8_replay_source_t source;
+    replay_source_t source;
     p8_input_frame_t frame;
 
-    assert(pico8_replay_source_open(&source, NULL) == PICO8_REPLAY_SOURCE_NONE);
+    assert(replay_source_open(&source, NULL) == REPLAY_SOURCE_NONE);
 
-    assert(pico8_replay_source_next_frame(&source, &frame) == 0);
-    assert(pico8_replay_source_next_frame(&source, &frame) == 0);
+    assert(replay_source_next_frame(&source, &frame) == 0);
+    assert(replay_source_next_frame(&source, &frame) == 0);
 
-    pico8_replay_source_close(&source);
+    replay_source_close(&source);
 }
 
 /* An accessor on the cursor this module already keeps, not a second
@@ -150,26 +150,26 @@ static void test_no_recording_is_exhausted_from_the_first_frame(void) {
  * SERVED, so 1 on the first frame and N on the last -- one ahead of the
  * 0-based index the marker file writes. */
 static void test_frames_served_tracks_the_replay_position(void) {
-    pico8_replay_source_t source;
+    replay_source_t source;
     p8_input_frame_t frame;
 
-    assert(pico8_replay_source_open(&source, "tests/fixtures/events_valid.json") ==
-           PICO8_REPLAY_SOURCE_LOADED);
-    assert(pico8_replay_source_frames_served(&source) == 0);
+    assert(replay_source_open(&source, "tests/fixtures/events_valid.json") ==
+           REPLAY_SOURCE_LOADED);
+    assert(replay_source_frames_served(&source) == 0);
 
-    assert(pico8_replay_source_next_frame(&source, &frame) == 1);
-    assert(pico8_replay_source_frames_served(&source) == 1);
-    assert(pico8_replay_source_next_frame(&source, &frame) == 1);
-    assert(pico8_replay_source_next_frame(&source, &frame) == 1);
-    assert(pico8_replay_source_frames_served(&source) == 3);
-    assert(pico8_replay_source_frames_served(&source) == pico8_replay_source_frame_count(&source));
+    assert(replay_source_next_frame(&source, &frame) == 1);
+    assert(replay_source_frames_served(&source) == 1);
+    assert(replay_source_next_frame(&source, &frame) == 1);
+    assert(replay_source_next_frame(&source, &frame) == 1);
+    assert(replay_source_frames_served(&source) == 3);
+    assert(replay_source_frames_served(&source) == replay_source_frame_count(&source));
 
     /* Exhaustion does not advance it: the replay stays at N of N instead
      * of counting the live frames the player now plays. */
-    assert(pico8_replay_source_next_frame(&source, &frame) == 0);
-    assert(pico8_replay_source_frames_served(&source) == 3);
+    assert(replay_source_next_frame(&source, &frame) == 0);
+    assert(replay_source_frames_served(&source) == 3);
 
-    pico8_replay_source_close(&source);
+    replay_source_close(&source);
 }
 
 int main(void) {
@@ -183,6 +183,6 @@ int main(void) {
     test_no_recording_is_exhausted_from_the_first_frame();
     test_frames_served_tracks_the_replay_position();
 
-    printf("test_pico8_replay_source: all tests passed\n");
+    printf("test_replay_source: all tests passed\n");
     return 0;
 }

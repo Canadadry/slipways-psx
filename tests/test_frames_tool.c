@@ -58,10 +58,10 @@ static void assert_stderr_names(const char *needle) {
 static void test_emitted_last_frame_is_the_driver_dump(void) {
     capture_fixture();
 
-    pico8_screencast_reader_t reader;
-    assert(pico8_screencast_reader_open(&reader, CAPTURE) == PICO8_SCREENCAST_OK);
-    int last = pico8_screencast_frame_count(&reader) - 1;
-    pico8_screencast_reader_close(&reader);
+    screencast_reader_t reader;
+    assert(screencast_reader_open(&reader, CAPTURE) == SCREENCAST_OK);
+    int last = screencast_frame_count(&reader) - 1;
+    screencast_reader_close(&reader);
 
     char command[256];
     snprintf(command, sizeof(command), TOOL " frame " CAPTURE " %d > " FRAME_OUT, last);
@@ -92,10 +92,10 @@ static void test_emitted_last_frame_is_the_driver_dump(void) {
 static void test_out_of_bounds_frame_fails_and_names_the_index(void) {
     capture_fixture();
 
-    pico8_screencast_reader_t reader;
-    assert(pico8_screencast_reader_open(&reader, CAPTURE) == PICO8_SCREENCAST_OK);
-    int count = pico8_screencast_frame_count(&reader);
-    pico8_screencast_reader_close(&reader);
+    screencast_reader_t reader;
+    assert(screencast_reader_open(&reader, CAPTURE) == SCREENCAST_OK);
+    int count = screencast_frame_count(&reader);
+    screencast_reader_close(&reader);
 
     char command[256];
     char index_text[32];

@@ -204,7 +204,7 @@ static planet_t *slipgate_create(const planet_keys_t *keys) {
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("slipgate");
+    class_coverage_record("slipgate");
 #endif
     planet_construct(self);
     entity_construct(&self->header);
@@ -248,7 +248,7 @@ static planet_t *infraspace_gate_create(const planet_keys_t *keys) {
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("infraspace_gate");
+    class_coverage_record("infraspace_gate");
 #endif
     planet_construct(self);
     entity_construct(&self->header);
@@ -342,7 +342,7 @@ static planet_t *synthesizer_create(const planet_keys_t *keys) {
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("synthesizer");
+    class_coverage_record("synthesizer");
 #endif
     emitter_init((entity_t *)self);
     planet_construct(self);

@@ -221,7 +221,7 @@ static structure_icon_t *structure_icon_create(const structure_icon_keys_t *keys
         self->tooltip = keys->tooltip;
     }
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("structure_icon");
+    class_coverage_record("structure_icon");
 #endif
     entity_construct(&self->header);
     return self;

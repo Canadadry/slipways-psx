@@ -20,10 +20,10 @@ void pico8_raylib_backend_init(pico8_raylib_backend_t *backend) {
      * human can pair it with its recording by name, and two clock reads
      * could straddle a second. */
     time_t now = time(NULL);
-    char record_path[PICO8_SESSION_RECORDER_PATH_MAX];
+    char record_path[SESSION_RECORDER_PATH_MAX];
     snprintf(record_path, sizeof(record_path), "tmp/events_recorded_%ld.json", (long)now);
     snprintf(backend->markers_path, sizeof(backend->markers_path), "tmp/events_recorded_%ld.markers.txt", (long)now);
-    pico8_session_recorder_open(&backend->recorder, record_path);
+    session_recorder_open(&backend->recorder, record_path);
 
     InitWindow(P8_SCREEN_WIDTH * PICO8_RAYLIB_BACKEND_SCALE, P8_SCREEN_HEIGHT * PICO8_RAYLIB_BACKEND_SCALE,
                "Slipways (raylib PC port)");
@@ -75,7 +75,7 @@ void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, p8_input_f
      * survives a later crash. The count read here is the index this frame
      * gets when the caller records it on its very next call. */
     if (IsKeyReleased(KEY_SPACE)) {
-        int marked_frame = pico8_session_recorder_frame_count(&backend->recorder);
+        int marked_frame = session_recorder_frame_count(&backend->recorder);
         FILE *markers = fopen(backend->markers_path, "a");
         if (markers) {
             fprintf(markers, "%d\n", marked_frame);
@@ -86,15 +86,15 @@ void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, p8_input_f
     }
 }
 
-void pico8_raylib_backend_poll_replay_controls(pico8_replay_control_t *control) {
+void pico8_raylib_backend_poll_replay_controls(replay_control_t *control) {
     if (IsKeyPressed(KEY_PAGE_UP)) {
-        pico8_replay_control_faster(control);
+        replay_control_faster(control);
     }
     if (IsKeyPressed(KEY_PAGE_DOWN)) {
-        pico8_replay_control_slower(control);
+        replay_control_slower(control);
     }
     if (IsKeyPressed(KEY_END)) {
-        pico8_replay_control_uncap(control);
+        replay_control_uncap(control);
     }
 }
 
@@ -129,12 +129,12 @@ void pico8_raylib_backend_record_frame(pico8_raylib_backend_t *backend, const p8
     /* The return value is ignored on purpose: the recorder leaves its own
      * count alone on failure, so the marker file keeps naming the right
      * frame. */
-    (void)pico8_session_recorder_record_frame(&backend->recorder, frame);
+    (void)session_recorder_record_frame(&backend->recorder, frame);
 }
 
 void pico8_raylib_backend_shutdown(pico8_raylib_backend_t *backend) {
     UnloadTexture(backend->screen_texture);
     ShowCursor();
     CloseWindow();
-    pico8_session_recorder_close(&backend->recorder);
+    session_recorder_close(&backend->recorder);
 }

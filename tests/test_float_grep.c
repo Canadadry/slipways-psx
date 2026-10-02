@@ -73,7 +73,7 @@ static void test_comment_word_in_included_header_is_found(void) {
 
 static void test_identifier_suffix_is_not_a_word(void) {
     setup();
-    write_file(SRC "/core.h", "int core_half(int x);\nint pico8_fixed_to_double;\n");
+    write_file(SRC "/core.h", "int core_half(int x);\nint fixed_test_double_to_double;\n");
     assert(run_grep(SRC "/core.c") == 0);
     assert(strstr(read_file(OUT), "lignes 0\n") != NULL);
 }

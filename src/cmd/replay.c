@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
 
     p8_input_t input;
     p8_input_init(&input);
-    assert(pico8_input_load(&input, events_path));
+    assert(p8_input_load(&input, events_path));
 
     dispatch_context_set_gfx(&gfx);
     dispatch_context_set_mem(&mem);
@@ -112,8 +112,8 @@ int main(int argc, char **argv) {
     /* Un echec tue le processus : une capture absente ou tronquee
      * produirait une empreinte fausse, indiscernable d'une regression.
      * fprintf plutot qu'un assert, pour que le message nomme le chemin. */
-    pico8_screencast_writer_t capture = { NULL };
-    if (capture_path && !pico8_screencast_writer_open(&capture, capture_path)) {
+    screencast_writer_t capture = { NULL };
+    if (capture_path && !screencast_writer_open(&capture, capture_path)) {
         fprintf(stderr, "pico8 replay: impossible d'ouvrir le fichier de capture '%s'\n",
                 capture_path);
         return 1;
@@ -132,10 +132,10 @@ int main(int argc, char **argv) {
          * de boucle, la capture entiere serait decalee d'une frame --
          * tests/test_headless_capture.c le detecte en comparant la
          * derniere frame capturee au dump texte. */
-        if (capture_path && !pico8_screencast_write_frame(&capture, &mem)) {
+        if (capture_path && !screencast_write_frame(&capture, &mem)) {
             fprintf(stderr, "pico8 replay: echec d'ecriture de la frame %d dans '%s'\n",
                     i, capture_path);
-            pico8_screencast_writer_close(&capture);
+            screencast_writer_close(&capture);
             return 1;
         }
         if (i < frame_count - 1) {
@@ -148,7 +148,7 @@ int main(int argc, char **argv) {
      * Elle a lieu AVANT le dump texte, et un echec renonce donc a
      * l'ecrire : un dump frais ferait passer pour
      * normale une execution dont la capture est perdue. */
-    if (capture_path && !pico8_screencast_writer_close(&capture)) {
+    if (capture_path && !screencast_writer_close(&capture)) {
         fprintf(stderr, "pico8 replay: echec de fermeture du fichier de capture '%s'\n",
                 capture_path);
         return 1;
@@ -156,7 +156,7 @@ int main(int argc, char **argv) {
 
     FILE *dump_out = fopen(dump_path, "w");
     assert(dump_out != NULL);
-    int dump_ok = pico8_dump_screen(&mem, dump_out);
+    int dump_ok = dump_screen(&mem, dump_out);
     fclose(dump_out);
     assert(dump_ok);
 
@@ -165,7 +165,7 @@ int main(int argc, char **argv) {
         write_remplissage(remplissage_path);
     }
 
-    pico8_input_free(&input);
+    p8_input_free(&input);
 
     printf("pico8 replay: %d frame(s) run against %s; framebuffer dumped to %s\n",
            frame_count, events_path, dump_path);

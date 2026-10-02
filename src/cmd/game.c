@@ -28,29 +28,29 @@ int main(int argc, char **argv) {
      * recording-picker UI. */
     const char *replay_path = (argc > 1) ? argv[1] : NULL;
 
-    pico8_replay_source_t replay;
-    if (pico8_replay_source_open(&replay, replay_path) == PICO8_REPLAY_SOURCE_LOAD_FAILED) {
+    replay_source_t replay;
+    if (replay_source_open(&replay, replay_path) == REPLAY_SOURCE_LOAD_FAILED) {
         assert(!IsWindowReady() && "a bad recording must fail before the window opens: a window on the title screen reads as a lost save");
         fprintf(stderr,
                 "main_raylib: '%s' could not be loaded as a recording "
                 "(missing, unreadable, or not a valid events.json). "
                 "Refusing to start a new game instead.\n",
                 replay_path);
-        pico8_replay_source_close(&replay);
+        replay_source_close(&replay);
         return 1;
     }
 
-    if (pico8_replay_source_frame_count(&replay) > 0) {
+    if (replay_source_frame_count(&replay) > 0) {
         fprintf(stderr,
                 "main_raylib: replaying '%s' (%d frames), then handing control back.\n"
                 "main_raylib: during the replay -- PAGE UP faster, PAGE DOWN slower, END uncapped.\n",
-                replay_path, pico8_replay_source_frame_count(&replay));
+                replay_path, replay_source_frame_count(&replay));
     }
 
     /* Initialised before the window opens so the first replayed frame
      * already runs at the replay's default speed. */
-    pico8_replay_control_t replay_control;
-    pico8_replay_control_init(&replay_control);
+    replay_control_t replay_control;
+    replay_control_init(&replay_control);
 
     p8_memory_t mem;
     p8_mem_init(&mem);
@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
     cheat_init(&cheat);
     while (pico8_raylib_backend_should_continue(&backend)) {
         p8_input_frame_t frame;
-        int from_recording = pico8_replay_source_next_frame(&replay, &frame);
+        int from_recording = replay_source_next_frame(&replay, &frame);
         if (!from_recording) {
             pico8_raylib_backend_poll_input(&backend, &frame);
         } else {
@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
              * window stays closable. */
             pico8_raylib_backend_poll_replay_controls(&replay_control);
         }
-        pico8_raylib_backend_set_frame_rate_cap(pico8_replay_control_target_fps(&replay_control, from_recording));
+        pico8_raylib_backend_set_frame_rate_cap(replay_control_target_fps(&replay_control, from_recording));
         /* Recorded before the game steps, and unconditionally: see
          * pico8_raylib_backend_record_frame. */
         pico8_raylib_backend_record_frame(&backend, &frame);
@@ -102,11 +102,11 @@ int main(int argc, char **argv) {
         cart_draw();
 
         const char *replay_status = NULL;
-        char replay_status_text[PICO8_REPLAY_CONTROL_STATUS_MAX];
+        char replay_status_text[REPLAY_CONTROL_STATUS_MAX];
         if (from_recording) {
-            pico8_replay_control_format_status(&replay_control,
-                                               pico8_replay_source_frames_served(&replay),
-                                               pico8_replay_source_frame_count(&replay),
+            replay_control_format_status(&replay_control,
+                                               replay_source_frames_served(&replay),
+                                               replay_source_frame_count(&replay),
                                                replay_status_text, sizeof replay_status_text);
             replay_status = replay_status_text;
         }
@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
     }
 
     pico8_raylib_backend_shutdown(&backend);
-    pico8_replay_source_close(&replay);
+    replay_source_close(&replay);
 
     return 0;
 }

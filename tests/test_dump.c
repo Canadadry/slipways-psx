@@ -16,7 +16,7 @@ static char *dump_to_buffer(const p8_memory_t *mem, size_t *out_len) {
     FILE *tmp = tmpfile();
     assert(tmp != NULL);
 
-    int ok = pico8_dump_screen(mem, tmp);
+    int ok = dump_screen(mem, tmp);
     assert(ok);
 
     long size = ftell(tmp);
@@ -121,11 +121,11 @@ static char *capture_text(int (*write)(const void *, FILE *), const void *src, s
 }
 
 static int write_screen(const void *mem, FILE *out) {
-    return pico8_dump_screen(mem, out);
+    return dump_screen(mem, out);
 }
 
 static int write_pixels(const void *pixels, FILE *out) {
-    return pico8_dump_pixels(pixels, out);
+    return dump_pixels(pixels, out);
 }
 
 static void test_dump_of_pixel_buffer_matches_dump_of_same_screen(void) {
@@ -154,6 +154,6 @@ int main(void) {
     test_dump_of_cleared_screen_is_all_zero_grid();
     test_dump_of_hand_drawn_pattern_matches_exact_text();
     test_dump_of_pixel_buffer_matches_dump_of_same_screen();
-    printf("test_pico8_dump: all tests passed\n");
+    printf("test_dump: all tests passed\n");
     return 0;
 }

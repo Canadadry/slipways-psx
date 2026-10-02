@@ -27,7 +27,7 @@ static trade_route_t *trade_create(const allocator_t *zone, const trade_keys_t *
     trade_route_t *self = (trade_route_t *)allocator_alloc(zone, sizeof *self);
 
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("trade");
+    class_coverage_record("trade");
 #endif
     entity_init_header(&self->header, &g_trade_class);
     self->planets = NULL;

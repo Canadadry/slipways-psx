@@ -271,7 +271,7 @@ static score_panel_t *score_panel_create(void) {
     self->curtain = 0;
     self->has_curtain = 0;
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("score_panel");
+    class_coverage_record("score_panel");
 #endif
     entity_construct(&self->header);
     return self;

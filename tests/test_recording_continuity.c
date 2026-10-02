@@ -61,25 +61,25 @@ static void poll_simulated_live_frame(int live_index, p8_input_frame_t *out_fram
  * dropped. The frame is recorded before anything else happens to it, an
  * ordering a playtest segfault forced and this test must not reverse. */
 static void run_resumed_session(const char *source_path, const char *resumed_path, int iterations) {
-    pico8_replay_source_t replay;
-    assert(pico8_replay_source_open(&replay, source_path) == PICO8_REPLAY_SOURCE_LOADED);
+    replay_source_t replay;
+    assert(replay_source_open(&replay, source_path) == REPLAY_SOURCE_LOADED);
 
-    pico8_session_recorder_t recorder;
-    pico8_session_recorder_open(&recorder, resumed_path);
+    session_recorder_t recorder;
+    session_recorder_open(&recorder, resumed_path);
 
     int live_index = 0;
     for (int i = 0; i < iterations; i++) {
         p8_input_frame_t frame;
-        if (!pico8_replay_source_next_frame(&replay, &frame)) {
+        if (!replay_source_next_frame(&replay, &frame)) {
             poll_simulated_live_frame(live_index, &frame);
             live_index++;
         }
-        assert(pico8_session_recorder_record_frame(&recorder, &frame) == 1);
+        assert(session_recorder_record_frame(&recorder, &frame) == 1);
     }
 
-    assert(pico8_session_recorder_frame_count(&recorder) == iterations);
-    pico8_session_recorder_close(&recorder);
-    pico8_replay_source_close(&replay);
+    assert(session_recorder_frame_count(&recorder) == iterations);
+    session_recorder_close(&recorder);
+    replay_source_close(&replay);
 }
 
 static void test_recorder_writes_a_loadable_recording(void) {
@@ -89,24 +89,24 @@ static void test_recorder_writes_a_loadable_recording(void) {
         { 33, 44, 2, { 0, 1, 0, 0 } },
     };
 
-    pico8_session_recorder_t recorder;
-    pico8_session_recorder_open(&recorder, path);
-    assert(pico8_session_recorder_frame_count(&recorder) == 0);
+    session_recorder_t recorder;
+    session_recorder_open(&recorder, path);
+    assert(session_recorder_frame_count(&recorder) == 0);
 
     for (int i = 0; i < 2; i++) {
-        assert(pico8_session_recorder_record_frame(&recorder, &frames[i]) == 1);
-        assert(pico8_session_recorder_frame_count(&recorder) == i + 1);
+        assert(session_recorder_record_frame(&recorder, &frames[i]) == 1);
+        assert(session_recorder_frame_count(&recorder) == i + 1);
     }
-    pico8_session_recorder_close(&recorder);
+    session_recorder_close(&recorder);
 
     p8_input_t loaded;
     p8_input_init(&loaded);
-    assert(pico8_input_load(&loaded, path));
+    assert(p8_input_load(&loaded, path));
     assert(loaded.frame_count == 2);
     for (int i = 0; i < 2; i++) {
         assert_frame_equals(&loaded.frames[i], &frames[i]);
     }
-    pico8_input_free(&loaded);
+    p8_input_free(&loaded);
 
     remove(path);
 }
@@ -118,13 +118,13 @@ static void test_resumed_session_records_replayed_frames_then_new_ones(void) {
     const char *resumed_path = "tmp/test_recording_continuity_resumed.json";
 
     /* Written by `pico8_input_save`, not by the recorder under test. */
-    assert(pico8_input_save(k_source_frames, SOURCE_FRAME_COUNT, source_path));
+    assert(p8_input_save(k_source_frames, SOURCE_FRAME_COUNT, source_path));
 
     run_resumed_session(source_path, resumed_path, SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT);
 
     p8_input_t resumed;
     p8_input_init(&resumed);
-    assert(pico8_input_load(&resumed, resumed_path));
+    assert(p8_input_load(&resumed, resumed_path));
     assert(resumed.frame_count == SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT);
 
     for (int i = 0; i < SOURCE_FRAME_COUNT; i++) {
@@ -134,7 +134,7 @@ static void test_resumed_session_records_replayed_frames_then_new_ones(void) {
         assert_frame_equals(&resumed.frames[SOURCE_FRAME_COUNT + i], &k_live_frames[i]);
     }
 
-    pico8_input_free(&resumed);
+    p8_input_free(&resumed);
     remove(source_path);
     remove(resumed_path);
 }
@@ -147,16 +147,16 @@ static void test_resumed_recording_is_itself_resumable(void) {
     const char *resumed_path = "tmp/test_recording_continuity_chain_resumed.json";
     const int total = SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT;
 
-    assert(pico8_input_save(k_source_frames, SOURCE_FRAME_COUNT, source_path));
+    assert(p8_input_save(k_source_frames, SOURCE_FRAME_COUNT, source_path));
     run_resumed_session(source_path, resumed_path, total);
 
-    pico8_replay_source_t second;
-    assert(pico8_replay_source_open(&second, resumed_path) == PICO8_REPLAY_SOURCE_LOADED);
-    assert(pico8_replay_source_frame_count(&second) == total);
+    replay_source_t second;
+    assert(replay_source_open(&second, resumed_path) == REPLAY_SOURCE_LOADED);
+    assert(replay_source_frame_count(&second) == total);
 
     for (int i = 0; i < total; i++) {
         p8_input_frame_t frame;
-        assert(pico8_replay_source_next_frame(&second, &frame) == 1);
+        assert(replay_source_next_frame(&second, &frame) == 1);
         if (i < SOURCE_FRAME_COUNT) {
             assert_frame_equals(&frame, &k_source_frames[i]);
         } else {
@@ -165,9 +165,9 @@ static void test_resumed_recording_is_itself_resumable(void) {
     }
 
     p8_input_frame_t after;
-    assert(pico8_replay_source_next_frame(&second, &after) == 0);
+    assert(replay_source_next_frame(&second, &after) == 0);
 
-    pico8_replay_source_close(&second);
+    replay_source_close(&second);
     remove(source_path);
     remove(resumed_path);
 }
@@ -177,6 +177,6 @@ int main(void) {
     test_resumed_session_records_replayed_frames_then_new_ones();
     test_resumed_recording_is_itself_resumable();
 
-    printf("test_pico8_recording_continuity: all tests passed\n");
+    printf("test_recording_continuity: all tests passed\n");
     return 0;
 }

@@ -32,14 +32,14 @@ static buf_t slurp(FILE *file) {
     return b;
 }
 
-static int u8(buf_t *b) {
+static int read_u8(buf_t *b) {
     assert(b->pos < b->size);
     return b->bytes[b->pos++];
 }
 
 static int u16(buf_t *b) {
-    int lo = u8(b);
-    return lo | (u8(b) << 8);
+    int lo = read_u8(b);
+    return lo | (read_u8(b) << 8);
 }
 
 /* Les sous-blocs d'une image, concaténés. */
@@ -47,14 +47,14 @@ static unsigned char *read_sub_blocks(buf_t *b, long *out_len) {
     long cap = 1 << 16, len = 0;
     unsigned char *data = malloc((size_t)cap);
     assert(data != NULL);
-    for (int n = u8(b); n != 0; n = u8(b)) {
+    for (int n = read_u8(b); n != 0; n = read_u8(b)) {
         if (len + n > cap) {
             cap *= 2;
             data = realloc(data, (size_t)cap);
             assert(data != NULL);
         }
         for (int i = 0; i < n; i++) {
-            data[len++] = (unsigned char)u8(b);
+            data[len++] = (unsigned char)read_u8(b);
         }
     }
     *out_len = len;
@@ -141,67 +141,67 @@ typedef struct {
 } gif_t;
 
 static gif_t parse_gif(FILE *file) {
-    gif_t g;
-    memset(&g, 0, sizeof g);
-    g.delays_ok = 1;
-    buf_t b = slurp(file);
-    assert(b.size > 6 && memcmp(b.bytes, "GIF89a", 6) == 0);
-    b.pos = 6;
-    g.width = u16(&b);
-    g.height = u16(&b);
-    int packed = u8(&b);
+    gif_t gif;
+    memset(&gif, 0, sizeof gif);
+    gif.delays_ok = 1;
+    buf_t buffer = slurp(file);
+    assert(buffer.size > 6 && memcmp(buffer.bytes, "GIF89a", 6) == 0);
+    buffer.pos = 6;
+    gif.width = u16(&buffer);
+    gif.height = u16(&buffer);
+    int packed = read_u8(&buffer);
     assert(packed & 0x80);
     assert((2 << (packed & 7)) == P8_PALETTE_COLORS);
-    u8(&b);
-    u8(&b);
+    read_u8(&buffer);
+    read_u8(&buffer);
     for (int i = 0; i < P8_PALETTE_COLORS; i++) {
-        assert(u8(&b) == P8_PALETTE_RGB[i].red);
-        assert(u8(&b) == P8_PALETTE_RGB[i].green);
-        assert(u8(&b) == P8_PALETTE_RGB[i].blue);
+        assert(read_u8(&buffer) == P8_PALETTE_RGB[i].red);
+        assert(read_u8(&buffer) == P8_PALETTE_RGB[i].green);
+        assert(read_u8(&buffer) == P8_PALETTE_RGB[i].blue);
     }
     for (;;) {
-        int tag = u8(&b);
+        int tag = read_u8(&buffer);
         if (tag == 0x3B) {
-            assert(b.pos == b.size);
+            assert(buffer.pos == buffer.size);
             break;
         }
         if (tag == 0x21) {
-            int label = u8(&b);
+            int label = read_u8(&buffer);
             if (label == 0xFF) {
-                assert(u8(&b) == 11);
-                g.loops_forever = memcmp(b.bytes + b.pos, "NETSCAPE2.0", 11) == 0;
-                b.pos += 11;
-                assert(u8(&b) == 3 && u8(&b) == 1);
-                g.loops_forever = g.loops_forever && u16(&b) == 0;
-                assert(u8(&b) == 0);
+                assert(read_u8(&buffer) == 11);
+                gif.loops_forever = memcmp(buffer.bytes + buffer.pos, "NETSCAPE2.0", 11) == 0;
+                buffer.pos += 11;
+                assert(read_u8(&buffer) == 3 && read_u8(&buffer) == 1);
+                gif.loops_forever = gif.loops_forever && u16(&buffer) == 0;
+                assert(read_u8(&buffer) == 0);
             } else if (label == 0xF9) {
-                assert(u8(&b) == 4);
-                u8(&b);
-                g.delays_ok = g.delays_ok && u16(&b) == 3;
-                u8(&b);
-                assert(u8(&b) == 0);
+                assert(read_u8(&buffer) == 4);
+                read_u8(&buffer);
+                gif.delays_ok = gif.delays_ok && u16(&buffer) == 3;
+                read_u8(&buffer);
+                assert(read_u8(&buffer) == 0);
             } else {
                 assert(!"extension inattendue");
             }
             continue;
         }
         assert(tag == 0x2C);
-        assert(u16(&b) == 0 && u16(&b) == 0);
-        assert(u16(&b) == g.width && u16(&b) == g.height);
-        assert(u8(&b) == 0);
-        int min_code_size = u8(&b);
+        assert(u16(&buffer) == 0 && u16(&buffer) == 0);
+        assert(u16(&buffer) == gif.width && u16(&buffer) == gif.height);
+        assert(read_u8(&buffer) == 0);
+        int min_code_size = read_u8(&buffer);
         assert(min_code_size == 4);
         long len;
-        unsigned char *data = read_sub_blocks(&b, &len);
-        long n = (long)g.width * g.height;
-        g.pixels = realloc(g.pixels, (size_t)(n * (g.frame_count + 1)));
-        assert(g.pixels != NULL);
-        g.clears += lzw_decode(data, len, min_code_size, g.pixels + n * g.frame_count, n);
-        g.frame_count++;
+        unsigned char *data = read_sub_blocks(&buffer, &len);
+        long n = (long)gif.width * gif.height;
+        gif.pixels = realloc(gif.pixels, (size_t)(n * (gif.frame_count + 1)));
+        assert(gif.pixels != NULL);
+        gif.clears += lzw_decode(data, len, min_code_size, gif.pixels + n * gif.frame_count, n);
+        gif.frame_count++;
         free(data);
     }
-    free(b.bytes);
-    return g;
+    free(buffer.bytes);
+    return gif;
 }
 
 static unsigned char dst_pixel(const gif_t *g, int frame, int x, int y) {
@@ -220,12 +220,12 @@ static void assert_scaled(const gif_t *g, int frame, const unsigned char *src) {
 static gif_t encode(const unsigned char *frames, int n, const p8_input_frame_t *events) {
     FILE *file = tmpfile();
     assert(file != NULL);
-    pico8_gif_writer_t writer;
-    assert(pico8_gif_open(&writer, file));
+    gif_writer_t writer;
+    assert(gif_open(&writer, file));
     for (int i = 0; i < n; i++) {
-        assert(pico8_gif_write_frame(&writer, frames + (long)i * SRC * SRC, events ? &events[i] : NULL));
+        assert(gif_write_frame(&writer, frames + (long)i * SRC * SRC, events ? &events[i] : NULL));
     }
-    assert(pico8_gif_close(&writer));
+    assert(gif_close(&writer));
     gif_t g = parse_gif(file);
     fclose(file);
     return g;
@@ -330,6 +330,6 @@ int main(void) {
     test_mouse_marker_overlays_the_event();
     test_mouse_marker_is_clipped_at_the_edge();
     test_noise_fills_the_table_and_emits_clear();
-    printf("test_pico8_gif: ok\n");
+    printf("test_gif: ok\n");
     return 0;
 }

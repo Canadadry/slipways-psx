@@ -17,51 +17,51 @@
 /* Replay is faster than real time by default: at game speed a
  * thirty-minute recording takes thirty minutes. */
 static void test_default_speed_is_four_times_game_speed(void) {
-    pico8_replay_control_t control;
-    pico8_replay_control_init(&control);
+    replay_control_t control;
+    replay_control_init(&control);
 
-    assert(pico8_replay_control_speed_multiplier(&control) == 4);
-    assert(pico8_replay_control_target_fps(&control, 1) == 240);
+    assert(replay_control_speed_multiplier(&control) == 4);
+    assert(replay_control_target_fps(&control, 1) == 240);
 }
 
 /* Doubling, so every level is an exact multiple of the 60 FPS target.
  * Each rung is asserted on its own: a mapping that collapsed two levels
  * would still "go faster" and still pass a range test. */
 static void test_faster_and_slower_walk_the_whole_ladder(void) {
-    pico8_replay_control_t control;
-    pico8_replay_control_init(&control);
+    replay_control_t control;
+    replay_control_init(&control);
 
-    pico8_replay_control_slower(&control);
-    assert(pico8_replay_control_target_fps(&control, 1) == 120);
-    pico8_replay_control_slower(&control);
-    assert(pico8_replay_control_target_fps(&control, 1) == 60);
+    replay_control_slower(&control);
+    assert(replay_control_target_fps(&control, 1) == 120);
+    replay_control_slower(&control);
+    assert(replay_control_target_fps(&control, 1) == 60);
 
-    pico8_replay_control_faster(&control);
-    assert(pico8_replay_control_target_fps(&control, 1) == 120);
-    pico8_replay_control_faster(&control);
-    assert(pico8_replay_control_target_fps(&control, 1) == 240);
-    pico8_replay_control_faster(&control);
-    assert(pico8_replay_control_target_fps(&control, 1) == 480);
+    replay_control_faster(&control);
+    assert(replay_control_target_fps(&control, 1) == 120);
+    replay_control_faster(&control);
+    assert(replay_control_target_fps(&control, 1) == 240);
+    replay_control_faster(&control);
+    assert(replay_control_target_fps(&control, 1) == 480);
 }
 
 /* Both ends clamp rather than wrap: one extra tap must not drop a replay
  * from full speed back to 1x. The slow end stops at game speed because the
  * mechanism only ever shortens the wait between frames. */
 static void test_the_ladder_clamps_at_both_ends(void) {
-    pico8_replay_control_t control;
-    pico8_replay_control_init(&control);
+    replay_control_t control;
+    replay_control_init(&control);
 
     for (int i = 0; i < 10; i++) {
-        pico8_replay_control_slower(&control);
+        replay_control_slower(&control);
     }
-    assert(pico8_replay_control_speed_multiplier(&control) == 1);
-    assert(pico8_replay_control_target_fps(&control, 1) == PICO8_REPLAY_CONTROL_LIVE_FPS);
+    assert(replay_control_speed_multiplier(&control) == 1);
+    assert(replay_control_target_fps(&control, 1) == REPLAY_CONTROL_LIVE_FPS);
 
     for (int i = 0; i < 10; i++) {
-        pico8_replay_control_faster(&control);
+        replay_control_faster(&control);
     }
-    assert(pico8_replay_control_speed_multiplier(&control) == 0);
-    assert(pico8_replay_control_target_fps(&control, 1) == 0);
+    assert(replay_control_speed_multiplier(&control) == 0);
+    assert(replay_control_target_fps(&control, 1) == 0);
 }
 
 /* 0 is not a sentinel this port invented: it is what raylib's SetTargetFPS
@@ -71,33 +71,33 @@ static void test_the_ladder_clamps_at_both_ends(void) {
  * Abbreviating shortens the wait between frames and never skips one, or the
  * replay would not arrive at the state the recording describes. */
 static void test_uncapping_removes_the_wait_between_frames(void) {
-    pico8_replay_control_t control;
-    pico8_replay_control_init(&control);
+    replay_control_t control;
+    replay_control_init(&control);
 
-    pico8_replay_control_uncap(&control);
-    assert(pico8_replay_control_speed_multiplier(&control) == 0);
-    assert(pico8_replay_control_target_fps(&control, 1) == 0);
+    replay_control_uncap(&control);
+    assert(replay_control_speed_multiplier(&control) == 0);
+    assert(replay_control_target_fps(&control, 1) == 0);
 
     /* Not a one-way door: a player who overshot can come back down. */
-    pico8_replay_control_slower(&control);
-    assert(pico8_replay_control_target_fps(&control, 1) == 480);
+    replay_control_slower(&control);
+    assert(replay_control_target_fps(&control, 1) == 480);
 }
 
 /* The resumed game runs at 60 FPS whatever speed the replay was left on.
  * Enforced here rather than by the driver remembering to reset the cap: a
  * driver that forgets hands the player an unplayable game. */
 static void test_live_play_is_always_game_speed_whatever_the_replay_was_on(void) {
-    pico8_replay_control_t control;
-    pico8_replay_control_init(&control);
+    replay_control_t control;
+    replay_control_init(&control);
 
-    assert(pico8_replay_control_target_fps(&control, 0) == 60);
+    assert(replay_control_target_fps(&control, 0) == 60);
 
-    pico8_replay_control_uncap(&control);
-    assert(pico8_replay_control_target_fps(&control, 1) == 0);
-    assert(pico8_replay_control_target_fps(&control, 0) == 60);
+    replay_control_uncap(&control);
+    assert(replay_control_target_fps(&control, 1) == 0);
+    assert(replay_control_target_fps(&control, 0) == 60);
 
-    pico8_replay_control_slower(&control);
-    assert(pico8_replay_control_target_fps(&control, 0) == 60);
+    replay_control_slower(&control);
+    assert(replay_control_target_fps(&control, 0) == 60);
 }
 
 /* What the overlay says is the only part of it with a right answer; where
@@ -107,17 +107,17 @@ static void test_live_play_is_always_game_speed_whatever_the_replay_was_on(void)
  * 9589/9589 on the last -- the numbering a player counts in, deliberately
  * not the 0-based index the marker file records. */
 static void test_progress_line_names_the_frame_the_total_and_the_speed(void) {
-    pico8_replay_control_t control;
-    char status[PICO8_REPLAY_CONTROL_STATUS_MAX];
+    replay_control_t control;
+    char status[REPLAY_CONTROL_STATUS_MAX];
 
-    pico8_replay_control_init(&control);
-    pico8_replay_control_format_status(&control, 1, 9589, status, sizeof status);
+    replay_control_init(&control);
+    replay_control_format_status(&control, 1, 9589, status, sizeof status);
     assert(strcmp(status, "replay 1/9589 (0%) speed x4") == 0);
 
-    pico8_replay_control_format_status(&control, 1234, 9589, status, sizeof status);
+    replay_control_format_status(&control, 1234, 9589, status, sizeof status);
     assert(strcmp(status, "replay 1234/9589 (12%) speed x4") == 0);
 
-    pico8_replay_control_format_status(&control, 9589, 9589, status, sizeof status);
+    replay_control_format_status(&control, 9589, 9589, status, sizeof status);
     assert(strcmp(status, "replay 9589/9589 (100%) speed x4") == 0);
 }
 
@@ -125,16 +125,16 @@ static void test_progress_line_names_the_frame_the_total_and_the_speed(void) {
  * reach the new cap is still visible. The uncapped level prints a word:
  * "x0" would read as "stopped". */
 static void test_progress_line_reports_the_current_speed(void) {
-    pico8_replay_control_t control;
-    char status[PICO8_REPLAY_CONTROL_STATUS_MAX];
+    replay_control_t control;
+    char status[REPLAY_CONTROL_STATUS_MAX];
 
-    pico8_replay_control_init(&control);
-    pico8_replay_control_slower(&control);
-    pico8_replay_control_format_status(&control, 50, 200, status, sizeof status);
+    replay_control_init(&control);
+    replay_control_slower(&control);
+    replay_control_format_status(&control, 50, 200, status, sizeof status);
     assert(strcmp(status, "replay 50/200 (25%) speed x2") == 0);
 
-    pico8_replay_control_uncap(&control);
-    pico8_replay_control_format_status(&control, 50, 200, status, sizeof status);
+    replay_control_uncap(&control);
+    replay_control_format_status(&control, 50, 200, status, sizeof status);
     assert(strcmp(status, "replay 50/200 (25%) speed max") == 0);
 }
 
@@ -143,14 +143,14 @@ static void test_progress_line_reports_the_current_speed(void) {
  * there. A total of zero is pinned too: a comfort overlay must never be
  * what kills the session. */
 static void test_progress_line_survives_the_degenerate_totals(void) {
-    pico8_replay_control_t control;
-    char status[PICO8_REPLAY_CONTROL_STATUS_MAX];
+    replay_control_t control;
+    char status[REPLAY_CONTROL_STATUS_MAX];
 
-    pico8_replay_control_init(&control);
-    pico8_replay_control_format_status(&control, 1, 1, status, sizeof status);
+    replay_control_init(&control);
+    replay_control_format_status(&control, 1, 1, status, sizeof status);
     assert(strcmp(status, "replay 1/1 (100%) speed x4") == 0);
 
-    pico8_replay_control_format_status(&control, 0, 0, status, sizeof status);
+    replay_control_format_status(&control, 0, 0, status, sizeof status);
     assert(strcmp(status, "replay 0/0 (0%) speed x4") == 0);
 }
 
@@ -164,6 +164,6 @@ int main(void) {
     test_progress_line_reports_the_current_speed();
     test_progress_line_survives_the_degenerate_totals();
 
-    printf("test_pico8_replay_control: all tests passed\n");
+    printf("test_replay_control: all tests passed\n");
     return 0;
 }

@@ -90,17 +90,17 @@ static void test_expect_missing_file_fails(void) {
 /* Les cas s'enchainent dans un seul processus : les comptes s'accumulent.
  * Le nom "" vient en dernier, restant compte ensuite. */
 static void test_coverage_hook_first_unknown_name(void) {
-    static const char *const known_aa[] = {"aa"};
+    static const char *const known_dummy[] = {"aa"};
 
-    pico8_class_coverage_record("aa");
-    pico8_class_coverage_record("aa");
-    assert(pico8_class_coverage_count("aa") == 2);
-    assert(pico8_class_coverage_count("zz") == 0);
-    assert(pico8_class_coverage_first_unknown(known_aa, 1) == NULL);
-    assert(strcmp(pico8_class_coverage_first_unknown(NULL, 0), "aa") == 0);
+    class_coverage_record("aa");
+    class_coverage_record("aa");
+    assert(class_coverage_count("aa") == 2);
+    assert(class_coverage_count("zz") == 0);
+    assert(class_coverage_first_unknown(known_dummy, 1) == NULL);
+    assert(strcmp(class_coverage_first_unknown(NULL, 0), "aa") == 0);
 
-    pico8_class_coverage_record("");
-    assert(strcmp(pico8_class_coverage_first_unknown(known_aa, 1), "") == 0);
+    class_coverage_record("");
+    assert(strcmp(class_coverage_first_unknown(known_dummy, 1), "") == 0);
 }
 
 int main(void) {

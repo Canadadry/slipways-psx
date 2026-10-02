@@ -213,7 +213,7 @@ static research_project_t *project_create(const research_project_keys_t *keys) {
     self->inputs = new_i;
 
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("research_project");
+    class_coverage_record("research_project");
 #endif
     return self;
 }

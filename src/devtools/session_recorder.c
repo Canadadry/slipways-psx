@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-void pico8_session_recorder_open(pico8_session_recorder_t *recorder, const char *path) {
+void session_recorder_open(session_recorder_t *recorder, const char *path) {
     assert(recorder);
     assert(path);
 
@@ -17,7 +17,7 @@ void pico8_session_recorder_open(pico8_session_recorder_t *recorder, const char 
     recorder->tail_offset = 0;
 }
 
-int pico8_session_recorder_record_frame(pico8_session_recorder_t *recorder, const p8_input_frame_t *frame) {
+int session_recorder_record_frame(session_recorder_t *recorder, const p8_input_frame_t *frame) {
     assert(recorder);
     assert(frame);
 
@@ -25,7 +25,7 @@ int pico8_session_recorder_record_frame(pico8_session_recorder_t *recorder, cons
      * session grows. The file must stay byte-identical to what
      * pico8_input_save writes for the same frames, or a resumed recording
      * replays to another state. */
-    if (!pico8_input_append(frame, recorder->path, &recorder->tail_offset)) {
+    if (!p8_input_append(frame, recorder->path, &recorder->tail_offset)) {
         /* Dropped, not fatal: a live playtest outranks a frame of its own
          * recording. append leaves *tail_offset untouched on failure, so
          * the next frame takes the slot this one never reached, and the
@@ -37,13 +37,13 @@ int pico8_session_recorder_record_frame(pico8_session_recorder_t *recorder, cons
     return 1;
 }
 
-int pico8_session_recorder_frame_count(const pico8_session_recorder_t *recorder) {
+int session_recorder_frame_count(const session_recorder_t *recorder) {
     assert(recorder);
 
     return recorder->frame_count;
 }
 
-void pico8_session_recorder_close(pico8_session_recorder_t *recorder) {
+void session_recorder_close(session_recorder_t *recorder) {
     assert(recorder);
 
     recorder->path[0] = '\0';

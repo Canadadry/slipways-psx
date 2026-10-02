@@ -9,7 +9,7 @@ static void test_load_and_step_multi_frame_matches_fields(void) {
     p8_input_t input;
     p8_input_init(&input);
 
-    int ok = pico8_input_load(&input, "tests/fixtures/events_valid.json");
+    int ok = p8_input_load(&input, "tests/fixtures/events_valid.json");
     assert(ok);
 
     assert(p8_btn(&input, 0) == 0);
@@ -38,24 +38,24 @@ static void test_load_and_step_multi_frame_matches_fields(void) {
     assert(p8_stat(&input, 33) == 127);
     assert(p8_stat(&input, 34) == 4);
 
-    pico8_input_free(&input);
+    p8_input_free(&input);
 }
 
 static void test_four_boolean_dpad_loads_with_o_and_x_released(void) {
     p8_input_t input;
     p8_input_init(&input);
-    assert(pico8_input_load(&input, "tests/fixtures/events_valid.json"));
+    assert(p8_input_load(&input, "tests/fixtures/events_valid.json"));
 
     assert(p8_btn(&input, 4) == 0);
     assert(p8_btn(&input, 5) == 0);
 
-    pico8_input_free(&input);
+    p8_input_free(&input);
 }
 
 static void test_six_boolean_dpad_loads_o_and_x(void) {
     p8_input_t input;
     p8_input_init(&input);
-    assert(pico8_input_load(&input, "tests/fixtures/events_valid_ox.json"));
+    assert(p8_input_load(&input, "tests/fixtures/events_valid_ox.json"));
 
     assert(p8_btn(&input, 1) == 1);
     assert(p8_btn(&input, 4) == 1);
@@ -66,78 +66,78 @@ static void test_six_boolean_dpad_loads_o_and_x(void) {
     assert(p8_btn(&input, 4) == 0);
     assert(p8_btn(&input, 5) == 1);
 
-    pico8_input_free(&input);
+    p8_input_free(&input);
 }
 
 static void test_load_malformed_five_boolean_dpad_is_hard_error(void) {
     p8_input_t input;
     p8_input_init(&input);
 
-    assert(!pico8_input_load(&input, "tests/fixtures/events_malformed_five_dpad.json"));
+    assert(!p8_input_load(&input, "tests/fixtures/events_malformed_five_dpad.json"));
 
-    pico8_input_free(&input);
+    p8_input_free(&input);
 }
 
 static void test_btn_out_of_range_returns_zero(void) {
     p8_input_t input;
     p8_input_init(&input);
-    assert(pico8_input_load(&input, "tests/fixtures/events_valid.json"));
+    assert(p8_input_load(&input, "tests/fixtures/events_valid.json"));
 
     assert(p8_btn(&input, -1) == 0);
     assert(p8_btn(&input, 6) == 0);
 
-    pico8_input_free(&input);
+    p8_input_free(&input);
 }
 
 static void test_stat_unsupported_index_returns_zero(void) {
     p8_input_t input;
     p8_input_init(&input);
-    assert(pico8_input_load(&input, "tests/fixtures/events_valid.json"));
+    assert(p8_input_load(&input, "tests/fixtures/events_valid.json"));
 
     assert(p8_stat(&input, 0) == 0);
     assert(p8_stat(&input, 35) == 0);
 
-    pico8_input_free(&input);
+    p8_input_free(&input);
 }
 
 static void test_load_missing_file_is_hard_error(void) {
     p8_input_t input;
     p8_input_init(&input);
 
-    int ok = pico8_input_load(&input, "tests/fixtures/does_not_exist.json");
+    int ok = p8_input_load(&input, "tests/fixtures/does_not_exist.json");
     assert(!ok);
 
-    pico8_input_free(&input);
+    p8_input_free(&input);
 }
 
 static void test_load_malformed_missing_field_is_hard_error(void) {
     p8_input_t input;
     p8_input_init(&input);
 
-    int ok = pico8_input_load(&input, "tests/fixtures/events_malformed_missing_field.json");
+    int ok = p8_input_load(&input, "tests/fixtures/events_malformed_missing_field.json");
     assert(!ok);
 
-    pico8_input_free(&input);
+    p8_input_free(&input);
 }
 
 static void test_load_malformed_short_dpad_is_hard_error(void) {
     p8_input_t input;
     p8_input_init(&input);
 
-    int ok = pico8_input_load(&input, "tests/fixtures/events_malformed_short_dpad.json");
+    int ok = p8_input_load(&input, "tests/fixtures/events_malformed_short_dpad.json");
     assert(!ok);
 
-    pico8_input_free(&input);
+    p8_input_free(&input);
 }
 
 static void test_load_malformed_no_frames_key_is_hard_error(void) {
     p8_input_t input;
     p8_input_init(&input);
 
-    int ok = pico8_input_load(&input, "tests/fixtures/events_malformed_no_frames_key.json");
+    int ok = p8_input_load(&input, "tests/fixtures/events_malformed_no_frames_key.json");
     assert(!ok);
 
-    pico8_input_free(&input);
+    p8_input_free(&input);
 }
 
 static char *read_file_raw(const char *path) {
@@ -165,12 +165,12 @@ static void test_save_then_load_round_trips_every_field(void) {
     };
     const char *path = "tmp/test_input_save_roundtrip.json";
 
-    int saved = pico8_input_save(written, 5, path);
+    int saved = p8_input_save(written, 5, path);
     assert(saved);
 
     p8_input_t input;
     p8_input_init(&input);
-    int loaded = pico8_input_load(&input, path);
+    int loaded = p8_input_load(&input, path);
     assert(loaded);
     assert(input.frame_count == 5);
 
@@ -189,7 +189,7 @@ static void test_save_then_load_round_trips_every_field(void) {
         }
     }
 
-    pico8_input_free(&input);
+    p8_input_free(&input);
 }
 
 static void test_save_writes_events_json_schema_shape(void) {
@@ -199,7 +199,7 @@ static void test_save_writes_events_json_schema_shape(void) {
     };
     const char *path = "tmp/test_input_save_shape.json";
 
-    assert(pico8_input_save(written, 2, path));
+    assert(p8_input_save(written, 2, path));
 
     char *written_json = read_file_raw(path);
     assert(strstr(written_json, "\"frames\":") != NULL);
@@ -230,8 +230,8 @@ static void test_save_writes_events_json_schema_shape(void) {
      * accepts, not just string content). */
     p8_input_t input;
     p8_input_init(&input);
-    assert(pico8_input_load(&input, "tests/fixtures/demo_events.json"));
-    pico8_input_free(&input);
+    assert(p8_input_load(&input, "tests/fixtures/demo_events.json"));
+    p8_input_free(&input);
 }
 
 /* Offset of the last frame object's line in a recording -- i.e. the length
@@ -262,7 +262,7 @@ static void test_append_does_not_rewrite_already_recorded_frames(void) {
 
     for (int i = 0; i < 40; i++) {
         p8_input_frame_t fr = {i % 128, (i * 3) % 128, i % 8, {i % 2, 0, 1, 0}};
-        assert(pico8_input_append(&fr, path, &tail_offset));
+        assert(p8_input_append(&fr, path, &tail_offset));
     }
 
     char *before = read_file_raw(path);
@@ -282,7 +282,7 @@ static void test_append_does_not_rewrite_already_recorded_frames(void) {
     char *marked = read_file_raw(path);
 
     p8_input_frame_t extra = {77, 88, 1, {0, 0, 0, 1}};
-    assert(pico8_input_append(&extra, path, &tail_offset));
+    assert(p8_input_append(&extra, path, &tail_offset));
 
     char *after = read_file_raw(path);
     assert(after[victim_offset] == '9');
@@ -312,8 +312,8 @@ static void test_append_recording_is_byte_identical_to_save_every_frame(void) {
     long tail_offset = 0;
 
     for (int i = 0; i < 7; i++) {
-        assert(pico8_input_append(&frames[i], appended_path, &tail_offset));
-        assert(pico8_input_save(frames, i + 1, reference_path));
+        assert(p8_input_append(&frames[i], appended_path, &tail_offset));
+        assert(p8_input_save(frames, i + 1, reference_path));
 
         char *appended = read_file_raw(appended_path);
         char *reference = read_file_raw(reference_path);
@@ -324,7 +324,7 @@ static void test_append_recording_is_byte_identical_to_save_every_frame(void) {
 
     p8_input_t input;
     p8_input_init(&input);
-    assert(pico8_input_load(&input, appended_path));
+    assert(p8_input_load(&input, appended_path));
     assert(input.frame_count == 7);
     for (int i = 0; i < 7; i++) {
         assert(p8_stat(&input, 32) == frames[i].mouse_x);
@@ -340,7 +340,7 @@ static void test_append_recording_is_byte_identical_to_save_every_frame(void) {
             p8_input_step(&input);
         }
     }
-    pico8_input_free(&input);
+    p8_input_free(&input);
 }
 
 /* A recording path is reused across sessions only by accident (the backend
@@ -355,24 +355,24 @@ static void test_append_with_zero_tail_offset_starts_a_fresh_recording(void) {
     };
     long tail_offset = 0;
     for (int i = 0; i < 3; i++) {
-        assert(pico8_input_append(&first[i], path, &tail_offset));
+        assert(p8_input_append(&first[i], path, &tail_offset));
     }
 
     p8_input_frame_t only = {9, 9, 0, {0, 0, 0, 1}};
     tail_offset = 0;
-    assert(pico8_input_append(&only, path, &tail_offset));
+    assert(p8_input_append(&only, path, &tail_offset));
 
     p8_input_t input;
     p8_input_init(&input);
-    assert(pico8_input_load(&input, path));
+    assert(p8_input_load(&input, path));
     assert(input.frame_count == 1);
     assert(p8_stat(&input, 32) == 9);
-    pico8_input_free(&input);
+    p8_input_free(&input);
 }
 
 static void test_save_rejects_empty_frame_list(void) {
     const char *path = "tmp/test_input_save_empty.json";
-    int saved = pico8_input_save(NULL, 0, path);
+    int saved = p8_input_save(NULL, 0, path);
     assert(!saved);
 }
 

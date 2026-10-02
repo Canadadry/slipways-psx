@@ -26,7 +26,7 @@
 typedef struct {
     Texture2D screen_texture;
     Color pixel_buffer[128 * 128];
-    pico8_session_recorder_t recorder;
+    session_recorder_t recorder;
     char markers_path[64];
 } pico8_raylib_backend_t;
 
@@ -74,7 +74,7 @@ void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const p8_memo
  * read: a space bar tapped during a replay would bookmark a frame the
  * player is only watching. Not given the backend, so it cannot reach the
  * recording or the markers. */
-void pico8_raylib_backend_poll_replay_controls(pico8_replay_control_t *control);
+void pico8_raylib_backend_poll_replay_controls(replay_control_t *control);
 
 /* Applies the cap for the frame about to be presented, straight from
  * pico8_replay_control_target_fps; 0 is raylib's own "do not wait between

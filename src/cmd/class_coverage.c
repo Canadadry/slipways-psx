@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
 
     p8_input_t input;
     p8_input_init(&input);
-    if (!pico8_input_load(&input, argv[1])) {
+    if (!p8_input_load(&input, argv[1])) {
         fprintf(stderr, "pico8_class_coverage: %s ne se charge pas\n", argv[1]);
         return 2;
     }
@@ -65,20 +65,20 @@ int main(int argc, char **argv) {
             assert(strcmp(KNOWN[j], KNOWN[k]) != 0 && "two KNOWN[] entries share a name: its line would be doubled");
         }
     }
-    const char *unknown = pico8_class_coverage_first_unknown(KNOWN, KNOWN_COUNT);
+    const char *unknown = class_coverage_first_unknown(KNOWN, KNOWN_COUNT);
     if (unknown != NULL) {
         if (unknown[0] == '\0') {
             fprintf(stderr, "pico8_class_coverage: une classe instanciée n'a pas de nom de couverture (nom \"\")\n");
         } else {
             fprintf(stderr, "pico8_class_coverage: le nom %s n'est pas dans KNOWN[]\n", unknown);
         }
-        pico8_input_free(&input);
+        p8_input_free(&input);
         return 3;
     }
     for (int k = 0; k < KNOWN_COUNT; k++) {
-        printf("%s %ld\n", KNOWN[k], pico8_class_coverage_count(KNOWN[k]));
+        printf("%s %ld\n", KNOWN[k], class_coverage_count(KNOWN[k]));
     }
 
-    pico8_input_free(&input);
+    p8_input_free(&input);
     return 0;
 }

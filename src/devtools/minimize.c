@@ -38,7 +38,7 @@ static void keep_moves(const int *moves, int m, char *keep) {
     }
 }
 
-int pico8_minimize_mechanical(const p8_input_frame_t *frames, int frame_count, p8_input_frame_t *out) {
+int minimize_mechanical(const p8_input_frame_t *frames, int frame_count, p8_input_frame_t *out) {
     assert(frames != NULL && out != NULL && frame_count >= 1);
     char *keep = calloc((size_t)frame_count, 1);
     int *moves = malloc(sizeof *moves * (size_t)frame_count);

@@ -170,7 +170,7 @@ i	i	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@5175@F
 input	input	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@4325@F@main@input
 mem	mem	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@4114@F@main@mem
 out	out	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@2115@F@write_remplissage@out
-remplissage_path	fill_path	src/cmd/replay.c	identifiant	locale	renommé	cmd/replay			c:replay.c@6627@F@main@remplissage_path
+remplissage_path	fill_path	src/cmd/replay.c	identifiant	locale	renommé	cmd/replay			c:replay.c@6588@F@main@remplissage_path
 s	s	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@2336@F@write_remplissage@s
 s	s	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@2490@F@write_remplissage@s
 s	s	src/cmd/replay.c	identifiant	locale	conservé	cmd/replay			c:replay.c@2666@F@write_remplissage@s
@@ -393,7 +393,7 @@ frame_count	frame_count	src/devtools/input_json.c	identifiant	paramètre	conserv
 frames	frames	src/devtools/input_json.c	identifiant	paramètre	conservé	devtools/input_json			c:input_json.c@5285@F@pico8_input_save@frames
 input	input	src/devtools/input_json.c	identifiant	paramètre	conservé	devtools/input_json			c:input_json.c@1816@F@pico8_input_free@input
 input	input	src/devtools/input_json.c	identifiant	paramètre	conservé	devtools/input_json			c:input_json.c@1973@F@pico8_input_load@input
-io_tail_offset	print_outlined_tail_offset	src/devtools/input_json.c	identifiant	paramètre	renommé	devtools/input_json			c:input_json.c@6631@F@pico8_input_append@io_tail_offset
+io_tail_offset	tail_offset	src/devtools/input_json.c	identifiant	paramètre	renommé	devtools/input_json			c:input_json.c@6631@F@pico8_input_append@io_tail_offset
 key	key	src/devtools/input_json.c	identifiant	paramètre	conservé	devtools/input_json			c:input_json.c@686@F@find_int_field@key
 obj	obj	src/devtools/input_json.c	identifiant	paramètre	conservé	devtools/input_json			c:input_json.c@669@F@find_int_field@obj
 obj	obj	src/devtools/input_json.c	identifiant	paramètre	conservé	devtools/input_json			c:input_json.c@973@F@find_dpad_field@obj
@@ -7018,7 +7018,7 @@ input	input	src/p8/input.h	identifiant	paramètre	conservé	p8/input			c:input.h
 input	input	src/p8/input.h	identifiant	paramètre	conservé	p8/input			c:input.h@3358@F@pico8_btn@input
 input	input	src/p8/input.h	identifiant	paramètre	conservé	p8/input			c:input.h@3555@F@pico8_stat@input
 input	input	src/p8/input.h	identifiant	paramètre	conservé	p8/input			c:input.h@562@F@pico8_input_init@input
-io_tail_offset	print_outlined_tail_offset	src/p8/input.h	identifiant	paramètre	renommé	p8/input			c:input.h@2799@F@pico8_input_append@io_tail_offset
+io_tail_offset	tail_offset	src/p8/input.h	identifiant	paramètre	renommé	p8/input			c:input.h@2799@F@pico8_input_append@io_tail_offset
 n	n	src/p8/input.c	identifiant	paramètre	conservé	p8/input			c:input.c@641@F@pico8_stat@n
 n	n	src/p8/input.h	identifiant	paramètre	conservé	p8/input			c:input.h@3583@F@pico8_stat@n
 path	path	src/p8/input.h	identifiant	paramètre	conservé	p8/input			c:input.h@1109@F@pico8_input_load@path

@@ -86,63 +86,63 @@ static int find_dpad_field(const char *obj, int dpad_out[6]) {
     return 1;
 }
 
-void pico8_input_free(p8_input_t *input) {
+void p8_input_free(p8_input_t *input) {
     free(input->frames);
     input->frames = NULL;
     input->frame_count = 0;
     input->current_frame = 0;
 }
 
-int pico8_input_load(p8_input_t *input, const char *path) {
+int p8_input_load(p8_input_t *input, const char *path) {
     char *json = read_whole_file(path);
     if (!json) {
         return 0;
     }
 
-    const char *p = strstr(json, "\"frames\":");
-    if (!p) {
+    const char *cursor = strstr(json, "\"frames\":");
+    if (!cursor) {
         free(json);
         return 0;
     }
-    p = strchr(p, '[');
-    if (!p) {
+    cursor = strchr(cursor, '[');
+    if (!cursor) {
         free(json);
         return 0;
     }
-    p++;
+    cursor++;
 
     int capacity = 4;
     int count = 0;
-    int ok = 1;
+    int succeeded = 1;
     p8_input_frame_t *frames = malloc(sizeof(p8_input_frame_t) * (size_t)capacity);
     if (!frames) {
         free(json);
         return 0;
     }
 
-    while (*p) {
-        while (*p == ' ' || *p == ',' || *p == '\n' || *p == '\r' || *p == '\t') {
-            p++;
+    while (*cursor) {
+        while (*cursor == ' ' || *cursor == ',' || *cursor == '\n' || *cursor == '\r' || *cursor == '\t') {
+            cursor++;
         }
-        if (*p == ']') {
+        if (*cursor == ']') {
             break;
         }
-        if (*p != '{') {
-            ok = 0;
+        if (*cursor != '{') {
+            succeeded = 0;
             break;
         }
 
-        const char *obj_start = p;
-        const char *obj_end = strchr(p, '}');
+        const char *obj_start = cursor;
+        const char *obj_end = strchr(cursor, '}');
         if (!obj_end) {
-            ok = 0;
+            succeeded = 0;
             break;
         }
 
         size_t obj_len = (size_t)(obj_end - obj_start) + 1;
         char *obj_buf = malloc(obj_len + 1);
         if (!obj_buf) {
-            ok = 0;
+            succeeded = 0;
             break;
         }
         memcpy(obj_buf, obj_start, obj_len);
@@ -156,7 +156,7 @@ int pico8_input_load(p8_input_t *input, const char *path) {
         free(obj_buf);
 
         if (!found) {
-            ok = 0;
+            succeeded = 0;
             break;
         }
 
@@ -164,19 +164,19 @@ int pico8_input_load(p8_input_t *input, const char *path) {
             capacity *= 2;
             p8_input_frame_t *bigger = realloc(frames, sizeof(p8_input_frame_t) * (size_t)capacity);
             if (!bigger) {
-                ok = 0;
+                succeeded = 0;
                 break;
             }
             frames = bigger;
         }
         frames[count++] = frame;
 
-        p = obj_end + 1;
+        cursor = obj_end + 1;
     }
 
     free(json);
 
-    if (!ok || count == 0) {
+    if (!succeeded || count == 0) {
         free(frames);
         return 0;
     }
@@ -215,7 +215,7 @@ static int format_frame_line(char *buf, size_t size, const p8_input_frame_t *fr)
     return rc > 0 && (size_t)rc < size;
 }
 
-int pico8_input_save(const p8_input_frame_t *frames, int frame_count, const char *path) {
+int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *path) {
     if (!frames || frame_count <= 0) {
         return 0;
     }
@@ -271,8 +271,8 @@ int pico8_input_save(const p8_input_frame_t *frames, int frame_count, const char
     return 1;
 }
 
-int pico8_input_append(const p8_input_frame_t *frame, const char *path, long *io_tail_offset) {
-    if (!frame || !path || !io_tail_offset) {
+int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_offset) {
+    if (!frame || !path || !tail_offset) {
         return 0;
     }
 
@@ -285,9 +285,9 @@ int pico8_input_append(const p8_input_frame_t *frame, const char *path, long *io
      * there turns that suffix into a separator, the new line and a fresh
      * suffix -- strictly longer, so the file only grows and nothing ever
      * needs truncating. */
-    int fresh = (*io_tail_offset <= 0);
+    int fresh = (*tail_offset <= 0);
     const char *head = fresh ? JSON_PREFIX : FRAME_SEPARATOR;
-    long start = fresh ? 0 : *io_tail_offset;
+    long start = fresh ? 0 : *tail_offset;
 
     char tail[sizeof(JSON_PREFIX) + FRAME_LINE_MAX + sizeof(JSON_SUFFIX)];
     int written = snprintf(tail, sizeof(tail), "%s%s%s", head, line, JSON_SUFFIX);
@@ -315,9 +315,9 @@ int pico8_input_append(const p8_input_frame_t *frame, const char *path, long *io
         return 0;
     }
 
-    *io_tail_offset = start + (long)strlen(head) + (long)strlen(line);
+    *tail_offset = start + (long)strlen(head) + (long)strlen(line);
     /* The new offset must land exactly on the JSON_SUFFIX just written,
      * which is where the next frame overwrites it. */
-    assert(*io_tail_offset + (long)strlen(JSON_SUFFIX) == start + (long)written);
+    assert(*tail_offset + (long)strlen(JSON_SUFFIX) == start + (long)written);
     return 1;
 }

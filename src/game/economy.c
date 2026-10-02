@@ -64,7 +64,7 @@ static economy_t *economy_create(void) {
     self->year = self->archetype->year;
 
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record("economy");
+    class_coverage_record("economy");
 #endif
     return self;
 }
