@@ -61,8 +61,8 @@ typedef struct {
     size_t slot_size;
     size_t count;
     size_t cursor;
-    size_t prises;
-    size_t max_prises;
+    size_t taken_count;
+    size_t max_taken;
 } pico8_slot_zone_t;
 
 /* Zone a deux bouts : une generation alloue depuis un bout, la suivante
@@ -95,7 +95,7 @@ void pico8_slot_zone_init(pico8_slot_zone_t *zone, const char *name,
  * release. */
 unsigned char *pico8_slot_zone_alloc(pico8_slot_zone_t *zone);
 void pico8_slot_zone_release(pico8_slot_zone_t *zone, unsigned char *slot);
-/* Places prises et pas encore rendues, et leur maximum depuis l'init. */
+/* Slots taken and not yet released, and their maximum since init. */
 size_t pico8_slot_zone_taken(const pico8_slot_zone_t *zone);
 size_t pico8_slot_zone_max_taken(const pico8_slot_zone_t *zone);
 

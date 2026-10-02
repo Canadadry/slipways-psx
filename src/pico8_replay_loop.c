@@ -1,4 +1,4 @@
-#include "pico8_rejeu.h"
+#include "pico8_replay_loop.h"
 
 #include <assert.h>
 
@@ -6,7 +6,7 @@
 #include "pico8_cart.h"
 #include "pico8_dispatch_context.h"
 
-void pico8_rejeu_ouvrir(pico8_rejeu_t *r, const char *events_path) {
+void pico8_replay_loop_open(pico8_replay_loop_t *r, const char *events_path) {
     pico8_mem_init(&r->mem);
     pico8_gfx_init(&r->gfx);
     assert(pico8_load_gfx_json(&r->mem, "pico8/gfx.json"));
@@ -21,11 +21,11 @@ void pico8_rejeu_ouvrir(pico8_rejeu_t *r, const char *events_path) {
     pico8_cheat_init(&r->cheat);
 }
 
-int pico8_rejeu_frames(const pico8_rejeu_t *r) {
+int pico8_replay_loop_frames(const pico8_replay_loop_t *r) {
     return r->input.frame_count;
 }
 
-void pico8_rejeu_jouer_frame(pico8_rejeu_t *r, int i) {
+void pico8_replay_loop_play_frame(pico8_replay_loop_t *r, int i) {
     pico8_dispatch_set_input(&r->input);
     pico8_cheat_step(&r->cheat, &r->input);
     pico8__update60();
@@ -33,6 +33,6 @@ void pico8_rejeu_jouer_frame(pico8_rejeu_t *r, int i) {
     if (i < r->input.frame_count - 1) pico8_input_step(&r->input);
 }
 
-void pico8_rejeu_fermer(pico8_rejeu_t *r) {
+void pico8_replay_loop_close(pico8_replay_loop_t *r) {
     pico8_input_free(&r->input);
 }

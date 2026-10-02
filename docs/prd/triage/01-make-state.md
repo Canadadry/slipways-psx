@@ -1,5 +1,5 @@
 ---
-title: "make etat : état texte de la dernière frame d'un rejeu"
+title: "make state : état texte de la dernière frame d'un rejeu"
 description: "Un agent qui joue une partie sans fenêtre ne peut lire que des pixels ; il lui faut l'état de la partie en texte."
 status: needs-triage
 ---
@@ -10,7 +10,7 @@ On veut mesurer le pire cas mémoire sur une vraie partie remplie (≈375 mois d
 
 ## Solution
 
-Un outil séparé, `make etat EVENTS=<events>`, qui rejoue le fichier depuis l'écran titre exactement comme `make replay` (cheat compris), puis écrit **une seule fois, à la dernière frame**, l'état de la partie en texte dans `tmp/etat.txt` : horloge, ressources, caméra, planètes, slipways, structures, et le pic de chaque zone mémoire et de chaque cap depuis le début du rejeu. Pas d'historique par frame. Le dump de frame existant n'est pas modifié.
+Un outil séparé, `make state EVENTS=<events>`, qui rejoue le fichier depuis l'écran titre exactement comme `make replay` (cheat compris), puis écrit **une seule fois, à la dernière frame**, l'état de la partie en texte dans `tmp/state.txt` : horloge, ressources, caméra, planètes, slipways, structures, et le pic de chaque zone mémoire et de chaque cap depuis le début du rejeu. Pas d'historique par frame. Le dump de frame existant n'est pas modifié.
 
 ## User Stories
 
@@ -30,9 +30,9 @@ Un outil séparé, `make etat EVENTS=<events>`, qui rejoue le fichier depuis l'�
 14. As an analyst, I want the current (last-frame) value next to the peak, so that I can tell transient spikes from accumulation.
 15. As an agent, I want a stable, line-oriented format (`<section> <key> <values…>`), so that I can grep it without a parser.
 16. As an agent, I want the output always at the same path, overwritten at each run, so that I never read a stale state.
-17. As a developer, I want `make etat` outside `make test` and `make e2e`, so that a partie that ends in `pico8_fatal` never breaks the suite.
+17. As a developer, I want `make state` outside `make test` and `make e2e`, so that a partie that ends in `pico8_fatal` never breaks the suite.
 18. As an agent, I want the replay to stop with a clear message naming the zone or cap when a `pico8_fatal` fires, and the state written up to that point if possible, so that a crash is itself a measurement.
-19. As a developer, I want `make etat` to never open a window, so that it respects the no-raylib rule.
+19. As a developer, I want `make state` to never open a window, so that it respects the no-raylib rule.
 20. As a developer, I want the existing replay output (framebuffer dump, capture, `PICO8_REMPLISSAGE`) unchanged, so that no e2e sha256 moves.
 
 ## Implementation Decisions
@@ -41,16 +41,16 @@ Un outil séparé, `make etat EVENTS=<events>`, qui rejoue le fichier depuis l'�
 - **Module d'état (deep module)** : une fonction qui écrit l'état courant du moteur dans un `FILE*`, sans rien allouer dans les zones du jeu (ne doit pas fausser les pics qu'elle rapporte). Testable seule après un rejeu court.
 - **Pics manquants à ajouter** : la zone `frame` n'a pas de high-water mark aujourd'hui (elle est remise à zéro à chaque `update60`) — en ajouter un, lu avant chaque reset. Idem pour les caps qui n'exposent que leur valeur courante (`interface` par sorte, file de sortie). Les compteurs existants (`max_vivantes`, `max_octets`, `max_elements` des particles, `pico8_zone_partie_max`, `pico8_zone_chargement_max`) sont réutilisés.
 - **Les pics ne changent aucun comportement** : un compteur de plus, aucun effet sur l'allocation, donc aucun sha256 e2e ne doit bouger.
-- **Format** : une ligne par fait, sections `horloge`, `ressources`, `techs`, `camera`, `planete`, `slipway`, `structure`, `compte`, `zone`, `cap`. Les noms minifiés du cart restent ceux du glossaire (`docs/glossaire-noms.md`) ; les états de planète en clair (`inconnue`, `connue`, `colonisee`, `vide`).
-- **Coordonnées** : monde (unités du cart, 0..262 px) et écran (après caméra), plus un drapeau `visible`.
+- **Format** : une ligne par fait, sections `clock`, `resources`, `techs`, `camera`, `planet`, `slipway`, `structure`, `count`, `zone`, `cap`. Les noms minifiés du cart restent ceux du glossaire (`docs/glossaire-noms.md`) ; les états de planète en clair (`unknown`, `known`, `colonized`, `empty`) ; la file de sortie est le cap `exit_queue`.
+- **Coordonnées** : `world` (unités du cart, 0..262 px) et `screen` (après caméra), plus un drapeau `visible`.
 - **Lecture seule** sur l'état du jeu : l'outil lit `cg`/`hv`, `fm`, la caméra ; il n'appelle aucune fonction du cart qui modifie l'état.
-- Cible Makefile `etat`, avec sa ligne dans la légende en tête du `Makefile`, hors suite.
+- Cible Makefile `state`, avec sa ligne dans la légende en tête du `Makefile`, hors suite.
 
 ## Testing Decisions
 
-- Un bon test vérifie la sortie externe : on rejoue un e2e existant et on lit `tmp/etat.txt`, sans dépendre de la structure interne.
+- Un bon test vérifie la sortie externe : on rejoue un e2e existant et on lit `tmp/state.txt`, sans dépendre de la structure interne.
 - Tests à écrire :
-  - sur `trade_rich_mine` : le nombre de lignes `planete` vaut le nombre de planètes du jeu, les slipways et colonies attendues apparaissent, le pic `partie` égale `max_octets partie` du `PICO8_REMPLISSAGE`.
+  - sur `trade_rich_mine` : le nombre de lignes `planet` vaut le nombre de planètes du jeu, les slipways et colonies attendues apparaissent, le pic `partie` égale `max_octets partie` du `PICO8_REMPLISSAGE`.
   - sur `cheat_code` : crédits et science reflètent le cheat.
   - le pic `frame` est non nul et ≤ capacité ; il est ≥ la valeur courante.
   - écrire l'état ne change ni `partie` ni `frame` (comparer avant/après).

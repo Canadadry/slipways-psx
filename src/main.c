@@ -28,7 +28,7 @@
  * code stay the same. */
 
 #include "pico8_dump.h"
-#include "pico8_rejeu.h"
+#include "pico8_replay_loop.h"
 #include "pico8_screencast.h"
 #include "pico8_cart.h"
 #include "pico8_zone_interface.h"
@@ -84,8 +84,8 @@ int main(int argc, char **argv) {
     const char *capture_path = (argc > 2) ? argv[2] : NULL;
     const char *dump_path = (argc > 3) ? argv[3] : "tmp/pico8_replay_dump.txt";
 
-    static pico8_rejeu_t rejeu;
-    pico8_rejeu_ouvrir(&rejeu, events_path);
+    static pico8_replay_loop_t loop;
+    pico8_replay_loop_open(&loop, events_path);
 
     /* Un echec tue le processus : une capture absente ou tronquee
      * produirait une empreinte fausse, indiscernable d'une regression.
@@ -97,15 +97,15 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    int frame_count = pico8_rejeu_frames(&rejeu);
+    int frame_count = pico8_replay_loop_frames(&loop);
     for (int i = 0; i < frame_count; i++) {
-        pico8_rejeu_jouer_frame(&rejeu, i);
-        /* APRES la frame i et avant la suivante : c'est le seul
-         * instant ou la memoire ecran tient la frame i complete. En tete
-         * de boucle, la capture entiere serait decalee d'une frame --
-         * tests/test_pico8_headless_capture.c le detecte en comparant la
-         * derniere frame capturee au dump texte. */
-        if (capture_path && !pico8_screencast_write_frame(&capture, &rejeu.mem)) {
+        pico8_replay_loop_play_frame(&loop, i);
+        /* AFTER frame i and before the next one: the only moment the
+         * screen memory holds frame i complete. At the top of the loop the
+         * whole capture would be shifted by one frame --
+         * tests/test_pico8_headless_capture.c catches it by comparing the
+         * last captured frame with the text dump. */
+        if (capture_path && !pico8_screencast_write_frame(&capture, &loop.mem)) {
             fprintf(stderr, "pico8 replay: echec d'ecriture de la frame %d dans '%s'\n",
                     i, capture_path);
             pico8_screencast_writer_close(&capture);
@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
 
     FILE *dump_out = fopen(dump_path, "w");
     assert(dump_out != NULL);
-    int dump_ok = pico8_dump_screen(&rejeu.mem, dump_out);
+    int dump_ok = pico8_dump_screen(&loop.mem, dump_out);
     fclose(dump_out);
     assert(dump_ok);
 
@@ -135,7 +135,7 @@ int main(int argc, char **argv) {
         write_remplissage(remplissage_path);
     }
 
-    pico8_rejeu_fermer(&rejeu);
+    pico8_replay_loop_close(&loop);
 
     printf("pico8 replay: %d frame(s) run against %s; framebuffer dumped to %s\n",
            frame_count, events_path, dump_path);

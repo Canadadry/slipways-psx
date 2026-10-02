@@ -38,8 +38,8 @@ src/pico8_session_recorder.h | rejeu et enregistrement de session du driver inte
 src/main_gif.c | point d'entree de l'outil pico8_gif de make gif, outil d'hote
 src/pico8_gif.c | encodeur GIF de make gif, outil d'hote
 src/pico8_gif.h | encodeur GIF de make gif, en-tete de pico8_gif.c
-src/main_etat.c | point d'entree de make etat, outil d'hote
-src/pico8_etat.c | etat texte de make etat, outil d'hote
-src/pico8_etat.h | etat texte de make etat, en-tete de pico8_etat.c
-src/pico8_rejeu.c | boucle de rejeu headless partagee par pico8_replay et pico8_etat, outil d'hote
-src/pico8_rejeu.h | boucle de rejeu headless, en-tete de pico8_rejeu.c
+src/main_state.c | entry point of make state, host tool
+src/pico8_state.c | text state of make state, host tool
+src/pico8_state.h | text state of make state, header of pico8_state.c
+src/pico8_replay_loop.c | headless replay loop shared by pico8_replay and pico8_state, host tool
+src/pico8_replay_loop.h | headless replay loop, header of pico8_replay_loop.c

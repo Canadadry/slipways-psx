@@ -46,8 +46,8 @@ size_t pico8_zone_particules_max_octets(pico8_particules_sorte_t sorte);
 void pico8_zone_particules_noter_elements(pico8_particules_sorte_t sorte, int count);
 int pico8_zone_particules_max_elements(pico8_particules_sorte_t sorte);
 
-/* Places de la sorte, et octets d'une place. */
-int pico8_zone_particules_capacite(pico8_particules_sorte_t sorte);
-size_t pico8_zone_particules_taille(pico8_particules_sorte_t sorte);
+/* Slots of the sorte, and bytes of one slot. */
+int pico8_zone_particules_capacity(pico8_particules_sorte_t sorte);
+size_t pico8_zone_particules_slot_size(pico8_particules_sorte_t sorte);
 
 #endif

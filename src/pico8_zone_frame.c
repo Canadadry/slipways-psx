@@ -24,25 +24,25 @@ const pico8_zone_choisie_t *pico8_zone_frame(void) {
     return &frame_handle;
 }
 
-/* `used` ne fait que monter entre deux remises a zero : le relire avant
- * chacune et a chaque lecture du maximum suffit. */
-static void frame_noter_max(void) {
+/* `used` only grows between two resets: reading it before each reset and
+ * at each read of the maximum is enough. */
+static void frame_note_max(void) {
     if (frame.used > frame_max) frame_max = frame.used;
 }
 
 void pico8_zone_frame_reset(void) {
     frame_init_once();
-    frame_noter_max();
+    frame_note_max();
     pico8_bump_zone_reset(&frame);
 }
 
-size_t pico8_zone_frame_prise(void) {
+size_t pico8_zone_frame_used(void) {
     frame_init_once();
     return frame.used;
 }
 
 size_t pico8_zone_frame_max(void) {
     frame_init_once();
-    frame_noter_max();
+    frame_note_max();
     return frame_max;
 }
