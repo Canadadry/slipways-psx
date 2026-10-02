@@ -875,7 +875,7 @@ unit-run-test_frames_tool: | unit-run-test_headless_capture
 # Échoue avant toute compilation plutôt que de rejouer un fichier par défaut.
 ifneq ($(filter replay screencast,$(MAKECMDGOALS)),)
     ifeq ($(strip $(EVENTS)),)
-        $(error EVENTS manque : make $(filter replay screencast,$(MAKECMDGOALS)) EVENTS=<events.json>)
+        $(error EVENTS missing: make $(filter replay screencast,$(MAKECMDGOALS)) EVENTS=<events.json>)
     endif
 endif
 
@@ -949,20 +949,20 @@ e2e: $(foreach e,$(E2E_EVENTS),$(call frames_current,$(e))) tools/e2e_limits.sh 
 	@status=0; \
 	sh tools/e2e_limits.sh $(E2E_EXCEPTIONS) $(E2E_EVENTS) || status=1; \
 	sh tools/frames_check.sh $(foreach e,$(E2E_EVENTS),$(e) $(call frames_reference,$(e)) $(call frames_current,$(e))) || status=1; \
-	echo "e2e: $(words $(E2E_EVENTS)) e2e dans $(E2E_DIR)"; \
+	echo "e2e: $(words $(E2E_EVENTS)) e2e in $(E2E_DIR)"; \
 	exit $$status
 
 GIF_DIR := gif
 
 gif: $(foreach e,$(E2E_EVENTS),$(GIF_DIR)/$(basename $(notdir $(e))).gif)
-	@echo "gif: $(words $(E2E_EVENTS)) GIF dans $(GIF_DIR)/, $$(du -ch $(GIF_DIR)/*.gif | tail -1 | cut -f1)"
+	@echo "gif: $(words $(E2E_EVENTS)) GIF(s) in $(GIF_DIR)/, $$(du -ch $(GIF_DIR)/*.gif | tail -1 | cut -f1)"
 
 $(GIF_DIR)/%.gif: $(call frames_capture,$(E2E_DIR)/%.json) $(E2E_DIR)/%.json $(TMP_DIR)/gif
 	@mkdir -p $(@D)
 	./$(TMP_DIR)/gif $< $(E2E_DIR)/$*.json $@
 
 e2e-baseline: $(foreach e,$(E2E_EVENTS),$(call frames_current,$(e)))
-	@$(foreach e,$(E2E_EVENTS),cp $(call frames_current,$(e)) $(call frames_reference,$(e)) && echo "e2e: reference posee dans $(call frames_reference,$(e))" && ) true
+	@$(foreach e,$(E2E_EVENTS),cp $(call frames_current,$(e)) $(call frames_reference,$(e)) && echo "e2e: reference set in $(call frames_reference,$(e))" && ) true
 
 e2e-ref: $(foreach e,$(E2E_EVENTS),$(if $(wildcard $(call frames_reference,$(e))),$(call frames_current,$(e)))) $(FRAMES_TOOL) tools/frames_ref.sh
 	@sh tools/frames_ref.sh ./$(FRAMES_TOOL) $(FRAMES_DIR) $(TMP_DIR)/frames-ref $(foreach e,$(E2E_EVENTS),$(e) $(call frames_reference,$(e)) $(call frames_current,$(e)) $(call frames_capture,$(e)))
@@ -994,36 +994,36 @@ LINE_COVERAGE_UNREACHABLE := tools/line_coverage_unreachable.txt
 
 line-coverage: $(TMP_DIR)/replay_gcov tools/line_coverage.sh
 	@$(LINE_COVERAGE_COVER) $(EVENTS) > $(TMP_DIR)/line_coverage.txt
-	@echo "couverture de lignes: $$(wc -l < $(TMP_DIR)/line_coverage.txt) ligne(s) dans $(TMP_DIR)/line_coverage.txt"
+	@echo "line coverage: $$(wc -l < $(TMP_DIR)/line_coverage.txt) line(s) in $(TMP_DIR)/line_coverage.txt"
 
 line-coverage-contrib: $(TMP_DIR)/replay_gcov tools/line_coverage.sh
 	@$(LINE_COVERAGE_COVER) $(EVENTS) > $(TMP_DIR)/line_coverage_self.txt
 	@$(if $(strip $(OTHERS)),$(LINE_COVERAGE_COVER) $(OTHERS),:) > $(TMP_DIR)/line_coverage_others.txt
 	@$(LINE_COVERAGE) contrib $(TMP_DIR)/line_coverage_self.txt $(TMP_DIR)/line_coverage_others.txt > $(TMP_DIR)/line_coverage_contrib.txt
-	@echo "apport de $(EVENTS): $$(wc -l < $(TMP_DIR)/line_coverage_contrib.txt) ligne(s) dans $(TMP_DIR)/line_coverage_contrib.txt"
+	@echo "contribution of $(EVENTS): $$(wc -l < $(TMP_DIR)/line_coverage_contrib.txt) line(s) in $(TMP_DIR)/line_coverage_contrib.txt"
 
 # Sans e2e, l'ensemble couvert est vide : l'écart est toute la référence.
 e2e-gap: $(TMP_DIR)/replay_gcov tools/line_coverage.sh $(LINE_COVERAGE_REFERENCE) $(LINE_COVERAGE_UNREACHABLE)
 	@$(if $(E2E_EVENTS),$(LINE_COVERAGE_COVER) $(E2E_EVENTS),:) > $(TMP_DIR)/line_coverage_e2e.txt
 	@$(LINE_COVERAGE) gap $(LINE_COVERAGE_REFERENCE) $(LINE_COVERAGE_UNREACHABLE) $(TMP_DIR)/line_coverage_e2e.txt > $(TMP_DIR)/line_coverage_gap.txt
-	@sed 's/^/manque: /' $(TMP_DIR)/line_coverage_gap.txt
+	@sed 's/^/missing: /' $(TMP_DIR)/line_coverage_gap.txt
 	@n=$$(wc -l < $(TMP_DIR)/line_coverage_gap.txt | tr -d ' '); \
 	if [ "$$n" -ne 0 ]; then \
-	    echo "écart: $$n ligne(s) de $(LINE_COVERAGE_REFERENCE) ni couvertes par make e2e ($(words $(E2E_EVENTS)) e2e) ni dans $(LINE_COVERAGE_UNREACHABLE), dans $(TMP_DIR)/line_coverage_gap.txt"; \
+	    echo "gap: $$n line(s) of $(LINE_COVERAGE_REFERENCE) neither covered by make e2e ($(words $(E2E_EVENTS)) e2e) nor in $(LINE_COVERAGE_UNREACHABLE), in $(TMP_DIR)/line_coverage_gap.txt"; \
 	    exit 1; \
 	fi
-	@echo "écart: nul -- make e2e couvre toute la référence hors $(LINE_COVERAGE_UNREACHABLE)"
+	@echo "gap: none -- make e2e covers the whole reference outside $(LINE_COVERAGE_UNREACHABLE)"
 
 .PHONY: line-coverage line-coverage-contrib e2e-gap
 
 ifneq ($(filter minimize,$(MAKECMDGOALS)),)
     ifeq ($(and $(strip $(EVENTS)),$(strip $(OUT))),)
-        $(error EVENTS ou OUT manque : make minimize EVENTS=<events.json> OUT=<sortie.json>)
+        $(error EVENTS or OUT missing: make minimize EVENTS=<events.json> OUT=<output.json>)
     endif
 endif
 ifneq ($(filter e2e-judge,$(MAKECMDGOALS)),)
     ifeq ($(strip $(EVENTS)),)
-        $(error EVENTS manque : make e2e-judge EVENTS=<events.json>)
+        $(error EVENTS missing: make e2e-judge EVENTS=<events.json>)
     endif
 endif
 
@@ -1037,15 +1037,15 @@ e2e-cleanup: $(TMP_DIR)/minimize $(TMP_DIR)/replay_gcov tools/e2e_cleanup.sh too
 	@rm -rf $(E2E_CLEANUP_DIR) && mkdir -p $(E2E_CLEANUP_DIR)
 	@$(foreach e,$(E2E_EVENTS),$(LINE_COVERAGE_COVER) $(e) > $(E2E_CLEANUP_DIR)/$(notdir $(e)).lines && ) true
 	@$(if $(E2E_EVENTS),sh tools/e2e_cleanup.sh $(foreach e,$(E2E_EVENTS),$(e) $$(./$(TMP_DIR)/minimize count $(e)) $(E2E_CLEANUP_DIR)/$(notdir $(e)).lines),:) > $(E2E_CLEANUP_DIR)/remove.txt
-	@sed 's/^/à retirer: /' $(E2E_CLEANUP_DIR)/remove.txt
-	@echo "e2e-cleanup: $$(wc -l < $(E2E_CLEANUP_DIR)/remove.txt | tr -d ' ') fichier(s) à retirer sur $(words $(E2E_EVENTS)), rien n'est supprimé"
+	@sed 's/^/to remove: /' $(E2E_CLEANUP_DIR)/remove.txt
+	@echo "e2e-cleanup: $$(wc -l < $(E2E_CLEANUP_DIR)/remove.txt | tr -d ' ') file(s) to remove out of $(words $(E2E_EVENTS)), nothing is deleted"
 
 e2e-judge: $(TMP_DIR)/replay_gcov tools/line_coverage.sh
 	@$(LINE_COVERAGE_COVER) $(EVENTS) > $(TMP_DIR)/e2e_judge_self.txt
 	@$(if $(filter-out $(EVENTS),$(E2E_EVENTS)),$(LINE_COVERAGE_COVER) $(filter-out $(EVENTS),$(E2E_EVENTS)),:) > $(TMP_DIR)/e2e_judge_others.txt
 	@$(LINE_COVERAGE) contrib $(TMP_DIR)/e2e_judge_self.txt $(TMP_DIR)/e2e_judge_others.txt > $(TMP_DIR)/e2e_judge_contrib.txt
 	@n=$$(wc -l < $(TMP_DIR)/e2e_judge_contrib.txt | tr -d ' '); \
-	echo "e2e-judge: $(EVENTS) ajoute $$n ligne(s) à make e2e, dans $(TMP_DIR)/e2e_judge_contrib.txt"; \
+	echo "e2e-judge: $(EVENTS) adds $$n line(s) to make e2e, in $(TMP_DIR)/e2e_judge_contrib.txt"; \
 	[ "$$n" -gt 0 ]
 
 .PHONY: minimize e2e-cleanup e2e-judge
@@ -1059,13 +1059,13 @@ data-residue: tools/data_residue.sh
 # grep rend 1 quand rien ne correspond ; au-delà, c'est une erreur.
 data-guard: tools/data_residue.sh
 	@status=0; grep -rn offsetof src/ || status=$$?; \
-	if [ $$status -eq 0 ]; then echo "data-guard : offsetof dans src/"; exit 1; fi; \
+	if [ $$status -eq 0 ]; then echo "data-guard: offsetof in src/"; exit 1; fi; \
 	[ $$status -eq 1 ] || exit $$status; \
-	echo "offsetof dans src/ : 0"
+	echo "offsetof in src/: 0"
 	@if [ -n "$(DATA_RESIDUE_GUARD)" ]; then \
 	    sh tools/data_residue.sh --check $(DATA_RESIDUE_GUARD) src tests; \
 	else \
-	    echo "catégories gardées : aucune"; \
+	    echo "guarded categories: none"; \
 	fi
 
 .PHONY: data-residue data-guard
@@ -1089,10 +1089,10 @@ SANITIZE_RUNS := $(addprefix sanitize-run-,$(E2E_EVENTS))
 
 $(SANITIZE_RUNS): sanitize-run-%: % $(TMP_DIR)/replay_sanitize
 	@mkdir -p $(SANITIZE_DIR)/$(<D)
-	@./$(TMP_DIR)/replay_sanitize $< /dev/null $(SANITIZE_DIR)/$<.dump.txt > $(SANITIZE_DIR)/$<.log 2>&1 || { cat $(SANITIZE_DIR)/$<.log; echo "sanitize: $< sale"; exit 1; }
+	@./$(TMP_DIR)/replay_sanitize $< /dev/null $(SANITIZE_DIR)/$<.dump.txt > $(SANITIZE_DIR)/$<.log 2>&1 || { cat $(SANITIZE_DIR)/$<.log; echo "sanitize: $< dirty"; exit 1; }
 
 sanitize-net: $(SANITIZE_RUNS)
-	@echo "sanitize: $(words $(SANITIZE_RUNS)) propre(s)"
+	@echo "sanitize: $(words $(SANITIZE_RUNS)) clean"
 
 .PHONY: sanitize-net $(SANITIZE_RUNS)
 
