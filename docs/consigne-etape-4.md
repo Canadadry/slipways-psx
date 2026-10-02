@@ -43,6 +43,8 @@ Il n'y a plus de nom minifié. Le glossaire (`docs/glossaire-noms.md`) se lit se
 - *Amendé par 4c1.* Les lecteurs d'un message fatal composé (`p8_fatal`, `expect_fatal`) se cherchent par `grep` de chaque fragment du gabarit, sur tout `tests/` : la PRD de 4c1 avait manqué `tests/test_frame_zone.c`, trouvé ainsi avant le rouge.
 - *Amendé par 4c2.* Un même mot français peut être deux chaînes d'écrivains différents : `partie` est un nom de zone écrit par `engine/game_zone` (lu par le gabarit fatal de `engine/zone.c`) et une étiquette de la sortie `REPLAY_FILL` écrite par `cmd/replay.c`. La propriété se décide par l'écrivain de la chaîne lue, pas par le mot : le `grep` du mot propose des lecteurs, la lecture du code qui compose la chaîne les confirme.
 - *Amendé par 4c2.* `cart-citations` lit aussi les messages d'`assert` : un nom de paramètre d'une ou deux lettres cité dans un message (`"n adds into a list reserved for n take nothing"`) compte en `short`. La liste des chaînes à traduire se relève donc aussi avec `cart-citations`, pas seulement avec le compteur de français et les mots de contenu.
+- *Amendé par 4d.* Une chaîne d'une table de données se trie par son consommateur, en suivant le littéral jusqu'à lui : dessinée (texte de rangée, nom, menu, aide) — intouchable, les `*.sha256` le prouvent ; code de données d'origine (codes de type et de ressource, clés de production, listes de codes, états) — intouchable ; clé du cart (clé de table minifiée, ou composé d'une telle clé, qui ne sert qu'à un `strcmp`, une recherche ou un dispatch) — traduite par son écrivain à tous ses sites, même sans ligne `chaîne` au TSV : les compteurs ne la voient pas (D-40). Pour la trouver : les clés comparées par `strcmp`, recherche ou dispatch dont le texte est un ancien nom de deux lettres ou en contient un (`"qh+"`), et les `fn="…"` et clés de table de `pico8/lua.lua`.
+- *Amendé par 4d.* Un test qui plie une chaîne dans un hachage figé en est lecteur, même si aucun pixel n'en dépend : sa constante se corrige à la valeur que `check()` affiche, dans le commit de chaînes (`BUILT_HASH`, `SHARED_HASH` de 4d).
 
 ## 7. Tests
 
@@ -50,6 +52,7 @@ Il n'y a plus de nom minifié. Le glossaire (`docs/glossaire-noms.md`) se lit se
 - Une assertion ne change ni de condition ni de présence. Son message peut seulement être proposé réécrit (point 5).
 - Aucune assertion n'est ajoutée à l'étape 4 (la permission du skill d'en ajouter une prouvée tombe).
 - *Amendé par 4c1.* Un nom de cas d'un test à processus enfant (`CASES[]`, lu par les `expect_*` de `main`) est le nom de sa fonction sans `case_` ; un nom français ou du cart se propose sous cette règle, à la rubrique 10.
+- *Amendé par 4d.* Un libellé de `check()` est le nom de la constante vérifiée, en minuscules, sans `_HASH` (`"planet_resource_row"` pour `PLANET_RESOURCE_ROW_HASH`) ; un second libellé sur la même constante y ajoute un mot (`"icon_tooltips_first_entry drawn"`).
 
 ## 8. Contrôles de l'agent
 
@@ -69,6 +72,7 @@ Sans `make` (le répertoire de build est partagé) : l'agent appelle les scripts
   ```
 
   Elle ne voit ni un commentaire en fin de ligne de code (`cmd  # …`) ni un `#` dans un here-document : un tel commentaire se laisse tel quel ou se signale à l'orchestrateur.
+- *Hauteur des chaînes* (*amendé par 4d*) : dans un `.c` cité par `tools/line_coverage_reference.txt`, un message d'`assert` réécrit garde aussi son nombre de lignes ; la ligne `info` de `composition_residue.sh --detail` est le `wc -l` de `src/game/game_data.h` : elle suit la hauteur de ses commentaires, les autres lignes de `--detail` restent égales.
 - *Hauteur des blocs* (*amendé par 4b*) : dans un `.c` de `src/` cité par `tools/line_coverage_reference.txt` (`cut -d: -f1 tools/line_coverage_reference.txt | sort -u`), chaque bloc de commentaire garde son nombre de lignes : `e2e-gap` compare des numéros de ligne, et un bloc qui grandit ou rétrécit décale tout le code qui suit (72 lignes de plus en défaut à 4b). Contrôle : les lignes qui ne sont pas des commentaires restent aux mêmes numéros, et `make e2e-gap` rend la même sortie à l'octet. Les en-têtes et les tests ne sont pas concernés.
 - *Fichier d'avant* (*amendé par 4a*, pour l'orchestrateur) : quand le commit de chaînes et le commit de commentaires touchent le même fichier, l'« avant » des commentaires est l'état d'après les chaînes ; l'orchestrateur en garde une copie sous `tmp/` avant de lancer les agents, puisque les deux commits ne sont faits qu'à la fin.
 - *Compteurs*, colonnes `backtick` et `comment` à zéro sur ses fichiers, hors messages d'`assert` qu'il a proposés :

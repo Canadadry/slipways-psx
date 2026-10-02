@@ -1,5 +1,5 @@
-/* The generated defaults each class outside the `jo` tree starts on, each
- * against its own data: a fresh struct of each module, then its ready cycle.
+/* The defaults each class outside the planet kinds starts on, each against
+ * its own data: a fresh struct of each module, then its ready cycle.
  * No shared reader, no table of modules. */
 
 #include <assert.h>
@@ -42,9 +42,10 @@ static mouse_button_t *mouse_left_of(const mouse_t *nf) {
     return (mouse_button_t *)mouse_left_button();
 }
 
-/* The second `jl()` (the one `eu` runs) finds `qb`, `nf` and `ui` ready and
- * leaves their state alone: a mark written into `nf`'s `l` and into the
- * shared `le` survives it; `qb` stays ready throughout. */
+/* The second reset_world() (the one cart_start_game() runs) finds the
+ * camera, the mouse and game/ui.c ready and leaves their state alone: a mark
+ * written into the mouse's left button and into the shared ephemerals
+ * survives it; the camera stays ready throughout. */
 static void test_second_reset_world_keeps_specs(void) {
     mouse_button_t *mouse_left = mouse_left_of(main_mouse_typed());
     static entity_t mark_cell;
@@ -67,8 +68,8 @@ static void test_second_reset_world_keeps_specs(void) {
     mouse_left->released = hm;
 }
 
-/* A fresh bg reads its archetype and starts on ke's defaults; ready until
- * its shutdown. */
+/* A fresh background reads its archetype and starts on the entity's
+ * defaults; ready until its shutdown. */
 static void test_background_defaults_and_ready(void) {
     background_t *bg = background_new();
 
@@ -89,8 +90,8 @@ static void test_button_defaults_and_ready(void) {
     assert(!button_ready());
 }
 
-/* `ra` is the module's shared vector, not the archetype's: two fresh
- * readers point at the same one. */
+/* The position is the module's shared vector, not the archetype's: two
+ * fresh mice point at the same one. */
 static void test_mouse_pos_is_shared(void) {
     const mouse_t *nf = mouse_new();
     const mouse_t *other = mouse_new();
@@ -99,7 +100,8 @@ static void test_mouse_pos_is_shared(void) {
     assert(nf->pos != NULL && nf->pos == other->pos);
 }
 
-/* `v`, `p` and `ra` start on the archetype's vectors. */
+/* The velocity, the position before shake and the position start on the
+ * archetype's vectors. */
 static void test_camera_defaults_and_ready(void) {
     camera_t *qb = camera_new();
 
@@ -111,7 +113,8 @@ static void test_camera_defaults_and_ready(void) {
     assert(!camera_ready());
 }
 
-/* mz's own `me` replaces ke's; `jj` holds the generated `qs`. */
+/* The wormhole's own state replaces the entity's; its too-far target holds
+ * the status_text of the data. */
 static void test_wormhole_defaults_and_ready(void) {
     wormhole_t *mz = wormhole_new();
 
@@ -132,7 +135,8 @@ static void test_layout_ready(void) {
     assert(!layout_row_ready() && !tooltip_ready());
 }
 
-/* A fresh fv: its archetype's defaults copied, ke's under them. */
+/* A fresh help screen: its archetype's defaults copied, the entity's under
+ * them. */
 static void test_help_screen_defaults_and_ready(void) {
     const probe_t *g_ = help_screen_new();
 
@@ -153,8 +157,8 @@ static void test_help_screen_defaults_and_ready(void) {
     assert(!help_screen_ready());
 }
 
-/* A fresh probe: its archetype's defaults copied, ke's under them; no `ra`
- * yet. */
+/* A fresh probe: its archetype's defaults copied, the entity's under them;
+ * no position yet. */
 static void test_probe_defaults_and_ready(void) {
     probe_t *g_ = probe_new(NULL);
 
@@ -185,7 +189,7 @@ static void test_research_project_defaults_and_ready(void) {
     assert(!research_project_ready());
 }
 
-/* `ra` starts on the archetype's vector. */
+/* The position starts on the archetype's vector. */
 static void test_structure_icon_defaults_and_ready(void) {
     structure_icon_t *ie = structure_icon_new(NULL);
 
@@ -196,7 +200,7 @@ static void test_structure_icon_defaults_and_ready(void) {
     assert(!structure_icon_ready());
 }
 
-/* `cr` holds the spec's record. */
+/* score_panel_layout_block() holds the record of the data. */
 static void test_score_panel_defaults_and_ready(void) {
     score_panel_t *pj = score_panel_new();
     const score_panel_layout_block_t *cr = score_panel_layout_block();
@@ -212,7 +216,7 @@ static void test_score_panel_defaults_and_ready(void) {
     assert(!score_panel_ready());
 }
 
-/* hy and trade: an empty spec, a root struct. */
+/* The economy and the trade route: no defaults, a root struct. */
 static void test_economy_ready(void) {
     economy_t *hy = economy_new();
 

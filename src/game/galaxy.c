@@ -13,8 +13,8 @@
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
 
-/* Adapts pico8_jf_next to pico8_gn_random_fn's ctx shape: `ctx` is always
- * the pico8_jf_state_t this file passes alongside it. */
+/* Adapts random_walk_next() to weighted_picker_random_fn_t: `ctx` is always
+ * the random_walk_t this file passes alongside it. */
 static p8_fixed_t picker_random(void *ctx) {
     return random_walk_next((random_walk_t *)ctx);
 }
@@ -41,10 +41,10 @@ void galaxy_populate(p8_fixed_t planet_count) {
         planet_keys_t keys;
         planet_t *made;
 
-        /* cg.jo is empty only on the very first trial: every accepted
-         * planet below self-registers into it, so later candidates really
-         * are rejection-sampled against the ones already placed. Not an
-         * inert loop over a list that stays empty. */
+        /* The planet tag is empty only on the very first trial: every
+         * accepted planet below registers itself under it, so later
+         * candidates really are rejection-sampled against the ones already
+         * placed. Not an inert loop over a list that stays empty. */
         do {
             p8_fixed_t rx = p8_fixed_add(p8_fixed_rnd(map_span), map_margin);
             p8_fixed_t ry = p8_fixed_add(p8_fixed_rnd(map_span), map_margin);
@@ -63,13 +63,13 @@ void galaxy_populate(p8_fixed_t planet_count) {
         keys.map_pos = p_box;
         keys.pos = pos_box;
 
-        /* Built for the side effect of self-registering into hv/cv/cg. */
+        /* Built for its side effect: it registers itself in the live list and the registries. */
         made = planet_new(&keys);
         (void)made;
     }
 
-    /* A NULL dk or an absent "en" reads as 0 -- this port's usual
-     * absent-field default, not a guess at which difficulty is meant. */
+    /* No difficulty button, or one without a type bias, leaves the bias
+     * at 0. */
     difficulty = economy_score_difficulty();
     if (difficulty != NULL && difficulty->has_type_bias) {
         difficulty_type_bias = difficulty->type_bias;

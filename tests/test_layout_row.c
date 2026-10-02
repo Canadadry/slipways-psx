@@ -1,7 +1,9 @@
-/* The laid-out row `lq`, read on its struct members, its pixels and
- * row_count/row_item: direct constructions, `jo.ex`, `hp:lq` and
- * the copy `js:pq` makes of it, `ol` through mv() and `pi.ld`, and a built
- * planet's panel in a game built directly: no events file. */
+/* The laid-out row, read on its struct members, its pixels and
+ * row_count/row_item: direct constructions,
+ * research_display_planet_resource_row(), research_project_layout_row() and
+ * the copy a button makes of it, layout_row_draw_at() through the class and
+ * through the draw_row dispatch, and a built planet's panel in a game built
+ * directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -43,8 +45,8 @@
 #include "engine/game_zone.h"
 #include "heap_allocator.h"
 
-/* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
- * project with an `o` and no `i`, which exports to any planet a slipway
+/* Project 12, a colony that needs two resources and exports one; project
+ * 3, with an output and no inputs, which exports to any planet a slipway
  * joins it to. */
 #define COLONY 12
 #define EXPORTER 3
@@ -74,8 +76,8 @@ static const layout_row_t *as_layout_row(const void *lq) {
     return lq;
 }
 
-/* The only reader of a row's positionals: how many, then the i-th (0-based)
- * in ascending index order. */
+/* The only reader of a row's positionals: how many, then one by 0-based
+ * index, in ascending index order. */
 static int row_count(const void *lq) {
     return ((const layout_row_t *)lq)->items_count;
 }
@@ -106,8 +108,8 @@ static uint32_t fold_string(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-/* The frozen hashes were taken when tuples were ob tables: these are the
- * bytes a table folded for its tag and its two kinds of key. */
+/* The frozen hashes were taken when tuples were tables of decoded data:
+ * these are the bytes a table folded for its tag and its two kinds of key. */
 enum { VIEW_TAG = 0x9E5C0B7Au, VIEW_INDEX_KEY = 0, VIEW_NAME_KEY = 1 };
 
 static uint32_t fold_tuple_name(uint32_t h, const char *name) {
@@ -125,8 +127,8 @@ static uint32_t fold_tuple_item(uint32_t h, const data_item_t *item) {
     return fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->number));
 }
 
-/* A tuple folded as the frozen hashes folded the table it was: items, then `qe`,
- * then `c`. */
+/* A tuple folded as the frozen hashes folded the table it was: items, then
+ * its resource, then its color. */
 static uint32_t fold_tuple(uint32_t h, const data_row_t *t, int depth) {
     int i;
 
@@ -180,10 +182,10 @@ static int same_cell(layout_row_cell_t a, layout_row_cell_t b) {
     }
 }
 
-/* The frozen hashes folded the value a positional was, nil and false apart:
- * a NOTHING cell folds as nil when `nil` is set (the test's keys said nil
- * there), as false otherwise (no row `src/` builds holds a nil at the top
- * level). */
+/* The frozen hashes folded the value a positional was, absent and false
+ * apart: a NOTHING cell folds as absent when `nil` is set (the test's keys
+ * left that key out), as false otherwise (no row `src/` builds holds an
+ * absent key at the top level). */
 static uint32_t fold_cell(uint32_t h, layout_row_cell_t c, int nil) {
     switch (c.kind) {
     case LAYOUT_ROW_CELL_ROW:
@@ -193,16 +195,16 @@ static uint32_t fold_cell(uint32_t h, layout_row_cell_t c, int nil) {
     case LAYOUT_ROW_CELL_STRING:
         return fold_string(h, c.as.text);
     case LAYOUT_ROW_CELL_NOTHING:
-        /* The bytes the frozen hashes fold for a nil and a false key, which
-         * CONSTRUCTIONS_HASH holds apart. */
+        /* The bytes the frozen hashes fold for an absent and a false key,
+         * which CONSTRUCTIONS_HASH holds apart. */
         return nil ? fnv(fnv(h, 3u), 0xDEADu) : fnv(fnv(h, 2u), 0u);
     default:
         return fold_bool(h, 1);
     }
 }
 
-/* `from`: the keys the row was built from, NULL when `src/` built it. Bit
- * `i` of `nil_at`: the key `i` was nil, not false. */
+/* `from`: the keys the row was built from, NULL when `src/` built it. A set
+ * bit of `nil_at` marks the key of that index as absent, not false. */
 static uint32_t fold_positionals(uint32_t h, const void *lq, const layout_row_keys_t *from, unsigned nil_at) {
     int n = row_count(lq);
     int i;
@@ -244,7 +246,8 @@ static uint32_t fold_background(uint32_t h, const layout_row_t *lq) {
     return fold_fixed_member(h, lq->has_background, lq->background);
 }
 
-/* `c`, `bg`, `score` as values; `ra` as the vector it points at. */
+/* The color, background and score as values; the position as the vector it
+ * points at. */
 static uint32_t fold_named(uint32_t h, const void *row) {
     const layout_row_t *lq = as_layout_row(row);
     const vec_t *ra;
@@ -308,7 +311,8 @@ static layout_row_cell_t tuple_of(int n, const int *items) {
     return layout_row_cell_row(t);
 }
 
-/* `ol` of `lq` on a cleared screen, at `a` 0, 0.5 and 1. */
+/* layout_row_draw_at() of the row on a cleared screen, at alignment 0, 0.5
+ * and 1. */
 static uint32_t fold_drawn(uint32_t h, const void *lq) {
     static const p8_fixed_t as[] = {0, P8_FIXED_LIT(0x00008000, 0.5), P8_FIXED_LIT(0x00010000, 1.0)};
     size_t n;
@@ -334,7 +338,7 @@ static uint32_t fold_row(uint32_t h, const void *lq) {
     return fold_row_from(h, lq, NULL, 0u);
 }
 
-/* Builds the row from `k` (NULL: no keys), folds it; `nil_at` as in
+/* Builds the row from the keys (NULL: none), folds it; `nil_at` as in
  * fold_positionals. */
 static uint32_t fold_built_from(uint32_t h, const char *label, const layout_row_keys_t *k, unsigned nil_at) {
     const void *lq = layout_row_new(&heap_allocator, k);
@@ -347,7 +351,7 @@ static uint32_t fold_built_from(uint32_t h, const char *label, const layout_row_
     return fnv(h, one);
 }
 
-/* The keys of `n` positionals, `items` borrowed, no named key. */
+/* The keys of that many positionals, `items` borrowed, no named key. */
 static layout_row_keys_t positionals(int n, const layout_row_cell_t *items) {
     layout_row_keys_t k = {0};
 
@@ -362,7 +366,7 @@ static layout_row_keys_t with_color(layout_row_keys_t k, int c) {
     return k;
 }
 
-/* `bg` a number, or false for a negative `bg`. */
+/* The background a number, or false for a negative one. */
 static layout_row_keys_t with_background(layout_row_keys_t k, int bg) {
     k.has_background = 1;
     k.background_is_bool = bg < 0;
@@ -381,9 +385,10 @@ static layout_row_keys_t with_pos(layout_row_keys_t k, vec_t *ra) {
     return k;
 }
 
-/* Every kind of item `mn` knows, the named keys each constructor passes,
- * no keys at all, the `score` row `pj:ph` passes, its hole already closed
- * (TROU-25), and the stars' row in index order. */
+/* Every kind of item row_measure_item() knows, the named keys each
+ * constructor passes, no keys at all, the score row the score panel
+ * passes, its hole already closed (TROU-25), and the stars' row in index
+ * order. */
 static void test_constructions(void) {
     uint32_t hash = 2166136261u;
     layout_row_keys_t keys;
@@ -467,8 +472,9 @@ static void *project(int k) {
     return research_projects_at(k);
 }
 
-/* `jo.ex` on the `i`/`o` of three projects, over a spread of `jq`/`mj`/`d`
- * that includes `jq>5`, the branch no replay reaches; then with no `i`. */
+/* research_display_planet_resource_row() on the inputs and output of three
+ * projects, over a spread of amount, used and spacing that includes an
+ * amount above 5, the branch no replay reaches; then with no inputs. */
 static void test_planet_resource_row(void) {
     static const int ks[] = {1, 7, 20};
     static const int jqs[] = {1, 2, 4, 6, 9};
@@ -505,9 +511,10 @@ static void test_planet_resource_row(void) {
 
 static void start_game(void);
 
-/* `hp:lq` appends `fk` and `px` after `pq`: `fs` and `w` do not see them,
- * the copy `js:pq` makes of the row does. Then two buttons with an `h_`,
- * its `bg` a number and false. */
+/* research_project_layout_row() appends the row tail and the name after
+ * the layout: `placed_items` and `width` do not see them, the copy a button
+ * makes of the row does. Then two buttons with a side tooltip, its
+ * background a number and false. */
 static void test_research_project_layout_row_and_copy(void) {
     static const int project_ranks[] = {1, 5, 12};
     uint32_t hash = 2166136261u;
@@ -570,8 +577,9 @@ static uint32_t drawn_by_draw_at(const void *lq, vec_t at, p8_fixed_t a) {
     return screen_hash();
 }
 
-/* `mv(lq,"ol",p,a)` as `jo:kj` calls it and `{lq,ra,0.5,fn="ld"}` as
- * `pj:ph` hands it to `bl`, each drawing what `ol` draws. */
+/* The class's draw_at as a planet's draw calls it, and a draw_row row
+ * {row, position, 0.5} as the score panel hands it to the draw functions,
+ * each drawing what layout_row_draw_at() draws. */
 static void test_calls(void) {
     static const int tuple_values[] = {13, 8};
     layout_row_cell_t cells[] = {str("hi"), num(12), layout_row_cell_nothing()};
@@ -623,8 +631,8 @@ static void test_calls(void) {
 
 BUMP_ZONE_STORAGE(panel_cells, 4096);
 
-/* Built, grown past its first cells by `lq_add`, then laid out anew by
- * `lq_copy`, all in `zone`. */
+/* Built, grown past its first cells by layout_row_add(), then laid out anew
+ * by layout_row_copy(), all in `zone`. */
 static uint32_t drawn_after_adds(const allocator_t *zone) {
     layout_row_cell_t a[] = {str("ab"), num(12)};
     layout_row_keys_t t = with_color(positionals(2, a), 9);
@@ -640,8 +648,8 @@ static uint32_t drawn_after_adds(const allocator_t *zone) {
     return drawn_by_draw_at(copy, vec_xy(64, 60), P8_FIXED_LIT(0x00008000, 0.5));
 }
 
-/* `lq_add` grows `items` in the zone the panel kept: a panel in a bump
- * zone draws what the same panel draws in the transient zone. */
+/* layout_row_add() grows `items` in the zone the panel kept: a panel in a
+ * bump zone draws what the same panel draws in the transient zone. */
 static void test_layout_row_add_in_bump_zone(void) {
     bump_zone_t bump;
     allocator_t handle;
@@ -652,8 +660,8 @@ static void test_layout_row_add_in_bump_zone(void) {
     assert(drawn_after_adds(&handle) == want);
 }
 
-/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
- * reads as difficulty 0. */
+/* A game started as cart_start_game() starts it, with no difficulty
+ * picked: a NULL difficulty reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
@@ -678,9 +686,9 @@ static p8_fixed_t dist2(vec_t a, vec_t b) {
 }
 
 /* A generated planet colonized by COLONY, its nearest one by EXPORTER, the
- * two joined by a slipway paid by `ey` as a drag pays it (`jc:hq` reads the
- * hovered planet off `ok.o_`), left to settle; then the colony's panel,
- * `jo:gh`, up and drawn. */
+ * two joined by a slipway paid by its drop as a drag pays it (the slipway's
+ * drag reads the hovered planet off the main ui's `hovered`), left to
+ * settle; then the colony's panel, planet_inspection_panel(), up and drawn. */
 static void built_planet_panel(void) {
     const entity_list_t *jos;
     slipway_keys_t slipway_keys = {0};
@@ -722,7 +730,7 @@ static void built_planet_panel(void) {
     cart_draw();
 }
 
-/* A button's `lq` or `h_`, NULL when nil or false. */
+/* A button's layout_row or side_tooltip, NULL when absent or false. */
 static uint32_t fold_button_row(uint32_t h, const layout_row_t *lq) {
     int i;
 
@@ -739,8 +747,8 @@ static uint32_t fold_button_row(uint32_t h, const layout_row_t *lq) {
     return h;
 }
 
-/* With a built planet's panel up, every button of `ok.le`: its `lq` and
- * `h_`; then the screen. */
+/* With a built planet's panel up, every button of the main ui's
+ * ephemerals: its layout_row and side_tooltip; then the screen. */
 static void test_planet_panel(void) {
     uint32_t h = 2166136261u;
     const entity_list_t *le;
@@ -764,7 +772,8 @@ static void test_planet_panel(void) {
     check("panel", fnv(h, screen_hash()), PANEL_HASH);
 }
 
-/* The row of `ok.le` whose first item is `head`, NULL when none. */
+/* The row of the main ui's ephemerals whose first item is `head`, NULL when
+ * none. */
 static const layout_row_t *panel_row(const char *head) {
     const entity_list_t *le = main_ui()->ephemerals;
     int i;
@@ -788,8 +797,9 @@ static const layout_row_t *panel_row(const char *head) {
 }
 
 /* A planet whose every want arrives lists each under "wants more:", and
- * `gc` times under "receives:", as the `{qe=x}` `lq:mn` reads: a want of a
- * resource draws it 5 wide, a want of none nothing, 6 wide. */
+ * `satisfied` times under "receives:", as the resource row
+ * row_measure_item() reads: a want of a resource draws it 5 wide, a want of
+ * none nothing, 6 wide. */
 static void test_inspection_panel_wants_more(void) {
     p8_fixed_t ore = p8_fixed_from_int(21);
     need_t *a = need_new(game_zone(), &ore);
@@ -826,8 +836,8 @@ static void test_inspection_panel_wants_more(void) {
     assert(wants->width == p8_fixed_from_int(64) && receives->width == p8_fixed_from_int(64));
 }
 
-/* A planet whose `kw.qe` is `r.w` has no "wants more:" row, though every
- * want arrives. */
+/* A planet whose production resource is luxury has no "wants more:" row,
+ * though every want arrives. */
 static void test_inspection_panel_w_maker_wants_no_more(void) {
     p8_fixed_t ore = p8_fixed_from_int(21);
     need_t *a = need_new(game_zone(), &ore);
@@ -856,7 +866,7 @@ static void test_inspection_panel_w_maker_wants_no_more(void) {
     assert(panel_row("wants more:") == NULL && panel_row("needs:") == NULL);
 }
 
-/* A laboratory (`qh` true) lists only its last want under "wants more:". */
+/* A laboratory (a structure) lists only its last want under "wants more:". */
 static void test_inspection_panel_lab_wants_its_last(void) {
     need_t *a = need_new(game_zone(), NULL);
     need_t *b = need_new(game_zone(), NULL);
@@ -900,7 +910,8 @@ static void must_abort(void (*write)(void *), void *e) {
     assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
 }
 
-/* `e` is a generated row with a key no member takes, or too many items. */
+/* The argument is a row of the data tables with a key no member takes, or
+ * too many items. */
 static void keys_of_row(void *e) {
     layout_row_cell_t items[2];
     (void)layout_row_keys_of_row(e, items, 2);
@@ -910,10 +921,11 @@ static void draw_at_on_other(void *e) {
     layout_row_draw_at(&gfx, &mem, e, vec_xy(0, 0), 0);
 }
 
-/* A row is a struct whose descriptor has `ol`, no other method; the class
- * keeps no `pq` and no `ol` default. A generated row gives its keys but for `fn`, `qe` or more items than the caller
- * holds, and `ol` refuses anything that is not a row. An `hp:lq` row holds the positionals `pq` saw, then the
- * two added after. */
+/* A row is a struct whose class has draw_at, no other method and no state.
+ * A row of the data tables gives its keys but for a draw_function, a
+ * resource or more items than the caller holds, and layout_row_draw_at()
+ * refuses anything that is not a row. A research_project_layout_row() row
+ * holds the positionals its layout saw, then the two added after. */
 static void test_layout_row_is_a_struct(void) {
     static const data_item_t three[] = {{.text = "a"}, {.is_fixed = 1, .fixed = 0x8000}, {.row = &icon_tooltips_table[0]}};
     static const data_row_t with_fn = {.count = 1, .items = three, .draw_function = "draw_row"};
@@ -963,8 +975,8 @@ static void test_layout_row_is_a_struct(void) {
     must_abort(draw_at_on_other, main_ui());
 }
 
-/* Each scenario runs in a child forked right after pico8_cart_load(), as a
- * fresh process would start it: the rnd state is the same for all. */
+/* Each scenario runs in a child forked right after cart_load(), as a fresh
+ * process would start it: the random state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
     pid_t child;
     int status;
@@ -981,9 +993,9 @@ static void in_fresh_child(void (*test)(void)) {
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
 }
 
-/* The largest row `jo:hb` can build: a planet of `r.w`, so two `ml`,
- * with the most wants a project has and `jq` 5, the most drawn one by one.
- * It fits in one row place. */
+/* The largest row planet_refresh() can build: a planet producing luxury,
+ * so two outputs, with the most wants a project has and an amount of 5, the
+ * most drawn one by one. It fits in one row slot. */
 static void test_planet_resource_row_largest_row_fits_a_slot(void) {
     const pointer_list_t *is = NULL;
     const allocator_t *slot;

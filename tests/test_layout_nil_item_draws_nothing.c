@@ -1,24 +1,20 @@
-/* `lq({nil})` must draw nothing at all: in `lq:mn` a nil item is neither a
- * string nor truthy, so both branches are skipped and `fn or function()end`
- * hands `lq:ol` a closure that draws nothing -- the item still takes its
- * default w=6 of layout width, invisible rather than absent. The trap this
- * pins is kept at the guard itself, in src/pico8_layout.c.
+/* A row holding one absent item must draw nothing at all: the item is
+ * NOTHING, neither a string nor a sprite, so row_measure_item() gives it no
+ * draw -- it still takes its default width of 6, invisible rather than
+ * absent. The trap this pins is kept at the guard itself,
+ * layout_row_cell_row() in src/game/layout.c.
  *
  * WHY THIS TEST EXISTS beside the e2e tests/e2e/colony_panel.json, which
- * replays the reported bug end to end: that one pins only the msgbox half
- * of the fix (`pz()`'s own `if p.ep then`). Measured when the bug was fixed
- * -- reverting src/game/layout.c's REF(NULL) clause on its own left the
- * whole suite green, because once `pz()` stops building the bogus row no
- * nil ever reaches `lq:mn` again: the single nil in the entire replay
- * corpus (the 9729-frame events.json plus the 278-frame built_planet_panel
- * fixture) was manufactured by the msgbox bug itself. Without this test
- * the `lq:mn` guard is correct today and free to rot the moment another
- * caller hands `lq()` a nil item.
+ * replays the reported bug end to end: that one pins only the message box
+ * half of the fix (message_box_open_box() testing has_description). Once the
+ * message box stops building the bogus row, no absent item reaches a row in
+ * any replay: reverting the NULL clause of layout_row_cell_row() alone left
+ * the whole suite green. Without this test the guard is correct today and
+ * free to rot the moment another caller hands a row an absent item.
  *
- * `pico8_lq_mn` is static to src/game/layout.c, so this test never names
- * it: it builds a real `lq` holding ONE positional item -- the shape of
- * every `lq({...})` call site -- and renders it with layout_row_draw_at_default(),
- * which is how the cart reaches `lq:mn` too. */
+ * row_measure_item() is static to src/game/layout.c, so this test never
+ * names it: it builds a real row holding ONE positional item and renders it
+ * with layout_row_draw_at_default(), the way the game reaches it too. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -99,9 +95,9 @@ static int pixels_drawn(void) {
     return n;
 }
 
-/* `lq({item}):ol(v(DRAW_X,DRAW_Y))` -- one real row holding one generated
- * item, its keys taken by pico8_lq_keys_of_row, rendered onto a cleared
- * screen. Returns its one cell, as the keys sorted `item` into it. */
+/* One real row holding one item shaped as in the data tables, its keys
+ * taken by layout_row_keys_of_row(), drawn at (DRAW_X, DRAW_Y) on a cleared
+ * screen. Returns its one cell, as the keys sorted the item into it. */
 static layout_row_cell_t render_one_item(data_item_t item) {
     const data_row_t row = {.count = 1, .items = &item};
     layout_row_cell_t cells[1];
@@ -116,7 +112,7 @@ static layout_row_cell_t render_one_item(data_item_t item) {
     return line->items[0];
 }
 
-/* THE SUBJECT: `lq({nil})` must draw nothing at all. */
+/* THE SUBJECT: a row holding one absent item must draw nothing at all. */
 static void test_nil_item_draws_nothing(void) {
     int hit_x = -1, hit_y = -1;
     int hits, drawn;
@@ -139,11 +135,10 @@ static void test_nil_item_draws_nothing(void) {
 }
 
 /* THE POSITIVE CONTROL, without which "draws nothing, ever" would pass the
- * assertions above: the same path, given a genuine numeric sprite id, really
+ * assertions above: the same path, given a genuine sprite number, really
  * does draw that sprite, exactly where the layout put it. The item is the
- * number 0 -- truthy in Lua, where only nil and false are not -- so control
- * and subject differ in nothing but nil-ness and both go down the
- * sprite-id-0 path. */
+ * number 0, a FIXED cell like any number, so control and subject differ
+ * only in the item being absent, and both aim at sprite 0. */
 static void test_numeric_item_still_draws_its_sprite(void) {
     int hit_x = -1, hit_y = -1;
     int hits, drawn;
@@ -169,9 +164,10 @@ int main(void) {
 
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
 
-    /* `cu()` fills the 0x5000 palette-block table that `dv()` copies slices
-     * of. `lq:mn`'s sprite branch calls `dv(qw)`/`dv()` around its `spr()`,
-     * so the control only draws what the cart would draw once it has run. */
+    /* hud_build_palette_table() fills the 0x5000 palette-block table that
+     * hud_select_palette_block() copies from. A row's sprite selects a block
+     * around its p8_spr(), so the control only draws what the game draws once
+     * the table is built. */
     hud_build_palette_table(&mem);
 
     layout_init();

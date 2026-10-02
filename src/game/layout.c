@@ -30,9 +30,9 @@ layout_row_cell_t layout_row_cell_string(const char *s) {
 layout_row_cell_t layout_row_cell_row(const data_row_t *row) {
     layout_row_cell_t cell = {.kind = LAYOUT_ROW_CELL_ROW, .as.row = row};
 
-    /* Not optional: a nil read as anything but NOTHING falls through `elseif f`
-     * of `lq:mn` into a sprite 0, a block of raw data on screen
-     * (layout_nil_item_draws_nothing). */
+    /* Not optional: a NULL read as anything but NOTHING reaches the sprite
+     * branch of row_measure_item() and draws sprite 0, a block of raw data
+     * on screen (test_layout_nil_item_draws_nothing). */
     if (row == NULL) {
         return layout_row_cell_nothing();
     }
@@ -58,7 +58,7 @@ layout_row_cell_t layout_row_cell_item(const data_item_t *item) {
     return layout_row_cell_fixed(p8_fixed_from_int(item->number));
 }
 
-/* A tuple's `f[1..4]` or an item of a line. */
+/* One of a tuple's four items, or an item of a line. */
 static layout_row_cell_t row_scalar_item(const data_item_t *item) {
     assert(item->row == NULL && "a tuple or a line holds scalar items only; a row inside one has no reader here");
     return layout_row_cell_item(item);
@@ -80,9 +80,9 @@ static layout_row_cell_t row_own_cell(const allocator_t *zone, layout_row_cell_t
     return cell;
 }
 
-/* Writes out_item plus mn's second and third Lua return values (out_w,
- * out_qv). `self` may be NULL; it is only read for the TEXT branch's colour.
- * A non-FIXED f[2]/f[3]/f[4] reads as 0. */
+/* Writes out_item plus the item's width and spacing (out_w, out_spacing).
+ * `self` may be NULL; it is only read for the TEXT branch's color. A
+ * non-FIXED second, third or fourth tuple item reads as 0. */
 static void row_measure_item(const layout_row_t *self, layout_row_cell_t cell, layout_row_item_t *out_item,
                          p8_fixed_t *out_w, p8_fixed_t *out_spacing) {
     p8_fixed_t width = p8_fixed_from_int(6);
@@ -144,9 +144,9 @@ static void row_measure_item(const layout_row_t *self, layout_row_cell_t cell, l
     *out_spacing = have_spacing ? spacing : p8_fixed_from_int(2);
 }
 
-/* `fs`, the last item's spacing, starts at 0 where Lua's own starts nil, so
- * a zero-item lq() yields w=0 here and would error in Lua. No call site
- * builds one. */
+/* The last item's spacing starts at 0, so a row with no item gets width 0:
+ * empty rows are built, for a button with no row and for a tooltip line that
+ * is neither a string nor a row. */
 static void layout_row_construct(layout_row_t *self) {
     p8_fixed_t w = p8_fixed_from_int(0);
     p8_fixed_t fs = p8_fixed_from_int(0);
@@ -220,10 +220,10 @@ void layout_row_draw_at_default(const p8_graphics_t *gfx, p8_memory_t *mem, cons
     layout_row_draw_at(gfx, mem, self, p, p8_fixed_from_int(0));
 }
 
-/* The longest line of the cart's bubbles, `nb_9_oy_1`. */
+/* The longest tooltip line of the data, technologies_9_tooltip_rows_1. */
 #define TOOLTIP_LINE_CAP 7
 
-/* The line `jb:pq` builds from one item of its row. */
+/* The line tooltip_construct() builds from one item of its row. */
 static layout_row_t *tooltip_line(const allocator_t *zone, const data_item_t *item) {
     layout_row_keys_t keys = {0};
     layout_row_cell_t s;
@@ -252,8 +252,8 @@ static layout_row_t *tooltip_line(const allocator_t *zone, const data_item_t *it
     return layout_row_new(zone, &keys);
 }
 
-/* `ls` is allocated even for no line: `jb:ol` draws the frame of an empty
- * `jb`, and skips one whose `ls` is NULL. */
+/* `rows` is allocated even for no line: tooltip_draw_at() draws the frame of
+ * an empty tooltip, and skips one whose `rows` is NULL. */
 static void tooltip_construct(tooltip_t *self, const data_row_t *row) {
     int n = row != NULL ? row->count : 0;
     int i;
@@ -265,8 +265,8 @@ static void tooltip_construct(tooltip_t *self, const data_row_t *row) {
     self->rows_count = n;
 }
 
-/* Lua's `#self` is read here as `ls_count`: jb:pq contributes exactly one
- * `ls` entry per positional item, so the two counts never differ. */
+/* The line count is rows_count: tooltip_construct() makes exactly one line
+ * per positional item of its row, so the two counts never differ. */
 void tooltip_draw_at(p8_graphics_t *gfx, p8_memory_t *mem, const tooltip_t *self, p8_fixed_t om,
                   p8_fixed_t a) {
     p8_fixed_t h;
@@ -297,7 +297,7 @@ static void layout_row_draw_at_method(entity_t *self, vec_t p, p8_fixed_t a) {
     layout_row_draw_at(dispatch_context_gfx(), dispatch_context_mem(), (const layout_row_t *)self, p, a);
 }
 
-/* No launcher reaches it (`jo.lq` is an `lq`); a vector `om` counts as 0. */
+/* Only a planet's layout row is drawn through its class, never a tooltip; the position is ignored, the top read as 0. */
 static void tooltip_draw_at_method(entity_t *self, vec_t p, p8_fixed_t a) {
     (void)p;
     tooltip_draw_at(dispatch_context_gfx(), dispatch_context_mem(), (const tooltip_t *)self, p8_fixed_from_int(0), a);
@@ -307,7 +307,7 @@ static const entity_class_t g_layout_row_class = {
     .draw_at = layout_row_draw_at_method,
 };
 
-/* The row with room for `n` cells, members at nil, not laid out. */
+/* A row with room for that many cells, members unset, not laid out. */
 static layout_row_t *row_struct_alloc(const allocator_t *zone, int n) {
     layout_row_t *self;
 
@@ -413,7 +413,7 @@ static const entity_class_t g_tooltip_class = {
     .draw_at = tooltip_draw_at_method,
 };
 
-/* The `jb` itself, before its lines. */
+/* The tooltip itself, before its lines. */
 static tooltip_t *tooltip_struct_alloc(const allocator_t *zone) {
     tooltip_t *self;
 

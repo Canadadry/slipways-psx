@@ -19,7 +19,7 @@ static int g_draw_functions_dispatch_count = 0;
 
 /* Borrowed, never owned: set by draw_functions_draw_rows(_default) right
  * before each dispatch, so the functions below can reach a real drawing
- * function that an article cannot carry. */
+ * function that a row cannot carry. */
 static p8_graphics_t *g_draw_functions_gfx = NULL;
 static p8_memory_t *g_draw_functions_mem = NULL;
 
@@ -53,8 +53,8 @@ void draw_functions_dispatch_clear(void) {
     g_draw_functions_dispatch_count = 0;
 }
 
-/* `e[i]`, 1-based; NULL past the end, where the cart's `oo` unpacked
- * nil. */
+/* The row's item at a 1-based index, as the data tables number the
+ * arguments; NULL past the end. */
 static const data_item_t *draw_functions_arg(const data_row_t *e, int i) {
     const data_item_t *item;
 
@@ -77,7 +77,7 @@ static int is_number(const data_row_t *e, int i) {
     return 1;
 }
 
-/* 0 when `e[i]` is not a number. */
+/* 0 when that item is not a number. */
 static p8_fixed_t number(const data_row_t *e, int i) {
     const data_item_t *item = draw_functions_arg(e, i);
     if (!is_number(e, i)) {
@@ -86,14 +86,14 @@ static p8_fixed_t number(const data_row_t *e, int i) {
     return item->is_fixed ? item->fixed : p8_fixed_from_int(item->number);
 }
 
-/* NULL when `e[i]` is not a pointer. */
+/* NULL when that item is not a pointer. */
 static const void *draw_functions_ref(const data_row_t *e, int i) {
     const data_item_t *item = draw_functions_arg(e, i);
     return (item != NULL && item->text == NULL && !item->is_false && item->is_ref) ? item->ref : NULL;
 }
 
-/* An absent `col` draws in colour 0 here, where PICO-8 would keep the
- * current pen colour -- no bl()-dispatched call site omits it. */
+/* An absent color draws in color 0 here, where PICO-8 would keep the
+ * current pen color -- every draw_bar row of the data passes one. */
 static void draw_bar_entry(const data_row_t *e) {
     p8_fixed_t y1 = number(e, 1);
     int col;
@@ -127,7 +127,7 @@ static void draw_help_frame_entry(const data_row_t *e) {
     hud_draw_help_frame(g_draw_functions_gfx, g_draw_functions_mem, number(e, 1), number(e, 2), number(e, 3));
 }
 
-/* w/h are supplied both or neither, as in real spr(). */
+/* Width and height come both or neither, as p8_spr() takes them. */
 static void spr_entry(const data_row_t *e) {
     int n = p8_fixed_flr_int(number(e, 1));
     int x = p8_fixed_flr_int(number(e, 2));
@@ -141,8 +141,8 @@ static void spr_entry(const data_row_t *e) {
     }
 }
 
-/* lq.ol is registered UNBOUND, so e[1] is lq:ol's own `self`, e[2] the
- * position vector and e[3] the alignment factor. */
+/* Item 1 is the layout row itself (layout_row_draw_at()'s `self`), item 2
+ * the position vector and item 3 the alignment factor. */
 static void draw_row_entry(const data_row_t *e) {
     const layout_row_t *self = draw_functions_ref(e, 1);
     const vec_t *at = draw_functions_ref(e, 2);
@@ -153,8 +153,8 @@ static void draw_row_entry(const data_row_t *e) {
     layout_row_draw_at(g_draw_functions_gfx, g_draw_functions_mem, self, p, a);
 }
 
-/* oo(pi[e.fn],e) -- bl()'s inner step, shared by both entry points. The
- * dispatch context has to be set before every call, not once per list. */
+/* One row: its draw_function looked up and called on it, for both entry
+ * points. The dispatch context is set before every call, not once per list. */
 static void draw_rows_dispatch_one(p8_graphics_t *gfx, p8_memory_t *mem, const data_row_t *e) {
     draw_functions_fn_t fn = NULL;
 

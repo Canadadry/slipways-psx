@@ -4,7 +4,7 @@
 #include "game/tech_gate.h"
 
 void data_init(void) {
-    /* hp must be ready before build_gb builds one. */
+    /* research_init() forgets the projects, so it runs before the build. */
     research_init();
     research_build_projects();
 

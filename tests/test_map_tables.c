@@ -125,7 +125,8 @@ static p8_fixed_t never_drawn(void *ctx) {
     return 0;
 }
 
-/* bw hands gn every df entry, in order, at og = 2. */
+/* galaxy_populate() hands weighted_picker_new() every planet_types_table
+ * entry, in order, at a multiplier of 2. */
 static void test_weighted_picker_pools_planet_types_entries_by_their_r(void) {
     weighted_picker_t *state;
     int i;
@@ -144,8 +145,8 @@ static void test_weighted_picker_pools_planet_types_entries_by_their_r(void) {
     }
 }
 
-/* ob() gave each string token its own allocation: no string field of the jo
- * tree shares a pointer with another string of the generated data. */
+/* Strings are not interned: no string field of the planet archetypes shares
+ * a pointer with another string of the data tables, equal text or not. */
 static void test_planet_tree_strings_are_distinct_objects(void) {
     const char *const tree[] = {planet_archetype.state, structure_archetype.state, structure_archetype.targeting.confirmed_state, trading_hub_archetype.required_tech,
         ascension_archetype.required_tech, protostar_archetype.class_name, protostar_archetype.state, burst_archetype.class_name, slipgate_archetype.required_tech,
@@ -175,7 +176,7 @@ static void test_technologies_lookup_finds_each_name(void) {
     assert(map_tables_technologies_lookup("zz") == NULL && map_tables_technologies_lookup(NULL) == NULL);
 }
 
-/* Keys floored as Lua indexes a table, one entry per key, insertion order. */
+/* Keys are floored to integers, one entry per key, in insertion order. */
 static void test_resource_map_keeps_one_entry_per_key_in_order(void) {
     resource_map_t map = {0, {{0, 0}}};
     p8_fixed_t v = 0x1234;

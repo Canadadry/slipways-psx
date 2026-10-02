@@ -1,14 +1,15 @@
 #ifndef GAME_DATA_INIT_H
 #define GAME_DATA_INIT_H
 
-/* The cart's one-shot top-level data build, in the source's own order. It
- * also runs pico8_research_init() before pico8_research_build_gb(), which
- * needs the hp class to exist, and forgets every `e_` of nb. Safe to call
- * more than once -- it frees a previous build first. */
+/* Builds the research projects -- research_init() first, since it forgets
+ * any project already built, then research_build_projects() -- and clears
+ * every technology's affordable flag. Safe to call more than once: the
+ * previous projects are forgotten first. */
 void data_init(void);
 
-/* Tears down gb and the hp class too, since pico8_data_init() built them.
- * Safe to call more than once, or before the first pico8_data_init(). */
+/* Forgets the research projects and marks the research project class down,
+ * undoing data_init(). Safe to call more than once, or before the first
+ * data_init(). */
 void data_init_data_shutdown(void);
 
 #endif

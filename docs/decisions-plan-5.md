@@ -63,6 +63,9 @@
 | D-36 | 4b | `` `mem` `` et `` `gfx` `` comptés en `backtick` après le renommage des locales de `test_demo.c` | 23 |
 | D-37 | 4c1 | `argc`/`argv` de `main` dans la liste des locales cryptiques | 10 déclarations |
 | D-38 | 4c1 | Statiques de fichier `mem`/`gfx` des tests | 80 déclarations |
+| D-39 | 4d | Nom de test qui cite le cart (`test_data_init.c`) | 2 |
+| D-40 | 4d | Clés du cart sans ligne `chaîne` au TSV (`"br"`, `"qr"`, `"rf"`, `"s"`, `"qh+"`) | 0 après 4d |
+| D-41 | 4d | Nom de test qui garde le digramme `r` (`test_map_tables.c`) | 2 |
 
 ## Entrées
 
@@ -522,4 +525,34 @@
 - **Sites** : 80 déclarations dans 40 fichiers (`grep -rhE '^static p8_(memory|graphics)_t (mem|gfx);' tests | wc -l`), plus leurs emplois, à mesurer par le `grep` des conventions sur chaque fichier.
 - **Proposition prête à appliquer** : (b), procédure N, en un passage à l'étape 5 ; avec D-36 (b), les mentions entre backticks ne comptent pas hors de leur fichier.
 - **Portée** : s'applique aussi aux mentions entre backticks et en commentaire des 40 fichiers ; contrôle : le `grep` des sites ci-dessus rend 0.
+- **Verdict** :
+
+### D-39 — Nom de test qui cite le cart (`test_data_init.c`)
+
+- **Origine** : 4d (commit de commentaires ; le relevé des citations ne lit que les commentaires et les messages).
+- **Question** : `test_production_tables_project_records_icon_tooltips_technologies_decode_real_cart_content` (`tests/test_data_init.c`) cite encore le cart dans un identifiant, même question que D-35. Le renommer ?
+- **Options** : (a) renommer ; (b) garder (« cart » y désigne les tables du jeu).
+- **Sites** : 2 (définition, appel de `main`).
+- **Proposition prête à appliquer** : (a), procédure N : `test_production_tables_project_records_icon_tooltips_technologies_decode_real_cart_content	test_production_tables_project_records_icon_tooltips_technologies_decode_real_game_data	tests/test_data_init.c	c:test_data_init.c@F@test_production_tables_project_records_icon_tooltips_technologies_decode_real_cart_content` (nom neuf : 0 site).
+- **Portée** : s'applique aussi aux mentions en commentaire (aucune) ; contrôle : `grep -rnwiE '[a-z_]*(lua|cart)[a-z_]*' tests/test_data_init.c` rend 0.
+- **Verdict** :
+
+### D-40 — Clés du cart sans ligne `chaîne` au TSV
+
+- **Origine** : 4d (commit de chaînes).
+- **Question** : les clés de dispatch des fonctions de dessin `"br"`, `"qr"`, `"rf"`, `"s"` (clés de la table de dispatch du cart, `fn="…"` de ses rangées) et la clé de production `"qh+"` (composé de `"qh"`, renommé `"structure"` par 3a) n'avaient pas de ligne `chaîne` au TSV : 2b ne les avait pas extraites (clés de deux lettres hors du TSV ; composé non apparié par la règle « la chaîne est exactement le nom »). 4d les a traduites (`"draw_bar"`, `"print_outlined"`, `"draw_help_frame"`, `"spr"`, `"structure+"`) selon la règle de propriété des chaînes, mais la garde anti-cart ne verrait pas une telle clé revenir. Faut-il outiller ce contrôle ?
+- **Options** : (a) rien, le contrôle reste humain (règle de tri du point 6 de `docs/consigne-etape-4.md`) ; (b) ajouter à l'étape 5 des lignes `chaîne` par `rename-strings` (outil, test d'abord), pour que la garde les compte ; (c) un relevé ponctuel à l'étape 5 des `fn="…"` de `pico8/lua.lua` contre les clés de `draw_functions_init`.
+- **Sites** : 0 après 4d (`grep -rn '"br"\|"qr"\|"rf"\|"qh+"\|draw_function = "s"\|dispatch_lookup("s")\|register("s"' src tests`).
+- **Proposition prête à appliquer** : (a).
+- **Portée** : aucune mention en commentaire ni entre backticks n'est en cause.
+- **Verdict** :
+
+### D-41 — Nom de test qui garde le digramme `r` (`test_map_tables.c`)
+
+- **Origine** : 4d (commit de commentaires, relecture de `tests/test_map_tables.c`).
+- **Question** : `test_weighted_picker_pools_planet_types_entries_by_their_r` garde en suffixe `r`, le champ du cart devenu `weight` ; le TSV l'a appliqué tel quel (`renommé`, depuis `test_gn_pools_df_entries_by_their_r`). Aucun compteur ne le voit (le nom entier n'est pas un ancien nom). Le renommer ?
+- **Options** : (a) renommer ; (b) garder.
+- **Sites** : 2 (définition, appel de `main`).
+- **Proposition prête à appliquer** : (a), procédure N : `test_weighted_picker_pools_planet_types_entries_by_their_r	test_weighted_picker_pools_planet_types_entries_by_their_weight	tests/test_map_tables.c	c:test_map_tables.c@F@test_weighted_picker_pools_planet_types_entries_by_their_r` (nom neuf : 0 site) ; la ligne de `docs/renommage.tsv` passe au nom neuf.
+- **Portée** : s'applique aussi aux mentions en commentaire (aucune) ; contrôle : `grep -rn 'by_their_r\b' src tests tools` rend 0.
 - **Verdict** :

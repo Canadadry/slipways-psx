@@ -1,6 +1,6 @@
-/* `jb:ol` draws a tooltip only when a replay hovers a `js` or a research
- * icon, which the net may never do: these hashes pin its pixels. They were
- * taken on the code where `jb` was still a class instance and must not be
+/* tooltip_draw_at() draws only when a replay hovers a button or a structure
+ * icon, which the e2e replays may never do: these hashes pin its pixels.
+ * They were taken before the tooltip became a plain struct and must not be
  * re-taken. */
 
 #include <assert.h>
@@ -56,13 +56,13 @@ static void check(const char *label, uint32_t got, uint32_t want) {
     assert(got == want);
 }
 
-/* `js:ev`'s call, on the cart's own first `dr` entry. */
+/* A button's call (ui_button.c), on the first entry of icon_tooltips_table. */
 static void test_icon_tooltips_entry_draws_as_before(void) {
     check("icon_tooltips_first_entry", draw_tooltip(tooltip_new(&heap_allocator, &icon_tooltips_table[0]), p8_fixed_from_int(127), p8_fixed_from_int(1)),
           ICON_TOOLTIPS_FIRST_ENTRY_HASH);
 }
 
-/* The research icon's call, on bare strings, each a one-item row. */
+/* A structure icon's call, on bare strings, each a one-item row. */
 static void test_bare_strings_draw_as_before(void) {
     static const data_item_t items[] = {{.text = "alpha"}, {.text = "beta 42"}};
     static const data_row_t spec = {.count = 2, .items = items};
@@ -70,13 +70,14 @@ static void test_bare_strings_draw_as_before(void) {
     check("bare", draw_tooltip(tooltip_new(&heap_allocator, &spec), p8_fixed_from_int(0), p8_fixed_from_int(0)), BARE_STRINGS_HASH);
 }
 
-/* No line: an empty `ls`, so only the frame. */
+/* No line: empty `rows`, so only the frame. */
 static void test_no_overrides_draws_frame_only(void) {
     check("none", draw_tooltip(tooltip_new(&heap_allocator, NULL), p8_fixed_from_int(60), p8_fixed_from_int(0)), NO_OVERRIDES_HASH);
 }
 
-/* Both constructions give the struct form, sharing `jb`'s class, which
- * has an `ol`; pico8_jb_ol() draws the first `dr` entry. */
+/* Both constructions give the struct form, sharing the tooltip class, which
+ * has a draw_at; tooltip_draw_at() draws the first icon_tooltips_table
+ * entry. */
 static void test_tooltip_is_a_struct_with_its_method_table(void) {
     const tooltip_t *direct = tooltip_new(&heap_allocator, NULL);
     const tooltip_t *generic = tooltip_new(&heap_allocator, NULL);
@@ -94,7 +95,7 @@ static void test_tooltip_is_a_struct_with_its_method_table(void) {
     tooltip_draw_at(&gfx, &mem, tooltip_new(&heap_allocator, &icon_tooltips_table[0]), p8_fixed_from_int(127), p8_fixed_from_int(1));
     check("icon_tooltips_first_entry drawn", screen_hash(), ICON_TOOLTIPS_FIRST_ENTRY_HASH);
 
-    /* The class's `ol` gets a vector no launcher passes it: `om` is 0. */
+    /* The class's draw_at gets a vector no caller passes it: the top is 0. */
     {
         uint32_t via_slot;
 
@@ -108,8 +109,8 @@ static void test_tooltip_is_a_struct_with_its_method_table(void) {
     }
 }
 
-/* Reads `jb` only through pico8_jb_ol(), then its pixels, so it holds on
- * either layout of `ls`. */
+/* Reads the tooltip only through tooltip_draw_at(), then its pixels, so it
+ * holds on either layout of `rows`. */
 static uint32_t draw_by_name(tooltip_t *jb, p8_fixed_t om, p8_fixed_t a) {
     uint32_t blank;
     uint32_t got;

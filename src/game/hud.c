@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <string.h>
 
-/* `er`: the 8 outline offsets in black, then the center in color 15. */
+/* The 8 outline offsets in black, then the center in color 15. */
 typedef struct {
     int offset_x;
     int offset_y;
@@ -18,8 +18,8 @@ static int to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
 }
 
-/* `c==3 and 0x80` is Lua's false, not a number, for every other color --
- * see the header on that coercion. */
+/* Only color 3 gets the transparency bit; every other color's byte is
+ * the sprite-sheet pixel as it is. */
 void hud_build_palette_table(p8_memory_t *mem) {
     int a = 0x5000;
     int p, c;
@@ -56,8 +56,8 @@ void hud_draw_bar_y1(p8_graphics_t *gfx, p8_memory_t *mem, p8_fixed_t y1, int co
     hud_draw_bar(gfx, mem, y1, y1, col);
 }
 
-/* 6 is PICO-8's pen color at power-on, before any explicit col; the cart
- * always sets one first. */
+/* 6 is PICO-8's pen color at power-on, before any explicit color; its one
+ * caller always draws a colored bar first. */
 void hud_draw_bar_default(p8_graphics_t *gfx, p8_memory_t *mem, p8_fixed_t y1, p8_fixed_t y2) {
     int col = (gfx != NULL) ? gfx->pen_color : 6;
     hud_draw_bar(gfx, mem, y1, y2, col);
