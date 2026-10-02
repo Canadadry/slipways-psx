@@ -79,6 +79,8 @@
 | D-52 | 4k2 | Nom de test `test_the_shared_palette_is_the_published_pico8_one` | 2 |
 | D-53 | 4a, 4k3 | Assertion d'absence `"unknown"` sans écrivain (`test_class_coverage.c`) | 1 |
 | D-54 | 4k3 | Préfixe `k_` des tableaux `static const` du morceau 4k3 | 26 |
+| D-55 | 4l1 | Exception `du` du compteur de français dans le `Makefile` | 1 |
+| D-56 | 4l1 | Citations `cart`/`lua` irréductibles de la légende du `Makefile` | 6 + 2 |
 
 ## Entrées
 
@@ -98,10 +100,11 @@
 - **Origine** : 3k (« Pour décision humaine »), 3l.
 - **Question** : la macro de compilation de la couverture de classes garde le préfixe du cart, interdit par le §2 ; aucune ligne du TSV ne la porte (un `-D` sans `#define`), aucun compteur ne la voit. La renommer, et en quoi ?
 - **Options** : (a) `CLASS_COVERAGE_BUILD` ; (b) `CLASS_COVERAGE` ; (c) garder.
-- **Sites** : 35 — 31 dans `src/` (21 fichiers de `game/` et `devtools/`), 2 dans `tools/float_grep_exclusions.txt` (texte), 2 dans le `Makefile` (le `-D` de `COVERAGE_CFLAGS`, ligne 232, et un commentaire, ligne 971). La configuration `coverage` de `rename-extract` (`AST_RENAME_ANALYSIS`) lit `COVERAGE_CFLAGS` : un seul point de définition.
+- **Sites** : 35 — 31 dans `src/` (21 fichiers de `game/` et `devtools/`), 2 dans `tools/float_grep_exclusions.txt` (texte), 2 dans le `Makefile` (le `-D` de `COVERAGE_CFLAGS`, ligne 247, et un commentaire, ligne 995 ; numéros d'après 4l1, 232 et 971 avant). La configuration `coverage` de `rename-extract` (`AST_RENAME_ANALYSIS`) lit `COVERAGE_CFLAGS` : un seul point de définition.
 - **Proposition prête à appliquer** : (a), qui ne heurte aucun nom (0 site). Hors AST (pas d'identité) : `grep -rl PICO8_CLASS_COVERAGE src tools/float_grep_exclusions.txt Makefile | xargs sed -i 's/PICO8_CLASS_COVERAGE/CLASS_COVERAGE_BUILD/g'` (sans `\b` : le `-D` colle la macro à l'option) ; commit `refactor:`.
 - **Contrôle** : `make class-coverage` et `make test-all` verts ; `make rename-extract` sans `warning:` (les 4 lignes `partial` de `class_coverage` attendues) ; `make float-grep` vert ; `grep -rn PICO8_CLASS_COVERAGE src tests tools Makefile` hors outils du dictionnaire rend 0.
 - **Portée** : s'applique aussi aux mentions en commentaire et entre backticks.
+- **Complément (4l1)** : le commentaire de la règle de `tmp/class_coverage`, traduit, garde le nom `PICO8_CLASS_COVERAGE` (ligne 995) ; le `-D` passe à la ligne 247. Les deux sites du `Makefile` restent, 35 sites inchangés.
 - **Verdict** :
 
 ### D-3 — `PICO8_MALLOC_FILLS`
@@ -419,7 +422,7 @@
   - *Lecteurs en double du TSV* : 4 fonctions `read_table` (`tools/rename_check.py:94`, `tools/rename_count.py:77`, `tools/rename_strings.py:130`, `tools/ast_rename/plan.py:47`). Proposition : un lecteur, `rename_count.read_table`, les trois autres l'importent ; tous les `rename-*-test` et `rename-tool-test` verts.
   - *Listes de mots-clés divergentes* : `C_KEYWORDS` de `tools/rename_check.py` (59 mots) et de `tools/ast_rename/plan.py` (44) ; les 15 de plus sont `_BitInt`, `_Decimal32/64/128`, `alignas`, `alignof`, `bool`, `constexpr`, `false`, `nullptr`, `static_assert`, `thread_local`, `true`, `typeof`, `typeof_unqual`. Proposition : une liste, celle de `rename_check.py`, importée par `plan.py`.
   - *Schéma du TSV en français* : colonnes `ancien`, `nouveau`, `fichier`, `catégorie`, `sorte`, `statut`, `module`, `concept`, `note`, `identité`, valeurs `renommé`, `conservé`, `identifiant`, `chaîne`, `écrivain`, `lecteur`… Le TSV est une doc (§2, en français), mais les outils et leurs tests le lisent : `make french-count SUBSTEP=3a` compte ces mots dans `tests/test_scope_count.py` et `tests/test_cart_citations.py`. Proposition : garder le schéma (le TSV est le pont inverse documenté en français) et excepter ces mots au compteur de français (lignes à porter par la note de 4a).
-  - *Version de libclang fixée à deux endroits* : `CLANG_BINDINGS_VERSION=18.1.8` (`tools/install_ast_rename_bindings.sh:5`) et `LIBCLANG ?= /usr/lib/llvm-18/lib/libclang-18.so.1` (`Makefile:1178`). Proposition : le `Makefile` passe la version majeure au script (`CLANG_MAJOR := 18`), une seule source.
+  - *Version de libclang fixée à deux endroits* : `CLANG_BINDINGS_VERSION=18.1.8` (`tools/install_ast_rename_bindings.sh:5`) et `LIBCLANG ?= /usr/lib/llvm-18/lib/libclang-18.so.1` (`Makefile:1203`, ligne 1178 avant 4l1). Proposition : le `Makefile` passe la version majeure au script (`CLANG_MAJOR := 18`), une seule source.
 - **Verdict** (un par alerte) :
 
 ### D-29 — Paramètres et locales courts nommés d'un digramme du cart
@@ -533,6 +536,7 @@
 - **Complément (4k1)** : 4k1 réécrit la mention `` `mem` `` de `src/devtools/screencast.h:45` (« the PICO-8 memory ») ; elle était l'une des 23 du relevé de 4b.
 - **Complément (4k2)** : 4k2 réécrit les mentions `` `out` `` de `src/devtools/screencast_player.h:42`, `src/devtools/dump.h:8`, `tests/test_screencast_player.c:126` (« the buffer », « the stream », « the 16-byte buffer ») et `` `len` `` de `tests/test_gif.c:64` (`` `data_length` ``, nom de la locale après le commit de locales de 4k2) : 4 des 6 de 3k relevées par 4g ; restent `src/devtools/replay_control.h:63` et `src/devtools/minimize.h:6` (4k3). Les « un » de 4k2 (38) sont partis avec le français. Les locales renommées par 4k2 (`eoi`, `prev`, `clears`, `bitpos`, `written`, `packed`) deviennent d'anciens noms sans aucune mention entre backticks dans le dépôt ; `gif` garde son ancien `g` (D-42) : aucun effet de bord mesuré (compteurs sans `SUBSTEP`, TSV d'avant puis d'après, identiques à l'octet).
 - **Complément (4k3)** : 4k3 réécrit les deux dernières mentions `` `out` `` de 3k relevées par 4g : `src/devtools/replay_control.h:63` (« the buffer ») et `src/devtools/minimize.h:6` (`` `kept_frames` ``, nom du paramètre après le commit de locales de 4k3) ; les six de 3k sont réécrites. Les « un » de 4k3 (11) sont partis avec le français. Les locales renommées par 4k3 (`obj_start`, `obj_end`, `obj_len`, `obj_buf`, `tmp_len`) deviennent d'anciens noms distinctifs (un `_`), comptés par texte en mot entier, nus compris : seule la mention nue `tmp_len` du commentaire `src/devtools/input_json.c:229` comptait (+1 `comment` sans `SUBSTEP`, TSV d'avant puis d'après, sur l'arbre de l'état des locales ; réécrite `tmp_path_size` par le commit de commentaires, à hauteur constante). `out` était déjà un ancien nom : aucun effet.
+- **Complément (4l1)** : les 19 « un » du `Makefile` rendus comptés par 4f1 sont partis avec le français de sa légende et de ses commentaires (`cart-citations MODULES=Makefile` : `short` 152 → 0).
 - **Verdict** :
 
 ### D-37 — `argc`/`argv` de `main` dans la liste des locales cryptiques
@@ -725,4 +729,24 @@
 - **Sites** (mot entier, `src tests`) : 26 (`k_multiplier` 2, `k_replayed_frames` 4, `k_live_frames` 8, `k_source_frames` 5, `k_events_valid` 3, `k_events_valid_count` 4) ; noms neufs : 0 site, 0 déclaration. Identités (stables) : `c:replay_control.c@k_multiplier`, `c:test_marker_coherence.c@k_replayed_frames`, `c:test_marker_coherence.c@k_live_frames`, `c:test_recording_continuity.c@k_source_frames`, `c:test_recording_continuity.c@k_live_frames`, `c:test_replay_source.c@k_events_valid`, `c:test_replay_source.c@k_events_valid_count`.
 - **Proposition prête à appliquer** : (b), sans hachage en jeu.
 - **Portée** : s'applique aux mentions en commentaire (aucune) ; contrôle : `git grep -nwE 'k_(multiplier|replayed_frames|live_frames|source_frames|events_valid|events_valid_count)' -- src tests` rend 0. Hors morceau, `k_entry` (`src/game/planet_family.c`) et `k_key` (`src/game/score_panel.c`) sont des locales qui gardent le digramme `k` (famille de D-50), non comprises ici.
+- **Verdict** :
+
+### D-55 — Exception `du` du compteur de français dans le `Makefile`
+
+- **Origine** : 4l1 (relevé de fin).
+- **Question** : `du`, la commande `du -ch` de la recette de `gif` (qui imprime la taille de `gif/`), est compté `string` par `make french-count` comme l'article français « du » ; c'est du code, intouchable. L'excepter ?
+- **Options** : (a) excepter ; (b) garder compté.
+- **Sites** : 1 (`Makefile:981`, recette de `gif`).
+- **Proposition prête à appliquer** : (a), la ligne `string<TAB>Makefile<TAB>du` ajoutée à `tools/french_exceptions.txt`. Contrôle, fait par 4l1 sur une copie du fichier (`tmp/4l1_end/french_exceptions_d55.txt`) : `french-count MODULES=Makefile` `string` 7 → 6 ; 0 après 4l2 (`un`, `ou`, `à`, `entité`, `défauts` de `COMPOSITION_RESIDUE_GUARD`) et 4l4 (`par` de `DATA_RESIDUE_GUARD`).
+- **Portée** : aucune mention en commentaire.
+- **Verdict** :
+
+### D-56 — Citations `cart`/`lua` irréductibles de la légende du `Makefile`
+
+- **Origine** : 4l1.
+- **Question** : la légende nomme les cibles `cart-names-count`, `cart-citations-test`, `cart-citations` et décrit ce que le relevé cherche (`` `cart` `` hors de `game/cart`, `` `Lua` ``, `` `lua.lua` ``) ; `tools/cart_citations.py` les compte (sa regex prend `-` pour une frontière ; il n'exclut que ses propres fichiers). Que faire de ce reste ?
+- **Options** : (a) l'accepter (le relevé n'est pas une garde du §5) ; (b) que `tools/cart_citations.py` ne compte ni `cart-names-count`/`cart-citations` (noms de cibles) ni la ligne de légende qui le décrit, test d'abord ; (c) renommer les deux cibles (`old-names-count`, …), avec `CLAUDE.md`, le plan, le registre, la consigne et les skills qui les citent.
+- **Sites** : 6 `cart`, 2 `lua`, mesurés après 4l1 (`Makefile:149` entrée de `cart-names-count`, `:199` `cart-citations-test`, `:201` `cart-citations`, `:203` renvoi à `cart-names-count`, `` `cart` ``, `game/cart` et `` `Lua` ``, `:204` `` `lua.lua` ``).
+- **Proposition prête à appliquer** : (a), rien à appliquer ; contrôle : `make cart-citations MODULES=Makefile` rend exactement 6/2/0.
+- **Portée** : aucune mention ailleurs dans le code (les outils du dictionnaire et `tools/cart_citations.py` sont exclus du relevé).
 - **Verdict** :

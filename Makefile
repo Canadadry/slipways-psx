@@ -1,179 +1,194 @@
-# Tout tourne en parallèle (-j au nombre de cœurs, sorties regroupées par cible).
+# Everything runs in parallel (`-j` set to the number of cores, output grouped
+# per target).
 #
 # make test          -> unit + constants-check + float-grep + float-guard +
-#                       alloc-guard + data-guard + composition-guard, la boucle
-#                       rapide
-# make e2e           -> rejoue chaque e2e de tests/e2e/ depuis l'écran titre,
-#                       avec le binaire -O0 de make test, et compare le sha256
-#                       de sa capture à <nom>.json.sha256 ; échoue aussi si un
-#                       e2e n'a pas son .txt et son .json.sha256 ou dépasse
-#                       180 frames (600 s'il est listé dans
+#                       alloc-guard + data-guard + composition-guard, and the
+#                       tool tests and checks marked "in make test" below,
+#                       the fast loop
+# make e2e           -> replays each e2e of tests/e2e/ from the title screen,
+#                       with the `-O0` binary of make test, and compares the
+#                       sha256 of its capture to <name>.json.sha256; also fails
+#                       if an e2e lacks its .txt or its .json.sha256, or runs
+#                       past 180 frames (600 if listed in
 #                       tools/e2e_long_exceptions.txt)
-# make test-all      -> test + e2e, la suite complète
-# make gif           -> gif/<nom>.gif pour chaque e2e de tests/e2e/ : sa capture
-#                       à l'échelle 3, la souris de l'event dessinée par-dessus ;
-#                       hors suite
-# make unit          -> les binaires de tests/, compilés et lancés
-# make replay EVENTS=<events> -> rejoue ce fichier dans le moteur headless, dump
-#                       du framebuffer dans tmp/replay_dump.txt ; hors suite
-# make screencast EVENTS=<events> -> refabrique les pixels de chaque frame de ce
-#                       rejeu dans tmp/screencast.bin, pour screencast-viewer
-# make e2e-baseline  -> (re)pose les .json.sha256 de tests/e2e/ sur le code
-#                       actuel, jamais par make test
-# make e2e-ref       -> pour chaque e2e divergent, rejoue le commit qui a posé
-#                       sa référence (git blame), laisse la capture dans
-#                       tmp/frames/<events>.ref.bin et donne la première frame
-#                       divergente ; hors suite
-# make class-coverage [DIR=<dossier>] -> rejoue les e2e de tests/e2e/ (avec
-#                       DIR : chaque *events.json posé directement dans DIR,
-#                       sans sous-dossiers) et compte les instanciations par
-#                       classe ; échoue si une classe est à 0 hors
-#                       tools/class_coverage_exempt.txt, hors suite
-# make line-coverage EVENTS="<events>..." -> lignes exécutées par ces rejeux
-#                       (pilote instrumenté gcov), une `fichier:ligne` par ligne,
-#                       dans tmp/line_coverage.txt ; hors suite
-# make line-coverage-contrib EVENTS=<events> OTHERS="<events>..." -> les lignes
-#                       que EVENTS couvre et qu'aucun de OTHERS ne couvre (le
-#                       critère de garde), dans tmp/line_coverage_contrib.txt ;
-#                       hors suite
-# make e2e-gap       -> les lignes de tools/line_coverage_reference.txt
-#                       que make e2e ne couvre pas, moins
-#                       tools/line_coverage_unreachable.txt ; échoue tant que
-#                       l'écart n'est pas nul, hors suite
-# make minimize EVENTS=<events> OUT=<sortie> -> minimise ce rejeu (joué depuis
-#                       l'écran titre) : étage
-#                       mécanique (tools/minimize.sh), puis passe guidée tant
-#                       que la couverture de lignes reste celle de l'entrée,
-#                       un rejeu gcov par candidat, lent ; MECHANICAL=1 :
-#                       l'étage mécanique seul ; MIN_CHUNK=<n> : tranches
-#                       d'au moins n frames ; hors suite
-# make e2e-cleanup   -> la passe de nettoyage finale sur tests/e2e/ : liste,
-#                       du plus long au plus court, les e2e dont les lignes
-#                       sont couvertes par les autres restants ; ne supprime
-#                       rien, hors suite
-# make e2e-judge EVENTS=<events> -> les lignes que ce rejeu (depuis le titre)
-#                       ajoute aux e2e de tests/e2e/ ; échoue s'il n'en ajoute
-#                       aucune, hors suite
-# make class-coverage-net -> idem sur les e2e de tests/e2e/ ; échoue aussi si
-#                       sa sortie diffère de tools/class_coverage_net_expected.txt,
-#                       hors suite
-# make data-residue  -> compte le résidu de données par catégorie
-#                       (tools/data_residue.sh) ; la phase D sort sur une sortie
-#                       vide, hors suite
-# make composition-residue -> compte le résidu de composition par catégorie
-#                       (tools/composition_residue.sh) ; la phase 2 sort sur
-#                       une sortie vide, hors suite
-# make data-guard    -> aucun offsetof dans src/, catégories de
-#                       DATA_RESIDUE_GUARD à 0, dans make test
-# make composition-guard -> catégories de COMPOSITION_RESIDUE_GUARD à 0, dans make test
-# make sanitize-net  -> rejoue les e2e de tests/e2e/ sous ASan+UBSan (-O2),
-#                       critère « sortie propre », hors suite
-# make constants-check -> compare chaque PICO8_FIXED_LIT du cœur à son hexa relevé
-#                       (tools/pico8_reference_probe_out.txt) ; échoue si les écarts ne sont pas
-#                       exactement tools/constants_expected_gaps.txt, dans make test
-# make float-guard   -> réécrit tools/float_guard.txt, en échec si un fichier
-#                       du cœur a besoin du flottant (§6.3), dans make test
-# make alloc-guard   -> compte les appels malloc/calloc/realloc/free de chaque
-#                       objet du cœur ; échoue sur tout écart, plus haut ou plus
-#                       bas, avec tools/alloc_guard_exceptions.txt (cliquet, mis
-#                       à jour à la main), dans make test
-# make float-grep    -> grep du §6.1 sur le cœur (CORE_SRCS + en-têtes, -MM), le
-#                       reste de src/ exclu par tools/float_grep_exclusions.txt,
-#                       dans make test
-# make float-link    -> lie les objets de tmp/replay sans -lm (§6.2) dans un
-#                       binaire jetable, jamais lancé ; hors suite : make test
-#                       construit déjà tmp/replay, même lien
-# make sin-table     -> régénère src/p8/quarter_wave.h (table de sin/cos du
-#                       cœur) depuis tools/gen_quarter_wave.c, hors suite
-# make raylib        -> compile et LINK le binaire interactif, ne le lance jamais
-# make screencast-viewer -> idem pour le visualiseur d'enregistrement
-#                       (les deux exigent make raylib-vendor-setup au préalable)
-# make psx-hello     -> projet PSX de test (nécessite psn00bsdk-toolchain-setup)
-# make rename-tool-setup -> installe les bindings Python de libclang
-#                       (tools/ast_rename) dans third_party/clang-python,
-#                       réseau, une seule fois, hors suite
-# make rename-tool-test -> les tests de tools/ast_rename sur le mini-arbre
-#                       tests/fixtures/ast_rename ; exige rename-tool-setup,
-#                       hors suite
-# make rename-extract -> chaque déclaration de src/, tests/, tools/ et ses
-#                       occurrences, dans les configurations défaut, couverture
-#                       et ASan : tmp/ast_rename/declarations.tsv et
-#                       occurrences.tsv ; échoue si une unité ne s'analyse pas,
-#                       hors suite
-# make rename-derive-test -> les tests de tools/rename_derive.py sur un
-#                       mini-vocabulaire et une mini-extraction, dans make test
-# make rename-derive -> dérive les noms neufs de chaque déclaration extraite
-#                       (make rename-extract d'abord) : lignes identifiant de
-#                       docs/renommage.tsv, reste dans
-#                       tmp/ast_rename/remainder.tsv, hors suite
-# make rename-strings-test -> les tests de tools/rename_strings.py sur un
-#                       mini-arbre, dans make test
-# make rename-strings -> lignes chaîne et fichier de docs/renommage.tsv (clés,
-#                       symboles cités, noms de test, binaires de tmp/), un
-#                       site écrivain ou lecteur par fichier ; signalements
-#                       dans tmp/ast_rename/string_flags.tsv, hors suite
-# make rename-check-test -> les tests de tools/rename_check.py sur une
-#                       mini-extraction, dans make test
-# make rename-table-check -> contrôle mécanique de docs/renommage.tsv contre
-#                       l'extraction (make rename-extract, rename-derive) :
-#                       exhaustivité, collisions, masquages, mots réservés,
-#                       noms cibles de fichiers ; échoue sur une violation,
-#                       hors suite
-# make rename-slice-test -> les tests de tools/rename_slice.py, dans make test
-# make rename-slice MODULES="<module>..." | SUBSTEP=<3x> -> les lignes
-#                       identifiant renommées de ces modules de
-#                       docs/renommage.tsv (motifs du shell sur la colonne
-#                       module : game/planet*), ou exactement des modules de
-#                       la sous-étape dans tools/rename_substeps.tsv, au
-#                       format de rename-apply, dans tmp/ast_rename/slice.tsv,
-#                       hors suite
-# make rename-apply TABLE=<table> -> renomme aux positions de l'AST les entrées
-#                       de la table (ancien, nouveau, fichier[, identité]) ;
-#                       n'écrit rien au premier refus, rapport dans
-#                       tmp/ast_rename/report.txt, hors suite
-# make rename-count-test -> les tests de tools/rename_count.py sur un
-#                       mini-arbre, dans make test
-# make cart-names-count [MODULES="<module>..."] -> compteur anti-cart : anciens
-#                       noms des lignes renommées de docs/renommage.tsv encore
-#                       dans le code, par module et catégorie (noms courts par
-#                       tmp/ast_rename/occurrences.tsv, make rename-extract
-#                       d'abord) ; copie dans tmp/ast_rename/cart_names_count.txt,
-#                       n'échoue jamais, hors suite ; SUBSTEP=<3x> : les modules
-#                       de la sous-étape, chaque mention rangée en done (nom de
-#                       la sous-étape ou d'une précédente) ou later, puis la
-#                       borne de résidu
-# make rename-substeps-test -> les tests de tools/rename_substeps.py sur une
-#                       mini-table, dans make test
-# make rename-substeps-check -> chaque module de docs/renommage.tsv dans
-#                       exactement une sous-étape de tools/rename_substeps.tsv,
-#                       chaque sous-étape avec sa borne, dans make test
-# make rename-strings-verify-test -> les tests de
-#                       tools/rename_strings_verify.py sur un mini-arbre, dans
+# make test-all      -> test + e2e, the full suite
+# make gif           -> gif/<name>.gif for each e2e of tests/e2e/: its capture
+#                       at scale 3, with the recorded mouse drawn on top,
+#                       outside the suite
+# make unit          -> the binaries of tests/, built and run
+# make replay EVENTS=<events> -> replays that file in the headless engine,
+#                       framebuffer dump in tmp/replay_dump.txt, outside the
+#                       suite
+# make screencast EVENTS=<events> -> rebuilds the pixels of each frame of that
+#                       replay into tmp/screencast.bin, for screencast-viewer
+# make e2e-baseline  -> sets or resets the .json.sha256 of tests/e2e/ from the
+#                       current code, never run by make test
+# make e2e-ref       -> for each diverging e2e, replays the commit that set its
+#                       reference (git blame), leaves that capture in
+#                       tmp/frames/<events>.ref.bin and gives the first
+#                       diverging frame, outside the suite
+# make class-coverage [DIR=<directory>] -> replays the e2e of tests/e2e/ (with
+#                       DIR: each *events.json placed directly in DIR, not in
+#                       its subdirectories) and counts the instantiations per
+#                       class; fails if a class is at 0 outside
+#                       tools/class_coverage_exempt.txt, outside the suite
+# make line-coverage EVENTS="<events>..." -> the lines executed by these
+#                       replays (gcov-instrumented driver), one `file:line` per
+#                       line, in tmp/line_coverage.txt, outside the suite
+# make line-coverage-contrib EVENTS=<events> OTHERS="<events>..." -> the lines
+#                       that EVENTS covers and that none of OTHERS covers (the
+#                       criterion for keeping a replay), in
+#                       tmp/line_coverage_contrib.txt, outside the suite
+# make e2e-gap       -> the lines of tools/line_coverage_reference.txt that
+#                       make e2e does not cover, minus
+#                       tools/line_coverage_unreachable.txt; fails until the
+#                       gap is empty, outside the suite
+# make minimize EVENTS=<events> OUT=<output> -> minimizes that replay (played
+#                       from the title screen): the mechanical stage (the
+#                       `mechanical` command of tmp/minimize, which
+#                       tools/minimize.sh runs first), then the guided pass,
+#                       as long as the line coverage stays that of the input,
+#                       one gcov replay per candidate, slow; MECHANICAL=1: the
+#                       mechanical stage alone; `MIN_CHUNK=<n>`: chunks of at
+#                       least that many frames; outside the suite
+# make e2e-cleanup   -> the final cleanup pass over tests/e2e/: lists, from the
+#                       longest to the shortest, the e2e whose lines the other
+#                       remaining ones cover; deletes nothing, outside the
+#                       suite
+# make e2e-judge EVENTS=<events> -> the lines that this replay (from the title
+#                       screen) adds to the other e2e of tests/e2e/; fails if
+#                       it adds none, outside the suite
+# make class-coverage-net -> like class-coverage, over the e2e of tests/e2e/;
+#                       also fails if its output differs from
+#                       tools/class_coverage_net_expected.txt, outside the
+#                       suite
+# make data-residue  -> counts the data residue per category
+#                       (tools/data_residue.sh); the categories already at 0
+#                       are listed in DATA_RESIDUE_GUARD, outside the suite
+# make composition-residue -> counts the composition residue per category
+#                       (tools/composition_residue.sh); the categories already
+#                       at 0 are listed in COMPOSITION_RESIDUE_GUARD, outside
+#                       the suite
+# make data-guard    -> no offsetof in src/, and the categories of
+#                       DATA_RESIDUE_GUARD at 0, in make test
+# make composition-guard -> the categories of COMPOSITION_RESIDUE_GUARD at 0,
+#                       in make test
+# make sanitize-net  -> replays the e2e of tests/e2e/ under ASan+UBSan (`-O2`);
+#                       passes when every replay exits cleanly, outside the
+#                       suite
+# make constants-check -> compares each P8_FIXED_LIT of the core with its
+#                       recorded hex value
+#                       (tools/pico8_reference_probe_out.txt); fails unless
+#                       the mismatches are exactly
+#                       tools/constants_expected_gaps.txt, in make test
+# make float-guard   -> rewrites tools/float_guard.txt; fails if a file of the
+#                       core needs floating point (it does not compile under
+#                       `-mgeneral-regs-only`), in make test
+# make alloc-guard   -> counts the malloc/calloc/realloc/free calls of each
+#                       object of the core; fails on any difference, higher or
+#                       lower, from tools/alloc_guard_exceptions.txt (a
+#                       ratchet, updated by hand), in make test
+# make float-grep    -> searches the core (CORE_SRCS and the headers that `-MM`
+#                       finds for them) for any floating-point type or call,
+#                       the rest of src/ excluded by
+#                       tools/float_grep_exclusions.txt, in make test
+# make float-link    -> links the objects of tmp/replay without `-lm` into a
+#                       throwaway binary, never run; outside the suite: make
+#                       test already builds tmp/replay, with the same link
+# make sin-table     -> regenerates src/p8/quarter_wave.h (the sine and cosine
+#                       table of the core) from tools/gen_quarter_wave.c,
+#                       outside the suite
+# make raylib        -> compiles and LINKS the interactive binary, never runs it
+# make screencast-viewer -> the same for the recording viewer
+#                       (both need make raylib-vendor-setup first)
+# make psx-hello     -> PSX test project (needs psn00bsdk-toolchain-setup)
+# make rename-tool-setup -> installs the libclang Python bindings
+#                       (tools/ast_rename) into third_party/clang-python;
+#                       network, once, outside the suite
+# make rename-tool-test -> the tests of tools/ast_rename on the mini tree
+#                       tests/fixtures/ast_rename; needs rename-tool-setup,
+#                       outside the suite
+# make rename-extract -> each declaration of src/, tests/, tools/ and its
+#                       occurrences, in the default, coverage and ASan
+#                       configurations: tmp/ast_rename/declarations.tsv and
+#                       occurrences.tsv; fails if a unit does not parse,
+#                       outside the suite
+# make rename-derive-test -> the tests of tools/rename_derive.py on a mini
+#                       vocabulary and a mini extraction, in make test
+# make rename-derive -> derives the new names of each extracted declaration
+#                       (make rename-extract first): the identifier rows of
+#                       docs/renommage.tsv, the rest in
+#                       tmp/ast_rename/remainder.tsv, outside the suite
+# make rename-strings-test -> the tests of tools/rename_strings.py on a mini
+#                       tree, in make test
+# make rename-strings -> the string and file rows of docs/renommage.tsv (keys,
+#                       quoted symbols, test names, binaries of tmp/), one
+#                       writer or reader site per file; flags in
+#                       tmp/ast_rename/string_flags.tsv, outside the suite
+# make rename-check-test -> the tests of tools/rename_check.py on a mini
+#                       extraction, in make test
+# make rename-table-check -> mechanical check of docs/renommage.tsv against the
+#                       extraction (make rename-extract, rename-derive):
+#                       completeness, collisions, shadowing, reserved words,
+#                       target file names; fails on a violation, outside the
+#                       suite
+# make rename-slice-test -> the tests of tools/rename_slice.py, in make test
+# make rename-slice MODULES="<module>..." | SUBSTEP=<3x> -> the renamed
+#                       identifier rows of docs/renommage.tsv for these
+#                       modules (shell patterns on the module column:
+#                       game/planet*), or for exactly the modules of the
+#                       sub-step in tools/rename_substeps.tsv, in the
+#                       rename-apply format, in tmp/ast_rename/slice.tsv,
+#                       outside the suite
+# make rename-apply TABLE=<table> -> renames, at their AST positions, the
+#                       entries of the table (old, new, file[, identity]);
+#                       writes nothing on the first refusal, report in
+#                       tmp/ast_rename/report.txt, outside the suite
+# make rename-count-test -> the tests of tools/rename_count.py on a mini
+#                       tree, in make test
+# make cart-names-count [MODULES="<module>..."] -> old-name counter: the old
+#                       names of the renamed rows of docs/renommage.tsv still
+#                       in the code, per module and category (short names
+#                       through tmp/ast_rename/occurrences.tsv, make
+#                       rename-extract first); copy in
+#                       tmp/ast_rename/cart_names_count.txt, never fails,
+#                       outside the suite; SUBSTEP=<3x>: the modules of the
+#                       sub-step, each mention sorted as done (a name of that
+#                       sub-step or an earlier one) or later, then the residue
+#                       bound
+# make rename-substeps-test -> the tests of tools/rename_substeps.py on a mini
+#                       table, in make test
+# make rename-substeps-check -> each module of docs/renommage.tsv in exactly
+#                       one sub-step of tools/rename_substeps.tsv, each
+#                       sub-step with its bound, in make test
+# make rename-strings-verify-test -> the tests of
+#                       tools/rename_strings_verify.py on a mini tree, in
 #                       make test
-# make rename-strings-verify SUBSTEP=<3x> -> à chaque site des lignes chaîne et
-#                       fichier renommées de la sous-étape, le nouveau nom
-#                       présent et l'ancien absent ; échoue sinon, hors suite
-# make rename-rekey-test -> les tests de tools/rename_rekey.py sur des
-#                       mini-extractions, dans make test
-# make rename-rekey [BEFORE=<declarations>] -> après rename-apply et un
-#                       rename-extract frais : réécrit dans docs/renommage.tsv
-#                       les seules cellules identité des lignes pas encore
-#                       appliquées que l'application a décalées, depuis la copie
-#                       d'avant (tmp/ast_rename/declarations_before.tsv par
-#                       défaut) ; n'écrit rien sur une correspondance absente ou
-#                       double, hors suite
-# make rename-rekey-check SUBSTEP=<3x> -> chaque identité renommée des
-#                       sous-étapes suivantes est dans tmp/ast_rename/declarations.tsv
-#                       avec son nom et son fichier ; échoue sinon, hors suite
-# make scope-count-test -> les tests de tools/scope_count.py sur une
-#                       mini-extraction, dans make test
-# make scope-count [MODULES="<module>..." | SUBSTEP=<3x>] -> garde de portée en
-#                       compteur : déclarations de 1 ou 2 caractères refusées
-#                       (type, fonction, champ, constante, macro, statique,
-#                       globale ; locale ou paramètre de portée > 40 lignes),
-#                       par module, hors tools/scope_exceptions.txt ; lit
-#                       tmp/ast_rename/declarations.tsv (make rename-extract
-#                       d'abord), n'échoue jamais, hors suite
+# make rename-strings-verify SUBSTEP=<3x> -> at each site of the renamed string
+#                       and file rows of the sub-step, the new name present
+#                       and the old one absent; fails otherwise, outside the
+#                       suite
+# make rename-rekey-test -> the tests of tools/rename_rekey.py on mini
+#                       extractions, in make test
+# make rename-rekey [BEFORE=<declarations>] -> after rename-apply and a fresh
+#                       rename-extract: rewrites in docs/renommage.tsv only
+#                       the identity cells of the rows not yet applied that
+#                       the application has shifted, from the copy taken
+#                       before (tmp/ast_rename/declarations_before.tsv by
+#                       default); writes nothing on a missing or duplicate
+#                       match, outside the suite
+# make rename-rekey-check SUBSTEP=<3x> -> each renamed identity of the later
+#                       sub-steps is in tmp/ast_rename/declarations.tsv with
+#                       its name and file; fails otherwise, outside the suite
+# make scope-count-test -> the tests of tools/scope_count.py on a mini
+#                       extraction, in make test
+# make scope-count [MODULES="<module>..." | SUBSTEP=<3x>] -> the scope guard as
+#                       a counter: declarations of one or two characters
+#                       refused (type, function, field, constant, macro,
+#                       static, global; local or parameter of scope > 40
+#                       lines), per module, minus tools/scope_exceptions.txt;
+#                       reads tmp/ast_rename/declarations.tsv (make
+#                       rename-extract first), never fails, outside the suite
 # make cryptic-locals [MODULES="<module>..." | SUBSTEP=<3x>] -> the cryptic
 #                       locals list: each local or parameter of scope > 40
 #                       lines named in three characters or less, or with a
@@ -184,7 +199,7 @@
 # make cart-citations-test -> the tests of tools/cart_citations.py on a mini
 #                       tree, in make test
 # make cart-citations [MODULES="<module>..." | SUBSTEP=<3x>] -> what comments
-#                       and assert messages cite of the cart beyond
+#                       and assert messages still cite beyond
 #                       cart-names-count: `cart` (outside game/cart), `Lua`,
 #                       `lua.lua`, bare old names of two characters or less;
 #                       one site per line, then per module; never fails,
@@ -213,9 +228,9 @@ override CFLAGS += -Isrc
 
 TMP_DIR := tmp
 
-# Un arbre d'objets par jeu de flags. Un objet compilé sans -fsanitize n'est pas
-# instrumenté : le partager avec une cible qui l'est rendrait le binaire aveugle
-# sur ce code, sans rien dire. Ne pas fusionner les six.
+# One object tree per set of flags. An object compiled without -fsanitize is
+# not instrumented: sharing it with a target that is would leave the binary
+# blind on that code, silently. Do not merge the six.
 OBJ_DIR := $(TMP_DIR)/obj
 OBJ_ASAN_DIR := $(TMP_DIR)/obj-asan
 OBJ_UBSAN_DIR := $(TMP_DIR)/obj-ubsan
@@ -223,9 +238,9 @@ OBJ_COVERAGE_DIR := $(TMP_DIR)/obj-coverage
 OBJ_GCOV_DIR := $(TMP_DIR)/obj-gcov
 OBJ_SANITIZE_DIR := $(TMP_DIR)/obj-sanitize
 
-# -MMD -MP : le compilateur écrit, à côté de chaque objet, la liste des en-têtes
-# que l'unité de compilation a vraiment ouverts. Le -include en bas du fichier
-# les relit. Aucun en-tête n'est donc nommé à la main dans une liste de prérequis.
+# `-MMD -MP`: next to each object, the compiler writes the list of headers that
+# the translation unit actually opened. The include at the bottom of this file
+# reads them back, so no header is ever named by hand in a prerequisite list.
 DEPFLAGS := -MMD -MP
 ASAN_CFLAGS := -fsanitize=address -fno-omit-frame-pointer
 UBSAN_CFLAGS := -fsanitize=undefined -fno-sanitize-recover=undefined
@@ -233,9 +248,9 @@ COVERAGE_CFLAGS := -DPICO8_CLASS_COVERAGE
 GCOV_CFLAGS := --coverage
 SANITIZE_OPT_CFLAGS := -O2
 
-# $(call objs,<liste de .c>) -> les chemins des .o correspondants dans l'arbre
-# concerné. Une cible nomme ses sources une fois ; ses prérequis et sa ligne de
-# link en découlent.
+# `$(call objs,<sources>)` -> the paths of the matching object files in the
+# tree concerned. A target names its sources once; its prerequisites and its
+# link line follow from them.
 objs = $(patsubst %.c,$(OBJ_DIR)/%.o,$(1))
 asan_objs = $(patsubst %.c,$(OBJ_ASAN_DIR)/%.o,$(1))
 ubsan_objs = $(patsubst %.c,$(OBJ_UBSAN_DIR)/%.o,$(1))
@@ -243,8 +258,9 @@ coverage_objs = $(patsubst %.c,$(OBJ_COVERAGE_DIR)/%.o,$(1))
 gcov_objs = $(patsubst %.c,$(OBJ_GCOV_DIR)/%.o,$(1))
 sanitize_objs = $(patsubst %.c,$(OBJ_SANITIZE_DIR)/%.o,$(1))
 
-# mkdir -p $(@D) dans la recette plutôt qu'un répertoire en prérequis : le mtime
-# d'un répertoire change à chaque fichier écrit dedans, ce qui rebuilderait tout.
+# `mkdir -p $(@D)` in the recipe rather than a directory as a prerequisite:
+# the mtime of a directory changes with every file written into it, which would
+# rebuild everything.
 $(OBJ_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(DEPFLAGS) -c -o $@ $<
@@ -269,9 +285,12 @@ $(OBJ_SANITIZE_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) $(UBSAN_CFLAGS) $(SANITIZE_OPT_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
-# Closure complète du moteur : tout src/ sauf les deux points d'entrée (cmd/replay.c,
-# cmd/game.c) et les modules qui ne servent qu'au driver interactif. Utilisée
-# par toute cible qui boote un cart, pico8_cart_load() tirant tout le port.
+# The whole engine closure: all of src/ except the seven entry points of
+# src/cmd/, src/p8/palette.c, the two `src/platform/raylib_backend*.c` and
+# the modules of src/devtools/ that only the tools and the interactive game
+# link (fixed_test_double, gif, minimize, replay_control, replay_source,
+# screencast, screencast_player, session_recorder). Used by the targets that
+# call cart_load(), which pulls in the whole port.
 ENGINE_SRCS := \
     src/p8/assets.c \
     src/p8/audio.c \
@@ -343,13 +362,13 @@ ENGINE_SRCS := \
     src/game/particle_zone.c \
     src/engine/game_zone.c
 
-# Le cœur porté, sans flottant : la closure du moteur moins les outils
-# d'hôte, qui gardent la libc. Inventaire, couverture et garde flottantes
-# partent tous de cette liste.
+# The ported core, free of floating point: the engine closure minus the host
+# tools, which keep the libc. constants-check, float-guard, alloc-guard and
+# float-grep all read this list.
 CORE_SRCS := $(filter-out src/p8/assets.c src/devtools/class_coverage.c src/devtools/dump.c src/platform/fatal_pc.c src/devtools/input_json.c,$(ENGINE_SRCS))
 
-# Closure plus étroite : ce que pico8_data_init() atteint pour construire un
-# vrai état de jeu, sans booter de cart.
+# A narrower closure: what data_init() reaches to build a real game state,
+# without calling cart_load().
 DATA_ENGINE_SRCS := \
     src/game/data_init.c \
     src/p8/assets.c \
@@ -411,8 +430,8 @@ DATA_ENGINE_SRCS := \
     src/engine/game_zone.c \
     src/platform/fatal_pc.c
 
-# Libs système de raylib, pour les deux cibles raylib ; tout le reste est du C
-# portable sans link spécifique à l'OS.
+# The system libraries of raylib, for the two raylib targets; everything else
+# is portable C, with no link flags specific to the platform.
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
     RAYLIB_LDLIBS := -framework OpenGL -framework Cocoa -framework IOKit -framework CoreAudio -framework CoreVideo
@@ -423,8 +442,8 @@ endif
 $(TMP_DIR):
 	mkdir -p $(TMP_DIR)
 
-# Les .json en prérequis sont les fixtures que le test lit à l'exécution ;
-# $(filter %.o,$^) les garde hors de la ligne de link.
+# The .json prerequisites are the fixtures that the test reads at run time;
+# `$(filter %.o,$^)` keeps them off the link line.
 $(TMP_DIR)/test_mem: $(call objs,tests/test_mem.c src/p8/mem.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -443,9 +462,10 @@ $(TMP_DIR)/test_dump: $(call objs,tests/test_dump.c src/devtools/dump.c src/p8/g
 $(TMP_DIR)/test_fixed: $(call objs,tests/test_fixed.c src/p8/fixed.c src/devtools/fixed_test_double.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-# Le même test que ci-dessus, sous UBSan : pico8_fixed fait des réinterprétations
-# de bits signé/non signé qui donneraient les bons nombres tout en étant de l'UB.
-# -fno-sanitize-recover fait échouer le binaire au lieu d'imprimer un avertissement.
+# The same test as above, under UBSan: p8/fixed.c reinterprets bits between
+# signed and unsigned, which would give the right numbers while being undefined
+# behavior. `-fno-sanitize-recover` makes the binary fail instead of printing a
+# warning.
 $(TMP_DIR)/test_fixed_ubsan: $(call ubsan_objs,tests/test_fixed.c src/p8/fixed.c src/devtools/fixed_test_double.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(UBSAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -467,9 +487,10 @@ $(TMP_DIR)/test_marker_coherence: $(call objs,tests/test_marker_coherence.c src/
 $(TMP_DIR)/test_screencast: $(call objs,tests/test_screencast.c src/devtools/screencast.c src/p8/mem.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-# Ce test lance le vrai pilote de rejeu, d'où $(TMP_DIR)/replay en
-# prérequis : il rejoue la même fixture avec et sans capture et compare les deux
-# dumps, pour que l'argument de capture reste sans effet sur le reste.
+# This test runs the real replay driver, hence $(TMP_DIR)/replay as a
+# prerequisite: it replays the same fixture with and without a capture and
+# compares the two dumps, so that the capture argument has no effect on the
+# rest.
 $(TMP_DIR)/test_headless_capture: $(call objs,tests/test_headless_capture.c src/devtools/screencast.c src/devtools/dump.c src/p8/gfx.c src/p8/mem.c src/p8/input.c src/devtools/input_json.c) $(TMP_DIR)/replay tests/fixtures/screencast_capture_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -482,7 +503,7 @@ $(TMP_DIR)/test_replay_usage: $(call objs,tests/test_replay_usage.c) $(TMP_DIR)/
 $(TMP_DIR)/frames_tool: $(call objs,src/cmd/frames.c src/devtools/screencast.c src/devtools/dump.c src/p8/mem.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-# Lance le pilote de rejeu puis l'outil d'émission de frames.
+# Runs the replay driver, then the frame emission tool.
 $(TMP_DIR)/test_frames_tool: $(call objs,tests/test_frames_tool.c src/devtools/screencast.c src/p8/mem.c) $(TMP_DIR)/replay $(TMP_DIR)/frames_tool tests/fixtures/screencast_capture_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -691,9 +712,9 @@ $(TMP_DIR)/replay_gcov: $(call gcov_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 $(TMP_DIR)/test_background_draw: $(call objs,tests/test_background_draw.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-# Sous ASan, et sans jumeau non instrumenté : le crash visé dépend de la
-# disposition de l'allocateur (le même rejeu sort 139 en -O0 et 0 en -O1), donc
-# seul le débordement lui-même est un oracle fiable.
+# Under ASan, with no uninstrumented twin: the crash it targets depends on the
+# layout of the allocator (the same replay exits 139 at `-O0` and 0 at `-O1`),
+# so only the overflow itself is a reliable oracle.
 $(TMP_DIR)/test_planet_exports_row: $(call asan_objs,tests/test_planet_exports_row.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -724,12 +745,12 @@ $(TMP_DIR)/test_burst_exports_row: $(call objs,tests/test_burst_exports_row.c $(
 $(TMP_DIR)/test_probe_spawn_particle_order: $(call objs,tests/test_probe_spawn_particle_order.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-# Liste de sources réduite et non $(ENGINE_SRCS) : ce test ne boote pas de cart.
-# Mesurée en linkant, pas devinée.
+# A reduced source list rather than $(ENGINE_SRCS): this test never calls
+# cart_load(). Measured by linking, not guessed.
 $(TMP_DIR)/test_layout_nil_item_draws_nothing: $(call objs,tests/test_layout_nil_item_draws_nothing.c tests/heap_allocator.c src/p8/assets.c src/engine/collect.c src/engine/dispatch_context.c src/p8/fixed.c src/engine/geom.c src/p8/gfx.c src/game/hud.c src/game/layout.c src/engine/pointer_list.c src/game/map_tables.c src/p8/mem.c src/p8/str.c src/engine/vec.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-# Le plus long en tête : sous -j, make le lance d'abord.
+# The longest first: under `-j`, make starts it first.
 UNIT_TESTS := \
     test_composition_residue \
     test_mem \
@@ -823,7 +844,7 @@ UNIT_TESTS := \
     test_economy \
     test_main_economy
 
-# Un lancement par TU, en cible à part : c'est ce que -j parallélise.
+# One run per test, each its own target: that is what `-j` runs in parallel.
 UNIT_RUNS := $(addprefix unit-run-,$(UNIT_TESTS))
 
 UNIT_RUNS_SPECIAL := unit-run-test_zone unit-run-test_allocator unit-run-test_frame_zone unit-run-test_ui_zone unit-run-test_particle_zone unit-run-test_game_zone unit-run-test_exit_queue unit-run-test_toast unit-run-test_message_box unit-run-test_live_slots unit-run-test_trade
@@ -866,13 +887,13 @@ unit-run-test_live_slots: $(TMP_DIR)/test_live_slots
 unit-run-test_trade: $(TMP_DIR)/test_trade
 	ASAN_OPTIONS=detect_leaks=0 ./$<
 
-# Ces deux TU relisent tmp/replay_dump.txt, le dump par défaut de
-# tmp/replay : sous -j, jamais en même temps.
+# These two tests read tmp/replay_dump.txt, the default dump of tmp/replay:
+# under `-j`, never at the same time.
 unit-run-test_frames_tool: | unit-run-test_headless_capture
 
 .PHONY: $(UNIT_RUNS)
 
-# Échoue avant toute compilation plutôt que de rejouer un fichier par défaut.
+# Fails before any compilation rather than replay a default file.
 ifneq ($(filter replay screencast,$(MAKECMDGOALS)),)
     ifeq ($(strip $(EVENTS)),)
         $(error EVENTS missing: make $(filter replay screencast,$(MAKECMDGOALS)) EVENTS=<events.json>)
@@ -890,12 +911,12 @@ SCREENCAST_BIN := $(TMP_DIR)/screencast.bin
 
 SCREENCAST_VIEWER_BIN := $(TMP_DIR)/screencast_viewer
 
-# Les e2e : <nom>.json (même format qu'un enregistrement raylib), <nom>.txt
-# (ce que fait le rejeu, frames des actions clés) et <nom>.json.sha256. Tous
-# partent de l'écran titre.
+# The e2e: <name>.json (the same format as a raylib recording), <name>.txt
+# (what the replay does, the frames of the key actions) and <name>.json.sha256.
+# All of them start from the title screen.
 E2E_DIR := tests/e2e
 E2E_EVENTS := $(sort $(wildcard $(E2E_DIR)/*.json))
-# Une ligne `<events> raison` par e2e admis jusqu'à 600 frames au lieu de 180.
+# One `<events> reason` line per e2e allowed up to 600 frames instead of 180.
 E2E_EXCEPTIONS := tools/e2e_long_exceptions.txt
 
 ifeq ($(UNAME_S),Darwin)
@@ -904,8 +925,9 @@ else
     SHA256_CMD := sha256sum
 endif
 
-# Refaite à chaque appel : EVENTS change d'un appel à l'autre sans que make le
-# voie. Cible fichier plutôt que phony, pour que .DELETE_ON_ERROR s'applique.
+# Rebuilt on every call: EVENTS changes from one call to the next without make
+# seeing it. A file target rather than a phony one, so that .DELETE_ON_ERROR
+# applies.
 $(SCREENCAST_BIN): $(TMP_DIR)/replay FORCE | $(TMP_DIR)
 	./$(TMP_DIR)/replay $(EVENTS) $@ $(@:.bin=.dump.txt)
 
@@ -914,14 +936,14 @@ screencast: $(SCREENCAST_BIN)
 .PHONY: FORCE
 FORCE:
 
-# Une capture interrompue laisserait un fichier partiel que make croirait à jour,
-# et l'empreinte suivante porterait sur lui.
+# An interrupted capture would leave a partial file that make would believe up
+# to date, and the next hash would be taken over it.
 .DELETE_ON_ERROR:
 
-# Le sha256 de la capture de chaque e2e, versionné à côté de lui sous
-# <events>.sha256. La capture est la concaténation brute des frames : son
-# empreinte couvre aussi leur nombre. Le binaire -O0 de make test : pas de
-# second arbre à compiler, et lisible sous gdb.
+# The sha256 of the capture of each e2e, versioned next to it as
+# <events>.sha256. The capture is the raw concatenation of the frames: its hash
+# also covers their count. The `-O0` binary of make test: no second tree to
+# build, and readable under gdb.
 FRAMES_TOOL := $(TMP_DIR)/frames_tool
 FRAMES_DIR := $(TMP_DIR)/frames
 
@@ -929,17 +951,18 @@ frames_capture = $(FRAMES_DIR)/$(1).bin
 frames_current = $(FRAMES_DIR)/$(1).sha256
 frames_reference = $(1).sha256
 
-# Sans .SECONDARY, make effacerait ces captures intermédiaires, que e2e-ref
-# compare à la capture de référence.
+# Without .SECONDARY, make would delete these intermediate captures, which
+# e2e-ref compares to the reference capture.
 .SECONDARY: $(foreach e,$(E2E_EVENTS),$(call frames_capture,$(e)))
 
-# Chaque capture a son propre dump texte : le dump par défaut,
-# tmp/replay_dump.txt, est relu par deux TU qui tournent en parallèle.
+# Each capture has its own text dump: the default dump, tmp/replay_dump.txt,
+# is read by two tests that run in parallel.
 $(FRAMES_DIR)/%.bin: % $(TMP_DIR)/replay
 	@mkdir -p $(@D)
 	./$(TMP_DIR)/replay $< $@ $(@:.bin=.dump.txt) > /dev/null
 
-# L'affectation porte le code de sortie du sha256, qu'un pipe vers cut perdrait.
+# The assignment keeps the exit status of sha256, which a pipe into cut would
+# lose.
 frames_hash = @mkdir -p $(@D); h=$$($(SHA256_CMD) $<) && echo "$${h%% *}" > $@
 
 $(FRAMES_DIR)/%.sha256: $(FRAMES_DIR)/%.bin
@@ -967,8 +990,9 @@ e2e-baseline: $(foreach e,$(E2E_EVENTS),$(call frames_current,$(e)))
 e2e-ref: $(foreach e,$(E2E_EVENTS),$(if $(wildcard $(call frames_reference,$(e))),$(call frames_current,$(e)))) $(FRAMES_TOOL) tools/frames_ref.sh
 	@sh tools/frames_ref.sh ./$(FRAMES_TOOL) $(FRAMES_DIR) $(TMP_DIR)/frames-ref $(foreach e,$(E2E_EVENTS),$(e) $(call frames_reference,$(e)) $(call frames_current,$(e)) $(call frames_capture,$(e)))
 
-# Tout vient de l'arbre coverage, qui n'est lié qu'ici et dans
-# test_class_coverage : le compteur n'y est compilé que sous PICO8_CLASS_COVERAGE.
+# Everything comes from the coverage tree, which is linked only here and in
+# test_class_coverage: the counter is compiled in only under
+# PICO8_CLASS_COVERAGE.
 $(TMP_DIR)/class_coverage: $(call coverage_objs,src/cmd/class_coverage.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -985,11 +1009,10 @@ class-coverage-net: $(TMP_DIR)/class_coverage tools/class_coverage.sh $(CLASS_CO
 
 LINE_COVERAGE := sh tools/line_coverage.sh
 LINE_COVERAGE_COVER := $(LINE_COVERAGE) cover ./$(TMP_DIR)/replay_gcov $(OBJ_GCOV_DIR)
-# Écrite une fois, sur l'ancien filet de longs enregistrements : on ne la
-# recalcule pas, on la compare.
+# Written once and never recomputed: it is only compared against.
 LINE_COVERAGE_REFERENCE := tools/line_coverage_reference.txt
-# Une ligne `fichier:ligne raison` par ligne de la référence qu'aucun rejeu
-# court n'atteint, éditée à la main.
+# One `file:line reason` line per line of the reference that no short replay
+# reaches, edited by hand.
 LINE_COVERAGE_UNREACHABLE := tools/line_coverage_unreachable.txt
 
 line-coverage: $(TMP_DIR)/replay_gcov tools/line_coverage.sh
@@ -1002,7 +1025,7 @@ line-coverage-contrib: $(TMP_DIR)/replay_gcov tools/line_coverage.sh
 	@$(LINE_COVERAGE) contrib $(TMP_DIR)/line_coverage_self.txt $(TMP_DIR)/line_coverage_others.txt > $(TMP_DIR)/line_coverage_contrib.txt
 	@echo "contribution of $(EVENTS): $$(wc -l < $(TMP_DIR)/line_coverage_contrib.txt) line(s) in $(TMP_DIR)/line_coverage_contrib.txt"
 
-# Sans e2e, l'ensemble couvert est vide : l'écart est toute la référence.
+# Without any e2e, the covered set is empty: the gap is the whole reference.
 e2e-gap: $(TMP_DIR)/replay_gcov tools/line_coverage.sh $(LINE_COVERAGE_REFERENCE) $(LINE_COVERAGE_UNREACHABLE)
 	@$(if $(E2E_EVENTS),$(LINE_COVERAGE_COVER) $(E2E_EVENTS),:) > $(TMP_DIR)/line_coverage_e2e.txt
 	@$(LINE_COVERAGE) gap $(LINE_COVERAGE_REFERENCE) $(LINE_COVERAGE_UNREACHABLE) $(TMP_DIR)/line_coverage_e2e.txt > $(TMP_DIR)/line_coverage_gap.txt
@@ -1050,13 +1073,13 @@ e2e-judge: $(TMP_DIR)/replay_gcov tools/line_coverage.sh
 
 .PHONY: minimize e2e-cleanup e2e-judge
 
-# Catégories du compteur tombées à 0, séparées par des virgules.
+# The categories of the counter that have fallen to 0, comma-separated.
 DATA_RESIDUE_GUARD := spec,overrides,stash,ob,dispatch,par-nom,liste,ref-audit,valeur,type-tag
 
 data-residue: tools/data_residue.sh
 	@sh tools/data_residue.sh
 
-# grep rend 1 quand rien ne correspond ; au-delà, c'est une erreur.
+# grep returns 1 when nothing matches; anything above is an error.
 data-guard: tools/data_residue.sh
 	@status=0; grep -rn offsetof src/ || status=$$?; \
 	if [ $$status -eq 0 ]; then echo "data-guard: offsetof in src/"; exit 1; fi; \
@@ -1073,7 +1096,8 @@ data-guard: tools/data_residue.sh
 composition-residue: tools/composition_residue.sh
 	@sh tools/composition_residue.sh
 
-# Catégories du compteur de composition tombées à 0, séparées par des virgules.
+# The categories of the composition counter that have fallen to 0,
+# comma-separated.
 COMPOSITION_RESIDUE_GUARD := noyau-inclut,un-ou-faux,aiguillage-nom,atteinte-à-prouver,nu,ptrs-entité,registres,défauts,accesseurs-q6,lien-parent,parente,void-ptr,inclusion-mutuelle,usage-mutuel,void-self
 
 composition-guard: tools/composition_residue.sh
@@ -1096,7 +1120,7 @@ sanitize-net: $(SANITIZE_RUNS)
 
 .PHONY: sanitize-net $(SANITIZE_RUNS)
 
-# Les sources du cœur, où le comparateur lit les appels PICO8_FIXED_LIT.
+# The core sources, where the comparator reads the P8_FIXED_LIT calls.
 constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_gaps.txt tools/pico8_reference_probe_out.txt src/p8/fixed.c src/p8/fixed.h $(CORE_SRCS) | $(TMP_DIR)
 	@sh tools/constants_check.sh tools/constants_expected_gaps.txt tools/pico8_reference_probe_out.txt src/p8/fixed.c $(TMP_DIR)/constants_check \
 	    $(CORE_SRCS)
@@ -1105,8 +1129,8 @@ constants-check: tools/constants_check.sh tools/constants_compare.sh tools/const
 
 FLOAT_GUARD := tools/float_guard.txt
 
-# Le rapport est réécrit même quand la garde échoue ; le code de sortie du
-# script est rendu après le mv.
+# The report is rewritten even when the guard fails; the exit status of the
+# script is returned after the move.
 float-guard: tools/float_guard.sh | $(TMP_DIR)
 	@status=0; sh tools/float_guard.sh "$(CC)" "$(CFLAGS)" $(TMP_DIR)/float-guard $(CORE_SRCS) > $(TMP_DIR)/float_guard.txt || status=$$?; \
 	mv $(TMP_DIR)/float_guard.txt $(FLOAT_GUARD); \
@@ -1152,23 +1176,24 @@ psx-hello:
 psx-hello-clean:
 	rm -rf psx-hello/build
 
-# Clone une version figée de raylib dans third_party/ (gitignoré) et construit sa
-# lib statique. Lent, réseau, une seule fois, volontairement hors de `make test`.
+# Clones a pinned raylib version into third_party/ (gitignored) and builds its
+# static library. Slow, network, once, deliberately outside `make test`.
 raylib-vendor-setup:
 	sh tools/install_raylib_vendor.sh
 
-# Link seulement : cette cible ne lance jamais le binaire (aucune ligne
-# ./$(TMP_DIR)/...), voir CLAUDE.md. Elle exige third_party/raylib/src/libraylib.a,
-# donc `make raylib` sans vendoring échoue en « no rule to make target ».
-# Les deux cibles raylib sont restées en forme source -> exécutable : leurs
-# fichiers ont besoin de -I third_party/raylib/src que les autres n'ont pas, et
-# platform/raylib_backend_coords.c est aussi linké sans ce flag par un test.
+# Link only: this target never runs the binary (no ./$(TMP_DIR)/... line), see
+# CLAUDE.md. It needs third_party/raylib/src/libraylib.a, so `make raylib`
+# without vendoring fails with "no rule to make target".
+# The two raylib targets build straight from the sources to the executable:
+# their files need `-I third_party/raylib/src`, which the others do not have,
+# and platform/raylib_backend_coords.c is also linked without that flag by a
+# test.
 $(TMP_DIR)/game: src/cmd/game.c src/platform/raylib_backend.c src/platform/raylib_backend.h src/platform/raylib_backend_coords.c src/platform/raylib_backend_coords.h src/p8/palette.c src/p8/palette.h src/p8/assets.c src/p8/assets.h src/p8/audio.c src/game/background.c src/engine/bootstrap.c src/game/cart.c src/game/cart.h src/game/cheat.c src/game/cheat.h src/engine/collect.c src/game/data_init.c src/engine/dispatch_context.c src/engine/dispatch_context.h src/devtools/dump.c src/game/economy.c src/game/economy_formulas.c src/game/economy_score.c src/game/economy_tiers.c src/engine/entity_registry.c src/engine/entity_geom.c src/engine/exit_queue.c src/p8/fixed.c src/game/galaxy.c src/game/game_data.c src/game/gen.c src/engine/geom.c src/p8/gfx.c src/game/help.c src/game/help.h src/game/hud.c src/p8/input.c src/devtools/input_json.c src/engine/entity.c src/game/layout.c src/engine/entity_list.c src/engine/pointer_list.c src/game/map_tables.c src/p8/mem.c src/game/menu.c src/game/mouse_button.c src/game/mouse.c src/game/message_box.c src/game/particle.c src/game/draw_functions.c src/game/planet.c src/game/planet_display.c src/game/planet_family.c src/game/planet_family_trade.c src/game/planet_trade.c src/game/probe.c src/devtools/replay_control.c src/devtools/replay_control.h src/devtools/replay_source.c src/devtools/replay_source.h src/game/research.c src/game/research_display.c src/game/structure_icon.c src/game/score_panel.c src/game/score_panel_display.c src/game/scroll.c src/devtools/session_recorder.c src/devtools/session_recorder.h src/game/slipway.c src/game/slipway_display.c src/p8/str.c src/game/tech_gate.c src/game/trade.c src/game/ui.c src/game/ui_button.c src/game/ui_button.h src/engine/vec.c src/game/wormhole.c src/game/wormhole_display.c src/engine/zone.c src/engine/allocator.c src/engine/frame_zone.c src/game/ui_zone.c src/game/particle_zone.c src/engine/game_zone.c src/platform/fatal_pc.c third_party/raylib/src/libraylib.a | $(TMP_DIR)
 	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ src/cmd/game.c src/platform/raylib_backend.c src/platform/raylib_backend_coords.c src/p8/palette.c src/p8/assets.c src/p8/audio.c src/game/background.c src/engine/bootstrap.c src/game/cart.c src/game/cheat.c src/engine/collect.c src/game/data_init.c src/engine/dispatch_context.c src/devtools/dump.c src/game/economy.c src/game/economy_formulas.c src/game/economy_score.c src/game/economy_tiers.c src/engine/entity_registry.c src/engine/entity_geom.c src/engine/exit_queue.c src/p8/fixed.c src/game/galaxy.c src/game/game_data.c src/game/gen.c src/engine/geom.c src/p8/gfx.c src/game/help.c src/game/hud.c src/p8/input.c src/devtools/input_json.c src/engine/entity.c src/game/layout.c src/engine/entity_list.c src/engine/pointer_list.c src/game/map_tables.c src/p8/mem.c src/game/menu.c src/game/mouse_button.c src/game/mouse.c src/game/message_box.c src/game/particle.c src/game/draw_functions.c src/game/planet.c src/game/planet_display.c src/game/planet_family.c src/game/planet_family_trade.c src/game/planet_trade.c src/game/probe.c src/devtools/replay_control.c src/devtools/replay_source.c src/game/research.c src/game/research_display.c src/game/structure_icon.c src/game/score_panel.c src/game/score_panel_display.c src/game/scroll.c src/devtools/session_recorder.c src/game/slipway.c src/game/slipway_display.c src/p8/str.c src/game/tech_gate.c src/game/trade.c src/game/ui.c src/game/ui_button.c src/engine/vec.c src/game/wormhole.c src/game/wormhole_display.c src/engine/zone.c src/engine/allocator.c src/engine/frame_zone.c src/game/ui_zone.c src/game/particle_zone.c src/engine/game_zone.c src/platform/fatal_pc.c third_party/raylib/src/libraylib.a $(RAYLIB_LDLIBS)
 
 raylib: $(TMP_DIR)/game
 
-# Le visualiseur : même règle que la cible raylib ci-dessus, link seulement.
+# The viewer: the same rule as the raylib target above, link only.
 $(SCREENCAST_VIEWER_BIN): src/cmd/screencast_viewer.c src/devtools/screencast.c src/devtools/screencast.h src/devtools/screencast_player.c src/devtools/screencast_player.h src/p8/palette.c src/p8/palette.h src/devtools/replay_control.c src/devtools/replay_control.h src/platform/raylib_backend.c src/platform/raylib_backend.h src/platform/raylib_backend_coords.c src/platform/raylib_backend_coords.h src/devtools/session_recorder.c src/devtools/session_recorder.h src/p8/input.c src/devtools/input_json.c src/p8/input.h src/p8/mem.c src/p8/mem.h src/p8/gfx.h third_party/raylib/src/libraylib.a | $(TMP_DIR)
 	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ src/cmd/screencast_viewer.c src/devtools/screencast.c src/devtools/screencast_player.c src/p8/palette.c src/devtools/replay_control.c src/platform/raylib_backend.c src/platform/raylib_backend_coords.c src/devtools/session_recorder.c src/p8/input.c src/devtools/input_json.c src/p8/mem.c third_party/raylib/src/libraylib.a $(RAYLIB_LDLIBS)
 
@@ -1179,7 +1204,8 @@ LIBCLANG ?= /usr/lib/llvm-18/lib/libclang-18.so.1
 AST_RENAME_ENV := PYTHONPATH=$(CURDIR)/tools:$(AST_RENAME_BINDINGS) LIBCLANG=$(LIBCLANG)
 AST_RENAME_DIR := $(TMP_DIR)/ast_rename
 RENAME_SUBSTEPS := tools/rename_substeps.tsv
-# Pathspec ':!' : git's '*' crosses '/', so tests/fixtures/ would match tests/*.c.
+# Pathspec ':!' : git's '*' crosses '/', so tests/fixtures/ would match
+# `tests/*.c`.
 AST_RENAME_UNITS = $(shell git ls-files 'src/*.c' 'tests/*.c' 'tools/*.c' ':!tests/fixtures/*')
 AST_RENAME_ANALYSIS = --root . --exclude-dir third_party --cflags "$(CFLAGS)" \
     --config default= --config coverage="$(COVERAGE_CFLAGS)" --config asan="$(ASAN_CFLAGS)" \
@@ -1307,8 +1333,8 @@ rename-apply:
 	$(AST_RENAME_ENV) python3 -m ast_rename apply --table $(TABLE) \
 	    --report $(AST_RENAME_DIR)/report.txt $(AST_RENAME_ANALYSIS)
 
-# Les fragments de dépendances écrits par le compilateur, un par objet. Le
-# wildcard tolère qu'ils n'existent pas : sur un clone frais, tout est compilé.
+# The dependency fragments written by the compiler, one per object. The
+# wildcard tolerates their absence: on a fresh clone, everything is compiled.
 -include $(wildcard $(OBJ_DIR)/src/*/*.d $(OBJ_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_ASAN_DIR)/src/*/*.d $(OBJ_ASAN_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_UBSAN_DIR)/src/*/*.d $(OBJ_UBSAN_DIR)/tests/*.d)
