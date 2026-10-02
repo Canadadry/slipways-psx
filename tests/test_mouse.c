@@ -178,7 +178,7 @@ static void test_scripted_ticks(void) {
         }
     }
     unscript();
-    check("scripted ticks", h, SCRIPTED_HASH);
+    check("scripted", h, SCRIPTED_HASH);
 }
 
 /* Every `nf` shares the two button tables: a left button held across `jl()`

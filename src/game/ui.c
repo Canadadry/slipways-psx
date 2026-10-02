@@ -68,13 +68,13 @@ static vec_t ui_vec_or_zero(const vec_t *v) {
 /* je[bt] (bt "l" or "r"): NULL when `je` has no such button state,
  * which is the case for the field-less placeholder. */
 static const mouse_button_t *ui_main_mouse_button_table(const char *bt) {
-    assert((strcmp(bt, "l") == 0 || strcmp(bt, "r") == 0) &&
-           "je[bt]: bt is l or r only; another button has no state table -- stop");
-    assert(g_main_mouse != NULL && "je[bt]: indexing a nil je stops the run, as in the cart");
+    assert((strcmp(bt, "left") == 0 || strcmp(bt, "right") == 0) &&
+           "ui_main_mouse_button_table: left or right only; another button has no state table -- stop");
+    assert(g_main_mouse != NULL && "ui_main_mouse_button_table: reading a button of an absent main mouse stops the run");
     if (main_mouse_typed() == NULL) {
         return NULL;
     }
-    return strcmp(bt, "l") == 0 ? mouse_left_button() : mouse_right_button();
+    return strcmp(bt, "left") == 0 ? mouse_left_button() : mouse_right_button();
 }
 
 static int ui_main_mouse_button_field_bool(const char *bt, const char *field) {
@@ -85,7 +85,7 @@ static int ui_main_mouse_button_field_bool(const char *bt, const char *field) {
     if (strcmp(field, "pressed") == 0) {
         return b->pressed;
     }
-    assert(strcmp(field, "released") == 0 && "je[bt]: only jn and hm are read");
+    assert(strcmp(field, "released") == 0 && "ui_main_mouse_button_field_bool: only pressed and released are read");
     return b->released;
 }
 
@@ -114,7 +114,7 @@ static ui_t *ui_create(void) {
     ui_t *self;
     int i;
 
-    assert(g_ui_up && "pico8_ui_init() must run first");
+    assert(g_ui_up && "ui_init() must run first");
     self = (ui_t *)allocator_alloc(game_zone(), sizeof *self);
     entity_init_instance(&self->header, &g_ui_class, ui_archetype.state, ui_archetype.state_time);
     self->archetype = &ui_archetype;
@@ -178,7 +178,7 @@ mouse_t *main_mouse_typed(void) {
     if (g_main_mouse == NULL || g_main_mouse == &g_main_mouse_placeholder.header) {
         return NULL;
     }
-    assert(g_main_mouse->class == mouse_class() && "je: only the placeholder or an nf is ever stored");
+    assert(g_main_mouse->class == mouse_class() && "main_mouse_typed: only the placeholder or a mouse is ever stored");
     return (mouse_t *)g_main_mouse;
 }
 
@@ -232,12 +232,12 @@ void ui_update(p8_memory_t *mem, ui_t *self) {
 
     hit = (ephemerals_count == 0) || entity_list_has(ephemerals_ptr_before, self->hovered);
     if (hit) {
-        ui_handle_button(self, "l");
+        ui_handle_button(self, "left");
     }
 
-    ui_handle_button(self, "r");
+    ui_handle_button(self, "right");
 
-    if (ui_main_mouse_button_field_bool("l", "pressed") && self->ephemerals == ephemerals_ptr_before) {
+    if (ui_main_mouse_button_field_bool("left", "pressed") && self->ephemerals == ephemerals_ptr_before) {
         ui_clear_ephemerals(self);
     }
 
@@ -301,7 +301,7 @@ void ui_update_hover(p8_memory_t *mem, ui_t *self) {
                     int fa = ui_to_int(*e->layer);
 
                     assert(fa >= 0 && fa < UI_HOVER_LAYERS &&
-                           "ui.ic: a hovered entity's fa outside 0..15, the layers jz walks -- stop, do not widen");
+                           "ui_update_hover: a hovered entity's layer outside 0..15, the layers ui_send_to_hovered walks -- stop, do not widen");
                     entity_list_add(&self->hovered_by_layer->layers[fa], e);
                 }
                 self->hovered = e;
@@ -311,13 +311,13 @@ void ui_update_hover(p8_memory_t *mem, ui_t *self) {
 
     if (self->previous_hovered != NULL) {
         assert(self->previous_hovered->is_hovered != NULL &&
-               "entity: a generic write names a field this struct has no member for -- stop, do not add a member");
+               "ui_update_hover: the previously hovered entity has no is_hovered member -- stop, do not add one");
         *self->previous_hovered->is_hovered = 0;
     }
 
     if (self->hovered != NULL) {
         assert(self->hovered->is_hovered != NULL &&
-               "entity: a generic write names a field this struct has no member for -- stop, do not add a member");
+               "ui_update_hover: the hovered entity has no is_hovered member -- stop, do not add one");
         *self->hovered->is_hovered = 1;
     }
 
@@ -345,8 +345,8 @@ void ui_handle_button(ui_t *self, const char *button) {
         return;
     }
 
-    assert((strcmp(button, "l") == 0 || strcmp(button, "r") == 0) &&
-           "ui:bh: bt is l or r only; another button has no state table -- stop");
+    assert((strcmp(button, "left") == 0 || strcmp(button, "right") == 0) &&
+           "ui_handle_button: left or right only; another button has no state table -- stop");
     is_left = button[0] == 'l';
     mouse = main_mouse_typed();
     main_mouse_pos = mouse != NULL ? mouse->pos : NULL;
@@ -359,11 +359,11 @@ void ui_handle_button(ui_t *self, const char *button) {
             kn.held != NULL) {
             if (is_left) {
                 assert(ui_is_held_class(kn.held->class) &&
-                       "ui.lheld: what an ldown hands over is a jc; a g_ or an mz from bg; a qh, os, nr, fr, nl, mx "
-                       "or hj from an ie");
+                       "ui_handle_button: a left press hands over a slipway; a probe or a wormhole from the background; a "
+                       "structure, processor, slipgate, infraspace_gate, trading_hub, synthesizer or ascension from an icon");
                 self->left_held = kn.held;
             } else {
-                assert(kn.held->class == background_class() && "ui.rheld: what an rdown hands over is the bg");
+                assert(kn.held->class == background_class() && "ui_handle_button: a right press hands over the background only");
                 self->right_held = (background_t *)kn.held;
             }
         }

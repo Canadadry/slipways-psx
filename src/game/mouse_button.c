@@ -7,7 +7,7 @@ void mouse_button_update(const p8_input_t *input, mouse_button_t *qn, int oa) {
     int on;
     int ia = 0;
 
-    assert(input != NULL && qn != NULL && "bu() dereferences both");
+    assert(input != NULL && qn != NULL && "mouse_button_update dereferences the input and the button");
 
     on = (p8_stat(input, 34) & oa) > 0;
     if (qn->has_held) {

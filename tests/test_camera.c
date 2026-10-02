@@ -210,9 +210,9 @@ static void test_scripted_ticks(void) {
         }
     }
     unscript();
-    printf("[scripted ticks] pos_before_shake.y at the 320 bound on %d ticks\n", bounded);
+    printf("[scripted] pos_before_shake.y at the 320 bound on %d ticks\n", bounded);
     assert(bounded > 0);
-    check("scripted ticks", h, SCRIPTED_HASH);
+    check("scripted", h, SCRIPTED_HASH);
 }
 
 /* `mo.ma=3`, as `ga:pq` writes it, decays by 0.1 per `ph`, shaking `ra`

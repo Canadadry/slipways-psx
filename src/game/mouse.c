@@ -54,7 +54,7 @@ static mouse_t *mouse_create(void) {
 void mouse_init(void) {
     mouse_shutdown();
     draw_functions_init();
-    assert(entity_ready() && "nf descends from ke");
+    assert(entity_ready() && "mouse_init: entity_init() runs first");
     g_mouse_up = 1;
     g_mouse_pos = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     memset(&g_left_button, 0, sizeof g_left_button);

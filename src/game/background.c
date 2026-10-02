@@ -173,7 +173,7 @@ down_t background_left_press(background_t *self) {
     g_tag = entities_by_tag("probe");
     count = (g_tag != NULL) ? g_tag->count : 0;
     if (count > 0) {
-        assert(wormhole_ready() && "pico8_wormhole_init() must run before bg:ldown builds an mz");
+        assert(wormhole_ready() && "wormhole_init() must run before background_left_press builds a wormhole");
         made = (entity_t *)wormhole_new();
     } else {
         made = (entity_t *)probe_new(NULL);
@@ -210,7 +210,7 @@ void background_drag(background_t *self, vec_t *rp) {
     mouse_screen_vec = rp != NULL ? *rp : zero;
     if (main_camera() != NULL) {
         mo = main_camera_typed();
-        assert(mo != NULL && "mo: the placeholder has no writer; a write before jl() stops the run");
+        assert(mo != NULL && "background_drag: the camera placeholder has no velocity; a drag before reset_world() stops the run");
         camera_set_velocity(mo, vec_sub(mq, mouse_screen_vec));
     }
 

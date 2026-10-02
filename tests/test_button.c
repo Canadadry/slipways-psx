@@ -755,7 +755,7 @@ static void test_difficulty(void) {
         h = fold_fixed_or_nil(h, button_of(nj)->has_trade, button_of(nj)->trade);
         h = fold_string_or_nil(h, button_of(nj)->name);
         jo = entities_by_tag("planet");
-        printf("[difficulty] bo[%d]: %d planet(s)\n", i, jo->count);
+        printf("[difficulty] option %d: %d planet(s)\n", i, jo->count);
         h = fnv(h, (uint32_t)jo->count);
         for (j = 0; j < jo->count; j++) {
             h = fold_vec(h, as_planet(jo->items[j])->pos);
@@ -849,7 +849,7 @@ static void test_update(void) {
     assert(vec_of(button_of(b)->pos).x == p8_fixed_from_int(40) && vec_of(button_of(b)->pos).y == p8_fixed_from_int(-20));
     printf("[update] %d step(s)\n", steps);
     h = fnv(h, (uint32_t)steps);
-    check("normal", h, UPDATE_HASH);
+    check("update", h, UPDATE_HASH);
 }
 
 static int on_click_calls;
@@ -944,7 +944,7 @@ static void test_projects_panel_on_click(void) {
         break;
     }
     assert(i < le->count);
-    check("projects_panel on_click", h, PROJECTS_PANEL_ON_CLICK_HASH);
+    check("projects_panel_on_click", h, PROJECTS_PANEL_ON_CLICK_HASH);
 }
 
 /* The `my` of a `cr` row invents the tech it captured. */
@@ -973,7 +973,7 @@ static void test_tech_tree_screen_on_click(void) {
     last = invented->items[invented->count - 1];
     h = fold_string(h, last);
     printf("[tech_tree_screen on_click] row %d invented %s\n", i, last);
-    check("tech_tree_screen on_click", h, TECH_TREE_SCREEN_ON_CLICK_HASH);
+    check("tech_tree_screen_on_click", h, TECH_TREE_SCREEN_ON_CLICK_HASH);
 }
 
 static uint32_t draw_alone(void *b) {
@@ -1435,7 +1435,7 @@ static uint32_t members_title_and_game(void) {
 
     call_on_click(galaxy_menu[3]);
     check_ephemerals_one_open_box();
-    printf("[members] ha: %d row(s), gpio_signal on the 4th: %d\n", main_ui_ephemerals()->count, button_of(main_ui_ephemerals()->items[3])->has_gpio_signal);
+    printf("[members] pause_menu: %d row(s), gpio_signal on the 4th: %d\n", main_ui_ephemerals()->count, button_of(main_ui_ephemerals()->items[3])->has_gpio_signal);
     hash = fold_ephemerals_members(hash);
 
     fresh[2] = button_new(NULL);
@@ -1597,7 +1597,7 @@ static void test_button_members_by_name(void) {
     h = fnv(h, in_fresh_part(members_projects_panel));
     h = fnv(h, in_fresh_part(members_inspection_panel));
     h = fnv(h, in_fresh_part(members_score_panel));
-    check("button members", h, BUTTON_MEMBERS_HASH);
+    check("button_members", h, BUTTON_MEMBERS_HASH);
 }
 
 /* `h_=od>0 and {…}` of `jo:fe`: a free building's `h_` is false, not the
@@ -1759,13 +1759,13 @@ static void test_button_slots_come_back(void) {
     assert(galaxy_menu_buttons(ix) == 4);
     call_on_click(ix[3]);
     open = button_slots();
-    printf("[places] button: %d before the pause menu, %d open\n", base, open);
+    printf("[slots] button: %d before the pause menu, %d open\n", base, open);
     assert(open == base + main_ui_ephemerals()->count && main_ui_ephemerals()->count > 0);
     last = main_ui_ephemerals()->items[main_ui_ephemerals()->count - 1];
     before = vec_of(button_of(last)->pos);
     for (i = 0; i < 30; i++) {
         one_frame();
-        assert(button_slots() == open && "a sliding button takes no place per tick");
+        assert(button_slots() == open && "a sliding button takes no slot per tick");
     }
     assert(!same_vec(button_of(last)->pos, &before) && "the menu slid");
     ui_clear_ephemerals(main_ui());
@@ -1815,11 +1815,11 @@ static void test_galaxy_menu_button2_row_slots(void) {
     once = row_slots();
     for (i = 0; i < 5; i++) {
         class_of(ix[1])->refresh(ix[1]);
-        assert(row_slots() == once && "the replaced row gives its place back on the spot");
+        assert(row_slots() == once && "the replaced row gives its slot back on the spot");
     }
     entity_unregister(&button_of(ix[1])->header);
     one_frame();
-    assert(row_slots() == once - 1 && "the button takes its row's place along");
+    assert(row_slots() == once - 1 && "the button takes its row's slot along");
     start_title();
     one_frame();
     assert(row_slots() == title);
@@ -1846,8 +1846,8 @@ static void test_ephemerals_slots_come_back(void) {
     call_on_click(ix[3]);
     one_frame();
     open = ephemerals_slots();
-    printf("[places] ephemerals: %d before the pause menu, %d open\n", base, open);
-    assert(main_ui()->ephemerals != ui_ephemerals_shared() && open == 1 && "ok.le is one list in a place");
+    printf("[slots] ephemerals: %d before the pause menu, %d open\n", base, open);
+    assert(main_ui()->ephemerals != ui_ephemerals_shared() && open == 1 && "the main ui's ephemerals are one list in a slot");
     for (i = 0; i < 5; i++) {
         menu = main_ui_ephemerals();
         count = menu->count;
@@ -1855,7 +1855,7 @@ static void test_ephemerals_slots_come_back(void) {
         assert(menu->count == count && "the replaced list lives until the next frame");
         call_on_click(ix[3]);
         one_frame();
-        assert(ephemerals_slots() == open && "a replaced list gives its place back");
+        assert(ephemerals_slots() == open && "a replaced list gives its slot back");
     }
 }
 

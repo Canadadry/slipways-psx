@@ -146,10 +146,10 @@ static void test_left_press_with_a_true_on_click_removes_the_veil(void) {
     }
     assert(g_on_click_calls == 1);
     assert(!entity_list_listed(entities_by_message("hit_test"), veil));
-    printf("[on_click true] ticks=%d\n", ticks);
+    printf("[on_click_true_sequence] ticks=%d\n", ticks);
     fflush(stdout);
     assert(ticks == ON_CLICK_TRUE_TICKS);
-    check("on_click true", h, ON_CLICK_TRUE_SEQUENCE_HASH);
+    check("on_click_true_sequence", h, ON_CLICK_TRUE_SEQUENCE_HASH);
 }
 
 /* `fq()`: a click is swallowed, `p_` stays nil, the veil stays. */
@@ -170,7 +170,7 @@ static void test_bare_veil_swallows_the_click_and_stays(void) {
         h = fold_veil(h, veil);
     }
     assert(entity_list_listed(live_entities(), veil) && entity_list_listed(entities_by_message("hit_test"), veil));
-    check("bare", h, BARE_SEQUENCE_HASH);
+    check("bare_sequence", h, BARE_SEQUENCE_HASH);
 }
 
 /* A `my` answering false leaves `p_` false, which reads as nil: the veil
@@ -193,7 +193,7 @@ static void test_false_on_click_keeps_the_veil(void) {
         h = fold_veil(h, veil);
     }
     assert(entity_list_listed(live_entities(), veil) && entity_list_listed(entities_by_message("hit_test"), veil));
-    check("on_click false", h, BARE_SEQUENCE_HASH);
+    check("bare_sequence on_click_false", h, BARE_SEQUENCE_HASH);
 }
 
 static int in_layer(int layer, const void *e) {
@@ -228,7 +228,7 @@ static void test_hover_loop_on_the_veil(void) {
     p8_gfx_init(&gfx);
     p8_cls(&mem);
     ui_draw_overlay(&gfx, &mem, main_ui());
-    check("hover cursor", screen_hash(), HOVER_CURSOR_HASH);
+    check("hover_cursor", screen_hash(), HOVER_CURSOR_HASH);
 
     assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, NULL, NULL, NULL, &kv, &kn));
     assert((void *)kv == veil && kn.stop && kn.held == NULL);
@@ -244,7 +244,7 @@ static void test_hover_loop_on_the_veil(void) {
     assert(!veil->is_hovered);
     h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
     h = fold_veil(h, veil);
-    check("hover", h, HOVER_SEQUENCE_HASH);
+    check("hover_sequence", h, HOVER_SEQUENCE_HASH);
 }
 
 /* The veil's defaults are the class's generated defaults. */
@@ -314,7 +314,7 @@ static void test_veil_gives_its_slot_back(void) {
         update_entities();
         assert(++ticks < 1000);
     }
-    assert(ui_zone_live(SLOT_KIND_MODAL_BACKDROP) == base + 1 && "out of hv, still read this frame");
+    assert(ui_zone_live(SLOT_KIND_MODAL_BACKDROP) == base + 1 && "out of the live entities, still read this frame");
     cart_flush_exit_queue();
     assert(ui_zone_live(SLOT_KIND_MODAL_BACKDROP) == base);
 }

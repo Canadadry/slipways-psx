@@ -28,7 +28,7 @@ static int case_live_slots_follow_takes(void) {
     assert(ui_zone_live(SLOT_KIND_MESSAGE_BOX) == 0);
 
     arena_release(a);
-    assert(ui_zone_live(SLOT_KIND_BUTTON) == 1 && "rendre une place decompte sa sorte");
+    assert(ui_zone_live(SLOT_KIND_BUTTON) == 1 && "releasing a slot uncounts its kind");
     arena_release(b);
     arena_release(c);
     for (int s = 0; s < SLOT_KIND_COUNT; s++) assert(ui_zone_live((slot_kind_t)s) == 0);
@@ -116,8 +116,8 @@ static void expect_clean(const char *name) {
     char *err;
     int status = run_child(name, &err);
     if (WEXITSTATUS(status) != 0 || err[0] != '\0') {
-        fprintf(stderr, "%s: attendu propre, sortie %d\n%s", name, WEXITSTATUS(status), err);
-        assert(0 && "le cas ne doit ni planter ni ecrire sur stderr");
+        fprintf(stderr, "%s: expected clean, exit %d\n%s", name, WEXITSTATUS(status), err);
+        assert(0 && "the case must neither crash nor write to stderr");
     }
     free(err);
 }
@@ -126,8 +126,8 @@ static void expect_poison_crash(const char *name) {
     char *err;
     int status = run_child(name, &err);
     if (WEXITSTATUS(status) == 0 || strstr(err, "use-after-poison") == NULL) {
-        fprintf(stderr, "%s: attendu use-after-poison, sortie %d\n%s", name, WEXITSTATUS(status), err);
-        assert(0 && "une place rendue puis lue doit planter sous ASan");
+        fprintf(stderr, "%s: expected use-after-poison, exit %d\n%s", name, WEXITSTATUS(status), err);
+        assert(0 && "a slot given back to its zone then read must crash under ASan");
     }
     free(err);
 }
@@ -136,9 +136,9 @@ static void expect_fatal(const char *name, const char *message) {
     char *err;
     int status = run_child(name, &err);
     if (WEXITSTATUS(status) != 3 || strstr(err, message) == NULL) {
-        fprintf(stderr, "%s: attendu sortie 3 et \"%s\", sortie %d\n%s",
+        fprintf(stderr, "%s: expected exit 3 and \"%s\", exit %d\n%s",
                 name, message, WEXITSTATUS(status), err);
-        assert(0 && "une place trop petite ou une zone pleine doit appeler pico8_fatal");
+        assert(0 && "a full zone or a too small slot must call p8_fatal");
     }
     free(err);
 }
@@ -147,16 +147,16 @@ int main(int argc, char **argv) {
     if (argc == 2) {
         for (size_t i = 0; i < CASE_COUNT; i++)
             if (strcmp(argv[1], CASES[i].name) == 0) return CASES[i].run();
-        fprintf(stderr, "test_ui_zone: cas inconnu %s\n", argv[1]);
+        fprintf(stderr, "test_ui_zone: unknown case %s\n", argv[1]);
         return 2;
     }
     self_path = argv[0];
     expect_clean("live_slots_follow_takes");
     expect_clean("slot_alive_until_released");
     expect_poison_crash("slot_dead_after_release");
-    expect_fatal("button_slot_full", "zone place button full, limit ");
-    expect_fatal("row_slot_full", "zone place rangee full, limit ");
-    expect_fatal("modal_backdrop_zone_full", "zone interface modal_backdrop full, limit 4 slots");
+    expect_fatal("button_slot_full", "zone slot button full, limit ");
+    expect_fatal("row_slot_full", "zone slot row full, limit ");
+    expect_fatal("modal_backdrop_zone_full", "zone ui modal_backdrop full, limit 4 slots");
     remove(STDERR_LOG);
     printf("test_ui_zone: all tests passed\n");
     return 0;

@@ -34,13 +34,13 @@ SLOT_ZONE_STORAGE(row_cells, row_taken, ROW_SIZE, ROW_COUNT);
 SLOT_ZONE_STORAGE(ephemerals_cells, ephemerals_taken, EPHEMERALS_SIZE, EPHEMERALS_COUNT);
 
 static const slot_kind_zone_t SLOT_KINDS[SLOT_KIND_COUNT] = {
-    [SLOT_KIND_BUTTON] = {"interface button", "place button", button_cells, button_taken, BUTTON_SIZE, BUTTON_COUNT},
-    [SLOT_KIND_MODAL_BACKDROP] = {"interface modal_backdrop", "place modal_backdrop", modal_backdrop_cells, modal_backdrop_taken, MODAL_BACKDROP_SIZE, MODAL_BACKDROP_COUNT},
-    [SLOT_KIND_MESSAGE_BOX] = {"interface message_box", "place message_box", message_box_cells, message_box_taken, MESSAGE_BOX_SIZE, MESSAGE_BOX_COUNT},
-    [SLOT_KIND_TOAST] = {"interface toast", "place toast", toast_cells, toast_taken, TOAST_SIZE, TOAST_COUNT},
-    [SLOT_KIND_ROW] = {"interface rangee", "place rangee", row_cells, row_taken, ROW_SIZE,
+    [SLOT_KIND_BUTTON] = {"ui button", "slot button", button_cells, button_taken, BUTTON_SIZE, BUTTON_COUNT},
+    [SLOT_KIND_MODAL_BACKDROP] = {"ui modal_backdrop", "slot modal_backdrop", modal_backdrop_cells, modal_backdrop_taken, MODAL_BACKDROP_SIZE, MODAL_BACKDROP_COUNT},
+    [SLOT_KIND_MESSAGE_BOX] = {"ui message_box", "slot message_box", message_box_cells, message_box_taken, MESSAGE_BOX_SIZE, MESSAGE_BOX_COUNT},
+    [SLOT_KIND_TOAST] = {"ui toast", "slot toast", toast_cells, toast_taken, TOAST_SIZE, TOAST_COUNT},
+    [SLOT_KIND_ROW] = {"ui row", "slot row", row_cells, row_taken, ROW_SIZE,
                             ROW_COUNT},
-    [SLOT_KIND_EPHEMERALS] = {"interface ephemerals", "place ephemerals", ephemerals_cells, ephemerals_taken, EPHEMERALS_SIZE, EPHEMERALS_COUNT},
+    [SLOT_KIND_EPHEMERALS] = {"ui ephemerals", "slot ephemerals", ephemerals_cells, ephemerals_taken, EPHEMERALS_SIZE, EPHEMERALS_COUNT},
 };
 
 static slot_zone_t g_zones[SLOT_KIND_COUNT];

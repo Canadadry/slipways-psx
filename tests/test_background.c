@@ -259,10 +259,10 @@ static void test_map(void) {
     start_game();
     first = map_hash(&stars, &zeros);
     check("map", first, MAP_HASH);
-    check_int("map stars", stars, MAP_STARS);
-    check_int("map zeros", zeros, MAP_ZEROS);
+    check_int("map_stars", stars, MAP_STARS);
+    check_int("map_zeros", zeros, MAP_ZEROS);
     (void)background_new();
-    check("second map", map_hash(&stars, &zeros), SECOND_MAP_HASH);
+    check("second_map", map_hash(&stars, &zeros), SECOND_MAP_HASH);
 }
 
 static void drag(void *bg, vec_t *rp) {
@@ -317,8 +317,8 @@ static void test_left_press(void) {
     bg = the_background();
     g_before = entity_list_list_count(entities_by_tag("probe"));
     wormhole_before = entity_list_list_count(entities_by_tag("wormhole"));
-    check_int("left_press probe before", g_before, LEFT_PRESS_PROBE_BEFORE);
-    check_int("left_press wormhole before", wormhole_before, LEFT_PRESS_WORMHOLE_BEFORE);
+    check_int("left_press_probe_before", g_before, LEFT_PRESS_PROBE_BEFORE);
+    check_int("left_press_wormhole_before", wormhole_before, LEFT_PRESS_WORMHOLE_BEFORE);
 
     out = background_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));
     assert(out.stop && out.held != NULL);
@@ -331,8 +331,8 @@ static void test_left_press(void) {
     assert(entity_list_listed(entities_by_tag("wormhole"), out.held));
     assert(is_state(&((const wormhole_t *)out.held)->header, "placing"));
 
-    check_int("left_press probe after", entity_list_list_count(entities_by_tag("probe")), LEFT_PRESS_PROBE_AFTER);
-    check_int("left_press wormhole after", entity_list_list_count(entities_by_tag("wormhole")), LEFT_PRESS_WORMHOLE_AFTER);
+    check_int("left_press_probe_after", entity_list_list_count(entities_by_tag("probe")), LEFT_PRESS_PROBE_AFTER);
+    check_int("left_press_wormhole_after", entity_list_list_count(entities_by_tag("wormhole")), LEFT_PRESS_WORMHOLE_AFTER);
 }
 
 static int in_layer(int layer, const void *e) {

@@ -59,7 +59,7 @@ static camera_t *camera_create(void) {
 void camera_init(void) {
     camera_shutdown();
     draw_functions_init();
-    assert(entity_ready() && "qb descends from ke");
+    assert(entity_ready() && "camera_init: entity_init() runs first");
     g_camera_up = 1;
 }
 
@@ -145,6 +145,6 @@ camera_t *main_camera_typed(void) {
     if (mo == NULL || mo->class == main_camera_placeholder_class()) {
         return NULL;
     }
-    assert(mo->class == camera_class() && "mo: only the placeholder or a qb is ever stored");
+    assert(mo->class == camera_class() && "main_camera_typed: only the placeholder or a camera is ever stored");
     return (camera_t *)mo;
 }
