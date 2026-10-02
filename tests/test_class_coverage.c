@@ -58,7 +58,7 @@ static void test_short_replay_and_malformed_file(void) {
     assert(count_of(log, "ui") > 0);
     assert(count_of(log, "trading_hub") == 0);
     assert(strstr(log, "\ntrading_hub  0  0/1") != NULL);
-    assert(strstr(log, "inconnue") == NULL);
+    assert(strstr(log, "unknown") == NULL);
 }
 
 /* Une exemption pour chaque classe a 0 : le verdict passe. */
