@@ -121,12 +121,12 @@ int main(void) {
 
     p8_input_free(&input);
 
-    FILE *dump_out = fopen("tmp/pico8_demo_dump.txt", "w");
+    FILE *dump_out = fopen("tmp/demo_dump.txt", "w");
     assert(dump_out != NULL);
     int dump_ok = dump_screen(&mem, dump_out);
     fclose(dump_out);
     assert(dump_ok);
 
-    printf("pico8 demo: all assertions passed; framebuffer dumped to tmp/pico8_demo_dump.txt\n");
+    printf("pico8 demo: all assertions passed; framebuffer dumped to tmp/demo_dump.txt\n");
     return 0;
 }

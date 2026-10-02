@@ -41,7 +41,7 @@ static long count_of(const char *log, const char *name) {
 
 static int run_with(const char *options, const char *exempt) {
     char cmd[512];
-    snprintf(cmd, sizeof cmd, "sh tools/class_coverage.sh %s ./tmp/pico8_class_coverage " DIR "/replays %s > " LOG
+    snprintf(cmd, sizeof cmd, "sh tools/class_coverage.sh %s ./tmp/class_coverage " DIR "/replays %s > " LOG
              " 2>&1", options, exempt);
     return system(cmd);
 }

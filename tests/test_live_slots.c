@@ -52,7 +52,7 @@
 #define BEFORE_F0 (-1)
 #define MAX_READINGS 4
 
-static const char *const NAMES[SLOT_KIND_COUNT] = {"button", "modal_backdrop", "message_box", "toast", "rangee", "le"};
+static const char *const NAMES[SLOT_KIND_COUNT] = {"button", "modal_backdrop", "message_box", "toast", "rangee", "ephemerals"};
 
 typedef struct {
     int frame;
@@ -1321,7 +1321,7 @@ static int same_bytes(const char *a_path, const char *b_path) {
     return same;
 }
 
-#define DRIVER "./tmp/pico8_replay"
+#define DRIVER "./tmp/replay"
 #define FILL "tmp/test_places_vivantes_remplissage.txt"
 #define CAPTURE_A "tmp/test_places_vivantes_a.bin"
 #define CAPTURE_B "tmp/test_places_vivantes_b.bin"
@@ -1341,7 +1341,7 @@ static void replay_writes_fill_at_session_end(void) {
 
     remove(FILL);
     assert(system(DRIVER " tests/e2e/pause_restart.json " CAPTURE_A " " DUMP_A " > /dev/null") == 0);
-    assert(system("PICO8_REMPLISSAGE=" FILL " " DRIVER " tests/e2e/pause_restart.json " CAPTURE_B " " DUMP_B
+    assert(system("REPLAY_FILL=" FILL " " DRIVER " tests/e2e/pause_restart.json " CAPTURE_B " " DUMP_B
                   " > /dev/null") == 0);
     assert(same_bytes(CAPTURE_A, CAPTURE_B) && "le remplissage ne change pas la capture");
     assert(same_bytes(DUMP_A, DUMP_B) && "le remplissage ne change pas le dump");
@@ -1352,7 +1352,7 @@ static void replay_writes_fill_at_session_end(void) {
         snprintf(line, sizeof line, "%s %d\n", NAMES[s], reading[0].live[s]);
         strcat(expected, line);
     }
-    static const char *const PARTICLE[PARTICLE_SLOT_COUNT] = {"particule", "qy", "qy_fv", "burst", "ts"};
+    static const char *const PARTICLE[PARTICLE_SLOT_COUNT] = {"particule", "particles", "particles_help_screen", "burst", "transit_dots"};
     for (int s = 0; s < PARTICLE_SLOT_COUNT; s++) {
         snprintf(line, sizeof line, "%s %d\n", PARTICLE[s],
                  particle_zone_live((particle_slot_kind_t)s));
@@ -1409,7 +1409,7 @@ static long fill_value(const char *fill, const char *key) {
  * maximum lu en fin de session seulement resterait sous 140. */
 static void replay_writes_session_peak(void) {
     remove(FILL);
-    assert(system("PICO8_REMPLISSAGE=" FILL " " DRIVER " tests/e2e/tech_geoharvesting_burst.json " CAPTURE_A
+    assert(system("REPLAY_FILL=" FILL " " DRIVER " tests/e2e/tech_geoharvesting_burst.json " CAPTURE_A
                   " " DUMP_A " > /dev/null") == 0);
     size_t len;
     char *writes = read_file(FILL, &len);

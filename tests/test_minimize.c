@@ -192,7 +192,7 @@ static void test_no_output_frame_is_idle_after_its_kept_predecessor(void) {
     }
 }
 
-#define TOOL "./tmp/pico8_minimize"
+#define TOOL "./tmp/minimize"
 #define DIR "tmp/test_minimize_work"
 #define LOG DIR "/log.txt"
 

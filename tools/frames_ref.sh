@@ -110,7 +110,9 @@ for commit in $(cut -d' ' -f1 "$pending" | sort -u); do
         echo "e2e-ref: worktree de $commit impossible" >&2
         exit 1
     fi
-    if ! (cd "$worktree" && MAKEFLAGS= MFLAGS= make tmp/pico8_replay < /dev/null > /dev/null); then
+    driver=tmp/pico8_replay
+    grep -q -e '^$(TMP_DIR)/replay:' "$worktree/Makefile" && driver=tmp/replay
+    if ! (cd "$worktree" && MAKEFLAGS= MFLAGS= make $driver < /dev/null > /dev/null); then
         echo "e2e-ref: le pilote de rejeu ne compile pas au commit $commit" >&2
         exit 1
     fi
@@ -129,7 +131,7 @@ for commit in $(cut -d' ' -f1 "$pending" | sort -u); do
             echo "e2e-ref: $events n'existe pas au commit $commit" >&2
             exit 1
         fi
-        if ! (cd "$worktree" && ./tmp/pico8_replay $flag "$events" "$root/$ref_capture" < /dev/null > /dev/null); then
+        if ! (cd "$worktree" && ./$driver $flag "$events" "$root/$ref_capture" < /dev/null > /dev/null); then
             rm -f "$root/$ref_capture"
             echo "e2e-ref: $events : le rejeu echoue au commit $commit" >&2
             exit 1

@@ -10,9 +10,9 @@
 #include <string.h>
 
 #define FIXTURE "tests/fixtures/screencast_capture_events.json"
-#define DRIVER "./tmp/pico8_replay"
-#define TOOL "./tmp/pico8_frames"
-#define DRIVER_DUMP "tmp/pico8_replay_dump.txt"
+#define DRIVER "./tmp/replay"
+#define TOOL "./tmp/frames_tool"
+#define DRIVER_DUMP "tmp/replay_dump.txt"
 #define CAPTURE "tmp/test_frames_tool.bin"
 #define FRAME_OUT "tmp/test_frames_tool_frame.txt"
 #define STDERR_LOG "tmp/test_frames_tool_stderr.txt"
@@ -151,6 +151,6 @@ int main(void) {
     test_emitted_last_frame_is_the_driver_dump();
     test_out_of_bounds_frame_fails_and_names_the_index();
     test_truncated_empty_or_missing_capture_is_refused();
-    printf("test_pico8_frames_tool: all tests passed\n");
+    printf("test_frames_tool: all tests passed\n");
     return 0;
 }

@@ -12,18 +12,18 @@
 
 int main(int argc, char **argv) {
     if (argc != 4) {
-        fprintf(stderr, "usage: pico8_gif <capture.bin> <events.json> <sortie.gif>\n");
+        fprintf(stderr, "usage: gif <capture.bin> <events.json> <sortie.gif>\n");
         return 2;
     }
     screencast_reader_t reader;
     if (screencast_reader_open(&reader, argv[1]) != SCREENCAST_OK) {
-        fprintf(stderr, "pico8_gif: capture %s illisible, vide ou tronquée\n", argv[1]);
+        fprintf(stderr, "gif: capture %s illisible, vide ou tronquée\n", argv[1]);
         return 1;
     }
     p8_input_t input;
     p8_input_init(&input);
     if (!p8_input_load(&input, argv[2])) {
-        fprintf(stderr, "pico8_gif: %s absent ou malformé\n", argv[2]);
+        fprintf(stderr, "gif: %s absent ou malformé\n", argv[2]);
         screencast_reader_close(&reader);
         return 1;
     }
@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
         ok = 0;
     }
     if (!ok) {
-        fprintf(stderr, "pico8_gif: écriture de %s impossible\n", argv[3]);
+        fprintf(stderr, "gif: écriture de %s impossible\n", argv[3]);
     }
     p8_input_free(&input);
     screencast_reader_close(&reader);

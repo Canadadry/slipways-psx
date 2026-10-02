@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define DRIVER "./tmp/pico8_replay"
+#define DRIVER "./tmp/replay"
 #define FORGIVING "tests/fixtures/title_click_forgiving.json"
 #define REASONABLE "tests/fixtures/title_click_reasonable.json"
 #define CAPTURE "tmp/test_replay_from_title.bin"
@@ -63,6 +63,6 @@ int main(void) {
     remove(CAPTURE);
     remove(DUMP_A);
     remove(DUMP_B);
-    printf("test_pico8_replay_from_title: all tests passed\n");
+    printf("test_replay_from_title: all tests passed\n");
     return 0;
 }

@@ -8,7 +8,7 @@
 #include <string.h>
 #include <sys/wait.h>
 
-#define DRIVER "./tmp/pico8_replay"
+#define DRIVER "./tmp/replay"
 #define STDERR_LOG "tmp/test_replay_usage_stderr.txt"
 
 /* Tampon alloue, termine par un nul, que l'appelant libere. */
@@ -53,6 +53,6 @@ int main(void) {
     test_no_argument_prints_usage_and_fails();
     test_option_prints_usage_and_fails();
     remove(STDERR_LOG);
-    printf("test_pico8_replay_usage: all tests passed\n");
+    printf("test_replay_usage: all tests passed\n");
     return 0;
 }

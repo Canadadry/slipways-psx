@@ -4,8 +4,8 @@
 # soit ici ; un fichier du coeur ici fait echouer la cible.
 src/cmd/replay.c | point d'entree du rejeu headless, outil d'hote du §4
 src/cmd/class_coverage.c | point d'entree de l'outil de couverture des classes (PICO8_CLASS_COVERAGE), outil d'hote
-src/cmd/frames.c | point d'entree de l'outil d'emission de frames pico8_frames, outil d'hote
-src/cmd/minimize.c | point d'entree du minimiseur de rejeux pico8_minimize, outil d'hote
+src/cmd/frames.c | point d'entree de l'outil d'emission de frames frames_tool, outil d'hote
+src/cmd/minimize.c | point d'entree du minimiseur de rejeux minimize, outil d'hote
 src/cmd/game.c | point d'entree du driver interactif raylib
 src/cmd/screencast_viewer.c | point d'entree du visualiseur d'enregistrement
 src/p8/assets.c | outil d'hote du §4, chargement des ressources par la libc
@@ -14,7 +14,7 @@ src/devtools/dump.c | outil d'hote du §4, dump texte du framebuffer
 src/devtools/dump.h | outil d'hote du §4, en-tete de devtools/dump.c
 src/devtools/class_coverage.c | instrumentation de couverture des classes (PICO8_CLASS_COVERAGE), outil d'hote
 src/devtools/input_json.c | lecture et ecriture d'events.json, outil d'hote
-src/platform/fatal_pc.c | implementation PC de pico8_fatal (stderr, exit), fournie par la plateforme
+src/platform/fatal_pc.c | implementation PC de p8_fatal (stderr, exit), fournie par la plateforme
 src/devtools/fixed_test_double.c | aide de test, hors coeur : from_double/to_double, liee par les tests et le comparateur de constantes
 src/devtools/fixed_test_double.h | aide de test, hors coeur : en-tete de devtools/fixed_test_double.c, inclus par les tests et le comparateur de constantes
 src/devtools/minimize.c | minimiseur de rejeux, outil d'hote
@@ -35,6 +35,6 @@ src/devtools/screencast_player.c | visualiseur d'enregistrement
 src/devtools/screencast_player.h | visualiseur d'enregistrement
 src/devtools/session_recorder.c | rejeu et enregistrement de session du driver interactif
 src/devtools/session_recorder.h | rejeu et enregistrement de session du driver interactif
-src/cmd/gif.c | point d'entree de l'outil pico8_gif de make gif, outil d'hote
+src/cmd/gif.c | point d'entree de l'outil gif de make gif, outil d'hote
 src/devtools/gif.c | encodeur GIF de make gif, outil d'hote
 src/devtools/gif.h | encodeur GIF de make gif, en-tete de devtools/gif.c

@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
     if (replay_source_open(&replay, replay_path) == REPLAY_SOURCE_LOAD_FAILED) {
         assert(!IsWindowReady() && "a bad recording must fail before the window opens: a window on the title screen reads as a lost save");
         fprintf(stderr,
-                "main_raylib: '%s' could not be loaded as a recording "
+                "game: '%s' could not be loaded as a recording "
                 "(missing, unreadable, or not a valid events.json). "
                 "Refusing to start a new game instead.\n",
                 replay_path);
@@ -42,8 +42,8 @@ int main(int argc, char **argv) {
 
     if (replay_source_frame_count(&replay) > 0) {
         fprintf(stderr,
-                "main_raylib: replaying '%s' (%d frames), then handing control back.\n"
-                "main_raylib: during the replay -- PAGE UP faster, PAGE DOWN slower, END uncapped.\n",
+                "game: replaying '%s' (%d frames), then handing control back.\n"
+                "game: during the replay -- PAGE UP faster, PAGE DOWN slower, END uncapped.\n",
                 replay_path, replay_source_frame_count(&replay));
     }
 

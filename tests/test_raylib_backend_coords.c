@@ -63,6 +63,6 @@ int main(void) {
     test_scale_six_negative_pixel_clamps_to_zero();
     test_different_scale_factor_divides_accordingly();
 
-    printf("test_pico8_raylib_backend_coords: all tests passed\n");
+    printf("test_raylib_backend_coords: all tests passed\n");
     return 0;
 }

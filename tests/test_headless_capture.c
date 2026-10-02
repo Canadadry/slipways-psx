@@ -26,10 +26,10 @@
 #include <string.h>
 
 #define FIXTURE "tests/fixtures/screencast_capture_events.json"
-#define DRIVER "./tmp/pico8_replay"
+#define DRIVER "./tmp/replay"
 /* Le chemin par defaut du dump de src/cmd/replay.c, quand argv[3] manque.
  * C'est la sortie sur laquelle portent la fidelite ET la neutralite. */
-#define DRIVER_DUMP "tmp/pico8_replay_dump.txt"
+#define DRIVER_DUMP "tmp/replay_dump.txt"
 #define CUSTOM_DUMP "tmp/test_headless_capture_custom_dump.txt"
 #define DUMP_WITNESS "temoin: ce dump ne doit pas etre reecrit\n"
 #define CAPTURE "tmp/test_headless_capture.bin"

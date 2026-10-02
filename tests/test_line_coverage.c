@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define SCRIPT "sh tools/line_coverage.sh"
-#define COVER SCRIPT " cover ./tmp/pico8_replay_gcov tmp/obj-gcov"
+#define COVER SCRIPT " cover ./tmp/replay_gcov tmp/obj-gcov"
 #define DIR "tmp/test_line_coverage_work"
 #define LOG DIR "/log.txt"
 #define IDLE DIR "/idle_events.json"

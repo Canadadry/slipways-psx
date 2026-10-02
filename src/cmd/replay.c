@@ -44,13 +44,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static const char *const SLOT_KIND_NAMES[SLOT_KIND_COUNT] = {"button", "modal_backdrop", "message_box", "toast", "rangee", "le"};
-static const char *const PARTICLE_NAMES[PARTICLE_SLOT_COUNT] = {"particule", "qy", "qy_fv", "burst", "ts"};
+static const char *const SLOT_KIND_NAMES[SLOT_KIND_COUNT] = {"button", "modal_backdrop", "message_box", "toast", "rangee", "ephemerals"};
+static const char *const PARTICLE_NAMES[PARTICLE_SLOT_COUNT] = {"particule", "particles", "particles_help_screen", "burst", "transit_dots"};
 
 static void write_fill(const char *path) {
     FILE *out = fopen(path, "w");
     if (out == NULL) {
-        fprintf(stderr, "pico8 replay: impossible d'ouvrir le fichier de remplissage '%s'\n", path);
+        fprintf(stderr, "replay: impossible d'ouvrir le fichier de remplissage '%s'\n", path);
         return;
     }
     cart_flush_exit_queue();
@@ -82,12 +82,12 @@ static void write_fill(const char *path) {
 
 int main(int argc, char **argv) {
     if (argc < 2 || argv[1][0] == '-') {
-        fprintf(stderr, "usage: pico8_replay <events.json> [<capture.bin> [<dump.txt>]]\n");
+        fprintf(stderr, "usage: replay <events.json> [<capture.bin> [<dump.txt>]]\n");
         return 2;
     }
     const char *events_path = argv[1];
     const char *capture_path = (argc > 2) ? argv[2] : NULL;
-    const char *dump_path = (argc > 3) ? argv[3] : "tmp/pico8_replay_dump.txt";
+    const char *dump_path = (argc > 3) ? argv[3] : "tmp/replay_dump.txt";
 
     p8_memory_t mem;
     p8_mem_init(&mem);
@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
      * fprintf plutot qu'un assert, pour que le message nomme le chemin. */
     screencast_writer_t capture = { NULL };
     if (capture_path && !screencast_writer_open(&capture, capture_path)) {
-        fprintf(stderr, "pico8 replay: impossible d'ouvrir le fichier de capture '%s'\n",
+        fprintf(stderr, "replay: impossible d'ouvrir le fichier de capture '%s'\n",
                 capture_path);
         return 1;
     }
@@ -133,7 +133,7 @@ int main(int argc, char **argv) {
          * tests/test_headless_capture.c le detecte en comparant la
          * derniere frame capturee au dump texte. */
         if (capture_path && !screencast_write_frame(&capture, &mem)) {
-            fprintf(stderr, "pico8 replay: echec d'ecriture de la frame %d dans '%s'\n",
+            fprintf(stderr, "replay: echec d'ecriture de la frame %d dans '%s'\n",
                     i, capture_path);
             screencast_writer_close(&capture);
             return 1;
@@ -149,7 +149,7 @@ int main(int argc, char **argv) {
      * l'ecrire : un dump frais ferait passer pour
      * normale une execution dont la capture est perdue. */
     if (capture_path && !screencast_writer_close(&capture)) {
-        fprintf(stderr, "pico8 replay: echec de fermeture du fichier de capture '%s'\n",
+        fprintf(stderr, "replay: echec de fermeture du fichier de capture '%s'\n",
                 capture_path);
         return 1;
     }
@@ -160,17 +160,17 @@ int main(int argc, char **argv) {
     fclose(dump_out);
     assert(dump_ok);
 
-    const char *fill_path = getenv("PICO8_REMPLISSAGE");
+    const char *fill_path = getenv("REPLAY_FILL");
     if (fill_path != NULL) {
         write_fill(fill_path);
     }
 
     p8_input_free(&input);
 
-    printf("pico8 replay: %d frame(s) run against %s; framebuffer dumped to %s\n",
+    printf("replay: %d frame(s) run against %s; framebuffer dumped to %s\n",
            frame_count, events_path, dump_path);
     if (capture_path) {
-        printf("pico8 replay: %d frame(s) captured to %s\n", frame_count, capture_path);
+        printf("replay: %d frame(s) captured to %s\n", frame_count, capture_path);
     }
     return 0;
 }

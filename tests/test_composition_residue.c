@@ -61,8 +61,8 @@ static void setup(void) {
 
 /* Deux types d'entite : ke (en-tete en premier membre, pas une parente) et
  * jo (ke en premier membre, une parente). */
-#define ENTITY_PLANET "typedef struct {\n    entity" "_t header;\n} pico8_" "ke_t;\n" \
-              "typedef struct {\n    pico8_" "ke_t ke;\n    int a;\n} pico8_" "jo_t;\n"
+#define ENTITY_PLANET "typedef struct {\n    entity" "_t header;\n} entity_" "root_t;\n" \
+              "typedef struct {\n    entity_" "root_t ke;\n    int a;\n} pico8_" "jo_t;\n"
 
 static void assert_alone_is_empty(const char *path, const char *text) {
     setup();
@@ -169,7 +169,7 @@ static void test_named_false_positives_do_not_bite(void) {
     assert_alone_is_empty(SRC "/f.c", "int mr = 0;\n");
     assert_alone_is_empty(SRC "/f.c", "self->resource_is_bool = 0;\n");
     assert_alone_is_empty(SRC "/f.c", "self->background_is_bool = 0;\n");
-    assert_alone_is_empty(SRC "/f.c", "k.h_is_false = 1;\n");
+    assert_alone_is_empty(SRC "/f.c", "k.side_tooltip_is_false = 1;\n");
     assert_alone_is_empty(SRC "/engine/entity_class.h", "#include \"engine/vec.h\"\n");
     assert_alone_is_empty(SRC "/pico8_planet.h", "#include \"game/" "game_data.h\"\n");
 }
@@ -199,15 +199,15 @@ static void test_entity_reader_finds_embedded_parents_by_closure(void) {
     write_file(SRC "/c.h", "typedef struct {\n    pico8_" "nl_t nl;\n} pico8_" "os_t;\n");
     write_file(SRC "/d.h", "typedef struct {\n    pico8_" "qh_t qh;\n} pico8_" "nl_t;\n");
     write_file(SRC "/e.h", ENTITY_PLANET "typedef struct {\n    pico8_" "jo_t jo;\n} pico8_" "qh_t;\n"
-                              "struct pico8_" "mh {\n    /* c */\n\n    pico8_" "ke_t ke;\n};\n"
+                              "struct pico8_" "mh {\n    /* c */\n\n    entity_" "root_t ke;\n};\n"
                               "typedef struct pico8_" "mh pico8_" "mh_t;\n"
                               "struct pico8_" "x {\n    pico8_" "mh_t mh;\n};\n");
     assert(run_residue("--check parente " TREE) == 1);
     assert(strcmp(read_file(OUT), "parente: " SRC "/c.h:2:    pico8_" "nl_t nl;\n"
                                   "parente: " SRC "/d.h:2:    pico8_" "qh_t qh;\n"
-                                  "parente: " SRC "/e.h:5:    pico8_" "ke_t ke;\n"
+                                  "parente: " SRC "/e.h:5:    entity_" "root_t ke;\n"
                                   "parente: " SRC "/e.h:9:    pico8_" "jo_t jo;\n"
-                                  "parente: " SRC "/e.h:14:    pico8_" "ke_t ke;\n"
+                                  "parente: " SRC "/e.h:14:    entity_" "root_t ke;\n"
                                   "parente: " SRC "/e.h:18:    pico8_" "mh_t mh;\n"
                                   "résidu gardé (parente) : 6 ligne(s)\n") == 0);
 }
@@ -228,8 +228,8 @@ static void test_entity_reader_ignores_what_is_not_an_embedded_parent(void) {
 
 static void test_pointer_list_members_count_only_on_entity_types(void) {
     setup();
-    write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} pico8_" "ke_t;\n"
-                           "typedef struct {\n    pico8_" "ke_t ke;\n    pointer_" "list_t *oe;\n    pointer_"
+    write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} entity_" "root_t;\n"
+                           "typedef struct {\n    entity_" "root_t ke;\n    pointer_" "list_t *oe;\n    pointer_"
                            "list_t *needs;\n} planet_" "t;\n"
                            "typedef struct {\n    int a;\n    pointer_" "list_t *qy;\n} other_t;\n"
                            "void f(void) {\n    pointer_" "list_t list;\n}\n");
@@ -241,7 +241,7 @@ static void test_pointer_list_members_count_only_on_entity_types(void) {
 static void test_registries_reads_declaration_points_outside_entity_types(void) {
     setup();
     write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n    pointer_"
-                           "list_t *oe;\n} pico8_" "ke_t;\n"
+                           "list_t *oe;\n} entity_" "root_t;\n"
                            "typedef struct {\n    pointer_" "list_t layers[16];\n    pointer_" "list_t *particles;\n} emitter_"
                            "t;\n"
                            "typedef struct {\n    void *(*new_entity)(int k);\n    void (*kj)(void *" "self);\n} k_t;\n"
@@ -345,9 +345,9 @@ static void test_registries_sees_hidden_forms_and_not_its_named_limits(void) {
 static void test_pointer_list_entity_reads_entity_members_like_registries(void) {
     setup();
     write_file(SRC "/a.h", "typedef pointer_" "list_t reg17_t;\n");
-    write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} pico8_" "ke_t;\n"
+    write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} entity_" "root_t;\n"
                            "typedef struct {\n"
-                           "    pico8_" "ke_t ke;\n"
+                           "    entity_" "root_t ke;\n"
                            "    void **items;\n"
                            "    void *slots[8];\n"
                            "    reg17_t l;\n"
@@ -389,10 +389,10 @@ static void test_pointer_list_entity_reads_entity_members_like_registries(void) 
  * deux lignes, la clé qui les dédoublonne tient au type, pas au numéro. */
 static void test_pointer_list_entity_keeps_one_line_number_in_two_files(void) {
     setup();
-    write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} pico8_" "ke_t;\n"
-                           "typedef struct {\n    pico8_" "ke_t ke;\n    void **items;\n} pico8_" "jo_t;\n");
+    write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} entity_" "root_t;\n"
+                           "typedef struct {\n    entity_" "root_t ke;\n    void **items;\n} pico8_" "jo_t;\n");
     write_file(SRC "/g.h", "/* g */\n\n\n"
-                           "typedef struct {\n    pico8_" "ke_t ke;\n    void **more;\n} pico8_" "qh_t;\n");
+                           "typedef struct {\n    entity_" "root_t ke;\n    void **more;\n} pico8_" "qh_t;\n");
     assert(run_residue("--check ptrs-entité " TREE) == 1);
     assert(strcmp(read_file(OUT), "ptrs-entité: " SRC "/e.h:6:    void **items;\n"
                                   "ptrs-entité: " SRC "/g.h:6:    void **more;\n"
@@ -406,9 +406,9 @@ static void test_pointer_list_entity_keeps_one_line_number_in_two_files(void) {
  * e.h:19 à :27, f.c:2, f.h:3. */
 static void test_readers_see_qualifiers_split_declarations_and_nested_attributes(void) {
     setup();
-    write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} pico8_" "ke_t;\n"
+    write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} entity_" "root_t;\n"
                            "typedef struct {\n"
-                           "    pico8_" "ke_t ke;\n"
+                           "    entity_" "root_t ke;\n"
                            "    void const **q1;\n"
                            "    volatile void **q2;\n"
                            "    void * volatile *q3;\n"
@@ -733,10 +733,10 @@ static void test_measure_on_nothing_is_an_error_not_an_empty_residue(void) {
 
 static void test_fields_counts_writes_and_writes_outside_constructors(void) {
     setup();
-    write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} pico8_" "ke_t;\n"
-                           "typedef struct {\n    pico8_" "ke_t ke;\n    int a;\n    int b;\n"
+    write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} entity_" "root_t;\n"
+                           "typedef struct {\n    entity_" "root_t ke;\n    int a;\n    int b;\n"
                            "    int c; /* (x) */\n    void (*f)(int k);\n} pico8_" "jo_t;\n");
-    write_file(TST "/fake.h", "typedef struct {\n    pico8_" "ke_t ke;\n    int z;\n} fake_t;\n");
+    write_file(TST "/fake.h", "typedef struct {\n    entity_" "root_t ke;\n    int z;\n} fake_t;\n");
     write_file(SRC "/e.c", "void planet_init_instance(pico8_" "jo_t *self,\n"
                            "                          int k) {\n"
                            "    self->a = pico8_" "jo_start.a;\n"
