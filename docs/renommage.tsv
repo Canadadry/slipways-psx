@@ -363,10 +363,10 @@ i	i	src/devtools/input_json.c	identifiant	locale	conservé	devtools/input_json		
 json	json	src/devtools/input_json.c	identifiant	locale	conservé	devtools/input_json			c:input_json.c@2019@F@pico8_input_load@json
 line	line	src/devtools/input_json.c	identifiant	locale	conservé	devtools/input_json			c:input_json.c@6012@F@pico8_input_save@line
 line	line	src/devtools/input_json.c	identifiant	locale	conservé	devtools/input_json			c:input_json.c@6760@F@pico8_input_append@line
-obj_buf	obj_buf	src/devtools/input_json.c	identifiant	locale	conservé	devtools/input_json			c:input_json.c@2986@F@pico8_input_load@obj_buf
-obj_end	obj_end	src/devtools/input_json.c	identifiant	locale	conservé	devtools/input_json			c:input_json.c@2806@F@pico8_input_load@obj_end
-obj_len	obj_len	src/devtools/input_json.c	identifiant	locale	conservé	devtools/input_json			c:input_json.c@2926@F@pico8_input_load@obj_len
-obj_start	obj_start	src/devtools/input_json.c	identifiant	locale	conservé	devtools/input_json			c:input_json.c@2771@F@pico8_input_load@obj_start
+obj_buf	frame_copy	src/devtools/input_json.c	identifiant	locale	renommé	devtools/input_json			c:input_json.c@3074@F@p8_input_load@obj_buf
+obj_end	frame_end	src/devtools/input_json.c	identifiant	locale	renommé	devtools/input_json			c:input_json.c@2882@F@p8_input_load@obj_end
+obj_len	frame_length	src/devtools/input_json.c	identifiant	locale	renommé	devtools/input_json			c:input_json.c@3014@F@p8_input_load@obj_len
+obj_start	frame_start	src/devtools/input_json.c	identifiant	locale	renommé	devtools/input_json			c:input_json.c@2842@F@p8_input_load@obj_start
 ok	succeeded	src/devtools/input_json.c	identifiant	locale	renommé	devtools/input_json			c:input_json.c@2335@F@pico8_input_load@ok
 ok	ok	src/devtools/input_json.c	identifiant	locale	conservé	devtools/input_json			c:input_json.c@5883@F@pico8_input_save@ok
 p	p	src/devtools/input_json.c	identifiant	locale	conservé	devtools/input_json			c:input_json.c@1013@F@find_dpad_field@p
@@ -377,7 +377,7 @@ size	size	src/devtools/input_json.c	identifiant	locale	conservé	devtools/input_
 start	start	src/devtools/input_json.c	identifiant	locale	conservé	devtools/input_json			c:input_json.c@7223@F@pico8_input_append@start
 tail	tail	src/devtools/input_json.c	identifiant	locale	conservé	devtools/input_json			c:input_json.c@7270@F@pico8_input_append@tail
 tail_len	tail_len	src/devtools/input_json.c	identifiant	locale	conservé	devtools/input_json			c:input_json.c@7842@F@pico8_input_append@tail_len
-tmp_len	tmp_len	src/devtools/input_json.c	identifiant	locale	conservé	devtools/input_json			c:input_json.c@5425@F@pico8_input_save@tmp_len
+tmp_len	tmp_path_size	src/devtools/input_json.c	identifiant	locale	renommé	devtools/input_json			c:input_json.c@5528@F@p8_input_save@tmp_len
 tmp_path	tmp_path	src/devtools/input_json.c	identifiant	locale	conservé	devtools/input_json			c:input_json.c@5464@F@pico8_input_save@tmp_path
 val	val	src/devtools/input_json.c	identifiant	locale	conservé	devtools/input_json			c:input_json.c@832@F@find_int_field@val
 written	written	src/devtools/input_json.c	identifiant	locale	conservé	devtools/input_json			c:input_json.c@7345@F@pico8_input_append@written
@@ -436,8 +436,8 @@ frames	frames	src/devtools/minimize.h	identifiant	paramètre	conservé	devtools/
 keep	keep	src/devtools/minimize.c	identifiant	paramètre	conservé	devtools/minimize			c:minimize.c@1149@F@keep_moves@keep
 m	m	src/devtools/minimize.c	identifiant	paramètre	conservé	devtools/minimize			c:minimize.c@1142@F@keep_moves@m
 moves	moves	src/devtools/minimize.c	identifiant	paramètre	conservé	devtools/minimize			c:minimize.c@1124@F@keep_moves@moves
-out	out	src/devtools/minimize.c	identifiant	paramètre	conservé	devtools/minimize			c:minimize.c@1364@F@pico8_minimize_mechanical@out
-out	out	src/devtools/minimize.h	identifiant	paramètre	conservé	devtools/minimize			c:minimize.h@1334@F@pico8_minimize_mechanical@out
+out	kept_frames	src/devtools/minimize.c	identifiant	paramètre	renommé	devtools/minimize			c:minimize.c@1334@F@minimize_mechanical@out
+out	kept_frames	src/devtools/minimize.h	identifiant	paramètre	renommé	devtools/minimize			c:minimize.h@1331@F@minimize_mechanical@out
 prev	prev	src/devtools/minimize.c	identifiant	paramètre	conservé	devtools/minimize			c:minimize.c@728@F@kind_after@prev
 released	released	src/devtools/minimize.c	identifiant	statique	conservé	devtools/minimize			c:minimize.c@424@F@nothing_pressed@released
 frame_kind_t	frame_kind_t	src/devtools/minimize.c	identifiant	type	conservé	devtools/minimize			c:@T@frame_kind_t

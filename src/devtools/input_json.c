@@ -132,28 +132,28 @@ int p8_input_load(p8_input_t *input, const char *path) {
             break;
         }
 
-        const char *obj_start = cursor;
-        const char *obj_end = strchr(cursor, '}');
-        if (!obj_end) {
+        const char *frame_start = cursor;
+        const char *frame_end = strchr(cursor, '}');
+        if (!frame_end) {
             succeeded = 0;
             break;
         }
 
-        size_t obj_len = (size_t)(obj_end - obj_start) + 1;
-        char *obj_buf = malloc(obj_len + 1);
-        if (!obj_buf) {
+        size_t frame_length = (size_t)(frame_end - frame_start) + 1;
+        char *frame_copy = malloc(frame_length + 1);
+        if (!frame_copy) {
             succeeded = 0;
             break;
         }
-        memcpy(obj_buf, obj_start, obj_len);
-        obj_buf[obj_len] = '\0';
+        memcpy(frame_copy, frame_start, frame_length);
+        frame_copy[frame_length] = '\0';
 
         p8_input_frame_t frame;
-        int found = find_int_field(obj_buf, "\"mouse_x\":", &frame.mouse_x) &&
-                    find_int_field(obj_buf, "\"mouse_y\":", &frame.mouse_y) &&
-                    find_int_field(obj_buf, "\"mouse_buttons\":", &frame.mouse_buttons) &&
-                    find_dpad_field(obj_buf, frame.dpad);
-        free(obj_buf);
+        int found = find_int_field(frame_copy, "\"mouse_x\":", &frame.mouse_x) &&
+                    find_int_field(frame_copy, "\"mouse_y\":", &frame.mouse_y) &&
+                    find_int_field(frame_copy, "\"mouse_buttons\":", &frame.mouse_buttons) &&
+                    find_dpad_field(frame_copy, frame.dpad);
+        free(frame_copy);
 
         if (!found) {
             succeeded = 0;
@@ -171,7 +171,7 @@ int p8_input_load(p8_input_t *input, const char *path) {
         }
         frames[count++] = frame;
 
-        cursor = obj_end + 1;
+        cursor = frame_end + 1;
     }
 
     free(json);
@@ -220,12 +220,12 @@ int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *p
         return 0;
     }
 
-    size_t tmp_len = strlen(path) + 5;
-    char *tmp_path = malloc(tmp_len);
+    size_t tmp_path_size = strlen(path) + 5;
+    char *tmp_path = malloc(tmp_path_size);
     if (!tmp_path) {
         return 0;
     }
-    snprintf(tmp_path, tmp_len, "%s.tmp", path);
+    snprintf(tmp_path, tmp_path_size, "%s.tmp", path);
     /* tmp_len was sized for this exact suffix; a longer one would silently
      * truncate the path and rename over the wrong file. */
     assert(strlen(tmp_path) == strlen(path) + 4);

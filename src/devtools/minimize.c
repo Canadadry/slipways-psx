@@ -38,8 +38,8 @@ static void keep_moves(const int *moves, int m, char *keep) {
     }
 }
 
-int minimize_mechanical(const p8_input_frame_t *frames, int frame_count, p8_input_frame_t *out) {
-    assert(frames != NULL && out != NULL && frame_count >= 1);
+int minimize_mechanical(const p8_input_frame_t *frames, int frame_count, p8_input_frame_t *kept_frames) {
+    assert(frames != NULL && kept_frames != NULL && frame_count >= 1);
     char *keep = calloc((size_t)frame_count, 1);
     int *moves = malloc(sizeof *moves * (size_t)frame_count);
     assert(keep != NULL && moves != NULL);
@@ -70,12 +70,12 @@ int minimize_mechanical(const p8_input_frame_t *frames, int frame_count, p8_inpu
 
     int n = 0;
     for (int i = 0; i < frame_count; i++) {
-        if (keep[i] && !(n > 0 && kind_after(&out[n - 1], &frames[i]) == KIND_IDLE)) {
-            out[n++] = frames[i];
+        if (keep[i] && !(n > 0 && kind_after(&kept_frames[n - 1], &frames[i]) == KIND_IDLE)) {
+            kept_frames[n++] = frames[i];
         }
     }
     if (n == 0) {
-        out[n++] = frames[frame_count - 1];
+        kept_frames[n++] = frames[frame_count - 1];
     }
     free(moves);
     free(keep);

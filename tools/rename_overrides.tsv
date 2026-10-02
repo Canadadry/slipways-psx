@@ -1455,6 +1455,13 @@ identity	c:test_gif.c@2079@F@lzw_decode@bitpos	bit_index
 identity	c:test_gif.c@2079@F@lzw_decode@written	pixel_index	
 identity	c:test_gif.c@3897@F@parse_gif@gif	result	
 identity	c:test_gif.c@4152@F@parse_gif@packed	screen_flags	
+identity	c:input_json.c@2842@F@p8_input_load@obj_start	frame_start	
+identity	c:input_json.c@2882@F@p8_input_load@obj_end	frame_end	
+identity	c:input_json.c@3014@F@p8_input_load@obj_len	frame_length	
+identity	c:input_json.c@3074@F@p8_input_load@obj_buf	frame_copy	
+identity	c:input_json.c@5528@F@p8_input_save@tmp_len	tmp_path_size	
+identity	c:minimize.c@1334@F@minimize_mechanical@out	kept_frames	
+identity	c:minimize.h@1331@F@minimize_mechanical@out	kept_frames	
 
 # --- tmp/ binaries and outputs (tools/rename_strings.py) ------------------------
 # A binary takes the name of its cmd/ file, except frames: tmp/frames is the

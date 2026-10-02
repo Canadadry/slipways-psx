@@ -21,6 +21,6 @@
  * Une frame gardée redevenue inactive par rapport à la frame gardée qui la
  * précède (trajet revenu sur ses pas) est retirée. Si rien n'est gardé, la
  * dernière frame de l'entrée l'est. */
-int minimize_mechanical(const p8_input_frame_t *frames, int frame_count, p8_input_frame_t *out);
+int minimize_mechanical(const p8_input_frame_t *frames, int frame_count, p8_input_frame_t *kept_frames);
 
 #endif
