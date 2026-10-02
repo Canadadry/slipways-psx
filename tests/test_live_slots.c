@@ -115,18 +115,18 @@ static void check_invariant(const char *e2e, int frame) {
     take_reading(&r, frame);
     registered_t n = count_registered();
     if (r.particle != n.particle || r.particles + r.particles_help_screen != n.lists || r.burst != n.bursts || r.transit_dots != n.trails) {
-        fprintf(stderr, "  %s f%d : particule=%d (inscrites %d) particles+particles_help_screen=%d (listes %d) burst=%d (eclats %d) transit_dots=%d (trainees %d)\n",
+        fprintf(stderr, "  %s f%d: particle=%d (registered %d) particles+particles_help_screen=%d (lists %d) burst=%d (bursts %d) transit_dots=%d (trails %d)\n",
                 e2e, frame, r.particle, n.particle, r.particles + r.particles_help_screen, n.lists, r.burst, n.bursts, r.transit_dots, n.trails);
-        assert(0 && "une particule, une liste qy, un eclat ou une trainee vit hors des emetteurs inscrits ou de cg.jc");
+        assert(0 && "a particle, particle list, burst or transit dot lives outside the registered emitters and the slipway tag");
     }
 }
 
 static void print_reading(const char *e2e, const reading_t *r) {
-    printf("  %s f%d :", e2e, r->frame);
+    printf("  %s f%d:", e2e, r->frame);
     for (int s = 0; s < SLOT_KIND_COUNT; s++) {
         printf(" %s=%d", NAMES[s], r->live[s]);
     }
-    printf(" particule=%d particles=%d particles_help_screen=%d burst=%d partie=%lu\n", r->particle, r->particles, r->particles_help_screen, r->burst,
+    printf(" particle=%d particles=%d particles_help_screen=%d burst=%d game=%lu\n", r->particle, r->particles, r->particles_help_screen, r->burst,
            (unsigned long)r->game_zone);
 }
 
@@ -180,7 +180,7 @@ static void replay_e2e(const char *e2e, const int *frames, int n, reading_t *out
         }
         if (i < input->frame_count - 1) p8_input_step(input);
     }
-    assert(k == n && "une frame de releve est hors du rejeu");
+    assert(k == n && "a reading frame lies past the end of the replay");
 }
 
 /* Rejoue `e2e` en entier, l'invariant verifie a chaque frame. */
@@ -224,10 +224,10 @@ static void in_child(void (*test)(void)) {
     }
     int status;
     assert(waitpid(pid, &status, 0) == pid);
-    assert(WIFEXITED(status) && WEXITSTATUS(status) == 0 && "un releve de places vivantes a echoue");
+    assert(WIFEXITED(status) && WEXITSTATUS(status) == 0 && "a live slots reading failed");
 }
 
-#define ASAN_LOG "tmp/test_places_vivantes_asan.txt"
+#define ASAN_LOG "tmp/test_live_slots_asan.txt"
 
 static char *read_file(const char *path, size_t *len);
 
@@ -248,13 +248,13 @@ static void in_child_dying_by_asan(void (*test)(void)) {
     char *err = read_file(ASAN_LOG, &len);
     if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
         fprintf(stderr, "%s", err);
-        assert(0 && "le bloc rendu se relit : la generation n'a pas ete rendue");
+        assert(0 && "the released block reads back: its generation was not released");
     }
     if (strstr(err, "use-after-poison") == NULL) {
         fprintf(stderr, "%s", err);
-        assert(0 && "attendu use-after-poison sur le bloc rendu");
+        assert(0 && "expected use-after-poison on the released block");
     }
-    printf("  pause_restart f13 : le bloc relu plante (use-after-poison)\n");
+    printf("  pause_restart f13: reading the released block crashes (use-after-poison)\n");
     free(err);
     remove(ASAN_LOG);
 }
@@ -289,11 +289,11 @@ static void pause_restart_returns_to_title(void) {
     const int frames[] = {BEFORE_F0, 11};
     reading_t r[2];
     replay_e2e("pause_restart", frames, 2, r);
-    assert(same_counts(&r[0], &r[1]) && "jl() doit rendre toutes les places qu'il abandonne");
+    assert(same_counts(&r[0], &r[1]) && "reset_world must give back every slot it drops");
     assert(r[0].particles_help_screen == 1 && r[0].particles == 0 && r[0].burst == 0);
     /* Aucune particule de l'aide ne meurt avant 115 frames : 5 par draw,
      * aucun draw avant f0, ceux de f7 a f11 pour l'aide du « restart ». */
-    assert(r[0].particle == 0 && r[1].particle == 5 * 5 && "jl() doit rendre les particules de l'aide");
+    assert(r[0].particle == 0 && r[1].particle == 5 * 5 && "reset_world must give back the help screen particles");
 }
 
 /* volatile : la lecture d'une sentinelle rendue ne doit pas etre retiree
@@ -314,7 +314,7 @@ static void play_until(int last) {
         cart_draw();
         if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
     }
-    assert(g_frame == last + 1 && "une frame de sentinelle est hors du rejeu");
+    assert(g_frame == last + 1 && "a sentinel frame lies past the end of the replay");
 }
 
 static void start_e2e(const char *e2e) {
@@ -330,7 +330,7 @@ static unsigned char *sentinel(void) {
 }
 
 static void check_sentinel(const unsigned char *s) {
-    for (int i = 0; i < 64; i++) assert(s[i] == i && "la sentinelle de la zone partie a change");
+    for (int i = 0; i < 64; i++) assert(s[i] == i && "the game zone sentinel changed");
 }
 
 /* f12 : clic « challenging », donc `eu` : la zone bascule, la generation
@@ -342,10 +342,10 @@ static void pause_restart_keeps_quit_game_during_click(void) {
     unsigned char *s = sentinel();
     size_t grab_arena = game_zone_used();
     play_until(12);
-    assert(game_zone_pending() && "le clic de f12 fait basculer la zone partie");
+    assert(game_zone_pending() && "the f12 click flips the game zone");
     check_sentinel(s);
-    assert(game_zone_used() >= grab_arena && "les octets pris comptent la partie quittee jusqu'a son rendu");
-    printf("  pause_restart f12 : partie=%lu, sentinelle lue\n", (unsigned long)game_zone_used());
+    assert(game_zone_used() >= grab_arena && "the used bytes count the quit game until it is released");
+    printf("  pause_restart f12: game=%lu, sentinel read\n", (unsigned long)game_zone_used());
 }
 
 /* f13 : l'update60 vide la file puis rend la generation quittee. */
@@ -361,7 +361,7 @@ static const planet_t *planet_of_first_game(void) {
     start_e2e("pause_restart");
     play_until(6);
     const entity_list_t *jo = entities_by_tag("planet");
-    assert(jo != NULL && jo->count > 0 && "la premiere partie a des planetes");
+    assert(jo != NULL && jo->count > 0 && "the first game has planets");
     return (const planet_t *)jo->items[0];
 }
 
@@ -385,7 +385,7 @@ static const economy_t *economy_of_first_game(void) {
     start_e2e("pause_restart");
     play_until(11);
     const economy_t *fm = main_economy_typed();
-    assert(fm != NULL && "entre _init et eu, fm est l'economie de la partie quittee");
+    assert(fm != NULL && "between cart_init and cart_start_game, the main economy is the quit game's");
     return fm;
 }
 
@@ -394,7 +394,7 @@ static void pause_restart_keeps_quit_economy_during_click(void) {
     const economy_t *fm = economy_of_first_game();
     play_until(12);
     assert(game_zone_pending());
-    assert(main_economy_typed() != fm && "le clic de f12 fait une nouvelle economie");
+    assert(main_economy_typed() != fm && "the f12 click makes a new economy");
     g_spend = (unsigned char)fm->credits;
 }
 
@@ -414,7 +414,7 @@ static const structure_icon_t *icon_of_first_game(void) {
     for (int i = 0; hv != NULL && i < hv->count; i++) {
         if (hv->items[i]->class == structure_icon_class()) return (const structure_icon_t *)hv->items[i];
     }
-    assert(0 && "la premiere partie a des icones dans hv");
+    assert(0 && "the first game has structure icons among the live entities");
     return NULL;
 }
 
@@ -439,7 +439,7 @@ static const probe_t *help_screen_in_live_entities(void) {
     for (int i = 0; hv != NULL && i < hv->count; i++) {
         if (hv->items[i]->class == help_screen_class()) return (const probe_t *)hv->items[i];
     }
-    assert(0 && "le titre a son aide dans hv");
+    assert(0 && "the title screen has its help screen among the live entities");
     return NULL;
 }
 
@@ -461,7 +461,7 @@ static void singletons_of_quit_game(const void *out[SINGLETON_COUNT]) {
     out[SINGLETON_MAIN_UI] = main_ui();
     out[SINGLETON_MAIN_SCORE_PANEL] = main_score_panel();
     out[SINGLETON_HELP_SCREEN] = help_screen_in_live_entities();
-    for (int k = 0; k < SINGLETON_COUNT; k++) assert(out[k] != NULL && "un singleton manque a f11");
+    for (int k = 0; k < SINGLETON_COUNT; k++) assert(out[k] != NULL && "a singleton is missing at f11");
 }
 
 /* f12 : le clic bascule ; le `ok` quitte finit son lj apres le jl() de `eu`. */
@@ -471,7 +471,7 @@ static void pause_restart_keeps_quit_singletons_during_click(void) {
     play_until(12);
     assert(game_zone_pending());
     assert(main_camera_typed() != s[SINGLETON_MAIN_CAMERA] && main_ui() != s[SINGLETON_MAIN_UI] && main_score_panel() != s[SINGLETON_MAIN_SCORE_PANEL] &&
-           "le clic de f12 fait de nouveaux singletons");
+           "the f12 click makes new singletons");
     for (int k = 0; k < SINGLETON_COUNT; k++) g_spend = *(const unsigned char *)s[k];
 }
 
@@ -491,7 +491,7 @@ static void pause_restart_keeps_game_across_restart(void) {
     play_until(6);
     unsigned char *s = sentinel();
     play_until(11);
-    assert(!game_zone_pending() && "« restart » ne fait pas basculer la zone partie");
+    assert(!game_zone_pending() && "'restart' does not flip the game zone");
     check_sentinel(s);
 }
 
@@ -541,7 +541,7 @@ static size_t planets_bytes(void) {
     size_t bytes = 0;
     for (int i = 0; jo != NULL && i < jo->count; i++) {
         const planet_t *p = (const planet_t *)jo->items[i];
-        assert(p->needs == NULL && "une planete a des besoins, que P ne compte pas");
+        assert(p->needs == NULL && "a planet has needs, which planets_bytes does not count");
         bytes += block_bytes(sizeof *p) + block_bytes(sizeof *p->map_pos) + block_bytes(sizeof *p->pos) +
                   block_bytes(strlen(p->planet_id) + 1) + planet_list_bytes(p->slipways) +
                   planet_list_bytes(p->outgoing_routes) + planet_list_bytes(p->incoming_routes);
@@ -553,8 +553,8 @@ static size_t planets_bytes(void) {
  * `invented`, sans elements tant que rien n'est invente. */
 static size_t economy_bytes(void) {
     const economy_t *fm = main_economy_typed();
-    assert(fm != NULL && fm->invented != NULL && "eu a fait l'economie de la partie");
-    assert(fm->invented->count == 0 && fm->invented->items == NULL && "une invention, que l'economie ne compte pas");
+    assert(fm != NULL && fm->invented != NULL && "cart_start_game made the game economy");
+    assert(fm->invented->count == 0 && fm->invented->items == NULL && "an invention, which economy_bytes does not count");
     return block_bytes(sizeof *fm) + block_bytes(sizeof *fm->invented);
 }
 
@@ -563,20 +563,20 @@ static size_t economy_bytes(void) {
  * de chaque icone revelee. */
 static size_t icons_bytes(void) {
     const entity_list_t *hv = live_entities();
-    const allocator_t *mesure = arena_take(frame_zone(), "mesure des bulles", 16384);
+    const allocator_t *mesure = arena_take(frame_zone(), "tooltip-measure", 16384);
     const size_t head = arena_used(mesure);
     size_t bytes = 0;
     int k = 0;
     for (int i = 0; hv != NULL && i < hv->count; i++) {
         const structure_icon_t *ie = (const structure_icon_t *)hv->items[i];
         if (ie->header.class != structure_icon_class()) continue;
-        assert(k < ICON_TOOLTIPS_COUNT && "plus d'icones que de bulles dans dr");
+        assert(k < ICON_TOOLTIPS_COUNT && "more structure icons than icon tooltips");
         (void)tooltip_new(mesure, &icon_tooltips_table[k]);
         bytes += block_bytes(sizeof *ie);
         if (ie->has_is_revealed && ie->is_revealed) bytes += block_bytes(sizeof(vec_t));
         k++;
     }
-    assert(k == ICON_TOOLTIPS_COUNT && "eu fait une icone par bulle de dr");
+    assert(k == ICON_TOOLTIPS_COUNT && "cart_start_game makes one structure icon per icon tooltip");
     return bytes + arena_used(mesure) - head;
 }
 
@@ -592,10 +592,10 @@ static const background_t *background_in_live_entities(void) {
     const background_t *bg = NULL;
     for (int i = 0; hv != NULL && i < hv->count; i++) {
         if (hv->items[i]->class != background_class()) continue;
-        assert(bg == NULL && "hv tient deux bg");
+        assert(bg == NULL && "the live entities hold two backgrounds");
         bg = (const background_t *)hv->items[i];
     }
-    assert(bg != NULL && "eu a fait le bg de la partie");
+    assert(bg != NULL && "cart_start_game made the game background");
     return bg;
 }
 
@@ -617,10 +617,10 @@ static void pause_restart_bounds_dead_registry_blocks(void) {
     play_until(13);
     const size_t r = registries_bytes();
     const size_t p = planets_bytes();
-    printf("  pause_restart f13 : partie=%lu, etats de bw=%lu, registres=%lu, planetes=%lu\n",
+    printf("  pause_restart f13: game=%lu, galaxy_populate states=%lu, registries=%lu, planets=%lu\n",
            (unsigned long)game_zone_used(), (unsigned long)g, (unsigned long)r, (unsigned long)p);
     assert(game_zone_used() == g + r + p + research_and_economy_bytes() + singletons_bytes() &&
-           "les registres prennent 2C - 4 pointeurs, et rien d'autre n'entre");
+           "the registries take 2C - 4 pointers, and nothing else gets in");
 }
 
 /* Seul le chargement remplit la sous-zone chargement : deux parties n'y
@@ -629,10 +629,10 @@ static void pause_restart_leaves_load_zone_alone(void) {
     start_e2e("pause_restart");
     play_until(1);
     const size_t f1 = load_zone_used();
-    assert(f1 > 0 && "gb est dans la sous-zone chargement");
+    assert(f1 > 0 && "the research projects live in the load zone");
     play_until(g_input->frame_count - 1);
-    printf("  pause_restart : chargement=%lu a f1 et en fin de rejeu\n", (unsigned long)f1);
-    assert(load_zone_used() == f1 && "une partie prend dans la sous-zone chargement");
+    printf("  pause_restart: load=%lu at f1 and at the end of the replay\n", (unsigned long)f1);
+    assert(load_zone_used() == f1 && "a game takes from the load zone");
     assert(game_zone_load_zone_max() == f1);
 }
 
@@ -643,16 +643,16 @@ static void pause_restart_counts_populate_galaxy_states(void) {
     start_e2e("pause_restart");
     play_until(11);
     const size_t f11 = game_zone_used();
-    assert(f11 >= g && "une partie : une generation d'etats de bw");
+    assert(f11 >= g && "one game: one generation of galaxy_populate states");
     play_until(12);
     const size_t f12 = game_zone_used();
-    assert(f12 >= f11 + g && "les etats des deux parties vivent jusqu'au rendu");
+    assert(f12 >= f11 + g && "the states of both games live until the release");
     play_until(13);
     assert(game_zone_used() == g + registries_bytes() + planets_bytes() + research_and_economy_bytes() +
                                              singletons_bytes() &&
-           "le rendu de f13 laisse les etats, les registres, les planetes, l'economie et les singletons de la nouvelle partie");
+           "the f13 release leaves the states, registries, planets, economy and singletons of the new game");
     assert(game_zone_max() >= f12);
-    printf("  pause_restart f11/f12/f13 : partie=%lu/%lu/%lu, max=%lu\n", (unsigned long)f11, (unsigned long)f12,
+    printf("  pause_restart f11/f12/f13: game=%lu/%lu/%lu, max=%lu\n", (unsigned long)f11, (unsigned long)f12,
            (unsigned long)game_zone_used(), (unsigned long)game_zone_max());
 }
 
@@ -670,8 +670,8 @@ static void game_end_final_score_rebuild_does_not_grow_game(void) {
     const size_t f2 = game_without_registries();
     play_until(51);
     const size_t f51 = game_without_registries();
-    printf("  game_end_final_score f2/f51 : partie - registres = %lu/%lu\n", (unsigned long)f2, (unsigned long)f51);
-    assert(f2 == f51 && "un bd fait grandir la generation");
+    printf("  game_end_final_score f2/f51: game - registries = %lu/%lu\n", (unsigned long)f2, (unsigned long)f51);
+    assert(f2 == f51 && "an incoming routes rebuild grows the generation");
 }
 
 /* f140-151 : saut d'annee de f140 sur sept slipways poses, donc `jo:ib`,
@@ -684,10 +684,10 @@ static void trade_rich_mine_route_rebuild_does_not_grow_game(void) {
     const size_t f139 = game_without_registries();
     play_until(151);
     const size_t f151 = game_without_registries();
-    printf("  trade_rich_mine f139/f151 : partie - registres = %lu/%lu\n", (unsigned long)f139,
+    printf("  trade_rich_mine f139/f151: game - registries = %lu/%lu\n", (unsigned long)f139,
            (unsigned long)f151);
     assert(f151 == f139 + PLANET_GRAB_ARENA_BYTES &&
-           "un bd sur des routes fait grandir la generation, ou le refus de f148 ne reprend pas l'arene de f142");
+           "a rebuild over routes grows the generation, or the f148 refusal does not reuse the f142 arena");
 }
 
 static const planet_t *planet_with_id(const char *id) {
@@ -696,7 +696,7 @@ static const planet_t *planet_with_id(const char *id) {
         const planet_t *p = (const planet_t *)np->items[i];
         if (p->planet_id != NULL && strcmp(p->planet_id, id) == 0) return p;
     }
-    assert(0 && "planete introuvable dans cg.np");
+    assert(0 && "planet not found under the node tag");
     return NULL;
 }
 
@@ -708,7 +708,7 @@ static void trade_rich_mine_kept_route_survives_frame(void) {
     start_e2e("trade_rich_mine");
     play_until(139);
     const entity_list_t *by = planet_with_id("p27")->outgoing_routes;
-    assert(by != NULL && by->count > 0 && "f139 : p27 garde une route");
+    assert(by != NULL && by->count > 0 && "f139: p27 keeps a route");
     const trade_route_t *t = (const trade_route_t *)by->items[by->count - 1];
     const int nlp = t->planets->count;
     const int nrl = t->slipways->count;
@@ -718,7 +718,7 @@ static void trade_rich_mine_kept_route_survives_frame(void) {
     play_until(151);
     assert(t->planets->count == nlp && memcmp(lp, t->planets->items, (size_t)nlp * sizeof *lp) == 0);
     assert(t->slipways->count == nrl && memcmp(rl, t->slipways->items, (size_t)nrl * sizeof *rl) == 0);
-    printf("  trade_rich_mine : route de p27 (%d planetes, %d slipways) relue a f151\n", nlp, nrl);
+    printf("  trade_rich_mine: p27 route (%d planets, %d slipways) read back at f151\n", nlp, nrl);
 }
 
 /* Les trainees encore vivantes en fin de partie reviennent a la zone
@@ -729,11 +729,11 @@ static void trade_rich_mine_releases_trails_on_reload(void) {
     const int end = particle_zone_live(PARTICLE_SLOT_TRANSIT_DOT);
     cart_load();
     const int after = particle_zone_live(PARTICLE_SLOT_TRANSIT_DOT);
-    printf("  trade_rich_mine : transit_dots %d en fin de rejeu, %d apres rechargement (max %d, liste max %d)\n", end, after,
+    printf("  trade_rich_mine: transit_dots %d at the end of the replay, %d after reload (max %d, list max %d)\n", end, after,
            particle_zone_max_live(PARTICLE_SLOT_TRANSIT_DOT),
            particle_zone_max_elements(PARTICLE_SLOT_TRANSIT_DOT));
-    assert(end > 0 && "trade_rich_mine finit avec des trainees vivantes");
-    assert(after == 0 && "le rendre du slipway rend ses trainees");
+    assert(end > 0 && "trade_rich_mine ends with live transit dots");
+    assert(after == 0 && "releasing a slipway gives back its transit dots");
 }
 
 #define GRAB_ARENAS "tests/fixtures/grab_arenas_refused.json"
@@ -749,8 +749,8 @@ static void refused_grab_arenas_do_not_grow_game(void) {
     const size_t a = game_without_registries();
     play_until(160);
     const size_t twenty = game_without_registries();
-    printf("  prises refusees 1/20 : partie - registres = %lu/%lu\n", (unsigned long)a, (unsigned long)twenty);
-    assert(a == twenty && "une prise refusee laisse sa structure dans la generation");
+    printf("  refused grabs 1/20: game - registries = %lu/%lu\n", (unsigned long)a, (unsigned long)twenty);
+    assert(a == twenty && "a refused grab leaves its structure in the generation");
 }
 
 /* La structure posee de f161-164, seule planete « s… » de `cg.jo`. */
@@ -760,10 +760,10 @@ static const planet_t *placed_grab_arena(void) {
     for (int i = 0; jo != NULL && i < jo->count; i++) {
         const planet_t *p = (const planet_t *)jo->items[i];
         if (p->planet_id[0] != 's') continue;
-        assert(placed == NULL && "une seule prise a ete posee");
+        assert(placed == NULL && "a single grab was placed");
         placed = p;
     }
-    assert(placed != NULL && strcmp(placed->header.state, "settled") == 0 && "la prise de f161-164 n'a pas ete posee");
+    assert(placed != NULL && strcmp(placed->header.state, "settled") == 0 && "the f161-164 grab was not placed");
     return placed;
 }
 
@@ -776,10 +776,10 @@ static void placed_grab_arena_reuses_dead_wormhole_arena(void) {
     const size_t after = game_without_registries();
     const planet_t *placed = placed_grab_arena();
     const size_t lists = planet_list_bytes(placed->outgoing_routes) + planet_list_bytes(placed->incoming_routes);
-    printf("  prise posee : partie - registres = %lu -> %lu (outgoing_routes/incoming_routes %lu)\n", (unsigned long)before,
+    printf("  placed grab: game - registries = %lu -> %lu (outgoing_routes/incoming_routes %lu)\n", (unsigned long)before,
            (unsigned long)after, (unsigned long)lists);
     assert(after == before + lists &&
-           "la prise posee reprend l'arene libre du mz de f4 (rendu a f48), et ne prend que by et cc en plus");
+           "the placed grab reuses the free arena of the f4 wormhole (released at f48), and only adds its route lists");
 }
 
 /* Une frame de rejeu ; sans `dessiner`, aucun `kj` ne remet `fo` a nil. */
@@ -813,20 +813,20 @@ static void offscreen_planet_forgets_refused_grab_arena(void) {
     cheat_step(&g_cheat, g_input);
     cart_update60();
     const entity_t *held = main_ui()->left_held;
-    assert(held != NULL && "f23 : une structure est tenue");
+    assert(held != NULL && "f23: a structure is held");
     planet_t *p34 = planet_targeted_by(held);
-    assert(p34 != NULL && "f23 : la structure tenue accroche le fo d'une planete");
+    assert(p34 != NULL && "f23: the held structure sets a planet's targeted_by");
     far = vec_add(*((const camera_t *)main_camera())->pos, vec_make(p8_fixed_from_int(500), 0));
     p34->pos = &far;
-    assert(!entity_geom_is_on_screen(&p34->header) && "p34 est hors ecran");
+    assert(!entity_geom_is_on_screen(&p34->header) && "p34 is off screen");
     cart_draw();
-    assert(p34->targeted_by == held && "hors ecran, kj laisse fo");
+    assert(p34->targeted_by == held && "off screen, the draw leaves targeted_by set");
     if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
     g_frame++;
     while (g_frame <= 27) play_one_frame(1);
     play_one_frame(0);
-    assert(main_ui()->left_held == held && "f28 : la prise suivante reprend l'arene, a la meme adresse");
-    assert(p34->targeted_by == NULL && "le fo d'une planete hors ecran vise une prise refusee recyclee");
+    assert(main_ui()->left_held == held && "f28: the next grab reuses the arena, at the same address");
+    assert(p34->targeted_by == NULL && "an off-screen planet's targeted_by points at a refused, recycled grab");
 }
 
 static void refused_grab_arena_crosses_new_game(void) {
@@ -845,7 +845,7 @@ static void refused_grab_arena_crosses_new_game(void) {
  * la 11e frame du cycle et rendu au vidage de la 13e. */
 static const slipway_t *held_slipway(void) {
     const entity_t *held = main_ui()->left_held;
-    assert(held != NULL && held->class == slipway_class() && "un slipway est tenu");
+    assert(held != NULL && held->class == slipway_class() && "a slipway is held");
     return (const slipway_t *)held;
 }
 
@@ -855,9 +855,9 @@ static void held_slipway_does_not_grow_game(void) {
     const slipway_t *held = held_slipway();
     const size_t f36 = game_zone_used();
     play_until(45);
-    assert(held_slipway() == held && held->end == &held->point.header && "f45 : tenu au-dessus du vide");
-    printf("  slipway tenu f36/f45 : partie = %lu/%lu\n", (unsigned long)f36, (unsigned long)game_zone_used());
-    assert(game_zone_used() == f36 && "un slipway tenu alloue a chaque frame");
+    assert(held_slipway() == held && held->end == &held->point.header && "f45: held over empty space");
+    printf("  held slipway f36/f45: game = %lu/%lu\n", (unsigned long)f36, (unsigned long)game_zone_used());
+    assert(game_zone_used() == f36 && "a held slipway allocates every frame");
 }
 
 static void refused_slipways_do_not_grow_game(void) {
@@ -866,8 +866,8 @@ static void refused_slipways_do_not_grow_game(void) {
     const size_t un = game_without_registries();
     play_until(334);
     const size_t twenty = game_without_registries();
-    printf("  slipways refuses 1/20 : partie - registres = %lu/%lu\n", (unsigned long)un, (unsigned long)twenty);
-    assert(un == twenty && "un slipway refuse laisse son arene dans la generation");
+    printf("  refused slipways 1/20: game - registries = %lu/%lu\n", (unsigned long)un, (unsigned long)twenty);
+    assert(un == twenty && "a refused slipway leaves its arena in the generation");
 }
 
 static size_t slipways_of_p27_and_p48_bytes(void) {
@@ -884,11 +884,11 @@ static void placed_slipway_reuses_dead_wormhole_arena(void) {
     play_until(356);
     const size_t after = game_without_registries();
     const size_t oe = slipways_of_p27_and_p48_bytes() - slipways_before;
-    assert(entities_by_tag("slipway") != NULL && entities_by_tag("slipway")->count == 1 && "f338 : un slipway pose");
-    printf("  slipway pose puis refuse : partie - registres = %lu -> %lu (slipways %lu)\n", (unsigned long)before,
+    assert(entities_by_tag("slipway") != NULL && entities_by_tag("slipway")->count == 1 && "f338: one placed slipway");
+    printf("  slipway placed then refused: game - registries = %lu -> %lu (slipways %lu)\n", (unsigned long)before,
            (unsigned long)after, (unsigned long)oe);
     assert(after == before + oe &&
-           "le slipway pose reprend l'arene libre du mz de f4 (rendu a f48), le refuse suivant l'autre");
+           "the placed slipway reuses the free arena of the f4 wormhole (released at f48), the next refused one the other");
 }
 
 /* f345 : le slipway tenu de p27 vers (73,91) accroche le `fo` de p48, sur
@@ -903,18 +903,18 @@ static void offscreen_planet_forgets_refused_slipway(void) {
     cart_update60();
     const slipway_t *held = held_slipway();
     planet_t *p = planet_targeted_by(&held->header);
-    assert(p != NULL && "f345 : le slipway tenu accroche le fo d'une planete");
+    assert(p != NULL && "f345: the held slipway sets a planet's targeted_by");
     far = vec_add(*((const camera_t *)main_camera())->pos, vec_make(p8_fixed_from_int(500), 0));
     p->pos = &far;
-    assert(!entity_geom_is_on_screen(&p->header) && "la planete est hors ecran");
+    assert(!entity_geom_is_on_screen(&p->header) && "the planet is off screen");
     cart_draw();
     if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
     g_frame++;
     play_until(354);
-    assert(p->targeted_by == &held->header && "hors ecran, kj laisse fo");
+    assert(p->targeted_by == &held->header && "off screen, the draw leaves targeted_by set");
     play_until(355);
-    printf("  slipway refuse : targeted_by de %s coupe au vidage de f355\n", p->planet_id);
-    assert(p->targeted_by == NULL && "le fo d'une planete hors ecran vise un slipway refuse rendu");
+    printf("  refused slipway: targeted_by of %s cleared by the f355 flush\n", p->planet_id);
+    assert(p->targeted_by == NULL && "an off-screen planet's targeted_by points at a refused, released slipway");
 }
 
 static void refused_slipway_crosses_new_game(void) {
@@ -923,7 +923,7 @@ static void refused_slipway_crosses_new_game(void) {
     assert(entities_by_tag("slipway") != NULL && entities_by_tag("slipway")->count == 1);
     play_until(371);
     assert(entities_by_tag("slipway") == NULL || entities_by_tag("slipway")->count == 0);
-    assert(main_ui()->left_held != NULL && "f371 : une prise dans la nouvelle partie");
+    assert(main_ui()->left_held != NULL && "f371: a grab in the new game");
     play_until(377);
 }
 
@@ -938,7 +938,7 @@ static void refused_slipway_crosses_new_game(void) {
  * au vidage de la 7e. */
 static const wormhole_t *held_wormhole(void) {
     const entity_t *held = main_ui()->left_held;
-    assert(held != NULL && held->class == wormhole_class() && "un trou de ver est tenu");
+    assert(held != NULL && held->class == wormhole_class() && "a wormhole is held");
     return (const wormhole_t *)held;
 }
 
@@ -949,8 +949,8 @@ static void held_wormhole_does_not_grow_game(void) {
     const size_t f4 = game_zone_used();
     play_until(7);
     assert(held_wormhole() == held);
-    printf("  wormhole tenu f4/f7 : partie = %lu/%lu\n", (unsigned long)f4, (unsigned long)game_zone_used());
-    assert(game_zone_used() == f4 && "un trou de ver tenu alloue a chaque frame");
+    printf("  held wormhole f4/f7: game = %lu/%lu\n", (unsigned long)f4, (unsigned long)game_zone_used());
+    assert(game_zone_used() == f4 && "a held wormhole allocates every frame");
 }
 
 static void refused_wormholes_do_not_grow_game(void) {
@@ -959,8 +959,8 @@ static void refused_wormholes_do_not_grow_game(void) {
     const size_t un = game_without_registries();
     play_until(143);
     const size_t twenty = game_without_registries();
-    printf("  wormhole refuses 1/20 : partie - registres = %lu/%lu\n", (unsigned long)un, (unsigned long)twenty);
-    assert(un == twenty && "un trou de ver refuse laisse son arene dans la generation");
+    printf("  refused wormholes 1/20: game - registries = %lu/%lu\n", (unsigned long)un, (unsigned long)twenty);
+    assert(un == twenty && "a refused wormhole leaves its arena in the generation");
 }
 
 static void open_wormhole_releases_arena_on_death(void) {
@@ -970,12 +970,12 @@ static void open_wormhole_releases_arena_on_death(void) {
     play_until(160);
     const entity_list_t *mz = entities_by_tag("wormhole");
     assert(mz != NULL && mz->count == 1 && strcmp(((const wormhole_t *)mz->items[0])->header.state, "unfolding") == 0 &&
-           "f160 : le trou de ver est ouvert");
+           "f160: the wormhole is open");
     play_until(193);
-    assert(entities_by_tag("wormhole")->count == 1 && "f193 : seul le trou de ver de la pression vit");
+    assert(entities_by_tag("wormhole")->count == 1 && "f193: only the pressed wormhole lives");
     const size_t after = game_without_registries();
-    printf("  wormhole ouvert : partie - registres = %lu -> %lu\n", (unsigned long)before, (unsigned long)after);
-    assert(after == before && "un trou de ver ouvert garde son arene apres sa mort");
+    printf("  open wormhole: game - registries = %lu -> %lu\n", (unsigned long)before, (unsigned long)after);
+    assert(after == before && "an open wormhole keeps its arena after its death");
 }
 
 static void refused_wormhole_crosses_new_game(void) {
@@ -996,7 +996,7 @@ static void refused_wormhole_crosses_new_game(void) {
  * refus est relache a la 5e frame du cycle et rendu au vidage de la 7e. */
 static const probe_t *held_probe(void) {
     const entity_t *held = main_ui()->left_held;
-    assert(held != NULL && held->class == probe_class() && "une sonde est tenue");
+    assert(held != NULL && held->class == probe_class() && "a probe is held");
     return (const probe_t *)held;
 }
 
@@ -1006,8 +1006,8 @@ static void refused_probes_do_not_grow_game(void) {
     const size_t a = game_without_registries();
     play_until(71);
     const size_t ten = game_without_registries();
-    printf("  sondes refusees 1/10 : partie - registres = %lu/%lu\n", (unsigned long)a, (unsigned long)ten);
-    assert(a == ten && "une sonde refusee laisse son arene dans la generation");
+    printf("  refused probes 1/10: game - registries = %lu/%lu\n", (unsigned long)a, (unsigned long)ten);
+    assert(a == ten && "a refused probe leaves its arena in the generation");
 }
 
 static void each_refused_probe_reuses_previous_arena(void) {
@@ -1016,9 +1016,9 @@ static void each_refused_probe_reuses_previous_arena(void) {
     const probe_t *first = held_probe();
     for (int k = 1; k < 10; k++) {
         play_until(2 + 7 * k);
-        assert(held_probe() == first && "la sonde suivante reprend l'arene de la refusee, a la meme adresse");
+        assert(held_probe() == first && "the next probe reuses the refused one's arena, at the same address");
     }
-    printf("  sondes refusees : dix sondes a la meme adresse\n");
+    printf("  refused probes: ten probes at the same address\n");
 }
 
 /* f74 : la sonde tenue sur p34 y accroche son `fo` ; p34 passe hors ecran
@@ -1033,18 +1033,18 @@ static void offscreen_planet_forgets_refused_probe(void) {
     cart_update60();
     const entity_t *held = &held_probe()->header;
     planet_t *p34 = planet_targeted_by(held);
-    assert(p34 != NULL && "f74 : la sonde tenue accroche le fo d'une planete");
+    assert(p34 != NULL && "f74: the held probe sets a planet's targeted_by");
     far = vec_add(*((const camera_t *)main_camera())->pos, vec_make(p8_fixed_from_int(500), 0));
     p34->pos = &far;
-    assert(!entity_geom_is_on_screen(&p34->header) && "p34 est hors ecran");
+    assert(!entity_geom_is_on_screen(&p34->header) && "p34 is off screen");
     cart_draw();
-    assert(p34->targeted_by == held && "hors ecran, kj laisse fo");
+    assert(p34->targeted_by == held && "off screen, the draw leaves targeted_by set");
     if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
     g_frame++;
     while (g_frame <= 78) play_one_frame(1);
     play_one_frame(0);
-    assert(main_ui()->left_held == held && "f79 : la sonde suivante reprend l'arene, a la meme adresse");
-    assert(p34->targeted_by == NULL && "le fo d'une planete hors ecran vise une sonde refusee recyclee");
+    assert(main_ui()->left_held == held && "f79: the next probe reuses the arena, at the same address");
+    assert(p34->targeted_by == NULL && "an off-screen planet's targeted_by points at a refused, recycled probe");
 }
 
 /* f90 : `ox` du `mz` tenu ne garde que des sondes posees ; la sonde posee
@@ -1057,11 +1057,11 @@ static void wormhole_targets_only_placed_probe(void) {
     for (int i = 0; i < mz->anchors->count; i++) {
         const entity_t *e = mz->anchors->items[i];
         if (e->class != probe_class()) continue;
-        assert(placed == NULL && strcmp(e->state, "settled") == 0 && "ox ne garde qu'une sonde, posee");
+        assert(placed == NULL && strcmp(e->state, "settled") == 0 && "the anchors keep a single probe, a placed one");
         placed = (const probe_t *)e;
     }
-    assert(placed != NULL && "f86 : la sonde posee est une ancre du mz");
-    assert(placed->grab_arena != NULL && placed->grab_arena != mz->anchors->zone && "la sonde posee garde son arene");
+    assert(placed != NULL && "f86: the placed probe is an anchor of the wormhole");
+    assert(placed->grab_arena != NULL && placed->grab_arena != mz->anchors->zone && "the placed probe keeps its arena");
 }
 
 static void refused_probe_crosses_new_game(void) {
@@ -1080,14 +1080,14 @@ static const wormhole_t *abandoned_wormhole(void) {
     start_e2e(WORMHOLE_ABANDONED);
     play_until(22);
     const entity_list_t *mz = entities_by_tag("wormhole");
-    assert(mz != NULL && mz->count == 1 && "f22 : un trou de ver vit");
+    assert(mz != NULL && mz->count == 1 && "f22: a wormhole lives");
     return (const wormhole_t *)mz->items[0];
 }
 
 static void abandoned_wormhole_rereads_during_click(void) {
     const wormhole_t *mz = abandoned_wormhole();
     play_until(31);
-    assert(game_zone_pending() && "le clic de f31 fait basculer la zone partie");
+    assert(game_zone_pending() && "the f31 click flips the game zone");
     g_spend = (unsigned char)mz->is_dead;
 }
 
@@ -1112,8 +1112,8 @@ static void pause_restart_reloads_after_title(void) {
     cart_update60();
     cart_draw();
     take_reading(&reloads, 0);
-    print_reading("pause_restart recharge", &reloads);
-    assert(same_counts(&neuf, &reloads) && "recharger doit rendre les places des entites de hv");
+    print_reading("pause_restart reload", &reloads);
+    assert(same_counts(&neuf, &reloads) && "reloading must give back the slots of the live entities");
 }
 
 /* Apres le rendu de f13, jo.ir et jo.oc doivent viser la nouvelle
@@ -1132,9 +1132,9 @@ static void pause_restart_reveals_on_new_game_states(void) {
         revealed++;
         from_type_picker += p->planet_type != NULL && p->planet_type != ll;
     }
-    assert(revealed > 0 && "la nouvelle partie a des planetes unknown");
-    assert(from_type_picker > 0 && "aucun devoilement n'a lu jo.oc");
-    printf("  pause_restart f13 : %d planetes devoilees, %d par jo.oc\n", revealed, from_type_picker);
+    assert(revealed > 0 && "the new game has unknown planets");
+    assert(from_type_picker > 0 && "no reveal read the type picker");
+    printf("  pause_restart f13: %d planets revealed, %d through the type picker\n", revealed, from_type_picker);
 }
 
 /* f42-90 : la boite de l'annee retenue par son lh, sans clic. */
@@ -1142,8 +1142,8 @@ static void message_box_hold_idle_does_not_grow(void) {
     const int frames[] = {45, 90};
     reading_t r[2];
     replay_e2e("message_box_hold", frames, 2, r);
-    assert(same_counts(&r[0], &r[1]) && r[0].particle == r[1].particle && "une sorte prend une place par tick");
-    assert(r[0].game_zone == r[1].game_zone && "la zone partie prend des octets par tick");
+    assert(same_counts(&r[0], &r[1]) && r[0].particle == r[1].particle && "a slot kind takes a slot per tick");
+    assert(r[0].game_zone == r[1].game_zone && "the game zone takes bytes every tick");
 }
 
 /* f44-45 : la boite de l'annee retenue, sans action. Les boites refaites
@@ -1162,10 +1162,10 @@ static void message_box_hold_rewrites_boxes_in_place(void) {
     const void *after[5] = {mo->pos_before_shake, mo->velocity, mo->pos, je->pos, ok->mouse_world};
     int stables = 0;
     for (int i = 0; i < 5; i++) stables += before[i] == after[i];
-    printf("  message_box_hold f44-45 : %d / 5 boites par tick a la meme adresse\n", stables);
+    printf("  message_box_hold f44-45: %d / 5 per-tick boxes at the same address\n", stables);
     fflush(stdout);
-    assert(stables == 5 && "mo.p, mo.v, mo.ra, je.ra et ok.qa doivent etre reecrits en place");
-    assert(game_zone_used() == grab_arena && "la zone partie prend des octets par tick");
+    assert(stables == 5 && "the camera's pos_before_shake, velocity and pos, the mouse's pos and main_ui's mouse_world must be rewritten in place");
+    assert(game_zone_used() == grab_arena && "the game zone takes bytes every tick");
 }
 
 static int no_button(const p8_input_frame_t *f) {
@@ -1201,9 +1201,9 @@ static int idle_windows_of_current_e2e(void) {
         int end = idle && (i + 1 == g_input->frame_count || !idle_frame(g_input, i + 1));
         if (end && i > start) {
             if (grab_arena != second) {
-                fprintf(stderr, "  %s f%d-%d : partie %lu -> %lu\n", g_e2e, start, i, (unsigned long)second,
+                fprintf(stderr, "  %s f%d-%d: game %lu -> %lu\n", g_e2e, start, i, (unsigned long)second,
                         (unsigned long)grab_arena);
-                assert(0 && "la generation monte pendant une fenetre sans action");
+                assert(0 && "the generation grows during an idle window");
             }
             windows++;
         }
@@ -1224,7 +1224,7 @@ static int count_in_child(int (*test)(void)) {
     }
     int status;
     assert(waitpid(pid, &status, 0) == pid);
-    assert(WIFEXITED(status) && WEXITSTATUS(status) < 255 && "un releve de fenetres sans action a echoue");
+    assert(WIFEXITED(status) && WEXITSTATUS(status) < 255 && "an idle windows reading failed");
     return WEXITSTATUS(status);
 }
 
@@ -1251,7 +1251,7 @@ static void empty_planet_fade_does_not_grow(void) {
     const int frames[] = {25, 94};
     reading_t r[2];
     replay_e2e("empty_planet_fade", frames, 2, r);
-    assert(none_rises(&r[0], &r[1]) && "une sorte monte pendant l'effacement de p40");
+    assert(none_rises(&r[0], &r[1]) && "a slot kind rises while p40 fades");
 }
 
 /* f56 : « harvest », p27 devient un eclat. A f139, sa troisieme particule
@@ -1263,8 +1263,8 @@ static void tech_geoharvesting_burst_releases_burst(void) {
     reading_t end;
     int frame;
     replay_e2e("tech_geoharvesting_burst", frames, 3, r);
-    assert(r[0].burst == 0 && r[1].burst == 1 && "le « harvest » fait un eclat");
-    assert(r[1].particle - r[0].particle >= 140 && "un eclat nait avec 140 particules");
+    assert(r[0].burst == 0 && r[1].burst == 1 && "'harvest' makes a burst");
+    assert(r[1].particle - r[0].particle >= 140 && "a burst is born with 140 particles");
     end = r[2];
     for (frame = 140; end.burst != 0 && frame < 160; frame++) {
         cart_update60();
@@ -1272,8 +1272,8 @@ static void tech_geoharvesting_burst_releases_burst(void) {
         take_reading(&end, frame);
     }
     print_reading("tech_geoharvesting_burst", &end);
-    assert(end.burst == 0 && "un eclat eteint doit rendre sa place");
-    assert(end.particles == r[0].particles && "un eclat eteint doit rendre sa liste");
+    assert(end.burst == 0 && "a burnt-out burst must give back its slot");
+    assert(end.particles == r[0].particles && "a burnt-out burst must give back its list");
 }
 
 /* Sans entree, l'aide emet 5 particules par draw et chacune vit 115
@@ -1284,14 +1284,14 @@ static void idle_title_screen_settles(void) {
     for (int i = 0; i < 400; i++) {
         cart_update60();
         cart_draw();
-        check_invariant("titre", i);
-        assert(particle_zone_live(PARTICLE_SLOT_HELP_LIST) == 1 && "l'aide garde une seule liste");
+        check_invariant("title", i);
+        assert(particle_zone_live(PARTICLE_SLOT_HELP_LIST) == 1 && "the help screen keeps a single list");
         int p = particle_zone_live(PARTICLE_SLOT_PARTICLE);
         if (p > ceiling[i / 100]) ceiling[i / 100] = p;
     }
-    printf("  titre sans entree, particule max par fenetre de 100 frames : %d %d %d %d\n", ceiling[0], ceiling[1],
+    printf("  title without input, particle max per 100-frame window: %d %d %d %d\n", ceiling[0], ceiling[1],
            ceiling[2], ceiling[3]);
-    assert(ceiling[3] <= ceiling[2] && "le compte de particules de l'aide monte encore apres sa duree de vie");
+    assert(ceiling[3] <= ceiling[2] && "the help screen particle count still rises past their lifetime");
 }
 
 /* Tampon alloue, termine par un nul, que l'appelant libere. */
@@ -1322,11 +1322,11 @@ static int same_bytes(const char *a_path, const char *b_path) {
 }
 
 #define DRIVER "./tmp/replay"
-#define FILL "tmp/test_places_vivantes_remplissage.txt"
-#define CAPTURE_A "tmp/test_places_vivantes_a.bin"
-#define CAPTURE_B "tmp/test_places_vivantes_b.bin"
-#define DUMP_A "tmp/test_places_vivantes_a.txt"
-#define DUMP_B "tmp/test_places_vivantes_b.txt"
+#define FILL "tmp/test_live_slots_fill.txt"
+#define CAPTURE_A "tmp/test_live_slots_a.bin"
+#define CAPTURE_B "tmp/test_live_slots_b.bin"
+#define DUMP_A "tmp/test_live_slots_a.txt"
+#define DUMP_B "tmp/test_live_slots_b.txt"
 
 /* PICO8_REMPLISSAGE=<fichier> : le rejeu y ecrit une ligne « <sorte>
  * <vivantes> » par sorte d'interface puis de particules, les maxima de
@@ -1343,8 +1343,8 @@ static void replay_writes_fill_at_session_end(void) {
     assert(system(DRIVER " tests/e2e/pause_restart.json " CAPTURE_A " " DUMP_A " > /dev/null") == 0);
     assert(system("REPLAY_FILL=" FILL " " DRIVER " tests/e2e/pause_restart.json " CAPTURE_B " " DUMP_B
                   " > /dev/null") == 0);
-    assert(same_bytes(CAPTURE_A, CAPTURE_B) && "le remplissage ne change pas la capture");
-    assert(same_bytes(DUMP_A, DUMP_B) && "le remplissage ne change pas le dump");
+    assert(same_bytes(CAPTURE_A, CAPTURE_B) && "the fill file does not change the capture");
+    assert(same_bytes(DUMP_A, DUMP_B) && "the fill file does not change the dump");
 
     char expected[1024] = "";
     char line[48];
@@ -1383,8 +1383,8 @@ static void replay_writes_fill_at_session_end(void) {
     strcat(expected, line);
     size_t len;
     char *writes = read_file(FILL, &len);
-    printf("  remplissage ecrit par le rejeu :\n%s", writes);
-    assert(strcmp(writes, expected) == 0 && "le rejeu ecrit les comptes de la derniere frame, apres vidage");
+    printf("  fill file written by the replay:\n%s", writes);
+    assert(strcmp(writes, expected) == 0 && "the replay writes the counts of the last frame, after a flush");
     free(writes);
     remove(FILL);
     remove(CAPTURE_A);
@@ -1399,7 +1399,7 @@ static long fill_value(const char *fill, const char *key) {
     long n;
     snprintf(motif, sizeof motif, "\n%s ", key);
     const char *l = strstr(fill, motif);
-    assert(l != NULL && "cle absente du remplissage");
+    assert(l != NULL && "key missing from the fill file");
     assert(sscanf(l + strlen(motif), "%ld", &n) == 1);
     return n;
 }
@@ -1415,10 +1415,10 @@ static void replay_writes_session_peak(void) {
     char *writes = read_file(FILL, &len);
     long particle = fill_value(writes, "particule");
     long max_particle = fill_value(writes, "max_vivantes particule");
-    printf("  tech_geoharvesting_burst : particule %ld en fin de session, max %ld ; burst %ld, max %ld\n", particle,
+    printf("  tech_geoharvesting_burst: particle %ld at the end of the session, max %ld; burst %ld, max %ld\n", particle,
            max_particle, fill_value(writes, "burst"), fill_value(writes, "max_vivantes burst"));
-    assert(fill_value(writes, "max_vivantes burst") >= 1 && "le « harvest » fait un eclat");
-    assert(max_particle >= 140 && particle < 140 && "le maximum se releve a chaque prise, pas en fin de session");
+    assert(fill_value(writes, "max_vivantes burst") >= 1 && "'harvest' makes a burst");
+    assert(max_particle >= 140 && particle < 140 && "the maximum is read at every take, not at the end of the session");
     free(writes);
     remove(FILL);
     remove(CAPTURE_A);
@@ -1427,8 +1427,8 @@ static void replay_writes_session_peak(void) {
 
 int main(void) {
     int e2e = invariant_on_all_e2e();
-    printf("  invariant particule = somme des #particles inscrits, transit_dots = somme des #transit_dots de entities_by_tag(slipway) : %d e2e, chaque frame\n", e2e);
-    assert(e2e == 26 && "tests/e2e/ compte 26 rejeux");
+    printf("  invariant particle = sum of the registered #particles, transit_dots = sum of the #transit_dots of entities_by_tag(slipway): %d e2e, every frame\n", e2e);
+    assert(e2e == 26 && "tests/e2e/ holds 26 replays");
     in_child(pause_restart_returns_to_title);
     in_child(pause_restart_keeps_quit_game_during_click);
     in_child_dying_by_asan(pause_restart_releases_quit_game_next_frame);
@@ -1441,7 +1441,7 @@ int main(void) {
     in_child_dying_by_asan(pause_restart_releases_quit_icons);
     in_child(pause_restart_keeps_quit_singletons_during_click);
     for (g_singleton = 0; g_singleton < SINGLETON_COUNT; g_singleton++) {
-        printf("  singleton %s :", NAMES_OF_SINGLETONS[g_singleton]);
+        printf("  singleton %s:", NAMES_OF_SINGLETONS[g_singleton]);
         in_child_dying_by_asan(pause_restart_releases_quit_singleton);
     }
     in_child(pause_restart_counts_populate_galaxy_states);
@@ -1475,7 +1475,7 @@ int main(void) {
     in_child_dying_by_asan(abandoned_wormhole_dies_with_its_game);
     in_child(message_box_hold_idle_does_not_grow);
     int windows = idle_windows_on_all_e2e();
-    printf("  generation constante sur %d fenetres sans action des 26 e2e\n", windows);
+    printf("  generation constant over %d idle windows of the 26 e2e\n", windows);
     assert(windows > 0);
     in_child(message_box_hold_rewrites_boxes_in_place);
     in_child(empty_planet_fade_does_not_grow);
