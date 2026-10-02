@@ -86,7 +86,7 @@ void help_screen_draw(p8_graphics_t *gfx, p8_memory_t *mem, probe_t *self, vec_t
         int i;
 
         for (i = 0; self != NULL && self->archetype->rows != NULL && i < self->archetype->rows->count; i++) {
-            assert(n < HELP_SCREEN_ROWS_CAP && "fv.rb has four articles in the cart");
+            assert(n < HELP_SCREEN_ROWS_CAP && "help_screen_draw: the help screen's rows hold four articles at most");
             items[n++] = self->archetype->rows->items[i].row;
         }
         draw_functions_draw_rows_default(gfx, mem, items, n);
@@ -113,7 +113,7 @@ static const entity_class_t g_help_screen_class = {
 static probe_t *screen_create(void) {
     probe_t *self;
 
-    assert(g_help_screen_up && "pico8_help_init() must run first");
+    assert(g_help_screen_up && "help_init() must run first");
     self = (probe_t *)allocator_alloc(game_zone(), sizeof *self);
     probe_init_instance(self, &g_help_screen_class, &help_screen_archetype);
     self->header.hit_box = &self->archetype->hit_box;
@@ -133,8 +133,8 @@ static probe_t *screen_create(void) {
 /* This module, unlike most, does not call pico8_pi_init() itself, and `fv`
  * is built by `g_`'s init: both preconditions are asserted, not repaired. */
 void help_init(void) {
-    assert(draw_functions_dispatch_lookup("spr") != NULL && "pico8_help_init() runs after pico8_pi_init()");
-    assert(probe_ready() && "pico8_help_init() runs after pico8_probe_init()");
+    assert(draw_functions_dispatch_lookup("spr") != NULL && "help_init() runs after draw_functions_init()");
+    assert(probe_ready() && "help_init() runs after probe_init()");
 
     help_shutdown();
 

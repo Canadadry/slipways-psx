@@ -57,7 +57,7 @@ void cart_load(void) {
 
     quit_game_zone();
     entity_init();
-    assert(entity_ready() && "ke must be declared before every ke-descended class");
+    assert(entity_ready() && "cart_load: entity_init() must run before every class that extends entity_t");
     camera_init();
     mouse_init();
     ui_init();
@@ -83,14 +83,14 @@ void cart_load(void) {
     slipway_init();
     planet_family_init();
     assert(structure_ready() && burst_ready() && planet_ready() &&
-           "qh and ga extend jo: pico8_jo_init() must run first");
+           "cart_load: structure and burst extend planet: planet_init() must run first");
     planet_family_trade_init();
     assert(slipgate_ready() && synthesizer_ready() && structure_ready() && ascension_ready() &&
-           "nr extends qh and mx extends hj: pico8_planet_family_init() must run first");
+           "cart_load: slipgate extends structure and synthesizer extends ascension: planet_family_init() must run first");
     wormhole_init();
 
     help_init();
-    assert(help_screen_ready() && probe_ready() && "fv extends g_: pico8_probe_init() must run first");
+    assert(help_screen_ready() && probe_ready() && "cart_load: the help screen extends probe: probe_init() must run first");
     score_panel_init();
     structure_icon_init();
     menu_init();
@@ -175,10 +175,10 @@ void cart_shutdown(void) {
 void cart_init(void) {
     p8_memory_t *mem = dispatch_context_mem();
 
-    assert(structure_icon_ready() && "pico8_cart_load() must run before _init()");
+    assert(structure_icon_ready() && "cart_init: cart_load() must run first");
     assert(help_start_game_field_value() == cart_start_game &&
            score_panel_init_field_value() == cart_init_method &&
-           "pico8_help_init()/pico8_score_panel_init() reset these bridges, so pico8_cart_load() must "
+           "cart_init: help_init() and score_panel_init() reset these bridges, so cart_load() must "
            "install them afterwards: every button copies the value when it is built");
 
     hud_build_palette_table(mem);
@@ -203,7 +203,7 @@ void cart_start_game(button_t *chosen_option) {
     const entity_kind_t *kind_table[7];
     int index;
 
-    assert(economy_ready() && structure_ready() && "pico8_cart_load() must run before eu()");
+    assert(economy_ready() && structure_ready() && "cart_start_game: cart_load() must run first");
 
     economy_score_set_difficulty(chosen_option);
     game_zone_flip();
@@ -241,7 +241,7 @@ void cart_start_game(button_t *chosen_option) {
         (void)structure_icon_new(&keys);
     }
 
-    assert(main_economy_typed() != NULL && "fm must be the hy of this game before fm:lj()");
+    assert(main_economy_typed() != NULL && "cart_start_game: the main economy must be this game's economy before economy_recompute()");
     economy_recompute(main_economy_typed());
 }
 

@@ -352,7 +352,7 @@ button_t *galaxy_menu_button(int i) {
     layout_row_keys_t lq;
     layout_row_cell_t items[MENU_ROW_CAP];
 
-    assert(g_menu_up && i >= 1 && i <= GALAXY_MENU_COUNT && "ix has PICO8_IX_COUNT rows, after pico8_menu_init()");
+    assert(g_menu_up && i >= 1 && i <= GALAXY_MENU_COUNT && "galaxy_menu_button: the galaxy menu has GALAXY_MENU_COUNT rows, after menu_init()");
     e = &galaxy_menu_table[i - 1];
     lq = layout_row_keys_of_row(e->layout_row, items, MENU_ROW_CAP);
     keys.layout_row_keys = &lq;

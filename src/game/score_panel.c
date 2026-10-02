@@ -39,7 +39,7 @@ static score_panel_year_banner_t g_score_panel_year_banner;
 static void score_panel_row_copy(data_row_t *dst, data_item_t *items, int cap, const data_row_t *src) {
     int i;
 
-    assert(src->count <= cap && "a copied row of pj holds no more items than its generated row");
+    assert(src->count <= cap && "score_panel_row_copy: a copied row of the score panel holds no more items than its generated row");
     for (i = 0; i < src->count; i++) {
         items[i] = src->items[i];
     }
@@ -193,7 +193,7 @@ void score_panel_refresh(void) {
     if (readouts_state != NULL) {
         for (index = 0; index < 7; index++) {
             if (readouts[index].text != NULL) {
-                assert(strlen(readouts[index].text) <= SCORE_PANEL_TEXT_CAP && "an ou text is a number with its suffix, or a month");
+                assert(strlen(readouts[index].text) <= SCORE_PANEL_TEXT_CAP && "score_panel_refresh: a readout text is a number with its suffix, or a month");
                 strcpy(readouts_state->texts[index], readouts[index].text);
                 readouts[index].text = readouts_state->texts[index];
             }
@@ -220,7 +220,7 @@ void score_panel_draw(p8_graphics_t *gfx, p8_memory_t *mem, score_panel_t *self)
     int i;
 
     assert(i_->count + (readouts_state != NULL ? readouts_state->row.count : 0) <= SCORE_PANEL_DRAW_ARTICLES_CAP &&
-           "la(pj.i_, pj.ou) is 5 + 7 articles in the cart");
+           "score_panel_draw: the frame rows and the readouts are 5 + 7 articles");
     for (i = 0; i < i_->count; i++) {
         combined[n++] = i_->items[i].row;
     }
@@ -259,7 +259,7 @@ static const entity_class_t g_score_panel_class = {
 static score_panel_t *score_panel_create(void) {
     score_panel_t *self;
 
-    assert(g_score_panel_up && "pico8_score_panel_init() must run first");
+    assert(g_score_panel_up && "score_panel_init() must run first");
     self = (score_panel_t *)allocator_alloc(game_zone(), sizeof *self);
     entity_init_instance(&self->header, &g_score_panel_class, score_panel_archetype.state, score_panel_archetype.state_time);
     self->archetype = &score_panel_archetype;

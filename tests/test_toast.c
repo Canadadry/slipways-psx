@@ -281,7 +281,7 @@ static void test_toast_gives_its_slot_back(void) {
         update_entities();
         assert(++ticks < 1000);
     }
-    assert(ui_zone_live(SLOT_KIND_TOAST) == base + 1 && "out of hv, still read this frame");
+    assert(ui_zone_live(SLOT_KIND_TOAST) == base + 1 && "out of the live entities, still read this frame");
     cart_flush_exit_queue();
     assert(ui_zone_live(SLOT_KIND_TOAST) == base);
 }

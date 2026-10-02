@@ -78,7 +78,7 @@ void message_box_draw_overlay(p8_graphics_t *gfx, p8_memory_t *mem, message_box_
     if (t > P8_FIXED_LIT(0x000a8000, 10.5)) {
         self->is_dead = 1;
         message_box_set_shown(NULL);
-        assert(shown_message_box() == NULL && "`self.p_,kc=true` is one value for two targets: kc gets nil, not true");
+        assert(shown_message_box() == NULL && "message_box_draw_overlay: the closing box marks itself dead and clears the shown message box");
     }
 }
 
@@ -108,7 +108,7 @@ static const data_row_t *message_box_article(const allocator_t *slot, const data
         return e;
     }
     assert(e->count == 3 && e->items[0].is_ref && e->items[1].is_ref &&
-           "an article ld is {lq, ra, a}: its lq and ra are what the box copies");
+           "message_box_article: a draw_row article is {layout row, position, alignment}: the box copies its layout row and position");
     copy = (message_box_draw_row_t *)allocator_alloc(slot, sizeof *copy);
     ra = e->items[1].ref;
     if (ra != NULL) {
@@ -138,7 +138,7 @@ static message_box_t *message_box_create(const message_box_keys_t *keys) {
     self->items_count = 0;
     if (keys != NULL) {
         assert(keys->count <= MESSAGE_BOX_ITEMS_CAP &&
-               "the cart's two mh() are pj:hk (3 articles at most) and pj:ph (one per bz row): a third needs more");
+               "message_box_create: the game builds two boxes, score_panel_new_year's (3 articles at most) and score_panel_update's (one per score row): a third needs more");
         for (i = 0; i < keys->count; i++) {
             self->items[self->items_count++] = message_box_article(slot, keys->items[i]);
         }
@@ -271,7 +271,7 @@ static toast_t *toast_create(const toast_keys_t *keys) {
         self->pos = keys->pos;
         if (keys->text != NULL) {
             assert(strlen(keys->text) <= TOAST_TEXT_CAP &&
-                   "a toast's text is a `ne` price or \"-no money-\": a longer one needs a bigger text_buf and iv place");
+                   "toast_create: a toast's text is a price or \"-no money-\": a longer one needs a bigger text_buf and toast slot");
             strcpy(self->text_buf, keys->text);
             self->text = self->text_buf;
         }

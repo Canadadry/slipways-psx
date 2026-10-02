@@ -211,7 +211,7 @@ static uint32_t fold_ref_member(uint32_t h, const void *ref) {
 }
 
 static uint32_t fold_last_box(uint32_t h, const score_panel_t *pj) {
-    assert(pj->last_box == NULL && "no test folds a pj holding an ed: to fold one, fold 1 then its rank in hv (0x4E, rank) as fold_ref does, or outside hv 0xEEEE then the frozen struct tag 0x9E5C57C7");
+    assert(pj->last_box == NULL && "fold_last_box: no test folds a score panel holding a last box: to fold one, fold 1 then its rank in the live entities (0x4E, rank) as fold_ref does, or outside them 0xEEEE then the frozen struct tag 0x9E5C57C7");
     return fold_fixed_member(h, last_box_fixed(pj));
 }
 

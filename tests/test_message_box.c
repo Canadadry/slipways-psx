@@ -380,7 +380,7 @@ static void test_box_gives_its_slot_back(void) {
     track(&run, year_box(3400));
     assert(ui_zone_live(SLOT_KIND_MESSAGE_BOX) == base + 1);
     run_out(&run);
-    assert(ui_zone_live(SLOT_KIND_MESSAGE_BOX) == base + 1 && "out of hv, still read this frame");
+    assert(ui_zone_live(SLOT_KIND_MESSAGE_BOX) == base + 1 && "out of the live entities, still read this frame");
     cart_flush_exit_queue();
     assert(ui_zone_live(SLOT_KIND_MESSAGE_BOX) == base);
 }

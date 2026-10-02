@@ -39,12 +39,12 @@ void score_panel_new_year(p8_fixed_t year) {
     if (idx >= 1 && idx <= countdown_rows->count) {
         const data_item_t *item = &countdown_rows->items[idx - 1];
 
-        assert((item->row != NULL || item->is_false) && "gs holds rows and false only");
+        assert((item->row != NULL || item->is_false) && "score_panel_new_year: the countdown rows hold rows and false only");
         message = item->row;
     }
 
     year_str = p8_tostr_fixed(frame_zone(), year);
-    assert(strlen("year ") + strlen(year_str) <= SCORE_PANEL_TEXT_CAP && "a year is at most a 5-digit integer");
+    assert(strlen("year ") + strlen(year_str) <= SCORE_PANEL_TEXT_CAP && "score_panel_new_year: a year is at most a 5-digit integer");
     strcpy(year_banner->year, "year ");
     strcat(year_banner->year, year_str);
 
