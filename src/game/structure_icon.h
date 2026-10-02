@@ -8,19 +8,20 @@
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
-/* Throughout this module a NULL `ie` struct, `gfx` or `mem` is a safe
- * no-op, and a nil member, or an absent field of `self.ke`, reads as its
- * zero/false default; a wrong construction key or field of `self.ke` stops
- * the run.
+/* structure_icon_refresh() and structure_icon_draw() do nothing on a NULL
+ * icon, and the draw nothing on a NULL graphics state or memory;
+ * structure_icon_left_press() on a NULL icon still bumps the shared counter.
+ * An absent field of the held kind reads as its zero default.
  *
- * `self.ke` holds a `pico8_entity_kind_t`, not an entity: its fields are
- * read off a `pico8_ie_ke_t`, never through a struct header on the kind
+ * `kind` holds an `entity_kind_t`, not an entity: its fields are read off a
+ * `structure_icon_kind_t` view, never through a struct header on the kind
  * pointer. */
 
-/* `ra` starts on the archetype's, shared by every `ie`; `hb` rebinds it to
- * the cursor. `gy` and `id` are no members: the module's shared state, read
- * by pico8_ie_gy()/pico8_ie_id(). The struct lives in the game generation
- * current at its construction, and dies with it. */
+/* `pos` starts on the archetype's, shared by every icon; the refresh
+ * rebinds it to the shared cursor. The cursor and the counter are no
+ * members: the module's shared state, read by structure_icon_cursor() and
+ * structure_icon_sprite_counter(). The struct lives in the game zone current
+ * at its construction, and dies with it. */
 typedef struct {
     entity_t header;
     const structure_icon_archetype_t *archetype;
@@ -28,72 +29,71 @@ typedef struct {
     const entity_kind_t *kind;
     tooltip_t *tooltip;
     int is_revealed;
-    int has_is_revealed; /* 0: `kh` is nil, and is then never read */
+    int has_is_revealed; /* 0: absent, and then never read */
     int is_hovered;
 } structure_icon_t;
 
-/* `self.ke` read as Lua reads a class: no parent, never an entity, never
+/* The held kind read as a class: no parent, never an entity, never
  * written. */
 typedef struct {
     entity_t header;
     const char *required_tech;
     p8_fixed_t sprite;
-    int has_sprite; /* 0: `s` is nil, and is then never read */
+    int has_sprite; /* 0: absent, and then never read */
     const char *state;
     p8_fixed_t cost;
-    int has_cost; /* 0: `od` is nil, and is then never read */
+    int has_cost; /* 0: absent, and then never read */
 } structure_icon_kind_t;
 
-/* Calls pico8_research_icon_shutdown(), then pico8_pi_init(); puts `ie.id`
- * back to 0. */
+/* Calls structure_icon_shutdown(), then draw_functions_init(); puts the
+ * shared counter back to 0 and unsets the shared cursor. */
 void structure_icon_init(void);
 
-/* Clears `ie.gy`, frees nothing. Idempotent. */
+/* Unsets the shared cursor, frees nothing. Idempotent. */
 void structure_icon_shutdown(void);
 
-/* 1 from pico8_research_icon_init() to pico8_research_icon_shutdown(), 0 otherwise. */
+/* 1 from structure_icon_init() to structure_icon_shutdown(), 0 otherwise. */
 int structure_icon_ready(void);
 const entity_class_t *structure_icon_class(void);
 
-/* The keys of `pico8_ie_new`, read, not kept; NULL is nil. `ke` (a
- * planet-upgrade kind) and `jb` (a tooltip struct) are borrowed. */
+/* The keys of structure_icon_new(), read, not kept; NULL is none. `kind` (a
+ * planet-upgrade kind) and `tooltip` (a tooltip struct) are borrowed. */
 typedef struct {
     const entity_kind_t *kind;
     tooltip_t *tooltip;
 } structure_icon_keys_t;
 
-/* `keys` NULL means none. The struct, made in the current game generation,
- * registers itself into `hv`/`cv` through `lt`. */
+/* `keys` NULL means none. The struct, made in the current game zone,
+ * registers itself as a live entity through entity_construct(). */
 structure_icon_t *structure_icon_new(const structure_icon_keys_t *keys);
 
-/* `ie.eh`, `pico8_ie_def.eh`, for `_init` to point `ie.gy` at: an alias,
- * not a copy. NULL before pico8_research_icon_init() and after the
- * shutdown. */
+/* `structure_icon_archetype.rest_count`, for cart_init() to point the
+ * shared cursor at: an alias, not a copy. NULL before structure_icon_init()
+ * and after the shutdown. */
 const vec_t *structure_icon_rest_cursor(void);
 
-/* The shared `ie.gy` cursor, borrowed; NULL while `gy` is nil. */
+/* The shared cursor, borrowed; NULL while it is unset. */
 const vec_t *structure_icon_cursor(void);
 
-/* The shared `ie.id` counter: 0 while `id` is nil, else 1 with `*out` set. */
+/* The shared counter: 0 while it is unset, else 1 with the value written. */
 int structure_icon_sprite_counter(p8_fixed_t *out);
 
-/* NULL is a nil `gy`. */
+/* NULL unsets the shared cursor. */
 void structure_icon_set_cursor(const vec_t *gy);
 
-/* Reveals the icon once, claiming the next slot off the shared `ie.gy`
- * cursor: a box made in the current game generation. Requires
- * pico8_research_icon_init(). */
+/* Reveals the icon once, claiming the next slot off the shared cursor: a
+ * box made in the current game zone. Requires structure_icon_init(). */
 void structure_icon_refresh(structure_icon_t *self);
 
-/* Returns a fresh instance of the class `self.ke` names, for the caller to
- * hold as a placement in progress, or an absent value when `self.ke` is not
- * a class; bumps the shared `ie.id` either way. The instance and its `id`
- * share a grab arena. Requires pico8_research_icon_init(). */
+/* Returns a fresh instance of the held kind, for the caller to hold as a
+ * placement in progress, or an absent value when the icon holds no kind;
+ * bumps the shared counter either way. The instance and its `planet_id`
+ * share a grab arena. Requires structure_icon_init(). */
 down_t structure_icon_left_press(structure_icon_t *self);
 
-/* By value, one per read: each member copied off the chain of the class
- * `self.ke` holds, nil when absent there or when `self.ke` is. `rr` and
- * `me` are borrowed from the kind's defaults. */
+/* By value, one per read: each member copied off the held kind's record,
+ * absent when absent there or when the icon holds no kind. `required_tech`
+ * and `state` are borrowed from the kind's defaults. */
 structure_icon_kind_t structure_icon_kind_view(const structure_icon_t *self);
 const entity_class_t *structure_icon_kind_view_class(void);
 

@@ -19,10 +19,10 @@
 
 static int g_structure_icon_up = 0;
 
-/* `ie.gy`, `ie.id`: mutated on the class by the cart, so one cursor and one
- * counter shared by every icon, never a member. `gy` is rebound, never
- * written through: an icon's `ra`, and `eh`, may hold its REF. Only `_init`
- * resets `gy`, only pico8_research_icon_init() resets `id`. */
+/* One cursor and one counter shared by every icon, never a member. The
+ * cursor is rebound, never written through: an icon's `pos`, and the rest
+ * position, may hold its REF. cart_init(), structure_icon_init() and the
+ * shutdown reset the cursor; only structure_icon_init() resets the counter. */
 static const vec_t *g_cursor = NULL;
 static p8_fixed_t g_sprite_counter = 0;
 static int g_has_sprite_counter = 0;
@@ -31,7 +31,7 @@ static int structure_icon_to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
 }
 
-/* Returns the kind held in `self.ke`, or NULL when the member is nil. The
+/* Returns the kind the icon holds, or NULL when it holds none. The
  * result is borrowed. */
 static const entity_kind_t *structure_icon_own_kind(const structure_icon_t *self) {
     return self != NULL ? self->kind : NULL;
@@ -76,8 +76,8 @@ void structure_icon_refresh(structure_icon_t *self) {
         return;
     }
 
-    /* `qh`/`os` never set `rr`, so `rr` stays absent for them and
-     * pico8_oj() then answers true unconditionally. */
+    /* Structure and processor kinds never set `required_tech`, so it stays
+     * absent for them and tech_gate_is_unlocked() then answers 1. */
     rr = structure_icon_kind_view(self).required_tech;
 
     if (!tech_gate_is_unlocked(rr)) {
@@ -86,9 +86,9 @@ void structure_icon_refresh(structure_icon_t *self) {
 
     assert(g_structure_icon_up && "structure_icon_init() must run before structure_icon_refresh moves the shared cursor");
 
-    /* `self.ra` points at the vector `ie.gy` points at now. The `-=` below rebinds
-     * `ie.gy` to a fresh vector rather than writing through the old one, so
-     * this snapshot survives it. */
+    /* `self->pos` points at the vector the shared cursor points at now. The
+     * subtraction below rebinds the cursor to a fresh vector rather than
+     * writing through the old one, so this snapshot survives it. */
     self->pos = g_cursor;
     self->is_revealed = 1;
     self->has_is_revealed = 1;
@@ -127,7 +127,7 @@ down_t structure_icon_left_press(structure_icon_t *self) {
     }
 
     /* The grab opens before `id_str` is made: the planet keeps that exact
-     * pointer as its `id`, so it must live and die with the grab's arena. */
+     * pointer as its `planet_id`, so it lives and dies with the grab arena. */
     planet_grab_arena_open();
     id_num_str = p8_tostr_fixed(frame_zone(), new_id);
     id_str = p8_concat2(planet_zone_construction(), "s", id_num_str);
@@ -149,7 +149,7 @@ static down_t structure_icon_left_press_method(entity_t *self, vec_t *qa, vec_t 
 void structure_icon_draw(p8_graphics_t *gfx, p8_memory_t *mem, structure_icon_t *self, vec_t p) {
     structure_icon_kind_t view;
 
-    /* An icon not yet revealed by `ie:hb` draws nothing at all. */
+    /* An icon not yet revealed by structure_icon_refresh() draws nothing. */
     if (self == NULL || !(self->has_is_revealed && self->is_revealed)) {
         return;
     }
@@ -163,9 +163,9 @@ void structure_icon_draw(p8_graphics_t *gfx, p8_memory_t *mem, structure_icon_t 
     p8_spr_default(gfx, mem, view.has_sprite ? structure_icon_to_int(view.sprite) : 0, structure_icon_to_int(p.x),
                       structure_icon_to_int(p.y));
 
-    /* `dl(self.ke)` is not inert: every kind `self.ke` can hold inherits
-     * `qh`'s `me="kz"`, so `dl` passes its own state check and draws the
-     * kind-level build cost. */
+    /* targeting_tooltip_show() is not inert here: every kind an icon holds
+     * inherits the structure's state "placing", so it passes its own state
+     * check and draws the kind-level build cost. */
     if (self->is_hovered) {
         if (structure_icon_own_kind(self) != NULL) {
             targeting_t pb = {.archetype = &targeting_archetype_none};
@@ -182,13 +182,13 @@ void structure_icon_draw(p8_graphics_t *gfx, p8_memory_t *mem, structure_icon_t 
     p8_palt(mem, 3, 1);
 }
 
-/* `dc("kj")` calls `qc[nt](qc,qc.ra)`, so `ra` is always `self.ra`. */
+/* draw_layers() passes each entity its own `pos`: always `self->pos`. */
 static void structure_icon_draw_method(entity_t *self, const vec_t *ra) {
     vec_t p = ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     structure_icon_draw(dispatch_context_gfx(), dispatch_context_mem(), (structure_icon_t *)self, p);
 }
 
-/* `ie.hd=gk`: a field assignment in the cart, not a method definition. */
+/* The hit test is entity_geom_contains_cursor() itself, nothing more. */
 static int structure_icon_hit_test_method(entity_t *self, const vec_t *qa, const vec_t *ra) {
     return entity_geom_contains_cursor(self, qa, ra);
 }

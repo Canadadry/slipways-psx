@@ -9,21 +9,21 @@
 
 static int g_research_project_up = 0;
 
-/* `gb[k]`, 1-based rank k: the projects `build_gb` made, in the load
- * sub-zone. */
+/* By 1-based rank: the projects research_build_projects() made, in the
+ * load sub-zone. */
 static research_project_t *g_projects[PROJECT_RECORDS_COUNT];
 static int g_projects_count = 0;
-/* `gb[px]`: the last project registered under each `px` (several share
- * one), built by `build_gb` or not. 0 until `build_gb`. `px` is the hp's own
- * pointer, borrowed, never copied: it must outlive the hp (every caller
- * passes a string of `pico8_fd_table`). */
+/* By name: the last project registered under each name (several share
+ * one), built by research_build_projects() or not. The name is the project's
+ * own pointer, borrowed, never copied: it must outlive the project (every
+ * caller passes a string of `project_records_table`). */
 static struct {
     const char *name;
     research_project_t *project;
 } g_projects_by_name[PROJECT_RECORDS_COUNT];
 static int g_projects_by_name_count = 0;
 static int g_projects_up = 0;
-/* Borrowed from `pico8_fd_table`, never copied or freed here. */
+/* Borrowed from `project_records_table`, never copied or freed here. */
 static const char *g_required_tech = NULL;
 
 static void forget_projects(void) {
@@ -54,7 +54,7 @@ static const char *research_project_string(const char *s) {
     return s;
 }
 
-/* `r[s]`, for the two positions `gp` names: `o` and `dm`. */
+/* The resource of a code, for the two routed positions: output, byproduct. */
 static p8_fixed_t resource_code_of(const char *s) {
     int qe = 0;
     int found;
@@ -68,9 +68,9 @@ static p8_fixed_t resource_code_of(const char *s) {
     return p8_fixed_from_int(qe);
 }
 
-/* `ho(gb, mr, gp)` on one record of `fd`: positions 1..npos are `px`, `lr`,
- * `fj`, `ja`, `i`, `o`, `il`, `dm`. `i` gets the raw string that `hp:pq`
- * turns into its list afterwards. */
+/* One record's positions 1..npos: name, planet_codes, base_cost,
+ * production_key, inputs, output, upgrade_tech, byproduct. The inputs come
+ * back as the raw string project_create() turns into its list afterwards. */
 static void research_project_positions(research_project_t *self, const project_records_entry_t *ri, const char **input_codes) {
     int n = ri->npos;
 
@@ -121,8 +121,8 @@ need_t *need_new(const allocator_t *zone, const p8_fixed_t *qe) {
     return i;
 }
 
-/* `i` must be rewritten after `ho`, which leaves the raw string in it; the
- * real `gb[px]` must hold the struct. */
+/* `inputs` is built after the positions, which leave the raw codes; the
+ * project registered under its name must be this struct, never a copy. */
 static research_project_t *project_create(const research_project_keys_t *keys) {
     const allocator_t *load_zone = game_zone_load_zone();
     research_project_t *self = (research_project_t *)allocator_alloc(load_zone, sizeof *self);
@@ -190,8 +190,8 @@ static research_project_t *project_create(const research_project_keys_t *keys) {
         self->layout_row = &self->layout_row_own;
     }
 
-    /* A want for every character, never skipping one: the Lua table
-     * constructor is non-nil even when `r[c]` is absent. */
+    /* A need for every character, never skipping one: a character that is
+     * no resource code still makes a need, with no resource. */
     new_i = (pointer_list_t *)allocator_alloc(load_zone, sizeof *new_i);
     if (input_codes[0] == '\0') {
         pointer_list_init(new_i, load_zone);
@@ -233,7 +233,7 @@ void research_project_assert(const research_project_t *self) {
     (void)self;
 }
 
-/* A root class: no parent, so it never self-registers into hv/cv/cg. */
+/* A root class: no parent, so it never registers itself in any list. */
 void research_init(void) {
     research_shutdown();
     g_research_project_up = 1;

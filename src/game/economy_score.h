@@ -5,20 +5,17 @@
 #include "p8/fixed.h"
 #include "game/ui_button.h"
 
-/* Throughout this module an absent or wrong-kind field reads as its
- * zero/false default rather than crashing, and a NULL instance is a safe
- * no-op. */
+/* planet_upkeep() and economy_score_trade_income() answer 0 for a NULL
+ * entity; economy_score_net_income() asserts a planet. While the main
+ * economy is not the game's, its production and happiness read as absent. */
 
 p8_fixed_t planet_upkeep(entity_t *pt);
 
-/* Lua passes the raw method value `jo.gg` as `jp`'s predicate, which calls
- * it as `e:gg()`; the direct pico8_jo_gg() call here is that same call, not
- * an approximation of it. */
 p8_fixed_t economy_score_colony_upkeep(void);
 
 p8_fixed_t economy_score_trade_income(const entity_t *entity);
 
-/* `ky()`'s six results, `s[1..6]` in the cart, in that order. */
+/* The six results of economy_score_final(). */
 typedef struct {
     p8_fixed_t development;
     p8_fixed_t population;
@@ -32,17 +29,18 @@ final_score_t economy_score_final(void);
 
 p8_fixed_t economy_score_happiness(void);
 
-/* The difficulty button `eu()` was given, borrowed; NULL until `eu()`
- * (pico8_cart.c) calls the setter. Once that button leaves (the `jl()` of
- * `eu()` drops it), `dk` designates a copy of what is read from it: `px`,
- * `trade`, `en` and their flags; any other member is nil there. */
+/* The difficulty button cart_start_game() was given, borrowed; NULL until
+ * cart_start_game() calls the setter. Once that button leaves (the
+ * reset_world() of cart_start_game() drops it), the result is a static copy
+ * of what is read from it: `name`, `trade`, `type_bias` and their flags;
+ * any other member is zero there. */
 const button_t *economy_score_difficulty(void);
 void economy_score_set_difficulty(const button_t *dk);
 
-/* Called by the exit queue before `e` is given back. */
+/* Called by the exit queue before the entity is given back. */
 void economy_score_difficulty_quits(const entity_t *e);
 
-/* Writes `kr` into planet `p` (asserted) and returns it. */
+/* Writes `net_income` into the planet (asserted) and returns it. */
 p8_fixed_t economy_score_net_income(entity_t *p);
 
 #endif

@@ -1,8 +1,8 @@
-/* The provisional `fm` that pico8_probe_init() leaves until `eu()` replaces
- * it with a `hy`, read through pico8_fm_placeholder() and pico8_fm_hy(): the
- * cheat code typed on the title screen, a new init, the init/shutdown cycle,
- * the replacement. The frozen values were taken on the code where the
- * provisional was still a class-less instance and must not be re-taken. */
+/* The provisional main economy that probe_init() leaves until
+ * cart_start_game() replaces it with an economy, read through
+ * main_economy_placeholder() and main_economy_typed(): the cheat code typed
+ * on the title screen, a new init, the init/shutdown cycle, the
+ * replacement. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -141,7 +141,7 @@ static void test_replacement(void) {
 }
 
 /* The provisional is one static struct whose descriptor has no method;
- * `eu()` puts a `hy` in its place. */
+ * cart_start_game() puts an economy in its place. */
 static void test_main_economy_is_a_struct(void) {
     const entity_class_t *cls = main_economy_placeholder_class();
     void *provisional;
@@ -166,7 +166,8 @@ static void test_main_economy_is_a_struct(void) {
     assert(((const entity_t *)main_economy())->class == economy_class());
 }
 
-/* `cb` keeps a tech of the current tier until it is invented, even with `bi`. */
+/* tech_gate_available_technologies() keeps a technology of the current tier
+ * until it is invented, even when told to keep the unaffordable ones. */
 static void test_available_technologies_drops_invented(void) {
     available_technologies_kept_t kept;
     const technologies_entry_t *t;
@@ -187,8 +188,8 @@ static void test_available_technologies_drops_invented(void) {
     }
 }
 
-/* Each scenario runs in a child forked right after pico8_cart_load(), as a
- * fresh process would start it. */
+/* Each scenario runs in a child forked right after cart_load(), as a fresh
+ * process would start it. */
 static void in_fresh_child(void (*test)(void)) {
     pid_t child;
     int status;

@@ -4,21 +4,22 @@
 #include "engine/entity_class.h"
 #include "p8/fixed.h"
 
-/* Throughout this module an absent or wrong-kind field reads as its
- * zero/false default rather than crashing, and a NULL instance is a safe
- * no-op. */
+/* The planet tag must hold planets only (asserted); an absent list or
+ * field is skipped, never fatal. */
 
-/* Each planet's `cc` is a list this function owns: made once in the game
- * generation, then emptied in place by every later call. `by` is not
- * copied, it is whatever `pt:ib()` returned. */
+/* Each planet's `incoming_routes` is a list this function owns: made once
+ * in the game zone, then emptied in place by every later call.
+ * `outgoing_routes` is not copied, it is whatever planet_rebuild_trades()
+ * returned. */
 void economy_tiers_rebuild_incoming_routes(void);
 
-/* Returns 1 when at least one planet's tier ROSE this pass, which is what
- * ends `hy:lj()`'s `repeat bd() until not bb()` loop. */
+/* Returns 1 when at least one planet's tier was first set or ROSE this
+ * pass, which is what ends the rebuild/update loop of economy_recompute(). */
 int economy_tiers_update_tiers(void);
 
-/* Writes the match count back onto each want's `gc` field: the side effect
- * is what `dh`'s own later branches, and `jo`'s display, read. */
+/* Writes the match count back onto each need's `satisfied` field: the side
+ * effect is what this function's own later branches, and the planet
+ * display, read. A NULL entity has tier 0. */
 p8_fixed_t economy_tiers_compute_tier(const entity_t *entity);
 
 #endif

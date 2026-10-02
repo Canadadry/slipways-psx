@@ -1,6 +1,6 @@
-/* The research icon `ie`, read and written on its struct members and driven
- * through the real `mv`/`dg`/`dc`/`ok`/`_init`/`eu`, in games
- * started directly: no events file. */
+/* The structure icon, read and written on its struct members and driven
+ * through the real class methods, cart_init() and cart_start_game(), in
+ * games started directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -83,14 +83,14 @@ static structure_icon_t *as_structure_icon(void *e) {
     return e;
 }
 
-/* `gy` and `id` are the class's shared state, no member of any icon: the
- * same answer whatever icon asks. */
+/* The cursor and the counter are the module's shared state, no member of
+ * any icon: the same answer whatever icon asks. */
 static const vec_t *shared_revealed_count(const structure_icon_t *icon) {
     (void)icon;
     return structure_icon_cursor();
 }
 
-/* 0 while `id` is nil. */
+/* 0 while the counter is unset. */
 static int shared_id(const structure_icon_t *icon, p8_fixed_t *out) {
     (void)icon;
     return structure_icon_sprite_counter(out);
@@ -139,8 +139,8 @@ static uint32_t fold_string(uint32_t h, const char *s) {
     return s == NULL ? fnv(h, 0xDEADu) : fnv_str(fnv(h, 0x57u), s);
 }
 
-/* An icon is the one entity of `cv.hb` whose `ke` holds a kind, not an
- * entity: there is no `cg.ie`. */
+/* An icon is the one entity listening to "refresh" whose `kind` holds a
+ * kind, not an entity: there is no icon tag. */
 static int is_icon(const void *e) {
     return e != NULL && ((const entity_t *)e)->class == structure_icon_class() &&
            ((const structure_icon_t *)e)->kind != NULL;
@@ -182,8 +182,8 @@ static void fill_kind_table(const entity_kind_t *out[7]) {
     out[6] = ascension_kind();
 }
 
-/* `gy` and `id` read off any icon: the cursor and counter every icon
- * shares. */
+/* The cursor and the counter read off any icon: every icon shares
+ * them. */
 static uint32_t fold_shared(uint32_t h, void *icon) {
     p8_fixed_t id = 0;
 
@@ -191,8 +191,8 @@ static uint32_t fold_shared(uint32_t h, void *icon) {
     return shared_id(as_structure_icon(icon), &id) ? fold_fixed(h, id) : fnv(h, 0xDEADu);
 }
 
-/* `t` is always a number: its kind byte is constant by the struct's shape,
- * kept so that the frozen constants still prove the typed reads. */
+/* `state_time` is always a number: its kind byte is constant by the struct's
+ * shape, kept so that the frozen constants still prove the typed reads. */
 static uint32_t fold_icon(uint32_t h, void *icon) {
     const structure_icon_t *ie = as_structure_icon(icon);
     h = fnv(h, is_revealed_state(ie));
@@ -218,8 +218,8 @@ static void new_game(void) {
     cart_flush_exit_queue();
 }
 
-/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
- * reads as difficulty 0. */
+/* A game started as cart_start_game() starts it, with no difficulty picked:
+ * a NULL difficulty reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
@@ -254,7 +254,7 @@ static void *build_icon(const entity_kind_t *ke, tooltip_t *jb) {
     return structure_icon_new(&keys);
 }
 
-/* The `kq` box by which of a ring of points around its corners it holds. */
+/* The hit box by which of a ring of points around its corners it holds. */
 static uint32_t fold_hit_box(uint32_t h, void *icon) {
     static const int probe[][2] = {{0, 0},  {-1, 0}, {0, -1}, {8, 7},  {9, 8},  {10, 8}, {9, 9},
                                    {-1, -1}, {4, 4},  {8, 0},  {9, 0},  {0, 7},  {0, 8},  {0, 9}};
@@ -268,8 +268,9 @@ static uint32_t fold_hit_box(uint32_t h, void *icon) {
     return h;
 }
 
-/* A fresh icon: its archetype's `kq`/`fa`/`ra`/`eh`, ke's `me`/`t`, the two
- * construction keys, and nothing written by `hb` or the hover loop yet. */
+/* A fresh icon: its archetype's hit box, layer, position and rest position,
+ * its state and state time, the two construction keys, and nothing written
+ * by the refresh or the hover loop yet. */
 static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const void *jb) {
     const structure_icon_t *ie = as_structure_icon(icon);
 
@@ -339,8 +340,9 @@ static void test_construction(void) {
     check("construction", h, CONSTRUCTION_HASH);
 }
 
-/* `_init` points `gy` at `eh` itself, then `eu`'s `fm:lj` reveals every icon
- * whose research is done, right to left from there. */
+/* cart_init() points the cursor at the rest position itself, then the
+ * economy_recompute() of cart_start_game() reveals every icon whose research
+ * is done, right to left from there. */
 static void test_start(void) {
     uint32_t h = 2166136261u;
     void *all[16];
@@ -380,8 +382,9 @@ static void *first_icon_with_is_revealed(uint32_t kh) {
     return NULL;
 }
 
-/* `hb` reveals once; `ldown` bumps the one counter every icon shares and
- * builds the held class; `hd` tests `kq` around `ra` in screen space. */
+/* The refresh reveals once; the left press bumps the one counter every icon
+ * shares and builds the held kind; the hit test tests the hit box around
+ * `pos` in screen space. */
 static void test_directed(void) {
     uint32_t hash = 2166136261u;
     void *shown;
@@ -458,8 +461,8 @@ static uint32_t draw_alone(void *icon) {
     return screen_hash();
 }
 
-/* Hidden: nothing; revealed: the sprite at `ra`; hovered (`m_`): the build
- * cost and the tooltip as well. */
+/* Hidden: nothing; revealed: the sprite at `pos`; hovered (`is_hovered`):
+ * the build cost and the tooltip as well. */
 static void test_draw(void) {
     uint32_t hash = 2166136261u;
     uint32_t blank;
@@ -500,7 +503,8 @@ static void test_draw(void) {
     check("draw", hash, DRAW_HASH);
 }
 
-/* `rr` of each `gx[]` class, in `gx[]` order: nil for `qh` and `os`. */
+/* `required_tech` of each kind of fill_kind_table(), in its order: none for
+ * the structure and the processor. */
 static char *const kind_table_required_tech[7] = {NULL, NULL, "slipgates", "infraspace", "trade league", "void synthesis",
                                      "ascension"};
 
@@ -509,9 +513,9 @@ static void invent(char *rr) {
     pointer_list_add(main_economy_typed()->invented, rr);
 }
 
-/* Per icon, in `gx[]` order: `hb` reveals it exactly when `oj(self.ke.rr)`,
- * and `kj` draws the held class's sprite `s`, then with `m_` its build cost
- * `od$` off `dl(self.ke)`. */
+/* Per icon, in fill_kind_table() order: the refresh reveals it exactly when
+ * its kind's `required_tech` is unlocked, and the draw shows the kind's
+ * sprite, then when hovered its build cost off the targeting tooltip. */
 static void test_kind_view(void) {
     uint32_t hash = 2166136261u;
     void *all[16];
@@ -536,8 +540,8 @@ static void test_kind_view(void) {
     }
     hash = fold_shared(hash, all[0]);
     {
-        /* `dl` prints at `je.ra`, (0,0) here: its label would land off
-         * screen. */
+        /* The targeting tooltip prints at the main mouse, (0,0) here: its
+         * label would land off screen. */
         assert(main_mouse_typed() != NULL && main_mouse_typed()->pos != NULL);
         *main_mouse_typed()->pos = vec_at(64, 64);
     }
@@ -555,8 +559,9 @@ static void test_kind_view(void) {
     check("kind_view", hash, KIND_VIEW_HASH);
 }
 
-/* A second `eu` keeps `gy` and `id` where the last game left them; only
- * `_init` puts `gy` back on `eh`, and nothing resets `id`. */
+/* A second cart_start_game() keeps the cursor and the counter where the
+ * last game left them; cart_init() puts the cursor back on the rest
+ * position, and leaves the counter (only structure_icon_init() resets it). */
 static void test_restart(void) {
     uint32_t h = 2166136261u;
     void *all[16];
@@ -598,8 +603,8 @@ static int is_a_structure_icon_struct(const void *e) {
            ((const entity_t *)e)->class == structure_icon_class();
 }
 
-/* Built by `eu` or directly, an `ie` is a struct with its four methods, and
- * no other struct answers to `hb`. */
+/* Built by cart_start_game() or directly, an icon is a struct with its four
+ * methods, and no other struct answers to the refresh. */
 static void test_structure_icon_is_a_struct(void) {
     const entity_kind_t *kinds[7];
     void *all[16];
@@ -643,8 +648,8 @@ static void test_structure_icon_is_a_struct(void) {
     }
 }
 
-/* `self.ke` read through a struct without parent that carries only the
- * `rr`/`s`/`me`/`od` of the held class's chain. */
+/* The held kind read through a struct without parent that carries only its
+ * `required_tech`, `sprite`, `state` and `cost`. */
 static void test_kind_view_is_a_struct(void) {
     static const int s[7] = {174, 100, 170, 78, 68, 66, 166};
     static const int od[7] = {15, 15, 10, 25, 20, 40, 60};
@@ -685,7 +690,7 @@ static void test_kind_view_is_a_struct(void) {
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked
- * right after pico8_cart_load(), as a fresh process would start it. */
+ * right after cart_load(), as a fresh process would start it. */
 static void in_fresh_child(void (*test)(void)) {
     pid_t child;
     int status;

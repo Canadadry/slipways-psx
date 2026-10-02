@@ -110,8 +110,8 @@ static void rebuild_incoming_routes_route_visit(entity_t *entity, void *context)
                 }
                 assert(w_val->class == slipway_class() && "rebuild_incoming_routes_route_visit: a trade's slipways list holds slipways only");
                 w = (const slipway_t *)w_val;
-                /* A slipway with no `hg` set is skipped; Lua would error
-                 * indexing nil here. */
+                /* TROU-15 */
+                /* Skipped, never fatal: never make this absent set fail alone. */
                 if (w->served_planets == NULL) {
                     continue;
                 }

@@ -132,9 +132,9 @@ layout_row_cell_t layout_row_cell_row(const data_row_t *row);
  * is borrowed. */
 layout_row_cell_t layout_row_cell_item(const data_item_t *item);
 
-/* The keys of a row of the data tables, its items written into `cells`
- * (`cap` of them at most; a nested row, a tuple, as a ROW cell) and its
- * color. `cells` must outlive the keys. */
+/* The keys of a row of the data tables, its items written into `cells` (as
+ * many as the last argument at most; a nested row, a tuple, as a ROW cell)
+ * and its color. `cells` must outlive the keys. */
 layout_row_keys_t layout_row_keys_of_row(const data_row_t *row, layout_row_cell_t *cells, int cap);
 
 /* A copy of `row`, laid out anew: every cell in order (texts copied, ROWs

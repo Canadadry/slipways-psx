@@ -1,7 +1,7 @@
-/* The economy `hy`, the one `fm` per game, read on its struct members: its
- * construction, its five functions `nx`, `hk`,
- * `lu`, `lj`, `kt`, and the cheat code on the provisional `fm` of the title
- * screen, in games built directly: no events file. */
+/* The economy, the one main economy per game, read on its struct members:
+ * its construction, its five functions (advance the clock, new year, spend,
+ * recompute, invent), and the cheat code on the provisional main economy of
+ * the title screen, in games built directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -40,9 +40,9 @@
 #include "engine/game_zone.h"
 #include "heap_allocator.h"
 
-/* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
- * project with an `o` and no `i`, which exports to any planet a slipway
- * joins it to. */
+/* Project 12, a colony that needs two resources and exports one; project 3,
+ * a project with an output and no inputs, which exports to any planet a
+ * slipway joins it to. */
 #define COLONY 12
 #define EXPORTER 3
 
@@ -66,7 +66,7 @@ static p8_graphics_t gfx;
 static p8_input_t input;
 static cheat_t cheat;
 
-/* NULL on the provisional `fm`, as the functions of `hy` take it. */
+/* NULL on the provisional main economy, as the economy functions take it. */
 static economy_t *main_economy_self(void) {
     return main_economy_typed();
 }
@@ -106,12 +106,12 @@ static uint32_t fold_fixed(uint32_t h, p8_fixed_t x) {
     return fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)x);
 }
 
-/* The byte an ob table folded before a positional key, frozen in the
- * constants that fold `po`/`fu`; the enum that gave it is deleted.
- * Changing it reddens those constants. */
+/* The byte a table view folded before a positional key, frozen in the
+ * constants that fold `production`/`demand`; the enum that gave it is
+ * deleted. Changing it reddens those constants. */
 enum { TABLE_INDEX_KEY = 0 };
 
-/* `REF`, the count, then per entry the index-key kind, `qe` and the
+/* `REF`, the count, then per entry the index-key kind, the resource and the
  * value: the format the constants froze. */
 static uint32_t fold_resource_map(uint32_t h, const resource_map_t *map) {
     int i;
@@ -156,7 +156,7 @@ static uint32_t fold_resource_member(uint32_t h, const resource_map_t *map) {
     return map == NULL ? fold_absent(h) : fold_resource_map(h, map);
 }
 
-/* `hl` false is `has_hl` with a NULL `hl`. */
+/* No end yet is `has_end_status` with a NULL `end_status`. */
 static uint32_t fold_end_status(uint32_t h, const economy_t *hy) {
     if (!hy->has_end_status) {
         return fold_absent(h);
@@ -167,7 +167,7 @@ static uint32_t fold_end_status(uint32_t h, const economy_t *hy) {
     return fold_string(fnv(h, (uint32_t)STRING_KIND), hy->end_status);
 }
 
-/* The 11 members of a `hy`, each with its kind and value. */
+/* The 11 members of an economy, each with its kind and value. */
 static uint32_t fold_economy(uint32_t h, const economy_t *hy) {
     h = fold_fixed_member(h, 1, hy->credits);
     h = fold_fixed_member(h, 1, hy->income);
@@ -196,8 +196,8 @@ static void new_game(void) {
     cart_start_game(NULL);
 }
 
-/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
- * reads as difficulty 0. */
+/* A game started as cart_start_game() starts it, with no difficulty picked:
+ * a NULL difficulty reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
@@ -227,8 +227,8 @@ static research_project_t *project(int k) {
 }
 
 /* A generated planet colonized by COLONY, its nearest one by EXPORTER, the
- * two joined by a slipway paid by `ey` as a drag pays it (`jc:hq` reads the
- * hovered planet off `ok.o_`), then left to settle. */
+ * two joined by a slipway paid by its drop as a drag pays it (the drag reads
+ * the hovered planet off the main UI), then left to settle. */
 static void built_world(void) {
     const entity_list_t *jos;
     slipway_keys_t slipway_keys = {0};
@@ -267,8 +267,8 @@ static void built_world(void) {
     }
 }
 
-/* The descriptor every `iv` shares, taken off one built for that purpose;
- * it stays in `hv`. */
+/* The descriptor every toast shares, taken off one built for that purpose;
+ * it stays among the live entities. */
 static const entity_class_t *toast_descriptor(void) {
     toast_keys_t keys = {0};
     const toast_t *ref;
@@ -278,8 +278,8 @@ static const entity_class_t *toast_descriptor(void) {
     return ref->header.class;
 }
 
-/* Every entry `hv` gained since it held `from` entries: its tag, and for an
- * `iv` the text and color it shows. */
+/* Every live entity added since there were `from` of them: its tag, and for
+ * a toast the text and color it shows. */
 static uint32_t fold_new_entities(uint32_t h, int from, const entity_class_t *toast_cls) {
     const entity_list_t *hv = live_entities();
     int i;
@@ -298,9 +298,9 @@ static uint32_t fold_new_entities(uint32_t h, int from, const entity_class_t *to
     return h;
 }
 
-/* A `hy` built on its own holds the 7 names of its spec, `invented` an empty
- * list, and none of the 4 names `lj` writes; `fm` after `eu()` holds all 11.
- * Two games have two distinct `invented` lists. */
+/* An economy built on its own holds the 7 members of its spec, `invented` an
+ * empty list, and none of the 4 economy_recompute() writes; the main economy
+ * after cart_start_game() holds all 11. Two games have two `invented` lists. */
 static void test_construction(void) {
     uint32_t h = 2166136261u;
     economy_t *bare;
@@ -333,8 +333,8 @@ static uint32_t fold_year_ticks_year(uint32_t h) {
     return fold_fixed_member(h, 1, typed_main_economy()->year);
 }
 
-/* `lo` accumulates; past 12 without "time compression", past 15 with it,
- * the year turns once and `lo` drops by that bound. */
+/* `year_ticks` accumulates; past 12 without "time compression", past 15
+ * with it, the year turns once and `year_ticks` drops by that bound. */
 static void test_advance_clock(void) {
     uint32_t h = 2166136261u;
     p8_fixed_t yr;
@@ -369,8 +369,9 @@ static void test_advance_clock(void) {
     check("advance_clock", h, ADVANCE_CLOCK_HASH);
 }
 
-/* After a game with colonies: `nz += ge`, `jk += po[r.k] + 1`, `yr + 1`,
- * and each planet of `cv.hk` shows its income. */
+/* After a game with colonies: credits += income, research points += the
+ * science production + 1, year + 1, and each new-year listener shows its
+ * income. */
 static void test_new_year(void) {
     uint32_t h = 2166136261u;
     const entity_class_t *toast_cls;
@@ -412,7 +413,7 @@ static uint32_t spend_step(uint32_t h, economy_t *self, int jt, int want, const 
 }
 
 /* Short of credits: 0 and "-no money-"; 0: paid, nothing shown; a cost and
- * a payment: `nz` and the amount shown; a NULL `hy` holds no credits. */
+ * a payment: the credits and the amount shown; a NULL economy holds none. */
 static void test_spend(void) {
     uint32_t h = 2166136261u;
     const entity_class_t *toast_cls;
@@ -454,13 +455,13 @@ static uint32_t fold_planets_net_income(uint32_t h) {
     return h;
 }
 
-/* NULL: `hl` false. */
+/* NULL: no end yet. */
 static const char *end_status_string(void) {
     assert(typed_main_economy()->has_end_status);
     return typed_main_economy()->end_status;
 }
 
-/* The first producing planet of `cg.jo`: `jy` set and its own `kw`. */
+/* The first producing planet: `needs` set and its own `production`. */
 static planet_t *a_maker(void) {
     const entity_list_t *jos = entities_by_tag("planet");
     int i;
@@ -475,11 +476,12 @@ static planet_t *a_maker(void) {
     return NULL;
 }
 
-/* `po`/`fu` recomputed each call -- a planet's `qe` moved shows in `po`, a
- * resource no planet makes any more is gone from it --, `ge`, `happiness`,
- * each planet's `kr`, and `hl`: false, "final score" at 3426, "bankrupt"
- * with no income and under 3 credits; then a `qh` needing a resource
- * outside `r` gets it in `fu`, from 1, gone once the need is. */
+/* `production`/`demand` recomputed each call -- a planet's resource moved
+ * shows in `production`, a resource no planet makes any more is gone from it
+ * --, `income`, `happiness`, each planet's `net_income`, and `end_status`:
+ * none, "final score" at 3426, "bankrupt" with no income and under 3
+ * credits; then a structure needing an unlisted resource gets it in
+ * `demand`, from 1, gone once the need is. */
 static void test_recompute(void) {
     uint32_t hash = 2166136261u;
     const resource_map_t *production;
@@ -553,8 +555,8 @@ static void test_recompute(void) {
     assert(!resource_map_get(demand, p8_fixed_from_int(99), &amount));
 }
 
-/* An nb entry of cost `od` whose `nk` (0) no resource of `r` is: gi reads
- * no `fu` for it. Never freed. */
+/* A technology of that cost whose icon resource (0) is no resource code:
+ * its research cost reads no demand for it. Never freed. */
 static const technologies_entry_t *tech(const char *px, int od) {
     technologies_entry_t *t = malloc(sizeof *t);
 
@@ -562,8 +564,9 @@ static const technologies_entry_t *tech(const char *px, int od) {
     return t;
 }
 
-/* `jk -= gi(t)`, `px` appended (nothing without `px`), `ew` up one at each
- * threshold of `ek` while under 4, never past it. */
+/* Research points less the research cost, the name appended (nothing
+ * without a name), `era` up one at each tier threshold while under 4, never
+ * past it. */
 static void test_invent(void) {
     static const char *const pxs[] = {"t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9", "t10", "t11", "t12", "t13"};
     uint32_t h = 2166136261u;
@@ -593,8 +596,8 @@ static void test_invent(void) {
     check("invent", h, INVENT_HASH);
 }
 
-/* The full A A B B A A B B on the title screen writes the provisional `fm`;
- * the `hy` of the game then starts from its own spec. */
+/* The full A A B B A A B B on the title screen writes the provisional; the
+ * economy of the game then starts from its own spec. */
 static void test_cheat_on_provisional(void) {
     static const int presses[] = {4, 4, 5, 5, 4, 4, 5, 5};
     p8_input_frame_t frames[16];
@@ -646,9 +649,9 @@ static void spend_on_other(void *e) {
     (void)economy_spend(e, p8_fixed_from_int(1));
 }
 
-/* `fm` is a struct whose descriptor has no method;
- * `hy` takes no key, its functions refuse anything but a `hy`, and the
- * provisional `fm` is never handed to them. */
+/* The main economy is a struct whose descriptor has no method; the economy
+ * takes no key, its functions refuse anything but an economy, and the
+ * provisional is never handed to them. */
 static void test_economy_is_a_struct(void) {
     const entity_class_t *cls = economy_class();
     economy_t *bare;
@@ -679,8 +682,8 @@ static void test_economy_is_a_struct(void) {
     assert(main_economy() == NULL && main_economy_typed() == NULL);
 }
 
-/* Each scenario runs in a child forked right after pico8_cart_load(), as a
- * fresh process would start it: the rnd state is the same for all. */
+/* Each scenario runs in a child forked right after cart_load(), as a fresh
+ * process would start it: the rnd state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
     pid_t child;
     int status;

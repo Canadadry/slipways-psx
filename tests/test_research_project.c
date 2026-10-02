@@ -1,7 +1,7 @@
-/* The research project `hp`, the 34 entries of `gb` built at cart load, read
- * on its struct members and through `po`/`od`/`jb`/`lq`, then
- * installed on fresh planets by `jo:lz`/`jo:hu` and in games built directly:
- * no events file. */
+/* The research project, the 34 projects built by cart_load(), read on its
+ * struct members and through its production, cost, tooltip and layout row,
+ * then installed on fresh planets by planet_install_project() and
+ * planet_apply_project(), in games built directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -41,9 +41,9 @@
 #include "engine/zone.h"
 #include "engine/game_zone.h"
 
-/* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
- * project with an `o` and no `i`, which exports to any planet a slipway
- * joins it to. */
+/* Project 12, a colony that needs two resources and exports one; project 3,
+ * a project with an output and no inputs, which exports to any planet a
+ * slipway joins it to. */
 #define COLONY 12
 #define EXPORTER 3
 
@@ -81,7 +81,7 @@ static int entity_list_rank_in(const entity_list_t *list, const void *e) {
     return -1;
 }
 
-/* The projects of `gb` by rank, in order. */
+/* The projects by rank, in order. */
 static int projects_count(void) {
     return research_projects_count();
 }
@@ -91,7 +91,7 @@ static void *project(int k) {
     return research_projects_at(k);
 }
 
-/* 1-based rank of `e` among the positional entries of `gb`, -1 when none. */
+/* 1-based rank of the entity among the projects by rank, -1 when none. */
 static int projects_rank(const void *e) {
     int k;
     for (k = 1; e != NULL && k <= projects_count(); k++) {
@@ -103,8 +103,8 @@ static int projects_rank(const void *e) {
 }
 
 /* The kind words the frozen hashes fold before a value, FUNCTION_KIND the one
- * the name reader gave `lq` when it fell back to the method (GB_HASH); the
- * enum entries are gone. Any other value moves them. */
+ * a project without `layout_row` folds in place of its row (PROJECTS_HASH);
+ * the enum entries are gone. Any other value moves them. */
 enum { FIXED_KIND = 0, STRING_KIND = 1, BOOL_KIND = 2, REF_KIND = 3, FUNCTION_KIND = 4 };
 
 static uint32_t fold_fixed(uint32_t h, p8_fixed_t x) {
@@ -125,7 +125,7 @@ static uint32_t fold_string(uint32_t h, const char *s) {
 }
 
 /* 0xDEAD for NULL, else 0 (no pointer it sees carried a tag) and, above
- * `depth` 0, the rank in `hv` and in `gb`. */
+ * `depth` 0, the rank among the live entities and among the projects. */
 static uint32_t fold_ref(uint32_t h, const void *ref, int depth) {
     h = fnv(h, (uint32_t)REF_KIND);
     if (ref == NULL) {
@@ -139,14 +139,14 @@ static uint32_t fold_ref(uint32_t h, const void *ref, int depth) {
     return fnv(h, (uint32_t)projects_rank(ref));
 }
 
-/* A want's `qe` with the bytes the frozen hashes fold for it, which the frozen
- * hashes hold: kind word 0 then the number; kind word 3 then 0xDEAD for nil. */
+/* A need's resource with the bytes the frozen hashes fold for it: kind word
+ * 0 then the number; kind word 3 then 0xDEAD when absent. */
 static uint32_t fold_resource(uint32_t h, resource_t qe) {
     assert(qe.kind != RESOURCE_FALSE && "fold_resource: a need's resource is never false");
     return qe.kind == RESOURCE_FIXED ? fnv(fnv(h, 0u), qe.number) : fnv(fnv(h, 3u), 0xDEADu);
 }
 
-/* The frozen hashes were taken when rows were ob views and name lists ob
+/* The frozen hashes were taken when rows were table views and name lists
  * tables: these are the bytes they folded for their tag and their two kinds
  * of key, frozen values of a tag and an enum since deleted. Changing one
  * reddens every constant that folds it. */
@@ -167,8 +167,8 @@ static uint32_t fold_names(uint32_t h, const str_seq_t *names) {
     return h;
 }
 
-/* Copies of the cart's `mr` and `gp` name lists of `hp`: the port has no
- * such lists, and DEFAULTS_HASH folds these. */
+/* Frozen copies of the position name lists and of the routed ones: the code
+ * has no such lists, and DEFAULTS_HASH folds these. */
 static const char *const cart_positions_items[] = {"name", "planet_codes", "base_cost", "production_key", "inputs", "output", "upgrade_tech", "byproduct"};
 static const str_seq_t CART_POSITIONS = {8, cart_positions_items};
 static const char *const cart_routed_positions_items[] = {"output", "byproduct"};
@@ -178,9 +178,9 @@ static uint32_t fold_absent(uint32_t h) {
     return fnv(h, 0xFFFFFFFFu);
 }
 
-/* A member of one kind: the kind word is constant by
- * the struct's shape, kept so that GB_HASH and INSTALL_HASH still prove the
- * typed reads. A NULL string, or an unset flag, folds as absent. */
+/* A member of one kind: the kind word is constant by the struct's shape,
+ * kept so that PROJECTS_HASH and INSTALL_HASH still prove the typed reads.
+ * A NULL string, or an unset flag, folds as absent. */
 static uint32_t fold_string_member(uint32_t h, const char *s) {
     if (s == NULL) {
         return fold_absent(h);
@@ -200,7 +200,7 @@ static uint32_t fold_bool_member(uint32_t h, int has, int b) {
     return has ? fnv(fnv(h, (uint32_t)BOOL_KIND), (uint32_t)(b != 0)) : fold_absent(h);
 }
 
-/* `il` false is `has_il` with a NULL `il`. */
+/* An `upgrade_tech` of false is `has_upgrade_tech` with a NULL one. */
 static uint32_t fold_upgrade_tech(uint32_t h, const research_project_t *b) {
     if (!b->has_upgrade_tech) {
         return fold_absent(h);
@@ -240,8 +240,8 @@ static uint32_t fold_item(uint32_t h, const data_item_t *item, int depth) {
     return fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->number));
 }
 
-/* A generated or built row, folded as the frozen hashes folded its view: items,
- * then `c`, then `fn`. */
+/* A generated or built row, folded as the frozen hashes folded its view:
+ * items, then `color`, then `draw_function`. */
 static uint32_t fold_row(uint32_t h, const data_row_t *row, int depth) {
     int i;
 
@@ -262,7 +262,7 @@ static uint32_t fold_row(uint32_t h, const data_row_t *row, int depth) {
 }
 
 /* A row's positional as the value it was sorted from folded; NOTHING as
- * false (no row folded here holds a nil at the top level). */
+ * false (no row folded here holds an absent item at the top level). */
 static uint32_t fold_layout_row_item(uint32_t h, layout_row_cell_t c, int depth) {
     switch (c.kind) {
     case LAYOUT_ROW_CELL_ROW:
@@ -276,8 +276,8 @@ static uint32_t fold_layout_row_item(uint32_t h, layout_row_cell_t c, int depth)
     }
 }
 
-/* A row folded as the frozen hashes folded its table view: its first `#fs`
- * positionals, then `c`, `bg`, `score`, `ra`, `fs`, `w`, then the rest. */
+/* A row folded as the frozen hashes folded its table view: its first placed
+ * items, then `color`, `score`, `pos`, `placed_items`, `width`, the rest. */
 static uint32_t fold_layout_row_instance(uint32_t h, const void *l) {
     const layout_row_t *lq = l;
     int k;
@@ -304,7 +304,7 @@ static uint32_t fold_layout_row_instance(uint32_t h, const void *l) {
     if (lq->pos != NULL) {
         h = fold_ref(fold_view_name(h, "pos"), lq->pos, 3);
     }
-    /* `fs` as the frozen hashes folded the tagged list it was: REF, its tag, its count, each entry a REF. */
+    /* `placed_items` as the frozen hashes folded the tagged list it was: REF, its tag, its count, each entry a REF. */
     h = fnv(fnv(fold_view_name(h, "placed_items"), (uint32_t)REF_KIND), (uint32_t)VIEW_LIST_TAG);
     h = fnv(h, (uint32_t)lq->placed_items_count);
     for (i = 0; i < lq->placed_items_count; i++) {
@@ -340,8 +340,8 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
- * reads as difficulty 0. */
+/* A game started as cart_start_game() starts it, with no difficulty picked:
+ * a NULL difficulty reads as difficulty 0. */
 static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
@@ -366,8 +366,8 @@ static p8_fixed_t dist2(vec_t a, vec_t b) {
 }
 
 /* A generated planet colonized by COLONY, its nearest one by EXPORTER, the
- * two joined by a slipway paid by `ey` as a drag pays it (`jc:hq` reads the
- * hovered planet off `ok.o_`), then left to settle. */
+ * two joined by a slipway paid by its drop as a drag pays it (the drag reads
+ * the hovered planet off the main UI), then left to settle. */
 static void built_world(void) {
     const entity_list_t *jos;
     slipway_keys_t slipway_keys = {0};
@@ -406,7 +406,7 @@ static void built_world(void) {
     }
 }
 
-/* Several projects share a `px`: `gb[px]` is the last one `hp:pq` saw. */
+/* Several projects share a name: the one found by name is the last by rank. */
 static void *last_with_name(const char *px) {
     void *found = NULL;
     int k;
@@ -419,9 +419,9 @@ static void *last_with_name(const char *px) {
     return found;
 }
 
-/* Every project of `gb` as `hp:pq` left it: its own fields, `i`, `lq`, the
- * class's `fk` shared by all, and `gb[px]` aliasing the last
- * project of that `px`. */
+/* Every project as its construction left it: its own fields, `inputs`,
+ * `layout_row`, the class's row tail shared by all, and the project found by
+ * name aliasing the last project of that name. */
 static void test_projects(void) {
     uint32_t hash = 2166136261u;
     uint32_t hash_by_name = 2166136261u;
@@ -464,8 +464,8 @@ static void test_projects(void) {
         }
         if (built->layout_row != NULL) {
             const data_row_t *lq = built->layout_row;
-            /* Constant by the struct's shape, kept so that GB_HASH still
-             * proves the typed reads. */
+            /* Constant by the struct's shape, kept so that PROJECTS_HASH
+             * still proves the typed reads. */
             hash = fnv(hash, (uint32_t)REF_KIND);
             assert(lq == &built->layout_row_own && built->has_icon_sprite);
             for (inner_index = 1; inner_index <= 3; inner_index++) {
@@ -496,9 +496,9 @@ static void test_projects(void) {
     check("defaults", hash_by_name, DEFAULTS_HASH);
 }
 
-/* Per project: `po` as its entry in `hc`, `od`, `jb`, `lq`, and what `b.lq`
- * names: the member for a project with `ii`, the method `lq` for the
- * others. */
+/* Per project: its production as an entry of `production_tables_table`, its
+ * cost, its tooltip and its layout row, the same each time it is built for a
+ * project without `layout_row`. */
 static uint32_t fold_functions(uint32_t h) {
     int k;
 
@@ -522,8 +522,8 @@ static uint32_t fold_functions(uint32_t h) {
     return h;
 }
 
-/* `px` invented at no cost: an nb entry whose `nk` (0) no resource of `r`
- * is. Never freed. */
+/* That technology invented at no cost: an entry whose icon resource (0) is
+ * no resource code. Never freed. */
 static void invent(const char *px) {
     technologies_entry_t *t = malloc(sizeof *t);
 
@@ -563,7 +563,8 @@ static vec_t vec_xy(int x, int y) {
     return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
-/* A bare planet on `id`/`p`/`ra`, `ra` offset from `mo`'s. */
+/* A bare planet on its `planet_id`, `map_pos` and `pos`, the screen
+ * position offset from the main camera's. */
 static void *new_planet(const char *id, int x, int y) {
     planet_keys_t keys;
     const vec_t *main_camera_pos;
@@ -602,7 +603,7 @@ static void *project_with(int (*match)(const research_project_t *), int nth) {
     return NULL;
 }
 
-/* `kw` by content: a pico8_kw_t has no tag to fold. */
+/* The production by content: a production_t has no tag to fold. */
 static uint32_t fold_production(uint32_t h, const planet_t *p) {
     const production_t *k = p->production;
 
@@ -614,8 +615,9 @@ static uint32_t fold_production(uint32_t h, const planet_t *p) {
     return fnv(h, (uint32_t)k->amount);
 }
 
-/* A planet's `jy`, folded as the frozen hashes folded the list of tables it was:
- * each want, `qe` (nil included), then `gc` when written. */
+/* A planet's `needs`, folded as the frozen hashes folded the list of tables
+ * it was: each need, its resource (absent included), then `satisfied` when
+ * written. */
 static uint32_t fold_needs(uint32_t h, const planet_t *p) {
     const pointer_list_t *jy = p->needs;
     int i;
@@ -653,8 +655,9 @@ static uint32_t fold_planet(uint32_t hash, void *entity) {
     return fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), p));
 }
 
-/* `hp:pq` makes a want per character of `i`, one of a character outside
- * `r` wanting no resource; `jo:lz` copies each want, never shares it. */
+/* A project makes a need per character of its input codes, one of a
+ * character that is no resource code needing no resource;
+ * planet_install_project() copies each need, never shares it. */
 static void test_wants(void) {
     project_records_entry_t ri = {0};
     research_project_keys_t keys = {0};
@@ -733,8 +736,8 @@ static void test_install(void) {
     check("install", hash, INSTALL_HASH);
 }
 
-/* Each planet of `cg.jo`: the rank in `gb` of its `hn`; then the screen,
- * once a frame is played and drawn. */
+/* Each planet: the rank of its project among the projects; then the
+ * screen, once a frame is played and drawn. */
 static uint32_t fold_world(void) {
     uint32_t h = 2166136261u;
     const entity_list_t *jo;
@@ -754,7 +757,8 @@ static void test_built_world(void) {
     check("built_world", fold_world(), BUILT_WORLD_HASH);
 }
 
-/* A discovered planet harvested (`cw` "ga"): `jo:hu` swaps it for a `ga`. */
+/* A discovered planet harvested (class name "burst"): planet_apply_project()
+ * swaps it for a burst. */
 static void test_harvested_world(void) {
     const entity_t *last;
     void *p;
@@ -776,7 +780,7 @@ static size_t block_bytes(size_t size) {
     return ZONE_CELLS(size) * sizeof(zone_cell_t);
 }
 
-/* Each project of `gb`, its list `i`, its items unless empty, its wants. */
+/* Each project, its `inputs` list, its items unless empty, its needs. */
 static size_t projects_bytes(void) {
     size_t bytes = 0;
     int k;
@@ -794,8 +798,8 @@ static size_t projects_bytes(void) {
     return bytes;
 }
 
-/* `gb` is all the load sub-zone holds after pico8_cart_load(), each `i`
- * reserved to its exact length. */
+/* The projects are all the load sub-zone holds after cart_load(), each
+ * `inputs` list reserved to its exact length. */
 static void test_projects_in_load_zone(void) {
     int k;
 
@@ -807,7 +811,7 @@ static void test_projects_in_load_zone(void) {
     assert(load_zone_used() == projects_bytes());
 }
 
-/* A want is taken from the zone its caller passes. */
+/* A need is taken from the zone its caller passes. */
 static void test_needs_new_in_the_zone_passed(void) {
     const p8_fixed_t qe = p8_fixed_from_int(3);
     const size_t load_zone = load_zone_used();
@@ -821,10 +825,10 @@ static void test_needs_new_in_the_zone_passed(void) {
     assert(!b->row.has_resource && !b->has_satisfied);
 }
 
-/* `gb` rebuilt from `fd` forgets the projects it held, whose memory goes
- * back at the next load, and gives the same projects; shutdown leaves no
- * class and no `gb`, `fk` still the generated row; init again, then a
- * load, gives them once more, and a second load takes the same bytes. */
+/* The projects rebuilt from `project_records_table` forget the ones held,
+ * whose memory goes back at the next load, and are the same; shutdown leaves
+ * no class and no project, the row tail still the generated row; init again,
+ * then a load, gives them once more, and a second load takes the same bytes. */
 static void test_rebuild_and_shutdown(void) {
     size_t k;
 
@@ -991,11 +995,11 @@ static void apply_project_on_other(void *e) {
 }
 
 /* A project is a struct whose descriptor has no method and no writer, its
- * `fk` the class's; a header entry, a value `gp` maps that `r`
- * lacks, `ii` without `px`, more than eight positions, or a position of the
- * wrong type stops its construction, and its functions
- * refuse anything that is not a project. With no key, only `fk`, an empty `i` and the `lq`
- * method. */
+ * row tail the class's; a header entry, a routed position missing from the
+ * resource codes, an `icon_sprite` without a name, more than eight
+ * positions, or a position of the wrong type stops its construction, and its
+ * functions refuse anything that is not a project. With no key, only the
+ * row tail, empty `inputs` and no `layout_row`. */
 static void test_research_project_is_a_struct(void) {
     const entity_class_t *cls = research_project_class();
     research_project_t *b = project(1);
@@ -1037,8 +1041,8 @@ static void test_research_project_is_a_struct(void) {
     must_abort(apply_project_on_other, main_ui());
 }
 
-/* `gb[px]` is the last project `hp:pq` registered under that `px`, even one
- * `build_gb` did not make; `gb[k]` keeps its own. */
+/* The project found by name is the last one registered under it, even one
+ * research_build_projects() did not make; the one by rank keeps its own. */
 static void test_projects_name_is_the_last_registered(void) {
     research_project_t *first = project(1);
     research_project_keys_t keys = {0};
@@ -1056,8 +1060,8 @@ static void test_projects_name_is_the_last_registered(void) {
     assert(research_projects_at(1) == first && research_projects_count() == PROJECTS_COUNT);
 }
 
-/* Each scenario runs in a child forked right after pico8_cart_load(), as a
- * fresh process would start it: the rnd state is the same for all. */
+/* Each scenario runs in a child forked right after cart_load(), as a fresh
+ * process would start it: the rnd state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
     pid_t child;
     int status;
