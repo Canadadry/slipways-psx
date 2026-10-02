@@ -13,9 +13,9 @@
 #include "engine/frame_zone.h"
 
 
-/* The captured `t` of `pj:hk`'s `iw.lh` closure. One static is enough:
- * `pj.ea.lh` is replaced wholesale by every call that sets it, so only one
- * such closure is ever live. */
+/* The countdown the year banner's keep_open callback captures. One static is
+ * enough: the banner's keep_open is replaced wholesale by every call that
+ * sets it, so only one such callback is ever live. */
 static int g_score_panel_new_year_keep_open_t = 0;
 
 static int score_panel_new_year_keep_open_method(message_box_t *self) {
@@ -76,8 +76,8 @@ void score_panel_new_year(p8_fixed_t year) {
     }
 }
 
-/* `de.my`'s body: `pj:ph` stores it in a button, `fq(de)` in a veil, each
- * through the variant of its own callback type. */
+/* The panel toggle's body: score_panel_update() stores it in a button, the
+ * galaxy menu in a backdrop, each through the variant of its own type. */
 static void score_panel_toggle_visibility(void) {
     score_panel_t *ju = main_score_panel();
     if (ju != NULL) {
@@ -97,8 +97,8 @@ static void score_panel_toggle_button_on_click_method(button_t *self) {
     score_panel_toggle_visibility();
 }
 
-/* `self` inside `pj:ph` is always `ju` -- `pj()` is constructed exactly once
- * in the cart -- so reading `ju.c_` here IS reading the captured upvalue. */
+/* The box's owner is always the main score panel, built once per game by
+ * cart_start_game(), so reading its is_shown here is reading the owner's. */
 static int score_panel_update_keep_open_method(message_box_t *self) {
     const score_panel_t *ju = main_score_panel();
     (void)self;
@@ -109,7 +109,7 @@ typedef struct {
     const final_score_t *final_score;
 } score_panel_update_ctx_t;
 
-/* `tostr(s[i])`, in the frame zone. */
+/* The final score's given entry as text, in the frame zone. */
 static char *score_panel_final_score_text(const final_score_t *s, int i) {
     switch (i) {
     case 1:
@@ -130,7 +130,7 @@ static char *score_panel_final_score_text(const final_score_t *s, int i) {
     }
 }
 
-/* An article `ld` of `bl` and its items, in one block. */
+/* A draw_row article and its items, in one block. */
 typedef struct {
     data_row_t row;
     data_item_t items[3];
@@ -141,9 +141,9 @@ static void score_panel_update_set(score_rows_row_t *st, int i, data_item_t item
     st->has_value[i - 1] = 1;
 }
 
-/* One row of `bz` as `ph` shows it: a row without a score is its own
- * article; one with a score gets `s[score]` at 3 (and more for 0 and 6),
- * then becomes the line of an article `ld`. */
+/* One score row as score_panel_update() shows it: a row without a score is
+ * its own article; one with a score gets that score's text at 3 (and more
+ * for scores 0 and 6), then becomes the line of a draw_row article. */
 static const data_row_t *score_panel_update_map(score_rows_row_t *score_row, const score_panel_update_ctx_t *context) {
     int score_i;
     char *s_str;
@@ -267,9 +267,9 @@ void score_panel_update(score_panel_t *self) {
         int c_truthy = self != NULL && self->has_is_shown && self->is_shown;
         int last_box_equals_shown_message_box = 0;
 
-        /* A NULL `ed` is the class default, the number 1, which is never
-         * `kc`, not even a nil one: without the `ed != NULL` test, NULL == NULL
-         * would keep the block from firing on the first eligible tick. */
+        /* A NULL last_box is the class default, the number 1, which is never
+         * the shown box, not even a NULL one: without the NULL test, NULL ==
+         * NULL would keep the block from firing on the first eligible tick. */
         if (self != NULL) {
             last_box_equals_shown_message_box = self->last_box != NULL && shown_message_box() == self->last_box;
         }

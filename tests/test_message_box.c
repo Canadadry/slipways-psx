@@ -1,6 +1,7 @@
-/* The message box `mh`, built the two ways the game builds it (`pj:hk` from
- * the mutated `pj.ea`, `pj:ph` from `bz`) and lived through the real
- * `dg`/`dc("ev")`. */
+/* The message box, built the two ways the game builds it
+ * (score_panel_new_year() from the rewritten year banner,
+ * score_panel_update() from the score rows) and lived through the real
+ * update_entities() and draw_layers("draw_overlay"). */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -136,8 +137,8 @@ static int any_listed(const run_t *run) {
     return 0;
 }
 
-/* One game tick: `dg`, then `dc("ev")` on a fresh framebuffer, folded with
- * every tracked box's state. */
+/* One game tick: update_entities(), then draw_layers("draw_overlay") on a
+ * fresh framebuffer, folded with every tracked box's state. */
 static void tick(run_t *run) {
     uint32_t drawn;
     int i;
@@ -175,7 +176,8 @@ static void run_check(const run_t *run, int want_ticks, uint32_t want_sequence, 
     assert(run->hash == want_sequence);
 }
 
-/* `pj:hk` discards the box it builds; `mh:pq` has just made it `kc`. */
+/* score_panel_new_year() discards the box it builds; message_box_construct()
+ * has just made it the shown message box. */
 static const message_box_t *year_box(int yr) {
     const message_box_t *box;
     int before = entity_list_count_of(entities_by_tag("message_box"));
@@ -188,7 +190,8 @@ static const message_box_t *year_box(int yr) {
     return box;
 }
 
-/* 3425 is `pj.gs[1]`, "last year!": `lh` counts down 90 calls. */
+/* 3425 is the first countdown row, "last year!": keep_open counts down 90
+ * calls. */
 static void test_year_with_a_message(void) {
     run_t run;
 
@@ -201,8 +204,8 @@ static void test_year_with_a_message(void) {
     run_check(&run, YEAR_MESSAGE_TICKS, YEAR_MESSAGE_SEQUENCE_HASH, "year with a message");
 }
 
-/* 3400 has no message: `pj.ea[3]` is removed and the previous year's `lh`,
- * its counter already spent, is copied again. */
+/* 3400 has no message: the banner's third article is dropped and the
+ * previous year's keep_open, its countdown already spent, is copied again. */
 static void test_year_without_a_message(void) {
     run_t run;
 
@@ -215,9 +218,9 @@ static void test_year_without_a_message(void) {
     run_check(&run, YEAR_SILENT_TICKS, YEAR_SILENT_SEQUENCE_HASH, "year without a message");
 }
 
-/* The second `pj:hk` marks the first box `p_` through `kc`, and rewrites
- * `pj.ea[2][1]`, a table the first box still shares, before it is drawn
- * one last time. */
+/* The second score_panel_new_year() marks the first box dead through the
+ * shown message box, and rewrites the banner's year text, a row the first
+ * box still shares, before it is drawn one last time. */
 static void test_two_years_in_a_row(void) {
     run_t run;
     const message_box_t *first;
@@ -248,9 +251,10 @@ static void set_is_shown(score_panel_t *ju, int on) {
     ju->has_is_shown = 1;
 }
 
-/* A game started by `eu()` with no difficulty picked (`dk` NULL reads as
- * difficulty 0), then `jl()` again: `fm` and `ju` stay, `hv` holds only
- * `mo`, `je` and `ok`. */
+/* A game started by cart_start_game() with no difficulty picked (a NULL
+ * difficulty reads as difficulty 0), then reset_world() again: the main
+ * economy and the main score panel stay, the live entities hold only the
+ * main camera, mouse and user interface. */
 static score_panel_t *game_main_score_panel(void) {
     cart_start_game(NULL);
     reset_world();
@@ -259,8 +263,9 @@ static score_panel_t *game_main_score_panel(void) {
     return main_score_panel();
 }
 
-/* `pj:ph` on the game's one `pj`, its panel already up (`gz` set): the box
- * of `rh`=3 stays open while `c_`, and is not rebuilt while it is `ed`. */
+/* score_panel_update() on the game's one panel, its curtain already set: the
+ * box of duration scale 3 stays open while is_shown, and is not rebuilt
+ * while it is the panel's last box. */
 static void test_scores_box_follows_is_shown(void) {
     run_t run;
     score_panel_t *ju = game_main_score_panel();
@@ -296,7 +301,7 @@ static void test_scores_box_follows_is_shown(void) {
     run_check(&run, SCORES_TICKS, SCORES_SEQUENCE_HASH, "scores box follows is_shown");
 }
 
-/* The box's `fa`/`rh` are the class's generated defaults. */
+/* The box's layer and duration scale are the class's generated defaults. */
 static void test_defaults_match_the_parsed_spec(void) {
     const message_box_t *box;
 
@@ -323,9 +328,10 @@ static int counting_keep_open(message_box_t *self) {
     return 1;
 }
 
-/* Built by `pj` or through its class, a box is a struct that lands in hv,
- * cv.ev and cg("mh") only; its `lh` is a field `mv` calls, and it has no
- * `ph` for `dg` to call. */
+/* Built by the score panel or directly, a box is a struct that lands in the
+ * live entities, the draw_overlay message list and the message_box tag only;
+ * its keep_open is a field the overlay draw calls, and it has no update
+ * state for update_entities() to call. */
 static void test_message_box_is_a_struct_registered_under_draw_overlay(void) {
     const char *others[] = {"draw", "hit_test", "new_year", "refresh"};
     message_box_keys_t keys = {0};
@@ -353,8 +359,8 @@ static void test_message_box_is_a_struct_registered_under_draw_overlay(void) {
     assert(((const entity_t *)generic)->class->states[ENTITY_STATE_NORMAL] == NULL);
 }
 
-/* A nil `lh` key (NULL) leaves the box without `lh`, as a box built with no
- * key. */
+/* A NULL keep_open key leaves the box without keep_open, as a box built
+ * with no key. */
 static void test_message_box_nil_keep_open_key_reads_absent(void) {
     message_box_keys_t keys = {0};
     message_box_t *box;
@@ -367,8 +373,8 @@ static void test_message_box_nil_keep_open_key_reads_absent(void) {
 }
 
 
-/* A box takes a place; once `dg` takes it out at the end of its run,
- * emptying the exit queue gives the place back. */
+/* A box takes a slot; once update_entities() takes it out at the end of its
+ * run, emptying the exit queue gives the slot back. */
 static void test_box_gives_its_slot_back(void) {
     run_t run;
     int base;
@@ -394,8 +400,9 @@ static void scribble_frame_zone(void) {
     memset(reuse, 'X', 4096);
 }
 
-/* `pj:ph` makes its texts, rows and their `ld` wrappers in the frame zone:
- * the box draws them on later frames, after the zone is reset and reused. */
+/* score_panel_update() makes its texts, rows and their draw_row wrappers in
+ * the frame zone: the box draws them on later frames, after the zone is
+ * reset and reused. */
 static void test_scores_box_keeps_its_articles(void) {
     score_panel_t *ju = game_main_score_panel();
     uint32_t want;
@@ -410,8 +417,8 @@ static void test_scores_box_keeps_its_articles(void) {
     assert(draw_hash() == want);
 }
 
-/* `pj:hk` makes its year label in the frame zone: `pj.ea`, which every year
- * box shares as the cart's does, keeps its own copy. */
+/* score_panel_new_year() makes its year label in the frame zone: the year
+ * banner, which every year box shares, keeps its own copy. */
 static void test_year_box_keeps_its_label(void) {
     uint32_t want;
 
@@ -423,9 +430,9 @@ static void test_year_box_keeps_its_label(void) {
     assert(draw_hash() == want);
 }
 
-/* The largest box the game builds: `pj:ph`'s, with the longest label
- * (`current score` and the longest difficulty) and the longest happiness
- * text, a negative fraction. Its place holds it without stopping. */
+/* The largest box the game builds: score_panel_update()'s, with the longest
+ * label ("current score" and the longest difficulty) and the longest
+ * happiness text, a negative fraction. Its slot holds it without stopping. */
 static void test_largest_scores_box_fits_its_slot(void) {
     static button_t challenging;
     score_panel_t *ju = game_main_score_panel();

@@ -23,12 +23,12 @@
 #include "engine/frame_zone.h"
 #include "game/ui_zone.h"
 
-/* The most items a row of `ix` or `ha` holds. */
+/* The most items a row of the galaxy menu or the pause menu holds. */
 #define MENU_ROW_CAP 4
 
 static int g_menu_up = 0;
-/* `ix[i].ra` and `ha.hi`/`ha.gq`, reset by each init: the buttons borrow
- * them. */
+/* The galaxy menu's positions and the pause menu's fixed_pos and row_step,
+ * reset by each init: the buttons borrow them. */
 static vec_t g_galaxy_menu_pos[GALAXY_MENU_COUNT];
 static vec_t g_pause_menu_fixed_pos;
 static vec_t g_pause_menu_row_step;
@@ -40,13 +40,13 @@ typedef struct {
     vec_t *fixed_pos;
     vec_t *row_step;
     p8_fixed_t back_color;
-    int has_back_color; /* 0: `ca` is nil, and `ca` is then never read */
+    int has_back_color; /* 0: no back color, and back_color is then never read */
 } pause_menu_open_box_t;
 
 static const entity_class_t g_pause_menu_open_box_class = {0};
 
-/* Never allocated nor freed: `pico8_menu_init()` points its `hi`/`gq`/`ca`
- * at `ha`'s own values, `pico8_menu_shutdown()` resets them to nil. */
+/* Never allocated nor freed: menu_init() points its fixed_pos and row_step at
+ * the pause menu's values and sets its back color; menu_shutdown() clears. */
 static pause_menu_open_box_t g_pause_menu_open_box = {
     {.class = &g_pause_menu_open_box_class},
     NULL,
@@ -55,9 +55,9 @@ static pause_menu_open_box_t g_pause_menu_open_box = {
     0,
 };
 
-/* `_cr_t` is not a cart field: it is where pico8_cr_step stashes the row's
- * captured tech, as its entry of pico8_nb_table, read back here off the
- * button `js(b)` copied it to. */
+/* The technology field of the button keys is where tech_tree_screen_step
+ * stashes the row's captured tech, as its entry of technologies_table, read
+ * back here off the button the keys were copied to. */
 static void tech_tree_screen_row_on_click_method(button_t *self) {
     if (self == NULL) {
         return;
@@ -67,7 +67,7 @@ static void tech_tree_screen_row_on_click_method(button_t *self) {
     }
 }
 
-/* One row of `cr`'s `bs`: the keys and the rows its `lq`/`h_` read. */
+/* One tech-tree screen button: its keys and the layout rows they read. */
 typedef struct {
     button_keys_t row;
     layout_row_keys_t layout_row;
@@ -76,8 +76,8 @@ typedef struct {
     layout_row_cell_t cost_items[2];
 } tech_tree_screen_row_t;
 
-/* An unaffordable tech gets "my" = false, not an absent field: `t.e_` is a
- * comparison result in `cb()`, so Lua's `and` yields the boolean here. */
+/* An unaffordable tech gets on_click present but NULL, not absent: the
+ * affordable flag is a comparison, and a false one leaves no callback. */
 static void tech_tree_screen_step(const technologies_entry_t *t, tech_tree_screen_row_t *b) {
     static const data_item_t pair_items[] = {{.number = 24}, {.number = 5}};
     static const data_row_t pair = {.count = 2, .items = pair_items};
@@ -112,8 +112,8 @@ static void tech_tree_screen_step(const technologies_entry_t *t, tech_tree_scree
     }
 }
 
-/* `jb` of the "n invented" row: one line per invented tech, its name (NULL
- * an empty line), in one block of the frame zone. */
+/* Tooltip of the invented-count row: one line per invented tech, its name
+ * (NULL an empty line), in one block of the frame zone. */
 static const data_row_t *invented_lines(const pointer_list_t *list) {
     int n = list != NULL ? list->count : 0;
     size_t size = sizeof(data_row_t) + (size_t)n * sizeof(data_item_t);
@@ -155,9 +155,9 @@ void menu_show_tech_tree_screen(void) {
         next_threshold = p8_fixed_from_int(tier_thresholds);
     }
 
-    /* `true` is the ignore-cost flag: this screen lists every tech of the era,
-     * affordable or not. `ix[2].hb`'s bare `cb()` wants only the affordable
-     * ones. The two sites do not merge. */
+    /* 1 is the ignore-cost flag: this screen lists every tech of the era,
+     * affordable or not. The second galaxy row's refresh wants only the
+     * affordable ones. The two sites do not merge. */
     available_technologies_list = tech_gate_available_technologies(1);
     rows = (tech_tree_screen_row_t *)allocator_alloc(frame_zone(), ((size_t)available_technologies_list.count + 1) * sizeof *rows);
     buttons = (button_keys_t *)allocator_alloc(frame_zone(), ((size_t)available_technologies_list.count + 1) * sizeof *buttons);
@@ -235,9 +235,9 @@ static void galaxy_menu_button2_on_click_method(button_t *self) {
     menu_show_tech_tree_screen();
 }
 
-/* The bare `cb()` counts only affordable techs. pico8_cr()'s `cb(true)` is the
- * other, non-interchangeable site: passing the flag here would light the icon
- * whenever any tech of the era is left. */
+/* Without the flag, only affordable techs count. menu_show_tech_tree_screen()
+ * passes it, the other, non-interchangeable site: passing it here would light
+ * the icon whenever any tech of the era is left. */
 static void galaxy_menu_button2_refresh_method(button_t *self) {
     available_technologies_kept_t available_technologies_list;
     int available_technologies_count;
@@ -263,8 +263,8 @@ static void galaxy_menu_button2_refresh_method(button_t *self) {
     self->layout_row_slot = slot;
 }
 
-/* `fq(de)` takes the `my` of the one `de` of pico8_score_panel_display.c,
- * the one `pj:ph()` uses. */
+/* The modal backdrop takes the on_click of the one panel toggle of
+ * score_panel_display.c, the one score_panel_update() uses. */
 static void galaxy_menu_button3_on_click_method(button_t *self) {
     score_panel_t *ju = main_score_panel();
     modal_backdrop_keys_t keys = {0};
@@ -290,8 +290,8 @@ static void pause_menu_row2_on_click_method(button_t *self) {
 }
 
 /* TROU-10 */
-/* `ih` is the real global of pico8_audio.c, which pico8_rn() reads; a private
- * copy here would leave that mute check on the old value. */
+/* The mute state is the real global of p8/audio.c, which p8_play_sfx() reads;
+ * a private copy here would leave that mute check on the old value. */
 static void pause_menu_row3_on_click_method(button_t *self) {
     (void)self;
     p8_set_sfx_muted(!p8_sfx_muted());
@@ -309,8 +309,8 @@ static const button_fn_t g_galaxy_menu_on_click[GALAXY_MENU_COUNT] = {
 };
 static const button_fn_t g_galaxy_menu_refresh[GALAXY_MENU_COUNT] = {NULL, galaxy_menu_button2_refresh_method, NULL, NULL};
 
-/* `pz(ha,ha)`: `ha`'s rows go in as `bs`, their `my` installed on every
- * run, and `p` is the frame of `g_ha_pz`, which carries `ha`'s `hi`/`gq`/`ca`. */
+/* Opens the pause menu: its rows go in as buttons, their on_click installed
+ * on every run, in the frame the pause-menu struct carries. */
 static void galaxy_menu_button4_on_click_method(button_t *self) {
     const button_fn_t my[PAUSE_MENU_COUNT] = {
         score_panel_init_field_value(),
@@ -402,6 +402,6 @@ void menu_shutdown(void) {
     g_pause_menu_open_box.row_step = NULL;
     g_pause_menu_open_box.back_color = 0;
     g_pause_menu_open_box.has_back_color = 0;
-    /* `ih` is deliberately not reset here: it belongs to pico8_audio.c, and
-     * rebuilding this module's tables must not move it. */
+    /* The mute state is deliberately not reset here: it belongs to p8/audio.c,
+     * and rebuilding this module's tables must not move it. */
 }

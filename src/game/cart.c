@@ -49,9 +49,9 @@ static void quit_game_zone(void) {
     planet_forget_grab_arenas();
 }
 
-/* pico8_data_init() and pico8_score_panel_init() each run further module
- * inits of their own (research, score-panel display); listing those
- * here would run them twice. */
+/* data_init() and score_panel_init() each run further module inits of
+ * their own (research, score-panel display); listing those here would
+ * run them twice. */
 void cart_load(void) {
     p8_memory_t *memory;
 
@@ -99,9 +99,9 @@ void cart_load(void) {
     score_panel_set_init(cart_init_method);
 }
 
-/* Une place rendue peut revenir a la meme adresse : `kc == ju.ed` serait
- * vrai pour une boite neuve, et `gj.m_` ecrirait dans un autre objet.
- * ASan ne voit pas la comparaison. */
+/* A released slot can come back at the same address: the shown message box
+ * would equal the panel's last box for a new box, and the hover write would
+ * land in another object. ASan does not see the comparison. */
 static void forget(const entity_t *e) {
     ui_t *ok = main_ui();
     score_panel_t *ju = main_score_panel();
@@ -126,8 +126,8 @@ static void forget(const entity_t *e) {
     planet_forget_targeted_by(e);
 }
 
-/* Point d'oubli de partie : coupe les references a la generation que
- * pico8_zone_partie_rendre va rendre. */
+/* Game-zone forget point: cuts the references into the generation that
+ * game_zone_release() is about to give back. */
 static void forget_game_zone(void) {
     planet_forget_grab_arenas();
 }
@@ -184,8 +184,8 @@ void cart_init(void) {
     hud_build_palette_table(mem);
     reset_world();
 
-    /* `ie.gy,kc=ie.eh`: Lua pads the extra name with nil, so `gy` takes `eh`
-     * and `kc` is cleared. `gy` aliases `eh`'s vector, it is not a copy. */
+    /* The icons' shared cursor takes the rest cursor itself (it aliases its
+     * vector, it is not a copy), and the shown message box is cleared. */
     structure_icon_set_cursor(structure_icon_rest_cursor());
     message_box_set_shown(NULL);
 
@@ -208,8 +208,8 @@ void cart_start_game(button_t *chosen_option) {
     economy_score_set_difficulty(chosen_option);
     game_zone_flip();
 
-    /* `jl()` runs a second time here, as in the cart: it unconditionally
-     * rebuilds hv/cv/cg and the mo/je/ok singletons. */
+    /* reset_world() runs a second time here, after cart_init()'s: it always
+     * rebuilds the registries and the main camera, mouse and user interface. */
     reset_world();
     (void)background_new();
     galaxy_populate(p8_fixed_from_int(90));
@@ -245,9 +245,9 @@ void cart_start_game(button_t *chosen_option) {
     economy_recompute(main_economy_typed());
 }
 
-/* Ici et pas dans un pilote : rejeu, raylib, couverture et TU passent tous
- * par update60, et draw, qui suit dans la meme frame, relit ce qu'update a
- * fait en zone frame. */
+/* Here and not in a driver: replay, raylib, coverage and unit tests all go
+ * through cart_update60(), and cart_draw(), which follows in the same frame,
+ * reads back what the update wrote in the frame zone. */
 void cart_update60(void) {
     frame_zone_reset();
     cart_flush_exit_queue();

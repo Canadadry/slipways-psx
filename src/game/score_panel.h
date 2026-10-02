@@ -10,9 +10,11 @@
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
-/* Throughout this module a NULL panel argument is a safe no-op. */
+/* score_panel_draw() on a NULL panel still draws the rows and skips only
+ * the curtain. */
 
-/* `ed` NULL reads as the class's `ed`, the number 1, never nil. */
+/* A NULL last_box reads as the class's default, the number 1, never as
+ * absent. */
 typedef struct {
     entity_t header;
     const score_panel_archetype_t *archetype;
@@ -24,9 +26,10 @@ typedef struct {
     int has_curtain;
 } score_panel_t;
 
-/* `pj.cr`: no parent, never an entity, and no writer. Trap: `ep` is a
- * frame-zone text, dangling after the next reset; only `cr()`, which has
- * just written it, reads it. */
+/* The tech-tree screen's layout block: no parent, never an entity, and no
+ * writer. Trap: description is a frame-zone text, dangling after the next
+ * reset; only menu_show_tech_tree_screen(), which has just written it,
+ * reads it. */
 typedef struct {
     entity_t header;
     const vec_t *fixed_pos;
@@ -35,13 +38,13 @@ typedef struct {
     const char *description;
 } score_panel_layout_block_t;
 
-/* The longest text `hb` or `hk` writes: "year " and a year, or a `ne` or
- * `tostr` of a number with its sign, its four decimals and a suffix. */
+/* The longest text refresh or new_year writes: "year " and a year, or a
+ * formatted price or number with its sign, its four decimals and a suffix. */
 enum { SCORE_PANEL_TEXT_CAP = 16 };
 
-/* `pj.ou`: a copy of `pico8_pj_ou_row` whose sub-rows `hb` rewrites
- * (item 1 of each), each an article of `bl`; a text `hb` writes is a copy
- * in `texts[i]`. */
+/* The readouts: a copy of score_panel_readouts_row whose sub-rows refresh
+ * rewrites (item 1 of each), each an article of draw_functions_draw_rows();
+ * a text refresh writes is a copy in its entry of texts. */
 typedef struct {
     data_row_t row;
     data_item_t items[7];
@@ -50,9 +53,9 @@ typedef struct {
     char texts[7][SCORE_PANEL_TEXT_CAP + 1];
 } score_panel_readouts_t;
 
-/* `pj.ea`: `row` holds `ea[1]`, `ea[2]` (a copy of its generated row whose
- * item 1 `hk` rewrites, to a copy in `year`) and `ea[3]` when set (a row of
- * `gs`); `lh` NULL is nil. */
+/* The year banner: the row field holds its first article, its second (a
+ * copy of its generated row whose item 1 new_year rewrites, to a copy in
+ * year) and its third when set (a countdown row); keep_open NULL for none. */
 typedef struct {
     data_row_t row;
     data_item_t items[3];
@@ -62,12 +65,13 @@ typedef struct {
     message_box_keep_open_fn_t keep_open;
 } score_panel_year_banner_t;
 
-/* A row of `bz`, a copy of its entry of `pico8_bz_table`. Without a score it
- * is an article of `bl` (`row`, never rewritten); with one, `pj:ph`
- * rewrites its positions, `has[i]` saying which hold a value, and makes it
- * a line (`ra` its position). Trap: the texts it writes there are
- * frame-zone texts, dangling after the next reset; only `pj:ph`, which has
- * just written them, reads them. */
+/* A score row, a copy of its entry of score_rows_table. Without a score it
+ * is an article of draw_functions_draw_rows() (the plain row, never
+ * rewritten); with one, score_panel_update() rewrites its positions,
+ * has_value saying which hold a value, and makes it a line (pos its
+ * position). Trap: the texts it writes there are frame-zone texts, dangling
+ * after the next reset; only score_panel_update(), which has just written
+ * them, reads them. */
 typedef struct {
     data_row_t row;
     data_item_t items[5];
@@ -76,48 +80,51 @@ typedef struct {
     const score_rows_entry_t *entry;
 } score_rows_row_t;
 
-/* Calls `pico8_pi_init()` first. Resets `bz`, `ou` and `ea` to their
- * generated rows. */
+/* Calls draw_functions_init() first. Resets the score rows, the readouts
+ * and the year banner to their generated rows. */
 void score_panel_init(void);
 
-/* Resets `ju` to NULL without freeing the instance it named: `ju` is a
- * bookmark, `hv` owns the entity. */
+/* Resets the main score panel to NULL without freeing the instance it
+ * named: it is a bookmark, the live entities own the entity. */
 void score_panel_shutdown(void);
 
-/* 1 from pico8_score_panel_init() to pico8_score_panel_shutdown(), 0 otherwise. */
+/* 1 from score_panel_init() to score_panel_shutdown(), 0 otherwise. */
 int score_panel_ready(void);
 const entity_class_t *score_panel_class(void);
 
-/* Shared by every panel, past and future: `hb` rewrites `ou`, `hk` rewrites
- * `ea`, in place; both are statics of this module. `cr` is the one static
- * `pico8_pj_cr_t`, never freed, whose `ep` `cr()` rewrites and the init
- * resets to nil. All NULL before `pico8_score_panel_init()` and after the
+/* Shared by every panel, past and future: refresh rewrites the readouts,
+ * new_year the year banner, in place; both are statics of this module. The
+ * layout block is the one static score_panel_layout_block_t, never freed,
+ * whose description menu_show_tech_tree_screen() rewrites and the init
+ * resets to NULL. All NULL before score_panel_init() and after the
  * shutdown. */
 score_panel_readouts_t *score_panel_readouts(void);
 score_panel_year_banner_t *score_panel_year_banner(void);
 score_panel_layout_block_t *score_panel_layout_block(void);
 const entity_class_t *score_panel_layout_block_class(void);
-/* `pico8_pj_i__row`, `pico8_pj_gs_row`: never NULL. */
+/* The archetype's frame rows and countdown rows: never NULL. */
 const data_row_t *score_panel_frame_rows(void);
 const data_row_t *score_panel_countdown_rows(void);
 
-/* The panel registers itself through `lt` into `hv`, `cv.kj`, `cv.hk`,
- * `cv.hb` and no `cg`; it lives in the game-zone generation `eu` opens. Asserts when called before the
- * init. */
+/* The panel registers itself through entity_register() into the live
+ * entities and the draw, new_year and refresh message lists, under no tag;
+ * it lives in the game-zone generation cart_start_game() opens. Asserts
+ * when called before the init. */
 score_panel_t *score_panel_new(void);
 
-/* The PICO8_BZ_COUNT rows of `bz`, statics of this module: every `pj:ph()`
- * run rewrites them in place. NULL before the init and after the shutdown. */
+/* The SCORE_ROWS_COUNT score rows, statics of this module: every
+ * score_panel_update() run rewrites them in place. NULL before the init and
+ * after the shutdown. */
 score_rows_row_t *score_panel_score_rows(void);
 
-/* Never NULL: an inert placeholder until the real `_init` bridge is
- * installed, which a NULL argument resets. A button built earlier keeps
- * whichever value it captured then. */
+/* Never NULL: an inert placeholder until the real init bridge
+ * (cart_init_method) is installed, which a NULL argument resets. A button
+ * built earlier keeps whichever value it captured then. */
 button_fn_t score_panel_init_field_value(void);
 void score_panel_set_init(button_fn_t fn);
 
-/* NULL until `eu()` builds the one `pj` instance and sets it here. The
- * setter takes no ownership. */
+/* NULL until cart_start_game() builds the one panel instance and sets it
+ * here. The setter takes no ownership. */
 score_panel_t *main_score_panel(void);
 void score_panel_set_main_score_panel(score_panel_t *instance);
 

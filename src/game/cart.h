@@ -3,46 +3,50 @@
 
 #include "game/ui_button.h"
 
-/* Runs every module's init, then builds the tables the cart's top-level
- * statements build (real Lua runs them once before `_init()`), but only
- * when pico8_dispatch_mem() is set: with a NULL mem they stay unbuilt. A
- * second call, as the tests make, frees what the first built before
+/* Runs every module's init, then the game data build (data_init(): the
+ * research projects and the tech-gate flags), but only when
+ * dispatch_context_mem() is set: without PICO-8 memory they stay unbuilt.
+ * A second call, as the tests make, frees what the first built before
  * building it again, so a pointer into it taken in between dangles.
  *
  * The asserts in its body cover the ordering constraints that were found;
  * an adjacency they do not cover is not thereby free. Re-derive before
- * inserting an `_init()`. */
+ * inserting a module init. */
 void cart_load(void);
 
-/* Vide la file de sortie, apres avoir remis a nil `o_` et `gj` de l'`ok`
- * courant, `kc` et `ju.ed` qui designaient une entite rendue ; puis rend la
- * generation de la zone partie que le dernier `eu` a quittee.
- * pico8__update60(), pico8_cart_load() et pico8_cart_shutdown() l'appellent
- * en tete. */
+/* Flushes the exit queue; before each queued entity goes, clears what could
+ * still point at it: main_ui()'s hovered and previously hovered entities
+ * and the end of the slipway it holds, the shown message box, the main
+ * score panel's last box, the planets' targeted_by; a quitting difficulty
+ * becomes a copy of its fields. Then releases the game-zone generation the
+ * last cart_start_game() left, if one is pending. Called by cart_update60()
+ * after frame_zone_reset(), by cart_load() and cart_shutdown() after the
+ * live entities are abandoned, and by the replay and the tests. */
 void cart_flush_exit_queue(void);
 
-/* Frees everything pico8_cart_load() built, in reverse order. Idempotent,
- * and safe before the first pico8_cart_load(). No Lua equivalent. */
+/* Quits the game zone, then runs the shutdown of every module cart_load()
+ * initialised, in reverse order (draw_functions_init() has none).
+ * Idempotent, and safe before the first cart_load(). */
 void cart_shutdown(void);
 
-/* Requires pico8_cart_load(). */
+/* Requires cart_load(). */
 void cart_init(void);
 
-/* `_init` as a button's `my`: `self`, the button, is discarded: `_init()`
- * declares no parameter. */
+/* cart_init() as a button's on_click: the button argument is discarded. */
 void cart_init_method(button_t *self);
 
-/* Starts a game from the clicked difficulty button `nj`, which becomes `dk`
- * (borrowed, not copied); a NULL `nj` gives a NULL `dk`.
- * Requires pico8_cart_load(). */
+/* Starts a game from the clicked difficulty button, which becomes the
+ * difficulty (borrowed, not copied); a NULL button gives a NULL difficulty.
+ * Requires cart_load(). */
 void cart_start_game(button_t *nj);
 
-/* Requires pico8_cart_load() and at least one prior pico8__init()/pico8_eu();
- * a not-yet-built `ok` or `hv` is a no-op rather than an error. */
+/* Requires cart_load() and at least one prior cart_init() or
+ * cart_start_game(); a NULL main_ui() or empty live entities is a no-op
+ * rather than an error. */
 void cart_update60(void);
 
-/* Reads the cart memory through pico8_dispatch_mem(); a NULL mem makes the
- * drawing calls that need it no-ops. */
+/* Reads PICO-8 memory through dispatch_context_mem(), which must be set:
+ * clearing the screen writes through it. */
 void cart_draw(void);
 
 #endif

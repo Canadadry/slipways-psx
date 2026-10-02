@@ -1,7 +1,8 @@
-/* The score panel `pj`, built by its only road (`eu()`, `pico8_pj_new()`,
- * on a game started directly: no events file), read on its members and on
- * the class's shared `ou`/`ea`/`cr`, its defaults read on its archetype, and
- * driven through the real `mv`/`cr()`/`de.my`. */
+/* The score panel, built by its only road (cart_start_game(),
+ * score_panel_new(), on a game started directly: no events file), read on
+ * its members and on the class's shared readouts, year banner and layout
+ * block, its defaults read on its archetype, and driven through the real
+ * on_click, menu_show_tech_tree_screen() and panel toggle. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -88,7 +89,7 @@ static uint32_t is_shown_state(const score_panel_t *pj) {
     return pj->is_shown ? 2 : 1;
 }
 
-/* `ed` NULL reads as the class's `ed`, the number 1. */
+/* A NULL last_box reads as the class's default, the number 1. */
 static p8_fixed_t last_box_fixed(const score_panel_t *pj) {
     assert(pj->last_box == NULL);
     return p8_fixed_from_int(1);
@@ -138,8 +139,8 @@ static uint32_t fold_item(uint32_t h, const data_item_t *item) {
     return fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->number));
 }
 
-/* A row's items (a nested row folded the same way), then `c`, then `fn`;
- * `extra` more entries follow, the caller's. */
+/* A row's items (a nested row folded the same way), then its color, then
+ * its draw function; more entries may follow, the caller's. */
 static uint32_t fold_row_entries(uint32_t h, const data_row_t *row) {
     int i;
 
@@ -165,7 +166,7 @@ static uint32_t fold_row(uint32_t h, const data_row_t *row) {
     return fnv(fold_row_entries(h, row), (uint32_t)row_entries(row));
 }
 
-/* `ea`: its positionals, then `lh`. */
+/* The year banner: its items, then keep_open. */
 static uint32_t fold_year_banner(uint32_t h, const score_panel_year_banner_t *ea) {
     h = fold_row_entries(h, &ea->row);
     if (ea->keep_open != NULL) {
@@ -215,9 +216,9 @@ static uint32_t fold_last_box(uint32_t h, const score_panel_t *pj) {
     return fold_fixed_member(h, last_box_fixed(pj));
 }
 
-/* `cr` as the spec table it was: its entries in spec order, then their
- * count; the 0xF1 of `ca` and the 0x57 of `ep` are constant by the
- * struct's shape. */
+/* The layout block as the spec table it was: its entries in spec order,
+ * then their count; the 0xF1 of back_color and the 0x57 of description are
+ * constant by the struct's shape. */
 static uint32_t fold_tech_tree_screen(uint32_t h, const score_panel_layout_block_t *cr) {
     int count = 0;
 
@@ -261,8 +262,8 @@ static const entity_class_t *class_of(const void *e) {
     return ((const entity_t *)e)->class;
 }
 
-/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
- * reads as difficulty 0. */
+/* A game started as cart_start_game() starts it, with no difficulty picked:
+ * a NULL difficulty reads as difficulty 0. */
 static score_panel_t *start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
@@ -284,7 +285,7 @@ static const char *string_at(const data_row_t *t, int i) {
     return t->items[i - 1].text;
 }
 
-/* The 7 `ou[i][1]` as `hb` wrote them. */
+/* The first item of each of the 7 readouts, as refresh wrote them. */
 static uint32_t fold_readouts_heads(uint32_t h) {
     const score_panel_readouts_t *ou = score_panel_readouts();
     int i;
@@ -325,7 +326,8 @@ static int panel_toggle_on_click(void) {
     return score_panel_toggle_on_click()(NULL);
 }
 
-/* `pj:ph`'s second button, the one whose `my` is `de`'s. */
+/* score_panel_update()'s second button, the one whose on_click is the
+ * panel toggle's. */
 static button_t *panel_toggle_button(void) {
     const entity_list_t *hv = live_entities();
     int i;
@@ -339,9 +341,9 @@ static button_t *panel_toggle_button(void) {
     return NULL;
 }
 
-/* The game's panel as `eu()` and `lt` left it: where it registered, its
- * defaults, the names only read elsewhere, its 4 methods, and the 5 tables
- * of the class, by identity and content. */
+/* The game's panel as cart_start_game() and entity_register() left it:
+ * where it registered, its defaults, the names only read elsewhere, its 4
+ * methods, and the 5 tables of the class, by identity and content. */
 static void test_built(void) {
     uint32_t hash = 2166136261u;
     score_panel_t *ju = start_game();
@@ -377,8 +379,9 @@ static void test_built(void) {
     check("built", hash, BUILT_HASH);
 }
 
-/* A second panel shares the class's `ou`/`ea`/`cr`/`gs`/`i_` and sees what
- * `hb`/`hk` wrote into them through the first; `fa`/`ed`/`c_`/`gz` stay
+/* A second panel shares the class's readouts, year banner, layout block,
+ * countdown rows and frame rows, and sees what refresh and new_year wrote
+ * into them through the first; layer, last_box, is_shown and curtain stay
  * each panel's own. */
 static void test_shared(void) {
     uint32_t h = 2166136261u;
@@ -413,8 +416,9 @@ static void test_shared(void) {
     check("shared", h, SHARED_HASH);
 }
 
-/* `hb`; `hk` on a year with a message and two without; `cr()`; `kj` closed;
- * the game's end through `ph`, twice; `kj` open; `de.my` twice. */
+/* refresh; new_year on a year with a message and two without; the tech-tree
+ * screen; draw closed; the game's end through the update, twice; draw open;
+ * the panel toggle twice. */
 static void test_life(void) {
     uint32_t hash = 2166136261u;
     score_panel_t *score_panel = start_game();
@@ -501,8 +505,8 @@ static vec_t vec_of(const vec_t *v) {
     return *v;
 }
 
-/* A positional as the value it was sorted from folded: a row as any REF,
- * NOTHING as false (no row folded here holds a nil at the top level). */
+/* A cell as the value it was sorted from folded: a row as any REF, NOTHING
+ * as false (no row folded here holds an absent cell at the top level). */
 static uint32_t fold_cell(uint32_t h, layout_row_cell_t c) {
     switch (c.kind) {
     case LAYOUT_ROW_CELL_ROW:
@@ -516,7 +520,8 @@ static uint32_t fold_cell(uint32_t h, layout_row_cell_t c) {
     }
 }
 
-/* A row's `lq` as `js:pq` built it: its `w`, its `c`, its positional items. */
+/* A button's layout row as its construction built it: its width, its color,
+ * its items. */
 static uint32_t fold_layout_row(uint32_t h, const layout_row_t *lq) {
     int i;
 
@@ -530,8 +535,9 @@ static uint32_t fold_layout_row(uint32_t h, const layout_row_t *lq) {
     return h;
 }
 
-/* What `pz(pj.cr, bs)` left in `ok.le`: the `ep` head row, then one row per
- * tech, all at `fa` = `ca`, each with the `ra` = `hi`, `qf` stepped by `gq`. */
+/* What the tech-tree screen left in main_ui()'s ephemerals: the description
+ * head row, then one row per tech, all at the layer of the back color, each
+ * at the fixed position, its slide_target stepped by the row step. */
 static uint32_t fold_tech_tree_screen_ephemerals(uint32_t h, const char **head) {
     const entity_list_t *le;
     const layout_row_t *lq;
@@ -563,9 +569,9 @@ static uint32_t fold_tech_tree_screen_ephemerals(uint32_t h, const char **head) 
     return h;
 }
 
-/* `cr()` twice on one game, then on the next game started in the same
- * process: one shared `pj.cr`, `ep` absent until the first `cr()` and kept
- * across games, the same head row each time. */
+/* The tech-tree screen twice on one game, then on the next game started in
+ * the same process: one shared layout block, its description absent until
+ * the first screen and kept across games, the same head row each time. */
 static void test_tech_tree_screen(void) {
     uint32_t h = 2166136261u;
     const score_panel_layout_block_t *cr;
@@ -596,9 +602,9 @@ static int score_panel_year_banner_keep_open_witness(message_box_t *self) {
     return 1;
 }
 
-/* Right after the init, before any `hb`/`hk`, `ou` and `ea` hold what
- * their generated rows hold, and are copies of them; each init resets what
- * `hb`/`hk` wrote. */
+/* Right after the init, before any refresh or new_year, the readouts and
+ * the year banner hold what their generated rows hold, and are copies of
+ * them; each init resets what refresh and new_year wrote. */
 static void test_readouts_year_banner_start_as_their_rows(void) {
     score_panel_readouts_t *ou;
 
@@ -623,9 +629,10 @@ static void test_readouts_year_banner_start_as_their_rows(void) {
     assert(score_panel_readouts() == NULL && score_panel_year_banner() == NULL);
 }
 
-/* The game's panel is a struct whose descriptor holds exactly `hb`, `kj`,
- * `hk`, `ph`; it takes no construction key. `ea`, `cr`, `ou`
- * are the class's shared state; `gs`, `i_` are the generated rows. */
+/* The game's panel is a struct whose descriptor holds exactly refresh,
+ * draw, new_year and the update state; it takes no construction key. The
+ * year banner, layout block and readouts are the class's shared state; the
+ * countdown rows and frame rows are the generated rows. */
 static void test_score_panel_is_a_struct(void) {
     const entity_class_t *cls = score_panel_class();
     score_panel_t *ju = start_game();
@@ -646,9 +653,9 @@ static void test_score_panel_is_a_struct(void) {
     assert(ju->archetype->countdown_rows == &score_panel_countdown_rows_row && ju->archetype->frame_rows == &score_panel_frame_rows_row);
 }
 
-/* `pj.cr` is one static struct without method, holding `hi`,
- * `gq`, `ca` and, once `cr()` ran, `ep`; the init resets `ep`, the shutdown
- * hides it. */
+/* The layout block is one static struct without method, holding fixed_pos,
+ * row_step, back_color and, once the tech-tree screen ran, description; the
+ * init resets description, the shutdown hides the block. */
 static void test_tech_tree_screen_is_a_struct(void) {
     const entity_class_t *cls = score_panel_layout_block_class();
     score_panel_layout_block_t *cr;
@@ -679,8 +686,8 @@ static void test_tech_tree_screen_is_a_struct(void) {
     assert(score_panel_layout_block() == NULL);
 }
 
-/* Each scenario runs in a child forked right after pico8_cart_load(), as a
- * fresh process would start it: the rnd state is the same for all. */
+/* Each scenario runs in a child forked right after cart_load(), as a fresh
+ * process would start it: the random state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
     pid_t child;
     int status;
@@ -697,8 +704,9 @@ static void in_fresh_child(void (*test)(void)) {
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
 }
 
-/* `ky()` on a started game with ten techs invented and a happiness of 1:
- * no planet scores yet, so `s[5]` is the techs' part and `s[6]` its tier. */
+/* economy_score_final() on a started game with ten techs invented and a
+ * happiness of 1: no planet scores yet, so the total is the techs' part and
+ * the tier follows from it. */
 static void test_final_score_reads_invented_and_happiness(void) {
     economy_t *fm;
     final_score_t s;
@@ -717,8 +725,8 @@ static void test_final_score_reads_invented_and_happiness(void) {
     assert(s.total == p8_fixed_from_int(14) && s.tier == 0);
 }
 
-/* Item `i` (1-based) of the line that `ph` put in the box's row `k`
- * (0-based), an article `ld`. */
+/* The given item (1-based) of the line that score_panel_update() put in the
+ * box's given row (0-based), a draw_row article. */
 static layout_row_cell_t update_row_item(const message_box_t *mh, int k, int i) {
     const data_row_t *ld;
     const layout_row_t *lq;
@@ -731,8 +739,9 @@ static layout_row_cell_t update_row_item(const message_box_t *mh, int k, int i) 
     return lq->items[i - 1];
 }
 
-/* `ph` shows `ky()`: the score-5 row (box row 10) carries `s[5]`, the total,
- * and the tier row (11) lights `s[6]` of its five icons. */
+/* score_panel_update() shows economy_score_final(): the score-5 row (box
+ * row 10) carries the total, and the tier row (11) lights as many of its
+ * five icons as the tier. */
 static void test_update_rows_show_final_score(void) {
     void *ju = start_game();
     economy_t *fm = main_economy_typed();
@@ -759,8 +768,9 @@ static void test_update_rows_show_final_score(void) {
     }
 }
 
-/* `eg` on a started game: no planet is `ly` yet, so half their count is 0
- * and every pattern of `fb` gets its flag. */
+/* score_panel_refresh_palette() on a started game: no planet is settled
+ * yet, so half their count is 0 and every pattern of palette_offsets_table
+ * gets its flag. */
 static void test_refresh_palette_flags_every_palette_offsets_pattern_without_settled(void) {
     int i;
 

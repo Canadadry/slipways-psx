@@ -1,8 +1,8 @@
-/* The help screen `fv`, built by its only road (`pico8__init()` on the
- * title screen, `pico8_fv_new()`), read only through the dual-form field
- * API, its defaults read on its archetype, and driven through the
- * real `mv`/`dc`/`dg`/`lj`. Its
- * methods are compared to the public functions. No events file. */
+/* The help screen, built by its only road (cart_init() on the title screen,
+ * help_screen_new()), its defaults read on its archetype, and driven
+ * through the real on_click, draw_layers(), update_entities() and
+ * economy_recompute(). Its methods are compared to the public functions. No
+ * events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -127,8 +127,8 @@ static uint32_t fold_seq(uint32_t h, const int_seq_t *s) {
     return fnv(h, (uint32_t)s->count);
 }
 
-/* A generated row: items (a nested row folded the same way), then `c`,
- * then `fn`, then the entry count. */
+/* A generated row: items (a nested row folded the same way), then its
+ * color, then its draw function, then the entry count. */
 static uint32_t fold_row(uint32_t h, const data_row_t *row) {
     int i;
 
@@ -247,7 +247,8 @@ static void start_title(void) {
     cart_init();
 }
 
-/* The help, whatever its form: `g_`'s tags and `fa`=10 (a probe has 2). */
+/* The help, whatever its form: the probe's tags and layer 10 (a probe has
+ * 2). */
 static int is_help(entity_t *e) {
     const probe_t *g_ =
         e != NULL && (e->class->lineage & LINEAGE(LINEAGE_PROBE)) ? (const probe_t *)e : NULL;
@@ -284,11 +285,13 @@ static const button_t *as_button(const void *e) {
     return e;
 }
 
-/* The title's help as `fv:pq`, `f_`, `lt` left it: its 22 defaults and the
- * 6 of g_, their tables' contents and identity, `me`, `t`, its empty `qy`;
- * no name only read or written elsewhere; its methods; the 4 buttons `pz`
- * built before it, each carrying the `my` stamped on its `bo` row; where
- * `lt` registered it; `ok.le` emptied. */
+/* The title's help as its construction, emitter_init_in() and
+ * entity_register() left it: its 22 defaults and the 6 of the probe, their
+ * tables' contents and identity, its state and state time, its empty
+ * particles; no name only read or written elsewhere; its methods; the 4
+ * buttons message_box_open_box() built before it, each carrying the
+ * on_click stamped from its difficulty_options_table row; where
+ * entity_register() filed it; main_ui()'s ephemerals emptied. */
 static void test_built(void) {
     uint32_t hash = 2166136261u;
     const entity_list_t *live;
@@ -398,8 +401,9 @@ static void test_built(void) {
     check("built", hash, BUILT_HASH);
 }
 
-/* `dc("kj")` x3 with the screen and `qy`; `dc("ev")`; `dg` x3; `hd` in and
- * out of `kq`, `rp` retained since `fa` >= 10. */
+/* draw_layers("draw") x3 with the screen and the particles;
+ * draw_layers("draw_overlay"); update_entities() x3; hit_test in and out of
+ * the hit box, the screen cursor kept since the layer is 10 or more. */
 static void test_life(void) {
     uint32_t hash = 2166136261u;
     probe_t *fv;
@@ -441,8 +445,9 @@ static void mouse_at(int x, int y) {
     update_entities();
 }
 
-/* The mouse over "need help?": `ok.o_`, `m_`, `fg` poked at 0x5f80, the
- * help in layer `fa` of `ic`, the cursor sprite `ql`; then out, `m_` false. */
+/* The mouse over "need help?": main_ui()'s hovered, is_hovered, the GPIO
+ * signal poked at 0x5f80, the help in layer 10 of hovered_by_layer, the
+ * cursor sprite; then out, is_hovered false. */
 static void test_hover(void) {
     uint32_t h = 2166136261u;
     probe_t *fv;
@@ -477,7 +482,7 @@ static void test_hover(void) {
     check("hover", h, HOVER_HASH);
 }
 
-/* Gives back each particle of `qy` and leaves it empty. */
+/* Gives back each particle of the list and leaves it empty. */
 static void empty_particles(pointer_list_t *qy) {
     while (qy->count > 0) {
         void *particle = qy->items[0];
@@ -486,10 +491,9 @@ static void empty_particles(pointer_list_t *qy) {
     }
 }
 
-/* `eu`, as a difficulty button starts it, takes the help out of `hv`,
- * `cg.g_` and `cv.kj`/`cv.hd`. */
-/* A particle of the help is drawn in the help's own `k_`: at `l`=6.5, less
- * the frame's 0.14, index 6 is colour 9, where `g_`'s five have none. */
+/* A particle of the help is drawn in the help's own trail colors: at life
+ * 6.5, less the frame's 0.14, index 6 is colour 9, where the probe's five
+ * have none. */
 static void test_particle_takes_the_help_palette(void) {
     particle_t *particle = particle_take();
     pointer_list_t *qy;
@@ -515,6 +519,8 @@ static void test_particle_takes_the_help_palette(void) {
     assert(p8_peek(&mem, at) == help_screen_trail_colors_seq.items[5] && help_screen_trail_colors_seq.items[5] == 9);
 }
 
+/* cart_start_game(), as a difficulty button starts it, takes the help out of
+ * the live entities, the probe tag and the draw and hit_test message lists. */
 static void test_start_game_retires_the_help(void) {
     void *fv;
 
@@ -525,9 +531,9 @@ static void test_start_game_retires_the_help(void) {
     assert(!entity_list_listed(entities_by_tag("probe"), fv) && !entity_list_listed(entities_by_message("draw"), fv) && !entity_list_listed(entities_by_message("hit_test"), fv));
 }
 
-/* The title's help is a struct whose descriptor shares `g_`'s 4 inherited
- * entries and holds its own `kj`, `hd`. Ready from its init to its
- * shutdown. */
+/* The title's help is a struct whose descriptor shares the probe's 4
+ * inherited entries and holds its own draw and hit_test. Ready from its
+ * init to its shutdown. */
 static void test_help_screen_is_a_struct(void) {
     const entity_class_t *cls = help_screen_class();
     const entity_class_t *g_ = probe_class();
@@ -591,8 +597,9 @@ static void call_bob(void *e) {
     planet_bob(e, p8_fixed_from_int(1));
 }
 
-/* On NULL `self`: `d_`, `gk` return 0; `g__mm` draws three `rnd`, divides by
- * `pn` = 0 and returns a new particle; the six others do nothing. */
+/* On a NULL instance: targeting_confirm() and entity_geom_contains_cursor()
+ * return 0; probe_spawn_particle() draws three random numbers, divides by
+ * zero angle slices and returns a new particle; the six others do nothing. */
 static void test_probe_closed(void) {
     static void (*const fns[])(void *) = {call_emitter_init, call_emitter_spawn, call_emitter_update, call_probe_spawn_particle, call_targeting_track,
                                           call_targeting_tooltip, call_targeting_confirm, call_contains_cursor, call_bob};
@@ -605,8 +612,8 @@ static void test_probe_closed(void) {
     }
 }
 
-/* Each scenario runs in a child forked right after pico8_cart_load(), as a
- * fresh process would start it: the rnd state is the same for all. */
+/* Each scenario runs in a child forked right after cart_load(), as a fresh
+ * process would start it: the random state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
     pid_t child;
     int status;
@@ -640,8 +647,8 @@ static held_t held_now(void) {
     return h;
 }
 
-/* The help that `eu` takes out gives back, at the exit queue's flush, its
- * particles and its `qy_fv`, the one place of its sort. */
+/* The help that cart_start_game() takes out gives back, at the exit queue's
+ * flush, its particles and its particle list, the one slot of its sort. */
 static void test_start_game_gives_back_the_help_particles(void) {
     probe_t *fv;
     held_t title;

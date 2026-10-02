@@ -74,6 +74,8 @@
 | D-47 | 4g | `structure_icon_sprite_counter` compte des identifiants de planète, pas des sprites | 4 + 5 + 5 |
 | D-48 | 4h | Noms de test qui décrivent l'API générique disparue ou la méthode du cart (`test_ui.c`, `test_main_mouse.c`, `test_main_camera.c`) | 2 + 2 + 4 + 8 |
 | D-49 | 4i | Assistants de test qui citent un digramme du cart ou un surnom (`planet_by_ref`, `build_plate`, `fold_plate`, `is_plate`) | 2 + 6 + 3 + 3 |
+| D-50 | 4j | Locales courtes dont le nom porte un digramme du cart (`c_truthy`, `s_str`) | 2 + 3 |
+| D-51 | 4j | `spacer` qui tient un émetteur dans quatre tests de 3i | 55 |
 
 ## Entrées
 
@@ -424,6 +426,7 @@
 - **Proposition prête à appliquer** : (b), sens **à confirmer** : `qa` → `mouse_world`, `ra` → `mouse_screen` (le `main_mouse_pos` passé par `ui.c` à `hit_test` ; `mouse_pos` serait l'autre choix), `yr` → `year`, `sw` → `slipway`, `lw` → `offer`, `kv` → `dropped`, `fy` → `parallax`, `me` → `state`. Lignes `field <fonction>.<param>` de `tools/rename_overrides.tsv` et table `rename-apply` depuis une extraction fraîche. Mesuré : aucun nom proposé ne masque une locale ou un paramètre de la même fonction, ni une fonction, globale, macro ou type.
 - **Portée** : s'applique aussi aux mentions entre backticks et en commentaire ; contrôle : `grep -rnwE '(qa|ra|yr|sw|lw|kv|fy|me)' src tests` ne rend plus de paramètre de méthode.
 - **Complément (4h)** : 4h renomme les paramètres `qa`/`ra` du prototype de `ui_send_to_hovered` (`src/game/ui.h`) aux noms de sa définition, `mouse_world`/`mouse_screen` (règle de 4e : le prototype suit sa définition, dont le `pos` était une locale cryptique de portée 47) : `mouse_screen` est le nom que (b) propose pour `ra`. Les paramètres `qa`/`ra` des méthodes de la vtable (`left_press`, `right_press`, `hit_test`, `drag`…) restent tels quels.
+- **Complément (4j)** : deux prototypes d'en-tête de 3j nomment leur paramètre d'un digramme quand la définition dit le nom C : `cart_start_game(button_t *nj)` (`src/game/cart.h`, définition `chosen_option`) et `score_panel_new_year(p8_fixed_t yr)` (`src/game/score_panel_display.h`, définition `year`). Non renommés à 4j (l'amendement de 4h ne vise que le prototype d'une définition renommée) ; sous (b) ou (c), ils prennent le nom de leur définition.
 - **Verdict** :
 
 ### D-30 — `typed_main_*` des tests contre `main_*_typed`
@@ -586,6 +589,7 @@
 - **Complément (4g)** : 4g ajoute 1 ligne de cette forme (`ra` → `pos` → `icon_pos`, `test_directed` de `tests/test_structure_icon.c`) : 26 lignes en tout. `rename-table-check` sur l'extraction de l'état des chaînes de 4g : 27 708 → 27 679 (30 violations tombent, celle-ci apparaît).
 - **Complément (4h)** : 4h ajoute 3 lignes de cette forme (`ra` → `pos` → `mouse_screen`, `ui_send_to_hovered` de `src/game/ui.c` ; `p` → `pos` → `draw_pos`, `button_draw` de `src/game/ui_button.c` et son prototype de `ui_button.h`) : 29 lignes en tout. `rename-table-check` sur l'extraction de l'état des chaînes de 4h : 27 708 → 27 671 (40 violations tombent, ces 3 apparaissent).
 - **Complément (4i)** : 4i ajoute 6 lignes de cette forme (`p` → `pos` → `screen_pos` ×2, `px` → `name` → `screen_x`, `py` → `speed_factor` → `screen_y`, `burst_draw` de `src/game/planet_family.c` et son prototype de `planet_family.h` ; `ra` → `pos` → `planet_pos`, `test_burst_export_line_counts_the_outgoing_routes` de `tests/test_burst_exports_row.c` ; `p` → `pos` → `map_pos`, `test_life` de `tests/test_protostar.c`) : 35 lignes en tout. `rename-table-check` sur l'extraction de l'état des chaînes de 4i : 27 708 → 27 682 (32 violations tombent, ces 6 apparaissent).
+- **Complément (4j)** : 4j ajoute 3 lignes de cette forme (`tl` → `era` → `current_era`, `menu_show_tech_tree_screen` de `src/game/menu.c` ; `ra` → `pos` → `box_pos`, `message_box_open_box` de `src/game/message_box.c` ; `em` → `spacer` → `emitter`, `test_built` de `tests/test_help_screen.c`) : 38 lignes en tout. `rename-table-check` sur l'extraction de l'état des chaînes de 4j : 27 708 → 27 685 (26 violations tombent, ces 3 apparaissent).
 - **Verdict** :
 
 ### D-43 — Paramètres `gfx`/`mem` des fonctions de dessin
@@ -599,6 +603,7 @@
 - **Complément (4f2)** : après 4f2, `grep -rnE 'p8_graphics_t \*gfx\b' src | wc -l` 92, `'p8_memory_t \*mem\b'` 124 (`emitter_update` et `wormhole_draw` renommés, prototypes compris) ; restent à courte portée, dans les fichiers de 4f2, `targeting_tooltip` et `targeting_tooltip_show`.
 - **Complément (4h)** : après 4h, `grep -rnE 'p8_graphics_t \*gfx\b' src | wc -l` 90, `'p8_memory_t \*mem\b'` 118 (`button_draw`, `background_construct`, `ui_update_hover` renommés, prototypes compris) ; restent à courte portée, dans les fichiers de 4h, `ui_update`, `ui_draw_overlay`, `button_draw_overlay`, `background_draw`, `camera_apply`, leurs prototypes et la statique `mouse_construct`.
 - **Complément (4i)** : après 4i, `grep -rnE 'p8_graphics_t \*gfx\b' src | wc -l` 88, `'p8_memory_t \*mem\b'` 116 (`burst_draw` et son prototype renommés) ; restent à courte portée, dans les fichiers de 4i, `ascension_draw` et son prototype, et les paramètres de `setup_panel_state` (`tests/test_burst_exports_row.c`, portée 13).
+- **Complément (4j)** : après 4j, `grep -rnE 'p8_graphics_t \*gfx\b' src | wc -l` 88, `'p8_memory_t \*mem\b'` 115 (la locale `mem` de `cart_load` renommée `memory`) ; restent à courte portée, dans les fichiers de 4j, `message_box_draw_overlay`, `toast_draw`, `help_screen_draw`, `score_panel_draw` et leurs prototypes, et les locales `mem` de `cart_init`, `cart_draw`, `score_panel_refresh_palette`.
 - **Verdict** :
 
 ### D-44 — Champ `planet_inspection_panel_ctx_t.unmet_needs`, qui tient les besoins reçus
@@ -660,4 +665,24 @@
 - **Sites** (`grep` des conventions, fin de 4i) : `planet_by_ref` 2 (définition, appel), `build_plate` 6, `fold_plate` 3, `is_plate` 3 ; noms neufs : 0 site.
 - **Proposition prête à appliquer** : (a), procédure N, identités relevées dans `declarations.tsv` à la fin de 4i : `planet_by_ref	outgoing_routes_of	tests/test_burst_exports_row.c	c:test_burst_exports_row.c@F@planet_by_ref`, `build_plate	build_trading_hub	tests/test_trading_hub.c	c:test_trading_hub.c@F@build_plate`, `fold_plate	fold_trading_hub	tests/test_trading_hub.c	c:test_trading_hub.c@F@fold_plate`, `is_plate	is_trading_hub_archetype	tests/test_trading_hub.c	c:test_trading_hub.c@F@is_plate` ; les lignes de `docs/renommage.tsv` passent aux noms neufs. Renommer ne change aucun hachage (aucun nom n'est plié).
 - **Portée** : s'applique aussi aux mentions en commentaire ; le mot « plate » des commentaires de `tests/test_trading_hub.c` est déjà réécrit « trading hub » par 4i (`grep -rnw 'plate\|plates' src tests` ne rend que les trois noms). Contrôle : le `grep` des conventions sur les quatre anciens noms rend 0.
+- **Verdict** :
+
+### D-50 — Locales courtes dont le nom porte un digramme du cart
+
+- **Origine** : 4j (commit de locales, relevé des locales de `src/game/score_panel_display.c`).
+- **Question** : `c_truthy` (`score_panel_update`, portée 36 : la vérité de `is_shown`, `c_` est le digramme du champ) et `s_str` (`score_panel_update_map`, portée 62 : le texte de la note, `s` est la table des notes du cart) gardent un digramme du cart dans un nom plus long. Aucun compteur ne les voit (`c`, `truthy`, `s`, `str` passent la règle des mots ; `c_truthy` est à portée ≤ 40). Les renommer ?
+- **Options** : (a) `is_shown` (homonyme du champ `is_shown`, espace de noms à part) et `score_text`, procédure N ; (b) garder (§1 pour `c_truthy` ; `s_str` découpé en mots).
+- **Sites** (`grep` des conventions, fin de 4j) : `c_truthy` 2, `s_str` 3 ; noms neufs : `is_shown` 14 (le champ, et ses mentions en commentaire), `score_text` 0.
+- **Proposition prête à appliquer** : (a), procédure N, identités relevées dans `declarations.tsv` à la fin de 4j : `c_truthy	is_shown	src/game/score_panel_display.c	c:score_panel_display.c@9538@F@score_panel_update@c_truthy`, `s_str	score_text	src/game/score_panel_display.c	c:score_panel_display.c@4936@F@score_panel_update_map@s_str` (offsets à relever de nouveau) ; lignes `identity` de `tools/rename_overrides.tsv`, les lignes de `docs/renommage.tsv` passent aux noms neufs. Renommer ne change aucun hachage (aucun nom n'est plié). Le commentaire de `score_panel_update` (`src/game/score_panel_display.c`, dans `tools/line_coverage_reference.txt`) garde sa hauteur.
+- **Portée** : s'applique aussi aux mentions en commentaire (aucune après 4j) ; contrôle : le `grep` des conventions sur les deux anciens noms rend 0.
+- **Verdict** :
+
+### D-51 — `spacer` qui tient un émetteur dans quatre tests de 3i
+
+- **Origine** : 4j (commit de locales : `spacer` → `emitter` dans `test_built` de `tests/test_help_screen.c`, comme `fold_probe` à 4f2 ; relevé des lignes du TSV de même `ancien` et de même `nouveau`).
+- **Question** : `fold_ascension` (`tests/test_ascension.c`, portée 117), `fold_burst` (`tests/test_burst.c`, 114), `fold_protostar` (`tests/test_protostar.c`, 130) et `fold_synthesizer` (`tests/test_synthesizer.c`, 123) déclarent `const emitter_t *spacer = …->emitter` : le nom qui ment que 4f2 et 4j ont renommé ailleurs. `spacer` est aussi le champ légitime `planet_archetype_t.spacer` (la rangée d'espacement), que ces mêmes fichiers lisent. Aucun compteur ne les voit (`spacer` est un mot validé). 3i est close : les renommer ?
+- **Options** : (a) `emitter`, procédure N (lignes `em` → `spacer` → `emitter` du TSV, `ancien` gardé, D-42) ; (b) garder.
+- **Sites** (fin de 4j, mot entier hors `->spacer`) : 55 (`test_ascension.c` 12, `test_burst.c` 15, `test_protostar.c` 14, `test_synthesizer.c` 14), plus 7 lectures du champ, qui restent ; le rapport de `rename-apply` fait foi.
+- **Proposition prête à appliquer** : (a), procédure N, identités relevées dans `declarations.tsv` à la fin de 4j : `spacer	emitter	tests/test_ascension.c	c:test_ascension.c@10781@F@fold_ascension@spacer`, `spacer	emitter	tests/test_burst.c	c:test_burst.c@9384@F@fold_burst@spacer`, `spacer	emitter	tests/test_protostar.c	c:test_protostar.c@10400@F@fold_protostar@spacer`, `spacer	emitter	tests/test_synthesizer.c	c:test_synthesizer.c@10982@F@fold_synthesizer@spacer` (offsets à relever de nouveau) ; lignes `identity` de `tools/rename_overrides.tsv` ; les lignes de `docs/renommage.tsv` gardent leur `ancien` (D-42). Masquage : `emitter` est aussi un champ et une étiquette de struct, espaces de noms à part (précédent de 4f2). Renommer ne change aucun hachage (seuls des membres sont pliés).
+- **Portée** : s'applique aussi aux mentions en commentaire (aucune) ; contrôle : `grep -nP '(?<![>.])\bspacer\b' tests/test_ascension.c tests/test_burst.c tests/test_protostar.c tests/test_synthesizer.c` rend 0.
 - **Verdict** :

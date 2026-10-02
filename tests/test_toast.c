@@ -1,6 +1,7 @@
-/* The floating toast `iv`, through the real `lt`/`dg`/`dc("kj")` it goes
- * through in the game. The sequence and screen hashes were taken on the code
- * where `iv` was still a class instance and must not be re-taken. */
+/* The floating toast, through the real entity_register(), update_entities()
+ * and draw_layers("draw") it goes through in the game. The sequence and
+ * screen hashes must never be re-taken: one that moves means the player
+ * sees a different toast. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -67,7 +68,7 @@ static uint32_t draw_hash(void) {
     return screen_hash();
 }
 
-/* One toast's `kj` alone, as `dc("kj")` would place it. */
+/* One toast's draw alone, as draw_layers("draw") would place it. */
 static uint32_t draw_hash_of(const toast_t *e) {
     p8_gfx_init(&gfx);
     p8_cls(&mem);
@@ -85,9 +86,10 @@ static int entity_list_listed(const entity_list_t *list, const void *e) {
     return 0;
 }
 
-/* `jl()` again after `_init()`: `hv` holds only `mo`, `je` and `ok`, as at
- * the start of a game. The mouse `je` is put mid-screen, where a toast
- * placed off it is drawn under `mo`'s camera. */
+/* reset_world() again after cart_init(): the live entities hold only the
+ * main camera, mouse and user interface, as at the start of a game. The
+ * mouse is put mid-screen, where a toast placed off it is drawn under the
+ * main camera. */
 static void fresh_world(void) {
     vec_t *mouse = malloc(sizeof *mouse);
 
@@ -110,8 +112,9 @@ static toast_t *build(const vec_t *ra, const char *text, int color) {
     return toast_new(&keys);
 }
 
-/* Lives the toast through `dg` until it leaves `hv`, folding every tick's
- * `ra`, `l`, `t`, list membership and `dc("kj")` screen into one hash. */
+/* Lives the toast through update_entities() until it leaves the live
+ * entities, folding every tick's position, fade, state time, list
+ * membership and draw_layers("draw") screen into one hash. */
 static void live(toast_t *e, int want_ticks, uint32_t want_sequence, uint32_t want_first_draw, const char *label) {
     uint32_t h = 2166136261u;
     uint32_t first_draw;
@@ -148,21 +151,22 @@ static void live(toast_t *e, int want_ticks, uint32_t want_sequence, uint32_t wa
     assert(first_draw == want_first_draw);
 }
 
-/* `hy:lu`'s "-no money-": no `ra`, so `iv:pq` places it off `je` and `mo`. */
+/* economy_spend()'s "-no money-": no position, so toast_construct() places
+ * it off the main mouse and camera. */
 static void test_no_money_toast_lives_as_before(void) {
     fresh_world();
     live(build(NULL, "-no money-", 8), NO_MONEY_TICKS, NO_MONEY_SEQUENCE_HASH, NO_MONEY_FIRST_DRAW_HASH, "no money");
 }
 
-/* `jo:hk`'s price: the planet's own `ra` is kept. */
+/* planet_new_year()'s price: the planet's own position is kept. */
 static void test_price_toast_lives_as_before(void) {
     vec_t ra = vec_make(p8_fixed_from_int(250), p8_fixed_from_int(260));
     fresh_world();
     live(build(&ra, "+12$", 11), PRICE_TICKS, PRICE_SEQUENCE_HASH, PRICE_FIRST_DRAW_HASH, "price");
 }
 
-/* A toast alive when a wormhole is built is scanned by `mz:pq` for `fx`,
- * which it does not have. */
+/* A toast alive when a wormhole is built is scanned by its construction for
+ * a fold anchor, which it does not have. */
 static void test_wormhole_scan_skips_a_live_toast(void) {
     vec_t ra = vec_make(p8_fixed_from_int(40), p8_fixed_from_int(60));
     void *e;
@@ -176,8 +180,9 @@ static void test_wormhole_scan_skips_a_live_toast(void) {
     assert(mz->anchors->count == 0);
 }
 
-/* dg on a ke struct: the method named by `me` is called with `t`, `t` is
- * bumped on the struct itself, and a truthy `p_` takes it out of hv. */
+/* update_entities() on an entity struct: the method of its state is called
+ * with the state time, the state time is bumped on the struct itself, and a
+ * non zero is_dead takes it out of the live entities. */
 typedef struct {
     entity_t header;
     int is_dead;
@@ -222,8 +227,8 @@ static void test_update_entities_drives_a_entity_struct(void) {
     assert(f->header.state_time == p8_fixed_from_int(3));
 }
 
-/* The struct's defaults are its archetype's, whose `fa` and `v` are the
- * spec's. */
+/* The struct's defaults are its archetype's, whose layer and velocity are
+ * the spec's. */
 static void test_defaults_match_the_parsed_spec(void) {
     const toast_t *e;
 
@@ -242,8 +247,8 @@ static void test_defaults_match_the_parsed_spec(void) {
     toast_init();
 }
 
-/* Built directly or through its class, an iv is a struct that lands in hv
- * and cv.kj only. */
+/* Built directly or through its class, a toast is a struct that lands in
+ * the live entities and the draw message list only. */
 static void test_toast_is_a_struct_registered_under_draw(void) {
     const char *others[] = {"draw_overlay", "hit_test", "new_year", "refresh"};
     toast_keys_t keys = {0};
@@ -265,8 +270,8 @@ static void test_toast_is_a_struct_registered_under_draw(void) {
     }
 }
 
-/* A toast takes a place; once `dg` takes it out after its 50 ticks,
- * emptying the exit queue gives the place back. */
+/* A toast takes a slot; once update_entities() takes it out after its 50
+ * ticks, emptying the exit queue gives the slot back. */
 static void test_toast_gives_its_slot_back(void) {
     toast_t *e;
     int base;
@@ -286,8 +291,9 @@ static void test_toast_gives_its_slot_back(void) {
     assert(ui_zone_live(SLOT_KIND_TOAST) == base);
 }
 
-/* The toast's text is made in the frame zone (`ne` of `hy:lu`, `jo:hk`):
- * the toast draws it on later frames, after the zone is reset and reused. */
+/* The toast's text is made in the frame zone (the formatted price of
+ * economy_spend() and planet_new_year()): the toast draws it on later
+ * frames, after the zone is reset and reused. */
 static void test_toast_keeps_a_copy_of_its_text(void) {
     vec_t ra = vec_make(p8_fixed_from_int(250), p8_fixed_from_int(260));
     uint32_t want;
@@ -308,9 +314,10 @@ static void test_toast_keeps_a_copy_of_its_text(void) {
     assert(draw_hash_of(e) == want);
 }
 
-/* `jo:hk` hands the toast its planet's `ra`, which `na` moves in place in
- * the next `dg`, before the toast's first `ph`: the toast follows it until
- * then, and no longer after. */
+/* planet_new_year() hands the toast its planet's position, which
+ * planet_bob() moves in place in the next update_entities(), before the
+ * toast's first update: the toast follows it until then, and no longer
+ * after. */
 static void test_toast_follows_the_borrowed_pos_until_its_first_update(void) {
     vec_t *planet_pos = malloc(sizeof *planet_pos);
     toast_keys_t keys = {0};
