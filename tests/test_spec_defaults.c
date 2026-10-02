@@ -177,23 +177,23 @@ static void test_probe_defaults_and_ready(void) {
 }
 
 static void test_research_project_defaults_and_ready(void) {
-    pico8_hp_t *hp = pico8_hp_new(NULL);
+    research_project_t *hp = research_project_new(NULL);
 
-    assert(hp->def == &research_project_archetype && hp->def->row_tail == &research_project_row_tail_row);
-    assert(pico8_hp_ready());
-    pico8_research_shutdown();
-    assert(!pico8_hp_ready());
+    assert(hp->archetype == &research_project_archetype && hp->archetype->row_tail == &research_project_row_tail_row);
+    assert(research_project_ready());
+    research_shutdown();
+    assert(!research_project_ready());
 }
 
 /* `ra` starts on the archetype's vector. */
 static void test_structure_icon_defaults_and_ready(void) {
-    pico8_ie_t *ie = pico8_ie_new(NULL);
+    structure_icon_t *ie = structure_icon_new(NULL);
 
-    assert(ie->def == &structure_icon_archetype && ie->ra == &ie->def->pos);
-    assert(ie->header.state == ie->def->state && strcmp(ie->header.state, "normal") == 0 && ie->header.state_time == 0);
-    assert(pico8_ie_ready());
-    pico8_research_icon_shutdown();
-    assert(!pico8_ie_ready());
+    assert(ie->archetype == &structure_icon_archetype && ie->pos == &ie->archetype->pos);
+    assert(ie->header.state == ie->archetype->state && strcmp(ie->header.state, "normal") == 0 && ie->header.state_time == 0);
+    assert(structure_icon_ready());
+    structure_icon_shutdown();
+    assert(!structure_icon_ready());
 }
 
 /* `cr` holds the spec's record. */
@@ -214,12 +214,12 @@ static void test_score_panel_defaults_and_ready(void) {
 
 /* hy and trade: an empty spec, a root struct. */
 static void test_economy_ready(void) {
-    pico8_hy_t *hy = pico8_hy_new();
+    economy_t *hy = economy_new();
 
-    assert(hy->header.class == pico8_hy_struct_class());
-    assert(pico8_hy_ready());
-    pico8_economy_shutdown();
-    assert(!pico8_hy_ready());
+    assert(hy->header.class == economy_class());
+    assert(economy_ready());
+    economy_shutdown();
+    assert(!economy_ready());
 }
 
 static void test_trade_ready(void) {
@@ -242,10 +242,10 @@ int main(void) {
     dispatch_context_set_input(&input);
 
     assert(!trade_ready());
-    assert(!pico8_hy_ready());
-    assert(!pico8_hp_ready());
+    assert(!economy_ready());
+    assert(!research_project_ready());
     assert(!pico8_pj_ready());
-    assert(!pico8_ie_ready());
+    assert(!structure_icon_ready());
     assert(!probe_ready());
     assert(!pico8_fv_ready());
     pico8_cart_load();

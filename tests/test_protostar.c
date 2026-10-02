@@ -400,8 +400,8 @@ static uint32_t fold_protostar(uint32_t h, void *e) {
     assert(jo->archetype->spacer == &planet_spacer_row && jo->archetype->ring_colors == &planet_ring_colors_seq && jo->archetype->mood_rows == planet_mood_rows_rows &&
            jo->archetype->made_resources == &planet_made_resources_seq);
     assert(jo->production != NULL && jo->production != planet_shared_production());
-    assert(pico8_gb_at(3) != NULL);
-    assert(jo->project == pico8_gb_at(3));
+    assert(research_projects_at(3) != NULL);
+    assert(jo->project == research_projects_at(3));
     h = fold_kw(h, jo);
     h = fnv(h, (uint32_t)ents_ptrs_size(jo->slipways));
     h = fnv(h, (uint32_t)ptrs_size(jo->needs));
@@ -464,10 +464,10 @@ static uint32_t fold_ib(uint32_t h, const entity_list_t *ib) {
 /* What `bb`'s `dh`, `ib`, `gg` and `da` (qh false) give on a protostar. */
 static uint32_t fold_economy(uint32_t h, void *e) {
     entity_list_t *ib = planet_rebuild_trades(e);
-    h = fnv(h, (uint32_t)pico8_dh(e));
+    h = fnv(h, (uint32_t)economy_tiers_compute_tier(e));
     h = fold_ib(h, ib);
     h = fnv(fnv(h, 0xB0u), planet_is_colonized(e) ? 1u : 0u);
-    h = fnv(h, (uint32_t)pico8_da(e));
+    h = fnv(h, (uint32_t)planet_upkeep(e));
     return as_hj(e)->has_development_tier ? fold_fixed_member(h, as_hj(e)->development_tier) : fold_absent(h);
 }
 

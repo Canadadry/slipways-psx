@@ -106,18 +106,18 @@ static int pico8_pj_ph_lh_dispatch(pico8_mh_t *self) {
 }
 
 typedef struct {
-    const pico8_ky_t *s;
+    const final_score_t *s;
 } pico8_pj_ph_ctx_t;
 
 /* `tostr(s[i])`, in the frame zone. */
-static char *pico8_pj_ph_s_str(const pico8_ky_t *s, int i) {
+static char *pico8_pj_ph_s_str(const final_score_t *s, int i) {
     switch (i) {
     case 1:
-        return p8_tostr_fixed(frame_zone(), s->di);
+        return p8_tostr_fixed(frame_zone(), s->development);
     case 2:
-        return p8_tostr_fixed(frame_zone(), s->gl);
+        return p8_tostr_fixed(frame_zone(), s->population);
     case 3:
-        return p8_tostr_fixed(frame_zone(), s->el);
+        return p8_tostr_fixed(frame_zone(), s->technology);
     case 4:
         return p8_concat2(frame_zone(), s->happiness, "");
     case 5:
@@ -163,9 +163,9 @@ static const data_row_t *pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_ph_c
     pico8_pj_ph_set(st, 3, (data_item_t){.text = s_str});
 
     if (score_i == 0) {
-        const pico8_hy_t *fm = main_economy_typed();
-        const char *hl_str = fm != NULL && fm->has_hl && fm->hl != NULL ? fm->hl : "current score";
-        const pico8_js_t *dk = pico8_dk();
+        const economy_t *fm = main_economy_typed();
+        const char *hl_str = fm != NULL && fm->has_end_status && fm->end_status != NULL ? fm->end_status : "current score";
+        const pico8_js_t *dk = economy_score_difficulty();
         const char *px = "";
         char *piece1;
         char *piece2;
@@ -210,8 +210,8 @@ static const data_row_t *pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_ph_c
 }
 
 void pico8_pj_ph(pico8_pj_t *self) {
-    const pico8_hy_t *fm = main_economy_typed();
-    int has_hl = fm != NULL && fm->has_hl && fm->hl != NULL;
+    const economy_t *fm = main_economy_typed();
+    int has_hl = fm != NULL && fm->has_end_status && fm->end_status != NULL;
     int has_gz = self != NULL && self->has_gz;
 
     if (has_hl && !has_gz) {
@@ -275,7 +275,7 @@ void pico8_pj_ph(pico8_pj_t *self) {
         }
 
         if (c_truthy && !ed_equals_kc) {
-            pico8_ky_t s = pico8_ky();
+            final_score_t s = economy_score_final();
             pico8_bz_row_t *bz = pico8_pj_bz();
             pico8_pj_ph_ctx_t ctx;
             const data_row_t *iw[SCORE_ROWS_COUNT];

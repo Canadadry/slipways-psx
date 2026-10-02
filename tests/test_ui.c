@@ -523,8 +523,8 @@ static void test_left(void) {
         }
     }
     assert(other != NULL);
-    planet_apply_project(origin, pico8_hp_new(NULL));
-    planet_apply_project(other, pico8_hp_new(NULL));
+    planet_apply_project(origin, research_project_new(NULL));
+    planet_apply_project(other, research_project_new(NULL));
     for (i = 0; i < SETTLE_TICKS; i++) {
         update_entities();
     }
@@ -767,7 +767,7 @@ static void test_ui_held_stops_off_row(void) {
     left[3] = the_bg();
     left[4] = pico8_fv_new();
     left[5] = pico8_js_new(NULL);
-    left[6] = pico8_ie_new(NULL);
+    left[6] = structure_icon_new(NULL);
     left[7] = wormhole_too_far_target_wrapper();
     right[0] = slipway_new(NULL);
     right[1] = probe_new(NULL);
@@ -890,7 +890,7 @@ static void test_components_carried(void) {
     e[13] = synthesizer_new(NULL);
     e[14] = probe_new(NULL);
     e[15] = pico8_fv_new();
-    e[16] = pico8_ie_new(NULL);
+    e[16] = structure_icon_new(NULL);
     e[17] = pico8_pj_new();
     e[18] = pico8_qb_new();
     e[19] = slipway_new(NULL);
@@ -972,7 +972,7 @@ static void test_ke_me_by_name(void) {
     e[13] = synthesizer_new(NULL);
     e[14] = probe_new(NULL);
     e[15] = pico8_fv_new();
-    e[16] = pico8_ie_new(NULL);
+    e[16] = structure_icon_new(NULL);
     e[17] = pico8_pj_new();
     e[18] = pico8_qb_new();
     e[19] = slipway_new(NULL);
@@ -1066,7 +1066,7 @@ static void test_ke_t_by_name(void) {
     e[13] = synthesizer_new(NULL);
     e[14] = probe_new(NULL);
     e[15] = pico8_fv_new();
-    e[16] = pico8_ie_new(NULL);
+    e[16] = structure_icon_new(NULL);
     e[17] = pico8_pj_new();
     e[18] = pico8_qb_new();
     e[19] = slipway_new(NULL);

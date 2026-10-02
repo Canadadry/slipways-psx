@@ -47,13 +47,13 @@
 #define COLONY 12
 #define EXPORTER 3
 
-#define GB_COUNT 34
-#define GB_NAMED 26
-#define GB_HASH 0x537BCD0Fu
-#define DEFAULTS_HASH 0xC841FB8Au
-#define FUNCTIONS_HASH 0x538CF904u
-#define FUNCTIONS_INVENTED_HASH 0xA64C8C0Fu
-#define INSTALL_HASH 0x81BCB6CDu
+#define PROJECTS_COUNT 34
+#define PROJECTS_NAMED 26
+#define PROJECTS_HASH 0x537BCD0Fu
+#define DEFAULTS_HASH 0x4FE030B1u
+#define FUNCTIONS_HASH 0x6841C3AEu
+#define FUNCTIONS_INVENTED_HASH 0x418A4B5Eu
+#define INSTALL_HASH 0x45B1D201u
 #define BUILT_WORLD_HASH 0xDF3A48A1u
 #define HARVESTED_WORLD_HASH 0xE7F2768Cu
 
@@ -71,7 +71,7 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
     return h;
 }
 
-static int ents_rank_in(const entity_list_t *list, const void *e) {
+static int entity_list_rank_in(const entity_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -82,19 +82,19 @@ static int ents_rank_in(const entity_list_t *list, const void *e) {
 }
 
 /* The projects of `gb` by rank, in order. */
-static int gb_count(void) {
-    return pico8_gb_count();
+static int projects_count(void) {
+    return research_projects_count();
 }
 
 static void *project(int k) {
-    assert(pico8_gb_at(k) != NULL);
-    return pico8_gb_at(k);
+    assert(research_projects_at(k) != NULL);
+    return research_projects_at(k);
 }
 
 /* 1-based rank of `e` among the positional entries of `gb`, -1 when none. */
-static int gb_rank(const void *e) {
+static int projects_rank(const void *e) {
     int k;
-    for (k = 1; e != NULL && k <= gb_count(); k++) {
+    for (k = 1; e != NULL && k <= projects_count(); k++) {
         if (project(k) == e) {
             return k;
         }
@@ -135,13 +135,13 @@ static uint32_t fold_ref(uint32_t h, const void *ref, int depth) {
     if (depth <= 0) {
         return h;
     }
-    h = fnv(h, (uint32_t)ents_rank_in(live_entities(), ref));
-    return fnv(h, (uint32_t)gb_rank(ref));
+    h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), ref));
+    return fnv(h, (uint32_t)projects_rank(ref));
 }
 
 /* A want's `qe` with the bytes the frozen hashes fold for it, which the frozen
  * hashes hold: kind word 0 then the number; kind word 3 then 0xDEAD for nil. */
-static uint32_t fold_qe(uint32_t h, resource_t qe) {
+static uint32_t fold_resource(uint32_t h, resource_t qe) {
     assert(qe.kind != RESOURCE_FALSE && "a want's qe is never false");
     return qe.kind == RESOURCE_FIXED ? fnv(fnv(h, 0u), qe.number) : fnv(fnv(h, 3u), 0xDEADu);
 }
@@ -169,10 +169,10 @@ static uint32_t fold_names(uint32_t h, const str_seq_t *names) {
 
 /* Copies of the cart's `mr` and `gp` name lists of `hp`: the port has no
  * such lists, and DEFAULTS_HASH folds these. */
-static const char *const cart_mr_items[] = {"px", "lr", "fj", "ja", "i", "o", "il", "dm"};
-static const str_seq_t CART_MR = {8, cart_mr_items};
-static const char *const cart_gp_items[] = {"o", "dm"};
-static const str_seq_t CART_GP = {2, cart_gp_items};
+static const char *const cart_positions_items[] = {"name", "planet_codes", "base_cost", "production_key", "inputs", "output", "upgrade_tech", "byproduct"};
+static const str_seq_t CART_POSITIONS = {8, cart_positions_items};
+static const char *const cart_routed_positions_items[] = {"output", "byproduct"};
+static const str_seq_t CART_ROUTED_POSITIONS = {2, cart_routed_positions_items};
 
 static uint32_t fold_absent(uint32_t h) {
     return fnv(h, 0xFFFFFFFFu);
@@ -201,11 +201,11 @@ static uint32_t fold_bool_member(uint32_t h, int has, int b) {
 }
 
 /* `il` false is `has_il` with a NULL `il`. */
-static uint32_t fold_il(uint32_t h, const pico8_hp_t *b) {
-    if (!b->has_il) {
+static uint32_t fold_upgrade_tech(uint32_t h, const research_project_t *b) {
+    if (!b->has_upgrade_tech) {
         return fold_absent(h);
     }
-    return b->il == NULL ? fold_bool_member(h, 1, 0) : fold_string_member(h, b->il);
+    return b->upgrade_tech == NULL ? fold_bool_member(h, 1, 0) : fold_string_member(h, b->upgrade_tech);
 }
 
 static uint32_t fold_view_head(uint32_t h, int count) {
@@ -256,14 +256,14 @@ static uint32_t fold_row(uint32_t h, const data_row_t *row, int depth) {
         h = fold_fixed(fold_view_name(h, "c"), p8_fixed_from_int(row->color));
     }
     if (row->draw_function != NULL) {
-        h = fold_string(fold_view_name(h, "fn"), row->draw_function);
+        h = fold_string(fold_view_name(h, "draw_function"), row->draw_function);
     }
     return h;
 }
 
 /* A row's positional as the value it was sorted from folded; NOTHING as
  * false (no row folded here holds a nil at the top level). */
-static uint32_t fold_lq_item(uint32_t h, layout_row_cell_t c, int depth) {
+static uint32_t fold_layout_row_item(uint32_t h, layout_row_cell_t c, int depth) {
     switch (c.kind) {
     case LAYOUT_ROW_CELL_ROW:
         return fold_row(h, c.as.row, depth);
@@ -278,7 +278,7 @@ static uint32_t fold_lq_item(uint32_t h, layout_row_cell_t c, int depth) {
 
 /* A row folded as the frozen hashes folded its table view: its first `#fs`
  * positionals, then `c`, `bg`, `score`, `ra`, `fs`, `w`, then the rest. */
-static uint32_t fold_lq_instance(uint32_t h, const void *l) {
+static uint32_t fold_layout_row_instance(uint32_t h, const void *l) {
     const layout_row_t *lq = l;
     int k;
     int i;
@@ -293,7 +293,7 @@ static uint32_t fold_lq_instance(uint32_t h, const void *l) {
     h = fold_view_head(h, lq->items_count + (lq->has_color != 0) +
                               (lq->has_score != 0) + (lq->pos != NULL) + 2);
     for (i = 0; i < k; i++) {
-        h = fold_lq_item(fold_view_index(h, i + 1), lq->items[i], 3);
+        h = fold_layout_row_item(fold_view_index(h, i + 1), lq->items[i], 3);
     }
     if (lq->has_color) {
         h = fold_fixed(fold_view_name(h, "c"), lq->color);
@@ -302,17 +302,17 @@ static uint32_t fold_lq_instance(uint32_t h, const void *l) {
         h = fold_fixed(fold_view_name(h, "score"), lq->score);
     }
     if (lq->pos != NULL) {
-        h = fold_ref(fold_view_name(h, "ra"), lq->pos, 3);
+        h = fold_ref(fold_view_name(h, "pos"), lq->pos, 3);
     }
     /* `fs` as the frozen hashes folded the tagged list it was: REF, its tag, its count, each entry a REF. */
-    h = fnv(fnv(fold_view_name(h, "fs"), (uint32_t)REF_KIND), (uint32_t)VIEW_LIST_TAG);
+    h = fnv(fnv(fold_view_name(h, "placed_items"), (uint32_t)REF_KIND), (uint32_t)VIEW_LIST_TAG);
     h = fnv(h, (uint32_t)lq->placed_items_count);
     for (i = 0; i < lq->placed_items_count; i++) {
         h = fold_ref(h, &lq->placed_items[i], 2);
     }
     h = fold_fixed(fold_view_name(h, "w"), lq->width);
     for (i = k; i < lq->items_count; i++) {
-        h = fold_lq_item(fold_view_index(h, i + 1), lq->items[i], 3);
+        h = fold_layout_row_item(fold_view_index(h, i + 1), lq->items[i], 3);
     }
     return h;
 }
@@ -349,13 +349,13 @@ static void start_game(void) {
     pico8_eu(NULL);
 }
 
-static planet_t *as_jo(void *e) {
+static planet_t *as_planet(void *e) {
     assert(planet_is_family(e));
     return e;
 }
 
 static vec_t pos_of(void *e) {
-    const vec_t *p = as_jo(e)->map_pos;
+    const vec_t *p = as_planet(e)->map_pos;
     assert(p != NULL);
     return *p;
 }
@@ -370,7 +370,7 @@ static p8_fixed_t dist2(vec_t a, vec_t b) {
  * hovered planet off `ok.o_`), then left to settle. */
 static void built_world(void) {
     const entity_list_t *jos;
-    slipway_keys_t jc_keys = {0};
+    slipway_keys_t slipway_keys = {0};
     vec_t *mp = malloc(sizeof *mp);
     void *qu;
     void *re = NULL;
@@ -390,8 +390,8 @@ static void built_world(void) {
     planet_apply_project(qu, project(COLONY));
     planet_apply_project(re, project(EXPORTER));
 
-    jc_keys.start = qu;
-    jc = slipway_new(&jc_keys);
+    slipway_keys.start = qu;
+    jc = slipway_new(&slipway_keys);
     *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
                         vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
@@ -407,12 +407,12 @@ static void built_world(void) {
 }
 
 /* Several projects share a `px`: `gb[px]` is the last one `hp:pq` saw. */
-static void *last_with_px(const char *px) {
+static void *last_with_name(const char *px) {
     void *found = NULL;
     int k;
-    for (k = 1; k <= gb_count(); k++) {
-        const pico8_hp_t *b = project(k);
-        if (b->px != NULL && strcmp(b->px, px) == 0) {
+    for (k = 1; k <= projects_count(); k++) {
+        const research_project_t *b = project(k);
+        if (b->name != NULL && strcmp(b->name, px) == 0) {
             found = project(k);
         }
     }
@@ -422,78 +422,78 @@ static void *last_with_px(const char *px) {
 /* Every project of `gb` as `hp:pq` left it: its own fields, `i`, `lq`, the
  * class's `fk` shared by all, and `gb[px]` aliasing the last
  * project of that `px`. */
-static void test_gb(void) {
-    uint32_t h = 2166136261u;
-    uint32_t d = 2166136261u;
-    void *fk = NULL;
+static void test_projects(void) {
+    uint32_t hash = 2166136261u;
+    uint32_t hash_by_name = 2166136261u;
+    void *row_tail = NULL;
     int named = 0;
-    int k;
+    int index;
 
-    check_count("gb", gb_count(), GB_COUNT);
-    for (k = 1; k <= gb_count(); k++) {
-        named += pico8_gb_find(((const pico8_hp_t *)project(k))->px) == project(k);
+    check_count("projects", projects_count(), PROJECTS_COUNT);
+    for (index = 1; index <= projects_count(); index++) {
+        named += research_projects_find(((const research_project_t *)project(index))->name) == project(index);
     }
-    check_count("gb named", named, GB_NAMED);
+    check_count("projects named", named, PROJECTS_NAMED);
 
-    for (k = 1; k <= GB_COUNT; k++) {
-        pico8_hp_t *b = project(k);
+    for (index = 1; index <= PROJECTS_COUNT; index++) {
+        research_project_t *built = project(index);
         const pointer_list_t *i_list;
         void *found;
-        int j;
+        int inner_index;
 
-        h = fnv(h, (uint32_t)k);
-        h = fold_string_member(h, b->px);
-        h = fold_string_member(h, b->lr);
-        h = fold_fixed_member(h, b->has_fj, b->fj);
-        h = fold_string_member(h, b->ja);
-        h = fold_fixed_member(h, b->has_o, b->o);
-        h = fold_il(h, b);
-        h = fold_fixed_member(h, b->has_dm, b->dm);
-        h = fold_string_member(h, b->rr);
-        h = fold_fixed_member(h, b->has_ii, b->ii);
-        h = fold_string_member(h, b->cw);
-        h = fold_string_member(h, b->go);
-        h = fold_fixed_member(h, b->has_rn, b->rn);
-        i_list = b->i;
+        hash = fnv(hash, (uint32_t)index);
+        hash = fold_string_member(hash, built->name);
+        hash = fold_string_member(hash, built->planet_codes);
+        hash = fold_fixed_member(hash, built->has_base_cost, built->base_cost);
+        hash = fold_string_member(hash, built->production_key);
+        hash = fold_fixed_member(hash, built->has_output, built->output);
+        hash = fold_upgrade_tech(hash, built);
+        hash = fold_fixed_member(hash, built->has_byproduct, built->byproduct);
+        hash = fold_string_member(hash, built->required_tech);
+        hash = fold_fixed_member(hash, built->has_icon_sprite, built->icon_sprite);
+        hash = fold_string_member(hash, built->class_name);
+        hash = fold_string_member(hash, built->next_type);
+        hash = fold_fixed_member(hash, built->has_play_sfx, built->play_sfx);
+        i_list = built->inputs;
         assert(i_list != NULL);
-        h = fnv(h, (uint32_t)i_list->count);
-        for (j = 0; j < i_list->count; j++) {
+        hash = fnv(hash, (uint32_t)i_list->count);
+        for (inner_index = 0; inner_index < i_list->count; inner_index++) {
             resource_t qe;
-            qe = pico8_jy_qe(i_list->items[j]);
-            h = fold_qe(h, qe);
+            qe = need_resource(i_list->items[inner_index]);
+            hash = fold_resource(hash, qe);
         }
-        if (b->lq != NULL) {
-            const data_row_t *lq = b->lq;
+        if (built->layout_row != NULL) {
+            const data_row_t *lq = built->layout_row;
             /* Constant by the struct's shape, kept so that GB_HASH still
              * proves the typed reads. */
-            h = fnv(h, (uint32_t)REF_KIND);
-            assert(lq == &b->lq_own && b->has_ii);
-            for (j = 1; j <= 3; j++) {
-                h = j <= lq->count ? fold_item(h, &lq->items[j - 1], 2) : fnv(h, 0xFFFFFFFFu);
+            hash = fnv(hash, (uint32_t)REF_KIND);
+            assert(lq == &built->layout_row_own && built->has_icon_sprite);
+            for (inner_index = 1; inner_index <= 3; inner_index++) {
+                hash = inner_index <= lq->count ? fold_item(hash, &lq->items[inner_index - 1], 2) : fnv(hash, 0xFFFFFFFFu);
             }
         } else {
-            h = fnv(h, (uint32_t)FUNCTION_KIND);
-            assert(b->lq == NULL && !b->has_ii);
+            hash = fnv(hash, (uint32_t)FUNCTION_KIND);
+            assert(built->layout_row == NULL && !built->has_icon_sprite);
         }
 
-        if (k == 1) {
-            fk = (void *)b->def->row_tail;
-            assert(fk != NULL);
+        if (index == 1) {
+            row_tail = (void *)built->archetype->row_tail;
+            assert(row_tail != NULL);
         }
-        assert((void *)b->def->row_tail == fk);
-        if (b->px != NULL) {
-            found = pico8_gb_find(b->px);
+        assert((void *)built->archetype->row_tail == row_tail);
+        if (built->name != NULL) {
+            found = research_projects_find(built->name);
             assert(found != NULL);
-            assert(found == last_with_px(b->px));
-            h = fnv(h, (uint32_t)gb_rank(found));
+            assert(found == last_with_name(built->name));
+            hash = fnv(hash, (uint32_t)projects_rank(found));
         }
     }
-    assert(fk == &research_project_row_tail_row);
-    d = fold_names(d, &CART_MR);
-    d = fold_names(d, &CART_GP);
-    d = fold_row(d, fk, 2);
-    check("gb", h, GB_HASH);
-    check("mr gp fk", d, DEFAULTS_HASH);
+    assert(row_tail == &research_project_row_tail_row);
+    hash_by_name = fold_names(hash_by_name, &CART_POSITIONS);
+    hash_by_name = fold_names(hash_by_name, &CART_ROUTED_POSITIONS);
+    hash_by_name = fold_row(hash_by_name, row_tail, 2);
+    check("projects", hash, PROJECTS_HASH);
+    check("positions routed_positions row_tail", hash_by_name, DEFAULTS_HASH);
 }
 
 /* Per project: `po` as its entry in `hc`, `od`, `jb`, `lq`, and what `b.lq`
@@ -502,21 +502,21 @@ static void test_gb(void) {
 static uint32_t fold_functions(uint32_t h) {
     int k;
 
-    for (k = 1; k <= GB_COUNT; k++) {
-        pico8_hp_t *b = project(k);
-        const production_tables_entry_t *po = pico8_hp_po(b);
-        const data_row_t *jb = pico8_hp_jb(b);
-        uint32_t lq_h;
+    for (k = 1; k <= PROJECTS_COUNT; k++) {
+        research_project_t *b = project(k);
+        const production_tables_entry_t *po = research_project_production(b);
+        const data_row_t *jb = research_project_tooltip(b);
+        uint32_t layout_row_h;
 
         h = fnv(h, (uint32_t)k);
         h = fnv(h, (uint32_t)(po == NULL ? -2 : (int)(po - production_tables_table)));
-        h = fnv(h, (uint32_t)pico8_hp_od(b));
+        h = fnv(h, (uint32_t)research_project_cost(b));
         h = jb == NULL ? fnv(h, 0xDEADu) : fold_row(h, jb, 4);
-        assert((jb == NULL) == (b->has_ii != 0));
-        lq_h = fold_lq_instance(2166136261u, pico8_hp_lq(b));
-        h = fnv(h, lq_h);
-        if (b->lq == NULL) {
-            assert(fold_lq_instance(2166136261u, pico8_hp_lq(b)) == lq_h);
+        assert((jb == NULL) == (b->has_icon_sprite != 0));
+        layout_row_h = fold_layout_row_instance(2166136261u, research_project_layout_row(b));
+        h = fnv(h, layout_row_h);
+        if (b->layout_row == NULL) {
+            assert(fold_layout_row_instance(2166136261u, research_project_layout_row(b)) == layout_row_h);
         }
     }
     return h;
@@ -528,29 +528,29 @@ static void invent(const char *px) {
     technologies_entry_t *t = malloc(sizeof *t);
 
     *t = (technologies_entry_t){px, 0, NULL, 0, 0, NULL};
-    pico8_hy_kt(main_economy_typed(), t);
-    assert(pico8_oj(px));
+    economy_invent(main_economy_typed(), t);
+    assert(tech_gate_is_unlocked(px));
 }
 
 static void test_functions(void) {
     int k;
 
-    assert(main_economy_typed() == NULL && !pico8_oj("nanomaterials"));
+    assert(main_economy_typed() == NULL && !tech_gate_is_unlocked("nanomaterials"));
     start_game();
-    assert(!pico8_oj("nanomaterials"));
+    assert(!tech_gate_is_unlocked("nanomaterials"));
     check("functions", fold_functions(2166136261u), FUNCTIONS_HASH);
 
     invent("nanomaterials");
-    for (k = 1; k <= GB_COUNT; k++) {
-        const pico8_hp_t *b = project(k);
-        if (b->has_il && b->il != NULL && !pico8_oj(b->il)) {
-            invent(b->il);
+    for (k = 1; k <= PROJECTS_COUNT; k++) {
+        const research_project_t *b = project(k);
+        if (b->has_upgrade_tech && b->upgrade_tech != NULL && !tech_gate_is_unlocked(b->upgrade_tech)) {
+            invent(b->upgrade_tech);
         }
     }
     check("functions invented", fold_functions(2166136261u), FUNCTIONS_INVENTED_HASH);
 
-    assert(pico8_hp_po(NULL) == NULL && pico8_hp_od(NULL) == 0);
-    assert(pico8_hp_jb(NULL) == NULL && pico8_hp_lq(NULL) == NULL);
+    assert(research_project_production(NULL) == NULL && research_project_cost(NULL) == 0);
+    assert(research_project_tooltip(NULL) == NULL && research_project_layout_row(NULL) == NULL);
 }
 
 static vec_t *vec_ref(vec_t at) {
@@ -566,33 +566,33 @@ static vec_t vec_xy(int x, int y) {
 /* A bare planet on `id`/`p`/`ra`, `ra` offset from `mo`'s. */
 static void *new_planet(const char *id, int x, int y) {
     planet_keys_t keys;
-    const vec_t *mo_ra;
+    const vec_t *main_camera_pos;
 
     assert(pico8_mo_qb() != NULL);
-    mo_ra = pico8_mo_qb()->ra;
-    assert(mo_ra != NULL);
+    main_camera_pos = pico8_mo_qb()->ra;
+    assert(main_camera_pos != NULL);
     keys.planet_id = id;
     keys.map_pos = vec_ref(vec_xy(x / 2, y / 2));
-    keys.pos = vec_ref(vec_add(*mo_ra, vec_xy(x, y)));
+    keys.pos = vec_ref(vec_add(*main_camera_pos, vec_xy(x, y)));
     return planet_new(&keys);
 }
 
-static int with_go(const pico8_hp_t *b) {
-    return b->go != NULL;
+static int with_next_type(const research_project_t *b) {
+    return b->next_type != NULL;
 }
 
-static int with_cw(const pico8_hp_t *b) {
-    return b->cw != NULL;
+static int with_class_name(const research_project_t *b) {
+    return b->class_name != NULL;
 }
 
-static int ordinary(const pico8_hp_t *b) {
-    return b->cw == NULL && b->go == NULL && !b->has_ii;
+static int ordinary(const research_project_t *b) {
+    return b->class_name == NULL && b->next_type == NULL && !b->has_icon_sprite;
 }
 
 /* `nth` counts from 0. */
-static void *project_with(int (*match)(const pico8_hp_t *), int nth) {
+static void *project_with(int (*match)(const research_project_t *), int nth) {
     int k;
-    for (k = 1; k <= GB_COUNT; k++) {
+    for (k = 1; k <= PROJECTS_COUNT; k++) {
         void *b = project(k);
         if (match(b) && nth-- == 0) {
             return b;
@@ -603,7 +603,7 @@ static void *project_with(int (*match)(const pico8_hp_t *), int nth) {
 }
 
 /* `kw` by content: a pico8_kw_t has no tag to fold. */
-static uint32_t fold_kw(uint32_t h, const planet_t *p) {
+static uint32_t fold_production(uint32_t h, const planet_t *p) {
     const production_t *k = p->production;
 
     if (k == NULL) {
@@ -616,7 +616,7 @@ static uint32_t fold_kw(uint32_t h, const planet_t *p) {
 
 /* A planet's `jy`, folded as the frozen hashes folded the list of tables it was:
  * each want, `qe` (nil included), then `gc` when written. */
-static uint32_t fold_jy(uint32_t h, const planet_t *p) {
+static uint32_t fold_needs(uint32_t h, const planet_t *p) {
     const pointer_list_t *jy = p->needs;
     int i;
 
@@ -626,40 +626,40 @@ static uint32_t fold_jy(uint32_t h, const planet_t *p) {
     h = fnv(fnv(h, (uint32_t)REF_KIND), (uint32_t)VIEW_LIST_TAG);
     h = fnv(h, (uint32_t)jy->count);
     for (i = 0; i < jy->count; i++) {
-        const pico8_jy_t *want = jy->items[i];
+        const need_t *want = jy->items[i];
 
-        h = fold_view_head(h, 1 + (want->has_gc != 0));
-        h = fold_qe(fold_view_name(h, "resource"), pico8_jy_qe(want));
-        if (want->has_gc) {
-            h = fold_fixed(fold_view_name(h, "gc"), want->gc);
+        h = fold_view_head(h, 1 + (want->has_satisfied != 0));
+        h = fold_resource(fold_view_name(h, "resource"), need_resource(want));
+        if (want->has_satisfied) {
+            h = fold_fixed(fold_view_name(h, "satisfied"), want->satisfied);
         }
     }
     return h;
 }
 
-static uint32_t fold_planet(uint32_t h, void *e) {
-    const planet_t *p = as_jo(e);
+static uint32_t fold_planet(uint32_t hash, void *entity) {
+    const planet_t *p = as_planet(entity);
 
-    h = fnv(h, (uint32_t)gb_rank(p->project));
-    h = fnv(h, (uint32_t)(p->project != NULL));
-    h = fold_string_member(h, p->description);
-    h = fold_jy(h, p);
-    h = fold_kw(h, p);
-    h = fold_string_member(h, p->header.state);
-    h = fold_bool_member(h, (p->fold_anchor != 0), p->fold_anchor);
-    h = fold_bool_member(h, (p->is_dead != 0), p->is_dead);
-    h = fold_fixed_member(h, 1, p->shake);
-    h = p->planet_type != NULL ? fnv(h, (uint32_t)(p->planet_type - planet_types_table)) : fnv(h, 0xFFFFFFFFu);
-    return fnv(h, (uint32_t)ents_rank_in(live_entities(), p));
+    hash = fnv(hash, (uint32_t)projects_rank(p->project));
+    hash = fnv(hash, (uint32_t)(p->project != NULL));
+    hash = fold_string_member(hash, p->description);
+    hash = fold_needs(hash, p);
+    hash = fold_production(hash, p);
+    hash = fold_string_member(hash, p->header.state);
+    hash = fold_bool_member(hash, (p->fold_anchor != 0), p->fold_anchor);
+    hash = fold_bool_member(hash, (p->is_dead != 0), p->is_dead);
+    hash = fold_fixed_member(hash, 1, p->shake);
+    hash = p->planet_type != NULL ? fnv(hash, (uint32_t)(p->planet_type - planet_types_table)) : fnv(hash, 0xFFFFFFFFu);
+    return fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), p));
 }
 
 /* `hp:pq` makes a want per character of `i`, one of a character outside
  * `r` wanting no resource; `jo:lz` copies each want, never shares it. */
 static void test_wants(void) {
     project_records_entry_t ri = {0};
-    pico8_hp_keys_t keys = {0};
+    research_project_keys_t keys = {0};
     const pointer_list_t *jy;
-    pico8_hp_t *b;
+    research_project_t *b;
     void *a;
     int p;
     int k;
@@ -671,66 +671,66 @@ static void test_wants(void) {
     ri.base_cost = 1;
     ri.production_key = "z";
     ri.inputs = "pz";
-    keys.ri = &ri;
-    b = pico8_hp_new(&keys);
-    assert(b->i->count == 2 && resource_code_lookup("p", &p));
-    assert(((const pico8_jy_t *)b->i->items[0])->row.has_resource);
-    assert(((const pico8_jy_t *)b->i->items[0])->row.resource == p8_fixed_from_int(p));
-    assert(!((const pico8_jy_t *)b->i->items[1])->row.has_resource);
+    keys.record = &ri;
+    b = research_project_new(&keys);
+    assert(b->inputs->count == 2 && resource_code_lookup("p", &p));
+    assert(((const need_t *)b->inputs->items[0])->row.has_resource);
+    assert(((const need_t *)b->inputs->items[0])->row.resource == p8_fixed_from_int(p));
+    assert(!((const need_t *)b->inputs->items[1])->row.has_resource);
 
     a = new_planet("p950", 12, 16);
     planet_install_project(a, b);
-    jy = as_jo(a)->needs;
+    jy = as_planet(a)->needs;
     assert(jy != NULL && jy->count == 2);
     for (k = 0; k < 2; k++) {
-        assert(jy->items[k] != b->i->items[k]);
-        assert(memcmp(jy->items[k], b->i->items[k], sizeof(pico8_jy_t)) == 0);
+        assert(jy->items[k] != b->inputs->items[k]);
+        assert(memcmp(jy->items[k], b->inputs->items[k], sizeof(need_t)) == 0);
     }
 }
 
 static void test_install(void) {
-    uint32_t h = 2166136261u;
+    uint32_t hash = 2166136261u;
     void *plain;
-    void *a;
-    void *go_project;
+    void *first;
+    void *next_type_project;
     int nth;
 
     start_game();
     plain = project_with(ordinary, 0);
 
-    a = new_planet("p901", 10, 12);
-    planet_install_project(a, plain);
-    assert((void *)as_jo(a)->project == plain && as_jo(a)->description == NULL);
-    h = fold_planet(h, a);
+    first = new_planet("p901", 10, 12);
+    planet_install_project(first, plain);
+    assert((void *)as_planet(first)->project == plain && as_planet(first)->description == NULL);
+    hash = fold_planet(hash, first);
 
-    a = new_planet("p902", 30, 14);
-    planet_apply_project(a, plain);
-    assert((void *)as_jo(a)->project == plain);
-    h = fold_planet(h, a);
+    first = new_planet("p902", 30, 14);
+    planet_apply_project(first, plain);
+    assert((void *)as_planet(first)->project == plain);
+    hash = fold_planet(hash, first);
 
-    go_project = project_with(with_go, 0);
-    a = new_planet("p903", 50, 16);
-    planet_apply_project(a, go_project);
-    assert(as_jo(a)->planet_type != NULL);
-    h = fold_planet(h, a);
+    next_type_project = project_with(with_next_type, 0);
+    first = new_planet("p903", 50, 16);
+    planet_apply_project(first, next_type_project);
+    assert(as_planet(first)->planet_type != NULL);
+    hash = fold_planet(hash, first);
 
     for (nth = 0; nth < 2; nth++) {
         int before;
-        pico8_hp_t *cw = project_with(with_cw, nth);
-        a = new_planet(nth == 0 ? "p904" : "p905", 70 + 20 * nth, 18);
+        research_project_t *cw = project_with(with_class_name, nth);
+        first = new_planet(nth == 0 ? "p904" : "p905", 70 + 20 * nth, 18);
         before = live_entities()->count;
-        planet_apply_project(a, cw);
-        h = fold_string_member(h, cw->cw);
-        h = fnv(h, (uint32_t)(live_entities()->count - before));
-        h = fold_planet(h, a);
-        h = fold_planet(h, live_entities()->items[live_entities()->count - 1]);
+        planet_apply_project(first, cw);
+        hash = fold_string_member(hash, cw->class_name);
+        hash = fnv(hash, (uint32_t)(live_entities()->count - before));
+        hash = fold_planet(hash, first);
+        hash = fold_planet(hash, live_entities()->items[live_entities()->count - 1]);
     }
 
-    a = new_planet("p906", 110, 20);
-    planet_apply_project(a, NULL);
-    assert(as_jo(a)->project == NULL);
-    h = fold_planet(h, a);
-    check("install", h, INSTALL_HASH);
+    first = new_planet("p906", 110, 20);
+    planet_apply_project(first, NULL);
+    assert(as_planet(first)->project == NULL);
+    hash = fold_planet(hash, first);
+    check("install", hash, INSTALL_HASH);
 }
 
 /* Each planet of `cg.jo`: the rank in `gb` of its `hn`; then the screen,
@@ -744,7 +744,7 @@ static uint32_t fold_world(void) {
     pico8__draw();
     jo = entities_by_tag("planet");
     for (i = 0; jo != NULL && i < jo->count; i++) {
-        h = fnv(h, (uint32_t)gb_rank(as_jo(jo->items[i])->project));
+        h = fnv(h, (uint32_t)projects_rank(as_planet(jo->items[i])->project));
     }
     return fnv(h, screen_hash());
 }
@@ -763,7 +763,7 @@ static void test_harvested_world(void) {
     start_game();
     p = entities_by_tag("planet")->items[0];
     planet_roll_type(p);
-    planet_apply_project(p, project_with(with_cw, 1));
+    planet_apply_project(p, project_with(with_class_name, 1));
     last = live_entities()->items[live_entities()->count - 1];
     assert(last != NULL && last->class == pico8_ga_struct_class());
     for (i = 0; i < 60; i++) {
@@ -772,53 +772,53 @@ static void test_harvested_world(void) {
     check("harvested world", fold_world(), HARVESTED_WORLD_HASH);
 }
 
-static size_t octets_d_un_bloc(size_t taille) {
-    return ZONE_CELLS(taille) * sizeof(zone_cell_t);
+static size_t block_bytes(size_t size) {
+    return ZONE_CELLS(size) * sizeof(zone_cell_t);
 }
 
 /* Each project of `gb`, its list `i`, its items unless empty, its wants. */
-static size_t octets_de_gb(void) {
-    size_t octets = 0;
+static size_t projects_bytes(void) {
+    size_t bytes = 0;
     int k;
 
-    for (k = 1; k <= gb_count(); k++) {
-        const pico8_hp_t *b = project(k);
-        const int n = b->i->count;
+    for (k = 1; k <= projects_count(); k++) {
+        const research_project_t *b = project(k);
+        const int n = b->inputs->count;
 
-        octets += octets_d_un_bloc(sizeof *b) + octets_d_un_bloc(sizeof *b->i) +
-                  (size_t)n * octets_d_un_bloc(sizeof(pico8_jy_t));
+        bytes += block_bytes(sizeof *b) + block_bytes(sizeof *b->inputs) +
+                  (size_t)n * block_bytes(sizeof(need_t));
         if (n > 0) {
-            octets += octets_d_un_bloc((size_t)n * sizeof(void *));
+            bytes += block_bytes((size_t)n * sizeof(void *));
         }
     }
-    return octets;
+    return bytes;
 }
 
 /* `gb` is all the load sub-zone holds after pico8_cart_load(), each `i`
  * reserved to its exact length. */
-static void test_gb_in_chargement(void) {
+static void test_projects_in_load_zone(void) {
     int k;
 
-    for (k = 1; k <= gb_count(); k++) {
-        const pico8_hp_t *b = project(k);
-        assert(b->i->capacity == b->i->count && b->i->zone == game_zone_load_zone());
+    for (k = 1; k <= projects_count(); k++) {
+        const research_project_t *b = project(k);
+        assert(b->inputs->capacity == b->inputs->count && b->inputs->zone == game_zone_load_zone());
     }
     printf("  chargement apres pico8_cart_load : %lu\n", (unsigned long)load_zone_used());
-    assert(load_zone_used() == octets_de_gb());
+    assert(load_zone_used() == projects_bytes());
 }
 
 /* A want is taken from the zone its caller passes. */
-static void test_jy_new_in_the_zone_passed(void) {
+static void test_needs_new_in_the_zone_passed(void) {
     const p8_fixed_t qe = p8_fixed_from_int(3);
-    const size_t chargement = load_zone_used();
-    const size_t partie = game_zone_used();
-    pico8_jy_t *a = pico8_jy_new(game_zone_load_zone(), &qe);
-    pico8_jy_t *b = pico8_jy_new(game_zone(), NULL);
+    const size_t load_zone = load_zone_used();
+    const size_t game_zone_used_before = game_zone_used();
+    need_t *a = need_new(game_zone_load_zone(), &qe);
+    need_t *b = need_new(game_zone(), NULL);
 
-    assert(load_zone_used() == chargement + octets_d_un_bloc(sizeof *a));
-    assert(game_zone_used() == partie + octets_d_un_bloc(sizeof *b));
-    assert(a->row.has_resource && a->row.resource == qe && !a->has_gc);
-    assert(!b->row.has_resource && !b->has_gc);
+    assert(load_zone_used() == load_zone + block_bytes(sizeof *a));
+    assert(game_zone_used() == game_zone_used_before + block_bytes(sizeof *b));
+    assert(a->row.has_resource && a->row.resource == qe && !a->has_satisfied);
+    assert(!b->row.has_resource && !b->has_satisfied);
 }
 
 /* `gb` rebuilt from `fd` forgets the projects it held, whose memory goes
@@ -828,19 +828,19 @@ static void test_jy_new_in_the_zone_passed(void) {
 static void test_rebuild_and_shutdown(void) {
     size_t k;
 
-    pico8_research_build_gb();
-    test_gb();
+    research_build_projects();
+    test_projects();
 
-    pico8_research_shutdown();
-    assert(pico8_gb_count() == 0 && pico8_gb_at(1) == NULL && pico8_gb_find("colony") == NULL);
-    assert(!pico8_hp_ready());
-    assert(pico8_hp_fk() == &research_project_row_tail_row);
-    pico8_research_shutdown();
+    research_shutdown();
+    assert(research_projects_count() == 0 && research_projects_at(1) == NULL && research_projects_find("colony") == NULL);
+    assert(!research_project_ready());
+    assert(research_project_row_tail() == &research_project_row_tail_row);
+    research_shutdown();
 
-    pico8_research_init();
-    assert(pico8_hp_ready() && pico8_hp_fk() == &research_project_row_tail_row);
+    research_init();
+    assert(research_project_ready() && research_project_row_tail() == &research_project_row_tail_row);
     pico8_cart_load();
-    test_gb();
+    test_projects();
     k = load_zone_used();
     pico8_cart_load();
     assert(load_zone_used() == k);
@@ -895,17 +895,17 @@ static void must_abort_saying(void (*write)(void *), void *e, const char *needle
 
 static void build_with_header(void *e) {
     project_records_entry_t header = {0};
-    pico8_hp_keys_t keys = {0};
+    research_project_keys_t keys = {0};
 
     (void)e;
     header.header = "x";
-    keys.ri = &header;
-    (void)pico8_hp_new(&keys);
+    keys.record = &header;
+    (void)research_project_new(&keys);
 }
 
-static void build_with_o_missing_from_r(void *e) {
+static void build_with_output_missing_from_resource_codes(void *e) {
     project_records_entry_t ri = {0};
-    pico8_hp_keys_t keys = {0};
+    research_project_keys_t keys = {0};
 
     (void)e;
     ri.npos = 6;
@@ -915,45 +915,45 @@ static void build_with_o_missing_from_r(void *e) {
     ri.production_key = "z";
     ri.inputs = "";
     ri.output = "not a key of r";
-    keys.ri = &ri;
-    (void)pico8_hp_new(&keys);
+    keys.record = &ri;
+    (void)research_project_new(&keys);
 }
 
-static void build_with_ii_and_no_px(void *e) {
+static void build_with_icon_sprite_and_no_name(void *e) {
     project_records_entry_t ri = {0};
-    pico8_hp_keys_t keys = {0};
+    research_project_keys_t keys = {0};
 
     (void)e;
     ri.has_icon_sprite = 1;
     ri.icon_sprite = 3;
-    keys.ri = &ri;
-    (void)pico8_hp_new(&keys);
+    keys.record = &ri;
+    (void)research_project_new(&keys);
 }
 
 static void build_with_nine_positions(void *e) {
     project_records_entry_t ri = {0};
-    pico8_hp_keys_t keys = {0};
+    research_project_keys_t keys = {0};
 
     (void)e;
     ri.npos = 9;
     ri.name = "x";
-    keys.ri = &ri;
-    (void)pico8_hp_new(&keys);
+    keys.record = &ri;
+    (void)research_project_new(&keys);
 }
 
-static void build_with_no_px_string(void *e) {
+static void build_with_no_name_string(void *e) {
     project_records_entry_t ri = {0};
-    pico8_hp_keys_t keys = {0};
+    research_project_keys_t keys = {0};
 
     (void)e;
     ri.npos = 1;
-    keys.ri = &ri;
-    (void)pico8_hp_new(&keys);
+    keys.record = &ri;
+    (void)research_project_new(&keys);
 }
 
-static void build_with_no_o_number(void *e) {
+static void build_with_no_output_number(void *e) {
     project_records_entry_t ri = {0};
-    pico8_hp_keys_t keys = {0};
+    research_project_keys_t keys = {0};
 
     (void)e;
     ri.npos = 6;
@@ -962,31 +962,31 @@ static void build_with_no_o_number(void *e) {
     ri.base_cost = 1;
     ri.production_key = "z";
     ri.inputs = "";
-    keys.ri = &ri;
-    (void)pico8_hp_new(&keys);
+    keys.record = &ri;
+    (void)research_project_new(&keys);
 }
 
-static void od_on_other(void *e) {
-    (void)pico8_hp_od(e);
+static void cost_on_other(void *e) {
+    (void)research_project_cost(e);
 }
 
-static void po_on_other(void *e) {
-    (void)pico8_hp_po(e);
+static void production_on_other(void *e) {
+    (void)research_project_production(e);
 }
 
-static void jb_on_other(void *e) {
-    (void)pico8_hp_jb(e);
+static void tooltip_on_other(void *e) {
+    (void)research_project_tooltip(e);
 }
 
-static void lq_on_other(void *e) {
-    (void)pico8_hp_lq(e);
+static void layout_row_on_other(void *e) {
+    (void)research_project_layout_row(e);
 }
 
-static void lz_on_other(void *e) {
+static void install_project_on_other(void *e) {
     planet_install_project((planet_t *)entities_by_tag("planet")->items[0], e);
 }
 
-static void hu_on_other(void *e) {
+static void apply_project_on_other(void *e) {
     planet_apply_project((planet_t *)entities_by_tag("planet")->items[0], e);
 }
 
@@ -996,10 +996,10 @@ static void hu_on_other(void *e) {
  * wrong type stops its construction, and its functions
  * refuse anything that is not a project. With no key, only `fk`, an empty `i` and the `lq`
  * method. */
-static void test_hp_is_a_struct(void) {
-    const entity_class_t *cls = pico8_hp_struct_class();
-    pico8_hp_t *b = project(1);
-    pico8_hp_t *bare;
+static void test_research_project_is_a_struct(void) {
+    const entity_class_t *cls = research_project_class();
+    research_project_t *b = project(1);
+    research_project_t *bare;
     int j;
 
     assert(b != NULL && b->header.class == cls);
@@ -1010,50 +1010,50 @@ static void test_hp_is_a_struct(void) {
     for (j = 0; j < STATE_COUNT; j++) {
         assert(cls->states[j] == NULL);
     }
-    assert(pico8_hp_ready());
-    assert(b->def->row_tail != NULL && b->def->row_tail == pico8_hp_fk());
+    assert(research_project_ready());
+    assert(b->archetype->row_tail != NULL && b->archetype->row_tail == research_project_row_tail());
 
-    bare = pico8_hp_new(NULL);
+    bare = research_project_new(NULL);
     assert(bare != NULL && bare->header.class == cls);
-    assert(bare->def == &research_project_archetype && bare->def == b->def);
-    assert(bare->i != NULL && bare->i->count == 0);
-    assert(bare->lq == NULL);
-    assert(bare->px == NULL && bare->lr == NULL && !bare->has_fj && bare->ja == NULL && !bare->has_o);
-    assert(!bare->has_il && !bare->has_dm && bare->rr == NULL && !bare->has_ii && bare->cw == NULL);
-    assert(bare->go == NULL && !bare->has_rn);
+    assert(bare->archetype == &research_project_archetype && bare->archetype == b->archetype);
+    assert(bare->inputs != NULL && bare->inputs->count == 0);
+    assert(bare->layout_row == NULL);
+    assert(bare->name == NULL && bare->planet_codes == NULL && !bare->has_base_cost && bare->production_key == NULL && !bare->has_output);
+    assert(!bare->has_upgrade_tech && !bare->has_byproduct && bare->required_tech == NULL && !bare->has_icon_sprite && bare->class_name == NULL);
+    assert(bare->next_type == NULL && !bare->has_play_sfx);
 
     start_game();
     must_abort(build_with_header, NULL);
-    must_abort(build_with_o_missing_from_r, NULL);
-    must_abort(build_with_ii_and_no_px, NULL);
+    must_abort(build_with_output_missing_from_resource_codes, NULL);
+    must_abort(build_with_icon_sprite_and_no_name, NULL);
     must_abort_saying(build_with_nine_positions, NULL, "hp: fd has eight positions");
-    must_abort(build_with_no_px_string, NULL);
-    must_abort(build_with_no_o_number, NULL);
-    must_abort(od_on_other, pico8_ok());
-    must_abort(po_on_other, pico8_ok());
-    must_abort(jb_on_other, pico8_ok());
-    must_abort(lq_on_other, pico8_ok());
-    must_abort(lz_on_other, pico8_ok());
-    must_abort(hu_on_other, pico8_ok());
+    must_abort(build_with_no_name_string, NULL);
+    must_abort(build_with_no_output_number, NULL);
+    must_abort(cost_on_other, pico8_ok());
+    must_abort(production_on_other, pico8_ok());
+    must_abort(tooltip_on_other, pico8_ok());
+    must_abort(layout_row_on_other, pico8_ok());
+    must_abort(install_project_on_other, pico8_ok());
+    must_abort(apply_project_on_other, pico8_ok());
 }
 
 /* `gb[px]` is the last project `hp:pq` registered under that `px`, even one
  * `build_gb` did not make; `gb[k]` keeps its own. */
-static void test_gb_px_is_the_last_registered(void) {
-    pico8_hp_t *first = project(1);
-    pico8_hp_keys_t keys = {0};
-    pico8_hp_t *again;
+static void test_projects_name_is_the_last_registered(void) {
+    research_project_t *first = project(1);
+    research_project_keys_t keys = {0};
+    research_project_t *again;
     int i;
 
-    for (i = 0; keys.ri == NULL; i++) {
+    for (i = 0; keys.record == NULL; i++) {
         assert(i < PROJECT_RECORDS_COUNT);
-        if (project_records_table[i].header == NULL && strcmp(project_records_table[i].name, first->px) == 0) {
-            keys.ri = &project_records_table[i];
+        if (project_records_table[i].header == NULL && strcmp(project_records_table[i].name, first->name) == 0) {
+            keys.record = &project_records_table[i];
         }
     }
-    again = pico8_hp_new(&keys);
-    assert(again != first && pico8_gb_find(first->px) == again);
-    assert(pico8_gb_at(1) == first && pico8_gb_count() == GB_COUNT);
+    again = research_project_new(&keys);
+    assert(again != first && research_projects_find(first->name) == again);
+    assert(research_projects_at(1) == first && research_projects_count() == PROJECTS_COUNT);
 }
 
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
@@ -1085,18 +1085,18 @@ int main(void) {
     dispatch_context_set_input(&input);
 
     pico8_cart_load();
-    in_fresh_child(test_gb);
+    in_fresh_child(test_projects);
     in_fresh_child(test_functions);
     in_fresh_child(test_install);
     in_fresh_child(test_wants);
     in_fresh_child(test_built_world);
     in_fresh_child(test_harvested_world);
-    in_fresh_child(test_hp_is_a_struct);
-    in_fresh_child(test_gb_px_is_the_last_registered);
+    in_fresh_child(test_research_project_is_a_struct);
+    in_fresh_child(test_projects_name_is_the_last_registered);
     in_fresh_child(test_rebuild_and_shutdown);
-    in_fresh_child(test_gb_in_chargement);
-    in_fresh_child(test_jy_new_in_the_zone_passed);
+    in_fresh_child(test_projects_in_load_zone);
+    in_fresh_child(test_needs_new_in_the_zone_passed);
 
-    printf("test_pico8_hp: all tests passed\n");
+    printf("test_research_project: all tests passed\n");
     return 0;
 }

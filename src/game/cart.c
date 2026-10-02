@@ -72,7 +72,7 @@ void pico8_cart_load(void) {
     pico8_mh_init();
     pico8_iv_init();
     probe_init();
-    pico8_economy_init();
+    economy_init();
 
     mem = dispatch_context_mem();
     if (mem != NULL) {
@@ -92,7 +92,7 @@ void pico8_cart_load(void) {
     pico8_help_init();
     assert(pico8_fv_ready() && probe_ready() && "fv extends g_: pico8_probe_init() must run first");
     pico8_score_panel_init();
-    pico8_research_icon_init();
+    structure_icon_init();
     pico8_menu_init();
 
     pico8_help_set_eu(pico8_eu);
@@ -122,7 +122,7 @@ static void oublier(const entity_t *e) {
     if (ju != NULL && (const entity_t *)ju->ed == e) {
         ju->ed = NULL;
     }
-    pico8_economy_dk_quitte(e);
+    economy_score_difficulty_quits(e);
     planet_forget_targeted_by(e);
 }
 
@@ -143,7 +143,7 @@ void pico8_cart_vider_file_sortie(void) {
 void pico8_cart_shutdown(void) {
     quitter_partie();
     pico8_menu_shutdown();
-    pico8_research_icon_shutdown();
+    structure_icon_shutdown();
     pico8_score_panel_shutdown();
     pico8_help_shutdown();
 
@@ -155,7 +155,7 @@ void pico8_cart_shutdown(void) {
 
     data_init_data_shutdown();
 
-    pico8_economy_shutdown();
+    economy_shutdown();
     probe_shutdown();
     pico8_iv_shutdown();
     pico8_mh_shutdown();
@@ -175,7 +175,7 @@ void pico8_cart_shutdown(void) {
 void pico8__init(void) {
     p8_memory_t *mem = dispatch_context_mem();
 
-    assert(pico8_ie_ready() && "pico8_cart_load() must run before _init()");
+    assert(structure_icon_ready() && "pico8_cart_load() must run before _init()");
     assert(pico8_eu_field_value() == pico8_eu &&
            pico8_init_field_value() == pico8_init_dispatch &&
            "pico8_help_init()/pico8_score_panel_init() reset these bridges, so pico8_cart_load() must "
@@ -186,7 +186,7 @@ void pico8__init(void) {
 
     /* `ie.gy,kc=ie.eh`: Lua pads the extra name with nil, so `gy` takes `eh`
      * and `kc` is cleared. `gy` aliases `eh`'s vector, it is not a copy. */
-    pico8_ie_set_gy(pico8_ie_eh());
+    structure_icon_set_cursor(structure_icon_rest_cursor());
     pico8_msgbox_set_kc(NULL);
 
     (void)pico8_fv_new();
@@ -203,9 +203,9 @@ void pico8_eu(pico8_js_t *nj) {
     const entity_kind_t *gx[7];
     int i;
 
-    assert(pico8_hy_ready() && pico8_qh_ready() && "pico8_cart_load() must run before eu()");
+    assert(economy_ready() && pico8_qh_ready() && "pico8_cart_load() must run before eu()");
 
-    pico8_economy_set_dk(nj);
+    economy_score_set_difficulty(nj);
     game_zone_flip();
 
     /* `jl()` runs a second time here, as in the cart: it unconditionally
@@ -214,7 +214,7 @@ void pico8_eu(pico8_js_t *nj) {
     (void)pico8_bg_new();
     galaxy_populate(p8_fixed_from_int(90));
 
-    probe_set_main_economy((entity_t *)pico8_hy_new());
+    probe_set_main_economy((entity_t *)economy_new());
     pico8_pj_set_ju(pico8_pj_new());
 
     if (pico8_ha_pz() != NULL) {
@@ -234,15 +234,15 @@ void pico8_eu(pico8_js_t *nj) {
     gx[6] = pico8_hj_kind();
 
     for (i = 0; i < 7; i++) {
-        pico8_ie_keys_t keys = {0};
+        structure_icon_keys_t keys = {0};
 
-        keys.ke = gx[i];
-        keys.jb = tooltip_new(game_zone(), &icon_tooltips_table[i]);
-        (void)pico8_ie_new(&keys);
+        keys.kind = gx[i];
+        keys.tooltip = tooltip_new(game_zone(), &icon_tooltips_table[i]);
+        (void)structure_icon_new(&keys);
     }
 
     assert(main_economy_typed() != NULL && "fm must be the hy of this game before fm:lj()");
-    pico8_hy_lj(main_economy_typed());
+    economy_recompute(main_economy_typed());
 }
 
 /* Ici et pas dans un pilote : rejeu, raylib, couverture et TU passent tous

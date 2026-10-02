@@ -177,19 +177,19 @@ static void test_technologies_lookup_finds_each_name(void) {
 
 /* Keys floored as Lua indexes a table, one entry per key, insertion order. */
 static void test_resource_map_keeps_one_entry_per_key_in_order(void) {
-    pico8_qe_map_t map = {0, {{0, 0}}};
+    resource_map_t map = {0, {{0, 0}}};
     p8_fixed_t v = 0x1234;
 
-    assert(!pico8_qe_map_get(&map, p8_fixed_from_int(21), &v) && v == 0x1234);
-    pico8_qe_map_set(&map, p8_fixed_from_int(21), p8_fixed_from_int(3));
-    pico8_qe_map_set(&map, p8_fixed_from_int(12), p8_fixed_from_int(5));
-    pico8_qe_map_set(&map, p8_fixed_from_int(21), p8_fixed_from_int(7));
-    assert(map.count == 2 && map.entries[0].qe == 21 && map.entries[1].qe == 12);
-    assert(pico8_qe_map_get(&map, p8_fixed_from_int(21), &v) && v == p8_fixed_from_int(7));
-    assert(pico8_qe_map_get(&map, p8_fixed_from_int(12) + 0x8000, &v) && v == p8_fixed_from_int(5));
-    assert(!pico8_qe_map_get(&map, p8_fixed_from_int(13), &v) && v == p8_fixed_from_int(5));
-    pico8_qe_map_set(&map, p8_fixed_from_int(99) + 0x4000, p8_fixed_from_int(1));
-    assert(map.count == 3 && map.entries[2].qe == 99);
+    assert(!resource_map_get(&map, p8_fixed_from_int(21), &v) && v == 0x1234);
+    resource_map_set(&map, p8_fixed_from_int(21), p8_fixed_from_int(3));
+    resource_map_set(&map, p8_fixed_from_int(12), p8_fixed_from_int(5));
+    resource_map_set(&map, p8_fixed_from_int(21), p8_fixed_from_int(7));
+    assert(map.count == 2 && map.entries[0].resource == 21 && map.entries[1].resource == 12);
+    assert(resource_map_get(&map, p8_fixed_from_int(21), &v) && v == p8_fixed_from_int(7));
+    assert(resource_map_get(&map, p8_fixed_from_int(12) + 0x8000, &v) && v == p8_fixed_from_int(5));
+    assert(!resource_map_get(&map, p8_fixed_from_int(13), &v) && v == p8_fixed_from_int(5));
+    resource_map_set(&map, p8_fixed_from_int(99) + 0x4000, p8_fixed_from_int(1));
+    assert(map.count == 3 && map.entries[2].resource == 99);
 }
 
 static void test_int_seq_has_fixed_keeps_contains_on_integers(void) {

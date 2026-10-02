@@ -247,7 +247,7 @@ static void *icon_of(const entity_kind_t *kind) {
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i];
-        if (cls_of(e) == pico8_ie_struct_class() && ((const pico8_ie_t *)e)->ke == kind) {
+        if (cls_of(e) == structure_icon_class() && ((const structure_icon_t *)e)->kind == kind) {
             return e;
         }
     }
@@ -407,8 +407,8 @@ static uint32_t fold_synthesizer(uint32_t h, void *e) {
     assert(jo->archetype->spacer == &planet_spacer_row && jo->archetype->ring_colors == &planet_ring_colors_seq && jo->archetype->mood_rows == planet_mood_rows_rows &&
            jo->archetype->made_resources == &planet_made_resources_seq);
     assert(jo->production != NULL && jo->production != planet_shared_production());
-    assert(pico8_gb_at(5) != NULL);
-    assert(jo->project == pico8_gb_at(5));
+    assert(research_projects_at(5) != NULL);
+    assert(jo->project == research_projects_at(5));
     h = fold_kw(h, jo);
     h = fnv(h, (uint32_t)ents_ptrs_size(jo->slipways));
     h = fnv(h, (uint32_t)ptrs_size(jo->needs));
@@ -441,7 +441,7 @@ static void test_built(void) {
 }
 
 static void set_credits(int n) {
-    main_economy_typed()->nz = p8_fixed_from_int(n);
+    main_economy_typed()->credits = p8_fixed_from_int(n);
 }
 
 static uint32_t fold_ra_y(uint32_t h, const planet_t *hj) {
@@ -471,10 +471,10 @@ static uint32_t fold_ib(uint32_t h, const entity_list_t *ib) {
 /* What `bb`'s `dh`, `ib`, `gg` and `da` (qh false) give on a synthesizer. */
 static uint32_t fold_economy(uint32_t h, void *e) {
     entity_list_t *ib = planet_rebuild_trades(e);
-    h = fnv(h, (uint32_t)pico8_dh(e));
+    h = fnv(h, (uint32_t)economy_tiers_compute_tier(e));
     h = fold_ib(h, ib);
     h = fnv(fnv(h, 0xB0u), planet_is_colonized(e) ? 1u : 0u);
-    h = fnv(h, (uint32_t)pico8_da(e));
+    h = fnv(h, (uint32_t)planet_upkeep(e));
     return as_hj(e)->has_development_tier ? fold_fixed_member(h, as_hj(e)->development_tier) : fold_absent(h);
 }
 
@@ -555,11 +555,11 @@ static void *join(void *qu, void *synthesizer) {
  * count of suppliers. */
 static void give_row(void *e, int qe) {
     p8_fixed_t want_qe = p8_fixed_from_int(qe);
-    pico8_jy_t *row = pico8_jy_new(game_zone(), &want_qe);
+    need_t *row = need_new(game_zone(), &want_qe);
     pointer_list_t *jy = malloc(sizeof *jy);
 
-    row->has_gc = 1;
-    row->gc = p8_fixed_from_int(0);
+    row->has_satisfied = 1;
+    row->satisfied = p8_fixed_from_int(0);
     pointer_list_init(jy, &heap_allocator);
     pointer_list_add(jy, row);
     as_hj(e)->needs = jy;

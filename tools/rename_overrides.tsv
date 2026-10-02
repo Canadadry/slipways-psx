@@ -728,6 +728,11 @@ name	probe_host_set_ra_p	probe_host_set_positions	ra
 name	pico8_probe_ui_hw_call	probe_panel_box_contains	hw
 name	pico8_jy_new	need_new	jy
 name	pico8_jy_qe	need_resource	jy
+name	pico8_ky	economy_score_final	
+name	pico8_db	economy_score_trade_income	
+name	pico8_economy_set_dk	economy_score_set_difficulty	
+name	pico8_economy_dk_quitte	economy_score_difficulty_quits	
+name	pico8_jo_ex	research_display_planet_resource_row	jo
 name	pico8_de_my	score_panel_toggle_on_click	de
 name	pico8_pj_de_js_my_dispatch	score_panel_toggle_button_on_click_method	de
 name	pico8_pj_de_my_dispatch	score_panel_toggle_on_click_method	de

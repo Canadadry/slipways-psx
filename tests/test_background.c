@@ -414,7 +414,7 @@ static void test_gv(void) {
     down_t r;
 
     start_game();
-    planet_apply_project((planet_t *)entities_by_tag("planet")->items[0], pico8_hp_new(NULL));
+    planet_apply_project((planet_t *)entities_by_tag("planet")->items[0], research_project_new(NULL));
     bg = the_bg();
     ly = first_jo_with_me("settled");
     assert(ly != NULL);

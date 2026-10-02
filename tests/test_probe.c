@@ -195,8 +195,8 @@ static uint32_t fold_defaults(uint32_t h, const probe_t *g_) {
     return fold_fixed_member(h, em->base_radius);
 }
 
-static const pico8_hy_t *typed_main_economy(void) {
-    const pico8_hy_t *hy = main_economy_typed();
+static const economy_t *typed_main_economy(void) {
+    const economy_t *hy = main_economy_typed();
     assert(hy != NULL);
     return hy;
 }
@@ -611,7 +611,7 @@ static void test_drop_on(void) {
     h = fold_string_member(h, a->header.state);
     h = fold_fixed_member(h, a->header.state_time);
     h = fold_is_dead(h, a);
-    h = fold_fixed_member(h, typed_main_economy()->nz);
+    h = fold_fixed_member(h, typed_main_economy()->credits);
     check("drop on", h, DROP_ON_HASH);
 }
 
@@ -631,7 +631,7 @@ static void test_drop_off(void) {
     assert(a->header.state_time == p8_fixed_from_int(0));
     h = fold_string_member(h, a->header.state);
     h = fold_fixed_member(h, a->header.state_time);
-    h = fold_fixed_member(h, typed_main_economy()->nz);
+    h = fold_fixed_member(h, typed_main_economy()->credits);
     check("drop off", h, DROP_OFF_HASH);
 }
 
@@ -651,13 +651,13 @@ static void test_drop_void(void) {
     assert(target_kind(a) == 4);
     assert(target_targeted_by(a) == a);
     assert(!a->is_dead);
-    nz = typed_main_economy()->nz;
+    nz = typed_main_economy()->credits;
     me = a->header.state;
     assert(class_of(a)->drop == targeting_confirm_method);
     out = targeting_confirm(&a->header);
     assert(out == 0);
     assert(a->is_dead);
-    assert(typed_main_economy()->nz == nz);
+    assert(typed_main_economy()->credits == nz);
     assert(a->header.state == me);
     assert(target_kind(a) == 4);
     printf("[drop void] refused\n");

@@ -95,16 +95,16 @@ static void assert_links(const entity_t *h, entity_t want) {
 /* Non-carriers, one per constructor that does not go through ke; the mouse
  * point, which `jc:hq` builds, has its own test below. */
 static void test_non_carriers_have_null_links(void) {
-    pico8_ie_t *ie = pico8_ie_new(NULL);
-    pico8_ie_ke_t view = pico8_ie_ke_view(ie);
+    structure_icon_t *ie = structure_icon_new(NULL);
+    structure_icon_kind_t view = structure_icon_kind_view(ie);
     pico8_nf_t *nf = pico8_nf_new();
     layout_row_t *lq = layout_row_new(&heap_allocator, NULL);
 
     assert_links(&nf->header, (entity_t){.pos = (const vec_t *const *)&nf->ra});
     assert_links(&lq->header, (entity_t){.pos = &lq->pos});
     assert_links(&tooltip_new(&heap_allocator, NULL)->header, (entity_t){0});
-    assert_links(&pico8_hp_new(NULL)->header, (entity_t){0});
-    assert_links(&pico8_hy_new()->header, (entity_t){0});
+    assert_links(&research_project_new(NULL)->header, (entity_t){0});
+    assert_links(&economy_new()->header, (entity_t){0});
     assert_links(&trade_new(game_zone(), NULL)->header, (entity_t){0});
     assert_links(&view.header, (entity_t){0});
 }
@@ -114,7 +114,7 @@ static void test_non_carriers_have_null_links(void) {
 static void test_carriers_link_their_storage(void) {
     pico8_bg_t *background = pico8_bg_new();
     pico8_js_t *button = pico8_js_new(NULL);
-    pico8_ie_t *structure_icon = pico8_ie_new(NULL);
+    structure_icon_t *structure_icon = structure_icon_new(NULL);
     pico8_js_keys_t with_gpio_signal = {.has_fg = 1};
     pico8_js_t *button_gpio_signal = pico8_js_new(&with_gpio_signal);
     pico8_fq_t *modal_backdrop = pico8_fq_new(NULL);
@@ -135,7 +135,7 @@ static void test_carriers_link_their_storage(void) {
                  (entity_t){
                      .layer = &button_gpio_signal->fa, .pos = &button_gpio_signal->ra, .hit_box = button_gpio_signal->header.hit_box, .gpio_signal = &button_gpio_signal->fg, .is_hovered = &button_gpio_signal->m_});
     assert_links(&structure_icon->header,
-                 (entity_t){.layer = &structure_icon->def->layer, .pos = &structure_icon->ra, .hit_box = &structure_icon->def->hit_box, .is_hovered = &structure_icon->m_});
+                 (entity_t){.layer = &structure_icon->archetype->layer, .pos = &structure_icon->pos, .hit_box = &structure_icon->archetype->hit_box, .is_hovered = &structure_icon->is_hovered});
     assert_links(&modal_backdrop->header, (entity_t){.layer = &modal_backdrop->def->layer, .is_dead = &modal_backdrop->p_, .is_hovered = &modal_backdrop->m_});
     assert_links(&built_ui->header, (entity_t){.layer = &built_ui->def->layer, .cursor_sprite = &built_ui->def->cursor_sprite});
     assert_links(&camera->header, (entity_t){.pos = &camera->ra, .map_pos = &camera->p, .shake = &camera->ma});

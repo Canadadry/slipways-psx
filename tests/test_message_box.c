@@ -429,12 +429,12 @@ static void test_year_box_keeps_its_label(void) {
 static void test_largest_scores_box_fits_its_place(void) {
     static pico8_js_t challenging;
     pico8_pj_t *ju = game_ju();
-    const pico8_js_t *dk = pico8_dk();
+    const pico8_js_t *dk = economy_score_difficulty();
 
     challenging.px = "challenging";
-    pico8_economy_set_dk(&challenging);
-    main_economy_typed()->hl = NULL;
-    main_economy_typed()->has_hl = 0;
+    economy_score_set_difficulty(&challenging);
+    main_economy_typed()->end_status = NULL;
+    main_economy_typed()->has_end_status = 0;
     main_economy_typed()->happiness = P8_FIXED_LIT(0x80000007, -32767.9999);
     main_economy_typed()->has_happiness = 1;
     ju->gz = p8_fixed_from_int(0);
@@ -442,7 +442,7 @@ static void test_largest_scores_box_fits_its_place(void) {
     set_c_(ju, 1);
     pico8_pj_ph(ju);
     assert(pico8_kc() != NULL && ju->ed == pico8_kc());
-    pico8_economy_set_dk(dk);
+    economy_score_set_difficulty(dk);
 }
 
 int main(void) {

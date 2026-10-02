@@ -1,5 +1,5 @@
-#ifndef PICO8_ECONOMY_FORMULAS_H
-#define PICO8_ECONOMY_FORMULAS_H
+#ifndef GAME_ECONOMY_FORMULAS_H
+#define GAME_ECONOMY_FORMULAS_H
 
 #include "p8/fixed.h"
 #include "game/map_tables.h"
@@ -10,31 +10,31 @@
  * no-op. */
 
 /* `r`'s 13 resources and at most 3 more. */
-enum { PICO8_QE_MAP_CAP = RESOURCE_CODE_COUNT + 3 };
+enum { RESOURCE_MAP_CAP = RESOURCE_CODE_COUNT + 3 };
 
 /* A table keyed by resource (`qe`, floored to an integer as Lua indexes
  * it), entries in insertion order. */
 typedef struct {
     int count;
     struct {
-        int qe;
-        p8_fixed_t v;
-    } entries[PICO8_QE_MAP_CAP];
-} pico8_qe_map_t;
+        int resource;
+        p8_fixed_t value;
+    } entries[RESOURCE_MAP_CAP];
+} resource_map_t;
 
 /* Returns 1 and writes *out when `qe` is a key, 0 and leaves *out untouched
  * otherwise. */
-int pico8_qe_map_get(const pico8_qe_map_t *map, p8_fixed_t qe, p8_fixed_t *out);
-void pico8_qe_map_set(pico8_qe_map_t *map, p8_fixed_t qe, p8_fixed_t v);
+int resource_map_get(const resource_map_t *map, p8_fixed_t qe, p8_fixed_t *out);
+void resource_map_set(resource_map_t *map, p8_fixed_t qe, p8_fixed_t v);
 
 /* Empties `out` first: every `qe` VALUE of `r` (not `r`'s keys) mapped to
  * `jm`. */
-void pico8_cm(pico8_qe_map_t *out, p8_fixed_t jm);
+void economy_formulas_fill_resource_map(resource_map_t *out, p8_fixed_t jm);
 
 /* `#(to.p-pb.p)` is the SQUARED distance, not the Euclidean one. */
-p8_fixed_t pico8_dj(vec_t pb_p, vec_t to_p);
+p8_fixed_t economy_formulas_route_base_cost(vec_t from_pos, vec_t to_pos);
 
 /* An absent `cg.jc` counts as zero slipways. */
-p8_fixed_t pico8_bk(void);
+p8_fixed_t economy_formulas_cost_scale(void);
 
 #endif

@@ -211,7 +211,7 @@ static int case_difficulty_outlives_its_button(void) {
     pico8_eu(nj);
     pico8__update60();
     pico8__draw();
-    const pico8_js_t *dk = pico8_dk();
+    const pico8_js_t *dk = economy_score_difficulty();
     assert(dk != NULL && dk->px == px && dk->has_trade && dk->trade == trade && dk->has_en && dk->en == en);
     return 0;
 }

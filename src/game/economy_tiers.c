@@ -16,9 +16,9 @@ static p8_fixed_t fixed_min(p8_fixed_t a, p8_fixed_t b) {
     return (a < b) ? a : b;
 }
 
-typedef void (*cg_visit_fn)(entity_t *e, void *ctx);
+typedef void (*entities_by_tag_visit_fn_t)(entity_t *e, void *ctx);
 
-static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
+static void for_each_tagged(const char *tag, entities_by_tag_visit_fn_t fn, void *ctx) {
     const entity_list_t *list = entities_by_tag(tag);
     entity_list_iter_t it;
     entity_t *e;
@@ -33,7 +33,7 @@ static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
     }
 }
 
-static void bd_reset_visit(entity_t *pt, void *ctx) {
+static void rebuild_incoming_routes_reset_visit(entity_t *pt, void *ctx) {
     planet_t *jo;
     entity_list_t *cc;
     (void)ctx;
@@ -51,44 +51,44 @@ static void bd_reset_visit(entity_t *pt, void *ctx) {
     jo->incoming_routes = cc;
 }
 
-static void bd_route_visit(entity_t *pt, void *ctx) {
-    planet_t *jo;
-    entity_list_t *by;
-    entity_list_iter_t it;
-    entity_t *e;
+static void rebuild_incoming_routes_route_visit(entity_t *entity, void *ctx) {
+    planet_t *from_planet;
+    entity_list_t *outgoing;
+    entity_list_iter_t iter;
+    entity_t *element;
     (void)ctx;
-    if (pt == NULL) {
+    if (entity == NULL) {
         return;
     }
 
-    assert(planet_is_family(pt) && "ib: pt is a planet of cg.jo");
-    jo = (planet_t *)pt;
-    by = planet_rebuild_trades(jo);
-    jo->outgoing_routes = by;
+    assert(planet_is_family(entity) && "ib: pt is a planet of cg.jo");
+    from_planet = (planet_t *)entity;
+    outgoing = planet_rebuild_trades(from_planet);
+    from_planet->outgoing_routes = outgoing;
 
-    if (by == NULL) {
+    if (outgoing == NULL) {
         return;
     }
 
-    it = entity_list_all(by);
-    while (entity_list_iter_next(&it, &e)) {
+    iter = entity_list_all(outgoing);
+    while (entity_list_iter_next(&iter, &element)) {
         const trade_route_t *route;
-        const entity_list_t *rl;
-        const entity_list_t *lp;
+        const entity_list_t *slipways;
+        const entity_list_t *planets;
         entity_t *to_val;
-        int i;
+        int index;
 
-        if (e == NULL) {
+        if (element == NULL) {
             continue;
         }
-        assert(e->class == trade_class() && "jo.by holds trades only");
-        route = (const trade_route_t *)e;
-        rl = route->slipways;
-        lp = route->planets;
+        assert(element->class == trade_class() && "jo.by holds trades only");
+        route = (const trade_route_t *)element;
+        slipways = route->slipways;
+        planets = route->planets;
 
-        if (rl != NULL && lp != NULL) {
-            for (i = 0; i < rl->count; i++) {
-                const entity_t *w_val = rl->items[i];
+        if (slipways != NULL && planets != NULL) {
+            for (index = 0; index < slipways->count; index++) {
+                const entity_t *w_val = slipways->items[index];
                 const slipway_t *w;
                 const entity_t *planet_val;
                 const planet_t *planet;
@@ -96,10 +96,10 @@ static void bd_route_visit(entity_t *pt, void *ctx) {
                 if (w_val == NULL) {
                     continue;
                 }
-                if (i + 1 >= lp->count) {
+                if (index + 1 >= planets->count) {
                     continue;
                 }
-                planet_val = lp->items[i + 1];
+                planet_val = planets->items[index + 1];
                 if (planet_val == NULL) {
                     continue;
                 }
@@ -125,57 +125,57 @@ static void bd_route_visit(entity_t *pt, void *ctx) {
             assert(planet_is_family(to_val) && "a trade leads to a planet");
             dest = (planet_t *)to_val;
             if (dest->incoming_routes != NULL) {
-                entity_list_add(dest->incoming_routes, e);
+                entity_list_add(dest->incoming_routes, element);
             }
         }
     }
 }
 
-void pico8_bd(void) {
-    for_each_cg("planet", bd_reset_visit, NULL);
-    for_each_cg("planet", bd_route_visit, NULL);
+void economy_tiers_rebuild_incoming_routes(void) {
+    for_each_tagged("planet", rebuild_incoming_routes_reset_visit, NULL);
+    for_each_tagged("planet", rebuild_incoming_routes_route_visit, NULL);
 }
 
-static void bb_visit(entity_t *pt, void *ctx) {
-    int *jg = (int *)ctx;
-    planet_t *jo;
-    p8_fixed_t jw;
-    int has_mi;
-    p8_fixed_t mi = p8_fixed_from_int(0);
+static void update_tiers_visit(entity_t *entity, void *ctx) {
+    int *changed = (int *)ctx;
+    planet_t *planet;
+    p8_fixed_t tier;
+    int has_development_tier;
+    p8_fixed_t development_tier = p8_fixed_from_int(0);
 
-    if (pt == NULL) {
+    if (entity == NULL) {
         return;
     }
-    jw = pico8_dh(pt);
-    assert(planet_is_family(pt) && "bb: pt is a planet of cg.jo");
-    jo = (planet_t *)pt;
-    has_mi = jo->has_development_tier;
-    if (has_mi) {
-        mi = jo->development_tier;
+    tier = economy_tiers_compute_tier(entity);
+    assert(planet_is_family(entity) && "bb: pt is a planet of cg.jo");
+    planet = (planet_t *)entity;
+    has_development_tier = planet->has_development_tier;
+    if (has_development_tier) {
+        development_tier = planet->development_tier;
     }
 
-    if (!has_mi || jw > mi) {
-        if (has_mi && mi == p8_fixed_from_int(1)) {
-            pico8_hp_t *hn = jo->project;
-            if (hn != NULL && hn->has_dm) {
-                if (jo->needs != NULL) {
-                    pico8_jy_t *entry = pico8_jy_new(game_zone(), &hn->dm);
-                    pointer_list_add(jo->needs, entry);
+    if (!has_development_tier || tier > development_tier) {
+        if (has_development_tier && development_tier == p8_fixed_from_int(1)) {
+            research_project_t *hn = planet->project;
+            if (hn != NULL && hn->has_byproduct) {
+                if (planet->needs != NULL) {
+                    need_t *entry = need_new(game_zone(), &hn->byproduct);
+                    pointer_list_add(planet->needs, entry);
                 }
             }
         }
-        jo->development_tier = jw;
-        jo->has_development_tier = 1;
-        mi = jw;
-        *jg = 1;
+        planet->development_tier = tier;
+        planet->has_development_tier = 1;
+        development_tier = tier;
+        *changed = 1;
     }
 
-    if (mi != p8_fixed_from_int(0)) {
-        pico8_hp_t *hn = jo->project;
+    if (development_tier != p8_fixed_from_int(0)) {
+        research_project_t *hn = planet->project;
         if (hn != NULL) {
-            const production_tables_entry_t *po = pico8_hp_po(hn);
+            const production_tables_entry_t *po = research_project_production(hn);
             if (po != NULL) {
-                int idx = p8_fixed_flr_int(mi);
+                int idx = p8_fixed_flr_int(development_tier);
                 int clamped_idx = (idx < po->count) ? idx : po->count;
                 p8_fixed_t base = p8_fixed_from_int(0);
                 p8_fixed_t jh = p8_fixed_from_int(0);
@@ -183,46 +183,46 @@ static void bb_visit(entity_t *pt, void *ctx) {
                 if (clamped_idx >= 1) {
                     base = p8_fixed_from_int(po->values[clamped_idx - 1]);
                 }
-                if (jo->has_production_bonus) {
-                    jh = jo->production_bonus;
+                if (planet->has_production_bonus) {
+                    jh = planet->production_bonus;
                 }
-                if (jo->production != NULL) {
-                    jo->production->amount = p8_fixed_add(base, jh);
+                if (planet->production != NULL) {
+                    planet->production->amount = p8_fixed_add(base, jh);
                 }
             }
         }
     }
 }
 
-int pico8_bb(void) {
+int economy_tiers_update_tiers(void) {
     int jg = 0;
-    for_each_cg("planet", bb_visit, &jg);
+    for_each_tagged("planet", update_tiers_visit, &jg);
     return jg;
 }
 
-p8_fixed_t pico8_dh(const entity_t *pt) {
-    const planet_t *jo;
-    const pointer_list_t *jy;
-    const entity_list_t *cc;
-    p8_fixed_t jd = p8_fixed_from_int(1);
-    int i;
+p8_fixed_t economy_tiers_compute_tier(const entity_t *entity) {
+    const planet_t *planet;
+    const pointer_list_t *needs;
+    const entity_list_t *incoming_routes;
+    p8_fixed_t tier = p8_fixed_from_int(1);
+    int index;
 
-    if (pt == NULL) {
+    if (entity == NULL) {
         return p8_fixed_from_int(0);
     }
-    assert(planet_is_family(pt) && "dh: pt is a planet of cg.jo");
-    jo = (const planet_t *)pt;
-    if (jo->header.state == NULL || strcmp(jo->header.state, "settled") != 0) {
+    assert(planet_is_family(entity) && "dh: pt is a planet of cg.jo");
+    planet = (const planet_t *)entity;
+    if (planet->header.state == NULL || strcmp(planet->header.state, "settled") != 0) {
         return p8_fixed_from_int(0);
     }
 
-    jy = jo->needs;
-    cc = jo->incoming_routes;
-    if (jy != NULL) {
-        for (i = 0; i < jy->count; i++) {
-            void *i_val = jy->items[i];
-            pico8_jy_t *want;
-            resource_t qe_val;
+    needs = planet->needs;
+    incoming_routes = planet->incoming_routes;
+    if (needs != NULL) {
+        for (index = 0; index < needs->count; index++) {
+            void *i_val = needs->items[index];
+            need_t *want;
+            resource_t resource_val;
             int gc = 0;
             int j;
 
@@ -230,43 +230,43 @@ p8_fixed_t pico8_dh(const entity_t *pt) {
                 continue;
             }
             want = i_val;
-            qe_val = pico8_jy_qe(want);
-            if (cc != NULL) {
-                for (j = 0; j < cc->count; j++) {
-                    const entity_t *im_val = cc->items[j];
+            resource_val = need_resource(want);
+            if (incoming_routes != NULL) {
+                for (j = 0; j < incoming_routes->count; j++) {
+                    const entity_t *incoming = incoming_routes->items[j];
                     const trade_route_t *im;
-                    if (im_val == NULL) {
+                    if (incoming == NULL) {
                         continue;
                     }
-                    assert(im_val->class == trade_class() && "jo.cc holds trades only");
-                    im = (const trade_route_t *)im_val;
+                    assert(incoming->class == trade_class() && "jo.cc holds trades only");
+                    im = (const trade_route_t *)incoming;
                     /* TROU-24 */
-                    if (im->has_resource && resource_equal(trade_resource(im), qe_val)) {
+                    if (im->has_resource && resource_equal(trade_resource(im), resource_val)) {
                         gc++;
                     }
                 }
             }
-            want->has_gc = 1;
-            want->gc = p8_fixed_from_int(gc);
-            jd = p8_fixed_mul(jd, p8_fixed_from_int(gc));
+            want->has_satisfied = 1;
+            want->satisfied = p8_fixed_from_int(gc);
+            tier = p8_fixed_mul(tier, p8_fixed_from_int(gc));
         }
     }
 
-    if (jd == p8_fixed_from_int(0)) {
+    if (tier == p8_fixed_from_int(0)) {
         return p8_fixed_from_int(1);
     }
 
-    if (pt->class->lineage & LINEAGE(LINEAGE_TRADING_HUB)) {
+    if (entity->class->lineage & LINEAGE(LINEAGE_TRADING_HUB)) {
         int count = 0;
-        if (jy != NULL) {
-            for (i = 0; i < jy->count; i++) {
-                void *i_val = jy->items[i];
-                const pico8_jy_t *want;
+        if (needs != NULL) {
+            for (index = 0; index < needs->count; index++) {
+                void *i_val = needs->items[index];
+                const need_t *want;
                 if (i_val == NULL) {
                     continue;
                 }
                 want = i_val;
-                if (want->has_gc && want->gc > p8_fixed_from_int(0)) {
+                if (want->has_satisfied && want->satisfied > p8_fixed_from_int(0)) {
                     count++;
                 }
             }
@@ -274,13 +274,13 @@ p8_fixed_t pico8_dh(const entity_t *pt) {
         return fixed_min(p8_fixed_from_int(count), p8_fixed_from_int(3));
     }
 
-    if (!jo->archetype->is_planet) {
-        if (jy != NULL && jy->count > 0) {
-            void *last_val = jy->items[jy->count - 1];
+    if (!planet->archetype->is_planet) {
+        if (needs != NULL && needs->count > 0) {
+            void *last_val = needs->items[needs->count - 1];
             if (last_val != NULL) {
-                const pico8_jy_t *last = last_val;
-                if (last->has_gc) {
-                    return fixed_min(p8_fixed_add(last->gc, p8_fixed_from_int(1)), p8_fixed_from_int(4));
+                const need_t *last = last_val;
+                if (last->has_satisfied) {
+                    return fixed_min(p8_fixed_add(last->satisfied, p8_fixed_from_int(1)), p8_fixed_from_int(4));
                 }
             }
         }
@@ -288,11 +288,11 @@ p8_fixed_t pico8_dh(const entity_t *pt) {
     }
 
     {
-        const entity_list_t *by = jo->outgoing_routes;
+        const entity_list_t *by = planet->outgoing_routes;
         int by_count = (by != NULL) ? by->count : 0;
-        int cc_count = (cc != NULL) ? cc->count : 0;
+        int incoming_routes_count = (incoming_routes != NULL) ? incoming_routes->count : 0;
         p8_fixed_t mid_val =
-            p8_fixed_mid(p8_fixed_from_int(by_count), p8_fixed_from_int(cc_count), p8_fixed_from_int(1));
+            p8_fixed_mid(p8_fixed_from_int(by_count), p8_fixed_from_int(incoming_routes_count), p8_fixed_from_int(1));
         return fixed_min(p8_fixed_from_int(4), p8_fixed_add(p8_fixed_from_int(1), mid_val));
     }
 }

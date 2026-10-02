@@ -56,7 +56,7 @@ void planet_refresh(planet_t *self) {
     by_list = self->outgoing_routes;
 
     slot = pico8_zone_interface_place(PICO8_SORTE_RANGEE);
-    layout_row_result = pico8_jo_ex(slot, needs_list, qe, mu, p8_fixed_from_int(by_list != NULL ? by_list->count : 0),
+    layout_row_result = research_display_planet_resource_row(slot, needs_list, qe, mu, p8_fixed_from_int(by_list != NULL ? by_list->count : 0),
                             p8_fixed_from_int(0));
     if (layout_row_result == NULL) {
         arena_release(slot);
@@ -97,9 +97,9 @@ static int planet_inspection_panel_filter_step(void *e, void *ctx_ptr) {
     int j;
 
     if (e != NULL) {
-        const pico8_jy_t *i = e;
-        if (i->has_gc) {
-            gc = i->gc;
+        const need_t *i = e;
+        if (i->has_satisfied) {
+            gc = i->satisfied;
         }
     }
     count = p8_fixed_flr_int(gc);
@@ -312,7 +312,7 @@ down_t planet_accept_drop(const planet_t *self, const entity_t *s) {
  * verbatim onto the button this bridge is later dispatched on. */
 static void planet_projects_panel_on_click_method(pico8_js_t *self) {
     planet_t *pt;
-    pico8_hp_t *b;
+    research_project_t *b;
     p8_fixed_t od = p8_fixed_from_int(0);
 
     if (self == NULL) {
@@ -325,7 +325,7 @@ static void planet_projects_panel_on_click_method(pico8_js_t *self) {
     }
 
     assert(pt != NULL && "jo:fe's my callback lost its captured planet");
-    if (pico8_hy_lu(main_economy_typed(), od)) {
+    if (economy_spend(main_economy_typed(), od)) {
         planet_apply_project(pt, b);
     }
 }
@@ -339,15 +339,15 @@ typedef struct {
     layout_row_cell_t cost_item;
 } planet_projects_panel_row_t;
 
-static void planet_projects_panel_keys(planet_t *self, pico8_hp_t *b, pico8_js_keys_t *keys, planet_projects_panel_row_t *row) {
-    p8_fixed_t od = pico8_hp_od(b);
+static void planet_projects_panel_keys(planet_t *self, research_project_t *b, pico8_js_keys_t *keys, planet_projects_panel_row_t *row) {
+    p8_fixed_t od = research_project_cost(b);
 
     memset(keys, 0, sizeof *keys);
-    if (b->lq != NULL) {
-        row->layout_row = layout_row_keys_of_row(b->lq, row->layout_row_items, PLANET_ROW_CAP);
+    if (b->layout_row != NULL) {
+        row->layout_row = layout_row_keys_of_row(b->layout_row, row->layout_row_items, PLANET_ROW_CAP);
         keys->lq_row = &row->layout_row;
     } else {
-        keys->lq_copy = pico8_hp_lq(b);
+        keys->lq_copy = research_project_layout_row(b);
     }
 
     keys->has_h_ = 1;
@@ -369,11 +369,11 @@ static void planet_projects_panel_keys(planet_t *self, pico8_hp_t *b, pico8_js_k
     keys->has_my = 1;
     keys->my = planet_projects_panel_on_click_method;
     keys->has_jb = 1;
-    keys->jb_row = pico8_hp_jb(b);
+    keys->jb_row = research_project_tooltip(b);
 }
 
 void planet_projects_panel(planet_t *self) {
-    pico8_bj_kept_t available_projects_list;
+    available_projects_kept_t available_projects_list;
     pico8_js_keys_t *bs;
     planet_projects_panel_row_t *rows;
     pico8_pz_frame_t frame;
@@ -385,7 +385,7 @@ void planet_projects_panel(planet_t *self) {
         return;
     }
 
-    available_projects_list = pico8_bj((const entity_t *)self);
+    available_projects_list = research_display_available_projects((const entity_t *)self);
     cap = available_projects_list.count > 0 ? (size_t)available_projects_list.count : 1;
     bs = (pico8_js_keys_t *)allocator_alloc(frame_zone(), cap * sizeof *bs);
     rows = (planet_projects_panel_row_t *)allocator_alloc(frame_zone(), cap * sizeof *rows);
@@ -526,42 +526,42 @@ down_t planet_left_press(planet_t *self) {
     return out;
 }
 
-void planet_apply_project(planet_t *self, pico8_hp_t *research_project_instance) {
+void planet_apply_project(planet_t *self, research_project_t *research_project_instance) {
     planet_t *working_self;
     p8_fixed_t fp = p8_fixed_from_int(2);
 
-    pico8_hp_assert(research_project_instance);
+    research_project_assert(research_project_instance);
     if (self == NULL) {
         return;
     }
     working_self = self;
 
-    if (research_project_instance != NULL && research_project_instance->cw != NULL) {
+    if (research_project_instance != NULL && research_project_instance->class_name != NULL) {
         const entity_kind_t *target_kind = NULL;
         planet_keys_t keys;
 
         self->is_dead = 1;
 
-        target_kind = pico8_jo_kv(research_project_instance->cw);
+        target_kind = pico8_jo_kv(research_project_instance->class_name);
 
         keys.map_pos = self->map_pos;
         keys.pos = self->pos;
         keys.planet_id = self->planet_id;
 
         working_self = (target_kind != NULL) ? (planet_t *)target_kind->new_entity(&keys) : NULL;
-    } else if (research_project_instance != NULL && research_project_instance->go != NULL) {
-        self->planet_type = planet_types_lookup(research_project_instance->go);
+    } else if (research_project_instance != NULL && research_project_instance->next_type != NULL) {
+        self->planet_type = planet_types_lookup(research_project_instance->next_type);
     } else {
         entity_set_state((entity_t *)self, "settled");
         planet_install_project(self, research_project_instance);
         self->fold_anchor = p8_fixed_from_int(1);
-        fp = pico8_ov("autoassemblers", p8_fixed_from_int(3), p8_fixed_from_int(2));
+        fp = tech_gate_if_unlocked("autoassemblers", p8_fixed_from_int(3), p8_fixed_from_int(2));
     }
 
-    pico8_hy_nx(main_economy_typed(), fp);
+    economy_advance_clock(main_economy_typed(), fp);
 
-    if (research_project_instance != NULL && research_project_instance->has_rn) {
-        p8_play_sfx(research_project_instance->rn);
+    if (research_project_instance != NULL && research_project_instance->has_play_sfx) {
+        p8_play_sfx(research_project_instance->play_sfx);
     } else {
         p8_play_sfx(p8_fixed_from_int(55));
     }

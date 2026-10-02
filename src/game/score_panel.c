@@ -126,16 +126,16 @@ void pico8_eg(void) {
 }
 
 void pico8_pj_hb(void) {
-    const pico8_hy_t *fm = main_economy_typed();
-    const pico8_fm_placeholder_t *provisional = main_economy_placeholder();
-    p8_fixed_t fm_ge = fm != NULL ? fm->ge : p8_fixed_from_int(0);
+    const economy_t *fm = main_economy_typed();
+    const main_economy_placeholder_t *provisional = main_economy_placeholder();
+    p8_fixed_t fm_ge = fm != NULL ? fm->income : p8_fixed_from_int(0);
     p8_fixed_t fm_nz = p8_fixed_from_int(0);
     data_item_t fm_jk = {.is_ref = 1};
     p8_fixed_t fm_happiness = fm != NULL && fm->has_happiness ? fm->happiness : p8_fixed_from_int(0);
-    p8_fixed_t fm_lo = fm != NULL ? fm->lo : p8_fixed_from_int(0);
-    data_item_t fm_yr = fm != NULL ? (data_item_t){.is_fixed = 1, .fixed = fm->yr}
+    p8_fixed_t fm_lo = fm != NULL ? fm->year_ticks : p8_fixed_from_int(0);
+    data_item_t fm_yr = fm != NULL ? (data_item_t){.is_fixed = 1, .fixed = fm->year}
                                        : (data_item_t){.is_ref = 1};
-    const pico8_qe_map_t *fm_po = fm != NULL ? fm->po : NULL;
+    const resource_map_t *fm_po = fm != NULL ? fm->production : NULL;
     pico8_pj_ou_t *ou_state;
     data_item_t ou[7];
     char *cf;
@@ -146,14 +146,14 @@ void pico8_pj_hb(void) {
     int i;
 
     if (fm != NULL) {
-        fm_nz = fm->nz;
-        fm_jk = (data_item_t){.is_fixed = 1, .fixed = fm->jk};
+        fm_nz = fm->credits;
+        fm_jk = (data_item_t){.is_fixed = 1, .fixed = fm->research_points};
     } else if (provisional != NULL) {
-        if (provisional->has_nz) {
-            fm_nz = provisional->nz;
+        if (provisional->has_credits) {
+            fm_nz = provisional->credits;
         }
-        if (provisional->has_jk) {
-            fm_jk = (data_item_t){.is_fixed = 1, .fixed = provisional->jk};
+        if (provisional->has_research_points) {
+            fm_jk = (data_item_t){.is_fixed = 1, .fixed = provisional->research_points};
         }
     }
 
@@ -170,7 +170,7 @@ void pico8_pj_hb(void) {
         int k_key;
         p8_fixed_t po_val = p8_fixed_from_int(0);
         if (resource_code_lookup("k", &k_key)) {
-            pico8_qe_map_get(fm_po, p8_fixed_from_int(k_key), &po_val);
+            resource_map_get(fm_po, p8_fixed_from_int(k_key), &po_val);
         }
         /* `..` binds looser than `+`: the Lua reads `"+"..(fm.po[r.k]+1)`. */
         plus_num =

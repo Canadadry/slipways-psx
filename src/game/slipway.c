@@ -115,7 +115,7 @@ void slipway_drag(slipway_t *self, vec_t *mp) {
         self->end = &self->point.header;
     }
 
-    self->targeting->cost = pico8_dj(slipway_end_map_pos(self->start), slipway_end_map_pos(self->end));
+    self->targeting->cost = economy_formulas_route_base_cost(slipway_end_map_pos(self->start), slipway_end_map_pos(self->end));
     self->targeting->has_cost = 1;
 
     /* A fixed is always true in Lua: `qu.mt or re.mt` takes the first present. */
@@ -171,7 +171,7 @@ void slipway_drop(slipway_t *self, entity_t *end) {
                "jc:ey: both endpoints must expose \"kf\", or the slipway never joins their `oe`");
         (void)start_registered;
         (void)end_registered;
-        pico8_hy_nx(main_economy_typed(), p8_fixed_from_int(1));
+        economy_advance_clock(main_economy_typed(), p8_fixed_from_int(1));
     }
 }
 
@@ -231,7 +231,7 @@ entity_t *slipway_obstruction(slipway_t *self) {
     start_point = slipway_end_map_pos(start);
     end_point = slipway_end_map_pos(end);
 
-    threshold = pico8_ov("space folding", P8_FIXED_LIT(0x00008000, 0.5), P8_FIXED_LIT(0x0001147a, 1.08));
+    threshold = tech_gate_if_unlocked("space folding", P8_FIXED_LIT(0x00008000, 0.5), P8_FIXED_LIT(0x0001147a, 1.08));
 
     if (vec_length_squared(vec_sub(start_point, end_point)) > threshold) {
         return &g_slipway_too_far.header;

@@ -381,38 +381,38 @@ static void pause_restart_releases_quit_planets(void) {
 }
 
 /* f11 : l'ecran titre lit encore l'economie de la partie quittee. */
-static const pico8_hy_t *economy_of_first_game(void) {
+static const economy_t *economy_of_first_game(void) {
     start_e2e("pause_restart");
     play_until(11);
-    const pico8_hy_t *fm = main_economy_typed();
+    const economy_t *fm = main_economy_typed();
     assert(fm != NULL && "entre _init et eu, fm est l'economie de la partie quittee");
     return fm;
 }
 
 /* f12 : `eu` la remplace, sa generation vit jusqu'a la fin de la frame. */
 static void pause_restart_keeps_quit_economy_during_click(void) {
-    const pico8_hy_t *fm = economy_of_first_game();
+    const economy_t *fm = economy_of_first_game();
     play_until(12);
     assert(game_zone_pending());
     assert(main_economy_typed() != fm && "le clic de f12 fait une nouvelle economie");
-    g_spend = (unsigned char)fm->nz;
+    g_spend = (unsigned char)fm->credits;
 }
 
 /* f13 : elle meurt avec sa generation. */
 static void pause_restart_releases_quit_economy(void) {
-    const pico8_hy_t *fm = economy_of_first_game();
+    const economy_t *fm = economy_of_first_game();
     play_until(13);
-    g_spend = (unsigned char)fm->nz;
+    g_spend = (unsigned char)fm->credits;
 }
 
 /* f6 : `hv` tient les icones de la premiere partie ; le `jl()` de `_init`
  * les en retire avant f11. */
-static const pico8_ie_t *icon_of_first_game(void) {
+static const structure_icon_t *icon_of_first_game(void) {
     start_e2e("pause_restart");
     play_until(6);
     const entity_list_t *hv = live_entities();
     for (int i = 0; hv != NULL && i < hv->count; i++) {
-        if (hv->items[i]->class == pico8_ie_struct_class()) return (const pico8_ie_t *)hv->items[i];
+        if (hv->items[i]->class == structure_icon_class()) return (const structure_icon_t *)hv->items[i];
     }
     assert(0 && "la premiere partie a des icones dans hv");
     return NULL;
@@ -420,17 +420,17 @@ static const pico8_ie_t *icon_of_first_game(void) {
 
 /* f12 : `eu` en fait de nouvelles, sa generation vit jusqu'a la fin de la frame. */
 static void pause_restart_keeps_quit_icons_during_click(void) {
-    const pico8_ie_t *ie = icon_of_first_game();
+    const structure_icon_t *ie = icon_of_first_game();
     play_until(12);
     assert(game_zone_pending());
-    g_spend = (unsigned char)ie->kh;
+    g_spend = (unsigned char)ie->is_revealed;
 }
 
 /* f13 : elles meurent avec leur generation. */
 static void pause_restart_releases_quit_icons(void) {
-    const pico8_ie_t *ie = icon_of_first_game();
+    const structure_icon_t *ie = icon_of_first_game();
     play_until(13);
-    g_spend = (unsigned char)ie->kh;
+    g_spend = (unsigned char)ie->is_revealed;
 }
 
 /* Le `fv` de `hv`, que fait `_init`. */
@@ -552,7 +552,7 @@ static size_t planets_bytes(void) {
 /* Octets de l'economie `fm` faite par `eu` : sa structure et le conteneur
  * `invented`, sans elements tant que rien n'est invente. */
 static size_t economy_bytes(void) {
-    const pico8_hy_t *fm = main_economy_typed();
+    const economy_t *fm = main_economy_typed();
     assert(fm != NULL && fm->invented != NULL && "eu a fait l'economie de la partie");
     assert(fm->invented->count == 0 && fm->invented->items == NULL && "une invention, que l'economie ne compte pas");
     return block_bytes(sizeof *fm) + block_bytes(sizeof *fm->invented);
@@ -568,12 +568,12 @@ static size_t icons_bytes(void) {
     size_t bytes = 0;
     int k = 0;
     for (int i = 0; hv != NULL && i < hv->count; i++) {
-        const pico8_ie_t *ie = (const pico8_ie_t *)hv->items[i];
-        if (ie->header.class != pico8_ie_struct_class()) continue;
+        const structure_icon_t *ie = (const structure_icon_t *)hv->items[i];
+        if (ie->header.class != structure_icon_class()) continue;
         assert(k < ICON_TOOLTIPS_COUNT && "plus d'icones que de bulles dans dr");
         (void)tooltip_new(mesure, &icon_tooltips_table[k]);
         bytes += block_bytes(sizeof *ie);
-        if (ie->has_kh && ie->kh) bytes += block_bytes(sizeof(vec_t));
+        if (ie->has_is_revealed && ie->is_revealed) bytes += block_bytes(sizeof(vec_t));
         k++;
     }
     assert(k == ICON_TOOLTIPS_COUNT && "eu fait une icone par bulle de dr");

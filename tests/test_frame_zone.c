@@ -202,15 +202,15 @@ static int happiness_cells(const pico8_mh_t *mh) {
 }
 
 static int case_final_score_happiness_survives_reset(void) {
-    pico8_hy_t *fm;
+    economy_t *fm;
     pico8_pj_t *ju;
 
     start_game();
     fm = main_economy_typed();
     fm->happiness = p8_fixed_from_int(1);
     fm->has_happiness = 1;
-    fm->hl = "final score";
-    fm->has_hl = 1;
+    fm->end_status = "final score";
+    fm->has_end_status = 1;
     ju = pico8_ju();
     ju->header.class->states[ENTITY_STATE_NORMAL](&ju->header, 0);
     assert(pico8_kc() != NULL && "pj:ph: une partie finie ouvre la boite du score");

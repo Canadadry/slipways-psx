@@ -54,7 +54,7 @@ struct pico8_js {
     int has_en; /* 0: `en` is nil, and is then never read */
     const technologies_entry_t *_cr_t; /* an entry of pico8_nb_table */
     planet_t *_jo_fe_pt;
-    pico8_hp_t *_jo_fe_b;
+    research_project_t *_jo_fe_b;
     p8_fixed_t _jo_fe_od;
     int has__jo_fe_od; /* 0: `_jo_fe_od` is nil, and is then never read */
 };
@@ -94,7 +94,7 @@ typedef struct {
     p8_fixed_t en;
     const technologies_entry_t *_cr_t;
     planet_t *_jo_fe_pt;
-    pico8_hp_t *_jo_fe_b;
+    research_project_t *_jo_fe_b;
     int has__jo_fe_od;
     p8_fixed_t _jo_fe_od;
 } pico8_js_keys_t;

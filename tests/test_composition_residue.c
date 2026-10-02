@@ -246,7 +246,7 @@ static void test_registres_reads_declaration_points_outside_entity_types(void) {
                            "t;\n"
                            "typedef struct {\n    void *(*new_entity)(int k);\n    void (*kj)(void *" "self);\n} k_t;\n"
                            "const pointer_" "list_t *live_" "entities(void);\n"
-                           "layout_row_t *pico8_" "jo_ex(const pointer_" "list_t *is,\n    int o);\n"
+                           "layout_row_t *research_display_" "planet_resource_row(const pointer_" "list_t *is,\n    int o);\n"
                            "typedef int (*pico8_" "fn)(const pointer_" "list_t *p);\n");
     write_file(SRC "/r.c", "static pointer_" "list_t g_live_entities;\n"
                            "static pointer_" "list_t *g_list = 0;\n"

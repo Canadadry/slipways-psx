@@ -13,36 +13,36 @@
 #include "engine/frame_zone.h"
 
 /* In the frame zone. */
-static char *pico8_hp_jb_join(const pico8_hp_t *self) {
+static char *research_project_tooltip_join(const research_project_t *self) {
     const pointer_list_t *i_list;
     size_t cap = 16;
     size_t len = 0;
     char *out = (char *)allocator_alloc(frame_zone(), cap);
     int first = 1;
-    pointer_list_iter_t it;
+    pointer_list_iter_t iter;
     void *entry;
 
     out[0] = '\0';
-    if (self->i == NULL) {
+    if (self->inputs == NULL) {
         return out;
     }
-    i_list = self->i;
-    it = pointer_list_all(i_list);
-    while (pointer_list_iter_next(&it, &entry)) {
+    i_list = self->inputs;
+    iter = pointer_list_all(i_list);
+    while (pointer_list_iter_next(&iter, &entry)) {
         resource_t qe = {.kind = RESOURCE_NIL};
         char *num_str;
-        const char *iz_name;
+        const char *resource_names_name;
         const char *piece = "";
         size_t piece_len;
         size_t add_len;
 
         if (entry != NULL) {
-            qe = pico8_jy_qe(entry);
+            qe = need_resource(entry);
         }
         num_str = qe.kind == RESOURCE_FIXED ? p8_tostr_fixed(frame_zone(), qe.number) : NULL;
-        iz_name = num_str != NULL ? resource_names_lookup(num_str) : NULL;
-        if (iz_name != NULL) {
-            piece = iz_name;
+        resource_names_name = num_str != NULL ? resource_names_lookup(num_str) : NULL;
+        if (resource_names_name != NULL) {
+            piece = resource_names_name;
         }
 
         piece_len = strlen(piece);
@@ -69,32 +69,32 @@ typedef struct {
     data_item_t outer_item;
     data_row_t inner;
     data_item_t inner_items[3];
-} pico8_hp_jb_t;
+} research_project_tooltip_t;
 
-const data_row_t *pico8_hp_jb(const pico8_hp_t *self) {
-    pico8_hp_jb_t *jb;
+const data_row_t *research_project_tooltip(const research_project_t *self) {
+    research_project_tooltip_t *jb;
 
-    pico8_hp_assert(self);
+    research_project_assert(self);
     if (self == NULL) {
         return NULL;
     }
-    if (self->has_ii) {
+    if (self->has_icon_sprite) {
         return NULL;
     }
 
-    jb = (pico8_hp_jb_t *)allocator_alloc(frame_zone(), sizeof *jb);
+    jb = (research_project_tooltip_t *)allocator_alloc(frame_zone(), sizeof *jb);
     memset(jb, 0, sizeof *jb);
-    jb->inner_items[0].text = pico8_hp_jb_join(self);
+    jb->inner_items[0].text = research_project_tooltip_join(self);
     jb->inner_items[1].number = 13;
     jb->inner.count = 2;
     jb->inner.items = jb->inner_items;
 
-    if (self->has_o) {
-        char *o_str = p8_tostr_fixed(frame_zone(), self->o);
-        const char *iz_o = resource_names_lookup(o_str);
+    if (self->has_output) {
+        char *o_str = p8_tostr_fixed(frame_zone(), self->output);
+        const char *resource_names_o = resource_names_lookup(o_str);
 
-        if (iz_o != NULL) {
-            jb->inner_items[2].text = iz_o;
+        if (resource_names_o != NULL) {
+            jb->inner_items[2].text = resource_names_o;
             jb->inner.count = 3;
         }
     }
@@ -109,10 +109,10 @@ const data_row_t *pico8_hp_jb(const pico8_hp_t *self) {
 typedef struct {
     data_row_t row;
     data_item_t items[4];
-} pico8_jo_ex_tuple_t;
+} planet_resource_row_tuple_t;
 
-static pico8_jo_ex_tuple_t *pico8_jo_ex_tuple(int count) {
-    pico8_jo_ex_tuple_t *t = (pico8_jo_ex_tuple_t *)allocator_alloc(frame_zone(), sizeof *t);
+static planet_resource_row_tuple_t *planet_resource_row_tuple(int count) {
+    planet_resource_row_tuple_t *t = (planet_resource_row_tuple_t *)allocator_alloc(frame_zone(), sizeof *t);
 
     memset(t, 0, sizeof *t);
     t->row.count = count;
@@ -120,173 +120,173 @@ static pico8_jo_ex_tuple_t *pico8_jo_ex_tuple(int count) {
     return t;
 }
 
-static data_item_t pico8_jo_ex_fixed(p8_fixed_t x) {
+static data_item_t planet_resource_row_fixed(p8_fixed_t x) {
     return (data_item_t){.is_fixed = 1, .fixed = x};
 }
 
-layout_row_t *pico8_jo_ex(const allocator_t *zone, const pointer_list_t *is, const p8_fixed_t *o,
-                        p8_fixed_t jq, p8_fixed_t mj, p8_fixed_t d) {
-    layout_row_cell_t *l;
+layout_row_t *research_display_planet_resource_row(const allocator_t *zone, const pointer_list_t *inputs, const p8_fixed_t *output,
+                        p8_fixed_t amount, p8_fixed_t used, p8_fixed_t spacing) {
+    layout_row_cell_t *cells;
     int l_count = 0;
     int l_cap;
     layout_row_keys_t keys = {0};
-    int lc;
-    int is_count = (is != NULL) ? is->count : 0;
-    p8_fixed_t ml[2];
-    int ml_count;
-    int pe;
+    int crowded;
+    int is_count = (inputs != NULL) ? inputs->count : 0;
+    p8_fixed_t outputs[2];
+    int outputs_count;
+    int wide;
     layout_row_t *result;
 
-    if (o == NULL) {
+    if (output == NULL) {
         return NULL;
     }
 
-    lc = (is_count >= 3) ? 1 : 0;
+    crowded = (is_count >= 3) ? 1 : 0;
 
     {
         int r_w;
-        int o_is_r_w = resource_code_lookup("w", &r_w) && *o == p8_fixed_from_int(r_w);
+        int o_is_r_w = resource_code_lookup("w", &r_w) && *output == p8_fixed_from_int(r_w);
 
         if (o_is_r_w) {
-            ml[0] = p8_fixed_from_int(25);
-            ml[1] = p8_fixed_from_int(23);
-            ml_count = 2;
+            outputs[0] = p8_fixed_from_int(25);
+            outputs[1] = p8_fixed_from_int(23);
+            outputs_count = 2;
         } else {
-            ml[0] = *o;
-            ml_count = 1;
+            outputs[0] = *output;
+            outputs_count = 1;
         }
     }
 
-    pe = p8_fixed_mul(jq, p8_fixed_from_int(ml_count)) >= p8_fixed_from_int(3);
+    wide = p8_fixed_mul(amount, p8_fixed_from_int(outputs_count)) >= p8_fixed_from_int(3);
 
     {
-        p8_fixed_t jq_drawn = jq > p8_fixed_from_int(5) ? p8_fixed_from_int(1) : jq;
-        p8_fixed_t loop_bound = (jq_drawn > p8_fixed_from_int(1)) ? jq_drawn : p8_fixed_from_int(1);
+        p8_fixed_t amount_drawn = amount > p8_fixed_from_int(5) ? p8_fixed_from_int(1) : amount;
+        p8_fixed_t loop_bound = (amount_drawn > p8_fixed_from_int(1)) ? amount_drawn : p8_fixed_from_int(1);
 
-        l_cap = is_count + (is_count > 0 ? 2 : 0) + (jq > p8_fixed_from_int(5) ? 2 : 0) +
-                ml_count * (p8_fixed_flr_int(loop_bound) + 1);
+        l_cap = is_count + (is_count > 0 ? 2 : 0) + (amount > p8_fixed_from_int(5) ? 2 : 0) +
+                outputs_count * (p8_fixed_flr_int(loop_bound) + 1);
     }
-    l = (layout_row_cell_t *)allocator_alloc(frame_zone(), (size_t)l_cap * sizeof *l);
+    cells = (layout_row_cell_t *)allocator_alloc(frame_zone(), (size_t)l_cap * sizeof *cells);
 
-    if (is != NULL) {
-        pointer_list_iter_t it = pointer_list_all(is);
+    if (inputs != NULL) {
+        pointer_list_iter_t it = pointer_list_all(inputs);
         void *entry;
 
         while (pointer_list_iter_next(&it, &entry)) {
-            pico8_jo_ex_tuple_t *tuple = pico8_jo_ex_tuple(3);
+            planet_resource_row_tuple_t *tuple = planet_resource_row_tuple(3);
             resource_t qe = {.kind = RESOURCE_NIL};
             int gc_zero = 0;
 
             if (entry != NULL) {
-                const pico8_jy_t *i = entry;
+                const need_t *i = entry;
 
-                qe = pico8_jy_qe(i);
-                gc_zero = i->has_gc && i->gc == 0;
+                qe = need_resource(i);
+                gc_zero = i->has_satisfied && i->satisfied == 0;
             }
-            tuple->items[0] = qe.kind == RESOURCE_FIXED ? pico8_jo_ex_fixed(qe.number)
+            tuple->items[0] = qe.kind == RESOURCE_FIXED ? planet_resource_row_fixed(qe.number)
                                                            : (data_item_t){.is_ref = 1};
-            tuple->items[1] = pico8_jo_ex_fixed(p8_fixed_sub(p8_fixed_from_int(3), p8_fixed_from_int(lc)));
+            tuple->items[1] = planet_resource_row_fixed(p8_fixed_sub(p8_fixed_from_int(3), p8_fixed_from_int(crowded)));
             /* Lua's `i.gc~=0 and 0 or 7`: gc==0 -> 7, gc~=0 or absent -> 0.
              * 0 is truthy in Lua, so it is NOT "gc==0 -> 0". */
-            tuple->items[2] = pico8_jo_ex_fixed(p8_fixed_from_int(gc_zero ? 7 : 0));
-            l[l_count++] = layout_row_cell_row(&tuple->row);
+            tuple->items[2] = planet_resource_row_fixed(p8_fixed_from_int(gc_zero ? 7 : 0));
+            cells[l_count++] = layout_row_cell_row(&tuple->row);
         }
     }
 
     if (is_count > 0) {
-        pico8_jo_ex_tuple_t *t1 = pico8_jo_ex_tuple(2);
-        pico8_jo_ex_tuple_t *t2 = pico8_jo_ex_tuple(2);
-        int use_35 = (d == p8_fixed_from_int(1)) || pe;
+        planet_resource_row_tuple_t *t1 = planet_resource_row_tuple(2);
+        planet_resource_row_tuple_t *t2 = planet_resource_row_tuple(2);
+        int use_35 = (spacing == p8_fixed_from_int(1)) || wide;
 
         t1->items[0] = (data_item_t){.is_false = 1};
-        t1->items[1] = pico8_jo_ex_fixed(p8_fixed_add(d, p8_fixed_from_int(lc)));
-        l[l_count++] = layout_row_cell_row(&t1->row);
+        t1->items[1] = planet_resource_row_fixed(p8_fixed_add(spacing, p8_fixed_from_int(crowded)));
+        cells[l_count++] = layout_row_cell_row(&t1->row);
 
         if (use_35) {
-            t2->items[0] = pico8_jo_ex_fixed(p8_fixed_from_int(35));
-            t2->items[1] = pico8_jo_ex_fixed(p8_fixed_add(p8_fixed_from_int(2), d));
+            t2->items[0] = planet_resource_row_fixed(p8_fixed_from_int(35));
+            t2->items[1] = planet_resource_row_fixed(p8_fixed_add(p8_fixed_from_int(2), spacing));
         } else {
-            t2->items[0] = pico8_jo_ex_fixed(p8_fixed_from_int(32));
-            t2->items[1] = pico8_jo_ex_fixed(p8_fixed_from_int(5));
+            t2->items[0] = planet_resource_row_fixed(p8_fixed_from_int(32));
+            t2->items[1] = planet_resource_row_fixed(p8_fixed_from_int(5));
         }
-        l[l_count++] = layout_row_cell_row(&t2->row);
+        cells[l_count++] = layout_row_cell_row(&t2->row);
     }
 
-    if (jq > p8_fixed_from_int(5)) {
-        char *jq_str = p8_tostr_fixed(frame_zone(), jq);
-        static const data_item_t t3_items[] = {{.is_false = 1}, {.number = -4}};
-        static const data_row_t t3 = {.count = 2, .items = t3_items};
+    if (amount > p8_fixed_from_int(5)) {
+        char *amount_text = p8_tostr_fixed(frame_zone(), amount);
+        static const data_item_t tail_row_items[] = {{.is_false = 1}, {.number = -4}};
+        static const data_row_t tail_row = {.count = 2, .items = tail_row_items};
 
-        l[l_count++] = layout_row_cell_string(jq_str);
-        l[l_count++] = layout_row_cell_row(&t3);
+        cells[l_count++] = layout_row_cell_string(amount_text);
+        cells[l_count++] = layout_row_cell_row(&tail_row);
         keys.has_color = 1;
         keys.color = p8_fixed_from_int(13);
-        jq = p8_fixed_from_int(1);
+        amount = p8_fixed_from_int(1);
     }
 
     {
-        int qq_i;
+        int output_index;
 
-        for (qq_i = 0; qq_i < ml_count; qq_i++) {
-            p8_fixed_t qq = ml[qq_i];
-            p8_fixed_t loop_bound = (jq > p8_fixed_from_int(1)) ? jq : p8_fixed_from_int(1);
+        for (output_index = 0; output_index < outputs_count; output_index++) {
+            p8_fixed_t qq = outputs[output_index];
+            p8_fixed_t loop_bound = (amount > p8_fixed_from_int(1)) ? amount : p8_fixed_from_int(1);
             int n = p8_fixed_flr_int(loop_bound);
             int i;
 
             for (i = 1; i <= n; i++) {
-                pico8_jo_ex_tuple_t *t4 = pico8_jo_ex_tuple(4);
+                planet_resource_row_tuple_t *t4 = planet_resource_row_tuple(4);
                 p8_fixed_t i_fixed = p8_fixed_from_int(i);
-                int within = (i_fixed <= jq) && (i_fixed > mj);
+                int within = (i_fixed <= amount) && (i_fixed > used);
 
-                t4->items[0] = pico8_jo_ex_fixed(qq);
-                t4->items[1] = pico8_jo_ex_fixed(p8_fixed_from_int(6));
-                t4->items[2] = pico8_jo_ex_fixed(p8_fixed_from_int(within ? 0 : 7));
-                t4->items[3] = pico8_jo_ex_fixed(p8_fixed_from_int(pe ? -4 : -3));
-                l[l_count++] = layout_row_cell_row(&t4->row);
+                t4->items[0] = planet_resource_row_fixed(qq);
+                t4->items[1] = planet_resource_row_fixed(p8_fixed_from_int(6));
+                t4->items[2] = planet_resource_row_fixed(p8_fixed_from_int(within ? 0 : 7));
+                t4->items[3] = planet_resource_row_fixed(p8_fixed_from_int(wide ? -4 : -3));
+                cells[l_count++] = layout_row_cell_row(&t4->row);
             }
 
-            l[l_count++] = layout_row_cell_row(planet_spacer());
+            cells[l_count++] = layout_row_cell_row(planet_spacer());
         }
     }
 
     assert(l_count == l_cap && "jo.ex: its row is sized at entry from #is, jq and ml; a positional more or less "
                                "is a miscount of that size");
-    keys.items = l;
+    keys.items = cells;
     keys.count = l_count;
     result = layout_row_new(zone, &keys);
     return result;
 }
 
-layout_row_t *pico8_hp_lq(pico8_hp_t *self) {
+layout_row_t *research_project_layout_row(research_project_t *self) {
     p8_fixed_t jq;
     const pointer_list_t *is = NULL;
     const production_tables_entry_t *po;
     layout_row_t *l;
 
-    pico8_hp_assert(self);
-    if (self == NULL || !pico8_hp_ready()) {
+    research_project_assert(self);
+    if (self == NULL || !research_project_ready()) {
         return NULL;
     }
 
-    if (self->i != NULL) {
-        is = self->i;
+    if (self->inputs != NULL) {
+        is = self->inputs;
     }
 
-    po = pico8_hp_po(self);
+    po = research_project_production(self);
     jq = p8_fixed_from_int(1);
     if (po != NULL && po->count >= 1) {
-        p8_fixed_t po1 = p8_fixed_from_int(po->values[0]);
-        jq = (po1 > p8_fixed_from_int(1)) ? po1 : p8_fixed_from_int(1);
+        p8_fixed_t first_production = p8_fixed_from_int(po->values[0]);
+        jq = (first_production > p8_fixed_from_int(1)) ? first_production : p8_fixed_from_int(1);
     }
 
-    l = pico8_jo_ex(frame_zone(), is, self->has_o ? &self->o : NULL, jq, p8_fixed_from_int(0), p8_fixed_from_int(1));
+    l = research_display_planet_resource_row(frame_zone(), is, self->has_output ? &self->output : NULL, jq, p8_fixed_from_int(0), p8_fixed_from_int(1));
     if (l == NULL) {
         return NULL;
     }
 
-    layout_row_add(l, layout_row_cell_row(pico8_hp_fk()));
-    if (self->px != NULL) {
-        layout_row_add(l, layout_row_cell_string(self->px));
+    layout_row_add(l, layout_row_cell_row(research_project_row_tail()));
+    if (self->name != NULL) {
+        layout_row_add(l, layout_row_cell_string(self->name));
     }
 
     return l;
@@ -294,32 +294,32 @@ layout_row_t *pico8_hp_lq(pico8_hp_t *self) {
 
 /* `jo.nk.px` is one character wide by construction, so `k==jo.nk.px` is a
  * plain char comparison here -- no string identity involved. */
-static int pico8_bj_predicate(const pico8_hp_t *b, const entity_t *jo_instance) {
-    const char *px_str = NULL;
+static int available_projects_predicate(const research_project_t *b, const entity_t *planet_instance) {
+    const char *name_str = NULL;
     int mg = 0;
 
-    pico8_hp_assert(b);
+    research_project_assert(b);
 
-    if (!pico8_oj(b->rr)) {
+    if (!tech_gate_is_unlocked(b->required_tech)) {
         return 0;
     }
 
-    if (jo_instance != NULL) {
+    if (planet_instance != NULL) {
         const planet_t *jo;
 
-        assert(planet_is_family(jo_instance) && "bj: jo:ex passes its own planet");
-        jo = (const planet_t *)jo_instance;
+        assert(planet_is_family(planet_instance) && "bj: jo:ex passes its own planet");
+        jo = (const planet_t *)planet_instance;
         if (jo->planet_type != NULL) {
-            px_str = jo->planet_type->name;
+            name_str = jo->planet_type->name;
         }
     }
 
-    if (px_str != NULL && px_str[0] != '\0' && px_str[1] == '\0' && b->lr != NULL) {
-        size_t n = strlen(b->lr);
+    if (name_str != NULL && name_str[0] != '\0' && name_str[1] == '\0' && b->planet_codes != NULL) {
+        size_t n = strlen(b->planet_codes);
         size_t i;
 
         for (i = 0; i < n; i++) {
-            if (b->lr[i] == px_str[0]) {
+            if (b->planet_codes[i] == name_str[0]) {
                 mg = 1;
                 break;
             }
@@ -328,16 +328,16 @@ static int pico8_bj_predicate(const pico8_hp_t *b, const entity_t *jo_instance) 
     return mg;
 }
 
-pico8_bj_kept_t pico8_bj(const entity_t *jo_instance) {
-    pico8_bj_kept_t result;
+available_projects_kept_t research_display_available_projects(const entity_t *planet_instance) {
+    available_projects_kept_t result;
     int k;
 
-    assert(pico8_gb_count() <= PROJECT_RECORDS_COUNT && "gb holds one hp per entry of fd at most: #fd bounds bj");
+    assert(research_projects_count() <= PROJECT_RECORDS_COUNT && "gb holds one hp per entry of fd at most: #fd bounds bj");
     result.count = 0;
-    for (k = 1; k <= pico8_gb_count(); k++) {
-        pico8_hp_t *b = pico8_gb_at(k);
+    for (k = 1; k <= research_projects_count(); k++) {
+        research_project_t *b = research_projects_at(k);
 
-        if (pico8_bj_predicate(b, jo_instance)) {
+        if (available_projects_predicate(b, planet_instance)) {
             result.items[result.count++] = b;
         }
     }

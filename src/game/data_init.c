@@ -5,12 +5,12 @@
 
 void data_init(void) {
     /* hp must be ready before build_gb builds one. */
-    pico8_research_init();
-    pico8_research_build_gb();
+    research_init();
+    research_build_projects();
 
-    pico8_nb_e_reset();
+    tech_gate_reset_affordable_flags();
 }
 
 void data_init_data_shutdown(void) {
-    pico8_research_shutdown();
+    research_shutdown();
 }

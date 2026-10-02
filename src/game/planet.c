@@ -255,7 +255,7 @@ void planet_construct_in(planet_t *self, const allocator_t *zone) {
     self->slipways = oe;
 
     if (self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) {
-        pico8_hp_t *target = pico8_gb_at(p8_fixed_flr_int(self->archetype->project_index));
+        research_project_t *target = research_projects_at(p8_fixed_flr_int(self->archetype->project_index));
 
         if (target != NULL) {
             planet_install_project(self, target);
@@ -266,8 +266,8 @@ void planet_construct_in(planet_t *self, const allocator_t *zone) {
 /* `mw(i)`: a copy of the want, never shared with `hp.i`. */
 static int planet_install_project_copy_step(void *e, void *ctx, void **out) {
     if (e != NULL) {
-        pico8_jy_t *copy = (pico8_jy_t *)allocator_alloc((const allocator_t *)ctx, sizeof *copy);
-        const pico8_jy_t *i = e;
+        need_t *copy = (need_t *)allocator_alloc((const allocator_t *)ctx, sizeof *copy);
+        const need_t *i = e;
 
         *copy = *i;
         *out = copy;
@@ -276,12 +276,12 @@ static int planet_install_project_copy_step(void *e, void *ctx, void **out) {
     return 0;
 }
 
-void planet_install_project(planet_t *self, pico8_hp_t *research_project_instance) {
+void planet_install_project(planet_t *self, research_project_t *research_project_instance) {
     const allocator_t *zone = planet_zone_construction();
     pointer_list_t jy;
     pointer_list_t *needs_own;
 
-    pico8_hp_assert(research_project_instance);
+    research_project_assert(research_project_instance);
     if (self == NULL) {
         return;
     }
@@ -290,15 +290,15 @@ void planet_install_project(planet_t *self, pico8_hp_t *research_project_instanc
     self->description = NULL;
 
     pointer_list_init(&jy, zone);
-    if (research_project_instance != NULL && research_project_instance->i != NULL) {
-        jy = collect_map_pointer_list(zone, research_project_instance->i, planet_install_project_copy_step, (void *)zone);
+    if (research_project_instance != NULL && research_project_instance->inputs != NULL) {
+        jy = collect_map_pointer_list(zone, research_project_instance->inputs, planet_install_project_copy_step, (void *)zone);
     }
     needs_own = (pointer_list_t *)allocator_alloc(zone, sizeof *needs_own);
     *needs_own = jy;
     self->needs = needs_own;
 
-    self->production_own.has_resource = research_project_instance != NULL && research_project_instance->has_o;
-    self->production_own.resource = self->production_own.has_resource ? research_project_instance->o : 0;
+    self->production_own.has_resource = research_project_instance != NULL && research_project_instance->has_output;
+    self->production_own.resource = self->production_own.has_resource ? research_project_instance->output : 0;
     self->production_own.amount = p8_fixed_from_int(0);
     self->production = &self->production_own;
 }

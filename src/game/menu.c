@@ -63,7 +63,7 @@ static void pico8_cr_row_my_dispatch(pico8_js_t *self) {
         return;
     }
     if (self->_cr_t != NULL) {
-        pico8_hy_kt(main_economy_typed(), self->_cr_t);
+        economy_invent(main_economy_typed(), self->_cr_t);
     }
 }
 
@@ -92,7 +92,7 @@ static void pico8_cr_step(const technologies_entry_t *t, pico8_cr_row_t *b) {
     b->lq.color = p8_fixed_from_int(6);
     b->row.lq_row = &b->lq;
 
-    gi_result = pico8_gi_nb(t);
+    gi_result = tech_gate_research_cost(t);
     gi_str = p8_tostr_fixed(frame_zone(), gi_result);
 
     b->h_items[0] = layout_row_cell_row(&pair);
@@ -106,7 +106,7 @@ static void pico8_cr_step(const technologies_entry_t *t, pico8_cr_row_t *b) {
     b->row.jb_row = t->tooltip_rows;
 
     b->row.has_my = 1;
-    if (pico8_nb_e_(t)) {
+    if (tech_gate_affordable_flags(t)) {
         b->row._cr_t = t;
         b->row.my = pico8_cr_row_my_dispatch;
     }
@@ -131,12 +131,12 @@ static const data_row_t *pico8_menu_invented_lines(const pointer_list_t *list) {
 }
 
 void pico8_cr(void) {
-    const pico8_hy_t *fm = main_economy_typed();
+    const economy_t *fm = main_economy_typed();
     p8_fixed_t tl = p8_fixed_from_int(0);
     int gr = 0;
     p8_fixed_t qi = p8_fixed_from_int(0);
     int ek;
-    pico8_cb_kept_t cb_list;
+    available_technologies_kept_t cb_list;
     pico8_cr_row_t *rows;
     pico8_js_keys_t *bs;
     int n = 0;
@@ -145,7 +145,7 @@ void pico8_cr(void) {
     pico8_pz_frame_t frame = {0};
 
     if (fm != NULL) {
-        tl = fm->ew;
+        tl = fm->era;
     }
     if (fm != NULL && fm->invented != NULL) {
         gr = fm->invented->count;
@@ -158,7 +158,7 @@ void pico8_cr(void) {
     /* `true` is the ignore-cost flag: this screen lists every tech of the era,
      * affordable or not. `ix[2].hb`'s bare `cb()` wants only the affordable
      * ones. The two sites do not merge. */
-    cb_list = pico8_cb(1);
+    cb_list = tech_gate_available_technologies(1);
     rows = (pico8_cr_row_t *)allocator_alloc(frame_zone(), ((size_t)cb_list.count + 1) * sizeof *rows);
     bs = (pico8_js_keys_t *)allocator_alloc(frame_zone(), ((size_t)cb_list.count + 1) * sizeof *bs);
     memset(rows, 0, ((size_t)cb_list.count + 1) * sizeof *rows);
@@ -222,12 +222,12 @@ void pico8_cr(void) {
 }
 
 static void pico8_ix1_my_dispatch(pico8_js_t *self) {
-    pico8_hy_t *fm = main_economy_typed();
+    economy_t *fm = main_economy_typed();
     (void)self;
     if (fm != NULL) {
-        fm->lo = p8_fixed_from_int(1);
+        fm->year_ticks = p8_fixed_from_int(1);
     }
-    pico8_hy_hk(fm);
+    economy_new_year(fm);
 }
 
 static void pico8_ix2_my_dispatch(pico8_js_t *self) {
@@ -239,7 +239,7 @@ static void pico8_ix2_my_dispatch(pico8_js_t *self) {
  * other, non-interchangeable site: passing the flag here would light the icon
  * whenever any tech of the era is left. */
 static void pico8_ix2_hb_dispatch(pico8_js_t *self) {
-    pico8_cb_kept_t cb_list;
+    available_technologies_kept_t cb_list;
     int cb_count;
     layout_row_cell_t item;
     layout_row_keys_t keys = {0};
@@ -249,7 +249,7 @@ static void pico8_ix2_hb_dispatch(pico8_js_t *self) {
         return;
     }
 
-    cb_list = pico8_cb(0);
+    cb_list = tech_gate_available_technologies(0);
     cb_count = cb_list.count;
 
     item = layout_row_cell_fixed(p8_fixed_from_int(cb_count > 0 ? 24 : 37));

@@ -41,7 +41,7 @@
 
 
 #define BUILT_HASH 0xA539DD6Du
-#define LIFE_HASH 0x196B693Au
+#define LIFE_HASH 0x7DAF9781u
 #define BURST_FRAMES 86
 
 /* The tag `lq.fs` carried as a tagged list, which the frozen hashes fold:
@@ -238,9 +238,9 @@ static void *harvest_recipe(void) {
     void *found = NULL;
     int i;
 
-    for (i = 1; i <= pico8_gb_count(); i++) {
-        pico8_hp_t *hp = pico8_gb_at(i);
-        if (hp->cw != NULL && strcmp(hp->cw, "burst") == 0) {
+    for (i = 1; i <= research_projects_count(); i++) {
+        research_project_t *hp = research_projects_at(i);
+        if (hp->class_name != NULL && strcmp(hp->class_name, "burst") == 0) {
             assert(found == NULL || found == hp);
             found = hp;
         }
@@ -520,7 +520,7 @@ static uint32_t fold_lq(uint32_t h, void *e) {
     }
     assert(lq->pos == NULL && "no test folds an lq whose ra is set: to fold one, fold the key \"ra\", then 0xEEEE then 0, count it in n, as the frozen hashes did");
     /* As fold_ref folded the tagged list `fs` was: never in `hv`, so the tag branch. */
-    h = fnv(fnv(fnv_str(h, "fs"), 0xEEEEu), FROZEN_LIST_TAG);
+    h = fnv(fnv(fnv_str(h, "placed_items"), 0xEEEEu), FROZEN_LIST_TAG);
     h = fold_fixed(fnv_str(h, "w"), lq->width);
     for (i = k; i < lq->items_count; i++) {
         h = fold_lq_positional(h, lq, i);

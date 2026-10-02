@@ -17,112 +17,112 @@
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
 
-static int g_ie_up = 0;
+static int g_structure_icon_up = 0;
 
 /* `ie.gy`, `ie.id`: mutated on the class by the cart, so one cursor and one
  * counter shared by every icon, never a member. `gy` is rebound, never
  * written through: an icon's `ra`, and `eh`, may hold its REF. Only `_init`
  * resets `gy`, only pico8_research_icon_init() resets `id`. */
-static const vec_t *g_ie_gy = NULL;
-static p8_fixed_t g_ie_id = 0;
-static int g_ie_has_id = 0;
+static const vec_t *g_cursor = NULL;
+static p8_fixed_t g_sprite_counter = 0;
+static int g_has_sprite_counter = 0;
 
-static int ie_to_int(p8_fixed_t x) {
+static int structure_icon_to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
 }
 
 /* Returns the kind held in `self.ke`, or NULL when the member is nil. The
  * result is borrowed. */
-static const entity_kind_t *ie_self_ke_kind(const pico8_ie_t *self) {
-    return self != NULL ? self->ke : NULL;
+static const entity_kind_t *structure_icon_own_kind(const structure_icon_t *self) {
+    return self != NULL ? self->kind : NULL;
 }
 
-static const entity_class_t g_ie_ke_view_struct_class = {0};
+static const entity_class_t g_structure_icon_kind_view_class = {0};
 
-pico8_ie_ke_t pico8_ie_ke_view(const pico8_ie_t *self) {
-    const entity_kind_t *kind = ie_self_ke_kind(self);
-    pico8_ie_ke_t view;
+structure_icon_kind_t structure_icon_kind_view(const structure_icon_t *self) {
+    const entity_kind_t *kind = structure_icon_own_kind(self);
+    structure_icon_kind_t view;
 
-    entity_init_header(&view.header, &g_ie_ke_view_struct_class);
-    view.rr = NULL;
-    view.s = 0;
-    view.has_s = 0;
-    view.me = NULL;
-    view.od = 0;
-    view.has_od = 0;
+    entity_init_header(&view.header, &g_structure_icon_kind_view_class);
+    view.required_tech = NULL;
+    view.sprite = 0;
+    view.has_sprite = 0;
+    view.state = NULL;
+    view.cost = 0;
+    view.has_cost = 0;
     if (kind != NULL) {
-        view.rr = kind->record->required_tech;
-        view.s = kind->record->sprite;
-        view.has_s = kind->record->has_sprite;
-        view.me = kind->record->state;
-        view.od = kind->record->cost;
-        view.has_od = kind->record->has_cost;
+        view.required_tech = kind->record->required_tech;
+        view.sprite = kind->record->sprite;
+        view.has_sprite = kind->record->has_sprite;
+        view.state = kind->record->state;
+        view.cost = kind->record->cost;
+        view.has_cost = kind->record->has_cost;
     }
     return view;
 }
 
-const entity_class_t *pico8_ie_ke_view_struct_class(void) {
-    return &g_ie_ke_view_struct_class;
+const entity_class_t *structure_icon_kind_view_class(void) {
+    return &g_structure_icon_kind_view_class;
 }
 
-void pico8_ie_hb(pico8_ie_t *self) {
+void structure_icon_refresh(structure_icon_t *self) {
     const char *rr;
 
     if (self == NULL) {
         return;
     }
 
-    if (self->has_kh && self->kh) {
+    if (self->has_is_revealed && self->is_revealed) {
         return;
     }
 
     /* `qh`/`os` never set `rr`, so `rr` stays absent for them and
      * pico8_oj() then answers true unconditionally. */
-    rr = pico8_ie_ke_view(self).rr;
+    rr = structure_icon_kind_view(self).required_tech;
 
-    if (!pico8_oj(rr)) {
+    if (!tech_gate_is_unlocked(rr)) {
         return;
     }
 
-    assert(g_ie_up && "pico8_research_icon_init() must run before ie:hb writes ie.gy");
+    assert(g_structure_icon_up && "pico8_research_icon_init() must run before ie:hb writes ie.gy");
 
     /* `self.ra` points at the vector `ie.gy` points at now. The `-=` below rebinds
      * `ie.gy` to a fresh vector rather than writing through the old one, so
      * this snapshot survives it. */
-    self->ra = g_ie_gy;
-    self->kh = 1;
-    self->has_kh = 1;
+    self->pos = g_cursor;
+    self->is_revealed = 1;
+    self->has_is_revealed = 1;
 
     {
         vec_t current =
-            g_ie_gy != NULL ? *g_ie_gy : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+            g_cursor != NULL ? *g_cursor : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
         vec_t delta = vec_make(p8_fixed_from_int(10), p8_fixed_from_int(0));
         vec_t *box = (vec_t *)allocator_alloc(game_zone(), sizeof *box);
         *box = vec_sub(current, delta);
-        g_ie_gy = box;
+        g_cursor = box;
     }
 }
 
-static void pico8_ie_hb_dispatch(entity_t *self) {
-    pico8_ie_hb((pico8_ie_t *)self);
+static void structure_icon_refresh_method(entity_t *self) {
+    structure_icon_refresh((structure_icon_t *)self);
 }
 
-down_t pico8_ie_ldown(pico8_ie_t *self) {
+down_t structure_icon_left_press(structure_icon_t *self) {
     p8_fixed_t new_id;
-    const entity_kind_t *ke_kind;
+    const entity_kind_t *entity_kind;
     char *id_num_str;
     char *id_str;
     planet_keys_t keys;
     down_t out = {0, NULL};
 
-    assert(g_ie_up && "pico8_research_icon_init() must run before ie:ldown writes ie.id");
-    new_id = p8_fixed_add(g_ie_has_id ? g_ie_id : p8_fixed_from_int(0),
+    assert(g_structure_icon_up && "pico8_research_icon_init() must run before ie:ldown writes ie.id");
+    new_id = p8_fixed_add(g_has_sprite_counter ? g_sprite_counter : p8_fixed_from_int(0),
                              p8_fixed_from_int(1));
-    g_ie_id = new_id;
-    g_ie_has_id = 1;
+    g_sprite_counter = new_id;
+    g_has_sprite_counter = 1;
 
-    ke_kind = ie_self_ke_kind(self);
-    if (ke_kind == NULL) {
+    entity_kind = structure_icon_own_kind(self);
+    if (entity_kind == NULL) {
         return out;
     }
 
@@ -134,23 +134,23 @@ down_t pico8_ie_ldown(pico8_ie_t *self) {
     keys.planet_id = id_str;
     keys.map_pos = NULL;
     keys.pos = NULL;
-    out.held = ke_kind->new_entity(&keys);
+    out.held = entity_kind->new_entity(&keys);
     planet_grab_arena_close();
     out.stop = out.held != NULL;
     return out;
 }
 
-static down_t pico8_ie_ldown_dispatch(entity_t *self, vec_t *qa, vec_t *ra) {
+static down_t structure_icon_left_press_method(entity_t *self, vec_t *qa, vec_t *ra) {
     (void)qa;
     (void)ra;
-    return pico8_ie_ldown((pico8_ie_t *)self);
+    return structure_icon_left_press((structure_icon_t *)self);
 }
 
-void pico8_ie_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_ie_t *self, vec_t p) {
-    pico8_ie_ke_t view;
+void structure_icon_draw(p8_graphics_t *gfx, p8_memory_t *mem, structure_icon_t *self, vec_t p) {
+    structure_icon_kind_t view;
 
     /* An icon not yet revealed by `ie:hb` draws nothing at all. */
-    if (self == NULL || !(self->has_kh && self->kh)) {
+    if (self == NULL || !(self->has_is_revealed && self->is_revealed)) {
         return;
     }
     if (gfx == NULL || mem == NULL) {
@@ -159,23 +159,23 @@ void pico8_ie_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_ie_t *self, vec_t p
 
     p8_palt(mem, 3, 0);
 
-    view = pico8_ie_ke_view(self);
-    p8_spr_default(gfx, mem, view.has_s ? ie_to_int(view.s) : 0, ie_to_int(p.x),
-                      ie_to_int(p.y));
+    view = structure_icon_kind_view(self);
+    p8_spr_default(gfx, mem, view.has_sprite ? structure_icon_to_int(view.sprite) : 0, structure_icon_to_int(p.x),
+                      structure_icon_to_int(p.y));
 
     /* `dl(self.ke)` is not inert: every kind `self.ke` can hold inherits
      * `qh`'s `me="kz"`, so `dl` passes its own state check and draws the
      * kind-level build cost. */
-    if (self->m_) {
-        if (ie_self_ke_kind(self) != NULL) {
+    if (self->is_hovered) {
+        if (structure_icon_own_kind(self) != NULL) {
             targeting_t pb = {.archetype = &targeting_archetype_none};
 
-            pb.has_cost = view.has_od;
-            pb.cost = view.od;
-            targeting_tooltip_show(gfx, mem, view.me, &pb);
+            pb.has_cost = view.has_cost;
+            pb.cost = view.cost;
+            targeting_tooltip_show(gfx, mem, view.state, &pb);
         }
-        if (self->jb != NULL) {
-            tooltip_draw_at(gfx, mem, self->jb, p8_fixed_from_int(0), p8_fixed_from_int(0));
+        if (self->tooltip != NULL) {
+            tooltip_draw_at(gfx, mem, self->tooltip, p8_fixed_from_int(0), p8_fixed_from_int(0));
         }
     }
 
@@ -183,42 +183,42 @@ void pico8_ie_kj(p8_graphics_t *gfx, p8_memory_t *mem, pico8_ie_t *self, vec_t p
 }
 
 /* `dc("kj")` calls `qc[nt](qc,qc.ra)`, so `ra` is always `self.ra`. */
-static void pico8_ie_kj_dispatch(entity_t *self, const vec_t *ra) {
+static void structure_icon_draw_method(entity_t *self, const vec_t *ra) {
     vec_t p = ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    pico8_ie_kj(dispatch_context_gfx(), dispatch_context_mem(), (pico8_ie_t *)self, p);
+    structure_icon_draw(dispatch_context_gfx(), dispatch_context_mem(), (structure_icon_t *)self, p);
 }
 
 /* `ie.hd=gk`: a field assignment in the cart, not a method definition. */
-static int pico8_ie_hd_dispatch(entity_t *self, const vec_t *qa, const vec_t *ra) {
+static int structure_icon_hit_test_method(entity_t *self, const vec_t *qa, const vec_t *ra) {
     return entity_geom_contains_cursor(self, qa, ra);
 }
 
-static const entity_class_t g_ie_struct_class = {
-    .draw = pico8_ie_kj_dispatch,
-    .hit_test = pico8_ie_hd_dispatch,
-    .refresh = pico8_ie_hb_dispatch,
-    .left_press = pico8_ie_ldown_dispatch,
+static const entity_class_t g_structure_icon_class = {
+    .draw = structure_icon_draw_method,
+    .hit_test = structure_icon_hit_test_method,
+    .refresh = structure_icon_refresh_method,
+    .left_press = structure_icon_left_press_method,
 };
 
-static pico8_ie_t *pico8_ie_struct_new(const pico8_ie_keys_t *keys) {
-    pico8_ie_t *self = (pico8_ie_t *)allocator_alloc(game_zone(), sizeof *self);
+static structure_icon_t *structure_icon_create(const structure_icon_keys_t *keys) {
+    structure_icon_t *self = (structure_icon_t *)allocator_alloc(game_zone(), sizeof *self);
 
-    assert(g_ie_up && "pico8_research_icon_init() must run before an ie is built");
-    entity_init_instance(&self->header, &g_ie_struct_class, structure_icon_archetype.state, structure_icon_archetype.state_time);
-    self->def = &structure_icon_archetype;
-    self->header.layer = &self->def->layer;
-    self->header.pos = &self->ra;
-    self->header.hit_box = &self->def->hit_box;
-    self->ra = &self->def->pos;
-    self->ke = NULL;
-    self->jb = NULL;
-    self->kh = 0;
-    self->has_kh = 0;
-    self->header.is_hovered = &self->m_;
-    self->m_ = 0;
+    assert(g_structure_icon_up && "pico8_research_icon_init() must run before an ie is built");
+    entity_init_instance(&self->header, &g_structure_icon_class, structure_icon_archetype.state, structure_icon_archetype.state_time);
+    self->archetype = &structure_icon_archetype;
+    self->header.layer = &self->archetype->layer;
+    self->header.pos = &self->pos;
+    self->header.hit_box = &self->archetype->hit_box;
+    self->pos = &self->archetype->pos;
+    self->kind = NULL;
+    self->tooltip = NULL;
+    self->is_revealed = 0;
+    self->has_is_revealed = 0;
+    self->header.is_hovered = &self->is_hovered;
+    self->is_hovered = 0;
     if (keys != NULL) {
-        self->ke = keys->ke;
-        self->jb = keys->jb;
+        self->kind = keys->kind;
+        self->tooltip = keys->tooltip;
     }
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("structure_icon");
@@ -227,50 +227,50 @@ static pico8_ie_t *pico8_ie_struct_new(const pico8_ie_keys_t *keys) {
     return self;
 }
 
-void pico8_research_icon_init(void) {
-    pico8_research_icon_shutdown();
+void structure_icon_init(void) {
+    structure_icon_shutdown();
 
     draw_functions_init();
 
-    g_ie_up = 1;
-    g_ie_gy = NULL;
-    g_ie_id = p8_fixed_from_int(0);
-    g_ie_has_id = 1;
+    g_structure_icon_up = 1;
+    g_cursor = NULL;
+    g_sprite_counter = p8_fixed_from_int(0);
+    g_has_sprite_counter = 1;
 }
 
-void pico8_research_icon_shutdown(void) {
-    g_ie_up = 0;
-    g_ie_gy = NULL;
+void structure_icon_shutdown(void) {
+    g_structure_icon_up = 0;
+    g_cursor = NULL;
 }
 
-int pico8_ie_ready(void) {
-    return g_ie_up;
+int structure_icon_ready(void) {
+    return g_structure_icon_up;
 }
 
-const entity_class_t *pico8_ie_struct_class(void) {
-    return &g_ie_struct_class;
+const entity_class_t *structure_icon_class(void) {
+    return &g_structure_icon_class;
 }
 
-pico8_ie_t *pico8_ie_new(const pico8_ie_keys_t *keys) {
-    return pico8_ie_struct_new(keys);
+structure_icon_t *structure_icon_new(const structure_icon_keys_t *keys) {
+    return structure_icon_create(keys);
 }
 
-const vec_t *pico8_ie_eh(void) {
-    return g_ie_up ? &structure_icon_archetype.rest_count : NULL;
+const vec_t *structure_icon_rest_cursor(void) {
+    return g_structure_icon_up ? &structure_icon_archetype.rest_count : NULL;
 }
 
-const vec_t *pico8_ie_gy(void) {
-    return g_ie_gy;
+const vec_t *structure_icon_cursor(void) {
+    return g_cursor;
 }
 
-int pico8_ie_id(p8_fixed_t *out) {
-    if (!g_ie_has_id) {
+int structure_icon_sprite_counter(p8_fixed_t *out) {
+    if (!g_has_sprite_counter) {
         return 0;
     }
-    *out = g_ie_id;
+    *out = g_sprite_counter;
     return 1;
 }
 
-void pico8_ie_set_gy(const vec_t *gy) {
-    g_ie_gy = gy;
+void structure_icon_set_cursor(const vec_t *gy) {
+    g_cursor = gy;
 }

@@ -21,21 +21,21 @@ void pico8_cheat_init(pico8_cheat_t *cheat) {
  * the title screen too: the cheat writes the provisional there. */
 static void apply(void) {
     entity_t *fm = main_economy();
-    pico8_hy_t *hy;
+    economy_t *hy;
     if (fm == NULL) {
         return;
     }
     if (((const entity_t *)fm)->class == main_economy_placeholder_class()) {
-        pico8_fm_placeholder_t *provisional = (pico8_fm_placeholder_t *)fm;
-        provisional->jk = p8_fixed_from_int(99);
-        provisional->has_jk = 1;
-        provisional->nz = p8_fixed_from_int(200);
-        provisional->has_nz = 1;
+        main_economy_placeholder_t *provisional = (main_economy_placeholder_t *)fm;
+        provisional->research_points = p8_fixed_from_int(99);
+        provisional->has_research_points = 1;
+        provisional->credits = p8_fixed_from_int(200);
+        provisional->has_credits = 1;
         return;
     }
     hy = main_economy_typed();
-    hy->jk = p8_fixed_from_int(99);
-    hy->nz = p8_fixed_from_int(200);
+    hy->research_points = p8_fixed_from_int(99);
+    hy->credits = p8_fixed_from_int(200);
 }
 
 static int feed(pico8_cheat_t *cheat, int button) {

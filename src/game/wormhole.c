@@ -71,7 +71,7 @@ void wormhole_drag(wormhole_t *self, vec_t *mp, vec_t *rp) {
     nq = entity_geom_nearest(p_vec, self->anchors, &nearest);
     self->anchor = nearest;
 
-    threshold = pico8_ov("space folding", P8_FIXED_LIT(0x000030a3, 0.19), P8_FIXED_LIT(0x0000451e, 0.27));
+    threshold = tech_gate_if_unlocked("space folding", P8_FIXED_LIT(0x000030a3, 0.19), P8_FIXED_LIT(0x0000451e, 0.27));
 
     if (nq > threshold) {
         self->targeting->target = (entity_t *)wormhole_too_far_target_wrapper();
@@ -94,7 +94,7 @@ void wormhole_update_placing(wormhole_t *self, p8_fixed_t t) {
         return;
     }
 
-    threshold = pico8_ov("space folding", p8_fixed_from_int(29), p8_fixed_from_int(35));
+    threshold = tech_gate_if_unlocked("space folding", p8_fixed_from_int(29), p8_fixed_from_int(35));
 
     one = p8_fixed_from_int(1);
     reach = p8_fixed_div(t, p8_fixed_from_int(15));

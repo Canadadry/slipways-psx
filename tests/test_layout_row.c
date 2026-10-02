@@ -463,8 +463,8 @@ static void test_constructions(void) {
 }
 
 static void *project(int k) {
-    assert(pico8_gb_at(k) != NULL);
-    return pico8_gb_at(k);
+    assert(research_projects_at(k) != NULL);
+    return research_projects_at(k);
 }
 
 /* `jo.ex` on the `i`/`o` of three projects, over a spread of `jq`/`mj`/`d`
@@ -478,12 +478,12 @@ static void test_planet_resource_row(void) {
     p8_fixed_t o;
 
     for (a = 0; a < sizeof ks / sizeof ks[0]; a++) {
-        const pico8_hp_t *p = project(ks[a]);
-        const pointer_list_t *is = p->i;
-        assert(p->has_o);
-        o = p->o;
+        const research_project_t *p = project(ks[a]);
+        const pointer_list_t *is = p->inputs;
+        assert(p->has_output);
+        o = p->output;
         for (b = 0; b < sizeof jqs / sizeof jqs[0]; b++) {
-            const void *lq = pico8_jo_ex(frame_zone(), is, &o, p8_fixed_from_int(jqs[b]),
+            const void *lq = research_display_planet_resource_row(frame_zone(), is, &o, p8_fixed_from_int(jqs[b]),
                                          p8_fixed_from_int((int)b % 3), p8_fixed_from_int((int)b % 2));
             assert(lq != NULL);
             assert(as_layout_row(lq)->has_color == (jqs[b] > 5));
@@ -495,11 +495,11 @@ static void test_planet_resource_row(void) {
     }
     {
         const void *lq =
-            pico8_jo_ex(frame_zone(), NULL, &o, p8_fixed_from_int(2), 0, p8_fixed_from_int(1));
+            research_display_planet_resource_row(frame_zone(), NULL, &o, p8_fixed_from_int(2), 0, p8_fixed_from_int(1));
         assert(lq != NULL);
         h = fold_row(h, lq);
     }
-    assert(pico8_jo_ex(frame_zone(), NULL, NULL, p8_fixed_from_int(1), 0, 0) == NULL);
+    assert(research_display_planet_resource_row(frame_zone(), NULL, NULL, p8_fixed_from_int(1), 0, 0) == NULL);
     check("jo.ex", h, PLANET_RESOURCE_ROW_HASH);
 }
 
@@ -515,7 +515,7 @@ static void test_research_project_layout_row_and_copy(void) {
 
     start_game();
     for (allocated = 0; allocated < sizeof project_ranks / sizeof project_ranks[0]; allocated++) {
-        void *lq = pico8_hp_lq(project(project_ranks[allocated]));
+        void *lq = research_project_layout_row(project(project_ranks[allocated]));
         pico8_js_keys_t spec = {0};
         pico8_js_t *button;
         const void *copy;
@@ -792,18 +792,18 @@ static const layout_row_t *panel_row(const char *head) {
  * resource draws it 5 wide, a want of none nothing, 6 wide. */
 static void test_inspection_panel_wants_more(void) {
     p8_fixed_t ore = p8_fixed_from_int(21);
-    pico8_jy_t *a = pico8_jy_new(game_zone(), &ore);
-    pico8_jy_t *b = pico8_jy_new(game_zone(), NULL);
+    need_t *a = need_new(game_zone(), &ore);
+    need_t *b = need_new(game_zone(), NULL);
     pointer_list_t *jy = malloc(sizeof *jy);
     planet_t *planet;
     const layout_row_t *wants;
     const layout_row_t *receives;
 
     start_game();
-    a->has_gc = 1;
-    a->gc = p8_fixed_from_int(1);
-    b->has_gc = 1;
-    b->gc = p8_fixed_from_int(2);
+    a->has_satisfied = 1;
+    a->satisfied = p8_fixed_from_int(1);
+    b->has_satisfied = 1;
+    b->satisfied = p8_fixed_from_int(2);
     pointer_list_init(jy, &heap_allocator);
     pointer_list_add(jy, a);
     pointer_list_add(jy, b);
@@ -830,7 +830,7 @@ static void test_inspection_panel_wants_more(void) {
  * want arrives. */
 static void test_inspection_panel_w_maker_wants_no_more(void) {
     p8_fixed_t ore = p8_fixed_from_int(21);
-    pico8_jy_t *a = pico8_jy_new(game_zone(), &ore);
+    need_t *a = need_new(game_zone(), &ore);
     pointer_list_t *jy = malloc(sizeof *jy);
     production_t *kw = calloc(1, sizeof *kw);
     planet_t *planet;
@@ -840,8 +840,8 @@ static void test_inspection_panel_w_maker_wants_no_more(void) {
     assert(resource_code_lookup("w", &r_w));
     kw->has_resource = 1;
     kw->resource = p8_fixed_from_int(r_w);
-    a->has_gc = 1;
-    a->gc = p8_fixed_from_int(1);
+    a->has_satisfied = 1;
+    a->satisfied = p8_fixed_from_int(1);
     pointer_list_init(jy, &heap_allocator);
     pointer_list_add(jy, a);
     planet = planet_new(NULL);
@@ -858,17 +858,17 @@ static void test_inspection_panel_w_maker_wants_no_more(void) {
 
 /* A laboratory (`qh` true) lists only its last want under "wants more:". */
 static void test_inspection_panel_lab_wants_its_last(void) {
-    pico8_jy_t *a = pico8_jy_new(game_zone(), NULL);
-    pico8_jy_t *b = pico8_jy_new(game_zone(), NULL);
+    need_t *a = need_new(game_zone(), NULL);
+    need_t *b = need_new(game_zone(), NULL);
     pointer_list_t *jy = malloc(sizeof *jy);
     planet_t *lab;
     const layout_row_t *wants;
 
     start_game();
-    a->has_gc = 1;
-    a->gc = p8_fixed_from_int(1);
-    b->has_gc = 1;
-    b->gc = p8_fixed_from_int(1);
+    a->has_satisfied = 1;
+    a->satisfied = p8_fixed_from_int(1);
+    b->has_satisfied = 1;
+    b->satisfied = p8_fixed_from_int(1);
     pointer_list_init(jy, &heap_allocator);
     pointer_list_add(jy, a);
     pointer_list_add(jy, b);
@@ -953,7 +953,7 @@ static void test_layout_row_is_a_struct(void) {
     assert(items[1].kind == LAYOUT_ROW_CELL_ROW && items[1].as.row == &icon_tooltips_table[0]);
 
     start_game();
-    row = pico8_hp_lq(project(1));
+    row = research_project_layout_row(project(1));
     k = placed_items_count(row);
     assert(row_count(row) == k + 2);
 
@@ -991,17 +991,17 @@ static void test_planet_resource_row_largest_row_fits_a_slot(void) {
     int r_w;
     int k;
 
-    for (k = 1; pico8_gb_at(k) != NULL; k++) {
-        const pico8_hp_t *p = pico8_gb_at(k);
-        if (p->i != NULL && (is == NULL || p->i->count > is->count)) {
-            is = p->i;
+    for (k = 1; research_projects_at(k) != NULL; k++) {
+        const research_project_t *p = research_projects_at(k);
+        if (p->inputs != NULL && (is == NULL || p->inputs->count > is->count)) {
+            is = p->inputs;
         }
     }
     assert(is != NULL && is->count == 2 && "the most wants a project has; a longer `i` needs a bigger row place");
     assert(resource_code_lookup("w", &r_w));
     o = p8_fixed_from_int(r_w);
     slot = pico8_zone_interface_place(PICO8_SORTE_RANGEE);
-    assert(pico8_jo_ex(slot, is, &o, p8_fixed_from_int(5), 0, 0) != NULL);
+    assert(research_display_planet_resource_row(slot, is, &o, p8_fixed_from_int(5), 0, 0) != NULL);
     arena_release(slot);
 }
 

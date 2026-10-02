@@ -163,9 +163,9 @@ static int target_kind(const wormhole_t *mz) {
 }
 
 static p8_fixed_t credits(void) {
-    const pico8_hy_t *hy = main_economy_typed();
+    const economy_t *hy = main_economy_typed();
     assert(hy != NULL);
-    return hy->nz;
+    return hy->credits;
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
@@ -222,8 +222,8 @@ static void world(void) {
             re = e;
         }
     }
-    planet_apply_project(qu, pico8_hp_new(NULL));
-    planet_apply_project(re, pico8_hp_new(NULL));
+    planet_apply_project(qu, research_project_new(NULL));
+    planet_apply_project(re, research_project_new(NULL));
 
     slipway_keys.start = qu;
     jc = slipway_new(&slipway_keys);
@@ -590,7 +590,7 @@ static void test_drop(void) {
     broke = build_wormhole();
     until_state_time(broke, 15);
     drag(broke, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
-    main_economy_typed()->nz = p8_fixed_from_int(2);
+    main_economy_typed()->credits = p8_fixed_from_int(2);
     drop(broke);
     assert(is_state(&broke->header, "placing") && is_dead_state(broke) == 2);
     assert(credits() == p8_fixed_from_int(2));

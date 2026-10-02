@@ -387,7 +387,7 @@ static void *bought(const entity_kind_t *kind) {
     main_camera_pos = mo->ra;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *icon = hb->items[i];
-        if (class_of(icon) == pico8_ie_struct_class() && ((const pico8_ie_t *)icon)->ke == kind) {
+        if (class_of(icon) == structure_icon_class() && ((const structure_icon_t *)icon)->kind == kind) {
             down_t made = class_of(icon)->left_press(icon, NULL, NULL);
             vec_t middle = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
             assert(made.stop && made.held != NULL);
@@ -400,13 +400,13 @@ static void *bought(const entity_kind_t *kind) {
 }
 
 /* The project of `gb` whose `cw` names `cw`. */
-static pico8_hp_t *class_name_project(const char *cw) {
+static research_project_t *class_name_project(const char *cw) {
     int k;
 
     for (k = 1;; k++) {
-        pico8_hp_t *hp = pico8_gb_at(k);
+        research_project_t *hp = research_projects_at(k);
         assert(hp != NULL);
-        if (hp->cw != NULL && strcmp(hp->cw, cw) == 0) {
+        if (hp->class_name != NULL && strcmp(hp->class_name, cw) == 0) {
             return hp;
         }
     }
@@ -513,9 +513,9 @@ static void test_production_shared(void) {
     planet_t *a;
     planet_t *b;
     production_t *kw;
-    pico8_hp_t *hp;
-    pico8_qe_map_t production_before;
-    pico8_qe_map_t production_after;
+    research_project_t *hp;
+    resource_map_t production_before;
+    resource_map_t production_after;
     p8_fixed_t before = p8_fixed_from_int(0);
     p8_fixed_t after = p8_fixed_from_int(0);
 
@@ -528,8 +528,8 @@ static void test_production_shared(void) {
     assert(b->production->amount == p8_fixed_from_int(7));
     assert(planet_shared_production()->amount == p8_fixed_from_int(7));
 
-    assert(pico8_gb_count() > 0);
-    hp = pico8_gb_find("");
+    assert(research_projects_count() > 0);
+    hp = research_projects_find("");
     assert(hp != NULL);
     planet_install_project(a, hp);
     assert(a->production != NULL && a->production != planet_shared_production());
@@ -537,12 +537,12 @@ static void test_production_shared(void) {
     assert(b->production == planet_shared_production());
     assert(a->project == hp && list_size(a->needs) >= 0);
 
-    pico8_bx(&production_before);
+    economy_total_production(&production_before);
     kw->has_resource = 1;
     kw->resource = p8_fixed_from_int(28);
-    pico8_bx(&production_after);
-    pico8_qe_map_get(&production_before, kw->resource, &before);
-    pico8_qe_map_get(&production_after, kw->resource, &after);
+    economy_total_production(&production_after);
+    resource_map_get(&production_before, kw->resource, &before);
+    resource_map_get(&production_after, kw->resource, &after);
     assert(after == before);
     planet_init();
     assert(b->production == planet_shared_production());

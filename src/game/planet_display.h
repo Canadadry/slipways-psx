@@ -35,6 +35,6 @@ void planet_draw(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t pos
 /* In the `hp.cw` branch `self` is marked for removal and the tail of the
  * work lands on a fresh planet the caller never sees -- or on nothing,
  * when `hp.cw` is neither "pm" nor "ga". */
-void planet_apply_project(planet_t *self, pico8_hp_t *research_project_instance);
+void planet_apply_project(planet_t *self, research_project_t *research_project_instance);
 
 #endif

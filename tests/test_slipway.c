@@ -280,7 +280,7 @@ static uint32_t fold_slipway(uint32_t h, const void *e) {
 
 static p8_fixed_t credits(void) {
     assert(main_economy_typed() != NULL);
-    return main_economy_typed()->nz;
+    return main_economy_typed()->credits;
 }
 
 static uint32_t fold_planets(uint32_t h, int with_other_end) {
@@ -345,8 +345,8 @@ static void colonized_pair(void **qu, void **re) {
             *re = e;
         }
     }
-    planet_apply_project(*qu, pico8_hp_new(NULL));
-    planet_apply_project(*re, pico8_hp_new(NULL));
+    planet_apply_project(*qu, research_project_new(NULL));
+    planet_apply_project(*re, research_project_new(NULL));
 }
 
 static void *build_slipway(void *qu);

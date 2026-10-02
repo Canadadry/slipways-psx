@@ -161,7 +161,7 @@ static size_t planets_bytes(void) {
 /* Octets de l'economie `fm` faite par `eu` : sa structure et le conteneur
  * `invented`, sans elements tant que rien n'est invente. */
 static size_t economy_bytes(void) {
-    const pico8_hy_t *fm = main_economy_typed();
+    const economy_t *fm = main_economy_typed();
     assert(fm != NULL && fm->invented != NULL && "eu a fait l'economie de la partie");
     assert(fm->invented->count == 0 && fm->invented->items == NULL && "une invention, que l'economie ne compte pas");
     return block_bytes(sizeof *fm) + block_bytes(sizeof *fm->invented);
@@ -177,12 +177,12 @@ static size_t icons_bytes(void) {
     size_t bytes = 0;
     int k = 0;
     for (int i = 0; hv != NULL && i < hv->count; i++) {
-        const pico8_ie_t *ie = (const pico8_ie_t *)hv->items[i];
-        if (ie->header.class != pico8_ie_struct_class()) continue;
+        const structure_icon_t *ie = (const structure_icon_t *)hv->items[i];
+        if (ie->header.class != structure_icon_class()) continue;
         assert(k < ICON_TOOLTIPS_COUNT && "plus d'icones que de bulles dans dr");
         (void)tooltip_new(mesure, &icon_tooltips_table[k]);
         bytes += block_bytes(sizeof *ie);
-        if (ie->has_kh && ie->kh) bytes += block_bytes(sizeof(vec_t));
+        if (ie->has_is_revealed && ie->is_revealed) bytes += block_bytes(sizeof(vec_t));
         k++;
     }
     assert(k == ICON_TOOLTIPS_COUNT && "eu fait une icone par bulle de dr");

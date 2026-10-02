@@ -213,20 +213,20 @@ static void test_every_class_name_is_protostar_or_burst(void) {
     int with_class_name = 0;
     int k;
 
-    assert(pico8_gb_count() > 0);
-    for (k = 1; k <= pico8_gb_count(); k++) {
-        const pico8_hp_t *hp;
+    assert(research_projects_count() > 0);
+    for (k = 1; k <= research_projects_count(); k++) {
+        const research_project_t *hp;
         const char *cw;
 
-        hp = pico8_gb_at(k);
-        cw = hp->cw;
+        hp = research_projects_at(k);
+        cw = hp->class_name;
         if (cw == NULL) {
             continue;
         }
         assert(strcmp(cw, "protostar") == 0 || strcmp(cw, "burst") == 0);
         with_class_name++;
     }
-    printf("[cw] %d of %d researches\n", with_class_name, pico8_gb_count());
+    printf("[cw] %d of %d researches\n", with_class_name, research_projects_count());
     assert(with_class_name > 0);
 }
 

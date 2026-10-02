@@ -273,7 +273,7 @@ void synthesizer_attach_slipway(planet_t *self, entity_t *slipway) {
 
         it = pointer_list_all(jy);
         while (pointer_list_iter_next(&it, &i_val)) {
-            const pico8_jy_t *i;
+            const need_t *i;
             p8_fixed_t gc;
 
             if (i_val == NULL) {
@@ -281,7 +281,7 @@ void synthesizer_attach_slipway(planet_t *self, entity_t *slipway) {
             }
             i = i_val;
 
-            gc = i->has_gc ? i->gc : p8_fixed_from_int(0);
+            gc = i->has_satisfied ? i->satisfied : p8_fixed_from_int(0);
             if (gc != p8_fixed_from_int(0)) {
                 continue;
             }

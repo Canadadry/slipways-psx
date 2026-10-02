@@ -237,7 +237,7 @@ static void *nl_icon(void) {
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i];
-        if (cls_of(e) == pico8_ie_struct_class() && ((const pico8_ie_t *)e)->ke == pico8_nl_kind()) {
+        if (cls_of(e) == structure_icon_class() && ((const structure_icon_t *)e)->kind == pico8_nl_kind()) {
             return e;
         }
     }
@@ -354,8 +354,8 @@ static uint32_t fold_plate(uint32_t h, const void *e) {
     assert(jo->archetype->spacer == &planet_spacer_row && jo->archetype->ring_colors == &planet_ring_colors_seq && jo->archetype->mood_rows == planet_mood_rows_rows &&
            jo->archetype->made_resources == &planet_made_resources_seq);
     assert(jo->production != NULL && jo->production != planet_shared_production());
-    assert(pico8_gb_at(6) != NULL);
-    assert(jo->project == pico8_gb_at(6));
+    assert(research_projects_at(6) != NULL);
+    assert(jo->project == research_projects_at(6));
     h = fold_kw(h, jo);
     h = fnv(h, (uint32_t)ents_list_size(jo->slipways));
     h = fnv(h, (uint32_t)list_size(jo->needs));
@@ -387,11 +387,11 @@ static void test_built(void) {
 
 static p8_fixed_t credits(void) {
     assert(main_economy_typed() != NULL);
-    return main_economy_typed()->nz;
+    return main_economy_typed()->credits;
 }
 
 static void set_credits(int n) {
-    main_economy_typed()->nz = p8_fixed_from_int(n);
+    main_economy_typed()->credits = p8_fixed_from_int(n);
 }
 
 static uint32_t fold_ra_y(uint32_t h, const planet_t *nl) {
@@ -423,10 +423,10 @@ static uint32_t fold_ib(uint32_t h, const entity_list_t *ib) {
  * give on a plate. */
 static uint32_t fold_economy(uint32_t h, void *e) {
     entity_list_t *ib = planet_rebuild_trades(e);
-    h = fnv(h, (uint32_t)pico8_dh(e));
+    h = fnv(h, (uint32_t)economy_tiers_compute_tier(e));
     h = fold_ib(h, ib);
     h = fnv(fnv(h, 0xB0u), planet_is_colonized(e) ? 1u : 0u);
-    h = fnv(h, (uint32_t)pico8_da(e));
+    h = fnv(h, (uint32_t)planet_upkeep(e));
     return as_qh(e)->has_development_tier ? fold_fixed_member(h, as_qh(e)->development_tier) : fold_absent(h);
 }
 

@@ -399,8 +399,8 @@ static void test_shared(void) {
     assert(ea->row.count == 3 && ea->lh != NULL);
     h = fold_ref_member(h, pico8_pj_ea());
 
-    main_economy_typed()->hl = "final score";
-    main_economy_typed()->has_hl = 1;
+    main_economy_typed()->end_status = "final score";
+    main_economy_typed()->has_end_status = 1;
     cls_of(ju)->states[ENTITY_STATE_NORMAL](&ju->header, p8_fixed_from_int(0));
     assert(ju->fa == p8_fixed_from_int(13));
     assert(c__state(ju) == 2);
@@ -452,8 +452,8 @@ static void test_life(void) {
 
     fq_before = fq_count();
     js_before = js15_count();
-    main_economy_typed()->hl = "final score";
-    main_economy_typed()->has_hl = 1;
+    main_economy_typed()->end_status = "final score";
+    main_economy_typed()->has_end_status = 1;
     cls_of(ju)->states[ENTITY_STATE_NORMAL](&ju->header, p8_fixed_from_int(0));
     assert(c__state(ju) == 2);
     assert(ju->has_gz && ju->gz == 0);
@@ -700,8 +700,8 @@ static void in_fresh_child(void (*test)(void)) {
 /* `ky()` on a started game with ten techs invented and a happiness of 1:
  * no planet scores yet, so `s[5]` is the techs' part and `s[6]` its tier. */
 static void test_ky_reads_invented_and_happiness(void) {
-    pico8_hy_t *fm;
-    pico8_ky_t s;
+    economy_t *fm;
+    final_score_t s;
     int i;
 
     (void)start_game();
@@ -711,8 +711,8 @@ static void test_ky_reads_invented_and_happiness(void) {
     }
     fm->happiness = p8_fixed_from_int(1);
     fm->has_happiness = 1;
-    s = pico8_ky();
-    assert(s.di == 0 && s.gl == 0 && s.el == p8_fixed_from_int(1430));
+    s = economy_score_final();
+    assert(s.development == 0 && s.population == 0 && s.technology == p8_fixed_from_int(1430));
     assert(strcmp(s.happiness, "1%") == 0);
     assert(s.total == p8_fixed_from_int(14) && s.tier == 0);
 }
@@ -735,7 +735,7 @@ static layout_row_cell_t ph_row_item(const pico8_mh_t *mh, int k, int i) {
  * and the tier row (11) lights `s[6]` of its five icons. */
 static void test_ph_rows_show_ky(void) {
     void *ju = start_game();
-    pico8_hy_t *fm = main_economy_typed();
+    economy_t *fm = main_economy_typed();
     const pico8_mh_t *mh;
     layout_row_cell_t total;
     layout_row_cell_t icon;
@@ -746,8 +746,8 @@ static void test_ph_rows_show_ky(void) {
     }
     fm->happiness = p8_fixed_from_int(1);
     fm->has_happiness = 1;
-    fm->hl = "final score";
-    fm->has_hl = 1;
+    fm->end_status = "final score";
+    fm->has_end_status = 1;
     cls_of(ju)->states[ENTITY_STATE_NORMAL](ju, p8_fixed_from_int(0));
     mh = pico8_kc();
     assert(mh != NULL && mh->items_count == SCORE_ROWS_COUNT);

@@ -156,9 +156,9 @@ static p8_fixed_t dist2(vec_t a, vec_t b) {
     return p8_fixed_add(p8_fixed_mul(d.x, d.x), p8_fixed_mul(d.y, d.y));
 }
 
-static pico8_hp_t *project(int k) {
-    assert(pico8_gb_at(k) != NULL);
-    return pico8_gb_at(k);
+static research_project_t *project(int k) {
+    assert(research_projects_at(k) != NULL);
+    return research_projects_at(k);
 }
 
 /* `jc:hq` reads the hovered planet off `ok.o_`; the slipway is paid by `ey`
@@ -230,7 +230,7 @@ static trade_route_t *game_route(void) {
         }
     }
     planet_apply_project(qu, project(EXPORTER));
-    planet_apply_project(re, pico8_hp_new(NULL));
+    planet_apply_project(re, research_project_new(NULL));
     join(qu, re);
     for (i = 0; i < 120; i++) {
         update_entities();
@@ -547,14 +547,14 @@ static void test_offer_trade_wildcard_want(void) {
     trade_offer_t lw = {0};
     pointer_list_t *jy = malloc(sizeof *jy);
     planet_t *qh;
-    pico8_jy_t *want;
+    need_t *want;
     p8_fixed_t any;
     int any_resource;
 
     start_game();
     assert(resource_code_lookup("?", &any_resource));
     any = p8_fixed_from_int(any_resource);
-    want = pico8_jy_new(game_zone(), &any);
+    want = need_new(game_zone(), &any);
     pointer_list_init(jy, &heap_allocator);
     pointer_list_add(jy, want);
     qh = pico8_qh_new(NULL);
@@ -577,7 +577,7 @@ static void test_offer_trade_nil_want_after_extend(void) {
 
     start_game();
     pointer_list_init(jy, &heap_allocator);
-    pointer_list_add(jy, pico8_jy_new(game_zone(), NULL));
+    pointer_list_add(jy, need_new(game_zone(), NULL));
     qh = pico8_qh_new(NULL);
     qh->needs = jy;
     nil_route = trade_new(game_zone(), &(trade_keys_t){.planets = list_of(0, NULL)});
@@ -598,14 +598,14 @@ static void test_compute_tier_counts_numbered_routes_only(void) {
     pointer_list_t *jy = malloc(sizeof *jy);
     entity_list_t *cc = malloc(sizeof *cc);
     planet_t *qh;
-    pico8_jy_t *nil_want;
-    pico8_jy_t *x_want;
+    need_t *nil_want;
+    need_t *x_want;
     p8_fixed_t x = p8_fixed_from_int(2);
     trade_route_t *nil_route;
 
     start_game();
-    nil_want = pico8_jy_new(game_zone(), NULL);
-    x_want = pico8_jy_new(game_zone(), &x);
+    nil_want = need_new(game_zone(), NULL);
+    x_want = need_new(game_zone(), &x);
     pointer_list_init(jy, &heap_allocator);
     pointer_list_add(jy, nil_want);
     pointer_list_add(jy, x_want);
@@ -618,9 +618,9 @@ static void test_compute_tier_counts_numbered_routes_only(void) {
     qh->needs = jy;
     qh->incoming_routes = cc;
     entity_set_state(&qh->header, "settled");
-    (void)pico8_dh(&qh->header);
-    assert(nil_want->has_gc && nil_want->gc == p8_fixed_from_int(0));
-    assert(x_want->has_gc && x_want->gc == p8_fixed_from_int(1));
+    (void)economy_tiers_compute_tier(&qh->header);
+    assert(nil_want->has_satisfied && nil_want->satisfied == p8_fixed_from_int(0));
+    assert(x_want->has_satisfied && x_want->satisfied == p8_fixed_from_int(1));
 }
 
 /* `pico8_qe_equal` is Lua's `==` both ways, `n` unread outside FIXED; and

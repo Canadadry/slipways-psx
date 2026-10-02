@@ -1701,8 +1701,8 @@ pico8_cart_vider_file_sortie	cart_flush_exit_queue	src/game/cart.c	identifiant	f
 pico8_eu	cart_start_game	src/game/cart.c	identifiant	fonction	renommé	game/cart			c:@F@pico8_eu
 pico8_init_dispatch	cart_init_method	src/game/cart.c	identifiant	fonction	renommé	game/cart	_dispatch		c:@F@pico8_init_dispatch
 quitter_partie	quit_game_zone	src/game/cart.c	identifiant	fonction	renommé	game/cart	zone_partie		c:cart.c@F@quitter_partie
-gx	kind_table	src/game/cart.c	identifiant	locale	renommé	game/cart			c:cart.c@5556@F@pico8_eu@gx
-i	index	src/game/cart.c	identifiant	locale	renommé	game/cart			c:cart.c@5588@F@pico8_eu@i
+gx	kind_table	src/game/cart.c	identifiant	locale	renommé	game/cart			c:cart.c@5572@F@pico8_eu@gx
+i	index	src/game/cart.c	identifiant	locale	renommé	game/cart			c:cart.c@5604@F@pico8_eu@i
 j	j	src/game/cart.c	identifiant	locale	conservé	game/cart			c:cart.c@6225@F@pico8_eu@j
 ju	ju	src/game/cart.c	identifiant	locale	conservé	game/cart			c:cart.c@3071@F@oublier@ju
 keys	keys	src/game/cart.c	identifiant	locale	conservé	game/cart			c:cart.c@6578@F@pico8_eu@keys
@@ -1712,7 +1712,7 @@ mem	mem	src/game/cart.c	identifiant	locale	conservé	game/cart			c:cart.c@7240@F
 ok	ok	src/game/cart.c	identifiant	locale	conservé	game/cart			c:cart.c@3038@F@oublier@ok
 PICO8_CART_H	GAME_CART_H	src/game/cart.h	identifiant	macro	renommé	game/cart			macro:src/game/cart.h:PICO8_CART_H
 e	e	src/game/cart.c	identifiant	paramètre	conservé	game/cart			c:cart.c@3000@F@oublier@e
-nj	chosen_option	src/game/cart.c	identifiant	paramètre	renommé	game/cart			c:cart.c@5534@F@pico8_eu@nj
+nj	chosen_option	src/game/cart.c	identifiant	paramètre	renommé	game/cart			c:cart.c@5550@F@pico8_eu@nj
 nj	nj	src/game/cart.h	identifiant	paramètre	conservé	game/cart			c:cart.h@1556@F@pico8_eu@nj
 self	self	src/game/cart.c	identifiant	paramètre	conservé	game/cart			c:cart.c@5567@F@pico8_init_dispatch@self
 self	self	src/game/cart.h	identifiant	paramètre	conservé	game/cart			c:cart.h@1353@F@pico8_init_dispatch@self
@@ -2018,12 +2018,12 @@ for_each_cg	for_each_tagged	src/game/economy_score.c	identifiant	fonction	renomm
 pico8_bf	economy_score_happiness	src/game/economy_score.c	identifiant	fonction	renommé	game/economy_score			c:@F@pico8_bf
 pico8_cz	economy_score_colony_upkeep	src/game/economy_score.c	identifiant	fonction	renommé	game/economy_score			c:@F@pico8_cz
 pico8_da	planet_upkeep	src/game/economy_score.c	identifiant	fonction	renommé	game/economy_score			c:@F@pico8_da
-pico8_db	trade_income	src/game/economy_score.c	identifiant	fonction	renommé	game/economy_score			c:@F@pico8_db
+pico8_db	economy_score_trade_income	src/game/economy_score.c	identifiant	fonction	renommé	game/economy_score			c:@F@pico8_db
 pico8_dk	economy_score_difficulty	src/game/economy_score.c	identifiant	fonction	renommé	game/economy_score			c:@F@pico8_dk
-pico8_economy_dk_quitte	economy_difficulty_quits	src/game/economy_score.c	identifiant	fonction	renommé	game/economy_score			c:@F@pico8_economy_dk_quitte
-pico8_economy_set_dk	economy_set_difficulty	src/game/economy_score.c	identifiant	fonction	renommé	game/economy_score			c:@F@pico8_economy_set_dk
+pico8_economy_dk_quitte	economy_score_difficulty_quits	src/game/economy_score.c	identifiant	fonction	renommé	game/economy_score			c:@F@pico8_economy_dk_quitte
+pico8_economy_set_dk	economy_score_set_difficulty	src/game/economy_score.c	identifiant	fonction	renommé	game/economy_score			c:@F@pico8_economy_set_dk
 pico8_kr	economy_score_net_income	src/game/economy_score.c	identifiant	fonction	renommé	game/economy_score			c:@F@pico8_kr
-pico8_ky	final_score	src/game/economy_score.c	identifiant	fonction	renommé	game/economy_score			c:@F@pico8_ky
+pico8_ky	economy_score_final	src/game/economy_score.c	identifiant	fonction	renommé	game/economy_score			c:@F@pico8_ky
 sum_by_mi_visit	sum_by_development_tier_visit	src/game/economy_score.c	identifiant	fonction	renommé	game/economy_score	mi		c:economy_score.c@F@sum_by_mi_visit
 base	base	src/game/economy_score.c	identifiant	locale	conservé	game/economy_score			c:economy_score.c@5752@F@pico8_ky@base
 bonus	bonus	src/game/economy_score.c	identifiant	locale	conservé	game/economy_score			c:economy_score.c@3473@F@pico8_db@bonus
@@ -3470,33 +3470,33 @@ pico8_ix_my	galaxy_menu_on_click	src/game/menu.c	identifiant	fonction	renommé	g
 pico8_menu_init	menu_init	src/game/menu.c	identifiant	fonction	renommé	game/menu			c:@F@pico8_menu_init
 pico8_menu_invented_lines	invented_lines	src/game/menu.c	identifiant	fonction	renommé	game/menu			c:menu.c@F@pico8_menu_invented_lines
 pico8_menu_shutdown	menu_shutdown	src/game/menu.c	identifiant	fonction	renommé	game/menu			c:@F@pico8_menu_shutdown
-bs	buttons	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@4093@F@pico8_cr@bs
+bs	buttons	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@4136@F@pico8_cr@bs
 bs	bs	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@9981@F@pico8_ix4_my_dispatch@bs
 built	built	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@8528@F@pico8_ix3_my_dispatch@built
-cb_count	available_technologies_count	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@7572@F@pico8_ix2_hb_dispatch@cb_count
-cb_list	available_technologies_list	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@4038@F@pico8_cr@cb_list
-cb_list	available_technologies_list	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@7543@F@pico8_ix2_hb_dispatch@cb_list
-cr	layout_block	src/game/menu.c	identifiant	locale	renommé	game/menu	cr		c:menu.c@4144@F@pico8_cr@cr
+cb_count	available_technologies_count	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@7666@F@pico8_ix2_hb_dispatch@cb_count
+cb_list	available_technologies_list	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@4067@F@pico8_cr@cb_list
+cb_list	available_technologies_list	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@7623@F@pico8_ix2_hb_dispatch@cb_list
+cr	layout_block	src/game/menu.c	identifiant	locale	renommé	game/menu	cr		c:menu.c@4187@F@pico8_cr@cr
 diff1_str	diff1_str	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@6051@F@pico8_cr@diff1_str
 diff2_str	diff2_str	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@6076@F@pico8_cr@diff2_str
 e	e	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@10277@F@pico8_ix4_my_dispatch@e
 e	e	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@10815@F@pico8_ix_button@e
-ek	tier_thresholds	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@4026@F@pico8_cr@ek
-ek_tl	tier_thresholds_era	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@5898@F@pico8_cr@ek_tl
+ek	tier_thresholds	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@4055@F@pico8_cr@ek
+ek_tl	tier_thresholds_era	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@5966@F@pico8_cr@ek_tl
 ep	ep	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@6161@F@pico8_cr@ep
 extra	extra	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@5224@F@pico8_cr@extra
-fm	economy	src/game/menu.c	identifiant	locale	renommé	game/menu	fm		c:menu.c@3877@F@pico8_cr@fm
+fm	economy	src/game/menu.c	identifiant	locale	renommé	game/menu	fm		c:menu.c@3907@F@pico8_cr@fm
 fm	fm	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@7217@F@pico8_ix1_my_dispatch@fm
 frame	frame	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@10124@F@pico8_ix4_my_dispatch@frame
 frame	frame	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@4216@F@pico8_cr@frame
-gi_result	research_cost_result	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@2433@F@pico8_cr_step@gi_result
-gi_str	research_cost_str	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@2459@F@pico8_cr_step@gi_str
-gr	invented_count	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@3968@F@pico8_cr@gr
-gr_str	invented_text	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@5207@F@pico8_cr@gr_str
+gi_result	research_cost_result	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@2436@F@pico8_cr_step@gi_result
+gi_str	research_cost_str	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@2462@F@pico8_cr_step@gi_str
+gr	invented_count	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@3997@F@pico8_cr@gr
+gr_str	invented_text	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@5275@F@pico8_cr@gr_str
 i	i	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@10158@F@pico8_ix4_my_dispatch@i
 i	i	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@11662@F@pico8_menu_init@i
 i	i	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@3725@F@pico8_menu_invented_lines@i
-i	index	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@4133@F@pico8_cr@i
+i	index	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@4176@F@pico8_cr@i
 item	item	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@7756@F@pico8_ix2_hb_dispatch@item
 items	items	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@10061@F@pico8_ix4_my_dispatch@items
 items	items	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@10902@F@pico8_ix_button@items
@@ -3510,16 +3510,16 @@ lq	lq	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@10021@F@
 lq	lq	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@10878@F@pico8_ix_button@lq
 my	my	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@9802@F@pico8_ix4_my_dispatch@my
 n	n	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@3454@F@pico8_menu_invented_lines@n
-n	row_count	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@4118@F@pico8_cr@n
-place	slot	src/game/menu.c	identifiant	locale	renommé	game/menu	sorte		c:menu.c@7652@F@pico8_ix2_hb_dispatch@place
-qi	next_threshold	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@3984@F@pico8_cr@qi
+n	row_count	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@4161@F@pico8_cr@n
+place	slot	src/game/menu.c	identifiant	locale	renommé	game/menu	sorte		c:menu.c@7746@F@pico8_ix2_hb_dispatch@place
+qi	next_threshold	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@4013@F@pico8_cr@qi
 row	row	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@3578@F@pico8_menu_invented_lines@row
 rows	rows	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@4116@F@pico8_cr@rows
 s	s	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@8807@F@pico8_ha2_my_dispatch@s
 size	size	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@3498@F@pico8_menu_invented_lines@size
 stat_val	stat_val	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@8789@F@pico8_ha2_my_dispatch@stat_val
-tl	era	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@3926@F@pico8_cr@tl
-tl_str	era_str	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@5947@F@pico8_cr@tl_str
+tl	era	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@3955@F@pico8_cr@tl
+tl_str	era_str	src/game/menu.c	identifiant	locale	renommé	game/menu			c:menu.c@6015@F@pico8_cr@tl_str
 tmp1	tmp1	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@6101@F@pico8_cr@tmp1
 tmp2	tmp2	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@6121@F@pico8_cr@tmp2
 tmp3	tmp3	src/game/menu.c	identifiant	locale	conservé	game/menu			c:menu.c@6141@F@pico8_cr@tmp3
@@ -4982,7 +4982,7 @@ g_rr	g_required_tech	src/game/research.c	identifiant	statique	renommé	game/rese
 pico8_hp_keys_t	research_project_keys_t	src/game/research.h	identifiant	type	renommé	game/research	hp		c:@T@pico8_hp_keys_t
 pico8_hp_t	research_project_t	src/game/research.h	identifiant	type	renommé	game/research	hp		c:@T@pico8_hp_t
 pico8_jy_t	need_t	src/game/research.h	identifiant	type	renommé	game/research	jy		c:@T@pico8_jy_t
-pico8_jo_ex	planet_resource_row	src/game/research_display.c	chaîne	symbole cité	renommé	game/research_display	jo	écrivain	chaîne:pico8_jo_ex
+pico8_jo_ex	research_display_planet_resource_row	src/game/research_display.c	chaîne	symbole cité	renommé	game/research_display	jo	écrivain	chaîne:pico8_jo_ex
 count	count	src/game/research_display.h	identifiant	champ	conservé	game/research_display			c:@SA@pico8_bj_kept_t@FI@count
 inner	inner	src/game/research_display.c	identifiant	champ	conservé	game/research_display			c:@SA@pico8_hp_jb_t@FI@inner
 inner_items	inner_items	src/game/research_display.c	identifiant	champ	conservé	game/research_display			c:@SA@pico8_hp_jb_t@FI@inner_items
@@ -4996,7 +4996,7 @@ pico8_bj_predicate	available_projects_predicate	src/game/research_display.c	iden
 pico8_hp_jb	research_project_tooltip	src/game/research_display.c	identifiant	fonction	renommé	game/research_display	hp		c:@F@pico8_hp_jb
 pico8_hp_jb_join	research_project_tooltip_join	src/game/research_display.c	identifiant	fonction	renommé	game/research_display	hp		c:research_display.c@F@pico8_hp_jb_join
 pico8_hp_lq	research_project_layout_row	src/game/research_display.c	identifiant	fonction	renommé	game/research_display	hp		c:@F@pico8_hp_lq
-pico8_jo_ex	planet_resource_row	src/game/research_display.c	identifiant	fonction	renommé	game/research_display	jo		c:@F@pico8_jo_ex
+pico8_jo_ex	research_display_planet_resource_row	src/game/research_display.c	identifiant	fonction	renommé	game/research_display	jo		c:@F@pico8_jo_ex
 pico8_jo_ex_fixed	planet_resource_row_fixed	src/game/research_display.c	identifiant	fonction	renommé	game/research_display	jo		c:research_display.c@F@pico8_jo_ex_fixed
 pico8_jo_ex_tuple	planet_resource_row_tuple	src/game/research_display.c	identifiant	fonction	renommé	game/research_display	jo		c:research_display.c@F@pico8_jo_ex_tuple
 add_len	add_len	src/game/research_display.c	identifiant	locale	conservé	game/research_display			c:research_display.c@908@F@pico8_hp_jb_join@add_len
@@ -5153,26 +5153,26 @@ pico8_score_panel_shutdown	score_panel_shutdown	src/game/score_panel.c	identifia
 pj_row_copy	score_panel_row_copy	src/game/score_panel.c	identifiant	fonction	renommé	game/score_panel	pj		c:score_panel.c@F@pj_row_copy
 b	b	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@8978@F@pico8_score_panel_init@b
 capped	capped	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@7210@F@pico8_pj_kj@capped
-cf	text	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel			c:score_panel.c@4027@F@pico8_pj_hb@cf
+cf	text	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel			c:score_panel.c@4052@F@pico8_pj_hb@cf
 combined	combined	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@6569@F@pico8_pj_kj@combined
 cur	cur	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@3118@F@pico8_eg@cur
 discard_color	discard_color	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@4149@F@pico8_pj_hb@discard_color
 e	e	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@8922@F@pico8_score_panel_init@e
 filtered	filtered	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@2709@F@pico8_eg@filtered
 fm	economy	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel	fm		c:score_panel.c@3316@F@pico8_pj_hb@fm
-fm_ge	main_economy_income	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel	ok		c:score_panel.c@3441@F@pico8_pj_hb@fm_ge
-fm_happiness	main_economy_happiness	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel	ok		c:score_panel.c@3592@F@pico8_pj_hb@fm_happiness
-fm_jk	main_economy_research_points	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel	ok		c:score_panel.c@3553@F@pico8_pj_hb@fm_jk
-fm_lo	main_economy_year_ticks	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel	ok		c:score_panel.c@3694@F@pico8_pj_hb@fm_lo
-fm_nz	main_economy_credits	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel	ok		c:score_panel.c@3508@F@pico8_pj_hb@fm_nz
-fm_po	main_economy_production	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel	ok		c:score_panel.c@3913@F@pico8_pj_hb@fm_po
-fm_yr	main_economy_year	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel	ok		c:score_panel.c@3761@F@pico8_pj_hb@fm_yr
+fm_ge	main_economy_income	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel	ok		c:score_panel.c@3444@F@pico8_pj_hb@fm_ge
+fm_happiness	main_economy_happiness	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel	ok		c:score_panel.c@3599@F@pico8_pj_hb@fm_happiness
+fm_jk	main_economy_research_points	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel	ok		c:score_panel.c@3560@F@pico8_pj_hb@fm_jk
+fm_lo	main_economy_year_ticks	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel	ok		c:score_panel.c@3701@F@pico8_pj_hb@fm_lo
+fm_nz	main_economy_credits	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel	ok		c:score_panel.c@3515@F@pico8_pj_hb@fm_nz
+fm_po	main_economy_production	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel	ok		c:score_panel.c@3930@F@pico8_pj_hb@fm_po
+fm_yr	main_economy_year	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel	ok		c:score_panel.c@3776@F@pico8_pj_hb@fm_yr
 gz	gz	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@7122@F@pico8_pj_kj@gz
 h	h	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@7290@F@pico8_pj_kj@h
 happiness_str	happiness_str	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@4104@F@pico8_pj_hb@happiness_str
 i	i	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@1183@F@pj_row_copy@i
 i	i	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@2758@F@pico8_eg@i
-i	index	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel			c:score_panel.c@4131@F@pico8_pj_hb@i
+i	index	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel			c:score_panel.c@4156@F@pico8_pj_hb@i
 i	i	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@6646@F@pico8_pj_kj@i
 i	i	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@8806@F@pico8_score_panel_init@i
 i_	i_	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@6478@F@pico8_pj_kj@i_
@@ -5183,13 +5183,13 @@ mem	mem	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c
 n	n	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@6631@F@pico8_pj_kj@n
 newval	newval	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@3167@F@pico8_eg@newval
 ny	ny	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@3044@F@pico8_eg@ny
-nz_str	credits_str	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel			c:score_panel.c@4041@F@pico8_pj_hb@nz_str
-ou	readouts	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel			c:score_panel.c@4004@F@pico8_pj_hb@ou
-ou_state	readouts_state	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel			c:score_panel.c@3975@F@pico8_pj_hb@ou_state
-ou_state	readouts_state	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel			c:score_panel.c@6408@F@pico8_pj_kj@ou_state
+nz_str	credits_str	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel			c:score_panel.c@4066@F@pico8_pj_hb@nz_str
+ou	readouts	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel			c:score_panel.c@4029@F@pico8_pj_hb@ou
+ou_state	readouts_state	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel			c:score_panel.c@4000@F@pico8_pj_hb@ou_state
+ou_state	readouts_state	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel			c:score_panel.c@6487@F@pico8_pj_kj@ou_state
 pd	pd	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@3084@F@pico8_eg@pd
 plus_num	plus_num	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@4129@F@pico8_pj_hb@plus_num
-po_val	production_val	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel			c:score_panel.c@4793@F@pico8_pj_hb@po_val
+po_val	production_val	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel			c:score_panel.c@4872@F@pico8_pj_hb@po_val
 provisional	provisional	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@3370@F@pico8_pj_hb@provisional
 ps	ps	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@2736@F@pico8_eg@ps
 self	self	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@8181@F@pico8_pj_struct_new@self
@@ -5257,13 +5257,13 @@ bz	bz	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_pan
 c_truthy	c_truthy	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@8104@F@pico8_pj_ph@c_truthy
 ctx	ctx	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@8672@F@pico8_pj_ph@ctx
 dk	dk	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@4708@F@pico8_pj_ph_map@dk
-ed_equals_kc	last_box_equals_shown_message_box	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display	mh		c:score_panel_display.c@8020@F@pico8_pj_ph@ed_equals_kc
+ed_equals_kc	last_box_equals_shown_message_box	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display	mh		c:score_panel_display.c@8105@F@pico8_pj_ph@ed_equals_kc
 fm	fm	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@4562@F@pico8_pj_ph_map@fm
-fm	economy	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display	fm		c:score_panel_display.c@6206@F@pico8_pj_ph@fm
+fm	economy	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display	fm		c:score_panel_display.c@6276@F@pico8_pj_ph@fm
 gs	countdown_rows	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display	gs		c:score_panel_display.c@723@F@pico8_pj_hk@gs
-has_gz	has_curtain	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@6316@F@pico8_pj_ph@has_gz
-has_hl	has_end_status	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@6255@F@pico8_pj_ph@has_hl
-hl_str	end_status_str	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@4505@F@pico8_pj_ph_map@hl_str
+has_gz	has_curtain	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@6401@F@pico8_pj_ph@has_gz
+has_hl	has_end_status	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@6324@F@pico8_pj_ph@has_hl
+hl_str	end_status_str	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@4535@F@pico8_pj_ph_map@hl_str
 i	i	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@1765@F@pico8_pj_hk@i
 i	i	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@5213@F@pico8_pj_ph_map@i
 i	i	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@8831@F@pico8_pj_ph@i
@@ -5276,16 +5276,16 @@ iw	year_banner	src/game/score_panel_display.c	identifiant	locale	renommé	game/s
 iw	iw	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@8707@F@pico8_pj_ph@iw
 ju	ju	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@2199@F@pico8_pj_de_toggle@ju
 ju	ju	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@2758@F@pico8_pj_ph_lh_dispatch@ju
-k	index	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@4215@F@pico8_pj_ph_map@k
+k	index	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@4246@F@pico8_pj_ph_map@k
 keys	keys	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@1703@F@pico8_pj_hk@keys
 keys	keys	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@4236@F@pico8_pj_ph_map@keys
 keys	keys	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@8761@F@pico8_pj_ph@keys
 label	label	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@4824@F@pico8_pj_ph_map@label
-lq1	first_line	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@6698@F@pico8_pj_ph@lq1
-lq1_item	first_line_item	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@6626@F@pico8_pj_ph@lq1_item
-lq2	second_line	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@6735@F@pico8_pj_ph@lq2
-lq2_item	second_line_item	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@6662@F@pico8_pj_ph@lq2_item
-lq_inst	layout_row_inst	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display	lq		c:score_panel_display.c@4157@F@pico8_pj_ph_map@lq_inst
+lq1	first_line	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@6783@F@pico8_pj_ph@lq1
+lq1_item	first_line_item	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@6711@F@pico8_pj_ph@lq1_item
+lq2	second_line	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@6820@F@pico8_pj_ph@lq2
+lq2_item	second_line_item	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@6747@F@pico8_pj_ph@lq2_item
+lq_inst	layout_row_inst	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display	lq		c:score_panel_display.c@4188@F@pico8_pj_ph_map@lq_inst
 made	made	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@1739@F@pico8_pj_hk@made
 made	made	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@8801@F@pico8_pj_ph@made
 made1	made1	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@6886@F@pico8_pj_ph@made1
@@ -5294,8 +5294,8 @@ piece1	piece1	src/game/score_panel_display.c	identifiant	locale	conservé	game/s
 piece2	piece2	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@4802@F@pico8_pj_ph_map@piece2
 pp	message	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@765@F@pico8_pj_hk@pp
 px	px	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@4751@F@pico8_pj_ph_map@px
-ra1	first_line_pos	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@6826@F@pico8_pj_ph@ra1
-ra2	second_line_pos	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@6909@F@pico8_pj_ph@ra2
+ra1	first_line_pos	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@6911@F@pico8_pj_ph@ra1
+ra2	second_line_pos	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@6994@F@pico8_pj_ph@ra2
 s	s	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@8585@F@pico8_pj_ph@s
 s_str	s_str	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@4189@F@pico8_pj_ph_map@s_str
 score_i	score_i	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@4172@F@pico8_pj_ph_map@score_i
@@ -5318,7 +5318,7 @@ self	self	src/game/score_panel_display.c	identifiant	paramètre	conservé	game/s
 self	self	src/game/score_panel_display.c	identifiant	paramètre	conservé	game/score_panel_display			c:score_panel_display.c@9724@F@pico8_pj_ph_dispatch@self
 self	self	src/game/score_panel_display.h	identifiant	paramètre	conservé	game/score_panel_display			c:score_panel_display.h@323@F@pico8_pj_ph@self
 st	st	src/game/score_panel_display.c	identifiant	paramètre	conservé	game/score_panel_display			c:score_panel_display.c@3772@F@pico8_pj_ph_set@st
-st	score_row	src/game/score_panel_display.c	identifiant	paramètre	renommé	game/score_panel_display			c:score_panel_display.c@4001@F@pico8_pj_ph_map@st
+st	score_row	src/game/score_panel_display.c	identifiant	paramètre	renommé	game/score_panel_display			c:score_panel_display.c@4032@F@pico8_pj_ph_map@st
 t	t	src/game/score_panel_display.c	identifiant	paramètre	conservé	game/score_panel_display			c:score_panel_display.c@9753@F@pico8_pj_ph_dispatch@t
 yr	year	src/game/score_panel_display.c	identifiant	paramètre	renommé	game/score_panel_display			c:score_panel_display.c@663@F@pico8_pj_hk@yr
 yr	yr	src/game/score_panel_display.c	identifiant	paramètre	conservé	game/score_panel_display			c:score_panel_display.c@9638@F@pico8_pj_hk_dispatch@yr
@@ -6192,7 +6192,7 @@ mem	mem	src/game/ui_button.c	identifiant	paramètre	conservé	game/ui_button			c
 mem	mem	src/game/ui_button.h	identifiant	paramètre	conservé	game/ui_button			c:ui_button.h@3880@F@pico8_js_ev@mem
 mem	mem	src/game/ui_button.h	identifiant	paramètre	conservé	game/ui_button			c:ui_button.h@3959@F@pico8_js_kj@mem
 p	pos	src/game/ui_button.c	identifiant	paramètre	renommé	game/ui_button			c:ui_button.c@7109@F@pico8_js_kj@p
-p	pos	src/game/ui_button.h	identifiant	paramètre	renommé	game/ui_button			c:ui_button.h@3912@F@pico8_js_kj@p
+p	pos	src/game/ui_button.h	identifiant	paramètre	renommé	game/ui_button			c:ui_button.h@3928@F@pico8_js_kj@p
 place	slot	src/game/ui_button.c	identifiant	paramètre	renommé	game/ui_button	sorte		c:ui_button.c@5084@F@pico8_js_lq@place
 qa	qa	src/game/ui_button.c	identifiant	paramètre	conservé	game/ui_button			c:ui_button.c@1514@F@pico8_js_hd_dispatch@qa
 qa	qa	src/game/ui_button.c	identifiant	paramètre	conservé	game/ui_button			c:ui_button.c@1673@F@pico8_js_ldown_dispatch@qa
@@ -7516,18 +7516,18 @@ child	child	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascen
 cls	cls	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@21913@F@test_hj_is_a_struct@cls
 e	e	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@24034@F@test_leaving_gives_back_its_particles@e
 e	e	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@8573@F@icon_of@e
-em	spacer	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension			c:test_ascension.c@10244@F@fold_ascension@em
-h	hash	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension			c:test_ascension.c@16030@F@test_built@h
-h	hash	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension			c:test_ascension.c@18447@F@test_life@h
+em	spacer	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension			c:test_ascension.c@10251@F@fold_ascension@em
+h	hash	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension			c:test_ascension.c@16055@F@test_built@h
+h	hash	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension			c:test_ascension.c@18505@F@test_life@h
 h	h	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@20054@F@test_heirs@h
 h	h	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@23488@F@held_now@h
 h	h	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@6441@F@screen_hash@h
 hb	hb	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@8461@F@icon_of@hb
 hj	hj	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@15749@F@fold_dg@hj
 hj	hj	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@19058@F@fold_heir@hj
-hj	ascension	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension	hj		c:test_ascension.c@10209@F@fold_ascension@hj
-i	index	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension			c:test_ascension.c@10341@F@fold_ascension@i
-i	index	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension			c:test_ascension.c@18550@F@test_life@i
+hj	ascension	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension	hj		c:test_ascension.c@10216@F@fold_ascension@hj
+i	index	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension			c:test_ascension.c@10348@F@fold_ascension@i
+i	index	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension			c:test_ascension.c@18608@F@test_life@i
 i	i	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@2134@F@fnv@i
 i	i	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@22051@F@test_hj_is_a_struct@i
 i	i	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@2496@F@ents_rank_in@i
@@ -7538,20 +7538,20 @@ icon	icon	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascensi
 idle	idle	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@17233@F@test_life@idle
 j	j	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@7474@F@assert_qh_members_but_kj@j
 jo	jo	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@9309@F@is_of@jo
-jo	planet	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension	jo		c:test_ascension.c@10312@F@fold_ascension@jo
+jo	planet	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension	jo		c:test_ascension.c@10319@F@fold_ascension@jo
 k	k	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@4498@F@fold_kw@k
 keys	keys	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@20084@F@test_heirs@keys
 keys	keys	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@21122@F@build_with_unknown_key@keys
 made	made	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@8894@F@build@made
-mo_ra	main_camera_pos	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension	ok		c:test_ascension.c@18526@F@test_life@mo_ra
-mp	mouse_world	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension			c:test_ascension.c@18511@F@test_life@mp
+mo_ra	main_camera_pos	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension	ok		c:test_ascension.c@18584@F@test_life@mo_ra
+mp	mouse_world	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension			c:test_ascension.c@18569@F@test_life@mp
 mx	mx	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@20124@F@test_heirs@mx
-no_mm	no_spawn_particle	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension	mm		c:test_ascension.c@23276@F@test_hj_is_a_struct@no_mm
+no_mm	no_spawn_particle	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension	mm		c:test_ascension.c@23334@F@test_hj_is_a_struct@no_mm
 placed	placed	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@17215@F@test_life@placed
 pm	pm	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@20110@F@test_heirs@pm
 qh	qh	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@21976@F@test_hj_is_a_struct@qh
 qh	qh	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@7412@F@assert_qh_members_but_kj@qh
-qh	structure	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension	qh		c:test_ascension.c@10283@F@fold_ascension@qh
+qh	structure	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension	qh		c:test_ascension.c@10290@F@fold_ascension@qh
 ra	ra	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@15529@F@fold_ra_y@ra
 status	status	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@20756@F@must_abort@status
 status	status	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@23104@F@reap@status
@@ -7581,7 +7581,7 @@ e	e	tests/test_ascension.c	identifiant	paramètre	conservé	tests/test_ascension
 e	e	tests/test_ascension.c	identifiant	paramètre	conservé	tests/test_ascension			c:test_ascension.c@5427@F@as_hj@e
 e	e	tests/test_ascension.c	identifiant	paramètre	conservé	tests/test_ascension			c:test_ascension.c@7180@F@cls_of@e
 e	e	tests/test_ascension.c	identifiant	paramètre	conservé	tests/test_ascension			c:test_ascension.c@9262@F@is_of@e
-e	entity	tests/test_ascension.c	identifiant	paramètre	renommé	tests/test_ascension			c:test_ascension.c@10194@F@fold_ascension@e
+e	entity	tests/test_ascension.c	identifiant	paramètre	renommé	tests/test_ascension			c:test_ascension.c@10201@F@fold_ascension@e
 got	got	tests/test_ascension.c	identifiant	paramètre	conservé	tests/test_ascension			c:test_ascension.c@6270@F@check@got
 h	h	tests/test_ascension.c	identifiant	paramètre	conservé	tests/test_ascension			c:test_ascension.c@15489@F@fold_ra_y@h
 h	h	tests/test_ascension.c	identifiant	paramètre	conservé	tests/test_ascension			c:test_ascension.c@15722@F@fold_dg@h
@@ -7603,7 +7603,7 @@ h	h	tests/test_ascension.c	identifiant	paramètre	conservé	tests/test_ascension
 h	h	tests/test_ascension.c	identifiant	paramètre	conservé	tests/test_ascension			c:test_ascension.c@5151@F@fold_et@h
 h	h	tests/test_ascension.c	identifiant	paramètre	conservé	tests/test_ascension			c:test_ascension.c@5662@F@fold_pk@h
 h	h	tests/test_ascension.c	identifiant	paramètre	conservé	tests/test_ascension			c:test_ascension.c@6000@F@fold_particle@h
-h	hash	tests/test_ascension.c	identifiant	paramètre	renommé	tests/test_ascension			c:test_ascension.c@10182@F@fold_ascension@h
+h	hash	tests/test_ascension.c	identifiant	paramètre	renommé	tests/test_ascension			c:test_ascension.c@10189@F@fold_ascension@h
 hj	hj	tests/test_ascension.c	identifiant	paramètre	conservé	tests/test_ascension			c:test_ascension.c@15501@F@fold_ra_y@hj
 hj	hj	tests/test_ascension.c	identifiant	paramètre	conservé	tests/test_ascension			c:test_ascension.c@5674@F@fold_pk@hj
 ib	ib	tests/test_ascension.c	identifiant	paramètre	conservé	tests/test_ascension			c:test_ascension.c@16051@F@fold_ib@ib
@@ -7736,7 +7736,7 @@ e	e	tests/test_background.c	identifiant	locale	conservé	tests/test_background		
 e	e	tests/test_background.c	identifiant	locale	conservé	tests/test_background			c:test_background.c@3904@F@find_bg@e
 first	first	tests/test_background.c	identifiant	locale	conservé	tests/test_background			c:test_background.c@6917@F@test_map@first
 found	found	tests/test_background.c	identifiant	locale	conservé	tests/test_background			c:test_background.c@3790@F@find_bg@found
-from_eu	from_start_game	tests/test_background.c	identifiant	locale	renommé	tests/test_background			c:test_background.c@15162@F@test_bg_is_a_struct@from_eu
+from_eu	from_start_game	tests/test_background.c	identifiant	locale	renommé	tests/test_background			c:test_background.c@15170@F@test_bg_is_a_struct@from_eu
 from_eu	from_start_game	tests/test_background.c	identifiant	locale	renommé	tests/test_background			c:test_background.c@5966@F@test_construction@from_eu
 g_before	g_before	tests/test_background.c	identifiant	locale	conservé	tests/test_background			c:test_background.c@8518@F@test_ldown@g_before
 generic	generic	tests/test_background.c	identifiant	locale	conservé	tests/test_background			c:test_background.c@15040@F@test_bg_is_a_struct@generic
@@ -7934,19 +7934,19 @@ test_the_largest_bursts_fit_their_place	test_the_largest_bursts_fit_their_slot	t
 vec_ref	vec_ref	tests/test_burst.c	identifiant	fonction	conservé	tests/test_burst			c:test_burst.c@F@vec_ref
 vec_xy	vec_xy	tests/test_burst.c	identifiant	fonction	conservé	tests/test_burst			c:test_burst.c@F@vec_xy
 a	a	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@13868@F@test_built@a
-a	first	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst			c:test_burst.c@20046@F@test_life@a
+a	first	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst			c:test_burst.c@20098@F@test_life@a
 a0	a0	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@22226@F@test_ei_moves_a_particle_in_place@a0
 after	after	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@26014@F@test_leaving_gives_back_its_particles@after
 at	at	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@7774@F@spawn@at
 b	b	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@13881@F@test_built@b
-b	second	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst			c:test_burst.c@20059@F@test_life@b
+b	second	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst			c:test_burst.c@20111@F@test_life@b
 before	before	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@26713@F@test_the_largest_bursts_fit_their_place@before
 before	before	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@7080@F@harvest@before
 built	built	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@25996@F@test_leaving_gives_back_its_particles@built
-by	outgoing	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst			c:test_burst.c@20099@F@test_life@by
+by	outgoing	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst			c:test_burst.c@20151@F@test_life@by
 c	c	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@13894@F@test_built@c
 c	c	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@16215@F@fold_lq_positional@c
-c	third	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst			c:test_burst.c@20072@F@test_life@c
+c	third	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst			c:test_burst.c@20124@F@test_life@c
 child	child	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@24938@F@in_fresh_child@child
 cls	cls	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@23766@F@test_ga_is_a_struct@cls
 count	count	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@26051@F@test_leaving_gives_back_its_particles@count
@@ -7955,22 +7955,22 @@ e	e	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_bu
 e	e	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@26032@F@test_leaving_gives_back_its_particles@e
 e	e	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@27350@F@test_leaving_lets_go_of_a_dragged_slipway@e
 em	em	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@22410@F@test_ei_moves_a_particle_in_place@em
-em	spacer	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst			c:test_burst.c@8813@F@fold_burst@em
+em	spacer	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst			c:test_burst.c@8855@F@fold_burst@em
 found	found	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@6534@F@harvest_recipe@found
 frames	frames	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@21234@F@test_burst@frames
 g	g	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@18184@F@fold_cut@g
-g	burst	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst			c:test_burst.c@8779@F@fold_burst@g
-h	hash	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst			c:test_burst.c@14716@F@test_built@h
-h	hash	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst			c:test_burst.c@20016@F@test_life@h
+g	burst	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst			c:test_burst.c@8821@F@fold_burst@g
+h	hash	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst			c:test_burst.c@14758@F@test_built@h
+h	hash	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst			c:test_burst.c@20068@F@test_life@h
 h	h	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@25427@F@held_now@h
 h	h	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@4727@F@screen_hash@h
 hp	hp	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@6620@F@harvest_recipe@hp
 hv	hv	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@6240@F@ga_from@hv
-hv_count	live_entities_count	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst	hv		c:test_burst.c@20168@F@test_life@hv_count
+hv_count	live_entities_count	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst	hv		c:test_burst.c@20220@F@test_life@hv_count
 i	i	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@15187@F@fold_tuple@i
 i	i	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@16834@F@fold_lq@i
 i	i	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@1812@F@fnv@i
-i	index	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst			c:test_burst.c@20186@F@test_life@i
+i	index	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst			c:test_burst.c@20238@F@test_life@i
 i	i	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@2174@F@ents_rank_in@i
 i	i	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@23911@F@test_ga_is_a_struct@i
 i	i	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@4757@F@screen_hash@i
@@ -7978,11 +7978,11 @@ i	i	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_bu
 i	i	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@6558@F@harvest_recipe@i
 item	item	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@15240@F@fold_tuple@item
 j	j	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@23925@F@test_ga_is_a_struct@j
-j	inner_index	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst			c:test_burst.c@8879@F@fold_burst@j
+j	inner_index	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst			c:test_burst.c@8921@F@fold_burst@j
 jc	jc	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@27293@F@test_leaving_lets_go_of_a_dragged_slipway@jc
-jc_keys	slipway_keys	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst	jc		c:test_burst.c@28744@F@test_leaving_lets_go_of_a_dragged_slipway@jc_keys
+jc_keys	slipway_keys	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst	jc		c:test_burst.c@28796@F@test_leaving_lets_go_of_a_dragged_slipway@jc_keys
 jo	jo	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@23829@F@test_ga_is_a_struct@jo
-jo	planet	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst	jo		c:test_burst.c@8851@F@fold_burst@jo
+jo	planet	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst	jo		c:test_burst.c@8893@F@fold_burst@jo
 k	k	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@16823@F@fold_lq@k
 keys	keys	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@27238@F@test_leaving_lets_go_of_a_dragged_slipway@keys
 keys	keys	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@7014@F@harvest@keys
@@ -7996,7 +7996,7 @@ n	n	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_bu
 p0	p0	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@22087@F@test_ei_moves_a_particle_in_place@p0
 particle	particle	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@22033@F@test_ei_moves_a_particle_in_place@particle
 planet	planet	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@7040@F@harvest@planet
-pm	protostar	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst	pm		c:test_burst.c@20085@F@test_life@pm
+pm	protostar	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst	pm		c:test_burst.c@20137@F@test_life@pm
 pm	pm	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@7760@F@spawn@pm
 qy	qy	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@18214@F@fold_cut@qy
 qy	qy	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@22331@F@test_ei_moves_a_particle_in_place@qy
@@ -8026,9 +8026,9 @@ e	e	tests/test_burst.c	identifiant	paramètre	conservé	tests/test_burst			c:tes
 e	e	tests/test_burst.c	identifiant	paramètre	conservé	tests/test_burst			c:test_burst.c@5684@F@cls_of@e
 e	e	tests/test_burst.c	identifiant	paramètre	conservé	tests/test_burst			c:test_burst.c@5824@F@is_ga@e
 e	e	tests/test_burst.c	identifiant	paramètre	conservé	tests/test_burst			c:test_burst.c@6041@F@as_ga@e
-e	entity	tests/test_burst.c	identifiant	paramètre	renommé	tests/test_burst			c:test_burst.c@8751@F@fold_burst@e
+e	entity	tests/test_burst.c	identifiant	paramètre	renommé	tests/test_burst			c:test_burst.c@8793@F@fold_burst@e
 from	from	tests/test_burst.c	identifiant	paramètre	conservé	tests/test_burst			c:test_burst.c@6224@F@ga_from@from
-from_pm	from_protostar	tests/test_burst.c	identifiant	paramètre	renommé	tests/test_burst	pm		c:test_burst.c@8760@F@fold_burst@from_pm
+from_pm	from_protostar	tests/test_burst.c	identifiant	paramètre	renommé	tests/test_burst	pm		c:test_burst.c@8802@F@fold_burst@from_pm
 got	got	tests/test_burst.c	identifiant	paramètre	conservé	tests/test_burst			c:test_burst.c@4409@F@check@got
 got	got	tests/test_burst.c	identifiant	paramètre	conservé	tests/test_burst			c:test_burst.c@4581@F@check_int@got
 h	h	tests/test_burst.c	identifiant	paramètre	conservé	tests/test_burst			c:test_burst.c@14762@F@fold_particle@h
@@ -8049,7 +8049,7 @@ h	h	tests/test_burst.c	identifiant	paramètre	conservé	tests/test_burst			c:tes
 h	h	tests/test_burst.c	identifiant	paramètre	conservé	tests/test_burst			c:test_burst.c@4102@F@fold_fixed@h
 h	h	tests/test_burst.c	identifiant	paramètre	conservé	tests/test_burst			c:test_burst.c@4206@F@fold_bool@h
 h	h	tests/test_burst.c	identifiant	paramètre	conservé	tests/test_burst			c:test_burst.c@4302@F@fold_string@h
-h	hash	tests/test_burst.c	identifiant	paramètre	renommé	tests/test_burst			c:test_burst.c@8739@F@fold_burst@h
+h	hash	tests/test_burst.c	identifiant	paramètre	renommé	tests/test_burst			c:test_burst.c@8781@F@fold_burst@h
 i	i	tests/test_burst.c	identifiant	paramètre	conservé	tests/test_burst			c:test_burst.c@16202@F@fold_lq_positional@i
 id	id	tests/test_burst.c	identifiant	paramètre	conservé	tests/test_burst			c:test_burst.c@6992@F@harvest@id
 id	id	tests/test_burst.c	identifiant	paramètre	conservé	tests/test_burst			c:test_burst.c@7694@F@spawn@id
@@ -8091,7 +8091,7 @@ y	y	tests/test_burst.c	identifiant	paramètre	conservé	tests/test_burst			c:tes
 bm	messages	tests/test_burst.c	identifiant	statique	renommé	tests/test_burst	bm		c:test_burst.c@bm
 gfx	gfx	tests/test_burst.c	identifiant	statique	conservé	tests/test_burst			c:test_burst.c@gfx
 input	input	tests/test_burst.c	identifiant	statique	conservé	tests/test_burst			c:test_burst.c@input
-kw	production	tests/test_burst.c	identifiant	statique	renommé	tests/test_burst	kw		c:test_burst.c@20122@F@test_life@kw
+kw	production	tests/test_burst.c	identifiant	statique	renommé	tests/test_burst	kw		c:test_burst.c@20174@F@test_life@kw
 mem	mem	tests/test_burst.c	identifiant	statique	conservé	tests/test_burst			c:test_burst.c@mem
 tags	tags	tests/test_burst.c	identifiant	statique	conservé	tests/test_burst	tags		c:test_burst.c@tags
 test_pico8_ga_export_panel_by	test_burst_exports_row	tests/test_burst_exports_row.c	chaîne	nom de test	renommé	tests/test_burst_exports_row		libellé	chaîne:test_pico8_ga_export_panel_by
@@ -8280,8 +8280,8 @@ b	b	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_
 b	b	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@29566@F@test_nil_keys@b
 b	b	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@33628@F@fold_js_members@b
 b	b	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@35647@F@check_le_one_pz@b
-b	button	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@36594@F@fold_written@b
-b	button	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@38510@F@fold_keys@b
+b	button	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@36738@F@fold_written@b
+b	button	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@38654@F@fold_keys@b
 b	b	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@4131@F@m__state@b
 b	b	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@41548@F@members_title_and_game@b
 b	b	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@4274@F@h__state@b
@@ -8290,7 +8290,7 @@ b	b	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_
 b	b	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@4476@F@my_state@b
 b	b	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@47285@F@test_fe_free_row@b
 b	b	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@56113@F@test_largest_buttons_fit_their_places@b
-b	button	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@9411@F@fold_button@b
+b	button	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@9429@F@fold_button@b
 bare	bare	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@31027@F@test_js_is_a_struct@bare
 base	base	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@51580@F@test_js_places_come_back@base
 base	base	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@54011@F@test_le_places_come_back@base
@@ -8321,7 +8321,7 @@ first_at	first_at	tests/test_button.c	identifiant	locale	conservé	tests/test_bu
 fm	fm	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@55570@F@test_largest_buttons_fit_their_places@fm
 found	found	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@47338@F@test_fe_free_row@found
 frame	frame	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@48908@F@test_pz_fa_only_from_ca@frame
-free_	free	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@28628@F@test_draw@free_
+free_	free	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@28755@F@test_draw@free_
 free_keys	free_keys	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@28207@F@test_draw@free_keys
 free_rows	free_rows	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@44412@F@members_fe@free_rows
 fresh	fresh	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@40436@F@members_title_and_game@fresh
@@ -8342,8 +8342,8 @@ h	h	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_
 h	h	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@25417@F@test_hb@h
 h	h	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@26141@F@test_fe_my@h
 h	h	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@27028@F@test_cr_my@h
-h	hash	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@28458@F@test_draw@h
-h	hash	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@40661@F@members_title_and_game@h
+h	hash	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@28585@F@test_draw@h
+h	hash	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@40805@F@members_title_and_game@h
 h	h	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@43052@F@members_research@h
 h	h	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@44364@F@members_fe@h
 h	h	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@45529@F@members_pj@h
@@ -8356,7 +8356,7 @@ hd	hd	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:tes
 hd	hd	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@16948@F@ix_buttons@hd
 hd	hd	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@17474@F@test_title@hd
 hd	hd	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@20337@F@test_pj@hd
-hd	hit_test_list	tests/test_button.c	identifiant	locale	renommé	tests/test_button	hd		c:test_button.c@40691@F@members_title_and_game@hd
+hd	hit_test_list	tests/test_button.c	identifiant	locale	renommé	tests/test_button	hd		c:test_button.c@40835@F@members_title_and_game@hd
 hd	hd	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@45559@F@members_pj@hd
 hv	hv	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@12659@F@sortir_l_aide@hv
 hv	hv	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@30054@F@all_buttons_are_structs@hv
@@ -8383,10 +8383,10 @@ i	i	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_
 i	i	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@35036@F@fold_le_members@i
 i	i	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@35324@F@check_one_pz@i
 i	i	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@35664@F@check_le_one_pz@i
-i	index	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@36722@F@fold_written@i
+i	index	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@36866@F@fold_written@i
 i	i	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@3704@F@fn_index@i
-i	index	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@38529@F@fold_keys@i
-i	index	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@40843@F@members_title_and_game@i
+i	index	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@38673@F@fold_keys@i
+i	index	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@40987@F@members_title_and_game@i
 i	i	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@43124@F@members_research@i
 i	i	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@44435@F@members_fe@i
 i	i	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@45602@F@members_pj@i
@@ -8399,14 +8399,14 @@ i	i	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_
 i	i	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@55601@F@test_largest_buttons_fit_their_places@i
 i	i	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@7582@F@fold_lq@i
 i	i	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@8641@F@fold_kq@i
-i	index	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@9447@F@fold_button@i
+i	index	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@9465@F@fold_button@i
 invented	invented	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@27086@F@test_cr_my@invented
 is_kept	is_kept	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@49819@F@test_cb_writes_every_e_@is_kept
 ix	ix	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@18029@F@test_eu@ix
 ix	ix	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@18390@F@test_pause@ix
 ix	ix	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@25447@F@test_hb@ix
 ix	ix	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@30348@F@test_js_is_a_struct@ix
-ix	galaxy_menu	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@40740@F@members_title_and_game@ix
+ix	galaxy_menu	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@40884@F@members_title_and_game@ix
 ix	ix	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@51523@F@test_js_places_come_back@ix
 ix	ix	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@52470@F@test_js_places_after_restart@ix
 ix	ix	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@53048@F@test_ix2_row_places@ix
@@ -8417,14 +8417,14 @@ j	j	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_
 j	j	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@8655@F@fold_kq@j
 jb	jb	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@18814@F@test_research@jb
 jc	jc	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@14576@F@built_world@jc
-jc_keys	slipway_keys	tests/test_button.c	identifiant	locale	renommé	tests/test_button	jc		c:test_button.c@14536@F@built_world@jc_keys
+jc_keys	slipway_keys	tests/test_button.c	identifiant	locale	renommé	tests/test_button	jc		c:test_button.c@14580@F@built_world@jc_keys
 jk	jk	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@49468@F@test_cb_writes_every_e_@jk
 jo	jo	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@20915@F@test_dk@jo
 jos	jos	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@14435@F@built_world@jos
 ju	ju	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@16329@F@game_end@ju
 k	k	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@13495@F@title_button@k
-k	keys	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@38417@F@fold_keys@k
-k	key_index	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@40854@F@members_title_and_game@k
+k	keys	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@38561@F@fold_keys@k
+k	key_index	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@40998@F@members_title_and_game@k
 k	k	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@4755@F@in_gb@k
 k	k	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@49804@F@test_cb_writes_every_e_@k
 k	k	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@55590@F@test_largest_buttons_fit_their_places@k
@@ -8433,7 +8433,7 @@ keys	keys	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c
 keys	keys	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@23384@F@test_ph@keys
 keys	keys	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@56441@F@test_largest_buttons_fit_their_places@keys
 kq	kq	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@8540@F@fold_kq@kq
-kq_before	hit_box_before	tests/test_button.c	identifiant	locale	renommé	tests/test_button	kq		c:test_button.c@36624@F@fold_written@kq_before
+kq_before	hit_box_before	tests/test_button.c	identifiant	locale	renommé	tests/test_button	kq		c:test_button.c@36768@F@fold_written@kq_before
 last	last	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@27120@F@test_cr_my@last
 last	last	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@51540@F@test_js_places_come_back@last
 le	le	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@11298@F@fold_le@le
@@ -8453,24 +8453,24 @@ lq	lq	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:tes
 lq	lq	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@41595@F@members_title_and_game@lq
 lq	lq	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@43747@F@members_research@lq
 lq	lq	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@56190@F@test_largest_buttons_fit_their_places@lq
-lq_item	layout_row_item	tests/test_button.c	identifiant	locale	renommé	tests/test_button	lq		c:test_button.c@22528@F@build@lq_item
-lq_items	layout_row_items	tests/test_button.c	identifiant	locale	renommé	tests/test_button	lq		c:test_button.c@56744@F@test_largest_buttons_fit_their_places@lq_items
-mb	width	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@36672@F@fold_written@mb
+lq_item	layout_row_item	tests/test_button.c	identifiant	locale	renommé	tests/test_button	lq		c:test_button.c@22617@F@build@lq_item
+lq_items	layout_row_items	tests/test_button.c	identifiant	locale	renommé	tests/test_button	lq		c:test_button.c@57124@F@test_largest_buttons_fit_their_places@lq_items
+mb	width	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@36816@F@fold_written@mb
 mb	mb	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@8585@F@fold_kq@mb
 menu	menu	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@53981@F@test_le_places_come_back@menu
 mp	mp	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@14499@F@built_world@mp
-my_false	on_click_false	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@40808@F@members_title_and_game@my_false
+my_false	on_click_false	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@40952@F@members_title_and_game@my_false
 n	n	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@16993@F@ix_buttons@n
 n	n	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@17526@F@test_title@n
 n	n	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@20365@F@test_pj@n
 n	n	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@30095@F@all_buttons_are_structs@n
-n	count	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@40828@F@members_title_and_game@n
+n	count	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@40972@F@members_title_and_game@n
 n	n	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@45587@F@members_pj@n
 n	n	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@46183@F@in_fresh_part@n
 nil_keys	nil_keys	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@29595@F@test_nil_keys@nil_keys
 nj	nj	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@20897@F@test_dk@nj
 nj	nj	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@30365@F@test_js_is_a_struct@nj
-nj	chosen_option	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@40777@F@members_title_and_game@nj
+nj	chosen_option	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@40921@F@members_title_and_game@nj
 no_keys	no_keys	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@29615@F@test_nil_keys@no_keys
 none	none	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@24355@F@test_ldown@none
 none	none	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@38068@F@fold_keys@none
@@ -8511,9 +8511,9 @@ tooltip	tooltip	tests/test_button.c	identifiant	locale	conservé	tests/test_butt
 unaffordable	unaffordable	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@18868@F@test_research@unaffordable
 v	v	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@25121@F@lq_first@v
 with_false	with_false	tests/test_button.c	identifiant	locale	conservé	tests/test_button			c:test_button.c@24432@F@test_ldown@with_false
-with_my	with_on_click	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@24591@F@test_ldown@with_my
-with_my	with_on_click	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@28572@F@test_draw@with_my
-with_pt	with_planet	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@19915@F@test_fe@with_pt
+with_my	with_on_click	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@24680@F@test_ldown@with_my
+with_my	with_on_click	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@28699@F@test_draw@with_my
+with_pt	with_planet	tests/test_button.c	identifiant	locale	renommé	tests/test_button			c:test_button.c@19988@F@test_fe@with_pt
 COLONY	COLONY	tests/test_button.c	identifiant	macro	conservé	tests/test_button			macro:tests/test_button.c:COLONY
 CR_MY_HASH	TECH_TREE_SCREEN_ON_CLICK_HASH	tests/test_button.c	identifiant	macro	renommé	tests/test_button	fv		macro:tests/test_button.c:CR_MY_HASH
 DK_HASH	DIFFICULTY_HASH	tests/test_button.c	identifiant	macro	renommé	tests/test_button			macro:tests/test_button.c:DK_HASH
@@ -8556,14 +8556,14 @@ e	e	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:t
 e	e	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@3026@F@cls_of@e
 e	e	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@3115@F@is_js@e
 e	e	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@33607@F@fold_js_members@e
-e	entity	tests/test_button.c	identifiant	paramètre	renommé	tests/test_button			c:test_button.c@36566@F@fold_written@e
+e	entity	tests/test_button.c	identifiant	paramètre	renommé	tests/test_button			c:test_button.c@36710@F@fold_written@e
 e	e	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@3954@F@js_of@e
 e	e	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@4110@F@m__state@e
 e	e	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@4253@F@h__state@e
 e	e	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@4455@F@my_state@e
 e	e	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@4734@F@in_gb@e
 e	e	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@4915@F@is_lq@e
-e	entity	tests/test_button.c	identifiant	paramètre	renommé	tests/test_button			c:test_button.c@9293@F@fold_button@e
+e	entity	tests/test_button.c	identifiant	paramètre	renommé	tests/test_button			c:test_button.c@9311@F@fold_button@e
 f	f	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@33342@F@fold_member_fixed@f
 f	f	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@5919@F@fold_fixed@f
 f	f	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@6294@F@fold_fixed_or_nil@f
@@ -8584,9 +8584,9 @@ h	h	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:t
 h	h	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@33321@F@fold_member_fixed@h
 h	h	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@33595@F@fold_js_members@h
 h	h	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@34980@F@fold_le_members@h
-h	hash	tests/test_button.c	identifiant	paramètre	renommé	tests/test_button			c:test_button.c@36554@F@fold_written@h
+h	hash	tests/test_button.c	identifiant	paramètre	renommé	tests/test_button			c:test_button.c@36698@F@fold_written@h
 h	h	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@37664@F@fold_and_drop@h
-h	hash	tests/test_button.c	identifiant	paramètre	renommé	tests/test_button			c:test_button.c@38342@F@fold_keys@h
+h	hash	tests/test_button.c	identifiant	paramètre	renommé	tests/test_button			c:test_button.c@38486@F@fold_keys@h
 h	h	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@5303@F@fold_ref@h
 h	h	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@5907@F@fold_fixed@h
 h	h	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@6011@F@fold_bool@h
@@ -8601,7 +8601,7 @@ h	h	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:t
 h	h	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@7962@F@fold_built@h
 h	h	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@8244@F@fold_built_h_@h
 h	h	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@8446@F@fold_kq@h
-h	hash	tests/test_button.c	identifiant	paramètre	renommé	tests/test_button			c:test_button.c@9281@F@fold_button@h
+h	hash	tests/test_button.c	identifiant	paramètre	renommé	tests/test_button			c:test_button.c@9299@F@fold_button@h
 h_text	h_text	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@22317@F@build@h_text
 has	has	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@33333@F@fold_member_fixed@has
 has	has	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@6285@F@fold_fixed_or_nil@has
@@ -8621,7 +8621,7 @@ list	list	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button
 lq	lq	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@5059@F@row_count@lq
 lq	lq	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@5162@F@row_item@lq
 lq	lq	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@7554@F@fold_lq@lq
-lq_text	layout_row_text	tests/test_button.c	identifiant	paramètre	renommé	tests/test_button	lq		c:test_button.c@22481@F@build@lq_text
+lq_text	layout_row_text	tests/test_button.c	identifiant	paramètre	renommé	tests/test_button	lq		c:test_button.c@22570@F@build@lq_text
 my	my	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@23010@F@keyed_my@my
 n	n	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@35311@F@check_one_pz@n
 other	other	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@36283@F@fold_written@other
@@ -8654,7 +8654,7 @@ x	x	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:t
 x	x	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@22859@F@at@x
 y	y	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@21998@F@vec_at@y
 y	y	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@22866@F@at@y
-bm	messages	tests/test_button.c	identifiant	statique	renommé	tests/test_button	bm		c:test_button.c@9314@F@fold_button@bm
+bm	messages	tests/test_button.c	identifiant	statique	renommé	tests/test_button	bm		c:test_button.c@9332@F@fold_button@bm
 dy	dy	tests/test_button.c	identifiant	statique	conservé	tests/test_button			c:test_button.c@8485@F@fold_kq@dy
 gfx	gfx	tests/test_button.c	identifiant	statique	conservé	tests/test_button			c:test_button.c@gfx
 input	input	tests/test_button.c	identifiant	statique	conservé	tests/test_button			c:test_button.c@input
@@ -10760,39 +10760,39 @@ child	child	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test
 cls	cls	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@19631@F@test_fr_is_a_struct@cls
 e	e	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@5758@F@icon_of@e
 e	e	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@6771@F@build_gate@e
-fr	infraspace_gate	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate	fr		c:test_infraspace_gate.c@7246@F@fold_gate@fr
-from_has_mt	from_has_infraspace	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate	mt		c:test_infraspace_gate.c@16611@F@fold_route@from_has_mt
-h	hash	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate			c:test_infraspace_gate.c@13935@F@test_built@h
-h	hash	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate			c:test_infraspace_gate.c@17598@F@test_life@h
+fr	infraspace_gate	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate	fr		c:test_infraspace_gate.c@7253@F@fold_gate@fr
+from_has_mt	from_has_infraspace	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate	mt		c:test_infraspace_gate.c@16664@F@fold_route@from_has_mt
+h	hash	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate			c:test_infraspace_gate.c@13960@F@test_built@h
+h	hash	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate			c:test_infraspace_gate.c@17651@F@test_life@h
 h	h	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@4297@F@as_qh@h
 h	h	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@4797@F@screen_hash@h
 hb	hb	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@5646@F@icon_of@hb
 i	i	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@14605@F@list_of@i
-i	index	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate			c:test_infraspace_gate.c@17720@F@test_life@i
+i	index	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate			c:test_infraspace_gate.c@17773@F@test_life@i
 i	i	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@2015@F@fnv@i
 i	i	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@2377@F@ents_rank_in@i
 i	i	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@4827@F@screen_hash@i
 i	i	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@5691@F@icon_of@i
-i	index	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate			c:test_infraspace_gate.c@7342@F@fold_gate@i
+i	index	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate			c:test_infraspace_gate.c@7349@F@fold_gate@i
 ib	ib	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@14127@F@fold_economy@ib
 icon	icon	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@6047@F@build@icon
 idle	idle	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@16470@F@test_life@idle
 j	j	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@19769@F@test_fr_is_a_struct@j
 jc	jc	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@15345@F@fold_route@jc
-jc	slipway	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate	jc		c:test_infraspace_gate.c@17682@F@test_life@jc
-jo	planet	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate	jo		c:test_infraspace_gate.c@7318@F@fold_gate@jo
+jc	slipway	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate	jc		c:test_infraspace_gate.c@17735@F@test_life@jc
+jo	planet	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate	jo		c:test_infraspace_gate.c@7325@F@fold_gate@jo
 keys	keys	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@19074@F@build_with_unknown_key@keys
 l	l	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@14564@F@list_of@l
 made	made	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@15514@F@fold_route@made
 made	made	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@6079@F@build@made
-mo_ra	main_camera_pos	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate	ok		c:test_infraspace_gate.c@16035@F@place@mo_ra
+mo_ra	main_camera_pos	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate	ok		c:test_infraspace_gate.c@16088@F@place@mo_ra
 mp	mp	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@14884@F@place@mp
 nr	nr	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@19694@F@test_fr_is_a_struct@nr
-nr	gate	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate	nr		c:test_infraspace_gate.c@7270@F@fold_gate@nr
-oe	slipways	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate	oe		c:test_infraspace_gate.c@17697@F@test_life@oe
+nr	gate	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate	nr		c:test_infraspace_gate.c@7277@F@fold_gate@nr
+oe	slipways	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate	oe		c:test_infraspace_gate.c@17750@F@test_life@oe
 placed	placed	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@16452@F@test_life@placed
 qh	qh	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@13570@F@fold_dg@qh
-qh	structure	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate	qh		c:test_infraspace_gate.c@7294@F@fold_gate@qh
+qh	structure	tests/test_infraspace_gate.c	identifiant	locale	renommé	tests/test_infraspace_gate	qh		c:test_infraspace_gate.c@7301@F@fold_gate@qh
 ra	ra	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@13355@F@fold_ra_y@ra
 ra	ra	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@15406@F@fold_route@ra
 slipgate	slipgate	tests/test_infraspace_gate.c	identifiant	locale	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@12881@F@test_built@slipgate
@@ -10820,7 +10820,7 @@ e	e	tests/test_infraspace_gate.c	identifiant	paramètre	conservé	tests/test_inf
 e	e	tests/test_infraspace_gate.c	identifiant	paramètre	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@5468@F@cls_of@e
 e	e	tests/test_infraspace_gate.c	identifiant	paramètre	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@6358@F@hz_of@e
 e	e	tests/test_infraspace_gate.c	identifiant	paramètre	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@6674@F@is_a_gate@e
-e	entity	tests/test_infraspace_gate.c	identifiant	paramètre	renommé	tests/test_infraspace_gate			c:test_infraspace_gate.c@7203@F@fold_gate@e
+e	entity	tests/test_infraspace_gate.c	identifiant	paramètre	renommé	tests/test_infraspace_gate			c:test_infraspace_gate.c@7210@F@fold_gate@e
 from	from	tests/test_infraspace_gate.c	identifiant	paramètre	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@15327@F@fold_route@from
 got	got	tests/test_infraspace_gate.c	identifiant	paramètre	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@4626@F@check@got
 h	h	tests/test_infraspace_gate.c	identifiant	paramètre	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@13315@F@fold_ra_y@h
@@ -10839,7 +10839,7 @@ h	h	tests/test_infraspace_gate.c	identifiant	paramètre	conservé	tests/test_inf
 h	h	tests/test_infraspace_gate.c	identifiant	paramètre	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@3500@F@fold_ref@h
 h	h	tests/test_infraspace_gate.c	identifiant	paramètre	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@3918@F@fold_bool@h
 h	h	tests/test_infraspace_gate.c	identifiant	paramètre	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@4453@F@fold_qh@h
-h	hash	tests/test_infraspace_gate.c	identifiant	paramètre	renommé	tests/test_infraspace_gate			c:test_infraspace_gate.c@7191@F@fold_gate@h
+h	hash	tests/test_infraspace_gate.c	identifiant	paramètre	renommé	tests/test_infraspace_gate			c:test_infraspace_gate.c@7198@F@fold_gate@h
 ib	ib	tests/test_infraspace_gate.c	identifiant	paramètre	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@13872@F@fold_ib@ib
 item	item	tests/test_infraspace_gate.c	identifiant	paramètre	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@14529@F@list_of@item
 jo	jo	tests/test_infraspace_gate.c	identifiant	paramètre	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@3161@F@fold_hf@jo
@@ -13287,7 +13287,7 @@ a	a	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c
 b	b	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@13773@F@test_built@b
 bare	bare	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@16203@F@fold_db@bare
 bare	bare	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@19593@F@test_os_is_a_struct@bare
-bare_db	bare_trade_income	tests/test_processor.c	identifiant	locale	renommé	tests/test_processor			c:test_processor.c@17447@F@fold_db@bare_db
+bare_db	bare_trade_income	tests/test_processor.c	identifiant	locale	renommé	tests/test_processor			c:test_processor.c@17521@F@fold_db@bare_db
 buttons	buttons	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@6217@F@clicked_game@buttons
 by	by	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@15623@F@export_to@by
 child	child	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@18199@F@must_abort@child
@@ -13295,34 +13295,34 @@ child	child	tests/test_processor.c	identifiant	locale	conservé	tests/test_proce
 cls	cls	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@19101@F@test_os_is_a_struct@cls
 e	e	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@8644@F@os_icon@e
 from	from	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@16287@F@fold_db@from
-h	hash	tests/test_processor.c	identifiant	locale	renommé	tests/test_processor			c:test_processor.c@14748@F@test_built@h
-h	hash	tests/test_processor.c	identifiant	locale	renommé	tests/test_processor			c:test_processor.c@18237@F@test_life@h
+h	hash	tests/test_processor.c	identifiant	locale	renommé	tests/test_processor			c:test_processor.c@14789@F@test_built@h
+h	hash	tests/test_processor.c	identifiant	locale	renommé	tests/test_processor			c:test_processor.c@18347@F@test_life@h
 h	h	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@4795@F@as_qh@h
 hb	hb	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@8532@F@os_icon@hb
 hd	hd	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@6189@F@clicked_game@hd
-i	index	tests/test_processor.c	identifiant	locale	renommé	tests/test_processor			c:test_processor.c@18316@F@test_life@i
+i	index	tests/test_processor.c	identifiant	locale	renommé	tests/test_processor			c:test_processor.c@18426@F@test_life@i
 i	i	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@2100@F@fnv@i
 i	i	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@2462@F@ents_rank_in@i
 i	i	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@6238@F@clicked_game@i
 i	i	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@8577@F@os_icon@i
-i	index	tests/test_processor.c	identifiant	locale	renommé	tests/test_processor			c:test_processor.c@10126@F@fold_processor@i
+i	index	tests/test_processor.c	identifiant	locale	renommé	tests/test_processor			c:test_processor.c@10149@F@fold_processor@i
 ib	ib	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@15091@F@fold_economy@ib
 icon	icon	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@8929@F@build_processor@icon
 idle	idle	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@17117@F@test_life@idle
 jo	jo	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@9234@F@is_processor@jo
-jo	planet	tests/test_processor.c	identifiant	locale	renommé	tests/test_processor	jo		c:test_processor.c@10097@F@fold_processor@jo
+jo	planet	tests/test_processor.c	identifiant	locale	renommé	tests/test_processor	jo		c:test_processor.c@10120@F@fold_processor@jo
 k	k	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@4464@F@fold_kw@k
 keys	keys	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@15545@F@export_to@keys
 keys	keys	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@18582@F@build_with_unknown_key@keys
 lp	lp	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@15580@F@export_to@lp
 made	made	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@8957@F@build_processor@made
 mp	mp	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@17133@F@test_life@mp
-os_db	processor_trade_income	tests/test_processor.c	identifiant	locale	renommé	tests/test_processor	os		c:test_processor.c@17425@F@fold_db@os_db
+os_db	processor_trade_income	tests/test_processor.c	identifiant	locale	renommé	tests/test_processor	os		c:test_processor.c@17499@F@fold_db@os_db
 oz	oz	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@16246@F@fold_db@oz
 placed	placed	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@17099@F@test_life@placed
 qh	qh	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@14487@F@fold_dg@qh
 qh	qh	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@19164@F@test_os_is_a_struct@qh
-qh	structure	tests/test_processor.c	identifiant	locale	renommé	tests/test_processor	qh		c:test_processor.c@10062@F@fold_processor@qh
+qh	structure	tests/test_processor.c	identifiant	locale	renommé	tests/test_processor	qh		c:test_processor.c@10085@F@fold_processor@qh
 ra	ra	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@14267@F@fold_ra_y@ra
 status	status	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@18216@F@must_abort@status
 status	status	tests/test_processor.c	identifiant	locale	conservé	tests/test_processor			c:test_processor.c@20186@F@reap@status
@@ -13350,7 +13350,7 @@ e	e	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_processor
 e	e	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_processor			c:test_processor.c@4780@F@as_qh@e
 e	e	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_processor			c:test_processor.c@6932@F@cls_of@e
 e	e	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_processor			c:test_processor.c@9213@F@is_processor@e
-e	entity	tests/test_processor.c	identifiant	paramètre	renommé	tests/test_processor			c:test_processor.c@10047@F@fold_processor@e
+e	entity	tests/test_processor.c	identifiant	paramètre	renommé	tests/test_processor			c:test_processor.c@10070@F@fold_processor@e
 got	got	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_processor			c:test_processor.c@5555@F@check@got
 h	h	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_processor			c:test_processor.c@14227@F@fold_ra_y@h
 h	h	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_processor			c:test_processor.c@14460@F@fold_dg@h
@@ -13369,7 +13369,7 @@ h	h	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_processor
 h	h	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_processor			c:test_processor.c@4424@F@fold_kw@h
 h	h	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_processor			c:test_processor.c@4951@F@fold_qh@h
 h	h	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_processor			c:test_processor.c@5328@F@fold_et@h
-h	hash	tests/test_processor.c	identifiant	paramètre	renommé	tests/test_processor			c:test_processor.c@10035@F@fold_processor@h
+h	hash	tests/test_processor.c	identifiant	paramètre	renommé	tests/test_processor			c:test_processor.c@10058@F@fold_processor@h
 ib	ib	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_processor			c:test_processor.c@14789@F@fold_ib@ib
 jo	jo	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_processor			c:test_processor.c@3246@F@fold_hf@jo
 jo	jo	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_processor			c:test_processor.c@4436@F@fold_kw@jo
@@ -13397,8 +13397,8 @@ test	test	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_pro
 test	test	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_processor			c:test_processor.c@20336@F@in_fresh_child@test
 v	v	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_processor			c:test_processor.c@2838@F@fold_fixed_member@v
 want	want	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_processor			c:test_processor.c@5569@F@check@want
-with_kj	with_draw	tests/test_processor.c	identifiant	paramètre	renommé	tests/test_processor	kj		c:test_processor.c@8062@F@assert_members_of@with_kj
-with_ly	with_update_settled	tests/test_processor.c	identifiant	paramètre	renommé	tests/test_processor	ly		c:test_processor.c@8105@F@assert_members_of@with_ly
+with_kj	with_draw	tests/test_processor.c	identifiant	paramètre	renommé	tests/test_processor	kj		c:test_processor.c@8078@F@assert_members_of@with_kj
+with_ly	with_update_settled	tests/test_processor.c	identifiant	paramètre	renommé	tests/test_processor	ly		c:test_processor.c@8121@F@assert_members_of@with_ly
 word	word	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_processor			c:test_processor.c@2079@F@fnv@word
 write	write	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_processor			c:test_processor.c@18161@F@must_abort@write
 x	x	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_processor			c:test_processor.c@6797@F@vec_xy@x
@@ -13481,8 +13481,8 @@ e	e	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c
 em	spacer	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protostar			c:test_protostar.c@9690@F@fold_protostar@em
 g	g	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@8114@F@fold_spawned@g
 gra	gra	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@8219@F@fold_spawned@gra
-h	hash	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protostar			c:test_protostar.c@16278@F@test_built@h
-h	hash	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protostar			c:test_protostar.c@18579@F@test_life@h
+h	hash	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protostar			c:test_protostar.c@16296@F@test_built@h
+h	hash	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protostar			c:test_protostar.c@18620@F@test_life@h
 h	h	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@20446@F@held_now@h
 h	h	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@4619@F@screen_hash@h
 hj	hj	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@15796@F@fold_dg@hj
@@ -13490,7 +13490,7 @@ hj	hj	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar		
 hj	ascension	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protostar	hj		c:test_protostar.c@9631@F@fold_protostar@hj
 hv	hv	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@8039@F@fold_spawned@hv
 i	i	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@1499@F@fnv@i
-i	index	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protostar			c:test_protostar.c@18711@F@test_life@i
+i	index	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protostar			c:test_protostar.c@18752@F@test_life@i
 i	i	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@1861@F@ents_rank_in@i
 i	i	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@4649@F@screen_hash@i
 i	index	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protostar			c:test_protostar.c@9787@F@fold_protostar@i
@@ -13500,9 +13500,9 @@ jo	planet	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protosta
 k	k	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@3255@F@fold_kw@k
 keys	keys	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@7036@F@build_protostar@keys
 made	made	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@7062@F@build_protostar@made
-mo_ra	main_camera_pos	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protostar	ok		c:test_protostar.c@18609@F@test_life@mo_ra
+mo_ra	main_camera_pos	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protostar	ok		c:test_protostar.c@18650@F@test_life@mo_ra
 ng	ng	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@8192@F@fold_spawned@ng
-p	pos	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protostar			c:test_protostar.c@18633@F@test_life@p
+p	pos	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protostar			c:test_protostar.c@18674@F@test_life@p
 p	p	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@18958@F@test_pm_is_a_struct@p
 pa	pa	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@14985@F@test_built@pa
 pb	pb	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@15065@F@test_built@pb
@@ -13514,8 +13514,8 @@ ra	ra	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar		
 ra	ra	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@17288@F@test_life@ra
 ra	ra	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@18994@F@test_pm_is_a_struct@ra
 ra	ra	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@8165@F@fold_spawned@ra
-ra_a	pos_a	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protostar	ra		c:test_protostar.c@16339@F@test_built@ra_a
-ra_b	pos_b	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protostar	ra		c:test_protostar.c@16408@F@test_built@ra_b
+ra_a	pos_a	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protostar	ra		c:test_protostar.c@16357@F@test_built@ra_a
+ra_b	pos_b	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protostar	ra		c:test_protostar.c@16426@F@test_built@ra_b
 status	status	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@20062@F@reap@status
 v	v	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@5131@F@vec_ref@v
 BUILT_HASH	BUILT_HASH	tests/test_protostar.c	identifiant	macro	conservé	tests/test_protostar			macro:tests/test_protostar.c:BUILT_HASH
@@ -13755,7 +13755,7 @@ il	upgrade_tech	tests/test_research_project.c	chaîne	clé	renommé	tests/test_r
 ja	production_key	tests/test_research_project.c	chaîne	clé	renommé	tests/test_research_project		lecteur	chaîne:ja
 lr	planet_codes	tests/test_research_project.c	chaîne	clé	renommé	tests/test_research_project		lecteur	chaîne:lr
 px	name	tests/test_research_project.c	chaîne	clé	renommé	tests/test_research_project	px	lecteur	chaîne:px
-pz	open_box	tests/test_research_project.c	chaîne	clé	renommé	tests/test_research_project		écrivain	chaîne:pz
+pz	pz	tests/test_research_project.c	chaîne	clé	conservé	tests/test_research_project		écrivain	chaîne:pz
 qe	resource	tests/test_research_project.c	chaîne	clé	renommé	tests/test_research_project	qe	libellé haché	chaîne:qe
 ra	pos	tests/test_research_project.c	chaîne	clé	renommé	tests/test_research_project	ra	libellé haché	chaîne:ra
 jo	planet	tests/test_research_project.c	chaîne	clé d'étiquette + nom de classe	renommé	tests/test_research_project	jo	lecteur	chaîne:jo
@@ -14152,20 +14152,20 @@ child	child	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_sco
 cls	cls	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@20700@F@test_pj_is_a_struct@cls
 cls	cls	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@21820@F@test_cr_is_a_struct@cls
 count	count	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@6790@F@fold_cr@count
-cr	layout_block	tests/test_score_panel.c	identifiant	locale	renommé	tests/test_score_panel	cr		c:test_score_panel.c@13650@F@test_life@cr
+cr	layout_block	tests/test_score_panel.c	identifiant	locale	renommé	tests/test_score_panel	cr		c:test_score_panel.c@13666@F@test_life@cr
 cr	cr	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@18348@F@test_cr@cr
 cr	cr	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@21886@F@test_cr_is_a_struct@cr
 de	de	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@15368@F@test_life@de
 e	e	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@9290@F@js15_count@e
 e	e	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@9711@F@de_button@e
 ea	ea	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@11994@F@test_shared@ea
-ea	year_banner	tests/test_score_panel.c	identifiant	locale	renommé	tests/test_score_panel			c:test_score_panel.c@13605@F@test_life@ea
+ea	year_banner	tests/test_score_panel.c	identifiant	locale	renommé	tests/test_score_panel			c:test_score_panel.c@13621@F@test_life@ea
 fm	fm	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@23527@F@test_ky_reads_invented_and_happiness@fm
 fm	fm	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@24658@F@test_ph_rows_show_ky@fm
-fq_before	modal_backdrop_before	tests/test_score_panel.c	identifiant	locale	renommé	tests/test_score_panel	js		c:test_score_panel.c@13746@F@test_life@fq_before
+fq_before	modal_backdrop_before	tests/test_score_panel.c	identifiant	locale	renommé	tests/test_score_panel	js		c:test_score_panel.c@13762@F@test_life@fq_before
 h	hash	tests/test_score_panel.c	identifiant	locale	renommé	tests/test_score_panel			c:test_score_panel.c@10239@F@test_built@h
 h	h	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@11889@F@test_shared@h
-h	hash	tests/test_score_panel.c	identifiant	locale	renommé	tests/test_score_panel			c:test_score_panel.c@13540@F@test_life@h
+h	hash	tests/test_score_panel.c	identifiant	locale	renommé	tests/test_score_panel			c:test_score_panel.c@13556@F@test_life@h
 h	h	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@18318@F@test_cr@h
 h	h	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@7485@F@screen_hash@h
 head1	head1	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@18377@F@test_cr@head1
@@ -14174,7 +14174,7 @@ hv	hv	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_pan
 hv	hv	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@9181@F@js15_count@hv
 hv	hv	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@9612@F@de_button@hv
 i	index	tests/test_score_panel.c	identifiant	locale	renommé	tests/test_score_panel			c:test_score_panel.c@10304@F@test_built@i
-i	index	tests/test_score_panel.c	identifiant	locale	renommé	tests/test_score_panel			c:test_score_panel.c@13799@F@test_life@i
+i	index	tests/test_score_panel.c	identifiant	locale	renommé	tests/test_score_panel			c:test_score_panel.c@13815@F@test_life@i
 i	i	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@1384@F@fnv@i
 i	i	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@16505@F@fold_lq@i
 i	i	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@17068@F@fold_cr_le@i
@@ -14191,10 +14191,10 @@ i	i	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel
 icon	icon	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@24747@F@test_ph_rows_show_ky@icon
 j	j	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@20798@F@test_pj_is_a_struct@j
 j	j	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@21909@F@test_cr_is_a_struct@j
-js_before	button_before	tests/test_score_panel.c	identifiant	locale	renommé	tests/test_score_panel	js		c:test_score_panel.c@13765@F@test_life@js_before
+js_before	button_before	tests/test_score_panel.c	identifiant	locale	renommé	tests/test_score_panel	js		c:test_score_panel.c@13781@F@test_life@js_before
 ju	ju	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@10207@F@test_built@ju
 ju	ju	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@11919@F@test_shared@ju
-ju	score_panel	tests/test_score_panel.c	identifiant	locale	renommé	tests/test_score_panel	ju		c:test_score_panel.c@13570@F@test_life@ju
+ju	score_panel	tests/test_score_panel.c	identifiant	locale	renommé	tests/test_score_panel	ju		c:test_score_panel.c@13586@F@test_life@ju
 ju	ju	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@20763@F@test_pj_is_a_struct@ju
 ju	ju	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@24629@F@test_ph_rows_show_ky@ju
 ld	ld	tests/test_score_panel.c	identifiant	locale	conservé	tests/test_score_panel			c:test_score_panel.c@24163@F@ph_row_item@ld
@@ -14460,53 +14460,53 @@ bare	bare	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate
 child	child	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@22589@F@spawn@child
 cls	cls	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@18977@F@test_nr_is_a_struct@cls
 e	e	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@6535@F@icon_of@e
-fr	infraspace_gate	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate	fr		c:test_slipgate.c@16796@F@test_life@fr
+fr	infraspace_gate	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate	fr		c:test_slipgate.c@16849@F@test_life@fr
 fr	fr	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@19115@F@test_nr_is_a_struct@fr
-h	hash	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate			c:test_slipgate.c@14404@F@test_built@h
-h	hash	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate			c:test_slipgate.c@16732@F@test_life@h
+h	hash	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate			c:test_slipgate.c@14429@F@test_built@h
+h	hash	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate			c:test_slipgate.c@16785@F@test_life@h
 h	h	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@4287@F@as_qh@h
 h	h	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@4787@F@screen_hash@h
 hb	hb	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@6423@F@icon_of@hb
 hz	hz	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@7321@F@gate_kind@hz
 i	i	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@15026@F@list_of@i
-i	index	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate			c:test_slipgate.c@16903@F@test_life@i
+i	index	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate			c:test_slipgate.c@16956@F@test_life@i
 i	i	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@2005@F@fnv@i
 i	i	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@2367@F@ents_rank_in@i
 i	i	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@4817@F@screen_hash@i
 i	i	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@6468@F@icon_of@i
-i	index	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate			c:test_slipgate.c@8342@F@fold_slipgate@i
+i	index	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate			c:test_slipgate.c@8349@F@fold_slipgate@i
 ib	ib	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@14548@F@fold_economy@ib
 ib	ib	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@21121@F@test_cn_skips_a_slipway_already_in_rl@ib
 icon	icon	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@6824@F@build@icon
 idle	idle	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@15606@F@test_life@idle
-jc	slipway	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate	jc		c:test_slipgate.c@16841@F@test_life@jc
-jc_keys	slipway_keys	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate	jc		c:test_slipgate.c@22476@F@test_cn_skips_a_slipway_already_in_rl@jc_keys
-jo	planet	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate	jo		c:test_slipgate.c@8318@F@fold_slipgate@jo
-jy	needs	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate	jy		c:test_slipgate.c@22528@F@test_cn_skips_a_slipway_already_in_rl@jy
+jc	slipway	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate	jc		c:test_slipgate.c@16894@F@test_life@jc
+jc_keys	slipway_keys	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate	jc		c:test_slipgate.c@22529@F@test_cn_skips_a_slipway_already_in_rl@jc_keys
+jo	planet	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate	jo		c:test_slipgate.c@8325@F@fold_slipgate@jo
+jy	needs	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate	jy		c:test_slipgate.c@22581@F@test_cn_skips_a_slipway_already_in_rl@jy
 keys	keys	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@18150@F@test_life@keys
 keys	keys	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@21142@F@test_cn_skips_a_slipway_already_in_rl@keys
 l	l	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@14985@F@list_of@l
 lw	lw	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@21177@F@test_cn_skips_a_slipway_already_in_rl@lw
 made	made	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@6856@F@build@made
-mo_ra	main_camera_pos	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate	ok		c:test_slipgate.c@16879@F@test_life@mo_ra
-mp	mouse_world	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate			c:test_slipgate.c@16826@F@test_life@mp
-nr	slipgate	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate	nr		c:test_slipgate.c@8270@F@fold_slipgate@nr
-oe	slipways	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate	oe		c:test_slipgate.c@16856@F@test_life@oe
+mo_ra	main_camera_pos	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate	ok		c:test_slipgate.c@16932@F@test_life@mo_ra
+mp	mouse_world	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate			c:test_slipgate.c@16879@F@test_life@mp
+nr	slipgate	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate	nr		c:test_slipgate.c@8277@F@fold_slipgate@nr
+oe	slipways	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate	oe		c:test_slipgate.c@16909@F@test_life@oe
 other	other	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@20893@F@test_cn_skips_a_slipway_already_in_rl@other
-p	pos	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate			c:test_slipgate.c@19516@F@test_life@p
+p	pos	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate			c:test_slipgate.c@19569@F@test_life@p
 placed	placed	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@15588@F@test_life@placed
 qe	qe	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@21217@F@test_cn_skips_a_slipway_already_in_rl@qe
 qh	qh	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@13987@F@fold_dg@qh
 qh	qh	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@19040@F@test_nr_is_a_struct@qh
-qh	structure	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate	qh		c:test_slipgate.c@8294@F@fold_slipgate@qh
-qh_cls	structure_cls	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate	qh		c:test_slipgate.c@8210@F@fold_slipgate@qh_cls
+qh	structure	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate	qh		c:test_slipgate.c@8301@F@fold_slipgate@qh
+qh_cls	structure_cls	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate	qh		c:test_slipgate.c@8217@F@fold_slipgate@qh_cls
 r_p	r_p	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@21239@F@test_cn_skips_a_slipway_already_in_rl@r_p
 ra	ra	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@13768@F@fold_ra_y@ra
 ra	ra	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@18228@F@test_life@ra
 self	self	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@20871@F@test_cn_skips_a_slipway_already_in_rl@self
 status	status	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@22810@F@reap@status
 v	v	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@5299@F@vec_ref@v
-w	slipway	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate			c:test_slipgate.c@22510@F@test_cn_skips_a_slipway_already_in_rl@w
+w	slipway	tests/test_slipgate.c	identifiant	locale	renommé	tests/test_slipgate			c:test_slipgate.c@22563@F@test_cn_skips_a_slipway_already_in_rl@w
 with	with	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@18277@F@test_life@with
 with_w	with_w	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@21013@F@test_cn_skips_a_slipway_already_in_rl@with_w
 without_w	without_w	tests/test_slipgate.c	identifiant	locale	conservé	tests/test_slipgate			c:test_slipgate.c@21064@F@test_cn_skips_a_slipway_already_in_rl@without_w
@@ -14529,7 +14529,7 @@ e	e	tests/test_slipgate.c	identifiant	paramètre	conservé	tests/test_slipgate		
 e	e	tests/test_slipgate.c	identifiant	paramètre	conservé	tests/test_slipgate			c:test_slipgate.c@4272@F@as_qh@e
 e	e	tests/test_slipgate.c	identifiant	paramètre	conservé	tests/test_slipgate			c:test_slipgate.c@5526@F@cls_of@e
 e	e	tests/test_slipgate.c	identifiant	paramètre	conservé	tests/test_slipgate			c:test_slipgate.c@7300@F@gate_kind@e
-e	entity	tests/test_slipgate.c	identifiant	paramètre	renommé	tests/test_slipgate			c:test_slipgate.c@8189@F@fold_slipgate@e
+e	entity	tests/test_slipgate.c	identifiant	paramètre	renommé	tests/test_slipgate			c:test_slipgate.c@8196@F@fold_slipgate@e
 got	got	tests/test_slipgate.c	identifiant	paramètre	conservé	tests/test_slipgate			c:test_slipgate.c@4616@F@check@got
 h	h	tests/test_slipgate.c	identifiant	paramètre	conservé	tests/test_slipgate			c:test_slipgate.c@13728@F@fold_ra_y@h
 h	h	tests/test_slipgate.c	identifiant	paramètre	conservé	tests/test_slipgate			c:test_slipgate.c@13960@F@fold_dg@h
@@ -14546,7 +14546,7 @@ h	h	tests/test_slipgate.c	identifiant	paramètre	conservé	tests/test_slipgate		
 h	h	tests/test_slipgate.c	identifiant	paramètre	conservé	tests/test_slipgate			c:test_slipgate.c@3490@F@fold_ref@h
 h	h	tests/test_slipgate.c	identifiant	paramètre	conservé	tests/test_slipgate			c:test_slipgate.c@3908@F@fold_bool@h
 h	h	tests/test_slipgate.c	identifiant	paramètre	conservé	tests/test_slipgate			c:test_slipgate.c@4443@F@fold_qh@h
-h	hash	tests/test_slipgate.c	identifiant	paramètre	renommé	tests/test_slipgate			c:test_slipgate.c@8177@F@fold_slipgate@h
+h	hash	tests/test_slipgate.c	identifiant	paramètre	renommé	tests/test_slipgate			c:test_slipgate.c@8184@F@fold_slipgate@h
 ib	ib	tests/test_slipgate.c	identifiant	paramètre	conservé	tests/test_slipgate			c:test_slipgate.c@14289@F@fold_ib@ib
 item	item	tests/test_slipgate.c	identifiant	paramètre	conservé	tests/test_slipgate			c:test_slipgate.c@14950@F@list_of@item
 jo	jo	tests/test_slipgate.c	identifiant	paramètre	conservé	tests/test_slipgate			c:test_slipgate.c@3151@F@fold_hf@jo
@@ -15022,7 +15022,7 @@ kj	draw	tests/test_structure.c	chaîne	clé de message	renommé	tests/test_struc
 ly	settled	tests/test_structure.c	chaîne	nom d'état	renommé	tests/test_structure	ly	lecteur	chaîne:ly
 pm	protostar	tests/test_structure.c	chaîne	nom de classe	renommé	tests/test_structure	pm	lecteur	chaîne:pm
 test_pico8_qh	test_structure	tests/test_structure.c	chaîne	nom de test	renommé	tests/test_structure		libellé	chaîne:test_pico8_qh
-d	descendant	tests/test_structure.c	identifiant	champ	renommé	tests/test_structure			c:test_structure.c@21744@F@test_descendants@S@test_structure.c@21744@FI@d
+d	descendant	tests/test_structure.c	identifiant	champ	renommé	tests/test_structure			c:test_structure.c@21827@F@test_descendants@S@test_structure.c@21827@FI@d
 kind	kind	tests/test_structure.c	identifiant	champ	conservé	tests/test_structure			c:test_structure.c@20574@F@test_descendants@S@test_structure.c@20574@FI@kind
 DESCENDANTS	DESCENDANTS	tests/test_structure.c	identifiant	constante	conservé	tests/test_structure			c:@Ea@NL@DESCENDANTS
 FR	INFRASPACE_GATE	tests/test_structure.c	identifiant	constante	renommé	tests/test_structure	fr		c:@Ea@NL@FR
@@ -15084,7 +15084,7 @@ test_qh_is_a_struct	test_structure_is_a_struct	tests/test_structure.c	identifian
 vec_ref	vec_ref	tests/test_structure.c	identifiant	fonction	conservé	tests/test_structure			c:test_structure.c@F@vec_ref
 vec_xy	vec_xy	tests/test_structure.c	identifiant	fonction	conservé	tests/test_structure			c:test_structure.c@F@vec_xy
 a	a	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@12671@F@test_built@a
-a	built	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure			c:test_structure.c@23994@F@test_qh_is_a_struct@a
+a	built	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure			c:test_structure.c@24077@F@test_qh_is_a_struct@a
 b	b	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@12684@F@test_built@b
 bare	bare	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@23742@F@test_qh_is_a_struct@bare
 before	before	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@13970@F@test_life@before
@@ -15095,28 +15095,28 @@ d	d	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c
 descendants	descendants	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@22483@F@test_qh_is_a_struct@descendants
 e	e	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@26178@F@test_lineage_of_each_class@e
 e	e	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@7985@F@qh_icon@e
-h	hash	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure			c:test_structure.c@13629@F@test_built@h
-h	hash	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure			c:test_structure.c@14774@F@test_life@h
+h	hash	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure			c:test_structure.c@13654@F@test_built@h
+h	hash	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure			c:test_structure.c@14809@F@test_life@h
 h	h	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@20849@F@test_descendants@h
 h	h	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@2616@F@as_qh@h
 hb	hb	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@19259@F@bought@hb
 hb	hb	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@7873@F@qh_icon@hb
 hp	hp	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@20155@F@cw_project@hp
-i	index	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure			c:test_structure.c@14993@F@test_life@i
+i	index	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure			c:test_structure.c@15028@F@test_life@i
 i	i	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@1913@F@fnv@i
 i	i	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@19376@F@bought@i
 i	i	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@20892@F@test_descendants@i
 i	i	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@2275@F@ents_rank_in@i
-i	index	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure			c:test_structure.c@24007@F@test_qh_is_a_struct@i
+i	index	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure			c:test_structure.c@24090@F@test_qh_is_a_struct@i
 i	i	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@26214@F@test_lineage_of_each_class@i
 i	i	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@7918@F@qh_icon@i
-i	index	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure			c:test_structure.c@9109@F@fold_lab@i
+i	index	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure			c:test_structure.c@9116@F@fold_lab@i
 icon	icon	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@19506@F@bought@icon
 icon	icon	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@8265@F@build_lab@icon
 in_lab	in_lab	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@13826@F@test_life@in_lab
 in_y	in_y	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@13996@F@test_life@in_y
 jo	jo	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@25774@F@test_lineage_of_each_class@jo
-jo	planet	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure	jo		c:test_structure.c@9080@F@fold_lab@jo
+jo	planet	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure	jo		c:test_structure.c@9087@F@fold_lab@jo
 k	k	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@20115@F@cw_project@k
 k	k	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@5295@F@fold_kw@k
 keys	keys	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@21887@F@build_with_unknown_key@keys
@@ -15127,21 +15127,21 @@ made	made	tests/test_structure.c	identifiant	locale	conservé	tests/test_structu
 made	made	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@20811@F@test_descendants@made
 made	made	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@8293@F@build_lab@made
 mo	mo	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@19304@F@bought@mo
-mo_ra	main_camera_pos	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure	ok		c:test_structure.c@20527@F@bought@mo_ra
-mp	mouse_world	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure			c:test_structure.c@14879@F@test_life@mp
+mo_ra	main_camera_pos	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure	ok		c:test_structure.c@20562@F@bought@mo_ra
+mp	mouse_world	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure			c:test_structure.c@14914@F@test_life@mp
 nl	nl	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@17746@F@fold_descendant@nl
 out_lab	out_lab	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@13807@F@test_life@out_lab
 p	p	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@20879@F@test_descendants@p
 planet	planet	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@13864@F@test_life@planet
-planet_p	planet_map_pos	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure	p		c:test_structure.c@14894@F@test_life@planet_p
+planet_p	planet_map_pos	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure	p		c:test_structure.c@14929@F@test_life@planet_p
 poor_lab	poor_lab	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@13844@F@test_life@poor_lab
 qh	qh	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@13224@F@fold_held@qh
 qh	qh	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@17715@F@fold_descendant@qh
 qh	qh	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@25831@F@test_lineage_of_each_class@qh
-qh	structure	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure	qh		c:test_structure.c@9045@F@fold_lab@qh
+qh	structure	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure	qh		c:test_structure.c@9052@F@fold_lab@qh
 qw	qw	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@17830@F@fold_descendant@qw
 ra	ra	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@13434@F@fold_ra_y@ra
-ra_before	pos_before	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure	ra		c:test_structure.c@14921@F@test_life@ra_before
+ra_before	pos_before	tests/test_structure.c	identifiant	locale	renommé	tests/test_structure	ra		c:test_structure.c@14956@F@test_life@ra_before
 status	status	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@21521@F@must_abort@status
 status	status	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@27382@F@reap@status
 v	v	tests/test_structure.c	identifiant	locale	conservé	tests/test_structure			c:test_structure.c@18599@F@fold_descendant@v
@@ -15171,7 +15171,7 @@ e	e	tests/test_structure.c	identifiant	paramètre	conservé	tests/test_structure
 e	e	tests/test_structure.c	identifiant	paramètre	conservé	tests/test_structure			c:test_structure.c@2601@F@as_qh@e
 e	e	tests/test_structure.c	identifiant	paramètre	conservé	tests/test_structure			c:test_structure.c@4043@F@is_bv_target@e
 e	e	tests/test_structure.c	identifiant	paramètre	conservé	tests/test_structure			c:test_structure.c@6272@F@cls_of@e
-e	entity	tests/test_structure.c	identifiant	paramètre	renommé	tests/test_structure			c:test_structure.c@9030@F@fold_lab@e
+e	entity	tests/test_structure.c	identifiant	paramètre	renommé	tests/test_structure			c:test_structure.c@9037@F@fold_lab@e
 got	got	tests/test_structure.c	identifiant	paramètre	conservé	tests/test_structure			c:test_structure.c@5584@F@check@got
 h	h	tests/test_structure.c	identifiant	paramètre	conservé	tests/test_structure			c:test_structure.c@13174@F@fold_held@h
 h	h	tests/test_structure.c	identifiant	paramètre	conservé	tests/test_structure			c:test_structure.c@13407@F@fold_ra_y@h
@@ -15188,7 +15188,7 @@ h	h	tests/test_structure.c	identifiant	paramètre	conservé	tests/test_structure
 h	h	tests/test_structure.c	identifiant	paramètre	conservé	tests/test_structure			c:test_structure.c@4194@F@fold_ref@h
 h	h	tests/test_structure.c	identifiant	paramètre	conservé	tests/test_structure			c:test_structure.c@4809@F@fold_et@h
 h	h	tests/test_structure.c	identifiant	paramètre	conservé	tests/test_structure			c:test_structure.c@5255@F@fold_kw@h
-h	hash	tests/test_structure.c	identifiant	paramètre	renommé	tests/test_structure			c:test_structure.c@9018@F@fold_lab@h
+h	hash	tests/test_structure.c	identifiant	paramètre	renommé	tests/test_structure			c:test_structure.c@9025@F@fold_lab@h
 jo	jo	tests/test_structure.c	identifiant	paramètre	conservé	tests/test_structure			c:test_structure.c@3270@F@fold_hf@jo
 jo	jo	tests/test_structure.c	identifiant	paramètre	conservé	tests/test_structure			c:test_structure.c@3612@F@p__state@jo
 jo	jo	tests/test_structure.c	identifiant	paramètre	conservé	tests/test_structure			c:test_structure.c@5267@F@fold_kw@jo
@@ -15519,51 +15519,51 @@ child	child	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_syn
 cls	cls	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@22548@F@test_mx_is_a_struct@cls
 e	e	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@24750@F@test_leaving_gives_back_its_particles@e
 e	e	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@7988@F@icon_of@e
-em	spacer	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer			c:test_synthesizer.c@10189@F@fold_synthesizer@em
+em	spacer	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer			c:test_synthesizer.c@10196@F@fold_synthesizer@em
 fresh	fresh	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@20455@F@test_synthesis@fresh
-h	hash	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer			c:test_synthesizer.c@16422@F@test_built@h
-h	hash	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer			c:test_synthesizer.c@18675@F@test_life@h
+h	hash	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer			c:test_synthesizer.c@16447@F@test_built@h
+h	hash	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer			c:test_synthesizer.c@18728@F@test_life@h
 h	h	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@20379@F@test_synthesis@h
 h	h	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@24203@F@held_now@h
 h	h	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@5526@F@screen_hash@h
 hb	hb	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@7876@F@icon_of@hb
 hj	hj	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@15883@F@fold_dg@hj
 hj	hj	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@22611@F@test_mx_is_a_struct@hj
-hj	ascension	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer	hj		c:test_synthesizer.c@10154@F@fold_synthesizer@hj
-hj_cls	ascension_cls	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer	hj		c:test_synthesizer.c@10094@F@fold_synthesizer@hj_cls
+hj	ascension	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer	hj		c:test_synthesizer.c@10161@F@fold_synthesizer@hj
+hj_cls	ascension_cls	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer	hj		c:test_synthesizer.c@10101@F@fold_synthesizer@hj_cls
 home	home	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@20409@F@test_synthesis@home
 ht	ht	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@9164@F@ht_size@ht
-i	index	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer			c:test_synthesizer.c@18778@F@test_life@i
+i	index	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer			c:test_synthesizer.c@18831@F@test_life@i
 i	i	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@2116@F@fnv@i
 i	i	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@2478@F@ents_rank_in@i
 i	i	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@5556@F@screen_hash@i
 i	i	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@7921@F@icon_of@i
-i	index	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer			c:test_synthesizer.c@10286@F@fold_synthesizer@i
+i	index	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer			c:test_synthesizer.c@10293@F@fold_synthesizer@i
 ib	ib	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@16458@F@fold_economy@ib
 icon	icon	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@8277@F@build@icon
 idle	idle	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@17351@F@test_life@idle
 jc	jc	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@18943@F@join@jc
-jc_keys	slipway_keys	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer	jc		c:test_synthesizer.c@20350@F@join@jc_keys
+jc_keys	slipway_keys	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer	jc		c:test_synthesizer.c@20403@F@join@jc_keys
 jo	jo	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@19665@F@fold_kf@jo
 jo	jo	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@8693@F@is_mx@jo
-jo	planet	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer	jo		c:test_synthesizer.c@10257@F@fold_synthesizer@jo
+jo	planet	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer	jo		c:test_synthesizer.c@10264@F@fold_synthesizer@jo
 jy	jy	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@19423@F@give_row@jy
 k	k	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@4166@F@fold_kw@k
 keys	keys	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@21969@F@build_with_unknown_key@keys
 kw	kw	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@20478@F@test_synthesis@kw
 made	made	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@8309@F@build@made
-mo_ra	main_camera_pos	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer	ok		c:test_synthesizer.c@18754@F@test_life@mo_ra
-mp	mouse_world	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer			c:test_synthesizer.c@18739@F@test_life@mp
+mo_ra	main_camera_pos	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer	ok		c:test_synthesizer.c@18807@F@test_life@mo_ra
+mp	mouse_world	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer			c:test_synthesizer.c@18792@F@test_life@mp
 other	other	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@20438@F@test_synthesis@other
 placed	placed	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@17333@F@test_life@placed
-qh	structure	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer	qh		c:test_synthesizer.c@10228@F@fold_synthesizer@qh
+qh	structure	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer	qh		c:test_synthesizer.c@10235@F@fold_synthesizer@qh
 ra	ra	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@15661@F@fold_ra_y@ra
 row	row	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@19356@F@give_row@row
 s	s	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@20425@F@test_synthesis@s
 status	status	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@21603@F@must_abort@status
 status	status	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@23819@F@reap@status
 v	v	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@6038@F@vec_ref@v
-want_qe	want_resource	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer	qe		c:test_synthesizer.c@20753@F@give_row@want_qe
+want_qe	want_resource	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer	qe		c:test_synthesizer.c@20806@F@give_row@want_qe
 BUILT_HASH	BUILT_HASH	tests/test_synthesizer.c	identifiant	macro	conservé	tests/test_synthesizer			macro:tests/test_synthesizer.c:BUILT_HASH
 FROZEN_LIST_TAG	FROZEN_LIST_TAG	tests/test_synthesizer.c	identifiant	macro	conservé	tests/test_synthesizer			macro:tests/test_synthesizer.c:FROZEN_LIST_TAG
 FROZEN_STRUCT_TAG	FROZEN_STRUCT_TAG	tests/test_synthesizer.c	identifiant	macro	conservé	tests/test_synthesizer			macro:tests/test_synthesizer.c:FROZEN_STRUCT_TAG
@@ -15591,7 +15591,7 @@ e	e	tests/test_synthesizer.c	identifiant	paramètre	conservé	tests/test_synthes
 e	e	tests/test_synthesizer.c	identifiant	paramètre	conservé	tests/test_synthesizer			c:test_synthesizer.c@8961@F@ht_of@e
 e	e	tests/test_synthesizer.c	identifiant	paramètre	conservé	tests/test_synthesizer			c:test_synthesizer.c@9143@F@ht_size@e
 e	e	tests/test_synthesizer.c	identifiant	paramètre	conservé	tests/test_synthesizer			c:test_synthesizer.c@9276@F@ht_is_the_class_one@e
-e	entity	tests/test_synthesizer.c	identifiant	paramètre	renommé	tests/test_synthesizer			c:test_synthesizer.c@10079@F@fold_synthesizer@e
+e	entity	tests/test_synthesizer.c	identifiant	paramètre	renommé	tests/test_synthesizer			c:test_synthesizer.c@10086@F@fold_synthesizer@e
 got	got	tests/test_synthesizer.c	identifiant	paramètre	conservé	tests/test_synthesizer			c:test_synthesizer.c@5355@F@check@got
 h	h	tests/test_synthesizer.c	identifiant	paramètre	conservé	tests/test_synthesizer			c:test_synthesizer.c@15621@F@fold_ra_y@h
 h	h	tests/test_synthesizer.c	identifiant	paramètre	conservé	tests/test_synthesizer			c:test_synthesizer.c@15856@F@fold_dg@h
@@ -15612,7 +15612,7 @@ h	h	tests/test_synthesizer.c	identifiant	paramètre	conservé	tests/test_synthes
 h	h	tests/test_synthesizer.c	identifiant	paramètre	conservé	tests/test_synthesizer			c:test_synthesizer.c@4442@F@fold_qh@h
 h	h	tests/test_synthesizer.c	identifiant	paramètre	conservé	tests/test_synthesizer			c:test_synthesizer.c@4899@F@fold_pk@h
 h	h	tests/test_synthesizer.c	identifiant	paramètre	conservé	tests/test_synthesizer			c:test_synthesizer.c@5085@F@fold_particle@h
-h	hash	tests/test_synthesizer.c	identifiant	paramètre	renommé	tests/test_synthesizer			c:test_synthesizer.c@10067@F@fold_synthesizer@h
+h	hash	tests/test_synthesizer.c	identifiant	paramètre	renommé	tests/test_synthesizer			c:test_synthesizer.c@10074@F@fold_synthesizer@h
 hj	hj	tests/test_synthesizer.c	identifiant	paramètre	conservé	tests/test_synthesizer			c:test_synthesizer.c@15633@F@fold_ra_y@hj
 hj	hj	tests/test_synthesizer.c	identifiant	paramètre	conservé	tests/test_synthesizer			c:test_synthesizer.c@4911@F@fold_pk@hj
 ib	ib	tests/test_synthesizer.c	identifiant	paramètre	conservé	tests/test_synthesizer			c:test_synthesizer.c@16185@F@fold_ib@ib
@@ -16056,29 +16056,29 @@ child	child	tests/test_trading_hub.c	identifiant	locale	conservé	tests/test_tra
 child	child	tests/test_trading_hub.c	identifiant	locale	conservé	tests/test_trading_hub			c:test_trading_hub.c@18326@F@spawn@child
 cls	cls	tests/test_trading_hub.c	identifiant	locale	conservé	tests/test_trading_hub			c:test_trading_hub.c@17410@F@test_nl_is_a_struct@cls
 e	e	tests/test_trading_hub.c	identifiant	locale	conservé	tests/test_trading_hub			c:test_trading_hub.c@7533@F@nl_icon@e
-h	hash	tests/test_trading_hub.c	identifiant	locale	renommé	tests/test_trading_hub			c:test_trading_hub.c@14147@F@test_built@h
-h	hash	tests/test_trading_hub.c	identifiant	locale	renommé	tests/test_trading_hub			c:test_trading_hub.c@16078@F@test_life@h
+h	hash	tests/test_trading_hub.c	identifiant	locale	renommé	tests/test_trading_hub			c:test_trading_hub.c@14172@F@test_built@h
+h	hash	tests/test_trading_hub.c	identifiant	locale	renommé	tests/test_trading_hub			c:test_trading_hub.c@16136@F@test_life@h
 h	h	tests/test_trading_hub.c	identifiant	locale	conservé	tests/test_trading_hub			c:test_trading_hub.c@4222@F@as_qh@h
 hb	hb	tests/test_trading_hub.c	identifiant	locale	conservé	tests/test_trading_hub			c:test_trading_hub.c@7421@F@nl_icon@hb
-i	index	tests/test_trading_hub.c	identifiant	locale	renommé	tests/test_trading_hub			c:test_trading_hub.c@16165@F@test_life@i
+i	index	tests/test_trading_hub.c	identifiant	locale	renommé	tests/test_trading_hub			c:test_trading_hub.c@16223@F@test_life@i
 i	i	tests/test_trading_hub.c	identifiant	locale	conservé	tests/test_trading_hub			c:test_trading_hub.c@1841@F@fnv@i
 i	i	tests/test_trading_hub.c	identifiant	locale	conservé	tests/test_trading_hub			c:test_trading_hub.c@2203@F@ents_rank_in@i
 i	i	tests/test_trading_hub.c	identifiant	locale	conservé	tests/test_trading_hub			c:test_trading_hub.c@7466@F@nl_icon@i
-i	index	tests/test_trading_hub.c	identifiant	locale	renommé	tests/test_trading_hub			c:test_trading_hub.c@9006@F@fold_plate@i
+i	index	tests/test_trading_hub.c	identifiant	locale	renommé	tests/test_trading_hub			c:test_trading_hub.c@9013@F@fold_plate@i
 ib	ib	tests/test_trading_hub.c	identifiant	locale	conservé	tests/test_trading_hub			c:test_trading_hub.c@14364@F@fold_economy@ib
 icon	icon	tests/test_trading_hub.c	identifiant	locale	conservé	tests/test_trading_hub			c:test_trading_hub.c@7816@F@build_plate@icon
 idle	idle	tests/test_trading_hub.c	identifiant	locale	conservé	tests/test_trading_hub			c:test_trading_hub.c@14911@F@test_life@idle
 jo	jo	tests/test_trading_hub.c	identifiant	locale	conservé	tests/test_trading_hub			c:test_trading_hub.c@8126@F@is_plate@jo
-jo	planet	tests/test_trading_hub.c	identifiant	locale	renommé	tests/test_trading_hub	jo		c:test_trading_hub.c@8982@F@fold_plate@jo
+jo	planet	tests/test_trading_hub.c	identifiant	locale	renommé	tests/test_trading_hub	jo		c:test_trading_hub.c@8989@F@fold_plate@jo
 k	k	tests/test_trading_hub.c	identifiant	locale	conservé	tests/test_trading_hub			c:test_trading_hub.c@3891@F@fold_kw@k
 keys	keys	tests/test_trading_hub.c	identifiant	locale	conservé	tests/test_trading_hub			c:test_trading_hub.c@16857@F@build_with_unknown_key@keys
 made	made	tests/test_trading_hub.c	identifiant	locale	conservé	tests/test_trading_hub			c:test_trading_hub.c@7844@F@build_plate@made
-mp	mouse_world	tests/test_trading_hub.c	identifiant	locale	renommé	tests/test_trading_hub			c:test_trading_hub.c@16150@F@test_life@mp
+mp	mouse_world	tests/test_trading_hub.c	identifiant	locale	renommé	tests/test_trading_hub			c:test_trading_hub.c@16208@F@test_life@mp
 nl	nl	tests/test_trading_hub.c	identifiant	locale	conservé	tests/test_trading_hub			c:test_trading_hub.c@13733@F@fold_dg@nl
-nl	trading_hub	tests/test_trading_hub.c	identifiant	locale	renommé	tests/test_trading_hub	nl		c:test_trading_hub.c@8923@F@fold_plate@nl
+nl	trading_hub	tests/test_trading_hub.c	identifiant	locale	renommé	tests/test_trading_hub	nl		c:test_trading_hub.c@8930@F@fold_plate@nl
 placed	placed	tests/test_trading_hub.c	identifiant	locale	conservé	tests/test_trading_hub			c:test_trading_hub.c@14887@F@test_life@placed
 qh	qh	tests/test_trading_hub.c	identifiant	locale	conservé	tests/test_trading_hub			c:test_trading_hub.c@17473@F@test_nl_is_a_struct@qh
-qh	structure	tests/test_trading_hub.c	identifiant	locale	renommé	tests/test_trading_hub	qh		c:test_trading_hub.c@8958@F@fold_plate@qh
+qh	structure	tests/test_trading_hub.c	identifiant	locale	renommé	tests/test_trading_hub	qh		c:test_trading_hub.c@8965@F@fold_plate@qh
 ra	ra	tests/test_trading_hub.c	identifiant	locale	conservé	tests/test_trading_hub			c:test_trading_hub.c@13520@F@fold_ra_y@ra
 status	status	tests/test_trading_hub.c	identifiant	locale	conservé	tests/test_trading_hub			c:test_trading_hub.c@16491@F@must_abort@status
 status	status	tests/test_trading_hub.c	identifiant	locale	conservé	tests/test_trading_hub			c:test_trading_hub.c@18547@F@reap@status
@@ -16104,7 +16104,7 @@ e	e	tests/test_trading_hub.c	identifiant	paramètre	conservé	tests/test_trading
 e	e	tests/test_trading_hub.c	identifiant	paramètre	conservé	tests/test_trading_hub			c:test_trading_hub.c@5634@F@cls_of@e
 e	e	tests/test_trading_hub.c	identifiant	paramètre	conservé	tests/test_trading_hub			c:test_trading_hub.c@5776@F@as_nl@e
 e	e	tests/test_trading_hub.c	identifiant	paramètre	conservé	tests/test_trading_hub			c:test_trading_hub.c@8105@F@is_plate@e
-e	entity	tests/test_trading_hub.c	identifiant	paramètre	renommé	tests/test_trading_hub			c:test_trading_hub.c@8902@F@fold_plate@e
+e	entity	tests/test_trading_hub.c	identifiant	paramètre	renommé	tests/test_trading_hub			c:test_trading_hub.c@8909@F@fold_plate@e
 got	got	tests/test_trading_hub.c	identifiant	paramètre	conservé	tests/test_trading_hub			c:test_trading_hub.c@4982@F@check@got
 h	h	tests/test_trading_hub.c	identifiant	paramètre	conservé	tests/test_trading_hub			c:test_trading_hub.c@13480@F@fold_ra_y@h
 h	h	tests/test_trading_hub.c	identifiant	paramètre	conservé	tests/test_trading_hub			c:test_trading_hub.c@13700@F@fold_dg@h
@@ -16122,7 +16122,7 @@ h	h	tests/test_trading_hub.c	identifiant	paramètre	conservé	tests/test_trading
 h	h	tests/test_trading_hub.c	identifiant	paramètre	conservé	tests/test_trading_hub			c:test_trading_hub.c@3851@F@fold_kw@h
 h	h	tests/test_trading_hub.c	identifiant	paramètre	conservé	tests/test_trading_hub			c:test_trading_hub.c@4378@F@fold_qh@h
 h	h	tests/test_trading_hub.c	identifiant	paramètre	conservé	tests/test_trading_hub			c:test_trading_hub.c@4755@F@fold_et@h
-h	hash	tests/test_trading_hub.c	identifiant	paramètre	renommé	tests/test_trading_hub			c:test_trading_hub.c@8890@F@fold_plate@h
+h	hash	tests/test_trading_hub.c	identifiant	paramètre	renommé	tests/test_trading_hub			c:test_trading_hub.c@8897@F@fold_plate@h
 ib	ib	tests/test_trading_hub.c	identifiant	paramètre	conservé	tests/test_trading_hub			c:test_trading_hub.c@14073@F@fold_ib@ib
 jo	jo	tests/test_trading_hub.c	identifiant	paramètre	conservé	tests/test_trading_hub			c:test_trading_hub.c@2987@F@fold_hf@jo
 jo	jo	tests/test_trading_hub.c	identifiant	paramètre	conservé	tests/test_trading_hub			c:test_trading_hub.c@3863@F@fold_kw@jo
@@ -16266,9 +16266,9 @@ drawn	drawn	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_
 e	e	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@15918@F@test_left@e
 e	e	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@25150@F@assert_own_emitter@e
 e	e	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@25539@F@assert_own_probe@e
-e	entities	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui			c:test_ui.c@26940@F@test_components_carried@e
-e	entities	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui			c:test_ui.c@29981@F@test_ke_me_by_name@e
-e	entities	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui			c:test_ui.c@33042@F@test_ke_t_by_name@e
+e	entities	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui			c:test_ui.c@26962@F@test_components_carried@e
+e	entities	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui			c:test_ui.c@30009@F@test_ke_me_by_name@e
+e	entities	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui			c:test_ui.c@33076@F@test_ke_t_by_name@e
 e	e	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@6016@F@nearest_to@e
 fresh	fresh	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@26049@F@help_alone@fresh
 h	h	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@10166@F@test_fresh@h
@@ -16278,14 +16278,14 @@ h	h	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@141
 h	hash	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui			c:test_ui.c@15776@F@test_left@h
 h	h	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@17319@F@test_cj@h
 h	h	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@18268@F@test_stale@h
-h	hash	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui			c:test_ui.c@30047@F@test_ke_me_by_name@h
-h	hash	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui			c:test_ui.c@33167@F@test_ke_t_by_name@h
+h	hash	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui			c:test_ui.c@30075@F@test_ke_me_by_name@h
+h	hash	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui			c:test_ui.c@33201@F@test_ke_t_by_name@h
 h	h	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@4325@F@screen_hash@h
 h	hash	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui			c:test_ui.c@7189@F@test_built@h
 h	h	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@9032@F@test_shared@h
 header	header	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@27517@F@test_components_carried@header
 held	held	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@15692@F@test_left@held
-hv	live	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui	hv		c:test_ui.c@29998@F@test_ke_me_by_name@hv
+hv	live	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui	hv		c:test_ui.c@30026@F@test_ke_me_by_name@hv
 hv	hv	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@32302@F@fold_hv_t@hv
 hv	hv	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@6676@F@the_bg@hv
 hx	hx	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@19627@F@test_click_reaches_a_row_of_le@hx
@@ -16296,10 +16296,10 @@ i	i	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@174
 i	i	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@2253@F@fnv@i
 i	i	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@23300@F@test_ui_held_stops_off_row@i
 i	i	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@2448@F@ents_rank_in@i
-i	index	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui			c:test_ui.c@26957@F@test_components_carried@i
-i	index	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui			c:test_ui.c@30077@F@test_ke_me_by_name@i
+i	index	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui			c:test_ui.c@26979@F@test_components_carried@i
+i	index	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui			c:test_ui.c@30105@F@test_ke_me_by_name@i
 i	i	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@32343@F@fold_hv_t@i
-i	index	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui			c:test_ui.c@33197@F@test_ke_t_by_name@i
+i	index	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui			c:test_ui.c@33231@F@test_ke_t_by_name@i
 i	i	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@4355@F@screen_hash@i
 i	i	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@5961@F@nearest_to@i
 i	i	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@6738@F@the_bg@i
@@ -16320,7 +16320,7 @@ le	le	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@1
 le	le	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@9137@F@test_shared@le
 left	left	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@23261@F@test_ui_held_stops_off_row@left
 made	made	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@35086@F@test_g__t_key_stops_off_row@made
-me	state	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui	me		c:test_ui.c@30027@F@test_ke_me_by_name@me
+me	state	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui	me		c:test_ui.c@30055@F@test_ke_me_by_name@me
 mf	mf	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@4000@F@fold_layers@mf
 mo	mo	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@3074@F@mo_qb@mo
 o	o	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@25187@F@assert_own_emitter@o
@@ -16350,7 +16350,7 @@ ra	ra	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@1
 re	re	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@5940@F@nearest_to@re
 right	right	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@23280@F@test_ui_held_stops_off_row@right
 row	row	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@19578@F@test_click_reaches_a_row_of_le@row
-s	state_name	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui			c:test_ui.c@29953@F@test_ke_me_by_name@s
+s	state_name	tests/test_ui.c	identifiant	locale	renommé	tests/test_ui			c:test_ui.c@29981@F@test_ke_me_by_name@s
 status	status	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@20576@F@must_abort@status
 status	status	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@35414@F@in_fresh_child@status
 target	target	tests/test_ui.c	identifiant	locale	conservé	tests/test_ui			c:test_ui.c@15733@F@test_left@target
@@ -16967,7 +16967,7 @@ pico8_gu_content_ptrs	collect_contains_string	tools/composition_residue.sh	chaî
 pico8_hp_t.i	research_project_t.inputs	tools/composition_residue.sh	chaîne	symbole cité	renommé	tools/composition_residue	hp	lecteur	chaîne:pico8_hp_t.i
 pico8_hy_t.invented	economy_t.invented	tools/composition_residue.sh	chaîne	symbole cité	renommé	tools/composition_residue	hy	lecteur	chaîne:pico8_hy_t.invented
 pico8_jc_t.ts	slipway_t.transit_dots	tools/composition_residue.sh	chaîne	symbole cité	renommé	tools/composition_residue	jc	lecteur	chaîne:pico8_jc_t.ts
-pico8_jo_ex	planet_resource_row	tools/composition_residue.sh	chaîne	symbole cité	renommé	tools/composition_residue	jo	lecteur	chaîne:pico8_jo_ex
+pico8_jo_ex	research_display_planet_resource_row	tools/composition_residue.sh	chaîne	symbole cité	renommé	tools/composition_residue	jo	lecteur	chaîne:pico8_jo_ex
 pico8_jo_gh_ctx_t.ji	planet_inspection_panel_ctx_t.unmet_needs	tools/composition_residue.sh	chaîne	symbole cité	renommé	tools/composition_residue	gh	lecteur	chaîne:pico8_jo_gh_ctx_t.ji
 pico8_jo_t.jy	planet_t.needs	tools/composition_residue.sh	chaîne	symbole cité	renommé	tools/composition_residue	jy	lecteur	chaîne:pico8_jo_t.jy
 pico8_jp_ptrs	collect_filter_pointer_list	tools/composition_residue.sh	chaîne	symbole cité	renommé	tools/composition_residue	pico8_ptrs_t	lecteur	chaîne:pico8_jp_ptrs

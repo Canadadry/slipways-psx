@@ -182,8 +182,8 @@ static uint32_t my_state(const void *e) {
  * values were frozen on, whatever its form now. */
 static int in_gb(const void *e) {
     int k;
-    for (k = 1; k <= pico8_gb_count(); k++) {
-        if (pico8_gb_at(k) == e) {
+    for (k = 1; k <= research_projects_count(); k++) {
+        if (research_projects_at(k) == e) {
             return 1;
         }
     }
@@ -484,9 +484,9 @@ static p8_fixed_t dist2(vec_t a, vec_t b) {
     return p8_fixed_add(p8_fixed_mul(d.x, d.x), p8_fixed_mul(d.y, d.y));
 }
 
-static pico8_hp_t *project(int k) {
-    assert(pico8_gb_at(k) != NULL);
-    return pico8_gb_at(k);
+static research_project_t *project(int k) {
+    assert(research_projects_at(k) != NULL);
+    return research_projects_at(k);
 }
 
 /* A generated planet colonized by COLONY, its nearest one by EXPORTER, the
@@ -557,7 +557,7 @@ static void built_panel(void) {
  * some techs affordable, some too dear. */
 static void tech_screen(void) {
     start_game();
-    main_economy_typed()->jk = p8_fixed_from_int(5);
+    main_economy_typed()->research_points = p8_fixed_from_int(5);
     pico8_cr();
     one_frame();
 }
@@ -567,8 +567,8 @@ static void game_end(void) {
     entity_t *ju;
 
     start_game();
-    main_economy_typed()->hl = "final score";
-    main_economy_typed()->has_hl = 1;
+    main_economy_typed()->end_status = "final score";
+    main_economy_typed()->has_end_status = 1;
     ju = (entity_t *)pico8_ju();
     assert(ju->class->states[ENTITY_STATE_NORMAL] != NULL);
     ju->class->states[ENTITY_STATE_NORMAL](ju, p8_fixed_from_int(0));
@@ -750,7 +750,7 @@ static void test_dk(void) {
         start_title();
         nj = title_button(i);
         pico8_eu(nj);
-        assert(pico8_dk() == nj);
+        assert(economy_score_difficulty() == nj);
         h = fold_fixed_or_nil(h, js_of(nj)->has_en, js_of(nj)->en);
         h = fold_fixed_or_nil(h, js_of(nj)->has_trade, js_of(nj)->trade);
         h = fold_string_or_nil(h, js_of(nj)->px);
@@ -897,7 +897,7 @@ static uint32_t lq_first(const void *b) {
 static void test_hb(void) {
     uint32_t h = 2166136261u;
     void *ix[4];
-    pico8_cb_kept_t cb;
+    available_technologies_kept_t cb;
     void *before;
     int affordable;
     int i;
@@ -909,7 +909,7 @@ static void test_hb(void) {
     }
     before = js_of(ix[1])->lq;
     cls_of(ix[1])->refresh(ix[1]);
-    cb = pico8_cb(0);
+    cb = tech_gate_available_technologies(0);
     affordable = cb.count > 0;
     assert(js_of(ix[1])->lq != before);
     assert(lq_first(ix[1]) == (affordable ? 24u : 37u));
@@ -1066,7 +1066,7 @@ static void test_js_is_a_struct(void) {
     check_int("struct title", all_buttons_are_structs(), 4);
     nj = title_button(2);
     pico8_eu(nj);
-    assert(is_js(nj) && pico8_dk() == nj);
+    assert(is_js(nj) && economy_score_difficulty() == nj);
     assert(ix_buttons(ix) == 4);
     check_int("struct eu", all_buttons_are_structs(), 4);
     for (i = 0; i < 4; i++) {
@@ -1127,7 +1127,7 @@ static uint32_t fold_member_ref(uint32_t h, const void *ref) {
     if (is_of_class(ref, planet_class())) {
         return fnv(h, 0xB2u);
     }
-    if (is_of_class(ref, pico8_hp_struct_class())) {
+    if (is_of_class(ref, research_project_class())) {
         return fnv(h, 0xB3u);
     }
     return fnv(fnv(h, 0xB5u), FROZEN_STRUCT_TAG);
@@ -1410,7 +1410,7 @@ static uint32_t members_title_and_game(void) {
     printf("[members] dk: trade %d, en %d/65536\n", p8_fixed_flr_int(js_of(nj)->trade), (int)js_of(nj)->en);
     h = fold_js_members(h, nj);
     pico8_eu(nj);
-    assert(pico8_dk() == nj);
+    assert(economy_score_difficulty() == nj);
     assert(ix_buttons(ix) == 4);
     for (i = 0; i < 4; i++) {
         assert((js_of(ix[i])->hb != NULL) == (i == 1));
@@ -1517,7 +1517,7 @@ static uint32_t members_fe(void) {
         }
         assert(b->_jo_fe_pt == pt);
         assert(is_of_class(pt, planet_class()) && ents_listed(entities_by_tag("planet"), pt));
-        assert(b->_jo_fe_b != NULL && is_of_class(b->_jo_fe_b, pico8_hp_struct_class()));
+        assert(b->_jo_fe_b != NULL && is_of_class(b->_jo_fe_b, research_project_class()));
         assert(b->has__jo_fe_od);
         assert(b->my != NULL);
         assert(b->jb != NULL && is_of_class(b->jb, tooltip_class()));
@@ -1604,7 +1604,7 @@ static void test_js_members_by_name(void) {
  * empty row of a present nil. */
 static void test_fe_free_row(void) {
     const entity_list_t *le;
-    pico8_hp_t *b = NULL;
+    research_project_t *b = NULL;
     planet_t *pt = NULL;
     int found = 0;
     int i;
@@ -1616,8 +1616,8 @@ static void test_fe_free_row(void) {
         pt = js_of(le->items[i])->_jo_fe_pt;
     }
     assert(b != NULL && pt != NULL);
-    b->has_fj = 1;
-    b->fj = 0;
+    b->has_base_cost = 1;
+    b->base_cost = 0;
     planet_projects_panel(pt);
     le = ok_le();
     for (i = 0; i < le->count; i++) {
@@ -1671,36 +1671,36 @@ static void test_pz_fa_only_from_ca(void) {
 /* `cb` writes `e_` for every entry, kept or not; `pico8_data_init` forgets
  * them all. */
 static void test_cb_writes_every_e_(void) {
-    pico8_cb_kept_t kept;
+    available_technologies_kept_t kept;
     p8_fixed_t jk;
     int dropped_affordable = 0;
     int i;
 
     start_game();
-    main_economy_typed()->jk = p8_fixed_from_int(12);
-    jk = main_economy_typed()->jk;
-    kept = pico8_cb(0);
+    main_economy_typed()->research_points = p8_fixed_from_int(12);
+    jk = main_economy_typed()->research_points;
+    kept = tech_gate_available_technologies(0);
     for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
         const technologies_entry_t *t = &technologies_table[i];
-        int affordable = pico8_gi_nb(t) <= jk;
+        int affordable = tech_gate_research_cost(t) <= jk;
         int k;
         int is_kept = 0;
 
-        assert(pico8_nb_e_(t) == affordable);
+        assert(tech_gate_affordable_flags(t) == affordable);
         for (k = 0; k < kept.count; k++) {
             is_kept |= kept.items[k] == t;
         }
         dropped_affordable += affordable && !is_kept;
     }
     assert(dropped_affordable > 0);
-    main_economy_typed()->jk = p8_fixed_from_int(999);
-    (void)pico8_cb(0);
+    main_economy_typed()->research_points = p8_fixed_from_int(999);
+    (void)tech_gate_available_technologies(0);
     for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
-        assert(pico8_nb_e_(&technologies_table[i]) == 1);
+        assert(tech_gate_affordable_flags(&technologies_table[i]) == 1);
     }
     data_init();
     for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
-        assert(pico8_nb_e_(&technologies_table[i]) == 0);
+        assert(tech_gate_affordable_flags(&technologies_table[i]) == 0);
     }
 }
 
@@ -1886,15 +1886,15 @@ static void test_le_places_after_restart(void) {
  * and every project's row as `jo:fe` builds it (its `lq`, its cost, its
  * `hp:jb` bubble). */
 static void test_largest_buttons_fit_their_places(void) {
-    pico8_hy_t *fm;
+    economy_t *fm;
     int k;
     int i;
 
     start_game();
     fm = main_economy_typed();
-    fm->jk = p8_fixed_from_int(9999);
+    fm->research_points = p8_fixed_from_int(9999);
     for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
-        fm->ew = p8_fixed_from_int(technologies_table[i].era);
+        fm->era = p8_fixed_from_int(technologies_table[i].era);
         pico8_cr();
         one_frame();
     }
@@ -1905,22 +1905,22 @@ static void test_largest_buttons_fit_their_places(void) {
     assert(js_of(ok_le()->items[ok_le()->count - 1])->jb->rows_count == TECHNOLOGIES_COUNT);
     one_frame();
 
-    for (k = 1; k <= pico8_gb_count(); k++) {
-        pico8_hp_t *b = pico8_gb_at(k);
+    for (k = 1; k <= research_projects_count(); k++) {
+        research_project_t *b = research_projects_at(k);
         layout_row_cell_t lq_items[8];
         layout_row_keys_t lq;
         layout_row_cell_t h_item = layout_row_cell_string(
-            p8_concat2(frame_zone(), "$", p8_tostr_fixed(frame_zone(), pico8_hp_od(b))));
+            p8_concat2(frame_zone(), "$", p8_tostr_fixed(frame_zone(), research_project_cost(b))));
         layout_row_keys_t h = {.items = &h_item, .count = 1};
         pico8_js_keys_t keys = {.has_h_ = 1, .h_row = &h, .has_jb = 1};
 
-        if (b->lq != NULL) {
-            lq = layout_row_keys_of_row(b->lq, lq_items, 8);
+        if (b->layout_row != NULL) {
+            lq = layout_row_keys_of_row(b->layout_row, lq_items, 8);
             keys.lq_row = &lq;
         } else {
-            keys.lq_copy = pico8_hp_lq(b);
+            keys.lq_copy = research_project_layout_row(b);
         }
-        keys.jb_row = pico8_hp_jb(b);
+        keys.jb_row = research_project_tooltip(b);
         entity_unregister(&pico8_js_new(&keys)->header);
         one_frame();
     }

@@ -27,7 +27,7 @@ static entity_t *g_main_economy = NULL;
 
 static const entity_class_t g_main_economy_placeholder_class = {0};
 
-static pico8_fm_placeholder_t g_main_economy_placeholder = {
+static main_economy_placeholder_t g_main_economy_placeholder = {
     {.class = &g_main_economy_placeholder_class}, 0, 0, 0, 0};
 
 static int targeting_track_target_is_holder_class(const entity_class_t *cls) {
@@ -275,7 +275,7 @@ static void probe_host_raise_is_dead(entity_t *self) {
 int targeting_confirm(entity_t *self) {
     const targeting_t *probe;
     int has_target;
-    pico8_hy_t *fm;
+    economy_t *fm;
     int spend_ok = 0;
 
     if (self == NULL) {
@@ -288,7 +288,7 @@ int targeting_confirm(entity_t *self) {
 
     fm = main_economy_typed();
     if (!has_target) {
-        spend_ok = pico8_hy_lu(fm, probe->has_cost ? probe->cost : p8_fixed_from_int(0));
+        spend_ok = economy_spend(fm, probe->has_cost ? probe->cost : p8_fixed_from_int(0));
     }
 
     assert((!has_target || !spend_ok) && "d_: fm:lu must stay short-circuited when et is set");
@@ -296,7 +296,7 @@ int targeting_confirm(entity_t *self) {
     if (!has_target && spend_ok) {
         entity_set_state(self, probe->archetype->confirmed_state != NULL ? probe->archetype->confirmed_state : "normal");
 
-        pico8_hy_nx(main_economy_typed(), probe->archetype->clock_ticks);
+        economy_advance_clock(main_economy_typed(), probe->archetype->clock_ticks);
 
         p8_play_sfx(probe->archetype->has_status_sprite ? probe->archetype->status_sprite : p8_fixed_from_int(54));
 
@@ -443,10 +443,10 @@ void probe_init(void) {
 
     g_probe_up = 1;
 
-    g_main_economy_placeholder.jk = 0;
-    g_main_economy_placeholder.has_jk = 0;
-    g_main_economy_placeholder.nz = 0;
-    g_main_economy_placeholder.has_nz = 0;
+    g_main_economy_placeholder.research_points = 0;
+    g_main_economy_placeholder.has_research_points = 0;
+    g_main_economy_placeholder.credits = 0;
+    g_main_economy_placeholder.has_credits = 0;
     g_main_economy = (entity_t *)&g_main_economy_placeholder;
 }
 
@@ -475,15 +475,15 @@ entity_t *main_economy(void) {
     return g_main_economy;
 }
 
-pico8_hy_t *main_economy_typed(void) {
+economy_t *main_economy_typed(void) {
     if (g_main_economy == NULL || g_main_economy == &g_main_economy_placeholder.header) {
         return NULL;
     }
-    assert(g_main_economy->class == pico8_hy_struct_class() && "fm: only the provisional or a hy is ever stored");
-    return (pico8_hy_t *)g_main_economy;
+    assert(g_main_economy->class == economy_class() && "fm: only the provisional or a hy is ever stored");
+    return (economy_t *)g_main_economy;
 }
 
-const pico8_fm_placeholder_t *main_economy_placeholder(void) {
+const main_economy_placeholder_t *main_economy_placeholder(void) {
     return g_main_economy == &g_main_economy_placeholder.header ? &g_main_economy_placeholder : NULL;
 }
 

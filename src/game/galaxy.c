@@ -70,7 +70,7 @@ void galaxy_populate(p8_fixed_t planet_count) {
 
     /* A NULL dk or an absent "en" reads as 0 -- this port's usual
      * absent-field default, not a guess at which difficulty is meant. */
-    difficulty = pico8_dk();
+    difficulty = economy_score_difficulty();
     if (difficulty != NULL && difficulty->has_en) {
         difficulty_type_bias = difficulty->en;
     }

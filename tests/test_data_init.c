@@ -24,8 +24,8 @@ static void test_production_tables_project_records_icon_tooltips_technologies_de
     assert(production_tables_lookup("does-not-exist") == NULL);
 
     assert(PROJECT_RECORDS_COUNT == 42);
-    assert(pico8_gb_count() == 34 && pico8_gb_at(34) != NULL);
-    assert(pico8_gb_at(35) == NULL);
+    assert(research_projects_count() == 34 && research_projects_at(34) != NULL);
+    assert(research_projects_at(35) == NULL);
 
     assert(ICON_TOOLTIPS_COUNT == 7);
     assert(icon_tooltips_table[0].count > 0 && icon_tooltips_table[0].items[0].row != NULL);

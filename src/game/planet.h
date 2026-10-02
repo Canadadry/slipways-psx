@@ -34,7 +34,7 @@ typedef struct {
     vec_t *map_pos;
     vec_t *pos;
     entity_list_t *slipways;
-    pico8_hp_t *project;
+    research_project_t *project;
     const char *description;
     pointer_list_t *needs;
     const planet_types_entry_t *planet_type;
@@ -155,7 +155,7 @@ int planet_is_family(const entity_t *e);
 void planet_offer_trade_method(entity_t *self, struct trade_offer *lw);
 void planet_update_vanishing_method(entity_t *self, p8_fixed_t t);
 
-void planet_install_project(planet_t *self, pico8_hp_t *research_project_instance);
+void planet_install_project(planet_t *self, research_project_t *research_project_instance);
 
 /* TROU-3 */
 /* 1 when `hf` is true and `me` is "ly", 0 otherwise, a NULL `self` included. */

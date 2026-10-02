@@ -51,11 +51,11 @@
 #define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
 #define CONSTRUCTION_HASH 0x8343CAA6u
-#define NX_HASH 0xC143EEC1u
-#define HK_HASH 0x6CD37E64u
-#define LU_HASH 0xB07FE872u
-#define LJ_HASH 0x77BE9594u
-#define KT_HASH 0x5EE5D720u
+#define ADVANCE_CLOCK_HASH 0xC143EEC1u
+#define NEW_YEAR_HASH 0x6CD37E64u
+#define SPEND_HASH 0xB07FE872u
+#define RECOMPUTE_HASH 0x77BE9594u
+#define INVENT_HASH 0x5EE5D720u
 
 /* The tag `invented` carried as a tagged list, which the frozen hashes fold:
  * any other value moves every *_HASH. */
@@ -67,11 +67,11 @@ static p8_input_t input;
 static pico8_cheat_t cheat;
 
 /* NULL on the provisional `fm`, as the functions of `hy` take it. */
-static pico8_hy_t *fm_self(void) {
+static economy_t *main_economy_self(void) {
     return main_economy_typed();
 }
 
-static pico8_hy_t *fm_hy(void) {
+static economy_t *typed_main_economy(void) {
     assert(main_economy_typed() != NULL);
     return main_economy_typed();
 }
@@ -85,7 +85,7 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
     return h;
 }
 
-static const pointer_list_t *invented_of(const pico8_hy_t *hy) {
+static const pointer_list_t *invented_of(const economy_t *hy) {
     const pointer_list_t *l = hy->invented;
     assert(l != NULL);
     return l;
@@ -113,15 +113,15 @@ enum { TABLE_INDEX_KEY = 0 };
 
 /* `REF`, the count, then per entry the index-key kind, `qe` and the
  * value: the format the constants froze. */
-static uint32_t fold_qe_map(uint32_t h, const pico8_qe_map_t *map) {
+static uint32_t fold_resource_map(uint32_t h, const resource_map_t *map) {
     int i;
 
     h = fnv(h, (uint32_t)REF_KIND);
     h = fnv(h, (uint32_t)map->count);
     for (i = 0; i < map->count; i++) {
         h = fnv(h, (uint32_t)TABLE_INDEX_KEY);
-        h = fnv(h, (uint32_t)map->entries[i].qe);
-        h = fold_fixed(h, map->entries[i].v);
+        h = fnv(h, (uint32_t)map->entries[i].resource);
+        h = fold_fixed(h, map->entries[i].value);
     }
     return h;
 }
@@ -152,38 +152,38 @@ static uint32_t fold_list_member(uint32_t h, const pointer_list_t *l) {
     return h;
 }
 
-static uint32_t fold_qe_member(uint32_t h, const pico8_qe_map_t *map) {
-    return map == NULL ? fold_absent(h) : fold_qe_map(h, map);
+static uint32_t fold_resource_member(uint32_t h, const resource_map_t *map) {
+    return map == NULL ? fold_absent(h) : fold_resource_map(h, map);
 }
 
 /* `hl` false is `has_hl` with a NULL `hl`. */
-static uint32_t fold_hl(uint32_t h, const pico8_hy_t *hy) {
-    if (!hy->has_hl) {
+static uint32_t fold_end_status(uint32_t h, const economy_t *hy) {
+    if (!hy->has_end_status) {
         return fold_absent(h);
     }
-    if (hy->hl == NULL) {
+    if (hy->end_status == NULL) {
         return fnv(fnv(h, (uint32_t)BOOL_KIND), 0u);
     }
-    return fold_string(fnv(h, (uint32_t)STRING_KIND), hy->hl);
+    return fold_string(fnv(h, (uint32_t)STRING_KIND), hy->end_status);
 }
 
 /* The 11 members of a `hy`, each with its kind and value. */
-static uint32_t fold_hy(uint32_t h, const pico8_hy_t *hy) {
-    h = fold_fixed_member(h, 1, hy->nz);
-    h = fold_fixed_member(h, 1, hy->ge);
-    h = fold_fixed_member(h, 1, hy->jk);
-    h = fold_fixed_member(h, 1, hy->ew);
+static uint32_t fold_economy(uint32_t h, const economy_t *hy) {
+    h = fold_fixed_member(h, 1, hy->credits);
+    h = fold_fixed_member(h, 1, hy->income);
+    h = fold_fixed_member(h, 1, hy->research_points);
+    h = fold_fixed_member(h, 1, hy->era);
     h = fold_list_member(h, hy->invented);
-    h = fold_fixed_member(h, 1, hy->lo);
-    h = fold_fixed_member(h, 1, hy->yr);
-    h = fold_qe_member(h, hy->po);
-    h = fold_qe_member(h, hy->fu);
+    h = fold_fixed_member(h, 1, hy->year_ticks);
+    h = fold_fixed_member(h, 1, hy->year);
+    h = fold_resource_member(h, hy->production);
+    h = fold_resource_member(h, hy->demand);
     h = fold_fixed_member(h, hy->has_happiness, hy->happiness);
-    return fold_hl(h, hy);
+    return fold_end_status(h, hy);
 }
 
-static uint32_t fold_fm(uint32_t h) {
-    return fold_hy(h, fm_hy());
+static uint32_t fold_main_economy(uint32_t h) {
+    return fold_economy(h, typed_main_economy());
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
@@ -205,13 +205,13 @@ static void start_game(void) {
     pico8_eu(NULL);
 }
 
-static planet_t *as_jo(void *e) {
+static planet_t *as_planet(void *e) {
     assert(planet_is_family(e));
     return e;
 }
 
 static vec_t pos_of(void *e) {
-    const vec_t *p = as_jo(e)->map_pos;
+    const vec_t *p = as_planet(e)->map_pos;
     assert(p != NULL);
     return *p;
 }
@@ -221,9 +221,9 @@ static p8_fixed_t dist2(vec_t a, vec_t b) {
     return p8_fixed_add(p8_fixed_mul(d.x, d.x), p8_fixed_mul(d.y, d.y));
 }
 
-static pico8_hp_t *project(int k) {
-    assert(pico8_gb_at(k) != NULL);
-    return pico8_gb_at(k);
+static research_project_t *project(int k) {
+    assert(research_projects_at(k) != NULL);
+    return research_projects_at(k);
 }
 
 /* A generated planet colonized by COLONY, its nearest one by EXPORTER, the
@@ -231,7 +231,7 @@ static pico8_hp_t *project(int k) {
  * hovered planet off `ok.o_`), then left to settle. */
 static void built_world(void) {
     const entity_list_t *jos;
-    slipway_keys_t jc_keys = {0};
+    slipway_keys_t slipway_keys = {0};
     vec_t *mp = malloc(sizeof *mp);
     void *qu;
     void *re = NULL;
@@ -251,8 +251,8 @@ static void built_world(void) {
     planet_apply_project(qu, project(COLONY));
     planet_apply_project(re, project(EXPORTER));
 
-    jc_keys.start = qu;
-    jc = slipway_new(&jc_keys);
+    slipway_keys.start = qu;
+    jc = slipway_new(&slipway_keys);
     *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
                         vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
@@ -269,7 +269,7 @@ static void built_world(void) {
 
 /* The descriptor every `iv` shares, taken off one built for that purpose;
  * it stays in `hv`. */
-static const entity_class_t *iv_descriptor(void) {
+static const entity_class_t *toast_descriptor(void) {
     pico8_iv_keys_t keys = {0};
     const pico8_iv_t *ref;
 
@@ -280,7 +280,7 @@ static const entity_class_t *iv_descriptor(void) {
 
 /* Every entry `hv` gained since it held `from` entries: its tag, and for an
  * `iv` the text and color it shows. */
-static uint32_t fold_new_entities(uint32_t h, int from, const entity_class_t *iv_cls) {
+static uint32_t fold_new_entities(uint32_t h, int from, const entity_class_t *toast_cls) {
     const entity_list_t *hv = live_entities();
     int i;
 
@@ -288,7 +288,7 @@ static uint32_t fold_new_entities(uint32_t h, int from, const entity_class_t *iv
     for (i = from; i < hv->count; i++) {
         const void *e = hv->items[i];
         h = fnv(h, FROZEN_STRUCT_TAG);
-        if (((const entity_t *)e)->class == iv_cls) {
+        if (((const entity_t *)e)->class == toast_cls) {
             const pico8_iv_t *iv = e;
             h = iv->at1 != NULL ? fold_string(fnv(h, (uint32_t)STRING_KIND), iv->at1)
                                 : fnv(fnv(h, (uint32_t)REF_KIND), 0xDEADu);
@@ -303,77 +303,77 @@ static uint32_t fold_new_entities(uint32_t h, int from, const entity_class_t *iv
  * Two games have two distinct `invented` lists. */
 static void test_construction(void) {
     uint32_t h = 2166136261u;
-    pico8_hy_t *bare;
+    economy_t *bare;
     const pointer_list_t *first;
 
     pico8__init();
-    bare = pico8_hy_new();
-    assert(bare->invented != NULL && bare->po == NULL && bare->fu == NULL && !bare->has_happiness);
-    assert(!bare->has_hl);
-    h = fold_hy(h, bare);
+    bare = economy_new();
+    assert(bare->invented != NULL && bare->production == NULL && bare->demand == NULL && !bare->has_happiness);
+    assert(!bare->has_end_status);
+    h = fold_economy(h, bare);
     assert(invented_of(bare)->count == 0);
-    assert(bare->nz == p8_fixed_from_int(100) && bare->yr == p8_fixed_from_int(3401));
+    assert(bare->credits == p8_fixed_from_int(100) && bare->year == p8_fixed_from_int(3401));
 
     new_game();
-    assert(fm_hy()->invented != NULL && fm_hy()->po != NULL && fm_hy()->fu != NULL);
-    assert(fm_hy()->has_happiness && fm_hy()->has_hl);
-    h = fold_fm(h);
-    first = invented_of(fm_hy());
+    assert(typed_main_economy()->invented != NULL && typed_main_economy()->production != NULL && typed_main_economy()->demand != NULL);
+    assert(typed_main_economy()->has_happiness && typed_main_economy()->has_end_status);
+    h = fold_main_economy(h);
+    first = invented_of(typed_main_economy());
     assert(first != invented_of(bare));
 
     pico8_cart_vider_file_sortie();
     new_game();
-    assert(invented_of(fm_hy()) != first && invented_of(fm_hy())->count == 0);
-    h = fold_fm(h);
+    assert(invented_of(typed_main_economy()) != first && invented_of(typed_main_economy())->count == 0);
+    h = fold_main_economy(h);
     check("construction", h, CONSTRUCTION_HASH);
 }
 
-static uint32_t fold_lo_yr(uint32_t h) {
-    h = fold_fixed_member(h, 1, fm_hy()->lo);
-    return fold_fixed_member(h, 1, fm_hy()->yr);
+static uint32_t fold_year_ticks_year(uint32_t h) {
+    h = fold_fixed_member(h, 1, typed_main_economy()->year_ticks);
+    return fold_fixed_member(h, 1, typed_main_economy()->year);
 }
 
 /* `lo` accumulates; past 12 without "time compression", past 15 with it,
  * the year turns once and `lo` drops by that bound. */
-static void test_nx(void) {
+static void test_advance_clock(void) {
     uint32_t h = 2166136261u;
     p8_fixed_t yr;
 
     start_game();
-    yr = fm_hy()->yr;
-    assert(fm_hy()->lo == p8_fixed_from_int(1));
+    yr = typed_main_economy()->year;
+    assert(typed_main_economy()->year_ticks == p8_fixed_from_int(1));
 
-    pico8_hy_nx(fm_self(), p8_fixed_from_int(3));
-    assert(fm_hy()->lo == p8_fixed_from_int(4) && fm_hy()->yr == yr);
-    h = fold_lo_yr(h);
-    pico8_hy_nx(fm_self(), p8_fixed_from_int(8));
-    assert(fm_hy()->lo == p8_fixed_from_int(12) && fm_hy()->yr == yr);
-    h = fold_lo_yr(h);
-    pico8_hy_nx(fm_self(), p8_fixed_from_int(1));
-    assert(fm_hy()->lo == p8_fixed_from_int(1));
-    assert(fm_hy()->yr == p8_fixed_add(yr, p8_fixed_from_int(1)));
-    h = fold_fm(h);
+    economy_advance_clock(main_economy_self(), p8_fixed_from_int(3));
+    assert(typed_main_economy()->year_ticks == p8_fixed_from_int(4) && typed_main_economy()->year == yr);
+    h = fold_year_ticks_year(h);
+    economy_advance_clock(main_economy_self(), p8_fixed_from_int(8));
+    assert(typed_main_economy()->year_ticks == p8_fixed_from_int(12) && typed_main_economy()->year == yr);
+    h = fold_year_ticks_year(h);
+    economy_advance_clock(main_economy_self(), p8_fixed_from_int(1));
+    assert(typed_main_economy()->year_ticks == p8_fixed_from_int(1));
+    assert(typed_main_economy()->year == p8_fixed_add(yr, p8_fixed_from_int(1)));
+    h = fold_main_economy(h);
 
-    pointer_list_add(fm_hy()->invented, "time compression");
-    pico8_hy_nx(fm_self(), p8_fixed_from_int(14));
-    assert(fm_hy()->lo == p8_fixed_from_int(15));
-    assert(fm_hy()->yr == p8_fixed_add(yr, p8_fixed_from_int(1)));
-    h = fold_lo_yr(h);
-    pico8_hy_nx(fm_self(), P8_FIXED_LIT(0x00008000, 0.5));
-    assert(fm_hy()->lo == P8_FIXED_LIT(0x00008000, 0.5));
-    assert(fm_hy()->yr == p8_fixed_add(yr, p8_fixed_from_int(2)));
-    h = fold_fm(h);
+    pointer_list_add(typed_main_economy()->invented, "time compression");
+    economy_advance_clock(main_economy_self(), p8_fixed_from_int(14));
+    assert(typed_main_economy()->year_ticks == p8_fixed_from_int(15));
+    assert(typed_main_economy()->year == p8_fixed_add(yr, p8_fixed_from_int(1)));
+    h = fold_year_ticks_year(h);
+    economy_advance_clock(main_economy_self(), P8_FIXED_LIT(0x00008000, 0.5));
+    assert(typed_main_economy()->year_ticks == P8_FIXED_LIT(0x00008000, 0.5));
+    assert(typed_main_economy()->year == p8_fixed_add(yr, p8_fixed_from_int(2)));
+    h = fold_main_economy(h);
 
-    pico8_hy_nx(NULL, p8_fixed_from_int(20));
-    h = fold_fm(h);
-    check("nx", h, NX_HASH);
+    economy_advance_clock(NULL, p8_fixed_from_int(20));
+    h = fold_main_economy(h);
+    check("advance_clock", h, ADVANCE_CLOCK_HASH);
 }
 
 /* After a game with colonies: `nz += ge`, `jk += po[r.k] + 1`, `yr + 1`,
  * and each planet of `cv.hk` shows its income. */
-static void test_hk(void) {
+static void test_new_year(void) {
     uint32_t h = 2166136261u;
-    const entity_class_t *iv_cls;
+    const entity_class_t *toast_cls;
     p8_fixed_t nz;
     p8_fixed_t ge;
     p8_fixed_t jk;
@@ -381,83 +381,83 @@ static void test_hk(void) {
     int from;
 
     built_world();
-    iv_cls = iv_descriptor();
-    nz = fm_hy()->nz;
-    ge = fm_hy()->ge;
-    jk = fm_hy()->jk;
-    yr = fm_hy()->yr;
-    h = fold_fm(h);
+    toast_cls = toast_descriptor();
+    nz = typed_main_economy()->credits;
+    ge = typed_main_economy()->income;
+    jk = typed_main_economy()->research_points;
+    yr = typed_main_economy()->year;
+    h = fold_main_economy(h);
 
     from = live_entities()->count;
-    pico8_hy_hk(fm_self());
-    assert(fm_hy()->nz == p8_fixed_add(nz, ge));
-    assert(fm_hy()->jk > jk);
-    assert(fm_hy()->yr == p8_fixed_add(yr, p8_fixed_from_int(1)));
-    h = fold_fm(h);
-    h = fold_new_entities(h, from, iv_cls);
+    economy_new_year(main_economy_self());
+    assert(typed_main_economy()->credits == p8_fixed_add(nz, ge));
+    assert(typed_main_economy()->research_points > jk);
+    assert(typed_main_economy()->year == p8_fixed_add(yr, p8_fixed_from_int(1)));
+    h = fold_main_economy(h);
+    h = fold_new_entities(h, from, toast_cls);
     assert(live_entities()->count > from);
 
-    pico8_hy_hk(NULL);
-    h = fold_fm(h);
-    check("new_year", h, HK_HASH);
+    economy_new_year(NULL);
+    h = fold_main_economy(h);
+    check("new_year", h, NEW_YEAR_HASH);
 }
 
-static uint32_t lu_step(uint32_t h, pico8_hy_t *self, int jt, int want, const entity_class_t *iv_cls) {
+static uint32_t spend_step(uint32_t h, economy_t *self, int jt, int want, const entity_class_t *toast_cls) {
     int from = live_entities()->count;
-    int got = pico8_hy_lu(self, p8_fixed_from_int(jt));
+    int got = economy_spend(self, p8_fixed_from_int(jt));
     assert(got == want);
     h = fnv(h, (uint32_t)got);
-    h = fold_fixed_member(h, 1, fm_hy()->nz);
-    return fold_new_entities(h, from, iv_cls);
+    h = fold_fixed_member(h, 1, typed_main_economy()->credits);
+    return fold_new_entities(h, from, toast_cls);
 }
 
 /* Short of credits: 0 and "-no money-"; 0: paid, nothing shown; a cost and
  * a payment: `nz` and the amount shown; a NULL `hy` holds no credits. */
-static void test_lu(void) {
+static void test_spend(void) {
     uint32_t h = 2166136261u;
-    const entity_class_t *iv_cls;
+    const entity_class_t *toast_cls;
     int from;
 
     start_game();
-    iv_cls = iv_descriptor();
-    assert(fm_hy()->nz == p8_fixed_from_int(100));
+    toast_cls = toast_descriptor();
+    assert(typed_main_economy()->credits == p8_fixed_from_int(100));
 
     from = live_entities()->count;
-    h = lu_step(h, fm_self(), 101, 0, iv_cls);
-    assert(fm_hy()->nz == p8_fixed_from_int(100) && live_entities()->count == from + 1);
+    h = spend_step(h, main_economy_self(), 101, 0, toast_cls);
+    assert(typed_main_economy()->credits == p8_fixed_from_int(100) && live_entities()->count == from + 1);
     assert(strcmp(((const pico8_iv_t *)live_entities()->items[from])->at1, "-no money-") == 0);
 
     from = live_entities()->count;
-    h = lu_step(h, fm_self(), 0, 1, iv_cls);
-    assert(fm_hy()->nz == p8_fixed_from_int(100) && live_entities()->count == from);
+    h = spend_step(h, main_economy_self(), 0, 1, toast_cls);
+    assert(typed_main_economy()->credits == p8_fixed_from_int(100) && live_entities()->count == from);
 
-    h = lu_step(h, fm_self(), 30, 1, iv_cls);
-    assert(fm_hy()->nz == p8_fixed_from_int(70));
-    h = lu_step(h, fm_self(), -20, 1, iv_cls);
-    assert(fm_hy()->nz == p8_fixed_from_int(90));
-    h = lu_step(h, fm_self(), 90, 1, iv_cls);
-    assert(fm_hy()->nz == p8_fixed_from_int(0));
+    h = spend_step(h, main_economy_self(), 30, 1, toast_cls);
+    assert(typed_main_economy()->credits == p8_fixed_from_int(70));
+    h = spend_step(h, main_economy_self(), -20, 1, toast_cls);
+    assert(typed_main_economy()->credits == p8_fixed_from_int(90));
+    h = spend_step(h, main_economy_self(), 90, 1, toast_cls);
+    assert(typed_main_economy()->credits == p8_fixed_from_int(0));
 
-    h = lu_step(h, NULL, 5, 0, iv_cls);
-    h = lu_step(h, NULL, 0, 1, iv_cls);
-    h = lu_step(h, NULL, -3, 1, iv_cls);
-    check("lu", h, LU_HASH);
+    h = spend_step(h, NULL, 5, 0, toast_cls);
+    h = spend_step(h, NULL, 0, 1, toast_cls);
+    h = spend_step(h, NULL, -3, 1, toast_cls);
+    check("spend", h, SPEND_HASH);
 }
 
-static uint32_t fold_planets_kr(uint32_t h) {
+static uint32_t fold_planets_net_income(uint32_t h) {
     const entity_list_t *jo = entities_by_tag("planet");
     int i;
     for (i = 0; jo != NULL && i < jo->count; i++) {
-        const planet_t *p = as_jo(jo->items[i]);
+        const planet_t *p = as_planet(jo->items[i]);
         h = fold_fixed_member(h, p->has_net_income, p->net_income);
     }
     return h;
 }
 
 /* NULL: `hl` false. */
-static const char *hl_string(void) {
-    assert(fm_hy()->has_hl);
-    return fm_hy()->hl;
+static const char *end_status_string(void) {
+    assert(typed_main_economy()->has_end_status);
+    return typed_main_economy()->end_status;
 }
 
 /* The first producing planet of `cg.jo`: `jy` set and its own `kw`. */
@@ -466,7 +466,7 @@ static planet_t *a_maker(void) {
     int i;
 
     for (i = 0; i < jos->count; i++) {
-        planet_t *p = as_jo(jos->items[i]);
+        planet_t *p = as_planet(jos->items[i]);
         if (p->needs != NULL && p->production != NULL && p->production->has_resource) {
             return p;
         }
@@ -480,77 +480,77 @@ static planet_t *a_maker(void) {
  * each planet's `kr`, and `hl`: false, "final score" at 3426, "bankrupt"
  * with no income and under 3 credits; then a `qh` needing a resource
  * outside `r` gets it in `fu`, from 1, gone once the need is. */
-static void test_lj(void) {
-    uint32_t h = 2166136261u;
-    const pico8_qe_map_t *po;
-    const pico8_qe_map_t *fu;
+static void test_recompute(void) {
+    uint32_t hash = 2166136261u;
+    const resource_map_t *production;
+    const resource_map_t *demand;
     planet_t *maker;
     planet_t *needer;
     pointer_list_t needs;
-    p8_fixed_t need_qe = p8_fixed_from_int(99);
-    pico8_jy_t *need;
+    p8_fixed_t need_amount = p8_fixed_from_int(99);
+    need_t *need;
     p8_fixed_t made;
     p8_fixed_t now;
-    p8_fixed_t qe;
+    p8_fixed_t resource;
 
     built_world();
-    po = fm_hy()->po;
-    fu = fm_hy()->fu;
-    assert(po != NULL && fu != NULL);
+    production = typed_main_economy()->production;
+    demand = typed_main_economy()->demand;
+    assert(production != NULL && demand != NULL);
     maker = a_maker();
-    qe = maker->production->resource;
-    assert(pico8_qe_map_get(po, qe, &made) && maker->production->amount > 0);
+    resource = maker->production->resource;
+    assert(resource_map_get(production, resource, &made) && maker->production->amount > 0);
     maker->production->resource = p8_fixed_from_int(99);
-    pico8_hy_lj(fm_self());
-    assert(pico8_qe_map_get(po, p8_fixed_from_int(99), &now) && now == maker->production->amount);
-    assert(pico8_qe_map_get(po, qe, &now) && now == p8_fixed_sub(made, maker->production->amount));
-    maker->production->resource = qe;
-    pico8_hy_lj(fm_self());
-    assert(!pico8_qe_map_get(po, p8_fixed_from_int(99), &now));
-    assert(pico8_qe_map_get(po, qe, &now) && now == made);
-    assert(fm_hy()->po == po && fm_hy()->fu == fu);
-    assert(hl_string() == NULL);
-    h = fold_fm(h);
-    h = fold_planets_kr(h);
+    economy_recompute(main_economy_self());
+    assert(resource_map_get(production, p8_fixed_from_int(99), &now) && now == maker->production->amount);
+    assert(resource_map_get(production, resource, &now) && now == p8_fixed_sub(made, maker->production->amount));
+    maker->production->resource = resource;
+    economy_recompute(main_economy_self());
+    assert(!resource_map_get(production, p8_fixed_from_int(99), &now));
+    assert(resource_map_get(production, resource, &now) && now == made);
+    assert(typed_main_economy()->production == production && typed_main_economy()->demand == demand);
+    assert(end_status_string() == NULL);
+    hash = fold_main_economy(hash);
+    hash = fold_planets_net_income(hash);
 
-    fm_hy()->yr = p8_fixed_from_int(3426);
-    pico8_hy_lj(fm_self());
-    assert(hl_string() != NULL && strcmp(hl_string(), "final score") == 0);
-    h = fold_fm(h);
+    typed_main_economy()->year = p8_fixed_from_int(3426);
+    economy_recompute(main_economy_self());
+    assert(end_status_string() != NULL && strcmp(end_status_string(), "final score") == 0);
+    hash = fold_main_economy(hash);
 
-    fm_hy()->yr = p8_fixed_from_int(3425);
-    fm_hy()->nz = p8_fixed_from_int(2);
-    pico8_hy_lj(fm_self());
-    h = fold_fm(h);
-    h = fnv(h, (uint32_t)(hl_string() == NULL));
+    typed_main_economy()->year = p8_fixed_from_int(3425);
+    typed_main_economy()->credits = p8_fixed_from_int(2);
+    economy_recompute(main_economy_self());
+    hash = fold_main_economy(hash);
+    hash = fnv(hash, (uint32_t)(end_status_string() == NULL));
 
     pico8_cart_vider_file_sortie();
     new_game();
-    fm_hy()->nz = p8_fixed_from_int(2);
-    pico8_hy_lj(fm_self());
-    assert(fm_hy()->ge <= p8_fixed_from_int(0));
-    assert(hl_string() != NULL && strcmp(hl_string(), "bankrupt") == 0);
-    h = fold_fm(h);
-    fm_hy()->nz = p8_fixed_from_int(3);
-    pico8_hy_lj(fm_self());
-    assert(hl_string() == NULL);
-    h = fold_fm(h);
+    typed_main_economy()->credits = p8_fixed_from_int(2);
+    economy_recompute(main_economy_self());
+    assert(typed_main_economy()->income <= p8_fixed_from_int(0));
+    assert(end_status_string() != NULL && strcmp(end_status_string(), "bankrupt") == 0);
+    hash = fold_main_economy(hash);
+    typed_main_economy()->credits = p8_fixed_from_int(3);
+    economy_recompute(main_economy_self());
+    assert(end_status_string() == NULL);
+    hash = fold_main_economy(hash);
 
-    pico8_hy_lj(NULL);
-    h = fold_fm(h);
-    check("lj", h, LJ_HASH);
+    economy_recompute(NULL);
+    hash = fold_main_economy(hash);
+    check("recompute", hash, RECOMPUTE_HASH);
 
-    fu = fm_hy()->fu;
-    need = pico8_jy_new(game_zone(), &need_qe);
+    demand = typed_main_economy()->demand;
+    need = need_new(game_zone(), &need_amount);
     needer = pico8_qh_new(NULL);
     pointer_list_init(&needs, &heap_allocator);
     pointer_list_add(&needs, need);
     needer->needs = &needs;
-    pico8_hy_lj(fm_self());
-    assert(pico8_qe_map_get(fu, p8_fixed_from_int(99), &now) && now == p8_fixed_from_int(1) - 0x2666);
+    economy_recompute(main_economy_self());
+    assert(resource_map_get(demand, p8_fixed_from_int(99), &now) && now == p8_fixed_from_int(1) - 0x2666);
     needer->needs = NULL;
-    pico8_hy_lj(fm_self());
-    assert(!pico8_qe_map_get(fu, p8_fixed_from_int(99), &now));
+    economy_recompute(main_economy_self());
+    assert(!resource_map_get(demand, p8_fixed_from_int(99), &now));
 }
 
 /* An nb entry of cost `od` whose `nk` (0) no resource of `r` is: gi reads
@@ -564,33 +564,33 @@ static const technologies_entry_t *tech(const char *px, int od) {
 
 /* `jk -= gi(t)`, `px` appended (nothing without `px`), `ew` up one at each
  * threshold of `ek` while under 4, never past it. */
-static void test_kt(void) {
+static void test_invent(void) {
     static const char *const pxs[] = {"t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9", "t10", "t11", "t12", "t13"};
     uint32_t h = 2166136261u;
     size_t k;
 
     start_game();
-    fm_hy()->jk = p8_fixed_from_int(500);
+    typed_main_economy()->research_points = p8_fixed_from_int(500);
 
-    pico8_hy_kt(fm_self(), tech(NULL, 10));
-    assert(fm_hy()->jk == p8_fixed_from_int(495));
-    assert(invented_of(fm_hy())->count == 0 && fm_hy()->ew == p8_fixed_from_int(1));
-    h = fold_fm(h);
+    economy_invent(main_economy_self(), tech(NULL, 10));
+    assert(typed_main_economy()->research_points == p8_fixed_from_int(495));
+    assert(invented_of(typed_main_economy())->count == 0 && typed_main_economy()->era == p8_fixed_from_int(1));
+    h = fold_main_economy(h);
 
     for (k = 0; k < sizeof pxs / sizeof pxs[0]; k++) {
-        pico8_hy_kt(fm_self(), tech(pxs[k], (int)k));
-        assert(invented_of(fm_hy())->count == (int)k + 1);
-        h = fnv(h, (uint32_t)fm_hy()->ew);
-        h = fnv(h, (uint32_t)fm_hy()->jk);
+        economy_invent(main_economy_self(), tech(pxs[k], (int)k));
+        assert(invented_of(typed_main_economy())->count == (int)k + 1);
+        h = fnv(h, (uint32_t)typed_main_economy()->era);
+        h = fnv(h, (uint32_t)typed_main_economy()->research_points);
     }
-    assert(fm_hy()->ew == p8_fixed_from_int(4));
-    h = fold_fm(h);
+    assert(typed_main_economy()->era == p8_fixed_from_int(4));
+    h = fold_main_economy(h);
 
-    pico8_hy_kt(fm_self(), NULL);
-    pico8_hy_kt(NULL, tech("t14", 3));
-    assert(invented_of(fm_hy())->count == (int)(sizeof pxs / sizeof pxs[0]));
-    h = fold_fm(h);
-    check("kt", h, KT_HASH);
+    economy_invent(main_economy_self(), NULL);
+    economy_invent(NULL, tech("t14", 3));
+    assert(invented_of(typed_main_economy())->count == (int)(sizeof pxs / sizeof pxs[0]));
+    h = fold_main_economy(h);
+    check("invent", h, INVENT_HASH);
 }
 
 /* The full A A B B A A B B on the title screen writes the provisional `fm`;
@@ -599,13 +599,13 @@ static void test_cheat_on_provisional(void) {
     static const int presses[] = {4, 4, 5, 5, 4, 4, 5, 5};
     p8_input_frame_t frames[16];
     p8_input_t pad;
-    const pico8_fm_placeholder_t *provisional;
+    const main_economy_placeholder_t *provisional;
     int fired = 0;
     int i;
 
     pico8__init();
     provisional = main_economy_placeholder();
-    assert(provisional != NULL && !provisional->has_jk && !provisional->has_nz);
+    assert(provisional != NULL && !provisional->has_research_points && !provisional->has_credits);
 
     memset(frames, 0, sizeof frames);
     for (i = 0; i < 8; i++) {
@@ -618,12 +618,12 @@ static void test_cheat_on_provisional(void) {
         fired += pico8_cheat_step(&cheat, &pad);
     }
     assert(fired == 1 && main_economy_placeholder() == provisional);
-    assert(provisional->has_jk && provisional->jk == p8_fixed_from_int(99));
-    assert(provisional->has_nz && provisional->nz == p8_fixed_from_int(200));
+    assert(provisional->has_research_points && provisional->research_points == p8_fixed_from_int(99));
+    assert(provisional->has_credits && provisional->credits == p8_fixed_from_int(200));
 
     new_game();
-    assert(fm_hy()->jk == p8_fixed_from_int(0));
-    assert(fm_hy()->nz == p8_fixed_from_int(100));
+    assert(typed_main_economy()->research_points == p8_fixed_from_int(0));
+    assert(typed_main_economy()->credits == p8_fixed_from_int(100));
 }
 
 static void must_abort(void (*write)(void *), void *e) {
@@ -642,19 +642,19 @@ static void must_abort(void (*write)(void *), void *e) {
     assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
 }
 
-static void lu_on_other(void *e) {
-    (void)pico8_hy_lu(e, p8_fixed_from_int(1));
+static void spend_on_other(void *e) {
+    (void)economy_spend(e, p8_fixed_from_int(1));
 }
 
 /* `fm` is a struct whose descriptor has no method;
  * `hy` takes no key, its functions refuse anything but a `hy`, and the
  * provisional `fm` is never handed to them. */
-static void test_hy_is_a_struct(void) {
-    const entity_class_t *cls = pico8_hy_struct_class();
-    pico8_hy_t *bare;
+static void test_economy_is_a_struct(void) {
+    const entity_class_t *cls = economy_class();
+    economy_t *bare;
     int j;
 
-    assert(pico8_hy_ready());
+    assert(economy_ready());
     pico8__init();
     assert(main_economy() != NULL && ((const entity_t *)main_economy())->class == main_economy_placeholder_class());
     assert(main_economy_typed() == NULL);
@@ -670,10 +670,10 @@ static void test_hy_is_a_struct(void) {
         assert(cls->states[j] == NULL);
     }
 
-    bare = pico8_hy_new();
+    bare = economy_new();
     assert(bare != NULL && bare->header.class == cls);
 
-    must_abort(lu_on_other, pico8_ok());
+    must_abort(spend_on_other, pico8_ok());
 
     probe_shutdown();
     assert(main_economy() == NULL && main_economy_typed() == NULL);
@@ -709,14 +709,14 @@ int main(void) {
 
     pico8_cart_load();
     in_fresh_child(test_construction);
-    in_fresh_child(test_nx);
-    in_fresh_child(test_hk);
-    in_fresh_child(test_lu);
-    in_fresh_child(test_lj);
-    in_fresh_child(test_kt);
+    in_fresh_child(test_advance_clock);
+    in_fresh_child(test_new_year);
+    in_fresh_child(test_spend);
+    in_fresh_child(test_recompute);
+    in_fresh_child(test_invent);
     in_fresh_child(test_cheat_on_provisional);
-    in_fresh_child(test_hy_is_a_struct);
+    in_fresh_child(test_economy_is_a_struct);
 
-    printf("test_pico8_hy: all tests passed\n");
+    printf("test_economy: all tests passed\n");
     return 0;
 }

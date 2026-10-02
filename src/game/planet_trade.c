@@ -104,11 +104,11 @@ void planet_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
         iter = pointer_list_all(needs);
         while (pointer_list_iter_next(&iter, &entry)) {
             if (entry != NULL) {
-                const pico8_jy_t *i = entry;
-                p8_fixed_t gc = i->has_gc ? i->gc : p8_fixed_from_int(0);
+                const need_t *i = entry;
+                p8_fixed_t gc = i->has_satisfied ? i->satisfied : p8_fixed_from_int(0);
                 int resource_is_r_q;
 
-                resource_is_r_q = have_r_q && resource_equal(pico8_jy_qe(i), r_q);
+                resource_is_r_q = have_r_q && resource_equal(need_resource(i), r_q);
                 if (gc == p8_fixed_from_int(0) && !resource_is_r_q) {
                     pointer_list_del(needs, entry);
                     break;
@@ -118,7 +118,7 @@ void planet_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
 
         {
             p8_fixed_t e_resource = r_e.number;
-            pico8_jy_t *fresh = pico8_jy_new(game_zone(), &e_resource);
+            need_t *fresh = need_new(game_zone(), &e_resource);
             pointer_list_t prefix;
             pointer_list_t merged;
             pointer_list_t *merged_own;
@@ -138,14 +138,14 @@ void planet_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
 
     iter = pointer_list_all(needs);
     while (pointer_list_iter_next(&iter, &entry)) {
-        pico8_jy_t *i;
+        need_t *i;
         resource_t resource_val;
 
         if (entry == NULL) {
             continue;
         }
         i = entry;
-        resource_val = pico8_jy_qe(i);
+        resource_val = need_resource(i);
 
         if (have_r_q && resource_equal(resource_val, r_q)) {
             int accepted = 0;

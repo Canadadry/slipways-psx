@@ -20,48 +20,48 @@
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
 
-static int g_hy_up = 0;
+static int g_economy_up = 0;
 
-static const entity_class_t g_hy_struct_class = {0};
+static const entity_class_t g_economy_class = {0};
 
-const pico8_hy_def_t pico8_hy_def = {
-    .nz = 0x640000,
-    .ew = 0x10000,
-    .lo = 0x10000,
-    .yr = 0xd490000,
+const economy_archetype_t economy_archetype = {
+    .credits = 0x640000,
+    .era = 0x10000,
+    .year_ticks = 0x10000,
+    .year = 0xd490000,
 };
 
-static pico8_hy_t *pico8_hy_struct_new(void) {
-    pico8_hy_t *self = (pico8_hy_t *)allocator_alloc(game_zone(), sizeof *self);
+static economy_t *economy_create(void) {
+    economy_t *self = (economy_t *)allocator_alloc(game_zone(), sizeof *self);
     pointer_list_t *invented;
 
-    entity_init_header(&self->header, &g_hy_struct_class);
-    self->def = &pico8_hy_def;
-    self->nz = p8_fixed_from_int(0);
-    self->ge = p8_fixed_from_int(0);
-    self->jk = p8_fixed_from_int(0);
-    self->ew = p8_fixed_from_int(0);
+    entity_init_header(&self->header, &g_economy_class);
+    self->archetype = &economy_archetype;
+    self->credits = p8_fixed_from_int(0);
+    self->income = p8_fixed_from_int(0);
+    self->research_points = p8_fixed_from_int(0);
+    self->era = p8_fixed_from_int(0);
     self->invented = NULL;
-    self->lo = p8_fixed_from_int(0);
-    self->yr = p8_fixed_from_int(0);
-    self->po = NULL;
-    self->fu = NULL;
-    self->po_own.count = 0;
-    self->fu_own.count = 0;
+    self->year_ticks = p8_fixed_from_int(0);
+    self->year = p8_fixed_from_int(0);
+    self->production = NULL;
+    self->demand = NULL;
+    self->production_own.count = 0;
+    self->demand_own.count = 0;
     self->happiness = p8_fixed_from_int(0);
     self->has_happiness = 0;
-    self->hl = NULL;
-    self->has_hl = 0;
+    self->end_status = NULL;
+    self->has_end_status = 0;
 
-    self->nz = self->def->nz;
-    self->ge = p8_fixed_from_int(0);
-    self->jk = p8_fixed_from_int(0);
-    self->ew = self->def->ew;
+    self->credits = self->archetype->credits;
+    self->income = p8_fixed_from_int(0);
+    self->research_points = p8_fixed_from_int(0);
+    self->era = self->archetype->era;
     invented = (pointer_list_t *)allocator_alloc(game_zone(), sizeof *invented);
     pointer_list_init(invented, game_zone());
     self->invented = invented;
-    self->lo = self->def->lo;
-    self->yr = self->def->yr;
+    self->year_ticks = self->archetype->year_ticks;
+    self->year = self->archetype->year;
 
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("economy");
@@ -69,107 +69,107 @@ static pico8_hy_t *pico8_hy_struct_new(void) {
     return self;
 }
 
-static void assert_hy(const pico8_hy_t *self) {
+static void assert_economy(const economy_t *self) {
     assert((self == NULL ||
-            self->header.class == &g_hy_struct_class) &&
+            self->header.class == &g_economy_class) &&
            "hy: every measured call passes the hy of fm; anything else would be read through the wrong layout");
 }
 
-void pico8_economy_init(void) {
-    pico8_economy_shutdown();
-    g_hy_up = 1;
+void economy_init(void) {
+    economy_shutdown();
+    g_economy_up = 1;
 }
 
-void pico8_economy_shutdown(void) {
-    g_hy_up = 0;
+void economy_shutdown(void) {
+    g_economy_up = 0;
 }
 
-int pico8_hy_ready(void) {
-    return g_hy_up;
+int economy_ready(void) {
+    return g_economy_up;
 }
 
-const entity_class_t *pico8_hy_struct_class(void) {
-    return &g_hy_struct_class;
+const entity_class_t *economy_class(void) {
+    return &g_economy_class;
 }
 
-pico8_hy_t *pico8_hy_new(void) {
-    return pico8_hy_struct_new();
+economy_t *economy_new(void) {
+    return economy_create();
 }
 
-void pico8_hy_nx(pico8_hy_t *self, p8_fixed_t hx) {
+void economy_advance_clock(economy_t *self, p8_fixed_t hx) {
     p8_fixed_t kx;
     p8_fixed_t lo;
 
-    assert_hy(self);
+    assert_economy(self);
     if (self == NULL) {
         return;
     }
 
-    kx = pico8_ov("time compression", p8_fixed_from_int(12), p8_fixed_from_int(15));
+    kx = tech_gate_if_unlocked("time compression", p8_fixed_from_int(12), p8_fixed_from_int(15));
 
-    lo = p8_fixed_add(self->lo, hx);
-    self->lo = lo;
+    lo = p8_fixed_add(self->year_ticks, hx);
+    self->year_ticks = lo;
 
-    pico8_hy_lj(self);
+    economy_recompute(self);
 
     if (lo > kx) {
-        self->lo = p8_fixed_sub(lo, kx);
-        pico8_hy_hk(self);
+        self->year_ticks = p8_fixed_sub(lo, kx);
+        economy_new_year(self);
     }
 }
 
-void pico8_hy_hk(pico8_hy_t *self) {
-    p8_fixed_t nz;
-    p8_fixed_t ge;
-    p8_fixed_t jk;
-    p8_fixed_t new_yr;
-    p8_fixed_t po_rk = p8_fixed_from_int(0);
-    const entity_list_t *hk_list;
+void economy_new_year(economy_t *self) {
+    p8_fixed_t credits;
+    p8_fixed_t income;
+    p8_fixed_t research_points;
+    p8_fixed_t new_year;
+    p8_fixed_t science_production = p8_fixed_from_int(0);
+    const entity_list_t *new_year_list;
     entity_list_iter_t it;
     entity_t *qc;
 
-    assert_hy(self);
+    assert_economy(self);
     if (self == NULL) {
         return;
     }
 
-    nz = self->nz;
-    ge = self->ge;
-    jk = self->jk;
+    credits = self->credits;
+    income = self->income;
+    research_points = self->research_points;
 
-    if (self->po != NULL) {
+    if (self->production != NULL) {
         int k;
         if (resource_code_lookup("k", &k)) {
-            pico8_qe_map_get(self->po, p8_fixed_from_int(k), &po_rk);
+            resource_map_get(self->production, p8_fixed_from_int(k), &science_production);
         }
     }
 
-    self->nz = p8_fixed_add(nz, ge);
-    self->jk = p8_fixed_add(p8_fixed_add(jk, po_rk), p8_fixed_from_int(1));
-    new_yr = p8_fixed_add(self->yr, p8_fixed_from_int(1));
-    self->yr = new_yr;
+    self->credits = p8_fixed_add(credits, income);
+    self->research_points = p8_fixed_add(p8_fixed_add(research_points, science_production), p8_fixed_from_int(1));
+    new_year = p8_fixed_add(self->year, p8_fixed_from_int(1));
+    self->year = new_year;
 
-    pico8_hy_lj(self);
+    economy_recompute(self);
 
-    hk_list = entities_by_message("new_year");
-    if (hk_list != NULL) {
-        it = entity_list_all(hk_list);
+    new_year_list = entities_by_message("new_year");
+    if (new_year_list != NULL) {
+        it = entity_list_all(new_year_list);
         while (entity_list_iter_next(&it, &qc)) {
             if (qc != NULL) {
                 if (qc->class->new_year != NULL) {
-                    qc->class->new_year(qc, new_yr);
+                    qc->class->new_year(qc, new_year);
                 }
             }
         }
     }
 }
 
-int pico8_hy_lu(pico8_hy_t *self, p8_fixed_t jt) {
+int economy_spend(economy_t *self, p8_fixed_t jt) {
     p8_fixed_t nz;
     pico8_iv_keys_t keys = {0};
 
-    assert_hy(self);
-    nz = self != NULL ? self->nz : p8_fixed_from_int(0);
+    assert_economy(self);
+    nz = self != NULL ? self->credits : p8_fixed_from_int(0);
 
     if (nz < jt) {
         keys.at1 = "-no money-";
@@ -179,7 +179,7 @@ int pico8_hy_lu(pico8_hy_t *self, p8_fixed_t jt) {
     }
 
     if (self != NULL) {
-        self->nz = p8_fixed_sub(nz, jt);
+        self->credits = p8_fixed_sub(nz, jt);
     }
 
     if (jt != p8_fixed_from_int(0)) {
@@ -193,18 +193,18 @@ int pico8_hy_lu(pico8_hy_t *self, p8_fixed_t jt) {
     return 1;
 }
 
-void pico8_hy_lj(pico8_hy_t *self) {
-    p8_fixed_t dd = p8_fixed_from_int(0);
-    p8_fixed_t ge;
+void economy_recompute(economy_t *self) {
+    p8_fixed_t trade_total = p8_fixed_from_int(0);
+    p8_fixed_t income;
     p8_fixed_t happiness;
     p8_fixed_t skill_mult;
-    const entity_list_t *jo_list;
-    entity_list_iter_t it;
-    entity_t *p;
-    p8_fixed_t yr;
-    p8_fixed_t nz;
+    const entity_list_t *planet_list;
+    entity_list_iter_t iter;
+    entity_t *planet;
+    p8_fixed_t year;
+    p8_fixed_t credits;
 
-    assert_hy(self);
+    assert_economy(self);
     if (self == NULL) {
         return;
     }
@@ -212,52 +212,52 @@ void pico8_hy_lj(pico8_hy_t *self) {
     /* Terminates because `bb()` reports only tier INCREASES and a tier is
      * capped at 4; a `jw != mi` test there would spin forever. */
     do {
-        pico8_bd();
-    } while (pico8_bb());
+        economy_tiers_rebuild_incoming_routes();
+    } while (economy_tiers_update_tiers());
 
-    pico8_bx(&self->po_own);
-    pico8_ck(&self->fu_own);
-    self->po = &self->po_own;
-    self->fu = &self->fu_own;
+    economy_total_production(&self->production_own);
+    economy_crowding_penalty(&self->demand_own);
+    self->production = &self->production_own;
+    self->demand = &self->demand_own;
 
-    jo_list = entities_by_tag("planet");
-    if (jo_list != NULL) {
-        it = entity_list_all(jo_list);
-        while (entity_list_iter_next(&it, &p)) {
-            if (p != NULL) {
-                p8_fixed_t kr = pico8_kr(p);
+    planet_list = entities_by_tag("planet");
+    if (planet_list != NULL) {
+        iter = entity_list_all(planet_list);
+        while (entity_list_iter_next(&iter, &planet)) {
+            if (planet != NULL) {
+                p8_fixed_t kr = economy_score_net_income(planet);
 
-                dd = p8_fixed_add(dd, kr);
+                trade_total = p8_fixed_add(trade_total, kr);
             }
         }
     }
 
-    skill_mult = pico8_ov("skill implants", p8_fixed_from_int(1), P8_FIXED_LIT(0x00012666, 1.15));
-    ge = p8_fixed_sub(p8_fixed_flr(p8_fixed_mul(dd, skill_mult)), pico8_cz());
-    self->ge = ge;
+    skill_mult = tech_gate_if_unlocked("skill implants", p8_fixed_from_int(1), P8_FIXED_LIT(0x00012666, 1.15));
+    income = p8_fixed_sub(p8_fixed_flr(p8_fixed_mul(trade_total, skill_mult)), economy_score_colony_upkeep());
+    self->income = income;
 
-    happiness = pico8_bf();
+    happiness = economy_score_happiness();
     self->happiness = happiness;
     self->has_happiness = 1;
 
-    yr = self->yr;
-    nz = self->nz;
-    if (yr >= p8_fixed_from_int(3426)) {
-        self->hl = "final score";
-    } else if (ge <= p8_fixed_from_int(0) && nz < p8_fixed_from_int(3)) {
-        self->hl = "bankrupt";
+    year = self->year;
+    credits = self->credits;
+    if (year >= p8_fixed_from_int(3426)) {
+        self->end_status = "final score";
+    } else if (income <= p8_fixed_from_int(0) && credits < p8_fixed_from_int(3)) {
+        self->end_status = "bankrupt";
     } else {
-        self->hl = NULL;
+        self->end_status = NULL;
     }
-    self->has_hl = 1;
+    self->has_end_status = 1;
 
     {
-        const entity_list_t *hb_list = entities_by_message("refresh");
-        if (hb_list != NULL) {
-            entity_list_iter_t it2;
+        const entity_list_t *refresh_list = entities_by_message("refresh");
+        if (refresh_list != NULL) {
+            entity_list_iter_t planets_iter;
             entity_t *qc;
-            it2 = entity_list_all(hb_list);
-            while (entity_list_iter_next(&it2, &qc)) {
+            planets_iter = entity_list_all(refresh_list);
+            while (entity_list_iter_next(&planets_iter, &qc)) {
                 if (qc != NULL) {
                     if (qc->class->refresh != NULL) {
                         qc->class->refresh(qc);
@@ -268,18 +268,18 @@ void pico8_hy_lj(pico8_hy_t *self) {
     }
 }
 
-void pico8_hy_kt(pico8_hy_t *self, const technologies_entry_t *t) {
+void economy_invent(economy_t *self, const technologies_entry_t *t) {
     p8_fixed_t jk;
     p8_fixed_t ew;
     int count = 0;
 
-    assert_hy(self);
+    assert_economy(self);
     if (self == NULL) {
         return;
     }
 
-    jk = self->jk;
-    self->jk = p8_fixed_sub(jk, pico8_gi_nb(t));
+    jk = self->research_points;
+    self->research_points = p8_fixed_sub(jk, tech_gate_research_cost(t));
 
     if (self->invented != NULL) {
         if (t != NULL && t->name != NULL) {
@@ -288,21 +288,21 @@ void pico8_hy_kt(pico8_hy_t *self, const technologies_entry_t *t) {
         count = self->invented->count;
     }
 
-    ew = self->ew;
+    ew = self->era;
     if (ew < p8_fixed_from_int(4)) {
         int threshold;
         if (int_seq_at(tier_thresholds_table, TIER_THRESHOLDS_COUNT, p8_fixed_flr_int(ew), &threshold) &&
             p8_fixed_from_int(count) >= p8_fixed_from_int(threshold)) {
-            self->ew = p8_fixed_add(ew, p8_fixed_from_int(1));
+            self->era = p8_fixed_add(ew, p8_fixed_from_int(1));
         }
     }
 
-    pico8_hy_lj(self);
+    economy_recompute(self);
 }
 
-typedef void (*cg_visit_fn)(entity_t *e, void *ctx);
+typedef void (*entities_by_tag_visit_fn_t)(entity_t *e, void *ctx);
 
-static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
+static void for_each_tagged(const char *tag, entities_by_tag_visit_fn_t fn, void *ctx) {
     const entity_list_t *list = entities_by_tag(tag);
     entity_list_iter_t it;
     entity_t *e;
@@ -317,8 +317,8 @@ static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
     }
 }
 
-static void bx_visit(entity_t *pt, void *ctx) {
-    pico8_qe_map_t *p = (pico8_qe_map_t *)ctx;
+static void total_production_visit(entity_t *pt, void *ctx) {
+    resource_map_t *p = (resource_map_t *)ctx;
     const planet_t *jo;
     const production_t *kw;
     p8_fixed_t current;
@@ -332,21 +332,21 @@ static void bx_visit(entity_t *pt, void *ctx) {
     if (kw == NULL || !kw->has_resource) {
         return;
     }
-    if (!pico8_qe_map_get(p, kw->resource, &current)) {
+    if (!resource_map_get(p, kw->resource, &current)) {
         current = p8_fixed_from_int(0);
     }
-    pico8_qe_map_set(p, kw->resource, p8_fixed_add(current, kw->amount));
+    resource_map_set(p, kw->resource, p8_fixed_add(current, kw->amount));
 }
 
-void pico8_bx(pico8_qe_map_t *out) {
-    pico8_cm(out, p8_fixed_from_int(0));
-    for_each_cg("planet", bx_visit, out);
+void economy_total_production(resource_map_t *out) {
+    economy_formulas_fill_resource_map(out, p8_fixed_from_int(0));
+    for_each_tagged("planet", total_production_visit, out);
 }
 
-static void ck_visit(entity_t *l, void *ctx) {
-    pico8_qe_map_t *d = (pico8_qe_map_t *)ctx;
+static void crowding_penalty_visit(entity_t *l, void *ctx) {
+    resource_map_t *d = (resource_map_t *)ctx;
     const pointer_list_t *jy;
-    const pico8_jy_t *last;
+    const need_t *last;
     void *last_val;
     p8_fixed_t current;
 
@@ -365,13 +365,13 @@ static void ck_visit(entity_t *l, void *ctx) {
     }
     /* Fallback 1, not 0: `cm(1)` seeded every key of `r`, so an absent one
      * is a resource `r` never listed, treated as that same seed. */
-    if (!pico8_qe_map_get(d, last->row.resource, &current)) {
+    if (!resource_map_get(d, last->row.resource, &current)) {
         current = p8_fixed_from_int(1);
     }
-    pico8_qe_map_set(d, last->row.resource, p8_fixed_sub(current, P8_FIXED_LIT(0x00002666, 0.15)));
+    resource_map_set(d, last->row.resource, p8_fixed_sub(current, P8_FIXED_LIT(0x00002666, 0.15)));
 }
 
-void pico8_ck(pico8_qe_map_t *out) {
-    pico8_cm(out, p8_fixed_from_int(1));
-    for_each_cg("structure", ck_visit, out);
+void economy_crowding_penalty(resource_map_t *out) {
+    economy_formulas_fill_resource_map(out, p8_fixed_from_int(1));
+    for_each_tagged("structure", crowding_penalty_visit, out);
 }

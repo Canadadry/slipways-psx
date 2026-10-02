@@ -34,10 +34,10 @@ static p8_graphics_t gfx;
 static p8_input_t input;
 
 static void assert_at_rest(void) {
-    const pico8_fm_placeholder_t *fm = main_economy_placeholder();
+    const main_economy_placeholder_t *fm = main_economy_placeholder();
 
     assert(fm != NULL && (const void *)fm == (const void *)main_economy());
-    assert(!fm->has_jk && !fm->has_nz);
+    assert(!fm->has_research_points && !fm->has_credits);
 }
 
 /* A A B B A A B B, one press every other frame; returns how often it fired. */
@@ -63,11 +63,11 @@ static int type_cheat(void) {
 }
 
 static void assert_cheated(void) {
-    const pico8_fm_placeholder_t *fm = main_economy_placeholder();
+    const main_economy_placeholder_t *fm = main_economy_placeholder();
 
     assert(fm != NULL);
-    assert(fm->has_jk && fm->jk == p8_fixed_from_int(99));
-    assert(fm->has_nz && fm->nz == p8_fixed_from_int(200));
+    assert(fm->has_research_points && fm->research_points == p8_fixed_from_int(99));
+    assert(fm->has_credits && fm->credits == p8_fixed_from_int(200));
 }
 
 static void new_game(void) {
@@ -79,9 +79,9 @@ static void test_at_rest(void) {
     assert_at_rest();
 }
 
-static int cb_affordable(const technologies_entry_t *t) {
-    (void)pico8_cb(1);
-    return pico8_nb_e_(t);
+static int available_technologies_affordable(const technologies_entry_t *t) {
+    (void)tech_gate_available_technologies(1);
+    return tech_gate_affordable_flags(t);
 }
 
 static void test_cheat_on_title(void) {
@@ -91,15 +91,15 @@ static void test_cheat_on_title(void) {
     pico8__init();
     provisional = main_economy();
     assert(main_economy_typed() == NULL && (const void *)main_economy_placeholder() == provisional);
-    while (pico8_gi_nb(t) <= p8_fixed_from_int(0) || pico8_gi_nb(t) > p8_fixed_from_int(99)) {
+    while (tech_gate_research_cost(t) <= p8_fixed_from_int(0) || tech_gate_research_cost(t) > p8_fixed_from_int(99)) {
         t++;
         assert(t < technologies_table + TECHNOLOGIES_COUNT);
     }
-    assert(cb_affordable(t) == 0);
+    assert(available_technologies_affordable(t) == 0);
     pico8_pj_hb();
     assert(pico8_pj_ou()->sub_items[2][0].is_ref && strcmp(pico8_pj_ou()->sub_items[0][0].text, "0$") == 0);
     assert(type_cheat() == 1 && main_economy() == provisional);
-    assert(cb_affordable(t) == 1);
+    assert(available_technologies_affordable(t) == 1);
     pico8_pj_hb();
     assert(!pico8_pj_ou()->sub_items[2][0].is_ref && strcmp(pico8_pj_ou()->sub_items[0][0].text, "200$") == 0);
     assert_cheated();
@@ -134,15 +134,15 @@ static void test_replacement(void) {
     assert(type_cheat() == 1);
     new_game();
     assert(main_economy_placeholder() == NULL && (void *)main_economy_typed() == (void *)main_economy());
-    assert(main_economy_typed()->jk == p8_fixed_from_int(0));
-    assert(main_economy_typed()->nz == p8_fixed_from_int(100));
+    assert(main_economy_typed()->research_points == p8_fixed_from_int(0));
+    assert(main_economy_typed()->credits == p8_fixed_from_int(100));
     probe_init();
     assert_at_rest();
 }
 
 /* The provisional is one static struct whose descriptor has no method;
  * `eu()` puts a `hy` in its place. */
-static void test_fm_is_a_struct(void) {
+static void test_main_economy_is_a_struct(void) {
     const entity_class_t *cls = main_economy_placeholder_class();
     void *provisional;
     int j;
@@ -163,25 +163,25 @@ static void test_fm_is_a_struct(void) {
     assert(main_economy() == provisional);
 
     new_game();
-    assert(((const entity_t *)main_economy())->class == pico8_hy_struct_class());
+    assert(((const entity_t *)main_economy())->class == economy_class());
 }
 
 /* `cb` keeps a tech of the current tier until it is invented, even with `bi`. */
-static void test_cb_drops_invented(void) {
-    pico8_cb_kept_t kept;
+static void test_available_technologies_drops_invented(void) {
+    available_technologies_kept_t kept;
     const technologies_entry_t *t;
     p8_fixed_t ew;
     int i;
 
     pico8__init();
     new_game();
-    kept = pico8_cb(1);
+    kept = tech_gate_available_technologies(1);
     assert(kept.count > 0);
     t = kept.items[0];
-    ew = main_economy_typed()->ew;
-    pico8_hy_kt(main_economy_typed(), t);
-    assert(main_economy_typed()->ew == ew);
-    kept = pico8_cb(1);
+    ew = main_economy_typed()->era;
+    economy_invent(main_economy_typed(), t);
+    assert(main_economy_typed()->era == ew);
+    kept = tech_gate_available_technologies(1);
     for (i = 0; i < kept.count; i++) {
         assert(kept.items[i] != t);
     }
@@ -221,8 +221,8 @@ int main(void) {
     in_fresh_child(test_new_init);
     in_fresh_child(test_cycle);
     in_fresh_child(test_replacement);
-    in_fresh_child(test_fm_is_a_struct);
-    in_fresh_child(test_cb_drops_invented);
-    printf("test_pico8_fm: ok\n");
+    in_fresh_child(test_main_economy_is_a_struct);
+    in_fresh_child(test_available_technologies_drops_invented);
+    printf("test_main_economy: ok\n");
     return 0;
 }

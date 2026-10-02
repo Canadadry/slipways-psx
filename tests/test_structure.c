@@ -248,7 +248,7 @@ static void *qh_icon(void) {
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i];
-        if (cls_of(e) == pico8_ie_struct_class() && ((const pico8_ie_t *)e)->ke == pico8_qh_kind()) {
+        if (cls_of(e) == structure_icon_class() && ((const structure_icon_t *)e)->kind == pico8_qh_kind()) {
             return e;
         }
     }
@@ -346,8 +346,8 @@ static uint32_t fold_lab(uint32_t h, void *e) {
     assert(jo->archetype->spacer == &planet_spacer_row && jo->archetype->ring_colors == &planet_ring_colors_seq && jo->archetype->mood_rows == planet_mood_rows_rows &&
            jo->archetype->made_resources == &planet_made_resources_seq);
     assert(jo->production != NULL && jo->production != planet_shared_production());
-    assert(pico8_gb_at(1) != NULL);
-    assert(jo->project == pico8_gb_at(1));
+    assert(research_projects_at(1) != NULL);
+    assert(jo->project == research_projects_at(1));
     h = fold_kw(h, jo);
     h = fnv(h, (uint32_t)ents_list_size(jo->slipways));
     h = fnv(h, (uint32_t)list_size(jo->needs));
@@ -378,11 +378,11 @@ static void test_built(void) {
 
 static p8_fixed_t credits(void) {
     assert(main_economy_typed() != NULL);
-    return main_economy_typed()->nz;
+    return main_economy_typed()->credits;
 }
 
 static void set_credits(int n) {
-    main_economy_typed()->nz = p8_fixed_from_int(n);
+    main_economy_typed()->credits = p8_fixed_from_int(n);
 }
 
 /* What `bv` left on a laboratory: `ra` (a copy of what was passed), `p`, and
@@ -559,7 +559,7 @@ static void *bought(const entity_kind_t *kind) {
     mo_ra = mo->ra;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *icon = hb->items[i];
-        if (cls_of(icon) == pico8_ie_struct_class() && ((const pico8_ie_t *)icon)->ke == kind) {
+        if (cls_of(icon) == structure_icon_class() && ((const structure_icon_t *)icon)->kind == kind) {
             down_t made = cls_of(icon)->left_press(icon, NULL, NULL);
             assert(made.stop && made.held != NULL);
             cls_of(made.held)->drag(made.held, vec_ref(vec_add(*mo_ra, vec_xy(64, 64))),
@@ -572,13 +572,13 @@ static void *bought(const entity_kind_t *kind) {
 }
 
 /* The project of `gb` whose `cw` names `cw`. */
-static pico8_hp_t *cw_project(const char *cw) {
+static research_project_t *cw_project(const char *cw) {
     int k;
 
     for (k = 1;; k++) {
-        pico8_hp_t *hp = pico8_gb_at(k);
+        research_project_t *hp = research_projects_at(k);
         assert(hp != NULL);
-        if (hp->cw != NULL && strcmp(hp->cw, cw) == 0) {
+        if (hp->class_name != NULL && strcmp(hp->class_name, cw) == 0) {
             return hp;
         }
     }
@@ -657,7 +657,7 @@ static void test_qh_is_a_struct(void) {
     start_game();
     a = build_lab();
     assert(is_a_qh_struct(a) && ents_listed(entities_by_tag("structure"), a));
-    assert(pico8_da(a) == p8_fixed_from_int(entities_by_tag("structure")->count));
+    assert(planet_upkeep(a) == p8_fixed_from_int(entities_by_tag("structure")->count));
     assert(cls->attach_slipway == planet_class()->attach_slipway && cls->offer_trade == planet_class()->offer_trade);
     assert_qh_shape(cls);
     assert(cls->hit_test == planet_class()->hit_test && cls->draw == planet_class()->draw &&
