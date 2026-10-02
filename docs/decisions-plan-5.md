@@ -81,6 +81,8 @@
 | D-54 | 4k3 | Préfixe `k_` des tableaux `static const` du morceau 4k3 | 26 |
 | D-55 | 4l1 | Exception `du` du compteur de français dans le `Makefile` | 1 |
 | D-56 | 4l1 | Citations `cart`/`lua` irréductibles de la légende du `Makefile` | 6 + 2 |
+| D-57 | 4e, 4l2 | Noms du cart dans les fixtures de `tests/test_composition_residue.c` | 83 |
+| D-58 | 4l2 | Macro `ATT` de `tests/test_composition_residue.c` | 7 |
 
 ## Entrées
 
@@ -137,6 +139,7 @@
 - **Sites** : 0 prototype dans les en-têtes de `src/` ; 188 mentions `pico8_X(` restent en commentaire (étape 4). Sans préfixe, le motif verrait toute ligne d'en-tête qui ouvre une parenthèse après un nom en minuscules : 931 lignes.
 - **Proposition prête à appliquer** : (a) ne peut pas laisser `--detail` identique : (b), motif et fixtures de `tests/test_composition_residue.c` gardés tels quels.
 - **Contrôle** : procédure G.
+- **Complément (4l2)** : la catégorie garde son nom `void-ptr` ; le motif est à la ligne 441 de `tools/composition_residue.sh` après 4l2 (423 avant) ; les fixtures de `tests/test_composition_residue.c` sont intouchées (D-57).
 - **Verdict** :
 
 ### D-6 — `LIEN_EXCLUSION` mort
@@ -147,6 +150,7 @@
 - **Sites** : 2 (définition, emploi).
 - **Proposition prête à appliquer** : suivre D-7 — retirer si D-7 garde le préfixe ou retire la catégorie ; garder si D-7 traduit sans préfixe (l'exemption redevient vivante, test de vivacité à écrire).
 - **Contrôle** : procédure G.
+- **Complément (4l2)** : `LIEN_EXCLUSION` s'appelle `PARENT_LINK_EXCLUSION` (noms internes du script, 4l2) ; définition ligne 77, emploi ligne 84, après 4l2. Le commentaire qui le précède dit toujours pourquoi : `entity_state_of` n'est pas une lignée.
 - **Verdict** :
 
 ### D-7 — Motif générique `pico8_X_of` (`lien-parent`)
@@ -157,6 +161,7 @@
 - **Sites** : 0 nom `pico8_X_of` dans `src/` ; sans préfixe, 21 occurrences y seraient vues (`slot_kind_of` 4, `pos_of` 4, `slipway_infraspace_of` 3, `resource_code_of` 3, `flip_zone_of` 3, `map_pos_of` 2, `entity_state_of` 2).
 - **Proposition prête à appliquer** : (a) ne peut pas laisser `--detail` identique (21 occurrences nouvelles) : (b), la branche gardée telle quelle, et D-6 retiré.
 - **Contrôle** : procédure G.
+- **Complément (4l2)** : `lien-parent` s'appelle `parent-link` (catégories en anglais, 4l2, avec le `Makefile` et le test) ; la branche `\bpico8_[a-z0-9_]+_of\b` est à la ligne 64 après 4l2.
 - **Verdict** :
 
 ### D-8 — Motif générique `pico8_X_start` (`défauts`, `--champs`)
@@ -167,6 +172,7 @@
 - **Sites** : 0 `pico8_X_start` dans `src/` ; `_start` sans préfixe : 3 ; `\b[a-z0-9_]+_archetype(_t)?\b` : 212 occurrences dans `src/`.
 - **Proposition prête à appliquer** : (a) ne peut pas laisser `--detail` identique (212 occurrences nouvelles pour `défauts`) : (b), motif gardé tel quel. Le relevé `--champs` (ligne 676) reste un majorant.
 - **Contrôle** : procédure G.
+- **Complément (4l2)** : `défauts` s'appelle `defaults` et `--champs` s'appelle `--fields` (4l2) ; le motif est à la ligne 66, le `gsub` de `--fields` à la ligne 697, après 4l2 ; le commentaire de `fields()` et l'en-tête citent `` `pico8_X_start` `` entre backticks.
 - **Verdict** :
 
 ### D-9 — Motif `spec` et `SPEC_EXCLUSION`
@@ -187,6 +193,7 @@
 - **Sites** : 0 jeton déclaré.
 - **Proposition prête à appliquer** : (a) — retirer `x == "PICO8" || x == "PICO8_" ||` de la ligne 522.
 - **Contrôle** : procédure G (`--detail` identique, `composition-guard` vert).
+- **Complément (4l2)** : `usage-mutuel` s'appelle `mutual-usage` (4l2) ; l'exclusion `x == "PICO8" || x == "PICO8_" ||` est à la ligne 542 après 4l2.
 - **Verdict** :
 
 ### D-11 — Catégories historiques des gardes à motifs
@@ -197,6 +204,7 @@
 - **Sites** : 9 catégories.
 - **Proposition prête à appliquer** : (a). Leurs motifs citent des noms `pico8_*` qu'aucun code ne peut plus porter une fois la garde anti-cart bloquante (étape 5) : elles ne gardent plus rien. Un commit `refactor:` par script.
 - **Contrôle** : procédure G — `--detail` égal à celui d'avant moins les lignes de ces catégories ; `make test` vert.
+- **Complément (4l2)** : `aiguillage-nom` s'appelle `name-dispatch`, `un-ou-faux` `one-or-false`, `nu` est gardé (4l2) ; leurs motifs sont aux lignes 67 (`nu`), 68 (`name-dispatch`) et 69 (`one-or-false`), `NU_EXCLUSION` à la ligne 80, après 4l2 ; dans `COMPOSITION_RESIDUE_GUARD`, les noms neufs. Les six catégories de `tools/data_residue.sh` sont intouchées (4l4).
 - **Verdict** :
 
 ### D-12 — Suffixe de constructeur de `--champs`
@@ -207,6 +215,7 @@
 - **Sites** : 5 fonctions.
 - **Proposition prête à appliquer** : (a), rien à éditer : `--champs` est un majorant par nom, pas une porte (pied « 0 hors constructeur » 27, « 0 écriture » 15 à la fin de 3l).
 - **Contrôle** : aucun.
+- **Complément (4l2)** : l'option s'appelle `--fields` ; son pied dit `fields: 260; no write: 15; no write outside a constructor: 27` (« 0 écriture » 15 et « 0 hors constructeur » 27 avant) ; le suffixe est à la ligne 701. Rien d'autre ne bouge.
 - **Verdict** :
 
 ### D-13 — 12 statiques locales de deux lettres des tests
@@ -739,6 +748,7 @@
 - **Sites** : 1 (`Makefile:981`, recette de `gif`).
 - **Proposition prête à appliquer** : (a), la ligne `string<TAB>Makefile<TAB>du` ajoutée à `tools/french_exceptions.txt`. Contrôle, fait par 4l1 sur une copie du fichier (`tmp/4l1_end/french_exceptions_d55.txt`) : `french-count MODULES=Makefile` `string` 7 → 6 ; 0 après 4l2 (`un`, `ou`, `à`, `entité`, `défauts` de `COMPOSITION_RESIDUE_GUARD`) et 4l4 (`par` de `DATA_RESIDUE_GUARD`).
 - **Portée** : aucune mention en commentaire.
+- **Complément (4l2)** : après 4l2, `french-count MODULES=Makefile` rend `string` 2 (`du`, cette entrée ; `par` de `DATA_RESIDUE_GUARD`, 4l4) ; 1 avec la ligne de cette entrée. Les mots de `COMPOSITION_RESIDUE_GUARD` sont partis avec les catégories anglaises.
 - **Verdict** :
 
 ### D-56 — Citations `cart`/`lua` irréductibles de la légende du `Makefile`
@@ -749,4 +759,26 @@
 - **Sites** : 6 `cart`, 2 `lua`, mesurés après 4l1 (`Makefile:149` entrée de `cart-names-count`, `:199` `cart-citations-test`, `:201` `cart-citations`, `:203` renvoi à `cart-names-count`, `` `cart` ``, `game/cart` et `` `Lua` ``, `:204` `` `lua.lua` ``).
 - **Proposition prête à appliquer** : (a), rien à appliquer ; contrôle : `make cart-citations MODULES=Makefile` rend exactement 6/2/0.
 - **Portée** : aucune mention ailleurs dans le code (les outils du dictionnaire et `tools/cart_citations.py` sont exclus du relevé).
+- **Verdict** :
+
+### D-57 — Noms du cart dans les fixtures de `tests/test_composition_residue.c`
+
+- **Origine** : 4e (« Laissés »), 4l2.
+- **Question** : les fixtures écrivent des noms de type et de fonction au préfixe et aux digrammes du cart (`"pico8_" "jo_t"` ×18, `qh_t` ×5, `qh_of` ×5, `nl_t` ×4, `mh_t`, `g__mm`, `reg_items`, `state_fn`…), coupés en deux littéraux : aucun compteur ne les voit. Une partie est exigée par un motif qui chasse ce préfixe (`parent-link`, `defaults`, `void-ptr`, `name-dispatch`, `nu` : D-5, D-7, D-8, D-11) ; le reste est arbitraire. Que faire des noms arbitraires ?
+- **Options** : (a) tout garder tant que ces motifs vivent ; (b) renommer les noms arbitraires en noms C (`planet_t`…), garder ceux qu'un motif exige ; (c) suivre D-11 (les fixtures d'une catégorie retirée partent avec elle).
+- **Sites** : 83 occurrences de `pico8_` dans le fichier, mesurées après 4l2.
+- **Proposition prête à appliquer** : (a), puis (c) au verdict de D-11.
+- **Contrôle** : `make test` vert.
+- **Portée** : les fixtures seulement ; les commentaires du fichier, réécrits par 4l2, ne citent aucun de ces noms.
+- **Verdict** :
+
+### D-58 — Macro `ATT` de `tests/test_composition_residue.c`
+
+- **Origine** : 4l2.
+- **Question** : `ATT`, abréviation de « atteinte » (statut `conservé` au TSV validé), nomme la liste d'atteinte de fixture ; 4l2 a passé sa variable d'environnement à `COMPOSITION_REACHABILITY` et son chemin à `DIR "/reachability.txt"`. La renommer ?
+- **Options** : (a) `REACHABILITY_LIST` ; (b) garder.
+- **Sites** : 7 (définition et six emplois).
+- **Proposition prête à appliquer** : (a), procédure N (identité `macro:tests/test_composition_residue.c:ATT`, ligne `renommé` au TSV et `name` aux surcharges).
+- **Contrôle** : `make test` vert ; `grep -cw ATT tests/test_composition_residue.c` rend 0.
+- **Portée** : aucune mention en commentaire.
 - **Verdict** :

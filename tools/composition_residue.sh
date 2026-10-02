@@ -1,52 +1,57 @@
 #!/bin/sh
-# usage: composition_residue.sh [--detail | --check <cat>[,<cat>...] | --champs] [dossier...]
-# Compte, dans les .c/.h des dossiers (defaut : src tests, chemins imprimes
-# tels que recus), les lignes de chaque categorie du residu de la phase 2,
-# commentaires compris ; une ligne compte dans chaque categorie qu'elle touche.
-# atteinte-à-prouver compte les lignes utiles de COMPOSITION_ATTEINTE ;
-# inclusion-mutuelle compte des paires de modules hors tests/ ; au pied et a
-# --check, ses lignes sont les #include qui realisent ces paires.
-# usage-mutuel compte les paires de modules hors tests/ dont chacun emploie
-# un nom que l'en-tete de l'autre est seul a declarer, include ou detour ;
-# ses lignes sont, par paire et par sens, le premier emploi.
-#   sans option : "<cat>\t<lignes>\t<fichiers>" par categorie non nulle
-#                 ("<paires>\t<modules>" pour inclusion-mutuelle et
-#                 usage-mutuel), puis
-#                 "résidu 2 : N ligne(s), M fichier(s)" (couples fichier:ligne
-#                 et fichiers distincts des categories de SORTIE) ; code 0
-#                 quel que soit le compte.
-#   --detail    : "<cat>\t<fichier>\t<lignes>" par couple non nul,
-#                 "<cat>\t<a>\t<b>" par paire d'inclusion-mutuelle et
-#                 d'usage-mutuel, sous void-ptr les
-#                 "void-ptr-r2\t<fonction>\t<amont>" de COMPOSITION_R2, la
-#                 ligne "info" de game/game_data.h s'il est lu, puis le meme
-#                 pied ; code 0.
-#   --check     : "<cat>: <fichier>:<ligne>:<texte>" par occurrence des
-#                 categories nommees, puis
-#                 "résidu gardé (<cats>) : N ligne(s)" ; code 1 si N > 0.
-#                 Toute categorie connue est acceptee.
-#   --champs    : releve de la regle 1, "<type>\t<membre>\t<ecritures>\t<hors
-#                 constructeur>" par membre des types d'entite des .h hors
-#                 tests/ (ni header, ni parente enchassee, ni pointeur de
-#                 fonction), trie, puis "champs : N ; 0 écriture : K ; 0 hors
-#                 constructeur : M" ; code 0. Une ecriture est une ligne d'un
-#                 .c hors tests/ qui affecte, incremente ou decremente
-#                 (->|.)<membre>, copie du defaut pico8_X_start.<membre>
-#                 retiree ; elle est hors constructeur sauf dans une fonction
-#                 qui finit par _new, _init, _create ou _init_instance.
-#                 Recherche par nom : un majorant, un membre court compte
-#                 pour tous ses types.
-# Vide (sortie de la phase 2) : aucune ligne de categorie de SORTIE, et le pied
-# "résidu 2 : 0 ligne(s), 0 fichier(s)".
-# Code 2 sur option ou categorie inconnue, dossier absent, aucun .c/.h, liste
-# COMPOSITION_ATTEINTE ou COMPOSITION_R2 absente, echec de grep, sed ou awk :
-# une mesure sur rien passerait pour vide.
+# usage: composition_residue.sh [--detail | --check <cat>[,<cat>...] | --fields] [dir...]
+# Counts, in the `.c` and `.h` files under the directories (default: src
+# tests; paths printed as given), the lines of each category of the
+# composition residue, comments included; a line counts in every category
+# it matches. reachability-to-prove counts the useful lines of the
+# COMPOSITION_REACHABILITY list. mutual-inclusion counts pairs of modules
+# outside tests/; in the footer and under --check, its lines are the
+# #include lines that make those pairs. mutual-usage counts the pairs of
+# modules outside tests/ where each uses a name that only the header of the
+# other declares, through an include or a detour; its lines are the first
+# use, per pair and per direction.
+#   no option : `<cat>\t<lines>\t<files>` per nonzero category
+#               (`<pairs>\t<modules>` for mutual-inclusion and
+#               mutual-usage), then
+#               `residue 2: N line(s), M file(s)` (distinct file:line
+#               couples and distinct files over the categories of
+#               FOOTER_CATEGORIES); exit 0 whatever the count.
+#   --detail  : `<cat>\t<file>\t<lines>` per nonzero couple,
+#               `<cat>\t<module>\t<module>` per pair of mutual-inclusion
+#               and of mutual-usage; under void-ptr, the
+#               `void-ptr-r2\t<function>\t<upstream>` lines of the
+#               COMPOSITION_R2 list; the `info\t<file>\tN lines` line of
+#               game/game_data.h when it is read; then the same footer;
+#               exit 0.
+#   --check   : `<cat>: <file>:<line>:<text>` per occurrence of the named
+#               categories, then `guarded residue (<cats>): N line(s)`;
+#               exit 1 when N > 0. Any known category is accepted.
+#   --fields  : `<type>\t<member>\t<writes>\t<outside>` per member of
+#               the entity types of the headers outside tests/ (neither
+#               the `header` member, nor an embedded parent, nor a
+#               function pointer), sorted, where <outside> counts the
+#               writes outside a constructor; then
+#               `fields: N; no write: K; no write outside a constructor: M`;
+#               exit 0. A write is a line of a `.c` file outside
+#               tests/ that assigns, increments or decrements
+#               `(->|.)<member>`, once a copy of the default
+#               `pico8_X_start.<member>` is removed; it is outside a
+#               constructor unless it sits in a function whose name ends
+#               with `_new`, `_init`, `_create` or `_init_instance`.
+#               Searched by name: an upper bound, since a short member
+#               counts for all its types.
+# Without option, an empty residue prints no category line and the footer
+# `residue 2: 0 line(s), 0 file(s)`.
+# Exit 2 on an unknown option or category, an empty category or none after
+# --check, a missing directory, no `.c` or `.h` file, a missing
+# COMPOSITION_REACHABILITY or COMPOSITION_R2 list, or a failed grep, sed or
+# awk: a measure over nothing would pass for empty.
 
 set -u
 
 CATEGORIES="parent parent-link header-accessors defaults nu name-dispatch one-or-false void-ptr void-self entity-ptrs registries core-includes reachability-to-prove mutual-inclusion mutual-usage"
 
-# Categories comptees dans le pied.
+# Categories counted in the footer.
 FOOTER_CATEGORIES="parent parent-link header-accessors defaults nu name-dispatch one-or-false void-ptr void-self entity-ptrs registries core-includes reachability-to-prove mutual-inclusion mutual-usage"
 
 fail() {
@@ -68,10 +73,10 @@ pattern() {
     esac
 }
 
-# entity_state_of rend un enum depuis un nom d'etat : ce n'est pas une lignee.
+# entity_state_of maps a state name to its index: it is not a lineage.
 PARENT_LINK_EXCLUSION='s/entity_state_of//g'
-# Le "nu" echappe de la fixture de test_data_residue.c est une chaine de
-# test, pas le champ. Pas de \b dans ces sed, le sed BSD ne le connait pas.
+# The escaped "nu" of a fixture of tests/test_data_residue.c is a test
+# string, not the field. Its escaped quotes delimit the word: no `\b` here.
 NU_EXCLUSION='s/\\"nu\\"//g'
 
 exclusion() {
@@ -81,53 +86,65 @@ exclusion() {
     esac
 }
 
-# void-self : un objet du jeu recu en void * sous le nom self (self_ptr
-# compris), ou que la ligne le declare : membre, typedef, prototype,
-# definition, locale ; const lu autour de l'etoile. Un void * d'un autre nom
-# n'est pas lu.
+# void-self: a game object received as `void *` under the name self
+# (self_ptr included), on a line that declares it: member, typedef,
+# prototype, definition, local; const is read around the star. A `void *`
+# of another name is not read.
 
-# Le void *ctx des parcours porte un contexte, pas une entite. Ce sed-ci veut
-# le sed GNU (\b), comme les grep du script.
+# The `void *ctx` of the walks carries a context, not an entity. This sed
+# needs GNU sed for `\b`, like the grep calls of the script.
 VOID_EXCLUSION='s/void \*+(r_)?ctx\b//g'
 
-# ptrs-entite : les membres d'un type d'entite que registres compterait hors
-# d'un type d'entite (REG_TYPES par jeton, void **, void *[N], pointeur de
-# fonction qui rend void *). Listes qui ne portent pas d'entites
-# (type.membre), chacune prouvee par son ecrivain : hy.invented des chaines
-# (economy.c:284), jo.jy des entrees (economy_tiers.c:167), hp.i des
-# enregistrements jy (research.c:233), jc.ts des particules
-# (slipway_display.c:43). L'exemption va nom par nom : une ligne compte des
-# qu'un de ses noms, ou une declaration sans nom lisible, n'est pas exempte.
+# entity-ptrs: the members of an entity type that registries would count
+# outside an entity type (REG_TYPES by token, `void **`, `void *[N]`, a
+# function pointer that returns `void *`). Lists that hold no entity
+# (type.member), each proved by its writer: economy_t.invented holds
+# technology names (economy_invent, game/economy.c); planet_t.needs holds
+# need_t records (planet_install_project in game/planet.c,
+# update_tiers_visit in game/economy_tiers.c, planet_offer_trade in
+# game/planet_trade.c); research_project_t.inputs holds need_t records
+# (project_create, game/research.c); slipway_t.transit_dots holds particles
+# (slipway_spawn_transit_dot, game/slipway_display.c). The exemption goes
+# name by name: a line counts as soon as one of its names, or a declaration
+# with no readable name, is not exempt.
 ENTITY_PTRS_EXEMPT="economy_t.invented planet_t.needs research_project_t.inputs slipway_t.transit_dots"
 
-# registres : hors tests/ et engine/pointer_list.[ch], les points de declaration qui
-# tiennent des entites par void * hors des types d'entite (que ptrs-entite
-# lit). Membre d'une struct (ou d'un objet struct, meme dans une fonction) qui
-# nomme pico8_ptrs_t ou un alias, quel que soit son declarateur (tableau,
-# **, const, plusieurs noms, pointeur de fonction), ou de type void ** ou
-# void *[N] ; membre qui rend void * par pointeur de fonction ; objet de portee
-# fichier, statique de fonction, extern de .h, de ces types ou void * ;
-# prototype ou definition inline de .h qui prend ou rend un pico8_ptrs_t, ou
-# rend void **. const et volatile sont lus autour de void et de chaque * ;
-# chaque declaration d'une ligne de membre est lue, et un membre sans ";"
-# en fin de ligne est joint aux lignes suivantes, compte a sa premiere. Une
-# struct ou une union dont l'accolade ouvre la ligne suivante est vue ;
-# __attribute__((...)) a deux niveaux de parentheses internes et
-# _Alignas(...) a un niveau sont retires avant lecture.
-# Non vus : alias d'alias, void * derriere un typedef, struct ou union
-# imbriquee sur plusieurs lignes, membre void * simple, locale, macro,
-# attribut a un niveau de plus ; de deux declarations de portee fichier sur
-# une ligne, seul le premier nom est lu pour l'exemption.
-# Exemptes, chacun prouve par son ecrivain : emitter.qy des particules
-# (particle.c:65), le ji du contexte de planet_display.c des enregistrements
-# jy (:79, :186) ; pico8_nv_ptrs sur hp.i (planet.c:319),
-# pico8_gu_content_ptrs sur des chaines (tech_gate.c:26), pico8_jo_ex sur des
-# enregistrements jy (planet_display.c:54) ; pico8_jp_ptrs et pico8_la_ptrs
-# sur des enregistrements jy (planet_display.c:186, planet_trade.c:128), les
-# listes d'entites passant par pico8_jp_ents et pico8_ents_cat.
+# registries: outside tests/ and engine/pointer_list.[ch], the declaration
+# points that hold entities through `void *` outside the entity types
+# (which entity-ptrs reads). A member of a struct (or of a struct object,
+# even inside a function) that names pointer_list_t or an alias, whatever
+# its declarator (array, `**`, const, several names, function pointer), or
+# of type `void **` or `void *[N]`; a member that returns `void *` through
+# a function pointer; an object of file scope, a static of a function or
+# an extern of a header, of these types or `void *`; a prototype or an
+# inline definition of a header that takes or returns a pointer_list_t, or
+# returns `void **`. const and volatile are read around void and each
+# star; each declaration of a member line is read, and a member without a
+# final semicolon is joined to the next lines and counted at its first.
+# A struct or union whose brace opens the next line is seen;
+# `__attribute__((...))` with two levels of inner parentheses and
+# `_Alignas(...)` with one are removed before reading.
+# Not seen: an alias of an alias, a `void *` behind a typedef, a struct or
+# union nested over several lines, a plain `void *` member, a local, a
+# macro, an attribute one level deeper; of two declarations of file scope
+# on one line, only the first name is read for the exemption.
+# Exempt, each proved by its writer: emitter_t.particles holds particles
+# (emitter_init_in, game/particle.c);
+# planet_inspection_panel_ctx_t.unmet_needs holds need_t records
+# (planet_inspection_panel_filter_step, game/planet_display.c);
+# collect_map_pointer_list maps the need_t records
+# of research_project_t.inputs (planet_install_project, game/planet.c);
+# collect_contains_string reads technology names (tech_gate_is_unlocked,
+# game/tech_gate.c); research_display_planet_resource_row reads need_t
+# records (planet_refresh in game/planet_display.c, and
+# game/research_display.c); collect_filter_pointer_list and
+# collect_concat_pointer_list take need_t records (planet_inspection_panel
+# in game/planet_display.c, planet_offer_trade in game/planet_trade.c),
+# lists of entities going through entity_list_filter and
+# entity_list_concat.
 REGISTRIES_EXEMPT="emitter_t.particles planet_inspection_panel_ctx_t.unmet_needs collect_map_pointer_list collect_contains_string research_display_planet_resource_row collect_filter_pointer_list collect_concat_pointer_list"
 
-# En-tetes du noyau, par chemin relatif a src/ : noyau-inclut ne lit qu'eux.
+# Core headers, by path relative to src/: core-includes reads only them.
 CORE_HEADERS="engine/entity_class.h engine/entity.h engine/entity_registry.h"
 
 REACHABILITY=${COMPOSITION_REACHABILITY:-tools/reachability_questions.txt}
@@ -183,9 +200,9 @@ while IFS= read -r file; do
     done
 done < "$work/files"
 
-# registres lit hors tests/ et engine/pointer_list.[ch] ; REG_TYPES est pico8_ptrs_t
-# et ses alias "typedef pico8_ptrs_t X;" de ces fichiers (un alias d'alias
-# n'est pas suivi).
+# registries reads outside tests/ and engine/pointer_list.[ch]; REG_TYPES is
+# pointer_list_t and its aliases "typedef pointer_list_t name;" of these
+# files (an alias of an alias is not followed).
 grep -v '/tests/' "$work/files" | grep -v '^tests/' | grep -v '/engine/pointer_list\.[ch]$' | grep -v '^engine/pointer_list\.[ch]$' > "$work/regfiles" || true
 REG_TYPES=pointer_list_t
 if [ -s "$work/regfiles" ]; then
@@ -196,8 +213,8 @@ if [ -s "$work/regfiles" ]; then
     done
 fi
 
-# Retire commentaires, chaines et caracteres d'une ligne, pour compter les
-# accolades ; un commentaire ouvert passe a la ligne suivante (incomment).
+# Strips the comments, strings and character constants of a line, to count
+# its braces; an open comment carries over to the next line (incomment).
 CLEAN_AWK='
 function clean(s,    out, c, q) {
     out = ""
@@ -233,13 +250,14 @@ function braces(s,    t, n) {
 }
 '
 
-# Lecteur E. Un corps de struct de premier niveau s'ouvre par une ligne
-# "struct ... {" hors de tout corps : une locale de fonction n'est pas un
-# membre. E est la fermeture depuis entity_t par le premier
-# membre non pointeur ; l'etiquette, le typedef de "} nom;" et celui de
-# "typedef struct X Y;" nomment le meme type. Rend dans $work/parente et
-# $work/ptrs-entité les lignes "<fichier>:<ligne>:<texte>", et dans
-# $work/members les "<type>\t<membre>" que lit --champs.
+# Struct reader. A struct body of top level opens on a "struct ... {" line
+# outside any body: a local of a function is not a member. The entity
+# types are the closure from entity_t by the first member that is not a
+# pointer; the tag, the typedef of "} name;" and that of
+# "typedef struct tag name;" name the same type. Writes to $work/parent and
+# $work/entity-ptrs the "<file>:<line>:<text>" lines, to
+# $work/registries.structs the struct members of registries, and to
+# $work/members the "<type>\t<member>" lines that --fields reads.
 read_structs() {
     awk -v exempt=" $ENTITY_PTRS_EXEMPT " -v out_parent="$work/parent" \
         -v reg_exempt=" $REGISTRIES_EXEMPT " -v out_reg="$work/registries.structs" -v reg_types="$REG_TYPES" \
@@ -391,9 +409,9 @@ read_structs() {
     }' $(cat "$work/files") || fail "awk failed"
 }
 
-# Lecteur de prototypes : dans les .h, une declaration de premier niveau,
-# jointe jusqu'a son ";", comptee a sa premiere ligne. Un membre de struct
-# (table de methodes, new_entity) n'est pas de premier niveau.
+# Prototype reader: in the headers, a declaration of top level, joined up
+# to its ";", counted at its first line. A member of a struct (method
+# table, new_entity) is not of top level.
 read_prototypes() {
     sep=$(printf '\001')
     grep -E '\.h$' "$work/files" | grep -v '/engine/pointer_list\.h$' | grep -v '^engine/pointer_list\.h$' > "$work/headers" || true
@@ -427,9 +445,10 @@ read_prototypes() {
     }' > "$work/void-ptr" || fail "awk failed"
 }
 
-# registres, suite : objets pico8_ptrs_t de portee fichier des .c et
-# prototypes des .h (hors engine/pointer_list.h), hors tests/, joints comme ceux de
-# void-ptr ; un nom de REGISTRES_NON_ENTITE est exempte.
+# registries, continued: pointer_list_t objects of file scope of the `.c`
+# files and prototypes of the headers (outside engine/pointer_list.h),
+# outside tests/, joined like those of void-ptr; a name of
+# REGISTRIES_EXEMPT is exempt.
 read_registries() {
     [ -f "$work/parent" ] || read_structs
     : > "$work/registries.decl"
@@ -462,9 +481,10 @@ read_registries() {
     cat "$work/registries.structs" "$work/registries.decl" | sort -u -t: -k1,1 -k2,2n > "$work/registries"
 }
 
-# Paires {a, b} de modules hors tests/ ou chacun inclut l'en-tete de l'autre,
-# dans $work/inclusion-mutuelle.pairs ; dans $work/inclusion-mutuelle, les
-# lignes #include qui realisent ces paires, au format des autres categories.
+# Pairs of modules outside tests/ where each includes the header of the
+# other, in $work/mutual-inclusion.pairs; in $work/mutual-inclusion, the
+# #include lines that make those pairs, in the format of the other
+# categories.
 read_inclusions() {
     grep -v '/tests/' "$work/files" | grep -v '^tests/' > "$work/modfiles" || true
     : > "$work/mutual-inclusion.pairs"
@@ -495,18 +515,18 @@ read_inclusions() {
     sort -t: -k1,1 -k2,2n "$work/mutual-inclusion" > "$work/sorted" && mv "$work/sorted" "$work/mutual-inclusion"
 }
 
-# Graphe d'usage de l'etude 2.11 (usegraph.py) : a -> b quand un .c/.h de a
-# hors tests/ emploie un nom que b.h est seul a declarer, commentaires et
-# chaines retires ; il voit la paire qu'un detour cache a inclusion-mutuelle.
-# Noms lus par motif : #define, prototype (un niveau de parentheses
-# internes), (*nom), dernier nom d'un typedef ou d'un extern hors des
-# accolades, enumerateur ; pas les etiquettes de struct. Une fonction definie
-# dans l'en-tete (static inline) est lue comme un prototype, ce que
-# usegraph.py ne fait pas. Un nom que deux
-# en-tetes declarent n'est a aucun : les etiquettes, lues sans cette regle,
-# feraient six paires par les declarations anticipees de engine/entity_class.h.
-# Rend dans $work/usage-mutuel.pairs les paires, dans $work/usage-mutuel le
-# premier emploi de chaque sens (ordre de $work/files, puis des lignes).
+# Usage graph: module A uses module B when a `.c` or `.h` file of A
+# outside tests/ uses a name that only the header of B declares, comments
+# and strings removed; it sees the pair that a detour hides from
+# mutual-inclusion. Names read by pattern: #define, prototype (one level of
+# inner parentheses), (*name), last name of a typedef or of an extern
+# outside braces, enumerator; not the struct tags. A function defined in
+# the header (static inline) is read as a prototype. A name that two
+# headers declare belongs to neither: the tags, read without this rule,
+# would make six pairs through the forward declarations of
+# engine/entity_class.h. Writes the pairs to $work/mutual-usage.pairs, and
+# to $work/mutual-usage the first use of each direction (order of
+# $work/files, then of the lines).
 read_usages() {
     grep -v '/tests/' "$work/files" | grep -v '^tests/' > "$work/modfiles" || true
     : > "$work/mutual-usage.pairs"
@@ -597,10 +617,10 @@ read_usages() {
     sort -u -t: -k1,1 -k2,2n "$work/mutual-usage" > "$work/sorted" && mv "$work/sorted" "$work/mutual-usage"
 }
 
-# Rend dans $work/<cat> les lignes "<fichier>:<ligne>:<texte>", dans l'ordre
-# des fichiers puis des lignes. grep rend 1 quand rien ne correspond.
-# L'exclusion est un sed sur le texte, jamais un filtre sur la ligne entiere :
-# un filtre cacherait une vraie occurrence voisine.
+# Writes to $work/<cat> the "<file>:<line>:<text>" lines, in the order of
+# the files then of the lines. grep returns 1 when nothing matches.
+# An exclusion is a sed on the text, never a filter on the whole line:
+# a filter would hide a real occurrence next to it.
 collect() {
     case $1 in
         parent | entity-ptrs)
@@ -642,11 +662,12 @@ collect() {
     done < "$work/candidates"
 }
 
-# Releve de la regle 1. La fonction d'une ligne est la derniere definition de
-# premier niveau, signature jointe jusqu'a son "{" final, close par la "}" de
-# colonne 0. Hors de toute fonction (initialiseur de fichier, dont les
-# defauts pico8_X_start), une ecriture est hors constructeur : le releve est
-# un majorant, il ne declare pas constant ce qu'un initialiseur ecrit.
+# The function of a line is the last definition of top level, its
+# signature joined up to its final "{", closed by the "}" of the first
+# column. Outside any function (an initializer of file scope, the
+# `pico8_X_start` defaults included), a write is outside a constructor:
+# the report is an upper bound, it does not declare constant what an
+# initializer writes.
 fields() {
     read_structs
     sort -u "$work/members" > "$work/members.sorted"

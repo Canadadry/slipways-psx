@@ -1,9 +1,10 @@
-/* tools/composition_residue.sh, le corps de `make composition-residue`, sur un
- * mini-arbre fabrique.
- * Le script lit tests/ : chaque jeton de fixture est coupe en deux litteraux
- * ("get" "_pos", "n" "u"), sinon ce fichier entrerait dans le residu qu'il
- * mesure. Il ne porte non plus aucun jeton de tools/data_residue.sh, que
- * make test garde a 0 dans tests/. */
+/* tools/composition_residue.sh, the body of `make composition-residue`, on
+ * a mini-tree built here.
+ * The script reads tests/: each fixture token is split into two literals
+ * (`"get" "_pos"`, `"n" "u"`), or this file would enter the residue it
+ * measures. Nor does it carry any token of tools/data_residue.sh, whose
+ * guarded categories `make test` (data-guard) keeps at zero over src/ and
+ * tests/. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -20,7 +21,7 @@
 #define RESIDUE_2_SITES DIR "/r2.txt"
 #define EMPTY_FOOTER "residue 2: 0 line(s), 0 file(s)\n"
 
-/* Tampon statique, termine par NUL, ecrase a chaque appel. */
+/* Static buffer, NUL-terminated, overwritten by each call. */
 static const char *read_file(const char *path) {
     static char buf[1 << 16];
     FILE *file = fopen(path, "rb");
@@ -38,9 +39,9 @@ static void write_file(const char *path, const char *text) {
     fclose(file);
 }
 
-/* Rend le code de sortie du script, relu depuis un fichier : le statut brut
- * de system() n'est pas decodable sans <sys/wait.h>, hors C99. La sortie
- * standard va dans OUT, l'erreur dans ERR. */
+/* Returns the exit code of the script, read back from a file: the raw
+ * status of system() cannot be decoded without <sys/wait.h>, outside C99.
+ * Standard output goes to OUT, standard error to ERR. */
 static int run_residue(const char *args) {
     char cmd[1024];
     snprintf(cmd, sizeof cmd,
@@ -59,8 +60,8 @@ static void setup(void) {
     write_file(RESIDUE_2_SITES, "");
 }
 
-/* Deux types d'entite : ke (en-tete en premier membre, pas une parente) et
- * jo (ke en premier membre, une parente). */
+/* Two entity types: entity_root_t (the header as first member, not a
+ * parent) and the planet type (entity_root_t as first member, a parent). */
 #define ENTITY_PLANET "typedef struct {\n    entity" "_t header;\n} entity_" "root_t;\n" \
               "typedef struct {\n    entity_" "root_t ke;\n    int a;\n} pico8_" "jo_t;\n"
 
@@ -264,9 +265,9 @@ static void test_registries_reads_declaration_points_outside_entity_types(void) 
                                   "guarded residue (registries): 5 line(s)\n") == 0);
 }
 
-/* Formes d'un registre que le lecteur voit (F) et limites qu'il ne voit pas
- * (L), chacune a sa ligne : une limite qui se met a compter change
- * l'attendu. */
+/* Forms of a registry that the reader sees and limits that it does not
+ * see, each on its own line: a limit that starts to count changes the
+ * expected output. */
 static void test_registries_sees_hidden_forms_and_not_its_named_limits(void) {
     setup();
     write_file(SRC "/f.h", "typedef pointer_" "list_t reg_t;\n"
@@ -338,10 +339,10 @@ static void test_registries_sees_hidden_forms_and_not_its_named_limits(void) {
                                   "guarded residue (registries): 19 line(s)\n") == 0);
 }
 
-/* ptrs-entité lit les membres d'un type d'entité comme registres lit ceux des
- * autres structs, avec les mêmes limites (void *owner, :15). needs est exempté
- * seul, pas other_needs sur sa ligne (:16) ; (*mk) n'a pas de nom lisible
- * (:17). */
+/* entity-ptrs reads the members of an entity type as registries reads
+ * those of the other structs, with the same limits (the plain `void *`
+ * member, line 15). needs alone is exempt, not other_needs on its line
+ * (line 16); the function pointer of line 17 has no readable name. */
 static void test_pointer_list_entity_reads_entity_members_like_registries(void) {
     setup();
     write_file(SRC "/a.h", "typedef pointer_" "list_t reg17_t;\n");
@@ -385,8 +386,9 @@ static void test_pointer_list_entity_reads_entity_members_like_registries(void) 
                                   "guarded residue (entity-ptrs): 13 line(s)\n") == 0);
 }
 
-/* Deux types d'entité de deux fichiers, un membre au même numéro de ligne :
- * deux lignes, la clé qui les dédoublonne tient au type, pas au numéro. */
+/* Two entity types in two files, with a member at the same line number:
+ * two lines, since the key that deduplicates them holds the type, not the
+ * number. */
 static void test_pointer_list_entity_keeps_one_line_number_in_two_files(void) {
     setup();
     write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} entity_" "root_t;\n"
@@ -399,11 +401,12 @@ static void test_pointer_list_entity_keeps_one_line_number_in_two_files(void) {
                                   "guarded residue (entity-ptrs): 2 line(s)\n") == 0);
 }
 
-/* const et volatile autour de void et des *, plusieurs déclarations sur une
- * ligne (comptée une fois), déclarateur à la ligne suivante, attribut à deux
- * niveaux : vus. Limites (attendu 0) : attribut à trois niveaux (e.h:18),
- * second nom d'une ligne de portée fichier (f.c:3). Formes voisines à 0 :
- * e.h:19 à :27, f.c:2, f.h:3. */
+/* const and volatile around void and the stars, several declarations on
+ * one line (counted once), a declarator on the next line, an attribute
+ * with two levels: seen. Limits (expected 0): an attribute with three
+ * levels (`e.h`, line 18), the second name of a line of file scope (`f.c`,
+ * line 3). Neighbouring forms at 0: `e.h` lines 19 to 27, `f.c` line 2,
+ * `f.h` line 3. */
 static void test_readers_see_qualifiers_split_declarations_and_nested_attributes(void) {
     setup();
     write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n} entity_" "root_t;\n"
@@ -455,9 +458,9 @@ static void test_readers_see_qualifiers_split_declarations_and_nested_attributes
                                   "guarded residue (entity-ptrs,registries): 13 line(s)\n") == 0);
 }
 
-/* Accolade à la ligne, union, __attribute__ et _Alignas : vus. Une union
- * imbriquée sur plusieurs lignes (f.h:19) reste une limite, comme la struct
- * imbriquée. */
+/* Brace on the next line, union, __attribute__ and _Alignas: seen. A
+ * union nested over several lines (`f.h`, line 19) stays a limit, like the
+ * nested struct. */
 static void test_registries_sees_split_braces_unions_and_attributes(void) {
     setup();
     write_file(SRC "/f.h", "typedef struct reg_s\n"
@@ -550,9 +553,9 @@ static void test_void_ptr_reads_joined_public_prototypes(void) {
                                   "residue 2: 4 line(s), 1 file(s)\n") == 0);
 }
 
-/* Un receveur d'objet du jeu non type : membre, typedef, definition, locale,
- * const autour de l'etoile, src/ comme tests/. Limite nommee : un void *
- * d'un autre nom (e, ctx) n'est pas lu. */
+/* An untyped receiver of a game object: member, typedef, definition,
+ * local, const around the star, in src/ as in tests/. Named limit: a
+ * `void *` of another name (the two parameters of step) is not read. */
 static void test_void_self_sees_every_untyped_receiver(void) {
     setup();
     write_file(SRC "/s.h", "typedef void (*pico8_" "state_fn)(void *" "self, int t);\n"
@@ -627,10 +630,12 @@ static void test_mutual_inclusion_counts_its_include_lines_in_the_footer(void) {
                                   "guarded residue (mutual-inclusion): 2 line(s)\n") == 0);
 }
 
-/* a et b s'emploient, mais a.c ne recoit b.h que par c.h : inclusion-mutuelle
- * n'y voit rien. d et e emploient u, qui ne les emploie que par s_t, que d.h
- * et e.h declarent tous deux ; f n'emploie g que dans un commentaire et une
- * chaine : ni u-d, ni u-e, ni f-g n'est une paire. */
+/* `a.c` and `b.c` use each other, but `a.c` reaches `b.h` only through
+ * `c.h`: mutual-inclusion sees nothing there. `d.c` and `e.c` use `u.h`,
+ * while `u.c` uses them only through s_t, which `d.h` and `e.h` both
+ * declare; `f.c` names g_h only in a comment and a string: no pair between
+ * the module of `u.c` and that of `d.c` or `e.c`, nor between `f.c` and
+ * `g.c`. */
 static void test_usage_pairs_see_a_detour_not_a_shared_name_nor_a_comment(void) {
     setup();
     write_file(SRC "/a.h", "int a_f(void);\n");
@@ -663,8 +668,8 @@ static void test_usage_pairs_see_a_detour_not_a_shared_name_nor_a_comment(void) 
     assert(strcmp(read_file(OUT), "guarded residue (mutual-usage): 0 line(s)\n") == 0);
 }
 
-/* Une fonction static inline definie dans un en-tete est un nom qu'il
- * declare, comme un prototype. */
+/* A static inline function defined in a header is a name that it
+ * declares, like a prototype. */
 static void test_usage_pairs_read_a_static_inline_of_a_header(void) {
     setup();
     write_file(SRC "/a.h", "typedef struct {\n    int n;\n} s_t;\n"
