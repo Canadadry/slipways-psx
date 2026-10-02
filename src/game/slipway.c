@@ -53,11 +53,11 @@ static int slipway_infraspace_of(const entity_t *e, p8_fixed_t *out) {
 
 void slipway_served_planets_add(slipway_served_planets_t *hg, const char *id) {
     assert(id != NULL &&
-           "jc.hg: a nil id does not fit the member's type -- stop, do not widen the member");
+           "slipway_served_planets_add: a NULL identifier does not fit the member's type -- stop, do not widen the member");
     if (slipway_served_planets_has(hg, id)) {
         return;
     }
-    assert(hg->count < SLIPWAY_SERVED_PLANETS_CAP && "jc.hg: more planets than bw(90) makes -- stop, do not widen the member");
+    assert(hg->count < SLIPWAY_SERVED_PLANETS_CAP && "slipway_served_planets_add: more planets than the galaxy holds (90) -- stop, do not widen the member");
     hg->ids[hg->count] = id;
     hg->count++;
 }
@@ -168,7 +168,7 @@ void slipway_drop(slipway_t *self, entity_t *end) {
             end->class->attach_slipway(end, &self->header);
         }
         assert(start_registered && end_registered &&
-               "jc:ey: both endpoints must expose \"kf\", or the slipway never joins their `oe`");
+               "slipway_drop: both endpoints must have attach_slipway, or the slipway never joins their slipways lists");
         (void)start_registered;
         (void)end_registered;
         economy_advance_clock(main_economy_typed(), p8_fixed_from_int(1));
@@ -207,7 +207,7 @@ static int slipway_obstruction_slipway_predicate(entity_t *e, void *ctx_ptr) {
     if (e == NULL) {
         return 0;
     }
-    assert(e->class == slipway_class() && "cg.jc holds slipways only");
+    assert(e->class == slipway_class() && "the slipway tag holds slipways only");
     sw = (const slipway_t *)e;
     if (sw->has_infraspace != ctx->self_has_infraspace || (sw->has_infraspace && sw->infraspace != ctx->self_infraspace)) {
         return 0;
@@ -241,7 +241,7 @@ entity_t *slipway_obstruction(slipway_t *self) {
         const entity_list_t *oe = NULL;
 
         if (start != NULL) {
-            assert(planet_is_family(start) && "jc.qu is a planet: the constructor asserts it");
+            assert(planet_is_family(start) && "a slipway's start is a planet: slipway_create asserts it");
             oe = ((const planet_t *)start)->slipways;
         }
         if (oe != NULL) {
@@ -252,7 +252,7 @@ entity_t *slipway_obstruction(slipway_t *self) {
                     continue;
                 }
                 assert(w->class == slipway_class() &&
-                       "qu.oe must hold jc structs: only jo:kf adds to it, and only slipways");
+                       "the start's slipways list holds slipways: only planet_attach_slipway adds to it, and only slipways");
                 if (slipway_other_end((const slipway_t *)w, start) == end) {
                     return w;
                 }
@@ -382,7 +382,7 @@ static slipway_t *slipway_create(const slipway_keys_t *keys) {
     self->point_map_pos = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     if (keys != NULL && keys->start != NULL) {
         assert(slipway_is_endpoint_class(keys->start->class) &&
-               "jc.qu: a key neither nil nor a planet a slipway starts from (jo, qh, nl, os, hj, pm, nr, fr, mx) "
+               "slipway_create: a start key that is neither NULL nor a planet or a structure "
                "does not fit the member's type -- stop, do not widen the member");
         self->start = keys->start;
     }

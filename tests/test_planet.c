@@ -289,7 +289,7 @@ static void test_galaxy(void) {
     for (i = 0; i < jo->count; i++) {
         h = fold_planet(h, jo->items[i]);
     }
-    check_int("galaxy planets", jo->count, GALAXY_PLANETS);
+    check_int("galaxy_planets", jo->count, GALAXY_PLANETS);
     check("galaxy", h, GALAXY_HASH);
 }
 
@@ -466,7 +466,7 @@ static void test_new_planet(void) {
     assert(entity_list_listed(live_entities(), a) && entity_list_listed(entities_by_tag("planet"), a));
     h = fold_planet(h, a);
     h = fold_live(h, a);
-    check("new planet", h, NEW_PLANET_HASH);
+    check("new_planet", h, NEW_PLANET_HASH);
 }
 
 /* cg answers NULL for a tag that no entity has carried since
@@ -503,7 +503,7 @@ static void test_update_vanishing(void) {
     }
     assert(is_dead_state(a) == 2);
     assert(!entity_list_listed(live_entities(), a) && !entity_list_listed(entities_by_tag("planet"), a));
-    check_int("ll dg calls", calls, UPDATE_VANISHING_UPDATE_ENTITIES_CALLS);
+    check_int("update_vanishing_update_entities_calls", calls, UPDATE_VANISHING_UPDATE_ENTITIES_CALLS);
 }
 
 /* `kw` of a planet that never ran `lz` is the class's shared one: an
@@ -643,7 +643,7 @@ static void test_refresh_row_slot(void) {
         assert(row_slots() == once && "the replaced row gives its place back on the spot");
     }
     entity_unregister(&a->header);
-    assert(row_slots() == once && "out of hv, the planet is still read this frame");
+    assert(row_slots() == once && "out of the live entities, the planet is still read this frame");
     cart_flush_exit_queue();
     assert(row_slots() == once - 1 && a->layout_row == NULL);
 }

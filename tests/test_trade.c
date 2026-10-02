@@ -266,7 +266,7 @@ static void test_construction(void) {
     assert(t != NULL && t->planets == NULL && t->slipways == NULL && !t->has_resource);
     t = route(lp, NULL, 0, 0, 0);
     assert(t->planets == lp && t->slipways == NULL && !t->has_resource);
-    check("game route", h, GAME_ROUTE_HASH);
+    check("game_route", h, GAME_ROUTE_HASH);
 }
 
 /* `to` is the last of `lp`; an empty or missing `lp` gives nothing and

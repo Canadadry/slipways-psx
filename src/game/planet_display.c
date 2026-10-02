@@ -277,7 +277,7 @@ void planet_inspection_panel(const planet_t *self) {
         static const data_item_t gap_items[] = {{.is_false = 1}, {.number = 1}};
         static const data_row_t gap = {.count = 2, .items = gap_items};
 
-        assert(row_keys[index].count < row_cap[index] && "jo:gh: every row 2..n keeps its last cell for the gap");
+        assert(row_keys[index].count < row_cap[index] && "planet_inspection_panel: every row after the first keeps its last cell for the gap");
         row_items[index][row_keys[index].count++] = layout_row_cell_row(&gap);
         row_keys[index].items = row_items[index];
         buttons[index].layout_row_keys = &row_keys[index];
@@ -324,7 +324,7 @@ static void planet_projects_panel_on_click_method(button_t *self) {
         od = self->project_cost;
     }
 
-    assert(pt != NULL && "jo:fe's my callback lost its captured planet");
+    assert(pt != NULL && "the projects panel button lost its captured planet");
     if (economy_spend(main_economy_typed(), od)) {
         planet_apply_project(pt, b);
     }
@@ -455,7 +455,7 @@ void planet_draw(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t pos
         if (self->layout_row != NULL) {
             vec_t offset =
                 vec_add(adjusted, vec_make(p8_fixed_from_int(0), p8_fixed_from_int(7)));
-            assert(self->layout_row->header.class->draw_at != NULL && "lq must have an `ol`");
+            assert(self->layout_row->header.class->draw_at != NULL && "a layout row has a draw_at method");
             self->layout_row->header.class->draw_at(&self->layout_row->header, offset, P8_FIXED_LIT(0x00008000, 0.5));
         }
     }
@@ -518,7 +518,7 @@ down_t planet_left_press(planet_t *self) {
     if (strcmp(state_val, "settled") == 0) {
         slipway_keys_t keys = {0};
 
-        assert(slipway_ready() && "pico8_jc_init() must run before jo:ldown builds a jc");
+        assert(slipway_ready() && "slipway_init() must run before planet_left_press builds a slipway");
         keys.start = (entity_t *)self;
         out.held = (entity_t *)slipway_new(&keys);
         out.stop = out.held != NULL;

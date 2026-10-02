@@ -36,7 +36,7 @@ static void planet_rebuild_trades_attach_slipway_closure(trade_offer_t *self, tr
     }
     if (!contains_trade(self->accepted_routes, a)) {
         assert(self->accepted_routes->zone == game_zone() &&
-               "jo:ib: a kept route is copied into the generation; a list of another zone would outlive it");
+               "planet_rebuild_trades: a kept route is copied into the game zone; a list of another zone would outlive it");
         entity_list_add(self->accepted_routes, &trade_copy(game_zone(), a)->header);
         self->amount -= p8_fixed_from_int(1);
     }
@@ -56,11 +56,11 @@ void planet_attach_slipway(planet_t *self, entity_t *sw) {
     }
 
     if (sw != NULL) {
-        assert(sw->class == slipway_class() && "jo:kf: sw is the slipway jc:ey registers");
+        assert(sw->class == slipway_class() && "planet_attach_slipway: the slipway is one slipway_drop registers");
         other = slipway_other_end((const slipway_t *)sw, (const entity_t *)self);
     }
     if (other != NULL) {
-        assert(planet_is_family(other) && "jo:kf: the other end of a registered slipway is a planet");
+        assert(planet_is_family(other) && "planet_attach_slipway: the other end of a registered slipway is a planet");
         if (((const planet_t *)other)->fold_anchor != 0) {
             self->fold_anchor = p8_fixed_from_int(1);
         }
@@ -154,7 +154,7 @@ void planet_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
                 accepted = t_resource.kind == RESOURCE_FIXED && int_seq_has_fixed(self->archetype->accepted_resources, t_resource.number);
             }
             if (accepted) {
-                assert(t_resource.kind == RESOURCE_FIXED && "a want's qe is a resource of r, never a boolean");
+                assert(t_resource.kind == RESOURCE_FIXED && "a need's resource is a resource code, never a boolean");
                 i->row.has_resource = 1;
                 i->row.resource = t_resource.number;
                 resource_val = t_resource;
@@ -235,7 +235,7 @@ entity_list_t *planet_rebuild_trades(planet_t *self) {
 
         /* `lw` is on the stack: a callee that keeps the REF past this
          * iteration holds a dangling pointer. `nr:cn` copies it instead. */
-        assert(w->class == slipway_class() && "jo.oe holds slipways only: jo:kf adds to it");
+        assert(w->class == slipway_class() && "a planet's slipways list holds slipways only: planet_attach_slipway adds to it");
         other = slipway_other_end((const slipway_t *)w, (const entity_t *)self);
         if (other != NULL && other->class->offer_trade != NULL) {
             other->class->offer_trade(other, &lw);

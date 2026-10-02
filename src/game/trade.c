@@ -12,7 +12,7 @@ resource_t trade_resource(const trade_route_t *self) {
     if (self == NULL || !self->has_resource) {
         return (resource_t){.kind = RESOURCE_NIL};
     }
-    assert(!(self->resource_is_bool && self->resource != 0) && "no route of src/ holds true: `pico8_qe_t` has no kind for it");
+    assert(!(self->resource_is_bool && self->resource != 0) && "no route of src/ holds true: resource_t has no kind for it");
     return self->resource_is_bool ? (resource_t){.kind = RESOURCE_FALSE}
                             : (resource_t){.kind = RESOURCE_FIXED, .number = self->resource};
 }
@@ -37,9 +37,9 @@ static trade_route_t *trade_create(const allocator_t *zone, const trade_keys_t *
     self->resource_is_bool = 0;
     if (keys != NULL) {
         assert((!keys->resource_is_bool || keys->resource == 0 || keys->resource == 1) &&
-               "trade.qe: a boolean key holds 0 or 1; `pico8_trade_qe` would read any other as a fixed");
+               "trade_create: a boolean key holds 0 or 1; trade_resource would read any other as a fixed");
         assert((keys->has_resource || (!keys->resource_is_bool && keys->resource == 0)) &&
-               "trade.qe: a nil key carries neither a kind nor a value; the member reads 0 for nil");
+               "trade_create: an absent key carries neither a kind nor a value; the member reads 0 when absent");
         self->planets = keys->planets;
         self->slipways = keys->slipways;
         self->resource = keys->resource;
@@ -52,7 +52,7 @@ static trade_route_t *trade_create(const allocator_t *zone, const trade_keys_t *
 static void assert_trade(const trade_route_t *self) {
     assert((self == NULL ||
             self->header.class == &g_trade_class) &&
-           "trade: every by/cc element and every proposal's t is a route; anything else would be read "
+           "trade: every outgoing or incoming route and every offer's route is a route; anything else would be read "
            "through the wrong layout");
 }
 

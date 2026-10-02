@@ -446,7 +446,7 @@ static void check_fresh_slipway(const void *e, const void *qu) {
     assert(jc->layer == p8_fixed_from_int(2));
     assert(jc->targeting->archetype->clock_ticks == 0);
     assert(jc->targeting->archetype->status_sprite == p8_fixed_from_int(48) && jc->targeting->archetype->has_status_sprite == 1);
-    printf("[dw] 0x%08X\n", (unsigned)jc->targeting->archetype->attach_distance);
+    printf("[attach_distance] 0x%08X\n", (unsigned)jc->targeting->archetype->attach_distance);
     assert(jc->targeting->archetype->attach_distance == (p8_fixed_t)ATTACH_DISTANCE_BITS);
     assert(jc->fade_in_step == p8_fixed_from_int(20));
 
@@ -741,7 +741,7 @@ static void test_too_far(void) {
     assert(target_kind(far) == TARGET_STATUS_TEXT);
     hash = fold_slipway(hash, far);
     hash = fnv(hash, (uint32_t)credits());
-    check("too far", hash, TOO_FAR_HASH);
+    check("too_far", hash, TOO_FAR_HASH);
 }
 
 static int same_vec(vec_t a, vec_t b) {
@@ -806,7 +806,7 @@ static void test_drag_mouse_point(void) {
         drag_over(first, NULL, index % 2 ? first_mouse : second_mouse);
         assert(as_slipway(first)->end == first_end);
     }
-    assert(game_zone_used() == grab_arena && "a held slipway allocates nothing per hq");
+    assert(game_zone_used() == grab_arena && "a held slipway allocates nothing per drag");
     drag_over(first, NULL, second_mouse);
 
     second = build_slipway(origin);
@@ -814,14 +814,14 @@ static void test_drag_mouse_point(void) {
     rows = as_slipway(second)->end;
     assert(rows != NULL && rows != first_end && as_slipway(first)->end == first_end);
     assert(holds_copy_of(mouse_point_pos(rows), first_mouse) && same_vec(vec_of(mouse_point_map_pos(rows)), first_pos));
-    assert(holds_copy_of(mouse_point_pos(first_end), second_mouse) && "another slipway's hq leaves this one's point as it was");
+    assert(holds_copy_of(mouse_point_pos(first_end), second_mouse) && "another slipway's drag leaves this one's point as it was");
     hash = fold_slipway(hash, second);
 
     drag_over(first, target, vec_ref_fixed(vec_of(as_planet(target)->pos)));
     assert(as_slipway(first)->end == target && end_kind(first) == END_PLANET);
     assert(holds_copy_of(mouse_point_pos(rows), first_mouse));
     hash = fold_slipway(hash, first);
-    check("mouse point", hash, MOUSE_POINT_HASH);
+    check("mouse_point", hash, MOUSE_POINT_HASH);
 
     on_camera = vec_add(vec_of(main_camera_typed()->pos),
                               vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64)));
@@ -858,7 +858,7 @@ static void test_obstruction_crosses_a_slipway(void) {
             entity_unregister(a);
         }
     }
-    printf("[ce] crossed from planet %d\n", i - 1);
+    printf("[obstruction] crossed from planet %d\n", i - 1);
     assert(crossed);
 }
 

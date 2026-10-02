@@ -62,8 +62,8 @@ void slipway_draw_line(const p8_graphics_t *gfx, p8_memory_t *mem, const slipway
         return;
     }
 
-    assert(s > p8_fixed_from_int(0) && "jc:lg only ascends: a zero step hangs, a negative one draws nothing");
-    assert(gfx != NULL && mem != NULL && "pico8_line dereferences gfx and mem: neither may be NULL here");
+    assert(s > p8_fixed_from_int(0) && "slipway_draw_line only ascends: a zero step hangs, a negative one draws nothing");
+    assert(gfx != NULL && mem != NULL && "p8_line dereferences the graphics state and memory: neither may be NULL here");
 
     qu = self->start;
     re = self->end;
@@ -107,7 +107,7 @@ void slipway_draw(const p8_graphics_t *gfx, p8_memory_t *mem, slipway_t *self) {
         p8_fixed_t border_color;
         p8_fixed_t dot_color;
 
-        assert(fade_in_step_i >= 1 && "k_ is 1-based: an nh of 0 would silently draw the slipway black");
+        assert(fade_in_step_i >= 1 && "trail colors are 1-based: a fade-in step of 0 would silently draw the slipway black");
 
         if (self->archetype->trail_colors != NULL) {
             int entry;

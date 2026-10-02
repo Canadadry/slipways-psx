@@ -66,7 +66,7 @@ down_t slipgate_left_press(planet_t *self) {
         return accept_drop_result;
     }
 
-    assert(slipway_ready() && "pico8_jc_init() must run before nr:ldown builds a jc");
+    assert(slipway_ready() && "slipway_init() must run before slipgate_left_press builds a slipway");
     keys.start = (entity_t *)self;
     accept_drop_result.held = (entity_t *)slipway_new(&keys);
     accept_drop_result.stop = accept_drop_result.held != NULL;
@@ -141,7 +141,7 @@ void slipgate_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
             entity_t *other;
 
             gf.route = extended;
-            assert(slipway->class == slipway_class() && "nr.oe holds slipways only: jo:kf adds to it");
+            assert(slipway->class == slipway_class() && "a slipgate's slipways list holds slipways only: planet_attach_slipway adds to it");
             other = slipway_other_end((const slipway_t *)slipway, (const entity_t *)self);
             /* `&gf` is a stack address passed to a dispatched `cn`: safe
              * only while no `cn` implementation stores its proposal. */
@@ -190,7 +190,7 @@ static void slipgate_init_instance(planet_t *self, const entity_class_t *cls, co
 static planet_t *slipgate_create(const planet_keys_t *keys) {
     planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
-    assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
+    assert(g_family_trade_up && "planet_family_trade_init() must run first");
     slipgate_init_instance(self, &g_slipgate_class, &slipgate_archetype);
     if (keys != NULL) {
         if (keys->planet_id != NULL) {
@@ -236,12 +236,12 @@ static const entity_class_t g_infraspace_gate_class = {
 static planet_t *infraspace_gate_create(const planet_keys_t *keys) {
     planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
-    assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
+    assert(g_family_trade_up && "planet_family_trade_init() must run first");
     slipgate_init_instance(self, &g_infraspace_gate_class, &infraspace_gate_archetype);
     self->header.infraspace = &self->archetype->infraspace;
     if (keys != NULL) {
         assert(keys->map_pos == NULL && keys->pos == NULL &&
-               "fr: the only construction key is id (ie:ldown); another key has no member "
+               "infraspace_gate_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
                "-- stop, do not add one");
         if (keys->planet_id != NULL) {
             self->planet_id = keys->planet_id;
@@ -259,7 +259,7 @@ void synthesizer_attach_slipway(planet_t *self, entity_t *slipway) {
     entity_t *other_end = NULL;
 
     if (self != NULL && slipway != NULL) {
-        assert(slipway->class == slipway_class() && "mx:kf: sw is the slipway jc:ey registers");
+        assert(slipway->class == slipway_class() && "synthesizer_attach_slipway: the slipway is one slipway_drop registers");
         other_end = slipway_other_end((const slipway_t *)slipway, (const entity_t *)self);
     }
 
@@ -268,7 +268,7 @@ void synthesizer_attach_slipway(planet_t *self, entity_t *slipway) {
         pointer_list_iter_t it;
         void *i_val;
 
-        assert(planet_is_family(other_end) && "mx:kf: the other end of a registered slipway is a planet");
+        assert(planet_is_family(other_end) && "synthesizer_attach_slipway: the other end of a registered slipway is a planet");
         jy = ((const planet_t *)other_end)->needs;
 
         it = pointer_list_all(jy);
@@ -330,12 +330,12 @@ static const entity_class_t g_synthesizer_class = {
 static planet_t *synthesizer_create(const planet_keys_t *keys) {
     planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
-    assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
+    assert(g_family_trade_up && "planet_family_trade_init() must run first");
     ascension_init_instance(self, &g_synthesizer_class, &synthesizer_archetype);
     self->synthesizable_resources = self->archetype->synthesizable_resources;
     if (keys != NULL) {
         assert(keys->map_pos == NULL && keys->pos == NULL &&
-               "mx: the only construction key is id (ie:ldown); another key has no member "
+               "synthesizer_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
                "-- stop, do not add one");
         if (keys->planet_id != NULL) {
             self->planet_id = keys->planet_id;
@@ -352,7 +352,7 @@ static planet_t *synthesizer_create(const planet_keys_t *keys) {
 
 void planet_family_trade_init(void) {
     assert(structure_ready() && ascension_ready() &&
-           "pico8_planet_family_init() must run first");
+           "planet_family_init() must run first");
     planet_family_trade_shutdown();
     draw_functions_init();
     g_family_trade_up = 1;

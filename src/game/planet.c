@@ -25,7 +25,7 @@ static random_walk_t *g_planet_vanish_roll = NULL;
 static production_t g_planet_production_shared;
 
 /* Nom des arenes de prise : son adresse les reconnait (pico8_jo_prise_arene_rendue). */
-static const char g_planet_name_grab_arena[] = "prise";
+static const char g_planet_name_grab_arena[] = "grab";
 #define GRAB_ARENAS_FREE_MAX 8
 
 /* Non NULL seulement entre pico8_jo_prise_ouvrir et _fermer. */
@@ -66,7 +66,7 @@ static const entity_class_t g_planet_class = {
 };
 
 void planet_init_instance(planet_t *self, const entity_class_t *cls, const planet_archetype_t *archetype) {
-    assert(g_planet_up && "pico8_jo_init() must run first");
+    assert(g_planet_up && "planet_init() must run first");
     entity_init_instance(&self->header, cls, archetype->state, archetype->state_time);
     self->archetype = archetype;
     self->header.layer = &self->archetype->layer;
@@ -188,7 +188,7 @@ const allocator_t *planet_zone_construction(void) {
 }
 
 void planet_grab_arena_open(void) {
-    assert(g_planet_grab_arena == NULL && "une prise d'icone est deja ouverte");
+    assert(g_planet_grab_arena == NULL && "a grab arena is already open");
     if (g_planet_grab_arenas_free_n > 0) {
         g_planet_grab_arena = g_planet_grab_arenas_free[--g_planet_grab_arenas_free_n];
         arena_flush(g_planet_grab_arena);
@@ -217,7 +217,7 @@ void planet_grab_arena_arena_released(const allocator_t *zone) {
         return;
     }
     assert(g_planet_grab_arenas_free_n < GRAB_ARENAS_FREE_MAX &&
-           "prises libres pleines : plus de prises refusees en vol que prevu");
+           "free grab arenas full: more refused grabs in flight than expected");
     g_planet_grab_arenas_free[g_planet_grab_arenas_free_n++] = zone;
 }
 
@@ -228,7 +228,7 @@ void planet_forget_targeted_by(const entity_t *e) {
     for (int i = 0; np != NULL && i < np->count; i++) {
         planet_t *p = (planet_t *)np->items[i];
 
-        assert(planet_is_family(&p->header) && "cg.np ne tient que des planetes, qui ont un fo");
+        assert(planet_is_family(&p->header) && "the node tag holds planets only, and only planets have targeted_by");
         if (p->targeted_by == e) {
             p->targeted_by = NULL;
         }
@@ -391,7 +391,7 @@ void planet_new_year(const planet_t *self) {
 void planet_bob(entity_t *self, p8_fixed_t t) {
     vec_t *pos_vec;
 
-    assert((self == NULL || planet_is_family(self)) && "na: self is a planet (qh:ly, nl:ly) -- stop");
+    assert((self == NULL || planet_is_family(self)) && "planet_bob: self is a planet (structure and trading hub settled updates) -- stop");
     pos_vec = self != NULL ? ((planet_t *)self)->pos : NULL;
     if (pos_vec != NULL) {
         p8_fixed_t delta = p8_fixed_mul(p8_fixed_sin(p8_fixed_mul(t, P8_FIXED_LIT(0x00000147, 0.005))),
