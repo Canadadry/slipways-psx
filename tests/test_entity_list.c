@@ -127,7 +127,7 @@ static void test_filter_keeps_what_the_predicate_keeps_in_order(void) {
 static void test_clear_keeps_items_and_capacity_and_takes_nothing_until_past_them(void) {
     entity_t cells[9];
     entity_list_t entity_list;
-    const allocator_t *arena = arena_take(&heap_allocator, "tu ents", 1024);
+    const allocator_t *arena = arena_take(&heap_allocator, "test-entity-list", 1024);
     int i;
     entity_list_init(&entity_list, arena);
     for (i = 0; i < 5; i++) {
@@ -153,7 +153,7 @@ static void test_clear_keeps_items_and_capacity_and_takes_nothing_until_past_the
 static void test_reserved_list_fills_its_capacity_without_taking_then_grows(void) {
     entity_t cells[4];
     entity_list_t entity_list;
-    const allocator_t *arena = arena_take(&heap_allocator, "tu ents", 1024);
+    const allocator_t *arena = arena_take(&heap_allocator, "test-entity-list", 1024);
     int i;
     entity_list_init_reserve(&entity_list, arena, 3);
     assert(entity_list.count == 0 && entity_list.capacity == 3 && entity_list.zone == arena);
@@ -162,7 +162,7 @@ static void test_reserved_list_fills_its_capacity_without_taking_then_grows(void
     for (i = 0; i < 3; i++) {
         entity_list_add(&entity_list, &cells[i]);
     }
-    assert(arena_used(arena) == grab_arena && "n adds into a list reserved for n take nothing");
+    assert(arena_used(arena) == grab_arena && "adding up to the reserved capacity takes nothing");
     assert(entity_list.count == 3 && entity_list.capacity == 3);
     for (i = 0; i < 3; i++) {
         assert(entity_list.items[i] == &cells[i]);
@@ -176,7 +176,7 @@ static void test_reserved_list_fills_its_capacity_without_taking_then_grows(void
 
 static void test_reserving_zero_takes_nothing(void) {
     entity_list_t entity_list;
-    const allocator_t *arena = arena_take(&heap_allocator, "tu ents", 1024);
+    const allocator_t *arena = arena_take(&heap_allocator, "test-entity-list", 1024);
     const size_t grab_arena = arena_used(arena);
     entity_list_init_reserve(&entity_list, arena, 0);
     assert(entity_list.count == 0 && entity_list.capacity == 0 && entity_list.items == NULL && entity_list.zone == arena);

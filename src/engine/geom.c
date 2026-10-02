@@ -48,6 +48,6 @@ box_t *box_make(const allocator_t *zone, p8_fixed_t xl, p8_fixed_t yt,
 }
 
 int box_contains(const box_t *box, vec_t p) {
-    assert(box != NULL && "qz: the box is the caller's to check, not this call's");
+    assert(box != NULL && "box_contains: the box is the caller's to check, not this call's");
     return p8_fixed_mid(box->left, box->right, p.x) == p.x && p8_fixed_mid(box->top, box->bottom, p.y) == p.y;
 }

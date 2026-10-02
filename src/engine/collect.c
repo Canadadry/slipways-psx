@@ -28,7 +28,7 @@ pointer_list_t collect_map_pointer_list(const allocator_t *zone, const pointer_l
     pointer_list_t m;
     pointer_list_iter_t it;
     void *e;
-    assert(qk != NULL && "nv: a NULL list is not tolerated here, unlike gu and jp");
+    assert(qk != NULL && "collect_map_pointer_list: a NULL list is not tolerated here, unlike collect_contains_string and collect_filter_pointer_list");
     pointer_list_init(&m, zone);
     it = pointer_list_all(qk);
     while (pointer_list_iter_next(&it, &e)) {
@@ -47,7 +47,7 @@ static void append_pointer_list(void *e, void *ctx) {
 pointer_list_t collect_concat_pointer_list(const allocator_t *zone, const pointer_list_t *a,
                            const pointer_list_t *b) {
     pointer_list_t t;
-    assert(a != NULL && b != NULL && "la: a NULL list is not tolerated here, unlike gu and jp");
+    assert(a != NULL && b != NULL && "collect_concat_pointer_list: a NULL list is not tolerated here, unlike collect_contains_string and collect_filter_pointer_list");
     pointer_list_init(&t, zone);
     pointer_list_foreach(a, append_pointer_list, &t);
     pointer_list_foreach(b, append_pointer_list, &t);

@@ -64,7 +64,7 @@ static int case_reset_before_first_use(void) {
 static int case_alive_within_frame(void) {
     unsigned char *block = counting_block();
     allocate_again();
-    for (int i = 0; i < 64; i++) assert(block[i] == i && "un bloc de frame vit jusqu'a la remise a zero");
+    for (int i = 0; i < 64; i++) assert(block[i] == i && "a frame block lives until the reset");
     return 0;
 }
 
@@ -165,7 +165,7 @@ static int case_inspection_panel_rows_survive_reset(void) {
     kw.amount = p8_fixed_from_int(1);
     planet->production = &kw;
     planet_inspection_panel(planet);
-    assert(main_ui()->ephemerals->count >= 2 && "jo:gh: l'icone et la rangee exports");
+    assert(main_ui()->ephemerals->count >= 2 && "planet_inspection_panel: the icon and the exports row");
     reset_then_draw_panel();
     return 0;
 }
@@ -174,7 +174,7 @@ static int case_invented_lines_survive_reset(void) {
     start_game();
     pointer_list_add(main_economy_typed()->invented, "slipgates");
     menu_show_tech_tree_screen();
-    assert(reset_then_draw_panel() >= 1 && "cr: la rangee n invented porte sa bulle");
+    assert(reset_then_draw_panel() >= 1 && "menu_show_tech_tree_screen: the invented-count row carries its tooltip");
     return 0;
 }
 
@@ -185,7 +185,7 @@ static int case_research_project_tooltip_survives_reset(void) {
     planet = (planet_t *)entities_by_tag("planet")->items[0];
     planet_roll_type(planet);
     (void)planet_left_press(planet);
-    assert(reset_then_draw_panel() >= 1 && "jo:fe: un batiment porte la bulle de hp:jb");
+    assert(reset_then_draw_panel() >= 1 && "planet_projects_panel: a building carries the research_project tooltip");
     return 0;
 }
 
@@ -213,10 +213,10 @@ static int case_final_score_happiness_survives_reset(void) {
     fm->has_end_status = 1;
     ju = main_score_panel();
     ju->header.class->states[ENTITY_STATE_NORMAL](&ju->header, 0);
-    assert(shown_message_box() != NULL && "pj:ph: une partie finie ouvre la boite du score");
+    assert(shown_message_box() != NULL && "score_panel_update_method: a finished game opens the score message box");
     frame_zone_reset();
     allocate_again();
-    assert(happiness_cells(shown_message_box()) == 1 && "pj:ph: la case du bonheur garde sa copie de ky");
+    assert(happiness_cells(shown_message_box()) == 1 && "score_panel_update_method: the happiness cell keeps its copy of the final score");
     return 0;
 }
 
@@ -328,7 +328,7 @@ static const struct {
     {"inspection_panel_rows_survive_reset", case_inspection_panel_rows_survive_reset},
     {"invented_lines_survive_reset", case_invented_lines_survive_reset},
     {"research_project_tooltip_survives_reset", case_research_project_tooltip_survives_reset},
-    {"ky_happiness_survives_reset", case_final_score_happiness_survives_reset},
+    {"final_score_happiness_survives_reset", case_final_score_happiness_survives_reset},
     {"panel_texts_survive_reset", case_panel_texts_survive_reset},
     {"panel_struct_in_zone", case_panel_struct_in_zone},
     {"bubble_struct_in_zone", case_bubble_struct_in_zone},
@@ -370,8 +370,8 @@ static void expect_clean(const char *name) {
     char *err;
     int status = run_child(name, &err);
     if (WEXITSTATUS(status) != 0 || err[0] != '\0') {
-        fprintf(stderr, "%s: attendu propre, sortie %d\n%s", name, WEXITSTATUS(status), err);
-        assert(0 && "le cas ne doit ni planter ni ecrire sur stderr");
+        fprintf(stderr, "%s: expected clean, exit %d\n%s", name, WEXITSTATUS(status), err);
+        assert(0 && "the case must neither crash nor write to stderr");
     }
     free(err);
 }
@@ -380,8 +380,8 @@ static void expect_poison_crash(const char *name) {
     char *err;
     int status = run_child(name, &err);
     if (WEXITSTATUS(status) == 0 || strstr(err, "use-after-poison") == NULL) {
-        fprintf(stderr, "%s: attendu use-after-poison, sortie %d\n%s", name, WEXITSTATUS(status), err);
-        assert(0 && "un bloc de frame lu a la frame suivante doit planter sous ASan");
+        fprintf(stderr, "%s: expected use-after-poison, exit %d\n%s", name, WEXITSTATUS(status), err);
+        assert(0 && "a frame block read on the next frame must crash under ASan");
     }
     free(err);
 }
@@ -390,9 +390,9 @@ static void expect_fatal(const char *name, const char *message) {
     char *err;
     int status = run_child(name, &err);
     if (WEXITSTATUS(status) != 3 || strstr(err, message) == NULL) {
-        fprintf(stderr, "%s: attendu sortie 3 et \"%s\", sortie %d\n%s",
+        fprintf(stderr, "%s: expected exit 3 and \"%s\", exit %d\n%s",
                 name, message, WEXITSTATUS(status), err);
-        assert(0 && "la zone frame pleine doit appeler pico8_fatal");
+        assert(0 && "a full frame zone must call p8_fatal");
     }
     free(err);
 }
@@ -401,7 +401,7 @@ int main(int argc, char **argv) {
     if (argc == 2) {
         for (size_t i = 0; i < CASE_COUNT; i++)
             if (strcmp(argv[1], CASES[i].name) == 0) return CASES[i].run();
-        fprintf(stderr, "test_frame_zone: cas inconnu %s\n", argv[1]);
+        fprintf(stderr, "test_frame_zone: unknown case %s\n", argv[1]);
         return 2;
     }
     self_path = argv[0];
@@ -417,7 +417,7 @@ int main(int argc, char **argv) {
     expect_clean("inspection_panel_rows_survive_reset");
     expect_clean("invented_lines_survive_reset");
     expect_clean("research_project_tooltip_survives_reset");
-    expect_clean("ky_happiness_survives_reset");
+    expect_clean("final_score_happiness_survives_reset");
     expect_clean("panel_texts_survive_reset");
     expect_poison_crash("panel_struct_in_zone");
     expect_poison_crash("bubble_struct_in_zone");

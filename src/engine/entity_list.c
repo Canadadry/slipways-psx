@@ -6,7 +6,7 @@
 #define ENTITY_LIST_INITIAL_CAPACITY 4
 
 void entity_list_init(entity_list_t *entity_list, const allocator_t *zone) {
-    assert(zone != NULL && "ents_init: a list without a zone would grow nowhere");
+    assert(zone != NULL && "entity_list_init: a list without a zone would grow nowhere");
     entity_list->items = NULL;
     entity_list->count = 0;
     entity_list->capacity = 0;
@@ -24,7 +24,7 @@ void entity_list_init_reserve(entity_list_t *entity_list, const allocator_t *zon
 }
 
 void entity_list_free(entity_list_t *entity_list) {
-    assert(entity_list != NULL && "ents primitive called on a NULL container");
+    assert(entity_list != NULL && "entity_list primitive called on a NULL container");
     if (entity_list->items != NULL) {
         allocator_release(entity_list->zone, (unsigned char *)entity_list->items);
     }
@@ -34,13 +34,13 @@ void entity_list_free(entity_list_t *entity_list) {
 }
 
 void entity_list_clear(entity_list_t *entity_list) {
-    assert(entity_list != NULL && "ents primitive called on a NULL container");
+    assert(entity_list != NULL && "entity_list primitive called on a NULL container");
     entity_list->count = 0;
 }
 
 static void entity_list_grow(entity_list_t *entity_list) {
     int new_capacity = entity_list->capacity == 0 ? ENTITY_LIST_INITIAL_CAPACITY : entity_list->capacity * 2;
-    assert(entity_list->zone != NULL && "ents_add on a list pico8_ents_init never gave a zone");
+    assert(entity_list->zone != NULL && "entity_list_add on a list entity_list_init never gave a zone");
     entity_list->items = (entity_t **)allocator_grow(
         entity_list->zone, (unsigned char *)entity_list->items, (size_t)entity_list->capacity * sizeof *entity_list->items,
         (size_t)new_capacity * sizeof *entity_list->items);
@@ -48,7 +48,7 @@ static void entity_list_grow(entity_list_t *entity_list) {
 }
 
 void entity_list_add(entity_list_t *entity_list, entity_t *e) {
-    assert(entity_list != NULL && "ents primitive called on a NULL container");
+    assert(entity_list != NULL && "entity_list primitive called on a NULL container");
     if (entity_list->count == entity_list->capacity) {
         entity_list_grow(entity_list);
     }
@@ -58,7 +58,7 @@ void entity_list_add(entity_list_t *entity_list, entity_t *e) {
 
 int entity_list_del(entity_list_t *entity_list, const entity_t *e) {
     int i;
-    assert(entity_list != NULL && "ents primitive called on a NULL container");
+    assert(entity_list != NULL && "entity_list primitive called on a NULL container");
     for (i = 0; i < entity_list->count; i++) {
         if (entity_list->items[i] == e) {
             int j;
@@ -89,7 +89,7 @@ entity_list_t entity_list_concat(const allocator_t *zone, const entity_list_t *a
                             const entity_list_t *b) {
     entity_list_t out;
     int i;
-    assert(a != NULL && b != NULL && "cat: a NULL list is not tolerated, unlike has");
+    assert(a != NULL && b != NULL && "entity_list_concat: a NULL list is not tolerated, unlike entity_list_has");
     entity_list_init(&out, zone);
     for (i = 0; i < a->count; i++) {
         entity_list_add(&out, a->items[i]);
@@ -120,7 +120,7 @@ entity_list_t entity_list_filter(const allocator_t *zone, const entity_list_t *q
 
 entity_list_iter_t entity_list_all(const entity_list_t *entity_list) {
     entity_list_iter_t it;
-    assert(entity_list != NULL && "ents primitive called on a NULL container");
+    assert(entity_list != NULL && "entity_list primitive called on a NULL container");
     it.entity_list = entity_list;
     it.index = -1;
     it.last_count = entity_list->count;

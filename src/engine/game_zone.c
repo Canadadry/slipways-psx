@@ -17,9 +17,9 @@ static size_t load_zone_max_used;
  * qu'un initialiseur statique ne ferait pas. */
 static void game_zone_init_once(void) {
     if (game_zone_allocator != NULL) return;
-    flip_zone_init(&game_zone_storage, "partie", game_zone_cells, ZONE_GENERATION_BYTES);
+    flip_zone_init(&game_zone_storage, "game", game_zone_cells, ZONE_GENERATION_BYTES);
     game_zone_allocator = allocator_from_flip_zone(&game_zone_handle, &game_zone_storage);
-    bump_zone_init(&load_zone_storage, "chargement", load_zone_cells, LOAD_ZONE_BYTES);
+    bump_zone_init(&load_zone_storage, "load", load_zone_cells, LOAD_ZONE_BYTES);
     load_zone_handle = allocator_from_bump_zone(&load_zone_storage);
 }
 

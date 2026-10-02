@@ -6,7 +6,7 @@
 #define POINTER_LIST_INITIAL_CAPACITY 4
 
 void pointer_list_init(pointer_list_t *pointer_list, const allocator_t *zone) {
-    assert(zone != NULL && "ptrs_init: a list without a zone would grow nowhere");
+    assert(zone != NULL && "pointer_list_init: a list without a zone would grow nowhere");
     pointer_list->items = NULL;
     pointer_list->count = 0;
     pointer_list->capacity = 0;
@@ -21,7 +21,7 @@ void pointer_list_init_reserve(pointer_list_t *pointer_list, const allocator_t *
 }
 
 void pointer_list_free(pointer_list_t *pointer_list) {
-    assert(pointer_list != NULL && "ptrs primitive called on a NULL container");
+    assert(pointer_list != NULL && "pointer_list primitive called on a NULL container");
     if (pointer_list->items != NULL) {
         allocator_release(pointer_list->zone, (unsigned char *)pointer_list->items);
     }
@@ -32,7 +32,7 @@ void pointer_list_free(pointer_list_t *pointer_list) {
 
 static void pointer_list_grow(pointer_list_t *pointer_list) {
     int new_capacity = pointer_list->capacity == 0 ? POINTER_LIST_INITIAL_CAPACITY : pointer_list->capacity * 2;
-    assert(pointer_list->zone != NULL && "ptrs_add on a list pico8_ptrs_init never gave a zone");
+    assert(pointer_list->zone != NULL && "pointer_list_add on a list pointer_list_init never gave a zone");
     pointer_list->items = (void **)allocator_grow(pointer_list->zone, (unsigned char *)pointer_list->items,
                                            (size_t)pointer_list->capacity * sizeof(void *),
                                            (size_t)new_capacity * sizeof(void *));
@@ -40,7 +40,7 @@ static void pointer_list_grow(pointer_list_t *pointer_list) {
 }
 
 void pointer_list_add(pointer_list_t *pointer_list, void *e) {
-    assert(pointer_list != NULL && "ptrs primitive called on a NULL container");
+    assert(pointer_list != NULL && "pointer_list primitive called on a NULL container");
     if (pointer_list->count == pointer_list->capacity) {
         pointer_list_grow(pointer_list);
     }
@@ -50,7 +50,7 @@ void pointer_list_add(pointer_list_t *pointer_list, void *e) {
 
 int pointer_list_del(pointer_list_t *pointer_list, const void *e) {
     int i;
-    assert(pointer_list != NULL && "ptrs primitive called on a NULL container");
+    assert(pointer_list != NULL && "pointer_list primitive called on a NULL container");
     for (i = 0; i < pointer_list->count; i++) {
         if (pointer_list->items[i] == e) {
             int j;
@@ -66,7 +66,7 @@ int pointer_list_del(pointer_list_t *pointer_list, const void *e) {
 
 pointer_list_iter_t pointer_list_all(const pointer_list_t *pointer_list) {
     pointer_list_iter_t it;
-    assert(pointer_list != NULL && "ptrs primitive called on a NULL container");
+    assert(pointer_list != NULL && "pointer_list primitive called on a NULL container");
     it.pointer_list = pointer_list;
     it.index = -1;
     it.last_count = pointer_list->count;
@@ -96,7 +96,7 @@ int pointer_list_iter_next(pointer_list_iter_t *iter, void **out) {
 
 void pointer_list_foreach(const pointer_list_t *pointer_list, pointer_list_foreach_fn_t fn, void *ctx) {
     int i;
-    assert(pointer_list != NULL && "ptrs primitive called on a NULL container");
+    assert(pointer_list != NULL && "pointer_list primitive called on a NULL container");
     for (i = 0; i < pointer_list->count; i++) {
         fn(pointer_list->items[i], ctx);
     }

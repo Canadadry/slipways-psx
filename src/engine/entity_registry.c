@@ -124,7 +124,7 @@ const entity_list_t *live_entities(void) {
 
 const entity_list_t *entities_by_message(const char *name) {
     int i;
-    assert(g_initialized && "pico8_entity_init() must run before cv is read");
+    assert(g_initialized && "entity_registry_init() must run before entities_by_message is read");
     for (i = 0; i < MESSAGE_COUNT; i++) {
         if (strcmp(g_entities_by_message[i].name, name) == 0) {
             return &g_entities_by_message[i].list;
@@ -219,7 +219,7 @@ void draw_layers(const char *message) {
     int is_draw = strcmp(message, "draw") == 0;
     int index, layer_index;
 
-    assert((is_draw || strcmp(message, "draw_overlay") == 0) && "dc: only kj and ev are drawn through dc");
+    assert((is_draw || strcmp(message, "draw_overlay") == 0) && "draw_layers: only draw and draw_overlay go through draw_layers");
 
     for (index = 0; index < 15; index++) {
         entity_list_init(&layers[index], frame_zone());

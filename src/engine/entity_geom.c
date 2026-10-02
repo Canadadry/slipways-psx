@@ -57,7 +57,7 @@ vec_t entity_geom_shake(vec_t p, entity_t *e) {
     p8_fixed_t t = p8_fixed_from_int(0);
 
     if (e != NULL) {
-        assert(e->shake != NULL && "ma: e is a planet (jo:kj) or the camera (qb:ph)");
+        assert(e->shake != NULL && "entity_geom_shake: the entity is a planet (planet_draw) or the camera (camera_update)");
         ma = e->shake;
     }
     decremented = p8_fixed_sub(ma != NULL ? *ma : p8_fixed_from_int(0), P8_FIXED_LIT(0x00001999, 0.1));

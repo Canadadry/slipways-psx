@@ -70,7 +70,7 @@ static int case_alive_through_start_game(void) {
     unsigned char *block = counting_block();
     cart_start_game(NULL);
     allocate_again();
-    for (int i = 0; i < 64; i++) assert(block[i] == i && "la generation quittee vit jusqu'au vidage qui suit eu");
+    for (int i = 0; i < 64; i++) assert(block[i] == i && "the generation left behind lives until the flush after cart_start_game");
     return 0;
 }
 
@@ -92,7 +92,7 @@ static int case_init_keeps_generation(void) {
     cart_init();
     cart_update60();
     allocate_again();
-    for (int i = 0; i < 64; i++) assert(block[i] == i && "_init ne fait pas basculer la zone partie");
+    for (int i = 0; i < 64; i++) assert(block[i] == i && "cart_init does not flip the game zone");
     return 0;
 }
 
@@ -150,7 +150,7 @@ static size_t planets_bytes(void) {
     size_t bytes = 0;
     for (int i = 0; jo != NULL && i < jo->count; i++) {
         const planet_t *p = (const planet_t *)jo->items[i];
-        assert(p->needs == NULL && "une planete a des besoins, que P ne compte pas");
+        assert(p->needs == NULL && "a planet has needs, which planets_bytes does not count");
         bytes += block_bytes(sizeof *p) + block_bytes(sizeof *p->map_pos) + block_bytes(sizeof *p->pos) +
                   block_bytes(strlen(p->planet_id) + 1) + planet_list_bytes(p->slipways) +
                   planet_list_bytes(p->outgoing_routes) + planet_list_bytes(p->incoming_routes);
@@ -162,8 +162,8 @@ static size_t planets_bytes(void) {
  * `invented`, sans elements tant que rien n'est invente. */
 static size_t economy_bytes(void) {
     const economy_t *fm = main_economy_typed();
-    assert(fm != NULL && fm->invented != NULL && "eu a fait l'economie de la partie");
-    assert(fm->invented->count == 0 && fm->invented->items == NULL && "une invention, que l'economie ne compte pas");
+    assert(fm != NULL && fm->invented != NULL && "cart_start_game built the economy of the game");
+    assert(fm->invented->count == 0 && fm->invented->items == NULL && "an invention, which economy_bytes does not count");
     return block_bytes(sizeof *fm) + block_bytes(sizeof *fm->invented);
 }
 
@@ -172,20 +172,20 @@ static size_t economy_bytes(void) {
  * de chaque icone revelee. */
 static size_t icons_bytes(void) {
     const entity_list_t *hv = live_entities();
-    const allocator_t *mesure = arena_take(frame_zone(), "mesure des bulles", 16384);
+    const allocator_t *mesure = arena_take(frame_zone(), "tooltip-measure", 16384);
     const size_t head = arena_used(mesure);
     size_t bytes = 0;
     int k = 0;
     for (int i = 0; hv != NULL && i < hv->count; i++) {
         const structure_icon_t *ie = (const structure_icon_t *)hv->items[i];
         if (ie->header.class != structure_icon_class()) continue;
-        assert(k < ICON_TOOLTIPS_COUNT && "plus d'icones que de bulles dans dr");
+        assert(k < ICON_TOOLTIPS_COUNT && "more icons than tooltips in icon_tooltips_table");
         (void)tooltip_new(mesure, &icon_tooltips_table[k]);
         bytes += block_bytes(sizeof *ie);
         if (ie->has_is_revealed && ie->is_revealed) bytes += block_bytes(sizeof(vec_t));
         k++;
     }
-    assert(k == ICON_TOOLTIPS_COUNT && "eu fait une icone par bulle de dr");
+    assert(k == ICON_TOOLTIPS_COUNT && "cart_start_game makes one icon per tooltip of icon_tooltips_table");
     return bytes + arena_used(mesure) - head;
 }
 
@@ -201,7 +201,7 @@ static size_t singletons_bytes(void) {
     const entity_list_t *hv = live_entities();
     int bg = 0;
     for (int i = 0; hv != NULL && i < hv->count; i++) bg += hv->items[i]->class == background_class();
-    assert(bg == 1 && "eu fait un seul bg");
+    assert(bg == 1 && "cart_start_game makes a single background");
     assert(main_camera_typed() != NULL && main_mouse_typed() != NULL && main_ui() != NULL && main_score_panel() != NULL);
     return block_bytes(sizeof(camera_t)) + block_bytes(sizeof(mouse_t)) +
            block_bytes(sizeof(ui_t)) + block_bytes(sizeof(background_t)) +
@@ -216,7 +216,7 @@ static int case_grab_arena_and_max(void) {
     assert(game_zone_used() == title + 64);
     cart_start_game(NULL);
     const size_t game_zone_used_before = game_zone_used();
-    assert(game_zone_used_before >= title + 64 + g && "les deux generations comptent jusqu'au rendu");
+    assert(game_zone_used_before >= title + 64 + g && "both generations count until the release");
     (void)counting_block();
     assert(game_zone_used() == game_zone_used_before + 64);
     cart_update60();
@@ -225,7 +225,7 @@ static int case_grab_arena_and_max(void) {
     assert(game_zone_max() == game_zone_used_before + 64);
     cart_shutdown();
     assert(game_zone_used() == 0);
-    assert(game_zone_max() == game_zone_used_before + 64 && "le maximum ne se remet qu'avec le processus");
+    assert(game_zone_max() == game_zone_used_before + 64 && "the maximum is only reset with the process");
     return 0;
 }
 
@@ -241,7 +241,7 @@ static int case_load_zone_survives_start_game(void) {
     cart_start_game(NULL);
     cart_update60();
     allocate_again();
-    for (int i = 0; i < 64; i++) assert(block[i] == i && "la sous-zone chargement ne suit pas les generations");
+    for (int i = 0; i < 64; i++) assert(block[i] == i && "the load sub-zone does not follow the generations");
     return 0;
 }
 
@@ -261,11 +261,11 @@ static int case_load_zone_grab_arena_and_max(void) {
     assert(load_zone_used() == start + 64);
     cart_start_game(NULL);
     cart_update60();
-    assert(load_zone_used() == start + 64 && "ni eu ni le rendu ne touchent la sous-zone");
+    assert(load_zone_used() == start + 64 && "neither cart_start_game nor the release touches the sub-zone");
     assert(game_zone_load_zone_max() == start + 64);
     cart_shutdown();
     assert(load_zone_used() == 0);
-    assert(game_zone_load_zone_max() == start + 64 && "le maximum ne se remet qu'avec le processus");
+    assert(game_zone_load_zone_max() == start + 64 && "the maximum is only reset with the process");
     return 0;
 }
 
@@ -287,14 +287,14 @@ static int case_static_lists_in_load_zone(void) {
     entity_list_t *le = ui_ephemerals_shared();
     entity_list_add(le, &element);
     assert(load_zone_used() == start + four_pointers_bytes() &&
-           "la liste de depart de ok.le prend sa capacite dans la sous-zone chargement");
+           "the starting ui_ephemerals_shared list takes its capacity in the load sub-zone");
     entity_list_t *by = burst_new(NULL)->outgoing_routes;
     entity_list_add(by, &element);
     assert(load_zone_used() == start + 2 * four_pointers_bytes() &&
-           "le by partage des ga prend sa capacite dans la sous-zone chargement");
+           "the outgoing_routes list bursts share takes its capacity in the load sub-zone");
     cart_shutdown();
-    assert(le->items == NULL && le->count == 0 && le->capacity == 0 && "ui_shutdown oublie la liste de depart");
-    assert(by->items == NULL && by->count == 0 && by->capacity == 0 && "le shutdown oublie le by partage");
+    assert(le->items == NULL && le->count == 0 && le->capacity == 0 && "ui_shutdown forgets the starting list");
+    assert(by->items == NULL && by->count == 0 && by->capacity == 0 && "the shutdown forgets the shared outgoing_routes list");
     return 0;
 }
 
@@ -313,13 +313,13 @@ static const struct {
     {"dead_after_next_update", case_dead_after_next_update},
     {"init_keeps_generation", case_init_keeps_generation},
     {"dead_after_cart_load", case_dead_after_cart_load},
-    {"prise_and_max", case_grab_arena_and_max},
+    {"grab_arena_and_max", case_grab_arena_and_max},
     {"double_start_game_without_flush", case_double_start_game_without_flush},
     {"load_zone_survives_start_game", case_load_zone_survives_start_game},
-    {"chargement_dead_after_cart_load", case_load_zone_dead_after_cart_load},
-    {"chargement_prise_and_max", case_load_zone_grab_arena_and_max},
-    {"chargement_full", case_load_zone_full},
-    {"listes_statiques_dans_chargement", case_static_lists_in_load_zone},
+    {"load_zone_dead_after_cart_load", case_load_zone_dead_after_cart_load},
+    {"load_zone_grab_arena_and_max", case_load_zone_grab_arena_and_max},
+    {"load_zone_full", case_load_zone_full},
+    {"static_lists_in_load_zone", case_static_lists_in_load_zone},
 };
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
@@ -358,8 +358,8 @@ static void expect_clean(const char *name) {
     char *err;
     int status = run_child(name, &err);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0 || err[0] != '\0') {
-        fprintf(stderr, "%s: attendu propre, statut %d\n%s", name, status, err);
-        assert(0 && "le cas ne doit ni planter ni ecrire sur stderr");
+        fprintf(stderr, "%s: expected clean, status %d\n%s", name, status, err);
+        assert(0 && "the case must neither crash nor write to stderr");
     }
     free(err);
 }
@@ -368,8 +368,8 @@ static void expect_poison_crash(const char *name) {
     char *err;
     int status = run_child(name, &err);
     if (status == 0 || strstr(err, "use-after-poison") == NULL) {
-        fprintf(stderr, "%s: attendu use-after-poison, statut %d\n%s", name, status, err);
-        assert(0 && "un bloc d'une generation rendue doit planter sous ASan");
+        fprintf(stderr, "%s: expected use-after-poison, status %d\n%s", name, status, err);
+        assert(0 && "a block of a released generation must crash under ASan");
     }
     free(err);
 }
@@ -378,8 +378,8 @@ static void expect_assert(const char *name, const char *message) {
     char *err;
     int status = run_child(name, &err);
     if (status == 0 || strstr(err, message) == NULL) {
-        fprintf(stderr, "%s: attendu l'assert \"%s\", statut %d\n%s", name, message, status, err);
-        assert(0 && "deux eu sans vidage doivent echouer par l'assert de la bascule");
+        fprintf(stderr, "%s: expected an assert \"%s\", status %d\n%s", name, message, status, err);
+        assert(0 && "two cart_start_game calls without a flush must fail on the flip assert");
     }
     free(err);
 }
@@ -388,8 +388,8 @@ static void expect_fatal(const char *name, const char *message) {
     char *err;
     int status = run_child(name, &err);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 3 || strstr(err, message) == NULL) {
-        fprintf(stderr, "%s: attendu sortie 3 et \"%s\", statut %d\n%s", name, message, status, err);
-        assert(0 && "une sous-zone pleine doit appeler pico8_fatal");
+        fprintf(stderr, "%s: expected exit 3 and \"%s\", status %d\n%s", name, message, status, err);
+        assert(0 && "a full sub-zone must call p8_fatal");
     }
     free(err);
 }
@@ -398,7 +398,7 @@ int main(int argc, char **argv) {
     if (argc == 2) {
         for (size_t i = 0; i < CASE_COUNT; i++)
             if (strcmp(argv[1], CASES[i].name) == 0) return CASES[i].run();
-        fprintf(stderr, "test_game_zone: cas inconnu %s\n", argv[1]);
+        fprintf(stderr, "test_game_zone: unknown case %s\n", argv[1]);
         return 2;
     }
     self_path = argv[0];
@@ -406,13 +406,13 @@ int main(int argc, char **argv) {
     expect_poison_crash("dead_after_next_update");
     expect_clean("init_keeps_generation");
     expect_poison_crash("dead_after_cart_load");
-    expect_clean("prise_and_max");
+    expect_clean("grab_arena_and_max");
     expect_assert("double_start_game_without_flush", "flush the exit queue between two game starts");
     expect_clean("load_zone_survives_start_game");
-    expect_poison_crash("chargement_dead_after_cart_load");
-    expect_clean("chargement_prise_and_max");
-    expect_fatal("chargement_full", "zone chargement full, limit 65536 bytes");
-    expect_clean("listes_statiques_dans_chargement");
+    expect_poison_crash("load_zone_dead_after_cart_load");
+    expect_clean("load_zone_grab_arena_and_max");
+    expect_fatal("load_zone_full", "zone load full, limit 65536 bytes");
+    expect_clean("static_lists_in_load_zone");
     remove(STDERR_LOG);
     printf("test_game_zone: all tests passed\n");
     return 0;
