@@ -1446,6 +1446,15 @@ identity	c:score_panel_display.c@4893@F@score_panel_update_map@wrapped	article
 identity	c:score_panel_display.c@7615@F@score_panel_update@spec1	restart_keys	
 identity	c:score_panel_display.c@7650@F@score_panel_update@spec2	toggle_keys	
 identity	c:test_help_screen.c@8819@F@test_built@spacer	emitter	
+identity	c:test_gif.c@1699@F@lzw_decode@len	data_length	
+identity	c:test_gif.c@1728@F@lzw_decode@out	pixels	
+identity	c:test_gif.c@1920@F@lzw_decode@eoi	end_code	
+identity	c:test_gif.c@2010@F@lzw_decode@prev	previous_code	
+identity	c:test_gif.c@2029@F@lzw_decode@clears	clear_count	
+identity	c:test_gif.c@2079@F@lzw_decode@bitpos	bit_index	
+identity	c:test_gif.c@2079@F@lzw_decode@written	pixel_index	
+identity	c:test_gif.c@3897@F@parse_gif@gif	result	
+identity	c:test_gif.c@4152@F@parse_gif@packed	screen_flags	
 
 # --- tmp/ binaries and outputs (tools/rename_strings.py) ------------------------
 # A binary takes the name of its cmd/ file, except frames: tmp/frames is the

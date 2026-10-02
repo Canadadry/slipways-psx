@@ -63,42 +63,42 @@ static unsigned char *read_sub_blocks(buf_t *b, long *out_len) {
 
 /* Décode `len` octets LZW en exactement `pixel_count` index ; rend le
  * nombre de codes clear rencontrés après le premier. */
-static int lzw_decode(const unsigned char *data, long len, int min_code_size, unsigned char *out, long pixel_count) {
+static int lzw_decode(const unsigned char *data, long data_length, int min_code_size, unsigned char *pixels, long pixel_count) {
     static int prefix[4096];
     static unsigned char suffix[4096];
     static unsigned char stack[4096];
     const int clear = 1 << min_code_size;
-    const int eoi = clear + 1;
+    const int end_code = clear + 1;
     int width = min_code_size + 1;
-    int next = eoi + 1;
-    int prev = -1;
-    int clears = 0;
+    int next = end_code + 1;
+    int previous_code = -1;
+    int clear_count = 0;
     int seen_first_clear = 0;
-    long bitpos = 0, written = 0;
+    long bit_index = 0, pixel_index = 0;
     for (int i = 0; i < clear; i++) {
         prefix[i] = -1;
         suffix[i] = (unsigned char)i;
     }
     for (;;) {
-        assert(bitpos + width <= len * 8);
+        assert(bit_index + width <= data_length * 8);
         int code = 0;
-        for (int i = 0; i < width; i++, bitpos++) {
-            code |= ((data[bitpos >> 3] >> (bitpos & 7)) & 1) << i;
+        for (int i = 0; i < width; i++, bit_index++) {
+            code |= ((data[bit_index >> 3] >> (bit_index & 7)) & 1) << i;
         }
         if (code == clear) {
-            clears += seen_first_clear;
+            clear_count += seen_first_clear;
             seen_first_clear = 1;
             width = min_code_size + 1;
-            next = eoi + 1;
-            prev = -1;
+            next = end_code + 1;
+            previous_code = -1;
             continue;
         }
-        if (code == eoi) {
+        if (code == end_code) {
             break;
         }
         assert(code <= next);
         int sp = 0;
-        int c = code == next ? prev : code;
+        int c = code == next ? previous_code : code;
         assert(c >= 0);
         while (c >= clear) {
             stack[sp++] = suffix[c];
@@ -113,21 +113,21 @@ static int lzw_decode(const unsigned char *data, long len, int min_code_size, un
             sp++;
         }
         while (sp > 0) {
-            assert(written < pixel_count);
-            out[written++] = stack[--sp];
+            assert(pixel_index < pixel_count);
+            pixels[pixel_index++] = stack[--sp];
         }
-        if (prev >= 0 && next < 4096) {
-            prefix[next] = prev;
+        if (previous_code >= 0 && next < 4096) {
+            prefix[next] = previous_code;
             suffix[next] = first;
             next++;
             if (next == (1 << width) && width < 12) {
                 width++;
             }
         }
-        prev = code;
+        previous_code = code;
     }
-    assert(written == pixel_count);
-    return clears;
+    assert(pixel_index == pixel_count);
+    return clear_count;
 }
 
 typedef struct {
@@ -141,17 +141,17 @@ typedef struct {
 } gif_t;
 
 static gif_t parse_gif(FILE *file) {
-    gif_t gif;
-    memset(&gif, 0, sizeof gif);
-    gif.delays_ok = 1;
+    gif_t result;
+    memset(&result, 0, sizeof result);
+    result.delays_ok = 1;
     buf_t buffer = slurp(file);
     assert(buffer.size > 6 && memcmp(buffer.bytes, "GIF89a", 6) == 0);
     buffer.pos = 6;
-    gif.width = u16(&buffer);
-    gif.height = u16(&buffer);
-    int packed = read_u8(&buffer);
-    assert(packed & 0x80);
-    assert((2 << (packed & 7)) == P8_PALETTE_COLORS);
+    result.width = u16(&buffer);
+    result.height = u16(&buffer);
+    int screen_flags = read_u8(&buffer);
+    assert(screen_flags & 0x80);
+    assert((2 << (screen_flags & 7)) == P8_PALETTE_COLORS);
     read_u8(&buffer);
     read_u8(&buffer);
     for (int i = 0; i < P8_PALETTE_COLORS; i++) {
@@ -169,15 +169,15 @@ static gif_t parse_gif(FILE *file) {
             int label = read_u8(&buffer);
             if (label == 0xFF) {
                 assert(read_u8(&buffer) == 11);
-                gif.loops_forever = memcmp(buffer.bytes + buffer.pos, "NETSCAPE2.0", 11) == 0;
+                result.loops_forever = memcmp(buffer.bytes + buffer.pos, "NETSCAPE2.0", 11) == 0;
                 buffer.pos += 11;
                 assert(read_u8(&buffer) == 3 && read_u8(&buffer) == 1);
-                gif.loops_forever = gif.loops_forever && u16(&buffer) == 0;
+                result.loops_forever = result.loops_forever && u16(&buffer) == 0;
                 assert(read_u8(&buffer) == 0);
             } else if (label == 0xF9) {
                 assert(read_u8(&buffer) == 4);
                 read_u8(&buffer);
-                gif.delays_ok = gif.delays_ok && u16(&buffer) == 3;
+                result.delays_ok = result.delays_ok && u16(&buffer) == 3;
                 read_u8(&buffer);
                 assert(read_u8(&buffer) == 0);
             } else {
@@ -187,21 +187,21 @@ static gif_t parse_gif(FILE *file) {
         }
         assert(tag == 0x2C);
         assert(u16(&buffer) == 0 && u16(&buffer) == 0);
-        assert(u16(&buffer) == gif.width && u16(&buffer) == gif.height);
+        assert(u16(&buffer) == result.width && u16(&buffer) == result.height);
         assert(read_u8(&buffer) == 0);
         int min_code_size = read_u8(&buffer);
         assert(min_code_size == 4);
         long len;
         unsigned char *data = read_sub_blocks(&buffer, &len);
-        long n = (long)gif.width * gif.height;
-        gif.pixels = realloc(gif.pixels, (size_t)(n * (gif.frame_count + 1)));
-        assert(gif.pixels != NULL);
-        gif.clears += lzw_decode(data, len, min_code_size, gif.pixels + n * gif.frame_count, n);
-        gif.frame_count++;
+        long n = (long)result.width * result.height;
+        result.pixels = realloc(result.pixels, (size_t)(n * (result.frame_count + 1)));
+        assert(result.pixels != NULL);
+        result.clears += lzw_decode(data, len, min_code_size, result.pixels + n * result.frame_count, n);
+        result.frame_count++;
         free(data);
     }
     free(buffer.bytes);
-    return gif;
+    return result;
 }
 
 static unsigned char dst_pixel(const gif_t *g, int frame, int x, int y) {
