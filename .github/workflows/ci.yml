@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: make test-all
+        run: make test-all
+      - name: make sanitize-net
+        run: make sanitize-net
+
+  raylib:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: third_party/raylib
+          key: raylib-${{ runner.os }}-${{ hashFiles('tools/install_raylib_vendor.sh') }}
+      - name: make raylib-vendor-setup
+        run: make raylib-vendor-setup
+      - name: make raylib
+        run: make raylib
