@@ -20,7 +20,7 @@ Un dépôt ne se reprend qu'une fois ; le rattrapage, lui, revient à chaque mer
 **Rattrapage ponctuel** — le dépôt a déjà été repris, et quelques fichiers neufs sont arrivés sous l'ancien régime : un merge, une branche longue, une contribution extérieure. C'est l'usage le plus fréquent une fois la campagne passée. Alors :
 
 - **phase 1 sautée.** Le glossaire et le fichier d'écarts existent : ils se consultent en lecture seule, et comme en campagne l'agent n'y écrit pas — il propose ses ajouts et ses corrections dans son rapport.
-- **la règle des quatre destinations est déjà dans le fichier d'instructions du dépôt** (`CLAUDE.md` ou équivalent). L'agent la lit là-bas ; la consigne n'a pas à la recopier, seulement à y renvoyer.
+- **la règle des destinations (quatre, ou trois si le dépôt n'a plus de glossaire) est déjà dans le fichier d'instructions du dépôt** (`CLAUDE.md` ou équivalent). L'agent la lit là-bas ; la consigne n'a pas à la recopier, seulement à y renvoyer.
 - **ratio mesuré par fichier**, jamais sur le dépôt : sur deux fichiers, la mesure globale ne bouge pas et ne dit rien.
 - **un seul agent** si les fichiers tiennent dans ce qu'une vague lui donnerait. La règle « l'en-tête et le corps ensemble » vaut toujours.
 
