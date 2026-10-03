@@ -44,7 +44,7 @@ int raylib_backend_should_continue(const raylib_backend_t *backend);
 
 /* Fills *out_frame from live hardware: the mouse position converted to
  * the 128x128 space (raylib_backend_window_to_screen), the left/right/
- * middle buttons as bits 0/1/2 of stat(34)'s layout, and the d-pad of the
+ * middle buttons as P8_MOUSE_* bits, and the d-pad of the
  * only player: the four arrow keys as entries 0 to 3, Z and X as entries
  * 4 and 5. Records and presents nothing.
  *

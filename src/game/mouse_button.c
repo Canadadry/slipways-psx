@@ -3,19 +3,17 @@
 #include <assert.h>
 #include <stddef.h>
 
-void mouse_button_update(const p8_input_t *input, mouse_button_t *qn, int oa) {
-    int on;
-    int ia = 0;
+void mouse_button_update(mouse_button_t *button, int down) {
+    int was_held = 0;
 
-    assert(input != NULL && qn != NULL && "mouse_button_update dereferences the input and the button");
+    assert(button != NULL && "mouse_button_update dereferences the button");
 
-    on = (p8_stat(input, 34) & oa) > 0;
-    if (qn->has_held) {
-        ia = qn->held;
+    if (button->has_held) {
+        was_held = button->held;
     }
 
-    qn->has_held = 1;
-    qn->held = on;
-    qn->pressed = on && !ia;
-    qn->released = ia && !on;
+    button->has_held = 1;
+    button->held = down;
+    button->pressed = down && !was_held;
+    button->released = was_held && !down;
 }

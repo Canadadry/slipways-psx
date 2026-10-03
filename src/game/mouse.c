@@ -79,11 +79,13 @@ void mouse_update(const p8_input_t *input, mouse_t *self) {
         return;
     }
 
-    self->pos_own = vec_make(p8_fixed_from_int(p8_stat(input, 32)), p8_fixed_from_int(p8_stat(input, 33)));
+    p8_mouse_t mouse = p8_input_read_mouse(input);
+    self->pos_own = vec_make(p8_fixed_from_int(mouse.x), p8_fixed_from_int(mouse.y));
     self->pos = &self->pos_own;
 
     if (g_mouse_up) {
-        mouse_button_update(input, &g_left_button, 1);
-        mouse_button_update(input, &g_right_button, 6);
+        mouse_button_update(&g_left_button, (mouse.buttons & P8_MOUSE_LEFT) != 0);
+        /* The middle button counts as the right one, as in the cart. */
+        mouse_button_update(&g_right_button, (mouse.buttons & (P8_MOUSE_RIGHT | P8_MOUSE_MIDDLE)) != 0);
     }
 }

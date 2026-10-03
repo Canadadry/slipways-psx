@@ -51,13 +51,13 @@ void raylib_backend_poll_input(raylib_backend_t *backend, p8_input_frame_t *out_
 
     int buttons = 0;
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-        buttons |= 1;
+        buttons |= P8_MOUSE_LEFT;
     }
     if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
-        buttons |= 2;
+        buttons |= P8_MOUSE_RIGHT;
     }
     if (IsMouseButtonDown(MOUSE_BUTTON_MIDDLE)) {
-        buttons |= 4;
+        buttons |= P8_MOUSE_MIDDLE;
     }
     out_frame->mouse_buttons = buttons;
 

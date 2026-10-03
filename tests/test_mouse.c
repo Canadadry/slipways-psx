@@ -183,6 +183,23 @@ static void test_scripted_ticks(void) {
     check("scripted", h, SCRIPTED_HASH);
 }
 
+/* No e2e replay ever holds the middle button, which the cart counts as
+ * the right one. */
+static void test_middle_alone_presses_the_right_button(void) {
+    reset_world();
+    frame(0, 30, 30, P8_MOUSE_MIDDLE);
+    frame(1, 30, 30, 0);
+    script(2);
+    update_entities();
+    assert(pressed_of(main_mouse_right()) == 1 && held_of(main_mouse_right()) == 1);
+    assert(held_of(main_mouse_left()) == 0);
+    p8_input_step(&input);
+    update_entities();
+    unscript();
+    assert(released_of(main_mouse_right()) == 1 && held_of(main_mouse_right()) == 0);
+    assert(held_of(main_mouse_left()) == 0);
+}
+
 /* Every mouse shares the two button states: a left button held across
  * `reset_world()` gives the new main mouse no fresh press. */
 static void test_buttons_survive_reset_world(void) {
@@ -297,6 +314,7 @@ int main(void) {
 
     test_reset_world_builds_a_mouse_reader();
     test_scripted_ticks();
+    test_middle_alone_presses_the_right_button();
     test_buttons_survive_reset_world();
     test_mouse_init_starts_the_tables_afresh();
     test_placeholder_main_mouse();

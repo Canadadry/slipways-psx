@@ -16,27 +16,27 @@ static void test_load_and_step_multi_frame_matches_fields(void) {
     assert(p8_btn(&input, 1) == 1);
     assert(p8_btn(&input, 2) == 0);
     assert(p8_btn(&input, 3) == 0);
-    assert(p8_stat(&input, 32) == 64);
-    assert(p8_stat(&input, 33) == 64);
-    assert(p8_stat(&input, 34) == 1);
+    assert(p8_input_read_mouse(&input).x == 64);
+    assert(p8_input_read_mouse(&input).y == 64);
+    assert(p8_input_read_mouse(&input).buttons == 1);
 
     p8_input_step(&input);
     assert(p8_btn(&input, 0) == 1);
     assert(p8_btn(&input, 1) == 0);
     assert(p8_btn(&input, 2) == 1);
     assert(p8_btn(&input, 3) == 0);
-    assert(p8_stat(&input, 32) == 10);
-    assert(p8_stat(&input, 33) == 20);
-    assert(p8_stat(&input, 34) == 3);
+    assert(p8_input_read_mouse(&input).x == 10);
+    assert(p8_input_read_mouse(&input).y == 20);
+    assert(p8_input_read_mouse(&input).buttons == 3);
 
     p8_input_step(&input);
     assert(p8_btn(&input, 0) == 0);
     assert(p8_btn(&input, 1) == 0);
     assert(p8_btn(&input, 2) == 0);
     assert(p8_btn(&input, 3) == 1);
-    assert(p8_stat(&input, 32) == 0);
-    assert(p8_stat(&input, 33) == 127);
-    assert(p8_stat(&input, 34) == 4);
+    assert(p8_input_read_mouse(&input).x == 0);
+    assert(p8_input_read_mouse(&input).y == 127);
+    assert(p8_input_read_mouse(&input).buttons == 4);
 
     p8_input_free(&input);
 }
@@ -89,13 +89,17 @@ static void test_btn_out_of_range_returns_zero(void) {
     p8_input_free(&input);
 }
 
-static void test_stat_unsupported_index_returns_zero(void) {
+static void test_read_mouse_without_a_current_frame_is_all_zero(void) {
     p8_input_t input;
     p8_input_init(&input);
-    assert(p8_input_load(&input, "tests/fixtures/events_valid.json"));
 
-    assert(p8_stat(&input, 0) == 0);
-    assert(p8_stat(&input, 35) == 0);
+    p8_mouse_t mouse = p8_input_read_mouse(&input);
+    assert(mouse.x == 0 && mouse.y == 0 && mouse.buttons == 0);
+
+    assert(p8_input_load(&input, "tests/fixtures/events_valid.json"));
+    input.current_frame = input.frame_count;
+    mouse = p8_input_read_mouse(&input);
+    assert(mouse.x == 0 && mouse.y == 0 && mouse.buttons == 0);
 
     p8_input_free(&input);
 }
@@ -175,9 +179,9 @@ static void test_save_then_load_round_trips_every_field(void) {
     assert(input.frame_count == 5);
 
     for (int i = 0; i < 5; i++) {
-        assert(p8_stat(&input, 32) == written[i].mouse_x);
-        assert(p8_stat(&input, 33) == written[i].mouse_y);
-        assert(p8_stat(&input, 34) == written[i].mouse_buttons);
+        assert(p8_input_read_mouse(&input).x == written[i].mouse_x);
+        assert(p8_input_read_mouse(&input).y == written[i].mouse_y);
+        assert(p8_input_read_mouse(&input).buttons == written[i].mouse_buttons);
         assert(p8_btn(&input, 0) == written[i].dpad[0]);
         assert(p8_btn(&input, 1) == written[i].dpad[1]);
         assert(p8_btn(&input, 2) == written[i].dpad[2]);
@@ -327,9 +331,9 @@ static void test_append_recording_is_byte_identical_to_save_every_frame(void) {
     assert(p8_input_load(&input, appended_path));
     assert(input.frame_count == 7);
     for (int i = 0; i < 7; i++) {
-        assert(p8_stat(&input, 32) == frames[i].mouse_x);
-        assert(p8_stat(&input, 33) == frames[i].mouse_y);
-        assert(p8_stat(&input, 34) == frames[i].mouse_buttons);
+        assert(p8_input_read_mouse(&input).x == frames[i].mouse_x);
+        assert(p8_input_read_mouse(&input).y == frames[i].mouse_y);
+        assert(p8_input_read_mouse(&input).buttons == frames[i].mouse_buttons);
         assert(p8_btn(&input, 0) == frames[i].dpad[0]);
         assert(p8_btn(&input, 1) == frames[i].dpad[1]);
         assert(p8_btn(&input, 2) == frames[i].dpad[2]);
@@ -366,7 +370,7 @@ static void test_append_with_zero_tail_offset_starts_a_fresh_recording(void) {
     p8_input_init(&input);
     assert(p8_input_load(&input, path));
     assert(input.frame_count == 1);
-    assert(p8_stat(&input, 32) == 9);
+    assert(p8_input_read_mouse(&input).x == 9);
     p8_input_free(&input);
 }
 
@@ -382,7 +386,7 @@ int main(void) {
     test_six_boolean_dpad_loads_o_and_x();
     test_load_malformed_five_boolean_dpad_is_hard_error();
     test_btn_out_of_range_returns_zero();
-    test_stat_unsupported_index_returns_zero();
+    test_read_mouse_without_a_current_frame_is_all_zero();
     test_load_missing_file_is_hard_error();
     test_load_malformed_missing_field_is_hard_error();
     test_load_malformed_short_dpad_is_hard_error();
