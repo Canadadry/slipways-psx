@@ -169,7 +169,7 @@ class StringKeys(unittest.TestCase):
             "src/engine/entity_class.h": ENTITY_CLASS_H,
             "src/engine/entity_registry.c": 'static const char *const g_bm_names[1] = {"kj"};\n',
             "src/game/cart.c": 'void f(void) { pico8_dc("kj"); }\n',
-            "src/game/planet.c": 'void g(void) { pico8_class_coverage_record("jo"); }\n',
+            "src/game/planet.c": 'void g(void) { class_coverage_record("jo"); }\n',
             "tools/class_coverage_net_expected.txt": "# comment jo\njo  12  3/26\nmo  0  0/26\ncouverture: OK\n",
             "src/cmd/class_coverage.c": 'static const char *const KNOWN[] = {"jo", "mo"};\n',
         })
@@ -209,7 +209,7 @@ class StringKeys(unittest.TestCase):
     def test_string_override_wins_and_disagreeing_sources_are_flagged(self):
         tree = {
             "src/engine/entity_class.h": ENTITY_CLASS_H,
-            "src/game/planet.c": 'void g(void) { pico8_class_coverage_record("jo"); pico8_cg("jo"); }\n',
+            "src/game/planet.c": 'void g(void) { class_coverage_record("jo"); pico8_cg("jo"); }\n',
         }
         identifiers = [r for r in BASE_IDENTIFIERS if r[0] != "pico8_jo_struct_class"]
         identifiers.append(ident("pico8_jo_struct_class", "body_class", "src/game/planet.c",
@@ -259,8 +259,8 @@ class StringKeys(unittest.TestCase):
         result, rows, flags, _ = run({
             "src/engine/entity_class.h": ENTITY_CLASS_H.replace(
                 '[PICO8_TAG_JO] = "jo",', '[PICO8_TAG_JO] = "jo", [PICO8_TAG_G_] = "g_",'),
-            "src/game/probe.c": 'void g(void) { pico8_class_coverage_record("g_"); }\n',
-            "tests/test_class_coverage.c": 'void t(void) { pico8_class_coverage_record("aa"); }\n',
+            "src/game/probe.c": 'void g(void) { class_coverage_record("g_"); }\n',
+            "tests/test_class_coverage.c": 'void t(void) { class_coverage_record("aa"); }\n',
         }, identifiers)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(only(rows, "g_", "nouveau"), "probe")

@@ -366,7 +366,7 @@ def emit(names, lexicon):
 
 
 VTABLE_FIELD = "@S@pico8_struct_class@FI@"
-CLASS_RECORD = re.compile(r"\bpico8_class_coverage_record\(\s*$")
+CLASS_RECORD = re.compile(r"\bclass_coverage_record\(\s*$")
 WRITER_CONTEXTS = [
     DESIGNATOR,
     re.compile(r"(\.\w+|\b\w+(\[\w*\])?)\s*=\s*$"),  # member, designated or variable init
