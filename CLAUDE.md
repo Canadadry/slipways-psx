@@ -19,7 +19,7 @@
 
 ## Build
 
-- `make test` est la boucle rapide (TU et contrôles statiques, ~25 s). `make e2e` rejoue les e2e de `tests/e2e/` depuis l'écran titre (~1 s). `make test-all` fait les deux. La légende des cibles est en tête du `Makefile`.
+- `make test` est la boucle rapide (TU et contrôles statiques, ~5 s). `make e2e` rejoue les e2e de `tests/e2e/` depuis l'écran titre (~1 s). `make test-all` fait les deux. La légende des cibles est en tête du `Makefile`.
 - `make raylib` compile et linke le binaire interactif sans jamais l'exécuter ; il faut `make raylib-vendor-setup` d'abord — voir `docs/raylib-vendoring.md`.
 
 ## Docs
