@@ -18,15 +18,15 @@ Brouillon, à passer en `plan-converge` avant toute exécution. Premier des cinq
 
 - Le jeu ne change pas : tous les `*.sha256` de `tests/e2e/` restent identiques.
 - Une saturation est d'abord lue comme une fuite (place jamais rendue, remise à zéro manquante), jamais comme un besoin. On ne relève une limite qu'une fois la fuite écartée.
-- Chaque zone est dimensionnée sur son pic mesuré avec `full_game.json`, plus une marge fixe, la même pour toutes.
-- Invariant de chaque commit : `make test-all` et `make sanitize-net` passent.
+- Chaque zone est dimensionnée sur son pic mesuré, plus une marge fixe, la même pour toutes.
+- Invariant de chaque commit : `make test-all` et `make sanitize-net` passent ; dès l'étape 2, la cible verrou aussi.
 
 ## 4. Étapes
 
 1. **Comprendre la saturation de `frame`.** Trouver ce qui s'accumule dans la zone à la frame 4337 (`help-me-debug`), puis le corriger. Fini quand `full_game.json` va au bout avec les tailles actuelles.
-2. **Mesurer.** Le pic de chaque zone et de chaque cap sur `full_game.json` complet, écrit dans `tmp/state.txt`.
-3. **Redimensionner.** Chaque zone ramenée à son pic plus la marge ; `ZONE_BUDGET_BYTES` à 768 Ko. Si la somme dépasse, réduire l'empreinte des plus gros consommateurs avant de toucher au plafond.
-4. **Verrou.** `full_game.json` joué jusqu'au bout entre dans une cible dédiée, hors de `make test-all` qui ne doit pas ralentir, pour qu'une régression mémoire se voie.
+2. **Verrou.** `full_game.json` joué jusqu'au bout entre dans une cible dédiée, hors de `make test-all` qui ne doit pas ralentir, pour qu'une régression mémoire se voie dès le redimensionnement.
+3. **Mesurer.** Le pic de chaque zone et de chaque cap, sur `full_game.json` complet et sur chaque e2e (`full_game.json` n'ouvre ni boîte de message ni fond modal), écrit dans `tmp/state.txt`.
+4. **Redimensionner.** Chaque zone ramenée à son pic plus la marge ; `ZONE_BUDGET_BYTES` à 768 Ko. Si la somme dépasse, réduire l'empreinte des plus gros consommateurs avant de toucher au plafond.
 
 ## 5. Hors périmètre
 

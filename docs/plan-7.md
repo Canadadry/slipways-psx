@@ -6,7 +6,7 @@ Brouillon, à passer en `plan-converge` avant toute exécution. Deuxième des ci
 
 On joue une partie complète sur PC **au clavier seul** : menus, colonisation, slipways, recherche, fin de partie. Le clavier tient lieu de manette PSX : six boutons PICO-8 (quatre directions, O, X), plus au besoin les boutons de tranche de la manette.
 
-La souris reste branchée : les e2e existants restent à la souris et ne changent pas.
+La souris reste branchée : les e2e existants restent à la souris et leurs `*.sha256` restent identiques. Invariant de chaque commit : `make test-all` passe.
 
 ## 2. Contraintes déjà dans le code
 
@@ -25,11 +25,11 @@ La souris réelle, quand elle bouge, reprend la main sur le curseur clavier.
 
 ## 4. Étapes
 
-1. **Décider le mapping** : quelle touche clique, comment on défile, comment on reste compatible avec la triche. Une décision humaine, à écrire ici avant tout code.
+1. **Décider le mapping** : quelle touche clique, comment on défile, comment on reste compatible avec la triche. Un agent écrit ici un mapping par défaut ; l'humain le ratifie ou le corrige avant tout code.
 2. **Couche boutons → souris** dans le cœur, testée en unitaire.
 3. **Branchement raylib** des touches (le backend lit déjà les flèches, Z et X).
-4. **e2e clavier** : au moins un rejeu court qui colonise et trace une slipway sans aucun mouvement de souris.
-5. **Essai humain** : une partie jouée au clavier sur PC. Si c'est injouable, retour à l'étape 1.
+4. **Essai humain** : une partie jouée au clavier sur PC. Les constats vont dans « Décisions actées » ; si c'est injouable, retour à l'étape 1.
+5. **e2e clavier** : sans aucun mouvement de souris, un rejeu court par écran cité dans l'objectif (menus, colonisation et slipway, recherche, fin de partie).
 
 ## 5. Décisions actées
 
