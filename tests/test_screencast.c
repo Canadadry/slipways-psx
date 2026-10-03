@@ -287,7 +287,7 @@ static void test_frame_index_past_the_end_is_refused(void) {
  * a capture that changed what it observes would void the whole
  * instrument. The `const` of the signature already tells the compiler;
  * this test checks it on the whole memory, including what a future way
- * around the `const` would reach. The byte set off screen (P8_ADDR_MAP)
+ * around the `const` would reach. The byte set off screen (a map cell)
  * is what gives the assertion a hold on the rest of the memory, and not
  * only on an area left at zero. */
 static void test_writing_a_frame_leaves_the_game_memory_untouched(void) {
@@ -298,7 +298,7 @@ static void test_writing_a_frame_leaves_the_game_memory_untouched(void) {
 
     p8_mem_init(&mem);
     paint_frame(&mem, 7);
-    p8_poke(&mem, P8_ADDR_MAP, 0x42);
+    mem.map_cells[0][0] = 0x42;
     before = mem;
 
     assert(screencast_writer_open(&writer, path) == 1);

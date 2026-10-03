@@ -7,8 +7,6 @@
 #define P8_SCREEN_HEIGHT 128
 
 #define P8_SPRITE_SIZE 8
-#define P8_MAP_WIDTH 128
-#define P8_MAP_HEIGHT 64
 
 typedef struct {
     int camera_x;

@@ -257,35 +257,22 @@ void p8_spr_default(const p8_graphics_t *gfx, p8_memory_t *mem, int n, int x, in
     p8_spr(gfx, mem, n, x, y, 1, 1);
 }
 
-/* Cell rows 0-31 live in the shared sprite-sheet/map region, rows 32-63
- * in the base map region -- the game's map is 128x64, larger than the
- * 128x32 base. */
-#define P8_MAP_BASE_ROWS 32
-
-static int map_cell_addr(int x, int y) {
-    if (x < 0 || x >= P8_MAP_WIDTH || y < 0 || y >= P8_MAP_HEIGHT) {
-        return -1;
-    }
-    if (y < P8_MAP_BASE_ROWS) {
-        return P8_ADDR_SPRITE_MAP_SHARED + y * P8_MAP_WIDTH + x;
-    }
-    return P8_ADDR_MAP + (y - P8_MAP_BASE_ROWS) * P8_MAP_WIDTH + x;
+static int map_cell_in_range(int x, int y) {
+    return x >= 0 && x < P8_MAP_WIDTH && y >= 0 && y < P8_MAP_HEIGHT;
 }
 
 void p8_mset(p8_memory_t *mem, int x, int y, int val) {
-    int addr = map_cell_addr(x, y);
-    if (addr < 0) {
+    if (!map_cell_in_range(x, y)) {
         return;
     }
-    p8_poke(mem, addr, (unsigned char)val);
+    mem->map_cells[y][x] = (unsigned char)val;
 }
 
 static unsigned char map_cell_get(const p8_memory_t *mem, int x, int y) {
-    int addr = map_cell_addr(x, y);
-    if (addr < 0) {
+    if (!map_cell_in_range(x, y)) {
         return 0;
     }
-    return p8_peek(mem, addr);
+    return mem->map_cells[y][x];
 }
 
 void p8_map(const p8_graphics_t *gfx, p8_memory_t *mem, int cel_x, int cel_y, int sx, int sy, int cel_w, int cel_h) {

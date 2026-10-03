@@ -15,6 +15,8 @@ static void test_init_zeroes_everything_but_the_default_draw_palette(void) {
     }
     mem.sprite_sheet[0][0] = 0xAB;
     mem.sprite_sheet[P8_SPRITE_SHEET_HEIGHT - 1][P8_SPRITE_SHEET_WIDTH - 1] = 0xAB;
+    mem.map_cells[0][0] = 0xAB;
+    mem.map_cells[P8_MAP_HEIGHT - 1][P8_MAP_WIDTH - 1] = 0xAB;
     p8_mem_init(&mem);
     for (int i = 0; i < P8_MEM_SIZE; i++) {
         assert(mem.data[i] == 0);
@@ -22,6 +24,11 @@ static void test_init_zeroes_everything_but_the_default_draw_palette(void) {
     for (int y = 0; y < P8_SPRITE_SHEET_HEIGHT; y++) {
         for (int x = 0; x < P8_SPRITE_SHEET_WIDTH; x++) {
             assert(mem.sprite_sheet[y][x] == 0);
+        }
+    }
+    for (int y = 0; y < P8_MAP_HEIGHT; y++) {
+        for (int x = 0; x < P8_MAP_WIDTH; x++) {
+            assert(mem.map_cells[y][x] == 0);
         }
     }
 
@@ -37,30 +44,6 @@ static void test_peek_poke_roundtrip(void) {
 
     p8_poke(&mem, 0x1234, 42);
     assert(p8_peek(&mem, 0x1234) == 42);
-}
-
-static void test_shared_region_boundary(void) {
-    p8_memory_t mem;
-    p8_mem_init(&mem);
-
-    assert(P8_ADDR_SPRITE_MAP_SHARED == 0x1000);
-    p8_poke(&mem, P8_ADDR_SPRITE_MAP_SHARED, 3);
-    assert(p8_peek(&mem, P8_ADDR_SPRITE_MAP_SHARED) == 3);
-
-    p8_poke(&mem, P8_ADDR_MAP - 1, 4);
-    assert(p8_peek(&mem, P8_ADDR_MAP - 1) == 4);
-}
-
-static void test_map_region_boundary(void) {
-    p8_memory_t mem;
-    p8_mem_init(&mem);
-
-    assert(P8_ADDR_MAP == 0x2000);
-    p8_poke(&mem, P8_ADDR_MAP, 5);
-    assert(p8_peek(&mem, P8_ADDR_MAP) == 5);
-
-    p8_poke(&mem, P8_ADDR_MAP + 0x1000 - 1, 6);
-    assert(p8_peek(&mem, P8_ADDR_MAP + 0x1000 - 1) == 6);
 }
 
 static void test_screen_region_boundary(void) {
@@ -184,8 +167,6 @@ static void test_memcpy_negative_addr_is_noop(void) {
 int main(void) {
     test_init_zeroes_everything_but_the_default_draw_palette();
     test_peek_poke_roundtrip();
-    test_shared_region_boundary();
-    test_map_region_boundary();
     test_screen_region_boundary();
     test_out_of_range_peek_returns_zero();
     test_out_of_range_poke_is_noop();

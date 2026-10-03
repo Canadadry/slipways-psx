@@ -180,7 +180,7 @@ static vec_t *vec_ref(int x, int y) {
 }
 
 static int mget(int x, int y) {
-    return p8_peek(&memory, P8_ADDR_SPRITE_MAP_SHARED + y * P8_MAP_WIDTH + x);
+    return memory.map_cells[y][x];
 }
 
 /* A fresh background: the entity's state and state time, the archetype's

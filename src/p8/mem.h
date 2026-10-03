@@ -4,14 +4,15 @@
 
 #include <stddef.h>
 
-#define P8_ADDR_SPRITE_MAP_SHARED 0x1000
-#define P8_ADDR_MAP 0x2000
 #define P8_ADDR_SCREEN 0xA000
 
 #define P8_DRAW_PALETTE_TRANSPARENT_BIT 0x80
 
 #define P8_SPRITE_SHEET_WIDTH 128
 #define P8_SPRITE_SHEET_HEIGHT 128
+
+#define P8_MAP_WIDTH 32
+#define P8_MAP_HEIGHT 32
 
 #define P8_MEM_SIZE 0xE000
 
@@ -23,6 +24,7 @@ typedef struct {
      * bytes. */
     unsigned char draw_palette[16];
     unsigned char sprite_sheet[P8_SPRITE_SHEET_HEIGHT][P8_SPRITE_SHEET_WIDTH];
+    unsigned char map_cells[P8_MAP_HEIGHT][P8_MAP_WIDTH];
 } p8_memory_t;
 
 void p8_mem_init(p8_memory_t *mem);

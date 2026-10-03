@@ -421,29 +421,42 @@ static void test_spr_skips_pixels_marked_transparent_by_palt(void) {
 }
 
 static void test_mset_writes_base_region_cell(void) {
-    /* Cel rows 0-31 (the "base" JSON/map rows) land in the
-     * P8_ADDR_SPRITE_MAP_SHARED region, confirmed by decoding the ROM of
-     * pico8/original.p8.png byte for byte. */
     p8_memory_t mem;
     p8_mem_init(&mem);
 
     p8_mset(&mem, 9, 0, 213);
     p8_mset(&mem, 0, 31, 51);
 
-    assert(p8_peek(&mem, P8_ADDR_SPRITE_MAP_SHARED + 0 * 128 + 9) == 213);
-    assert(p8_peek(&mem, P8_ADDR_SPRITE_MAP_SHARED + 31 * 128 + 0) == 51);
+    assert(mem.map_cells[0][9] == 213);
+    assert(mem.map_cells[31][0] == 51);
 }
 
-static void test_mset_writes_shared_upper_region_cell(void) {
-    /* Cel rows 32-63 land in the P8_ADDR_MAP region. */
+static void test_mset_outside_32x32_changes_no_cell(void) {
     p8_memory_t mem;
+    p8_graphics_t gfx;
     p8_mem_init(&mem);
+    p8_gfx_init(&gfx);
 
-    p8_mset(&mem, 1, 32, 6);
-    p8_mset(&mem, 0, 63, 41);
+    mem.sprite_sheet[0][40] = 7; /* sprite 5's corner */
+    p8_mset(&mem, 31, 31, 5);
+    p8_mset(&mem, 32, 0, 5);
+    p8_mset(&mem, 0, 32, 5);
+    p8_mset(&mem, 0, 63, 5);
 
-    assert(p8_peek(&mem, P8_ADDR_MAP + 0 * 128 + 1) == 6);
-    assert(p8_peek(&mem, P8_ADDR_MAP + 31 * 128 + 0) == 41);
+    p8_map(&gfx, &mem, 31, 31, 0, 0, 2, 2);
+    p8_map(&gfx, &mem, 32, 0, 16, 0, 1, 1);
+    p8_map(&gfx, &mem, 0, 63, 24, 0, 1, 1);
+
+    assert(p8_peek(&mem, P8_ADDR_SCREEN + 0 * P8_SCREEN_WIDTH + 0) == 7);
+    assert(p8_peek(&mem, P8_ADDR_SCREEN + 0 * P8_SCREEN_WIDTH + 8) == 0);
+    assert(p8_peek(&mem, P8_ADDR_SCREEN + 8 * P8_SCREEN_WIDTH + 0) == 0);
+    assert(p8_peek(&mem, P8_ADDR_SCREEN + 0 * P8_SCREEN_WIDTH + 16) == 0);
+    assert(p8_peek(&mem, P8_ADDR_SCREEN + 0 * P8_SCREEN_WIDTH + 24) == 0);
+    for (int y = 0; y < P8_MAP_HEIGHT; y++) {
+        for (int x = 0; x < P8_MAP_WIDTH; x++) {
+            assert(mem.map_cells[y][x] == ((x == 31 && y == 31) ? 5 : 0));
+        }
+    }
 }
 
 static void test_mset_out_of_range_is_noop(void) {
@@ -455,11 +468,10 @@ static void test_mset_out_of_range_is_noop(void) {
     p8_mset(&mem, P8_MAP_WIDTH, 0, 5);
     p8_mset(&mem, 0, P8_MAP_HEIGHT, 5);
 
-    for (int i = 0; i < P8_MAP_WIDTH * 32; i++) {
-        assert(p8_peek(&mem, P8_ADDR_MAP + i) == 0);
-    }
-    for (int i = 0; i < P8_MAP_WIDTH * 32; i++) {
-        assert(p8_peek(&mem, P8_ADDR_SPRITE_MAP_SHARED + i) == 0);
+    for (int y = 0; y < P8_MAP_HEIGHT; y++) {
+        for (int x = 0; x < P8_MAP_WIDTH; x++) {
+            assert(mem.map_cells[y][x] == 0);
+        }
     }
 }
 
@@ -524,10 +536,10 @@ static void test_map_and_mset_round_trip_against_real_sheet(void) {
     unsigned char expected = p8_sget(&mem, 16, 0);
     assert(expected == 3);
 
-    p8_mset(&mem, 4, 40, 2); /* row 40 >= 32 lands in P8_ADDR_MAP */
-    p8_map(&gfx, &mem, 4, 40, 0, 0, 1, 1);
+    p8_mset(&mem, 4, 20, 2);
+    p8_map(&gfx, &mem, 4, 20, 0, 0, 1, 1);
 
-    assert(p8_peek(&mem, P8_ADDR_MAP + (40 - 32) * 128 + 4) == 2);
+    assert(mem.map_cells[20][4] == 2);
     assert(p8_peek(&mem, P8_ADDR_SCREEN + 0 * P8_SCREEN_WIDTH + 0) == expected);
 }
 
@@ -705,7 +717,7 @@ int main(void) {
     test_spr_with_explicit_width_height_draws_multi_block_sprite();
     test_spr_skips_pixels_marked_transparent_by_palt();
     test_mset_writes_base_region_cell();
-    test_mset_writes_shared_upper_region_cell();
+    test_mset_outside_32x32_changes_no_cell();
     test_mset_out_of_range_is_noop();
     test_map_draws_cells_via_sprite_drawing_logic();
     test_map_treats_sprite_0_cells_as_empty();
