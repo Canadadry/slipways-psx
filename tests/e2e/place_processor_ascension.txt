@@ -1,6 +1,6 @@
 Un processor puis, avec la triche, une ascension gate posés depuis leurs
-icônes. 76 frames. N'ajoute peut-être aucune ligne au filet : il existe
-pour `make class-coverage`, seul e2e à instancier `os` et `hj`.
+icônes. 76 frames. Seul e2e à instancier le processor (`os`) et
+l'ascension gate (`hj`).
 
 - f0 : clic « reasonable » sur l'écran titre (60,74).
 - f2-13 : triche O O X X O O X X : 99 de recherche.

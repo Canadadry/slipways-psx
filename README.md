@@ -15,7 +15,6 @@ Règle de cette liste : chaque todo est une seule phrase claire, lisible sans r�
 - [ ] Sur le vrai PICO-8, vérifier trois comportements : l'affichage de -0.0001, la couleur d'un cercle tracé avec une couleur nil, et sin/cos entre les multiples de 1/64.
 - [ ] Afficher un budget de slipways et de relais, et bloquer leur ajout quand il est plein.
 - [ ] Ajouter une triche qui donne des points de score bonus, pour qu'un e2e court montre les étoiles allumées du panneau de score.
-- [ ] Faire respecter la couverture de classes par `make e2e-cleanup`, qui propose de retirer `place_processor_ascension`, seul e2e à instancier le processeur et la porte d'ascension.
 - [ ] À la reprise PSX, décider si la manette émule la souris PICO-8 ou saute de planète en planète ; idées dans l'historique git de `docs/after-v1.md`.
 - [ ] À la reprise PSX, remesurer sur MIPS les tailles de place des zones interface et particules : sur x86-64, celles des boutons (`button`) et des boîtes de message (`message_box`) sont sans marge.
 - [ ] Avant tout nouveau point de libération, rendre mécanique la liste des références coupées par `forget` (`src/game/cart.c`) : l'inventaire par grep en a manqué trois (la difficulté retenue, `slipway->end`, `targeted_by`).

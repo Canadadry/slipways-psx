@@ -386,9 +386,6 @@ static slipway_t *slipway_create(const slipway_keys_t *keys) {
                "does not fit the member's type -- stop, do not widen the member");
         self->start = keys->start;
     }
-#ifdef CLASS_COVERAGE_BUILD
-    class_coverage_record("slipway");
-#endif
     slipway_construct(self);
     planet_grab_arena_close();
     entity_construct(&self->header);

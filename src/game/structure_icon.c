@@ -220,9 +220,6 @@ static structure_icon_t *structure_icon_create(const structure_icon_keys_t *keys
         self->kind = keys->kind;
         self->tooltip = keys->tooltip;
     }
-#ifdef CLASS_COVERAGE_BUILD
-    class_coverage_record("structure_icon");
-#endif
     entity_construct(&self->header);
     return self;
 }

@@ -121,9 +121,6 @@ static probe_t *screen_create(void) {
     self->header.gpio_signal = &self->archetype->gpio_signal;
     self->header.is_hovered = &self->is_hovered;
     self->is_hovered = 0;
-#ifdef CLASS_COVERAGE_BUILD
-    class_coverage_record("help_screen");
-#endif
     help_screen_construct(self);
     emitter_init_in((entity_t *)self, PARTICLE_SLOT_HELP_LIST);
     entity_construct(&self->header);

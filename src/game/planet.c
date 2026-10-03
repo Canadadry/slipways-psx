@@ -122,9 +122,6 @@ static planet_t *planet_create(const planet_keys_t *keys) {
             self->planet_id = keys->planet_id;
         }
     }
-#ifdef CLASS_COVERAGE_BUILD
-    class_coverage_record("planet");
-#endif
     planet_construct(self);
     entity_construct(&self->header);
     return self;

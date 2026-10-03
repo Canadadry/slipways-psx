@@ -36,7 +36,7 @@ const entity_class_t *structure_class(void);
 /* Initializes an allocated planet_t under the given class and archetype:
  * the planet's part, then the sprite and the targeting copied from the
  * archetype. Reads no key, runs neither planet_construct nor
- * entity_construct, records no coverage. Requires planet_init(), which
+ * entity_construct. Requires planet_init(), which
  * planet_init_instance asserts. */
 void structure_init_instance(planet_t *self, const entity_class_t *cls, const planet_archetype_t *archetype);
 
@@ -82,8 +82,8 @@ planet_t *ascension_new(const planet_keys_t *keys);
 /* Initializes an allocated planet_t under the given class and archetype:
  * the laboratory's part (structure_init_instance), then the emitter copied
  * from the archetype, its particle list NULL. Reads no key, runs neither
- * emitter_init, planet_construct nor entity_construct, records no
- * coverage. Requires planet_init(), which planet_init_instance asserts. */
+ * emitter_init, planet_construct nor entity_construct.
+ * Requires planet_init(), which planet_init_instance asserts. */
 void ascension_init_instance(planet_t *self, const entity_class_t *cls, const planet_archetype_t *archetype);
 
 /* The methods the ascension class holds, for a derived class's static

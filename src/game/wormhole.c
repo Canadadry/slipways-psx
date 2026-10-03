@@ -239,9 +239,6 @@ static wormhole_t *wormhole_create(void) {
     self->anchor = NULL;
     self->header.is_dead = &self->is_dead;
     self->is_dead = 0;
-#ifdef CLASS_COVERAGE_BUILD
-    class_coverage_record("wormhole");
-#endif
     wormhole_construct(self);
     planet_grab_arena_close();
     entity_construct(&self->header);

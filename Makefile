@@ -29,41 +29,6 @@
 #                       reference (git blame), leaves that capture in
 #                       tmp/frames/<events>.ref.bin and gives the first
 #                       diverging frame, outside the suite
-# make class-coverage [DIR=<directory>] -> replays the e2e of tests/e2e/ (with
-#                       DIR: each *events.json placed directly in DIR, not in
-#                       its subdirectories) and counts the instantiations per
-#                       class; fails if a class is at 0 outside
-#                       tools/class_coverage_exempt.txt, outside the suite
-# make line-coverage EVENTS="<events>..." -> the lines executed by these
-#                       replays (gcov-instrumented driver), one `file:line` per
-#                       line, in tmp/line_coverage.txt, outside the suite
-# make line-coverage-contrib EVENTS=<events> OTHERS="<events>..." -> the lines
-#                       that EVENTS covers and that none of OTHERS covers (the
-#                       criterion for keeping a replay), in
-#                       tmp/line_coverage_contrib.txt, outside the suite
-# make e2e-gap       -> the lines of tools/line_coverage_reference.txt that
-#                       make e2e does not cover, minus
-#                       tools/line_coverage_unreachable.txt; fails until the
-#                       gap is empty, outside the suite
-# make minimize EVENTS=<events> OUT=<output> -> minimizes that replay (played
-#                       from the title screen): the mechanical stage (the
-#                       `mechanical` command of tmp/minimize, which
-#                       tools/minimize.sh runs first), then the guided pass,
-#                       as long as the line coverage stays that of the input,
-#                       one gcov replay per candidate, slow; MECHANICAL=1: the
-#                       mechanical stage alone; `MIN_CHUNK=<n>`: chunks of at
-#                       least that many frames; outside the suite
-# make e2e-cleanup   -> the final cleanup pass over tests/e2e/: lists, from the
-#                       longest to the shortest, the e2e whose lines the other
-#                       remaining ones cover; deletes nothing, outside the
-#                       suite
-# make e2e-judge EVENTS=<events> -> the lines that this replay (from the title
-#                       screen) adds to the other e2e of tests/e2e/; fails if
-#                       it adds none, outside the suite
-# make class-coverage-net -> like class-coverage, over the e2e of tests/e2e/;
-#                       also fails if its output differs from
-#                       tools/class_coverage_net_expected.txt, outside the
-#                       suite
 # make data-guard    -> none of the patterns of the pre-composition model
 #                       (DATA_GUARD_PATTERN) in src/ or tests/, in make test
 # make sanitize-net  -> replays the e2e of tests/e2e/ under ASan+UBSan (`-O2`);
@@ -112,12 +77,10 @@ TMP_DIR := tmp
 
 # One object tree per set of flags. An object compiled without -fsanitize is
 # not instrumented: sharing it with a target that is would leave the binary
-# blind on that code, silently. Do not merge the six.
+# blind on that code, silently. Do not merge the four.
 OBJ_DIR := $(TMP_DIR)/obj
 OBJ_ASAN_DIR := $(TMP_DIR)/obj-asan
 OBJ_UBSAN_DIR := $(TMP_DIR)/obj-ubsan
-OBJ_COVERAGE_DIR := $(TMP_DIR)/obj-coverage
-OBJ_GCOV_DIR := $(TMP_DIR)/obj-gcov
 OBJ_SANITIZE_DIR := $(TMP_DIR)/obj-sanitize
 
 # `-MMD -MP`: next to each object, the compiler writes the list of headers that
@@ -126,8 +89,6 @@ OBJ_SANITIZE_DIR := $(TMP_DIR)/obj-sanitize
 DEPFLAGS := -MMD -MP
 ASAN_CFLAGS := -fsanitize=address -fno-omit-frame-pointer
 UBSAN_CFLAGS := -fsanitize=undefined -fno-sanitize-recover=undefined
-COVERAGE_CFLAGS := -DCLASS_COVERAGE_BUILD
-GCOV_CFLAGS := --coverage
 SANITIZE_OPT_CFLAGS := -O2
 
 # `$(call objs,<sources>)` -> the paths of the matching object files in the
@@ -136,8 +97,6 @@ SANITIZE_OPT_CFLAGS := -O2
 objs = $(patsubst %.c,$(OBJ_DIR)/%.o,$(1))
 asan_objs = $(patsubst %.c,$(OBJ_ASAN_DIR)/%.o,$(1))
 ubsan_objs = $(patsubst %.c,$(OBJ_UBSAN_DIR)/%.o,$(1))
-coverage_objs = $(patsubst %.c,$(OBJ_COVERAGE_DIR)/%.o,$(1))
-gcov_objs = $(patsubst %.c,$(OBJ_GCOV_DIR)/%.o,$(1))
 sanitize_objs = $(patsubst %.c,$(OBJ_SANITIZE_DIR)/%.o,$(1))
 
 # `mkdir -p $(@D)` in the recipe rather than a directory as a prerequisite:
@@ -155,22 +114,14 @@ $(OBJ_UBSAN_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(UBSAN_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
-$(OBJ_COVERAGE_DIR)/%.o: %.c
-	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) $(COVERAGE_CFLAGS) $(DEPFLAGS) -c -o $@ $<
-
-$(OBJ_GCOV_DIR)/%.o: %.c
-	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) $(GCOV_CFLAGS) $(DEPFLAGS) -c -o $@ $<
-
 $(OBJ_SANITIZE_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) $(UBSAN_CFLAGS) $(SANITIZE_OPT_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
-# The whole engine closure: all of src/ except the seven entry points of
+# The whole engine closure: all of src/ except the five entry points of
 # src/cmd/, src/p8/palette.c, the two `src/platform/raylib_backend*.c` and
 # the modules of src/devtools/ that only the tools and the interactive game
-# link (fixed_test_double, gif, minimize, replay_control, replay_source,
+# link (fixed_test_double, gif, replay_control, replay_source,
 # screencast, screencast_player, session_recorder, state). Used by the
 # targets that call cart_load(), which pulls in the whole port.
 ENGINE_SRCS := \
@@ -181,7 +132,6 @@ ENGINE_SRCS := \
     src/game/cheat.c \
     src/game/cart.c \
     src/engine/collect.c \
-    src/devtools/class_coverage.c \
     src/game/data_init.c \
     src/engine/dispatch_context.c \
     src/devtools/dump.c \
@@ -247,7 +197,7 @@ ENGINE_SRCS := \
 # The ported core, free of floating point: the engine closure minus the host
 # tools, which keep the libc. constants-check, float-guard, alloc-guard and
 # float-grep all read this list.
-CORE_SRCS := $(filter-out src/p8/assets.c src/devtools/class_coverage.c src/devtools/dump.c src/platform/fatal_pc.c src/devtools/input_json.c,$(ENGINE_SRCS))
+CORE_SRCS := $(filter-out src/p8/assets.c src/devtools/dump.c src/platform/fatal_pc.c src/devtools/input_json.c,$(ENGINE_SRCS))
 
 # A narrower closure: what data_init() reaches to build a real game state,
 # without calling cart_load().
@@ -392,22 +342,7 @@ $(TMP_DIR)/test_frames_tool: $(call objs,tests/test_frames_tool.c src/devtools/s
 $(TMP_DIR)/test_frames_check: $(call objs,tests/test_frames_check.c) tools/frames_check.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_class_coverage: $(call coverage_objs,tests/test_class_coverage.c src/devtools/class_coverage.c) $(TMP_DIR)/class_coverage tools/class_coverage.sh tests/fixtures/title_click_forgiving.json tests/fixtures/events_malformed_missing_field.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
-
-$(TMP_DIR)/test_line_coverage: $(call objs,tests/test_line_coverage.c) $(TMP_DIR)/replay_gcov tools/line_coverage.sh | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
-
 $(TMP_DIR)/test_e2e_limits: $(call objs,tests/test_e2e_limits.c) tools/e2e_limits.sh | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
-
-$(TMP_DIR)/test_e2e_cleanup: $(call objs,tests/test_e2e_cleanup.c) tools/e2e_cleanup.sh | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
-
-$(TMP_DIR)/minimize: $(call objs,src/cmd/minimize.c src/devtools/minimize.c src/p8/input.c src/devtools/input_json.c) | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
-
-$(TMP_DIR)/test_minimize: $(call objs,tests/test_minimize.c src/devtools/minimize.c src/p8/input.c src/devtools/input_json.c) $(TMP_DIR)/minimize tools/minimize.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_float_guard: $(call objs,tests/test_float_guard.c) tools/float_guard.sh | $(TMP_DIR)
@@ -582,9 +517,6 @@ REPLAY_SRCS := src/cmd/replay.c src/devtools/screencast.c src/devtools/state.c $
 $(TMP_DIR)/replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/replay_gcov: $(call gcov_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
-	$(CC) $(CFLAGS) $(GCOV_CFLAGS) -o $@ $(filter %.o,$^)
-
 $(TMP_DIR)/test_state: $(call objs,tests/test_state.c src/devtools/state.c $(ENGINE_SRCS)) $(TMP_DIR)/replay | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -660,11 +592,7 @@ UNIT_TESTS := \
     test_gif \
     test_frames_tool \
     test_frames_check \
-    test_class_coverage \
-    test_line_coverage \
     test_e2e_limits \
-    test_minimize \
-    test_e2e_cleanup \
     test_float_guard \
     test_alloc_guard \
     test_float_grep \
@@ -871,89 +799,6 @@ e2e-baseline: $(foreach e,$(E2E_EVENTS),$(call frames_current,$(e)))
 e2e-ref: $(foreach e,$(E2E_EVENTS),$(if $(wildcard $(call frames_reference,$(e))),$(call frames_current,$(e)))) $(FRAMES_TOOL) tools/frames_ref.sh
 	@sh tools/frames_ref.sh ./$(FRAMES_TOOL) $(FRAMES_DIR) $(TMP_DIR)/frames-ref $(foreach e,$(E2E_EVENTS),$(e) $(call frames_reference,$(e)) $(call frames_current,$(e)) $(call frames_capture,$(e)))
 
-# Everything comes from the coverage tree, which is linked only here and in
-# test_class_coverage: the counter is compiled in only under
-# CLASS_COVERAGE_BUILD.
-$(TMP_DIR)/class_coverage: $(call coverage_objs,src/cmd/class_coverage.c $(ENGINE_SRCS)) | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
-
-CLASS_COVERAGE_EXEMPT := tools/class_coverage_exempt.txt
-CLASS_COVERAGE_NET_EXPECTED := tools/class_coverage_net_expected.txt
-
-class-coverage: $(TMP_DIR)/class_coverage tools/class_coverage.sh $(CLASS_COVERAGE_EXEMPT)
-	@sh tools/class_coverage.sh ./$(TMP_DIR)/class_coverage '$(or $(DIR),-)' $(CLASS_COVERAGE_EXEMPT) $(if $(DIR),,$(E2E_EVENTS))
-
-class-coverage-net: $(TMP_DIR)/class_coverage tools/class_coverage.sh $(CLASS_COVERAGE_EXEMPT) $(CLASS_COVERAGE_NET_EXPECTED)
-	@sh tools/class_coverage.sh --expect $(CLASS_COVERAGE_NET_EXPECTED) ./$(TMP_DIR)/class_coverage - $(CLASS_COVERAGE_EXEMPT) $(E2E_EVENTS)
-
-.PHONY: class-coverage class-coverage-net
-
-LINE_COVERAGE := sh tools/line_coverage.sh
-LINE_COVERAGE_COVER := $(LINE_COVERAGE) cover ./$(TMP_DIR)/replay_gcov $(OBJ_GCOV_DIR)
-# Written once and never recomputed: it is only compared against.
-LINE_COVERAGE_REFERENCE := tools/line_coverage_reference.txt
-# One `file:line reason` line per line of the reference that no short replay
-# reaches, edited by hand.
-LINE_COVERAGE_UNREACHABLE := tools/line_coverage_unreachable.txt
-
-line-coverage: $(TMP_DIR)/replay_gcov tools/line_coverage.sh
-	@$(LINE_COVERAGE_COVER) $(EVENTS) > $(TMP_DIR)/line_coverage.txt
-	@echo "line coverage: $$(wc -l < $(TMP_DIR)/line_coverage.txt) line(s) in $(TMP_DIR)/line_coverage.txt"
-
-line-coverage-contrib: $(TMP_DIR)/replay_gcov tools/line_coverage.sh
-	@$(LINE_COVERAGE_COVER) $(EVENTS) > $(TMP_DIR)/line_coverage_self.txt
-	@$(if $(strip $(OTHERS)),$(LINE_COVERAGE_COVER) $(OTHERS),:) > $(TMP_DIR)/line_coverage_others.txt
-	@$(LINE_COVERAGE) contrib $(TMP_DIR)/line_coverage_self.txt $(TMP_DIR)/line_coverage_others.txt > $(TMP_DIR)/line_coverage_contrib.txt
-	@echo "contribution of $(EVENTS): $$(wc -l < $(TMP_DIR)/line_coverage_contrib.txt) line(s) in $(TMP_DIR)/line_coverage_contrib.txt"
-
-# Without any e2e, the covered set is empty: the gap is the whole reference.
-e2e-gap: $(TMP_DIR)/replay_gcov tools/line_coverage.sh $(LINE_COVERAGE_REFERENCE) $(LINE_COVERAGE_UNREACHABLE)
-	@$(if $(E2E_EVENTS),$(LINE_COVERAGE_COVER) $(E2E_EVENTS),:) > $(TMP_DIR)/line_coverage_e2e.txt
-	@$(LINE_COVERAGE) gap $(LINE_COVERAGE_REFERENCE) $(LINE_COVERAGE_UNREACHABLE) $(TMP_DIR)/line_coverage_e2e.txt > $(TMP_DIR)/line_coverage_gap.txt
-	@sed 's/^/missing: /' $(TMP_DIR)/line_coverage_gap.txt
-	@n=$$(wc -l < $(TMP_DIR)/line_coverage_gap.txt | tr -d ' '); \
-	if [ "$$n" -ne 0 ]; then \
-	    echo "gap: $$n line(s) of $(LINE_COVERAGE_REFERENCE) neither covered by make e2e ($(words $(E2E_EVENTS)) e2e) nor in $(LINE_COVERAGE_UNREACHABLE), in $(TMP_DIR)/line_coverage_gap.txt"; \
-	    exit 1; \
-	fi
-	@echo "gap: none -- make e2e covers the whole reference outside $(LINE_COVERAGE_UNREACHABLE)"
-
-.PHONY: line-coverage line-coverage-contrib e2e-gap
-
-ifneq ($(filter minimize,$(MAKECMDGOALS)),)
-    ifeq ($(and $(strip $(EVENTS)),$(strip $(OUT))),)
-        $(error EVENTS or OUT missing: make minimize EVENTS=<events.json> OUT=<output.json>)
-    endif
-endif
-ifneq ($(filter e2e-judge,$(MAKECMDGOALS)),)
-    ifeq ($(strip $(EVENTS)),)
-        $(error EVENTS missing: make e2e-judge EVENTS=<events.json>)
-    endif
-endif
-
-minimize: $(TMP_DIR)/minimize $(TMP_DIR)/replay_gcov tools/minimize.sh tools/line_coverage.sh
-	@sh tools/minimize.sh ./$(TMP_DIR)/minimize $(if $(MIN_CHUNK),--min-chunk $(MIN_CHUNK)) $(EVENTS) $(OUT) $(if $(MECHANICAL),,$(LINE_COVERAGE_COVER))
-	@echo "minimize: $(EVENTS) -> $(OUT), $$(./$(TMP_DIR)/minimize count $(OUT)) frame(s)"
-
-E2E_CLEANUP_DIR := $(TMP_DIR)/e2e_cleanup
-
-e2e-cleanup: $(TMP_DIR)/minimize $(TMP_DIR)/replay_gcov tools/e2e_cleanup.sh tools/line_coverage.sh
-	@rm -rf $(E2E_CLEANUP_DIR) && mkdir -p $(E2E_CLEANUP_DIR)
-	@$(foreach e,$(E2E_EVENTS),$(LINE_COVERAGE_COVER) $(e) > $(E2E_CLEANUP_DIR)/$(notdir $(e)).lines && ) true
-	@$(if $(E2E_EVENTS),sh tools/e2e_cleanup.sh $(foreach e,$(E2E_EVENTS),$(e) $$(./$(TMP_DIR)/minimize count $(e)) $(E2E_CLEANUP_DIR)/$(notdir $(e)).lines),:) > $(E2E_CLEANUP_DIR)/remove.txt
-	@sed 's/^/to remove: /' $(E2E_CLEANUP_DIR)/remove.txt
-	@echo "e2e-cleanup: $$(wc -l < $(E2E_CLEANUP_DIR)/remove.txt | tr -d ' ') file(s) to remove out of $(words $(E2E_EVENTS)), nothing is deleted"
-
-e2e-judge: $(TMP_DIR)/replay_gcov tools/line_coverage.sh
-	@$(LINE_COVERAGE_COVER) $(EVENTS) > $(TMP_DIR)/e2e_judge_self.txt
-	@$(if $(filter-out $(EVENTS),$(E2E_EVENTS)),$(LINE_COVERAGE_COVER) $(filter-out $(EVENTS),$(E2E_EVENTS)),:) > $(TMP_DIR)/e2e_judge_others.txt
-	@$(LINE_COVERAGE) contrib $(TMP_DIR)/e2e_judge_self.txt $(TMP_DIR)/e2e_judge_others.txt > $(TMP_DIR)/e2e_judge_contrib.txt
-	@n=$$(wc -l < $(TMP_DIR)/e2e_judge_contrib.txt | tr -d ' '); \
-	echo "e2e-judge: $(EVENTS) adds $$n line(s) to make e2e, in $(TMP_DIR)/e2e_judge_contrib.txt"; \
-	[ "$$n" -gt 0 ]
-
-.PHONY: minimize e2e-cleanup e2e-judge
-
 # offsetof, void *self, a field read by name, a spec or defaults table: the
 # model the composition migration removed, which a port of the cart brings
 # back first.
@@ -1067,7 +912,5 @@ screencast-viewer: $(SCREENCAST_VIEWER_BIN)
 -include $(wildcard $(OBJ_DIR)/src/*/*.d $(OBJ_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_ASAN_DIR)/src/*/*.d $(OBJ_ASAN_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_UBSAN_DIR)/src/*/*.d $(OBJ_UBSAN_DIR)/tests/*.d)
--include $(wildcard $(OBJ_COVERAGE_DIR)/src/*/*.d $(OBJ_COVERAGE_DIR)/tests/*.d)
--include $(wildcard $(OBJ_GCOV_DIR)/src/*/*.d $(OBJ_GCOV_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_SANITIZE_DIR)/src/*/*.d $(OBJ_SANITIZE_DIR)/tests/*.d)
 

@@ -43,9 +43,6 @@ static mouse_t *mouse_create(void) {
     /* Read-only: this module writes through its member. */
     self->header.pos = (const vec_t *const *)&self->pos;
     self->pos = &g_mouse_pos;
-#ifdef CLASS_COVERAGE_BUILD
-    class_coverage_record("mouse");
-#endif
     mouse_construct(dispatch_context_mem());
     entity_construct(&self->header);
     return self;
