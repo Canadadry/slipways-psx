@@ -236,8 +236,12 @@
 # make text-guards-test -> old-names-guard and french-guard alive: planted
 #                       violations through the real target, in a reduced
 #                       copy of the tree under tmp/, in make test
+# make ast-guard-test -> ast-guard alive: planted violations through the real
+#                       target, in a reduced copy of the tree under tmp/,
+#                       over the planted units only; needs libclang and make
+#                       rename-tool-setup, not yet in make test-all
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test rename-tables-test rename-count-test cart-names-count rename-substeps-test rename-substeps-check rename-strings-verify-test rename-strings-verify rename-rekey-test rename-rekey rename-rekey-check scope-count-test scope-count cryptic-locals cart-citations-test cart-citations french-count-test french-count old-names-guard ast-guard french-guard text-guards-test
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test rename-tables-test rename-count-test cart-names-count rename-substeps-test rename-substeps-check rename-strings-verify-test rename-strings-verify rename-rekey-test rename-rekey rename-rekey-check scope-count-test scope-count cryptic-locals cart-citations-test cart-citations french-count-test french-count old-names-guard ast-guard french-guard text-guards-test ast-guard-test
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -1360,6 +1364,9 @@ french-guard:
 
 text-guards-test:
 	python3 tests/test_text_guards.py
+
+ast-guard-test:
+	$(AST_RENAME_ENV) AST_RENAME_BINDINGS=$(AST_RENAME_BINDINGS) python3 tests/test_ast_guard.py
 
 old-names-guard:
 	python3 tools/rename_count.py --table $(RENAME_TABLE) --root . --part text --check \
