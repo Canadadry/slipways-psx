@@ -1,6 +1,6 @@
 """old-names-guard and french-guard are alive: a reduced copy of the
 working tree (the Makefile, the rename table, tools/*.py, the exception
-files and the sub-step table), each violation planted in its own fresh copy,
+files, the historical names and the sub-step table), each violation planted in its own fresh copy,
 then `make -C <copy> <guard>`, the real recipe. Each plant must turn its
 column of its module red, and nothing else; the clean copy, and a plant in
 the module an exception names, stay green. Run by `make text-guards-test`,
@@ -28,6 +28,7 @@ import rename_tables  # noqa: E402
 RENAMED = "renomm\u00e9"
 NAMES_EXCEPTIONS = "tools/cart_names_exceptions.txt"
 FRENCH_EXCEPTIONS = "tools/french_exceptions.txt"
+HISTORICAL_NAMES = "tools/historical_names.txt"
 PLANTED = "src/game/planet.c"
 MODULE = "game/planet"
 NEUTRAL = "/* Counts the planets. */\nint planet_count(void) { return 0; }\n"
@@ -46,7 +47,7 @@ def copy_tree(work, extra=()):
     """The reduced copy: what the guard recipes read, plus `extra` paths
     (files or directories) relative to the repository."""
     shutil.rmtree(work, ignore_errors=True)
-    paths = (["Makefile", table_path(), "tools/rename_substeps.tsv"]
+    paths = (["Makefile", table_path(), "tools/rename_substeps.tsv", HISTORICAL_NAMES]
              + sorted(os.path.relpath(p, REPO) for p in glob.glob(os.path.join(REPO, "tools", "*.py")))
              + sorted(os.path.relpath(p, REPO)
                       for p in glob.glob(os.path.join(REPO, "tools", "*_exceptions.txt")))
@@ -130,6 +131,16 @@ class Plants:
         assert self.old_name not in kept, "%s is also a kept name" % self.old_name
         assert self.old_name not in new, "%s is also a new name" % self.old_name
 
+        with open(os.path.join(REPO, HISTORICAL_NAMES), encoding="utf-8") as f:
+            historical = sorted(line.strip() for line in f
+                                if line.strip() and not line.startswith("#"))
+        long_ones = [n for n in historical if len(n) >= 3]
+        assert long_ones, "no historical name of three characters or more"
+        self.historical_name = long_ones[0]
+        assert re.fullmatch(r"[A-Za-z_]\w*", self.historical_name)
+        assert self.historical_name not in kept, "%s is also a kept name" % self.historical_name
+        assert self.historical_name not in new, "%s is also a new name" % self.historical_name
+
         name_triples = rename_tables.read_triples(os.path.join(REPO, NAMES_EXCEPTIONS))
         assert name_triples, "no line in %s" % NAMES_EXCEPTIONS
         self.name_exception = name_triples[0]
@@ -210,6 +221,10 @@ class TextGuards(unittest.TestCase):
     def test_an_old_name_in_a_string(self):
         self.plant(literal_line(PLANTED, PLANTS.old_name))
         self.assert_only(self.guard("old-names-guard"), "string")
+
+    def test_a_historical_name_as_an_identifier(self):
+        self.plant("int %s(void) { return 0; }\n" % PLANTS.historical_name)
+        self.assert_only(self.guard("old-names-guard"), "identifier")
 
     def test_an_excepted_old_name_in_another_module(self):
         self.plant(literal_line(PLANTED, PLANTS.name_exception[2]))

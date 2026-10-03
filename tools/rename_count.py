@@ -25,6 +25,11 @@ each removing exactly the mentions of that old name in that column and
 module, in both halves (an AST occurrence carries the old name of its
 identity), before --check and with --substep; that file is not read as code.
 
+Historical names: each line of the --historical file (`#` lines skipped) is
+an identifier no row carries, searched as a distinctive name; that file is
+not read as code, and a name the table keeps or gives as a new name, or that
+is not an identifier, exits 2.
+
 --part text counts what a text search alone finds, without reading the
 extraction; --part ast the identifier column of the ambiguous names, from
 the extraction; the two add up, column by column, to the count without
@@ -63,6 +68,7 @@ class Names:
         kept = {r["ancien"] for r in rows if r["statut"] != "renommé"}
         new = {r["nouveau"] for r in renamed}
         olds = {r["ancien"] for r in renamed}
+        self.kept, self.new = kept, new
         self.ambiguous = {n for n in olds if is_ambiguous(n, kept, new)}
         self.distinctive_words = {n for n in olds - self.ambiguous if WORD.fullmatch(n)}
         self.paths = [(n, path_pattern(n)) for n in sorted(olds - self.ambiguous)
@@ -88,6 +94,12 @@ class Names:
         """Whether a backtick span that is exactly this ambiguous name counts
         in this file."""
         return name in self.ambiguous and path in self.local_files.get(name, (path,))
+
+
+def read_historical(path):
+    """The names of a historical names file, `#` and blank lines skipped."""
+    with open(path, encoding="utf-8") as f:
+        return [line.strip() for line in f if line.strip() and not line.startswith("#")]
 
 
 def is_ambiguous(name, kept, new):
@@ -298,6 +310,9 @@ def main(argv):
                         help="exit 1 if anything is counted, 2 without a fresh extraction")
     parser.add_argument("--exceptions",
                         help="lines `column<TAB>module<TAB>name` not counted; not read as code")
+    parser.add_argument("--historical",
+                        help="names no row carries, one per line, searched as distinctive "
+                             "names; not read as code")
     args = parser.parse_args(argv)
     if args.check and args.substep:
         parser.error("--check does not split by sub-step: drop --substep")
@@ -309,6 +324,15 @@ def main(argv):
 
     _, rows = rename_tables.read_table(args.table)
     names = Names(rows)
+    if args.historical:
+        historical = read_historical(args.historical)
+        refused = [n for n in historical if not re.fullmatch(r"[A-Za-z_]\w*", n)
+                   or n in names.kept or n in names.new]
+        if refused:
+            print("error: %s: not an identifier, or a kept or new name of the table: %s"
+                  % (args.historical, ", ".join(refused)), file=sys.stderr)
+            return 2
+        names.distinctive_words |= set(historical)
     part = None
     if args.substep:
         substeps = rename_substeps.load(args.substeps)
@@ -326,6 +350,9 @@ def main(argv):
     if args.exceptions:
         exceptions = frozenset(rename_tables.read_triples(args.exceptions))
         own = os.path.relpath(os.path.abspath(args.exceptions), os.path.abspath(args.root))
+        files = [p for p in files if p != own]
+    if args.historical:
+        own = os.path.relpath(os.path.abspath(args.historical), os.path.abspath(args.root))
         files = [p for p in files if p != own]
     notes = []
     distinct = set()

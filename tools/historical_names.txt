@@ -1,0 +1,17 @@
+# Names of the original sources that no row of docs/renommage.tsv carries,
+# searched by old-names-guard as old names: one per line, whole words.
+pico8_value_t
+pico8_value
+pico8_value_function
+pico8_ob
+pico8_unstash
+pico8_mv
+pico8_list_t
+pico8_entity_get_field
+pico8_jo_start
+pico8_nl_start
+hp_pose
+pico8_ho_gp_has
+pk_is_bool
+fp_is_bool
+nu

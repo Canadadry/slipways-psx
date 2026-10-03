@@ -469,5 +469,73 @@ class Exceptions(unittest.TestCase):
                                             "comment": 1, "total": 6}, result.stdout)
 
 
+class Historical(unittest.TestCase):
+    """--historical: each name of the file (one per line, `#` lines
+    skipped) is searched as a distinctive name, in the four columns; the
+    file itself is not read as code; a name that is not an identifier, or
+    that the table keeps or gives as a new name, makes the tool exit 2."""
+
+    FILES = {
+        "src/game/ui.c": ("void old_zz(void);\n"
+                          "/* old_zz, then `old_zz` */\n"
+                          "static const char *k = \"old_zz\";\n"),
+        "tools/run.sh": "old_zz --fast\n",
+        "src/game/planet.h": "void pico8_jo_kj(void);\n",
+    }
+    LINES = "# historical names\nold_zz\nzq\n"
+    PATH = os.path.join(WORK, "tree", "tools", "historical.txt")
+
+    def run_with(self, lines=None, files=None, rows=None, extra=()):
+        files = dict(self.FILES if files is None else files)
+        files["tools/historical.txt"] = self.LINES if lines is None else lines
+        return run(rows=rows, files=files, extra=["--historical", self.PATH] + list(extra))
+
+    def test_a_historical_name_counts_in_each_column(self):
+        result, table = self.run_with()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(table["game/ui"], {"identifier": 1, "backtick": 1, "string": 1,
+                                             "comment": 1, "total": 4}, result.stdout)
+        self.assertEqual(table["tools/run"]["string"], 1, result.stdout)
+        self.assertEqual(table["game/planet"]["identifier"], 1, result.stdout)
+
+    def test_a_two_letter_historical_name_is_a_whole_word(self):
+        result, table = self.run_with(files={"src/game/ui.c": "int zq;\nint menu_zq_x;\n"})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(table["game/ui"]["identifier"], 1, result.stdout)
+
+    def test_the_file_is_not_counted(self):
+        result, table = self.run_with()
+        self.assertNotIn("tools/historical", table, result.stdout)
+        files = dict(self.FILES, **{"tools/copy.txt": self.LINES})
+        result, table = self.run_with(files=files)
+        self.assertEqual(table["tools/copy"]["string"], 2, result.stdout)
+
+    def test_check_fails_on_a_historical_name(self):
+        result, table = self.run_with(extra=["--part", "text", "--check"])
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        result, table = self.run_with(files={"src/game/ui.c": "int planet_count;\n"},
+                                      extra=["--part", "text", "--check"])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_a_new_or_kept_name_of_the_table_is_refused(self):
+        result, _ = self.run_with(lines="old_zz\nplanet_draw\n")
+        self.assertEqual(result.returncode, 2, result.stdout)
+        self.assertIn("planet_draw", result.stderr)
+        rows = ROWS + [["pos", "pos", "src/game/ui.c", "identifiant", "locale", "conserv\u00e9",
+                        "game/ui", "", "", "c:ui.c@1@F@f@pos"]]
+        result, _ = self.run_with(lines="pos\n", rows=rows)
+        self.assertEqual(result.returncode, 2, result.stdout)
+        self.assertIn("pos", result.stderr)
+        result, _ = self.run_with(lines="not-a-name\n")
+        self.assertEqual(result.returncode, 2, result.stdout)
+        self.assertIn("not-a-name", result.stderr)
+
+    def test_without_the_option_the_count_is_unchanged(self):
+        with_comments_only, _ = self.run_with(lines="# nothing\n")
+        files = dict(self.FILES, **{"tools/historical.txt": "# nothing\n"})
+        without, _ = run(files=files)
+        self.assertEqual(with_comments_only.stdout, without.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()

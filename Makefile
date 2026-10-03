@@ -152,8 +152,9 @@
 # make rename-count-test -> the tests of tools/rename_count.py on a mini
 #                       tree, in make test
 # make cart-names-count [MODULES="<module>..."] -> old-name counter: the old
-#                       names of the renamed rows of docs/renommage.tsv still
-#                       in the code, minus tools/cart_names_exceptions.txt,
+#                       names of the renamed rows of docs/renommage.tsv and
+#                       the names of tools/historical_names.txt still in the
+#                       code, minus tools/cart_names_exceptions.txt,
 #                       per module and category (short names through
 #                       tmp/ast_rename/occurrences.tsv, make rename-extract
 #                       first); copy in
@@ -223,7 +224,8 @@
 #                       mention; warns for a module in no sub-step, never
 #                       fails, outside the suite
 # make old-names-guard -> the old-name guard, text half: the old names of
-#                       docs/renommage.tsv that a text search finds in the code
+#                       docs/renommage.tsv and of tools/historical_names.txt
+#                       that a text search finds in the code
 #                       (`rename_count.py --part text`), minus
 #                       tools/cart_names_exceptions.txt, without libclang;
 #                       fails on any residue, in make test
@@ -1299,7 +1301,8 @@ cart-names-count:
 	@mkdir -p $(AST_RENAME_DIR)
 	python3 tools/rename_count.py --table $(RENAME_TABLE) \
 	    --occurrences $(AST_RENAME_DIR)/occurrences.tsv --root . \
-	    --exceptions tools/cart_names_exceptions.txt $(foreach m,$(MODULES),--module '$(m)') \
+	    --exceptions tools/cart_names_exceptions.txt --historical tools/historical_names.txt \
+	    $(foreach m,$(MODULES),--module '$(m)') \
 	    $(if $(SUBSTEP),--substep $(SUBSTEP) --substeps $(RENAME_SUBSTEPS)) \
 	    | tee $(AST_RENAME_DIR)/cart_names_count.txt
 
@@ -1372,7 +1375,7 @@ ast-guard-test:
 
 old-names-guard:
 	python3 tools/rename_count.py --table $(RENAME_TABLE) --root . --part text --check \
-	    --exceptions tools/cart_names_exceptions.txt
+	    --exceptions tools/cart_names_exceptions.txt --historical tools/historical_names.txt
 
 # Both counts run whatever the first returns; the status is the last failure.
 ast-guard: rename-extract
