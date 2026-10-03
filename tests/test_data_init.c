@@ -10,7 +10,7 @@
 #include "p8/mem.h"
 #include "game/research.h"
 
-static void test_production_tables_project_records_icon_tooltips_technologies_decode_real_cart_content(void) {
+static void test_production_tables_project_records_icon_tooltips_technologies_decode_real_game_data(void) {
     p8_memory_t mem;
 
     p8_mem_init(&mem);
@@ -50,7 +50,7 @@ static void test_production_tables_project_records_icon_tooltips_technologies_de
 }
 
 int main(void) {
-    test_production_tables_project_records_icon_tooltips_technologies_decode_real_cart_content();
+    test_production_tables_project_records_icon_tooltips_technologies_decode_real_game_data();
 
     printf("test_data_init: all tests passed\n");
     return 0;

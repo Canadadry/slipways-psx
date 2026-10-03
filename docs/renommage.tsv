@@ -8916,7 +8916,7 @@ text	text	tests/test_constants_check.c	identifiant	paramètre	conservé	tests/te
 bad	bad	tests/test_constants_check.c	identifiant	statique	conservé	tests/test_constants_check			c:test_constants_check.c@5535@F@test_malformed_macro_call_fails_naming_its_file@bad
 buf	buf	tests/test_constants_check.c	identifiant	statique	conservé	tests/test_constants_check			c:test_constants_check.c@1301@F@read_file@buf
 test_pico8_data_init	test_data_init	tests/test_data_init.c	chaîne	nom de test	renommé	tests/test_data_init		libellé	chaîne:test_pico8_data_init
-test_hc_fd_dr_nb_decode_real_cart_content	test_production_tables_project_records_icon_tooltips_technologies_decode_real_cart_content	tests/test_data_init.c	identifiant	fonction	renommé	tests/test_data_init	nb		c:test_data_init.c@F@test_hc_fd_dr_nb_decode_real_cart_content
+test_hc_fd_dr_nb_decode_real_cart_content	test_production_tables_project_records_icon_tooltips_technologies_decode_real_game_data	tests/test_data_init.c	identifiant	fonction	renommé	tests/test_data_init	nb		c:test_data_init.c@F@test_hc_fd_dr_nb_decode_real_cart_content
 mem	mem	tests/test_data_init.c	identifiant	locale	conservé	tests/test_data_init			c:test_data_init.c@275@F@test_hc_fd_dr_nb_decode_real_cart_content@mem
 tech	tech	tests/test_data_init.c	identifiant	locale	conservé	tests/test_data_init			c:test_data_init.c@1079@F@test_hc_fd_dr_nb_decode_real_cart_content@tech
 title	title	tests/test_data_init.c	identifiant	locale	conservé	tests/test_data_init			c:test_data_init.c@842@F@test_hc_fd_dr_nb_decode_real_cart_content@title
