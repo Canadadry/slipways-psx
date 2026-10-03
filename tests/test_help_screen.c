@@ -384,11 +384,11 @@ static void test_built(void) {
         hash = fold_fixed_member(hash, b->layer);
     }
     for (index = 0; index < 5; index++) {
-        static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+        static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
         hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(messages[index]), help_screen));
     }
-    assert(entity_list_listed(entities_by_message("draw"), help_screen) && entity_list_listed(entities_by_message("draw_overlay"), help_screen) && entity_list_listed(entities_by_message("hit_test"), help_screen));
-    assert(!entity_list_listed(entities_by_message("new_year"), help_screen) && !entity_list_listed(entities_by_message("refresh"), help_screen));
+    assert(entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), help_screen) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), help_screen) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), help_screen));
+    assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), help_screen) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_REFRESH), help_screen));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("probe"), help_screen));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("targeting"), help_screen));
     assert(entity_list_listed(entities_by_tag("probe"), help_screen) && entity_list_listed(entities_by_tag("targeting"), help_screen));
@@ -402,8 +402,8 @@ static void test_built(void) {
     check("built", hash, BUILT_HASH);
 }
 
-/* draw_layers("draw") x3 with the screen and the particles;
- * draw_layers("draw_overlay"); update_entities() x3; hit_test in and out of
+/* draw_layers(ENTITY_MESSAGE_DRAW) x3 with the screen and the particles;
+ * draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY); update_entities() x3; hit_test in and out of
  * the hit box, the screen cursor kept since the layer is 10 or more. */
 static void test_life(void) {
     uint32_t hash = 2166136261u;
@@ -413,11 +413,11 @@ static void test_life(void) {
     start_title();
     fv = the_help();
     for (index = 0; index < 3; index++) {
-        draw_layers("draw");
+        draw_layers(ENTITY_MESSAGE_DRAW);
         hash = fnv(hash, screen_hash());
         hash = fnv(hash, (uint32_t)size_of(fv->emitter->particles));
     }
-    draw_layers("draw_overlay");
+    draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY);
     hash = fnv(hash, screen_hash());
     for (index = 0; index < 3; index++) {
         update_entities();
@@ -526,7 +526,7 @@ static void test_start_game_retires_the_help(void) {
     fv = the_help();
     cart_start_game(NULL);
     assert(!entity_list_listed(live_entities(), fv));
-    assert(!entity_list_listed(entities_by_tag("probe"), fv) && !entity_list_listed(entities_by_message("draw"), fv) && !entity_list_listed(entities_by_message("hit_test"), fv));
+    assert(!entity_list_listed(entities_by_tag("probe"), fv) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), fv) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), fv));
 }
 
 /* The title's help is a struct whose descriptor shares the probe's 4

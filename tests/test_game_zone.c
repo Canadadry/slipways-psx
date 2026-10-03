@@ -123,7 +123,7 @@ static size_t registry_bytes(const entity_list_t *list) {
 }
 
 static size_t registries_bytes(void) {
-    static const char *const CV[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+    static const entity_message_t CV[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
     static const char *const CG[] = {"structure", "ascension", "slipgate", "probe", "message_box", "slipway", "wormhole", "planet", "node", "targeting"};
     size_t r = registry_bytes(live_entities());
     for (size_t i = 0; i < sizeof CV / sizeof CV[0]; i++) r += registry_bytes(entities_by_message(CV[i]));

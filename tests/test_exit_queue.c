@@ -202,7 +202,7 @@ static int case_update60_after_forgetting(void) {
  * economy_score_difficulty still returns it for the whole game. */
 static int case_difficulty_outlives_its_button(void) {
     load_cart_and_start();
-    const entity_list_t *hd = entities_by_message("hit_test");
+    const entity_list_t *hd = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     button_t *nj = NULL;
     for (int i = 0; i < hd->count && nj == NULL; i++)
         if (hd->items[i]->class == button_class() && ((button_t *)hd->items[i])->has_type_bias)

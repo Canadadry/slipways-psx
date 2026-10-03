@@ -59,7 +59,7 @@ static p8_memory_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
-static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -284,7 +284,7 @@ static const entity_class_t *class_of(const void *e) {
 /* The background is the one among the hit_test entities whose archetype's
  * hit_test and layer are both 1. */
 static background_t *the_background(void) {
-    const entity_list_t *hd = entities_by_message("hit_test");
+    const entity_list_t *hd = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     background_t *found = NULL;
     int count = 0;
     int i;
@@ -393,8 +393,8 @@ static uint32_t fold_probe(uint32_t hash, probe_t *entity) {
     for (index = 0; index < sizeof messages / sizeof messages[0]; index++) {
         hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(messages[index]), entity));
     }
-    assert(entity_list_listed(entities_by_message("draw"), entity) && entity_list_listed(entities_by_message("draw_overlay"), entity));
-    assert(!entity_list_listed(entities_by_message("hit_test"), entity) && !entity_list_listed(entities_by_message("new_year"), entity) && !entity_list_listed(entities_by_message("refresh"), entity));
+    assert(entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), entity) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), entity));
+    assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), entity) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), entity) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_REFRESH), entity));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("probe"), entity));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("targeting"), entity));
     assert(entity_list_listed(entities_by_tag("probe"), entity) && entity_list_listed(entities_by_tag("targeting"), entity));
@@ -546,7 +546,7 @@ static uint32_t fold_drag(uint32_t h, probe_t *e, vec_t at, int rp, uint32_t wan
 }
 
 /* spawn_particle; the drag on a planet, a slipway, the void; draw_overlay
- * with a target and without; draw_layers("draw") with the particle lists'
+ * with a target and without; draw_layers(ENTITY_MESSAGE_DRAW) with the particle lists'
  * sizes; update_entities steps, then is_dead raised by the drop taking it
  * out of the live entities and the tags. */
 static void test_life(void) {
@@ -581,7 +581,7 @@ static void test_life(void) {
     hash = fnv(hash, screen_hash());
 
     for (index = 0; index < 3; index++) {
-        draw_layers("draw");
+        draw_layers(ENTITY_MESSAGE_DRAW);
         hash = fnv(hash, screen_hash());
         hash = fnv(hash, (uint32_t)size_of(first->emitter->particles));
         hash = fnv(hash, (uint32_t)size_of(second->emitter->particles));
@@ -725,7 +725,7 @@ static void test_help_screen(void) {
     assert(entity_list_listed(entities_by_tag("probe"), help_screen) && entity_list_listed(entities_by_tag("targeting"), help_screen));
     hash = fold_defaults(hash, help_screen);
     for (index = 0; index < 3; index++) {
-        draw_layers("draw");
+        draw_layers(ENTITY_MESSAGE_DRAW);
         hash = fnv(hash, screen_hash());
         hash = fnv(hash, (uint32_t)size_of(help_screen->emitter->particles));
     }

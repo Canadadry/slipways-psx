@@ -50,7 +50,7 @@ static int entity_list_listed(const entity_list_t *list, const void *e) {
 }
 
 static int in_any_entities_by_message(const void *e) {
-    const char *names[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+    const entity_message_t names[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
     int i;
 
     for (i = 0; i < 5; i++) {

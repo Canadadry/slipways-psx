@@ -46,7 +46,7 @@ static int entity_list_listed(const entity_list_t *list, const void *e) {
 /* Not a `camera_t`; no method answers and the camera stays put; the live
  * entities and the messages are empty. */
 static void assert_placeholder(void) {
-    const char *buckets[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+    const entity_message_t buckets[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
     entity_t *mo = main_camera();
     int i;
 

@@ -255,6 +255,6 @@ void cart_draw(void) {
 
     p8_cls(mem);
     hud_select_palette_block_default(mem);
-    draw_layers("draw");
-    draw_layers("draw_overlay");
+    draw_layers(ENTITY_MESSAGE_DRAW);
+    draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY);
 }

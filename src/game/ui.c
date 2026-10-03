@@ -276,21 +276,19 @@ void ui_update_hover(ui_t *self) {
     mouse = main_mouse_typed();
     main_mouse_pos = mouse != NULL ? mouse->pos : NULL;
 
-    hit_test_bucket = entities_by_message("hit_test");
-    if (hit_test_bucket != NULL) {
-        for (index = 0; index < hit_test_bucket->count; index++) {
-            entity_t *e = hit_test_bucket->items[index];
+    hit_test_bucket = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
+    for (index = 0; index < hit_test_bucket->count; index++) {
+        entity_t *e = hit_test_bucket->items[index];
 
-            if (e->class->hit_test != NULL && e->class->hit_test(e, self->mouse_world, main_mouse_pos)) {
-                if (e->layer != NULL) {
-                    int fa = ui_to_int(*e->layer);
+        if (e->class->hit_test != NULL && e->class->hit_test(e, self->mouse_world, main_mouse_pos)) {
+            if (e->layer != NULL) {
+                int fa = ui_to_int(*e->layer);
 
-                    assert(fa >= 0 && fa < UI_HOVER_LAYERS &&
-                           "ui_update_hover: a hovered entity's layer outside 0..15, the layers ui_send_to_hovered walks -- stop, do not widen");
-                    entity_list_add(&self->hovered_by_layer->layers[fa], e);
-                }
-                self->hovered = e;
+                assert(fa >= 0 && fa < UI_HOVER_LAYERS &&
+                       "ui_update_hover: a hovered entity's layer outside 0..15, the layers ui_send_to_hovered walks -- stop, do not widen");
+                entity_list_add(&self->hovered_by_layer->layers[fa], e);
             }
+            self->hovered = e;
         }
     }
 

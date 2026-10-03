@@ -360,11 +360,11 @@ static void test_built(void) {
 
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), ju));
     hash = fnv(hash, (uint32_t)live_entities()->count);
-    assert(entity_list_listed(entities_by_message("draw"), ju) && entity_list_listed(entities_by_message("new_year"), ju) && entity_list_listed(entities_by_message("refresh"), ju));
-    assert(!entity_list_listed(entities_by_message("draw_overlay"), ju) && !entity_list_listed(entities_by_message("hit_test"), ju));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message("draw"), ju));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message("new_year"), ju));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message("refresh"), ju));
+    assert(entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), ju) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), ju) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_REFRESH), ju));
+    assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), ju) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), ju));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(ENTITY_MESSAGE_DRAW), ju));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), ju));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(ENTITY_MESSAGE_REFRESH), ju));
     for (index = 0; index < sizeof tags / sizeof tags[0]; index++) {
         assert(!entity_list_listed(entities_by_tag(tags[index]), ju));
     }

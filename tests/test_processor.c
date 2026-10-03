@@ -64,7 +64,7 @@ static p8_memory_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
-static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
 static const char *const tags[] = {"planet", "node", "targeting"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -219,7 +219,7 @@ static void clicked_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
     cart_init();
-    hd = entities_by_message("hit_test");
+    hd = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     for (i = 0; i < hd->count; i++) {
         if (((const entity_t *)hd->items[i])->class == button_class() && ++buttons == 2) {
             (void)button_left_press((button_t *)hd->items[i]);
@@ -269,7 +269,7 @@ static void assert_members_of(const entity_class_t *c, const entity_class_t *ref
 
 /* The structure icon whose kind is the shop's second, the processor. */
 static void *processor_icon(void) {
-    const entity_list_t *hb = entities_by_message("refresh");
+    const entity_list_t *hb = entities_by_message(ENTITY_MESSAGE_REFRESH);
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i];

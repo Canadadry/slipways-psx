@@ -48,7 +48,7 @@ static p8_memory_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
-static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
 static const char *const tags[] = {"planet", "node", "targeting"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -479,9 +479,9 @@ static uint32_t fold_economy(uint32_t h, void *e) {
     return as_ascension(e)->has_development_tier ? fold_fixed_member(h, as_ascension(e)->development_tier) : fold_absent(h);
 }
 
-/* draw_layers("draw") once: the screen it leaves and what ascension_draw left in the particle list. */
+/* draw_layers(ENTITY_MESSAGE_DRAW) once: the screen it leaves and what ascension_draw left in the particle list. */
 static uint32_t fold_draw(uint32_t h, void *e) {
-    draw_layers("draw");
+    draw_layers(ENTITY_MESSAGE_DRAW);
     h = fnv(h, screen_hash());
     return fnv(h, (uint32_t)pointer_list_size(as_ascension(e)->emitter->particles));
 }

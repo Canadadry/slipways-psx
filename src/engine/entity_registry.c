@@ -1,7 +1,6 @@
 #include "engine/entity_registry.h"
 
 #include <assert.h>
-#include <string.h>
 
 #include "engine/exit_queue.h"
 #include "game/game_data.h"
@@ -9,15 +8,7 @@
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
 
-#define MESSAGE_COUNT 5
-static const char *const message_names[MESSAGE_COUNT] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
-
-typedef struct {
-    const char *name; /* borrowed from message_names -- not owned here */
-    entity_list_t list;
-} entities_by_message_entry_t;
-
-static entities_by_message_entry_t g_entities_by_message[MESSAGE_COUNT];
+static entity_list_t g_entities_by_message[ENTITY_MESSAGE_COUNT];
 
 /* `seen`: an entity carrying the tag has been registered since
  * entity_registry_init(); until then entities_by_tag() returns NULL. */
@@ -53,9 +44,8 @@ void entity_registry_shutdown(void) {
 
     entity_list_free(&g_live_entities);
 
-    for (i = 0; i < MESSAGE_COUNT; i++) {
-        entity_list_free(&g_entities_by_message[i].list);
-        g_entities_by_message[i].name = NULL;
+    for (i = 0; i < ENTITY_MESSAGE_COUNT; i++) {
+        entity_list_free(&g_entities_by_message[i]);
     }
 
     for (i = 0; i < TAG_COUNT; i++) {
@@ -75,9 +65,8 @@ void entity_registry_init(void) {
 
     entity_list_init(&g_live_entities, game_zone());
 
-    for (i = 0; i < MESSAGE_COUNT; i++) {
-        g_entities_by_message[i].name = message_names[i];
-        entity_list_init(&g_entities_by_message[i].list, game_zone());
+    for (i = 0; i < ENTITY_MESSAGE_COUNT; i++) {
+        entity_list_init(&g_entities_by_message[i], game_zone());
     }
 
     for (i = 0; i < TAG_COUNT; i++) {
@@ -109,8 +98,8 @@ void entity_registry_forget_registries(void) {
     int i;
 
     forget_list(&g_live_entities);
-    for (i = 0; i < MESSAGE_COUNT; i++) {
-        forget_list(&g_entities_by_message[i].list);
+    for (i = 0; i < ENTITY_MESSAGE_COUNT; i++) {
+        forget_list(&g_entities_by_message[i]);
     }
     for (i = 0; i < TAG_COUNT; i++) {
         forget_list(&g_entities_by_tag[i].list);
@@ -122,32 +111,25 @@ const entity_list_t *live_entities(void) {
     return &g_live_entities;
 }
 
-const entity_list_t *entities_by_message(const char *name) {
-    int i;
+const entity_list_t *entities_by_message(entity_message_t message) {
     assert(g_initialized && "entity_registry_init() must run before entities_by_message is read");
-    for (i = 0; i < MESSAGE_COUNT; i++) {
-        if (strcmp(g_entities_by_message[i].name, name) == 0) {
-            return &g_entities_by_message[i].list;
-        }
-    }
-    return NULL;
+    return &g_entities_by_message[message];
 }
 
-/* The entity's class has the member for the i-th name of
- * message_names. */
-static int is_message_name(const entity_t *e, int i) {
+/* The entity's class has the member for `message`. */
+static int is_message_name(const entity_t *e, entity_message_t message) {
     const entity_class_t *cls;
 
     cls = e->class;
 
-    switch (i) {
-    case 0:
+    switch (message) {
+    case ENTITY_MESSAGE_DRAW:
         return cls->draw != NULL;
-    case 1:
+    case ENTITY_MESSAGE_DRAW_OVERLAY:
         return cls->draw_overlay != NULL;
-    case 2:
+    case ENTITY_MESSAGE_HIT_TEST:
         return cls->hit_test != NULL;
-    case 3:
+    case ENTITY_MESSAGE_NEW_YEAR:
         return cls->new_year != NULL;
     default:
         return cls->refresh != NULL && (cls->has_refresh == NULL || cls->has_refresh(e));
@@ -171,9 +153,9 @@ entity_t *entity_register(entity_t *e) {
 
     entity_list_add(&g_live_entities, e);
 
-    for (i = 0; i < MESSAGE_COUNT; i++) {
-        if (is_message_name(e, i)) {
-            entity_list_add(&g_entities_by_message[i].list, e);
+    for (i = 0; i < ENTITY_MESSAGE_COUNT; i++) {
+        if (is_message_name(e, (entity_message_t)i)) {
+            entity_list_add(&g_entities_by_message[i], e);
         }
     }
 
@@ -198,9 +180,9 @@ void entity_unregister(entity_t *e) {
         exit_queue_put(e);
     }
 
-    for (i = 0; i < MESSAGE_COUNT; i++) {
-        if (is_message_name(e, i)) {
-            entity_list_del(&g_entities_by_message[i].list, e);
+    for (i = 0; i < ENTITY_MESSAGE_COUNT; i++) {
+        if (is_message_name(e, (entity_message_t)i)) {
+            entity_list_del(&g_entities_by_message[i], e);
         }
     }
 
@@ -213,35 +195,33 @@ void entity_unregister(entity_t *e) {
     }
 }
 
-void draw_layers(const char *message) {
+void draw_layers(entity_message_t message) {
     const entity_list_t *message_bucket;
     entity_list_t layers[15];
-    int is_draw = strcmp(message, "draw") == 0;
+    int is_draw = message == ENTITY_MESSAGE_DRAW;
     int index, layer_index;
 
-    assert((is_draw || strcmp(message, "draw_overlay") == 0) && "draw_layers: only draw and draw_overlay go through draw_layers");
+    assert((is_draw || message == ENTITY_MESSAGE_DRAW_OVERLAY) && "draw_layers: only draw and draw_overlay go through draw_layers");
 
     for (index = 0; index < 15; index++) {
         entity_list_init(&layers[index], frame_zone());
     }
 
     message_bucket = entities_by_message(message);
-    if (message_bucket != NULL) {
-        for (index = 0; index < message_bucket->count; index++) {
-            entity_t *qc = message_bucket->items[index];
-            int layer;
+    for (index = 0; index < message_bucket->count; index++) {
+        entity_t *qc = message_bucket->items[index];
+        int layer;
 
-            /* An entity whose layer is absent or outside 1..15 is dropped
-             * from every layer. */
-            if (qc->layer == NULL) {
-                continue;
-            }
-            layer = p8_fixed_flr_int(*qc->layer);
-            if (layer < 1 || layer > 15) {
-                continue;
-            }
-            entity_list_add(&layers[layer - 1], qc);
+        /* An entity whose layer is absent or outside 1..15 is dropped
+         * from every layer. */
+        if (qc->layer == NULL) {
+            continue;
         }
+        layer = p8_fixed_flr_int(*qc->layer);
+        if (layer < 1 || layer > 15) {
+            continue;
+        }
+        entity_list_add(&layers[layer - 1], qc);
     }
 
     for (layer_index = 1; layer_index <= 15; layer_index++) {

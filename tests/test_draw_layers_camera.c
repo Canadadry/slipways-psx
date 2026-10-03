@@ -15,7 +15,7 @@
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
-/* The main camera's apply_camera call inside draw_layers("draw"), which
+/* The main camera's apply_camera call inside draw_layers(ENTITY_MESSAGE_DRAW), which
  * needs both a real camera and a real entity registered under "draw" to
  * run at all: reset_world(), a real planet and real graphics and memory. */
 
@@ -66,9 +66,9 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
     assert(planet != NULL);
 
     /* The planet class has a draw, so the instance must land in the real
-     * entities_by_message("draw") bucket. */
+     * entities_by_message(ENTITY_MESSAGE_DRAW) bucket. */
     {
-        const entity_list_t *bucket = entities_by_message("draw");
+        const entity_list_t *bucket = entities_by_message(ENTITY_MESSAGE_DRAW);
         int found = 0;
         int i;
         assert(bucket != NULL);
@@ -96,7 +96,7 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
      * value, so reading 0 back proves nothing unless the byte held something
      * else first -- hence the sentinel 9. The address is world (256,256)
      * minus the camera (192,192) that apply_camera sets inside this same
-     * draw_layers("draw"), hardcoded here because the camera is not set yet,
+     * draw_layers(ENTITY_MESSAGE_DRAW), hardcoded here because the camera is not set yet,
      * and cross-checked against the real camera below. */
     screen_pixel_addr = P8_ADDR_SCREEN + (256 - 192) * P8_SCREEN_WIDTH + (256 - 192);
     p8_poke(&memory, screen_pixel_addr, 9);
@@ -104,7 +104,7 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
     assert(pixel_before == 9);
 
     assert(graphics.camera_x == 0 && graphics.camera_y == 0);
-    draw_layers("draw");
+    draw_layers(ENTITY_MESSAGE_DRAW);
 
     /* Order, never the reverse: within a layer, the camera call runs before
      * the per-entity loop, so the real planet_draw already sees its camera. */

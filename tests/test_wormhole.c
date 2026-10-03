@@ -325,9 +325,9 @@ static void check_fresh_wormhole(void *e) {
     assert(mz->pos == NULL && mz->map_pos == NULL && mz->targeting->target == NULL && mz->anchor == NULL && !mz->is_dead);
     assert(mz->anchors != NULL);
 
-    assert(entity_list_listed(live_entities(), mz) && entity_list_listed(entities_by_message("draw"), mz) && entity_list_listed(entities_by_message("draw_overlay"), mz));
+    assert(entity_list_listed(live_entities(), mz) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), mz) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), mz));
     assert(entity_list_listed(entities_by_tag("wormhole"), mz));
-    assert(!entity_list_listed(entities_by_message("hit_test"), mz) && !entity_list_listed(entities_by_message("new_year"), mz) && !entity_list_listed(entities_by_message("refresh"), mz));
+    assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), mz) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), mz) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_REFRESH), mz));
 }
 
 static void test_construction(void) {
@@ -418,8 +418,8 @@ static size_t registry_bytes(const entity_list_t *list) {
 }
 
 static size_t generation_but_registries(void) {
-    return game_zone_used() - registry_bytes(live_entities()) - registry_bytes(entities_by_message("draw")) -
-           registry_bytes(entities_by_message("draw_overlay")) - registry_bytes(entities_by_tag("wormhole"));
+    return game_zone_used() - registry_bytes(live_entities()) - registry_bytes(entities_by_message(ENTITY_MESSAGE_DRAW)) -
+           registry_bytes(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY)) - registry_bytes(entities_by_tag("wormhole"));
 }
 
 /* A built wormhole takes one grab arena, its anchors list reserved to the
@@ -648,12 +648,12 @@ static void test_update_unfolding_ticks(void) {
         revealed += before - unknown_count();
         h = fnv(h, (uint32_t)(before - unknown_count()));
         h = fnv(h, is_dead_state(mz));
-        h = fnv(h, (uint32_t)entity_list_listed(entities_by_message("draw"), mz));
+        h = fnv(h, (uint32_t)entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), mz));
         h = fnv(h, (uint32_t)entity_list_listed(entities_by_tag("wormhole"), mz));
     }
     printf("[unfolding] left live_entities after %d ticks, %d planets revealed\n", tick, revealed);
     assert(revealed > 0);
-    assert(!entity_list_listed(entities_by_message("draw"), mz) && !entity_list_listed(entities_by_message("draw_overlay"), mz) && !entity_list_listed(entities_by_tag("wormhole"), mz));
+    assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), mz) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), mz) && !entity_list_listed(entities_by_tag("wormhole"), mz));
     check_int("update_unfolding_exit_tick", tick, UPDATE_UNFOLDING_EXIT_TICK);
     check("update_unfolding", h, UPDATE_UNFOLDING_HASH);
 }

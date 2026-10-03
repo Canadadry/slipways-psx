@@ -472,9 +472,9 @@ static void check_fresh_slipway(const void *e, const void *qu) {
     assert(class_of(jc)->hit_test == NULL && class_of(jc)->states[ENTITY_STATE_PLACING] == NULL &&
            class_of(jc)->states[ENTITY_STATE_NORMAL] == NULL && class_of(jc)->left_press == NULL && class_of(jc)->accept_drop == NULL);
 
-    assert(entity_list_listed(live_entities(), jc) && entity_list_listed(entities_by_message("draw"), jc) && entity_list_listed(entities_by_message("draw_overlay"), jc));
+    assert(entity_list_listed(live_entities(), jc) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), jc) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), jc));
     assert(entity_list_listed(entities_by_tag("slipway"), jc));
-    assert(!entity_list_listed(entities_by_message("hit_test"), jc) && !entity_list_listed(entities_by_message("new_year"), jc) && !entity_list_listed(entities_by_message("refresh"), jc));
+    assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), jc) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), jc) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_REFRESH), jc));
 }
 
 static void test_construction(void) {

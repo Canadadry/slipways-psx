@@ -41,7 +41,7 @@ static int entity_list_listed(const entity_list_t *list, const void *e) {
 
 /* The messages may be read only once entity_registry_init() has run. */
 static int registered(const void *e, int entity_live) {
-    const char *buckets[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+    const entity_message_t buckets[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
     const char *tags[] = {"mouse", "ui", "camera", "entity"};
     size_t i;
 

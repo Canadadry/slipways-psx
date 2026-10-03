@@ -60,7 +60,7 @@ static p8_memory_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
-static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
 static const char *const tags[] = {"slipgate", "node", "targeting"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -199,7 +199,7 @@ static const entity_class_t *class_of(const void *e) {
 
 /* The structure icon whose kind is the given one. */
 static void *icon_of(const entity_kind_t *kind) {
-    const entity_list_t *hb = entities_by_message("refresh");
+    const entity_list_t *hb = entities_by_message(ENTITY_MESSAGE_REFRESH);
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i];
@@ -501,7 +501,7 @@ static void test_life(void) {
         hash = fold_update_entities(hash, placed);
     }
     for (index = 0; index < 2; index++) {
-        draw_layers("draw");
+        draw_layers(ENTITY_MESSAGE_DRAW);
         hash = fnv(hash, screen_hash());
     }
 

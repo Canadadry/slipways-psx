@@ -33,11 +33,18 @@ void entity_registry_forget_registries(void);
  * (engine/entity_class.h). */
 const entity_list_t *live_entities(void);
 
-/* The entities registered under the message `name` ("draw",
- * "draw_overlay", "hit_test", "new_year" or "refresh"), or NULL if `name`
- * is not one of those five. The five buckets are fixed, so a returned
- * pointer stays valid for the module's whole lifetime. */
-const entity_list_t *entities_by_message(const char *name);
+typedef enum {
+    ENTITY_MESSAGE_DRAW,
+    ENTITY_MESSAGE_DRAW_OVERLAY,
+    ENTITY_MESSAGE_HIT_TEST,
+    ENTITY_MESSAGE_NEW_YEAR,
+    ENTITY_MESSAGE_REFRESH,
+    ENTITY_MESSAGE_COUNT
+} entity_message_t;
+
+/* Never NULL. The buckets are fixed, so a returned pointer stays valid for
+ * the module's whole lifetime. */
+const entity_list_t *entities_by_message(entity_message_t message);
 
 /* The entities registered under `tag`, or NULL if no entity carrying that
  * tag has been registered since entity_registry_init() -- an unknown tag
@@ -54,8 +61,9 @@ entity_t *entity_register(entity_t *e);
  * again after reset_world(). */
 void entity_unregister(entity_t *e);
 
-/* The message is "draw" or "draw_overlay" (asserted). */
-void draw_layers(const char *message);
+/* The message is ENTITY_MESSAGE_DRAW or ENTITY_MESSAGE_DRAW_OVERLAY
+ * (asserted). */
+void draw_layers(entity_message_t message);
 
 /* The hit test of background and modal_backdrop: every point passes it. */
 int entity_registry_hit_test_always(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen);

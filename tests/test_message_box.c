@@ -1,7 +1,7 @@
 /* The message box, built the two ways the game builds it
  * (score_panel_new_year() from the rewritten year banner,
  * score_panel_update() from the score rows) and lived through the real
- * update_entities() and draw_layers("draw_overlay"). */
+ * update_entities() and draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY). */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -70,7 +70,7 @@ static uint32_t screen_hash(void) {
 static uint32_t draw_hash(void) {
     p8_gfx_init(&graphics);
     p8_cls(&memory);
-    draw_layers("draw_overlay");
+    draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY);
     return screen_hash();
 }
 
@@ -103,7 +103,7 @@ static uint32_t fold_box(uint32_t h, const message_box_t *e) {
     }
     h = fnv(h, (uint32_t)(shown_message_box() == e));
     h = fnv(h, (uint32_t)entity_list_listed(live_entities(), e));
-    h = fnv(h, (uint32_t)entity_list_listed(entities_by_message("draw_overlay"), e));
+    h = fnv(h, (uint32_t)entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), e));
     return fnv(h, (uint32_t)entity_list_listed(entities_by_tag("message_box"), e));
 }
 
@@ -137,7 +137,7 @@ static int any_listed(const run_t *run) {
     return 0;
 }
 
-/* One game tick: update_entities(), then draw_layers("draw_overlay") on a
+/* One game tick: update_entities(), then draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY) on a
  * fresh framebuffer, folded with every tracked box's state. */
 static void tick(run_t *run) {
     uint32_t drawn;
@@ -165,7 +165,7 @@ static void run_check(const run_t *run, int want_ticks, uint32_t want_sequence, 
     int i;
 
     for (i = 0; i < run->count; i++) {
-        assert(!entity_list_listed(entities_by_message("draw_overlay"), run->boxes[i]));
+        assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), run->boxes[i]));
         assert(!entity_list_listed(entities_by_tag("message_box"), run->boxes[i]));
         assert(shown_message_box() != run->boxes[i]);
     }
@@ -186,7 +186,7 @@ static const message_box_t *year_box(int yr) {
     box = shown_message_box();
     assert(box != NULL);
     assert(entity_list_count_of(entities_by_tag("message_box")) == before + 1);
-    assert(entity_list_listed(entities_by_tag("message_box"), box) && entity_list_listed(live_entities(), box) && entity_list_listed(entities_by_message("draw_overlay"), box));
+    assert(entity_list_listed(entities_by_tag("message_box"), box) && entity_list_listed(live_entities(), box) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), box));
     return box;
 }
 
@@ -333,7 +333,7 @@ static int counting_keep_open(message_box_t *self) {
  * its keep_open is a field the overlay draw calls, and it has no update
  * state for update_entities() to call. */
 static void test_message_box_is_a_struct_registered_under_draw_overlay(void) {
-    const char *others[] = {"draw", "hit_test", "new_year", "refresh"};
+    const entity_message_t others[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
     message_box_keys_t keys = {0};
     const message_box_t *from_score_panel;
     void *generic;
@@ -349,7 +349,7 @@ static void test_message_box_is_a_struct_registered_under_draw_overlay(void) {
     assert(from_score_panel != NULL);
     assert(generic != NULL);
     assert(shown_message_box() == generic);
-    assert(entity_list_listed(live_entities(), generic) && entity_list_listed(entities_by_message("draw_overlay"), generic) && entity_list_listed(entities_by_tag("message_box"), generic));
+    assert(entity_list_listed(live_entities(), generic) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), generic) && entity_list_listed(entities_by_tag("message_box"), generic));
     for (i = 0; i < 4; i++) {
         assert(!entity_list_listed(entities_by_message(others[i]), from_score_panel) && !entity_list_listed(entities_by_message(others[i]), generic));
     }

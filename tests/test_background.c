@@ -145,7 +145,7 @@ static void start_game(void) {
 /* The background is the one among the hit_test entities whose hit test and
  * layer are both 1. */
 static background_t *find_background(int *count) {
-    const entity_list_t *hd = entities_by_message("hit_test");
+    const entity_list_t *hd = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     background_t *found = NULL;
     int i;
 
@@ -205,8 +205,8 @@ static void check_fresh_background(const background_t *bg) {
     assert(cls->accept_drop == NULL && cls->states[ENTITY_STATE_NORMAL] == NULL);
     assert(cls->draw != NULL && cls->left_press != NULL && cls->right_press != NULL && cls->drag != NULL);
     assert(cls->drop == NULL);
-    assert(entity_list_listed(live_entities(), bg) && entity_list_listed(entities_by_message("draw"), bg) && entity_list_listed(entities_by_message("hit_test"), bg));
-    assert(!entity_list_listed(entities_by_message("draw_overlay"), bg) && !entity_list_listed(entities_by_message("new_year"), bg) && !entity_list_listed(entities_by_message("refresh"), bg));
+    assert(entity_list_listed(live_entities(), bg) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), bg) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), bg));
+    assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), bg) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), bg) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_REFRESH), bg));
 }
 
 static void test_construction(void) {
@@ -438,12 +438,12 @@ static void test_draw(void) {
 
     reset_world();
     bg = (void *)background_new();
-    assert(entity_list_list_count(entities_by_message("draw")) == 1 && entity_list_listed(entities_by_message("draw"), bg));
+    assert(entity_list_list_count(entities_by_message(ENTITY_MESSAGE_DRAW)) == 1 && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), bg));
     p8_gfx_init(&graphics);
     p8_cls(&memory);
     assert(main_camera()->class == camera_class());
     camera_apply(dispatch_context_gfx(), (camera_t *)main_camera(), p8_fixed_from_int(1));
-    draw_layers("draw");
+    draw_layers(ENTITY_MESSAGE_DRAW);
     check("draw", screen_hash(), DRAW_HASH);
 }
 

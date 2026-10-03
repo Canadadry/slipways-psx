@@ -48,7 +48,7 @@ static p8_memory_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
-static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
 static const char *const tags[] = {"planet", "node", "targeting"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -381,7 +381,7 @@ static uint32_t fold_daughter(uint32_t h, void *d) {
 /* The shop's structure_icon_left_press on the icon of `kind`, as the
  * player buys it, then dragged to the middle of the screen. */
 static void *bought(const entity_kind_t *kind) {
-    const entity_list_t *hb = entities_by_message("refresh");
+    const entity_list_t *hb = entities_by_message(ENTITY_MESSAGE_REFRESH);
     const camera_t *mo = main_camera_typed();
     const vec_t *main_camera_pos;
     int i;

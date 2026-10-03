@@ -335,7 +335,7 @@ static const entity_list_t *main_ui_ephemerals(void) {
  * key, what button_construct built, the methods and where entity_register
  * registered it. */
 static uint32_t fold_button(uint32_t hash, const void *entity) {
-    static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "refresh", "new_year"};
+    static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_REFRESH, ENTITY_MESSAGE_NEW_YEAR};
     const button_t *button = button_of(entity);
     size_t index;
 
@@ -458,7 +458,7 @@ static void start_game(void) {
 /* The nth (from 1) of the title's four buttons, built in order from the
  * difficulty options: the buttons among the hit_test entities. */
 static void *title_button(int i) {
-    const entity_list_t *hd = entities_by_message("hit_test");
+    const entity_list_t *hd = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     int k;
 
     for (k = 0; hd != NULL && k < hd->count; k++) {
@@ -590,7 +590,7 @@ static void call_on_click(void *e) {
 /* The galaxy menu buttons cart_start_game built: the only layer 11
  * entities with a `layout_row` among the hit_test entities right after it. */
 static int galaxy_menu_buttons(void *out[4]) {
-    const entity_list_t *hd = entities_by_message("hit_test");
+    const entity_list_t *hd = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     int n = 0;
     int i;
     for (i = 0; hd != NULL && i < hd->count; i++) {
@@ -614,7 +614,7 @@ static void test_title(void) {
     int i;
 
     start_title();
-    hd = entities_by_message("hit_test");
+    hd = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     for (i = 0; i < hd->count; i++) {
         void *e = hd->items[i];
         if (is_button(e)) {
@@ -727,7 +727,7 @@ static void test_score_panel(void) {
     int i;
 
     game_end();
-    hd = entities_by_message("hit_test");
+    hd = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     for (i = 0; i < hd->count; i++) {
         void *e = hd->items[i];
         if (is_button(e) && button_of(e)->layer == p8_fixed_from_int(15) && button_of(e)->layout_row != NULL) {
@@ -1396,7 +1396,7 @@ static uint32_t members_title_and_game(void) {
     size_t key_index;
 
     start_title();
-    hit_test_list = entities_by_message("hit_test");
+    hit_test_list = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     for (index = 0; index < hit_test_list->count; index++) {
         void *e = hit_test_list->items[index];
         if (is_button(e)) {
@@ -1552,7 +1552,7 @@ static uint32_t members_score_panel(void) {
     int i;
 
     game_end();
-    hd = entities_by_message("hit_test");
+    hd = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     for (i = 0; i < hd->count; i++) {
         void *e = hd->items[i];
         if (is_button(e) && button_of(e)->layer == p8_fixed_from_int(15) && button_of(e)->layout_row != NULL) {

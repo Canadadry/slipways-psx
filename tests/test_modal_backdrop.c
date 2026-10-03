@@ -85,7 +85,7 @@ static uint32_t fold_veil(uint32_t h, const modal_backdrop_t *e) {
     h = fold_bool_member(h, (e->is_dead != 0), e->is_dead);
     h = fold_bool_member(h, (e->is_hovered != 0), e->is_hovered);
     h = fnv(h, (uint32_t)entity_list_listed(live_entities(), e));
-    return fnv(h, (uint32_t)entity_list_listed(entities_by_message("hit_test"), e));
+    return fnv(h, (uint32_t)entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), e));
 }
 
 static const void *main_ui_hovered(void) {
@@ -146,7 +146,7 @@ static void test_left_press_with_a_true_on_click_removes_the_veil(void) {
         assert(ticks < 1000);
     }
     assert(g_on_click_calls == 1);
-    assert(!entity_list_listed(entities_by_message("hit_test"), veil));
+    assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), veil));
     printf("[on_click_true_sequence] ticks=%d\n", ticks);
     fflush(stdout);
     assert(ticks == ON_CLICK_TRUE_TICKS);
@@ -170,7 +170,7 @@ static void test_bare_veil_swallows_the_click_and_stays(void) {
         update_entities();
         h = fold_veil(h, veil);
     }
-    assert(entity_list_listed(live_entities(), veil) && entity_list_listed(entities_by_message("hit_test"), veil));
+    assert(entity_list_listed(live_entities(), veil) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), veil));
     check("bare_sequence", h, BARE_SEQUENCE_HASH);
 }
 
@@ -193,7 +193,7 @@ static void test_false_on_click_keeps_the_veil(void) {
         update_entities();
         h = fold_veil(h, veil);
     }
-    assert(entity_list_listed(live_entities(), veil) && entity_list_listed(entities_by_message("hit_test"), veil));
+    assert(entity_list_listed(live_entities(), veil) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), veil));
     check("bare_sequence on_click_false", h, BARE_SEQUENCE_HASH);
 }
 
@@ -273,7 +273,7 @@ static int is_a_veil_struct(const void *e) {
  * among the live entities and under hit_test only; its hit test always
  * hits, and it has neither an update nor a right press. */
 static void test_modal_backdrop_is_a_struct_registered_under_hit_test(void) {
-    const char *others[] = {"draw", "draw_overlay", "new_year", "refresh"};
+    const entity_message_t others[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
     const entity_class_t *cls = modal_backdrop_class();
     modal_backdrop_keys_t keys = {0};
     void *built;
@@ -287,8 +287,8 @@ static void test_modal_backdrop_is_a_struct_registered_under_hit_test(void) {
     generic = modal_backdrop_new(NULL);
 
     assert(is_a_veil_struct(built) && is_a_veil_struct(generic));
-    assert(entity_list_listed(live_entities(), built) && entity_list_listed(entities_by_message("hit_test"), built));
-    assert(entity_list_listed(live_entities(), generic) && entity_list_listed(entities_by_message("hit_test"), generic));
+    assert(entity_list_listed(live_entities(), built) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), built));
+    assert(entity_list_listed(live_entities(), generic) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), generic));
     for (i = 0; i < 4; i++) {
         assert(!entity_list_listed(entities_by_message(others[i]), built) && !entity_list_listed(entities_by_message(others[i]), generic));
     }

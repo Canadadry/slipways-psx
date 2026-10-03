@@ -54,7 +54,7 @@ static p8_graphics_t graphics;
 static p8_input_t input;
 
 static const char *const tags[] = {"planet", "node", "targeting", "ascension", "structure"};
-static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
 
 static int tag_count(unsigned tags) {
     int t, n = 0;
@@ -552,7 +552,7 @@ static uint32_t fold_cut(uint32_t h, void *e, int n) {
     return fnv(h, (uint32_t)qy->count);
 }
 
-/* spawn_particle on each burst; draw_layers("draw") three times, then three
+/* spawn_particle on each burst; draw_layers(ENTITY_MESSAGE_DRAW) three times, then three
  * more with the protostar's burst cut to 3 particles, so that its circles,
  * drawn in the class trail colors (GAP-21), are not all covered by
  * emitter_update's dots in its own; is_dead once the particle list holds 3,
@@ -580,7 +580,7 @@ static void test_life(void) {
     hash = fold_particle(hash, class_of(second)->spawn_particle(second));
     hash = fold_particle(hash, class_of(third)->spawn_particle(third));
     for (index = 0; index < 3; index++) {
-        draw_layers("draw");
+        draw_layers(ENTITY_MESSAGE_DRAW);
         hash = fnv(hash, screen_hash());
         hash = fold_is_dead(hash, as_burst(first));
         hash = fold_is_dead(hash, as_burst(second));
@@ -590,7 +590,7 @@ static void test_life(void) {
 
     cut_particles(as_burst(second)->emitter->particles, 3);
     for (index = 0; index < 3; index++) {
-        draw_layers("draw");
+        draw_layers(ENTITY_MESSAGE_DRAW);
         hash = fnv(hash, screen_hash());
     }
 

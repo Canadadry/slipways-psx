@@ -70,7 +70,7 @@ static p8_memory_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
-static const char *const not_listed[] = {"draw", "hit_test", "new_year", "refresh"};
+static const entity_message_t not_listed[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
 static const char *const tags[] = {"planet", "probe", "structure", "slipway", "wormhole", "message_box", "node", "ascension", "targeting", "slipgate", "background"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -270,8 +270,8 @@ static void test_built(void) {
 
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), ok));
     hash = fnv(hash, (uint32_t)live_entities()->count);
-    assert(entity_list_listed(entities_by_message("draw_overlay"), ok));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message("draw_overlay"), ok));
+    assert(entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), ok));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), ok));
     for (index = 0; index < sizeof not_listed / sizeof not_listed[0]; index++) {
         assert(!entity_list_listed(entities_by_message(not_listed[index]), ok));
     }
@@ -316,7 +316,7 @@ static void test_shared(void) {
     assert(other->header.cursor_sprite == &other->archetype->cursor_sprite);
     assert(other->ephemerals == le && le == ui_ephemerals_shared());
     h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), other));
-    h = fnv(h, (uint32_t)entity_list_rank_in(entities_by_message("draw_overlay"), other));
+    h = fnv(h, (uint32_t)entity_list_rank_in(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), other));
 
     ui_clear_ephemerals(other);
     assert(other->ephemerals != le && ephemerals_of(other)->count == 0);

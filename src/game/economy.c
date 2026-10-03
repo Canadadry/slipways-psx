@@ -148,14 +148,12 @@ void economy_new_year(economy_t *self) {
 
     economy_recompute(self);
 
-    new_year_list = entities_by_message("new_year");
-    if (new_year_list != NULL) {
-        it = entity_list_all(new_year_list);
-        while (entity_list_iter_next(&it, &qc)) {
-            if (qc != NULL) {
-                if (qc->class->new_year != NULL) {
-                    qc->class->new_year(qc, new_year);
-                }
+    new_year_list = entities_by_message(ENTITY_MESSAGE_NEW_YEAR);
+    it = entity_list_all(new_year_list);
+    while (entity_list_iter_next(&it, &qc)) {
+        if (qc != NULL) {
+            if (qc->class->new_year != NULL) {
+                qc->class->new_year(qc, new_year);
             }
         }
     }
@@ -249,16 +247,14 @@ void economy_recompute(economy_t *self) {
     self->has_end_status = 1;
 
     {
-        const entity_list_t *refresh_list = entities_by_message("refresh");
-        if (refresh_list != NULL) {
-            entity_list_iter_t planets_iter;
-            entity_t *qc;
-            planets_iter = entity_list_all(refresh_list);
-            while (entity_list_iter_next(&planets_iter, &qc)) {
-                if (qc != NULL) {
-                    if (qc->class->refresh != NULL) {
-                        qc->class->refresh(qc);
-                    }
+        const entity_list_t *refresh_list = entities_by_message(ENTITY_MESSAGE_REFRESH);
+        entity_list_iter_t planets_iter;
+        entity_t *qc;
+        planets_iter = entity_list_all(refresh_list);
+        while (entity_list_iter_next(&planets_iter, &qc)) {
+            if (qc != NULL) {
+                if (qc->class->refresh != NULL) {
+                    qc->class->refresh(qc);
                 }
             }
         }

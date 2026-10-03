@@ -147,7 +147,7 @@ static int is_icon(const void *e) {
 }
 
 static int icons(void *out[], int cap) {
-    const entity_list_t *hb = entities_by_message("refresh");
+    const entity_list_t *hb = entities_by_message(ENTITY_MESSAGE_REFRESH);
     int n = 0;
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
@@ -288,9 +288,9 @@ static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const v
            class_of(icon)->right_press == NULL && class_of(icon)->accept_drop == NULL);
     assert(class_of(icon)->hit_test != NULL && class_of(icon)->refresh != NULL && class_of(icon)->draw != NULL &&
            class_of(icon)->left_press != NULL);
-    assert(entity_list_listed(live_entities(), icon) && entity_list_listed(entities_by_message("draw"), icon) && entity_list_listed(entities_by_message("hit_test"), icon) &&
-           entity_list_listed(entities_by_message("refresh"), icon));
-    assert(!entity_list_listed(entities_by_message("draw_overlay"), icon) && !entity_list_listed(entities_by_message("new_year"), icon));
+    assert(entity_list_listed(live_entities(), icon) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), icon) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), icon) &&
+           entity_list_listed(entities_by_message(ENTITY_MESSAGE_REFRESH), icon));
+    assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), icon) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), icon));
 
     h = fold_string(h, ie->header.state);
     h = fold_fixed(h, ie->archetype->layer);
@@ -322,8 +322,8 @@ static void test_construction(void) {
         assert(ie->header.state != NULL && strcmp(ie->header.state, "normal") == 0);
         assert(ie->archetype->layer == p8_fixed_from_int(12));
         assert(class_of(all[i])->hit_test != NULL);
-        assert(entity_list_listed(live_entities(), all[i]) && entity_list_listed(entities_by_message("draw"), all[i]) && entity_list_listed(entities_by_message("hit_test"), all[i]));
-        assert(!entity_list_listed(entities_by_message("draw_overlay"), all[i]) && !entity_list_listed(entities_by_message("new_year"), all[i]));
+        assert(entity_list_listed(live_entities(), all[i]) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), all[i]) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), all[i]));
+        assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), all[i]) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), all[i]));
         h = fold_hit_box(h, all[i]);
     }
 
