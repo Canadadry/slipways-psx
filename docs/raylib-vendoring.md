@@ -36,7 +36,7 @@ raylib documente pour linker un programme externe PLATFORM_DESKTOP sur OSX.
 
 ## Fichiers concernés
 
-`src/main_raylib.c`, `src/pico8_raylib_backend.c`,
-`src/pico8_raylib_backend_coords.c`. Ce dernier est volontairement sans
-dépendance à raylib et est testé par `tests/test_pico8_raylib_backend_coords.c`,
+`src/cmd/game.c`, `src/platform/raylib_backend.c`,
+`src/platform/raylib_backend_coords.c`. Ce dernier est volontairement sans
+dépendance à raylib et est testé par `tests/test_raylib_backend_coords.c`,
 qui fait partie de `make test`.
