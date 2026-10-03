@@ -75,7 +75,7 @@ static void setup_panel_state(p8_memory_t *mem, p8_graphics_t *gfx) {
 
 /* Read on the instance's member, not the class defaults, so the test
  * says nothing about where the value comes from. */
-static entity_list_t *planet_by_ref(const planet_t *planet) {
+static entity_list_t *outgoing_routes_of(const planet_t *planet) {
     return planet->outgoing_routes;
 }
 
@@ -123,7 +123,7 @@ static void test_burst_export_line_counts_the_outgoing_routes(void) {
     /* Two routes, added the way planet_rebuild_trades adds them: straight
      * into whatever the outgoing routes list already holds, here the shared
      * list burst_create installed. */
-    outgoing = planet_by_ref(planet);
+    outgoing = outgoing_routes_of(planet);
     assert(outgoing != NULL);
     route_a = trade_new(game_zone(), NULL);
     route_b = trade_new(game_zone(), NULL);

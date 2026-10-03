@@ -248,7 +248,7 @@ static void *trading_hub_icon(void) {
 }
 
 /* A left press on the trading hub's icon, as the shop does. */
-static void *build_plate(void) {
+static void *build_trading_hub(void) {
     void *icon = trading_hub_icon();
     down_t made;
 
@@ -259,7 +259,7 @@ static void *build_plate(void) {
 }
 
 /* A trading hub is the only entity of the trading hub lineage, and its is_trading_hub is 1. */
-static int is_plate(const void *e) {
+static int is_trading_hub_archetype(const void *e) {
     const planet_t *jo = e != NULL && (class_of(e)->lineage & LINEAGE(LINEAGE_TRADING_HUB)) ? e : NULL;
     return jo != NULL && jo->archetype->is_trading_hub == p8_fixed_from_int(1);
 }
@@ -270,7 +270,7 @@ static int is_plate(const void *e) {
  * settled update), which default tables it shares with the trading hub and
  * planet archetypes, and where entity_register filed it -- never under the
  * structure tag. */
-static uint32_t fold_plate(uint32_t hash, const void *entity) {
+static uint32_t fold_trading_hub(uint32_t hash, const void *entity) {
     const planet_t *trading_hub = as_trading_hub(entity);
     const planet_t *structure;
     const planet_t *planet;
@@ -382,11 +382,11 @@ static void test_built(void) {
     void *b;
 
     start_game();
-    a = build_plate();
-    b = build_plate();
-    assert(a != b && is_plate(a) && is_plate(b));
-    hash = fold_plate(hash, a);
-    hash = fold_plate(hash, b);
+    a = build_trading_hub();
+    b = build_trading_hub();
+    assert(a != b && is_trading_hub_archetype(a) && is_trading_hub_archetype(b));
+    hash = fold_trading_hub(hash, a);
+    hash = fold_trading_hub(hash, b);
     check("built", hash, BUILT_HASH);
 }
 
@@ -450,7 +450,7 @@ static void test_life(void) {
 
     start_game();
 
-    placed = build_plate();
+    placed = build_trading_hub();
     mouse_world = vec_ref(vec_xy(7680, 7552));
     class_of(placed)->drag(&placed->header, mouse_world, vec_ref(vec_xy(64, 64)));
     assert(pos_copies(placed->pos, mouse_world));
@@ -481,7 +481,7 @@ static void test_life(void) {
     assert(placed->palette_block != p8_fixed_from_int(15));
     hash = fold_economy(hash, placed);
 
-    idle = build_plate();
+    idle = build_trading_hub();
     hash = fold_string_member(hash, idle->header.state);
     hash = fold_update_entities(hash, idle);
     assert(idle->palette_block == p8_fixed_from_int(15));
@@ -527,7 +527,7 @@ static void test_trading_hub_is_a_struct(void) {
     void *a;
 
     start_game();
-    a = build_plate();
+    a = build_trading_hub();
     assert(is_a_trading_hub_struct(a) && entity_list_listed(entities_by_tag("planet"), a) && !entity_list_listed(entities_by_tag("structure"), a));
     assert_structure_shape(cls);
     assert_members_of(cls, qh, 1, 0);

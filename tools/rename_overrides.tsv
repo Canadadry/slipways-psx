@@ -1520,3 +1520,7 @@ name	test_g__t_key_stops_off_row	test_probe_state_time_key_at_zero
 name	test_lj_on_placeholder	test_update_on_placeholder	
 name	LJ_QA_X	UPDATE_MOUSE_WORLD_X	
 name	LJ_QA_Y	UPDATE_MOUSE_WORLD_Y	
+name	planet_by_ref	outgoing_routes_of	
+name	build_plate	build_trading_hub	
+name	fold_plate	fold_trading_hub	
+name	is_plate	is_trading_hub_archetype	

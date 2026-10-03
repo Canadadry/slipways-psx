@@ -8099,7 +8099,7 @@ button_lq	button_layout_row	tests/test_burst_exports_row.c	identifiant	fonction	
 lq_index_is_string	layout_row_index_is_string	tests/test_burst_exports_row.c	identifiant	fonction	renommé	tests/test_burst_exports_row	lq		c:test_burst_exports_row.c@F@lq_index_is_string
 lq_index_string	layout_row_index_string	tests/test_burst_exports_row.c	identifiant	fonction	renommé	tests/test_burst_exports_row	lq		c:test_burst_exports_row.c@F@lq_index_string
 ok_le	main_ui_ephemerals	tests/test_burst_exports_row.c	identifiant	fonction	renommé	tests/test_burst_exports_row	ok		c:test_burst_exports_row.c@F@ok_le
-planet_by_ref	planet_by_ref	tests/test_burst_exports_row.c	identifiant	fonction	conservé	tests/test_burst_exports_row			c:test_burst_exports_row.c@F@planet_by_ref
+planet_by_ref	outgoing_routes_of	tests/test_burst_exports_row.c	identifiant	fonction	renommé	tests/test_burst_exports_row			c:test_burst_exports_row.c@F@planet_by_ref
 setup_panel_state	setup_panel_state	tests/test_burst_exports_row.c	identifiant	fonction	conservé	tests/test_burst_exports_row			c:test_burst_exports_row.c@F@setup_panel_state
 test_ga_export_line_counts_the_routes_in_by	test_burst_export_line_counts_the_outgoing_routes	tests/test_burst_exports_row.c	identifiant	fonction	renommé	tests/test_burst_exports_row	ga		c:test_burst_exports_row.c@F@test_ga_export_line_counts_the_routes_in_by
 by	outgoing	tests/test_burst_exports_row.c	identifiant	locale	renommé	tests/test_burst_exports_row			c:test_burst_exports_row.c@2480@F@test_ga_export_line_counts_the_routes_in_by@by
@@ -16006,7 +16006,7 @@ as_nl	as_trading_hub	tests/test_trading_hub.c	identifiant	fonction	renommé	test
 as_qh	as_structure	tests/test_trading_hub.c	identifiant	fonction	renommé	tests/test_trading_hub	qh		c:test_trading_hub.c@F@as_qh
 assert_members_of	assert_members_of	tests/test_trading_hub.c	identifiant	fonction	conservé	tests/test_trading_hub			c:test_trading_hub.c@F@assert_members_of
 assert_qh_shape	assert_structure_shape	tests/test_trading_hub.c	identifiant	fonction	renommé	tests/test_trading_hub	qh		c:test_trading_hub.c@F@assert_qh_shape
-build_plate	build_plate	tests/test_trading_hub.c	identifiant	fonction	conservé	tests/test_trading_hub			c:test_trading_hub.c@F@build_plate
+build_plate	build_trading_hub	tests/test_trading_hub.c	identifiant	fonction	renommé	tests/test_trading_hub			c:test_trading_hub.c@F@build_plate
 build_with_unknown_key	build_with_unknown_key	tests/test_trading_hub.c	identifiant	fonction	conservé	tests/test_trading_hub			c:test_trading_hub.c@F@build_with_unknown_key
 check	check	tests/test_trading_hub.c	identifiant	fonction	conservé	tests/test_trading_hub			c:test_trading_hub.c@F@check
 cls_of	class_of	tests/test_trading_hub.c	identifiant	fonction	renommé	tests/test_trading_hub	cls		c:test_trading_hub.c@F@cls_of
@@ -16026,7 +16026,7 @@ fold_fixed_member	fold_fixed_member	tests/test_trading_hub.c	identifiant	fonctio
 fold_hf	fold_is_planet	tests/test_trading_hub.c	identifiant	fonction	renommé	tests/test_trading_hub	hf		c:test_trading_hub.c@F@fold_hf
 fold_ib	fold_rebuild_trades	tests/test_trading_hub.c	identifiant	fonction	renommé	tests/test_trading_hub			c:test_trading_hub.c@F@fold_ib
 fold_kw	fold_production	tests/test_trading_hub.c	identifiant	fonction	renommé	tests/test_trading_hub	kw		c:test_trading_hub.c@F@fold_kw
-fold_plate	fold_plate	tests/test_trading_hub.c	identifiant	fonction	conservé	tests/test_trading_hub			c:test_trading_hub.c@F@fold_plate
+fold_plate	fold_trading_hub	tests/test_trading_hub.c	identifiant	fonction	renommé	tests/test_trading_hub			c:test_trading_hub.c@F@fold_plate
 fold_qh	fold_structure	tests/test_trading_hub.c	identifiant	fonction	renommé	tests/test_trading_hub	qh		c:test_trading_hub.c@F@fold_qh
 fold_ra_y	fold_pos_y	tests/test_trading_hub.c	identifiant	fonction	renommé	tests/test_trading_hub	ra		c:test_trading_hub.c@F@fold_ra_y
 fold_ref	fold_ref	tests/test_trading_hub.c	identifiant	fonction	conservé	tests/test_trading_hub			c:test_trading_hub.c@F@fold_ref
@@ -16034,7 +16034,7 @@ fold_string_member	fold_string_member	tests/test_trading_hub.c	identifiant	fonct
 fold_vec	fold_vec	tests/test_trading_hub.c	identifiant	fonction	conservé	tests/test_trading_hub			c:test_trading_hub.c@F@fold_vec
 in_fresh_child	in_fresh_child	tests/test_trading_hub.c	identifiant	fonction	conservé	tests/test_trading_hub			c:test_trading_hub.c@F@in_fresh_child
 is_an_nl_struct	is_a_trading_hub_struct	tests/test_trading_hub.c	identifiant	fonction	renommé	tests/test_trading_hub			c:test_trading_hub.c@F@is_an_nl_struct
-is_plate	is_plate	tests/test_trading_hub.c	identifiant	fonction	conservé	tests/test_trading_hub			c:test_trading_hub.c@F@is_plate
+is_plate	is_trading_hub_archetype	tests/test_trading_hub.c	identifiant	fonction	renommé	tests/test_trading_hub			c:test_trading_hub.c@F@is_plate
 list_size	list_size	tests/test_trading_hub.c	identifiant	fonction	conservé	tests/test_trading_hub			c:test_trading_hub.c@F@list_size
 must_abort	must_abort	tests/test_trading_hub.c	identifiant	fonction	conservé	tests/test_trading_hub			c:test_trading_hub.c@F@must_abort
 nl_icon	trading_hub_icon	tests/test_trading_hub.c	identifiant	fonction	renommé	tests/test_trading_hub	nl		c:test_trading_hub.c@F@nl_icon
