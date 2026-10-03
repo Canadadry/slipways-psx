@@ -377,8 +377,7 @@ nommée écrite à nil reste présente). Seul `false` n'en construit pas.
 
 Atteint par le filet : la ligne de `planet_projects_panel` d'un bâtiment
 dont `research_project_tooltip` rend `NULL` (quand le projet a son
-`icon_sprite`) reçoit une infobulle vide, dessinée au survol
-(events_recorded_1790198294, session_events). La ligne de
+`icon_sprite`) reçoit une infobulle vide, dessinée au survol. La ligne de
 `planet_inspection_panel` sans `net_income` recevrait une pastille vide ;
 aucun rejeu ne l'atteint. La struct `button_t`, où nil vaut absent, garde
 ce comportement : la présence d'une clé `side_tooltip` ou `tooltip` nil est
