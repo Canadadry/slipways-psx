@@ -106,7 +106,7 @@ static void test_palt_marks_color_transparent_and_opaque(void) {
 }
 
 /* The consequence of that single store, which the game depends on:
- * hud_select_palette_block()'s memcpy into 0x5f00 replaces whatever
+ * hud_select_palette_block()'s write of the draw palette replaces whatever
  * `palt()` last said. The game undoes its p8_palt(mem, 0, 1) with
  * hud_select_palette_block_default(), never with p8_palt(mem, 0, 0). */
 static void test_draw_palette_write_overrides_a_previous_palt(void) {

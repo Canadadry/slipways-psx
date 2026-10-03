@@ -9,16 +9,10 @@
  * to int only at the p8/gfx draw call. An omitted argument gets its own
  * entry point (_default, _y1) rather than a sentinel value. */
 
-/* Writes the 16 palette blocks (16 source colors each) at 0x5000 that
- * hud_select_palette_block() copies from -- PICO-8's trick of encoding
- * palette swaps as sprite-sheet pixels. Color 3's byte gets the 0x80
- * transparency bit in every block, so activating any block makes color 3
- * invisible. Needs no graphics state. */
-void hud_build_palette_table(p8_memory_t *mem);
-
-/* Activates block `no` of the 16 hud_build_palette_table() wrote, by copying
- * its 16 bytes into the draw palette at 0x5f00 -- overwriting whatever
- * p8_palt() had set there. The _default variant activates block 0. */
+/* Activates palette block flr(no), 0..15, by writing its 16 bytes into the
+ * draw palette at 0x5f00 -- overwriting whatever p8_palt() had set there.
+ * Every block makes color 3 transparent. Needs no initialization. The
+ * _default variant activates block 0. */
 void hud_select_palette_block(p8_memory_t *mem, p8_fixed_t no);
 void hud_select_palette_block_default(p8_memory_t *mem);
 

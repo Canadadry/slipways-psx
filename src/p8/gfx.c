@@ -233,7 +233,8 @@ unsigned char p8_sget(const p8_memory_t *mem, int x, int y) {
  *
  * A source pixel is transparent when its draw-palette byte has the 0x80
  * bit. That is how color 3, not color 0, is the invisible one here:
- * hud_build_palette_table() bakes it in, cart_draw() reselects it per frame.
+ * every palette block of game/hud.c carries it, cart_draw() reselects block 0
+ * per frame.
  * Consulting a gfx-side flag instead drew a green band behind the title
  * logo, whose art fills with color 3.
  *
@@ -299,8 +300,8 @@ void p8_map(const p8_graphics_t *gfx, p8_memory_t *mem, int cel_x, int cel_y, in
         for (int c = 0; c < cel_w; c++) {
             unsigned char sprite_n = map_cell_get(mem, cel_x + c, cel_y + r);
             /* map() takes sprite 0 as empty and skips it; spr(0,...)
-             * still draws it. The distinction matters: sprite 0 is part of
-             * the palette table hud_build_palette_table() reads, and
+             * still draws it. The distinction matters: sprite 0 holds the
+             * pixels of the palette blocks game/hud.c copies as a table, and
              * game/background.c writes cell value 0 over most of the sky.
              * (PICO-8's opt-out, POKE(0x5F36,0x8), is never poked here.) */
             if (sprite_n == 0) {

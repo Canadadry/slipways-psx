@@ -12,7 +12,6 @@
 #include "engine/dispatch_context.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
-#include "game/hud.h"
 #include "game/layout.h"
 #include "p8/mem.h"
 #include "engine/entity_class.h"
@@ -156,7 +155,6 @@ int main(void) {
     p8_mem_init(&memory);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
     assert(p8_load_map_json(&memory, "pico8/map.json"));
-    hud_build_palette_table(&memory);
     data_init();
     layout_init();
 

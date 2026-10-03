@@ -23,7 +23,6 @@
 #include "p8/assets.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
-#include "game/hud.h"
 #include "game/layout.h"
 #include "p8/mem.h"
 #include "engine/vec.h"
@@ -163,12 +162,6 @@ int main(void) {
     p8_gfx_init(&graphics);
 
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-
-    /* hud_build_palette_table() fills the 0x5000 palette-block table that
-     * hud_select_palette_block() copies from. A row's sprite selects a block
-     * around its p8_spr(), so the control only draws what the game draws once
-     * the table is built. */
-    hud_build_palette_table(&memory);
 
     layout_init();
 

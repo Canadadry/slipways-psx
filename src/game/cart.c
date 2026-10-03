@@ -170,15 +170,12 @@ void cart_shutdown(void) {
 }
 
 void cart_init(void) {
-    p8_memory_t *mem = dispatch_context_mem();
-
     assert(structure_icon_ready() && "cart_init: cart_load() must run first");
     assert(help_start_game_field_value() == cart_start_game &&
            score_panel_init_field_value() == cart_init_method &&
            "cart_init: help_init() and score_panel_init() reset these bridges, so cart_load() must "
            "install them afterwards: every button copies the value when it is built");
 
-    hud_build_palette_table(mem);
     reset_world();
 
     /* The icons' shared cursor takes the rest cursor itself (it aliases its

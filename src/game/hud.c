@@ -18,26 +18,34 @@ static int to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
 }
 
-/* Only color 3 gets the transparency bit; every other color's byte is
- * the sprite-sheet pixel as it is. */
-void hud_build_palette_table(p8_memory_t *mem) {
-    int a = 0x5000;
-    int p, c;
-
-    for (p = 0; p <= 15; p++) {
-        for (c = 0; c <= 15; c++) {
-            unsigned char sg = p8_sget(mem, p, c);
-            unsigned char val = (unsigned char)(sg | (c == 3 ? 0x80 : 0));
-            p8_poke(mem, a, val);
-            a += 1;
-        }
-    }
-}
+/* Row = block, column = source color; color 3 carries the transparency
+ * bit in every block. tests/test_hud.c checks it against the cart's
+ * sprite-sheet pixels (block n, color c at pixel (n, c)). */
+static const unsigned char palette_blocks[16][16] = {
+    {0, 1, 2, 131, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+    {0, 1, 2, 131, 2, 5, 6, 7, 8, 4, 9, 11, 12, 5, 14, 9},
+    {0, 1, 1, 131, 2, 1, 13, 6, 2, 2, 4, 3, 13, 5, 8, 4},
+    {0, 0, 1, 129, 1, 1, 5, 13, 2, 2, 2, 3, 5, 1, 2, 2},
+    {0, 0, 0, 129, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+    {0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 2, 2, 130, 2, 2, 8, 8, 2, 2, 8, 8, 2, 2, 8, 8},
+    {0, 1, 1, 129, 1, 1, 5, 13, 1, 1, 5, 5, 1, 1, 5, 5},
+    {0, 1, 2, 131, 4, 5, 6, 7, 10, 9, 0, 4, 2, 13, 0, 0},
+    {0, 1, 2, 131, 4, 5, 6, 7, 0, 10, 9, 0, 4, 13, 4, 0},
+    {0, 1, 2, 131, 4, 5, 6, 7, 0, 0, 10, 4, 0, 13, 9, 4},
+    {0, 1, 2, 131, 4, 5, 6, 7, 4, 0, 0, 9, 4, 13, 0, 9},
+    {0, 1, 2, 131, 4, 5, 6, 7, 9, 4, 0, 0, 9, 13, 9, 0},
+    {0, 1, 2, 131, 4, 5, 6, 7, 0, 9, 4, 0, 0, 13, 10, 9},
+    {0, 1, 2, 131, 4, 5, 6, 7, 9, 0, 9, 2, 0, 13, 0, 10},
+    {0, 1, 2, 131, 4, 5, 6, 6, 0, 0, 0, 0, 0, 13, 0, 0},
+};
 
 void hud_select_palette_block(p8_memory_t *mem, p8_fixed_t no) {
-    p8_fixed_t offset = p8_fixed_shl(p8_fixed_flr(no), 4);
-    int src = 0x5000 + to_int(offset);
-    p8_memcpy(mem, 0x5f00, src, 16);
+    int block = p8_fixed_flr_int(no);
+    assert(block >= 0 && block < 16 && "hud_select_palette_block: only blocks 0..15 exist; the cart would read past its table");
+    for (int c = 0; c < 16; c++) {
+        p8_poke(mem, P8_ADDR_DRAW_PALETTE + c, palette_blocks[block][c]);
+    }
 }
 
 void hud_select_palette_block_default(p8_memory_t *mem) {

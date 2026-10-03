@@ -302,9 +302,8 @@ static void test_bor_negative_raw_operand(void) {
 }
 
 static void test_shl_positive_raw_operand(void) {
-    /* p8_fixed_shl shifts the raw representation; its one game use,
-     * hud_select_palette_block, shifts a floored value by 4: times sixteen
-     * on an integer value. */
+    /* p8_fixed_shl shifts the raw representation: by 4, times sixteen on
+     * an integer value. */
     p8_fixed_t x = p8_fixed_from_int(5);
     assert(p8_fixed_shl(x, 4) == p8_fixed_from_int(80));
 }
