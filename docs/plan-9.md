@@ -1,30 +1,26 @@
-# Plan 9 — Backend PSX : rendu GPU et manette
+# Plan 9 — Toolchain PSX et premier `.bin/.cue`
 
-Brouillon, à passer en `plan-converge` avant toute exécution. Quatrième des cinq plans vers un `.bin/.cue` PSX (plans 6 à 10).
+Brouillon, à passer en `plan-converge` avant toute exécution. Troisième des cinq plans vers un `.bin/.cue` PSX (plans 7 à 11).
 
 ## 1. Objectif
 
-Le jeu complet compilé pour MIPS, dans un `.bin/.cue` qui démarre dans l'émulateur, affiche l'écran titre et se pilote à la manette.
+Dans ce sandbox : `psx-hello` compilé, emballé en `.bin/.cue`, et démarré dans un émulateur sans fenêtre, avec une preuve lisible par un agent.
 
-## 2. Approche
+## 2. Ce qui existe
 
-- **Rendu GPU.** Chaque dessin PICO-8 (`cls`, `pset`, `line`, `rect`, `rectfill`, `circ`, `circfill`, `spr`, `map`, `print`, `fillp`, `palt`) devient des primitives GPU, au lieu d'un framebuffer 128×128 recopié. Les sprites et la police vivent en VRAM.
-- **Écart accepté.** Le rendu PSX peut différer de quelques pixels du PC (cercles, lignes). L'écart sera jugé sur place, pas avant.
-- **Manette.** La couche boutons → souris du plan 7, branchée sur le pilote de manette.
-- **Le cœur ne bouge pas.** Seuls `src/p8/` et un nouveau `src/platform/` PSX s'adaptent.
-- **Prérequis.** Plans 6 à 8 finis, et le plan 8 sort une capture de VRAM, pas seulement du TTY : l'étape 4 s'y vérifie.
-- **Invariant de chaque commit.** `make test-all` passe, les `*.sha256` de `tests/e2e/` ne changent pas, `make test` et `make e2e` ne ralentissent pas.
+- `psx-hello/` et `tools/install_psn00bsdk_toolchain.sh`, jamais exécutés (`docs/psx-hello-world.md`).
+- Le piège connu d'`elf2x`, et son contournement.
+- Le réseau du sandbox bloque les miroirs GNU et les émulateurs aujourd'hui.
 
 ## 3. Étapes
 
-1. **Le cœur compile pour MIPS.** Sans rendu, il tourne N frames, et les appels libc restants (`fopen`, `snprintf`, `__divdi3`…) sont remplacés ou fournis. Fini quand l'état après N frames, sorti en TTY dans l'émulateur, égale celui du PC (`make state`).
-2. **Assets.** Sprites, carte et police embarqués sans parser JSON au démarrage.
-3. **Séparer l'API de dessin de son backend.** Le logiciel actuel reste pour PC et e2e, et le GPU s'ajoute pour la PSX. Les e2e PC ne changent pas.
-4. **Primitives GPU,** une famille à la fois, chacune vérifiée par une capture VRAM en émulateur (plan 8).
-5. **Manette** branchée, puis l'écran titre passé dans l'émulateur via une entrée scriptée.
-6. **`.bin/.cue` du jeu** produit par une cible `make`.
+1. **Réseau.** Lister les hôtes nécessaires (toolchain, PSn00bSDK, outil d'image CD, émulateur, BIOS) et les faire ouvrir par l'humain. Préférer les binaires précompilés à une compilation de GCC.
+2. **Toolchain.** `make psn00bsdk-toolchain-setup` installe tout dans un sandbox neuf, puis `make psx-hello` produit un `.exe`.
+3. **Émulateur sans fenêtre.** Démarrer le `.exe` en mode headless et en sortir une preuve : une capture de VRAM en fichier, que le plan 10 réutilise, plus la sortie TTY si elle aide. La fenêtre reste interdite, comme pour raylib. Si aucun émulateur ne convient, arrêt et retour à l'humain : les plans 10 et 11 en dépendent.
+4. **Image CD.** Une cible `make` produit `psx-hello.bin/.cue` (outil type `mkpsxiso`), avec licence et `SYSTEM.CNF`, démarrée comme à l'étape 3.
+5. **Cible de contrôle.** Une cible `make`, hors de `make test-all`, enchaîne image et démarrage, et échoue si la preuve diffère de sa référence (sha256 de capture, comme les e2e).
+6. **Doc.** `docs/psx-hello-world.md` réécrit sur ce qui marche vraiment.
 
-## 4. Points ouverts
+## 4. Point ouvert
 
-- `fillp`, `palt` et la palette de dessin (blocs copiés à `0x5f00` par `hud.c`) sur GPU : motif ou CLUT par texture, ou retour au logiciel pour ces cas. Tranché au début de l'étape 4.
-- Le rejeu d'un `events.json` dans l'émulateur, pour réutiliser les e2e. Tranché avant l'étape 5, qui en a besoin.
+Le choix de l'émulateur se fait à l'étape 3 : il faut un mode sans fenêtre qui démarre un `.exe` puis une image CD et rend une trace exploitable.

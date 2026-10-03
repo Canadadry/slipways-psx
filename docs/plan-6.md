@@ -1,34 +1,28 @@
-# Plan 6 — Une partie pleine dans 768 Ko
+# Plan 6 — Retirer ce qui n'existe que pour PICO-8
 
-Brouillon, à passer en `plan-converge` avant toute exécution. Premier des cinq plans vers un `.bin/.cue` jouable sur émulateur PSX (plans 6 à 10).
+Brouillon, à passer en `plan-converge` avant toute exécution. Prélude aux plans 7 à 11 vers un `.bin/.cue` PSX.
 
 ## 1. Objectif
 
-- `make state EVENTS=worst-case/full_game.json` va jusqu'à la dernière frame, sans `p8_fatal`.
-- La somme des zones passe de 1,5 Mo à **768 Ko** (`ZONE_BUDGET_BYTES`).
-- La moitié libérée est réservée aux tampons de primitives GPU du plan 9 et aux optimisations de fin sur PSX.
+Le cœur ne garde de PICO-8 que ce dont le jeu a besoin : l'API de dessin, la virgule fixe, la table `sin`/`cos`. Tout le reste part : adresses mémoire, numéros de `stat()`, audio, chaînes héritées du Lua.
 
-## 2. Point de départ mesuré
+## 2. Règles
 
-- `full_game.json` s'arrête frame 4337 : zone `frame` (256 Ko) saturée.
-- Pic de la zone `game` : 220 Ko pour 768 Ko réservés.
-- Les pics des zones `ui` et `particles` restent à mesurer jusqu'au bout : le dump s'arrête au fatal.
+- Aucun pixel ne change : tous les `*.sha256` de `tests/e2e/` restent identiques.
+- Invariant de chaque commit : `make test-all` et `make sanitize-net` passent ; `make test` et `make e2e` ne ralentissent pas.
+- Restent, par décision : l'API de dessin (branchée sur le GPU au plan 10), la virgule fixe, la table `sin`/`cos`, `constants-check`, les lignes musique et sons du menu pause (inertes).
 
-## 3. Règles
+## 3. Étapes
 
-- Le jeu ne change pas : tous les `*.sha256` de `tests/e2e/` restent identiques.
-- Une saturation est d'abord lue comme une fuite (place jamais rendue, remise à zéro manquante), jamais comme un besoin. On ne relève une limite qu'une fois la fuite écartée.
-- Chaque zone est dimensionnée sur son pic mesuré, plus une marge fixe, la même pour toutes.
-- Invariant de chaque commit : `make test-all` et `make sanitize-net` passent ; dès l'étape 2, la cible verrou aussi.
+1. **Code mort.** L'audio (`p8_sfx`, `p8_music`, `stat 19/20`), le GPIO `0x5f80` de `ui.c`, les octets de musique `0x3101` de `score_panel.c`, le drapeau souris `0x5f2d`, la deuxième manette (GAP-2).
+2. **Souris nommée.** `p8_stat(32/33/34)` devient des champs nommés de l'entrée.
+3. **Chaînes → `enum`.** Les états (`"placing"`, `"settled"`), les tags (`entities_by_tag("planet")`…), les noms passés en chaîne (`"left"`/`"right"`, `"pressed"`/`"released"`, `"draw_row"`). Les recherches par nom dans les tables de données restent.
+4. **Données hors des assets.** La table des palettes, lue par `hud.c` dans le carré 16×16 en haut à gauche des sprites, devient une table C. `pico8/map.json` est supprimé : rejouer les 26 e2e sans le charger ne change aucun pixel, le fond génère ses tuiles.
+5. **Mémoire typée.** Le bloc de 56 Ko (`p8_memory_t`, `peek`/`poke`/`memcpy`) devient des champs typés : sprites, tuiles du fond 32×32, écran, palette de dessin.
 
-## 4. Étapes
+Chaque étape met à jour `docs/trous-de-portage.md` pour les écarts qu'elle fait disparaître.
 
-1. **Comprendre la saturation de `frame`.** Trouver ce qui s'accumule dans la zone à la frame 4337 (`help-me-debug`), puis le corriger. Fini quand `full_game.json` va au bout avec les tailles actuelles.
-2. **Verrou.** `full_game.json` joué jusqu'au bout entre dans une cible dédiée, hors de `make test-all` qui ne doit pas ralentir, pour qu'une régression mémoire se voie dès le redimensionnement.
-3. **Mesurer.** Le pic de chaque zone et de chaque cap, sur `full_game.json` complet et sur chaque e2e (`full_game.json` n'ouvre ni boîte de message ni fond modal), écrit dans `tmp/state.txt`.
-4. **Redimensionner.** Chaque zone ramenée à son pic plus la marge ; `ZONE_BUDGET_BYTES` à 768 Ko. Si la somme dépasse, réduire l'empreinte des plus gros consommateurs avant de toucher au plafond.
+## 4. Hors périmètre
 
-## 5. Hors périmètre
-
-- Le budget de slipways et de relais (une évolution du jeu).
-- Les remesures sur MIPS : plan 10.
+- Tout ce qui change un pixel : les bizarreries Lua reproduites (GAP-5, GAP-14…), la table `sin`/`cos` de 64 Ko.
+- Le format des assets embarqués sur PSX : plan 10.

@@ -1,23 +1,30 @@
-# Plan 10 — Mesurer, optimiser, livrer
+# Plan 10 — Backend PSX : rendu GPU et manette
 
-Brouillon, à passer en `plan-converge` avant toute exécution. Dernier des cinq plans vers un `.bin/.cue` PSX (plans 6 à 10).
+Brouillon, à passer en `plan-converge` avant toute exécution. Quatrième des cinq plans vers un `.bin/.cue` PSX (plans 7 à 11).
 
 ## 1. Objectif
 
-Un `.bin/.cue` final, où une partie complète se joue dans l'émulateur à la cadence du jeu, sans plantage mémoire.
+Le jeu complet compilé pour MIPS, dans un `.bin/.cue` qui démarre dans l'émulateur, affiche l'écran titre et se pilote à la manette.
 
-## 2. Règles
+## 2. Approche
 
-- Le jeu ne change pas : tous les `*.sha256` de `tests/e2e/` restent identiques, `make test-all` passe à chaque commit.
-- Le rejeu dans l'émulateur est une cible dédiée, hors de `make test-all`, qui ne doit pas ralentir.
+- **Rendu GPU.** Chaque dessin PICO-8 (`cls`, `pset`, `line`, `rect`, `rectfill`, `circ`, `circfill`, `spr`, `map`, `print`, `fillp`, `palt`) devient des primitives GPU, au lieu d'un framebuffer 128×128 recopié. Les sprites et la police vivent en VRAM.
+- **Écart accepté.** Le rendu PSX peut différer de quelques pixels du PC (cercles, lignes). L'écart sera jugé sur place, pas avant.
+- **Manette.** La couche boutons → souris du plan 8, branchée sur le pilote de manette.
+- **Le cœur ne bouge pas.** Seuls `src/p8/` et un nouveau `src/platform/` PSX s'adaptent.
+- **Prérequis.** Plans 7 à 9 finis, et le plan 9 sort une capture de VRAM, pas seulement du TTY : l'étape 4 s'y vérifie.
+- **Invariant de chaque commit.** `make test-all` passe, les `*.sha256` de `tests/e2e/` ne changent pas, `make test` et `make e2e` ne ralentissent pas.
 
 ## 3. Étapes
 
-1. **Rejouer `full_game.json` dans l'émulateur** jusqu'au bout, avec mesure par frame : temps CPU, pic de chaque zone, taille des tampons de primitives. Si le plan 9 n'a pas livré le rejeu d'un `events.json` dans l'émulateur, c'est le premier travail.
-2. **Remesurer les zones sur MIPS** : tailles de place des zones interface et particules (`button`, `message_box` sans marge sur x86-64).
-3. **Optimiser seulement ce que la mesure désigne,** dans la marge libérée par le plan 6. La mesure désigne une frame qui dépasse 1/60 s ou une zone qui dépasse sa taille. Pistes notées, non engagées : la table `p8_quarter_wave` (64 Ko), les chaînes d'`assert`, le nombre de primitives par frame.
-4. **Livraison.** `.bin/.cue` final, et une partie complète jouée par un humain à la manette.
+1. **Le cœur compile pour MIPS.** Sans rendu, il tourne N frames, et les appels libc restants (`fopen`, `snprintf`, `__divdi3`…) sont remplacés ou fournis. Fini quand l'état après N frames, sorti en TTY dans l'émulateur, égale celui du PC (`make state`).
+2. **Assets.** Sprites, carte et police embarqués sans parser JSON au démarrage.
+3. **Séparer l'API de dessin de son backend.** Le logiciel actuel reste pour PC et e2e, et le GPU s'ajoute pour la PSX. Les e2e PC ne changent pas.
+4. **Primitives GPU,** une famille à la fois, chacune vérifiée par une capture VRAM en émulateur (plan 9).
+5. **Manette** branchée, puis l'écran titre passé dans l'émulateur via une entrée scriptée.
+6. **`.bin/.cue` du jeu** produit par une cible `make`.
 
-## 4. Critère de fin
+## 4. Points ouverts
 
-L'humain finit une partie dans l'émulateur. Les écarts de rendu qu'il relève sont acceptés ou corrigés un par un ; un ralentissement ou un plantage renvoie à l'étape 1.
+- `fillp`, `palt` et la palette de dessin (blocs copiés à `0x5f00` par `hud.c`) sur GPU : motif ou CLUT par texture, ou retour au logiciel pour ces cas. Tranché au début de l'étape 4.
+- Le rejeu d'un `events.json` dans l'émulateur, pour réutiliser les e2e. Tranché avant l'étape 5, qui en a besoin.

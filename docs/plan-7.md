@@ -1,38 +1,34 @@
-# Plan 7 — Jouer sans souris, au clavier
+# Plan 7 — Une partie pleine dans 768 Ko
 
-Brouillon, à passer en `plan-converge` avant toute exécution. Deuxième des cinq plans vers un `.bin/.cue` PSX (plans 6 à 10).
+Brouillon, à passer en `plan-converge` avant toute exécution. Premier des cinq plans vers un `.bin/.cue` jouable sur émulateur PSX (plans 7 à 11).
 
 ## 1. Objectif
 
-On joue une partie complète sur PC **au clavier seul** : menus, colonisation, slipways, recherche, fin de partie. Le clavier tient lieu de manette PSX : six boutons PICO-8 (quatre directions, O, X), plus au besoin les boutons de tranche de la manette.
+- `make state EVENTS=worst-case/full_game.json` va jusqu'à la dernière frame, sans `p8_fatal`.
+- La somme des zones passe de 1,5 Mo à **768 Ko** (`ZONE_BUDGET_BYTES`).
+- La moitié libérée est réservée aux tampons de primitives GPU du plan 10 et aux optimisations de fin sur PSX.
 
-La souris reste branchée : les e2e existants restent à la souris et leurs `*.sha256` restent identiques. Invariant de chaque commit : `make test-all` passe.
+## 2. Point de départ mesuré
 
-## 2. Contraintes déjà dans le code
+- `full_game.json` s'arrête frame 4337 : zone `frame` (256 Ko) saturée.
+- Pic de la zone `game` : 220 Ko pour 768 Ko réservés.
+- Les pics des zones `ui` et `particles` restent à mesurer jusqu'au bout : le dump s'arrête au fatal.
 
-- Les flèches font défiler la carte (`src/game/scroll.c`).
-- La triche lit des séquences O/X (`src/game/cheat.c`).
-- Le jeu ne lit la souris que via `p8_stat(32/33/34)` (`src/game/mouse.c`, `mouse_button.c`).
+## 3. Règles
 
-## 3. Approche
-
-Une couche du cœur, sans raylib, qui traduit les boutons en curseur et en clic :
-- un mode curseur, où les directions déplacent un curseur et un bouton clique ;
-- le défilement de carte garde un accès, par exemple quand le curseur pousse le bord de l'écran ;
-- la triche reste atteignable.
-
-La souris réelle, quand elle bouge, reprend la main sur le curseur clavier.
+- Le jeu ne change pas : tous les `*.sha256` de `tests/e2e/` restent identiques.
+- Une saturation est d'abord lue comme une fuite (place jamais rendue, remise à zéro manquante), jamais comme un besoin. On ne relève une limite qu'une fois la fuite écartée.
+- Chaque zone est dimensionnée sur son pic mesuré, plus une marge fixe, la même pour toutes.
+- Invariant de chaque commit : `make test-all` et `make sanitize-net` passent ; dès l'étape 2, la cible verrou aussi.
 
 ## 4. Étapes
 
-1. **Décider le mapping** : quelle touche clique, comment on défile, comment on reste compatible avec la triche. Un agent écrit ici un mapping par défaut ; l'humain le ratifie ou le corrige avant tout code.
-2. **Couche boutons → souris** dans le cœur, testée en unitaire.
-3. **Branchement raylib** des touches (le backend lit déjà les flèches, Z et X).
-4. **e2e clavier** : sans aucun mouvement de souris, un rejeu court par écran cité dans l'objectif (menus, colonisation et slipway, recherche, fin de partie).
-5. **Essai humain** : une partie jouée au clavier sur PC. Les constats vont dans « Décisions actées » ; si c'est injouable, retour à l'étape 1.
+1. **Comprendre la saturation de `frame`.** Trouver ce qui s'accumule dans la zone à la frame 4337 (`help-me-debug`), puis le corriger. Fini quand `full_game.json` va au bout avec les tailles actuelles.
+2. **Verrou.** `full_game.json` joué jusqu'au bout entre dans une cible dédiée, hors de `make test-all` qui ne doit pas ralentir, pour qu'une régression mémoire se voie dès le redimensionnement.
+3. **Mesurer.** Le pic de chaque zone et de chaque cap, sur `full_game.json` complet et sur chaque e2e (`full_game.json` n'ouvre ni boîte de message ni fond modal), écrit dans `tmp/state.txt`.
+4. **Redimensionner.** Chaque zone ramenée à son pic plus la marge ; `ZONE_BUDGET_BYTES` à 768 Ko. Si la somme dépasse, réduire l'empreinte des plus gros consommateurs avant de toucher au plafond.
 
-## 5. Décisions actées
+## 5. Hors périmètre
 
-- Le clavier suffit : il représente la manette, pas besoin de manette physique sur PC.
-- Le mode saut de planète en planète est **hors plan**.
-- Les e2e clavier passent avant l'essai humain : ils repèrent sans fenêtre un écran inatteignable au clavier.
+- Le budget de slipways et de relais (une évolution du jeu).
+- Les remesures sur MIPS : plan 11.

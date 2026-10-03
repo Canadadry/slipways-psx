@@ -1,26 +1,38 @@
-# Plan 8 — Toolchain PSX et premier `.bin/.cue`
+# Plan 8 — Jouer sans souris, au clavier
 
-Brouillon, à passer en `plan-converge` avant toute exécution. Troisième des cinq plans vers un `.bin/.cue` PSX (plans 6 à 10).
+Brouillon, à passer en `plan-converge` avant toute exécution. Deuxième des cinq plans vers un `.bin/.cue` PSX (plans 7 à 11).
 
 ## 1. Objectif
 
-Dans ce sandbox : `psx-hello` compilé, emballé en `.bin/.cue`, et démarré dans un émulateur sans fenêtre, avec une preuve lisible par un agent.
+On joue une partie complète sur PC **au clavier seul** : menus, colonisation, slipways, recherche, fin de partie. Le clavier tient lieu de manette PSX : six boutons PICO-8 (quatre directions, O, X), plus au besoin les boutons de tranche de la manette.
 
-## 2. Ce qui existe
+La souris reste branchée : les e2e existants restent à la souris et leurs `*.sha256` restent identiques. Invariant de chaque commit : `make test-all` passe.
 
-- `psx-hello/` et `tools/install_psn00bsdk_toolchain.sh`, jamais exécutés (`docs/psx-hello-world.md`).
-- Le piège connu d'`elf2x`, et son contournement.
-- Le réseau du sandbox bloque les miroirs GNU et les émulateurs aujourd'hui.
+## 2. Contraintes déjà dans le code
 
-## 3. Étapes
+- Les flèches font défiler la carte (`src/game/scroll.c`).
+- La triche lit des séquences O/X (`src/game/cheat.c`).
+- Le jeu ne lit la souris que via `p8_stat(32/33/34)` (`src/game/mouse.c`, `mouse_button.c`).
 
-1. **Réseau.** Lister les hôtes nécessaires (toolchain, PSn00bSDK, outil d'image CD, émulateur, BIOS) et les faire ouvrir par l'humain. Préférer les binaires précompilés à une compilation de GCC.
-2. **Toolchain.** `make psn00bsdk-toolchain-setup` installe tout dans un sandbox neuf, puis `make psx-hello` produit un `.exe`.
-3. **Émulateur sans fenêtre.** Démarrer le `.exe` en mode headless et en sortir une preuve : une capture de VRAM en fichier, que le plan 9 réutilise, plus la sortie TTY si elle aide. La fenêtre reste interdite, comme pour raylib. Si aucun émulateur ne convient, arrêt et retour à l'humain : les plans 9 et 10 en dépendent.
-4. **Image CD.** Une cible `make` produit `psx-hello.bin/.cue` (outil type `mkpsxiso`), avec licence et `SYSTEM.CNF`, démarrée comme à l'étape 3.
-5. **Cible de contrôle.** Une cible `make`, hors de `make test-all`, enchaîne image et démarrage, et échoue si la preuve diffère de sa référence (sha256 de capture, comme les e2e).
-6. **Doc.** `docs/psx-hello-world.md` réécrit sur ce qui marche vraiment.
+## 3. Approche
 
-## 4. Point ouvert
+Une couche du cœur, sans raylib, qui traduit les boutons en curseur et en clic :
+- un mode curseur, où les directions déplacent un curseur et un bouton clique ;
+- le défilement de carte garde un accès, par exemple quand le curseur pousse le bord de l'écran ;
+- la triche reste atteignable.
 
-Le choix de l'émulateur se fait à l'étape 3 : il faut un mode sans fenêtre qui démarre un `.exe` puis une image CD et rend une trace exploitable.
+La souris réelle, quand elle bouge, reprend la main sur le curseur clavier.
+
+## 4. Étapes
+
+1. **Décider le mapping** : quelle touche clique, comment on défile, comment on reste compatible avec la triche. Un agent écrit ici un mapping par défaut ; l'humain le ratifie ou le corrige avant tout code.
+2. **Couche boutons → souris** dans le cœur, testée en unitaire.
+3. **Branchement raylib** des touches (le backend lit déjà les flèches, Z et X).
+4. **e2e clavier** : sans aucun mouvement de souris, un rejeu court par écran cité dans l'objectif (menus, colonisation et slipway, recherche, fin de partie).
+5. **Essai humain** : une partie jouée au clavier sur PC. Les constats vont dans « Décisions actées » ; si c'est injouable, retour à l'étape 1.
+
+## 5. Décisions actées
+
+- Le clavier suffit : il représente la manette, pas besoin de manette physique sur PC.
+- Le mode saut de planète en planète est **hors plan**.
+- Les e2e clavier passent avant l'essai humain : ils repèrent sans fenêtre un écran inatteignable au clavier.
