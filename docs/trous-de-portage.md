@@ -74,26 +74,6 @@ chaînes : ils se comparent par valeur (`==` sur `p8_fixed_t`,
 
 Fichiers : `src/engine/collect.c`.
 
-## GAP-4 — Le constructeur de champ ne retombe pas sur la table quand il rend faux
-
-Lua : `oo()`, `oo(fn,a)`, `fn and fn(...) or a`, `fn(...)`, `'s'`, `spr`,
-`s(...)`.
-
-Dans le cart, la valeur d'un champ construit vaut celle du constructeur, ou
-la table analysée quand le constructeur rend une valeur fausse. Ce port ne
-testait que l'absence du constructeur (`NULL`) et rendait sinon son
-résultat tel quel.
-
-Devenu atteignable : le constructeur du sprite était bien enregistré depuis
-l'initialisation des fonctions de dessin, et il rendait un pointeur nul,
-donc une valeur fausse. Aucune spec du cart n'écrit de sprite construit
-aujourd'hui — vérifié sur `pico8/lua.lua` — donc le trou est dormant, pas
-actif. Il s'ouvrira le jour où une spec en écrira une.
-
-Sans site : la fonction d'analyse de champ, le module des tables à clés
-dynamiques et le constructeur du sprite sont supprimés ; le port n'analyse
-plus de spec.
-
 ## GAP-5 — `update_entities` saute une entité quand une entité s'auto-supprime
 
 Lua : `dg()`, `hv`.
@@ -146,30 +126,6 @@ avant de décider d'appeler `p8_sfx`. Seul l'appel final est inerte — donc
 les deux boutons audio du menu pause répondent au clic sans rien produire.
 
 Fichiers : `src/p8/audio.c`, `src/game/menu.c`.
-
-## GAP-11 — Le repli d'arité du test de survol rendrait le survol silencieusement faux
-
-Lua : `hd`, `"hd"`, `dc()`, `dc("hd")`, `bm`, `kj`, `ev`, `mp == rp`,
-`rp = (argc >= 2) ? arg1 : arg0`.
-
-Le test de survol d'un bouton recevait un nombre d'arguments et deux
-positions, et prenait la position écran pour la seconde si le nombre était
-au moins 2, la première sinon. Le seul site qui le dispatchait était
-`ui_update_hover`, avec deux arguments en dur.
-
-Mais la répartition par couches dispatchait n'importe quel message — dont
-le test de survol — avec un seul argument. Rien ne le faisait ; le jour où
-quelque chose le ferait, le repli comparerait `mouse_world` à elle-même au
-lieu de la position écran `mouse_screen`. Faux, et silencieux.
-
-Pas transformé en `assert` sur le nombre d'arguments : ça ferait sauter un
-dispatch par ailleurs légitime. Le vrai correctif est de décider ce que le
-test de survol doit faire sous la répartition par couches, ce qui dépasse
-une reprise de commentaires.
-
-Sans site : le membre `hit_test` d'`entity_class_t` a toujours deux
-arguments (`mouse_world`, `mouse_screen`) et `draw_layers` ne lance que
-`draw`/`draw_overlay` (`assert` sur tout autre message).
 
 ## GAP-12 — Le premier anneau du trou de ver est noir au lieu de garder la plume
 
