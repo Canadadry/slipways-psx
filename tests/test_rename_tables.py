@@ -1,6 +1,6 @@
 """tools/rename_tables.py, module API: the readers of the rename table, of
-an extraction's declarations and of the header line, on mini files. Run by
-`make rename-tables-test`, part of `make test`."""
+an extraction's declarations, of the header line and of exception triples,
+on mini files. Run by `make rename-tables-test`, part of `make test`."""
 
 import os
 import shutil
@@ -59,6 +59,15 @@ class Declarations(unittest.TestCase):
             "identity": "c:@F@run", "kind": "function", "name": "run", "parent": "-",
             "file": "src/x.c", "line": "3", "linkage": "extern", "scope_lines": "-",
             "occurrences": "2", "flags": "-"}])
+
+
+class Triples(unittest.TestCase):
+
+    def test_exception_lines_are_three_cells_padded_with_empty_ones(self):
+        path = write("exceptions.txt", "# kind\tparent\tname\n\n"
+                                       "field\twidget_vec_t\tx\tnote\n  \nstring\tMakefile\n")
+        self.assertEqual(rename_tables.read_triples(path),
+                         [("field", "widget_vec_t", "x"), ("string", "Makefile", "")])
 
 
 class Imports(unittest.TestCase):

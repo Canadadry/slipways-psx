@@ -37,6 +37,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import rename_count  # noqa: E402
 import rename_derive  # noqa: E402
 import rename_substeps  # noqa: E402
+import rename_tables  # noqa: E402
 
 COLUMNS = rename_count.COLUMNS
 OWN_FILES = ("tools/french_count.py", "tests/test_french_count.py", "tools/french_exceptions.txt")
@@ -126,17 +127,6 @@ def wholes(path, text):
             if kind in ("string", "text")}
 
 
-def read_exceptions(path):
-    """Lines `column<TAB>module<TAB>word`; `#` lines are comments."""
-    found = set()
-    with open(path, encoding="utf-8") as f:
-        for line in f.read().splitlines():
-            if line.strip() and not line.startswith("#"):
-                column, module, word = (line.split("\t") + ["", ""])[:3]
-                found.add((column, module, word.lower()))
-    return found
-
-
 def read(root, path):
     with open(os.path.join(root, path), encoding="utf-8", errors="replace") as f:
         return f.read()
@@ -160,7 +150,8 @@ def main(argv):
     substeps = rename_substeps.load(args.substeps) if args.substeps else None
     if args.substep and (substeps is None or args.substep not in substeps.modules):
         parser.error("unknown sub-step %s (or no --substeps)" % args.substep)
-    exceptions = read_exceptions(args.exceptions)
+    exceptions = {(column, module, word.lower())
+                  for column, module, word in rename_tables.read_triples(args.exceptions)}
     files = [p for p in rename_count.source_files(args.root) if p not in OWN_FILES]
 
     later_wholes = set()

@@ -226,6 +226,18 @@ class Cryptic(unittest.TestCase):
         self.assertEqual(candidates, [])
         self.assertEqual(totals, {"total": 0})
 
+    def test_the_exceptions_file_is_needed_by_the_count_only(self):
+        run([decl("local", "abc", "src/game/gadget.c", "run", 41)])
+        args = [sys.executable, SCRIPT, "--declarations", os.path.join(WORK, "declarations.tsv"),
+                "--root", WORK]
+        result = subprocess.run(args + ["--cryptic", "--table", TABLE_PATH],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("game/gadget\tlocal\tabc\trun\t41", result.stdout)
+        result = subprocess.run(args, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("--exceptions", result.stderr)
+
     def test_modules_and_substep_select_the_candidates(self):
         rows = [decl("local", "abc", "src/engine/widget.c", "run", 90),
                 decl("local", "abc", "src/game/gadget.c", "run", 90)]

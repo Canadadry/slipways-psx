@@ -1323,7 +1323,7 @@ scope-count:
 
 cryptic-locals:
 	python3 tools/scope_count.py --declarations $(AST_RENAME_DIR)/declarations.tsv \
-	    --exceptions tools/scope_exceptions.txt --root . --cryptic --table docs/renommage.tsv \
+	    --root . --cryptic --table docs/renommage.tsv \
 	    $(foreach m,$(MODULES),--module '$(m)') \
 	    $(if $(SUBSTEP),--substep $(SUBSTEP) --substeps $(RENAME_SUBSTEPS))
 

@@ -1,5 +1,6 @@
 """The readers shared by the rename tools: a table of the docs/renommage.tsv
-schema, the declarations of an extraction, and the header line of either.
+schema, the declarations of an extraction, the header line of either, and
+the triples of an exceptions file.
 Imports no tool, so that every tool can import it."""
 
 
@@ -37,3 +38,16 @@ def read_declarations(path):
     header (identity, kind, name, parent, file, line, linkage, scope_lines,
     occurrences, flags); the `# partial` lines are skipped."""
     return read_table(path)[1]
+
+
+def read_triples(path):
+    """The lines of an exceptions file that are neither blank nor `#`
+    comments, each cut on tabs into its first three cells, missing ones as
+    "". Each file keeps its own schema (`column module word`,
+    `kind parent name`)."""
+    found = []
+    with open(path, encoding="utf-8") as f:
+        for line in f.read().splitlines():
+            if line.strip() and not line.startswith("#"):
+                found.append(tuple((line.split("\t") + ["", ""])[:3]))
+    return found

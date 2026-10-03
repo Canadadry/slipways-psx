@@ -34,16 +34,6 @@ MAX_SCOPE_LINES = 40
 SOURCE_DIRS = ("src", "tests", "tools")
 
 
-def read_exceptions(path):
-    """Lines `kind<TAB>parent<TAB>name`; `#` lines are comments."""
-    found = set()
-    with open(path, encoding="utf-8") as f:
-        for line in f.read().splitlines():
-            if line.strip() and not line.startswith("#"):
-                found.add(tuple(line.split("\t")[:3]))
-    return found
-
-
 def column_of(row):
     """The column a declaration is refused under, or None if allowed."""
     if len(row["name"]) > 2:
@@ -94,7 +84,7 @@ def main(argv):
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--declarations", required=True,
                         help="declarations.tsv of `make rename-extract`")
-    parser.add_argument("--exceptions", required=True)
+    parser.add_argument("--exceptions", help="the exceptions file; not read by --cryptic")
     parser.add_argument("--root", required=True)
     parser.add_argument("--module", action="append",
                         help="only these modules (shell patterns: game/planet*)")
@@ -108,6 +98,8 @@ def main(argv):
     args = parser.parse_args(argv)
     if args.cryptic and not args.table:
         parser.error("--cryptic needs --table")
+    if not args.cryptic and not args.exceptions:
+        parser.error("the following arguments are required: --exceptions")
     if args.check and args.cryptic:
         parser.error("--check guards the scope count: drop --cryptic")
     if args.check and stale(args):
@@ -134,7 +126,7 @@ def main(argv):
         print_cryptic(args, selected_module)
         return 0
 
-    exceptions = read_exceptions(args.exceptions)
+    exceptions = set(rename_tables.read_triples(args.exceptions))
     table = {}
     for row in rename_tables.read_declarations(args.declarations):
         column = column_of(row)
