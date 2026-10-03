@@ -7701,7 +7701,7 @@ lheld_kind	left_held_kind	tests/test_background.c	identifiant	fonction	renommé	
 m__state	is_hovered_state	tests/test_background.c	identifiant	fonction	renommé	tests/test_background	m_		c:test_background.c@F@m__state
 map_hash	map_hash	tests/test_background.c	identifiant	fonction	conservé	tests/test_background			c:test_background.c@F@map_hash
 mget	mget	tests/test_background.c	identifiant	fonction	conservé	tests/test_background			c:test_background.c@F@mget
-mo_qb	typed_main_camera	tests/test_background.c	identifiant	fonction	renommé	tests/test_background	mo		c:test_background.c@F@mo_qb
+mo_qb	checked_main_camera	tests/test_background.c	identifiant	fonction	renommé	tests/test_background	mo		c:test_background.c@F@mo_qb
 mq_is	drag_mouse_is	tests/test_background.c	identifiant	fonction	renommé	tests/test_background			c:test_background.c@F@mq_is
 mq_of	drag_mouse_of	tests/test_background.c	identifiant	fonction	renommé	tests/test_background			c:test_background.c@F@mq_of
 screen_hash	screen_hash	tests/test_background.c	identifiant	fonction	conservé	tests/test_background			c:test_background.c@F@screen_hash
@@ -8682,7 +8682,7 @@ in_fresh_child	in_fresh_child	tests/test_camera.c	identifiant	fonction	conservé
 is_a_qb_struct	is_a_camera_struct	tests/test_camera.c	identifiant	fonction	renommé	tests/test_camera	qb		c:test_camera.c@F@is_a_qb_struct
 is_vec	is_vec	tests/test_camera.c	identifiant	fonction	conservé	tests/test_camera			c:test_camera.c@F@is_vec
 md_to	apply_camera_to	tests/test_camera.c	identifiant	fonction	renommé	tests/test_camera	md		c:test_camera.c@F@md_to
-mo_qb	typed_main_camera	tests/test_camera.c	identifiant	fonction	renommé	tests/test_camera	mo		c:test_camera.c@F@mo_qb
+mo_qb	checked_main_camera	tests/test_camera.c	identifiant	fonction	renommé	tests/test_camera	mo		c:test_camera.c@F@mo_qb
 must_vec	must_vec	tests/test_camera.c	identifiant	fonction	conservé	tests/test_camera			c:test_camera.c@F@must_vec
 pad	pad	tests/test_camera.c	identifiant	fonction	conservé	tests/test_camera			c:test_camera.c@F@pad
 script	script	tests/test_camera.c	identifiant	fonction	conservé	tests/test_camera			c:test_camera.c@F@script
@@ -9104,7 +9104,7 @@ as_jo	as_planet	tests/test_economy.c	identifiant	fonction	renommé	tests/test_ec
 built_world	built_world	tests/test_economy.c	identifiant	fonction	conservé	tests/test_economy			c:test_economy.c@F@built_world
 check	check	tests/test_economy.c	identifiant	fonction	conservé	tests/test_economy			c:test_economy.c@F@check
 dist2	dist2	tests/test_economy.c	identifiant	fonction	conservé	tests/test_economy			c:test_economy.c@F@dist2
-fm_hy	typed_main_economy	tests/test_economy.c	identifiant	fonction	renommé	tests/test_economy	fm		c:test_economy.c@F@fm_hy
+fm_hy	checked_main_economy	tests/test_economy.c	identifiant	fonction	renommé	tests/test_economy	fm		c:test_economy.c@F@fm_hy
 fm_self	main_economy_self	tests/test_economy.c	identifiant	fonction	renommé	tests/test_economy	ok		c:test_economy.c@F@fm_self
 fnv	fnv	tests/test_economy.c	identifiant	fonction	conservé	tests/test_economy			c:test_economy.c@F@fnv
 fold_absent	fold_absent	tests/test_economy.c	identifiant	fonction	conservé	tests/test_economy			c:test_economy.c@F@fold_absent
@@ -12983,7 +12983,7 @@ ents_listed	entity_list_listed	tests/test_probe.c	identifiant	fonction	renommé	
 ents_rank_in	entity_list_rank_in	tests/test_probe.c	identifiant	fonction	renommé	tests/test_probe	pico8_ents_t		c:test_probe.c@F@ents_rank_in
 et_fo	target_targeted_by	tests/test_probe.c	identifiant	fonction	renommé	tests/test_probe	et		c:test_probe.c@F@et_fo
 et_kind	target_kind	tests/test_probe.c	identifiant	fonction	renommé	tests/test_probe	et		c:test_probe.c@F@et_kind
-fm_hy	typed_main_economy	tests/test_probe.c	identifiant	fonction	renommé	tests/test_probe	fm		c:test_probe.c@F@fm_hy
+fm_hy	checked_main_economy	tests/test_probe.c	identifiant	fonction	renommé	tests/test_probe	fm		c:test_probe.c@F@fm_hy
 fnv	fnv	tests/test_probe.c	identifiant	fonction	conservé	tests/test_probe			c:test_probe.c@F@fnv
 fnv_str	fnv_str	tests/test_probe.c	identifiant	fonction	conservé	tests/test_probe			c:test_probe.c@F@fnv_str
 fold_bool_member	fold_bool_member	tests/test_probe.c	identifiant	fonction	conservé	tests/test_probe			c:test_probe.c@F@fold_bool_member
@@ -16210,12 +16210,12 @@ identity_of	identity_of	tests/test_ui.c	identifiant	fonction	conservé	tests/tes
 in_fresh_child	in_fresh_child	tests/test_ui.c	identifiant	fonction	conservé	tests/test_ui			c:test_ui.c@F@in_fresh_child
 in_layer	in_layer	tests/test_ui.c	identifiant	fonction	conservé	tests/test_ui			c:test_ui.c@F@in_layer
 is_of	is_of	tests/test_ui.c	identifiant	fonction	conservé	tests/test_ui			c:test_ui.c@F@is_of
-je_nf	typed_main_mouse	tests/test_ui.c	identifiant	fonction	renommé	tests/test_ui	je		c:test_ui.c@F@je_nf
+je_nf	checked_main_mouse	tests/test_ui.c	identifiant	fonction	renommé	tests/test_ui	je		c:test_ui.c@F@je_nf
 ke_of	entity_of	tests/test_ui.c	identifiant	fonction	renommé	tests/test_ui	ke		c:test_ui.c@F@ke_of
 layer_count	layer_count	tests/test_ui.c	identifiant	fonction	conservé	tests/test_ui			c:test_ui.c@F@layer_count
 le_of	ephemerals_of	tests/test_ui.c	identifiant	fonction	renommé	tests/test_ui			c:test_ui.c@F@le_of
 m__state	is_hovered_state	tests/test_ui.c	identifiant	fonction	renommé	tests/test_ui	m_		c:test_ui.c@F@m__state
-mo_qb	typed_main_camera	tests/test_ui.c	identifiant	fonction	renommé	tests/test_ui	mo		c:test_ui.c@F@mo_qb
+mo_qb	checked_main_camera	tests/test_ui.c	identifiant	fonction	renommé	tests/test_ui	mo		c:test_ui.c@F@mo_qb
 mouse_at	mouse_at	tests/test_ui.c	identifiant	fonction	conservé	tests/test_ui			c:test_ui.c@F@mouse_at
 must_abort	must_abort	tests/test_ui.c	identifiant	fonction	conservé	tests/test_ui			c:test_ui.c@F@must_abort
 nearest_to	nearest_to	tests/test_ui.c	identifiant	fonction	conservé	tests/test_ui			c:test_ui.c@F@nearest_to

@@ -69,7 +69,7 @@ static int in_any_entities_by_message(const void *e) {
     return 0;
 }
 
-static camera_t *typed_main_camera(void) {
+static camera_t *checked_main_camera(void) {
     assert(main_camera_typed() != NULL);
     return main_camera_typed();
 }
@@ -88,7 +88,7 @@ static uint32_t fold_vec(uint32_t h, const vec_t *v) {
 }
 
 static uint32_t fold_main_camera(uint32_t h) {
-    const camera_t *mo = typed_main_camera();
+    const camera_t *mo = checked_main_camera();
 
     h = fold_vec(h, mo->pos_before_shake);
     h = fold_vec(h, mo->velocity);
@@ -160,7 +160,7 @@ static void check_fresh_main_camera(const camera_t *mo) {
 
 static void test_reset_world_builds_a_camera(void) {
     reset_world();
-    check_fresh_main_camera(typed_main_camera());
+    check_fresh_main_camera(checked_main_camera());
 }
 
 static void apply_camera_to(p8_fixed_t fy, int want_x, int want_y) {
@@ -204,8 +204,8 @@ static void test_scripted_ticks(void) {
     for (i = 0; i < SCRIPTED_TICKS; i++) {
         update_entities();
         h = fold_main_camera(h);
-        h = fnv(h, (uint32_t)typed_main_camera()->header.state_time);
-        if (must_vec(typed_main_camera()->pos_before_shake).y == p8_fixed_from_int(320)) {
+        h = fnv(h, (uint32_t)checked_main_camera()->header.state_time);
+        if (must_vec(checked_main_camera()->pos_before_shake).y == p8_fixed_from_int(320)) {
             bounded++;
         }
         if (i < SCRIPTED_TICKS - 1) {
@@ -227,8 +227,8 @@ static void test_shake_decays(void) {
     const camera_t *mo;
 
     reset_world();
-    mo = typed_main_camera();
-    typed_main_camera()->shake = p8_fixed_from_int(3);
+    mo = checked_main_camera();
+    checked_main_camera()->shake = p8_fixed_from_int(3);
     assert(mo->shake == p8_fixed_from_int(3));
     unscript();
     while (mo->shake != 0) {
@@ -257,11 +257,11 @@ static void test_second_reset_world(void) {
     reset_world();
     assert(main_camera() != first);
     assert(!entity_list_listed(live_entities(), first));
-    check_fresh_main_camera(typed_main_camera());
+    check_fresh_main_camera(checked_main_camera());
 
     bootstrap_shutdown();
     reset_world();
-    check_fresh_main_camera(typed_main_camera());
+    check_fresh_main_camera(checked_main_camera());
 }
 
 /* Before `reset_world()`, the main camera is the placeholder, not a
@@ -292,13 +292,13 @@ static void test_right_drag_moves_the_camera(void) {
     }
     script(20);
     cart_update60();
-    before = must_vec(typed_main_camera()->pos_before_shake);
+    before = must_vec(checked_main_camera()->pos_before_shake);
     for (i = 1; i < 20; i++) {
         p8_input_step(&input);
         cart_update60();
     }
     unscript();
-    after = must_vec(typed_main_camera()->pos_before_shake);
+    after = must_vec(checked_main_camera()->pos_before_shake);
     assert(after.x != before.x || after.y != before.y);
 }
 
@@ -326,11 +326,11 @@ static void test_burst_shakes(void) {
     assert(!burst_alive());
     (void)burst_new(NULL);
     assert(burst_alive());
-    assert(typed_main_camera()->shake == p8_fixed_from_int(3));
+    assert(checked_main_camera()->shake == p8_fixed_from_int(3));
     for (i = 0; i < GEOHARVEST_WINDOW; i++) {
         update_entities();
     }
-    assert(typed_main_camera()->shake == 0);
+    assert(checked_main_camera()->shake == 0);
 }
 
 /* The galaxy depends on the rnd state, which the tests before it consume: run

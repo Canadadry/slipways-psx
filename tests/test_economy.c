@@ -71,7 +71,7 @@ static economy_t *main_economy_self(void) {
     return main_economy_typed();
 }
 
-static economy_t *typed_main_economy(void) {
+static economy_t *checked_main_economy(void) {
     assert(main_economy_typed() != NULL);
     return main_economy_typed();
 }
@@ -183,7 +183,7 @@ static uint32_t fold_economy(uint32_t h, const economy_t *hy) {
 }
 
 static uint32_t fold_main_economy(uint32_t h) {
-    return fold_economy(h, typed_main_economy());
+    return fold_economy(h, checked_main_economy());
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
@@ -315,22 +315,22 @@ static void test_construction(void) {
     assert(bare->credits == p8_fixed_from_int(100) && bare->year == p8_fixed_from_int(3401));
 
     new_game();
-    assert(typed_main_economy()->invented != NULL && typed_main_economy()->production != NULL && typed_main_economy()->demand != NULL);
-    assert(typed_main_economy()->has_happiness && typed_main_economy()->has_end_status);
+    assert(checked_main_economy()->invented != NULL && checked_main_economy()->production != NULL && checked_main_economy()->demand != NULL);
+    assert(checked_main_economy()->has_happiness && checked_main_economy()->has_end_status);
     h = fold_main_economy(h);
-    first = invented_of(typed_main_economy());
+    first = invented_of(checked_main_economy());
     assert(first != invented_of(bare));
 
     cart_flush_exit_queue();
     new_game();
-    assert(invented_of(typed_main_economy()) != first && invented_of(typed_main_economy())->count == 0);
+    assert(invented_of(checked_main_economy()) != first && invented_of(checked_main_economy())->count == 0);
     h = fold_main_economy(h);
     check("construction", h, CONSTRUCTION_HASH);
 }
 
 static uint32_t fold_year_ticks_year(uint32_t h) {
-    h = fold_fixed_member(h, 1, typed_main_economy()->year_ticks);
-    return fold_fixed_member(h, 1, typed_main_economy()->year);
+    h = fold_fixed_member(h, 1, checked_main_economy()->year_ticks);
+    return fold_fixed_member(h, 1, checked_main_economy()->year);
 }
 
 /* `year_ticks` accumulates; past 12 without "time compression", past 15
@@ -340,28 +340,28 @@ static void test_advance_clock(void) {
     p8_fixed_t yr;
 
     start_game();
-    yr = typed_main_economy()->year;
-    assert(typed_main_economy()->year_ticks == p8_fixed_from_int(1));
+    yr = checked_main_economy()->year;
+    assert(checked_main_economy()->year_ticks == p8_fixed_from_int(1));
 
     economy_advance_clock(main_economy_self(), p8_fixed_from_int(3));
-    assert(typed_main_economy()->year_ticks == p8_fixed_from_int(4) && typed_main_economy()->year == yr);
+    assert(checked_main_economy()->year_ticks == p8_fixed_from_int(4) && checked_main_economy()->year == yr);
     h = fold_year_ticks_year(h);
     economy_advance_clock(main_economy_self(), p8_fixed_from_int(8));
-    assert(typed_main_economy()->year_ticks == p8_fixed_from_int(12) && typed_main_economy()->year == yr);
+    assert(checked_main_economy()->year_ticks == p8_fixed_from_int(12) && checked_main_economy()->year == yr);
     h = fold_year_ticks_year(h);
     economy_advance_clock(main_economy_self(), p8_fixed_from_int(1));
-    assert(typed_main_economy()->year_ticks == p8_fixed_from_int(1));
-    assert(typed_main_economy()->year == p8_fixed_add(yr, p8_fixed_from_int(1)));
+    assert(checked_main_economy()->year_ticks == p8_fixed_from_int(1));
+    assert(checked_main_economy()->year == p8_fixed_add(yr, p8_fixed_from_int(1)));
     h = fold_main_economy(h);
 
-    pointer_list_add(typed_main_economy()->invented, "time compression");
+    pointer_list_add(checked_main_economy()->invented, "time compression");
     economy_advance_clock(main_economy_self(), p8_fixed_from_int(14));
-    assert(typed_main_economy()->year_ticks == p8_fixed_from_int(15));
-    assert(typed_main_economy()->year == p8_fixed_add(yr, p8_fixed_from_int(1)));
+    assert(checked_main_economy()->year_ticks == p8_fixed_from_int(15));
+    assert(checked_main_economy()->year == p8_fixed_add(yr, p8_fixed_from_int(1)));
     h = fold_year_ticks_year(h);
     economy_advance_clock(main_economy_self(), P8_FIXED_LIT(0x00008000, 0.5));
-    assert(typed_main_economy()->year_ticks == P8_FIXED_LIT(0x00008000, 0.5));
-    assert(typed_main_economy()->year == p8_fixed_add(yr, p8_fixed_from_int(2)));
+    assert(checked_main_economy()->year_ticks == P8_FIXED_LIT(0x00008000, 0.5));
+    assert(checked_main_economy()->year == p8_fixed_add(yr, p8_fixed_from_int(2)));
     h = fold_main_economy(h);
 
     economy_advance_clock(NULL, p8_fixed_from_int(20));
@@ -383,17 +383,17 @@ static void test_new_year(void) {
 
     built_world();
     toast_cls = toast_descriptor();
-    nz = typed_main_economy()->credits;
-    ge = typed_main_economy()->income;
-    jk = typed_main_economy()->research_points;
-    yr = typed_main_economy()->year;
+    nz = checked_main_economy()->credits;
+    ge = checked_main_economy()->income;
+    jk = checked_main_economy()->research_points;
+    yr = checked_main_economy()->year;
     h = fold_main_economy(h);
 
     from = live_entities()->count;
     economy_new_year(main_economy_self());
-    assert(typed_main_economy()->credits == p8_fixed_add(nz, ge));
-    assert(typed_main_economy()->research_points > jk);
-    assert(typed_main_economy()->year == p8_fixed_add(yr, p8_fixed_from_int(1)));
+    assert(checked_main_economy()->credits == p8_fixed_add(nz, ge));
+    assert(checked_main_economy()->research_points > jk);
+    assert(checked_main_economy()->year == p8_fixed_add(yr, p8_fixed_from_int(1)));
     h = fold_main_economy(h);
     h = fold_new_entities(h, from, toast_cls);
     assert(live_entities()->count > from);
@@ -408,7 +408,7 @@ static uint32_t spend_step(uint32_t h, economy_t *self, int jt, int want, const 
     int got = economy_spend(self, p8_fixed_from_int(jt));
     assert(got == want);
     h = fnv(h, (uint32_t)got);
-    h = fold_fixed_member(h, 1, typed_main_economy()->credits);
+    h = fold_fixed_member(h, 1, checked_main_economy()->credits);
     return fold_new_entities(h, from, toast_cls);
 }
 
@@ -421,23 +421,23 @@ static void test_spend(void) {
 
     start_game();
     toast_cls = toast_descriptor();
-    assert(typed_main_economy()->credits == p8_fixed_from_int(100));
+    assert(checked_main_economy()->credits == p8_fixed_from_int(100));
 
     from = live_entities()->count;
     h = spend_step(h, main_economy_self(), 101, 0, toast_cls);
-    assert(typed_main_economy()->credits == p8_fixed_from_int(100) && live_entities()->count == from + 1);
+    assert(checked_main_economy()->credits == p8_fixed_from_int(100) && live_entities()->count == from + 1);
     assert(strcmp(((const toast_t *)live_entities()->items[from])->text, "-no money-") == 0);
 
     from = live_entities()->count;
     h = spend_step(h, main_economy_self(), 0, 1, toast_cls);
-    assert(typed_main_economy()->credits == p8_fixed_from_int(100) && live_entities()->count == from);
+    assert(checked_main_economy()->credits == p8_fixed_from_int(100) && live_entities()->count == from);
 
     h = spend_step(h, main_economy_self(), 30, 1, toast_cls);
-    assert(typed_main_economy()->credits == p8_fixed_from_int(70));
+    assert(checked_main_economy()->credits == p8_fixed_from_int(70));
     h = spend_step(h, main_economy_self(), -20, 1, toast_cls);
-    assert(typed_main_economy()->credits == p8_fixed_from_int(90));
+    assert(checked_main_economy()->credits == p8_fixed_from_int(90));
     h = spend_step(h, main_economy_self(), 90, 1, toast_cls);
-    assert(typed_main_economy()->credits == p8_fixed_from_int(0));
+    assert(checked_main_economy()->credits == p8_fixed_from_int(0));
 
     h = spend_step(h, NULL, 5, 0, toast_cls);
     h = spend_step(h, NULL, 0, 1, toast_cls);
@@ -457,8 +457,8 @@ static uint32_t fold_planets_net_income(uint32_t h) {
 
 /* NULL: no end yet. */
 static const char *end_status_string(void) {
-    assert(typed_main_economy()->has_end_status);
-    return typed_main_economy()->end_status;
+    assert(checked_main_economy()->has_end_status);
+    return checked_main_economy()->end_status;
 }
 
 /* The first producing planet: `needs` set and its own `production`. */
@@ -496,8 +496,8 @@ static void test_recompute(void) {
     p8_fixed_t resource;
 
     built_world();
-    production = typed_main_economy()->production;
-    demand = typed_main_economy()->demand;
+    production = checked_main_economy()->production;
+    demand = checked_main_economy()->demand;
     assert(production != NULL && demand != NULL);
     maker = a_maker();
     resource = maker->production->resource;
@@ -510,30 +510,30 @@ static void test_recompute(void) {
     economy_recompute(main_economy_self());
     assert(!resource_map_get(production, p8_fixed_from_int(99), &amount));
     assert(resource_map_get(production, resource, &amount) && amount == made);
-    assert(typed_main_economy()->production == production && typed_main_economy()->demand == demand);
+    assert(checked_main_economy()->production == production && checked_main_economy()->demand == demand);
     assert(end_status_string() == NULL);
     hash = fold_main_economy(hash);
     hash = fold_planets_net_income(hash);
 
-    typed_main_economy()->year = p8_fixed_from_int(3426);
+    checked_main_economy()->year = p8_fixed_from_int(3426);
     economy_recompute(main_economy_self());
     assert(end_status_string() != NULL && strcmp(end_status_string(), "final score") == 0);
     hash = fold_main_economy(hash);
 
-    typed_main_economy()->year = p8_fixed_from_int(3425);
-    typed_main_economy()->credits = p8_fixed_from_int(2);
+    checked_main_economy()->year = p8_fixed_from_int(3425);
+    checked_main_economy()->credits = p8_fixed_from_int(2);
     economy_recompute(main_economy_self());
     hash = fold_main_economy(hash);
     hash = fnv(hash, (uint32_t)(end_status_string() == NULL));
 
     cart_flush_exit_queue();
     new_game();
-    typed_main_economy()->credits = p8_fixed_from_int(2);
+    checked_main_economy()->credits = p8_fixed_from_int(2);
     economy_recompute(main_economy_self());
-    assert(typed_main_economy()->income <= p8_fixed_from_int(0));
+    assert(checked_main_economy()->income <= p8_fixed_from_int(0));
     assert(end_status_string() != NULL && strcmp(end_status_string(), "bankrupt") == 0);
     hash = fold_main_economy(hash);
-    typed_main_economy()->credits = p8_fixed_from_int(3);
+    checked_main_economy()->credits = p8_fixed_from_int(3);
     economy_recompute(main_economy_self());
     assert(end_status_string() == NULL);
     hash = fold_main_economy(hash);
@@ -542,7 +542,7 @@ static void test_recompute(void) {
     hash = fold_main_economy(hash);
     check("recompute", hash, RECOMPUTE_HASH);
 
-    demand = typed_main_economy()->demand;
+    demand = checked_main_economy()->demand;
     need = need_new(game_zone(), &need_amount);
     structure = structure_new(NULL);
     pointer_list_init(&needs, &heap_allocator);
@@ -573,25 +573,25 @@ static void test_invent(void) {
     size_t k;
 
     start_game();
-    typed_main_economy()->research_points = p8_fixed_from_int(500);
+    checked_main_economy()->research_points = p8_fixed_from_int(500);
 
     economy_invent(main_economy_self(), tech(NULL, 10));
-    assert(typed_main_economy()->research_points == p8_fixed_from_int(495));
-    assert(invented_of(typed_main_economy())->count == 0 && typed_main_economy()->era == p8_fixed_from_int(1));
+    assert(checked_main_economy()->research_points == p8_fixed_from_int(495));
+    assert(invented_of(checked_main_economy())->count == 0 && checked_main_economy()->era == p8_fixed_from_int(1));
     h = fold_main_economy(h);
 
     for (k = 0; k < sizeof pxs / sizeof pxs[0]; k++) {
         economy_invent(main_economy_self(), tech(pxs[k], (int)k));
-        assert(invented_of(typed_main_economy())->count == (int)k + 1);
-        h = fnv(h, (uint32_t)typed_main_economy()->era);
-        h = fnv(h, (uint32_t)typed_main_economy()->research_points);
+        assert(invented_of(checked_main_economy())->count == (int)k + 1);
+        h = fnv(h, (uint32_t)checked_main_economy()->era);
+        h = fnv(h, (uint32_t)checked_main_economy()->research_points);
     }
-    assert(typed_main_economy()->era == p8_fixed_from_int(4));
+    assert(checked_main_economy()->era == p8_fixed_from_int(4));
     h = fold_main_economy(h);
 
     economy_invent(main_economy_self(), NULL);
     economy_invent(NULL, tech("t14", 3));
-    assert(invented_of(typed_main_economy())->count == (int)(sizeof pxs / sizeof pxs[0]));
+    assert(invented_of(checked_main_economy())->count == (int)(sizeof pxs / sizeof pxs[0]));
     h = fold_main_economy(h);
     check("invent", h, INVENT_HASH);
 }
@@ -625,8 +625,8 @@ static void test_cheat_on_provisional(void) {
     assert(provisional->has_credits && provisional->credits == p8_fixed_from_int(200));
 
     new_game();
-    assert(typed_main_economy()->research_points == p8_fixed_from_int(0));
-    assert(typed_main_economy()->credits == p8_fixed_from_int(100));
+    assert(checked_main_economy()->research_points == p8_fixed_from_int(0));
+    assert(checked_main_economy()->credits == p8_fixed_from_int(100));
 }
 
 static void must_abort(void (*write)(void *), void *e) {

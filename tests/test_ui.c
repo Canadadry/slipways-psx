@@ -107,13 +107,13 @@ static vec_t vec_at(const vec_t *p) {
     return *p;
 }
 
-static const mouse_t *typed_main_mouse(void) {
+static const mouse_t *checked_main_mouse(void) {
     const mouse_t *je = main_mouse_typed();
     assert(je != NULL);
     return je;
 }
 
-static const camera_t *typed_main_camera(void) {
+static const camera_t *checked_main_camera(void) {
     const camera_t *mo = main_camera_typed();
     assert(mo != NULL);
     return mo;
@@ -175,7 +175,7 @@ static uint32_t screen_hash(void) {
 /* The overlay drawn alone on a cleared screen is exactly the given sprite at
  * the main mouse position. */
 static uint32_t cursor_is(int id) {
-    vec_t at = vec_at(typed_main_mouse()->pos);
+    vec_t at = vec_at(checked_main_mouse()->pos);
     uint32_t drawn;
 
     p8_cls(&mem);
@@ -345,7 +345,7 @@ static void test_fresh(void) {
 
     mouse_at(64, 100, 0);
     ui_update(&mem, main_ui());
-    want = vec_add(vec_at(typed_main_mouse()->pos), vec_at(typed_main_camera()->pos));
+    want = vec_add(vec_at(checked_main_mouse()->pos), vec_at(checked_main_camera()->pos));
     assert(vec_at(ok->mouse_world).x == want.x && vec_at(ok->mouse_world).y == want.y);
     assert(ok->hovered_by_layer != NULL && ok->hovered != NULL);
     assert(ok->previous_hovered == ok->hovered);
@@ -362,7 +362,7 @@ static void test_fresh(void) {
 /* The first planet whose screen position is well inside. */
 static planet_t *planet_on_screen(int *sx, int *sy) {
     const entity_list_t *jo = entities_by_tag("planet");
-    vec_t cam = vec_at(typed_main_camera()->pos);
+    vec_t cam = vec_at(checked_main_camera()->pos);
     int i;
 
     for (i = 0; jo != NULL && i < jo->count; i++) {
@@ -437,7 +437,7 @@ static void test_layers(void) {
     mouse_at(x, y, 0);
     ui_update(&mem, ok);
     qa = ok->mouse_world;
-    ra = typed_main_mouse()->pos;
+    ra = checked_main_mouse()->pos;
     assert(qa != NULL && ra != NULL);
 
     entity_set_state(&planet->header, "known");
@@ -470,13 +470,13 @@ static void test_right(void) {
     mouse_at(70, 90, 2);
     ui_update(&mem, ok);
     assert((void *)ok->right_held == bg);
-    h = fold_vec(h, vec_at(typed_main_camera()->pos));
+    h = fold_vec(h, vec_at(checked_main_camera()->pos));
     h = fnv(h, cursor_is(9));
 
     mouse_at(70, 90, 0);
     ui_update(&mem, ok);
     assert(ok->right_held == NULL && ok->left_held == NULL);
-    h = fold_vec(h, vec_at(typed_main_camera()->pos));
+    h = fold_vec(h, vec_at(checked_main_camera()->pos));
     h = fnv(h, cursor_is(58));
     check("right", h, RIGHT_HASH);
 }
@@ -488,7 +488,7 @@ static int slipways_count(void *planet) {
 
 /* Where the entity is on screen under the main camera. */
 static void screen_of(void *e, int *x, int *y) {
-    vec_t at = vec_sub(vec_at(as_planet(e)->pos), vec_at(typed_main_camera()->pos));
+    vec_t at = vec_sub(vec_at(as_planet(e)->pos), vec_at(checked_main_camera()->pos));
 
     *x = p8_fixed_flr_int(at.x);
     *y = p8_fixed_flr_int(at.y);
