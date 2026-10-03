@@ -11428,10 +11428,10 @@ invariant_sur_tous_les_e2e	invariant_on_all_e2e	tests/test_live_slots.c	identifi
 jouer_jusqu_a	play_until	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@jouer_jusqu_a
 jouer_une_frame	play_one_frame	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@jouer_une_frame
 l_aide_de_hv	help_screen_in_live_entities	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@l_aide_de_hv
-la_prise_posee	placed_grab_arena	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@la_prise_posee
+la_prise_posee	placed_grab	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@la_prise_posee
 la_sonde_tenue	held_probe	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@la_sonde_tenue
 le_bg_de_hv	background_in_live_entities	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@le_bg_de_hv
-le_fo_d_une_planete_hors_ecran_oublie_la_prise_refusee	offscreen_planet_forgets_refused_grab_arena	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@le_fo_d_une_planete_hors_ecran_oublie_la_prise_refusee
+le_fo_d_une_planete_hors_ecran_oublie_la_prise_refusee	offscreen_planet_forgets_refused_grab	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@le_fo_d_une_planete_hors_ecran_oublie_la_prise_refusee
 le_fo_d_une_planete_hors_ecran_oublie_la_sonde_refusee	offscreen_planet_forgets_refused_probe	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@le_fo_d_une_planete_hors_ecran_oublie_la_sonde_refusee
 le_fo_d_une_planete_hors_ecran_oublie_le_slipway_refuse	offscreen_planet_forgets_refused_slipway	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@le_fo_d_une_planete_hors_ecran_oublie_le_slipway_refuse
 le_mz_abandonne	abandoned_wormhole	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@le_mz_abandonne
@@ -11478,7 +11478,7 @@ planete_de_la_premiere_partie	planet_of_first_game	tests/test_live_slots.c	ident
 planete_dont_fo_est	planet_targeted_by	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@planete_dont_fo_est
 pliage_abandonne_meurt_avec_sa_partie	abandoned_wormhole_dies_with_its_game	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@pliage_abandonne_meurt_avec_sa_partie
 pliage_abandonne_se_relit_pendant_le_clic	abandoned_wormhole_rereads_during_click	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@pliage_abandonne_se_relit_pendant_le_clic
-prises_refusees_ne_font_pas_grandir_la_partie	refused_grab_arenas_do_not_grow_game	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@prises_refusees_ne_font_pas_grandir_la_partie
+prises_refusees_ne_font_pas_grandir_la_partie	refused_grabs_do_not_grow_game	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@prises_refusees_ne_font_pas_grandir_la_partie
 rejouer	replay_e2e	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@rejouer
 rejouer_sous_invariant	replay_under_invariant	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@rejouer_sous_invariant
 relever	take_reading	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@relever
@@ -11498,8 +11498,8 @@ un_mz_tenu_ne_fait_pas_grandir_la_partie	held_wormhole_does_not_grow_game	tests/
 un_slipway_pose_reprend_l_arene_du_mz_mort	placed_slipway_reuses_dead_wormhole_arena	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@un_slipway_pose_reprend_l_arene_du_mz_mort
 un_slipway_refuse_traverse_une_nouvelle_partie	refused_slipway_crosses_new_game	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@un_slipway_refuse_traverse_une_nouvelle_partie
 un_slipway_tenu_ne_fait_pas_grandir_la_partie	held_slipway_does_not_grow_game	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@un_slipway_tenu_ne_fait_pas_grandir_la_partie
-une_prise_posee_reprend_l_arene_du_mz_mort	placed_grab_arena_reuses_dead_wormhole_arena	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@une_prise_posee_reprend_l_arene_du_mz_mort
-une_prise_refusee_traverse_une_nouvelle_partie	refused_grab_arena_crosses_new_game	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@une_prise_refusee_traverse_une_nouvelle_partie
+une_prise_posee_reprend_l_arene_du_mz_mort	placed_grab_reuses_dead_wormhole_arena	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@une_prise_posee_reprend_l_arene_du_mz_mort
+une_prise_refusee_traverse_une_nouvelle_partie	refused_grab_crosses_new_game	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@une_prise_refusee_traverse_une_nouvelle_partie
 une_sonde_refusee_traverse_une_nouvelle_partie	refused_probe_crosses_new_game	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@une_sonde_refusee_traverse_une_nouvelle_partie
 valeur	fill_value	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@valeur
 verifier_invariant	check_invariant	tests/test_live_slots.c	identifiant	fonction	renommé	tests/test_live_slots			c:test_live_slots.c@F@verifier_invariant
@@ -11732,7 +11732,7 @@ DUMP_B	DUMP_B	tests/test_live_slots.c	identifiant	macro	conservé	tests/test_liv
 MAX_RELEVES	MAX_READINGS	tests/test_live_slots.c	identifiant	macro	renommé	tests/test_live_slots			macro:tests/test_live_slots.c:MAX_RELEVES
 PLIAGES	WORMHOLES	tests/test_live_slots.c	identifiant	macro	renommé	tests/test_live_slots	mz		macro:tests/test_live_slots.c:PLIAGES
 PLIAGE_ABANDONNE	WORMHOLE_ABANDONED	tests/test_live_slots.c	identifiant	macro	renommé	tests/test_live_slots	mz		macro:tests/test_live_slots.c:PLIAGE_ABANDONNE
-PRISES	GRAB_ARENAS	tests/test_live_slots.c	identifiant	macro	renommé	tests/test_live_slots	prise		macro:tests/test_live_slots.c:PRISES
+PRISES	GRABS	tests/test_live_slots.c	identifiant	macro	renommé	tests/test_live_slots	prise		macro:tests/test_live_slots.c:PRISES
 REMPLISSAGE	FILL	tests/test_live_slots.c	identifiant	macro	renommé	tests/test_live_slots			macro:tests/test_live_slots.c:REMPLISSAGE
 SLIPWAYS	SLIPWAYS	tests/test_live_slots.c	identifiant	macro	conservé	tests/test_live_slots			macro:tests/test_live_slots.c:SLIPWAYS
 SONDES	PROBES	tests/test_live_slots.c	identifiant	macro	renommé	tests/test_live_slots	g_		macro:tests/test_live_slots.c:SONDES
@@ -17019,6 +17019,7 @@ tmp/pico8_frames	tmp/frames_tool	tools/float_grep_exclusions.txt	fichier	binaire
 tmp/pico8_gif	tmp/gif	tools/float_grep_exclusions.txt	fichier	binaire	renommé	tools/float_grep_exclusions		lecteur	fichier:tmp/pico8_gif
 tmp/pico8_minimize	tmp/minimize	tools/float_grep_exclusions.txt	fichier	binaire	renommé	tools/float_grep_exclusions		lecteur	fichier:tmp/pico8_minimize
 tmp/pico8_replay	tmp/replay	tools/frames_ref.sh	fichier	binaire	renommé	tools/frames_ref		lecteur ; garde aussi tmp/pico8_replay pour un commit sans la règle tmp/replay	fichier:tmp/pico8_replay
+tests/fixtures/grab_arenas_refused.json	tests/fixtures/grabs_refused.json	tests/test_live_slots.c	fichier	fixture	renommé	tests/test_live_slots		lecteur	fichier:tests/fixtures/grab_arenas_refused.json
 PICO8_QUARTER_WAVE_H	P8_QUARTER_WAVE_H	tools/gen_quarter_wave.c	chaîne	symbole cité	renommé	tools/gen_quarter_wave		lecteur	chaîne:PICO8_QUARTER_WAVE_H
 pico8_quarter_wave	p8_quarter_wave	tools/gen_quarter_wave.c	chaîne	symbole cité	renommé	tools/gen_quarter_wave		lecteur	chaîne:pico8_quarter_wave
 round_to_fixed	round_to_fixed	tools/gen_quarter_wave.c	identifiant	fonction	conservé	tools/gen_quarter_wave			c:gen_quarter_wave.c@F@round_to_fixed

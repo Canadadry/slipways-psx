@@ -752,14 +752,14 @@ static void trade_rich_mine_releases_trails_on_reload(void) {
     assert(after == 0 && "releasing a slipway gives back its transit dots");
 }
 
-#define GRAB_ARENAS "tests/fixtures/grab_arenas_refused.json"
+#define GRABS "tests/fixtures/grabs_refused.json"
 
-/* GRAB_ARENAS: f0-20 of empty_planet_fade; then 7-frame grabs (press on the
+/* GRABS: f0-20 of empty_planet_fade; then 7-frame grabs (press on the
  * icon at (122,124), drag, release, three frames of waiting): twenty refused
  * over p34 (f21-160), one placed (f161-167), one refused (f168-174); 'restart'
  * and a new game (click at f185); one grab (f189-195). */
-static void refused_grab_arenas_do_not_grow_game(void) {
-    start_e2e(GRAB_ARENAS);
+static void refused_grabs_do_not_grow_game(void) {
+    start_e2e(GRABS);
     play_until(27);
     const size_t a = game_without_registries();
     play_until(160);
@@ -770,7 +770,7 @@ static void refused_grab_arenas_do_not_grow_game(void) {
 
 /* The structure placed at f161-164, the only planet under the planet tag
  * whose identifier starts with an 's'. */
-static const planet_t *placed_grab_arena(void) {
+static const planet_t *placed_grab(void) {
     const entity_list_t *jo = entities_by_tag("planet");
     const planet_t *placed = NULL;
     for (int i = 0; jo != NULL && i < jo->count; i++) {
@@ -785,13 +785,13 @@ static const planet_t *placed_grab_arena(void) {
 
 /* The rebuild after the placement makes the outgoing_routes and
  * incoming_routes lists in the generation, outside the arena. */
-static void placed_grab_arena_reuses_dead_wormhole_arena(void) {
-    start_e2e(GRAB_ARENAS);
+static void placed_grab_reuses_dead_wormhole_arena(void) {
+    start_e2e(GRABS);
     play_until(160);
     const size_t before = game_without_registries();
     play_until(174);
     const size_t after = game_without_registries();
-    const planet_t *placed = placed_grab_arena();
+    const planet_t *placed = placed_grab();
     const size_t lists = planet_list_bytes(placed->outgoing_routes) + planet_list_bytes(placed->incoming_routes);
     printf("  placed grab: game - registries = %lu -> %lu (outgoing_routes/incoming_routes %lu)\n", (unsigned long)before,
            (unsigned long)after, (unsigned long)lists);
@@ -822,9 +822,9 @@ static planet_t *planet_targeted_by(const entity_t *held) {
  * screen before the draw, and its draw returns without clearing targeted_by.
  * Refused at f24, the structure is freed by the f26 flush, and the f28 press
  * reuses its arena: targeted_by must not point at the new structure. */
-static void offscreen_planet_forgets_refused_grab_arena(void) {
+static void offscreen_planet_forgets_refused_grab(void) {
     static vec_t far;
-    start_e2e(GRAB_ARENAS);
+    start_e2e(GRABS);
     play_until(22);
     dispatch_context_set_input(g_input);
     cheat_step(&g_cheat, g_input);
@@ -846,8 +846,8 @@ static void offscreen_planet_forgets_refused_grab_arena(void) {
     assert(p34->targeted_by == NULL && "an off-screen planet's targeted_by points at a refused, recycled grab");
 }
 
-static void refused_grab_arena_crosses_new_game(void) {
-    start_e2e(GRAB_ARENAS);
+static void refused_grab_crosses_new_game(void) {
+    start_e2e(GRABS);
     play_until(195);
 }
 
@@ -1473,10 +1473,10 @@ int main(void) {
     in_child(trade_rich_mine_route_rebuild_does_not_grow_game);
     in_child(trade_rich_mine_kept_route_survives_frame);
     in_child(trade_rich_mine_releases_trails_on_reload);
-    in_child(refused_grab_arenas_do_not_grow_game);
-    in_child(placed_grab_arena_reuses_dead_wormhole_arena);
-    in_child(refused_grab_arena_crosses_new_game);
-    in_child(offscreen_planet_forgets_refused_grab_arena);
+    in_child(refused_grabs_do_not_grow_game);
+    in_child(placed_grab_reuses_dead_wormhole_arena);
+    in_child(refused_grab_crosses_new_game);
+    in_child(offscreen_planet_forgets_refused_grab);
     in_child(held_slipway_does_not_grow_game);
     in_child(refused_slipways_do_not_grow_game);
     in_child(placed_slipway_reuses_dead_wormhole_arena);
