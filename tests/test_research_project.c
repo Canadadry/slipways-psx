@@ -49,7 +49,7 @@
 
 #define PROJECTS_COUNT 34
 #define PROJECTS_NAMED 26
-#define PROJECTS_HASH 0x537BCD0Fu
+#define PROJECTS_HASH 0xA4D742D8u
 #define DEFAULTS_HASH 0x4FE030B1u
 #define FUNCTIONS_HASH 0xA90BEF24u
 #define FUNCTIONS_INVENTED_HASH 0x5F2D2AD4u
@@ -453,7 +453,6 @@ static void test_projects(void) {
         hash = fold_fixed_member(hash, built->has_icon_sprite, built->icon_sprite);
         hash = fold_string_member(hash, built->class_name);
         hash = fold_string_member(hash, built->next_type);
-        hash = fold_fixed_member(hash, built->has_play_sfx, built->play_sfx);
         i_list = built->inputs;
         assert(i_list != NULL);
         hash = fnv(hash, (uint32_t)i_list->count);
@@ -1024,7 +1023,7 @@ static void test_research_project_is_a_struct(void) {
     assert(bare->layout_row == NULL);
     assert(bare->name == NULL && bare->planet_codes == NULL && !bare->has_base_cost && bare->production_key == NULL && !bare->has_output);
     assert(!bare->has_upgrade_tech && !bare->has_byproduct && bare->required_tech == NULL && !bare->has_icon_sprite && bare->class_name == NULL);
-    assert(bare->next_type == NULL && !bare->has_play_sfx);
+    assert(bare->next_type == NULL);
 
     start_game();
     must_abort(build_with_header, NULL);

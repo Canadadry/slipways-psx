@@ -18,7 +18,6 @@
 #include <unistd.h>
 
 #include "p8/assets.h"
-#include "p8/audio.h"
 #include "game/background.h"
 #include "engine/bootstrap.h"
 #include "game/cart.h"
@@ -618,39 +617,6 @@ static void test_stale(void) {
     check("stale", h, STALE_HASH);
 }
 
-/* With a panel up, ui_update hands the left click to one of the
- * ephemerals: the third row of the pause menu runs its `on_click`, which
- * flips the sound effects mute. */
-static void test_click_reaches_a_row_of_ephemerals(void) {
-    ui_t *ok = start_game();
-    void *row;
-    int ih;
-    int x;
-    int y;
-    int hx = -1;
-    int hy = -1;
-
-    call_galaxy_menu_on_click(4);
-    assert(ephemerals_of(ok)->count == 4);
-    row = ephemerals_of(ok)->items[2];
-    for (y = 0; y < 128 && hx < 0; y += 2) {
-        for (x = 0; x < 128 && hx < 0; x += 2) {
-            mouse_at(x, y, 0);
-            ui_update(&memory, ok);
-            if ((void *)ok->hovered == row) {
-                hx = x;
-                hy = y;
-            }
-        }
-    }
-    assert(hx >= 0);
-    ih = p8_sfx_muted();
-    mouse_at(hx, hy, 1);
-    ui_update(&memory, ok);
-    assert(p8_sfx_muted() == !ih);
-    p8_set_sfx_muted(ih);
-}
-
 /* `ui_init()` empties the shared ephemerals. */
 static void test_init_empties_shared_ephemerals(void) {
     static entity_t mark;
@@ -1170,7 +1136,6 @@ int main(void) {
     in_fresh_child(test_left);
     in_fresh_child(test_clear_ephemerals);
     in_fresh_child(test_stale);
-    in_fresh_child(test_click_reaches_a_row_of_ephemerals);
     in_fresh_child(test_init_empties_shared_ephemerals);
     in_fresh_child(test_ui_is_a_struct);
     in_fresh_child(test_ui_held_aborts_on_other_classes);

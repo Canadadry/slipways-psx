@@ -203,8 +203,6 @@ typedef struct {
     int has_cost;
     const char *confirmed_state;
     p8_fixed_t clock_ticks;
-    p8_fixed_t status_sprite;
-    int has_status_sprite;
 } targeting_archetype_t;
 
 typedef struct {
@@ -253,7 +251,6 @@ typedef struct {
     vec_t fixed_pos;
     p8_fixed_t back_color;
     vec_t row_step;
-    p8_fixed_t open_sfx;
     p8_fixed_t clear_ephemerals_after;
     box_t hit_box;
     p8_fixed_t cursor_sprite;

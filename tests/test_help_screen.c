@@ -37,7 +37,7 @@
 #include "engine/vec.h"
 
 
-#define BUILT_HASH 0xF4EFB207u
+#define BUILT_HASH 0x05BC81D1u
 #define LIFE_HASH 0x64B6480Bu
 #define HOVER_HASH 0xB508C2D4u
 
@@ -315,7 +315,6 @@ static void test_built(void) {
     hash = fold_ref_member(hash, &probe->archetype->fixed_pos);
     hash = fold_fixed_member(hash, probe->archetype->back_color);
     hash = fold_ref_member(hash, &probe->archetype->row_step);
-    hash = fold_fixed_member(hash, probe->archetype->open_sfx);
     hash = fold_fixed_member(hash, probe->archetype->clear_ephemerals_after);
     hash = fold_fixed_member(hash, emitter->archetype->spawn_rate);
     hash = fold_ref_member(hash, emitter->trail_colors);

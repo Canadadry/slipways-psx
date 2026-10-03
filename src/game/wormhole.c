@@ -3,7 +3,6 @@
 #include <assert.h>
 #include <string.h>
 
-#include "p8/audio.h"
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
 #include "engine/entity.h"
@@ -37,8 +36,6 @@ void wormhole_construct(wormhole_t *self) {
     if (self == NULL) {
         return;
     }
-
-    p8_play_sfx(p8_fixed_from_int(53));
 
     it = entity_list_all(live_entities());
     while (entity_list_iter_next(&it, &p)) {

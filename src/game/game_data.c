@@ -370,7 +370,7 @@ const wormhole_archetype_t wormhole_archetype = {
     .radius = 0x0,
     .layer = 0x50000,
     .color_ramp = &wormhole_color_ramp_seq,
-    .targeting = {.attach_distance = 0x0, .cost = 0x30000, .has_cost = 1, .confirmed_state = "unfolding", .clock_ticks = 0x10000, .status_sprite = 0x310000, .has_status_sprite = 1},
+    .targeting = {.attach_distance = 0x0, .cost = 0x30000, .has_cost = 1, .confirmed_state = "unfolding", .clock_ticks = 0x10000},
 };
 
 const slipway_archetype_t slipway_archetype = {
@@ -379,11 +379,11 @@ const slipway_archetype_t slipway_archetype = {
     .layer = 0x20000,
     .trail_colors = &slipway_trail_colors_seq,
     .fade_in_step = 0x140000,
-    .targeting = {.attach_distance = 0x106, .cost = 0x0, .has_cost = 0, .confirmed_state = NULL, .clock_ticks = 0x0, .status_sprite = 0x300000, .has_status_sprite = 1},
+    .targeting = {.attach_distance = 0x106, .cost = 0x0, .has_cost = 0, .confirmed_state = NULL, .clock_ticks = 0x0},
 };
 
 const targeting_archetype_t targeting_archetype_none = {
-    .attach_distance = 0x0, .cost = 0x0, .has_cost = 0, .confirmed_state = NULL, .clock_ticks = 0x0, .status_sprite = 0x0, .has_status_sprite = 0};
+    .attach_distance = 0x0, .cost = 0x0, .has_cost = 0, .confirmed_state = NULL, .clock_ticks = 0x0};
 
 const probe_archetype_t probe_archetype = {
     .state = "normal",
@@ -393,7 +393,7 @@ const probe_archetype_t probe_archetype = {
     .has_pos = 0,
     .emitter = {.angle_slices = 0x30000, .base_radius = 0x20000, .speed_factor = 0xf5c, .lifetime = 0x90000, .quarter_turn = 0x10000, .spawn_rate = 0x10000,
                 .trail_colors = &probe_trail_colors_seq, .matrix_xx = 0x1051e, .matrix_xy = -0xd70, .matrix_yx = 0xd70, .matrix_yy = 0x1051e},
-    .targeting = {.attach_distance = 0x666, .cost = 0x0, .has_cost = 1, .confirmed_state = "settled", .clock_ticks = 0x0, .status_sprite = 0x0, .has_status_sprite = 0},
+    .targeting = {.attach_distance = 0x666, .cost = 0x0, .has_cost = 1, .confirmed_state = "settled", .clock_ticks = 0x0},
 };
 
 const probe_archetype_t help_screen_archetype = {
@@ -406,14 +406,13 @@ const probe_archetype_t help_screen_archetype = {
     .fixed_pos = {0x220000, 0x380000},
     .back_color = 0xb0000,
     .row_step = {0x0, 0xb0000},
-    .open_sfx = -0x10000,
     .clear_ephemerals_after = 0x10000,
     .hit_box = {-0x280000, 0x4e0000, 0x280000, 0x620000},
     .cursor_sprite = 0xb0000,
     .rows = &help_screen_rows_row,
     .emitter = {.angle_slices = 0x50000, .base_radius = 0xf0000, .speed_factor = 0x1b6, .lifetime = 0x110000, .quarter_turn = 0x10000, .spawn_rate = 0x50000,
                 .trail_colors = &help_screen_trail_colors_seq, .matrix_xx = 0x1051e, .matrix_xy = -0x1ca, .matrix_yx = 0x1ca, .matrix_yy = 0x1051e},
-    .targeting = {.attach_distance = 0x666, .cost = 0x0, .has_cost = 1, .confirmed_state = "settled", .clock_ticks = 0x0, .status_sprite = 0x0, .has_status_sprite = 0},
+    .targeting = {.attach_distance = 0x666, .cost = 0x0, .has_cost = 1, .confirmed_state = "settled", .clock_ticks = 0x0},
 };
 
 static const char planet_state_text[] = "unknown";
@@ -478,7 +477,7 @@ const planet_archetype_t structure_archetype = {
     .is_structure = 1,
     .sprite = 0xae0000,
     .accepted_resources = &structure_accepted_resources_seq,
-    .targeting = {.attach_distance = 0x666, .cost = 0xf0000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000, .status_sprite = 0x0, .has_status_sprite = 0},
+    .targeting = {.attach_distance = 0x666, .cost = 0xf0000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000},
 };
 
 const planet_archetype_t trading_hub_archetype = {
@@ -505,7 +504,7 @@ const planet_archetype_t trading_hub_archetype = {
     .required_tech = trading_hub_required_tech_text,
     .is_trading_hub = 0x10000,
     .palette_block = 0xf0000,
-    .targeting = {.attach_distance = 0x666, .cost = 0x140000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000, .status_sprite = 0x0, .has_status_sprite = 0},
+    .targeting = {.attach_distance = 0x666, .cost = 0x140000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000},
 };
 
 const planet_archetype_t processor_archetype = {
@@ -529,7 +528,7 @@ const planet_archetype_t processor_archetype = {
     .is_structure = 0,
     .sprite = 0x640000,
     .accepted_resources = &structure_accepted_resources_seq,
-    .targeting = {.attach_distance = 0x666, .cost = 0xf0000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000, .status_sprite = 0x0, .has_status_sprite = 0},
+    .targeting = {.attach_distance = 0x666, .cost = 0xf0000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000},
 };
 
 const planet_archetype_t ascension_archetype = {
@@ -554,7 +553,7 @@ const planet_archetype_t ascension_archetype = {
     .sprite = 0xa60000,
     .accepted_resources = &structure_accepted_resources_seq,
     .required_tech = ascension_required_tech_text,
-    .targeting = {.attach_distance = 0x666, .cost = 0x3c0000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000, .status_sprite = 0x0, .has_status_sprite = 0},
+    .targeting = {.attach_distance = 0x666, .cost = 0x3c0000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000},
     .emitter = {.angle_slices = 0x50000, .base_radius = 0x78000, .speed_factor = 0x1eb8, .lifetime = 0x90000, .quarter_turn = 0x10000, .spawn_rate = 0x8000,
                 .trail_colors = &ascension_trail_colors_seq, .matrix_xx = 0xfae0, .matrix_xy = -0x11ec, .matrix_yx = 0x11ea, .matrix_yy = 0xfae0},
 };
@@ -583,7 +582,7 @@ const planet_archetype_t protostar_archetype = {
     .required_tech = ascension_required_tech_text,
     .spawn_offset = {0x10000, 0x0},
     .class_name = protostar_class_name_text,
-    .targeting = {.attach_distance = 0x666, .cost = 0x3c0000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000, .status_sprite = 0x0, .has_status_sprite = 0},
+    .targeting = {.attach_distance = 0x666, .cost = 0x3c0000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000},
     .emitter = {.angle_slices = 0x80000, .base_radius = 0x20000, .speed_factor = 0xf5c, .lifetime = 0x90000, .quarter_turn = 0x0, .spawn_rate = 0x10000,
                 .trail_colors = &protostar_trail_colors_seq, .matrix_xx = 0x1051e, .matrix_xy = -0xd70, .matrix_yx = 0xd70, .matrix_yy = 0x1051e},
 };
@@ -611,7 +610,7 @@ const planet_archetype_t synthesizer_archetype = {
     .accepted_resources = &structure_accepted_resources_seq,
     .required_tech = synthesizer_required_tech_text,
     .synthesizable_resources = &synthesizer_synthesizable_resources_seq,
-    .targeting = {.attach_distance = 0x666, .cost = 0x280000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000, .status_sprite = 0x0, .has_status_sprite = 0},
+    .targeting = {.attach_distance = 0x666, .cost = 0x280000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000},
     .emitter = {.angle_slices = 0x50000, .base_radius = 0x50000, .speed_factor = 0x1eb8, .lifetime = 0x90000, .quarter_turn = 0x10000, .spawn_rate = 0x4ccc,
                 .trail_colors = &synthesizer_trail_colors_seq, .matrix_xx = 0xfae0, .matrix_xy = -0x11ec, .matrix_yx = 0x11ea, .matrix_yy = 0xfae0},
 };
@@ -662,7 +661,7 @@ const planet_archetype_t slipgate_archetype = {
     .accepted_resources = &structure_accepted_resources_seq,
     .required_tech = slipgate_required_tech_text,
     .link_sprites = &slipgate_link_sprites_seq,
-    .targeting = {.attach_distance = 0x28e, .cost = 0xa0000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x10000, .status_sprite = 0x0, .has_status_sprite = 0},
+    .targeting = {.attach_distance = 0x28e, .cost = 0xa0000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x10000},
 };
 
 const planet_archetype_t infraspace_gate_archetype = {
@@ -689,7 +688,7 @@ const planet_archetype_t infraspace_gate_archetype = {
     .required_tech = infraspace_gate_required_tech_text,
     .link_sprites = &infraspace_gate_link_sprites_seq,
     .infraspace = 0x10000,
-    .targeting = {.attach_distance = 0x28e, .cost = 0x190000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x10000, .status_sprite = 0x0, .has_status_sprite = 0},
+    .targeting = {.attach_distance = 0x28e, .cost = 0x190000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x10000},
 };
 
 const kind_record_t structure_kind_record = {NULL, 1, 0xae0000, structure_state_text, 1, 0xf0000};

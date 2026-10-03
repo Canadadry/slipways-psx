@@ -12,7 +12,6 @@
 #include "engine/geom.h"
 #include "p8/gfx.h"
 #include "game/hud.h"
-#include "p8/audio.h"
 #include "engine/entity.h"
 #include "game/particle.h"
 #include "game/planet.h"
@@ -298,12 +297,9 @@ int targeting_confirm(entity_t *self) {
 
         economy_advance_clock(main_economy_typed(), targeting->archetype->clock_ticks);
 
-        p8_play_sfx(targeting->archetype->has_status_sprite ? targeting->archetype->status_sprite : p8_fixed_from_int(54));
-
         return 1;
     }
 
-    p8_play_sfx(p8_fixed_from_int(57));
     probe_host_raise_is_dead(self);
     return 0;
 }

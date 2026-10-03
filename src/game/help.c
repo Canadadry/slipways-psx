@@ -61,8 +61,6 @@ void help_screen_construct(probe_t *self) {
         bs[i].has_on_click = 1;
         bs[i].on_click = help_start_game_field_value();
     }
-    frame.has_open_sfx = 1;
-    frame.open_sfx = self->archetype->open_sfx;
     frame.fixed_pos = &self->archetype->fixed_pos;
     frame.clear_ephemerals_after = 1;
     frame.has_back_color = 1;

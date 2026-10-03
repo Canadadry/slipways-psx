@@ -51,8 +51,6 @@ typedef struct {
     int has_icon_sprite; /* 0: absent, and then never read */
     const char *class_name;
     const char *next_type;
-    p8_fixed_t play_sfx;
-    int has_play_sfx; /* 0: absent, and then never read */
     const data_row_t *layout_row;
     data_row_t layout_row_own;
     data_item_t layout_row_own_items[3];
@@ -85,7 +83,7 @@ void research_project_assert(const research_project_t *self);
 
 /* The keys of research_project_new(), read, not kept: a record of
  * `project_records_table`, never a header (NULL: no position, nor
- * `icon_sprite`, `class_name`, `next_type`, `play_sfx`), and the
+ * `icon_sprite`, `class_name`, `next_type`), and the
  * `required_tech` category (NULL: none). Their strings are borrowed. */
 typedef struct {
     const project_records_entry_t *record;

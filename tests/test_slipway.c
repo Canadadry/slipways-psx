@@ -448,7 +448,6 @@ static void check_fresh_slipway(const void *e, const void *qu) {
     assert(jc->header.state_time == 0);
     assert(jc->layer == p8_fixed_from_int(2));
     assert(jc->targeting->archetype->clock_ticks == 0);
-    assert(jc->targeting->archetype->status_sprite == p8_fixed_from_int(48) && jc->targeting->archetype->has_status_sprite == 1);
     printf("[attach_distance] 0x%08X\n", (unsigned)jc->targeting->archetype->attach_distance);
     assert(jc->targeting->archetype->attach_distance == (p8_fixed_t)ATTACH_DISTANCE_BITS);
     assert(jc->fade_in_step == p8_fixed_from_int(20));

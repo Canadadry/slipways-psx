@@ -2,7 +2,6 @@
 
 #include <string.h>
 
-#include "p8/audio.h"
 #include "engine/dispatch_context.h"
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
@@ -292,7 +291,6 @@ down_t button_left_press(button_t *self) {
     down_t out = {1, NULL};
 
     if (has_on_click) {
-        p8_play_sfx(p8_fixed_from_int(60));
         self->on_click(self);
     }
 

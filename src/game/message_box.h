@@ -131,8 +131,6 @@ void toast_draw(const p8_graphics_t *gfx, p8_memory_t *mem, const toast_t *self,
  * call and none of it is kept. */
 typedef struct {
     const char *description;
-    int has_open_sfx;
-    p8_fixed_t open_sfx;
     const vec_t *fixed_pos;
     int clear_ephemerals_after;
     int has_back_color;

@@ -3,14 +3,11 @@
 #include <assert.h>
 #include <string.h>
 
-#include "p8/audio.h"
 #include "game/main_economy.h"
 #include "engine/entity_class.h"
-#include "engine/dispatch_context.h"
 #include "game/economy.h"
 #include "p8/fixed.h"
 #include "game/game_data.h"
-#include "p8/input.h"
 #include "game/layout.h"
 #include "game/message_box.h"
 #include "game/draw_functions.h"
@@ -279,22 +276,14 @@ static void galaxy_menu_button3_on_click_method(button_t *self) {
     (void)built;
 }
 
-/* GAP-10 */
+/* Must stay non-NULL: ui_button draws a button without on_click in color 5
+ * instead of 12/13, which would move pixels of the pause menu. */
 static void pause_menu_row2_on_click_method(button_t *self) {
-    int stat_val;
-    p8_fixed_t s;
     (void)self;
-    stat_val = p8_stat(dispatch_context_input(), 20);
-    s = p8_fixed_sgn(p8_fixed_from_int(stat_val));
-    p8_music(-p8_fixed_flr_int(s));
 }
 
-/* GAP-10 */
-/* The mute state is the real global of p8/audio.c, which p8_play_sfx() reads;
- * a private copy here would leave that mute check on the old value. */
 static void pause_menu_row3_on_click_method(button_t *self) {
     (void)self;
-    p8_set_sfx_muted(!p8_sfx_muted());
 }
 
 static void pause_menu_row4_on_click_method(button_t *self) {
@@ -400,6 +389,4 @@ void menu_shutdown(void) {
     g_pause_menu_open_box.row_step = NULL;
     g_pause_menu_open_box.back_color = 0;
     g_pause_menu_open_box.has_back_color = 0;
-    /* The mute state is deliberately not reset here: it belongs to p8/audio.c,
-     * and rebuilding this module's tables must not move it. */
 }

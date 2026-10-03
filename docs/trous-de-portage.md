@@ -98,21 +98,6 @@ couleur absente (en Lua, écrire nil effacerait le champ). Fixé par
 
 Fichier : `src/game/message_box.c`.
 
-## GAP-10 — L'audio est hors périmètre
-
-Lua : `sfx()`, `music()`, `ih`, `rn()`.
-
-`p8_sfx` et `p8_music` sont des fonctions vides. Ce n'est pas un report :
-le port n'aura pas de son.
-
-Le reste de la chaîne, lui, fonctionne : le bouton « toggle sfx » du menu
-pause (`pause_menu_row3_on_click_method`) bascule bien le drapeau de
-sourdine (`p8_set_sfx_muted`, `p8_sfx_muted`), et `p8_play_sfx` le lit
-avant de décider d'appeler `p8_sfx`. Seul l'appel final est inerte — donc
-les deux boutons audio du menu pause répondent au clic sans rien produire.
-
-Fichiers : `src/p8/audio.c`, `src/game/menu.c`.
-
 ## GAP-12 — Le premier anneau du trou de ver est noir au lieu de garder la plume
 
 Lua : `mz:kj`, `self.kk[flr(sr/self.oi*8)]`, `kk`, `kk[0]`, `self.t`, `dt`.

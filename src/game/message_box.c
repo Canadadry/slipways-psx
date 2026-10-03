@@ -4,7 +4,6 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "p8/audio.h"
 #include "engine/dispatch_context.h"
 #include "p8/fixed.h"
 #include "game/hud.h"
@@ -338,7 +337,6 @@ void message_box_open_box(const open_box_frame_t *frame, const button_keys_t *bu
     open_box_ctx_t step_context;
     entity_list_t *ephemerals;
     ui_t *dispatcher;
-    p8_fixed_t play_sfx_arg;
     button_keys_t description_row = {0};
     layout_row_keys_t description_layout_row = {0};
     int has_description;
@@ -357,13 +355,6 @@ void message_box_open_box(const open_box_frame_t *frame, const button_keys_t *bu
         description_layout_row.color = p8_fixed_from_int(13);
         description_row.layout_row_keys = &description_layout_row;
     }
-
-    if (frame->has_open_sfx) {
-        play_sfx_arg = frame->open_sfx;
-    } else {
-        play_sfx_arg = p8_fixed_from_int(62);
-    }
-    p8_play_sfx(play_sfx_arg);
 
     if (frame->fixed_pos != NULL) {
         box_pos = *frame->fixed_pos;

@@ -66,8 +66,8 @@ struct data_row {
  * records that follow, every other field zero. Otherwise positions 1..npos
  * are present: name, planet_codes, base_cost, production_key, inputs,
  * output, upgrade_tech, byproduct; upgrade_tech_false marks position 7
- * written false, upgrade_tech then being NULL. icon_sprite and play_sfx are
- * only meaningful under has_icon_sprite and has_play_sfx. */
+ * written false, upgrade_tech then being NULL. icon_sprite is only
+ * meaningful under has_icon_sprite. */
 typedef struct {
     const char *header;
     int npos;
@@ -84,8 +84,6 @@ typedef struct {
     int icon_sprite;
     const char *next_type;
     const char *class_name;
-    int has_play_sfx;
-    int play_sfx;
 } project_records_entry_t;
 
 /* icon_key is position 3 as written, a resource code; icon is that code's

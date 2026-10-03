@@ -4,7 +4,6 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "p8/audio.h"
 #include "engine/collect.h"
 #include "engine/dispatch_context.h"
 #include "game/economy.h"
@@ -559,12 +558,6 @@ void planet_apply_project(planet_t *self, research_project_t *research_project_i
     }
 
     economy_advance_clock(main_economy_typed(), fp);
-
-    if (research_project_instance != NULL && research_project_instance->has_play_sfx) {
-        p8_play_sfx(research_project_instance->play_sfx);
-    } else {
-        p8_play_sfx(p8_fixed_from_int(55));
-    }
 
     planet_restart_shake(result_planet);
 }

@@ -306,7 +306,6 @@ static void check_fresh_wormhole(void *e) {
     assert(mz->targeting->archetype->attach_distance == 0);
     assert(mz->targeting->archetype->confirmed_state != NULL && strcmp(mz->targeting->archetype->confirmed_state, "unfolding") == 0);
     assert(mz->archetype->spawn_snd == p8_fixed_from_int(52));
-    assert(mz->targeting->archetype->status_sprite == p8_fixed_from_int(49) && mz->targeting->archetype->has_status_sprite == 1);
     assert(mz->radius == 0);
     assert(mz->targeting->cost == p8_fixed_from_int(3));
     assert(mz->targeting->archetype->clock_ticks == p8_fixed_from_int(1));

@@ -3,7 +3,6 @@
 #include <assert.h>
 #include <stddef.h>
 
-#include "p8/audio.h"
 #include "game/background.h"
 #include "engine/bootstrap.h"
 #include "game/main_economy.h"
@@ -190,8 +189,6 @@ void cart_init(void) {
     message_box_set_shown(NULL);
 
     (void)help_screen_new();
-    /* GAP-10 */
-    p8_music(0);
 }
 
 void cart_init_method(button_t *self) {

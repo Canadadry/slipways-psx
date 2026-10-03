@@ -53,7 +53,7 @@ static void assert_planet_box(const box_t *kq) {
 static void assert_structure_tail(const planet_t *qh, const planet_archetype_t *archetype) {
     assert(qh->targeting->archetype == &archetype->targeting);
     assert(qh->development_tier == archetype->development_tier && qh->has_development_tier == 1);
-    assert(qh->targeting->has_cost == 1 && qh->targeting->archetype->status_sprite == 0 && qh->targeting->archetype->has_status_sprite == 0);
+    assert(qh->targeting->has_cost == 1);
 }
 
 /* The emitter of an ascension, protostar or synthesizer, and its archetype. */

@@ -150,7 +150,7 @@ static void test_help_screen_defaults_and_ready(void) {
     assert(g_->emitter->speed_factor == g_->archetype->emitter.speed_factor);
     assert(g_->targeting->cost == g_->archetype->targeting.cost);
     assert(g_->targeting->has_cost == g_->archetype->targeting.has_cost);
-    assert(g_->targeting->has_cost == 1 && g_->targeting->archetype->status_sprite == 0 && g_->targeting->archetype->has_status_sprite == 0);
+    assert(g_->targeting->has_cost == 1);
     assert(g_->header.state == g_->archetype->state && strcmp(g_->header.state, "normal") == 0 && g_->header.state_time == 0);
     assert(help_screen_ready());
     help_shutdown();
@@ -166,7 +166,6 @@ static void test_probe_defaults_and_ready(void) {
            g_->targeting->archetype == &probe_archetype.targeting);
     assert(g_->targeting->cost == g_->archetype->targeting.cost);
     assert(g_->targeting->has_cost == g_->archetype->targeting.has_cost && g_->targeting->has_cost == 1);
-    assert(g_->targeting->archetype->status_sprite == 0 && g_->targeting->archetype->has_status_sprite == 0);
     assert(g_->emitter->speed_factor == g_->archetype->emitter.speed_factor);
     assert(g_->emitter->angle_slices == g_->archetype->emitter.angle_slices);
     assert(g_->emitter->trail_colors == g_->archetype->emitter.trail_colors);
