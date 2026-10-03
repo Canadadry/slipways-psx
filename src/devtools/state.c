@@ -3,8 +3,8 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
 
+#include "engine/entity.h"
 #include "engine/entity_geom.h"
 #include "engine/entity_registry.h"
 #include "engine/exit_queue.h"
@@ -69,13 +69,11 @@ static const char *class_of(const entity_t *e) {
     return NULL;
 }
 
-static const char *planet_state(const char *state) {
-    if (state == NULL) return "-";
-    if (strcmp(state, "unknown") == 0) return "unknown";
-    if (strcmp(state, "known") == 0) return "known";
-    if (strcmp(state, "settled") == 0) return "colonized";
-    if (strcmp(state, "vanishing") == 0) return "empty";
-    return state;
+static const char *planet_state(state_t state) {
+    if (state == ENTITY_STATE_NONE) return "-";
+    if (state == ENTITY_STATE_SETTLED) return "colonized";
+    if (state == ENTITY_STATE_VANISHING) return "empty";
+    return entity_state_name(state);
 }
 
 static const char *id_of(const entity_t *e) {
@@ -162,10 +160,10 @@ static void write_planets(FILE *out, vec_t camera) {
     }
 }
 
-/* A slipway still held by the mouse is "placing"; the probe's confirm
- * moves it to "normal" once placed. */
+/* A slipway still held by the mouse is placing; the probe's confirm
+ * moves it to normal once placed. */
 static int slipway_placed(const entity_t *e) {
-    return e->state == NULL || strcmp(e->state, "placing") != 0;
+    return e->state != ENTITY_STATE_PLACING;
 }
 
 static int write_slipways(FILE *out) {
@@ -192,14 +190,13 @@ static void write_structures(FILE *out, vec_t camera) {
     }
 }
 
-/* Planets "settled", labs included: planet_is_colonized() would skip those
+/* Planets settled, labs included: planet_is_colonized() would skip those
  * whose archetype has no is_planet. */
 static int count_colonies(void) {
     const entity_list_t *planets = entities_by_tag(TAG_PLANET);
     int n = 0;
     for (int i = 0; i < count_of(planets); i++) {
-        const char *state = planets->items[i]->state;
-        n += state != NULL && strcmp(state, "settled") == 0;
+        n += planets->items[i]->state == ENTITY_STATE_SETTLED;
     }
     return n;
 }

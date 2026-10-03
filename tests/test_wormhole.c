@@ -18,6 +18,7 @@
 #include "engine/bootstrap.h"
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
+#include "engine/entity.h"
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "game/main_economy.h"
@@ -86,8 +87,8 @@ static int entity_list_listed(const entity_list_t *list, const void *e) {
     return entity_list_rank_in(list, e) >= 0;
 }
 
-static int is_state(const entity_t *ke, const char *want) {
-    return ke->state != NULL && strcmp(ke->state, want) == 0;
+static int is_state(const entity_t *ke, state_t want) {
+    return ke->state == want;
 }
 
 static wormhole_t *as_wormhole(void *e) {
@@ -273,7 +274,7 @@ static void until_state_time(const wormhole_t *mz, int t) {
     }
 }
 
-static planet_t *first_planet_with_state(const char *state) {
+static planet_t *first_planet_with_state(state_t state) {
     const entity_list_t *list = entities_by_tag(TAG_PLANET);
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
@@ -301,10 +302,10 @@ static void check_fresh_wormhole(void *e) {
     static const int want_color_ramp[9] = {7, 7, 6, 13, 5, 1, 1, 1, 0};
     int i;
 
-    assert(is_state(&mz->header, "placing"));
+    assert(is_state(&mz->header, ENTITY_STATE_PLACING));
     assert(mz->header.state_time == 0);
     assert(mz->targeting->archetype->attach_distance == 0);
-    assert(mz->targeting->archetype->confirmed_state != NULL && strcmp(mz->targeting->archetype->confirmed_state, "unfolding") == 0);
+    assert(mz->targeting->archetype->confirmed_state == ENTITY_STATE_UNFOLDING);
     assert(mz->archetype->spawn_snd == p8_fixed_from_int(52));
     assert(mz->radius == 0);
     assert(mz->targeting->cost == p8_fixed_from_int(3));
@@ -548,7 +549,7 @@ static void test_update_placing_ticks(void) {
 }
 
 static uint32_t fold_drop(uint32_t h, const wormhole_t *mz) {
-    h = fold_string(h, mz->header.state);
+    h = fold_string(h, entity_state_name(mz->header.state));
     h = fnv(h, (uint32_t)mz->header.state_time);
     h = fnv(h, is_dead_state(mz));
     return fnv(h, (uint32_t)credits());
@@ -586,7 +587,7 @@ static void test_drop(void) {
     drag(paid, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
     assert(target_kind(paid) == TARGET_FALSE);
     drop(paid);
-    assert(is_state(&paid->header, "unfolding") && paid->header.state_time == 0 && is_dead_state(paid) == 0);
+    assert(is_state(&paid->header, ENTITY_STATE_UNFOLDING) && paid->header.state_time == 0 && is_dead_state(paid) == 0);
     assert(credits() == p8_fixed_sub(before, p8_fixed_from_int(3)));
     hash = fold_drop(hash, paid);
 
@@ -595,7 +596,7 @@ static void test_drop(void) {
     drag(broke, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
     main_economy_typed()->credits = p8_fixed_from_int(2);
     drop(broke);
-    assert(is_state(&broke->header, "placing") && is_dead_state(broke) == 2);
+    assert(is_state(&broke->header, ENTITY_STATE_PLACING) && is_dead_state(broke) == 2);
     assert(credits() == p8_fixed_from_int(2));
     hash = fold_drop(hash, broke);
     check("drop", hash, DROP_HASH);
@@ -606,7 +607,7 @@ static int unknown_count(void) {
     int n = 0;
     int i;
     for (i = 0; jo != NULL && i < jo->count; i++) {
-        if (is_state(&as_planet(jo->items[i])->header, "unknown")) {
+        if (is_state(&as_planet(jo->items[i])->header, ENTITY_STATE_UNKNOWN)) {
             n++;
         }
     }
@@ -617,7 +618,7 @@ static int unknown_count(void) {
  * around it until a state time past 25 takes it out of the live entities. */
 static wormhole_t *paid_wormhole_on_unknown(void) {
     wormhole_t *mz = build_wormhole();
-    planet_t *unknown = first_planet_with_state("unknown");
+    planet_t *unknown = first_planet_with_state(ENTITY_STATE_UNKNOWN);
     vec_t *p = malloc(sizeof *p);
 
     assert(unknown != NULL);
@@ -625,7 +626,7 @@ static wormhole_t *paid_wormhole_on_unknown(void) {
     drag(mz, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
     assert(target_kind(mz) == TARGET_FALSE);
     drop(mz);
-    assert(is_state(&mz->header, "unfolding"));
+    assert(is_state(&mz->header, ENTITY_STATE_UNFOLDING));
     assert(unknown->map_pos != NULL);
     *p = *unknown->map_pos;
     mz->map_pos = p;
@@ -733,7 +734,7 @@ static void test_accept_drop(void) {
 
     world();
     mz = build_wormhole();
-    ly = first_planet_with_state("settled");
+    ly = first_planet_with_state(ENTITY_STATE_SETTLED);
     assert(ly != NULL);
     r = planet_accept_drop(ly, &mz->header);
     assert(r.stop && r.held == NULL);

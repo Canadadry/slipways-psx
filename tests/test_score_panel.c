@@ -372,7 +372,7 @@ static void test_built(void) {
     assert(ju->layer == p8_fixed_from_int(10));
     assert(ju->archetype == &score_panel_archetype && ju->layer == ju->archetype->layer);
     assert(ju->last_box == NULL);
-    assert(ju->header.state != NULL && strcmp(ju->header.state, "normal") == 0);
+    assert(ju->header.state == ENTITY_STATE_NORMAL);
     hash = fold_fixed_member(hash, ju->header.state_time);
     assert(!ju->has_is_shown && !ju->has_curtain);
     assert(class_of(ju)->draw != NULL && class_of(ju)->states[ENTITY_STATE_NORMAL] != NULL && class_of(ju)->refresh != NULL &&

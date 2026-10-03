@@ -7,7 +7,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "p8/assets.h"
 #include "engine/bootstrap.h"
@@ -257,7 +256,7 @@ static void test_defaults_match_the_parsed_spec(void) {
     assert(veil->archetype == &modal_backdrop_archetype);
     assert(veil->archetype->layer == p8_fixed_from_int(14));
     assert(veil->archetype->hit_test == p8_fixed_from_int(1));
-    assert(veil->header.state != NULL && strcmp(veil->header.state, "normal") == 0);
+    assert(veil->header.state == ENTITY_STATE_NORMAL);
     assert(modal_backdrop_ready());
     modal_backdrop_shutdown();
     assert(!modal_backdrop_ready());

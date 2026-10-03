@@ -21,17 +21,17 @@ const char *const period_names_table[PERIOD_NAMES_COUNT] = {"JAN", "FEB", "MAR",
     "OCT", "NOV", "DEC", "UND", "DUO", "TER"};
 
 const planet_types_entry_t planet_types_table[PLANET_TYPES_COUNT] = {
-    {"vanishing", 45, 0x0, NULL, "vanishing"},
-    {"e", 160, 0x48000, "earth-like", NULL},
-    {"f", 128, 0x60000, "forgeworld", NULL},
-    {"m", 134, 0x40000, "mineral", NULL},
-    {"o", 130, 0x30000, "ocean", NULL},
-    {"r", 140, 0x28000, "remnant", NULL},
-    {"x", 162, 0x30000, "xeno", NULL},
-    {"j", 136, 0x20000, "jungle", NULL},
-    {"i", 138, 0x20000, "iceball", NULL},
-    {"s", 142, 0x20000, "barren", NULL},
-    {"g", 96, 0x40000, "gas giant", NULL},
+    {"vanishing", 45, 0x0, NULL, ENTITY_STATE_VANISHING},
+    {"e", 160, 0x48000, "earth-like", ENTITY_STATE_NONE},
+    {"f", 128, 0x60000, "forgeworld", ENTITY_STATE_NONE},
+    {"m", 134, 0x40000, "mineral", ENTITY_STATE_NONE},
+    {"o", 130, 0x30000, "ocean", ENTITY_STATE_NONE},
+    {"r", 140, 0x28000, "remnant", ENTITY_STATE_NONE},
+    {"x", 162, 0x30000, "xeno", ENTITY_STATE_NONE},
+    {"j", 136, 0x20000, "jungle", ENTITY_STATE_NONE},
+    {"i", 138, 0x20000, "iceball", ENTITY_STATE_NONE},
+    {"s", 142, 0x20000, "barren", ENTITY_STATE_NONE},
+    {"g", 96, 0x40000, "gas giant", ENTITY_STATE_NONE},
 };
 
 static const data_item_t galaxy_menu_1_layout_row_1_items[] = {{.number = 15}, {.number = 7}};
@@ -284,7 +284,7 @@ const data_row_t score_panel_readouts_row = {.count = 7, .items = score_panel_re
 const char wormhole_too_far_target_status_text[] = "-too far-";
 
 const background_archetype_t background_archetype = {
-    .state = "normal",
+    .state = ENTITY_STATE_NORMAL,
     .state_time = 0x0,
     .layer = 0x10000,
     .hit_test = 0x10000,
@@ -292,7 +292,7 @@ const background_archetype_t background_archetype = {
 };
 
 const ui_archetype_t ui_archetype = {
-    .state = "normal",
+    .state = ENTITY_STATE_NORMAL,
     .state_time = 0x0,
     .cursor_sprite = 0x3a0000,
     .layer = 0xf0000,
@@ -300,20 +300,20 @@ const ui_archetype_t ui_archetype = {
 };
 
 const button_archetype_t button_archetype = {
-    .state = "normal",
+    .state = ENTITY_STATE_NORMAL,
     .state_time = 0x0,
     .layer = 0xb0000,
 };
 
 const modal_backdrop_archetype_t modal_backdrop_archetype = {
-    .state = "normal",
+    .state = ENTITY_STATE_NORMAL,
     .state_time = 0x0,
     .layer = 0xe0000,
     .hit_test = 0x10000,
 };
 
 const camera_archetype_t camera_archetype = {
-    .state = "normal",
+    .state = ENTITY_STATE_NORMAL,
     .state_time = 0x0,
     .velocity = {0x0, 0x0},
     .shake = 0x0,
@@ -323,19 +323,19 @@ const camera_archetype_t camera_archetype = {
 };
 
 const mouse_archetype_t mouse_archetype = {
-    .state = "normal",
+    .state = ENTITY_STATE_NORMAL,
     .state_time = 0x0,
 };
 
 const message_box_archetype_t message_box_archetype = {
-    .state = "normal",
+    .state = ENTITY_STATE_NORMAL,
     .state_time = 0x0,
     .layer = 0xe0000,
     .duration_scale = 0x50000,
 };
 
 const toast_archetype_t toast_archetype = {
-    .state = "normal",
+    .state = ENTITY_STATE_NORMAL,
     .state_time = 0x0,
     .layer = 0x90000,
     .fade = 0x0,
@@ -347,7 +347,7 @@ const research_project_archetype_t research_project_archetype = {
 };
 
 const structure_icon_archetype_t structure_icon_archetype = {
-    .state = "normal",
+    .state = ENTITY_STATE_NORMAL,
     .state_time = 0x0,
     .hit_box = {0x0, 0x0, 0x90000, 0x80000},
     .layer = 0xc0000,
@@ -356,7 +356,7 @@ const structure_icon_archetype_t structure_icon_archetype = {
 };
 
 const score_panel_archetype_t score_panel_archetype = {
-    .state = "normal",
+    .state = ENTITY_STATE_NORMAL,
     .state_time = 0x0,
     .layer = 0xa0000,
     .countdown_rows = &score_panel_countdown_rows_row,
@@ -364,40 +364,40 @@ const score_panel_archetype_t score_panel_archetype = {
 };
 
 const wormhole_archetype_t wormhole_archetype = {
-    .state = "placing",
+    .state = ENTITY_STATE_PLACING,
     .state_time = 0x0,
     .spawn_snd = 0x340000,
     .radius = 0x0,
     .layer = 0x50000,
     .color_ramp = &wormhole_color_ramp_seq,
-    .targeting = {.attach_distance = 0x0, .cost = 0x30000, .has_cost = 1, .confirmed_state = "unfolding", .clock_ticks = 0x10000},
+    .targeting = {.attach_distance = 0x0, .cost = 0x30000, .has_cost = 1, .confirmed_state = ENTITY_STATE_UNFOLDING, .clock_ticks = 0x10000},
 };
 
 const slipway_archetype_t slipway_archetype = {
-    .state = "placing",
+    .state = ENTITY_STATE_PLACING,
     .state_time = 0x0,
     .layer = 0x20000,
     .trail_colors = &slipway_trail_colors_seq,
     .fade_in_step = 0x140000,
-    .targeting = {.attach_distance = 0x106, .cost = 0x0, .has_cost = 0, .confirmed_state = NULL, .clock_ticks = 0x0},
+    .targeting = {.attach_distance = 0x106, .cost = 0x0, .has_cost = 0, .confirmed_state = ENTITY_STATE_NONE, .clock_ticks = 0x0},
 };
 
 const targeting_archetype_t targeting_archetype_none = {
-    .attach_distance = 0x0, .cost = 0x0, .has_cost = 0, .confirmed_state = NULL, .clock_ticks = 0x0};
+    .attach_distance = 0x0, .cost = 0x0, .has_cost = 0, .confirmed_state = ENTITY_STATE_NONE, .clock_ticks = 0x0};
 
 const probe_archetype_t probe_archetype = {
-    .state = "normal",
+    .state = ENTITY_STATE_NORMAL,
     .state_time = 0x0,
     .fold_anchor = 0x10000,
     .layer = 0x20000,
     .has_pos = 0,
     .emitter = {.angle_slices = 0x30000, .base_radius = 0x20000, .speed_factor = 0xf5c, .lifetime = 0x90000, .quarter_turn = 0x10000, .spawn_rate = 0x10000,
                 .trail_colors = &probe_trail_colors_seq, .matrix_xx = 0x1051e, .matrix_xy = -0xd70, .matrix_yx = 0xd70, .matrix_yy = 0x1051e},
-    .targeting = {.attach_distance = 0x666, .cost = 0x0, .has_cost = 1, .confirmed_state = "settled", .clock_ticks = 0x0},
+    .targeting = {.attach_distance = 0x666, .cost = 0x0, .has_cost = 1, .confirmed_state = ENTITY_STATE_SETTLED, .clock_ticks = 0x0},
 };
 
 const probe_archetype_t help_screen_archetype = {
-    .state = "normal",
+    .state = ENTITY_STATE_NORMAL,
     .state_time = 0x0,
     .fold_anchor = 0x10000,
     .layer = 0xa0000,
@@ -412,16 +412,12 @@ const probe_archetype_t help_screen_archetype = {
     .rows = &help_screen_rows_row,
     .emitter = {.angle_slices = 0x50000, .base_radius = 0xf0000, .speed_factor = 0x1b6, .lifetime = 0x110000, .quarter_turn = 0x10000, .spawn_rate = 0x50000,
                 .trail_colors = &help_screen_trail_colors_seq, .matrix_xx = 0x1051e, .matrix_xy = -0x1ca, .matrix_yx = 0x1ca, .matrix_yy = 0x1051e},
-    .targeting = {.attach_distance = 0x666, .cost = 0x0, .has_cost = 1, .confirmed_state = "settled", .clock_ticks = 0x0},
+    .targeting = {.attach_distance = 0x666, .cost = 0x0, .has_cost = 1, .confirmed_state = ENTITY_STATE_SETTLED, .clock_ticks = 0x0},
 };
 
-static const char planet_state_text[] = "unknown";
-static const char structure_state_text[] = "placing";
-static const char structure_confirmed_state_text[] = "settled";
 static const char trading_hub_required_tech_text[] = "trade league";
 static const char ascension_required_tech_text[] = "ascension";
 static const char protostar_class_name_text[] = "protostar";
-static const char protostar_state_text[] = "settled";
 static const char burst_class_name_text[] = "burst";
 static const char slipgate_required_tech_text[] = "slipgates";
 static const char infraspace_gate_required_tech_text[] = "infraspace";
@@ -439,7 +435,7 @@ const burst_construct_keys_t protostar_burst_construct_keys = {
 };
 
 const planet_archetype_t planet_archetype = {
-    .state = planet_state_text,
+    .state = ENTITY_STATE_UNKNOWN,
     .state_time = 0x0,
     .is_planet = 1,
     .trade_multiplier = 0x10000,
@@ -457,7 +453,7 @@ const planet_archetype_t planet_archetype = {
 };
 
 const planet_archetype_t structure_archetype = {
-    .state = structure_state_text,
+    .state = ENTITY_STATE_PLACING,
     .state_time = 0x0,
     .is_planet = 0,
     .trade_multiplier = 0x10000,
@@ -477,11 +473,11 @@ const planet_archetype_t structure_archetype = {
     .is_structure = 1,
     .sprite = 0xae0000,
     .accepted_resources = &structure_accepted_resources_seq,
-    .targeting = {.attach_distance = 0x666, .cost = 0xf0000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000},
+    .targeting = {.attach_distance = 0x666, .cost = 0xf0000, .has_cost = 1, .confirmed_state = ENTITY_STATE_SETTLED, .clock_ticks = 0x20000},
 };
 
 const planet_archetype_t trading_hub_archetype = {
-    .state = structure_state_text,
+    .state = ENTITY_STATE_PLACING,
     .state_time = 0x0,
     .is_planet = 0,
     .trade_multiplier = 0x10000,
@@ -504,11 +500,11 @@ const planet_archetype_t trading_hub_archetype = {
     .required_tech = trading_hub_required_tech_text,
     .is_trading_hub = 0x10000,
     .palette_block = 0xf0000,
-    .targeting = {.attach_distance = 0x666, .cost = 0x140000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000},
+    .targeting = {.attach_distance = 0x666, .cost = 0x140000, .has_cost = 1, .confirmed_state = ENTITY_STATE_SETTLED, .clock_ticks = 0x20000},
 };
 
 const planet_archetype_t processor_archetype = {
-    .state = structure_state_text,
+    .state = ENTITY_STATE_PLACING,
     .state_time = 0x0,
     .is_planet = 0,
     .trade_multiplier = 0x8000,
@@ -528,11 +524,11 @@ const planet_archetype_t processor_archetype = {
     .is_structure = 0,
     .sprite = 0x640000,
     .accepted_resources = &structure_accepted_resources_seq,
-    .targeting = {.attach_distance = 0x666, .cost = 0xf0000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000},
+    .targeting = {.attach_distance = 0x666, .cost = 0xf0000, .has_cost = 1, .confirmed_state = ENTITY_STATE_SETTLED, .clock_ticks = 0x20000},
 };
 
 const planet_archetype_t ascension_archetype = {
-    .state = structure_state_text,
+    .state = ENTITY_STATE_PLACING,
     .state_time = 0x0,
     .is_planet = 0,
     .trade_multiplier = 0x10000,
@@ -553,13 +549,13 @@ const planet_archetype_t ascension_archetype = {
     .sprite = 0xa60000,
     .accepted_resources = &structure_accepted_resources_seq,
     .required_tech = ascension_required_tech_text,
-    .targeting = {.attach_distance = 0x666, .cost = 0x3c0000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000},
+    .targeting = {.attach_distance = 0x666, .cost = 0x3c0000, .has_cost = 1, .confirmed_state = ENTITY_STATE_SETTLED, .clock_ticks = 0x20000},
     .emitter = {.angle_slices = 0x50000, .base_radius = 0x78000, .speed_factor = 0x1eb8, .lifetime = 0x90000, .quarter_turn = 0x10000, .spawn_rate = 0x8000,
                 .trail_colors = &ascension_trail_colors_seq, .matrix_xx = 0xfae0, .matrix_xy = -0x11ec, .matrix_yx = 0x11ea, .matrix_yy = 0xfae0},
 };
 
 const planet_archetype_t protostar_archetype = {
-    .state = protostar_state_text,
+    .state = ENTITY_STATE_SETTLED,
     .state_time = 0x0,
     .is_planet = 0,
     .trade_multiplier = 0x10000,
@@ -582,13 +578,13 @@ const planet_archetype_t protostar_archetype = {
     .required_tech = ascension_required_tech_text,
     .spawn_offset = {0x10000, 0x0},
     .class_name = protostar_class_name_text,
-    .targeting = {.attach_distance = 0x666, .cost = 0x3c0000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000},
+    .targeting = {.attach_distance = 0x666, .cost = 0x3c0000, .has_cost = 1, .confirmed_state = ENTITY_STATE_SETTLED, .clock_ticks = 0x20000},
     .emitter = {.angle_slices = 0x80000, .base_radius = 0x20000, .speed_factor = 0xf5c, .lifetime = 0x90000, .quarter_turn = 0x0, .spawn_rate = 0x10000,
                 .trail_colors = &protostar_trail_colors_seq, .matrix_xx = 0x1051e, .matrix_xy = -0xd70, .matrix_yx = 0xd70, .matrix_yy = 0x1051e},
 };
 
 const planet_archetype_t synthesizer_archetype = {
-    .state = structure_state_text,
+    .state = ENTITY_STATE_PLACING,
     .state_time = 0x0,
     .is_planet = 0,
     .trade_multiplier = 0x10000,
@@ -610,13 +606,13 @@ const planet_archetype_t synthesizer_archetype = {
     .accepted_resources = &structure_accepted_resources_seq,
     .required_tech = synthesizer_required_tech_text,
     .synthesizable_resources = &synthesizer_synthesizable_resources_seq,
-    .targeting = {.attach_distance = 0x666, .cost = 0x280000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x20000},
+    .targeting = {.attach_distance = 0x666, .cost = 0x280000, .has_cost = 1, .confirmed_state = ENTITY_STATE_SETTLED, .clock_ticks = 0x20000},
     .emitter = {.angle_slices = 0x50000, .base_radius = 0x50000, .speed_factor = 0x1eb8, .lifetime = 0x90000, .quarter_turn = 0x10000, .spawn_rate = 0x4ccc,
                 .trail_colors = &synthesizer_trail_colors_seq, .matrix_xx = 0xfae0, .matrix_xy = -0x11ec, .matrix_yx = 0x11ea, .matrix_yy = 0xfae0},
 };
 
 const planet_archetype_t burst_archetype = {
-    .state = planet_state_text,
+    .state = ENTITY_STATE_UNKNOWN,
     .state_time = 0x0,
     .is_planet = 0,
     .trade_multiplier = 0x10000,
@@ -639,7 +635,7 @@ const planet_archetype_t burst_archetype = {
 };
 
 const planet_archetype_t slipgate_archetype = {
-    .state = structure_state_text,
+    .state = ENTITY_STATE_PLACING,
     .state_time = 0x0,
     .is_planet = 0,
     .trade_multiplier = 0x10000,
@@ -661,11 +657,11 @@ const planet_archetype_t slipgate_archetype = {
     .accepted_resources = &structure_accepted_resources_seq,
     .required_tech = slipgate_required_tech_text,
     .link_sprites = &slipgate_link_sprites_seq,
-    .targeting = {.attach_distance = 0x28e, .cost = 0xa0000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x10000},
+    .targeting = {.attach_distance = 0x28e, .cost = 0xa0000, .has_cost = 1, .confirmed_state = ENTITY_STATE_SETTLED, .clock_ticks = 0x10000},
 };
 
 const planet_archetype_t infraspace_gate_archetype = {
-    .state = structure_state_text,
+    .state = ENTITY_STATE_PLACING,
     .state_time = 0x0,
     .is_planet = 0,
     .trade_multiplier = 0x10000,
@@ -688,18 +684,18 @@ const planet_archetype_t infraspace_gate_archetype = {
     .required_tech = infraspace_gate_required_tech_text,
     .link_sprites = &infraspace_gate_link_sprites_seq,
     .infraspace = 0x10000,
-    .targeting = {.attach_distance = 0x28e, .cost = 0x190000, .has_cost = 1, .confirmed_state = structure_confirmed_state_text, .clock_ticks = 0x10000},
+    .targeting = {.attach_distance = 0x28e, .cost = 0x190000, .has_cost = 1, .confirmed_state = ENTITY_STATE_SETTLED, .clock_ticks = 0x10000},
 };
 
-const kind_record_t structure_kind_record = {NULL, 1, 0xae0000, structure_state_text, 1, 0xf0000};
-const kind_record_t trading_hub_kind_record = {trading_hub_required_tech_text, 1, 0x440000, structure_state_text, 1, 0x140000};
-const kind_record_t processor_kind_record = {NULL, 1, 0x640000, structure_state_text, 1, 0xf0000};
-const kind_record_t ascension_kind_record = {ascension_required_tech_text, 1, 0xa60000, structure_state_text, 1, 0x3c0000};
-const kind_record_t protostar_kind_record = {ascension_required_tech_text, 1, 0x620000, protostar_state_text, 1, 0x3c0000};
-const kind_record_t burst_kind_record = {NULL, 0, 0x0, planet_state_text, 0, 0x0};
-const kind_record_t slipgate_kind_record = {slipgate_required_tech_text, 1, 0xaa0000, structure_state_text, 1, 0xa0000};
-const kind_record_t infraspace_gate_kind_record = {infraspace_gate_required_tech_text, 1, 0x4e0000, structure_state_text, 1, 0x190000};
-const kind_record_t synthesizer_kind_record = {synthesizer_required_tech_text, 1, 0x420000, structure_state_text, 1, 0x280000};
+const kind_record_t structure_kind_record = {NULL, 1, 0xae0000, ENTITY_STATE_PLACING, 1, 0xf0000};
+const kind_record_t trading_hub_kind_record = {trading_hub_required_tech_text, 1, 0x440000, ENTITY_STATE_PLACING, 1, 0x140000};
+const kind_record_t processor_kind_record = {NULL, 1, 0x640000, ENTITY_STATE_PLACING, 1, 0xf0000};
+const kind_record_t ascension_kind_record = {ascension_required_tech_text, 1, 0xa60000, ENTITY_STATE_PLACING, 1, 0x3c0000};
+const kind_record_t protostar_kind_record = {ascension_required_tech_text, 1, 0x620000, ENTITY_STATE_SETTLED, 1, 0x3c0000};
+const kind_record_t burst_kind_record = {NULL, 0, 0x0, ENTITY_STATE_UNKNOWN, 0, 0x0};
+const kind_record_t slipgate_kind_record = {slipgate_required_tech_text, 1, 0xaa0000, ENTITY_STATE_PLACING, 1, 0xa0000};
+const kind_record_t infraspace_gate_kind_record = {infraspace_gate_required_tech_text, 1, 0x4e0000, ENTITY_STATE_PLACING, 1, 0x190000};
+const kind_record_t synthesizer_kind_record = {synthesizer_required_tech_text, 1, 0x420000, ENTITY_STATE_PLACING, 1, 0x280000};
 
 int int_seq_at(const int *seq, int count, int i, int *out) {
     assert(seq != NULL && count >= 0 && "a sequence is an array and its length");

@@ -1,7 +1,6 @@
 #include "game/economy_tiers.h"
 
 #include <assert.h>
-#include <string.h>
 
 #include "engine/entity_registry.h"
 #include "game/game_data.h"
@@ -212,7 +211,7 @@ p8_fixed_t economy_tiers_compute_tier(const entity_t *entity) {
     }
     assert(planet_is_family(entity) && "economy_tiers_compute_tier: the entity is a planet");
     planet = (const planet_t *)entity;
-    if (planet->header.state == NULL || strcmp(planet->header.state, "settled") != 0) {
+    if (planet->header.state != ENTITY_STATE_SETTLED) {
         return p8_fixed_from_int(0);
     }
 

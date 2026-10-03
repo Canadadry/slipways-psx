@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <string.h>
 
 #include "engine/dispatch_context.h"
 #include "p8/fixed.h"
@@ -28,7 +27,7 @@ void wormhole_draw(p8_graphics_t *graphics, p8_memory_t *memory, wormhole_t *sel
     screen_x = p8_fixed_flr_int(screen_pos.x);
     screen_y = p8_fixed_flr_int(screen_pos.y);
 
-    if (self->header.state != NULL && strcmp(self->header.state, "placing") == 0) {
+    if (self->header.state == ENTITY_STATE_PLACING) {
         vec_t cp;
 
         if (self->targeting->target == NULL) {

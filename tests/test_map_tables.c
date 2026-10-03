@@ -147,11 +147,9 @@ static void test_weighted_picker_pools_planet_types_entries_by_their_weight(void
 /* Strings are not interned: no string field of the planet archetypes shares
  * a pointer with another string of the data tables, equal text or not. */
 static void test_planet_tree_strings_are_distinct_objects(void) {
-    const char *const tree[] = {planet_archetype.state, structure_archetype.state, structure_archetype.targeting.confirmed_state, trading_hub_archetype.required_tech,
-        ascension_archetype.required_tech, protostar_archetype.class_name, protostar_archetype.state, burst_archetype.class_name, slipgate_archetype.required_tech,
-        infraspace_gate_archetype.required_tech, synthesizer_archetype.required_tech};
-    const char *const others[] = {background_archetype.state, wormhole_archetype.state, wormhole_archetype.targeting.confirmed_state, slipway_archetype.state,
-        probe_archetype.targeting.confirmed_state, wormhole_too_far_target_status_text};
+    const char *const tree[] = {trading_hub_archetype.required_tech, ascension_archetype.required_tech, protostar_archetype.class_name,
+        burst_archetype.class_name, slipgate_archetype.required_tech, infraspace_gate_archetype.required_tech, synthesizer_archetype.required_tech};
+    const char *const others[] = {wormhole_too_far_target_status_text};
     int n = (int)(sizeof tree / sizeof tree[0]);
     int i;
     int j;

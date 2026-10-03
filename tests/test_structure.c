@@ -22,6 +22,7 @@
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
 #include "game/economy_score.h"
+#include "engine/entity.h"
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "game/main_economy.h"
@@ -280,10 +281,10 @@ static uint32_t fold_lab(uint32_t hash, void *entity) {
     size_t index;
 
     hash = fold_string_member(hash, planet->planet_id);
-    hash = fold_string_member(hash, planet->header.state);
+    hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
     hash = fold_fixed_member(hash, structure->archetype->project_index);
-    hash = fold_string_member(hash, structure->targeting->archetype->confirmed_state);
+    hash = fold_string_member(hash, entity_state_name(structure->targeting->archetype->confirmed_state));
     hash = fold_structure(hash, structure);
     hash = fold_fixed_member(hash, structure->targeting->cost);
     hash = fold_fixed_member(hash, structure->targeting->archetype->clock_ticks);
@@ -301,7 +302,7 @@ static uint32_t fold_lab(uint32_t hash, void *entity) {
      * by the struct's shape, kept so that BUILT_HASH still proves the typed reads. */
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(structure->archetype->name != NULL));
-    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != NULL));
+    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != ENTITY_STATE_NONE));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
@@ -409,7 +410,7 @@ static uint32_t fold_pos_y(uint32_t h, void *e) {
 /* The drag method (targeting_track) at an empty point, in the panel and
  * out of it, then next to a planet; the drop method (targeting_confirm)
  * with and without the credits; update_entities on a laboratory in
- * "settled", which bobs, and on one still in "placing", which does not. */
+ * settled, which bobs, and on one still in placing, which does not. */
 static void test_life(void) {
     uint32_t hash = 2166136261u;
     void *out_lab;
@@ -449,7 +450,7 @@ static void test_life(void) {
     set_credits(3);
     assert(class_of(refused_lab)->drop == targeting_confirm_method);
     hash = targeting_confirm(refused_lab) ? fnv(fnv(hash, 0xB0u), 1u) : fold_ref(hash, NULL);
-    hash = fold_string_member(hash, as_structure(refused_lab)->header.state);
+    hash = fold_string_member(hash, entity_state_name(as_structure(refused_lab)->header.state));
     hash = fold_fixed_member(hash, as_structure(refused_lab)->header.state_time);
     hash = fnv(hash, is_dead_state(as_structure(refused_lab)));
     hash = fnv(hash, (uint32_t)credits());
@@ -461,11 +462,11 @@ static void test_life(void) {
     set_credits(100);
     assert(class_of(in_lab)->drop == targeting_confirm_method);
     hash = targeting_confirm(in_lab) ? fnv(fnv(hash, 0xB0u), 1u) : fold_ref(hash, NULL);
-    hash = fold_string_member(hash, as_structure(in_lab)->header.state);
+    hash = fold_string_member(hash, entity_state_name(as_structure(in_lab)->header.state));
     hash = fold_fixed_member(hash, as_structure(in_lab)->header.state_time);
     hash = fnv(hash, is_dead_state(as_structure(in_lab)));
     hash = fnv(hash, (uint32_t)credits());
-    assert(strcmp(as_structure(in_lab)->header.state, "settled") == 0 && credits() == p8_fixed_from_int(100 - 15));
+    assert(as_structure(in_lab)->header.state == ENTITY_STATE_SETTLED && credits() == p8_fixed_from_int(100 - 15));
     in_y = as_structure(in_lab)->pos->y;
 
     pos_before = as_structure(out_lab)->pos;
@@ -526,7 +527,7 @@ static uint32_t fold_descendant(uint32_t h, void *d) {
     planet_t *nl = class_of(d) == trading_hub_class() ? (planet_t *)d : NULL;
     p8_fixed_t qw = nl != NULL ? nl->palette_block : 0;
 
-    h = fold_string_member(h, qh->targeting->archetype->confirmed_state);
+    h = fold_string_member(h, entity_state_name(qh->targeting->archetype->confirmed_state));
     h = fold_fixed_member(h, qh->targeting->archetype->clock_ticks);
     h = fold_fixed_member(h, qh->targeting->archetype->attach_distance);
     h = fold_is_planet(h, qh);

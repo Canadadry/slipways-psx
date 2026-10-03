@@ -57,15 +57,11 @@ void update_entities(void) {
     for (i = 0; i < hv->count; i++) {
         entity_t *qc = hv->items[i];
 
-        /* The only caller of the state methods: the state comes from the
-         * entity's state name at run time, so no site calls one by name
-         * and a grep reads them as dead code. */
-        if (qc->state != NULL) {
-            int state = entity_state_of(qc->state);
-
-            if (state >= 0 && qc->class->states[state] != NULL) {
-                qc->class->states[state](qc, qc->state_time);
-            }
+        /* The only caller of the state methods: the entity's state picks
+         * one at run time, so no site calls one by name and a grep reads
+         * them as dead code. */
+        if (qc->state != ENTITY_STATE_NONE && qc->class->states[qc->state] != NULL) {
+            qc->class->states[qc->state](qc, qc->state_time);
         }
 
         if (qc->is_dead != NULL && *qc->is_dead) {

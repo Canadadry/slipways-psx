@@ -18,6 +18,7 @@
 #include "engine/bootstrap.h"
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
+#include "engine/entity.h"
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
 #include "p8/fixed.h"
@@ -263,7 +264,7 @@ static uint32_t fold_slipway(uint32_t h, const void *e) {
     h = fold_fixed(h, 1, jc->layer);
     h = fold_fixed(h, 1, jc->fade_in_step);
     h = fnv(h, is_dead_state(jc));
-    h = fold_string(h, jc->header.state);
+    h = fold_string(h, entity_state_name(jc->header.state));
     h = fold_fixed(h, 1, jc->header.state_time);
     h = fold_ref(h, jc->start);
     h = fnv(h, (uint32_t)end_kind(jc));
@@ -422,12 +423,12 @@ static const entity_t *entity_of(const void *e) {
     return e;
 }
 
-static void *first_with_state(tag_t tag, const char *state) {
+static void *first_with_state(tag_t tag, state_t state) {
     const entity_list_t *list = entities_by_tag(tag);
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         const entity_t *ke = entity_of(list->items[i]);
-        if (ke->state != NULL && strcmp(ke->state, state) == 0) {
+        if (ke->state == state) {
             return list->items[i];
         }
     }
@@ -444,7 +445,7 @@ static void check_fresh_slipway(const void *e, const void *qu) {
     size_t i;
 
     assert(jc->archetype == &slipway_archetype && jc->targeting->archetype == &slipway_archetype.targeting);
-    assert(jc->header.state != NULL && strcmp(jc->header.state, "placing") == 0);
+    assert(jc->header.state == ENTITY_STATE_PLACING);
     assert(jc->header.state_time == 0);
     assert(jc->layer == p8_fixed_from_int(2));
     assert(jc->targeting->archetype->clock_ticks == 0);
@@ -484,7 +485,7 @@ static void test_construction(void) {
     down_t made;
 
     world();
-    ly = first_with_state(TAG_PLANET, "settled");
+    ly = first_with_state(TAG_PLANET, ENTITY_STATE_SETTLED);
     assert(ly != NULL);
     made = class_of(ly)->left_press(ly, NULL, NULL);
     assert(made.stop && made.held != NULL);

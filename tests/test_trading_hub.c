@@ -10,7 +10,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -21,6 +20,7 @@
 #include "engine/dispatch_context.h"
 #include "game/economy_score.h"
 #include "game/economy_tiers.h"
+#include "engine/entity.h"
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "game/main_economy.h"
@@ -279,7 +279,7 @@ static uint32_t fold_trading_hub(uint32_t hash, const void *entity) {
     structure = trading_hub;
     planet = structure;
     hash = fold_string_member(hash, planet->planet_id);
-    hash = fold_string_member(hash, planet->header.state);
+    hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
     hash = fold_string_member(hash, trading_hub->archetype->required_tech);
     hash = fold_fixed_member(hash, trading_hub->archetype->is_trading_hub);
@@ -288,7 +288,7 @@ static uint32_t fold_trading_hub(uint32_t hash, const void *entity) {
     hash = fold_fixed_member(hash, structure->sprite);
     hash = fold_fixed_member(hash, structure->targeting->cost);
     hash = fold_fixed_member(hash, trading_hub->palette_block);
-    hash = fold_string_member(hash, structure->targeting->archetype->confirmed_state);
+    hash = fold_string_member(hash, entity_state_name(structure->targeting->archetype->confirmed_state));
     hash = fold_fixed_member(hash, structure->targeting->archetype->clock_ticks);
     hash = fold_fixed_member(hash, structure->targeting->archetype->attach_distance);
     hash = planet->has_development_tier ? fold_fixed_member(hash, planet->development_tier) : fold_absent(hash);
@@ -306,7 +306,7 @@ static uint32_t fold_trading_hub(uint32_t hash, const void *entity) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(structure->archetype->name != NULL));
-    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != NULL));
+    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != ENTITY_STATE_NONE));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
@@ -437,10 +437,10 @@ static uint32_t fold_economy(uint32_t h, void *e) {
 }
 
 /* The drag method (targeting_track) in the panel then the drop method
- * (targeting_confirm) with the credits; update_entities in "settled" with
+ * (targeting_confirm) with the credits; update_entities in settled with
  * development tier 1 (the palette block stays), then at tiers 2 and 3 (the
  * palette block is 8 + (time mod 42) / 6); update_entities on a trading hub
- * still in "placing". */
+ * still in placing. */
 static void test_life(void) {
     uint32_t hash = 2166136261u;
     planet_t *placed;
@@ -460,10 +460,10 @@ static void test_life(void) {
     set_credits(100);
     assert(class_of(placed)->drop == targeting_confirm_method);
     hash = targeting_confirm(&placed->header) ? fnv(fnv(hash, 0xB0u), 1u) : fold_ref(hash, NULL);
-    hash = fold_string_member(hash, placed->header.state);
+    hash = fold_string_member(hash, entity_state_name(placed->header.state));
     hash = fold_fixed_member(hash, placed->header.state_time);
     hash = fnv(hash, (uint32_t)credits());
-    assert(strcmp(placed->header.state, "settled") == 0 && credits() == p8_fixed_from_int(100 - 20));
+    assert(placed->header.state == ENTITY_STATE_SETTLED && credits() == p8_fixed_from_int(100 - 20));
 
     hash = fold_economy(hash, placed);
 
@@ -482,7 +482,7 @@ static void test_life(void) {
     hash = fold_economy(hash, placed);
 
     idle = build_trading_hub();
-    hash = fold_string_member(hash, idle->header.state);
+    hash = fold_string_member(hash, entity_state_name(idle->header.state));
     hash = fold_update_entities(hash, idle);
     assert(idle->palette_block == p8_fixed_from_int(15));
     check("life", hash, LIFE_HASH);

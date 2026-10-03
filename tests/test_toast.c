@@ -209,7 +209,7 @@ static void test_update_entities_drives_an_entity_struct(void) {
     int i;
 
     fresh_world();
-    entity_init_instance(&f->header, &fake_toast_class_def, "normal", 0);
+    entity_init_instance(&f->header, &fake_toast_class_def, ENTITY_STATE_NORMAL, 0);
     f->header.is_dead = &f->is_dead;
     f->is_dead = 0;
     entity_construct(&f->header);
@@ -238,7 +238,7 @@ static void test_defaults_match_the_parsed_spec(void) {
     assert(e->archetype->velocity.x == 0 && e->archetype->velocity.y == -0x570a);
     assert(e->archetype->layer == p8_fixed_from_int(9));
     assert(e->fade == e->archetype->fade);
-    assert(e->header.state != NULL && strcmp(e->header.state, "normal") == 0);
+    assert(e->header.state == ENTITY_STATE_NORMAL);
     assert(e->header.state_time == 0);
     assert(build(NULL, "y", 7)->archetype == e->archetype);
     assert(toast_ready());

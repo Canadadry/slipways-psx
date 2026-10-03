@@ -13,6 +13,7 @@
 #include "engine/bootstrap.h"
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
+#include "engine/entity.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
@@ -140,7 +141,7 @@ static void test_kind_fields_and_build(void) {
 
         h = fold_string_member(h, record->required_tech);
         h = fold_fixed_member(h, record->has_sprite, record->sprite);
-        h = fold_string_member(h, record->state);
+        h = fold_string_member(h, entity_state_name(record->state));
         h = fold_fixed_member(h, record->has_cost, record->cost);
         made = kind_build(i);
         assert(made != NULL &&

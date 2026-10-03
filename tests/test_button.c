@@ -20,6 +20,7 @@
 #include "game/data_init.h"
 #include "engine/dispatch_context.h"
 #include "game/economy_score.h"
+#include "engine/entity.h"
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "game/main_economy.h"
@@ -339,7 +340,7 @@ static uint32_t fold_button(uint32_t hash, const void *entity) {
     const button_t *button = button_of(entity);
     size_t index;
 
-    assert(button->header.state != NULL && strcmp(button->header.state, "normal") == 0);
+    assert(button->header.state == ENTITY_STATE_NORMAL);
     hash = fold_fixed(hash, button->header.state_time);
     hash = fold_fixed(hash, button->layer);
     hash = fold_fixed(hash, button->width);
@@ -941,12 +942,12 @@ static void test_projects_panel_on_click(void) {
             continue;
         }
         pt = button_of(b)->project_planet;
-        h = fold_string_or_nil(h, pt->header.state);
+        h = fold_string_or_nil(h, entity_state_name(pt->header.state));
         h = fnv(h, (uint32_t)live_entities()->count);
         call_on_click(b);
         printf("[projects_panel on_click] row %d: planet state=%s, %d entities\n", i,
-               pt->header.state != NULL && strcmp(pt->header.state, "settled") == 0 ? "settled" : "not settled", live_entities()->count);
-        h = fold_string_or_nil(h, pt->header.state);
+               pt->header.state == ENTITY_STATE_SETTLED ? "settled" : "not settled", live_entities()->count);
+        h = fold_string_or_nil(h, entity_state_name(pt->header.state));
         h = fnv(h, (uint32_t)live_entities()->count);
         break;
     }

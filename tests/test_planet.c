@@ -221,7 +221,7 @@ static uint32_t fold_planet(uint32_t hash, const void *entity) {
     const planet_t *planet = as_planet(entity);
     size_t index;
 
-    hash = fold_string_member(hash, planet->header.state);
+    hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
     hash = fold_string_member(hash, planet->planet_id);
     hash = fold_is_planet(hash, planet);
@@ -298,7 +298,7 @@ static void test_galaxy(void) {
 static uint32_t fold_live(uint32_t h, const void *e) {
     const planet_t *jo = as_planet(e);
 
-    h = fold_string_member(h, jo->header.state);
+    h = fold_string_member(h, entity_state_name(jo->header.state));
     h = fold_fixed_member(h, jo->header.state_time);
     h = fold_fixed_member(h, jo->shake);
     h = (jo->fold_anchor != 0) ? fold_bool_member(h, jo->fold_anchor) : fold_absent(h);
@@ -489,7 +489,7 @@ static void test_entities_by_tag_null_until_seen(void) {
     assert(entities_by_tag(TAG_PLANET) == NULL);
 }
 
-/* update_entities dispatches by state: a "vanishing" planet runs
+/* update_entities dispatches by state: a vanishing planet runs
  * planet_update_vanishing until its state time passes 60, then leaves the
  * live entities. */
 static void test_update_vanishing(void) {
@@ -500,7 +500,7 @@ static void test_update_vanishing(void) {
     a = new_planet("p901", 3, 4);
     update_entities();
     assert(is_dead_state(a) == 0);
-    entity_set_state(&a->header, "vanishing");
+    entity_set_state(&a->header, ENTITY_STATE_VANISHING);
     while (entity_list_listed(live_entities(), a) && calls < 200) {
         update_entities();
         calls++;
@@ -555,7 +555,7 @@ static void test_production_shared(void) {
 
 /* planet_roll_type takes the "vanishing" planet type itself on a vanish
  * roll under 0.45, and its state for the planet's; any other draw is a
- * weighted picker entry, and "known". */
+ * weighted picker entry, and the known state. */
 static void test_roll_type_takes_vanishing(void) {
     char id[8];
     int took_vanishing = 0;
@@ -570,7 +570,7 @@ static void test_roll_type_takes_vanishing(void) {
         planet_roll_type(p);
         assert(p->planet_type != NULL && p->description == p->planet_type->description);
         took_vanishing = p->planet_type == planet_types_lookup("vanishing");
-        assert(strcmp(p->header.state, took_vanishing ? "vanishing" : "known") == 0);
+        assert(p->header.state == (took_vanishing ? ENTITY_STATE_VANISHING : ENTITY_STATE_KNOWN));
     }
     assert(took_vanishing);
 }

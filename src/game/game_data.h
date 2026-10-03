@@ -2,6 +2,7 @@
 #define GAME_GAME_DATA_H
 
 #include "p8/fixed.h"
+#include "engine/entity_class.h"
 #include "engine/geom.h"
 #include "game/map_tables.h"
 #include "engine/vec.h"
@@ -39,13 +40,13 @@ typedef struct {
 } vec_seq_t;
 
 /* A kind's required_tech, sprite, state and cost as its chain of defaults
- * resolves them: a NULL string, or has_* 0, when absent. The strings are the ones its
- * archetype points at. */
+ * resolves them: a NULL string, ENTITY_STATE_NONE, or has_* 0, when
+ * absent. The string is the one its archetype points at. */
 typedef struct kind_record {
     const char *required_tech;
     int has_sprite;
     p8_fixed_t sprite;
-    const char *state;
+    state_t state;
     int has_cost;
     p8_fixed_t cost;
 } kind_record_t;
@@ -60,14 +61,14 @@ typedef struct {
 /* A p8_fixed_t below holds the 16.16 bits PICO-8 reads for the decimal
  * literal it was written as, 0xffff.fffe mask included: -0x5540 is -0.333. */
 
-/* description is NULL when absent (the vanishing entry), state NULL when
- * absent. */
+/* description is NULL when absent (the vanishing entry), state
+ * ENTITY_STATE_NONE when absent. */
 typedef struct {
     const char *name;
     int sprite;
     p8_fixed_t weight;
     const char *description;
-    const char *state;
+    state_t state;
 } planet_types_entry_t;
 
 typedef struct {
@@ -115,7 +116,7 @@ typedef struct {
  * position, the wormhole's too-far target) is not here: the module's init
  * still sets it. */
 typedef struct {
-    const char *state;
+    state_t state;
     p8_fixed_t state_time;
     p8_fixed_t layer;
     p8_fixed_t hit_test;
@@ -123,7 +124,7 @@ typedef struct {
 } background_archetype_t;
 
 typedef struct {
-    const char *state;
+    state_t state;
     p8_fixed_t state_time;
     p8_fixed_t cursor_sprite;
     p8_fixed_t layer;
@@ -131,20 +132,20 @@ typedef struct {
 } ui_archetype_t;
 
 typedef struct {
-    const char *state;
+    state_t state;
     p8_fixed_t state_time;
     p8_fixed_t layer;
 } button_archetype_t;
 
 typedef struct {
-    const char *state;
+    state_t state;
     p8_fixed_t state_time;
     p8_fixed_t layer;
     p8_fixed_t hit_test;
 } modal_backdrop_archetype_t;
 
 typedef struct {
-    const char *state;
+    state_t state;
     p8_fixed_t state_time;
     vec_t velocity;
     p8_fixed_t shake;
@@ -154,19 +155,19 @@ typedef struct {
 } camera_archetype_t;
 
 typedef struct {
-    const char *state;
+    state_t state;
     p8_fixed_t state_time;
 } mouse_archetype_t;
 
 typedef struct {
-    const char *state;
+    state_t state;
     p8_fixed_t state_time;
     p8_fixed_t layer;
     p8_fixed_t duration_scale;
 } message_box_archetype_t;
 
 typedef struct {
-    const char *state;
+    state_t state;
     p8_fixed_t state_time;
     p8_fixed_t layer;
     p8_fixed_t fade;
@@ -178,7 +179,7 @@ typedef struct {
 } research_project_archetype_t;
 
 typedef struct {
-    const char *state;
+    state_t state;
     p8_fixed_t state_time;
     box_t hit_box;
     p8_fixed_t layer;
@@ -187,26 +188,26 @@ typedef struct {
 } structure_icon_archetype_t;
 
 typedef struct {
-    const char *state;
+    state_t state;
     p8_fixed_t state_time;
     p8_fixed_t layer;
     const data_row_t *countdown_rows;
     const data_row_t *frame_rows;
 } score_panel_archetype_t;
 
-/* A NULL confirmed_state is absent: the confirmed probe then goes to
- * "normal". clock_ticks is what the confirmation hands to
+/* A confirmed_state ENTITY_STATE_NONE is absent: the confirmed probe then
+ * goes to ENTITY_STATE_NORMAL. clock_ticks is what the confirmation hands to
  * economy_advance_clock(), an absent value held as 0. */
 typedef struct {
     p8_fixed_t attach_distance;
     p8_fixed_t cost;
     int has_cost;
-    const char *confirmed_state;
+    state_t confirmed_state;
     p8_fixed_t clock_ticks;
 } targeting_archetype_t;
 
 typedef struct {
-    const char *state;
+    state_t state;
     p8_fixed_t state_time;
     p8_fixed_t spawn_snd;
     p8_fixed_t radius;
@@ -216,7 +217,7 @@ typedef struct {
 } wormhole_archetype_t;
 
 typedef struct {
-    const char *state;
+    state_t state;
     p8_fixed_t state_time;
     p8_fixed_t layer;
     const int_seq_t *trail_colors;
@@ -242,7 +243,7 @@ typedef struct {
 /* The probe and the help screen share this type; the help screen's own
  * members are zero in the probe's. */
 typedef struct {
-    const char *state;
+    state_t state;
     p8_fixed_t state_time;
     p8_fixed_t fold_anchor;
     p8_fixed_t layer;
@@ -265,7 +266,7 @@ typedef struct {
  * `production_own` only holds what planet_install_project() writes: not
  * here. */
 typedef struct {
-    const char *state;
+    state_t state;
     p8_fixed_t state_time;
     int is_planet;
     p8_fixed_t trade_multiplier;

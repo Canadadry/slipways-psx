@@ -287,14 +287,12 @@ void planet_inspection_panel(const planet_t *self) {
 }
 
 down_t planet_accept_drop(const planet_t *self, const entity_t *s) {
-    const char *state_val;
     down_t out = {0, NULL};
 
     if (self == NULL) {
         return out;
     }
-    state_val = self->header.state;
-    if (state_val == NULL || strcmp(state_val, "settled") != 0) {
+    if (self->header.state != ENTITY_STATE_SETTLED) {
         return out;
     }
     /* Only a held slipway has a start: a held background, wormhole or planet has none. */
@@ -401,7 +399,6 @@ void planet_projects_panel(planet_t *self) {
 
 void planet_draw(p8_graphics_t *graphics, p8_memory_t *memory, planet_t *self, vec_t screen_pos) {
     vec_t shaken_pos;
-    const char *state_val;
     int screen_x;
     int screen_y;
     int spr_index = 43;
@@ -414,8 +411,7 @@ void planet_draw(p8_graphics_t *graphics, p8_memory_t *memory, planet_t *self, v
      * at the `screen_pos` that was passed in. */
     shaken_pos = entity_geom_shake(screen_pos, (entity_t *)self);
 
-    state_val = self->header.state;
-    if (state_val != NULL && strcmp(state_val, "vanishing") == 0) {
+    if (self->header.state == ENTITY_STATE_VANISHING) {
         p8_fixed_t t = self->header.state_time;
         if (p8_fixed_rnd(p8_fixed_from_int(30)) < p8_fixed_sub(t, p8_fixed_from_int(30))) {
             return;
@@ -502,19 +498,17 @@ down_t planet_left_press_method(entity_t *self, vec_t *mouse_world, vec_t *mouse
 }
 
 down_t planet_left_press(planet_t *self) {
-    const char *state_val;
     down_t out = {0, NULL};
 
-    if (self == NULL || self->header.state == NULL) {
+    if (self == NULL) {
         return out;
     }
-    state_val = self->header.state;
-    if (strcmp(state_val, "known") == 0) {
+    if (self->header.state == ENTITY_STATE_KNOWN) {
         planet_projects_panel(self);
         out.stop = 1;
         return out;
     }
-    if (strcmp(state_val, "settled") == 0) {
+    if (self->header.state == ENTITY_STATE_SETTLED) {
         slipway_keys_t keys = {0};
 
         assert(slipway_ready() && "slipway_init() must run before planet_left_press builds a slipway");
@@ -551,7 +545,7 @@ void planet_apply_project(planet_t *self, research_project_t *research_project_i
     } else if (research_project_instance != NULL && research_project_instance->next_type != NULL) {
         self->planet_type = planet_types_lookup(research_project_instance->next_type);
     } else {
-        entity_set_state((entity_t *)self, "settled");
+        entity_set_state((entity_t *)self, ENTITY_STATE_SETTLED);
         planet_install_project(self, research_project_instance);
         self->fold_anchor = p8_fixed_from_int(1);
         fp = tech_gate_if_unlocked("autoassemblers", p8_fixed_from_int(3), p8_fixed_from_int(2));

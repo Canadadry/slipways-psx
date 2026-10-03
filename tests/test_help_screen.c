@@ -19,6 +19,7 @@
 #include "engine/bootstrap.h"
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
+#include "engine/entity.h"
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
 #include "p8/fixed.h"
@@ -318,7 +319,7 @@ static void test_built(void) {
     assert(probe->archetype->back_color == p8_fixed_from_int(11));
     assert(probe->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
     assert(probe->pos != NULL && emitter->trail_colors != NULL);
-    assert(probe->archetype->rows != NULL && targeting->archetype->confirmed_state != NULL);
+    assert(probe->archetype->rows != NULL && targeting->archetype->confirmed_state != ENTITY_STATE_NONE);
     hash = fold_fixed_member(hash, probe->archetype->layer);
     hash = fold_ref_member(hash, probe->pos);
     hash = fold_ref_member(hash, &probe->archetype->fixed_pos);
@@ -341,7 +342,7 @@ static void test_built(void) {
     hash = fold_ref_member(hash, probe->archetype->rows);
     hash = fold_tags(fnv(fnv(hash, 1u), 0x7Au), probe->header.class->tags);
     hash = fold_fixed_member(hash, probe->archetype->fold_anchor);
-    hash = fold_string_member(hash, targeting->archetype->confirmed_state);
+    hash = fold_string_member(hash, entity_state_name(targeting->archetype->confirmed_state));
     hash = fold_fixed_member(hash, targeting->cost);
     hash = fold_bool_member(hash, targeting->archetype->clock_ticks != 0);
     hash = fold_fixed_member(hash, targeting->archetype->attach_distance);
@@ -353,7 +354,7 @@ static void test_built(void) {
     assert(emitter->trail_colors == &help_screen_trail_colors_seq);
     assert(emitter->trail_colors != &probe_trail_colors_seq);
     assert(probe->archetype->rows == &help_screen_rows_row);
-    hash = fold_string_member(hash, probe->header.state);
+    hash = fold_string_member(hash, entity_state_name(probe->header.state));
     hash = fold_fixed_member(hash, probe->header.state_time);
     hash = fnv(hash, (uint32_t)size_of(emitter->particles));
     assert(size_of(emitter->particles) == 0);
@@ -422,7 +423,7 @@ static void test_life(void) {
     for (index = 0; index < 3; index++) {
         update_entities();
         hash = fold_fixed_member(hash, fv->header.state_time);
-        hash = fold_string_member(hash, fv->header.state);
+        hash = fold_string_member(hash, entity_state_name(fv->header.state));
         assert(entity_list_listed(live_entities(), fv));
     }
     assert(class_of(fv)->hit_test(&fv->header, vec_ref(64, 10), vec_ref(64, 112)) == 1);

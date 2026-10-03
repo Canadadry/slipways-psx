@@ -88,8 +88,8 @@ static int entity_list_list_count(const entity_list_t *list) {
     return list == NULL ? 0 : list->count;
 }
 
-static int is_state(const entity_t *ke, const char *want) {
-    return ke->state != NULL && strcmp(ke->state, want) == 0;
+static int is_state(const entity_t *ke, state_t want) {
+    return ke->state == want;
 }
 
 static uint32_t fold_vec(uint32_t h, const vec_t *p) {
@@ -191,7 +191,7 @@ static void check_fresh_background(const background_t *bg) {
     const int_seq_t *pl;
     size_t i;
 
-    assert(is_state(&bg->header, "normal"));
+    assert(is_state(&bg->header, ENTITY_STATE_NORMAL));
     assert(bg->header.state_time == 0);
     assert(bg->archetype == &background_archetype);
     assert(bg->archetype->layer == p8_fixed_from_int(1));
@@ -331,7 +331,7 @@ static void test_left_press(void) {
     assert(out.stop && out.held != NULL);
     assert(out.held->class == wormhole_class());
     assert(entity_list_listed(entities_by_tag(TAG_WORMHOLE), out.held));
-    assert(is_state(&((const wormhole_t *)out.held)->header, "placing"));
+    assert(is_state(&((const wormhole_t *)out.held)->header, ENTITY_STATE_PLACING));
 
     check_int("left_press_probe_after", entity_list_list_count(entities_by_tag(TAG_PROBE)), LEFT_PRESS_PROBE_AFTER);
     check_int("left_press_wormhole_after", entity_list_list_count(entities_by_tag(TAG_WORMHOLE)), LEFT_PRESS_WORMHOLE_AFTER);
@@ -390,7 +390,7 @@ static void test_hover(void) {
     check("hover", h, HOVER_HASH);
 }
 
-static planet_t *first_planet_with_state(const char *state) {
+static planet_t *first_planet_with_state(state_t state) {
     const entity_list_t *list = entities_by_tag(TAG_PLANET);
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
@@ -416,11 +416,11 @@ static void test_accept_drop(void) {
     start_game();
     planet_apply_project((planet_t *)entities_by_tag(TAG_PLANET)->items[0], research_project_new(NULL));
     bg = the_background();
-    ly = first_planet_with_state("settled");
+    ly = first_planet_with_state(ENTITY_STATE_SETTLED);
     assert(ly != NULL);
     r = planet_accept_drop(ly, &bg->header);
     assert(r.stop && r.held == NULL);
-    assert(is_state(&ly->header, "settled"));
+    assert(is_state(&ly->header, ENTITY_STATE_SETTLED));
 
     keys.planet_id = NULL;
     keys.map_pos = ly->map_pos;

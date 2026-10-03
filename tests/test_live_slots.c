@@ -779,7 +779,7 @@ static const planet_t *placed_grab(void) {
         assert(placed == NULL && "a single grab was placed");
         placed = p;
     }
-    assert(placed != NULL && strcmp(placed->header.state, "settled") == 0 && "the f161-164 grab was not placed");
+    assert(placed != NULL && placed->header.state == ENTITY_STATE_SETTLED && "the f161-164 grab was not placed");
     return placed;
 }
 
@@ -986,7 +986,7 @@ static void open_wormhole_releases_arena_on_death(void) {
     const size_t before = game_without_registries();
     play_until(160);
     const entity_list_t *mz = entities_by_tag(TAG_WORMHOLE);
-    assert(mz != NULL && mz->count == 1 && strcmp(((const wormhole_t *)mz->items[0])->header.state, "unfolding") == 0 &&
+    assert(mz != NULL && mz->count == 1 && ((const wormhole_t *)mz->items[0])->header.state == ENTITY_STATE_UNFOLDING &&
            "f160: the wormhole is open");
     play_until(193);
     assert(entities_by_tag(TAG_WORMHOLE)->count == 1 && "f193: only the pressed wormhole lives");
@@ -1075,7 +1075,7 @@ static void wormhole_targets_only_placed_probe(void) {
     for (int i = 0; i < mz->anchors->count; i++) {
         const entity_t *e = mz->anchors->items[i];
         if (e->class != probe_class()) continue;
-        assert(placed == NULL && strcmp(e->state, "settled") == 0 && "the anchors keep a single probe, a placed one");
+        assert(placed == NULL && e->state == ENTITY_STATE_SETTLED && "the anchors keep a single probe, a placed one");
         placed = (const probe_t *)e;
     }
     assert(placed != NULL && "f86: the placed probe is an anchor of the wormhole");
@@ -1146,7 +1146,7 @@ static void pause_restart_reveals_on_new_game_states(void) {
     int from_type_picker = 0;
     for (int i = 0; jo != NULL && i < jo->count && revealed < 5; i++) {
         planet_t *p = (planet_t *)jo->items[i];
-        if (p->header.state == NULL || strcmp(p->header.state, "unknown") != 0) continue;
+        if (p->header.state != ENTITY_STATE_UNKNOWN) continue;
         planet_roll_type(p);
         revealed++;
         from_type_picker += p->planet_type != NULL && p->planet_type != ll;

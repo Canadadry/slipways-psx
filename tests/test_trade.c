@@ -623,7 +623,7 @@ static void test_compute_tier_counts_numbered_routes_only(void) {
     qh = structure_new(NULL);
     qh->needs = jy;
     qh->incoming_routes = cc;
-    entity_set_state(&qh->header, "settled");
+    entity_set_state(&qh->header, ENTITY_STATE_SETTLED);
     (void)economy_tiers_compute_tier(&qh->header);
     assert(nil_want->has_satisfied && nil_want->satisfied == p8_fixed_from_int(0));
     assert(x_want->has_satisfied && x_want->satisfied == p8_fixed_from_int(1));

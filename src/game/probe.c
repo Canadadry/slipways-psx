@@ -1,7 +1,6 @@
 #include "game/probe.h"
 
 #include <assert.h>
-#include <string.h>
 
 #include "engine/dispatch_context.h"
 #include "game/economy.h"
@@ -227,12 +226,12 @@ void targeting_tooltip(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *sel
     targeting_tooltip_show(gfx, mem, self->state, self->targeting);
 }
 
-void targeting_tooltip_show(const p8_graphics_t *gfx, p8_memory_t *mem, const char *state, const targeting_t *pb) {
+void targeting_tooltip_show(const p8_graphics_t *gfx, p8_memory_t *mem, state_t state, const targeting_t *pb) {
     vec_t mp;
     const mouse_t *je;
     const char *display = "";
 
-    if (state == NULL || strcmp(state, "placing") != 0) {
+    if (state != ENTITY_STATE_PLACING) {
         return;
     }
 
@@ -293,7 +292,9 @@ int targeting_confirm(entity_t *self) {
     assert((!has_target || !spend_ok) && "targeting_confirm: economy_spend must stay short-circuited when a target is set");
 
     if (!has_target && spend_ok) {
-        entity_set_state(self, targeting->archetype->confirmed_state != NULL ? targeting->archetype->confirmed_state : "normal");
+        state_t confirmed = targeting->archetype->confirmed_state;
+
+        entity_set_state(self, confirmed != ENTITY_STATE_NONE ? confirmed : ENTITY_STATE_NORMAL);
 
         economy_advance_clock(main_economy_typed(), targeting->archetype->clock_ticks);
 
@@ -357,7 +358,7 @@ void probe_release_method(entity_t *self) {
     const probe_t *g_ = (const probe_t *)self;
 
     emitter_release_particles(self->emitter);
-    if (g_->grab_arena != NULL && (self->state == NULL || strcmp(self->state, "settled") != 0)) {
+    if (g_->grab_arena != NULL && self->state != ENTITY_STATE_SETTLED) {
         planet_grab_arena_arena_released(g_->grab_arena);
     }
 }

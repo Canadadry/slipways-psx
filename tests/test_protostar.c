@@ -21,6 +21,7 @@
 #include "engine/dispatch_context.h"
 #include "game/economy_score.h"
 #include "game/economy_tiers.h"
+#include "engine/entity.h"
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
@@ -299,7 +300,7 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     assert(class_of(entity) == protostar_class());
     protostar = entity;
     hash = fold_string_member(hash, planet->planet_id);
-    hash = fold_string_member(hash, planet->header.state);
+    hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
     hash = fold_string_member(hash, protostar->archetype->class_name);
     hash = fold_string_member(hash, ascension->archetype->required_tech);
@@ -317,7 +318,7 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     hash = fold_fixed_member(hash, emitter->matrix_xy);
     hash = fold_fixed_member(hash, emitter->matrix_yx);
     hash = fold_fixed_member(hash, emitter->matrix_yy);
-    hash = fold_string_member(hash, structure->targeting->archetype->confirmed_state);
+    hash = fold_string_member(hash, entity_state_name(structure->targeting->archetype->confirmed_state));
     hash = fold_fixed_member(hash, structure->targeting->archetype->clock_ticks);
     hash = fold_fixed_member(hash, structure->targeting->archetype->attach_distance);
     hash = planet->has_development_tier ? fold_fixed_member(hash, planet->development_tier) : fold_absent(hash);
@@ -350,7 +351,7 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     hash = fnv(hash, (uint32_t)(emitter->particles != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(structure->archetype->name != NULL));
-    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != NULL));
+    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != ENTITY_STATE_NONE));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
@@ -486,7 +487,7 @@ static uint32_t fold_draw(uint32_t h, void *e) {
     return fnv(h, (uint32_t)pointer_list_size(as_ascension(e)->emitter->particles));
 }
 
-/* update_entities in "settled" (the laboratory's settled update);
+/* update_entities in settled (the laboratory's settled update);
  * spawn_particle (probe_spawn_particle, quarter_turn false: no rotation)
  * and emitter_spawn; draw through draw_layers at development tier 1, then
  * 2 (emitter_update moves and draws the particles); the economy reads; a
@@ -507,7 +508,7 @@ static void test_life(void) {
     ra = vec_add(*main_camera_pos, vec_xy(12, 108));
     placed = build_protostar(&map_pos, &ra, "s90");
     hash = fold_spawned(hash, placed);
-    assert(strcmp(as_ascension(placed)->header.state, "settled") == 0);
+    assert(as_ascension(placed)->header.state == ENTITY_STATE_SETTLED);
 
     hash = fold_economy(hash, placed);
     for (index = 0; index < 3; index++) {

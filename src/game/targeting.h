@@ -52,9 +52,10 @@ const entity_class_t *targeting_track_target_class(void);
  * and is read, never retained. */
 void targeting_tooltip(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self);
 
-/* The same, for a caller that is not a host (the structure icon): a NULL
- * state draws nothing, the targeting is read during the call only. */
-void targeting_tooltip_show(const p8_graphics_t *gfx, p8_memory_t *mem, const char *state, const targeting_t *pb);
+/* The same, for a caller that is not a host (the structure icon): a state
+ * other than ENTITY_STATE_PLACING draws nothing, the targeting is read
+ * during the call only. */
+void targeting_tooltip_show(const p8_graphics_t *gfx, p8_memory_t *mem, state_t state, const targeting_t *pb);
 
 void targeting_tooltip_method(entity_t *self, const vec_t *screen_pos);
 

@@ -5,7 +5,6 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "p8/assets.h"
 #include "game/background.h"
@@ -74,7 +73,7 @@ static void test_background_defaults_and_ready(void) {
     background_t *bg = background_new();
 
     assert(bg->archetype == &background_archetype && bg->archetype->tile_choices == &background_tile_choices_seq);
-    assert(bg->header.state == bg->archetype->state && strcmp(bg->header.state, "normal") == 0 && bg->header.state_time == 0);
+    assert(bg->header.state == bg->archetype->state && bg->header.state == ENTITY_STATE_NORMAL && bg->header.state_time == 0);
     assert(background_ready());
     background_shutdown();
     assert(!background_ready());
@@ -84,7 +83,7 @@ static void test_button_defaults_and_ready(void) {
     button_t *js = button_new(NULL);
 
     assert(js->archetype == &button_archetype && js->layer == js->archetype->layer);
-    assert(js->header.state == js->archetype->state && strcmp(js->header.state, "normal") == 0 && js->header.state_time == 0);
+    assert(js->header.state == js->archetype->state && js->header.state == ENTITY_STATE_NORMAL && js->header.state_time == 0);
     assert(button_ready());
     button_shutdown();
     assert(!button_ready());
@@ -107,7 +106,7 @@ static void test_camera_defaults_and_ready(void) {
 
     assert(qb->archetype == &camera_archetype && qb->archetype->dpad_directions == &camera_dpad_directions_vecs);
     assert(qb->velocity == &qb->archetype->velocity && qb->pos_before_shake == &qb->archetype->pos_before_shake && qb->pos == &qb->archetype->pos && qb->shake == qb->archetype->shake);
-    assert(qb->header.state == qb->archetype->state && strcmp(qb->header.state, "normal") == 0 && qb->header.state_time == 0);
+    assert(qb->header.state == qb->archetype->state && qb->header.state == ENTITY_STATE_NORMAL && qb->header.state_time == 0);
     assert(camera_ready());
     camera_shutdown();
     assert(!camera_ready());
@@ -119,7 +118,7 @@ static void test_wormhole_defaults_and_ready(void) {
     wormhole_t *mz = wormhole_new();
 
     assert(mz->archetype == &wormhole_archetype && mz->targeting->archetype == &wormhole_archetype.targeting);
-    assert(mz->header.state == mz->archetype->state && strcmp(mz->header.state, "placing") == 0 && mz->header.state_time == 0);
+    assert(mz->header.state == mz->archetype->state && mz->header.state == ENTITY_STATE_PLACING && mz->header.state_time == 0);
     assert(mz->radius == mz->archetype->radius);
     assert(mz->targeting->cost == mz->archetype->targeting.cost && mz->targeting->cost == p8_fixed_from_int(3));
     assert(mz->targeting->has_cost == mz->archetype->targeting.has_cost);
@@ -151,7 +150,7 @@ static void test_help_screen_defaults_and_ready(void) {
     assert(g_->targeting->cost == g_->archetype->targeting.cost);
     assert(g_->targeting->has_cost == g_->archetype->targeting.has_cost);
     assert(g_->targeting->has_cost == 1);
-    assert(g_->header.state == g_->archetype->state && strcmp(g_->header.state, "normal") == 0 && g_->header.state_time == 0);
+    assert(g_->header.state == g_->archetype->state && g_->header.state == ENTITY_STATE_NORMAL && g_->header.state_time == 0);
     assert(help_screen_ready());
     help_shutdown();
     assert(!help_screen_ready());
@@ -173,7 +172,7 @@ static void test_probe_defaults_and_ready(void) {
     assert(g_->emitter->matrix_yx == g_->archetype->emitter.matrix_yx && g_->emitter->matrix_yy == g_->archetype->emitter.matrix_yy);
     assert(g_->emitter->base_radius == g_->archetype->emitter.base_radius);
     assert(g_->pos == NULL);
-    assert(g_->header.state == g_->archetype->state && strcmp(g_->header.state, "normal") == 0 && g_->header.state_time == 0);
+    assert(g_->header.state == g_->archetype->state && g_->header.state == ENTITY_STATE_NORMAL && g_->header.state_time == 0);
     assert(probe_ready());
     probe_shutdown();
     assert(!probe_ready());
@@ -193,7 +192,7 @@ static void test_structure_icon_defaults_and_ready(void) {
     structure_icon_t *ie = structure_icon_new(NULL);
 
     assert(ie->archetype == &structure_icon_archetype && ie->pos == &ie->archetype->pos);
-    assert(ie->header.state == ie->archetype->state && strcmp(ie->header.state, "normal") == 0 && ie->header.state_time == 0);
+    assert(ie->header.state == ie->archetype->state && ie->header.state == ENTITY_STATE_NORMAL && ie->header.state_time == 0);
     assert(structure_icon_ready());
     structure_icon_shutdown();
     assert(!structure_icon_ready());
@@ -209,7 +208,7 @@ static void test_score_panel_defaults_and_ready(void) {
     assert(cr->fixed_pos->x == 0 && cr->fixed_pos->y == p8_fixed_from_int(11));
     assert(cr->row_step->x == 0 && cr->row_step->y == p8_fixed_from_int(11));
     assert(cr->back_color == p8_fixed_from_int(10));
-    assert(pj->header.state == pj->archetype->state && strcmp(pj->header.state, "normal") == 0 && pj->header.state_time == 0);
+    assert(pj->header.state == pj->archetype->state && pj->header.state == ENTITY_STATE_NORMAL && pj->header.state_time == 0);
     assert(score_panel_ready());
     score_panel_shutdown();
     assert(!score_panel_ready());

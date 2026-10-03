@@ -12,7 +12,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -95,8 +94,8 @@ static int entity_list_list_count(const entity_list_t *list) {
     return list != NULL ? list->count : 0;
 }
 
-static int is_state(const entity_t *ke, const char *want) {
-    return ke->state != NULL && strcmp(ke->state, want) == 0;
+static int is_state(const entity_t *ke, state_t want) {
+    return ke->state == want;
 }
 
 static uint32_t fold_vec(uint32_t h, const vec_t *p) {
@@ -178,7 +177,7 @@ static uint32_t fold_defaults(uint32_t h, const probe_t *g_) {
 
     h = fold_ref_member(h, &g_->header.class->tags);
     h = fold_fixed_member(h, g_->archetype->fold_anchor);
-    h = fold_string_member(h, pr->archetype->confirmed_state);
+    h = fold_string_member(h, entity_state_name(pr->archetype->confirmed_state));
     h = fold_fixed_member(h, pr->cost);
     h = fold_bool_member(h, pr->archetype->clock_ticks != 0);
     h = fold_fixed_member(h, g_->archetype->layer);
@@ -357,7 +356,7 @@ static uint32_t fold_probe(uint32_t hash, probe_t *entity) {
     assert(is_probe(&entity->header));
     assert(entity->header.map_pos == &entity->map_pos);
     hash = fold_fixed_member(hash, entity->archetype->fold_anchor);
-    hash = fold_string_member(hash, targeting->archetype->confirmed_state);
+    hash = fold_string_member(hash, entity_state_name(targeting->archetype->confirmed_state));
     hash = fold_fixed_member(hash, targeting->cost);
     hash = fold_bool_member(hash, targeting->archetype->clock_ticks != 0);
     hash = fold_fixed_member(hash, entity->archetype->layer);
@@ -372,9 +371,9 @@ static uint32_t fold_probe(uint32_t hash, probe_t *entity) {
     hash = fold_fixed_member(hash, emitter->matrix_yx);
     hash = fold_fixed_member(hash, emitter->matrix_yy);
     hash = fold_fixed_member(hash, emitter->base_radius);
-    hash = fold_string_member(hash, entity->header.state);
+    hash = fold_string_member(hash, entity_state_name(entity->header.state));
     hash = fold_fixed_member(hash, entity->header.state_time);
-    assert(targeting->archetype->confirmed_state != NULL && emitter->trail_colors != NULL);
+    assert(targeting->archetype->confirmed_state != ENTITY_STATE_NONE && emitter->trail_colors != NULL);
     hash = fold_tags(hash, entity->header.class->tags);
     hash = fold_seq(hash, emitter->trail_colors);
     assert(entity->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
@@ -570,8 +569,8 @@ static void test_life(void) {
     hash = fold_drag(hash, first, vec_add(slipway_center, vec_xy(0, 3)), 64, 1);
     hash = fold_drag(hash, first, vec_add(slipway_center, vec_xy(0, 3)), 2, 4);
 
-    entity_set_state(&first->header, "placing");
-    entity_set_state(&second->header, "placing");
+    entity_set_state(&first->header, ENTITY_STATE_PLACING);
+    entity_set_state(&second->header, ENTITY_STATE_PLACING);
     class_of(first)->draw_overlay(&first->header, NULL);
     hash = fnv(hash, screen_hash());
     class_of(second)->draw_overlay(&second->header, NULL);
@@ -590,7 +589,7 @@ static void test_life(void) {
         update_entities();
         hash = fold_fixed_member(hash, first->header.state_time);
         hash = fold_fixed_member(hash, second->header.state_time);
-        hash = fold_string_member(hash, first->header.state);
+        hash = fold_string_member(hash, entity_state_name(first->header.state));
         assert(entity_list_listed(live_entities(), first) && entity_list_listed(live_entities(), second));
     }
     assert(class_of(first)->drop == targeting_confirm_method);
@@ -616,7 +615,7 @@ static void test_drop_on(void) {
     out = targeting_confirm(&a->header);
     assert(out == 0);
     assert(a->is_dead);
-    h = fold_string_member(h, a->header.state);
+    h = fold_string_member(h, entity_state_name(a->header.state));
     h = fold_fixed_member(h, a->header.state_time);
     h = fold_is_dead(h, a);
     h = fold_fixed_member(h, checked_main_economy()->credits);
@@ -636,9 +635,9 @@ static void test_drop_off(void) {
     out = targeting_confirm(&a->header);
     assert(out == 1);
     assert(!a->is_dead);
-    assert(is_state(&a->header, "settled"));
+    assert(is_state(&a->header, ENTITY_STATE_SETTLED));
     assert(a->header.state_time == p8_fixed_from_int(0));
-    h = fold_string_member(h, a->header.state);
+    h = fold_string_member(h, entity_state_name(a->header.state));
     h = fold_fixed_member(h, a->header.state_time);
     h = fold_fixed_member(h, checked_main_economy()->credits);
     check("drop_off", h, DROP_OFF_HASH);
@@ -651,7 +650,7 @@ static void test_drop_void(void) {
     probe_t *a;
     vec_t middle;
     p8_fixed_t nz;
-    const char *me;
+    state_t me;
     int out;
 
     start_game();
@@ -705,7 +704,7 @@ static void test_help_screen(void) {
     help_screen = (const probe_t *)help_entity;
     assert(help_screen->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
     assert(help_screen->archetype->fold_anchor == p8_fixed_from_int(1));
-    assert(help_screen->targeting->archetype->confirmed_state != NULL && strcmp(help_screen->targeting->archetype->confirmed_state, "settled") == 0);
+    assert(help_screen->targeting->archetype->confirmed_state == ENTITY_STATE_SETTLED);
     assert(help_screen->archetype->layer == p8_fixed_from_int(10));
     assert(help_screen->emitter->trail_colors == &help_screen_trail_colors_seq);
     assert(help_screen->emitter->trail_colors != &probe_trail_colors_seq);

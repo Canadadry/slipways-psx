@@ -46,7 +46,7 @@ structure_icon_kind_t structure_icon_kind_view(const structure_icon_t *self) {
     view.required_tech = NULL;
     view.sprite = 0;
     view.has_sprite = 0;
-    view.state = NULL;
+    view.state = ENTITY_STATE_NONE;
     view.cost = 0;
     view.has_cost = 0;
     if (kind != NULL) {
@@ -163,7 +163,7 @@ void structure_icon_draw(p8_graphics_t *gfx, p8_memory_t *mem, structure_icon_t 
                       structure_icon_to_int(p.y));
 
     /* targeting_tooltip_show() is not inert here: every kind an icon holds
-     * inherits the structure's state "placing", so it passes its own state
+     * inherits the structure's state, placing, so it passes its own state
      * check and draws the kind-level build cost. */
     if (self->is_hovered) {
         if (structure_icon_own_kind(self) != NULL) {

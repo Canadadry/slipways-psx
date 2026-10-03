@@ -53,7 +53,7 @@ const entity_list_t *entities_by_message(entity_message_t message);
 const entity_list_t *entities_by_tag(tag_t tag);
 
 /* Only entity_construct calls it outside tests: every live entity has had
- * its state name and state time set by entity_init_instance, and
+ * its state and state time set by entity_init_instance, and
  * update_entities() reads them. */
 entity_t *entity_register(entity_t *e);
 /* An entity taken out of the live list here, with a class that has a

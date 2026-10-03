@@ -11,7 +11,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -22,6 +21,7 @@
 #include "engine/dispatch_context.h"
 #include "game/economy_score.h"
 #include "game/economy_tiers.h"
+#include "engine/entity.h"
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "game/main_economy.h"
@@ -311,7 +311,7 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     size_t index;
 
     hash = fold_string_member(hash, planet->planet_id);
-    hash = fold_string_member(hash, planet->header.state);
+    hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
     hash = fold_string_member(hash, ascension->archetype->required_tech);
     hash = fold_structure(hash, structure);
@@ -328,7 +328,7 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     hash = fold_fixed_member(hash, emitter->matrix_xy);
     hash = fold_fixed_member(hash, emitter->matrix_yx);
     hash = fold_fixed_member(hash, emitter->matrix_yy);
-    hash = fold_string_member(hash, structure->targeting->archetype->confirmed_state);
+    hash = fold_string_member(hash, entity_state_name(structure->targeting->archetype->confirmed_state));
     hash = fold_fixed_member(hash, structure->targeting->archetype->clock_ticks);
     hash = fold_fixed_member(hash, structure->targeting->archetype->attach_distance);
     hash = planet->has_development_tier ? fold_fixed_member(hash, planet->development_tier) : fold_absent(hash);
@@ -358,7 +358,7 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     hash = fnv(hash, (uint32_t)(emitter->particles != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(structure->archetype->name != NULL));
-    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != NULL));
+    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != ENTITY_STATE_NONE));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
@@ -494,8 +494,8 @@ static uint32_t fold_draw(uint32_t h, void *e) {
 }
 
 /* Placed on screen by the drag method (targeting_track) and the drop method
- * (targeting_confirm); update_entities on one still in "placing" (no
- * placing method: nothing moves), then in "settled" (the laboratory's
+ * (targeting_confirm); update_entities on one still in placing (no
+ * placing method: nothing moves), then in settled (the laboratory's
  * settled update); spawn_particle (probe_spawn_particle, quarter_turn true)
  * and emitter_spawn; draw through draw_layers at development tier 1, then
  * 2 (emitter_update moves and draws the particles); the economy reads. */
@@ -509,7 +509,7 @@ static void test_life(void) {
 
     start_game();
     idle = build_synthesizer();
-    hash = fold_string_member(hash, as_ascension(idle)->header.state);
+    hash = fold_string_member(hash, entity_state_name(as_ascension(idle)->header.state));
     hash = fold_update_entities(hash, idle);
 
     placed = build_synthesizer();
@@ -522,8 +522,8 @@ static void test_life(void) {
     set_credits(200);
     assert(class_of(placed)->drop == targeting_confirm_method);
     hash = targeting_confirm(placed) ? fnv(fnv(hash, 0xB0u), 1u) : fold_ref(hash, NULL);
-    hash = fold_string_member(hash, as_ascension(placed)->header.state);
-    assert(strcmp(as_ascension(placed)->header.state, "settled") == 0);
+    hash = fold_string_member(hash, entity_state_name(as_ascension(placed)->header.state));
+    assert(as_ascension(placed)->header.state == ENTITY_STATE_SETTLED);
 
     hash = fold_economy(hash, placed);
     for (index = 0; index < 3; index++) {

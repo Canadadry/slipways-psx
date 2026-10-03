@@ -146,7 +146,7 @@ static void check_fresh_main_camera(const camera_t *mo) {
     assert(v.x == 0 && v.y == 0);
     assert(mo->shake == 0);
     assert(mo->header.state_time == 0);
-    assert(mo->header.state != NULL && strcmp(mo->header.state, "normal") == 0);
+    assert(mo->header.state == ENTITY_STATE_NORMAL);
     assert(mo->pos_before_shake != mo->pos);
 
     pc = mo->archetype->dpad_directions;

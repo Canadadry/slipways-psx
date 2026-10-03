@@ -1,7 +1,6 @@
 #include "game/wormhole.h"
 
 #include <assert.h>
-#include <string.h>
 
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
@@ -159,7 +158,7 @@ void wormhole_update_unfolding(wormhole_t *self, p8_fixed_t t) {
             assert(planet_is_family(planet) && "wormhole_update_unfolding: the planet tag holds planets only");
             pt = (planet_t *)planet;
 
-            if (pt->header.state != NULL && strcmp(pt->header.state, "unknown") == 0) {
+            if (pt->header.state == ENTITY_STATE_UNKNOWN) {
                 vec_t planet_map_pos =
                     pt->map_pos != NULL ? *pt->map_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
                 vec_t diff = vec_sub(planet_map_pos, self_p);

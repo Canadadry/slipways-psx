@@ -40,7 +40,7 @@ typedef struct {
     const char *required_tech;
     p8_fixed_t sprite;
     int has_sprite; /* 0: absent, and then never read */
-    const char *state;
+    state_t state;
     p8_fixed_t cost;
     int has_cost; /* 0: absent, and then never read */
 } structure_icon_kind_t;
@@ -93,7 +93,7 @@ down_t structure_icon_left_press(structure_icon_t *self);
 
 /* By value, one per read: each member copied off the held kind's record,
  * absent when absent there or when the icon holds no kind. `required_tech`
- * and `state` are borrowed from the kind's defaults. */
+ * is borrowed from the kind's defaults. */
 structure_icon_kind_t structure_icon_kind_view(const structure_icon_t *self);
 const entity_class_t *structure_icon_kind_view_class(void);
 

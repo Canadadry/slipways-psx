@@ -20,6 +20,7 @@
 #include "p8/assets.h"
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
+#include "engine/entity.h"
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
@@ -318,7 +319,7 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fold_fixed_member(hash, emitter->speed_factor);
     hash = fold_fixed_member(hash, burst->speed);
     hash = fold_is_planet(hash, planet);
-    hash = fold_string_member(hash, planet->header.state);
+    hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
     hash = fold_string_member(hash, planet->planet_id);
     hash = fold_fixed_member(hash, planet->shake);

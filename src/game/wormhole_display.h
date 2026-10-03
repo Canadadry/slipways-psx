@@ -6,7 +6,6 @@
 #include "engine/vec.h"
 #include "game/wormhole.h"
 
-/* GAP-3 */
 /* screen_pos is the struct's pos, as the draw dispatch passes it. A NULL
  * `self` draws nothing; NULL graphics or memory skips the drawing calls
  * only. */

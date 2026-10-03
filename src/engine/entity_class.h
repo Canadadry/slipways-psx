@@ -1,41 +1,23 @@
 #ifndef ENGINE_ENTITY_CLASS_H
 #define ENGINE_ENTITY_CLASS_H
 
-#include <string.h>
-
 #include "p8/fixed.h"
 #include "engine/geom.h"
 #include "engine/vec.h"
 
-/* The states update_entities() runs: the method of `states` that `state`
- * names, called with `state_time`. */
+/* The states of an entity: update_entities() runs the method of `states`
+ * that `state` names, called with `state_time`. */
 typedef enum {
+    ENTITY_STATE_NONE,
     ENTITY_STATE_NORMAL,
     ENTITY_STATE_SETTLED,
     ENTITY_STATE_VANISHING,
     ENTITY_STATE_PLACING,
     ENTITY_STATE_UNFOLDING,
+    ENTITY_STATE_UNKNOWN,
+    ENTITY_STATE_KNOWN,
     STATE_COUNT
 } state_t;
-
-/* The state with this name, or -1 for any other name ("unknown", "known"). */
-static inline int entity_state_of(const char *state) {
-    static const char *const names[STATE_COUNT] = {
-        [ENTITY_STATE_NORMAL] = "normal",
-        [ENTITY_STATE_SETTLED] = "settled",
-        [ENTITY_STATE_VANISHING] = "vanishing",
-        [ENTITY_STATE_PLACING] = "placing",
-        [ENTITY_STATE_UNFOLDING] = "unfolding",
-    };
-    int i;
-
-    for (i = 0; i < STATE_COUNT; i++) {
-        if (strcmp(names[i], state) == 0) {
-            return i;
-        }
-    }
-    return -1;
-}
 
 /* The ten tags the registry indexes entities under, in the order
  * every class lists its own. */
@@ -70,7 +52,7 @@ struct emitter;
 struct targeting;
 
 /* First member of every entity struct, and of the parent struct a child
- * embeds first. `state` NULL: no state. A component link points at the
+ * embeds first. A component link points at the
  * field's storage, the archetype's for a field the class never writes;
  * NULL: the class has no such field, or it is absent. Written through:
  * `shake` by entity_geom_shake(), `is_dead` by its class, `is_hovered` by
@@ -79,7 +61,7 @@ struct targeting;
  * absent. */
 typedef struct {
     const entity_class_t *class;
-    const char *state;
+    state_t state;
     p8_fixed_t state_time;
     const p8_fixed_t *layer;
     const vec_t *const *pos;
@@ -97,8 +79,8 @@ typedef struct {
 
 /* Every constructor calls it first: its zone block leaves the header
  * indeterminate, and a reader would follow a link left unset. `state` is
- * NULL, `state_time` 0 and every link NULL until the constructor sets its
- * own. */
+ * ENTITY_STATE_NONE, `state_time` 0 and every link NULL until the
+ * constructor sets its own. */
 static inline void entity_init_header(entity_t *self, const entity_class_t *cls) {
     *self = (entity_t){.class = cls};
 }

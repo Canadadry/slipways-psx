@@ -313,7 +313,7 @@ static void test_defaults_match_the_parsed_spec(void) {
     assert(box->duration_scale == box->archetype->duration_scale);
     assert(box->duration_scale == p8_fixed_from_int(5));
     assert(box->header.class->tags == TAG(TAG_MESSAGE_BOX));
-    assert(box->header.state != NULL && strcmp(box->header.state, "normal") == 0);
+    assert(box->header.state == ENTITY_STATE_NORMAL);
     assert(message_box_ready());
     message_box_shutdown();
     assert(!message_box_ready());

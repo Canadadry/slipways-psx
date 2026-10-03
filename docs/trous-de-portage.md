@@ -47,8 +47,7 @@ pointeur.
 
 Contourné au cas par cas : `collect_contains_string` compare par contenu
 (les chaînes de la liste `invented` de l'économie, pour
-`tech_gate_is_unlocked`), et un module a sa propre comparaison par contenu
-(`planet_is_colonized`). Toute nouvelle comparaison de chaînes doit choisir
+`tech_gate_is_unlocked`). Toute nouvelle comparaison de chaînes doit choisir
 explicitement.
 
 **Hors de GAP-3 : les ressources.** Ce que le chargeur des tables de

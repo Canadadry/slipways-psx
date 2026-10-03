@@ -63,7 +63,7 @@
 #define LEFT_HASH 0xBD9BC256u
 #define CLEAR_EPHEMERALS_HASH 0xD215FB81u
 #define STALE_HASH 0x5B066E86u
-#define ENTITY_STATE_HASH 0xE995C6EFu
+#define ENTITY_STATE_HASH 0xD49B8748u
 #define ENTITY_STATE_TIME_HASH 0xDE09A985u
 
 static p8_memory_t memory;
@@ -281,7 +281,7 @@ static void test_built(void) {
 
     assert(ok->archetype->cursor_sprite == p8_fixed_from_int(58));
     assert(ok->archetype->layer == p8_fixed_from_int(15));
-    assert(ok->header.state != NULL && strcmp(ok->header.state, "normal") == 0);
+    assert(ok->header.state == ENTITY_STATE_NORMAL);
     /* The presence word is constant by the struct's shape, kept so that
      * BUILT_HASH still proves the typed read. */
     hash = fnv(fnv(hash, 1u), (uint32_t)ok->header.state_time);
@@ -433,7 +433,7 @@ static void test_layers(void) {
     ra = checked_main_mouse()->pos;
     assert(qa != NULL && ra != NULL);
 
-    entity_set_state(&planet->header, "known");
+    entity_set_state(&planet->header, ENTITY_STATE_KNOWN);
     assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, qa, ra, NULL, &kv, &kn));
     assert((void *)kv == planet && kn.stop && kn.held == NULL);
     h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), kv));
@@ -753,7 +753,7 @@ static void test_ui_held_aborts_on_other_classes(void) {
 /* entity_set_state takes a struct or NULL, and does nothing on NULL. */
 static void test_entity_closed(void) {
     (void)start_game();
-    entity_set_state(NULL, "normal");
+    entity_set_state(NULL, ENTITY_STATE_NORMAL);
 }
 
 /* Every entity struct begins with its header. */
@@ -767,22 +767,6 @@ static uint32_t fold_string(uint32_t h, const char *s) {
         h = fnv(h, (uint32_t)(unsigned char)*s);
     }
     return fnv(h, 0u);
-}
-
-static int identity_of(const char *s) {
-    if (s == background_archetype.state) {
-        return 1;
-    }
-    if (s == planet_archetype.state) {
-        return 2;
-    }
-    if (s == structure_archetype.state) {
-        return 3;
-    }
-    if (s == protostar_archetype.state) {
-        return 4;
-    }
-    return 0;
 }
 
 static uint32_t fold_set_state_back(uint32_t h, void *e) {
@@ -894,11 +878,11 @@ static void test_components_carried(void) {
 enum { FIXED_KIND = 0, STRING_KIND = 1 };
 
 static void test_entity_state_by_name(void) {
-    static const char *const want[24] = {"normal", "normal",      "normal", "normal", "unknown", "placing", "placing", "placing",
-                                         "placing", "settled",      "unknown", "placing", "placing", "placing", "normal", "normal",
-                                         "normal", "normal",      "normal", "placing", "normal", "normal", "normal", "placing"};
-    static const int identity[24] = {1, 1, 1, 1, 2, 3, 3, 3, 3, 4, 2, 3, 3, 3, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0};
-    char state_name[] = "vanishing";
+    static const state_t want[24] = {
+        ENTITY_STATE_NORMAL,  ENTITY_STATE_NORMAL,  ENTITY_STATE_NORMAL,  ENTITY_STATE_NORMAL,  ENTITY_STATE_UNKNOWN, ENTITY_STATE_PLACING,
+        ENTITY_STATE_PLACING, ENTITY_STATE_PLACING, ENTITY_STATE_PLACING, ENTITY_STATE_SETTLED, ENTITY_STATE_UNKNOWN, ENTITY_STATE_PLACING,
+        ENTITY_STATE_PLACING, ENTITY_STATE_PLACING, ENTITY_STATE_NORMAL,  ENTITY_STATE_NORMAL,  ENTITY_STATE_NORMAL,  ENTITY_STATE_NORMAL,
+        ENTITY_STATE_NORMAL,  ENTITY_STATE_PLACING, ENTITY_STATE_NORMAL,  ENTITY_STATE_NORMAL,  ENTITY_STATE_NORMAL,  ENTITY_STATE_PLACING};
     void *entities[24];
     const entity_list_t *live;
     const char *state;
@@ -909,10 +893,10 @@ static void test_entity_state_by_name(void) {
     live = live_entities();
     assert(live != NULL);
     hash = fnv(hash, (uint32_t)live->count);
-    /* The kind word is constant by the struct's shape (the state is a string
+    /* The kind word is constant by the struct's shape (the state is a name
      * or absent), kept so that ENTITY_STATE_HASH still proves the reads. */
     for (index = 0; index < (size_t)live->count; index++) {
-        state = entity_of(live->items[index])->state;
+        state = entity_state_name(entity_of(live->items[index])->state);
         if (state != NULL) {
             hash = fold_string(fnv(fnv(hash, 1u), (uint32_t)STRING_KIND), state);
         } else {
@@ -945,12 +929,8 @@ static void test_entity_state_by_name(void) {
     entities[22] = modal_backdrop_new(NULL);
     entities[23] = wormhole_new();
     for (index = 0; index < 24; index++) {
-        state = entity_of(entities[index])->state;
-        assert(state != NULL);
-        assert(strcmp(state, want[index]) == 0);
-        assert(identity_of(state) == identity[index]);
-        hash = fold_string(fnv(hash, (uint32_t)STRING_KIND), state);
-        hash = fnv(hash, (uint32_t)identity_of(state));
+        assert(entity_of(entities[index])->state == want[index]);
+        hash = fold_string(fnv(hash, (uint32_t)STRING_KIND), entity_state_name(want[index]));
     }
 
     /* Six words constant by the struct's shape, kept for the frozen hash. */
@@ -958,22 +938,19 @@ static void test_entity_state_by_name(void) {
         hash = fnv(hash, 0u);
     }
 
-    entity_set_state(entities[0], state_name);
-    state = entity_of(entities[0])->state;
-    assert(state == state_name);
-    hash = fold_set_state_back(fold_string(fnv(hash, 1u), state), entities[0]);
-    entity_set_state(entities[0], NULL);
-    assert(entity_of(entities[0])->state == NULL);
+    entity_set_state(entities[0], ENTITY_STATE_VANISHING);
+    assert(entity_of(entities[0])->state == ENTITY_STATE_VANISHING);
+    hash = fold_set_state_back(fold_string(fnv(hash, 1u), entity_state_name(ENTITY_STATE_VANISHING)), entities[0]);
+    entity_set_state(entities[0], ENTITY_STATE_NONE);
+    assert(entity_of(entities[0])->state == ENTITY_STATE_NONE);
     hash = fold_set_state_back(fnv(hash, 0u), entities[0]);
-    entity_set_state(entities[0], "normal");
-    state = entity_of(entities[0])->state;
-    assert(state != NULL && strcmp(state, "normal") == 0);
-    hash = fold_set_state_back(fold_string(fnv(hash, 1u), state), entities[0]);
+    entity_set_state(entities[0], ENTITY_STATE_NORMAL);
+    assert(entity_of(entities[0])->state == ENTITY_STATE_NORMAL);
+    hash = fold_set_state_back(fold_string(fnv(hash, 1u), entity_state_name(ENTITY_STATE_NORMAL)), entities[0]);
 
-    entity_set_state(entities[9], state_name);
-    state = entity_of(entities[9])->state;
-    assert(state == state_name);
-    hash = fold_set_state_back(fold_string(fnv(hash, 1u), state), entities[9]);
+    entity_set_state(entities[9], ENTITY_STATE_VANISHING);
+    assert(entity_of(entities[9])->state == ENTITY_STATE_VANISHING);
+    hash = fold_set_state_back(fold_string(fnv(hash, 1u), entity_state_name(ENTITY_STATE_VANISHING)), entities[9]);
 
     check("entity_state", hash, ENTITY_STATE_HASH);
 }
@@ -1070,12 +1047,12 @@ static void test_entity_state_time_by_name(void) {
     assert(zero->emitter->speed_factor == probe_archetype.emitter.speed_factor);
     hash = fold_state_time(hash, zero);
 
-    entity_set_state(&keyed->header, "vanishing");
+    entity_set_state(&keyed->header, ENTITY_STATE_VANISHING);
     assert_state_time(keyed, 0);
-    assert(keyed->header.state != NULL && strcmp(keyed->header.state, "vanishing") == 0);
-    hash = fold_string(fold_state_time(hash, keyed), keyed->header.state);
+    assert(keyed->header.state == ENTITY_STATE_VANISHING);
+    hash = fold_string(fold_state_time(hash, keyed), entity_state_name(keyed->header.state));
 
-    entity_set_state(entities[9], "vanishing");
+    entity_set_state(entities[9], ENTITY_STATE_VANISHING);
     assert_state_time(entities[9], 0);
     hash = fold_state_time(hash, entities[9]);
 

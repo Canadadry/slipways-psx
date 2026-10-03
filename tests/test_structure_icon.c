@@ -18,6 +18,7 @@
 #include "game/background.h"
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
+#include "engine/entity.h"
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "game/main_economy.h"
@@ -274,7 +275,7 @@ static uint32_t fold_hit_box(uint32_t h, void *icon) {
 static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const void *jb) {
     const structure_icon_t *ie = as_structure_icon(icon);
 
-    assert(ie->header.state != NULL && strcmp(ie->header.state, "normal") == 0);
+    assert(ie->header.state == ENTITY_STATE_NORMAL);
     assert(ie->header.state_time == 0);
     assert(ie->archetype == &structure_icon_archetype);
     assert(ie->archetype->layer == p8_fixed_from_int(12));
@@ -292,7 +293,7 @@ static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const v
            entity_list_listed(entities_by_message(ENTITY_MESSAGE_REFRESH), icon));
     assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), icon) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), icon));
 
-    h = fold_string(h, ie->header.state);
+    h = fold_string(h, entity_state_name(ie->header.state));
     h = fold_fixed(h, ie->archetype->layer);
     h = fold_hit_box(h, icon);
     h = fold_vec(h, ie->pos);
@@ -319,7 +320,7 @@ static void test_construction(void) {
         const structure_icon_t *ie = as_structure_icon(all[i]);
         assert(ie->kind == classes[i]);
         assert(ie->tooltip != NULL);
-        assert(ie->header.state != NULL && strcmp(ie->header.state, "normal") == 0);
+        assert(ie->header.state == ENTITY_STATE_NORMAL);
         assert(ie->archetype->layer == p8_fixed_from_int(12));
         assert(class_of(all[i])->hit_test != NULL);
         assert(entity_list_listed(live_entities(), all[i]) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), all[i]) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), all[i]));
@@ -674,7 +675,7 @@ static void test_kind_view_is_a_struct(void) {
         }
         assert(view.has_sprite && view.sprite == p8_fixed_from_int(s[i]));
         assert(view.has_cost && view.cost == p8_fixed_from_int(od[i]));
-        assert(view.state != NULL && strcmp(view.state, "placing") == 0);
+        assert(view.state == ENTITY_STATE_PLACING);
     }
 
     {
@@ -685,7 +686,7 @@ static void test_kind_view_is_a_struct(void) {
         no_entity = structure_icon_new(&tooltip_only);
         view = structure_icon_kind_view(no_entity);
         assert(view.header.class == structure_icon_kind_view_class());
-        assert(view.required_tech == NULL && !view.has_sprite && view.state == NULL && !view.has_cost);
+        assert(view.required_tech == NULL && !view.has_sprite && view.state == ENTITY_STATE_NONE && !view.has_cost);
     }
 }
 

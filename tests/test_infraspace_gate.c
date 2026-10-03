@@ -12,7 +12,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -23,6 +22,7 @@
 #include "engine/dispatch_context.h"
 #include "game/economy_score.h"
 #include "game/economy_tiers.h"
+#include "engine/entity.h"
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "game/main_economy.h"
@@ -261,7 +261,7 @@ static uint32_t fold_gate(uint32_t hash, const void *entity, const void *slipgat
     structure = gate;
     planet = structure;
     hash = fold_string_member(hash, planet->planet_id);
-    hash = fold_string_member(hash, planet->header.state);
+    hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
     hash = fold_string_member(hash, gate->archetype->required_tech);
     hash = fold_fixed_member(hash, infraspace_gate->archetype->infraspace);
@@ -270,7 +270,7 @@ static uint32_t fold_gate(uint32_t hash, const void *entity, const void *slipgat
     hash = fold_fixed_member(hash, structure->targeting->cost);
     hash = fold_fixed_member(hash, structure->targeting->archetype->clock_ticks);
     hash = fold_fixed_member(hash, structure->targeting->archetype->attach_distance);
-    hash = fold_string_member(hash, structure->targeting->archetype->confirmed_state);
+    hash = fold_string_member(hash, entity_state_name(structure->targeting->archetype->confirmed_state));
     hash = fold_structure(hash, structure);
     hash = planet->has_development_tier ? fold_fixed_member(hash, planet->development_tier) : fold_absent(hash);
     hash = fold_is_planet(hash, planet);
@@ -288,7 +288,7 @@ static uint32_t fold_gate(uint32_t hash, const void *entity, const void *slipgat
     hash = fnv(hash, (uint32_t)(gate->archetype->required_tech != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(structure->archetype->name != NULL));
-    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != NULL));
+    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != ENTITY_STATE_NONE));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
@@ -469,8 +469,8 @@ static uint32_t fold_route(uint32_t h, void *from) {
 }
 
 /* Placed on screen by the drag method (targeting_track) and the drop method
- * (targeting_confirm); update_entities on one still in "placing", then in
- * "settled"; draw through draw_layers; accept_drop against no argument,
+ * (targeting_confirm); update_entities on one still in placing, then in
+ * settled; draw through draw_layers; accept_drop against no argument,
  * another gate and a slipway drawn from itself; left_press with no link (a
  * slipway whose start is the gate) and with 3 (refused); refresh with 0 to
  * 3 links; the infraspace of a slipway drawn from a gate and from a
@@ -486,7 +486,7 @@ static void test_life(void) {
 
     start_game();
     idle = build_gate();
-    hash = fold_string_member(hash, as_structure(idle)->header.state);
+    hash = fold_string_member(hash, entity_state_name(as_structure(idle)->header.state));
     hash = fold_update_entities(hash, idle);
 
     placed = build_gate();
@@ -494,8 +494,8 @@ static void test_life(void) {
     set_credits(999);
     assert(class_of(placed)->drop == targeting_confirm_method);
     hash = targeting_confirm(placed) ? fnv(fnv(hash, 0xB0u), 1u) : fold_ref(hash, NULL);
-    hash = fold_string_member(hash, as_structure(placed)->header.state);
-    assert(strcmp(as_structure(placed)->header.state, "settled") == 0);
+    hash = fold_string_member(hash, entity_state_name(as_structure(placed)->header.state));
+    assert(as_structure(placed)->header.state == ENTITY_STATE_SETTLED);
     hash = fold_economy(hash, placed);
     for (index = 0; index < 3; index++) {
         hash = fold_update_entities(hash, placed);
