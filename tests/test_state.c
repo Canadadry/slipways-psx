@@ -1,4 +1,4 @@
-/* make state: the text state of a replay's last frame, read from the
+/* make state, replay with STATE set: the text state of a replay's last frame, read from the
  * outside as an agent would read it. In-process replays, made for
  * comparison, each run in a child: the cart loads only once per process. */
 
@@ -12,21 +12,57 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include "devtools/replay_loop.h"
 #include "devtools/state.h"
 #include "engine/entity_registry.h"
 #include "engine/exit_queue.h"
 #include "engine/game_zone.h"
 #include "game/ui_zone.h"
+#include "game/cart.h"
+#include "game/cheat.h"
+#include "engine/dispatch_context.h"
+#include "p8/assets.h"
 #include "p8/fatal.h"
+#include "p8/gfx.h"
+#include "p8/input.h"
+#include "p8/mem.h"
 
-#define TOOL "./tmp/state"
+#define REPLAY "./tmp/replay"
 #define STATE_TRM "tmp/test_state_trade_rich_mine.txt"
 #define STATE_CHEAT "tmp/test_state_cheat_code.txt"
-#define REPLAY "./tmp/replay"
 #define FILL "tmp/test_state_fill.txt"
 #define CAPTURE "tmp/test_state_capture.bin"
 #define DUMP "tmp/test_state_dump.txt"
+#define WITH_STATE(path) "STATE=" path " " REPLAY
+
+/* Replays the first `frames` frames of `events` in this process, as replay
+ * does, cheat included; a negative `frames` plays them all. `*frame` follows
+ * the frame being played. The cart loads only once per process. */
+static void replay_in_process(const char *events, int frames, int *frame) {
+    static p8_memory_t memory;
+    static p8_graphics_t graphics;
+    static p8_input_t input;
+    static cheat_t cheat;
+    p8_mem_init(&memory);
+    p8_gfx_init(&graphics);
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
+    p8_input_init(&input);
+    assert(p8_input_load(&input, events));
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
+    dispatch_context_set_input(&input);
+    cart_load();
+    cart_init();
+    cheat_init(&cheat);
+    if (frames < 0 || frames > input.frame_count) frames = input.frame_count;
+    for (*frame = 0; *frame < frames; (*frame)++) {
+        dispatch_context_set_input(&input);
+        cheat_step(&cheat, &input);
+        cart_update60();
+        cart_draw();
+        if (*frame < input.frame_count - 1) p8_input_step(&input);
+    }
+}
 
 static char *read_file(const char *path) {
     FILE *f = fopen(path, "rb");
@@ -97,10 +133,9 @@ static int count_after_replay(const char *events, const char *tag) {
     pid_t pid = fork();
     assert(pid >= 0);
     if (pid == 0) {
-        static replay_loop_t r;
+        static int frame;
         close(pipe_fd[0]);
-        replay_loop_open(&r, events);
-        for (int i = 0; i < replay_loop_frames(&r); i++) replay_loop_play_frame(&r, i);
+        replay_in_process(events, -1, &frame);
         const entity_list_t *l = entities_by_tag(tag);
         int n = l != NULL ? l->count : 0;
         assert(write(pipe_fd[1], &n, sizeof n) == (ssize_t)sizeof n);
@@ -118,7 +153,7 @@ static int count_after_replay(const char *events, const char *tag) {
 
 static void one_planet_line_per_game_planet(void) {
     remove(STATE_TRM);
-    assert(system(TOOL " tests/e2e/trade_rich_mine.json " STATE_TRM " > /dev/null") == 0);
+    assert(system(WITH_STATE(STATE_TRM) " tests/e2e/trade_rich_mine.json " CAPTURE " " DUMP " > /dev/null") == 0);
     char *state = read_file(STATE_TRM);
     int planets = count_after_replay("tests/e2e/trade_rich_mine.json", "planet");
     printf("  trade_rich_mine: %d planets\n", planets);
@@ -155,7 +190,7 @@ static void the_built_network_shows(void) {
 /* The cheat replayed as is: 99 science, $200 at the last frame (f35). */
 static void resources_reflect_the_cheat(void) {
     remove(STATE_CHEAT);
-    assert(system(TOOL " tests/e2e/cheat_code.json " STATE_CHEAT " > /dev/null") == 0);
+    assert(system(WITH_STATE(STATE_CHEAT) " tests/e2e/cheat_code.json " CAPTURE " " DUMP " > /dev/null") == 0);
     char *state = read_file(STATE_CHEAT);
     assert(value(state, "resources credits") == 200);
     assert(value(state, "resources science") == 99);
@@ -227,9 +262,8 @@ static void measure(memory_t *m) {
 
 /* In a child: writing the state after the replay takes and releases nothing. */
 static void write_without_touching_memory(void) {
-    static replay_loop_t r;
-    replay_loop_open(&r, "tests/e2e/trade_rich_mine.json");
-    for (int i = 0; i < replay_loop_frames(&r); i++) replay_loop_play_frame(&r, i);
+    static int frame;
+    replay_in_process("tests/e2e/trade_rich_mine.json", -1, &frame);
     memory_t before, after;
     measure(&before);
     FILE *out = fopen("/dev/null", "w");
@@ -261,12 +295,10 @@ static void a_fatal_writes_the_state_up_to_the_stop(void) {
     pid_t pid = fork();
     assert(pid >= 0);
     if (pid == 0) {
-        static replay_loop_t r;
         static int frame;
         assert(freopen("/dev/null", "w", stderr) != NULL);
-        replay_loop_open(&r, "tests/e2e/trade_rich_mine.json");
         state_write_on_exit(STATE_FATAL, &frame);
-        for (frame = 0; frame < 120; frame++) replay_loop_play_frame(&r, frame);
+        replay_in_process("tests/e2e/trade_rich_mine.json", 120, &frame);
         p8_fatal("test zone full");
     }
     int status;

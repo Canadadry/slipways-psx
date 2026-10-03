@@ -18,7 +18,7 @@
 # make replay EVENTS=<events> -> replays that file in the headless engine,
 #                       framebuffer dump in tmp/replay_dump.txt, outside the
 #                       suite
-# make state EVENTS=<events> -> replays that file like make replay, then writes
+# make state EVENTS=<events> -> make replay with STATE set, which also writes
 #                       the state of the last frame (clock, planets,
 #                       slipways, structures), zone and cap use to
 #                       tmp/state.txt, outside the suite
@@ -177,12 +177,12 @@ $(OBJ_SANITIZE_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) $(UBSAN_CFLAGS) $(SANITIZE_OPT_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
-# The whole engine closure: all of src/ except the eight entry points of
+# The whole engine closure: all of src/ except the seven entry points of
 # src/cmd/, src/p8/palette.c, the two `src/platform/raylib_backend*.c` and
 # the modules of src/devtools/ that only the tools and the interactive game
-# link (fixed_test_double, gif, minimize, replay_control, replay_loop,
-# replay_source, screencast, screencast_player, session_recorder, state).
-# Used by the targets that call cart_load(), which pulls in the whole port.
+# link (fixed_test_double, gif, minimize, replay_control, replay_source,
+# screencast, screencast_player, session_recorder, state). Used by the
+# targets that call cart_load(), which pulls in the whole port.
 ENGINE_SRCS := \
     src/p8/assets.c \
     src/p8/audio.c \
@@ -593,8 +593,7 @@ $(TMP_DIR)/test_draw_layers_camera: $(call objs,tests/test_draw_layers_camera.c 
 $(TMP_DIR)/test_demo: $(call objs,tests/test_demo.c src/p8/mem.c src/p8/assets.c src/p8/gfx.c src/p8/input.c src/devtools/input_json.c src/devtools/dump.c) tests/fixtures/demo_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-REPLAY_SRCS := src/cmd/replay.c src/devtools/replay_loop.c src/devtools/screencast.c $(ENGINE_SRCS)
-STATE_SRCS := src/cmd/state.c src/devtools/replay_loop.c src/devtools/state.c $(ENGINE_SRCS)
+REPLAY_SRCS := src/cmd/replay.c src/devtools/screencast.c src/devtools/state.c $(ENGINE_SRCS)
 
 $(TMP_DIR)/replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
@@ -602,10 +601,7 @@ $(TMP_DIR)/replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 $(TMP_DIR)/replay_gcov: $(call gcov_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(GCOV_CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/state: $(call objs,$(STATE_SRCS)) | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
-
-$(TMP_DIR)/test_state: $(call objs,tests/test_state.c src/devtools/replay_loop.c src/devtools/state.c $(ENGINE_SRCS)) $(TMP_DIR)/state $(TMP_DIR)/replay | $(TMP_DIR)
+$(TMP_DIR)/test_state: $(call objs,tests/test_state.c src/devtools/state.c $(ENGINE_SRCS)) $(TMP_DIR)/replay | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_background_draw: $(call objs,tests/test_background_draw.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
@@ -803,8 +799,8 @@ endif
 replay: $(TMP_DIR)/replay
 	./$(TMP_DIR)/replay $(EVENTS)
 
-state: $(TMP_DIR)/state
-	./$(TMP_DIR)/state $(EVENTS) $(TMP_DIR)/state.txt
+state: $(TMP_DIR)/replay
+	STATE=$(TMP_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS)
 
 test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard
 

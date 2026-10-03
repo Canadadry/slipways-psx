@@ -25,11 +25,21 @@
  * max_elements; then "game <bytes>", "max_bytes game <bytes>", "load
  * <bytes>", "max_bytes load <bytes>": the game zone, its loading sub-zone
  * and their session maxima. Capture, dump and exit code stay the same; a
- * fill file that cannot be opened gets a message on stderr, still exit 0. */
+ * fill file that cannot be opened gets a message on stderr, still exit 0.
+ *
+ * STATE=<file>, optional, gets the devtools/state text of the last frame,
+ * before the fill file; a p8_fatal during the replay still writes it there,
+ * "stopped p8_fatal frame <n>" first. */
 
+#include "p8/mem.h"
+#include "p8/assets.h"
+#include "p8/gfx.h"
+#include "p8/input.h"
+#include "game/cheat.h"
 #include "devtools/dump.h"
-#include "devtools/replay_loop.h"
 #include "devtools/screencast.h"
+#include "devtools/state.h"
+#include "engine/dispatch_context.h"
 #include "game/cart.h"
 #include "game/ui_zone.h"
 #include "game/particle_zone.h"
@@ -84,8 +94,25 @@ int main(int argc, char **argv) {
     const char *capture_path = (argc > 2) ? argv[2] : NULL;
     const char *dump_path = (argc > 3) ? argv[3] : "tmp/replay_dump.txt";
 
-    static replay_loop_t loop;
-    replay_loop_open(&loop, replay_path);
+    p8_memory_t memory;
+    p8_mem_init(&memory);
+
+    p8_graphics_t graphics;
+    p8_gfx_init(&graphics);
+
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
+
+    p8_input_t input;
+    p8_input_init(&input);
+    assert(p8_input_load(&input, replay_path));
+
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
+    dispatch_context_set_input(&input);
+
+    cart_load();
+    cart_init();
 
     /* A failure prints its message and returns 1: a missing or truncated
      * capture would yield a wrong hash, indistinguishable from a
@@ -97,19 +124,30 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    int frame_count = replay_loop_frames(&loop);
-    for (int i = 0; i < frame_count; i++) {
-        replay_loop_play_frame(&loop, i);
-        /* AFTER frame i and before the next one: the only moment the
-         * screen memory holds the whole frame just drawn. At the top
+    int frame_count = input.frame_count;
+    cheat_t cheat;
+    cheat_init(&cheat);
+    const char *state_path = getenv("STATE");
+    static int i;
+    if (state_path != NULL) state_write_on_exit(state_path, &i);
+    for (i = 0; i < frame_count; i++) {
+        dispatch_context_set_input(&input);
+        cheat_step(&cheat, &input);
+        cart_update60();
+        cart_draw();
+        /* AFTER cart_draw() and before the next frame: the only moment
+         * the screen memory holds the whole frame just drawn. At the top
          * of the loop, the whole capture would be shifted by one frame --
          * tests/test_headless_capture.c catches that by comparing the
          * last captured frame with the text dump. */
-        if (capture_path && !screencast_write_frame(&capture, &loop.memory)) {
+        if (capture_path && !screencast_write_frame(&capture, &memory)) {
             fprintf(stderr, "replay: cannot write frame %d to '%s'\n",
                     i, capture_path);
             screencast_writer_close(&capture);
             return 1;
+        }
+        if (i < frame_count - 1) {
+            p8_input_step(&input);
         }
     }
 
@@ -126,16 +164,27 @@ int main(int argc, char **argv) {
 
     FILE *dump_out = fopen(dump_path, "w");
     assert(dump_out != NULL);
-    int dump_ok = dump_screen(&loop.memory, dump_out);
+    int dump_ok = dump_screen(&memory, dump_out);
     fclose(dump_out);
     assert(dump_ok);
+
+    if (state_path != NULL) {
+        state_release();
+        FILE *state_out = fopen(state_path, "w");
+        if (state_out == NULL) {
+            fprintf(stderr, "replay: cannot open the state file '%s'\n", state_path);
+            return 1;
+        }
+        state_write(state_out);
+        fclose(state_out);
+    }
 
     const char *fill_path = getenv("REPLAY_FILL");
     if (fill_path != NULL) {
         write_fill(fill_path);
     }
 
-    replay_loop_close(&loop);
+    p8_input_free(&input);
 
     printf("replay: %d frame(s) run against %s; framebuffer dumped to %s\n",
            frame_count, replay_path, dump_path);

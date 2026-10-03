@@ -38,8 +38,5 @@ src/devtools/session_recorder.h | session recording of the interactive driver
 src/cmd/gif.c | entry point of the gif tool of make gif, host tool
 src/devtools/gif.c | GIF encoder of make gif, host tool
 src/devtools/gif.h | GIF encoder of make gif, header of devtools/gif.c
-src/cmd/state.c | entry point of make state, host tool
 src/devtools/state.c | text state of make state, host tool
 src/devtools/state.h | text state of make state, header of devtools/state.c
-src/devtools/replay_loop.c | headless replay loop shared by replay and state, host tool
-src/devtools/replay_loop.h | headless replay loop, header of devtools/replay_loop.c
