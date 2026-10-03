@@ -17,7 +17,7 @@
 
 set -u
 
-CATEGORIES="value ob stash type-tag ref-audit by-name dispatch overrides spec list"
+CATEGORIES="by-name dispatch overrides spec"
 
 fail() {
     echo "data_residue: $1" >&2
@@ -26,27 +26,15 @@ fail() {
 
 pattern() {
     case $1 in
-        value) printf '%s\n' '\bpico8_value_[A-Za-z0-9_]+|\bPICO8_VALUE_[A-Z0-9_]+|pico8_value\.h' ;;
-        ob) printf '%s\n' '\bpico8_ob(_[A-Za-z0-9_]+)?\b|\bPICO8_OB_[A-Z0-9_]+|\bpico8_fi(_fn)?\b|pico8_ob\.h' ;;
-        stash) printf '%s\n' '\bpico8_unstash\b|\bpico8_stash_[A-Za-z0-9_]+|pico8_stash\.h|\bpico8_(r|iz)\(\)' ;;
-        type-tag) printf '%s\n' '\bpico8_type_tag(_of|_t)?\b|\bPICO8_TYPE_TAG_[A-Z0-9_]+|pico8_type_tag\.h' ;;
-        ref-audit) printf '%s\n' 'pico8_ref_audit\.h|\bPICO8_REF_[A-Z0-9_]+' ;;
         by-name) printf '%s\n' '\bpico8_entity_(get|set)_field\b|\b[a-z0-9_]*field_truthy\(|'\
 '\bpico8_[a-z0-9_]+_(set_)?field(_fn)?\b|(->|\.)(set_)?field\b|\b[a-z0-9_]+_take_[a-z0-9_]+\(' ;;
         dispatch) printf '%s\n' '\bpico8_value_function(_t)?\b|\bpico8_mv\(' ;;
         overrides) printf '%s\n' '\boverrides\b' ;;
-        spec) printf '%s\n' '\bg_[a-z0-9_]+_(spec|defaults)\b|\bpico8_[a-z0-9_]+_(default|defaults_reset)\b|'\
+        spec) printf '%s\n' '\bg_[a-z0-9_]+_(spec|defaults)\b|'\
 '\b[a-z0-9_]+_default_(fixed|table|vec|string|box|list|bool|hf)\b' ;;
-        list) printf '%s\n' '\bpico8_list_[a-z_]+\b|\bPICO8_REF_AS_LIST[A-Z_]*|'\
-'\bPICO8_TYPE_TAG_LIST\b|pico8_list\.h' ;;
         *) return 1 ;;
     esac
 }
-
-# These seven `_default` names are variants with an omitted argument, not
-# class defaults: counting them would make spec impossible to clear. No `\b`
-# in this sed expression: BSD sed does not know it.
-SPEC_EXCLUSION='s/(p8_spr|p8_fixed_rnd|hud_select_palette_block|hud_print_outlined|layout_row_draw_at|draw_functions_draw_rows|hud_draw_bar)_default//g'
 
 mode=count
 checked=
@@ -85,23 +73,8 @@ find "$@" \( -name '*.c' -o -name '*.h' \) -type f | sort > "$work/files"
 # order. grep exits 1 when nothing matches.
 collect() {
     status=0
-    if [ "$1" = spec ]; then
-        grep -lE "$(pattern spec)" $(cat "$work/files") > "$work/candidates" || status=$?
-        [ "$status" -le 1 ] || fail "grep failed"
-        : > "$work/spec"
-        while IFS= read -r file; do
-            status=0
-            sed -E "$SPEC_EXCLUSION" "$file" > "$work/excluded" || fail "sed failed"
-            grep -nE "$(pattern spec)" "$work/excluded" > "$work/numbers" || status=$?
-            [ "$status" -le 1 ] || fail "grep failed"
-            cut -d: -f1 "$work/numbers" > "$work/numbers.cut"
-            awk -v f="$file" 'NR == FNR { keep[$1] = 1; next } FNR in keep { print f ":" FNR ":" $0 }' \
-                "$work/numbers.cut" "$file" >> "$work/spec"
-        done < "$work/candidates"
-    else
-        grep -HnE "$(pattern "$1")" $(cat "$work/files") > "$work/$1" || status=$?
-        [ "$status" -le 1 ] || fail "grep failed"
-    fi
+    grep -HnE "$(pattern "$1")" $(cat "$work/files") > "$work/$1" || status=$?
+    [ "$status" -le 1 ] || fail "grep failed"
 }
 
 if [ "$mode" = check ]; then

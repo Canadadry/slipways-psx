@@ -58,42 +58,30 @@ static void test_clean_tree_prints_only_the_empty_footer(void) {
 
 static void test_one_occurrence_per_category_in_table_order(void) {
     setup();
-    write_file(SRC "/c1.c", "pico8_" "value_t v;\n");
-    write_file(SRC "/c2.c", "pico8_" "ob_table_t *t;\n");
-    write_file(SRC "/c3.c", "char *s = pico8_" "unstash(x);\n");
-    write_file(SRC "/c4.h", "pico8_" "type_tag_t tag;\n");
-    write_file(SRC "/c5.c", "#include \"pico8_" "ref_audit.h\"\n");
     write_file(TST "/c6.c", "int b = field_" "truthy(e, \"x\");\n");
     write_file(TST "/c7.c", "pico8_" "mv(a, b);\n");
     write_file(TST "/c8.c", "int over" "rides;\n");
     write_file(TST "/c9.c", "int k = g_jo_" "spec[0];\n");
-    write_file(TST "/c10.c", "pico8_" "list_t l;\n");
     assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "value\t1\t1\n"
-                                  "ob\t1\t1\n"
-                                  "stash\t1\t1\n"
-                                  "type-tag\t1\t1\n"
-                                  "ref-audit\t1\t1\n"
-                                  "by-name\t1\t1\n"
+    assert(strcmp(read_file(OUT), "by-name\t1\t1\n"
                                   "dispatch\t1\t1\n"
                                   "over" "rides\t1\t1\n"
                                   "spec\t1\t1\n"
-                                  "list\t1\t1\n"
-                                  "residue D: 10 line(s), 10 file(s)\n") == 0);
+                                  "residue D: 4 line(s), 4 file(s)\n") == 0);
 }
 
 static void test_overlapping_categories_count_each_but_footer_counts_distinct_lines(void) {
     setup();
-    write_file(SRC "/e.c", "pico8_" "entity_get_field(e, \"x\", &v);\n"
-                           "pico8_" "value_t v;\n");
+    write_file(SRC "/e.c", "int b = field_" "truthy(planet, \"x\");\n"
+                           "int k = g_planet_" "spec[0];\n");
     assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "value\t1\t1\n"
-                                  "by-name\t1\t1\n"
+    assert(strcmp(read_file(OUT), "by-name\t1\t1\n"
+                                  "spec\t1\t1\n"
                                   "residue D: 2 line(s), 1 file(s)\n") == 0);
-    write_file(SRC "/e.c", "pico8_" "value_t v = pico8_" "entity_get_field(e, \"x\");\n");
+    write_file(SRC "/e.c", "int k = g_planet_" "spec[field_" "truthy(planet, \"x\")];\n");
     assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "value\t1\t1\n"
-                                  "by-name\t1\t1\n"
+    assert(strcmp(read_file(OUT), "by-name\t1\t1\n"
+                                  "spec\t1\t1\n"
                                   "residue D: 1 line(s), 1 file(s)\n") == 0);
 }
 
@@ -105,18 +93,16 @@ static void test_omitted_argument_defaults_are_not_class_specs(void) {
     assert(run_residue(TREE) == 0);
     assert(strcmp(read_file(OUT), EMPTY_FOOTER) == 0);
     write_file(SRC "/g.c", "p8_" "spr_default(gfx, mem, 1, 0, 0);\n"
-                           "pico8_" "jo_default(\"nu\", &k);\n"
                            "int f = jo_" "default_fixed(x);\n"
                            "hud_" "print_outlined_default(x);\n");
     assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "spec\t2\t1\n"
-                                  "residue D: 2 line(s), 1 file(s)\n") == 0);
+    assert(strcmp(read_file(OUT), "spec\t1\t1\n"
+                                  "residue D: 1 line(s), 1 file(s)\n") == 0);
 }
 
 static void test_word_boundaries_and_value_truthy(void) {
     setup();
-    write_file(SRC "/w.c", "int mypico8_" "value_t;\n"
-                           "int over" "ridesx;\n"
+    write_file(SRC "/w.c", "int over" "ridesx;\n"
                            "int fields;\n"
                            "int t = pico8_" "jo_truthy(v);\n");
     assert(run_residue(TREE) == 0);
@@ -129,31 +115,14 @@ static void test_word_boundaries_and_value_truthy(void) {
                                   "residue D: 3 line(s), 1 file(s)\n") == 0);
 }
 
-static void test_list_word_boundaries(void) {
-    setup();
-    write_file(SRC "/l.c", "int mypico8_" "list_t;\n"
-                           "int pico8_" "listing;\n"
-                           "pico8_" "ptrs_t p;\n");
-    assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), EMPTY_FOOTER) == 0);
-    write_file(SRC "/l.c", "#include \"pico8_" "list.h\"\n"
-                           "int n = PICO8_" "REF_AS_LIST_CONST(v)->count;\n"
-                           "int t = PICO8_" "TYPE_TAG_LIST;\n");
-    assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "type-tag\t1\t1\n"
-                                  "ref-audit\t1\t1\n"
-                                  "list\t3\t1\n"
-                                  "residue D: 3 line(s), 1 file(s)\n") == 0);
-}
-
 static void test_detail_sorts_by_category_then_file(void) {
     setup();
-    write_file(SRC "/b.c", "pico8_" "value_t b;\n");
-    write_file(SRC "/a.c", "pico8_" "value_t a;\npico8_" "ob_table_t *t;\n");
+    write_file(SRC "/b.c", "int k = g_planet_" "spec[1];\n");
+    write_file(SRC "/a.c", "int k = g_planet_" "spec[0];\nint b = field_" "truthy(planet, \"x\");\n");
     assert(run_residue("--detail " TREE) == 0);
-    const char *expected = "value\t" SRC "/a.c\t1\n"
-                           "value\t" SRC "/b.c\t1\n"
-                           "ob\t" SRC "/a.c\t1\n"
+    const char *expected = "by-name\t" SRC "/a.c\t1\n"
+                           "spec\t" SRC "/a.c\t1\n"
+                           "spec\t" SRC "/b.c\t1\n"
                            "residue D: 3 line(s), 2 file(s)\n";
     assert(strcmp(read_file(OUT), expected) == 0);
     assert(system("cp " OUT " " DIR "/one.txt") == 0);
@@ -163,19 +132,32 @@ static void test_detail_sorts_by_category_then_file(void) {
 
 static void test_check_fails_only_on_a_named_category_present(void) {
     setup();
-    write_file(SRC "/r.c", "int a;\n#include \"pico8_" "ref_audit.h\"\n");
-    assert(run_residue("--check ref-audit " TREE) == 1);
+    write_file(SRC "/r.c", "int a;\nint b = field_" "truthy(planet, \"x\");\n");
+    assert(run_residue("--check by-name " TREE) == 1);
     const char *out = read_file(OUT);
-    assert(strstr(out, "ref-audit: " SRC "/r.c:2:#include \"pico8_" "ref_audit.h\"\n") != NULL);
-    assert(strstr(out, "guarded residue (ref-audit): 1 line(s)\n") != NULL);
+    assert(strstr(out, "by-name: " SRC "/r.c:2:int b = field_" "truthy(planet, \"x\");\n") != NULL);
+    assert(strstr(out, "guarded residue (by-name): 1 line(s)\n") != NULL);
     assert(run_residue("--check spec " TREE) == 0);
     assert(strcmp(read_file(OUT), "guarded residue (spec): 0 line(s)\n") == 0);
-    assert(run_residue("--check spec,ref-audit " TREE) == 1);
+    assert(run_residue("--check spec,by-name " TREE) == 1);
     assert(run_residue("--check nope " TREE) == 2);
     assert(strstr(read_file(ERR), "nope") != NULL);
     assert(run_residue("--check '' " TREE) == 2);
-    assert(run_residue("--check spec,,ref-audit " TREE) == 2);
+    assert(run_residue("--check spec,,by-name " TREE) == 2);
     assert(run_residue("--check") == 2);
+}
+
+static void test_retired_categories_are_unknown(void) {
+    static const char *const retired[] = {"value", "ob", "stash", "type-tag", "ref-audit", "list"};
+    for (size_t i = 0; i < sizeof retired / sizeof retired[0]; i++) {
+        char args[256];
+        char message[256];
+        setup();
+        snprintf(args, sizeof args, "--check %s " TREE, retired[i]);
+        snprintf(message, sizeof message, "unknown category: %s\n", retired[i]);
+        assert(run_residue(args) == 2);
+        assert(strstr(read_file(ERR), message) != NULL);
+    }
 }
 
 static void test_measure_on_nothing_is_an_error_not_an_empty_residue(void) {
@@ -228,13 +210,6 @@ static const liveness_row_t LIVENESS[] = {
 };
 
 #define LIVENESS_ROWS (sizeof LIVENESS / sizeof LIVENESS[0])
-
-static const char *const CATEGORIES_WITHOUT_LIVENESS[] = {
-    "stash", "ob", "list", "ref-audit", "value", "type-tag",
-};
-
-#define CATEGORIES_WITHOUT_LIVENESS_COUNT \
-    (sizeof CATEGORIES_WITHOUT_LIVENESS / sizeof CATEGORIES_WITHOUT_LIVENESS[0])
 
 static void test_each_guarded_category_bites_on_its_planted_violation(void) {
     int red = 0;
@@ -294,15 +269,13 @@ static void test_liveness_rows_are_exactly_the_guarded_categories(void) {
     }
     size_t guarded = 0;
     for (char *name = strtok(guard, ","); name != NULL; name = strtok(NULL, ",")) {
-        int row = in_list(name, rows, LIVENESS_ROWS);
-        int without = in_list(name, CATEGORIES_WITHOUT_LIVENESS, CATEGORIES_WITHOUT_LIVENESS_COUNT);
-        if (row == without) {
+        if (!in_list(name, rows, LIVENESS_ROWS)) {
             fprintf(stderr, "liveness table: %s\n", name);
         }
-        assert(row != without && "guarded category without exactly one liveness status");
+        assert(in_list(name, rows, LIVENESS_ROWS) && "guarded category without a liveness row");
         guarded++;
     }
-    assert(guarded == LIVENESS_ROWS + CATEGORIES_WITHOUT_LIVENESS_COUNT);
+    assert(guarded == LIVENESS_ROWS);
 }
 
 int main(void) {
@@ -313,9 +286,9 @@ int main(void) {
     test_overlapping_categories_count_each_but_footer_counts_distinct_lines();
     test_omitted_argument_defaults_are_not_class_specs();
     test_word_boundaries_and_value_truthy();
-    test_list_word_boundaries();
     test_detail_sorts_by_category_then_file();
     test_check_fails_only_on_a_named_category_present();
+    test_retired_categories_are_unknown();
     test_measure_on_nothing_is_an_error_not_an_empty_residue();
     assert(system("rm -rf " DIR) == 0);
     printf("test_data_residue: all tests passed\n");
