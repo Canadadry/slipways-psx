@@ -20,12 +20,15 @@ coûtait seulement.
 
 ## Les trois artefacts produits
 
-- `CLAUDE.md`, section « Commentaires » : la règle des quatre destinations, dans
-  le fichier d'instructions que toute session relit.
-- `docs/glossaire-noms.md` : 191 symboles, une ligne chacun. Le cart est minifié
-  (`jo`, `bv`, `cg`) et le port translittère littéralement (`pico8_jo_kj`) : le
-  **nom** était donc déjà dans le code, c'est le **sens** qui manquait, et il ne
-  se déduisait ni du C ni du Lua.
+- `CLAUDE.md`, section « Commentaires » : la règle des destinations — quatre à
+  l'époque, trois depuis que les noms sont devenus parlants —, dans le fichier
+  d'instructions que toute session relit.
+- Un glossaire des noms : 191 symboles, une ligne chacun. Le cart est minifié en
+  digrammes et le port les translittérait littéralement : le **nom** était donc
+  déjà dans le code, c'est le **sens** qui manquait, et il ne se déduisait ni du
+  C ni du Lua. Un plan de renommage l'a remplacé depuis, avec une table
+  `ancien → nouveau` : le nom porte le sens, la destination « sens d'un nom » est
+  tombée.
 - `docs/trous-de-portage.md` : les écarts numérotés, revérifiés contre le code un
   par un. Le code n'y renvoie que par `/* GAP-7 */`.
 
