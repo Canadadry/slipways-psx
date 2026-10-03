@@ -180,7 +180,7 @@ static void test_mod_fractional_operand(void) {
     assert(p8_fixed_mod(a, b) == fixed_test_double_from_double(1.5));
 }
 
-static void test_mod_negative_dividend_matches_lua_floor_semantics(void) {
+static void test_mod_negative_dividend_floors(void) {
     /* PICO-8's floor-based modulo (not C's truncating "%"): -1 % 3 == 2, not
      * -1, since flr(-1/3)==-1 and -1-(-1*3)==2. */
     p8_fixed_t a = p8_fixed_from_int(-1);
@@ -612,7 +612,7 @@ int main(void) {
 
     test_mod_positive_operands();
     test_mod_fractional_operand();
-    test_mod_negative_dividend_matches_lua_floor_semantics();
+    test_mod_negative_dividend_floors();
     test_mod_result_less_than_divisor_when_exact();
 
     test_abs_negative_value();

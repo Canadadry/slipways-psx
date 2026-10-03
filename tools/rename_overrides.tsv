@@ -1484,3 +1484,12 @@ site	tmp/pico8_replay@tools/frames_ref.sh	garde aussi tmp/pico8_replay pour un c
 # --- string keys kept as they are ---------------------------------------------
 string	pz	=
 string	go	=
+
+# --- names that no rule derives ------------------------------------------------
+name	test_mod_negative_dividend_matches_lua_floor_semantics	test_mod_negative_dividend_floors	
+name	test_sget_reads_known_pixel_from_loaded_cart_data	test_sget_reads_known_pixel_from_loaded_sheet	
+name	test_map_and_mset_round_trip_against_real_cart_data	test_map_and_mset_round_trip_against_real_sheet	
+name	cart_mr_items	frozen_positions_items	
+name	CART_MR	FROZEN_POSITIONS	
+name	cart_gp_items	frozen_routed_positions_items	
+name	CART_GP	FROZEN_ROUTED_POSITIONS	

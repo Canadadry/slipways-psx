@@ -169,10 +169,10 @@ static uint32_t fold_names(uint32_t h, const str_seq_t *names) {
 
 /* Frozen copies of the position name lists and of the routed ones: the code
  * has no such lists, and DEFAULTS_HASH folds these. */
-static const char *const cart_positions_items[] = {"name", "planet_codes", "base_cost", "production_key", "inputs", "output", "upgrade_tech", "byproduct"};
-static const str_seq_t CART_POSITIONS = {8, cart_positions_items};
-static const char *const cart_routed_positions_items[] = {"output", "byproduct"};
-static const str_seq_t CART_ROUTED_POSITIONS = {2, cart_routed_positions_items};
+static const char *const frozen_positions_items[] = {"name", "planet_codes", "base_cost", "production_key", "inputs", "output", "upgrade_tech", "byproduct"};
+static const str_seq_t FROZEN_POSITIONS = {8, frozen_positions_items};
+static const char *const frozen_routed_positions_items[] = {"output", "byproduct"};
+static const str_seq_t FROZEN_ROUTED_POSITIONS = {2, frozen_routed_positions_items};
 
 static uint32_t fold_absent(uint32_t h) {
     return fnv(h, 0xFFFFFFFFu);
@@ -489,8 +489,8 @@ static void test_projects(void) {
         }
     }
     assert(row_tail == &research_project_row_tail_row);
-    hash_by_name = fold_names(hash_by_name, &CART_POSITIONS);
-    hash_by_name = fold_names(hash_by_name, &CART_ROUTED_POSITIONS);
+    hash_by_name = fold_names(hash_by_name, &FROZEN_POSITIONS);
+    hash_by_name = fold_names(hash_by_name, &FROZEN_ROUTED_POSITIONS);
     hash_by_name = fold_row(hash_by_name, row_tail, 2);
     check("projects", hash, PROJECTS_HASH);
     check("defaults", hash_by_name, DEFAULTS_HASH);

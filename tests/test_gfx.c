@@ -327,7 +327,7 @@ static void test_fillp_pattern_alters_rectfill_output(void) {
     }
 }
 
-static void test_sget_reads_known_pixel_from_loaded_cart_data(void) {
+static void test_sget_reads_known_pixel_from_loaded_sheet(void) {
     /* The three known-good values, in raw sheet pixel coordinates, not
      * sprite index plus offset: (16,0) is sprite 2's top-left, (2,64) is
      * sprite 128's top row two pixels in, (0,127) is sprite 240's
@@ -510,7 +510,7 @@ static void test_map_treats_sprite_0_cells_as_empty(void) {
     assert(p8_peek(&mem, P8_ADDR_SCREEN + 0) == 7);
 }
 
-static void test_map_and_mset_round_trip_against_real_cart_data(void) {
+static void test_map_and_mset_round_trip_against_real_sheet(void) {
     /* `sget`'s read of a sprite-sheet pixel and the framebuffer `map()`
      * draws from that same sprite must agree, on the real pico8/gfx.json. */
     p8_memory_t mem;
@@ -521,7 +521,7 @@ static void test_map_and_mset_round_trip_against_real_cart_data(void) {
     assert(ok);
 
     /* Sprite 2's top-left pixel is known-good color 3 (see
-     * test_sget_reads_known_pixel_from_loaded_cart_data). */
+     * test_sget_reads_known_pixel_from_loaded_sheet). */
     unsigned char expected = p8_sget(&mem, 16, 0);
     assert(expected == 3);
 
@@ -700,7 +700,7 @@ int main(void) {
     test_circfill_fills_the_disc();
     test_circfill_zero_radius_draws_single_pixel();
     test_fillp_pattern_alters_rectfill_output();
-    test_sget_reads_known_pixel_from_loaded_cart_data();
+    test_sget_reads_known_pixel_from_loaded_sheet();
     test_sget_out_of_range_returns_zero();
     test_spr_default_draws_1x1_sprite_at_world_position();
     test_spr_with_explicit_width_height_draws_multi_block_sprite();
@@ -710,7 +710,7 @@ int main(void) {
     test_mset_out_of_range_is_noop();
     test_map_draws_cells_via_sprite_drawing_logic();
     test_map_treats_sprite_0_cells_as_empty();
-    test_map_and_mset_round_trip_against_real_cart_data();
+    test_map_and_mset_round_trip_against_real_sheet();
     test_print_draws_known_glyph_pixels();
     test_print_advances_cursor_by_cell_width_between_chars();
     test_print_unmapped_character_draws_placeholder_block();

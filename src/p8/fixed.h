@@ -19,7 +19,7 @@ typedef int32_t p8_fixed_t;
  * tools/pico8_reference_probe_out.txt, point removed. Second: the decimal
  * literal as the source writes it, for grep and tools/constants_compare.sh
  * -- never evaluated. */
-#define P8_FIXED_LIT(raw, lua) ((p8_fixed_t)(uint32_t)(raw##u))
+#define P8_FIXED_LIT(raw, decimal) ((p8_fixed_t)(uint32_t)(raw##u))
 
 p8_fixed_t p8_fixed_from_int(int32_t i);
 
