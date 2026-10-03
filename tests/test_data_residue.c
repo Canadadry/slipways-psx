@@ -59,15 +59,13 @@ static void test_clean_tree_prints_only_the_empty_footer(void) {
 static void test_one_occurrence_per_category_in_table_order(void) {
     setup();
     write_file(TST "/c6.c", "int b = field_" "truthy(e, \"x\");\n");
-    write_file(TST "/c7.c", "pico8_" "mv(a, b);\n");
     write_file(TST "/c8.c", "int over" "rides;\n");
     write_file(TST "/c9.c", "int k = g_jo_" "spec[0];\n");
     assert(run_residue(TREE) == 0);
     assert(strcmp(read_file(OUT), "by-name\t1\t1\n"
-                                  "dispatch\t1\t1\n"
                                   "over" "rides\t1\t1\n"
                                   "spec\t1\t1\n"
-                                  "residue D: 4 line(s), 4 file(s)\n") == 0);
+                                  "residue D: 3 line(s), 3 file(s)\n") == 0);
 }
 
 static void test_overlapping_categories_count_each_but_footer_counts_distinct_lines(void) {
@@ -115,6 +113,17 @@ static void test_word_boundaries_and_value_truthy(void) {
                                   "residue D: 3 line(s), 1 file(s)\n") == 0);
 }
 
+static void test_retired_prefixed_field_accessors_are_not_residue(void) {
+    setup();
+    write_file(SRC "/p.c", "pico8_" "entity_get_field(planet, \"colonized\", &b);\n"
+                           "pico8_" "entity_set_field(planet, \"colonized\", b);\n"
+                           "pico8_" "planet_set_field(planet, \"colonized\", b);\n"
+                           "pico8_" "planet_field_fn f;\n");
+    assert(run_residue(TREE) == 0);
+    assert(strcmp(read_file(OUT), EMPTY_FOOTER) == 0);
+    assert(run_residue("--check by-name " TREE) == 0);
+}
+
 static void test_detail_sorts_by_category_then_file(void) {
     setup();
     write_file(SRC "/b.c", "int k = g_planet_" "spec[1];\n");
@@ -148,7 +157,8 @@ static void test_check_fails_only_on_a_named_category_present(void) {
 }
 
 static void test_retired_categories_are_unknown(void) {
-    static const char *const retired[] = {"value", "ob", "stash", "type-tag", "ref-audit", "list"};
+    static const char *const retired[] = {"value", "ob", "stash", "type-tag", "ref-audit", "list",
+                                          "dispatch"};
     for (size_t i = 0; i < sizeof retired / sizeof retired[0]; i++) {
         char args[256];
         char message[256];
@@ -180,9 +190,7 @@ typedef struct {
 
 /* One planted violation per category of DATA_RESIDUE_GUARD, in the C names
  * of today: a renaming that blinds a pattern turns its row red. `expected`
- * is the whole output of `--check <category>`. dispatch, and two branches
- * of by-name, only know `pico8_` tokens: their rows plant them among names
- * of today. */
+ * is the whole output of `--check <category>`. */
 static const liveness_row_t LIVENESS[] = {
     {"spec", SRC "/planet.c",
      "int k = g_planet_" "spec[0];\n"
@@ -193,20 +201,9 @@ static const liveness_row_t LIVENESS[] = {
     {"over" "rides", SRC "/planet.c", "planet->over" "rides = 0;\n",
      "over" "rides: " SRC "/planet.c:1:planet->over" "rides = 0;\n"
      "guarded residue (over" "rides): 1 line(s)\n"},
-    {"dispatch", SRC "/planet.c",
-     "int n = pico8_" "mv(planet, slipway);\n"
-     "pico8_" "value_function_t draw = planet_draw;\n",
-     "dispatch: " SRC "/planet.c:1:int n = pico8_" "mv(planet, slipway);\n"
-     "dispatch: " SRC "/planet.c:2:pico8_" "value_function_t draw = planet_draw;\n"
-     "guarded residue (dispatch): 2 line(s)\n"},
-    {"by-name", SRC "/planet.c",
-     "int b = field_" "truthy(planet, \"colonized\");\n"
-     "pico8_" "entity_get_field(planet, \"colonized\", &b);\n"
-     "pico8_" "planet_set_field(planet, \"colonized\", b);\n",
+    {"by-name", SRC "/planet.c", "int b = field_" "truthy(planet, \"colonized\");\n",
      "by-name: " SRC "/planet.c:1:int b = field_" "truthy(planet, \"colonized\");\n"
-     "by-name: " SRC "/planet.c:2:pico8_" "entity_get_field(planet, \"colonized\", &b);\n"
-     "by-name: " SRC "/planet.c:3:pico8_" "planet_set_field(planet, \"colonized\", b);\n"
-     "guarded residue (by-name): 3 line(s)\n"},
+     "guarded residue (by-name): 1 line(s)\n"},
 };
 
 #define LIVENESS_ROWS (sizeof LIVENESS / sizeof LIVENESS[0])
@@ -286,6 +283,7 @@ int main(void) {
     test_overlapping_categories_count_each_but_footer_counts_distinct_lines();
     test_omitted_argument_defaults_are_not_class_specs();
     test_word_boundaries_and_value_truthy();
+    test_retired_prefixed_field_accessors_are_not_residue();
     test_detail_sorts_by_category_then_file();
     test_check_fails_only_on_a_named_category_present();
     test_retired_categories_are_unknown();

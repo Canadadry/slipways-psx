@@ -131,6 +131,13 @@ static void test_other_witnesses_of_each_pattern_bite(void) {
                                   "residue 2: 2 line(s), 2 file(s)\n") == 0);
 }
 
+static void test_the_retired_nu_accessor_is_not_a_header_accessor(void) {
+    assert_alone_is_empty(SRC "/f.c", "int n = x_get" "_nu(self);\n");
+    setup();
+    write_file(SRC "/f.c", "int n = x_get" "_nu(self);\n");
+    assert(run_residue("--check header-accessors " TREE) == 0);
+}
+
 static void test_named_false_positives_do_not_bite(void) {
     assert_alone_is_empty(SRC "/f.c", "e = entity_" "state_of(me);\n");
     assert_alone_is_empty(SRC "/f.c", "/* the parent struct */\n");
@@ -862,6 +869,7 @@ int main(void) {
     test_one_occurrence_per_category_in_table_order();
     test_other_witnesses_of_each_pattern_bite();
     test_accessors_bite_on_every_header_field_name();
+    test_the_retired_nu_accessor_is_not_a_header_accessor();
     test_named_false_positives_do_not_bite();
     test_overlapping_categories_count_each_but_footer_counts_distinct_lines();
     test_entity_reader_finds_embedded_parents_by_closure();

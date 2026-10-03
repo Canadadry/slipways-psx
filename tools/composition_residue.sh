@@ -61,7 +61,7 @@ fail() {
 pattern() {
     case $1 in
         parent-link) printf '%s\n' '\b[a-z0-9_]*(emitter|probe)_of\b|(->|\.|\(\*)parent\b' ;;
-        header-accessors) printf '%s\n' '(\b|_)(get_(nu|layer|pos|map_pos|hit_box|cursor_sprite|gpio_signal|infraspace|fold_anchor|is_dead)|set_is_hovered)\b' ;;
+        header-accessors) printf '%s\n' '(\b|_)(get_(layer|pos|map_pos|hit_box|cursor_sprite|gpio_signal|infraspace|fold_anchor|is_dead)|set_is_hovered)\b' ;;
         void-self) printf '%s\n' '\bvoid[[:space:]]*\*[[:space:]]*(const[[:space:]]+)?self' ;;
         core-includes) printf '%s\n' '^#include "game/(game_data|map_tables|data_init)\.h"' ;;
         *) return 1 ;;

@@ -1103,7 +1103,7 @@ e2e-judge: $(TMP_DIR)/replay_gcov tools/line_coverage.sh
 .PHONY: minimize e2e-cleanup e2e-judge
 
 # The categories of the counter that have fallen to 0, comma-separated.
-DATA_RESIDUE_GUARD := spec,overrides,dispatch,by-name
+DATA_RESIDUE_GUARD := spec,overrides,by-name
 
 data-residue: tools/data_residue.sh
 	@sh tools/data_residue.sh

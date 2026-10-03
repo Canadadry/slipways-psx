@@ -17,7 +17,7 @@
 
 set -u
 
-CATEGORIES="by-name dispatch overrides spec"
+CATEGORIES="by-name overrides spec"
 
 fail() {
     echo "data_residue: $1" >&2
@@ -26,9 +26,8 @@ fail() {
 
 pattern() {
     case $1 in
-        by-name) printf '%s\n' '\bpico8_entity_(get|set)_field\b|\b[a-z0-9_]*field_truthy\(|'\
-'\bpico8_[a-z0-9_]+_(set_)?field(_fn)?\b|(->|\.)(set_)?field\b|\b[a-z0-9_]+_take_[a-z0-9_]+\(' ;;
-        dispatch) printf '%s\n' '\bpico8_value_function(_t)?\b|\bpico8_mv\(' ;;
+        by-name) printf '%s\n' '\b[a-z0-9_]*field_truthy\(|(->|\.)(set_)?field\b|'\
+'\b[a-z0-9_]+_take_[a-z0-9_]+\(' ;;
         overrides) printf '%s\n' '\boverrides\b' ;;
         spec) printf '%s\n' '\bg_[a-z0-9_]+_(spec|defaults)\b|'\
 '\b[a-z0-9_]+_default_(fixed|table|vec|string|box|list|bool|hf)\b' ;;
