@@ -157,6 +157,18 @@ static int case_reset_world_enqueues_registered(void) {
     return 0;
 }
 
+/* Live entities at the restart that ends worst-case/full_game.json (275 of
+ * them have a release): reset_world queues them all in one burst. */
+#define FULL_GAME_LIVE_ENTITIES 286
+
+static int case_reset_world_after_a_full_game(void) {
+    load_cart_and_start();
+    while (registered_with_release() < FULL_GAME_LIVE_ENTITIES) entity_register(&new_entity(&counted_cls)->header);
+    reset_world();
+    assert(exit_queue_count() == FULL_GAME_LIVE_ENTITIES);
+    return 0;
+}
+
 static int case_shutdown_drains(void) {
     load_cart_and_start();
     message_box_t *e = new_entity(&counted_cls);
@@ -234,6 +246,7 @@ static const struct {
     {"ephemerals_released_at_flush", case_ephemerals_released_at_flush},
     {"entity_unregister_outside_live_entities_or_without_member", case_entity_unregister_outside_live_entities_or_without_member},
     {"reset_world_enqueues_registered", case_reset_world_enqueues_registered},
+    {"reset_world_after_a_full_game", case_reset_world_after_a_full_game},
     {"shutdown_drains", case_shutdown_drains},
     {"flush_forgets_references", case_flush_forgets_references},
     {"update60_after_forgetting", case_update60_after_forgetting},
@@ -328,11 +341,12 @@ int main(int argc, char **argv) {
     expect_poison_crash("ephemerals_released_at_flush");
     expect_clean("entity_unregister_outside_live_entities_or_without_member");
     expect_clean("reset_world_enqueues_registered");
+    expect_clean("reset_world_after_a_full_game");
     expect_clean("shutdown_drains");
     expect_clean("flush_forgets_references");
     expect_clean("update60_after_forgetting");
     expect_clean("difficulty_outlives_its_button");
-    expect_fatal("full", "exit queue full, limit 256");
+    expect_fatal("full", "exit queue full, limit 512");
     remove(STDERR_LOG);
     printf("test_exit_queue: all tests passed\n");
     return 0;

@@ -4,7 +4,7 @@
 #include "engine/entity_class.h"
 #include "engine/allocator.h"
 
-#define EXIT_QUEUE_CAP 256
+#define EXIT_QUEUE_CAP 512
 
 /* An entity that has left live_entities and whose class has a release: the
  * current frame may still read it, so it is released only at the flush.
