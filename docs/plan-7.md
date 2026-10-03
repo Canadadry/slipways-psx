@@ -10,11 +10,19 @@ Premier des cinq plans vers un `.bin/.cue` jouable sur émulateur PSX (plans 7 �
 
 ## 2. Point de départ mesuré
 
-- `full_game.json` va jusqu'à sa frame 7685 depuis l'étape 1 ; `make full-game` le verrouille.
-- Pic de la zone `game` : 583 248 o pour 720 896 réservés, atteint au redémarrage (frame 7643), où l'ancienne et la nouvelle génération du monde coexistent ; une seule génération tient vers 153 Ko dans les e2e.
-- La file de sortie a été relevée de 256 à 512 places à l'étape 1 : le redémarrage y abandonne 286 entités d'un coup. Les caps saturent comme les zones.
-- Zone `frame` 256 Ko + pic `game` dépassent déjà 768 Ko : la réduction de l'étape 4 est le chemin attendu, pas un repli.
-- Les pics des zones `ui` et `particles`, et le tableau complet, sortent de l'étape 3 ; ils remplacent cette section quand elle se clôt.
+Campagne `make state` (fin de l'étape 3) : `full_game.json` va jusqu'à sa frame 7685, verrouillé par `make full-game`. Pic / limite en octets, tenu par `full_game.json` sauf mention :
+
+| Zone | Pic | Limite |
+|---|---|---|
+| `game` | 583 248 | 720 896 |
+| `frame` | 247 640 | 262 144 |
+| `ui` | 142 343 | 342 422 |
+| `particles` | 61 855 | 130 822 |
+| `load` | 21 936 | 65 536 |
+
+- Le pic de `game` est atteint au redémarrage (frame 7643), où l'ancienne et la nouvelle génération du monde coexistent ; une seule génération tient vers 153 Ko dans les e2e.
+- `frame` + pic de `game` dépassent déjà 768 Ko : la réduction de l'étape 4 est le chemin attendu, pas un repli.
+- Caps : file de sortie 278 / 512 (relevée de 256 à l'étape 1 : les caps saturent comme les zones) ; `button` 12 / 24 (`pause_restart`), `message_box` 3 / 6 et `toast` 42 / 128 (`game_end_bankrupt`) ; les octets des places `particles`, `particles_help_screen` et `ephemerals` sont à leur limite. Le détail est dans `tmp/state.txt` après `make state`.
 
 ## 3. Règles
 
