@@ -212,9 +212,6 @@ static research_project_t *project_create(const research_project_keys_t *keys) {
     }
     self->inputs = new_i;
 
-#ifdef CLASS_COVERAGE_BUILD
-    class_coverage_record("research_project");
-#endif
     return self;
 }
 

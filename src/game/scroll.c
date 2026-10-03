@@ -49,9 +49,6 @@ static camera_t *camera_create(void) {
     self->shake = self->archetype->shake;
     self->pos_before_shake = &self->archetype->pos_before_shake;
     self->pos = &self->archetype->pos;
-#ifdef CLASS_COVERAGE_BUILD
-    class_coverage_record("camera");
-#endif
     entity_construct(&self->header);
     return self;
 }

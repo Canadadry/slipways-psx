@@ -181,8 +181,8 @@ static const entity_class_t slipgate_class_def = {
 
 /* Initializes an allocated planet_t under the given class and its kind's
  * archetype: the structure's part, a slipgate having no member of its own.
- * Reads no key, runs neither planet_construct nor entity_construct, records
- * no coverage. Requires planet_family_trade_init(). */
+ * Reads no key, runs neither planet_construct nor entity_construct.
+ * Requires planet_family_trade_init(). */
 static void slipgate_init_instance(planet_t *self, const entity_class_t *cls, const planet_archetype_t *archetype) {
     structure_init_instance(self, cls, archetype);
 }
@@ -203,9 +203,6 @@ static planet_t *slipgate_create(const planet_keys_t *keys) {
             self->pos = keys->pos;
         }
     }
-#ifdef CLASS_COVERAGE_BUILD
-    class_coverage_record("slipgate");
-#endif
     planet_construct(self);
     entity_construct(&self->header);
     return self;
@@ -247,9 +244,6 @@ static planet_t *infraspace_gate_create(const planet_keys_t *keys) {
             self->planet_id = keys->planet_id;
         }
     }
-#ifdef CLASS_COVERAGE_BUILD
-    class_coverage_record("infraspace_gate");
-#endif
     planet_construct(self);
     entity_construct(&self->header);
     return self;
@@ -341,9 +335,6 @@ static planet_t *synthesizer_create(const planet_keys_t *keys) {
             self->planet_id = keys->planet_id;
         }
     }
-#ifdef CLASS_COVERAGE_BUILD
-    class_coverage_record("synthesizer");
-#endif
     emitter_init((entity_t *)self);
     planet_construct(self);
     entity_construct(&self->header);

@@ -245,7 +245,7 @@ void cart_start_game(button_t *chosen_option) {
     economy_recompute(main_economy_typed());
 }
 
-/* Here and not in a driver: replay, raylib, coverage and unit tests all go
+/* Here and not in a driver: replay, raylib and unit tests all go
  * through cart_update60(), and cart_draw(), which follows in the same frame,
  * reads back what the update wrote in the frame zone. */
 void cart_update60(void) {

@@ -66,9 +66,6 @@ static background_t *background_create(void) {
     background_set_drag_mouse(self, NULL);
     self->header.is_hovered = &self->is_hovered;
     self->is_hovered = 0;
-#ifdef CLASS_COVERAGE_BUILD
-    class_coverage_record("background");
-#endif
     background_construct(dispatch_context_mem(), self);
     entity_construct(&self->header);
     return self;

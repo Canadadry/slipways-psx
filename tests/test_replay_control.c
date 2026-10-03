@@ -2,7 +2,7 @@
  * frame-rate cap a speed level means, and what the progress line says.
  * That a key reaches `replay_control_faster()` (through
  * raylib_backend_poll_replay_controls) and that the string is drawn (by
- * raylib_backend_present, and by src/cmd/screencast_viewer.c) is not
+ * raylib_backend_present) is not
  * checked here -- it needs a real window and a real keyboard.
  *
  * The numbers are asserted exactly rather than as ranges: "faster than

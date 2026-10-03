@@ -70,9 +70,6 @@ static planet_t *structure_create(const planet_keys_t *keys) {
             self->planet_id = keys->planet_id;
         }
     }
-#ifdef CLASS_COVERAGE_BUILD
-    class_coverage_record("structure");
-#endif
     planet_construct(self);
     entity_construct(&self->header);
     return self;
@@ -132,9 +129,6 @@ static planet_t *trading_hub_create(const planet_keys_t *keys) {
             self->planet_id = keys->planet_id;
         }
     }
-#ifdef CLASS_COVERAGE_BUILD
-    class_coverage_record("trading_hub");
-#endif
     planet_construct(self);
     entity_construct(&self->header);
     return self;
@@ -175,9 +169,6 @@ static planet_t *processor_create(const planet_keys_t *keys) {
             self->planet_id = keys->planet_id;
         }
     }
-#ifdef CLASS_COVERAGE_BUILD
-    class_coverage_record("processor");
-#endif
     planet_construct(self);
     entity_construct(&self->header);
     return self;
@@ -256,9 +247,6 @@ static planet_t *ascension_create(const planet_keys_t *keys) {
             self->planet_id = keys->planet_id;
         }
     }
-#ifdef CLASS_COVERAGE_BUILD
-    class_coverage_record("ascension");
-#endif
     emitter_init((entity_t *)self);
     planet_construct(self);
     entity_construct(&self->header);
@@ -328,9 +316,6 @@ static planet_t *protostar_create(const planet_keys_t *keys) {
             self->planet_id = keys->planet_id;
         }
     }
-#ifdef CLASS_COVERAGE_BUILD
-    class_coverage_record("protostar");
-#endif
     protostar_construct(self);
     emitter_init((entity_t *)self);
     planet_construct(self);
@@ -514,9 +499,6 @@ static planet_t *burst_create(const burst_keys_t *keys) {
             self->speed = keys->construct->speed;
         }
     }
-#ifdef CLASS_COVERAGE_BUILD
-    class_coverage_record("burst");
-#endif
     burst_construct(self);
     planet_construct_in(self, slot);
     entity_construct(&self->header);

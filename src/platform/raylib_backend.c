@@ -9,8 +9,7 @@
 
 /* The shared table has no raylib (three bytes per color) so that
  * `make unit` can assert it without a window; the alpha, always opaque, is
- * added here. The screencast viewer and the GIF writer read the same table
- * and convert it themselves. */
+ * added here. */
 static Color palette_color(unsigned char index) {
     p8_rgb_t rgb = P8_PALETTE_RGB[index & 0x0f];
     return (Color){ rgb.red, rgb.green, rgb.blue, 0xFF };

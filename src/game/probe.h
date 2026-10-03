@@ -52,7 +52,7 @@ int probe_ready(void);
 /* Initializes an allocated probe_t under the given class: the entity part,
  * the particle list, target, map_pos, is_dead and grab_arena cleared, the
  * archetype kept, pos, the emitter and the targeting copied from it. Reads no key, runs neither
- * the construct method nor entity_construct, records no coverage. */
+ * the construct method nor entity_construct. */
 void probe_init_instance(probe_t *self, const entity_class_t *cls, const probe_archetype_t *archetype);
 
 /* The keys of probe_new, read, not kept. state_time is the header's, whose

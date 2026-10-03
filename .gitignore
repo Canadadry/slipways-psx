@@ -1,6 +1,4 @@
-__pycache__/
-.love2d-meta/
 tmp/
 third_party/
+psx-hello/build/
 .claude/worktrees/
-gif/

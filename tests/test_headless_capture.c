@@ -5,10 +5,9 @@
  * system() on a short fixture. Redoing the driver's sequence here
  * (cart_load, cart_init, then per frame cheat_step, cart_update60,
  * cart_draw and the capture write) would add one more copy of a sequence
- * that src/cmd/game.c, src/cmd/replay.c and src/cmd/class_coverage.c
- * already hold, so one more subtly different replay: the test would prove
- * that a replay writes the right pixels, and say nothing of the one
- * `make replay` runs.
+ * that src/cmd/game.c and src/cmd/replay.c already hold, so one more
+ * subtly different replay: the test would prove that a replay writes the
+ * right pixels, and say nothing of the one `make replay` runs.
  *
  * Each replay run here rewrites the driver's default dump with the short
  * fixture's; test_frames_tool and `make replay EVENTS=...` rewrite it
