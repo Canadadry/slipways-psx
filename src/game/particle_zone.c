@@ -107,7 +107,7 @@ static void slot_release(const allocator_t *z, unsigned char *p) {
     allocator_release(&g_slots[slot_kind], p);
 }
 
-static const allocator_t g_handles[PARTICLE_SLOT_COUNT] = {
+static const allocator_t slot_allocators[PARTICLE_SLOT_COUNT] = {
     [PARTICLE_SLOT_PARTICLE] = {slot_alloc, allocator_grow_refused, slot_release, NULL, NULL},
     [PARTICLE_SLOT_LIST] = {slot_alloc, allocator_grow_refused, slot_release, NULL, NULL},
     [PARTICLE_SLOT_HELP_LIST] = {slot_alloc, allocator_grow_refused, slot_release, NULL, NULL},
@@ -116,19 +116,19 @@ static const allocator_t g_handles[PARTICLE_SLOT_COUNT] = {
 };
 
 static particle_slot_kind_t slot_kind_of(const allocator_t *z) {
-    assert(z >= g_handles && z < g_handles + PARTICLE_SLOT_COUNT && "slot_kind_of: handle outside the particle zone");
-    return (particle_slot_kind_t)(z - g_handles);
+    assert(z >= slot_allocators && z < slot_allocators + PARTICLE_SLOT_COUNT && "slot_kind_of: handle outside the particle zone");
+    return (particle_slot_kind_t)(z - slot_allocators);
 }
 
 const allocator_t *particle_zone(particle_slot_kind_t slot_kind) {
     assert(slot_kind >= 0 && slot_kind < PARTICLE_SLOT_COUNT);
-    return &g_handles[slot_kind];
+    return &slot_allocators[slot_kind];
 }
 
 const allocator_t *particle_zone_slot(particle_slot_kind_t slot_kind) {
     assert(slot_kind >= 0 && slot_kind < PARTICLE_SLOT_COUNT && is_arena(slot_kind) &&
            "particle_zone_slot: a particle is a bare slot, not an arena");
-    return arena_take(&g_handles[slot_kind], SLOT_KINDS[slot_kind].slot_name, SLOT_KINDS[slot_kind].size);
+    return arena_take(&slot_allocators[slot_kind], SLOT_KINDS[slot_kind].slot_name, SLOT_KINDS[slot_kind].size);
 }
 
 int particle_zone_live(particle_slot_kind_t slot_kind) {

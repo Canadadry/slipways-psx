@@ -1199,7 +1199,7 @@ self	self	src/engine/entity_registry.c	identifiant	paramètre	conservé	engine/e
 self	self	src/engine/entity_registry.h	identifiant	paramètre	conservé	engine/entity_registry			c:entity_registry.h@2572@F@pico8_hd_true@self
 tag	tag	src/engine/entity_registry.c	identifiant	paramètre	conservé	engine/entity_registry			c:entity_registry.c@3867@F@pico8_cg@tag
 tag	tag	src/engine/entity_registry.h	identifiant	paramètre	conservé	engine/entity_registry			c:entity_registry.h@1997@F@pico8_cg@tag
-g_bm_names	g_message_names	src/engine/entity_registry.c	identifiant	statique	renommé	engine/entity_registry	bm		c:entity_registry.c@g_bm_names
+g_bm_names	message_names	src/engine/entity_registry.c	identifiant	statique	renommé	engine/entity_registry	bm		c:entity_registry.c@g_bm_names
 g_cg	g_entities_by_tag	src/engine/entity_registry.c	identifiant	statique	renommé	engine/entity_registry	cg		c:entity_registry.c@g_cg
 g_cv	g_entities_by_message	src/engine/entity_registry.c	identifiant	statique	renommé	engine/entity_registry	cv		c:entity_registry.c@g_cv
 g_hv	g_live_entities	src/engine/entity_registry.c	identifiant	statique	renommé	engine/entity_registry	hv		c:entity_registry.c@g_hv
@@ -2917,7 +2917,7 @@ y2	y2	src/game/hud.c	identifiant	paramètre	conservé	game/hud			c:hud.c@1277@F@
 y2	y2	src/game/hud.c	identifiant	paramètre	conservé	game/hud			c:hud.c@1852@F@pico8_rk_default@y2
 y2	y2	src/game/hud.h	identifiant	paramètre	conservé	game/hud			c:hud.h@1500@F@pico8_rk@y2
 y2	y2	src/game/hud.h	identifiant	paramètre	conservé	game/hud			c:hud.h@1685@F@pico8_rk_default@y2
-g_er	g_outline_offsets	src/game/hud.c	identifiant	statique	renommé	game/hud			c:hud.c@g_er
+g_er	outline_offsets	src/game/hud.c	identifiant	statique	renommé	game/hud			c:hud.c@g_er
 pico8_io_offset_t	print_outlined_offset_t	src/game/hud.c	identifiant	type	renommé	game/hud			c:@T@pico8_io_offset_t
 jb	tooltip	src/game/layout.c	chaîne	nom de classe	renommé	game/layout	jb	écrivain	chaîne:jb
 lq	layout_row	src/game/layout.c	chaîne	nom de classe	renommé	game/layout	lq	écrivain	chaîne:lq
@@ -3546,8 +3546,8 @@ g_ha_gq	g_pause_menu_row_step	src/game/menu.c	identifiant	statique	renommé	game
 g_ha_hi	g_pause_menu_fixed_pos	src/game/menu.c	identifiant	statique	renommé	game/menu			c:menu.c@g_ha_hi
 g_ha_pz	g_pause_menu_open_box	src/game/menu.c	identifiant	statique	renommé	game/menu			c:menu.c@g_ha_pz
 g_ha_pz_struct_class	pause_menu_open_box_class_def	src/game/menu.c	identifiant	statique	renommé	game/menu	pico8_struct_class_t		c:menu.c@g_ha_pz_struct_class
-g_ix_hb	g_galaxy_menu_refresh	src/game/menu.c	identifiant	statique	renommé	game/menu	hb		c:menu.c@g_ix_hb
-g_ix_my	g_galaxy_menu_on_click	src/game/menu.c	identifiant	statique	renommé	game/menu			c:menu.c@g_ix_my
+g_ix_hb	galaxy_menu_refresh_table	src/game/menu.c	identifiant	statique	renommé	game/menu	hb		c:menu.c@g_ix_hb
+g_ix_my	galaxy_menu_on_click_table	src/game/menu.c	identifiant	statique	renommé	game/menu			c:menu.c@g_ix_my
 g_ix_ra	g_galaxy_menu_pos	src/game/menu.c	identifiant	statique	renommé	game/menu	ra		c:menu.c@g_ix_ra
 g_menu_up	g_menu_up	src/game/menu.c	identifiant	statique	conservé	game/menu			c:menu.c@g_menu_up
 pair	pair	src/game/menu.c	identifiant	statique	conservé	game/menu			c:menu.c@2385@F@pico8_cr_step@pair
@@ -3935,7 +3935,7 @@ z	z	src/game/particle_zone.c	identifiant	paramètre	conservé	game/particle_zone
 z	z	src/game/particle_zone.c	identifiant	paramètre	conservé	game/particle_zone			c:particle_zone.c@5336@F@sorte_of@z
 SORTES	SLOT_KINDS	src/game/particle_zone.c	identifiant	statique	renommé	game/particle_zone	sorte		c:particle_zone.c@SORTES
 g_arenes	g_arenas	src/game/particle_zone.c	identifiant	statique	renommé	game/particle_zone	arene		c:particle_zone.c@g_arenes
-g_handles	g_handles	src/game/particle_zone.c	identifiant	statique	conservé	game/particle_zone			c:particle_zone.c@g_handles
+g_handles	slot_allocators	src/game/particle_zone.c	identifiant	statique	renommé	game/particle_zone			c:particle_zone.c@g_handles
 g_max_elements	g_max_elements	src/game/particle_zone.c	identifiant	statique	conservé	game/particle_zone			c:particle_zone.c@g_max_elements
 g_max_octets	g_max_bytes	src/game/particle_zone.c	identifiant	statique	renommé	game/particle_zone			c:particle_zone.c@g_max_octets
 g_max_vivantes	g_max_live	src/game/particle_zone.c	identifiant	statique	renommé	game/particle_zone			c:particle_zone.c@g_max_vivantes
@@ -4147,7 +4147,7 @@ zone	zone	src/game/planet.h	identifiant	paramètre	conservé	game/planet			c:pla
 zone	zone	src/game/planet.h	identifiant	paramètre	conservé	game/planet			c:planet.h@5523@F@pico8_jo_pq_dans@zone
 g_jo_ir	g_planet_vanish_roll	src/game/planet.c	identifiant	statique	renommé	game/planet	jo		c:planet.c@g_jo_ir
 g_jo_kw_shared	g_planet_production_shared	src/game/planet.c	identifiant	statique	renommé	game/planet	jo		c:planet.c@g_jo_kw_shared
-g_jo_nom_prise	g_planet_name_grab_arena	src/game/planet.c	identifiant	statique	renommé	game/planet	jo		c:planet.c@g_jo_nom_prise
+g_jo_nom_prise	planet_name_grab_arena	src/game/planet.c	identifiant	statique	renommé	game/planet	jo		c:planet.c@g_jo_nom_prise
 g_jo_oc	g_type_picker	src/game/planet.c	identifiant	statique	renommé	game/planet	jo		c:planet.c@g_jo_oc
 g_jo_prise	g_planet_grab_arena	src/game/planet.c	identifiant	statique	renommé	game/planet	jo		c:planet.c@g_jo_prise
 g_jo_prises_libres	g_planet_grab_arenas_free	src/game/planet.c	identifiant	statique	renommé	game/planet	jo		c:planet.c@g_jo_prises_libres
@@ -4620,11 +4620,11 @@ sw	slipway	src/game/planet_family_trade.h	identifiant	paramètre	renommé	game/p
 g_family_trade_up	g_family_trade_up	src/game/planet_family_trade.c	identifiant	statique	conservé	game/planet_family_trade			c:planet_family_trade.c@g_family_trade_up
 g_fr_kind	infraspace_gate_kind_def	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	fr		c:planet_family_trade.c@g_fr_kind
 g_fr_struct_class	infraspace_gate_class_def	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	fr		c:planet_family_trade.c@g_fr_struct_class
-g_mx_ht_spent	g_synthesizer_synthesizable_resources_spent	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	mx		c:planet_family_trade.c@g_mx_ht_spent
+g_mx_ht_spent	synthesizer_synthesizable_resources_spent	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	mx		c:planet_family_trade.c@g_mx_ht_spent
 g_mx_kind	synthesizer_kind_def	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	mx		c:planet_family_trade.c@g_mx_kind
 g_mx_struct_class	synthesizer_class_def	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	mx		c:planet_family_trade.c@g_mx_struct_class
 g_nr_kind	slipgate_kind_def	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	nr		c:planet_family_trade.c@g_nr_kind
-g_nr_ldown_empty	g_slipgate_left_press_empty	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	nr		c:planet_family_trade.c@g_nr_ldown_empty
+g_nr_ldown_empty	slipgate_left_press_empty	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	nr		c:planet_family_trade.c@g_nr_ldown_empty
 g_nr_ldown_empty_struct_class	slipgate_left_press_empty_class_def	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	nr		c:planet_family_trade.c@g_nr_ldown_empty_struct_class
 g_nr_struct_class	slipgate_class_def	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	nr		c:planet_family_trade.c@g_nr_struct_class
 pico8_nr_ldown_empty_t	slipgate_left_press_empty_t	src/game/planet_family_trade.c	identifiant	type	renommé	game/planet_family_trade	nr		c:@T@pico8_nr_ldown_empty_t
@@ -12595,13 +12595,13 @@ CASES	CASES	tests/test_particle_zone.c	identifiant	statique	conservé	tests/test
 cls	cls	tests/test_particle_zone.c	identifiant	statique	conservé	tests/test_particle_zone			c:test_particle_zone.c@10049@F@case_ez_notes_the_list_length@cls
 def	archetype	tests/test_particle_zone.c	identifiant	statique	renommé	tests/test_particle_zone	def		c:test_particle_zone.c@9886@F@case_ez_notes_the_list_length@def
 g_emitter	g_emitter	tests/test_particle_zone.c	identifiant	statique	conservé	tests/test_particle_zone			c:test_particle_zone.c@g_emitter
-g_fa_dix	g_layer_ten	tests/test_particle_zone.c	identifiant	statique	renommé	tests/test_particle_zone	fa		c:test_particle_zone.c@g_fa_dix
+g_fa_dix	layer_ten	tests/test_particle_zone.c	identifiant	statique	renommé	tests/test_particle_zone	fa		c:test_particle_zone.c@g_fa_dix
 g_gfx	g_gfx	tests/test_particle_zone.c	identifiant	statique	conservé	tests/test_particle_zone			c:test_particle_zone.c@g_gfx
 g_hote	g_host	tests/test_particle_zone.c	identifiant	statique	renommé	tests/test_particle_zone			c:test_particle_zone.c@g_hote
 g_hote_cls	host_class_def	tests/test_particle_zone.c	identifiant	statique	renommé	tests/test_particle_zone			c:test_particle_zone.c@g_hote_cls
 g_mem	g_mem	tests/test_particle_zone.c	identifiant	statique	conservé	tests/test_particle_zone			c:test_particle_zone.c@g_mem
-g_ra_nil	g_pos_nil	tests/test_particle_zone.c	identifiant	statique	renommé	tests/test_particle_zone	ra		c:test_particle_zone.c@g_ra_nil
-g_sans_naissance	g_without_birth	tests/test_particle_zone.c	identifiant	statique	renommé	tests/test_particle_zone			c:test_particle_zone.c@g_sans_naissance
+g_ra_nil	pos_nil	tests/test_particle_zone.c	identifiant	statique	renommé	tests/test_particle_zone	ra		c:test_particle_zone.c@g_ra_nil
+g_sans_naissance	without_birth	tests/test_particle_zone.c	identifiant	statique	renommé	tests/test_particle_zone			c:test_particle_zone.c@g_sans_naissance
 self_path	self_path	tests/test_particle_zone.c	identifiant	statique	conservé	tests/test_particle_zone			c:test_particle_zone.c@self_path
 sink	sink	tests/test_particle_zone.c	identifiant	statique	conservé	tests/test_particle_zone			c:test_particle_zone.c@sink
 np	node	tests/test_planet.c	chaîne	clé d'étiquette	renommé	tests/test_planet		lecteur	chaîne:np
@@ -16460,7 +16460,7 @@ emitter	emitter	tests/test_ui.c	identifiant	statique	conservé	tests/test_ui			c
 g_given	g_given	tests/test_ui.c	identifiant	statique	conservé	tests/test_ui			c:test_ui.c@g_given
 g_giver	g_giver	tests/test_ui.c	identifiant	statique	conservé	tests/test_ui			c:test_ui.c@g_giver
 g_giver_class	giver_class_def	tests/test_ui.c	identifiant	statique	renommé	tests/test_ui			c:test_ui.c@g_giver_class
-g_giver_fa	g_giver_layer	tests/test_ui.c	identifiant	statique	renommé	tests/test_ui	fa		c:test_ui.c@g_giver_fa
+g_giver_fa	giver_layer	tests/test_ui.c	identifiant	statique	renommé	tests/test_ui	fa		c:test_ui.c@g_giver_fa
 g_giver_hovered	g_giver_hovered	tests/test_ui.c	identifiant	statique	conservé	tests/test_ui			c:test_ui.c@g_giver_hovered
 g_giver_m_	g_giver_is_hovered	tests/test_ui.c	identifiant	statique	renommé	tests/test_ui	m_		c:test_ui.c@g_giver_m_
 g_hold_buttons	g_hold_buttons	tests/test_ui.c	identifiant	statique	conservé	tests/test_ui			c:test_ui.c@g_hold_buttons

@@ -25,7 +25,7 @@ static random_walk_t *g_planet_vanish_roll = NULL;
 static production_t g_planet_production_shared;
 
 /* Grab arenas are recognised by the address of this name (planet_grab_arena_arena_released). */
-static const char g_planet_name_grab_arena[] = "grab";
+static const char planet_name_grab_arena[] = "grab";
 #define GRAB_ARENAS_FREE_MAX 8
 
 /* Non-NULL only between planet_grab_arena_open and planet_grab_arena_close. */
@@ -193,7 +193,7 @@ void planet_grab_arena_open(void) {
         g_planet_grab_arena = g_planet_grab_arenas_free[--g_planet_grab_arenas_free_n];
         arena_flush(g_planet_grab_arena);
     } else {
-        g_planet_grab_arena = arena_take(game_zone(), g_planet_name_grab_arena, PLANET_GRAB_ARENA_BYTES);
+        g_planet_grab_arena = arena_take(game_zone(), planet_name_grab_arena, PLANET_GRAB_ARENA_BYTES);
     }
 }
 
@@ -213,7 +213,7 @@ void planet_grab_arena_zone_released(const allocator_t *zone, const char *state)
 }
 
 void planet_grab_arena_arena_released(const allocator_t *zone) {
-    if (zone == NULL || zone->bump == NULL || zone->bump->name != g_planet_name_grab_arena) {
+    if (zone == NULL || zone->bump == NULL || zone->bump->name != planet_name_grab_arena) {
         return;
     }
     assert(g_planet_grab_arenas_free_n < GRAB_ARENAS_FREE_MAX &&

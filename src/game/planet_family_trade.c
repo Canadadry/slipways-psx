@@ -15,7 +15,7 @@
 #include "engine/frame_zone.h"
 
 /* What synthesizer_attach_slipway leaves as synthesizable resources once it accepts one. */
-static const int_seq_t g_synthesizer_synthesizable_resources_spent = {0, NULL};
+static const int_seq_t synthesizer_synthesizable_resources_spent = {0, NULL};
 
 static int g_family_trade_up = 0;
 
@@ -50,7 +50,7 @@ typedef struct {
 
 /* The empty entity slipgate_left_press hands to slipgate_accept_drop:
  * never allocated, never freed, never written. */
-static const slipgate_left_press_empty_t g_slipgate_left_press_empty = {{.class = &slipgate_left_press_empty_class_def}};
+static const slipgate_left_press_empty_t slipgate_left_press_empty = {{.class = &slipgate_left_press_empty_class_def}};
 
 down_t slipgate_left_press(planet_t *self) {
     down_t accept_drop_result = {0, NULL};
@@ -60,7 +60,7 @@ down_t slipgate_left_press(planet_t *self) {
         return accept_drop_result;
     }
 
-    accept_drop_result = slipgate_accept_drop(self, (const entity_t *)&g_slipgate_left_press_empty);
+    accept_drop_result = slipgate_accept_drop(self, (const entity_t *)&slipgate_left_press_empty);
 
     if (!accept_drop_result.stop) {
         return accept_drop_result;
@@ -292,7 +292,7 @@ void synthesizer_attach_slipway(planet_t *self, entity_t *slipway) {
                     kw->has_resource = 1;
                     kw->resource = i->row.resource;
                 }
-                self->synthesizable_resources = &g_synthesizer_synthesizable_resources_spent;
+                self->synthesizable_resources = &synthesizer_synthesizable_resources_spent;
             }
         }
     }

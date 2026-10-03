@@ -10,10 +10,10 @@
 #include "engine/game_zone.h"
 
 #define MESSAGE_COUNT 5
-static const char *const g_message_names[MESSAGE_COUNT] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+static const char *const message_names[MESSAGE_COUNT] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
 
 typedef struct {
-    const char *name; /* borrowed from g_message_names -- not owned here */
+    const char *name; /* borrowed from message_names -- not owned here */
     entity_list_t list;
 } entities_by_message_entry_t;
 
@@ -76,7 +76,7 @@ void entity_registry_init(void) {
     entity_list_init(&g_live_entities, game_zone());
 
     for (i = 0; i < MESSAGE_COUNT; i++) {
-        g_entities_by_message[i].name = g_message_names[i];
+        g_entities_by_message[i].name = message_names[i];
         entity_list_init(&g_entities_by_message[i].list, game_zone());
     }
 
@@ -134,7 +134,7 @@ const entity_list_t *entities_by_message(const char *name) {
 }
 
 /* The entity's class has the member for the i-th name of
- * g_message_names. */
+ * message_names. */
 static int is_message_name(const entity_t *e, int i) {
     const entity_class_t *cls;
 

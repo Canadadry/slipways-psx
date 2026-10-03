@@ -181,10 +181,10 @@ static int case_particles_release_releases_the_arena(void) {
 /* An emitter host cut down to what emitter_init and emitter_update read:
  * layer 10, so drawn without the on-screen test, and spawn_rate 0, so
  * nothing is born. */
-static const emitter_archetype_t g_without_birth;
+static const emitter_archetype_t without_birth;
 static const entity_class_t host_class_def;
-static const p8_fixed_t g_layer_ten = 10 << 16;
-static const vec_t *const g_pos_nil = NULL;
+static const p8_fixed_t layer_ten = 10 << 16;
+static const vec_t *const pos_nil = NULL;
 static emitter_t g_emitter;
 static entity_t g_host;
 static p8_graphics_t g_gfx;
@@ -195,9 +195,9 @@ static entity_t *host(void) {
     p8_mem_init(&g_mem);
     entity_init_header(&g_host, &host_class_def);
     memset(&g_emitter, 0, sizeof g_emitter);
-    g_emitter.archetype = &g_without_birth;
-    g_host.layer = &g_layer_ten;
-    g_host.pos = &g_pos_nil;
+    g_emitter.archetype = &without_birth;
+    g_host.layer = &layer_ten;
+    g_host.pos = &pos_nil;
     g_host.emitter = &g_emitter;
     emitter_init(&g_host);
     return &g_host;

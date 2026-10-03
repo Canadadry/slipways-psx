@@ -653,7 +653,7 @@ name	bascule_grow	flip_zone_handle_grow	pico8_bascule_zone_t
 name	bascule_of	flip_zone_of	pico8_bascule_zone_t
 name	bascule_fin	flip_zone_end	pico8_bascule_zone_t
 name	pico8_la_ptrs_append	append_pointer_list	la
-name	g_bm_names	g_message_names	bm
+name	g_bm_names	message_names	bm
 name	pico8_bm_has	is_message_name	bm
 name	bm	messages	bm
 name	g_file	g_queue	file_sortie
@@ -1758,3 +1758,14 @@ identity	c:test_trade.c@mem	memory
 identity	c:test_trading_hub.c@mem	memory	
 identity	c:test_ui.c@mem	memory	
 identity	c:test_wormhole.c@mem	memory	
+name	g_er	outline_offsets	
+name	g_ix_my	galaxy_menu_on_click_table	
+name	g_ix_hb	galaxy_menu_refresh_table	
+name	g_jo_nom_prise	planet_name_grab_arena	
+name	g_mx_ht_spent	synthesizer_synthesizable_resources_spent	
+name	g_nr_ldown_empty	slipgate_left_press_empty	
+name	g_sans_naissance	without_birth	
+name	g_fa_dix	layer_ten	
+name	g_ra_nil	pos_nil	
+name	g_giver_fa	giver_layer	
+identity	c:particle_zone.c@g_handles	slot_allocators	

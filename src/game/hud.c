@@ -10,7 +10,7 @@ typedef struct {
     int color;
 } print_outlined_offset_t;
 
-static const print_outlined_offset_t g_outline_offsets[9] = {
+static const print_outlined_offset_t outline_offsets[9] = {
     {-1, -1, 0}, {0, -1, 0}, {1, -1, 0}, {-1, 0, 0}, {1, 0, 0}, {-1, 1, 0}, {0, 1, 0}, {1, 1, 0}, {0, 0, 15},
 };
 
@@ -87,7 +87,7 @@ void hud_print_outlined(const p8_graphics_t *gfx, p8_memory_t *mem, const char *
     }
 
     for (i = 0; i < 9; i++) {
-        p8_print(gfx, mem, t, ix + g_outline_offsets[i].offset_x, iy + g_outline_offsets[i].offset_y, g_outline_offsets[i].color & c);
+        p8_print(gfx, mem, t, ix + outline_offsets[i].offset_x, iy + outline_offsets[i].offset_y, outline_offsets[i].color & c);
     }
 }
 

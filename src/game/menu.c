@@ -301,13 +301,13 @@ static void pause_menu_row4_on_click_method(button_t *self) {
     (void)self;
 }
 
-static const button_fn_t g_galaxy_menu_on_click[GALAXY_MENU_COUNT] = {
+static const button_fn_t galaxy_menu_on_click_table[GALAXY_MENU_COUNT] = {
     galaxy_menu_button1_on_click_method,
     galaxy_menu_button2_on_click_method,
     galaxy_menu_button3_on_click_method,
     galaxy_menu_button4_on_click_method,
 };
-static const button_fn_t g_galaxy_menu_refresh[GALAXY_MENU_COUNT] = {NULL, galaxy_menu_button2_refresh_method, NULL, NULL};
+static const button_fn_t galaxy_menu_refresh_table[GALAXY_MENU_COUNT] = {NULL, galaxy_menu_button2_refresh_method, NULL, NULL};
 
 /* Opens the pause menu: its rows go in as buttons, their on_click installed
  * on every run, in the frame the pause-menu struct carries. */
@@ -358,14 +358,14 @@ button_t *galaxy_menu_button(int i) {
     keys.layout_row_keys = &lq;
     keys.pos = &g_galaxy_menu_pos[i - 1];
     keys.has_on_click = 1;
-    keys.on_click = g_galaxy_menu_on_click[i - 1];
-    keys.refresh = g_galaxy_menu_refresh[i - 1];
+    keys.on_click = galaxy_menu_on_click_table[i - 1];
+    keys.refresh = galaxy_menu_refresh_table[i - 1];
     return button_new(&keys);
 }
 
 button_fn_t galaxy_menu_on_click(int i) {
     assert(i >= 1 && i <= GALAXY_MENU_COUNT);
-    return g_galaxy_menu_on_click[i - 1];
+    return galaxy_menu_on_click_table[i - 1];
 }
 
 const entity_t *pause_menu_open_box(void) {
