@@ -35,6 +35,10 @@
 #                       passes when every replay exits cleanly; also runs
 #                       test_live_slots (slots returned after each replay,
 #                       ~11 s), outside the suite
+# make full-game     -> replays worst-case/full_game.json to its last frame
+#                       with the `-O0` binary of make test; passes when the
+#                       replay exits cleanly (fails on any p8_fatal, a full
+#                       zone or cap), outside the suite
 # make constants-check -> compares each P8_FIXED_LIT of the core with its
 #                       recorded hex value
 #                       (tools/pico8_reference_probe_out.txt); fails unless
@@ -807,6 +811,16 @@ sanitize-net: $(SANITIZE_RUNS) unit-run-test_live_slots
 	@echo "sanitize: $(words $(SANITIZE_RUNS)) clean"
 
 .PHONY: sanitize-net $(SANITIZE_RUNS)
+
+FULL_GAME_EVENTS := worst-case/full_game.json
+FULL_GAME_DIR := $(TMP_DIR)/full-game
+
+full-game: $(FULL_GAME_EVENTS) $(TMP_DIR)/replay
+	@mkdir -p $(FULL_GAME_DIR)
+	@./$(TMP_DIR)/replay $< /dev/null $(FULL_GAME_DIR)/dump.txt > $(FULL_GAME_DIR)/replay.log 2>&1 || { cat $(FULL_GAME_DIR)/replay.log; echo "full-game: $< stopped"; exit 1; }
+	@echo "full-game: $< clean"
+
+.PHONY: full-game
 
 # The core sources, where the comparator reads the P8_FIXED_LIT calls.
 constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_gaps.txt tools/pico8_reference_probe_out.txt src/p8/fixed.c src/p8/fixed.h $(CORE_SRCS) | $(TMP_DIR)

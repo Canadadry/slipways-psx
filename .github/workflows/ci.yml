@@ -14,6 +14,8 @@ jobs:
         run: make test-all
       - name: make sanitize-net
         run: make sanitize-net
+      - name: make full-game
+        run: make full-game
 
   raylib:
     runs-on: ubuntu-24.04
