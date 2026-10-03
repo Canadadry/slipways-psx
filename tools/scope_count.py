@@ -14,8 +14,8 @@ instead: each local or parameter whose scope spans more than 40 lines (a
 parameter of a function-pointer type has the scope of its prototype) and
 whose name has three characters or less, or has a part, split on `_`, that
 is no part of the new name of a renamed row of the table (the English a
-human validated); the parameters `argc` and `argv` of a function `main`
-are not candidates. One line per candidate, then the total per module."""
+human validated) nor a word of RAYLIB_WORDS; the parameters `argc` and
+`argv` of a function `main` are not candidates. One line per candidate, then the total per module."""
 
 import argparse
 import fnmatch
@@ -35,6 +35,9 @@ SCOPE_KINDS = ("local", "param")
 MAX_SCOPE_LINES = 40
 SOURCE_DIRS = ("src", "tests", "tools")
 MAIN_PARAMS = ("argc", "argv")
+# Words of the raylib API that the code uses as names, each with the raylib
+# name it comes from: validated like the parts of the new names.
+RAYLIB_WORDS = {"blank": "BLANK", "texture": "Texture2D"}
 
 
 def column_of(row):
@@ -64,8 +67,9 @@ def past_max_scope(row):
 
 
 def validated_words(table):
-    """The lowercase `_` parts of the new names of the renamed rows."""
-    words = set()
+    """The lowercase `_` parts of the new names of the renamed rows, and the
+    raylib words."""
+    words = set(RAYLIB_WORDS)
     for row in rename_tables.read_table(table)[1]:
         if row.get("statut") == "renommé":
             words.update(w.lower() for w in re.split(r"[^A-Za-z0-9]+", row["nouveau"]) if w)

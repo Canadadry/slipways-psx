@@ -197,9 +197,10 @@
 #                       locals list: each local or parameter of scope > 40
 #                       lines named in three characters or less, or with a
 #                       `_` part found in no renamed new name of
-#                       docs/renommage.tsv; argc/argv of main are not
-#                       cryptic; reads tmp/ast_rename/declarations.tsv (make
-#                       rename-extract first), never fails, outside the suite
+#                       docs/renommage.tsv; argc/argv of main and raylib
+#                       words are not cryptic; reads
+#                       tmp/ast_rename/declarations.tsv (make rename-extract
+#                       first), never fails, outside the suite
 # make cart-citations-test -> the tests of tools/cart_citations.py on a mini
 #                       tree, in make test
 # make cart-citations [MODULES="<module>..." | SUBSTEP=<3x>] -> what comments

@@ -182,6 +182,7 @@ class Check(unittest.TestCase):
 TABLE = ("# Statut : validé\n"
          "ancien\tnouveau\tfichier\tcatégorie\tsorte\tstatut\tmodule\tconcept\tnote\tidentité\n"
          "jo_i\tplanet_index\tsrc/game/gadget.c\tidentifiant\tlocale\trenommé\tgame/gadget\t\t\tc:x\n"
+         "scr_p\tscreen_pos\tsrc/game/gadget.c\tidentifiant\tlocale\trenommé\tgame/gadget\t\t\tc:w\n"
          "q\tq\tsrc/game/gadget.c\tidentifiant\tlocale\tconservé\tgame/gadget\t\t\tc:y\n"
          "zz\tcount_total\tsrc/game/gadget.c\tidentifiant\tlocale\tconservé\tgame/gadget\t\t\tc:z\n")
 TABLE_PATH = os.path.join(REPO, "tmp", "test_scope_count_table.tsv")
@@ -247,6 +248,13 @@ class Cryptic(unittest.TestCase):
                                     decl("local", "argv", "src/cmd/gadget.c", "main", 90)])
         self.assertEqual(sorted(c[1:4] for c in candidates),
                          [("local", "argv", "main"), ("param", "argc", "run")])
+
+    def test_the_raylib_words_blank_and_texture_are_validated(self):
+        _, candidates, _ = cryptic([decl("local", "screen_texture", "src/cmd/gadget.c", "main", 41),
+                                    decl("local", "blank", "src/cmd/gadget.c", "main", 41),
+                                    decl("local", "blanket", "src/cmd/gadget.c", "main", 41),
+                                    decl("local", "screen_frame", "src/cmd/gadget.c", "main", 41)])
+        self.assertEqual(sorted(c[2] for c in candidates), ["blanket", "screen_frame"])
 
     def test_the_exceptions_file_is_needed_by_the_count_only(self):
         run([decl("local", "abc", "src/game/gadget.c", "run", 41)])
