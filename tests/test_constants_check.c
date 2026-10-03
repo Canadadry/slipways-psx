@@ -14,8 +14,8 @@
 #define OUT DIR "/out.txt"
 #define FIXED "src/p8/fixed.c"
 
-#define SRC_A DIR "/pico8_a.c"
-#define SRC_B DIR "/pico8_b.c"
+#define SRC_A DIR "/a.c"
+#define SRC_B DIR "/b.c"
 #define SRCS " " SRC_A " " SRC_B
 #define COMPARE "sh tools/constants_compare.sh " PROBE " " FIXED " " WORK SRCS
 #define CHECK "sh tools/constants_check.sh " EXPECTED " " PROBE " " FIXED " " WORK SRCS

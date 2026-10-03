@@ -48,7 +48,7 @@ static void setup(void) {
     assert(system("rm -rf " DIR " && mkdir -p " SRC) == 0);
     write_file(SRC "/core.c",
                "#include \"core.h\"\n"
-               "#ifdef PICO8_HOST_BUILD\n#include \"audit.h\"\n#endif\n"
+               "#ifdef HOST_BUILD\n#include \"audit.h\"\n#endif\n"
                "int core_half(int x) { return x / 2; }\n");
     write_file(SRC "/core.h", "int core_half(int x);\n");
     write_file(SRC "/audit.h", "double audit_value(void);\n");

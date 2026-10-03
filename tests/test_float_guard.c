@@ -8,8 +8,8 @@
 #include <string.h>
 
 #define DIR "tmp/test_float_guard_work"
-#define FLOATING DIR "/pico8_floating.c"
-#define INTEGER DIR "/pico8_integer.c"
+#define FLOATING DIR "/floating.c"
+#define INTEGER DIR "/integer.c"
 #define OUT DIR "/out.txt"
 #define GUARD "sh tools/float_guard.sh cc '-std=c99 -Wall -Wextra -Werror' " DIR "/obj"
 
@@ -42,8 +42,8 @@ static int run_guard(const char *sources) {
 
 static void setup(void) {
     assert(system("rm -rf " DIR " && mkdir -p " DIR) == 0);
-    write_file(FLOATING, "double pico8_half(int x) { return x / 2.0; }\n");
-    write_file(INTEGER, "int pico8_half(int x) { return x / 2; }\n");
+    write_file(FLOATING, "double half(int x) { return x / 2.0; }\n");
+    write_file(INTEGER, "int half(int x) { return x / 2; }\n");
 }
 
 static void test_floating_file_is_listed_and_fails_the_guard(void) {
@@ -65,10 +65,10 @@ static void test_integer_file_alone_passes_the_guard(void) {
 
 static void test_every_failing_file_is_listed_sorted(void) {
     setup();
-    write_file(DIR "/pico8_another.c", "float pico8_third(void) { return 3.0f; }\n");
-    assert(run_guard(FLOATING " " INTEGER " " DIR "/pico8_another.c") == 1);
+    write_file(DIR "/another.c", "float third(void) { return 3.0f; }\n");
+    assert(run_guard(FLOATING " " INTEGER " " DIR "/another.c") == 1);
     const char *out = read_file(OUT);
-    const char *another = strstr(out, "failed " DIR "/pico8_another.c\n");
+    const char *another = strstr(out, "failed " DIR "/another.c\n");
     const char *floating = strstr(out, "failed " FLOATING "\n");
     assert(another != NULL && floating != NULL && another < floating);
     assert(strstr(out, "float-guard files 3 failing 2\n") != NULL);
