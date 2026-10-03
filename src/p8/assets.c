@@ -101,8 +101,9 @@ static void gfx_pixel_sink(int index, int value, void *ctx_ptr) {
     asset_sink_ctx_t *ctx = (asset_sink_ctx_t *)ctx_ptr;
     int row = index / ctx->width;
     int col = index % ctx->width;
-    int addr = P8_ADDR_SPRITE_SHEET + row * ctx->width + col;
-    p8_poke(ctx->mem, addr, (unsigned char)value);
+    if (row < P8_SPRITE_SHEET_HEIGHT && col < P8_SPRITE_SHEET_WIDTH) {
+        ctx->mem->sprite_sheet[row][col] = (unsigned char)value;
+    }
 }
 
 int p8_load_gfx_json(p8_memory_t *mem, const char *path) {

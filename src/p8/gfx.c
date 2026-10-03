@@ -218,7 +218,7 @@ unsigned char p8_sget(const p8_memory_t *mem, int x, int y) {
     if (x < 0 || x >= P8_SPRITE_SHEET_WIDTH || y < 0 || y >= P8_SPRITE_SHEET_HEIGHT) {
         return 0;
     }
-    return p8_peek(mem, P8_ADDR_SPRITE_SHEET + y * P8_SPRITE_SHEET_WIDTH + x);
+    return mem->sprite_sheet[y][x];
 }
 
 /* A sprite's top-left pixel is at ((index % 16) * 8, (index / 16) * 8) on

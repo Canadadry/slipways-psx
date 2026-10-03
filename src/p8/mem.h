@@ -4,12 +4,14 @@
 
 #include <stddef.h>
 
-#define P8_ADDR_SPRITE_SHEET 0x6000
 #define P8_ADDR_SPRITE_MAP_SHARED 0x1000
 #define P8_ADDR_MAP 0x2000
 #define P8_ADDR_SCREEN 0xA000
 
 #define P8_DRAW_PALETTE_TRANSPARENT_BIT 0x80
+
+#define P8_SPRITE_SHEET_WIDTH 128
+#define P8_SPRITE_SHEET_HEIGHT 128
 
 #define P8_MEM_SIZE 0xE000
 
@@ -20,6 +22,7 @@ typedef struct {
      * at all". p8_palt() and hud_select_palette_block() write these same
      * bytes. */
     unsigned char draw_palette[16];
+    unsigned char sprite_sheet[P8_SPRITE_SHEET_HEIGHT][P8_SPRITE_SHEET_WIDTH];
 } p8_memory_t;
 
 void p8_mem_init(p8_memory_t *mem);

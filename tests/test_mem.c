@@ -13,9 +13,16 @@ static void test_init_zeroes_everything_but_the_default_draw_palette(void) {
     for (int c = 0; c < 16; c++) {
         mem.draw_palette[c] = 0xAB;
     }
+    mem.sprite_sheet[0][0] = 0xAB;
+    mem.sprite_sheet[P8_SPRITE_SHEET_HEIGHT - 1][P8_SPRITE_SHEET_WIDTH - 1] = 0xAB;
     p8_mem_init(&mem);
     for (int i = 0; i < P8_MEM_SIZE; i++) {
         assert(mem.data[i] == 0);
+    }
+    for (int y = 0; y < P8_SPRITE_SHEET_HEIGHT; y++) {
+        for (int x = 0; x < P8_SPRITE_SHEET_WIDTH; x++) {
+            assert(mem.sprite_sheet[y][x] == 0);
+        }
     }
 
     assert(mem.draw_palette[0] == (0 | P8_DRAW_PALETTE_TRANSPARENT_BIT));
@@ -30,18 +37,6 @@ static void test_peek_poke_roundtrip(void) {
 
     p8_poke(&mem, 0x1234, 42);
     assert(p8_peek(&mem, 0x1234) == 42);
-}
-
-static void test_sprite_sheet_region_boundary(void) {
-    p8_memory_t mem;
-    p8_mem_init(&mem);
-
-    assert(P8_ADDR_SPRITE_SHEET == 0x6000);
-    p8_poke(&mem, P8_ADDR_SPRITE_SHEET, 1);
-    assert(p8_peek(&mem, P8_ADDR_SPRITE_SHEET) == 1);
-
-    p8_poke(&mem, P8_ADDR_SPRITE_SHEET + 0x4000 - 1, 2);
-    assert(p8_peek(&mem, P8_ADDR_SPRITE_SHEET + 0x4000 - 1) == 2);
 }
 
 static void test_shared_region_boundary(void) {
@@ -189,7 +184,6 @@ static void test_memcpy_negative_addr_is_noop(void) {
 int main(void) {
     test_init_zeroes_everything_but_the_default_draw_palette();
     test_peek_poke_roundtrip();
-    test_sprite_sheet_region_boundary();
     test_shared_region_boundary();
     test_map_region_boundary();
     test_screen_region_boundary();

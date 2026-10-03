@@ -344,9 +344,9 @@ static void test_sget_reads_known_pixel_from_loaded_sheet(void) {
 static void test_sget_out_of_range_returns_zero(void) {
     p8_memory_t mem;
     p8_mem_init(&mem);
-    /* Poke a nonzero value adjacent to the sheet's bounds to make sure a
+    /* Write a nonzero value adjacent to the sheet's bounds to make sure a
      * naive/unclamped read wouldn't accidentally also read 0 here. */
-    p8_poke(&mem, P8_ADDR_SPRITE_SHEET, 9);
+    mem.sprite_sheet[0][0] = 9;
 
     assert(p8_sget(&mem, -1, 0) == 0);
     assert(p8_sget(&mem, 0, -1) == 0);
@@ -356,15 +356,15 @@ static void test_sget_out_of_range_returns_zero(void) {
 
 static void test_spr_default_draws_1x1_sprite_at_world_position(void) {
     /* Sprite 5 lives at sheet pixel (40,0) (col 5*8, row 0*8, since 16
-     * sprites/row). Poke two of its pixels directly and draw it with the
+     * sprites/row). Write two of its pixels directly and draw it with the
      * 3-arg convenience wrapper (width and height default to 1). */
     p8_memory_t mem;
     p8_graphics_t gfx;
     p8_mem_init(&mem);
     p8_gfx_init(&gfx);
 
-    p8_poke(&mem, P8_ADDR_SPRITE_SHEET + 0 * 128 + 40, 7);
-    p8_poke(&mem, P8_ADDR_SPRITE_SHEET + 1 * 128 + 41, 8);
+    mem.sprite_sheet[0][40] = 7;
+    mem.sprite_sheet[1][41] = 8;
 
     p8_spr_default(&gfx, &mem, 5, 20, 30);
 
@@ -384,10 +384,10 @@ static void test_spr_with_explicit_width_height_draws_multi_block_sprite(void) {
     p8_mem_init(&mem);
     p8_gfx_init(&gfx);
 
-    p8_poke(&mem, P8_ADDR_SPRITE_SHEET + 0 * 128 + 0, 1);   /* sprite 0, corner */
-    p8_poke(&mem, P8_ADDR_SPRITE_SHEET + 0 * 128 + 8, 2);   /* sprite 1's corner */
-    p8_poke(&mem, P8_ADDR_SPRITE_SHEET + 8 * 128 + 0, 3);   /* sprite 16's corner */
-    p8_poke(&mem, P8_ADDR_SPRITE_SHEET + 15 * 128 + 15, 4); /* sprite 17's far corner */
+    mem.sprite_sheet[0][0] = 1;   /* sprite 0, corner */
+    mem.sprite_sheet[0][8] = 2;   /* sprite 1's corner */
+    mem.sprite_sheet[8][0] = 3;   /* sprite 16's corner */
+    mem.sprite_sheet[15][15] = 4; /* sprite 17's far corner */
 
     p8_spr(&gfx, &mem, 0, 0, 0, 2, 2);
 
@@ -408,7 +408,7 @@ static void test_spr_skips_pixels_marked_transparent_by_palt(void) {
     p8_mem_init(&mem);
     p8_gfx_init(&gfx);
 
-    p8_poke(&mem, P8_ADDR_SPRITE_SHEET + 0 * 128 + 0, 3); /* sprite 0, corner pixel */
+    mem.sprite_sheet[0][0] = 3; /* sprite 0, corner pixel */
     p8_poke(&mem, P8_ADDR_SCREEN + 0 * P8_SCREEN_WIDTH + 0, 9); /* pre-existing content */
 
     p8_palt(&mem, 3, 1);
@@ -474,13 +474,13 @@ static void test_map_draws_cells_via_sprite_drawing_logic(void) {
     p8_mem_init(&mem);
     p8_gfx_init(&gfx);
 
-    p8_poke(&mem, P8_ADDR_SPRITE_SHEET + 0 * 128 + 40, 7); /* sprite 5's corner */
+    mem.sprite_sheet[0][40] = 7; /* sprite 5's corner */
     p8_mset(&mem, 1, 0, 5);
 
     p8_map(&gfx, &mem, 0, 0, 0, 0, 2, 2);
 
     assert(p8_peek(&mem, P8_ADDR_SCREEN + 0 * P8_SCREEN_WIDTH + 8) == 7);
-    /* Cell (0,0) is sprite 0, whose corner pixel was never poked (stays
+    /* Cell (0,0) is sprite 0, whose corner pixel was never written (stays
      * palette index 0, which is transparent by default and so is
      * skipped -- screen stays at its cleared 0 value either way). */
     assert(p8_peek(&mem, P8_ADDR_SCREEN + 0 * P8_SCREEN_WIDTH + 0) == 0);
@@ -499,7 +499,7 @@ static void test_map_treats_sprite_0_cells_as_empty(void) {
     p8_gfx_init(&gfx);
 
     /* Sprite 0's top-left pixel, opaque colour 7. */
-    p8_poke(&mem, P8_ADDR_SPRITE_SHEET + 0, 7);
+    mem.sprite_sheet[0][0] = 7;
     p8_mset(&mem, 0, 0, 0);
 
     p8_map(&gfx, &mem, 0, 0, 0, 0, 1, 1);
