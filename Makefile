@@ -213,8 +213,16 @@
 #                       modules, split done / later; SITES=1 lists each
 #                       mention; warns for a module in no sub-step, never
 #                       fails, outside the suite
+# make old-names-guard -> the old-name guard, text half: the old names of
+#                       docs/renommage.tsv that a text search finds in the code
+#                       (`rename_count.py --part text`), without libclang;
+#                       fails on any residue; not yet in make test
+# make ast-guard     -> a fresh rename-extract, then the old-name guard, AST
+#                       half (the ambiguous old names as identifiers), and the
+#                       scope guard, both tables printed; fails on any residue;
+#                       not yet in make test
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test rename-count-test cart-names-count rename-substeps-test rename-substeps-check rename-strings-verify-test rename-strings-verify rename-rekey-test rename-rekey rename-rekey-check scope-count-test scope-count cryptic-locals cart-citations-test cart-citations french-count-test french-count
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test rename-count-test cart-names-count rename-substeps-test rename-substeps-check rename-strings-verify-test rename-strings-verify rename-rekey-test rename-rekey rename-rekey-check scope-count-test scope-count cryptic-locals cart-citations-test cart-citations french-count-test french-count old-names-guard ast-guard
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -1326,6 +1334,18 @@ french-count:
 	python3 tools/french_count.py --root . --exceptions tools/french_exceptions.txt \
 	    --substeps $(RENAME_SUBSTEPS) $(foreach m,$(MODULES),--module '$(m)') \
 	    $(if $(SUBSTEP),--substep $(SUBSTEP)) $(if $(SITES),--sites)
+
+old-names-guard:
+	python3 tools/rename_count.py --table docs/renommage.tsv --root . --part text --check
+
+# Both counts run whatever the first returns; the status is the last failure.
+ast-guard: rename-extract
+	status=0; \
+	python3 tools/rename_count.py --table docs/renommage.tsv \
+	    --occurrences $(AST_RENAME_DIR)/occurrences.tsv --root . --part ast --check || status=$$?; \
+	python3 tools/scope_count.py --declarations $(AST_RENAME_DIR)/declarations.tsv \
+	    --exceptions tools/scope_exceptions.txt --root . --check || status=$$?; \
+	exit $$status
 
 rename-apply:
 	@test -n "$(TABLE)" || { echo "usage: make rename-apply TABLE=<table>" >&2; exit 1; }

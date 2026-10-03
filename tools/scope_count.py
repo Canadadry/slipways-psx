@@ -5,7 +5,8 @@ enum constant, macro, static or global (one column each); a local or a
 parameter whose scope spans more than 40 lines (column long-scope). Allowed:
 any other local or parameter (a parameter of a function-pointer type has the
 scope of its prototype), and the (kind, parent, name) triples of the
-exceptions file. Never fails: exit 0.
+exceptions file. Exit 0 unless --check: then exit 1 if the total is above 0,
+and 2 if the declarations are missing or older than the sources.
 
 With --cryptic and --table docs/renommage.tsv, the cryptic-locals list
 instead: each local or parameter whose scope spans more than 40 lines (a
@@ -120,9 +121,17 @@ def main(argv):
     parser.add_argument("--cryptic", action="store_true",
                         help="list the cryptic long-scope locals and params instead")
     parser.add_argument("--table", help="docs/renommage.tsv, with --cryptic")
+    parser.add_argument("--check", action="store_true",
+                        help="exit 1 if anything is refused, 2 without a fresh extraction")
     args = parser.parse_args(argv)
     if args.cryptic and not args.table:
         parser.error("--cryptic needs --table")
+    if args.check and args.cryptic:
+        parser.error("--check guards the scope count: drop --cryptic")
+    if args.check and stale(args):
+        print("error: %s is missing or older than the sources; run `make rename-extract`"
+              % args.declarations, file=sys.stderr)
+        return 2
 
     selected = None
     if args.substep:
@@ -167,7 +176,7 @@ def main(argv):
         print("%-*s %s %10d" % (width, module, " ".join("%13d" % row[c] for c in COLUMNS),
                                 sum(row.values())))
     warn_if_stale(args)
-    return 0
+    return 1 if args.check and sum(total.values()) else 0
 
 
 def print_cryptic(args, selected_module):
@@ -189,6 +198,11 @@ def print_cryptic(args, selected_module):
         print("%s %d" % (module, per_module[module]))
     print("total %d" % len(found))
     warn_if_stale(args)
+
+
+def stale(args):
+    return (not os.path.exists(args.declarations)
+            or os.path.getmtime(args.declarations) < newest_source(args.root))
 
 
 def warn_if_stale(args):

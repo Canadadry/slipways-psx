@@ -133,6 +133,44 @@ class ScopeCount(unittest.TestCase):
         self.assertIn("warning:", result.stdout)
 
 
+class Check(unittest.TestCase):
+    """--check: the scope guard, exit 1 on any refused declaration, 2 when
+    the extraction is missing or older than the sources."""
+
+    def test_check_fails_on_a_refused_declaration_and_passes_without_one(self):
+        result = run([decl("global", "g", "src/game/gadget.c")], "--check")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertEqual(table(result)["total"]["total"], 1)
+        result = run([decl("global", "gadget", "src/game/gadget.c"),
+                      decl("field", "x", "src/engine/widget.h", "widget_vec_t")], "--check")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(table(result)["total"]["total"], 0)
+
+    def test_check_exits_two_on_a_stale_or_missing_extraction(self):
+        run([])
+        os.makedirs(os.path.join(WORK, "src", "game"))
+        source = os.path.join(WORK, "src", "game", "gadget.c")
+        with open(source, "w", encoding="utf-8") as f:
+            f.write("int gadget;\n")
+        later = time.time() + 10
+        os.utime(source, (later, later))
+        args = [sys.executable, SCRIPT, "--exceptions", os.path.join(WORK, "exceptions.txt"),
+                "--root", WORK, "--check", "--declarations"]
+        result = subprocess.run(args + [os.path.join(WORK, "declarations.tsv")],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2, result.stdout)
+        self.assertIn("make rename-extract", result.stderr)
+        result = subprocess.run(args + [os.path.join(WORK, "none.tsv")],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2, result.stdout)
+        self.assertIn("make rename-extract", result.stderr)
+
+    def test_check_is_refused_with_cryptic(self):
+        result = run([], "--check", "--cryptic", "--table", os.path.join(WORK, "none.tsv"))
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("--check", result.stderr)
+
+
 TABLE = ("# Statut : validé\n"
          "ancien\tnouveau\tfichier\tcatégorie\tsorte\tstatut\tmodule\tconcept\tnote\tidentité\n"
          "jo_i\tplanet_index\tsrc/game/gadget.c\tidentifiant\tlocale\trenommé\tgame/gadget\t\t\tc:x\n"

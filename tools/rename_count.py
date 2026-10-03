@@ -16,7 +16,13 @@ string, only when the span or the string is exactly the name, and in a string
 only at the sites the table lists for it. With --substep, the files of that
 sub-step's modules (tools/rename_substeps.tsv), each mention filed under
 `done` (its name belongs to that sub-step or an earlier one) or `later`,
-then the residue bound. Never fails: exit 0."""
+then the residue bound.
+
+--part text counts what a text search alone finds, without reading the
+extraction; --part ast the identifier column of the ambiguous names, from
+the extraction; the two add up, column by column, to the count without
+--part. Exit 0 unless --check: then exit 1 if the TOTAL is above 0, and 2
+if the extraction the count needs is missing or older than the sources."""
 
 import argparse
 import fnmatch
@@ -144,9 +150,10 @@ def text_regions(text, ext):
 
 # --- counting ----------------------------------------------------------------
 
-def count_file(path, text, names, ast_spans, part=None, located=None):
+def count_file(path, text, names, ast_spans, part=None, located=None, halves=("text", "ast")):
     """{column: n} for one file; ast_spans maps the (offset, length) of the
-    AST occurrences of ambiguous renamed identities in it to their identity.
+    AST occurrences of ambiguous renamed identities in it to their identity;
+    halves says which of the text and AST counts to make.
     With part(path, column, name, identity) -> key, {key: {column: n}}
     instead; located maps the character offset of an AST occurrence of a
     distinctive renamed identity to that identity, given to part when a
@@ -163,6 +170,8 @@ def count_file(path, text, names, ast_spans, part=None, located=None):
 
     ext = os.path.splitext(path)[1]
     regions = c_regions(text) if ext in C_FILES else text_regions(text, ext)
+    if "text" not in halves:
+        regions = []
     listed = names.string_sites.get(path, set())
     for kind, start, end in regions:
         chunk = text[start:end]
@@ -194,7 +203,7 @@ def count_file(path, text, names, ast_spans, part=None, located=None):
             for w in WORD.findall(chunk):
                 if w in listed:
                     add("string", w)
-    for identity in ast_spans.values():
+    for identity in (ast_spans.values() if "ast" in halves else ()):
         add("identifier", identity=identity)
     return flat if part is None else split
 
@@ -263,14 +272,24 @@ def main(argv):
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--table", required=True)
-    parser.add_argument("--occurrences", required=True,
-                        help="occurrences.tsv of `make rename-extract`")
+    parser.add_argument("--occurrences",
+                        help="occurrences.tsv of `make rename-extract`; not read by --part text")
     parser.add_argument("--root", required=True)
     parser.add_argument("--module", action="append",
                         help="only these modules (shell patterns: game/planet*)")
     parser.add_argument("--substep", help="only this sub-step's modules, split done / later")
     parser.add_argument("--substeps", help="the sub-step table, with --substep")
+    parser.add_argument("--part", choices=("text", "ast"), help="only this half of the count")
+    parser.add_argument("--check", action="store_true",
+                        help="exit 1 if anything is counted, 2 without a fresh extraction")
     args = parser.parse_args(argv)
+    if args.check and args.substep:
+        parser.error("--check does not split by sub-step: drop --substep")
+    if args.part and args.substep:
+        parser.error("--part does not split by sub-step: drop --substep")
+    if args.part != "text" and not args.occurrences:
+        parser.error("--occurrences is required, except with --part text")
+    halves = (args.part,) if args.part else ("text", "ast")
 
     rows = read_table(args.table)
     names = Names(rows)
@@ -292,7 +311,9 @@ def main(argv):
     if args.substep:
         distinct = {r["identité"] for r in rows if r["catégorie"] == "identifiant"
                     and r["statut"] == "renommé" and r["ancien"] in names.distinctive_words}
-    if os.path.exists(args.occurrences):
+    if args.part == "text":
+        ast = {}
+    elif os.path.exists(args.occurrences):
         ast = read_occurrences(args.occurrences, names.ambiguous_identities | distinct)
         newest = max((os.path.getmtime(os.path.join(args.root, p)) for p in files
                       if p.endswith(C_FILES)), default=0)
@@ -303,6 +324,9 @@ def main(argv):
         ast = {}
         notes.append("warning: no %s: ambiguous identifiers not counted; run "
                      "`make rename-extract`" % args.occurrences)
+    if args.check and notes:
+        print(notes[0].replace("warning:", "error:", 1), file=sys.stderr)
+        return 2
 
     table = {}
     for path in files:
@@ -318,7 +342,7 @@ def main(argv):
         if distinct:
             located = char_offsets(text, {k: v for k, v in spans.items() if v in distinct})
             spans = {k: v for k, v in spans.items() if v not in distinct}
-        found = count_file(path, text, names, spans, part, located)
+        found = count_file(path, text, names, spans, part, located, halves)
         if part is None:
             found = {module: found}
         else:
@@ -348,7 +372,7 @@ def main(argv):
                             sum(total.values())))
     for note in notes:
         print(note)
-    return 0
+    return 1 if args.check and sum(total.values()) else 0
 
 
 def print_split(table, substep, bound):

@@ -171,6 +171,92 @@ class Count(unittest.TestCase):
         self.assertIn("rename-extract", result.stdout)
 
 
+class Parts(unittest.TestCase):
+    """--part text|ast: one half of the count each, the AST half being the
+    identifier column of the ambiguous names; --check turns the table into a
+    guard (exit 1 on any residue, 2 without a usable extraction)."""
+
+    ROWS = ROWS + [
+        ["p", "map_pos", "src/engine/entity.h", "identifiant", "champ", "renommé",
+         "engine/entity", "p", "", "c:@S@h@FI@p"],
+    ]
+    PLANET = ("void f(entity_t *e) { pico8_jo_kj(); int q = e->p; }\n"
+              "/* `p` and `pico8_jo_kj` */\n")
+    FILES = {"src/game/planet.c": PLANET}
+    OCCURRENCES = [["c:@S@h@FI@p", "src/game/planet.c", PLANET.index("e->p") + 3, 1, "ref"]]
+
+    def run_part(self, *extra, files=None, occurrences=None):
+        return run(self.ROWS, self.FILES if files is None else files,
+                   self.OCCURRENCES if occurrences is None else occurrences, extra=extra)
+
+    def test_text_part_reads_no_occurrences_and_warns_nothing(self):
+        result, table = self.run_part("--part", "text",
+                                      "--occurrences", os.path.join(WORK, "none.tsv"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("warning:", result.stdout)
+        self.assertEqual(table["game/planet"], {"identifier": 1, "backtick": 2, "string": 0,
+                                                 "comment": 0, "total": 3}, result.stdout)
+
+    def test_text_part_needs_no_occurrences_option(self):
+        args = [sys.executable, SCRIPT, "--table", os.path.join(WORK, "renommage.tsv"),
+                "--root", os.path.join(WORK, "tree"), "--part", "text"]
+        self.run_part()
+        result = subprocess.run(args, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(counts(result.stdout)["TOTAL"]["total"], 3, result.stdout)
+
+    def test_ast_part_counts_only_the_ambiguous_identifiers(self):
+        result, table = self.run_part("--part", "ast")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(table["game/planet"], {"identifier": 1, "backtick": 0, "string": 0,
+                                                 "comment": 0, "total": 1}, result.stdout)
+
+    def test_the_two_parts_add_up_to_the_whole_count(self):
+        _, whole = self.run_part()
+        _, text = self.run_part("--part", "text")
+        _, ast = self.run_part("--part", "ast")
+        for module in whole:
+            for column in whole[module]:
+                self.assertEqual(text.get(module, {}).get(column, 0)
+                                 + ast.get(module, {}).get(column, 0),
+                                 whole[module][column], (module, column))
+
+    def test_check_fails_on_a_residue_and_passes_on_a_clean_tree(self):
+        result, table = self.run_part("--part", "text", "--check")
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertEqual(table["TOTAL"]["total"], 3, result.stdout)
+        result, table = self.run_part("--part", "text", "--check",
+                                      files={"src/game/planet.c": "void f(void);\n"})
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(table["TOTAL"]["total"], 0, result.stdout)
+
+    def test_check_of_the_ast_part_without_an_extraction_exits_two(self):
+        result, _ = self.run_part("--part", "ast", "--check",
+                                  "--occurrences", os.path.join(WORK, "none.tsv"))
+        self.assertEqual(result.returncode, 2, result.stdout)
+        self.assertIn("make rename-extract", result.stderr)
+        result, _ = self.run_part("--check", "--occurrences", os.path.join(WORK, "none.tsv"))
+        self.assertEqual(result.returncode, 2, result.stdout)
+
+    def test_check_of_the_ast_part_with_a_stale_extraction_exits_two(self):
+        self.run_part()
+        source = os.path.join(WORK, "tree", "src", "game", "planet.c")
+        later = os.path.getmtime(os.path.join(WORK, "occurrences.tsv")) + 10
+        os.utime(source, (later, later))
+        args = [sys.executable, SCRIPT, "--table", os.path.join(WORK, "renommage.tsv"),
+                "--occurrences", os.path.join(WORK, "occurrences.tsv"),
+                "--root", os.path.join(WORK, "tree"), "--part", "ast", "--check"]
+        result = subprocess.run(args, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2, result.stdout)
+        self.assertIn("make rename-extract", result.stderr)
+
+    def test_check_is_refused_with_substep(self):
+        result, _ = self.run_part("--check", "--substep", "3b",
+                                  "--substeps", os.path.join(WORK, "rename_substeps.tsv"))
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("--check", result.stderr)
+
+
 class Substep(unittest.TestCase):
     """--substep: the files of the sub-step's modules, each mention filed
     under done (its name's sub-step is this one or an earlier one) or later."""
