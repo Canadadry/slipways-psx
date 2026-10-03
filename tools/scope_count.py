@@ -21,6 +21,10 @@ import os
 import re
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import rename_substeps  # noqa: E402
+import rename_tables  # noqa: E402
+
 REFUSED_KINDS = ("type", "tag", "function", "field", "enum_constant", "macro", "static",
                  "global")
 COLUMNS = REFUSED_KINDS + ("long-scope",)
@@ -33,21 +37,6 @@ def module_of(path):
     """`src/game/planet.c` -> `game/planet`."""
     stem = os.path.splitext(path)[0]
     return stem[len("src/"):] if stem.startswith("src/") else stem
-
-
-def read_declarations(path):
-    rows = []
-    header = None
-    with open(path, encoding="utf-8") as f:
-        for line in f.read().splitlines():
-            if not line or line.startswith("#"):
-                continue
-            cells = line.split("\t")
-            if header is None:
-                header = cells
-                continue
-            rows.append(dict(zip(header, cells)))
-    return rows
 
 
 def read_exceptions(path):
@@ -81,10 +70,8 @@ def is_long_scope(row):
 
 def validated_words(table):
     """The lowercase `_` parts of the new names of the renamed rows."""
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    import rename_count
     words = set()
-    for row in rename_count.read_table(table):
+    for row in rename_tables.read_table(table)[1]:
         if row.get("statut") == "renommé":
             words.update(w.lower() for w in re.split(r"[^A-Za-z0-9]+", row["nouveau"]) if w)
     return words
@@ -135,8 +122,6 @@ def main(argv):
 
     selected = None
     if args.substep:
-        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-        import rename_substeps
         substeps = rename_substeps.load(args.substeps)
         if args.substep not in substeps.modules:
             parser.error("unknown sub-step %s" % args.substep)
@@ -156,7 +141,7 @@ def main(argv):
 
     exceptions = read_exceptions(args.exceptions)
     table = {}
-    for row in read_declarations(args.declarations):
+    for row in rename_tables.read_declarations(args.declarations):
         column = column_of(row)
         if column is None or (row["kind"], row["parent"], row["name"]) in exceptions:
             continue
@@ -182,7 +167,7 @@ def main(argv):
 def print_cryptic(args, selected_module):
     words = validated_words(args.table)
     found = []
-    for row in read_declarations(args.declarations):
+    for row in rename_tables.read_declarations(args.declarations):
         module = selected_module(row)
         if module is not None and is_cryptic(row, words):
             found.append((module, row["kind"], row["name"], row["parent"], row["scope_lines"]))

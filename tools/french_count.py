@@ -38,7 +38,7 @@ import rename_count  # noqa: E402
 import rename_derive  # noqa: E402
 import rename_substeps  # noqa: E402
 
-COLUMNS = ("identifier", "backtick", "string", "comment")
+COLUMNS = rename_count.COLUMNS
 OWN_FILES = ("tools/french_count.py", "tests/test_french_count.py", "tools/french_exceptions.txt")
 FUNCTION_WORDS = frozenset("""
     le la les un une des du au aux

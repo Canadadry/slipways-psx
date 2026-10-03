@@ -9,6 +9,9 @@ import os
 import re
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import rename_tables  # noqa: E402
+
 COLUMNS = ["ancien", "nouveau", "fichier", "catégorie", "sorte", "statut",
            "module", "concept", "note", "identité"]
 
@@ -28,27 +31,17 @@ DEFAULT_HEADER = [
 
 
 class Declaration:
-    def __init__(self, fields):
-        (self.identity, self.kind, self.name, self.parent, self.file, self.line,
-         self.linkage, scope, self.occurrences, self.flags) = fields
-        self.scope = int(scope) if scope != "-" else None
+    def __init__(self, row):
+        """row: a declaration as rename_tables.read_declarations gives it."""
+        self.identity, self.kind, self.name = row["identity"], row["kind"], row["name"]
+        self.parent, self.file, self.line = row["parent"], row["file"], row["line"]
+        self.linkage, self.occurrences, self.flags = (row["linkage"], row["occurrences"],
+                                                      row["flags"])
+        self.scope = int(row["scope_lines"]) if row["scope_lines"] != "-" else None
 
 
-def read_declarations(path):
-    """Declarations of an extraction; `#` lines skipped, first other line is
-    the header."""
-    rows = []
-    header_seen = False
-    with open(path, encoding="utf-8") as f:
-        for line in f:
-            line = line.rstrip("\n")
-            if not line or line.startswith("#"):
-                continue
-            if not header_seen:
-                header_seen = True
-                continue
-            rows.append(Declaration(line.split("\t")))
-    return rows
+def declarations_of(path):
+    return [Declaration(row) for row in rename_tables.read_declarations(path)]
 
 
 # --- vocabulary ------------------------------------------------------------
@@ -437,19 +430,9 @@ def read_existing(path):
     the default header if there is none."""
     if not os.path.exists(path):
         return DEFAULT_HEADER, []
-    header, kept = [], []
-    with open(path, encoding="utf-8") as f:
-        lines = f.read().splitlines()
-    for line in lines:
-        if line.startswith("#"):
-            header.append(line)
-            continue
-        cells = line.split("\t")
-        if cells == COLUMNS or not line:
-            continue
-        cells += [""] * (len(COLUMNS) - len(cells))
-        if cells[3] != "identifiant":
-            kept.append(cells)
+    header, rows = rename_tables.read_table(path)
+    kept = [[row.get(c, "") for c in COLUMNS] for row in rows
+            if row.get("catégorie") != "identifiant"]
     return header or DEFAULT_HEADER, kept
 
 
@@ -465,7 +448,7 @@ def main(argv):
     lexicon = Lexicon()
     read_vocabulary(args.vocabulary, lexicon)
     read_overrides(args.overrides, lexicon)
-    declarations = read_declarations(args.declarations)
+    declarations = declarations_of(args.declarations)
     lexicon.entity_structs = {d.parent for d in declarations
                               if d.kind == "field" and d.name == "header"}
     types = {}

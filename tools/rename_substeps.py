@@ -22,7 +22,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import rename_count  # noqa: E402
+import rename_tables  # noqa: E402
 
 FIRST_SUBSTEP_KINDS = {"clé d'étiquette", "clé de message", "nom d'état", "nom de classe"}
 WRITER, READER = "écrivain", "lecteur"
@@ -83,7 +83,7 @@ def roles(row):
 
 class Membership:
     """The sub-step of each row of the table (rows as read by
-    rename_count.read_table)."""
+    rename_tables.read_table)."""
 
     def __init__(self, rows, substeps):
         self.substeps = substeps
@@ -187,7 +187,7 @@ def main(argv):
     parser.add_argument("--table", required=True)
     parser.add_argument("--substeps", required=True)
     args = parser.parse_args(argv)
-    rows = rename_count.read_table(args.table)
+    _, rows = rename_tables.read_table(args.table)
     substeps = load(args.substeps)
     found = violations(rows, substeps)
     for line in found:

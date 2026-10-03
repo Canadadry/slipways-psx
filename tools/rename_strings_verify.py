@@ -20,6 +20,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import rename_count  # noqa: E402
 import rename_substeps  # noqa: E402
+import rename_tables  # noqa: E402
 
 
 CITED = "symbole cité"
@@ -60,7 +61,7 @@ def main(argv):
     parser.add_argument("--root", required=True)
     args = parser.parse_args(argv)
 
-    rows = rename_count.read_table(args.table)
+    _, rows = rename_tables.read_table(args.table)
     substeps = rename_substeps.load(args.substeps)
     if args.substep not in substeps.modules:
         parser.error("unknown sub-step %s" % args.substep)

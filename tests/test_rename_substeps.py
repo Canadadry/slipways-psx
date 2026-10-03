@@ -13,8 +13,8 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCRIPT = os.path.join(REPO, "tools", "rename_substeps.py")
 WORK = os.path.join(REPO, "tmp", "test_rename_substeps_work")
 sys.path.insert(0, os.path.join(REPO, "tools"))
-import rename_count  # noqa: E402
 import rename_substeps  # noqa: E402
+import rename_tables  # noqa: E402
 
 COLUMNS = ["ancien", "nouveau", "fichier", "catégorie", "sorte", "statut",
            "module", "concept", "note", "identité"]
@@ -85,7 +85,7 @@ def check(rows=None, substeps=SUBSTEPS):
 
 def assigned(rows=None):
     table, steps = tables(rows)
-    rows = rename_count.read_table(table)
+    _, rows = rename_tables.read_table(table)
     membership = rename_substeps.Membership(rows, rename_substeps.load(steps))
     return {(r["ancien"], r["fichier"], r["identité"]): membership.of_row(r) for r in rows}, membership
 

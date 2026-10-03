@@ -11,6 +11,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import rename_substeps  # noqa: E402
+import rename_tables  # noqa: E402
 
 
 def main(argv):
@@ -31,22 +32,13 @@ def main(argv):
     elif not args.module:
         parser.error("--module or --substep is required")
 
-    columns = None
     out = []
-    with open(args.table, encoding="utf-8") as f:
-        for line in f.read().splitlines():
-            if not line or line.startswith("#"):
-                continue
-            cells = line.split("\t")
-            if columns is None:
-                columns = cells
-                continue
-            row = dict(zip(columns, cells))
-            if row["catégorie"] != "identifiant" or row["statut"] != "renommé":
-                continue
-            if row["module"] in exact or any(fnmatch.fnmatchcase(row["module"], m)
-                                             for m in args.module):
-                out.append([row["ancien"], row["nouveau"], row["fichier"], row["identité"]])
+    for row in rename_tables.read_table(args.table)[1]:
+        if row["catégorie"] != "identifiant" or row["statut"] != "renommé":
+            continue
+        if row["module"] in exact or any(fnmatch.fnmatchcase(row["module"], m)
+                                         for m in args.module):
+            out.append([row["ancien"], row["nouveau"], row["fichier"], row["identité"]])
     with open(args.output, "w", encoding="utf-8") as f:
         f.write("ancien\tnouveau\tfichier\tidentité\n")
         for row in out:

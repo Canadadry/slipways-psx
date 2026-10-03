@@ -26,6 +26,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import rename_count  # noqa: E402
 import rename_derive  # noqa: E402
 import rename_substeps  # noqa: E402
+import rename_tables  # noqa: E402
 
 COLUMNS = ("cart", "lua", "short")
 OWN_FILES = ("tools/cart_citations.py", "tests/test_cart_citations.py")
@@ -42,7 +43,7 @@ EXTENSIONS = frozenset("c h o d sh py txt json md p8 tsv".split())
 
 
 def short_names(table):
-    return {r["ancien"] for r in rename_count.read_table(table)
+    return {r["ancien"] for r in rename_tables.read_table(table)[1]
             if r["statut"] == "renommé" and len(r["ancien"]) <= 2} - ENGLISH
 
 

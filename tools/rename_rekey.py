@@ -20,9 +20,9 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import rename_count  # noqa: E402
 import rename_derive  # noqa: E402
 import rename_substeps  # noqa: E402
+import rename_tables  # noqa: E402
 
 
 def renamed_identifiers(rows):
@@ -58,15 +58,12 @@ def rewrite(path, mapping):
     other byte of the file stays."""
     with open(path, encoding="utf-8", newline="") as f:
         lines = f.read().split("\n")
-    columns = None
-    for i, line in enumerate(lines):
+    start, columns = rename_tables.header_line(lines)
+    category, identity = columns.index("catégorie"), columns.index("identité")
+    for i, line in enumerate(lines[start + 1:], start + 1):
         if not line or line.startswith("#"):
             continue
         cells = line.split("\t")
-        if columns is None:
-            columns = cells
-            category, identity = columns.index("catégorie"), columns.index("identité")
-            continue
         if (len(cells) > identity and cells[category] == "identifiant"
                 and cells[identity] in mapping):
             cells[identity] = mapping[cells[identity]]
@@ -109,12 +106,12 @@ def main(argv):
     parser.add_argument("--substeps", help="with --check: the sub-step table")
     parser.add_argument("--substep", help="with --check: the last applied sub-step")
     args = parser.parse_args(argv)
-    rows = rename_count.read_table(args.table)
+    _, rows = rename_tables.read_table(args.table)
 
     if args.check:
         if not (args.declarations and args.substeps and args.substep):
             parser.error("--check needs --declarations, --substeps and --substep")
-        problems = check(rows, rename_derive.read_declarations(args.declarations),
+        problems = check(rows, rename_derive.declarations_of(args.declarations),
                          rename_substeps.load(args.substeps), args.substep)
         for line in problems:
             print(line)
@@ -124,8 +121,8 @@ def main(argv):
 
     if not (args.before and args.after and args.slice):
         parser.error("--before, --after and --slice are required")
-    mapping, problems = new_identities(rows, rename_derive.read_declarations(args.before),
-                                       rename_derive.read_declarations(args.after),
+    mapping, problems = new_identities(rows, rename_derive.declarations_of(args.before),
+                                       rename_derive.declarations_of(args.after),
                                        read_slice(args.slice))
     for line in problems:
         print(line)

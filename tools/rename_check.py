@@ -12,9 +12,8 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import rename_derive  # noqa: E402
+import rename_tables  # noqa: E402
 
-COLUMNS = rename_derive.COLUMNS
 C_KEYWORDS = set("""
 auto break case char const continue default do double else enum extern float for goto if
 inline int long register restrict return short signed sizeof static struct switch typedef
@@ -48,11 +47,13 @@ IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 class Decl:
-    def __init__(self, fields):
-        (self.identity, self.kind, self.name, self.parent, self.file, line,
-         self.linkage, scope, _, self.flags) = fields
-        self.line = int(line)
-        self.scope = int(scope) if scope != "-" else None
+    def __init__(self, row):
+        """row: a declaration as rename_tables.read_declarations gives it."""
+        self.identity, self.kind, self.name = row["identity"], row["kind"], row["name"]
+        self.parent, self.file, self.linkage = row["parent"], row["file"], row["linkage"]
+        self.flags = row["flags"]
+        self.line = int(row["line"])
+        self.scope = int(row["scope_lines"]) if row["scope_lines"] != "-" else None
         self.new = None
 
     @property
@@ -74,35 +75,6 @@ class Decl:
     def lines(self):
         end = self.line + self.scope if self.scope is not None else 10 ** 9
         return self.line, end
-
-
-def read_declarations(path):
-    rows = []
-    header_seen = False
-    with open(path, encoding="utf-8") as f:
-        for line in f:
-            line = line.rstrip("\n")
-            if not line or line.startswith("#"):
-                continue
-            if not header_seen:
-                header_seen = True
-                continue
-            rows.append(Decl(line.split("\t")))
-    return rows
-
-
-def read_table(path):
-    header, rows = [], []
-    with open(path, encoding="utf-8") as f:
-        for line in f.read().splitlines():
-            if line.startswith("#"):
-                header.append(line)
-                continue
-            cells = line.split("\t")
-            if not line or cells == COLUMNS:
-                continue
-            rows.append(dict(zip(COLUMNS, cells + [""] * (len(COLUMNS) - len(cells)))))
-    return header, rows
 
 
 class Report:
@@ -327,11 +299,11 @@ def main(argv):
     parser.add_argument("--root", required=True, help="the tree whose file names the targets must avoid")
     args = parser.parse_args(argv)
 
-    header, rows = read_table(args.table)
-    declarations = read_declarations(args.declarations)
+    header, rows = rename_tables.read_table(args.table)
+    declarations = [Decl(row) for row in rename_tables.read_declarations(args.declarations)]
     remainder = []
     if args.remainder and os.path.exists(args.remainder):
-        _, remainder = read_table(args.remainder)
+        _, remainder = rename_tables.read_table(args.remainder)
     report = Report()
     check_exhaustive(header, rows, declarations, remainder, report)
     check_collisions(declarations, report)

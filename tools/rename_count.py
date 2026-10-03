@@ -34,6 +34,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import rename_derive  # noqa: E402
 import rename_strings  # noqa: E402
 import rename_substeps  # noqa: E402
+import rename_tables  # noqa: E402
 
 COLUMNS = ("identifier", "backtick", "string", "comment")
 C_FILES = (".c", ".h")
@@ -78,21 +79,6 @@ def path_pattern(name):
     body = re.escape(match.group(1)) if match else re.escape(name)
     prefix = r"(?:tmp|\$\(TMP_DIR\))/" if match else ""
     return re.compile(r"(?<![A-Za-z0-9_])%s%s(?![A-Za-z0-9_])" % (prefix, body))
-
-
-def read_table(path):
-    rows = []
-    columns = None
-    with open(path, encoding="utf-8") as f:
-        for line in f.read().splitlines():
-            if not line or line.startswith("#"):
-                continue
-            cells = line.split("\t")
-            if columns is None:
-                columns = cells
-                continue
-            rows.append(dict(zip(columns, cells + [""] * (len(columns) - len(cells)))))
-    return rows
 
 
 # --- regions of a file -------------------------------------------------------
@@ -291,7 +277,7 @@ def main(argv):
         parser.error("--occurrences is required, except with --part text")
     halves = (args.part,) if args.part else ("text", "ast")
 
-    rows = read_table(args.table)
+    _, rows = rename_tables.read_table(args.table)
     names = Names(rows)
     part = None
     if args.substep:

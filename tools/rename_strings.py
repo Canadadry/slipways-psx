@@ -13,6 +13,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import rename_derive  # noqa: E402
+import rename_tables  # noqa: E402
 
 COLUMNS = rename_derive.COLUMNS
 WRITER, READER = "écrivain", "lecteur"
@@ -127,20 +128,6 @@ def text_lines(text):
 
 # --- the table -------------------------------------------------------------
 
-def read_table(path):
-    header, rows = [], []
-    with open(path, encoding="utf-8") as f:
-        for line in f.read().splitlines():
-            if line.startswith("#"):
-                header.append(line)
-                continue
-            cells = line.split("\t")
-            if not line or cells == COLUMNS:
-                continue
-            rows.append(cells + [""] * (len(COLUMNS) - len(cells)))
-    return header, rows
-
-
 def write_table(path, header, rows):
     rows = sorted(rows, key=lambda r: (r[6], r[3], r[4], r[0], r[9], r[2], r[8]))
     with open(path, "w", encoding="utf-8") as f:
@@ -238,7 +225,8 @@ def main(argv):
     parser.add_argument("--flags", required=True)
     args = parser.parse_args(argv)
 
-    header, rows = read_table(args.table)
+    header, rows = rename_tables.read_table(args.table)
+    rows = [[row.get(c, "") for c in COLUMNS] for row in rows]
     identifier_rows = [r for r in rows if r[3] == "identifiant"]
     lexicon = rename_derive.Lexicon()
     rename_derive.read_vocabulary(args.vocabulary, lexicon)
