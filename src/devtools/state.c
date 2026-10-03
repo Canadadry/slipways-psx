@@ -91,42 +91,42 @@ static int count_of(const entity_list_t *l) {
 }
 
 static void write_clock(FILE *out) {
-    const economy_t *fm = main_economy_typed();
-    if (fm == NULL) {
+    const economy_t *economy = main_economy_typed();
+    if (economy == NULL) {
         fputs("clock year - month -\n", out);
         return;
     }
     fputs("clock year ", out);
-    write_fixed(out, fm->year);
+    write_fixed(out, economy->year);
     fputs(" month ", out);
-    write_fixed(out, fm->year_ticks);
+    write_fixed(out, economy->year_ticks);
     fputc('\n', out);
 }
 
 /* Before cart_start_game(), only the main economy placeholder holds the
  * resources, which the cheat writes. */
 static void write_resources(FILE *out) {
-    const economy_t *fm = main_economy_typed();
+    const economy_t *economy = main_economy_typed();
     const main_economy_placeholder_t *placeholder = main_economy_placeholder();
     fputs("resources credits ", out);
-    if (fm != NULL) {
-        write_fixed(out, fm->credits);
+    if (economy != NULL) {
+        write_fixed(out, economy->credits);
     } else if (placeholder != NULL && placeholder->has_credits) {
         write_fixed(out, placeholder->credits);
     } else {
         fputc('-', out);
     }
     fputs("\nresources science ", out);
-    if (fm != NULL) {
-        write_fixed(out, fm->research_points);
+    if (economy != NULL) {
+        write_fixed(out, economy->research_points);
     } else if (placeholder != NULL && placeholder->has_research_points) {
         write_fixed(out, placeholder->research_points);
     } else {
         fputc('-', out);
     }
     fputs("\nresources income ", out);
-    if (fm != NULL) {
-        write_fixed(out, fm->income);
+    if (economy != NULL) {
+        write_fixed(out, economy->income);
     } else {
         fputc('-', out);
     }
@@ -134,12 +134,12 @@ static void write_resources(FILE *out) {
 }
 
 static int write_techs(FILE *out) {
-    const economy_t *fm = main_economy_typed();
-    if (fm == NULL || fm->invented == NULL) return 0;
-    for (int i = 0; i < fm->invented->count; i++) {
-        fprintf(out, "techs %s\n", (const char *)fm->invented->items[i]);
+    const economy_t *economy = main_economy_typed();
+    if (economy == NULL || economy->invented == NULL) return 0;
+    for (int i = 0; i < economy->invented->count; i++) {
+        fprintf(out, "techs %s\n", (const char *)economy->invented->items[i]);
     }
-    return fm->invented->count;
+    return economy->invented->count;
 }
 
 static vec_t write_camera(FILE *out) {
