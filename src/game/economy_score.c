@@ -19,7 +19,7 @@ static p8_fixed_t fixed_min(p8_fixed_t a, p8_fixed_t b) {
 
 typedef void (*entities_by_tag_visit_fn_t)(entity_t *e, void *ctx);
 
-static void for_each_tagged(const char *tag, entities_by_tag_visit_fn_t fn, void *ctx) {
+static void for_each_tagged(tag_t tag, entities_by_tag_visit_fn_t fn, void *ctx) {
     const entity_list_t *list = entities_by_tag(tag);
     entity_list_iter_t it;
     entity_t *e;
@@ -44,7 +44,7 @@ static int is_colonized_truthy(entity_t *pt) {
 
 p8_fixed_t economy_score_planet_upkeep(entity_t *pt) {
     if (pt != NULL && (pt->class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && ((const planet_t *)pt)->archetype->is_structure) {
-        const entity_list_t *structure_list = entities_by_tag("structure");
+        const entity_list_t *structure_list = entities_by_tag(TAG_STRUCTURE);
         return p8_fixed_from_int(structure_list != NULL ? structure_list->count : 0);
     }
     if (is_colonized_truthy(pt)) {
@@ -67,7 +67,7 @@ static int colony_upkeep_predicate(entity_t *e, void *ctx) {
 }
 
 p8_fixed_t economy_score_colony_upkeep(void) {
-    const entity_list_t *planet_list = entities_by_tag("planet");
+    const entity_list_t *planet_list = entities_by_tag(TAG_PLANET);
     entity_list_t filtered = entity_list_filter(frame_zone(), planet_list, colony_upkeep_predicate, NULL);
     int mu = filtered.count;
     p8_fixed_t result;
@@ -192,7 +192,7 @@ final_score_t economy_score_final(void) {
     development_ctx.total = p8_fixed_from_int(0);
     development_ctx.seq = development_score_by_tier_table;
     development_ctx.count = DEVELOPMENT_SCORE_BY_TIER_COUNT;
-    for_each_tagged("planet", sum_by_development_tier_visit, &development_ctx);
+    for_each_tagged(TAG_PLANET, sum_by_development_tier_visit, &development_ctx);
 
     if (main_economy_production != NULL) {
         int p;
@@ -245,7 +245,7 @@ p8_fixed_t economy_score_happiness(void) {
     ctx.total = p8_fixed_from_int(0);
     ctx.seq = happiness_by_tier_table;
     ctx.count = HAPPINESS_BY_TIER_COUNT;
-    for_each_tagged("planet", sum_by_development_tier_visit, &ctx);
+    for_each_tagged(TAG_PLANET, sum_by_development_tier_visit, &ctx);
 
     return p8_fixed_add(h_val, ctx.total);
 }

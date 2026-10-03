@@ -12,7 +12,7 @@ La souris reste branchée : les e2e existants restent à la souris et leurs `*.s
 
 - Les flèches font défiler la carte (`src/game/scroll.c`).
 - La triche lit des séquences O/X (`src/game/cheat.c`).
-- Le jeu ne lit la souris que via `p8_stat(32/33/34)` (`src/game/mouse.c`, `mouse_button.c`).
+- Le jeu ne lit la souris que via `p8_input_read_mouse` (`src/game/mouse.c` seul).
 
 ## 3. Approche
 

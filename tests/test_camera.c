@@ -22,7 +22,7 @@
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/planet_family.h"
 #include "game/scroll.h"
 #include "engine/entity_class.h"
@@ -34,7 +34,7 @@
 #define SHAKE_HASH 0xF1E7A593u
 #define GEOHARVEST_WINDOW 60
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -58,7 +58,7 @@ static int entity_list_listed(const entity_list_t *list, const void *e) {
 }
 
 static int in_any_entities_by_message(const void *e) {
-    const char *names[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+    const entity_message_t names[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
     int i;
 
     for (i = 0; i < 5; i++) {
@@ -146,7 +146,7 @@ static void check_fresh_main_camera(const camera_t *mo) {
     assert(v.x == 0 && v.y == 0);
     assert(mo->shake == 0);
     assert(mo->header.state_time == 0);
-    assert(mo->header.state != NULL && strcmp(mo->header.state, "normal") == 0);
+    assert(mo->header.state == ENTITY_STATE_NORMAL);
     assert(mo->pos_before_shake != mo->pos);
 
     pc = mo->archetype->dpad_directions;
@@ -384,10 +384,9 @@ static void test_camera_is_a_struct(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

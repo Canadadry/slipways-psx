@@ -22,7 +22,7 @@ int entity_ready(void) {
     return g_entity_up;
 }
 
-void entity_set_state(entity_t *self, const char *state) {
+void entity_set_state(entity_t *self, state_t state) {
     if (self == NULL) {
         return;
     }
@@ -30,11 +30,24 @@ void entity_set_state(entity_t *self, const char *state) {
     self->state_time = p8_fixed_from_int(0);
 }
 
-void entity_init_instance(entity_t *self, const entity_class_t *cls, const char *state,
-                          p8_fixed_t t) {
+void entity_init_instance(entity_t *self, const entity_class_t *cls, state_t state, p8_fixed_t t) {
     entity_init_header(self, cls);
     self->state = state;
     self->state_time = t;
+}
+
+const char *entity_state_name(state_t state) {
+    static const char *const names[STATE_COUNT] = {
+        [ENTITY_STATE_NORMAL] = "normal",
+        [ENTITY_STATE_SETTLED] = "settled",
+        [ENTITY_STATE_VANISHING] = "vanishing",
+        [ENTITY_STATE_PLACING] = "placing",
+        [ENTITY_STATE_UNFOLDING] = "unfolding",
+        [ENTITY_STATE_UNKNOWN] = "unknown",
+        [ENTITY_STATE_KNOWN] = "known",
+    };
+
+    return names[state];
 }
 
 void entity_construct(entity_t *self) {

@@ -9,7 +9,7 @@
 #include <sys/wait.h>
 
 #include "p8/gfx.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/particle.h"
 #include "game/probe.h"
 #include "engine/pointer_list.h"
@@ -188,11 +188,11 @@ static const vec_t *const pos_nil = NULL;
 static emitter_t g_emitter;
 static entity_t g_host;
 static p8_graphics_t g_gfx;
-static p8_memory_t g_mem;
+static p8_vram_t g_mem;
 
 static entity_t *host(void) {
     p8_gfx_init(&g_gfx);
-    p8_mem_init(&g_mem);
+    p8_vram_init(&g_mem);
     entity_init_header(&g_host, &host_class_def);
     memset(&g_emitter, 0, sizeof g_emitter);
     g_emitter.archetype = &without_birth;

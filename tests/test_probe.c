@@ -12,7 +12,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -28,7 +27,7 @@
 #include "game/help.h"
 #include "p8/input.h"
 #include "engine/entity.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/particle.h"
 #include "game/ui_zone.h"
 #include "game/planet.h"
@@ -55,11 +54,11 @@ static int pos_copies(const vec_t *ra, const vec_t *mp) {
 #define DROP_OFF_HASH 0x3EA86A53u
 #define HELP_SCREEN_HASH 0x938EC51Bu
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
-static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -95,8 +94,8 @@ static int entity_list_list_count(const entity_list_t *list) {
     return list != NULL ? list->count : 0;
 }
 
-static int is_state(const entity_t *ke, const char *want) {
-    return ke->state != NULL && strcmp(ke->state, want) == 0;
+static int is_state(const entity_t *ke, state_t want) {
+    return ke->state == want;
 }
 
 static uint32_t fold_vec(uint32_t h, const vec_t *p) {
@@ -178,7 +177,7 @@ static uint32_t fold_defaults(uint32_t h, const probe_t *g_) {
 
     h = fold_ref_member(h, &g_->header.class->tags);
     h = fold_fixed_member(h, g_->archetype->fold_anchor);
-    h = fold_string_member(h, pr->archetype->confirmed_state);
+    h = fold_string_member(h, entity_state_name(pr->archetype->confirmed_state));
     h = fold_fixed_member(h, pr->cost);
     h = fold_bool_member(h, pr->archetype->clock_ticks != 0);
     h = fold_fixed_member(h, g_->archetype->layer);
@@ -248,11 +247,11 @@ static void check(const char *label, uint32_t got, uint32_t want) {
 
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
-        h *= 16777619u;
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            h ^= (uint32_t)memory.screen[y][x];
+            h *= 16777619u;
+        }
     }
     return h;
 }
@@ -284,7 +283,7 @@ static const entity_class_t *class_of(const void *e) {
 /* The background is the one among the hit_test entities whose archetype's
  * hit_test and layer are both 1. */
 static background_t *the_background(void) {
-    const entity_list_t *hd = entities_by_message("hit_test");
+    const entity_list_t *hd = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     background_t *found = NULL;
     int count = 0;
     int i;
@@ -325,7 +324,7 @@ static probe_t *left_press(void) {
     background_t *bg = the_background();
     down_t out;
 
-    assert(entity_list_list_count(entities_by_tag("probe")) == 0);
+    assert(entity_list_list_count(entities_by_tag(TAG_PROBE)) == 0);
     out = class_of(bg)->left_press(&bg->header, vec_ref(vec_xy(1, 1)), vec_ref(vec_xy(2, 2)));
     assert(out.stop && out.held != NULL && is_probe(out.held));
     return as_probe(out.held);
@@ -357,7 +356,7 @@ static uint32_t fold_probe(uint32_t hash, probe_t *entity) {
     assert(is_probe(&entity->header));
     assert(entity->header.map_pos == &entity->map_pos);
     hash = fold_fixed_member(hash, entity->archetype->fold_anchor);
-    hash = fold_string_member(hash, targeting->archetype->confirmed_state);
+    hash = fold_string_member(hash, entity_state_name(targeting->archetype->confirmed_state));
     hash = fold_fixed_member(hash, targeting->cost);
     hash = fold_bool_member(hash, targeting->archetype->clock_ticks != 0);
     hash = fold_fixed_member(hash, entity->archetype->layer);
@@ -372,9 +371,9 @@ static uint32_t fold_probe(uint32_t hash, probe_t *entity) {
     hash = fold_fixed_member(hash, emitter->matrix_yx);
     hash = fold_fixed_member(hash, emitter->matrix_yy);
     hash = fold_fixed_member(hash, emitter->base_radius);
-    hash = fold_string_member(hash, entity->header.state);
+    hash = fold_string_member(hash, entity_state_name(entity->header.state));
     hash = fold_fixed_member(hash, entity->header.state_time);
-    assert(targeting->archetype->confirmed_state != NULL && emitter->trail_colors != NULL);
+    assert(targeting->archetype->confirmed_state != ENTITY_STATE_NONE && emitter->trail_colors != NULL);
     hash = fold_tags(hash, entity->header.class->tags);
     hash = fold_seq(hash, emitter->trail_colors);
     assert(entity->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
@@ -393,11 +392,11 @@ static uint32_t fold_probe(uint32_t hash, probe_t *entity) {
     for (index = 0; index < sizeof messages / sizeof messages[0]; index++) {
         hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(messages[index]), entity));
     }
-    assert(entity_list_listed(entities_by_message("draw"), entity) && entity_list_listed(entities_by_message("draw_overlay"), entity));
-    assert(!entity_list_listed(entities_by_message("hit_test"), entity) && !entity_list_listed(entities_by_message("new_year"), entity) && !entity_list_listed(entities_by_message("refresh"), entity));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("probe"), entity));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("targeting"), entity));
-    assert(entity_list_listed(entities_by_tag("probe"), entity) && entity_list_listed(entities_by_tag("targeting"), entity));
+    assert(entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), entity) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), entity));
+    assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), entity) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), entity) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_REFRESH), entity));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_PROBE), entity));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_TARGETING), entity));
+    assert(entity_list_listed(entities_by_tag(TAG_PROBE), entity) && entity_list_listed(entities_by_tag(TAG_TARGETING), entity));
     return hash;
 }
 
@@ -442,7 +441,7 @@ static uint32_t target_kind(const probe_t *e) {
         return 1;
     }
     ref = e->targeting->target;
-    if (entity_list_listed(entities_by_tag("node"), ref)) {
+    if (entity_list_listed(entities_by_tag(TAG_NODE), ref)) {
         return 2;
     }
     if (ref != NULL &&
@@ -481,8 +480,8 @@ static uint32_t fold_target(uint32_t h, const probe_t *e) {
 static planet_t *a_planet(void) {
     entity_t *e;
 
-    assert(entity_list_list_count(entities_by_tag("node")) > 0);
-    e = entities_by_tag("node")->items[0];
+    assert(entity_list_list_count(entities_by_tag(TAG_NODE)) > 0);
+    e = entities_by_tag(TAG_NODE)->items[0];
     assert(planet_is_family(e));
     return (planet_t *)e;
 }
@@ -546,7 +545,7 @@ static uint32_t fold_drag(uint32_t h, probe_t *e, vec_t at, int rp, uint32_t wan
 }
 
 /* spawn_particle; the drag on a planet, a slipway, the void; draw_overlay
- * with a target and without; draw_layers("draw") with the particle lists'
+ * with a target and without; draw_layers(ENTITY_MESSAGE_DRAW) with the particle lists'
  * sizes; update_entities steps, then is_dead raised by the drop taking it
  * out of the live entities and the tags. */
 static void test_life(void) {
@@ -570,8 +569,8 @@ static void test_life(void) {
     hash = fold_drag(hash, first, vec_add(slipway_center, vec_xy(0, 3)), 64, 1);
     hash = fold_drag(hash, first, vec_add(slipway_center, vec_xy(0, 3)), 2, 4);
 
-    entity_set_state(&first->header, "placing");
-    entity_set_state(&second->header, "placing");
+    entity_set_state(&first->header, ENTITY_STATE_PLACING);
+    entity_set_state(&second->header, ENTITY_STATE_PLACING);
     class_of(first)->draw_overlay(&first->header, NULL);
     hash = fnv(hash, screen_hash());
     class_of(second)->draw_overlay(&second->header, NULL);
@@ -581,7 +580,7 @@ static void test_life(void) {
     hash = fnv(hash, screen_hash());
 
     for (index = 0; index < 3; index++) {
-        draw_layers("draw");
+        draw_layers(ENTITY_MESSAGE_DRAW);
         hash = fnv(hash, screen_hash());
         hash = fnv(hash, (uint32_t)size_of(first->emitter->particles));
         hash = fnv(hash, (uint32_t)size_of(second->emitter->particles));
@@ -590,15 +589,15 @@ static void test_life(void) {
         update_entities();
         hash = fold_fixed_member(hash, first->header.state_time);
         hash = fold_fixed_member(hash, second->header.state_time);
-        hash = fold_string_member(hash, first->header.state);
+        hash = fold_string_member(hash, entity_state_name(first->header.state));
         assert(entity_list_listed(live_entities(), first) && entity_list_listed(live_entities(), second));
     }
     assert(class_of(first)->drop == targeting_confirm_method);
     assert(targeting_confirm(&first->header) == 0);
     assert(first->is_dead);
     update_entities();
-    assert(!entity_list_listed(live_entities(), first) && !entity_list_listed(entities_by_tag("probe"), first) && !entity_list_listed(entities_by_tag("targeting"), first));
-    assert(entity_list_listed(live_entities(), second) && entity_list_listed(entities_by_tag("probe"), second));
+    assert(!entity_list_listed(live_entities(), first) && !entity_list_listed(entities_by_tag(TAG_PROBE), first) && !entity_list_listed(entities_by_tag(TAG_TARGETING), first));
+    assert(entity_list_listed(live_entities(), second) && entity_list_listed(entities_by_tag(TAG_PROBE), second));
     hash = fnv(hash, (uint32_t)live_entities()->count);
     check("life", hash, LIFE_HASH);
 }
@@ -616,7 +615,7 @@ static void test_drop_on(void) {
     out = targeting_confirm(&a->header);
     assert(out == 0);
     assert(a->is_dead);
-    h = fold_string_member(h, a->header.state);
+    h = fold_string_member(h, entity_state_name(a->header.state));
     h = fold_fixed_member(h, a->header.state_time);
     h = fold_is_dead(h, a);
     h = fold_fixed_member(h, checked_main_economy()->credits);
@@ -636,9 +635,9 @@ static void test_drop_off(void) {
     out = targeting_confirm(&a->header);
     assert(out == 1);
     assert(!a->is_dead);
-    assert(is_state(&a->header, "settled"));
+    assert(is_state(&a->header, ENTITY_STATE_SETTLED));
     assert(a->header.state_time == p8_fixed_from_int(0));
-    h = fold_string_member(h, a->header.state);
+    h = fold_string_member(h, entity_state_name(a->header.state));
     h = fold_fixed_member(h, a->header.state_time);
     h = fold_fixed_member(h, checked_main_economy()->credits);
     check("drop_off", h, DROP_OFF_HASH);
@@ -651,7 +650,7 @@ static void test_drop_void(void) {
     probe_t *a;
     vec_t middle;
     p8_fixed_t nz;
-    const char *me;
+    state_t me;
     int out;
 
     start_game();
@@ -705,7 +704,7 @@ static void test_help_screen(void) {
     help_screen = (const probe_t *)help_entity;
     assert(help_screen->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
     assert(help_screen->archetype->fold_anchor == p8_fixed_from_int(1));
-    assert(help_screen->targeting->archetype->confirmed_state != NULL && strcmp(help_screen->targeting->archetype->confirmed_state, "settled") == 0);
+    assert(help_screen->targeting->archetype->confirmed_state == ENTITY_STATE_SETTLED);
     assert(help_screen->archetype->layer == p8_fixed_from_int(10));
     assert(help_screen->emitter->trail_colors == &help_screen_trail_colors_seq);
     assert(help_screen->emitter->trail_colors != &probe_trail_colors_seq);
@@ -720,12 +719,12 @@ static void test_help_screen(void) {
     assert(size_of(help_screen->emitter->particles) >= 0);
     hash = fnv(hash, (uint32_t)size_of(help_screen->emitter->particles));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live, help_screen));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("probe"), help_screen));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("targeting"), help_screen));
-    assert(entity_list_listed(entities_by_tag("probe"), help_screen) && entity_list_listed(entities_by_tag("targeting"), help_screen));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_PROBE), help_screen));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_TARGETING), help_screen));
+    assert(entity_list_listed(entities_by_tag(TAG_PROBE), help_screen) && entity_list_listed(entities_by_tag(TAG_TARGETING), help_screen));
     hash = fold_defaults(hash, help_screen);
     for (index = 0; index < 3; index++) {
-        draw_layers("draw");
+        draw_layers(ENTITY_MESSAGE_DRAW);
         hash = fnv(hash, screen_hash());
         hash = fnv(hash, (uint32_t)size_of(help_screen->emitter->particles));
     }
@@ -860,10 +859,9 @@ static void test_leaving_gives_back_its_particles(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

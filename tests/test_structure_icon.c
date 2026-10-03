@@ -18,6 +18,7 @@
 #include "game/background.h"
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
+#include "engine/entity.h"
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "game/main_economy.h"
@@ -25,7 +26,7 @@
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "game/layout.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/planet_family.h"
 #include "game/planet_family_trade.h"
 #include "game/structure_icon.h"
@@ -44,7 +45,7 @@
 #define RESTART_HASH 0xB33A149Au
 #define KIND_VIEW_HASH 0xD0C93314u
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -147,7 +148,7 @@ static int is_icon(const void *e) {
 }
 
 static int icons(void *out[], int cap) {
-    const entity_list_t *hb = entities_by_message("refresh");
+    const entity_list_t *hb = entities_by_message(ENTITY_MESSAGE_REFRESH);
     int n = 0;
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
@@ -274,7 +275,7 @@ static uint32_t fold_hit_box(uint32_t h, void *icon) {
 static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const void *jb) {
     const structure_icon_t *ie = as_structure_icon(icon);
 
-    assert(ie->header.state != NULL && strcmp(ie->header.state, "normal") == 0);
+    assert(ie->header.state == ENTITY_STATE_NORMAL);
     assert(ie->header.state_time == 0);
     assert(ie->archetype == &structure_icon_archetype);
     assert(ie->archetype->layer == p8_fixed_from_int(12));
@@ -288,11 +289,11 @@ static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const v
            class_of(icon)->right_press == NULL && class_of(icon)->accept_drop == NULL);
     assert(class_of(icon)->hit_test != NULL && class_of(icon)->refresh != NULL && class_of(icon)->draw != NULL &&
            class_of(icon)->left_press != NULL);
-    assert(entity_list_listed(live_entities(), icon) && entity_list_listed(entities_by_message("draw"), icon) && entity_list_listed(entities_by_message("hit_test"), icon) &&
-           entity_list_listed(entities_by_message("refresh"), icon));
-    assert(!entity_list_listed(entities_by_message("draw_overlay"), icon) && !entity_list_listed(entities_by_message("new_year"), icon));
+    assert(entity_list_listed(live_entities(), icon) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), icon) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), icon) &&
+           entity_list_listed(entities_by_message(ENTITY_MESSAGE_REFRESH), icon));
+    assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), icon) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), icon));
 
-    h = fold_string(h, ie->header.state);
+    h = fold_string(h, entity_state_name(ie->header.state));
     h = fold_fixed(h, ie->archetype->layer);
     h = fold_hit_box(h, icon);
     h = fold_vec(h, ie->pos);
@@ -319,11 +320,11 @@ static void test_construction(void) {
         const structure_icon_t *ie = as_structure_icon(all[i]);
         assert(ie->kind == classes[i]);
         assert(ie->tooltip != NULL);
-        assert(ie->header.state != NULL && strcmp(ie->header.state, "normal") == 0);
+        assert(ie->header.state == ENTITY_STATE_NORMAL);
         assert(ie->archetype->layer == p8_fixed_from_int(12));
         assert(class_of(all[i])->hit_test != NULL);
-        assert(entity_list_listed(live_entities(), all[i]) && entity_list_listed(entities_by_message("draw"), all[i]) && entity_list_listed(entities_by_message("hit_test"), all[i]));
-        assert(!entity_list_listed(entities_by_message("draw_overlay"), all[i]) && !entity_list_listed(entities_by_message("new_year"), all[i]));
+        assert(entity_list_listed(live_entities(), all[i]) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), all[i]) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), all[i]));
+        assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), all[i]) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), all[i]));
         h = fold_hit_box(h, all[i]);
     }
 
@@ -445,11 +446,11 @@ static void test_directed(void) {
 
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
-        h *= 16777619u;
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            h ^= (uint32_t)memory.screen[y][x];
+            h *= 16777619u;
+        }
     }
     return h;
 }
@@ -674,7 +675,7 @@ static void test_kind_view_is_a_struct(void) {
         }
         assert(view.has_sprite && view.sprite == p8_fixed_from_int(s[i]));
         assert(view.has_cost && view.cost == p8_fixed_from_int(od[i]));
-        assert(view.state != NULL && strcmp(view.state, "placing") == 0);
+        assert(view.state == ENTITY_STATE_PLACING);
     }
 
     {
@@ -685,7 +686,7 @@ static void test_kind_view_is_a_struct(void) {
         no_entity = structure_icon_new(&tooltip_only);
         view = structure_icon_kind_view(no_entity);
         assert(view.header.class == structure_icon_kind_view_class());
-        assert(view.required_tech == NULL && !view.has_sprite && view.state == NULL && !view.has_cost);
+        assert(view.required_tech == NULL && !view.has_sprite && view.state == ENTITY_STATE_NONE && !view.has_cost);
     }
 }
 
@@ -708,10 +709,9 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

@@ -1,6 +1,6 @@
 #include "devtools/dump.h"
 #include "p8/gfx.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -12,7 +12,7 @@
 #define DUMP_LINE_LEN (DUMP_ROW_CHARS + 1)
 #define DUMP_SIZE (sizeof(DUMP_HEADER) - 1 + (size_t)DUMP_LINE_LEN * P8_SCREEN_HEIGHT)
 
-static char *dump_to_buffer(const p8_memory_t *mem, size_t *out_len) {
+static char *dump_to_buffer(const p8_vram_t *mem, size_t *out_len) {
     FILE *tmp = tmpfile();
     assert(tmp != NULL);
 
@@ -40,8 +40,8 @@ static void set_expected_pixel(char *expected, int x, int y, char hex_digit) {
 }
 
 static void test_dump_of_cleared_screen_is_all_zero_grid(void) {
-    p8_memory_t mem;
-    p8_mem_init(&mem);
+    p8_vram_t mem;
+    p8_vram_init(&mem);
     p8_cls(&mem);
 
     size_t actual_len;
@@ -66,9 +66,9 @@ static void test_dump_of_cleared_screen_is_all_zero_grid(void) {
 }
 
 static void test_dump_of_hand_drawn_pattern_matches_exact_text(void) {
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     p8_cls(&mem);
@@ -130,12 +130,12 @@ static int write_pixels(const void *pixels, FILE *out) {
 
 static void test_dump_of_pixel_buffer_matches_dump_of_same_screen(void) {
     static unsigned char pixels[P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT];
-    p8_memory_t mem;
-    p8_mem_init(&mem);
+    p8_vram_t mem;
+    p8_vram_init(&mem);
     for (int i = 0; i < (int)sizeof(pixels); i++) {
         pixels[i] = (unsigned char)((i * 7 + i / P8_SCREEN_WIDTH) % 16);
-        p8_poke(&mem, P8_ADDR_SCREEN + i, pixels[i]);
     }
+    memcpy(mem.screen, pixels, sizeof(mem.screen));
 
     size_t from_screen_len;
     char *from_screen = capture_text(write_screen, &mem, &from_screen_len);

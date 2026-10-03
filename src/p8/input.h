@@ -1,17 +1,26 @@
 #ifndef P8_INPUT_H
 #define P8_INPUT_H
 
-/* One scripted frame: mouse_x/mouse_y/mouse_buttons feed
- * stat(32)/stat(33)/stat(34), and dpad[0..5] is btn(0)..btn(5) for that
- * frame (0=left, 1=right, 2=up, 3=down, 4=O, 5=X) -- O and X included
- * despite the name, to keep the events.json key. */
-/* GAP-2 */
+/* One scripted frame: mouse_buttons holds P8_MOUSE_* bits, and dpad[0..5]
+ * is btn(0)..btn(5) for that frame (0=left, 1=right, 2=up, 3=down, 4=O,
+ * 5=X) -- O and X included despite the name, to keep the events.json key. */
 typedef struct {
     int mouse_x;
     int mouse_y;
     int mouse_buttons;
     int dpad[6];
 } p8_input_frame_t;
+
+#define P8_MOUSE_LEFT 1
+#define P8_MOUSE_RIGHT 2
+#define P8_MOUSE_MIDDLE 4
+
+/* In the 128x128 screen space; `buttons` holds P8_MOUSE_* bits. */
+typedef struct {
+    int x;
+    int y;
+    int buttons;
+} p8_mouse_t;
 
 typedef struct {
     p8_input_frame_t *frames;
@@ -71,8 +80,8 @@ void p8_input_step(p8_input_t *input);
  * (X); any other index returns 0. */
 int p8_btn(const p8_input_t *input, int b);
 
-/* The index is 32 (mouse x), 33 (mouse y) or 34 (mouse button bitmask,
- * bit 0 = left, bit 1 = right, bit 2 = middle); any other index returns 0. */
-int p8_stat(const p8_input_t *input, int n);
+/* Returns the current frame's mouse, every field 0 when there is no
+ * current frame (nothing loaded, or current_frame past the last frame). */
+p8_mouse_t p8_input_read_mouse(const p8_input_t *input);
 
 #endif

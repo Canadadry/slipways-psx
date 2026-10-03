@@ -1,14 +1,12 @@
 #include "game/ui.h"
 
 #include <assert.h>
-#include <string.h>
 
 #include "engine/dispatch_context.h"
 #include "engine/entity_registry.h"
 #include "engine/exit_queue.h"
 #include "engine/entity.h"
 #include "game/mouse_button.h"
-#include "game/draw_functions.h"
 #include "game/planet_family.h"
 #include "game/scroll.h"
 #include "game/ui_button.h"
@@ -65,28 +63,17 @@ static vec_t ui_vec_or_zero(const vec_t *v) {
     return v != NULL ? *v : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
-/* The state of the "left" or "right" button of the main mouse: NULL when
- * it has none, which is the case for the member-less placeholder. */
-static const mouse_button_t *ui_main_mouse_button_table(const char *bt) {
-    assert((strcmp(bt, "left") == 0 || strcmp(bt, "right") == 0) &&
-           "ui_main_mouse_button_table: left or right only; another button has no state table -- stop");
-    assert(g_main_mouse != NULL && "ui_main_mouse_button_table: reading a button of an absent main mouse stops the run");
+/* The button of the main mouse on that side, NULL when it has none (the
+ * member-less placeholder) or before its first update. */
+static const mouse_button_t *ui_main_mouse_button(mouse_side_t side) {
+    const mouse_button_t *b;
+
+    assert(g_main_mouse != NULL && "ui_main_mouse_button: reading a button of an absent main mouse stops the run");
     if (main_mouse_typed() == NULL) {
         return NULL;
     }
-    return strcmp(bt, "left") == 0 ? mouse_left_button() : mouse_right_button();
-}
-
-static int ui_main_mouse_button_field_bool(const char *bt, const char *field) {
-    const mouse_button_t *b = ui_main_mouse_button_table(bt);
-    if (b == NULL || !b->has_held) {
-        return 0;
-    }
-    if (strcmp(field, "pressed") == 0) {
-        return b->pressed;
-    }
-    assert(strcmp(field, "released") == 0 && "ui_main_mouse_button_field_bool: only pressed and released are read");
-    return b->released;
+    b = side == MOUSE_SIDE_LEFT ? mouse_left_button() : mouse_right_button();
+    return b != NULL && b->has_held ? b : NULL;
 }
 
 static void ui_draw_overlay_method(entity_t *self, const vec_t *screen_pos) {
@@ -137,7 +124,6 @@ static ui_t *ui_create(void) {
 
 void ui_init(void) {
     ui_shutdown();
-    draw_functions_init();
     entity_list_init(&g_shared_ephemerals, game_zone_load_zone());
     g_ui_up = 1;
 
@@ -203,14 +189,16 @@ void ui_set_main_ui(ui_t *ui) {
 
 /* The ephemerals are read before the hover and button handling run: the
  * test further down is a pointer identity check against this frame's list. */
-void ui_update(p8_memory_t *mem, ui_t *self) {
+void ui_update(p8_vram_t *mem, ui_t *self) {
     entity_list_t *ephemerals_ptr_before;
     int ephemerals_count;
     vec_t qa;
     int hit;
+    const mouse_button_t *left;
     const mouse_t *je;
     const camera_t *mo;
 
+    (void)mem;
     if (self == NULL) {
         return;
     }
@@ -225,16 +213,17 @@ void ui_update(p8_memory_t *mem, ui_t *self) {
     self->mouse_world_own = qa;
     self->mouse_world = &self->mouse_world_own;
 
-    ui_update_hover(mem, self);
+    ui_update_hover(self);
 
     hit = (ephemerals_count == 0) || entity_list_has(ephemerals_ptr_before, self->hovered);
     if (hit) {
-        ui_handle_button(self, "left");
+        ui_handle_button(self, MOUSE_SIDE_LEFT);
     }
 
-    ui_handle_button(self, "right");
+    ui_handle_button(self, MOUSE_SIDE_RIGHT);
 
-    if (ui_main_mouse_button_field_bool("left", "pressed") && self->ephemerals == ephemerals_ptr_before) {
+    left = ui_main_mouse_button(MOUSE_SIDE_LEFT);
+    if (left != NULL && left->pressed && self->ephemerals == ephemerals_ptr_before) {
         ui_clear_ephemerals(self);
     }
 
@@ -243,7 +232,7 @@ void ui_update(p8_memory_t *mem, ui_t *self) {
 
 /* A right-held background shows sprite 9; a hovered entity whose own
  * `cursor_sprite` is absent falls through to self's own cursor sprite. */
-void ui_draw_overlay(const p8_graphics_t *gfx, p8_memory_t *mem, const ui_t *self) {
+void ui_draw_overlay(const p8_graphics_t *gfx, p8_vram_t *mem, const ui_t *self) {
     vec_t main_mouse_pos;
     const mouse_t *je;
     int spr_id = 0;
@@ -268,14 +257,13 @@ void ui_draw_overlay(const p8_graphics_t *gfx, p8_memory_t *mem, const ui_t *sel
 /* An absent previously hovered entity is skipped. The previous one is
  * cleared before the hovered one is set, so an entity hovered on two frames
  * in a row stays hovered. */
-void ui_update_hover(p8_memory_t *memory, ui_t *self) {
+void ui_update_hover(ui_t *self) {
     const mouse_t *mouse;
     const vec_t *main_mouse_pos;
     const entity_list_t *hit_test_bucket;
     int index;
-    int poke_val;
 
-    if (self == NULL || memory == NULL) {
+    if (self == NULL) {
         return;
     }
 
@@ -288,21 +276,19 @@ void ui_update_hover(p8_memory_t *memory, ui_t *self) {
     mouse = main_mouse_typed();
     main_mouse_pos = mouse != NULL ? mouse->pos : NULL;
 
-    hit_test_bucket = entities_by_message("hit_test");
-    if (hit_test_bucket != NULL) {
-        for (index = 0; index < hit_test_bucket->count; index++) {
-            entity_t *e = hit_test_bucket->items[index];
+    hit_test_bucket = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
+    for (index = 0; index < hit_test_bucket->count; index++) {
+        entity_t *e = hit_test_bucket->items[index];
 
-            if (e->class->hit_test != NULL && e->class->hit_test(e, self->mouse_world, main_mouse_pos)) {
-                if (e->layer != NULL) {
-                    int fa = ui_to_int(*e->layer);
+        if (e->class->hit_test != NULL && e->class->hit_test(e, self->mouse_world, main_mouse_pos)) {
+            if (e->layer != NULL) {
+                int fa = ui_to_int(*e->layer);
 
-                    assert(fa >= 0 && fa < UI_HOVER_LAYERS &&
-                           "ui_update_hover: a hovered entity's layer outside 0..15, the layers ui_send_to_hovered walks -- stop, do not widen");
-                    entity_list_add(&self->hovered_by_layer->layers[fa], e);
-                }
-                self->hovered = e;
+                assert(fa >= 0 && fa < UI_HOVER_LAYERS &&
+                       "ui_update_hover: a hovered entity's layer outside 0..15, the layers ui_send_to_hovered walks -- stop, do not widen");
+                entity_list_add(&self->hovered_by_layer->layers[fa], e);
             }
+            self->hovered = e;
         }
     }
 
@@ -317,14 +303,6 @@ void ui_update_hover(p8_memory_t *memory, ui_t *self) {
                "ui_update_hover: the hovered entity has no is_hovered member -- stop, do not add one");
         *self->hovered->is_hovered = 1;
     }
-
-    if (self->hovered != NULL) {
-        poke_val = ui_to_int(self->hovered->gpio_signal != NULL ? *self->hovered->gpio_signal : p8_fixed_from_int(0));
-    } else {
-        int prev = p8_peek(memory, 0x5f80);
-        poke_val = (prev - 1 > 0) ? prev - 1 : 0;
-    }
-    p8_poke(memory, 0x5f80, (unsigned char)poke_val);
 }
 
 static int ui_is_held_class(const entity_class_t *cls) {
@@ -332,8 +310,9 @@ static int ui_is_held_class(const entity_class_t *cls) {
            (cls->states[ENTITY_STATE_SETTLED] != NULL && cls != protostar_class());
 }
 
-void ui_handle_button(ui_t *self, const char *button) {
+void ui_handle_button(ui_t *self, mouse_side_t side) {
     int is_left;
+    const mouse_button_t *button;
     entity_t *held_inst;
     mouse_t *mouse;
     vec_t *main_mouse_pos;
@@ -342,13 +321,12 @@ void ui_handle_button(ui_t *self, const char *button) {
         return;
     }
 
-    assert((strcmp(button, "left") == 0 || strcmp(button, "right") == 0) &&
-           "ui_handle_button: left or right only; another button has no state table -- stop");
-    is_left = button[0] == 'l';
+    is_left = side == MOUSE_SIDE_LEFT;
+    button = ui_main_mouse_button(side);
     mouse = main_mouse_typed();
     main_mouse_pos = mouse != NULL ? mouse->pos : NULL;
 
-    if (ui_main_mouse_button_field_bool(button, "pressed")) {
+    if (button != NULL && button->pressed) {
         entity_t *kv = NULL;
         down_t kn;
 
@@ -372,7 +350,7 @@ void ui_handle_button(ui_t *self, const char *button) {
         held_inst->class->drag(held_inst, self->mouse_world, main_mouse_pos);
     }
 
-    if (ui_main_mouse_button_field_bool(button, "released") && held_inst != NULL) {
+    if (button != NULL && button->released && held_inst != NULL) {
         entity_t *target = NULL;
         down_t down;
 

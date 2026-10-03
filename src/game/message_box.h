@@ -4,7 +4,7 @@
 #include "engine/entity_class.h"
 #include "game/game_data.h"
 #include "p8/gfx.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/ui_button.h"
 #include "engine/vec.h"
 
@@ -73,9 +73,8 @@ void message_box_construct(message_box_t *self);
 
 /* NULL graphics or memory skips the drawing and the camera reset only; the
  * closing timer and the shown-box bookkeeping still run. */
-void message_box_draw_overlay(p8_graphics_t *gfx, p8_memory_t *mem, message_box_t *self);
+void message_box_draw_overlay(p8_graphics_t *gfx, p8_vram_t *mem, message_box_t *self);
 
-/* Calls draw_functions_init(). */
 void toast_init(void);
 
 enum { TOAST_TEXT_CAP = 16 };
@@ -123,7 +122,7 @@ void toast_construct(toast_t *self);
 void toast_update(toast_t *self);
 
 /* NULL graphics or memory makes the whole call a no-op. */
-void toast_draw(const p8_graphics_t *gfx, p8_memory_t *mem, const toast_t *self, vec_t p);
+void toast_draw(const p8_graphics_t *gfx, p8_vram_t *mem, const toast_t *self, vec_t p);
 
 /* What message_box_open_box() reads of its frame, filled by the caller from
  * its own members: a NULL pointer or a 0 has_* is absent, and
@@ -131,8 +130,6 @@ void toast_draw(const p8_graphics_t *gfx, p8_memory_t *mem, const toast_t *self,
  * call and none of it is kept. */
 typedef struct {
     const char *description;
-    int has_open_sfx;
-    p8_fixed_t open_sfx;
     const vec_t *fixed_pos;
     int clear_ephemerals_after;
     int has_back_color;

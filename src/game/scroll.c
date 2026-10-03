@@ -7,7 +7,6 @@
 #include "engine/dispatch_context.h"
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
-#include "game/draw_functions.h"
 #include "engine/vec.h"
 #include "engine/game_zone.h"
 
@@ -55,7 +54,6 @@ static camera_t *camera_create(void) {
 
 void camera_init(void) {
     camera_shutdown();
-    draw_functions_init();
     assert(entity_ready() && "camera_init: entity_init() runs first");
     g_camera_up = 1;
 }
@@ -90,11 +88,7 @@ void camera_update(const p8_input_t *input, camera_t *self) {
     dpad_directions = self->archetype->dpad_directions;
 
     for (b = 0; b <= 3; b++) {
-        int btn_p1 = p8_btn(input, b);
-        /* GAP-2 */
-        int btn_p2 = 0;
-
-        if (btn_p1 || btn_p2) {
+        if (p8_btn(input, b)) {
             vec_t dir = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
             if (dpad_directions != NULL && b < dpad_directions->count) {
                 dir = dpad_directions->items[b];

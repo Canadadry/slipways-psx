@@ -18,33 +18,39 @@ static int to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
 }
 
-/* Only color 3 gets the transparency bit; every other color's byte is
- * the sprite-sheet pixel as it is. */
-void hud_build_palette_table(p8_memory_t *mem) {
-    int a = 0x5000;
-    int p, c;
+/* Row = block, column = source color; color 3 carries the transparency
+ * bit in every block. tests/test_hud.c checks it against the cart's
+ * sprite-sheet pixels (block n, color c at pixel (n, c)). */
+static const unsigned char palette_blocks[16][16] = {
+    {0, 1, 2, 131, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+    {0, 1, 2, 131, 2, 5, 6, 7, 8, 4, 9, 11, 12, 5, 14, 9},
+    {0, 1, 1, 131, 2, 1, 13, 6, 2, 2, 4, 3, 13, 5, 8, 4},
+    {0, 0, 1, 129, 1, 1, 5, 13, 2, 2, 2, 3, 5, 1, 2, 2},
+    {0, 0, 0, 129, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+    {0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 2, 2, 130, 2, 2, 8, 8, 2, 2, 8, 8, 2, 2, 8, 8},
+    {0, 1, 1, 129, 1, 1, 5, 13, 1, 1, 5, 5, 1, 1, 5, 5},
+    {0, 1, 2, 131, 4, 5, 6, 7, 10, 9, 0, 4, 2, 13, 0, 0},
+    {0, 1, 2, 131, 4, 5, 6, 7, 0, 10, 9, 0, 4, 13, 4, 0},
+    {0, 1, 2, 131, 4, 5, 6, 7, 0, 0, 10, 4, 0, 13, 9, 4},
+    {0, 1, 2, 131, 4, 5, 6, 7, 4, 0, 0, 9, 4, 13, 0, 9},
+    {0, 1, 2, 131, 4, 5, 6, 7, 9, 4, 0, 0, 9, 13, 9, 0},
+    {0, 1, 2, 131, 4, 5, 6, 7, 0, 9, 4, 0, 0, 13, 10, 9},
+    {0, 1, 2, 131, 4, 5, 6, 7, 9, 0, 9, 2, 0, 13, 0, 10},
+    {0, 1, 2, 131, 4, 5, 6, 6, 0, 0, 0, 0, 0, 13, 0, 0},
+};
 
-    for (p = 0; p <= 15; p++) {
-        for (c = 0; c <= 15; c++) {
-            unsigned char sg = p8_sget(mem, p, c);
-            unsigned char val = (unsigned char)(sg | (c == 3 ? 0x80 : 0));
-            p8_poke(mem, a, val);
-            a += 1;
-        }
-    }
+void hud_select_palette_block(p8_vram_t *mem, p8_fixed_t no) {
+    int block = p8_fixed_flr_int(no);
+    assert(block >= 0 && block < 16 && "hud_select_palette_block: only blocks 0..15 exist; the cart would read past its table");
+    memcpy(mem->draw_palette, palette_blocks[block], sizeof(mem->draw_palette));
 }
 
-void hud_select_palette_block(p8_memory_t *mem, p8_fixed_t no) {
-    p8_fixed_t offset = p8_fixed_shl(p8_fixed_flr(no), 4);
-    int src = 0x5000 + to_int(offset);
-    p8_memcpy(mem, 0x5f00, src, 16);
-}
-
-void hud_select_palette_block_default(p8_memory_t *mem) {
+void hud_select_palette_block_default(p8_vram_t *mem) {
     hud_select_palette_block(mem, p8_fixed_from_int(0));
 }
 
-void hud_draw_bar(p8_graphics_t *gfx, p8_memory_t *mem, p8_fixed_t y1, p8_fixed_t y2, int col) {
+void hud_draw_bar(p8_graphics_t *gfx, p8_vram_t *mem, p8_fixed_t y1, p8_fixed_t y2, int col) {
     assert(gfx != NULL && "hud_draw_bar: p8_rectfill dereferences the graphics state, so a NULL one is not a no-op");
     if (gfx != NULL) {
         gfx->pen_color = col;
@@ -52,18 +58,18 @@ void hud_draw_bar(p8_graphics_t *gfx, p8_memory_t *mem, p8_fixed_t y1, p8_fixed_
     p8_rectfill(gfx, mem, 0, to_int(y1), 127, to_int(y2), col);
 }
 
-void hud_draw_bar_y1(p8_graphics_t *gfx, p8_memory_t *mem, p8_fixed_t y1, int col) {
+void hud_draw_bar_y1(p8_graphics_t *gfx, p8_vram_t *mem, p8_fixed_t y1, int col) {
     hud_draw_bar(gfx, mem, y1, y1, col);
 }
 
 /* 6 is PICO-8's pen color at power-on, before any explicit color; its one
  * caller always draws a colored bar first. */
-void hud_draw_bar_default(p8_graphics_t *gfx, p8_memory_t *mem, p8_fixed_t y1, p8_fixed_t y2) {
+void hud_draw_bar_default(p8_graphics_t *gfx, p8_vram_t *mem, p8_fixed_t y1, p8_fixed_t y2) {
     int col = (gfx != NULL) ? gfx->pen_color : 6;
     hud_draw_bar(gfx, mem, y1, y2, col);
 }
 
-void hud_draw_help_frame(const p8_graphics_t *gfx, p8_memory_t *mem, p8_fixed_t x1, p8_fixed_t y1, p8_fixed_t x2) {
+void hud_draw_help_frame(const p8_graphics_t *gfx, p8_vram_t *mem, p8_fixed_t x1, p8_fixed_t y1, p8_fixed_t x2) {
     int galaxy_menu_button1 = to_int(x1);
     int top_pixel = to_int(y1);
     int galaxy_menu_button2 = to_int(x2);
@@ -74,7 +80,7 @@ void hud_draw_help_frame(const p8_graphics_t *gfx, p8_memory_t *mem, p8_fixed_t 
     p8_spr(gfx, mem, 71, galaxy_menu_button2 - 2, top_pixel, 1, 2);
 }
 
-void hud_print_outlined(const p8_graphics_t *gfx, p8_memory_t *mem, const char *t, p8_fixed_t x, p8_fixed_t y, int c,
+void hud_print_outlined(const p8_graphics_t *gfx, p8_vram_t *mem, const char *t, p8_fixed_t x, p8_fixed_t y, int c,
               const p8_fixed_t *a) {
     int ix = to_int(x);
     int iy = to_int(y);
@@ -91,7 +97,7 @@ void hud_print_outlined(const p8_graphics_t *gfx, p8_memory_t *mem, const char *
     }
 }
 
-void hud_print_outlined_default(const p8_graphics_t *gfx, p8_memory_t *mem, const char *t, p8_fixed_t x, p8_fixed_t y,
+void hud_print_outlined_default(const p8_graphics_t *gfx, p8_vram_t *mem, const char *t, p8_fixed_t x, p8_fixed_t y,
                        int c) {
     hud_print_outlined(gfx, mem, t, x, y, c, NULL);
 }

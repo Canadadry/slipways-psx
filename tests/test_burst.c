@@ -20,12 +20,13 @@
 #include "p8/assets.h"
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
+#include "engine/entity.h"
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "game/layout.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/particle.h"
 #include "game/ui_zone.h"
 #include "game/planet.h"
@@ -49,12 +50,12 @@
  * frozen hashes fold: any other value moves every *_HASH. */
 #define FROZEN_LIST_TAG 0x9E5C1157u
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
-static const char *const tags[] = {"planet", "node", "targeting", "ascension", "structure"};
-static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+static const tag_t tags[] = {TAG_PLANET, TAG_NODE, TAG_TARGETING, TAG_ASCENSION, TAG_STRUCTURE};
+static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
 
 static int tag_count(unsigned tags) {
     int t, n = 0;
@@ -170,11 +171,11 @@ static void check_int(const char *label, int got, int want) {
 
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
-        h *= 16777619u;
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            h ^= (uint32_t)memory.screen[y][x];
+            h *= 16777619u;
+        }
     }
     return h;
 }
@@ -318,7 +319,7 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fold_fixed_member(hash, emitter->speed_factor);
     hash = fold_fixed_member(hash, burst->speed);
     hash = fold_is_planet(hash, planet);
-    hash = fold_string_member(hash, planet->header.state);
+    hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
     hash = fold_string_member(hash, planet->planet_id);
     hash = fold_fixed_member(hash, planet->shake);
@@ -552,7 +553,7 @@ static uint32_t fold_cut(uint32_t h, void *e, int n) {
     return fnv(h, (uint32_t)qy->count);
 }
 
-/* spawn_particle on each burst; draw_layers("draw") three times, then three
+/* spawn_particle on each burst; draw_layers(ENTITY_MESSAGE_DRAW) three times, then three
  * more with the protostar's burst cut to 3 particles, so that its circles,
  * drawn in the class trail colors (GAP-21), are not all covered by
  * emitter_update's dots in its own; is_dead once the particle list holds 3,
@@ -580,7 +581,7 @@ static void test_life(void) {
     hash = fold_particle(hash, class_of(second)->spawn_particle(second));
     hash = fold_particle(hash, class_of(third)->spawn_particle(third));
     for (index = 0; index < 3; index++) {
-        draw_layers("draw");
+        draw_layers(ENTITY_MESSAGE_DRAW);
         hash = fnv(hash, screen_hash());
         hash = fold_is_dead(hash, as_burst(first));
         hash = fold_is_dead(hash, as_burst(second));
@@ -590,7 +591,7 @@ static void test_life(void) {
 
     cut_particles(as_burst(second)->emitter->particles, 3);
     for (index = 0; index < 3; index++) {
-        draw_layers("draw");
+        draw_layers(ENTITY_MESSAGE_DRAW);
         hash = fnv(hash, screen_hash());
     }
 
@@ -829,10 +830,9 @@ static void test_leaving_lets_go_of_a_dragged_slipway(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

@@ -4,7 +4,7 @@
 #include "game/game_data.h"
 #include "p8/gfx.h"
 #include "game/layout.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
@@ -40,12 +40,12 @@ typedef struct {
     const char *required_tech;
     p8_fixed_t sprite;
     int has_sprite; /* 0: absent, and then never read */
-    const char *state;
+    state_t state;
     p8_fixed_t cost;
     int has_cost; /* 0: absent, and then never read */
 } structure_icon_kind_t;
 
-/* Calls structure_icon_shutdown(), then draw_functions_init(); puts the
+/* Calls structure_icon_shutdown(); puts the
  * shared counter back to 0 and unsets the shared cursor. */
 void structure_icon_init(void);
 
@@ -93,10 +93,10 @@ down_t structure_icon_left_press(structure_icon_t *self);
 
 /* By value, one per read: each member copied off the held kind's record,
  * absent when absent there or when the icon holds no kind. `required_tech`
- * and `state` are borrowed from the kind's defaults. */
+ * is borrowed from the kind's defaults. */
 structure_icon_kind_t structure_icon_kind_view(const structure_icon_t *self);
 const entity_class_t *structure_icon_kind_view_class(void);
 
-void structure_icon_draw(p8_graphics_t *gfx, p8_memory_t *mem, structure_icon_t *self, vec_t p);
+void structure_icon_draw(p8_graphics_t *gfx, p8_vram_t *mem, structure_icon_t *self, vec_t p);
 
 #endif

@@ -3,11 +3,11 @@
 
 #include "game/game_data.h"
 #include "p8/gfx.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
-/* background_draw returns early on a NULL graphics state or PICO-8 memory,
+/* background_draw returns early on a NULL graphics state or vram,
  * background_construct on NULL memory, background_right_press and
  * background_drag on a NULL struct. The background always answers the hit
  * test, since nothing lies behind it to miss. */
@@ -40,11 +40,11 @@ background_t *background_new(void);
 /* The tile choices are `self`'s, or `background_tile_choices_seq` for a
  * NULL `self`. An index outside their 1..15 range -- which extreme walk
  * values can produce, unchecked -- paints tile 0. */
-void background_construct(p8_memory_t *memory, background_t *self);
+void background_construct(p8_vram_t *memory, background_t *self);
 
 /* Both strokes of the dashed grid are color 1: the second inherits the
  * color of the one right above it, so `1` is passed explicitly to each. */
-void background_draw(p8_graphics_t *gfx, p8_memory_t *mem, const background_t *self);
+void background_draw(p8_graphics_t *gfx, p8_vram_t *mem, const background_t *self);
 
 /* Builds a probe when none exists, a wormhole otherwise, and returns it,
  * which ui_handle_button then holds as `left_held`; a class not yet

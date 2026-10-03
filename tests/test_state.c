@@ -39,6 +39,8 @@ static void trade_rich_mine(void) {
     assert(has("count slipways 7"));
     assert(has("count colonies 7") && "p1, p27, p48, p71 and the three labs");
     assert(has("count structures 0"));
+    assert(has("planet p1 colonized planet e world 259.10 206.16 screen 67.10 14.16 visible 1"));
+    assert(has("planet p2 unknown planet - world 60.38 236.90 screen -131.61 44.90 visible 0"));
     assert(has("slipway p27 p1 normal"));
     assert(has("slipway p1 s1 normal"));
     assert(has("techs space folding"));

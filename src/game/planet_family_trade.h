@@ -5,7 +5,6 @@
 #include "engine/entity_class.h"
 
 /* GAP-8 */
-/* Calls draw_functions_init(). */
 void planet_family_trade_init(void);
 
 /* Frees nothing, no instance. Idempotent, and safe before the first

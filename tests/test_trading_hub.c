@@ -10,7 +10,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -21,12 +20,13 @@
 #include "engine/dispatch_context.h"
 #include "game/economy_score.h"
 #include "game/economy_tiers.h"
+#include "engine/entity.h"
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "game/main_economy.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/planet.h"
 #include "game/planet_family.h"
 #include "game/planet_family_trade.h"
@@ -52,12 +52,12 @@ static int pos_copies(const vec_t *ra, const vec_t *mp) {
  * value moves every *_HASH. */
 #define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
-static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
-static const char *const tags[] = {"planet", "node", "targeting"};
+static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
+static const tag_t tags[] = {TAG_PLANET, TAG_NODE, TAG_TARGETING};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -236,7 +236,7 @@ static void assert_members_of(const entity_class_t *c, const entity_class_t *ref
 
 /* The structure icon whose kind is the shop's fifth, the trading hub. */
 static void *trading_hub_icon(void) {
-    const entity_list_t *hb = entities_by_message("refresh");
+    const entity_list_t *hb = entities_by_message(ENTITY_MESSAGE_REFRESH);
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i];
@@ -279,7 +279,7 @@ static uint32_t fold_trading_hub(uint32_t hash, const void *entity) {
     structure = trading_hub;
     planet = structure;
     hash = fold_string_member(hash, planet->planet_id);
-    hash = fold_string_member(hash, planet->header.state);
+    hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
     hash = fold_string_member(hash, trading_hub->archetype->required_tech);
     hash = fold_fixed_member(hash, trading_hub->archetype->is_trading_hub);
@@ -288,7 +288,7 @@ static uint32_t fold_trading_hub(uint32_t hash, const void *entity) {
     hash = fold_fixed_member(hash, structure->sprite);
     hash = fold_fixed_member(hash, structure->targeting->cost);
     hash = fold_fixed_member(hash, trading_hub->palette_block);
-    hash = fold_string_member(hash, structure->targeting->archetype->confirmed_state);
+    hash = fold_string_member(hash, entity_state_name(structure->targeting->archetype->confirmed_state));
     hash = fold_fixed_member(hash, structure->targeting->archetype->clock_ticks);
     hash = fold_fixed_member(hash, structure->targeting->archetype->attach_distance);
     hash = planet->has_development_tier ? fold_fixed_member(hash, planet->development_tier) : fold_absent(hash);
@@ -306,7 +306,7 @@ static uint32_t fold_trading_hub(uint32_t hash, const void *entity) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(structure->archetype->name != NULL));
-    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != NULL));
+    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != ENTITY_STATE_NONE));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
@@ -371,7 +371,7 @@ static uint32_t fold_trading_hub(uint32_t hash, const void *entity) {
     for (index = 0; index < sizeof tags / sizeof tags[0]; index++) {
         hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(tags[index]), entity));
     }
-    assert(!entity_list_listed(entities_by_tag("structure"), entity));
+    assert(!entity_list_listed(entities_by_tag(TAG_STRUCTURE), entity));
     return hash;
 }
 
@@ -437,10 +437,10 @@ static uint32_t fold_economy(uint32_t h, void *e) {
 }
 
 /* The drag method (targeting_track) in the panel then the drop method
- * (targeting_confirm) with the credits; update_entities in "settled" with
+ * (targeting_confirm) with the credits; update_entities in settled with
  * development tier 1 (the palette block stays), then at tiers 2 and 3 (the
  * palette block is 8 + (time mod 42) / 6); update_entities on a trading hub
- * still in "placing". */
+ * still in placing. */
 static void test_life(void) {
     uint32_t hash = 2166136261u;
     planet_t *placed;
@@ -460,10 +460,10 @@ static void test_life(void) {
     set_credits(100);
     assert(class_of(placed)->drop == targeting_confirm_method);
     hash = targeting_confirm(&placed->header) ? fnv(fnv(hash, 0xB0u), 1u) : fold_ref(hash, NULL);
-    hash = fold_string_member(hash, placed->header.state);
+    hash = fold_string_member(hash, entity_state_name(placed->header.state));
     hash = fold_fixed_member(hash, placed->header.state_time);
     hash = fnv(hash, (uint32_t)credits());
-    assert(strcmp(placed->header.state, "settled") == 0 && credits() == p8_fixed_from_int(100 - 20));
+    assert(placed->header.state == ENTITY_STATE_SETTLED && credits() == p8_fixed_from_int(100 - 20));
 
     hash = fold_economy(hash, placed);
 
@@ -482,7 +482,7 @@ static void test_life(void) {
     hash = fold_economy(hash, placed);
 
     idle = build_trading_hub();
-    hash = fold_string_member(hash, idle->header.state);
+    hash = fold_string_member(hash, entity_state_name(idle->header.state));
     hash = fold_update_entities(hash, idle);
     assert(idle->palette_block == p8_fixed_from_int(15));
     check("life", hash, LIFE_HASH);
@@ -528,7 +528,7 @@ static void test_trading_hub_is_a_struct(void) {
 
     start_game();
     a = build_trading_hub();
-    assert(is_a_trading_hub_struct(a) && entity_list_listed(entities_by_tag("planet"), a) && !entity_list_listed(entities_by_tag("structure"), a));
+    assert(is_a_trading_hub_struct(a) && entity_list_listed(entities_by_tag(TAG_PLANET), a) && !entity_list_listed(entities_by_tag(TAG_STRUCTURE), a));
     assert_structure_shape(cls);
     assert_members_of(cls, qh, 1, 0);
     assert(cls->attach_slipway == qh->attach_slipway && cls->offer_trade == qh->offer_trade && cls->spawn_particle == NULL);
@@ -538,7 +538,7 @@ static void test_trading_hub_is_a_struct(void) {
     {
         planet_t *bare = trading_hub_new(NULL);
         assert(is_a_trading_hub_struct(bare) && bare->planet_id == NULL && bare->slipways != NULL &&
-               entity_list_listed(entities_by_tag("planet"), bare));
+               entity_list_listed(entities_by_tag(TAG_PLANET), bare));
     }
 }
 
@@ -569,10 +569,9 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

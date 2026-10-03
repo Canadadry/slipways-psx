@@ -30,7 +30,7 @@
 #include "game/research.h"
 #include "game/slipway.h"
 #include "p8/input.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "engine/entity_class.h"
 #include "game/trade.h"
 #include "engine/game_zone.h"
@@ -45,7 +45,7 @@
 
 #define GAME_ROUTE_HASH 0x93A4DA45u
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -206,7 +206,7 @@ static trade_route_t *route(entity_list_t *lp, entity_list_t *rl, int has_resour
 }
 
 static void *planet(int i) {
-    const entity_list_t *jo = entities_by_tag("planet");
+    const entity_list_t *jo = entities_by_tag(TAG_PLANET);
     assert(jo != NULL && i < jo->count);
     return jo->items[i];
 }
@@ -222,7 +222,7 @@ static trade_route_t *game_route(void) {
     int i;
 
     start_game();
-    jo = entities_by_tag("planet");
+    jo = entities_by_tag(TAG_PLANET);
     assert(jo != NULL && jo->count > 3);
     qu = jo->items[0];
     for (i = 1; i < jo->count; i++) {
@@ -623,7 +623,7 @@ static void test_compute_tier_counts_numbered_routes_only(void) {
     qh = structure_new(NULL);
     qh->needs = jy;
     qh->incoming_routes = cc;
-    entity_set_state(&qh->header, "settled");
+    entity_set_state(&qh->header, ENTITY_STATE_SETTLED);
     (void)economy_tiers_compute_tier(&qh->header);
     assert(nil_want->has_satisfied && nil_want->satisfied == p8_fixed_from_int(0));
     assert(x_want->has_satisfied && x_want->satisfied == p8_fixed_from_int(1));
@@ -675,10 +675,9 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

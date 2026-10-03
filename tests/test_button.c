@@ -20,6 +20,7 @@
 #include "game/data_init.h"
 #include "engine/dispatch_context.h"
 #include "game/economy_score.h"
+#include "engine/entity.h"
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "game/main_economy.h"
@@ -29,7 +30,7 @@
 #include "p8/input.h"
 #include "game/layout.h"
 #include "game/map_tables.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/menu.h"
 #include "game/message_box.h"
 #include "game/planet.h"
@@ -62,23 +63,23 @@
  * value moves every *_HASH. */
 #define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
-#define TITLE_HASH 0xB044B5F2u
-#define START_GAME_HASH 0x08EB17A6u
-#define PAUSE_HASH 0xF715AAC0u
-#define RESEARCH_HASH 0x48094C1Eu
-#define PROJECTS_PANEL_HASH 0xF6B832D5u
-#define INSPECTION_PANEL_HASH 0x67CA51E5u
-#define SCORE_PANEL_HASH 0x0C7D2BEDu
+#define TITLE_HASH 0x0D4E51A2u
+#define START_GAME_HASH 0x7BC019E6u
+#define PAUSE_HASH 0x8F8FC35Du
+#define RESEARCH_HASH 0x41D4B83Eu
+#define PROJECTS_PANEL_HASH 0x6E72F895u
+#define INSPECTION_PANEL_HASH 0x8897BD95u
+#define SCORE_PANEL_HASH 0xF6DACECDu
 #define DIFFICULTY_HASH 0x5178903Bu
 #define UPDATE_HASH 0xD2A611E7u
-#define LEFT_PRESS_HASH 0x4621266Fu
+#define LEFT_PRESS_HASH 0x02AEDFCFu
 #define REFRESH_HASH 0x0FA6ACC7u
 #define PROJECTS_PANEL_ON_CLICK_HASH 0xCB3A928Cu
 #define TECH_TREE_SCREEN_ON_CLICK_HASH 0x7ED641D9u
-#define DRAW_HASH 0x92E72EEBu
-#define BUTTON_MEMBERS_HASH 0x264E8964u
+#define DRAW_HASH 0xD4E4525Bu
+#define BUTTON_MEMBERS_HASH 0x73AEDB8Eu
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -335,11 +336,11 @@ static const entity_list_t *main_ui_ephemerals(void) {
  * key, what button_construct built, the methods and where entity_register
  * registered it. */
 static uint32_t fold_button(uint32_t hash, const void *entity) {
-    static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "refresh", "new_year"};
+    static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_REFRESH, ENTITY_MESSAGE_NEW_YEAR};
     const button_t *button = button_of(entity);
     size_t index;
 
-    assert(button->header.state != NULL && strcmp(button->header.state, "normal") == 0);
+    assert(button->header.state == ENTITY_STATE_NORMAL);
     hash = fold_fixed(hash, button->header.state_time);
     hash = fold_fixed(hash, button->layer);
     hash = fold_fixed(hash, button->width);
@@ -361,7 +362,6 @@ static uint32_t fold_button(uint32_t hash, const void *entity) {
     } else {
         hash = fnv(hash, 0u);
     }
-    hash = fold_opt_fixed(hash, button->has_gpio_signal, button->gpio_signal);
     hash = fold_opt_string(hash, button->name);
     hash = fold_opt_fixed(hash, button->has_trade, button->trade);
     hash = fold_opt_fixed(hash, button->has_type_bias, button->type_bias);
@@ -459,7 +459,7 @@ static void start_game(void) {
 /* The nth (from 1) of the title's four buttons, built in order from the
  * difficulty options: the buttons among the hit_test entities. */
 static void *title_button(int i) {
-    const entity_list_t *hd = entities_by_message("hit_test");
+    const entity_list_t *hd = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     int k;
 
     for (k = 0; hd != NULL && k < hd->count; k++) {
@@ -505,7 +505,7 @@ static void *built_world(void) {
     int i;
 
     start_game();
-    jos = entities_by_tag("planet");
+    jos = entities_by_tag(TAG_PLANET);
     assert(jos != NULL && jos->count > 1);
     qu = jos->items[0];
     for (i = 1; i < jos->count; i++) {
@@ -545,7 +545,7 @@ static void known_panel(void) {
     void *p;
 
     start_game();
-    p = entities_by_tag("planet")->items[0];
+    p = entities_by_tag(TAG_PLANET)->items[0];
     planet_roll_type(p);
     (void)planet_left_press(p);
     one_frame();
@@ -591,7 +591,7 @@ static void call_on_click(void *e) {
 /* The galaxy menu buttons cart_start_game built: the only layer 11
  * entities with a `layout_row` among the hit_test entities right after it. */
 static int galaxy_menu_buttons(void *out[4]) {
-    const entity_list_t *hd = entities_by_message("hit_test");
+    const entity_list_t *hd = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     int n = 0;
     int i;
     for (i = 0; hd != NULL && i < hd->count; i++) {
@@ -615,7 +615,7 @@ static void test_title(void) {
     int i;
 
     start_title();
-    hd = entities_by_message("hit_test");
+    hd = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     for (i = 0; i < hd->count; i++) {
         void *e = hd->items[i];
         if (is_button(e)) {
@@ -728,7 +728,7 @@ static void test_score_panel(void) {
     int i;
 
     game_end();
-    hd = entities_by_message("hit_test");
+    hd = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     for (i = 0; i < hd->count; i++) {
         void *e = hd->items[i];
         if (is_button(e) && button_of(e)->layer == p8_fixed_from_int(15) && button_of(e)->layout_row != NULL) {
@@ -761,7 +761,7 @@ static void test_difficulty(void) {
         h = fold_fixed_or_nil(h, button_of(nj)->has_type_bias, button_of(nj)->type_bias);
         h = fold_fixed_or_nil(h, button_of(nj)->has_trade, button_of(nj)->trade);
         h = fold_string_or_nil(h, button_of(nj)->name);
-        jo = entities_by_tag("planet");
+        jo = entities_by_tag(TAG_PLANET);
         printf("[difficulty] option %d: %d planet(s)\n", i, jo->count);
         h = fnv(h, (uint32_t)jo->count);
         for (j = 0; j < jo->count; j++) {
@@ -773,11 +773,11 @@ static void test_difficulty(void) {
 
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
-        h *= 16777619u;
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            h ^= (uint32_t)memory.screen[y][x];
+            h *= 16777619u;
+        }
     }
     return h;
 }
@@ -942,12 +942,12 @@ static void test_projects_panel_on_click(void) {
             continue;
         }
         pt = button_of(b)->project_planet;
-        h = fold_string_or_nil(h, pt->header.state);
+        h = fold_string_or_nil(h, entity_state_name(pt->header.state));
         h = fnv(h, (uint32_t)live_entities()->count);
         call_on_click(b);
         printf("[projects_panel on_click] row %d: planet state=%s, %d entities\n", i,
-               pt->header.state != NULL && strcmp(pt->header.state, "settled") == 0 ? "settled" : "not settled", live_entities()->count);
-        h = fold_string_or_nil(h, pt->header.state);
+               pt->header.state == ENTITY_STATE_SETTLED ? "settled" : "not settled", live_entities()->count);
+        h = fold_string_or_nil(h, entity_state_name(pt->header.state));
         h = fnv(h, (uint32_t)live_entities()->count);
         break;
     }
@@ -1178,7 +1178,6 @@ static uint32_t fold_button_members(uint32_t h, const void *e) {
     h = fold_button_fn(h, b->has_on_click, b->on_click);
     h = (b->is_hovered != 0) ? fold_bool(fold_kind(h, BOOL_KIND), b->is_hovered) : fnv(h, 0u);
     h = fold_button_fn(h, b->refresh != NULL, b->refresh);
-    h = fold_member_fixed(h, b->has_gpio_signal, b->gpio_signal);
     h = b->name != NULL ? fold_string(fold_kind(h, STRING_KIND), b->name) : fnv(h, 0u);
     h = fold_member_fixed(h, b->has_trade, b->trade);
     h = fold_member_fixed(h, b->has_type_bias, b->type_bias);
@@ -1318,16 +1317,11 @@ static uint32_t fold_keys(uint32_t hash, layout_row_t *source_row) {
 
     for (index = 0; index < 12; index++) {
         button = built(none);
-        assert(!button->has_gpio_signal && button->name == NULL && !button->has_trade && !button->has_type_bias && !button->has_project_cost);
+        assert(button->name == NULL && !button->has_trade && !button->has_type_bias && !button->has_project_cost);
         assert(button->pos == NULL && button->slide_target == NULL && button->refresh == NULL && !button->has_on_click && button->technology == NULL);
         assert(button->project_planet == NULL && button->project == NULL);
         hash = fold_and_drop(hash, button);
     }
-    keys = none;
-    keys.has_gpio_signal = 1;
-    button = built(keys);
-    assert(button->has_gpio_signal && button->gpio_signal == 0);
-    hash = fold_and_drop(hash, button);
     keys = none;
     keys.has_trade = 1;
     button = built(keys);
@@ -1403,7 +1397,7 @@ static uint32_t members_title_and_game(void) {
     size_t key_index;
 
     start_title();
-    hit_test_list = entities_by_message("hit_test");
+    hit_test_list = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     for (index = 0; index < hit_test_list->count; index++) {
         void *e = hit_test_list->items[index];
         if (is_button(e)) {
@@ -1440,7 +1434,7 @@ static uint32_t members_title_and_game(void) {
         assert(b->width == p8_fixed_add(lq->width, p8_fixed_from_int(2)));
         assert(b->header.hit_box != NULL);
         assert(!b->has_side_tooltip && b->tooltip == NULL && b->pos == NULL && b->slide_target == NULL && !b->is_hovered);
-        assert(!b->has_gpio_signal && b->name == NULL && !b->has_trade && !b->has_type_bias && b->technology == NULL);
+        assert(b->name == NULL && !b->has_trade && !b->has_type_bias && b->technology == NULL);
         assert(b->project_planet == NULL && b->project == NULL && !b->has_project_cost);
         assert(on_click_state(fresh[key_index]) == 0 && button_of(fresh[key_index])->refresh == NULL);
         hash = fold_button_members(hash, fresh[key_index]);
@@ -1448,7 +1442,7 @@ static uint32_t members_title_and_game(void) {
 
     call_on_click(galaxy_menu[3]);
     check_ephemerals_one_open_box();
-    printf("[members] pause_menu: %d row(s), gpio_signal on the 4th: %d\n", main_ui_ephemerals()->count, button_of(main_ui_ephemerals()->items[3])->has_gpio_signal);
+    printf("[members] pause_menu: %d row(s)\n", main_ui_ephemerals()->count);
     hash = fold_ephemerals_members(hash);
 
     fresh[2] = button_new(NULL);
@@ -1529,7 +1523,7 @@ static uint32_t members_projects_panel(void) {
             pt = b->project_planet;
         }
         assert(b->project_planet == pt);
-        assert(is_of_class(pt, planet_class()) && entity_list_listed(entities_by_tag("planet"), pt));
+        assert(is_of_class(pt, planet_class()) && entity_list_listed(entities_by_tag(TAG_PLANET), pt));
         assert(b->project != NULL && is_of_class(b->project, research_project_class()));
         assert(b->has_project_cost);
         assert(b->on_click != NULL);
@@ -1559,7 +1553,7 @@ static uint32_t members_score_panel(void) {
     int i;
 
     game_end();
-    hd = entities_by_message("hit_test");
+    hd = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     for (i = 0; i < hd->count; i++) {
         void *e = hd->items[i];
         if (is_button(e) && button_of(e)->layer == p8_fixed_from_int(15) && button_of(e)->layout_row != NULL) {
@@ -1946,10 +1940,9 @@ static void test_largest_buttons_fit_their_slots(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

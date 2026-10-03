@@ -19,6 +19,7 @@
 #include "engine/bootstrap.h"
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
+#include "engine/entity.h"
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
 #include "p8/fixed.h"
@@ -26,7 +27,7 @@
 #include "p8/gfx.h"
 #include "game/help.h"
 #include "p8/input.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/particle.h"
 #include "game/ui_zone.h"
 #include "game/planet.h"
@@ -37,11 +38,11 @@
 #include "engine/vec.h"
 
 
-#define BUILT_HASH 0xABEBF0FEu
+#define BUILT_HASH 0x05BC81D1u
 #define LIFE_HASH 0x64B6480Bu
-#define HOVER_HASH 0xEE114A89u
+#define HOVER_HASH 0xB508C2D4u
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -127,6 +128,15 @@ static uint32_t fold_seq(uint32_t h, const int_seq_t *s) {
     return fnv(h, (uint32_t)s->count);
 }
 
+/* The names the frozen hashes folded, before draw functions were an enum. */
+static const char *const draw_function_names[DRAW_FUNCTION_COUNT] = {
+    [DRAW_FUNCTION_DRAW_BAR] = "draw_bar",
+    [DRAW_FUNCTION_PRINT_OUTLINED] = "print_outlined",
+    [DRAW_FUNCTION_DRAW_HELP_FRAME] = "draw_help_frame",
+    [DRAW_FUNCTION_SPR] = "spr",
+    [DRAW_FUNCTION_DRAW_ROW] = "draw_row",
+};
+
 /* A generated row: items (a nested row folded the same way), then its
  * color, then its draw function, then the entry count. */
 static uint32_t fold_row(uint32_t h, const data_row_t *row) {
@@ -149,10 +159,10 @@ static uint32_t fold_row(uint32_t h, const data_row_t *row) {
     if (row->has_color) {
         h = fold_fixed(fnv_str(h, "color"), p8_fixed_from_int(row->color));
     }
-    if (row->draw_function != NULL) {
-        h = fold_string(fnv_str(h, "draw_function"), row->draw_function);
+    if (row->draw_function != DRAW_FUNCTION_NONE) {
+        h = fold_string(fnv_str(h, "draw_function"), draw_function_names[row->draw_function]);
     }
-    return fnv(h, (uint32_t)(row->count + (row->has_color != 0) + (row->draw_function != NULL)));
+    return fnv(h, (uint32_t)(row->count + (row->has_color != 0) + (row->draw_function != DRAW_FUNCTION_NONE)));
 }
 
 static uint32_t fold_ref(uint32_t h, const void *ref) {
@@ -214,19 +224,13 @@ static void check(const char *label, uint32_t got, uint32_t want) {
     assert(got == want);
 }
 
-static void check_int(const char *label, int got, int want) {
-    printf("[%s] %d\n", label, got);
-    fflush(stdout);
-    assert(got == want);
-}
-
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
-        h *= 16777619u;
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            h ^= (uint32_t)memory.screen[y][x];
+            h *= 16777619u;
+        }
     }
     return h;
 }
@@ -315,13 +319,12 @@ static void test_built(void) {
     assert(probe->archetype->back_color == p8_fixed_from_int(11));
     assert(probe->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
     assert(probe->pos != NULL && emitter->trail_colors != NULL);
-    assert(probe->archetype->rows != NULL && targeting->archetype->confirmed_state != NULL);
+    assert(probe->archetype->rows != NULL && targeting->archetype->confirmed_state != ENTITY_STATE_NONE);
     hash = fold_fixed_member(hash, probe->archetype->layer);
     hash = fold_ref_member(hash, probe->pos);
     hash = fold_ref_member(hash, &probe->archetype->fixed_pos);
     hash = fold_fixed_member(hash, probe->archetype->back_color);
     hash = fold_ref_member(hash, &probe->archetype->row_step);
-    hash = fold_fixed_member(hash, probe->archetype->open_sfx);
     hash = fold_fixed_member(hash, probe->archetype->clear_ephemerals_after);
     hash = fold_fixed_member(hash, emitter->archetype->spawn_rate);
     hash = fold_ref_member(hash, emitter->trail_colors);
@@ -336,11 +339,10 @@ static void test_built(void) {
     hash = fold_fixed_member(hash, emitter->archetype->lifetime);
     hash = fold_ref_member(hash, &probe->archetype->hit_box);
     hash = fold_fixed_member(hash, probe->archetype->cursor_sprite);
-    hash = fold_fixed_member(hash, probe->archetype->gpio_signal);
     hash = fold_ref_member(hash, probe->archetype->rows);
     hash = fold_tags(fnv(fnv(hash, 1u), 0x7Au), probe->header.class->tags);
     hash = fold_fixed_member(hash, probe->archetype->fold_anchor);
-    hash = fold_string_member(hash, targeting->archetype->confirmed_state);
+    hash = fold_string_member(hash, entity_state_name(targeting->archetype->confirmed_state));
     hash = fold_fixed_member(hash, targeting->cost);
     hash = fold_bool_member(hash, targeting->archetype->clock_ticks != 0);
     hash = fold_fixed_member(hash, targeting->archetype->attach_distance);
@@ -352,7 +354,7 @@ static void test_built(void) {
     assert(emitter->trail_colors == &help_screen_trail_colors_seq);
     assert(emitter->trail_colors != &probe_trail_colors_seq);
     assert(probe->archetype->rows == &help_screen_rows_row);
-    hash = fold_string_member(hash, probe->header.state);
+    hash = fold_string_member(hash, entity_state_name(probe->header.state));
     hash = fold_fixed_member(hash, probe->header.state_time);
     hash = fnv(hash, (uint32_t)size_of(emitter->particles));
     assert(size_of(emitter->particles) == 0);
@@ -383,14 +385,14 @@ static void test_built(void) {
         hash = fold_fixed_member(hash, b->layer);
     }
     for (index = 0; index < 5; index++) {
-        static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+        static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
         hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(messages[index]), help_screen));
     }
-    assert(entity_list_listed(entities_by_message("draw"), help_screen) && entity_list_listed(entities_by_message("draw_overlay"), help_screen) && entity_list_listed(entities_by_message("hit_test"), help_screen));
-    assert(!entity_list_listed(entities_by_message("new_year"), help_screen) && !entity_list_listed(entities_by_message("refresh"), help_screen));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("probe"), help_screen));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("targeting"), help_screen));
-    assert(entity_list_listed(entities_by_tag("probe"), help_screen) && entity_list_listed(entities_by_tag("targeting"), help_screen));
+    assert(entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), help_screen) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), help_screen) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), help_screen));
+    assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), help_screen) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_REFRESH), help_screen));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_PROBE), help_screen));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_TARGETING), help_screen));
+    assert(entity_list_listed(entities_by_tag(TAG_PROBE), help_screen) && entity_list_listed(entities_by_tag(TAG_TARGETING), help_screen));
 
     for (key_index = 0; key_index < 4; key_index++) {
         const button_t *row = (const button_t *)live->items[rank - 4 + key_index];
@@ -401,8 +403,8 @@ static void test_built(void) {
     check("built", hash, BUILT_HASH);
 }
 
-/* draw_layers("draw") x3 with the screen and the particles;
- * draw_layers("draw_overlay"); update_entities() x3; hit_test in and out of
+/* draw_layers(ENTITY_MESSAGE_DRAW) x3 with the screen and the particles;
+ * draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY); update_entities() x3; hit_test in and out of
  * the hit box, the screen cursor kept since the layer is 10 or more. */
 static void test_life(void) {
     uint32_t hash = 2166136261u;
@@ -412,16 +414,16 @@ static void test_life(void) {
     start_title();
     fv = the_help();
     for (index = 0; index < 3; index++) {
-        draw_layers("draw");
+        draw_layers(ENTITY_MESSAGE_DRAW);
         hash = fnv(hash, screen_hash());
         hash = fnv(hash, (uint32_t)size_of(fv->emitter->particles));
     }
-    draw_layers("draw_overlay");
+    draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY);
     hash = fnv(hash, screen_hash());
     for (index = 0; index < 3; index++) {
         update_entities();
         hash = fold_fixed_member(hash, fv->header.state_time);
-        hash = fold_string_member(hash, fv->header.state);
+        hash = fold_string_member(hash, entity_state_name(fv->header.state));
         assert(entity_list_listed(live_entities(), fv));
     }
     assert(class_of(fv)->hit_test(&fv->header, vec_ref(64, 10), vec_ref(64, 112)) == 1);
@@ -445,9 +447,9 @@ static void mouse_at(int x, int y) {
     update_entities();
 }
 
-/* The mouse over "need help?": main_ui()'s hovered, is_hovered, the GPIO
- * signal poked at 0x5f80, the help in layer 10 of hovered_by_layer, the
- * cursor sprite; then out, is_hovered false. */
+/* The mouse over "need help?": main_ui()'s hovered, is_hovered, the help
+ * in layer 10 of hovered_by_layer, the cursor sprite; then out, is_hovered
+ * false. */
 static void test_hover(void) {
     uint32_t h = 2166136261u;
     probe_t *fv;
@@ -459,10 +461,8 @@ static void test_hover(void) {
     ui_update(&memory, main_ui());
     assert((void *)main_ui()->hovered == fv);
     assert(is_hovered_state(fv) == 2);
-    check_int("hover 0x5f80", p8_peek(&memory, 0x5f80), 5);
     assert(in_layer(10, fv));
     h = fnv(h, is_hovered_state(fv));
-    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
 
     p8_cls(&memory);
     ui_draw_overlay(&graphics, &memory, main_ui());
@@ -478,7 +478,6 @@ static void test_hover(void) {
     assert(is_hovered_state(fv) == 0);
     assert(!in_layer(10, fv));
     h = fnv(h, is_hovered_state(fv));
-    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     check("hover", h, HOVER_HASH);
 }
 
@@ -499,7 +498,8 @@ static void test_particle_takes_the_help_palette(void) {
     pointer_list_t *qy;
     vec_t ra;
     probe_t *fv;
-    int at;
+    int at_x;
+    int at_y;
 
     start_title();
     fv = the_help();
@@ -513,10 +513,11 @@ static void test_particle_takes_the_help_palette(void) {
     empty_particles(qy);
     pointer_list_add(qy, particle);
     p8_camera_reset(&graphics);
-    at = P8_ADDR_SCREEN + p8_fixed_flr_int(ra.y) * P8_SCREEN_WIDTH + p8_fixed_flr_int(ra.x);
-    p8_poke(&memory, at, 3);
+    at_x = p8_fixed_flr_int(ra.x);
+    at_y = p8_fixed_flr_int(ra.y);
+    memory.screen[at_y][at_x] = 3;
     emitter_update(&graphics, &memory, &fv->header);
-    assert(p8_peek(&memory, at) == help_screen_trail_colors_seq.items[5] && help_screen_trail_colors_seq.items[5] == 9);
+    assert(memory.screen[at_y][at_x] == help_screen_trail_colors_seq.items[5] && help_screen_trail_colors_seq.items[5] == 9);
 }
 
 /* cart_start_game(), as a difficulty button starts it, takes the help out of
@@ -528,7 +529,7 @@ static void test_start_game_retires_the_help(void) {
     fv = the_help();
     cart_start_game(NULL);
     assert(!entity_list_listed(live_entities(), fv));
-    assert(!entity_list_listed(entities_by_tag("probe"), fv) && !entity_list_listed(entities_by_message("draw"), fv) && !entity_list_listed(entities_by_message("hit_test"), fv));
+    assert(!entity_list_listed(entities_by_tag(TAG_PROBE), fv) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), fv) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), fv));
 }
 
 /* The title's help is a struct whose descriptor shares the probe's 4
@@ -668,10 +669,9 @@ static void test_start_game_gives_back_the_help_particles(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

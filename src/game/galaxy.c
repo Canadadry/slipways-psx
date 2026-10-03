@@ -49,7 +49,7 @@ void galaxy_populate(p8_fixed_t planet_count) {
             p8_fixed_t rx = p8_fixed_add(p8_fixed_rnd(map_span), map_margin);
             p8_fixed_t ry = p8_fixed_add(p8_fixed_rnd(map_span), map_margin);
             p_vec = vec_make(rx, ry);
-        } while (entity_geom_nearest(p_vec, entities_by_tag("planet"), &nearest) <= threshold);
+        } while (entity_geom_nearest(p_vec, entities_by_tag(TAG_PLANET), &nearest) <= threshold);
 
         p_box = (vec_t *)allocator_alloc(game_zone(), sizeof *p_box);
         *p_box = p_vec;

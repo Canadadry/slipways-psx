@@ -26,7 +26,7 @@
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "game/layout.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/menu.h"
 #include "game/message_box.h"
 #include "game/score_panel.h"
@@ -41,11 +41,11 @@
 #define LIFE_HASH 0xDDBCC765u
 #define TECH_TREE_SCREEN_HASH 0x7D1C5B1Fu
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
-static const char *const tags[] = {"planet", "probe", "structure", "slipway", "wormhole", "message_box", "node", "ascension", "targeting", "slipgate", "background"};
+static const tag_t tags[] = {TAG_PLANET, TAG_PROBE, TAG_STRUCTURE, TAG_SLIPWAY, TAG_WORMHOLE, TAG_MESSAGE_BOX, TAG_NODE, TAG_ASCENSION, TAG_TARGETING, TAG_SLIPGATE};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -139,6 +139,15 @@ static uint32_t fold_item(uint32_t h, const data_item_t *item) {
     return fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->number));
 }
 
+/* The names the frozen hashes folded, before draw functions were an enum. */
+static const char *const draw_function_names[DRAW_FUNCTION_COUNT] = {
+    [DRAW_FUNCTION_DRAW_BAR] = "draw_bar",
+    [DRAW_FUNCTION_PRINT_OUTLINED] = "print_outlined",
+    [DRAW_FUNCTION_DRAW_HELP_FRAME] = "draw_help_frame",
+    [DRAW_FUNCTION_SPR] = "spr",
+    [DRAW_FUNCTION_DRAW_ROW] = "draw_row",
+};
+
 /* A row's items (a nested row folded the same way), then its color, then
  * its draw function; more entries may follow, the caller's. */
 static uint32_t fold_row_entries(uint32_t h, const data_row_t *row) {
@@ -152,14 +161,14 @@ static uint32_t fold_row_entries(uint32_t h, const data_row_t *row) {
     if (row->has_color) {
         h = fold_fixed(fnv_str(h, "color"), p8_fixed_from_int(row->color));
     }
-    if (row->draw_function != NULL) {
-        h = fold_string(fnv_str(h, "draw_function"), row->draw_function);
+    if (row->draw_function != DRAW_FUNCTION_NONE) {
+        h = fold_string(fnv_str(h, "draw_function"), draw_function_names[row->draw_function]);
     }
     return h;
 }
 
 static int row_entries(const data_row_t *row) {
-    return row->count + (row->has_color != 0) + (row->draw_function != NULL);
+    return row->count + (row->has_color != 0) + (row->draw_function != DRAW_FUNCTION_NONE);
 }
 
 static uint32_t fold_row(uint32_t h, const data_row_t *row) {
@@ -249,11 +258,11 @@ static void check(const char *label, uint32_t got, uint32_t want) {
 
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
-        h *= 16777619u;
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            h ^= (uint32_t)memory.screen[y][x];
+            h *= 16777619u;
+        }
     }
     return h;
 }
@@ -351,11 +360,11 @@ static void test_built(void) {
 
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), ju));
     hash = fnv(hash, (uint32_t)live_entities()->count);
-    assert(entity_list_listed(entities_by_message("draw"), ju) && entity_list_listed(entities_by_message("new_year"), ju) && entity_list_listed(entities_by_message("refresh"), ju));
-    assert(!entity_list_listed(entities_by_message("draw_overlay"), ju) && !entity_list_listed(entities_by_message("hit_test"), ju));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message("draw"), ju));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message("new_year"), ju));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message("refresh"), ju));
+    assert(entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), ju) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), ju) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_REFRESH), ju));
+    assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), ju) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), ju));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(ENTITY_MESSAGE_DRAW), ju));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), ju));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(ENTITY_MESSAGE_REFRESH), ju));
     for (index = 0; index < sizeof tags / sizeof tags[0]; index++) {
         assert(!entity_list_listed(entities_by_tag(tags[index]), ju));
     }
@@ -363,7 +372,7 @@ static void test_built(void) {
     assert(ju->layer == p8_fixed_from_int(10));
     assert(ju->archetype == &score_panel_archetype && ju->layer == ju->archetype->layer);
     assert(ju->last_box == NULL);
-    assert(ju->header.state != NULL && strcmp(ju->header.state, "normal") == 0);
+    assert(ju->header.state == ENTITY_STATE_NORMAL);
     hash = fold_fixed_member(hash, ju->header.state_time);
     assert(!ju->has_is_shown && !ju->has_curtain);
     assert(class_of(ju)->draw != NULL && class_of(ju)->states[ENTITY_STATE_NORMAL] != NULL && class_of(ju)->refresh != NULL &&
@@ -438,7 +447,7 @@ static void test_life(void) {
         hash = fnv(hash, (uint32_t)(year_banner->row.count >= 3));
         hash = fnv(hash, (uint32_t)(year_banner->keep_open != NULL));
         hash = fnv_str(hash, string_at(row_of(&year_banner->row, 2), 1));
-        hash = fnv(hash, (uint32_t)entity_list_count_of(entities_by_tag("message_box")));
+        hash = fnv(hash, (uint32_t)entity_list_count_of(entities_by_tag(TAG_MESSAGE_BOX)));
         hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), shown_message_box()));
     }
     assert(year_banner->row.count == 2 && year_banner->keep_open != NULL);
@@ -464,12 +473,12 @@ static void test_life(void) {
     assert(score_panel->layer == p8_fixed_from_int(13));
     assert(modal_backdrop_count() == modal_backdrop_before + 1 && layer15_button_count() == button_before + 2);
     assert(score_panel->last_box == shown_message_box() && shown_message_box() != NULL);
-    boxes = entity_list_count_of(entities_by_tag("message_box"));
+    boxes = entity_list_count_of(entities_by_tag(TAG_MESSAGE_BOX));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), shown_message_box()));
     hash = fnv(hash, (uint32_t)live_entities()->count);
 
     class_of(score_panel)->states[ENTITY_STATE_NORMAL](&score_panel->header, p8_fixed_from_int(0));
-    assert(entity_list_count_of(entities_by_tag("message_box")) == boxes);
+    assert(entity_list_count_of(entities_by_tag(TAG_MESSAGE_BOX)) == boxes);
     assert(score_panel->last_box == shown_message_box());
 
     for (index = 0; index < 3; index++) {
@@ -733,7 +742,7 @@ static layout_row_cell_t update_row_item(const message_box_t *mh, int k, int i) 
 
     assert(k < mh->items_count);
     ld = mh->items[k];
-    assert(ld->draw_function != NULL && strcmp(ld->draw_function, "draw_row") == 0 && ld->items[0].is_ref);
+    assert(ld->draw_function == DRAW_FUNCTION_DRAW_ROW && ld->items[0].is_ref);
     lq = ld->items[0].ref;
     assert(i <= lq->items_count);
     return lq->items[i - 1];
@@ -768,25 +777,10 @@ static void test_update_rows_show_final_score(void) {
     }
 }
 
-/* score_panel_refresh_palette() on a started game: no planet is settled
- * yet, so half their count is 0 and every pattern of palette_offsets_table
- * gets its flag. */
-static void test_refresh_palette_flags_every_palette_offsets_pattern_without_settled(void) {
-    int i;
-
-    (void)start_game();
-    assert(entities_by_tag("planet")->count >= 2);
-    score_panel_refresh_palette();
-    for (i = 0; i < PALETTE_OFFSETS_COUNT; i++) {
-        assert(p8_peek(&memory, 0x3101 + 4 * palette_offsets_table[i]) >= 128);
-    }
-}
-
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);
@@ -802,7 +796,6 @@ int main(void) {
     in_fresh_child(test_tech_tree_screen_is_a_struct);
     in_fresh_child(test_final_score_reads_invented_and_happiness);
     in_fresh_child(test_update_rows_show_final_score);
-    in_fresh_child(test_refresh_palette_flags_every_palette_offsets_pattern_without_settled);
 
     printf("test_score_panel: all tests passed\n");
     return 0;

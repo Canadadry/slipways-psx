@@ -1,5 +1,5 @@
 /* The floating toast, through the real entity_register(), update_entities()
- * and draw_layers("draw") it goes through in the game. The sequence and
+ * and draw_layers(ENTITY_MESSAGE_DRAW) it goes through in the game. The sequence and
  * screen hashes must never be re-taken: one that moves means the player
  * sees a different toast. */
 
@@ -20,7 +20,7 @@
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "engine/entity.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/ui.h"
 #include "game/message_box.h"
 #include "game/mouse.h"
@@ -37,7 +37,7 @@
 #define PRICE_SEQUENCE_HASH 0xA692DEE9u
 #define PRICE_FIRST_DRAW_HASH 0x884AD566u
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -52,11 +52,11 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
 
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
-        h *= 16777619u;
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            h ^= (uint32_t)memory.screen[y][x];
+            h *= 16777619u;
+        }
     }
     return h;
 }
@@ -64,11 +64,11 @@ static uint32_t screen_hash(void) {
 static uint32_t draw_hash(void) {
     p8_gfx_init(&graphics);
     p8_cls(&memory);
-    draw_layers("draw");
+    draw_layers(ENTITY_MESSAGE_DRAW);
     return screen_hash();
 }
 
-/* One toast's draw alone, as draw_layers("draw") would place it. */
+/* One toast's draw alone, as draw_layers(ENTITY_MESSAGE_DRAW) would place it. */
 static uint32_t draw_hash_of(const toast_t *e) {
     p8_gfx_init(&graphics);
     p8_cls(&memory);
@@ -114,7 +114,7 @@ static toast_t *build(const vec_t *ra, const char *text, int color) {
 
 /* Lives the toast through update_entities() until it leaves the live
  * entities, folding every tick's position, fade, state time, list
- * membership and draw_layers("draw") screen into one hash. */
+ * membership and draw_layers(ENTITY_MESSAGE_DRAW) screen into one hash. */
 static void live(toast_t *e, int want_ticks, uint32_t want_sequence, uint32_t want_first_draw, const char *label) {
     uint32_t h = 2166136261u;
     uint32_t first_draw;
@@ -134,12 +134,12 @@ static void live(toast_t *e, int want_ticks, uint32_t want_sequence, uint32_t wa
         h = fnv(h, (uint32_t)ra.y);
         h = fnv(h, (uint32_t)e->fade);
         h = fnv(h, (uint32_t)e->header.state_time);
-        h = fnv(h, (uint32_t)entity_list_listed(entities_by_message("draw"), e));
+        h = fnv(h, (uint32_t)entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), e));
         h = fnv(h, draw_hash());
         update_entities();
         ticks++;
     }
-    assert(!entity_list_listed(entities_by_message("draw"), e));
+    assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), e));
     h = fnv(h, (uint32_t)e->fade);
     h = fnv(h, (uint32_t)e->header.state_time);
 
@@ -209,7 +209,7 @@ static void test_update_entities_drives_an_entity_struct(void) {
     int i;
 
     fresh_world();
-    entity_init_instance(&f->header, &fake_toast_class_def, "normal", 0);
+    entity_init_instance(&f->header, &fake_toast_class_def, ENTITY_STATE_NORMAL, 0);
     f->header.is_dead = &f->is_dead;
     f->is_dead = 0;
     entity_construct(&f->header);
@@ -238,7 +238,7 @@ static void test_defaults_match_the_parsed_spec(void) {
     assert(e->archetype->velocity.x == 0 && e->archetype->velocity.y == -0x570a);
     assert(e->archetype->layer == p8_fixed_from_int(9));
     assert(e->fade == e->archetype->fade);
-    assert(e->header.state != NULL && strcmp(e->header.state, "normal") == 0);
+    assert(e->header.state == ENTITY_STATE_NORMAL);
     assert(e->header.state_time == 0);
     assert(build(NULL, "y", 7)->archetype == e->archetype);
     assert(toast_ready());
@@ -250,7 +250,7 @@ static void test_defaults_match_the_parsed_spec(void) {
 /* Built directly or through its class, a toast is a struct that lands in
  * the live entities and the draw message list only. */
 static void test_toast_is_a_struct_registered_under_draw(void) {
-    const char *others[] = {"draw_overlay", "hit_test", "new_year", "refresh"};
+    const entity_message_t others[] = {ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
     toast_keys_t keys = {0};
     void *direct;
     void *generic;
@@ -263,8 +263,8 @@ static void test_toast_is_a_struct_registered_under_draw(void) {
 
     assert(direct != NULL);
     assert(generic != NULL);
-    assert(entity_list_listed(live_entities(), direct) && entity_list_listed(entities_by_message("draw"), direct));
-    assert(entity_list_listed(live_entities(), generic) && entity_list_listed(entities_by_message("draw"), generic));
+    assert(entity_list_listed(live_entities(), direct) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), direct));
+    assert(entity_list_listed(live_entities(), generic) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), generic));
     for (i = 0; i < 4; i++) {
         assert(!entity_list_listed(entities_by_message(others[i]), direct) && !entity_list_listed(entities_by_message(others[i]), generic));
     }
@@ -343,10 +343,9 @@ static void test_toast_follows_the_borrowed_pos_until_its_first_update(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

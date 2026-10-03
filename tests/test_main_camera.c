@@ -17,7 +17,7 @@
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/scroll.h"
 #include "engine/entity_class.h"
 #include "game/ui.h"
@@ -29,7 +29,7 @@
 #define UPDATE_MOUSE_WORLD_Y 0
 #define CAMERA_POS 192
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -46,7 +46,7 @@ static int entity_list_listed(const entity_list_t *list, const void *e) {
 /* Not a `camera_t`; no method answers and the camera stays put; the live
  * entities and the messages are empty. */
 static void assert_placeholder(void) {
-    const char *buckets[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+    const entity_message_t buckets[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
     entity_t *mo = main_camera();
     int i;
 
@@ -198,10 +198,9 @@ static void test_is_on_screen_under_a_shaken_camera(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

@@ -21,11 +21,12 @@
 #include "engine/dispatch_context.h"
 #include "game/economy_score.h"
 #include "game/economy_tiers.h"
+#include "engine/entity.h"
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/particle.h"
 #include "game/ui_zone.h"
 #include "game/planet.h"
@@ -44,12 +45,12 @@
  * frozen hashes fold: any other value moves every *_HASH. */
 #define FROZEN_LIST_TAG 0x9E5C1157u
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
-static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
-static const char *const tags[] = {"planet", "node", "targeting"};
+static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
+static const tag_t tags[] = {TAG_PLANET, TAG_NODE, TAG_TARGETING};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -162,11 +163,11 @@ static void check(const char *label, uint32_t got, uint32_t want) {
 
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
-        h *= 16777619u;
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            h ^= (uint32_t)memory.screen[y][x];
+            h *= 16777619u;
+        }
     }
     return h;
 }
@@ -299,7 +300,7 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     assert(class_of(entity) == protostar_class());
     protostar = entity;
     hash = fold_string_member(hash, planet->planet_id);
-    hash = fold_string_member(hash, planet->header.state);
+    hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
     hash = fold_string_member(hash, protostar->archetype->class_name);
     hash = fold_string_member(hash, ascension->archetype->required_tech);
@@ -317,7 +318,7 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     hash = fold_fixed_member(hash, emitter->matrix_xy);
     hash = fold_fixed_member(hash, emitter->matrix_yx);
     hash = fold_fixed_member(hash, emitter->matrix_yy);
-    hash = fold_string_member(hash, structure->targeting->archetype->confirmed_state);
+    hash = fold_string_member(hash, entity_state_name(structure->targeting->archetype->confirmed_state));
     hash = fold_fixed_member(hash, structure->targeting->archetype->clock_ticks);
     hash = fold_fixed_member(hash, structure->targeting->archetype->attach_distance);
     hash = planet->has_development_tier ? fold_fixed_member(hash, planet->development_tier) : fold_absent(hash);
@@ -350,7 +351,7 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     hash = fnv(hash, (uint32_t)(emitter->particles != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(structure->archetype->name != NULL));
-    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != NULL));
+    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != ENTITY_STATE_NONE));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
@@ -418,7 +419,7 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     for (index = 0; index < sizeof tags / sizeof tags[0]; index++) {
         hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(tags[index]), entity));
     }
-    assert(entity_list_listed(entities_by_tag("planet"), entity) && !entity_list_listed(entities_by_tag("structure"), entity) && !entity_list_listed(entities_by_tag("ascension"), entity));
+    assert(entity_list_listed(entities_by_tag(TAG_PLANET), entity) && !entity_list_listed(entities_by_tag(TAG_STRUCTURE), entity) && !entity_list_listed(entities_by_tag(TAG_ASCENSION), entity));
     return fold_spawned(hash, entity);
 }
 
@@ -479,14 +480,14 @@ static uint32_t fold_economy(uint32_t h, void *e) {
     return as_ascension(e)->has_development_tier ? fold_fixed_member(h, as_ascension(e)->development_tier) : fold_absent(h);
 }
 
-/* draw_layers("draw") once: the screen it leaves and what ascension_draw left in the particle list. */
+/* draw_layers(ENTITY_MESSAGE_DRAW) once: the screen it leaves and what ascension_draw left in the particle list. */
 static uint32_t fold_draw(uint32_t h, void *e) {
-    draw_layers("draw");
+    draw_layers(ENTITY_MESSAGE_DRAW);
     h = fnv(h, screen_hash());
     return fnv(h, (uint32_t)pointer_list_size(as_ascension(e)->emitter->particles));
 }
 
-/* update_entities in "settled" (the laboratory's settled update);
+/* update_entities in settled (the laboratory's settled update);
  * spawn_particle (probe_spawn_particle, quarter_turn false: no rotation)
  * and emitter_spawn; draw through draw_layers at development tier 1, then
  * 2 (emitter_update moves and draws the particles); the economy reads; a
@@ -507,7 +508,7 @@ static void test_life(void) {
     ra = vec_add(*main_camera_pos, vec_xy(12, 108));
     placed = build_protostar(&map_pos, &ra, "s90");
     hash = fold_spawned(hash, placed);
-    assert(strcmp(as_ascension(placed)->header.state, "settled") == 0);
+    assert(as_ascension(placed)->header.state == ENTITY_STATE_SETTLED);
 
     hash = fold_economy(hash, placed);
     for (index = 0; index < 3; index++) {
@@ -552,7 +553,7 @@ static void test_protostar_is_a_struct(void) {
 
     start_game();
     a = build_protostar(&p, &ra, "s77");
-    assert(is_a_protostar_struct(a) && cls != hj && entity_list_listed(entities_by_tag("planet"), a) && !entity_list_listed(entities_by_tag("ascension"), a));
+    assert(is_a_protostar_struct(a) && cls != hj && entity_list_listed(entities_by_tag(TAG_PLANET), a) && !entity_list_listed(entities_by_tag(TAG_ASCENSION), a));
     assert_structure_shape(cls);
     assert_members_of(cls, hj, 1, 1);
     assert(cls->attach_slipway == hj->attach_slipway && cls->offer_trade == hj->offer_trade && cls->spawn_particle == hj->spawn_particle);
@@ -561,7 +562,7 @@ static void test_protostar_is_a_struct(void) {
         planet_t *bare = protostar_new(NULL);
         assert(is_a_protostar_struct(bare) && bare->planet_id == NULL && bare->pos == NULL &&
                bare->slipways != NULL && pointer_list_size(bare->emitter->particles) == 0 &&
-               entity_list_listed(entities_by_tag("planet"), bare));
+               entity_list_listed(entities_by_tag(TAG_PLANET), bare));
     }
 }
 
@@ -632,10 +633,9 @@ static void test_leaving_gives_back_its_particles(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

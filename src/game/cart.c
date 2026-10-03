@@ -3,7 +3,6 @@
 #include <assert.h>
 #include <stddef.h>
 
-#include "p8/audio.h"
 #include "game/background.h"
 #include "engine/bootstrap.h"
 #include "game/main_economy.h"
@@ -21,11 +20,10 @@
 #include "game/hud.h"
 #include "engine/entity.h"
 #include "game/layout.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/menu.h"
 #include "game/mouse.h"
 #include "game/message_box.h"
-#include "game/draw_functions.h"
 #include "game/planet.h"
 #include "game/planet_family.h"
 #include "game/planet_family_trade.h"
@@ -53,7 +51,7 @@ static void quit_game_zone(void) {
  * their own (research, score-panel display); listing those here would
  * run them twice. */
 void cart_load(void) {
-    p8_memory_t *memory;
+    p8_vram_t *memory;
 
     quit_game_zone();
     entity_init();
@@ -63,7 +61,6 @@ void cart_load(void) {
     ui_init();
 
     layout_init();
-    draw_functions_init();
     trade_init();
 
     button_init();
@@ -173,15 +170,12 @@ void cart_shutdown(void) {
 }
 
 void cart_init(void) {
-    p8_memory_t *mem = dispatch_context_mem();
-
     assert(structure_icon_ready() && "cart_init: cart_load() must run first");
     assert(help_start_game_field_value() == cart_start_game &&
            score_panel_init_field_value() == cart_init_method &&
            "cart_init: help_init() and score_panel_init() reset these bridges, so cart_load() must "
            "install them afterwards: every button copies the value when it is built");
 
-    hud_build_palette_table(mem);
     reset_world();
 
     /* The icons' shared cursor takes the rest cursor itself (it aliases its
@@ -190,8 +184,6 @@ void cart_init(void) {
     message_box_set_shown(NULL);
 
     (void)help_screen_new();
-    /* GAP-10 */
-    p8_music(0);
 }
 
 void cart_init_method(button_t *self) {
@@ -256,10 +248,10 @@ void cart_update60(void) {
 }
 
 void cart_draw(void) {
-    p8_memory_t *mem = dispatch_context_mem();
+    p8_vram_t *mem = dispatch_context_mem();
 
     p8_cls(mem);
     hud_select_palette_block_default(mem);
-    draw_layers("draw");
-    draw_layers("draw_overlay");
+    draw_layers(ENTITY_MESSAGE_DRAW);
+    draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY);
 }

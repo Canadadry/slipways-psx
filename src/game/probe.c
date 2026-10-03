@@ -1,7 +1,6 @@
 #include "game/probe.h"
 
 #include <assert.h>
-#include <string.h>
 
 #include "engine/dispatch_context.h"
 #include "game/economy.h"
@@ -12,7 +11,6 @@
 #include "engine/geom.h"
 #include "p8/gfx.h"
 #include "game/hud.h"
-#include "p8/audio.h"
 #include "engine/entity.h"
 #include "game/particle.h"
 #include "game/planet.h"
@@ -161,7 +159,7 @@ void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
     probe_host_set_positions(self, mouse_world != NULL ? &targeting->track_pos : NULL, &targeting->track_map_pos);
 
     candidate = NULL;
-    distance = entity_geom_nearest(p_vec, entities_by_tag("node"), &candidate);
+    distance = entity_geom_nearest(p_vec, entities_by_tag(TAG_NODE), &candidate);
 
     target = NULL;
 
@@ -174,7 +172,7 @@ void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
         entity_t *first = NULL;
 
         ctx.self_map_pos = p_vec;
-        filtered = entity_list_filter(frame_zone(), entities_by_tag("slipway"), targeting_track_slipway_predicate, &ctx);
+        filtered = entity_list_filter(frame_zone(), entities_by_tag(TAG_SLIPWAY), targeting_track_slipway_predicate, &ctx);
         if (filtered.count > 0) {
             first = filtered.items[0];
             have_first = 1;
@@ -219,7 +217,7 @@ static const char *probe_target_status_text(const entity_t *et) {
     return NULL;
 }
 
-void targeting_tooltip(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self) {
+void targeting_tooltip(const p8_graphics_t *gfx, p8_vram_t *mem, entity_t *self) {
     if (self == NULL) {
         return;
     }
@@ -228,12 +226,12 @@ void targeting_tooltip(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *sel
     targeting_tooltip_show(gfx, mem, self->state, self->targeting);
 }
 
-void targeting_tooltip_show(const p8_graphics_t *gfx, p8_memory_t *mem, const char *state, const targeting_t *pb) {
+void targeting_tooltip_show(const p8_graphics_t *gfx, p8_vram_t *mem, state_t state, const targeting_t *pb) {
     vec_t mp;
     const mouse_t *je;
     const char *display = "";
 
-    if (state == NULL || strcmp(state, "placing") != 0) {
+    if (state != ENTITY_STATE_PLACING) {
         return;
     }
 
@@ -294,16 +292,15 @@ int targeting_confirm(entity_t *self) {
     assert((!has_target || !spend_ok) && "targeting_confirm: economy_spend must stay short-circuited when a target is set");
 
     if (!has_target && spend_ok) {
-        entity_set_state(self, targeting->archetype->confirmed_state != NULL ? targeting->archetype->confirmed_state : "normal");
+        state_t confirmed = targeting->archetype->confirmed_state;
+
+        entity_set_state(self, confirmed != ENTITY_STATE_NONE ? confirmed : ENTITY_STATE_NORMAL);
 
         economy_advance_clock(main_economy_typed(), targeting->archetype->clock_ticks);
-
-        p8_play_sfx(targeting->archetype->has_status_sprite ? targeting->archetype->status_sprite : p8_fixed_from_int(54));
 
         return 1;
     }
 
-    p8_play_sfx(p8_fixed_from_int(57));
     probe_host_raise_is_dead(self);
     return 0;
 }
@@ -361,7 +358,7 @@ void probe_release_method(entity_t *self) {
     const probe_t *g_ = (const probe_t *)self;
 
     emitter_release_particles(self->emitter);
-    if (g_->grab_arena != NULL && (self->state == NULL || strcmp(self->state, "settled") != 0)) {
+    if (g_->grab_arena != NULL && self->state != ENTITY_STATE_SETTLED) {
         planet_grab_arena_arena_released(g_->grab_arena);
     }
 }

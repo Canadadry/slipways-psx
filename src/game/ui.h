@@ -6,7 +6,7 @@
 #include "game/game_data.h"
 #include "engine/geom.h"
 #include "p8/gfx.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/mouse.h"
 #include "engine/entity_class.h"
 
@@ -16,6 +16,9 @@
  * as the position (0, 0). */
 
 enum { UI_HOVER_LAYERS = 16 };
+
+/* Not a P8_MOUSE_* bit: the right side reads the right or middle button. */
+typedef enum { MOUSE_SIDE_LEFT, MOUSE_SIDE_RIGHT } mouse_side_t;
 
 /* Each of `layers` lists the hovered entities of its layer in the order
  * they were found; `layer_count` is always UI_HOVER_LAYERS. */
@@ -47,7 +50,7 @@ typedef struct {
     background_t *right_held; /* borrowed, never freed */
 } ui_t;
 
-/* Calls `draw_functions_init()` and empties `ui_ephemerals_shared()`. Also
+/* Empties `ui_ephemerals_shared()`. Also
  * puts back the member-less placeholder main mouse that
  * `ui_set_main_mouse()` later replaces. */
 void ui_init(void);
@@ -109,19 +112,17 @@ ui_t *main_ui(void);
 /* Same ownership rule as `ui_set_main_mouse()`. */
 void ui_set_main_ui(ui_t *ui);
 
-/* Called once per frame by `cart_update60()`. PICO-8 memory
- * is an explicit parameter because that call is direct, not routed through
- * a class member or `update_entities()` and their shared dispatch
- * context. */
-void ui_update(p8_memory_t *mem, ui_t *self);
+/* Called once per frame by `cart_update60()`. TODO: `mem` is no longer
+ * read; drop it. */
+void ui_update(p8_vram_t *mem, ui_t *self);
 
-void ui_draw_overlay(const p8_graphics_t *gfx, p8_memory_t *mem, const ui_t *self);
+void ui_draw_overlay(const p8_graphics_t *gfx, p8_vram_t *mem, const ui_t *self);
 
-void ui_update_hover(p8_memory_t *memory, ui_t *self);
+void ui_update_hover(ui_t *self);
 
-/* The button is "left" or "right", anything else asserts: it picks the
- * member `left_held`/`right_held` and the method `left_press`/`right_press`. */
-void ui_handle_button(ui_t *self, const char *button);
+/* The side picks the member `left_held`/`right_held` and the method
+ * `left_press`/`right_press`. */
+void ui_handle_button(ui_t *self, mouse_side_t side);
 
 /* The method ui_send_to_hovered asks each hovered entity: `left_press`
  * and `right_press` get the world and screen mouse positions, `accept_drop`

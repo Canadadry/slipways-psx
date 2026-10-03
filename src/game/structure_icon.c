@@ -9,7 +9,6 @@
 #include "p8/gfx.h"
 #include "engine/entity.h"
 #include "game/layout.h"
-#include "game/draw_functions.h"
 #include "game/planet.h"
 #include "game/probe.h"
 #include "p8/str.h"
@@ -47,7 +46,7 @@ structure_icon_kind_t structure_icon_kind_view(const structure_icon_t *self) {
     view.required_tech = NULL;
     view.sprite = 0;
     view.has_sprite = 0;
-    view.state = NULL;
+    view.state = ENTITY_STATE_NONE;
     view.cost = 0;
     view.has_cost = 0;
     if (kind != NULL) {
@@ -146,7 +145,7 @@ static down_t structure_icon_left_press_method(entity_t *self, vec_t *mouse_worl
     return structure_icon_left_press((structure_icon_t *)self);
 }
 
-void structure_icon_draw(p8_graphics_t *gfx, p8_memory_t *mem, structure_icon_t *self, vec_t p) {
+void structure_icon_draw(p8_graphics_t *gfx, p8_vram_t *mem, structure_icon_t *self, vec_t p) {
     structure_icon_kind_t view;
 
     /* An icon not yet revealed by structure_icon_refresh() draws nothing. */
@@ -164,7 +163,7 @@ void structure_icon_draw(p8_graphics_t *gfx, p8_memory_t *mem, structure_icon_t 
                       structure_icon_to_int(p.y));
 
     /* targeting_tooltip_show() is not inert here: every kind an icon holds
-     * inherits the structure's state "placing", so it passes its own state
+     * inherits the structure's state, placing, so it passes its own state
      * check and draws the kind-level build cost. */
     if (self->is_hovered) {
         if (structure_icon_own_kind(self) != NULL) {
@@ -226,8 +225,6 @@ static structure_icon_t *structure_icon_create(const structure_icon_keys_t *keys
 
 void structure_icon_init(void) {
     structure_icon_shutdown();
-
-    draw_functions_init();
 
     g_structure_icon_up = 1;
     g_cursor = NULL;

@@ -4,7 +4,6 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "p8/audio.h"
 #include "engine/dispatch_context.h"
 #include "p8/fixed.h"
 #include "game/hud.h"
@@ -47,7 +46,7 @@ static void message_box_draw_overlay_method(entity_t *self, const vec_t *screen_
     message_box_draw_overlay(dispatch_context_gfx(), dispatch_context_mem(), (message_box_t *)self);
 }
 
-void message_box_draw_overlay(p8_graphics_t *gfx, p8_memory_t *mem, message_box_t *self) {
+void message_box_draw_overlay(p8_graphics_t *gfx, p8_vram_t *mem, message_box_t *self) {
     p8_fixed_t self_t, rh, t, nc, t3;
 
     if (self == NULL) {
@@ -104,7 +103,7 @@ static const data_row_t *message_box_article(const allocator_t *slot, const data
     message_box_draw_row_t *copy;
     const vec_t *ra;
 
-    if (e->draw_function == NULL || strcmp(e->draw_function, "draw_row") != 0) {
+    if (e->draw_function != DRAW_FUNCTION_DRAW_ROW) {
         return e;
     }
     assert(e->count == 3 && e->items[0].is_ref && e->items[1].is_ref &&
@@ -214,7 +213,7 @@ static void toast_update_method(entity_t *self, p8_fixed_t t) {
     toast_update((toast_t *)self);
 }
 
-void toast_draw(const p8_graphics_t *gfx, p8_memory_t *mem, const toast_t *self, vec_t p) {
+void toast_draw(const p8_graphics_t *gfx, p8_vram_t *mem, const toast_t *self, vec_t p) {
     const char *text;
     int color;
     p8_fixed_t a_center = P8_FIXED_LIT(0x00008000, 0.5);
@@ -281,7 +280,6 @@ static toast_t *toast_create(const toast_keys_t *keys) {
 
 void toast_init(void) {
     toast_shutdown();
-    draw_functions_init();
     g_toast_up = 1;
 }
 
@@ -338,7 +336,6 @@ void message_box_open_box(const open_box_frame_t *frame, const button_keys_t *bu
     open_box_ctx_t step_context;
     entity_list_t *ephemerals;
     ui_t *dispatcher;
-    p8_fixed_t play_sfx_arg;
     button_keys_t description_row = {0};
     layout_row_keys_t description_layout_row = {0};
     int has_description;
@@ -357,13 +354,6 @@ void message_box_open_box(const open_box_frame_t *frame, const button_keys_t *bu
         description_layout_row.color = p8_fixed_from_int(13);
         description_row.layout_row_keys = &description_layout_row;
     }
-
-    if (frame->has_open_sfx) {
-        play_sfx_arg = frame->open_sfx;
-    } else {
-        play_sfx_arg = p8_fixed_from_int(62);
-    }
-    p8_play_sfx(play_sfx_arg);
 
     if (frame->fixed_pos != NULL) {
         box_pos = *frame->fixed_pos;

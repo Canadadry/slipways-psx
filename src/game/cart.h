@@ -5,7 +5,7 @@
 
 /* Runs every module's init, then the game data build (data_init(): the
  * research projects and the tech-gate flags), but only when
- * dispatch_context_mem() is set: without PICO-8 memory they stay unbuilt.
+ * dispatch_context_mem() is set: without vram they stay unbuilt.
  * A second call, as the tests make, frees what the first built before
  * building it again, so a pointer into it taken in between dangles.
  *
@@ -25,8 +25,8 @@ void cart_load(void);
 void cart_flush_exit_queue(void);
 
 /* Quits the game zone, then runs the shutdown of every module cart_load()
- * initialised, in reverse order (draw_functions_init() has none).
- * Idempotent, and safe before the first cart_load(). */
+ * initialised, in reverse order. Idempotent, and safe before the first
+ * cart_load(). */
 void cart_shutdown(void);
 
 /* Requires cart_load(). */
@@ -45,7 +45,7 @@ void cart_start_game(button_t *chosen_option);
  * rather than an error. */
 void cart_update60(void);
 
-/* Reads PICO-8 memory through dispatch_context_mem(), which must be set:
+/* Reads vram through dispatch_context_mem(), which must be set:
  * clearing the screen writes through it. */
 void cart_draw(void);
 

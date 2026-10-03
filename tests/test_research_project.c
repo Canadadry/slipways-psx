@@ -20,13 +20,14 @@
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
 #include "game/economy.h"
+#include "engine/entity.h"
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "game/main_economy.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "game/layout.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/planet.h"
 #include "game/planet_display.h"
 #include "game/planet_family.h"
@@ -49,7 +50,7 @@
 
 #define PROJECTS_COUNT 34
 #define PROJECTS_NAMED 26
-#define PROJECTS_HASH 0x537BCD0Fu
+#define PROJECTS_HASH 0xA4D742D8u
 #define DEFAULTS_HASH 0x4FE030B1u
 #define FUNCTIONS_HASH 0xA90BEF24u
 #define FUNCTIONS_INVENTED_HASH 0x5F2D2AD4u
@@ -57,7 +58,7 @@
 #define BUILT_WORLD_HASH 0xDF3A48A1u
 #define HARVESTED_WORLD_HASH 0xE7F2768Cu
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -240,6 +241,15 @@ static uint32_t fold_item(uint32_t h, const data_item_t *item, int depth) {
     return fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->number));
 }
 
+/* The names the frozen hashes folded, before draw functions were an enum. */
+static const char *const draw_function_names[DRAW_FUNCTION_COUNT] = {
+    [DRAW_FUNCTION_DRAW_BAR] = "draw_bar",
+    [DRAW_FUNCTION_PRINT_OUTLINED] = "print_outlined",
+    [DRAW_FUNCTION_DRAW_HELP_FRAME] = "draw_help_frame",
+    [DRAW_FUNCTION_SPR] = "spr",
+    [DRAW_FUNCTION_DRAW_ROW] = "draw_row",
+};
+
 /* A generated or built row, folded as the frozen hashes folded its view:
  * items, then `color`, then `draw_function`. */
 static uint32_t fold_row(uint32_t h, const data_row_t *row, int depth) {
@@ -248,15 +258,15 @@ static uint32_t fold_row(uint32_t h, const data_row_t *row, int depth) {
     if (depth <= 0) {
         return fnv(fnv(h, (uint32_t)REF_KIND), (uint32_t)VIEW_TAG);
     }
-    h = fold_view_head(h, row->count + (row->has_color != 0) + (row->draw_function != NULL));
+    h = fold_view_head(h, row->count + (row->has_color != 0) + (row->draw_function != DRAW_FUNCTION_NONE));
     for (i = 0; i < row->count; i++) {
         h = fold_item(fold_view_index(h, i + 1), &row->items[i], depth - 1);
     }
     if (row->has_color) {
         h = fold_fixed(fold_view_name(h, "color"), p8_fixed_from_int(row->color));
     }
-    if (row->draw_function != NULL) {
-        h = fold_string(fold_view_name(h, "draw_function"), row->draw_function);
+    if (row->draw_function != DRAW_FUNCTION_NONE) {
+        h = fold_string(fold_view_name(h, "draw_function"), draw_function_names[row->draw_function]);
     }
     return h;
 }
@@ -331,11 +341,11 @@ static void check_count(const char *label, int got, int want) {
 
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
-        h *= 16777619u;
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            h ^= (uint32_t)memory.screen[y][x];
+            h *= 16777619u;
+        }
     }
     return h;
 }
@@ -378,7 +388,7 @@ static void built_world(void) {
     int i;
 
     start_game();
-    jos = entities_by_tag("planet");
+    jos = entities_by_tag(TAG_PLANET);
     assert(jos != NULL && jos->count > 1);
     qu = jos->items[0];
     for (i = 1; i < jos->count; i++) {
@@ -453,7 +463,6 @@ static void test_projects(void) {
         hash = fold_fixed_member(hash, built->has_icon_sprite, built->icon_sprite);
         hash = fold_string_member(hash, built->class_name);
         hash = fold_string_member(hash, built->next_type);
-        hash = fold_fixed_member(hash, built->has_play_sfx, built->play_sfx);
         i_list = built->inputs;
         assert(i_list != NULL);
         hash = fnv(hash, (uint32_t)i_list->count);
@@ -647,7 +656,7 @@ static uint32_t fold_planet(uint32_t hash, void *entity) {
     hash = fold_string_member(hash, p->description);
     hash = fold_needs(hash, p);
     hash = fold_production(hash, p);
-    hash = fold_string_member(hash, p->header.state);
+    hash = fold_string_member(hash, entity_state_name(p->header.state));
     hash = fold_bool_member(hash, (p->fold_anchor != 0), p->fold_anchor);
     hash = fold_bool_member(hash, (p->is_dead != 0), p->is_dead);
     hash = fold_fixed_member(hash, 1, p->shake);
@@ -745,7 +754,7 @@ static uint32_t fold_world(void) {
 
     cart_update60();
     cart_draw();
-    jo = entities_by_tag("planet");
+    jo = entities_by_tag(TAG_PLANET);
     for (i = 0; jo != NULL && i < jo->count; i++) {
         h = fnv(h, (uint32_t)projects_rank(as_planet(jo->items[i])->project));
     }
@@ -765,7 +774,7 @@ static void test_harvested_world(void) {
     int i;
 
     start_game();
-    p = entities_by_tag("planet")->items[0];
+    p = entities_by_tag(TAG_PLANET)->items[0];
     planet_roll_type(p);
     planet_apply_project(p, project_with(with_class_name, 1));
     last = live_entities()->items[live_entities()->count - 1];
@@ -987,11 +996,11 @@ static void layout_row_on_other(void *e) {
 }
 
 static void install_project_on_other(void *e) {
-    planet_install_project((planet_t *)entities_by_tag("planet")->items[0], e);
+    planet_install_project((planet_t *)entities_by_tag(TAG_PLANET)->items[0], e);
 }
 
 static void apply_project_on_other(void *e) {
-    planet_apply_project((planet_t *)entities_by_tag("planet")->items[0], e);
+    planet_apply_project((planet_t *)entities_by_tag(TAG_PLANET)->items[0], e);
 }
 
 /* A project is a struct whose descriptor has no method and no writer, its
@@ -1024,7 +1033,7 @@ static void test_research_project_is_a_struct(void) {
     assert(bare->layout_row == NULL);
     assert(bare->name == NULL && bare->planet_codes == NULL && !bare->has_base_cost && bare->production_key == NULL && !bare->has_output);
     assert(!bare->has_upgrade_tech && !bare->has_byproduct && bare->required_tech == NULL && !bare->has_icon_sprite && bare->class_name == NULL);
-    assert(bare->next_type == NULL && !bare->has_play_sfx);
+    assert(bare->next_type == NULL);
 
     start_game();
     must_abort(build_with_header, NULL);
@@ -1079,10 +1088,9 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

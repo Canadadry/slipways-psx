@@ -148,8 +148,6 @@ static research_project_t *project_create(const research_project_keys_t *keys) {
     self->has_icon_sprite = 0;
     self->class_name = NULL;
     self->next_type = NULL;
-    self->play_sfx = 0;
-    self->has_play_sfx = 0;
     self->layout_row = NULL;
     self->archetype = &research_project_archetype;
 
@@ -163,10 +161,6 @@ static research_project_t *project_create(const research_project_keys_t *keys) {
         }
         self->class_name = ri->class_name;
         self->next_type = ri->next_type;
-        if (ri->has_play_sfx) {
-            self->play_sfx = p8_fixed_from_int(ri->play_sfx);
-            self->has_play_sfx = 1;
-        }
     }
     if (keys != NULL) {
         self->required_tech = keys->required_tech;

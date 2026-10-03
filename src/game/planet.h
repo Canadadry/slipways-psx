@@ -66,7 +66,6 @@ typedef struct {
 } planet_t;
 
 /* GAP-8 */
-/* Calls draw_functions_init(). */
 void planet_init(void);
 
 /* Sets the type picker and the vanish roll back to NULL without reading
@@ -116,9 +115,9 @@ void planet_grab_arena_open(void);
 void planet_grab_arena_close(void);
 /* Called last by the release method of an object built in `zone`, with the
  * object's state: a grab arena (NULL or another zone: nothing) whose object
- * is still "placing" goes on the free grabs, for the next grab to empty and
+ * is still placing goes on the free grabs, for the next grab to empty and
  * reuse. */
-void planet_grab_arena_zone_released(const allocator_t *zone, const char *state);
+void planet_grab_arena_zone_released(const allocator_t *zone, state_t state);
 /* The same whatever the state: for an object whose memory nothing borrows
  * after its death. */
 void planet_grab_arena_arena_released(const allocator_t *zone);
@@ -161,8 +160,7 @@ void planet_update_vanishing_method(entity_t *self, p8_fixed_t t);
 
 void planet_install_project(planet_t *self, research_project_t *research_project_instance);
 
-/* GAP-3 */
-/* 1 when the archetype's is_planet is set and the state is "settled", 0
+/* 1 when the archetype's is_planet is set and the state is settled, 0
  * otherwise, a NULL `self` included. */
 int planet_is_colonized(const planet_t *self);
 

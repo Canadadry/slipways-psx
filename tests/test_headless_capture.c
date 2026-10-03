@@ -15,7 +15,7 @@
 
 #include "devtools/dump.h"
 #include "p8/input.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "devtools/screencast.h"
 
 #include <assert.h>
@@ -68,11 +68,9 @@ static char *read_whole_file(const char *path, size_t *out_len) {
  * Allocated buffer, freed by the caller. It is NOT NUL-terminated (unlike
  * read_whole_file above): only memcmp over `*out_len` is valid on it. */
 static char *dump_text_of_pixels(const unsigned char *pixels, size_t *out_len) {
-    p8_memory_t mem;
-    p8_mem_init(&mem);
-    for (int i = 0; i < SCREENCAST_FRAME_PIXELS; i++) {
-        p8_poke(&mem, P8_ADDR_SCREEN + i, pixels[i]);
-    }
+    p8_vram_t mem;
+    p8_vram_init(&mem);
+    memcpy(mem.screen, pixels, sizeof(mem.screen));
 
     FILE *tmp = tmpfile();
     assert(tmp != NULL);

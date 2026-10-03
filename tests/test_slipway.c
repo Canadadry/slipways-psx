@@ -18,13 +18,14 @@
 #include "engine/bootstrap.h"
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
+#include "engine/entity.h"
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
 #include "p8/fixed.h"
 #include "game/main_economy.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/planet.h"
 #include "game/planet_display.h"
 #include "game/planet_family.h"
@@ -53,7 +54,7 @@
 #define TOO_FAR_HASH 0x65AE0C50u
 #define MOUSE_POINT_HASH 0x4C9D6519u
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -186,7 +187,7 @@ static int end_kind(const void *jc) {
     if (re == NULL) {
         return END_ABSENT;
     }
-    if (entity_list_listed(entities_by_tag("node"), re)) {
+    if (entity_list_listed(entities_by_tag(TAG_NODE), re)) {
         return END_PLANET;
     }
     if (is_throwaway(re)) {
@@ -202,10 +203,10 @@ static int target_kind(const void *jc) {
     if (et == NULL) {
         return TARGET_ABSENT;
     }
-    if (entity_list_listed(entities_by_tag("node"), et)) {
+    if (entity_list_listed(entities_by_tag(TAG_NODE), et)) {
         return TARGET_PLANET;
     }
-    if (entity_list_listed(entities_by_tag("slipway"), et)) {
+    if (entity_list_listed(entities_by_tag(TAG_SLIPWAY), et)) {
         return TARGET_SLIPWAY;
     }
     if (is_too_far(et)) {
@@ -220,13 +221,13 @@ static int holder_kind(const void *fo) {
     if (fo == NULL) {
         return TARGETED_BY_ABSENT;
     }
-    if (entity_list_listed(entities_by_tag("slipway"), fo)) {
+    if (entity_list_listed(entities_by_tag(TAG_SLIPWAY), fo)) {
         return TARGETED_BY_SLIPWAY;
     }
-    if (entity_list_listed(entities_by_tag("probe"), fo)) {
+    if (entity_list_listed(entities_by_tag(TAG_PROBE), fo)) {
         return TARGETED_BY_PROBE;
     }
-    if (entity_list_listed(entities_by_tag("wormhole"), fo)) {
+    if (entity_list_listed(entities_by_tag(TAG_WORMHOLE), fo)) {
         return TARGETED_BY_WORMHOLE;
     }
     return TARGETED_BY_OTHER;
@@ -263,7 +264,7 @@ static uint32_t fold_slipway(uint32_t h, const void *e) {
     h = fold_fixed(h, 1, jc->layer);
     h = fold_fixed(h, 1, jc->fade_in_step);
     h = fnv(h, is_dead_state(jc));
-    h = fold_string(h, jc->header.state);
+    h = fold_string(h, entity_state_name(jc->header.state));
     h = fold_fixed(h, 1, jc->header.state_time);
     h = fold_ref(h, jc->start);
     h = fnv(h, (uint32_t)end_kind(jc));
@@ -285,7 +286,7 @@ static p8_fixed_t credits(void) {
 }
 
 static uint32_t fold_planets(uint32_t h, int with_other_end) {
-    const entity_list_t *np = entities_by_tag("node");
+    const entity_list_t *np = entities_by_tag(TAG_NODE);
     int i;
 
     for (i = 0; np != NULL && i < np->count; i++) {
@@ -336,7 +337,7 @@ static void colonized_pair(void **qu, void **re) {
     int i;
 
     start_game();
-    jos = entities_by_tag("planet");
+    jos = entities_by_tag(TAG_PLANET);
     assert(jos != NULL && jos->count > 1);
     *qu = jos->items[0];
     *re = NULL;
@@ -384,11 +385,11 @@ static void world(void) {
     for (i = 0; i < SETTLE_TICKS; i++) {
         update_entities();
     }
-    assert(entities_by_tag("slipway") != NULL && entities_by_tag("slipway")->count == 1);
+    assert(entities_by_tag(TAG_SLIPWAY) != NULL && entities_by_tag(TAG_SLIPWAY)->count == 1);
 }
 
 static void *the_slipway(void) {
-    return entities_by_tag("slipway")->items[0];
+    return entities_by_tag(TAG_SLIPWAY)->items[0];
 }
 
 static void *build_slipway(void *qu) {
@@ -422,12 +423,12 @@ static const entity_t *entity_of(const void *e) {
     return e;
 }
 
-static void *first_with_state(const char *tag, const char *state) {
+static void *first_with_state(tag_t tag, state_t state) {
     const entity_list_t *list = entities_by_tag(tag);
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         const entity_t *ke = entity_of(list->items[i]);
-        if (ke->state != NULL && strcmp(ke->state, state) == 0) {
+        if (ke->state == state) {
             return list->items[i];
         }
     }
@@ -444,11 +445,10 @@ static void check_fresh_slipway(const void *e, const void *qu) {
     size_t i;
 
     assert(jc->archetype == &slipway_archetype && jc->targeting->archetype == &slipway_archetype.targeting);
-    assert(jc->header.state != NULL && strcmp(jc->header.state, "placing") == 0);
+    assert(jc->header.state == ENTITY_STATE_PLACING);
     assert(jc->header.state_time == 0);
     assert(jc->layer == p8_fixed_from_int(2));
     assert(jc->targeting->archetype->clock_ticks == 0);
-    assert(jc->targeting->archetype->status_sprite == p8_fixed_from_int(48) && jc->targeting->archetype->has_status_sprite == 1);
     printf("[attach_distance] 0x%08X\n", (unsigned)jc->targeting->archetype->attach_distance);
     assert(jc->targeting->archetype->attach_distance == (p8_fixed_t)ATTACH_DISTANCE_BITS);
     assert(jc->fade_in_step == p8_fixed_from_int(20));
@@ -473,9 +473,9 @@ static void check_fresh_slipway(const void *e, const void *qu) {
     assert(class_of(jc)->hit_test == NULL && class_of(jc)->states[ENTITY_STATE_PLACING] == NULL &&
            class_of(jc)->states[ENTITY_STATE_NORMAL] == NULL && class_of(jc)->left_press == NULL && class_of(jc)->accept_drop == NULL);
 
-    assert(entity_list_listed(live_entities(), jc) && entity_list_listed(entities_by_message("draw"), jc) && entity_list_listed(entities_by_message("draw_overlay"), jc));
-    assert(entity_list_listed(entities_by_tag("slipway"), jc));
-    assert(!entity_list_listed(entities_by_message("hit_test"), jc) && !entity_list_listed(entities_by_message("new_year"), jc) && !entity_list_listed(entities_by_message("refresh"), jc));
+    assert(entity_list_listed(live_entities(), jc) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), jc) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), jc));
+    assert(entity_list_listed(entities_by_tag(TAG_SLIPWAY), jc));
+    assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), jc) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), jc) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_REFRESH), jc));
 }
 
 static void test_construction(void) {
@@ -485,7 +485,7 @@ static void test_construction(void) {
     down_t made;
 
     world();
-    ly = first_with_state("planet", "settled");
+    ly = first_with_state(TAG_PLANET, ENTITY_STATE_SETTLED);
     assert(ly != NULL);
     made = class_of(ly)->left_press(ly, NULL, NULL);
     assert(made.stop && made.held != NULL);
@@ -513,7 +513,7 @@ static void test_drop(void) {
 
     colonized_pair(&origin, &target);
     held = dragged(origin, target);
-    assert(entity_list_listed(entities_by_tag("slipway"), held));
+    assert(entity_list_listed(entities_by_tag(TAG_SLIPWAY), held));
     assert(as_slipway(held)->start == origin && as_slipway(held)->end == target);
     assert(end_kind(held) == END_PLANET && target_kind(held) == TARGET_ABSENT);
     assert(entity_list_pointer_list_count(as_planet(origin)->slipways) == 0 && entity_list_pointer_list_count(as_planet(target)->slipways) == 0);
@@ -613,11 +613,11 @@ static void test_other_end(void) {
 
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
-        h *= 16777619u;
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            h ^= (uint32_t)memory.screen[y][x];
+            h *= 16777619u;
+        }
     }
     return h;
 }
@@ -792,7 +792,7 @@ static void test_drag_mouse_point(void) {
     assert(mouse_point_map_pos(first_end) != first_mouse);
     assert(*((const entity_t *)first_end)->map_pos == mouse_point_map_pos(first_end));
     assert(!entity_geom_is_on_screen(first_end));
-    assert(!entity_list_listed(live_entities(), first_end) && !entity_list_listed(entities_by_tag("slipway"), first_end) && !entity_list_listed(entities_by_tag("node"), first_end));
+    assert(!entity_list_listed(live_entities(), first_end) && !entity_list_listed(entities_by_tag(TAG_SLIPWAY), first_end) && !entity_list_listed(entities_by_tag(TAG_NODE), first_end));
     hash = fnv(hash, (uint32_t)first_pos.x);
     hash = fnv(hash, (uint32_t)first_pos.y);
     hash = fold_slipway(hash, first);
@@ -845,7 +845,7 @@ static void test_obstruction_crosses_a_slipway(void) {
     int crossed = 0;
 
     world();
-    jos = entities_by_tag("planet");
+    jos = entities_by_tag(TAG_PLANET);
     old = the_slipway();
     mid = vec_div(vec_add(pos_of(as_slipway(old)->start), pos_of(as_slipway(old)->end)), p8_fixed_from_int(2));
     for (i = 0; i < jos->count && !crossed; i++) {
@@ -934,8 +934,8 @@ static void test_targeting_track_takes_the_first_slipway_of_entities_by_tag(void
     old = the_slipway();
     twin = build_slipway(as_slipway(old)->end);
     as_slipway(twin)->end = as_slipway(old)->start;
-    assert(entities_by_tag("slipway")->count == 2 && entities_by_tag("slipway")->items[0] == old &&
-           entities_by_tag("slipway")->items[1] == twin);
+    assert(entities_by_tag(TAG_SLIPWAY)->count == 2 && entities_by_tag(TAG_SLIPWAY)->items[0] == old &&
+           entities_by_tag(TAG_SLIPWAY)->items[1] == twin);
     probe = probe_with_zero_attach_distance();
     qu = pos_of(as_slipway(old)->start);
     re = pos_of(as_slipway(old)->end);
@@ -1119,10 +1119,9 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

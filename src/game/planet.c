@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <string.h>
 
 #include "engine/collect.h"
 #include "engine/entity_registry.h"
@@ -10,7 +9,6 @@
 #include "game/gen.h"
 #include "engine/entity.h"
 #include "game/message_box.h"
-#include "game/draw_functions.h"
 #include "game/research.h"
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
@@ -129,7 +127,6 @@ static planet_t *planet_create(const planet_keys_t *keys) {
 
 void planet_init(void) {
     planet_shutdown();
-    draw_functions_init();
     g_planet_up = 1;
     g_planet_production_shared = (production_t){0};
 }
@@ -202,8 +199,8 @@ void planet_grab_arena_released(const planet_t *self) {
     planet_grab_arena_zone_released(self->slipways != NULL ? self->slipways->zone : NULL, self->header.state);
 }
 
-void planet_grab_arena_zone_released(const allocator_t *zone, const char *state) {
-    if (state == NULL || strcmp(state, "placing") != 0) {
+void planet_grab_arena_zone_released(const allocator_t *zone, state_t state) {
+    if (state != ENTITY_STATE_PLACING) {
         return;
     }
     planet_grab_arena_arena_released(zone);
@@ -220,7 +217,7 @@ void planet_grab_arena_arena_released(const allocator_t *zone) {
 
 /* GAP-26 */
 void planet_forget_targeted_by(const entity_t *e) {
-    const entity_list_t *np = entities_by_tag("node");
+    const entity_list_t *np = entities_by_tag(TAG_NODE);
 
     for (int i = 0; np != NULL && i < np->count; i++) {
         planet_t *p = (planet_t *)np->items[i];
@@ -307,7 +304,7 @@ int planet_is_colonized(const planet_t *self) {
     if (!self->archetype->is_planet) {
         return 0;
     }
-    return self->header.state != NULL && strcmp(self->header.state, "settled") == 0;
+    return self->header.state == ENTITY_STATE_SETTLED;
 }
 
 void planet_restart_shake(planet_t *self) {
@@ -326,8 +323,6 @@ void planet_update_vanishing(planet_t *self, p8_fixed_t t) {
 
 void planet_roll_type(planet_t *self) {
     const planet_types_entry_t *nk = NULL;
-    const char *set_state_arg;
-
     if (self == NULL) {
         return;
     }
@@ -351,12 +346,7 @@ void planet_roll_type(planet_t *self) {
     self->planet_type = nk;
     self->description = nk != NULL ? nk->description : NULL;
 
-    if (nk != NULL && nk->state != NULL) {
-        set_state_arg = nk->state;
-    } else {
-        set_state_arg = "known";
-    }
-    entity_set_state((entity_t *)self, set_state_arg);
+    entity_set_state((entity_t *)self, nk != NULL && nk->state != ENTITY_STATE_NONE ? nk->state : ENTITY_STATE_KNOWN);
     planet_restart_shake(self);
 }
 

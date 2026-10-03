@@ -2,7 +2,6 @@
 
 #include <string.h>
 
-#include "p8/audio.h"
 #include "engine/dispatch_context.h"
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
@@ -101,8 +100,6 @@ static button_t *button_create(const button_keys_t *keys) {
     self->header.is_hovered = &self->is_hovered;
     self->is_hovered = 0;
     self->refresh = NULL;
-    self->gpio_signal = 0;
-    self->has_gpio_signal = 0;
     self->name = NULL;
     self->trade = 0;
     self->has_trade = 0;
@@ -132,8 +129,6 @@ static button_t *button_create(const button_keys_t *keys) {
         self->on_click = keys->on_click;
         self->has_on_click = keys->has_on_click;
         self->refresh = keys->refresh;
-        self->gpio_signal = keys->gpio_signal;
-        self->has_gpio_signal = keys->has_gpio_signal;
         self->name = keys->name;
         self->trade = keys->trade;
         self->has_trade = keys->has_trade;
@@ -145,7 +140,6 @@ static button_t *button_create(const button_keys_t *keys) {
         self->project_cost = keys->project_cost;
         self->has_project_cost = keys->has_project_cost;
     }
-    self->header.gpio_signal = self->has_gpio_signal ? &self->gpio_signal : NULL;
     button_construct(self, keys);
     entity_construct(&self->header);
     return self;
@@ -228,7 +222,7 @@ void button_update(button_t *self) {
     }
 }
 
-void button_draw_overlay(p8_graphics_t *gfx, p8_memory_t *mem, const button_t *self) {
+void button_draw_overlay(p8_graphics_t *gfx, p8_vram_t *mem, const button_t *self) {
     if (self == NULL) {
         return;
     }
@@ -238,7 +232,7 @@ void button_draw_overlay(p8_graphics_t *gfx, p8_memory_t *mem, const button_t *s
     }
 }
 
-void button_draw(p8_graphics_t *graphics, p8_memory_t *memory, const button_t *self, vec_t draw_pos) {
+void button_draw(p8_graphics_t *graphics, p8_vram_t *memory, const button_t *self, vec_t draw_pos) {
     p8_fixed_t width;
     p8_fixed_t right;
     p8_fixed_t bottom;
@@ -297,7 +291,6 @@ down_t button_left_press(button_t *self) {
     down_t out = {1, NULL};
 
     if (has_on_click) {
-        p8_play_sfx(p8_fixed_from_int(60));
         self->on_click(self);
     }
 

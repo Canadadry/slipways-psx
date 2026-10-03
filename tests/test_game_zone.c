@@ -20,7 +20,7 @@
 #include "p8/input.h"
 #include "game/layout.h"
 #include "game/map_tables.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/mouse.h"
 #include "game/planet_family.h"
 #include "game/structure_icon.h"
@@ -38,15 +38,14 @@
  * optimiser, it is what the case observes. */
 static volatile unsigned char sink;
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
 static void load_cart_and_start(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);
@@ -123,8 +122,8 @@ static size_t registry_bytes(const entity_list_t *list) {
 }
 
 static size_t registries_bytes(void) {
-    static const char *const CV[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
-    static const char *const CG[] = {"structure", "ascension", "slipgate", "probe", "message_box", "slipway", "wormhole", "planet", "node", "targeting"};
+    static const entity_message_t CV[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
+    static const tag_t CG[] = {TAG_STRUCTURE, TAG_ASCENSION, TAG_SLIPGATE, TAG_PROBE, TAG_MESSAGE_BOX, TAG_SLIPWAY, TAG_WORMHOLE, TAG_PLANET, TAG_NODE, TAG_TARGETING};
     size_t r = registry_bytes(live_entities());
     for (size_t i = 0; i < sizeof CV / sizeof CV[0]; i++) r += registry_bytes(entities_by_message(CV[i]));
     for (size_t i = 0; i < sizeof CG / sizeof CG[0]; i++) r += registry_bytes(entities_by_tag(CG[i]));
@@ -146,7 +145,7 @@ static size_t planet_list_bytes(const entity_list_t *list) {
  * identifier and the slipways, outgoing and incoming route lists. No needs
  * nor copies of needs, which populated planets lack before an action. */
 static size_t planets_bytes(void) {
-    const entity_list_t *jo = entities_by_tag("planet");
+    const entity_list_t *jo = entities_by_tag(TAG_PLANET);
     size_t bytes = 0;
     for (int i = 0; jo != NULL && i < jo->count; i++) {
         const planet_t *p = (const planet_t *)jo->items[i];

@@ -22,7 +22,7 @@ typedef struct {
     vec_t pos_own;
 } mouse_t;
 
-/* Calls draw_functions_init(), and requires entity_init() to have run --
+/* Requires entity_init() to have run --
  * asserted, not repaired. Starts the shared button states and the shared
  * position afresh. */
 void mouse_init(void);
@@ -39,8 +39,8 @@ const mouse_button_t *mouse_right_button(void);
 int mouse_ready(void);
 const entity_class_t *mouse_class(void);
 
-/* The struct enables devkit mouse reporting, registers itself through
- * entity_register; it lives in the current game-zone generation. */
+/* The struct registers itself through entity_register; it lives in the
+ * current game-zone generation. */
 mouse_t *mouse_new(void);
 
 /* Rewrites `pos_own` with the mouse position and points the struct's

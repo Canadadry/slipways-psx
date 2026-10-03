@@ -18,7 +18,7 @@
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "game/layout.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/menu.h"
 #include "game/message_box.h"
 #include "game/planet.h"
@@ -76,15 +76,14 @@ static int case_dead_next_frame(void) {
     return 0;
 }
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
 static void load_cart_and_start(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);
@@ -158,7 +157,7 @@ static int case_inspection_panel_rows_survive_reset(void) {
     planet_t *planet;
 
     start_game();
-    planet = (planet_t *)entities_by_tag("planet")->items[0];
+    planet = (planet_t *)entities_by_tag(TAG_PLANET)->items[0];
     kw.resource = p8_fixed_from_int(99);
     kw.amount = p8_fixed_from_int(1);
     planet->production = &kw;
@@ -180,7 +179,7 @@ static int case_research_project_tooltip_survives_reset(void) {
     planet_t *planet;
 
     start_game();
-    planet = (planet_t *)entities_by_tag("planet")->items[0];
+    planet = (planet_t *)entities_by_tag(TAG_PLANET)->items[0];
     planet_roll_type(planet);
     (void)planet_left_press(planet);
     assert(reset_then_draw_panel() >= 1 && "planet_projects_panel: a building carries the research_project tooltip");
@@ -191,7 +190,7 @@ static int happiness_cells(const message_box_t *mh) {
     int found = 0;
     for (int k = 0; k < mh->items_count; k++) {
         const data_row_t *ld = mh->items[k];
-        if (ld->draw_function == NULL || strcmp(ld->draw_function, "draw_row") != 0 || !ld->items[0].is_ref) continue;
+        if (ld->draw_function != DRAW_FUNCTION_DRAW_ROW || !ld->items[0].is_ref) continue;
         const layout_row_t *lq = ld->items[0].ref;
         for (int i = 0; i < lq->items_count; i++)
             found += lq->items[i].kind == LAYOUT_ROW_CELL_STRING && strcmp(lq->items[i].as.text, "1%") == 0;

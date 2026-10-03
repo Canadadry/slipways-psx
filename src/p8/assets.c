@@ -71,12 +71,12 @@ static int parse_json_int_array(const char *json, const char *key,
 }
 
 typedef struct {
-    p8_memory_t *mem;
+    p8_vram_t *mem;
     int width;
 } asset_sink_ctx_t;
 
 static int load_flat_json_array(const char *path, const char *array_key,
-                                 int_array_sink_fn_t sink, p8_memory_t *mem) {
+                                 int_array_sink_fn_t sink, p8_vram_t *mem) {
     char *json = read_whole_file(path);
     if (!json) {
         return 0;
@@ -101,32 +101,11 @@ static void gfx_pixel_sink(int index, int value, void *ctx_ptr) {
     asset_sink_ctx_t *ctx = (asset_sink_ctx_t *)ctx_ptr;
     int row = index / ctx->width;
     int col = index % ctx->width;
-    int addr = P8_ADDR_SPRITE_SHEET + row * ctx->width + col;
-    p8_poke(ctx->mem, addr, (unsigned char)value);
-}
-
-int p8_load_gfx_json(p8_memory_t *mem, const char *path) {
-    return load_flat_json_array(path, "\"pixels\":", gfx_pixel_sink, mem);
-}
-
-#define P8_MAP_BASE_ROWS 32
-
-/* The map is split across two regions: its first P8_MAP_BASE_ROWS rows
- * live in the memory shared with the top of the sprite sheet, the rest at
- * P8_ADDR_MAP. */
-static void map_cell_sink(int index, int value, void *ctx_ptr) {
-    asset_sink_ctx_t *ctx = (asset_sink_ctx_t *)ctx_ptr;
-    int row = index / ctx->width;
-    int col = index % ctx->width;
-    int addr;
-    if (row < P8_MAP_BASE_ROWS) {
-        addr = P8_ADDR_SPRITE_MAP_SHARED + row * ctx->width + col;
-    } else {
-        addr = P8_ADDR_MAP + (row - P8_MAP_BASE_ROWS) * ctx->width + col;
+    if (row < P8_SPRITE_SHEET_HEIGHT && col < P8_SPRITE_SHEET_WIDTH) {
+        ctx->mem->sprite_sheet[row][col] = (unsigned char)value;
     }
-    p8_poke(ctx->mem, addr, (unsigned char)value);
 }
 
-int p8_load_map_json(p8_memory_t *mem, const char *path) {
-    return load_flat_json_array(path, "\"cells\":", map_cell_sink, mem);
+int p8_load_gfx_json(p8_vram_t *mem, const char *path) {
+    return load_flat_json_array(path, "\"pixels\":", gfx_pixel_sink, mem);
 }

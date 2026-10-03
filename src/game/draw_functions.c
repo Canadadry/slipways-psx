@@ -1,7 +1,6 @@
 #include "game/draw_functions.h"
 
 #include <assert.h>
-#include <string.h>
 
 #include "game/hud.h"
 #include "game/layout.h"
@@ -9,49 +8,11 @@
 #include "engine/vec.h"
 #include "engine/frame_zone.h"
 
-typedef struct {
-    char name[16];
-    draw_functions_fn_t draw;
-} draw_functions_dispatch_entry_t;
-
-static draw_functions_dispatch_entry_t g_draw_functions_method[DRAW_FUNCTIONS_DISPATCH_CAPACITY];
-static int g_draw_functions_dispatch_count = 0;
-
 /* Borrowed, never owned: set by draw_functions_draw_rows(_default) right
  * before each dispatch, so the functions below can reach a real drawing
  * function that a row cannot carry. */
 static p8_graphics_t *g_draw_functions_gfx = NULL;
-static p8_memory_t *g_draw_functions_mem = NULL;
-
-void draw_functions_dispatch_register(const char *name, draw_functions_fn_t fn) {
-    int i;
-    for (i = 0; i < g_draw_functions_dispatch_count; i++) {
-        if (strcmp(g_draw_functions_method[i].name, name) == 0) {
-            g_draw_functions_method[i].draw = fn;
-            return;
-        }
-    }
-    assert(g_draw_functions_dispatch_count < DRAW_FUNCTIONS_DISPATCH_CAPACITY && "draw_functions dispatch table full");
-    assert(strlen(name) < sizeof g_draw_functions_method[0].name && "draw_functions dispatch name would be truncated");
-    strncpy(g_draw_functions_method[g_draw_functions_dispatch_count].name, name, sizeof g_draw_functions_method[g_draw_functions_dispatch_count].name - 1);
-    g_draw_functions_method[g_draw_functions_dispatch_count].name[sizeof g_draw_functions_method[g_draw_functions_dispatch_count].name - 1] = '\0';
-    g_draw_functions_method[g_draw_functions_dispatch_count].draw = fn;
-    g_draw_functions_dispatch_count++;
-}
-
-draw_functions_fn_t draw_functions_dispatch_lookup(const char *name) {
-    int i;
-    for (i = 0; i < g_draw_functions_dispatch_count; i++) {
-        if (strcmp(g_draw_functions_method[i].name, name) == 0) {
-            return g_draw_functions_method[i].draw;
-        }
-    }
-    return NULL;
-}
-
-void draw_functions_dispatch_clear(void) {
-    g_draw_functions_dispatch_count = 0;
-}
+static p8_vram_t *g_draw_functions_mem = NULL;
 
 /* The row's item at a 1-based index, as the data tables number the
  * arguments; NULL past the end. */
@@ -153,23 +114,31 @@ static void draw_row_entry(const data_row_t *e) {
     layout_row_draw_at(g_draw_functions_gfx, g_draw_functions_mem, self, p, a);
 }
 
+static const draw_functions_fn_t draw_functions_by_id[DRAW_FUNCTION_COUNT] = {
+    [DRAW_FUNCTION_NONE] = NULL,
+    [DRAW_FUNCTION_DRAW_BAR] = draw_bar_entry,
+    [DRAW_FUNCTION_PRINT_OUTLINED] = print_outlined_entry,
+    [DRAW_FUNCTION_DRAW_HELP_FRAME] = draw_help_frame_entry,
+    [DRAW_FUNCTION_SPR] = spr_entry,
+    [DRAW_FUNCTION_DRAW_ROW] = draw_row_entry,
+};
+
 /* One row: its draw_function looked up and called on it, for both entry
  * points. The dispatch context is set before every call, not once per list. */
-static void draw_rows_dispatch_one(p8_graphics_t *gfx, p8_memory_t *mem, const data_row_t *e) {
-    draw_functions_fn_t fn = NULL;
+static void draw_rows_dispatch_one(p8_graphics_t *gfx, p8_vram_t *mem, const data_row_t *e) {
+    draw_functions_fn_t fn;
 
+    assert((unsigned)e->draw_function < DRAW_FUNCTION_COUNT && "a row's draw_function is one of draw_function_t");
+    fn = draw_functions_by_id[e->draw_function];
     g_draw_functions_gfx = gfx;
     g_draw_functions_mem = mem;
 
-    if (e->draw_function != NULL) {
-        fn = draw_functions_dispatch_lookup(e->draw_function);
-    }
     if (fn != NULL) {
         fn(e);
     }
 }
 
-void draw_functions_draw_rows(p8_graphics_t *gfx, p8_memory_t *mem, const data_row_t *const *rb, int n, p8_fixed_t nc) {
+void draw_functions_draw_rows(p8_graphics_t *gfx, p8_vram_t *mem, const data_row_t *const *rb, int n, p8_fixed_t nc) {
     int i;
 
     for (i = 0; i < n; i++) {
@@ -179,18 +148,10 @@ void draw_functions_draw_rows(p8_graphics_t *gfx, p8_memory_t *mem, const data_r
     }
 }
 
-void draw_functions_draw_rows_default(p8_graphics_t *gfx, p8_memory_t *mem, const data_row_t *const *rb, int n) {
+void draw_functions_draw_rows_default(p8_graphics_t *gfx, p8_vram_t *mem, const data_row_t *const *rb, int n) {
     int i;
 
     for (i = 0; i < n; i++) {
         draw_rows_dispatch_one(gfx, mem, rb[i]);
     }
-}
-
-void draw_functions_init(void) {
-    draw_functions_dispatch_register("draw_bar", draw_bar_entry);
-    draw_functions_dispatch_register("print_outlined", print_outlined_entry);
-    draw_functions_dispatch_register("draw_help_frame", draw_help_frame_entry);
-    draw_functions_dispatch_register("spr", spr_entry);
-    draw_functions_dispatch_register("draw_row", draw_row_entry);
 }

@@ -23,7 +23,7 @@
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/planet.h"
 #include "game/planet_display.h"
 #include "game/planet_family_trade.h"
@@ -45,10 +45,10 @@
 #define LEFT_PRESS_PROBE_AFTER 1
 #define LEFT_PRESS_WORMHOLE_BEFORE 0
 #define LEFT_PRESS_WORMHOLE_AFTER 1
-#define HOVER_HASH 0x477E2027u
+#define HOVER_HASH 0x19BC9067u
 #define DRAW_HASH 0xE18E0472u
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -65,11 +65,11 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
 
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
-        h *= 16777619u;
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            h ^= (uint32_t)memory.screen[y][x];
+            h *= 16777619u;
+        }
     }
     return h;
 }
@@ -88,8 +88,8 @@ static int entity_list_list_count(const entity_list_t *list) {
     return list == NULL ? 0 : list->count;
 }
 
-static int is_state(const entity_t *ke, const char *want) {
-    return ke->state != NULL && strcmp(ke->state, want) == 0;
+static int is_state(const entity_t *ke, state_t want) {
+    return ke->state == want;
 }
 
 static uint32_t fold_vec(uint32_t h, const vec_t *p) {
@@ -145,7 +145,7 @@ static void start_game(void) {
 /* The background is the one among the hit_test entities whose hit test and
  * layer are both 1. */
 static background_t *find_background(int *count) {
-    const entity_list_t *hd = entities_by_message("hit_test");
+    const entity_list_t *hd = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     background_t *found = NULL;
     int i;
 
@@ -180,7 +180,7 @@ static vec_t *vec_ref(int x, int y) {
 }
 
 static int mget(int x, int y) {
-    return p8_peek(&memory, P8_ADDR_SPRITE_MAP_SHARED + y * P8_MAP_WIDTH + x);
+    return memory.map_cells[y][x];
 }
 
 /* A fresh background: the entity's state and state time, the archetype's
@@ -191,7 +191,7 @@ static void check_fresh_background(const background_t *bg) {
     const int_seq_t *pl;
     size_t i;
 
-    assert(is_state(&bg->header, "normal"));
+    assert(is_state(&bg->header, ENTITY_STATE_NORMAL));
     assert(bg->header.state_time == 0);
     assert(bg->archetype == &background_archetype);
     assert(bg->archetype->layer == p8_fixed_from_int(1));
@@ -205,8 +205,8 @@ static void check_fresh_background(const background_t *bg) {
     assert(cls->accept_drop == NULL && cls->states[ENTITY_STATE_NORMAL] == NULL);
     assert(cls->draw != NULL && cls->left_press != NULL && cls->right_press != NULL && cls->drag != NULL);
     assert(cls->drop == NULL);
-    assert(entity_list_listed(live_entities(), bg) && entity_list_listed(entities_by_message("draw"), bg) && entity_list_listed(entities_by_message("hit_test"), bg));
-    assert(!entity_list_listed(entities_by_message("draw_overlay"), bg) && !entity_list_listed(entities_by_message("new_year"), bg) && !entity_list_listed(entities_by_message("refresh"), bg));
+    assert(entity_list_listed(live_entities(), bg) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), bg) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), bg));
+    assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), bg) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), bg) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_REFRESH), bg));
 }
 
 static void test_construction(void) {
@@ -221,7 +221,6 @@ static void test_construction(void) {
     check_fresh_background(built);
     generic = background_new();
     check_fresh_background(generic);
-    assert(entities_by_tag("background") == NULL);
     assert(from_start_game->archetype == built->archetype && built->archetype == generic->archetype);
 }
 
@@ -318,24 +317,24 @@ static void test_left_press(void) {
 
     start_game();
     bg = the_background();
-    probes_before = entity_list_list_count(entities_by_tag("probe"));
-    wormhole_before = entity_list_list_count(entities_by_tag("wormhole"));
+    probes_before = entity_list_list_count(entities_by_tag(TAG_PROBE));
+    wormhole_before = entity_list_list_count(entities_by_tag(TAG_WORMHOLE));
     check_int("left_press_probe_before", probes_before, LEFT_PRESS_PROBE_BEFORE);
     check_int("left_press_wormhole_before", wormhole_before, LEFT_PRESS_WORMHOLE_BEFORE);
 
     out = background_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));
     assert(out.stop && out.held != NULL);
     assert(out.held->class == probe_class());
-    assert(entity_list_listed(entities_by_tag("probe"), out.held));
+    assert(entity_list_listed(entities_by_tag(TAG_PROBE), out.held));
 
     out = background_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));
     assert(out.stop && out.held != NULL);
     assert(out.held->class == wormhole_class());
-    assert(entity_list_listed(entities_by_tag("wormhole"), out.held));
-    assert(is_state(&((const wormhole_t *)out.held)->header, "placing"));
+    assert(entity_list_listed(entities_by_tag(TAG_WORMHOLE), out.held));
+    assert(is_state(&((const wormhole_t *)out.held)->header, ENTITY_STATE_PLACING));
 
-    check_int("left_press_probe_after", entity_list_list_count(entities_by_tag("probe")), LEFT_PRESS_PROBE_AFTER);
-    check_int("left_press_wormhole_after", entity_list_list_count(entities_by_tag("wormhole")), LEFT_PRESS_WORMHOLE_AFTER);
+    check_int("left_press_probe_after", entity_list_list_count(entities_by_tag(TAG_PROBE)), LEFT_PRESS_PROBE_AFTER);
+    check_int("left_press_wormhole_after", entity_list_list_count(entities_by_tag(TAG_WORMHOLE)), LEFT_PRESS_WORMHOLE_AFTER);
 }
 
 static int in_layer(int layer, const void *e) {
@@ -374,7 +373,6 @@ static void test_hover(void) {
     assert((void *)main_ui()->hovered == bg);
     assert(is_hovered_state(bg) == 2);
     assert(in_layer(1, bg));
-    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     h = fnv(h, is_hovered_state(bg));
 
     assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, vec_ref(1, 1), vec_ref(2, 2), NULL, &kv, &kn));
@@ -388,13 +386,12 @@ static void test_hover(void) {
     ui_update(&memory, main_ui());
     assert((void *)main_ui()->hovered == veil);
     assert(is_hovered_state(bg) == 0);
-    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     h = fnv(h, is_hovered_state(bg));
     check("hover", h, HOVER_HASH);
 }
 
-static planet_t *first_planet_with_state(const char *state) {
-    const entity_list_t *list = entities_by_tag("planet");
+static planet_t *first_planet_with_state(state_t state) {
+    const entity_list_t *list = entities_by_tag(TAG_PLANET);
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         entity_t *e = list->items[i];
@@ -417,13 +414,13 @@ static void test_accept_drop(void) {
     down_t r;
 
     start_game();
-    planet_apply_project((planet_t *)entities_by_tag("planet")->items[0], research_project_new(NULL));
+    planet_apply_project((planet_t *)entities_by_tag(TAG_PLANET)->items[0], research_project_new(NULL));
     bg = the_background();
-    ly = first_planet_with_state("settled");
+    ly = first_planet_with_state(ENTITY_STATE_SETTLED);
     assert(ly != NULL);
     r = planet_accept_drop(ly, &bg->header);
     assert(r.stop && r.held == NULL);
-    assert(is_state(&ly->header, "settled"));
+    assert(is_state(&ly->header, ENTITY_STATE_SETTLED));
 
     keys.planet_id = NULL;
     keys.map_pos = ly->map_pos;
@@ -440,12 +437,12 @@ static void test_draw(void) {
 
     reset_world();
     bg = (void *)background_new();
-    assert(entity_list_list_count(entities_by_message("draw")) == 1 && entity_list_listed(entities_by_message("draw"), bg));
+    assert(entity_list_list_count(entities_by_message(ENTITY_MESSAGE_DRAW)) == 1 && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), bg));
     p8_gfx_init(&graphics);
     p8_cls(&memory);
     assert(main_camera()->class == camera_class());
     camera_apply(dispatch_context_gfx(), (camera_t *)main_camera(), p8_fixed_from_int(1));
-    draw_layers("draw");
+    draw_layers(ENTITY_MESSAGE_DRAW);
     check("draw", screen_hash(), DRAW_HASH);
 }
 
@@ -561,10 +558,9 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

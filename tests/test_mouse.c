@@ -16,7 +16,7 @@
 #include "engine/entity_registry.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/mouse_button.h"
 #include "game/mouse.h"
 #include "engine/entity_class.h"
@@ -26,7 +26,7 @@
 #define SCRIPTED_TICKS 12
 #define SCRIPTED_HASH 0xEB03D064u
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -50,7 +50,7 @@ static int entity_list_listed(const entity_list_t *list, const void *e) {
 }
 
 static int in_any_entities_by_message(const void *e) {
-    const char *names[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+    const entity_message_t names[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
     int i;
 
     for (i = 0; i < 5; i++) {
@@ -145,17 +145,15 @@ static void frame(int i, int x, int y, int buttons) {
     g_frames[i].mouse_buttons = buttons;
 }
 
-/* `reset_world()` builds the main mouse: devkit mouse on, among the live
+/* `reset_world()` builds the main mouse: among the live
  * entities only, its position the zero default, both button states present
  * and still empty. */
 static void test_reset_world_builds_a_mouse_reader(void) {
     const void *je;
     vec_t ra;
 
-    p8_poke(&memory, 0x5f2d, 0);
     reset_world();
     je = main_mouse();
-    assert(p8_peek(&memory, 0x5f2d) == 1);
     assert(entity_list_listed(live_entities(), je) && !in_any_entities_by_message(je));
     assert(pos_of_main_mouse(&ra) && ra.x == 0 && ra.y == 0);
     assert(main_mouse_left() != NULL && main_mouse_right() != NULL && main_mouse_left() != main_mouse_right());
@@ -183,6 +181,23 @@ static void test_scripted_ticks(void) {
     }
     unscript();
     check("scripted", h, SCRIPTED_HASH);
+}
+
+/* No e2e replay ever holds the middle button, which the cart counts as
+ * the right one. */
+static void test_middle_alone_presses_the_right_button(void) {
+    reset_world();
+    frame(0, 30, 30, P8_MOUSE_MIDDLE);
+    frame(1, 30, 30, 0);
+    script(2);
+    update_entities();
+    assert(pressed_of(main_mouse_right()) == 1 && held_of(main_mouse_right()) == 1);
+    assert(held_of(main_mouse_left()) == 0);
+    p8_input_step(&input);
+    update_entities();
+    unscript();
+    assert(released_of(main_mouse_right()) == 1 && held_of(main_mouse_right()) == 0);
+    assert(held_of(main_mouse_left()) == 0);
 }
 
 /* Every mouse shares the two button states: a left button held across
@@ -286,10 +301,9 @@ static void test_mouse_is_a_struct_sharing_its_buttons(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);
@@ -299,6 +313,7 @@ int main(void) {
 
     test_reset_world_builds_a_mouse_reader();
     test_scripted_ticks();
+    test_middle_alone_presses_the_right_button();
     test_buttons_survive_reset_world();
     test_mouse_init_starts_the_tables_afresh();
     test_placeholder_main_mouse();

@@ -11,7 +11,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -22,12 +21,13 @@
 #include "engine/dispatch_context.h"
 #include "game/economy_score.h"
 #include "game/economy_tiers.h"
+#include "engine/entity.h"
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "game/main_economy.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/particle.h"
 #include "game/ui_zone.h"
 #include "game/planet.h"
@@ -60,12 +60,12 @@ static int pos_copies(const vec_t *ra, const vec_t *mp) {
  * value moves every *_HASH. */
 #define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
-static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
-static const char *const tags[] = {"planet", "node", "targeting"};
+static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
+static const tag_t tags[] = {TAG_PLANET, TAG_NODE, TAG_TARGETING};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -188,11 +188,11 @@ static void check(const char *label, uint32_t got, uint32_t want) {
 
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
-        h *= 16777619u;
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            h ^= (uint32_t)memory.screen[y][x];
+            h *= 16777619u;
+        }
     }
     return h;
 }
@@ -246,7 +246,7 @@ static void assert_members_of(const entity_class_t *c, const entity_class_t *ref
 
 /* The structure icon whose kind is the given one. */
 static void *icon_of(const entity_kind_t *kind) {
-    const entity_list_t *hb = entities_by_message("refresh");
+    const entity_list_t *hb = entities_by_message(ENTITY_MESSAGE_REFRESH);
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i];
@@ -311,7 +311,7 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     size_t index;
 
     hash = fold_string_member(hash, planet->planet_id);
-    hash = fold_string_member(hash, planet->header.state);
+    hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
     hash = fold_string_member(hash, ascension->archetype->required_tech);
     hash = fold_structure(hash, structure);
@@ -328,7 +328,7 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     hash = fold_fixed_member(hash, emitter->matrix_xy);
     hash = fold_fixed_member(hash, emitter->matrix_yx);
     hash = fold_fixed_member(hash, emitter->matrix_yy);
-    hash = fold_string_member(hash, structure->targeting->archetype->confirmed_state);
+    hash = fold_string_member(hash, entity_state_name(structure->targeting->archetype->confirmed_state));
     hash = fold_fixed_member(hash, structure->targeting->archetype->clock_ticks);
     hash = fold_fixed_member(hash, structure->targeting->archetype->attach_distance);
     hash = planet->has_development_tier ? fold_fixed_member(hash, planet->development_tier) : fold_absent(hash);
@@ -358,7 +358,7 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     hash = fnv(hash, (uint32_t)(emitter->particles != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(structure->archetype->name != NULL));
-    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != NULL));
+    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != ENTITY_STATE_NONE));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
@@ -425,7 +425,7 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     for (index = 0; index < sizeof tags / sizeof tags[0]; index++) {
         hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(tags[index]), entity));
     }
-    assert(entity_list_listed(entities_by_tag("planet"), entity) && !entity_list_listed(entities_by_tag("structure"), entity) && !entity_list_listed(entities_by_tag("ascension"), entity));
+    assert(entity_list_listed(entities_by_tag(TAG_PLANET), entity) && !entity_list_listed(entities_by_tag(TAG_STRUCTURE), entity) && !entity_list_listed(entities_by_tag(TAG_ASCENSION), entity));
     return hash;
 }
 
@@ -486,16 +486,16 @@ static uint32_t fold_economy(uint32_t h, void *e) {
     return as_ascension(e)->has_development_tier ? fold_fixed_member(h, as_ascension(e)->development_tier) : fold_absent(h);
 }
 
-/* draw_layers("draw") once: the screen it leaves and what ascension_draw left in the particle list. */
+/* draw_layers(ENTITY_MESSAGE_DRAW) once: the screen it leaves and what ascension_draw left in the particle list. */
 static uint32_t fold_draw(uint32_t h, void *e) {
-    draw_layers("draw");
+    draw_layers(ENTITY_MESSAGE_DRAW);
     h = fnv(h, screen_hash());
     return fnv(h, (uint32_t)pointer_list_size(as_ascension(e)->emitter->particles));
 }
 
 /* Placed on screen by the drag method (targeting_track) and the drop method
- * (targeting_confirm); update_entities on one still in "placing" (no
- * placing method: nothing moves), then in "settled" (the laboratory's
+ * (targeting_confirm); update_entities on one still in placing (no
+ * placing method: nothing moves), then in settled (the laboratory's
  * settled update); spawn_particle (probe_spawn_particle, quarter_turn true)
  * and emitter_spawn; draw through draw_layers at development tier 1, then
  * 2 (emitter_update moves and draws the particles); the economy reads. */
@@ -509,7 +509,7 @@ static void test_life(void) {
 
     start_game();
     idle = build_synthesizer();
-    hash = fold_string_member(hash, as_ascension(idle)->header.state);
+    hash = fold_string_member(hash, entity_state_name(as_ascension(idle)->header.state));
     hash = fold_update_entities(hash, idle);
 
     placed = build_synthesizer();
@@ -522,8 +522,8 @@ static void test_life(void) {
     set_credits(200);
     assert(class_of(placed)->drop == targeting_confirm_method);
     hash = targeting_confirm(placed) ? fnv(fnv(hash, 0xB0u), 1u) : fold_ref(hash, NULL);
-    hash = fold_string_member(hash, as_ascension(placed)->header.state);
-    assert(strcmp(as_ascension(placed)->header.state, "settled") == 0);
+    hash = fold_string_member(hash, entity_state_name(as_ascension(placed)->header.state));
+    assert(as_ascension(placed)->header.state == ENTITY_STATE_SETTLED);
 
     hash = fold_economy(hash, placed);
     for (index = 0; index < 3; index++) {
@@ -675,7 +675,7 @@ static void test_synthesizer_is_a_struct(void) {
 
     start_game();
     a = build_synthesizer();
-    assert(is_a_synthesizer_struct(a) && cls != hj && entity_list_listed(entities_by_tag("planet"), a) && !entity_list_listed(entities_by_tag("ascension"), a));
+    assert(is_a_synthesizer_struct(a) && cls != hj && entity_list_listed(entities_by_tag(TAG_PLANET), a) && !entity_list_listed(entities_by_tag(TAG_ASCENSION), a));
     assert(cls->attach_slipway != hj->attach_slipway && cls->attach_slipway != planet_class()->attach_slipway);
     assert_structure_shape(cls);
     assert_members_of(cls, hj, 1, 1);
@@ -688,7 +688,7 @@ static void test_synthesizer_is_a_struct(void) {
         planet_t *bare = synthesizer_new(NULL);
         assert(is_a_synthesizer_struct(bare) && bare->planet_id == NULL && bare->slipways != NULL &&
                bare->production != NULL && pointer_list_size(bare->emitter->particles) == 0 &&
-               entity_list_listed(entities_by_tag("planet"), bare));
+               entity_list_listed(entities_by_tag(TAG_PLANET), bare));
     }
 }
 
@@ -759,10 +759,9 @@ static void test_leaving_gives_back_its_particles(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

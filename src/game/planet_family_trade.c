@@ -5,7 +5,6 @@
 
 #include "engine/entity_class.h"
 #include "game/particle.h"
-#include "game/draw_functions.h"
 #include "game/planet.h"
 #include "game/planet_family.h"
 #include "game/planet_trade.h"
@@ -345,7 +344,6 @@ void planet_family_trade_init(void) {
     assert(structure_ready() && ascension_ready() &&
            "planet_family_init() must run first");
     planet_family_trade_shutdown();
-    draw_functions_init();
     g_family_trade_up = 1;
 }
 

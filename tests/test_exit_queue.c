@@ -17,7 +17,7 @@
 #include "engine/exit_queue.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/message_box.h"
 #include "game/score_panel.h"
 #include "game/ui.h"
@@ -55,15 +55,14 @@ static message_box_t *new_entity(const entity_class_t *cls) {
     return mh;
 }
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
 static void load_cart_and_start(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);
@@ -202,7 +201,7 @@ static int case_update60_after_forgetting(void) {
  * economy_score_difficulty still returns it for the whole game. */
 static int case_difficulty_outlives_its_button(void) {
     load_cart_and_start();
-    const entity_list_t *hd = entities_by_message("hit_test");
+    const entity_list_t *hd = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     button_t *nj = NULL;
     for (int i = 0; i < hd->count && nj == NULL; i++)
         if (hd->items[i]->class == button_class() && ((button_t *)hd->items[i])->has_type_bias)

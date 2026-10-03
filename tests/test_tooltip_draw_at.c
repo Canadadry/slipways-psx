@@ -12,9 +12,8 @@
 #include "engine/dispatch_context.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
-#include "game/hud.h"
 #include "game/layout.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "engine/entity_class.h"
 #include "heap_allocator.h"
 
@@ -24,16 +23,16 @@
 #define ICON_TOOLTIPS_ALL_BY_NAME_HASH 0x71C88A4Eu
 #define MIXED_BY_NAME_HASH 0xC5324FA0u
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
-        h *= 16777619u;
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            h ^= (uint32_t)memory.screen[y][x];
+            h *= 16777619u;
+        }
     }
     return h;
 }
@@ -153,10 +152,8 @@ static void test_tooltip_state_by_name(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
-    hud_build_palette_table(&memory);
     data_init();
     layout_init();
 

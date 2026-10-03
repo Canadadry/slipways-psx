@@ -18,12 +18,13 @@
 #include "engine/bootstrap.h"
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
+#include "engine/entity.h"
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "game/main_economy.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/planet_display.h"
 #include "game/planet_family.h"
 #include "game/planet_family_trade.h"
@@ -52,7 +53,7 @@
 #define UPDATE_UNFOLDING_EXIT_TICK 27
 #define DRAW_HASH 0xD124A50Cu
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -86,8 +87,8 @@ static int entity_list_listed(const entity_list_t *list, const void *e) {
     return entity_list_rank_in(list, e) >= 0;
 }
 
-static int is_state(const entity_t *ke, const char *want) {
-    return ke->state != NULL && strcmp(ke->state, want) == 0;
+static int is_state(const entity_t *ke, state_t want) {
+    return ke->state == want;
 }
 
 static wormhole_t *as_wormhole(void *e) {
@@ -149,10 +150,10 @@ static int target_kind(const wormhole_t *mz) {
     if (et == (const void *)wormhole_too_far_target_wrapper()) {
         return TARGET_TOO_FAR;
     }
-    if (entity_list_listed(entities_by_tag("slipway"), et)) {
+    if (entity_list_listed(entities_by_tag(TAG_SLIPWAY), et)) {
         return TARGET_SLIPWAY;
     }
-    if (entity_list_listed(entities_by_tag("planet"), et)) {
+    if (entity_list_listed(entities_by_tag(TAG_PLANET), et)) {
         return TARGET_PLANET;
     }
     if (is_targeting_track_target(et)) {
@@ -212,7 +213,7 @@ static void world(void) {
     int i;
 
     start_game();
-    jos = entities_by_tag("planet");
+    jos = entities_by_tag(TAG_PLANET);
     assert(jos != NULL && jos->count > 1);
     qu = jos->items[0];
     for (i = 1; i < jos->count; i++) {
@@ -273,8 +274,8 @@ static void until_state_time(const wormhole_t *mz, int t) {
     }
 }
 
-static planet_t *first_planet_with_state(const char *state) {
-    const entity_list_t *list = entities_by_tag("planet");
+static planet_t *first_planet_with_state(state_t state) {
+    const entity_list_t *list = entities_by_tag(TAG_PLANET);
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         planet_t *jo = as_planet(list->items[i]);
@@ -301,12 +302,11 @@ static void check_fresh_wormhole(void *e) {
     static const int want_color_ramp[9] = {7, 7, 6, 13, 5, 1, 1, 1, 0};
     int i;
 
-    assert(is_state(&mz->header, "placing"));
+    assert(is_state(&mz->header, ENTITY_STATE_PLACING));
     assert(mz->header.state_time == 0);
     assert(mz->targeting->archetype->attach_distance == 0);
-    assert(mz->targeting->archetype->confirmed_state != NULL && strcmp(mz->targeting->archetype->confirmed_state, "unfolding") == 0);
+    assert(mz->targeting->archetype->confirmed_state == ENTITY_STATE_UNFOLDING);
     assert(mz->archetype->spawn_snd == p8_fixed_from_int(52));
-    assert(mz->targeting->archetype->status_sprite == p8_fixed_from_int(49) && mz->targeting->archetype->has_status_sprite == 1);
     assert(mz->radius == 0);
     assert(mz->targeting->cost == p8_fixed_from_int(3));
     assert(mz->targeting->archetype->clock_ticks == p8_fixed_from_int(1));
@@ -326,9 +326,9 @@ static void check_fresh_wormhole(void *e) {
     assert(mz->pos == NULL && mz->map_pos == NULL && mz->targeting->target == NULL && mz->anchor == NULL && !mz->is_dead);
     assert(mz->anchors != NULL);
 
-    assert(entity_list_listed(live_entities(), mz) && entity_list_listed(entities_by_message("draw"), mz) && entity_list_listed(entities_by_message("draw_overlay"), mz));
-    assert(entity_list_listed(entities_by_tag("wormhole"), mz));
-    assert(!entity_list_listed(entities_by_message("hit_test"), mz) && !entity_list_listed(entities_by_message("new_year"), mz) && !entity_list_listed(entities_by_message("refresh"), mz));
+    assert(entity_list_listed(live_entities(), mz) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), mz) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), mz));
+    assert(entity_list_listed(entities_by_tag(TAG_WORMHOLE), mz));
+    assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), mz) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), mz) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_REFRESH), mz));
 }
 
 static void test_construction(void) {
@@ -337,13 +337,13 @@ static void test_construction(void) {
     int before;
 
     start_game();
-    assert(entities_by_tag("probe") == NULL || entities_by_tag("probe")->count == 0);
-    mzs = entities_by_tag("wormhole");
+    assert(entities_by_tag(TAG_PROBE) == NULL || entities_by_tag(TAG_PROBE)->count == 0);
+    mzs = entities_by_tag(TAG_WORMHOLE);
     before = mzs == NULL ? 0 : mzs->count;
     made = background_left_press(NULL);
     assert(made.stop && made.held != NULL);
-    assert(entity_list_listed(entities_by_tag("probe"), made.held));
-    mzs = entities_by_tag("wormhole");
+    assert(entity_list_listed(entities_by_tag(TAG_PROBE), made.held));
+    mzs = entities_by_tag(TAG_WORMHOLE);
     assert((mzs == NULL ? 0 : mzs->count) == before);
 
     made = background_left_press(NULL);
@@ -379,7 +379,7 @@ static void test_anchors(void) {
     int i;
 
     world();
-    jos = entities_by_tag("planet");
+    jos = entities_by_tag(TAG_PLANET);
     for (i = 0; unlit == NULL && jos != NULL && i < jos->count; i++) {
         planet_t *jo = as_planet(jos->items[i]);
         if (jo->fold_anchor == 0) {
@@ -419,8 +419,8 @@ static size_t registry_bytes(const entity_list_t *list) {
 }
 
 static size_t generation_but_registries(void) {
-    return game_zone_used() - registry_bytes(live_entities()) - registry_bytes(entities_by_message("draw")) -
-           registry_bytes(entities_by_message("draw_overlay")) - registry_bytes(entities_by_tag("wormhole"));
+    return game_zone_used() - registry_bytes(live_entities()) - registry_bytes(entities_by_message(ENTITY_MESSAGE_DRAW)) -
+           registry_bytes(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY)) - registry_bytes(entities_by_tag(TAG_WORMHOLE));
 }
 
 /* A built wormhole takes one grab arena, its anchors list reserved to the
@@ -494,7 +494,7 @@ static uint32_t fold_drag(uint32_t h, const wormhole_t *mz, int want_kind) {
 /* A quarter of the slipway's length past its start end: near that
  * colonized anchor, off the slipway's segment. */
 static vec_t near_anchor(void) {
-    const entity_list_t *jcs = entities_by_tag("slipway");
+    const entity_list_t *jcs = entities_by_tag(TAG_SLIPWAY);
     const slipway_t *jc;
     vec_t qu;
     vec_t re;
@@ -515,7 +515,7 @@ static void test_drag(void) {
 
     world();
     mz = build_wormhole();
-    jcs = entities_by_tag("slipway");
+    jcs = entities_by_tag(TAG_SLIPWAY);
     assert(jcs != NULL && jcs->count > 0);
     mid = slipway_mid(as_slipway(jcs->items[0]));
     drag(mz, vec_ref_fixed(mid), vec_ref(64, 64));
@@ -549,7 +549,7 @@ static void test_update_placing_ticks(void) {
 }
 
 static uint32_t fold_drop(uint32_t h, const wormhole_t *mz) {
-    h = fold_string(h, mz->header.state);
+    h = fold_string(h, entity_state_name(mz->header.state));
     h = fnv(h, (uint32_t)mz->header.state_time);
     h = fnv(h, is_dead_state(mz));
     return fnv(h, (uint32_t)credits());
@@ -587,7 +587,7 @@ static void test_drop(void) {
     drag(paid, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
     assert(target_kind(paid) == TARGET_FALSE);
     drop(paid);
-    assert(is_state(&paid->header, "unfolding") && paid->header.state_time == 0 && is_dead_state(paid) == 0);
+    assert(is_state(&paid->header, ENTITY_STATE_UNFOLDING) && paid->header.state_time == 0 && is_dead_state(paid) == 0);
     assert(credits() == p8_fixed_sub(before, p8_fixed_from_int(3)));
     hash = fold_drop(hash, paid);
 
@@ -596,18 +596,18 @@ static void test_drop(void) {
     drag(broke, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
     main_economy_typed()->credits = p8_fixed_from_int(2);
     drop(broke);
-    assert(is_state(&broke->header, "placing") && is_dead_state(broke) == 2);
+    assert(is_state(&broke->header, ENTITY_STATE_PLACING) && is_dead_state(broke) == 2);
     assert(credits() == p8_fixed_from_int(2));
     hash = fold_drop(hash, broke);
     check("drop", hash, DROP_HASH);
 }
 
 static int unknown_count(void) {
-    const entity_list_t *jo = entities_by_tag("planet");
+    const entity_list_t *jo = entities_by_tag(TAG_PLANET);
     int n = 0;
     int i;
     for (i = 0; jo != NULL && i < jo->count; i++) {
-        if (is_state(&as_planet(jo->items[i])->header, "unknown")) {
+        if (is_state(&as_planet(jo->items[i])->header, ENTITY_STATE_UNKNOWN)) {
             n++;
         }
     }
@@ -618,7 +618,7 @@ static int unknown_count(void) {
  * around it until a state time past 25 takes it out of the live entities. */
 static wormhole_t *paid_wormhole_on_unknown(void) {
     wormhole_t *mz = build_wormhole();
-    planet_t *unknown = first_planet_with_state("unknown");
+    planet_t *unknown = first_planet_with_state(ENTITY_STATE_UNKNOWN);
     vec_t *p = malloc(sizeof *p);
 
     assert(unknown != NULL);
@@ -626,7 +626,7 @@ static wormhole_t *paid_wormhole_on_unknown(void) {
     drag(mz, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
     assert(target_kind(mz) == TARGET_FALSE);
     drop(mz);
-    assert(is_state(&mz->header, "unfolding"));
+    assert(is_state(&mz->header, ENTITY_STATE_UNFOLDING));
     assert(unknown->map_pos != NULL);
     *p = *unknown->map_pos;
     mz->map_pos = p;
@@ -649,23 +649,23 @@ static void test_update_unfolding_ticks(void) {
         revealed += before - unknown_count();
         h = fnv(h, (uint32_t)(before - unknown_count()));
         h = fnv(h, is_dead_state(mz));
-        h = fnv(h, (uint32_t)entity_list_listed(entities_by_message("draw"), mz));
-        h = fnv(h, (uint32_t)entity_list_listed(entities_by_tag("wormhole"), mz));
+        h = fnv(h, (uint32_t)entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), mz));
+        h = fnv(h, (uint32_t)entity_list_listed(entities_by_tag(TAG_WORMHOLE), mz));
     }
     printf("[unfolding] left live_entities after %d ticks, %d planets revealed\n", tick, revealed);
     assert(revealed > 0);
-    assert(!entity_list_listed(entities_by_message("draw"), mz) && !entity_list_listed(entities_by_message("draw_overlay"), mz) && !entity_list_listed(entities_by_tag("wormhole"), mz));
+    assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), mz) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), mz) && !entity_list_listed(entities_by_tag(TAG_WORMHOLE), mz));
     check_int("update_unfolding_exit_tick", tick, UPDATE_UNFOLDING_EXIT_TICK);
     check("update_unfolding", h, UPDATE_UNFOLDING_HASH);
 }
 
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
-        h *= 16777619u;
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            h ^= (uint32_t)memory.screen[y][x];
+            h *= 16777619u;
+        }
     }
     return h;
 }
@@ -734,7 +734,7 @@ static void test_accept_drop(void) {
 
     world();
     mz = build_wormhole();
-    ly = first_planet_with_state("settled");
+    ly = first_planet_with_state(ENTITY_STATE_SETTLED);
     assert(ly != NULL);
     r = planet_accept_drop(ly, &mz->header);
     assert(r.stop && r.held == NULL);
@@ -780,7 +780,7 @@ static void test_too_far_target_wrapper(void) {
     assert(target_kind(wormhole) == TARGET_TOO_FAR);
     check_too_far_target_untouched();
 
-    jcs = entities_by_tag("slipway");
+    jcs = entities_by_tag(TAG_SLIPWAY);
     assert(jcs != NULL && jcs->count > 0);
     mid = slipway_mid(as_slipway(jcs->items[0]));
     drag(wormhole, vec_ref_fixed(mid), vec_ref(64, 64));
@@ -856,10 +856,9 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);
 

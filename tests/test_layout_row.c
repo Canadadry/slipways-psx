@@ -26,7 +26,7 @@
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "game/layout.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/draw_functions.h"
 #include "game/planet.h"
 #include "game/planet_display.h"
@@ -51,13 +51,13 @@
 #define COLONY 12
 #define EXPORTER 3
 
-#define CONSTRUCTIONS_HASH 0xE8FF55CBu
-#define PLANET_RESOURCE_ROW_HASH 0xA122C4CCu
+#define CONSTRUCTIONS_HASH 0xC4F7222Du
+#define PLANET_RESOURCE_ROW_HASH 0x82417F7Bu
 #define RESEARCH_PROJECT_LAYOUT_ROW_HASH 0x9071EEC9u
-#define CALLS_HASH 0x26A3DB53u
+#define CALLS_HASH 0x398594A5u
 #define PANEL_HASH 0xDA5A7F3Eu
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -265,11 +265,11 @@ static uint32_t fold_named(uint32_t h, const void *row) {
 
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
-        h *= 16777619u;
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            h ^= (uint32_t)memory.screen[y][x];
+            h *= 16777619u;
+        }
     }
     return h;
 }
@@ -607,7 +607,7 @@ static void test_calls(void) {
     entry_items[2] = (data_item_t){.is_fixed = 1, .fixed = P8_FIXED_LIT(0x00008000, 0.5)};
     entry.count = 3;
     entry.items = entry_items;
-    entry.draw_function = "draw_row";
+    entry.draw_function = DRAW_FUNCTION_DRAW_ROW;
     rows[0] = &entry;
     p8_gfx_init(&graphics);
     p8_cls(&memory);
@@ -699,7 +699,7 @@ static void built_planet_panel(void) {
     int i;
 
     start_game();
-    jos = entities_by_tag("planet");
+    jos = entities_by_tag(TAG_PLANET);
     assert(jos != NULL && jos->count > 1);
     qu = jos->items[0];
     for (i = 1; i < jos->count; i++) {
@@ -928,7 +928,7 @@ static void draw_at_on_other(void *e) {
  * holds the positionals its layout saw, then the two added after. */
 static void test_layout_row_is_a_struct(void) {
     static const data_item_t three[] = {{.text = "a"}, {.is_fixed = 1, .fixed = 0x8000}, {.row = &icon_tooltips_table[0]}};
-    static const data_row_t with_fn = {.count = 1, .items = three, .draw_function = "draw_row"};
+    static const data_row_t with_fn = {.count = 1, .items = three, .draw_function = DRAW_FUNCTION_DRAW_ROW};
     static const data_row_t with_resource = {.count = 1, .items = three, .has_resource = 1, .resource = 0x70000};
     static const data_row_t too_long = {.count = 3, .items = three};
     static const data_row_t nested = {.count = 2, .items = three + 1, .has_color = 1, .color = 7};
@@ -1018,10 +1018,9 @@ static void test_planet_resource_row_largest_row_fits_a_slot(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

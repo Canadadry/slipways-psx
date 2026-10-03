@@ -26,7 +26,7 @@
 #include "game/main_economy.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/message_box.h"
 #include "game/planet.h"
 #include "game/planet_display.h"
@@ -61,7 +61,7 @@
  * any other value moves every *_HASH. */
 #define FROZEN_LIST_TAG 0x9E5C1157u
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 static cheat_t cheat;
@@ -239,7 +239,7 @@ static void built_world(void) {
     int i;
 
     start_game();
-    jos = entities_by_tag("planet");
+    jos = entities_by_tag(TAG_PLANET);
     assert(jos != NULL && jos->count > 1);
     qu = jos->items[0];
     for (i = 1; i < jos->count; i++) {
@@ -446,7 +446,7 @@ static void test_spend(void) {
 }
 
 static uint32_t fold_planets_net_income(uint32_t h) {
-    const entity_list_t *jo = entities_by_tag("planet");
+    const entity_list_t *jo = entities_by_tag(TAG_PLANET);
     int i;
     for (i = 0; jo != NULL && i < jo->count; i++) {
         const planet_t *p = as_planet(jo->items[i]);
@@ -463,7 +463,7 @@ static const char *end_status_string(void) {
 
 /* The first producing planet: `needs` set and its own `production`. */
 static planet_t *a_maker(void) {
-    const entity_list_t *jos = entities_by_tag("planet");
+    const entity_list_t *jos = entities_by_tag(TAG_PLANET);
     int i;
 
     for (i = 0; i < jos->count; i++) {
@@ -701,10 +701,9 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

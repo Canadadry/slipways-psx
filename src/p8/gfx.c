@@ -1,6 +1,7 @@
 #include "p8/gfx.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 void p8_gfx_init(p8_graphics_t *gfx) {
     gfx->camera_x = 0;
@@ -13,19 +14,17 @@ void p8_gfx_init(p8_graphics_t *gfx) {
     gfx->pen_color = 6;
 }
 
-void p8_cls(p8_memory_t *mem) {
-    for (int i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        p8_poke(mem, P8_ADDR_SCREEN + i, 0);
-    }
+void p8_cls(p8_vram_t *mem) {
+    memset(mem->screen, 0, sizeof(mem->screen));
 }
 
-void p8_pset(const p8_graphics_t *gfx, p8_memory_t *mem, int x, int y, int col) {
+void p8_pset(const p8_graphics_t *gfx, p8_vram_t *mem, int x, int y, int col) {
     int sx = x - gfx->camera_x;
     int sy = y - gfx->camera_y;
     if (sx < 0 || sx >= P8_SCREEN_WIDTH || sy < 0 || sy >= P8_SCREEN_HEIGHT) {
         return;
     }
-    p8_poke(mem, P8_ADDR_SCREEN + sy * P8_SCREEN_WIDTH + sx, (unsigned char)col);
+    mem->screen[sy][sx] = (unsigned char)col;
 }
 
 void p8_camera(p8_graphics_t *gfx, int x, int y) {
@@ -37,31 +36,25 @@ void p8_camera_reset(p8_graphics_t *gfx) {
     p8_camera(gfx, 0, 0);
 }
 
-void p8_palt(p8_memory_t *mem, int col, int transparent) {
-    int addr;
-    unsigned char byte;
-
+void p8_palt(p8_vram_t *mem, int col, int transparent) {
     if (col < 0 || col > 15) {
         return;
     }
-    addr = P8_ADDR_DRAW_PALETTE + col;
-    byte = p8_peek(mem, addr);
     if (transparent) {
-        byte = (unsigned char)(byte | P8_DRAW_PALETTE_TRANSPARENT_BIT);
+        mem->draw_palette[col] = (unsigned char)(mem->draw_palette[col] | P8_DRAW_PALETTE_TRANSPARENT_BIT);
     } else {
-        byte = (unsigned char)(byte & ~P8_DRAW_PALETTE_TRANSPARENT_BIT);
+        mem->draw_palette[col] = (unsigned char)(mem->draw_palette[col] & ~P8_DRAW_PALETTE_TRANSPARENT_BIT);
     }
-    p8_poke(mem, addr, byte);
 }
 
-int p8_gfx_is_transparent(const p8_memory_t *mem, int col) {
+int p8_gfx_is_transparent(const p8_vram_t *mem, int col) {
     if (col < 0 || col > 15) {
         return 0;
     }
-    return (p8_peek(mem, P8_ADDR_DRAW_PALETTE + col) & P8_DRAW_PALETTE_TRANSPARENT_BIT) != 0;
+    return (mem->draw_palette[col] & P8_DRAW_PALETTE_TRANSPARENT_BIT) != 0;
 }
 
-void p8_line(const p8_graphics_t *gfx, p8_memory_t *mem, int x1, int y1, int x2, int y2, int col) {
+void p8_line(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
     int dx = abs(x2 - x1);
     int sx = x1 < x2 ? 1 : -1;
     int dy = -abs(y2 - y1);
@@ -122,7 +115,7 @@ static int max(int a, int b) {
     return a < b ? b : a;
 }
 
-void p8_rect(const p8_graphics_t *gfx, p8_memory_t *mem, int x1, int y1, int x2, int y2, int col) {
+void p8_rect(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
     int xmin = min(x1, x2);
     int xmax = max(x1, x2);
     int ymin = min(y1, y2);
@@ -138,7 +131,7 @@ void p8_rect(const p8_graphics_t *gfx, p8_memory_t *mem, int x1, int y1, int x2,
     }
 }
 
-static void circ_plot8(const p8_graphics_t *gfx, p8_memory_t *mem, int cx, int cy, int dx, int dy, int col) {
+static void circ_plot8(const p8_graphics_t *gfx, p8_vram_t *mem, int cx, int cy, int dx, int dy, int col) {
     p8_pset(gfx, mem, cx + dx, cy + dy, col);
     p8_pset(gfx, mem, cx - dx, cy + dy, col);
     p8_pset(gfx, mem, cx + dx, cy - dy, col);
@@ -149,7 +142,7 @@ static void circ_plot8(const p8_graphics_t *gfx, p8_memory_t *mem, int cx, int c
     p8_pset(gfx, mem, cx - dy, cy - dx, col);
 }
 
-void p8_circ(const p8_graphics_t *gfx, p8_memory_t *mem, int cx, int cy, int r, int col) {
+void p8_circ(const p8_graphics_t *gfx, p8_vram_t *mem, int cx, int cy, int r, int col) {
     if (r < 0) {
         return;
     }
@@ -170,7 +163,7 @@ void p8_circ(const p8_graphics_t *gfx, p8_memory_t *mem, int cx, int cy, int r, 
     }
 }
 
-static void circfill_span(const p8_graphics_t *gfx, p8_memory_t *mem, int x1, int x2, int y, int col) {
+static void circfill_span(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int x2, int y, int col) {
     int xmin = min(x1, x2);
     int xmax = max(x1, x2);
 
@@ -182,7 +175,7 @@ static void circfill_span(const p8_graphics_t *gfx, p8_memory_t *mem, int x1, in
     }
 }
 
-void p8_circfill(const p8_graphics_t *gfx, p8_memory_t *mem, int cx, int cy, int r, int col) {
+void p8_circfill(const p8_graphics_t *gfx, p8_vram_t *mem, int cx, int cy, int r, int col) {
     if (r < 0) {
         return;
     }
@@ -220,11 +213,11 @@ void p8_fillp_reset(p8_graphics_t *gfx) {
     p8_fillp(gfx, 0);
 }
 
-unsigned char p8_sget(const p8_memory_t *mem, int x, int y) {
+unsigned char p8_sget(const p8_vram_t *mem, int x, int y) {
     if (x < 0 || x >= P8_SPRITE_SHEET_WIDTH || y < 0 || y >= P8_SPRITE_SHEET_HEIGHT) {
         return 0;
     }
-    return p8_peek(mem, P8_ADDR_SPRITE_SHEET + y * P8_SPRITE_SHEET_WIDTH + x);
+    return mem->sprite_sheet[y][x];
 }
 
 /* A sprite's top-left pixel is at ((index % 16) * 8, (index / 16) * 8) on
@@ -233,14 +226,15 @@ unsigned char p8_sget(const p8_memory_t *mem, int x, int y) {
  *
  * A source pixel is transparent when its draw-palette byte has the 0x80
  * bit. That is how color 3, not color 0, is the invisible one here:
- * hud_build_palette_table() bakes it in, cart_draw() reselects it per frame.
+ * every palette block of game/hud.c carries it, cart_draw() reselects block 0
+ * per frame.
  * Consulting a gfx-side flag instead drew a green band behind the title
  * logo, whose art fills with color 3.
  *
  * TODO: only the transparency bit of that byte is honored. The rest of
  * the draw palette -- pal()'s color remap -- is not applied, here or in
  * any other primitive. */
-void p8_spr(const p8_graphics_t *gfx, p8_memory_t *mem, int n, int x, int y, int w, int h) {
+void p8_spr(const p8_graphics_t *gfx, p8_vram_t *mem, int n, int x, int y, int w, int h) {
     const int sprites_per_row = P8_SPRITE_SHEET_WIDTH / P8_SPRITE_SIZE;
     int sheet_x = (n % sprites_per_row) * P8_SPRITE_SIZE;
     int sheet_y = (n / sprites_per_row) * P8_SPRITE_SIZE;
@@ -258,49 +252,35 @@ void p8_spr(const p8_graphics_t *gfx, p8_memory_t *mem, int n, int x, int y, int
     }
 }
 
-void p8_spr_default(const p8_graphics_t *gfx, p8_memory_t *mem, int n, int x, int y) {
+void p8_spr_default(const p8_graphics_t *gfx, p8_vram_t *mem, int n, int x, int y) {
     p8_spr(gfx, mem, n, x, y, 1, 1);
 }
 
-/* Cell rows 0-31 live in the shared sprite-sheet/map region, rows 32-63
- * in the base map region -- the game's map is 128x64, larger than the
- * 128x32 base. p8/assets.c's map_cell_sink holds the same split and is
- * kept in sync by hand. */
-#define P8_MAP_BASE_ROWS 32
-
-static int map_cell_addr(int x, int y) {
-    if (x < 0 || x >= P8_MAP_WIDTH || y < 0 || y >= P8_MAP_HEIGHT) {
-        return -1;
-    }
-    if (y < P8_MAP_BASE_ROWS) {
-        return P8_ADDR_SPRITE_MAP_SHARED + y * P8_MAP_WIDTH + x;
-    }
-    return P8_ADDR_MAP + (y - P8_MAP_BASE_ROWS) * P8_MAP_WIDTH + x;
+static int map_cell_in_range(int x, int y) {
+    return x >= 0 && x < P8_MAP_WIDTH && y >= 0 && y < P8_MAP_HEIGHT;
 }
 
-void p8_mset(p8_memory_t *mem, int x, int y, int val) {
-    int addr = map_cell_addr(x, y);
-    if (addr < 0) {
+void p8_mset(p8_vram_t *mem, int x, int y, int val) {
+    if (!map_cell_in_range(x, y)) {
         return;
     }
-    p8_poke(mem, addr, (unsigned char)val);
+    mem->map_cells[y][x] = (unsigned char)val;
 }
 
-static unsigned char map_cell_get(const p8_memory_t *mem, int x, int y) {
-    int addr = map_cell_addr(x, y);
-    if (addr < 0) {
+static unsigned char map_cell_get(const p8_vram_t *mem, int x, int y) {
+    if (!map_cell_in_range(x, y)) {
         return 0;
     }
-    return p8_peek(mem, addr);
+    return mem->map_cells[y][x];
 }
 
-void p8_map(const p8_graphics_t *gfx, p8_memory_t *mem, int cel_x, int cel_y, int sx, int sy, int cel_w, int cel_h) {
+void p8_map(const p8_graphics_t *gfx, p8_vram_t *mem, int cel_x, int cel_y, int sx, int sy, int cel_w, int cel_h) {
     for (int r = 0; r < cel_h; r++) {
         for (int c = 0; c < cel_w; c++) {
             unsigned char sprite_n = map_cell_get(mem, cel_x + c, cel_y + r);
             /* map() takes sprite 0 as empty and skips it; spr(0,...)
-             * still draws it. The distinction matters: sprite 0 is part of
-             * the palette table hud_build_palette_table() reads, and
+             * still draws it. The distinction matters: sprite 0 holds the
+             * pixels of the palette blocks game/hud.c copies as a table, and
              * game/background.c writes cell value 0 over most of the sky.
              * (PICO-8's opt-out, POKE(0x5F36,0x8), is never poked here.) */
             if (sprite_n == 0) {
@@ -434,7 +414,7 @@ static const unsigned char *font_glyph_rows(char character) {
     }
 }
 
-void p8_print(const p8_graphics_t *gfx, p8_memory_t *mem, const char *str, int x, int y, int col) {
+void p8_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
     int cx = x;
     for (const char *p = str; *p != '\0'; p++) {
         const unsigned char *rows = font_glyph_rows(*p);
@@ -450,7 +430,7 @@ void p8_print(const p8_graphics_t *gfx, p8_memory_t *mem, const char *str, int x
     }
 }
 
-void p8_rectfill(const p8_graphics_t *gfx, p8_memory_t *mem, int x1, int y1, int x2, int y2, int col) {
+void p8_rectfill(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
     int xmin = min(x1, x2);
     int xmax = max(x1, x2);
     int ymin = min(y1, y2);

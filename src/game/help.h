@@ -2,7 +2,7 @@
 #define GAME_HELP_H
 
 #include "p8/gfx.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/probe.h"
 #include "engine/entity_class.h"
 #include "game/ui_button.h"
@@ -43,7 +43,7 @@ void help_set_start_game(button_fn_t fn);
  * what they were given. A NULL instance returns at once. */
 void help_screen_construct(probe_t *self);
 
-void help_screen_draw(p8_graphics_t *gfx, p8_memory_t *mem, probe_t *self, vec_t p);
+void help_screen_draw(p8_graphics_t *gfx, p8_vram_t *mem, probe_t *self, vec_t p);
 
 void help_screen_draw_method(entity_t *self, const vec_t *screen_pos);
 

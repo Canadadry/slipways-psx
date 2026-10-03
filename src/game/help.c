@@ -61,8 +61,6 @@ void help_screen_construct(probe_t *self) {
         bs[i].has_on_click = 1;
         bs[i].on_click = help_start_game_field_value();
     }
-    frame.has_open_sfx = 1;
-    frame.open_sfx = self->archetype->open_sfx;
     frame.fixed_pos = &self->archetype->fixed_pos;
     frame.clear_ephemerals_after = 1;
     frame.has_back_color = 1;
@@ -75,7 +73,7 @@ void help_screen_construct(probe_t *self) {
 /* The help screen's rows hold four articles. */
 enum { HELP_SCREEN_ROWS_CAP = 4 };
 
-void help_screen_draw(p8_graphics_t *gfx, p8_memory_t *mem, probe_t *self, vec_t p) {
+void help_screen_draw(p8_graphics_t *gfx, p8_vram_t *mem, probe_t *self, vec_t p) {
     (void)p;
 
     emitter_update(gfx, mem, (entity_t *)self);
@@ -118,7 +116,6 @@ static probe_t *screen_create(void) {
     probe_init_instance(self, &help_screen_class_def, &help_screen_archetype);
     self->header.hit_box = &self->archetype->hit_box;
     self->header.cursor_sprite = &self->archetype->cursor_sprite;
-    self->header.gpio_signal = &self->archetype->gpio_signal;
     self->header.is_hovered = &self->is_hovered;
     self->is_hovered = 0;
     help_screen_construct(self);
@@ -127,10 +124,8 @@ static probe_t *screen_create(void) {
     return self;
 }
 
-/* This module, unlike most, does not call draw_functions_init() itself, and
- * the probe class comes from probe_init(): both are asserted, not repaired. */
+/* The probe class comes from probe_init(): asserted, not repaired. */
 void help_init(void) {
-    assert(draw_functions_dispatch_lookup("spr") != NULL && "help_init() runs after draw_functions_init()");
     assert(probe_ready() && "help_init() runs after probe_init()");
 
     help_shutdown();

@@ -34,8 +34,6 @@ void raylib_backend_init(raylib_backend_t *backend) {
     UnloadImage(blank);
     SetTextureFilter(backend->screen_texture, TEXTURE_FILTER_POINT);
 
-    /* Hidden once, not polled per frame: the game sets 0x5f2d each time
-     * it builds its mouse and never clears it. */
     HideCursor();
 }
 
@@ -53,17 +51,16 @@ void raylib_backend_poll_input(raylib_backend_t *backend, p8_input_frame_t *out_
 
     int buttons = 0;
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-        buttons |= 1;
+        buttons |= P8_MOUSE_LEFT;
     }
     if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
-        buttons |= 2;
+        buttons |= P8_MOUSE_RIGHT;
     }
     if (IsMouseButtonDown(MOUSE_BUTTON_MIDDLE)) {
-        buttons |= 4;
+        buttons |= P8_MOUSE_MIDDLE;
     }
     out_frame->mouse_buttons = buttons;
 
-    /* GAP-2 */
     out_frame->dpad[0] = IsKeyDown(KEY_LEFT) ? 1 : 0;
     out_frame->dpad[1] = IsKeyDown(KEY_RIGHT) ? 1 : 0;
     out_frame->dpad[2] = IsKeyDown(KEY_UP) ? 1 : 0;
@@ -102,10 +99,10 @@ void raylib_backend_set_frame_rate_cap(int target_fps) {
     SetTargetFPS(target_fps);
 }
 
-void raylib_backend_present(raylib_backend_t *backend, const p8_memory_t *mem, const p8_input_frame_t *frame, const char *replay_status) {
+void raylib_backend_present(raylib_backend_t *backend, const p8_vram_t *mem, const p8_input_frame_t *frame, const char *replay_status) {
     for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
         for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
-            unsigned char idx = p8_peek(mem, P8_ADDR_SCREEN + y * P8_SCREEN_WIDTH + x);
+            unsigned char idx = mem->screen[y][x];
             backend->pixel_buffer[y * P8_SCREEN_WIDTH + x] = palette_color(idx);
         }
     }

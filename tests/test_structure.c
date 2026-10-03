@@ -22,13 +22,14 @@
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
 #include "game/economy_score.h"
+#include "engine/entity.h"
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "game/main_economy.h"
 #include "p8/gfx.h"
 #include "game/help.h"
 #include "p8/input.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/planet.h"
 #include "game/planet_display.h"
 #include "game/planet_family.h"
@@ -56,12 +57,12 @@ static int pos_copies(const vec_t *ra, const vec_t *mp) {
 #define LIFE_HASH 0x37B44597u
 #define DESCENDANTS_HASH 0x129E3D90u
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
-static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
-static const char *const tags[] = {"structure", "planet", "node", "targeting"};
+static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
+static const tag_t tags[] = {TAG_STRUCTURE, TAG_PLANET, TAG_NODE, TAG_TARGETING};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -247,7 +248,7 @@ static void assert_members_of(const entity_class_t *c, const entity_class_t *ref
 
 /* The structure icon whose kind is the shop's first, the laboratory. */
 static void *structure_icon(void) {
-    const entity_list_t *hb = entities_by_message("refresh");
+    const entity_list_t *hb = entities_by_message(ENTITY_MESSAGE_REFRESH);
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i];
@@ -280,10 +281,10 @@ static uint32_t fold_lab(uint32_t hash, void *entity) {
     size_t index;
 
     hash = fold_string_member(hash, planet->planet_id);
-    hash = fold_string_member(hash, planet->header.state);
+    hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
     hash = fold_fixed_member(hash, structure->archetype->project_index);
-    hash = fold_string_member(hash, structure->targeting->archetype->confirmed_state);
+    hash = fold_string_member(hash, entity_state_name(structure->targeting->archetype->confirmed_state));
     hash = fold_structure(hash, structure);
     hash = fold_fixed_member(hash, structure->targeting->cost);
     hash = fold_fixed_member(hash, structure->targeting->archetype->clock_ticks);
@@ -301,7 +302,7 @@ static uint32_t fold_lab(uint32_t hash, void *entity) {
      * by the struct's shape, kept so that BUILT_HASH still proves the typed reads. */
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(structure->archetype->name != NULL));
-    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != NULL));
+    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != ENTITY_STATE_NONE));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
@@ -409,7 +410,7 @@ static uint32_t fold_pos_y(uint32_t h, void *e) {
 /* The drag method (targeting_track) at an empty point, in the panel and
  * out of it, then next to a planet; the drop method (targeting_confirm)
  * with and without the credits; update_entities on a laboratory in
- * "settled", which bobs, and on one still in "placing", which does not. */
+ * settled, which bobs, and on one still in placing, which does not. */
 static void test_life(void) {
     uint32_t hash = 2166136261u;
     void *out_lab;
@@ -431,7 +432,7 @@ static void test_life(void) {
     hash = fold_held(hash, out_lab, mouse_world);
     assert(target_state(as_structure(out_lab)) == 3 && !entity_list_listed(live_entities(), as_structure(out_lab)->targeting->target));
 
-    planet = entities_by_tag("planet")->items[0];
+    planet = entities_by_tag(TAG_PLANET)->items[0];
     assert(planet_is_family(planet));
     planet_map_pos = ((const planet_t *)planet)->map_pos;
     assert(planet_map_pos != NULL);
@@ -449,7 +450,7 @@ static void test_life(void) {
     set_credits(3);
     assert(class_of(refused_lab)->drop == targeting_confirm_method);
     hash = targeting_confirm(refused_lab) ? fnv(fnv(hash, 0xB0u), 1u) : fold_ref(hash, NULL);
-    hash = fold_string_member(hash, as_structure(refused_lab)->header.state);
+    hash = fold_string_member(hash, entity_state_name(as_structure(refused_lab)->header.state));
     hash = fold_fixed_member(hash, as_structure(refused_lab)->header.state_time);
     hash = fnv(hash, is_dead_state(as_structure(refused_lab)));
     hash = fnv(hash, (uint32_t)credits());
@@ -461,11 +462,11 @@ static void test_life(void) {
     set_credits(100);
     assert(class_of(in_lab)->drop == targeting_confirm_method);
     hash = targeting_confirm(in_lab) ? fnv(fnv(hash, 0xB0u), 1u) : fold_ref(hash, NULL);
-    hash = fold_string_member(hash, as_structure(in_lab)->header.state);
+    hash = fold_string_member(hash, entity_state_name(as_structure(in_lab)->header.state));
     hash = fold_fixed_member(hash, as_structure(in_lab)->header.state_time);
     hash = fnv(hash, is_dead_state(as_structure(in_lab)));
     hash = fnv(hash, (uint32_t)credits());
-    assert(strcmp(as_structure(in_lab)->header.state, "settled") == 0 && credits() == p8_fixed_from_int(100 - 15));
+    assert(as_structure(in_lab)->header.state == ENTITY_STATE_SETTLED && credits() == p8_fixed_from_int(100 - 15));
     in_y = as_structure(in_lab)->pos->y;
 
     pos_before = as_structure(out_lab)->pos;
@@ -526,7 +527,7 @@ static uint32_t fold_descendant(uint32_t h, void *d) {
     planet_t *nl = class_of(d) == trading_hub_class() ? (planet_t *)d : NULL;
     p8_fixed_t qw = nl != NULL ? nl->palette_block : 0;
 
-    h = fold_string_member(h, qh->targeting->archetype->confirmed_state);
+    h = fold_string_member(h, entity_state_name(qh->targeting->archetype->confirmed_state));
     h = fold_fixed_member(h, qh->targeting->archetype->clock_ticks);
     h = fold_fixed_member(h, qh->targeting->archetype->attach_distance);
     h = fold_is_planet(h, qh);
@@ -557,7 +558,7 @@ static uint32_t fold_descendant(uint32_t h, void *d) {
 /* The shop's left press on the icon of the kind, as the player buys it,
  * then dragged by its drag method to the middle of the screen. */
 static void *bought(const entity_kind_t *kind) {
-    const entity_list_t *hb = entities_by_message("refresh");
+    const entity_list_t *hb = entities_by_message(ENTITY_MESSAGE_REFRESH);
     const camera_t *mo = main_camera_typed();
     const vec_t *main_camera_pos;
     int i;
@@ -609,7 +610,7 @@ static void test_descendants(void) {
     for (i = 0; i < sizeof shop / sizeof shop[0]; i++) {
         made[shop[i].descendant] = bought(shop[i].kind());
     }
-    p = entities_by_tag("planet")->items[0];
+    p = entities_by_tag(TAG_PLANET)->items[0];
     planet_roll_type(p);
     planet_apply_project(p, class_name_project("protostar"));
     made[PROTOSTAR] = live_entities()->items[live_entities()->count - 1];
@@ -664,8 +665,8 @@ static void test_structure_is_a_struct(void) {
 
     start_game();
     built = build_lab();
-    assert(is_a_structure_struct(built) && entity_list_listed(entities_by_tag("structure"), built));
-    assert(economy_score_planet_upkeep(built) == p8_fixed_from_int(entities_by_tag("structure")->count));
+    assert(is_a_structure_struct(built) && entity_list_listed(entities_by_tag(TAG_STRUCTURE), built));
+    assert(economy_score_planet_upkeep(built) == p8_fixed_from_int(entities_by_tag(TAG_STRUCTURE)->count));
     assert(lab_class->attach_slipway == planet_class()->attach_slipway && lab_class->offer_trade == planet_class()->offer_trade);
     assert_structure_shape(lab_class);
     assert(lab_class->hit_test == planet_class()->hit_test && lab_class->draw == planet_class()->draw &&
@@ -678,7 +679,7 @@ static void test_structure_is_a_struct(void) {
     must_abort(build_with_unknown_key, NULL);
     {
         planet_t *bare = structure_new(NULL);
-        assert(is_a_structure_struct(bare) && bare->planet_id == NULL && bare->slipways != NULL && entity_list_listed(entities_by_tag("structure"), bare));
+        assert(is_a_structure_struct(bare) && bare->planet_id == NULL && bare->slipways != NULL && entity_list_listed(entities_by_tag(TAG_STRUCTURE), bare));
     }
     for (index = 0; index < sizeof descendant_kinds / sizeof descendant_kinds[0]; index++) {
         planet_keys_t keys;
@@ -779,10 +780,9 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

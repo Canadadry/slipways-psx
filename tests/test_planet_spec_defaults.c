@@ -5,7 +5,6 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "p8/assets.h"
 #include "engine/bootstrap.h"
@@ -15,18 +14,18 @@
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "engine/entity.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/planet.h"
 #include "game/planet_family.h"
 #include "game/planet_family_trade.h"
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
 /* The very string of the generated data, not a copy. */
-static void assert_same_string(const char *a, const char *b) {
-    assert(a != NULL && a == b && strcmp(a, b) == 0);
+static void assert_same_state(state_t a, state_t b) {
+    assert(a != ENTITY_STATE_NONE && a == b);
 }
 
 /* The planet members every class of the lineage inherits, and its kind's
@@ -53,7 +52,7 @@ static void assert_planet_box(const box_t *kq) {
 static void assert_structure_tail(const planet_t *qh, const planet_archetype_t *archetype) {
     assert(qh->targeting->archetype == &archetype->targeting);
     assert(qh->development_tier == archetype->development_tier && qh->has_development_tier == 1);
-    assert(qh->targeting->has_cost == 1 && qh->targeting->archetype->status_sprite == 0 && qh->targeting->archetype->has_status_sprite == 0);
+    assert(qh->targeting->has_cost == 1);
 }
 
 /* The emitter of an ascension, protostar or synthesizer, and its archetype. */
@@ -68,7 +67,7 @@ static void test_planet_defaults(void) {
     planet_t *jo = planet_new(NULL);
 
     assert(planet_ready());
-    assert_same_string(jo->header.state, jo->archetype->state);
+    assert_same_state(jo->header.state, jo->archetype->state);
     assert_planet_box(&jo->archetype->hit_box);
     assert_planet_tail(jo, &planet_archetype);
     assert(jo->archetype->ring_colors == &planet_ring_colors_seq && jo->archetype->mood_rows == planet_mood_rows_rows && jo->archetype->made_resources == &planet_made_resources_seq);
@@ -82,7 +81,7 @@ static void test_structure_defaults(void) {
     planet_t *qh = structure_new(NULL);
 
     assert(structure_ready());
-    assert_same_string(qh->header.state, structure_archetype.state);
+    assert_same_state(qh->header.state, structure_archetype.state);
     assert(qh->targeting->cost == structure_archetype.targeting.cost);
     assert(qh->sprite == structure_archetype.sprite);
     assert_structure_tail(qh, &structure_archetype);
@@ -97,7 +96,7 @@ static void test_trading_hub_defaults(void) {
     assert(nl->sprite == trading_hub_archetype.sprite);
     assert(nl->targeting->cost == trading_hub_archetype.targeting.cost);
     assert(nl->palette_block == trading_hub_archetype.palette_block);
-    assert_same_string(nl->header.state, trading_hub_archetype.state);
+    assert_same_state(nl->header.state, trading_hub_archetype.state);
     assert_structure_tail(nl, &trading_hub_archetype);
     assert_planet_box(&nl->archetype->hit_box);
     assert_planet_tail(nl, &trading_hub_archetype);
@@ -109,7 +108,7 @@ static void test_processor_defaults(void) {
     assert(processor_ready());
     assert(os->sprite == processor_archetype.sprite);
     assert(os->targeting->cost == processor_archetype.targeting.cost);
-    assert_same_string(os->header.state, processor_archetype.state);
+    assert_same_state(os->header.state, processor_archetype.state);
     assert_structure_tail(os, &processor_archetype);
     assert_planet_box(&os->archetype->hit_box);
     assert_planet_tail(os, &processor_archetype);
@@ -122,7 +121,7 @@ static void test_ascension_defaults(void) {
     assert(hj->targeting->cost == ascension_archetype.targeting.cost);
     assert(hj->sprite == ascension_archetype.sprite);
     assert_emitter(hj->emitter, &ascension_archetype);
-    assert_same_string(hj->header.state, ascension_archetype.state);
+    assert_same_state(hj->header.state, ascension_archetype.state);
     assert_structure_tail(hj, &ascension_archetype);
     assert_planet_box(&hj->archetype->hit_box);
     assert_planet_tail(hj, &ascension_archetype);
@@ -132,7 +131,7 @@ static void test_protostar_defaults(void) {
     planet_t *pm = protostar_new(NULL);
 
     assert(protostar_ready());
-    assert_same_string(pm->header.state, protostar_archetype.state);
+    assert_same_state(pm->header.state, protostar_archetype.state);
     assert(pm->sprite == protostar_archetype.sprite);
     assert_emitter(pm->emitter, &protostar_archetype);
     assert(pm->targeting->cost == protostar_archetype.targeting.cost);
@@ -157,7 +156,7 @@ static void test_burst_defaults(void) {
     assert(ga->emitter->speed_factor == burst_archetype.emitter.speed_factor);
     assert(ga->speed == burst_archetype.speed);
     assert_box(&ga->archetype->hit_box, 0, 0, -1, -1);
-    assert_same_string(ga->header.state, ga->archetype->state);
+    assert_same_state(ga->header.state, ga->archetype->state);
     assert_planet_tail(ga, &burst_archetype);
     assert(ga->archetype->trade_multiplier == p8_fixed_from_int(1));
     assert(ga->development_tier == 0 && !ga->has_development_tier);
@@ -172,7 +171,7 @@ static void assert_slipgate_inherited(const planet_t *nr, const planet_archetype
     assert(nr->targeting->cost == archetype->targeting.cost);
     assert(nr->sprite == archetype->sprite);
     assert_box(&nr->archetype->hit_box, -4, -4, 5, 5);
-    assert_same_string(nr->header.state, archetype->state);
+    assert_same_state(nr->header.state, archetype->state);
     assert_structure_tail(nr, archetype);
     assert_planet_tail(nr, archetype);
 }
@@ -199,7 +198,7 @@ static void test_synthesizer_defaults(void) {
     assert(mx->targeting->cost == synthesizer_archetype.targeting.cost);
     assert(mx->synthesizable_resources == synthesizer_archetype.synthesizable_resources);
     assert_emitter(mx->emitter, &synthesizer_archetype);
-    assert_same_string(mx->header.state, synthesizer_archetype.state);
+    assert_same_state(mx->header.state, synthesizer_archetype.state);
     assert_structure_tail(mx, &synthesizer_archetype);
     assert_planet_box(&mx->archetype->hit_box);
     assert_planet_tail(mx, &synthesizer_archetype);
@@ -225,10 +224,9 @@ static void test_second_reset_world_keeps_entity(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

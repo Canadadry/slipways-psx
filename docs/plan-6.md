@@ -11,6 +11,7 @@ Le cœur ne garde de PICO-8 que ce dont le jeu a besoin : l'API de dessin, la vi
 - Aucun pixel ne change : tous les `*.sha256` de `tests/e2e/` restent identiques.
 - Invariant de chaque commit : `make test-all` et `make sanitize-net` passent ; `make test` et `make e2e` ne ralentissent pas, comparés à leurs durées mesurées avant l'étape 1.
 - Une étape est finie quand ce qu'elle retire n'apparaît plus dans `src/` ni dans `tests/`.
+- Le motif retiré entre dans `DATA_GUARD_PATTERN` du `Makefile` (ou une garde sœur, un grep dans `make test`) au commit qui clôt l'étape ; une exception assumée est listée à côté du motif.
 - Restent, par décision : l'API de dessin (branchée sur le GPU au plan 10), la virgule fixe, la table `sin`/`cos`, `constants-check`, les lignes musique et sons du menu pause (inertes).
 
 ## 3. Étapes

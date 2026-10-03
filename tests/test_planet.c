@@ -26,7 +26,7 @@
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "engine/entity.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/planet.h"
 #include "game/planet_display.h"
 #include "game/planet_family.h"
@@ -44,12 +44,12 @@
 #define NEW_PLANET_HASH 0x48C32418u
 #define UPDATE_VANISHING_CALLS 62
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
-static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
-static const char *const tags[] = {"planet", "node", "targeting"};
+static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
+static const tag_t tags[] = {TAG_PLANET, TAG_NODE, TAG_TARGETING};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -221,7 +221,7 @@ static uint32_t fold_planet(uint32_t hash, const void *entity) {
     const planet_t *planet = as_planet(entity);
     size_t index;
 
-    hash = fold_string_member(hash, planet->header.state);
+    hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
     hash = fold_string_member(hash, planet->planet_id);
     hash = fold_is_planet(hash, planet);
@@ -287,7 +287,7 @@ static void test_galaxy(void) {
     int i;
 
     start_game();
-    jo = entities_by_tag("planet");
+    jo = entities_by_tag(TAG_PLANET);
     for (i = 0; i < jo->count; i++) {
         h = fold_planet(h, jo->items[i]);
     }
@@ -298,7 +298,7 @@ static void test_galaxy(void) {
 static uint32_t fold_live(uint32_t h, const void *e) {
     const planet_t *jo = as_planet(e);
 
-    h = fold_string_member(h, jo->header.state);
+    h = fold_string_member(h, entity_state_name(jo->header.state));
     h = fold_fixed_member(h, jo->header.state_time);
     h = fold_fixed_member(h, jo->shake);
     h = (jo->fold_anchor != 0) ? fold_bool_member(h, jo->fold_anchor) : fold_absent(h);
@@ -381,7 +381,7 @@ static uint32_t fold_daughter(uint32_t h, void *d) {
 /* The shop's structure_icon_left_press on the icon of `kind`, as the
  * player buys it, then dragged to the middle of the screen. */
 static void *bought(const entity_kind_t *kind) {
-    const entity_list_t *hb = entities_by_message("refresh");
+    const entity_list_t *hb = entities_by_message(ENTITY_MESSAGE_REFRESH);
     const camera_t *mo = main_camera_typed();
     const vec_t *main_camera_pos;
     int i;
@@ -418,7 +418,7 @@ static research_project_t *class_name_project(const char *cw) {
 /* A generated planet turned by planet_apply_project into the subclass the
  * class name names: the newest live entity. */
 static void *turned(int planet, const char *cw) {
-    void *p = entities_by_tag("planet")->items[planet];
+    void *p = entities_by_tag(TAG_PLANET)->items[planet];
 
     planet_roll_type(p);
     planet_apply_project(p, class_name_project(cw));
@@ -466,7 +466,7 @@ static void test_new_planet(void) {
 
     start_title();
     a = new_planet("p900", 1, 2);
-    assert(entity_list_listed(live_entities(), a) && entity_list_listed(entities_by_tag("planet"), a));
+    assert(entity_list_listed(live_entities(), a) && entity_list_listed(entities_by_tag(TAG_PLANET), a));
     h = fold_planet(h, a);
     h = fold_live(h, a);
     check("new_planet", h, NEW_PLANET_HASH);
@@ -479,17 +479,17 @@ static void test_entities_by_tag_null_until_seen(void) {
 
     start_title();
     entity_registry_init();
-    assert(entities_by_tag("planet") == NULL && entities_by_tag("node") == NULL && entities_by_tag("background") == NULL);
+    assert(entities_by_tag(TAG_PLANET) == NULL && entities_by_tag(TAG_NODE) == NULL);
     a = new_planet("p902", 5, 6);
-    assert(entities_by_tag("planet") != NULL && entities_by_tag("node") != NULL && entities_by_tag("targeting") != NULL);
-    assert(entities_by_tag("structure") == NULL && entities_by_tag("background") == NULL);
+    assert(entities_by_tag(TAG_PLANET) != NULL && entities_by_tag(TAG_NODE) != NULL && entities_by_tag(TAG_TARGETING) != NULL);
+    assert(entities_by_tag(TAG_STRUCTURE) == NULL);
     entity_unregister(a);
-    assert(entities_by_tag("planet") != NULL && entities_by_tag("planet")->count == 0);
+    assert(entities_by_tag(TAG_PLANET) != NULL && entities_by_tag(TAG_PLANET)->count == 0);
     entity_registry_init();
-    assert(entities_by_tag("planet") == NULL);
+    assert(entities_by_tag(TAG_PLANET) == NULL);
 }
 
-/* update_entities dispatches by state: a "vanishing" planet runs
+/* update_entities dispatches by state: a vanishing planet runs
  * planet_update_vanishing until its state time passes 60, then leaves the
  * live entities. */
 static void test_update_vanishing(void) {
@@ -500,13 +500,13 @@ static void test_update_vanishing(void) {
     a = new_planet("p901", 3, 4);
     update_entities();
     assert(is_dead_state(a) == 0);
-    entity_set_state(&a->header, "vanishing");
+    entity_set_state(&a->header, ENTITY_STATE_VANISHING);
     while (entity_list_listed(live_entities(), a) && calls < 200) {
         update_entities();
         calls++;
     }
     assert(is_dead_state(a) == 2);
-    assert(!entity_list_listed(live_entities(), a) && !entity_list_listed(entities_by_tag("planet"), a));
+    assert(!entity_list_listed(live_entities(), a) && !entity_list_listed(entities_by_tag(TAG_PLANET), a));
     check_int("update_vanishing_calls", calls, UPDATE_VANISHING_CALLS);
 }
 
@@ -555,7 +555,7 @@ static void test_production_shared(void) {
 
 /* planet_roll_type takes the "vanishing" planet type itself on a vanish
  * roll under 0.45, and its state for the planet's; any other draw is a
- * weighted picker entry, and "known". */
+ * weighted picker entry, and the known state. */
 static void test_roll_type_takes_vanishing(void) {
     char id[8];
     int took_vanishing = 0;
@@ -570,7 +570,7 @@ static void test_roll_type_takes_vanishing(void) {
         planet_roll_type(p);
         assert(p->planet_type != NULL && p->description == p->planet_type->description);
         took_vanishing = p->planet_type == planet_types_lookup("vanishing");
-        assert(strcmp(p->header.state, took_vanishing ? "vanishing" : "known") == 0);
+        assert(p->header.state == (took_vanishing ? ENTITY_STATE_VANISHING : ENTITY_STATE_KNOWN));
     }
     assert(took_vanishing);
 }
@@ -588,7 +588,7 @@ static void test_planet_is_a_struct(void) {
     int j;
 
     start_game();
-    jo = entities_by_tag("planet");
+    jo = entities_by_tag(TAG_PLANET);
     for (j = 0; j < jo->count; j++) {
         assert(is_a_planet_struct(jo->items[j]));
     }
@@ -606,7 +606,7 @@ static void test_planet_is_a_struct(void) {
     }
 
     (void)bought(structure_kind());
-    jo = entities_by_tag("structure");
+    jo = entities_by_tag(TAG_STRUCTURE);
     assert(jo != NULL && jo->count == 1);
     assert(jo->items[0] != NULL &&
            ((const entity_t *)jo->items[0])->class == structure_class());
@@ -620,7 +620,7 @@ static int row_slots(void) {
  * planet_install_project and update_tiers_visit would: planet_refresh then
  * gives it a row. */
 static planet_t *planet_with_a_row(void) {
-    planet_t *a = (planet_t *)entities_by_tag("planet")->items[0];
+    planet_t *a = (planet_t *)entities_by_tag(TAG_PLANET)->items[0];
 
     a->production = &a->production_own;
     a->production_own.has_resource = 1;
@@ -678,7 +678,7 @@ static void test_rows_given_back_after_restart(void) {
     cart_flush_exit_queue();
     title = row_slots();
     start_game();
-    jo = entities_by_tag("planet");
+    jo = entities_by_tag(TAG_PLANET);
     (void)planet_with_a_row();
     for (i = 0; i < jo->count; i++) {
         class_of(jo->items[i])->refresh(jo->items[i]);
@@ -716,10 +716,9 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

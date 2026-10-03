@@ -10,7 +10,6 @@
 #include "engine/entity_registry.h"
 #include "engine/entity.h"
 #include "game/particle.h"
-#include "game/draw_functions.h"
 #include "game/planet.h"
 #include "game/planet_display.h"
 #include "game/probe.h"
@@ -174,7 +173,7 @@ static planet_t *processor_create(const planet_keys_t *keys) {
     return self;
 }
 
-void ascension_draw(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t p) {
+void ascension_draw(p8_graphics_t *gfx, p8_vram_t *mem, planet_t *self, vec_t p) {
     if (self == NULL) {
         return;
     }
@@ -374,7 +373,7 @@ particle_t *burst_spawn_particle(entity_t *self_ptr) {
     return particle;
 }
 
-void burst_draw(p8_graphics_t *graphics, p8_memory_t *memory, planet_t *self, vec_t screen_pos) {
+void burst_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec_t screen_pos) {
     const pointer_list_t *particles = NULL;
     int third_taken = 0;
     int index;
@@ -508,7 +507,6 @@ static planet_t *burst_create(const burst_keys_t *keys) {
 void planet_family_init(void) {
     assert(planet_ready() && "planet_init() must run first");
     planet_family_shutdown();
-    draw_functions_init();
     g_family_up = 1;
     entity_list_init(&g_burst_outgoing_routes, game_zone_load_zone());
 }

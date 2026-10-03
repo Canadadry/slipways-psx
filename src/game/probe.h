@@ -81,7 +81,7 @@ particle_t *probe_spawn_particle(entity_t *self);
 
 /* Release method of the probe and the help screen: gives back their
  * particle list, and the grab arena of a probe not placed (state other than
- * "settled"); a placed one keeps it until the generation is given back. */
+ * settled); a placed one keeps it until the generation is given back. */
 void probe_release_method(entity_t *self);
 
 #endif

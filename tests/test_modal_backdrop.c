@@ -7,7 +7,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "p8/assets.h"
 #include "engine/bootstrap.h"
@@ -17,7 +16,7 @@
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/score_panel_display.h"
 #include "engine/entity_class.h"
 #include "game/ui.h"
@@ -27,13 +26,13 @@
 #define ON_CLICK_TRUE_TICKS 6
 #define ON_CLICK_TRUE_SEQUENCE_HASH 0xA6A43C27u
 #define BARE_SEQUENCE_HASH 0x52BE382Au
-#define HOVER_SEQUENCE_HASH 0x689321F9u
+#define HOVER_SEQUENCE_HASH 0xECF21A99u
 #define HOVER_CURSOR_HASH 0x04C40AB9u
 
 #define LEFT_PRESS_TICK 5
 #define IDLE_TICKS 30
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -48,11 +47,11 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
 
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
-        h *= 16777619u;
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            h ^= (uint32_t)memory.screen[y][x];
+            h *= 16777619u;
+        }
     }
     return h;
 }
@@ -85,7 +84,7 @@ static uint32_t fold_veil(uint32_t h, const modal_backdrop_t *e) {
     h = fold_bool_member(h, (e->is_dead != 0), e->is_dead);
     h = fold_bool_member(h, (e->is_hovered != 0), e->is_hovered);
     h = fnv(h, (uint32_t)entity_list_listed(live_entities(), e));
-    return fnv(h, (uint32_t)entity_list_listed(entities_by_message("hit_test"), e));
+    return fnv(h, (uint32_t)entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), e));
 }
 
 static const void *main_ui_hovered(void) {
@@ -146,7 +145,7 @@ static void test_left_press_with_a_true_on_click_removes_the_veil(void) {
         assert(ticks < 1000);
     }
     assert(g_on_click_calls == 1);
-    assert(!entity_list_listed(entities_by_message("hit_test"), veil));
+    assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), veil));
     printf("[on_click_true_sequence] ticks=%d\n", ticks);
     fflush(stdout);
     assert(ticks == ON_CLICK_TRUE_TICKS);
@@ -170,7 +169,7 @@ static void test_bare_veil_swallows_the_click_and_stays(void) {
         update_entities();
         h = fold_veil(h, veil);
     }
-    assert(entity_list_listed(live_entities(), veil) && entity_list_listed(entities_by_message("hit_test"), veil));
+    assert(entity_list_listed(live_entities(), veil) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), veil));
     check("bare_sequence", h, BARE_SEQUENCE_HASH);
 }
 
@@ -193,7 +192,7 @@ static void test_false_on_click_keeps_the_veil(void) {
         update_entities();
         h = fold_veil(h, veil);
     }
-    assert(entity_list_listed(live_entities(), veil) && entity_list_listed(entities_by_message("hit_test"), veil));
+    assert(entity_list_listed(live_entities(), veil) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), veil));
     check("bare_sequence on_click_false", h, BARE_SEQUENCE_HASH);
 }
 
@@ -224,7 +223,6 @@ static void test_hover_loop_on_the_veil(void) {
     assert(main_ui_hovered() == veil);
     assert(in_layer(14, veil) && !in_layer(15, veil));
     assert(veil->is_hovered);
-    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     h = fold_veil(h, veil);
 
     p8_gfx_init(&graphics);
@@ -244,7 +242,6 @@ static void test_hover_loop_on_the_veil(void) {
     ui_update(&memory, main_ui());
     assert(main_ui_hovered() != veil && !in_layer(14, veil));
     assert(!veil->is_hovered);
-    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     h = fold_veil(h, veil);
     check("hover_sequence", h, HOVER_SEQUENCE_HASH);
 }
@@ -259,7 +256,7 @@ static void test_defaults_match_the_parsed_spec(void) {
     assert(veil->archetype == &modal_backdrop_archetype);
     assert(veil->archetype->layer == p8_fixed_from_int(14));
     assert(veil->archetype->hit_test == p8_fixed_from_int(1));
-    assert(veil->header.state != NULL && strcmp(veil->header.state, "normal") == 0);
+    assert(veil->header.state == ENTITY_STATE_NORMAL);
     assert(modal_backdrop_ready());
     modal_backdrop_shutdown();
     assert(!modal_backdrop_ready());
@@ -275,7 +272,7 @@ static int is_a_veil_struct(const void *e) {
  * among the live entities and under hit_test only; its hit test always
  * hits, and it has neither an update nor a right press. */
 static void test_modal_backdrop_is_a_struct_registered_under_hit_test(void) {
-    const char *others[] = {"draw", "draw_overlay", "new_year", "refresh"};
+    const entity_message_t others[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
     const entity_class_t *cls = modal_backdrop_class();
     modal_backdrop_keys_t keys = {0};
     void *built;
@@ -289,8 +286,8 @@ static void test_modal_backdrop_is_a_struct_registered_under_hit_test(void) {
     generic = modal_backdrop_new(NULL);
 
     assert(is_a_veil_struct(built) && is_a_veil_struct(generic));
-    assert(entity_list_listed(live_entities(), built) && entity_list_listed(entities_by_message("hit_test"), built));
-    assert(entity_list_listed(live_entities(), generic) && entity_list_listed(entities_by_message("hit_test"), generic));
+    assert(entity_list_listed(live_entities(), built) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), built));
+    assert(entity_list_listed(live_entities(), generic) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), generic));
     for (i = 0; i < 4; i++) {
         assert(!entity_list_listed(entities_by_message(others[i]), built) && !entity_list_listed(entities_by_message(others[i]), generic));
     }
@@ -322,10 +319,9 @@ static void test_veil_gives_its_slot_back(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

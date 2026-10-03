@@ -18,7 +18,6 @@
 #include <unistd.h>
 
 #include "p8/assets.h"
-#include "p8/audio.h"
 #include "game/background.h"
 #include "engine/bootstrap.h"
 #include "game/cart.h"
@@ -29,7 +28,7 @@
 #include "game/help.h"
 #include "p8/input.h"
 #include "engine/entity.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/menu.h"
 #include "game/mouse.h"
 #include "game/message_box.h"
@@ -57,22 +56,22 @@
 
 #define BUILT_HASH 0x86CE257Cu
 #define SHARED_HASH 0x690E4805u
-#define FRESH_HASH 0xE44E0786u
-#define HOVER_HASH 0xB61A6E40u
+#define FRESH_HASH 0xA03A8C66u
+#define HOVER_HASH 0xEDBB9550u
 #define LAYERS_HASH 0xDBA4EEF8u
 #define RIGHT_HASH 0xF02024DCu
 #define LEFT_HASH 0xBD9BC256u
 #define CLEAR_EPHEMERALS_HASH 0xD215FB81u
 #define STALE_HASH 0x5B066E86u
-#define ENTITY_STATE_HASH 0xE995C6EFu
+#define ENTITY_STATE_HASH 0xD49B8748u
 #define ENTITY_STATE_TIME_HASH 0xDE09A985u
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
-static const char *const not_listed[] = {"draw", "hit_test", "new_year", "refresh"};
-static const char *const tags[] = {"planet", "probe", "structure", "slipway", "wormhole", "message_box", "node", "ascension", "targeting", "slipgate", "background"};
+static const entity_message_t not_listed[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
+static const tag_t tags[] = {TAG_PLANET, TAG_PROBE, TAG_STRUCTURE, TAG_SLIPWAY, TAG_WORMHOLE, TAG_MESSAGE_BOX, TAG_NODE, TAG_ASCENSION, TAG_TARGETING, TAG_SLIPGATE};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -163,11 +162,11 @@ static void check(const char *label, uint32_t got, uint32_t want) {
 
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
-        h *= 16777619u;
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            h ^= (uint32_t)memory.screen[y][x];
+            h *= 16777619u;
+        }
     }
     return h;
 }
@@ -218,7 +217,7 @@ static int placed(void *e) {
 
 /* The planet nearest to the given one, among those with a `map_pos`. */
 static void *nearest_to(void *qu) {
-    const entity_list_t *jos = entities_by_tag("planet");
+    const entity_list_t *jos = entities_by_tag(TAG_PLANET);
     void *re = NULL;
     int i;
 
@@ -271,8 +270,8 @@ static void test_built(void) {
 
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), ok));
     hash = fnv(hash, (uint32_t)live_entities()->count);
-    assert(entity_list_listed(entities_by_message("draw_overlay"), ok));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message("draw_overlay"), ok));
+    assert(entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), ok));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), ok));
     for (index = 0; index < sizeof not_listed / sizeof not_listed[0]; index++) {
         assert(!entity_list_listed(entities_by_message(not_listed[index]), ok));
     }
@@ -282,7 +281,7 @@ static void test_built(void) {
 
     assert(ok->archetype->cursor_sprite == p8_fixed_from_int(58));
     assert(ok->archetype->layer == p8_fixed_from_int(15));
-    assert(ok->header.state != NULL && strcmp(ok->header.state, "normal") == 0);
+    assert(ok->header.state == ENTITY_STATE_NORMAL);
     /* The presence word is constant by the struct's shape, kept so that
      * BUILT_HASH still proves the typed read. */
     hash = fnv(fnv(hash, 1u), (uint32_t)ok->header.state_time);
@@ -317,7 +316,7 @@ static void test_shared(void) {
     assert(other->header.cursor_sprite == &other->archetype->cursor_sprite);
     assert(other->ephemerals == le && le == ui_ephemerals_shared());
     h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), other));
-    h = fnv(h, (uint32_t)entity_list_rank_in(entities_by_message("draw_overlay"), other));
+    h = fnv(h, (uint32_t)entity_list_rank_in(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), other));
 
     ui_clear_ephemerals(other);
     assert(other->ephemerals != le && ephemerals_of(other)->count == 0);
@@ -353,7 +352,6 @@ static void test_fresh(void) {
     h = fold_vec(h, vec_at(ok->mouse_world));
     h = fold_layers(h, ok);
     h = fold_entity(h, ok->hovered);
-    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     h = fnv(h, cursor_is(58));
     assert(ok->ephemerals == ui_ephemerals_shared());
     check("fresh", h, FRESH_HASH);
@@ -361,7 +359,7 @@ static void test_fresh(void) {
 
 /* The first planet whose screen position is well inside. */
 static planet_t *planet_on_screen(int *sx, int *sy) {
-    const entity_list_t *jo = entities_by_tag("planet");
+    const entity_list_t *jo = entities_by_tag(TAG_PLANET);
     vec_t cam = vec_at(checked_main_camera()->pos);
     int i;
 
@@ -380,8 +378,7 @@ static planet_t *planet_on_screen(int *sx, int *sy) {
 }
 
 /* The mouse over a planet: `hovered` is the planet, marked `is_hovered`,
- * its `gpio_signal` poked at 0x5f80, `previous_hovered` on the next pass;
- * the mouse away unmarks it. */
+ * `previous_hovered` on the next pass; the mouse away unmarks it. */
 static void test_hover(void) {
     uint32_t h = 2166136261u;
     ui_t *ok = start_game();
@@ -396,11 +393,8 @@ static void test_hover(void) {
     ui_update(&memory, ok);
     assert((void *)ok->hovered == planet);
     assert(is_hovered_state(planet) == 2);
-    /* A planet has no `gpio_signal`: 0x5f80 is poked with 0. */
-    assert(p8_peek(&memory, 0x5f80) == 0);
     assert(in_layer(ok, 6, planet) && in_layer(ok, 1, the_background()));
     h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), planet));
-    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     h = fold_layers(h, ok);
 
     ui_update(&memory, ok);
@@ -413,7 +407,6 @@ static void test_hover(void) {
     assert((void *)ok->hovered != planet);
     assert(is_hovered_state(planet) == 0);
     h = fold_entity(h, ok->hovered);
-    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     check("hover", h, HOVER_HASH);
 }
 
@@ -440,7 +433,7 @@ static void test_layers(void) {
     ra = checked_main_mouse()->pos;
     assert(qa != NULL && ra != NULL);
 
-    entity_set_state(&planet->header, "known");
+    entity_set_state(&planet->header, ENTITY_STATE_KNOWN);
     assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, qa, ra, NULL, &kv, &kn));
     assert((void *)kv == planet && kn.stop && kn.held == NULL);
     h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), kv));
@@ -519,7 +512,7 @@ static void test_left(void) {
     int index;
 
     dispatcher = start_game();
-    planets = entities_by_tag("planet");
+    planets = entities_by_tag(TAG_PLANET);
     for (index = 0; index < planets->count && other == NULL; index++) {
         void *e = planets->items[index];
         if (on_screen(e) && on_screen(nearest_to(e))) {
@@ -558,7 +551,7 @@ static void test_left(void) {
     ui_update(&memory, dispatcher);
     assert(dispatcher->left_held == NULL && dispatcher->right_held == NULL);
     assert(slipways_count(start_planet) == 1 && slipways_count(target) == 1);
-    hash = fnv(hash, (uint32_t)entities_by_tag("slipway")->count);
+    hash = fnv(hash, (uint32_t)entities_by_tag(TAG_SLIPWAY)->count);
     check("left", hash, LEFT_HASH);
 }
 
@@ -624,39 +617,6 @@ static void test_stale(void) {
     check("stale", h, STALE_HASH);
 }
 
-/* With a panel up, ui_update hands the left click to one of the
- * ephemerals: the third row of the pause menu runs its `on_click`, which
- * flips the sound effects mute. */
-static void test_click_reaches_a_row_of_ephemerals(void) {
-    ui_t *ok = start_game();
-    void *row;
-    int ih;
-    int x;
-    int y;
-    int hx = -1;
-    int hy = -1;
-
-    call_galaxy_menu_on_click(4);
-    assert(ephemerals_of(ok)->count == 4);
-    row = ephemerals_of(ok)->items[2];
-    for (y = 0; y < 128 && hx < 0; y += 2) {
-        for (x = 0; x < 128 && hx < 0; x += 2) {
-            mouse_at(x, y, 0);
-            ui_update(&memory, ok);
-            if ((void *)ok->hovered == row) {
-                hx = x;
-                hy = y;
-            }
-        }
-    }
-    assert(hx >= 0);
-    ih = p8_sfx_muted();
-    mouse_at(hx, hy, 1);
-    ui_update(&memory, ok);
-    assert(p8_sfx_muted() == !ih);
-    p8_set_sfx_muted(ih);
-}
-
 /* `ui_init()` empties the shared ephemerals. */
 static void test_init_empties_shared_ephemerals(void) {
     static entity_t mark;
@@ -684,13 +644,9 @@ static void must_abort(void (*write)(void *), void *e) {
     assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
 }
 
-static void handle_button_on_x(void *e) {
-    ui_handle_button(e, "x");
-}
-
 /* The game's `main_ui()` is a struct whose class holds only draw_overlay;
- * it takes no construction key and no button but "left"/"right". Every new
- * `ui_t` starts on the class's archetype and its shared ephemerals. */
+ * it takes no construction key. Every new `ui_t` starts on the class's
+ * archetype and its shared ephemerals. */
 static void test_ui_is_a_struct(void) {
     const entity_class_t *cls = ui_class();
     ui_t *ok = start_game();
@@ -710,8 +666,6 @@ static void test_ui_is_a_struct(void) {
     assert(ok->ephemerals == ui_ephemerals_shared() && ok->ephemerals->count == 0);
     other = ui_new();
     assert(is_of(other, cls) && other->ephemerals == ui_ephemerals_shared() && other->archetype == ok->archetype);
-
-    must_abort(handle_button_on_x, ok);
 }
 
 typedef struct {
@@ -771,7 +725,7 @@ static void test_ui_held_aborts_on_other_classes(void) {
     entity_register(&g_giver.header);
     left[0] = protostar_new(NULL);
     left[1] = burst_new(NULL);
-    left[2] = entities_by_tag("planet")->items[0];
+    left[2] = entities_by_tag(TAG_PLANET)->items[0];
     left[3] = the_background();
     left[4] = help_screen_new();
     left[5] = button_new(NULL);
@@ -799,7 +753,7 @@ static void test_ui_held_aborts_on_other_classes(void) {
 /* entity_set_state takes a struct or NULL, and does nothing on NULL. */
 static void test_entity_closed(void) {
     (void)start_game();
-    entity_set_state(NULL, "normal");
+    entity_set_state(NULL, ENTITY_STATE_NORMAL);
 }
 
 /* Every entity struct begins with its header. */
@@ -813,22 +767,6 @@ static uint32_t fold_string(uint32_t h, const char *s) {
         h = fnv(h, (uint32_t)(unsigned char)*s);
     }
     return fnv(h, 0u);
-}
-
-static int identity_of(const char *s) {
-    if (s == background_archetype.state) {
-        return 1;
-    }
-    if (s == planet_archetype.state) {
-        return 2;
-    }
-    if (s == structure_archetype.state) {
-        return 3;
-    }
-    if (s == protostar_archetype.state) {
-        return 4;
-    }
-    return 0;
 }
 
 static uint32_t fold_set_state_back(uint32_t h, void *e) {
@@ -940,11 +878,11 @@ static void test_components_carried(void) {
 enum { FIXED_KIND = 0, STRING_KIND = 1 };
 
 static void test_entity_state_by_name(void) {
-    static const char *const want[24] = {"normal", "normal",      "normal", "normal", "unknown", "placing", "placing", "placing",
-                                         "placing", "settled",      "unknown", "placing", "placing", "placing", "normal", "normal",
-                                         "normal", "normal",      "normal", "placing", "normal", "normal", "normal", "placing"};
-    static const int identity[24] = {1, 1, 1, 1, 2, 3, 3, 3, 3, 4, 2, 3, 3, 3, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0};
-    char state_name[] = "vanishing";
+    static const state_t want[24] = {
+        ENTITY_STATE_NORMAL,  ENTITY_STATE_NORMAL,  ENTITY_STATE_NORMAL,  ENTITY_STATE_NORMAL,  ENTITY_STATE_UNKNOWN, ENTITY_STATE_PLACING,
+        ENTITY_STATE_PLACING, ENTITY_STATE_PLACING, ENTITY_STATE_PLACING, ENTITY_STATE_SETTLED, ENTITY_STATE_UNKNOWN, ENTITY_STATE_PLACING,
+        ENTITY_STATE_PLACING, ENTITY_STATE_PLACING, ENTITY_STATE_NORMAL,  ENTITY_STATE_NORMAL,  ENTITY_STATE_NORMAL,  ENTITY_STATE_NORMAL,
+        ENTITY_STATE_NORMAL,  ENTITY_STATE_PLACING, ENTITY_STATE_NORMAL,  ENTITY_STATE_NORMAL,  ENTITY_STATE_NORMAL,  ENTITY_STATE_PLACING};
     void *entities[24];
     const entity_list_t *live;
     const char *state;
@@ -955,10 +893,10 @@ static void test_entity_state_by_name(void) {
     live = live_entities();
     assert(live != NULL);
     hash = fnv(hash, (uint32_t)live->count);
-    /* The kind word is constant by the struct's shape (the state is a string
+    /* The kind word is constant by the struct's shape (the state is a name
      * or absent), kept so that ENTITY_STATE_HASH still proves the reads. */
     for (index = 0; index < (size_t)live->count; index++) {
-        state = entity_of(live->items[index])->state;
+        state = entity_state_name(entity_of(live->items[index])->state);
         if (state != NULL) {
             hash = fold_string(fnv(fnv(hash, 1u), (uint32_t)STRING_KIND), state);
         } else {
@@ -991,12 +929,8 @@ static void test_entity_state_by_name(void) {
     entities[22] = modal_backdrop_new(NULL);
     entities[23] = wormhole_new();
     for (index = 0; index < 24; index++) {
-        state = entity_of(entities[index])->state;
-        assert(state != NULL);
-        assert(strcmp(state, want[index]) == 0);
-        assert(identity_of(state) == identity[index]);
-        hash = fold_string(fnv(hash, (uint32_t)STRING_KIND), state);
-        hash = fnv(hash, (uint32_t)identity_of(state));
+        assert(entity_of(entities[index])->state == want[index]);
+        hash = fold_string(fnv(hash, (uint32_t)STRING_KIND), entity_state_name(want[index]));
     }
 
     /* Six words constant by the struct's shape, kept for the frozen hash. */
@@ -1004,22 +938,19 @@ static void test_entity_state_by_name(void) {
         hash = fnv(hash, 0u);
     }
 
-    entity_set_state(entities[0], state_name);
-    state = entity_of(entities[0])->state;
-    assert(state == state_name);
-    hash = fold_set_state_back(fold_string(fnv(hash, 1u), state), entities[0]);
-    entity_set_state(entities[0], NULL);
-    assert(entity_of(entities[0])->state == NULL);
+    entity_set_state(entities[0], ENTITY_STATE_VANISHING);
+    assert(entity_of(entities[0])->state == ENTITY_STATE_VANISHING);
+    hash = fold_set_state_back(fold_string(fnv(hash, 1u), entity_state_name(ENTITY_STATE_VANISHING)), entities[0]);
+    entity_set_state(entities[0], ENTITY_STATE_NONE);
+    assert(entity_of(entities[0])->state == ENTITY_STATE_NONE);
     hash = fold_set_state_back(fnv(hash, 0u), entities[0]);
-    entity_set_state(entities[0], "normal");
-    state = entity_of(entities[0])->state;
-    assert(state != NULL && strcmp(state, "normal") == 0);
-    hash = fold_set_state_back(fold_string(fnv(hash, 1u), state), entities[0]);
+    entity_set_state(entities[0], ENTITY_STATE_NORMAL);
+    assert(entity_of(entities[0])->state == ENTITY_STATE_NORMAL);
+    hash = fold_set_state_back(fold_string(fnv(hash, 1u), entity_state_name(ENTITY_STATE_NORMAL)), entities[0]);
 
-    entity_set_state(entities[9], state_name);
-    state = entity_of(entities[9])->state;
-    assert(state == state_name);
-    hash = fold_set_state_back(fold_string(fnv(hash, 1u), state), entities[9]);
+    entity_set_state(entities[9], ENTITY_STATE_VANISHING);
+    assert(entity_of(entities[9])->state == ENTITY_STATE_VANISHING);
+    hash = fold_set_state_back(fold_string(fnv(hash, 1u), entity_state_name(ENTITY_STATE_VANISHING)), entities[9]);
 
     check("entity_state", hash, ENTITY_STATE_HASH);
 }
@@ -1116,12 +1047,12 @@ static void test_entity_state_time_by_name(void) {
     assert(zero->emitter->speed_factor == probe_archetype.emitter.speed_factor);
     hash = fold_state_time(hash, zero);
 
-    entity_set_state(&keyed->header, "vanishing");
+    entity_set_state(&keyed->header, ENTITY_STATE_VANISHING);
     assert_state_time(keyed, 0);
-    assert(keyed->header.state != NULL && strcmp(keyed->header.state, "vanishing") == 0);
-    hash = fold_string(fold_state_time(hash, keyed), keyed->header.state);
+    assert(keyed->header.state == ENTITY_STATE_VANISHING);
+    hash = fold_string(fold_state_time(hash, keyed), entity_state_name(keyed->header.state));
 
-    entity_set_state(entities[9], "vanishing");
+    entity_set_state(entities[9], ENTITY_STATE_VANISHING);
     assert_state_time(entities[9], 0);
     hash = fold_state_time(hash, entities[9]);
 
@@ -1157,10 +1088,9 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);
@@ -1176,7 +1106,6 @@ int main(void) {
     in_fresh_child(test_left);
     in_fresh_child(test_clear_ephemerals);
     in_fresh_child(test_stale);
-    in_fresh_child(test_click_reaches_a_row_of_ephemerals);
     in_fresh_child(test_init_empties_shared_ephemerals);
     in_fresh_child(test_ui_is_a_struct);
     in_fresh_child(test_ui_held_aborts_on_other_classes);

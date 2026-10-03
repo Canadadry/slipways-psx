@@ -4,7 +4,7 @@
 #include "engine/entity_class.h"
 #include "game/game_data.h"
 #include "p8/gfx.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "engine/pointer_list.h"
 #include "engine/vec.h"
 #include "game/particle_zone.h"
@@ -83,7 +83,7 @@ void emitter_spawn(entity_t *self, p8_fixed_t n);
  * method calls it as a plain function; emitter_update_method below is the
  * same work reached through a draw entry, reading both from the dispatch
  * context instead. */
-void emitter_update(const p8_graphics_t *graphics, p8_memory_t *memory, entity_t *self);
+void emitter_update(const p8_graphics_t *graphics, p8_vram_t *memory, entity_t *self);
 
 /* The position argument is never read: emitter_update reads the host's
  * own position. */

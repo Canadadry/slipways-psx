@@ -1,5 +1,5 @@
 
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "p8/assets.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
@@ -10,24 +10,20 @@
 
 #define DEMO_EVENTS_PATH "tests/fixtures/demo_events.json"
 
-static unsigned char screen_pixel(const p8_memory_t *mem, int x, int y) {
-    return p8_peek(mem, P8_ADDR_SCREEN + y * P8_SCREEN_WIDTH + x);
+static unsigned char screen_pixel(const p8_vram_t *mem, int x, int y) {
+    return mem->screen[y][x];
 }
 
 int main(void) {
-    p8_memory_t memory;
-    p8_mem_init(&memory);
+    p8_vram_t memory;
+    p8_vram_init(&memory);
 
     p8_graphics_t graphics;
     p8_gfx_init(&graphics);
 
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
 
     assert(p8_sget(&memory, 16, 0) == 3);
-    /* map.json's cells row 0 lands in P8_ADDR_SPRITE_MAP_SHARED (confirmed
-     * against pico8/original.p8.png's decoded ROM). */
-    assert(p8_peek(&memory, P8_ADDR_SPRITE_MAP_SHARED + 1) == 81);
 
     p8_cls(&memory);
     assert(screen_pixel(&memory, 0, 0) == 0);
@@ -67,6 +63,9 @@ int main(void) {
     assert(screen_pixel(&memory, 2, 91) == 4);
     assert(screen_pixel(&memory, 1, 90) == 0);
 
+    p8_mset(&memory, 1, 0, 81);
+    p8_mset(&memory, 2, 0, 85);
+    p8_mset(&memory, 3, 0, 1);
     p8_map(&graphics, &memory, 0, 0, 0, 100, 4, 1);
     /* Map cell (0,0) is 0, and `map()` takes sprite 0 to mean empty and
      * does not draw it, so the whole first 8x8 block stays cleared -- the
@@ -88,7 +87,7 @@ int main(void) {
     assert(screen_pixel(&memory, 4, 116) == 0);
     assert(screen_pixel(&memory, 5, 116) == 11);
 
-    /* This block asserts the four-frame scenario's exact stat()/btn()
+    /* This block asserts the four-frame scenario's exact mouse/btn()
      * values, so it reads a fixture of its own, never the root
      * events.json: a playtest recording can replace that file at any time.
      * The root recording is covered, for shape and loadability rather than
@@ -97,9 +96,9 @@ int main(void) {
     p8_input_init(&input);
     assert(p8_input_load(&input, DEMO_EVENTS_PATH));
 
-    assert(p8_stat(&input, 32) == 64);
-    assert(p8_stat(&input, 33) == 32);
-    assert(p8_stat(&input, 34) == 1);
+    assert(p8_input_read_mouse(&input).x == 64);
+    assert(p8_input_read_mouse(&input).y == 32);
+    assert(p8_input_read_mouse(&input).buttons == 1);
     assert(p8_btn(&input, 0) == 0);
     assert(p8_btn(&input, 1) == 1);
     assert(p8_btn(&input, 2) == 0);
@@ -107,9 +106,9 @@ int main(void) {
 
     p8_input_step(&input);
 
-    assert(p8_stat(&input, 32) == 70);
-    assert(p8_stat(&input, 33) == 40);
-    assert(p8_stat(&input, 34) == 0);
+    assert(p8_input_read_mouse(&input).x == 70);
+    assert(p8_input_read_mouse(&input).y == 40);
+    assert(p8_input_read_mouse(&input).buttons == 0);
     assert(p8_btn(&input, 0) == 0);
     assert(p8_btn(&input, 1) == 0);
     assert(p8_btn(&input, 2) == 1);

@@ -21,7 +21,7 @@
 #include "game/help.h"
 #include "p8/input.h"
 #include "game/layout.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/mouse.h"
 #include "game/message_box.h"
 #include "game/planet.h"
@@ -39,7 +39,7 @@
 #include "game/wormhole.h"
 #include "heap_allocator.h"
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -82,7 +82,6 @@ static void assert_links(const entity_t *h, entity_t want) {
     assert(h->map_pos == want.map_pos);
     assert(h->hit_box == want.hit_box);
     assert(h->cursor_sprite == want.cursor_sprite);
-    assert(h->gpio_signal == want.gpio_signal);
     assert(h->infraspace == want.infraspace);
     assert(h->shake == want.shake);
     assert(h->fold_anchor == want.fold_anchor);
@@ -115,8 +114,6 @@ static void test_carriers_link_their_storage(void) {
     background_t *background = background_new();
     button_t *button = button_new(NULL);
     structure_icon_t *structure_icon = structure_icon_new(NULL);
-    button_keys_t with_gpio_signal = {.has_gpio_signal = 1};
-    button_t *button_gpio_signal = button_new(&with_gpio_signal);
     modal_backdrop_t *modal_backdrop = modal_backdrop_new(NULL);
     ui_t *built_ui = ui_new();
     camera_t *camera = camera_new();
@@ -131,9 +128,6 @@ static void test_carriers_link_their_storage(void) {
     assert_links(&button->header,
                  (entity_t){.layer = &button->layer, .pos = &button->pos, .hit_box = button->header.hit_box, .is_hovered = &button->is_hovered});
     assert(button->header.hit_box != NULL);
-    assert_links(&button_gpio_signal->header,
-                 (entity_t){
-                     .layer = &button_gpio_signal->layer, .pos = &button_gpio_signal->pos, .hit_box = button_gpio_signal->header.hit_box, .gpio_signal = &button_gpio_signal->gpio_signal, .is_hovered = &button_gpio_signal->is_hovered});
     assert_links(&structure_icon->header,
                  (entity_t){.layer = &structure_icon->archetype->layer, .pos = &structure_icon->pos, .hit_box = &structure_icon->archetype->hit_box, .is_hovered = &structure_icon->is_hovered});
     assert_links(&modal_backdrop->header, (entity_t){.layer = &modal_backdrop->archetype->layer, .is_dead = &modal_backdrop->is_dead, .is_hovered = &modal_backdrop->is_hovered});
@@ -146,7 +140,6 @@ static void test_carriers_link_their_storage(void) {
                                                          .map_pos = &help_screen->map_pos,
                                                          .hit_box = &help_screen->archetype->hit_box,
                                                          .cursor_sprite = &help_screen->archetype->cursor_sprite,
-                                                         .gpio_signal = &help_screen->archetype->gpio_signal,
                                                          .fold_anchor = &help_screen->archetype->fold_anchor,
                                                          .is_dead = &help_screen->is_dead,
                                                          .is_hovered = &help_screen->is_hovered,
@@ -272,10 +265,9 @@ static void test_mouse_point_has_null_links(void) {
 int main(int argc, char **argv) {
     (void)argc;
     rerun_with_malloc_filling(argv);
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

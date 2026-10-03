@@ -172,7 +172,7 @@ static void layout_row_construct(layout_row_t *self) {
     self->width = p8_fixed_sub(w, fs);
 }
 
-static void row_draw_at_item_draw(const p8_graphics_t *gfx, p8_memory_t *mem, const layout_row_item_t *item,
+static void row_draw_at_item_draw(const p8_graphics_t *gfx, p8_vram_t *mem, const layout_row_item_t *item,
                                    vec_t p) {
     vec_t pos = vec_add(p, item->offset);
 
@@ -195,7 +195,7 @@ static void row_draw_at_item_draw(const p8_graphics_t *gfx, p8_memory_t *mem, co
     }
 }
 
-void layout_row_draw_at(const p8_graphics_t *gfx, p8_memory_t *mem, const layout_row_t *self, vec_t p, p8_fixed_t a) {
+void layout_row_draw_at(const p8_graphics_t *gfx, p8_vram_t *mem, const layout_row_t *self, vec_t p, p8_fixed_t a) {
     p8_fixed_t w;
     int i;
 
@@ -216,7 +216,7 @@ void layout_row_draw_at(const p8_graphics_t *gfx, p8_memory_t *mem, const layout
     }
 }
 
-void layout_row_draw_at_default(const p8_graphics_t *gfx, p8_memory_t *mem, const layout_row_t *self, vec_t p) {
+void layout_row_draw_at_default(const p8_graphics_t *gfx, p8_vram_t *mem, const layout_row_t *self, vec_t p) {
     layout_row_draw_at(gfx, mem, self, p, p8_fixed_from_int(0));
 }
 
@@ -239,7 +239,7 @@ static layout_row_t *tooltip_line(const allocator_t *zone, const data_item_t *it
     if (item->row == NULL) {
         return layout_row_new(zone, NULL);
     }
-    assert(item->row->draw_function == NULL && "tooltip_line: a line's only named key is its color; a draw_function has no member -- stop, do not add one");
+    assert(item->row->draw_function == DRAW_FUNCTION_NONE && "tooltip_line: a line's only named key is its color; a draw_function has no member -- stop, do not add one");
     assert(item->row->count <= TOOLTIP_LINE_CAP &&
            "tooltip_line: the longest tooltip line of the data (technologies_9_tooltip_rows_1) has 7 items; a longer one needs a bigger array");
     for (i = 0; i < item->row->count; i++) {
@@ -267,7 +267,7 @@ static void tooltip_construct(tooltip_t *self, const data_row_t *row) {
 
 /* The line count is rows_count: tooltip_construct() makes exactly one line
  * per positional item of its row, so the two counts never differ. */
-void tooltip_draw_at(p8_graphics_t *gfx, p8_memory_t *mem, const tooltip_t *self, p8_fixed_t om,
+void tooltip_draw_at(p8_graphics_t *gfx, p8_vram_t *mem, const tooltip_t *self, p8_fixed_t om,
                   p8_fixed_t a) {
     p8_fixed_t h;
     p8_fixed_t dn;
@@ -368,7 +368,7 @@ layout_row_keys_t layout_row_keys_of_row(const data_row_t *row, layout_row_cell_
     layout_row_keys_t keys = {0};
     int i;
 
-    assert(row->count <= cap && row->draw_function == NULL && !row->has_resource &&
+    assert(row->count <= cap && row->draw_function == DRAW_FUNCTION_NONE && !row->has_resource &&
            "layout_row_keys_of_row: a row passes positional items and a color; a draw_function or a resource has no member -- stop, do not add one");
     for (i = 0; i < row->count; i++) {
         cells[i] = layout_row_cell_item(&row->items[i]);
@@ -427,7 +427,7 @@ static tooltip_t *tooltip_struct_alloc(const allocator_t *zone) {
 static tooltip_t *tooltip_create(const allocator_t *zone, const data_row_t *row) {
     tooltip_t *self;
 
-    assert((row == NULL || (!row->has_color && row->draw_function == NULL)) &&
+    assert((row == NULL || (!row->has_color && row->draw_function == DRAW_FUNCTION_NONE)) &&
            "tooltip_create: every line is positional; a named key has no member -- stop, do not add one");
     self = tooltip_struct_alloc(zone);
     tooltip_construct(self, row);

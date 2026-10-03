@@ -10,7 +10,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -21,12 +20,13 @@
 #include "engine/dispatch_context.h"
 #include "game/economy_score.h"
 #include "game/economy_tiers.h"
+#include "engine/entity.h"
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "game/main_economy.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/planet.h"
 #include "game/planet_family.h"
 #include "game/planet_family_trade.h"
@@ -57,12 +57,12 @@ static int pos_copies(const vec_t *ra, const vec_t *mp) {
  * value moves every *_HASH. */
 #define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
-static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
-static const char *const tags[] = {"slipgate", "node", "targeting"};
+static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
+static const tag_t tags[] = {TAG_SLIPGATE, TAG_NODE, TAG_TARGETING};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -168,11 +168,11 @@ static void check(const char *label, uint32_t got, uint32_t want) {
 
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
-        h *= 16777619u;
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            h ^= (uint32_t)memory.screen[y][x];
+            h *= 16777619u;
+        }
     }
     return h;
 }
@@ -214,7 +214,7 @@ static void assert_structure_shape(const entity_class_t *c) {
 
 /* The structure icon whose kind is the given one. */
 static void *icon_of(const entity_kind_t *kind) {
-    const entity_list_t *hb = entities_by_message("refresh");
+    const entity_list_t *hb = entities_by_message(ENTITY_MESSAGE_REFRESH);
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i];
@@ -282,7 +282,7 @@ static uint32_t fold_slipgate(uint32_t hash, const void *entity) {
     structure = slipgate;
     planet = structure;
     hash = fold_string_member(hash, planet->planet_id);
-    hash = fold_string_member(hash, planet->header.state);
+    hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
     hash = fold_string_member(hash, slipgate->archetype->required_tech);
     hash = fold_fixed_member(hash, structure->archetype->project_index);
@@ -290,7 +290,7 @@ static uint32_t fold_slipgate(uint32_t hash, const void *entity) {
     hash = fold_fixed_member(hash, structure->targeting->cost);
     hash = fold_fixed_member(hash, structure->targeting->archetype->clock_ticks);
     hash = fold_fixed_member(hash, structure->targeting->archetype->attach_distance);
-    hash = fold_string_member(hash, structure->targeting->archetype->confirmed_state);
+    hash = fold_string_member(hash, entity_state_name(structure->targeting->archetype->confirmed_state));
     hash = fold_structure(hash, structure);
     hash = planet->has_development_tier ? fold_fixed_member(hash, planet->development_tier) : fold_absent(hash);
     hash = fold_is_planet(hash, planet);
@@ -307,7 +307,7 @@ static uint32_t fold_slipgate(uint32_t hash, const void *entity) {
     hash = fnv(hash, (uint32_t)(slipgate->archetype->required_tech != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(structure->archetype->name != NULL));
-    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != NULL));
+    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != ENTITY_STATE_NONE));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
@@ -378,7 +378,7 @@ static uint32_t fold_slipgate(uint32_t hash, const void *entity) {
     for (index = 0; index < sizeof tags / sizeof tags[0]; index++) {
         hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(tags[index]), entity));
     }
-    assert(entity_list_listed(entities_by_tag("slipgate"), entity) && !entity_list_listed(entities_by_tag("planet"), entity) && !entity_list_listed(entities_by_tag("structure"), entity));
+    assert(entity_list_listed(entities_by_tag(TAG_SLIPGATE), entity) && !entity_list_listed(entities_by_tag(TAG_PLANET), entity) && !entity_list_listed(entities_by_tag(TAG_STRUCTURE), entity));
     return hash;
 }
 
@@ -450,8 +450,8 @@ static entity_list_t *list_of(int n, entity_t *item) {
 }
 
 /* Placed on screen by the drag method (targeting_track) and the drop method
- * (targeting_confirm); update_entities on one still in "placing", then in
- * "settled"; draw through draw_layers; accept_drop against no argument,
+ * (targeting_confirm); update_entities on one still in placing, then in
+ * settled; draw through draw_layers; accept_drop against no argument,
  * another slipgate and a slipway drawn from itself; left_press with no link
  * (a slipway whose start is the slipgate) and with 3 (refused); refresh
  * with 0 to 3 links; an infraspace gate's refresh; slipgate_new with no
@@ -470,7 +470,7 @@ static void test_life(void) {
 
     start_game();
     idle = build_slipgate();
-    hash = fold_string_member(hash, as_structure(idle)->header.state);
+    hash = fold_string_member(hash, entity_state_name(as_structure(idle)->header.state));
     hash = fold_update_entities(hash, idle);
 
     placed = build_slipgate();
@@ -483,14 +483,14 @@ static void test_life(void) {
     set_credits(200);
     assert(class_of(placed)->drop == targeting_confirm_method);
     hash = targeting_confirm(placed) ? fnv(fnv(hash, 0xB0u), 1u) : fold_ref(hash, NULL);
-    hash = fold_string_member(hash, as_structure(placed)->header.state);
-    assert(strcmp(as_structure(placed)->header.state, "settled") == 0);
+    hash = fold_string_member(hash, entity_state_name(as_structure(placed)->header.state));
+    assert(as_structure(placed)->header.state == ENTITY_STATE_SETTLED);
     hash = fold_economy(hash, placed);
     for (index = 0; index < 3; index++) {
         hash = fold_update_entities(hash, placed);
     }
     for (index = 0; index < 2; index++) {
-        draw_layers("draw");
+        draw_layers(ENTITY_MESSAGE_DRAW);
         hash = fnv(hash, screen_hash());
     }
 
@@ -529,7 +529,7 @@ static void test_life(void) {
     bare = slipgate_new(NULL);
     assert(gate_kind(bare) == SLIPGATE && as_structure(bare)->planet_id == NULL && as_structure(bare)->slipways != NULL &&
            as_structure(bare)->production != NULL);
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("slipgate"), bare));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_SLIPGATE), bare));
     {
         planet_keys_t keys;
         vec_t *pos = vec_ref(vec_xy(3, 4));
@@ -561,7 +561,7 @@ static void test_slipgate_is_a_struct(void) {
 
     start_game();
     a = build_slipgate();
-    assert(is_a_slipgate_struct(a) && cls != qh && entity_list_listed(entities_by_tag("slipgate"), a));
+    assert(is_a_slipgate_struct(a) && cls != qh && entity_list_listed(entities_by_tag(TAG_SLIPGATE), a));
     assert(cls->offer_trade != qh->offer_trade && cls->attach_slipway == qh->attach_slipway && cls->drag == qh->drag && cls->drop == qh->drop && cls->spawn_particle == qh->spawn_particle);
     assert_structure_shape(cls);
     assert(cls->draw == qh->draw && cls->draw_overlay == qh->draw_overlay && cls->hit_test == qh->hit_test && cls->new_year == qh->new_year);
@@ -671,10 +671,9 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

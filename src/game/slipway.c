@@ -3,14 +3,12 @@
 #include <assert.h>
 #include <string.h>
 
-#include "p8/audio.h"
 #include "engine/dispatch_context.h"
 #include "game/economy.h"
 #include "game/economy_formulas.h"
 #include "engine/entity_registry.h"
 #include "game/main_economy.h"
 #include "engine/geom.h"
-#include "p8/input.h"
 #include "engine/entity.h"
 #include "game/planet.h"
 #include "game/targeting.h"
@@ -84,8 +82,6 @@ void slipway_construct(slipway_t *self) {
         return;
     }
 
-    p8_play_sfx(p8_fixed_from_int(50));
-
     zone = planet_zone_construction();
     ts = (pointer_list_t *)allocator_alloc(zone, sizeof *ts);
     pointer_list_init_reserve(ts, zone, SLIPWAY_TRANSIT_DOTS_RESERVE);
@@ -142,13 +138,6 @@ void slipway_drop(slipway_t *self, entity_t *end_planet) {
      * must stay behind the NULL end short-circuit. */
     refused = (end_planet == NULL) || !targeting_confirm((entity_t *)self);
     if (refused) {
-        /* p8_stat has no case for 19, so it reads 0 and this sfx never
-         * fires. It dereferences `input` without checking it, so the NULL
-         * guard below is load-bearing. */
-        const p8_input_t *input = dispatch_context_input();
-        if (input != NULL && p8_stat(input, 19) == 50) {
-            p8_play_sfx(p8_fixed_from_int(-1));
-        }
         self->is_dead = 1;
         return;
     }
@@ -275,8 +264,8 @@ entity_t *slipway_obstruction(slipway_t *self) {
         slipway_ctx.self_has_infraspace = self->has_infraspace;
         slipway_ctx.self_infraspace = self->infraspace;
 
-        part1 = entity_list_filter(frame_zone(), entities_by_tag("node"), slipway_obstruction_node_predicate, &node_ctx);
-        part2 = entity_list_filter(frame_zone(), entities_by_tag("slipway"), slipway_obstruction_slipway_predicate, &slipway_ctx);
+        part1 = entity_list_filter(frame_zone(), entities_by_tag(TAG_NODE), slipway_obstruction_node_predicate, &node_ctx);
+        part2 = entity_list_filter(frame_zone(), entities_by_tag(TAG_SLIPWAY), slipway_obstruction_slipway_predicate, &slipway_ctx);
         ds = entity_list_concat(frame_zone(), &part1, &part2);
 
         if (ds.count > 0) {

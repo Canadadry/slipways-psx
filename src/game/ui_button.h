@@ -5,7 +5,7 @@
 #include "p8/gfx.h"
 #include "game/layout.h"
 #include "game/map_tables.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/planet.h"
 #include "game/research.h"
 #include "engine/entity_class.h"
@@ -47,8 +47,6 @@ struct button {
     int has_on_click; /* 0: absent; 1: present, and a NULL `on_click` is false */
     int is_hovered;
     button_fn_t refresh;
-    p8_fixed_t gpio_signal;
-    int has_gpio_signal; /* 0: `gpio_signal` is absent, and is then never read */
     const char *name;
     p8_fixed_t trade;
     int has_trade; /* 0: `trade` is absent, and is then never read */
@@ -88,8 +86,6 @@ typedef struct {
     int has_on_click; /* present, and a NULL `on_click` is false */
     button_fn_t on_click;
     button_fn_t refresh;
-    int has_gpio_signal;
-    p8_fixed_t gpio_signal;
     const char *name;
     int has_trade;
     p8_fixed_t trade;
@@ -111,9 +107,9 @@ void button_construct(button_t *self, const button_keys_t *keys);
 
 void button_update(button_t *self);
 
-void button_draw_overlay(p8_graphics_t *gfx, p8_memory_t *mem, const button_t *self);
+void button_draw_overlay(p8_graphics_t *gfx, p8_vram_t *mem, const button_t *self);
 
-void button_draw(p8_graphics_t *graphics, p8_memory_t *memory, const button_t *self, vec_t draw_pos);
+void button_draw(p8_graphics_t *graphics, p8_vram_t *memory, const button_t *self, vec_t draw_pos);
 
 /* Always stops the dispatch: the click is consumed whether or not an
  * `on_click` callback was there to run. */

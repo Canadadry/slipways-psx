@@ -24,19 +24,14 @@ int p8_btn(const p8_input_t *input, int b) {
     return input->frames[input->current_frame].dpad[b];
 }
 
-int p8_stat(const p8_input_t *input, int n) {
+p8_mouse_t p8_input_read_mouse(const p8_input_t *input) {
+    p8_mouse_t mouse = {0, 0, 0};
     if (input->frame_count == 0 || input->current_frame >= input->frame_count) {
-        return 0;
+        return mouse;
     }
     const p8_input_frame_t *f = &input->frames[input->current_frame];
-    switch (n) {
-        case 32:
-            return f->mouse_x;
-        case 33:
-            return f->mouse_y;
-        case 34:
-            return f->mouse_buttons;
-        default:
-            return 0;
-    }
+    mouse.x = f->mouse_x;
+    mouse.y = f->mouse_y;
+    mouse.buttons = f->mouse_buttons;
+    return mouse;
 }

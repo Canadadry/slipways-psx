@@ -7,7 +7,6 @@
 #include "engine/dispatch_context.h"
 #include "game/game_data.h"
 #include "game/mouse_button.h"
-#include "game/draw_functions.h"
 #include "engine/vec.h"
 #include "engine/game_zone.h"
 
@@ -28,13 +27,6 @@ static const entity_class_t mouse_class_def = {
     .states = {[ENTITY_STATE_NORMAL] = mouse_update_method},
 };
 
-static void mouse_construct(p8_memory_t *mem) {
-    if (mem == NULL) {
-        return;
-    }
-    p8_poke(mem, 0x5f2d, 1);
-}
-
 static mouse_t *mouse_create(void) {
     mouse_t *self = (mouse_t *)allocator_alloc(game_zone(), sizeof *self);
 
@@ -43,14 +35,12 @@ static mouse_t *mouse_create(void) {
     /* Read-only: this module writes through its member. */
     self->header.pos = (const vec_t *const *)&self->pos;
     self->pos = &g_mouse_pos;
-    mouse_construct(dispatch_context_mem());
     entity_construct(&self->header);
     return self;
 }
 
 void mouse_init(void) {
     mouse_shutdown();
-    draw_functions_init();
     assert(entity_ready() && "mouse_init: entity_init() runs first");
     g_mouse_up = 1;
     g_mouse_pos = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
@@ -87,11 +77,13 @@ void mouse_update(const p8_input_t *input, mouse_t *self) {
         return;
     }
 
-    self->pos_own = vec_make(p8_fixed_from_int(p8_stat(input, 32)), p8_fixed_from_int(p8_stat(input, 33)));
+    p8_mouse_t mouse = p8_input_read_mouse(input);
+    self->pos_own = vec_make(p8_fixed_from_int(mouse.x), p8_fixed_from_int(mouse.y));
     self->pos = &self->pos_own;
 
     if (g_mouse_up) {
-        mouse_button_update(input, &g_left_button, 1);
-        mouse_button_update(input, &g_right_button, 6);
+        mouse_button_update(&g_left_button, (mouse.buttons & P8_MOUSE_LEFT) != 0);
+        /* The middle button counts as the right one, as in the cart. */
+        mouse_button_update(&g_right_button, (mouse.buttons & (P8_MOUSE_RIGHT | P8_MOUSE_MIDDLE)) != 0);
     }
 }

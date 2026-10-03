@@ -1,7 +1,7 @@
 /* The message box, built the two ways the game builds it
  * (score_panel_new_year() from the rewritten year banner,
  * score_panel_update() from the score rows) and lived through the real
- * update_entities() and draw_layers("draw_overlay"). */
+ * update_entities() and draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY). */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -22,7 +22,7 @@
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/message_box.h"
 #include "game/economy_score.h"
 #include "game/main_economy.h"
@@ -43,7 +43,7 @@
 
 #define MAX_BOXES 4
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -58,11 +58,11 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
 
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
-        h *= 16777619u;
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            h ^= (uint32_t)memory.screen[y][x];
+            h *= 16777619u;
+        }
     }
     return h;
 }
@@ -70,7 +70,7 @@ static uint32_t screen_hash(void) {
 static uint32_t draw_hash(void) {
     p8_gfx_init(&graphics);
     p8_cls(&memory);
-    draw_layers("draw_overlay");
+    draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY);
     return screen_hash();
 }
 
@@ -103,8 +103,8 @@ static uint32_t fold_box(uint32_t h, const message_box_t *e) {
     }
     h = fnv(h, (uint32_t)(shown_message_box() == e));
     h = fnv(h, (uint32_t)entity_list_listed(live_entities(), e));
-    h = fnv(h, (uint32_t)entity_list_listed(entities_by_message("draw_overlay"), e));
-    return fnv(h, (uint32_t)entity_list_listed(entities_by_tag("message_box"), e));
+    h = fnv(h, (uint32_t)entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), e));
+    return fnv(h, (uint32_t)entity_list_listed(entities_by_tag(TAG_MESSAGE_BOX), e));
 }
 
 typedef struct {
@@ -137,7 +137,7 @@ static int any_listed(const run_t *run) {
     return 0;
 }
 
-/* One game tick: update_entities(), then draw_layers("draw_overlay") on a
+/* One game tick: update_entities(), then draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY) on a
  * fresh framebuffer, folded with every tracked box's state. */
 static void tick(run_t *run) {
     uint32_t drawn;
@@ -165,8 +165,8 @@ static void run_check(const run_t *run, int want_ticks, uint32_t want_sequence, 
     int i;
 
     for (i = 0; i < run->count; i++) {
-        assert(!entity_list_listed(entities_by_message("draw_overlay"), run->boxes[i]));
-        assert(!entity_list_listed(entities_by_tag("message_box"), run->boxes[i]));
+        assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), run->boxes[i]));
+        assert(!entity_list_listed(entities_by_tag(TAG_MESSAGE_BOX), run->boxes[i]));
         assert(shown_message_box() != run->boxes[i]);
     }
     assert(run->drew);
@@ -180,13 +180,13 @@ static void run_check(const run_t *run, int want_ticks, uint32_t want_sequence, 
  * has just made it the shown message box. */
 static const message_box_t *year_box(int yr) {
     const message_box_t *box;
-    int before = entity_list_count_of(entities_by_tag("message_box"));
+    int before = entity_list_count_of(entities_by_tag(TAG_MESSAGE_BOX));
 
     score_panel_new_year(p8_fixed_from_int(yr));
     box = shown_message_box();
     assert(box != NULL);
-    assert(entity_list_count_of(entities_by_tag("message_box")) == before + 1);
-    assert(entity_list_listed(entities_by_tag("message_box"), box) && entity_list_listed(live_entities(), box) && entity_list_listed(entities_by_message("draw_overlay"), box));
+    assert(entity_list_count_of(entities_by_tag(TAG_MESSAGE_BOX)) == before + 1);
+    assert(entity_list_listed(entities_by_tag(TAG_MESSAGE_BOX), box) && entity_list_listed(live_entities(), box) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), box));
     return box;
 }
 
@@ -282,20 +282,20 @@ static void test_scores_box_follows_is_shown(void) {
     box = shown_message_box();
     assert(box != NULL);
     assert(ju->last_box == box);
-    built = entity_list_count_of(entities_by_tag("message_box"));
+    built = entity_list_count_of(entities_by_tag(TAG_MESSAGE_BOX));
     track(&run, box);
     run.hash = fnv(run.hash, draw_hash());
 
     for (i = 0; i < 80; i++) {
         score_panel_update(ju);
-        assert(entity_list_count_of(entities_by_tag("message_box")) == built);
+        assert(entity_list_count_of(entities_by_tag(TAG_MESSAGE_BOX)) == built);
         tick(&run);
         assert(entity_list_listed(live_entities(), box));
     }
     set_is_shown(ju, 0);
     while (any_listed(&run)) {
         score_panel_update(ju);
-        assert(entity_list_count_of(entities_by_tag("message_box")) == built);
+        assert(entity_list_count_of(entities_by_tag(TAG_MESSAGE_BOX)) == built);
         tick(&run);
     }
     run_check(&run, SCORES_TICKS, SCORES_SEQUENCE_HASH, "scores box follows is_shown");
@@ -313,7 +313,7 @@ static void test_defaults_match_the_parsed_spec(void) {
     assert(box->duration_scale == box->archetype->duration_scale);
     assert(box->duration_scale == p8_fixed_from_int(5));
     assert(box->header.class->tags == TAG(TAG_MESSAGE_BOX));
-    assert(box->header.state != NULL && strcmp(box->header.state, "normal") == 0);
+    assert(box->header.state == ENTITY_STATE_NORMAL);
     assert(message_box_ready());
     message_box_shutdown();
     assert(!message_box_ready());
@@ -333,7 +333,7 @@ static int counting_keep_open(message_box_t *self) {
  * its keep_open is a field the overlay draw calls, and it has no update
  * state for update_entities() to call. */
 static void test_message_box_is_a_struct_registered_under_draw_overlay(void) {
-    const char *others[] = {"draw", "hit_test", "new_year", "refresh"};
+    const entity_message_t others[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
     message_box_keys_t keys = {0};
     const message_box_t *from_score_panel;
     void *generic;
@@ -349,7 +349,7 @@ static void test_message_box_is_a_struct_registered_under_draw_overlay(void) {
     assert(from_score_panel != NULL);
     assert(generic != NULL);
     assert(shown_message_box() == generic);
-    assert(entity_list_listed(live_entities(), generic) && entity_list_listed(entities_by_message("draw_overlay"), generic) && entity_list_listed(entities_by_tag("message_box"), generic));
+    assert(entity_list_listed(live_entities(), generic) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), generic) && entity_list_listed(entities_by_tag(TAG_MESSAGE_BOX), generic));
     for (i = 0; i < 4; i++) {
         assert(!entity_list_listed(entities_by_message(others[i]), from_score_panel) && !entity_list_listed(entities_by_message(others[i]), generic));
     }
@@ -453,10 +453,9 @@ static void test_largest_scores_box_fits_its_slot(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

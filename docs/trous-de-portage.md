@@ -35,20 +35,6 @@ puisqu'ils comparent ce port à lui-même.
 
 Fichiers : `src/p8/fixed.c`, `src/p8/quarter_wave.h`.
 
-## GAP-2 — La deuxième manette est câblée à « rien »
-
-Lua : `qb:ph()`, `btn(b) or btn(b,1)`, `btn(b,1)`.
-
-`camera_update` teste le bouton du premier joueur (`p8_btn`) ou celui du
-second, comme le cart. Ce port n'a aucune représentation d'un deuxième
-joueur, ni dans `p8_input_t` (ses trames `p8_input_frame_t`) ni dans
-`events.json`, et n'en aura pas : le bouton du second joueur (`btn_p2`)
-vaut toujours faux.
-
-Sans effet tant que personne ne branche une deuxième manette.
-
-Fichiers : `src/game/scroll.c`, `src/p8/input.h` (le schéma de frame, qui n'a pas de second joueur), `src/platform/raylib_backend.c` (l'endroit où la capture le décide).
-
 ## GAP-3 — Les chaînes ne sont pas internées
 
 Lua : `hy.invented`, `oj`, `jo:gg`, `ho()`, `r`, `hp.o`, `hp.dm`, `kw.qe`,
@@ -61,8 +47,7 @@ pointeur.
 
 Contourné au cas par cas : `collect_contains_string` compare par contenu
 (les chaînes de la liste `invented` de l'économie, pour
-`tech_gate_is_unlocked`), et un module a sa propre comparaison par contenu
-(`planet_is_colonized`). Toute nouvelle comparaison de chaînes doit choisir
+`tech_gate_is_unlocked`). Toute nouvelle comparaison de chaînes doit choisir
 explicitement.
 
 **Hors de GAP-3 : les ressources.** Ce que le chargeur des tables de
@@ -94,7 +79,7 @@ Lua : `g_`, `jo`, `prober`, `cg("prober")`.
 
 La sonde (`probe`), l'écran d'aide et toute la famille des planètes
 s'enregistrent sous le tag `TAG_TARGETING`, mais rien ne fait jamais
-`entities_by_tag("targeting")`. Conservé par fidélité, pas par utilité.
+`entities_by_tag(TAG_TARGETING)`. Conservé par fidélité, pas par utilité.
 
 ## GAP-9 — Pas de suppression de champ nommé
 
@@ -111,21 +96,6 @@ couleur absente (en Lua, écrire nil effacerait le champ). Fixé par
 `test_open_box_layer_only_from_back_color` de `tests/test_button.c`.
 
 Fichier : `src/game/message_box.c`.
-
-## GAP-10 — L'audio est hors périmètre
-
-Lua : `sfx()`, `music()`, `ih`, `rn()`.
-
-`p8_sfx` et `p8_music` sont des fonctions vides. Ce n'est pas un report :
-le port n'aura pas de son.
-
-Le reste de la chaîne, lui, fonctionne : le bouton « toggle sfx » du menu
-pause (`pause_menu_row3_on_click_method`) bascule bien le drapeau de
-sourdine (`p8_set_sfx_muted`, `p8_sfx_muted`), et `p8_play_sfx` le lit
-avant de décider d'appeler `p8_sfx`. Seul l'appel final est inerte — donc
-les deux boutons audio du menu pause répondent au clic sans rien produire.
-
-Fichiers : `src/p8/audio.c`, `src/game/menu.c`.
 
 ## GAP-12 — Le premier anneau du trou de ver est noir au lieu de garder la plume
 

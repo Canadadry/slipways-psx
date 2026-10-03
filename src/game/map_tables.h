@@ -48,8 +48,17 @@ typedef struct {
     const void *ref;
 } data_item_t;
 
-/* `color` is only meaningful when has_color is set; draw_function is NULL
- * when absent; `resource`, which row_measure_item() draws as that resource's
+typedef enum {
+    DRAW_FUNCTION_NONE,
+    DRAW_FUNCTION_DRAW_BAR,
+    DRAW_FUNCTION_PRINT_OUTLINED,
+    DRAW_FUNCTION_DRAW_HELP_FRAME,
+    DRAW_FUNCTION_SPR,
+    DRAW_FUNCTION_DRAW_ROW,
+    DRAW_FUNCTION_COUNT
+} draw_function_t;
+
+/* `color` is only meaningful when has_color is set; `resource`, which row_measure_item() draws as that resource's
  * sprite 5 pixels wide, only when has_resource is set (never by the data
  * tables). */
 struct data_row {
@@ -57,7 +66,7 @@ struct data_row {
     const data_item_t *items;
     int has_color;
     int color;
-    const char *draw_function;
+    draw_function_t draw_function;
     int has_resource;
     p8_fixed_t resource;
 };
@@ -66,8 +75,8 @@ struct data_row {
  * records that follow, every other field zero. Otherwise positions 1..npos
  * are present: name, planet_codes, base_cost, production_key, inputs,
  * output, upgrade_tech, byproduct; upgrade_tech_false marks position 7
- * written false, upgrade_tech then being NULL. icon_sprite and play_sfx are
- * only meaningful under has_icon_sprite and has_play_sfx. */
+ * written false, upgrade_tech then being NULL. icon_sprite is only
+ * meaningful under has_icon_sprite. */
 typedef struct {
     const char *header;
     int npos;
@@ -84,8 +93,6 @@ typedef struct {
     int icon_sprite;
     const char *next_type;
     const char *class_name;
-    int has_play_sfx;
-    int play_sfx;
 } project_records_entry_t;
 
 /* icon_key is position 3 as written, a resource code; icon is that code's

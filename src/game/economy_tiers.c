@@ -1,7 +1,6 @@
 #include "game/economy_tiers.h"
 
 #include <assert.h>
-#include <string.h>
 
 #include "engine/entity_registry.h"
 #include "game/game_data.h"
@@ -18,7 +17,7 @@ static p8_fixed_t fixed_min(p8_fixed_t a, p8_fixed_t b) {
 
 typedef void (*entities_by_tag_visit_fn_t)(entity_t *e, void *ctx);
 
-static void for_each_tagged(const char *tag, entities_by_tag_visit_fn_t fn, void *ctx) {
+static void for_each_tagged(tag_t tag, entities_by_tag_visit_fn_t fn, void *ctx) {
     const entity_list_t *list = entities_by_tag(tag);
     entity_list_iter_t it;
     entity_t *e;
@@ -132,8 +131,8 @@ static void rebuild_incoming_routes_route_visit(entity_t *entity, void *context)
 }
 
 void economy_tiers_rebuild_incoming_routes(void) {
-    for_each_tagged("planet", rebuild_incoming_routes_reset_visit, NULL);
-    for_each_tagged("planet", rebuild_incoming_routes_route_visit, NULL);
+    for_each_tagged(TAG_PLANET, rebuild_incoming_routes_reset_visit, NULL);
+    for_each_tagged(TAG_PLANET, rebuild_incoming_routes_route_visit, NULL);
 }
 
 static void update_tiers_visit(entity_t *entity, void *context) {
@@ -196,7 +195,7 @@ static void update_tiers_visit(entity_t *entity, void *context) {
 
 int economy_tiers_update_tiers(void) {
     int jg = 0;
-    for_each_tagged("planet", update_tiers_visit, &jg);
+    for_each_tagged(TAG_PLANET, update_tiers_visit, &jg);
     return jg;
 }
 
@@ -212,7 +211,7 @@ p8_fixed_t economy_tiers_compute_tier(const entity_t *entity) {
     }
     assert(planet_is_family(entity) && "economy_tiers_compute_tier: the entity is a planet");
     planet = (const planet_t *)entity;
-    if (planet->header.state == NULL || strcmp(planet->header.state, "settled") != 0) {
+    if (planet->header.state != ENTITY_STATE_SETTLED) {
         return p8_fixed_from_int(0);
     }
 

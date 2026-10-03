@@ -3,7 +3,7 @@
 #include <stddef.h>
 
 static p8_graphics_t *g_gfx = NULL;
-static p8_memory_t *g_mem = NULL;
+static p8_vram_t *g_mem = NULL;
 static const p8_input_t *g_input = NULL;
 
 void dispatch_context_set_gfx(p8_graphics_t *gfx) {
@@ -14,11 +14,11 @@ p8_graphics_t *dispatch_context_gfx(void) {
     return g_gfx;
 }
 
-void dispatch_context_set_mem(p8_memory_t *mem) {
+void dispatch_context_set_mem(p8_vram_t *mem) {
     g_mem = mem;
 }
 
-p8_memory_t *dispatch_context_mem(void) {
+p8_vram_t *dispatch_context_mem(void) {
     return g_mem;
 }
 

@@ -63,10 +63,9 @@ const project_records_entry_t project_records_table[PROJECT_RECORDS_COUNT] = {
     {.header = "biome hacking"},
     {.npos = 3, .name = "terraform", .planet_codes = "xisoj", .base_cost = 20, .has_icon_sprite = 1, .icon_sprite = 39, .next_type = "e"},
     {.header = "starbirth"},
-    {.npos = 3, .name = "collapse", .planet_codes = "gm", .base_cost = 30, .has_icon_sprite = 1, .icon_sprite = 41, .class_name = "protostar", .has_play_sfx = 1, .play_sfx = 45},
+    {.npos = 3, .name = "collapse", .planet_codes = "gm", .base_cost = 30, .has_icon_sprite = 1, .icon_sprite = 41, .class_name = "protostar"},
     {.header = "geoharvesting"},
-    {.npos = 3, .name = "harvest", .planet_codes = "efmorxjisg", .base_cost = -20, .has_icon_sprite = 1, .icon_sprite = 23, .class_name = "burst", .has_play_sfx = 1,
-        .play_sfx = 46},
+    {.npos = 3, .name = "harvest", .planet_codes = "efmorxjisg", .base_cost = -20, .has_icon_sprite = 1, .icon_sprite = 23, .class_name = "burst"},
 };
 
 static const data_item_t icon_tooltips_1_1_items[] = {{.text = "-lab-"}};

@@ -17,7 +17,7 @@
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "game/mouse.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "engine/entity_class.h"
 #include "game/ui.h"
 #include "engine/vec.h"
@@ -25,7 +25,7 @@
 #define UPDATE_MOUSE_WORLD_X 0
 #define UPDATE_MOUSE_WORLD_Y 0
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -41,8 +41,7 @@ static int entity_list_listed(const entity_list_t *list, const void *e) {
 
 /* The messages may be read only once entity_registry_init() has run. */
 static int registered(const void *e, int entity_live) {
-    const char *buckets[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
-    const char *tags[] = {"mouse", "ui", "camera", "entity"};
+    const entity_message_t buckets[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
     size_t i;
 
     if (entity_list_listed(live_entities(), e)) {
@@ -53,8 +52,8 @@ static int registered(const void *e, int entity_live) {
             return 1;
         }
     }
-    for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
-        if (entity_list_listed(entities_by_tag(tags[i]), e)) {
+    for (i = 0; i < TAG_COUNT; i++) {
+        if (entity_list_listed(entities_by_tag((tag_t)i), e)) {
             return 1;
         }
     }
@@ -164,10 +163,9 @@ static void test_placeholder_is_a_struct(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

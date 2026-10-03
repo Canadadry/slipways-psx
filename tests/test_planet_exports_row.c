@@ -24,7 +24,7 @@
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "game/layout.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/planet.h"
 #include "game/planet_display.h"
 #include "game/ui.h"
@@ -71,8 +71,8 @@ static int layout_row_index_is_string(const layout_row_t *lq, int index, const c
 /* What planet_inspection_panel reaches in a game, built without a boot:
  * the resource codes (data_init), the planet, layout row and button
  * classes, and the main user interface message_box_open_box fills. */
-static void setup_panel_state(p8_memory_t *mem, p8_graphics_t *gfx) {
-    p8_mem_init(mem);
+static void setup_panel_state(p8_vram_t *mem, p8_graphics_t *gfx) {
+    p8_vram_init(mem);
     p8_gfx_init(gfx);
     dispatch_context_set_gfx(gfx);
     dispatch_context_set_mem(mem);
@@ -85,7 +85,7 @@ static void setup_panel_state(p8_memory_t *mem, p8_graphics_t *gfx) {
 }
 
 static void test_inspection_panel_exports_row_layout_row_receives_its_four_items(void) {
-    p8_memory_t memory;
+    p8_vram_t memory;
     p8_graphics_t graphics;
     planet_t *planet;
     static production_t production;

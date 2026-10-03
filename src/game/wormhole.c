@@ -1,9 +1,7 @@
 #include "game/wormhole.h"
 
 #include <assert.h>
-#include <string.h>
 
-#include "p8/audio.h"
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
 #include "engine/entity.h"
@@ -37,8 +35,6 @@ void wormhole_construct(wormhole_t *self) {
     if (self == NULL) {
         return;
     }
-
-    p8_play_sfx(p8_fixed_from_int(53));
 
     it = entity_list_all(live_entities());
     while (entity_list_iter_next(&it, &p)) {
@@ -150,7 +146,7 @@ void wormhole_update_unfolding(wormhole_t *self, p8_fixed_t t) {
                           P8_FIXED_LIT(0x000007ef, 0.031));
 
     self_p = self->map_pos != NULL ? *self->map_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    planet_list = entities_by_tag("planet");
+    planet_list = entities_by_tag(TAG_PLANET);
     if (planet_list != NULL) {
         for (i = 0; i < planet_list->count; i++) {
             entity_t *planet = planet_list->items[i];
@@ -162,7 +158,7 @@ void wormhole_update_unfolding(wormhole_t *self, p8_fixed_t t) {
             assert(planet_is_family(planet) && "wormhole_update_unfolding: the planet tag holds planets only");
             pt = (planet_t *)planet;
 
-            if (pt->header.state != NULL && strcmp(pt->header.state, "unknown") == 0) {
+            if (pt->header.state == ENTITY_STATE_UNKNOWN) {
                 vec_t planet_map_pos =
                     pt->map_pos != NULL ? *pt->map_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
                 vec_t diff = vec_sub(planet_map_pos, self_p);

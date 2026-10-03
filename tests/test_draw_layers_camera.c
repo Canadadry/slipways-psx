@@ -9,13 +9,13 @@
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/planet_display.h"
 #include "game/scroll.h"
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
-/* The main camera's apply_camera call inside draw_layers("draw"), which
+/* The main camera's apply_camera call inside draw_layers(ENTITY_MESSAGE_DRAW), which
  * needs both a real camera and a real entity registered under "draw" to
  * run at all: reset_world(), a real planet and real graphics and memory. */
 
@@ -40,16 +40,16 @@ static void spy_draw(entity_t *self, const vec_t *ra) {
 static entity_class_t g_spied_planet;
 
 static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_planet_draw(void) {
-    p8_memory_t memory;
+    p8_vram_t memory;
     p8_graphics_t graphics;
     planet_t *planet;
     entity_t *camera;
     vec_t *pos_heap;
-    int screen_pixel_addr;
-    unsigned char pixel_before;
+    int screen_x;
+    int screen_y;
     unsigned char pixel_after;
 
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);
@@ -66,9 +66,9 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
     assert(planet != NULL);
 
     /* The planet class has a draw, so the instance must land in the real
-     * entities_by_message("draw") bucket. */
+     * entities_by_message(ENTITY_MESSAGE_DRAW) bucket. */
     {
-        const entity_list_t *bucket = entities_by_message("draw");
+        const entity_list_t *bucket = entities_by_message(ENTITY_MESSAGE_DRAW);
         int found = 0;
         int i;
         assert(bucket != NULL);
@@ -94,17 +94,16 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
 
     /* planet_draw paints colour 0, which is also the framebuffer's cleared
      * value, so reading 0 back proves nothing unless the byte held something
-     * else first -- hence the sentinel 9. The address is world (256,256)
+     * else first -- hence the sentinel 9. The pixel is world (256,256)
      * minus the camera (192,192) that apply_camera sets inside this same
-     * draw_layers("draw"), hardcoded here because the camera is not set yet,
+     * draw_layers(ENTITY_MESSAGE_DRAW), hardcoded here because the camera is not set yet,
      * and cross-checked against the real camera below. */
-    screen_pixel_addr = P8_ADDR_SCREEN + (256 - 192) * P8_SCREEN_WIDTH + (256 - 192);
-    p8_poke(&memory, screen_pixel_addr, 9);
-    pixel_before = p8_peek(&memory, screen_pixel_addr);
-    assert(pixel_before == 9);
+    screen_x = 256 - 192;
+    screen_y = 256 - 192;
+    memory.screen[screen_y][screen_x] = 9;
 
     assert(graphics.camera_x == 0 && graphics.camera_y == 0);
-    draw_layers("draw");
+    draw_layers(ENTITY_MESSAGE_DRAW);
 
     /* Order, never the reverse: within a layer, the camera call runs before
      * the per-entity loop, so the real planet_draw already sees its camera. */
@@ -116,13 +115,13 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
     assert(graphics.camera_x == 192);
     assert(graphics.camera_y == 192);
 
-    /* The sentinel address against the camera actually set, so the two
+    /* The sentinel pixel against the camera actually set, so the two
      * cannot drift apart. */
-    assert(screen_pixel_addr == P8_ADDR_SCREEN + (256 - graphics.camera_y) * P8_SCREEN_WIDTH + (256 - graphics.camera_x));
+    assert(screen_x == 256 - graphics.camera_x && screen_y == 256 - graphics.camera_y);
 
     /* planet_draw's filled circle of radius 7 in colour 0 paints a black disc on
      * world (256,256), i.e. screen (64,64): the sentinel is gone. */
-    pixel_after = p8_peek(&memory, screen_pixel_addr);
+    pixel_after = memory.screen[screen_y][screen_x];
     assert(pixel_after == 0);
 
     assert(main_camera() == camera);

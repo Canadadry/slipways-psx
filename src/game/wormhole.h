@@ -70,7 +70,6 @@ void wormhole_update_placing(wormhole_t *self, p8_fixed_t t);
 
 void wormhole_drop(wormhole_t *self);
 
-/* GAP-3 */
 void wormhole_update_unfolding(wormhole_t *self, p8_fixed_t t);
 
 /* Reads the radius only; `self` is non-const for signature uniformity. */
