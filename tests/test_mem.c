@@ -17,6 +17,8 @@ static void test_init_zeroes_everything_but_the_default_draw_palette(void) {
     mem.sprite_sheet[P8_SPRITE_SHEET_HEIGHT - 1][P8_SPRITE_SHEET_WIDTH - 1] = 0xAB;
     mem.map_cells[0][0] = 0xAB;
     mem.map_cells[P8_MAP_HEIGHT - 1][P8_MAP_WIDTH - 1] = 0xAB;
+    mem.screen[0][0] = 0xAB;
+    mem.screen[P8_SCREEN_HEIGHT - 1][P8_SCREEN_WIDTH - 1] = 0xAB;
     p8_mem_init(&mem);
     for (int i = 0; i < P8_MEM_SIZE; i++) {
         assert(mem.data[i] == 0);
@@ -29,6 +31,11 @@ static void test_init_zeroes_everything_but_the_default_draw_palette(void) {
     for (int y = 0; y < P8_MAP_HEIGHT; y++) {
         for (int x = 0; x < P8_MAP_WIDTH; x++) {
             assert(mem.map_cells[y][x] == 0);
+        }
+    }
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            assert(mem.screen[y][x] == 0);
         }
     }
 
@@ -44,18 +51,6 @@ static void test_peek_poke_roundtrip(void) {
 
     p8_poke(&mem, 0x1234, 42);
     assert(p8_peek(&mem, 0x1234) == 42);
-}
-
-static void test_screen_region_boundary(void) {
-    p8_memory_t mem;
-    p8_mem_init(&mem);
-
-    assert(P8_ADDR_SCREEN == 0xA000);
-    p8_poke(&mem, P8_ADDR_SCREEN, 7);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN) == 7);
-
-    p8_poke(&mem, P8_MEM_SIZE - 1, 8);
-    assert(p8_peek(&mem, P8_MEM_SIZE - 1) == 8);
 }
 
 static void test_out_of_range_peek_returns_zero(void) {
@@ -167,7 +162,6 @@ static void test_memcpy_negative_addr_is_noop(void) {
 int main(void) {
     test_init_zeroes_everything_but_the_default_draw_palette();
     test_peek_poke_roundtrip();
-    test_screen_region_boundary();
     test_out_of_range_peek_returns_zero();
     test_out_of_range_poke_is_noop();
     test_memcpy_basic();

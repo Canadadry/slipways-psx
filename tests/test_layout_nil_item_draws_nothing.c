@@ -45,7 +45,7 @@ static p8_memory_t memory;
 static p8_graphics_t graphics;
 
 static int screen_pixel(int x, int y) {
-    return p8_peek(&memory, P8_ADDR_SCREEN + y * P8_SCREEN_WIDTH + x);
+    return memory.screen[y][x];
 }
 
 /* How many places sprite #0's bottom row appears in the framebuffer, with

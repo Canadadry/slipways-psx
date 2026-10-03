@@ -1,6 +1,7 @@
 #include "p8/gfx.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 void p8_gfx_init(p8_graphics_t *gfx) {
     gfx->camera_x = 0;
@@ -14,9 +15,7 @@ void p8_gfx_init(p8_graphics_t *gfx) {
 }
 
 void p8_cls(p8_memory_t *mem) {
-    for (int i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        p8_poke(mem, P8_ADDR_SCREEN + i, 0);
-    }
+    memset(mem->screen, 0, sizeof(mem->screen));
 }
 
 void p8_pset(const p8_graphics_t *gfx, p8_memory_t *mem, int x, int y, int col) {
@@ -25,7 +24,7 @@ void p8_pset(const p8_graphics_t *gfx, p8_memory_t *mem, int x, int y, int col) 
     if (sx < 0 || sx >= P8_SCREEN_WIDTH || sy < 0 || sy >= P8_SCREEN_HEIGHT) {
         return;
     }
-    p8_poke(mem, P8_ADDR_SCREEN + sy * P8_SCREEN_WIDTH + sx, (unsigned char)col);
+    mem->screen[sy][sx] = (unsigned char)col;
 }
 
 void p8_camera(p8_graphics_t *gfx, int x, int y) {

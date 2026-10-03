@@ -12,7 +12,7 @@
 #define BACKGROUND_STAR_SPRITE 72
 
 static unsigned char screen_at(const p8_memory_t *mem, int x, int y) {
-    return p8_peek(mem, P8_ADDR_SCREEN + y * P8_SCREEN_WIDTH + x);
+    return mem->screen[y][x];
 }
 
 static void setup_sky(p8_memory_t *mem, p8_graphics_t *gfx) {

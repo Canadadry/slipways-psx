@@ -4,19 +4,20 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 
 static void test_cls_clears_whole_screen_to_zero(void) {
     p8_memory_t mem;
     p8_mem_init(&mem);
 
-    for (int i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        p8_poke(&mem, P8_ADDR_SCREEN + i, 9);
-    }
+    memset(mem.screen, 9, sizeof(mem.screen));
 
     p8_cls(&mem);
 
-    for (int i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        assert(p8_peek(&mem, P8_ADDR_SCREEN + i) == 0);
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            assert(mem.screen[y][x] == 0);
+        }
     }
 }
 
@@ -28,9 +29,9 @@ static void test_pset_plots_pixel_at_coordinate(void) {
 
     p8_pset(&gfx, &mem, 10, 20, 7);
 
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 20 * P8_SCREEN_WIDTH + 10) == 7);
+    assert(mem.screen[20][10] == 7);
     /* Neighboring pixels are untouched. */
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 20 * P8_SCREEN_WIDTH + 11) == 0);
+    assert(mem.screen[20][11] == 0);
 }
 
 static void test_pset_off_screen_is_clipped_silently(void) {
@@ -44,8 +45,10 @@ static void test_pset_off_screen_is_clipped_silently(void) {
     p8_pset(&gfx, &mem, P8_SCREEN_WIDTH, 0, 7);
     p8_pset(&gfx, &mem, 0, P8_SCREEN_HEIGHT, 7);
 
-    for (int i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        assert(p8_peek(&mem, P8_ADDR_SCREEN + i) == 0);
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            assert(mem.screen[y][x] == 0);
+        }
     }
 }
 
@@ -60,9 +63,9 @@ static void test_camera_offset_shifts_subsequent_pset(void) {
 
     /* camera(10,5) shifts the world left/up by (10,5): world (15,15)
      * lands at screen (5,10). */
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 10 * P8_SCREEN_WIDTH + 5) == 7);
+    assert(mem.screen[10][5] == 7);
     /* It did NOT land at the unshifted coordinate. */
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 15 * P8_SCREEN_WIDTH + 15) == 0);
+    assert(mem.screen[15][15] == 0);
 }
 
 static void test_camera_reset_restores_zero_offset(void) {
@@ -75,7 +78,7 @@ static void test_camera_reset_restores_zero_offset(void) {
     p8_camera_reset(&gfx);
     p8_pset(&gfx, &mem, 3, 4, 6);
 
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 4 * P8_SCREEN_WIDTH + 3) == 6);
+    assert(mem.screen[4][3] == 6);
 }
 
 /* `palt()` stores into the draw palette in memory, so the PICO-8 default --
@@ -150,13 +153,13 @@ static void test_palt_affects_a_subsequent_transparent_color_draw(void) {
     if (!p8_gfx_is_transparent(&mem, col)) {
         p8_pset(&gfx, &mem, 5, 5, col);
     }
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 5 * P8_SCREEN_WIDTH + 5) == 0);
+    assert(mem.screen[5][5] == 0);
 
     p8_palt(&mem, 3, 0);
     if (!p8_gfx_is_transparent(&mem, col)) {
         p8_pset(&gfx, &mem, 5, 5, col);
     }
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 5 * P8_SCREEN_WIDTH + 5) == 3);
+    assert(mem.screen[5][5] == 3);
 }
 
 static void test_line_draws_diagonal_pixels(void) {
@@ -168,10 +171,10 @@ static void test_line_draws_diagonal_pixels(void) {
     p8_line(&gfx, &mem, 2, 2, 5, 5, 8);
 
     for (int i = 2; i <= 5; i++) {
-        assert(p8_peek(&mem, P8_ADDR_SCREEN + i * P8_SCREEN_WIDTH + i) == 8);
+        assert(mem.screen[i][i] == 8);
     }
     /* Off the diagonal is untouched. */
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 2 * P8_SCREEN_WIDTH + 3) == 0);
+    assert(mem.screen[2][3] == 0);
 }
 
 static void test_line_zero_length_draws_single_pixel(void) {
@@ -182,8 +185,8 @@ static void test_line_zero_length_draws_single_pixel(void) {
 
     p8_line(&gfx, &mem, 7, 9, 7, 9, 11);
 
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 9 * P8_SCREEN_WIDTH + 7) == 11);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 9 * P8_SCREEN_WIDTH + 8) == 0);
+    assert(mem.screen[9][7] == 11);
+    assert(mem.screen[9][8] == 0);
 }
 
 static void test_rect_draws_unfilled_outline(void) {
@@ -195,14 +198,14 @@ static void test_rect_draws_unfilled_outline(void) {
     p8_rect(&gfx, &mem, 2, 2, 5, 4, 8);
 
     /* Corners and edges are drawn. */
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 2 * P8_SCREEN_WIDTH + 2) == 8);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 2 * P8_SCREEN_WIDTH + 5) == 8);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 4 * P8_SCREEN_WIDTH + 2) == 8);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 4 * P8_SCREEN_WIDTH + 5) == 8);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 2 * P8_SCREEN_WIDTH + 3) == 8);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 3 * P8_SCREEN_WIDTH + 2) == 8);
+    assert(mem.screen[2][2] == 8);
+    assert(mem.screen[2][5] == 8);
+    assert(mem.screen[4][2] == 8);
+    assert(mem.screen[4][5] == 8);
+    assert(mem.screen[2][3] == 8);
+    assert(mem.screen[3][2] == 8);
     /* Interior is untouched (unfilled). */
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 3 * P8_SCREEN_WIDTH + 3) == 0);
+    assert(mem.screen[3][3] == 0);
 }
 
 static void test_rect_single_pixel_draws_one_point(void) {
@@ -213,9 +216,9 @@ static void test_rect_single_pixel_draws_one_point(void) {
 
     p8_rect(&gfx, &mem, 6, 6, 6, 6, 12);
 
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 6 * P8_SCREEN_WIDTH + 6) == 12);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 6 * P8_SCREEN_WIDTH + 7) == 0);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 7 * P8_SCREEN_WIDTH + 6) == 0);
+    assert(mem.screen[6][6] == 12);
+    assert(mem.screen[6][7] == 0);
+    assert(mem.screen[7][6] == 0);
 }
 
 static void test_rectfill_fills_every_pixel_in_bounds(void) {
@@ -228,12 +231,12 @@ static void test_rectfill_fills_every_pixel_in_bounds(void) {
 
     for (int y = 2; y <= 3; y++) {
         for (int x = 2; x <= 4; x++) {
-            assert(p8_peek(&mem, P8_ADDR_SCREEN + y * P8_SCREEN_WIDTH + x) == 9);
+            assert(mem.screen[y][x] == 9);
         }
     }
     /* Just outside the rectangle is untouched. */
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 4 * P8_SCREEN_WIDTH + 2) == 0);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 2 * P8_SCREEN_WIDTH + 5) == 0);
+    assert(mem.screen[4][2] == 0);
+    assert(mem.screen[2][5] == 0);
 }
 
 static void test_circ_draws_unfilled_outline(void) {
@@ -245,12 +248,12 @@ static void test_circ_draws_unfilled_outline(void) {
     p8_circ(&gfx, &mem, 10, 10, 3, 8);
 
     /* Cardinal points of the outline. */
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 10 * P8_SCREEN_WIDTH + 13) == 8);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 10 * P8_SCREEN_WIDTH + 7) == 8);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 13 * P8_SCREEN_WIDTH + 10) == 8);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 7 * P8_SCREEN_WIDTH + 10) == 8);
+    assert(mem.screen[10][13] == 8);
+    assert(mem.screen[10][7] == 8);
+    assert(mem.screen[13][10] == 8);
+    assert(mem.screen[7][10] == 8);
     /* Center is untouched (unfilled). */
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 10 * P8_SCREEN_WIDTH + 10) == 0);
+    assert(mem.screen[10][10] == 0);
 }
 
 static void test_circ_zero_radius_draws_single_pixel(void) {
@@ -261,9 +264,9 @@ static void test_circ_zero_radius_draws_single_pixel(void) {
 
     p8_circ(&gfx, &mem, 5, 5, 0, 6);
 
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 5 * P8_SCREEN_WIDTH + 5) == 6);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 5 * P8_SCREEN_WIDTH + 6) == 0);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 4 * P8_SCREEN_WIDTH + 5) == 0);
+    assert(mem.screen[5][5] == 6);
+    assert(mem.screen[5][6] == 0);
+    assert(mem.screen[4][5] == 0);
 }
 
 static void test_circfill_fills_the_disc(void) {
@@ -275,11 +278,11 @@ static void test_circfill_fills_the_disc(void) {
     p8_circfill(&gfx, &mem, 10, 10, 3, 8);
 
     /* Center and outline are both filled. */
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 10 * P8_SCREEN_WIDTH + 10) == 8);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 10 * P8_SCREEN_WIDTH + 13) == 8);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 10 * P8_SCREEN_WIDTH + 7) == 8);
+    assert(mem.screen[10][10] == 8);
+    assert(mem.screen[10][13] == 8);
+    assert(mem.screen[10][7] == 8);
     /* Well outside the disc is untouched. */
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 10 * P8_SCREEN_WIDTH + 14) == 0);
+    assert(mem.screen[10][14] == 0);
 }
 
 static void test_circfill_zero_radius_draws_single_pixel(void) {
@@ -290,9 +293,9 @@ static void test_circfill_zero_radius_draws_single_pixel(void) {
 
     p8_circfill(&gfx, &mem, 5, 5, 0, 6);
 
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 5 * P8_SCREEN_WIDTH + 5) == 6);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 5 * P8_SCREEN_WIDTH + 6) == 0);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 4 * P8_SCREEN_WIDTH + 5) == 0);
+    assert(mem.screen[5][5] == 6);
+    assert(mem.screen[5][6] == 0);
+    assert(mem.screen[4][5] == 0);
 }
 
 static void test_fillp_pattern_alters_rectfill_output(void) {
@@ -309,11 +312,11 @@ static void test_fillp_pattern_alters_rectfill_output(void) {
 
     for (int y = 0; y < 3; y++) {
         for (int x = 0; x < 4; x++) {
-            assert(p8_peek(&mem, P8_ADDR_SCREEN + y * P8_SCREEN_WIDTH + x) == 8);
+            assert(mem.screen[y][x] == 8);
         }
     }
     for (int x = 0; x < 4; x++) {
-        assert(p8_peek(&mem, P8_ADDR_SCREEN + 3 * P8_SCREEN_WIDTH + x) == 0);
+        assert(mem.screen[3][x] == 0);
     }
 
     /* fillp() with no pattern resets to solid (always draw). */
@@ -321,7 +324,7 @@ static void test_fillp_pattern_alters_rectfill_output(void) {
     p8_rectfill(&gfx, &mem, 0, 0, 3, 3, 8);
     for (int y = 0; y < 4; y++) {
         for (int x = 0; x < 4; x++) {
-            assert(p8_peek(&mem, P8_ADDR_SCREEN + y * P8_SCREEN_WIDTH + x) == 8);
+            assert(mem.screen[y][x] == 8);
         }
     }
 }
@@ -368,10 +371,10 @@ static void test_spr_default_draws_1x1_sprite_at_world_position(void) {
 
     p8_spr_default(&gfx, &mem, 5, 20, 30);
 
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 30 * P8_SCREEN_WIDTH + 20) == 7);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 31 * P8_SCREEN_WIDTH + 21) == 8);
+    assert(mem.screen[30][20] == 7);
+    assert(mem.screen[31][21] == 8);
     /* Outside the 8x8 block is untouched. */
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 38 * P8_SCREEN_WIDTH + 20) == 0);
+    assert(mem.screen[38][20] == 0);
 }
 
 static void test_spr_with_explicit_width_height_draws_multi_block_sprite(void) {
@@ -391,12 +394,12 @@ static void test_spr_with_explicit_width_height_draws_multi_block_sprite(void) {
 
     p8_spr(&gfx, &mem, 0, 0, 0, 2, 2);
 
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 0 * P8_SCREEN_WIDTH + 0) == 1);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 0 * P8_SCREEN_WIDTH + 8) == 2);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 8 * P8_SCREEN_WIDTH + 0) == 3);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 15 * P8_SCREEN_WIDTH + 15) == 4);
+    assert(mem.screen[0][0] == 1);
+    assert(mem.screen[0][8] == 2);
+    assert(mem.screen[8][0] == 3);
+    assert(mem.screen[15][15] == 4);
     /* Beyond the 16x16 area is untouched. */
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 16 * P8_SCREEN_WIDTH + 0) == 0);
+    assert(mem.screen[16][0] == 0);
 }
 
 static void test_spr_skips_pixels_marked_transparent_by_palt(void) {
@@ -409,15 +412,15 @@ static void test_spr_skips_pixels_marked_transparent_by_palt(void) {
     p8_gfx_init(&gfx);
 
     mem.sprite_sheet[0][0] = 3; /* sprite 0, corner pixel */
-    p8_poke(&mem, P8_ADDR_SCREEN + 0 * P8_SCREEN_WIDTH + 0, 9); /* pre-existing content */
+    mem.screen[0][0] = 9; /* pre-existing content */
 
     p8_palt(&mem, 3, 1);
     p8_spr_default(&gfx, &mem, 0, 0, 0);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 0 * P8_SCREEN_WIDTH + 0) == 9);
+    assert(mem.screen[0][0] == 9);
 
     p8_palt(&mem, 3, 0);
     p8_spr_default(&gfx, &mem, 0, 0, 0);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 0 * P8_SCREEN_WIDTH + 0) == 3);
+    assert(mem.screen[0][0] == 3);
 }
 
 static void test_mset_writes_base_region_cell(void) {
@@ -447,11 +450,11 @@ static void test_mset_outside_32x32_changes_no_cell(void) {
     p8_map(&gfx, &mem, 32, 0, 16, 0, 1, 1);
     p8_map(&gfx, &mem, 0, 63, 24, 0, 1, 1);
 
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 0 * P8_SCREEN_WIDTH + 0) == 7);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 0 * P8_SCREEN_WIDTH + 8) == 0);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 8 * P8_SCREEN_WIDTH + 0) == 0);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 0 * P8_SCREEN_WIDTH + 16) == 0);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 0 * P8_SCREEN_WIDTH + 24) == 0);
+    assert(mem.screen[0][0] == 7);
+    assert(mem.screen[0][8] == 0);
+    assert(mem.screen[8][0] == 0);
+    assert(mem.screen[0][16] == 0);
+    assert(mem.screen[0][24] == 0);
     for (int y = 0; y < P8_MAP_HEIGHT; y++) {
         for (int x = 0; x < P8_MAP_WIDTH; x++) {
             assert(mem.map_cells[y][x] == ((x == 31 && y == 31) ? 5 : 0));
@@ -491,11 +494,11 @@ static void test_map_draws_cells_via_sprite_drawing_logic(void) {
 
     p8_map(&gfx, &mem, 0, 0, 0, 0, 2, 2);
 
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 0 * P8_SCREEN_WIDTH + 8) == 7);
+    assert(mem.screen[0][8] == 7);
     /* Cell (0,0) is sprite 0, whose corner pixel was never written (stays
      * palette index 0, which is transparent by default and so is
      * skipped -- screen stays at its cleared 0 value either way). */
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 0 * P8_SCREEN_WIDTH + 0) == 0);
+    assert(mem.screen[0][0] == 0);
 }
 
 static void test_map_treats_sprite_0_cells_as_empty(void) {
@@ -515,10 +518,10 @@ static void test_map_treats_sprite_0_cells_as_empty(void) {
     p8_mset(&mem, 0, 0, 0);
 
     p8_map(&gfx, &mem, 0, 0, 0, 0, 1, 1);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 0) == 0);
+    assert(mem.screen[0][0] == 0);
 
     p8_spr(&gfx, &mem, 0, 0, 0, 1, 1);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 0) == 7);
+    assert(mem.screen[0][0] == 7);
 }
 
 static void test_map_and_mset_round_trip_against_real_sheet(void) {
@@ -540,7 +543,7 @@ static void test_map_and_mset_round_trip_against_real_sheet(void) {
     p8_map(&gfx, &mem, 4, 20, 0, 0, 1, 1);
 
     assert(mem.map_cells[20][4] == 2);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 0 * P8_SCREEN_WIDTH + 0) == expected);
+    assert(mem.screen[0][0] == expected);
 }
 
 static void test_print_draws_known_glyph_pixels(void) {
@@ -564,11 +567,11 @@ static void test_print_draws_known_glyph_pixels(void) {
     };
     for (int row = 0; row < 5; row++) {
         for (int col = 0; col < 3; col++) {
-            unsigned char pixel = p8_peek(&mem, P8_ADDR_SCREEN + (20 + row) * P8_SCREEN_WIDTH + (10 + col));
+            unsigned char pixel = mem.screen[20 + row][10 + col];
             assert(pixel == (expected[row][col] ? 7 : 0));
         }
         /* 4th column of the advance cell is always blank spacing. */
-        assert(p8_peek(&mem, P8_ADDR_SCREEN + (20 + row) * P8_SCREEN_WIDTH + 13) == 0);
+        assert(mem.screen[20 + row][13] == 0);
     }
 }
 
@@ -591,7 +594,7 @@ static void test_print_advances_cursor_by_cell_width_between_chars(void) {
     };
     for (int row = 0; row < 5; row++) {
         for (int col = 0; col < 3; col++) {
-            unsigned char pixel = p8_peek(&mem, P8_ADDR_SCREEN + row * P8_SCREEN_WIDTH + (4 + col));
+            unsigned char pixel = mem.screen[row][4 + col];
             assert(pixel == (expected_b[row][col] ? 6 : 0));
         }
     }
@@ -610,7 +613,7 @@ static void test_print_unmapped_character_draws_placeholder_block(void) {
 
     for (int row = 0; row < 5; row++) {
         for (int col = 0; col < 3; col++) {
-            assert(p8_peek(&mem, P8_ADDR_SCREEN + row * P8_SCREEN_WIDTH + col) == 8);
+            assert(mem.screen[row][col] == 8);
         }
     }
 }
@@ -625,7 +628,7 @@ static void test_print_space_is_blank(void) {
 
     for (int row = 0; row < 5; row++) {
         for (int col = 0; col < 4; col++) {
-            assert(p8_peek(&mem, P8_ADDR_SCREEN + row * P8_SCREEN_WIDTH + col) == 0);
+            assert(mem.screen[row][col] == 0);
         }
     }
 }
@@ -644,8 +647,8 @@ static void test_print_respects_camera_offset(void) {
 
     /* World (10,20) minus camera (10,20) lands at screen (0,0); the 'a'
      * glyph's top-left pixel (row0,col1) should be lit there. */
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 0 * P8_SCREEN_WIDTH + 1) == 7);
-    assert(p8_peek(&mem, P8_ADDR_SCREEN + 0 * P8_SCREEN_WIDTH + 0) == 0);
+    assert(mem.screen[0][1] == 7);
+    assert(mem.screen[0][0] == 0);
 }
 
 static void test_print_digit_and_punctuation_glyphs(void) {
@@ -669,7 +672,7 @@ static void test_print_digit_and_punctuation_glyphs(void) {
     };
     for (int row = 0; row < 5; row++) {
         for (int col = 0; col < 3; col++) {
-            unsigned char pixel = p8_peek(&mem, P8_ADDR_SCREEN + row * P8_SCREEN_WIDTH + col);
+            unsigned char pixel = mem.screen[row][col];
             assert(pixel == (expected_1[row][col] ? 9 : 0));
         }
     }
@@ -684,7 +687,7 @@ static void test_print_digit_and_punctuation_glyphs(void) {
     };
     for (int row = 0; row < 5; row++) {
         for (int col = 0; col < 3; col++) {
-            unsigned char pixel = p8_peek(&mem, P8_ADDR_SCREEN + row * P8_SCREEN_WIDTH + (4 + col));
+            unsigned char pixel = mem.screen[row][4 + col];
             assert(pixel == (expected_colon[row][col] ? 9 : 0));
         }
     }

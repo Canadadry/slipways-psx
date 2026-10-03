@@ -45,8 +45,8 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
     planet_t *planet;
     entity_t *camera;
     vec_t *pos_heap;
-    int screen_pixel_addr;
-    unsigned char pixel_before;
+    int screen_x;
+    int screen_y;
     unsigned char pixel_after;
 
     p8_mem_init(&memory);
@@ -94,14 +94,13 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
 
     /* planet_draw paints colour 0, which is also the framebuffer's cleared
      * value, so reading 0 back proves nothing unless the byte held something
-     * else first -- hence the sentinel 9. The address is world (256,256)
+     * else first -- hence the sentinel 9. The pixel is world (256,256)
      * minus the camera (192,192) that apply_camera sets inside this same
      * draw_layers(ENTITY_MESSAGE_DRAW), hardcoded here because the camera is not set yet,
      * and cross-checked against the real camera below. */
-    screen_pixel_addr = P8_ADDR_SCREEN + (256 - 192) * P8_SCREEN_WIDTH + (256 - 192);
-    p8_poke(&memory, screen_pixel_addr, 9);
-    pixel_before = p8_peek(&memory, screen_pixel_addr);
-    assert(pixel_before == 9);
+    screen_x = 256 - 192;
+    screen_y = 256 - 192;
+    memory.screen[screen_y][screen_x] = 9;
 
     assert(graphics.camera_x == 0 && graphics.camera_y == 0);
     draw_layers(ENTITY_MESSAGE_DRAW);
@@ -116,13 +115,13 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
     assert(graphics.camera_x == 192);
     assert(graphics.camera_y == 192);
 
-    /* The sentinel address against the camera actually set, so the two
+    /* The sentinel pixel against the camera actually set, so the two
      * cannot drift apart. */
-    assert(screen_pixel_addr == P8_ADDR_SCREEN + (256 - graphics.camera_y) * P8_SCREEN_WIDTH + (256 - graphics.camera_x));
+    assert(screen_x == 256 - graphics.camera_x && screen_y == 256 - graphics.camera_y);
 
     /* planet_draw's filled circle of radius 7 in colour 0 paints a black disc on
      * world (256,256), i.e. screen (64,64): the sentinel is gone. */
-    pixel_after = p8_peek(&memory, screen_pixel_addr);
+    pixel_after = memory.screen[screen_y][screen_x];
     assert(pixel_after == 0);
 
     assert(main_camera() == camera);

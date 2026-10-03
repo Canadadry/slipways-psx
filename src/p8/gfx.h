@@ -3,9 +3,6 @@
 
 #include "p8/mem.h"
 
-#define P8_SCREEN_WIDTH 128
-#define P8_SCREEN_HEIGHT 128
-
 #define P8_SPRITE_SIZE 8
 
 typedef struct {

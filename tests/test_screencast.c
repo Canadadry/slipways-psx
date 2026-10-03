@@ -18,8 +18,10 @@
  * fail on a shifted offset or on two swapped frames. A constant pattern
  * would make them all blind. */
 static void paint_frame(p8_memory_t *mem, int seed) {
-    for (int i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        p8_poke(mem, P8_ADDR_SCREEN + i, (unsigned char)((i + seed) & 0x0f));
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            mem->screen[y][x] = (unsigned char)((y * P8_SCREEN_WIDTH + x + seed) & 0x0f);
+        }
     }
 }
 
@@ -326,10 +328,10 @@ static void test_on_disk_byte_holds_the_even_pixel_in_its_low_nibble(void) {
 
     p8_mem_init(&mem);
     paint_frame(&mem, 0);
-    p8_poke(&mem, P8_ADDR_SCREEN + 0, 0x03);
-    p8_poke(&mem, P8_ADDR_SCREEN + 1, 0x0c);
-    p8_poke(&mem, P8_ADDR_SCREEN + 2, 0x0f);
-    p8_poke(&mem, P8_ADDR_SCREEN + 3, 0x00);
+    mem.screen[0][0] = 0x03;
+    mem.screen[0][1] = 0x0c;
+    mem.screen[0][2] = 0x0f;
+    mem.screen[0][3] = 0x00;
 
     assert(screencast_writer_open(&writer, path) == 1);
     assert(screencast_write_frame(&writer, &mem) == 1);

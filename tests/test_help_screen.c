@@ -226,11 +226,11 @@ static void check(const char *label, uint32_t got, uint32_t want) {
 
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
-        h *= 16777619u;
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            h ^= (uint32_t)memory.screen[y][x];
+            h *= 16777619u;
+        }
     }
     return h;
 }
@@ -498,7 +498,8 @@ static void test_particle_takes_the_help_palette(void) {
     pointer_list_t *qy;
     vec_t ra;
     probe_t *fv;
-    int at;
+    int at_x;
+    int at_y;
 
     start_title();
     fv = the_help();
@@ -512,10 +513,11 @@ static void test_particle_takes_the_help_palette(void) {
     empty_particles(qy);
     pointer_list_add(qy, particle);
     p8_camera_reset(&graphics);
-    at = P8_ADDR_SCREEN + p8_fixed_flr_int(ra.y) * P8_SCREEN_WIDTH + p8_fixed_flr_int(ra.x);
-    p8_poke(&memory, at, 3);
+    at_x = p8_fixed_flr_int(ra.x);
+    at_y = p8_fixed_flr_int(ra.y);
+    memory.screen[at_y][at_x] = 3;
     emitter_update(&graphics, &memory, &fv->header);
-    assert(p8_peek(&memory, at) == help_screen_trail_colors_seq.items[5] && help_screen_trail_colors_seq.items[5] == 9);
+    assert(memory.screen[at_y][at_x] == help_screen_trail_colors_seq.items[5] && help_screen_trail_colors_seq.items[5] == 9);
 }
 
 /* cart_start_game(), as a difficulty button starts it, takes the help out of

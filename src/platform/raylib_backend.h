@@ -56,8 +56,8 @@ int raylib_backend_should_continue(const raylib_backend_t *backend);
  * length (tests/test_marker_coherence.c). */
 void raylib_backend_poll_input(raylib_backend_t *backend, p8_input_frame_t *out_frame);
 
-/* Uploads the current framebuffer (p8_peek from P8_ADDR_SCREEN, one
- * palette lookup per pixel) and draws it scaled to fill the window.
+/* Uploads the current framebuffer (mem->screen, one palette lookup per
+ * pixel) and draws it scaled to fill the window.
  * Called once per loop iteration, after cart_update60() and cart_draw().
  * Records nothing. `frame` is unused and kept only for the call shape.
  *

@@ -11,7 +11,7 @@
 #define DEMO_EVENTS_PATH "tests/fixtures/demo_events.json"
 
 static unsigned char screen_pixel(const p8_memory_t *mem, int x, int y) {
-    return p8_peek(mem, P8_ADDR_SCREEN + y * P8_SCREEN_WIDTH + x);
+    return mem->screen[y][x];
 }
 
 int main(void) {

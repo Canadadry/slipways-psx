@@ -28,9 +28,5 @@ int dump_pixels(const unsigned char *pixels, FILE *out) {
 }
 
 int dump_screen(const p8_memory_t *mem, FILE *out) {
-    unsigned char pixels[P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT];
-    for (int i = 0; i < (int)sizeof(pixels); i++) {
-        pixels[i] = p8_peek(mem, P8_ADDR_SCREEN + i);
-    }
-    return dump_pixels(pixels, out);
+    return dump_pixels(&mem->screen[0][0], out);
 }

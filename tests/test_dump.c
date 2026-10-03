@@ -134,8 +134,8 @@ static void test_dump_of_pixel_buffer_matches_dump_of_same_screen(void) {
     p8_mem_init(&mem);
     for (int i = 0; i < (int)sizeof(pixels); i++) {
         pixels[i] = (unsigned char)((i * 7 + i / P8_SCREEN_WIDTH) % 16);
-        p8_poke(&mem, P8_ADDR_SCREEN + i, pixels[i]);
     }
+    memcpy(mem.screen, pixels, sizeof(mem.screen));
 
     size_t from_screen_len;
     char *from_screen = capture_text(write_screen, &mem, &from_screen_len);

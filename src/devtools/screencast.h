@@ -41,12 +41,12 @@ typedef struct {
  * pass to screencast_writer_close. */
 int screencast_writer_open(screencast_writer_t *writer, const char *path);
 
-/* Appends a frame to the capture, read from the screen of the PICO-8
- * memory (P8_ADDR_SCREEN) and packed in the format above. Returns 1 if
- * the 8192 bytes were written, 0 otherwise. The failure goes back to the
- * caller instead of being absorbed: unlike session_recorder_record_frame,
- * which drops a frame it cannot append, losing a frame here yields a
- * truncated file whose sha256 would be wrong. */
+/* Appends a frame to the capture, read from mem->screen and packed in
+ * the format above. Returns 1 if the 8192 bytes were written, 0
+ * otherwise. The failure goes back to the caller instead of being
+ * absorbed: unlike session_recorder_record_frame, which drops a frame it
+ * cannot append, losing a frame here yields a truncated file whose
+ * sha256 would be wrong. */
 int screencast_write_frame(screencast_writer_t *writer, const p8_memory_t *mem);
 
 /* Ends the capture and returns 1 if closing succeeded, 0 otherwise --

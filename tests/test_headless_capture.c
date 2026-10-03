@@ -70,9 +70,7 @@ static char *read_whole_file(const char *path, size_t *out_len) {
 static char *dump_text_of_pixels(const unsigned char *pixels, size_t *out_len) {
     p8_memory_t mem;
     p8_mem_init(&mem);
-    for (int i = 0; i < SCREENCAST_FRAME_PIXELS; i++) {
-        p8_poke(&mem, P8_ADDR_SCREEN + i, pixels[i]);
-    }
+    memcpy(mem.screen, pixels, sizeof(mem.screen));
 
     FILE *tmp = tmpfile();
     assert(tmp != NULL);
