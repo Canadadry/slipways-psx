@@ -778,7 +778,155 @@ static void test_accessors_bite_on_every_header_field_name(void) {
     assert(strstr(read_file(OUT), "guarded residue (header-accessors): 10 line(s)\n") != NULL);
 }
 
+typedef struct {
+    const char *path;
+    const char *text;
+} planted_file_t;
+
+typedef struct {
+    const char *category;
+    planted_file_t files[4];
+    const char *expected;
+} liveness_row_t;
+
+/* One planted violation per category of COMPOSITION_RESIDUE_GUARD, in the
+ * C names of today: a renaming that blinds a pattern or a reader turns its
+ * row red. `expected` is the whole output of `--check <category>`. */
+static const liveness_row_t LIVENESS[] = {
+    {"core-includes",
+     {{SRC "/engine/entity.h", "#include \"game/" "game_data.h\"\n"}},
+     "core-includes: " SRC "/engine/entity.h:1:#include \"game/" "game_data.h\"\n"
+     "guarded residue (core-includes): 1 line(s)\n"},
+    {"reachability-to-prove",
+     {{DIR "/reachability.txt", "# proved\n\nslipway_drag\tcan a slipway be dragged\n"}},
+     "reachability-to-prove: " DIR "/reachability.txt:3:slipway_drag\tcan a slipway be dragged\n"
+     "guarded residue (reachability-to-prove): 1 line(s)\n"},
+    {"entity-ptrs",
+     {{SRC "/planet.h", "typedef struct {\n    entity" "_t header;\n    pointer_" "list_t *slipways;\n} planet_t;\n"}},
+     "entity-ptrs: " SRC "/planet.h:3:    pointer_" "list_t *slipways;\n"
+     "guarded residue (entity-ptrs): 1 line(s)\n"},
+    {"registries",
+     {{SRC "/planet.c", "int planet_count;\nstatic pointer_" "list_t g_planets;\n"}},
+     "registries: " SRC "/planet.c:2:static pointer_" "list_t g_planets;\n"
+     "guarded residue (registries): 1 line(s)\n"},
+    {"header-accessors",
+     {{SRC "/planet.c", "int x = planet_get" "_pos(self);\n"}},
+     "header-accessors: " SRC "/planet.c:1:int x = planet_get" "_pos(self);\n"
+     "guarded residue (header-accessors): 1 line(s)\n"},
+    {"parent-link",
+     {{SRC "/particle.c", "emitter_t *emitter = emitter" "_of(self);\n"
+                          "planet_t *planet = self->pa" "rent;\n"}},
+     "parent-link: " SRC "/particle.c:1:emitter_t *emitter = emitter" "_of(self);\n"
+     "parent-link: " SRC "/particle.c:2:planet_t *planet = self->pa" "rent;\n"
+     "guarded residue (parent-link): 2 line(s)\n"},
+    {"parent",
+     {{SRC "/planet.h", "typedef struct {\n    entity" "_t header;\n} planet_t;\n"
+                        "typedef struct {\n    planet_t planet;\n} colony_t;\n"}},
+     "parent: " SRC "/planet.h:5:    planet_t planet;\n"
+     "guarded residue (parent): 1 line(s)\n"},
+    {"mutual-inclusion",
+     {{SRC "/planet.h", "#include \"slipway.h\"\n"},
+      {SRC "/slipway.h", "#include \"planet.h\"\n"}},
+     "mutual-inclusion: " SRC "/planet.h:1:#include \"slipway.h\"\n"
+     "mutual-inclusion: " SRC "/slipway.h:1:#include \"planet.h\"\n"
+     "guarded residue (mutual-inclusion): 2 line(s)\n"},
+    {"mutual-usage",
+     {{SRC "/planet.h", "int planet_count(void);\n"},
+      {SRC "/slipway.h", "int slipway_count(void);\n"},
+      {SRC "/planet.c", "int planet_links(void) {\n    return slipway_count();\n}\n"},
+      {SRC "/slipway.c", "int slipway_ends(void) {\n    return planet_count();\n}\n"}},
+     "mutual-usage: " SRC "/planet.c:2:    return slipway_count();\n"
+     "mutual-usage: " SRC "/slipway.c:2:    return planet_count();\n"
+     "guarded residue (mutual-usage): 2 line(s)\n"},
+    {"void-self",
+     {{SRC "/planet.h", "void planet_draw(void *" "self);\n"}},
+     "void-self: " SRC "/planet.h:1:void planet_draw(void *" "self);\n"
+     "guarded residue (void-self): 1 line(s)\n"},
+};
+
+#define LIVENESS_ROWS (sizeof LIVENESS / sizeof LIVENESS[0])
+
+static const char *const CATEGORIES_WITHOUT_LIVENESS[] = {
+    "one-or-false", "name-dispatch", "n" "u", "defaults", "void-ptr",
+};
+
+#define CATEGORIES_WITHOUT_LIVENESS_COUNT \
+    (sizeof CATEGORIES_WITHOUT_LIVENESS / sizeof CATEGORIES_WITHOUT_LIVENESS[0])
+
+static void test_each_guarded_category_bites_on_its_planted_violation(void) {
+    int red = 0;
+    for (size_t i = 0; i < LIVENESS_ROWS; i++) {
+        const liveness_row_t *row = &LIVENESS[i];
+        char args[256];
+        snprintf(args, sizeof args, "--check %s " TREE, row->category);
+        setup();
+        int clean = run_residue(args);
+        for (size_t f = 0; f < 4 && row->files[f].path != NULL; f++) {
+            write_file(row->files[f].path, row->files[f].text);
+        }
+        int planted = run_residue(args);
+        if (clean != 0 || planted != 1 || strcmp(read_file(OUT), row->expected) != 0) {
+            fprintf(stderr, "liveness red: %s\n", row->category);
+            red++;
+        }
+    }
+    assert(red == 0 && "a guarded category no longer sees its planted violation");
+}
+
+/* Copies into `out` the value of `<variable> := ` in the Makefile, without
+ * its newline; fails if the line is missing. */
+static void makefile_value(const char *variable, char *out, size_t size) {
+    char prefix[128];
+    char line[1024];
+    snprintf(prefix, sizeof prefix, "%s := ", variable);
+    FILE *file = fopen("Makefile", "r");
+    assert(file != NULL);
+    int found = 0;
+    while (!found && fgets(line, sizeof line, file) != NULL) {
+        if (strncmp(line, prefix, strlen(prefix)) == 0) {
+            snprintf(out, size, "%s", line + strlen(prefix));
+            out[strcspn(out, "\n")] = '\0';
+            found = 1;
+        }
+    }
+    fclose(file);
+    assert(found && "guard variable missing from the Makefile");
+}
+
+static int in_list(const char *name, const char *const *list, size_t count) {
+    for (size_t i = 0; i < count; i++) {
+        if (strcmp(name, list[i]) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* A category added to the guard without a liveness row, or a row left
+ * behind by a category leaving the guard, turns this red. */
+static void test_liveness_rows_are_exactly_the_guarded_categories(void) {
+    char guard[1024];
+    makefile_value("COMPOSITION_RESIDUE_GUARD", guard, sizeof guard);
+    const char *rows[LIVENESS_ROWS];
+    for (size_t i = 0; i < LIVENESS_ROWS; i++) {
+        rows[i] = LIVENESS[i].category;
+    }
+    size_t guarded = 0;
+    for (char *name = strtok(guard, ","); name != NULL; name = strtok(NULL, ",")) {
+        int row = in_list(name, rows, LIVENESS_ROWS);
+        int without = in_list(name, CATEGORIES_WITHOUT_LIVENESS, CATEGORIES_WITHOUT_LIVENESS_COUNT);
+        if (row == without) {
+            fprintf(stderr, "liveness table: %s\n", name);
+        }
+        assert(row != without && "guarded category without exactly one liveness status");
+        guarded++;
+    }
+    assert(guarded == LIVENESS_ROWS + CATEGORIES_WITHOUT_LIVENESS_COUNT);
+}
+
 int main(void) {
+    test_each_guarded_category_bites_on_its_planted_violation();
+    test_liveness_rows_are_exactly_the_guarded_categories();
     test_clean_tree_prints_only_the_empty_footer();
     test_one_occurrence_per_category_in_table_order();
     test_other_witnesses_of_each_pattern_bite();

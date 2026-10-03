@@ -189,7 +189,125 @@ static void test_measure_on_nothing_is_an_error_not_an_empty_residue(void) {
     assert(run_residue("--bogus " TREE) == 2);
 }
 
+typedef struct {
+    const char *category;
+    const char *path;
+    const char *text;
+    const char *expected;
+} liveness_row_t;
+
+/* One planted violation per category of DATA_RESIDUE_GUARD, in the C names
+ * of today: a renaming that blinds a pattern turns its row red. `expected`
+ * is the whole output of `--check <category>`. dispatch, and two branches
+ * of by-name, only know `pico8_` tokens: their rows plant them among names
+ * of today. */
+static const liveness_row_t LIVENESS[] = {
+    {"spec", SRC "/planet.c",
+     "int k = g_planet_" "spec[0];\n"
+     "int f = planet_" "default_fixed(k);\n",
+     "spec: " SRC "/planet.c:1:int k = g_planet_" "spec[0];\n"
+     "spec: " SRC "/planet.c:2:int f = planet_" "default_fixed(k);\n"
+     "guarded residue (spec): 2 line(s)\n"},
+    {"over" "rides", SRC "/planet.c", "planet->over" "rides = 0;\n",
+     "over" "rides: " SRC "/planet.c:1:planet->over" "rides = 0;\n"
+     "guarded residue (over" "rides): 1 line(s)\n"},
+    {"dispatch", SRC "/planet.c",
+     "int n = pico8_" "mv(planet, slipway);\n"
+     "pico8_" "value_function_t draw = planet_draw;\n",
+     "dispatch: " SRC "/planet.c:1:int n = pico8_" "mv(planet, slipway);\n"
+     "dispatch: " SRC "/planet.c:2:pico8_" "value_function_t draw = planet_draw;\n"
+     "guarded residue (dispatch): 2 line(s)\n"},
+    {"by-name", SRC "/planet.c",
+     "int b = field_" "truthy(planet, \"colonized\");\n"
+     "pico8_" "entity_get_field(planet, \"colonized\", &b);\n"
+     "pico8_" "planet_set_field(planet, \"colonized\", b);\n",
+     "by-name: " SRC "/planet.c:1:int b = field_" "truthy(planet, \"colonized\");\n"
+     "by-name: " SRC "/planet.c:2:pico8_" "entity_get_field(planet, \"colonized\", &b);\n"
+     "by-name: " SRC "/planet.c:3:pico8_" "planet_set_field(planet, \"colonized\", b);\n"
+     "guarded residue (by-name): 3 line(s)\n"},
+};
+
+#define LIVENESS_ROWS (sizeof LIVENESS / sizeof LIVENESS[0])
+
+static const char *const CATEGORIES_WITHOUT_LIVENESS[] = {
+    "stash", "ob", "list", "ref-audit", "value", "type-tag",
+};
+
+#define CATEGORIES_WITHOUT_LIVENESS_COUNT \
+    (sizeof CATEGORIES_WITHOUT_LIVENESS / sizeof CATEGORIES_WITHOUT_LIVENESS[0])
+
+static void test_each_guarded_category_bites_on_its_planted_violation(void) {
+    int red = 0;
+    for (size_t i = 0; i < LIVENESS_ROWS; i++) {
+        const liveness_row_t *row = &LIVENESS[i];
+        char args[256];
+        snprintf(args, sizeof args, "--check %s " TREE, row->category);
+        setup();
+        int clean = run_residue(args);
+        write_file(row->path, row->text);
+        int planted = run_residue(args);
+        if (clean != 0 || planted != 1 || strcmp(read_file(OUT), row->expected) != 0) {
+            fprintf(stderr, "liveness red: %s\n", row->category);
+            red++;
+        }
+    }
+    assert(red == 0 && "a guarded category no longer sees its planted violation");
+}
+
+/* Copies into `out` the value of `<variable> := ` in the Makefile, without
+ * its newline; fails if the line is missing. */
+static void makefile_value(const char *variable, char *out, size_t size) {
+    char prefix[128];
+    char line[1024];
+    snprintf(prefix, sizeof prefix, "%s := ", variable);
+    FILE *file = fopen("Makefile", "r");
+    assert(file != NULL);
+    int found = 0;
+    while (!found && fgets(line, sizeof line, file) != NULL) {
+        if (strncmp(line, prefix, strlen(prefix)) == 0) {
+            snprintf(out, size, "%s", line + strlen(prefix));
+            out[strcspn(out, "\n")] = '\0';
+            found = 1;
+        }
+    }
+    fclose(file);
+    assert(found && "guard variable missing from the Makefile");
+}
+
+static int in_list(const char *name, const char *const *list, size_t count) {
+    for (size_t i = 0; i < count; i++) {
+        if (strcmp(name, list[i]) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* A category added to the guard without a liveness row, or a row left
+ * behind by a category leaving the guard, turns this red. */
+static void test_liveness_rows_are_exactly_the_guarded_categories(void) {
+    char guard[1024];
+    makefile_value("DATA_RESIDUE_GUARD", guard, sizeof guard);
+    const char *rows[LIVENESS_ROWS];
+    for (size_t i = 0; i < LIVENESS_ROWS; i++) {
+        rows[i] = LIVENESS[i].category;
+    }
+    size_t guarded = 0;
+    for (char *name = strtok(guard, ","); name != NULL; name = strtok(NULL, ",")) {
+        int row = in_list(name, rows, LIVENESS_ROWS);
+        int without = in_list(name, CATEGORIES_WITHOUT_LIVENESS, CATEGORIES_WITHOUT_LIVENESS_COUNT);
+        if (row == without) {
+            fprintf(stderr, "liveness table: %s\n", name);
+        }
+        assert(row != without && "guarded category without exactly one liveness status");
+        guarded++;
+    }
+    assert(guarded == LIVENESS_ROWS + CATEGORIES_WITHOUT_LIVENESS_COUNT);
+}
+
 int main(void) {
+    test_each_guarded_category_bites_on_its_planted_violation();
+    test_liveness_rows_are_exactly_the_guarded_categories();
     test_clean_tree_prints_only_the_empty_footer();
     test_one_occurrence_per_category_in_table_order();
     test_overlapping_categories_count_each_but_footer_counts_distinct_lines();
