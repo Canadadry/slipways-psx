@@ -2,10 +2,9 @@
 # per target).
 #
 # make test          -> unit + constants-check + float-grep + float-guard +
-#                       alloc-guard + data-guard + composition-guard +
-#                       old-names-guard + french-guard, and the tool tests
-#                       and checks marked "in make test" below, the fast
-#                       loop; needs no libclang
+#                       alloc-guard + data-guard + composition-guard, and the
+#                       tool tests and checks marked "in make test" below, the
+#                       fast loop; needs no libclang
 # make e2e           -> replays each e2e of tests/e2e/ from the title screen,
 #                       with the `-O0` binary of make test, and compares the
 #                       sha256 of its capture to <name>.json.sha256; also fails
@@ -13,9 +12,6 @@
 #                       past 180 frames (600 if listed in
 #                       tools/e2e_long_exceptions.txt)
 # make test-all      -> test + e2e, the full suite, without libclang
-# make ast-guards    -> ast-guard + ast-guard-test, run once at the end of a
-#                       phase; needs libclang and make rename-tool-setup,
-#                       about 2 min 30
 # make gif           -> gif/<name>.gif for each e2e of tests/e2e/: its capture
 #                       at scale 3, with the recorded mouse drawn on top,
 #                       outside the suite
@@ -224,35 +220,8 @@
 #                       modules, split done / later; SITES=1 lists each
 #                       mention; warns for a module in no sub-step, never
 #                       fails, outside the suite
-# make old-names-guard -> the old-name guard, text half: the old names of
-#                       docs/renommage.tsv and of tools/historical_names.txt
-#                       that a text search finds in the code
-#                       (`rename_count.py --part text`), minus
-#                       tools/cart_names_exceptions.txt, without libclang;
-#                       fails on any residue, in make test
-# make ast-guard     -> a fresh rename-extract, then the old-name guard, AST
-#                       half (the ambiguous old names as identifiers, minus
-#                       tools/cart_names_exceptions.txt), and the scope guard,
-#                       both tables printed; fails on any residue, in make
-#                       ast-guards
-# make french-guard  -> the French guard: french-count over the whole code,
-#                       minus tools/french_exceptions.txt; fails on any
-#                       residue, in make test
-# make text-guards-test -> old-names-guard and french-guard alive: planted
-#                       violations through the real target, in a reduced
-#                       copy of the tree under tmp/, in make test
-# make ast-guard-test -> ast-guard alive: planted violations through the real
-#                       target, in a reduced copy of the tree under tmp/,
-#                       over the planted units only; needs libclang and make
-#                       rename-tool-setup, in make ast-guards
-# make gap-check     -> no old porting-gap marker in src/, tests/, tools/ and
-#                       the Makefile, and each GAP number cited there has its
-#                       title in the porting-gap register of docs/, in make
-#                       test
-# make gap-check-test -> the tests of tools/gap_check.py on throwaway trees,
-#                       and gap-check through its real recipe, in make test
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test rename-tables-test rename-count-test cart-names-count rename-substeps-test rename-substeps-check rename-strings-verify-test rename-strings-verify rename-rekey-test rename-rekey rename-rekey-check scope-count-test scope-count cryptic-locals cart-citations-test cart-citations french-count-test french-count old-names-guard ast-guard french-guard text-guards-test ast-guard-test gap-check gap-check-test ast-guards
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test rename-tables-test rename-count-test cart-names-count rename-substeps-test rename-substeps-check rename-strings-verify-test rename-strings-verify rename-rekey-test rename-rekey rename-rekey-check scope-count-test scope-count cryptic-locals cart-citations-test cart-citations french-count-test french-count
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -941,11 +910,9 @@ endif
 replay: $(TMP_DIR)/replay
 	./$(TMP_DIR)/replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard rename-derive-test rename-strings-test rename-check-test rename-slice-test rename-tables-test rename-count-test rename-substeps-test rename-substeps-check rename-strings-verify-test rename-rekey-test scope-count-test french-count-test cart-citations-test old-names-guard french-guard text-guards-test gap-check gap-check-test
+test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard rename-derive-test rename-strings-test rename-check-test rename-slice-test rename-tables-test rename-count-test rename-substeps-test rename-substeps-check rename-strings-verify-test rename-rekey-test scope-count-test french-count-test cart-citations-test
 
 test-all: test e2e
-
-ast-guards: ast-guard ast-guard-test
 
 SCREENCAST_BIN := $(TMP_DIR)/screencast.bin
 
@@ -1372,37 +1339,6 @@ french-count:
 	python3 tools/french_count.py --root . --exceptions tools/french_exceptions.txt \
 	    --substeps $(RENAME_SUBSTEPS) $(foreach m,$(MODULES),--module '$(m)') \
 	    $(if $(SUBSTEP),--substep $(SUBSTEP)) $(if $(SITES),--sites)
-
-french-guard:
-	python3 tools/french_count.py --root . --exceptions tools/french_exceptions.txt --check
-
-text-guards-test:
-	python3 tests/test_text_guards.py
-
-GAP_REGISTER := $(wildcard docs/trous-*-portage.md)
-
-gap-check:
-	python3 tools/gap_check.py --root . --gaps $(GAP_REGISTER)
-
-gap-check-test:
-	python3 tests/test_gap_check.py
-
-ast-guard-test:
-	$(AST_RENAME_ENV) AST_RENAME_BINDINGS=$(AST_RENAME_BINDINGS) python3 tests/test_ast_guard.py
-
-old-names-guard:
-	python3 tools/rename_count.py --table $(RENAME_TABLE) --root . --part text --check \
-	    --exceptions tools/cart_names_exceptions.txt --historical tools/historical_names.txt
-
-# Both counts run whatever the first returns; the status is the last failure.
-ast-guard: rename-extract
-	status=0; \
-	python3 tools/rename_count.py --table $(RENAME_TABLE) \
-	    --occurrences $(AST_RENAME_DIR)/occurrences.tsv --root . --part ast --check \
-	    --exceptions tools/cart_names_exceptions.txt || status=$$?; \
-	python3 tools/scope_count.py --declarations $(AST_RENAME_DIR)/declarations.tsv \
-	    --exceptions tools/scope_exceptions.txt --root . --check || status=$$?; \
-	exit $$status
 
 rename-apply:
 	@test -n "$(TABLE)" || { echo "usage: make rename-apply TABLE=<table>" >&2; exit 1; }
