@@ -24,8 +24,8 @@ static int g_structure_icon_up = 0;
  * position, may hold its REF. cart_init(), structure_icon_init() and the
  * shutdown reset the cursor; only structure_icon_init() resets the counter. */
 static const vec_t *g_cursor = NULL;
-static p8_fixed_t g_sprite_counter = 0;
-static int g_has_sprite_counter = 0;
+static p8_fixed_t g_id_counter = 0;
+static int g_has_id_counter = 0;
 
 static int structure_icon_to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
@@ -115,11 +115,11 @@ down_t structure_icon_left_press(structure_icon_t *self) {
     planet_keys_t keys;
     down_t out = {0, NULL};
 
-    assert(g_structure_icon_up && "structure_icon_init() must run before structure_icon_left_press bumps the shared sprite counter");
-    new_id = p8_fixed_add(g_has_sprite_counter ? g_sprite_counter : p8_fixed_from_int(0),
+    assert(g_structure_icon_up && "structure_icon_init() must run before structure_icon_left_press bumps the shared identifier counter");
+    new_id = p8_fixed_add(g_has_id_counter ? g_id_counter : p8_fixed_from_int(0),
                              p8_fixed_from_int(1));
-    g_sprite_counter = new_id;
-    g_has_sprite_counter = 1;
+    g_id_counter = new_id;
+    g_has_id_counter = 1;
 
     entity_kind = structure_icon_own_kind(self);
     if (entity_kind == NULL) {
@@ -234,8 +234,8 @@ void structure_icon_init(void) {
 
     g_structure_icon_up = 1;
     g_cursor = NULL;
-    g_sprite_counter = p8_fixed_from_int(0);
-    g_has_sprite_counter = 1;
+    g_id_counter = p8_fixed_from_int(0);
+    g_has_id_counter = 1;
 }
 
 void structure_icon_shutdown(void) {
@@ -263,11 +263,11 @@ const vec_t *structure_icon_cursor(void) {
     return g_cursor;
 }
 
-int structure_icon_sprite_counter(p8_fixed_t *out) {
-    if (!g_has_sprite_counter) {
+int structure_icon_id_counter(p8_fixed_t *out) {
+    if (!g_has_id_counter) {
         return 0;
     }
-    *out = g_sprite_counter;
+    *out = g_id_counter;
     return 1;
 }
 

@@ -5652,7 +5652,7 @@ pico8_ie_gy	structure_icon_cursor	src/game/structure_icon.c	identifiant	fonction
 pico8_ie_hb	structure_icon_refresh	src/game/structure_icon.c	identifiant	fonction	renommé	game/structure_icon	ie		c:@F@pico8_ie_hb
 pico8_ie_hb_dispatch	structure_icon_refresh_method	src/game/structure_icon.c	identifiant	fonction	renommé	game/structure_icon	ie		c:structure_icon.c@F@pico8_ie_hb_dispatch
 pico8_ie_hd_dispatch	structure_icon_hit_test_method	src/game/structure_icon.c	identifiant	fonction	renommé	game/structure_icon	ie		c:structure_icon.c@F@pico8_ie_hd_dispatch
-pico8_ie_id	structure_icon_sprite_counter	src/game/structure_icon.c	identifiant	fonction	renommé	game/structure_icon	ie		c:@F@pico8_ie_id
+pico8_ie_id	structure_icon_id_counter	src/game/structure_icon.c	identifiant	fonction	renommé	game/structure_icon	ie		c:@F@pico8_ie_id
 pico8_ie_ke_view	structure_icon_kind_view	src/game/structure_icon.c	identifiant	fonction	renommé	game/structure_icon	ie		c:@F@pico8_ie_ke_view
 pico8_ie_ke_view_struct_class	structure_icon_kind_view_class	src/game/structure_icon.c	identifiant	fonction	renommé	game/structure_icon	ie		c:@F@pico8_ie_ke_view_struct_class
 pico8_ie_kj	structure_icon_draw	src/game/structure_icon.c	identifiant	fonction	renommé	game/structure_icon	ie		c:@F@pico8_ie_kj
@@ -5716,8 +5716,8 @@ self	self	src/game/structure_icon.h	identifiant	paramètre	conservé	game/struct
 self	self	src/game/structure_icon.h	identifiant	paramètre	conservé	game/structure_icon			c:structure_icon.h@3732@F@pico8_ie_kj@self
 x	x	src/game/structure_icon.c	identifiant	paramètre	conservé	game/structure_icon			c:structure_icon.c@871@F@ie_to_int@x
 g_ie_gy	g_cursor	src/game/structure_icon.c	identifiant	statique	renommé	game/structure_icon	ie		c:structure_icon.c@g_ie_gy
-g_ie_has_id	g_has_sprite_counter	src/game/structure_icon.c	identifiant	statique	renommé	game/structure_icon	ie		c:structure_icon.c@g_ie_has_id
-g_ie_id	g_sprite_counter	src/game/structure_icon.c	identifiant	statique	renommé	game/structure_icon	ie		c:structure_icon.c@g_ie_id
+g_ie_has_id	g_has_id_counter	src/game/structure_icon.c	identifiant	statique	renommé	game/structure_icon	ie		c:structure_icon.c@g_ie_has_id
+g_ie_id	g_id_counter	src/game/structure_icon.c	identifiant	statique	renommé	game/structure_icon	ie		c:structure_icon.c@g_ie_id
 g_ie_ke_view_struct_class	g_structure_icon_kind_view_class	src/game/structure_icon.c	identifiant	statique	renommé	game/structure_icon	ie		c:structure_icon.c@g_ie_ke_view_struct_class
 g_ie_struct_class	g_structure_icon_class	src/game/structure_icon.c	identifiant	statique	renommé	game/structure_icon	ie		c:structure_icon.c@g_ie_struct_class
 g_ie_up	g_structure_icon_up	src/game/structure_icon.c	identifiant	statique	renommé	game/structure_icon	ie		c:structure_icon.c@g_ie_up

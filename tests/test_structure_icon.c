@@ -93,7 +93,7 @@ static const vec_t *shared_cursor(const structure_icon_t *icon) {
 /* 0 while the counter is unset. */
 static int shared_id(const structure_icon_t *icon, p8_fixed_t *out) {
     (void)icon;
-    return structure_icon_sprite_counter(out);
+    return structure_icon_id_counter(out);
 }
 
 static p8_fixed_t shared_id_fixed(const structure_icon_t *icon) {

@@ -766,10 +766,10 @@ name	ie_self_ke_kind	structure_icon_own_kind	ie
 name	pico8_ie_eh	structure_icon_rest_cursor	ie
 name	pico8_ie_gy	structure_icon_cursor	ie
 name	pico8_ie_set_gy	structure_icon_set_cursor	ie
-name	pico8_ie_id	structure_icon_sprite_counter	ie
+name	pico8_ie_id	structure_icon_id_counter	ie
 name	g_ie_gy	g_cursor	ie
-name	g_ie_id	g_sprite_counter	ie
-name	g_ie_has_id	g_has_sprite_counter	ie
+name	g_ie_id	g_id_counter	ie
+name	g_ie_has_id	g_has_id_counter	ie
 name	pico8_gi_cost	research_cost_with_discount	gi
 name	pico8_gi_nb	tech_gate_research_cost	gi
 name	pico8_nb_e_	tech_gate_affordable_flags	e_

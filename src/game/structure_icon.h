@@ -20,7 +20,7 @@
 /* `pos` starts on the archetype's, shared by every icon; the refresh
  * rebinds it to the shared cursor. The cursor and the counter are no
  * members: the module's shared state, read by structure_icon_cursor() and
- * structure_icon_sprite_counter(). The struct lives in the game zone current
+ * structure_icon_id_counter(). The struct lives in the game zone current
  * at its construction, and dies with it. */
 typedef struct {
     entity_t header;
@@ -76,7 +76,7 @@ const vec_t *structure_icon_rest_cursor(void);
 const vec_t *structure_icon_cursor(void);
 
 /* The shared counter: 0 while it is unset, else 1 with the value written. */
-int structure_icon_sprite_counter(p8_fixed_t *out);
+int structure_icon_id_counter(p8_fixed_t *out);
 
 /* NULL unsets the shared cursor. */
 void structure_icon_set_cursor(const vec_t *cursor);
