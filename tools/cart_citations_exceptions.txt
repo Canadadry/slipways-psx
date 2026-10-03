@@ -3,3 +3,8 @@
 cart	Makefile	cart
 lua	Makefile	lua
 lua	Makefile	lua.lua
+short	tools/pico8_reference_probe_out	b
+short	tools/pico8_reference_probe_out	c
+short	tools/pico8_reference_probe_out	d
+short	tools/pico8_reference_probe_out	e
+short	tools/pico8_reference_probe_out	f
