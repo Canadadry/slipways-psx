@@ -244,8 +244,14 @@
 #                       target, in a reduced copy of the tree under tmp/,
 #                       over the planted units only; needs libclang and make
 #                       rename-tool-setup, in make test-all
+# make gap-check     -> no old porting-gap marker in src/, tests/, tools/ and
+#                       the Makefile, and each GAP number cited there has its
+#                       title in the porting-gap register of docs/, in make
+#                       test
+# make gap-check-test -> the tests of tools/gap_check.py on throwaway trees,
+#                       and gap-check through its real recipe, in make test
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test rename-tables-test rename-count-test cart-names-count rename-substeps-test rename-substeps-check rename-strings-verify-test rename-strings-verify rename-rekey-test rename-rekey rename-rekey-check scope-count-test scope-count cryptic-locals cart-citations-test cart-citations french-count-test french-count old-names-guard ast-guard french-guard text-guards-test ast-guard-test
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test rename-tables-test rename-count-test cart-names-count rename-substeps-test rename-substeps-check rename-strings-verify-test rename-strings-verify rename-rekey-test rename-rekey rename-rekey-check scope-count-test scope-count cryptic-locals cart-citations-test cart-citations french-count-test french-count old-names-guard ast-guard french-guard text-guards-test ast-guard-test gap-check gap-check-test
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -934,7 +940,7 @@ endif
 replay: $(TMP_DIR)/replay
 	./$(TMP_DIR)/replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard rename-derive-test rename-strings-test rename-check-test rename-slice-test rename-tables-test rename-count-test rename-substeps-test rename-substeps-check rename-strings-verify-test rename-rekey-test scope-count-test french-count-test cart-citations-test old-names-guard french-guard text-guards-test
+test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard rename-derive-test rename-strings-test rename-check-test rename-slice-test rename-tables-test rename-count-test rename-substeps-test rename-substeps-check rename-strings-verify-test rename-rekey-test scope-count-test french-count-test cart-citations-test old-names-guard french-guard text-guards-test gap-check gap-check-test
 
 test-all: test e2e ast-guard ast-guard-test
 
@@ -1369,6 +1375,14 @@ french-guard:
 
 text-guards-test:
 	python3 tests/test_text_guards.py
+
+GAP_REGISTER := $(wildcard docs/trous-*-portage.md)
+
+gap-check:
+	python3 tools/gap_check.py --root . --gaps $(GAP_REGISTER)
+
+gap-check-test:
+	python3 tests/test_gap_check.py
 
 ast-guard-test:
 	$(AST_RENAME_ENV) AST_RENAME_BINDINGS=$(AST_RENAME_BINDINGS) python3 tests/test_ast_guard.py
