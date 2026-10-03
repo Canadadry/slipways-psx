@@ -5325,7 +5325,7 @@ yr	yr	src/game/score_panel_display.c	identifiant	paramètre	conservé	game/score
 yr	yr	src/game/score_panel_display.h	identifiant	paramètre	conservé	game/score_panel_display			c:score_panel_display.h@567@F@pico8_pj_hk@yr
 back	back	src/game/score_panel_display.c	identifiant	statique	conservé	game/score_panel_display			c:score_panel_display.c@6596@F@pico8_pj_ph@back
 back_items	back_items	src/game/score_panel_display.c	identifiant	statique	conservé	game/score_panel_display			c:score_panel_display.c@6521@F@pico8_pj_ph@back_items
-g_pj_hk_lh_t	g_score_panel_new_year_keep_open_t	src/game/score_panel_display.c	identifiant	statique	renommé	game/score_panel_display	pj		c:score_panel_display.c@g_pj_hk_lh_t
+g_pj_hk_lh_t	g_score_panel_new_year_keep_open	src/game/score_panel_display.c	identifiant	statique	renommé	game/score_panel_display	pj		c:score_panel_display.c@g_pj_hk_lh_t
 pico8_pj_ph_ctx_t	score_panel_update_ctx_t	src/game/score_panel_display.c	identifiant	type	renommé	game/score_panel_display	pj		c:@T@pico8_pj_ph_ctx_t
 pico8_pj_ph_ld_t	score_panel_update_draw_row_t	src/game/score_panel_display.c	identifiant	type	renommé	game/score_panel_display	pj		c:@T@pico8_pj_ph_ld_t
 qb	camera	src/game/scroll.c	chaîne	nom de classe	renommé	game/scroll	qb	écrivain	chaîne:qb
@@ -15741,7 +15741,7 @@ want_sequence	want_sequence	tests/test_toast.c	identifiant	paramètre	conservé	
 want_ticks	want_ticks	tests/test_toast.c	identifiant	paramètre	conservé	tests/test_toast			c:test_toast.c@3173@F@live@want_ticks
 word	word	tests/test_toast.c	identifiant	paramètre	conservé	tests/test_toast			c:test_toast.c@1162@F@fnv@word
 g_fake_ph_calls	g_fake_update_calls	tests/test_toast.c	identifiant	statique	renommé	tests/test_toast	ph		c:test_toast.c@g_fake_ph_calls
-g_fake_ph_last_t	g_fake_update_last_t	tests/test_toast.c	identifiant	statique	renommé	tests/test_toast	ph		c:test_toast.c@g_fake_ph_last_t
+g_fake_ph_last_t	g_fake_update_last	tests/test_toast.c	identifiant	statique	renommé	tests/test_toast	ph		c:test_toast.c@g_fake_ph_last_t
 g_fake_toast_class	g_fake_toast_class	tests/test_toast.c	identifiant	statique	conservé	tests/test_toast			c:test_toast.c@g_fake_toast_class
 gfx	gfx	tests/test_toast.c	identifiant	statique	conservé	tests/test_toast			c:test_toast.c@gfx
 input	input	tests/test_toast.c	identifiant	statique	conservé	tests/test_toast			c:test_toast.c@input

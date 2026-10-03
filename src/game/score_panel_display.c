@@ -16,12 +16,12 @@
 /* The countdown the year banner's keep_open callback captures. One static is
  * enough: the banner's keep_open is replaced wholesale by every call that
  * sets it, so only one such callback is ever live. */
-static int g_score_panel_new_year_keep_open_t = 0;
+static int g_score_panel_new_year_keep_open = 0;
 
 static int score_panel_new_year_keep_open_method(message_box_t *self) {
     (void)self;
-    g_score_panel_new_year_keep_open_t -= 1;
-    return g_score_panel_new_year_keep_open_t > 0;
+    g_score_panel_new_year_keep_open -= 1;
+    return g_score_panel_new_year_keep_open > 0;
 }
 
 void score_panel_new_year(p8_fixed_t year) {
@@ -53,7 +53,7 @@ void score_panel_new_year(p8_fixed_t year) {
     if (message != NULL) {
         year_banner->items[2] = (data_item_t){.row = message};
         year_banner->row.count = 3;
-        g_score_panel_new_year_keep_open_t = 90;
+        g_score_panel_new_year_keep_open = 90;
         year_banner->keep_open = score_panel_new_year_keep_open_method;
     } else {
         year_banner->row.count = 2;
@@ -304,7 +304,7 @@ void score_panel_update(score_panel_t *self) {
 
 void score_panel_display_init(void) {
     score_panel_display_shutdown();
-    g_score_panel_new_year_keep_open_t = 0;
+    g_score_panel_new_year_keep_open = 0;
 }
 
 void score_panel_display_shutdown(void) {

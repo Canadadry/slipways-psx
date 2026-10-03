@@ -189,12 +189,12 @@ typedef struct {
 } fake_toast_t;
 
 static int g_fake_update_calls = 0;
-static p8_fixed_t g_fake_update_last_t;
+static p8_fixed_t g_fake_update_last;
 
 static void fake_toast_update(entity_t *self, p8_fixed_t t) {
     fake_toast_t *f = (fake_toast_t *)self;
     g_fake_update_calls++;
-    g_fake_update_last_t = t;
+    g_fake_update_last = t;
     if (t >= p8_fixed_from_int(2)) {
         f->is_dead = 1;
     }
@@ -217,12 +217,12 @@ static void test_update_entities_drives_a_entity_struct(void) {
 
     for (i = 0; i < 2; i++) {
         update_entities();
-        assert(g_fake_update_calls == i + 1 && g_fake_update_last_t == p8_fixed_from_int(i));
+        assert(g_fake_update_calls == i + 1 && g_fake_update_last == p8_fixed_from_int(i));
         assert(f->header.state_time == p8_fixed_from_int(i + 1));
         assert(entity_list_listed(live_entities(), f));
     }
     update_entities();
-    assert(g_fake_update_calls == 3 && g_fake_update_last_t == p8_fixed_from_int(2));
+    assert(g_fake_update_calls == 3 && g_fake_update_last == p8_fixed_from_int(2));
     assert(!entity_list_listed(live_entities(), f));
     assert(f->header.state_time == p8_fixed_from_int(3));
 }
