@@ -187,7 +187,7 @@ typedef struct {
     box_t hit_box;
     p8_fixed_t layer;
     vec_t pos;
-    vec_t rest_count;
+    vec_t rest_cursor;
 } structure_icon_archetype_t;
 
 typedef struct {

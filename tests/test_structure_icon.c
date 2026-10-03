@@ -85,7 +85,7 @@ static structure_icon_t *as_structure_icon(void *e) {
 
 /* The cursor and the counter are the module's shared state, no member of
  * any icon: the same answer whatever icon asks. */
-static const vec_t *shared_revealed_count(const structure_icon_t *icon) {
+static const vec_t *shared_cursor(const structure_icon_t *icon) {
     (void)icon;
     return structure_icon_cursor();
 }
@@ -187,7 +187,7 @@ static void fill_kind_table(const entity_kind_t *out[7]) {
 static uint32_t fold_shared(uint32_t h, void *icon) {
     p8_fixed_t id = 0;
 
-    h = fold_vec(h, shared_revealed_count(as_structure_icon(icon)));
+    h = fold_vec(h, shared_cursor(as_structure_icon(icon)));
     return shared_id(as_structure_icon(icon), &id) ? fold_fixed(h, id) : fnv(h, 0xDEADu);
 }
 
@@ -280,7 +280,7 @@ static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const v
     assert(ie->archetype->layer == p8_fixed_from_int(12));
     assert(ie->pos == &ie->archetype->pos);
     assert(ie->pos->x == p8_fixed_from_int(999) && ie->pos->y == p8_fixed_from_int(999));
-    assert(ie->archetype->rest_count.x == p8_fixed_from_int(118) && ie->archetype->rest_count.y == p8_fixed_from_int(120));
+    assert(ie->archetype->rest_cursor.x == p8_fixed_from_int(118) && ie->archetype->rest_cursor.y == p8_fixed_from_int(120));
     assert((const void *)ie->kind == ke);
     assert((const void *)ie->tooltip == jb);
     assert(!ie->has_is_revealed && !ie->is_hovered);
@@ -296,7 +296,7 @@ static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const v
     h = fold_fixed(h, ie->archetype->layer);
     h = fold_hit_box(h, icon);
     h = fold_vec(h, ie->pos);
-    h = fold_vec(h, &ie->archetype->rest_count);
+    h = fold_vec(h, &ie->archetype->rest_cursor);
     return fold_shared(h, icon);
 }
 
@@ -360,7 +360,7 @@ static void test_start(void) {
     }
     printf("[start] first revealed icon %d\n", first);
     assert(first >= 0);
-    assert(as_structure_icon(all[first])->pos == &as_structure_icon(all[first])->archetype->rest_count);
+    assert(as_structure_icon(all[first])->pos == &as_structure_icon(all[first])->archetype->rest_cursor);
     for (i = 0; i < n; i++) {
         if (is_revealed_state(all[i]) != 2) {
             assert(as_structure_icon(all[i])->pos != as_structure_icon(all[first])->pos);
@@ -390,7 +390,7 @@ static void test_directed(void) {
     void *shown;
     void *hidden;
     void *all_icons[16];
-    const vec_t *revealed_count_before;
+    const vec_t *cursor_before;
     const vec_t *pos_before;
     down_t made;
     p8_fixed_t first_id;
@@ -403,12 +403,12 @@ static void test_directed(void) {
     hidden = first_icon_with_is_revealed(0);
     assert(shown != NULL && hidden != NULL);
 
-    revealed_count_before = shared_revealed_count(as_structure_icon(shown));
+    cursor_before = shared_cursor(as_structure_icon(shown));
     pos_before = as_structure_icon(shown)->pos;
     class_of(shown)->refresh(shown);
-    assert(as_structure_icon(shown)->pos == pos_before && shared_revealed_count(as_structure_icon(shown)) == revealed_count_before);
+    assert(as_structure_icon(shown)->pos == pos_before && shared_cursor(as_structure_icon(shown)) == cursor_before);
     class_of(hidden)->refresh(hidden);
-    assert(is_revealed_state(hidden) == 0 && shared_revealed_count(as_structure_icon(hidden)) == revealed_count_before);
+    assert(is_revealed_state(hidden) == 0 && shared_cursor(as_structure_icon(hidden)) == cursor_before);
     hash = fold_icon(hash, shown);
     hash = fold_icon(hash, hidden);
     hash = fold_shared(hash, hidden);
@@ -573,26 +573,26 @@ static void test_restart(void) {
     start_game();
     n = icons(all, 16);
     (void)class_of(all[0])->left_press(all[0], NULL, NULL);
-    gy = shared_revealed_count(as_structure_icon(all[0]));
+    gy = shared_cursor(as_structure_icon(all[0]));
     id = shared_id_fixed(as_structure_icon(all[0]));
     assert(id == p8_fixed_from_int(1));
-    assert(gy != &as_structure_icon(all[0])->archetype->rest_count);
+    assert(gy != &as_structure_icon(all[0])->archetype->rest_cursor);
 
     new_game();
     n = icons(all, 16);
     check_int("restart icons", n, 7);
     assert(shared_id_fixed(as_structure_icon(all[0])) == id);
-    assert(shared_revealed_count(as_structure_icon(all[0])) != gy);
+    assert(shared_cursor(as_structure_icon(all[0])) != gy);
     for (i = 0; i < n; i++) {
         if (is_revealed_state(all[i]) == 2) {
-            assert(as_structure_icon(all[i])->pos != &as_structure_icon(all[i])->archetype->rest_count);
+            assert(as_structure_icon(all[i])->pos != &as_structure_icon(all[i])->archetype->rest_cursor);
         }
         h = fold_icon(h, all[i]);
     }
     h = fold_shared(h, all[0]);
 
     cart_init();
-    assert(shared_revealed_count(as_structure_icon(all[0])) == &as_structure_icon(all[0])->archetype->rest_count);
+    assert(shared_cursor(as_structure_icon(all[0])) == &as_structure_icon(all[0])->archetype->rest_cursor);
     assert(shared_id_fixed(as_structure_icon(all[0])) == id);
     h = fold_shared(h, all[0]);
     check("restart", h, RESTART_HASH);

@@ -256,7 +256,7 @@ structure_icon_t *structure_icon_new(const structure_icon_keys_t *keys) {
 }
 
 const vec_t *structure_icon_rest_cursor(void) {
-    return g_structure_icon_up ? &structure_icon_archetype.rest_count : NULL;
+    return g_structure_icon_up ? &structure_icon_archetype.rest_cursor : NULL;
 }
 
 const vec_t *structure_icon_cursor(void) {
@@ -271,6 +271,6 @@ int structure_icon_sprite_counter(p8_fixed_t *out) {
     return 1;
 }
 
-void structure_icon_set_cursor(const vec_t *gy) {
-    g_cursor = gy;
+void structure_icon_set_cursor(const vec_t *cursor) {
+    g_cursor = cursor;
 }

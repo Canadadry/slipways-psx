@@ -67,7 +67,7 @@ typedef struct {
  * registers itself as a live entity through entity_construct(). */
 structure_icon_t *structure_icon_new(const structure_icon_keys_t *keys);
 
-/* `structure_icon_archetype.rest_count`, for cart_init() to point the
+/* `structure_icon_archetype.rest_cursor`, for cart_init() to point the
  * shared cursor at: an alias, not a copy. NULL before structure_icon_init()
  * and after the shutdown. */
 const vec_t *structure_icon_rest_cursor(void);
@@ -79,7 +79,7 @@ const vec_t *structure_icon_cursor(void);
 int structure_icon_sprite_counter(p8_fixed_t *out);
 
 /* NULL unsets the shared cursor. */
-void structure_icon_set_cursor(const vec_t *gy);
+void structure_icon_set_cursor(const vec_t *cursor);
 
 /* Reveals the icon once, claiming the next slot off the shared cursor: a
  * box made in the current game zone. Requires structure_icon_init(). */

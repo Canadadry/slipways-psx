@@ -1511,3 +1511,7 @@ field	planet_set_type_picker.oc	picker
 name	PRISES	GRABS	prise
 file	tests/fixtures/grab_arenas_refused.json	tests/fixtures/grabs_refused.json
 name	pico8_da	economy_score_planet_upkeep	
+field	pico8_ie_def_t.eh	rest_cursor	
+name	shared_gy	shared_cursor	
+identity	c:test_structure_icon.c@11740@F@test_directed@gy_before	cursor_before	
+field	structure_icon_set_cursor.gy	cursor	

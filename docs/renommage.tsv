@@ -2239,7 +2239,7 @@ dq	confirmed_state	src/game/game_data.h	identifiant	champ	renommé	game/game_dat
 du	base_radius	src/game/game_data.h	identifiant	champ	renommé	game/game_data			c:@SA@pico8_emitter_def_t@FI@du
 dw	attach_distance	src/game/game_data.h	identifiant	champ	renommé	game/game_data			c:@SA@pico8_probe_def_t@FI@dw
 dz	mood_rows	src/game/game_data.h	identifiant	champ	renommé	game/game_data			c:@SA@pico8_jo_def_t@FI@dz
-eh	rest_count	src/game/game_data.h	identifiant	champ	renommé	game/game_data			c:@SA@pico8_ie_def_t@FI@eh
+eh	rest_cursor	src/game/game_data.h	identifiant	champ	renommé	game/game_data			c:@SA@pico8_ie_def_t@FI@eh
 em	spacer	src/game/game_data.h	identifiant	champ	renommé	game/game_data			c:@SA@pico8_jo_def_t@FI@em
 emitter	emitter	src/game/game_data.h	identifiant	champ	conservé	game/game_data	emitter		c:@SA@pico8_g__def_t@FI@emitter
 emitter	emitter	src/game/game_data.h	identifiant	champ	conservé	game/game_data	emitter		c:@SA@pico8_jo_def_t@FI@emitter
@@ -5685,8 +5685,8 @@ view	view	src/game/structure_icon.c	identifiant	locale	conservé	game/structure_
 PICO8_RESEARCH_ICON_H	GAME_STRUCTURE_ICON_H	src/game/structure_icon.h	identifiant	macro	renommé	game/structure_icon			macro:src/game/structure_icon.h:PICO8_RESEARCH_ICON_H
 gfx	gfx	src/game/structure_icon.c	identifiant	paramètre	conservé	game/structure_icon			c:structure_icon.c@4432@F@pico8_ie_kj@gfx
 gfx	gfx	src/game/structure_icon.h	identifiant	paramètre	conservé	game/structure_icon			c:structure_icon.h@3696@F@pico8_ie_kj@gfx
-gy	gy	src/game/structure_icon.c	identifiant	paramètre	conservé	game/structure_icon			c:structure_icon.c@7972@F@pico8_ie_set_gy@gy
-gy	gy	src/game/structure_icon.h	identifiant	paramètre	conservé	game/structure_icon			c:structure_icon.h@2791@F@pico8_ie_set_gy@gy
+gy	cursor	src/game/structure_icon.c	identifiant	paramètre	renommé	game/structure_icon			c:structure_icon.c@8937@F@structure_icon_set_cursor@gy
+gy	cursor	src/game/structure_icon.h	identifiant	paramètre	renommé	game/structure_icon			c:structure_icon.h@3060@F@structure_icon_set_cursor@gy
 keys	keys	src/game/structure_icon.c	identifiant	paramètre	conservé	game/structure_icon			c:structure_icon.c@6335@F@pico8_ie_struct_new@keys
 keys	keys	src/game/structure_icon.c	identifiant	paramètre	conservé	game/structure_icon			c:structure_icon.c@7606@F@pico8_ie_new@keys
 keys	keys	src/game/structure_icon.h	identifiant	paramètre	conservé	game/structure_icon			c:structure_icon.h@2293@F@pico8_ie_new@keys
@@ -15265,7 +15265,7 @@ kh_state	is_revealed_state	tests/test_structure_icon.c	identifiant	fonction	reno
 m__state	is_hovered_state	tests/test_structure_icon.c	identifiant	fonction	renommé	tests/test_structure_icon	m_		c:test_structure_icon.c@F@m__state
 new_game	new_game	tests/test_structure_icon.c	identifiant	fonction	conservé	tests/test_structure_icon			c:test_structure_icon.c@F@new_game
 screen_hash	screen_hash	tests/test_structure_icon.c	identifiant	fonction	conservé	tests/test_structure_icon			c:test_structure_icon.c@F@screen_hash
-shared_gy	shared_revealed_count	tests/test_structure_icon.c	identifiant	fonction	renommé	tests/test_structure_icon			c:test_structure_icon.c@F@shared_gy
+shared_gy	shared_cursor	tests/test_structure_icon.c	identifiant	fonction	renommé	tests/test_structure_icon			c:test_structure_icon.c@F@shared_gy
 shared_id	shared_id	tests/test_structure_icon.c	identifiant	fonction	conservé	tests/test_structure_icon			c:test_structure_icon.c@F@shared_id
 shared_id_fixed	shared_id_fixed	tests/test_structure_icon.c	identifiant	fonction	conservé	tests/test_structure_icon			c:test_structure_icon.c@F@shared_id_fixed
 start_game	start_game	tests/test_structure_icon.c	identifiant	fonction	conservé	tests/test_structure_icon			c:test_structure_icon.c@F@start_game
@@ -15301,7 +15301,7 @@ dx	dx	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_struct
 e	e	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@4073@F@icons@e
 first	first	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@10443@F@test_start@first
 gy	gy	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@17357@F@test_restart@gy
-gy_before	revealed_count_before	tests/test_structure_icon.c	identifiant	locale	renommé	tests/test_structure_icon			c:test_structure_icon.c@11740@F@test_directed@gy_before
+gy_before	cursor_before	tests/test_structure_icon.c	identifiant	locale	renommé	tests/test_structure_icon			c:test_structure_icon.c@11740@F@test_directed@gy_before
 h	h	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@10372@F@test_start@h
 h	hash	tests/test_structure_icon.c	identifiant	locale	renommé	tests/test_structure_icon			c:test_structure_icon.c@11656@F@test_directed@h
 h	h	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@13756@F@screen_hash@h

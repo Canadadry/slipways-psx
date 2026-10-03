@@ -354,7 +354,7 @@ const structure_icon_archetype_t structure_icon_archetype = {
     .hit_box = {0x0, 0x0, 0x90000, 0x80000},
     .layer = 0xc0000,
     .pos = {0x3e70000, 0x3e70000},
-    .rest_count = {0x760000, 0x780000},
+    .rest_cursor = {0x760000, 0x780000},
 };
 
 const score_panel_archetype_t score_panel_archetype = {
