@@ -16,6 +16,9 @@ void exit_queue_put(entity_t *e);
 void exit_queue_put_arena(const allocator_t *arena);
 
 int exit_queue_count(void);
+/* The most entries held at once since the process started; a flush does
+ * not lower it. */
+int exit_queue_max(void);
 
 /* For each entry, in order: an entity goes through forget, which sets to
  * NULL whatever still points to it, then through its class's release; an

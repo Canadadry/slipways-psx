@@ -345,10 +345,31 @@ static int case_rewind_across_reset(void) {
     return 0;
 }
 
+static int case_max_survives_rewind_and_reset(void) {
+    frame_zone_reset();
+    frame_zone_mark_t mark = frame_zone_mark();
+    allocator_alloc(frame_zone(), 4096);
+    size_t peak = frame_zone_used();
+    assert(peak >= 4096);
+    frame_zone_rewind(mark);
+    assert(frame_zone_used() == mark.used && "the current follows the rewind");
+    assert(frame_zone_max() == peak && "the peak keeps what was taken before the rewind");
+
+    allocator_alloc(frame_zone(), 1024);
+    assert(frame_zone_max() == peak && "a lower use leaves the peak alone");
+    allocator_alloc(frame_zone(), 8192);
+    size_t higher = frame_zone_used();
+    frame_zone_reset();
+    assert(frame_zone_used() == 0);
+    assert(frame_zone_max() == higher && "the peak keeps what was taken before the reset");
+    return 0;
+}
+
 static const struct {
     const char *name;
     int (*run)(void);
 } CASES[] = {
+    {"max_survives_rewind_and_reset", case_max_survives_rewind_and_reset},
     {"lazy_init", case_lazy_init},
     {"reset_before_first_use", case_reset_before_first_use},
     {"alive_within_frame", case_alive_within_frame},
@@ -465,6 +486,7 @@ int main(int argc, char **argv) {
     expect_poison_crash("dead_after_rewind");
     expect_clean("rewind_gives_room_back");
     expect_assert("rewind_across_reset", "a mark from before a reset");
+    expect_clean("max_survives_rewind_and_reset");
     expect_clean("inspection_panel_rows_survive_reset");
     expect_clean("invented_lines_survive_reset");
     expect_clean("research_project_tooltip_survives_reset");

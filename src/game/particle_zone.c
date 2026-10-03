@@ -2,6 +2,7 @@
 
 #include <assert.h>
 
+#include "engine/slot_tally.h"
 #include "engine/zone_sizes.h"
 
 /* Size: arena header included (x86-64), a list holds just its reserved
@@ -12,7 +13,6 @@
 #define PARTICLES_COUNT 24
 #define PARTICLES_HELP_SCREEN_COUNT 1
 #define BURST_COUNT 8
-#define ARENAS_MAX PARTICLES_COUNT
 /* Accepted risk: ~21 transit dots live per slipway served both ways, and
  * 680 slots hold about thirty such visible slipways. */
 #define TRANSIT_DOTS_COUNT 680
@@ -26,7 +26,6 @@
 #define HELP_SCREEN_PER_FRAME 5
 #define PARTICLE_CAPACITY (BURST_COUNT * BURST_PARTICLES + (PARTICLES_COUNT - BURST_COUNT) * EMITTER_WORST_CASE + HELP_SCREEN_PER_FRAME)
 
-typedef char particle_zone_arenas_max_t[(PARTICLES_HELP_SCREEN_COUNT <= ARENAS_MAX && BURST_COUNT <= ARENAS_MAX) ? 1 : -1];
 typedef char particle_zone_holds_help_screen_t[PARTICLE_CAPACITY >= PARTICLES_HELP_SCREEN_CAPACITY ? 1 : -1];
 
 typedef char particle_zone_exceeded_t[
@@ -54,12 +53,8 @@ static const slot_kind_zone_t SLOT_KINDS[PARTICLE_SLOT_COUNT] = {
 static slot_zone_t g_zones[PARTICLE_SLOT_COUNT];
 static allocator_t g_slots[PARTICLE_SLOT_COUNT];
 static int g_ready;
-static int g_live[PARTICLE_SLOT_COUNT];
-static int g_max_live[PARTICLE_SLOT_COUNT];
-static size_t g_max_bytes[PARTICLE_SLOT_COUNT];
+static slot_tally_t g_tally;
 static int g_max_elements[PARTICLE_SLOT_COUNT];
-/* Live arena slots, measured when the maximum of bytes is read. */
-static unsigned char *g_arenas[PARTICLE_SLOT_COUNT][ARENAS_MAX];
 
 static particle_slot_kind_t slot_kind_of(const allocator_t *z);
 
@@ -68,6 +63,7 @@ static particle_slot_kind_t slot_kind_of(const allocator_t *z);
 static void init_once(void) {
     if (g_ready) return;
     allocator_init_slot_kinds(SLOT_KINDS, PARTICLE_SLOT_COUNT, g_zones, g_slots);
+    slot_tally_init(&g_tally, SLOT_KINDS, g_zones, PARTICLE_SLOT_COUNT);
     g_ready = 1;
 }
 
@@ -75,35 +71,18 @@ static int is_arena(particle_slot_kind_t slot_kind) {
     return SLOT_KINDS[slot_kind].slot_name != NULL;
 }
 
-static void read_bytes(particle_slot_kind_t slot_kind, const unsigned char *arena) {
-    size_t used = arena_used((const allocator_t *)arena);
-    if (used > g_max_bytes[slot_kind]) g_max_bytes[slot_kind] = used;
-}
-
 static unsigned char *slot_alloc(const allocator_t *z, size_t n) {
     particle_slot_kind_t slot_kind = slot_kind_of(z);
     init_once();
     unsigned char *p = allocator_alloc(&g_slots[slot_kind], n);
-    if (is_arena(slot_kind)) {
-        int i = 0;
-        while (g_arenas[slot_kind][i] != NULL) i++;
-        g_arenas[slot_kind][i] = p;
-    }
-    g_live[slot_kind]++;
-    if (g_live[slot_kind] > g_max_live[slot_kind]) g_max_live[slot_kind] = g_live[slot_kind];
+    slot_tally_take(&g_tally, slot_kind);
     return p;
 }
 
 static void slot_release(const allocator_t *z, unsigned char *p) {
     particle_slot_kind_t slot_kind = slot_kind_of(z);
     if (p == NULL) return;
-    if (is_arena(slot_kind)) {
-        int i = 0;
-        while (g_arenas[slot_kind][i] != p) i++;
-        read_bytes(slot_kind, p);
-        g_arenas[slot_kind][i] = NULL;
-    }
-    g_live[slot_kind]--;
+    slot_tally_give_back(&g_tally, slot_kind, p);
     allocator_release(&g_slots[slot_kind], p);
 }
 
@@ -134,23 +113,21 @@ const allocator_t *particle_zone_slot(particle_slot_kind_t slot_kind) {
 int particle_zone_live(particle_slot_kind_t slot_kind) {
     assert(slot_kind >= 0 && slot_kind < PARTICLE_SLOT_COUNT);
     init_once();
-    assert((size_t)g_live[slot_kind] == slot_zone_taken(&g_zones[slot_kind]) &&
+    assert((size_t)slot_tally_live(&g_tally, slot_kind) == slot_zone_taken(&g_zones[slot_kind]) &&
            "particle_zone_live: a slot taken or given back without its kind's handle");
-    return g_live[slot_kind];
+    return slot_tally_live(&g_tally, slot_kind);
 }
 
 int particle_zone_max_live(particle_slot_kind_t slot_kind) {
     assert(slot_kind >= 0 && slot_kind < PARTICLE_SLOT_COUNT);
-    return g_max_live[slot_kind];
+    init_once();
+    return slot_tally_max_live(&g_tally, slot_kind);
 }
 
 size_t particle_zone_max_bytes(particle_slot_kind_t slot_kind) {
     assert(slot_kind >= 0 && slot_kind < PARTICLE_SLOT_COUNT);
-    if (is_arena(slot_kind)) {
-        for (int i = 0; i < ARENAS_MAX; i++)
-            if (g_arenas[slot_kind][i] != NULL) read_bytes(slot_kind, g_arenas[slot_kind][i]);
-    }
-    return g_max_bytes[slot_kind];
+    init_once();
+    return slot_tally_max_bytes(&g_tally, slot_kind);
 }
 
 void particle_zone_record_elements(particle_slot_kind_t slot_kind, int count) {
@@ -162,4 +139,14 @@ void particle_zone_record_elements(particle_slot_kind_t slot_kind, int count) {
 int particle_zone_max_elements(particle_slot_kind_t slot_kind) {
     assert(slot_kind >= 0 && slot_kind < PARTICLE_SLOT_COUNT);
     return g_max_elements[slot_kind];
+}
+
+size_t particle_zone_used(void) {
+    init_once();
+    return slot_tally_zone_bytes(&g_tally);
+}
+
+size_t particle_zone_max_used(void) {
+    init_once();
+    return slot_tally_zone_max_bytes(&g_tally);
 }

@@ -38,6 +38,11 @@ const allocator_t *particle_zone_slot(particle_slot_kind_t slot_kind);
 /* Slots taken and not yet given back. */
 int particle_zone_live(particle_slot_kind_t slot_kind);
 
+/* Reserved bytes of the live slots of every kind, as SLOT_ZONE_BYTES
+ * counts them, and their maximum since the process started. */
+size_t particle_zone_used(void);
+size_t particle_zone_max_used(void);
+
 /* Session maxima. Bytes: those of an arena slot, header included, the
  * slots still live measured when read; 0 for a particle. Elements: the
  * largest count particle_zone_record_elements has seen for a particle list,

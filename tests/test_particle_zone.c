@@ -283,6 +283,21 @@ static void release_trail(transit_dot_t *t) {
     allocator_release(particle_zone(PARTICLE_SLOT_TRANSIT_DOT), (unsigned char *)t);
 }
 
+static int case_zone_used_keeps_its_peak(void) {
+    assert(particle_zone_used() == 0 && particle_zone_max_used() == 0);
+    particle_t *a = particle();
+    particle_t *b = particle();
+    transit_dot_t *c = trail();
+    size_t peak = SLOT_ZONE_BYTES(PARTICLE_SLOT, 2) + SLOT_ZONE_BYTES(TRANSIT_DOTS_SLOT, 1);
+    assert(particle_zone_used() == peak && "each live slot counts its reserved size");
+    release_particle(a);
+    release_trail(c);
+    assert(particle_zone_used() == SLOT_ZONE_BYTES(PARTICLE_SLOT, 1));
+    assert(particle_zone_max_used() == peak && "the zone peak outlives the give backs");
+    release_particle(b);
+    return 0;
+}
+
 static int case_transit_dots_takes_and_gives_back(void) {
     transit_dot_t *a = trail();
     transit_dot_t *b = trail();
@@ -333,6 +348,7 @@ static const struct {
     {"particle_dead_after_emitter_update", case_particle_dead_after_emitter_update},
     {"emitter_spawn_notes_the_list_length", case_emitter_spawn_notes_the_list_length},
     {"transit_dots_takes_and_gives_back", case_transit_dots_takes_and_gives_back},
+    {"zone_used_keeps_its_peak", case_zone_used_keeps_its_peak},
     {"transit_dots_dead_after_release", case_transit_dots_dead_after_release},
     {"transit_dots_zone_full", case_transit_dots_zone_full},
 };
@@ -426,6 +442,7 @@ int main(int argc, char **argv) {
     expect_poison_crash("particle_dead_after_emitter_update");
     expect_clean("emitter_spawn_notes_the_list_length");
     expect_clean("transit_dots_takes_and_gives_back");
+    expect_clean("zone_used_keeps_its_peak");
     expect_poison_crash("transit_dots_dead_after_release");
     expect_fatal("transit_dots_zone_full", "zone particles transit_dots full, limit 680 slots");
     remove(STDERR_LOG);

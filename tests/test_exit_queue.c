@@ -55,6 +55,10 @@ static message_box_t *new_entity(const entity_class_t *cls) {
     return mh;
 }
 
+static void forget_nothing(const entity_t *e) {
+    (void)e;
+}
+
 static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
@@ -236,10 +240,27 @@ static int case_full(void) {
     return 0;
 }
 
+static int case_max_survives_flush(void) {
+    released = 0;
+    message_box_t *e = new_entity(&counted_cls);
+    assert(exit_queue_max() == 0);
+    for (int i = 0; i < 3; i++) exit_queue_put(&e->header);
+    exit_queue_flush(forget_nothing);
+    assert(exit_queue_count() == 0);
+    assert(exit_queue_max() == 3 && "the flush empties the queue, not its peak");
+    exit_queue_put(&e->header);
+    exit_queue_flush(forget_nothing);
+    assert(exit_queue_max() == 3 && "a smaller batch leaves the peak alone");
+    assert(released == 4);
+    free(e);
+    return 0;
+}
+
 static const struct {
     const char *name;
     int (*run)(void);
 } CASES[] = {
+    {"max_survives_flush", case_max_survives_flush},
     {"entity_unregister_alive_until_flush", case_entity_unregister_alive_until_flush},
     {"entity_unregister_released_at_flush", case_entity_unregister_released_at_flush},
     {"ephemerals_alive_until_flush", case_ephemerals_alive_until_flush},
@@ -347,6 +368,7 @@ int main(int argc, char **argv) {
     expect_clean("update60_after_forgetting");
     expect_clean("difficulty_outlives_its_button");
     expect_fatal("full", "exit queue full, limit 512");
+    expect_clean("max_survives_flush");
     remove(STDERR_LOG);
     printf("test_exit_queue: all tests passed\n");
     return 0;

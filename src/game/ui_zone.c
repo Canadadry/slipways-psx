@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stddef.h>
 
+#include "engine/slot_tally.h"
 #include "engine/zone_sizes.h"
 
 /* Size: the largest slot the game builds, arena header included
@@ -44,21 +45,53 @@ static const slot_kind_zone_t SLOT_KINDS[SLOT_KIND_COUNT] = {
 };
 
 static slot_zone_t g_zones[SLOT_KIND_COUNT];
-static allocator_t g_handles[SLOT_KIND_COUNT];
+static allocator_t g_slots[SLOT_KIND_COUNT];
 static int g_ready;
+static slot_tally_t g_tally;
+
+static slot_kind_t slot_kind_of(const allocator_t *z);
 
 /* Lazy: allocator_init_slot_kinds poisons the storage under ASan, which a
  * static initializer would not do. */
 static void init_once(void) {
     if (g_ready) return;
-    allocator_init_slot_kinds(SLOT_KINDS, SLOT_KIND_COUNT, g_zones, g_handles);
+    allocator_init_slot_kinds(SLOT_KINDS, SLOT_KIND_COUNT, g_zones, g_slots);
+    slot_tally_init(&g_tally, SLOT_KINDS, g_zones, SLOT_KIND_COUNT);
     g_ready = 1;
+}
+
+static unsigned char *slot_alloc(const allocator_t *z, size_t n) {
+    slot_kind_t slot_kind = slot_kind_of(z);
+    init_once();
+    unsigned char *p = allocator_alloc(&g_slots[slot_kind], n);
+    slot_tally_take(&g_tally, slot_kind);
+    return p;
+}
+
+static void slot_release(const allocator_t *z, unsigned char *p) {
+    slot_kind_t slot_kind = slot_kind_of(z);
+    if (p == NULL) return;
+    slot_tally_give_back(&g_tally, slot_kind, p);
+    allocator_release(&g_slots[slot_kind], p);
+}
+
+static const allocator_t slot_allocators[SLOT_KIND_COUNT] = {
+    [SLOT_KIND_BUTTON] = {slot_alloc, allocator_grow_refused, slot_release, NULL, NULL},
+    [SLOT_KIND_MODAL_BACKDROP] = {slot_alloc, allocator_grow_refused, slot_release, NULL, NULL},
+    [SLOT_KIND_MESSAGE_BOX] = {slot_alloc, allocator_grow_refused, slot_release, NULL, NULL},
+    [SLOT_KIND_TOAST] = {slot_alloc, allocator_grow_refused, slot_release, NULL, NULL},
+    [SLOT_KIND_ROW] = {slot_alloc, allocator_grow_refused, slot_release, NULL, NULL},
+    [SLOT_KIND_EPHEMERALS] = {slot_alloc, allocator_grow_refused, slot_release, NULL, NULL},
+};
+
+static slot_kind_t slot_kind_of(const allocator_t *z) {
+    assert(z >= slot_allocators && z < slot_allocators + SLOT_KIND_COUNT && "slot_kind_of: handle outside the ui zone");
+    return (slot_kind_t)(z - slot_allocators);
 }
 
 const allocator_t *ui_zone(slot_kind_t slot_kind) {
     assert(slot_kind >= 0 && slot_kind < SLOT_KIND_COUNT);
-    init_once();
-    return &g_handles[slot_kind];
+    return &slot_allocators[slot_kind];
 }
 
 const allocator_t *ui_zone_slot(slot_kind_t slot_kind) {
@@ -68,5 +101,29 @@ const allocator_t *ui_zone_slot(slot_kind_t slot_kind) {
 int ui_zone_live(slot_kind_t slot_kind) {
     assert(slot_kind >= 0 && slot_kind < SLOT_KIND_COUNT);
     init_once();
-    return (int)slot_zone_taken(&g_zones[slot_kind]);
+    assert((size_t)slot_tally_live(&g_tally, slot_kind) == slot_zone_taken(&g_zones[slot_kind]) &&
+           "ui_zone_live: a slot taken or given back without its kind's handle");
+    return slot_tally_live(&g_tally, slot_kind);
+}
+
+int ui_zone_max_live(slot_kind_t slot_kind) {
+    assert(slot_kind >= 0 && slot_kind < SLOT_KIND_COUNT);
+    init_once();
+    return slot_tally_max_live(&g_tally, slot_kind);
+}
+
+size_t ui_zone_max_bytes(slot_kind_t slot_kind) {
+    assert(slot_kind >= 0 && slot_kind < SLOT_KIND_COUNT);
+    init_once();
+    return slot_tally_max_bytes(&g_tally, slot_kind);
+}
+
+size_t ui_zone_used(void) {
+    init_once();
+    return slot_tally_zone_bytes(&g_tally);
+}
+
+size_t ui_zone_max_used(void) {
+    init_once();
+    return slot_tally_zone_max_bytes(&g_tally);
 }

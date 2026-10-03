@@ -11,6 +11,7 @@ static bump_zone_t frame;
 static allocator_t frame_handle;
 static int frame_ready;
 static unsigned long frame_generation;
+static size_t frame_max;
 
 /* Lazy: bump_zone_init poisons the storage under ASan, which a static
  * initialiser would not do. */
@@ -26,8 +27,16 @@ const allocator_t *frame_zone(void) {
     return &frame_handle;
 }
 
+/* Taken only where used is about to drop, and when read: between two
+ * such points a bump zone only grows, so the hot allocation path pays
+ * nothing. */
+static void sample_max(void) {
+    if (frame.used > frame_max) frame_max = frame.used;
+}
+
 void frame_zone_reset(void) {
     frame_init_once();
+    sample_max();
     bump_zone_reset(&frame);
     frame_generation++;
 }
@@ -42,5 +51,17 @@ void frame_zone_rewind(frame_zone_mark_t mark) {
     frame_init_once();
     assert(mark.generation == frame_generation &&
            "rewind to a mark from before a reset: the room taken since then is no longer the marker's to give back");
+    sample_max();
     bump_zone_rewind(&frame, mark.used);
+}
+
+size_t frame_zone_used(void) {
+    frame_init_once();
+    return frame.used;
+}
+
+size_t frame_zone_max(void) {
+    frame_init_once();
+    sample_max();
+    return frame_max;
 }
