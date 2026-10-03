@@ -49,7 +49,7 @@ static p8_graphics_t graphics;
 static p8_input_t input;
 
 static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
-static const char *const tags[] = {"planet", "node", "targeting"};
+static const tag_t tags[] = {TAG_PLANET, TAG_NODE, TAG_TARGETING};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -287,7 +287,7 @@ static void test_galaxy(void) {
     int i;
 
     start_game();
-    jo = entities_by_tag("planet");
+    jo = entities_by_tag(TAG_PLANET);
     for (i = 0; i < jo->count; i++) {
         h = fold_planet(h, jo->items[i]);
     }
@@ -418,7 +418,7 @@ static research_project_t *class_name_project(const char *cw) {
 /* A generated planet turned by planet_apply_project into the subclass the
  * class name names: the newest live entity. */
 static void *turned(int planet, const char *cw) {
-    void *p = entities_by_tag("planet")->items[planet];
+    void *p = entities_by_tag(TAG_PLANET)->items[planet];
 
     planet_roll_type(p);
     planet_apply_project(p, class_name_project(cw));
@@ -466,7 +466,7 @@ static void test_new_planet(void) {
 
     start_title();
     a = new_planet("p900", 1, 2);
-    assert(entity_list_listed(live_entities(), a) && entity_list_listed(entities_by_tag("planet"), a));
+    assert(entity_list_listed(live_entities(), a) && entity_list_listed(entities_by_tag(TAG_PLANET), a));
     h = fold_planet(h, a);
     h = fold_live(h, a);
     check("new_planet", h, NEW_PLANET_HASH);
@@ -479,14 +479,14 @@ static void test_entities_by_tag_null_until_seen(void) {
 
     start_title();
     entity_registry_init();
-    assert(entities_by_tag("planet") == NULL && entities_by_tag("node") == NULL && entities_by_tag("background") == NULL);
+    assert(entities_by_tag(TAG_PLANET) == NULL && entities_by_tag(TAG_NODE) == NULL);
     a = new_planet("p902", 5, 6);
-    assert(entities_by_tag("planet") != NULL && entities_by_tag("node") != NULL && entities_by_tag("targeting") != NULL);
-    assert(entities_by_tag("structure") == NULL && entities_by_tag("background") == NULL);
+    assert(entities_by_tag(TAG_PLANET) != NULL && entities_by_tag(TAG_NODE) != NULL && entities_by_tag(TAG_TARGETING) != NULL);
+    assert(entities_by_tag(TAG_STRUCTURE) == NULL);
     entity_unregister(a);
-    assert(entities_by_tag("planet") != NULL && entities_by_tag("planet")->count == 0);
+    assert(entities_by_tag(TAG_PLANET) != NULL && entities_by_tag(TAG_PLANET)->count == 0);
     entity_registry_init();
-    assert(entities_by_tag("planet") == NULL);
+    assert(entities_by_tag(TAG_PLANET) == NULL);
 }
 
 /* update_entities dispatches by state: a "vanishing" planet runs
@@ -506,7 +506,7 @@ static void test_update_vanishing(void) {
         calls++;
     }
     assert(is_dead_state(a) == 2);
-    assert(!entity_list_listed(live_entities(), a) && !entity_list_listed(entities_by_tag("planet"), a));
+    assert(!entity_list_listed(live_entities(), a) && !entity_list_listed(entities_by_tag(TAG_PLANET), a));
     check_int("update_vanishing_calls", calls, UPDATE_VANISHING_CALLS);
 }
 
@@ -588,7 +588,7 @@ static void test_planet_is_a_struct(void) {
     int j;
 
     start_game();
-    jo = entities_by_tag("planet");
+    jo = entities_by_tag(TAG_PLANET);
     for (j = 0; j < jo->count; j++) {
         assert(is_a_planet_struct(jo->items[j]));
     }
@@ -606,7 +606,7 @@ static void test_planet_is_a_struct(void) {
     }
 
     (void)bought(structure_kind());
-    jo = entities_by_tag("structure");
+    jo = entities_by_tag(TAG_STRUCTURE);
     assert(jo != NULL && jo->count == 1);
     assert(jo->items[0] != NULL &&
            ((const entity_t *)jo->items[0])->class == structure_class());
@@ -620,7 +620,7 @@ static int row_slots(void) {
  * planet_install_project and update_tiers_visit would: planet_refresh then
  * gives it a row. */
 static planet_t *planet_with_a_row(void) {
-    planet_t *a = (planet_t *)entities_by_tag("planet")->items[0];
+    planet_t *a = (planet_t *)entities_by_tag(TAG_PLANET)->items[0];
 
     a->production = &a->production_own;
     a->production_own.has_resource = 1;
@@ -678,7 +678,7 @@ static void test_rows_given_back_after_restart(void) {
     cart_flush_exit_queue();
     title = row_slots();
     start_game();
-    jo = entities_by_tag("planet");
+    jo = entities_by_tag(TAG_PLANET);
     (void)planet_with_a_row();
     for (i = 0; i < jo->count; i++) {
         class_of(jo->items[i])->refresh(jo->items[i]);

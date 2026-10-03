@@ -160,7 +160,7 @@ void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
     probe_host_set_positions(self, mouse_world != NULL ? &targeting->track_pos : NULL, &targeting->track_map_pos);
 
     candidate = NULL;
-    distance = entity_geom_nearest(p_vec, entities_by_tag("node"), &candidate);
+    distance = entity_geom_nearest(p_vec, entities_by_tag(TAG_NODE), &candidate);
 
     target = NULL;
 
@@ -173,7 +173,7 @@ void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
         entity_t *first = NULL;
 
         ctx.self_map_pos = p_vec;
-        filtered = entity_list_filter(frame_zone(), entities_by_tag("slipway"), targeting_track_slipway_predicate, &ctx);
+        filtered = entity_list_filter(frame_zone(), entities_by_tag(TAG_SLIPWAY), targeting_track_slipway_predicate, &ctx);
         if (filtered.count > 0) {
             first = filtered.items[0];
             have_first = 1;

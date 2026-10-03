@@ -61,7 +61,7 @@ static p8_graphics_t graphics;
 static p8_input_t input;
 
 static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
-static const char *const tags[] = {"slipgate", "node", "targeting"};
+static const tag_t tags[] = {TAG_SLIPGATE, TAG_NODE, TAG_TARGETING};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -362,7 +362,7 @@ static uint32_t fold_gate(uint32_t hash, const void *entity, const void *slipgat
     for (index = 0; index < sizeof tags / sizeof tags[0]; index++) {
         hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(tags[index]), entity));
     }
-    assert(entity_list_listed(entities_by_tag("slipgate"), entity) && !entity_list_listed(entities_by_tag("planet"), entity) && !entity_list_listed(entities_by_tag("structure"), entity));
+    assert(entity_list_listed(entities_by_tag(TAG_SLIPGATE), entity) && !entity_list_listed(entities_by_tag(TAG_PLANET), entity) && !entity_list_listed(entities_by_tag(TAG_STRUCTURE), entity));
     return hash;
 }
 
@@ -581,7 +581,7 @@ static void test_infraspace_gate_is_a_struct(void) {
 
     start_game();
     a = build_gate();
-    assert(is_an_infraspace_gate_struct(a) && cls != nr && entity_list_listed(entities_by_tag("slipgate"), a));
+    assert(is_an_infraspace_gate_struct(a) && cls != nr && entity_list_listed(entities_by_tag(TAG_SLIPGATE), a));
     assert(cls->draw == nr->draw && cls->draw_overlay == nr->draw_overlay && cls->hit_test == nr->hit_test && cls->new_year == nr->new_year && cls->refresh == nr->refresh &&
            cls->has_refresh == nr->has_refresh && cls->left_press == nr->left_press && cls->right_press == nr->right_press && cls->accept_drop == nr->accept_drop &&
            cls->drag == nr->drag && cls->drop == nr->drop && cls->attach_slipway == nr->attach_slipway && cls->offer_trade == nr->offer_trade && cls->draw_at == nr->draw_at &&
@@ -596,7 +596,7 @@ static void test_infraspace_gate_is_a_struct(void) {
         planet_t *bare = infraspace_gate_new(NULL);
         assert(is_an_infraspace_gate_struct(bare) && is_a_gate(bare) && bare->planet_id == NULL && bare->slipways != NULL &&
                bare->production != NULL);
-        assert(entity_list_listed(entities_by_tag("slipgate"), bare));
+        assert(entity_list_listed(entities_by_tag(TAG_SLIPGATE), bare));
     }
 }
 

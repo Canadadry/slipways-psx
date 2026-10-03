@@ -325,7 +325,7 @@ static probe_t *left_press(void) {
     background_t *bg = the_background();
     down_t out;
 
-    assert(entity_list_list_count(entities_by_tag("probe")) == 0);
+    assert(entity_list_list_count(entities_by_tag(TAG_PROBE)) == 0);
     out = class_of(bg)->left_press(&bg->header, vec_ref(vec_xy(1, 1)), vec_ref(vec_xy(2, 2)));
     assert(out.stop && out.held != NULL && is_probe(out.held));
     return as_probe(out.held);
@@ -395,9 +395,9 @@ static uint32_t fold_probe(uint32_t hash, probe_t *entity) {
     }
     assert(entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), entity) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), entity));
     assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), entity) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), entity) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_REFRESH), entity));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("probe"), entity));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("targeting"), entity));
-    assert(entity_list_listed(entities_by_tag("probe"), entity) && entity_list_listed(entities_by_tag("targeting"), entity));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_PROBE), entity));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_TARGETING), entity));
+    assert(entity_list_listed(entities_by_tag(TAG_PROBE), entity) && entity_list_listed(entities_by_tag(TAG_TARGETING), entity));
     return hash;
 }
 
@@ -442,7 +442,7 @@ static uint32_t target_kind(const probe_t *e) {
         return 1;
     }
     ref = e->targeting->target;
-    if (entity_list_listed(entities_by_tag("node"), ref)) {
+    if (entity_list_listed(entities_by_tag(TAG_NODE), ref)) {
         return 2;
     }
     if (ref != NULL &&
@@ -481,8 +481,8 @@ static uint32_t fold_target(uint32_t h, const probe_t *e) {
 static planet_t *a_planet(void) {
     entity_t *e;
 
-    assert(entity_list_list_count(entities_by_tag("node")) > 0);
-    e = entities_by_tag("node")->items[0];
+    assert(entity_list_list_count(entities_by_tag(TAG_NODE)) > 0);
+    e = entities_by_tag(TAG_NODE)->items[0];
     assert(planet_is_family(e));
     return (planet_t *)e;
 }
@@ -597,8 +597,8 @@ static void test_life(void) {
     assert(targeting_confirm(&first->header) == 0);
     assert(first->is_dead);
     update_entities();
-    assert(!entity_list_listed(live_entities(), first) && !entity_list_listed(entities_by_tag("probe"), first) && !entity_list_listed(entities_by_tag("targeting"), first));
-    assert(entity_list_listed(live_entities(), second) && entity_list_listed(entities_by_tag("probe"), second));
+    assert(!entity_list_listed(live_entities(), first) && !entity_list_listed(entities_by_tag(TAG_PROBE), first) && !entity_list_listed(entities_by_tag(TAG_TARGETING), first));
+    assert(entity_list_listed(live_entities(), second) && entity_list_listed(entities_by_tag(TAG_PROBE), second));
     hash = fnv(hash, (uint32_t)live_entities()->count);
     check("life", hash, LIFE_HASH);
 }
@@ -720,9 +720,9 @@ static void test_help_screen(void) {
     assert(size_of(help_screen->emitter->particles) >= 0);
     hash = fnv(hash, (uint32_t)size_of(help_screen->emitter->particles));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live, help_screen));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("probe"), help_screen));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("targeting"), help_screen));
-    assert(entity_list_listed(entities_by_tag("probe"), help_screen) && entity_list_listed(entities_by_tag("targeting"), help_screen));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_PROBE), help_screen));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_TARGETING), help_screen));
+    assert(entity_list_listed(entities_by_tag(TAG_PROBE), help_screen) && entity_list_listed(entities_by_tag(TAG_TARGETING), help_screen));
     hash = fold_defaults(hash, help_screen);
     for (index = 0; index < 3; index++) {
         draw_layers(ENTITY_MESSAGE_DRAW);

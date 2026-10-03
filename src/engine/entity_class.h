@@ -65,24 +65,6 @@ typedef enum {
 
 #define LINEAGE(l) (1u << (l))
 
-/* The tag named `name`, or -1 for any other name. */
-static inline int entity_tag_named(const char *name) {
-    static const char *const names[TAG_COUNT] = {
-        [TAG_STRUCTURE] = "structure", [TAG_ASCENSION] = "ascension", [TAG_SLIPGATE] = "slipgate",
-        [TAG_PROBE] = "probe", [TAG_MESSAGE_BOX] = "message_box", [TAG_SLIPWAY] = "slipway",
-        [TAG_WORMHOLE] = "wormhole", [TAG_PLANET] = "planet", [TAG_NODE] = "node",
-        [TAG_TARGETING] = "targeting",
-    };
-    int i;
-
-    for (i = 0; i < TAG_COUNT; i++) {
-        if (strcmp(names[i], name) == 0) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 typedef struct entity_class entity_class_t;
 struct emitter;
 struct targeting;

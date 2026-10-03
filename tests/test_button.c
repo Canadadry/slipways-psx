@@ -504,7 +504,7 @@ static void *built_world(void) {
     int i;
 
     start_game();
-    jos = entities_by_tag("planet");
+    jos = entities_by_tag(TAG_PLANET);
     assert(jos != NULL && jos->count > 1);
     qu = jos->items[0];
     for (i = 1; i < jos->count; i++) {
@@ -544,7 +544,7 @@ static void known_panel(void) {
     void *p;
 
     start_game();
-    p = entities_by_tag("planet")->items[0];
+    p = entities_by_tag(TAG_PLANET)->items[0];
     planet_roll_type(p);
     (void)planet_left_press(p);
     one_frame();
@@ -760,7 +760,7 @@ static void test_difficulty(void) {
         h = fold_fixed_or_nil(h, button_of(nj)->has_type_bias, button_of(nj)->type_bias);
         h = fold_fixed_or_nil(h, button_of(nj)->has_trade, button_of(nj)->trade);
         h = fold_string_or_nil(h, button_of(nj)->name);
-        jo = entities_by_tag("planet");
+        jo = entities_by_tag(TAG_PLANET);
         printf("[difficulty] option %d: %d planet(s)\n", i, jo->count);
         h = fnv(h, (uint32_t)jo->count);
         for (j = 0; j < jo->count; j++) {
@@ -1522,7 +1522,7 @@ static uint32_t members_projects_panel(void) {
             pt = b->project_planet;
         }
         assert(b->project_planet == pt);
-        assert(is_of_class(pt, planet_class()) && entity_list_listed(entities_by_tag("planet"), pt));
+        assert(is_of_class(pt, planet_class()) && entity_list_listed(entities_by_tag(TAG_PLANET), pt));
         assert(b->project != NULL && is_of_class(b->project, research_project_class()));
         assert(b->has_project_cost);
         assert(b->on_click != NULL);

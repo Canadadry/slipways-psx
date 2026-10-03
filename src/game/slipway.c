@@ -264,8 +264,8 @@ entity_t *slipway_obstruction(slipway_t *self) {
         slipway_ctx.self_has_infraspace = self->has_infraspace;
         slipway_ctx.self_infraspace = self->infraspace;
 
-        part1 = entity_list_filter(frame_zone(), entities_by_tag("node"), slipway_obstruction_node_predicate, &node_ctx);
-        part2 = entity_list_filter(frame_zone(), entities_by_tag("slipway"), slipway_obstruction_slipway_predicate, &slipway_ctx);
+        part1 = entity_list_filter(frame_zone(), entities_by_tag(TAG_NODE), slipway_obstruction_node_predicate, &node_ctx);
+        part2 = entity_list_filter(frame_zone(), entities_by_tag(TAG_SLIPWAY), slipway_obstruction_slipway_predicate, &slipway_ctx);
         ds = entity_list_concat(frame_zone(), &part1, &part2);
 
         if (ds.count > 0) {

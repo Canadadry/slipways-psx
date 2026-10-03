@@ -18,7 +18,7 @@ static p8_fixed_t fixed_min(p8_fixed_t a, p8_fixed_t b) {
 
 typedef void (*entities_by_tag_visit_fn_t)(entity_t *e, void *ctx);
 
-static void for_each_tagged(const char *tag, entities_by_tag_visit_fn_t fn, void *ctx) {
+static void for_each_tagged(tag_t tag, entities_by_tag_visit_fn_t fn, void *ctx) {
     const entity_list_t *list = entities_by_tag(tag);
     entity_list_iter_t it;
     entity_t *e;
@@ -132,8 +132,8 @@ static void rebuild_incoming_routes_route_visit(entity_t *entity, void *context)
 }
 
 void economy_tiers_rebuild_incoming_routes(void) {
-    for_each_tagged("planet", rebuild_incoming_routes_reset_visit, NULL);
-    for_each_tagged("planet", rebuild_incoming_routes_route_visit, NULL);
+    for_each_tagged(TAG_PLANET, rebuild_incoming_routes_reset_visit, NULL);
+    for_each_tagged(TAG_PLANET, rebuild_incoming_routes_route_visit, NULL);
 }
 
 static void update_tiers_visit(entity_t *entity, void *context) {
@@ -196,7 +196,7 @@ static void update_tiers_visit(entity_t *entity, void *context) {
 
 int economy_tiers_update_tiers(void) {
     int jg = 0;
-    for_each_tagged("planet", update_tiers_visit, &jg);
+    for_each_tagged(TAG_PLANET, update_tiers_visit, &jg);
     return jg;
 }
 

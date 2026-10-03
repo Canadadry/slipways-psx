@@ -45,7 +45,7 @@ static p8_memory_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
-static const char *const tags[] = {"planet", "probe", "structure", "slipway", "wormhole", "message_box", "node", "ascension", "targeting", "slipgate", "background"};
+static const tag_t tags[] = {TAG_PLANET, TAG_PROBE, TAG_STRUCTURE, TAG_SLIPWAY, TAG_WORMHOLE, TAG_MESSAGE_BOX, TAG_NODE, TAG_ASCENSION, TAG_TARGETING, TAG_SLIPGATE};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -447,7 +447,7 @@ static void test_life(void) {
         hash = fnv(hash, (uint32_t)(year_banner->row.count >= 3));
         hash = fnv(hash, (uint32_t)(year_banner->keep_open != NULL));
         hash = fnv_str(hash, string_at(row_of(&year_banner->row, 2), 1));
-        hash = fnv(hash, (uint32_t)entity_list_count_of(entities_by_tag("message_box")));
+        hash = fnv(hash, (uint32_t)entity_list_count_of(entities_by_tag(TAG_MESSAGE_BOX)));
         hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), shown_message_box()));
     }
     assert(year_banner->row.count == 2 && year_banner->keep_open != NULL);
@@ -473,12 +473,12 @@ static void test_life(void) {
     assert(score_panel->layer == p8_fixed_from_int(13));
     assert(modal_backdrop_count() == modal_backdrop_before + 1 && layer15_button_count() == button_before + 2);
     assert(score_panel->last_box == shown_message_box() && shown_message_box() != NULL);
-    boxes = entity_list_count_of(entities_by_tag("message_box"));
+    boxes = entity_list_count_of(entities_by_tag(TAG_MESSAGE_BOX));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), shown_message_box()));
     hash = fnv(hash, (uint32_t)live_entities()->count);
 
     class_of(score_panel)->states[ENTITY_STATE_NORMAL](&score_panel->header, p8_fixed_from_int(0));
-    assert(entity_list_count_of(entities_by_tag("message_box")) == boxes);
+    assert(entity_list_count_of(entities_by_tag(TAG_MESSAGE_BOX)) == boxes);
     assert(score_panel->last_box == shown_message_box());
 
     for (index = 0; index < 3; index++) {

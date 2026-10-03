@@ -221,7 +221,6 @@ static void test_construction(void) {
     check_fresh_background(built);
     generic = background_new();
     check_fresh_background(generic);
-    assert(entities_by_tag("background") == NULL);
     assert(from_start_game->archetype == built->archetype && built->archetype == generic->archetype);
 }
 
@@ -318,24 +317,24 @@ static void test_left_press(void) {
 
     start_game();
     bg = the_background();
-    probes_before = entity_list_list_count(entities_by_tag("probe"));
-    wormhole_before = entity_list_list_count(entities_by_tag("wormhole"));
+    probes_before = entity_list_list_count(entities_by_tag(TAG_PROBE));
+    wormhole_before = entity_list_list_count(entities_by_tag(TAG_WORMHOLE));
     check_int("left_press_probe_before", probes_before, LEFT_PRESS_PROBE_BEFORE);
     check_int("left_press_wormhole_before", wormhole_before, LEFT_PRESS_WORMHOLE_BEFORE);
 
     out = background_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));
     assert(out.stop && out.held != NULL);
     assert(out.held->class == probe_class());
-    assert(entity_list_listed(entities_by_tag("probe"), out.held));
+    assert(entity_list_listed(entities_by_tag(TAG_PROBE), out.held));
 
     out = background_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));
     assert(out.stop && out.held != NULL);
     assert(out.held->class == wormhole_class());
-    assert(entity_list_listed(entities_by_tag("wormhole"), out.held));
+    assert(entity_list_listed(entities_by_tag(TAG_WORMHOLE), out.held));
     assert(is_state(&((const wormhole_t *)out.held)->header, "placing"));
 
-    check_int("left_press_probe_after", entity_list_list_count(entities_by_tag("probe")), LEFT_PRESS_PROBE_AFTER);
-    check_int("left_press_wormhole_after", entity_list_list_count(entities_by_tag("wormhole")), LEFT_PRESS_WORMHOLE_AFTER);
+    check_int("left_press_probe_after", entity_list_list_count(entities_by_tag(TAG_PROBE)), LEFT_PRESS_PROBE_AFTER);
+    check_int("left_press_wormhole_after", entity_list_list_count(entities_by_tag(TAG_WORMHOLE)), LEFT_PRESS_WORMHOLE_AFTER);
 }
 
 static int in_layer(int layer, const void *e) {
@@ -392,7 +391,7 @@ static void test_hover(void) {
 }
 
 static planet_t *first_planet_with_state(const char *state) {
-    const entity_list_t *list = entities_by_tag("planet");
+    const entity_list_t *list = entities_by_tag(TAG_PLANET);
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         entity_t *e = list->items[i];
@@ -415,7 +414,7 @@ static void test_accept_drop(void) {
     down_t r;
 
     start_game();
-    planet_apply_project((planet_t *)entities_by_tag("planet")->items[0], research_project_new(NULL));
+    planet_apply_project((planet_t *)entities_by_tag(TAG_PLANET)->items[0], research_project_new(NULL));
     bg = the_background();
     ly = first_planet_with_state("settled");
     assert(ly != NULL);

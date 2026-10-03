@@ -42,7 +42,6 @@ static int entity_list_listed(const entity_list_t *list, const void *e) {
 /* The messages may be read only once entity_registry_init() has run. */
 static int registered(const void *e, int entity_live) {
     const entity_message_t buckets[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
-    const char *tags[] = {"mouse", "ui", "camera", "entity"};
     size_t i;
 
     if (entity_list_listed(live_entities(), e)) {
@@ -53,8 +52,8 @@ static int registered(const void *e, int entity_live) {
             return 1;
         }
     }
-    for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
-        if (entity_list_listed(entities_by_tag(tags[i]), e)) {
+    for (i = 0; i < TAG_COUNT; i++) {
+        if (entity_list_listed(entities_by_tag((tag_t)i), e)) {
             return 1;
         }
     }

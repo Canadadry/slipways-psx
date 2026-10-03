@@ -61,7 +61,7 @@ static p8_graphics_t graphics;
 static p8_input_t input;
 
 static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
-static const char *const tags[] = {"structure", "planet", "node", "targeting"};
+static const tag_t tags[] = {TAG_STRUCTURE, TAG_PLANET, TAG_NODE, TAG_TARGETING};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -431,7 +431,7 @@ static void test_life(void) {
     hash = fold_held(hash, out_lab, mouse_world);
     assert(target_state(as_structure(out_lab)) == 3 && !entity_list_listed(live_entities(), as_structure(out_lab)->targeting->target));
 
-    planet = entities_by_tag("planet")->items[0];
+    planet = entities_by_tag(TAG_PLANET)->items[0];
     assert(planet_is_family(planet));
     planet_map_pos = ((const planet_t *)planet)->map_pos;
     assert(planet_map_pos != NULL);
@@ -609,7 +609,7 @@ static void test_descendants(void) {
     for (i = 0; i < sizeof shop / sizeof shop[0]; i++) {
         made[shop[i].descendant] = bought(shop[i].kind());
     }
-    p = entities_by_tag("planet")->items[0];
+    p = entities_by_tag(TAG_PLANET)->items[0];
     planet_roll_type(p);
     planet_apply_project(p, class_name_project("protostar"));
     made[PROTOSTAR] = live_entities()->items[live_entities()->count - 1];
@@ -664,8 +664,8 @@ static void test_structure_is_a_struct(void) {
 
     start_game();
     built = build_lab();
-    assert(is_a_structure_struct(built) && entity_list_listed(entities_by_tag("structure"), built));
-    assert(economy_score_planet_upkeep(built) == p8_fixed_from_int(entities_by_tag("structure")->count));
+    assert(is_a_structure_struct(built) && entity_list_listed(entities_by_tag(TAG_STRUCTURE), built));
+    assert(economy_score_planet_upkeep(built) == p8_fixed_from_int(entities_by_tag(TAG_STRUCTURE)->count));
     assert(lab_class->attach_slipway == planet_class()->attach_slipway && lab_class->offer_trade == planet_class()->offer_trade);
     assert_structure_shape(lab_class);
     assert(lab_class->hit_test == planet_class()->hit_test && lab_class->draw == planet_class()->draw &&
@@ -678,7 +678,7 @@ static void test_structure_is_a_struct(void) {
     must_abort(build_with_unknown_key, NULL);
     {
         planet_t *bare = structure_new(NULL);
-        assert(is_a_structure_struct(bare) && bare->planet_id == NULL && bare->slipways != NULL && entity_list_listed(entities_by_tag("structure"), bare));
+        assert(is_a_structure_struct(bare) && bare->planet_id == NULL && bare->slipways != NULL && entity_list_listed(entities_by_tag(TAG_STRUCTURE), bare));
     }
     for (index = 0; index < sizeof descendant_kinds / sizeof descendant_kinds[0]; index++) {
         planet_keys_t keys;

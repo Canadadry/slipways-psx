@@ -186,7 +186,7 @@ static int end_kind(const void *jc) {
     if (re == NULL) {
         return END_ABSENT;
     }
-    if (entity_list_listed(entities_by_tag("node"), re)) {
+    if (entity_list_listed(entities_by_tag(TAG_NODE), re)) {
         return END_PLANET;
     }
     if (is_throwaway(re)) {
@@ -202,10 +202,10 @@ static int target_kind(const void *jc) {
     if (et == NULL) {
         return TARGET_ABSENT;
     }
-    if (entity_list_listed(entities_by_tag("node"), et)) {
+    if (entity_list_listed(entities_by_tag(TAG_NODE), et)) {
         return TARGET_PLANET;
     }
-    if (entity_list_listed(entities_by_tag("slipway"), et)) {
+    if (entity_list_listed(entities_by_tag(TAG_SLIPWAY), et)) {
         return TARGET_SLIPWAY;
     }
     if (is_too_far(et)) {
@@ -220,13 +220,13 @@ static int holder_kind(const void *fo) {
     if (fo == NULL) {
         return TARGETED_BY_ABSENT;
     }
-    if (entity_list_listed(entities_by_tag("slipway"), fo)) {
+    if (entity_list_listed(entities_by_tag(TAG_SLIPWAY), fo)) {
         return TARGETED_BY_SLIPWAY;
     }
-    if (entity_list_listed(entities_by_tag("probe"), fo)) {
+    if (entity_list_listed(entities_by_tag(TAG_PROBE), fo)) {
         return TARGETED_BY_PROBE;
     }
-    if (entity_list_listed(entities_by_tag("wormhole"), fo)) {
+    if (entity_list_listed(entities_by_tag(TAG_WORMHOLE), fo)) {
         return TARGETED_BY_WORMHOLE;
     }
     return TARGETED_BY_OTHER;
@@ -285,7 +285,7 @@ static p8_fixed_t credits(void) {
 }
 
 static uint32_t fold_planets(uint32_t h, int with_other_end) {
-    const entity_list_t *np = entities_by_tag("node");
+    const entity_list_t *np = entities_by_tag(TAG_NODE);
     int i;
 
     for (i = 0; np != NULL && i < np->count; i++) {
@@ -336,7 +336,7 @@ static void colonized_pair(void **qu, void **re) {
     int i;
 
     start_game();
-    jos = entities_by_tag("planet");
+    jos = entities_by_tag(TAG_PLANET);
     assert(jos != NULL && jos->count > 1);
     *qu = jos->items[0];
     *re = NULL;
@@ -384,11 +384,11 @@ static void world(void) {
     for (i = 0; i < SETTLE_TICKS; i++) {
         update_entities();
     }
-    assert(entities_by_tag("slipway") != NULL && entities_by_tag("slipway")->count == 1);
+    assert(entities_by_tag(TAG_SLIPWAY) != NULL && entities_by_tag(TAG_SLIPWAY)->count == 1);
 }
 
 static void *the_slipway(void) {
-    return entities_by_tag("slipway")->items[0];
+    return entities_by_tag(TAG_SLIPWAY)->items[0];
 }
 
 static void *build_slipway(void *qu) {
@@ -422,7 +422,7 @@ static const entity_t *entity_of(const void *e) {
     return e;
 }
 
-static void *first_with_state(const char *tag, const char *state) {
+static void *first_with_state(tag_t tag, const char *state) {
     const entity_list_t *list = entities_by_tag(tag);
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
@@ -473,7 +473,7 @@ static void check_fresh_slipway(const void *e, const void *qu) {
            class_of(jc)->states[ENTITY_STATE_NORMAL] == NULL && class_of(jc)->left_press == NULL && class_of(jc)->accept_drop == NULL);
 
     assert(entity_list_listed(live_entities(), jc) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), jc) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), jc));
-    assert(entity_list_listed(entities_by_tag("slipway"), jc));
+    assert(entity_list_listed(entities_by_tag(TAG_SLIPWAY), jc));
     assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), jc) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), jc) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_REFRESH), jc));
 }
 
@@ -484,7 +484,7 @@ static void test_construction(void) {
     down_t made;
 
     world();
-    ly = first_with_state("planet", "settled");
+    ly = first_with_state(TAG_PLANET, "settled");
     assert(ly != NULL);
     made = class_of(ly)->left_press(ly, NULL, NULL);
     assert(made.stop && made.held != NULL);
@@ -512,7 +512,7 @@ static void test_drop(void) {
 
     colonized_pair(&origin, &target);
     held = dragged(origin, target);
-    assert(entity_list_listed(entities_by_tag("slipway"), held));
+    assert(entity_list_listed(entities_by_tag(TAG_SLIPWAY), held));
     assert(as_slipway(held)->start == origin && as_slipway(held)->end == target);
     assert(end_kind(held) == END_PLANET && target_kind(held) == TARGET_ABSENT);
     assert(entity_list_pointer_list_count(as_planet(origin)->slipways) == 0 && entity_list_pointer_list_count(as_planet(target)->slipways) == 0);
@@ -791,7 +791,7 @@ static void test_drag_mouse_point(void) {
     assert(mouse_point_map_pos(first_end) != first_mouse);
     assert(*((const entity_t *)first_end)->map_pos == mouse_point_map_pos(first_end));
     assert(!entity_geom_is_on_screen(first_end));
-    assert(!entity_list_listed(live_entities(), first_end) && !entity_list_listed(entities_by_tag("slipway"), first_end) && !entity_list_listed(entities_by_tag("node"), first_end));
+    assert(!entity_list_listed(live_entities(), first_end) && !entity_list_listed(entities_by_tag(TAG_SLIPWAY), first_end) && !entity_list_listed(entities_by_tag(TAG_NODE), first_end));
     hash = fnv(hash, (uint32_t)first_pos.x);
     hash = fnv(hash, (uint32_t)first_pos.y);
     hash = fold_slipway(hash, first);
@@ -844,7 +844,7 @@ static void test_obstruction_crosses_a_slipway(void) {
     int crossed = 0;
 
     world();
-    jos = entities_by_tag("planet");
+    jos = entities_by_tag(TAG_PLANET);
     old = the_slipway();
     mid = vec_div(vec_add(pos_of(as_slipway(old)->start), pos_of(as_slipway(old)->end)), p8_fixed_from_int(2));
     for (i = 0; i < jos->count && !crossed; i++) {
@@ -933,8 +933,8 @@ static void test_targeting_track_takes_the_first_slipway_of_entities_by_tag(void
     old = the_slipway();
     twin = build_slipway(as_slipway(old)->end);
     as_slipway(twin)->end = as_slipway(old)->start;
-    assert(entities_by_tag("slipway")->count == 2 && entities_by_tag("slipway")->items[0] == old &&
-           entities_by_tag("slipway")->items[1] == twin);
+    assert(entities_by_tag(TAG_SLIPWAY)->count == 2 && entities_by_tag(TAG_SLIPWAY)->items[0] == old &&
+           entities_by_tag(TAG_SLIPWAY)->items[1] == twin);
     probe = probe_with_zero_attach_distance();
     qu = pos_of(as_slipway(old)->start);
     re = pos_of(as_slipway(old)->end);

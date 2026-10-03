@@ -47,10 +47,10 @@ typedef enum {
 const entity_list_t *entities_by_message(entity_message_t message);
 
 /* The entities registered under `tag`, or NULL if no entity carrying that
- * tag has been registered since entity_registry_init() -- an unknown tag
- * included. A returned list holds until the next entity_registry_init(),
- * entity_registry_shutdown() or entity_registry_forget_registries(). */
-const entity_list_t *entities_by_tag(const char *tag);
+ * tag has been registered since entity_registry_init(). A returned list
+ * holds until the next entity_registry_init(), entity_registry_shutdown()
+ * or entity_registry_forget_registries(). */
+const entity_list_t *entities_by_tag(tag_t tag);
 
 /* Only entity_construct calls it outside tests: every live entity has had
  * its state name and state time set by entity_init_instance, and

@@ -49,7 +49,7 @@ static p8_graphics_t graphics;
 static p8_input_t input;
 
 static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
-static const char *const tags[] = {"planet", "node", "targeting"};
+static const tag_t tags[] = {TAG_PLANET, TAG_NODE, TAG_TARGETING};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -418,7 +418,7 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     for (index = 0; index < sizeof tags / sizeof tags[0]; index++) {
         hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(tags[index]), entity));
     }
-    assert(entity_list_listed(entities_by_tag("planet"), entity) && !entity_list_listed(entities_by_tag("structure"), entity) && !entity_list_listed(entities_by_tag("ascension"), entity));
+    assert(entity_list_listed(entities_by_tag(TAG_PLANET), entity) && !entity_list_listed(entities_by_tag(TAG_STRUCTURE), entity) && !entity_list_listed(entities_by_tag(TAG_ASCENSION), entity));
     return fold_spawned(hash, entity);
 }
 
@@ -552,7 +552,7 @@ static void test_protostar_is_a_struct(void) {
 
     start_game();
     a = build_protostar(&p, &ra, "s77");
-    assert(is_a_protostar_struct(a) && cls != hj && entity_list_listed(entities_by_tag("planet"), a) && !entity_list_listed(entities_by_tag("ascension"), a));
+    assert(is_a_protostar_struct(a) && cls != hj && entity_list_listed(entities_by_tag(TAG_PLANET), a) && !entity_list_listed(entities_by_tag(TAG_ASCENSION), a));
     assert_structure_shape(cls);
     assert_members_of(cls, hj, 1, 1);
     assert(cls->attach_slipway == hj->attach_slipway && cls->offer_trade == hj->offer_trade && cls->spawn_particle == hj->spawn_particle);
@@ -561,7 +561,7 @@ static void test_protostar_is_a_struct(void) {
         planet_t *bare = protostar_new(NULL);
         assert(is_a_protostar_struct(bare) && bare->planet_id == NULL && bare->pos == NULL &&
                bare->slipways != NULL && pointer_list_size(bare->emitter->particles) == 0 &&
-               entity_list_listed(entities_by_tag("planet"), bare));
+               entity_list_listed(entities_by_tag(TAG_PLANET), bare));
     }
 }
 

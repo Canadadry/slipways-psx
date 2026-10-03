@@ -80,7 +80,7 @@ Lua : `g_`, `jo`, `prober`, `cg("prober")`.
 
 La sonde (`probe`), l'écran d'aide et toute la famille des planètes
 s'enregistrent sous le tag `TAG_TARGETING`, mais rien ne fait jamais
-`entities_by_tag("targeting")`. Conservé par fidélité, pas par utilité.
+`entities_by_tag(TAG_TARGETING)`. Conservé par fidélité, pas par utilité.
 
 ## GAP-9 — Pas de suppression de champ nommé
 

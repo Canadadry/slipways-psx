@@ -62,7 +62,7 @@ static p8_graphics_t graphics;
 static p8_input_t input;
 
 static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
-static const char *const tags[] = {"slipgate", "node", "targeting"};
+static const tag_t tags[] = {TAG_SLIPGATE, TAG_NODE, TAG_TARGETING};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -378,7 +378,7 @@ static uint32_t fold_slipgate(uint32_t hash, const void *entity) {
     for (index = 0; index < sizeof tags / sizeof tags[0]; index++) {
         hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(tags[index]), entity));
     }
-    assert(entity_list_listed(entities_by_tag("slipgate"), entity) && !entity_list_listed(entities_by_tag("planet"), entity) && !entity_list_listed(entities_by_tag("structure"), entity));
+    assert(entity_list_listed(entities_by_tag(TAG_SLIPGATE), entity) && !entity_list_listed(entities_by_tag(TAG_PLANET), entity) && !entity_list_listed(entities_by_tag(TAG_STRUCTURE), entity));
     return hash;
 }
 
@@ -529,7 +529,7 @@ static void test_life(void) {
     bare = slipgate_new(NULL);
     assert(gate_kind(bare) == SLIPGATE && as_structure(bare)->planet_id == NULL && as_structure(bare)->slipways != NULL &&
            as_structure(bare)->production != NULL);
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("slipgate"), bare));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_SLIPGATE), bare));
     {
         planet_keys_t keys;
         vec_t *pos = vec_ref(vec_xy(3, 4));
@@ -561,7 +561,7 @@ static void test_slipgate_is_a_struct(void) {
 
     start_game();
     a = build_slipgate();
-    assert(is_a_slipgate_struct(a) && cls != qh && entity_list_listed(entities_by_tag("slipgate"), a));
+    assert(is_a_slipgate_struct(a) && cls != qh && entity_list_listed(entities_by_tag(TAG_SLIPGATE), a));
     assert(cls->offer_trade != qh->offer_trade && cls->attach_slipway == qh->attach_slipway && cls->drag == qh->drag && cls->drop == qh->drop && cls->spawn_particle == qh->spawn_particle);
     assert_structure_shape(cls);
     assert(cls->draw == qh->draw && cls->draw_overlay == qh->draw_overlay && cls->hit_test == qh->hit_test && cls->new_year == qh->new_year);

@@ -62,7 +62,7 @@ p8_fixed_t economy_formulas_route_base_cost(vec_t from_pos, vec_t to_pos) {
 }
 
 p8_fixed_t economy_formulas_cost_scale(void) {
-    const entity_list_t *jc = entities_by_tag("slipway");
+    const entity_list_t *jc = entities_by_tag(TAG_SLIPWAY);
     int count = (jc != NULL) ? jc->count : 0;
     p8_fixed_t sq = p8_fixed_sqrt(p8_fixed_from_int(count));
     p8_fixed_t val = p8_fixed_sub(p8_fixed_mul(sq, P8_FIXED_LIT(0x0000451e, 0.27)), P8_FIXED_LIT(0x00001999, 0.1));

@@ -158,7 +158,7 @@ static int case_inspection_panel_rows_survive_reset(void) {
     planet_t *planet;
 
     start_game();
-    planet = (planet_t *)entities_by_tag("planet")->items[0];
+    planet = (planet_t *)entities_by_tag(TAG_PLANET)->items[0];
     kw.resource = p8_fixed_from_int(99);
     kw.amount = p8_fixed_from_int(1);
     planet->production = &kw;
@@ -180,7 +180,7 @@ static int case_research_project_tooltip_survives_reset(void) {
     planet_t *planet;
 
     start_game();
-    planet = (planet_t *)entities_by_tag("planet")->items[0];
+    planet = (planet_t *)entities_by_tag(TAG_PLANET)->items[0];
     planet_roll_type(planet);
     (void)planet_left_press(planet);
     assert(reset_then_draw_panel() >= 1 && "planet_projects_panel: a building carries the research_project tooltip");

@@ -239,7 +239,7 @@ static void built_world(void) {
     int i;
 
     start_game();
-    jos = entities_by_tag("planet");
+    jos = entities_by_tag(TAG_PLANET);
     assert(jos != NULL && jos->count > 1);
     qu = jos->items[0];
     for (i = 1; i < jos->count; i++) {
@@ -446,7 +446,7 @@ static void test_spend(void) {
 }
 
 static uint32_t fold_planets_net_income(uint32_t h) {
-    const entity_list_t *jo = entities_by_tag("planet");
+    const entity_list_t *jo = entities_by_tag(TAG_PLANET);
     int i;
     for (i = 0; jo != NULL && i < jo->count; i++) {
         const planet_t *p = as_planet(jo->items[i]);
@@ -463,7 +463,7 @@ static const char *end_status_string(void) {
 
 /* The first producing planet: `needs` set and its own `production`. */
 static planet_t *a_maker(void) {
-    const entity_list_t *jos = entities_by_tag("planet");
+    const entity_list_t *jos = entities_by_tag(TAG_PLANET);
     int i;
 
     for (i = 0; i < jos->count; i++) {

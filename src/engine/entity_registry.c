@@ -143,9 +143,8 @@ int entity_registry_hit_test_always(entity_t *self, const vec_t *mouse_world, co
     return 1;
 }
 
-const entity_list_t *entities_by_tag(const char *tag) {
-    int t = entity_tag_named(tag);
-    return t >= 0 && g_entities_by_tag[t].seen ? &g_entities_by_tag[t].list : NULL;
+const entity_list_t *entities_by_tag(tag_t tag) {
+    return g_entities_by_tag[tag].seen ? &g_entities_by_tag[tag].list : NULL;
 }
 
 entity_t *entity_register(entity_t *e) {

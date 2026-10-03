@@ -215,7 +215,7 @@ void economy_recompute(economy_t *self) {
     self->production = &self->production_own;
     self->demand = &self->demand_own;
 
-    planet_list = entities_by_tag("planet");
+    planet_list = entities_by_tag(TAG_PLANET);
     if (planet_list != NULL) {
         iter = entity_list_all(planet_list);
         while (entity_list_iter_next(&iter, &planet)) {
@@ -295,7 +295,7 @@ void economy_invent(economy_t *self, const technologies_entry_t *t) {
 
 typedef void (*entities_by_tag_visit_fn_t)(entity_t *e, void *ctx);
 
-static void for_each_tagged(const char *tag, entities_by_tag_visit_fn_t fn, void *ctx) {
+static void for_each_tagged(tag_t tag, entities_by_tag_visit_fn_t fn, void *ctx) {
     const entity_list_t *list = entities_by_tag(tag);
     entity_list_iter_t it;
     entity_t *e;
@@ -333,7 +333,7 @@ static void total_production_visit(entity_t *pt, void *ctx) {
 
 void economy_total_production(resource_map_t *out) {
     economy_formulas_fill_resource_map(out, p8_fixed_from_int(0));
-    for_each_tagged("planet", total_production_visit, out);
+    for_each_tagged(TAG_PLANET, total_production_visit, out);
 }
 
 static void crowding_penalty_visit(entity_t *l, void *ctx) {
@@ -366,5 +366,5 @@ static void crowding_penalty_visit(entity_t *l, void *ctx) {
 
 void economy_crowding_penalty(resource_map_t *out) {
     economy_formulas_fill_resource_map(out, p8_fixed_from_int(1));
-    for_each_tagged("structure", crowding_penalty_visit, out);
+    for_each_tagged(TAG_STRUCTURE, crowding_penalty_visit, out);
 }

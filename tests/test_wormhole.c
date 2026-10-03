@@ -149,10 +149,10 @@ static int target_kind(const wormhole_t *mz) {
     if (et == (const void *)wormhole_too_far_target_wrapper()) {
         return TARGET_TOO_FAR;
     }
-    if (entity_list_listed(entities_by_tag("slipway"), et)) {
+    if (entity_list_listed(entities_by_tag(TAG_SLIPWAY), et)) {
         return TARGET_SLIPWAY;
     }
-    if (entity_list_listed(entities_by_tag("planet"), et)) {
+    if (entity_list_listed(entities_by_tag(TAG_PLANET), et)) {
         return TARGET_PLANET;
     }
     if (is_targeting_track_target(et)) {
@@ -212,7 +212,7 @@ static void world(void) {
     int i;
 
     start_game();
-    jos = entities_by_tag("planet");
+    jos = entities_by_tag(TAG_PLANET);
     assert(jos != NULL && jos->count > 1);
     qu = jos->items[0];
     for (i = 1; i < jos->count; i++) {
@@ -274,7 +274,7 @@ static void until_state_time(const wormhole_t *mz, int t) {
 }
 
 static planet_t *first_planet_with_state(const char *state) {
-    const entity_list_t *list = entities_by_tag("planet");
+    const entity_list_t *list = entities_by_tag(TAG_PLANET);
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         planet_t *jo = as_planet(list->items[i]);
@@ -326,7 +326,7 @@ static void check_fresh_wormhole(void *e) {
     assert(mz->anchors != NULL);
 
     assert(entity_list_listed(live_entities(), mz) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), mz) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), mz));
-    assert(entity_list_listed(entities_by_tag("wormhole"), mz));
+    assert(entity_list_listed(entities_by_tag(TAG_WORMHOLE), mz));
     assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), mz) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), mz) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_REFRESH), mz));
 }
 
@@ -336,13 +336,13 @@ static void test_construction(void) {
     int before;
 
     start_game();
-    assert(entities_by_tag("probe") == NULL || entities_by_tag("probe")->count == 0);
-    mzs = entities_by_tag("wormhole");
+    assert(entities_by_tag(TAG_PROBE) == NULL || entities_by_tag(TAG_PROBE)->count == 0);
+    mzs = entities_by_tag(TAG_WORMHOLE);
     before = mzs == NULL ? 0 : mzs->count;
     made = background_left_press(NULL);
     assert(made.stop && made.held != NULL);
-    assert(entity_list_listed(entities_by_tag("probe"), made.held));
-    mzs = entities_by_tag("wormhole");
+    assert(entity_list_listed(entities_by_tag(TAG_PROBE), made.held));
+    mzs = entities_by_tag(TAG_WORMHOLE);
     assert((mzs == NULL ? 0 : mzs->count) == before);
 
     made = background_left_press(NULL);
@@ -378,7 +378,7 @@ static void test_anchors(void) {
     int i;
 
     world();
-    jos = entities_by_tag("planet");
+    jos = entities_by_tag(TAG_PLANET);
     for (i = 0; unlit == NULL && jos != NULL && i < jos->count; i++) {
         planet_t *jo = as_planet(jos->items[i]);
         if (jo->fold_anchor == 0) {
@@ -419,7 +419,7 @@ static size_t registry_bytes(const entity_list_t *list) {
 
 static size_t generation_but_registries(void) {
     return game_zone_used() - registry_bytes(live_entities()) - registry_bytes(entities_by_message(ENTITY_MESSAGE_DRAW)) -
-           registry_bytes(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY)) - registry_bytes(entities_by_tag("wormhole"));
+           registry_bytes(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY)) - registry_bytes(entities_by_tag(TAG_WORMHOLE));
 }
 
 /* A built wormhole takes one grab arena, its anchors list reserved to the
@@ -493,7 +493,7 @@ static uint32_t fold_drag(uint32_t h, const wormhole_t *mz, int want_kind) {
 /* A quarter of the slipway's length past its start end: near that
  * colonized anchor, off the slipway's segment. */
 static vec_t near_anchor(void) {
-    const entity_list_t *jcs = entities_by_tag("slipway");
+    const entity_list_t *jcs = entities_by_tag(TAG_SLIPWAY);
     const slipway_t *jc;
     vec_t qu;
     vec_t re;
@@ -514,7 +514,7 @@ static void test_drag(void) {
 
     world();
     mz = build_wormhole();
-    jcs = entities_by_tag("slipway");
+    jcs = entities_by_tag(TAG_SLIPWAY);
     assert(jcs != NULL && jcs->count > 0);
     mid = slipway_mid(as_slipway(jcs->items[0]));
     drag(mz, vec_ref_fixed(mid), vec_ref(64, 64));
@@ -602,7 +602,7 @@ static void test_drop(void) {
 }
 
 static int unknown_count(void) {
-    const entity_list_t *jo = entities_by_tag("planet");
+    const entity_list_t *jo = entities_by_tag(TAG_PLANET);
     int n = 0;
     int i;
     for (i = 0; jo != NULL && i < jo->count; i++) {
@@ -649,11 +649,11 @@ static void test_update_unfolding_ticks(void) {
         h = fnv(h, (uint32_t)(before - unknown_count()));
         h = fnv(h, is_dead_state(mz));
         h = fnv(h, (uint32_t)entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), mz));
-        h = fnv(h, (uint32_t)entity_list_listed(entities_by_tag("wormhole"), mz));
+        h = fnv(h, (uint32_t)entity_list_listed(entities_by_tag(TAG_WORMHOLE), mz));
     }
     printf("[unfolding] left live_entities after %d ticks, %d planets revealed\n", tick, revealed);
     assert(revealed > 0);
-    assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), mz) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), mz) && !entity_list_listed(entities_by_tag("wormhole"), mz));
+    assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), mz) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), mz) && !entity_list_listed(entities_by_tag(TAG_WORMHOLE), mz));
     check_int("update_unfolding_exit_tick", tick, UPDATE_UNFOLDING_EXIT_TICK);
     check("update_unfolding", h, UPDATE_UNFOLDING_HASH);
 }
@@ -779,7 +779,7 @@ static void test_too_far_target_wrapper(void) {
     assert(target_kind(wormhole) == TARGET_TOO_FAR);
     check_too_far_target_untouched();
 
-    jcs = entities_by_tag("slipway");
+    jcs = entities_by_tag(TAG_SLIPWAY);
     assert(jcs != NULL && jcs->count > 0);
     mid = slipway_mid(as_slipway(jcs->items[0]));
     drag(wormhole, vec_ref_fixed(mid), vec_ref(64, 64));

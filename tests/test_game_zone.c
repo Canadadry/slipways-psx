@@ -124,7 +124,7 @@ static size_t registry_bytes(const entity_list_t *list) {
 
 static size_t registries_bytes(void) {
     static const entity_message_t CV[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
-    static const char *const CG[] = {"structure", "ascension", "slipgate", "probe", "message_box", "slipway", "wormhole", "planet", "node", "targeting"};
+    static const tag_t CG[] = {TAG_STRUCTURE, TAG_ASCENSION, TAG_SLIPGATE, TAG_PROBE, TAG_MESSAGE_BOX, TAG_SLIPWAY, TAG_WORMHOLE, TAG_PLANET, TAG_NODE, TAG_TARGETING};
     size_t r = registry_bytes(live_entities());
     for (size_t i = 0; i < sizeof CV / sizeof CV[0]; i++) r += registry_bytes(entities_by_message(CV[i]));
     for (size_t i = 0; i < sizeof CG / sizeof CG[0]; i++) r += registry_bytes(entities_by_tag(CG[i]));
@@ -146,7 +146,7 @@ static size_t planet_list_bytes(const entity_list_t *list) {
  * identifier and the slipways, outgoing and incoming route lists. No needs
  * nor copies of needs, which populated planets lack before an action. */
 static size_t planets_bytes(void) {
-    const entity_list_t *jo = entities_by_tag("planet");
+    const entity_list_t *jo = entities_by_tag(TAG_PLANET);
     size_t bytes = 0;
     for (int i = 0; jo != NULL && i < jo->count; i++) {
         const planet_t *p = (const planet_t *)jo->items[i];

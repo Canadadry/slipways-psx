@@ -147,7 +147,7 @@ void wormhole_update_unfolding(wormhole_t *self, p8_fixed_t t) {
                           P8_FIXED_LIT(0x000007ef, 0.031));
 
     self_p = self->map_pos != NULL ? *self->map_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    planet_list = entities_by_tag("planet");
+    planet_list = entities_by_tag(TAG_PLANET);
     if (planet_list != NULL) {
         for (i = 0; i < planet_list->count; i++) {
             entity_t *planet = planet_list->items[i];

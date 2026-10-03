@@ -102,7 +102,7 @@ static registered_t count_registered(void) {
         }
         if (e->class == burst_class()) n.bursts++;
     }
-    const entity_list_t *jc = entities_by_tag("slipway");
+    const entity_list_t *jc = entities_by_tag(TAG_SLIPWAY);
     for (int i = 0; jc != NULL && i < jc->count; i++) {
         const slipway_t *s = (const slipway_t *)jc->items[i];
         if (s->transit_dots != NULL) n.trails += s->transit_dots->count;
@@ -365,7 +365,7 @@ static void pause_restart_releases_quit_game_next_frame(void) {
 static const planet_t *planet_of_first_game(void) {
     start_e2e("pause_restart");
     play_until(6);
-    const entity_list_t *jo = entities_by_tag("planet");
+    const entity_list_t *jo = entities_by_tag(TAG_PLANET);
     assert(jo != NULL && jo->count > 0 && "the first game has planets");
     return (const planet_t *)jo->items[0];
 }
@@ -524,7 +524,7 @@ static size_t registry_bytes(const entity_list_t *list) {
 
 static size_t registries_bytes(void) {
     static const entity_message_t CV[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
-    static const char *const CG[] = {"structure", "ascension", "slipgate", "probe", "message_box", "slipway", "wormhole", "planet", "node", "targeting"};
+    static const tag_t CG[] = {TAG_STRUCTURE, TAG_ASCENSION, TAG_SLIPGATE, TAG_PROBE, TAG_MESSAGE_BOX, TAG_SLIPWAY, TAG_WORMHOLE, TAG_PLANET, TAG_NODE, TAG_TARGETING};
     size_t r = registry_bytes(live_entities());
     for (size_t i = 0; i < sizeof CV / sizeof CV[0]; i++) r += registry_bytes(entities_by_message(CV[i]));
     for (size_t i = 0; i < sizeof CG / sizeof CG[0]; i++) r += registry_bytes(entities_by_tag(CG[i]));
@@ -547,7 +547,7 @@ static size_t planet_list_bytes(const entity_list_t *list) {
  * lists. No needs list nor copies of needs, which the planets of
  * galaxy_populate lack before any action. */
 static size_t planets_bytes(void) {
-    const entity_list_t *jo = entities_by_tag("planet");
+    const entity_list_t *jo = entities_by_tag(TAG_PLANET);
     size_t bytes = 0;
     for (int i = 0; jo != NULL && i < jo->count; i++) {
         const planet_t *p = (const planet_t *)jo->items[i];
@@ -706,7 +706,7 @@ static void trade_rich_mine_route_rebuild_does_not_grow_game(void) {
 }
 
 static const planet_t *planet_with_id(const char *id) {
-    const entity_list_t *np = entities_by_tag("node");
+    const entity_list_t *np = entities_by_tag(TAG_NODE);
     for (int i = 0; np != NULL && i < np->count; i++) {
         const planet_t *p = (const planet_t *)np->items[i];
         if (p->planet_id != NULL && strcmp(p->planet_id, id) == 0) return p;
@@ -771,7 +771,7 @@ static void refused_grabs_do_not_grow_game(void) {
 /* The structure placed at f161-164, the only planet under the planet tag
  * whose identifier starts with an 's'. */
 static const planet_t *placed_grab(void) {
-    const entity_list_t *jo = entities_by_tag("planet");
+    const entity_list_t *jo = entities_by_tag(TAG_PLANET);
     const planet_t *placed = NULL;
     for (int i = 0; jo != NULL && i < jo->count; i++) {
         const planet_t *p = (const planet_t *)jo->items[i];
@@ -810,7 +810,7 @@ static void play_one_frame(int draw) {
 }
 
 static planet_t *planet_targeted_by(const entity_t *held) {
-    const entity_list_t *np = entities_by_tag("node");
+    const entity_list_t *np = entities_by_tag(TAG_NODE);
     for (int i = 0; np != NULL && i < np->count; i++) {
         planet_t *p = (planet_t *)np->items[i];
         if (p->targeted_by == held) return p;
@@ -901,7 +901,7 @@ static void placed_slipway_reuses_dead_wormhole_arena(void) {
     play_until(356);
     const size_t after = game_without_registries();
     const size_t oe = slipways_of_p27_and_p48_bytes() - slipways_before;
-    assert(entities_by_tag("slipway") != NULL && entities_by_tag("slipway")->count == 1 && "f338: one placed slipway");
+    assert(entities_by_tag(TAG_SLIPWAY) != NULL && entities_by_tag(TAG_SLIPWAY)->count == 1 && "f338: one placed slipway");
     printf("  slipway placed then refused: game - registries = %lu -> %lu (slipways %lu)\n", (unsigned long)before,
            (unsigned long)after, (unsigned long)oe);
     assert(after == before + oe &&
@@ -937,9 +937,9 @@ static void offscreen_planet_forgets_refused_slipway(void) {
 static void refused_slipway_crosses_new_game(void) {
     start_e2e(SLIPWAYS);
     play_until(356);
-    assert(entities_by_tag("slipway") != NULL && entities_by_tag("slipway")->count == 1);
+    assert(entities_by_tag(TAG_SLIPWAY) != NULL && entities_by_tag(TAG_SLIPWAY)->count == 1);
     play_until(371);
-    assert(entities_by_tag("slipway") == NULL || entities_by_tag("slipway")->count == 0);
+    assert(entities_by_tag(TAG_SLIPWAY) == NULL || entities_by_tag(TAG_SLIPWAY)->count == 0);
     assert(main_ui()->left_held != NULL && "f371: a grab in the new game");
     play_until(377);
 }
@@ -985,11 +985,11 @@ static void open_wormhole_releases_arena_on_death(void) {
     play_until(143);
     const size_t before = game_without_registries();
     play_until(160);
-    const entity_list_t *mz = entities_by_tag("wormhole");
+    const entity_list_t *mz = entities_by_tag(TAG_WORMHOLE);
     assert(mz != NULL && mz->count == 1 && strcmp(((const wormhole_t *)mz->items[0])->header.state, "unfolding") == 0 &&
            "f160: the wormhole is open");
     play_until(193);
-    assert(entities_by_tag("wormhole")->count == 1 && "f193: only the pressed wormhole lives");
+    assert(entities_by_tag(TAG_WORMHOLE)->count == 1 && "f193: only the pressed wormhole lives");
     const size_t after = game_without_registries();
     printf("  open wormhole: game - registries = %lu -> %lu\n", (unsigned long)before, (unsigned long)after);
     assert(after == before && "an open wormhole keeps its arena after its death");
@@ -1097,7 +1097,7 @@ static void refused_probe_crosses_new_game(void) {
 static const wormhole_t *abandoned_wormhole(void) {
     start_e2e(WORMHOLE_ABANDONED);
     play_until(22);
-    const entity_list_t *mz = entities_by_tag("wormhole");
+    const entity_list_t *mz = entities_by_tag(TAG_WORMHOLE);
     assert(mz != NULL && mz->count == 1 && "f22: a wormhole lives");
     return (const wormhole_t *)mz->items[0];
 }
@@ -1140,7 +1140,7 @@ static void pause_restart_reloads_after_title(void) {
 static void pause_restart_reveals_on_new_game_states(void) {
     start_e2e("pause_restart");
     play_until(13);
-    const entity_list_t *jo = entities_by_tag("planet");
+    const entity_list_t *jo = entities_by_tag(TAG_PLANET);
     const planet_types_entry_t *ll = planet_types_lookup("vanishing");
     int revealed = 0;
     int from_type_picker = 0;

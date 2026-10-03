@@ -389,9 +389,9 @@ static void test_built(void) {
     }
     assert(entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), help_screen) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), help_screen) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), help_screen));
     assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), help_screen) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_REFRESH), help_screen));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("probe"), help_screen));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("targeting"), help_screen));
-    assert(entity_list_listed(entities_by_tag("probe"), help_screen) && entity_list_listed(entities_by_tag("targeting"), help_screen));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_PROBE), help_screen));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_TARGETING), help_screen));
+    assert(entity_list_listed(entities_by_tag(TAG_PROBE), help_screen) && entity_list_listed(entities_by_tag(TAG_TARGETING), help_screen));
 
     for (key_index = 0; key_index < 4; key_index++) {
         const button_t *row = (const button_t *)live->items[rank - 4 + key_index];
@@ -526,7 +526,7 @@ static void test_start_game_retires_the_help(void) {
     fv = the_help();
     cart_start_game(NULL);
     assert(!entity_list_listed(live_entities(), fv));
-    assert(!entity_list_listed(entities_by_tag("probe"), fv) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), fv) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), fv));
+    assert(!entity_list_listed(entities_by_tag(TAG_PROBE), fv) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), fv) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), fv));
 }
 
 /* The title's help is a struct whose descriptor shares the probe's 4

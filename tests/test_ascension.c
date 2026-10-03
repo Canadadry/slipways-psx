@@ -66,7 +66,7 @@ static p8_graphics_t graphics;
 static p8_input_t input;
 
 static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
-static const char *const tags[] = {"ascension", "planet", "node", "targeting"};
+static const tag_t tags[] = {TAG_ASCENSION, TAG_PLANET, TAG_NODE, TAG_TARGETING};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -424,7 +424,7 @@ static uint32_t fold_ascension(uint32_t hash, void *entity) {
     for (index = 0; index < sizeof tags / sizeof tags[0]; index++) {
         hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(tags[index]), entity));
     }
-    assert(entity_list_listed(entities_by_tag("ascension"), entity) && !entity_list_listed(entities_by_tag("structure"), entity));
+    assert(entity_list_listed(entities_by_tag(TAG_ASCENSION), entity) && !entity_list_listed(entities_by_tag(TAG_STRUCTURE), entity));
     return hash;
 }
 
@@ -581,7 +581,7 @@ static uint32_t fold_heir(uint32_t h, void *e, const entity_class_t *cls) {
     h = fold_fixed_member(h, hj->emitter->speed_factor);
     h = fold_fixed_member(h, hj->emitter->angle_slices);
     h = fold_fixed_member(h, hj->emitter->base_radius);
-    h = fnv(h, (uint32_t)entity_list_rank_in(entities_by_tag("ascension"), e));
+    h = fnv(h, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_ASCENSION), e));
     return fold_particle(h, class_of(e)->spawn_particle(e));
 }
 
@@ -651,7 +651,7 @@ static void test_ascension_is_a_struct(void) {
 
     start_game();
     a = build_ascension();
-    assert(is_an_ascension_struct(a) && cls != qh && entity_list_listed(entities_by_tag("ascension"), a) && !entity_list_listed(entities_by_tag("structure"), a));
+    assert(is_an_ascension_struct(a) && cls != qh && entity_list_listed(entities_by_tag(TAG_ASCENSION), a) && !entity_list_listed(entities_by_tag(TAG_STRUCTURE), a));
     assert_structure_members_but_draw(cls);
     assert(cls->spawn_particle == probe_spawn_particle && qh->spawn_particle == NULL);
     for (i = 0; i < sizeof no_spawn_particle / sizeof no_spawn_particle[0]; i++) {
@@ -662,7 +662,7 @@ static void test_ascension_is_a_struct(void) {
     {
         planet_t *bare = ascension_new(NULL);
         assert(is_an_ascension_struct(bare) && bare->planet_id == NULL && bare->slipways != NULL &&
-               pointer_list_size(bare->emitter->particles) == 0 && entity_list_listed(entities_by_tag("ascension"), bare));
+               pointer_list_size(bare->emitter->particles) == 0 && entity_list_listed(entities_by_tag(TAG_ASCENSION), bare));
     }
 }
 

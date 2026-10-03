@@ -151,7 +151,7 @@ static vec_t write_camera(FILE *out) {
 }
 
 static void write_planets(FILE *out, vec_t camera) {
-    const entity_list_t *planets = entities_by_tag("planet");
+    const entity_list_t *planets = entities_by_tag(TAG_PLANET);
     for (int i = 0; i < count_of(planets); i++) {
         const planet_t *p = (const planet_t *)planets->items[i];
         const char *cls = class_of(&p->header);
@@ -169,7 +169,7 @@ static int slipway_placed(const entity_t *e) {
 }
 
 static int write_slipways(FILE *out) {
-    const entity_list_t *jc = entities_by_tag("slipway");
+    const entity_list_t *jc = entities_by_tag(TAG_SLIPWAY);
     int n = 0;
     for (int i = 0; i < count_of(jc); i++) {
         const slipway_t *s = (const slipway_t *)jc->items[i];
@@ -182,7 +182,7 @@ static int write_slipways(FILE *out) {
 }
 
 static void write_structures(FILE *out, vec_t camera) {
-    const entity_list_t *nr = entities_by_tag("slipgate");
+    const entity_list_t *nr = entities_by_tag(TAG_SLIPGATE);
     for (int i = 0; i < count_of(nr); i++) {
         const planet_t *g = (const planet_t *)nr->items[i];
         fprintf(out, "structure %s %s", id_of(&g->header),
@@ -195,7 +195,7 @@ static void write_structures(FILE *out, vec_t camera) {
 /* Planets "settled", labs included: planet_is_colonized() would skip those
  * whose archetype has no is_planet. */
 static int count_colonies(void) {
-    const entity_list_t *planets = entities_by_tag("planet");
+    const entity_list_t *planets = entities_by_tag(TAG_PLANET);
     int n = 0;
     for (int i = 0; i < count_of(planets); i++) {
         const char *state = planets->items[i]->state;
@@ -238,10 +238,10 @@ void state_write(FILE *out) {
     write_planets(out, camera);
     int slipways = write_slipways(out);
     write_structures(out, camera);
-    fprintf(out, "count planets %d\n", count_of(entities_by_tag("planet")));
+    fprintf(out, "count planets %d\n", count_of(entities_by_tag(TAG_PLANET)));
     fprintf(out, "count colonies %d\n", count_colonies());
     fprintf(out, "count slipways %d\n", slipways);
-    fprintf(out, "count structures %d\n", count_of(entities_by_tag("slipgate")));
+    fprintf(out, "count structures %d\n", count_of(entities_by_tag(TAG_SLIPGATE)));
     fprintf(out, "count techs %d\n", techs);
     write_zones(out);
     write_caps(out);

@@ -71,7 +71,7 @@ static p8_graphics_t graphics;
 static p8_input_t input;
 
 static const entity_message_t not_listed[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
-static const char *const tags[] = {"planet", "probe", "structure", "slipway", "wormhole", "message_box", "node", "ascension", "targeting", "slipgate", "background"};
+static const tag_t tags[] = {TAG_PLANET, TAG_PROBE, TAG_STRUCTURE, TAG_SLIPWAY, TAG_WORMHOLE, TAG_MESSAGE_BOX, TAG_NODE, TAG_ASCENSION, TAG_TARGETING, TAG_SLIPGATE};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -217,7 +217,7 @@ static int placed(void *e) {
 
 /* The planet nearest to the given one, among those with a `map_pos`. */
 static void *nearest_to(void *qu) {
-    const entity_list_t *jos = entities_by_tag("planet");
+    const entity_list_t *jos = entities_by_tag(TAG_PLANET);
     void *re = NULL;
     int i;
 
@@ -359,7 +359,7 @@ static void test_fresh(void) {
 
 /* The first planet whose screen position is well inside. */
 static planet_t *planet_on_screen(int *sx, int *sy) {
-    const entity_list_t *jo = entities_by_tag("planet");
+    const entity_list_t *jo = entities_by_tag(TAG_PLANET);
     vec_t cam = vec_at(checked_main_camera()->pos);
     int i;
 
@@ -512,7 +512,7 @@ static void test_left(void) {
     int index;
 
     dispatcher = start_game();
-    planets = entities_by_tag("planet");
+    planets = entities_by_tag(TAG_PLANET);
     for (index = 0; index < planets->count && other == NULL; index++) {
         void *e = planets->items[index];
         if (on_screen(e) && on_screen(nearest_to(e))) {
@@ -551,7 +551,7 @@ static void test_left(void) {
     ui_update(&memory, dispatcher);
     assert(dispatcher->left_held == NULL && dispatcher->right_held == NULL);
     assert(slipways_count(start_planet) == 1 && slipways_count(target) == 1);
-    hash = fnv(hash, (uint32_t)entities_by_tag("slipway")->count);
+    hash = fnv(hash, (uint32_t)entities_by_tag(TAG_SLIPWAY)->count);
     check("left", hash, LEFT_HASH);
 }
 
@@ -725,7 +725,7 @@ static void test_ui_held_aborts_on_other_classes(void) {
     entity_register(&g_giver.header);
     left[0] = protostar_new(NULL);
     left[1] = burst_new(NULL);
-    left[2] = entities_by_tag("planet")->items[0];
+    left[2] = entities_by_tag(TAG_PLANET)->items[0];
     left[3] = the_background();
     left[4] = help_screen_new();
     left[5] = button_new(NULL);

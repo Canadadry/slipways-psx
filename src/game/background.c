@@ -167,7 +167,7 @@ down_t background_left_press(background_t *self) {
 
     (void)self;
 
-    g_tag = entities_by_tag("probe");
+    g_tag = entities_by_tag(TAG_PROBE);
     count = (g_tag != NULL) ? g_tag->count : 0;
     if (count > 0) {
         assert(wormhole_ready() && "wormhole_init() must run before background_left_press builds a wormhole");

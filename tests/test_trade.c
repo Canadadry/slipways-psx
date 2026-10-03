@@ -206,7 +206,7 @@ static trade_route_t *route(entity_list_t *lp, entity_list_t *rl, int has_resour
 }
 
 static void *planet(int i) {
-    const entity_list_t *jo = entities_by_tag("planet");
+    const entity_list_t *jo = entities_by_tag(TAG_PLANET);
     assert(jo != NULL && i < jo->count);
     return jo->items[i];
 }
@@ -222,7 +222,7 @@ static trade_route_t *game_route(void) {
     int i;
 
     start_game();
-    jo = entities_by_tag("planet");
+    jo = entities_by_tag(TAG_PLANET);
     assert(jo != NULL && jo->count > 3);
     qu = jo->items[0];
     for (i = 1; i < jo->count; i++) {

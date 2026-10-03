@@ -387,7 +387,7 @@ static void built_world(void) {
     int i;
 
     start_game();
-    jos = entities_by_tag("planet");
+    jos = entities_by_tag(TAG_PLANET);
     assert(jos != NULL && jos->count > 1);
     qu = jos->items[0];
     for (i = 1; i < jos->count; i++) {
@@ -753,7 +753,7 @@ static uint32_t fold_world(void) {
 
     cart_update60();
     cart_draw();
-    jo = entities_by_tag("planet");
+    jo = entities_by_tag(TAG_PLANET);
     for (i = 0; jo != NULL && i < jo->count; i++) {
         h = fnv(h, (uint32_t)projects_rank(as_planet(jo->items[i])->project));
     }
@@ -773,7 +773,7 @@ static void test_harvested_world(void) {
     int i;
 
     start_game();
-    p = entities_by_tag("planet")->items[0];
+    p = entities_by_tag(TAG_PLANET)->items[0];
     planet_roll_type(p);
     planet_apply_project(p, project_with(with_class_name, 1));
     last = live_entities()->items[live_entities()->count - 1];
@@ -995,11 +995,11 @@ static void layout_row_on_other(void *e) {
 }
 
 static void install_project_on_other(void *e) {
-    planet_install_project((planet_t *)entities_by_tag("planet")->items[0], e);
+    planet_install_project((planet_t *)entities_by_tag(TAG_PLANET)->items[0], e);
 }
 
 static void apply_project_on_other(void *e) {
-    planet_apply_project((planet_t *)entities_by_tag("planet")->items[0], e);
+    planet_apply_project((planet_t *)entities_by_tag(TAG_PLANET)->items[0], e);
 }
 
 /* A project is a struct whose descriptor has no method and no writer, its

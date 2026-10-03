@@ -104,7 +104,7 @@ static uint32_t fold_box(uint32_t h, const message_box_t *e) {
     h = fnv(h, (uint32_t)(shown_message_box() == e));
     h = fnv(h, (uint32_t)entity_list_listed(live_entities(), e));
     h = fnv(h, (uint32_t)entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), e));
-    return fnv(h, (uint32_t)entity_list_listed(entities_by_tag("message_box"), e));
+    return fnv(h, (uint32_t)entity_list_listed(entities_by_tag(TAG_MESSAGE_BOX), e));
 }
 
 typedef struct {
@@ -166,7 +166,7 @@ static void run_check(const run_t *run, int want_ticks, uint32_t want_sequence, 
 
     for (i = 0; i < run->count; i++) {
         assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), run->boxes[i]));
-        assert(!entity_list_listed(entities_by_tag("message_box"), run->boxes[i]));
+        assert(!entity_list_listed(entities_by_tag(TAG_MESSAGE_BOX), run->boxes[i]));
         assert(shown_message_box() != run->boxes[i]);
     }
     assert(run->drew);
@@ -180,13 +180,13 @@ static void run_check(const run_t *run, int want_ticks, uint32_t want_sequence, 
  * has just made it the shown message box. */
 static const message_box_t *year_box(int yr) {
     const message_box_t *box;
-    int before = entity_list_count_of(entities_by_tag("message_box"));
+    int before = entity_list_count_of(entities_by_tag(TAG_MESSAGE_BOX));
 
     score_panel_new_year(p8_fixed_from_int(yr));
     box = shown_message_box();
     assert(box != NULL);
-    assert(entity_list_count_of(entities_by_tag("message_box")) == before + 1);
-    assert(entity_list_listed(entities_by_tag("message_box"), box) && entity_list_listed(live_entities(), box) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), box));
+    assert(entity_list_count_of(entities_by_tag(TAG_MESSAGE_BOX)) == before + 1);
+    assert(entity_list_listed(entities_by_tag(TAG_MESSAGE_BOX), box) && entity_list_listed(live_entities(), box) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), box));
     return box;
 }
 
@@ -282,20 +282,20 @@ static void test_scores_box_follows_is_shown(void) {
     box = shown_message_box();
     assert(box != NULL);
     assert(ju->last_box == box);
-    built = entity_list_count_of(entities_by_tag("message_box"));
+    built = entity_list_count_of(entities_by_tag(TAG_MESSAGE_BOX));
     track(&run, box);
     run.hash = fnv(run.hash, draw_hash());
 
     for (i = 0; i < 80; i++) {
         score_panel_update(ju);
-        assert(entity_list_count_of(entities_by_tag("message_box")) == built);
+        assert(entity_list_count_of(entities_by_tag(TAG_MESSAGE_BOX)) == built);
         tick(&run);
         assert(entity_list_listed(live_entities(), box));
     }
     set_is_shown(ju, 0);
     while (any_listed(&run)) {
         score_panel_update(ju);
-        assert(entity_list_count_of(entities_by_tag("message_box")) == built);
+        assert(entity_list_count_of(entities_by_tag(TAG_MESSAGE_BOX)) == built);
         tick(&run);
     }
     run_check(&run, SCORES_TICKS, SCORES_SEQUENCE_HASH, "scores box follows is_shown");
@@ -349,7 +349,7 @@ static void test_message_box_is_a_struct_registered_under_draw_overlay(void) {
     assert(from_score_panel != NULL);
     assert(generic != NULL);
     assert(shown_message_box() == generic);
-    assert(entity_list_listed(live_entities(), generic) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), generic) && entity_list_listed(entities_by_tag("message_box"), generic));
+    assert(entity_list_listed(live_entities(), generic) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), generic) && entity_list_listed(entities_by_tag(TAG_MESSAGE_BOX), generic));
     for (i = 0; i < 4; i++) {
         assert(!entity_list_listed(entities_by_message(others[i]), from_score_panel) && !entity_list_listed(entities_by_message(others[i]), generic));
     }

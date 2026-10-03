@@ -218,7 +218,7 @@ void planet_grab_arena_arena_released(const allocator_t *zone) {
 
 /* GAP-26 */
 void planet_forget_targeted_by(const entity_t *e) {
-    const entity_list_t *np = entities_by_tag("node");
+    const entity_list_t *np = entities_by_tag(TAG_NODE);
 
     for (int i = 0; np != NULL && i < np->count; i++) {
         planet_t *p = (planet_t *)np->items[i];
