@@ -38,27 +38,21 @@ void p8_camera_reset(p8_graphics_t *gfx) {
 }
 
 void p8_palt(p8_memory_t *mem, int col, int transparent) {
-    int addr;
-    unsigned char byte;
-
     if (col < 0 || col > 15) {
         return;
     }
-    addr = P8_ADDR_DRAW_PALETTE + col;
-    byte = p8_peek(mem, addr);
     if (transparent) {
-        byte = (unsigned char)(byte | P8_DRAW_PALETTE_TRANSPARENT_BIT);
+        mem->draw_palette[col] = (unsigned char)(mem->draw_palette[col] | P8_DRAW_PALETTE_TRANSPARENT_BIT);
     } else {
-        byte = (unsigned char)(byte & ~P8_DRAW_PALETTE_TRANSPARENT_BIT);
+        mem->draw_palette[col] = (unsigned char)(mem->draw_palette[col] & ~P8_DRAW_PALETTE_TRANSPARENT_BIT);
     }
-    p8_poke(mem, addr, byte);
 }
 
 int p8_gfx_is_transparent(const p8_memory_t *mem, int col) {
     if (col < 0 || col > 15) {
         return 0;
     }
-    return (p8_peek(mem, P8_ADDR_DRAW_PALETTE + col) & P8_DRAW_PALETTE_TRANSPARENT_BIT) != 0;
+    return (mem->draw_palette[col] & P8_DRAW_PALETTE_TRANSPARENT_BIT) != 0;
 }
 
 void p8_line(const p8_graphics_t *gfx, p8_memory_t *mem, int x1, int y1, int x2, int y2, int col) {

@@ -26,5 +26,5 @@ Le jeu complet compilé pour MIPS, dans un `.bin/.cue` qui démarre dans l'émul
 
 ## 4. Points ouverts
 
-- `fillp`, `palt` et la palette de dessin (blocs copiés à `0x5f00` par `hud.c`) sur GPU : motif ou CLUT par texture, ou retour au logiciel pour ces cas. Tranché au début de l'étape 4.
+- `fillp`, `palt` et la palette de dessin (blocs copiés dans la palette de dessin par `hud.c`) sur GPU : motif ou CLUT par texture, ou retour au logiciel pour ces cas. Tranché au début de l'étape 4.
 - Le rejeu d'un `events.json` dans l'émulateur, pour réutiliser les e2e. Tranché avant l'étape 5, qui en a besoin.

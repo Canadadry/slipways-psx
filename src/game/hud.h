@@ -10,7 +10,7 @@
  * entry point (_default, _y1) rather than a sentinel value. */
 
 /* Activates palette block flr(no), 0..15, by writing its 16 bytes into the
- * draw palette at 0x5f00 -- overwriting whatever p8_palt() had set there.
+ * draw palette -- overwriting whatever p8_palt() had set there.
  * Every block makes color 3 transparent. Needs no initialization. The
  * _default variant activates block 0. */
 void hud_select_palette_block(p8_memory_t *mem, p8_fixed_t no);

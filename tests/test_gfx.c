@@ -117,9 +117,8 @@ static void test_draw_palette_write_overrides_a_previous_palt(void) {
     assert(p8_gfx_is_transparent(&mem, 0));
 
     for (int c = 0; c < 16; c++) {
-        p8_poke(&mem, 0x5000 + c, (unsigned char)(c == 3 ? (c | P8_DRAW_PALETTE_TRANSPARENT_BIT) : c));
+        mem.draw_palette[c] = (unsigned char)(c == 3 ? (c | P8_DRAW_PALETTE_TRANSPARENT_BIT) : c);
     }
-    p8_memcpy(&mem, P8_ADDR_DRAW_PALETTE, 0x5000, 16);
 
     assert(!p8_gfx_is_transparent(&mem, 0));
     assert(p8_gfx_is_transparent(&mem, 3));

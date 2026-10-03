@@ -9,16 +9,17 @@
 #define P8_ADDR_MAP 0x2000
 #define P8_ADDR_SCREEN 0xA000
 
-/* The live draw palette: one byte per source color 0-15, low bits giving
- * the color it is actually drawn as, bit 0x80 meaning "not drawn at all".
- * p8_palt() and hud_select_palette_block() write these same bytes. */
-#define P8_ADDR_DRAW_PALETTE 0x5f00
 #define P8_DRAW_PALETTE_TRANSPARENT_BIT 0x80
 
 #define P8_MEM_SIZE 0xE000
 
 typedef struct {
     unsigned char data[P8_MEM_SIZE];
+    /* One byte per source color 0-15, low bits giving the color it is
+     * actually drawn as, P8_DRAW_PALETTE_TRANSPARENT_BIT meaning "not drawn
+     * at all". p8_palt() and hud_select_palette_block() write these same
+     * bytes. */
+    unsigned char draw_palette[16];
 } p8_memory_t;
 
 void p8_mem_init(p8_memory_t *mem);

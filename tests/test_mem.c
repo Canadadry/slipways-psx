@@ -3,26 +3,24 @@
 #include <assert.h>
 #include <stdio.h>
 
-/* `p8_mem_init` leaves exactly one region non-zero, the 16-byte draw
- * palette. Every "nothing was written" whole-memory scan here skips it. */
-static int is_default_draw_palette_addr(int addr) {
-    return addr >= P8_ADDR_DRAW_PALETTE && addr < P8_ADDR_DRAW_PALETTE + 16;
-}
-
-/* That palette comes up in PICO-8's documented power-on state: the identity
- * map, with colour 0 and only colour 0 transparent. */
+/* The draw palette comes up in PICO-8's documented power-on state: the
+ * identity map, with colour 0 and only colour 0 transparent. */
 static void test_init_zeroes_everything_but_the_default_draw_palette(void) {
     p8_memory_t mem;
     for (int i = 0; i < P8_MEM_SIZE; i += 4096) {
         mem.data[i] = 0xAB;
     }
+    for (int c = 0; c < 16; c++) {
+        mem.draw_palette[c] = 0xAB;
+    }
     p8_mem_init(&mem);
-    assert(p8_peek(&mem, 0) == 0);
-    assert(p8_peek(&mem, P8_MEM_SIZE - 1) == 0);
+    for (int i = 0; i < P8_MEM_SIZE; i++) {
+        assert(mem.data[i] == 0);
+    }
 
-    assert(p8_peek(&mem, P8_ADDR_DRAW_PALETTE) == (0 | P8_DRAW_PALETTE_TRANSPARENT_BIT));
+    assert(mem.draw_palette[0] == (0 | P8_DRAW_PALETTE_TRANSPARENT_BIT));
     for (int c = 1; c < 16; c++) {
-        assert(p8_peek(&mem, P8_ADDR_DRAW_PALETTE + c) == (unsigned char)c);
+        assert(mem.draw_palette[c] == (unsigned char)c);
     }
 }
 
@@ -100,9 +98,7 @@ static void test_out_of_range_poke_is_noop(void) {
     p8_poke(&mem, P8_MEM_SIZE + 100, 99);
 
     for (int i = 0; i < P8_MEM_SIZE; i++) {
-        if (!is_default_draw_palette_addr(i)) {
-            assert(mem.data[i] == 0);
-        }
+        assert(mem.data[i] == 0);
     }
 }
 
@@ -161,7 +157,7 @@ static void test_memcpy_out_of_range_dest_is_noop(void) {
     for (int i = 0; i < P8_MEM_SIZE; i++) {
         if (i == 0x300) {
             assert(mem.data[i] == 111);
-        } else if (!is_default_draw_palette_addr(i)) {
+        } else {
             assert(mem.data[i] == 0);
         }
     }
@@ -174,9 +170,7 @@ static void test_memcpy_out_of_range_src_is_noop(void) {
     p8_memcpy(&mem, 0x400, P8_MEM_SIZE - 4, 16);
 
     for (int i = 0; i < P8_MEM_SIZE; i++) {
-        if (!is_default_draw_palette_addr(i)) {
-            assert(mem.data[i] == 0);
-        }
+        assert(mem.data[i] == 0);
     }
 }
 
@@ -188,9 +182,7 @@ static void test_memcpy_negative_addr_is_noop(void) {
     p8_memcpy(&mem, 0x400, -1, 16);
 
     for (int i = 0; i < P8_MEM_SIZE; i++) {
-        if (!is_default_draw_palette_addr(i)) {
-            assert(mem.data[i] == 0);
-        }
+        assert(mem.data[i] == 0);
     }
 }
 

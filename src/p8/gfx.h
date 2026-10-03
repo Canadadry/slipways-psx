@@ -37,9 +37,9 @@ void p8_camera(p8_graphics_t *gfx, int x, int y);
 
 void p8_camera_reset(p8_graphics_t *gfx);
 
-/* Flips the 0x80 bit of the draw-palette byte at 0x5f00 + `col` -- the
- * single store hud_select_palette_block() writes too, hence PICO-8 memory
- * and not the graphics state, and hence that block overriding a p8_palt()
+/* Flips the transparency bit of draw_palette[col] -- the single store
+ * hud_select_palette_block() writes too, hence the memory and not the
+ * graphics state, and hence that block overriding a p8_palt()
  * that came before it. A second flag array in the graphics state once
  * shadowed this byte: every icon lost its black outline. */
 void p8_palt(p8_memory_t *mem, int col, int transparent);

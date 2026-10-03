@@ -8,14 +8,14 @@
 void p8_mem_init(p8_memory_t *mem) {
     int c;
 
-    memset(mem->data, 0, sizeof(mem->data));
+    memset(mem, 0, sizeof(*mem));
 
     for (c = 0; c < 16; c++) {
         unsigned char entry = (unsigned char)c;
         if (c == 0) {
             entry = (unsigned char)(entry | P8_DRAW_PALETTE_TRANSPARENT_BIT);
         }
-        mem->data[P8_ADDR_DRAW_PALETTE + c] = entry;
+        mem->draw_palette[c] = entry;
     }
 }
 

@@ -8,7 +8,7 @@ static const unsigned char block_8[16] = {0, 1, 2, 131, 4, 5, 6, 7, 10, 9, 0, 4,
 
 static void assert_draw_palette_is_block_8(const p8_memory_t *mem) {
     for (int c = 0; c < 16; c++) {
-        assert(p8_peek(mem, P8_ADDR_DRAW_PALETTE + c) == block_8[c]);
+        assert(mem->draw_palette[c] == block_8[c]);
     }
 }
 
@@ -23,9 +23,9 @@ static void test_each_block_matches_the_sprite_sheet_pixels(void) {
         hud_select_palette_block(&mem, p8_fixed_from_int(n));
         for (int c = 0; c < 16; c++) {
             unsigned char expected = (unsigned char)(p8_sget(&mem, n, c) | (c == 3 ? P8_DRAW_PALETTE_TRANSPARENT_BIT : 0));
-            if (p8_peek(&mem, P8_ADDR_DRAW_PALETTE + c) != expected) {
+            if (mem.draw_palette[c] != expected) {
                 fprintf(stderr, "block %d, color %d: %d, expected %d\n", n, c,
-                        p8_peek(&mem, P8_ADDR_DRAW_PALETTE + c), expected);
+                        mem.draw_palette[c], expected);
                 assert(0);
             }
         }

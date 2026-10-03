@@ -43,9 +43,7 @@ static const unsigned char palette_blocks[16][16] = {
 void hud_select_palette_block(p8_memory_t *mem, p8_fixed_t no) {
     int block = p8_fixed_flr_int(no);
     assert(block >= 0 && block < 16 && "hud_select_palette_block: only blocks 0..15 exist; the cart would read past its table");
-    for (int c = 0; c < 16; c++) {
-        p8_poke(mem, P8_ADDR_DRAW_PALETTE + c, palette_blocks[block][c]);
-    }
+    memcpy(mem->draw_palette, palette_blocks[block], sizeof(mem->draw_palette));
 }
 
 void hud_select_palette_block_default(p8_memory_t *mem) {
