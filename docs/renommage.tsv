@@ -2017,7 +2017,7 @@ fixed_min	fixed_min	src/game/economy_score.c	identifiant	fonction	conservé	game
 for_each_cg	for_each_tagged	src/game/economy_score.c	identifiant	fonction	renommé	game/economy_score	cg		c:economy_score.c@F@for_each_cg
 pico8_bf	economy_score_happiness	src/game/economy_score.c	identifiant	fonction	renommé	game/economy_score			c:@F@pico8_bf
 pico8_cz	economy_score_colony_upkeep	src/game/economy_score.c	identifiant	fonction	renommé	game/economy_score			c:@F@pico8_cz
-pico8_da	planet_upkeep	src/game/economy_score.c	identifiant	fonction	renommé	game/economy_score			c:@F@pico8_da
+pico8_da	economy_score_planet_upkeep	src/game/economy_score.c	identifiant	fonction	renommé	game/economy_score			c:@F@pico8_da
 pico8_db	economy_score_trade_income	src/game/economy_score.c	identifiant	fonction	renommé	game/economy_score			c:@F@pico8_db
 pico8_dk	economy_score_difficulty	src/game/economy_score.c	identifiant	fonction	renommé	game/economy_score			c:@F@pico8_dk
 pico8_economy_dk_quitte	economy_score_difficulty_quits	src/game/economy_score.c	identifiant	fonction	renommé	game/economy_score			c:@F@pico8_economy_dk_quitte

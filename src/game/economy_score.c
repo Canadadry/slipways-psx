@@ -42,7 +42,7 @@ static int is_colonized_truthy(entity_t *pt) {
     return planet_is_colonized((const planet_t *)pt);
 }
 
-p8_fixed_t planet_upkeep(entity_t *pt) {
+p8_fixed_t economy_score_planet_upkeep(entity_t *pt) {
     if (pt != NULL && (pt->class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && ((const planet_t *)pt)->archetype->is_structure) {
         const entity_list_t *structure_list = entities_by_tag("structure");
         return p8_fixed_from_int(structure_list != NULL ? structure_list->count : 0);
@@ -276,7 +276,7 @@ void economy_score_difficulty_quits(const entity_t *e) {
 }
 
 p8_fixed_t economy_score_net_income(entity_t *p) {
-    p8_fixed_t kr = p8_fixed_flr(p8_fixed_sub(economy_score_trade_income(p), planet_upkeep(p)));
+    p8_fixed_t kr = p8_fixed_flr(p8_fixed_sub(economy_score_trade_income(p), economy_score_planet_upkeep(p)));
     planet_t *jo;
 
     assert(planet_is_family(p) && "economy_score_net_income: the planet tag holds planets only");

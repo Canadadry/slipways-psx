@@ -426,13 +426,13 @@ static uint32_t fold_rebuild_trades(uint32_t h, const entity_list_t *ib) {
 }
 
 /* What economy_tiers_compute_tier, planet_rebuild_trades,
- * planet_is_colonized and planet_upkeep give on a slipgate. */
+ * planet_is_colonized and economy_score_planet_upkeep give on a slipgate. */
 static uint32_t fold_economy(uint32_t h, void *e) {
     entity_list_t *ib = planet_rebuild_trades(e);
     h = fnv(h, (uint32_t)economy_tiers_compute_tier(e));
     h = fold_rebuild_trades(h, ib);
     h = fnv(fnv(h, 0xB0u), planet_is_colonized(e) ? 1u : 0u);
-    h = fnv(h, (uint32_t)planet_upkeep(e));
+    h = fnv(h, (uint32_t)economy_score_planet_upkeep(e));
     return as_structure(e)->has_development_tier ? fold_fixed_member(h, as_structure(e)->development_tier) : fold_absent(h);
 }
 

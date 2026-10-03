@@ -665,7 +665,7 @@ static void test_structure_is_a_struct(void) {
     start_game();
     built = build_lab();
     assert(is_a_structure_struct(built) && entity_list_listed(entities_by_tag("structure"), built));
-    assert(planet_upkeep(built) == p8_fixed_from_int(entities_by_tag("structure")->count));
+    assert(economy_score_planet_upkeep(built) == p8_fixed_from_int(entities_by_tag("structure")->count));
     assert(lab_class->attach_slipway == planet_class()->attach_slipway && lab_class->offer_trade == planet_class()->offer_trade);
     assert_structure_shape(lab_class);
     assert(lab_class->hit_test == planet_class()->hit_test && lab_class->draw == planet_class()->draw &&

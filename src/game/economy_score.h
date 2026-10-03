@@ -5,11 +5,11 @@
 #include "p8/fixed.h"
 #include "game/ui_button.h"
 
-/* planet_upkeep() and economy_score_trade_income() answer 0 for a NULL
- * entity; economy_score_net_income() asserts a planet. While the main
+/* economy_score_planet_upkeep() and economy_score_trade_income() answer 0 for
+ * a NULL entity; economy_score_net_income() asserts a planet. While the main
  * economy is not the game's, its production and happiness read as absent. */
 
-p8_fixed_t planet_upkeep(entity_t *pt);
+p8_fixed_t economy_score_planet_upkeep(entity_t *pt);
 
 p8_fixed_t economy_score_colony_upkeep(void);
 
