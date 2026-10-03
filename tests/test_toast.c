@@ -200,7 +200,7 @@ static void fake_toast_update(entity_t *self, p8_fixed_t t) {
     }
 }
 
-static const entity_class_t g_fake_toast_class = {
+static const entity_class_t fake_toast_class_def = {
     .states = {[ENTITY_STATE_NORMAL] = fake_toast_update},
 };
 
@@ -209,7 +209,7 @@ static void test_update_entities_drives_an_entity_struct(void) {
     int i;
 
     fresh_world();
-    entity_init_instance(&f->header, &g_fake_toast_class, "normal", 0);
+    entity_init_instance(&f->header, &fake_toast_class_def, "normal", 0);
     f->header.is_dead = &f->is_dead;
     f->is_dead = 0;
     entity_construct(&f->header);

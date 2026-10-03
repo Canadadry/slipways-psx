@@ -48,14 +48,14 @@ void ui_set_ephemerals(ui_t *self, entity_list_t *le) {
     }
 }
 
-static const entity_class_t g_main_mouse_placeholder_class = {0};
+static const entity_class_t main_mouse_placeholder_class_def = {0};
 
 typedef struct {
     entity_t header;
 } main_mouse_placeholder_t;
 
 /* The only one: never allocated, never freed. */
-static main_mouse_placeholder_t g_main_mouse_placeholder = {{.class = &g_main_mouse_placeholder_class}};
+static main_mouse_placeholder_t g_main_mouse_placeholder = {{.class = &main_mouse_placeholder_class_def}};
 
 static int ui_to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
@@ -105,7 +105,7 @@ static void ui_release_method(entity_t *self) {
     ui_ephemerals_release((ui_t *)self);
 }
 
-static const entity_class_t g_ui_class = {
+static const entity_class_t ui_class_def = {
     .draw_overlay = ui_draw_overlay_method,
     .release = ui_release_method,
 };
@@ -116,7 +116,7 @@ static ui_t *ui_create(void) {
 
     assert(g_ui_up && "ui_init() must run first");
     self = (ui_t *)allocator_alloc(game_zone(), sizeof *self);
-    entity_init_instance(&self->header, &g_ui_class, ui_archetype.state, ui_archetype.state_time);
+    entity_init_instance(&self->header, &ui_class_def, ui_archetype.state, ui_archetype.state_time);
     self->archetype = &ui_archetype;
     self->header.layer = &self->archetype->layer;
     self->header.cursor_sprite = &self->archetype->cursor_sprite;
@@ -155,7 +155,7 @@ void ui_shutdown(void) {
 }
 
 const entity_class_t *main_mouse_placeholder_class(void) {
-    return &g_main_mouse_placeholder_class;
+    return &main_mouse_placeholder_class_def;
 }
 
 int ui_ready(void) {
@@ -163,7 +163,7 @@ int ui_ready(void) {
 }
 
 const entity_class_t *ui_class(void) {
-    return &g_ui_class;
+    return &ui_class_def;
 }
 
 ui_t *ui_new(void) {

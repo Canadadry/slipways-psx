@@ -50,7 +50,7 @@ void planet_update_vanishing_method(entity_t *self, p8_fixed_t t) {
     planet_update_vanishing((planet_t *)self, t);
 }
 
-static const entity_class_t g_planet_class = {
+static const entity_class_t planet_class_def = {
     .draw = planet_draw_method,
     .hit_test = planet_hit_test_method,
     .new_year = planet_new_year_method,
@@ -110,7 +110,7 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
 static planet_t *planet_create(const planet_keys_t *keys) {
     planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
-    planet_init_instance(self, &g_planet_class, &planet_archetype);
+    planet_init_instance(self, &planet_class_def, &planet_archetype);
     if (keys != NULL) {
         if (keys->map_pos != NULL) {
             self->map_pos = keys->map_pos;
@@ -176,7 +176,7 @@ production_t *planet_shared_production(void) {
 }
 
 const entity_class_t *planet_class(void) {
-    return &g_planet_class;
+    return &planet_class_def;
 }
 
 planet_t *planet_new(const planet_keys_t *keys) {

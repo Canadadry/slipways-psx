@@ -32,7 +32,7 @@ static void camera_apply_method(entity_t *self, p8_fixed_t fy) {
     camera_apply(dispatch_context_gfx(), (camera_t *)self, fy);
 }
 
-static const entity_class_t g_camera_class = {
+static const entity_class_t camera_class_def = {
     .states = {[ENTITY_STATE_NORMAL] = camera_update_method},
     .apply_camera = camera_apply_method,
 };
@@ -40,7 +40,7 @@ static const entity_class_t g_camera_class = {
 static camera_t *camera_create(void) {
     camera_t *self = (camera_t *)allocator_alloc(game_zone(), sizeof *self);
 
-    entity_init_instance(&self->header, &g_camera_class, camera_archetype.state, camera_archetype.state_time);
+    entity_init_instance(&self->header, &camera_class_def, camera_archetype.state, camera_archetype.state_time);
     self->archetype = &camera_archetype;
     self->header.pos = &self->pos;
     self->header.map_pos = &self->pos_before_shake;
@@ -72,7 +72,7 @@ int camera_ready(void) {
 }
 
 const entity_class_t *camera_class(void) {
-    return &g_camera_class;
+    return &camera_class_def;
 }
 
 camera_t *camera_new(void) {

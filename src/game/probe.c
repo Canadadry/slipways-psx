@@ -25,20 +25,20 @@
 static int g_probe_up = 0;
 static entity_t *g_main_economy = NULL;
 
-static const entity_class_t g_main_economy_placeholder_class = {0};
+static const entity_class_t main_economy_placeholder_class_def = {0};
 
 static main_economy_placeholder_t g_main_economy_placeholder = {
-    {.class = &g_main_economy_placeholder_class}, 0, 0, 0, 0};
+    {.class = &main_economy_placeholder_class_def}, 0, 0, 0, 0};
 
 static int targeting_track_target_is_holder_class(const entity_class_t *cls) {
     return cls->drag == targeting_track_method || cls == wormhole_class();
 }
 
-static const entity_class_t g_targeting_track_target_class = {0};
+static const entity_class_t targeting_track_target_class_def = {0};
 
 /* The target targeting_track sets over the void, off the panel: never
  * allocated nor freed; only targeted_by is written, overwritten next time. */
-static targeting_track_target_t g_targeting_track_target = {{.class = &g_targeting_track_target_class}, NULL};
+static targeting_track_target_t g_targeting_track_target = {{.class = &targeting_track_target_class_def}, NULL};
 
 static int probe_to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
@@ -366,7 +366,7 @@ void probe_release_method(entity_t *self) {
     }
 }
 
-static const entity_class_t g_probe_class = {
+static const entity_class_t probe_class_def = {
     .draw = emitter_update_method,
     .draw_overlay = targeting_tooltip_method,
     .drag = targeting_track_method,
@@ -415,7 +415,7 @@ static probe_t *probe_create(const probe_keys_t *keys) {
     assert(g_probe_up && "probe_init() must run first");
     planet_grab_arena_open();
     self = (probe_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
-    probe_init_instance(self, &g_probe_class, &probe_archetype);
+    probe_init_instance(self, &probe_class_def, &probe_archetype);
     self->grab_arena = planet_zone_construction();
     planet_grab_arena_close();
     if (keys != NULL) {
@@ -460,7 +460,7 @@ int probe_ready(void) {
 }
 
 const entity_class_t *probe_class(void) {
-    return &g_probe_class;
+    return &probe_class_def;
 }
 
 probe_t *probe_new(const probe_keys_t *keys) {
@@ -468,7 +468,7 @@ probe_t *probe_new(const probe_keys_t *keys) {
 }
 
 const entity_class_t *main_economy_placeholder_class(void) {
-    return &g_main_economy_placeholder_class;
+    return &main_economy_placeholder_class_def;
 }
 
 entity_t *main_economy(void) {
@@ -492,5 +492,5 @@ void probe_set_main_economy(entity_t *instance) {
 }
 
 const entity_class_t *targeting_track_target_class(void) {
-    return &g_targeting_track_target_class;
+    return &targeting_track_target_class_def;
 }

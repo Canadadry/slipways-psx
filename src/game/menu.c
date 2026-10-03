@@ -43,12 +43,12 @@ typedef struct {
     int has_back_color; /* 0: no back color, and back_color is then never read */
 } pause_menu_open_box_t;
 
-static const entity_class_t g_pause_menu_open_box_class = {0};
+static const entity_class_t pause_menu_open_box_class_def = {0};
 
 /* Never allocated nor freed: menu_init() points its fixed_pos and row_step at
  * the pause menu's values and sets its back color; menu_shutdown() clears. */
 static pause_menu_open_box_t g_pause_menu_open_box = {
-    {.class = &g_pause_menu_open_box_class},
+    {.class = &pause_menu_open_box_class_def},
     NULL,
     NULL,
     0,
@@ -373,7 +373,7 @@ const entity_t *pause_menu_open_box(void) {
 }
 
 const entity_class_t *pause_menu_open_box_class(void) {
-    return &g_pause_menu_open_box_class;
+    return &pause_menu_open_box_class_def;
 }
 
 void menu_init(void) {

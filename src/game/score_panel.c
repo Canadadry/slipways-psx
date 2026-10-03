@@ -47,10 +47,10 @@ static void score_panel_row_copy(data_row_t *dst, data_item_t *items, int cap, c
     dst->items = items;
 }
 
-static const entity_class_t g_score_panel_layout_block_class = {0};
+static const entity_class_t score_panel_layout_block_class_def = {0};
 
 static score_panel_layout_block_t g_score_panel_layout_block = {
-    {.class = &g_score_panel_layout_block_class},
+    {.class = &score_panel_layout_block_class_def},
     &(const vec_t){0x0, 0xb0000},
     &(const vec_t){0x0, 0xb0000},
     0xa0000,
@@ -70,7 +70,7 @@ score_panel_layout_block_t *score_panel_layout_block(void) {
 }
 
 const entity_class_t *score_panel_layout_block_class(void) {
-    return &g_score_panel_layout_block_class;
+    return &score_panel_layout_block_class_def;
 }
 
 const data_row_t *score_panel_frame_rows(void) {
@@ -249,7 +249,7 @@ static void score_panel_draw_method(entity_t *self, const vec_t *ra) {
     score_panel_draw(dispatch_context_gfx(), dispatch_context_mem(), (score_panel_t *)self);
 }
 
-static const entity_class_t g_score_panel_class = {
+static const entity_class_t score_panel_class_def = {
     .draw = score_panel_draw_method,
     .new_year = score_panel_new_year_method,
     .refresh = score_panel_refresh_method,
@@ -261,7 +261,7 @@ static score_panel_t *score_panel_create(void) {
 
     assert(g_score_panel_up && "score_panel_init() must run first");
     self = (score_panel_t *)allocator_alloc(game_zone(), sizeof *self);
-    entity_init_instance(&self->header, &g_score_panel_class, score_panel_archetype.state, score_panel_archetype.state_time);
+    entity_init_instance(&self->header, &score_panel_class_def, score_panel_archetype.state, score_panel_archetype.state_time);
     self->archetype = &score_panel_archetype;
     self->layer = self->archetype->layer;
     self->header.layer = &self->layer;
@@ -328,7 +328,7 @@ int score_panel_ready(void) {
 }
 
 const entity_class_t *score_panel_class(void) {
-    return &g_score_panel_class;
+    return &score_panel_class_def;
 }
 
 score_panel_t *score_panel_new(void) {

@@ -14,12 +14,12 @@
 
 static int g_wormhole_up = 0;
 
-static const entity_class_t g_wormhole_too_far_target_class = {0};
+static const entity_class_t wormhole_too_far_target_class_def = {0};
 
 /* The only one: never allocated, never freed; no writer, so a write
  * reaching it stops the run. */
 static wormhole_too_far_target_t g_wormhole_too_far_target_wrapper = {
-    {.class = &g_wormhole_too_far_target_class},
+    {.class = &wormhole_too_far_target_class_def},
     wormhole_too_far_target_status_text,
 };
 
@@ -200,7 +200,7 @@ static void wormhole_release_method(entity_t *self) {
  * then searches the nearest anchor. Putting targeting_track_method there,
  * as in the other targeting classes, would look uniform and would drop the
  * nearest-anchor search and the too-far target. */
-static const entity_class_t g_wormhole_class = {
+static const entity_class_t wormhole_class_def = {
     .draw = wormhole_draw_method,
     .draw_overlay = targeting_tooltip_method,
     .drag = wormhole_drag_method,
@@ -220,7 +220,7 @@ static wormhole_t *wormhole_create(void) {
     planet_grab_arena_open();
     self = (wormhole_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
-    entity_init_instance(&self->header, &g_wormhole_class, wormhole_archetype.state, wormhole_archetype.state_time);
+    entity_init_instance(&self->header, &wormhole_class_def, wormhole_archetype.state, wormhole_archetype.state_time);
     self->archetype = &wormhole_archetype;
     self->header.layer = &self->archetype->layer;
     self->header.pos = &self->pos;
@@ -262,7 +262,7 @@ int wormhole_ready(void) {
 }
 
 const entity_class_t *wormhole_class(void) {
-    return &g_wormhole_class;
+    return &wormhole_class_def;
 }
 
 wormhole_t *wormhole_new(void) {
@@ -274,5 +274,5 @@ wormhole_too_far_target_t *wormhole_too_far_target_wrapper(void) {
 }
 
 const entity_class_t *wormhole_too_far_target_class(void) {
-    return &g_wormhole_too_far_target_class;
+    return &wormhole_too_far_target_class_def;
 }

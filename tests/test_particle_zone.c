@@ -182,7 +182,7 @@ static int case_particles_release_releases_the_arena(void) {
  * layer 10, so drawn without the on-screen test, and spawn_rate 0, so
  * nothing is born. */
 static const emitter_archetype_t g_without_birth;
-static const entity_class_t g_host_cls;
+static const entity_class_t host_class_def;
 static const p8_fixed_t g_layer_ten = 10 << 16;
 static const vec_t *const g_pos_nil = NULL;
 static emitter_t g_emitter;
@@ -193,7 +193,7 @@ static p8_memory_t g_mem;
 static entity_t *host(void) {
     p8_gfx_init(&g_gfx);
     p8_mem_init(&g_mem);
-    entity_init_header(&g_host, &g_host_cls);
+    entity_init_header(&g_host, &host_class_def);
     memset(&g_emitter, 0, sizeof g_emitter);
     g_emitter.archetype = &g_without_birth;
     g_host.layer = &g_layer_ten;

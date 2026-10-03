@@ -22,7 +22,7 @@
 
 static int g_economy_up = 0;
 
-static const entity_class_t g_economy_class = {0};
+static const entity_class_t economy_class_def = {0};
 
 const economy_archetype_t economy_archetype = {
     .credits = 0x640000,
@@ -35,7 +35,7 @@ static economy_t *economy_create(void) {
     economy_t *self = (economy_t *)allocator_alloc(game_zone(), sizeof *self);
     pointer_list_t *invented;
 
-    entity_init_header(&self->header, &g_economy_class);
+    entity_init_header(&self->header, &economy_class_def);
     self->archetype = &economy_archetype;
     self->credits = p8_fixed_from_int(0);
     self->income = p8_fixed_from_int(0);
@@ -71,7 +71,7 @@ static economy_t *economy_create(void) {
 
 static void assert_economy(const economy_t *self) {
     assert((self == NULL ||
-            self->header.class == &g_economy_class) &&
+            self->header.class == &economy_class_def) &&
            "assert_economy: every measured call passes the main economy; anything else would be read through the wrong layout");
 }
 
@@ -89,7 +89,7 @@ int economy_ready(void) {
 }
 
 const entity_class_t *economy_class(void) {
-    return &g_economy_class;
+    return &economy_class_def;
 }
 
 economy_t *economy_new(void) {

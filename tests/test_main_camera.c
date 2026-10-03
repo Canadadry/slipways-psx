@@ -80,15 +80,15 @@ typedef struct {
     const vec_t *pos;
 } pos_only_t;
 
-static const entity_class_t g_pos_only_class = {0};
+static const entity_class_t pos_only_class_def = {0};
 
 /* entity_geom_is_on_screen reads the camera position as (0,0): 64 off is
  * inside the 76 margin, 77 is not. */
 static void test_is_on_screen_on_placeholder(void) {
     vec_t near_pos = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
     vec_t far_pos = vec_make(p8_fixed_from_int(64 + 77), p8_fixed_from_int(64));
-    pos_only_t near_e = {{.class = &g_pos_only_class, .pos = &near_e.pos}, NULL};
-    pos_only_t far_e = {{.class = &g_pos_only_class, .pos = &far_e.pos}, NULL};
+    pos_only_t near_e = {{.class = &pos_only_class_def, .pos = &near_e.pos}, NULL};
+    pos_only_t far_e = {{.class = &pos_only_class_def, .pos = &far_e.pos}, NULL};
     int near_hit;
     int far_hit;
 
@@ -174,8 +174,8 @@ static void test_is_on_screen_under_a_shaken_camera(void) {
     static vec_t shaken_pos;
     vec_t in_pos = vec_make(p8_fixed_from_int(200 + 64), p8_fixed_from_int(100 + 64));
     vec_t below_pos = vec_make(p8_fixed_from_int(200 + 64), p8_fixed_from_int(100 + 64 + 77));
-    pos_only_t in_e = {{.class = &g_pos_only_class, .pos = &in_e.pos}, NULL};
-    pos_only_t below_e = {{.class = &g_pos_only_class, .pos = &below_e.pos}, NULL};
+    pos_only_t in_e = {{.class = &pos_only_class_def, .pos = &in_e.pos}, NULL};
+    pos_only_t below_e = {{.class = &pos_only_class_def, .pos = &below_e.pos}, NULL};
     camera_t *qb;
     const vec_t *saved_p;
     const vec_t *saved_pos;

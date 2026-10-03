@@ -46,7 +46,7 @@ static void projects_register(research_project_t *hp) {
     g_projects_by_name_count++;
 }
 
-static const entity_class_t g_research_project_class = {0};
+static const entity_class_t research_project_class_def = {0};
 
 static const char *research_project_string(const char *s) {
     assert(s != NULL && "research_project_string: a position that is not a string does not fit the member's type "
@@ -130,7 +130,7 @@ static research_project_t *project_create(const research_project_keys_t *keys) {
     const char *input_codes = "";
     size_t input_count;
 
-    entity_init_header(&self->header, &g_research_project_class);
+    entity_init_header(&self->header, &research_project_class_def);
     self->name = NULL;
     self->planet_codes = NULL;
     self->base_cost = 0;
@@ -227,7 +227,7 @@ const char *research_project_upgrade_tech(const research_project_t *self) {
 
 void research_project_assert(const research_project_t *self) {
     assert((self == NULL ||
-            self->header.class == &g_research_project_class) &&
+            self->header.class == &research_project_class_def) &&
            "research_project_assert: every listed project, every planet's project and every row's project is a research project; anything else would be read "
            "through the wrong layout");
     (void)self;
@@ -251,7 +251,7 @@ int research_project_ready(void) {
 }
 
 const entity_class_t *research_project_class(void) {
-    return &g_research_project_class;
+    return &research_project_class_def;
 }
 
 const data_row_t *research_project_row_tail(void) {

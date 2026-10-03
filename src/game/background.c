@@ -43,7 +43,7 @@ static void background_drag_method(entity_t *self, vec_t *qa, vec_t *ra) {
     background_drag((background_t *)self, ra);
 }
 
-static const entity_class_t g_background_class = {
+static const entity_class_t background_class_def = {
     .draw = background_draw_method,
     .hit_test = entity_registry_hit_test_always,
     .left_press = background_left_press_method,
@@ -60,7 +60,7 @@ static void background_set_drag_mouse(background_t *self, const vec_t *rp) {
 static background_t *background_create(void) {
     background_t *self = (background_t *)allocator_alloc(game_zone(), sizeof *self);
 
-    entity_init_instance(&self->header, &g_background_class, background_archetype.state, background_archetype.state_time);
+    entity_init_instance(&self->header, &background_class_def, background_archetype.state, background_archetype.state_time);
     self->archetype = &background_archetype;
     self->header.layer = &self->archetype->layer;
     background_set_drag_mouse(self, NULL);
@@ -88,7 +88,7 @@ int background_ready(void) {
 }
 
 const entity_class_t *background_class(void) {
-    return &g_background_class;
+    return &background_class_def;
 }
 
 background_t *background_new(void) {

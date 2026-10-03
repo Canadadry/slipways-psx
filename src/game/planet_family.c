@@ -24,7 +24,7 @@ void structure_update_settled_method(entity_t *self, p8_fixed_t t) {
     planet_bob(self, t);
 }
 
-static const entity_class_t g_structure_class = {
+static const entity_class_t structure_class_def = {
     .draw = planet_draw_method,
     .draw_overlay = targeting_tooltip_method,
     .hit_test = planet_hit_test_method,
@@ -61,7 +61,7 @@ static planet_t *structure_create(const planet_keys_t *keys) {
     planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
     assert(g_family_up && "planet_family_init() must run first");
-    structure_init_instance(self, &g_structure_class, &structure_archetype);
+    structure_init_instance(self, &structure_class_def, &structure_archetype);
     if (keys != NULL) {
         assert(keys->map_pos == NULL && keys->pos == NULL &&
                "structure_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
@@ -96,7 +96,7 @@ static void trading_hub_update_settled_method(entity_t *self, p8_fixed_t t) {
     trading_hub_update_settled((planet_t *)self, t);
 }
 
-static const entity_class_t g_trading_hub_class = {
+static const entity_class_t trading_hub_class_def = {
     .draw = planet_draw_method,
     .draw_overlay = targeting_tooltip_method,
     .hit_test = planet_hit_test_method,
@@ -122,7 +122,7 @@ static planet_t *trading_hub_create(const planet_keys_t *keys) {
     planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
     assert(g_family_up && "planet_family_init() must run first");
-    structure_init_instance(self, &g_trading_hub_class, &trading_hub_archetype);
+    structure_init_instance(self, &trading_hub_class_def, &trading_hub_archetype);
     self->palette_block = self->archetype->palette_block;
     if (keys != NULL) {
         assert(keys->map_pos == NULL && keys->pos == NULL &&
@@ -140,7 +140,7 @@ static planet_t *trading_hub_create(const planet_keys_t *keys) {
     return self;
 }
 
-static const entity_class_t g_processor_class = {
+static const entity_class_t processor_class_def = {
     .draw = planet_draw_method,
     .draw_overlay = targeting_tooltip_method,
     .hit_test = planet_hit_test_method,
@@ -166,7 +166,7 @@ static planet_t *processor_create(const planet_keys_t *keys) {
     planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
     assert(g_family_up && "planet_family_init() must run first");
-    structure_init_instance(self, &g_processor_class, &processor_archetype);
+    structure_init_instance(self, &processor_class_def, &processor_archetype);
     if (keys != NULL) {
         assert(keys->map_pos == NULL && keys->pos == NULL &&
                "processor_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
@@ -204,7 +204,7 @@ void ascension_release_method(entity_t *self) {
     planet_grab_arena_released((const planet_t *)self);
 }
 
-static const entity_class_t g_ascension_class = {
+static const entity_class_t ascension_class_def = {
     .draw = ascension_draw_method,
     .draw_overlay = targeting_tooltip_method,
     .hit_test = planet_hit_test_method,
@@ -247,7 +247,7 @@ static planet_t *ascension_create(const planet_keys_t *keys) {
     planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
     assert(g_family_up && "planet_family_init() must run first");
-    ascension_init_instance(self, &g_ascension_class, &ascension_archetype);
+    ascension_init_instance(self, &ascension_class_def, &ascension_archetype);
     if (keys != NULL) {
         assert(keys->map_pos == NULL && keys->pos == NULL &&
                "ascension_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
@@ -289,7 +289,7 @@ void protostar_construct(planet_t *self) {
     (void)spawned;
 }
 
-static const entity_class_t g_protostar_class = {
+static const entity_class_t protostar_class_def = {
     .draw = ascension_draw_method,
     .draw_overlay = targeting_tooltip_method,
     .hit_test = planet_hit_test_method,
@@ -316,7 +316,7 @@ static planet_t *protostar_create(const planet_keys_t *keys) {
     planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
     assert(g_family_up && "planet_family_init() must run first");
-    ascension_init_instance(self, &g_protostar_class, &protostar_archetype);
+    ascension_init_instance(self, &protostar_class_def, &protostar_archetype);
     if (keys != NULL) {
         if (keys->map_pos != NULL) {
             self->map_pos = keys->map_pos;
@@ -450,7 +450,7 @@ static void burst_release_method(entity_t *self) {
     arena_release(slot);
 }
 
-static const entity_class_t g_burst_class = {
+static const entity_class_t burst_class_def = {
     .draw = burst_draw_method,
     .hit_test = planet_hit_test_method,
     .new_year = planet_new_year_method,
@@ -472,7 +472,7 @@ static planet_t *burst_create(const burst_keys_t *keys) {
     planet_t *self = (planet_t *)allocator_alloc(slot, sizeof *self);
 
     assert(g_family_up && "planet_family_init() must run first");
-    planet_init_instance(self, &g_burst_class, &burst_archetype);
+    planet_init_instance(self, &burst_class_def, &burst_archetype);
     self->header.emitter = &self->emitter_own;
     self->emitter = &self->emitter_own;
     self->emitter->archetype = &self->archetype->emitter;
@@ -544,14 +544,14 @@ static entity_t *structure_kind_new(const planet_keys_t *keys) {
     return &structure_create(keys)->header;
 }
 
-static const entity_kind_t g_structure_kind = {structure_kind_new, &structure_kind_record};
+static const entity_kind_t structure_kind_def = {structure_kind_new, &structure_kind_record};
 
 const entity_kind_t *structure_kind(void) {
-    return &g_structure_kind;
+    return &structure_kind_def;
 }
 
 const entity_class_t *structure_class(void) {
-    return &g_structure_class;
+    return &structure_class_def;
 }
 
 planet_t *structure_new(const planet_keys_t *keys) {
@@ -566,14 +566,14 @@ static entity_t *trading_hub_kind_new(const planet_keys_t *keys) {
     return &trading_hub_create(keys)->header;
 }
 
-static const entity_kind_t g_trading_hub_kind = {trading_hub_kind_new, &trading_hub_kind_record};
+static const entity_kind_t trading_hub_kind_def = {trading_hub_kind_new, &trading_hub_kind_record};
 
 const entity_kind_t *trading_hub_kind(void) {
-    return &g_trading_hub_kind;
+    return &trading_hub_kind_def;
 }
 
 const entity_class_t *trading_hub_class(void) {
-    return &g_trading_hub_class;
+    return &trading_hub_class_def;
 }
 
 planet_t *trading_hub_new(const planet_keys_t *keys) {
@@ -588,14 +588,14 @@ static entity_t *processor_kind_new(const planet_keys_t *keys) {
     return &processor_create(keys)->header;
 }
 
-static const entity_kind_t g_processor_kind = {processor_kind_new, &processor_kind_record};
+static const entity_kind_t processor_kind_def = {processor_kind_new, &processor_kind_record};
 
 const entity_kind_t *processor_kind(void) {
-    return &g_processor_kind;
+    return &processor_kind_def;
 }
 
 const entity_class_t *processor_class(void) {
-    return &g_processor_class;
+    return &processor_class_def;
 }
 
 planet_t *processor_new(const planet_keys_t *keys) {
@@ -610,14 +610,14 @@ static entity_t *ascension_kind_new(const planet_keys_t *keys) {
     return &ascension_create(keys)->header;
 }
 
-static const entity_kind_t g_ascension_kind = {ascension_kind_new, &ascension_kind_record};
+static const entity_kind_t ascension_kind_def = {ascension_kind_new, &ascension_kind_record};
 
 const entity_kind_t *ascension_kind(void) {
-    return &g_ascension_kind;
+    return &ascension_kind_def;
 }
 
 const entity_class_t *ascension_class(void) {
-    return &g_ascension_class;
+    return &ascension_class_def;
 }
 
 planet_t *ascension_new(const planet_keys_t *keys) {
@@ -632,14 +632,14 @@ static entity_t *protostar_kind_new(const planet_keys_t *keys) {
     return &protostar_create(keys)->header;
 }
 
-static const entity_kind_t g_protostar_kind = {protostar_kind_new, &protostar_kind_record};
+static const entity_kind_t protostar_kind_def = {protostar_kind_new, &protostar_kind_record};
 
 const entity_kind_t *protostar_kind(void) {
-    return &g_protostar_kind;
+    return &protostar_kind_def;
 }
 
 const entity_class_t *protostar_class(void) {
-    return &g_protostar_class;
+    return &protostar_class_def;
 }
 
 planet_t *protostar_new(const planet_keys_t *keys) {
@@ -663,14 +663,14 @@ static entity_t *burst_kind_new(const planet_keys_t *keys) {
     return &burst_create(&burst_keys)->header;
 }
 
-static const entity_kind_t g_burst_kind = {burst_kind_new, &burst_kind_record};
+static const entity_kind_t burst_kind_def = {burst_kind_new, &burst_kind_record};
 
 const entity_kind_t *burst_kind(void) {
-    return &g_burst_kind;
+    return &burst_kind_def;
 }
 
 const entity_class_t *burst_class(void) {
-    return &g_burst_class;
+    return &burst_class_def;
 }
 
 planet_t *burst_new(const burst_keys_t *keys) {
@@ -682,7 +682,7 @@ planet_t *burst_new(const burst_keys_t *keys) {
 static const struct {
     const char *class_name;
     const entity_kind_t *(*kind)(void);
-} g_planet_kind[] = {
+} planet_kinds[] = {
     {"protostar", protostar_kind},
     {"burst", burst_kind},
 };
@@ -690,9 +690,9 @@ static const struct {
 const entity_kind_t *planet_kind_named(const char *fz) {
     size_t i;
 
-    for (i = 0; i < sizeof g_planet_kind / sizeof g_planet_kind[0]; i++) {
-        if (strcmp(g_planet_kind[i].class_name, fz) == 0) {
-            return g_planet_kind[i].kind();
+    for (i = 0; i < sizeof planet_kinds / sizeof planet_kinds[0]; i++) {
+        if (strcmp(planet_kinds[i].class_name, fz) == 0) {
+            return planet_kinds[i].kind();
         }
     }
     return NULL;

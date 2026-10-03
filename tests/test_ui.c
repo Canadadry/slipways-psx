@@ -739,7 +739,7 @@ static int giver_hit_test(entity_t *self, const vec_t *qa, const vec_t *ra) {
     return g_giver_hovered;
 }
 
-static const entity_class_t g_giver_class = {
+static const entity_class_t giver_class_def = {
     .hit_test = giver_hit_test,
     .left_press = giver_down,
     .right_press = giver_down,
@@ -747,7 +747,7 @@ static const entity_class_t g_giver_class = {
 
 static const p8_fixed_t g_giver_layer = 0xf0000;
 static int g_giver_is_hovered;
-static giver_t g_giver = {{.class = &g_giver_class, .layer = &g_giver_layer, .is_hovered = &g_giver_is_hovered}};
+static giver_t g_giver = {{.class = &giver_class_def, .layer = &g_giver_layer, .is_hovered = &g_giver_is_hovered}};
 
 static void press(void *ok, int buttons) {
     mouse_at(64, 100, 0);

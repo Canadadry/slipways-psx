@@ -32,7 +32,7 @@ static entity_list_t g_live_entities;
 static entity_t *g_main_camera = NULL;
 static int g_initialized = 0;
 
-static const entity_class_t g_main_camera_placeholder_class = {0};
+static const entity_class_t main_camera_placeholder_class_def = {0};
 
 typedef struct {
     entity_t header;
@@ -40,7 +40,7 @@ typedef struct {
 
 /* The only one: never allocated, never freed; no field, and no writer, so
  * a write reaching it stops the run. */
-static main_camera_placeholder_t g_main_camera_placeholder = {{.class = &g_main_camera_placeholder_class}};
+static main_camera_placeholder_t g_main_camera_placeholder = {{.class = &main_camera_placeholder_class_def}};
 
 /* See engine/entity_registry.h on this declaration for what is and is
  * not freed here. */
@@ -269,7 +269,7 @@ void draw_layers(const char *message) {
 }
 
 const entity_class_t *main_camera_placeholder_class(void) {
-    return &g_main_camera_placeholder_class;
+    return &main_camera_placeholder_class_def;
 }
 
 entity_t *main_camera(void) {

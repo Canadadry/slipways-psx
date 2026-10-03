@@ -1206,7 +1206,7 @@ g_hv	g_live_entities	src/engine/entity_registry.c	identifiant	statique	renommé	
 g_initialized	g_initialized	src/engine/entity_registry.c	identifiant	statique	conservé	engine/entity_registry			c:entity_registry.c@g_initialized
 g_mo	g_main_camera	src/engine/entity_registry.c	identifiant	statique	renommé	engine/entity_registry	ok		c:entity_registry.c@g_mo
 g_mo_placeholder	g_main_camera_placeholder	src/engine/entity_registry.c	identifiant	statique	renommé	engine/entity_registry	ok		c:entity_registry.c@g_mo_placeholder
-g_mo_placeholder_struct_class	g_main_camera_placeholder_class	src/engine/entity_registry.c	identifiant	statique	renommé	engine/entity_registry	ok		c:entity_registry.c@g_mo_placeholder_struct_class
+g_mo_placeholder_struct_class	main_camera_placeholder_class_def	src/engine/entity_registry.c	identifiant	statique	renommé	engine/entity_registry	ok		c:entity_registry.c@g_mo_placeholder_struct_class
 pico8_cg_entry_t	entities_by_tag_entry_t	src/engine/entity_registry.c	identifiant	type	renommé	engine/entity_registry	cg		c:@T@pico8_cg_entry_t
 pico8_cv_entry_t	entities_by_message_entry_t	src/engine/entity_registry.c	identifiant	type	renommé	engine/entity_registry	cv		c:@T@pico8_cv_entry_t
 pico8_mo_placeholder_t	main_camera_placeholder_t	src/engine/entity_registry.c	identifiant	type	renommé	engine/entity_registry	ok		c:@T@pico8_mo_placeholder_t
@@ -1684,7 +1684,7 @@ self	self	src/game/background.h	identifiant	paramètre	conservé	game/background
 self	self	src/game/background.h	identifiant	paramètre	conservé	game/background			c:background.h@2159@F@pico8_bg_rdown@self
 self	self	src/game/background.h	identifiant	paramètre	conservé	game/background			c:background.h@2213@F@pico8_bg_hq@self
 x	x	src/game/background.c	identifiant	paramètre	conservé	game/background			c:background.c@449@F@pico8_bg_to_int@x
-g_bg_struct_class	g_background_class	src/game/background.c	identifiant	statique	renommé	game/background	bg		c:background.c@g_bg_struct_class
+g_bg_struct_class	background_class_def	src/game/background.c	identifiant	statique	renommé	game/background	bg		c:background.c@g_bg_struct_class
 g_bg_up	g_background_up	src/game/background.c	identifiant	statique	renommé	game/background	bg		c:background.c@g_bg_up
 pico8_bg_t	background_t	src/game/background.h	identifiant	type	renommé	game/background	bg		c:@T@pico8_bg_t
 ev	draw_overlay	src/game/cart.c	chaîne	clé de message	renommé	game/cart	ev	lecteur	chaîne:ev
@@ -1944,7 +1944,7 @@ self	self	src/game/economy.h	identifiant	paramètre	conservé	game/economy			c:e
 t	t	src/game/economy.c	identifiant	paramètre	conservé	game/economy			c:economy.c@6899@F@pico8_hy_kt@t
 t	t	src/game/economy.h	identifiant	paramètre	conservé	game/economy			c:economy.h@1502@F@pico8_hy_kt@t
 tag	tag	src/game/economy.c	identifiant	paramètre	conservé	game/economy			c:economy.c@7787@F@for_each_cg@tag
-g_hy_struct_class	g_economy_class	src/game/economy.c	identifiant	statique	renommé	game/economy	hy		c:economy.c@g_hy_struct_class
+g_hy_struct_class	economy_class_def	src/game/economy.c	identifiant	statique	renommé	game/economy	hy		c:economy.c@g_hy_struct_class
 g_hy_up	g_economy_up	src/game/economy.c	identifiant	statique	renommé	game/economy	hy		c:economy.c@g_hy_up
 cg_visit_fn	entities_by_tag_visit_fn_t	src/game/economy.c	identifiant	type	renommé	game/economy	cg		c:economy.c@T@cg_visit_fn
 jc	slipway	src/game/economy_formulas.c	chaîne	clé d'étiquette + nom de classe	renommé	game/economy_formulas	jc	lecteur	chaîne:jc
@@ -2815,7 +2815,7 @@ self	self	src/game/help.h	identifiant	paramètre	conservé	game/help			c:help.h@
 self	self	src/game/help.h	identifiant	paramètre	conservé	game/help			c:help.h@1615@F@pico8_fv_kj@self
 self	self	src/game/help.h	identifiant	paramètre	conservé	game/help			c:help.h@1676@F@pico8_fv_kj_dispatch@self
 g_eu_dispatch	g_start_game_method	src/game/help.c	identifiant	statique	renommé	game/help	_dispatch		c:help.c@g_eu_dispatch
-g_fv_struct_class	g_help_screen_class	src/game/help.c	identifiant	statique	renommé	game/help	fv		c:help.c@g_fv_struct_class
+g_fv_struct_class	help_screen_class_def	src/game/help.c	identifiant	statique	renommé	game/help	fv		c:help.c@g_fv_struct_class
 g_fv_up	g_help_screen_up	src/game/help.c	identifiant	statique	renommé	game/help	fv		c:help.c@g_fv_up
 c	color	src/game/hud.c	identifiant	champ	renommé	game/hud	io		c:@SA@pico8_io_offset_t@FI@c
 dx	offset_x	src/game/hud.c	identifiant	champ	renommé	game/hud	io		c:@SA@pico8_io_offset_t@FI@dx
@@ -3149,9 +3149,9 @@ zone	zone	src/game/layout.c	identifiant	paramètre	conservé	game/layout			c:lay
 zone	zone	src/game/layout.h	identifiant	paramètre	conservé	game/layout			c:layout.h@4178@F@pico8_lq_new@zone
 zone	zone	src/game/layout.h	identifiant	paramètre	conservé	game/layout			c:layout.h@5331@F@pico8_lq_copy@zone
 zone	zone	src/game/layout.h	identifiant	paramètre	conservé	game/layout			c:layout.h@5909@F@pico8_jb_new@zone
-g_jb_struct_class	g_tooltip_class	src/game/layout.c	identifiant	statique	renommé	game/layout	jb		c:layout.c@g_jb_struct_class
+g_jb_struct_class	tooltip_class_def	src/game/layout.c	identifiant	statique	renommé	game/layout	jb		c:layout.c@g_jb_struct_class
 g_layout_up	g_layout_up	src/game/layout.c	identifiant	statique	conservé	game/layout			c:layout.c@g_layout_up
-g_lq_struct_class	g_layout_row_class	src/game/layout.c	identifiant	statique	renommé	game/layout	lq		c:layout.c@g_lq_struct_class
+g_lq_struct_class	layout_row_class_def	src/game/layout.c	identifiant	statique	renommé	game/layout	lq		c:layout.c@g_lq_struct_class
 pico8_jb_t	tooltip_t	src/game/layout.h	identifiant	type	renommé	game/layout	jb		c:@T@pico8_jb_t
 pico8_lq_cell_kind_t	layout_row_cell_kind_t	src/game/layout.h	identifiant	type	renommé	game/layout	lq		c:@T@pico8_lq_cell_kind_t
 pico8_lq_cell_t	layout_row_cell_t	src/game/layout.h	identifiant	type	renommé	game/layout	lq		c:@T@pico8_lq_cell_t
@@ -3545,7 +3545,7 @@ t	t	src/game/menu.c	identifiant	paramètre	conservé	game/menu			c:menu.c@2262@F
 g_ha_gq	g_pause_menu_row_step	src/game/menu.c	identifiant	statique	renommé	game/menu			c:menu.c@g_ha_gq
 g_ha_hi	g_pause_menu_fixed_pos	src/game/menu.c	identifiant	statique	renommé	game/menu			c:menu.c@g_ha_hi
 g_ha_pz	g_pause_menu_open_box	src/game/menu.c	identifiant	statique	renommé	game/menu			c:menu.c@g_ha_pz
-g_ha_pz_struct_class	g_pause_menu_open_box_class	src/game/menu.c	identifiant	statique	renommé	game/menu	pico8_struct_class_t		c:menu.c@g_ha_pz_struct_class
+g_ha_pz_struct_class	pause_menu_open_box_class_def	src/game/menu.c	identifiant	statique	renommé	game/menu	pico8_struct_class_t		c:menu.c@g_ha_pz_struct_class
 g_ix_hb	g_galaxy_menu_refresh	src/game/menu.c	identifiant	statique	renommé	game/menu	hb		c:menu.c@g_ix_hb
 g_ix_my	g_galaxy_menu_on_click	src/game/menu.c	identifiant	statique	renommé	game/menu			c:menu.c@g_ix_my
 g_ix_ra	g_galaxy_menu_pos	src/game/menu.c	identifiant	statique	renommé	game/menu	ra		c:menu.c@g_ix_ra
@@ -3716,10 +3716,10 @@ self	self	src/game/message_box.h	identifiant	paramètre	conservé	game/message_b
 self	self	src/game/message_box.h	identifiant	paramètre	conservé	game/message_box			c:message_box.h@4479@F@pico8_iv_kj@self
 self	self	src/game/message_box.h	identifiant	paramètre	conservé	game/message_box			c:message_box.h@self
 t	t	src/game/message_box.c	identifiant	paramètre	conservé	game/message_box			c:message_box.c@6134@F@pico8_iv_ph_dispatch@t
-g_iv_struct_class	g_toast_class	src/game/message_box.c	identifiant	statique	renommé	game/message_box	iv		c:message_box.c@g_iv_struct_class
+g_iv_struct_class	toast_class_def	src/game/message_box.c	identifiant	statique	renommé	game/message_box	iv		c:message_box.c@g_iv_struct_class
 g_iv_up	g_toast_up	src/game/message_box.c	identifiant	statique	renommé	game/message_box	iv		c:message_box.c@g_iv_up
 g_kc	g_shown_message_box	src/game/message_box.c	identifiant	statique	renommé	game/message_box	kc		c:message_box.c@g_kc
-g_mh_struct_class	g_message_box_class	src/game/message_box.c	identifiant	statique	renommé	game/message_box	mh		c:message_box.c@g_mh_struct_class
+g_mh_struct_class	message_box_class_def	src/game/message_box.c	identifiant	statique	renommé	game/message_box	mh		c:message_box.c@g_mh_struct_class
 g_mh_up	g_message_box_up	src/game/message_box.c	identifiant	statique	renommé	game/message_box	mh		c:message_box.c@g_mh_up
 pico8_mh	message_box	src/game/message_box.h	identifiant	tag	renommé	game/message_box	mh		c:@S@pico8_mh
 pico8_iv_keys_t	toast_keys_t	src/game/message_box.h	identifiant	type	renommé	game/message_box	iv		c:@T@pico8_iv_keys_t
@@ -3758,7 +3758,7 @@ t	t	src/game/mouse.c	identifiant	paramètre	conservé	game/mouse			c:mouse.c@643
 g_nf_l	g_left_button	src/game/mouse.c	identifiant	statique	renommé	game/mouse	nf		c:mouse.c@g_nf_l
 g_nf_r	g_right_button	src/game/mouse.c	identifiant	statique	renommé	game/mouse	nf		c:mouse.c@g_nf_r
 g_nf_ra	g_mouse_pos	src/game/mouse.c	identifiant	statique	renommé	game/mouse	nf		c:mouse.c@g_nf_ra
-g_nf_struct_class	g_mouse_class	src/game/mouse.c	identifiant	statique	renommé	game/mouse	nf		c:mouse.c@g_nf_struct_class
+g_nf_struct_class	mouse_class_def	src/game/mouse.c	identifiant	statique	renommé	game/mouse	nf		c:mouse.c@g_nf_struct_class
 g_nf_up	g_mouse_up	src/game/mouse.c	identifiant	statique	renommé	game/mouse	nf		c:mouse.c@g_nf_up
 pico8_nf_t	mouse_t	src/game/mouse.h	identifiant	type	renommé	game/mouse	nf		c:@T@pico8_nf_t
 has_on	has_held	src/game/mouse_button.h	identifiant	champ	renommé	game/mouse_button	bu		c:@SA@pico8_nf_button_t@FI@has_on
@@ -4152,7 +4152,7 @@ g_jo_oc	g_type_picker	src/game/planet.c	identifiant	statique	renommé	game/plane
 g_jo_prise	g_planet_grab_arena	src/game/planet.c	identifiant	statique	renommé	game/planet	jo		c:planet.c@g_jo_prise
 g_jo_prises_libres	g_planet_grab_arenas_free	src/game/planet.c	identifiant	statique	renommé	game/planet	jo		c:planet.c@g_jo_prises_libres
 g_jo_prises_libres_n	g_planet_grab_arenas_free_n	src/game/planet.c	identifiant	statique	renommé	game/planet	jo		c:planet.c@g_jo_prises_libres_n
-g_jo_struct_class	g_planet_class	src/game/planet.c	identifiant	statique	renommé	game/planet	jo		c:planet.c@g_jo_struct_class
+g_jo_struct_class	planet_class_def	src/game/planet.c	identifiant	statique	renommé	game/planet	jo		c:planet.c@g_jo_struct_class
 g_jo_up	g_planet_up	src/game/planet.c	identifiant	statique	renommé	game/planet	jo		c:planet.c@g_jo_up
 pico8_jo_t	planet_t	src/game/planet.h	identifiant	type	renommé	game/planet	jo		c:@T@pico8_jo_t
 ll	vanishing	src/game/planet_display.c	chaîne	nom d'état	renommé	game/planet_display	ll	lecteur	chaîne:ll
@@ -4500,19 +4500,19 @@ t	t	src/game/planet_family.h	identifiant	paramètre	conservé	game/planet_family
 t	t	src/game/planet_family.h	identifiant	paramètre	conservé	game/planet_family			c:planet_family.h@6231@F@pico8_nl_ly@t
 g_family_up	g_family_up	src/game/planet_family.c	identifiant	statique	conservé	game/planet_family			c:planet_family.c@g_family_up
 g_ga_by_shared	g_burst_outgoing_routes	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	by		c:planet_family.c@g_ga_by_shared
-g_ga_kind	g_burst_kind	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	ga		c:planet_family.c@g_ga_kind
-g_ga_struct_class	g_burst_class	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	ga		c:planet_family.c@g_ga_struct_class
-g_hj_kind	g_ascension_kind	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	hj		c:planet_family.c@g_hj_kind
-g_hj_struct_class	g_ascension_class	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	hj		c:planet_family.c@g_hj_struct_class
-g_kv	g_planet_kind	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family			c:planet_family.c@g_kv
-g_nl_kind	g_trading_hub_kind	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	nl		c:planet_family.c@g_nl_kind
-g_nl_struct_class	g_trading_hub_class	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	nl		c:planet_family.c@g_nl_struct_class
-g_os_kind	g_processor_kind	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	os		c:planet_family.c@g_os_kind
-g_os_struct_class	g_processor_class	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	os		c:planet_family.c@g_os_struct_class
-g_pm_kind	g_protostar_kind	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	pm		c:planet_family.c@g_pm_kind
-g_pm_struct_class	g_protostar_class	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	pm		c:planet_family.c@g_pm_struct_class
-g_qh_kind	g_structure_kind	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	qh		c:planet_family.c@g_qh_kind
-g_qh_struct_class	g_structure_class	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	qh		c:planet_family.c@g_qh_struct_class
+g_ga_kind	burst_kind_def	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	ga		c:planet_family.c@g_ga_kind
+g_ga_struct_class	burst_class_def	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	ga		c:planet_family.c@g_ga_struct_class
+g_hj_kind	ascension_kind_def	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	hj		c:planet_family.c@g_hj_kind
+g_hj_struct_class	ascension_class_def	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	hj		c:planet_family.c@g_hj_struct_class
+g_kv	planet_kinds	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family			c:planet_family.c@g_kv
+g_nl_kind	trading_hub_kind_def	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	nl		c:planet_family.c@g_nl_kind
+g_nl_struct_class	trading_hub_class_def	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	nl		c:planet_family.c@g_nl_struct_class
+g_os_kind	processor_kind_def	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	os		c:planet_family.c@g_os_kind
+g_os_struct_class	processor_class_def	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	os		c:planet_family.c@g_os_struct_class
+g_pm_kind	protostar_kind_def	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	pm		c:planet_family.c@g_pm_kind
+g_pm_struct_class	protostar_class_def	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	pm		c:planet_family.c@g_pm_struct_class
+g_qh_kind	structure_kind_def	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	qh		c:planet_family.c@g_qh_kind
+g_qh_struct_class	structure_class_def	src/game/planet_family.c	identifiant	statique	renommé	game/planet_family	qh		c:planet_family.c@g_qh_struct_class
 pico8_ga_keys_t	burst_keys_t	src/game/planet_family.h	identifiant	type	renommé	game/planet_family	ga		c:@T@pico8_ga_keys_t
 nr	slipgate	src/game/planet_family_trade.c	chaîne	clé d'étiquette + nom de classe	renommé	game/planet_family_trade	nr	écrivain	chaîne:nr
 fr	infraspace_gate	src/game/planet_family_trade.c	chaîne	nom de classe	renommé	game/planet_family_trade	fr	écrivain	chaîne:fr
@@ -4618,15 +4618,15 @@ sw	slipway	src/game/planet_family_trade.c	identifiant	paramètre	renommé	game/p
 sw	sw	src/game/planet_family_trade.c	identifiant	paramètre	conservé	game/planet_family_trade			c:planet_family_trade.c@9377@F@pico8_mx_kf_dispatch@sw
 sw	slipway	src/game/planet_family_trade.h	identifiant	paramètre	renommé	game/planet_family_trade			c:planet_family_trade.h@2656@F@pico8_mx_kf@sw
 g_family_trade_up	g_family_trade_up	src/game/planet_family_trade.c	identifiant	statique	conservé	game/planet_family_trade			c:planet_family_trade.c@g_family_trade_up
-g_fr_kind	g_infraspace_gate_kind	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	fr		c:planet_family_trade.c@g_fr_kind
-g_fr_struct_class	g_infraspace_gate_class	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	fr		c:planet_family_trade.c@g_fr_struct_class
+g_fr_kind	infraspace_gate_kind_def	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	fr		c:planet_family_trade.c@g_fr_kind
+g_fr_struct_class	infraspace_gate_class_def	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	fr		c:planet_family_trade.c@g_fr_struct_class
 g_mx_ht_spent	g_synthesizer_synthesizable_resources_spent	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	mx		c:planet_family_trade.c@g_mx_ht_spent
-g_mx_kind	g_synthesizer_kind	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	mx		c:planet_family_trade.c@g_mx_kind
-g_mx_struct_class	g_synthesizer_class	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	mx		c:planet_family_trade.c@g_mx_struct_class
-g_nr_kind	g_slipgate_kind	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	nr		c:planet_family_trade.c@g_nr_kind
+g_mx_kind	synthesizer_kind_def	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	mx		c:planet_family_trade.c@g_mx_kind
+g_mx_struct_class	synthesizer_class_def	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	mx		c:planet_family_trade.c@g_mx_struct_class
+g_nr_kind	slipgate_kind_def	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	nr		c:planet_family_trade.c@g_nr_kind
 g_nr_ldown_empty	g_slipgate_left_press_empty	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	nr		c:planet_family_trade.c@g_nr_ldown_empty
-g_nr_ldown_empty_struct_class	g_slipgate_left_press_empty_class	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	nr		c:planet_family_trade.c@g_nr_ldown_empty_struct_class
-g_nr_struct_class	g_slipgate_class	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	nr		c:planet_family_trade.c@g_nr_struct_class
+g_nr_ldown_empty_struct_class	slipgate_left_press_empty_class_def	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	nr		c:planet_family_trade.c@g_nr_ldown_empty_struct_class
+g_nr_struct_class	slipgate_class_def	src/game/planet_family_trade.c	identifiant	statique	renommé	game/planet_family_trade	nr		c:planet_family_trade.c@g_nr_struct_class
 pico8_nr_ldown_empty_t	slipgate_left_press_empty_t	src/game/planet_family_trade.c	identifiant	type	renommé	game/planet_family_trade	nr		c:@T@pico8_nr_ldown_empty_t
 ib	accepted_routes	src/game/planet_trade.h	identifiant	champ	renommé	game/planet_trade	lw		c:@S@pico8_jo_trade_proposal@FI@ib
 kf	accept	src/game/planet_trade.h	identifiant	champ	renommé	game/planet_trade	lw		c:@S@pico8_jo_trade_proposal@FI@kf
@@ -4852,11 +4852,11 @@ self	self	src/game/probe.h	identifiant	paramètre	conservé	game/probe			c:probe
 self	self	src/game/probe.h	identifiant	paramètre	conservé	game/probe			c:probe.h@3133@F@pico8_g__rendre_dispatch@self
 x	x	src/game/probe.c	identifiant	paramètre	conservé	game/probe			c:probe.c@1256@F@pico8_probe_to_int@x
 g_bv_et	g_targeting_track_target	src/game/probe.c	identifiant	statique	renommé	game/probe	pico8_probe_t		c:probe.c@g_bv_et
-g_bv_et_struct_class	g_targeting_track_target_class	src/game/probe.c	identifiant	statique	renommé	game/probe	pico8_probe_t		c:probe.c@g_bv_et_struct_class
+g_bv_et_struct_class	targeting_track_target_class_def	src/game/probe.c	identifiant	statique	renommé	game/probe	pico8_probe_t		c:probe.c@g_bv_et_struct_class
 g_fm	g_main_economy	src/game/probe.c	identifiant	statique	renommé	game/probe	ok		c:probe.c@g_fm
 g_fm_placeholder	g_main_economy_placeholder	src/game/probe.c	identifiant	statique	renommé	game/probe	ok		c:probe.c@g_fm_placeholder
-g_fm_placeholder_struct_class	g_main_economy_placeholder_class	src/game/probe.c	identifiant	statique	renommé	game/probe	ok		c:probe.c@g_fm_placeholder_struct_class
-g_g__struct_class	g_probe_class	src/game/probe.c	identifiant	statique	renommé	game/probe	g_		c:probe.c@g_g__struct_class
+g_fm_placeholder_struct_class	main_economy_placeholder_class_def	src/game/probe.c	identifiant	statique	renommé	game/probe	ok		c:probe.c@g_fm_placeholder_struct_class
+g_g__struct_class	probe_class_def	src/game/probe.c	identifiant	statique	renommé	game/probe	g_		c:probe.c@g_g__struct_class
 g_g__up	g_probe_up	src/game/probe.c	identifiant	statique	renommé	game/probe	g_		c:probe.c@g_g__up
 pico8_bv_ctx_t	targeting_track_ctx_t	src/game/probe.c	identifiant	type	renommé	game/probe	pico8_probe_t		c:@T@pico8_bv_ctx_t
 pico8_g__keys_t	probe_keys_t	src/game/probe.h	identifiant	type	renommé	game/probe	g_		c:@T@pico8_g__keys_t
@@ -4976,7 +4976,7 @@ g_gb_count	g_projects_count	src/game/research.c	identifiant	statique	renommé	ga
 g_gb_px	g_projects_by_name	src/game/research.c	identifiant	statique	renommé	game/research	gb		c:research.c@g_gb_px
 g_gb_px_count	g_projects_by_name_count	src/game/research.c	identifiant	statique	renommé	game/research	gb		c:research.c@g_gb_px_count
 g_gb_up	g_projects_up	src/game/research.c	identifiant	statique	renommé	game/research			c:research.c@g_gb_up
-g_hp_struct_class	g_research_project_class	src/game/research.c	identifiant	statique	renommé	game/research	hp		c:research.c@g_hp_struct_class
+g_hp_struct_class	research_project_class_def	src/game/research.c	identifiant	statique	renommé	game/research	hp		c:research.c@g_hp_struct_class
 g_hp_up	g_research_project_up	src/game/research.c	identifiant	statique	renommé	game/research	hp		c:research.c@g_hp_up
 g_rr	g_required_tech	src/game/research.c	identifiant	statique	renommé	game/research			c:research.c@g_rr
 pico8_hp_keys_t	research_project_keys_t	src/game/research.h	identifiant	type	renommé	game/research	hp		c:@T@pico8_hp_keys_t
@@ -5224,10 +5224,10 @@ g_bz	g_score_rows	src/game/score_panel.c	identifiant	statique	renommé	game/scor
 g_init_dispatch	g_init_method	src/game/score_panel.c	identifiant	statique	renommé	game/score_panel	_dispatch		c:score_panel.c@g_init_dispatch
 g_ju	g_main_score_panel	src/game/score_panel.c	identifiant	statique	renommé	game/score_panel	ok		c:score_panel.c@g_ju
 g_pj_cr	g_score_panel_layout_block	src/game/score_panel.c	identifiant	statique	renommé	game/score_panel	cr		c:score_panel.c@g_pj_cr
-g_pj_cr_struct_class	g_score_panel_layout_block_class	src/game/score_panel.c	identifiant	statique	renommé	game/score_panel	cr		c:score_panel.c@g_pj_cr_struct_class
+g_pj_cr_struct_class	score_panel_layout_block_class_def	src/game/score_panel.c	identifiant	statique	renommé	game/score_panel	cr		c:score_panel.c@g_pj_cr_struct_class
 g_pj_ea	g_score_panel_year_banner	src/game/score_panel.c	identifiant	statique	renommé	game/score_panel	pj		c:score_panel.c@g_pj_ea
 g_pj_ou	g_score_panel_readouts	src/game/score_panel.c	identifiant	statique	renommé	game/score_panel	pj		c:score_panel.c@g_pj_ou
-g_pj_struct_class	g_score_panel_class	src/game/score_panel.c	identifiant	statique	renommé	game/score_panel	pj		c:score_panel.c@g_pj_struct_class
+g_pj_struct_class	score_panel_class_def	src/game/score_panel.c	identifiant	statique	renommé	game/score_panel	pj		c:score_panel.c@g_pj_struct_class
 g_pj_up	g_score_panel_up	src/game/score_panel.c	identifiant	statique	renommé	game/score_panel	pj		c:score_panel.c@g_pj_up
 pico8_bz_row_t	score_row_t	src/game/score_panel.h	identifiant	type	renommé	game/score_panel			c:@T@pico8_bz_row_t
 pico8_pj_cr_t	score_panel_layout_block_t	src/game/score_panel.h	identifiant	type	renommé	game/score_panel	cr		c:@T@pico8_pj_cr_t
@@ -5382,7 +5382,7 @@ t	t	src/game/scroll.c	identifiant	paramètre	conservé	game/scroll			c:scroll.c@
 v	v	src/game/scroll.c	identifiant	paramètre	conservé	game/scroll			c:scroll.c@3472@F@pico8_qb_set_v@v
 v	v	src/game/scroll.c	identifiant	paramètre	conservé	game/scroll			c:scroll.c@374@F@pico8_qb_vec@v
 v	v	src/game/scroll.h	identifiant	paramètre	conservé	game/scroll			c:scroll.h@1686@F@pico8_qb_set_v@v
-g_qb_struct_class	g_camera_class	src/game/scroll.c	identifiant	statique	renommé	game/scroll	qb		c:scroll.c@g_qb_struct_class
+g_qb_struct_class	camera_class_def	src/game/scroll.c	identifiant	statique	renommé	game/scroll	qb		c:scroll.c@g_qb_struct_class
 g_qb_up	g_camera_up	src/game/scroll.c	identifiant	statique	renommé	game/scroll	qb		c:scroll.c@g_qb_up
 pico8_qb_t	camera_t	src/game/scroll.h	identifiant	type	renommé	game/scroll	qb		c:@T@pico8_qb_t
 np	node	src/game/slipway.c	chaîne	clé d'étiquette	renommé	game/slipway		lecteur	chaîne:np
@@ -5540,10 +5540,10 @@ self	self	src/game/slipway.h	identifiant	paramètre	conservé	game/slipway			c:s
 self	self	src/game/slipway.h	identifiant	paramètre	conservé	game/slipway			c:slipway.h@5046@F@pico8_jc_eb@self
 self	self	src/game/slipway.h	identifiant	paramètre	conservé	game/slipway			c:slipway.h@5131@F@pico8_jc_ev@self
 self	self	src/game/slipway.h	identifiant	paramètre	conservé	game/slipway			c:slipway.h@5177@F@pico8_jc_kj_dispatch@self
-g_jc_mouse_point_struct_class	g_slipway_mouse_point_class	src/game/slipway.c	identifiant	statique	renommé	game/slipway	jc		c:slipway.c@g_jc_mouse_point_struct_class
-g_jc_struct_class	g_slipway_class	src/game/slipway.c	identifiant	statique	renommé	game/slipway	jc		c:slipway.c@g_jc_struct_class
+g_jc_mouse_point_struct_class	slipway_mouse_point_class_def	src/game/slipway.c	identifiant	statique	renommé	game/slipway	jc		c:slipway.c@g_jc_mouse_point_struct_class
+g_jc_struct_class	slipway_class_def	src/game/slipway.c	identifiant	statique	renommé	game/slipway	jc		c:slipway.c@g_jc_struct_class
 g_jc_too_far	g_slipway_too_far	src/game/slipway.c	identifiant	statique	renommé	game/slipway	jc		c:slipway.c@g_jc_too_far
-g_jc_too_far_struct_class	g_slipway_too_far_class	src/game/slipway.c	identifiant	statique	renommé	game/slipway	jc		c:slipway.c@g_jc_too_far_struct_class
+g_jc_too_far_struct_class	slipway_too_far_class_def	src/game/slipway.c	identifiant	statique	renommé	game/slipway	jc		c:slipway.c@g_jc_too_far_struct_class
 g_jc_up	g_slipway_up	src/game/slipway.c	identifiant	statique	renommé	game/slipway	jc		c:slipway.c@g_jc_up
 pico8_jc_ce_jc_ctx_t	slipway_obstruction_slipway_ctx_t	src/game/slipway.c	identifiant	type	renommé	game/slipway	jc		c:@T@pico8_jc_ce_jc_ctx_t
 pico8_jc_ce_np_ctx_t	slipway_obstruction_node_ctx_t	src/game/slipway.c	identifiant	type	renommé	game/slipway	jc		c:@T@pico8_jc_ce_np_ctx_t
@@ -5718,8 +5718,8 @@ x	x	src/game/structure_icon.c	identifiant	paramètre	conservé	game/structure_ic
 g_ie_gy	g_cursor	src/game/structure_icon.c	identifiant	statique	renommé	game/structure_icon	ie		c:structure_icon.c@g_ie_gy
 g_ie_has_id	g_has_id_counter	src/game/structure_icon.c	identifiant	statique	renommé	game/structure_icon	ie		c:structure_icon.c@g_ie_has_id
 g_ie_id	g_id_counter	src/game/structure_icon.c	identifiant	statique	renommé	game/structure_icon	ie		c:structure_icon.c@g_ie_id
-g_ie_ke_view_struct_class	g_structure_icon_kind_view_class	src/game/structure_icon.c	identifiant	statique	renommé	game/structure_icon	ie		c:structure_icon.c@g_ie_ke_view_struct_class
-g_ie_struct_class	g_structure_icon_class	src/game/structure_icon.c	identifiant	statique	renommé	game/structure_icon	ie		c:structure_icon.c@g_ie_struct_class
+g_ie_ke_view_struct_class	structure_icon_kind_view_class_def	src/game/structure_icon.c	identifiant	statique	renommé	game/structure_icon	ie		c:structure_icon.c@g_ie_ke_view_struct_class
+g_ie_struct_class	structure_icon_class_def	src/game/structure_icon.c	identifiant	statique	renommé	game/structure_icon	ie		c:structure_icon.c@g_ie_struct_class
 g_ie_up	g_structure_icon_up	src/game/structure_icon.c	identifiant	statique	renommé	game/structure_icon	ie		c:structure_icon.c@g_ie_up
 pico8_ie_ke_t	structure_icon_kind_t	src/game/structure_icon.h	identifiant	type	renommé	game/structure_icon	ie		c:@T@pico8_ie_ke_t
 pico8_ie_keys_t	structure_icon_keys_t	src/game/structure_icon.h	identifiant	type	renommé	game/structure_icon	ie		c:@T@pico8_ie_keys_t
@@ -5888,7 +5888,7 @@ zone	zone	src/game/trade.c	identifiant	paramètre	conservé	game/trade			c:trade
 zone	zone	src/game/trade.h	identifiant	paramètre	conservé	game/trade			c:trade.h@1952@F@pico8_trade_new@zone
 zone	zone	src/game/trade.h	identifiant	paramètre	conservé	game/trade			c:trade.h@2237@F@pico8_trade_copy@zone
 zone	zone	src/game/trade.h	identifiant	paramètre	conservé	game/trade			c:trade.h@2991@F@pico8_trade_kg@zone
-g_trade_struct_class	g_trade_class	src/game/trade.c	identifiant	statique	renommé	game/trade	pico8_struct_class_t		c:trade.c@g_trade_struct_class
+g_trade_struct_class	trade_class_def	src/game/trade.c	identifiant	statique	renommé	game/trade	pico8_struct_class_t		c:trade.c@g_trade_struct_class
 g_trade_up	g_trade_up	src/game/trade.c	identifiant	statique	conservé	game/trade			c:trade.c@g_trade_up
 pico8_qe_t	resource_t	src/game/trade.h	identifiant	type	renommé	game/trade	qe		c:@T@pico8_qe_t
 pico8_trade_keys_t	trade_keys_t	src/game/trade.h	identifiant	type	renommé	game/trade			c:@T@pico8_trade_keys_t
@@ -6038,10 +6038,10 @@ v	v	src/game/ui.c	identifiant	paramètre	conservé	game/ui			c:ui.c@1660@F@pico8
 x	x	src/game/ui.c	identifiant	paramètre	conservé	game/ui			c:ui.c@1563@F@pico8_ui_to_int@x
 g_je	g_main_mouse	src/game/ui.c	identifiant	statique	renommé	game/ui	ok		c:ui.c@g_je
 g_je_placeholder	g_main_mouse_placeholder	src/game/ui.c	identifiant	statique	renommé	game/ui	ok		c:ui.c@g_je_placeholder
-g_je_placeholder_struct_class	g_main_mouse_placeholder_class	src/game/ui.c	identifiant	statique	renommé	game/ui	ok		c:ui.c@g_je_placeholder_struct_class
+g_je_placeholder_struct_class	main_mouse_placeholder_class_def	src/game/ui.c	identifiant	statique	renommé	game/ui	ok		c:ui.c@g_je_placeholder_struct_class
 g_ok	g_main_ui	src/game/ui.c	identifiant	statique	renommé	game/ui	ok		c:ui.c@g_ok
 g_shared_le	g_shared_ephemerals	src/game/ui.c	identifiant	statique	renommé	game/ui			c:ui.c@g_shared_le
-g_ui_struct_class	g_ui_class	src/game/ui.c	identifiant	statique	renommé	game/ui	ui		c:ui.c@g_ui_struct_class
+g_ui_struct_class	ui_class_def	src/game/ui.c	identifiant	statique	renommé	game/ui	ui		c:ui.c@g_ui_struct_class
 g_ui_up	g_ui_up	src/game/ui.c	identifiant	statique	conservé	game/ui	ui		c:ui.c@g_ui_up
 pico8_je_placeholder_t	main_mouse_placeholder_t	src/game/ui.c	identifiant	type	renommé	game/ui	ok		c:@T@pico8_je_placeholder_t
 pico8_jz_slot_t	send_to_hovered_slot_t	src/game/ui.h	identifiant	type	renommé	game/ui			c:@T@pico8_jz_slot_t
@@ -6228,9 +6228,9 @@ self	self	src/game/ui_button.h	identifiant	paramètre	conservé	game/ui_button		
 self	self	src/game/ui_button.h	identifiant	paramètre	conservé	game/ui_button			c:ui_button.h@self
 t	t	src/game/ui_button.c	identifiant	paramètre	conservé	game/ui_button			c:ui_button.c@845@F@pico8_js_ph_dispatch@t
 x	x	src/game/ui_button.c	identifiant	paramètre	conservé	game/ui_button			c:ui_button.c@726@F@pico8_ui_to_int@x
-g_fq_struct_class	g_modal_backdrop_class	src/game/ui_button.c	identifiant	statique	renommé	game/ui_button	js		c:ui_button.c@g_fq_struct_class
+g_fq_struct_class	modal_backdrop_class_def	src/game/ui_button.c	identifiant	statique	renommé	game/ui_button	js		c:ui_button.c@g_fq_struct_class
 g_fq_up	g_modal_backdrop_up	src/game/ui_button.c	identifiant	statique	renommé	game/ui_button	js		c:ui_button.c@g_fq_up
-g_js_struct_class	g_button_class	src/game/ui_button.c	identifiant	statique	renommé	game/ui_button	js		c:ui_button.c@g_js_struct_class
+g_js_struct_class	button_class_def	src/game/ui_button.c	identifiant	statique	renommé	game/ui_button	js		c:ui_button.c@g_js_struct_class
 g_js_up	g_button_up	src/game/ui_button.c	identifiant	statique	renommé	game/ui_button	js		c:ui_button.c@g_js_up
 none	none	src/game/ui_button.c	identifiant	statique	conservé	game/ui_button			c:ui_button.c@5575@F@pico8_js_pq@none
 pico8_fq	modal_backdrop	src/game/ui_button.h	identifiant	tag	renommé	game/ui_button	js		c:@S@pico8_fq
@@ -6395,9 +6395,9 @@ t	t	src/game/wormhole.c	identifiant	paramètre	conservé	game/wormhole			c:wormh
 t	t	src/game/wormhole.h	identifiant	paramètre	conservé	game/wormhole			c:wormhole.h@2316@F@pico8_mz_kz@t
 t	t	src/game/wormhole.h	identifiant	paramètre	conservé	game/wormhole			c:wormhole.h@2420@F@pico8_mz_pr@t
 t	t	src/game/wormhole.h	identifiant	paramètre	conservé	game/wormhole			c:wormhole.h@2557@F@pico8_mz_ej@t
-g_mz_jj_struct_class	g_wormhole_too_far_target_class	src/game/wormhole.c	identifiant	statique	renommé	game/wormhole	mz		c:wormhole.c@g_mz_jj_struct_class
+g_mz_jj_struct_class	wormhole_too_far_target_class_def	src/game/wormhole.c	identifiant	statique	renommé	game/wormhole	mz		c:wormhole.c@g_mz_jj_struct_class
 g_mz_jj_wrapper	g_wormhole_too_far_target_wrapper	src/game/wormhole.c	identifiant	statique	renommé	game/wormhole	mz		c:wormhole.c@g_mz_jj_wrapper
-g_mz_struct_class	g_wormhole_class	src/game/wormhole.c	identifiant	statique	renommé	game/wormhole	mz		c:wormhole.c@g_mz_struct_class
+g_mz_struct_class	wormhole_class_def	src/game/wormhole.c	identifiant	statique	renommé	game/wormhole	mz		c:wormhole.c@g_mz_struct_class
 g_mz_up	g_wormhole_up	src/game/wormhole.c	identifiant	statique	renommé	game/wormhole	mz		c:wormhole.c@g_mz_up
 pico8_mz_jj_t	wormhole_too_far_target_t	src/game/wormhole.h	identifiant	type	renommé	game/wormhole	mz		c:@T@pico8_mz_jj_t
 pico8_mz_t	wormhole_t	src/game/wormhole.h	identifiant	type	renommé	game/wormhole	mz		c:@T@pico8_mz_t
@@ -11845,7 +11845,7 @@ cls	cls	tests/test_main_camera.c	identifiant	paramètre	conservé	tests/test_mai
 e	e	tests/test_main_camera.c	identifiant	paramètre	conservé	tests/test_main_camera			c:test_main_camera.c@4170@F@is_a_struct_of@e
 e	e	tests/test_main_camera.c	identifiant	paramètre	conservé	tests/test_main_camera			c:test_main_camera.c@921@F@ents_listed@e
 list	list	tests/test_main_camera.c	identifiant	paramètre	conservé	tests/test_main_camera			c:test_main_camera.c@895@F@ents_listed@list
-g_ra_only_class	g_pos_only_class	tests/test_main_camera.c	identifiant	statique	renommé	tests/test_main_camera	ra		c:test_main_camera.c@g_ra_only_class
+g_ra_only_class	pos_only_class_def	tests/test_main_camera.c	identifiant	statique	renommé	tests/test_main_camera	ra		c:test_main_camera.c@g_ra_only_class
 gfx	gfx	tests/test_main_camera.c	identifiant	statique	conservé	tests/test_main_camera			c:test_main_camera.c@gfx
 input	input	tests/test_main_camera.c	identifiant	statique	conservé	tests/test_main_camera			c:test_main_camera.c@input
 mem	mem	tests/test_main_camera.c	identifiant	statique	conservé	tests/test_main_camera			c:test_main_camera.c@mem
@@ -12598,7 +12598,7 @@ g_emitter	g_emitter	tests/test_particle_zone.c	identifiant	statique	conservé	te
 g_fa_dix	g_layer_ten	tests/test_particle_zone.c	identifiant	statique	renommé	tests/test_particle_zone	fa		c:test_particle_zone.c@g_fa_dix
 g_gfx	g_gfx	tests/test_particle_zone.c	identifiant	statique	conservé	tests/test_particle_zone			c:test_particle_zone.c@g_gfx
 g_hote	g_host	tests/test_particle_zone.c	identifiant	statique	renommé	tests/test_particle_zone			c:test_particle_zone.c@g_hote
-g_hote_cls	g_host_cls	tests/test_particle_zone.c	identifiant	statique	renommé	tests/test_particle_zone			c:test_particle_zone.c@g_hote_cls
+g_hote_cls	host_class_def	tests/test_particle_zone.c	identifiant	statique	renommé	tests/test_particle_zone			c:test_particle_zone.c@g_hote_cls
 g_mem	g_mem	tests/test_particle_zone.c	identifiant	statique	conservé	tests/test_particle_zone			c:test_particle_zone.c@g_mem
 g_ra_nil	g_pos_nil	tests/test_particle_zone.c	identifiant	statique	renommé	tests/test_particle_zone	ra		c:test_particle_zone.c@g_ra_nil
 g_sans_naissance	g_without_birth	tests/test_particle_zone.c	identifiant	statique	renommé	tests/test_particle_zone			c:test_particle_zone.c@g_sans_naissance
@@ -15742,7 +15742,7 @@ want_ticks	want_ticks	tests/test_toast.c	identifiant	paramètre	conservé	tests/
 word	word	tests/test_toast.c	identifiant	paramètre	conservé	tests/test_toast			c:test_toast.c@1162@F@fnv@word
 g_fake_ph_calls	g_fake_update_calls	tests/test_toast.c	identifiant	statique	renommé	tests/test_toast	ph		c:test_toast.c@g_fake_ph_calls
 g_fake_ph_last_t	g_fake_update_last	tests/test_toast.c	identifiant	statique	renommé	tests/test_toast	ph		c:test_toast.c@g_fake_ph_last_t
-g_fake_toast_class	g_fake_toast_class	tests/test_toast.c	identifiant	statique	conservé	tests/test_toast			c:test_toast.c@g_fake_toast_class
+g_fake_toast_class	fake_toast_class_def	tests/test_toast.c	identifiant	statique	renommé	tests/test_toast			c:test_toast.c@g_fake_toast_class
 gfx	gfx	tests/test_toast.c	identifiant	statique	conservé	tests/test_toast			c:test_toast.c@gfx
 input	input	tests/test_toast.c	identifiant	statique	conservé	tests/test_toast			c:test_toast.c@input
 mem	mem	tests/test_toast.c	identifiant	statique	conservé	tests/test_toast			c:test_toast.c@mem
@@ -16459,7 +16459,7 @@ y	y	tests/test_ui.c	identifiant	paramètre	conservé	tests/test_ui			c:test_ui.c
 emitter	emitter	tests/test_ui.c	identifiant	statique	conservé	tests/test_ui			c:test_ui.c@26480@F@test_components_carried@emitter
 g_given	g_given	tests/test_ui.c	identifiant	statique	conservé	tests/test_ui			c:test_ui.c@g_given
 g_giver	g_giver	tests/test_ui.c	identifiant	statique	conservé	tests/test_ui			c:test_ui.c@g_giver
-g_giver_class	g_giver_class	tests/test_ui.c	identifiant	statique	conservé	tests/test_ui			c:test_ui.c@g_giver_class
+g_giver_class	giver_class_def	tests/test_ui.c	identifiant	statique	renommé	tests/test_ui			c:test_ui.c@g_giver_class
 g_giver_fa	g_giver_layer	tests/test_ui.c	identifiant	statique	renommé	tests/test_ui	fa		c:test_ui.c@g_giver_fa
 g_giver_hovered	g_giver_hovered	tests/test_ui.c	identifiant	statique	conservé	tests/test_ui			c:test_ui.c@g_giver_hovered
 g_giver_m_	g_giver_is_hovered	tests/test_ui.c	identifiant	statique	renommé	tests/test_ui	m_		c:test_ui.c@g_giver_m_

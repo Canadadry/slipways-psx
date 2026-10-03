@@ -86,7 +86,7 @@ static void message_box_release(entity_t *self) {
     arena_release(((message_box_t *)self)->slot);
 }
 
-static const entity_class_t g_message_box_class = {
+static const entity_class_t message_box_class_def = {
     .draw_overlay = message_box_draw_overlay_method,
     .tags = TAG(TAG_MESSAGE_BOX),
     .release = message_box_release,
@@ -128,7 +128,7 @@ static message_box_t *message_box_create(const message_box_keys_t *keys) {
     int i;
 
     self->slot = slot;
-    entity_init_instance(&self->header, &g_message_box_class, message_box_archetype.state, message_box_archetype.state_time);
+    entity_init_instance(&self->header, &message_box_class_def, message_box_archetype.state, message_box_archetype.state_time);
     self->archetype = &message_box_archetype;
     self->header.layer = &self->archetype->layer;
     self->duration_scale = self->archetype->duration_scale;
@@ -245,7 +245,7 @@ static void toast_release(entity_t *self) {
     arena_release(((toast_t *)self)->slot);
 }
 
-static const entity_class_t g_toast_class = {
+static const entity_class_t toast_class_def = {
     .draw = toast_draw_method,
     .states = {[ENTITY_STATE_NORMAL] = toast_update_method},
     .release = toast_release,
@@ -257,7 +257,7 @@ static toast_t *toast_create(const toast_keys_t *keys) {
 
     self->slot = slot;
 
-    entity_init_instance(&self->header, &g_toast_class, toast_archetype.state, toast_archetype.state_time);
+    entity_init_instance(&self->header, &toast_class_def, toast_archetype.state, toast_archetype.state_time);
     self->archetype = &toast_archetype;
     self->header.layer = &self->archetype->layer;
     self->header.pos = &self->pos;

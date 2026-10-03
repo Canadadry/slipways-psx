@@ -98,7 +98,7 @@ void help_screen_draw_method(entity_t *self, const vec_t *ra) {
     help_screen_draw(dispatch_context_gfx(), dispatch_context_mem(), (probe_t *)self, p);
 }
 
-static const entity_class_t g_help_screen_class = {
+static const entity_class_t help_screen_class_def = {
     .draw = help_screen_draw_method,
     .draw_overlay = targeting_tooltip_method,
     .hit_test = help_screen_hit_test_method,
@@ -115,7 +115,7 @@ static probe_t *screen_create(void) {
 
     assert(g_help_screen_up && "help_init() must run first");
     self = (probe_t *)allocator_alloc(game_zone(), sizeof *self);
-    probe_init_instance(self, &g_help_screen_class, &help_screen_archetype);
+    probe_init_instance(self, &help_screen_class_def, &help_screen_archetype);
     self->header.hit_box = &self->archetype->hit_box;
     self->header.cursor_sprite = &self->archetype->cursor_sprite;
     self->header.gpio_signal = &self->archetype->gpio_signal;
@@ -153,7 +153,7 @@ int help_screen_ready(void) {
 }
 
 const entity_class_t *help_screen_class(void) {
-    return &g_help_screen_class;
+    return &help_screen_class_def;
 }
 
 probe_t *help_screen_new(void) {

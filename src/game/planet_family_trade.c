@@ -42,7 +42,7 @@ static down_t slipgate_accept_drop_method(entity_t *self, const entity_t *s) {
     return slipgate_accept_drop((const planet_t *)self, s);
 }
 
-static const entity_class_t g_slipgate_left_press_empty_class = {0};
+static const entity_class_t slipgate_left_press_empty_class_def = {0};
 
 typedef struct {
     entity_t header;
@@ -50,7 +50,7 @@ typedef struct {
 
 /* The empty entity slipgate_left_press hands to slipgate_accept_drop:
  * never allocated, never freed, never written. */
-static const slipgate_left_press_empty_t g_slipgate_left_press_empty = {{.class = &g_slipgate_left_press_empty_class}};
+static const slipgate_left_press_empty_t g_slipgate_left_press_empty = {{.class = &slipgate_left_press_empty_class_def}};
 
 down_t slipgate_left_press(planet_t *self) {
     down_t accept_drop_result = {0, NULL};
@@ -157,7 +157,7 @@ static void slipgate_offer_trade_method(entity_t *self, struct trade_offer *lw) 
     slipgate_offer_trade((planet_t *)self, lw);
 }
 
-static const entity_class_t g_slipgate_class = {
+static const entity_class_t slipgate_class_def = {
     .draw = planet_draw_method,
     .draw_overlay = targeting_tooltip_method,
     .hit_test = planet_hit_test_method,
@@ -191,7 +191,7 @@ static planet_t *slipgate_create(const planet_keys_t *keys) {
     planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
     assert(g_family_trade_up && "planet_family_trade_init() must run first");
-    slipgate_init_instance(self, &g_slipgate_class, &slipgate_archetype);
+    slipgate_init_instance(self, &slipgate_class_def, &slipgate_archetype);
     if (keys != NULL) {
         if (keys->planet_id != NULL) {
             self->planet_id = keys->planet_id;
@@ -211,7 +211,7 @@ static planet_t *slipgate_create(const planet_keys_t *keys) {
     return self;
 }
 
-static const entity_class_t g_infraspace_gate_class = {
+static const entity_class_t infraspace_gate_class_def = {
     .draw = planet_draw_method,
     .draw_overlay = targeting_tooltip_method,
     .hit_test = planet_hit_test_method,
@@ -237,7 +237,7 @@ static planet_t *infraspace_gate_create(const planet_keys_t *keys) {
     planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
     assert(g_family_trade_up && "planet_family_trade_init() must run first");
-    slipgate_init_instance(self, &g_infraspace_gate_class, &infraspace_gate_archetype);
+    slipgate_init_instance(self, &infraspace_gate_class_def, &infraspace_gate_archetype);
     self->header.infraspace = &self->archetype->infraspace;
     if (keys != NULL) {
         assert(keys->map_pos == NULL && keys->pos == NULL &&
@@ -304,7 +304,7 @@ static void synthesizer_attach_slipway_method(entity_t *self, entity_t *sw) {
     synthesizer_attach_slipway((planet_t *)self, sw);
 }
 
-static const entity_class_t g_synthesizer_class = {
+static const entity_class_t synthesizer_class_def = {
     .draw = ascension_draw_method,
     .draw_overlay = targeting_tooltip_method,
     .hit_test = planet_hit_test_method,
@@ -331,7 +331,7 @@ static planet_t *synthesizer_create(const planet_keys_t *keys) {
     planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
     assert(g_family_trade_up && "planet_family_trade_init() must run first");
-    ascension_init_instance(self, &g_synthesizer_class, &synthesizer_archetype);
+    ascension_init_instance(self, &synthesizer_class_def, &synthesizer_archetype);
     self->synthesizable_resources = self->archetype->synthesizable_resources;
     if (keys != NULL) {
         assert(keys->map_pos == NULL && keys->pos == NULL &&
@@ -370,14 +370,14 @@ static entity_t *slipgate_kind_new(const planet_keys_t *keys) {
     return &slipgate_create(keys)->header;
 }
 
-static const entity_kind_t g_slipgate_kind = {slipgate_kind_new, &slipgate_kind_record};
+static const entity_kind_t slipgate_kind_def = {slipgate_kind_new, &slipgate_kind_record};
 
 const entity_kind_t *slipgate_kind(void) {
-    return &g_slipgate_kind;
+    return &slipgate_kind_def;
 }
 
 const entity_class_t *slipgate_class(void) {
-    return &g_slipgate_class;
+    return &slipgate_class_def;
 }
 
 planet_t *slipgate_new(const planet_keys_t *keys) {
@@ -392,14 +392,14 @@ static entity_t *infraspace_gate_kind_new(const planet_keys_t *keys) {
     return &infraspace_gate_create(keys)->header;
 }
 
-static const entity_kind_t g_infraspace_gate_kind = {infraspace_gate_kind_new, &infraspace_gate_kind_record};
+static const entity_kind_t infraspace_gate_kind_def = {infraspace_gate_kind_new, &infraspace_gate_kind_record};
 
 const entity_kind_t *infraspace_gate_kind(void) {
-    return &g_infraspace_gate_kind;
+    return &infraspace_gate_kind_def;
 }
 
 const entity_class_t *infraspace_gate_class(void) {
-    return &g_infraspace_gate_class;
+    return &infraspace_gate_class_def;
 }
 
 planet_t *infraspace_gate_new(const planet_keys_t *keys) {
@@ -414,14 +414,14 @@ static entity_t *synthesizer_kind_new(const planet_keys_t *keys) {
     return &synthesizer_create(keys)->header;
 }
 
-static const entity_kind_t g_synthesizer_kind = {synthesizer_kind_new, &synthesizer_kind_record};
+static const entity_kind_t synthesizer_kind_def = {synthesizer_kind_new, &synthesizer_kind_record};
 
 const entity_kind_t *synthesizer_kind(void) {
-    return &g_synthesizer_kind;
+    return &synthesizer_kind_def;
 }
 
 const entity_class_t *synthesizer_class(void) {
-    return &g_synthesizer_class;
+    return &synthesizer_class_def;
 }
 
 planet_t *synthesizer_new(const planet_keys_t *keys) {

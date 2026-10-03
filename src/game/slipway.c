@@ -22,14 +22,14 @@
 
 static int g_slipway_up = 0;
 
-static const entity_class_t g_slipway_too_far_class = {0};
+static const entity_class_t slipway_too_far_class_def = {0};
 
 /* What slipway_obstruction returns beyond range: never allocated, never
  * freed; the status text is fixed, only `targeted_by` is written, and the
  * next drag overwrites it. */
-static slipway_too_far_t g_slipway_too_far = {{.class = &g_slipway_too_far_class}, "-too far-", NULL};
+static slipway_too_far_t g_slipway_too_far = {{.class = &slipway_too_far_class_def}, "-too far-", NULL};
 
-static const entity_class_t g_slipway_mouse_point_class = {0};
+static const entity_class_t slipway_mouse_point_class_def = {0};
 
 vec_t slipway_end_map_pos(const entity_t *end) {
     const vec_t *p = end != NULL && end->map_pos != NULL ? *end->map_pos : NULL;
@@ -337,7 +337,7 @@ static int slipway_is_endpoint_class(const entity_class_t *cls) {
     return cls->states[ENTITY_STATE_SETTLED] != NULL || cls == planet_class();
 }
 
-static const entity_class_t g_slipway_class = {
+static const entity_class_t slipway_class_def = {
     .draw = slipway_draw_method,
     .draw_overlay = slipway_draw_overlay_method,
     .drag = slipway_drag_method,
@@ -352,7 +352,7 @@ static slipway_t *slipway_create(const slipway_keys_t *keys) {
     planet_grab_arena_open();
     self = (slipway_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
-    entity_init_instance(&self->header, &g_slipway_class, slipway_archetype.state, slipway_archetype.state_time);
+    entity_init_instance(&self->header, &slipway_class_def, slipway_archetype.state, slipway_archetype.state_time);
     self->archetype = &slipway_archetype;
     self->layer = self->archetype->layer;
     self->header.layer = &self->layer;
@@ -373,7 +373,7 @@ static slipway_t *slipway_create(const slipway_keys_t *keys) {
     self->targeted_by = NULL;
     self->header.is_dead = &self->is_dead;
     self->is_dead = 0;
-    entity_init_header(&self->point.header, &g_slipway_mouse_point_class);
+    entity_init_header(&self->point.header, &slipway_mouse_point_class_def);
     self->point.header.pos = &self->point.pos;
     self->point.header.map_pos = &self->point.map_pos;
     self->point.pos = NULL;
@@ -409,7 +409,7 @@ int slipway_ready(void) {
 }
 
 const entity_class_t *slipway_class(void) {
-    return &g_slipway_class;
+    return &slipway_class_def;
 }
 
 slipway_t *slipway_new(const slipway_keys_t *keys) {
@@ -417,9 +417,9 @@ slipway_t *slipway_new(const slipway_keys_t *keys) {
 }
 
 const entity_class_t *slipway_too_far_class(void) {
-    return &g_slipway_too_far_class;
+    return &slipway_too_far_class_def;
 }
 
 const entity_class_t *slipway_mouse_point_class(void) {
-    return &g_slipway_mouse_point_class;
+    return &slipway_mouse_point_class_def;
 }

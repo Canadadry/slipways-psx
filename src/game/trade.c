@@ -21,7 +21,7 @@ int resource_equal(resource_t a, resource_t b) {
     return a.kind == b.kind && (a.kind != RESOURCE_FIXED || a.number == b.number);
 }
 
-static const entity_class_t g_trade_class = {0};
+static const entity_class_t trade_class_def = {0};
 
 static trade_route_t *trade_create(const allocator_t *zone, const trade_keys_t *keys) {
     trade_route_t *self = (trade_route_t *)allocator_alloc(zone, sizeof *self);
@@ -29,7 +29,7 @@ static trade_route_t *trade_create(const allocator_t *zone, const trade_keys_t *
 #ifdef CLASS_COVERAGE_BUILD
     class_coverage_record("trade");
 #endif
-    entity_init_header(&self->header, &g_trade_class);
+    entity_init_header(&self->header, &trade_class_def);
     self->planets = NULL;
     self->slipways = NULL;
     self->resource = 0;
@@ -51,7 +51,7 @@ static trade_route_t *trade_create(const allocator_t *zone, const trade_keys_t *
 
 static void assert_trade(const trade_route_t *self) {
     assert((self == NULL ||
-            self->header.class == &g_trade_class) &&
+            self->header.class == &trade_class_def) &&
            "trade: every outgoing or incoming route and every offer's route is a route; anything else would be read "
            "through the wrong layout");
 }
@@ -70,7 +70,7 @@ int trade_ready(void) {
 }
 
 const entity_class_t *trade_class(void) {
-    return &g_trade_class;
+    return &trade_class_def;
 }
 
 trade_route_t *trade_new(const allocator_t *zone, const trade_keys_t *keys) {

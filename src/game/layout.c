@@ -8,7 +8,7 @@
 #include "game/hud.h"
 
 static int g_layout_up = 0;
-static const entity_class_t g_layout_row_class;
+static const entity_class_t layout_row_class_def;
 
 layout_row_cell_t layout_row_cell_nothing(void) {
     layout_row_cell_t cell = {.kind = LAYOUT_ROW_CELL_NOTHING};
@@ -202,7 +202,7 @@ void layout_row_draw_at(const p8_graphics_t *gfx, p8_memory_t *mem, const layout
     if (self == NULL) {
         return;
     }
-    assert(self->header.class == &g_layout_row_class &&
+    assert(self->header.class == &layout_row_class_def &&
            "layout_row_draw_at: every row reaching it (a planet's or a button's layout_row, a button's side_tooltip, "
            "a tooltip's rows, the draw_row dispatch) is a layout row; anything else would be read through the wrong layout");
     w = self->width;
@@ -303,7 +303,7 @@ static void tooltip_draw_at_method(entity_t *self, vec_t p, p8_fixed_t a) {
     tooltip_draw_at(dispatch_context_gfx(), dispatch_context_mem(), (const tooltip_t *)self, p8_fixed_from_int(0), a);
 }
 
-static const entity_class_t g_layout_row_class = {
+static const entity_class_t layout_row_class_def = {
     .draw_at = layout_row_draw_at_method,
 };
 
@@ -314,7 +314,7 @@ static layout_row_t *row_struct_alloc(const allocator_t *zone, int n) {
     assert(zone != NULL && "row_struct_alloc: a row without a zone would have nowhere to keep its cells");
     self = (layout_row_t *)allocator_alloc(zone, sizeof *self);
 
-    entity_init_header(&self->header, &g_layout_row_class);
+    entity_init_header(&self->header, &layout_row_class_def);
     self->header.pos = &self->pos;
     self->color = 0;
     self->has_color = 0;
@@ -409,7 +409,7 @@ void layout_row_add(layout_row_t *self, layout_row_cell_t cell) {
     self->items_count++;
 }
 
-static const entity_class_t g_tooltip_class = {
+static const entity_class_t tooltip_class_def = {
     .draw_at = tooltip_draw_at_method,
 };
 
@@ -423,7 +423,7 @@ static tooltip_t *tooltip_struct_alloc(const allocator_t *zone) {
 #ifdef CLASS_COVERAGE_BUILD
     class_coverage_record("tooltip");
 #endif
-    entity_init_header(&self->header, &g_tooltip_class);
+    entity_init_header(&self->header, &tooltip_class_def);
     self->zone = zone;
     self->rows = NULL;
     self->rows_count = 0;
@@ -458,11 +458,11 @@ int tooltip_ready(void) {
 }
 
 const entity_class_t *layout_row_class(void) {
-    return &g_layout_row_class;
+    return &layout_row_class_def;
 }
 
 const entity_class_t *tooltip_class(void) {
-    return &g_tooltip_class;
+    return &tooltip_class_def;
 }
 
 layout_row_t *layout_row_new(const allocator_t *zone, const layout_row_keys_t *keys) {

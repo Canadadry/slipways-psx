@@ -71,7 +71,7 @@ static void button_refresh_method(entity_t *self) {
     }
 }
 
-static const entity_class_t g_button_class = {
+static const entity_class_t button_class_def = {
     .draw = button_draw_method,
     .draw_overlay = button_draw_overlay_method,
     .hit_test = button_hit_test_method,
@@ -87,7 +87,7 @@ static button_t *button_create(const button_keys_t *keys) {
     button_t *self = (button_t *)allocator_alloc(slot, sizeof *self);
 
     self->slot = slot;
-    entity_init_instance(&self->header, &g_button_class, button_archetype.state, button_archetype.state_time);
+    entity_init_instance(&self->header, &button_class_def, button_archetype.state, button_archetype.state_time);
     self->layout_row = NULL;
     self->layout_row_slot = NULL;
     self->width = 0;
@@ -168,7 +168,7 @@ int button_ready(void) {
 }
 
 const entity_class_t *button_class(void) {
-    return &g_button_class;
+    return &button_class_def;
 }
 
 button_t *button_new(const button_keys_t *keys) {
@@ -313,7 +313,7 @@ static down_t modal_backdrop_left_press_method(entity_t *self, vec_t *qa, vec_t 
     return modal_backdrop_left_press((modal_backdrop_t *)self);
 }
 
-static const entity_class_t g_modal_backdrop_class = {
+static const entity_class_t modal_backdrop_class_def = {
     .hit_test = entity_registry_hit_test_always,
     .left_press = modal_backdrop_left_press_method,
     .release = release_modal_backdrop,
@@ -324,7 +324,7 @@ static modal_backdrop_t *modal_backdrop_create(const modal_backdrop_keys_t *keys
     modal_backdrop_t *self = (modal_backdrop_t *)allocator_alloc(slot, sizeof *self);
 
     self->slot = slot;
-    entity_init_instance(&self->header, &g_modal_backdrop_class, modal_backdrop_archetype.state, modal_backdrop_archetype.state_time);
+    entity_init_instance(&self->header, &modal_backdrop_class_def, modal_backdrop_archetype.state, modal_backdrop_archetype.state_time);
     self->archetype = &modal_backdrop_archetype;
     self->header.layer = &self->archetype->layer;
     self->on_click = NULL;
@@ -356,7 +356,7 @@ int modal_backdrop_ready(void) {
 }
 
 const entity_class_t *modal_backdrop_class(void) {
-    return &g_modal_backdrop_class;
+    return &modal_backdrop_class_def;
 }
 
 modal_backdrop_t *modal_backdrop_new(const modal_backdrop_keys_t *keys) {

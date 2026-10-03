@@ -37,13 +37,13 @@ static const entity_kind_t *structure_icon_own_kind(const structure_icon_t *self
     return self != NULL ? self->kind : NULL;
 }
 
-static const entity_class_t g_structure_icon_kind_view_class = {0};
+static const entity_class_t structure_icon_kind_view_class_def = {0};
 
 structure_icon_kind_t structure_icon_kind_view(const structure_icon_t *self) {
     const entity_kind_t *kind = structure_icon_own_kind(self);
     structure_icon_kind_t view;
 
-    entity_init_header(&view.header, &g_structure_icon_kind_view_class);
+    entity_init_header(&view.header, &structure_icon_kind_view_class_def);
     view.required_tech = NULL;
     view.sprite = 0;
     view.has_sprite = 0;
@@ -62,7 +62,7 @@ structure_icon_kind_t structure_icon_kind_view(const structure_icon_t *self) {
 }
 
 const entity_class_t *structure_icon_kind_view_class(void) {
-    return &g_structure_icon_kind_view_class;
+    return &structure_icon_kind_view_class_def;
 }
 
 void structure_icon_refresh(structure_icon_t *self) {
@@ -193,7 +193,7 @@ static int structure_icon_hit_test_method(entity_t *self, const vec_t *qa, const
     return entity_geom_contains_cursor(self, qa, ra);
 }
 
-static const entity_class_t g_structure_icon_class = {
+static const entity_class_t structure_icon_class_def = {
     .draw = structure_icon_draw_method,
     .hit_test = structure_icon_hit_test_method,
     .refresh = structure_icon_refresh_method,
@@ -204,7 +204,7 @@ static structure_icon_t *structure_icon_create(const structure_icon_keys_t *keys
     structure_icon_t *self = (structure_icon_t *)allocator_alloc(game_zone(), sizeof *self);
 
     assert(g_structure_icon_up && "structure_icon_init() must run before a structure icon is created");
-    entity_init_instance(&self->header, &g_structure_icon_class, structure_icon_archetype.state, structure_icon_archetype.state_time);
+    entity_init_instance(&self->header, &structure_icon_class_def, structure_icon_archetype.state, structure_icon_archetype.state_time);
     self->archetype = &structure_icon_archetype;
     self->header.layer = &self->archetype->layer;
     self->header.pos = &self->pos;
@@ -248,7 +248,7 @@ int structure_icon_ready(void) {
 }
 
 const entity_class_t *structure_icon_class(void) {
-    return &g_structure_icon_class;
+    return &structure_icon_class_def;
 }
 
 structure_icon_t *structure_icon_new(const structure_icon_keys_t *keys) {
