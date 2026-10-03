@@ -1,5 +1,4 @@
-/* tools/e2e_cleanup.sh, la passe de nettoyage finale, sur des ensembles de
- * lignes fabriques. */
+/* tools/e2e_cleanup.sh, the final cleanup pass, on built sets of lines. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -17,7 +16,7 @@ static void write_file(const char *path, const char *text) {
     fclose(file);
 }
 
-/* Tampon statique, ecrase a chaque appel. */
+/* Static buffer, overwritten by each call. */
 static const char *read_out(void) {
     FILE *file = fopen(OUT, "rb");
     assert(file != NULL);
@@ -37,14 +36,14 @@ static int run(const char *args) {
 static void test_two_identical_files_leave_only_the_shorter(void) {
     write_file(DIR "/a.lines", "src/a.c:1\nsrc/a.c:2\n");
     write_file(DIR "/b.lines", "src/a.c:1\nsrc/a.c:2\n");
-    assert(run("court 12 " DIR "/a.lines long 40 " DIR "/b.lines") == 0);
+    assert(run("short 12 " DIR "/a.lines long 40 " DIR "/b.lines") == 0);
     assert(strcmp(read_out(), "long\n") == 0);
-    assert(run("long 40 " DIR "/b.lines court 12 " DIR "/a.lines") == 0);
+    assert(run("long 40 " DIR "/b.lines short 12 " DIR "/a.lines") == 0);
     assert(strcmp(read_out(), "long\n") == 0);
 }
 
-/* `long` couvre seul src/b.c:9 : il reste, meme le plus long ; `mid`,
- * couvert par `long` et `short`, part. */
+/* `long` alone covers src/b.c:9: it stays, though the longest; `mid`,
+ * covered by `long` and `short`, goes. */
 static void test_file_alone_to_cover_a_line_is_never_removed(void) {
     write_file(DIR "/long.lines", "src/a.c:1\nsrc/b.c:9\n");
     write_file(DIR "/mid.lines", "src/a.c:1\nsrc/a.c:2\n");
@@ -53,9 +52,9 @@ static void test_file_alone_to_cover_a_line_is_never_removed(void) {
     assert(strcmp(read_out(), "mid\n") == 0);
 }
 
-/* Du plus long au plus court : c et b sont chacun couverts par l'union des
- * autres au depart, mais retirer le plus long (c) d'abord garde b, qui porte
- * alors seul src/x.c:3. */
+/* Longest to shortest: `c.lines` and `b.lines` are each covered by the union
+ * of the others at the start, but dropping the longest, `c.lines`, first
+ * keeps `b.lines`, which then alone carries src/x.c:3. */
 static void test_longest_to_shortest_order_is_respected(void) {
     write_file(DIR "/a.lines", "src/x.c:1\nsrc/x.c:2\n");
     write_file(DIR "/b.lines", "src/x.c:2\nsrc/x.c:3\n");
@@ -71,7 +70,7 @@ static void test_missing_set_or_bad_arguments_fail(void) {
     write_file(DIR "/a.lines", "src/a.c:1\n");
     assert(run("a 10 " DIR "/a.lines b 5 " DIR "/absent.lines") != 0);
     assert(run("a 10") != 0);
-    assert(run("a dix " DIR "/a.lines") != 0);
+    assert(run("a ten " DIR "/a.lines") != 0);
 }
 
 int main(void) {

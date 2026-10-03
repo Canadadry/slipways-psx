@@ -1,4 +1,0 @@
-# Questions d'atteinte ouvertes : id<TAB>question<TAB>sites<TAB>sortie attendue.
-# Une ligne sort par une entree TROU et son test, ou par une ligne de
-# tools/line_coverage_unreachable.txt. composition_residue.sh compte les
-# lignes qui ne commencent ni par # ni par un blanc.

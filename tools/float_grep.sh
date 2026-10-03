@@ -1,14 +1,13 @@
 #!/bin/sh
-# usage: float_grep.sh <cc> <cflags> <exclusions> <repertoire> <source.c>...
-# Cherche toute trace de flottant dans le coeur : les sources recues plus les
-# en-tetes que <cc> <cflags> -MM leur trouve. Tout .c/.h de <repertoire> est
-# soit dans ce coeur, soit dans <exclusions> (lignes "<chemin> | <justification>",
-# # en tete de ligne pour un commentaire), jamais les deux, jamais aucun.
-# Rend 1 si une ligne est trouvee, 2 sur partition incoherente, liste
-# d'exclusion invalide, coeur vide ou echec du compilateur : une mesure sur
-# rien passerait pour verte.
-# <cflags> ne doit jamais porter PICO8_FLOAT_* : -MM ferait entrer dans le
-# coeur l'en-tete d'audit, que ce build seul inclut.
+# usage: float_grep.sh <compiler> <cflags> <exclusions> <directory> <source.c>...
+# Looks for any trace of floating point in the core: the given sources plus
+# the headers that `<compiler> <cflags> -MM` finds for them. Every `.c` or `.h`
+# file of <directory> is either in that core or in <exclusions> (lines
+# `<path> | <justification>`, a leading `#` for a comment), never both,
+# never neither. Prints the matching lines, then
+# `float-grep core N excluded K lines M`. Exit 1 when a line is found, 2 on
+# an inconsistent partition, an invalid exclusion list, an empty core or a
+# compiler failure: a measure over nothing would pass for green.
 
 set -u
 
@@ -23,18 +22,18 @@ fail() {
     exit 2
 }
 
-[ $# -gt 0 ] || fail "aucune source"
-[ -f "$exclusions" ] || fail "liste d'exclusion introuvable : $exclusions"
+[ $# -gt 0 ] || fail "no source"
+[ -f "$exclusions" ] || fail "exclusion list not found: $exclusions"
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
-# cflags est volontairement non quote : c'est une liste d'options.
-$cc $cflags -MM "$@" > "$work/deps" || fail "echec de $cc -MM"
-# Apple clang ajoute aux dependances -MM des fichiers qui ne sont pas du C
-# (SDKSettings.json du SDK) : seuls les .c et .h forment le coeur.
+# cflags is deliberately unquoted: it is a list of options.
+$cc $cflags -MM "$@" > "$work/deps" || fail "$cc -MM failed"
+# Apple clang adds files that are not C to the `-MM` dependencies (the
+# SDKSettings.json of the SDK): only `.c` and `.h` files make the core.
 tr ' \\' '\n\n' < "$work/deps" | grep -v ':$' | grep -E '\.[ch]$' | LC_ALL=C sort -u > "$work/core"
-[ -s "$work/core" ] || fail "coeur vide"
+[ -s "$work/core" ] || fail "empty core"
 
 errors=0
 : > "$work/excluded"
@@ -44,18 +43,18 @@ while IFS= read -r line; do
     esac
     case $line in
         *'|'*) ;;
-        *) echo "float_grep: ligne sans justification : $line" >&2; errors=1; continue ;;
+        *) echo "float_grep: line without a justification: $line" >&2; errors=1; continue ;;
     esac
     path=$(printf '%s\n' "${line%%|*}" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
     why=$(printf '%s\n' "${line#*|}" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
     if [ -z "$why" ]; then
-        echo "float_grep: justification vide : $path" >&2; errors=1
+        echo "float_grep: empty justification: $path" >&2; errors=1
     fi
     if [ ! -f "$path" ]; then
-        echo "float_grep: exclusion d'un fichier absent : $path" >&2; errors=1
+        echo "float_grep: exclusion of a missing file: $path" >&2; errors=1
     fi
     if grep -qxF "$path" "$work/excluded"; then
-        echo "float_grep: exclusion en double : $path" >&2; errors=1
+        echo "float_grep: duplicate exclusion: $path" >&2; errors=1
     fi
     echo "$path" >> "$work/excluded"
 done < "$exclusions"
@@ -65,20 +64,19 @@ find "$dir" \( -name '*.c' -o -name '*.h' \) -type f | LC_ALL=C sort > "$work/al
 LC_ALL=C comm -12 "$work/core" "$work/excluded" > "$work/both"
 LC_ALL=C sort -u "$work/core" "$work/excluded" | LC_ALL=C comm -23 "$work/all" - > "$work/neither"
 while IFS= read -r path; do
-    echo "float_grep: dans le coeur et exclu : $path" >&2; errors=1
+    echo "float_grep: in the core and excluded: $path" >&2; errors=1
 done < "$work/both"
 while IFS= read -r path; do
-    echo "float_grep: ni dans le coeur ni exclu : $path" >&2; errors=1
+    echo "float_grep: neither in the core nor excluded: $path" >&2; errors=1
 done < "$work/neither"
 [ "$errors" -eq 0 ] || exit 2
 
-# L'expression du §6.1 telle quelle, commentaires compris. grep rend 1 quand
-# rien ne correspond : ce n'est pas une erreur ici.
+# Comments included. grep exits 1 when nothing matches: not an error here.
 status=0
 grep -HnE '\b(double|float)\b' $(cat "$work/core") > "$work/found" || status=$?
-[ "$status" -le 1 ] || fail "echec de grep"
+[ "$status" -le 1 ] || fail "grep failed"
 LC_ALL=C sort -t: -k1,1 -k2,2n "$work/found"
 
 count=$(wc -l < "$work/found" | tr -d ' ')
-echo "float-grep coeur $(wc -l < "$work/core" | tr -d ' ') exclus $(wc -l < "$work/excluded" | tr -d ' ') lignes $count"
+echo "float-grep core $(wc -l < "$work/core" | tr -d ' ') excluded $(wc -l < "$work/excluded" | tr -d ' ') lines $count"
 [ "$count" -eq 0 ]

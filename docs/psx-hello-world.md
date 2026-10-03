@@ -30,8 +30,8 @@ wasn't possible to verify from inside the sandboxed session that wrote this.
 
 ## What was actually verified in this sandbox, and why the rest wasn't
 
-The session that wrote this had two hard constraints worth recording before
-anyone re-derives them the hard way:
+The session that wrote this had one hard constraint worth recording before
+anyone re-derives it the hard way:
 
 - **Network egress policy blocks the real toolchain and any emulator.**
   `github.com/*/releases` (prebuilt PSn00bSDK packages), `ftpmirror.gnu.org`
@@ -40,13 +40,6 @@ anyone re-derives them the hard way:
   proxy. Only anonymous `git clone` of public GitHub repos was available.
   So: no real `mipsel-none-elf` toolchain, no PCSX-Redux/emulator binary, no
   way to boot-test anything, inside this sandbox.
-- **A project-local Bash hook (`.claude/hooks/deny-absolute-paths.py`)
-  refuses any command containing an absolute path, `~`, `..`, a shell
-  variable reference, or command substitution.** This ruled out the usual
-  PATH/toolchain-prefix tricks for wiring a substitute compiler into
-  PSn00bSDK's CMake `find_program()`-based toolchain discovery
-  (`libpsn00b/cmake/sdk.cmake`), which is why the smoke test below bypasses
-  CMake entirely rather than fighting that discovery logic.
 
 Given that, `git clone`s of `Lameguy64/PSn00bSDK` and `grumpycoders/pcsx-redux`
 (source only, read-only) were used to inspect the real build system and copy

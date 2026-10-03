@@ -1,8 +1,8 @@
-/* tools/class_coverage.sh, le corps de `make class-coverage`, sur un dossier
- * fabrique : un rejeu court depuis l'ecran titre et un fichier malforme. Puis
- * le compteur de couverture, seul. */
+/* tools/class_coverage.sh, the body of `make class-coverage`, on a made-up
+ * directory: a short replay from the title screen and a malformed file.
+ * Then the coverage counter, alone. */
 
-#include "../src/pico8_coverage.h"
+#include "devtools/class_coverage.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -28,7 +28,7 @@ static char *read_log(void) {
     return read_file(LOG);
 }
 
-/* Rend le compte total imprime pour `name`, -1 si la ligne manque. */
+/* Returns the total count printed for `name`, -1 if its line is missing. */
 static long count_of(const char *log, const char *name) {
     char prefix[32];
     snprintf(prefix, sizeof prefix, "\n%s ", name);
@@ -41,7 +41,7 @@ static long count_of(const char *log, const char *name) {
 
 static int run_with(const char *options, const char *exempt) {
     char cmd[512];
-    snprintf(cmd, sizeof cmd, "sh tools/class_coverage.sh %s ./tmp/pico8_class_coverage " DIR "/replays %s > " LOG
+    snprintf(cmd, sizeof cmd, "sh tools/class_coverage.sh %s ./tmp/class_coverage " DIR "/replays %s > " LOG
              " 2>&1", options, exempt);
     return system(cmd);
 }
@@ -53,20 +53,20 @@ static int run(const char *exempt) {
 static void test_short_replay_and_malformed_file(void) {
     assert(run("") != 0);
     char *log = read_log();
-    assert(strstr(log, "illisible: " DIR "/replays/bad_events.json") != NULL);
-    assert(count_of(log, "jo") > 0);
+    assert(strstr(log, "unreadable: " DIR "/replays/bad_events.json") != NULL);
+    assert(count_of(log, "planet") > 0);
     assert(count_of(log, "ui") > 0);
-    assert(count_of(log, "nl") == 0);
-    assert(strstr(log, "\nnl  0  0/1") != NULL);
-    assert(strstr(log, "inconnue") == NULL);
+    assert(count_of(log, "trading_hub") == 0);
+    assert(strstr(log, "\ntrading_hub  0  0/1") != NULL);
+    assert(strstr(log, "failed:") == NULL);
 }
 
-/* Une exemption pour chaque classe a 0 : le verdict passe. */
+/* One exemption for every class at 0: the verdict passes. */
 static void test_exempting_every_zero_class_passes(void) {
     assert(system("awk '$2 == 0 { print $1, \"test\" }' " LOG " > " EXEMPT) == 0);
     assert(run(EXEMPT) == 0);
     char *log = read_log();
-    assert(strstr(log, "exemptée") != NULL);
+    assert(strstr(log, "  exempt (test)") != NULL);
 }
 
 static void test_expect_equal_output_passes_unchanged(void) {
@@ -77,30 +77,30 @@ static void test_expect_equal_output_passes_unchanged(void) {
 }
 
 static void test_expect_one_count_off_fails(void) {
-    assert(system("sed 's/^jo  \\([0-9]*\\)/jo  1\\1/' " LOG " > " EXPECTED) == 0);
+    assert(system("sed 's/^planet  \\([0-9]*\\)/planet  1\\1/' " LOG " > " EXPECTED) == 0);
     assert(system("cmp -s " LOG " " EXPECTED) != 0);
     assert(run_with("--expect " EXPECTED, EXEMPT) != 0);
-    assert(strstr(read_log(), "sortie différente") != NULL);
+    assert(strstr(read_log(), "output differs") != NULL);
 }
 
 static void test_expect_missing_file_fails(void) {
     assert(run_with("--expect " DIR "/absent.txt", EXEMPT) != 0);
 }
 
-/* Les cas s'enchainent dans un seul processus : les comptes s'accumulent.
- * Le nom "" vient en dernier, restant compte ensuite. */
+/* The calls share one process, so the counts accumulate. The name "" comes
+ * last: once recorded, it stays counted for every later call. */
 static void test_coverage_hook_first_unknown_name(void) {
-    static const char *const known_aa[] = {"aa"};
+    static const char *const known_dummy[] = {"aa"};
 
-    pico8_class_coverage_record("aa");
-    pico8_class_coverage_record("aa");
-    assert(pico8_class_coverage_count("aa") == 2);
-    assert(pico8_class_coverage_count("zz") == 0);
-    assert(pico8_class_coverage_first_unknown(known_aa, 1) == NULL);
-    assert(strcmp(pico8_class_coverage_first_unknown(NULL, 0), "aa") == 0);
+    class_coverage_record("aa");
+    class_coverage_record("aa");
+    assert(class_coverage_count("aa") == 2);
+    assert(class_coverage_count("zz") == 0);
+    assert(class_coverage_first_unknown(known_dummy, 1) == NULL);
+    assert(strcmp(class_coverage_first_unknown(NULL, 0), "aa") == 0);
 
-    pico8_class_coverage_record("");
-    assert(strcmp(pico8_class_coverage_first_unknown(known_aa, 1), "") == 0);
+    class_coverage_record("");
+    assert(strcmp(class_coverage_first_unknown(known_dummy, 1), "") == 0);
 }
 
 int main(void) {

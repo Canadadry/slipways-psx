@@ -27,9 +27,9 @@ Tout commentaire que tu lis va dans une de ces quatre destinations, sinon il par
 2. **Un écart connu avec <LA RÉFÉRENCE>**, ou un morceau volontairement non fait →
    une entrée dans `<docs/ecarts.md>`. Là non plus tu n'écris pas : tu proposes
    l'entrée dans ton rapport. Dans le code, tu ne laisses qu'un **marqueur nu**
-   `/* TROU-n */`, seul sur sa ligne au-dessus de la déclaration concernée. Pas de
+   `/* GAP-n */`, seul sur sa ligne au-dessus de la déclaration concernée. Pas de
    résumé à côté : il périmerait. Pour un écart non encore numéroté, écris
-   `/* TROU-? */` et signale-le.
+   `/* GAP-? */` et signale-le.
 3. **Un piège qu'un lecteur futur réintroduirait** → un
    `assert(cond && "message court")` au site exact **si tu peux établir qu'il
    tient**, sinon **40 mots maximum** de prose. Lis la section suivante avant
@@ -122,6 +122,28 @@ réellement. Elle ne se corrige pas ici.
 Le curseur, puisque « taux plus élevé » n'en est pas un : **une phrase reste si
 elle explique une valeur littérale, un choix de cas ou un contrat de tampon ; elle
 part si elle raconte d'où vient la décision.**
+
+## Quand un commentaire n'en est pas tout à fait un
+
+Quatre cas où ce qui ressemble à un commentaire est lu par une machine. Le
+contrôle habituel (lignes hors commentaire identiques) ne les voit pas.
+
+- **Une ligne de commentaire qu'un script imprime** — son aide tirée de son
+  propre en-tête (`sed -n '2p' "$0"`) — est une chaîne, pas un commentaire. Tu la
+  traites comme un message : la preuve est la sortie du script, avant et après,
+  et la ligne ne change pas de numéro.
+- **Un `#` dans un ici-document** (`<<EOF`) n'est pas un commentaire : c'est du
+  texte que le script écrit. Tu le laisses tel quel, ou tu le signales.
+- **Un programme `awk`** (ou tout programme) **entre apostrophes dans un script
+  shell** : un commentaire glissé dedans peut le casser — une apostrophe dans le
+  texte (« entity's ») ferme la chaîne — sans changer une seule ligne hors
+  commentaire. Aucun commentaire n'y entre. Le contrôle ajoute `sh -n` et des
+  sorties identiques à l'octet, dans tous les modes et pour tous les refus.
+- **Un fichier dont un outil compare les numéros de ligne** — référence de
+  couverture, message d'`assert` qui imprime sa ligne — garde la hauteur de
+  chaque bloc de commentaire : un bloc qui grandit ou rétrécit décale tout le
+  code qui suit. Contrôle : les lignes qui ne sont pas des commentaires restent
+  aux mêmes numéros.
 
 ## Contrôle avant de rendre la main
 

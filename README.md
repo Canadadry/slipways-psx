@@ -4,7 +4,7 @@
 
 ## Comment c'est fait
 
-- Portage littéral, fonction par fonction, de `pico8/lua.lua` (la source décompilée du cart) ; les écarts connus sont dans `docs/trous-de-portage.md`.
+- Porté depuis `pico8/lua.lua` (la source décompilée du cart), qui reste en archive : le C est désormais la référence ; les écarts connus sont dans `docs/trous-de-portage.md`.
 - Le jeu parle à une API PICO-8 fixe (framebuffer 128×128 logiciel), servie par deux backends : un rejeu headless (`events.json` en entrée, dump texte du framebuffer en sortie) et raylib interactif.
 - Une session raylib enregistre ses entrées en `events.json` : ce que l'humain a joué, l'agent le rejoue sans fenêtre.
 
@@ -16,8 +16,7 @@ Règle de cette liste : chaque todo est une seule phrase claire, lisible sans r�
 - [ ] Afficher un budget de slipways et de relais, et bloquer leur ajout quand il est plein.
 - [ ] Ajouter une triche qui donne des points de score bonus, pour qu'un e2e court montre les étoiles allumées du panneau de score.
 - [ ] Faire respecter la couverture de classes par `make e2e-cleanup`, qui propose de retirer `place_processor_ascension`, seul e2e à instancier le processeur et la porte d'ascension.
-- [ ] Renommer les champs des structs du jeu qui portent encore un nom abrégé hérité du cart, uniquement quand on connaît leur sens, sans rien inventer.
 - [ ] À la reprise PSX, décider si la manette émule la souris PICO-8 ou saute de planète en planète ; idées dans l'historique git de `docs/after-v1.md`.
-- [ ] À la reprise PSX, remesurer sur MIPS les tailles de place des zones interface et particules : mesurées sur x86-64, js et mh n'ont aucune marge.
-- [ ] Avant tout nouveau point de libération, rendre mécanique la liste des références coupées par `oublier` : l'inventaire par grep en a manqué trois (`dk`, `jc->re`, `fo`).
-- [ ] Décider de TROU-26 : une planète hors écran perd le halo de l'objet tenu rendu, là où la cartouche relirait sa mémoire.
+- [ ] À la reprise PSX, remesurer sur MIPS les tailles de place des zones interface et particules : sur x86-64, celles des boutons (`button`) et des boîtes de message (`message_box`) sont sans marge.
+- [ ] Avant tout nouveau point de libération, rendre mécanique la liste des références coupées par `forget` (`src/game/cart.c`) : l'inventaire par grep en a manqué trois (la difficulté retenue, `slipway->end`, `targeted_by`).
+- [ ] Décider de GAP-26 : une planète hors écran perd le halo de l'objet tenu rendu, là où la cartouche relirait sa mémoire.
