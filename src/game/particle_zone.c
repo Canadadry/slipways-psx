@@ -163,13 +163,3 @@ int particle_zone_max_elements(particle_slot_kind_t slot_kind) {
     assert(slot_kind >= 0 && slot_kind < PARTICLE_SLOT_COUNT);
     return g_max_elements[slot_kind];
 }
-
-int particle_zone_capacity(particle_slot_kind_t slot_kind) {
-    assert(slot_kind >= 0 && slot_kind < PARTICLE_SLOT_COUNT);
-    return (int)SLOT_KINDS[slot_kind].count;
-}
-
-size_t particle_zone_slot_size(particle_slot_kind_t slot_kind) {
-    assert(slot_kind >= 0 && slot_kind < PARTICLE_SLOT_COUNT);
-    return SLOT_KINDS[slot_kind].size;
-}

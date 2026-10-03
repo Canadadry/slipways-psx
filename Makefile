@@ -20,8 +20,8 @@
 #                       suite
 # make state EVENTS=<events> -> replays that file like make replay, then writes
 #                       the state of the last frame (clock, planets,
-#                       slipways, structures) and the peak of each zone and
-#                       each cap to tmp/state.txt, outside the suite
+#                       slipways, structures), zone and cap use to
+#                       tmp/state.txt, outside the suite
 # make screencast EVENTS=<events> -> rebuilds the pixels of each frame of that
 #                       replay into tmp/screencast.bin, for screencast-viewer
 # make e2e-baseline  -> sets or resets the .json.sha256 of tests/e2e/ from the

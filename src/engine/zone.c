@@ -160,8 +160,6 @@ void slot_zone_init(slot_zone_t *zone, const char *name,
     zone->slot_size = slot_size;
     zone->count = count;
     zone->cursor = 0;
-    zone->taken_count = 0;
-    zone->max_taken = 0;
     for (size_t i = 0; i < count; i++) taken[i] = 0;
     POISON(storage, count * ZONE_CELLS(slot_size) * sizeof *storage);
 }
@@ -175,8 +173,6 @@ unsigned char *slot_zone_alloc(slot_zone_t *zone) {
         if (!zone->taken[i]) {
             zone->taken[i] = 1;
             zone->cursor = (i + 1) % zone->count;
-            zone->taken_count++;
-            if (zone->taken_count > zone->max_taken) zone->max_taken = zone->taken_count;
             unsigned char *p = slot_at(zone, i);
             UNPOISON(p, zone->slot_size);
             return p;
@@ -195,14 +191,11 @@ void slot_zone_release(slot_zone_t *zone, unsigned char *slot) {
     assert(slot == slot_at(zone, i) && "release of a pointer that is not the start of a slot");
     assert(zone->taken[i] && "release of a slot already released");
     zone->taken[i] = 0;
-    zone->taken_count--;
     POISON(slot, zone->slot_size);
 }
 
 size_t slot_zone_taken(const slot_zone_t *zone) {
-    return zone->taken_count;
-}
-
-size_t slot_zone_max_taken(const slot_zone_t *zone) {
-    return zone->max_taken;
+    size_t n = 0;
+    for (size_t i = 0; i < zone->count; i++) n += zone->taken[i];
+    return n;
 }

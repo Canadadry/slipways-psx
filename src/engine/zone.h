@@ -61,8 +61,6 @@ typedef struct {
     size_t slot_size;
     size_t count;
     size_t cursor;
-    size_t taken_count;
-    size_t max_taken;
 } slot_zone_t;
 
 /* Two-ended zone: one generation allocates from one end, the next one from
@@ -95,9 +93,8 @@ void slot_zone_init(slot_zone_t *zone, const char *name,
  * released. */
 unsigned char *slot_zone_alloc(slot_zone_t *zone);
 void slot_zone_release(slot_zone_t *zone, unsigned char *slot);
-/* Slots taken and not yet released, and their maximum since init. */
+/* Slots taken and not yet released. */
 size_t slot_zone_taken(const slot_zone_t *zone);
-size_t slot_zone_max_taken(const slot_zone_t *zone);
 
 void flip_zone_init(flip_zone_t *zone, const char *name,
                              zone_cell_t *storage, size_t capacity);

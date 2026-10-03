@@ -8,9 +8,7 @@
 #include "engine/entity_geom.h"
 #include "engine/entity_registry.h"
 #include "engine/exit_queue.h"
-#include "engine/frame_zone.h"
 #include "engine/game_zone.h"
-#include "engine/zone_sizes.h"
 #include "game/main_economy.h"
 #include "game/particle_zone.h"
 #include "game/planet.h"
@@ -206,51 +204,29 @@ static int count_colonies(void) {
     return n;
 }
 
-/* Bytes in whole slots for slot zones. */
+/* "<current> <peak>" in bytes. */
 static void write_zones(FILE *out) {
-    fprintf(out, "zone frame %lu %lu %lu\n", (unsigned long)frame_zone_used(), (unsigned long)frame_zone_max(),
-            (unsigned long)FRAME_ZONE_BYTES);
-    for (int i = 0; i < SLOT_KIND_COUNT; i++) {
-        slot_kind_t k = (slot_kind_t)i;
-        unsigned long slot_size = (unsigned long)ui_zone_slot_size(k);
-        fprintf(out, "zone ui %s %lu %lu %lu\n", SLOT_KIND_NAMES[i], ui_zone_live(k) * slot_size,
-                ui_zone_max_live(k) * slot_size, ui_zone_capacity(k) * slot_size);
-    }
-    for (int i = 0; i < PARTICLE_SLOT_COUNT; i++) {
-        particle_slot_kind_t k = (particle_slot_kind_t)i;
-        unsigned long slot_size = (unsigned long)particle_zone_slot_size(k);
-        fprintf(out, "zone particles %s %lu %lu %lu\n", PARTICLE_NAMES[i], particle_zone_live(k) * slot_size,
-                particle_zone_max_live(k) * slot_size, particle_zone_capacity(k) * slot_size);
-    }
-    fprintf(out, "zone game %lu %lu %lu\n", (unsigned long)game_zone_used(), (unsigned long)game_zone_max(),
-            (unsigned long)GENERATION_ZONE_BYTES);
-    fprintf(out, "zone load %lu %lu %lu\n", (unsigned long)load_zone_used(),
-            (unsigned long)game_zone_load_zone_max(), (unsigned long)LOAD_ZONE_BYTES);
+    fprintf(out, "zone game %lu %lu\n", (unsigned long)game_zone_used(), (unsigned long)game_zone_max());
+    fprintf(out, "zone load %lu %lu\n", (unsigned long)load_zone_used(), (unsigned long)game_zone_load_zone_max());
 }
 
-/* In slots, except `elements_*` (elements of a list, current unknown: -)
- * and `bytes_*` (bytes of an arena slot, current unknown: -). */
+/* "<current> [<peak>]" in slots, except `elements_*` (elements of a list)
+ * and `bytes_*` (bytes of an arena slot), whose current is unknown: -. */
 static void write_caps(FILE *out) {
     for (int i = 0; i < SLOT_KIND_COUNT; i++) {
-        slot_kind_t k = (slot_kind_t)i;
-        fprintf(out, "cap %s %d %d %d\n", SLOT_KIND_NAMES[i], ui_zone_live(k), ui_zone_max_live(k),
-                ui_zone_capacity(k));
+        fprintf(out, "cap %s %d\n", SLOT_KIND_NAMES[i], ui_zone_live((slot_kind_t)i));
     }
     for (int i = 0; i < PARTICLE_SLOT_COUNT; i++) {
         particle_slot_kind_t k = (particle_slot_kind_t)i;
-        fprintf(out, "cap %s %d %d %d\n", PARTICLE_NAMES[i], particle_zone_live(k), particle_zone_max_live(k),
-                particle_zone_capacity(k));
+        fprintf(out, "cap %s %d %d\n", PARTICLE_NAMES[i], particle_zone_live(k), particle_zone_max_live(k));
     }
-    fprintf(out, "cap exit_queue %d %d %d\n", exit_queue_count(), exit_queue_max(), EXIT_QUEUE_CAP);
-    fprintf(out, "cap elements_particles - %d %d\n", particle_zone_max_elements(PARTICLE_SLOT_LIST),
-            PARTICLES_CAPACITY);
-    fprintf(out, "cap elements_particles_help_screen - %d %d\n",
-            particle_zone_max_elements(PARTICLE_SLOT_HELP_LIST), PARTICLES_HELP_SCREEN_CAPACITY);
-    fprintf(out, "cap elements_transit_dots - %d -\n", particle_zone_max_elements(PARTICLE_SLOT_TRANSIT_DOT));
+    fprintf(out, "cap exit_queue %d\n", exit_queue_count());
+    fprintf(out, "cap elements_particles - %d\n", particle_zone_max_elements(PARTICLE_SLOT_LIST));
+    fprintf(out, "cap elements_particles_help_screen - %d\n", particle_zone_max_elements(PARTICLE_SLOT_HELP_LIST));
+    fprintf(out, "cap elements_transit_dots - %d\n", particle_zone_max_elements(PARTICLE_SLOT_TRANSIT_DOT));
     for (int i = PARTICLE_SLOT_LIST; i <= PARTICLE_SLOT_BURST; i++) {
-        particle_slot_kind_t k = (particle_slot_kind_t)i;
-        fprintf(out, "cap bytes_%s - %lu %lu\n", PARTICLE_NAMES[i], (unsigned long)particle_zone_max_bytes(k),
-                (unsigned long)particle_zone_slot_size(k));
+        fprintf(out, "cap bytes_%s - %lu\n", PARTICLE_NAMES[i],
+                (unsigned long)particle_zone_max_bytes((particle_slot_kind_t)i));
     }
 }
 

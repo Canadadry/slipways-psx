@@ -70,19 +70,3 @@ int ui_zone_live(slot_kind_t slot_kind) {
     init_once();
     return (int)slot_zone_taken(&g_zones[slot_kind]);
 }
-
-int ui_zone_max_live(slot_kind_t slot_kind) {
-    assert(slot_kind >= 0 && slot_kind < SLOT_KIND_COUNT);
-    init_once();
-    return (int)slot_zone_max_taken(&g_zones[slot_kind]);
-}
-
-int ui_zone_capacity(slot_kind_t slot_kind) {
-    assert(slot_kind >= 0 && slot_kind < SLOT_KIND_COUNT);
-    return (int)SLOT_KINDS[slot_kind].count;
-}
-
-size_t ui_zone_slot_size(slot_kind_t slot_kind) {
-    assert(slot_kind >= 0 && slot_kind < SLOT_KIND_COUNT);
-    return SLOT_KINDS[slot_kind].size;
-}

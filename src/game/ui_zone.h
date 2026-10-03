@@ -1,8 +1,6 @@
 #ifndef GAME_UI_ZONE_H
 #define GAME_UI_ZONE_H
 
-#include <stddef.h>
-
 #include "engine/allocator.h"
 
 /* Each kind takes a slot of its own per object; a row slot holds a
@@ -28,10 +26,5 @@ const allocator_t *ui_zone_slot(slot_kind_t slot_kind);
 
 /* Slots taken and not yet given back. */
 int ui_zone_live(slot_kind_t slot_kind);
-/* Session maximum of ui_zone_live. */
-int ui_zone_max_live(slot_kind_t slot_kind);
-/* Slots of the kind, and bytes of one slot. */
-int ui_zone_capacity(slot_kind_t slot_kind);
-size_t ui_zone_slot_size(slot_kind_t slot_kind);
 
 #endif

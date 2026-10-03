@@ -47,8 +47,4 @@ size_t particle_zone_max_bytes(particle_slot_kind_t slot_kind);
 void particle_zone_record_elements(particle_slot_kind_t slot_kind, int count);
 int particle_zone_max_elements(particle_slot_kind_t slot_kind);
 
-/* Slots of the kind, and bytes of one slot. */
-int particle_zone_capacity(particle_slot_kind_t slot_kind);
-size_t particle_zone_slot_size(particle_slot_kind_t slot_kind);
-
 #endif

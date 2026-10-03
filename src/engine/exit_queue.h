@@ -15,9 +15,7 @@ void exit_queue_put(entity_t *e);
  * whole at the flush. Same limit as the entities. */
 void exit_queue_put_arena(const allocator_t *arena);
 
-/* Pending entries, and their session maximum. */
 int exit_queue_count(void);
-int exit_queue_max(void);
 
 /* For each entry, in order: an entity goes through forget, which sets to
  * NULL whatever still points to it, then through its class's release; an

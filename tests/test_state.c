@@ -16,7 +16,6 @@
 #include "devtools/state.h"
 #include "engine/entity_registry.h"
 #include "engine/exit_queue.h"
-#include "engine/frame_zone.h"
 #include "engine/game_zone.h"
 #include "game/ui_zone.h"
 #include "p8/fatal.h"
@@ -181,10 +180,9 @@ static void game_peak_matches_the_fill_report(void) {
                   " > /dev/null") == 0);
     char *fill = read_file(FILL);
     char *state = read_file(STATE_TRM);
-    long game[3];
-    values(state, "zone game", game, 3);
+    long game[2];
+    values(state, "zone game", game, 2);
     assert(game[1] == value(fill, "max_bytes game"));
-    assert(game[2] == 704L * 1024L && "the game generation, load zone excluded");
     free(fill);
     free(state);
     remove(FILL);
@@ -192,46 +190,29 @@ static void game_peak_matches_the_fill_report(void) {
     remove(DUMP);
 }
 
-/* "zone|cap <name> <current> <peak> <capacity>": the peak covers the
- * current value and stays under the capacity. */
+/* "<name> <current> <peak>": the peak covers the current value. */
 static void check_peak(const char *state, const char *key, long *peak) {
-    long v[3];
-    values(state, key, v, 3);
-    printf("  %s: current %ld, peak %ld, capacity %ld\n", key, v[0], v[1], v[2]);
+    long v[2];
+    values(state, key, v, 2);
+    printf("  %s: current %ld, peak %ld\n", key, v[0], v[1]);
     assert(v[1] >= v[0] && "a peak below the current value");
-    assert(v[1] <= v[2] && "a peak beyond the capacity");
     if (peak != NULL) *peak = v[1];
 }
 
-static void every_zone_and_cap_has_its_peak(void) {
+static void every_peaked_zone_and_cap_covers_its_current(void) {
     char *state = read_file(STATE_TRM);
-    long peak;
-    check_peak(state, "zone frame", &peak);
-    assert(peak > 0 && "the frame zone is used every frame");
-    static const char *const zones[] = {
-        "zone ui button", "zone ui modal_backdrop", "zone ui message_box", "zone ui toast",
-        "zone ui row", "zone ui ephemerals", "zone particles particle", "zone particles particles",
-        "zone particles particles_help_screen", "zone particles burst", "zone particles transit_dots",
-        "zone game", "zone load",
+    static const char *const keys[] = {
+        "zone game", "zone load", "cap particle", "cap particles", "cap particles_help_screen", "cap burst",
+        "cap transit_dots",
     };
-    for (size_t i = 0; i < sizeof zones / sizeof zones[0]; i++) check_peak(state, zones[i], NULL);
-    static const char *const caps[] = {
-        "cap button", "cap modal_backdrop", "cap message_box", "cap toast", "cap row", "cap ephemerals",
-        "cap particle", "cap particles", "cap particles_help_screen", "cap burst", "cap transit_dots",
-        "cap exit_queue",
-    };
-    for (size_t i = 0; i < sizeof caps / sizeof caps[0]; i++) check_peak(state, caps[i], NULL);
-    check_peak(state, "cap row", &peak);
-    assert(peak > 0 && "open panels take rows");
-    check_peak(state, "cap exit_queue", &peak);
-    assert(peak > 0 && "entities leave the live list during the replay");
+    for (size_t i = 0; i < sizeof keys / sizeof keys[0]; i++) check_peak(state, keys[i], NULL);
+    assert(count_lines(state, "cap ") == 6 + 5 + 1 + 3 + 3 && "one cap line per ui and particle kind");
     free(state);
 }
 
 typedef struct {
     size_t game;
     size_t load;
-    size_t frame;
     int exit_queue;
     int live[SLOT_KIND_COUNT];
 } memory_t;
@@ -240,7 +221,6 @@ static void measure(memory_t *m) {
     memset(m, 0, sizeof *m);
     m->game = game_zone_used();
     m->load = load_zone_used();
-    m->frame = frame_zone_used();
     m->exit_queue = exit_queue_count();
     for (int s = 0; s < SLOT_KIND_COUNT; s++) m->live[s] = ui_zone_live((slot_kind_t)s);
 }
@@ -312,7 +292,7 @@ int main(void) {
     invented_techs_are_named();
     resources_reflect_the_cheat();
     game_peak_matches_the_fill_report();
-    every_zone_and_cap_has_its_peak();
+    every_peaked_zone_and_cap_covers_its_current();
     writing_the_state_leaves_zones_alone();
     a_fatal_writes_the_state_up_to_the_stop();
     a_full_replay_has_no_stop_line();
