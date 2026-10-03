@@ -265,8 +265,7 @@ void p8_spr_default(const p8_graphics_t *gfx, p8_memory_t *mem, int n, int x, in
 
 /* Cell rows 0-31 live in the shared sprite-sheet/map region, rows 32-63
  * in the base map region -- the game's map is 128x64, larger than the
- * 128x32 base. p8/assets.c's map_cell_sink holds the same split and is
- * kept in sync by hand. */
+ * 128x32 base. */
 #define P8_MAP_BASE_ROWS 32
 
 static int map_cell_addr(int x, int y) {

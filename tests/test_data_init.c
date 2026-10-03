@@ -14,7 +14,6 @@ static void test_production_tables_project_records_icon_tooltips_technologies_de
     p8_memory_t mem;
 
     p8_mem_init(&mem);
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
 
     data_init();
 

@@ -143,7 +143,6 @@ static p8_input_t *load_e2e(const char *e2e) {
     p8_mem_init(&mem);
     p8_gfx_init(&gfx);
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
     p8_input_init(&input);
     if (e2e != NULL) {
         snprintf(path, sizeof path, strchr(e2e, '/') != NULL ? "%s" : "tests/e2e/%s.json", e2e);

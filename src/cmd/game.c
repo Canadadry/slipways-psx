@@ -58,7 +58,6 @@ int main(int argc, char **argv) {
     p8_gfx_init(&graphics);
 
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
 
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

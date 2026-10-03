@@ -154,7 +154,6 @@ static void test_tooltip_state_by_name(void) {
 int main(void) {
     p8_mem_init(&memory);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
     data_init();
     layout_init();
 

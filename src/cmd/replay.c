@@ -1,7 +1,7 @@
-/* The headless replay driver: loads pico8/gfx.json and pico8/map.json,
- * calls cart_load() and cart_init(), steps the game one frame per
- * events.json entry, and dumps the final framebuffer as text. It asserts
- * nothing about the game itself -- that is what tests/ is for.
+/* The headless replay driver: loads pico8/gfx.json, calls cart_load()
+ * and cart_init(), steps the game one frame per events.json entry, and
+ * dumps the final framebuffer as text. It asserts nothing about the game
+ * itself -- that is what tests/ is for.
  *
  * argv[1], required, names the script to replay; without it the driver
  * prints its usage and exits 2.
@@ -101,7 +101,6 @@ int main(int argc, char **argv) {
     p8_gfx_init(&graphics);
 
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
 
     p8_input_t input;
     p8_input_init(&input);

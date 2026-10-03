@@ -22,12 +22,8 @@ int main(void) {
     p8_gfx_init(&graphics);
 
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
-    assert(p8_load_map_json(&memory, "pico8/map.json"));
 
     assert(p8_sget(&memory, 16, 0) == 3);
-    /* map.json's cells row 0 lands in P8_ADDR_SPRITE_MAP_SHARED (confirmed
-     * against pico8/original.p8.png's decoded ROM). */
-    assert(p8_peek(&memory, P8_ADDR_SPRITE_MAP_SHARED + 1) == 81);
 
     p8_cls(&memory);
     assert(screen_pixel(&memory, 0, 0) == 0);
@@ -67,6 +63,9 @@ int main(void) {
     assert(screen_pixel(&memory, 2, 91) == 4);
     assert(screen_pixel(&memory, 1, 90) == 0);
 
+    p8_mset(&memory, 1, 0, 81);
+    p8_mset(&memory, 2, 0, 85);
+    p8_mset(&memory, 3, 0, 1);
     p8_map(&graphics, &memory, 0, 0, 0, 100, 4, 1);
     /* Map cell (0,0) is 0, and `map()` takes sprite 0 to mean empty and
      * does not draw it, so the whole first 8x8 block stays cleared -- the
