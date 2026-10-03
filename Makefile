@@ -1213,10 +1213,12 @@ $(SCREENCAST_VIEWER_BIN): src/cmd/screencast_viewer.c src/devtools/screencast.c 
 screencast-viewer: $(SCREENCAST_VIEWER_BIN)
 
 AST_RENAME_BINDINGS := $(CURDIR)/third_party/clang-python
-LIBCLANG ?= /usr/lib/llvm-18/lib/libclang-18.so.1
+CLANG_MAJOR := 18
+LIBCLANG ?= /usr/lib/llvm-$(CLANG_MAJOR)/lib/libclang-$(CLANG_MAJOR).so.1
 AST_RENAME_ENV := PYTHONPATH=$(CURDIR)/tools:$(AST_RENAME_BINDINGS) LIBCLANG=$(LIBCLANG)
 AST_RENAME_DIR := $(TMP_DIR)/ast_rename
 RENAME_SUBSTEPS := tools/rename_substeps.tsv
+RENAME_TABLE := docs/renommage.tsv
 # Pathspec ':!' : git's '*' crosses '/', so tests/fixtures/ would match
 # `tests/*.c`.
 AST_RENAME_UNITS = $(shell git ls-files 'src/*.c' 'tests/*.c' 'tools/*.c' ':!tests/fixtures/*')
@@ -1227,7 +1229,7 @@ AST_RENAME_ANALYSIS = --root . --exclude-dir third_party --cflags "$(CFLAGS)" \
     $(AST_RENAME_UNITS)
 
 rename-tool-setup:
-	sh tools/install_ast_rename_bindings.sh
+	CLANG_MAJOR=$(CLANG_MAJOR) sh tools/install_ast_rename_bindings.sh
 
 rename-tool-test:
 	$(AST_RENAME_ENV) python3 tests/test_ast_rename.py
@@ -1243,14 +1245,14 @@ rename-derive-test:
 rename-derive:
 	python3 tools/rename_derive.py --declarations $(AST_RENAME_DIR)/declarations.tsv \
 	    --vocabulary docs/vocabulaire.md --overrides tools/rename_overrides.tsv \
-	    --output docs/renommage.tsv --remainder $(AST_RENAME_DIR)/remainder.tsv
+	    --output $(RENAME_TABLE) --remainder $(AST_RENAME_DIR)/remainder.tsv
 
 rename-strings-test:
 	python3 tests/test_rename_strings.py
 
 rename-strings:
 	@mkdir -p $(AST_RENAME_DIR)
-	python3 tools/rename_strings.py --root . --table docs/renommage.tsv \
+	python3 tools/rename_strings.py --root . --table $(RENAME_TABLE) \
 	    --vocabulary docs/vocabulaire.md --overrides tools/rename_overrides.tsv \
 	    --flags $(AST_RENAME_DIR)/string_flags.tsv
 
@@ -1258,7 +1260,7 @@ rename-check-test:
 	python3 tests/test_rename_check.py
 
 rename-table-check:
-	python3 tools/rename_check.py --table docs/renommage.tsv \
+	python3 tools/rename_check.py --table $(RENAME_TABLE) \
 	    --declarations $(AST_RENAME_DIR)/declarations.tsv \
 	    --remainder $(AST_RENAME_DIR)/remainder.tsv --root .
 
@@ -1268,7 +1270,7 @@ rename-slice-test:
 rename-slice:
 	@test -n "$(MODULES)$(SUBSTEP)" || { echo "usage: make rename-slice MODULES=\"<module>...\" | SUBSTEP=<3x>" >&2; exit 1; }
 	@mkdir -p $(AST_RENAME_DIR)
-	python3 tools/rename_slice.py --table docs/renommage.tsv $(foreach m,$(MODULES),--module '$(m)') \
+	python3 tools/rename_slice.py --table $(RENAME_TABLE) $(foreach m,$(MODULES),--module '$(m)') \
 	    $(if $(SUBSTEP),--substep $(SUBSTEP) --substeps $(RENAME_SUBSTEPS)) -o $(AST_RENAME_DIR)/slice.tsv
 
 rename-tables-test:
@@ -1279,7 +1281,7 @@ rename-count-test:
 
 cart-names-count:
 	@mkdir -p $(AST_RENAME_DIR)
-	python3 tools/rename_count.py --table docs/renommage.tsv \
+	python3 tools/rename_count.py --table $(RENAME_TABLE) \
 	    --occurrences $(AST_RENAME_DIR)/occurrences.tsv --root . \
 	    $(foreach m,$(MODULES),--module '$(m)') \
 	    $(if $(SUBSTEP),--substep $(SUBSTEP) --substeps $(RENAME_SUBSTEPS)) \
@@ -1289,19 +1291,19 @@ rename-substeps-test:
 	python3 tests/test_rename_substeps.py
 
 rename-substeps-check:
-	python3 tools/rename_substeps.py --table docs/renommage.tsv --substeps $(RENAME_SUBSTEPS)
+	python3 tools/rename_substeps.py --table $(RENAME_TABLE) --substeps $(RENAME_SUBSTEPS)
 
 rename-rekey-test:
 	python3 tests/test_rename_rekey.py
 
 rename-rekey:
-	python3 tools/rename_rekey.py --table docs/renommage.tsv \
+	python3 tools/rename_rekey.py --table $(RENAME_TABLE) \
 	    --before $(or $(BEFORE),$(AST_RENAME_DIR)/declarations_before.tsv) \
 	    --after $(AST_RENAME_DIR)/declarations.tsv --slice $(AST_RENAME_DIR)/slice.tsv
 
 rename-rekey-check:
 	@test -n "$(SUBSTEP)" || { echo "usage: make rename-rekey-check SUBSTEP=<3x>" >&2; exit 1; }
-	python3 tools/rename_rekey.py --table docs/renommage.tsv --check \
+	python3 tools/rename_rekey.py --table $(RENAME_TABLE) --check \
 	    --declarations $(AST_RENAME_DIR)/declarations.tsv \
 	    --substeps $(RENAME_SUBSTEPS) --substep $(SUBSTEP)
 
@@ -1310,7 +1312,7 @@ rename-strings-verify-test:
 
 rename-strings-verify:
 	@test -n "$(SUBSTEP)" || { echo "usage: make rename-strings-verify SUBSTEP=<3x>" >&2; exit 1; }
-	python3 tools/rename_strings_verify.py --table docs/renommage.tsv \
+	python3 tools/rename_strings_verify.py --table $(RENAME_TABLE) \
 	    --substeps $(RENAME_SUBSTEPS) --substep $(SUBSTEP) --root .
 
 scope-count-test:
@@ -1323,7 +1325,7 @@ scope-count:
 
 cryptic-locals:
 	python3 tools/scope_count.py --declarations $(AST_RENAME_DIR)/declarations.tsv \
-	    --root . --cryptic --table docs/renommage.tsv \
+	    --root . --cryptic --table $(RENAME_TABLE) \
 	    $(foreach m,$(MODULES),--module '$(m)') \
 	    $(if $(SUBSTEP),--substep $(SUBSTEP) --substeps $(RENAME_SUBSTEPS))
 
@@ -1331,7 +1333,7 @@ cart-citations-test:
 	python3 tests/test_cart_citations.py
 
 cart-citations:
-	python3 tools/cart_citations.py --table docs/renommage.tsv --root . \
+	python3 tools/cart_citations.py --table $(RENAME_TABLE) --root . \
 	    $(foreach m,$(MODULES),--module '$(m)') \
 	    $(if $(SUBSTEP),--substep $(SUBSTEP) --substeps $(RENAME_SUBSTEPS))
 
@@ -1347,12 +1349,12 @@ french-guard:
 	python3 tools/french_count.py --root . --exceptions tools/french_exceptions.txt --check
 
 old-names-guard:
-	python3 tools/rename_count.py --table docs/renommage.tsv --root . --part text --check
+	python3 tools/rename_count.py --table $(RENAME_TABLE) --root . --part text --check
 
 # Both counts run whatever the first returns; the status is the last failure.
 ast-guard: rename-extract
 	status=0; \
-	python3 tools/rename_count.py --table docs/renommage.tsv \
+	python3 tools/rename_count.py --table $(RENAME_TABLE) \
 	    --occurrences $(AST_RENAME_DIR)/occurrences.tsv --root . --part ast --check || status=$$?; \
 	python3 tools/scope_count.py --declarations $(AST_RENAME_DIR)/declarations.tsv \
 	    --exceptions tools/scope_exceptions.txt --root . --check || status=$$?; \
