@@ -1,10 +1,9 @@
 /* tools/composition_residue.sh, the body of `make composition-residue`, on
  * a mini-tree built here.
  * The script reads tests/: each fixture token is split into two literals
- * (`"get" "_pos"`, `"n" "u"`), or this file would enter the residue it
- * measures. Nor does it carry any token of tools/data_residue.sh, whose
- * guarded categories `make test` (data-guard) keeps at zero over src/ and
- * tests/. */
+ * (`"get" "_pos"`), or this file would enter the residue it measures. Nor
+ * does it carry any token of tools/data_residue.sh, whose guarded
+ * categories `make test` (data-guard) keeps at zero over src/ and tests/. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -80,12 +79,8 @@ static void test_clean_tree_prints_only_the_empty_footer(void) {
 
 static void test_one_occurrence_per_category_in_table_order(void) {
     setup();
-    write_file(SRC "/c1.c", "if (pico8_" "qh_of(pt) != 0) {}\n");
+    write_file(SRC "/c1.c", "if (emitter" "_of(pt) != 0) {}\n");
     write_file(SRC "/c2.c", "int r = self->get" "_pos(self);\n");
-    write_file(SRC "/c3.c", "self->rr = pico8_" "nl_start.rr;\n");
-    write_file(SRC "/c4.c", "return self->n" "u;\n");
-    write_file(TST "/c5.c", "hp_" "pose(self, p);\n");
-    write_file(TST "/c6.c", "e->pk_" "is_bool = 1;\n");
     write_file(SRC "/engine/entity_class.h", "#include \"game/" "game_data.h\"\n");
     write_file(SRC "/e.h", "typedef struct {\n    entity" "_t header;\n    pointer_" "list_t *oe;\n} pico8_"
                            "jo_t;\n");
@@ -102,18 +97,13 @@ static void test_one_occurrence_per_category_in_table_order(void) {
     assert(strcmp(read_file(OUT), "parent\t1\t1\n"
                                   "parent-link\t1\t1\n"
                                   "header-accessors\t1\t1\n"
-                                  "defaults\t1\t1\n"
-                                  "n" "u\t1\t1\n"
-                                  "name-dispatch\t1\t1\n"
-                                  "one-or-false\t1\t1\n"
-                                  "void-ptr\t1\t1\n"
                                   "void-self\t1\t1\n"
                                   "entity-ptrs\t1\t1\n"
                                   "core-includes\t1\t1\n"
                                   "reachability-to-prove\t1\t1\n"
                                   "mutual-inclusion\t1\t2\n"
                                   "mutual-usage\t1\t2\n"
-                                  "residue 2: 15 line(s), 15 file(s)\n") == 0);
+                                  "residue 2: 11 line(s), 11 file(s)\n") == 0);
 }
 
 static void test_other_witnesses_of_each_pattern_bite(void) {
@@ -129,26 +119,10 @@ static void test_other_witnesses_of_each_pattern_bite(void) {
     setup();
     write_file(SRC "/w.c", "int a = pico8_jo_get" "_fold_anchor(self);\n"
                            "int b = X_get" "_is_dead(self);\n"
-                           "pico8_jo_set" "_is_hovered(self, v);\n"
-                           "pico8_" "nl_start_t s;\n"
-                           "pico8_" "jo_kw_start;\n");
+                           "pico8_jo_set" "_is_hovered(self, v);\n");
     assert(run_residue(TREE) == 0);
     assert(strcmp(read_file(OUT), "header-accessors\t3\t1\n"
-                                  "defaults\t2\t1\n"
-                                  "residue 2: 5 line(s), 1 file(s)\n") == 0);
-    setup();
-    write_file(SRC "/w.c", "extern const str_seq_t pico8_nl_n" "u_tags;\n"
-                           "int k = x_n" "u_items;\n"
-                           "if (pico8_ho_" "gp_has(self->g" "p, name)) {}\n"
-                           "q = pico8_hp_" "mr_names;\n"
-                           "q = self.m" "r;\n"
-                           "hp_" "ho(self);\n"
-                           "self->probe->fp_" "is_bool = 1;\n");
-    assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "n" "u\t2\t1\n"
-                                  "name-dispatch\t4\t1\n"
-                                  "one-or-false\t1\t1\n"
-                                  "residue 2: 7 line(s), 1 file(s)\n") == 0);
+                                  "residue 2: 3 line(s), 1 file(s)\n") == 0);
     setup();
     write_file(SRC "/engine/entity.h", "#include \"game/" "map_tables.h\"\n");
     write_file(SRC "/engine/entity_registry.h", "#include \"game/" "data_init.h\"\n");
@@ -163,34 +137,15 @@ static void test_named_false_positives_do_not_bite(void) {
     assert_alone_is_empty(SRC "/f.c", "int budget_pos;\n");
     assert_alone_is_empty(SRC "/f.c", "int get_posa;\n");
     assert_alone_is_empty(SRC "/f.c", "int get_pos_x;\n");
-    assert_alone_is_empty(SRC "/f.c", "int run_start;\n");
-    assert_alone_is_empty(SRC "/f.c", "int number;\n");
-    assert_alone_is_empty(SRC "/f.c", "number(e, 1);\n");
-    assert_alone_is_empty(TST "/f.c", "\"pico8_jo_" "default(\\\"n" "u\\\", &k);\\n\"\n");
-    assert_alone_is_empty(SRC "/f.c", "int mr = 0;\n");
-    assert_alone_is_empty(SRC "/f.c", "self->resource_is_bool = 0;\n");
-    assert_alone_is_empty(SRC "/f.c", "self->background_is_bool = 0;\n");
-    assert_alone_is_empty(SRC "/f.c", "k.side_tooltip_is_false = 1;\n");
     assert_alone_is_empty(SRC "/engine/entity_class.h", "#include \"engine/vec.h\"\n");
     assert_alone_is_empty(SRC "/pico8_planet.h", "#include \"game/" "game_data.h\"\n");
 }
 
-static void test_exclusions_edit_the_text_not_the_whole_line(void) {
-    setup();
-    write_file(SRC "/x.c", "if (entity_" "state_of(me) && pico8_" "qh_of(pt)) {}\n");
-    write_file(TST "/x.c", "\"k(\\\"n" "u\\\")\" ; q = self->n" "u;\n");
-    assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "parent-link\t1\t1\n"
-                                  "n" "u\t1\t1\n"
-                                  "residue 2: 2 line(s), 2 file(s)\n") == 0);
-}
-
 static void test_overlapping_categories_count_each_but_footer_counts_distinct_lines(void) {
     setup();
-    write_file(SRC "/o.h", "const str_seq_t *pico8_jo_get" "_n" "u(const void *" "self);\n");
+    write_file(SRC "/o.h", "int planet_get" "_pos(const void *" "self);\n");
     assert(run_residue(TREE) == 0);
     assert(strcmp(read_file(OUT), "header-accessors\t1\t1\n"
-                                  "n" "u\t1\t1\n"
                                   "void-self\t1\t1\n"
                                   "residue 2: 1 line(s), 1 file(s)\n") == 0);
 }
@@ -524,35 +479,6 @@ static void test_registries_sees_split_braces_unions_and_attributes(void) {
                                   "guarded residue (registries): 13 line(s)\n") == 0);
 }
 
-static void test_void_ptr_reads_joined_public_prototypes(void) {
-    setup();
-    write_file(SRC "/v.h", "particle_t *pico8_" "g__mm(void *" "self);\n"
-                           "const void *pico8_" "ha_pz(void);\n"
-                           "int pico8_" "two(int a,\n"
-                           "    void *b);\n");
-    assert(run_residue("--check void-ptr " TREE) == 1);
-    assert(strcmp(read_file(OUT), "void-ptr: " SRC "/v.h:1:particle_t *pico8_" "g__mm(void *" "self);\n"
-                                  "void-ptr: " SRC "/v.h:2:const void *pico8_" "ha_pz(void);\n"
-                                  "void-ptr: " SRC "/v.h:3:int pico8_" "two(int a,\n"
-                                  "guarded residue (void-ptr): 3 line(s)\n") == 0);
-    setup();
-    write_file(SRC "/v.h", "void pico8_" "ei_dispatch(void *" "self, int x);\n"
-                           "int pico8_jo_get" "_fold_anchor(const void *" "self);\n"
-                           "pointer_list_t collect_" "filter_pointer_list(int a, void *ctx);\n"
-                           "void pico8_" "gn(int a, void *r_ctx);\n"
-                           "typedef int pico8_" "fn(void *e);\n"
-                           "typedef struct {\n    void (*kj)(void *" "self, int x);\n    void *(*new_entity)(void *k);\n} k_t;\n");
-    write_file(SRC "/engine/pointer_list.h", "void pointer_" "list_add(pointer_list_t *p, void *e);\n");
-    write_file(SRC "/p.c", "void pico8_" "x(void *e);\n");
-    write_file(SRC "/i.h", "static inline int f(int x) {\nreturn pico8_" "g((void *)0) + x;\n}\n");
-    assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "header-accessors\t1\t1\n"
-                                  "void-ptr\t1\t1\n"
-                                  "void-self\t3\t1\n"
-                                  "registries\t1\t1\n"
-                                  "residue 2: 4 line(s), 1 file(s)\n") == 0);
-}
-
 /* An untyped receiver of a game object: member, typedef, definition,
  * local, const around the star, in src/ as in tests/. Named limit: a
  * `void *` of another name (the two parameters of step) is not read. */
@@ -576,16 +502,18 @@ static void test_void_self_sees_every_untyped_receiver(void) {
                                   "guarded residue (void-self): 6 line(s)\n") == 0);
 }
 
-static void test_detail_prints_r2_sites_under_void_ptr_and_the_info_line(void) {
+static void test_detail_prints_r2_sites_after_header_accessors_and_the_info_line(void) {
     setup();
     write_file(RESIDUE_2_SITES, "pico8_" "f\tsrc/x.c\tupstream(void *" "self)\tproof\n");
     write_file(SRC "/game/game_data.h", "int a;\nint b;\n");
-    write_file(SRC "/v.h", "void pico8_" "g(void *e);\n");
+    write_file(SRC "/a.c", "int x = planet_get" "_pos(planet);\n");
+    write_file(SRC "/s.h", "void planet_draw(void *" "self);\n");
     assert(run_residue("--detail " TREE) == 0);
-    assert(strcmp(read_file(OUT), "void-ptr\t" SRC "/v.h\t1\n"
+    assert(strcmp(read_file(OUT), "header-accessors\t" SRC "/a.c\t1\n"
                                   "void-ptr-r2\tpico8_" "f\tupstream(void *" "self)\n"
+                                  "void-self\t" SRC "/s.h\t1\n"
                                   "info\t" SRC "/game/game_data.h\t2 lines\n"
-                                  "residue 2: 1 line(s), 1 file(s)\n") == 0);
+                                  "residue 2: 2 line(s), 2 file(s)\n") == 0);
 }
 
 static void test_attainment_list_counts_only_useful_lines(void) {
@@ -686,12 +614,12 @@ static void test_usage_pairs_read_a_static_inline_of_a_header(void) {
 
 static void test_detail_sorts_by_category_then_file(void) {
     setup();
-    write_file(SRC "/b.c", "q = pico8_" "qh_of(b);\n");
-    write_file(SRC "/a.c", "q = pico8_" "qh_of(a);\nq = pico8_" "qh_of(a);\ne->pk_" "is_bool = 0;\n");
+    write_file(SRC "/b.c", "q = emitter" "_of(b);\n");
+    write_file(SRC "/a.c", "q = emitter" "_of(a);\nq = emitter" "_of(a);\nint x = planet_get" "_pos(a);\n");
     assert(run_residue("--detail " TREE) == 0);
     const char *expected = "parent-link\t" SRC "/a.c\t2\n"
                            "parent-link\t" SRC "/b.c\t1\n"
-                           "one-or-false\t" SRC "/a.c\t1\n"
+                           "header-accessors\t" SRC "/a.c\t1\n"
                            "residue 2: 4 line(s), 2 file(s)\n";
     assert(strcmp(read_file(OUT), expected) == 0);
     assert(system("cp " OUT " " DIR "/one.txt") == 0);
@@ -701,19 +629,32 @@ static void test_detail_sorts_by_category_then_file(void) {
 
 static void test_check_fails_only_on_a_named_category_present(void) {
     setup();
-    write_file(SRC "/r.c", "int a;\ne->fp_" "is_bool = 1;\n");
-    assert(run_residue("--check one-or-false " TREE) == 1);
+    write_file(SRC "/r.c", "int a;\nq = emitter" "_of(self);\n");
+    assert(run_residue("--check parent-link " TREE) == 1);
     const char *out = read_file(OUT);
-    assert(strstr(out, "one-or-false: " SRC "/r.c:2:e->fp_" "is_bool = 1;\n") != NULL);
-    assert(strstr(out, "guarded residue (one-or-false): 1 line(s)\n") != NULL);
-    assert(run_residue("--check defaults " TREE) == 0);
-    assert(strcmp(read_file(OUT), "guarded residue (defaults): 0 line(s)\n") == 0);
-    assert(run_residue("--check defaults,one-or-false " TREE) == 1);
+    assert(strstr(out, "parent-link: " SRC "/r.c:2:q = emitter" "_of(self);\n") != NULL);
+    assert(strstr(out, "guarded residue (parent-link): 1 line(s)\n") != NULL);
+    assert(run_residue("--check header-accessors " TREE) == 0);
+    assert(strcmp(read_file(OUT), "guarded residue (header-accessors): 0 line(s)\n") == 0);
+    assert(run_residue("--check header-accessors,parent-link " TREE) == 1);
     assert(run_residue("--check nope " TREE) == 2);
     assert(strstr(read_file(ERR), "nope") != NULL);
     assert(run_residue("--check '' " TREE) == 2);
-    assert(run_residue("--check defaults,,one-or-false " TREE) == 2);
+    assert(run_residue("--check header-accessors,,parent-link " TREE) == 2);
     assert(run_residue("--check") == 2);
+}
+
+static void test_retired_categories_are_unknown(void) {
+    static const char *const retired[] = {"defaults", "n" "u", "name-dispatch", "one-or-false", "void-ptr"};
+    for (size_t i = 0; i < sizeof retired / sizeof retired[0]; i++) {
+        char args[256];
+        char message[256];
+        setup();
+        snprintf(args, sizeof args, "--check %s " TREE, retired[i]);
+        snprintf(message, sizeof message, "unknown category: %s\n", retired[i]);
+        assert(run_residue(args) == 2);
+        assert(strstr(read_file(ERR), message) != NULL);
+    }
 }
 
 static void test_measure_on_nothing_is_an_error_not_an_empty_residue(void) {
@@ -723,13 +664,13 @@ static void test_measure_on_nothing_is_an_error_not_an_empty_residue(void) {
     assert(system("mkdir -p " DIR "/bare && echo x > " DIR "/bare/notes.txt") == 0);
     assert(run_residue(DIR "/bare") == 2);
     assert(strstr(read_file(OUT), "residue 2: 0") == NULL);
-    assert(run_residue("--check defaults " DIR "/bare") == 2);
+    assert(run_residue("--check parent-link " DIR "/bare") == 2);
     assert(run_residue("--bogus " TREE) == 2);
     setup();
     assert(system("rm " ATT) == 0);
     assert(run_residue(TREE) == 2);
     assert(strstr(read_file(OUT), "residue 2: 0") == NULL);
-    assert(run_residue("--check defaults " TREE) == 2);
+    assert(run_residue("--check parent-link " TREE) == 2);
     setup();
     assert(system("rm " RESIDUE_2_SITES) == 0);
     assert(run_residue("--detail " TREE) == 2);
@@ -744,7 +685,6 @@ static void test_fields_counts_writes_and_writes_outside_constructors(void) {
     write_file(TST "/fake.h", "typedef struct {\n    entity_" "root_t ke;\n    int z;\n} fake_t;\n");
     write_file(SRC "/e.c", "void planet_init_instance(pico8_" "jo_t *self,\n"
                            "                          int k) {\n"
-                           "    self->a = pico8_" "jo_start.a;\n"
                            "    self->b = 1;\n"
                            "}\n"
                            "static void planet_new_year(pico8_" "jo_t *self) {\n"
@@ -846,13 +786,6 @@ static const liveness_row_t LIVENESS[] = {
 
 #define LIVENESS_ROWS (sizeof LIVENESS / sizeof LIVENESS[0])
 
-static const char *const CATEGORIES_WITHOUT_LIVENESS[] = {
-    "one-or-false", "name-dispatch", "n" "u", "defaults", "void-ptr",
-};
-
-#define CATEGORIES_WITHOUT_LIVENESS_COUNT \
-    (sizeof CATEGORIES_WITHOUT_LIVENESS / sizeof CATEGORIES_WITHOUT_LIVENESS[0])
-
 static void test_each_guarded_category_bites_on_its_planted_violation(void) {
     int red = 0;
     for (size_t i = 0; i < LIVENESS_ROWS; i++) {
@@ -913,15 +846,13 @@ static void test_liveness_rows_are_exactly_the_guarded_categories(void) {
     }
     size_t guarded = 0;
     for (char *name = strtok(guard, ","); name != NULL; name = strtok(NULL, ",")) {
-        int row = in_list(name, rows, LIVENESS_ROWS);
-        int without = in_list(name, CATEGORIES_WITHOUT_LIVENESS, CATEGORIES_WITHOUT_LIVENESS_COUNT);
-        if (row == without) {
+        if (!in_list(name, rows, LIVENESS_ROWS)) {
             fprintf(stderr, "liveness table: %s\n", name);
         }
-        assert(row != without && "guarded category without exactly one liveness status");
+        assert(in_list(name, rows, LIVENESS_ROWS) && "guarded category without a liveness row");
         guarded++;
     }
-    assert(guarded == LIVENESS_ROWS + CATEGORIES_WITHOUT_LIVENESS_COUNT);
+    assert(guarded == LIVENESS_ROWS);
 }
 
 int main(void) {
@@ -932,7 +863,6 @@ int main(void) {
     test_other_witnesses_of_each_pattern_bite();
     test_accessors_bite_on_every_header_field_name();
     test_named_false_positives_do_not_bite();
-    test_exclusions_edit_the_text_not_the_whole_line();
     test_overlapping_categories_count_each_but_footer_counts_distinct_lines();
     test_entity_reader_finds_embedded_parents_by_closure();
     test_entity_reader_ignores_what_is_not_an_embedded_parent();
@@ -943,15 +873,15 @@ int main(void) {
     test_pointer_list_entity_keeps_one_line_number_in_two_files();
     test_readers_see_qualifiers_split_declarations_and_nested_attributes();
     test_registries_sees_split_braces_unions_and_attributes();
-    test_void_ptr_reads_joined_public_prototypes();
     test_void_self_sees_every_untyped_receiver();
-    test_detail_prints_r2_sites_under_void_ptr_and_the_info_line();
+    test_detail_prints_r2_sites_after_header_accessors_and_the_info_line();
     test_attainment_list_counts_only_useful_lines();
     test_mutual_inclusion_counts_its_include_lines_in_the_footer();
     test_usage_pairs_see_a_detour_not_a_shared_name_nor_a_comment();
     test_usage_pairs_read_a_static_inline_of_a_header();
     test_detail_sorts_by_category_then_file();
     test_check_fails_only_on_a_named_category_present();
+    test_retired_categories_are_unknown();
     test_measure_on_nothing_is_an_error_not_an_empty_residue();
     test_fields_counts_writes_and_writes_outside_constructors();
     assert(system("rm -rf " DIR) == 0);

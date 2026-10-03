@@ -18,7 +18,7 @@
 #               FOOTER_CATEGORIES); exit 0 whatever the count.
 #   --detail  : `<cat>\t<file>\t<lines>` per nonzero couple,
 #               `<cat>\t<module>\t<module>` per pair of mutual-inclusion
-#               and of mutual-usage; under void-ptr, the
+#               and of mutual-usage; after header-accessors, the
 #               `void-ptr-r2\t<function>\t<upstream>` lines of the
 #               COMPOSITION_R2 list; the `info\t<file>\tN lines` line of
 #               game/game_data.h when it is read; then the same footer;
@@ -34,10 +34,9 @@
 #               `fields: N; no write: K; no write outside a constructor: M`;
 #               exit 0. A write is a line of a `.c` file outside
 #               tests/ that assigns, increments or decrements
-#               `(->|.)<member>`, once a copy of the default
-#               `pico8_X_start.<member>` is removed; it is outside a
-#               constructor unless it sits in a function whose name ends
-#               with `_new`, `_init`, `_create` or `_init_instance`.
+#               `(->|.)<member>`; it is outside a constructor unless it
+#               sits in a function whose name ends with `_new`, `_init`,
+#               `_create` or `_init_instance`.
 #               Searched by name: an upper bound, since a short member
 #               counts for all its types.
 # Without option, an empty residue prints no category line and the footer
@@ -49,10 +48,10 @@
 
 set -u
 
-CATEGORIES="parent parent-link header-accessors defaults nu name-dispatch one-or-false void-ptr void-self entity-ptrs registries core-includes reachability-to-prove mutual-inclusion mutual-usage"
+CATEGORIES="parent parent-link header-accessors void-self entity-ptrs registries core-includes reachability-to-prove mutual-inclusion mutual-usage"
 
 # Categories counted in the footer.
-FOOTER_CATEGORIES="parent parent-link header-accessors defaults nu name-dispatch one-or-false void-ptr void-self entity-ptrs registries core-includes reachability-to-prove mutual-inclusion mutual-usage"
+FOOTER_CATEGORIES="parent parent-link header-accessors void-self entity-ptrs registries core-includes reachability-to-prove mutual-inclusion mutual-usage"
 
 fail() {
     echo "composition_residue: $1" >&2
@@ -61,28 +60,11 @@ fail() {
 
 pattern() {
     case $1 in
-        parent-link) printf '%s\n' '\bpico8_[a-z0-9_]+_of\b|\b[a-z0-9_]*(emitter|probe)_of\b|(->|\.|\(\*)parent\b' ;;
+        parent-link) printf '%s\n' '\b[a-z0-9_]*(emitter|probe)_of\b|(->|\.|\(\*)parent\b' ;;
         header-accessors) printf '%s\n' '(\b|_)(get_(nu|layer|pos|map_pos|hit_box|cursor_sprite|gpio_signal|infraspace|fold_anchor|is_dead)|set_is_hovered)\b' ;;
-        defaults) printf '%s\n' '\bpico8_[a-z0-9_]+_start(_t)?\b' ;;
-        nu) printf '%s\n' '\bnu\b|get_nu\b|_nu_(tags|items)\b' ;;
-        name-dispatch) printf '%s\n' '\bhp_(pose|ho)\b|\bpico8_ho_gp_has\b|\bpico8_hp_(mr|gp)_names\b|(->|\.)(mr|gp)\b' ;;
-        one-or-false) printf '%s\n' '\b(pk|fp)_is_bool\b' ;;
         void-self) printf '%s\n' '\bvoid[[:space:]]*\*[[:space:]]*(const[[:space:]]+)?self' ;;
         core-includes) printf '%s\n' '^#include "game/(game_data|map_tables|data_init)\.h"' ;;
         *) return 1 ;;
-    esac
-}
-
-# entity_state_of maps a state name to its index: it is not a lineage.
-PARENT_LINK_EXCLUSION='s/entity_state_of//g'
-# The escaped "nu" of a fixture of tests/test_data_residue.c is a test
-# string, not the field. Its escaped quotes delimit the word: no `\b` here.
-NU_EXCLUSION='s/\\"nu\\"//g'
-
-exclusion() {
-    case $1 in
-        parent-link) printf '%s\n' "$PARENT_LINK_EXCLUSION" ;;
-        nu) printf '%s\n' "$NU_EXCLUSION" ;;
     esac
 }
 
@@ -90,10 +72,6 @@ exclusion() {
 # (self_ptr included), on a line that declares it: member, typedef,
 # prototype, definition, local; const is read around the star. A `void *`
 # of another name is not read.
-
-# The `void *ctx` of the walks carries a context, not an entity. This sed
-# needs GNU sed for `\b`, like the grep calls of the script.
-VOID_EXCLUSION='s/void \*+(r_)?ctx\b//g'
 
 # entity-ptrs: the members of an entity type that registries would count
 # outside an entity type (REG_TYPES by token, `void **`, `void *[N]`, a
@@ -409,46 +387,10 @@ read_structs() {
     }' $(cat "$work/files") || fail "awk failed"
 }
 
-# Prototype reader: in the headers, a declaration of top level, joined up
-# to its ";", counted at its first line. A member of a struct (method
-# table, new_entity) is not of top level.
-read_prototypes() {
-    sep=$(printf '\001')
-    grep -E '\.h$' "$work/files" | grep -v '/engine/pointer_list\.h$' | grep -v '^engine/pointer_list\.h$' > "$work/headers" || true
-    : > "$work/void-ptr"
-    [ -s "$work/headers" ] || return 0
-    awk -v sep="$sep" "$CLEAN_AWK"'
-    FNR == 1 { depth = 0; incomment = 0; acc = "" }
-    {
-        c = clean($0)
-        if (acc == "" && depth == 0 && $0 ~ /^[a-z]/) { start = FNR; text = $0; acc = " " }
-        if (acc != "") {
-            acc = acc " " c
-            if (acc ~ /[;{]/) {
-                if (acc !~ /\{/ || index(acc, ";") < index(acc, "{"))
-                    print FILENAME ":" start ":" text sep acc
-                acc = ""
-            }
-        }
-        braces(c)
-    }' $(cat "$work/headers") > "$work/protos" || fail "awk failed"
-    cut -d"$sep" -f1 "$work/protos" > "$work/protos.where"
-    cut -d"$sep" -f2- "$work/protos" | sed -E "$VOID_EXCLUSION" > "$work/protos.text" || fail "sed failed"
-    paste -d"$sep" "$work/protos.where" "$work/protos.text" | awk -F"$sep" '
-    {
-        t = $2
-        if (t ~ /^[ \t]*typedef/ || index(t, "void *") == 0) next
-        if (!match(t, /(^|[^A-Za-z0-9_])pico8_[a-z0-9_]+\(/)) next
-        name = substr(t, RSTART, RLENGTH - 1); sub(/^[^p]*/, "", name)
-        if (name ~ /_get_[a-z0-9_]+$/) next
-        print $1
-    }' > "$work/void-ptr" || fail "awk failed"
-}
-
 # registries, continued: pointer_list_t objects of file scope of the `.c`
 # files and prototypes of the headers (outside engine/pointer_list.h),
-# outside tests/, joined like those of void-ptr; a name of
-# REGISTRIES_EXEMPT is exempt.
+# outside tests/, each declaration joined up to its `;`, `{` or `=` and
+# counted at its first line; a name of REGISTRIES_EXEMPT is exempt.
 read_registries() {
     [ -f "$work/parent" ] || read_structs
     : > "$work/registries.decl"
@@ -539,7 +481,7 @@ read_usages() {
         return m
     }
     function declare(h, x) {
-        if (x == "" || x == "PICO8" || x == "PICO8_" || x ~ /^__/ || ((x, h) in seen)) return
+        if (x == "" || x ~ /^__/ || ((x, h) in seen)) return
         seen[x, h] = 1; nown[x]++; own[x] = h
     }
     function declare_all(    h, t, m, x) {
@@ -619,15 +561,12 @@ read_usages() {
 
 # Writes to $work/<cat> the "<file>:<line>:<text>" lines, in the order of
 # the files then of the lines. grep returns 1 when nothing matches.
-# An exclusion is a sed on the text, never a filter on the whole line:
-# a filter would hide a real occurrence next to it.
 collect() {
     case $1 in
         parent | entity-ptrs)
             [ -f "$work/parent" ] || read_structs
             sort -t: -k1,1 -k2,2n "$work/$1" > "$work/sorted" && mv "$work/sorted" "$work/$1"
             return 0 ;;
-        void-ptr) read_prototypes; return 0 ;;
         registries) read_registries; return 0 ;;
         mutual-inclusion) read_inclusions; return 0 ;;
         mutual-usage) read_usages; return 0 ;;
@@ -643,31 +582,15 @@ collect() {
     : > "$work/$1"
     [ -s "$list" ] || return 0
     status=0
-    excl=$(exclusion "$1")
-    if [ -z "$excl" ]; then
-        grep -HnE "$(pattern "$1")" $(cat "$list") > "$work/$1" || status=$?
-        [ "$status" -le 1 ] || fail "grep failed"
-        return 0
-    fi
-    grep -lE "$(pattern "$1")" $(cat "$list") > "$work/candidates" || status=$?
+    grep -HnE "$(pattern "$1")" $(cat "$list") > "$work/$1" || status=$?
     [ "$status" -le 1 ] || fail "grep failed"
-    while IFS= read -r file; do
-        status=0
-        sed -E "$excl" "$file" > "$work/excluded" || fail "sed failed"
-        grep -nE "$(pattern "$1")" "$work/excluded" > "$work/numbers" || status=$?
-        [ "$status" -le 1 ] || fail "grep failed"
-        cut -d: -f1 "$work/numbers" > "$work/numbers.cut"
-        awk -v f="$file" 'NR == FNR { keep[$1] = 1; next } FNR in keep { print f ":" FNR ":" $0 }' \
-            "$work/numbers.cut" "$file" >> "$work/$1"
-    done < "$work/candidates"
 }
 
 # The function of a line is the last definition of top level, its
 # signature joined up to its final "{", closed by the "}" of the first
-# column. Outside any function (an initializer of file scope, the
-# `pico8_X_start` defaults included), a write is outside a constructor:
-# the report is an upper bound, it does not declare constant what an
-# initializer writes.
+# column. Outside any function (an initializer of file scope), a write is
+# outside a constructor: the report is an upper bound, it does not declare
+# constant what an initializer writes.
 fields() {
     read_structs
     sort -u "$work/members" > "$work/members.sorted"
@@ -693,10 +616,8 @@ fields() {
             rest = substr(rest, RSTART + RLENGTH)
             if (!(m in want) || (m in done)) continue
             done[m] = 1
-            s = line
-            gsub("=[ \t]*pico8_[a-z0-9_]+_start\\." m "([^A-Za-z0-9_]|$)", " ", s)
-            if (s ~ ("(->|\\.)" m "[ \t]*(=[^=]|\\+=|-=|\\*=|/=|\\+\\+|--)") ||
-                s ~ ("(\\+\\+|--)[A-Za-z0-9_>.()-]*(->|\\.)" m "([^A-Za-z0-9_]|$)")) {
+            if (line ~ ("(->|\\.)" m "[ \t]*(=[^=]|\\+=|-=|\\*=|/=|\\+\\+|--)") ||
+                line ~ ("(\\+\\+|--)[A-Za-z0-9_>.()-]*(->|\\.)" m "([^A-Za-z0-9_]|$)")) {
                 w[m]++
                 if (fn !~ /(_new|_init|_create|_init_instance)$/) h[m]++
             }
@@ -753,7 +674,7 @@ for cat in $CATEGORIES; do
             printf '%s\t%s\t%s\n' "$cat" "$lines" "$files"
         fi
     fi
-    if [ "$mode" = detail ] && [ "$cat" = void-ptr ]; then
+    if [ "$mode" = detail ] && [ "$cat" = header-accessors ]; then
         grep -E '^[^#[:space:]]' "$R2" | awk -F'\t' '{ print "void-ptr-r2\t" $1 "\t" $3 }'
     fi
 done
