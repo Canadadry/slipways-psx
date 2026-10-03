@@ -146,7 +146,7 @@ static void score_panel_update_set(score_row_t *st, int i, data_item_t item) {
  * for scores 0 and 6), then becomes the line of a draw_row article. */
 static const data_row_t *score_panel_update_map(score_row_t *score_row, const score_panel_update_ctx_t *context) {
     int score_i;
-    char *s_str;
+    char *score_text;
     layout_row_cell_t items[5];
     layout_row_keys_t keys = {0};
     layout_row_t *layout_row_inst;
@@ -159,8 +159,8 @@ static const data_row_t *score_panel_update_map(score_row_t *score_row, const sc
 
     score_i = score_row->entry->score;
 
-    s_str = score_panel_final_score_text(context->final_score, score_i);
-    score_panel_update_set(score_row, 3, (data_item_t){.text = s_str});
+    score_text = score_panel_final_score_text(context->final_score, score_i);
+    score_panel_update_set(score_row, 3, (data_item_t){.text = score_text});
 
     if (score_i == 0) {
         const economy_t *fm = main_economy_typed();
@@ -264,7 +264,7 @@ void score_panel_update(score_panel_t *self) {
     }
 
     {
-        int c_truthy = self != NULL && self->has_is_shown && self->is_shown;
+        int is_shown = self != NULL && self->has_is_shown && self->is_shown;
         int last_box_equals_shown_message_box = 0;
 
         /* A NULL last_box is the class default, the number 1, which is never
@@ -274,7 +274,7 @@ void score_panel_update(score_panel_t *self) {
             last_box_equals_shown_message_box = self->last_box != NULL && shown_message_box() == self->last_box;
         }
 
-        if (c_truthy && !last_box_equals_shown_message_box) {
+        if (is_shown && !last_box_equals_shown_message_box) {
             final_score_t s = economy_score_final();
             score_row_t *bz = score_panel_rows();
             score_panel_update_ctx_t ctx;

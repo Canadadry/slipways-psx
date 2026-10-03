@@ -1532,3 +1532,5 @@ name	g_pj_hk_lh_t	g_score_panel_new_year_keep_open	pj
 name	g_fake_ph_last_t	g_fake_update_last	ph
 name	test_dg_drives_a_ke_struct	test_update_entities_drives_an_entity_struct	dg
 name	PICO8_BO_ROW_CAP	HELP_DIFFICULTY_OPTIONS_ROW_CAP	
+identity	c:score_panel_display.c@9520@F@score_panel_update@c_truthy	is_shown	
+identity	c:score_panel_display.c@4918@F@score_panel_update_map@s_str	score_text	

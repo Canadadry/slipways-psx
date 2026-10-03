@@ -5254,7 +5254,7 @@ pico8_pj_ph_set	score_panel_update_set	src/game/score_panel_display.c	identifian
 pico8_score_panel_display_init	score_panel_display_init	src/game/score_panel_display.c	identifiant	fonction	renommé	game/score_panel_display			c:@F@pico8_score_panel_display_init
 pico8_score_panel_display_shutdown	score_panel_display_shutdown	src/game/score_panel_display.c	identifiant	fonction	renommé	game/score_panel_display			c:@F@pico8_score_panel_display_shutdown
 bz	bz	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@8624@F@pico8_pj_ph@bz
-c_truthy	c_truthy	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@8104@F@pico8_pj_ph@c_truthy
+c_truthy	is_shown	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@9520@F@score_panel_update@c_truthy
 ctx	ctx	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@8672@F@pico8_pj_ph@ctx
 dk	dk	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@4708@F@pico8_pj_ph_map@dk
 ed_equals_kc	last_box_equals_shown_message_box	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display	mh		c:score_panel_display.c@8161@F@pico8_pj_ph@ed_equals_kc
@@ -5297,7 +5297,7 @@ px	px	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_pan
 ra1	first_line_pos	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@6909@F@pico8_pj_ph@ra1
 ra2	second_line_pos	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@6992@F@pico8_pj_ph@ra2
 s	s	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@8585@F@pico8_pj_ph@s
-s_str	s_str	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@4189@F@pico8_pj_ph_map@s_str
+s_str	score_text	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@4918@F@score_panel_update_map@s_str
 score_i	score_i	src/game/score_panel_display.c	identifiant	locale	conservé	game/score_panel_display			c:score_panel_display.c@4172@F@pico8_pj_ph_map@score_i
 spec1	restart_keys	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@7615@F@score_panel_update@spec1
 spec2	toggle_keys	src/game/score_panel_display.c	identifiant	locale	renommé	game/score_panel_display			c:score_panel_display.c@7650@F@score_panel_update@spec2
