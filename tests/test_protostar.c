@@ -291,7 +291,7 @@ static uint32_t fold_spawned(uint32_t h, void *e) {
 static uint32_t fold_protostar(uint32_t hash, void *entity) {
     const planet_t *ascension = as_ascension(entity);
     const planet_t *protostar;
-    const emitter_t *spacer = ascension->emitter;
+    const emitter_t *emitter = ascension->emitter;
     const planet_t *structure = ascension;
     const planet_t *planet = structure;
     size_t index;
@@ -307,16 +307,16 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     hash = fold_fixed_member(hash, structure->archetype->project_index);
     hash = fold_fixed_member(hash, structure->sprite);
     hash = fold_fixed_member(hash, structure->targeting->cost);
-    hash = fold_fixed_member(hash, spacer->speed_factor);
-    hash = fold_fixed_member(hash, spacer->archetype->lifetime);
-    hash = fold_fixed_member(hash, spacer->angle_slices);
+    hash = fold_fixed_member(hash, emitter->speed_factor);
+    hash = fold_fixed_member(hash, emitter->archetype->lifetime);
+    hash = fold_fixed_member(hash, emitter->angle_slices);
     hash = fold_quarter_turn(hash, ascension);
-    hash = fold_fixed_member(hash, spacer->archetype->spawn_rate);
-    hash = fold_fixed_member(hash, spacer->base_radius);
-    hash = fold_fixed_member(hash, spacer->matrix_xx);
-    hash = fold_fixed_member(hash, spacer->matrix_xy);
-    hash = fold_fixed_member(hash, spacer->matrix_yx);
-    hash = fold_fixed_member(hash, spacer->matrix_yy);
+    hash = fold_fixed_member(hash, emitter->archetype->spawn_rate);
+    hash = fold_fixed_member(hash, emitter->base_radius);
+    hash = fold_fixed_member(hash, emitter->matrix_xx);
+    hash = fold_fixed_member(hash, emitter->matrix_xy);
+    hash = fold_fixed_member(hash, emitter->matrix_yx);
+    hash = fold_fixed_member(hash, emitter->matrix_yy);
     hash = fold_string_member(hash, structure->targeting->archetype->confirmed_state);
     hash = fold_fixed_member(hash, structure->targeting->archetype->clock_ticks);
     hash = fold_fixed_member(hash, structure->targeting->archetype->attach_distance);
@@ -347,7 +347,7 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
-    hash = fnv(hash, (uint32_t)(spacer->particles != NULL));
+    hash = fnv(hash, (uint32_t)(emitter->particles != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(structure->archetype->name != NULL));
     hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != NULL));
@@ -389,7 +389,7 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     hash = fnv(hash, (uint32_t)(planet->outgoing_routes != NULL));
     hash = fnv(hash, (uint32_t)planet->has_development_tier);
     hash = fnv(hash, (uint32_t)(planet->is_hovered != 0));
-    assert(pointer_list_size(spacer->particles) == 0);
+    assert(pointer_list_size(emitter->particles) == 0);
     assert_structure_shape(class_of(entity));
     assert_members_of(class_of(entity), structure_class(), 0, 1);
     assert(class_of(entity)->attach_slipway == structure_class()->attach_slipway && class_of(entity)->offer_trade == structure_class()->offer_trade &&
@@ -397,9 +397,9 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     assert(class_of(entity)->spawn_particle == ascension_class()->spawn_particle && class_of(entity)->spawn_particle != NULL);
     assert(class_of(entity)->draw == ascension_class()->draw);
     assert(protostar->archetype->spawn_offset.x == p8_fixed_from_int(1) && protostar->archetype->spawn_offset.y == 0);
-    assert(planet->header.class->tags == (TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && structure->archetype->name == &protostar_name_row && spacer->trail_colors == &protostar_trail_colors_seq);
+    assert(planet->header.class->tags == (TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && structure->archetype->name == &protostar_name_row && emitter->trail_colors == &protostar_trail_colors_seq);
     assert(planet->header.class->tags != (TAG(TAG_ASCENSION) | TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)));
-    assert(spacer->trail_colors != &ascension_trail_colors_seq);
+    assert(emitter->trail_colors != &ascension_trail_colors_seq);
     assert(structure->archetype->accepted_resources == &structure_accepted_resources_seq);
     assert(planet->archetype == &protostar_archetype);
     assert(planet->archetype == &protostar_archetype);

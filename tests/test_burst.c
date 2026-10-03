@@ -302,20 +302,20 @@ static void *spawn(int x, int y, const char *id, void **protostar) {
  * and the messages, under no tag -- and the camera's shake. */
 static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     const planet_t *burst = as_burst(entity);
-    const emitter_t *spacer = burst->emitter;
+    const emitter_t *emitter = burst->emitter;
     const planet_t *planet = burst;
     int inner_index;
 
     assert(is_burst(entity));
     hash = fold_string_member(hash, burst->archetype->class_name);
     hash = fold_fixed_member(hash, planet->archetype->layer);
-    hash = fold_fixed_member(hash, spacer->archetype->spawn_rate);
-    hash = fold_fixed_member(hash, spacer->matrix_xx);
-    hash = fold_fixed_member(hash, spacer->matrix_xy);
-    hash = fold_fixed_member(hash, spacer->matrix_yx);
-    hash = fold_fixed_member(hash, spacer->matrix_yy);
+    hash = fold_fixed_member(hash, emitter->archetype->spawn_rate);
+    hash = fold_fixed_member(hash, emitter->matrix_xx);
+    hash = fold_fixed_member(hash, emitter->matrix_xy);
+    hash = fold_fixed_member(hash, emitter->matrix_yx);
+    hash = fold_fixed_member(hash, emitter->matrix_yy);
     hash = fold_fixed_member(hash, burst->acceleration_factor);
-    hash = fold_fixed_member(hash, spacer->speed_factor);
+    hash = fold_fixed_member(hash, emitter->speed_factor);
     hash = fold_fixed_member(hash, burst->speed);
     hash = fold_is_planet(hash, planet);
     hash = fold_string_member(hash, planet->header.state);
@@ -325,10 +325,10 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fold_is_dead(hash, planet);
     hash = fold_vec(hash, planet->pos);
     hash = fold_vec(hash, planet->map_pos);
-    hash = fnv(hash, (uint32_t)(spacer->trail_colors == NULL ? -1 : spacer->trail_colors->count));
+    hash = fnv(hash, (uint32_t)(emitter->trail_colors == NULL ? -1 : emitter->trail_colors->count));
     hash = fnv(hash, (uint32_t)tag_count(planet->header.class->tags));
     hash = fnv(hash, (uint32_t)entity_list_count(planet->outgoing_routes));
-    hash = fnv(hash, (uint32_t)pointer_list_size(spacer->particles));
+    hash = fnv(hash, (uint32_t)pointer_list_size(emitter->particles));
     hash = fnv(hash, (uint32_t)entity_list_count(planet->slipways));
     assert(main_camera_typed() != NULL);
     hash = fold_fixed_member(hash, main_camera_typed()->shake);
@@ -341,11 +341,11 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
-    hash = fnv(hash, (uint32_t)(spacer->trail_colors != NULL));
+    hash = fnv(hash, (uint32_t)(emitter->trail_colors != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
-    hash = fnv(hash, (uint32_t)(spacer->particles != NULL));
+    hash = fnv(hash, (uint32_t)(emitter->particles != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
@@ -396,10 +396,10 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     assert(planet->archetype == &burst_archetype);
     assert(planet->outgoing_routes != NULL);
     if (from_protostar) {
-        assert(spacer->trail_colors != &burst_trail_colors_seq);
-        assert(spacer->trail_colors != &protostar_trail_colors_seq);
+        assert(emitter->trail_colors != &burst_trail_colors_seq);
+        assert(emitter->trail_colors != &protostar_trail_colors_seq);
     } else {
-        assert(spacer->trail_colors == &burst_trail_colors_seq);
+        assert(emitter->trail_colors == &burst_trail_colors_seq);
     }
     assert(planet->archetype == &burst_archetype);
     assert(planet->production == planet_shared_production());

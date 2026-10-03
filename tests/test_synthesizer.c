@@ -305,7 +305,7 @@ static int synthesizable_resources_is_the_class_one(const void *e) {
 static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     const entity_class_t *ascension_cls = ascension_class();
     const planet_t *ascension = as_ascension(entity);
-    const emitter_t *spacer = ascension->emitter;
+    const emitter_t *emitter = ascension->emitter;
     const planet_t *structure = ascension;
     const planet_t *planet = structure;
     size_t index;
@@ -318,16 +318,16 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     hash = fold_fixed_member(hash, structure->archetype->project_index);
     hash = fold_fixed_member(hash, structure->sprite);
     hash = fold_fixed_member(hash, structure->targeting->cost);
-    hash = fold_fixed_member(hash, spacer->speed_factor);
-    hash = fold_fixed_member(hash, spacer->archetype->lifetime);
-    hash = fold_fixed_member(hash, spacer->angle_slices);
+    hash = fold_fixed_member(hash, emitter->speed_factor);
+    hash = fold_fixed_member(hash, emitter->archetype->lifetime);
+    hash = fold_fixed_member(hash, emitter->angle_slices);
     hash = fold_quarter_turn(hash, ascension);
-    hash = fold_fixed_member(hash, spacer->archetype->spawn_rate);
-    hash = fold_fixed_member(hash, spacer->base_radius);
-    hash = fold_fixed_member(hash, spacer->matrix_xx);
-    hash = fold_fixed_member(hash, spacer->matrix_xy);
-    hash = fold_fixed_member(hash, spacer->matrix_yx);
-    hash = fold_fixed_member(hash, spacer->matrix_yy);
+    hash = fold_fixed_member(hash, emitter->archetype->spawn_rate);
+    hash = fold_fixed_member(hash, emitter->base_radius);
+    hash = fold_fixed_member(hash, emitter->matrix_xx);
+    hash = fold_fixed_member(hash, emitter->matrix_xy);
+    hash = fold_fixed_member(hash, emitter->matrix_yx);
+    hash = fold_fixed_member(hash, emitter->matrix_yy);
     hash = fold_string_member(hash, structure->targeting->archetype->confirmed_state);
     hash = fold_fixed_member(hash, structure->targeting->archetype->clock_ticks);
     hash = fold_fixed_member(hash, structure->targeting->archetype->attach_distance);
@@ -355,7 +355,7 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
-    hash = fnv(hash, (uint32_t)(spacer->particles != NULL));
+    hash = fnv(hash, (uint32_t)(emitter->particles != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(structure->archetype->name != NULL));
     hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != NULL));
@@ -397,16 +397,16 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     hash = fnv(hash, (uint32_t)(planet->outgoing_routes != NULL));
     hash = fnv(hash, (uint32_t)planet->has_development_tier);
     hash = fnv(hash, (uint32_t)(planet->is_hovered != 0));
-    assert(pointer_list_size(spacer->particles) == 0);
+    assert(pointer_list_size(emitter->particles) == 0);
     assert_structure_shape(class_of(entity));
     assert_members_of(class_of(entity), ascension_cls, 1, 1);
     assert(class_of(entity)->attach_slipway != ascension_cls->attach_slipway && class_of(entity)->attach_slipway != planet_class()->attach_slipway);
     assert(class_of(entity)->offer_trade == ascension_cls->offer_trade && class_of(entity)->spawn_particle == ascension_cls->spawn_particle && class_of(entity)->spawn_particle != NULL &&
            planet_is_family(entity));
     assert(planet->header.class->tags == (TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && structure->archetype->name == &synthesizer_name_row && synthesizable_resources_of(entity) == &synthesizer_synthesizable_resources_seq &&
-           spacer->trail_colors == &synthesizer_trail_colors_seq);
+           emitter->trail_colors == &synthesizer_trail_colors_seq);
     assert(planet->header.class->tags != (TAG(TAG_ASCENSION) | TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)));
-    assert(spacer->trail_colors != &ascension_trail_colors_seq);
+    assert(emitter->trail_colors != &ascension_trail_colors_seq);
     assert(structure->archetype->accepted_resources == &structure_accepted_resources_seq);
     assert(planet->archetype == &synthesizer_archetype);
     assert(planet->archetype == &synthesizer_archetype);

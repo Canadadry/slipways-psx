@@ -7516,7 +7516,7 @@ child	child	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascen
 cls	cls	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@21913@F@test_hj_is_a_struct@cls
 e	e	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@24034@F@test_leaving_gives_back_its_particles@e
 e	e	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@8573@F@icon_of@e
-em	spacer	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension			c:test_ascension.c@10251@F@fold_ascension@em
+em	emitter	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension			c:test_ascension.c@10251@F@fold_ascension@em
 h	hash	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension			c:test_ascension.c@16055@F@test_built@h
 h	hash	tests/test_ascension.c	identifiant	locale	renommé	tests/test_ascension			c:test_ascension.c@18505@F@test_life@h
 h	h	tests/test_ascension.c	identifiant	locale	conservé	tests/test_ascension			c:test_ascension.c@20054@F@test_heirs@h
@@ -7955,7 +7955,7 @@ e	e	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_bu
 e	e	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@26032@F@test_leaving_gives_back_its_particles@e
 e	e	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@27350@F@test_leaving_lets_go_of_a_dragged_slipway@e
 em	em	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@22410@F@test_ei_moves_a_particle_in_place@em
-em	spacer	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst			c:test_burst.c@8868@F@fold_burst@em
+em	emitter	tests/test_burst.c	identifiant	locale	renommé	tests/test_burst			c:test_burst.c@8868@F@fold_burst@em
 found	found	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@6534@F@harvest_recipe@found
 frames	frames	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@21234@F@test_burst@frames
 g	g	tests/test_burst.c	identifiant	locale	conservé	tests/test_burst			c:test_burst.c@18184@F@fold_cut@g
@@ -13478,7 +13478,7 @@ c	c	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c
 child	child	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@19841@F@spawn@child
 cls	cls	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@18833@F@test_pm_is_a_struct@cls
 e	e	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@21031@F@test_leaving_gives_back_its_particles@e
-em	spacer	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protostar			c:test_protostar.c@9705@F@fold_protostar@em
+em	emitter	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protostar			c:test_protostar.c@9705@F@fold_protostar@em
 g	g	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@8114@F@fold_spawned@g
 gra	gra	tests/test_protostar.c	identifiant	locale	conservé	tests/test_protostar			c:test_protostar.c@8219@F@fold_spawned@gra
 h	hash	tests/test_protostar.c	identifiant	locale	renommé	tests/test_protostar			c:test_protostar.c@16311@F@test_built@h
@@ -15519,7 +15519,7 @@ child	child	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_syn
 cls	cls	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@22548@F@test_mx_is_a_struct@cls
 e	e	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@24750@F@test_leaving_gives_back_its_particles@e
 e	e	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@7988@F@icon_of@e
-em	spacer	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer			c:test_synthesizer.c@10196@F@fold_synthesizer@em
+em	emitter	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer			c:test_synthesizer.c@10196@F@fold_synthesizer@em
 fresh	fresh	tests/test_synthesizer.c	identifiant	locale	conservé	tests/test_synthesizer			c:test_synthesizer.c@20455@F@test_synthesis@fresh
 h	hash	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer			c:test_synthesizer.c@16447@F@test_built@h
 h	hash	tests/test_synthesizer.c	identifiant	locale	renommé	tests/test_synthesizer			c:test_synthesizer.c@18728@F@test_life@h

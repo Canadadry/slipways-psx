@@ -1524,3 +1524,7 @@ name	planet_by_ref	outgoing_routes_of
 name	build_plate	build_trading_hub	
 name	fold_plate	fold_trading_hub	
 name	is_plate	is_trading_hub_archetype	
+identity	c:test_ascension.c@10251@F@fold_ascension@em	emitter	
+identity	c:test_burst.c@8868@F@fold_burst@em	emitter	
+identity	c:test_protostar.c@9705@F@fold_protostar@em	emitter	
+identity	c:test_synthesizer.c@10196@F@fold_synthesizer@em	emitter	
