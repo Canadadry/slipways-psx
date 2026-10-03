@@ -30,7 +30,7 @@ typedef struct {
     vec_t pos_own;
 } camera_t;
 
-/* Calls draw_functions_init(), and requires entity_init() to have run --
+/* Requires entity_init() to have run --
  * asserted, not repaired. The camera has no constructor of its own:
  * entity_construct registers it into the live entities and its messages. */
 void camera_init(void);

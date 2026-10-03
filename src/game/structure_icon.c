@@ -9,7 +9,6 @@
 #include "p8/gfx.h"
 #include "engine/entity.h"
 #include "game/layout.h"
-#include "game/draw_functions.h"
 #include "game/planet.h"
 #include "game/probe.h"
 #include "p8/str.h"
@@ -226,8 +225,6 @@ static structure_icon_t *structure_icon_create(const structure_icon_keys_t *keys
 
 void structure_icon_init(void) {
     structure_icon_shutdown();
-
-    draw_functions_init();
 
     g_structure_icon_up = 1;
     g_cursor = NULL;

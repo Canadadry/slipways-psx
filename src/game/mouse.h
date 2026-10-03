@@ -22,7 +22,7 @@ typedef struct {
     vec_t pos_own;
 } mouse_t;
 
-/* Calls draw_functions_init(), and requires entity_init() to have run --
+/* Requires entity_init() to have run --
  * asserted, not repaired. Starts the shared button states and the shared
  * position afresh. */
 void mouse_init(void);

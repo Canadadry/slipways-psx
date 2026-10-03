@@ -205,7 +205,7 @@ static const data_row_t *score_panel_update_map(score_row_t *score_row, const sc
     article->items[0] = (data_item_t){.is_ref = 1, .ref = layout_row_inst};
     article->items[1] = (data_item_t){.is_ref = 1, .ref = keys.pos};
     article->items[2] = (data_item_t){.is_fixed = 1, .fixed = P8_FIXED_LIT(0x00008000, 0.5)};
-    article->row = (data_row_t){.count = 3, .items = article->items, .draw_function = "draw_row"};
+    article->row = (data_row_t){.count = 3, .items = article->items, .draw_function = DRAW_FUNCTION_DRAW_ROW};
     return &article->row;
 }
 

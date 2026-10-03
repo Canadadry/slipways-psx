@@ -14,8 +14,7 @@
  * other functions dereference it. */
 
 /* GAP-8 */
-/* Requires planet_init() (asserted); calls planet_family_shutdown(), then
- * draw_functions_init(). */
+/* Requires planet_init() (asserted); calls planet_family_shutdown(). */
 void planet_family_init(void);
 
 /* Frees no instance; the outgoing routes list every burst shares gives its

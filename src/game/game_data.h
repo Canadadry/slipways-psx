@@ -96,12 +96,12 @@ typedef struct {
     p8_fixed_t type_bias;
 } difficulty_options_entry_t;
 
-/* The row field holds the positionals, its color coming last; then draw_function
- * (NULL when absent), the score and the position, each only meaningful under
+/* The row field holds the positionals, its color coming last; then draw_function,
+ * the score and the position, each only meaningful under
  * its has_ flag. */
 typedef struct {
     data_row_t row;
-    const char *draw_function;
+    draw_function_t draw_function;
     int has_score;
     int score;
     int has_pos;

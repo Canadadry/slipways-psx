@@ -50,7 +50,7 @@ typedef struct {
     background_t *right_held; /* borrowed, never freed */
 } ui_t;
 
-/* Calls `draw_functions_init()` and empties `ui_ephemerals_shared()`. Also
+/* Empties `ui_ephemerals_shared()`. Also
  * puts back the member-less placeholder main mouse that
  * `ui_set_main_mouse()` later replaces. */
 void ui_init(void);

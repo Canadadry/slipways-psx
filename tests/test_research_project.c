@@ -240,6 +240,15 @@ static uint32_t fold_item(uint32_t h, const data_item_t *item, int depth) {
     return fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->number));
 }
 
+/* The names the frozen hashes folded, before draw functions were an enum. */
+static const char *const draw_function_names[DRAW_FUNCTION_COUNT] = {
+    [DRAW_FUNCTION_DRAW_BAR] = "draw_bar",
+    [DRAW_FUNCTION_PRINT_OUTLINED] = "print_outlined",
+    [DRAW_FUNCTION_DRAW_HELP_FRAME] = "draw_help_frame",
+    [DRAW_FUNCTION_SPR] = "spr",
+    [DRAW_FUNCTION_DRAW_ROW] = "draw_row",
+};
+
 /* A generated or built row, folded as the frozen hashes folded its view:
  * items, then `color`, then `draw_function`. */
 static uint32_t fold_row(uint32_t h, const data_row_t *row, int depth) {
@@ -248,15 +257,15 @@ static uint32_t fold_row(uint32_t h, const data_row_t *row, int depth) {
     if (depth <= 0) {
         return fnv(fnv(h, (uint32_t)REF_KIND), (uint32_t)VIEW_TAG);
     }
-    h = fold_view_head(h, row->count + (row->has_color != 0) + (row->draw_function != NULL));
+    h = fold_view_head(h, row->count + (row->has_color != 0) + (row->draw_function != DRAW_FUNCTION_NONE));
     for (i = 0; i < row->count; i++) {
         h = fold_item(fold_view_index(h, i + 1), &row->items[i], depth - 1);
     }
     if (row->has_color) {
         h = fold_fixed(fold_view_name(h, "color"), p8_fixed_from_int(row->color));
     }
-    if (row->draw_function != NULL) {
-        h = fold_string(fold_view_name(h, "draw_function"), row->draw_function);
+    if (row->draw_function != DRAW_FUNCTION_NONE) {
+        h = fold_string(fold_view_name(h, "draw_function"), draw_function_names[row->draw_function]);
     }
     return h;
 }

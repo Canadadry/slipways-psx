@@ -246,8 +246,6 @@ void score_panel_init(void) {
 
     score_panel_shutdown();
 
-    draw_functions_init();
-
     for (i = 0; i < SCORE_ROWS_COUNT; i++) {
         const score_rows_entry_t *e = &score_rows_table[i];
         score_row_t *b = &g_score_rows[i];

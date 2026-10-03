@@ -7,7 +7,6 @@
 #include "engine/dispatch_context.h"
 #include "game/game_data.h"
 #include "game/mouse_button.h"
-#include "game/draw_functions.h"
 #include "engine/vec.h"
 #include "engine/game_zone.h"
 
@@ -42,7 +41,6 @@ static mouse_t *mouse_create(void) {
 
 void mouse_init(void) {
     mouse_shutdown();
-    draw_functions_init();
     assert(entity_ready() && "mouse_init: entity_init() runs first");
     g_mouse_up = 1;
     g_mouse_pos = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));

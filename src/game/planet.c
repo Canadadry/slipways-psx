@@ -10,7 +10,6 @@
 #include "game/gen.h"
 #include "engine/entity.h"
 #include "game/message_box.h"
-#include "game/draw_functions.h"
 #include "game/research.h"
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
@@ -129,7 +128,6 @@ static planet_t *planet_create(const planet_keys_t *keys) {
 
 void planet_init(void) {
     planet_shutdown();
-    draw_functions_init();
     g_planet_up = 1;
     g_planet_production_shared = (production_t){0};
 }

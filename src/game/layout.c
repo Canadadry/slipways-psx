@@ -239,7 +239,7 @@ static layout_row_t *tooltip_line(const allocator_t *zone, const data_item_t *it
     if (item->row == NULL) {
         return layout_row_new(zone, NULL);
     }
-    assert(item->row->draw_function == NULL && "tooltip_line: a line's only named key is its color; a draw_function has no member -- stop, do not add one");
+    assert(item->row->draw_function == DRAW_FUNCTION_NONE && "tooltip_line: a line's only named key is its color; a draw_function has no member -- stop, do not add one");
     assert(item->row->count <= TOOLTIP_LINE_CAP &&
            "tooltip_line: the longest tooltip line of the data (technologies_9_tooltip_rows_1) has 7 items; a longer one needs a bigger array");
     for (i = 0; i < item->row->count; i++) {
@@ -368,7 +368,7 @@ layout_row_keys_t layout_row_keys_of_row(const data_row_t *row, layout_row_cell_
     layout_row_keys_t keys = {0};
     int i;
 
-    assert(row->count <= cap && row->draw_function == NULL && !row->has_resource &&
+    assert(row->count <= cap && row->draw_function == DRAW_FUNCTION_NONE && !row->has_resource &&
            "layout_row_keys_of_row: a row passes positional items and a color; a draw_function or a resource has no member -- stop, do not add one");
     for (i = 0; i < row->count; i++) {
         cells[i] = layout_row_cell_item(&row->items[i]);
@@ -427,7 +427,7 @@ static tooltip_t *tooltip_struct_alloc(const allocator_t *zone) {
 static tooltip_t *tooltip_create(const allocator_t *zone, const data_row_t *row) {
     tooltip_t *self;
 
-    assert((row == NULL || (!row->has_color && row->draw_function == NULL)) &&
+    assert((row == NULL || (!row->has_color && row->draw_function == DRAW_FUNCTION_NONE)) &&
            "tooltip_create: every line is positional; a named key has no member -- stop, do not add one");
     self = tooltip_struct_alloc(zone);
     tooltip_construct(self, row);

@@ -112,11 +112,11 @@ static const data_item_t score_rows_10_items[] = {{.row = &score_rows_10_1}, {.r
 static const data_item_t score_rows_11_items[] = {{.text = "total:"}, {.text = ""}};
 
 const score_rows_entry_t score_rows_table[SCORE_ROWS_COUNT] = {
-    {.row = {.count = 3, .items = score_rows_1_items}, .draw_function = "draw_bar"},
-    {.row = {.count = 3, .items = score_rows_2_items}, .draw_function = "draw_bar"},
-    {.row = {.count = 3, .items = score_rows_3_items}, .draw_function = "draw_bar"},
-    {.row = {.count = 3, .items = score_rows_4_items}, .draw_function = "draw_bar"},
-    {.row = {.count = 3, .items = score_rows_5_items}, .draw_function = "draw_bar"},
+    {.row = {.count = 3, .items = score_rows_1_items}, .draw_function = DRAW_FUNCTION_DRAW_BAR},
+    {.row = {.count = 3, .items = score_rows_2_items}, .draw_function = DRAW_FUNCTION_DRAW_BAR},
+    {.row = {.count = 3, .items = score_rows_3_items}, .draw_function = DRAW_FUNCTION_DRAW_BAR},
+    {.row = {.count = 3, .items = score_rows_4_items}, .draw_function = DRAW_FUNCTION_DRAW_BAR},
+    {.row = {.count = 3, .items = score_rows_5_items}, .draw_function = DRAW_FUNCTION_DRAW_BAR},
     {.row = {.count = 1, .items = score_rows_6_items, .has_color = 1, .color = 5}, .has_score = 1, .score = 0, .has_pos = 1, .pos_x = 64,
         .pos_y = 21},
     {.row = {.count = 2, .items = score_rows_7_items}, .has_score = 1, .score = 1, .has_pos = 1, .pos_x = 64, .pos_y = 34},
@@ -214,13 +214,13 @@ static const vec_t camera_dpad_directions_items[] = {{-0x10000, 0x0}, {0x10000, 
 const vec_seq_t camera_dpad_directions_vecs = {4, camera_dpad_directions_items};
 
 static const data_item_t help_screen_rows_1_items[] = {{.number = 192}, {.number = 0}, {.number = 11}, {.number = 16}, {.number = 4}};
-static const data_row_t help_screen_rows_1 = {.count = 5, .items = help_screen_rows_1_items, .draw_function = "spr"};
+static const data_row_t help_screen_rows_1 = {.count = 5, .items = help_screen_rows_1_items, .draw_function = DRAW_FUNCTION_SPR};
 static const data_item_t help_screen_rows_2_items[] = {{.number = 172}, {.number = 20}, {.number = 107}, {.number = 2}, {.number = 2}};
-static const data_row_t help_screen_rows_2 = {.count = 5, .items = help_screen_rows_2_items, .draw_function = "spr"};
+static const data_row_t help_screen_rows_2 = {.count = 5, .items = help_screen_rows_2_items, .draw_function = DRAW_FUNCTION_SPR};
 static const data_item_t help_screen_rows_3_items[] = {{.text = "need help\?"}, {.number = 40}, {.number = 110}, {.number = 13}};
-static const data_row_t help_screen_rows_3 = {.count = 4, .items = help_screen_rows_3_items, .draw_function = "print_outlined"};
+static const data_row_t help_screen_rows_3 = {.count = 4, .items = help_screen_rows_3_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
 static const data_item_t help_screen_rows_4_items[] = {{.text = "slipways.net/help"}, {.number = 40}, {.number = 116}, {.number = 5}};
-static const data_row_t help_screen_rows_4 = {.count = 4, .items = help_screen_rows_4_items, .draw_function = "print_outlined"};
+static const data_row_t help_screen_rows_4 = {.count = 4, .items = help_screen_rows_4_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
 static const data_item_t help_screen_rows_items[] = {{.row = &help_screen_rows_1}, {.row = &help_screen_rows_2}, {.row = &help_screen_rows_3},
     {.row = &help_screen_rows_4}};
 const data_row_t help_screen_rows_row = {.count = 4, .items = help_screen_rows_items};
@@ -230,53 +230,53 @@ const data_row_t research_project_row_tail_row = {.count = 2, .items = research_
 
 static const data_item_t score_panel_countdown_rows_1_items[] = {{.text = "last year!"}, {.number = 64}, {.number = 48}, {.number = 9},
     {.is_fixed = 1, .fixed = 0x8000}};
-static const data_row_t score_panel_countdown_rows_1 = {.count = 5, .items = score_panel_countdown_rows_1_items, .draw_function = "print_outlined"};
+static const data_row_t score_panel_countdown_rows_1 = {.count = 5, .items = score_panel_countdown_rows_1_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
 static const data_item_t score_panel_countdown_rows_2_items[] = {{.text = "2 years remain"}, {.number = 64}, {.number = 48}, {.number = 2},
     {.is_fixed = 1, .fixed = 0x8000}};
-static const data_row_t score_panel_countdown_rows_2 = {.count = 5, .items = score_panel_countdown_rows_2_items, .draw_function = "print_outlined"};
+static const data_row_t score_panel_countdown_rows_2 = {.count = 5, .items = score_panel_countdown_rows_2_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
 static const data_item_t score_panel_countdown_rows_5_items[] = {{.text = "5 years remain"}, {.number = 64}, {.number = 48}, {.number = 2},
     {.is_fixed = 1, .fixed = 0x8000}};
-static const data_row_t score_panel_countdown_rows_5 = {.count = 5, .items = score_panel_countdown_rows_5_items, .draw_function = "print_outlined"};
+static const data_row_t score_panel_countdown_rows_5 = {.count = 5, .items = score_panel_countdown_rows_5_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
 static const data_item_t score_panel_countdown_rows_items[] = {{.row = &score_panel_countdown_rows_1}, {.row = &score_panel_countdown_rows_2}, {.is_false = 1}, {.is_false = 1},
     {.row = &score_panel_countdown_rows_5}};
 const data_row_t score_panel_countdown_rows_row = {.count = 5, .items = score_panel_countdown_rows_items};
 
 static const data_item_t score_panel_frame_rows_1_items[] = {{.number = 126}, {.number = 127}, {.number = 1}};
-static const data_row_t score_panel_frame_rows_1 = {.count = 3, .items = score_panel_frame_rows_1_items, .draw_function = "draw_bar"};
+static const data_row_t score_panel_frame_rows_1 = {.count = 3, .items = score_panel_frame_rows_1_items, .draw_function = DRAW_FUNCTION_DRAW_BAR};
 static const data_item_t score_panel_frame_rows_2_items[] = {{.number = 0}, {.number = 1}, {.number = 1}};
-static const data_row_t score_panel_frame_rows_2 = {.count = 3, .items = score_panel_frame_rows_2_items, .draw_function = "draw_bar"};
+static const data_row_t score_panel_frame_rows_2 = {.count = 3, .items = score_panel_frame_rows_2_items, .draw_function = DRAW_FUNCTION_DRAW_BAR};
 static const data_item_t score_panel_frame_rows_3_items[] = {{.number = 8}, {.number = 118}, {.number = 34}};
-static const data_row_t score_panel_frame_rows_3 = {.count = 3, .items = score_panel_frame_rows_3_items, .draw_function = "draw_help_frame"};
+static const data_row_t score_panel_frame_rows_3 = {.count = 3, .items = score_panel_frame_rows_3_items, .draw_function = DRAW_FUNCTION_DRAW_HELP_FRAME};
 static const data_item_t score_panel_frame_rows_4_items[] = {{.number = 0}, {.number = -3}, {.number = 26}};
-static const data_row_t score_panel_frame_rows_4 = {.count = 3, .items = score_panel_frame_rows_4_items, .draw_function = "draw_help_frame"};
+static const data_row_t score_panel_frame_rows_4 = {.count = 3, .items = score_panel_frame_rows_4_items, .draw_function = DRAW_FUNCTION_DRAW_HELP_FRAME};
 static const data_item_t score_panel_frame_rows_5_items[] = {{.number = 81}, {.number = -3}, {.number = 117}};
-static const data_row_t score_panel_frame_rows_5 = {.count = 3, .items = score_panel_frame_rows_5_items, .draw_function = "draw_help_frame"};
+static const data_row_t score_panel_frame_rows_5 = {.count = 3, .items = score_panel_frame_rows_5_items, .draw_function = DRAW_FUNCTION_DRAW_HELP_FRAME};
 static const data_item_t score_panel_frame_rows_items[] = {{.row = &score_panel_frame_rows_1}, {.row = &score_panel_frame_rows_2}, {.row = &score_panel_frame_rows_3},
     {.row = &score_panel_frame_rows_4}, {.row = &score_panel_frame_rows_5}};
 const data_row_t score_panel_frame_rows_row = {.count = 5, .items = score_panel_frame_rows_items};
 
 static const data_item_t score_panel_year_banner_1_items[] = {{.number = 42}, {.number = 43}, {.number = 1}};
-static const data_row_t score_panel_year_banner_1 = {.count = 3, .items = score_panel_year_banner_1_items, .draw_function = "draw_bar"};
+static const data_row_t score_panel_year_banner_1 = {.count = 3, .items = score_panel_year_banner_1_items, .draw_function = DRAW_FUNCTION_DRAW_BAR};
 static const data_item_t score_panel_year_banner_2_items[] = {{.text = ""}, {.number = 64}, {.number = 40}, {.number = 6},
     {.is_fixed = 1, .fixed = 0x8000}};
-static const data_row_t score_panel_year_banner_2 = {.count = 5, .items = score_panel_year_banner_2_items, .draw_function = "print_outlined"};
+static const data_row_t score_panel_year_banner_2 = {.count = 5, .items = score_panel_year_banner_2_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
 static const data_item_t score_panel_year_banner_items[] = {{.row = &score_panel_year_banner_1}, {.row = &score_panel_year_banner_2}};
 const data_row_t score_panel_year_banner_row = {.count = 2, .items = score_panel_year_banner_items};
 
 static const data_item_t score_panel_readouts_1_items[] = {{.is_false = 1}, {.number = 13}, {.number = 121}, {.number = 9}};
-static const data_row_t score_panel_readouts_1 = {.count = 4, .items = score_panel_readouts_1_items, .draw_function = "print_outlined"};
+static const data_row_t score_panel_readouts_1 = {.count = 4, .items = score_panel_readouts_1_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
 static const data_item_t score_panel_readouts_2_items[] = {{.is_false = 1}, {.number = 37}, {.number = 121}, {.number = 2}};
-static const data_row_t score_panel_readouts_2 = {.count = 4, .items = score_panel_readouts_2_items, .draw_function = "print_outlined"};
+static const data_row_t score_panel_readouts_2 = {.count = 4, .items = score_panel_readouts_2_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
 static const data_item_t score_panel_readouts_3_items[] = {{.is_false = 1}, {.number = 13}, {.number = 2}, {.number = 9}};
-static const data_row_t score_panel_readouts_3 = {.count = 4, .items = score_panel_readouts_3_items, .draw_function = "print_outlined"};
+static const data_row_t score_panel_readouts_3 = {.count = 4, .items = score_panel_readouts_3_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
 static const data_item_t score_panel_readouts_4_items[] = {{.is_false = 1}, {.number = 29}, {.number = 2}, {.number = 2}};
-static const data_row_t score_panel_readouts_4 = {.count = 4, .items = score_panel_readouts_4_items, .draw_function = "print_outlined"};
+static const data_row_t score_panel_readouts_4 = {.count = 4, .items = score_panel_readouts_4_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
 static const data_item_t score_panel_readouts_5_items[] = {{.is_false = 1}, {.number = 59}, {.number = 2}, {.number = 2}};
-static const data_row_t score_panel_readouts_5 = {.count = 4, .items = score_panel_readouts_5_items, .draw_function = "print_outlined"};
+static const data_row_t score_panel_readouts_5 = {.count = 4, .items = score_panel_readouts_5_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
 static const data_item_t score_panel_readouts_6_items[] = {{.is_false = 1}, {.number = 85}, {.number = 2}, {.number = 13}};
-static const data_row_t score_panel_readouts_6 = {.count = 4, .items = score_panel_readouts_6_items, .draw_function = "print_outlined"};
+static const data_row_t score_panel_readouts_6 = {.count = 4, .items = score_panel_readouts_6_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
 static const data_item_t score_panel_readouts_7_items[] = {{.is_false = 1}, {.number = 99}, {.number = 2}, {.number = 13}};
-static const data_row_t score_panel_readouts_7 = {.count = 4, .items = score_panel_readouts_7_items, .draw_function = "print_outlined"};
+static const data_row_t score_panel_readouts_7 = {.count = 4, .items = score_panel_readouts_7_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
 static const data_item_t score_panel_readouts_items[] = {{.row = &score_panel_readouts_1}, {.row = &score_panel_readouts_2}, {.row = &score_panel_readouts_3},
     {.row = &score_panel_readouts_4}, {.row = &score_panel_readouts_5}, {.row = &score_panel_readouts_6}, {.row = &score_panel_readouts_7}};
 const data_row_t score_panel_readouts_row = {.count = 7, .items = score_panel_readouts_items};

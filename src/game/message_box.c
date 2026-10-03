@@ -103,7 +103,7 @@ static const data_row_t *message_box_article(const allocator_t *slot, const data
     message_box_draw_row_t *copy;
     const vec_t *ra;
 
-    if (e->draw_function == NULL || strcmp(e->draw_function, "draw_row") != 0) {
+    if (e->draw_function != DRAW_FUNCTION_DRAW_ROW) {
         return e;
     }
     assert(e->count == 3 && e->items[0].is_ref && e->items[1].is_ref &&
@@ -280,7 +280,6 @@ static toast_t *toast_create(const toast_keys_t *keys) {
 
 void toast_init(void) {
     toast_shutdown();
-    draw_functions_init();
     g_toast_up = 1;
 }
 

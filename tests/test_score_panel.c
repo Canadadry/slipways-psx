@@ -139,6 +139,15 @@ static uint32_t fold_item(uint32_t h, const data_item_t *item) {
     return fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->number));
 }
 
+/* The names the frozen hashes folded, before draw functions were an enum. */
+static const char *const draw_function_names[DRAW_FUNCTION_COUNT] = {
+    [DRAW_FUNCTION_DRAW_BAR] = "draw_bar",
+    [DRAW_FUNCTION_PRINT_OUTLINED] = "print_outlined",
+    [DRAW_FUNCTION_DRAW_HELP_FRAME] = "draw_help_frame",
+    [DRAW_FUNCTION_SPR] = "spr",
+    [DRAW_FUNCTION_DRAW_ROW] = "draw_row",
+};
+
 /* A row's items (a nested row folded the same way), then its color, then
  * its draw function; more entries may follow, the caller's. */
 static uint32_t fold_row_entries(uint32_t h, const data_row_t *row) {
@@ -152,14 +161,14 @@ static uint32_t fold_row_entries(uint32_t h, const data_row_t *row) {
     if (row->has_color) {
         h = fold_fixed(fnv_str(h, "color"), p8_fixed_from_int(row->color));
     }
-    if (row->draw_function != NULL) {
-        h = fold_string(fnv_str(h, "draw_function"), row->draw_function);
+    if (row->draw_function != DRAW_FUNCTION_NONE) {
+        h = fold_string(fnv_str(h, "draw_function"), draw_function_names[row->draw_function]);
     }
     return h;
 }
 
 static int row_entries(const data_row_t *row) {
-    return row->count + (row->has_color != 0) + (row->draw_function != NULL);
+    return row->count + (row->has_color != 0) + (row->draw_function != DRAW_FUNCTION_NONE);
 }
 
 static uint32_t fold_row(uint32_t h, const data_row_t *row) {
@@ -733,7 +742,7 @@ static layout_row_cell_t update_row_item(const message_box_t *mh, int k, int i) 
 
     assert(k < mh->items_count);
     ld = mh->items[k];
-    assert(ld->draw_function != NULL && strcmp(ld->draw_function, "draw_row") == 0 && ld->items[0].is_ref);
+    assert(ld->draw_function == DRAW_FUNCTION_DRAW_ROW && ld->items[0].is_ref);
     lq = ld->items[0].ref;
     assert(i <= lq->items_count);
     return lq->items[i - 1];

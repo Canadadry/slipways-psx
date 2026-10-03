@@ -66,7 +66,6 @@ typedef struct {
 } planet_t;
 
 /* GAP-8 */
-/* Calls draw_functions_init(). */
 void planet_init(void);
 
 /* Sets the type picker and the vanish roll back to NULL without reading

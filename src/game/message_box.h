@@ -75,7 +75,6 @@ void message_box_construct(message_box_t *self);
  * closing timer and the shown-box bookkeeping still run. */
 void message_box_draw_overlay(p8_graphics_t *gfx, p8_memory_t *mem, message_box_t *self);
 
-/* Calls draw_functions_init(). */
 void toast_init(void);
 
 enum { TOAST_TEXT_CAP = 16 };

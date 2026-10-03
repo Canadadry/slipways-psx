@@ -7,7 +7,6 @@
 #include "engine/exit_queue.h"
 #include "engine/entity.h"
 #include "game/mouse_button.h"
-#include "game/draw_functions.h"
 #include "game/planet_family.h"
 #include "game/scroll.h"
 #include "game/ui_button.h"
@@ -125,7 +124,6 @@ static ui_t *ui_create(void) {
 
 void ui_init(void) {
     ui_shutdown();
-    draw_functions_init();
     entity_list_init(&g_shared_ephemerals, game_zone_load_zone());
     g_ui_up = 1;
 

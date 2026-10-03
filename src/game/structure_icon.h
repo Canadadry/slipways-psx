@@ -45,7 +45,7 @@ typedef struct {
     int has_cost; /* 0: absent, and then never read */
 } structure_icon_kind_t;
 
-/* Calls structure_icon_shutdown(), then draw_functions_init(); puts the
+/* Calls structure_icon_shutdown(); puts the
  * shared counter back to 0 and unsets the shared cursor. */
 void structure_icon_init(void);
 

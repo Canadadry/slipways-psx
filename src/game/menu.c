@@ -10,7 +10,6 @@
 #include "game/game_data.h"
 #include "game/layout.h"
 #include "game/message_box.h"
-#include "game/draw_functions.h"
 #include "game/score_panel.h"
 #include "game/score_panel_display.h"
 #include "game/tech_gate.h"
@@ -367,8 +366,6 @@ void menu_init(void) {
     int i;
 
     menu_shutdown();
-
-    draw_functions_init();
 
     for (i = 0; i < GALAXY_MENU_COUNT; i++) {
         g_galaxy_menu_pos[i] = vec_make(p8_fixed_from_int(galaxy_menu_table[i].pos_x),

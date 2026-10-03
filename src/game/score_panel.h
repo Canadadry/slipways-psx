@@ -80,8 +80,8 @@ typedef struct {
     const score_rows_entry_t *entry;
 } score_row_t;
 
-/* Calls draw_functions_init() first. Resets the score rows, the readouts
- * and the year banner to their generated rows. */
+/* Resets the score rows, the readouts and the year banner to their
+ * generated rows. */
 void score_panel_init(void);
 
 /* Resets the main score panel to NULL without freeing the instance it

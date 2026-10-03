@@ -191,7 +191,7 @@ static int happiness_cells(const message_box_t *mh) {
     int found = 0;
     for (int k = 0; k < mh->items_count; k++) {
         const data_row_t *ld = mh->items[k];
-        if (ld->draw_function == NULL || strcmp(ld->draw_function, "draw_row") != 0 || !ld->items[0].is_ref) continue;
+        if (ld->draw_function != DRAW_FUNCTION_DRAW_ROW || !ld->items[0].is_ref) continue;
         const layout_row_t *lq = ld->items[0].ref;
         for (int i = 0; i < lq->items_count; i++)
             found += lq->items[i].kind == LAYOUT_ROW_CELL_STRING && strcmp(lq->items[i].as.text, "1%") == 0;

@@ -24,7 +24,6 @@
 #include "game/menu.h"
 #include "game/mouse.h"
 #include "game/message_box.h"
-#include "game/draw_functions.h"
 #include "game/planet.h"
 #include "game/planet_family.h"
 #include "game/planet_family_trade.h"
@@ -62,7 +61,6 @@ void cart_load(void) {
     ui_init();
 
     layout_init();
-    draw_functions_init();
     trade_init();
 
     button_init();

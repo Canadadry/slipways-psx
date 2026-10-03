@@ -25,8 +25,8 @@ void cart_load(void);
 void cart_flush_exit_queue(void);
 
 /* Quits the game zone, then runs the shutdown of every module cart_load()
- * initialised, in reverse order (draw_functions_init() has none).
- * Idempotent, and safe before the first cart_load(). */
+ * initialised, in reverse order. Idempotent, and safe before the first
+ * cart_load(). */
 void cart_shutdown(void);
 
 /* Requires cart_load(). */

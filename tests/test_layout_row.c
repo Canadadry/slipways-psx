@@ -607,7 +607,7 @@ static void test_calls(void) {
     entry_items[2] = (data_item_t){.is_fixed = 1, .fixed = P8_FIXED_LIT(0x00008000, 0.5)};
     entry.count = 3;
     entry.items = entry_items;
-    entry.draw_function = "draw_row";
+    entry.draw_function = DRAW_FUNCTION_DRAW_ROW;
     rows[0] = &entry;
     p8_gfx_init(&graphics);
     p8_cls(&memory);
@@ -928,7 +928,7 @@ static void draw_at_on_other(void *e) {
  * holds the positionals its layout saw, then the two added after. */
 static void test_layout_row_is_a_struct(void) {
     static const data_item_t three[] = {{.text = "a"}, {.is_fixed = 1, .fixed = 0x8000}, {.row = &icon_tooltips_table[0]}};
-    static const data_row_t with_fn = {.count = 1, .items = three, .draw_function = "draw_row"};
+    static const data_row_t with_fn = {.count = 1, .items = three, .draw_function = DRAW_FUNCTION_DRAW_ROW};
     static const data_row_t with_resource = {.count = 1, .items = three, .has_resource = 1, .resource = 0x70000};
     static const data_row_t too_long = {.count = 3, .items = three};
     static const data_row_t nested = {.count = 2, .items = three + 1, .has_color = 1, .color = 7};

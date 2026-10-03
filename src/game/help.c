@@ -124,10 +124,8 @@ static probe_t *screen_create(void) {
     return self;
 }
 
-/* This module, unlike most, does not call draw_functions_init() itself, and
- * the probe class comes from probe_init(): both are asserted, not repaired. */
+/* The probe class comes from probe_init(): asserted, not repaired. */
 void help_init(void) {
-    assert(draw_functions_dispatch_lookup("spr") != NULL && "help_init() runs after draw_functions_init()");
     assert(probe_ready() && "help_init() runs after probe_init()");
 
     help_shutdown();
