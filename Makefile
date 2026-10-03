@@ -2,8 +2,7 @@
 # per target).
 #
 # make test          -> unit + constants-check + float-grep + float-guard +
-#                       alloc-guard + data-guard + composition-guard, the fast
-#                       loop
+#                       alloc-guard + data-guard, the fast loop
 # make e2e           -> replays each e2e of tests/e2e/ from the title screen,
 #                       with the `-O0` binary of make test, and compares the
 #                       sha256 of its capture to <name>.json.sha256; also fails
@@ -65,17 +64,8 @@
 #                       also fails if its output differs from
 #                       tools/class_coverage_net_expected.txt, outside the
 #                       suite
-# make data-residue  -> counts the data residue per category
-#                       (tools/data_residue.sh); the categories already at 0
-#                       are listed in DATA_RESIDUE_GUARD, outside the suite
-# make composition-residue -> counts the composition residue per category
-#                       (tools/composition_residue.sh); the categories already
-#                       at 0 are listed in COMPOSITION_RESIDUE_GUARD, outside
-#                       the suite
-# make data-guard    -> no offsetof in src/, and the categories of
-#                       DATA_RESIDUE_GUARD at 0, in make test
-# make composition-guard -> the categories of COMPOSITION_RESIDUE_GUARD at 0,
-#                       in make test
+# make data-guard    -> none of the patterns of the pre-composition model
+#                       (DATA_GUARD_PATTERN) in src/ or tests/, in make test
 # make sanitize-net  -> replays the e2e of tests/e2e/ under ASan+UBSan (`-O2`);
 #                       passes when every replay exits cleanly, outside the
 #                       suite
@@ -429,12 +419,6 @@ $(TMP_DIR)/test_alloc_guard: $(call objs,tests/test_alloc_guard.c) tools/alloc_g
 $(TMP_DIR)/test_float_grep: $(call objs,tests/test_float_grep.c) tools/float_grep.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_data_residue: $(call objs,tests/test_data_residue.c) tools/data_residue.sh | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
-
-$(TMP_DIR)/test_composition_residue: $(call objs,tests/test_composition_residue.c) tools/composition_residue.sh | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
-
 $(TMP_DIR)/test_float_link: $(call objs,tests/test_float_link.c) tools/float_link.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -647,7 +631,6 @@ $(TMP_DIR)/test_layout_nil_item_draws_nothing: $(call objs,tests/test_layout_nil
 
 # The longest first: under `-j`, make starts it first.
 UNIT_TESTS := \
-    test_composition_residue \
     test_mem \
     test_asset_loading \
     test_gfx \
@@ -685,7 +668,6 @@ UNIT_TESTS := \
     test_float_guard \
     test_alloc_guard \
     test_float_grep \
-    test_data_residue \
     test_float_link \
     test_constants_check \
     test_background_draw \
@@ -802,7 +784,7 @@ replay: $(TMP_DIR)/replay
 state: $(TMP_DIR)/replay
 	STATE=$(TMP_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard
+test: unit constants-check float-grep float-guard alloc-guard data-guard
 
 test-all: test e2e
 
@@ -972,37 +954,19 @@ e2e-judge: $(TMP_DIR)/replay_gcov tools/line_coverage.sh
 
 .PHONY: minimize e2e-cleanup e2e-judge
 
-# The categories of the counter that have fallen to 0, comma-separated.
-DATA_RESIDUE_GUARD := spec,overrides,by-name
-
-data-residue: tools/data_residue.sh
-	@sh tools/data_residue.sh
+# offsetof, void *self, a field read by name, a spec or defaults table: the
+# model the composition migration removed, which a port of the cart brings
+# back first.
+DATA_GUARD_PATTERN := \boffsetof\b|\bvoid[[:space:]]*\*[[:space:]]*(const[[:space:]]+)?self|\b[a-z0-9_]*field_truthy\(|(->|\.)(set_)?field\b|\b[a-z0-9_]+_take_[a-z0-9_]+\(|\boverrides\b|\bg_[a-z0-9_]+_(spec|defaults)\b|\b[a-z0-9_]+_default_(fixed|table|vec|string|box|list|bool|hf)\b
 
 # grep returns 1 when nothing matches; anything above is an error.
-data-guard: tools/data_residue.sh
-	@status=0; grep -rn offsetof src/ || status=$$?; \
-	if [ $$status -eq 0 ]; then echo "data-guard: offsetof in src/"; exit 1; fi; \
+data-guard:
+	@status=0; grep -rnE '$(DATA_GUARD_PATTERN)' --include='*.c' --include='*.h' src tests || status=$$?; \
+	if [ $$status -eq 0 ]; then echo "data-guard: pre-composition pattern above"; exit 1; fi; \
 	[ $$status -eq 1 ] || exit $$status; \
-	echo "offsetof in src/: 0"
-	@if [ -n "$(DATA_RESIDUE_GUARD)" ]; then \
-	    sh tools/data_residue.sh --check $(DATA_RESIDUE_GUARD) src tests; \
-	else \
-	    echo "guarded categories: none"; \
-	fi
+	echo "data-guard: clean"
 
-.PHONY: data-residue data-guard
-
-composition-residue: tools/composition_residue.sh
-	@sh tools/composition_residue.sh
-
-# The categories of the composition counter that have fallen to 0,
-# comma-separated.
-COMPOSITION_RESIDUE_GUARD := core-includes,reachability-to-prove,entity-ptrs,registries,header-accessors,parent-link,parent,mutual-inclusion,mutual-usage,void-self
-
-composition-guard: tools/composition_residue.sh
-	@sh tools/composition_residue.sh --check $(COMPOSITION_RESIDUE_GUARD) src tests
-
-.PHONY: composition-residue composition-guard
+.PHONY: data-guard
 
 $(TMP_DIR)/replay_sanitize: $(call sanitize_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) $(UBSAN_CFLAGS) -o $@ $(filter %.o,$^)
