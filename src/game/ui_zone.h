@@ -38,4 +38,9 @@ size_t ui_zone_max_bytes(slot_kind_t slot_kind);
 size_t ui_zone_used(void);
 size_t ui_zone_max_used(void);
 
+/* Limits: slots of the kind, bytes of one, bytes reserved for the zone. */
+int ui_zone_count(slot_kind_t slot_kind);
+size_t ui_zone_slot_size(slot_kind_t slot_kind);
+size_t ui_zone_reserved(void);
+
 #endif

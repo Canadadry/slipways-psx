@@ -43,6 +43,11 @@ int particle_zone_live(particle_slot_kind_t slot_kind);
 size_t particle_zone_used(void);
 size_t particle_zone_max_used(void);
 
+/* Limits: slots of the kind, bytes of one, bytes reserved for the zone. */
+int particle_zone_count(particle_slot_kind_t slot_kind);
+size_t particle_zone_slot_size(particle_slot_kind_t slot_kind);
+size_t particle_zone_reserved(void);
+
 /* Session maxima. Bytes: those of an arena slot, header included, the
  * slots still live measured when read; 0 for a particle. Elements: the
  * largest count particle_zone_record_elements has seen for a particle list,

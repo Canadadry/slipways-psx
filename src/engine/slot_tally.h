@@ -37,5 +37,7 @@ size_t slot_tally_max_bytes(slot_tally_t *t, int kind);
  * counts them. */
 size_t slot_tally_zone_bytes(const slot_tally_t *t);
 size_t slot_tally_zone_max_bytes(const slot_tally_t *t);
+/* What SLOT_ZONE_STORAGE reserves for every slot of every kind. */
+size_t slot_tally_zone_reserved(const slot_tally_t *t);
 
 #endif

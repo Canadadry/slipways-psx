@@ -67,3 +67,9 @@ size_t slot_tally_zone_bytes(const slot_tally_t *t) {
 size_t slot_tally_zone_max_bytes(const slot_tally_t *t) {
     return t->zone_max_bytes;
 }
+
+size_t slot_tally_zone_reserved(const slot_tally_t *t) {
+    size_t bytes = 0;
+    for (int i = 0; i < t->n; i++) bytes += SLOT_ZONE_BYTES(t->kinds[i].size, t->kinds[i].count);
+    return bytes;
+}

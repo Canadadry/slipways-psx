@@ -8,7 +8,9 @@
 #include "engine/entity_geom.h"
 #include "engine/entity_registry.h"
 #include "engine/exit_queue.h"
+#include "engine/frame_zone.h"
 #include "engine/game_zone.h"
+#include "engine/zone_sizes.h"
 #include "game/main_economy.h"
 #include "game/particle_zone.h"
 #include "game/planet.h"
@@ -201,29 +203,51 @@ static int count_colonies(void) {
     return n;
 }
 
-/* "<current> <peak>" in bytes. */
-static void write_zones(FILE *out) {
-    fprintf(out, "zone game %lu %lu\n", (unsigned long)game_zone_used(), (unsigned long)game_zone_max());
-    fprintf(out, "zone load %lu %lu\n", (unsigned long)load_zone_used(), (unsigned long)game_zone_load_zone_max());
+/* Every zone and cap line: "<current> <peak> <limit>". Zones in bytes;
+ * caps in slots, except `elements_*` (elements of a list) and `bytes_*`
+ * (bytes of an arena slot), whose current is unknown: -. */
+static void write_zone(FILE *out, const char *name, size_t current, size_t peak, size_t limit) {
+    fprintf(out, "zone %s %lu %lu %lu\n", name, (unsigned long)current, (unsigned long)peak, (unsigned long)limit);
 }
 
-/* "<current> [<peak>]" in slots, except `elements_*` (elements of a list)
- * and `bytes_*` (bytes of an arena slot), whose current is unknown: -. */
+static void write_zones(FILE *out) {
+    write_zone(out, "game", game_zone_used(), game_zone_max(), GENERATION_ZONE_BYTES);
+    write_zone(out, "load", load_zone_used(), game_zone_load_zone_max(), LOAD_ZONE_BYTES);
+    write_zone(out, "frame", frame_zone_used(), frame_zone_max(), FRAME_ZONE_BYTES);
+    write_zone(out, "ui", ui_zone_used(), ui_zone_max_used(), ui_zone_reserved());
+    write_zone(out, "particles", particle_zone_used(), particle_zone_max_used(), particle_zone_reserved());
+}
+
+static void write_peak(FILE *out, const char *name, size_t peak, size_t limit) {
+    fprintf(out, "cap %s - %lu %lu\n", name, (unsigned long)peak, (unsigned long)limit);
+}
+
 static void write_caps(FILE *out) {
     for (int i = 0; i < SLOT_KIND_COUNT; i++) {
-        fprintf(out, "cap %s %d\n", SLOT_KIND_NAMES[i], ui_zone_live((slot_kind_t)i));
+        slot_kind_t k = (slot_kind_t)i;
+        fprintf(out, "cap %s %d %d %d\n", SLOT_KIND_NAMES[i], ui_zone_live(k), ui_zone_max_live(k), ui_zone_count(k));
     }
     for (int i = 0; i < PARTICLE_SLOT_COUNT; i++) {
         particle_slot_kind_t k = (particle_slot_kind_t)i;
-        fprintf(out, "cap %s %d %d\n", PARTICLE_NAMES[i], particle_zone_live(k), particle_zone_max_live(k));
+        fprintf(out, "cap %s %d %d %d\n", PARTICLE_NAMES[i], particle_zone_live(k), particle_zone_max_live(k),
+                particle_zone_count(k));
     }
-    fprintf(out, "cap exit_queue %d\n", exit_queue_count());
-    fprintf(out, "cap elements_particles - %d\n", particle_zone_max_elements(PARTICLE_SLOT_LIST));
-    fprintf(out, "cap elements_particles_help_screen - %d\n", particle_zone_max_elements(PARTICLE_SLOT_HELP_LIST));
-    fprintf(out, "cap elements_transit_dots - %d\n", particle_zone_max_elements(PARTICLE_SLOT_TRANSIT_DOT));
+    fprintf(out, "cap exit_queue %d %d %d\n", exit_queue_count(), exit_queue_max(), EXIT_QUEUE_CAP);
+    write_peak(out, "elements_particles", (size_t)particle_zone_max_elements(PARTICLE_SLOT_LIST), PARTICLES_CAPACITY);
+    write_peak(out, "elements_particles_help_screen", (size_t)particle_zone_max_elements(PARTICLE_SLOT_HELP_LIST),
+               PARTICLES_HELP_SCREEN_CAPACITY);
+    write_peak(out, "elements_transit_dots", (size_t)particle_zone_max_elements(PARTICLE_SLOT_TRANSIT_DOT),
+               SLIPWAY_TRANSIT_DOTS_RESERVE);
+    char name[64];
     for (int i = PARTICLE_SLOT_LIST; i <= PARTICLE_SLOT_BURST; i++) {
-        fprintf(out, "cap bytes_%s - %lu\n", PARTICLE_NAMES[i],
-                (unsigned long)particle_zone_max_bytes((particle_slot_kind_t)i));
+        particle_slot_kind_t k = (particle_slot_kind_t)i;
+        snprintf(name, sizeof name, "bytes_%s", PARTICLE_NAMES[i]);
+        write_peak(out, name, particle_zone_max_bytes(k), particle_zone_slot_size(k));
+    }
+    for (int i = 0; i < SLOT_KIND_COUNT; i++) {
+        slot_kind_t k = (slot_kind_t)i;
+        snprintf(name, sizeof name, "bytes_%s", SLOT_KIND_NAMES[i]);
+        write_peak(out, name, ui_zone_max_bytes(k), ui_zone_slot_size(k));
     }
 }
 

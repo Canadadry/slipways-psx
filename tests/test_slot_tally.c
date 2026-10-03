@@ -104,11 +104,17 @@ static void test_zone_bytes_and_peak(void) {
     assert(slot_tally_zone_bytes(&tally) == 0);
 }
 
+static void test_zone_reserved_is_every_slot(void) {
+    setup();
+    assert(slot_tally_zone_reserved(&tally) == SLOT_ZONE_BYTES(BARE_SIZE, BARE_COUNT) + SLOT_ZONE_BYTES(ARENA_SIZE, ARENA_COUNT));
+}
+
 int main(void) {
     test_max_live_survives_give_backs();
     test_max_bytes_read_at_give_back();
     test_max_bytes_read_on_live_arena();
     test_zone_bytes_and_peak();
+    test_zone_reserved_is_every_slot();
     printf("test_slot_tally: all tests passed\n");
     return 0;
 }

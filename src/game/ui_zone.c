@@ -127,3 +127,18 @@ size_t ui_zone_max_used(void) {
     init_once();
     return slot_tally_zone_max_bytes(&g_tally);
 }
+
+int ui_zone_count(slot_kind_t slot_kind) {
+    assert(slot_kind >= 0 && slot_kind < SLOT_KIND_COUNT);
+    return (int)SLOT_KINDS[slot_kind].count;
+}
+
+size_t ui_zone_slot_size(slot_kind_t slot_kind) {
+    assert(slot_kind >= 0 && slot_kind < SLOT_KIND_COUNT);
+    return SLOT_KINDS[slot_kind].size;
+}
+
+size_t ui_zone_reserved(void) {
+    init_once();
+    return slot_tally_zone_reserved(&g_tally);
+}

@@ -150,3 +150,18 @@ size_t particle_zone_max_used(void) {
     init_once();
     return slot_tally_zone_max_bytes(&g_tally);
 }
+
+int particle_zone_count(particle_slot_kind_t slot_kind) {
+    assert(slot_kind >= 0 && slot_kind < PARTICLE_SLOT_COUNT);
+    return (int)SLOT_KINDS[slot_kind].count;
+}
+
+size_t particle_zone_slot_size(particle_slot_kind_t slot_kind) {
+    assert(slot_kind >= 0 && slot_kind < PARTICLE_SLOT_COUNT);
+    return SLOT_KINDS[slot_kind].size;
+}
+
+size_t particle_zone_reserved(void) {
+    init_once();
+    return slot_tally_zone_reserved(&g_tally);
+}
