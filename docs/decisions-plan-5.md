@@ -963,7 +963,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 
 ### Mode d'emploi
 
-*Verdicts donnés par l'humain en séance le 2026-10-03 (« ok partout »), l'humain ne pouvant pas éditer le fichier ; transcrits par l'orchestrateur. C-33 et C-34 attendent la relecture des passages de skills montrés en séance.*
+*Verdicts donnés par l'humain en séance le 2026-10-03 (« ok partout »), l'humain ne pouvant pas éditer le fichier ; transcrits par l'orchestrateur. C-33 et C-34 : « ok » après lecture des passages de skills montrés en séance.*
 
 - Chaque point a un **verdict proposé**. Pour l'accepter, écrivez **ok** sur sa ligne `Verdict`.
 - Pour en choisir un autre, écrivez-le à la place : `proposition`, `variante nommée` (avec la variante en une ligne), `garder tel quel` ou `reporter hors plan 5`.
@@ -1246,7 +1246,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : `.claude/skills/reprendre-les-commentaires/exemple-travaille.md` a changé à quatre endroits : lignes 23-31 (le glossaire « remplacé depuis » par le plan de renommage ; « quatre destinations à l'époque, trois depuis ») ; ligne 47 et lignes 59-74 (noms C à la place des noms disparus : `p8_fixed_cos/_sin`, `tickets_count`, `p8_sub`, `p8_input_save` ; `unstash()` gardé, c'est un nom Lua) ; lignes 95-97 (ratios, modules nommés par leur rôle).
 - **Proposition** : relire ces lignes ; si elles vous vont, rien à éditer.
 - **Verdict proposé** : `garder tel quel`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-34 — Relecture : la section neuve de la consigne (D-65)
 
@@ -1254,7 +1254,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : `consigne-agent.md`, lignes 126-147, nouvelle section « Quand un commentaire n'en est pas tout à fait un » : quatre cas où un commentaire est lu par une machine (aide imprimée par `sed`, `#` d'ici-document, programme `awk` entre apostrophes, fichier comparé par numéros de ligne).
 - **Proposition** : relire ; si elle vous va, rien à éditer.
 - **Verdict proposé** : `garder tel quel`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-35 — « Quatre destinations » dans le skill, trois dans ce dépôt
 
