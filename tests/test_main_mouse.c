@@ -42,14 +42,19 @@ static int entity_list_listed(const entity_list_t *list, const void *e) {
 /* The messages may be read only once entity_registry_init() has run. */
 static int registered(const void *e, int entity_live) {
     const char *buckets[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
-    const char *tags[] = {"main_mouse", "mouse", "ui", "camera", "entity"};
-    int i;
+    const char *tags[] = {"mouse", "ui", "camera", "entity"};
+    size_t i;
 
     if (entity_list_listed(live_entities(), e)) {
         return 1;
     }
-    for (i = 0; i < 5; i++) {
-        if ((entity_live && entity_list_listed(entities_by_message(buckets[i]), e)) || entity_list_listed(entities_by_tag(tags[i]), e)) {
+    for (i = 0; entity_live && i < sizeof buckets / sizeof buckets[0]; i++) {
+        if (entity_list_listed(entities_by_message(buckets[i]), e)) {
+            return 1;
+        }
+    }
+    for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
+        if (entity_list_listed(entities_by_tag(tags[i]), e)) {
             return 1;
         }
     }
