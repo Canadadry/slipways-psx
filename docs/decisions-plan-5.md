@@ -114,7 +114,7 @@
 - **Contrôle** : `make cart-names-count` sans `SUBSTEP` : `TOTAL` 0 dans les quatre colonnes.
 - **Complément (4k1)** : le site de commentaire de `tests/test_headless_capture.c:5` (« `tmp/pico8_replay` est invoqué par `system()` ») est réécrit au nom du binaire réel, `tmp/replay` ; restent 2 sites en commentaire (`src/cmd/frames.c:1`, `tests/test_replay_from_title.c:1`, 4l) et le site de code.
 - **Complément (4l3)** : les deux sites de commentaire restants (`src/cmd/frames.c:1`, `tests/test_replay_from_title.c:1`) sont réécrits au nom du binaire réel (`tmp/replay`) ; reste le site de code (`tools/frames_ref.sh:113`), seule `string` de `cart-names-count` (`MODULES=<4l3>` 0/0/1/0 ; sans `SUBSTEP`, `TOTAL` 1).
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-2 — `PICO8_CLASS_COVERAGE`
 
@@ -127,7 +127,7 @@
 - **Portée** : s'applique aussi aux mentions en commentaire et entre backticks.
 - **Complément (4l1)** : le commentaire de la règle de `tmp/class_coverage`, traduit, garde le nom `PICO8_CLASS_COVERAGE` (ligne 995) ; le `-D` passe à la ligne 247. Les deux sites du `Makefile` restent, 35 sites inchangés.
 - **Complément (4l3)** : les deux justifications de `tools/float_grep_exclusions.txt` traduites (`src/cmd/class_coverage.c`, `src/devtools/class_coverage.c`) gardent `PICO8_CLASS_COVERAGE` ; sites inchangés.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-3 — `PICO8_MALLOC_FILLS`
 
@@ -138,7 +138,7 @@
 - **Proposition prête à appliquer** : (a). `sed -i 's/\bPICO8_MALLOC_FILLS\b/MALLOC_FILLS/g' tests/test_entity_header.c` ; commit `test:`.
 - **Contrôle** : `make test` vert (le test se relance lui-même avec la variable) ; `grep -rnw PICO8_MALLOC_FILLS src tests tools Makefile` rend 0.
 - **Portée** : s'applique aussi aux mentions en commentaire.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-4 — Noms `pico8_*` des fixtures de `test_alloc_guard.c`
 
@@ -150,7 +150,7 @@
 - **Contrôle** : `make test` vert (`test_alloc_guard` compris) ; `grep -c 'pico8_' tests/test_alloc_guard.c` rend 0.
 - **Portée** : s'applique aussi aux mentions en commentaire du même fichier.
 - **Complément (4l4)** : les commentaires de `tests/test_alloc_guard.c`, réécrits par 4l4, décrivent les fixtures par leur rôle (« the allocating source », « an external zone handle ») ; les fixtures sont intouchées. Remesuré à la fin de 4l4 : 33 sites (`pico8_allocs` 14, `pico8_clean` 6, `pico8_gone` 2, `pico8_transient_user` 3, `pico8_zone_transitoire` 3, les cinq symboles 1 chacun) ; les 3 de moins étaient des mentions en commentaire. D-62 pose la même question pour trois autres tests de garde.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-5 — Motif générique `void-ptr` (`pico8_X(`)
 
@@ -161,7 +161,7 @@
 - **Proposition prête à appliquer** : (a) ne peut pas laisser `--detail` identique : (b), motif et fixtures de `tests/test_composition_residue.c` gardés tels quels.
 - **Contrôle** : procédure G.
 - **Complément (4l2)** : la catégorie garde son nom `void-ptr` ; le motif est à la ligne 441 de `tools/composition_residue.sh` après 4l2 (423 avant) ; les fixtures de `tests/test_composition_residue.c` sont intouchées (D-57).
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-6 — `LIEN_EXCLUSION` mort
 
@@ -172,7 +172,7 @@
 - **Proposition prête à appliquer** : suivre D-7 — retirer si D-7 garde le préfixe ou retire la catégorie ; garder si D-7 traduit sans préfixe (l'exemption redevient vivante, test de vivacité à écrire).
 - **Contrôle** : procédure G.
 - **Complément (4l2)** : `LIEN_EXCLUSION` s'appelle `PARENT_LINK_EXCLUSION` (noms internes du script, 4l2) ; définition ligne 77, emploi ligne 84, après 4l2. Le commentaire qui le précède dit toujours pourquoi : `entity_state_of` n'est pas une lignée.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-7 — Motif générique `pico8_X_of` (`lien-parent`)
 
@@ -183,7 +183,7 @@
 - **Proposition prête à appliquer** : (a) ne peut pas laisser `--detail` identique (21 occurrences nouvelles) : (b), la branche gardée telle quelle, et D-6 retiré.
 - **Contrôle** : procédure G.
 - **Complément (4l2)** : `lien-parent` s'appelle `parent-link` (catégories en anglais, 4l2, avec le `Makefile` et le test) ; la branche `\bpico8_[a-z0-9_]+_of\b` est à la ligne 64 après 4l2.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-8 — Motif générique `pico8_X_start` (`défauts`, `--champs`)
 
@@ -194,7 +194,7 @@
 - **Proposition prête à appliquer** : (a) ne peut pas laisser `--detail` identique (212 occurrences nouvelles pour `défauts`) : (b), motif gardé tel quel. Le relevé `--champs` (ligne 676) reste un majorant.
 - **Contrôle** : procédure G.
 - **Complément (4l2)** : `défauts` s'appelle `defaults` et `--champs` s'appelle `--fields` (4l2) ; le motif est à la ligne 66, le `gsub` de `--fields` à la ligne 697, après 4l2 ; le commentaire de `fields()` et l'en-tête citent `` `pico8_X_start` `` entre backticks.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-9 — Motif `spec` et `SPEC_EXCLUSION`
 
@@ -205,7 +205,7 @@
 - **Proposition prête à appliquer** : (a) — supprimer les lignes 49 et 94 (le `sed` devient sans objet : `grep` direct) ; les témoins restent.
 - **Contrôle** : procédure G ; `make data-guard` vert.
 - **Complément (4l4)** : après 4l4, la branche est toujours à `data_residue.sh:38`, `SPEC_EXCLUSION` défini ligne 49 et lu ligne 94 (en-tête réécrit à hauteur égale). Le commentaire qui le précède dit : « These seven `_default` names are variants with an omitted argument, not class defaults: counting them would make spec impossible to clear. No `\b` in this sed expression: BSD sed does not know it. » (sept noms comptés ; le piège tient pour `sed`, les `grep -E` du script prennent `\b`).
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-10 — Exclusion `usage-mutuel` morte
 
@@ -216,7 +216,7 @@
 - **Proposition prête à appliquer** : (a) — retirer `x == "PICO8" || x == "PICO8_" ||` de la ligne 522.
 - **Contrôle** : procédure G (`--detail` identique, `composition-guard` vert).
 - **Complément (4l2)** : `usage-mutuel` s'appelle `mutual-usage` (4l2) ; l'exclusion `x == "PICO8" || x == "PICO8_" ||` est à la ligne 542 après 4l2.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-11 — Catégories historiques des gardes à motifs
 
@@ -228,7 +228,7 @@
 - **Contrôle** : procédure G — `--detail` égal à celui d'avant moins les lignes de ces catégories ; `make test` vert.
 - **Complément (4l2)** : `aiguillage-nom` s'appelle `name-dispatch`, `un-ou-faux` `one-or-false`, `nu` est gardé (4l2) ; leurs motifs sont aux lignes 67 (`nu`), 68 (`name-dispatch`) et 69 (`one-or-false`), `NU_EXCLUSION` à la ligne 80, après 4l2 ; dans `COMPOSITION_RESIDUE_GUARD`, les noms neufs. Les six catégories de `tools/data_residue.sh` sont intouchées (4l4).
 - **Complément (4l4)** : `valeur` s'appelle `value`, `par-nom` `by-name` et `liste` `list` (4l4, avec `DATA_RESIDUE_GUARD` et `tests/test_data_residue.c`) ; les six catégories historiques de `tools/data_residue.sh` sont `value` (ligne 29), `ob` (30), `stash` (31), `type-tag` (32), `ref-audit` (33), `list` (40–41), toutes dans `DATA_RESIDUE_GUARD`.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-12 — Suffixe de constructeur de `--champs`
 
@@ -239,7 +239,7 @@
 - **Proposition prête à appliquer** : (a), rien à éditer : `--champs` est un majorant par nom, pas une porte (pied « 0 hors constructeur » 27, « 0 écriture » 15 à la fin de 3l).
 - **Contrôle** : aucun.
 - **Complément (4l2)** : l'option s'appelle `--fields` ; son pied dit `fields: 260; no write: 15; no write outside a constructor: 27` (« 0 écriture » 15 et « 0 hors constructeur » 27 avant) ; le suffixe est à la ligne 701. Rien d'autre ne bouge.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-13 — 12 statiques locales de deux lettres des tests
 
@@ -268,7 +268,7 @@
 - **Contrôle** : `make scope-count` sans `SUBSTEP` : `total` 0.
 - **Portée** (si (b)) : s'applique aussi aux mentions en commentaire et entre backticks.
 - **Complément (4l4)** : remesuré à la fin de l'étape 4, `scope-count` sans `SUBSTEP` : 12, les mêmes ; inchangé.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-14 — Ordre des mots des macros de taille de zone
 
@@ -286,7 +286,7 @@
 
   `ZONE_BUDGET_BYTES` gardé : ce n'est pas une zone, c'est leur somme. Aucun des noms neufs n'existe (0 site).
 - **Portée** : s'applique aussi aux mentions entre backticks et en commentaire ; contrôle sur les trois anciens noms.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-15 — `probe_own` stocke un `targeting_t`
 
@@ -306,7 +306,7 @@
   `targeting_own` : 0 site.
 - **Portée** : s'applique aussi aux mentions entre backticks et en commentaire ; contrôle sur `probe_own`.
 - **Complément (4f2)** : 4f2 renomme les locales `probe` de `targeting_track` et `targeting_confirm` (`src/game/probe.c`) en `targeting` : elles tiennent un `targeting_t`, nom qui mentait, comme le champ `self->targeting` et la locale `targeting` de `fold_probe`. Reste le champ `probe_own`, objet de l'entrée ; ses mentions en commentaire (`probe.h`, `wormhole.h`, `targeting.h`) le citent sans backticks, par son nom courant.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-16 — `probe_link_target` hors de son module
 
@@ -315,7 +315,7 @@
 - **Options** : (a) garder (§7 : pas de redécoupage pendant le plan 5) ; (b) déplacer la déclaration dans `probe.h` ; (c) renommer `targeting_link_target` et déplacer la définition dans `targeting.c`.
 - **Sites** : 4.
 - **Proposition prête à appliquer** : (a), rien à éditer ; le redécoupage est noté pour un chantier hors du plan 5.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-17 — Noms qui bégaient
 
@@ -342,7 +342,7 @@
 - **Portée** : s'applique aussi aux mentions entre backticks et en commentaire ; contrôle sur chaque ancien nom.
 - **Complément (4e)** : le libellé `"update_vanishing_update_entities_calls"` de `check_int()` (`tests/test_planet.c`) est le nom de `UPDATE_VANISHING_UPDATE_ENTITIES_CALLS` en minuscules (règle des libellés, consigne point 7 ; `git show dd1d875:docs/consigne-etape-4.md`) : si (a) est appliquée, il devient `"update_vanishing_calls"` dans le même commit.
 - **Complément (4f2)** : `emitter_init_help_screen_takes_a_particles_help_screen_list` est un nom de cas : la fonction est `case_emitter_init_help_screen_takes_a_particles_help_screen_list` (`tests/test_particle_zone.c`), et la chaîne de `CASES[]` et celle de son `expect_clean` suivent la fonction (règle des noms de cas, consigne point 7 ; `git show dd1d875:docs/consigne-etape-4.md`) ; sous (a), trois sites d'un coup : la fonction devient `case_emitter_init_help_screen_takes_a_help_list`, ses deux chaînes `"emitter_init_help_screen_takes_a_help_list"` (lignes 330 et 423 à la fin de 4f2), et l'identité de la ligne du tableau ci-dessus est `c:test_particle_zone.c@F@case_emitter_init_help_screen_takes_a_particles_help_screen_list`.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-18 — Étiquette morte `main_mouse` de `test_main_mouse.c`
 
@@ -352,7 +352,7 @@
 - **Sites** : 1.
 - **Proposition prête à appliquer** : (a), commit `test:` ; vérifier d'abord que la boucle sur `tags` ne dépend pas de sa taille (un compte attendu de lignes imprimées).
 - **Contrôle** : `make test` vert.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-19 — `planet_upkeep` sans le préfixe `economy_score_`
 
@@ -362,7 +362,7 @@
 - **Sites** : 11.
 - **Proposition prête à appliquer** : (a), procédure N : `planet_upkeep	economy_score_planet_upkeep	src/game/economy_score.h	c:@F@planet_upkeep` (nom neuf : 0 site).
 - **Portée** : s'applique aussi aux mentions entre backticks et en commentaire ; contrôle sur `planet_upkeep`.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-20 — Singletons `main_*` hors d'un module `main_*`
 
@@ -371,7 +371,7 @@
 - **Options** : (a) garder (noms du vocabulaire) ; (b) déplacer leurs déclarations dans des en-têtes `main_*` (redécoupage, §7).
 - **Sites** : 207 — `main_ui` 111, `main_mouse` 18, `main_mouse_typed` 28, `main_mouse_placeholder_class` 3, `main_camera_typed` 47.
 - **Proposition prête à appliquer** : (a), rien à éditer.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-21 — Préfixe `g_` des tables `static const` de classe
 
@@ -381,7 +381,7 @@
 - **Sites** : 54 déclarations `static const entity_class_t g_…` (45) et `static const entity_kind_t g_…` (9), dans 25 fichiers, 53 noms distincts, 143 occurrences. Hors question : 7 autres `static const` préfixées `g_` (tables de données, `button_fn_t`…), que le même verdict couvrirait s'il est (a).
 - **Proposition prête à appliquer** : (a) ; aucun nom en `_def` n'existe (0 site). Procédure N, une ligne par déclaration, identités `c:<fichier>.c@g_X_class` à relever (statiques de fichier).
 - **Portée** : s'applique aussi aux mentions entre backticks et en commentaire ; contrôle `grep -rnE '\bg_[a-z0-9_]+_(class|kind)\b' src tests` rend 0.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-22 — Suffixe `_t` sur deux variables
 
@@ -398,7 +398,7 @@
 
   Noms neufs : 0 site.
 - **Portée** : s'applique aussi aux mentions entre backticks et en commentaire.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-23 — Faute `test_update_entities_drives_a_entity_struct`
 
@@ -407,7 +407,7 @@
 - **Options** : (a) `test_update_entities_drives_an_entity_struct` ; (b) garder.
 - **Sites** : 2 (`tests/test_toast.c`).
 - **Proposition prête à appliquer** : (a), procédure N : `test_update_entities_drives_a_entity_struct	test_update_entities_drives_an_entity_struct	tests/test_toast.c	c:test_toast.c@F@test_update_entities_drives_a_entity_struct`.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-24 — `DIFFICULTY_OPTIONS_ROW_CAP` sans son module
 
@@ -416,7 +416,7 @@
 - **Options** : (a) `HELP_DIFFICULTY_OPTIONS_ROW_CAP` ; (b) garder (macro locale d'un `.c`).
 - **Sites** : 3.
 - **Proposition prête à appliquer** : (a), procédure N : `DIFFICULTY_OPTIONS_ROW_CAP	HELP_DIFFICULTY_OPTIONS_ROW_CAP	src/game/help.c	macro:src/game/help.c:DIFFICULTY_OPTIONS_ROW_CAP` (0 site pour le nom neuf). Si (a), `DIFFICULTY_OPTIONS_COUNT` du même fichier suit le même verdict (à mesurer).
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-25 — `p8_input_*` et `p8_fatal` définis hors de `p8/`
 
@@ -427,7 +427,7 @@
 - **Proposition prête à appliquer** : (a), rien à éditer.
 - **Complément (4k3)** : les commentaires d'`src/devtools/input_json.c` réécrits par 4k3 nomment `p8_input_save` et `p8_input_append` (au lieu de `pico8_input_save`, `pico8_input_append`), définis là et déclarés dans `src/p8/input.h` (« see p8_input_append's contract in p8/input.h ») ; rien d'autre ne change.
 - **Complément (4l3)** : `p8_fatal` toujours défini dans `src/platform/fatal_pc.c`, qui n'a pas de commentaire ; rien d'autre.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-26 — Lignes `chaîne` `pz` et `go` éditées hors de `rename-strings`
 
@@ -437,7 +437,7 @@
 - **Sites** : 2 lignes.
 - **Proposition prête à appliquer** : (a), deux lignes de `tools/rename_overrides.tsv` (forme `string`, lue par `rename_derive.read_overrides`) : `string	pz	=` et `string	go	=`.
 - **Contrôle** : `make rename-strings` sur l'arbre redonne `conservé` aux deux lignes ; `git diff docs/renommage.tsv` vide pour elles.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-27 — Motif `pico8_class_coverage_record` de `tools/rename_strings.py`
 
@@ -446,7 +446,7 @@
 - **Options** : (a) `\bclass_coverage_record\(` ; (b) garder (l'outil ne sera plus lancé).
 - **Sites** : 1.
 - **Proposition prête à appliquer** : (a), avec ses fixtures de `tests/test_rename_strings.py` ; `make rename-strings-test` vert.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-28 — Alertes `warn-review` de fin de tronçon 2
 
@@ -469,7 +469,7 @@
 - **Portée** : s'applique aussi aux mentions entre backticks et en commentaire ; contrôle : `grep -rnwE '(qa|ra|yr|sw|lw|kv|fy|me)' src tests` ne rend plus de paramètre de méthode.
 - **Complément (4h)** : 4h renomme les paramètres `qa`/`ra` du prototype de `ui_send_to_hovered` (`src/game/ui.h`) aux noms de sa définition, `mouse_world`/`mouse_screen` (règle de 4e : le prototype suit sa définition, dont le `pos` était une locale cryptique de portée 47) : `mouse_screen` est le nom que (b) propose pour `ra`. Les paramètres `qa`/`ra` des méthodes de la vtable (`left_press`, `right_press`, `hit_test`, `drag`…) restent tels quels.
 - **Complément (4j)** : deux prototypes d'en-tête de 3j nomment leur paramètre d'un digramme quand la définition dit le nom C : `cart_start_game(button_t *nj)` (`src/game/cart.h`, définition `chosen_option`) et `score_panel_new_year(p8_fixed_t yr)` (`src/game/score_panel_display.h`, définition `year`). Non renommés à 4j (l'amendement de 4h ne vise que le prototype d'une définition renommée) ; sous (b) ou (c), ils prennent le nom de leur définition.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-30 — `typed_main_*` des tests contre `main_*_typed`
 
@@ -479,7 +479,7 @@
 - **Sites** : 96 — `typed_main_camera` 24, `typed_main_economy` 68, `typed_main_mouse` 4. Noms neufs : 0 site.
 - **Proposition prête à appliquer** : (a), procédure N, une ligne par identité (`c:<fichier>.c@F@typed_main_X`, 6 identités).
 - **Portée** : s'applique aussi aux mentions entre backticks et en commentaire ; contrôle sur `typed_main_`.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-31 — Digramme `oc` : `tickets` et `type_picker`
 
@@ -489,7 +489,7 @@
 - **Sites** : 3 pour le paramètre (`planet.h`, `planet.c:146–147`) ; `oc` au total 17 (le reste en commentaire et dans le libellé `jo.oc` de `test_live_slots.c`, que 4f reprend).
 - **Proposition prête à appliquer** : (a), ligne `field planet_set_type_picker.oc	picker` de `tools/rename_overrides.tsv` et procédure N (identité du paramètre à relever : offset).
 - **Portée** : s'applique aussi aux mentions en commentaire.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-32 — Champs de l'icône de structure : `rest_count` est une position
 
@@ -506,7 +506,7 @@
 
   et, identités à relever (offset), `revealed_count_before` → `cursor_before`, paramètre `gy` → `cursor` (ligne `field structure_icon_set_cursor.gy	cursor`). Noms neufs : 0 site.
 - **Portée** : s'applique aussi aux mentions entre backticks et en commentaire ; contrôle sur `rest_count`, `revealed_count`.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-33 — Exceptions du compteur de français : schéma du TSV et fixtures françaises (3a)
 
@@ -535,7 +535,7 @@
 
   Contrôle (fait par 4a sur une copie du fichier) : `make french-count SUBSTEP=3a` à `TOTAL done` 0 et `TOTAL later` 0. Les sous-étapes suivantes proposent leurs propres lignes ; celles des outils du dictionnaire ne sont pas comptées (exclus par construction).
 - **Complément (4l4)** : à la fin de l'étape 4, sans `SUBSTEP`, `french-count` `string` 36 = 26 (cette entrée) + 1 (D-55) + 8 (D-59) + 1 (D-61) ; 0 avec les 17 lignes de ces quatre entrées, vérifié sur une copie de `tools/french_exceptions.txt` (`tmp/4l4_s3/fe_copy.txt`).
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-34 — Assertion faible `strstr(log, "exempt")` de `test_class_coverage.c`
 
@@ -544,7 +544,7 @@
 - **Options** : (a) resserrer sur la forme d'une ligne exemptée ; (b) garder.
 - **Sites** : 1 (`tests/test_class_coverage.c:69`).
 - **Proposition prête à appliquer** : (a), `strstr(log, "  exempt (test)") != NULL` (la raison `test` est celle qu'écrit l'`awk` du même cas), commit `test:` ; contrôle : `make test` vert.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-35 — Noms d'identifiant qui citent Lua ou le cart (3b)
 
@@ -555,7 +555,7 @@
 - **Proposition prête à appliquer** : (a). Paramètre : `lua` → `decimal`, édition à la main de la ligne de `#define` (paramètre de macro, hors extraction), commit `refactor:` ; sortie du préprocesseur des appelants inchangée (le paramètre n'est pas utilisé). Fonctions, procédure N : `test_mod_negative_dividend_matches_lua_floor_semantics	test_mod_negative_dividend_floors	tests/test_fixed.c	c:test_fixed.c@F@test_mod_negative_dividend_matches_lua_floor_semantics`, `test_sget_reads_known_pixel_from_loaded_cart_data	test_sget_reads_known_pixel_from_loaded_sheet	tests/test_gfx.c	c:test_gfx.c@F@test_sget_reads_known_pixel_from_loaded_cart_data`, `test_map_and_mset_round_trip_against_real_cart_data	test_map_and_mset_round_trip_against_real_sheet	tests/test_gfx.c	c:test_gfx.c@F@test_map_and_mset_round_trip_against_real_cart_data` (noms neufs : 0 site).
 - **Portée** : s'applique aussi aux mentions en commentaire ; contrôle : `grep -rnwiE '[a-z_]*(lua|cart)[a-z_]*' src/p8 tests/test_fixed.c tests/test_gfx.c` ne rend que `cart_draw`.
 - **Complément (4g)** : quatre identifiants de test de 3g citent le cart : `cart_positions_items`, `CART_POSITIONS`, `cart_routed_positions_items`, `CART_ROUTED_POSITIONS` (`tests/test_research_project.c`, 8 sites, 2 chacun : définition et emploi), copies figées des listes de noms de positions que seul `DEFAULTS_HASH` plie (le commentaire réécrit par 4g dit « frozen copies », sans citer le cart). Sous (a) : `frozen_positions_items`, `FROZEN_POSITIONS`, `frozen_routed_positions_items`, `FROZEN_ROUTED_POSITIONS` (0 site), procédure N ; renommer n'en change pas le pliage (seules les chaînes des listes sont pliées, `DEFAULTS_HASH` inchangée).
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-36 — `` `mem` `` et `` `gfx` `` comptés en `backtick` après le renommage de 4b
 
@@ -572,7 +572,7 @@
 - **Complément (4k2)** : 4k2 réécrit les mentions `` `out` `` de `src/devtools/screencast_player.h:42`, `src/devtools/dump.h:8`, `tests/test_screencast_player.c:126` (« the buffer », « the stream », « the 16-byte buffer ») et `` `len` `` de `tests/test_gif.c:64` (`` `data_length` ``, nom de la locale après le commit de locales de 4k2) : 4 des 6 de 3k relevées par 4g ; restent `src/devtools/replay_control.h:63` et `src/devtools/minimize.h:6` (4k3). Les « un » de 4k2 (38) sont partis avec le français. Les locales renommées par 4k2 (`eoi`, `prev`, `clears`, `bitpos`, `written`, `packed`) deviennent d'anciens noms sans aucune mention entre backticks dans le dépôt ; `gif` garde son ancien `g` (D-42) : aucun effet de bord mesuré (compteurs sans `SUBSTEP`, TSV d'avant puis d'après, identiques à l'octet).
 - **Complément (4k3)** : 4k3 réécrit les deux dernières mentions `` `out` `` de 3k relevées par 4g : `src/devtools/replay_control.h:63` (« the buffer ») et `src/devtools/minimize.h:6` (`` `kept_frames` ``, nom du paramètre après le commit de locales de 4k3) ; les six de 3k sont réécrites. Les « un » de 4k3 (11) sont partis avec le français. Les locales renommées par 4k3 (`obj_start`, `obj_end`, `obj_len`, `obj_buf`, `tmp_len`) deviennent d'anciens noms distinctifs (un `_`), comptés par texte en mot entier, nus compris : seule la mention nue `tmp_len` du commentaire `src/devtools/input_json.c:229` comptait (+1 `comment` sans `SUBSTEP`, TSV d'avant puis d'après, sur l'arbre de l'état des locales ; réécrite `tmp_path_size` par le commit de commentaires, à hauteur constante). `out` était déjà un ancien nom : aucun effet.
 - **Complément (4l1)** : les 19 « un » du `Makefile` rendus comptés par 4f1 sont partis avec le français de sa légende et de ses commentaires (`cart-citations MODULES=Makefile` : `short` 152 → 0).
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-37 — `argc`/`argv` de `main` dans la liste des locales cryptiques
 
@@ -584,7 +584,7 @@
 - **Portée** : la règle ne touche que la liste des locales cryptiques ; aucune mention en commentaire ni entre backticks n'est en cause.
 - **Complément (4l3)** : après 4l3, `cryptic-locals` garde les 8 `argc`/`argv` des `main` de `cmd/class_coverage` (58), `cmd/game` (95), `cmd/replay` (94), `cmd/screencast_viewer` (100 ; 102 avant ses commentaires) et les 2 de `tests/test_allocator.c` ; inchangé.
 - **Complément (4l4)** : remesuré à la fin de l'étape 4, sans `SUBSTEP` : les 10 `argc`/`argv` des cinq `main`, avec `blank` et `screen_texture` (D-60), 12 candidats ; inchangé.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-38 — Statiques de fichier `mem`/`gfx` des tests
 
@@ -594,7 +594,7 @@
 - **Sites** : 80 déclarations dans 40 fichiers (`grep -rhE '^static p8_(memory|graphics)_t (mem|gfx);' tests | wc -l`), plus leurs emplois, à mesurer par le `grep` des conventions sur chaque fichier.
 - **Proposition prête à appliquer** : (b), procédure N, en un passage à l'étape 5 ; avec D-36 (b), les mentions entre backticks ne comptent pas hors de leur fichier.
 - **Portée** : s'applique aussi aux mentions entre backticks et en commentaire des 40 fichiers ; contrôle : le `grep` des sites ci-dessus rend 0.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-39 — Nom de test qui cite le cart (`test_data_init.c`)
 
@@ -604,7 +604,7 @@
 - **Sites** : 2 (définition, appel de `main`).
 - **Proposition prête à appliquer** : (a), procédure N : `test_production_tables_project_records_icon_tooltips_technologies_decode_real_cart_content	test_production_tables_project_records_icon_tooltips_technologies_decode_real_game_data	tests/test_data_init.c	c:test_data_init.c@F@test_production_tables_project_records_icon_tooltips_technologies_decode_real_cart_content` (nom neuf : 0 site).
 - **Portée** : s'applique aussi aux mentions en commentaire (aucune) ; contrôle : `grep -rnwiE '[a-z_]*(lua|cart)[a-z_]*' tests/test_data_init.c` rend 0.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-40 — Clés du cart sans ligne `chaîne` au TSV
 
@@ -614,7 +614,7 @@
 - **Sites** : 0 après 4d (`grep -rn '"br"\|"qr"\|"rf"\|"qh+"\|draw_function = "s"\|dispatch_lookup("s")\|register("s"' src tests`).
 - **Proposition prête à appliquer** : (a).
 - **Portée** : aucune mention en commentaire ni entre backticks n'est en cause.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-41 — Nom de test qui garde le digramme `r` (`test_map_tables.c`)
 
@@ -624,7 +624,7 @@
 - **Sites** : 2 (définition, appel de `main`).
 - **Proposition prête à appliquer** : (a), procédure N : `test_weighted_picker_pools_planet_types_entries_by_their_r	test_weighted_picker_pools_planet_types_entries_by_their_weight	tests/test_map_tables.c	c:test_map_tables.c@F@test_weighted_picker_pools_planet_types_entries_by_their_r` (nom neuf : 0 site) ; la ligne de `docs/renommage.tsv` passe au nom neuf.
 - **Portée** : s'applique aussi aux mentions en commentaire (aucune) ; contrôle : `grep -rn 'by_their_r\b' src tests tools` rend 0.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-42 — Ligne du TSV d'une locale renommée deux fois
 
@@ -640,7 +640,7 @@
 - **Complément (4i)** : 4i ajoute 6 lignes de cette forme (`p` → `pos` → `screen_pos` ×2, `px` → `name` → `screen_x`, `py` → `speed_factor` → `screen_y`, `burst_draw` de `src/game/planet_family.c` et son prototype de `planet_family.h` ; `ra` → `pos` → `planet_pos`, `test_burst_export_line_counts_the_outgoing_routes` de `tests/test_burst_exports_row.c` ; `p` → `pos` → `map_pos`, `test_life` de `tests/test_protostar.c`) : 35 lignes en tout. `rename-table-check` sur l'extraction de l'état des chaînes de 4i : 27 708 → 27 682 (32 violations tombent, ces 6 apparaissent).
 - **Complément (4j)** : 4j ajoute 3 lignes de cette forme (`tl` → `era` → `current_era`, `menu_show_tech_tree_screen` de `src/game/menu.c` ; `ra` → `pos` → `box_pos`, `message_box_open_box` de `src/game/message_box.c` ; `em` → `spacer` → `emitter`, `test_built` de `tests/test_help_screen.c`) : 38 lignes en tout. `rename-table-check` sur l'extraction de l'état des chaînes de 4j : 27 708 → 27 685 (26 violations tombent, ces 3 apparaissent).
 - **Complément (4k2)** : 4k2 ajoute 1 ligne de cette forme (`g` → `gif` → `result`, `parse_gif` de `tests/test_gif.c`) : 39 lignes en tout. `rename-table-check` sur l'extraction de l'état des chaînes de 4k2 : 27 714 → 27 697 (18 violations tombent, celle-ci apparaît).
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-43 — Paramètres `gfx`/`mem` des fonctions de dessin
 
@@ -656,7 +656,7 @@
 - **Complément (4j)** : après 4j, `grep -rnE 'p8_graphics_t \*gfx\b' src | wc -l` 88, `'p8_memory_t \*mem\b'` 115 (la locale `mem` de `cart_load` renommée `memory`) ; restent à courte portée, dans les fichiers de 4j, `message_box_draw_overlay`, `toast_draw`, `help_screen_draw`, `score_panel_draw` et leurs prototypes, et les locales `mem` de `cart_init`, `cart_draw`, `score_panel_refresh_palette`.
 - **Complément (4k2)** : après 4k2, `grep -rnE 'p8_graphics_t \*gfx\b' src | wc -l` 88, `'p8_memory_t \*mem\b'` 115, inchangés ; restent à courte portée, dans les fichiers de 4k2, `dump_screen` et son prototype, et les locales `mem`/`gfx` de `test_dump_of_hand_drawn_pattern_matches_exact_text` (`tests/test_dump.c`, portées 36 et 35).
 - **Complément (4l3)** : les locales `mem`/`gfx` des `main` de `src/cmd/replay.c`, `src/cmd/game.c` et `src/cmd/class_coverage.c` sont renommées `memory`/`graphics` (des structs, hors du `grep` de l'entrée) : 88 et 115 inchangés ; reste à courte portée, dans les fichiers de 4l3, le paramètre `mem` de `raylib_backend_present` et de son prototype.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-44 — Champ `planet_inspection_panel_ctx_t.unmet_needs`, qui tient les besoins reçus
 
@@ -666,7 +666,7 @@
 - **Sites** : 7 lignes de `src/game/planet_display.c` (déclaration ligne 88, emplois 107, 196, 236, 237, 240, 241) ; l'exemption `planet_inspection_panel_ctx_t.unmet_needs` de `REGISTRES_NON_ENTITE` (`tools/composition_residue.sh:128`) et les deux lignes `chaîne` de `docs/renommage.tsv` qui la citent (écrivain `planet_display.c`, lecteur `tools/composition_residue.sh`).
 - **Proposition prête à appliquer** : (a), procédure N : `unmet_needs	received_needs	src/game/planet_display.c	c:@SA@planet_inspection_panel_ctx_t@FI@unmet_needs` (identité stable, relevée dans `declarations.tsv` à la fin de 4e), ligne de `tools/rename_overrides.tsv` `field	pico8_jo_gh_ctx_t.ji	received_needs	gh` ; l'exemption et les lignes `chaîne` suivent par la procédure G (`--detail` avant et après, vivacité). La locale `unmet_needs` de `planet_inspection_panel` garde son nom.
 - **Portée** : s'applique aussi aux mentions en commentaire (aucune après 4e) ; contrôle : `grep -n 'ctx->unmet_needs\|filter_context.unmet_needs\|ctx_t.unmet_needs' src tools` rend 0.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-45 — Noms de test qui disent « grab arena » pour une prise (`test_live_slots.c`)
 
@@ -676,7 +676,7 @@
 - **Sites** (``grep`` des conventions, fin de 4f1) : 2 par fonction (la définition et un appel : `main`, ou `placed_grab_arena_reuses_dead_wormhole_arena` pour `placed_grab_arena`), 10 ; macro 6 (définition, quatre `start_e2e`, l'en-tête de commentaire de sa fixture) ; fixture 1 en code (la valeur de `GRAB_ARENAS`), plus sa ligne de `tools/rename_substeps.tsv` et la liste de 4f2 du plan. Noms neufs : 0 site.
 - **Proposition prête à appliquer** : (a), procédure N, identités relevées à la fin de 4f1 dans `declarations.tsv` : `refused_grab_arenas_do_not_grow_game	refused_grabs_do_not_grow_game	tests/test_live_slots.c	c:test_live_slots.c@F@refused_grab_arenas_do_not_grow_game`, `placed_grab_arena	placed_grab	tests/test_live_slots.c	c:test_live_slots.c@F@placed_grab_arena`, `placed_grab_arena_reuses_dead_wormhole_arena	placed_grab_reuses_dead_wormhole_arena	tests/test_live_slots.c	c:test_live_slots.c@F@placed_grab_arena_reuses_dead_wormhole_arena`, `refused_grab_arena_crosses_new_game	refused_grab_crosses_new_game	tests/test_live_slots.c	c:test_live_slots.c@F@refused_grab_arena_crosses_new_game`, `offscreen_planet_forgets_refused_grab_arena	offscreen_planet_forgets_refused_grab	tests/test_live_slots.c	c:test_live_slots.c@F@offscreen_planet_forgets_refused_grab_arena`, `GRAB_ARENAS	GRABS	tests/test_live_slots.c	macro:tests/test_live_slots.c:GRAB_ARENAS` ; les lignes de `docs/renommage.tsv` gardent leur `ancien` du cart (D-42).
 - **Portée** : s'applique aussi aux mentions en commentaire (l'en-tête `GRAB_ARENAS:` de la fixture) ; contrôle : `grep -rnw 'grab_arena\|grab_arenas\|GRAB_ARENAS\|grab_arenas_refused' tests/test_live_slots.c` ne rend que le champ `placed->grab_arena` de la sonde, qui tient vraiment une arène.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-46 — Fonctions de `main_economy.h` définies dans `probe.c`
 
@@ -687,7 +687,7 @@
 - **Proposition prête à appliquer** : (a) ; (b) en complément si l'humain veut le §4 à la lettre : `probe_set_main_economy	main_economy_set	src/game/main_economy.h	c:@F@probe_set_main_economy`, ligne de `tools/rename_overrides.tsv` `name	pico8_probe_set_fm	main_economy_set` ; la ligne du TSV garde son `ancien` du cart (`pico8_probe_set_fm`).
 - **Portée** : s'applique aussi aux mentions entre backticks et en commentaire ; contrôle sous (b) : le `grep` des conventions sur `probe_set_main_economy` rend 0.
 - **Complément (4g)** : les commentaires de `main_economy.h` réécrits par 4g disent que ces fonctions et leur état sont définis dans `probe.c` ; `economy.h` nomme `probe_set_main_economy()` dans le contrat d'`economy_init`. Sites remesurés en fin de 4g (`grep` des conventions) : `probe_set_main_economy` 4 (la mention de `economy.h` en plus), `main_economy` 53, `main_economy_typed` 93, `main_economy_placeholder` 12, `main_economy_placeholder_class` 5.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-47 — `structure_icon_sprite_counter` compte des identifiants de planète
 
@@ -697,7 +697,7 @@
 - **Sites** (`grep` des conventions, fin de 4g) : `structure_icon_sprite_counter` 4 (déclaration, définition, appel de `tests/test_structure_icon.c`, mention en commentaire de `structure_icon.h`), `g_sprite_counter` 5, `g_has_sprite_counter` 5 ; noms neufs : 0 site.
 - **Proposition prête à appliquer** : (a), procédure N, identités relevées dans `declarations.tsv` à la fin de 4g : `structure_icon_sprite_counter	structure_icon_id_counter	src/game/structure_icon.c	c:@F@structure_icon_sprite_counter`, `g_sprite_counter	g_id_counter	src/game/structure_icon.c	c:structure_icon.c@g_sprite_counter`, `g_has_sprite_counter	g_has_id_counter	src/game/structure_icon.c	c:structure_icon.c@g_has_sprite_counter` ; lignes de `tools/rename_overrides.tsv` `name	pico8_ie_id	structure_icon_id_counter	ie`, `name	g_ie_id	g_id_counter	ie`, `name	g_ie_has_id	g_has_id_counter	ie` (remplacent les lignes 766, 768, 769) ; les lignes du TSV gardent leur `ancien` du cart. Le message de `structure_icon_left_press` (« bumps the shared sprite counter », réécrit par 4g) devient « bumps the shared id counter », à hauteur constante (`structure_icon.c` est dans `tools/line_coverage_reference.txt`).
 - **Portée** : s'applique aussi aux mentions en commentaire et dans les messages ; contrôle : le `grep` des conventions sur les trois anciens noms rend 0, et `git grep -n 'sprite counter' src tests` rend 0.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-48 — Noms de test qui décrivent l'API générique disparue ou la méthode du cart
 
@@ -707,7 +707,7 @@
 - **Sites** (`grep` des conventions, fin de 4h) : `test_ui_held_stops_off_row` 2 et `test_probe_t_key_stops_off_row` 2 (définition, appel de `main`) ; `test_recompute_on_placeholder` 4 (deux fichiers) ; `RECOMPUTE_MOUSE_WORLD_X` 4 et `RECOMPUTE_MOUSE_WORLD_Y` 4 (définition et emploi dans chacun des deux fichiers). Noms neufs : 0 site.
 - **Proposition prête à appliquer** : (a), procédure N, identités relevées dans `declarations.tsv` à la fin de 4h : `test_ui_held_stops_off_row	test_ui_held_aborts_on_other_classes	tests/test_ui.c	c:test_ui.c@F@test_ui_held_stops_off_row`, `test_probe_t_key_stops_off_row	test_probe_state_time_key_at_zero	tests/test_ui.c	c:test_ui.c@F@test_probe_t_key_stops_off_row`, `test_recompute_on_placeholder	test_update_on_placeholder	tests/test_main_mouse.c	c:test_main_mouse.c@F@test_recompute_on_placeholder`, `test_recompute_on_placeholder	test_update_on_placeholder	tests/test_main_camera.c	c:test_main_camera.c@F@test_recompute_on_placeholder`, `RECOMPUTE_MOUSE_WORLD_X	UPDATE_MOUSE_WORLD_X	tests/test_main_mouse.c	macro:tests/test_main_mouse.c:RECOMPUTE_MOUSE_WORLD_X` et ses trois pendants (`_Y`, et les deux de `tests/test_main_camera.c`) ; les lignes de `docs/renommage.tsv` passent aux noms neufs. Renommer ne change aucun hachage (aucun nom n'est plié).
 - **Portée** : s'applique aussi aux mentions en commentaire (aucune après 4h) ; contrôle : le `grep` des conventions sur les cinq anciens noms rend 0.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-49 — Assistants de test qui citent un digramme du cart ou un surnom
 
@@ -717,7 +717,7 @@
 - **Sites** (`grep` des conventions, fin de 4i) : `planet_by_ref` 2 (définition, appel), `build_plate` 6, `fold_plate` 3, `is_plate` 3 ; noms neufs : 0 site.
 - **Proposition prête à appliquer** : (a), procédure N, identités relevées dans `declarations.tsv` à la fin de 4i : `planet_by_ref	outgoing_routes_of	tests/test_burst_exports_row.c	c:test_burst_exports_row.c@F@planet_by_ref`, `build_plate	build_trading_hub	tests/test_trading_hub.c	c:test_trading_hub.c@F@build_plate`, `fold_plate	fold_trading_hub	tests/test_trading_hub.c	c:test_trading_hub.c@F@fold_plate`, `is_plate	is_trading_hub_archetype	tests/test_trading_hub.c	c:test_trading_hub.c@F@is_plate` ; les lignes de `docs/renommage.tsv` passent aux noms neufs. Renommer ne change aucun hachage (aucun nom n'est plié).
 - **Portée** : s'applique aussi aux mentions en commentaire ; le mot « plate » des commentaires de `tests/test_trading_hub.c` est déjà réécrit « trading hub » par 4i (`grep -rnw 'plate\|plates' src tests` ne rend que les trois noms). Contrôle : le `grep` des conventions sur les quatre anciens noms rend 0.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-50 — Locales courtes dont le nom porte un digramme du cart
 
@@ -727,7 +727,7 @@
 - **Sites** (`grep` des conventions, fin de 4j) : `c_truthy` 2, `s_str` 3 ; noms neufs : `is_shown` 14 (le champ, et ses mentions en commentaire), `score_text` 0.
 - **Proposition prête à appliquer** : (a), procédure N, identités relevées dans `declarations.tsv` à la fin de 4j : `c_truthy	is_shown	src/game/score_panel_display.c	c:score_panel_display.c@9538@F@score_panel_update@c_truthy`, `s_str	score_text	src/game/score_panel_display.c	c:score_panel_display.c@4936@F@score_panel_update_map@s_str` (offsets à relever de nouveau) ; lignes `identity` de `tools/rename_overrides.tsv`, les lignes de `docs/renommage.tsv` passent aux noms neufs. Renommer ne change aucun hachage (aucun nom n'est plié). Le commentaire de `score_panel_update` (`src/game/score_panel_display.c`, dans `tools/line_coverage_reference.txt`) garde sa hauteur.
 - **Portée** : s'applique aussi aux mentions en commentaire (aucune après 4j) ; contrôle : le `grep` des conventions sur les deux anciens noms rend 0.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-51 — `spacer` qui tient un émetteur dans quatre tests de 3i
 
@@ -737,7 +737,7 @@
 - **Sites** (fin de 4j, mot entier hors `->spacer`) : 55 (`test_ascension.c` 12, `test_burst.c` 15, `test_protostar.c` 14, `test_synthesizer.c` 14), plus 7 lectures du champ, qui restent ; le rapport de `rename-apply` fait foi.
 - **Proposition prête à appliquer** : (a), procédure N, identités relevées dans `declarations.tsv` à la fin de 4j : `spacer	emitter	tests/test_ascension.c	c:test_ascension.c@10781@F@fold_ascension@spacer`, `spacer	emitter	tests/test_burst.c	c:test_burst.c@9384@F@fold_burst@spacer`, `spacer	emitter	tests/test_protostar.c	c:test_protostar.c@10400@F@fold_protostar@spacer`, `spacer	emitter	tests/test_synthesizer.c	c:test_synthesizer.c@10982@F@fold_synthesizer@spacer` (offsets à relever de nouveau) ; lignes `identity` de `tools/rename_overrides.tsv` ; les lignes de `docs/renommage.tsv` gardent leur `ancien` (D-42). Masquage : `emitter` est aussi un champ et une étiquette de struct, espaces de noms à part (précédent de 4f2). Renommer ne change aucun hachage (seuls des membres sont pliés).
 - **Portée** : s'applique aussi aux mentions en commentaire (aucune) ; contrôle : `grep -nP '(?<![>.])\bspacer\b' tests/test_ascension.c tests/test_burst.c tests/test_protostar.c tests/test_synthesizer.c` rend 0.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-52 — Nom de test `test_the_shared_palette_is_the_published_pico8_one`
 
@@ -747,7 +747,7 @@
 - **Sites** : 2 (définition `tests/test_screencast_player.c:147`, appel de `main` `:168`, numéros de fin de 4k2).
 - **Proposition prête à appliquer** : (a) ; sous (b), contrôle : `grep -rn pico8_one tests` rend 0.
 - **Portée** : aucune mention en commentaire ni entre backticks.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-53 — Assertion d'absence `"unknown"` sans écrivain (`tests/test_class_coverage.c`)
 
@@ -758,7 +758,7 @@
 - **Proposition prête à appliquer** : (c), commit `test:` ; contrôle : `make test` vert, et une violation plantée (un rejeu qui rend 3) qui le fait échouer, jouée hors du dépôt.
 - **Portée** : aucune mention en commentaire. Note pour 4l3 : si son message traduit de `src/cmd/class_coverage.c:73` (aujourd'hui « le nom %s n'est pas dans KNOWN[] », sur `stderr`, que le script recopie) contient `unknown`, (a) redevient une garde.
 - **Complément (4l3)** : le message de `src/cmd/class_coverage.c` (nom absent de `KNOWN[]`) est traduit sans `unknown` : `the name %s is not in KNOWN[]` (et `an instantiated class has no coverage name (name "")`) ; l'assertion reste vide, et sous (a) elle ne redevient pas une garde. Le message d'`assert` d'usage dit `usage: class_coverage <events.json>`.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-54 — Préfixe `k_` des tableaux `static const` du morceau 4k3
 
@@ -768,7 +768,7 @@
 - **Sites** (mot entier, `src tests`) : 26 (`k_multiplier` 2, `k_replayed_frames` 4, `k_live_frames` 8, `k_source_frames` 5, `k_events_valid` 3, `k_events_valid_count` 4) ; noms neufs : 0 site, 0 déclaration. Identités (stables) : `c:replay_control.c@k_multiplier`, `c:test_marker_coherence.c@k_replayed_frames`, `c:test_marker_coherence.c@k_live_frames`, `c:test_recording_continuity.c@k_source_frames`, `c:test_recording_continuity.c@k_live_frames`, `c:test_replay_source.c@k_events_valid`, `c:test_replay_source.c@k_events_valid_count`.
 - **Proposition prête à appliquer** : (b), sans hachage en jeu.
 - **Portée** : s'applique aux mentions en commentaire (aucune) ; contrôle : `git grep -nwE 'k_(multiplier|replayed_frames|live_frames|source_frames|events_valid|events_valid_count)' -- src tests` rend 0. Hors morceau, `k_entry` (`src/game/planet_family.c`) et `k_key` (`src/game/score_panel.c`) sont des locales qui gardent le digramme `k` (famille de D-50), non comprises ici.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-55 — Exception `du` du compteur de français dans le `Makefile`
 
@@ -780,7 +780,7 @@
 - **Portée** : aucune mention en commentaire.
 - **Complément (4l2)** : après 4l2, `french-count MODULES=Makefile` rend `string` 2 (`du`, cette entrée ; `par` de `DATA_RESIDUE_GUARD`, 4l4) ; 1 avec la ligne de cette entrée. Les mots de `COMPOSITION_RESIDUE_GUARD` sont partis avec les catégories anglaises.
 - **Complément (4l4)** : `par` est parti avec les catégories anglaises de `DATA_RESIDUE_GUARD` ; après 4l4, `french-count MODULES=Makefile` rend `string` 1 (`du`), 0 avec la ligne de cette entrée. Sans `SUBSTEP`, voir D-33 (36 = 26 + 1 + 8 + 1).
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-56 — Citations `cart`/`lua` irréductibles de la légende du `Makefile`
 
@@ -791,7 +791,7 @@
 - **Proposition prête à appliquer** : (a), rien à appliquer ; contrôle : `make cart-citations MODULES=Makefile` rend exactement 6/2/0.
 - **Portée** : aucune mention ailleurs dans le code (les outils du dictionnaire et `tools/cart_citations.py` sont exclus du relevé).
 - **Complément (4l4)** : remesuré à la fin de l'étape 4, `make cart-citations MODULES=Makefile` rend 6/2/0 (lignes 149, 199, 201, 203, 204) ; inchangé.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-57 — Noms du cart dans les fixtures de `tests/test_composition_residue.c`
 
@@ -802,7 +802,7 @@
 - **Proposition prête à appliquer** : (a), puis (c) au verdict de D-11.
 - **Contrôle** : `make test` vert.
 - **Portée** : les fixtures seulement ; les commentaires du fichier, réécrits par 4l2, ne citent aucun de ces noms.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-58 — Macro `ATT` de `tests/test_composition_residue.c`
 
@@ -813,7 +813,7 @@
 - **Proposition prête à appliquer** : (a), procédure N (identité `macro:tests/test_composition_residue.c:ATT`, ligne `renommé` au TSV et `name` aux surcharges).
 - **Contrôle** : `make test` vert ; `grep -cw ATT tests/test_composition_residue.c` rend 0.
 - **Portée** : aucune mention en commentaire.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-59 — Faux positifs des compteurs dans le relevé figé `tools/pico8_reference_probe_out.txt`
 
@@ -824,7 +824,7 @@
 - **Proposition prête à appliquer** : (a). Contrôle, fait par 4l3 sur une copie du fichier d'exceptions (`tmp/4l3_s3/fe_copy.txt`) : `french-count MODULES=tools/pico8_reference_probe_out` 8 → 0 ; `make cart-citations MODULES=tools/pico8_reference_probe_out` rend exactement 0/0/7.
 - **Portée** : aucune mention en commentaire (la sonde, réécrite par 4l3, écrit ses blocs « block A » à « block F »).
 - **Complément (4l4)** : inchangé à la fin de l'étape 4 (8 `string`, 7 `short`) ; sans `SUBSTEP`, voir D-33.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-60 — `blank` et `screen_texture` du `main` de `src/cmd/screencast_viewer.c`
 
@@ -834,7 +834,7 @@
 - **Sites** : 2 déclarations (et 2 homologues : la locale `blank` de `raylib_backend_init`, le champ `raylib_backend_t.screen_texture`).
 - **Proposition prête à appliquer** : (a), par une règle plutôt qu'une liste ; contrôle : `make cryptic-locals MODULES=cmd/screencast_viewer` rend 2 candidats de moins.
 - **Portée** : aucune mention en commentaire (relevé à la fin de l'état 3 de 4l3).
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-61 — Exception `LÖVE` du compteur de français (`tools/ttf_to_pixelfont.py`)
 
@@ -844,7 +844,7 @@
 - **Sites** : 1.
 - **Proposition prête à appliquer** : (a). Contrôle, fait par 4l4 sur une copie du fichier d'exceptions (`tmp/4l4_s3/fe_copy.txt`) : `french-count MODULES=tools/ttf_to_pixelfont` 1 → 0.
 - **Portée** : aucune mention en commentaire.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-62 — Noms au préfixe du cart des fixtures des tests de garde, hors `test_alloc_guard.c`
 
@@ -855,7 +855,7 @@
 - **Proposition prête à appliquer** : (a), un `sed` mot entier par nom, dans les trois fichiers seulement (`pico8_floating` → `floating`, `pico8_integer` → `integer`, `pico8_another` → `another`, `pico8_half` → `half`, `pico8_third` → `third`, `pico8_a` → `a`, `pico8_b` → `b`, `PICO8_HOST_BUILD` → `HOST_BUILD`), commit `test:`, avec D-4.
 - **Contrôle** : `make test` vert ; `grep -c 'pico8_\|PICO8_'` des trois fichiers rend 0.
 - **Portée** : les commentaires des trois fichiers, réécrits par 4l4, ne citent aucun de ces noms (la fixture de `test_float_grep.c` dit « a macro the flags never define »).
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-63 — Noms du cart dans les fixtures de `tests/test_data_residue.c`
 
@@ -866,7 +866,7 @@
 - **Proposition prête à appliquer** : (a), puis (c) aux verdicts de D-9 et D-11.
 - **Contrôle** : `make test` vert.
 - **Portée** : les fixtures seulement ; les commentaires du fichier, réécrits par 4l4, n'en citent aucune.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-64 — Marqueur `# TROU-1` de `tools/constants_expected_gaps.txt`
 
@@ -877,7 +877,7 @@
 - **Proposition prête à appliquer** : (b), à l'étape 5, avant le passage `TROU-N` → `GAP-N`.
 - **Contrôle** : `make constants-check` et `make test` verts.
 - **Portée** : aucune autre mention.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-65 — Leçons de la consigne de l'étape 4 à reporter dans le skill `reprendre-les-commentaires`
 
@@ -887,7 +887,7 @@
 - **Sites** : 1 fichier du skill.
 - **Proposition prête à appliquer** : (b), à l'étape 5 avec la mise à jour des skills (sous-étape 5f).
 - **Contrôle** : relecture humaine.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-66 — Comment les deux gardes deviennent bloquantes
 
@@ -901,7 +901,7 @@
 - **Sites** : 2 gardes (`tools/rename_count.py`, `tools/scope_count.py`), la recette de `test` (`Makefile:906`) et sa légende.
 - **Proposition prête à appliquer** : aucune option n'est préférée par la méthode : l'arbitrage (durée de la suite, dépendance réseau et système, lettre du §5) est humain. Sous chacune, 5a construit le mécanisme, test d'abord (`tests/test_rename_count.py`, `tests/test_scope_count.py`, ou un test neuf de la cible), et 5e le branche, une fois les restes à zéro (`docs/plan-5.md`, §6, 5a et 5e).
 - **Contrôle** : celui de 5e (une violation plantée rougit la vraie cible) ; en plus, sous (a), `make test` avec `LIBCLANG` pointé sur un fichier absent rend un code non nul ; sous (b), un `.c` modifié sans régénérer l'artefact rend `make test` rouge ; sous (c), `make test` passe sans libclang et la cible AST, sans libclang, échoue.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-67 — Le compteur de français devient-il une troisième garde ?
 
@@ -912,7 +912,7 @@
 - **Sites** : 1 compteur (`tools/french_count.py`, `tests/test_french_count.py`, `tools/french_exceptions.txt`, cibles `french-count` et `french-count-test`) ; 36 restes.
 - **Proposition prête à appliquer** : (a) : la garde ne coûte pas une seconde, ne dépend ni de libclang ni de D-66, et ses restes sont tous couverts par des entrées X. Sous (a), les verdicts de D-33, D-55, D-59 et D-61 finissent en lignes d'exception (règle des verdicts, « Conventions »).
 - **Contrôle** : sous (a), celui de 5e : un mot français planté dans un commentaire d'une copie de travail, passé par la vraie cible, rend `make test` rouge.
-- **Verdict** :
+- **Verdict** : ok
 
 ### D-68 — Alertes `warn-review` de fin de tronçon 3
 
