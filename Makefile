@@ -18,6 +18,11 @@
 #                       the state of the last frame (clock, planets,
 #                       slipways, structures), zone and cap use to
 #                       tmp/state.txt, outside the suite
+# make state         -> replays worst-case/full_game.json and every e2e of
+#                       tests/e2e/, each state in tmp/state/<name>.txt, then
+#                       writes to tmp/state.txt the peak of each zone and cap
+#                       over them all, its limit and the replay holding it;
+#                       fails if a replay stops, outside the suite
 # make e2e-baseline  -> sets or resets the .json.sha256 of tests/e2e/ from the
 #                       current code, never run by make test
 # make e2e-ref       -> for each diverging e2e, replays the commit that set its
@@ -349,6 +354,9 @@ $(TMP_DIR)/test_frames_check: $(call objs,tests/test_frames_check.c) tools/frame
 $(TMP_DIR)/test_e2e_limits: $(call objs,tests/test_e2e_limits.c) tools/e2e_limits.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_state_peaks: $(call objs,tests/test_state_peaks.c) tools/state_peaks.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_float_guard: $(call objs,tests/test_float_guard.c) tools/float_guard.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -597,6 +605,7 @@ UNIT_TESTS := \
     test_frames_tool \
     test_frames_check \
     test_e2e_limits \
+    test_state_peaks \
     test_float_guard \
     test_alloc_guard \
     test_float_grep \
@@ -704,17 +713,14 @@ unit-run-test_frames_tool: | unit-run-test_headless_capture
 .PHONY: $(UNIT_RUNS)
 
 # Fails before any compilation rather than replay a default file.
-ifneq ($(filter replay state,$(MAKECMDGOALS)),)
+ifneq ($(filter replay,$(MAKECMDGOALS)),)
     ifeq ($(strip $(EVENTS)),)
-        $(error EVENTS missing: make $(filter replay state,$(MAKECMDGOALS)) EVENTS=<events.json>)
+        $(error EVENTS missing: make replay EVENTS=<events.json>)
     endif
 endif
 
 replay: $(TMP_DIR)/replay
 	./$(TMP_DIR)/replay $(EVENTS)
-
-state: $(TMP_DIR)/replay
-	STATE=$(TMP_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS)
 
 test: unit constants-check float-grep float-guard alloc-guard data-guard p8-guard
 
@@ -827,6 +833,29 @@ full-game: $(FULL_GAME_EVENTS) $(TMP_DIR)/replay
 	@echo "full-game: $< clean"
 
 .PHONY: full-game
+
+STATE_DIR := $(TMP_DIR)/state
+STATE_EVENTS := $(FULL_GAME_EVENTS) $(E2E_EVENTS)
+STATE_RUNS := $(addprefix state-run-,$(STATE_EVENTS))
+state_file = $(STATE_DIR)/$(basename $(notdir $(1))).txt
+
+# A stopped replay does not stop the others: tools/state_peaks.sh judges each
+# from its state file, removed first so that a stale one never counts.
+$(STATE_RUNS): state-run-%: % $(TMP_DIR)/replay
+	@mkdir -p $(STATE_DIR)
+	@rm -f $(call state_file,$<)
+	@STATE=$(call state_file,$<) ./$(TMP_DIR)/replay $< /dev/null $(basename $(call state_file,$<)).dump.txt > $(basename $(call state_file,$<)).log 2>&1 || true
+
+.PHONY: $(STATE_RUNS)
+
+ifneq ($(strip $(EVENTS)),)
+state: $(TMP_DIR)/replay
+	STATE=$(TMP_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS)
+else
+state: $(STATE_RUNS) tools/state_peaks.sh
+	@sh tools/state_peaks.sh $(TMP_DIR)/state.txt $(foreach e,$(STATE_EVENTS),$(e) $(call state_file,$(e)))
+	@echo "state: $(words $(STATE_EVENTS)) replays, peaks in $(TMP_DIR)/state.txt"
+endif
 
 # The core sources, where the comparator reads the P8_FIXED_LIT calls.
 constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_gaps.txt tools/pico8_reference_probe_out.txt src/p8/fixed.c src/p8/fixed.h $(CORE_SRCS) | $(TMP_DIR)

@@ -7,7 +7,7 @@
 - Porté depuis `pico8/lua.lua` (la source décompilée du cart), qui reste en archive : le C est désormais la référence ; les écarts connus sont dans `docs/trous-de-portage.md`.
 - Le jeu parle à une API PICO-8 fixe (framebuffer 128×128 logiciel), servie par deux backends : un rejeu headless (`events.json` en entrée, dump texte du framebuffer en sortie) et raylib interactif.
 - Une session raylib enregistre ses entrées en `events.json` : ce que l'humain a joué, l'agent le rejoue sans fenêtre.
-- `worst-case/full_game.json` est une partie remplie (50 planètes, 192 slipways) qui mesure le pire cas mémoire : `make state EVENTS=worst-case/full_game.json` écrit le pic et la capacité de chaque zone dans `tmp/state.txt`, et `make full-game` (hors de `make test-all`, lancé par la CI) échoue si un `p8_fatal` l'interrompt avant sa dernière frame.
+- `worst-case/full_game.json` est une partie remplie (50 planètes, 192 slipways) qui mesure le pire cas mémoire : `make state EVENTS=worst-case/full_game.json` écrit le pic et la capacité de chaque zone dans `tmp/state.txt`, `make state` sans `EVENTS` y écrit le plus haut pic de chaque zone et de chaque cap sur cette partie et sur tous les e2e, avec sa limite et le rejeu qui le tient, et `make full-game` (hors de `make test-all`, lancé par la CI) échoue si un `p8_fatal` l'interrompt avant sa dernière frame.
 
 ## À faire
 
