@@ -1769,3 +1769,6 @@ name	g_fa_dix	layer_ten
 name	g_ra_nil	pos_nil	
 name	g_giver_fa	giver_layer	
 identity	c:particle_zone.c@g_handles	slot_allocators	
+identity	c:planet_family.c@15022@F@burst_draw@k_entry	trail_color	
+identity	c:score_panel.c@5772@F@score_panel_refresh@k_key	resource_index	
+identity	c:test_structure_icon.c@19679@F@test_restart@gy	cursor_before	

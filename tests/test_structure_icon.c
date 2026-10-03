@@ -565,7 +565,7 @@ static void test_kind_view(void) {
 static void test_restart(void) {
     uint32_t h = 2166136261u;
     void *all[16];
-    const vec_t *gy;
+    const vec_t *cursor_before;
     p8_fixed_t id;
     int n;
     int i;
@@ -573,16 +573,16 @@ static void test_restart(void) {
     start_game();
     n = icons(all, 16);
     (void)class_of(all[0])->left_press(all[0], NULL, NULL);
-    gy = shared_cursor(as_structure_icon(all[0]));
+    cursor_before = shared_cursor(as_structure_icon(all[0]));
     id = shared_id_fixed(as_structure_icon(all[0]));
     assert(id == p8_fixed_from_int(1));
-    assert(gy != &as_structure_icon(all[0])->archetype->rest_cursor);
+    assert(cursor_before != &as_structure_icon(all[0])->archetype->rest_cursor);
 
     new_game();
     n = icons(all, 16);
     check_int("restart icons", n, 7);
     assert(shared_id_fixed(as_structure_icon(all[0])) == id);
-    assert(shared_cursor(as_structure_icon(all[0])) != gy);
+    assert(shared_cursor(as_structure_icon(all[0])) != cursor_before);
     for (i = 0; i < n; i++) {
         if (is_revealed_state(all[i]) == 2) {
             assert(as_structure_icon(all[i])->pos != &as_structure_icon(all[i])->archetype->rest_cursor);

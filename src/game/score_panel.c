@@ -167,10 +167,10 @@ void score_panel_refresh(void) {
     readouts[2] = main_economy_research_points;
 
     {
-        int k_key;
+        int resource_index;
         p8_fixed_t production_val = p8_fixed_from_int(0);
-        if (resource_code_lookup("k", &k_key)) {
-            resource_map_get(main_economy_production, p8_fixed_from_int(k_key), &production_val);
+        if (resource_code_lookup("k", &resource_index)) {
+            resource_map_get(main_economy_production, p8_fixed_from_int(resource_index), &production_val);
         }
         /* "+" then the science production plus one: the sum comes first. */
         production_text =

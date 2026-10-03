@@ -415,12 +415,12 @@ void burst_draw(p8_graphics_t *graphics, p8_memory_t *memory, planet_t *self, ve
         if (pt != NULL) {
             int idx;
             int color = 0;
-            int k_entry;
+            int trail_color;
 
             idx = p8_fixed_flr_int(p8_fixed_flr(p8_fixed_div(pt->life, p8_fixed_from_int(2))));
             /* GAP-21 */
-            if (int_seq_at(burst_trail_colors_seq.items, burst_trail_colors_seq.count, idx, &k_entry)) {
-                color = k_entry;
+            if (int_seq_at(burst_trail_colors_seq.items, burst_trail_colors_seq.count, idx, &trail_color)) {
+                color = trail_color;
             }
             p8_circ(graphics, memory, screen_x, screen_y, p8_fixed_flr_int(vec_length(pt->pos)), color);
         }

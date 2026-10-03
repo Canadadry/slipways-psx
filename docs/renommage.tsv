@@ -4390,7 +4390,7 @@ i	index	src/game/planet_family.c	identifiant	locale	renommé	game/planet_family	
 i	i	src/game/planet_family.c	identifiant	locale	conservé	game/planet_family			c:planet_family.c@21703@F@pico8_jo_kv@i
 idx	idx	src/game/planet_family.c	identifiant	locale	conservé	game/planet_family			c:planet_family.c@13559@F@pico8_ga_kj@idx
 iu	iu	src/game/planet_family.c	identifiant	locale	conservé	game/planet_family			c:planet_family.c@12155@F@pico8_ga_mm@iu
-k_entry	k_entry	src/game/planet_family.c	identifiant	locale	conservé	game/planet_family			c:planet_family.c@13607@F@pico8_ga_kj@k_entry
+k_entry	trail_color	src/game/planet_family.c	identifiant	locale	renommé	game/planet_family			c:planet_family.c@15022@F@burst_draw@k_entry
 keys	keys	src/game/planet_family.c	identifiant	locale	conservé	game/planet_family			c:planet_family.c@9492@F@pico8_pm_pq@keys
 mo	mo	src/game/planet_family.c	identifiant	locale	conservé	game/planet_family			c:planet_family.c@11597@F@pico8_ga_pq@mo
 ms	ms	src/game/planet_family.c	identifiant	locale	conservé	game/planet_family			c:planet_family.c@12133@F@pico8_ga_mm@ms
@@ -5177,7 +5177,7 @@ i	i	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:sco
 i	i	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@8806@F@pico8_score_panel_init@i
 i_	i_	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@6478@F@pico8_pj_kj@i_
 k	k	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@9016@F@pico8_score_panel_init@k
-k_key	k_key	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@4840@F@pico8_pj_hb@k_key
+k_key	resource_index	src/game/score_panel.c	identifiant	locale	renommé	game/score_panel			c:score_panel.c@5772@F@score_panel_refresh@k_key
 lo	lo	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@5510@F@pico8_pj_hb@lo
 mem	mem	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@2664@F@pico8_eg@mem
 n	n	src/game/score_panel.c	identifiant	locale	conservé	game/score_panel			c:score_panel.c@6631@F@pico8_pj_kj@n
@@ -15300,7 +15300,7 @@ classes	classes	tests/test_structure_icon.c	identifiant	locale	conservé	tests/t
 dx	dx	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@13418@F@test_directed@dx
 e	e	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@4073@F@icons@e
 first	first	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@10443@F@test_start@first
-gy	gy	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@17357@F@test_restart@gy
+gy	cursor_before	tests/test_structure_icon.c	identifiant	locale	renommé	tests/test_structure_icon			c:test_structure_icon.c@19679@F@test_restart@gy
 gy_before	cursor_before	tests/test_structure_icon.c	identifiant	locale	renommé	tests/test_structure_icon			c:test_structure_icon.c@11740@F@test_directed@gy_before
 h	h	tests/test_structure_icon.c	identifiant	locale	conservé	tests/test_structure_icon			c:test_structure_icon.c@10372@F@test_start@h
 h	hash	tests/test_structure_icon.c	identifiant	locale	renommé	tests/test_structure_icon			c:test_structure_icon.c@11656@F@test_directed@h
