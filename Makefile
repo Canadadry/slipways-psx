@@ -10,9 +10,6 @@
 #                       past 180 frames (600 if listed in
 #                       tools/e2e_long_exceptions.txt)
 # make test-all      -> test + e2e, the full suite
-# make gif           -> gif/<name>.gif for each e2e of tests/e2e/: its capture
-#                       at scale 3, with the recorded mouse drawn on top,
-#                       outside the suite
 # make unit          -> the binaries of tests/, built and run
 # make replay EVENTS=<events> -> replays that file in the headless engine,
 #                       framebuffer dump in tmp/replay_dump.txt, outside the
@@ -21,8 +18,6 @@
 #                       the state of the last frame (clock, planets,
 #                       slipways, structures), zone and cap use to
 #                       tmp/state.txt, outside the suite
-# make screencast EVENTS=<events> -> rebuilds the pixels of each frame of that
-#                       replay into tmp/screencast.bin, for screencast-viewer
 # make e2e-baseline  -> sets or resets the .json.sha256 of tests/e2e/ from the
 #                       current code, never run by make test
 # make e2e-ref       -> for each diverging e2e, replays the commit that set its
@@ -56,12 +51,11 @@
 # make sin-table     -> regenerates src/p8/quarter_wave.h (the sine and cosine
 #                       table of the core) from tools/gen_quarter_wave.c,
 #                       outside the suite
-# make raylib        -> compiles and LINKS the interactive binary, never runs it
-# make screencast-viewer -> the same for the recording viewer
-#                       (both need make raylib-vendor-setup first)
+# make raylib        -> compiles and LINKS the interactive binary, never runs
+#                       it (needs make raylib-vendor-setup first)
 # make psx-hello     -> PSX test project (needs psn00bsdk-toolchain-setup)
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay state test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -118,11 +112,11 @@ $(OBJ_SANITIZE_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) $(UBSAN_CFLAGS) $(SANITIZE_OPT_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
-# The whole engine closure: all of src/ except the five entry points of
+# The whole engine closure: all of src/ except the three entry points of
 # src/cmd/, src/p8/palette.c, the two `src/platform/raylib_backend*.c` and
 # the modules of src/devtools/ that only the tools and the interactive game
-# link (fixed_test_double, gif, replay_control, replay_source,
-# screencast, screencast_player, session_recorder, state). Used by the
+# link (fixed_test_double, replay_control, replay_source, screencast,
+# session_recorder, state). Used by the
 # targets that call cart_load(), which pulls in the whole port.
 ENGINE_SRCS := \
     src/p8/assets.c \
@@ -360,13 +354,7 @@ $(TMP_DIR)/test_float_link: $(call objs,tests/test_float_link.c) tools/float_lin
 $(TMP_DIR)/test_constants_check: $(call objs,tests/test_constants_check.c) tools/constants_compare.sh tools/constants_check.sh src/p8/fixed.c src/p8/fixed.h | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/gif: $(call objs,src/cmd/gif.c src/devtools/gif.c src/p8/palette.c src/devtools/screencast.c src/p8/mem.c src/p8/input.c src/devtools/input_json.c) | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
-
-$(TMP_DIR)/test_gif: $(call objs,tests/test_gif.c src/devtools/gif.c src/p8/palette.c) | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
-
-$(TMP_DIR)/test_screencast_player: $(call objs,tests/test_screencast_player.c src/devtools/screencast_player.c src/p8/palette.c) | $(TMP_DIR)
+$(TMP_DIR)/test_palette: $(call objs,tests/test_palette.c src/p8/palette.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_vec: $(call objs,tests/test_vec.c src/engine/vec.c src/p8/fixed.c src/devtools/fixed_test_double.c) | $(TMP_DIR)
@@ -588,8 +576,7 @@ UNIT_TESTS := \
     test_headless_capture \
     test_replay_from_title \
     test_replay_usage \
-    test_screencast_player \
-    test_gif \
+    test_palette \
     test_frames_tool \
     test_frames_check \
     test_e2e_limits \
@@ -700,9 +687,9 @@ unit-run-test_frames_tool: | unit-run-test_headless_capture
 .PHONY: $(UNIT_RUNS)
 
 # Fails before any compilation rather than replay a default file.
-ifneq ($(filter replay screencast state,$(MAKECMDGOALS)),)
+ifneq ($(filter replay state,$(MAKECMDGOALS)),)
     ifeq ($(strip $(EVENTS)),)
-        $(error EVENTS missing: make $(filter replay screencast state,$(MAKECMDGOALS)) EVENTS=<events.json>)
+        $(error EVENTS missing: make $(filter replay state,$(MAKECMDGOALS)) EVENTS=<events.json>)
     endif
 endif
 
@@ -715,10 +702,6 @@ state: $(TMP_DIR)/replay
 test: unit constants-check float-grep float-guard alloc-guard data-guard
 
 test-all: test e2e
-
-SCREENCAST_BIN := $(TMP_DIR)/screencast.bin
-
-SCREENCAST_VIEWER_BIN := $(TMP_DIR)/screencast_viewer
 
 # The e2e: <name>.json (the same format as a raylib recording), <name>.txt
 # (what the replay does, the frames of the key actions) and <name>.json.sha256.
@@ -733,17 +716,6 @@ ifeq ($(UNAME_S),Darwin)
 else
     SHA256_CMD := sha256sum
 endif
-
-# Rebuilt on every call: EVENTS changes from one call to the next without make
-# seeing it. A file target rather than a phony one, so that .DELETE_ON_ERROR
-# applies.
-$(SCREENCAST_BIN): $(TMP_DIR)/replay FORCE | $(TMP_DIR)
-	./$(TMP_DIR)/replay $(EVENTS) $@ $(@:.bin=.dump.txt)
-
-screencast: $(SCREENCAST_BIN)
-
-.PHONY: FORCE
-FORCE:
 
 # An interrupted capture would leave a partial file that make would believe up
 # to date, and the next hash would be taken over it.
@@ -783,15 +755,6 @@ e2e: $(foreach e,$(E2E_EVENTS),$(call frames_current,$(e))) tools/e2e_limits.sh 
 	sh tools/frames_check.sh $(foreach e,$(E2E_EVENTS),$(e) $(call frames_reference,$(e)) $(call frames_current,$(e))) || status=1; \
 	echo "e2e: $(words $(E2E_EVENTS)) e2e in $(E2E_DIR)"; \
 	exit $$status
-
-GIF_DIR := gif
-
-gif: $(foreach e,$(E2E_EVENTS),$(GIF_DIR)/$(basename $(notdir $(e))).gif)
-	@echo "gif: $(words $(E2E_EVENTS)) GIF(s) in $(GIF_DIR)/, $$(du -ch $(GIF_DIR)/*.gif | tail -1 | cut -f1)"
-
-$(GIF_DIR)/%.gif: $(call frames_capture,$(E2E_DIR)/%.json) $(E2E_DIR)/%.json $(TMP_DIR)/gif
-	@mkdir -p $(@D)
-	./$(TMP_DIR)/gif $< $(E2E_DIR)/$*.json $@
 
 e2e-baseline: $(foreach e,$(E2E_EVENTS),$(call frames_current,$(e)))
 	@$(foreach e,$(E2E_EVENTS),cp $(call frames_current,$(e)) $(call frames_reference,$(e)) && echo "e2e: reference set in $(call frames_reference,$(e))" && ) true
@@ -892,20 +855,14 @@ raylib-vendor-setup:
 # Link only: this target never runs the binary (no ./$(TMP_DIR)/... line), see
 # CLAUDE.md. It needs third_party/raylib/src/libraylib.a, so `make raylib`
 # without vendoring fails with "no rule to make target".
-# The two raylib targets build straight from the sources to the executable:
-# their files need `-I third_party/raylib/src`, which the others do not have,
+# The raylib target builds straight from the sources to the executable:
+# its files need `-I third_party/raylib/src`, which the others do not have,
 # and platform/raylib_backend_coords.c is also linked without that flag by a
 # test.
 $(TMP_DIR)/game: src/cmd/game.c src/platform/raylib_backend.c src/platform/raylib_backend.h src/platform/raylib_backend_coords.c src/platform/raylib_backend_coords.h src/p8/palette.c src/p8/palette.h src/p8/assets.c src/p8/assets.h src/p8/audio.c src/game/background.c src/engine/bootstrap.c src/game/cart.c src/game/cart.h src/game/cheat.c src/game/cheat.h src/engine/collect.c src/game/data_init.c src/engine/dispatch_context.c src/engine/dispatch_context.h src/devtools/dump.c src/game/economy.c src/game/economy_formulas.c src/game/economy_score.c src/game/economy_tiers.c src/engine/entity_registry.c src/engine/entity_geom.c src/engine/exit_queue.c src/p8/fixed.c src/game/galaxy.c src/game/game_data.c src/game/gen.c src/engine/geom.c src/p8/gfx.c src/game/help.c src/game/help.h src/game/hud.c src/p8/input.c src/devtools/input_json.c src/engine/entity.c src/game/layout.c src/engine/entity_list.c src/engine/pointer_list.c src/game/map_tables.c src/p8/mem.c src/game/menu.c src/game/mouse_button.c src/game/mouse.c src/game/message_box.c src/game/particle.c src/game/draw_functions.c src/game/planet.c src/game/planet_display.c src/game/planet_family.c src/game/planet_family_trade.c src/game/planet_trade.c src/game/probe.c src/devtools/replay_control.c src/devtools/replay_control.h src/devtools/replay_source.c src/devtools/replay_source.h src/game/research.c src/game/research_display.c src/game/structure_icon.c src/game/score_panel.c src/game/score_panel_display.c src/game/scroll.c src/devtools/session_recorder.c src/devtools/session_recorder.h src/game/slipway.c src/game/slipway_display.c src/p8/str.c src/game/tech_gate.c src/game/trade.c src/game/ui.c src/game/ui_button.c src/game/ui_button.h src/engine/vec.c src/game/wormhole.c src/game/wormhole_display.c src/engine/zone.c src/engine/allocator.c src/engine/frame_zone.c src/game/ui_zone.c src/game/particle_zone.c src/engine/game_zone.c src/platform/fatal_pc.c third_party/raylib/src/libraylib.a | $(TMP_DIR)
 	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ src/cmd/game.c src/platform/raylib_backend.c src/platform/raylib_backend_coords.c src/p8/palette.c src/p8/assets.c src/p8/audio.c src/game/background.c src/engine/bootstrap.c src/game/cart.c src/game/cheat.c src/engine/collect.c src/game/data_init.c src/engine/dispatch_context.c src/devtools/dump.c src/game/economy.c src/game/economy_formulas.c src/game/economy_score.c src/game/economy_tiers.c src/engine/entity_registry.c src/engine/entity_geom.c src/engine/exit_queue.c src/p8/fixed.c src/game/galaxy.c src/game/game_data.c src/game/gen.c src/engine/geom.c src/p8/gfx.c src/game/help.c src/game/hud.c src/p8/input.c src/devtools/input_json.c src/engine/entity.c src/game/layout.c src/engine/entity_list.c src/engine/pointer_list.c src/game/map_tables.c src/p8/mem.c src/game/menu.c src/game/mouse_button.c src/game/mouse.c src/game/message_box.c src/game/particle.c src/game/draw_functions.c src/game/planet.c src/game/planet_display.c src/game/planet_family.c src/game/planet_family_trade.c src/game/planet_trade.c src/game/probe.c src/devtools/replay_control.c src/devtools/replay_source.c src/game/research.c src/game/research_display.c src/game/structure_icon.c src/game/score_panel.c src/game/score_panel_display.c src/game/scroll.c src/devtools/session_recorder.c src/game/slipway.c src/game/slipway_display.c src/p8/str.c src/game/tech_gate.c src/game/trade.c src/game/ui.c src/game/ui_button.c src/engine/vec.c src/game/wormhole.c src/game/wormhole_display.c src/engine/zone.c src/engine/allocator.c src/engine/frame_zone.c src/game/ui_zone.c src/game/particle_zone.c src/engine/game_zone.c src/platform/fatal_pc.c third_party/raylib/src/libraylib.a $(RAYLIB_LDLIBS)
 
 raylib: $(TMP_DIR)/game
-
-# The viewer: the same rule as the raylib target above, link only.
-$(SCREENCAST_VIEWER_BIN): src/cmd/screencast_viewer.c src/devtools/screencast.c src/devtools/screencast.h src/devtools/screencast_player.c src/devtools/screencast_player.h src/p8/palette.c src/p8/palette.h src/devtools/replay_control.c src/devtools/replay_control.h src/platform/raylib_backend.c src/platform/raylib_backend.h src/platform/raylib_backend_coords.c src/platform/raylib_backend_coords.h src/devtools/session_recorder.c src/devtools/session_recorder.h src/p8/input.c src/devtools/input_json.c src/p8/input.h src/p8/mem.c src/p8/mem.h src/p8/gfx.h third_party/raylib/src/libraylib.a | $(TMP_DIR)
-	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ src/cmd/screencast_viewer.c src/devtools/screencast.c src/devtools/screencast_player.c src/p8/palette.c src/devtools/replay_control.c src/platform/raylib_backend.c src/platform/raylib_backend_coords.c src/devtools/session_recorder.c src/p8/input.c src/devtools/input_json.c src/p8/mem.c third_party/raylib/src/libraylib.a $(RAYLIB_LDLIBS)
-
-screencast-viewer: $(SCREENCAST_VIEWER_BIN)
 
 # The dependency fragments written by the compiler, one per object. The
 # wildcard tolerates their absence: on a fresh clone, everything is compiled.

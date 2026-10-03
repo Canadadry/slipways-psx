@@ -172,8 +172,7 @@ static void write_raw_bytes(const char *path, long size) {
 
 /* An empty file is refused and is not a capture of zero frames: zero is a
  * multiple of 8 192, so without this explicit refusal it would pass the
- * size validation, and screencast_viewer would reach its player with zero
- * frames, which screencast_player_init only stops by an assert. */
+ * size validation, and a reader would be handed a capture with no frame. */
 static void test_empty_file_is_refused(void) {
     const char *path = "tmp/test_screencast_empty.bin";
     screencast_reader_t reader;
@@ -262,8 +261,7 @@ static void test_reading_leaves_the_file_byte_for_byte_unchanged(void) {
 /* Asking for a frame the file does not have is refused, and the caller's
  * buffer is left untouched: without the refusal, a caller that read past
  * the end would take the last frame it really read, still in its buffer,
- * for a new one. screencast_viewer never asks past the end (its player
- * stops on the last frame), and exits on a refused read. */
+ * for a new one. */
 static void test_frame_index_past_the_end_is_refused(void) {
     const char *path = "tmp/test_screencast_past_end.bin";
     screencast_reader_t reader;

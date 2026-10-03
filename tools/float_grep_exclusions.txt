@@ -5,7 +5,6 @@
 src/cmd/replay.c | entry point of the headless replay, host tool
 src/cmd/frames.c | entry point of frames_tool, which prints a frame of a capture, host tool
 src/cmd/game.c | entry point of the interactive raylib driver
-src/cmd/screencast_viewer.c | entry point of the screencast viewer
 src/p8/assets.c | host tool, loads the assets through the libc
 src/p8/assets.h | host tool, header of p8/assets.c
 src/devtools/dump.c | host tool, text dump of the framebuffer
@@ -14,8 +13,8 @@ src/devtools/input_json.c | reads and writes events.json, host tool
 src/platform/fatal_pc.c | PC implementation of p8_fatal (stderr, exit), provided by the platform
 src/devtools/fixed_test_double.c | test helper, outside the core: from_double/to_double, linked by the tests and the constants comparer
 src/devtools/fixed_test_double.h | test helper, outside the core: header of devtools/fixed_test_double.c, included by the tests and the constants comparer
-src/p8/palette.c | raylib backend, screencast viewer and GIF writer, RGB presentation palette
-src/p8/palette.h | raylib backend, screencast viewer and GIF writer, header of p8/palette.c
+src/p8/palette.c | raylib backend, RGB presentation palette
+src/p8/palette.h | raylib backend, header of p8/palette.c
 src/platform/raylib_backend.c | raylib backend
 src/platform/raylib_backend.h | raylib backend
 src/platform/raylib_backend_coords.c | raylib backend, window coordinate conversion
@@ -26,12 +25,7 @@ src/devtools/replay_source.c | replay, reads events.json
 src/devtools/replay_source.h | replay, reads events.json
 src/devtools/screencast.c | screen capture of the replay, writer and reader
 src/devtools/screencast.h | screen capture of the replay, header of devtools/screencast.c
-src/devtools/screencast_player.c | screencast viewer
-src/devtools/screencast_player.h | screencast viewer
 src/devtools/session_recorder.c | session recording of the interactive driver
 src/devtools/session_recorder.h | session recording of the interactive driver
-src/cmd/gif.c | entry point of the gif tool of make gif, host tool
-src/devtools/gif.c | GIF encoder of make gif, host tool
-src/devtools/gif.h | GIF encoder of make gif, header of devtools/gif.c
 src/devtools/state.c | text state of make state, host tool
 src/devtools/state.h | text state of make state, header of devtools/state.c

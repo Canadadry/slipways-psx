@@ -1,5 +1,5 @@
-/* The whole capture format; no other module knows it: neither the replay
- * driver nor screencast_viewer computes an offset.
+/* The whole capture format; no other module knows it: the replay driver
+ * computes no offset.
  * Raw frames concatenated in capture order, with no header, no index and
  * no version number. A frame takes SCREENCAST_FRAME_BYTES = 8192 bytes:
  * the 16384 pixels of the 128x128 screen, two pixels per byte, in the

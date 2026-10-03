@@ -1,9 +1,6 @@
 /* PICO-8's sixteen default palette colors, defined once for every program
- * that turns screen memory into pixels: the interactive driver
- * (src/platform/raylib_backend.c), the screencast viewer
- * (src/cmd/screencast_viewer.c) and the GIF writer (src/devtools/gif.c).
- * None redefines its own; copied tables would drift apart, and the viewer
- * would then show something other than the game.
+ * that turns screen memory into pixels, today the interactive driver
+ * (src/platform/raylib_backend.c).
  *
  * These are PICO-8's published default palette values. PICO-8 transparency
  * (palt()) is already resolved by p8/gfx.c before a pixel reaches screen
@@ -12,7 +9,7 @@
  * Byte triplets rather than a `Color`: a `Color` would force raylib.h on
  * this file and take it out of `make unit`, while forty-eight hex bytes are
  * exactly where a typo only shows by eye, in a window.
- * tests/test_screencast_player.c asserts them one by one; each raylib file
+ * tests/test_palette.c asserts them one by one; each raylib file
  * builds its `Color` where it uses it. */
 
 #ifndef P8_PALETTE_H
