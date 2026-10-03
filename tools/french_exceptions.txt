@@ -16,3 +16,4 @@ string	tools/cart_citations	renommé
 string	tools/scope_count	renommé
 string	Makefile	du
 string	tools/pico8_reference_probe_out	ce
+string	tools/ttf_to_pixelfont	LÖVE
