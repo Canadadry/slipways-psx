@@ -7,7 +7,7 @@
  * rates. 0 is the uncapped level and is last, which makes "clamped at the
  * top" and "uncapped" the same boundary. */
 #define LEVEL_COUNT 5
-static const int k_multiplier[LEVEL_COUNT] = { 1, 2, 4, 8, 0 };
+static const int level_multipliers[LEVEL_COUNT] = { 1, 2, 4, 8, 0 };
 
 /* 4x. */
 #define DEFAULT_LEVEL 2
@@ -40,7 +40,7 @@ int replay_control_speed_multiplier(const replay_control_t *control) {
     assert(control);
     assert(control->level >= 0 && control->level < LEVEL_COUNT &&
            "level was written directly instead of through the ladder functions");
-    return k_multiplier[control->level];
+    return level_multipliers[control->level];
 }
 
 int replay_control_target_fps(const replay_control_t *control, int replay_active) {

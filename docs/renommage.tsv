@@ -480,7 +480,7 @@ out_size	out_size	src/devtools/replay_control.c	identifiant	paramètre	conservé
 out_size	out_size	src/devtools/replay_control.h	identifiant	paramètre	conservé	devtools/replay_control			c:replay_control.h@3684@F@pico8_replay_control_format_status@out_size
 replay_active	replay_active	src/devtools/replay_control.c	identifiant	paramètre	conservé	devtools/replay_control			c:replay_control.c@1341@F@pico8_replay_control_target_fps@replay_active
 replay_active	replay_active	src/devtools/replay_control.h	identifiant	paramètre	conservé	devtools/replay_control			c:replay_control.h@3029@F@pico8_replay_control_target_fps@replay_active
-k_multiplier	k_multiplier	src/devtools/replay_control.c	identifiant	statique	conservé	devtools/replay_control			c:replay_control.c@k_multiplier
+k_multiplier	level_multipliers	src/devtools/replay_control.c	identifiant	statique	renommé	devtools/replay_control			c:replay_control.c@k_multiplier
 pico8_replay_control_t	replay_control_t	src/devtools/replay_control.h	identifiant	type	renommé	devtools/replay_control			c:@T@pico8_replay_control_t
 next_frame_index	next_frame_index	src/devtools/replay_source.h	identifiant	champ	conservé	devtools/replay_source			c:@SA@pico8_replay_source_t@FI@next_frame_index
 path	path	src/devtools/replay_source.h	identifiant	champ	conservé	devtools/replay_source			c:@SA@pico8_replay_source_t@FI@path
@@ -12018,8 +12018,8 @@ marker_for_iteration	marker_for_iteration	tests/test_marker_coherence.c	identifi
 resumed_path	resumed_path	tests/test_marker_coherence.c	identifiant	paramètre	conservé	tests/test_marker_coherence			c:test_marker_coherence.c@2892@F@run_resumed_session@resumed_path
 source_path	source_path	tests/test_marker_coherence.c	identifiant	paramètre	conservé	tests/test_marker_coherence			c:test_marker_coherence.c@2867@F@run_resumed_session@source_path
 want	want	tests/test_marker_coherence.c	identifiant	paramètre	conservé	tests/test_marker_coherence			c:test_marker_coherence.c@2068@F@assert_frame_equals@want
-k_live_frames	k_live_frames	tests/test_marker_coherence.c	identifiant	statique	conservé	tests/test_marker_coherence			c:test_marker_coherence.c@k_live_frames
-k_replayed_frames	k_replayed_frames	tests/test_marker_coherence.c	identifiant	statique	conservé	tests/test_marker_coherence			c:test_marker_coherence.c@k_replayed_frames
+k_live_frames	live_frames	tests/test_marker_coherence.c	identifiant	statique	renommé	tests/test_marker_coherence			c:test_marker_coherence.c@k_live_frames
+k_replayed_frames	replayed_frames	tests/test_marker_coherence.c	identifiant	statique	renommé	tests/test_marker_coherence			c:test_marker_coherence.c@k_replayed_frames
 test_pico8_mem	test_mem	tests/test_mem.c	chaîne	nom de test	renommé	tests/test_mem		libellé	chaîne:test_pico8_mem
 is_default_draw_palette_addr	is_default_draw_palette_addr	tests/test_mem.c	identifiant	fonction	conservé	tests/test_mem			c:test_mem.c@F@is_default_draw_palette_addr
 test_init_zeroes_everything_but_the_default_draw_palette	test_init_zeroes_everything_but_the_default_draw_palette	tests/test_mem.c	identifiant	fonction	conservé	tests/test_mem			c:test_mem.c@F@test_init_zeroes_everything_but_the_default_draw_palette
@@ -13650,8 +13650,8 @@ out_frame	out_frame	tests/test_recording_continuity.c	identifiant	paramètre	con
 resumed_path	resumed_path	tests/test_recording_continuity.c	identifiant	paramètre	conservé	tests/test_recording_continuity			c:test_recording_continuity.c@2624@F@run_resumed_session@resumed_path
 source_path	source_path	tests/test_recording_continuity.c	identifiant	paramètre	conservé	tests/test_recording_continuity			c:test_recording_continuity.c@2599@F@run_resumed_session@source_path
 want	want	tests/test_recording_continuity.c	identifiant	paramètre	conservé	tests/test_recording_continuity			c:test_recording_continuity.c@1705@F@assert_frame_equals@want
-k_live_frames	k_live_frames	tests/test_recording_continuity.c	identifiant	statique	conservé	tests/test_recording_continuity			c:test_recording_continuity.c@k_live_frames
-k_source_frames	k_source_frames	tests/test_recording_continuity.c	identifiant	statique	conservé	tests/test_recording_continuity			c:test_recording_continuity.c@k_source_frames
+k_live_frames	live_frames	tests/test_recording_continuity.c	identifiant	statique	renommé	tests/test_recording_continuity			c:test_recording_continuity.c@k_live_frames
+k_source_frames	source_frames	tests/test_recording_continuity.c	identifiant	statique	renommé	tests/test_recording_continuity			c:test_recording_continuity.c@k_source_frames
 test_pico8_replay_control	test_replay_control	tests/test_replay_control.c	chaîne	nom de test	renommé	tests/test_replay_control		libellé	chaîne:test_pico8_replay_control
 test_default_speed_is_four_times_game_speed	test_default_speed_is_four_times_game_speed	tests/test_replay_control.c	identifiant	fonction	conservé	tests/test_replay_control			c:test_replay_control.c@F@test_default_speed_is_four_times_game_speed
 test_faster_and_slower_walk_the_whole_ladder	test_faster_and_slower_walk_the_whole_ladder	tests/test_replay_control.c	identifiant	fonction	conservé	tests/test_replay_control			c:test_replay_control.c@F@test_faster_and_slower_walk_the_whole_ladder
@@ -13729,8 +13729,8 @@ source	source	tests/test_replay_source.c	identifiant	locale	conservé	tests/test
 source	source	tests/test_replay_source.c	identifiant	locale	conservé	tests/test_replay_source			c:test_replay_source.c@852@F@test_no_path_requests_no_recording@source
 got	got	tests/test_replay_source.c	identifiant	paramètre	conservé	tests/test_replay_source			c:test_replay_source.c@2484@F@assert_frame_equals@got
 want	want	tests/test_replay_source.c	identifiant	paramètre	conservé	tests/test_replay_source			c:test_replay_source.c@2516@F@assert_frame_equals@want
-k_events_valid	k_events_valid	tests/test_replay_source.c	identifiant	statique	conservé	tests/test_replay_source			c:test_replay_source.c@k_events_valid
-k_events_valid_count	k_events_valid_count	tests/test_replay_source.c	identifiant	statique	conservé	tests/test_replay_source			c:test_replay_source.c@k_events_valid_count
+k_events_valid	events_valid_frames	tests/test_replay_source.c	identifiant	statique	renommé	tests/test_replay_source			c:test_replay_source.c@k_events_valid
+k_events_valid_count	events_valid_count	tests/test_replay_source.c	identifiant	statique	renommé	tests/test_replay_source			c:test_replay_source.c@k_events_valid_count
 test_pico8_replay_usage	test_replay_usage	tests/test_replay_usage.c	chaîne	nom de test	renommé	tests/test_replay_usage		libellé	chaîne:test_pico8_replay_usage
 tmp/pico8_replay	tmp/replay	tests/test_replay_usage.c	fichier	binaire	renommé	tests/test_replay_usage		lecteur	fichier:tmp/pico8_replay
 assert_usage_and_failure	assert_usage_and_failure	tests/test_replay_usage.c	identifiant	fonction	conservé	tests/test_replay_usage			c:test_replay_usage.c@F@assert_usage_and_failure

@@ -58,12 +58,12 @@ static void test_malformed_recording_reports_load_failure(void) {
 /* The three frames of tests/fixtures/events_valid.json, transcribed: the
  * exact values are what catch an off-by-one, a reversed order or a frame
  * served twice. */
-static const p8_input_frame_t k_events_valid[] = {
+static const p8_input_frame_t events_valid_frames[] = {
     { 64, 64, 1, { 0, 1, 0, 0 } },
     { 10, 20, 3, { 1, 0, 1, 0 } },
     { 0, 127, 4, { 0, 0, 0, 1 } }
 };
-static const int k_events_valid_count = 3;
+static const int events_valid_count = 3;
 
 static void assert_frame_equals(const p8_input_frame_t *got, const p8_input_frame_t *want) {
     assert(got->mouse_x == want->mouse_x);
@@ -83,7 +83,7 @@ static void test_loaded_recording_serves_its_first_frame(void) {
            REPLAY_SOURCE_LOADED);
 
     assert(replay_source_next_frame(&source, &frame) == 1);
-    assert_frame_equals(&frame, &k_events_valid[0]);
+    assert_frame_equals(&frame, &events_valid_frames[0]);
 
     replay_source_close(&source);
 }
@@ -95,12 +95,12 @@ static void test_loaded_recording_serves_every_frame_in_order(void) {
 
     assert(replay_source_open(&source, "tests/fixtures/events_valid.json") ==
            REPLAY_SOURCE_LOADED);
-    assert(replay_source_frame_count(&source) == k_events_valid_count);
+    assert(replay_source_frame_count(&source) == events_valid_count);
 
-    for (int i = 0; i < k_events_valid_count; i++) {
+    for (int i = 0; i < events_valid_count; i++) {
         p8_input_frame_t frame;
         assert(replay_source_next_frame(&source, &frame) == 1);
-        assert_frame_equals(&frame, &k_events_valid[i]);
+        assert_frame_equals(&frame, &events_valid_frames[i]);
     }
 
     replay_source_close(&source);
@@ -118,7 +118,7 @@ static void test_exhausted_recording_reports_exhaustion_forever(void) {
     assert(replay_source_open(&source, "tests/fixtures/events_valid.json") ==
            REPLAY_SOURCE_LOADED);
 
-    for (int i = 0; i < k_events_valid_count; i++) {
+    for (int i = 0; i < events_valid_count; i++) {
         assert(replay_source_next_frame(&source, &frame) == 1);
     }
 

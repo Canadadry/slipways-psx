@@ -22,7 +22,7 @@
 /* The session that is resumed: every field distinct, all coordinates
  * below 50, so a live frame can never be mistaken for a replayed one. */
 #define SOURCE_FRAME_COUNT 5
-static const p8_input_frame_t k_source_frames[SOURCE_FRAME_COUNT] = {
+static const p8_input_frame_t source_frames[SOURCE_FRAME_COUNT] = {
     { 10, 11, 0, { 0, 0, 0, 0 } },
     { 12, 13, 1, { 1, 0, 0, 0 } },
     { 14, 15, 2, { 0, 1, 0, 0 } },
@@ -33,7 +33,7 @@ static const p8_input_frame_t k_source_frames[SOURCE_FRAME_COUNT] = {
 /* What the player does after getting the controls back, in a value range
  * the replayed frames never reach. */
 #define LIVE_FRAME_COUNT 4
-static const p8_input_frame_t k_live_frames[LIVE_FRAME_COUNT] = {
+static const p8_input_frame_t live_frames[LIVE_FRAME_COUNT] = {
     { 90, 91, 1, { 1, 1, 0, 0 } },
     { 92, 93, 5, { 0, 0, 1, 1 } },
     { 94, 95, 7, { 1, 0, 1, 0 } },
@@ -54,7 +54,7 @@ static void assert_frame_equals(const p8_input_frame_t *got, const p8_input_fram
  * needs a window. */
 static void poll_simulated_live_frame(int live_index, p8_input_frame_t *out_frame) {
     assert(live_index >= 0 && live_index < LIVE_FRAME_COUNT);
-    *out_frame = k_live_frames[live_index];
+    *out_frame = live_frames[live_index];
 }
 
 /* The loop of src/cmd/game.c, with that call replaced and the game step
@@ -118,7 +118,7 @@ static void test_resumed_session_records_replayed_frames_then_new_ones(void) {
     const char *resumed_path = "tmp/test_recording_continuity_resumed.json";
 
     /* Written by `p8_input_save`, not by the recorder under test. */
-    assert(p8_input_save(k_source_frames, SOURCE_FRAME_COUNT, source_path));
+    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path));
 
     run_resumed_session(source_path, resumed_path, SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT);
 
@@ -128,10 +128,10 @@ static void test_resumed_session_records_replayed_frames_then_new_ones(void) {
     assert(resumed.frame_count == SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT);
 
     for (int i = 0; i < SOURCE_FRAME_COUNT; i++) {
-        assert_frame_equals(&resumed.frames[i], &k_source_frames[i]);
+        assert_frame_equals(&resumed.frames[i], &source_frames[i]);
     }
     for (int i = 0; i < LIVE_FRAME_COUNT; i++) {
-        assert_frame_equals(&resumed.frames[SOURCE_FRAME_COUNT + i], &k_live_frames[i]);
+        assert_frame_equals(&resumed.frames[SOURCE_FRAME_COUNT + i], &live_frames[i]);
     }
 
     p8_input_free(&resumed);
@@ -147,7 +147,7 @@ static void test_resumed_recording_is_itself_resumable(void) {
     const char *resumed_path = "tmp/test_recording_continuity_chain_resumed.json";
     const int total = SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT;
 
-    assert(p8_input_save(k_source_frames, SOURCE_FRAME_COUNT, source_path));
+    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path));
     run_resumed_session(source_path, resumed_path, total);
 
     replay_source_t second;
@@ -158,9 +158,9 @@ static void test_resumed_recording_is_itself_resumable(void) {
         p8_input_frame_t frame;
         assert(replay_source_next_frame(&second, &frame) == 1);
         if (i < SOURCE_FRAME_COUNT) {
-            assert_frame_equals(&frame, &k_source_frames[i]);
+            assert_frame_equals(&frame, &source_frames[i]);
         } else {
-            assert_frame_equals(&frame, &k_live_frames[i - SOURCE_FRAME_COUNT]);
+            assert_frame_equals(&frame, &live_frames[i - SOURCE_FRAME_COUNT]);
         }
     }
 

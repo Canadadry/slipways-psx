@@ -1534,3 +1534,9 @@ name	test_dg_drives_a_ke_struct	test_update_entities_drives_an_entity_struct	dg
 name	PICO8_BO_ROW_CAP	HELP_DIFFICULTY_OPTIONS_ROW_CAP	
 identity	c:score_panel_display.c@9520@F@score_panel_update@c_truthy	is_shown	
 identity	c:score_panel_display.c@4918@F@score_panel_update_map@s_str	score_text	
+name	k_multiplier	level_multipliers	
+name	k_replayed_frames	replayed_frames	
+name	k_live_frames	live_frames	
+name	k_source_frames	source_frames	
+name	k_events_valid	events_valid_frames	
+name	k_events_valid_count	events_valid_count	
