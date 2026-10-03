@@ -14,7 +14,6 @@
 #include "engine/entity.h"
 #include "game/map_tables.h"
 #include "game/draw_functions.h"
-#include "game/planet.h"
 #include "p8/str.h"
 #include "engine/entity_class.h"
 #include "engine/vec.h"
@@ -95,36 +94,6 @@ void score_panel_set_init(button_fn_t fn) {
     g_init_method = (fn != NULL) ? fn : score_panel_init_placeholder;
 }
 
-static int refresh_palette_is_colonized_pred(entity_t *e, void *ctx) {
-    (void)ctx;
-    if (e == NULL) {
-        return 0;
-    }
-    return planet_is_colonized((const planet_t *)e);
-}
-
-void score_panel_refresh_palette(void) {
-    p8_memory_t *mem = dispatch_context_mem();
-    entity_list_t filtered;
-    p8_fixed_t ps;
-    int i;
-
-    filtered = entity_list_filter(frame_zone(), entities_by_tag("planet"), refresh_palette_is_colonized_pred, NULL);
-    ps = p8_fixed_div(p8_fixed_from_int(filtered.count), p8_fixed_from_int(2));
-
-    if (mem == NULL) {
-        return;
-    }
-
-    for (i = 1; i <= PALETTE_OFFSETS_COUNT; i++) {
-        int ny = palette_offsets_table[i - 1];
-        int pd = 0x3101 + 4 * ny;
-        unsigned char cur = p8_peek(mem, pd);
-        int newval = (cur % 128) + ((ps < p8_fixed_from_int(i)) ? 128 : 0);
-        p8_poke(mem, pd, (unsigned char)newval);
-    }
-}
-
 void score_panel_refresh(void) {
     const economy_t *economy = main_economy_typed();
     const main_economy_placeholder_t *economy_placeholder = main_economy_placeholder();
@@ -200,8 +169,6 @@ void score_panel_refresh(void) {
             readouts_state->sub_items[index][0] = readouts[index];
         }
     }
-
-    score_panel_refresh_palette();
 }
 
 static void score_panel_refresh_method(entity_t *self) {

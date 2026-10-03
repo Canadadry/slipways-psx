@@ -768,20 +768,6 @@ static void test_update_rows_show_final_score(void) {
     }
 }
 
-/* score_panel_refresh_palette() on a started game: no planet is settled
- * yet, so half their count is 0 and every pattern of palette_offsets_table
- * gets its flag. */
-static void test_refresh_palette_flags_every_palette_offsets_pattern_without_settled(void) {
-    int i;
-
-    (void)start_game();
-    assert(entities_by_tag("planet")->count >= 2);
-    score_panel_refresh_palette();
-    for (i = 0; i < PALETTE_OFFSETS_COUNT; i++) {
-        assert(p8_peek(&memory, 0x3101 + 4 * palette_offsets_table[i]) >= 128);
-    }
-}
-
 int main(void) {
     p8_mem_init(&memory);
     p8_gfx_init(&graphics);
@@ -802,7 +788,6 @@ int main(void) {
     in_fresh_child(test_tech_tree_screen_is_a_struct);
     in_fresh_child(test_final_score_reads_invented_and_happiness);
     in_fresh_child(test_update_rows_show_final_score);
-    in_fresh_child(test_refresh_palette_flags_every_palette_offsets_pattern_without_settled);
 
     printf("test_score_panel: all tests passed\n");
     return 0;

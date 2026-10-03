@@ -11,7 +11,6 @@ enum {
     PARTNER_BONUS_BY_TIER_COUNT = 4,
     DEVELOPMENT_SCORE_BY_TIER_COUNT = 4,
     HAPPINESS_BY_TIER_COUNT = 4,
-    PALETTE_OFFSETS_COUNT = 14,
     TIER_THRESHOLDS_COUNT = 4,
     LAYER_FADES_COUNT = 15,
     PERIOD_NAMES_COUNT = 15,
@@ -323,7 +322,6 @@ extern const int upkeep_by_tier_table[UPKEEP_BY_TIER_COUNT];
 extern const p8_fixed_t partner_bonus_by_tier_table[PARTNER_BONUS_BY_TIER_COUNT];
 extern const int development_score_by_tier_table[DEVELOPMENT_SCORE_BY_TIER_COUNT];
 extern const int happiness_by_tier_table[HAPPINESS_BY_TIER_COUNT];
-extern const int palette_offsets_table[PALETTE_OFFSETS_COUNT];
 extern const int tier_thresholds_table[TIER_THRESHOLDS_COUNT];
 extern const p8_fixed_t layer_fades_table[LAYER_FADES_COUNT];
 extern const char *const period_names_table[PERIOD_NAMES_COUNT];

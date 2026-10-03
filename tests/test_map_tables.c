@@ -55,7 +55,6 @@ static void test_seqs_answer_each_position_and_refuse_zero_and_past_the_end(void
     check_fixed_seq(partner_bonus_by_tier_table, PARTNER_BONUS_BY_TIER_COUNT);
     check_int_seq(development_score_by_tier_table, DEVELOPMENT_SCORE_BY_TIER_COUNT);
     check_int_seq(happiness_by_tier_table, HAPPINESS_BY_TIER_COUNT);
-    check_int_seq(palette_offsets_table, PALETTE_OFFSETS_COUNT);
     check_int_seq(tier_thresholds_table, TIER_THRESHOLDS_COUNT);
     check_fixed_seq(layer_fades_table, LAYER_FADES_COUNT);
     check_int_seq_at_bounds(&planet_ring_colors_seq);

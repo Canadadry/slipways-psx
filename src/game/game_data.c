@@ -12,8 +12,6 @@ const int development_score_by_tier_table[DEVELOPMENT_SCORE_BY_TIER_COUNT] = {0,
 
 const int happiness_by_tier_table[HAPPINESS_BY_TIER_COUNT] = {-5, 0, 1, 1};
 
-const int palette_offsets_table[PALETTE_OFFSETS_COUNT] = {2, 2, 5, 5, 7, 7, 10, 10, 14, 14, 14, 19, 19, 19};
-
 const int tier_thresholds_table[TIER_THRESHOLDS_COUNT] = {2, 4, 7, 12};
 
 const p8_fixed_t layer_fades_table[LAYER_FADES_COUNT] = {0x8000, 0x10000, 0x10000, 0x10000, 0x10000, 0x10000, 0x10000,
