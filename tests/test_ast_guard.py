@@ -4,7 +4,8 @@ tools/ast_rename/, a few units planted in it, then
 recipe and its rename-extract prerequisite, over those units only (the copy
 has no git tree, and a full extraction would cost minutes). A short global
 must turn the scope guard red, a renamed identity of an ambiguous old name
-the AST half of the old-name guard; the clean units stay green, and without
+the AST half of the old-name guard, and the `x`, `y` fields of `vec_t` the
+scope guard once its exceptions are gone; the clean units stay green, and without
 libclang the guard fails before any count. Run by `make ast-guard-test`,
 part of `make test-all`: needs libclang and `make rename-tool-setup`.
 
@@ -29,7 +30,8 @@ import rename_derive  # noqa: E402
 import rename_tables  # noqa: E402
 
 PLANET = "src/game/planet.c"
-CLEAN_PLANET = "int planet_count(void) { return 0; }\n"
+VECTOR = "typedef struct { int x; int y; } vec_t;\n"
+CLEAN_PLANET = VECTOR + "int planet_count(void) { return 0; }\n"
 CLEAN_MAIN = "int main(void) { return 0; }\n"
 SCOPE_EXCEPTIONS = "tools/scope_exceptions.txt"
 
@@ -108,7 +110,7 @@ class AstGuard(unittest.TestCase):
         self.assertNotIn("warning:", result.stdout + result.stderr)
 
     def test_a_two_letter_global_turns_the_scope_guard_red(self):
-        planet = "int %s;\nint planet_count(void) { return %s; }\n" % (
+        planet = VECTOR + "int %s;\nint planet_count(void) { return %s; }\n" % (
             PLANTS.short_global, PLANTS.short_global)
         result = self.guard({PLANET: planet, "tests/test_planet.c": CLEAN_MAIN})
         self.assertNotEqual(result.returncode, 0, text.report(result))
@@ -117,6 +119,19 @@ class AstGuard(unittest.TestCase):
         self.assertEqual(sorted(scope), ["game/planet", "total"], text.report(result))
         for column, value in scope["game/planet"].items():
             expected = 1 if column in ("global", "total") else 0
+            self.assertEqual(value, expected, "%s\n%s" % (column, text.report(result)))
+
+    def test_without_the_scope_exceptions_the_vector_fields_turn_it_red(self):
+        with open(os.path.join(REPO, SCOPE_EXCEPTIONS), encoding="utf-8") as f:
+            header = "".join(line for line in f if line.startswith("#"))
+        text.write(WORK, SCOPE_EXCEPTIONS, header)
+        result = self.guard({PLANET: CLEAN_PLANET, "tests/test_planet.c": CLEAN_MAIN})
+        self.assertNotEqual(result.returncode, 0, text.report(result))
+        names, scope = self.halves(result)
+        self.assertFalse(any(names["TOTAL"].values()), text.report(result))
+        self.assertEqual(sorted(scope), ["game/planet", "total"], text.report(result))
+        for column, value in scope["game/planet"].items():
+            expected = 2 if column in ("field", "total") else 0
             self.assertEqual(value, expected, "%s\n%s" % (column, text.report(result)))
 
     def old_identity(self, name, path):
