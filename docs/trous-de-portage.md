@@ -51,8 +51,8 @@ Fichiers : `src/game/scroll.c`, `src/p8/input.h` (le schéma de frame, qui n'a p
 
 ## GAP-3 — Les chaînes ne sont pas internées
 
-Lua : `hy.invented`, `oj`, `jo:gg`, `db`, `ho()`, `r`, `hp.o`, `hp.dm`,
-`kw.qe`, `{qe=r[c]}`, `db()`.
+Lua : `hy.invented`, `oj`, `jo:gg`, `ho()`, `r`, `hp.o`, `hp.dm`, `kw.qe`,
+`{qe=r[c]}`.
 
 Lua interne les littéraux : deux chaînes identiques y sont le même objet.
 Ce port copie ou alloue ses chaînes (les données générées ont un tableau
@@ -61,17 +61,16 @@ pointeur.
 
 Contourné au cas par cas : `collect_contains_string` compare par contenu
 (les chaînes de la liste `invented` de l'économie, pour
-`tech_gate_is_unlocked`), et plusieurs modules ont leur propre comparaison
-par contenu (`planet_is_colonized`, `economy_score_trade_income`). Toute
-nouvelle comparaison de chaînes doit choisir explicitement.
+`tech_gate_is_unlocked`), et un module a sa propre comparaison par contenu
+(`planet_is_colonized`). Toute nouvelle comparaison de chaînes doit choisir
+explicitement.
 
 **Hors de GAP-3 : les ressources.** Ce que le chargeur des tables de
 données du cart route à travers la table des ressources (`output` et
 `byproduct` d'un projet, donc `resource` d'une `production_t`) et les
 besoins à ressource sont des nombres — l'indice d'une ressource —, pas des
 chaînes : ils se comparent par valeur (`==` sur `p8_fixed_t`,
-`resource_equal`). `economy_score_trade_income`, qui compare une chaîne,
-passe par le contenu.
+`resource_equal`).
 
 Fichiers : `src/engine/collect.c`.
 
