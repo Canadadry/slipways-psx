@@ -125,8 +125,12 @@ pas un champ nommé : aucun site d'appel n'en a eu besoin. Effacer un champ
 nommé n'a donc pas d'équivalent exact — écrire une valeur fausse n'est pas
 la même chose qu'un champ absent.
 
-Sans site : le module des tables à clés dynamiques est supprimé ; le port
-n'a plus de table à clés dynamiques.
+Un site : le bouton d'une boîte ouverte (`message_box_open_box`) ne prend
+la couleur de fond du cadre que si le cadre en a une, au lieu d'écrire une
+couleur absente (en Lua, écrire nil effacerait le champ). Fixé par
+`test_open_box_layer_only_from_back_color` de `tests/test_button.c`.
+
+Fichier : `src/game/message_box.c`.
 
 ## GAP-10 — L'audio est hors périmètre
 
