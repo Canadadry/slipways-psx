@@ -42,7 +42,7 @@
 #define GALAXY_HASH 0xE70E2EE3u
 #define DAUGHTERS_HASH 0x668D1EBEu
 #define NEW_PLANET_HASH 0x48C32418u
-#define UPDATE_VANISHING_UPDATE_ENTITIES_CALLS 62
+#define UPDATE_VANISHING_CALLS 62
 
 static p8_memory_t mem;
 static p8_graphics_t gfx;
@@ -131,7 +131,7 @@ static int list_size(const pointer_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
-static int entity_list_list_size(const entity_list_t *l) {
+static int entity_list_count(const entity_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
@@ -307,10 +307,10 @@ static uint32_t fold_live(uint32_t h, const void *e) {
     h = fold_string_member(h, jo->description);
     h = fnv(h, is_dead_state(jo));
     h = fold_production(h, jo);
-    h = fnv(h, (uint32_t)entity_list_list_size(jo->slipways));
+    h = fnv(h, (uint32_t)entity_list_count(jo->slipways));
     h = fnv(h, (uint32_t)list_size(jo->needs));
-    h = fnv(h, (uint32_t)entity_list_list_size(jo->outgoing_routes));
-    h = fnv(h, (uint32_t)entity_list_list_size(jo->incoming_routes));
+    h = fnv(h, (uint32_t)entity_list_count(jo->outgoing_routes));
+    h = fnv(h, (uint32_t)entity_list_count(jo->incoming_routes));
     h = fnv(h, (uint32_t)(jo->targeted_by != NULL));
     h = fnv(h, (uint32_t)(jo->planet_type != NULL));
     h = fnv(h, (uint32_t)(jo->layout_row != NULL));
@@ -507,7 +507,7 @@ static void test_update_vanishing(void) {
     }
     assert(is_dead_state(a) == 2);
     assert(!entity_list_listed(live_entities(), a) && !entity_list_listed(entities_by_tag("planet"), a));
-    check_int("update_vanishing_update_entities_calls", calls, UPDATE_VANISHING_UPDATE_ENTITIES_CALLS);
+    check_int("update_vanishing_calls", calls, UPDATE_VANISHING_CALLS);
 }
 
 /* The production of a planet that never ran planet_install_project is the

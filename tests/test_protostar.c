@@ -115,7 +115,7 @@ static int pointer_list_size(const pointer_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
-static int entity_list_pointer_list_size(const entity_list_t *l) {
+static int entity_list_count(const entity_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
@@ -409,7 +409,7 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     assert(research_projects_at(3) != NULL);
     assert(planet->project == research_projects_at(3));
     hash = fold_production(hash, planet);
-    hash = fnv(hash, (uint32_t)entity_list_pointer_list_size(planet->slipways));
+    hash = fnv(hash, (uint32_t)entity_list_count(planet->slipways));
     hash = fnv(hash, (uint32_t)pointer_list_size(planet->needs));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), entity));
     for (index = 0; index < sizeof messages / sizeof messages[0]; index++) {

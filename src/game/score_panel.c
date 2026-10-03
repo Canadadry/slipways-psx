@@ -22,7 +22,7 @@
 #include "engine/game_zone.h"
 
 static int g_score_panel_up = 0;
-static score_rows_row_t g_score_rows[SCORE_ROWS_COUNT];
+static score_row_t g_score_rows[SCORE_ROWS_COUNT];
 static score_panel_t *g_main_score_panel = NULL;
 
 static p8_fixed_t fixed_min(p8_fixed_t a, p8_fixed_t b) {
@@ -286,7 +286,7 @@ void score_panel_init(void) {
 
     for (i = 0; i < SCORE_ROWS_COUNT; i++) {
         const score_rows_entry_t *e = &score_rows_table[i];
-        score_rows_row_t *b = &g_score_rows[i];
+        score_row_t *b = &g_score_rows[i];
         int k;
 
         score_panel_row_copy(&b->row, b->items, 5, &e->row);
@@ -335,7 +335,7 @@ score_panel_t *score_panel_new(void) {
     return score_panel_create();
 }
 
-score_rows_row_t *score_panel_score_rows(void) {
+score_row_t *score_panel_rows(void) {
     return g_score_panel_up ? g_score_rows : NULL;
 }
 
@@ -343,6 +343,6 @@ score_panel_t *main_score_panel(void) {
     return g_main_score_panel;
 }
 
-void score_panel_set_main_score_panel(score_panel_t *instance) {
+void score_panel_set_main(score_panel_t *instance) {
     g_main_score_panel = instance;
 }

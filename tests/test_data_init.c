@@ -46,7 +46,7 @@ static void test_production_tables_project_records_icon_tooltips_technologies_de
         assert(tech->tooltip_rows != NULL);
     }
 
-    data_init_data_shutdown();
+    data_init_shutdown();
 }
 
 int main(void) {

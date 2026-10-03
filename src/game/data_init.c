@@ -11,6 +11,6 @@ void data_init(void) {
     tech_gate_reset_affordable_flags();
 }
 
-void data_init_data_shutdown(void) {
+void data_init_shutdown(void) {
     research_shutdown();
 }

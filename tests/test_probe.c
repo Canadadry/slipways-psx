@@ -113,7 +113,7 @@ static int is_targeting_track_target(const void *e) {
 }
 
 /* The throwaway target's targeted_by, NULL when absent. */
-static const void *targeting_track_target_targeted_by(const void *t) {
+static const void *throwaway_targeted_by(const void *t) {
     assert(is_targeting_track_target(t));
     return ((const targeting_track_target_t *)t)->targeted_by;
 }
@@ -465,7 +465,7 @@ static const void *target_targeted_by(const probe_t *e) {
     if (et->class == slipway_class()) {
         return ((const slipway_t *)et)->targeted_by;
     }
-    return targeting_track_target_targeted_by(et);
+    return throwaway_targeted_by(et);
 }
 
 /* The target as the frozen hashes fold it: a false boolean when NULL, else
@@ -799,7 +799,7 @@ static void test_targeting_track_target_is_a_struct(void) {
     class_of(a)->drag(&a->header, mouse_at(vec_add(middle, vec_xy(0, 3))), vec_ref(vec_xy(2, 2)));
     assert(a->targeting->target != NULL);
     et = a->targeting->target;
-    assert(is_targeting_track_target(et) && targeting_track_target_targeted_by(et) == a);
+    assert(is_targeting_track_target(et) && throwaway_targeted_by(et) == a);
     assert(class_of(et)->draw_overlay == NULL);
 }
 

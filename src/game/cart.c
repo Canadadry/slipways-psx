@@ -153,7 +153,7 @@ void cart_shutdown(void) {
     slipway_shutdown();
     planet_shutdown();
 
-    data_init_data_shutdown();
+    data_init_shutdown();
 
     economy_shutdown();
     probe_shutdown();
@@ -215,7 +215,7 @@ void cart_start_game(button_t *chosen_option) {
     galaxy_populate(p8_fixed_from_int(90));
 
     probe_set_main_economy((entity_t *)economy_new());
-    score_panel_set_main_score_panel(score_panel_new());
+    score_panel_set_main(score_panel_new());
 
     if (pause_menu_open_box() != NULL) {
         int j;

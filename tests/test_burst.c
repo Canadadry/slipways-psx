@@ -138,7 +138,7 @@ static int pointer_list_size(const pointer_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
-static int entity_list_pointer_list_size(const entity_list_t *l) {
+static int entity_list_count(const entity_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
@@ -327,9 +327,9 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fold_vec(hash, planet->map_pos);
     hash = fnv(hash, (uint32_t)(spacer->trail_colors == NULL ? -1 : spacer->trail_colors->count));
     hash = fnv(hash, (uint32_t)tag_count(planet->header.class->tags));
-    hash = fnv(hash, (uint32_t)entity_list_pointer_list_size(planet->outgoing_routes));
+    hash = fnv(hash, (uint32_t)entity_list_count(planet->outgoing_routes));
     hash = fnv(hash, (uint32_t)pointer_list_size(spacer->particles));
-    hash = fnv(hash, (uint32_t)entity_list_pointer_list_size(planet->slipways));
+    hash = fnv(hash, (uint32_t)entity_list_count(planet->slipways));
     assert(main_camera_typed() != NULL);
     hash = fold_fixed_member(hash, main_camera_typed()->shake);
     /* The 1s of spawn_rate, the four matrix entries, acceleration_factor,
@@ -623,7 +623,7 @@ static void test_life(void) {
     class_of(first)->refresh(first);
     assert(fold_layout_row(2166136261u, first) != row_hash);
     hash = fold_layout_row(hash, first);
-    assert(entity_list_pointer_list_size(as_burst(second)->outgoing_routes) == 2);
+    assert(entity_list_count(as_burst(second)->outgoing_routes) == 2);
     /* planet_rebuild_trades reuses the outgoing routes held: routes kept, no fresh list. */
     assert(planet_rebuild_trades(as_burst(second)) == outgoing && outgoing->count == 2);
 

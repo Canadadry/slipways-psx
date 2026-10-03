@@ -78,7 +78,7 @@ typedef struct {
     int has_value[5];
     vec_t pos;
     const score_rows_entry_t *entry;
-} score_rows_row_t;
+} score_row_t;
 
 /* Calls draw_functions_init() first. Resets the score rows, the readouts
  * and the year banner to their generated rows. */
@@ -115,7 +115,7 @@ score_panel_t *score_panel_new(void);
 /* The SCORE_ROWS_COUNT score rows, statics of this module: every
  * score_panel_update() run rewrites them in place. NULL before the init and
  * after the shutdown. */
-score_rows_row_t *score_panel_score_rows(void);
+score_row_t *score_panel_rows(void);
 
 /* Never NULL: an inert placeholder until the real init bridge
  * (cart_init_method) is installed, which a NULL argument resets. A button
@@ -126,7 +126,7 @@ void score_panel_set_init(button_fn_t fn);
 /* NULL until cart_start_game() builds the one panel instance and sets it
  * here. The setter takes no ownership. */
 score_panel_t *main_score_panel(void);
-void score_panel_set_main_score_panel(score_panel_t *instance);
+void score_panel_set_main(score_panel_t *instance);
 
 void score_panel_refresh(void);
 

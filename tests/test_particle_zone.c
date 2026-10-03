@@ -221,7 +221,7 @@ static int case_emitter_init_takes_a_particles_list(void) {
     return 0;
 }
 
-static int case_emitter_init_help_screen_takes_a_particles_help_screen_list(void) {
+static int case_emitter_init_help_screen_takes_a_help_list(void) {
     entity_t *h = host();
     emitter_release_particles(h->emitter);
     emitter_init_in(h, PARTICLE_SLOT_HELP_LIST);
@@ -327,7 +327,7 @@ static const struct {
     {"particles_release_gives_back_particles_then_list", case_particles_release_gives_back_particles_then_list},
     {"particles_release_releases_the_arena", case_particles_release_releases_the_arena},
     {"emitter_init_takes_a_particles_list", case_emitter_init_takes_a_particles_list},
-    {"emitter_init_help_screen_takes_a_particles_help_screen_list", case_emitter_init_help_screen_takes_a_particles_help_screen_list},
+    {"emitter_init_help_screen_takes_a_help_list", case_emitter_init_help_screen_takes_a_help_list},
     {"second_emitter_init_gives_back_the_old_list", case_second_emitter_init_gives_back_the_old_list},
     {"emitter_update_gives_back_a_dying_particle", case_emitter_update_gives_back_a_dying_particle},
     {"particle_dead_after_emitter_update", case_particle_dead_after_emitter_update},
@@ -420,7 +420,7 @@ int main(int argc, char **argv) {
     expect_clean("particles_release_gives_back_particles_then_list");
     expect_poison_crash("particles_release_releases_the_arena");
     expect_clean("emitter_init_takes_a_particles_list");
-    expect_clean("emitter_init_help_screen_takes_a_particles_help_screen_list");
+    expect_clean("emitter_init_help_screen_takes_a_help_list");
     expect_clean("second_emitter_init_gives_back_the_old_list");
     expect_clean("emitter_update_gives_back_a_dying_particle");
     expect_poison_crash("particle_dead_after_emitter_update");

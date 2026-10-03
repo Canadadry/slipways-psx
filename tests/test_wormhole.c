@@ -127,7 +127,7 @@ static uint32_t fold_string(uint32_t h, const char *s) {
     return fnv_str(h, s);
 }
 
-enum { TARGET_ABSENT, TARGET_FALSE, TARGET_TOO_FAR_TARGET, TARGET_SLIPWAY, TARGET_PLANET, TARGET_THROWAWAY, TARGET_OTHER };
+enum { TARGET_ABSENT, TARGET_FALSE, TARGET_TOO_FAR, TARGET_SLIPWAY, TARGET_PLANET, TARGET_THROWAWAY, TARGET_OTHER };
 
 static int is_targeting_track_target(const void *e) {
     return e != NULL &&
@@ -135,7 +135,7 @@ static int is_targeting_track_target(const void *e) {
 }
 
 /* The throwaway target's targeted_by, NULL when absent. */
-static const void *targeting_track_target_targeted_by(const void *t) {
+static const void *throwaway_targeted_by(const void *t) {
     assert(is_targeting_track_target(t));
     return ((const targeting_track_target_t *)t)->targeted_by;
 }
@@ -147,7 +147,7 @@ static int target_kind(const wormhole_t *mz) {
         return TARGET_FALSE;
     }
     if (et == (const void *)wormhole_too_far_target_wrapper()) {
-        return TARGET_TOO_FAR_TARGET;
+        return TARGET_TOO_FAR;
     }
     if (entity_list_listed(entities_by_tag("slipway"), et)) {
         return TARGET_SLIPWAY;
@@ -462,7 +462,7 @@ static const void *target_targeted_by(const wormhole_t *mz) {
     if (et->class == slipway_class()) {
         return ((const slipway_t *)et)->targeted_by;
     }
-    return targeting_track_target_targeted_by(et);
+    return throwaway_targeted_by(et);
 }
 
 static uint32_t fold_drag(uint32_t h, const wormhole_t *mz, int want_kind) {
@@ -521,7 +521,7 @@ static void test_drag(void) {
     drag(mz, vec_ref_fixed(mid), vec_ref(64, 64));
     h = fold_drag(h, mz, TARGET_SLIPWAY);
     drag(mz, vec_ref(-640, -640), vec_ref(64, 64));
-    h = fold_drag(h, mz, TARGET_TOO_FAR_TARGET);
+    h = fold_drag(h, mz, TARGET_TOO_FAR);
     drag(mz, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
     h = fold_drag(h, mz, TARGET_FALSE);
     drag(mz, vec_ref_fixed(near_anchor()), vec_ref(2, 2));
@@ -577,7 +577,7 @@ static void test_drop(void) {
     targeted = build_wormhole();
     until_state_time(targeted, 15);
     drag(targeted, vec_ref(-640, -640), vec_ref(64, 64));
-    assert(target_kind(targeted) == TARGET_TOO_FAR_TARGET);
+    assert(target_kind(targeted) == TARGET_TOO_FAR);
     drop(targeted);
     assert(is_dead_state(targeted) == 2 && credits() == before);
     hash = fold_drop(hash, targeted);
@@ -707,7 +707,7 @@ static void test_draw(void) {
     far = build_wormhole();
     until_state_time(far, 5);
     drag(far, vec_ref(-640, -640), vec_ref(64, 64));
-    assert(target_kind(far) == TARGET_TOO_FAR_TARGET);
+    assert(target_kind(far) == TARGET_TOO_FAR);
     assert(draw(far) != draw(bare));
     hash = fnv(hash, draw(far));
 
@@ -777,7 +777,7 @@ static void test_too_far_target_wrapper(void) {
 
     wormhole = build_wormhole();
     drag(wormhole, vec_ref(-640, -640), vec_ref(64, 64));
-    assert(target_kind(wormhole) == TARGET_TOO_FAR_TARGET);
+    assert(target_kind(wormhole) == TARGET_TOO_FAR);
     check_too_far_target_untouched();
 
     jcs = entities_by_tag("slipway");
@@ -794,12 +794,12 @@ static void test_too_far_target_wrapper(void) {
     check_too_far_target_untouched();
 
     drag(wormhole, vec_ref(-640, -640), vec_ref(64, 64));
-    assert(target_kind(wormhole) == TARGET_TOO_FAR_TARGET);
+    assert(target_kind(wormhole) == TARGET_TOO_FAR);
     check_too_far_target_untouched();
 
     other = build_wormhole();
     drag(other, vec_ref(640, 640), vec_ref(64, 64));
-    assert(target_kind(other) == TARGET_TOO_FAR_TARGET);
+    assert(target_kind(other) == TARGET_TOO_FAR);
     assert(wormhole->targeting->target != NULL && other->targeting->target != NULL);
     assert(wormhole->targeting->target == other->targeting->target && (void *)wormhole->targeting->target == wrapper);
     check_too_far_target_untouched();

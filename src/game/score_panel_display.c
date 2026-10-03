@@ -136,7 +136,7 @@ typedef struct {
     data_item_t items[3];
 } score_panel_update_draw_row_t;
 
-static void score_panel_update_set(score_rows_row_t *st, int i, data_item_t item) {
+static void score_panel_update_set(score_row_t *st, int i, data_item_t item) {
     st->items[i - 1] = item;
     st->has_value[i - 1] = 1;
 }
@@ -144,7 +144,7 @@ static void score_panel_update_set(score_rows_row_t *st, int i, data_item_t item
 /* One score row as score_panel_update() shows it: a row without a score is
  * its own article; one with a score gets that score's text at 3 (and more
  * for scores 0 and 6), then becomes the line of a draw_row article. */
-static const data_row_t *score_panel_update_map(score_rows_row_t *score_row, const score_panel_update_ctx_t *context) {
+static const data_row_t *score_panel_update_map(score_row_t *score_row, const score_panel_update_ctx_t *context) {
     int score_i;
     char *s_str;
     layout_row_cell_t items[5];
@@ -276,7 +276,7 @@ void score_panel_update(score_panel_t *self) {
 
         if (c_truthy && !last_box_equals_shown_message_box) {
             final_score_t s = economy_score_final();
-            score_rows_row_t *bz = score_panel_score_rows();
+            score_row_t *bz = score_panel_rows();
             score_panel_update_ctx_t ctx;
             const data_row_t *iw[SCORE_ROWS_COUNT];
             message_box_keys_t keys = {0};

@@ -1746,7 +1746,7 @@ input	input	src/game/cheat.h	identifiant	paramètre	conservé	game/cheat			c:che
 sequence	sequence	src/game/cheat.c	identifiant	statique	conservé	game/cheat			c:cheat.c@sequence
 pico8_cheat_t	cheat_t	src/game/cheat.h	identifiant	type	renommé	game/cheat			c:@T@pico8_cheat_t
 pico8_data_init	data_init	src/game/data_init.c	identifiant	fonction	renommé	game/data_init			c:@F@pico8_data_init
-pico8_data_shutdown	data_init_data_shutdown	src/game/data_init.c	identifiant	fonction	renommé	game/data_init			c:@F@pico8_data_shutdown
+pico8_data_shutdown	data_init_shutdown	src/game/data_init.c	identifiant	fonction	renommé	game/data_init			c:@F@pico8_data_shutdown
 PICO8_DATA_INIT_H	GAME_DATA_INIT_H	src/game/data_init.h	identifiant	macro	renommé	game/data_init			macro:src/game/data_init.h:PICO8_DATA_INIT_H
 ld	draw_row	src/game/draw_functions.c	chaîne	clé	renommé	game/draw_functions		écrivain	chaîne:ld
 pico8_pi_number	number	src/game/draw_functions.c	chaîne	symbole cité	renommé	game/draw_functions	pi	écrivain	chaîne:pico8_pi_number
@@ -5130,7 +5130,7 @@ pico8_eg	score_panel_refresh_palette	src/game/score_panel.c	identifiant	fonction
 pico8_eg_gg_pred	refresh_palette_is_colonized_pred	src/game/score_panel.c	identifiant	fonction	renommé	game/score_panel			c:score_panel.c@F@pico8_eg_gg_pred
 pico8_init_field_value	score_panel_init_field_value	src/game/score_panel.c	identifiant	fonction	renommé	game/score_panel			c:@F@pico8_init_field_value
 pico8_ju	main_score_panel	src/game/score_panel.c	identifiant	fonction	renommé	game/score_panel	ok		c:@F@pico8_ju
-pico8_pj_bz	score_panel_score_rows	src/game/score_panel.c	identifiant	fonction	renommé	game/score_panel	pj		c:@F@pico8_pj_bz
+pico8_pj_bz	score_panel_rows	src/game/score_panel.c	identifiant	fonction	renommé	game/score_panel	pj		c:@F@pico8_pj_bz
 pico8_pj_cr	score_panel_layout_block	src/game/score_panel.c	identifiant	fonction	renommé	game/score_panel	cr		c:@F@pico8_pj_cr
 pico8_pj_cr_struct_class	score_panel_layout_block_class	src/game/score_panel.c	identifiant	fonction	renommé	game/score_panel	cr		c:@F@pico8_pj_cr_struct_class
 pico8_pj_ea	score_panel_year_banner	src/game/score_panel.c	identifiant	fonction	renommé	game/score_panel	pj		c:@F@pico8_pj_ea
@@ -5144,7 +5144,7 @@ pico8_pj_kj_dispatch	score_panel_draw_method	src/game/score_panel.c	identifiant	
 pico8_pj_new	score_panel_new	src/game/score_panel.c	identifiant	fonction	renommé	game/score_panel	pj		c:@F@pico8_pj_new
 pico8_pj_ou	score_panel_readouts	src/game/score_panel.c	identifiant	fonction	renommé	game/score_panel	pj		c:@F@pico8_pj_ou
 pico8_pj_ready	score_panel_ready	src/game/score_panel.c	identifiant	fonction	renommé	game/score_panel	pj		c:@F@pico8_pj_ready
-pico8_pj_set_ju	score_panel_set_main_score_panel	src/game/score_panel.c	identifiant	fonction	renommé	game/score_panel	pj		c:@F@pico8_pj_set_ju
+pico8_pj_set_ju	score_panel_set_main	src/game/score_panel.c	identifiant	fonction	renommé	game/score_panel	pj		c:@F@pico8_pj_set_ju
 pico8_pj_struct_class	score_panel_class	src/game/score_panel.c	identifiant	fonction	renommé	game/score_panel	pj		c:@F@pico8_pj_struct_class
 pico8_pj_struct_new	score_panel_create	src/game/score_panel.c	identifiant	fonction	renommé	game/score_panel	pj		c:score_panel.c@F@pico8_pj_struct_new
 pico8_score_panel_init	score_panel_init	src/game/score_panel.c	identifiant	fonction	renommé	game/score_panel			c:@F@pico8_score_panel_init
@@ -5229,7 +5229,7 @@ g_pj_ea	g_score_panel_year_banner	src/game/score_panel.c	identifiant	statique	re
 g_pj_ou	g_score_panel_readouts	src/game/score_panel.c	identifiant	statique	renommé	game/score_panel	pj		c:score_panel.c@g_pj_ou
 g_pj_struct_class	g_score_panel_class	src/game/score_panel.c	identifiant	statique	renommé	game/score_panel	pj		c:score_panel.c@g_pj_struct_class
 g_pj_up	g_score_panel_up	src/game/score_panel.c	identifiant	statique	renommé	game/score_panel	pj		c:score_panel.c@g_pj_up
-pico8_bz_row_t	score_rows_row_t	src/game/score_panel.h	identifiant	type	renommé	game/score_panel			c:@T@pico8_bz_row_t
+pico8_bz_row_t	score_row_t	src/game/score_panel.h	identifiant	type	renommé	game/score_panel			c:@T@pico8_bz_row_t
 pico8_pj_cr_t	score_panel_layout_block_t	src/game/score_panel.h	identifiant	type	renommé	game/score_panel	cr		c:@T@pico8_pj_cr_t
 pico8_pj_ea_t	score_panel_year_banner_t	src/game/score_panel.h	identifiant	type	renommé	game/score_panel	pj		c:@T@pico8_pj_ea_t
 pico8_pj_ou_t	score_panel_readouts_t	src/game/score_panel.h	identifiant	type	renommé	game/score_panel	pj		c:@T@pico8_pj_ou_t
@@ -7459,7 +7459,7 @@ check	check	tests/test_ascension.c	identifiant	fonction	conservé	tests/test_asc
 cls_of	class_of	tests/test_ascension.c	identifiant	fonction	renommé	tests/test_ascension	cls		c:test_ascension.c@F@cls_of
 credits	credits	tests/test_ascension.c	identifiant	fonction	conservé	tests/test_ascension			c:test_ascension.c@F@credits
 ents_listed	entity_list_listed	tests/test_ascension.c	identifiant	fonction	renommé	tests/test_ascension	pico8_ents_t		c:test_ascension.c@F@ents_listed
-ents_ptrs_size	entity_list_pointer_list_size	tests/test_ascension.c	identifiant	fonction	renommé	tests/test_ascension	pico8_ents_t		c:test_ascension.c@F@ents_ptrs_size
+ents_ptrs_size	entity_list_count	tests/test_ascension.c	identifiant	fonction	renommé	tests/test_ascension	pico8_ents_t		c:test_ascension.c@F@ents_ptrs_size
 ents_rank_in	entity_list_rank_in	tests/test_ascension.c	identifiant	fonction	renommé	tests/test_ascension	pico8_ents_t		c:test_ascension.c@F@ents_rank_in
 et_state	target_state	tests/test_ascension.c	identifiant	fonction	renommé	tests/test_ascension	et		c:test_ascension.c@F@et_state
 fnv	fnv	tests/test_ascension.c	identifiant	fonction	conservé	tests/test_ascension			c:test_ascension.c@F@fnv
@@ -7889,7 +7889,7 @@ check_int	check_int	tests/test_burst.c	identifiant	fonction	conservé	tests/test
 cls_of	class_of	tests/test_burst.c	identifiant	fonction	renommé	tests/test_burst	cls		c:test_burst.c@F@cls_of
 cut_qy	cut_particles	tests/test_burst.c	identifiant	fonction	renommé	tests/test_burst	qy		c:test_burst.c@F@cut_qy
 ents_listed	entity_list_listed	tests/test_burst.c	identifiant	fonction	renommé	tests/test_burst	pico8_ents_t		c:test_burst.c@F@ents_listed
-ents_ptrs_size	entity_list_pointer_list_size	tests/test_burst.c	identifiant	fonction	renommé	tests/test_burst	pico8_ents_t		c:test_burst.c@F@ents_ptrs_size
+ents_ptrs_size	entity_list_count	tests/test_burst.c	identifiant	fonction	renommé	tests/test_burst	pico8_ents_t		c:test_burst.c@F@ents_ptrs_size
 ents_rank_in	entity_list_rank_in	tests/test_burst.c	identifiant	fonction	renommé	tests/test_burst	pico8_ents_t		c:test_burst.c@F@ents_rank_in
 fnv	fnv	tests/test_burst.c	identifiant	fonction	conservé	tests/test_burst			c:test_burst.c@F@fnv
 fnv_str	fnv_str	tests/test_burst.c	identifiant	fonction	conservé	tests/test_burst			c:test_burst.c@F@fnv_str
@@ -10713,7 +10713,7 @@ build_gate	build_gate	tests/test_infraspace_gate.c	identifiant	fonction	conserv�
 build_with_unknown_key	build_with_unknown_key	tests/test_infraspace_gate.c	identifiant	fonction	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@F@build_with_unknown_key
 check	check	tests/test_infraspace_gate.c	identifiant	fonction	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@F@check
 cls_of	class_of	tests/test_infraspace_gate.c	identifiant	fonction	renommé	tests/test_infraspace_gate	cls		c:test_infraspace_gate.c@F@cls_of
-ents_list_size	entity_list_list_size	tests/test_infraspace_gate.c	identifiant	fonction	renommé	tests/test_infraspace_gate	pico8_ents_t		c:test_infraspace_gate.c@F@ents_list_size
+ents_list_size	entity_list_count	tests/test_infraspace_gate.c	identifiant	fonction	renommé	tests/test_infraspace_gate	pico8_ents_t		c:test_infraspace_gate.c@F@ents_list_size
 ents_listed	entity_list_listed	tests/test_infraspace_gate.c	identifiant	fonction	renommé	tests/test_infraspace_gate	pico8_ents_t		c:test_infraspace_gate.c@F@ents_listed
 ents_rank_in	entity_list_rank_in	tests/test_infraspace_gate.c	identifiant	fonction	renommé	tests/test_infraspace_gate	pico8_ents_t		c:test_infraspace_gate.c@F@ents_rank_in
 fnv	fnv	tests/test_infraspace_gate.c	identifiant	fonction	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@F@fnv
@@ -12472,7 +12472,7 @@ input	input	tests/test_mouse.c	identifiant	statique	conservé	tests/test_mouse		
 mem	mem	tests/test_mouse.c	identifiant	statique	conservé	tests/test_mouse			c:test_mouse.c@mem
 tmp/test_pico8_zone_particules_stderr.txt	tmp/test_particle_zone_stderr.txt	tests/test_particle_zone.c	chaîne	chemin tmp	renommé	tests/test_particle_zone		écrivain, lecteur	chaîne:tmp/test_pico8_zone_particules_stderr.txt
 ez_notes_the_list_length	emitter_spawn_notes_the_list_length	tests/test_particle_zone.c	chaîne	clé	renommé	tests/test_particle_zone	f_	écrivain, lecteur	chaîne:ez_notes_the_list_length
-f__fv_takes_a_qy_fv_list	emitter_init_help_screen_takes_a_particles_help_screen_list	tests/test_particle_zone.c	chaîne	clé	renommé	tests/test_particle_zone	f_	écrivain, lecteur	chaîne:f__fv_takes_a_qy_fv_list
+f__fv_takes_a_qy_fv_list	emitter_init_help_screen_takes_a_help_list	tests/test_particle_zone.c	chaîne	clé	renommé	tests/test_particle_zone	f_	écrivain, lecteur	chaîne:f__fv_takes_a_qy_fv_list
 f__takes_a_qy_list	emitter_init_takes_a_particles_list	tests/test_particle_zone.c	chaîne	clé	renommé	tests/test_particle_zone	f_	écrivain, lecteur	chaîne:f__takes_a_qy_list
 ga_zone_full	burst_zone_full	tests/test_particle_zone.c	chaîne	clé	renommé	tests/test_particle_zone	ga	écrivain, lecteur	chaîne:ga_zone_full
 particle_dead_after_ei	particle_dead_after_emitter_update	tests/test_particle_zone.c	chaîne	clé	renommé	tests/test_particle_zone	f_	écrivain, lecteur	chaîne:particle_dead_after_ei
@@ -12488,7 +12488,7 @@ name	name	tests/test_particle_zone.c	identifiant	champ	conservé	tests/test_part
 run	run	tests/test_particle_zone.c	identifiant	champ	conservé	tests/test_particle_zone			c:test_particle_zone.c@S@test_particle_zone.c@11941@FI@run
 case_ei_gives_back_a_dying_particle	case_emitter_update_gives_back_a_dying_particle	tests/test_particle_zone.c	identifiant	fonction	renommé	tests/test_particle_zone	f_		c:test_particle_zone.c@F@case_ei_gives_back_a_dying_particle
 case_ez_notes_the_list_length	case_emitter_spawn_notes_the_list_length	tests/test_particle_zone.c	identifiant	fonction	renommé	tests/test_particle_zone	f_		c:test_particle_zone.c@F@case_ez_notes_the_list_length
-case_f__fv_takes_a_qy_fv_list	case_emitter_init_help_screen_takes_a_particles_help_screen_list	tests/test_particle_zone.c	identifiant	fonction	renommé	tests/test_particle_zone	f_		c:test_particle_zone.c@F@case_f__fv_takes_a_qy_fv_list
+case_f__fv_takes_a_qy_fv_list	case_emitter_init_help_screen_takes_a_help_list	tests/test_particle_zone.c	identifiant	fonction	renommé	tests/test_particle_zone	f_		c:test_particle_zone.c@F@case_f__fv_takes_a_qy_fv_list
 case_f__takes_a_qy_list	case_emitter_init_takes_a_particles_list	tests/test_particle_zone.c	identifiant	fonction	renommé	tests/test_particle_zone	f_		c:test_particle_zone.c@F@case_f__takes_a_qy_list
 case_ga_zone_full	case_burst_zone_full	tests/test_particle_zone.c	identifiant	fonction	renommé	tests/test_particle_zone	ga		c:test_particle_zone.c@F@case_ga_zone_full
 case_live_places_follow_takes	case_live_slots_follow_takes	tests/test_particle_zone.c	identifiant	fonction	renommé	tests/test_particle_zone	sorte		c:test_particle_zone.c@F@case_live_places_follow_takes
@@ -12638,7 +12638,7 @@ check_int	check_int	tests/test_planet.c	identifiant	fonction	conservé	tests/tes
 cls_of	class_of	tests/test_planet.c	identifiant	fonction	renommé	tests/test_planet	cls		c:test_planet.c@F@cls_of
 cw_project	class_name_project	tests/test_planet.c	identifiant	fonction	renommé	tests/test_planet			c:test_planet.c@F@cw_project
 daughter_of	daughter_of	tests/test_planet.c	identifiant	fonction	conservé	tests/test_planet			c:test_planet.c@F@daughter_of
-ents_list_size	entity_list_list_size	tests/test_planet.c	identifiant	fonction	renommé	tests/test_planet	pico8_ents_t		c:test_planet.c@F@ents_list_size
+ents_list_size	entity_list_count	tests/test_planet.c	identifiant	fonction	renommé	tests/test_planet	pico8_ents_t		c:test_planet.c@F@ents_list_size
 ents_listed	entity_list_listed	tests/test_planet.c	identifiant	fonction	renommé	tests/test_planet	pico8_ents_t		c:test_planet.c@F@ents_listed
 ents_rank_in	entity_list_rank_in	tests/test_planet.c	identifiant	fonction	renommé	tests/test_planet	pico8_ents_t		c:test_planet.c@F@ents_rank_in
 fnv	fnv	tests/test_planet.c	identifiant	fonction	conservé	tests/test_planet			c:test_planet.c@F@fnv
@@ -12743,7 +12743,7 @@ v	v	tests/test_planet.c	identifiant	locale	conservé	tests/test_planet			c:test_
 DAUGHTERS_HASH	DAUGHTERS_HASH	tests/test_planet.c	identifiant	macro	conservé	tests/test_planet			macro:tests/test_planet.c:DAUGHTERS_HASH
 GALAXY_HASH	GALAXY_HASH	tests/test_planet.c	identifiant	macro	conservé	tests/test_planet			macro:tests/test_planet.c:GALAXY_HASH
 GALAXY_PLANETS	GALAXY_PLANETS	tests/test_planet.c	identifiant	macro	conservé	tests/test_planet			macro:tests/test_planet.c:GALAXY_PLANETS
-LL_DG_CALLS	UPDATE_VANISHING_UPDATE_ENTITIES_CALLS	tests/test_planet.c	identifiant	macro	renommé	tests/test_planet	ll		macro:tests/test_planet.c:LL_DG_CALLS
+LL_DG_CALLS	UPDATE_VANISHING_CALLS	tests/test_planet.c	identifiant	macro	renommé	tests/test_planet	ll		macro:tests/test_planet.c:LL_DG_CALLS
 NEW_PLANET_HASH	NEW_PLANET_HASH	tests/test_planet.c	identifiant	macro	conservé	tests/test_planet			macro:tests/test_planet.c:NEW_PLANET_HASH
 _POSIX_C_SOURCE	_POSIX_C_SOURCE	tests/test_planet.c	identifiant	macro	conservé	tests/test_planet			macro:tests/test_planet.c:_POSIX_C_SOURCE
 at	at	tests/test_planet.c	identifiant	paramètre	conservé	tests/test_planet			c:test_planet.c@5041@F@vec_ref@at
@@ -12975,7 +12975,7 @@ test_pico8_g_	test_probe	tests/test_probe.c	chaîne	nom de test	renommé	tests/t
 a_planet	a_planet	tests/test_probe.c	identifiant	fonction	conservé	tests/test_probe			c:test_probe.c@F@a_planet
 a_slipway	a_slipway	tests/test_probe.c	identifiant	fonction	conservé	tests/test_probe			c:test_probe.c@F@a_slipway
 as_g_	as_probe	tests/test_probe.c	identifiant	fonction	renommé	tests/test_probe	g_		c:test_probe.c@F@as_g_
-bv_et_fo	targeting_track_target_targeted_by	tests/test_probe.c	identifiant	fonction	renommé	tests/test_probe	pico8_probe_t		c:test_probe.c@F@bv_et_fo
+bv_et_fo	throwaway_targeted_by	tests/test_probe.c	identifiant	fonction	renommé	tests/test_probe	pico8_probe_t		c:test_probe.c@F@bv_et_fo
 check	check	tests/test_probe.c	identifiant	fonction	conservé	tests/test_probe			c:test_probe.c@F@check
 cls_of	class_of	tests/test_probe.c	identifiant	fonction	renommé	tests/test_probe	cls		c:test_probe.c@F@cls_of
 ents_list_count	entity_list_list_count	tests/test_probe.c	identifiant	fonction	renommé	tests/test_probe	pico8_ents_t		c:test_probe.c@F@ents_list_count
@@ -13242,7 +13242,7 @@ check	check	tests/test_processor.c	identifiant	fonction	conservé	tests/test_pro
 clicked_game	clicked_game	tests/test_processor.c	identifiant	fonction	conservé	tests/test_processor			c:test_processor.c@F@clicked_game
 cls_of	class_of	tests/test_processor.c	identifiant	fonction	renommé	tests/test_processor	cls		c:test_processor.c@F@cls_of
 credits	credits	tests/test_processor.c	identifiant	fonction	conservé	tests/test_processor			c:test_processor.c@F@credits
-ents_list_size	entity_list_list_size	tests/test_processor.c	identifiant	fonction	renommé	tests/test_processor	pico8_ents_t		c:test_processor.c@F@ents_list_size
+ents_list_size	entity_list_count	tests/test_processor.c	identifiant	fonction	renommé	tests/test_processor	pico8_ents_t		c:test_processor.c@F@ents_list_size
 ents_listed	entity_list_listed	tests/test_processor.c	identifiant	fonction	renommé	tests/test_processor	pico8_ents_t		c:test_processor.c@F@ents_listed
 ents_rank_in	entity_list_rank_in	tests/test_processor.c	identifiant	fonction	renommé	tests/test_processor	pico8_ents_t		c:test_processor.c@F@ents_rank_in
 et_state	target_state	tests/test_processor.c	identifiant	fonction	renommé	tests/test_processor	et		c:test_processor.c@F@et_state
@@ -13428,7 +13428,7 @@ build_protostar	build_protostar	tests/test_protostar.c	identifiant	fonction	cons
 check	check	tests/test_protostar.c	identifiant	fonction	conservé	tests/test_protostar			c:test_protostar.c@F@check
 cls_of	class_of	tests/test_protostar.c	identifiant	fonction	renommé	tests/test_protostar	cls		c:test_protostar.c@F@cls_of
 ents_listed	entity_list_listed	tests/test_protostar.c	identifiant	fonction	renommé	tests/test_protostar	pico8_ents_t		c:test_protostar.c@F@ents_listed
-ents_ptrs_size	entity_list_pointer_list_size	tests/test_protostar.c	identifiant	fonction	renommé	tests/test_protostar	pico8_ents_t		c:test_protostar.c@F@ents_ptrs_size
+ents_ptrs_size	entity_list_count	tests/test_protostar.c	identifiant	fonction	renommé	tests/test_protostar	pico8_ents_t		c:test_protostar.c@F@ents_ptrs_size
 ents_rank_in	entity_list_rank_in	tests/test_protostar.c	identifiant	fonction	renommé	tests/test_protostar	pico8_ents_t		c:test_protostar.c@F@ents_rank_in
 fnv	fnv	tests/test_protostar.c	identifiant	fonction	conservé	tests/test_protostar			c:test_protostar.c@F@fnv
 fnv_str	fnv_str	tests/test_protostar.c	identifiant	fonction	conservé	tests/test_protostar			c:test_protostar.c@F@fnv_str
@@ -14414,7 +14414,7 @@ build	build	tests/test_slipgate.c	identifiant	fonction	conservé	tests/test_slip
 build_slipgate	build_slipgate	tests/test_slipgate.c	identifiant	fonction	conservé	tests/test_slipgate			c:test_slipgate.c@F@build_slipgate
 check	check	tests/test_slipgate.c	identifiant	fonction	conservé	tests/test_slipgate			c:test_slipgate.c@F@check
 cls_of	class_of	tests/test_slipgate.c	identifiant	fonction	renommé	tests/test_slipgate	cls		c:test_slipgate.c@F@cls_of
-ents_list_size	entity_list_list_size	tests/test_slipgate.c	identifiant	fonction	renommé	tests/test_slipgate	pico8_ents_t		c:test_slipgate.c@F@ents_list_size
+ents_list_size	entity_list_count	tests/test_slipgate.c	identifiant	fonction	renommé	tests/test_slipgate	pico8_ents_t		c:test_slipgate.c@F@ents_list_size
 ents_listed	entity_list_listed	tests/test_slipgate.c	identifiant	fonction	renommé	tests/test_slipgate	pico8_ents_t		c:test_slipgate.c@F@ents_listed
 ents_rank_in	entity_list_rank_in	tests/test_slipgate.c	identifiant	fonction	renommé	tests/test_slipgate	pico8_ents_t		c:test_slipgate.c@F@ents_rank_in
 fnv	fnv	tests/test_slipgate.c	identifiant	fonction	conservé	tests/test_slipgate			c:test_slipgate.c@F@fnv
@@ -15043,7 +15043,7 @@ cls_of	class_of	tests/test_structure.c	identifiant	fonction	renommé	tests/test_
 credits	credits	tests/test_structure.c	identifiant	fonction	conservé	tests/test_structure			c:test_structure.c@F@credits
 cw_project	class_name_project	tests/test_structure.c	identifiant	fonction	renommé	tests/test_structure			c:test_structure.c@F@cw_project
 descendant_of	descendant_of	tests/test_structure.c	identifiant	fonction	conservé	tests/test_structure			c:test_structure.c@F@descendant_of
-ents_list_size	entity_list_list_size	tests/test_structure.c	identifiant	fonction	renommé	tests/test_structure	pico8_ents_t		c:test_structure.c@F@ents_list_size
+ents_list_size	entity_list_count	tests/test_structure.c	identifiant	fonction	renommé	tests/test_structure	pico8_ents_t		c:test_structure.c@F@ents_list_size
 ents_listed	entity_list_listed	tests/test_structure.c	identifiant	fonction	renommé	tests/test_structure	pico8_ents_t		c:test_structure.c@F@ents_listed
 ents_rank_in	entity_list_rank_in	tests/test_structure.c	identifiant	fonction	renommé	tests/test_structure	pico8_ents_t		c:test_structure.c@F@ents_rank_in
 et_state	target_state	tests/test_structure.c	identifiant	fonction	renommé	tests/test_structure	et		c:test_structure.c@F@et_state
@@ -15460,7 +15460,7 @@ build_with_unknown_key	build_with_unknown_key	tests/test_synthesizer.c	identifia
 check	check	tests/test_synthesizer.c	identifiant	fonction	conservé	tests/test_synthesizer			c:test_synthesizer.c@F@check
 cls_of	class_of	tests/test_synthesizer.c	identifiant	fonction	renommé	tests/test_synthesizer	cls		c:test_synthesizer.c@F@cls_of
 ents_listed	entity_list_listed	tests/test_synthesizer.c	identifiant	fonction	renommé	tests/test_synthesizer	pico8_ents_t		c:test_synthesizer.c@F@ents_listed
-ents_ptrs_size	entity_list_pointer_list_size	tests/test_synthesizer.c	identifiant	fonction	renommé	tests/test_synthesizer	pico8_ents_t		c:test_synthesizer.c@F@ents_ptrs_size
+ents_ptrs_size	entity_list_count	tests/test_synthesizer.c	identifiant	fonction	renommé	tests/test_synthesizer	pico8_ents_t		c:test_synthesizer.c@F@ents_ptrs_size
 ents_rank_in	entity_list_rank_in	tests/test_synthesizer.c	identifiant	fonction	renommé	tests/test_synthesizer	pico8_ents_t		c:test_synthesizer.c@F@ents_rank_in
 fnv	fnv	tests/test_synthesizer.c	identifiant	fonction	conservé	tests/test_synthesizer			c:test_synthesizer.c@F@fnv
 fnv_str	fnv_str	tests/test_synthesizer.c	identifiant	fonction	conservé	tests/test_synthesizer			c:test_synthesizer.c@F@fnv_str
@@ -16011,7 +16011,7 @@ build_with_unknown_key	build_with_unknown_key	tests/test_trading_hub.c	identifia
 check	check	tests/test_trading_hub.c	identifiant	fonction	conservé	tests/test_trading_hub			c:test_trading_hub.c@F@check
 cls_of	class_of	tests/test_trading_hub.c	identifiant	fonction	renommé	tests/test_trading_hub	cls		c:test_trading_hub.c@F@cls_of
 credits	credits	tests/test_trading_hub.c	identifiant	fonction	conservé	tests/test_trading_hub			c:test_trading_hub.c@F@credits
-ents_list_size	entity_list_list_size	tests/test_trading_hub.c	identifiant	fonction	renommé	tests/test_trading_hub	pico8_ents_t		c:test_trading_hub.c@F@ents_list_size
+ents_list_size	entity_list_count	tests/test_trading_hub.c	identifiant	fonction	renommé	tests/test_trading_hub	pico8_ents_t		c:test_trading_hub.c@F@ents_list_size
 ents_listed	entity_list_listed	tests/test_trading_hub.c	identifiant	fonction	renommé	tests/test_trading_hub	pico8_ents_t		c:test_trading_hub.c@F@ents_listed
 ents_rank_in	entity_list_rank_in	tests/test_trading_hub.c	identifiant	fonction	renommé	tests/test_trading_hub	pico8_ents_t		c:test_trading_hub.c@F@ents_rank_in
 et_state	target_state	tests/test_trading_hub.c	identifiant	fonction	renommé	tests/test_trading_hub	et		c:test_trading_hub.c@F@et_state
@@ -16597,14 +16597,14 @@ kz	placing	tests/test_wormhole.c	chaîne	nom d'état	renommé	tests/test_wormhol
 ly	settled	tests/test_wormhole.c	chaîne	nom d'état	renommé	tests/test_wormhole	ly	lecteur	chaîne:ly
 pr	unfolding	tests/test_wormhole.c	chaîne	nom d'état	renommé	tests/test_wormhole	pr	lecteur	chaîne:pr
 test_pico8_mz	test_wormhole	tests/test_wormhole.c	chaîne	nom de test	renommé	tests/test_wormhole		libellé	chaîne:test_pico8_mz
-ET_JJ	TARGET_TOO_FAR_TARGET	tests/test_wormhole.c	identifiant	constante	renommé	tests/test_wormhole	et		c:@Ea@TARGET_ABSENT@ET_JJ
+ET_JJ	TARGET_TOO_FAR	tests/test_wormhole.c	identifiant	constante	renommé	tests/test_wormhole	et		c:@Ea@TARGET_ABSENT@ET_JJ
 ET_JO	TARGET_PLANET	tests/test_wormhole.c	identifiant	constante	renommé	tests/test_wormhole	et		c:@Ea@TARGET_ABSENT@ET_JO
 ET_THROWAWAY	TARGET_THROWAWAY	tests/test_wormhole.c	identifiant	constante	renommé	tests/test_wormhole	et		c:@Ea@TARGET_ABSENT@ET_THROWAWAY
 as_jc	as_slipway	tests/test_wormhole.c	identifiant	fonction	renommé	tests/test_wormhole	jc		c:test_wormhole.c@F@as_jc
 as_jo	as_planet	tests/test_wormhole.c	identifiant	fonction	renommé	tests/test_wormhole	jo		c:test_wormhole.c@F@as_jo
 as_mz	as_wormhole	tests/test_wormhole.c	identifiant	fonction	renommé	tests/test_wormhole	mz		c:test_wormhole.c@F@as_mz
 build_mz	build_wormhole	tests/test_wormhole.c	identifiant	fonction	renommé	tests/test_wormhole	mz		c:test_wormhole.c@F@build_mz
-bv_et_fo	targeting_track_target_targeted_by	tests/test_wormhole.c	identifiant	fonction	renommé	tests/test_wormhole	pico8_probe_t		c:test_wormhole.c@F@bv_et_fo
+bv_et_fo	throwaway_targeted_by	tests/test_wormhole.c	identifiant	fonction	renommé	tests/test_wormhole	pico8_probe_t		c:test_wormhole.c@F@bv_et_fo
 check	check	tests/test_wormhole.c	identifiant	fonction	conservé	tests/test_wormhole			c:test_wormhole.c@F@check
 check_fo_is	check_targeted_by_is	tests/test_wormhole.c	identifiant	fonction	renommé	tests/test_wormhole	et		c:test_wormhole.c@F@check_fo_is
 check_fresh_mz	check_fresh_wormhole	tests/test_wormhole.c	identifiant	fonction	renommé	tests/test_wormhole	mz		c:test_wormhole.c@F@check_fresh_mz

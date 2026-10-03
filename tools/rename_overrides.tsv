@@ -1493,3 +1493,14 @@ name	cart_mr_items	frozen_positions_items
 name	CART_MR	FROZEN_POSITIONS	
 name	cart_gp_items	frozen_routed_positions_items	
 name	CART_GP	FROZEN_ROUTED_POSITIONS	
+name	pico8_data_shutdown	data_init_shutdown	
+name	LL_DG_CALLS	UPDATE_VANISHING_CALLS	ll
+name	bv_et_fo	throwaway_targeted_by	pico8_probe_t
+name	ET_JJ	TARGET_TOO_FAR	et
+name	case_f__fv_takes_a_qy_fv_list	case_emitter_init_help_screen_takes_a_help_list	f_
+string	f__fv_takes_a_qy_fv_list	emitter_init_help_screen_takes_a_help_list	f_
+name	ents_list_size	entity_list_count	pico8_ents_t
+name	ents_ptrs_size	entity_list_count	pico8_ents_t
+name	pico8_pj_set_ju	score_panel_set_main	pj
+name	pico8_pj_bz	score_panel_rows	pj
+name	pico8_bz_row_t	score_row_t	
