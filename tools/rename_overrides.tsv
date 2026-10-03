@@ -872,7 +872,7 @@ field	pico8_bz_row_t.e	entry	bz
 field	pico8_bz_row_t.has	has_value	bz
 field	pico8_pj_ph_ctx_t.s	final_score	ky
 field	pico8_pz_ctx_t.bp	button_pos	pz
-field	pico8_jo_gh_ctx_t.ji	unmet_needs	gh
+field	pico8_jo_gh_ctx_t.ji	received_needs	gh
 field	pico8_jo_fe_row_t.h	cost_keys	fe
 field	pico8_jo_fe_row_t.h_item	cost_item	fe
 field	pico8_cr_row_t.h	cost_keys	cr

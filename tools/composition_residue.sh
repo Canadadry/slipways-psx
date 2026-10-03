@@ -108,7 +108,7 @@ ENTITY_PTRS_EXEMPT="economy_t.invented planet_t.needs research_project_t.inputs 
 # on one line, only the first name is read for the exemption.
 # Exempt, each proved by its writer: emitter_t.particles holds particles
 # (emitter_init_in, game/particle.c);
-# planet_inspection_panel_ctx_t.unmet_needs holds need_t records
+# planet_inspection_panel_ctx_t.received_needs holds need_t records
 # (planet_inspection_panel_filter_step, game/planet_display.c);
 # collect_map_pointer_list maps the need_t records
 # of research_project_t.inputs (planet_install_project, game/planet.c);
@@ -120,7 +120,7 @@ ENTITY_PTRS_EXEMPT="economy_t.invented planet_t.needs research_project_t.inputs 
 # in game/planet_display.c, planet_offer_trade in game/planet_trade.c),
 # lists of entities going through entity_list_filter and
 # entity_list_concat.
-REGISTRIES_EXEMPT="emitter_t.particles planet_inspection_panel_ctx_t.unmet_needs collect_map_pointer_list collect_contains_string research_display_planet_resource_row collect_filter_pointer_list collect_concat_pointer_list"
+REGISTRIES_EXEMPT="emitter_t.particles planet_inspection_panel_ctx_t.received_needs collect_map_pointer_list collect_contains_string research_display_planet_resource_row collect_filter_pointer_list collect_concat_pointer_list"
 
 # Core headers, by path relative to src/: core-includes reads only them.
 CORE_HEADERS="engine/entity_class.h engine/entity.h engine/entity_registry.h"

@@ -4158,11 +4158,11 @@ pico8_jo_t	planet_t	src/game/planet.h	identifiant	type	renommé	game/planet	jo		
 ll	vanishing	src/game/planet_display.c	chaîne	nom d'état	renommé	game/planet_display	ll	lecteur	chaîne:ll
 ly	settled	src/game/planet_display.c	chaîne	nom d'état	renommé	game/planet_display	ly	écrivain, lecteur	chaîne:ly
 pico8_jo_fe_my_dispatch	planet_projects_panel_on_click_method	src/game/planet_display.c	chaîne	symbole cité	renommé	game/planet_display	jo	écrivain	chaîne:pico8_jo_fe_my_dispatch
-pico8_jo_gh_ctx_t.ji	planet_inspection_panel_ctx_t.unmet_needs	src/game/planet_display.c	chaîne	symbole cité	renommé	game/planet_display	gh	écrivain	chaîne:pico8_jo_gh_ctx_t.ji
+pico8_jo_gh_ctx_t.ji	planet_inspection_panel_ctx_t.received_needs	src/game/planet_display.c	chaîne	symbole cité	renommé	game/planet_display	gh	écrivain	chaîne:pico8_jo_gh_ctx_t.ji
 pico8_jo_hu	planet_apply_project	src/game/planet_display.c	chaîne	symbole cité	renommé	game/planet_display	jo	écrivain	chaîne:pico8_jo_hu
 h	cost_keys	src/game/planet_display.c	identifiant	champ	renommé	game/planet_display	fe		c:@SA@pico8_jo_fe_row_t@FI@h
 h_item	cost_item	src/game/planet_display.c	identifiant	champ	renommé	game/planet_display	fe		c:@SA@pico8_jo_fe_row_t@FI@h_item
-ji	unmet_needs	src/game/planet_display.c	identifiant	champ	renommé	game/planet_display	gh		c:@SA@pico8_jo_gh_ctx_t@FI@ji
+ji	received_needs	src/game/planet_display.c	identifiant	champ	renommé	game/planet_display	gh		c:@SA@pico8_jo_gh_ctx_t@FI@ji
 lq	layout_row	src/game/planet_display.c	identifiant	champ	renommé	game/planet_display	lq		c:@SA@pico8_jo_fe_row_t@FI@lq
 lq_items	layout_row_items	src/game/planet_display.c	identifiant	champ	renommé	game/planet_display	lq		c:@SA@pico8_jo_fe_row_t@FI@lq_items
 jo_dollar	planet_dollar	src/game/planet_display.c	identifiant	fonction	renommé	game/planet_display	jo		c:planet_display.c@F@jo_dollar
@@ -16968,7 +16968,7 @@ pico8_hp_t.i	research_project_t.inputs	tools/composition_residue.sh	chaîne	symb
 pico8_hy_t.invented	economy_t.invented	tools/composition_residue.sh	chaîne	symbole cité	renommé	tools/composition_residue	hy	lecteur	chaîne:pico8_hy_t.invented
 pico8_jc_t.ts	slipway_t.transit_dots	tools/composition_residue.sh	chaîne	symbole cité	renommé	tools/composition_residue	jc	lecteur	chaîne:pico8_jc_t.ts
 pico8_jo_ex	research_display_planet_resource_row	tools/composition_residue.sh	chaîne	symbole cité	renommé	tools/composition_residue	jo	lecteur	chaîne:pico8_jo_ex
-pico8_jo_gh_ctx_t.ji	planet_inspection_panel_ctx_t.unmet_needs	tools/composition_residue.sh	chaîne	symbole cité	renommé	tools/composition_residue	gh	lecteur	chaîne:pico8_jo_gh_ctx_t.ji
+pico8_jo_gh_ctx_t.ji	planet_inspection_panel_ctx_t.received_needs	tools/composition_residue.sh	chaîne	symbole cité	renommé	tools/composition_residue	gh	lecteur	chaîne:pico8_jo_gh_ctx_t.ji
 pico8_jo_t.jy	planet_t.needs	tools/composition_residue.sh	chaîne	symbole cité	renommé	tools/composition_residue	jy	lecteur	chaîne:pico8_jo_t.jy
 pico8_jp_ptrs	collect_filter_pointer_list	tools/composition_residue.sh	chaîne	symbole cité	renommé	tools/composition_residue	pico8_ptrs_t	lecteur	chaîne:pico8_jp_ptrs
 pico8_la_ptrs	collect_concat_pointer_list	tools/composition_residue.sh	chaîne	symbole cité	renommé	tools/composition_residue	pico8_ptrs_t	lecteur	chaîne:pico8_la_ptrs

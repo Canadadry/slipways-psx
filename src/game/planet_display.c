@@ -85,7 +85,7 @@ void planet_release_method(entity_t *self) {
 }
 
 typedef struct {
-    pointer_list_t unmet_needs;
+    pointer_list_t received_needs;
 } planet_inspection_panel_ctx_t;
 
 /* Keeps a need nothing satisfies, and appends it to the context's list once
@@ -104,7 +104,7 @@ static int planet_inspection_panel_filter_step(void *e, void *ctx_ptr) {
     }
     count = p8_fixed_flr_int(gc);
     for (j = 0; j < count; j++) {
-        pointer_list_add(&ctx->unmet_needs, e);
+        pointer_list_add(&ctx->received_needs, e);
     }
     return gc == p8_fixed_from_int(0);
 }
@@ -193,7 +193,7 @@ void planet_inspection_panel(const planet_t *self) {
     }
     row_count = 1;
 
-    pointer_list_init(&filter_context.unmet_needs, frame_zone());
+    pointer_list_init(&filter_context.received_needs, frame_zone());
 
     needs = self->needs;
     unmet_needs = collect_filter_pointer_list(frame_zone(), needs, planet_inspection_panel_filter_step, &filter_context);
@@ -233,12 +233,12 @@ void planet_inspection_panel(const planet_t *self) {
 
     /* A receives list the filter appended nothing to leaves no row at all,
      * not an empty one. */
-    if (filter_context.unmet_needs.count >= 1) {
-        row_cap[row_count] = 1 + filter_context.unmet_needs.count + 1;
+    if (filter_context.received_needs.count >= 1) {
+        row_cap[row_count] = 1 + filter_context.received_needs.count + 1;
         row_items[row_count] = planet_inspection_panel_row_items(row_cap[row_count]);
         row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string("receives:");
-        for (index = 0; index < filter_context.unmet_needs.count; index++) {
-            row_items[row_count][row_keys[row_count].count++] = layout_row_cell_row(filter_context.unmet_needs.items[index]);
+        for (index = 0; index < filter_context.received_needs.count; index++) {
+            row_items[row_count][row_keys[row_count].count++] = layout_row_cell_row(filter_context.received_needs.items[index]);
         }
         row_count++;
     }
