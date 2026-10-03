@@ -24,7 +24,7 @@
  * its construction keys `planet_id`/`map_pos`/`pos`, then every field the
  * planet functions write on it, then its kinds' fields. A kind's field is
  * indeterminate on a planet of another kind; `targeting`, `emitter` are
- * NULL there, else they point at `probe_own`, `emitter_own`: never copy the
+ * NULL there, else they point at `targeting_own`, `emitter_own`: never copy the
  * struct. The struct lives in the game zone (a burst's in its particle
  * slot) and goes back with it. */
 typedef struct {
@@ -61,7 +61,7 @@ typedef struct {
     const int_seq_t *synthesizable_resources; /* synthesizer */
     targeting_t *targeting;      /* structure lineage */
     emitter_t *emitter;  /* ascension, protostar, synthesizer, burst */
-    targeting_t probe_own;
+    targeting_t targeting_own;
     emitter_t emitter_own;
 } planet_t;
 

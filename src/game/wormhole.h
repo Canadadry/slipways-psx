@@ -20,7 +20,7 @@ typedef struct {
 
 /* too_far_target points at the one wormhole_too_far_target_t, shared by
  * every wormhole and never modified in place. The cost and the target live
- * in the targeting; targeting points at probe_own: never copy the struct.
+ * in the targeting; targeting points at targeting_own: never copy the struct.
  * The struct and its anchors list live in one grab arena, which its release
  * method gives back whatever its state. */
 typedef struct {
@@ -34,7 +34,7 @@ typedef struct {
     entity_t *anchor; /* borrowed, never freed */
     int is_dead;
     targeting_t *targeting;
-    targeting_t probe_own;
+    targeting_t targeting_own;
 } wormhole_t;
 
 void wormhole_init(void);

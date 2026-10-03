@@ -225,8 +225,8 @@ static wormhole_t *wormhole_create(void) {
     self->header.layer = &self->archetype->layer;
     self->header.pos = &self->pos;
     self->header.map_pos = &self->map_pos;
-    self->header.targeting = &self->probe_own;
-    self->targeting = &self->probe_own;
+    self->header.targeting = &self->targeting_own;
+    self->targeting = &self->targeting_own;
     self->targeting->archetype = &self->archetype->targeting;
     self->radius = self->archetype->radius;
     self->targeting->cost = self->archetype->targeting.cost;

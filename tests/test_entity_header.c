@@ -151,7 +151,7 @@ static void test_carriers_link_their_storage(void) {
                                                          .is_dead = &help_screen->is_dead,
                                                          .is_hovered = &help_screen->is_hovered,
                                                          .emitter = &help_screen->emitter_own,
-                                                         .targeting = &help_screen->probe_own});
+                                                         .targeting = &help_screen->targeting_own});
     assert(*help_screen->header.fold_anchor == p8_fixed_from_int(1) &&
            "a probe's fold_anchor is its archetype's 1.0: 0 would read as absent");
     assert_links(&planet->header, (entity_t){.layer = &planet->archetype->layer,
@@ -172,7 +172,7 @@ static void test_carriers_link_their_storage(void) {
                                                          .fold_anchor = &infraspace_gate_planet->fold_anchor,
                                                          .is_dead = &infraspace_gate_planet->is_dead,
                                                          .is_hovered = &infraspace_gate_planet->is_hovered,
-                                                         .targeting = &infraspace_gate->probe_own});
+                                                         .targeting = &infraspace_gate->targeting_own});
 }
 
 /* A planet's links, but for its emitter and probe. */
@@ -191,7 +191,7 @@ static void assert_structure_links(planet_t *qh, emitter_t *emitter) {
     entity_t want = planet_links(qh);
 
     want.emitter = emitter;
-    want.targeting = &qh->probe_own;
+    want.targeting = &qh->targeting_own;
     assert_links(&qh->header, want);
     assert(qh->targeting == qh->header.targeting && qh->emitter == qh->header.emitter);
 }
@@ -216,7 +216,7 @@ static void test_component_carriers_link_their_own(void) {
                                                       .fold_anchor = &g_->archetype->fold_anchor,
                                                       .is_dead = &g_->is_dead,
                                                       .emitter = &g_->emitter_own,
-                                                      .targeting = &g_->probe_own});
+                                                      .targeting = &g_->targeting_own});
     assert(g_->emitter == g_->header.emitter && g_->targeting == g_->header.targeting);
     assert(*g_->header.fold_anchor == p8_fixed_from_int(1) &&
            "a probe's fold_anchor is its archetype's 1.0: 0 would read as absent");
@@ -234,7 +234,7 @@ static void test_component_carriers_link_their_own(void) {
                                                       .pos = &mz->pos,
                                                       .map_pos = &mz->map_pos,
                                                       .is_dead = &mz->is_dead,
-                                                      .targeting = &mz->probe_own});
+                                                      .targeting = &mz->targeting_own});
     assert(mz->targeting == mz->header.targeting);
 }
 
@@ -261,12 +261,12 @@ static void test_mouse_point_has_null_links(void) {
     assert(point != NULL && point->header.class == slipway_mouse_point_class());
     assert_links(&point->header, (entity_t){.pos = &point->pos, .map_pos = &point->map_pos});
     assert(!jc->has_infraspace && jc->layer == p8_fixed_from_int(4));
-    assert_links(&jc->header, (entity_t){.layer = &jc->layer, .is_dead = &jc->is_dead, .targeting = &jc->probe_own});
+    assert_links(&jc->header, (entity_t){.layer = &jc->layer, .is_dead = &jc->is_dead, .targeting = &jc->targeting_own});
     assert(jc->targeting == jc->header.targeting);
     assert(from_infraspace_gate->has_infraspace && from_infraspace_gate->infraspace == infraspace_gate_archetype.infraspace && from_infraspace_gate->layer == p8_fixed_from_int(2));
     assert_links(&from_infraspace_gate->header,
                  (entity_t){
-                     .layer = &from_infraspace_gate->layer, .infraspace = &from_infraspace_gate->infraspace, .is_dead = &from_infraspace_gate->is_dead, .targeting = &from_infraspace_gate->probe_own});
+                     .layer = &from_infraspace_gate->layer, .infraspace = &from_infraspace_gate->infraspace, .is_dead = &from_infraspace_gate->is_dead, .targeting = &from_infraspace_gate->targeting_own});
 }
 
 int main(int argc, char **argv) {

@@ -3998,7 +3998,7 @@ oe	slipways	src/game/planet.h	identifiant	champ	renommé	game/planet	oe		c:@SA@p
 p	map_pos	src/game/planet.h	identifiant	champ	renommé	game/planet	p		c:@SA@pico8_jo_t@FI@p
 p_	is_dead	src/game/planet.h	identifiant	champ	renommé	game/planet	p_		c:@SA@pico8_jo_t@FI@p_
 probe	targeting	src/game/planet.h	identifiant	champ	renommé	game/planet	probe		c:@SA@pico8_jo_t@FI@probe
-probe_own	probe_own	src/game/planet.h	identifiant	champ	conservé	game/planet			c:@SA@pico8_jo_t@FI@probe_own
+probe_own	targeting_own	src/game/planet.h	identifiant	champ	renommé	game/planet			c:@SA@pico8_jo_t@FI@probe_own
 qw	palette_block	src/game/planet.h	identifiant	champ	renommé	game/planet			c:@SA@pico8_jo_t@FI@qw
 ra	pos	src/game/planet.h	identifiant	champ	renommé	game/planet	ra		c:@SA@pico8_jo_t@FI@ra
 s	sprite	src/game/planet.h	identifiant	champ	renommé	game/planet	jo		c:@SA@pico8_jo_t@FI@s
@@ -4726,7 +4726,7 @@ p_	is_dead	src/game/probe.h	identifiant	champ	renommé	game/probe	p_		c:@SA@pico
 pn	angle_slices	src/game/probe.h	identifiant	champ	renommé	game/probe			c:@SA@pico8_g__keys_t@FI@pn
 prise	grab_arena	src/game/probe.h	identifiant	champ	renommé	game/probe	prise		c:@SA@pico8_g__t@FI@prise
 probe	targeting	src/game/probe.h	identifiant	champ	renommé	game/probe	probe		c:@SA@pico8_g__t@FI@probe
-probe_own	probe_own	src/game/probe.h	identifiant	champ	conservé	game/probe			c:@SA@pico8_g__t@FI@probe_own
+probe_own	targeting_own	src/game/probe.h	identifiant	champ	renommé	game/probe			c:@SA@pico8_g__t@FI@probe_own
 py	speed_factor	src/game/probe.h	identifiant	champ	renommé	game/probe			c:@SA@pico8_g__keys_t@FI@py
 ra	pos	src/game/probe.h	identifiant	champ	renommé	game/probe	ra		c:@SA@pico8_g__t@FI@ra
 self_p	self_map_pos	src/game/probe.c	identifiant	champ	renommé	game/probe	p		c:@SA@pico8_bv_ctx_t@FI@self_p
@@ -5417,7 +5417,7 @@ point	point	src/game/slipway.h	identifiant	champ	conservé	game/slipway			c:@SA@
 point_p	point_map_pos	src/game/slipway.h	identifiant	champ	renommé	game/slipway	p		c:@SA@pico8_jc_t@FI@point_p
 point_ra	point_pos	src/game/slipway.h	identifiant	champ	renommé	game/slipway	ra		c:@SA@pico8_jc_t@FI@point_ra
 probe	targeting	src/game/slipway.h	identifiant	champ	renommé	game/slipway	probe		c:@SA@pico8_jc_t@FI@probe
-probe_own	probe_own	src/game/slipway.h	identifiant	champ	conservé	game/slipway			c:@SA@pico8_jc_t@FI@probe_own
+probe_own	targeting_own	src/game/slipway.h	identifiant	champ	renommé	game/slipway			c:@SA@pico8_jc_t@FI@probe_own
 qs	status_text	src/game/slipway.h	identifiant	champ	renommé	game/slipway			c:@SA@pico8_jc_too_far_t@FI@qs
 qu	start	src/game/slipway.h	identifiant	champ	renommé	game/slipway	qu		c:@SA@pico8_jc_keys_t@FI@qu
 qu	start	src/game/slipway.h	identifiant	champ	renommé	game/slipway	qu		c:@SA@pico8_jc_t@FI@qu
@@ -6306,7 +6306,7 @@ ox	anchors	src/game/wormhole.h	identifiant	champ	renommé	game/wormhole			c:@SA@
 p	map_pos	src/game/wormhole.h	identifiant	champ	renommé	game/wormhole	p		c:@SA@pico8_mz_t@FI@p
 p_	is_dead	src/game/wormhole.h	identifiant	champ	renommé	game/wormhole	p_		c:@SA@pico8_mz_t@FI@p_
 probe	targeting	src/game/wormhole.h	identifiant	champ	renommé	game/wormhole	probe		c:@SA@pico8_mz_t@FI@probe
-probe_own	probe_own	src/game/wormhole.h	identifiant	champ	conservé	game/wormhole			c:@SA@pico8_mz_t@FI@probe_own
+probe_own	targeting_own	src/game/wormhole.h	identifiant	champ	renommé	game/wormhole			c:@SA@pico8_mz_t@FI@probe_own
 qs	status_text	src/game/wormhole.h	identifiant	champ	renommé	game/wormhole			c:@SA@pico8_mz_jj_t@FI@qs
 ra	pos	src/game/wormhole.h	identifiant	champ	renommé	game/wormhole	ra		c:@SA@pico8_mz_t@FI@ra
 pico8_mz_ancrage	wormhole_anchor	src/game/wormhole.c	identifiant	fonction	renommé	game/wormhole	mz		c:wormhole.c@F@pico8_mz_ancrage

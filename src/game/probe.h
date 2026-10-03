@@ -19,7 +19,7 @@
 /* The emitter's trail_colors points at probe_trail_colors_seq
  * (help_screen_trail_colors_seq for the help screen); pos and map_pos point
  * at the targeting's track_pos and track_map_pos once targeting_track ran.
- * emitter and targeting point at emitter_own and probe_own: never copy the
+ * emitter and targeting point at emitter_own and targeting_own: never copy the
  * struct. is_hovered is the help screen's: a probe never links it and leaves
  * it indeterminate. grab_arena is the grab arena a probe lives in, NULL for
  * the help screen. */
@@ -34,7 +34,7 @@ typedef struct {
     int is_hovered;
     const allocator_t *grab_arena;
     emitter_t emitter_own;
-    targeting_t probe_own;
+    targeting_t targeting_own;
 } probe_t;
 
 /* TROU-8 */

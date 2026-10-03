@@ -356,8 +356,8 @@ static slipway_t *slipway_create(const slipway_keys_t *keys) {
     self->archetype = &slipway_archetype;
     self->layer = self->archetype->layer;
     self->header.layer = &self->layer;
-    self->header.targeting = &self->probe_own;
-    self->targeting = &self->probe_own;
+    self->header.targeting = &self->targeting_own;
+    self->targeting = &self->targeting_own;
     self->targeting->archetype = &self->archetype->targeting;
     self->fade_in_step = self->archetype->fade_in_step;
     self->start = NULL;

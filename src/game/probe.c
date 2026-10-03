@@ -386,13 +386,13 @@ void probe_init_instance(probe_t *self, const entity_class_t *cls, const probe_a
     self->header.fold_anchor = &self->archetype->fold_anchor;
     self->header.is_dead = &self->is_dead;
     self->header.emitter = &self->emitter_own;
-    self->header.targeting = &self->probe_own;
+    self->header.targeting = &self->targeting_own;
     self->emitter = &self->emitter_own;
     self->emitter->archetype = &self->archetype->emitter;
     self->emitter->particles = NULL;
     self->pos = self->archetype->has_pos ? &self->archetype->pos : NULL;
     self->map_pos = NULL;
-    self->targeting = &self->probe_own;
+    self->targeting = &self->targeting_own;
     self->targeting->archetype = &self->archetype->targeting;
     self->targeting->target = NULL;
     self->is_dead = 0;

@@ -46,7 +46,7 @@ typedef struct {
 /* `transit_dots` is this slipway's own, made by slipway_construct, which
  * also empties `served_planets_own` and points `served_planets` at it (NULL
  * before). The cost and the target (NULL when absent) live in `targeting`,
- * which points at `probe_own`; `point.pos` and `point.map_pos` point at
+ * which points at `targeting_own`; `point.pos` and `point.map_pos` point at
  * `point_pos` and `point_map_pos`: never copy the struct. Built with its
  * transit dots in a grab arena (planet_grab_arena_open), which a refused
  * slipway's release method puts back on the free grabs. */
@@ -65,7 +65,7 @@ typedef struct {
     entity_t *targeted_by; /* borrowed, never freed */
     int is_dead;
     targeting_t *targeting;
-    targeting_t probe_own;
+    targeting_t targeting_own;
     slipway_mouse_point_t point;
     vec_t point_pos;
     vec_t point_map_pos;

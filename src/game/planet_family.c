@@ -48,8 +48,8 @@ static const entity_class_t g_structure_class = {
 
 void structure_init_instance(planet_t *self, const entity_class_t *cls, const planet_archetype_t *archetype) {
     planet_init_instance(self, cls, archetype);
-    self->header.targeting = &self->probe_own;
-    self->targeting = &self->probe_own;
+    self->header.targeting = &self->targeting_own;
+    self->targeting = &self->targeting_own;
     self->targeting->archetype = &self->archetype->targeting;
     self->targeting->cost = self->archetype->targeting.cost;
     self->targeting->has_cost = self->archetype->targeting.has_cost;

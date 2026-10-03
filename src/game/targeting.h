@@ -10,7 +10,7 @@
 
 /* What targeting_track, targeting_tooltip and targeting_confirm read and
  * write of their host, the targeting's own fields, stored in the host
- * (probe_own) and never copied; the rest is read on the archetype, the
+ * (targeting_own) and never copied; the rest is read on the archetype, the
  * host's archetype's targeting (targeting_archetype_none for the structure
  * icon's tooltip). The target is borrowed. */
 typedef struct targeting {
