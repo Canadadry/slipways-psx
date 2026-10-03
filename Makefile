@@ -2,7 +2,7 @@
 # per target).
 #
 # make test          -> unit + constants-check + float-grep + float-guard +
-#                       alloc-guard + data-guard, the fast loop
+#                       alloc-guard + data-guard + p8-guard, the fast loop
 # make e2e           -> replays each e2e of tests/e2e/ from the title screen,
 #                       with the `-O0` binary of make test, and compares the
 #                       sha256 of its capture to <name>.json.sha256; also fails
@@ -26,6 +26,11 @@
 #                       diverging frame, outside the suite
 # make data-guard    -> none of the patterns of the pre-composition model
 #                       (DATA_GUARD_PATTERN) in src/ or tests/, in make test
+# make p8-guard      -> none of what plan 6 removed (P8_GUARD_PATTERN: audio,
+#                       p8_stat, peek/poke, PICO-8 addresses, string-keyed
+#                       tags/messages/states, map.json) in src/ or tests/, in
+#                       make test; entity_state_name's table is the accepted
+#                       exception (text for make state and frozen hashes)
 # make sanitize-net  -> replays the e2e of tests/e2e/ under ASan+UBSan (`-O2`);
 #                       passes when every replay exits cleanly; also runs
 #                       test_live_slots (slots returned after each replay,
@@ -701,7 +706,7 @@ replay: $(TMP_DIR)/replay
 state: $(TMP_DIR)/replay
 	STATE=$(TMP_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard alloc-guard data-guard
+test: unit constants-check float-grep float-guard alloc-guard data-guard p8-guard
 
 test-all: test e2e
 
@@ -777,6 +782,16 @@ data-guard:
 	echo "data-guard: clean"
 
 .PHONY: data-guard
+
+P8_GUARD_PATTERN := \bp8_(stat|sfx|music|play_sfx|peek|poke|memcpy|memory_t)\b|\bP8_ADDR_[A-Z_]+|\b0x(5[fF]80|3101|5[fF]2[dD])\b|\b(entities_by_tag|entities_by_message|draw_layers|entity_set_state|entity_init_instance)\("|\bentity_state_of\b|map\.json
+
+p8-guard:
+	@status=0; grep -rnE '$(P8_GUARD_PATTERN)' --include='*.c' --include='*.h' src tests || status=$$?; \
+	if [ $$status -eq 0 ]; then echo "p8-guard: pattern removed by plan 6 above"; exit 1; fi; \
+	[ $$status -eq 1 ] || exit $$status; \
+	echo "p8-guard: clean"
+
+.PHONY: p8-guard
 
 $(TMP_DIR)/replay_sanitize: $(call sanitize_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) $(UBSAN_CFLAGS) -o $@ $(filter %.o,$^)
