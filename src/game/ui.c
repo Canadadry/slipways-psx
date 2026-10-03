@@ -131,7 +131,7 @@ static ui_t *ui_create(void) {
     self->previous_hovered = NULL;
     self->left_held = NULL;
     self->right_held = NULL;
-#ifdef PICO8_CLASS_COVERAGE
+#ifdef CLASS_COVERAGE_BUILD
     class_coverage_record("ui");
 #endif
     entity_construct(&self->header);

@@ -430,7 +430,7 @@ static probe_t *probe_create(const probe_keys_t *keys) {
             self->emitter->speed_factor = keys->speed_factor;
         }
     }
-#ifdef PICO8_CLASS_COVERAGE
+#ifdef CLASS_COVERAGE_BUILD
     class_coverage_record("probe");
 #endif
     emitter_init((entity_t *)self);

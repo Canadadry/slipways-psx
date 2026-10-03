@@ -257,7 +257,7 @@ OBJ_SANITIZE_DIR := $(TMP_DIR)/obj-sanitize
 DEPFLAGS := -MMD -MP
 ASAN_CFLAGS := -fsanitize=address -fno-omit-frame-pointer
 UBSAN_CFLAGS := -fsanitize=undefined -fno-sanitize-recover=undefined
-COVERAGE_CFLAGS := -DPICO8_CLASS_COVERAGE
+COVERAGE_CFLAGS := -DCLASS_COVERAGE_BUILD
 GCOV_CFLAGS := --coverage
 SANITIZE_OPT_CFLAGS := -O2
 
@@ -1005,7 +1005,7 @@ e2e-ref: $(foreach e,$(E2E_EVENTS),$(if $(wildcard $(call frames_reference,$(e))
 
 # Everything comes from the coverage tree, which is linked only here and in
 # test_class_coverage: the counter is compiled in only under
-# PICO8_CLASS_COVERAGE.
+# CLASS_COVERAGE_BUILD.
 $(TMP_DIR)/class_coverage: $(call coverage_objs,src/cmd/class_coverage.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 

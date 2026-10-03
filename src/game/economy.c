@@ -63,7 +63,7 @@ static economy_t *economy_create(void) {
     self->year_ticks = self->archetype->year_ticks;
     self->year = self->archetype->year;
 
-#ifdef PICO8_CLASS_COVERAGE
+#ifdef CLASS_COVERAGE_BUILD
     class_coverage_record("economy");
 #endif
     return self;

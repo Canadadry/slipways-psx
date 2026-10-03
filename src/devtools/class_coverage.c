@@ -1,6 +1,6 @@
 #include "devtools/class_coverage.h"
 
-#ifdef PICO8_CLASS_COVERAGE
+#ifdef CLASS_COVERAGE_BUILD
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>

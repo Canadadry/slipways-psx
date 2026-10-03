@@ -1,7 +1,7 @@
 #ifndef DEVTOOLS_CLASS_COVERAGE_H
 #define DEVTOOLS_CLASS_COVERAGE_H
 
-#ifdef PICO8_CLASS_COVERAGE
+#ifdef CLASS_COVERAGE_BUILD
 /* Keeps `name` itself, not a copy: pass a string literal. */
 void class_coverage_record(const char *name);
 long class_coverage_count(const char *name);

@@ -146,7 +146,7 @@ static button_t *button_create(const button_keys_t *keys) {
         self->has_project_cost = keys->has_project_cost;
     }
     self->header.gpio_signal = self->has_gpio_signal ? &self->gpio_signal : NULL;
-#ifdef PICO8_CLASS_COVERAGE
+#ifdef CLASS_COVERAGE_BUILD
     class_coverage_record("button");
 #endif
     button_construct(self, keys);
@@ -335,7 +335,7 @@ static modal_backdrop_t *modal_backdrop_create(const modal_backdrop_keys_t *keys
     if (keys != NULL) {
         self->on_click = keys->on_click;
     }
-#ifdef PICO8_CLASS_COVERAGE
+#ifdef CLASS_COVERAGE_BUILD
     class_coverage_record("modal_backdrop");
 #endif
     entity_construct(&self->header);

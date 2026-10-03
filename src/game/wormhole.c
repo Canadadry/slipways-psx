@@ -239,7 +239,7 @@ static wormhole_t *wormhole_create(void) {
     self->anchor = NULL;
     self->header.is_dead = &self->is_dead;
     self->is_dead = 0;
-#ifdef PICO8_CLASS_COVERAGE
+#ifdef CLASS_COVERAGE_BUILD
     class_coverage_record("wormhole");
 #endif
     wormhole_construct(self);

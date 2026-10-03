@@ -121,7 +121,7 @@ static probe_t *screen_create(void) {
     self->header.gpio_signal = &self->archetype->gpio_signal;
     self->header.is_hovered = &self->is_hovered;
     self->is_hovered = 0;
-#ifdef PICO8_CLASS_COVERAGE
+#ifdef CLASS_COVERAGE_BUILD
     class_coverage_record("help_screen");
 #endif
     help_screen_construct(self);
