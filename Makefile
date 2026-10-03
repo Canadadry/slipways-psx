@@ -221,8 +221,11 @@
 #                       half (the ambiguous old names as identifiers), and the
 #                       scope guard, both tables printed; fails on any residue;
 #                       not yet in make test
+# make french-guard  -> the French guard: french-count over the whole code,
+#                       minus tools/french_exceptions.txt; fails on any
+#                       residue; not yet in make test
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test rename-count-test cart-names-count rename-substeps-test rename-substeps-check rename-strings-verify-test rename-strings-verify rename-rekey-test rename-rekey rename-rekey-check scope-count-test scope-count cryptic-locals cart-citations-test cart-citations french-count-test french-count old-names-guard ast-guard
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test rename-count-test cart-names-count rename-substeps-test rename-substeps-check rename-strings-verify-test rename-strings-verify rename-rekey-test rename-rekey rename-rekey-check scope-count-test scope-count cryptic-locals cart-citations-test cart-citations french-count-test french-count old-names-guard ast-guard french-guard
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -1334,6 +1337,9 @@ french-count:
 	python3 tools/french_count.py --root . --exceptions tools/french_exceptions.txt \
 	    --substeps $(RENAME_SUBSTEPS) $(foreach m,$(MODULES),--module '$(m)') \
 	    $(if $(SUBSTEP),--substep $(SUBSTEP)) $(if $(SITES),--sites)
+
+french-guard:
+	python3 tools/french_count.py --root . --exceptions tools/french_exceptions.txt --check
 
 old-names-guard:
 	python3 tools/rename_count.py --table docs/renommage.tsv --root . --part text --check

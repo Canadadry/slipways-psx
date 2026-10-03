@@ -24,7 +24,8 @@ files of that sub-step's modules, each mention `done` or `later`: `later`
 when the whole text of its literal, or of its data line, is also a literal
 or a line of a file of a later sub-step (a likely writer elsewhere, whom
 the string ownership rule leaves it to). Warns for each module read that is
-in no sub-step. Never fails: exit 0."""
+in no sub-step. Exit 0 unless --check: then exit 1 if the TOTAL after the
+exceptions is above 0."""
 
 import argparse
 import fnmatch
@@ -151,7 +152,10 @@ def main(argv):
                         help="only these modules (shell patterns: game/planet*)")
     parser.add_argument("--substep", help="only this sub-step's modules, split done / later")
     parser.add_argument("--sites", action="store_true", help="list each mention first")
+    parser.add_argument("--check", action="store_true", help="exit 1 if anything is counted")
     args = parser.parse_args(argv)
+    if args.check and args.substep:
+        parser.error("--check does not split by sub-step: drop --substep")
 
     substeps = rename_substeps.load(args.substeps) if args.substeps else None
     if args.substep and (substeps is None or args.substep not in substeps.modules):
@@ -196,7 +200,7 @@ def main(argv):
     print_table(table, split=bool(args.substep))
     for module in sorted(unplaced):
         print("warning: module %s is in no sub-step of %s" % (module, args.substeps))
-    return 0
+    return 1 if args.check and table else 0
 
 
 def print_table(table, split):

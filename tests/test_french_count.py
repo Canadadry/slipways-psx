@@ -140,6 +140,35 @@ class Exceptions(unittest.TestCase):
         self.assertEqual(table["engine/widget"]["comment"], 1, result.stdout)
 
 
+class Check(unittest.TestCase):
+    """--check: the French guard, exit 1 while a word is left after the
+    exceptions."""
+
+    FILES = {"src/game/gadget.c": "/* the gadget, pour the record */\n"}
+
+    def test_check_fails_on_a_word_and_passes_on_a_clean_tree(self):
+        result = run(self.FILES, extra=["--check"])
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertEqual(counts(result)["TOTAL"]["total"], 1, result.stdout)
+        result = run({"src/game/gadget.c": "/* the gadget */\n"}, extra=["--check"])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_check_passes_when_an_exception_removes_the_only_word(self):
+        result = run(self.FILES, EXCEPTIONS + "comment\tgame/gadget\tpour\n", extra=["--check"])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(counts(result)["TOTAL"]["total"], 0, result.stdout)
+
+    def test_check_still_lists_the_sites(self):
+        result = run(self.FILES, extra=["--check", "--sites"])
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("src/game/gadget.c:1 comment pour", result.stdout)
+
+    def test_check_is_refused_with_substep(self):
+        result = run(self.FILES, extra=["--check", "--substep", "3b"])
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("--check", result.stderr)
+
+
 class Substep(unittest.TestCase):
     """--substep: the files of its modules; a mention in a literal or a data
     line whose whole text a later sub-step's file also has is `later`."""
