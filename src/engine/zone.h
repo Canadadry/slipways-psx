@@ -85,6 +85,9 @@ void bump_zone_init_single(bump_zone_t *zone, const char *name,
 /* Uninitialised memory, valid until the next reset. */
 unsigned char *bump_zone_alloc(bump_zone_t *zone, size_t size);
 void bump_zone_reset(bump_zone_t *zone);
+/* Brings `used` back to a value it held since the last reset and poisons
+ * the room given back: the blocks taken since then are dead. */
+void bump_zone_rewind(bump_zone_t *zone, size_t used);
 
 void slot_zone_init(slot_zone_t *zone, const char *name,
                           zone_cell_t *storage, unsigned char *taken,
