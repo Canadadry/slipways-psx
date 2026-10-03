@@ -2,9 +2,10 @@
 # per target).
 #
 # make test          -> unit + constants-check + float-grep + float-guard +
-#                       alloc-guard + data-guard + composition-guard, and the
-#                       tool tests and checks marked "in make test" below,
-#                       the fast loop
+#                       alloc-guard + data-guard + composition-guard +
+#                       old-names-guard + french-guard, and the tool tests
+#                       and checks marked "in make test" below, the fast
+#                       loop; needs no libclang
 # make e2e           -> replays each e2e of tests/e2e/ from the title screen,
 #                       with the `-O0` binary of make test, and compares the
 #                       sha256 of its capture to <name>.json.sha256; also fails
@@ -223,7 +224,7 @@
 #                       docs/renommage.tsv that a text search finds in the code
 #                       (`rename_count.py --part text`), minus
 #                       tools/cart_names_exceptions.txt, without libclang;
-#                       fails on any residue; not yet in make test
+#                       fails on any residue, in make test
 # make ast-guard     -> a fresh rename-extract, then the old-name guard, AST
 #                       half (the ambiguous old names as identifiers, minus
 #                       tools/cart_names_exceptions.txt), and the scope guard,
@@ -231,7 +232,7 @@
 #                       make test
 # make french-guard  -> the French guard: french-count over the whole code,
 #                       minus tools/french_exceptions.txt; fails on any
-#                       residue; not yet in make test
+#                       residue, in make test
 # make text-guards-test -> old-names-guard and french-guard alive: planted
 #                       violations through the real target, in a reduced
 #                       copy of the tree under tmp/, in make test
@@ -925,7 +926,7 @@ endif
 replay: $(TMP_DIR)/replay
 	./$(TMP_DIR)/replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard rename-derive-test rename-strings-test rename-check-test rename-slice-test rename-tables-test rename-count-test rename-substeps-test rename-substeps-check rename-strings-verify-test rename-rekey-test scope-count-test french-count-test cart-citations-test text-guards-test
+test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard rename-derive-test rename-strings-test rename-check-test rename-slice-test rename-tables-test rename-count-test rename-substeps-test rename-substeps-check rename-strings-verify-test rename-rekey-test scope-count-test french-count-test cart-citations-test old-names-guard french-guard text-guards-test
 
 test-all: test e2e
 
