@@ -22,6 +22,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import rename_derive  # noqa: E402
 import rename_substeps  # noqa: E402
 import rename_tables  # noqa: E402
 
@@ -31,12 +32,6 @@ COLUMNS = REFUSED_KINDS + ("long-scope",)
 SCOPE_KINDS = ("local", "param")
 MAX_SCOPE_LINES = 40
 SOURCE_DIRS = ("src", "tests", "tools")
-
-
-def module_of(path):
-    """`src/game/planet.c` -> `game/planet`."""
-    stem = os.path.splitext(path)[0]
-    return stem[len("src/"):] if stem.startswith("src/") else stem
 
 
 def read_exceptions(path):
@@ -128,7 +123,7 @@ def main(argv):
         selected = set(substeps.modules[args.substep])
 
     def selected_module(row):
-        module = module_of(row["file"])
+        module = rename_derive.module_of(row["file"])
         if selected is not None and module not in selected:
             return None
         if args.module and not any(fnmatch.fnmatchcase(module, m) for m in args.module):

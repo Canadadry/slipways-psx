@@ -5,16 +5,9 @@ import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 
+import rename_check
 from ast_rename import lexer
-
-C_KEYWORDS = {
-    "auto", "break", "case", "char", "const", "continue", "default", "do", "double",
-    "else", "enum", "extern", "float", "for", "goto", "if", "inline", "int", "long",
-    "register", "restrict", "return", "short", "signed", "sizeof", "static", "struct",
-    "switch", "typedef", "union", "unsigned", "void", "volatile", "while", "_Bool",
-    "_Complex", "_Imaginary", "_Alignas", "_Alignof", "_Atomic", "_Generic",
-    "_Noreturn", "_Static_assert", "_Thread_local",
-}
+from rename_check import C_KEYWORDS
 _IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
 
 
@@ -140,39 +133,32 @@ def _check_names(renamed, model, plan):
 
 
 def _visible_together(a, b):
+    shared = rename_check.is_shared
     if a.kind == "macro" or b.kind == "macro":
         macro, other = (a, b) if a.kind == "macro" else (b, a)
-        return _shared(macro) or _shared(other) or macro.file == other.file
+        return (shared(macro.file, macro.linkage) or shared(other.file, other.linkage)
+                or macro.file == other.file)
     if a.kind == "field" or b.kind == "field":
         return a.kind == b.kind and _record_of(a) == _record_of(b)
     if a.kind == "tag" or b.kind == "tag":
         return a.kind == b.kind
     a_local, b_local = _is_local(a), _is_local(b)
     if a_local and b_local:
-        return a.parent == b.parent and a.file == b.file and _scopes_overlap(a, b)
+        return (a.parent == b.parent and a.file == b.file
+                and rename_check.spans_overlap(_span(a), _span(b)))
     if a_local or b_local:
         outer = b if a_local else a
         local = a if a_local else b
-        return _shared(outer) or outer.file == local.file
+        return shared(outer.file, outer.linkage) or outer.file == local.file
     if a.linkage == "static" and b.linkage == "static":
         return a.file == b.file
-    return _shared(a) or _shared(b) or a.file == b.file
+    return shared(a.file, a.linkage) or shared(b.file, b.linkage) or a.file == b.file
 
 
-def _scopes_overlap(a, b):
-    """Lines from the declaration to its scope end; an unknown scope runs to
-    the end of the file (the rule of overlap() in tools/rename_check.py)."""
-    def lines(identity):
-        end = identity.line + identity.scope_lines if identity.scope_lines >= 0 else 10 ** 9
-        return identity.line, end
-    (a0, a1), (b0, b1) = lines(a), lines(b)
-    return a0 <= b1 and b0 <= a1
-
-
-def _shared(identity):
-    """Seen outside its file: declared in a header, or with external linkage
-    (the same rule as tools/rename_check.py)."""
-    return identity.file.endswith(".h") or identity.linkage == "extern"
+def _span(identity):
+    """A negative scope_lines is an unknown scope."""
+    scope = identity.scope_lines if identity.scope_lines >= 0 else None
+    return rename_check.scope_span(identity.line, scope)
 
 
 def _is_local(identity):

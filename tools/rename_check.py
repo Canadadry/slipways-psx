@@ -46,6 +46,21 @@ LOCALS = ("local", "param")
 IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
+def scope_span(line, scope):
+    """(first line, last line) of a declaration; an unknown scope (None)
+    runs to the end of the file."""
+    return line, line + scope if scope is not None else 10 ** 9
+
+
+def spans_overlap(a, b):
+    return a[0] <= b[1] and b[0] <= a[1]
+
+
+def is_shared(file, linkage):
+    """Seen outside its file: declared in a header, or of external linkage."""
+    return file.endswith(".h") or linkage == "extern"
+
+
 class Decl:
     def __init__(self, row):
         """row: a declaration as rename_tables.read_declarations gives it."""
@@ -68,13 +83,12 @@ class Decl:
     def visibility(self):
         """"program" for what a header or an external linkage shares, else
         the .c file it is local to."""
-        if self.file.endswith(".h") or self.linkage == "extern":
+        if is_shared(self.file, self.linkage):
             return "program"
         return self.file
 
     def lines(self):
-        end = self.line + self.scope if self.scope is not None else 10 ** 9
-        return self.line, end
+        return scope_span(self.line, self.scope)
 
 
 class Report:
@@ -136,9 +150,7 @@ def check_exhaustive(header, rows, declarations, remainder, report):
 # --- collisions ------------------------------------------------------------
 
 def overlap(a, b):
-    a0, a1 = a.lines()
-    b0, b1 = b.lines()
-    return a0 <= b1 and b0 <= a1
+    return spans_overlap(a.lines(), b.lines())
 
 
 def meet(a, b):

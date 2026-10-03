@@ -305,6 +305,11 @@ class ApplyTest(Setup):
                      ("nothing", "something", "src/shapes.h")])
         self.assertRefused(apply(), before, "nothing: no declaration")
 
+    def test_refuses_a_new_name_that_is_a_c23_keyword(self):
+        before = tree_digest()
+        write_table([("shape_count", "bool", "src/shapes.h")])
+        self.assertRefused(apply(), before, "new name 'bool' is not a C identifier")
+
     def test_refuses_an_ambiguous_entry_without_identity(self):
         before = tree_digest()
         write_table([("p", "position", "src/shapes.h")])
