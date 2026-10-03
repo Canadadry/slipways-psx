@@ -1531,3 +1531,4 @@ identity	c:test_synthesizer.c@10196@F@fold_synthesizer@em	emitter
 name	g_pj_hk_lh_t	g_score_panel_new_year_keep_open	pj
 name	g_fake_ph_last_t	g_fake_update_last	ph
 name	test_dg_drives_a_ke_struct	test_update_entities_drives_an_entity_struct	dg
+name	PICO8_BO_ROW_CAP	HELP_DIFFICULTY_OPTIONS_ROW_CAP	

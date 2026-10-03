@@ -2792,7 +2792,7 @@ lq	lq	src/game/help.c	identifiant	locale	conservé	game/help			c:help.c@1038@F@p
 n	n	src/game/help.c	identifiant	locale	conservé	game/help			c:help.c@2298@F@pico8_fv_kj@n
 p	p	src/game/help.c	identifiant	locale	conservé	game/help			c:help.c@2704@F@pico8_fv_kj_dispatch@p
 self	self	src/game/help.c	identifiant	locale	conservé	game/help			c:help.c@3329@F@pico8_fv_struct_new@self
-PICO8_BO_ROW_CAP	DIFFICULTY_OPTIONS_ROW_CAP	src/game/help.c	identifiant	macro	renommé	game/help			macro:src/game/help.c:PICO8_BO_ROW_CAP
+PICO8_BO_ROW_CAP	HELP_DIFFICULTY_OPTIONS_ROW_CAP	src/game/help.c	identifiant	macro	renommé	game/help			macro:src/game/help.c:PICO8_BO_ROW_CAP
 PICO8_HELP_H	GAME_HELP_H	src/game/help.h	identifiant	macro	renommé	game/help			macro:src/game/help.h:PICO8_HELP_H
 fn	fn	src/game/help.c	identifiant	paramètre	conservé	game/help			c:help.c@593@F@pico8_help_set_eu@fn
 fn	fn	src/game/help.h	identifiant	paramètre	conservé	game/help			c:help.h@1293@F@pico8_help_set_eu@fn
