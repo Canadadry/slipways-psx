@@ -33,8 +33,8 @@
 #define LEFT_PRESS_TICK 5
 #define IDLE_TICKS 30
 
-static p8_memory_t mem;
-static p8_graphics_t gfx;
+static p8_memory_t memory;
+static p8_graphics_t graphics;
 static p8_input_t input;
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -51,7 +51,7 @@ static uint32_t screen_hash(void) {
     int i;
 
     for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
+        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
@@ -220,16 +220,16 @@ static void test_hover_loop_on_the_veil(void) {
     cart_start_game(NULL);
     veil = modal_backdrop_new(NULL);
 
-    ui_update(&mem, main_ui());
+    ui_update(&memory, main_ui());
     assert(main_ui_hovered() == veil);
     assert(in_layer(14, veil) && !in_layer(15, veil));
     assert(veil->is_hovered);
-    h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
+    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     h = fold_veil(h, veil);
 
-    p8_gfx_init(&gfx);
-    p8_cls(&mem);
-    ui_draw_overlay(&gfx, &mem, main_ui());
+    p8_gfx_init(&graphics);
+    p8_cls(&memory);
+    ui_draw_overlay(&graphics, &memory, main_ui());
     check("hover_cursor", screen_hash(), HOVER_CURSOR_HASH);
 
     assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, NULL, NULL, NULL, &kv, &kn));
@@ -241,10 +241,10 @@ static void test_hover_loop_on_the_veil(void) {
     h = fold_veil(h, veil);
 
     entity_unregister(&veil->header);
-    ui_update(&mem, main_ui());
+    ui_update(&memory, main_ui());
     assert(main_ui_hovered() != veil && !in_layer(14, veil));
     assert(!veil->is_hovered);
-    h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
+    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     h = fold_veil(h, veil);
     check("hover_sequence", h, HOVER_SEQUENCE_HASH);
 }
@@ -322,13 +322,13 @@ static void test_veil_gives_its_slot_back(void) {
 }
 
 int main(void) {
-    p8_mem_init(&mem);
-    p8_gfx_init(&gfx);
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_mem_init(&memory);
+    p8_gfx_init(&graphics);
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
     dispatch_context_set_input(&input);
 
     cart_load();

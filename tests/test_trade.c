@@ -45,8 +45,8 @@
 
 #define GAME_ROUTE_HASH 0x93A4DA45u
 
-static p8_memory_t mem;
-static p8_graphics_t gfx;
+static p8_memory_t memory;
+static p8_graphics_t graphics;
 static p8_input_t input;
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -675,13 +675,13 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    p8_mem_init(&mem);
-    p8_gfx_init(&gfx);
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_mem_init(&memory);
+    p8_gfx_init(&graphics);
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
     dispatch_context_set_input(&input);
 
     cart_load();

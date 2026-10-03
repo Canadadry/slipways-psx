@@ -53,8 +53,8 @@
 #define TOO_FAR_HASH 0x65AE0C50u
 #define MOUSE_POINT_HASH 0x4C9D6519u
 
-static p8_memory_t mem;
-static p8_graphics_t gfx;
+static p8_memory_t memory;
+static p8_graphics_t graphics;
 static p8_input_t input;
 
 static const int want_trail_colors[20] = {0, 0, 7, 7, 10, 10, 9, 9, 9, 9, 9, 9, 9, 9, 4, 4, 4, 2, 2, 1};
@@ -616,7 +616,7 @@ static uint32_t screen_hash(void) {
     int i;
 
     for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
+        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
@@ -640,13 +640,13 @@ static void test_draw(void) {
     origin = as_slipway(old)->start;
     assert(main_camera_typed() != NULL);
     main_camera_pos = vec_of(main_camera_typed()->pos);
-    p8_camera(&gfx, p8_fixed_flr_int(main_camera_pos.x), p8_fixed_flr_int(main_camera_pos.y));
-    p8_cls(&mem);
+    p8_camera(&graphics, p8_fixed_flr_int(main_camera_pos.x), p8_fixed_flr_int(main_camera_pos.y));
+    p8_cls(&memory);
     blank = screen_hash();
 
     for (i = 0; i < 3; i++) {
         as_slipway(old)->targeted_by = old;
-        p8_cls(&mem);
+        p8_cls(&memory);
         class_of(old)->draw(old, NULL);
         assert(as_slipway(old)->targeted_by == NULL);
         assert(screen_hash() != blank);
@@ -654,11 +654,11 @@ static void test_draw(void) {
         hash = fold_slipway(hash, old);
     }
 
-    p8_cls(&mem);
+    p8_cls(&memory);
     class_of(origin)->draw(origin, vec_ref_fixed(vec_of(as_planet(origin)->pos)));
     plain = screen_hash();
     as_planet(origin)->targeted_by = old;
-    p8_cls(&mem);
+    p8_cls(&memory);
     class_of(origin)->draw(origin, vec_ref_fixed(vec_of(as_planet(origin)->pos)));
     circled = screen_hash();
     assert(as_planet(origin)->targeted_by == NULL);
@@ -700,8 +700,8 @@ static void test_too_far(void) {
     assert(target_kind(old_slipway) == TARGET_ABSENT);
     assert(main_camera_typed() != NULL);
     main_camera_pos = vec_of(main_camera_typed()->pos);
-    p8_camera(&gfx, p8_fixed_flr_int(main_camera_pos.x), p8_fixed_flr_int(main_camera_pos.y));
-    p8_cls(&mem);
+    p8_camera(&graphics, p8_fixed_flr_int(main_camera_pos.x), p8_fixed_flr_int(main_camera_pos.y));
+    p8_cls(&memory);
     empty = screen_hash();
 
     class_of(far_slipway)->draw(far_slipway, NULL);
@@ -717,14 +717,14 @@ static void test_too_far(void) {
     assert(end_kind(near) == END_THROWAWAY && target_kind(near) == TARGET_ABSENT && as_slipway(near)->targeting->has_cost);
     assert(main_mouse_typed() != NULL);
     mouse = vec_of(main_mouse_typed()->pos);
-    p8_camera(&gfx, p8_fixed_flr_int(mouse.x) - 64, p8_fixed_flr_int(mouse.y) - 64);
-    p8_cls(&mem);
+    p8_camera(&graphics, p8_fixed_flr_int(mouse.x) - 64, p8_fixed_flr_int(mouse.y) - 64);
+    p8_cls(&memory);
     class_of(far_slipway)->draw_overlay(far_slipway, NULL);
     too_far = screen_hash();
-    p8_cls(&mem);
+    p8_cls(&memory);
     class_of(second_slipway)->draw_overlay(second_slipway, NULL);
     sprite = screen_hash();
-    p8_cls(&mem);
+    p8_cls(&memory);
     class_of(near)->draw_overlay(near, NULL);
     cost = screen_hash();
     assert(too_far != empty && sprite != empty && cost != empty);
@@ -1119,13 +1119,13 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    p8_mem_init(&mem);
-    p8_gfx_init(&gfx);
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_mem_init(&memory);
+    p8_gfx_init(&graphics);
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
     dispatch_context_set_input(&input);
 
     cart_load();

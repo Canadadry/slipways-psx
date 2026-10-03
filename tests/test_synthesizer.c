@@ -60,8 +60,8 @@ static int pos_copies(const vec_t *ra, const vec_t *mp) {
  * value moves every *_HASH. */
 #define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
-static p8_memory_t mem;
-static p8_graphics_t gfx;
+static p8_memory_t memory;
+static p8_graphics_t graphics;
 static p8_input_t input;
 
 static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
@@ -191,7 +191,7 @@ static uint32_t screen_hash(void) {
     int i;
 
     for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
+        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
@@ -759,13 +759,13 @@ static void test_leaving_gives_back_its_particles(void) {
 }
 
 int main(void) {
-    p8_mem_init(&mem);
-    p8_gfx_init(&gfx);
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_mem_init(&memory);
+    p8_gfx_init(&graphics);
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
     dispatch_context_set_input(&input);
 
     cart_load();

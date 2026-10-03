@@ -26,8 +26,8 @@
 #define SCRIPTED_TICKS 12
 #define SCRIPTED_HASH 0xEB03D064u
 
-static p8_memory_t mem;
-static p8_graphics_t gfx;
+static p8_memory_t memory;
+static p8_graphics_t graphics;
 static p8_input_t input;
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -152,10 +152,10 @@ static void test_reset_world_builds_a_mouse_reader(void) {
     const void *je;
     vec_t ra;
 
-    p8_poke(&mem, 0x5f2d, 0);
+    p8_poke(&memory, 0x5f2d, 0);
     reset_world();
     je = main_mouse();
-    assert(p8_peek(&mem, 0x5f2d) == 1);
+    assert(p8_peek(&memory, 0x5f2d) == 1);
     assert(entity_list_listed(live_entities(), je) && !in_any_entities_by_message(je));
     assert(pos_of_main_mouse(&ra) && ra.x == 0 && ra.y == 0);
     assert(main_mouse_left() != NULL && main_mouse_right() != NULL && main_mouse_left() != main_mouse_right());
@@ -233,7 +233,7 @@ static void test_placeholder_main_mouse(void) {
     ui_init();
     assert(main_mouse_left() == NULL && main_mouse_right() == NULL && !pos_of_main_mouse(&ra));
     ok = ui_new();
-    ui_update(&mem, ok);
+    ui_update(&memory, ok);
     assert(ok->left_held == NULL && ok->right_held == NULL);
     assert(ok->mouse_world != NULL);
 }
@@ -286,13 +286,13 @@ static void test_mouse_is_a_struct_sharing_its_buttons(void) {
 }
 
 int main(void) {
-    p8_mem_init(&mem);
-    p8_gfx_init(&gfx);
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_mem_init(&memory);
+    p8_gfx_init(&graphics);
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
     dispatch_context_set_input(&input);
 
     cart_load();

@@ -24,31 +24,31 @@
 #define ICON_TOOLTIPS_ALL_BY_NAME_HASH 0x71C88A4Eu
 #define MIXED_BY_NAME_HASH 0xC5324FA0u
 
-static p8_memory_t mem;
-static p8_graphics_t gfx;
+static p8_memory_t memory;
+static p8_graphics_t graphics;
 
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
     int i;
 
     for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
+        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
 }
 
 static uint32_t draw_tooltip(const tooltip_t *jb, p8_fixed_t om, p8_fixed_t a) {
-    p8_gfx_init(&gfx);
-    p8_cls(&mem);
-    tooltip_draw_at(&gfx, &mem, jb, om, a);
+    p8_gfx_init(&graphics);
+    p8_cls(&memory);
+    tooltip_draw_at(&graphics, &memory, jb, om, a);
     return screen_hash();
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
     uint32_t blank;
 
-    p8_cls(&mem);
+    p8_cls(&memory);
     blank = screen_hash();
     printf("[%s] 0x%08Xu\n", label, (unsigned)got);
     fflush(stdout);
@@ -88,23 +88,23 @@ static void test_tooltip_is_a_struct_with_its_method_table(void) {
     assert(direct->header.class->draw_at != NULL);
     assert(direct->rows != NULL && direct->rows_count == 0);
 
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
-    p8_gfx_init(&gfx);
-    p8_cls(&mem);
-    tooltip_draw_at(&gfx, &mem, tooltip_new(&heap_allocator, &icon_tooltips_table[0]), p8_fixed_from_int(127), p8_fixed_from_int(1));
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
+    p8_gfx_init(&graphics);
+    p8_cls(&memory);
+    tooltip_draw_at(&graphics, &memory, tooltip_new(&heap_allocator, &icon_tooltips_table[0]), p8_fixed_from_int(127), p8_fixed_from_int(1));
     check("icon_tooltips_first_entry drawn", screen_hash(), ICON_TOOLTIPS_FIRST_ENTRY_HASH);
 
     /* The class's draw_at gets a vector no caller passes it: the top is 0. */
     {
         uint32_t via_slot;
 
-        p8_cls(&mem);
+        p8_cls(&memory);
         direct->header.class->draw_at((void *)tooltip_new(&heap_allocator, &icon_tooltips_table[0]),
                                vec_make(p8_fixed_from_int(127), p8_fixed_from_int(0)), p8_fixed_from_int(1));
         via_slot = screen_hash();
-        p8_cls(&mem);
-        tooltip_draw_at(&gfx, &mem, tooltip_new(&heap_allocator, &icon_tooltips_table[0]), p8_fixed_from_int(0), p8_fixed_from_int(1));
+        p8_cls(&memory);
+        tooltip_draw_at(&graphics, &memory, tooltip_new(&heap_allocator, &icon_tooltips_table[0]), p8_fixed_from_int(0), p8_fixed_from_int(1));
         assert(screen_hash() == via_slot);
     }
 }
@@ -115,10 +115,10 @@ static uint32_t draw_by_name(tooltip_t *jb, p8_fixed_t om, p8_fixed_t a) {
     uint32_t blank;
     uint32_t got;
 
-    p8_gfx_init(&gfx);
-    p8_cls(&mem);
+    p8_gfx_init(&graphics);
+    p8_cls(&memory);
     blank = screen_hash();
-    tooltip_draw_at(&gfx, &mem, jb, om, a);
+    tooltip_draw_at(&graphics, &memory, jb, om, a);
     got = screen_hash();
     assert(got != blank);
     return got;
@@ -136,8 +136,8 @@ static void test_tooltip_state_by_name(void) {
 
     assert(cls->draw_at != NULL);
 
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
     for (i = 1; i <= 7; i++) {
         h ^= draw_by_name(tooltip_new(&heap_allocator, &icon_tooltips_table[i - 1]), p8_fixed_from_int(127), p8_fixed_from_int(1));
         h *= 16777619u;
@@ -153,10 +153,10 @@ static void test_tooltip_state_by_name(void) {
 }
 
 int main(void) {
-    p8_mem_init(&mem);
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
-    hud_build_palette_table(&mem);
+    p8_mem_init(&memory);
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
+    hud_build_palette_table(&memory);
     data_init();
     layout_init();
 

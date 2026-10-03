@@ -34,8 +34,8 @@
 #define SHAKE_HASH 0xF1E7A593u
 #define GEOHARVEST_WINDOW 60
 
-static p8_memory_t mem;
-static p8_graphics_t gfx;
+static p8_memory_t memory;
+static p8_graphics_t graphics;
 static p8_input_t input;
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -94,8 +94,8 @@ static uint32_t fold_main_camera(uint32_t h) {
     h = fold_vec(h, mo->velocity);
     h = fold_vec(h, mo->pos);
     h = fnv(h, (uint32_t)mo->shake);
-    h = fnv(h, (uint32_t)gfx.camera_x);
-    return fnv(h, (uint32_t)gfx.camera_y);
+    h = fnv(h, (uint32_t)graphics.camera_x);
+    return fnv(h, (uint32_t)graphics.camera_y);
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
@@ -164,10 +164,10 @@ static void test_reset_world_builds_a_camera(void) {
 }
 
 static void apply_camera_to(p8_fixed_t fy, int want_x, int want_y) {
-    p8_camera(&gfx, 7, 11);
+    p8_camera(&graphics, 7, 11);
     assert(main_camera()->class == camera_class());
     camera_apply(dispatch_context_gfx(), (camera_t *)main_camera(), fy);
-    assert(gfx.camera_x == want_x && gfx.camera_y == want_y);
+    assert(graphics.camera_x == want_x && graphics.camera_y == want_y);
 }
 
 /* camera_apply puts the camera on the position times the factor. The later
@@ -268,9 +268,9 @@ static void test_second_reset_world(void) {
  * `camera_t`: nothing is applied and the camera stays put. */
 static void test_placeholder_main_camera(void) {
     entity_registry_init();
-    p8_camera(&gfx, 5, 6);
+    p8_camera(&graphics, 5, 6);
     assert(main_camera()->class != camera_class());
-    assert(gfx.camera_x == 5 && gfx.camera_y == 6);
+    assert(graphics.camera_x == 5 && graphics.camera_y == 6);
     assert(main_camera_typed() == NULL);
 }
 
@@ -384,13 +384,13 @@ static void test_camera_is_a_struct(void) {
 }
 
 int main(void) {
-    p8_mem_init(&mem);
-    p8_gfx_init(&gfx);
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_mem_init(&memory);
+    p8_gfx_init(&graphics);
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
     dispatch_context_set_input(&input);
 
     cart_load();

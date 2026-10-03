@@ -49,8 +49,8 @@
  * frozen hashes fold: any other value moves every *_HASH. */
 #define FROZEN_LIST_TAG 0x9E5C1157u
 
-static p8_memory_t mem;
-static p8_graphics_t gfx;
+static p8_memory_t memory;
+static p8_graphics_t graphics;
 static p8_input_t input;
 
 static const char *const tags[] = {"planet", "node", "targeting", "ascension", "structure"};
@@ -173,7 +173,7 @@ static uint32_t screen_hash(void) {
     int i;
 
     for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
+        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
@@ -684,7 +684,7 @@ static void test_emitter_update_moves_a_particle_in_place(void) {
     cut_particles(qy, 0);
     pointer_list_add(qy, particle);
 
-    emitter_update(&gfx, &mem, e);
+    emitter_update(&graphics, &memory, e);
 
     vx = p8_fixed_add(p8_fixed_mul(em->matrix_xx, v0.x), p8_fixed_mul(em->matrix_xy, v0.y));
     vy = p8_fixed_add(p8_fixed_mul(em->matrix_yx, vx), p8_fixed_mul(em->matrix_yy, v0.y));
@@ -829,13 +829,13 @@ static void test_leaving_lets_go_of_a_dragged_slipway(void) {
 }
 
 int main(void) {
-    p8_mem_init(&mem);
-    p8_gfx_init(&gfx);
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_mem_init(&memory);
+    p8_gfx_init(&graphics);
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
     dispatch_context_set_input(&input);
 
     cart_load();

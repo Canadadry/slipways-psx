@@ -7637,9 +7637,9 @@ write	write	tests/test_ascension.c	identifiant	paramètre	conservé	tests/test_a
 x	x	tests/test_ascension.c	identifiant	paramètre	conservé	tests/test_ascension			c:test_ascension.c@7045@F@vec_xy@x
 y	y	tests/test_ascension.c	identifiant	paramètre	conservé	tests/test_ascension			c:test_ascension.c@7052@F@vec_xy@y
 bm	messages	tests/test_ascension.c	identifiant	statique	renommé	tests/test_ascension	bm		c:test_ascension.c@bm
-gfx	gfx	tests/test_ascension.c	identifiant	statique	conservé	tests/test_ascension			c:test_ascension.c@gfx
+gfx	graphics	tests/test_ascension.c	identifiant	statique	renommé	tests/test_ascension			c:test_ascension.c@gfx
 input	input	tests/test_ascension.c	identifiant	statique	conservé	tests/test_ascension			c:test_ascension.c@input
-mem	mem	tests/test_ascension.c	identifiant	statique	conservé	tests/test_ascension			c:test_ascension.c@mem
+mem	memory	tests/test_ascension.c	identifiant	statique	renommé	tests/test_ascension			c:test_ascension.c@mem
 tags	tags	tests/test_ascension.c	identifiant	statique	conservé	tests/test_ascension	tags		c:test_ascension.c@tags
 held_t	held_t	tests/test_ascension.c	identifiant	type	conservé	tests/test_ascension			c:@T@held_t
 test_gfx_and_map_loaded_into_same_instance	test_gfx_and_map_loaded_into_same_instance	tests/test_asset_loading.c	identifiant	fonction	conservé	tests/test_asset_loading			c:test_asset_loading.c@F@test_gfx_and_map_loaded_into_same_instance
@@ -7833,9 +7833,9 @@ y	y	tests/test_background.c	identifiant	paramètre	conservé	tests/test_backgrou
 zeros	zeros	tests/test_background.c	identifiant	paramètre	conservé	tests/test_background			c:test_background.c@6428@F@map_hash@zeros
 g_drag	g_drag	tests/test_background.c	identifiant	statique	conservé	tests/test_background			c:test_background.c@g_drag
 g_void	g_void	tests/test_background.c	identifiant	statique	conservé	tests/test_background			c:test_background.c@g_void
-gfx	gfx	tests/test_background.c	identifiant	statique	conservé	tests/test_background			c:test_background.c@gfx
+gfx	graphics	tests/test_background.c	identifiant	statique	renommé	tests/test_background			c:test_background.c@gfx
 input	input	tests/test_background.c	identifiant	statique	conservé	tests/test_background			c:test_background.c@input
-mem	mem	tests/test_background.c	identifiant	statique	conservé	tests/test_background			c:test_background.c@mem
+mem	memory	tests/test_background.c	identifiant	statique	renommé	tests/test_background			c:test_background.c@mem
 want_pl	want_tile_choices	tests/test_background.c	identifiant	statique	renommé	tests/test_background			c:test_background.c@want_pl
 test_pico8_bg_kj	test_background_draw	tests/test_background_draw.c	chaîne	nom de test	renommé	tests/test_background_draw		libellé	chaîne:test_pico8_bg_kj
 screen_at	screen_at	tests/test_background_draw.c	identifiant	fonction	conservé	tests/test_background_draw			c:test_background_draw.c@F@screen_at
@@ -8089,10 +8089,10 @@ y	y	tests/test_burst.c	identifiant	paramètre	conservé	tests/test_burst			c:tes
 y	y	tests/test_burst.c	identifiant	paramètre	conservé	tests/test_burst			c:test_burst.c@6985@F@harvest@y
 y	y	tests/test_burst.c	identifiant	paramètre	conservé	tests/test_burst			c:test_burst.c@7687@F@spawn@y
 bm	messages	tests/test_burst.c	identifiant	statique	renommé	tests/test_burst	bm		c:test_burst.c@bm
-gfx	gfx	tests/test_burst.c	identifiant	statique	conservé	tests/test_burst			c:test_burst.c@gfx
+gfx	graphics	tests/test_burst.c	identifiant	statique	renommé	tests/test_burst			c:test_burst.c@gfx
 input	input	tests/test_burst.c	identifiant	statique	conservé	tests/test_burst			c:test_burst.c@input
 kw	production	tests/test_burst.c	identifiant	statique	renommé	tests/test_burst	kw		c:test_burst.c@20202@F@test_life@kw
-mem	mem	tests/test_burst.c	identifiant	statique	conservé	tests/test_burst			c:test_burst.c@mem
+mem	memory	tests/test_burst.c	identifiant	statique	renommé	tests/test_burst			c:test_burst.c@mem
 tags	tags	tests/test_burst.c	identifiant	statique	conservé	tests/test_burst	tags		c:test_burst.c@tags
 test_pico8_ga_export_panel_by	test_burst_exports_row	tests/test_burst_exports_row.c	chaîne	nom de test	renommé	tests/test_burst_exports_row		libellé	chaîne:test_pico8_ga_export_panel_by
 button_lq	button_layout_row	tests/test_burst_exports_row.c	identifiant	fonction	renommé	tests/test_burst_exports_row	lq		c:test_burst_exports_row.c@F@button_lq
@@ -8656,9 +8656,9 @@ y	y	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:t
 y	y	tests/test_button.c	identifiant	paramètre	conservé	tests/test_button			c:test_button.c@22866@F@at@y
 bm	messages	tests/test_button.c	identifiant	statique	renommé	tests/test_button	bm		c:test_button.c@9332@F@fold_button@bm
 dy	dy	tests/test_button.c	identifiant	statique	conservé	tests/test_button			c:test_button.c@8485@F@fold_kq@dy
-gfx	gfx	tests/test_button.c	identifiant	statique	conservé	tests/test_button			c:test_button.c@gfx
+gfx	graphics	tests/test_button.c	identifiant	statique	renommé	tests/test_button			c:test_button.c@gfx
 input	input	tests/test_button.c	identifiant	statique	conservé	tests/test_button			c:test_button.c@input
-mem	mem	tests/test_button.c	identifiant	statique	conservé	tests/test_button			c:test_button.c@mem
+mem	memory	tests/test_button.c	identifiant	statique	renommé	tests/test_button			c:test_button.c@mem
 my_calls	on_click_calls	tests/test_button.c	identifiant	statique	renommé	tests/test_button			c:test_button.c@my_calls
 my_self	on_click_self	tests/test_button.c	identifiant	statique	renommé	tests/test_button			c:test_button.c@my_self
 seen_count	seen_count	tests/test_button.c	identifiant	statique	conservé	tests/test_button			c:test_button.c@seen_count
@@ -8758,9 +8758,9 @@ word	word	tests/test_camera.c	identifiant	paramètre	conservé	tests/test_camera
 x	x	tests/test_camera.c	identifiant	paramètre	conservé	tests/test_camera			c:test_camera.c@3014@F@is_vec@x
 y	y	tests/test_camera.c	identifiant	paramètre	conservé	tests/test_camera			c:test_camera.c@3021@F@is_vec@y
 g_frames	g_frames	tests/test_camera.c	identifiant	statique	conservé	tests/test_camera			c:test_camera.c@g_frames
-gfx	gfx	tests/test_camera.c	identifiant	statique	conservé	tests/test_camera			c:test_camera.c@gfx
+gfx	graphics	tests/test_camera.c	identifiant	statique	renommé	tests/test_camera			c:test_camera.c@gfx
 input	input	tests/test_camera.c	identifiant	statique	conservé	tests/test_camera			c:test_camera.c@input
-mem	mem	tests/test_camera.c	identifiant	statique	conservé	tests/test_camera			c:test_camera.c@mem
+mem	memory	tests/test_camera.c	identifiant	statique	renommé	tests/test_camera			c:test_camera.c@mem
 jo	planet	tests/test_class_coverage.c	chaîne	clé d'étiquette + nom de classe	renommé	tests/test_class_coverage	jo	lecteur	chaîne:jo
 nl	trading_hub	tests/test_class_coverage.c	chaîne	nom de classe	renommé	tests/test_class_coverage	nl	lecteur	chaîne:nl
 ui	ui	tests/test_class_coverage.c	chaîne	nom de classe	conservé	tests/test_class_coverage	ui	lecteur	chaîne:ui
@@ -9267,9 +9267,9 @@ word	word	tests/test_economy.c	identifiant	paramètre	conservé	tests/test_econo
 write	write	tests/test_economy.c	identifiant	paramètre	conservé	tests/test_economy			c:test_economy.c@20229@F@must_abort@write
 x	x	tests/test_economy.c	identifiant	paramètre	conservé	tests/test_economy			c:test_economy.c@2841@F@fold_fixed@x
 cheat	cheat	tests/test_economy.c	identifiant	statique	conservé	tests/test_economy			c:test_economy.c@cheat
-gfx	gfx	tests/test_economy.c	identifiant	statique	conservé	tests/test_economy			c:test_economy.c@gfx
+gfx	graphics	tests/test_economy.c	identifiant	statique	renommé	tests/test_economy			c:test_economy.c@gfx
 input	input	tests/test_economy.c	identifiant	statique	conservé	tests/test_economy			c:test_economy.c@input
-mem	mem	tests/test_economy.c	identifiant	statique	conservé	tests/test_economy			c:test_economy.c@mem
+mem	memory	tests/test_economy.c	identifiant	statique	renommé	tests/test_economy			c:test_economy.c@mem
 presses	presses	tests/test_economy.c	identifiant	statique	conservé	tests/test_economy			c:test_economy.c@19186@F@test_cheat_on_provisional@presses
 pxs	pxs	tests/test_economy.c	identifiant	statique	conservé	tests/test_economy			c:test_economy.c@18032@F@test_kt@pxs
 test_pico8_struct_header	test_entity_header	tests/test_entity_header.c	chaîne	nom de test	renommé	tests/test_entity_header		libellé	chaîne:test_pico8_struct_header
@@ -9331,9 +9331,9 @@ jo	jo	tests/test_entity_header.c	identifiant	paramètre	conservé	tests/test_ent
 qh	qh	tests/test_entity_header.c	identifiant	paramètre	conservé	tests/test_entity_header			c:test_entity_header.c@8587@F@assert_qh_links@qh
 qu	qu	tests/test_entity_header.c	identifiant	paramètre	conservé	tests/test_entity_header			c:test_entity_header.c@11066@F@jc_dragged_over_nothing@qu
 want	want	tests/test_entity_header.c	identifiant	paramètre	conservé	tests/test_entity_header			c:test_entity_header.c@2316@F@assert_links@want
-gfx	gfx	tests/test_entity_header.c	identifiant	statique	conservé	tests/test_entity_header			c:test_entity_header.c@gfx
+gfx	graphics	tests/test_entity_header.c	identifiant	statique	renommé	tests/test_entity_header			c:test_entity_header.c@gfx
 input	input	tests/test_entity_header.c	identifiant	statique	conservé	tests/test_entity_header			c:test_entity_header.c@input
-mem	mem	tests/test_entity_header.c	identifiant	statique	conservé	tests/test_entity_header			c:test_entity_header.c@mem
+mem	memory	tests/test_entity_header.c	identifiant	statique	renommé	tests/test_entity_header			c:test_entity_header.c@mem
 ga	burst	tests/test_entity_kind.c	chaîne	nom de classe	renommé	tests/test_entity_kind	ga	lecteur	chaîne:ga
 pm	protostar	tests/test_entity_kind.c	chaîne	nom de classe	renommé	tests/test_entity_kind	pm	lecteur	chaîne:pm
 test_pico8_entity_kind	test_entity_kind	tests/test_entity_kind.c	chaîne	nom de test	renommé	tests/test_entity_kind		libellé	chaîne:test_pico8_entity_kind
@@ -9378,9 +9378,9 @@ s	s	tests/test_entity_kind.c	identifiant	paramètre	conservé	tests/test_entity_
 v	v	tests/test_entity_kind.c	identifiant	paramètre	conservé	tests/test_entity_kind			c:test_entity_kind.c@2976@F@fold_fixed_member@v
 want	want	tests/test_entity_kind.c	identifiant	paramètre	conservé	tests/test_entity_kind			c:test_entity_kind.c@3156@F@check@want
 word	word	tests/test_entity_kind.c	identifiant	paramètre	conservé	tests/test_entity_kind			c:test_entity_kind.c@2138@F@fnv@word
-gfx	gfx	tests/test_entity_kind.c	identifiant	statique	conservé	tests/test_entity_kind			c:test_entity_kind.c@gfx
+gfx	graphics	tests/test_entity_kind.c	identifiant	statique	renommé	tests/test_entity_kind			c:test_entity_kind.c@gfx
 input	input	tests/test_entity_kind.c	identifiant	statique	conservé	tests/test_entity_kind			c:test_entity_kind.c@input
-mem	mem	tests/test_entity_kind.c	identifiant	statique	conservé	tests/test_entity_kind			c:test_entity_kind.c@mem
+mem	memory	tests/test_entity_kind.c	identifiant	statique	renommé	tests/test_entity_kind			c:test_entity_kind.c@mem
 test_pico8_ents	test_entity_list	tests/test_entity_list.c	chaîne	nom de test	renommé	tests/test_entity_list		libellé	chaîne:test_pico8_ents
 odd_rank	odd_rank	tests/test_entity_list.c	identifiant	fonction	conservé	tests/test_entity_list			c:test_entity_list.c@F@odd_rank
 test_add_grows_past_four_keeps_order_and_free_empties	test_add_grows_past_four_keeps_order_and_free_empties	tests/test_entity_list.c	identifiant	fonction	conservé	tests/test_entity_list			c:test_entity_list.c@F@test_add_grows_past_four_keeps_order_and_free_empties
@@ -9527,10 +9527,10 @@ self	self	tests/test_exit_queue.c	identifiant	paramètre	conservé	tests/test_ex
 CASES	CASES	tests/test_exit_queue.c	identifiant	statique	conservé	tests/test_exit_queue			c:test_exit_queue.c@CASES
 counted_cls	counted_cls	tests/test_exit_queue.c	identifiant	statique	conservé	tests/test_exit_queue			c:test_exit_queue.c@counted_cls
 freed_cls	freed_cls	tests/test_exit_queue.c	identifiant	statique	conservé	tests/test_exit_queue			c:test_exit_queue.c@freed_cls
-gfx	gfx	tests/test_exit_queue.c	identifiant	statique	conservé	tests/test_exit_queue			c:test_exit_queue.c@gfx
+gfx	graphics	tests/test_exit_queue.c	identifiant	statique	renommé	tests/test_exit_queue			c:test_exit_queue.c@gfx
 input	input	tests/test_exit_queue.c	identifiant	statique	conservé	tests/test_exit_queue			c:test_exit_queue.c@input
 kept_cls	kept_cls	tests/test_exit_queue.c	identifiant	statique	conservé	tests/test_exit_queue			c:test_exit_queue.c@kept_cls
-mem	mem	tests/test_exit_queue.c	identifiant	statique	conservé	tests/test_exit_queue			c:test_exit_queue.c@mem
+mem	memory	tests/test_exit_queue.c	identifiant	statique	renommé	tests/test_exit_queue			c:test_exit_queue.c@mem
 rendus	released	tests/test_exit_queue.c	identifiant	statique	renommé	tests/test_exit_queue			c:test_exit_queue.c@rendus
 self_path	self_path	tests/test_exit_queue.c	identifiant	statique	conservé	tests/test_exit_queue			c:test_exit_queue.c@self_path
 sink	sink	tests/test_exit_queue.c	identifiant	statique	conservé	tests/test_exit_queue			c:test_exit_queue.c@sink
@@ -9934,10 +9934,10 @@ s	s	tests/test_frame_zone.c	identifiant	paramètre	conservé	tests/test_frame_zo
 zone	zone	tests/test_frame_zone.c	identifiant	paramètre	conservé	tests/test_frame_zone			c:test_frame_zone.c@7512@F@row_of_frame_text@zone
 CASES	CASES	tests/test_frame_zone.c	identifiant	statique	conservé	tests/test_frame_zone			c:test_frame_zone.c@CASES
 cells	cells	tests/test_frame_zone.c	identifiant	statique	conservé	tests/test_frame_zone			c:test_frame_zone.c@cells
-gfx	gfx	tests/test_frame_zone.c	identifiant	statique	conservé	tests/test_frame_zone			c:test_frame_zone.c@gfx
+gfx	graphics	tests/test_frame_zone.c	identifiant	statique	renommé	tests/test_frame_zone			c:test_frame_zone.c@gfx
 input	input	tests/test_frame_zone.c	identifiant	statique	conservé	tests/test_frame_zone			c:test_frame_zone.c@input
 kw	kw	tests/test_frame_zone.c	identifiant	statique	conservé	tests/test_frame_zone			c:test_frame_zone.c@4477@F@case_gh_rows_survive_reset@kw
-mem	mem	tests/test_frame_zone.c	identifiant	statique	conservé	tests/test_frame_zone			c:test_frame_zone.c@mem
+mem	memory	tests/test_frame_zone.c	identifiant	statique	renommé	tests/test_frame_zone			c:test_frame_zone.c@mem
 self_path	self_path	tests/test_frame_zone.c	identifiant	statique	conservé	tests/test_frame_zone			c:test_frame_zone.c@self_path
 sink	sink	tests/test_frame_zone.c	identifiant	statique	conservé	tests/test_frame_zone			c:test_frame_zone.c@sink
 read_log	read_log	tests/test_frames_check.c	identifiant	fonction	conservé	tests/test_frames_check			c:test_frames_check.c@F@read_log
@@ -10148,9 +10148,9 @@ CASES	CASES	tests/test_game_zone.c	identifiant	statique	conservé	tests/test_gam
 CG	CG	tests/test_game_zone.c	identifiant	statique	conservé	tests/test_game_zone			c:test_game_zone.c@3864@F@octets_des_registres@CG
 CV	CV	tests/test_game_zone.c	identifiant	statique	conservé	tests/test_game_zone			c:test_game_zone.c@3796@F@octets_des_registres@CV
 element	element	tests/test_game_zone.c	identifiant	statique	conservé	tests/test_game_zone			c:test_game_zone.c@10837@F@case_listes_statiques_dans_chargement@element
-gfx	gfx	tests/test_game_zone.c	identifiant	statique	conservé	tests/test_game_zone			c:test_game_zone.c@gfx
+gfx	graphics	tests/test_game_zone.c	identifiant	statique	renommé	tests/test_game_zone			c:test_game_zone.c@gfx
 input	input	tests/test_game_zone.c	identifiant	statique	conservé	tests/test_game_zone			c:test_game_zone.c@input
-mem	mem	tests/test_game_zone.c	identifiant	statique	conservé	tests/test_game_zone			c:test_game_zone.c@mem
+mem	memory	tests/test_game_zone.c	identifiant	statique	renommé	tests/test_game_zone			c:test_game_zone.c@mem
 self_path	self_path	tests/test_game_zone.c	identifiant	statique	conservé	tests/test_game_zone			c:test_game_zone.c@self_path
 sink	sink	tests/test_game_zone.c	identifiant	statique	conservé	tests/test_game_zone			c:test_game_zone.c@sink
 test_pico8_geom	test_geom	tests/test_geom.c	chaîne	nom de test	renommé	tests/test_geom		libellé	chaîne:test_pico8_geom
@@ -10691,9 +10691,9 @@ y	y	tests/test_help_screen.c	identifiant	paramètre	conservé	tests/test_help_sc
 bm	messages	tests/test_help_screen.c	identifiant	statique	renommé	tests/test_help_screen	bm		c:test_help_screen.c@12689@F@test_built@bm
 fns	fns	tests/test_help_screen.c	identifiant	statique	conservé	tests/test_help_screen			c:test_help_screen.c@19008@F@test_g__closed@fns
 g_mouse	g_mouse	tests/test_help_screen.c	identifiant	statique	conservé	tests/test_help_screen			c:test_help_screen.c@g_mouse
-gfx	gfx	tests/test_help_screen.c	identifiant	statique	conservé	tests/test_help_screen			c:test_help_screen.c@gfx
+gfx	graphics	tests/test_help_screen.c	identifiant	statique	renommé	tests/test_help_screen			c:test_help_screen.c@gfx
 input	input	tests/test_help_screen.c	identifiant	statique	conservé	tests/test_help_screen			c:test_help_screen.c@input
-mem	mem	tests/test_help_screen.c	identifiant	statique	conservé	tests/test_help_screen			c:test_help_screen.c@mem
+mem	memory	tests/test_help_screen.c	identifiant	statique	renommé	tests/test_help_screen			c:test_help_screen.c@mem
 names	names	tests/test_help_screen.c	identifiant	statique	conservé	tests/test_help_screen			c:test_help_screen.c@2585@F@fold_tags@names
 np	node	tests/test_infraspace_gate.c	chaîne	clé d'étiquette	renommé	tests/test_infraspace_gate		lecteur	chaîne:np
 prober	targeting	tests/test_infraspace_gate.c	chaîne	clé d'étiquette	renommé	tests/test_infraspace_gate	pico8_probe_t	lecteur	chaîne:prober
@@ -10871,9 +10871,9 @@ x	x	tests/test_infraspace_gate.c	identifiant	paramètre	conservé	tests/test_inf
 y	y	tests/test_infraspace_gate.c	identifiant	paramètre	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@14841@F@place@y
 y	y	tests/test_infraspace_gate.c	identifiant	paramètre	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@5340@F@vec_xy@y
 bm	messages	tests/test_infraspace_gate.c	identifiant	statique	renommé	tests/test_infraspace_gate	bm		c:test_infraspace_gate.c@bm
-gfx	gfx	tests/test_infraspace_gate.c	identifiant	statique	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@gfx
+gfx	graphics	tests/test_infraspace_gate.c	identifiant	statique	renommé	tests/test_infraspace_gate			c:test_infraspace_gate.c@gfx
 input	input	tests/test_infraspace_gate.c	identifiant	statique	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@input
-mem	mem	tests/test_infraspace_gate.c	identifiant	statique	conservé	tests/test_infraspace_gate			c:test_infraspace_gate.c@mem
+mem	memory	tests/test_infraspace_gate.c	identifiant	statique	renommé	tests/test_infraspace_gate			c:test_infraspace_gate.c@mem
 tags	tags	tests/test_infraspace_gate.c	identifiant	statique	conservé	tests/test_infraspace_gate	tags		c:test_infraspace_gate.c@tags
 tmp/test_pico8_input_append_fresh.json	tmp/test_input_append_fresh.json	tests/test_input.c	chaîne	chemin tmp	renommé	tests/test_input		écrivain, lecteur	chaîne:tmp/test_pico8_input_append_fresh.json
 tmp/test_pico8_input_append_history.json	tmp/test_input_append_history.json	tests/test_input.c	chaîne	chemin tmp	renommé	tests/test_input		écrivain, lecteur	chaîne:tmp/test_pico8_input_append_history.json
@@ -11002,8 +11002,8 @@ out_x	out_x	tests/test_layout_nil_item_draws_nothing.c	identifiant	paramètre	co
 out_y	out_y	tests/test_layout_nil_item_draws_nothing.c	identifiant	paramètre	conservé	tests/test_layout_nil_item_draws_nothing			c:test_layout_nil_item_draws_nothing.c@2549@F@sprite0_bottom_row_hits@out_y
 x	x	tests/test_layout_nil_item_draws_nothing.c	identifiant	paramètre	conservé	tests/test_layout_nil_item_draws_nothing			c:test_layout_nil_item_draws_nothing.c@2183@F@screen_px@x
 y	y	tests/test_layout_nil_item_draws_nothing.c	identifiant	paramètre	conservé	tests/test_layout_nil_item_draws_nothing			c:test_layout_nil_item_draws_nothing.c@2190@F@screen_px@y
-gfx	gfx	tests/test_layout_nil_item_draws_nothing.c	identifiant	statique	conservé	tests/test_layout_nil_item_draws_nothing			c:test_layout_nil_item_draws_nothing.c@gfx
-mem	mem	tests/test_layout_nil_item_draws_nothing.c	identifiant	statique	conservé	tests/test_layout_nil_item_draws_nothing			c:test_layout_nil_item_draws_nothing.c@mem
+gfx	graphics	tests/test_layout_nil_item_draws_nothing.c	identifiant	statique	renommé	tests/test_layout_nil_item_draws_nothing			c:test_layout_nil_item_draws_nothing.c@gfx
+mem	memory	tests/test_layout_nil_item_draws_nothing.c	identifiant	statique	renommé	tests/test_layout_nil_item_draws_nothing			c:test_layout_nil_item_draws_nothing.c@mem
 ld	draw_row	tests/test_layout_row.c	chaîne	clé	renommé	tests/test_layout_row		écrivain	chaîne:ld
 qe	resource	tests/test_layout_row.c	chaîne	clé	renommé	tests/test_layout_row	qe	libellé haché	chaîne:qe
 jo	planet	tests/test_layout_row.c	chaîne	clé d'étiquette + nom de classe	renommé	tests/test_layout_row	jo	lecteur	chaîne:jo
@@ -11300,12 +11300,12 @@ as	as	tests/test_layout_row.c	identifiant	statique	conservé	tests/test_layout_r
 f	f	tests/test_layout_row.c	identifiant	statique	conservé	tests/test_layout_row			c:test_layout_row.c@12474@F@test_constructions@f
 f	f	tests/test_layout_row.c	identifiant	statique	conservé	tests/test_layout_row			c:test_layout_row.c@13346@F@test_constructions@f
 f	tuple_values	tests/test_layout_row.c	identifiant	statique	renommé	tests/test_layout_row			c:test_layout_row.c@18182@F@test_calls@f
-gfx	gfx	tests/test_layout_row.c	identifiant	statique	conservé	tests/test_layout_row			c:test_layout_row.c@gfx
+gfx	graphics	tests/test_layout_row.c	identifiant	statique	renommé	tests/test_layout_row			c:test_layout_row.c@gfx
 input	input	tests/test_layout_row.c	identifiant	statique	conservé	tests/test_layout_row			c:test_layout_row.c@input
 jqs	jqs	tests/test_layout_row.c	identifiant	statique	conservé	tests/test_layout_row			c:test_layout_row.c@14854@F@test_jo_ex@jqs
 ks	ks	tests/test_layout_row.c	identifiant	statique	conservé	tests/test_layout_row			c:test_layout_row.c@14814@F@test_jo_ex@ks
 ks	project_ranks	tests/test_layout_row.c	identifiant	statique	renommé	tests/test_layout_row			c:test_layout_row.c@16114@F@test_hp_lq_and_copy@ks
-mem	mem	tests/test_layout_row.c	identifiant	statique	conservé	tests/test_layout_row			c:test_layout_row.c@mem
+mem	memory	tests/test_layout_row.c	identifiant	statique	renommé	tests/test_layout_row			c:test_layout_row.c@mem
 nested	nested	tests/test_layout_row.c	identifiant	statique	conservé	tests/test_layout_row			c:test_layout_row.c@30016@F@test_lq_is_a_struct@nested
 panel_cells	panel_cells	tests/test_layout_row.c	identifiant	statique	conservé	tests/test_layout_row			c:test_layout_row.c@panel_cells
 three	three	tests/test_layout_row.c	identifiant	statique	conservé	tests/test_layout_row			c:test_layout_row.c@29639@F@test_lq_is_a_struct@three
@@ -11846,9 +11846,9 @@ e	e	tests/test_main_camera.c	identifiant	paramètre	conservé	tests/test_main_ca
 e	e	tests/test_main_camera.c	identifiant	paramètre	conservé	tests/test_main_camera			c:test_main_camera.c@921@F@ents_listed@e
 list	list	tests/test_main_camera.c	identifiant	paramètre	conservé	tests/test_main_camera			c:test_main_camera.c@895@F@ents_listed@list
 g_ra_only_class	pos_only_class_def	tests/test_main_camera.c	identifiant	statique	renommé	tests/test_main_camera	ra		c:test_main_camera.c@g_ra_only_class
-gfx	gfx	tests/test_main_camera.c	identifiant	statique	conservé	tests/test_main_camera			c:test_main_camera.c@gfx
+gfx	graphics	tests/test_main_camera.c	identifiant	statique	renommé	tests/test_main_camera			c:test_main_camera.c@gfx
 input	input	tests/test_main_camera.c	identifiant	statique	conservé	tests/test_main_camera			c:test_main_camera.c@input
-mem	mem	tests/test_main_camera.c	identifiant	statique	conservé	tests/test_main_camera			c:test_main_camera.c@mem
+mem	memory	tests/test_main_camera.c	identifiant	statique	renommé	tests/test_main_camera			c:test_main_camera.c@mem
 shaken_p	zero_pos_before_shake	tests/test_main_camera.c	identifiant	statique	renommé	tests/test_main_camera	qb		c:test_main_camera.c@5048@F@test_gd_under_a_shaken_camera@shaken_p
 shaken_ra	shaken_pos	tests/test_main_camera.c	identifiant	statique	renommé	tests/test_main_camera	ra		c:test_main_camera.c@5090@F@test_gd_under_a_shaken_camera@shaken_ra
 ra_only_t	pos_only_t	tests/test_main_camera.c	identifiant	type	renommé	tests/test_main_camera	ra		c:@T@ra_only_t
@@ -11887,9 +11887,9 @@ t	t	tests/test_main_economy.c	identifiant	locale	conservé	tests/test_main_econo
 _POSIX_C_SOURCE	_POSIX_C_SOURCE	tests/test_main_economy.c	identifiant	macro	conservé	tests/test_main_economy			macro:tests/test_main_economy.c:_POSIX_C_SOURCE
 t	t	tests/test_main_economy.c	identifiant	paramètre	conservé	tests/test_main_economy			c:test_main_economy.c@2257@F@cb_affordable@t
 test	test	tests/test_main_economy.c	identifiant	paramètre	conservé	tests/test_main_economy			c:test_main_economy.c@5837@F@in_fresh_child@test
-gfx	gfx	tests/test_main_economy.c	identifiant	statique	conservé	tests/test_main_economy			c:test_main_economy.c@gfx
+gfx	graphics	tests/test_main_economy.c	identifiant	statique	renommé	tests/test_main_economy			c:test_main_economy.c@gfx
 input	input	tests/test_main_economy.c	identifiant	statique	conservé	tests/test_main_economy			c:test_main_economy.c@input
-mem	mem	tests/test_main_economy.c	identifiant	statique	conservé	tests/test_main_economy			c:test_main_economy.c@mem
+mem	memory	tests/test_main_economy.c	identifiant	statique	renommé	tests/test_main_economy			c:test_main_economy.c@mem
 presses	presses	tests/test_main_economy.c	identifiant	statique	conservé	tests/test_main_economy			c:test_main_economy.c@1328@F@type_cheat@presses
 je	main_mouse	tests/test_main_mouse.c	chaîne	clé	renommé	tests/test_main_mouse	ok	lecteur	chaîne:je
 ev	draw_overlay	tests/test_main_mouse.c	chaîne	clé de message	renommé	tests/test_main_mouse	ev	lecteur	chaîne:ev
@@ -11931,9 +11931,9 @@ e	e	tests/test_main_mouse.c	identifiant	paramètre	conservé	tests/test_main_mou
 entity_live	entity_live	tests/test_main_mouse.c	identifiant	paramètre	conservé	tests/test_main_mouse			c:test_main_mouse.c@1121@F@registered@entity_live
 entity_live	entity_live	tests/test_main_mouse.c	identifiant	paramètre	conservé	tests/test_main_mouse			c:test_main_mouse.c@1611@F@assert_placeholder@entity_live
 list	list	tests/test_main_mouse.c	identifiant	paramètre	conservé	tests/test_main_mouse			c:test_main_mouse.c@822@F@ents_listed@list
-gfx	gfx	tests/test_main_mouse.c	identifiant	statique	conservé	tests/test_main_mouse			c:test_main_mouse.c@gfx
+gfx	graphics	tests/test_main_mouse.c	identifiant	statique	renommé	tests/test_main_mouse			c:test_main_mouse.c@gfx
 input	input	tests/test_main_mouse.c	identifiant	statique	conservé	tests/test_main_mouse			c:test_main_mouse.c@input
-mem	mem	tests/test_main_mouse.c	identifiant	statique	conservé	tests/test_main_mouse			c:test_main_mouse.c@mem
+mem	memory	tests/test_main_mouse.c	identifiant	statique	renommé	tests/test_main_mouse			c:test_main_mouse.c@mem
 test_pico8_map_tables	test_map_tables	tests/test_map_tables.c	chaîne	nom de test	renommé	tests/test_map_tables		libellé	chaîne:test_pico8_map_tables
 check_fixed_seq	check_fixed_seq	tests/test_map_tables.c	identifiant	fonction	conservé	tests/test_map_tables			c:test_map_tables.c@F@check_fixed_seq
 check_int_seq	check_int_seq	tests/test_map_tables.c	identifiant	fonction	conservé	tests/test_map_tables			c:test_map_tables.c@F@check_int_seq
@@ -12177,9 +12177,9 @@ word	word	tests/test_message_box.c	identifiant	paramètre	conservé	tests/test_m
 yr	yr	tests/test_message_box.c	identifiant	paramètre	conservé	tests/test_message_box			c:test_message_box.c@4651@F@year_box@yr
 challenging	challenging	tests/test_message_box.c	identifiant	statique	conservé	tests/test_message_box			c:test_message_box.c@12373@F@test_largest_scores_box_fits_its_place@challenging
 g_lh_calls	g_keep_open_calls	tests/test_message_box.c	identifiant	statique	renommé	tests/test_message_box			c:test_message_box.c@g_lh_calls
-gfx	gfx	tests/test_message_box.c	identifiant	statique	conservé	tests/test_message_box			c:test_message_box.c@gfx
+gfx	graphics	tests/test_message_box.c	identifiant	statique	renommé	tests/test_message_box			c:test_message_box.c@gfx
 input	input	tests/test_message_box.c	identifiant	statique	conservé	tests/test_message_box			c:test_message_box.c@input
-mem	mem	tests/test_message_box.c	identifiant	statique	conservé	tests/test_message_box			c:test_message_box.c@mem
+mem	memory	tests/test_message_box.c	identifiant	statique	renommé	tests/test_message_box			c:test_message_box.c@mem
 run_t	run_t	tests/test_message_box.c	identifiant	type	conservé	tests/test_message_box			c:@T@run_t
 tmp/test_pico8_minimize_work	tmp/test_minimize_work	tests/test_minimize.c	chaîne	chemin tmp	renommé	tests/test_minimize		écrivain, lecteur	chaîne:tmp/test_pico8_minimize_work
 test_pico8_minimize	test_minimize	tests/test_minimize.c	chaîne	nom de test	renommé	tests/test_minimize		libellé	chaîne:test_pico8_minimize
@@ -12395,9 +12395,9 @@ want	want	tests/test_modal_backdrop.c	identifiant	paramètre	conservé	tests/tes
 word	word	tests/test_modal_backdrop.c	identifiant	paramètre	conservé	tests/test_modal_backdrop			c:test_modal_backdrop.c@1020@F@fnv@word
 g_my_answer	g_on_click_answer	tests/test_modal_backdrop.c	identifiant	statique	renommé	tests/test_modal_backdrop			c:test_modal_backdrop.c@g_my_answer
 g_my_calls	g_on_click_calls	tests/test_modal_backdrop.c	identifiant	statique	renommé	tests/test_modal_backdrop			c:test_modal_backdrop.c@g_my_calls
-gfx	gfx	tests/test_modal_backdrop.c	identifiant	statique	conservé	tests/test_modal_backdrop			c:test_modal_backdrop.c@gfx
+gfx	graphics	tests/test_modal_backdrop.c	identifiant	statique	renommé	tests/test_modal_backdrop			c:test_modal_backdrop.c@gfx
 input	input	tests/test_modal_backdrop.c	identifiant	statique	conservé	tests/test_modal_backdrop			c:test_modal_backdrop.c@input
-mem	mem	tests/test_modal_backdrop.c	identifiant	statique	conservé	tests/test_modal_backdrop			c:test_modal_backdrop.c@mem
+mem	memory	tests/test_modal_backdrop.c	identifiant	statique	renommé	tests/test_modal_backdrop			c:test_modal_backdrop.c@mem
 ev	draw_overlay	tests/test_mouse.c	chaîne	clé de message	renommé	tests/test_mouse	ev	lecteur	chaîne:ev
 hb	refresh	tests/test_mouse.c	chaîne	clé de message	renommé	tests/test_mouse	hb	lecteur	chaîne:hb
 hd	hit_test	tests/test_mouse.c	chaîne	clé de message	renommé	tests/test_mouse	hd	lecteur	chaîne:hd
@@ -12467,9 +12467,9 @@ x	x	tests/test_mouse.c	identifiant	paramètre	conservé	tests/test_mouse			c:tes
 y	y	tests/test_mouse.c	identifiant	paramètre	conservé	tests/test_mouse			c:test_mouse.c@3270@F@frame@y
 buttons	buttons	tests/test_mouse.c	identifiant	statique	conservé	tests/test_mouse			c:test_mouse.c@4217@F@test_scripted_ticks@buttons
 g_frames	g_frames	tests/test_mouse.c	identifiant	statique	conservé	tests/test_mouse			c:test_mouse.c@g_frames
-gfx	gfx	tests/test_mouse.c	identifiant	statique	conservé	tests/test_mouse			c:test_mouse.c@gfx
+gfx	graphics	tests/test_mouse.c	identifiant	statique	renommé	tests/test_mouse			c:test_mouse.c@gfx
 input	input	tests/test_mouse.c	identifiant	statique	conservé	tests/test_mouse			c:test_mouse.c@input
-mem	mem	tests/test_mouse.c	identifiant	statique	conservé	tests/test_mouse			c:test_mouse.c@mem
+mem	memory	tests/test_mouse.c	identifiant	statique	renommé	tests/test_mouse			c:test_mouse.c@mem
 tmp/test_pico8_zone_particules_stderr.txt	tmp/test_particle_zone_stderr.txt	tests/test_particle_zone.c	chaîne	chemin tmp	renommé	tests/test_particle_zone		écrivain, lecteur	chaîne:tmp/test_pico8_zone_particules_stderr.txt
 ez_notes_the_list_length	emitter_spawn_notes_the_list_length	tests/test_particle_zone.c	chaîne	clé	renommé	tests/test_particle_zone	f_	écrivain, lecteur	chaîne:ez_notes_the_list_length
 f__fv_takes_a_qy_fv_list	emitter_init_help_screen_takes_a_help_list	tests/test_particle_zone.c	chaîne	clé	renommé	tests/test_particle_zone	f_	écrivain, lecteur	chaîne:f__fv_takes_a_qy_fv_list
@@ -12801,9 +12801,9 @@ word	word	tests/test_planet.c	identifiant	paramètre	conservé	tests/test_planet
 x	x	tests/test_planet.c	identifiant	paramètre	conservé	tests/test_planet			c:test_planet.c@14761@F@new_planet@x
 y	y	tests/test_planet.c	identifiant	paramètre	conservé	tests/test_planet			c:test_planet.c@14768@F@new_planet@y
 bm	messages	tests/test_planet.c	identifiant	statique	renommé	tests/test_planet	bm		c:test_planet.c@bm
-gfx	gfx	tests/test_planet.c	identifiant	statique	conservé	tests/test_planet			c:test_planet.c@gfx
+gfx	graphics	tests/test_planet.c	identifiant	statique	renommé	tests/test_planet			c:test_planet.c@gfx
 input	input	tests/test_planet.c	identifiant	statique	conservé	tests/test_planet			c:test_planet.c@input
-mem	mem	tests/test_planet.c	identifiant	statique	conservé	tests/test_planet			c:test_planet.c@mem
+mem	memory	tests/test_planet.c	identifiant	statique	renommé	tests/test_planet			c:test_planet.c@mem
 shop	shop	tests/test_planet.c	identifiant	statique	conservé	tests/test_planet			c:test_planet.c@13928@F@test_daughters@shop
 tags	tags	tests/test_planet.c	identifiant	statique	conservé	tests/test_planet	tags		c:test_planet.c@tags
 test_pico8_planet_gh_row_lq	test_planet_exports_row	tests/test_planet_exports_row.c	chaîne	nom de test	renommé	tests/test_planet_exports_row		libellé	chaîne:test_pico8_planet_gh_row_lq
@@ -12882,9 +12882,9 @@ xl	xl	tests/test_planet_spec_defaults.c	identifiant	paramètre	conservé	tests/t
 xr	xr	tests/test_planet_spec_defaults.c	identifiant	paramètre	conservé	tests/test_planet_spec_defaults			c:test_planet_spec_defaults.c@1249@F@assert_box@xr
 yb	yb	tests/test_planet_spec_defaults.c	identifiant	paramètre	conservé	tests/test_planet_spec_defaults			c:test_planet_spec_defaults.c@1257@F@assert_box@yb
 yt	yt	tests/test_planet_spec_defaults.c	identifiant	paramètre	conservé	tests/test_planet_spec_defaults			c:test_planet_spec_defaults.c@1241@F@assert_box@yt
-gfx	gfx	tests/test_planet_spec_defaults.c	identifiant	statique	conservé	tests/test_planet_spec_defaults			c:test_planet_spec_defaults.c@gfx
+gfx	graphics	tests/test_planet_spec_defaults.c	identifiant	statique	renommé	tests/test_planet_spec_defaults			c:test_planet_spec_defaults.c@gfx
 input	input	tests/test_planet_spec_defaults.c	identifiant	statique	conservé	tests/test_planet_spec_defaults			c:test_planet_spec_defaults.c@input
-mem	mem	tests/test_planet_spec_defaults.c	identifiant	statique	conservé	tests/test_planet_spec_defaults			c:test_planet_spec_defaults.c@mem
+mem	memory	tests/test_planet_spec_defaults.c	identifiant	statique	renommé	tests/test_planet_spec_defaults			c:test_planet_spec_defaults.c@mem
 test_pico8_ptrs	test_pointer_list	tests/test_pointer_list.c	chaîne	nom de test	renommé	tests/test_pointer_list		libellé	chaîne:test_pico8_ptrs
 count	count	tests/test_pointer_list.c	identifiant	champ	conservé	tests/test_pointer_list			c:@SA@collector_t@FI@count
 seen	seen	tests/test_pointer_list.c	identifiant	champ	conservé	tests/test_pointer_list			c:@SA@collector_t@FI@seen
@@ -13190,9 +13190,9 @@ x	x	tests/test_probe.c	identifiant	paramètre	conservé	tests/test_probe			c:tes
 x	x	tests/test_probe.c	identifiant	paramètre	conservé	tests/test_probe			c:test_probe.c@8275@F@vec_xy@x
 y	y	tests/test_probe.c	identifiant	paramètre	conservé	tests/test_probe			c:test_probe.c@8282@F@vec_xy@y
 bm	messages	tests/test_probe.c	identifiant	statique	renommé	tests/test_probe	bm		c:test_probe.c@bm
-gfx	gfx	tests/test_probe.c	identifiant	statique	conservé	tests/test_probe			c:test_probe.c@gfx
+gfx	graphics	tests/test_probe.c	identifiant	statique	renommé	tests/test_probe			c:test_probe.c@gfx
 input	input	tests/test_probe.c	identifiant	statique	conservé	tests/test_probe			c:test_probe.c@input
-mem	mem	tests/test_probe.c	identifiant	statique	conservé	tests/test_probe			c:test_probe.c@mem
+mem	memory	tests/test_probe.c	identifiant	statique	renommé	tests/test_probe			c:test_probe.c@mem
 names	names	tests/test_probe.c	identifiant	statique	conservé	tests/test_probe			c:test_probe.c@6376@F@fold_tags@names
 test_pico8_probe_mm_rnd_order	test_probe_spawn_particle_order	tests/test_probe_spawn_particle_order.c	chaîne	nom de test	renommé	tests/test_probe_spawn_particle_order		libellé	chaîne:test_pico8_probe_mm_rnd_order
 emitted_particle_p	emitted_particle_pos	tests/test_probe_spawn_particle_order.c	identifiant	fonction	renommé	tests/test_probe_spawn_particle_order	qy		c:test_probe_spawn_particle_order.c@F@emitted_particle_p
@@ -13404,9 +13404,9 @@ write	write	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_p
 x	x	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_processor			c:test_processor.c@6797@F@vec_xy@x
 y	y	tests/test_processor.c	identifiant	paramètre	conservé	tests/test_processor			c:test_processor.c@6804@F@vec_xy@y
 bm	messages	tests/test_processor.c	identifiant	statique	renommé	tests/test_processor	bm		c:test_processor.c@bm
-gfx	gfx	tests/test_processor.c	identifiant	statique	conservé	tests/test_processor			c:test_processor.c@gfx
+gfx	graphics	tests/test_processor.c	identifiant	statique	renommé	tests/test_processor			c:test_processor.c@gfx
 input	input	tests/test_processor.c	identifiant	statique	conservé	tests/test_processor			c:test_processor.c@input
-mem	mem	tests/test_processor.c	identifiant	statique	conservé	tests/test_processor			c:test_processor.c@mem
+mem	memory	tests/test_processor.c	identifiant	statique	renommé	tests/test_processor			c:test_processor.c@mem
 tags	tags	tests/test_processor.c	identifiant	statique	conservé	tests/test_processor	tags		c:test_processor.c@tags
 np	node	tests/test_protostar.c	chaîne	clé d'étiquette	renommé	tests/test_protostar		lecteur	chaîne:np
 prober	targeting	tests/test_protostar.c	chaîne	clé d'étiquette	renommé	tests/test_protostar	pico8_probe_t	lecteur	chaîne:prober
@@ -13588,9 +13588,9 @@ word	word	tests/test_protostar.c	identifiant	paramètre	conservé	tests/test_pro
 x	x	tests/test_protostar.c	identifiant	paramètre	conservé	tests/test_protostar			c:test_protostar.c@5223@F@vec_xy@x
 y	y	tests/test_protostar.c	identifiant	paramètre	conservé	tests/test_protostar			c:test_protostar.c@5230@F@vec_xy@y
 bm	messages	tests/test_protostar.c	identifiant	statique	renommé	tests/test_protostar	bm		c:test_protostar.c@bm
-gfx	gfx	tests/test_protostar.c	identifiant	statique	conservé	tests/test_protostar			c:test_protostar.c@gfx
+gfx	graphics	tests/test_protostar.c	identifiant	statique	renommé	tests/test_protostar			c:test_protostar.c@gfx
 input	input	tests/test_protostar.c	identifiant	statique	conservé	tests/test_protostar			c:test_protostar.c@input
-mem	mem	tests/test_protostar.c	identifiant	statique	conservé	tests/test_protostar			c:test_protostar.c@mem
+mem	memory	tests/test_protostar.c	identifiant	statique	renommé	tests/test_protostar			c:test_protostar.c@mem
 tags	tags	tests/test_protostar.c	identifiant	statique	conservé	tests/test_protostar	tags		c:test_protostar.c@tags
 test_pico8_raylib_backend_coords	test_raylib_backend_coords	tests/test_raylib_backend_coords.c	chaîne	nom de test	renommé	tests/test_raylib_backend_coords		libellé	chaîne:test_pico8_raylib_backend_coords
 test_different_scale_factor_divides_accordingly	test_different_scale_factor_divides_accordingly	tests/test_raylib_backend_coords.c	identifiant	fonction	conservé	tests/test_raylib_backend_coords			c:test_raylib_backend_coords.c@F@test_different_scale_factor_divides_accordingly
@@ -14064,9 +14064,9 @@ CART_GP	FROZEN_ROUTED_POSITIONS	tests/test_research_project.c	identifiant	statiq
 CART_MR	FROZEN_POSITIONS	tests/test_research_project.c	identifiant	statique	renommé	tests/test_research_project			c:test_research_project.c@CART_MR
 cart_gp_items	frozen_routed_positions_items	tests/test_research_project.c	identifiant	statique	renommé	tests/test_research_project			c:test_research_project.c@cart_gp_items
 cart_mr_items	frozen_positions_items	tests/test_research_project.c	identifiant	statique	renommé	tests/test_research_project			c:test_research_project.c@cart_mr_items
-gfx	gfx	tests/test_research_project.c	identifiant	statique	conservé	tests/test_research_project			c:test_research_project.c@gfx
+gfx	graphics	tests/test_research_project.c	identifiant	statique	renommé	tests/test_research_project			c:test_research_project.c@gfx
 input	input	tests/test_research_project.c	identifiant	statique	conservé	tests/test_research_project			c:test_research_project.c@input
-mem	mem	tests/test_research_project.c	identifiant	statique	conservé	tests/test_research_project			c:test_research_project.c@mem
+mem	memory	tests/test_research_project.c	identifiant	statique	renommé	tests/test_research_project			c:test_research_project.c@mem
 ca	back_color	tests/test_score_panel.c	chaîne	clé	renommé	tests/test_score_panel		libellé haché	chaîne:ca
 cr	tech_tree_screen	tests/test_score_panel.c	chaîne	clé	renommé	tests/test_score_panel	fv	libellé	chaîne:cr
 ep	description	tests/test_score_panel.c	chaîne	clé	renommé	tests/test_score_panel		libellé haché	chaîne:ep
@@ -14288,9 +14288,9 @@ v	v	tests/test_score_panel.c	identifiant	paramètre	conservé	tests/test_score_p
 want	want	tests/test_score_panel.c	identifiant	paramètre	conservé	tests/test_score_panel			c:test_score_panel.c@7328@F@check@want
 word	word	tests/test_score_panel.c	identifiant	paramètre	conservé	tests/test_score_panel			c:test_score_panel.c@1363@F@fnv@word
 x	x	tests/test_score_panel.c	identifiant	paramètre	conservé	tests/test_score_panel			c:test_score_panel.c@3011@F@fold_fixed@x
-gfx	gfx	tests/test_score_panel.c	identifiant	statique	conservé	tests/test_score_panel			c:test_score_panel.c@gfx
+gfx	graphics	tests/test_score_panel.c	identifiant	statique	renommé	tests/test_score_panel			c:test_score_panel.c@gfx
 input	input	tests/test_score_panel.c	identifiant	statique	conservé	tests/test_score_panel			c:test_score_panel.c@input
-mem	mem	tests/test_score_panel.c	identifiant	statique	conservé	tests/test_score_panel			c:test_score_panel.c@mem
+mem	memory	tests/test_score_panel.c	identifiant	statique	renommé	tests/test_score_panel			c:test_score_panel.c@mem
 tags	tags	tests/test_score_panel.c	identifiant	statique	conservé	tests/test_score_panel	tags		c:test_score_panel.c@tags
 years	years	tests/test_score_panel.c	identifiant	statique	conservé	tests/test_score_panel			c:test_score_panel.c@13338@F@test_life@years
 test_pico8_screencast	test_screencast	tests/test_screencast.c	chaîne	nom de test	renommé	tests/test_screencast		libellé	chaîne:test_pico8_screencast
@@ -14577,9 +14577,9 @@ x	x	tests/test_slipgate.c	identifiant	paramètre	conservé	tests/test_slipgate		
 y	y	tests/test_slipgate.c	identifiant	paramètre	conservé	tests/test_slipgate			c:test_slipgate.c@5398@F@vec_xy@y
 bm	messages	tests/test_slipgate.c	identifiant	statique	renommé	tests/test_slipgate	bm		c:test_slipgate.c@bm
 g_offers	g_offers	tests/test_slipgate.c	identifiant	statique	conservé	tests/test_slipgate			c:test_slipgate.c@g_offers
-gfx	gfx	tests/test_slipgate.c	identifiant	statique	conservé	tests/test_slipgate			c:test_slipgate.c@gfx
+gfx	graphics	tests/test_slipgate.c	identifiant	statique	renommé	tests/test_slipgate			c:test_slipgate.c@gfx
 input	input	tests/test_slipgate.c	identifiant	statique	conservé	tests/test_slipgate			c:test_slipgate.c@input
-mem	mem	tests/test_slipgate.c	identifiant	statique	conservé	tests/test_slipgate			c:test_slipgate.c@mem
+mem	memory	tests/test_slipgate.c	identifiant	statique	renommé	tests/test_slipgate			c:test_slipgate.c@mem
 tags	tags	tests/test_slipgate.c	identifiant	statique	conservé	tests/test_slipgate	tags		c:test_slipgate.c@tags
 bv	targeting_track	tests/test_slipway.c	chaîne	clé	renommé	tests/test_slipway	pico8_probe_t	libellé	chaîne:bv
 eb	other_end	tests/test_slipway.c	chaîne	clé	renommé	tests/test_slipway		libellé	chaîne:eb
@@ -14912,10 +14912,10 @@ x	x	tests/test_slipway.c	identifiant	paramètre	conservé	tests/test_slipway			c
 y	y	tests/test_slipway.c	identifiant	paramètre	conservé	tests/test_slipway			c:test_slipway.c@11019@F@vec_ref@y
 g_dw_zero	g_attach_distance_zero	tests/test_slipway.c	identifiant	statique	renommé	tests/test_slipway			c:test_slipway.c@g_dw_zero
 g_off_qu	g_off_start	tests/test_slipway.c	identifiant	statique	renommé	tests/test_slipway	qu		c:test_slipway.c@g_off_qu
-gfx	gfx	tests/test_slipway.c	identifiant	statique	conservé	tests/test_slipway			c:test_slipway.c@gfx
+gfx	graphics	tests/test_slipway.c	identifiant	statique	renommé	tests/test_slipway			c:test_slipway.c@gfx
 ids	ids	tests/test_slipway.c	identifiant	statique	conservé	tests/test_slipway			c:test_slipway.c@30501@F@test_hg_is_a_set_of_ids@ids
 input	input	tests/test_slipway.c	identifiant	statique	conservé	tests/test_slipway			c:test_slipway.c@input
-mem	mem	tests/test_slipway.c	identifiant	statique	conservé	tests/test_slipway			c:test_slipway.c@mem
+mem	memory	tests/test_slipway.c	identifiant	statique	renommé	tests/test_slipway			c:test_slipway.c@mem
 want_k_	want_trail_colors	tests/test_slipway.c	identifiant	statique	renommé	tests/test_slipway			c:test_slipway.c@want_k_
 kz	placing	tests/test_spec_defaults.c	chaîne	nom d'état	renommé	tests/test_spec_defaults	kz	lecteur	chaîne:kz
 ph	normal	tests/test_spec_defaults.c	chaîne	nom d'état	renommé	tests/test_spec_defaults	ph	lecteur	chaîne:ph
@@ -14955,10 +14955,10 @@ trade	trade	tests/test_spec_defaults.c	identifiant	locale	conservé	tests/test_s
 ui_count	ui_count	tests/test_spec_defaults.c	identifiant	locale	conservé	tests/test_spec_defaults	ui		c:test_spec_defaults.c@1643@F@test_second_jl_keeps_specs@ui_count
 ui_le	ui_ephemerals	tests/test_spec_defaults.c	identifiant	locale	renommé	tests/test_spec_defaults	ui		c:test_spec_defaults.c@1512@F@test_second_jl_keeps_specs@ui_le
 nf	nf	tests/test_spec_defaults.c	identifiant	paramètre	conservé	tests/test_spec_defaults			c:test_spec_defaults.c@1046@F@nf_l_of@nf
-gfx	gfx	tests/test_spec_defaults.c	identifiant	statique	conservé	tests/test_spec_defaults			c:test_spec_defaults.c@gfx
+gfx	graphics	tests/test_spec_defaults.c	identifiant	statique	renommé	tests/test_spec_defaults			c:test_spec_defaults.c@gfx
 input	input	tests/test_spec_defaults.c	identifiant	statique	conservé	tests/test_spec_defaults			c:test_spec_defaults.c@input
 mark_cell	mark_cell	tests/test_spec_defaults.c	identifiant	statique	conservé	tests/test_spec_defaults			c:test_spec_defaults.c@1482@F@test_second_jl_keeps_specs@mark_cell
-mem	mem	tests/test_spec_defaults.c	identifiant	statique	conservé	tests/test_spec_defaults			c:test_spec_defaults.c@mem
+mem	memory	tests/test_spec_defaults.c	identifiant	statique	renommé	tests/test_spec_defaults			c:test_spec_defaults.c@mem
 test_pico8_str	test_str	tests/test_str.c	chaîne	nom de test	renommé	tests/test_str		libellé	chaîne:test_pico8_str
 assert_tostr_raw	assert_tostr_raw	tests/test_str.c	identifiant	fonction	conservé	tests/test_str			c:test_str.c@F@assert_tostr_raw
 check_against_old_tostr	check_against_old_tostr	tests/test_str.c	identifiant	fonction	conservé	tests/test_str			c:test_str.c@F@check_against_old_tostr
@@ -15221,9 +15221,9 @@ write	write	tests/test_structure.c	identifiant	paramètre	conservé	tests/test_s
 x	x	tests/test_structure.c	identifiant	paramètre	conservé	tests/test_structure			c:test_structure.c@6137@F@vec_xy@x
 y	y	tests/test_structure.c	identifiant	paramètre	conservé	tests/test_structure			c:test_structure.c@6144@F@vec_xy@y
 bm	messages	tests/test_structure.c	identifiant	statique	renommé	tests/test_structure	bm		c:test_structure.c@bm
-gfx	gfx	tests/test_structure.c	identifiant	statique	conservé	tests/test_structure			c:test_structure.c@gfx
+gfx	graphics	tests/test_structure.c	identifiant	statique	renommé	tests/test_structure			c:test_structure.c@gfx
 input	input	tests/test_structure.c	identifiant	statique	conservé	tests/test_structure			c:test_structure.c@input
-mem	mem	tests/test_structure.c	identifiant	statique	conservé	tests/test_structure			c:test_structure.c@mem
+mem	memory	tests/test_structure.c	identifiant	statique	renommé	tests/test_structure			c:test_structure.c@mem
 shop	shop	tests/test_structure.c	identifiant	statique	conservé	tests/test_structure			c:test_structure.c@20561@F@test_descendants@shop
 tags	tags	tests/test_structure.c	identifiant	statique	conservé	tests/test_structure	tags		c:test_structure.c@tags
 ev	draw_overlay	tests/test_structure_icon.c	chaîne	clé de message	renommé	tests/test_structure_icon	ev	lecteur	chaîne:ev
@@ -15432,10 +15432,10 @@ want	want	tests/test_structure_icon.c	identifiant	paramètre	conservé	tests/tes
 word	word	tests/test_structure_icon.c	identifiant	paramètre	conservé	tests/test_structure_icon			c:test_structure_icon.c@1312@F@fnv@word
 x	x	tests/test_structure_icon.c	identifiant	paramètre	conservé	tests/test_structure_icon			c:test_structure_icon.c@6240@F@v2@x
 y	y	tests/test_structure_icon.c	identifiant	paramètre	conservé	tests/test_structure_icon			c:test_structure_icon.c@6247@F@v2@y
-gfx	gfx	tests/test_structure_icon.c	identifiant	statique	conservé	tests/test_structure_icon			c:test_structure_icon.c@gfx
+gfx	graphics	tests/test_structure_icon.c	identifiant	statique	renommé	tests/test_structure_icon			c:test_structure_icon.c@gfx
 gx_rr	kind_table_required_tech	tests/test_structure_icon.c	identifiant	statique	renommé	tests/test_structure_icon			c:test_structure_icon.c@gx_rr
 input	input	tests/test_structure_icon.c	identifiant	statique	conservé	tests/test_structure_icon			c:test_structure_icon.c@input
-mem	mem	tests/test_structure_icon.c	identifiant	statique	conservé	tests/test_structure_icon			c:test_structure_icon.c@mem
+mem	memory	tests/test_structure_icon.c	identifiant	statique	renommé	tests/test_structure_icon			c:test_structure_icon.c@mem
 od	od	tests/test_structure_icon.c	identifiant	statique	conservé	tests/test_structure_icon			c:test_structure_icon.c@20249@F@test_ke_view_is_a_struct@od
 probe	probe	tests/test_structure_icon.c	identifiant	statique	conservé	tests/test_structure_icon			c:test_structure_icon.c@6752@F@fold_kq@probe
 s	s	tests/test_structure_icon.c	identifiant	statique	conservé	tests/test_structure_icon			c:test_structure_icon.c@20187@F@test_ke_view_is_a_struct@s
@@ -15649,9 +15649,9 @@ write	write	tests/test_synthesizer.c	identifiant	paramètre	conservé	tests/test
 x	x	tests/test_synthesizer.c	identifiant	paramètre	conservé	tests/test_synthesizer			c:test_synthesizer.c@6130@F@vec_xy@x
 y	y	tests/test_synthesizer.c	identifiant	paramètre	conservé	tests/test_synthesizer			c:test_synthesizer.c@6137@F@vec_xy@y
 bm	messages	tests/test_synthesizer.c	identifiant	statique	renommé	tests/test_synthesizer	bm		c:test_synthesizer.c@bm
-gfx	gfx	tests/test_synthesizer.c	identifiant	statique	conservé	tests/test_synthesizer			c:test_synthesizer.c@gfx
+gfx	graphics	tests/test_synthesizer.c	identifiant	statique	renommé	tests/test_synthesizer			c:test_synthesizer.c@gfx
 input	input	tests/test_synthesizer.c	identifiant	statique	conservé	tests/test_synthesizer			c:test_synthesizer.c@input
-mem	mem	tests/test_synthesizer.c	identifiant	statique	conservé	tests/test_synthesizer			c:test_synthesizer.c@mem
+mem	memory	tests/test_synthesizer.c	identifiant	statique	renommé	tests/test_synthesizer			c:test_synthesizer.c@mem
 tags	tags	tests/test_synthesizer.c	identifiant	statique	conservé	tests/test_synthesizer	tags		c:test_synthesizer.c@tags
 ev	draw_overlay	tests/test_toast.c	chaîne	clé de message	renommé	tests/test_toast	ev	lecteur	chaîne:ev
 hb	refresh	tests/test_toast.c	chaîne	clé de message	renommé	tests/test_toast	hb	lecteur	chaîne:hb
@@ -15743,9 +15743,9 @@ word	word	tests/test_toast.c	identifiant	paramètre	conservé	tests/test_toast		
 g_fake_ph_calls	g_fake_update_calls	tests/test_toast.c	identifiant	statique	renommé	tests/test_toast	ph		c:test_toast.c@g_fake_ph_calls
 g_fake_ph_last_t	g_fake_update_last	tests/test_toast.c	identifiant	statique	renommé	tests/test_toast	ph		c:test_toast.c@g_fake_ph_last_t
 g_fake_toast_class	fake_toast_class_def	tests/test_toast.c	identifiant	statique	renommé	tests/test_toast			c:test_toast.c@g_fake_toast_class
-gfx	gfx	tests/test_toast.c	identifiant	statique	conservé	tests/test_toast			c:test_toast.c@gfx
+gfx	graphics	tests/test_toast.c	identifiant	statique	renommé	tests/test_toast			c:test_toast.c@gfx
 input	input	tests/test_toast.c	identifiant	statique	conservé	tests/test_toast			c:test_toast.c@input
-mem	mem	tests/test_toast.c	identifiant	statique	conservé	tests/test_toast			c:test_toast.c@mem
+mem	memory	tests/test_toast.c	identifiant	statique	renommé	tests/test_toast			c:test_toast.c@mem
 fake_toast_t	fake_toast_t	tests/test_toast.c	identifiant	type	conservé	tests/test_toast			c:@T@fake_toast_t
 test_pico8_jb_ol	test_tooltip_draw_at	tests/test_tooltip_draw_at.c	chaîne	nom de test	renommé	tests/test_tooltip_draw_at		libellé	chaîne:test_pico8_jb_ol
 check	check	tests/test_tooltip_draw_at.c	identifiant	fonction	conservé	tests/test_tooltip_draw_at			c:test_tooltip_draw_at.c@F@check
@@ -15783,9 +15783,9 @@ label	label	tests/test_tooltip_draw_at.c	identifiant	paramètre	conservé	tests/
 om	om	tests/test_tooltip_draw_at.c	identifiant	paramètre	conservé	tests/test_tooltip_draw_at			c:test_tooltip_draw_at.c@1110@F@draw_jb@om
 om	om	tests/test_tooltip_draw_at.c	identifiant	paramètre	conservé	tests/test_tooltip_draw_at			c:test_tooltip_draw_at.c@4059@F@draw_by_name@om
 want	want	tests/test_tooltip_draw_at.c	identifiant	paramètre	conservé	tests/test_tooltip_draw_at			c:test_tooltip_draw_at.c@1314@F@check@want
-gfx	gfx	tests/test_tooltip_draw_at.c	identifiant	statique	conservé	tests/test_tooltip_draw_at			c:test_tooltip_draw_at.c@gfx
+gfx	graphics	tests/test_tooltip_draw_at.c	identifiant	statique	renommé	tests/test_tooltip_draw_at			c:test_tooltip_draw_at.c@gfx
 items	items	tests/test_tooltip_draw_at.c	identifiant	statique	conservé	tests/test_tooltip_draw_at			c:test_tooltip_draw_at.c@1921@F@test_bare_strings_draw_as_before@items
-mem	mem	tests/test_tooltip_draw_at.c	identifiant	statique	conservé	tests/test_tooltip_draw_at			c:test_tooltip_draw_at.c@mem
+mem	memory	tests/test_tooltip_draw_at.c	identifiant	statique	renommé	tests/test_tooltip_draw_at			c:test_tooltip_draw_at.c@mem
 mixed	mixed	tests/test_tooltip_draw_at.c	identifiant	statique	conservé	tests/test_tooltip_draw_at			c:test_tooltip_draw_at.c@4716@F@test_jb_state_by_name@mixed
 mixed_items	mixed_items	tests/test_tooltip_draw_at.c	identifiant	statique	conservé	tests/test_tooltip_draw_at			c:test_tooltip_draw_at.c@4608@F@test_jb_state_by_name@mixed_items
 row	row	tests/test_tooltip_draw_at.c	identifiant	statique	conservé	tests/test_tooltip_draw_at			c:test_tooltip_draw_at.c@4536@F@test_jb_state_by_name@row
@@ -15987,9 +15987,9 @@ want	want	tests/test_trade.c	identifiant	paramètre	conservé	tests/test_trade		
 word	word	tests/test_trade.c	identifiant	paramètre	conservé	tests/test_trade			c:test_trade.c@1336@F@fnv@word
 write	write	tests/test_trade.c	identifiant	paramètre	conservé	tests/test_trade			c:test_trade.c@14545@F@must_abort@write
 g_kf_calls	g_accept_calls	tests/test_trade.c	identifiant	statique	renommé	tests/test_trade	lw		c:test_trade.c@g_kf_calls
-gfx	gfx	tests/test_trade.c	identifiant	statique	conservé	tests/test_trade			c:test_trade.c@gfx
+gfx	graphics	tests/test_trade.c	identifiant	statique	renommé	tests/test_trade			c:test_trade.c@gfx
 input	input	tests/test_trade.c	identifiant	statique	conservé	tests/test_trade			c:test_trade.c@input
-mem	mem	tests/test_trade.c	identifiant	statique	conservé	tests/test_trade			c:test_trade.c@mem
+mem	memory	tests/test_trade.c	identifiant	statique	renommé	tests/test_trade			c:test_trade.c@mem
 sentinel_target	sentinel_target	tests/test_trade.c	identifiant	statique	conservé	tests/test_trade			c:test_trade.c@7978@F@test_to@sentinel_target
 np	node	tests/test_trading_hub.c	chaîne	clé d'étiquette	renommé	tests/test_trading_hub		lecteur	chaîne:np
 prober	targeting	tests/test_trading_hub.c	chaîne	clé d'étiquette	renommé	tests/test_trading_hub	pico8_probe_t	lecteur	chaîne:prober
@@ -16154,9 +16154,9 @@ write	write	tests/test_trading_hub.c	identifiant	paramètre	conservé	tests/test
 x	x	tests/test_trading_hub.c	identifiant	paramètre	conservé	tests/test_trading_hub			c:test_trading_hub.c@5499@F@vec_xy@x
 y	y	tests/test_trading_hub.c	identifiant	paramètre	conservé	tests/test_trading_hub			c:test_trading_hub.c@5506@F@vec_xy@y
 bm	messages	tests/test_trading_hub.c	identifiant	statique	renommé	tests/test_trading_hub	bm		c:test_trading_hub.c@bm
-gfx	gfx	tests/test_trading_hub.c	identifiant	statique	conservé	tests/test_trading_hub			c:test_trading_hub.c@gfx
+gfx	graphics	tests/test_trading_hub.c	identifiant	statique	renommé	tests/test_trading_hub			c:test_trading_hub.c@gfx
 input	input	tests/test_trading_hub.c	identifiant	statique	conservé	tests/test_trading_hub			c:test_trading_hub.c@input
-mem	mem	tests/test_trading_hub.c	identifiant	statique	conservé	tests/test_trading_hub			c:test_trading_hub.c@mem
+mem	memory	tests/test_trading_hub.c	identifiant	statique	renommé	tests/test_trading_hub			c:test_trading_hub.c@mem
 tags	tags	tests/test_trading_hub.c	identifiant	statique	conservé	tests/test_trading_hub	tags		c:test_trading_hub.c@tags
 cj	clear_ephemerals	tests/test_ui.c	chaîne	clé	renommé	tests/test_ui		libellé	chaîne:cj
 ke_me	entity_state	tests/test_ui.c	chaîne	clé	renommé	tests/test_ui	ke	libellé	chaîne:ke_me
@@ -16465,11 +16465,11 @@ g_giver_hovered	g_giver_hovered	tests/test_ui.c	identifiant	statique	conservé	t
 g_giver_m_	g_giver_is_hovered	tests/test_ui.c	identifiant	statique	renommé	tests/test_ui	m_		c:test_ui.c@g_giver_m_
 g_hold_buttons	g_hold_buttons	tests/test_ui.c	identifiant	statique	conservé	tests/test_ui			c:test_ui.c@g_hold_buttons
 g_mouse	g_mouse	tests/test_ui.c	identifiant	statique	conservé	tests/test_ui			c:test_ui.c@g_mouse
-gfx	gfx	tests/test_ui.c	identifiant	statique	conservé	tests/test_ui			c:test_ui.c@gfx
+gfx	graphics	tests/test_ui.c	identifiant	statique	renommé	tests/test_ui			c:test_ui.c@gfx
 identity	identity	tests/test_ui.c	identifiant	statique	conservé	tests/test_ui			c:test_ui.c@29537@F@test_ke_me_by_name@identity
 input	input	tests/test_ui.c	identifiant	statique	conservé	tests/test_ui			c:test_ui.c@input
 mark	mark	tests/test_ui.c	identifiant	statique	conservé	tests/test_ui			c:test_ui.c@20273@F@test_init_empties_shared_le@mark
-mem	mem	tests/test_ui.c	identifiant	statique	conservé	tests/test_ui			c:test_ui.c@mem
+mem	memory	tests/test_ui.c	identifiant	statique	renommé	tests/test_ui			c:test_ui.c@mem
 not_listed	not_listed	tests/test_ui.c	identifiant	statique	conservé	tests/test_ui			c:test_ui.c@not_listed
 previous	previous	tests/test_ui.c	identifiant	statique	conservé	tests/test_ui			c:test_ui.c@26005@F@help_alone@previous
 probe	probe	tests/test_ui.c	identifiant	statique	conservé	tests/test_ui			c:test_ui.c@26589@F@test_components_carried@probe
@@ -16822,9 +16822,9 @@ want_kind	want_kind	tests/test_wormhole.c	identifiant	paramètre	conservé	tests
 word	word	tests/test_wormhole.c	identifiant	paramètre	conservé	tests/test_wormhole			c:test_wormhole.c@1559@F@fnv@word
 x	x	tests/test_wormhole.c	identifiant	paramètre	conservé	tests/test_wormhole			c:test_wormhole.c@6441@F@vec_ref@x
 y	y	tests/test_wormhole.c	identifiant	paramètre	conservé	tests/test_wormhole			c:test_wormhole.c@6448@F@vec_ref@y
-gfx	gfx	tests/test_wormhole.c	identifiant	statique	conservé	tests/test_wormhole			c:test_wormhole.c@gfx
+gfx	graphics	tests/test_wormhole.c	identifiant	statique	renommé	tests/test_wormhole			c:test_wormhole.c@gfx
 input	input	tests/test_wormhole.c	identifiant	statique	conservé	tests/test_wormhole			c:test_wormhole.c@input
-mem	mem	tests/test_wormhole.c	identifiant	statique	conservé	tests/test_wormhole			c:test_wormhole.c@mem
+mem	memory	tests/test_wormhole.c	identifiant	statique	renommé	tests/test_wormhole			c:test_wormhole.c@mem
 want_kk	want_color_ramp	tests/test_wormhole.c	identifiant	statique	renommé	tests/test_wormhole			c:test_wormhole.c@7894@F@check_fresh_mz@want_kk
 tmp/test_pico8_zone_stderr.txt	tmp/test_zone_stderr.txt	tests/test_zone.c	chaîne	chemin tmp	renommé	tests/test_zone		écrivain, lecteur	chaîne:tmp/test_pico8_zone_stderr.txt
 test_pico8_zone	test_zone	tests/test_zone.c	chaîne	nom de test	renommé	tests/test_zone		libellé	chaîne:test_pico8_zone

@@ -25,8 +25,8 @@
 #define UPDATE_MOUSE_WORLD_X 0
 #define UPDATE_MOUSE_WORLD_Y 0
 
-static p8_memory_t mem;
-static p8_graphics_t gfx;
+static p8_memory_t memory;
+static p8_graphics_t graphics;
 static p8_input_t input;
 
 static int entity_list_listed(const entity_list_t *list, const void *e) {
@@ -94,7 +94,7 @@ static void test_update_on_placeholder(void) {
     entity_registry_init();
     assert_placeholder(1);
     ok = ui_new();
-    ui_update(&mem, ok);
+    ui_update(&memory, ok);
     assert(ok->left_held == NULL && ok->right_held == NULL);
     assert(ok->mouse_world != NULL);
     qa = ok->mouse_world;
@@ -164,13 +164,13 @@ static void test_placeholder_is_a_struct(void) {
 }
 
 int main(void) {
-    p8_mem_init(&mem);
-    p8_gfx_init(&gfx);
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_mem_init(&memory);
+    p8_gfx_init(&graphics);
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
     dispatch_context_set_input(&input);
 
     cart_load();

@@ -76,18 +76,18 @@ static int case_dead_next_frame(void) {
     return 0;
 }
 
-static p8_memory_t mem;
-static p8_graphics_t gfx;
+static p8_memory_t memory;
+static p8_graphics_t graphics;
 static p8_input_t input;
 
 static void load_cart_and_start(void) {
-    p8_mem_init(&mem);
-    p8_gfx_init(&gfx);
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_mem_init(&memory);
+    p8_gfx_init(&graphics);
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
     dispatch_context_set_input(&input);
     cart_load();
     cart_init();
@@ -147,8 +147,8 @@ static int reset_then_draw_panel(void) {
             bubbles++;
         }
         js->is_hovered = 1;
-        button_draw(&gfx, &mem, js, p);
-        button_draw_overlay(&gfx, &mem, js);
+        button_draw(&graphics, &memory, js, p);
+        button_draw_overlay(&graphics, &memory, js);
     }
     return bubbles;
 }
@@ -279,10 +279,10 @@ static int case_panel_texts_survive_reset(void) {
     frame_zone_reset();
     allocate_again();
     sink = (unsigned char)(read_cells(row) + read_cells(copy) + read_cells(bubble->rows[0]));
-    layout_row_draw_at_default(&gfx, &mem, row, vec_make(0, 0));
-    layout_row_draw_at_default(&gfx, &mem, copy, vec_make(0, 0));
-    tooltip_draw_at(&gfx, &mem, bubble, 0, 0);
-    layout_row_draw_at_default(&gfx, &mem, of_tuple, vec_make(0, 0));
+    layout_row_draw_at_default(&graphics, &memory, row, vec_make(0, 0));
+    layout_row_draw_at_default(&graphics, &memory, copy, vec_make(0, 0));
+    tooltip_draw_at(&graphics, &memory, bubble, 0, 0);
+    layout_row_draw_at_default(&graphics, &memory, of_tuple, vec_make(0, 0));
     return 0;
 }
 

@@ -43,8 +43,8 @@
 
 #define MAX_BOXES 4
 
-static p8_memory_t mem;
-static p8_graphics_t gfx;
+static p8_memory_t memory;
+static p8_graphics_t graphics;
 static p8_input_t input;
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -61,15 +61,15 @@ static uint32_t screen_hash(void) {
     int i;
 
     for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
+        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
 }
 
 static uint32_t draw_hash(void) {
-    p8_gfx_init(&gfx);
-    p8_cls(&mem);
+    p8_gfx_init(&graphics);
+    p8_cls(&memory);
     draw_layers("draw_overlay");
     return screen_hash();
 }
@@ -145,7 +145,7 @@ static void tick(run_t *run) {
 
     update_entities();
     drawn = draw_hash();
-    p8_cls(&mem);
+    p8_cls(&memory);
     run->drew |= drawn != screen_hash();
     run->hash = fnv(run->hash, drawn);
     for (i = 0; i < run->count; i++) {
@@ -453,13 +453,13 @@ static void test_largest_scores_box_fits_its_slot(void) {
 }
 
 int main(void) {
-    p8_mem_init(&mem);
-    p8_gfx_init(&gfx);
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_mem_init(&memory);
+    p8_gfx_init(&graphics);
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
     dispatch_context_set_input(&input);
 
     cart_load();

@@ -67,8 +67,8 @@
 #define ENTITY_STATE_HASH 0xE995C6EFu
 #define ENTITY_STATE_TIME_HASH 0xDE09A985u
 
-static p8_memory_t mem;
-static p8_graphics_t gfx;
+static p8_memory_t memory;
+static p8_graphics_t graphics;
 static p8_input_t input;
 
 static const char *const not_listed[] = {"draw", "hit_test", "new_year", "refresh"};
@@ -166,7 +166,7 @@ static uint32_t screen_hash(void) {
     int i;
 
     for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
+        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
@@ -178,11 +178,11 @@ static uint32_t cursor_is(int id) {
     vec_t at = vec_at(checked_main_mouse()->pos);
     uint32_t drawn;
 
-    p8_cls(&mem);
-    ui_draw_overlay(&gfx, &mem, main_ui());
+    p8_cls(&memory);
+    ui_draw_overlay(&graphics, &memory, main_ui());
     drawn = screen_hash();
-    p8_cls(&mem);
-    p8_spr_default(&gfx, &mem, id, p8_fixed_flr_int(at.x), p8_fixed_flr_int(at.y));
+    p8_cls(&memory);
+    p8_spr_default(&graphics, &memory, id, p8_fixed_flr_int(at.x), p8_fixed_flr_int(at.y));
     assert(drawn == screen_hash());
     return drawn;
 }
@@ -344,7 +344,7 @@ static void test_fresh(void) {
     vec_t want;
 
     mouse_at(64, 100, 0);
-    ui_update(&mem, main_ui());
+    ui_update(&memory, main_ui());
     want = vec_add(vec_at(checked_main_mouse()->pos), vec_at(checked_main_camera()->pos));
     assert(vec_at(ok->mouse_world).x == want.x && vec_at(ok->mouse_world).y == want.y);
     assert(ok->hovered_by_layer != NULL && ok->hovered != NULL);
@@ -353,7 +353,7 @@ static void test_fresh(void) {
     h = fold_vec(h, vec_at(ok->mouse_world));
     h = fold_layers(h, ok);
     h = fold_entity(h, ok->hovered);
-    h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
+    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     h = fnv(h, cursor_is(58));
     assert(ok->ephemerals == ui_ephemerals_shared());
     check("fresh", h, FRESH_HASH);
@@ -390,30 +390,30 @@ static void test_hover(void) {
     planet_t *planet;
 
     mouse_at(64, 100, 0);
-    ui_update(&mem, ok);
+    ui_update(&memory, ok);
     planet = planet_on_screen(&x, &y);
     mouse_at(x, y, 0);
-    ui_update(&mem, ok);
+    ui_update(&memory, ok);
     assert((void *)ok->hovered == planet);
     assert(is_hovered_state(planet) == 2);
     /* A planet has no `gpio_signal`: 0x5f80 is poked with 0. */
-    assert(p8_peek(&mem, 0x5f80) == 0);
+    assert(p8_peek(&memory, 0x5f80) == 0);
     assert(in_layer(ok, 6, planet) && in_layer(ok, 1, the_background()));
     h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), planet));
-    h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
+    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     h = fold_layers(h, ok);
 
-    ui_update(&mem, ok);
+    ui_update(&memory, ok);
     assert((void *)ok->previous_hovered == planet && (void *)ok->hovered == planet);
     assert(is_hovered_state(planet) == 2);
     h = fnv(h, cursor_is(58));
 
     mouse_at(x + 40 > 127 ? x - 40 : x + 40, y, 0);
-    ui_update(&mem, ok);
+    ui_update(&memory, ok);
     assert((void *)ok->hovered != planet);
     assert(is_hovered_state(planet) == 0);
     h = fold_entity(h, ok->hovered);
-    h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
+    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     check("hover", h, HOVER_HASH);
 }
 
@@ -432,10 +432,10 @@ static void test_layers(void) {
     int y;
 
     mouse_at(64, 100, 0);
-    ui_update(&mem, ok);
+    ui_update(&memory, ok);
     planet = planet_on_screen(&x, &y);
     mouse_at(x, y, 0);
-    ui_update(&mem, ok);
+    ui_update(&memory, ok);
     qa = ok->mouse_world;
     ra = checked_main_mouse()->pos;
     assert(qa != NULL && ra != NULL);
@@ -460,21 +460,21 @@ static void test_right(void) {
     void *bg;
 
     mouse_at(64, 100, 0);
-    ui_update(&mem, ok);
+    ui_update(&memory, ok);
     bg = the_background();
     mouse_at(64, 100, 2);
-    ui_update(&mem, ok);
+    ui_update(&memory, ok);
     assert((void *)ok->right_held == bg && ok->left_held == NULL);
     h = fnv(h, cursor_is(9));
 
     mouse_at(70, 90, 2);
-    ui_update(&mem, ok);
+    ui_update(&memory, ok);
     assert((void *)ok->right_held == bg);
     h = fold_vec(h, vec_at(checked_main_camera()->pos));
     h = fnv(h, cursor_is(9));
 
     mouse_at(70, 90, 0);
-    ui_update(&mem, ok);
+    ui_update(&memory, ok);
     assert(ok->right_held == NULL && ok->left_held == NULL);
     h = fold_vec(h, vec_at(checked_main_camera()->pos));
     h = fnv(h, cursor_is(58));
@@ -536,9 +536,9 @@ static void test_left(void) {
 
     screen_of(start_planet, &pixel_x, &pixel_y);
     mouse_at(pixel_x, pixel_y, 0);
-    ui_update(&mem, dispatcher);
+    ui_update(&memory, dispatcher);
     mouse_at(pixel_x, pixel_y, 1);
-    ui_update(&mem, dispatcher);
+    ui_update(&memory, dispatcher);
     held = dispatcher->left_held;
     assert(held != NULL && is_of(held, slipway_class()) && dispatcher->right_held == NULL);
     assert((void *)((const slipway_t *)held)->start == start_planet && slipways_count(start_planet) == 0);
@@ -548,14 +548,14 @@ static void test_left(void) {
 
     screen_of(other, &pixel_x, &pixel_y);
     mouse_at(pixel_x, pixel_y, 1);
-    ui_update(&mem, dispatcher);
+    ui_update(&memory, dispatcher);
     assert((void *)dispatcher->left_held == held);
     target = dispatcher->hovered;
     assert(target == other);
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), target));
 
     mouse_at(pixel_x, pixel_y, 0);
-    ui_update(&mem, dispatcher);
+    ui_update(&memory, dispatcher);
     assert(dispatcher->left_held == NULL && dispatcher->right_held == NULL);
     assert(slipways_count(start_planet) == 1 && slipways_count(target) == 1);
     hash = fnv(hash, (uint32_t)entities_by_tag("slipway")->count);
@@ -604,14 +604,14 @@ static void test_stale(void) {
     cart_init();
     old = main_ui();
     mouse_at(76, 71, 0);
-    ui_update(&mem, old);
+    ui_update(&memory, old);
     button = old->hovered;
     le = ephemerals_of(old);
     assert(button != NULL && is_of(button, button_class()) && le->count == 0);
     h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), button));
 
     mouse_at(76, 71, 1);
-    ui_update(&mem, old);
+    ui_update(&memory, old);
     assert(main_ui() != old && main_ui() != NULL);
     assert(old->previous_hovered == old->hovered && old->previous_hovered != NULL && is_of(old->previous_hovered, button_class()));
     h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), old->previous_hovered));
@@ -642,7 +642,7 @@ static void test_click_reaches_a_row_of_ephemerals(void) {
     for (y = 0; y < 128 && hx < 0; y += 2) {
         for (x = 0; x < 128 && hx < 0; x += 2) {
             mouse_at(x, y, 0);
-            ui_update(&mem, ok);
+            ui_update(&memory, ok);
             if ((void *)ok->hovered == row) {
                 hx = x;
                 hy = y;
@@ -652,7 +652,7 @@ static void test_click_reaches_a_row_of_ephemerals(void) {
     assert(hx >= 0);
     ih = p8_sfx_muted();
     mouse_at(hx, hy, 1);
-    ui_update(&mem, ok);
+    ui_update(&memory, ok);
     assert(p8_sfx_muted() == !ih);
     p8_set_sfx_muted(ih);
 }
@@ -751,9 +751,9 @@ static giver_t g_giver = {{.class = &giver_class_def, .layer = &g_giver_layer, .
 
 static void press(void *ok, int buttons) {
     mouse_at(64, 100, 0);
-    ui_update(&mem, ok);
+    ui_update(&memory, ok);
     mouse_at(64, 100, buttons);
-    ui_update(&mem, ok);
+    ui_update(&memory, ok);
 }
 
 static int g_hold_buttons;
@@ -1157,13 +1157,13 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    p8_mem_init(&mem);
-    p8_gfx_init(&gfx);
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_mem_init(&memory);
+    p8_gfx_init(&graphics);
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
     dispatch_context_set_input(&input);
 
     cart_load();

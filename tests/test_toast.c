@@ -37,8 +37,8 @@
 #define PRICE_SEQUENCE_HASH 0xA692DEE9u
 #define PRICE_FIRST_DRAW_HASH 0x884AD566u
 
-static p8_memory_t mem;
-static p8_graphics_t gfx;
+static p8_memory_t memory;
+static p8_graphics_t graphics;
 static p8_input_t input;
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -55,24 +55,24 @@ static uint32_t screen_hash(void) {
     int i;
 
     for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
+        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
 }
 
 static uint32_t draw_hash(void) {
-    p8_gfx_init(&gfx);
-    p8_cls(&mem);
+    p8_gfx_init(&graphics);
+    p8_cls(&memory);
     draw_layers("draw");
     return screen_hash();
 }
 
 /* One toast's draw alone, as draw_layers("draw") would place it. */
 static uint32_t draw_hash_of(const toast_t *e) {
-    p8_gfx_init(&gfx);
-    p8_cls(&mem);
-    toast_draw(&gfx, &mem, e, *e->pos);
+    p8_gfx_init(&graphics);
+    p8_cls(&memory);
+    toast_draw(&graphics, &memory, e, *e->pos);
     return screen_hash();
 }
 
@@ -121,7 +121,7 @@ static void live(toast_t *e, int want_ticks, uint32_t want_sequence, uint32_t wa
     uint32_t blank;
     int ticks = 0;
 
-    p8_cls(&mem);
+    p8_cls(&memory);
     blank = screen_hash();
     first_draw = draw_hash();
 
@@ -343,13 +343,13 @@ static void test_toast_follows_the_borrowed_pos_until_its_first_update(void) {
 }
 
 int main(void) {
-    p8_mem_init(&mem);
-    p8_gfx_init(&gfx);
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_mem_init(&memory);
+    p8_gfx_init(&graphics);
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
     dispatch_context_set_input(&input);
 
     cart_load();

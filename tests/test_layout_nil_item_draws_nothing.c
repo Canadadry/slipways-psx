@@ -42,11 +42,11 @@
 #define SPRITE0_ROW_PIXELS 8
 #define SPRITE0_BOTTOM_ROW_Y 7
 
-static p8_memory_t mem;
-static p8_graphics_t gfx;
+static p8_memory_t memory;
+static p8_graphics_t graphics;
 
 static int screen_pixel(int x, int y) {
-    return p8_peek(&mem, P8_ADDR_SCREEN + y * P8_SCREEN_WIDTH + x);
+    return p8_peek(&memory, P8_ADDR_SCREEN + y * P8_SCREEN_WIDTH + x);
 }
 
 /* How many places sprite #0's bottom row appears in the framebuffer, with
@@ -57,7 +57,7 @@ static int sprite0_bottom_row_hits(int *out_x, int *out_y) {
     int i, x, y, hits = 0;
 
     for (i = 0; i < SPRITE0_ROW_PIXELS; i++) {
-        wanted[i] = p8_sget(&mem, i, SPRITE0_BOTTOM_ROW_Y);
+        wanted[i] = p8_sget(&memory, i, SPRITE0_BOTTOM_ROW_Y);
     }
 
     for (y = 0; y < P8_SCREEN_HEIGHT; y++) {
@@ -107,8 +107,8 @@ static layout_row_cell_t render_one_item(data_item_t item) {
     line = layout_row_new(&heap_allocator, &keys);
     assert(line != NULL && line->items_count == 1);
 
-    p8_cls(&mem);
-    layout_row_draw_at_default(&gfx, &mem, line, vec_make(p8_fixed_from_int(DRAW_X), p8_fixed_from_int(DRAW_Y)));
+    p8_cls(&memory);
+    layout_row_draw_at_default(&graphics, &memory, line, vec_make(p8_fixed_from_int(DRAW_X), p8_fixed_from_int(DRAW_Y)));
     return line->items[0];
 }
 
@@ -159,16 +159,16 @@ static void test_numeric_item_still_draws_its_sprite(void) {
 }
 
 int main(void) {
-    p8_mem_init(&mem);
-    p8_gfx_init(&gfx);
+    p8_mem_init(&memory);
+    p8_gfx_init(&graphics);
 
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
 
     /* hud_build_palette_table() fills the 0x5000 palette-block table that
      * hud_select_palette_block() copies from. A row's sprite selects a block
      * around its p8_spr(), so the control only draws what the game draws once
      * the table is built. */
-    hud_build_palette_table(&mem);
+    hud_build_palette_table(&memory);
 
     layout_init();
 

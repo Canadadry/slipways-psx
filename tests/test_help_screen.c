@@ -41,8 +41,8 @@
 #define LIFE_HASH 0x64B6480Bu
 #define HOVER_HASH 0xEE114A89u
 
-static p8_memory_t mem;
-static p8_graphics_t gfx;
+static p8_memory_t memory;
+static p8_graphics_t graphics;
 static p8_input_t input;
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -225,7 +225,7 @@ static uint32_t screen_hash(void) {
     int i;
 
     for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
+        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
@@ -456,29 +456,29 @@ static void test_hover(void) {
     start_title();
     fv = the_help();
     mouse_at(64, 112);
-    ui_update(&mem, main_ui());
+    ui_update(&memory, main_ui());
     assert((void *)main_ui()->hovered == fv);
     assert(is_hovered_state(fv) == 2);
-    check_int("hover 0x5f80", p8_peek(&mem, 0x5f80), 5);
+    check_int("hover 0x5f80", p8_peek(&memory, 0x5f80), 5);
     assert(in_layer(10, fv));
     h = fnv(h, is_hovered_state(fv));
-    h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
+    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
 
-    p8_cls(&mem);
-    ui_draw_overlay(&gfx, &mem, main_ui());
+    p8_cls(&memory);
+    ui_draw_overlay(&graphics, &memory, main_ui());
     drawn = screen_hash();
-    p8_cls(&mem);
-    p8_spr_default(&gfx, &mem, 11, 64, 112);
+    p8_cls(&memory);
+    p8_spr_default(&graphics, &memory, 11, 64, 112);
     assert(drawn == screen_hash());
     h = fnv(h, drawn);
 
     mouse_at(64, 10);
-    ui_update(&mem, main_ui());
+    ui_update(&memory, main_ui());
     assert((void *)main_ui()->hovered != fv);
     assert(is_hovered_state(fv) == 0);
     assert(!in_layer(10, fv));
     h = fnv(h, is_hovered_state(fv));
-    h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
+    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     check("hover", h, HOVER_HASH);
 }
 
@@ -512,11 +512,11 @@ static void test_particle_takes_the_help_palette(void) {
     qy = fv->emitter->particles;
     empty_particles(qy);
     pointer_list_add(qy, particle);
-    p8_camera_reset(&gfx);
+    p8_camera_reset(&graphics);
     at = P8_ADDR_SCREEN + p8_fixed_flr_int(ra.y) * P8_SCREEN_WIDTH + p8_fixed_flr_int(ra.x);
-    p8_poke(&mem, at, 3);
-    emitter_update(&gfx, &mem, &fv->header);
-    assert(p8_peek(&mem, at) == help_screen_trail_colors_seq.items[5] && help_screen_trail_colors_seq.items[5] == 9);
+    p8_poke(&memory, at, 3);
+    emitter_update(&graphics, &memory, &fv->header);
+    assert(p8_peek(&memory, at) == help_screen_trail_colors_seq.items[5] && help_screen_trail_colors_seq.items[5] == 9);
 }
 
 /* cart_start_game(), as a difficulty button starts it, takes the help out of
@@ -570,7 +570,7 @@ static void call_emitter_spawn(void *e) {
 }
 
 static void call_emitter_update(void *e) {
-    emitter_update(&gfx, &mem, e);
+    emitter_update(&graphics, &memory, e);
 }
 
 static void call_probe_spawn_particle(void *e) {
@@ -582,7 +582,7 @@ static void call_targeting_track(void *e) {
 }
 
 static void call_targeting_tooltip(void *e) {
-    targeting_tooltip(&gfx, &mem, e);
+    targeting_tooltip(&graphics, &memory, e);
 }
 
 static void call_targeting_confirm(void *e) {
@@ -668,13 +668,13 @@ static void test_start_game_gives_back_the_help_particles(void) {
 }
 
 int main(void) {
-    p8_mem_init(&mem);
-    p8_gfx_init(&gfx);
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_mem_init(&memory);
+    p8_gfx_init(&graphics);
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
     dispatch_context_set_input(&input);
 
     cart_load();

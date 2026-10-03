@@ -48,8 +48,8 @@
 #define HOVER_HASH 0x477E2027u
 #define DRAW_HASH 0xE18E0472u
 
-static p8_memory_t mem;
-static p8_graphics_t gfx;
+static p8_memory_t memory;
+static p8_graphics_t graphics;
 static p8_input_t input;
 
 static const int want_tile_choices[15] = {0, 0, 0, 72, 73, 74, 75, 88, 89, 90, 91, 88, 91, 89, 91};
@@ -68,7 +68,7 @@ static uint32_t screen_hash(void) {
     int i;
 
     for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
+        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
@@ -180,7 +180,7 @@ static vec_t *vec_ref(int x, int y) {
 }
 
 static int mget(int x, int y) {
-    return p8_peek(&mem, P8_ADDR_SPRITE_MAP_SHARED + y * P8_MAP_WIDTH + x);
+    return p8_peek(&memory, P8_ADDR_SPRITE_MAP_SHARED + y * P8_MAP_WIDTH + x);
 }
 
 /* A fresh background: the entity's state and state time, the archetype's
@@ -370,11 +370,11 @@ static void test_hover(void) {
     dispatch_context_set_input(&input);
     update_entities();
 
-    ui_update(&mem, main_ui());
+    ui_update(&memory, main_ui());
     assert((void *)main_ui()->hovered == bg);
     assert(is_hovered_state(bg) == 2);
     assert(in_layer(1, bg));
-    h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
+    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     h = fnv(h, is_hovered_state(bg));
 
     assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, vec_ref(1, 1), vec_ref(2, 2), NULL, &kv, &kn));
@@ -385,10 +385,10 @@ static void test_hover(void) {
     h = fold_vec(h, drag_mouse_of(bg));
 
     veil = (void *)modal_backdrop_new(NULL);
-    ui_update(&mem, main_ui());
+    ui_update(&memory, main_ui());
     assert((void *)main_ui()->hovered == veil);
     assert(is_hovered_state(bg) == 0);
-    h = fnv(h, (uint32_t)p8_peek(&mem, 0x5f80));
+    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     h = fnv(h, is_hovered_state(bg));
     check("hover", h, HOVER_HASH);
 }
@@ -441,8 +441,8 @@ static void test_draw(void) {
     reset_world();
     bg = (void *)background_new();
     assert(entity_list_list_count(entities_by_message("draw")) == 1 && entity_list_listed(entities_by_message("draw"), bg));
-    p8_gfx_init(&gfx);
-    p8_cls(&mem);
+    p8_gfx_init(&graphics);
+    p8_cls(&memory);
     assert(main_camera()->class == camera_class());
     camera_apply(dispatch_context_gfx(), (camera_t *)main_camera(), p8_fixed_from_int(1));
     draw_layers("draw");
@@ -561,13 +561,13 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    p8_mem_init(&mem);
-    p8_gfx_init(&gfx);
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_mem_init(&memory);
+    p8_gfx_init(&graphics);
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
     dispatch_context_set_input(&input);
 
     cart_load();

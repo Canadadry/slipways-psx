@@ -29,8 +29,8 @@
 #define UPDATE_MOUSE_WORLD_Y 0
 #define CAMERA_POS 192
 
-static p8_memory_t mem;
-static p8_graphics_t gfx;
+static p8_memory_t memory;
+static p8_graphics_t graphics;
 static p8_input_t input;
 
 static int entity_list_listed(const entity_list_t *list, const void *e) {
@@ -51,10 +51,10 @@ static void assert_placeholder(void) {
     int i;
 
     assert(mo != NULL && main_camera_typed() == NULL);
-    p8_camera(&gfx, 5, 6);
+    p8_camera(&graphics, 5, 6);
     assert(mo->class != camera_class());
     assert(mo->class->states[ENTITY_STATE_NORMAL] == NULL && mo->class->draw == NULL);
-    assert(gfx.camera_x == 5 && gfx.camera_y == 6);
+    assert(graphics.camera_x == 5 && graphics.camera_y == 6);
     assert(live_entities()->count == 0);
     for (i = 0; i < 5; i++) {
         assert(entities_by_message(buckets[i])->count == 0);
@@ -111,7 +111,7 @@ static void test_update_on_placeholder(void) {
 
     entity_registry_init();
     ok = ui_new();
-    ui_update(&mem, ok);
+    ui_update(&memory, ok);
     assert(ok->mouse_world != NULL);
     qa = ok->mouse_world;
     printf("[update mouse_world] (%d,%d)\n", (int)qa->x, (int)qa->y);
@@ -198,13 +198,13 @@ static void test_is_on_screen_under_a_shaken_camera(void) {
 }
 
 int main(void) {
-    p8_mem_init(&mem);
-    p8_gfx_init(&gfx);
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_mem_init(&memory);
+    p8_gfx_init(&graphics);
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
     dispatch_context_set_input(&input);
 
     cart_load();

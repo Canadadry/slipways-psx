@@ -41,8 +41,8 @@
 #define LIFE_HASH 0xDDBCC765u
 #define TECH_TREE_SCREEN_HASH 0x7D1C5B1Fu
 
-static p8_memory_t mem;
-static p8_graphics_t gfx;
+static p8_memory_t memory;
+static p8_graphics_t graphics;
 static p8_input_t input;
 
 static const char *const tags[] = {"planet", "probe", "structure", "slipway", "wormhole", "message_box", "node", "ascension", "targeting", "slipgate", "background"};
@@ -252,7 +252,7 @@ static uint32_t screen_hash(void) {
     int i;
 
     for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
+        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
@@ -778,18 +778,18 @@ static void test_refresh_palette_flags_every_palette_offsets_pattern_without_set
     assert(entities_by_tag("planet")->count >= 2);
     score_panel_refresh_palette();
     for (i = 0; i < PALETTE_OFFSETS_COUNT; i++) {
-        assert(p8_peek(&mem, 0x3101 + 4 * palette_offsets_table[i]) >= 128);
+        assert(p8_peek(&memory, 0x3101 + 4 * palette_offsets_table[i]) >= 128);
     }
 }
 
 int main(void) {
-    p8_mem_init(&mem);
-    p8_gfx_init(&gfx);
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_mem_init(&memory);
+    p8_gfx_init(&graphics);
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
     dispatch_context_set_input(&input);
 
     cart_load();

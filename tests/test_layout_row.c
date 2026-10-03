@@ -57,8 +57,8 @@
 #define CALLS_HASH 0x26A3DB53u
 #define PANEL_HASH 0xDA5A7F3Eu
 
-static p8_memory_t mem;
-static p8_graphics_t gfx;
+static p8_memory_t memory;
+static p8_graphics_t graphics;
 static p8_input_t input;
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -268,7 +268,7 @@ static uint32_t screen_hash(void) {
     int i;
 
     for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
+        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
@@ -318,9 +318,9 @@ static uint32_t fold_drawn(uint32_t h, const void *lq) {
     size_t n;
 
     for (n = 0; n < sizeof as / sizeof as[0]; n++) {
-        p8_gfx_init(&gfx);
-        p8_cls(&mem);
-        layout_row_draw_at(&gfx, &mem, lq, vec_xy(64, 60), as[n]);
+        p8_gfx_init(&graphics);
+        p8_cls(&memory);
+        layout_row_draw_at(&graphics, &memory, lq, vec_xy(64, 60), as[n]);
         h = fnv(h, screen_hash());
     }
     return h;
@@ -538,9 +538,9 @@ static void test_research_project_layout_row_and_copy(void) {
         assert(placed_items_count(copy) == row_count(copy) && row_count(copy) == row_count(lq));
         hash = fold_row(hash, copy);
         hash = fnv(hash, (uint32_t)button->width);
-        p8_gfx_init(&gfx);
-        p8_cls(&mem);
-        button_draw(&gfx, &mem, button, vec_xy(10, 50));
+        p8_gfx_init(&graphics);
+        p8_cls(&memory);
+        button_draw(&graphics, &memory, button, vec_xy(10, 50));
         hash = fnv(hash, screen_hash());
     }
 
@@ -562,18 +562,18 @@ static void test_research_project_layout_row_and_copy(void) {
         assert(h_ != NULL);
         hash = fold_row(hash, h_);
         hash = fnv(hash, (uint32_t)button->width);
-        p8_gfx_init(&gfx);
-        p8_cls(&mem);
-        button_draw(&gfx, &mem, button, vec_xy(10, 50));
+        p8_gfx_init(&graphics);
+        p8_cls(&memory);
+        button_draw(&graphics, &memory, button, vec_xy(10, 50));
         hash = fnv(hash, screen_hash());
     }
     check("research_project_layout_row", hash, RESEARCH_PROJECT_LAYOUT_ROW_HASH);
 }
 
 static uint32_t drawn_by_draw_at(const void *lq, vec_t at, p8_fixed_t a) {
-    p8_gfx_init(&gfx);
-    p8_cls(&mem);
-    layout_row_draw_at(&gfx, &mem, lq, at, a);
+    p8_gfx_init(&graphics);
+    p8_cls(&memory);
+    layout_row_draw_at(&graphics, &memory, lq, at, a);
     return screen_hash();
 }
 
@@ -597,8 +597,8 @@ static void test_calls(void) {
 
     want = drawn_by_draw_at(layout_row, vec_xy(64, 30), P8_FIXED_LIT(0x00008000, 0.5));
     h = fnv(h, want);
-    p8_gfx_init(&gfx);
-    p8_cls(&mem);
+    p8_gfx_init(&graphics);
+    p8_cls(&memory);
     layout_row_class()->draw_at(layout_row, vec_xy(64, 30), P8_FIXED_LIT(0x00008000, 0.5));
     assert(screen_hash() == want);
 
@@ -609,22 +609,22 @@ static void test_calls(void) {
     entry.items = entry_items;
     entry.draw_function = "draw_row";
     rows[0] = &entry;
-    p8_gfx_init(&gfx);
-    p8_cls(&mem);
-    draw_functions_draw_rows_default(&gfx, &mem, rows, 1);
+    p8_gfx_init(&graphics);
+    p8_cls(&memory);
+    draw_functions_draw_rows_default(&graphics, &memory, rows, 1);
     assert(screen_hash() == want);
 
     want = drawn_by_draw_at(layout_row, vec_xy(20, 90), 0);
     h = fnv(h, want);
-    p8_gfx_init(&gfx);
-    p8_cls(&mem);
-    layout_row_draw_at_default(&gfx, &mem, layout_row, vec_xy(20, 90));
+    p8_gfx_init(&graphics);
+    p8_cls(&memory);
+    layout_row_draw_at_default(&graphics, &memory, layout_row, vec_xy(20, 90));
     assert(screen_hash() == want);
 
-    p8_gfx_init(&gfx);
-    p8_cls(&mem);
+    p8_gfx_init(&graphics);
+    p8_cls(&memory);
     want = screen_hash();
-    layout_row_draw_at(&gfx, &mem, NULL, vec_xy(20, 90), 0);
+    layout_row_draw_at(&graphics, &memory, NULL, vec_xy(20, 90), 0);
     assert(screen_hash() == want);
     check("calls", h, CALLS_HASH);
 }
@@ -918,7 +918,7 @@ static void keys_of_row(void *e) {
 }
 
 static void draw_at_on_other(void *e) {
-    layout_row_draw_at(&gfx, &mem, e, vec_xy(0, 0), 0);
+    layout_row_draw_at(&graphics, &memory, e, vec_xy(0, 0), 0);
 }
 
 /* A row is a struct whose class has draw_at, no other method and no state.
@@ -1018,13 +1018,13 @@ static void test_planet_resource_row_largest_row_fits_a_slot(void) {
 }
 
 int main(void) {
-    p8_mem_init(&mem);
-    p8_gfx_init(&gfx);
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
+    p8_mem_init(&memory);
+    p8_gfx_init(&graphics);
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
     p8_input_init(&input);
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
     dispatch_context_set_input(&input);
 
     cart_load();

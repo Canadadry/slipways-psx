@@ -52,8 +52,8 @@
 #define UPDATE_UNFOLDING_EXIT_TICK 27
 #define DRAW_HASH 0xD124A50Cu
 
-static p8_memory_t mem;
-static p8_graphics_t gfx;
+static p8_memory_t memory;
+static p8_graphics_t graphics;
 static p8_input_t input;
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -664,7 +664,7 @@ static uint32_t screen_hash(void) {
     int i;
 
     for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)p8_peek(&mem, P8_ADDR_SCREEN + i);
+        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
@@ -675,8 +675,8 @@ static uint32_t screen_hash(void) {
 static uint32_t draw(void *mz) {
     const entity_class_t *cls = ((const entity_t *)mz)->class;
 
-    p8_gfx_init(&gfx);
-    p8_cls(&mem);
+    p8_gfx_init(&graphics);
+    p8_cls(&memory);
     cls->draw(mz, vec_ref(64, 64));
     cls->draw_overlay(mz, NULL);
     return screen_hash();
@@ -693,8 +693,8 @@ static void test_draw(void) {
     int t;
 
     world();
-    p8_gfx_init(&gfx);
-    p8_cls(&mem);
+    p8_gfx_init(&graphics);
+    p8_cls(&memory);
     blank = screen_hash();
 
     bare = build_wormhole();
@@ -856,12 +856,12 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    p8_mem_init(&mem);
-    p8_gfx_init(&gfx);
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(p8_load_map_json(&mem, "pico8/map.json"));
-    dispatch_context_set_gfx(&gfx);
-    dispatch_context_set_mem(&mem);
+    p8_mem_init(&memory);
+    p8_gfx_init(&graphics);
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
 
     cart_load();
     in_fresh_child(test_construction);
