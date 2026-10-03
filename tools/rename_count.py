@@ -12,11 +12,13 @@ A distinctive name (three characters or more, not a plain lowercase word,
 neither kept by another row nor some row's new name) is found by text, as a
 whole word. Any other name is ambiguous: as an identifier it is counted from
 the AST occurrences of its renamed identities only; in a backtick span or a
-string, only when the span or the string is exactly the name, and in a string
-only at the sites the table lists for it. With --substep, the files of that
-sub-step's modules (tools/rename_substeps.tsv), each mention filed under
-`done` (its name belongs to that sub-step or an earlier one) or `later`,
-then the residue bound.
+string, only when the span or the string is exactly the name, in a string
+only at the sites the table lists for it, and in a backtick span, for a name
+whose renamed identifier rows are all locals or parameters, only in the files
+of those rows. With --substep, the files of that sub-step's modules
+(tools/rename_substeps.tsv), each mention filed under `done` (its name
+belongs to that sub-step or an earlier one) or `later`, then the residue
+bound.
 
 --part text counts what a text search alone finds, without reading the
 extraction; --part ast the identifier column of the ambiguous names, from
@@ -42,6 +44,7 @@ TEXT_FILES = (".c", ".h", ".sh", ".txt", ".py", ".json", ".p8")
 WORD = re.compile(r"[A-Za-z0-9_]+")
 BACKTICK = re.compile(r"`([^`\n]+)`")
 TMP_PATH = re.compile(r"^tmp/(.+)$")
+LOCAL_KINDS = ("locale", "paramètre")
 LINE_COMMENT = {".sh": "#", ".txt": "#", ".py": "#", ".p8": "--", "": "#"}
 
 
@@ -66,6 +69,18 @@ class Names:
         for r in renamed:
             if r["catégorie"] != "identifiant" and r["ancien"] in self.ambiguous:
                 self.string_sites.setdefault(r["fichier"], set()).add(r["ancien"])
+        self.local_files = {}  # ambiguous name renamed only as locals -> their files
+        identifiers = [r for r in renamed
+                       if r["catégorie"] == "identifiant" and r["ancien"] in self.ambiguous]
+        others = {r["ancien"] for r in identifiers if r["sorte"] not in LOCAL_KINDS}
+        for r in identifiers:
+            if r["ancien"] not in others:
+                self.local_files.setdefault(r["ancien"], set()).add(r["fichier"])
+
+    def backtick_counts(self, name, path):
+        """Whether a backtick span that is exactly this ambiguous name counts
+        in this file."""
+        return name in self.ambiguous and path in self.local_files.get(name, (path,))
 
 
 def is_ambiguous(name, kept, new):
@@ -170,7 +185,7 @@ def count_file(path, text, names, ast_spans, part=None, located=None, halves=("t
                 inner = match.group(1)
                 for name in distinctive(inner, names):
                     add("backtick", name)
-                if inner in names.ambiguous:
+                if names.backtick_counts(inner, path):
                     add("backtick", inner)
                 spans.append(match.span())
             bare = chunk

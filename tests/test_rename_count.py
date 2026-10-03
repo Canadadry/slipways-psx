@@ -171,6 +171,42 @@ class Count(unittest.TestCase):
         self.assertIn("rename-extract", result.stdout)
 
 
+class LocalNames(unittest.TestCase):
+    """An ambiguous name renamed only as locals or parameters counts in a
+    backtick span only in the files of those rows."""
+
+    MEM = ["mem", "memory", "src/game/a.c", "identifiant", "locale", "renommé",
+           "game/a", "", "", "c:a.c@10@F@f@mem"]
+    FILES = {"src/game/a.c": "/* `mem` */\n", "src/game/b.h": "/* `mem` */\n"}
+
+    def test_counted_in_the_file_of_the_local_only(self):
+        result, table = run([self.MEM], self.FILES)
+        self.assertEqual(table["game/a"]["backtick"], 1, result.stdout)
+        self.assertNotIn("game/b", table, result.stdout)
+
+    def test_a_parameter_row_too(self):
+        param = ["mem", "memory", "src/game/c.c", "identifiant", "paramètre", "renommé",
+                 "game/c", "", "", "c:c.c@20@F@g@mem"]
+        files = dict(self.FILES, **{"src/game/c.c": "/* `mem` */\n"})
+        result, table = run([self.MEM, param], files)
+        self.assertEqual(table["game/a"]["backtick"], 1, result.stdout)
+        self.assertEqual(table["game/c"]["backtick"], 1, result.stdout)
+        self.assertNotIn("game/b", table, result.stdout)
+
+    def test_a_field_row_makes_it_count_everywhere(self):
+        field = ["mem", "memory", "src/game/c.h", "identifiant", "champ", "renommé",
+                 "game/c", "", "", "c:@S@c@FI@mem"]
+        result, table = run([self.MEM, field], self.FILES)
+        self.assertEqual(table["game/a"]["backtick"], 1, result.stdout)
+        self.assertEqual(table["game/b"]["backtick"], 1, result.stdout)
+
+    def test_a_distinctive_local_counts_everywhere(self):
+        row = ["obj_len", "object_length", "src/game/a.c", "identifiant", "locale", "renommé",
+               "game/a", "", "", "c:a.c@10@F@f@obj_len"]
+        result, table = run([row], {"src/game/b.h": "/* `obj_len` */\n"})
+        self.assertEqual(table["game/b"]["backtick"], 1, result.stdout)
+
+
 class Parts(unittest.TestCase):
     """--part text|ast: one half of the count each, the AST half being the
     identifier column of the ambiguous names; --check turns the table into a
