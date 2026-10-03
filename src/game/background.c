@@ -22,25 +22,25 @@ static int background_to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
 }
 
-static void background_draw_method(entity_t *self, const vec_t *ra) {
-    (void)ra;
+static void background_draw_method(entity_t *self, const vec_t *screen_pos) {
+    (void)screen_pos;
     background_draw(dispatch_context_gfx(), dispatch_context_mem(), (const background_t *)self);
 }
 
-static down_t background_left_press_method(entity_t *self, vec_t *qa, vec_t *ra) {
-    (void)qa;
-    (void)ra;
+static down_t background_left_press_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
+    (void)mouse_world;
+    (void)mouse_screen;
     return background_left_press((background_t *)self);
 }
 
-static down_t background_right_press_method(entity_t *self, vec_t *qa, vec_t *ra) {
-    (void)qa;
-    return background_right_press((background_t *)self, ra);
+static down_t background_right_press_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
+    (void)mouse_world;
+    return background_right_press((background_t *)self, mouse_screen);
 }
 
-static void background_drag_method(entity_t *self, vec_t *qa, vec_t *ra) {
-    (void)qa;
-    background_drag((background_t *)self, ra);
+static void background_drag_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
+    (void)mouse_world;
+    background_drag((background_t *)self, mouse_screen);
 }
 
 static const entity_class_t background_class_def = {

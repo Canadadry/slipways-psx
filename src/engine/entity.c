@@ -22,18 +22,18 @@ int entity_ready(void) {
     return g_entity_up;
 }
 
-void entity_set_state(entity_t *self, const char *me) {
+void entity_set_state(entity_t *self, const char *state) {
     if (self == NULL) {
         return;
     }
-    self->state = me;
+    self->state = state;
     self->state_time = p8_fixed_from_int(0);
 }
 
-void entity_init_instance(entity_t *self, const entity_class_t *cls, const char *me,
+void entity_init_instance(entity_t *self, const entity_class_t *cls, const char *state,
                           p8_fixed_t t) {
     entity_init_header(self, cls);
-    self->state = me;
+    self->state = state;
     self->state_time = t;
 }
 

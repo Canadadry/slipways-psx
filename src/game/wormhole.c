@@ -78,8 +78,8 @@ void wormhole_drag(wormhole_t *self, vec_t *mp, vec_t *rp) {
     }
 }
 
-static void wormhole_drag_method(entity_t *self, vec_t *qa, vec_t *ra) {
-    wormhole_drag((wormhole_t *)self, qa, ra);
+static void wormhole_drag_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
+    wormhole_drag((wormhole_t *)self, mouse_world, mouse_screen);
 }
 
 void wormhole_update_placing(wormhole_t *self, p8_fixed_t t) {
@@ -131,8 +131,8 @@ void wormhole_drop(wormhole_t *self) {
     self->is_dead = result;
 }
 
-static void wormhole_drop_method(entity_t *self, entity_t *kv) {
-    (void)kv;
+static void wormhole_drop_method(entity_t *self, entity_t *dropped) {
+    (void)dropped;
     wormhole_drop((wormhole_t *)self);
 }
 

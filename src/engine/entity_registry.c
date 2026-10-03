@@ -154,10 +154,10 @@ static int is_message_name(const entity_t *e, int i) {
     }
 }
 
-int entity_registry_hit_test_always(entity_t *self, const vec_t *qa, const vec_t *ra) {
+int entity_registry_hit_test_always(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen) {
     (void)self;
-    (void)qa;
-    (void)ra;
+    (void)mouse_world;
+    (void)mouse_screen;
     return 1;
 }
 

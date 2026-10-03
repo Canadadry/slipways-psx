@@ -314,9 +314,9 @@ modal_backdrop_on_click_fn_t score_panel_toggle_on_click(void) {
     return score_panel_toggle_on_click_method;
 }
 
-void score_panel_new_year_method(entity_t *self, p8_fixed_t yr) {
+void score_panel_new_year_method(entity_t *self, p8_fixed_t year) {
     (void)self;
-    score_panel_new_year(yr);
+    score_panel_new_year(year);
 }
 
 void score_panel_update_method(entity_t *self, p8_fixed_t t) {

@@ -20,7 +20,7 @@ typedef enum {
 } state_t;
 
 /* The state with this name, or -1 for any other name ("unknown", "known"). */
-static inline int entity_state_of(const char *me) {
+static inline int entity_state_of(const char *state) {
     static const char *const names[STATE_COUNT] = {
         [ENTITY_STATE_NORMAL] = "normal",
         [ENTITY_STATE_SETTLED] = "settled",
@@ -31,7 +31,7 @@ static inline int entity_state_of(const char *me) {
     int i;
 
     for (i = 0; i < STATE_COUNT; i++) {
-        if (strcmp(names[i], me) == 0) {
+        if (strcmp(names[i], state) == 0) {
             return i;
         }
     }
@@ -147,19 +147,19 @@ struct kind_record;
  * instance decides. `spawn_particle` returns a fresh particle the caller
  * owns. */
 struct entity_class {
-    void (*draw)(entity_t *self, const vec_t *ra);
-    void (*draw_overlay)(entity_t *self, const vec_t *ra);
-    int (*hit_test)(entity_t *self, const vec_t *qa, const vec_t *ra);
-    void (*new_year)(entity_t *self, p8_fixed_t yr);
+    void (*draw)(entity_t *self, const vec_t *screen_pos);
+    void (*draw_overlay)(entity_t *self, const vec_t *screen_pos);
+    int (*hit_test)(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen);
+    void (*new_year)(entity_t *self, p8_fixed_t year);
     void (*refresh)(entity_t *self);
     int (*has_refresh)(const entity_t *self);
-    down_t (*left_press)(entity_t *self, vec_t *qa, vec_t *ra);
-    down_t (*right_press)(entity_t *self, vec_t *qa, vec_t *ra);
+    down_t (*left_press)(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen);
+    down_t (*right_press)(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen);
     down_t (*accept_drop)(entity_t *self, const entity_t *s);
-    void (*drag)(entity_t *self, vec_t *qa, vec_t *ra);
-    void (*drop)(entity_t *self, entity_t *kv);
-    void (*attach_slipway)(entity_t *self, entity_t *sw);
-    void (*offer_trade)(entity_t *self, struct trade_offer *lw);
+    void (*drag)(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen);
+    void (*drop)(entity_t *self, entity_t *dropped);
+    void (*attach_slipway)(entity_t *self, entity_t *slipway);
+    void (*offer_trade)(entity_t *self, struct trade_offer *offer);
     void (*draw_at)(entity_t *self, vec_t p, p8_fixed_t a);
     struct particle *(*spawn_particle)(entity_t *self);
     state_fn_t states[STATE_COUNT];
@@ -169,7 +169,7 @@ struct entity_class {
     /* Set of `LINEAGE(l)`: the class is that lineage's or descends from
      * it. */
     unsigned lineage;
-    void (*apply_camera)(entity_t *self, p8_fixed_t fy);
+    void (*apply_camera)(entity_t *self, p8_fixed_t parallax);
     /* Releases what the instance holds in the interface and particle
      * zones; only exit_queue_flush() calls it. */
     void (*release)(entity_t *self);

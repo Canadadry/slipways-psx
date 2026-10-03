@@ -36,24 +36,24 @@ static void button_update_method(entity_t *self, p8_fixed_t t) {
     button_update((button_t *)self);
 }
 
-static void button_draw_overlay_method(entity_t *self, const vec_t *ra) {
-    (void)ra;
+static void button_draw_overlay_method(entity_t *self, const vec_t *screen_pos) {
+    (void)screen_pos;
     button_draw_overlay(dispatch_context_gfx(), dispatch_context_mem(), (button_t *)self);
 }
 
-static void button_draw_method(entity_t *self, const vec_t *ra) {
-    vec_t p = ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+static void button_draw_method(entity_t *self, const vec_t *screen_pos) {
+    vec_t p = screen_pos != NULL ? *screen_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     button_draw(dispatch_context_gfx(), dispatch_context_mem(), (button_t *)self, p);
 }
 
 /* The hit test is the generic one of entity_geom: the cursor in the box. */
-static int button_hit_test_method(entity_t *self, const vec_t *qa, const vec_t *ra) {
-    return entity_geom_contains_cursor(self, qa, ra);
+static int button_hit_test_method(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen) {
+    return entity_geom_contains_cursor(self, mouse_world, mouse_screen);
 }
 
-static down_t button_left_press_method(entity_t *self, vec_t *qa, vec_t *ra) {
-    (void)qa;
-    (void)ra;
+static down_t button_left_press_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
+    (void)mouse_world;
+    (void)mouse_screen;
     return button_left_press((button_t *)self);
 }
 
@@ -307,9 +307,9 @@ down_t button_left_press(button_t *self) {
     return out;
 }
 
-static down_t modal_backdrop_left_press_method(entity_t *self, vec_t *qa, vec_t *ra) {
-    (void)qa;
-    (void)ra;
+static down_t modal_backdrop_left_press_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
+    (void)mouse_world;
+    (void)mouse_screen;
     return modal_backdrop_left_press((modal_backdrop_t *)self);
 }
 

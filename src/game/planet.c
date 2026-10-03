@@ -33,12 +33,12 @@ static const allocator_t *g_planet_grab_arena = NULL;
 static const allocator_t *g_planet_grab_arenas_free[GRAB_ARENAS_FREE_MAX];
 static int g_planet_grab_arenas_free_n = 0;
 
-int planet_hit_test_method(entity_t *self, const vec_t *qa, const vec_t *ra) {
-    return entity_geom_contains_cursor(self, qa, ra);
+int planet_hit_test_method(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen) {
+    return entity_geom_contains_cursor(self, mouse_world, mouse_screen);
 }
 
-void planet_new_year_method(entity_t *self, p8_fixed_t yr) {
-    (void)yr;
+void planet_new_year_method(entity_t *self, p8_fixed_t year) {
+    (void)year;
     planet_new_year((const planet_t *)self);
 }
 
@@ -205,8 +205,8 @@ void planet_grab_arena_released(const planet_t *self) {
     planet_grab_arena_zone_released(self->slipways != NULL ? self->slipways->zone : NULL, self->header.state);
 }
 
-void planet_grab_arena_zone_released(const allocator_t *zone, const char *me) {
-    if (me == NULL || strcmp(me, "placing") != 0) {
+void planet_grab_arena_zone_released(const allocator_t *zone, const char *state) {
+    if (state == NULL || strcmp(state, "placing") != 0) {
         return;
     }
     planet_grab_arena_arena_released(zone);

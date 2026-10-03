@@ -309,17 +309,17 @@ void slipway_draw_overlay(slipway_t *self) {
     }
 }
 
-static void slipway_drag_method(entity_t *self, vec_t *qa, vec_t *ra) {
-    (void)ra;
-    slipway_drag((slipway_t *)self, qa);
+static void slipway_drag_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
+    (void)mouse_screen;
+    slipway_drag((slipway_t *)self, mouse_world);
 }
 
-static void slipway_drop_method(entity_t *self, entity_t *kv) {
-    slipway_drop((slipway_t *)self, kv);
+static void slipway_drop_method(entity_t *self, entity_t *dropped) {
+    slipway_drop((slipway_t *)self, dropped);
 }
 
-static void slipway_draw_overlay_method(entity_t *self, const vec_t *ra) {
-    (void)ra;
+static void slipway_draw_overlay_method(entity_t *self, const vec_t *screen_pos) {
+    (void)screen_pos;
     slipway_draw_overlay((slipway_t *)self);
 }
 

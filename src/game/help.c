@@ -29,8 +29,8 @@ void help_set_start_game(button_fn_t fn) {
     g_start_game_method = (fn != NULL) ? fn : screen_start_game_placeholder;
 }
 
-static int help_screen_hit_test_method(entity_t *self, const vec_t *qa, const vec_t *ra) {
-    return entity_geom_contains_cursor(self, qa, ra);
+static int help_screen_hit_test_method(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen) {
+    return entity_geom_contains_cursor(self, mouse_world, mouse_screen);
 }
 
 /* The most items a row of difficulty_options_table holds. */
@@ -93,8 +93,8 @@ void help_screen_draw(p8_graphics_t *gfx, p8_memory_t *mem, probe_t *self, vec_t
     }
 }
 
-void help_screen_draw_method(entity_t *self, const vec_t *ra) {
-    vec_t p = ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+void help_screen_draw_method(entity_t *self, const vec_t *screen_pos) {
+    vec_t p = screen_pos != NULL ? *screen_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     help_screen_draw(dispatch_context_gfx(), dispatch_context_mem(), (probe_t *)self, p);
 }
 

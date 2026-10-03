@@ -45,6 +45,6 @@ void help_screen_construct(probe_t *self);
 
 void help_screen_draw(p8_graphics_t *gfx, p8_memory_t *mem, probe_t *self, vec_t p);
 
-void help_screen_draw_method(entity_t *self, const vec_t *ra);
+void help_screen_draw_method(entity_t *self, const vec_t *screen_pos);
 
 #endif

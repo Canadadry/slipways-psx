@@ -42,7 +42,7 @@ static void planet_rebuild_trades_attach_slipway_closure(trade_offer_t *self, tr
     }
 }
 
-void planet_attach_slipway(planet_t *self, entity_t *sw) {
+void planet_attach_slipway(planet_t *self, entity_t *slipway) {
     entity_list_t *oe = NULL;
     entity_t *other = NULL;
 
@@ -52,12 +52,12 @@ void planet_attach_slipway(planet_t *self, entity_t *sw) {
 
     oe = self->slipways;
     if (oe != NULL) {
-        entity_list_add(oe, sw);
+        entity_list_add(oe, slipway);
     }
 
-    if (sw != NULL) {
-        assert(sw->class == slipway_class() && "planet_attach_slipway: the slipway is one slipway_drop registers");
-        other = slipway_other_end((const slipway_t *)sw, (const entity_t *)self);
+    if (slipway != NULL) {
+        assert(slipway->class == slipway_class() && "planet_attach_slipway: the slipway is one slipway_drop registers");
+        other = slipway_other_end((const slipway_t *)slipway, (const entity_t *)self);
     }
     if (other != NULL) {
         assert(planet_is_family(other) && "planet_attach_slipway: the other end of a registered slipway is a planet");
@@ -245,10 +245,10 @@ entity_list_t *planet_rebuild_trades(planet_t *self) {
     return accepted_routes;
 }
 
-void planet_attach_slipway_method(entity_t *self, entity_t *sw) {
-    planet_attach_slipway((planet_t *)self, sw);
+void planet_attach_slipway_method(entity_t *self, entity_t *slipway) {
+    planet_attach_slipway((planet_t *)self, slipway);
 }
 
-void planet_offer_trade_method(entity_t *self, struct trade_offer *lw) {
-    planet_offer_trade((planet_t *)self, lw);
+void planet_offer_trade_method(entity_t *self, struct trade_offer *offer) {
+    planet_offer_trade((planet_t *)self, offer);
 }

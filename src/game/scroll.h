@@ -54,7 +54,7 @@ void camera_set_velocity(camera_t *self, vec_t v);
 
 /* The parallax factor is the layer's own, from draw_layers, never absent:
  * there is no entry point with a default factor. */
-void camera_apply(p8_graphics_t *gfx, camera_t *self, p8_fixed_t fy);
+void camera_apply(p8_graphics_t *gfx, camera_t *self, p8_fixed_t parallax);
 
 /* `main_camera()` (engine/entity_registry.h) as a `camera_t`: NULL when
  * there is none and on the placeholder. */

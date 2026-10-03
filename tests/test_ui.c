@@ -721,21 +721,21 @@ typedef struct {
 static entity_t *g_given;
 static int g_giver_hovered = 1;
 
-static down_t giver_down(entity_t *self, vec_t *qa, vec_t *ra) {
+static down_t giver_down(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
     down_t out;
 
     (void)self;
-    (void)qa;
-    (void)ra;
+    (void)mouse_world;
+    (void)mouse_screen;
     out.stop = g_given != NULL;
     out.held = g_given;
     return out;
 }
 
-static int giver_hit_test(entity_t *self, const vec_t *qa, const vec_t *ra) {
+static int giver_hit_test(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen) {
     (void)self;
-    (void)qa;
-    (void)ra;
+    (void)mouse_world;
+    (void)mouse_screen;
     return g_giver_hovered;
 }
 

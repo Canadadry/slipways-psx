@@ -118,7 +118,7 @@ void planet_grab_arena_close(void);
  * object's state: a grab arena (NULL or another zone: nothing) whose object
  * is still "placing" goes on the free grabs, for the next grab to empty and
  * reuse. */
-void planet_grab_arena_zone_released(const allocator_t *zone, const char *me);
+void planet_grab_arena_zone_released(const allocator_t *zone, const char *state);
 /* The same whatever the state: for an object whose memory nothing borrows
  * after its death. */
 void planet_grab_arena_arena_released(const allocator_t *zone);
@@ -141,7 +141,7 @@ void planet_construct_in(planet_t *self, const allocator_t *zone);
 
 /* The methods the planet class holds, for a subclass's `static const`
  * class to name. */
-int planet_hit_test_method(entity_t *self, const vec_t *qa, const vec_t *ra);
+int planet_hit_test_method(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen);
 void planet_refresh_method(entity_t *self);
 /* Gives back the layout row's slot and sets the row to NULL; the planet
  * stays. */
@@ -149,14 +149,14 @@ void planet_release_row(entity_t *self);
 /* planet_release_row, then planet_grab_arena_released. */
 void planet_release_method(entity_t *self);
 down_t planet_accept_drop_method(entity_t *self, const entity_t *s);
-void planet_new_year_method(entity_t *self, p8_fixed_t yr);
-void planet_draw_method(entity_t *self, const vec_t *ra);
-down_t planet_left_press_method(entity_t *self, vec_t *qa, vec_t *ra);
-void planet_attach_slipway_method(entity_t *self, entity_t *sw);
+void planet_new_year_method(entity_t *self, p8_fixed_t year);
+void planet_draw_method(entity_t *self, const vec_t *screen_pos);
+down_t planet_left_press_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen);
+void planet_attach_slipway_method(entity_t *self, entity_t *slipway);
 
 /* 1 when the entity's class is one of the ten of the planet lineage. */
 int planet_is_family(const entity_t *e);
-void planet_offer_trade_method(entity_t *self, struct trade_offer *lw);
+void planet_offer_trade_method(entity_t *self, struct trade_offer *offer);
 void planet_update_vanishing_method(entity_t *self, p8_fixed_t t);
 
 void planet_install_project(planet_t *self, research_project_t *research_project_instance);

@@ -203,8 +203,8 @@ void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
     }
 }
 
-void targeting_track_method(entity_t *self, vec_t *qa, vec_t *ra) {
-    targeting_track(self, qa, ra);
+void targeting_track_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
+    targeting_track(self, mouse_world, mouse_screen);
 }
 
 /* The status_text of the tooltip's target: the wormhole's and the slipway's
@@ -228,12 +228,12 @@ void targeting_tooltip(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *sel
     targeting_tooltip_show(gfx, mem, self->state, self->targeting);
 }
 
-void targeting_tooltip_show(const p8_graphics_t *gfx, p8_memory_t *mem, const char *me, const targeting_t *pb) {
+void targeting_tooltip_show(const p8_graphics_t *gfx, p8_memory_t *mem, const char *state, const targeting_t *pb) {
     vec_t mp;
     const mouse_t *je;
     const char *display = "";
 
-    if (me == NULL || strcmp(me, "placing") != 0) {
+    if (state == NULL || strcmp(state, "placing") != 0) {
         return;
     }
 
@@ -260,8 +260,8 @@ void targeting_tooltip_show(const p8_graphics_t *gfx, p8_memory_t *mem, const ch
     }
 }
 
-void targeting_tooltip_method(entity_t *self, const vec_t *ra) {
-    (void)ra;
+void targeting_tooltip_method(entity_t *self, const vec_t *screen_pos) {
+    (void)screen_pos;
     targeting_tooltip(dispatch_context_gfx(), dispatch_context_mem(), self);
 }
 
@@ -308,8 +308,8 @@ int targeting_confirm(entity_t *self) {
     return 0;
 }
 
-void targeting_confirm_method(entity_t *self, entity_t *kv) {
-    (void)kv;
+void targeting_confirm_method(entity_t *self, entity_t *dropped) {
+    (void)dropped;
     (void)targeting_confirm(self);
 }
 

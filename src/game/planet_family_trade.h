@@ -62,7 +62,7 @@ void slipgate_refresh(planet_t *self);
 
 /* Writes the amount left after forwarding back onto the offer, so the
  * caller sees what every hop downstream consumed. */
-void slipgate_offer_trade(planet_t *self, trade_offer_t *lw);
+void slipgate_offer_trade(planet_t *self, trade_offer_t *offer);
 
 void synthesizer_attach_slipway(planet_t *self, entity_t *slipway);
 

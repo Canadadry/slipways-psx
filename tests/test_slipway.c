@@ -422,12 +422,12 @@ static const entity_t *entity_of(const void *e) {
     return e;
 }
 
-static void *first_with_state(const char *tag, const char *me) {
+static void *first_with_state(const char *tag, const char *state) {
     const entity_list_t *list = entities_by_tag(tag);
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         const entity_t *ke = entity_of(list->items[i]);
-        if (ke->state != NULL && strcmp(ke->state, me) == 0) {
+        if (ke->state != NULL && strcmp(ke->state, state) == 0) {
             return list->items[i];
         }
     }

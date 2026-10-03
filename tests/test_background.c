@@ -393,14 +393,14 @@ static void test_hover(void) {
     check("hover", h, HOVER_HASH);
 }
 
-static planet_t *first_planet_with_state(const char *me) {
+static planet_t *first_planet_with_state(const char *state) {
     const entity_list_t *list = entities_by_tag("planet");
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         entity_t *e = list->items[i];
 
         assert(planet_is_family(e));
-        if (is_state(&((const planet_t *)e)->header, me)) {
+        if (is_state(&((const planet_t *)e)->header, state)) {
             return (planet_t *)e;
         }
     }

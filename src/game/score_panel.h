@@ -134,7 +134,7 @@ void score_panel_draw(p8_graphics_t *gfx, p8_memory_t *mem, score_panel_t *self)
 
 void score_panel_refresh_palette(void);
 
-void score_panel_new_year_method(entity_t *self, p8_fixed_t yr);
+void score_panel_new_year_method(entity_t *self, p8_fixed_t year);
 void score_panel_update_method(entity_t *self, p8_fixed_t t);
 
 void score_panel_display_init(void);

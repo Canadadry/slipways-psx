@@ -30,7 +30,7 @@ typedef struct targeting {
  * targeting_confirm spend; collapsing the throwaway to NULL would change it. */
 void targeting_track(entity_t *self, vec_t *mp, vec_t *rp);
 
-void targeting_track_method(entity_t *self, vec_t *qa, vec_t *ra);
+void targeting_track_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen);
 
 /* Points the target's targeted_by back at `self`, which it borrows: the
  * target is a planet of the planet family, a slipway, the slipway's too-far
@@ -54,14 +54,14 @@ void targeting_tooltip(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *sel
 
 /* The same, for a caller that is not a host (the structure icon): a NULL
  * state draws nothing, the targeting is read during the call only. */
-void targeting_tooltip_show(const p8_graphics_t *gfx, p8_memory_t *mem, const char *me, const targeting_t *pb);
+void targeting_tooltip_show(const p8_graphics_t *gfx, p8_memory_t *mem, const char *state, const targeting_t *pb);
 
-void targeting_tooltip_method(entity_t *self, const vec_t *ra);
+void targeting_tooltip_method(entity_t *self, const vec_t *screen_pos);
 
 /* Returns 1 on the success branch, 0 on the other; slipway_drop and
  * wormhole_drop consume it. */
 int targeting_confirm(entity_t *self);
 
-void targeting_confirm_method(entity_t *self, entity_t *kv);
+void targeting_confirm_method(entity_t *self, entity_t *dropped);
 
 #endif

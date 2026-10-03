@@ -87,6 +87,6 @@ void emitter_update(const p8_graphics_t *graphics, p8_memory_t *memory, entity_t
 
 /* The position argument is never read: emitter_update reads the host's
  * own position. */
-void emitter_update_method(entity_t *self, const vec_t *ra);
+void emitter_update_method(entity_t *self, const vec_t *screen_pos);
 
 #endif

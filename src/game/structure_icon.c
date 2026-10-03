@@ -140,9 +140,9 @@ down_t structure_icon_left_press(structure_icon_t *self) {
     return out;
 }
 
-static down_t structure_icon_left_press_method(entity_t *self, vec_t *qa, vec_t *ra) {
-    (void)qa;
-    (void)ra;
+static down_t structure_icon_left_press_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
+    (void)mouse_world;
+    (void)mouse_screen;
     return structure_icon_left_press((structure_icon_t *)self);
 }
 
@@ -183,14 +183,14 @@ void structure_icon_draw(p8_graphics_t *gfx, p8_memory_t *mem, structure_icon_t 
 }
 
 /* draw_layers() passes each entity its own `pos`: always `self->pos`. */
-static void structure_icon_draw_method(entity_t *self, const vec_t *ra) {
-    vec_t p = ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+static void structure_icon_draw_method(entity_t *self, const vec_t *screen_pos) {
+    vec_t p = screen_pos != NULL ? *screen_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     structure_icon_draw(dispatch_context_gfx(), dispatch_context_mem(), (structure_icon_t *)self, p);
 }
 
 /* The hit test is entity_geom_contains_cursor() itself, nothing more. */
-static int structure_icon_hit_test_method(entity_t *self, const vec_t *qa, const vec_t *ra) {
-    return entity_geom_contains_cursor(self, qa, ra);
+static int structure_icon_hit_test_method(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen) {
+    return entity_geom_contains_cursor(self, mouse_world, mouse_screen);
 }
 
 static const entity_class_t structure_icon_class_def = {

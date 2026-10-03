@@ -273,12 +273,12 @@ static void until_state_time(const wormhole_t *mz, int t) {
     }
 }
 
-static planet_t *first_planet_with_state(const char *me) {
+static planet_t *first_planet_with_state(const char *state) {
     const entity_list_t *list = entities_by_tag("planet");
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         planet_t *jo = as_planet(list->items[i]);
-        if (is_state(&jo->header, me)) {
+        if (is_state(&jo->header, state)) {
             return jo;
         }
     }

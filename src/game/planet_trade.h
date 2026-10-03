@@ -24,9 +24,9 @@ struct trade_offer {
     entity_list_t *accepted_routes;
 };
 
-void planet_attach_slipway(planet_t *self, entity_t *sw);
+void planet_attach_slipway(planet_t *self, entity_t *slipway);
 
-void planet_offer_trade(planet_t *self, trade_offer_t *lw);
+void planet_offer_trade(planet_t *self, trade_offer_t *offer);
 
 /* Returns the planet's `outgoing_routes` itself when it is set, else a list
  * made in the game zone, never given back before it; never writes

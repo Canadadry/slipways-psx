@@ -38,7 +38,7 @@ void cart_init_method(button_t *self);
 /* Starts a game from the clicked difficulty button, which becomes the
  * difficulty (borrowed, not copied); a NULL button gives a NULL difficulty.
  * Requires cart_load(). */
-void cart_start_game(button_t *nj);
+void cart_start_game(button_t *chosen_option);
 
 /* Requires cart_load() and at least one prior cart_init() or
  * cart_start_game(); a NULL main_ui() or empty live entities is a no-op

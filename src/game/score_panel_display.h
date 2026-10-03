@@ -12,7 +12,7 @@ void score_panel_update(score_panel_t *self);
 /* The banner's third article is dropped, not merely left unwritten, when the
  * year has no countdown message: a previous year's message would otherwise
  * stay on the box. Its keep_open is deliberately left stale in that case. */
-void score_panel_new_year(p8_fixed_t yr);
+void score_panel_new_year(p8_fixed_t year);
 
 /* The panel toggle's callback: the backdrop that the galaxy menu's third
  * row opens reads nothing else. */

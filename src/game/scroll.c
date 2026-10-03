@@ -28,8 +28,8 @@ static void camera_update_method(entity_t *self, p8_fixed_t t) {
     camera_update(dispatch_context_input(), (camera_t *)self);
 }
 
-static void camera_apply_method(entity_t *self, p8_fixed_t fy) {
-    camera_apply(dispatch_context_gfx(), (camera_t *)self, fy);
+static void camera_apply_method(entity_t *self, p8_fixed_t parallax) {
+    camera_apply(dispatch_context_gfx(), (camera_t *)self, parallax);
 }
 
 static const entity_class_t camera_class_def = {
@@ -128,14 +128,14 @@ void camera_set_velocity(camera_t *self, vec_t v) {
     self->velocity = &self->velocity_own;
 }
 
-void camera_apply(p8_graphics_t *gfx, camera_t *self, p8_fixed_t fy) {
+void camera_apply(p8_graphics_t *gfx, camera_t *self, p8_fixed_t parallax) {
     vec_t cp;
 
     if (self == NULL || gfx == NULL) {
         return;
     }
 
-    cp = vec_mul(camera_vec(self->pos), fy);
+    cp = vec_mul(camera_vec(self->pos), parallax);
     p8_camera(gfx, p8_fixed_flr_int(cp.x), p8_fixed_flr_int(cp.y));
 }
 

@@ -73,9 +73,9 @@ down_t slipgate_left_press(planet_t *self) {
     return accept_drop_result;
 }
 
-static down_t slipgate_left_press_method(entity_t *self, vec_t *qa, vec_t *ra) {
-    (void)qa;
-    (void)ra;
+static down_t slipgate_left_press_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
+    (void)mouse_world;
+    (void)mouse_screen;
     return slipgate_left_press((planet_t *)self);
 }
 
@@ -153,8 +153,8 @@ void slipgate_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
     }
 }
 
-static void slipgate_offer_trade_method(entity_t *self, struct trade_offer *lw) {
-    slipgate_offer_trade((planet_t *)self, lw);
+static void slipgate_offer_trade_method(entity_t *self, struct trade_offer *offer) {
+    slipgate_offer_trade((planet_t *)self, offer);
 }
 
 static const entity_class_t slipgate_class_def = {
@@ -300,8 +300,8 @@ void synthesizer_attach_slipway(planet_t *self, entity_t *slipway) {
     planet_attach_slipway(self, slipway);
 }
 
-static void synthesizer_attach_slipway_method(entity_t *self, entity_t *sw) {
-    synthesizer_attach_slipway((planet_t *)self, sw);
+static void synthesizer_attach_slipway_method(entity_t *self, entity_t *slipway) {
+    synthesizer_attach_slipway((planet_t *)self, slipway);
 }
 
 static const entity_class_t synthesizer_class_def = {

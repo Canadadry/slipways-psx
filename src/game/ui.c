@@ -89,8 +89,8 @@ static int ui_main_mouse_button_field_bool(const char *bt, const char *field) {
     return b->released;
 }
 
-static void ui_draw_overlay_method(entity_t *self, const vec_t *ra) {
-    (void)ra;
+static void ui_draw_overlay_method(entity_t *self, const vec_t *screen_pos) {
+    (void)screen_pos;
     ui_draw_overlay(dispatch_context_gfx(), dispatch_context_mem(), (const ui_t *)self);
 }
 

@@ -76,6 +76,6 @@ void wormhole_update_unfolding(wormhole_t *self, p8_fixed_t t);
 /* Reads the radius only; `self` is non-const for signature uniformity. */
 p8_fixed_t wormhole_reveal_radius(wormhole_t *self, p8_fixed_t t);
 
-void wormhole_draw_method(entity_t *self, const vec_t *ra);
+void wormhole_draw_method(entity_t *self, const vec_t *screen_pos);
 
 #endif

@@ -58,7 +58,7 @@ void entity_unregister(entity_t *e);
 void draw_layers(const char *message);
 
 /* The hit test of background and modal_backdrop: every point passes it. */
-int entity_registry_hit_test_always(entity_t *self, const vec_t *qa, const vec_t *ra);
+int entity_registry_hit_test_always(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen);
 
 /* Until reset_world() runs, the placeholder struct, with no member and no
  * apply_camera, which draw_layers() calls on a real camera only; afterwards

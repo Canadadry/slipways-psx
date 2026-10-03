@@ -89,7 +89,7 @@ void ascension_init_instance(planet_t *self, const entity_class_t *cls, const pl
 /* The methods the ascension class holds, for a derived class's static
  * const class to name. */
 void structure_update_settled_method(entity_t *self, p8_fixed_t t);
-void ascension_draw_method(entity_t *self, const vec_t *ra);
+void ascension_draw_method(entity_t *self, const vec_t *screen_pos);
 /* planet_release_row, then the particles (emitter_release_particles),
  * then planet_grab_arena_released. */
 void ascension_release_method(entity_t *self);
