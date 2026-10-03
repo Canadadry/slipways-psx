@@ -66,7 +66,7 @@ static void test_exempting_every_zero_class_passes(void) {
     assert(system("awk '$2 == 0 { print $1, \"test\" }' " LOG " > " EXEMPT) == 0);
     assert(run(EXEMPT) == 0);
     char *log = read_log();
-    assert(strstr(log, "exempt") != NULL);
+    assert(strstr(log, "  exempt (test)") != NULL);
 }
 
 static void test_expect_equal_output_passes_unchanged(void) {
