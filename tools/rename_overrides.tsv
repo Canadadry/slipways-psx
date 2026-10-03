@@ -1477,3 +1477,7 @@ file	tmp/pico8_frames	tmp/frames_tool
 # frames_ref.sh builds the replay driver of an old commit in a worktree: it
 # keeps the old name for a tree without the new rule, as it keeps src/main.c.
 site	tmp/pico8_replay@tools/frames_ref.sh	garde aussi tmp/pico8_replay pour un commit sans la règle tmp/replay
+
+# --- string keys kept as they are ---------------------------------------------
+string	pz	=
+string	go	=
