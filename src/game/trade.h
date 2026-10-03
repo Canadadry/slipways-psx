@@ -62,7 +62,7 @@ trade_route_t *trade_copy(const allocator_t *zone, const trade_route_t *self);
 
 /* The route's resource as resource_equal compares it: RESOURCE_NIL for no
  * resource or a NULL self, RESOURCE_FALSE only as trade_extend writes it
- * (TROU-24); a true boolean stops the run. */
+ * (GAP-24); a true boolean stops the run. */
 resource_t trade_resource(const trade_route_t *self);
 
 /* Returns 1 and writes *out (the last planet) for a non-empty planets list;
@@ -72,7 +72,7 @@ int trade_last_planet(const trade_route_t *self, entity_t **out);
 /* Returns a brand-new route made in `zone`, never mutating self; NULL for a
  * NULL self.
  * A NULL planets or slipways list on self reads as an empty list, no
- * resource as false (TROU-24). A NULL node or slipway contributes nothing
+ * resource as false (GAP-24). A NULL node or slipway contributes nothing
  * to the lists. */
 trade_route_t *trade_extend(const allocator_t *zone, const trade_route_t *self,
                               entity_t *np, entity_t *jc);

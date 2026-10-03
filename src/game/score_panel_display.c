@@ -125,7 +125,7 @@ static char *score_panel_final_score_text(const final_score_t *s, int i) {
     case 6:
         return p8_tostr_fixed(frame_zone(), s->tier);
     default:
-        /* TROU-13 */
+        /* GAP-13 */
         return p8_concat2(frame_zone(), "", "");
     }
 }
@@ -188,7 +188,7 @@ static const data_row_t *score_panel_update_map(score_row_t *score_row, const sc
         }
     }
 
-    /* TROU-25 */
+    /* GAP-25 */
     for (index = 0; index < 5; index++) {
         if (score_row->has_value[index]) {
             items[keys.count++] = layout_row_cell_item(&score_row->items[index]);

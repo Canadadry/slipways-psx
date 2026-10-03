@@ -78,10 +78,10 @@ typedef struct {
     p8_fixed_t layer;
     const layout_row_t *layout_row_copy;
     const layout_row_keys_t *layout_row_keys;
-    int has_side_tooltip; /* present without `side_tooltip_row` nor `side_tooltip_is_false`: an empty row (TROU-23) */
+    int has_side_tooltip; /* present without `side_tooltip_row` nor `side_tooltip_is_false`: an empty row (GAP-23) */
     int side_tooltip_is_false;
     const layout_row_keys_t *side_tooltip_row;
-    int has_tooltip; /* present without `tooltip_row`: an empty tooltip (TROU-23) */
+    int has_tooltip; /* present without `tooltip_row`: an empty tooltip (GAP-23) */
     const data_row_t *tooltip_row;
     const vec_t *pos;
     const vec_t *slide_target;

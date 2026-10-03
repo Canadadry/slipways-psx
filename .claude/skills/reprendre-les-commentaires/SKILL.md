@@ -50,7 +50,7 @@ cloc --by-file src/ | tail -5
 Tout commentaire rencontré va dans **une** de ces quatre destinations, sinon il part.
 
 1. **Le sens d'un nom** → un fichier de glossaire, une ligne par symbole. Le code ne le répète pas.
-2. **Un écart connu avec la référence**, ou un morceau volontairement non fait → une entrée numérotée dans un fichier d'écarts. Le code n'y renvoie que par un **marqueur nu**, `/* TROU-7 */`, seul sur sa ligne au-dessus de la déclaration concernée — pas de résumé à côté, il périmerait.
+2. **Un écart connu avec la référence**, ou un morceau volontairement non fait → une entrée numérotée dans un fichier d'écarts. Le code n'y renvoie que par un **marqueur nu**, `/* GAP-7 */`, seul sur sa ligne au-dessus de la déclaration concernée — pas de résumé à côté, il périmerait.
 3. **Un piège qu'un lecteur futur réintroduirait** → `assert(cond && "message court")` au site exact si c'est vérifiable à l'exécution, **sinon 40 mots maximum**.
 4. **Un contrat que ni le nom ni le glossaire ne portent** — qui possède la mémoire, qui la libère, ce que rend la fonction quand le champ est absent, ce qu'un NULL déclenche → une phrase en en-tête. Une exception, à nommer pour qu'elle ne serve pas de passe-droit : **un format de fichier ou un protocole que quelque chose d'extérieur au dépôt doit pouvoir lire** est un contrat long légitime — il n'a nulle part ailleurs où vivre. Tout le reste tient en une phrase, ou part dans un `docs/format-*.md`.
 

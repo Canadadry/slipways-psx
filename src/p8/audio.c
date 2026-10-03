@@ -2,13 +2,13 @@
 
 static int g_sfx_muted = 0;
 
-/* TROU-10 */
+/* GAP-10 */
 void p8_sfx(int n, int channel) {
     (void)n;
     (void)channel;
 }
 
-/* TROU-10 */
+/* GAP-10 */
 void p8_music(int n) {
     (void)n;
 }

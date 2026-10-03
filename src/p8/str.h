@@ -18,7 +18,7 @@ char *p8_sub(const allocator_t *zone, const char *s, int i, int j);
  * then trailing zeros and a bare trailing '.' are trimmed, so an exact 3
  * renders "3" and not "3.0000". This reproduces 13 of the 14 block-C
  * witnesses of tools/pico8_reference_probe_out.txt; magnitudes below
- * 0.0001 are TROU-22.
+ * 0.0001 are GAP-22.
  *
  * Returns a NUL-terminated string in `zone`, as p8_sub does. */
 char *p8_tostr_fixed(const allocator_t *zone, p8_fixed_t x);

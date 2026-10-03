@@ -30,7 +30,7 @@ char *p8_sub(const allocator_t *zone, const char *s, int i, int j) {
 char *p8_tostr_fixed(const allocator_t *zone, p8_fixed_t x) {
     char buf[64];
 
-    /* TROU-22 */
+    /* GAP-22 */
     int negative = x < 0;
     uint32_t mag = negative ? 0u - (uint32_t)x
                             : (uint32_t)x;

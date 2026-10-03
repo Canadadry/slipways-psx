@@ -202,7 +202,7 @@ void button_construct(button_t *self, const button_keys_t *keys) {
     self->width = p8_fixed_add(self->layout_row->width, p8_fixed_from_int(2));
     self->header.hit_box = box_make(self->slot, p8_fixed_from_int(0), p8_fixed_from_int(-1), self->width, p8_fixed_from_int(11));
 
-    /* TROU-23 */
+    /* GAP-23 */
     if (keys->side_tooltip_row != NULL || (keys->has_side_tooltip && !keys->side_tooltip_is_false)) {
         self->side_tooltip = layout_row_new(self->slot, keys->side_tooltip_row);
         self->has_side_tooltip = 1;

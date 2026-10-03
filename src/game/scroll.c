@@ -94,7 +94,7 @@ void camera_update(const p8_input_t *input, camera_t *self) {
 
     for (b = 0; b <= 3; b++) {
         int btn_p1 = p8_btn(input, b);
-        /* TROU-2 */
+        /* GAP-2 */
         int btn_p2 = 0;
 
         if (btn_p1 || btn_p2) {

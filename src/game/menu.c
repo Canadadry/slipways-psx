@@ -279,7 +279,7 @@ static void galaxy_menu_button3_on_click_method(button_t *self) {
     (void)built;
 }
 
-/* TROU-10 */
+/* GAP-10 */
 static void pause_menu_row2_on_click_method(button_t *self) {
     int stat_val;
     p8_fixed_t s;
@@ -289,7 +289,7 @@ static void pause_menu_row2_on_click_method(button_t *self) {
     p8_music(-p8_fixed_flr_int(s));
 }
 
-/* TROU-10 */
+/* GAP-10 */
 /* The mute state is the real global of p8/audio.c, which p8_play_sfx() reads;
  * a private copy here would leave that mute check on the old value. */
 static void pause_menu_row3_on_click_method(button_t *self) {

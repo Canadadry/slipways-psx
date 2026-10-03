@@ -151,7 +151,7 @@ void emitter_update(const p8_graphics_t *graphics, p8_memory_t *memory, entity_t
             particle->life = p8_fixed_sub(particle->life, P8_FIXED_LIT(0x000023d7, 0.14));
 
             if (particle->life <= p8_fixed_from_int(1)) {
-                /* TROU-14 */
+                /* GAP-14 */
                 /* Never compensate the index: the particle that slides
                  * into the freed slot waits for the next frame. */
                 pointer_list_del(particles, particle);

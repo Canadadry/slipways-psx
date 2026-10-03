@@ -27,9 +27,9 @@ Tout commentaire que tu lis va dans une de ces quatre destinations, sinon il par
 2. **Un écart connu avec <LA RÉFÉRENCE>**, ou un morceau volontairement non fait →
    une entrée dans `<docs/ecarts.md>`. Là non plus tu n'écris pas : tu proposes
    l'entrée dans ton rapport. Dans le code, tu ne laisses qu'un **marqueur nu**
-   `/* TROU-n */`, seul sur sa ligne au-dessus de la déclaration concernée. Pas de
+   `/* GAP-n */`, seul sur sa ligne au-dessus de la déclaration concernée. Pas de
    résumé à côté : il périmerait. Pour un écart non encore numéroté, écris
-   `/* TROU-? */` et signale-le.
+   `/* GAP-? */` et signale-le.
 3. **Un piège qu'un lecteur futur réintroduirait** → un
    `assert(cond && "message court")` au site exact **si tu peux établir qu'il
    tient**, sinon **40 mots maximum** de prose. Lis la section suivante avant

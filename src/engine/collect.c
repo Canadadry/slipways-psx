@@ -54,7 +54,7 @@ pointer_list_t collect_concat_pointer_list(const allocator_t *zone, const pointe
     return t;
 }
 
-/* TROU-3 */
+/* GAP-3 */
 int collect_contains_string(const pointer_list_t *qk, const char *kb) {
     pointer_list_iter_t it;
     void *e;

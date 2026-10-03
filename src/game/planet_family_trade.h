@@ -4,7 +4,7 @@
 #include "game/planet_trade.h"
 #include "engine/entity_class.h"
 
-/* TROU-8 */
+/* GAP-8 */
 /* Calls draw_functions_init(). */
 void planet_family_trade_init(void);
 

@@ -221,7 +221,7 @@ void planet_grab_arena_arena_released(const allocator_t *zone) {
     g_planet_grab_arenas_free[g_planet_grab_arenas_free_n++] = zone;
 }
 
-/* TROU-26 */
+/* GAP-26 */
 void planet_forget_targeted_by(const entity_t *e) {
     const entity_list_t *np = entities_by_tag("node");
 

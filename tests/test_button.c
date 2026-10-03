@@ -1034,7 +1034,7 @@ static void test_draw(void) {
     check("draw", hash, DRAW_HASH);
 }
 
-/* TROU-23: a row whose side tooltip or tooltip key is present but absent
+/* GAP-23: a row whose side tooltip or tooltip key is present but absent
  * still gets an empty row or tooltip; only false, or no key at all, gets
  * none. */
 static void test_nil_keys(void) {
@@ -1305,7 +1305,7 @@ static uint32_t fold_and_drop(uint32_t h, button_t *b) {
 }
 
 /* Each optional key unset, the fixed ones and `on_click` given at zero, a
- * side tooltip false, TROU-23, a side tooltip copied from a layout row
+ * side tooltip false, GAP-23, a side tooltip copied from a layout row
  * (written on the member: no key builds it), a row's keys as the layout
  * row's source. */
 static uint32_t fold_keys(uint32_t hash, layout_row_t *source_row) {
@@ -1667,7 +1667,7 @@ static void test_pause_menu_open_box_is_a_struct(void) {
     assert(pause_menu_open_box() == o);
 }
 
-/* TROU-9: a button's layer is the frame's back color when the frame has
+/* GAP-9: a button's layer is the frame's back color when the frame has
  * one, else the button's own. */
 static void test_open_box_layer_only_from_back_color(void) {
     open_box_frame_t frame = {0};

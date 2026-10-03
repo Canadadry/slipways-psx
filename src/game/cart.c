@@ -190,7 +190,7 @@ void cart_init(void) {
     message_box_set_shown(NULL);
 
     (void)help_screen_new();
-    /* TROU-10 */
+    /* GAP-10 */
     p8_music(0);
 }
 

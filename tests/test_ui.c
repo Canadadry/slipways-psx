@@ -52,7 +52,7 @@
 
 /* Ticks after the slipway is paid, long enough for the colonizing and
  * paying effects to leave the live entities: update_entities skips the
- * entity after one it takes out (TROU-5). */
+ * entity after one it takes out (GAP-5). */
 #define SETTLE_TICKS 120
 
 #define BUILT_HASH 0x86CE257Cu

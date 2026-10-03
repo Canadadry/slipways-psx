@@ -2,7 +2,7 @@
 
 Les écarts connus entre ce port C et le cart PICO-8 d'origine, et les
 morceaux volontairement non faits. Le code y renvoie par un commentaire
-`/* TROU-n */` à l'endroit concerné, sans répéter l'explication.
+`/* GAP-n */` à l'endroit concerné, sans répéter l'explication.
 
 Chaque entrée est décrite avec les noms C et les chemins d'aujourd'hui ;
 les noms du cart et ceux de l'API PICO-8 qu'elle cite sont rassemblés sur
@@ -13,7 +13,7 @@ commentaires. Une entrée supprimée est une entrée refermée : voir git.
 
 ---
 
-## TROU-1 — `sin`/`cos` ne sont pas bit-exacts hors des 64 points relevés
+## GAP-1 — `sin`/`cos` ne sont pas bit-exacts hors des 64 points relevés
 
 Lua : `sin`, `cos`.
 
@@ -27,7 +27,7 @@ Ailleurs, elles rendent l'arrondi au plus proche de la valeur vraie, ce que
 rendait l'ancien calcul `double` de la libc, **sans source PICO-8** :
 l'approximation propre de PICO-8 n'est pas publiée.
 
-Le générateur pseudo-aléatoire relève de TROU-17.
+Le générateur pseudo-aléatoire relève de GAP-17.
 
 Conséquence : une partie rejouée ici peut diverger d'une partie rejouée
 dans le vrai PICO-8. Les rejeux internes restent déterministes,
@@ -35,7 +35,7 @@ puisqu'ils comparent ce port à lui-même.
 
 Fichiers : `src/p8/fixed.c`, `src/p8/quarter_wave.h`.
 
-## TROU-2 — La deuxième manette est câblée à « rien »
+## GAP-2 — La deuxième manette est câblée à « rien »
 
 Lua : `qb:ph()`, `btn(b) or btn(b,1)`, `btn(b,1)`.
 
@@ -49,7 +49,7 @@ Sans effet tant que personne ne branche une deuxième manette.
 
 Fichiers : `src/game/scroll.c`, `src/p8/input.h` (le schéma de frame, qui n'a pas de second joueur), `src/platform/raylib_backend.c` (l'endroit où la capture le décide).
 
-## TROU-3 — Les chaînes ne sont pas internées
+## GAP-3 — Les chaînes ne sont pas internées
 
 Lua : `hy.invented`, `oj`, `jo:gg`, `db`, `ho()`, `r`, `hp.o`, `hp.dm`,
 `kw.qe`, `{qe=r[c]}`, `db()`.
@@ -65,7 +65,7 @@ Contourné au cas par cas : `collect_contains_string` compare par contenu
 par contenu (`planet_is_colonized`, `economy_score_trade_income`). Toute
 nouvelle comparaison de chaînes doit choisir explicitement.
 
-**Hors de TROU-3 : les ressources.** Ce que le chargeur des tables de
+**Hors de GAP-3 : les ressources.** Ce que le chargeur des tables de
 données du cart route à travers la table des ressources (`output` et
 `byproduct` d'un projet, donc `resource` d'une `production_t`) et les
 besoins à ressource sont des nombres — l'indice d'une ressource —, pas des
@@ -75,7 +75,7 @@ passe par le contenu.
 
 Fichiers : `src/engine/collect.c`.
 
-## TROU-4 — Le constructeur de champ ne retombe pas sur la table quand il rend faux
+## GAP-4 — Le constructeur de champ ne retombe pas sur la table quand il rend faux
 
 Lua : `oo()`, `oo(fn,a)`, `fn and fn(...) or a`, `fn(...)`, `'s'`, `spr`,
 `s(...)`.
@@ -95,7 +95,7 @@ Sans site : la fonction d'analyse de champ, le module des tables à clés
 dynamiques et le constructeur du sprite sont supprimés ; le port n'analyse
 plus de spec.
 
-## TROU-5 — `update_entities` saute une entité quand une entité s'auto-supprime
+## GAP-5 — `update_entities` saute une entité quand une entité s'auto-supprime
 
 Lua : `dg()`, `hv`.
 
@@ -109,7 +109,7 @@ suivante.
 
 Fichier : `src/engine/bootstrap.c`.
 
-## TROU-8 — Le tag `targeting` n'a aucun lecteur
+## GAP-8 — Le tag `targeting` n'a aucun lecteur
 
 Lua : `g_`, `jo`, `prober`, `cg("prober")`.
 
@@ -117,7 +117,7 @@ La sonde (`probe`), l'écran d'aide et toute la famille des planètes
 s'enregistrent sous le tag `TAG_TARGETING`, mais rien ne fait jamais
 `entities_by_tag("targeting")`. Conservé par fidélité, pas par utilité.
 
-## TROU-9 — Pas de suppression de champ nommé
+## GAP-9 — Pas de suppression de champ nommé
 
 Lua : `t[nom]=nil`.
 
@@ -129,7 +129,7 @@ la même chose qu'un champ absent.
 Sans site : le module des tables à clés dynamiques est supprimé ; le port
 n'a plus de table à clés dynamiques.
 
-## TROU-10 — L'audio est hors périmètre
+## GAP-10 — L'audio est hors périmètre
 
 Lua : `sfx()`, `music()`, `ih`, `rn()`.
 
@@ -144,7 +144,7 @@ les deux boutons audio du menu pause répondent au clic sans rien produire.
 
 Fichiers : `src/p8/audio.c`, `src/game/menu.c`.
 
-## TROU-11 — Le repli d'arité du test de survol rendrait le survol silencieusement faux
+## GAP-11 — Le repli d'arité du test de survol rendrait le survol silencieusement faux
 
 Lua : `hd`, `"hd"`, `dc()`, `dc("hd")`, `bm`, `kj`, `ev`, `mp == rp`,
 `rp = (argc >= 2) ? arg1 : arg0`.
@@ -168,7 +168,7 @@ Sans site : le membre `hit_test` d'`entity_class_t` a toujours deux
 arguments (`mouse_world`, `mouse_screen`) et `draw_layers` ne lance que
 `draw`/`draw_overlay` (`assert` sur tout autre message).
 
-## TROU-12 — Le premier anneau du trou de ver est noir au lieu de garder la plume
+## GAP-12 — Le premier anneau du trou de ver est noir au lieu de garder la plume
 
 Lua : `mz:kj`, `self.kk[flr(sr/self.oi*8)]`, `kk`, `kk[0]`, `self.t`, `dt`.
 
@@ -192,14 +192,14 @@ changera les enregistrements existants, ce qui en fait une décision de
 jeu, pas une reprise de commentaires.
 
 
-**Prémisse probablement fausse** (établi pour TROU-20, même situation) :
+**Prémisse probablement fausse** (établi pour GAP-20, même situation) :
 l'indice 0 de la rampe est un nil **explicite**, que zepto8 et fake-08
 convertissent en couleur 0 ; le noir du port serait alors fidèle. Non
-vérifié sur le binaire PICO-8 — même vérification que TROU-20.
+vérifié sur le binaire PICO-8 — même vérification que GAP-20.
 
 Fichier : `src/game/wormhole_display.c`.
 
-## TROU-13 — `tostr` d'un champ absent rend la chaîne vide
+## GAP-13 — `tostr` d'un champ absent rend la chaîne vide
 
 Lua : `tostr`, `s[st.score]`, `score == 0`, `ky()`.
 
@@ -215,11 +215,11 @@ Fixé par `test_scores_box_follows_is_shown` de `tests/test_message_box.c`
 
 Fichier : `src/game/score_panel_display.c`.
 
-## TROU-14 — Une boucle qui supprime son propre élément en saute un
+## GAP-14 — Une boucle qui supprime son propre élément en saute un
 
 Lua : `ei()`, `qy`.
 
-Même famille que TROU-5, à d'autres endroits et sur d'autres listes :
+Même famille que GAP-5, à d'autres endroits et sur d'autres listes :
 `emitter_update` parcourt les particules de son émetteur (`particles`) et en
 supprime au milieu de sa propre boucle (`pointer_list_del`), sans compenser
 l'indice. La particule qui prend la place de celle qui vient d'être retirée
@@ -232,9 +232,9 @@ troisième site du même motif, et qu'un futur lecteur qui en corrige un
 seul rendra les trois incohérents entre eux.
 
 Fichiers : `src/game/particle.c`, `src/game/slipway_display.c`,
-et `src/engine/bootstrap.c` pour la variante de TROU-5.
+et `src/engine/bootstrap.c` pour la variante de GAP-5.
 
-## TROU-15 — Là où Lua planterait, ce port ignore
+## GAP-15 — Là où Lua planterait, ce port ignore
 
 Lua : `bd()`, `hg`, `lt`, `he`, `bm`, `dc`, `fa`, `ck()`.
 
@@ -261,7 +261,7 @@ que le cart à un endroit et pas aux autres.
 Fichiers : `src/game/economy_tiers.c`, `src/game/economy_formulas.c`,
 `src/engine/entity.c`.
 
-## TROU-16 — Le tirage pondéré lit hors bornes si son pool se vide
+## GAP-16 — Le tirage pondéré lit hors bornes si son pool se vide
 
 Lua : `gn()`, `gn_next()`, `oc.items[0]`, `df`, `bw(90)`, `jo:hh`,
 `oc[flr(r()*0+1)]`, `until not gu(nm,e)`.
@@ -285,14 +285,14 @@ indéfiniment, ce qui n'est pas mieux.
 
 Fichier : `src/game/gen.c`.
 
-## TROU-17 — Le générateur pseudo-aléatoire n'est pas celui de PICO-8
+## GAP-17 — Le générateur pseudo-aléatoire n'est pas celui de PICO-8
 
 Lua : `rnd`.
 
 `p8_fixed_rnd` tire d'un générateur maison (`rnd_next_u32`), pas de celui
 de PICO-8. Aucune séquence ne coïncide.
 
-Conséquence directe, et plus forte que TROU-1 : l'objectif acté
+Conséquence directe, et plus forte que GAP-1 : l'objectif acté
 « même graine → même galaxie » **ne tient pas** face au vrai cart, et pas
 seulement parce que le flottant dérive. Ici la première valeur tirée
 diffère déjà.
@@ -302,7 +302,7 @@ lui-même.
 
 Fichier : `src/p8/fixed.c`.
 
-## TROU-18 — Le remap de couleurs de `pal()` n'est pas porté
+## GAP-18 — Le remap de couleurs de `pal()` n'est pas porté
 
 Lua : `pal()`, `dv()`.
 
@@ -318,7 +318,7 @@ effet qui permute réellement deux couleurs.
 
 Fichier : `src/p8/gfx.c`, marqué par un `TODO` sur place.
 
-## TROU-19 — La police est reconstituée à la main
+## GAP-19 — La police est reconstituée à la main
 
 Les glyphes de PICO-8 appartiennent à son runtime, pas au cart : ils ne
 sont dans aucun asset exportable. Ce port les redessine — 3×5 pixels dans
@@ -330,7 +330,7 @@ serait de relever les glyphes depuis PICO-8 lui-même.
 
 Fichier : `src/p8/gfx.c`.
 
-## TROU-20 — Un `nil` explicite comme couleur de `circ` n'est pas vérifié sur PICO-8
+## GAP-20 — Un `nil` explicite comme couleur de `circ` n'est pas vérifié sur PICO-8
 
 Lua : `ga:kj`, `circ(p.x,p.y,pt.p:qx(),self.k_[flr(pt.l/2)])`, `1 < l < 2`,
 `k_`, `k_[0]`, `nil`, `circ`, `color(8) circ(64,64,10,nil)`, `rk`,
@@ -365,7 +365,7 @@ Prémisse réfutée par diagnostic dans les émulateurs.
 
 Fichier : `src/game/planet_family.c`.
 
-## TROU-21 — La palette d'un éclat né d'une protoétoile est celle de la classe
+## GAP-21 — La palette d'un éclat né d'une protoétoile est celle de la classe
 
 Lua : `ga:kj`, `self.k_`, `k_`, `pm:pq()`, `ga`,
 `k_=o(1,2,8,14,14,14,14,8,8,2,2,1,1)`, `k_=o(1,2,4,9,9,10,10,7,7,7,7,7)`.
@@ -383,7 +383,7 @@ rendu du port, écart compris.
 
 Fichier : `src/game/planet_family.c`.
 
-## TROU-22 — `tostr` sous 0.0001 n'est pas sourcé
+## GAP-22 — `tostr` sous 0.0001 n'est pas sourcé
 
 Lua : `tostr`.
 
@@ -405,7 +405,7 @@ magnitude inférieure à 0.0001. Se tranche par une ligne de plus dans
 
 Fichier : `src/p8/str.c`.
 
-## TROU-23 — Une ligne de bouton qui porte son infobulle latérale ou son infobulle à nil a quand même sa pastille ou son infobulle
+## GAP-23 — Une ligne de bouton qui porte son infobulle latérale ou son infobulle à nil a quand même sa pastille ou son infobulle
 
 Lua : `h_`, `jb`, `js:pq`, `self.h_=self.h_ and lq(self.h_)`,
 `self.jb=self.jb and jb(self.jb)`, `lq`, `jo:fe`, `b:jb()`, `hp:jb`, `ii`,
@@ -413,7 +413,7 @@ Lua : `h_`, `jb`, `js:pq`, `self.h_=self.h_ and lq(self.h_)`,
 
 Dans le cart, la construction d'un bouton ne construit rien pour une clé
 nil. Ce port construit une rangée vide (`layout_row_new`), ou une
-infobulle vide, dès que la ligne porte la clé, même à nil (TROU-9 : une clé
+infobulle vide, dès que la ligne porte la clé, même à nil (GAP-9 : une clé
 nommée écrite à nil reste présente). Seul `false` n'en construit pas.
 
 Atteint par le filet : la ligne de `planet_projects_panel` d'un bâtiment
@@ -430,7 +430,7 @@ par `test_nil_keys` de `tests/test_button.c`.
 
 Fichier : `src/game/ui_button.c`.
 
-## TROU-24 — `trade_extend` donne une ressource `false` à la route neuve quand la route n'a pas de ressource
+## GAP-24 — `trade_extend` donne une ressource `false` à la route neuve quand la route n'a pas de ressource
 
 Lua : `trade:kg`, `qe=false`, `self.qe`, `qe`, `trade`, `jo:cn`, `jo:ib`,
 `kg`, `nr:cn`, `dh`, `kw`.
@@ -458,7 +458,7 @@ les deux lectures.
 Fichiers : `src/game/trade.c`, `src/game/planet_trade.c`,
 `src/game/economy_tiers.c`.
 
-## TROU-25 — La rangée « score 0 » du panneau de fin a un trou, le port en dessine les deux éléments
+## GAP-25 — La rangée « score 0 » du panneau de fin a un trou, le port en dessine les deux éléments
 
 Lua : `o("",score=0,ra=v(64,21),c=5)`, `bz`, `pj:ph`, `st[3]`, `st[1]`, `lq`,
 `lq:pq`, `nv`, `all(self)`, `#t`, `all`, `fs`, `w`, `a=0.5`, `pi.ld`, `[1]`,
@@ -466,7 +466,7 @@ Lua : `o("",score=0,ra=v(64,21),c=5)`, `bz`, `pj:ph`, `st[3]`, `st[1]`, `lq`,
 
 La ligne de la rangée « score 0 » du panneau (lua.lua:803) n'a qu'un
 positionnel, l'indice 1. `score_panel_update` (lua.lua:885-891) lui écrit
-l'indice 3 (la chaîne de TROU-13), puis réécrit l'indice 1, et la passe à
+l'indice 3 (la chaîne de GAP-13), puis réécrit l'indice 1, et la passe à
 une rangée de mise en page. La rangée porte donc les indices 1 et 3, sans
 2.
 
@@ -492,7 +492,7 @@ d'indice. La conversion en struct préserve l'écart.
 Fichiers : `src/game/layout.c` (construction de la rangée,
 `layout_row_construct`), `src/game/score_panel_display.c`.
 
-## TROU-26 — La cible d'une planète hors écran est coupée quand l'objet tenu est rendu
+## GAP-26 — La cible d'une planète hors écran est coupée quand l'objet tenu est rendu
 
 Lua : `fo`, `jo:kj`, `self.fo=nil`, `gd()`, `ll`, `jc`, `dw`, `kj`, `np`.
 

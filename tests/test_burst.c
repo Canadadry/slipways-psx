@@ -554,7 +554,7 @@ static uint32_t fold_cut(uint32_t h, void *e, int n) {
 
 /* spawn_particle on each burst; draw_layers("draw") three times, then three
  * more with the protostar's burst cut to 3 particles, so that its circles,
- * drawn in the class trail colors (TROU-21), are not all covered by
+ * drawn in the class trail colors (GAP-21), are not all covered by
  * emitter_update's dots in its own; is_dead once the particle list holds 3,
  * 2, 0 particles; hit_test on and off the burst, planet_is_colonized;
  * refresh on the planet's shared production (no row), then on one with a

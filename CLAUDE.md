@@ -21,6 +21,6 @@
 
 ## Commentaires
 
-Un commentaire ne reste que s'il porte l'une de ces trois choses : un écart connu avec le cart (→ `docs/trous-de-portage.md`, référencé par un `/* TROU-7 */` nu), un piège qu'on réintroduirait (un `assert` porteur de message, sinon 40 mots), ou un contrat C que le nom ne dit pas (qui libère la mémoire, ce que rend la fonction si le champ manque). `TODO` reste autorisé. Dans un `Makefile`, seule l'aide à la lecture d'une commande reste. Tout le reste va dans le message de commit.
+Un commentaire ne reste que s'il porte l'une de ces trois choses : un écart connu avec le cart (→ `docs/trous-de-portage.md`, référencé par un `/* GAP-7 */` nu), un piège qu'on réintroduirait (un `assert` porteur de message, sinon 40 mots), ou un contrat C que le nom ne dit pas (qui libère la mémoire, ce que rend la fonction si le champ manque). `TODO` reste autorisé. Dans un `Makefile`, seule l'aide à la lecture d'une commande reste. Tout le reste va dans le message de commit.
 
 Pour reprendre un fichier déjà écrit : skill `reprendre-les-commentaires`.

@@ -144,7 +144,7 @@ trade_route_t *trade_extend(const allocator_t *zone, const trade_route_t *self,
     entity_list_init(&empty_slipways, frame_zone());
     lp = self->planets != NULL ? self->planets : &empty_planets;
     rl = self->slipways != NULL ? self->slipways : &empty_slipways;
-    /* TROU-24 */
+    /* GAP-24 */
     keys.has_resource = 1;
     keys.resource_is_bool = self->has_resource ? self->resource_is_bool : 1;
     keys.resource = self->has_resource ? self->resource : 0;

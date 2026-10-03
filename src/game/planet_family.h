@@ -13,7 +13,7 @@
  * ascension_draw, protostar_construct, burst_construct and burst_draw; the
  * other functions dereference it. */
 
-/* TROU-8 */
+/* GAP-8 */
 /* Requires planet_init() (asserted); calls planet_family_shutdown(), then
  * draw_functions_init(). */
 void planet_family_init(void);

@@ -21,7 +21,7 @@ int tech_gate_is_unlocked(const char *px) {
     if (fm != NULL) {
         invented_list = fm->invented;
     }
-    /* TROU-3 */
+    /* GAP-3 */
     return collect_contains_string(invented_list, px);
 }
 

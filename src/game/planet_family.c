@@ -418,7 +418,7 @@ void burst_draw(p8_graphics_t *graphics, p8_memory_t *memory, planet_t *self, ve
             int k_entry;
 
             idx = p8_fixed_flr_int(p8_fixed_flr(p8_fixed_div(pt->life, p8_fixed_from_int(2))));
-            /* TROU-21 */
+            /* GAP-21 */
             if (int_seq_at(burst_trail_colors_seq.items, burst_trail_colors_seq.count, idx, &k_entry)) {
                 color = k_entry;
             }

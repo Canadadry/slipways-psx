@@ -170,14 +170,14 @@ static p8_fixed_t quarter_wave_at(uint32_t f) {
     return (quadrant & 2u) ? -v : v;
 }
 
-/* TROU-1 */
+/* GAP-1 */
 p8_fixed_t p8_fixed_cos(p8_fixed_t x) {
     return quarter_wave_at(((uint32_t)x + 0x4000u) & 0xFFFFu);
 }
 
 /* Sign inverted relative to standard math: PICO-8's screen y-axis points
  * down. */
-/* TROU-1 */
+/* GAP-1 */
 p8_fixed_t p8_fixed_sin(p8_fixed_t x) {
     return -quarter_wave_at((uint32_t)x & 0xFFFFu);
 }

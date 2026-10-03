@@ -319,7 +319,7 @@ static button_t *open_box_step(open_box_ctx_t *ctx, const button_keys_t *row) {
     b.pos = &ctx->pos;
     b.slide_target = &qf;
 
-    /* TROU-9 */
+    /* GAP-9 */
     if (ctx->frame->has_back_color) {
         b.layer = ctx->frame->back_color;
         b.has_layer = 1;

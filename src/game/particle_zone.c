@@ -20,7 +20,7 @@
 /* Particles: each particle list at its worst, plus the 5 of the new help
  * screen, born at cart_init before the flush that gives back the old game.
  * A burst makes 140 (emitter_spawn with 140); a probe or a protostar
- * (spawn_rate 1, lifetime 9) ~58, 60 with the skips of TROU-14. */
+ * (spawn_rate 1, lifetime 9) ~58, 60 with the skips of GAP-14. */
 #define BURST_PARTICLES 140
 #define EMITTER_WORST_CASE 60
 #define HELP_SCREEN_PER_FRAME 5

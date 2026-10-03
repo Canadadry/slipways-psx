@@ -65,7 +65,7 @@ typedef struct {
     emitter_t emitter_own;
 } planet_t;
 
-/* TROU-8 */
+/* GAP-8 */
 /* Calls draw_functions_init(). */
 void planet_init(void);
 
@@ -161,7 +161,7 @@ void planet_update_vanishing_method(entity_t *self, p8_fixed_t t);
 
 void planet_install_project(planet_t *self, research_project_t *research_project_instance);
 
-/* TROU-3 */
+/* GAP-3 */
 /* 1 when the archetype's is_planet is set and the state is "settled", 0
  * otherwise, a NULL `self` included. */
 int planet_is_colonized(const planet_t *self);

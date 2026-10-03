@@ -88,7 +88,7 @@ static void weighted_picker_tickets_del(weighted_picker_t *state, const planet_t
 
 /* Each draw removes its ticket for good: 66 tickets, while a 90-planet
  * galaxy can draw more, and an emptied pool would index out of range. */
-/* TROU-16 */
+/* GAP-16 */
 const planet_types_entry_t *weighted_picker_next(weighted_picker_t *state) {
     const planet_types_entry_t *e;
 

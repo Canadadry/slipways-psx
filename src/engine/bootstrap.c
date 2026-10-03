@@ -53,7 +53,7 @@ void update_entities(void) {
     const entity_list_t *hv = live_entities();
     int i;
 
-    /* TROU-5 */
+    /* GAP-5 */
     for (i = 0; i < hv->count; i++) {
         entity_t *qc = hv->items[i];
 

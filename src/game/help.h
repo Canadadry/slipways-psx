@@ -24,7 +24,7 @@ void help_shutdown(void);
 int help_screen_ready(void);
 const entity_class_t *help_screen_class(void);
 
-/* TROU-8 */
+/* GAP-8 */
 /* The help screen's class carries the probe's tags, so entity_register()
  * files it under the probe and targeting tags too; it lives in the current
  * game-zone generation. Its position points at help_screen_archetype's,

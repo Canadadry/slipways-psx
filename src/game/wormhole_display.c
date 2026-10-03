@@ -57,7 +57,7 @@ void wormhole_draw(p8_graphics_t *graphics, p8_memory_t *memory, wormhole_t *sel
                 int color = 0;
 
                 if (has_color_ramp) {
-                    /* TROU-12 */
+                    /* GAP-12 */
                     /* The ramp is 1-indexed: int_seq_at leaves an index of
                      * 0 at the default colour 0. */
                     p8_fixed_t ratio = p8_fixed_mul(p8_fixed_div(sr, oi), p8_fixed_from_int(8));

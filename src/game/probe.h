@@ -37,7 +37,7 @@ typedef struct {
     targeting_t targeting_own;
 } probe_t;
 
-/* TROU-8 */
+/* GAP-8 */
 /* Puts the placeholder main economy back, its credits and research points
  * absent. Shuts the module down first, so it is idempotent. */
 void probe_init(void);

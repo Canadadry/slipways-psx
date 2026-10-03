@@ -20,4 +20,4 @@ Règle de cette liste : chaque todo est une seule phrase claire, lisible sans r�
 - [ ] À la reprise PSX, décider si la manette émule la souris PICO-8 ou saute de planète en planète ; idées dans l'historique git de `docs/after-v1.md`.
 - [ ] À la reprise PSX, remesurer sur MIPS les tailles de place des zones interface et particules : mesurées sur x86-64, js et mh n'ont aucune marge.
 - [ ] Avant tout nouveau point de libération, rendre mécanique la liste des références coupées par `oublier` : l'inventaire par grep en a manqué trois (`dk`, `jc->re`, `fo`).
-- [ ] Décider de TROU-26 : une planète hors écran perd le halo de l'objet tenu rendu, là où la cartouche relirait sa mémoire.
+- [ ] Décider de GAP-26 : une planète hors écran perd le halo de l'objet tenu rendu, là où la cartouche relirait sa mémoire.

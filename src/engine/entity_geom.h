@@ -9,7 +9,7 @@
  * hit box -- is a pointer the entity borrows and never owns. Throughout
  * this module a NULL instance or an absent field reads as the zero vector,
  * as 0, or as a false hit test. */
-/* TROU-15 */
+/* GAP-15 */
 
 /* The entity may be NULL. An entity on layer 10 or above tests the second
  * cursor position, any other the first; a NULL one reads as the zero vector. */

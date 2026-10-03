@@ -98,12 +98,12 @@ p8_fixed_t p8_fixed_rnd(p8_fixed_t x);
 p8_fixed_t p8_fixed_rnd_default(void);
 
 /* x is in turns: 0.0-1.0 is a full rotation. */
-/* TROU-1 */
+/* GAP-1 */
 p8_fixed_t p8_fixed_cos(p8_fixed_t x);
 
 /* Same turns convention, but the sign is inverted relative to standard
  * math, matching PICO-8's screen y-axis pointing down. */
-/* TROU-1 */
+/* GAP-1 */
 p8_fixed_t p8_fixed_sin(p8_fixed_t x);
 
 #endif

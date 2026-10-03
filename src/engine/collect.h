@@ -24,7 +24,7 @@ typedef int (*map_pointer_list_fn_t)(void *e, void *ctx, void **out);
 pointer_list_t collect_map_pointer_list(const allocator_t *zone, const pointer_list_t *qk,
                            map_pointer_list_fn_t kp, void *ctx);
 
-/* TROU-3 */
+/* GAP-3 */
 /* Membership by string content: every element of the list is a string
  * (NULL is skipped); a NULL list contains nothing. */
 int collect_contains_string(const pointer_list_t *qk, const char *kb);

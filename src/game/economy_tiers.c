@@ -110,7 +110,7 @@ static void rebuild_incoming_routes_route_visit(entity_t *entity, void *context)
                 }
                 assert(w_val->class == slipway_class() && "rebuild_incoming_routes_route_visit: a trade's slipways list holds slipways only");
                 w = (const slipway_t *)w_val;
-                /* TROU-15 */
+                /* GAP-15 */
                 /* Skipped, never fatal: never make this absent set fail alone. */
                 if (w->served_planets == NULL) {
                     continue;
@@ -240,7 +240,7 @@ p8_fixed_t economy_tiers_compute_tier(const entity_t *entity) {
                     }
                     assert(incoming->class == trade_class() && "economy_tiers_compute_tier: incoming_routes holds trades only");
                     im = (const trade_route_t *)incoming;
-                    /* TROU-24 */
+                    /* GAP-24 */
                     if (im->has_resource && resource_equal(trade_resource(im), resource_val)) {
                         gc++;
                     }

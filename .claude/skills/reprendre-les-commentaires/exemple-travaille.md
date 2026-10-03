@@ -27,7 +27,7 @@ coûtait seulement.
   **nom** était donc déjà dans le code, c'est le **sens** qui manquait, et il ne
   se déduisait ni du C ni du Lua.
 - `docs/trous-de-portage.md` : les écarts numérotés, revérifiés contre le code un
-  par un. Le code n'y renvoie que par `/* TROU-7 */`.
+  par un. Le code n'y renvoie que par `/* GAP-7 */`.
 
 ## Phase 1
 
@@ -37,10 +37,10 @@ phase 2 :
 
 - une affirmation périmée (« cette table est vide face au vrai `map.json` ») que
   le plan actait comme résolue depuis longtemps ;
-- **TROU-4 devenu atteignable sans que personne le note** : le commentaire disait
+- **GAP-4 devenu atteignable sans que personne le note** : le commentaire disait
   « ce sera un vrai trou le jour où `spr` sera enregistré comme constructeur », et
   l'initialisation l'enregistre bien ;
-- **TROU-1 contredisant une décision actée** du plan (« pas de flottant natif »)
+- **GAP-1 contredisant une décision actée** du plan (« pas de flottant natif »)
   alors que `pico8_fixed_cos/_sin` passent par le `cos()` de l'hôte.
 
 Le recâblage du processus, dans le même commit : la règle dans `CLAUDE.md`, et
@@ -63,7 +63,7 @@ illustrent chaque règle :
   `assert(oc.count > 0)`, a calculé la marge avant d'écrire — 66 tickets pour
   90 planètes possibles — et a renoncé. En vérifiant, c'était pire que sa
   conclusion : pool vide, l'index tombe à 0, le code lit `items[0]` sur une liste
-  dont le tableau peut être NULL. Consigné en TROU-16.
+  dont le tableau peut être NULL. Consigné en GAP-16.
 - **Les asserts écartés par la plomberie** : `i >= 1` dans `pico8_sub` alors que
   `unstash()` l'appelle avec 0 à chaque fin de chaîne ; `frames != NULL` dans
   `pico8_input_save` alors qu'un test passe NULL exprès. Les deux auraient cassé

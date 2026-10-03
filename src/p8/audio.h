@@ -3,7 +3,7 @@
 
 #include "p8/fixed.h"
 
-/* TROU-10 */
+/* GAP-10 */
 void p8_sfx(int n, int channel);
 void p8_music(int n);
 

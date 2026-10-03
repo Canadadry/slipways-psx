@@ -193,7 +193,7 @@ entity_t *entity_register(entity_t *e) {
 void entity_unregister(entity_t *e) {
     int i;
 
-    /* TROU-5 */
+    /* GAP-5 */
     if (entity_list_del(&g_live_entities, e) && e->class->release != NULL) {
         exit_queue_put(e);
     }

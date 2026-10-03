@@ -391,7 +391,7 @@ static void test_pow075_negative_value_is_zero(void) {
 
 /* rnd is asserted on its documented contract only: PICO-8's own PRNG is not
  * published, so no drawn value has a reference to compare against. */
-/* TROU-17 */
+/* GAP-17 */
 
 static void test_rnd_zero_is_zero(void) {
     /* rnd(0) returns 0. */
@@ -422,7 +422,7 @@ static void test_rnd_default_behaves_as_rnd_one(void) {
 }
 
 /* sin/cos are bit-exact only at the 64 probed points, every 1/64 turn. */
-/* TROU-1 */
+/* GAP-1 */
 static void test_sin_matches_probe_block_e(void) {
     /* Block E (sin) of tools/pico8_reference_probe_out.txt: copied from the
      * probe, never derived. The arguments step by 1/64 turn, raw 0x400. */
