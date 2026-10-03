@@ -963,6 +963,8 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 
 ### Mode d'emploi
 
+*Verdicts donnés par l'humain en séance le 2026-10-03 (« ok partout »), l'humain ne pouvant pas éditer le fichier ; transcrits par l'orchestrateur. C-33 et C-34 attendent la relecture des passages de skills montrés en séance.*
+
 - Chaque point a un **verdict proposé**. Pour l'accepter, écrivez **ok** sur sa ligne `Verdict`.
 - Pour en choisir un autre, écrivez-le à la place : `proposition`, `variante nommée` (avec la variante en une ligne), `garder tel quel` ou `reporter hors plan 5`.
 - `garder tel quel` : rien n'est édité. `reporter hors plan 5` : rien n'est édité, la question part dans un ticket.
@@ -978,7 +980,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : les agents ont lu chaque « ok » comme `proposition`, et les lignes `Verdict` restées vides de D-28 et D-68 comme `proposition` pour chaque alerte. Ils n'ont rien écrit dans le registre (aucune marque « appliqué »).
 - **Proposition** : confirmer cette lecture. Vous écrivez « ok » sur les deux lignes vides de D-28 et D-68, pour que le registre soit complet.
 - **Verdict proposé** : `proposition`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-2 — D-66 lu comme l'option (c)
 
@@ -986,7 +988,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : D-66 n'avait pas d'option préférée ; « ok » a été lu en séance comme (c). Résultat : `make test` reste rapide (22 à 25 s) et marche sans libclang ; `make test-all` passe de 23 s à environ 2 min 30 (l'extraction) et échoue sans libclang. 5e a corrigé le §5 du plan en ce sens.
 - **Proposition** : confirmer. Rien à éditer.
 - **Verdict proposé** : `garder tel quel`
-- **Verdict** :
+- **Verdict** : ok
 
 ### Thème 2 — Ce que les gardes ne voient pas (10)
 
@@ -996,7 +998,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : la garde des anciens noms ne cherche que les anciens noms du TSV. Quinze noms du cart n'y sont pas (`pico8_value_t`, `pico8_value`, `pico8_value_function`, `pico8_ob`, `pico8_unstash`, `pico8_mv`, `pico8_list_t`, `pico8_entity_get_field`, `pico8_jo_start`, `pico8_nl_start`, `hp_pose`, `pico8_ho_gp_has`, `pk_is_bool`, `fp_is_bool`, `nu`). Mesuré par 5b : planté dans `src/game/planet.c`, aucun n'est vu.
 - **Proposition** : un fichier `tools/historical_names.txt` avec ces quinze noms, lu par la garde des anciens noms comme des noms distinctifs ; test d'abord (un nom planté rougit `make test`).
 - **Verdict proposé** : `proposition`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-4 — Trois motifs écrits en noms du cart, verts par construction
 
@@ -1004,7 +1006,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : trois motifs ne cherchent que des noms du cart disparus : la catégorie `dispatch` de `tools/data_residue.sh` (`pico8_value_function`, `pico8_mv(`), les deux branches `pico8_` de `by-name` (l'une est englobée par l'autre : aucun test ne peut la prouver vivante), et `get_nu` de `header-accessors` (`tools/composition_residue.sh`). Ils ne peuvent rien trouver. 5b les a gardés faute de verdict.
 - **Proposition** : leur appliquer la règle de l'alerte 14 de D-68 : les retirer avec leurs fixtures et leurs lignes de vivacité (`dispatch` sort aussi de `DATA_RESIDUE_GUARD`). À prendre avec C-3 : la garde des anciens noms prend alors le relais sur ces noms.
 - **Verdict proposé** : `proposition`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-5 — Une ancienne identité réintroduite ailleurs
 
@@ -1012,7 +1014,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : la garde AST reconnaît une ancienne identité (même fichier, même type), pas un ancien nom. Un ancien nom de trois lettres ou plus, recréé dans un autre fichier ou un autre type, passe. Un nom d'une ou deux lettres est rattrapé par la garde de portée, sauf en locale courte.
 - **Proposition** : accepter ce trou. Le fermer demanderait de chercher tous les anciens noms ambigus en texte, avec des centaines de faux positifs (`pos`, `row`, `out`…).
 - **Verdict proposé** : `garder tel quel`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-6 — Une exception vaut pour tout son module
 
@@ -1020,7 +1022,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : une ligne d'exception excepte un mot dans tout un fichier : un `du` neuf dans le `Makefile`, un `cart` neuf dans la légende, un `tmp/pico8_replay` neuf dans `tools/frames_ref.sh`, un `ce` neuf dans le relevé figé ne seront plus vus.
 - **Proposition** : rien. Déjà tranché par D-1, D-55, D-56 et D-59 (granularité module du registre).
 - **Verdict proposé** : `garder tel quel`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-7 — Deux relevés restent non bloquants, avec des pièges connus
 
@@ -1028,7 +1030,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : `cart-citations` et `cryptic-locals` sont à 0 mais ne bloquent rien. Pièges connus : une mention nue de `fy`, `kv`, `nj`, `oc` ou `gy` dans un commentaire compterait en `short` ; un `` `mem` `` ou un `` `gfx` `` entre backticks compterait partout (depuis D-38). Aucun n'est présent aujourd'hui.
 - **Proposition** : rien. Déjà tranché par D-56 et D-59 (« le relevé n'est pas une garde du §5 »).
 - **Verdict proposé** : `garder tel quel`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-8 — Rien n'empêche un `TROU-` de revenir, ni un `/* GAP-N */` sans entrée
 
@@ -1036,7 +1038,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : 5d a fait passer tous les marqueurs à `GAP-N`, mais aucun contrôle ne le tient. Un `TROU-` copié d'une vieille branche, ou un `/* GAP-30 */` sans titre `## GAP-30` dans `docs/trous-de-portage.md`, passerait.
 - **Proposition** : un contrôle dans `make test`, test d'abord : `git grep 'TROU-'` rend 0 dans `src`, `tests`, `tools` ; chaque numéro de `/* GAP-N */` a son titre dans `docs/trous-de-portage.md`.
 - **Verdict proposé** : `proposition`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-9 — Une ligne d'exception morte ne se signale pas
 
@@ -1044,7 +1046,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : si le code change et qu'une ligne d'exception ne retire plus rien, aucun outil ne le dit. La ligne reste et peut masquer un futur vrai problème.
 - **Proposition** : sous `--check`, les lecteurs d'exceptions (`french_count.py`, `rename_count.py`, `cart_citations.py`, `scope_count.py`) échouent sur une ligne qui n'a rien retiré, en la nommant ; test d'abord.
 - **Verdict proposé** : `proposition`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-10 — Les exceptions de portée (`x`, `y`) n'ont aucun test
 
@@ -1052,7 +1054,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : 5e a remplacé `tools/scope_exceptions.txt` par un fichier vide : aucun test n'a rougi. Rien ne prouve que ces exceptions sont lues.
 - **Proposition** : un cas de plus dans `tests/test_ast_guard.py` : un champ `x` de vecteur, vert avec le fichier d'exceptions, rouge sans.
 - **Verdict proposé** : `proposition`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-11 — Choix faits sans vous pour les exceptions (5d)
 
@@ -1060,7 +1062,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : (1) D-56 et la part `short` de D-59 ont fini en lignes d'exception, dans un fichier neuf `tools/cart_citations_exceptions.txt` ; (2) D-60 est une liste de deux mots raylib (`blank`, `texture`) valables pour toute locale future ; (3) la règle de D-13 ne touche que la garde de portée, pas `cryptic-locals` ; (4) un fichier d'exceptions n'est pas compté par l'outil qui le lit, et ses lignes valent aussi pour la moitié AST ; (5) les fichiers neufs sont rangés en 3a de `tools/rename_substeps.tsv`.
 - **Proposition** : confirmer. Rien à éditer.
 - **Verdict proposé** : `garder tel quel`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-12 — Choix faits sans vous pour brancher les gardes (5e)
 
@@ -1068,7 +1070,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : les tests de vivacité travaillent sur une copie réduite du dépôt, pas sur l'arbre entier ; la copie AST n'analyse que les fichiers plantés (`AST_RENAME_UNITS`), seul écart à « la vraie cible » ; les violations plantées sont fabriquées à l'exécution (jamais écrites en clair) ; il y a deux fichiers de test (texte dans `make test`, AST dans `make test-all`) ; 5e a touché la ligne « Build » du `CLAUDE.md` et corrigé le §5 du plan.
 - **Proposition** : confirmer. Rien à éditer.
 - **Verdict proposé** : `garder tel quel`
-- **Verdict** :
+- **Verdict** : ok
 
 ### Thème 3 — Noms laissés de côté (5)
 
@@ -1078,7 +1080,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : D-21 a retiré `g_` des tables de classe et de sorte. Le registre disait que le même verdict couvrirait les autres `static const g_…`, sans les nommer. 5c ne les a pas touchées : `g_message_names`, `g_outline_offsets`, `g_galaxy_menu_on_click`, `g_galaxy_menu_refresh`, `g_handles`, `g_planet_name_grab_arena`, `g_synthesizer_synthesizable_resources_spent`, `g_slipgate_left_press_empty` (`src/`), `g_without_birth`, `g_layer_ten`, `g_pos_nil`, `g_giver_layer` (`tests/`).
 - **Proposition** : retirer le `g_` des douze par la procédure N. `g_handles` heurterait `handles` : il devient `slot_allocators` (un `allocator_t` par sorte d'emplacement, `src/game/particle_zone.c:110`) ; les autres prennent leur nom sans `g_`, après contrôle qu'il est libre.
 - **Verdict proposé** : `proposition`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-14 — Paramètres courts hors de la famille de D-29, dont `dk`
 
@@ -1086,7 +1088,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : des paramètres d'une ou deux lettres gardent un digramme du cart : `fy` (`vec_from_polar` ×2, `apply_camera_to`), `ra` (`pos_copies` ×8, `build`, `build_protostar`, `with_pos`, `holds_copy_of`, `spy_draw`, `draw_layers`, `emitter_host_layer_pos`, `probe_host_set_positions`), `yr` (`year_box`), `dk`. Leur portée tient en 40 lignes : le §1 les permet et aucune garde ne les voit.
 - **Proposition** : rien. Déjà tranché par D-29 : votre verdict a retenu la seule famille des méthodes (option (b)), pas tous les paramètres courts (option (c)).
 - **Verdict proposé** : `garder tel quel`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-15 — `DIFFICULTY_OPTIONS_COUNT` sans le nom de son module
 
@@ -1094,7 +1096,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : D-24 disait que `DIFFICULTY_OPTIONS_COUNT` suivrait `HELP_DIFFICULTY_OPTIONS_ROW_CAP` s'il était du même fichier. Il ne l'est pas : c'est une constante d'énumération de `src/game/game_data.h:21`, lue par `help.c` et `game_data.c`.
 - **Proposition** : la laisser. Avec le préfixe de son module, elle s'appellerait `GAME_DATA_DIFFICULTY_OPTIONS_COUNT`, plus long sans rien dire de plus.
 - **Verdict proposé** : `garder tel quel`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-16 — Trois locales gardent un digramme du cart : `k_entry`, `k_key`, `gy`
 
@@ -1102,7 +1104,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : `k_entry` (`src/game/planet_family.c:418`) tient une couleur de traînée ; `k_key` (`src/game/score_panel.c:170`) l'indice de la ressource `"k"` ; `gy` (`tests/test_structure_icon.c:568`) le curseur partagé d'avant la relance.
 - **Proposition** : procédure N : `k_entry` → `trail_color`, `k_key` → `resource_index`, `gy` → `cursor_before`, le nom que porte déjà la même locale dans `test_directed` (noms à vérifier libres dans leur fonction).
 - **Verdict proposé** : `proposition`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-17 — Noms choisis sans vous pendant 5c
 
@@ -1110,7 +1112,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : 5c a choisi elle-même : `planet_kinds` pour `g_planet_kind` (D-21) ; `host_class_def` pour `g_host_cls` ; `screen_pos` et non `mouse_screen` pour le `ra` de `draw` et `draw_overlay`, qui reçoivent la position de l'entité (D-29 ; la ligne du TSV, partagée avec `hit_test`, dit `mouse_screen`) ; `me` → `state` sur les 12 ; `fy` de `vec_from_polar` gardé (c'est une longueur) ; « identifier counter » et non « id counter » (D-47) ; deux boucles bornées dans `tests/test_main_mouse.c` (D-18).
 - **Proposition** : confirmer. Rien à éditer.
 - **Verdict proposé** : `garder tel quel`
-- **Verdict** :
+- **Verdict** : ok
 
 ### Thème 4 — Outillage (alertes de la `warn-review` et choix de 5a) (10)
 
@@ -1120,7 +1122,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : le seuil de 40 lignes est écrit deux fois (`tools/scope_count.py:35`, `tools/rename_derive.py:353`) ; la règle « une statique de fonction se juge comme une locale » est réécrite dans trois outils ; la règle « paramètre de pointeur de fonction » existe en deux versions qui diffèrent (`scope_count.py:60` teste un `.` dans le parent, `rename_derive.py:343` un `/`). Seul `scope_count.py` est une garde permanente ; les autres copies sont dans des outils `rename_*` du chantier.
 - **Proposition** : rien maintenant. Le sort des outils `rename_*` se décide en 5i : s'ils partent, les copies partent avec eux ; s'ils restent, un ticket ramène chaque règle à une seule source.
 - **Verdict proposé** : `garder tel quel`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-19 — `tools/ast_rename/plan.py` garde son propre `read_table`
 
@@ -1128,7 +1130,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : ce lecteur lit la table passée à `rename-apply` (trois ou quatre colonnes, numéros de ligne pour ses refus), jamais `docs/renommage.tsv`.
 - **Proposition** : rien. Déjà tranché par D-28 (alerte 1) ; l'écart est consigné par 5a.
 - **Verdict proposé** : `garder tel quel`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-20 — Les outils s'importent les uns les autres
 
@@ -1136,7 +1138,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : ces liens viennent de votre verdict sur D-68 : l'alerte 2 (le moyeu `rename_count.py`) a été reportée hors plan 5 ; les alertes 3 et 5 (une règle, un `module_of`) ont été appliquées en 5a en important l'outil qui les avait déjà.
 - **Proposition** : rien. Déjà tranché par D-68 (alertes 2, 3 et 5) ; 5i, en fixant le sort des outils `rename_*`, en retirera la plupart.
 - **Verdict proposé** : `garder tel quel`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-21 — Un test en importe un autre
 
@@ -1144,7 +1146,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : c'est voulu par 5e : le test AST réutilise la copie réduite du test texte au lieu de la recopier.
 - **Proposition** : rien.
 - **Verdict proposé** : `garder tel quel`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-22 — `tools/` est à plat, avec des préfixes incohérents
 
@@ -1152,7 +1154,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : une cinquantaine de fichiers dans un seul répertoire, nommés tantôt par outil (`rename_*`), tantôt par rôle (`*_guard.sh`, `*_residue.sh`).
 - **Proposition** : ranger `tools/` est un redécoupage (§7 du plan). À faire après 5i, une fois les outils du chantier partis ou gardés.
 - **Verdict proposé** : `reporter hors plan 5`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-23 — Un même concept sous trois noms dans le `Makefile`
 
@@ -1160,7 +1162,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : la recherche des anciens noms s'appelle `old-names-guard` (garde), `cart-names-count` (relevé) et `tools/rename_count.py` (outil).
 - **Proposition** : rien. Déjà tranché par D-56 : renommer les cibles (option (c)) n'a pas été retenu.
 - **Verdict proposé** : `garder tel quel`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-24 — `--detail` imprime `void-ptr-r2`, nom d'une catégorie retirée
 
@@ -1168,7 +1170,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : la catégorie `void-ptr` a été retirée en 5b ; ses lignes R2 (`tools/composition_residue_sites.txt`) s'impriment encore sous ce nom.
 - **Proposition** : renommer l'étiquette `void-ptr-r2` en `r2-sites`, dans le script et ses tests, en un commit ; `--detail` ne change que de cette étiquette.
 - **Verdict proposé** : `proposition`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-25 — 25 lignes de commentaire pour une affectation
 
@@ -1176,7 +1178,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : le commentaire dit ce que la catégorie voit, ce qu'elle ne voit pas, et prouve chaque exemption par son écrivain. 4l2 l'a déjà repris sous la règle des commentaires.
 - **Proposition** : le garder : la liste de ce qui n'est pas vu est un piège, la preuve de chaque exemption un contrat. Variante possible : le raccourcir par le skill `reprendre-les-commentaires` (rattrapage ponctuel).
 - **Verdict proposé** : `garder tel quel`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-26 — Colonnes du TSV écrites en français dans le code
 
@@ -1184,7 +1186,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : `ancien`, `nouveau`, `renommé`, `conservé`… sont écrits en littéraux dans plusieurs outils et tests.
 - **Proposition** : rien. Déjà tranché par D-28 (alerte 3 : schéma du TSV gardé en français) et D-33 (lignes d'exception).
 - **Verdict proposé** : `garder tel quel`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-27 — Choix faits sans vous dans l'outillage (5a)
 
@@ -1192,7 +1194,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : la version exacte de libclang `18.1.8` a disparu : le script installe `clang==18.*` ; le contrôle de D-36, périmé, a été remplacé par une mention plantée ; l'ancre `pico8_%s_struct_class` de `tools/rename_strings.py` reste fausse (même âge que le motif corrigé par D-27), mais l'outil n'est plus lancé ; `rename-apply` refuse désormais 15 mots-clés de plus (`bool`, `true`…).
 - **Proposition** : confirmer. Le sort de `rename_strings.py` se décide en 5i.
 - **Verdict proposé** : `garder tel quel`
-- **Verdict** :
+- **Verdict** : ok
 
 ### Thème 5 — Registre des écarts `docs/trous-de-portage.md` (5)
 
@@ -1202,7 +1204,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : GAP-3 dit deux fois que `economy_score_trade_income` compare des chaînes ; elle compare un indice de ressource.
 - **Proposition** : retirer `economy_score_trade_income` des deux phrases de GAP-3, après relecture du code ; commit `docs:`.
 - **Verdict proposé** : `proposition`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-29 — GAP-9 dit « Sans site » mais a un site
 
@@ -1210,7 +1212,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : GAP-9 (pas de suppression d'un champ nommé) dit « Sans site » et parle de la table à clés dynamiques, supprimée. Pourtant `src/game/message_box.c:322` porte `/* GAP-9 */` : le calque du bouton ne prend la couleur de fond du cadre que si le cadre en a une (en Lua, écrire nil effacerait le champ). Le test `tests/test_button.c:1670` le fixe, et GAP-23 s'appuie sur GAP-9.
 - **Proposition** : réécrire la fin de GAP-9 : nommer ce site et ce test au lieu de « Sans site » ; garder le numéro.
 - **Verdict proposé** : `proposition`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-30 — GAP-4 et GAP-11 décrivent du code supprimé
 
@@ -1218,7 +1220,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : GAP-4 (constructeur de champ) et GAP-11 (repli d'arité du test de survol) n'ont plus de code ni de marqueur. Leur texte le dit déjà (« Sans site »).
 - **Proposition** : retirer les deux entrées : l'écart est refermé avec le code. Les numéros 4 et 11 ne sont pas réutilisés.
 - **Verdict proposé** : `proposition`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-31 — GAP-23 cite deux rejeux disparus
 
@@ -1226,7 +1228,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : GAP-23 cite `events_recorded_1790198294` et `session_events`, absents de `tests/e2e/`.
 - **Proposition** : retirer la parenthèse qui les nomme ; le reste de l'entrée est juste (fixé par `test_nil_keys`).
 - **Verdict proposé** : `proposition`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-32 — Choix faits sans vous sur le registre des écarts (5d)
 
@@ -1234,7 +1236,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : chaque entrée a une ligne « Lua : » sous son titre, seul endroit des noms du cart ; le fichier garde son nom `trous-de-portage.md` ; la réécriture a changé les noms, pas le fond (rien n'a été revérifié) ; les skills sont passés de `TROU` à `GAP` en 5d ; huit noms sans ligne au TSV sont décrits par leur rôle.
 - **Proposition** : confirmer. Rien à éditer.
 - **Verdict proposé** : `garder tel quel`
-- **Verdict** :
+- **Verdict** : ok
 
 ### Thème 6 — Docs et skills (6)
 
@@ -1260,7 +1262,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : le skill parle de quatre destinations (`SKILL.md:3`, `:48-55` ; `consigne-agent.md:19-40` ; rubrique « glossaire » de `modele-rapport.md:62-67`). C'est juste en général : le glossaire est une destination ailleurs. Une seule phrase est fausse ici : `SKILL.md:23` dit que la règle des quatre destinations est déjà dans le fichier d'instructions du dépôt ; notre `CLAUDE.md` en a trois.
 - **Proposition** : réécrire `SKILL.md:23` seule : « la règle des destinations (quatre, ou trois si le dépôt n'a plus de glossaire) est déjà dans le fichier d'instructions du dépôt ». Le reste du skill ne change pas.
 - **Verdict proposé** : `proposition`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-36 — `docs/psx-hello-world.md` cite un hook disparu
 
@@ -1268,7 +1270,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : la ligne 43 décrit `.claude/hooks/deny-absolute-paths.py`, qui n'existe plus ; le fichier est aussi en anglais, contre « les docs restent en français ».
 - **Proposition** : retirer la puce du hook (`docs/` ne dit que ce qui est vrai). La langue reste : PSX est en pause, la traduction attendra sa reprise.
 - **Verdict proposé** : `proposition`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-37 — Choix faits sans vous sur les docs (5f)
 
@@ -1276,7 +1278,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : le glossaire est supprimé ; `docs/vocabulaire.md` n'a changé qu'à sa ligne 5 ; la tâche « Renommer les champs » du `README` est retirée (faite) ; `CLAUDE.md` a gagné les règles de nommage en trois lignes (le plan, seule source, sera supprimé) ; `docs/design/slipways-mechanics.md` reste en noms Lua (il décrit le cart) ; aucune garde ne surveille les docs, la sortie de 5f est une photographie.
 - **Proposition** : confirmer. Rien à éditer.
 - **Verdict proposé** : `garder tel quel`
-- **Verdict** :
+- **Verdict** : ok
 
 #### C-38 — La fin du chantier
 
@@ -1284,7 +1286,7 @@ Condition d'entrée de 5g (`docs/plan-5.md`, §6, entrée 5g). Cette liste repre
 - **Constat** : le sort du plan, de ce registre, de `docs/vocabulaire.md`, des outils `rename_*` et de `tools/ast_rename`, et des 12 fichiers de `tools/` qui citent `docs/plan-5.md`, reste à fixer.
 - **Proposition** : rien ici : l'entrée 5i fixe chacun par verdict, après ce point d'arrêt.
 - **Verdict proposé** : `garder tel quel`
-- **Verdict** :
+- **Verdict** : ok
 
 ### Bilan
 
