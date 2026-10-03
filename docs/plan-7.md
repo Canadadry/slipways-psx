@@ -28,10 +28,11 @@ La souris réelle, quand elle bouge, reprend la main sur le curseur clavier.
 1. **Décider le mapping** : quelle touche clique, comment on défile, comment on reste compatible avec la triche. Un agent écrit ici un mapping par défaut ; l'humain le ratifie ou le corrige avant tout code.
 2. **Couche boutons → souris** dans le cœur, testée en unitaire.
 3. **Branchement raylib** des touches (le backend lit déjà les flèches, Z et X).
-4. **Essai humain** : une partie jouée au clavier sur PC. Les constats vont dans « Décisions actées » ; si c'est injouable, retour à l'étape 1.
-5. **e2e clavier** : sans aucun mouvement de souris, un rejeu court par écran cité dans l'objectif (menus, colonisation et slipway, recherche, fin de partie).
+4. **e2e clavier** : sans aucun mouvement de souris, un rejeu court par écran cité dans l'objectif (menus, colonisation et slipway, recherche, fin de partie).
+5. **Essai humain** : une partie jouée au clavier sur PC. Les constats vont dans « Décisions actées » ; si c'est injouable, retour à l'étape 1.
 
 ## 5. Décisions actées
 
 - Le clavier suffit : il représente la manette, pas besoin de manette physique sur PC.
 - Le mode saut de planète en planète est **hors plan**.
+- Les e2e clavier passent avant l'essai humain : ils repèrent sans fenêtre un écran inatteignable au clavier.
