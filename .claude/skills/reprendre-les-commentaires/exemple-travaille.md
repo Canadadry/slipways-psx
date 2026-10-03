@@ -26,9 +26,8 @@ coûtait seulement.
 - Un glossaire des noms : 191 symboles, une ligne chacun. Le cart est minifié en
   digrammes et le port les translittérait littéralement : le **nom** était donc
   déjà dans le code, c'est le **sens** qui manquait, et il ne se déduisait ni du
-  C ni du Lua. Un plan de renommage l'a remplacé depuis, avec une table
-  `ancien → nouveau` : le nom porte le sens, la destination « sens d'un nom » est
-  tombée.
+  C ni du Lua. Un renommage en noms anglais complets l'a remplacé depuis : le
+  nom porte le sens, la destination « sens d'un nom » est tombée.
 - `docs/trous-de-portage.md` : les écarts numérotés, revérifiés contre le code un
   par un. Le code n'y renvoie que par `/* GAP-7 */`.
 
