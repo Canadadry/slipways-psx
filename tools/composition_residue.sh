@@ -19,7 +19,7 @@
 #   --detail  : `<cat>\t<file>\t<lines>` per nonzero couple,
 #               `<cat>\t<module>\t<module>` per pair of mutual-inclusion
 #               and of mutual-usage; after header-accessors, the
-#               `void-ptr-r2\t<function>\t<upstream>` lines of the
+#               `r2-sites\t<function>\t<upstream>` lines of the
 #               COMPOSITION_R2 list; the `info\t<file>\tN lines` line of
 #               game/game_data.h when it is read; then the same footer;
 #               exit 0.
@@ -675,7 +675,7 @@ for cat in $CATEGORIES; do
         fi
     fi
     if [ "$mode" = detail ] && [ "$cat" = header-accessors ]; then
-        grep -E '^[^#[:space:]]' "$R2" | awk -F'\t' '{ print "void-ptr-r2\t" $1 "\t" $3 }'
+        grep -E '^[^#[:space:]]' "$R2" | awk -F'\t' '{ print "r2-sites\t" $1 "\t" $3 }'
     fi
 done
 if [ "$mode" = detail ]; then

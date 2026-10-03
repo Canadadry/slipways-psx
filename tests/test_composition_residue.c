@@ -517,7 +517,7 @@ static void test_detail_prints_r2_sites_after_header_accessors_and_the_info_line
     write_file(SRC "/s.h", "void planet_draw(void *" "self);\n");
     assert(run_residue("--detail " TREE) == 0);
     assert(strcmp(read_file(OUT), "header-accessors\t" SRC "/a.c\t1\n"
-                                  "void-ptr-r2\tpico8_" "f\tupstream(void *" "self)\n"
+                                  "r2-sites\tpico8_" "f\tupstream(void *" "self)\n"
                                   "void-self\t" SRC "/s.h\t1\n"
                                   "info\t" SRC "/game/game_data.h\t2 lines\n"
                                   "residue 2: 2 line(s), 2 file(s)\n") == 0);
