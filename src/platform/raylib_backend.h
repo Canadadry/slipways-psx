@@ -33,10 +33,8 @@ typedef struct {
 /* Opens the window, starts this session's (still empty) recording at
  * tmp/events_recorded_<timestamp>.json and mints the paired marker path
  * tmp/events_recorded_<timestamp>.markers.txt from the same timestamp.
- * Also hides the host cursor: the game sets PICO-8's "enable mouse" flag
- * whenever it builds its mouse (mouse_construct, src/game/mouse.c) and
- * draws its own cursor, so both would otherwise be visible; shutdown
- * restores it. Must be called
+ * Also hides the host cursor: the game draws its own cursor, so both
+ * would otherwise be visible; shutdown restores it. Must be called
  * exactly once, before any other call on this backend. */
 void raylib_backend_init(raylib_backend_t *backend);
 

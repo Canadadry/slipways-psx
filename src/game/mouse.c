@@ -28,13 +28,6 @@ static const entity_class_t mouse_class_def = {
     .states = {[ENTITY_STATE_NORMAL] = mouse_update_method},
 };
 
-static void mouse_construct(p8_memory_t *mem) {
-    if (mem == NULL) {
-        return;
-    }
-    p8_poke(mem, 0x5f2d, 1);
-}
-
 static mouse_t *mouse_create(void) {
     mouse_t *self = (mouse_t *)allocator_alloc(game_zone(), sizeof *self);
 
@@ -43,7 +36,6 @@ static mouse_t *mouse_create(void) {
     /* Read-only: this module writes through its member. */
     self->header.pos = (const vec_t *const *)&self->pos;
     self->pos = &g_mouse_pos;
-    mouse_construct(dispatch_context_mem());
     entity_construct(&self->header);
     return self;
 }

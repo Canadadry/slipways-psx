@@ -145,17 +145,15 @@ static void frame(int i, int x, int y, int buttons) {
     g_frames[i].mouse_buttons = buttons;
 }
 
-/* `reset_world()` builds the main mouse: devkit mouse on, among the live
+/* `reset_world()` builds the main mouse: among the live
  * entities only, its position the zero default, both button states present
  * and still empty. */
 static void test_reset_world_builds_a_mouse_reader(void) {
     const void *je;
     vec_t ra;
 
-    p8_poke(&memory, 0x5f2d, 0);
     reset_world();
     je = main_mouse();
-    assert(p8_peek(&memory, 0x5f2d) == 1);
     assert(entity_list_listed(live_entities(), je) && !in_any_entities_by_message(je));
     assert(pos_of_main_mouse(&ra) && ra.x == 0 && ra.y == 0);
     assert(main_mouse_left() != NULL && main_mouse_right() != NULL && main_mouse_left() != main_mouse_right());

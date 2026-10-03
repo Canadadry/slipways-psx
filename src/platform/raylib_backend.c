@@ -34,8 +34,6 @@ void raylib_backend_init(raylib_backend_t *backend) {
     UnloadImage(blank);
     SetTextureFilter(backend->screen_texture, TEXTURE_FILTER_POINT);
 
-    /* Hidden once, not polled per frame: the game sets 0x5f2d each time
-     * it builds its mouse and never clears it. */
     HideCursor();
 }
 
