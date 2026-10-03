@@ -15672,7 +15672,7 @@ fresh_world	fresh_world	tests/test_toast.c	identifiant	fonction	conservé	tests/
 live	live	tests/test_toast.c	identifiant	fonction	conservé	tests/test_toast			c:test_toast.c@F@live
 screen_hash	screen_hash	tests/test_toast.c	identifiant	fonction	conservé	tests/test_toast			c:test_toast.c@F@screen_hash
 test_defaults_match_the_parsed_spec	test_defaults_match_the_parsed_spec	tests/test_toast.c	identifiant	fonction	conservé	tests/test_toast			c:test_toast.c@F@test_defaults_match_the_parsed_spec
-test_dg_drives_a_ke_struct	test_update_entities_drives_a_entity_struct	tests/test_toast.c	identifiant	fonction	renommé	tests/test_toast	dg		c:test_toast.c@F@test_dg_drives_a_ke_struct
+test_dg_drives_a_ke_struct	test_update_entities_drives_an_entity_struct	tests/test_toast.c	identifiant	fonction	renommé	tests/test_toast	dg		c:test_toast.c@F@test_dg_drives_a_ke_struct
 test_iv_is_a_struct_registered_under_kj	test_toast_is_a_struct_registered_under_draw	tests/test_toast.c	identifiant	fonction	renommé	tests/test_toast	iv		c:test_toast.c@F@test_iv_is_a_struct_registered_under_kj
 test_mz_scan_skips_a_live_toast	test_wormhole_scan_skips_a_live_toast	tests/test_toast.c	identifiant	fonction	renommé	tests/test_toast	mz		c:test_toast.c@F@test_mz_scan_skips_a_live_toast
 test_no_money_toast_lives_as_before	test_no_money_toast_lives_as_before	tests/test_toast.c	identifiant	fonction	conservé	tests/test_toast			c:test_toast.c@F@test_no_money_toast_lives_as_before

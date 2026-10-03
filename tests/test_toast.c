@@ -204,7 +204,7 @@ static const entity_class_t g_fake_toast_class = {
     .states = {[ENTITY_STATE_NORMAL] = fake_toast_update},
 };
 
-static void test_update_entities_drives_a_entity_struct(void) {
+static void test_update_entities_drives_an_entity_struct(void) {
     fake_toast_t *f = malloc(sizeof *f);
     int i;
 
@@ -358,7 +358,7 @@ int main(void) {
     test_no_money_toast_lives_as_before();
     test_price_toast_lives_as_before();
     test_wormhole_scan_skips_a_live_toast();
-    test_update_entities_drives_a_entity_struct();
+    test_update_entities_drives_an_entity_struct();
     test_defaults_match_the_parsed_spec();
     test_toast_is_a_struct_registered_under_draw();
     test_toast_gives_its_slot_back();
