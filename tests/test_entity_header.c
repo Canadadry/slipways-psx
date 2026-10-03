@@ -44,13 +44,13 @@ static p8_graphics_t gfx;
 static p8_input_t input;
 
 static void rerun_with_malloc_filling(char **argv) {
-    if (getenv("PICO8_MALLOC_FILLS") != NULL) {
+    if (getenv("MALLOC_FILLS") != NULL) {
         return;
     }
     setenv("MALLOC_PERTURB_", "90", 1);
     setenv("GLIBC_TUNABLES", "glibc.malloc.tcache_count=0", 1);
     setenv("MallocScribble", "1", 1);
-    setenv("PICO8_MALLOC_FILLS", "1", 1);
+    setenv("MALLOC_FILLS", "1", 1);
     execv(argv[0], argv);
     perror("execv");
     exit(1);
