@@ -232,8 +232,11 @@
 # make french-guard  -> the French guard: french-count over the whole code,
 #                       minus tools/french_exceptions.txt; fails on any
 #                       residue; not yet in make test
+# make text-guards-test -> old-names-guard and french-guard alive: planted
+#                       violations through the real target, in a reduced
+#                       copy of the tree under tmp/, in make test
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test rename-tables-test rename-count-test cart-names-count rename-substeps-test rename-substeps-check rename-strings-verify-test rename-strings-verify rename-rekey-test rename-rekey rename-rekey-check scope-count-test scope-count cryptic-locals cart-citations-test cart-citations french-count-test french-count old-names-guard ast-guard french-guard
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test rename-tables-test rename-count-test cart-names-count rename-substeps-test rename-substeps-check rename-strings-verify-test rename-strings-verify rename-rekey-test rename-rekey rename-rekey-check scope-count-test scope-count cryptic-locals cart-citations-test cart-citations french-count-test french-count old-names-guard ast-guard french-guard text-guards-test
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -922,7 +925,7 @@ endif
 replay: $(TMP_DIR)/replay
 	./$(TMP_DIR)/replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard rename-derive-test rename-strings-test rename-check-test rename-slice-test rename-tables-test rename-count-test rename-substeps-test rename-substeps-check rename-strings-verify-test rename-rekey-test scope-count-test french-count-test cart-citations-test
+test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard rename-derive-test rename-strings-test rename-check-test rename-slice-test rename-tables-test rename-count-test rename-substeps-test rename-substeps-check rename-strings-verify-test rename-rekey-test scope-count-test french-count-test cart-citations-test text-guards-test
 
 test-all: test e2e
 
@@ -1353,6 +1356,9 @@ french-count:
 
 french-guard:
 	python3 tools/french_count.py --root . --exceptions tools/french_exceptions.txt --check
+
+text-guards-test:
+	python3 tests/test_text_guards.py
 
 old-names-guard:
 	python3 tools/rename_count.py --table $(RENAME_TABLE) --root . --part text --check \
