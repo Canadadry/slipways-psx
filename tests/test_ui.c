@@ -644,13 +644,9 @@ static void must_abort(void (*write)(void *), void *e) {
     assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
 }
 
-static void handle_button_on_x(void *e) {
-    ui_handle_button(e, "x");
-}
-
 /* The game's `main_ui()` is a struct whose class holds only draw_overlay;
- * it takes no construction key and no button but "left"/"right". Every new
- * `ui_t` starts on the class's archetype and its shared ephemerals. */
+ * it takes no construction key. Every new `ui_t` starts on the class's
+ * archetype and its shared ephemerals. */
 static void test_ui_is_a_struct(void) {
     const entity_class_t *cls = ui_class();
     ui_t *ok = start_game();
@@ -670,8 +666,6 @@ static void test_ui_is_a_struct(void) {
     assert(ok->ephemerals == ui_ephemerals_shared() && ok->ephemerals->count == 0);
     other = ui_new();
     assert(is_of(other, cls) && other->ephemerals == ui_ephemerals_shared() && other->archetype == ok->archetype);
-
-    must_abort(handle_button_on_x, ok);
 }
 
 typedef struct {

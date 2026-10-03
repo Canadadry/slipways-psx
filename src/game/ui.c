@@ -1,7 +1,6 @@
 #include "game/ui.h"
 
 #include <assert.h>
-#include <string.h>
 
 #include "engine/dispatch_context.h"
 #include "engine/entity_registry.h"
@@ -65,28 +64,17 @@ static vec_t ui_vec_or_zero(const vec_t *v) {
     return v != NULL ? *v : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
-/* The state of the "left" or "right" button of the main mouse: NULL when
- * it has none, which is the case for the member-less placeholder. */
-static const mouse_button_t *ui_main_mouse_button_table(const char *bt) {
-    assert((strcmp(bt, "left") == 0 || strcmp(bt, "right") == 0) &&
-           "ui_main_mouse_button_table: left or right only; another button has no state table -- stop");
-    assert(g_main_mouse != NULL && "ui_main_mouse_button_table: reading a button of an absent main mouse stops the run");
+/* The button of the main mouse on that side, NULL when it has none (the
+ * member-less placeholder) or before its first update. */
+static const mouse_button_t *ui_main_mouse_button(mouse_side_t side) {
+    const mouse_button_t *b;
+
+    assert(g_main_mouse != NULL && "ui_main_mouse_button: reading a button of an absent main mouse stops the run");
     if (main_mouse_typed() == NULL) {
         return NULL;
     }
-    return strcmp(bt, "left") == 0 ? mouse_left_button() : mouse_right_button();
-}
-
-static int ui_main_mouse_button_field_bool(const char *bt, const char *field) {
-    const mouse_button_t *b = ui_main_mouse_button_table(bt);
-    if (b == NULL || !b->has_held) {
-        return 0;
-    }
-    if (strcmp(field, "pressed") == 0) {
-        return b->pressed;
-    }
-    assert(strcmp(field, "released") == 0 && "ui_main_mouse_button_field_bool: only pressed and released are read");
-    return b->released;
+    b = side == MOUSE_SIDE_LEFT ? mouse_left_button() : mouse_right_button();
+    return b != NULL && b->has_held ? b : NULL;
 }
 
 static void ui_draw_overlay_method(entity_t *self, const vec_t *screen_pos) {
@@ -208,6 +196,7 @@ void ui_update(p8_memory_t *mem, ui_t *self) {
     int ephemerals_count;
     vec_t qa;
     int hit;
+    const mouse_button_t *left;
     const mouse_t *je;
     const camera_t *mo;
 
@@ -230,12 +219,13 @@ void ui_update(p8_memory_t *mem, ui_t *self) {
 
     hit = (ephemerals_count == 0) || entity_list_has(ephemerals_ptr_before, self->hovered);
     if (hit) {
-        ui_handle_button(self, "left");
+        ui_handle_button(self, MOUSE_SIDE_LEFT);
     }
 
-    ui_handle_button(self, "right");
+    ui_handle_button(self, MOUSE_SIDE_RIGHT);
 
-    if (ui_main_mouse_button_field_bool("left", "pressed") && self->ephemerals == ephemerals_ptr_before) {
+    left = ui_main_mouse_button(MOUSE_SIDE_LEFT);
+    if (left != NULL && left->pressed && self->ephemerals == ephemerals_ptr_before) {
         ui_clear_ephemerals(self);
     }
 
@@ -324,8 +314,9 @@ static int ui_is_held_class(const entity_class_t *cls) {
            (cls->states[ENTITY_STATE_SETTLED] != NULL && cls != protostar_class());
 }
 
-void ui_handle_button(ui_t *self, const char *button) {
+void ui_handle_button(ui_t *self, mouse_side_t side) {
     int is_left;
+    const mouse_button_t *button;
     entity_t *held_inst;
     mouse_t *mouse;
     vec_t *main_mouse_pos;
@@ -334,13 +325,12 @@ void ui_handle_button(ui_t *self, const char *button) {
         return;
     }
 
-    assert((strcmp(button, "left") == 0 || strcmp(button, "right") == 0) &&
-           "ui_handle_button: left or right only; another button has no state table -- stop");
-    is_left = button[0] == 'l';
+    is_left = side == MOUSE_SIDE_LEFT;
+    button = ui_main_mouse_button(side);
     mouse = main_mouse_typed();
     main_mouse_pos = mouse != NULL ? mouse->pos : NULL;
 
-    if (ui_main_mouse_button_field_bool(button, "pressed")) {
+    if (button != NULL && button->pressed) {
         entity_t *kv = NULL;
         down_t kn;
 
@@ -364,7 +354,7 @@ void ui_handle_button(ui_t *self, const char *button) {
         held_inst->class->drag(held_inst, self->mouse_world, main_mouse_pos);
     }
 
-    if (ui_main_mouse_button_field_bool(button, "released") && held_inst != NULL) {
+    if (button != NULL && button->released && held_inst != NULL) {
         entity_t *target = NULL;
         down_t down;
 

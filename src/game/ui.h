@@ -17,6 +17,9 @@
 
 enum { UI_HOVER_LAYERS = 16 };
 
+/* Not a P8_MOUSE_* bit: the right side reads the right or middle button. */
+typedef enum { MOUSE_SIDE_LEFT, MOUSE_SIDE_RIGHT } mouse_side_t;
+
 /* Each of `layers` lists the hovered entities of its layer in the order
  * they were found; `layer_count` is always UI_HOVER_LAYERS. */
 typedef struct {
@@ -117,9 +120,9 @@ void ui_draw_overlay(const p8_graphics_t *gfx, p8_memory_t *mem, const ui_t *sel
 
 void ui_update_hover(ui_t *self);
 
-/* The button is "left" or "right", anything else asserts: it picks the
- * member `left_held`/`right_held` and the method `left_press`/`right_press`. */
-void ui_handle_button(ui_t *self, const char *button);
+/* The side picks the member `left_held`/`right_held` and the method
+ * `left_press`/`right_press`. */
+void ui_handle_button(ui_t *self, mouse_side_t side);
 
 /* The method ui_send_to_hovered asks each hovered entity: `left_press`
  * and `right_press` get the world and screen mouse positions, `accept_drop`
