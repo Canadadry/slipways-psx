@@ -1594,10 +1594,10 @@ pico8_zone_cell_t	zone_cell_t	src/engine/zone.h	identifiant	type	renommé	engine
 PICO8_ZONE_BUDGET_BYTES	ZONE_BUDGET_BYTES	src/engine/zone_sizes.h	identifiant	macro	renommé	engine/zone_sizes			macro:src/engine/zone_sizes.h:PICO8_ZONE_BUDGET_BYTES
 PICO8_ZONE_CHARGEMENT_BYTES	LOAD_ZONE_BYTES	src/engine/zone_sizes.h	identifiant	macro	renommé	engine/zone_sizes	zone_partie		macro:src/engine/zone_sizes.h:PICO8_ZONE_CHARGEMENT_BYTES
 PICO8_ZONE_FRAME_BYTES	FRAME_ZONE_BYTES	src/engine/zone_sizes.h	identifiant	macro	renommé	engine/zone_sizes	zone_partie		macro:src/engine/zone_sizes.h:PICO8_ZONE_FRAME_BYTES
-PICO8_ZONE_GAME_BYTES	ZONE_GAME_BYTES	src/engine/zone_sizes.h	identifiant	macro	renommé	engine/zone_sizes			macro:src/engine/zone_sizes.h:PICO8_ZONE_GAME_BYTES
-PICO8_ZONE_GENERATION_BYTES	ZONE_GENERATION_BYTES	src/engine/zone_sizes.h	identifiant	macro	renommé	engine/zone_sizes			macro:src/engine/zone_sizes.h:PICO8_ZONE_GENERATION_BYTES
+PICO8_ZONE_GAME_BYTES	GAME_ZONE_BYTES	src/engine/zone_sizes.h	identifiant	macro	renommé	engine/zone_sizes			macro:src/engine/zone_sizes.h:PICO8_ZONE_GAME_BYTES
+PICO8_ZONE_GENERATION_BYTES	GENERATION_ZONE_BYTES	src/engine/zone_sizes.h	identifiant	macro	renommé	engine/zone_sizes			macro:src/engine/zone_sizes.h:PICO8_ZONE_GENERATION_BYTES
 PICO8_ZONE_INTERFACE_BYTES	UI_ZONE_BYTES	src/engine/zone_sizes.h	identifiant	macro	renommé	engine/zone_sizes			macro:src/engine/zone_sizes.h:PICO8_ZONE_INTERFACE_BYTES
-PICO8_ZONE_PARTICLES_BYTES	ZONE_PARTICLES_BYTES	src/engine/zone_sizes.h	identifiant	macro	renommé	engine/zone_sizes			macro:src/engine/zone_sizes.h:PICO8_ZONE_PARTICLES_BYTES
+PICO8_ZONE_PARTICLES_BYTES	PARTICLES_ZONE_BYTES	src/engine/zone_sizes.h	identifiant	macro	renommé	engine/zone_sizes			macro:src/engine/zone_sizes.h:PICO8_ZONE_PARTICLES_BYTES
 PICO8_ZONE_SIZES_H	ENGINE_ZONE_SIZES_H	src/engine/zone_sizes.h	identifiant	macro	renommé	engine/zone_sizes			macro:src/engine/zone_sizes.h:PICO8_ZONE_SIZES_H
 pico8_zone_budget_exceeded	zone_budget_exceeded_t	src/engine/zone_sizes.h	identifiant	type	renommé	engine/zone_sizes			c:zone_sizes.h@T@pico8_zone_budget_exceeded
 pico8_zone_chargement_hors_de_la_partie	load_zone_outside_game_zone_t	src/engine/zone_sizes.h	identifiant	type	renommé	engine/zone_sizes			c:zone_sizes.h@T@pico8_zone_chargement_hors_de_la_partie

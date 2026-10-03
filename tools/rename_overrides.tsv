@@ -669,6 +669,9 @@ field	pico8_rgb_t.r	red
 field	pico8_rgb_t.g	green	
 field	pico8_rgb_t.b	blue	
 name	partie_choisie	game_zone_allocator	zone_partie
+name	PICO8_ZONE_GAME_BYTES	GAME_ZONE_BYTES	
+name	PICO8_ZONE_GENERATION_BYTES	GENERATION_ZONE_BYTES	
+name	PICO8_ZONE_PARTICLES_BYTES	PARTICLES_ZONE_BYTES	
 
 # --- game/ -------------------------------------------------------------------
 token	zone_particules	particle_zone	
