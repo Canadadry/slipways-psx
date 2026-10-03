@@ -10,25 +10,62 @@ Premier des cinq plans vers un `.bin/.cue` jouable sur émulateur PSX (plans 7 �
 
 ## 2. Point de départ mesuré
 
-Campagne `make state` (fin de l'étape 3) : `full_game.json` va jusqu'à sa frame 7685, verrouillé par `make full-game`. Pic / limite en octets, tenu par `full_game.json` sauf mention :
+Campagne `make state` (étape 4a) : 29 rejeux, les 26 e2e et trois parties pleines de `worst-case/`, toutes verrouillées par `make full-game` : `full_game.json` (jusqu'à sa frame 7685, fin de partie puis retour au titre), `full_game_new_game.json` (la même, puis une nouvelle partie lancée du titre) et `full_game_pause_restart.json` (la même coupée à la frame 7500, puis pause, « restart » et nouvelle partie). Pic / limite en octets, tenu par `full_game.json` sauf mention :
 
 | Zone | Pic | Limite |
 |---|---|---|
-| `game` | 583 248 | 720 896 |
+| `game` | 659 088 (`full_game_new_game`) | 720 896 |
 | `frame` | 247 640 | 262 144 |
-| `ui` | 142 343 | 342 422 |
+| `ui` | 150 585 (`full_game_pause_restart`) | 342 422 |
 | `particles` | 61 855 | 130 822 |
 | `load` | 21 936 | 65 536 |
 
-- Le pic de `game` est atteint au redémarrage (frame 7643), où l'ancienne et la nouvelle génération du monde coexistent ; une seule génération tient vers 153 Ko dans les e2e.
+- `game` culmine quand une nouvelle partie démarre après une longue : 583 248 de l'ancienne génération plus 75 840 de la nouvelle, qui coexistent jusqu'au vidage de la frame suivante (frame 7690 de `full_game_new_game`, 7510 de `full_game_pause_restart`, même pic). Une génération seule tient 581 640 à la frame 7642 de `full_game.json` ; le retour au titre (frame 7643) y ajoute 1 608 sans changer de génération. `pause_restart` redémarre après 7 frames de jeu : 153 416 = 77 576 + 75 840 ; une génération seule culmine à 108 048 dans les e2e (`trade_rich_mine`).
 - `frame` + pic de `game` dépassent déjà 768 Ko : la réduction de l'étape 4 est le chemin attendu, pas un repli.
-- Caps : file de sortie 278 / 512 (relevée de 256 à l'étape 1 : les caps saturent comme les zones) ; `button` 12 / 24 (`pause_restart`), `message_box` 3 / 6 et `toast` 42 / 128 (`game_end_bankrupt`) ; les octets des places `particles`, `particles_help_screen` et `ephemerals` sont à leur limite. Le détail est dans `tmp/state.txt` après `make state`.
+- Caps : file de sortie 280 / 512 (`full_game_pause_restart` ; relevée de 256 à l'étape 1 : les caps saturent comme les zones) ; `button` 12 / 24 (`full_game_pause_restart`, comme `pause_restart`), `message_box` 3 / 6 et `toast` 42 / 128 (`game_end_bankrupt`) ; les octets des places `particles`, `particles_help_screen` et `ephemerals` sont à leur limite. Le détail est dans `tmp/state.txt` après `make state`.
+
+Origine des gros pics (frames numérotées comme `stopped p8_fatal frame <n>`) :
+
+- `game`, ancienne génération à la frame 7642 : 216 arènes de prise de 2 048 = 442 368, chacune portant un objet vivant, 350 704 occupés ; 192 sont des slipways à 1 736, dont une réserve de 64 points de transit (pic 21). Le reste — planètes, registres, 82 routes toutes tenues — est vivant, sauf 19 968 de blocs laissés morts par l'agrandissement des listes (18 208 pour `entity_register`, 128 au retour au titre). Besoin permanent, plus deux surdimensionnements (arènes, réserve) et une fuite au sens de la règle 2 (blocs morts). La nouvelle génération n'a aucune arène ; 7 968 de ses 75 840 sont des blocs morts. La coexistence est un transitoire de séquence (démarrage).
+- `frame` à la frame 6505, au reset : 234 080 des 247 640 sont les offres temporaires de `planet_rebuild_trades` (reconstruction des échanges), tenues jusqu'au reset alors que les routes retenues sont recopiées dans `game`. Fuite dans la frame, qui croît avec le monde (159 frames au-dessus de 60 000, toutes à leur reset). Sans elle, le pic de `frame` sur les 29 rejeux tombe à 18 000 (frame 4149).
+- `ui`, `particles` et la file de sortie au retour au titre (frame 7643 de `full_game.json`, 7505 de `full_game_pause_restart`) : le monde abandonné attend dans la file (278 ou 280 entrées) à côté de l'écran titre ; le vidage de la frame suivante les ramène à 25 181, 6 595 et 0. Transitoire de séquence (redémarrage).
+
+Bilan contre 768 Ko (786 432), marge 1/8 (règle 3). `game` compte la génération et `load` ; `ui` et `particles` sont la somme de leurs places à la cible (compte et taille de place, pic plus marge ; la taille d'une liste de particules suit ses éléments) :
+
+| Zone | Cible | Sans marge | Réservé aujourd'hui |
+|---|---|---|---|
+| `game` | 741 480 + 24 680 = 766 160 | 681 024 | 786 432 |
+| `frame` | 278 600 | 247 640 | 262 144 |
+| `ui` | 165 481 | 125 478 | 343 040 |
+| `particles` | 72 097 | 59 193 | 131 072 |
+| Somme | 1 282 338 | 1 113 335 | 1 522 688 |
+
+- Excès : **495 906** avec marge, 326 903 sans.
+- Cibles des caps (places × octets) : `button` 14 × 4 240, `modal_backdrop` 2 × 272, `message_box` 4 × 5 056, `toast` 48 × 336, `row` 71 × 952, `ephemerals` 6 × 248, `particle` 887, `particles` 18 × 1 384 (158 éléments), `particles_help_screen` 2 × 2 240 (265 éléments), `burst` 4 × 640, `transit_dots` 434 ; réserve de points de transit par slipway 24 ; file de sortie 315 (hors zones). Passent au-dessus de leur limite, relèvements où la fuite est à écarter d'abord : la génération de `game` (741 480 contre 720 896), `ephemerals` (248 octets contre 216), `particles_help_screen` (2 places contre 1).
+
+Candidats de 4b, du plus gros au plus petit, gain attendu en octets de budget (baisse de la cible, marge comprise, pris l'un après l'autre) :
+
+1. `frame` — rendre les offres temporaires de `planet_rebuild_trades` à son retour : **258 344** (pic 247 640 → 18 000). À mesurer : pic de `frame` et frame qui le tient.
+2. `game` — arènes de prise à la taille de ce qu'elles tiennent : **103 128** (pic − 91 664). À mesurer : pic de `game` au démarrage de `full_game_new_game`.
+3. `game` — réserve de points de transit d'un slipway de 64 à 24, qui ne rapporte qu'avec 2 : **69 120** (192 × 320 au pic). À mesurer : idem.
+4. `game` — blocs morts des agrandissements de listes, dans les deux générations : **31 424** (pic − 27 936). À mesurer : idem.
+
+Ensemble 462 016 : les candidats **ne couvrent pas** l'excès, il manque **33 890** (somme des cibles 820 322). L'étape 4 s'arrête là. La coexistence des deux générations, que les candidats ne touchent pas, pèse 75 840 au pic (67 872 après 4).
+
+Vérification bornée : flipper la zone `game` dans `cart_init` avant `reset_world`, comme `cart_start_game` le fait déjà, garde les 26 hashes e2e, passe ASan sur les e2e et les deux nouvelles parties, et ramène le pic de `game` à 583 248 (ancienne génération plus 1 608 de l'écran titre). Seul le cas `pause_restart_keeps_game_across_restart` de `test_live_slots`, qui fige « `restart` ne flippe pas », casse. Avec ce changement et les quatre candidats, la somme des cibles serait 743 962 (reste 42 470) ; mesuré dans une copie hors dépôt, pas un candidat.
+
+Décisions ouvertes, pour un humain :
+
+- Adopter le flip au retour au titre (ci-dessus), qui change la séquence de redémarrage sans changer l'image, et le test qui la fige.
+- Compter la coexistence autrement : dimensionner la génération de `game` sur une seule partie, et traiter le démarrage après une longue partie à part.
+- Relever le plafond de 768 Ko : hors de ce que le plan permet.
+- Changer la séquence de redémarrage d'une autre façon (bâtir la nouvelle partie une frame plus tard, par exemple) : change le jeu, donc les hashes.
 
 ## 3. Règles
 
 - Le jeu ne change pas : tous les `*.sha256` de `tests/e2e/` restent identiques.
 - Une saturation est d'abord lue comme une fuite (place jamais rendue, remise à zéro manquante), jamais comme un besoin. On ne relève une limite qu'une fois la fuite écartée.
-- Chaque zone est dimensionnée sur son pic mesuré, plus une marge fixe, la même pour toutes.
+- Chaque zone est dimensionnée sur son pic mesuré, plus une marge fixe, la même pour toutes : 1/8 du pic, arrondie au-dessus à la cellule de zone pour des octets, à la place entière pour un compte, caps compris.
 - Invariant de chaque commit : `make test-all` et `make sanitize-net` passent ; dès l'étape 2, la cible verrou aussi.
 
 ## 4. Étapes
