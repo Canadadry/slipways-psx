@@ -240,6 +240,14 @@ class Cryptic(unittest.TestCase):
         self.assertEqual(candidates, [("tests/test_widget", "local", "ab", "fold", "41")])
         self.assertEqual(totals, {"tests/test_widget": 1, "total": 1})
 
+    def test_argc_and_argv_of_main_are_not_candidates(self):
+        _, candidates, _ = cryptic([decl("param", "argc", "src/cmd/gadget.c", "main", 90),
+                                    decl("param", "argv", "src/cmd/gadget.c", "main", 90),
+                                    decl("param", "argc", "src/cmd/gadget.c", "run", 90),
+                                    decl("local", "argv", "src/cmd/gadget.c", "main", 90)])
+        self.assertEqual(sorted(c[1:4] for c in candidates),
+                         [("local", "argv", "main"), ("param", "argc", "run")])
+
     def test_the_exceptions_file_is_needed_by_the_count_only(self):
         run([decl("local", "abc", "src/game/gadget.c", "run", 41)])
         args = [sys.executable, SCRIPT, "--declarations", os.path.join(WORK, "declarations.tsv"),

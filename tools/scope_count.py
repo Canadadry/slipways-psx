@@ -14,7 +14,8 @@ instead: each local or parameter whose scope spans more than 40 lines (a
 parameter of a function-pointer type has the scope of its prototype) and
 whose name has three characters or less, or has a part, split on `_`, that
 is no part of the new name of a renamed row of the table (the English a
-human validated); one line per candidate, then the total per module."""
+human validated); the parameters `argc` and `argv` of a function `main`
+are not candidates. One line per candidate, then the total per module."""
 
 import argparse
 import fnmatch
@@ -33,6 +34,7 @@ COLUMNS = REFUSED_KINDS + ("long-scope",)
 SCOPE_KINDS = ("local", "param")
 MAX_SCOPE_LINES = 40
 SOURCE_DIRS = ("src", "tests", "tools")
+MAIN_PARAMS = ("argc", "argv")
 
 
 def column_of(row):
@@ -72,6 +74,8 @@ def validated_words(table):
 
 def is_cryptic(row, words):
     if not is_long_scope(row):
+        return False
+    if row["kind"] == "param" and row["parent"] == "main" and row["name"] in MAIN_PARAMS:
         return False
     parts = [p.lower() for p in row["name"].split("_") if p]
     return len(row["name"]) <= 3 or any(p not in words for p in parts)
