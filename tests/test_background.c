@@ -45,7 +45,7 @@
 #define LEFT_PRESS_PROBE_AFTER 1
 #define LEFT_PRESS_WORMHOLE_BEFORE 0
 #define LEFT_PRESS_WORMHOLE_AFTER 1
-#define HOVER_HASH 0x477E2027u
+#define HOVER_HASH 0x19BC9067u
 #define DRAW_HASH 0xE18E0472u
 
 static p8_memory_t memory;
@@ -374,7 +374,6 @@ static void test_hover(void) {
     assert((void *)main_ui()->hovered == bg);
     assert(is_hovered_state(bg) == 2);
     assert(in_layer(1, bg));
-    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     h = fnv(h, is_hovered_state(bg));
 
     assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, vec_ref(1, 1), vec_ref(2, 2), NULL, &kv, &kn));
@@ -388,7 +387,6 @@ static void test_hover(void) {
     ui_update(&memory, main_ui());
     assert((void *)main_ui()->hovered == veil);
     assert(is_hovered_state(bg) == 0);
-    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     h = fnv(h, is_hovered_state(bg));
     check("hover", h, HOVER_HASH);
 }

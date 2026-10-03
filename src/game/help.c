@@ -118,7 +118,6 @@ static probe_t *screen_create(void) {
     probe_init_instance(self, &help_screen_class_def, &help_screen_archetype);
     self->header.hit_box = &self->archetype->hit_box;
     self->header.cursor_sprite = &self->archetype->cursor_sprite;
-    self->header.gpio_signal = &self->archetype->gpio_signal;
     self->header.is_hovered = &self->is_hovered;
     self->is_hovered = 0;
     help_screen_construct(self);

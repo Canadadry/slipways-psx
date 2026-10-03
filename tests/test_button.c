@@ -62,21 +62,21 @@
  * value moves every *_HASH. */
 #define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
-#define TITLE_HASH 0xB044B5F2u
-#define START_GAME_HASH 0x08EB17A6u
-#define PAUSE_HASH 0xF715AAC0u
-#define RESEARCH_HASH 0x48094C1Eu
-#define PROJECTS_PANEL_HASH 0xF6B832D5u
-#define INSPECTION_PANEL_HASH 0x67CA51E5u
-#define SCORE_PANEL_HASH 0x0C7D2BEDu
+#define TITLE_HASH 0x0D4E51A2u
+#define START_GAME_HASH 0x7BC019E6u
+#define PAUSE_HASH 0x8F8FC35Du
+#define RESEARCH_HASH 0x41D4B83Eu
+#define PROJECTS_PANEL_HASH 0x6E72F895u
+#define INSPECTION_PANEL_HASH 0x8897BD95u
+#define SCORE_PANEL_HASH 0xF6DACECDu
 #define DIFFICULTY_HASH 0x5178903Bu
 #define UPDATE_HASH 0xD2A611E7u
-#define LEFT_PRESS_HASH 0x4621266Fu
+#define LEFT_PRESS_HASH 0x02AEDFCFu
 #define REFRESH_HASH 0x0FA6ACC7u
 #define PROJECTS_PANEL_ON_CLICK_HASH 0xCB3A928Cu
 #define TECH_TREE_SCREEN_ON_CLICK_HASH 0x7ED641D9u
-#define DRAW_HASH 0x92E72EEBu
-#define BUTTON_MEMBERS_HASH 0x264E8964u
+#define DRAW_HASH 0xD4E4525Bu
+#define BUTTON_MEMBERS_HASH 0x73AEDB8Eu
 
 static p8_memory_t memory;
 static p8_graphics_t graphics;
@@ -361,7 +361,6 @@ static uint32_t fold_button(uint32_t hash, const void *entity) {
     } else {
         hash = fnv(hash, 0u);
     }
-    hash = fold_opt_fixed(hash, button->has_gpio_signal, button->gpio_signal);
     hash = fold_opt_string(hash, button->name);
     hash = fold_opt_fixed(hash, button->has_trade, button->trade);
     hash = fold_opt_fixed(hash, button->has_type_bias, button->type_bias);
@@ -1178,7 +1177,6 @@ static uint32_t fold_button_members(uint32_t h, const void *e) {
     h = fold_button_fn(h, b->has_on_click, b->on_click);
     h = (b->is_hovered != 0) ? fold_bool(fold_kind(h, BOOL_KIND), b->is_hovered) : fnv(h, 0u);
     h = fold_button_fn(h, b->refresh != NULL, b->refresh);
-    h = fold_member_fixed(h, b->has_gpio_signal, b->gpio_signal);
     h = b->name != NULL ? fold_string(fold_kind(h, STRING_KIND), b->name) : fnv(h, 0u);
     h = fold_member_fixed(h, b->has_trade, b->trade);
     h = fold_member_fixed(h, b->has_type_bias, b->type_bias);
@@ -1318,16 +1316,11 @@ static uint32_t fold_keys(uint32_t hash, layout_row_t *source_row) {
 
     for (index = 0; index < 12; index++) {
         button = built(none);
-        assert(!button->has_gpio_signal && button->name == NULL && !button->has_trade && !button->has_type_bias && !button->has_project_cost);
+        assert(button->name == NULL && !button->has_trade && !button->has_type_bias && !button->has_project_cost);
         assert(button->pos == NULL && button->slide_target == NULL && button->refresh == NULL && !button->has_on_click && button->technology == NULL);
         assert(button->project_planet == NULL && button->project == NULL);
         hash = fold_and_drop(hash, button);
     }
-    keys = none;
-    keys.has_gpio_signal = 1;
-    button = built(keys);
-    assert(button->has_gpio_signal && button->gpio_signal == 0);
-    hash = fold_and_drop(hash, button);
     keys = none;
     keys.has_trade = 1;
     button = built(keys);
@@ -1440,7 +1433,7 @@ static uint32_t members_title_and_game(void) {
         assert(b->width == p8_fixed_add(lq->width, p8_fixed_from_int(2)));
         assert(b->header.hit_box != NULL);
         assert(!b->has_side_tooltip && b->tooltip == NULL && b->pos == NULL && b->slide_target == NULL && !b->is_hovered);
-        assert(!b->has_gpio_signal && b->name == NULL && !b->has_trade && !b->has_type_bias && b->technology == NULL);
+        assert(b->name == NULL && !b->has_trade && !b->has_type_bias && b->technology == NULL);
         assert(b->project_planet == NULL && b->project == NULL && !b->has_project_cost);
         assert(on_click_state(fresh[key_index]) == 0 && button_of(fresh[key_index])->refresh == NULL);
         hash = fold_button_members(hash, fresh[key_index]);
@@ -1448,7 +1441,7 @@ static uint32_t members_title_and_game(void) {
 
     call_on_click(galaxy_menu[3]);
     check_ephemerals_one_open_box();
-    printf("[members] pause_menu: %d row(s), gpio_signal on the 4th: %d\n", main_ui_ephemerals()->count, button_of(main_ui_ephemerals()->items[3])->has_gpio_signal);
+    printf("[members] pause_menu: %d row(s)\n", main_ui_ephemerals()->count);
     hash = fold_ephemerals_members(hash);
 
     fresh[2] = button_new(NULL);

@@ -104,7 +104,6 @@ typedef struct {
     const vec_t *const *map_pos;
     const box_t *hit_box;
     const p8_fixed_t *cursor_sprite;
-    const p8_fixed_t *gpio_signal;
     const p8_fixed_t *infraspace;
     p8_fixed_t *shake;
     const p8_fixed_t *fold_anchor;

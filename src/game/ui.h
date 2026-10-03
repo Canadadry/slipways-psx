@@ -109,15 +109,13 @@ ui_t *main_ui(void);
 /* Same ownership rule as `ui_set_main_mouse()`. */
 void ui_set_main_ui(ui_t *ui);
 
-/* Called once per frame by `cart_update60()`. PICO-8 memory
- * is an explicit parameter because that call is direct, not routed through
- * a class member or `update_entities()` and their shared dispatch
- * context. */
+/* Called once per frame by `cart_update60()`. TODO: `mem` is no longer
+ * read; drop it with the typed PICO-8 memory. */
 void ui_update(p8_memory_t *mem, ui_t *self);
 
 void ui_draw_overlay(const p8_graphics_t *gfx, p8_memory_t *mem, const ui_t *self);
 
-void ui_update_hover(p8_memory_t *memory, ui_t *self);
+void ui_update_hover(ui_t *self);
 
 /* The button is "left" or "right", anything else asserts: it picks the
  * member `left_held`/`right_held` and the method `left_press`/`right_press`. */

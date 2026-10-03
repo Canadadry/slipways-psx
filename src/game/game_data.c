@@ -68,10 +68,10 @@ static const data_item_t pause_menu_4_layout_row_items[] = {{.number = 26}, {.te
 static const data_row_t pause_menu_4_layout_row = {.count = 2, .items = pause_menu_4_layout_row_items};
 
 const pause_menu_entry_t pause_menu_table[PAUSE_MENU_COUNT] = {
-    {&pause_menu_1_layout_row, 0, 0},
-    {&pause_menu_2_layout_row, 0, 0},
-    {&pause_menu_3_layout_row, 0, 0},
-    {&pause_menu_4_layout_row, 1, 5},
+    {&pause_menu_1_layout_row},
+    {&pause_menu_2_layout_row},
+    {&pause_menu_3_layout_row},
+    {&pause_menu_4_layout_row},
 };
 
 const pause_menu_tail_t pause_menu_tail = {0, 107, 0, -11, 14};
@@ -410,7 +410,6 @@ const probe_archetype_t help_screen_archetype = {
     .clear_ephemerals_after = 0x10000,
     .hit_box = {-0x280000, 0x4e0000, 0x280000, 0x620000},
     .cursor_sprite = 0xb0000,
-    .gpio_signal = 0x50000,
     .rows = &help_screen_rows_row,
     .emitter = {.angle_slices = 0x50000, .base_radius = 0xf0000, .speed_factor = 0x1b6, .lifetime = 0x110000, .quarter_turn = 0x10000, .spawn_rate = 0x50000,
                 .trail_colors = &help_screen_trail_colors_seq, .matrix_xx = 0x1051e, .matrix_xy = -0x1ca, .matrix_yx = 0x1ca, .matrix_yy = 0x1051e},

@@ -211,6 +211,7 @@ void ui_update(p8_memory_t *mem, ui_t *self) {
     const mouse_t *je;
     const camera_t *mo;
 
+    (void)mem;
     if (self == NULL) {
         return;
     }
@@ -225,7 +226,7 @@ void ui_update(p8_memory_t *mem, ui_t *self) {
     self->mouse_world_own = qa;
     self->mouse_world = &self->mouse_world_own;
 
-    ui_update_hover(mem, self);
+    ui_update_hover(self);
 
     hit = (ephemerals_count == 0) || entity_list_has(ephemerals_ptr_before, self->hovered);
     if (hit) {
@@ -268,14 +269,13 @@ void ui_draw_overlay(const p8_graphics_t *gfx, p8_memory_t *mem, const ui_t *sel
 /* An absent previously hovered entity is skipped. The previous one is
  * cleared before the hovered one is set, so an entity hovered on two frames
  * in a row stays hovered. */
-void ui_update_hover(p8_memory_t *memory, ui_t *self) {
+void ui_update_hover(ui_t *self) {
     const mouse_t *mouse;
     const vec_t *main_mouse_pos;
     const entity_list_t *hit_test_bucket;
     int index;
-    int poke_val;
 
-    if (self == NULL || memory == NULL) {
+    if (self == NULL) {
         return;
     }
 
@@ -317,14 +317,6 @@ void ui_update_hover(p8_memory_t *memory, ui_t *self) {
                "ui_update_hover: the hovered entity has no is_hovered member -- stop, do not add one");
         *self->hovered->is_hovered = 1;
     }
-
-    if (self->hovered != NULL) {
-        poke_val = ui_to_int(self->hovered->gpio_signal != NULL ? *self->hovered->gpio_signal : p8_fixed_from_int(0));
-    } else {
-        int prev = p8_peek(memory, 0x5f80);
-        poke_val = (prev - 1 > 0) ? prev - 1 : 0;
-    }
-    p8_poke(memory, 0x5f80, (unsigned char)poke_val);
 }
 
 static int ui_is_held_class(const entity_class_t *cls) {

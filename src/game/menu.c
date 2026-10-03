@@ -334,8 +334,6 @@ static void galaxy_menu_button4_on_click_method(button_t *self) {
         memset(&bs[i], 0, sizeof bs[i]);
         lq[i] = layout_row_keys_of_row(e->layout_row, items[i], MENU_ROW_CAP);
         bs[i].layout_row_keys = &lq[i];
-        bs[i].has_gpio_signal = e->has_gpio_signal;
-        bs[i].gpio_signal = p8_fixed_from_int(e->gpio_signal);
         bs[i].has_on_click = 1;
         bs[i].on_click = my[i];
     }

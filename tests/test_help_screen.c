@@ -37,9 +37,9 @@
 #include "engine/vec.h"
 
 
-#define BUILT_HASH 0xABEBF0FEu
+#define BUILT_HASH 0xF4EFB207u
 #define LIFE_HASH 0x64B6480Bu
-#define HOVER_HASH 0xEE114A89u
+#define HOVER_HASH 0xB508C2D4u
 
 static p8_memory_t memory;
 static p8_graphics_t graphics;
@@ -214,12 +214,6 @@ static void check(const char *label, uint32_t got, uint32_t want) {
     assert(got == want);
 }
 
-static void check_int(const char *label, int got, int want) {
-    printf("[%s] %d\n", label, got);
-    fflush(stdout);
-    assert(got == want);
-}
-
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
     int i;
@@ -336,7 +330,6 @@ static void test_built(void) {
     hash = fold_fixed_member(hash, emitter->archetype->lifetime);
     hash = fold_ref_member(hash, &probe->archetype->hit_box);
     hash = fold_fixed_member(hash, probe->archetype->cursor_sprite);
-    hash = fold_fixed_member(hash, probe->archetype->gpio_signal);
     hash = fold_ref_member(hash, probe->archetype->rows);
     hash = fold_tags(fnv(fnv(hash, 1u), 0x7Au), probe->header.class->tags);
     hash = fold_fixed_member(hash, probe->archetype->fold_anchor);
@@ -445,9 +438,9 @@ static void mouse_at(int x, int y) {
     update_entities();
 }
 
-/* The mouse over "need help?": main_ui()'s hovered, is_hovered, the GPIO
- * signal poked at 0x5f80, the help in layer 10 of hovered_by_layer, the
- * cursor sprite; then out, is_hovered false. */
+/* The mouse over "need help?": main_ui()'s hovered, is_hovered, the help
+ * in layer 10 of hovered_by_layer, the cursor sprite; then out, is_hovered
+ * false. */
 static void test_hover(void) {
     uint32_t h = 2166136261u;
     probe_t *fv;
@@ -459,10 +452,8 @@ static void test_hover(void) {
     ui_update(&memory, main_ui());
     assert((void *)main_ui()->hovered == fv);
     assert(is_hovered_state(fv) == 2);
-    check_int("hover 0x5f80", p8_peek(&memory, 0x5f80), 5);
     assert(in_layer(10, fv));
     h = fnv(h, is_hovered_state(fv));
-    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
 
     p8_cls(&memory);
     ui_draw_overlay(&graphics, &memory, main_ui());
@@ -478,7 +469,6 @@ static void test_hover(void) {
     assert(is_hovered_state(fv) == 0);
     assert(!in_layer(10, fv));
     h = fnv(h, is_hovered_state(fv));
-    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     check("hover", h, HOVER_HASH);
 }
 

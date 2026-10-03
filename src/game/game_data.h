@@ -76,11 +76,8 @@ typedef struct {
     const data_row_t *layout_row;
 } galaxy_menu_entry_t;
 
-/* gpio_signal is only meaningful when has_gpio_signal is set. */
 typedef struct {
     const data_row_t *layout_row;
-    int has_gpio_signal;
-    int gpio_signal;
 } pause_menu_entry_t;
 
 /* The pause menu's named entries, which follow its rows. */
@@ -260,7 +257,6 @@ typedef struct {
     p8_fixed_t clear_ephemerals_after;
     box_t hit_box;
     p8_fixed_t cursor_sprite;
-    p8_fixed_t gpio_signal;
     const data_row_t *rows;
     emitter_archetype_t emitter;
     targeting_archetype_t targeting;

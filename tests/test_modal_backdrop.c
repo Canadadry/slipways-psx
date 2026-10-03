@@ -27,7 +27,7 @@
 #define ON_CLICK_TRUE_TICKS 6
 #define ON_CLICK_TRUE_SEQUENCE_HASH 0xA6A43C27u
 #define BARE_SEQUENCE_HASH 0x52BE382Au
-#define HOVER_SEQUENCE_HASH 0x689321F9u
+#define HOVER_SEQUENCE_HASH 0xECF21A99u
 #define HOVER_CURSOR_HASH 0x04C40AB9u
 
 #define LEFT_PRESS_TICK 5
@@ -224,7 +224,6 @@ static void test_hover_loop_on_the_veil(void) {
     assert(main_ui_hovered() == veil);
     assert(in_layer(14, veil) && !in_layer(15, veil));
     assert(veil->is_hovered);
-    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     h = fold_veil(h, veil);
 
     p8_gfx_init(&graphics);
@@ -244,7 +243,6 @@ static void test_hover_loop_on_the_veil(void) {
     ui_update(&memory, main_ui());
     assert(main_ui_hovered() != veil && !in_layer(14, veil));
     assert(!veil->is_hovered);
-    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     h = fold_veil(h, veil);
     check("hover_sequence", h, HOVER_SEQUENCE_HASH);
 }

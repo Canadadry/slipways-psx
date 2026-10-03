@@ -57,8 +57,8 @@
 
 #define BUILT_HASH 0x86CE257Cu
 #define SHARED_HASH 0x690E4805u
-#define FRESH_HASH 0xE44E0786u
-#define HOVER_HASH 0xB61A6E40u
+#define FRESH_HASH 0xA03A8C66u
+#define HOVER_HASH 0xEDBB9550u
 #define LAYERS_HASH 0xDBA4EEF8u
 #define RIGHT_HASH 0xF02024DCu
 #define LEFT_HASH 0xBD9BC256u
@@ -353,7 +353,6 @@ static void test_fresh(void) {
     h = fold_vec(h, vec_at(ok->mouse_world));
     h = fold_layers(h, ok);
     h = fold_entity(h, ok->hovered);
-    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     h = fnv(h, cursor_is(58));
     assert(ok->ephemerals == ui_ephemerals_shared());
     check("fresh", h, FRESH_HASH);
@@ -380,8 +379,7 @@ static planet_t *planet_on_screen(int *sx, int *sy) {
 }
 
 /* The mouse over a planet: `hovered` is the planet, marked `is_hovered`,
- * its `gpio_signal` poked at 0x5f80, `previous_hovered` on the next pass;
- * the mouse away unmarks it. */
+ * `previous_hovered` on the next pass; the mouse away unmarks it. */
 static void test_hover(void) {
     uint32_t h = 2166136261u;
     ui_t *ok = start_game();
@@ -396,11 +394,8 @@ static void test_hover(void) {
     ui_update(&memory, ok);
     assert((void *)ok->hovered == planet);
     assert(is_hovered_state(planet) == 2);
-    /* A planet has no `gpio_signal`: 0x5f80 is poked with 0. */
-    assert(p8_peek(&memory, 0x5f80) == 0);
     assert(in_layer(ok, 6, planet) && in_layer(ok, 1, the_background()));
     h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), planet));
-    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     h = fold_layers(h, ok);
 
     ui_update(&memory, ok);
@@ -413,7 +408,6 @@ static void test_hover(void) {
     assert((void *)ok->hovered != planet);
     assert(is_hovered_state(planet) == 0);
     h = fold_entity(h, ok->hovered);
-    h = fnv(h, (uint32_t)p8_peek(&memory, 0x5f80));
     check("hover", h, HOVER_HASH);
 }
 

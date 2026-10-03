@@ -101,8 +101,6 @@ static button_t *button_create(const button_keys_t *keys) {
     self->header.is_hovered = &self->is_hovered;
     self->is_hovered = 0;
     self->refresh = NULL;
-    self->gpio_signal = 0;
-    self->has_gpio_signal = 0;
     self->name = NULL;
     self->trade = 0;
     self->has_trade = 0;
@@ -132,8 +130,6 @@ static button_t *button_create(const button_keys_t *keys) {
         self->on_click = keys->on_click;
         self->has_on_click = keys->has_on_click;
         self->refresh = keys->refresh;
-        self->gpio_signal = keys->gpio_signal;
-        self->has_gpio_signal = keys->has_gpio_signal;
         self->name = keys->name;
         self->trade = keys->trade;
         self->has_trade = keys->has_trade;
@@ -145,7 +141,6 @@ static button_t *button_create(const button_keys_t *keys) {
         self->project_cost = keys->project_cost;
         self->has_project_cost = keys->has_project_cost;
     }
-    self->header.gpio_signal = self->has_gpio_signal ? &self->gpio_signal : NULL;
     button_construct(self, keys);
     entity_construct(&self->header);
     return self;

@@ -47,8 +47,6 @@ struct button {
     int has_on_click; /* 0: absent; 1: present, and a NULL `on_click` is false */
     int is_hovered;
     button_fn_t refresh;
-    p8_fixed_t gpio_signal;
-    int has_gpio_signal; /* 0: `gpio_signal` is absent, and is then never read */
     const char *name;
     p8_fixed_t trade;
     int has_trade; /* 0: `trade` is absent, and is then never read */
@@ -88,8 +86,6 @@ typedef struct {
     int has_on_click; /* present, and a NULL `on_click` is false */
     button_fn_t on_click;
     button_fn_t refresh;
-    int has_gpio_signal;
-    p8_fixed_t gpio_signal;
     const char *name;
     int has_trade;
     p8_fixed_t trade;
