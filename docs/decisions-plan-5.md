@@ -457,7 +457,7 @@
   - *Listes de mots-clés divergentes* : `C_KEYWORDS` de `tools/rename_check.py` (59 mots) et de `tools/ast_rename/plan.py` (44) ; les 15 de plus sont `_BitInt`, `_Decimal32/64/128`, `alignas`, `alignof`, `bool`, `constexpr`, `false`, `nullptr`, `static_assert`, `thread_local`, `true`, `typeof`, `typeof_unqual`. Proposition : une liste, celle de `rename_check.py`, importée par `plan.py`.
   - *Schéma du TSV en français* : colonnes `ancien`, `nouveau`, `fichier`, `catégorie`, `sorte`, `statut`, `module`, `concept`, `note`, `identité`, valeurs `renommé`, `conservé`, `identifiant`, `chaîne`, `écrivain`, `lecteur`… Le TSV est une doc (§2, en français), mais les outils et leurs tests le lisent : `make french-count SUBSTEP=3a` compte ces mots dans `tests/test_scope_count.py` et `tests/test_cart_citations.py`. Proposition : garder le schéma (le TSV est le pont inverse documenté en français) et excepter ces mots au compteur de français (lignes à porter par la note de 4a).
   - *Version de libclang fixée à deux endroits* : `CLANG_BINDINGS_VERSION=18.1.8` (`tools/install_ast_rename_bindings.sh:5`) et `LIBCLANG ?= /usr/lib/llvm-18/lib/libclang-18.so.1` (`Makefile:1203`, ligne 1178 avant 4l1). Proposition : le `Makefile` passe la version majeure au script (`CLANG_MAJOR := 18`), une seule source.
-- **Verdict** (un par alerte) :
+- **Verdict** (un par alerte) : ok — `proposition` pour chaque alerte (transcrit de C-1, « ok » de l'humain en séance)
 
 ### D-29 — Paramètres et locales courts nommés d'un digramme du cart
 
@@ -935,7 +935,7 @@
   14. **À trancher** — *Gardes épinglées sur des noms du cart effacés* : `tools/composition_residue.sh:66-69` (`defaults` `pico8_X_start`, `name-dispatch` `hp_pose`, `pico8_ho_gp_has`, `one-or-false` `pk_is_bool`, avec `nu`) et `tools/data_residue.sh:20` (catégories `value`, `ob`, `stash`, `list`, épinglées sur des noms `pico8_*` qui n'existent plus) apparient 0 ; `composition-guard` et `data-guard` sont verts dans `make test` parce que rien ne peut plus y apparier. Recoupe D-5, D-7, D-8, D-9, D-11 : D-5, D-7 et D-8 proposent de garder leur motif tel quel, D-11 de retirer les catégories pour cette même raison. Proposition : appliquer en 5 (5b) un verdict commun aux six entrées : un motif écrit en nom du cart qui apparie 0 est retiré avec ses fixtures (D-11 (a), étendu à la branche de D-5, D-7, D-8 et D-9), la garde anti-cart bloquante (5e) interdisant déjà ces noms ; à défaut, chaque motif gardé est déclaré « vert par construction » dans son entrée.
   15. *`SPEC_EXCLUSION` écrit en dur* : `tools/data_residue.sh:49`, sept noms. Proposition : abandonner : sans objet sous D-9 (a), qui retire l'exclusion ; sous D-9 (b), elle redevient vivante et reste telle quelle.
   16. *`tools/composition_residue.sh` fait 767 lignes*. Proposition : reporter hors plan 5 (découper le script est un redécoupage, §7 du plan).
-- **Verdict** (un par alerte, l'alerte 14 d'abord) :
+- **Verdict** (un par alerte, l'alerte 14 d'abord) : ok — `proposition` pour chaque alerte, alerte 14 comprise (transcrit de C-1, « ok » de l'humain en séance)
 
 ## Clôture (4l4)
 
