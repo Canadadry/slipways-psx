@@ -1,4 +1,0 @@
-# kind	parent	name: declarations the scope guard allows (docs/plan-5.md, section 4).
-# Only a human decision adds a line.
-field	vec_t	x
-field	vec_t	y

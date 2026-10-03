@@ -2,16 +2,15 @@
 # per target).
 #
 # make test          -> unit + constants-check + float-grep + float-guard +
-#                       alloc-guard + data-guard + composition-guard, and the
-#                       tool tests and checks marked "in make test" below, the
-#                       fast loop; needs no libclang
+#                       alloc-guard + data-guard + composition-guard, the fast
+#                       loop
 # make e2e           -> replays each e2e of tests/e2e/ from the title screen,
 #                       with the `-O0` binary of make test, and compares the
 #                       sha256 of its capture to <name>.json.sha256; also fails
 #                       if an e2e lacks its .txt or its .json.sha256, or runs
 #                       past 180 frames (600 if listed in
 #                       tools/e2e_long_exceptions.txt)
-# make test-all      -> test + e2e, the full suite, without libclang
+# make test-all      -> test + e2e, the full suite
 # make gif           -> gif/<name>.gif for each e2e of tests/e2e/: its capture
 #                       at scale 3, with the recorded mouse drawn on top,
 #                       outside the suite
@@ -102,126 +101,8 @@
 # make screencast-viewer -> the same for the recording viewer
 #                       (both need make raylib-vendor-setup first)
 # make psx-hello     -> PSX test project (needs psn00bsdk-toolchain-setup)
-# make rename-tool-setup -> installs the libclang Python bindings
-#                       (tools/ast_rename) into third_party/clang-python;
-#                       network, once, outside the suite
-# make rename-tool-test -> the tests of tools/ast_rename on the mini tree
-#                       tests/fixtures/ast_rename; needs rename-tool-setup,
-#                       outside the suite
-# make rename-extract -> each declaration of src/, tests/, tools/ and its
-#                       occurrences, in the default, coverage and ASan
-#                       configurations: tmp/ast_rename/declarations.tsv and
-#                       occurrences.tsv; fails if a unit does not parse,
-#                       outside the suite
-# make rename-derive-test -> the tests of tools/rename_derive.py on a mini
-#                       vocabulary and a mini extraction, in make test
-# make rename-derive -> derives the new names of each extracted declaration
-#                       (make rename-extract first): the identifier rows of
-#                       docs/renommage.tsv, the rest in
-#                       tmp/ast_rename/remainder.tsv, outside the suite
-# make rename-strings-test -> the tests of tools/rename_strings.py on a mini
-#                       tree, in make test
-# make rename-strings -> the string and file rows of docs/renommage.tsv (keys,
-#                       quoted symbols, test names, binaries of tmp/), one
-#                       writer or reader site per file; flags in
-#                       tmp/ast_rename/string_flags.tsv, outside the suite
-# make rename-check-test -> the tests of tools/rename_check.py on a mini
-#                       extraction, in make test
-# make rename-table-check -> mechanical check of docs/renommage.tsv against the
-#                       extraction (make rename-extract, rename-derive):
-#                       completeness, collisions, shadowing, reserved words,
-#                       target file names; fails on a violation, outside the
-#                       suite
-# make rename-slice-test -> the tests of tools/rename_slice.py, in make test
-# make rename-tables-test -> the tests of tools/rename_tables.py, the readers
-#                       the rename tools share, in make test
-# make rename-slice MODULES="<module>..." | SUBSTEP=<3x> -> the renamed
-#                       identifier rows of docs/renommage.tsv for these
-#                       modules (shell patterns on the module column:
-#                       game/planet*), or for exactly the modules of the
-#                       sub-step in tools/rename_substeps.tsv, in the
-#                       rename-apply format, in tmp/ast_rename/slice.tsv,
-#                       outside the suite
-# make rename-apply TABLE=<table> -> renames, at their AST positions, the
-#                       entries of the table (old, new, file[, identity]);
-#                       writes nothing on the first refusal, report in
-#                       tmp/ast_rename/report.txt, outside the suite
-# make rename-count-test -> the tests of tools/rename_count.py on a mini
-#                       tree, in make test
-# make cart-names-count [MODULES="<module>..."] -> old-name counter: the old
-#                       names of the renamed rows of docs/renommage.tsv and
-#                       the names of tools/historical_names.txt still in the
-#                       code, minus tools/cart_names_exceptions.txt,
-#                       per module and category (short names through
-#                       tmp/ast_rename/occurrences.tsv, make rename-extract
-#                       first); copy in
-#                       tmp/ast_rename/cart_names_count.txt, never fails,
-#                       outside the suite; SUBSTEP=<3x>: the modules of the
-#                       sub-step, each mention sorted as done (a name of that
-#                       sub-step or an earlier one) or later, then the residue
-#                       bound
-# make rename-substeps-test -> the tests of tools/rename_substeps.py on a mini
-#                       table, in make test
-# make rename-substeps-check -> each module of docs/renommage.tsv in exactly
-#                       one sub-step of tools/rename_substeps.tsv, each
-#                       sub-step with its bound, in make test
-# make rename-strings-verify-test -> the tests of
-#                       tools/rename_strings_verify.py on a mini tree, in
-#                       make test
-# make rename-strings-verify SUBSTEP=<3x> -> at each site of the renamed string
-#                       and file rows of the sub-step, the new name present
-#                       and the old one absent; fails otherwise, outside the
-#                       suite
-# make rename-rekey-test -> the tests of tools/rename_rekey.py on mini
-#                       extractions, in make test
-# make rename-rekey [BEFORE=<declarations>] -> after rename-apply and a fresh
-#                       rename-extract: rewrites in docs/renommage.tsv only
-#                       the identity cells of the rows not yet applied that
-#                       the application has shifted, from the copy taken
-#                       before (tmp/ast_rename/declarations_before.tsv by
-#                       default); writes nothing on a missing or duplicate
-#                       match, outside the suite
-# make rename-rekey-check SUBSTEP=<3x> -> each renamed identity of the later
-#                       sub-steps is in tmp/ast_rename/declarations.tsv with
-#                       its name and file; fails otherwise, outside the suite
-# make scope-count-test -> the tests of tools/scope_count.py on a mini
-#                       extraction, in make test
-# make scope-count [MODULES="<module>..." | SUBSTEP=<3x>] -> the scope guard as
-#                       a counter: declarations of one or two characters
-#                       refused (type, function, field, constant, macro,
-#                       file static, global; local, parameter or static of a
-#                       function, of scope > 40 lines), per module, minus
-#                       tools/scope_exceptions.txt;
-#                       reads tmp/ast_rename/declarations.tsv (make
-#                       rename-extract first), never fails, outside the suite
-# make cryptic-locals [MODULES="<module>..." | SUBSTEP=<3x>] -> the cryptic
-#                       locals list: each local or parameter of scope > 40
-#                       lines named in three characters or less, or with a
-#                       `_` part found in no renamed new name of
-#                       docs/renommage.tsv; argc/argv of main and raylib
-#                       words are not cryptic; reads
-#                       tmp/ast_rename/declarations.tsv (make rename-extract
-#                       first), never fails, outside the suite
-# make cart-citations-test -> the tests of tools/cart_citations.py on a mini
-#                       tree, in make test
-# make cart-citations [MODULES="<module>..." | SUBSTEP=<3x>] -> what comments
-#                       and assert messages still cite beyond
-#                       cart-names-count: `cart` (outside game/cart), `Lua`,
-#                       `lua.lua`, bare old names of two characters or less,
-#                       minus tools/cart_citations_exceptions.txt; one site
-#                       per line, then per module; never fails, outside the
-#                       suite
-# make french-count-test -> the tests of tools/french_count.py on a mini
-#                       tree, in make test
-# make french-count [MODULES="<module>..." | SUBSTEP=<3x>] [SITES=1] -> French
-#                       counter: French function words and accented words
-#                       left in the code, per module and column, minus
-#                       tools/french_exceptions.txt; SUBSTEP: the sub-step's
-#                       modules, split done / later; SITES=1 lists each
-#                       mention; warns for a module in no sub-step, never
-#                       fails, outside the suite
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test rename-tables-test rename-count-test cart-names-count rename-substeps-test rename-substeps-check rename-strings-verify-test rename-strings-verify rename-rekey-test rename-rekey rename-rekey-check scope-count-test scope-count cryptic-locals cart-citations-test cart-citations french-count-test french-count
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -910,7 +791,7 @@ endif
 replay: $(TMP_DIR)/replay
 	./$(TMP_DIR)/replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard rename-derive-test rename-strings-test rename-check-test rename-slice-test rename-tables-test rename-count-test rename-substeps-test rename-substeps-check rename-strings-verify-test rename-rekey-test scope-count-test french-count-test cart-citations-test
+test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard
 
 test-all: test e2e
 
@@ -1205,146 +1086,6 @@ $(SCREENCAST_VIEWER_BIN): src/cmd/screencast_viewer.c src/devtools/screencast.c 
 	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ src/cmd/screencast_viewer.c src/devtools/screencast.c src/devtools/screencast_player.c src/p8/palette.c src/devtools/replay_control.c src/platform/raylib_backend.c src/platform/raylib_backend_coords.c src/devtools/session_recorder.c src/p8/input.c src/devtools/input_json.c src/p8/mem.c third_party/raylib/src/libraylib.a $(RAYLIB_LDLIBS)
 
 screencast-viewer: $(SCREENCAST_VIEWER_BIN)
-
-AST_RENAME_BINDINGS := $(CURDIR)/third_party/clang-python
-CLANG_MAJOR := 18
-LIBCLANG ?= /usr/lib/llvm-$(CLANG_MAJOR)/lib/libclang-$(CLANG_MAJOR).so.1
-AST_RENAME_ENV := PYTHONPATH=$(CURDIR)/tools:$(AST_RENAME_BINDINGS) LIBCLANG=$(LIBCLANG)
-AST_RENAME_DIR := $(TMP_DIR)/ast_rename
-RENAME_SUBSTEPS := tools/rename_substeps.tsv
-RENAME_TABLE := docs/renommage.tsv
-# Pathspec ':!' : git's '*' crosses '/', so tests/fixtures/ would match
-# `tests/*.c`.
-AST_RENAME_UNITS = $(shell git ls-files 'src/*.c' 'tests/*.c' 'tools/*.c' ':!tests/fixtures/*')
-AST_RENAME_ANALYSIS = --root . --exclude-dir third_party --cflags "$(CFLAGS)" \
-    --config default= --config coverage="$(COVERAGE_CFLAGS)" --config asan="$(ASAN_CFLAGS)" \
-    --include-on-demand raylib.h=third_party/raylib/src \
-    --include-on-demand sanitizer/asan_interface.h=$(shell $(CC) -print-file-name=include) \
-    $(AST_RENAME_UNITS)
-
-rename-tool-setup:
-	CLANG_MAJOR=$(CLANG_MAJOR) sh tools/install_ast_rename_bindings.sh
-
-rename-tool-test:
-	$(AST_RENAME_ENV) python3 tests/test_ast_rename.py
-
-rename-extract:
-	@mkdir -p $(AST_RENAME_DIR)
-	$(AST_RENAME_ENV) python3 -m ast_rename extract -o $(AST_RENAME_DIR)/declarations.tsv \
-	    --occurrences $(AST_RENAME_DIR)/occurrences.tsv $(AST_RENAME_ANALYSIS)
-
-rename-derive-test:
-	python3 tests/test_rename_derive.py
-
-rename-derive:
-	python3 tools/rename_derive.py --declarations $(AST_RENAME_DIR)/declarations.tsv \
-	    --vocabulary docs/vocabulaire.md --overrides tools/rename_overrides.tsv \
-	    --output $(RENAME_TABLE) --remainder $(AST_RENAME_DIR)/remainder.tsv
-
-rename-strings-test:
-	python3 tests/test_rename_strings.py
-
-rename-strings:
-	@mkdir -p $(AST_RENAME_DIR)
-	python3 tools/rename_strings.py --root . --table $(RENAME_TABLE) \
-	    --vocabulary docs/vocabulaire.md --overrides tools/rename_overrides.tsv \
-	    --flags $(AST_RENAME_DIR)/string_flags.tsv
-
-rename-check-test:
-	python3 tests/test_rename_check.py
-
-rename-table-check:
-	python3 tools/rename_check.py --table $(RENAME_TABLE) \
-	    --declarations $(AST_RENAME_DIR)/declarations.tsv \
-	    --remainder $(AST_RENAME_DIR)/remainder.tsv --root .
-
-rename-slice-test:
-	python3 tests/test_rename_slice.py
-
-rename-slice:
-	@test -n "$(MODULES)$(SUBSTEP)" || { echo "usage: make rename-slice MODULES=\"<module>...\" | SUBSTEP=<3x>" >&2; exit 1; }
-	@mkdir -p $(AST_RENAME_DIR)
-	python3 tools/rename_slice.py --table $(RENAME_TABLE) $(foreach m,$(MODULES),--module '$(m)') \
-	    $(if $(SUBSTEP),--substep $(SUBSTEP) --substeps $(RENAME_SUBSTEPS)) -o $(AST_RENAME_DIR)/slice.tsv
-
-rename-tables-test:
-	python3 tests/test_rename_tables.py
-
-rename-count-test:
-	python3 tests/test_rename_count.py
-
-cart-names-count:
-	@mkdir -p $(AST_RENAME_DIR)
-	python3 tools/rename_count.py --table $(RENAME_TABLE) \
-	    --occurrences $(AST_RENAME_DIR)/occurrences.tsv --root . \
-	    --exceptions tools/cart_names_exceptions.txt --historical tools/historical_names.txt \
-	    $(foreach m,$(MODULES),--module '$(m)') \
-	    $(if $(SUBSTEP),--substep $(SUBSTEP) --substeps $(RENAME_SUBSTEPS)) \
-	    | tee $(AST_RENAME_DIR)/cart_names_count.txt
-
-rename-substeps-test:
-	python3 tests/test_rename_substeps.py
-
-rename-substeps-check:
-	python3 tools/rename_substeps.py --table $(RENAME_TABLE) --substeps $(RENAME_SUBSTEPS)
-
-rename-rekey-test:
-	python3 tests/test_rename_rekey.py
-
-rename-rekey:
-	python3 tools/rename_rekey.py --table $(RENAME_TABLE) \
-	    --before $(or $(BEFORE),$(AST_RENAME_DIR)/declarations_before.tsv) \
-	    --after $(AST_RENAME_DIR)/declarations.tsv --slice $(AST_RENAME_DIR)/slice.tsv
-
-rename-rekey-check:
-	@test -n "$(SUBSTEP)" || { echo "usage: make rename-rekey-check SUBSTEP=<3x>" >&2; exit 1; }
-	python3 tools/rename_rekey.py --table $(RENAME_TABLE) --check \
-	    --declarations $(AST_RENAME_DIR)/declarations.tsv \
-	    --substeps $(RENAME_SUBSTEPS) --substep $(SUBSTEP)
-
-rename-strings-verify-test:
-	python3 tests/test_rename_strings_verify.py
-
-rename-strings-verify:
-	@test -n "$(SUBSTEP)" || { echo "usage: make rename-strings-verify SUBSTEP=<3x>" >&2; exit 1; }
-	python3 tools/rename_strings_verify.py --table $(RENAME_TABLE) \
-	    --substeps $(RENAME_SUBSTEPS) --substep $(SUBSTEP) --root .
-
-scope-count-test:
-	python3 tests/test_scope_count.py
-
-scope-count:
-	python3 tools/scope_count.py --declarations $(AST_RENAME_DIR)/declarations.tsv \
-	    --exceptions tools/scope_exceptions.txt --root . $(foreach m,$(MODULES),--module '$(m)') \
-	    $(if $(SUBSTEP),--substep $(SUBSTEP) --substeps $(RENAME_SUBSTEPS))
-
-cryptic-locals:
-	python3 tools/scope_count.py --declarations $(AST_RENAME_DIR)/declarations.tsv \
-	    --root . --cryptic --table $(RENAME_TABLE) \
-	    $(foreach m,$(MODULES),--module '$(m)') \
-	    $(if $(SUBSTEP),--substep $(SUBSTEP) --substeps $(RENAME_SUBSTEPS))
-
-cart-citations-test:
-	python3 tests/test_cart_citations.py
-
-cart-citations:
-	python3 tools/cart_citations.py --table $(RENAME_TABLE) --root . \
-	    --exceptions tools/cart_citations_exceptions.txt $(foreach m,$(MODULES),--module '$(m)') \
-	    $(if $(SUBSTEP),--substep $(SUBSTEP) --substeps $(RENAME_SUBSTEPS))
-
-french-count-test:
-	python3 tests/test_french_count.py
-
-french-count:
-	python3 tools/french_count.py --root . --exceptions tools/french_exceptions.txt \
-	    --substeps $(RENAME_SUBSTEPS) $(foreach m,$(MODULES),--module '$(m)') \
-	    $(if $(SUBSTEP),--substep $(SUBSTEP)) $(if $(SITES),--sites)
-
-rename-apply:
-	@test -n "$(TABLE)" || { echo "usage: make rename-apply TABLE=<table>" >&2; exit 1; }
-	@mkdir -p $(AST_RENAME_DIR)
-	$(AST_RENAME_ENV) python3 -m ast_rename apply --table $(TABLE) \
-	    --report $(AST_RENAME_DIR)/report.txt $(AST_RENAME_ANALYSIS)
 
 # The dependency fragments written by the compiler, one per object. The
 # wildcard tolerates their absence: on a fresh clone, everything is compiled.
