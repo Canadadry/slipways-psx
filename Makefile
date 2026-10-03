@@ -188,8 +188,9 @@
 # make scope-count [MODULES="<module>..." | SUBSTEP=<3x>] -> the scope guard as
 #                       a counter: declarations of one or two characters
 #                       refused (type, function, field, constant, macro,
-#                       static, global; local or parameter of scope > 40
-#                       lines), per module, minus tools/scope_exceptions.txt;
+#                       file static, global; local, parameter or static of a
+#                       function, of scope > 40 lines), per module, minus
+#                       tools/scope_exceptions.txt;
 #                       reads tmp/ast_rename/declarations.tsv (make
 #                       rename-extract first), never fails, outside the suite
 # make cryptic-locals [MODULES="<module>..." | SUBSTEP=<3x>] -> the cryptic

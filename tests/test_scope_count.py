@@ -85,6 +85,14 @@ class ScopeCount(unittest.TestCase):
         self.assertEqual(found["game/gadget"]["long-scope"], 2)
         self.assertEqual(found["game/gadget"]["total"], 2)
 
+    def test_a_static_of_a_function_is_judged_as_a_local_by_its_scope(self):
+        found = table(run([decl("static", "dy", "tests/test_widget.c", "fold", 40),
+                           decl("static", "kw", "tests/test_widget.c", "fold", 41),
+                           decl("static", "CV", "tests/test_widget.c", "-", 3)]))
+        self.assertEqual(found["tests/test_widget"]["long-scope"], 1)
+        self.assertEqual(found["tests/test_widget"]["static"], 1)
+        self.assertEqual(found["tests/test_widget"]["total"], 2)
+
     def test_a_param_of_a_function_pointer_type_has_prototype_scope(self):
         found = table(run([decl("param", "e", "src/game/gadget.h", "src/game/gadget.c", 90),
                            decl("param", "e", "src/game/gadget.c", "run", 90)]))
@@ -225,6 +233,12 @@ class Cryptic(unittest.TestCase):
                                               "src/game/gadget.c", 90)])
         self.assertEqual(candidates, [])
         self.assertEqual(totals, {"total": 0})
+
+    def test_a_static_of_a_function_past_forty_lines_is_not_a_candidate(self):
+        _, candidates, totals = cryptic([decl("static", "ab", "tests/test_widget.c", "fold", 41),
+                                         decl("local", "ab", "tests/test_widget.c", "fold", 41)])
+        self.assertEqual(candidates, [("tests/test_widget", "local", "ab", "fold", "41")])
+        self.assertEqual(totals, {"tests/test_widget": 1, "total": 1})
 
     def test_the_exceptions_file_is_needed_by_the_count_only(self):
         run([decl("local", "abc", "src/game/gadget.c", "run", 41)])

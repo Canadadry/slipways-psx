@@ -2,7 +2,8 @@
 `make rename-extract` whose name has one or two characters and is refused,
 per module of the declaring file. Refused: a type, tag, function, field,
 enum constant, macro, static or global (one column each); a local or a
-parameter whose scope spans more than 40 lines (column long-scope). Allowed:
+parameter whose scope spans more than 40 lines (column long-scope), and so
+is a static declared in a function, judged as a local by its scope. Allowed:
 any other local or parameter (a parameter of a function-pointer type has the
 scope of its prototype), and the (kind, parent, name) triples of the
 exceptions file. Exit 0 unless --check: then exit 1 if the total is above 0,
@@ -38,6 +39,9 @@ def column_of(row):
     """The column a declaration is refused under, or None if allowed."""
     if len(row["name"]) > 2:
         return None
+    if row["kind"] == "static" and row["parent"] != "-":
+        # Not through is_long_scope: --cryptic would gain the long statics.
+        return "long-scope" if past_max_scope(row) else None
     if row["kind"] in REFUSED_KINDS:
         return row["kind"]
     return "long-scope" if is_long_scope(row) else None
@@ -50,6 +54,10 @@ def is_long_scope(row):
         # A param of a function-pointer type: the extraction names its
         # translation unit as parent and runs its scope to the unit's end.
         return False
+    return past_max_scope(row)
+
+
+def past_max_scope(row):
     return row["scope_lines"].isdigit() and int(row["scope_lines"]) > MAX_SCOPE_LINES
 
 
