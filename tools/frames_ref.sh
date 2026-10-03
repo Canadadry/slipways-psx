@@ -1,10 +1,10 @@
 #!/bin/sh
-# usage: frames_ref.sh <outil pico8_frames> <dossier des captures> <dossier des worktrees>
-#                      [<events> <reference .sha256> <empreinte courante> <capture>]...
-# Pour chaque rejeu divergent, rejoue le fichier d'evenements au commit qui a
-# pose sa reference et laisse la capture obtenue dans <dossier>/<events>.ref.bin.
-# Rend non nul si une reference n'est pas commitee, si un vieux commit ne
-# compile pas ou si un rejeu echoue.
+# usage: frames_ref.sh <frames_tool> <capture directory> <worktree directory>
+#                      [<events> <reference .sha256> <current hash> <capture>]...
+# For each diverging replay, replays the events file at the commit that set
+# its reference and leaves the capture in
+# <capture directory>/<events>.ref.bin. Returns non-zero if a reference is
+# not committed, if an old commit does not build or if a replay fails.
 
 set -u
 LC_ALL=C
@@ -19,7 +19,7 @@ shift 3
 
 root=$(pwd)
 worktree=
-# Une ligne par rejeu divergent : <commit> <events> <capture>.
+# One line per diverging replay: <commit> <events> <capture>.
 pending=$root/$frames_dir/frames-ref.pending
 
 remove_worktree() {
@@ -51,40 +51,40 @@ while [ $# -ge 4 ]; do
 
     [ -f "$reference" ] || continue
     if [ ! -f "$current" ]; then
-        echo "e2e-ref: $events : empreinte courante absente ($current)" >&2
+        echo "e2e-ref: $events: current hash missing ($current)" >&2
         exit 1
     fi
     [ "$(cat "$reference")" = "$(cat "$current")" ] && continue
 
-    # Hors du depot, ou pas encore commitee, la ligne n'a pas de commit :
-    # git blame echoue, ou la designe par un hash tout a zero.
+    # Outside the repository, or not committed yet, the line has no commit:
+    # git blame fails, or names it by an all-zero hash.
     commit=$(git blame --porcelain -L 1,1 -- "$reference" 2> /dev/null | sed -n '1s/ .*//p')
     case $commit in
         '' | *[!0]*) ;;
         *) commit= ;;
     esac
     if [ -z "$commit" ]; then
-        echo "e2e-ref: $events : $reference n'est pas commitee -- aucune reference a reconstruire." >&2
-        echo "e2e-ref:   la commiter avant de lancer e2e-ref : git status -- $reference" >&2
+        echo "e2e-ref: $events: $reference is not committed -- no reference to rebuild." >&2
+        echo "e2e-ref:   commit it before running e2e-ref: git status -- $reference" >&2
         exit 1
     fi
     echo "$commit $events $capture" >> "$pending"
 done
 
 if [ ! -s "$pending" ]; then
-    echo "e2e-ref: aucun rejeu divergent -- rien a reconstruire."
+    echo "e2e-ref: no diverging replay -- nothing to rebuild."
     exit 0
 fi
 
-# Rend la premiere frame qui differe entre deux captures, ou rien si elles
-# sont identiques. Sur un prefixe commun, c'est la frame qui suit la fin de
-# la plus courte.
+# Prints the first frame that differs between two captures, or nothing if
+# they are identical. When one is a prefix of the other, it is the frame
+# that follows the end of the shorter one.
 first_divergent_frame() {
     out=$(cmp "$1" "$2" 2> /dev/null)
     status=$?
     [ $status -eq 0 ] && return 0
     if [ $status -ne 1 ]; then
-        echo "e2e-ref: cmp $1 $2 a echoue" >&2
+        echo "e2e-ref: cmp $1 $2 failed" >&2
         return 1
     fi
     byte=$(printf '%s\n' "$out" | sed -n -e 's/.* differ: byte \([0-9][0-9]*\).*/\1/p' -e 's/.* differ: char \([0-9][0-9]*\).*/\1/p')
@@ -105,18 +105,20 @@ for commit in $(cut -d' ' -f1 "$pending" | sort -u); do
         git worktree prune
     fi
     mkdir -p "$(dirname "$worktree")"
-    echo "e2e-ref: reconstruction de la reference $commit"
+    echo "e2e-ref: rebuilding the reference $commit"
     if ! git worktree add --detach "$worktree" "$commit" > /dev/null; then
-        echo "e2e-ref: worktree de $commit impossible" >&2
+        echo "e2e-ref: cannot add a worktree at $commit" >&2
         exit 1
     fi
-    if ! (cd "$worktree" && MAKEFLAGS= MFLAGS= make tmp/pico8_replay < /dev/null > /dev/null); then
-        echo "e2e-ref: le pilote de rejeu ne compile pas au commit $commit" >&2
+    driver=tmp/pico8_replay
+    grep -q -e '^$(TMP_DIR)/replay:' "$worktree/Makefile" && driver=tmp/replay
+    if ! (cd "$worktree" && MAKEFLAGS= MFLAGS= make $driver < /dev/null > /dev/null); then
+        echo "e2e-ref: the replay driver does not build at commit $commit" >&2
         exit 1
     fi
 
-    # Avant le retrait du raccourci de difficulte, le pilote ne partait de
-    # l'ecran titre qu'avec ce drapeau ; les e2e partent tous du titre.
+    # Before the difficulty shortcut was removed, the driver started from
+    # the title screen only with this flag; every e2e starts from the title.
     flag=
     grep -q -e '--from-title' "$worktree/src/main.c" && flag=--from-title
 
@@ -126,23 +128,23 @@ for commit in $(cut -d' ' -f1 "$pending" | sort -u); do
         mkdir -p "$(dirname "$root/$ref_capture")"
         rm -f "$root/$ref_capture"
         if [ ! -f "$worktree/$events" ]; then
-            echo "e2e-ref: $events n'existe pas au commit $commit" >&2
+            echo "e2e-ref: $events does not exist at commit $commit" >&2
             exit 1
         fi
-        if ! (cd "$worktree" && ./tmp/pico8_replay $flag "$events" "$root/$ref_capture" < /dev/null > /dev/null); then
+        if ! (cd "$worktree" && ./$driver $flag "$events" "$root/$ref_capture" < /dev/null > /dev/null); then
             rm -f "$root/$ref_capture"
-            echo "e2e-ref: $events : le rejeu echoue au commit $commit" >&2
+            echo "e2e-ref: $events: the replay fails at commit $commit" >&2
             exit 1
         fi
 
         frame=$(first_divergent_frame "$ref_capture" "$capture") || exit 1
         if [ -z "$frame" ]; then
-            echo "e2e-ref: $events : la capture reconstruite a $commit est identique a la capture courante."
+            echo "e2e-ref: $events: the capture rebuilt at $commit is identical to the current capture."
             continue
         fi
-        echo "e2e-ref: $events : premiere frame divergente $frame (reference $commit)"
-        echo "e2e-ref:   reference : $tool frame $ref_capture $frame"
-        echo "e2e-ref:   courante  : $tool frame $capture $frame"
+        echo "e2e-ref: $events: first diverging frame $frame (reference $commit)"
+        echo "e2e-ref:   reference: $tool frame $ref_capture $frame"
+        echo "e2e-ref:   current:   $tool frame $capture $frame"
     done < "$pending"
 
     remove_worktree

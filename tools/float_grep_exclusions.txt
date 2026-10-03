@@ -1,45 +1,45 @@
-# Fichiers de src/ hors du coeur sans flottant, lus par
-# tools/float_grep.sh via make float-grep. Une ligne "<chemin> | <justification>".
-# Tout .c/.h de src/ est soit dans le coeur (CORE_SRCS et leurs en-tetes, -MM),
-# soit ici ; un fichier du coeur ici fait echouer la cible.
-src/main.c | point d'entree du rejeu headless, outil d'hote du §4
-src/main_class_coverage.c | point d'entree de l'outil de couverture des classes (PICO8_CLASS_COVERAGE), outil d'hote
-src/main_frames.c | point d'entree de l'outil d'emission de frames pico8_frames, outil d'hote
-src/main_minimize.c | point d'entree du minimiseur de rejeux pico8_minimize, outil d'hote
-src/main_raylib.c | point d'entree du driver interactif raylib
-src/main_screencast_viewer.c | point d'entree du visualiseur d'enregistrement
-src/pico8_assets.c | outil d'hote du §4, chargement des ressources par la libc
-src/pico8_assets.h | outil d'hote du §4, en-tete de pico8_assets.c
-src/pico8_dump.c | outil d'hote du §4, dump texte du framebuffer
-src/pico8_dump.h | outil d'hote du §4, en-tete de pico8_dump.c
-src/pico8_coverage.c | instrumentation de couverture des classes (PICO8_CLASS_COVERAGE), outil d'hote
-src/pico8_input_json.c | lecture et ecriture d'events.json, outil d'hote
-src/pico8_fatal_pc.c | implementation PC de pico8_fatal (stderr, exit), fournie par la plateforme
-src/pico8_fixed_test_double.c | aide de test, hors coeur : from_double/to_double, liee par les tests et le comparateur de constantes
-src/pico8_fixed_test_double.h | aide de test, hors coeur : en-tete de pico8_fixed_test_double.c, inclus par les tests et le comparateur de constantes
-src/pico8_minimize.c | minimiseur de rejeux, outil d'hote
-src/pico8_minimize.h | minimiseur de rejeux, en-tete de pico8_minimize.c
-src/pico8_palette.c | backend raylib et visualiseur, palette RGB de presentation
-src/pico8_palette.h | backend raylib et visualiseur, en-tete de pico8_palette.c
-src/pico8_raylib_backend.c | backend raylib
-src/pico8_raylib_backend.h | backend raylib
-src/pico8_raylib_backend_coords.c | backend raylib, conversion des coordonnees de fenetre
-src/pico8_raylib_backend_coords.h | backend raylib
-src/pico8_replay_control.c | rejeu et enregistrement du driver interactif
-src/pico8_replay_control.h | rejeu et enregistrement du driver interactif
-src/pico8_replay_source.c | rejeu, lecture d'events.json
-src/pico8_replay_source.h | rejeu, lecture d'events.json
-src/pico8_screencast.c | visualiseur et enregistrement d'ecran, capture des pixels du rejeu
-src/pico8_screencast.h | visualiseur et enregistrement d'ecran
-src/pico8_screencast_player.c | visualiseur d'enregistrement
-src/pico8_screencast_player.h | visualiseur d'enregistrement
-src/pico8_session_recorder.c | rejeu et enregistrement de session du driver interactif
-src/pico8_session_recorder.h | rejeu et enregistrement de session du driver interactif
-src/main_gif.c | point d'entree de l'outil pico8_gif de make gif, outil d'hote
-src/pico8_gif.c | encodeur GIF de make gif, outil d'hote
-src/pico8_gif.h | encodeur GIF de make gif, en-tete de pico8_gif.c
-src/main_state.c | entry point of make state, host tool
-src/pico8_state.c | text state of make state, host tool
-src/pico8_state.h | text state of make state, header of pico8_state.c
-src/pico8_replay_loop.c | headless replay loop shared by pico8_replay and pico8_state, host tool
-src/pico8_replay_loop.h | headless replay loop, header of pico8_replay_loop.c
+# Files of src/ outside the float-free core, read by tools/float_grep.sh
+# through make float-grep. One line "<path> | <justification>".
+# Every `.c` or `.h` file of src/ is either in the core (CORE_SRCS and the
+# headers `-MM` finds for them) or here; a core file listed here fails the target.
+src/cmd/replay.c | entry point of the headless replay, host tool
+src/cmd/class_coverage.c | entry point of the class coverage tool (CLASS_COVERAGE_BUILD), host tool
+src/cmd/frames.c | entry point of frames_tool, which prints a frame of a capture, host tool
+src/cmd/minimize.c | entry point of the replay minimizer, host tool
+src/cmd/game.c | entry point of the interactive raylib driver
+src/cmd/screencast_viewer.c | entry point of the screencast viewer
+src/p8/assets.c | host tool, loads the assets through the libc
+src/p8/assets.h | host tool, header of p8/assets.c
+src/devtools/dump.c | host tool, text dump of the framebuffer
+src/devtools/dump.h | host tool, header of devtools/dump.c
+src/devtools/class_coverage.c | class coverage instrumentation (CLASS_COVERAGE_BUILD), host tool
+src/devtools/input_json.c | reads and writes events.json, host tool
+src/platform/fatal_pc.c | PC implementation of p8_fatal (stderr, exit), provided by the platform
+src/devtools/fixed_test_double.c | test helper, outside the core: from_double/to_double, linked by the tests and the constants comparer
+src/devtools/fixed_test_double.h | test helper, outside the core: header of devtools/fixed_test_double.c, included by the tests and the constants comparer
+src/devtools/minimize.c | replay minimizer, host tool
+src/devtools/minimize.h | replay minimizer, header of devtools/minimize.c
+src/p8/palette.c | raylib backend, screencast viewer and GIF writer, RGB presentation palette
+src/p8/palette.h | raylib backend, screencast viewer and GIF writer, header of p8/palette.c
+src/platform/raylib_backend.c | raylib backend
+src/platform/raylib_backend.h | raylib backend
+src/platform/raylib_backend_coords.c | raylib backend, window coordinate conversion
+src/platform/raylib_backend_coords.h | raylib backend
+src/devtools/replay_control.c | replay speed of the interactive driver
+src/devtools/replay_control.h | replay speed of the interactive driver
+src/devtools/replay_source.c | replay, reads events.json
+src/devtools/replay_source.h | replay, reads events.json
+src/devtools/screencast.c | screen capture of the replay, writer and reader
+src/devtools/screencast.h | screen capture of the replay, header of devtools/screencast.c
+src/devtools/screencast_player.c | screencast viewer
+src/devtools/screencast_player.h | screencast viewer
+src/devtools/session_recorder.c | session recording of the interactive driver
+src/devtools/session_recorder.h | session recording of the interactive driver
+src/cmd/gif.c | entry point of the gif tool of make gif, host tool
+src/devtools/gif.c | GIF encoder of make gif, host tool
+src/devtools/gif.h | GIF encoder of make gif, header of devtools/gif.c
+src/cmd/state.c | entry point of make state, host tool
+src/devtools/state.c | text state of make state, host tool
+src/devtools/state.h | text state of make state, header of devtools/state.c
+src/devtools/replay_loop.c | headless replay loop shared by replay and state, host tool
+src/devtools/replay_loop.h | headless replay loop, header of devtools/replay_loop.c

@@ -20,14 +20,16 @@ coûtait seulement.
 
 ## Les trois artefacts produits
 
-- `CLAUDE.md`, section « Commentaires » : la règle des quatre destinations, dans
-  le fichier d'instructions que toute session relit.
-- `docs/glossaire-noms.md` : 191 symboles, une ligne chacun. Le cart est minifié
-  (`jo`, `bv`, `cg`) et le port translittère littéralement (`pico8_jo_kj`) : le
-  **nom** était donc déjà dans le code, c'est le **sens** qui manquait, et il ne
-  se déduisait ni du C ni du Lua.
+- `CLAUDE.md`, section « Commentaires » : la règle des destinations — quatre à
+  l'époque, trois depuis que les noms sont devenus parlants —, dans le fichier
+  d'instructions que toute session relit.
+- Un glossaire des noms : 191 symboles, une ligne chacun. Le cart est minifié en
+  digrammes et le port les translittérait littéralement : le **nom** était donc
+  déjà dans le code, c'est le **sens** qui manquait, et il ne se déduisait ni du
+  C ni du Lua. Un renommage en noms anglais complets l'a remplacé depuis : le
+  nom porte le sens, la destination « sens d'un nom » est tombée.
 - `docs/trous-de-portage.md` : les écarts numérotés, revérifiés contre le code un
-  par un. Le code n'y renvoie que par `/* TROU-7 */`.
+  par un. Le code n'y renvoie que par `/* GAP-7 */`.
 
 ## Phase 1
 
@@ -37,11 +39,11 @@ phase 2 :
 
 - une affirmation périmée (« cette table est vide face au vrai `map.json` ») que
   le plan actait comme résolue depuis longtemps ;
-- **TROU-4 devenu atteignable sans que personne le note** : le commentaire disait
+- **GAP-4 devenu atteignable sans que personne le note** : le commentaire disait
   « ce sera un vrai trou le jour où `spr` sera enregistré comme constructeur », et
   l'initialisation l'enregistre bien ;
-- **TROU-1 contredisant une décision actée** du plan (« pas de flottant natif »)
-  alors que `pico8_fixed_cos/_sin` passent par le `cos()` de l'hôte.
+- **GAP-1 contredisant une décision actée** du plan (« pas de flottant natif »)
+  alors que `p8_fixed_cos/_sin` passent par le `cos()` de l'hôte.
 
 Le recâblage du processus, dans le même commit : la règle dans `CLAUDE.md`, et
 l'étape « Log the finding » retirée de la skill `fix-bug`, qui écrivait un
@@ -53,20 +55,20 @@ second commit `docs:` pour ça. Sans ce point, la prose repousse.
 Une vingtaine de modules, en vagues de 4 à 6 agents. Quelques résultats qui
 illustrent chaque règle :
 
-- **L'assert qui a cassé la suite** (module `ob`, le parseur de specs) : exigeait
-  une virgule finale ; règle vraie, validée hors ligne sur 58 specs, fausse d'un
-  cran en réalité — les specs décodées depuis la mémoire finissent par **deux**
-  virgules. Retiré, règle remise en prose avec ce que la mesure a établi. Aucune
-  tentative de rafistoler la condition : un second invariant mal posé coûte un
-  autre tour, et la règle autorise la prose.
-- **Le refus qui a trouvé un bug** (tirage pondéré des planètes) : l'agent voulait
-  `assert(oc.count > 0)`, a calculé la marge avant d'écrire — 66 tickets pour
-  90 planètes possibles — et a renoncé. En vérifiant, c'était pire que sa
-  conclusion : pool vide, l'index tombe à 0, le code lit `items[0]` sur une liste
-  dont le tableau peut être NULL. Consigné en TROU-16.
-- **Les asserts écartés par la plomberie** : `i >= 1` dans `pico8_sub` alors que
+- **L'assert qui a cassé la suite** (le parseur de specs, module retiré depuis
+  avec la couche Lua) : exigeait une virgule finale ; règle vraie, validée hors
+  ligne sur 58 specs, fausse d'un cran en réalité — les specs décodées depuis la
+  mémoire finissent par **deux** virgules. Retiré, règle remise en prose avec ce
+  que la mesure a établi. Aucune tentative de rafistoler la condition : un
+  second invariant mal posé coûte un autre tour, et la règle autorise la prose.
+- **Le refus qui a trouvé un bug** (tirage pondéré des planètes) : l'agent
+  voulait `assert(state->tickets_count > 0)`, a calculé la marge avant d'écrire
+  — 66 tickets pour 90 planètes possibles — et a renoncé. En vérifiant, c'était
+  pire que sa conclusion : pool vide, l'index tombe à 0, le code lit `items[0]`
+  sur une liste dont le tableau peut être NULL. Consigné en GAP-16.
+- **Les asserts écartés par la plomberie** : `i >= 1` dans `p8_sub` alors que
   `unstash()` l'appelle avec 0 à chaque fin de chaîne ; `frames != NULL` dans
-  `pico8_input_save` alors qu'un test passe NULL exprès. Les deux auraient cassé
+  `p8_input_save` alors qu'un test passe NULL exprès. Les deux auraient cassé
   la suite. La rubrique « envisagés puis écartés » les a fait remonter.
 - **Le seul assert établi par mesure** de sa vague : la longueur de l'alphabet de
   `unstash`, comptée hors du C — 51 caractères, saut de ligne compris. Se tromper
@@ -89,6 +91,6 @@ illustrent chaque règle :
 
 Ils ne se ressemblent pas, et c'est normal : la plomberie portait peu de récit
 (183 → 105), les modules de gameplay en portaient beaucoup (722 → 133 pour
-`collect` + `ob`, 1 021 → 124 pour les trois modules de recherche), les tests
-gardent leur « pourquoi cette valeur » (1 346 → 591). Un ratio bas n'est pas un
-meilleur travail : c'est la nature du fichier.
+`collect` + le parseur de specs, 1 021 → 124 pour les trois modules de
+recherche), les tests gardent leur « pourquoi cette valeur » (1 346 → 591). Un
+ratio bas n'est pas un meilleur travail : c'est la nature du fichier.

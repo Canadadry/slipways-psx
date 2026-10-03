@@ -33,7 +33,7 @@ Take the failure whose replay has the fewest frames (the size of `tmp/frames/<ev
 Invoke the `fix-bug` skill in place. Its argument is a bug report you write, containing:
 
 - **Symptom**, verbatim: the `make e2e` output for this failure, nothing paraphrased.
-- **Reproduction**: the replay command — `./tmp/pico8_replay <events> <capture> <dump>` — and `make e2e-ref` for the first divergent frame against the commit that set the reference. The `.txt` next to each e2e says what it does and at which frames.
+- **Reproduction**: the replay command — `./tmp/replay <events> <capture> <dump>` — and `make e2e-ref` for the first divergent frame against the commit that set the reference. The `.txt` next to each e2e says what it does and at which frames.
 - **Constraints on the fix**, to be carried into every stage:
   - The RED test is a **unit test run by `make test`**, registered in the Makefile's `UNIT_TESTS`. Never a new e2e in `tests/e2e/`.
   - Its cost is **negligible**: it builds the minimal state that reaches the cause, it does not replay a recorded session, and it runs well under 50 ms. Needing a long event sequence to go red is the sign the real cause has not been found — go back to diagnosis, don't ship it.

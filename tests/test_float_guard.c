@@ -1,6 +1,6 @@
-/* tools/float_guard.sh, le corps de `make float-guard`, sur des sources
- * fabriquees : il se teste par ce qu'il doit empecher, un fichier flottant
- * que la garde laisserait passer. */
+/* tools/float_guard.sh, the body of `make float-guard`, on built sources:
+ * it is tested by what it must prevent, a floating-point file that the
+ * guard would let through. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -8,12 +8,12 @@
 #include <string.h>
 
 #define DIR "tmp/test_float_guard_work"
-#define FLOATING DIR "/pico8_floating.c"
-#define INTEGER DIR "/pico8_integer.c"
+#define FLOATING DIR "/floating.c"
+#define INTEGER DIR "/integer.c"
 #define OUT DIR "/out.txt"
 #define GUARD "sh tools/float_guard.sh cc '-std=c99 -Wall -Wextra -Werror' " DIR "/obj"
 
-/* Tampon statique, termine par NUL, ecrase a chaque appel. */
+/* Static buffer, NUL-terminated, overwritten by each call. */
 static const char *read_file(const char *path) {
     static char buf[1 << 16];
     FILE *file = fopen(path, "rb");
@@ -31,8 +31,8 @@ static void write_file(const char *path, const char *text) {
     fclose(file);
 }
 
-/* Rend le code de sortie du script, relu depuis un fichier : le statut brut
- * de system() n'est pas decodable sans <sys/wait.h>, hors C99. */
+/* The exit code of the script, read back from a file: the raw status of
+ * system() cannot be decoded without <sys/wait.h>, outside C99. */
 static int run_guard(const char *sources) {
     char cmd[1024];
     snprintf(cmd, sizeof cmd, GUARD " %s > " OUT " 2>&1; echo $? > " DIR "/code", sources);
@@ -42,36 +42,36 @@ static int run_guard(const char *sources) {
 
 static void setup(void) {
     assert(system("rm -rf " DIR " && mkdir -p " DIR) == 0);
-    write_file(FLOATING, "double pico8_half(int x) { return x / 2.0; }\n");
-    write_file(INTEGER, "int pico8_half(int x) { return x / 2; }\n");
+    write_file(FLOATING, "double half(int x) { return x / 2.0; }\n");
+    write_file(INTEGER, "int half(int x) { return x / 2; }\n");
 }
 
 static void test_floating_file_is_listed_and_fails_the_guard(void) {
     setup();
     assert(run_guard(FLOATING " " INTEGER) == 1);
     const char *out = read_file(OUT);
-    assert(strstr(out, "echec " FLOATING "\n") != NULL);
+    assert(strstr(out, "failed " FLOATING "\n") != NULL);
     assert(strstr(out, INTEGER) == NULL);
-    assert(strstr(out, "garde fichiers 2 en-echec 1\n") != NULL);
+    assert(strstr(out, "float-guard files 2 failing 1\n") != NULL);
 }
 
 static void test_integer_file_alone_passes_the_guard(void) {
     setup();
     assert(run_guard(INTEGER) == 0);
     const char *out = read_file(OUT);
-    assert(strstr(out, "\nechec ") == NULL);
-    assert(strstr(out, "garde fichiers 1 en-echec 0\n") != NULL);
+    assert(strstr(out, "\nfailed ") == NULL);
+    assert(strstr(out, "float-guard files 1 failing 0\n") != NULL);
 }
 
 static void test_every_failing_file_is_listed_sorted(void) {
     setup();
-    write_file(DIR "/pico8_another.c", "float pico8_third(void) { return 3.0f; }\n");
-    assert(run_guard(FLOATING " " INTEGER " " DIR "/pico8_another.c") == 1);
+    write_file(DIR "/another.c", "float third(void) { return 3.0f; }\n");
+    assert(run_guard(FLOATING " " INTEGER " " DIR "/another.c") == 1);
     const char *out = read_file(OUT);
-    const char *another = strstr(out, "echec " DIR "/pico8_another.c\n");
-    const char *floating = strstr(out, "echec " FLOATING "\n");
+    const char *another = strstr(out, "failed " DIR "/another.c\n");
+    const char *floating = strstr(out, "failed " FLOATING "\n");
     assert(another != NULL && floating != NULL && another < floating);
-    assert(strstr(out, "garde fichiers 3 en-echec 2\n") != NULL);
+    assert(strstr(out, "float-guard files 3 failing 2\n") != NULL);
 }
 
 static void test_no_source_is_an_error_not_a_pass(void) {

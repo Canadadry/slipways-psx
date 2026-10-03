@@ -1,17 +1,18 @@
 #!/bin/sh
-# usage: line_coverage.sh cover <pilote gcov> <arbre gcov> <events>...
-#        line_coverage.sh diff <ensemble> <ensemble>
-#        line_coverage.sh contrib <ensemble> [<ensemble>...]
-#        line_coverage.sh gap <référence> <inatteignables> <ensemble>
-# Un ensemble : une ligne `fichier:ligne` par ligne source exécutée, triée.
-# cover : l'union des lignes couvertes par les rejeux, un processus par
-#   fichier, chacun depuis l'écran titre. Rend 1, sans rien écrire sur la
-#   sortie, si un fichier manque ou si un rejeu échoue.
-# diff : les lignes du premier ensemble absentes du second (l'écart).
-# contrib : les lignes du premier ensemble qu'aucun des autres ne couvre
-#   (l'apport d'un fichier).
-# gap : les lignes de la référence ni couvertes par l'ensemble ni listées dans
-#   les inatteignables (`fichier:ligne raison`, seul le premier champ compte).
+# usage: line_coverage.sh cover <gcov driver> <gcov tree> <events>...
+#        line_coverage.sh diff <set> <set>
+#        line_coverage.sh contrib <set> [<set>...]
+#        line_coverage.sh gap <reference> <unreachable> <set>
+# A set: one `file:line` line per executed source line, sorted.
+# cover: the union of the lines covered by the replays, one process per
+#   file, each from the title screen. Exit 1, writing nothing on the
+#   standard output, when a file is missing or a replay fails.
+# diff: the lines of the first set missing from the second.
+# contrib: the lines of the first set that none of the others covers (what
+#   one file adds).
+# gap: the lines of the reference neither covered by the set nor listed as
+#   unreachable (`file:line reason`, only the first field counts).
+# Exit 1 on bad arguments or a missing set.
 
 set -u
 
@@ -19,11 +20,11 @@ sorted() {
     LC_ALL=C sort -t: -k1,1 -k2,2n -u
 }
 
-# Les ensembles suivant le premier forment l'union à retirer du premier.
+# The sets after the first make the union removed from the first.
 minus() {
     for set in "$@"; do
         if [ ! -f "$set" ]; then
-            echo "ensemble absent: $set" >&2
+            echo "missing set: $set" >&2
             exit 1
         fi
     done
@@ -37,7 +38,7 @@ minus() {
 gap() {
     for set in "$@"; do
         if [ ! -f "$set" ]; then
-            echo "ensemble absent: $set" >&2
+            echo "missing set: $set" >&2
             exit 1
         fi
     done
@@ -51,13 +52,13 @@ cover() {
     objdir=$2
     shift 2
     if [ $# -eq 0 ]; then
-        echo "cover: aucun fichier d'événements" >&2
+        echo "cover: no events file" >&2
         exit 1
     fi
 
     abs_objdir=$(cd "$objdir" && pwd) || exit 1
-    # Retire le chemin absolu de l'arbre : chaque rejeu écrit ses .gcda sous
-    # son propre préfixe, rangés comme dans l'arbre.
+    # GCOV_PREFIX_STRIP drops the absolute path of the tree: each replay
+    # writes its `.gcda` files under its own prefix, laid out as in the tree.
     strip=$(printf '%s\n' "$abs_objdir" | awk -F/ '{ print NF - 1 }')
 
     work=$(mktemp -d "${TMPDIR:-/tmp}/line_coverage.XXXXXX")
@@ -88,7 +89,7 @@ cover() {
         [ -f "$work/$i.status" ] || continue
         status=$(cat "$work/$i.status")
         if [ "$status" -ne 0 ]; then
-            echo "échec: $(cat "$work/$i.events") (code $status)" >&2
+            echo "failed: $(cat "$work/$i.events") (code $status)" >&2
             sed 's/^/  /' "$work/$i.err" >&2
             failed=1
         fi
@@ -101,11 +102,11 @@ cover() {
         cp "$objdir/$rel"/*.gcno "$dir"/ || exit 1
         if ! gcov -t -o "$dir" "$dir"/*.gcda > "$work/gcov.out" 2> "$work/gcov.err" \
             || grep -q 'mismatch' "$work/gcov.err"; then
-            echo "gcov: échec sur $dir" >&2
+            echo "gcov: failed on $dir" >&2
             cat "$work/gcov.err" >&2
             exit 1
         fi
-        # Les en-têtes système (chemin absolu) ne sont pas du code du port.
+        # System headers (absolute paths) are not code of the game.
         awk -F: '
             $3 == "Source" && $2 + 0 == 0 { src = $4; next }
             {
@@ -122,22 +123,22 @@ cover() {
 case "${1:-}" in
     cover)
         shift
-        [ $# -ge 2 ] || { echo "usage: $0 cover <pilote gcov> <arbre gcov> <events>..." >&2; exit 1; }
+        [ $# -ge 2 ] || { echo "usage: $0 cover <gcov driver> <gcov tree> <events>..." >&2; exit 1; }
         cover "$@"
         ;;
     diff)
         shift
-        [ $# -eq 2 ] || { echo "usage: $0 diff <ensemble> <ensemble>" >&2; exit 1; }
+        [ $# -eq 2 ] || { echo "usage: $0 diff <set> <set>" >&2; exit 1; }
         minus "$@"
         ;;
     contrib)
         shift
-        [ $# -ge 1 ] || { echo "usage: $0 contrib <ensemble> [<ensemble>...]" >&2; exit 1; }
+        [ $# -ge 1 ] || { echo "usage: $0 contrib <set> [<set>...]" >&2; exit 1; }
         minus "$@"
         ;;
     gap)
         shift
-        [ $# -eq 3 ] || { echo "usage: $0 gap <référence> <inatteignables> <ensemble>" >&2; exit 1; }
+        [ $# -eq 3 ] || { echo "usage: $0 gap <reference> <unreachable> <set>" >&2; exit 1; }
         gap "$@"
         ;;
     *)

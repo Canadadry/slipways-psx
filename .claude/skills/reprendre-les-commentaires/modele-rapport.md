@@ -69,8 +69,8 @@ Tu n'écris pas dans le glossaire. Propose, l'orchestrateur applique par lots.
 
 ## 6. Écarts à consigner
 
-- TROU-? — <titre> — <2 à 4 lignes> — marqueur posé à `<fichier:ligne>`
-- TROU-<n> existant — fichier à ajouter à la liste : `<chemin>`
+- GAP-? — <titre> — <2 à 4 lignes> — marqueur posé à `<fichier:ligne>`
+- GAP-<n> existant — fichier à ajouter à la liste : `<chemin>`
 
 ## 7. Affirmations de statut vérifiées fausses
 

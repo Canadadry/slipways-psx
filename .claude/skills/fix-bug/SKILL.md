@@ -31,7 +31,7 @@ Put these in each sub-agent prompt — a fresh agent knows none of them:
 - **The Bash hooks reject absolute paths and `git -C`**. Use project-relative paths, never `cd`. They also reject backticks in a command line, heredocs included — write files with the Write tool, not a heredoc.
 - **Only the orchestrator touches git.** Sub-agents never commit, stage, stash, branch or push.
 - **The suite is `make test`** — prefer the Makefile target over invoking a runner directly.
-- **This is a literal port.** A bug in a ported function is judged against `pico8/lua.lua`, the real cart source: the fix restores fidelity to those exact lines, it never "improves" them. A C-side bug (ownership, lifetime, NULL guard) is judged against the port's own established conventions, cited from a real site in the tree.
+- **The C is the reference.** A bug is judged against the established behaviour of the C, as covered by the tests and the e2e replays, and against the port's own conventions, cited from a real site in the tree. `pico8/lua.lua` remains as an archive: consult it to understand an intent, never as the yardstick a fix must match.
 - Throwaway repro programs go in `tmp/`, never in `src/` or `tests/`.
 
 ## Pipeline
@@ -95,10 +95,9 @@ Write it yourself rather than delegating: you hold both the proof and the verifi
 What the commit message must NOT absorb, because it belongs in the working tree instead:
 
 - a trap a future reader could reintroduce → an `assert` carrying a message at the exact spot, or, when the invariant isn't checkable at runtime, a comment of at most 40 words there;
-- a divergence from the cart that stays open → a numbered entry in `docs/trous-de-portage.md`, referenced from the code by a bare `/* TROU-n */`;
-- the meaning of a minified name you had to work out → a line in `docs/glossaire-noms.md`.
+- a divergence from the cart that stays open → a numbered entry in `docs/trous-de-portage.md`, referenced from the code by a bare `/* GAP-n */`;
 
-Scope the commit to the code fix and its test (`fix:`). A glossary or gaps-file edit is a separate intention: commit it on its own (`docs:`).
+Scope the commit to the code fix and its test (`fix:`). A gaps-file edit is a separate intention: commit it on its own (`docs:`).
 
 ## Stopping conditions
 

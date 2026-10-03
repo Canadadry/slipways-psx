@@ -1,0 +1,885 @@
+/* The probe, read through its struct, its defaults read on its archetype,
+ * built by its three roads (the background's left_press, probe_new(NULL),
+ * probe_new with the 4 keys of test_probe_spawn_particle_order.c) and
+ * driven through its class's methods, draw_layers and update_entities. Its
+ * methods are compared to the public functions. The help screen, of the
+ * probe's lineage, is read on the title screen. No events file. */
+
+#define _POSIX_C_SOURCE 200809L
+
+#include <assert.h>
+#include <signal.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+#include "p8/assets.h"
+#include "engine/bootstrap.h"
+#include "game/cart.h"
+#include "engine/dispatch_context.h"
+#include "engine/entity_registry.h"
+#include "p8/fixed.h"
+#include "game/main_economy.h"
+#include "p8/gfx.h"
+#include "game/help.h"
+#include "p8/input.h"
+#include "engine/entity.h"
+#include "p8/mem.h"
+#include "game/particle.h"
+#include "game/ui_zone.h"
+#include "game/planet.h"
+#include "game/probe.h"
+#include "game/slipway.h"
+#include "engine/entity_class.h"
+#include "game/ui.h"
+#include "engine/vec.h"
+
+/* pos is a copy of the mouse position, never the caller's box (NULL stays
+ * NULL). */
+static int pos_copies(const vec_t *ra, const vec_t *mp) {
+    return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
+}
+
+
+/* The tag class instances carried, which the frozen hashes fold: any
+ * other value moves every *_HASH. */
+#define FROZEN_INSTANCE_TAG 0x9E5C1451u
+
+#define BUILT_HASH 0xD2F8504Au
+#define LIFE_HASH 0x74EB6007u
+#define DROP_ON_HASH 0x49056D9Bu
+#define DROP_OFF_HASH 0x3EA86A53u
+#define HELP_SCREEN_HASH 0x938EC51Bu
+
+static p8_memory_t memory;
+static p8_graphics_t graphics;
+static p8_input_t input;
+
+static const char *const messages[] = {"draw", "draw_overlay", "hit_test", "new_year", "refresh"};
+
+static uint32_t fnv(uint32_t h, uint32_t word) {
+    int i;
+    for (i = 0; i < 4; i++) {
+        h ^= (word >> (8 * i)) & 0xFFu;
+        h *= 16777619u;
+    }
+    return h;
+}
+
+static uint32_t fnv_str(uint32_t h, const char *s) {
+    for (; *s != '\0'; s++) {
+        h = fnv(h, (uint32_t)(unsigned char)*s);
+    }
+    return fnv(h, 0xFFu);
+}
+
+static int entity_list_rank_in(const entity_list_t *list, const void *e) {
+    int i;
+    for (i = 0; list != NULL && i < list->count; i++) {
+        if (list->items[i] == e) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static int entity_list_listed(const entity_list_t *list, const void *e) {
+    return entity_list_rank_in(list, e) >= 0;
+}
+
+static int entity_list_list_count(const entity_list_t *list) {
+    return list != NULL ? list->count : 0;
+}
+
+static int is_state(const entity_t *ke, const char *want) {
+    return ke->state != NULL && strcmp(ke->state, want) == 0;
+}
+
+static uint32_t fold_vec(uint32_t h, const vec_t *p) {
+    if (p == NULL) {
+        return fnv(h, 0xDEADu);
+    }
+    h = fnv(h, (uint32_t)p->x);
+    return fnv(h, (uint32_t)p->y);
+}
+
+static int is_targeting_track_target(const void *e) {
+    return e != NULL &&
+           ((const entity_t *)e)->class == targeting_track_target_class();
+}
+
+/* The throwaway target's targeted_by, NULL when absent. */
+static const void *throwaway_targeted_by(const void *t) {
+    assert(is_targeting_track_target(t));
+    return ((const targeting_track_target_t *)t)->targeted_by;
+}
+
+static uint32_t fold_ref(uint32_t h, const void *ref) {
+    if (ref == NULL) {
+        return fnv(h, 0xDEADu);
+    }
+    if (entity_list_listed(live_entities(), ref)) {
+        return fnv(fnv(h, 0x4Eu), (uint32_t)entity_list_rank_in(live_entities(), ref));
+    }
+    /* The frozen hashes folded the INSTANCE tag the throwaway had. */
+    assert(is_targeting_track_target(ref) && "no test folds an entity outside the live entities that is not the throwaway target: to fold one, fold 0xEEEE then the frozen struct tag 0x9E5C57C7, as test_trading_hub.c does");
+    return fnv(fnv(h, 0xEEEEu), FROZEN_INSTANCE_TAG);
+}
+
+/* The words the frozen hashes fold before a value: 0xF1 a number, 0x57 a
+ * string; any other moves every *_HASH. */
+static uint32_t fold_fixed(uint32_t h, p8_fixed_t x) {
+    return fnv(fnv(h, 0xF1u), (uint32_t)x);
+}
+
+static uint32_t fold_string(uint32_t h, const char *s) {
+    return fnv_str(fnv(h, 0x57u), s);
+}
+
+/* A member the reader always answers: its presence bit and kind byte are
+ * constant by the struct's shape, kept so that the hashes still prove the
+ * typed reads. */
+static uint32_t fold_fixed_member(uint32_t h, p8_fixed_t x) {
+    return fnv(fnv(fnv(h, 1u), 0xF1u), (uint32_t)x);
+}
+
+static uint32_t fold_bool_member(uint32_t h, int b) {
+    return fnv(fnv(fnv(h, 1u), 0xB0u), (uint32_t)b);
+}
+
+static uint32_t fold_string_member(uint32_t h, const char *s) {
+    return s == NULL ? fnv(h, 0u) : fnv_str(fnv(fnv(h, 1u), 0x57u), s);
+}
+
+/* A pointer that carried no tag: the frozen hashes fold 0. */
+static uint32_t fold_untagged(uint32_t h, const void *p) {
+    if (p == NULL) {
+        return fnv(h, 0xDEADu);
+    }
+    return fnv(fnv(h, 0xEEEEu), 0u);
+}
+
+static uint32_t fold_ref_member(uint32_t h, const void *ref) {
+    return ref == NULL ? fnv(h, 0u) : fold_untagged(fnv(h, 1u), ref);
+}
+
+static uint32_t fold_is_dead(uint32_t h, const probe_t *g_) {
+    return (g_->is_dead != 0) ? fold_bool_member(h, g_->is_dead != 0) : fnv(h, 0u);
+}
+
+/* A probe's 18 archetype defaults, in archetype order. */
+static uint32_t fold_defaults(uint32_t h, const probe_t *g_) {
+    const emitter_t *em = g_->emitter;
+    const targeting_t *pr = g_->targeting;
+
+    h = fold_ref_member(h, &g_->header.class->tags);
+    h = fold_fixed_member(h, g_->archetype->fold_anchor);
+    h = fold_string_member(h, pr->archetype->confirmed_state);
+    h = fold_fixed_member(h, pr->cost);
+    h = fold_bool_member(h, pr->archetype->clock_ticks != 0);
+    h = fold_fixed_member(h, g_->archetype->layer);
+    h = fold_fixed_member(h, pr->archetype->attach_distance);
+    h = fold_fixed_member(h, em->speed_factor);
+    h = fold_fixed_member(h, em->archetype->lifetime);
+    h = fold_fixed_member(h, em->angle_slices);
+    h = fold_fixed_member(h, em->archetype->quarter_turn);
+    h = fold_fixed_member(h, em->archetype->spawn_rate);
+    h = fold_ref_member(h, em->trail_colors);
+    h = fold_fixed_member(h, em->matrix_xx);
+    h = fold_fixed_member(h, em->matrix_xy);
+    h = fold_fixed_member(h, em->matrix_yx);
+    h = fold_fixed_member(h, em->matrix_yy);
+    return fold_fixed_member(h, em->base_radius);
+}
+
+static const economy_t *checked_main_economy(void) {
+    const economy_t *hy = main_economy_typed();
+    assert(hy != NULL);
+    return hy;
+}
+
+/* A class's tags, in enum order: each position, then its name, then
+ * the count. */
+static uint32_t fold_tags(uint32_t h, unsigned tags) {
+    static const char *const names[TAG_COUNT] = {
+        [TAG_STRUCTURE] = "structure", [TAG_ASCENSION] = "ascension", [TAG_SLIPGATE] = "slipgate",
+        [TAG_PROBE] = "probe", [TAG_MESSAGE_BOX] = "message_box", [TAG_SLIPWAY] = "slipway",
+        [TAG_WORMHOLE] = "wormhole", [TAG_PLANET] = "planet", [TAG_NODE] = "node",
+        [TAG_TARGETING] = "targeting",
+    };
+    uint32_t k = 0;
+    int t;
+
+    for (t = 0; t < TAG_COUNT; t++) {
+        if (tags & TAG(t)) {
+            k++;
+            h = fnv(h, k);
+            h = fold_string(h, names[t]);
+        }
+    }
+    return fnv(h, k);
+}
+
+/* An integer sequence: each position, then its value, then the count. */
+static uint32_t fold_seq(uint32_t h, const int_seq_t *s) {
+    int i;
+
+    for (i = 0; i < s->count; i++) {
+        h = fnv(h, (uint32_t)(i + 1));
+        h = fold_fixed(h, p8_fixed_from_int(s->items[i]));
+    }
+    return fnv(h, (uint32_t)s->count);
+}
+
+/* The item count of a list member, -1 when NULL. */
+static int size_of(const pointer_list_t *list) {
+    return list == NULL ? -1 : list->count;
+}
+
+static void check(const char *label, uint32_t got, uint32_t want) {
+    printf("[%s] 0x%08Xu\n", label, (unsigned)got);
+    fflush(stdout);
+    assert(got == want);
+}
+
+static uint32_t screen_hash(void) {
+    uint32_t h = 2166136261u;
+    int i;
+
+    for (i = 0; i < P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT; i++) {
+        h ^= (uint32_t)p8_peek(&memory, P8_ADDR_SCREEN + i);
+        h *= 16777619u;
+    }
+    return h;
+}
+
+/* A game started as cart_start_game starts it, with no difficulty picked:
+ * a NULL difficulty reads as difficulty 0. */
+static void start_game(void) {
+    p8_input_init(&input);
+    dispatch_context_set_input(&input);
+    cart_init();
+    cart_start_game(NULL);
+    cart_flush_exit_queue();
+}
+
+static vec_t *vec_ref(vec_t at) {
+    vec_t *v = malloc(sizeof *v);
+    *v = at;
+    return v;
+}
+
+static vec_t vec_xy(int x, int y) {
+    return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
+}
+
+static const entity_class_t *class_of(const void *e) {
+    return ((const entity_t *)e)->class;
+}
+
+/* The background is the one among the hit_test entities whose archetype's
+ * hit_test and layer are both 1. */
+static background_t *the_background(void) {
+    const entity_list_t *hd = entities_by_message("hit_test");
+    background_t *found = NULL;
+    int count = 0;
+    int i;
+
+    for (i = 0; hd != NULL && i < hd->count; i++) {
+        const entity_t *e = hd->items[i];
+        background_t *bg;
+
+        if (e->class != background_class()) {
+            continue;
+        }
+        bg = (background_t *)e;
+        if (bg->archetype->hit_test == p8_fixed_from_int(1) && bg->archetype->layer == p8_fixed_from_int(1)) {
+            found = bg;
+            count++;
+        }
+    }
+    assert(count == 1);
+    return found;
+}
+
+/* A probe, whatever its form: the probe's tags and layer 2 (the help screen
+ * has 10). */
+static int is_probe(entity_t *e) {
+    const probe_t *g_ =
+        e != NULL && (e->class->lineage & LINEAGE(LINEAGE_PROBE)) ? (const probe_t *)e : NULL;
+    return g_ != NULL && g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)) && g_->archetype->layer == p8_fixed_from_int(2);
+}
+
+static probe_t *as_probe(void *e) {
+    assert(e != NULL &&
+           ((const entity_t *)e)->class == probe_class());
+    return e;
+}
+
+/* First road: the background's left_press while the probe tag is empty. */
+static probe_t *left_press(void) {
+    background_t *bg = the_background();
+    down_t out;
+
+    assert(entity_list_list_count(entities_by_tag("probe")) == 0);
+    out = class_of(bg)->left_press(&bg->header, vec_ref(vec_xy(1, 1)), vec_ref(vec_xy(2, 2)));
+    assert(out.stop && out.held != NULL && is_probe(out.held));
+    return as_probe(out.held);
+}
+
+/* Third road: the 4 keys of test_probe_spawn_particle_order.c. */
+static probe_t *keyed(void) {
+    probe_keys_t keys = {0};
+
+    keys.has_angle_slices = 1;
+    keys.angle_slices = p8_fixed_from_int(7);
+    keys.state_time = p8_fixed_from_int(3);
+    keys.has_base_radius = 1;
+    keys.base_radius = p8_fixed_from_int(10);
+    keys.has_speed_factor = 1;
+    keys.speed_factor = p8_fixed_from_int(1);
+    return probe_new(&keys);
+}
+
+/* A probe as its road, emitter_init and entity_construct left it: its 18
+ * defaults, state, state time, its tables' contents, its empty particle
+ * list; none of the fields only targeting_track and targeting_confirm
+ * write; its 5 methods, the public functions; where it was registered. */
+static uint32_t fold_probe(uint32_t hash, probe_t *entity) {
+    const emitter_t *emitter = entity->emitter;
+    const targeting_t *targeting = entity->targeting;
+    size_t index;
+
+    assert(is_probe(&entity->header));
+    assert(entity->header.map_pos == &entity->map_pos);
+    hash = fold_fixed_member(hash, entity->archetype->fold_anchor);
+    hash = fold_string_member(hash, targeting->archetype->confirmed_state);
+    hash = fold_fixed_member(hash, targeting->cost);
+    hash = fold_bool_member(hash, targeting->archetype->clock_ticks != 0);
+    hash = fold_fixed_member(hash, entity->archetype->layer);
+    hash = fold_fixed_member(hash, targeting->archetype->attach_distance);
+    hash = fold_fixed_member(hash, emitter->speed_factor);
+    hash = fold_fixed_member(hash, emitter->archetype->lifetime);
+    hash = fold_fixed_member(hash, emitter->angle_slices);
+    hash = fold_fixed_member(hash, emitter->archetype->quarter_turn);
+    hash = fold_fixed_member(hash, emitter->archetype->spawn_rate);
+    hash = fold_fixed_member(hash, emitter->matrix_xx);
+    hash = fold_fixed_member(hash, emitter->matrix_xy);
+    hash = fold_fixed_member(hash, emitter->matrix_yx);
+    hash = fold_fixed_member(hash, emitter->matrix_yy);
+    hash = fold_fixed_member(hash, emitter->base_radius);
+    hash = fold_string_member(hash, entity->header.state);
+    hash = fold_fixed_member(hash, entity->header.state_time);
+    assert(targeting->archetype->confirmed_state != NULL && emitter->trail_colors != NULL);
+    hash = fold_tags(hash, entity->header.class->tags);
+    hash = fold_seq(hash, emitter->trail_colors);
+    assert(entity->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
+    assert(emitter->trail_colors == &probe_trail_colors_seq);
+    hash = fnv(hash, (uint32_t)size_of(emitter->particles));
+    assert(size_of(emitter->particles) == 0);
+    assert(entity->pos == NULL && entity->map_pos == NULL && targeting->target == NULL && !entity->is_dead);
+    assert(class_of(entity)->hit_test == NULL && class_of(entity)->new_year == NULL && class_of(entity)->refresh == NULL &&
+           class_of(entity)->states[ENTITY_STATE_SETTLED] == NULL && class_of(entity)->states[ENTITY_STATE_NORMAL] == NULL);
+    assert(class_of(entity)->drag == targeting_track_method);
+    assert(class_of(entity)->drop == targeting_confirm_method);
+    assert(class_of(entity)->draw_overlay == targeting_tooltip_method);
+    assert(class_of(entity)->draw == emitter_update_method);
+    assert(class_of(entity)->spawn_particle == probe_spawn_particle);
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), entity));
+    for (index = 0; index < sizeof messages / sizeof messages[0]; index++) {
+        hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(messages[index]), entity));
+    }
+    assert(entity_list_listed(entities_by_message("draw"), entity) && entity_list_listed(entities_by_message("draw_overlay"), entity));
+    assert(!entity_list_listed(entities_by_message("hit_test"), entity) && !entity_list_listed(entities_by_message("new_year"), entity) && !entity_list_listed(entities_by_message("refresh"), entity));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("probe"), entity));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("targeting"), entity));
+    assert(entity_list_listed(entities_by_tag("probe"), entity) && entity_list_listed(entities_by_tag("targeting"), entity));
+    return hash;
+}
+
+/* One probe by each road. */
+static void test_built(void) {
+    uint32_t hash = 2166136261u;
+    probe_t *a;
+    probe_t *b;
+    probe_t *c;
+
+    start_game();
+    a = left_press();
+    hash = fold_probe(hash, a);
+    b = probe_new(NULL);
+    hash = fold_probe(hash, b);
+    c = keyed();
+    hash = fold_probe(hash, c);
+    assert(a != b && b != c && a != c);
+    assert(a->emitter->particles != b->emitter->particles && b->emitter->particles != c->emitter->particles);
+    assert(a->archetype->layer == p8_fixed_from_int(2) && a->emitter->archetype->lifetime == p8_fixed_from_int(9));
+    assert(a->targeting->archetype->attach_distance == 0x666);
+    assert(c->emitter->angle_slices == p8_fixed_from_int(7) && c->header.state_time == p8_fixed_from_int(3) &&
+           c->emitter->base_radius == p8_fixed_from_int(10) && c->emitter->speed_factor == p8_fixed_from_int(1));
+    assert(b->emitter->angle_slices == p8_fixed_from_int(3) && b->header.state_time == p8_fixed_from_int(0));
+    check("built", hash, BUILT_HASH);
+}
+
+static uint32_t fold_particle(uint32_t h, const particle_t *q) {
+    assert(q != NULL);
+    assert(!q->has_acceleration);
+    h = fnv(fnv(h, (uint32_t)q->pos.x), (uint32_t)q->pos.y);
+    h = fnv(fnv(h, (uint32_t)q->velocity.x), (uint32_t)q->velocity.y);
+    return fnv(h, (uint32_t)q->life);
+}
+
+/* The kind of the probe's target: NULL, a planet, a slipway, the throwaway
+ * struct. */
+static uint32_t target_kind(const probe_t *e) {
+    const void *ref;
+
+    if (e->targeting->target == NULL) {
+        return 1;
+    }
+    ref = e->targeting->target;
+    if (entity_list_listed(entities_by_tag("node"), ref)) {
+        return 2;
+    }
+    if (ref != NULL &&
+        ((const entity_t *)ref)->class == slipway_class()) {
+        return 3;
+    }
+    assert(is_targeting_track_target(ref));
+    return 4;
+}
+
+/* The targeted_by of the probe's target, a planet, a slipway or the
+ * throwaway. */
+static const void *target_targeted_by(const probe_t *e) {
+    entity_t *et = e->targeting->target;
+
+    assert(et != NULL);
+    if (planet_is_family(et)) {
+        return ((const planet_t *)et)->targeted_by;
+    }
+    if (et->class == slipway_class()) {
+        return ((const slipway_t *)et)->targeted_by;
+    }
+    return throwaway_targeted_by(et);
+}
+
+/* The target as the frozen hashes fold it: a false boolean when NULL, else
+ * the target. */
+static uint32_t fold_target(uint32_t h, const probe_t *e) {
+    if (e->targeting->target == NULL) {
+        return fnv(fnv(h, 0xB0u), 0u);
+    }
+    return fold_ref(h, e->targeting->target);
+}
+
+/* The first planet of the node tag. */
+static planet_t *a_planet(void) {
+    entity_t *e;
+
+    assert(entity_list_list_count(entities_by_tag("node")) > 0);
+    e = entities_by_tag("node")->items[0];
+    assert(planet_is_family(e));
+    return (planet_t *)e;
+}
+
+static vec_t planet_map_pos(void) {
+    const planet_t *planet = a_planet();
+    assert(planet->map_pos != NULL);
+    return *planet->map_pos;
+}
+
+/* A slipway between two bare planets far from each other and from the
+ * rest, its end set directly; its middle is the returned point. */
+static slipway_t *a_slipway(vec_t *middle) {
+    planet_keys_t keys;
+    slipway_keys_t slipway_keys = {0};
+    void *qu;
+    void *re;
+    slipway_t *jc;
+    vec_t base = planet_map_pos();
+    vec_t start_p = vec_add(base, vec_xy(0, 1));
+    vec_t end_p = vec_add(base, vec_xy(1, 1));
+
+    keys.map_pos = vec_ref(start_p);
+    keys.pos = NULL;
+    keys.planet_id = "s91";
+    qu = planet_new(&keys);
+    keys.map_pos = vec_ref(end_p);
+    keys.planet_id = "s92";
+    re = planet_new(&keys);
+    slipway_keys.start = qu;
+    jc = slipway_new(&slipway_keys);
+    jc->end = re;
+    *middle = vec_div(vec_add(start_p, end_p), p8_fixed_from_int(2));
+    return jc;
+}
+
+/* The mouse one pixel off the given point (map units, as map_pos):
+ * entity_geom_nearest skips an entity at the very position. */
+static vec_t *mouse_at(vec_t at) {
+    return vec_ref(vec_add(vec_mul(at, p8_fixed_from_int(128)), vec_xy(1, 1)));
+}
+
+/* The drag at the given point, the screen mouse at the given coordinate:
+ * the target's kind, its targeted_by, pos a copy of what was passed,
+ * map_pos. */
+static uint32_t fold_drag(uint32_t h, probe_t *e, vec_t at, int rp, uint32_t want_kind) {
+    vec_t *mp = mouse_at(at);
+    uint32_t kind;
+
+    class_of(e)->drag(&e->header, mp, vec_ref(vec_xy(rp, rp)));
+    kind = target_kind(e);
+    printf("[drag] target kind %u\n", (unsigned)kind);
+    fflush(stdout);
+    assert(kind == want_kind);
+    assert(pos_copies(e->pos, mp));
+    assert(kind == 1 || target_targeted_by(e) == e);
+    h = fnv(h, kind);
+    h = fold_target(h, e);
+    h = fold_vec(h, e->map_pos);
+    return h;
+}
+
+/* spawn_particle; the drag on a planet, a slipway, the void; draw_overlay
+ * with a target and without; draw_layers("draw") with the particle lists'
+ * sizes; update_entities steps, then is_dead raised by the drop taking it
+ * out of the live entities and the tags. */
+static void test_life(void) {
+    uint32_t hash = 2166136261u;
+    probe_t *first;
+    probe_t *second;
+    slipway_t *slipway;
+    vec_t slipway_center;
+    int index;
+
+    start_game();
+    first = left_press();
+    second = probe_new(NULL);
+    slipway = a_slipway(&slipway_center);
+    hash = fold_particle(hash, class_of(first)->spawn_particle(&first->header));
+    hash = fold_particle(hash, class_of(second)->spawn_particle(&second->header));
+
+    hash = fold_drag(hash, first, planet_map_pos(), 64, 2);
+    hash = fold_drag(hash, first, slipway_center, 64, 3);
+    assert((void *)slipway->targeted_by == first);
+    hash = fold_drag(hash, first, vec_add(slipway_center, vec_xy(0, 3)), 64, 1);
+    hash = fold_drag(hash, first, vec_add(slipway_center, vec_xy(0, 3)), 2, 4);
+
+    entity_set_state(&first->header, "placing");
+    entity_set_state(&second->header, "placing");
+    class_of(first)->draw_overlay(&first->header, NULL);
+    hash = fnv(hash, screen_hash());
+    class_of(second)->draw_overlay(&second->header, NULL);
+    hash = fnv(hash, screen_hash());
+    class_of(first)->drag(&first->header, mouse_at(planet_map_pos()), vec_ref(vec_xy(64, 64)));
+    class_of(first)->draw_overlay(&first->header, NULL);
+    hash = fnv(hash, screen_hash());
+
+    for (index = 0; index < 3; index++) {
+        draw_layers("draw");
+        hash = fnv(hash, screen_hash());
+        hash = fnv(hash, (uint32_t)size_of(first->emitter->particles));
+        hash = fnv(hash, (uint32_t)size_of(second->emitter->particles));
+    }
+    for (index = 0; index < 3; index++) {
+        update_entities();
+        hash = fold_fixed_member(hash, first->header.state_time);
+        hash = fold_fixed_member(hash, second->header.state_time);
+        hash = fold_string_member(hash, first->header.state);
+        assert(entity_list_listed(live_entities(), first) && entity_list_listed(live_entities(), second));
+    }
+    assert(class_of(first)->drop == targeting_confirm_method);
+    assert(targeting_confirm(&first->header) == 0);
+    assert(first->is_dead);
+    update_entities();
+    assert(!entity_list_listed(live_entities(), first) && !entity_list_listed(entities_by_tag("probe"), first) && !entity_list_listed(entities_by_tag("targeting"), first));
+    assert(entity_list_listed(live_entities(), second) && entity_list_listed(entities_by_tag("probe"), second));
+    hash = fnv(hash, (uint32_t)live_entities()->count);
+    check("life", hash, LIFE_HASH);
+}
+
+/* The drop with a target: is_dead raised, 0 returned. */
+static void test_drop_on(void) {
+    uint32_t h = 2166136261u;
+    probe_t *a;
+    int out;
+
+    start_game();
+    a = left_press();
+    class_of(a)->drag(&a->header, mouse_at(planet_map_pos()), vec_ref(vec_xy(64, 64)));
+    assert(class_of(a)->drop == targeting_confirm_method);
+    out = targeting_confirm(&a->header);
+    assert(out == 0);
+    assert(a->is_dead);
+    h = fold_string_member(h, a->header.state);
+    h = fold_fixed_member(h, a->header.state_time);
+    h = fold_is_dead(h, a);
+    h = fold_fixed_member(h, checked_main_economy()->credits);
+    check("drop_on", h, DROP_ON_HASH);
+}
+
+/* The drop with no target and enough credits: entity_set_state to the
+ * confirmed state, 1 returned. */
+static void test_drop_off(void) {
+    uint32_t h = 2166136261u;
+    probe_t *a;
+    int out;
+
+    start_game();
+    a = left_press();
+    assert(class_of(a)->drop == targeting_confirm_method);
+    out = targeting_confirm(&a->header);
+    assert(out == 1);
+    assert(!a->is_dead);
+    assert(is_state(&a->header, "settled"));
+    assert(a->header.state_time == p8_fixed_from_int(0));
+    h = fold_string_member(h, a->header.state);
+    h = fold_fixed_member(h, a->header.state_time);
+    h = fold_fixed_member(h, checked_main_economy()->credits);
+    check("drop_off", h, DROP_OFF_HASH);
+}
+
+/* The drop over the void, off the panel: the target is the throwaway struct,
+ * not NULL, so the drop is refused (is_dead raised, 0 returned) and costs
+ * nothing. */
+static void test_drop_void(void) {
+    probe_t *a;
+    vec_t middle;
+    p8_fixed_t nz;
+    const char *me;
+    int out;
+
+    start_game();
+    a = left_press();
+    (void)a_slipway(&middle);
+    class_of(a)->drag(&a->header, mouse_at(vec_add(middle, vec_xy(0, 3))), vec_ref(vec_xy(2, 2)));
+    assert(target_kind(a) == 4);
+    assert(target_targeted_by(a) == a);
+    assert(!a->is_dead);
+    nz = checked_main_economy()->credits;
+    me = a->header.state;
+    assert(class_of(a)->drop == targeting_confirm_method);
+    out = targeting_confirm(&a->header);
+    assert(out == 0);
+    assert(a->is_dead);
+    assert(checked_main_economy()->credits == nz);
+    assert(a->header.state == me);
+    assert(target_kind(a) == 4);
+    printf("[drop void] refused\n");
+}
+
+/* The help screen: the probe's tags and layer 10. */
+static int is_help(entity_t *e) {
+    const probe_t *g_ =
+        e != NULL && (e->class->lineage & LINEAGE(LINEAGE_PROBE)) ? (const probe_t *)e : NULL;
+    return g_ != NULL && g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)) && g_->archetype->layer == p8_fixed_from_int(10);
+}
+
+/* The title screen's help screen, of the probe's lineage: its tags,
+ * fold_anchor and confirmed_state inherited, draw_overlay and
+ * spawn_particle the probe's functions, a draw of its own. */
+static void test_help_screen(void) {
+    uint32_t hash = 2166136261u;
+    const entity_list_t *live;
+    entity_t *help_entity = NULL;
+    const probe_t *help_screen;
+    int index;
+
+    p8_input_init(&input);
+    dispatch_context_set_input(&input);
+    cart_init();
+    live = live_entities();
+    for (index = 0; index < live->count; index++) {
+        entity_t *e = live->items[index];
+        if (is_help(e)) {
+            assert(help_entity == NULL);
+            help_entity = e;
+        }
+    }
+    assert(help_entity != NULL && !is_probe(help_entity));
+    help_screen = (const probe_t *)help_entity;
+    assert(help_screen->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
+    assert(help_screen->archetype->fold_anchor == p8_fixed_from_int(1));
+    assert(help_screen->targeting->archetype->confirmed_state != NULL && strcmp(help_screen->targeting->archetype->confirmed_state, "settled") == 0);
+    assert(help_screen->archetype->layer == p8_fixed_from_int(10));
+    assert(help_screen->emitter->trail_colors == &help_screen_trail_colors_seq);
+    assert(help_screen->emitter->trail_colors != &probe_trail_colors_seq);
+    assert(class_of(help_screen)->draw_overlay == targeting_tooltip_method);
+    assert(class_of(help_screen)->spawn_particle == probe_spawn_particle);
+    assert(class_of(help_screen)->drag == targeting_track_method);
+    assert(class_of(help_screen)->drop == targeting_confirm_method);
+    assert(class_of(help_screen)->draw != emitter_update_method);
+    assert(class_of(help_screen)->draw == help_screen_draw_method);
+    assert(class_of(help_screen)->hit_test != NULL);
+    assert(probe_ready());
+    assert(size_of(help_screen->emitter->particles) >= 0);
+    hash = fnv(hash, (uint32_t)size_of(help_screen->emitter->particles));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(live, help_screen));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("probe"), help_screen));
+    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag("targeting"), help_screen));
+    assert(entity_list_listed(entities_by_tag("probe"), help_screen) && entity_list_listed(entities_by_tag("targeting"), help_screen));
+    hash = fold_defaults(hash, help_screen);
+    for (index = 0; index < 3; index++) {
+        draw_layers("draw");
+        hash = fnv(hash, screen_hash());
+        hash = fnv(hash, (uint32_t)size_of(help_screen->emitter->particles));
+    }
+    check("help_screen", hash, HELP_SCREEN_HASH);
+}
+
+static int is_a_probe_struct(const void *e) {
+    return e != NULL &&
+           ((const entity_t *)e)->class == probe_class();
+}
+
+/* Built by any road, a probe is a struct whose class descriptor holds the
+ * probe's 5 public functions and no other method. The title's help screen
+ * is a struct of its own class. */
+static void test_probe_is_a_struct(void) {
+    const entity_class_t *descriptor = probe_class();
+    const entity_list_t *live;
+    probe_t *probes[3];
+    size_t index;
+    int j;
+
+    start_game();
+    probes[0] = left_press();
+    probes[1] = probe_new(NULL);
+    probes[2] = keyed();
+    for (index = 0; index < 3; index++) {
+        assert(is_a_probe_struct(probes[index]));
+    }
+    assert(descriptor->drag == targeting_track_method && descriptor->drop == targeting_confirm_method && descriptor->draw_overlay == targeting_tooltip_method &&
+           descriptor->draw == emitter_update_method && descriptor->spawn_particle == probe_spawn_particle);
+    assert(descriptor->attach_slipway == NULL && descriptor->offer_trade == NULL && descriptor->draw_at == NULL);
+    assert(descriptor->hit_test == NULL && descriptor->new_year == NULL && descriptor->refresh == NULL && descriptor->has_refresh == NULL && descriptor->left_press == NULL &&
+           descriptor->right_press == NULL && descriptor->accept_drop == NULL);
+    for (j = 0; j < STATE_COUNT; j++) {
+        assert(descriptor->states[j] == NULL);
+    }
+    assert(probe_ready());
+
+    {
+        probe_archetype_t layer_zero = probe_archetype;
+        probe_t bare;
+
+        layer_zero.layer = 0;
+        probe_init_instance(&bare, descriptor, &layer_zero);
+        assert(is_a_probe_struct(&bare) && !is_probe(&bare.header));
+    }
+
+    cart_init();
+    live = live_entities();
+    for (j = 0; j < live->count; j++) {
+        entity_t *e = live->items[j];
+        if (is_help(e)) {
+            break;
+        }
+    }
+    assert(j < live->count);
+    assert(live->items[j] != NULL &&
+           ((const entity_t *)live->items[j])->class == help_screen_class());
+}
+
+/* The throwaway target is a struct that keeps targeted_by, the probe aiming
+ * at it, and has no draw_overlay. */
+static void test_targeting_track_target_is_a_struct(void) {
+    probe_t *a;
+    void *et;
+    vec_t middle;
+
+    start_game();
+    a = left_press();
+    (void)a_slipway(&middle);
+    class_of(a)->drag(&a->header, mouse_at(vec_add(middle, vec_xy(0, 3))), vec_ref(vec_xy(2, 2)));
+    assert(a->targeting->target != NULL);
+    et = a->targeting->target;
+    assert(is_targeting_track_target(et) && throwaway_targeted_by(et) == a);
+    assert(class_of(et)->draw_overlay == NULL);
+}
+
+/* Each scenario runs in a child forked right after cart_load(), as a fresh
+ * process would start it: the rnd state is the same for all. */
+static void in_fresh_child(void (*test)(void)) {
+    pid_t child;
+    int status;
+
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        test();
+        fflush(stdout);
+        _exit(0);
+    }
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
+}
+
+/* What an emitter holds in the particle zone, by kind, and the UI zone's
+ * rows. */
+typedef struct {
+    int particle;
+    int particles;
+    int particles_help_screen;
+    int rows;
+} held_t;
+
+static held_t held_now(void) {
+    held_t h;
+    h.particle = particle_zone_live(PARTICLE_SLOT_PARTICLE);
+    h.particles = particle_zone_live(PARTICLE_SLOT_LIST);
+    h.particles_help_screen = particle_zone_live(PARTICLE_SLOT_HELP_LIST);
+    h.rows = ui_zone_live(SLOT_KIND_ROW);
+    return h;
+}
+
+/* A probe that leaves (entity_unregister, then the exit queue's flush)
+ * gives back its particles and its particle list, and keeps its struct. */
+static void test_leaving_gives_back_its_particles(void) {
+    held_t before;
+    held_t after;
+    probe_t *a;
+
+    start_game();
+    before = held_now();
+    a = left_press();
+    emitter_spawn(&a->header, p8_fixed_from_int(5));
+    assert(a->emitter->particles->count == 5);
+    assert(held_now().particle == before.particle + 5 && held_now().particles == before.particles + 1);
+    entity_unregister(&a->header);
+    cart_flush_exit_queue();
+    after = held_now();
+    assert(after.particle == before.particle && after.particles == before.particles);
+    assert(a->emitter->particles == NULL);
+}
+
+int main(void) {
+    p8_mem_init(&memory);
+    p8_gfx_init(&graphics);
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
+    p8_input_init(&input);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
+    dispatch_context_set_input(&input);
+
+    cart_load();
+    in_fresh_child(test_built);
+    in_fresh_child(test_life);
+    in_fresh_child(test_drop_on);
+    in_fresh_child(test_drop_off);
+    in_fresh_child(test_drop_void);
+    in_fresh_child(test_help_screen);
+    in_fresh_child(test_probe_is_a_struct);
+    in_fresh_child(test_targeting_track_target_is_a_struct);
+    in_fresh_child(test_leaving_gives_back_its_particles);
+
+    printf("test_probe: all tests passed\n");
+    return 0;
+}

@@ -1,5 +1,5 @@
-/* tools/line_coverage.sh, la mesure de couverture de lignes, sur des fichiers
- * d'evenements et des ensembles de lignes fabriques. */
+/* tools/line_coverage.sh, the line coverage measure, on built events files
+ * and sets of lines. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define SCRIPT "sh tools/line_coverage.sh"
-#define COVER SCRIPT " cover ./tmp/pico8_replay_gcov tmp/obj-gcov"
+#define COVER SCRIPT " cover ./tmp/replay_gcov tmp/obj-gcov"
 #define DIR "tmp/test_line_coverage_work"
 #define LOG DIR "/log.txt"
 #define IDLE DIR "/idle_events.json"
@@ -21,7 +21,7 @@ static void write_file(const char *path, const char *text) {
     fclose(file);
 }
 
-/* Tampon statique, ecrase a chaque appel. */
+/* Static buffer, overwritten by each call. */
 static const char *read_file(const char *path) {
     FILE *file = fopen(path, "rb");
     assert(file != NULL);
@@ -64,7 +64,8 @@ static void write_fixtures(void) {
     write_file(BAD, "{ \"frames\": [\n{ \"mouse_x\": 64 }\n] }\n");
 }
 
-/* Chaque ligne de `sub` est dans `super`, et `super` en a davantage. */
+/* Every line covered by the idle file is covered by the clicking one, which
+ * covers more. */
 static void test_idle_file_covers_strictly_less_than_clicking_file(void) {
     assert(run(COVER " " IDLE, DIR "/idle.lines") == 0);
     assert(run(COVER " " CLICK, DIR "/click.lines") == 0);
@@ -75,10 +76,10 @@ static void test_idle_file_covers_strictly_less_than_clicking_file(void) {
     assert(run(SCRIPT " diff " DIR "/idle.lines " DIR "/click.lines", DIR "/gap.lines") == 0);
     assert(line_count(DIR "/gap.lines") == 0);
     const char *idle_text = read_file(DIR "/idle.lines");
-    assert(strstr(idle_text, "src/main.c:") != NULL);
+    assert(strstr(idle_text, "src/cmd/replay.c:") != NULL);
 }
 
-/* Deux fichiers : la couverture est l'union. */
+/* Two files: the coverage is the union. */
 static void test_cover_of_a_set_is_the_union(void) {
     assert(run(COVER " " IDLE " " CLICK, DIR "/both.lines") == 0);
     assert(run(SCRIPT " diff " DIR "/both.lines " DIR "/click.lines", DIR "/gap.lines") == 0);
@@ -102,7 +103,7 @@ static void test_diff_returns_lines_of_first_set_missing_from_second(void) {
     assert(strcmp(read_file(DIR "/out.lines"), "src/a.c:1\nsrc/b.c:10\n") == 0);
 }
 
-/* L'apport d'un fichier : ses lignes qu'aucun des autres ne couvre. */
+/* What one file adds: its lines that none of the others covers. */
 static void test_contrib_returns_lines_no_other_set_covers(void) {
     write_file(DIR "/a.lines", "src/a.c:1\nsrc/a.c:2\nsrc/b.c:10\n");
     write_file(DIR "/b.lines", "src/a.c:2\n");
@@ -119,18 +120,18 @@ static void test_set_operation_on_missing_set_fails(void) {
     assert(run(SCRIPT " contrib " DIR "/absent.lines " DIR "/a.lines", DIR "/out.lines") != 0);
 }
 
-/* L'ecart : la reference moins les lignes couvertes et moins les inatteignables,
- * dont seul le premier champ `fichier:ligne` compte. */
+/* The gap: the reference minus the covered lines and minus the unreachable
+ * ones, of which only the first field, `file:line`, counts. */
 static void test_gap_removes_covered_and_unreachable_lines(void) {
     write_file(DIR "/ref.lines", "src/a.c:1\nsrc/a.c:2\nsrc/b.c:10\nsrc/c.c:5\n");
     write_file(DIR "/covered.lines", "src/a.c:1\nsrc/z.c:9\n");
-    write_file(DIR "/unreachable.txt", "src/c.c:5 jamais en 600 frames\n");
+    write_file(DIR "/unreachable.txt", "src/c.c:5 never in 600 frames\n");
     assert(run(SCRIPT " gap " DIR "/ref.lines " DIR "/unreachable.txt " DIR "/covered.lines",
                DIR "/out.lines") == 0);
     assert(strcmp(read_file(DIR "/out.lines"), "src/a.c:2\nsrc/b.c:10\n") == 0);
 }
 
-/* Aucun e2e : l'ensemble couvert est vide, l'ecart est toute la reference. */
+/* No e2e: the covered set is empty, the gap is the whole reference. */
 static void test_gap_of_empty_covered_set_is_whole_reference(void) {
     write_file(DIR "/ref.lines", "src/a.c:1\nsrc/b.c:10\n");
     write_file(DIR "/covered.lines", "");

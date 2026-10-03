@@ -1,0 +1,128 @@
+
+#include "p8/mem.h"
+#include "p8/assets.h"
+#include "p8/gfx.h"
+#include "p8/input.h"
+#include "devtools/dump.h"
+
+#include <assert.h>
+#include <stdio.h>
+
+#define DEMO_EVENTS_PATH "tests/fixtures/demo_events.json"
+
+static unsigned char screen_pixel(const p8_memory_t *mem, int x, int y) {
+    return p8_peek(mem, P8_ADDR_SCREEN + y * P8_SCREEN_WIDTH + x);
+}
+
+int main(void) {
+    p8_memory_t memory;
+    p8_mem_init(&memory);
+
+    p8_graphics_t graphics;
+    p8_gfx_init(&graphics);
+
+    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    assert(p8_load_map_json(&memory, "pico8/map.json"));
+
+    assert(p8_sget(&memory, 16, 0) == 3);
+    /* map.json's cells row 0 lands in P8_ADDR_SPRITE_MAP_SHARED (confirmed
+     * against pico8/original.p8.png's decoded ROM). */
+    assert(p8_peek(&memory, P8_ADDR_SPRITE_MAP_SHARED + 1) == 81);
+
+    p8_cls(&memory);
+    assert(screen_pixel(&memory, 0, 0) == 0);
+    assert(screen_pixel(&memory, 127, 127) == 0);
+
+    p8_line(&graphics, &memory, 0, 5, 4, 5, 8);
+    for (int x = 0; x <= 4; x++) {
+        assert(screen_pixel(&memory, x, 5) == 8);
+    }
+    assert(screen_pixel(&memory, 5, 5) == 0);
+
+    p8_pset(&graphics, &memory, 10, 20, 7);
+    assert(screen_pixel(&memory, 10, 20) == 7);
+    assert(screen_pixel(&memory, 11, 20) == 0);
+
+    p8_rect(&graphics, &memory, 30, 30, 34, 34, 9);
+    for (int x = 30; x <= 34; x++) {
+        assert(screen_pixel(&memory, x, 30) == 9);
+        assert(screen_pixel(&memory, x, 34) == 9);
+    }
+    for (int y = 30; y <= 34; y++) {
+        assert(screen_pixel(&memory, 30, y) == 9);
+        assert(screen_pixel(&memory, 34, y) == 9);
+    }
+    assert(screen_pixel(&memory, 32, 32) == 0);
+
+    p8_circ(&graphics, &memory, 60, 60, 3, 10);
+    assert(screen_pixel(&memory, 63, 60) == 10);
+    assert(screen_pixel(&memory, 57, 60) == 10);
+    assert(screen_pixel(&memory, 60, 63) == 10);
+    assert(screen_pixel(&memory, 60, 57) == 10);
+    assert(screen_pixel(&memory, 60, 60) == 0);
+
+    p8_spr(&graphics, &memory, 2, 0, 90, 1, 1);
+    assert(screen_pixel(&memory, 0, 90) == 3);
+    assert(screen_pixel(&memory, 7, 90) == 3);
+    assert(screen_pixel(&memory, 2, 91) == 4);
+    assert(screen_pixel(&memory, 1, 90) == 0);
+
+    p8_map(&graphics, &memory, 0, 0, 0, 100, 4, 1);
+    /* Map cell (0,0) is 0, and `map()` takes sprite 0 to mean empty and
+     * does not draw it, so the whole first 8x8 block stays cleared -- the
+     * game's sprite 0 is palette data, not a tile. */
+    for (int y = 100; y <= 107; y++) {
+        for (int x = 0; x <= 7; x++) {
+            assert(screen_pixel(&memory, x, y) == 0);
+        }
+    }
+    assert(screen_pixel(&memory, 8, 100) == 0);
+    assert(screen_pixel(&memory, 16, 100) == 1);
+    assert(screen_pixel(&memory, 31, 107) == 6);
+
+    p8_print(&graphics, &memory, "hi", 0, 115, 11);
+    assert(screen_pixel(&memory, 0, 115) == 11);
+    assert(screen_pixel(&memory, 1, 115) == 0);
+    assert(screen_pixel(&memory, 2, 117) == 11);
+    assert(screen_pixel(&memory, 5, 115) == 11);
+    assert(screen_pixel(&memory, 4, 116) == 0);
+    assert(screen_pixel(&memory, 5, 116) == 11);
+
+    /* This block asserts the four-frame scenario's exact stat()/btn()
+     * values, so it reads a fixture of its own, never the root
+     * events.json: a playtest recording can replace that file at any time.
+     * The root recording is covered, for shape and loadability rather than
+     * fixed values, by tests/test_input.c. */
+    p8_input_t input;
+    p8_input_init(&input);
+    assert(p8_input_load(&input, DEMO_EVENTS_PATH));
+
+    assert(p8_stat(&input, 32) == 64);
+    assert(p8_stat(&input, 33) == 32);
+    assert(p8_stat(&input, 34) == 1);
+    assert(p8_btn(&input, 0) == 0);
+    assert(p8_btn(&input, 1) == 1);
+    assert(p8_btn(&input, 2) == 0);
+    assert(p8_btn(&input, 3) == 0);
+
+    p8_input_step(&input);
+
+    assert(p8_stat(&input, 32) == 70);
+    assert(p8_stat(&input, 33) == 40);
+    assert(p8_stat(&input, 34) == 0);
+    assert(p8_btn(&input, 0) == 0);
+    assert(p8_btn(&input, 1) == 0);
+    assert(p8_btn(&input, 2) == 1);
+    assert(p8_btn(&input, 3) == 0);
+
+    p8_input_free(&input);
+
+    FILE *dump_out = fopen("tmp/demo_dump.txt", "w");
+    assert(dump_out != NULL);
+    int dump_ok = dump_screen(&memory, dump_out);
+    fclose(dump_out);
+    assert(dump_ok);
+
+    printf("test_demo: all assertions passed; framebuffer dumped to tmp/demo_dump.txt\n");
+    return 0;
+}

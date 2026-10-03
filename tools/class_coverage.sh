@@ -1,12 +1,12 @@
 #!/bin/sh
-# usage: class_coverage.sh [--expect <référence>]
-#                          <outil pico8_class_coverage> <dossier|->
+# usage: class_coverage.sh [--expect <reference>]
+#                          <class_coverage tool> <dir|->
 #                          [<exemptions> [<events>...]]
-# Rejoue chaque <dossier>/*events.json (sans descendre dans les sous-dossiers ;
-# - : aucun), puis chaque <events> nommé, un processus par rejeu, depuis
-# l'écran titre. Rend 1 si une classe est à 0 sans être exemptée, ou, avec
-# --expect, si la sortie diffère octet pour octet de <référence> (absente
-# comprise).
+# Replays every <dir>/*events.json (not recursing into subdirectories;
+# - : none), then every named <events>, one process per replay, from the
+# title screen. Exits 1 if a class is at 0 without an exemption, or, with
+# --expect, if the output differs byte for byte from <reference> (a missing
+# <reference> included).
 
 set -u
 
@@ -35,11 +35,11 @@ report() {
         "$tool" "$events" > "$work/out" 2> "$work/err"
         status=$?
         if [ "$status" -eq 2 ]; then
-            echo "illisible: $events"
+            echo "unreadable: $events"
             continue
         fi
         if [ "$status" -ne 0 ]; then
-            echo "échec: $events (code $status)"
+            echo "failed: $events (code $status)"
             sed 's/^/  /' "$work/err"
             crashed=$((crashed + 1))
             continue
@@ -55,8 +55,8 @@ report() {
         : > "$work/exempt"
     fi
 
-    # FILENAME et non NR == FNR : un fichier d'exemptions vide ferait lire les
-    # comptes comme des exemptions.
+    # Test FILENAME rather than compare the record counters: with an empty
+    # exemptions file, the counts would be read as exemptions.
     awk -v run="$run" -v exempt_file="$work/exempt" '
         FILENAME == exempt_file {
             if ($1 != "") { reason = $0; sub(/^[^ ]+ +/, "", reason); exempt[$1] = reason }
@@ -69,27 +69,27 @@ report() {
         END {
             for (name in total) {
                 line = sprintf("%s  %d  %d/%d", name, total[name], replays[name] + 0, run)
-                if (name in exempt) line = line "  exemptée (" exempt[name] ")"
+                if (name in exempt) line = line "  exempt (" exempt[name] ")"
                 print total[name] "\t" line
             }
         }' "$work/exempt" "$work/all" > "$work/lines"
 
     sort -t "$(printf '\t')" -k1,1n -k2,2 "$work/lines" | cut -f2- | tee "$work/sorted"
 
-    missing=$(awk '$2 == 0 && $4 != "exemptée" { printf "%s%s", sep, $1; sep = " " }' "$work/sorted")
+    missing=$(awk '$2 == 0 && $4 != "exempt" { printf "%s%s", sep, $1; sep = " " }' "$work/sorted")
     if [ "$crashed" -gt 0 ]; then
-        echo "couverture: ÉCHEC -- $crashed rejeu(x) en échec"
+        echo "coverage: FAIL -- $crashed replay(s) failed"
         return 1
     fi
     if [ "$run" -eq 0 ]; then
-        echo "couverture: ÉCHEC -- aucun rejeu lisible dans $dir"
+        echo "coverage: FAIL -- no readable replay in $dir"
         return 1
     fi
     if [ -n "$missing" ]; then
-        echo "couverture: ÉCHEC -- jamais instanciées hors exemption : $missing ($run rejeu(x))"
+        echo "coverage: FAIL -- never instantiated and not exempt: $missing ($run replay(s))"
         return 1
     fi
-    echo "couverture: OK -- chaque classe non exemptée est instanciée ($run rejeu(x))"
+    echo "coverage: OK -- every non-exempt class is instantiated ($run replay(s))"
     return 0
 }
 
@@ -98,7 +98,7 @@ status=$(cat "$work/status")
 
 if [ -n "$expect" ] && ! cmp -s "$expect" "$work/report"; then
     [ -f "$expect" ] && diff "$expect" "$work/report"
-    echo "couverture: ÉCHEC -- sortie différente de $expect"
+    echo "coverage: FAIL -- output differs from $expect"
     exit 1
 fi
 exit "$status"
