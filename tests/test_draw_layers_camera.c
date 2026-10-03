@@ -9,7 +9,7 @@
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/planet_display.h"
 #include "game/scroll.h"
 #include "engine/entity_class.h"
@@ -40,7 +40,7 @@ static void spy_draw(entity_t *self, const vec_t *ra) {
 static entity_class_t g_spied_planet;
 
 static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_planet_draw(void) {
-    p8_memory_t memory;
+    p8_vram_t memory;
     p8_graphics_t graphics;
     planet_t *planet;
     entity_t *camera;
@@ -49,7 +49,7 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
     int screen_y;
     unsigned char pixel_after;
 
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

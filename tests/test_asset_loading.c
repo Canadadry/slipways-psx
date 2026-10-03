@@ -1,13 +1,13 @@
 #include "p8/assets.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
 static void test_gfx_json_loads_known_pixel(void) {
-    p8_memory_t mem;
-    p8_mem_init(&mem);
+    p8_vram_t mem;
+    p8_vram_init(&mem);
 
     int ok = p8_load_gfx_json(&mem, "pico8/gfx.json");
     assert(ok);
@@ -16,8 +16,8 @@ static void test_gfx_json_loads_known_pixel(void) {
 }
 
 static void test_gfx_json_loads_full_128x128_range(void) {
-    p8_memory_t mem;
-    p8_mem_init(&mem);
+    p8_vram_t mem;
+    p8_vram_init(&mem);
 
     int ok = p8_load_gfx_json(&mem, "pico8/gfx.json");
     assert(ok);
@@ -27,8 +27,8 @@ static void test_gfx_json_loads_full_128x128_range(void) {
 }
 
 static void test_gfx_json_missing_file_returns_failure(void) {
-    p8_memory_t mem;
-    p8_mem_init(&mem);
+    p8_vram_t mem;
+    p8_vram_init(&mem);
 
     int ok = p8_load_gfx_json(&mem, "pico8/does_not_exist.json");
     assert(!ok);
@@ -36,10 +36,10 @@ static void test_gfx_json_missing_file_returns_failure(void) {
 
 /* The fixture holds 129 rows of 128 values, value i being (i % 15) + 1. */
 static void test_gfx_json_values_past_the_sheet_touch_nothing_else(void) {
-    static p8_memory_t mem;
-    static p8_memory_t expected;
-    p8_mem_init(&mem);
-    p8_mem_init(&expected);
+    static p8_vram_t mem;
+    static p8_vram_t expected;
+    p8_vram_init(&mem);
+    p8_vram_init(&expected);
     for (int y = 0; y < P8_SPRITE_SHEET_HEIGHT; y++) {
         for (int x = 0; x < P8_SPRITE_SHEET_WIDTH; x++) {
             expected.sprite_sheet[y][x] = (unsigned char)((y * P8_SPRITE_SHEET_WIDTH + x) % 15 + 1);

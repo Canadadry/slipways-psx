@@ -7,13 +7,13 @@
 
 #include "p8/assets.h"
 #include "game/map_tables.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/research.h"
 
 static void test_production_tables_project_records_icon_tooltips_technologies_decode_real_game_data(void) {
-    p8_memory_t mem;
+    p8_vram_t mem;
 
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
 
     data_init();
 

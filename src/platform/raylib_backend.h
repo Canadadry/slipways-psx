@@ -9,7 +9,7 @@
 #ifndef PLATFORM_RAYLIB_BACKEND_H
 #define PLATFORM_RAYLIB_BACKEND_H
 
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "p8/input.h"
 #include "devtools/session_recorder.h"
 #include "devtools/replay_control.h"
@@ -66,7 +66,7 @@ void raylib_backend_poll_input(raylib_backend_t *backend, p8_input_frame_t *out_
  * draw itself. It is drawn after the blit, so it cannot alter the PICO-8
  * framebuffer or the recorded frames, and NULL (live play, and every
  * frame once the recording runs out) draws nothing at all. */
-void raylib_backend_present(raylib_backend_t *backend, const p8_memory_t *mem, const p8_input_frame_t *frame, const char *replay_status);
+void raylib_backend_present(raylib_backend_t *backend, const p8_vram_t *mem, const p8_input_frame_t *frame, const char *replay_status);
 
 /* Reads the replay's three keys -- Page Up faster, Page Down slower, End
  * uncapped -- and applies them to *control. Pressed, not held: one tap is

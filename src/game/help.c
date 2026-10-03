@@ -73,7 +73,7 @@ void help_screen_construct(probe_t *self) {
 /* The help screen's rows hold four articles. */
 enum { HELP_SCREEN_ROWS_CAP = 4 };
 
-void help_screen_draw(p8_graphics_t *gfx, p8_memory_t *mem, probe_t *self, vec_t p) {
+void help_screen_draw(p8_graphics_t *gfx, p8_vram_t *mem, probe_t *self, vec_t p) {
     (void)p;
 
     emitter_update(gfx, mem, (entity_t *)self);

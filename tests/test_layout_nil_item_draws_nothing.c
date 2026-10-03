@@ -24,7 +24,7 @@
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "game/layout.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "engine/vec.h"
 #include "heap_allocator.h"
 
@@ -41,7 +41,7 @@
 #define SPRITE0_ROW_PIXELS 8
 #define SPRITE0_BOTTOM_ROW_Y 7
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 
 static int screen_pixel(int x, int y) {
@@ -158,7 +158,7 @@ static void test_numeric_item_still_draws_its_sprite(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
 
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));

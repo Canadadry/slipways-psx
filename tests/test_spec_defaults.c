@@ -18,7 +18,7 @@
 #include "game/help.h"
 #include "p8/input.h"
 #include "game/layout.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/mouse_button.h"
 #include "game/mouse.h"
 #include "game/probe.h"
@@ -32,7 +32,7 @@
 #include "game/ui_button.h"
 #include "game/wormhole.h"
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -234,7 +234,7 @@ static void test_trade_ready(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
     p8_input_init(&input);

@@ -6,7 +6,7 @@
 #include "devtools/screencast.h"
 
 #include "p8/gfx.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -17,7 +17,7 @@
  * assertions below the power to tell frame N from frame N+1, and so to
  * fail on a shifted offset or on two swapped frames. A constant pattern
  * would make them all blind. */
-static void paint_frame(p8_memory_t *mem, int seed) {
+static void paint_frame(p8_vram_t *mem, int seed) {
     for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
         for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
             mem->screen[y][x] = (unsigned char)((y * P8_SCREEN_WIDTH + x + seed) & 0x0f);
@@ -36,9 +36,9 @@ static unsigned char pixel_at(const unsigned char *frame, int x, int y) {
 /* Writes `count` frames with seeds 0..count-1 to `path`. */
 static void write_seeded_frames(const char *path, int count) {
     screencast_writer_t writer;
-    p8_memory_t mem;
+    p8_vram_t mem;
 
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     assert(screencast_writer_open(&writer, path) == 1);
     for (int seed = 0; seed < count; seed++) {
         paint_frame(&mem, seed);
@@ -295,10 +295,10 @@ static void test_frame_index_past_the_end_is_refused(void) {
 static void test_writing_a_frame_leaves_the_game_memory_untouched(void) {
     const char *path = "tmp/test_screencast_readonly_memory.bin";
     screencast_writer_t writer;
-    static p8_memory_t mem;
-    static p8_memory_t before;
+    static p8_vram_t mem;
+    static p8_vram_t before;
 
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     paint_frame(&mem, 7);
     mem.map_cells[0][0] = 0x42;
     before = mem;
@@ -323,10 +323,10 @@ static void test_writing_a_frame_leaves_the_game_memory_untouched(void) {
 static void test_on_disk_byte_holds_the_even_pixel_in_its_low_nibble(void) {
     const char *path = "tmp/test_screencast_nibbles.bin";
     screencast_writer_t writer;
-    p8_memory_t mem;
+    p8_vram_t mem;
     static unsigned char raw[8192];
 
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     paint_frame(&mem, 0);
     mem.screen[0][0] = 0x03;
     mem.screen[0][1] = 0x0c;

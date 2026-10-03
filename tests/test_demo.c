@@ -1,5 +1,5 @@
 
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "p8/assets.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
@@ -10,13 +10,13 @@
 
 #define DEMO_EVENTS_PATH "tests/fixtures/demo_events.json"
 
-static unsigned char screen_pixel(const p8_memory_t *mem, int x, int y) {
+static unsigned char screen_pixel(const p8_vram_t *mem, int x, int y) {
     return mem->screen[y][x];
 }
 
 int main(void) {
-    p8_memory_t memory;
-    p8_mem_init(&memory);
+    p8_vram_t memory;
+    p8_vram_init(&memory);
 
     p8_graphics_t graphics;
     p8_gfx_init(&graphics);

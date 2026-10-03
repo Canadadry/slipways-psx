@@ -27,6 +27,6 @@ int dump_pixels(const unsigned char *pixels, FILE *out) {
     return 1;
 }
 
-int dump_screen(const p8_memory_t *mem, FILE *out) {
+int dump_screen(const p8_vram_t *mem, FILE *out) {
     return dump_pixels(&mem->screen[0][0], out);
 }

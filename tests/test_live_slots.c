@@ -32,7 +32,7 @@
 #include "p8/input.h"
 #include "game/layout.h"
 #include "game/map_tables.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/mouse.h"
 #include "game/particle.h"
 #include "game/planet.h"
@@ -135,12 +135,12 @@ static void print_reading(const char *e2e, const reading_t *r) {
 /* Runs cart_load and cart_init to replay the named e2e (NULL: no input; a
  * path when the name holds a '/') and returns its input, which is static. */
 static p8_input_t *load_e2e(const char *e2e) {
-    static p8_memory_t mem;
+    static p8_vram_t mem;
     static p8_graphics_t gfx;
     static p8_input_t input;
     char path[256];
 
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
     p8_input_init(&input);

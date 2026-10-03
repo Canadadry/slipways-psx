@@ -28,7 +28,7 @@
 #include "game/help.h"
 #include "p8/input.h"
 #include "engine/entity.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/menu.h"
 #include "game/mouse.h"
 #include "game/message_box.h"
@@ -66,7 +66,7 @@
 #define ENTITY_STATE_HASH 0xD49B8748u
 #define ENTITY_STATE_TIME_HASH 0xDE09A985u
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -1088,7 +1088,7 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
     p8_input_init(&input);

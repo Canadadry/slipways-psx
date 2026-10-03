@@ -29,7 +29,7 @@
 #include "p8/gfx.h"
 #include "game/help.h"
 #include "p8/input.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/planet.h"
 #include "game/planet_display.h"
 #include "game/planet_family.h"
@@ -57,7 +57,7 @@ static int pos_copies(const vec_t *ra, const vec_t *mp) {
 #define LIFE_HASH 0x37B44597u
 #define DESCENDANTS_HASH 0x129E3D90u
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -780,7 +780,7 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
     p8_input_init(&input);

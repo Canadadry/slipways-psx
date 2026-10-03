@@ -6,7 +6,7 @@
 #include "game/game_data.h"
 #include "engine/geom.h"
 #include "p8/gfx.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/mouse.h"
 #include "engine/entity_class.h"
 
@@ -113,10 +113,10 @@ ui_t *main_ui(void);
 void ui_set_main_ui(ui_t *ui);
 
 /* Called once per frame by `cart_update60()`. TODO: `mem` is no longer
- * read; drop it with the typed PICO-8 memory. */
-void ui_update(p8_memory_t *mem, ui_t *self);
+ * read; drop it. */
+void ui_update(p8_vram_t *mem, ui_t *self);
 
-void ui_draw_overlay(const p8_graphics_t *gfx, p8_memory_t *mem, const ui_t *self);
+void ui_draw_overlay(const p8_graphics_t *gfx, p8_vram_t *mem, const ui_t *self);
 
 void ui_update_hover(ui_t *self);
 

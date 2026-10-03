@@ -24,7 +24,7 @@
 #include "game/main_economy.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/planet_display.h"
 #include "game/planet_family.h"
 #include "game/planet_family_trade.h"
@@ -53,7 +53,7 @@
 #define UPDATE_UNFOLDING_EXIT_TICK 27
 #define DRAW_HASH 0xD124A50Cu
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -856,7 +856,7 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
     dispatch_context_set_gfx(&graphics);

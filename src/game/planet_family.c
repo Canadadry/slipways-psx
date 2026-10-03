@@ -173,7 +173,7 @@ static planet_t *processor_create(const planet_keys_t *keys) {
     return self;
 }
 
-void ascension_draw(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t p) {
+void ascension_draw(p8_graphics_t *gfx, p8_vram_t *mem, planet_t *self, vec_t p) {
     if (self == NULL) {
         return;
     }
@@ -373,7 +373,7 @@ particle_t *burst_spawn_particle(entity_t *self_ptr) {
     return particle;
 }
 
-void burst_draw(p8_graphics_t *graphics, p8_memory_t *memory, planet_t *self, vec_t screen_pos) {
+void burst_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec_t screen_pos) {
     const pointer_list_t *particles = NULL;
     int third_taken = 0;
     int index;

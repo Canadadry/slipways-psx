@@ -5,7 +5,7 @@
 #include "p8/gfx.h"
 #include "game/layout.h"
 #include "game/map_tables.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/planet.h"
 #include "game/research.h"
 #include "engine/entity_class.h"
@@ -107,9 +107,9 @@ void button_construct(button_t *self, const button_keys_t *keys);
 
 void button_update(button_t *self);
 
-void button_draw_overlay(p8_graphics_t *gfx, p8_memory_t *mem, const button_t *self);
+void button_draw_overlay(p8_graphics_t *gfx, p8_vram_t *mem, const button_t *self);
 
-void button_draw(p8_graphics_t *graphics, p8_memory_t *memory, const button_t *self, vec_t draw_pos);
+void button_draw(p8_graphics_t *graphics, p8_vram_t *memory, const button_t *self, vec_t draw_pos);
 
 /* Always stops the dispatch: the click is consumed whether or not an
  * `on_click` callback was there to run. */

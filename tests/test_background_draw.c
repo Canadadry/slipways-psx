@@ -1,7 +1,7 @@
 #include "p8/assets.h"
 #include "game/background.h"
 #include "p8/gfx.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -11,13 +11,13 @@
 #define BACKGROUND_STAR_CELL_Y 1
 #define BACKGROUND_STAR_SPRITE 72
 
-static unsigned char screen_at(const p8_memory_t *mem, int x, int y) {
+static unsigned char screen_at(const p8_vram_t *mem, int x, int y) {
     return mem->screen[y][x];
 }
 
-static void setup_sky(p8_memory_t *mem, p8_graphics_t *gfx) {
+static void setup_sky(p8_vram_t *mem, p8_graphics_t *gfx) {
     int ok;
-    p8_mem_init(mem);
+    p8_vram_init(mem);
     p8_gfx_init(gfx);
     ok = p8_load_gfx_json(mem, "pico8/gfx.json");
     assert(ok);
@@ -27,7 +27,7 @@ static void setup_sky(p8_memory_t *mem, p8_graphics_t *gfx) {
 static void test_background_draw_leaves_empty_map_cells_black(void) {
     static const int probe_cells[][2] = {{1, 1}, {6, 2}, {2, 5}, {13, 6}, {10, 10}, {15, 15}};
     const int probe_count = (int)(sizeof(probe_cells) / sizeof(probe_cells[0]));
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
 
     setup_sky(&mem, &gfx);
@@ -46,7 +46,7 @@ static void test_background_draw_leaves_empty_map_cells_black(void) {
 }
 
 static void test_background_draw_still_draws_non_empty_map_cells(void) {
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
     int star_x = BACKGROUND_STAR_CELL_X * P8_SPRITE_SIZE;
     int star_y = BACKGROUND_STAR_CELL_Y * P8_SPRITE_SIZE;

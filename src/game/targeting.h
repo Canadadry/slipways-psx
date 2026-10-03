@@ -4,7 +4,7 @@
 #include "p8/fixed.h"
 #include "game/game_data.h"
 #include "p8/gfx.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
@@ -50,12 +50,12 @@ const entity_class_t *targeting_track_target_class(void);
 
 /* The tooltip of a targeting host: `self` must carry a targeting (asserted),
  * and is read, never retained. */
-void targeting_tooltip(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self);
+void targeting_tooltip(const p8_graphics_t *gfx, p8_vram_t *mem, entity_t *self);
 
 /* The same, for a caller that is not a host (the structure icon): a state
  * other than ENTITY_STATE_PLACING draws nothing, the targeting is read
  * during the call only. */
-void targeting_tooltip_show(const p8_graphics_t *gfx, p8_memory_t *mem, state_t state, const targeting_t *pb);
+void targeting_tooltip_show(const p8_graphics_t *gfx, p8_vram_t *mem, state_t state, const targeting_t *pb);
 
 void targeting_tooltip_method(entity_t *self, const vec_t *screen_pos);
 

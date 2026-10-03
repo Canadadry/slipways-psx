@@ -26,7 +26,7 @@
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "game/layout.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/draw_functions.h"
 #include "game/planet.h"
 #include "game/planet_display.h"
@@ -57,7 +57,7 @@
 #define CALLS_HASH 0x398594A5u
 #define PANEL_HASH 0xDA5A7F3Eu
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -1018,7 +1018,7 @@ static void test_planet_resource_row_largest_row_fits_a_slot(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
     p8_input_init(&input);

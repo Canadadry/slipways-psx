@@ -27,7 +27,7 @@
 #include "game/help.h"
 #include "p8/input.h"
 #include "engine/entity.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/particle.h"
 #include "game/ui_zone.h"
 #include "game/planet.h"
@@ -54,7 +54,7 @@ static int pos_copies(const vec_t *ra, const vec_t *mp) {
 #define DROP_OFF_HASH 0x3EA86A53u
 #define HELP_SCREEN_HASH 0x938EC51Bu
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -859,7 +859,7 @@ static void test_leaving_gives_back_its_particles(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
     p8_input_init(&input);

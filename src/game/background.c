@@ -94,7 +94,7 @@ background_t *background_new(void) {
 
 /* The previous value defaults to 1 on row y=0 only; every later row reads
  * back the previous row's own value. The running value is local to the call. */
-void background_construct(p8_memory_t *memory, background_t *self) {
+void background_construct(p8_vram_t *memory, background_t *self) {
     p8_fixed_t row_values[32];
     int row_values_set[32];
     p8_fixed_t value = p8_fixed_from_int(0);
@@ -140,7 +140,7 @@ void background_construct(p8_memory_t *memory, background_t *self) {
     }
 }
 
-void background_draw(p8_graphics_t *gfx, p8_memory_t *mem, const background_t *self) {
+void background_draw(p8_graphics_t *gfx, p8_vram_t *mem, const background_t *self) {
     int xy;
 
     (void)self;

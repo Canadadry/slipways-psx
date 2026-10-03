@@ -217,7 +217,7 @@ static const char *probe_target_status_text(const entity_t *et) {
     return NULL;
 }
 
-void targeting_tooltip(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *self) {
+void targeting_tooltip(const p8_graphics_t *gfx, p8_vram_t *mem, entity_t *self) {
     if (self == NULL) {
         return;
     }
@@ -226,7 +226,7 @@ void targeting_tooltip(const p8_graphics_t *gfx, p8_memory_t *mem, entity_t *sel
     targeting_tooltip_show(gfx, mem, self->state, self->targeting);
 }
 
-void targeting_tooltip_show(const p8_graphics_t *gfx, p8_memory_t *mem, state_t state, const targeting_t *pb) {
+void targeting_tooltip_show(const p8_graphics_t *gfx, p8_vram_t *mem, state_t state, const targeting_t *pb) {
     vec_t mp;
     const mouse_t *je;
     const char *display = "";

@@ -22,7 +22,7 @@
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/planet_family.h"
 #include "game/scroll.h"
 #include "engine/entity_class.h"
@@ -34,7 +34,7 @@
 #define SHAKE_HASH 0xF1E7A593u
 #define GEOHARVEST_WINDOW 60
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -384,7 +384,7 @@ static void test_camera_is_a_struct(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
     p8_input_init(&input);

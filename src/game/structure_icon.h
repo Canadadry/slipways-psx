@@ -4,7 +4,7 @@
 #include "game/game_data.h"
 #include "p8/gfx.h"
 #include "game/layout.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
@@ -97,6 +97,6 @@ down_t structure_icon_left_press(structure_icon_t *self);
 structure_icon_kind_t structure_icon_kind_view(const structure_icon_t *self);
 const entity_class_t *structure_icon_kind_view_class(void);
 
-void structure_icon_draw(p8_graphics_t *gfx, p8_memory_t *mem, structure_icon_t *self, vec_t p);
+void structure_icon_draw(p8_graphics_t *gfx, p8_vram_t *mem, structure_icon_t *self, vec_t p);
 
 #endif

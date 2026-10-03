@@ -1,14 +1,14 @@
 #include "p8/assets.h"
 #include "p8/gfx.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
 static void test_cls_clears_whole_screen_to_zero(void) {
-    p8_memory_t mem;
-    p8_mem_init(&mem);
+    p8_vram_t mem;
+    p8_vram_init(&mem);
 
     memset(mem.screen, 9, sizeof(mem.screen));
 
@@ -22,9 +22,9 @@ static void test_cls_clears_whole_screen_to_zero(void) {
 }
 
 static void test_pset_plots_pixel_at_coordinate(void) {
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     p8_pset(&gfx, &mem, 10, 20, 7);
@@ -35,9 +35,9 @@ static void test_pset_plots_pixel_at_coordinate(void) {
 }
 
 static void test_pset_off_screen_is_clipped_silently(void) {
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     p8_pset(&gfx, &mem, -1, 0, 7);
@@ -53,9 +53,9 @@ static void test_pset_off_screen_is_clipped_silently(void) {
 }
 
 static void test_camera_offset_shifts_subsequent_pset(void) {
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     p8_camera(&gfx, 10, 5);
@@ -69,9 +69,9 @@ static void test_camera_offset_shifts_subsequent_pset(void) {
 }
 
 static void test_camera_reset_restores_zero_offset(void) {
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     p8_camera(&gfx, 10, 5);
@@ -82,11 +82,11 @@ static void test_camera_reset_restores_zero_offset(void) {
 }
 
 /* `palt()` stores into the draw palette in memory, so the PICO-8 default --
- * every colour opaque but colour 0 -- is `p8_mem_init`'s power-on state,
+ * every colour opaque but colour 0 -- is `p8_vram_init`'s power-on state,
  * not a gfx-side flag array. */
-static void test_mem_init_default_transparency_is_color_0_only(void) {
-    p8_memory_t mem;
-    p8_mem_init(&mem);
+static void test_vram_init_default_transparency_is_color_0_only(void) {
+    p8_vram_t mem;
+    p8_vram_init(&mem);
 
     assert(p8_gfx_is_transparent(&mem, 0));
     for (int c = 1; c < 16; c++) {
@@ -95,8 +95,8 @@ static void test_mem_init_default_transparency_is_color_0_only(void) {
 }
 
 static void test_palt_marks_color_transparent_and_opaque(void) {
-    p8_memory_t mem;
-    p8_mem_init(&mem);
+    p8_vram_t mem;
+    p8_vram_init(&mem);
 
     p8_palt(&mem, 3, 1);
     assert(p8_gfx_is_transparent(&mem, 3));
@@ -113,8 +113,8 @@ static void test_palt_marks_color_transparent_and_opaque(void) {
  * `palt()` last said. The game undoes its p8_palt(mem, 0, 1) with
  * hud_select_palette_block_default(), never with p8_palt(mem, 0, 0). */
 static void test_draw_palette_write_overrides_a_previous_palt(void) {
-    p8_memory_t mem;
-    p8_mem_init(&mem);
+    p8_vram_t mem;
+    p8_vram_init(&mem);
 
     p8_palt(&mem, 0, 1);
     assert(p8_gfx_is_transparent(&mem, 0));
@@ -128,8 +128,8 @@ static void test_draw_palette_write_overrides_a_previous_palt(void) {
 }
 
 static void test_palt_out_of_range_col_is_noop_and_queries_as_opaque(void) {
-    p8_memory_t mem;
-    p8_mem_init(&mem);
+    p8_vram_t mem;
+    p8_vram_init(&mem);
 
     p8_palt(&mem, -1, 1);
     p8_palt(&mem, 16, 1);
@@ -142,9 +142,9 @@ static void test_palt_affects_a_subsequent_transparent_color_draw(void) {
     /* `pset` never consults `palt`: as in real PICO-8, transparency only
      * affects the sprite primitives. What is exercised here is the "does
      * this pixel draw" query `spr()` makes per source pixel. */
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     p8_palt(&mem, 3, 1);
@@ -163,9 +163,9 @@ static void test_palt_affects_a_subsequent_transparent_color_draw(void) {
 }
 
 static void test_line_draws_diagonal_pixels(void) {
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     p8_line(&gfx, &mem, 2, 2, 5, 5, 8);
@@ -178,9 +178,9 @@ static void test_line_draws_diagonal_pixels(void) {
 }
 
 static void test_line_zero_length_draws_single_pixel(void) {
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     p8_line(&gfx, &mem, 7, 9, 7, 9, 11);
@@ -190,9 +190,9 @@ static void test_line_zero_length_draws_single_pixel(void) {
 }
 
 static void test_rect_draws_unfilled_outline(void) {
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     p8_rect(&gfx, &mem, 2, 2, 5, 4, 8);
@@ -209,9 +209,9 @@ static void test_rect_draws_unfilled_outline(void) {
 }
 
 static void test_rect_single_pixel_draws_one_point(void) {
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     p8_rect(&gfx, &mem, 6, 6, 6, 6, 12);
@@ -222,9 +222,9 @@ static void test_rect_single_pixel_draws_one_point(void) {
 }
 
 static void test_rectfill_fills_every_pixel_in_bounds(void) {
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     p8_rectfill(&gfx, &mem, 2, 2, 4, 3, 9);
@@ -240,9 +240,9 @@ static void test_rectfill_fills_every_pixel_in_bounds(void) {
 }
 
 static void test_circ_draws_unfilled_outline(void) {
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     p8_circ(&gfx, &mem, 10, 10, 3, 8);
@@ -257,9 +257,9 @@ static void test_circ_draws_unfilled_outline(void) {
 }
 
 static void test_circ_zero_radius_draws_single_pixel(void) {
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     p8_circ(&gfx, &mem, 5, 5, 0, 6);
@@ -270,9 +270,9 @@ static void test_circ_zero_radius_draws_single_pixel(void) {
 }
 
 static void test_circfill_fills_the_disc(void) {
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     p8_circfill(&gfx, &mem, 10, 10, 3, 8);
@@ -286,9 +286,9 @@ static void test_circfill_fills_the_disc(void) {
 }
 
 static void test_circfill_zero_radius_draws_single_pixel(void) {
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     p8_circfill(&gfx, &mem, 5, 5, 0, 6);
@@ -299,9 +299,9 @@ static void test_circfill_zero_radius_draws_single_pixel(void) {
 }
 
 static void test_fillp_pattern_alters_rectfill_output(void) {
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     /* Rows alternate solid/skip in groups of 4: row%4==0..2 draws (bits
@@ -334,8 +334,8 @@ static void test_sget_reads_known_pixel_from_loaded_sheet(void) {
      * sprite index plus offset: (16,0) is sprite 2's top-left, (2,64) is
      * sprite 128's top row two pixels in, (0,127) is sprite 240's
      * bottom-left. */
-    p8_memory_t mem;
-    p8_mem_init(&mem);
+    p8_vram_t mem;
+    p8_vram_init(&mem);
     int ok = p8_load_gfx_json(&mem, "pico8/gfx.json");
     assert(ok);
 
@@ -345,8 +345,8 @@ static void test_sget_reads_known_pixel_from_loaded_sheet(void) {
 }
 
 static void test_sget_out_of_range_returns_zero(void) {
-    p8_memory_t mem;
-    p8_mem_init(&mem);
+    p8_vram_t mem;
+    p8_vram_init(&mem);
     /* Write a nonzero value adjacent to the sheet's bounds to make sure a
      * naive/unclamped read wouldn't accidentally also read 0 here. */
     mem.sprite_sheet[0][0] = 9;
@@ -361,9 +361,9 @@ static void test_spr_default_draws_1x1_sprite_at_world_position(void) {
     /* Sprite 5 lives at sheet pixel (40,0) (col 5*8, row 0*8, since 16
      * sprites/row). Write two of its pixels directly and draw it with the
      * 3-arg convenience wrapper (width and height default to 1). */
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     mem.sprite_sheet[0][40] = 7;
@@ -382,9 +382,9 @@ static void test_spr_with_explicit_width_height_draws_multi_block_sprite(void) {
      * (0,0) when drawn 2 cells wide and 2 tall: it reads pixels from sprite
      * 0's own block plus sprite 1 (to its right), sprite 16 (below), and
      * sprite 17 (diagonal) -- real PICO-8's multi-cell sprite behavior. */
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     mem.sprite_sheet[0][0] = 1;   /* sprite 0, corner */
@@ -406,9 +406,9 @@ static void test_spr_skips_pixels_marked_transparent_by_palt(void) {
     /* Unlike pset/shapes, spr must consult palt: a source pixel whose
      * color is marked transparent is skipped (not drawn), leaving
      * whatever was already on screen underneath. */
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     mem.sprite_sheet[0][0] = 3; /* sprite 0, corner pixel */
@@ -424,8 +424,8 @@ static void test_spr_skips_pixels_marked_transparent_by_palt(void) {
 }
 
 static void test_mset_writes_base_region_cell(void) {
-    p8_memory_t mem;
-    p8_mem_init(&mem);
+    p8_vram_t mem;
+    p8_vram_init(&mem);
 
     p8_mset(&mem, 9, 0, 213);
     p8_mset(&mem, 0, 31, 51);
@@ -435,9 +435,9 @@ static void test_mset_writes_base_region_cell(void) {
 }
 
 static void test_mset_outside_32x32_changes_no_cell(void) {
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     mem.sprite_sheet[0][40] = 7; /* sprite 5's corner */
@@ -463,8 +463,8 @@ static void test_mset_outside_32x32_changes_no_cell(void) {
 }
 
 static void test_mset_out_of_range_is_noop(void) {
-    p8_memory_t mem;
-    p8_mem_init(&mem);
+    p8_vram_t mem;
+    p8_vram_init(&mem);
 
     p8_mset(&mem, -1, 0, 5);
     p8_mset(&mem, 0, -1, 5);
@@ -484,9 +484,9 @@ static void test_map_draws_cells_via_sprite_drawing_logic(void) {
      * apart from the drawing origin -- confirmed by cell (1,0) landing
      * sprite 5's known pixel at screen column 8 (the second cell), not
      * column 0. */
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     mem.sprite_sheet[0][40] = 7; /* sprite 5's corner */
@@ -508,9 +508,9 @@ static void test_map_treats_sprite_0_cells_as_empty(void) {
      * even when sprite 0's own pixels are opaque -- which they are in the
      * game's sheet, whose sprite 0 is palette data, not artwork. Direct
      * spr(0,...) is unaffected by that rule and still draws. */
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     /* Sprite 0's top-left pixel, opaque colour 7. */
@@ -527,9 +527,9 @@ static void test_map_treats_sprite_0_cells_as_empty(void) {
 static void test_map_and_mset_round_trip_against_real_sheet(void) {
     /* `sget`'s read of a sprite-sheet pixel and the framebuffer `map()`
      * draws from that same sprite must agree, on the real pico8/gfx.json. */
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
     int ok = p8_load_gfx_json(&mem, "pico8/gfx.json");
     assert(ok);
@@ -550,9 +550,9 @@ static void test_print_draws_known_glyph_pixels(void) {
     /* Spot-check the hand-authored 'a' glyph: a 3-wide x 5-tall bitmap
      * (see P8_FONT_GLYPH_WIDTH/HEIGHT) left-aligned at (x,y), with
      * column x+3 (the 4th column of the 4px advance cell) always blank. */
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     p8_print(&gfx, &mem, "a", 10, 20, 7);
@@ -577,9 +577,9 @@ static void test_print_draws_known_glyph_pixels(void) {
 
 static void test_print_advances_cursor_by_cell_width_between_chars(void) {
     /* 'b' row-by-row: #.. / #.. / ##. / #.# / ##. */
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     p8_print(&gfx, &mem, "ab", 0, 0, 6);
@@ -604,9 +604,9 @@ static void test_print_unmapped_character_draws_placeholder_block(void) {
     /* A character outside the documented covered set (see p8/gfx.c)
      * draws a solid 3x5 block rather than staying blank, so a missing
      * mapping is visually obvious. */
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     p8_print(&gfx, &mem, "@", 0, 0, 8);
@@ -619,9 +619,9 @@ static void test_print_unmapped_character_draws_placeholder_block(void) {
 }
 
 static void test_print_space_is_blank(void) {
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     p8_print(&gfx, &mem, " ", 0, 0, 5);
@@ -637,9 +637,9 @@ static void test_print_respects_camera_offset(void) {
     /* Consistent with every other p8/gfx.c primitive: print goes through
      * p8_pset, so a camera offset shifts world coordinates the same
      * way it would for pset/line/etc. */
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
     p8_camera(&gfx, 10, 20);
 
@@ -655,9 +655,9 @@ static void test_print_digit_and_punctuation_glyphs(void) {
     /* Spot-check a digit and a punctuation glyph from the covered set
      * documented in p8/gfx.c (the game's UI text uses digits for
      * scores/years/percentages and ':' for labels like "population:"). */
-    p8_memory_t mem;
+    p8_vram_t mem;
     p8_graphics_t gfx;
-    p8_mem_init(&mem);
+    p8_vram_init(&mem);
     p8_gfx_init(&gfx);
 
     p8_print(&gfx, &mem, "1:", 0, 0, 9);
@@ -699,7 +699,7 @@ int main(void) {
     test_pset_off_screen_is_clipped_silently();
     test_camera_offset_shifts_subsequent_pset();
     test_camera_reset_restores_zero_offset();
-    test_mem_init_default_transparency_is_color_0_only();
+    test_vram_init_default_transparency_is_color_0_only();
     test_palt_marks_color_transparent_and_opaque();
     test_draw_palette_write_overrides_a_previous_palt();
     test_palt_out_of_range_col_is_noop_and_queries_as_opaque();

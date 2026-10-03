@@ -145,7 +145,7 @@ static down_t structure_icon_left_press_method(entity_t *self, vec_t *mouse_worl
     return structure_icon_left_press((structure_icon_t *)self);
 }
 
-void structure_icon_draw(p8_graphics_t *gfx, p8_memory_t *mem, structure_icon_t *self, vec_t p) {
+void structure_icon_draw(p8_graphics_t *gfx, p8_vram_t *mem, structure_icon_t *self, vec_t p) {
     structure_icon_kind_t view;
 
     /* An icon not yet revealed by structure_icon_refresh() draws nothing. */

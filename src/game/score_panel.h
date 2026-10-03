@@ -4,7 +4,7 @@
 #include "p8/fixed.h"
 #include "game/game_data.h"
 #include "p8/gfx.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/map_tables.h"
 #include "game/message_box.h"
 #include "engine/entity_class.h"
@@ -130,7 +130,7 @@ void score_panel_set_main(score_panel_t *instance);
 
 void score_panel_refresh(void);
 
-void score_panel_draw(p8_graphics_t *gfx, p8_memory_t *mem, score_panel_t *self);
+void score_panel_draw(p8_graphics_t *gfx, p8_vram_t *mem, score_panel_t *self);
 
 void score_panel_new_year_method(entity_t *self, p8_fixed_t year);
 void score_panel_update_method(entity_t *self, p8_fixed_t t);

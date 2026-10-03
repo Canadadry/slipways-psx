@@ -179,7 +179,7 @@ static void score_panel_refresh_method(entity_t *self) {
 /* The frame rows then the readouts: 5 then 7 articles. */
 enum { SCORE_PANEL_DRAW_ARTICLES_CAP = 5 + 7 };
 
-void score_panel_draw(p8_graphics_t *gfx, p8_memory_t *mem, score_panel_t *self) {
+void score_panel_draw(p8_graphics_t *gfx, p8_vram_t *mem, score_panel_t *self) {
     const data_row_t *i_ = score_panel_frame_rows();
     score_panel_readouts_t *readouts_state = score_panel_readouts();
     const data_row_t *combined[SCORE_PANEL_DRAW_ARTICLES_CAP];

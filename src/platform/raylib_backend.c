@@ -99,7 +99,7 @@ void raylib_backend_set_frame_rate_cap(int target_fps) {
     SetTargetFPS(target_fps);
 }
 
-void raylib_backend_present(raylib_backend_t *backend, const p8_memory_t *mem, const p8_input_frame_t *frame, const char *replay_status) {
+void raylib_backend_present(raylib_backend_t *backend, const p8_vram_t *mem, const p8_input_frame_t *frame, const char *replay_status) {
     for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
         for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
             unsigned char idx = mem->screen[y][x];

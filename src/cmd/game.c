@@ -8,7 +8,7 @@
  * here starts on the title screen and holds its own click, so a driver
  * that clicked first would desynchronise every recording it replays. */
 
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "p8/assets.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
@@ -51,8 +51,8 @@ int main(int argc, char **argv) {
     replay_control_t replay_control;
     replay_control_init(&replay_control);
 
-    p8_memory_t memory;
-    p8_mem_init(&memory);
+    p8_vram_t memory;
+    p8_vram_init(&memory);
 
     p8_graphics_t graphics;
     p8_gfx_init(&graphics);

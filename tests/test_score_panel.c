@@ -26,7 +26,7 @@
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "game/layout.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/menu.h"
 #include "game/message_box.h"
 #include "game/score_panel.h"
@@ -41,7 +41,7 @@
 #define LIFE_HASH 0xDDBCC765u
 #define TECH_TREE_SCREEN_HASH 0x7D1C5B1Fu
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -778,7 +778,7 @@ static void test_update_rows_show_final_score(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
     p8_input_init(&input);

@@ -20,7 +20,7 @@ int screencast_writer_open(screencast_writer_t *writer, const char *path) {
     return writer->file != NULL;
 }
 
-int screencast_write_frame(screencast_writer_t *writer, const p8_memory_t *mem) {
+int screencast_write_frame(screencast_writer_t *writer, const p8_vram_t *mem) {
     unsigned char packed[SCREENCAST_FRAME_BYTES];
 
     assert(writer);

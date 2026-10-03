@@ -12,7 +12,7 @@
  * before each dispatch, so the functions below can reach a real drawing
  * function that a row cannot carry. */
 static p8_graphics_t *g_draw_functions_gfx = NULL;
-static p8_memory_t *g_draw_functions_mem = NULL;
+static p8_vram_t *g_draw_functions_mem = NULL;
 
 /* The row's item at a 1-based index, as the data tables number the
  * arguments; NULL past the end. */
@@ -125,7 +125,7 @@ static const draw_functions_fn_t draw_functions_by_id[DRAW_FUNCTION_COUNT] = {
 
 /* One row: its draw_function looked up and called on it, for both entry
  * points. The dispatch context is set before every call, not once per list. */
-static void draw_rows_dispatch_one(p8_graphics_t *gfx, p8_memory_t *mem, const data_row_t *e) {
+static void draw_rows_dispatch_one(p8_graphics_t *gfx, p8_vram_t *mem, const data_row_t *e) {
     draw_functions_fn_t fn;
 
     assert((unsigned)e->draw_function < DRAW_FUNCTION_COUNT && "a row's draw_function is one of draw_function_t");
@@ -138,7 +138,7 @@ static void draw_rows_dispatch_one(p8_graphics_t *gfx, p8_memory_t *mem, const d
     }
 }
 
-void draw_functions_draw_rows(p8_graphics_t *gfx, p8_memory_t *mem, const data_row_t *const *rb, int n, p8_fixed_t nc) {
+void draw_functions_draw_rows(p8_graphics_t *gfx, p8_vram_t *mem, const data_row_t *const *rb, int n, p8_fixed_t nc) {
     int i;
 
     for (i = 0; i < n; i++) {
@@ -148,7 +148,7 @@ void draw_functions_draw_rows(p8_graphics_t *gfx, p8_memory_t *mem, const data_r
     }
 }
 
-void draw_functions_draw_rows_default(p8_graphics_t *gfx, p8_memory_t *mem, const data_row_t *const *rb, int n) {
+void draw_functions_draw_rows_default(p8_graphics_t *gfx, p8_vram_t *mem, const data_row_t *const *rb, int n) {
     int i;
 
     for (i = 0; i < n; i++) {

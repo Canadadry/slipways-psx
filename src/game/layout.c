@@ -172,7 +172,7 @@ static void layout_row_construct(layout_row_t *self) {
     self->width = p8_fixed_sub(w, fs);
 }
 
-static void row_draw_at_item_draw(const p8_graphics_t *gfx, p8_memory_t *mem, const layout_row_item_t *item,
+static void row_draw_at_item_draw(const p8_graphics_t *gfx, p8_vram_t *mem, const layout_row_item_t *item,
                                    vec_t p) {
     vec_t pos = vec_add(p, item->offset);
 
@@ -195,7 +195,7 @@ static void row_draw_at_item_draw(const p8_graphics_t *gfx, p8_memory_t *mem, co
     }
 }
 
-void layout_row_draw_at(const p8_graphics_t *gfx, p8_memory_t *mem, const layout_row_t *self, vec_t p, p8_fixed_t a) {
+void layout_row_draw_at(const p8_graphics_t *gfx, p8_vram_t *mem, const layout_row_t *self, vec_t p, p8_fixed_t a) {
     p8_fixed_t w;
     int i;
 
@@ -216,7 +216,7 @@ void layout_row_draw_at(const p8_graphics_t *gfx, p8_memory_t *mem, const layout
     }
 }
 
-void layout_row_draw_at_default(const p8_graphics_t *gfx, p8_memory_t *mem, const layout_row_t *self, vec_t p) {
+void layout_row_draw_at_default(const p8_graphics_t *gfx, p8_vram_t *mem, const layout_row_t *self, vec_t p) {
     layout_row_draw_at(gfx, mem, self, p, p8_fixed_from_int(0));
 }
 
@@ -267,7 +267,7 @@ static void tooltip_construct(tooltip_t *self, const data_row_t *row) {
 
 /* The line count is rows_count: tooltip_construct() makes exactly one line
  * per positional item of its row, so the two counts never differ. */
-void tooltip_draw_at(p8_graphics_t *gfx, p8_memory_t *mem, const tooltip_t *self, p8_fixed_t om,
+void tooltip_draw_at(p8_graphics_t *gfx, p8_vram_t *mem, const tooltip_t *self, p8_fixed_t om,
                   p8_fixed_t a) {
     p8_fixed_t h;
     p8_fixed_t dn;

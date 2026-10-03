@@ -31,7 +31,7 @@
  * before the fill file; a p8_fatal during the replay still writes it there,
  * "stopped p8_fatal frame <n>" first. */
 
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "p8/assets.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
@@ -94,8 +94,8 @@ int main(int argc, char **argv) {
     const char *capture_path = (argc > 2) ? argv[2] : NULL;
     const char *dump_path = (argc > 3) ? argv[3] : "tmp/replay_dump.txt";
 
-    p8_memory_t memory;
-    p8_mem_init(&memory);
+    p8_vram_t memory;
+    p8_vram_init(&memory);
 
     p8_graphics_t graphics;
     p8_gfx_init(&graphics);

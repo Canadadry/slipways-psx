@@ -14,7 +14,7 @@
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "game/layout.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/planet.h"
 #include "game/planet_display.h"
 #include "game/planet_family.h"
@@ -59,8 +59,8 @@ static int layout_row_index_is_string(const layout_row_t *lq, int index, const c
 /* What planet_inspection_panel reaches when called on a burst, built
  * without a boot: the data tables (data_init), the planet, burst, layout
  * row and button classes, and the main_ui singleton the panel fills. */
-static void setup_panel_state(p8_memory_t *mem, p8_graphics_t *gfx) {
-    p8_mem_init(mem);
+static void setup_panel_state(p8_vram_t *mem, p8_graphics_t *gfx) {
+    p8_vram_init(mem);
     p8_gfx_init(gfx);
     dispatch_context_set_gfx(gfx);
     dispatch_context_set_mem(mem);
@@ -80,7 +80,7 @@ static entity_list_t *outgoing_routes_of(const planet_t *planet) {
 }
 
 static void test_burst_export_line_counts_the_outgoing_routes(void) {
-    p8_memory_t memory;
+    p8_vram_t memory;
     p8_graphics_t graphics;
     planet_t *planet;
     static production_t production;

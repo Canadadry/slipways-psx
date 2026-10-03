@@ -20,7 +20,7 @@
 #include "game/hud.h"
 #include "engine/entity.h"
 #include "game/layout.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/menu.h"
 #include "game/mouse.h"
 #include "game/message_box.h"
@@ -51,7 +51,7 @@ static void quit_game_zone(void) {
  * their own (research, score-panel display); listing those here would
  * run them twice. */
 void cart_load(void) {
-    p8_memory_t *memory;
+    p8_vram_t *memory;
 
     quit_game_zone();
     entity_init();
@@ -248,7 +248,7 @@ void cart_update60(void) {
 }
 
 void cart_draw(void) {
-    p8_memory_t *mem = dispatch_context_mem();
+    p8_vram_t *mem = dispatch_context_mem();
 
     p8_cls(mem);
     hud_select_palette_block_default(mem);

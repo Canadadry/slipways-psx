@@ -21,7 +21,7 @@
 #include "game/help.h"
 #include "p8/input.h"
 #include "game/layout.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/mouse.h"
 #include "game/message_box.h"
 #include "game/planet.h"
@@ -39,7 +39,7 @@
 #include "game/wormhole.h"
 #include "heap_allocator.h"
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -265,7 +265,7 @@ static void test_mouse_point_has_null_links(void) {
 int main(int argc, char **argv) {
     (void)argc;
     rerun_with_malloc_filling(argv);
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
     p8_input_init(&input);

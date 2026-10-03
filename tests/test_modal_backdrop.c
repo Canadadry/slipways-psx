@@ -16,7 +16,7 @@
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/score_panel_display.h"
 #include "engine/entity_class.h"
 #include "game/ui.h"
@@ -32,7 +32,7 @@
 #define LEFT_PRESS_TICK 5
 #define IDLE_TICKS 30
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -319,7 +319,7 @@ static void test_veil_gives_its_slot_back(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
     p8_input_init(&input);

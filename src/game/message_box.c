@@ -46,7 +46,7 @@ static void message_box_draw_overlay_method(entity_t *self, const vec_t *screen_
     message_box_draw_overlay(dispatch_context_gfx(), dispatch_context_mem(), (message_box_t *)self);
 }
 
-void message_box_draw_overlay(p8_graphics_t *gfx, p8_memory_t *mem, message_box_t *self) {
+void message_box_draw_overlay(p8_graphics_t *gfx, p8_vram_t *mem, message_box_t *self) {
     p8_fixed_t self_t, rh, t, nc, t3;
 
     if (self == NULL) {
@@ -213,7 +213,7 @@ static void toast_update_method(entity_t *self, p8_fixed_t t) {
     toast_update((toast_t *)self);
 }
 
-void toast_draw(const p8_graphics_t *gfx, p8_memory_t *mem, const toast_t *self, vec_t p) {
+void toast_draw(const p8_graphics_t *gfx, p8_vram_t *mem, const toast_t *self, vec_t p) {
     const char *text;
     int color;
     p8_fixed_t a_center = P8_FIXED_LIT(0x00008000, 0.5);

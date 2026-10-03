@@ -3,7 +3,7 @@
 
 #include "p8/fixed.h"
 #include "p8/gfx.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/particle.h"
 #include "game/planet.h"
 #include "engine/entity_class.h"
@@ -145,7 +145,7 @@ planet_t *burst_new(const burst_keys_t *keys);
 
 void trading_hub_update_settled(planet_t *self, p8_fixed_t t);
 
-void ascension_draw(p8_graphics_t *gfx, p8_memory_t *mem, planet_t *self, vec_t p);
+void ascension_draw(p8_graphics_t *gfx, p8_vram_t *mem, planet_t *self, vec_t p);
 
 void protostar_construct(planet_t *self);
 
@@ -155,6 +155,6 @@ void burst_construct(planet_t *self);
  * stores into the burst's particle list. */
 particle_t *burst_spawn_particle(entity_t *self);
 
-void burst_draw(p8_graphics_t *graphics, p8_memory_t *memory, planet_t *self, vec_t screen_pos);
+void burst_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec_t screen_pos);
 
 #endif

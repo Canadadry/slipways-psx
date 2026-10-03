@@ -4,7 +4,7 @@
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "game/map_tables.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 #include "engine/allocator.h"
@@ -156,11 +156,11 @@ tooltip_t *tooltip_new(const allocator_t *zone, const data_row_t *row);
 /* Omitting the alignment factor is numerically the same as passing 0, so
  * layout_row_draw_at_default passes 0 rather than carrying a "was it
  * provided" flag. A NULL self draws nothing. */
-void layout_row_draw_at(const p8_graphics_t *gfx, p8_memory_t *mem, const layout_row_t *self, vec_t p, p8_fixed_t a);
-void layout_row_draw_at_default(const p8_graphics_t *gfx, p8_memory_t *mem, const layout_row_t *self, vec_t p);
+void layout_row_draw_at(const p8_graphics_t *gfx, p8_vram_t *mem, const layout_row_t *self, vec_t p, p8_fixed_t a);
+void layout_row_draw_at_default(const p8_graphics_t *gfx, p8_vram_t *mem, const layout_row_t *self, vec_t p);
 
 /* A NULL self, or one whose `rows` is NULL, draws nothing -- not even the
  * frame. */
-void tooltip_draw_at(p8_graphics_t *gfx, p8_memory_t *mem, const tooltip_t *self, p8_fixed_t om, p8_fixed_t a);
+void tooltip_draw_at(p8_graphics_t *gfx, p8_vram_t *mem, const tooltip_t *self, p8_fixed_t om, p8_fixed_t a);
 
 #endif

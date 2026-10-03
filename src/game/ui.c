@@ -189,7 +189,7 @@ void ui_set_main_ui(ui_t *ui) {
 
 /* The ephemerals are read before the hover and button handling run: the
  * test further down is a pointer identity check against this frame's list. */
-void ui_update(p8_memory_t *mem, ui_t *self) {
+void ui_update(p8_vram_t *mem, ui_t *self) {
     entity_list_t *ephemerals_ptr_before;
     int ephemerals_count;
     vec_t qa;
@@ -232,7 +232,7 @@ void ui_update(p8_memory_t *mem, ui_t *self) {
 
 /* A right-held background shows sprite 9; a hovered entity whose own
  * `cursor_sprite` is absent falls through to self's own cursor sprite. */
-void ui_draw_overlay(const p8_graphics_t *gfx, p8_memory_t *mem, const ui_t *self) {
+void ui_draw_overlay(const p8_graphics_t *gfx, p8_vram_t *mem, const ui_t *self) {
     vec_t main_mouse_pos;
     const mouse_t *je;
     int spr_id = 0;

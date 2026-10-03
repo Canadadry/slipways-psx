@@ -397,7 +397,7 @@ void planet_projects_panel(planet_t *self) {
     message_box_open_box(&frame, bs, n);
 }
 
-void planet_draw(p8_graphics_t *graphics, p8_memory_t *memory, planet_t *self, vec_t screen_pos) {
+void planet_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec_t screen_pos) {
     vec_t shaken_pos;
     int screen_x;
     int screen_y;

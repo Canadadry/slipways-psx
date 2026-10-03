@@ -20,7 +20,7 @@
 #include "p8/input.h"
 #include "game/layout.h"
 #include "game/map_tables.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/mouse.h"
 #include "game/planet_family.h"
 #include "game/structure_icon.h"
@@ -38,12 +38,12 @@
  * optimiser, it is what the case observes. */
 static volatile unsigned char sink;
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
 static void load_cart_and_start(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
     p8_input_init(&input);

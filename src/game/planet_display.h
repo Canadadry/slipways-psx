@@ -4,7 +4,7 @@
 #include "game/research.h"
 #include "engine/entity_class.h"
 #include "p8/gfx.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/planet.h"
 #include "engine/vec.h"
 
@@ -31,7 +31,7 @@ void planet_projects_panel(planet_t *self);
 
 /* Draws, and mutates `self`: entity_geom_shake decays the shake, and the
  * `targeted_by` halo is cleared once drawn. */
-void planet_draw(p8_graphics_t *graphics, p8_memory_t *memory, planet_t *self, vec_t screen_pos);
+void planet_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec_t screen_pos);
 
 /* For a project with a class name, `self` is marked for removal and the
  * tail of the work lands on a fresh planet the caller never sees -- or on

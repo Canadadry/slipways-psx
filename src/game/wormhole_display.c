@@ -16,7 +16,7 @@ static vec_t nearest_anchor_pos(const wormhole_t *self) {
     return ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
-void wormhole_draw(p8_graphics_t *graphics, p8_memory_t *memory, wormhole_t *self, vec_t screen_pos) {
+void wormhole_draw(p8_graphics_t *graphics, p8_vram_t *memory, wormhole_t *self, vec_t screen_pos) {
     int screen_x;
     int screen_y;
 

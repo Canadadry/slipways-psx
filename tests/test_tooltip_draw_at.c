@@ -13,7 +13,7 @@
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "game/layout.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "engine/entity_class.h"
 #include "heap_allocator.h"
 
@@ -23,7 +23,7 @@
 #define ICON_TOOLTIPS_ALL_BY_NAME_HASH 0x71C88A4Eu
 #define MIXED_BY_NAME_HASH 0xC5324FA0u
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 
 static uint32_t screen_hash(void) {
@@ -152,7 +152,7 @@ static void test_tooltip_state_by_name(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
     data_init();
     layout_init();

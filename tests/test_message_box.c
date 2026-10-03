@@ -22,7 +22,7 @@
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "p8/mem.h"
+#include "p8/vram.h"
 #include "game/message_box.h"
 #include "game/economy_score.h"
 #include "game/main_economy.h"
@@ -43,7 +43,7 @@
 
 #define MAX_BOXES 4
 
-static p8_memory_t memory;
+static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
@@ -453,7 +453,7 @@ static void test_largest_scores_box_fits_its_slot(void) {
 }
 
 int main(void) {
-    p8_mem_init(&memory);
+    p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
     p8_input_init(&input);
