@@ -27,8 +27,9 @@
 # make data-guard    -> none of the patterns of the pre-composition model
 #                       (DATA_GUARD_PATTERN) in src/ or tests/, in make test
 # make sanitize-net  -> replays the e2e of tests/e2e/ under ASan+UBSan (`-O2`);
-#                       passes when every replay exits cleanly, outside the
-#                       suite
+#                       passes when every replay exits cleanly; also runs
+#                       test_live_slots (slots returned after each replay,
+#                       ~11 s), outside the suite
 # make constants-check -> compares each P8_FIXED_LIT of the core with its
 #                       recorded hex value
 #                       (tools/pico8_reference_probe_out.txt); fails unless
@@ -601,7 +602,6 @@ UNIT_TESTS := \
     test_tooltip_draw_at \
     test_toast \
     test_message_box \
-    test_live_slots \
     test_state \
     test_modal_backdrop \
     test_mouse \
@@ -786,7 +786,7 @@ $(SANITIZE_RUNS): sanitize-run-%: % $(TMP_DIR)/replay_sanitize
 	@mkdir -p $(SANITIZE_DIR)/$(<D)
 	@./$(TMP_DIR)/replay_sanitize $< /dev/null $(SANITIZE_DIR)/$<.dump.txt > $(SANITIZE_DIR)/$<.log 2>&1 || { cat $(SANITIZE_DIR)/$<.log; echo "sanitize: $< dirty"; exit 1; }
 
-sanitize-net: $(SANITIZE_RUNS)
+sanitize-net: $(SANITIZE_RUNS) unit-run-test_live_slots
 	@echo "sanitize: $(words $(SANITIZE_RUNS)) clean"
 
 .PHONY: sanitize-net $(SANITIZE_RUNS)

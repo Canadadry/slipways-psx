@@ -14,11 +14,12 @@
 
 ## Ce qu'on ne fait pas
 
+- **Ne jamais allonger `make test` ni `make e2e`**, en aucun cas : la boucle doit rester rapide. Une vérification lente va dans une cible à part, hors de `make test-all`.
 - **Ne jamais lancer l'appli raylib.** Pas de fenêtre, pas de serveur X : un agent n'a ni yeux ni souris, il ne verrait rien de ce qu'il ouvre. La vérification se fait sans fenêtre — N frames pilotées par un `events.json` scripté, puis dump texte du framebuffer. Jouer le jeu, c'est le travail d'un humain.
 
 ## Build
 
-- `make test` est la boucle rapide (TU et contrôles statiques, ~25 s). `make e2e` rejoue les e2e de `tests/e2e/` depuis l'écran titre (~1 s). `make test-all` fait les deux. La légende des cibles est en tête du `Makefile`.
+- `make test` est la boucle rapide (TU et contrôles statiques, ~5 s). `make e2e` rejoue les e2e de `tests/e2e/` depuis l'écran titre (~1 s). `make test-all` fait les deux. La légende des cibles est en tête du `Makefile`.
 - `make raylib` compile et linke le binaire interactif sans jamais l'exécuter ; il faut `make raylib-vendor-setup` d'abord — voir `docs/raylib-vendoring.md`.
 
 ## Docs
