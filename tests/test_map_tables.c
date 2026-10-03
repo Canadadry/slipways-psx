@@ -127,7 +127,7 @@ static p8_fixed_t never_drawn(void *ctx) {
 
 /* galaxy_populate() hands weighted_picker_new() every planet_types_table
  * entry, in order, at a multiplier of 2. */
-static void test_weighted_picker_pools_planet_types_entries_by_their_r(void) {
+static void test_weighted_picker_pools_planet_types_entries_by_their_weight(void) {
     weighted_picker_t *state;
     int i;
 
@@ -213,7 +213,7 @@ int main(void) {
     test_resource_names_lookup_finds_each_key();
     test_production_tables_lookup_finds_each_key();
     test_planet_types_lookup_finds_each_name();
-    test_weighted_picker_pools_planet_types_entries_by_their_r();
+    test_weighted_picker_pools_planet_types_entries_by_their_weight();
     test_int_seq_has_fixed_keeps_contains_on_integers();
     test_planet_tree_strings_are_distinct_objects();
     test_technologies_lookup_finds_each_name();
