@@ -1,6 +1,6 @@
 # Plan 7 — Une partie pleine dans 768 Ko
 
-Brouillon, à passer en `plan-converge` avant toute exécution. Premier des cinq plans vers un `.bin/.cue` jouable sur émulateur PSX (plans 7 à 11).
+Premier des cinq plans vers un `.bin/.cue` jouable sur émulateur PSX (plans 7 à 11).
 
 ## 1. Objectif
 
