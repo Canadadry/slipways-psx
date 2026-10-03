@@ -8845,7 +8845,7 @@ file	file	tests/test_composition_residue.c	identifiant	locale	conservé	tests/te
 file	file	tests/test_composition_residue.c	identifiant	locale	conservé	tests/test_composition_residue			c:test_composition_residue.c@892@F@read_file@file
 len	len	tests/test_composition_residue.c	identifiant	locale	conservé	tests/test_composition_residue			c:test_composition_residue.c@954@F@read_file@len
 out	out	tests/test_composition_residue.c	identifiant	locale	conservé	tests/test_composition_residue			c:test_composition_residue.c@41205@F@test_check_fails_only_on_a_named_category_present@out
-ATT	ATT	tests/test_composition_residue.c	identifiant	macro	conservé	tests/test_composition_residue			macro:tests/test_composition_residue.c:ATT
+ATT	REACHABILITY_LIST	tests/test_composition_residue.c	identifiant	macro	renommé	tests/test_composition_residue			macro:tests/test_composition_residue.c:ATT
 DIR	DIR	tests/test_composition_residue.c	identifiant	macro	conservé	tests/test_composition_residue			macro:tests/test_composition_residue.c:DIR
 EMPTY_FOOTER	EMPTY_FOOTER	tests/test_composition_residue.c	identifiant	macro	conservé	tests/test_composition_residue			macro:tests/test_composition_residue.c:EMPTY_FOOTER
 ERR	ERR	tests/test_composition_residue.c	identifiant	macro	conservé	tests/test_composition_residue			macro:tests/test_composition_residue.c:ERR

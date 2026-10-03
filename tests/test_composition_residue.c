@@ -16,7 +16,7 @@
 #define OUT DIR "/out.txt"
 #define ERR DIR "/err.txt"
 #define TREE SRC " " TST
-#define ATT DIR "/reachability.txt"
+#define REACHABILITY_LIST DIR "/reachability.txt"
 #define RESIDUE_2_SITES DIR "/r2.txt"
 #define EMPTY_FOOTER "residue 2: 0 line(s), 0 file(s)\n"
 
@@ -44,7 +44,7 @@ static void write_file(const char *path, const char *text) {
 static int run_residue(const char *args) {
     char cmd[1024];
     snprintf(cmd, sizeof cmd,
-             "COMPOSITION_REACHABILITY=" ATT " COMPOSITION_R2=" RESIDUE_2_SITES
+             "COMPOSITION_REACHABILITY=" REACHABILITY_LIST " COMPOSITION_R2=" RESIDUE_2_SITES
              " sh tools/composition_residue.sh %s > " OUT " 2> " ERR "; echo $? > " DIR "/code",
              args);
     assert(system(cmd) == 0);
@@ -55,7 +55,7 @@ static void setup(void) {
     assert(system("rm -rf " DIR " && mkdir -p " SRC "/engine " SRC "/game " TST) == 0);
     write_file(SRC "/clean.c", "int main(void) { return 0; }\n");
     write_file(TST "/clean_test.c", "int helper(int x) { return x + 1; }\n");
-    write_file(ATT, "");
+    write_file(REACHABILITY_LIST, "");
     write_file(RESIDUE_2_SITES, "");
 }
 
@@ -86,7 +86,7 @@ static void test_one_occurrence_per_category_in_table_order(void) {
                            "jo_t;\n");
     write_file(SRC "/p.h", "typedef struct {\n    pico8_" "jo_t jo;\n} pico8_" "qh_t;\n");
     write_file(SRC "/v.h", "particle_t *pico8_" "g__mm(void *" "self);\n");
-    write_file(ATT, "q1\tx\n");
+    write_file(REACHABILITY_LIST, "q1\tx\n");
     write_file(SRC "/a.h", "#include \"b.h\"\n");
     write_file(SRC "/b.h", "#include \"a.h\"\n");
     write_file(SRC "/k.h", "int k_f(void);\n");
@@ -518,12 +518,12 @@ static void test_detail_prints_r2_sites_after_header_accessors_and_the_info_line
 
 static void test_attainment_list_counts_only_useful_lines(void) {
     setup();
-    write_file(ATT, "# c\n\nq1\tx\n");
+    write_file(REACHABILITY_LIST, "# c\n\nq1\tx\n");
     assert(run_residue(TREE) == 0);
     assert(strcmp(read_file(OUT), "reachability-to-prove\t1\t1\n"
                                   "residue 2: 1 line(s), 1 file(s)\n") == 0);
     assert(run_residue("--check reachability-to-prove " TREE) == 1);
-    assert(strstr(read_file(OUT), "reachability-to-prove: " ATT ":3:q1\tx\n") != NULL);
+    assert(strstr(read_file(OUT), "reachability-to-prove: " REACHABILITY_LIST ":3:q1\tx\n") != NULL);
 }
 
 static void test_mutual_inclusion_counts_its_include_lines_in_the_footer(void) {
@@ -667,7 +667,7 @@ static void test_measure_on_nothing_is_an_error_not_an_empty_residue(void) {
     assert(run_residue("--check parent-link " DIR "/bare") == 2);
     assert(run_residue("--bogus " TREE) == 2);
     setup();
-    assert(system("rm " ATT) == 0);
+    assert(system("rm " REACHABILITY_LIST) == 0);
     assert(run_residue(TREE) == 2);
     assert(strstr(read_file(OUT), "residue 2: 0") == NULL);
     assert(run_residue("--check parent-link " TREE) == 2);
