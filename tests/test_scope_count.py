@@ -150,9 +150,23 @@ class Check(unittest.TestCase):
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         self.assertEqual(table(result)["total"]["total"], 1)
         result = run([decl("global", "gadget", "src/game/gadget.c"),
-                      decl("field", "x", "src/engine/widget.h", "widget_vec_t")], "--check")
+                      decl("field", "x", "src/engine/widget.h", "widget_vec_t"),
+                      decl("field", "y", "src/engine/widget.h", "widget_vec_t")], "--check")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(table(result)["total"]["total"], 0)
+
+    def test_check_fails_on_an_exception_line_that_removed_nothing(self):
+        rows = [decl("field", "x", "src/engine/widget.h", "widget_vec_t")]
+        result = run(rows, "--check")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertEqual(table(result)["total"]["total"], 0)
+        self.assertIn("exceptions.txt:3: removed nothing: field widget_vec_t y", result.stderr)
+        self.assertNotIn("exceptions.txt:2:", result.stderr)
+        result = run(rows)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("removed nothing", result.stdout + result.stderr)
+        result = run(rows, "--check", "--module", "engine/widget")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_check_exits_two_on_a_stale_or_missing_extraction(self):
         run([])

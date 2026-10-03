@@ -19,7 +19,9 @@ function word nor an accent passes (`zone ... pleine, limite 4 places`).
 Files: those of `cart-names-count` (rename_count.source_files), minus this
 counter's own files, which hold its word list. Exceptions: lines
 `column<TAB>module<TAB>word` of the exceptions file, each removing exactly
-the mentions of that word in that column and module. With --substep, the
+the mentions of that word in that column and module; under --check over
+the whole tree (no --module), a line that removed nothing is an error. With
+--substep, the
 files of that sub-step's modules, each mention `done` or `later`: `later`
 when the whole text of its literal, or of its data line, is also a literal
 or a line of a file of a later sub-step (a likely writer elsewhere, whom
@@ -150,8 +152,9 @@ def main(argv):
     substeps = rename_substeps.load(args.substeps) if args.substeps else None
     if args.substep and (substeps is None or args.substep not in substeps.modules):
         parser.error("unknown sub-step %s (or no --substeps)" % args.substep)
-    exceptions = {(column, module, word.lower())
-                  for column, module, word in rename_tables.read_triples(args.exceptions)}
+    numbered = rename_tables.read_numbered_triples(args.exceptions)
+    exceptions = {(column, module, word.lower()) for _, (column, module, word) in numbered}
+    used = set()
     files = [p for p in rename_count.source_files(args.root) if p not in OWN_FILES]
 
     later_wholes = set()
@@ -176,6 +179,7 @@ def main(argv):
         text = read(args.root, path)
         for offset, column, word, whole in mentions(path, text):
             if (column, module, word.lower()) in exceptions:
+                used.add((column, module, word.lower()))
                 continue
             part = None
             if args.substep:
@@ -191,7 +195,13 @@ def main(argv):
     print_table(table, split=bool(args.substep))
     for module in sorted(unplaced):
         print("warning: module %s is in no sub-step of %s" % (module, args.substeps))
-    return 1 if args.check and table else 0
+    dead = []
+    if args.check and not args.module:
+        dead = rename_tables.dead_lines(args.exceptions, numbered, used,
+                                        lambda t: (t[0], t[1], t[2].lower()))
+    for line in dead:
+        print("error: " + line, file=sys.stderr)
+    return 1 if args.check and (table or dead) else 0
 
 
 def print_table(table, split):

@@ -164,6 +164,21 @@ class Exceptions(unittest.TestCase):
         result = run(dict(self.FILES, **{"tools/citations_exceptions.txt": "# the cart\n"}))
         self.assertEqual(counts(result)["tools/citations_exceptions"]["cart"], 1, result.stdout)
 
+    def test_a_line_that_removed_nothing_is_a_warning_after_the_table(self):
+        result = self.run_with(self.LINES)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        lines = result.stdout.splitlines()
+        dead = [i for i, line in enumerate(lines) if "removed nothing" in line]
+        self.assertEqual(len(dead), 1, result.stdout)
+        self.assertTrue(lines[dead[0]].startswith("warning: "), result.stdout)
+        self.assertIn("citations_exceptions.txt:5: removed nothing: lua tools/gadget cart",
+                      lines[dead[0]])
+        total = [i for i, line in enumerate(lines) if line.startswith("TOTAL")]
+        self.assertLess(total[0], dead[0], result.stdout)
+        result = self.run_with(self.LINES, ["--module", "engine/widget"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("removed nothing", result.stdout)
+
     def test_without_lines_the_output_is_unchanged(self):
         before = run(self.FILES).stdout
         empty = os.path.join(WORK, "..", "test_cart_citations_comments_only.txt")

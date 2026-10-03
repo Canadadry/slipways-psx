@@ -5,7 +5,8 @@ recipe and its rename-extract prerequisite, over those units only (the copy
 has no git tree, and a full extraction would cost minutes). A short global
 must turn the scope guard red, a renamed identity of an ambiguous old name
 the AST half of the old-name guard, and the `x`, `y` fields of `vec_t` the
-scope guard once its exceptions are gone; the clean units stay green, and without
+scope guard once its exceptions are gone, and those exception lines the
+guard once no unit declares `vec_t`; the clean units stay green, and without
 libclang the guard fails before any count. Run by `make ast-guard-test`,
 part of `make test-all`: needs libclang and `make rename-tool-setup`.
 
@@ -133,6 +134,17 @@ class AstGuard(unittest.TestCase):
         for column, value in scope["game/planet"].items():
             expected = 2 if column in ("field", "total") else 0
             self.assertEqual(value, expected, "%s\n%s" % (column, text.report(result)))
+
+    def test_without_the_vector_type_its_exception_lines_turn_it_red(self):
+        planet = "int planet_count(void) { return 0; }\n"
+        result = self.guard({PLANET: planet, "tests/test_planet.c": CLEAN_MAIN})
+        self.assertNotEqual(result.returncode, 0, text.report(result))
+        names, scope = self.halves(result)
+        self.assertFalse(any(names["TOTAL"].values()), text.report(result))
+        self.assertFalse(any(scope["total"].values()), text.report(result))
+        for triple in rename_tables.read_triples(os.path.join(REPO, SCOPE_EXCEPTIONS)):
+            self.assertIn("removed nothing: %s" % " ".join(triple), result.stderr,
+                          text.report(result))
 
     def old_identity(self, name, path):
         plant = "static void %s(void) {}\nint main(void) { %s(); return 0; }\n" % (name, name)

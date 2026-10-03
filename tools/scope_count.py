@@ -7,7 +7,9 @@ is a static declared in a function, judged as a local by its scope. Allowed:
 any other local or parameter (a parameter of a function-pointer type has the
 scope of its prototype), and the (kind, parent, name) triples of the
 exceptions file. Exit 0 unless --check: then exit 1 if the total is above 0,
-and 2 if the declarations are missing or older than the sources.
+or, over the whole tree (no --module, no --substep), if an exceptions line
+allowed no refused declaration; and 2 if the declarations are missing or
+older than the sources.
 
 With --cryptic and --table docs/renommage.tsv, the cryptic-locals list
 instead: each local or parameter whose scope spans more than 40 lines (a
@@ -142,11 +144,16 @@ def main(argv):
         print_cryptic(args, selected_module)
         return 0
 
-    exceptions = set(rename_tables.read_triples(args.exceptions))
+    numbered = rename_tables.read_numbered_triples(args.exceptions)
+    exceptions = {triple for _, triple in numbered}
+    used = set()
     table = {}
     for row in rename_tables.read_declarations(args.declarations):
         column = column_of(row)
-        if column is None or (row["kind"], row["parent"], row["name"]) in exceptions:
+        if column is None:
+            continue
+        if (row["kind"], row["parent"], row["name"]) in exceptions:
+            used.add((row["kind"], row["parent"], row["name"]))
             continue
         module = selected_module(row)
         if module is None:
@@ -164,7 +171,12 @@ def main(argv):
         print("%-*s %s %10d" % (width, module, " ".join("%13d" % row[c] for c in COLUMNS),
                                 sum(row.values())))
     warn_if_stale(args)
-    return 1 if args.check and sum(total.values()) else 0
+    dead = []
+    if args.check and not args.module and not args.substep:
+        dead = rename_tables.dead_lines(args.exceptions, numbered, used)
+    for line in dead:
+        print("error: " + line, file=sys.stderr)
+    return 1 if args.check and (sum(total.values()) or dead) else 0
 
 
 def print_cryptic(args, selected_module):

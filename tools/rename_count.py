@@ -24,6 +24,9 @@ Exceptions: the lines `column<TAB>module<TAB>name` of the --exceptions file,
 each removing exactly the mentions of that old name in that column and
 module, in both halves (an AST occurrence carries the old name of its
 identity), before --check and with --substep; that file is not read as code.
+Under --check over the whole tree (no --module), a line of the half counted
+that removed nothing is an error: a line is of the AST half when its column
+is identifier and its name ambiguous, of the text half otherwise.
 
 Historical names: each line of the --historical file (`#` lines skipped) is
 an identifier no row carries, searched as a distinctive name; that file is
@@ -171,7 +174,7 @@ def text_regions(text, ext):
 # --- counting ----------------------------------------------------------------
 
 def count_file(path, text, names, ast_spans, part=None, located=None, halves=("text", "ast"),
-               exceptions=frozenset()):
+               exceptions=frozenset(), used=None):
     """{column: n} for one file; ast_spans maps the (offset, length) of the
     AST occurrences of ambiguous renamed identities in it to their identity;
     halves says which of the text and AST counts to make.
@@ -179,7 +182,7 @@ def count_file(path, text, names, ast_spans, part=None, located=None, halves=("t
     instead; located maps the character offset of an AST occurrence of a
     distinctive renamed identity to that identity, given to part when a
     mention found by text starts there. A (column, module, old name) of
-    exceptions is not counted."""
+    exceptions is not counted, and is added to used if given."""
     located = located or {}
     split = {}
     flat = dict.fromkeys(COLUMNS, 0)
@@ -188,6 +191,8 @@ def count_file(path, text, names, ast_spans, part=None, located=None, halves=("t
     def add(column, name=None, identity=None):
         old = name if name is not None else names.old_of.get(identity)
         if (column, module, old) in exceptions:
+            if used is not None:
+                used.add((column, module, old))
             return
         if part is None:
             flat[column] += 1
@@ -347,8 +352,11 @@ def main(argv):
             return "done" if step is None or substeps.index(step) <= current else "later"
     files = source_files(args.root)
     exceptions = frozenset()
+    numbered = []
+    used = set()
     if args.exceptions:
-        exceptions = frozenset(rename_tables.read_triples(args.exceptions))
+        numbered = rename_tables.read_numbered_triples(args.exceptions)
+        exceptions = frozenset(triple for _, triple in numbered)
         own = os.path.relpath(os.path.abspath(args.exceptions), os.path.abspath(args.root))
         files = [p for p in files if p != own]
     if args.historical:
@@ -390,7 +398,7 @@ def main(argv):
         if distinct:
             located = char_offsets(text, {k: v for k, v in spans.items() if v in distinct})
             spans = {k: v for k, v in spans.items() if v not in distinct}
-        found = count_file(path, text, names, spans, part, located, halves, exceptions)
+        found = count_file(path, text, names, spans, part, located, halves, exceptions, used)
         if part is None:
             found = {module: found}
         else:
@@ -420,7 +428,18 @@ def main(argv):
                             sum(total.values())))
     for note in notes:
         print(note)
-    return 1 if args.check and sum(total.values()) else 0
+    dead = []
+    if args.check and not args.module and args.exceptions:
+        judged = [(n, t) for n, t in numbered if half_of(t, names) in halves]
+        dead = rename_tables.dead_lines(args.exceptions, judged, used)
+    for line in dead:
+        print("error: " + line, file=sys.stderr)
+    return 1 if args.check and (sum(total.values()) or dead) else 0
+
+
+def half_of(triple, names):
+    """The half of the count an exceptions line can act in."""
+    return "ast" if triple[0] == "identifier" and triple[2] in names.ambiguous else "text"
 
 
 def print_split(table, substep, bound):

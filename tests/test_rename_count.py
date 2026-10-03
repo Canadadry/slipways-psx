@@ -442,6 +442,34 @@ class Exceptions(unittest.TestCase):
         self.assertEqual(result.returncode, 1, result.stdout)
         self.assertEqual(table["TOTAL"]["total"], 1, result.stdout)
 
+    def test_check_fails_on_a_line_of_its_half_that_removed_nothing(self):
+        files = {"tools/other.sh": "driver=tmp/replay\n"}
+        result, table = self.run_with(files=files, extra=["--part", "text", "--check"])
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertEqual(table["TOTAL"]["total"], 0, result.stdout)
+        self.assertIn("names_exceptions.txt:2: removed nothing: string tools/frames_ref "
+                      "tmp/pico8_replay", result.stderr)
+        self.assertNotIn("names_exceptions.txt:3:", result.stderr)
+        result, _ = self.run_with(files=files, extra=["--part", "ast", "--check"])
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("names_exceptions.txt:3: removed nothing: identifier game/planet p",
+                      result.stderr)
+        self.assertNotIn("names_exceptions.txt:2:", result.stderr)
+        result, _ = self.run_with(files=files, extra=["--check"])
+        self.assertIn("names_exceptions.txt:2:", result.stderr)
+        self.assertIn("names_exceptions.txt:3:", result.stderr)
+
+    def test_a_live_line_passes_and_a_dead_one_is_not_judged_without_check(self):
+        files = {"tools/frames_ref.sh": "driver=tmp/pico8_replay\n"}
+        result, _ = self.run_with(files=files, extra=["--part", "text", "--check"])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        result, _ = self.run_with(files={"tools/other.sh": "x\n"}, extra=["--part", "text"])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("removed nothing", result.stdout + result.stderr)
+        result, _ = self.run_with(files={"tools/other.sh": "x\n"},
+                                  extra=["--part", "text", "--check", "--module", "tools/*"])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_the_lines_apply_with_substep(self):
         files = {"tools/frames_ref.sh": "driver=tmp/pico8_replay\n",
                  "src/game/planet.c": self.PLANET}

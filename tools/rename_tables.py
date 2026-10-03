@@ -45,9 +45,21 @@ def read_triples(path):
     comments, each cut on tabs into its first three cells, missing ones as
     "". Each file keeps its own schema (`column module word`,
     `kind parent name`)."""
+    return [triple for _, triple in read_numbered_triples(path)]
+
+
+def read_numbered_triples(path):
+    """(line number, triple) of each line read_triples keeps."""
     found = []
     with open(path, encoding="utf-8") as f:
-        for line in f.read().splitlines():
+        for number, line in enumerate(f.read().splitlines(), 1):
             if line.strip() and not line.startswith("#"):
-                found.append(tuple((line.split("\t") + ["", ""])[:3]))
+                found.append((number, tuple((line.split("\t") + ["", ""])[:3])))
     return found
+
+
+def dead_lines(path, numbered, used, key=lambda triple: triple):
+    """`<path>:<line>: removed nothing: <triple>` for each numbered triple
+    whose key is not in used."""
+    return ["%s:%d: removed nothing: %s" % (path, number, " ".join(triple))
+            for number, triple in numbered if key(triple) not in used]

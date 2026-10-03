@@ -1,9 +1,11 @@
 """old-names-guard and french-guard are alive: a reduced copy of the
 working tree (the Makefile, the rename table, tools/*.py, the exception
-files, the historical names and the sub-step table), each violation planted in its own fresh copy,
+files, the file of each module their lines name, the historical names and
+the sub-step table), each violation planted in its own fresh copy,
 then `make -C <copy> <guard>`, the real recipe. Each plant must turn its
 column of its module red, and nothing else; the clean copy, and a plant in
-the module an exception names, stay green. Run by `make text-guards-test`,
+the module an exception names, stay green; an exception line whose module
+file is gone turns its guard red. Run by `make text-guards-test`,
 part of `make test`.
 
 The plants are drawn from the table, the tools and the exception files at
@@ -51,7 +53,7 @@ def copy_tree(work, extra=()):
              + sorted(os.path.relpath(p, REPO) for p in glob.glob(os.path.join(REPO, "tools", "*.py")))
              + sorted(os.path.relpath(p, REPO)
                       for p in glob.glob(os.path.join(REPO, "tools", "*_exceptions.txt")))
-             + list(extra))
+             + excepted_files() + list(extra))
     for path in paths:
         source, target = os.path.join(REPO, path), os.path.join(work, path)
         os.makedirs(os.path.dirname(target), exist_ok=True)
@@ -59,6 +61,22 @@ def copy_tree(work, extra=()):
             shutil.copytree(source, target, ignore=shutil.ignore_patterns("__pycache__"))
         else:
             shutil.copy2(source, target)
+
+
+def excepted_files():
+    """The file of each module that a line of the two guards' exception
+    files names, so that every line removes something in the copy."""
+    found = set()
+    for exceptions in (NAMES_EXCEPTIONS, FRENCH_EXCEPTIONS):
+        for _, module, _ in rename_tables.read_triples(os.path.join(REPO, exceptions)):
+            if module != "Makefile":
+                found.add(module_of_file(module))
+    return sorted(found)
+
+
+def append(work, path, text):
+    with open(os.path.join(work, path), "a", encoding="utf-8") as f:
+        f.write(text)
 
 
 def write(work, path, text):
@@ -166,6 +184,13 @@ class Plants:
         assert strings, "no string line in %s" % FRENCH_EXCEPTIONS
         self.french_exception = strings[0]
         assert self.french_exception[1] != MODULE, "%s excepts %s" % (FRENCH_EXCEPTIONS, MODULE)
+        modules = [t[1] for t in french_triples]
+        alone = [m for m in modules if modules.count(m) == 1 and m != "Makefile"
+                 and not module_of_file(m).endswith(".py")]
+        assert alone, "no data module with a single line in %s" % FRENCH_EXCEPTIONS
+        self.french_alone = next(t for t in french_triples if t[1] == alone[0])
+        assert sum(t[1] == self.name_exception[1] for t in name_triples) == 1, \
+            "%s has more than one line" % self.name_exception[1]
 
 
 PLANTS = Plants()
@@ -197,6 +222,15 @@ class TextGuards(unittest.TestCase):
         for name, value in row.items():
             expected = count if name in (column, "total") else 0
             self.assertEqual(value, expected, "%s\n%s" % (name, report(result)))
+
+    def assert_dead(self, result, exceptions, triple):
+        """Red with an empty table, the line of `triple` named."""
+        self.assertNotEqual(result.returncode, 0, report(result))
+        found = tables(result.stdout)
+        self.assertEqual(len(found), 1, report(result))
+        self.assertFalse(any(found[0]["TOTAL"].values()), report(result))
+        self.assertRegex(result.stderr, r"%s:\d+: removed nothing: %s" % (
+            re.escape(exceptions), re.escape(" ".join(triple))), report(result))
 
     def plant(self, text):
         write(WORK, PLANTED, NEUTRAL + text)
@@ -232,8 +266,12 @@ class TextGuards(unittest.TestCase):
 
     def test_an_excepted_old_name_in_its_module(self):
         path = module_of_file(PLANTS.name_exception[1])
-        write(WORK, path, literal_line(path, PLANTS.name_exception[2]))
+        append(WORK, path, literal_line(path, PLANTS.name_exception[2]))
         self.assert_green(self.guard("old-names-guard"))
+
+    def test_a_name_exception_line_that_removes_nothing(self):
+        os.remove(os.path.join(WORK, module_of_file(PLANTS.name_exception[1])))
+        self.assert_dead(self.guard("old-names-guard"), NAMES_EXCEPTIONS, PLANTS.name_exception)
 
     # --- french-guard -------------------------------------------------------
 
@@ -254,8 +292,12 @@ class TextGuards(unittest.TestCase):
 
     def test_an_excepted_french_word_in_its_module(self):
         path = module_of_file(PLANTS.french_exception[1])
-        write(WORK, path, literal_line(path, PLANTS.french_exception[2]))
+        append(WORK, path, literal_line(path, PLANTS.french_exception[2]))
         self.assert_green(self.guard("french-guard"))
+
+    def test_a_french_exception_line_that_removes_nothing(self):
+        os.remove(os.path.join(WORK, module_of_file(PLANTS.french_alone[1])))
+        self.assert_dead(self.guard("french-guard"), FRENCH_EXCEPTIONS, PLANTS.french_alone)
 
 
 if __name__ == "__main__":

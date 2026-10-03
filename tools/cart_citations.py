@@ -16,8 +16,9 @@ Reads the comment and message regions of tools/rename_count.py, in the
 files it reads, minus this tool's own files and the --exceptions file.
 Exceptions: lines `column<TAB>module<TAB>token`, each removing exactly the
 citations of that token, any case, in that column and module. Prints one
-site per line (`file:line column token`), then the counts per module. Never
-fails: exit 0."""
+site per line (`file:line column token`), then the counts per module, then,
+over the whole tree (no --module, no --substep), a `warning:` line for each
+exceptions line that removed nothing. Never fails: exit 0."""
 
 import argparse
 import fnmatch
@@ -101,9 +102,11 @@ def main(argv):
     names = short_names(args.table)
     skipped = set(OWN_FILES)
     exceptions = set()
+    numbered = []
+    used = set()
     if args.exceptions:
-        exceptions = {(column, module, token.lower())
-                      for column, module, token in rename_tables.read_triples(args.exceptions)}
+        numbered = rename_tables.read_numbered_triples(args.exceptions)
+        exceptions = {(column, module, token.lower()) for _, (column, module, token) in numbered}
         skipped.add(os.path.relpath(os.path.abspath(args.exceptions), os.path.abspath(args.root)))
 
     table = {}
@@ -117,6 +120,7 @@ def main(argv):
             text = f.read()
         for offset, column, token in citations(path, text, module, names):
             if (column, module, token.lower()) in exceptions:
+                used.add((column, module, token.lower()))
                 continue
             print("%s:%d %s %s" % (path, text.count("\n", 0, offset) + 1, column, token))
             table.setdefault(module, dict.fromkeys(COLUMNS, 0))[column] += 1
@@ -131,6 +135,10 @@ def main(argv):
                 total[column] += row[column]
         print("%-*s %s %10d" % (width, module, " ".join("%10d" % row[c] for c in COLUMNS),
                                 sum(row.values())))
+    if args.exceptions and not args.module and not args.substep:
+        for line in rename_tables.dead_lines(args.exceptions, numbered, used,
+                                             lambda t: (t[0], t[1], t[2].lower())):
+            print("warning: " + line)
     return 0
 
 

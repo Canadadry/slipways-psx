@@ -163,6 +163,24 @@ class Check(unittest.TestCase):
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         self.assertIn("src/game/gadget.c:1 comment pour", result.stdout)
 
+    DEAD = EXCEPTIONS + "comment\tgame/gadget\tpour\nstring\tgame/gadget\tdans\n"
+
+    def test_check_fails_on_an_exception_line_that_removed_nothing(self):
+        result = run(self.FILES, self.DEAD, extra=["--check"])
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("exceptions.txt:3: removed nothing: string game/gadget dans",
+                      result.stderr)
+        self.assertNotIn("exceptions.txt:2:", result.stderr)
+        self.assertEqual(counts(result)["TOTAL"]["total"], 0, result.stdout)
+
+    def test_a_dead_line_is_judged_only_by_check_over_the_whole_tree(self):
+        result = run(self.FILES, self.DEAD)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("removed nothing", result.stdout + result.stderr)
+        result = run(self.FILES, self.DEAD, extra=["--check", "--module", "game/gadget"])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("removed nothing", result.stdout + result.stderr)
+
     def test_check_is_refused_with_substep(self):
         result = run(self.FILES, extra=["--check", "--substep", "3b"])
         self.assertEqual(result.returncode, 2)
