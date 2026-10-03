@@ -20,6 +20,11 @@ of those rows. With --substep, the files of that sub-step's modules
 belongs to that sub-step or an earlier one) or `later`, then the residue
 bound.
 
+Exceptions: the lines `column<TAB>module<TAB>name` of the --exceptions file,
+each removing exactly the mentions of that old name in that column and
+module, in both halves (an AST occurrence carries the old name of its
+identity), before --check and with --substep; that file is not read as code.
+
 --part text counts what a text search alone finds, without reading the
 extraction; --part ast the identifier column of the ambiguous names, from
 the extraction; the two add up, column by column, to the count without
@@ -65,6 +70,8 @@ class Names:
         self.ambiguous_identities = {r["identité"] for r in renamed
                                      if r["catégorie"] == "identifiant"
                                      and r["ancien"] in self.ambiguous}
+        self.old_of = {r["identité"]: r["ancien"] for r in renamed
+                       if r["catégorie"] == "identifiant"}
         self.string_sites = {}  # file -> ambiguous names the table lists there
         for r in renamed:
             if r["catégorie"] != "identifiant" and r["ancien"] in self.ambiguous:
@@ -151,19 +158,25 @@ def text_regions(text, ext):
 
 # --- counting ----------------------------------------------------------------
 
-def count_file(path, text, names, ast_spans, part=None, located=None, halves=("text", "ast")):
+def count_file(path, text, names, ast_spans, part=None, located=None, halves=("text", "ast"),
+               exceptions=frozenset()):
     """{column: n} for one file; ast_spans maps the (offset, length) of the
     AST occurrences of ambiguous renamed identities in it to their identity;
     halves says which of the text and AST counts to make.
     With part(path, column, name, identity) -> key, {key: {column: n}}
     instead; located maps the character offset of an AST occurrence of a
     distinctive renamed identity to that identity, given to part when a
-    mention found by text starts there."""
+    mention found by text starts there. A (column, module, old name) of
+    exceptions is not counted."""
     located = located or {}
     split = {}
     flat = dict.fromkeys(COLUMNS, 0)
+    module = rename_derive.module_of(path)
 
     def add(column, name=None, identity=None):
+        old = name if name is not None else names.old_of.get(identity)
+        if (column, module, old) in exceptions:
+            return
         if part is None:
             flat[column] += 1
         else:
@@ -283,6 +296,8 @@ def main(argv):
     parser.add_argument("--part", choices=("text", "ast"), help="only this half of the count")
     parser.add_argument("--check", action="store_true",
                         help="exit 1 if anything is counted, 2 without a fresh extraction")
+    parser.add_argument("--exceptions",
+                        help="lines `column<TAB>module<TAB>name` not counted; not read as code")
     args = parser.parse_args(argv)
     if args.check and args.substep:
         parser.error("--check does not split by sub-step: drop --substep")
@@ -307,6 +322,11 @@ def main(argv):
                     else membership.of_mention(name, column, path))
             return "done" if step is None or substeps.index(step) <= current else "later"
     files = source_files(args.root)
+    exceptions = frozenset()
+    if args.exceptions:
+        exceptions = frozenset(rename_tables.read_triples(args.exceptions))
+        own = os.path.relpath(os.path.abspath(args.exceptions), os.path.abspath(args.root))
+        files = [p for p in files if p != own]
     notes = []
     distinct = set()
     if args.substep:
@@ -343,7 +363,7 @@ def main(argv):
         if distinct:
             located = char_offsets(text, {k: v for k, v in spans.items() if v in distinct})
             spans = {k: v for k, v in spans.items() if v not in distinct}
-        found = count_file(path, text, names, spans, part, located, halves)
+        found = count_file(path, text, names, spans, part, located, halves, exceptions)
         if part is None:
             found = {module: found}
         else:

@@ -150,9 +150,10 @@
 #                       tree, in make test
 # make cart-names-count [MODULES="<module>..."] -> old-name counter: the old
 #                       names of the renamed rows of docs/renommage.tsv still
-#                       in the code, per module and category (short names
-#                       through tmp/ast_rename/occurrences.tsv, make
-#                       rename-extract first); copy in
+#                       in the code, minus tools/cart_names_exceptions.txt,
+#                       per module and category (short names through
+#                       tmp/ast_rename/occurrences.tsv, make rename-extract
+#                       first); copy in
 #                       tmp/ast_rename/cart_names_count.txt, never fails,
 #                       outside the suite; SUBSTEP=<3x>: the modules of the
 #                       sub-step, each mention sorted as done (a name of that
@@ -217,12 +218,14 @@
 #                       fails, outside the suite
 # make old-names-guard -> the old-name guard, text half: the old names of
 #                       docs/renommage.tsv that a text search finds in the code
-#                       (`rename_count.py --part text`), without libclang;
+#                       (`rename_count.py --part text`), minus
+#                       tools/cart_names_exceptions.txt, without libclang;
 #                       fails on any residue; not yet in make test
 # make ast-guard     -> a fresh rename-extract, then the old-name guard, AST
-#                       half (the ambiguous old names as identifiers), and the
-#                       scope guard, both tables printed; fails on any residue;
-#                       not yet in make test
+#                       half (the ambiguous old names as identifiers, minus
+#                       tools/cart_names_exceptions.txt), and the scope guard,
+#                       both tables printed; fails on any residue; not yet in
+#                       make test
 # make french-guard  -> the French guard: french-count over the whole code,
 #                       minus tools/french_exceptions.txt; fails on any
 #                       residue; not yet in make test
@@ -1283,7 +1286,7 @@ cart-names-count:
 	@mkdir -p $(AST_RENAME_DIR)
 	python3 tools/rename_count.py --table $(RENAME_TABLE) \
 	    --occurrences $(AST_RENAME_DIR)/occurrences.tsv --root . \
-	    $(foreach m,$(MODULES),--module '$(m)') \
+	    --exceptions tools/cart_names_exceptions.txt $(foreach m,$(MODULES),--module '$(m)') \
 	    $(if $(SUBSTEP),--substep $(SUBSTEP) --substeps $(RENAME_SUBSTEPS)) \
 	    | tee $(AST_RENAME_DIR)/cart_names_count.txt
 
@@ -1349,13 +1352,15 @@ french-guard:
 	python3 tools/french_count.py --root . --exceptions tools/french_exceptions.txt --check
 
 old-names-guard:
-	python3 tools/rename_count.py --table $(RENAME_TABLE) --root . --part text --check
+	python3 tools/rename_count.py --table $(RENAME_TABLE) --root . --part text --check \
+	    --exceptions tools/cart_names_exceptions.txt
 
 # Both counts run whatever the first returns; the status is the last failure.
 ast-guard: rename-extract
 	status=0; \
 	python3 tools/rename_count.py --table $(RENAME_TABLE) \
-	    --occurrences $(AST_RENAME_DIR)/occurrences.tsv --root . --part ast --check || status=$$?; \
+	    --occurrences $(AST_RENAME_DIR)/occurrences.tsv --root . --part ast --check \
+	    --exceptions tools/cart_names_exceptions.txt || status=$$?; \
 	python3 tools/scope_count.py --declarations $(AST_RENAME_DIR)/declarations.tsv \
 	    --exceptions tools/scope_exceptions.txt --root . --check || status=$$?; \
 	exit $$status

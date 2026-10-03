@@ -373,5 +373,101 @@ class Substep(unittest.TestCase):
         self.assertEqual(residue, "residue 3c: later identifier 0, bound 0", result.stdout)
 
 
+class Exceptions(unittest.TestCase):
+    """--exceptions: each `column<TAB>module<TAB>name` line removes exactly
+    the mentions of that old name in that column and module, in both halves;
+    the file itself is not read as code."""
+
+    ROWS = [
+        ["tmp/pico8_replay", "tmp/replay", "Makefile", "fichier", "binaire", "renommé",
+         "Makefile", "", "écrivain, lecteur", "fichier:tmp/pico8_replay"],
+        ["p", "map_pos", "src/engine/entity.h", "identifiant", "champ", "renommé",
+         "engine/entity", "p", "", "c:@S@h@FI@p"],
+    ]
+    PLANET = "void f(entity_t *e) { int q = e->p; }\n/* `p` */\n"
+    FILES = {
+        "tools/frames_ref.sh": "# tmp/pico8_replay\ndriver=tmp/pico8_replay\n",
+        "tools/other.sh": "driver=tmp/pico8_replay\n",
+        "src/game/planet.c": PLANET,
+        "src/game/ui.c": "void g(entity_t *e) { int q = e->p; }\n",
+    }
+    OCCURRENCES = [
+        ["c:@S@h@FI@p", "src/game/planet.c", PLANET.index("e->p") + 3, 1, "ref"],
+        ["c:@S@h@FI@p", "src/game/ui.c", PLANET.index("e->p") + 3, 1, "ref"],
+    ]
+    LINES = ("# column\tmodule\tname\n"
+             "string\ttools/frames_ref\ttmp/pico8_replay\n"
+             "identifier\tgame/planet\tp\n")
+    EXCEPTIONS = os.path.join(WORK, "tree", "tools", "names_exceptions.txt")
+
+    def run_with(self, lines=None, files=None, extra=()):
+        files = dict(self.FILES if files is None else files)
+        files["tools/names_exceptions.txt"] = self.LINES if lines is None else lines
+        return run(self.ROWS, files, self.OCCURRENCES,
+                   extra=["--exceptions", self.EXCEPTIONS] + list(extra))
+
+    def test_a_line_removes_its_triple_and_only_it(self):
+        result, table = self.run_with()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(table["tools/frames_ref"], {"identifier": 0, "backtick": 0, "string": 0,
+                                                      "comment": 1, "total": 1}, result.stdout)
+        self.assertEqual(table["tools/other"]["string"], 1, result.stdout)
+        self.assertEqual(table["game/planet"], {"identifier": 0, "backtick": 1, "string": 0,
+                                                 "comment": 0, "total": 1}, result.stdout)
+        self.assertEqual(table["game/ui"]["identifier"], 1, result.stdout)
+
+    def test_an_ast_occurrence_is_excepted_by_the_old_name_of_its_identity(self):
+        result, table = self.run_with(extra=["--part", "ast"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("game/planet", table, result.stdout)
+        self.assertEqual(table["game/ui"]["identifier"], 1, result.stdout)
+        result, table = self.run_with(lines="identifier\tgame/planet\tq\n", extra=["--part", "ast"])
+        self.assertEqual(table["game/planet"]["identifier"], 1, result.stdout)
+
+    def test_the_exceptions_file_is_not_counted(self):
+        result, table = self.run_with()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("tools/names_exceptions", table, result.stdout)
+        result, table = run(self.ROWS, dict(self.FILES, **{
+            "tools/names_exceptions.txt": self.LINES}), self.OCCURRENCES)
+        self.assertEqual(table["tools/names_exceptions"]["string"], 1, result.stdout)
+
+    def test_check_passes_when_the_only_residue_is_excepted(self):
+        files = {"tools/frames_ref.sh": "driver=tmp/pico8_replay\n"}
+        result, table = self.run_with(files=files, extra=["--part", "text", "--check"])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(table["TOTAL"]["total"], 0, result.stdout)
+        files["tools/other.sh"] = "driver=tmp/pico8_replay\n"
+        result, table = self.run_with(files=files, extra=["--part", "text", "--check"])
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertEqual(table["TOTAL"]["total"], 1, result.stdout)
+
+    def test_the_lines_apply_with_substep(self):
+        files = {"tools/frames_ref.sh": "driver=tmp/pico8_replay\n",
+                 "src/game/planet.c": self.PLANET}
+        substeps = ("substep\tbound\tmodules\n"
+                    "3a\t9\tgame/planet tools/frames_ref tools/names_exceptions\n")
+        self.run_with(files=files)
+        write(os.path.join(WORK, "substeps_3a.tsv"), substeps)
+        result = subprocess.run(
+            [sys.executable, SCRIPT, "--table", os.path.join(WORK, "renommage.tsv"),
+             "--occurrences", os.path.join(WORK, "occurrences.tsv"),
+             "--root", os.path.join(WORK, "tree"), "--exceptions", self.EXCEPTIONS,
+             "--substep", "3a", "--substeps", os.path.join(WORK, "substeps_3a.tsv")],
+            capture_output=True, text=True)
+        table, _ = parts(result.stdout)
+        self.assertEqual(table[("game/planet", "done")]["backtick"], 1, result.stdout)
+        self.assertEqual(table[("game/planet", "done")]["identifier"], 0, result.stdout)
+        self.assertNotIn(("tools/frames_ref", "done"), table, result.stdout)
+        self.assertNotIn(("tools/names_exceptions", "done"), table, result.stdout)
+
+    def test_without_the_option_the_count_is_unchanged(self):
+        _, with_comments_only = self.run_with(lines="# column\tmodule\tname\n")
+        result, without = run(self.ROWS, self.FILES, self.OCCURRENCES)
+        self.assertEqual(with_comments_only, without, result.stdout)
+        self.assertEqual(without["TOTAL"], {"identifier": 2, "backtick": 1, "string": 2,
+                                            "comment": 1, "total": 6}, result.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()

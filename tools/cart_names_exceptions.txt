@@ -1,0 +1,3 @@
+# column	module	name: old-name counter mentions allowed (docs/plan-5.md, section 5).
+# Only a human decision adds a line.
+string	tools/frames_ref	tmp/pico8_replay
