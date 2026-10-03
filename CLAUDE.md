@@ -10,7 +10,7 @@
 
 - `src/` en six répertoires : `p8/` le runtime PICO-8 émulé (symboles en `p8_`, fichiers sans préfixe) ; `engine/` le socle objet et mémoire, sans planète ni slipway (`entity_t` et les classes dans `entity_class.h`, registres, listes, zones, file de sortie) ; `game/` le jeu ; `platform/` le backend raylib ; `devtools/` la vérification sans fenêtre (dump, rejeu, gif, screencast, couverture de classes) ; `cmd/` un fichier par binaire. Les includes s'écrivent depuis `src/` (`#include "game/planet.h"`, `-Isrc` seul).
 - `tests/` à plat, un `test_<module>.c` par module, les rejeux dans `tests/e2e/` ; `tools/` les scripts de contrôle et les gardes.
-- Les noms sont anglais et complets : aucun préfixe pour le jeu, `p8_` pour le seul runtime ; une fonction exportée s'écrit `module_verbe[_objet]` ; une ou deux lettres seulement pour une locale ou un paramètre dont la portée tient en 40 lignes. Les gardes de `make test` et de `make test-all` le vérifient (voir « Build »). `docs/renommage.tsv` mène d'un nom C au nom du cart.
+- Les noms sont anglais et complets : aucun préfixe pour le jeu, `p8_` pour le seul runtime ; une fonction exportée s'écrit `module_verbe[_objet]` ; une ou deux lettres seulement pour une locale ou un paramètre dont la portée tient en 40 lignes. Les gardes de `make test` et de `make ast-guards` le vérifient (voir « Build »). `docs/renommage.tsv` mène d'un nom C au nom du cart.
 
 ## Ce qu'on ne fait pas
 
@@ -18,7 +18,7 @@
 
 ## Build
 
-- `make test` est la boucle rapide : TU, contrôles statiques et gardes texte (anciens noms, français), sans libclang. `make e2e` rejoue les e2e de `tests/e2e/` depuis l'écran titre (~1 s). `make test-all` fait les deux, plus la garde AST (anciens noms courts, portée) : une extraction libclang, ~2 min 30, qui demande `make rename-tool-setup` ; sans libclang, il échoue. `make test e2e` donne la paire rapide. La légende des cibles est en tête du `Makefile`.
+- `make test` est la boucle rapide : TU, contrôles statiques et gardes texte (anciens noms, français), sans libclang. `make e2e` rejoue les e2e de `tests/e2e/` depuis l'écran titre (~1 s). `make test-all` fait les deux. `make ast-guards` lance la garde AST (anciens noms courts, portée) : une extraction libclang, ~2 min 30, qui demande `make rename-tool-setup` ; on la lance une fois, en fin de phase. La légende des cibles est en tête du `Makefile`.
 - `make raylib` compile et linke le binaire interactif sans jamais l'exécuter ; il faut `make raylib-vendor-setup` d'abord — voir `docs/raylib-vendoring.md`.
 
 ## Docs

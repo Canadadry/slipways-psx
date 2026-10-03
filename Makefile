@@ -12,8 +12,9 @@
 #                       if an e2e lacks its .txt or its .json.sha256, or runs
 #                       past 180 frames (600 if listed in
 #                       tools/e2e_long_exceptions.txt)
-# make test-all      -> test + e2e + ast-guard + ast-guard-test, the full
-#                       suite; needs libclang and make rename-tool-setup,
+# make test-all      -> test + e2e, the full suite, without libclang
+# make ast-guards    -> ast-guard + ast-guard-test, run once at the end of a
+#                       phase; needs libclang and make rename-tool-setup,
 #                       about 2 min 30
 # make gif           -> gif/<name>.gif for each e2e of tests/e2e/: its capture
 #                       at scale 3, with the recorded mouse drawn on top,
@@ -233,7 +234,7 @@
 #                       half (the ambiguous old names as identifiers, minus
 #                       tools/cart_names_exceptions.txt), and the scope guard,
 #                       both tables printed; fails on any residue, in make
-#                       test-all
+#                       ast-guards
 # make french-guard  -> the French guard: french-count over the whole code,
 #                       minus tools/french_exceptions.txt; fails on any
 #                       residue, in make test
@@ -243,7 +244,7 @@
 # make ast-guard-test -> ast-guard alive: planted violations through the real
 #                       target, in a reduced copy of the tree under tmp/,
 #                       over the planted units only; needs libclang and make
-#                       rename-tool-setup, in make test-all
+#                       rename-tool-setup, in make ast-guards
 # make gap-check     -> no old porting-gap marker in src/, tests/, tools/ and
 #                       the Makefile, and each GAP number cited there has its
 #                       title in the porting-gap register of docs/, in make
@@ -251,7 +252,7 @@
 # make gap-check-test -> the tests of tools/gap_check.py on throwaway trees,
 #                       and gap-check through its real recipe, in make test
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test rename-tables-test rename-count-test cart-names-count rename-substeps-test rename-substeps-check rename-strings-verify-test rename-strings-verify rename-rekey-test rename-rekey rename-rekey-check scope-count-test scope-count cryptic-locals cart-citations-test cart-citations french-count-test french-count old-names-guard ast-guard french-guard text-guards-test ast-guard-test gap-check gap-check-test
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref rename-tool-setup rename-tool-test rename-extract rename-apply rename-derive rename-derive-test rename-strings rename-strings-test rename-check-test rename-table-check rename-slice rename-slice-test rename-tables-test rename-count-test cart-names-count rename-substeps-test rename-substeps-check rename-strings-verify-test rename-strings-verify rename-rekey-test rename-rekey rename-rekey-check scope-count-test scope-count cryptic-locals cart-citations-test cart-citations french-count-test french-count old-names-guard ast-guard french-guard text-guards-test ast-guard-test gap-check gap-check-test ast-guards
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -942,7 +943,9 @@ replay: $(TMP_DIR)/replay
 
 test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard rename-derive-test rename-strings-test rename-check-test rename-slice-test rename-tables-test rename-count-test rename-substeps-test rename-substeps-check rename-strings-verify-test rename-rekey-test scope-count-test french-count-test cart-citations-test old-names-guard french-guard text-guards-test gap-check gap-check-test
 
-test-all: test e2e ast-guard ast-guard-test
+test-all: test e2e
+
+ast-guards: ast-guard ast-guard-test
 
 SCREENCAST_BIN := $(TMP_DIR)/screencast.bin
 

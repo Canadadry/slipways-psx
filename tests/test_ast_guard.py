@@ -8,7 +8,7 @@ the AST half of the old-name guard, and the `x`, `y` fields of `vec_t` the
 scope guard once its exceptions are gone, and those exception lines the
 guard once no unit declares `vec_t`; the clean units stay green, and without
 libclang the guard fails before any count. Run by `make ast-guard-test`,
-part of `make test-all`: needs libclang and `make rename-tool-setup`.
+part of `make ast-guards`: needs libclang and `make rename-tool-setup`.
 
 LIBCLANG and AST_RENAME_BINDINGS are read from the environment the recipe
 gives and passed to the child make."""
