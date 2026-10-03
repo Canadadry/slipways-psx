@@ -18,8 +18,9 @@
 #                       the state of the last frame (clock, planets,
 #                       slipways, structures), zone and cap use to
 #                       tmp/state.txt, outside the suite
-# make state         -> replays worst-case/full_game.json and every e2e of
-#                       tests/e2e/, each state in tmp/state/<name>.txt, then
+# make state         -> replays the worst-case/ games (FULL_GAME_EVENTS) and
+#                       every e2e of tests/e2e/, each state in
+#                       tmp/state/<name>.txt, then
 #                       writes to tmp/state.txt the peak of each zone and cap
 #                       over them all, its limit and the replay holding it;
 #                       fails if a replay stops, outside the suite
@@ -40,10 +41,13 @@
 #                       passes when every replay exits cleanly; also runs
 #                       test_live_slots (slots returned after each replay,
 #                       ~11 s), outside the suite
-# make full-game     -> replays worst-case/full_game.json to its last frame
-#                       with the `-O0` binary of make test; passes when the
-#                       replay exits cleanly (fails on any p8_fatal, a full
-#                       zone or cap), outside the suite
+# make full-game     -> replays each worst-case/ game (FULL_GAME_EVENTS:
+#                       full_game.json, then the same game followed by a new
+#                       game from the title, and cut short by pause ->
+#                       restart -> new game) to its last frame with the `-O0`
+#                       binary of make test; passes when every replay exits
+#                       cleanly (fails on any p8_fatal, a full zone or cap),
+#                       outside the suite
 # make constants-check -> compares each P8_FIXED_LIT of the core with its
 #                       recorded hex value
 #                       (tools/pico8_reference_probe_out.txt); fails unless
@@ -824,13 +828,12 @@ sanitize-net: $(SANITIZE_RUNS) unit-run-test_live_slots
 
 .PHONY: sanitize-net $(SANITIZE_RUNS)
 
-FULL_GAME_EVENTS := worst-case/full_game.json
+FULL_GAME_EVENTS := worst-case/full_game.json worst-case/full_game_new_game.json worst-case/full_game_pause_restart.json
 FULL_GAME_DIR := $(TMP_DIR)/full-game
 
 full-game: $(FULL_GAME_EVENTS) $(TMP_DIR)/replay
 	@mkdir -p $(FULL_GAME_DIR)
-	@./$(TMP_DIR)/replay $< /dev/null $(FULL_GAME_DIR)/dump.txt > $(FULL_GAME_DIR)/replay.log 2>&1 || { cat $(FULL_GAME_DIR)/replay.log; echo "full-game: $< stopped"; exit 1; }
-	@echo "full-game: $< clean"
+	@$(foreach e,$(FULL_GAME_EVENTS),./$(TMP_DIR)/replay $(e) /dev/null $(FULL_GAME_DIR)/$(notdir $(e)).dump.txt > $(FULL_GAME_DIR)/$(notdir $(e)).log 2>&1 || { cat $(FULL_GAME_DIR)/$(notdir $(e)).log; echo "full-game: $(e) stopped"; exit 1; }; echo "full-game: $(e) clean"; ) true
 
 .PHONY: full-game
 
