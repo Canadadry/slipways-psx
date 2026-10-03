@@ -25,7 +25,11 @@
  * max_elements; then "game <bytes>", "max_bytes game <bytes>", "load
  * <bytes>", "max_bytes load <bytes>": the game zone, its loading sub-zone
  * and their session maxima. Capture, dump and exit code stay the same; a
- * fill file that cannot be opened gets a message on stderr, still exit 0. */
+ * fill file that cannot be opened gets a message on stderr, still exit 0.
+ *
+ * STATE=<file>, optional, gets the devtools/state text of the last frame,
+ * before the fill file; a p8_fatal during the replay still writes it there,
+ * "stopped p8_fatal frame <n>" first. */
 
 #include "p8/mem.h"
 #include "p8/assets.h"
@@ -34,6 +38,7 @@
 #include "game/cheat.h"
 #include "devtools/dump.h"
 #include "devtools/screencast.h"
+#include "devtools/state.h"
 #include "engine/dispatch_context.h"
 #include "game/cart.h"
 #include "game/ui_zone.h"
@@ -122,7 +127,10 @@ int main(int argc, char **argv) {
     int frame_count = input.frame_count;
     cheat_t cheat;
     cheat_init(&cheat);
-    for (int i = 0; i < frame_count; i++) {
+    const char *state_path = getenv("STATE");
+    static int i;
+    if (state_path != NULL) state_write_on_exit(state_path, &i);
+    for (i = 0; i < frame_count; i++) {
         dispatch_context_set_input(&input);
         cheat_step(&cheat, &input);
         cart_update60();
@@ -159,6 +167,17 @@ int main(int argc, char **argv) {
     int dump_ok = dump_screen(&memory, dump_out);
     fclose(dump_out);
     assert(dump_ok);
+
+    if (state_path != NULL) {
+        state_release();
+        FILE *state_out = fopen(state_path, "w");
+        if (state_out == NULL) {
+            fprintf(stderr, "replay: cannot open the state file '%s'\n", state_path);
+            return 1;
+        }
+        state_write(state_out);
+        fclose(state_out);
+    }
 
     const char *fill_path = getenv("REPLAY_FILL");
     if (fill_path != NULL) {

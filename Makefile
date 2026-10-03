@@ -18,6 +18,10 @@
 # make replay EVENTS=<events> -> replays that file in the headless engine,
 #                       framebuffer dump in tmp/replay_dump.txt, outside the
 #                       suite
+# make state EVENTS=<events> -> make replay with STATE set, which also writes
+#                       the state of the last frame (clock, planets,
+#                       slipways, structures), zone and cap use to
+#                       tmp/state.txt, outside the suite
 # make screencast EVENTS=<events> -> rebuilds the pixels of each frame of that
 #                       replay into tmp/screencast.bin, for screencast-viewer
 # make e2e-baseline  -> sets or resets the .json.sha256 of tests/e2e/ from the
@@ -102,7 +106,7 @@
 #                       (both need make raylib-vendor-setup first)
 # make psx-hello     -> PSX test project (needs psn00bsdk-toolchain-setup)
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay state test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -177,8 +181,8 @@ $(OBJ_SANITIZE_DIR)/%.o: %.c
 # src/cmd/, src/p8/palette.c, the two `src/platform/raylib_backend*.c` and
 # the modules of src/devtools/ that only the tools and the interactive game
 # link (fixed_test_double, gif, minimize, replay_control, replay_source,
-# screencast, screencast_player, session_recorder). Used by the targets that
-# call cart_load(), which pulls in the whole port.
+# screencast, screencast_player, session_recorder, state). Used by the
+# targets that call cart_load(), which pulls in the whole port.
 ENGINE_SRCS := \
     src/p8/assets.c \
     src/p8/audio.c \
@@ -589,13 +593,16 @@ $(TMP_DIR)/test_draw_layers_camera: $(call objs,tests/test_draw_layers_camera.c 
 $(TMP_DIR)/test_demo: $(call objs,tests/test_demo.c src/p8/mem.c src/p8/assets.c src/p8/gfx.c src/p8/input.c src/devtools/input_json.c src/devtools/dump.c) tests/fixtures/demo_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-REPLAY_SRCS := src/cmd/replay.c src/devtools/screencast.c $(ENGINE_SRCS)
+REPLAY_SRCS := src/cmd/replay.c src/devtools/screencast.c src/devtools/state.c $(ENGINE_SRCS)
 
 $(TMP_DIR)/replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/replay_gcov: $(call gcov_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(GCOV_CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_state: $(call objs,tests/test_state.c src/devtools/state.c $(ENGINE_SRCS)) $(TMP_DIR)/replay | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_background_draw: $(call objs,tests/test_background_draw.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
@@ -698,6 +705,7 @@ UNIT_TESTS := \
     test_toast \
     test_message_box \
     test_live_slots \
+    test_state \
     test_modal_backdrop \
     test_mouse \
     test_main_mouse \
@@ -782,14 +790,17 @@ unit-run-test_frames_tool: | unit-run-test_headless_capture
 .PHONY: $(UNIT_RUNS)
 
 # Fails before any compilation rather than replay a default file.
-ifneq ($(filter replay screencast,$(MAKECMDGOALS)),)
+ifneq ($(filter replay screencast state,$(MAKECMDGOALS)),)
     ifeq ($(strip $(EVENTS)),)
-        $(error EVENTS missing: make $(filter replay screencast,$(MAKECMDGOALS)) EVENTS=<events.json>)
+        $(error EVENTS missing: make $(filter replay screencast state,$(MAKECMDGOALS)) EVENTS=<events.json>)
     endif
 endif
 
 replay: $(TMP_DIR)/replay
 	./$(TMP_DIR)/replay $(EVENTS)
+
+state: $(TMP_DIR)/replay
+	STATE=$(TMP_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS)
 
 test: unit constants-check float-grep float-guard alloc-guard data-guard composition-guard
 
