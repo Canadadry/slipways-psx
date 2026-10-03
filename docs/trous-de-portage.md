@@ -35,20 +35,6 @@ puisqu'ils comparent ce port à lui-même.
 
 Fichiers : `src/p8/fixed.c`, `src/p8/quarter_wave.h`.
 
-## GAP-2 — La deuxième manette est câblée à « rien »
-
-Lua : `qb:ph()`, `btn(b) or btn(b,1)`, `btn(b,1)`.
-
-`camera_update` teste le bouton du premier joueur (`p8_btn`) ou celui du
-second, comme le cart. Ce port n'a aucune représentation d'un deuxième
-joueur, ni dans `p8_input_t` (ses trames `p8_input_frame_t`) ni dans
-`events.json`, et n'en aura pas : le bouton du second joueur (`btn_p2`)
-vaut toujours faux.
-
-Sans effet tant que personne ne branche une deuxième manette.
-
-Fichiers : `src/game/scroll.c`, `src/p8/input.h` (le schéma de frame, qui n'a pas de second joueur), `src/platform/raylib_backend.c` (l'endroit où la capture le décide).
-
 ## GAP-3 — Les chaînes ne sont pas internées
 
 Lua : `hy.invented`, `oj`, `jo:gg`, `ho()`, `r`, `hp.o`, `hp.dm`, `kw.qe`,

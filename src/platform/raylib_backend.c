@@ -63,7 +63,6 @@ void raylib_backend_poll_input(raylib_backend_t *backend, p8_input_frame_t *out_
     }
     out_frame->mouse_buttons = buttons;
 
-    /* GAP-2 */
     out_frame->dpad[0] = IsKeyDown(KEY_LEFT) ? 1 : 0;
     out_frame->dpad[1] = IsKeyDown(KEY_RIGHT) ? 1 : 0;
     out_frame->dpad[2] = IsKeyDown(KEY_UP) ? 1 : 0;

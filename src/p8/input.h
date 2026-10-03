@@ -5,7 +5,6 @@
  * stat(32)/stat(33)/stat(34), and dpad[0..5] is btn(0)..btn(5) for that
  * frame (0=left, 1=right, 2=up, 3=down, 4=O, 5=X) -- O and X included
  * despite the name, to keep the events.json key. */
-/* GAP-2 */
 typedef struct {
     int mouse_x;
     int mouse_y;

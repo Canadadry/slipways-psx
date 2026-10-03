@@ -90,11 +90,7 @@ void camera_update(const p8_input_t *input, camera_t *self) {
     dpad_directions = self->archetype->dpad_directions;
 
     for (b = 0; b <= 3; b++) {
-        int btn_p1 = p8_btn(input, b);
-        /* GAP-2 */
-        int btn_p2 = 0;
-
-        if (btn_p1 || btn_p2) {
+        if (p8_btn(input, b)) {
             vec_t dir = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
             if (dpad_directions != NULL && b < dpad_directions->count) {
                 dir = dpad_directions->items[b];
