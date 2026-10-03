@@ -143,8 +143,8 @@ void planet_shutdown(void) {
     g_planet_vanish_roll = NULL;
 }
 
-void planet_set_type_picker(weighted_picker_t *oc) {
-    g_type_picker = oc;
+void planet_set_type_picker(weighted_picker_t *picker) {
+    g_type_picker = picker;
 }
 
 void planet_set_vanish_roll(random_walk_t *ir) {

@@ -184,7 +184,7 @@ down_t planet_left_press(planet_t *self);
 /* The state passed must live until the next call; the previous one is not
  * freed. NULL is the valid way back to none. Both start NULL -- only
  * galaxy_populate sets them. */
-void planet_set_type_picker(weighted_picker_t *oc);
+void planet_set_type_picker(weighted_picker_t *picker);
 void planet_set_vanish_roll(random_walk_t *ir);
 
 /* Mutates the vec_t the planet's `pos` points at, in place: every other

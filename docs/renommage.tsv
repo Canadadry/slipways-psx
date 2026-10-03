@@ -4082,8 +4082,8 @@ keys	keys	src/game/planet.h	identifiant	paramètre	conservé	game/planet			c:pla
 lw	lw	src/game/planet.h	identifiant	paramètre	conservé	game/planet			c:planet.h@6709@F@pico8_jo_cn_dispatch@lw
 me	me	src/game/planet.c	identifiant	paramètre	conservé	game/planet			c:planet.c@5783@F@pico8_jo_prise_zone_rendue@me
 me	me	src/game/planet.h	identifiant	paramètre	conservé	game/planet			c:planet.h@4571@F@pico8_jo_prise_zone_rendue@me
-oc	oc	src/game/planet.c	identifiant	paramètre	conservé	game/planet			c:planet.c@4278@F@pico8_jo_set_oc@oc
-oc	oc	src/game/planet.h	identifiant	paramètre	conservé	game/planet			c:planet.h@7766@F@pico8_jo_set_oc@oc
+oc	picker	src/game/planet.c	identifiant	paramètre	renommé	game/planet			c:planet.c@4907@F@planet_set_type_picker@oc
+oc	picker	src/game/planet.h	identifiant	paramètre	renommé	game/planet			c:planet.h@8115@F@planet_set_type_picker@oc
 out	out	src/game/planet.c	identifiant	paramètre	conservé	game/planet			c:planet.c@7455@F@pico8_jo_lz_mw_step@out
 qa	qa	src/game/planet.c	identifiant	paramètre	conservé	game/planet			c:planet.c@1088@F@pico8_jo_hd_dispatch@qa
 qa	qa	src/game/planet.h	identifiant	paramètre	conservé	game/planet			c:planet.h@5713@F@pico8_jo_hd_dispatch@qa
