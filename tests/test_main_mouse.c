@@ -22,8 +22,8 @@
 #include "game/ui.h"
 #include "engine/vec.h"
 
-#define RECOMPUTE_MOUSE_WORLD_X 0
-#define RECOMPUTE_MOUSE_WORLD_Y 0
+#define UPDATE_MOUSE_WORLD_X 0
+#define UPDATE_MOUSE_WORLD_Y 0
 
 static p8_memory_t mem;
 static p8_graphics_t gfx;
@@ -87,7 +87,7 @@ static void test_placeholder_after_cart_load(void) {
 /* A ui_update on the placeholder, the `ui_t` built by hand since
  * `reset_world()` has not run: no press, `mouse_world` is the camera
  * position alone. */
-static void test_recompute_on_placeholder(void) {
+static void test_update_on_placeholder(void) {
     ui_t *ok;
     const vec_t *qa;
 
@@ -100,7 +100,7 @@ static void test_recompute_on_placeholder(void) {
     qa = ok->mouse_world;
     printf("[update mouse_world] (%d,%d)\n", (int)qa->x, (int)qa->y);
     fflush(stdout);
-    assert(qa->x == RECOMPUTE_MOUSE_WORLD_X && qa->y == RECOMPUTE_MOUSE_WORLD_Y);
+    assert(qa->x == UPDATE_MOUSE_WORLD_X && qa->y == UPDATE_MOUSE_WORLD_Y);
 }
 
 /* Shutdown clears it; every init brings it back; cart_shutdown() and
@@ -176,7 +176,7 @@ int main(void) {
     cart_load();
 
     test_placeholder_after_cart_load();
-    test_recompute_on_placeholder();
+    test_update_on_placeholder();
     test_shutdown_and_init_cycle();
     test_replaced_by_reset_world();
     test_reset_world_without_cart_load();

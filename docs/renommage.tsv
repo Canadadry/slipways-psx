@@ -11810,7 +11810,7 @@ ents_listed	entity_list_listed	tests/test_main_camera.c	identifiant	fonction	ren
 is_a_struct_of	is_a_struct_of	tests/test_main_camera.c	identifiant	fonction	conservé	tests/test_main_camera			c:test_main_camera.c@F@is_a_struct_of
 test_gd_on_placeholder	test_is_on_screen_on_placeholder	tests/test_main_camera.c	identifiant	fonction	renommé	tests/test_main_camera			c:test_main_camera.c@F@test_gd_on_placeholder
 test_gd_under_a_shaken_camera	test_is_on_screen_under_a_shaken_camera	tests/test_main_camera.c	identifiant	fonction	renommé	tests/test_main_camera			c:test_main_camera.c@F@test_gd_under_a_shaken_camera
-test_lj_on_placeholder	test_recompute_on_placeholder	tests/test_main_camera.c	identifiant	fonction	renommé	tests/test_main_camera			c:test_main_camera.c@F@test_lj_on_placeholder
+test_lj_on_placeholder	test_update_on_placeholder	tests/test_main_camera.c	identifiant	fonction	renommé	tests/test_main_camera			c:test_main_camera.c@F@test_lj_on_placeholder
 test_placeholder_after_init	test_placeholder_after_init	tests/test_main_camera.c	identifiant	fonction	conservé	tests/test_main_camera			c:test_main_camera.c@F@test_placeholder_after_init
 test_placeholder_is_a_struct	test_placeholder_is_a_struct	tests/test_main_camera.c	identifiant	fonction	conservé	tests/test_main_camera			c:test_main_camera.c@F@test_placeholder_is_a_struct
 test_replaced_by_jl	test_replaced_by_reset_world	tests/test_main_camera.c	identifiant	fonction	renommé	tests/test_main_camera	jl		c:test_main_camera.c@F@test_replaced_by_jl
@@ -11838,8 +11838,8 @@ saved_p	saved_p	tests/test_main_camera.c	identifiant	locale	conservé	tests/test
 saved_ra	saved_pos	tests/test_main_camera.c	identifiant	locale	renommé	tests/test_main_camera	ra		c:test_main_camera.c@5500@F@test_gd_under_a_shaken_camera@saved_ra
 GD_FAR	IS_ON_SCREEN_FAR	tests/test_main_camera.c	identifiant	macro	renommé	tests/test_main_camera			macro:tests/test_main_camera.c:GD_FAR
 GD_NEAR	IS_ON_SCREEN_NEAR	tests/test_main_camera.c	identifiant	macro	renommé	tests/test_main_camera			macro:tests/test_main_camera.c:GD_NEAR
-LJ_QA_X	RECOMPUTE_MOUSE_WORLD_X	tests/test_main_camera.c	identifiant	macro	renommé	tests/test_main_camera			macro:tests/test_main_camera.c:LJ_QA_X
-LJ_QA_Y	RECOMPUTE_MOUSE_WORLD_Y	tests/test_main_camera.c	identifiant	macro	renommé	tests/test_main_camera			macro:tests/test_main_camera.c:LJ_QA_Y
+LJ_QA_X	UPDATE_MOUSE_WORLD_X	tests/test_main_camera.c	identifiant	macro	renommé	tests/test_main_camera			macro:tests/test_main_camera.c:LJ_QA_X
+LJ_QA_Y	UPDATE_MOUSE_WORLD_Y	tests/test_main_camera.c	identifiant	macro	renommé	tests/test_main_camera			macro:tests/test_main_camera.c:LJ_QA_Y
 QB_RA	CAMERA_POS	tests/test_main_camera.c	identifiant	macro	renommé	tests/test_main_camera	qb		macro:tests/test_main_camera.c:QB_RA
 cls	cls	tests/test_main_camera.c	identifiant	paramètre	conservé	tests/test_main_camera			c:test_main_camera.c@4185@F@is_a_struct_of@cls
 e	e	tests/test_main_camera.c	identifiant	paramètre	conservé	tests/test_main_camera			c:test_main_camera.c@4170@F@is_a_struct_of@e
@@ -11908,7 +11908,7 @@ ents_listed	entity_list_listed	tests/test_main_mouse.c	identifiant	fonction	reno
 is_a_struct_of	is_a_struct_of	tests/test_main_mouse.c	identifiant	fonction	conservé	tests/test_main_mouse			c:test_main_mouse.c@F@is_a_struct_of
 registered	registered	tests/test_main_mouse.c	identifiant	fonction	conservé	tests/test_main_mouse			c:test_main_mouse.c@F@registered
 test_jl_without_cart_load	test_reset_world_without_cart_load	tests/test_main_mouse.c	identifiant	fonction	renommé	tests/test_main_mouse	jl		c:test_main_mouse.c@F@test_jl_without_cart_load
-test_lj_on_placeholder	test_recompute_on_placeholder	tests/test_main_mouse.c	identifiant	fonction	renommé	tests/test_main_mouse			c:test_main_mouse.c@F@test_lj_on_placeholder
+test_lj_on_placeholder	test_update_on_placeholder	tests/test_main_mouse.c	identifiant	fonction	renommé	tests/test_main_mouse			c:test_main_mouse.c@F@test_lj_on_placeholder
 test_placeholder_after_cart_load	test_placeholder_after_cart_load	tests/test_main_mouse.c	identifiant	fonction	conservé	tests/test_main_mouse			c:test_main_mouse.c@F@test_placeholder_after_cart_load
 test_placeholder_is_a_struct	test_placeholder_is_a_struct	tests/test_main_mouse.c	identifiant	fonction	conservé	tests/test_main_mouse			c:test_main_mouse.c@F@test_placeholder_is_a_struct
 test_replaced_by_jl	test_replaced_by_reset_world	tests/test_main_mouse.c	identifiant	fonction	renommé	tests/test_main_mouse	jl		c:test_main_mouse.c@F@test_replaced_by_jl
@@ -11922,8 +11922,8 @@ ok	ok	tests/test_main_mouse.c	identifiant	locale	conservé	tests/test_main_mouse
 placeholder	placeholder	tests/test_main_mouse.c	identifiant	locale	conservé	tests/test_main_mouse			c:test_main_mouse.c@4153@F@test_placeholder_is_a_struct@placeholder
 qa	qa	tests/test_main_mouse.c	identifiant	locale	conservé	tests/test_main_mouse			c:test_main_mouse.c@2401@F@test_lj_on_placeholder@qa
 tags	tags	tests/test_main_mouse.c	identifiant	locale	conservé	tests/test_main_mouse	tags		c:test_main_mouse.c@1204@F@registered@tags
-LJ_QA_X	RECOMPUTE_MOUSE_WORLD_X	tests/test_main_mouse.c	identifiant	macro	renommé	tests/test_main_mouse			macro:tests/test_main_mouse.c:LJ_QA_X
-LJ_QA_Y	RECOMPUTE_MOUSE_WORLD_Y	tests/test_main_mouse.c	identifiant	macro	renommé	tests/test_main_mouse			macro:tests/test_main_mouse.c:LJ_QA_Y
+LJ_QA_X	UPDATE_MOUSE_WORLD_X	tests/test_main_mouse.c	identifiant	macro	renommé	tests/test_main_mouse			macro:tests/test_main_mouse.c:LJ_QA_X
+LJ_QA_Y	UPDATE_MOUSE_WORLD_Y	tests/test_main_mouse.c	identifiant	macro	renommé	tests/test_main_mouse			macro:tests/test_main_mouse.c:LJ_QA_Y
 cls	cls	tests/test_main_mouse.c	identifiant	paramètre	conservé	tests/test_main_mouse			c:test_main_mouse.c@3873@F@is_a_struct_of@cls
 e	e	tests/test_main_mouse.c	identifiant	paramètre	conservé	tests/test_main_mouse			c:test_main_mouse.c@1106@F@registered@e
 e	e	tests/test_main_mouse.c	identifiant	paramètre	conservé	tests/test_main_mouse			c:test_main_mouse.c@3858@F@is_a_struct_of@e
@@ -16233,7 +16233,7 @@ test_cj	test_clear_ephemerals	tests/test_ui.c	identifiant	fonction	renommé	test
 test_click_reaches_a_row_of_le	test_click_reaches_a_row_of_ephemerals	tests/test_ui.c	identifiant	fonction	renommé	tests/test_ui			c:test_ui.c@F@test_click_reaches_a_row_of_le
 test_components_carried	test_components_carried	tests/test_ui.c	identifiant	fonction	conservé	tests/test_ui			c:test_ui.c@F@test_components_carried
 test_fresh	test_fresh	tests/test_ui.c	identifiant	fonction	conservé	tests/test_ui			c:test_ui.c@F@test_fresh
-test_g__t_key_stops_off_row	test_probe_t_key_stops_off_row	tests/test_ui.c	identifiant	fonction	renommé	tests/test_ui	g_		c:test_ui.c@F@test_g__t_key_stops_off_row
+test_g__t_key_stops_off_row	test_probe_state_time_key_at_zero	tests/test_ui.c	identifiant	fonction	renommé	tests/test_ui	g_		c:test_ui.c@F@test_g__t_key_stops_off_row
 test_hover	test_hover	tests/test_ui.c	identifiant	fonction	conservé	tests/test_ui			c:test_ui.c@F@test_hover
 test_init_empties_shared_le	test_init_empties_shared_ephemerals	tests/test_ui.c	identifiant	fonction	renommé	tests/test_ui			c:test_ui.c@F@test_init_empties_shared_le
 test_ke_closed	test_entity_closed	tests/test_ui.c	identifiant	fonction	renommé	tests/test_ui	ke		c:test_ui.c@F@test_ke_closed
@@ -16244,7 +16244,7 @@ test_left	test_left	tests/test_ui.c	identifiant	fonction	conservé	tests/test_ui
 test_right	test_right	tests/test_ui.c	identifiant	fonction	conservé	tests/test_ui			c:test_ui.c@F@test_right
 test_shared	test_shared	tests/test_ui.c	identifiant	fonction	conservé	tests/test_ui			c:test_ui.c@F@test_shared
 test_stale	test_stale	tests/test_ui.c	identifiant	fonction	conservé	tests/test_ui			c:test_ui.c@F@test_stale
-test_ui_held_stops_off_row	test_ui_held_stops_off_row	tests/test_ui.c	identifiant	fonction	conservé	tests/test_ui	ui		c:test_ui.c@F@test_ui_held_stops_off_row
+test_ui_held_stops_off_row	test_ui_held_aborts_on_other_classes	tests/test_ui.c	identifiant	fonction	renommé	tests/test_ui	ui		c:test_ui.c@F@test_ui_held_stops_off_row
 test_ui_is_a_struct	test_ui_is_a_struct	tests/test_ui.c	identifiant	fonction	conservé	tests/test_ui	ui		c:test_ui.c@F@test_ui_is_a_struct
 the_bg	the_background	tests/test_ui.c	identifiant	fonction	renommé	tests/test_ui	bg		c:test_ui.c@F@the_bg
 vec_at	vec_at	tests/test_ui.c	identifiant	fonction	conservé	tests/test_ui			c:test_ui.c@F@vec_at

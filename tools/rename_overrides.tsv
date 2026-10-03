@@ -1515,3 +1515,8 @@ field	pico8_ie_def_t.eh	rest_cursor
 name	shared_gy	shared_cursor	
 identity	c:test_structure_icon.c@11740@F@test_directed@gy_before	cursor_before	
 field	structure_icon_set_cursor.gy	cursor	
+name	test_ui_held_stops_off_row	test_ui_held_aborts_on_other_classes	
+name	test_g__t_key_stops_off_row	test_probe_state_time_key_at_zero	
+name	test_lj_on_placeholder	test_update_on_placeholder	
+name	LJ_QA_X	UPDATE_MOUSE_WORLD_X	
+name	LJ_QA_Y	UPDATE_MOUSE_WORLD_Y	

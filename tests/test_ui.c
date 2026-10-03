@@ -762,7 +762,7 @@ static void hold_given(void *ok) {
     press(ok, g_hold_buttons);
 }
 
-static void test_ui_held_stops_off_row(void) {
+static void test_ui_held_aborts_on_other_classes(void) {
     ui_t *ok = start_game();
     void *left[8];
     void *right[6];
@@ -1128,7 +1128,7 @@ static void test_entity_state_time_by_name(void) {
     check("entity_state_time", hash, ENTITY_STATE_TIME_HASH);
 }
 
-static void test_probe_t_key_stops_off_row(void) {
+static void test_probe_state_time_key_at_zero(void) {
     probe_keys_t keys = {0};
     void *made;
 
@@ -1179,12 +1179,12 @@ int main(void) {
     in_fresh_child(test_click_reaches_a_row_of_ephemerals);
     in_fresh_child(test_init_empties_shared_ephemerals);
     in_fresh_child(test_ui_is_a_struct);
-    in_fresh_child(test_ui_held_stops_off_row);
+    in_fresh_child(test_ui_held_aborts_on_other_classes);
     in_fresh_child(test_entity_closed);
     in_fresh_child(test_entity_state_by_name);
     in_fresh_child(test_components_carried);
     in_fresh_child(test_entity_state_time_by_name);
-    in_fresh_child(test_probe_t_key_stops_off_row);
+    in_fresh_child(test_probe_state_time_key_at_zero);
 
     printf("test_ui: all tests passed\n");
     return 0;

@@ -25,8 +25,8 @@
 
 #define IS_ON_SCREEN_NEAR 1
 #define IS_ON_SCREEN_FAR 0
-#define RECOMPUTE_MOUSE_WORLD_X 0
-#define RECOMPUTE_MOUSE_WORLD_Y 0
+#define UPDATE_MOUSE_WORLD_X 0
+#define UPDATE_MOUSE_WORLD_Y 0
 #define CAMERA_POS 192
 
 static p8_memory_t mem;
@@ -105,7 +105,7 @@ static void test_is_on_screen_on_placeholder(void) {
 /* A ui_update on the placeholder, the `ui_t` built by hand since
  * `reset_world()` has not run: `mouse_world` is the mouse position plus the
  * camera position. */
-static void test_recompute_on_placeholder(void) {
+static void test_update_on_placeholder(void) {
     ui_t *ok;
     const vec_t *qa;
 
@@ -116,7 +116,7 @@ static void test_recompute_on_placeholder(void) {
     qa = ok->mouse_world;
     printf("[update mouse_world] (%d,%d)\n", (int)qa->x, (int)qa->y);
     fflush(stdout);
-    assert(qa->x == RECOMPUTE_MOUSE_WORLD_X && qa->y == RECOMPUTE_MOUSE_WORLD_Y);
+    assert(qa->x == UPDATE_MOUSE_WORLD_X && qa->y == UPDATE_MOUSE_WORLD_Y);
 }
 
 static void test_shutdown_and_init_cycle(void) {
@@ -211,7 +211,7 @@ int main(void) {
 
     test_placeholder_after_init();
     test_is_on_screen_on_placeholder();
-    test_recompute_on_placeholder();
+    test_update_on_placeholder();
     test_shutdown_and_init_cycle();
     test_replaced_by_reset_world();
     test_placeholder_is_a_struct();
