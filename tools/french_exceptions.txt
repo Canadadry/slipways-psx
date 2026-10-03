@@ -14,3 +14,4 @@ string	tests/test_scope_count	conservé
 string	tests/test_scope_count	validé
 string	tools/cart_citations	renommé
 string	tools/scope_count	renommé
+string	Makefile	du
