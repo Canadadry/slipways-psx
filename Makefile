@@ -205,9 +205,10 @@
 # make cart-citations [MODULES="<module>..." | SUBSTEP=<3x>] -> what comments
 #                       and assert messages still cite beyond
 #                       cart-names-count: `cart` (outside game/cart), `Lua`,
-#                       `lua.lua`, bare old names of two characters or less;
-#                       one site per line, then per module; never fails,
-#                       outside the suite
+#                       `lua.lua`, bare old names of two characters or less,
+#                       minus tools/cart_citations_exceptions.txt; one site
+#                       per line, then per module; never fails, outside the
+#                       suite
 # make french-count-test -> the tests of tools/french_count.py on a mini
 #                       tree, in make test
 # make french-count [MODULES="<module>..." | SUBSTEP=<3x>] [SITES=1] -> French
@@ -1338,7 +1339,7 @@ cart-citations-test:
 
 cart-citations:
 	python3 tools/cart_citations.py --table $(RENAME_TABLE) --root . \
-	    $(foreach m,$(MODULES),--module '$(m)') \
+	    --exceptions tools/cart_citations_exceptions.txt $(foreach m,$(MODULES),--module '$(m)') \
 	    $(if $(SUBSTEP),--substep $(SUBSTEP) --substeps $(RENAME_SUBSTEPS))
 
 french-count-test:

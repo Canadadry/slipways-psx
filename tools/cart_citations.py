@@ -13,8 +13,11 @@ module of the file, in three columns:
          name stays counted.
 
 Reads the comment and message regions of tools/rename_count.py, in the
-files it reads, minus this tool's own files. Prints one site per line
-(`file:line column token`), then the counts per module. Never fails: exit 0."""
+files it reads, minus this tool's own files and the --exceptions file.
+Exceptions: lines `column<TAB>module<TAB>token`, each removing exactly the
+citations of that token, any case, in that column and module. Prints one
+site per line (`file:line column token`), then the counts per module. Never
+fails: exit 0."""
 
 import argparse
 import fnmatch
@@ -85,6 +88,8 @@ def main(argv):
     parser.add_argument("--module", action="append",
                         help="only these modules (shell patterns: game/planet*)")
     parser.add_argument("--substep", help="only this sub-step's modules")
+    parser.add_argument("--exceptions",
+                        help="lines `column<TAB>module<TAB>token` not counted; not read")
     args = parser.parse_args(argv)
 
     selected = None
@@ -94,17 +99,25 @@ def main(argv):
             parser.error("unknown sub-step %s (or no --substeps)" % args.substep)
         selected = set(substeps.modules[args.substep])
     names = short_names(args.table)
+    skipped = set(OWN_FILES)
+    exceptions = set()
+    if args.exceptions:
+        exceptions = {(column, module, token.lower())
+                      for column, module, token in rename_tables.read_triples(args.exceptions)}
+        skipped.add(os.path.relpath(os.path.abspath(args.exceptions), os.path.abspath(args.root)))
 
     table = {}
     for path in rename_count.source_files(args.root):
         module = rename_derive.module_of(path)
-        if path in OWN_FILES or (selected is not None and module not in selected):
+        if path in skipped or (selected is not None and module not in selected):
             continue
         if args.module and not any(fnmatch.fnmatchcase(module, m) for m in args.module):
             continue
         with open(os.path.join(args.root, path), encoding="utf-8", errors="replace") as f:
             text = f.read()
         for offset, column, token in citations(path, text, module, names):
+            if (column, module, token.lower()) in exceptions:
+                continue
             print("%s:%d %s %s" % (path, text.count("\n", 0, offset) + 1, column, token))
             table.setdefault(module, dict.fromkeys(COLUMNS, 0))[column] += 1
 

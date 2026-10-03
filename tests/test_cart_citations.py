@@ -122,5 +122,56 @@ class Citations(unittest.TestCase):
         self.assertEqual(sorted(counts(result)), ["TOTAL", "tools/gadget"], result.stdout)
 
 
+class Exceptions(unittest.TestCase):
+    """--exceptions: each `column<TAB>module<TAB>token` line removes exactly
+    the citations of that token, any case, in that column and module; the
+    file itself is not read."""
+
+    FILES = {
+        "Makefile": "# the cart, the Lua of lua.lua\n",
+        "tools/gadget.sh": "# the cart and Lua\n",
+        "src/engine/widget.c": "/* jo and p */\n",
+    }
+    LINES = ("# column\tmodule\ttoken\n"
+             "cart\tMakefile\tcart\n"
+             "lua\tMakefile\tlua\n"
+             "lua\ttools/gadget\tcart\n"
+             "short\tengine/widget\tjo\n")
+
+    def run_with(self, lines, extra=()):
+        files = dict(self.FILES, **{"tools/citations_exceptions.txt": "# the cart\n" + lines})
+        return run(files, ["--exceptions",
+                           os.path.join(WORK, "tree", "tools", "citations_exceptions.txt")]
+                   + list(extra))
+
+    def test_a_line_removes_its_triple_and_only_it_in_any_case(self):
+        result = self.run_with(self.LINES)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        table = counts(result)
+        self.assertEqual(table["Makefile"], {"cart": 0, "lua": 1, "short": 0, "total": 1},
+                         result.stdout)
+        self.assertIn("Makefile:1 lua lua.lua", result.stdout)
+        self.assertNotIn("Makefile:1 lua Lua", result.stdout)
+        self.assertEqual(table["tools/gadget"], {"cart": 1, "lua": 1, "short": 0, "total": 2},
+                         result.stdout)
+        self.assertEqual(table["engine/widget"], {"cart": 0, "lua": 0, "short": 1, "total": 1},
+                         result.stdout)
+
+    def test_the_exceptions_file_is_not_read(self):
+        result = self.run_with(self.LINES)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("tools/citations_exceptions", counts(result), result.stdout)
+        result = run(dict(self.FILES, **{"tools/citations_exceptions.txt": "# the cart\n"}))
+        self.assertEqual(counts(result)["tools/citations_exceptions"]["cart"], 1, result.stdout)
+
+    def test_without_lines_the_output_is_unchanged(self):
+        before = run(self.FILES).stdout
+        empty = os.path.join(WORK, "..", "test_cart_citations_comments_only.txt")
+        write(empty, "# column\tmodule\ttoken\n")
+        self.assertEqual(run(self.FILES, ["--exceptions", empty]).stdout, before)
+        self.assertEqual(counts(run(self.FILES))["TOTAL"],
+                         {"cart": 2, "lua": 3, "short": 2, "total": 7}, before)
+
+
 if __name__ == "__main__":
     unittest.main()

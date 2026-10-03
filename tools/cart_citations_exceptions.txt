@@ -1,0 +1,5 @@
+# column	module	token: citations allowed in comments and messages (docs/plan-5.md, step 4).
+# Only a human decision adds a line.
+cart	Makefile	cart
+lua	Makefile	lua
+lua	Makefile	lua.lua
