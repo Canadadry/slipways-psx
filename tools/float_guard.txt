@@ -10,4 +10,4 @@
 # there, hence an error.
 #
 #
-float-guard files 67 failing 0
+float-guard files 68 failing 0
