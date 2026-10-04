@@ -72,6 +72,16 @@ static void releasing_an_entity_without_a_slot_frees_nothing(void) {
     assert(entity_get(held_id) == &held);
 }
 
+static void a_copy_of_a_live_entity_holds_no_id(void) {
+    entity_t original = {0};
+    new_world();
+    entity_id_t id = entity_id_take(&original);
+    entity_t copy = original;
+    assert(entity_id_is_none(entity_id_of(&copy)));
+    entity_id_release(&copy);
+    assert(entity_get(id) == &original && "releasing a copy frees nothing");
+}
+
 static void generation_wraparound_skips_zero(void) {
     entity_t e = {0};
     int wrapped = 0;
@@ -293,6 +303,7 @@ int main(int argc, char **argv) {
     taken_id_resolves_to_its_entity();
     released_slot_never_resolves_again();
     releasing_an_entity_without_a_slot_frees_nothing();
+    a_copy_of_a_live_entity_holds_no_id();
     generation_wraparound_skips_zero();
     ids_of_a_previous_world_never_resolve();
     live_count_follows_slots_and_peak_survives_reset();

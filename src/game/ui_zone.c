@@ -5,15 +5,15 @@
 #include "engine/slot_group.h"
 #include "engine/zone_sizes.h"
 
-#define BUTTON_SIZE 5880u
+#define BUTTON_SIZE 6056u
 #define BUTTON_COUNT 14u
-#define MODAL_BACKDROP_SIZE 272u
+#define MODAL_BACKDROP_SIZE 280u
 #define MODAL_BACKDROP_COUNT 2u
-#define MESSAGE_BOX_SIZE 5056u
+#define MESSAGE_BOX_SIZE 5128u
 #define MESSAGE_BOX_COUNT 4u
-#define TOAST_SIZE 336u
+#define TOAST_SIZE 344u
 #define TOAST_COUNT 48u
-#define ROW_SIZE 1176u
+#define ROW_SIZE 1184u
 #define ROW_COUNT 71u
 #define EPHEMERALS_SIZE (96u + 24u + UI_EPHEMERALS_RESERVE * 8u)
 #define EPHEMERALS_COUNT 6u

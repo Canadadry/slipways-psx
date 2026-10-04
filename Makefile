@@ -169,6 +169,7 @@ ENGINE_SRCS := \
     src/engine/entity_registry.c \
     src/engine/entity_geom.c \
     src/engine/entity_id.c \
+    src/engine/entity_id_list.c \
     src/engine/exit_queue.c \
     src/platform/fatal_pc.c \
     src/p8/fixed.c \
@@ -184,6 +185,7 @@ ENGINE_SRCS := \
     src/engine/entity.c \
     src/game/layout.c \
     src/engine/entity_list.c \
+    src/engine/value_list.c \
     src/engine/pointer_list.c \
     src/game/map_tables.c \
     src/p8/vram.c \
@@ -370,6 +372,12 @@ $(TMP_DIR)/test_arena: $(call objs,tests/test_arena.c tests/heap_allocator.c src
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_entity_id: $(call objs,tests/test_entity_id.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_entity_id_list: $(call objs,tests/test_entity_id_list.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_value_list: $(call objs,tests/test_value_list.c tests/heap_allocator.c src/engine/value_list.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_entity_list: $(call objs,tests/test_entity_list.c tests/heap_allocator.c src/engine/entity_list.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
@@ -569,6 +577,8 @@ UNIT_TESTS := \
     test_pointer_list \
     test_entity_list \
     test_entity_id \
+    test_entity_id_list \
+    test_value_list \
     test_str \
     test_data_init \
     test_map_tables \

@@ -4,6 +4,7 @@
 #include "p8/fixed.h"
 #include "engine/geom.h"
 #include "engine/vec.h"
+#include "engine/entity_id_type.h"
 
 typedef enum {
     ENTITY_STATE_NONE,
@@ -62,6 +63,7 @@ typedef struct {
     int *is_hovered;
     struct emitter *emitter;
     struct targeting *targeting;
+    entity_id_t id;
 } entity_t;
 
 static inline void entity_init_header(entity_t *self, const entity_class_t *cls) {

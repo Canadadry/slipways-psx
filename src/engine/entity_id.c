@@ -56,16 +56,14 @@ entity_id_t entity_id_take(entity_t *e) {
     g_table.entities[index] = e;
     entity_id_t id = {index, g_table.generations[index]};
     assert(id.generation != 0 && "generation 0 is reserved for ENTITY_ID_NONE");
+    e->id = id;
     if (entity_id_live() > g_max_live) g_max_live = entity_id_live();
     return id;
 }
 
 static int slot_of(const entity_t *e) {
     assert(e != NULL && "a free slot holds NULL: no entity is NULL");
-    if (g_table.entities == NULL) return -1;
-    for (int i = 0; i < ENTITY_TABLE_CAP; i++)
-        if (g_table.entities[i] == e) return i;
-    return -1;
+    return entity_get(e->id) == e ? e->id.index : -1;
 }
 
 void entity_id_release(const entity_t *e) {
@@ -85,10 +83,7 @@ entity_t *entity_get(entity_id_t id) {
 }
 
 entity_id_t entity_id_of(const entity_t *e) {
-    int index = slot_of(e);
-    if (index < 0) return ENTITY_ID_NONE;
-    entity_id_t id = {(uint16_t)index, g_table.generations[index]};
-    return id;
+    return slot_of(e) < 0 ? ENTITY_ID_NONE : e->id;
 }
 
 int entity_id_live(void) {

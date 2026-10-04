@@ -70,15 +70,16 @@ vec_t entity_geom_shake(vec_t p, entity_t *e) {
     return vec_add(p, vec_from_polar(clamped, p8_fixed_mul(t, P8_FIXED_LIT(0x00003333, 0.2))));
 }
 
-static void nearest_step(vec_t p, entity_t *o, p8_fixed_t *mk, entity_t **out_nearest) {
+static p8_fixed_t nearest_step(vec_t p, entity_t *o, p8_fixed_t best, entity_t **out_nearest) {
     vec_t o_p = map_pos_of(o);
     p8_fixed_t d = vec_length_squared(vec_sub(p, o_p));
     int same_position = (p.x == o_p.x && p.y == o_p.y);
 
-    if (!same_position && d < *mk) {
-        *mk = d;
+    if (!same_position && d < best) {
         *out_nearest = o;
+        return d;
     }
+    return best;
 }
 
 p8_fixed_t entity_geom_nearest(vec_t p, const entity_list_t *j_, entity_t **out_nearest) {
@@ -92,8 +93,18 @@ p8_fixed_t entity_geom_nearest(vec_t p, const entity_list_t *j_, entity_t **out_
     }
     it = entity_list_all(j_);
     while (entity_list_iter_next(&it, &o)) {
-        nearest_step(p, o, &mk, out_nearest);
+        mk = nearest_step(p, o, mk, out_nearest);
     }
     return mk;
 }
 
+p8_fixed_t entity_geom_nearest_in_ids(vec_t p, const entity_id_list_t *ids, entity_t **out_nearest) {
+    p8_fixed_t best = p8_fixed_from_int(32767);
+    entity_t *o;
+
+    *out_nearest = NULL;
+    if (ids == NULL) return best;
+    entity_id_list_iter_t it = entity_id_list_all(ids);
+    while (entity_id_list_iter_next(&it, &o)) best = nearest_step(p, o, best, out_nearest);
+    return best;
+}
