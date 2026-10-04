@@ -1,0 +1,129 @@
+clock year 3401 month 1
+resources credits 100
+resources science 0
+resources income 0
+planet p1 unknown planet - world 190.79 301.14
+planet p2 unknown planet - world 261.19 189.72
+planet p3 unknown planet - world 359.17 157.13
+planet p4 unknown planet - world 101.79 35.25
+planet p5 unknown planet - world 20.58 140.58
+planet p6 unknown planet - world 138.70 199.53
+planet p7 unknown planet - world 56.54 346.63
+planet p8 unknown planet - world 56.99 19.85
+planet p9 unknown planet - world 262.13 96.37
+planet p10 unknown planet - world 73.97 234.92
+planet p11 unknown planet - world 201.22 169.12
+planet p12 unknown planet - world 246.61 239.43
+planet p13 unknown planet - world 302.15 204.64
+planet p14 unknown planet - world 170.31 361.50
+planet p15 unknown planet - world 343.84 316.26
+planet p16 unknown planet - world 314.92 353.10
+planet p17 unknown planet - world 48.16 69.70
+planet p18 unknown planet - world 317.43 124.49
+planet p19 unknown planet - world 65.67 140.02
+planet p20 unknown planet - world 256.53 313.84
+planet p21 unknown planet - world 237.45 69.24
+planet p22 unknown planet - world 296.20 277.63
+planet p23 unknown planet - world 254.69 159.33
+planet p24 unknown planet - world 228.05 339.62
+planet p25 unknown planet - world 35.17 115.51
+planet p26 unknown planet - world 105.95 124.05
+planet p27 unknown planet - world 324.82 259.54
+planet p28 unknown planet - world 337.83 91.36
+planet p29 unknown planet - world 235.66 30.07
+planet p30 unknown planet - world 105.82 301.57
+planet p31 unknown planet - world 164.51 149.90
+planet p32 unknown planet - world 141.25 78.69
+planet p33 unknown planet - world 334.01 230.34
+planet p34 unknown planet - world 181.30 28.68
+planet p35 unknown planet - world 366.69 356.09
+planet p36 unknown planet - world 32.75 251.46
+planet p37 unknown planet - world 163.80 118.06
+planet p38 unknown planet - world 367.58 200.41
+planet p39 unknown planet - world 212.26 275.62
+planet p40 unknown planet - world 23.44 188.30
+planet p41 unknown planet - world 296.48 239.60
+planet p42 unknown planet - world 117.43 151.87
+planet p43 unknown planet - world 288.22 327.55
+planet p44 unknown planet - world 310.46 61.30
+planet p45 unknown planet - world 274.34 359.20
+planet p46 unknown planet - world 124.45 365.87
+planet p47 unknown planet - world 291.33 20.54
+planet p48 unknown planet - world 174.34 191.55
+planet p49 unknown planet - world 142.65 260.72
+planet p50 unknown planet - world 207.31 242.32
+planet p51 unknown planet - world 314.92 155.82
+planet p52 unknown planet - world 315.44 299.18
+planet p53 unknown planet - world 86.21 164.44
+planet p54 unknown planet - world 178.53 77.75
+planet p55 unknown planet - world 115.62 65.29
+planet p56 unknown planet - world 107.79 226.12
+planet p57 unknown planet - world 279.64 62.25
+planet p58 unknown planet - world 335.16 34.34
+planet p59 unknown planet - world 156.45 296.80
+planet p60 unknown planet - world 194.99 123.79
+planet p61 unknown planet - world 192.70 215.38
+planet p62 unknown planet - world 269.69 259.89
+planet p63 unknown planet - world 16.72 317.92
+planet p64 unknown planet - world 71.98 96.55
+planet p65 unknown planet - world 360 128.47
+planet p66 unknown planet - world 104.13 343.89
+planet p67 unknown planet - world 46.74 222.10
+planet p68 unknown planet - world 360.61 56.46
+planet p69 unknown planet - world 207.25 56.27
+planet p70 unknown planet - world 282.09 119.32
+planet p71 unknown planet - world 77.65 307.67
+planet p72 unknown planet - world 135.39 29.77
+planet p73 unknown planet - world 21.89 285.09
+planet p74 unknown planet - world 276.30 217.98
+planet p75 unknown planet - world 212.91 84.59
+planet p76 unknown planet - world 52.83 177.60
+planet p77 unknown planet - world 228.97 129
+planet p78 unknown planet - world 28.25 367.19
+planet p79 unknown planet - world 51.32 274.25
+planet p80 unknown planet - world 158.39 330.15
+planet p81 unknown planet - world 179.13 260.43
+planet p82 unknown planet - world 363.93 232.75
+planet p83 unknown planet - world 85.35 272.39
+planet p84 unknown planet - world 26.79 42.31
+planet p85 unknown planet - world 244.46 282.05
+planet p86 unknown planet - world 222.28 198.82
+planet p87 unknown planet - world 339.73 187.63
+planet p88 unknown planet - world 196.62 337.72
+planet p89 unknown planet - world 77.37 63.71
+planet p90 unknown planet - world 88.52 193.52
+count planets 90
+count colonies 0
+count slipways 0
+count structures 0
+count techs 0
+zone game 74432 411128 462520
+zone load 21936 21936 24680
+zone frame 2320 18000 20256
+zone ui 24701 138039 203961
+zone particles 0 60679 73035
+cap button 4 11 14
+cap modal_backdrop 0 1 2
+cap message_box 0 2 4
+cap toast 0 13 48
+cap row 1 63 71
+cap ephemerals 0 5 6
+cap particle 0 788 887
+cap particles 0 16 18
+cap particles_help_screen 0 1 1
+cap burst 0 3 4
+cap transit_dots 0 385 437
+cap exit_queue 0 278 315
+cap elements_particles - 140 158
+cap elements_particles_help_screen - 235 653
+cap elements_transit_dots - 21 24
+cap elements_ephemerals - 7 8
+cap bytes_particles - 1384 1384
+cap bytes_particles_help_screen - 5344 5344
+cap bytes_burst - 568 640
+cap bytes_button - 3768 5880
+cap bytes_modal_backdrop - 240 272
+cap bytes_message_box - 4488 5056
+cap bytes_toast - 296 336
+cap bytes_row - 840 1176
+cap bytes_ephemerals - 184 184

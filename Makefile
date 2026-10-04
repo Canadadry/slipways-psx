@@ -31,6 +31,11 @@
 # make line-coverage-test -> builds and runs test_line_coverage, the test of
 #                       tools/line_coverage.sh; temporary (plan 12), outside
 #                       the suite
+# make oracle        -> make state, then writes to tests/plan12-oracle/ each
+#                       state of tmp/state/ without its camera line and the
+#                       screen and visible fields, and the line coverage of
+#                       every e2e of tests/e2e/ (line_coverage.txt); fails if
+#                       a replay stops; temporary (plan 12), outside the suite
 # make e2e-baseline  -> sets or resets the .json.sha256 of tests/e2e/ from the
 #                       current code, never run by make test
 # make e2e-ref       -> for each diverging e2e, replays the commit that set its
@@ -846,6 +851,17 @@ state: $(STATE_RUNS) tools/state_peaks.sh
 	@sh tools/state_peaks.sh $(TMP_DIR)/state.txt $(foreach e,$(STATE_EVENTS),$(e) $(call state_file,$(e)))
 	@echo "state: $(words $(STATE_EVENTS)) replays, peaks in $(TMP_DIR)/state.txt"
 endif
+
+ORACLE_DIR := tests/plan12-oracle
+
+oracle: state $(TMP_DIR)/replay_gcov tools/line_coverage.sh
+	@rm -rf $(ORACLE_DIR) && mkdir -p $(ORACLE_DIR)
+	@$(foreach e,$(STATE_EVENTS),sed -E '/^camera( |$$)/d; /^(planet|structure) /{s/ screen -?[0-9.]+ -?[0-9.]+//; s/ visible [0-9]+//;}' $(call state_file,$(e)) > $(ORACLE_DIR)/$(notdir $(call state_file,$(e))) && ) true
+	@$(LINE_COVERAGE_COVER) $(E2E_EVENTS) > $(TMP_DIR)/oracle_line_coverage.txt
+	@mv $(TMP_DIR)/oracle_line_coverage.txt $(ORACLE_DIR)/line_coverage.txt
+	@echo "oracle: $(words $(STATE_EVENTS)) states and $$(wc -l < $(ORACLE_DIR)/line_coverage.txt) covered line(s) in $(ORACLE_DIR)"
+
+.PHONY: oracle
 
 # The core sources, where the comparator reads the P8_FIXED_LIT calls.
 constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_gaps.txt tools/pico8_reference_probe_out.txt src/p8/fixed.c src/p8/fixed.h $(CORE_SRCS) | $(TMP_DIR)

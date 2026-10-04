@@ -1,0 +1,39 @@
+clock year - month -
+resources credits -
+resources science -
+resources income -
+count planets 0
+count colonies 0
+count slipways 0
+count structures 0
+count techs 0
+zone game 1608 1608 462520
+zone load 21936 21936 24680
+zone frame 160 160 20256
+zone ui 23709 24079 203961
+zone particles 24485 24485 73035
+cap button 4 4 14
+cap modal_backdrop 0 0 2
+cap message_box 0 0 4
+cap toast 0 0 48
+cap row 0 0 71
+cap ephemerals 1 3 6
+cap particle 580 580 887
+cap particles 0 0 18
+cap particles_help_screen 1 1 1
+cap burst 0 0 4
+cap transit_dots 0 0 437
+cap exit_queue 0 2 315
+cap elements_particles - 0 158
+cap elements_particles_help_screen - 580 653
+cap elements_transit_dots - 0 24
+cap elements_ephemerals - 4 8
+cap bytes_particles - 0 1384
+cap bytes_particles_help_screen - 5344 5344
+cap bytes_burst - 0 640
+cap bytes_button - 720 5880
+cap bytes_modal_backdrop - 0 272
+cap bytes_message_box - 0 5056
+cap bytes_toast - 0 336
+cap bytes_row - 0 1176
+cap bytes_ephemerals - 184 184
