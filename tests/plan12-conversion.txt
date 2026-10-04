@@ -1,0 +1,38 @@
+# Plan 12, step 5: each replay converted to 160x120, its cursor labels compared
+# frame by frame with tests/plan12-cursor-labels/. Temporary, removed at step 7.
+# <replay> identique | sorti <frame> <cause> <original label> <new label>,
+# then butee <frames>|aucune (camera-clamp.txt) and recadre <clamped frames>.
+# Frames count from 0. Causes: butee, recouvrement, trajectoire, ancres multiples.
+full_game sorti 468 trajectoire button:monde carte butee aucune recadre 62
+full_game_new_game sorti 468 trajectoire button:monde carte butee aucune recadre 62
+full_game_pause_restart sorti 468 trajectoire button:monde carte butee aucune recadre 0
+full_game_pause_idle sorti 468 trajectoire button:monde carte butee aucune recadre 0
+title_idle identique butee aucune recadre 300
+camera_drag_dpad identique butee 15-18 recadre 0
+cheat_code identique butee aucune recadre 0
+colony_income_offscreen identique butee aucune recadre 0
+colony_panel identique butee aucune recadre 0
+empty_planet_fade identique butee aucune recadre 0
+game_end_bankrupt identique butee aucune recadre 1
+game_end_final_score identique butee aucune recadre 7
+message_box_hold identique butee aucune recadre 30
+pause_menu_rows identique butee aucune recadre 0
+pause_restart identique butee aucune recadre 0
+place_processor_ascension identique butee aucune recadre 0
+project_tooltip_inputs identique butee aucune recadre 0
+slipgate_outgoing_first identique butee aucune recadre 0
+slipway_build identique butee aucune recadre 0
+slipway_refused identique butee aucune recadre 0
+space_fold_same_spot identique butee aucune recadre 0
+synthesizer_second_link identique butee aucune recadre 0
+tech_geoharvesting_burst identique butee aucune recadre 0
+tech_infraspace_infragate identique butee aucune recadre 0
+tech_nanomaterials_discount identique butee aucune recadre 0
+tech_replication_mechanize identique butee aucune recadre 0
+tech_slipgates_relay identique butee aucune recadre 0
+tech_starbirth_protostar sorti 87 recouvrement planet structure_icon butee aucune recadre 0
+tech_trade_league_hub identique butee aucune recadre 0
+tech_xenofoods_recipes identique butee aucune recadre 0
+trade_rich_mine sorti 126 trajectoire structure carte butee aucune recadre 0
+# Table corrections: <row> <anchor before> -> <anchor after> <replay> <frame>
+aucune

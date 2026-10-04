@@ -42,6 +42,12 @@
 #                       pairs of the e2e .txt still at 128x128 in
 #                       <name>.stale.txt; temporary (plan 12), outside the
 #                       suite
+# make cursor-labels-check -> replays each replay of make state with LABELS
+#                       set, labels in tmp/cursor-labels-check/, and writes
+#                       to tmp/cursor-labels-check.txt its first frame whose
+#                       label differs from tests/plan12-cursor-labels/ (never
+#                       written); fails if a replay stops; temporary (plan
+#                       12), outside the suite
 # make cursor-labels-test -> builds and runs test_cursor_label, the test of
 #                       src/devtools/cursor_label.c and of the LABELS hook of
 #                       tmp/replay; temporary (plan 12), outside the suite
@@ -949,10 +955,23 @@ replay-convert: tools/replay_convert.sh $(CURSOR_ANCHORS)
 	    sh tools/replay_convert.sh convert $$n.128.json $(CURSOR_LABELS_DIR)/$$(basename $$e .json).txt $(CURSOR_ANCHORS) $$e $$n.txt || { echo "replay-convert: $$e failed"; exit 1; }; \
 	    t=$${e%.json}.txt; stale=0; \
 	    if [ -f $$t ]; then sh tools/replay_convert.sh stale-pairs $$t $$n.128.json $$e > $$n.stale.txt || exit 1; stale=$$(wc -l < $$n.stale.txt); fi; \
-	    echo "replay-convert: $$e, $$(grep -c '^recadre ' $$n.txt) clamped, $$stale stale pair(s) in $$t"; \
+	    echo "replay-convert: $$e, $$(grep -c '^recadre ' $$n.txt) clamped$$([ -f $$t ] && echo ", $$stale stale pair(s) in $$t")"; \
 	done
 
 .PHONY: replay-convert
+
+CURSOR_LABELS_CHECK_DIR := $(TMP_DIR)/cursor-labels-check
+
+cursor-labels-check: $(TMP_DIR)/replay tools/replay_convert.sh
+	@rm -rf $(CURSOR_LABELS_CHECK_DIR) && mkdir -p $(CURSOR_LABELS_CHECK_DIR)
+	@for e in $(STATE_EVENTS); do \
+	    b=$$(basename $$e .json); n=$(CURSOR_LABELS_CHECK_DIR)/$$b; \
+	    LABELS=$$n.txt ./$(TMP_DIR)/replay $$e /dev/null $$n.dump.txt > $$n.log 2>&1 || { cat $$n.log; echo "cursor-labels-check: $$e stopped"; exit 1; }; \
+	    printf '%s %s\n' $$b "$$(sh tools/replay_convert.sh first-divergence $(CURSOR_LABELS_DIR)/$$b.txt $$n.txt)"; \
+	done > $(TMP_DIR)/cursor-labels-check.txt || { cat $(TMP_DIR)/cursor-labels-check.txt | tail -2; exit 1; }
+	@echo "cursor-labels-check: $$(grep -c ' identique$$' $(TMP_DIR)/cursor-labels-check.txt)/$(words $(STATE_EVENTS)) identical, details in $(TMP_DIR)/cursor-labels-check.txt"
+
+.PHONY: cursor-labels-check
 
 # The core sources, where the comparator reads the P8_FIXED_LIT calls.
 constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_gaps.txt tools/pico8_reference_probe_out.txt src/p8/fixed.c src/p8/fixed.h $(CORE_SRCS) | $(TMP_DIR)
