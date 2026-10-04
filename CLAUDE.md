@@ -19,6 +19,7 @@ Everything written in the repository is in English: code, comments, docs, e2e no
 
 ## What we don't do
 
+- **Never merge a pull request**, in any way (GitHub tool, `gh`, auto-merge). Merging is the user's job, always; denied in `.claude/settings.json`.
 - **Never make `make test` or `make e2e` slower**, under any circumstances: the loop must stay fast. A slow check goes in a separate target, outside `make test-all`.
 - **Never launch the raylib app.** No window, no X server: an agent has neither eyes nor a mouse and would see nothing of what it opens. Verification is headless — N frames driven by a scripted `events.json`, then a text dump of the framebuffer. Playing the game is a human's job.
 
