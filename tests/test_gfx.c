@@ -423,6 +423,28 @@ static void test_spr_skips_pixels_marked_transparent_by_palt(void) {
     assert(mem.screen[0][0] == 3);
 }
 
+static void test_spr_draws_source_colors_through_the_draw_palette_remap(void) {
+    static const unsigned char grey_block[16] = {0, 1, 1, 129, 1, 1, 5, 13, 1, 1, 5, 5, 1, 1, 5, 5};
+    p8_vram_t mem;
+    p8_graphics_t gfx;
+    p8_vram_init(&mem);
+    p8_gfx_init(&gfx);
+    for (int c = 0; c < 16; c++) {
+        mem.draw_palette[c] = grey_block[c];
+    }
+
+    mem.sprite_sheet[0][0] = 7;
+    mem.sprite_sheet[0][1] = 10;
+    mem.sprite_sheet[0][2] = 3;
+    mem.screen[0][2] = 9;
+
+    p8_spr_default(&gfx, &mem, 0, 0, 0);
+
+    assert(mem.screen[0][0] == 13);
+    assert(mem.screen[0][1] == 5);
+    assert(mem.screen[0][2] == 9);
+}
+
 static void test_mset_writes_base_region_cell(void) {
     p8_vram_t mem;
     p8_vram_init(&mem);
@@ -719,6 +741,7 @@ int main(void) {
     test_spr_default_draws_1x1_sprite_at_world_position();
     test_spr_with_explicit_width_height_draws_multi_block_sprite();
     test_spr_skips_pixels_marked_transparent_by_palt();
+    test_spr_draws_source_colors_through_the_draw_palette_remap();
     test_mset_writes_base_region_cell();
     test_mset_outside_32x32_changes_no_cell();
     test_mset_out_of_range_is_noop();
