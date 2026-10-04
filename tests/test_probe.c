@@ -52,7 +52,7 @@ static int pos_copies(const vec_t *ra, const vec_t *mp) {
 #define LIFE_HASH 0x338111F6u
 #define DROP_ON_HASH 0x49056D9Bu
 #define DROP_OFF_HASH 0x3EA86A53u
-#define HELP_SCREEN_HASH 0x65038722u
+#define HELP_SCREEN_HASH 0x4F451648u
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;

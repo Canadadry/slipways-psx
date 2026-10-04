@@ -38,9 +38,9 @@
 #include "engine/vec.h"
 
 
-#define BUILT_HASH 0x984657B5u
-#define LIFE_HASH 0x22EBE40Eu
-#define HOVER_HASH 0xB2C80DC5u
+#define BUILT_HASH 0x5D3141B1u
+#define LIFE_HASH 0x58FB715Eu
+#define HOVER_HASH 0xEABC449Fu
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
@@ -426,12 +426,44 @@ static void test_life(void) {
         hash = fold_string_member(hash, entity_state_name(fv->header.state));
         assert(entity_list_listed(live_entities(), fv));
     }
-    assert(class_of(fv)->hit_test(&fv->header, vec_ref(64, 10), vec_ref(64, 112)) == 1);
-    assert(class_of(fv)->hit_test(&fv->header, vec_ref(64, 112), vec_ref(64, 10)) == 0);
-    assert(class_of(fv)->hit_test(&fv->header, vec_ref(24, 106), vec_ref(24, 106)) == 1);
-    assert(class_of(fv)->hit_test(&fv->header, vec_ref(23, 106), vec_ref(23, 106)) == 0);
+    {
+        const int link_x = P8_SCREEN_WIDTH / 2;
+        const int link_y = P8_SCREEN_HEIGHT / 2 + 48;
+        const int logo_y = P8_SCREEN_HEIGHT / 2 - 54;
+        const int box_left = P8_SCREEN_WIDTH / 2 - 40;
+        const int box_top = P8_SCREEN_HEIGHT / 2 + 42;
+
+        assert(class_of(fv)->hit_test(&fv->header, vec_ref(link_x, logo_y), vec_ref(link_x, link_y)) == 1);
+        assert(class_of(fv)->hit_test(&fv->header, vec_ref(link_x, link_y), vec_ref(link_x, logo_y)) == 0);
+        assert(class_of(fv)->hit_test(&fv->header, vec_ref(box_left, box_top), vec_ref(box_left, box_top)) == 1);
+        assert(class_of(fv)->hit_test(&fv->header, vec_ref(box_left - 1, box_top), vec_ref(box_left - 1, box_top)) == 0);
+    }
     hash = fnv(hash, (uint32_t)size_of(fv->emitter->particles));
     check("life", hash, LIFE_HASH);
+}
+
+/* The logo, 128 pixels wide, is centered: drawn alone, its rows hold
+ * nothing left of W/2 - 64 or right of W/2 + 63, and reach both columns. */
+static void test_logo_is_centered(void) {
+    probe_t *fv;
+    int left = P8_SCREEN_WIDTH;
+    int right = -1;
+    int x;
+    int y;
+
+    start_title();
+    fv = the_help();
+    p8_cls(&memory);
+    help_screen_draw(&graphics, &memory, fv, vec_make(0, 0));
+    for (y = 0; y < P8_SCREEN_HEIGHT / 2 - 20; y++) {
+        for (x = 0; x < P8_SCREEN_WIDTH; x++) {
+            if (memory.screen[y][x] != 0) {
+                left = x < left ? x : left;
+                right = x > right ? x : right;
+            }
+        }
+    }
+    assert(left == P8_SCREEN_WIDTH / 2 - 64 && right == P8_SCREEN_WIDTH / 2 + 63);
 }
 
 static p8_input_frame_t g_mouse;
@@ -457,7 +489,7 @@ static void test_hover(void) {
 
     start_title();
     fv = the_help();
-    mouse_at(64, 112);
+    mouse_at(P8_SCREEN_WIDTH / 2, P8_SCREEN_HEIGHT / 2 + 48);
     ui_update(&memory, main_ui());
     assert((void *)main_ui()->hovered == fv);
     assert(is_hovered_state(fv) == 2);
@@ -468,11 +500,11 @@ static void test_hover(void) {
     ui_draw_overlay(&graphics, &memory, main_ui());
     drawn = screen_hash();
     p8_cls(&memory);
-    p8_spr_default(&graphics, &memory, 11, 64, 112);
+    p8_spr_default(&graphics, &memory, 11, P8_SCREEN_WIDTH / 2, P8_SCREEN_HEIGHT / 2 + 48);
     assert(drawn == screen_hash());
     h = fnv(h, drawn);
 
-    mouse_at(64, 10);
+    mouse_at(P8_SCREEN_WIDTH / 2, P8_SCREEN_HEIGHT / 2 - 54);
     ui_update(&memory, main_ui());
     assert((void *)main_ui()->hovered != fv);
     assert(is_hovered_state(fv) == 0);
@@ -681,6 +713,7 @@ int main(void) {
     in_fresh_child(test_built);
     in_fresh_child(test_life);
     in_fresh_child(test_hover);
+    in_fresh_child(test_logo_is_centered);
     in_fresh_child(test_particle_takes_the_help_palette);
     in_fresh_child(test_start_game_retires_the_help);
     in_fresh_child(test_help_screen_is_a_struct);

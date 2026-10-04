@@ -215,13 +215,17 @@ const int_seq_t background_tile_choices_seq = {15, background_tile_choices_items
 static const vec_t camera_dpad_directions_items[] = {{-0x10000, 0x0}, {0x10000, 0x0}, {0x0, -0x10000}, {0x0, 0x10000}};
 const vec_seq_t camera_dpad_directions_vecs = {4, camera_dpad_directions_items};
 
-static const data_item_t help_screen_rows_1_items[] = {{.number = 192}, {.number = 0}, {.number = 11}, {.number = 16}, {.number = 4}};
+static const data_item_t help_screen_rows_1_items[] = {{.number = 192}, {.number = P8_SCREEN_WIDTH / 2 - 64}, {.number = P8_SCREEN_HEIGHT / 2 - 53}, {.number = 16},
+    {.number = 4}};
 static const data_row_t help_screen_rows_1 = {.count = 5, .items = help_screen_rows_1_items, .draw_function = DRAW_FUNCTION_SPR};
-static const data_item_t help_screen_rows_2_items[] = {{.number = 172}, {.number = 20}, {.number = 107}, {.number = 2}, {.number = 2}};
+static const data_item_t help_screen_rows_2_items[] = {{.number = 172}, {.number = P8_SCREEN_WIDTH / 2 - 44}, {.number = P8_SCREEN_HEIGHT / 2 + 43}, {.number = 2},
+    {.number = 2}};
 static const data_row_t help_screen_rows_2 = {.count = 5, .items = help_screen_rows_2_items, .draw_function = DRAW_FUNCTION_SPR};
-static const data_item_t help_screen_rows_3_items[] = {{.text = "need help\?"}, {.number = 40}, {.number = 110}, {.number = 13}};
+static const data_item_t help_screen_rows_3_items[] = {{.text = "need help\?"}, {.number = P8_SCREEN_WIDTH / 2 - 24}, {.number = P8_SCREEN_HEIGHT / 2 + 46},
+    {.number = 13}};
 static const data_row_t help_screen_rows_3 = {.count = 4, .items = help_screen_rows_3_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
-static const data_item_t help_screen_rows_4_items[] = {{.text = "slipways.net/help"}, {.number = 40}, {.number = 116}, {.number = 5}};
+static const data_item_t help_screen_rows_4_items[] = {{.text = "slipways.net/help"}, {.number = P8_SCREEN_WIDTH / 2 - 24}, {.number = P8_SCREEN_HEIGHT / 2 + 52},
+    {.number = 5}};
 static const data_row_t help_screen_rows_4 = {.count = 4, .items = help_screen_rows_4_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
 static const data_item_t help_screen_rows_items[] = {{.row = &help_screen_rows_1}, {.row = &help_screen_rows_2}, {.row = &help_screen_rows_3},
     {.row = &help_screen_rows_4}};
@@ -403,7 +407,7 @@ const probe_archetype_t help_screen_archetype = {
     .state_time = 0x0,
     .fold_anchor = 0x10000,
     .layer = 0xa0000,
-    .pos = {0x400000, 0x1c0000},
+    .pos = {P8_FIXED_INT(P8_SCREEN_WIDTH / 2), P8_FIXED_INT(P8_SCREEN_HEIGHT / 2 - 36)},
     .has_pos = 1,
     .fixed_pos = {P8_FIXED_INT(P8_SCREEN_WIDTH / 2 - 30), P8_FIXED_INT(P8_SCREEN_HEIGHT / 2 - 8)},
     .back_color = 0xb0000,
