@@ -21,4 +21,4 @@ Rule for this list: each item is one clear sentence of at most 30 words, readabl
 - [ ] Add a cheat that grants bonus score points, so a short e2e can show the score panel's lit stars.
 - [ ] Before adding any new place where memory is freed, make the list of references cut by `forget` (`src/game/cart.c`) mechanical: the grep inventory missed three (the chosen difficulty, `slipway->end`, `targeted_by`).
 - [ ] On PC, before the PSX port, recompute only the trade routes a change affects, instead of rebuilding everything on every economy recompute.
-- [ ] Decide on GAP-26: an off-screen planet loses the halo of the held object once that object is given back, where the cart would reread its memory.
+- [ ] Decide on GAP-26: an off-screen planet loses the halo of the held object once that object is released, where the cart would reread its memory.
