@@ -1,23 +1,29 @@
 ---
 name: fix-bug
-description: End-to-end pipeline for one reported bug — a fresh help-me-debug agent proves the cause, a fresh tdd agent writes the failing test then the minimal fix, a third fresh agent verifies it independently, and git-commit lands it with the finding in its message. Use when a bug is reported (playtest feedback, crash, wrong rendering) and the user wants it fixed, not merely diagnosed.
+description: Fixes one reported bug end to end — proven cause, failing test, minimal fix, independent check, commit. Also called unattended by check-e2e and plan-pilot.
 ---
 
 # fix-bug
 
 Drives one reported bug to a committed fix through four fresh, memoryless agents. Each stage hands the next one **evidence**, never an opinion: the debug agent hands over a proof, the implementer hands over a failing-then-passing test, the verifier hands over its own independent reproduction.
 
-**Argument**: the bug report — free text, or a path to a file holding it. If none was given, ask the user for the symptom and how they hit it. That question and the commit gate are the only two moments this skill talks to a human.
+**Argument**: the bug report — free text, or a path to a file holding it.
 
 One invocation = one bug. It is not a loop over a backlog; to chain bugs, invoke it again.
 
-## Rule #1 — never wait on the human, except at the commit gate
+## Two modes
 
-Any `QUESTION:` from a sub-agent is answered by spawning a fresh `guideline` agent and relaying its answer back — never by pausing for the user. Same convention `prd-autopilot` already uses.
+**Called by the user.** No report given → ask for the symptom and how they hit it. Then the run is unattended until stage 4, where `git-commit`'s proposal waits for the user's go-ahead. Those are the only two moments this skill talks to a human.
 
-This bites hardest on stage 1: `help-me-debug`'s own "involve the user, they own the environment where the bug lives" checkpoints are redirected to a `guideline` agent here. **Say so in the debug agent's prompt**, so it designs tests it can run itself rather than tests that need the reporter's screen.
+**Called by `check-e2e` or `plan-pilot`.** Nobody is there. The caller writes the report, and the caller is the human at the commit gate: it checks the fix itself and accepts or refuses.
 
-Be honest about what this costs: the bug was very likely observed on the reporter's machine (real window, real macOS), while this pipeline proves causes in a headless sandbox. A cause proven here is proven *about the code*, not about their environment. When the debug agent can only reach an environment-dependent hypothesis, that is an `UNPROVEN:` (see stage 1's gate) — not a green light.
+## Rule #1 — the sub-agents never wait on a human
+
+Any `QUESTION:` from a sub-agent is answered by a fresh `guideline` agent, relayed back — never by pausing for the user.
+
+This bites hardest on stage 1: tell the debug agent that it runs every test itself, headless, so it designs tests it can run rather than tests that need the reporter's screen.
+
+Be honest about what this costs: the bug was very likely observed on the reporter's machine (real window, real OS), while this pipeline proves causes in a headless sandbox. A cause proven here is proven *about the code*, not about their environment. When the debug agent can only reach an environment-dependent hypothesis, that is an `UNPROVEN:` (see stage 1's gate) — not a green light.
 
 ## Rule #2 — no fix before a proven cause
 
@@ -28,7 +34,6 @@ Stage 2 never starts on a plausible cause. The gate after stage 1 is the whole p
 Put these in each sub-agent prompt — a fresh agent knows none of them:
 
 - **Never launch the raylib app interactively** (`CLAUDE.md`). Reproduction is headless: fixed frame count, scripted `events.json`, framebuffer dumped as text.
-- **The Bash hooks reject absolute paths and `git -C`**. Use project-relative paths, never `cd`. They also reject backticks in a command line, heredocs included — write files with the Write tool, not a heredoc.
 - **Only the orchestrator touches git.** Sub-agents never commit, stage, stash, branch or push.
 - **The suite is `make test`** — prefer the Makefile target over invoking a runner directly.
 - **The C is the reference.** A bug is judged against the established behaviour of the C, as covered by the tests and the e2e replays, and against the port's own conventions, cited from a real site in the tree. `pico8/lua.lua` remains as an archive: consult it to understand an intent, never as the yardstick a fix must match.
@@ -50,7 +55,7 @@ Reporting contract:
 **Gate — read the proof, don't skim it.** Every claim about the cause must carry a file excerpt with path and line numbers, the output of a command actually run, or sourced documentation with proof of applicability. "Consistent with", "would explain" and "most likely" are not proofs.
 
 - Proof holds → stage 2.
-- `UNPROVEN:`, or a "proof" that is really a chain of reasoning → spawn **one** more debug agent, handed everything already eliminated so it doesn't retrace it. Still unproven after that → stop and report to the user what is known and which observation is missing. Stopping here is a legitimate outcome of this skill, not a failure of it.
+- `UNPROVEN:`, or a "proof" that is really a chain of reasoning → spawn **one** more debug agent, handed everything already eliminated so it doesn't retrace it. Still unproven after that → stop and report back what is known and which observation is missing. Stopping here is a legitimate outcome of this skill, not a failure of it.
 
 ### 2. Fix it — fresh `tdd` agent
 
@@ -77,11 +82,11 @@ Spawn a third fresh, memoryless agent. It is not handed the implementer's reason
 
 Reporting contract: `VERIFIED:` plus the evidence for each point, or `FAILED:` plus what broke.
 
-On `FAILED:`, route by kind. A mechanical failure (test doesn't compile, wrong path, suite breakage) goes back to stage 2 with the detail. A fix that doesn't actually remove the symptom means the cause wasn't the cause: back to **stage 1**, not stage 2, handed the verifier's evidence. After one such round trip, stop and report to the user rather than spinning.
+On `FAILED:`, route by kind. A mechanical failure (test doesn't compile, wrong path, suite breakage) goes back to stage 2 with the detail. A fix that doesn't actually remove the symptom means the cause wasn't the cause: back to **stage 1**, not stage 2, handed the verifier's evidence. After one such round trip, stop and report back rather than spinning.
 
 ### 4. Commit the fix
 
-Invoke the `git-commit` skill **yourself, in place** — don't delegate it to a sub-agent, since its proposal step waits for the user's go-ahead and a sub-agent can't collect it. This is the one stop in the pipeline.
+Invoke the `git-commit` skill **yourself, in place** — never in a sub-agent. Its proposal goes to whoever holds the gate (see Two modes): the user, or your caller.
 
 The commit message is where the finding is recorded — no journal file, no prose in the code. Write it in English, strictly factual, from the stage-1 bug document and the stage-3 evidence:
 
@@ -101,4 +106,4 @@ Scope the commit to the code fix and its test (`fix:`). A gaps-file edit is a se
 
 ## Stopping conditions
 
-Stop and report to the user when the cause can't be proven after two debug agents, when a `FAILED:` verification survives one round trip, or when the user declines a commit proposal. Never widen the fix, never skip or weaken a test to get green, and never commit on an unproven cause.
+Stop and report back to your caller when the cause can't be proven after two debug agents, when a `FAILED:` verification survives one round trip, or when the commit proposal is refused. Never widen the fix, never skip or weaken a test to get green, and never commit on an unproven cause.

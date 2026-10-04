@@ -1,23 +1,21 @@
 ---
 name: to-prd
-description: Turn the current conversation context into a PRD and publish it to the project issue tracker. Use when user wants to create a PRD from the current context.
+description: Internal — called by plan-pilot for each plan step. Writes the step's PRD to docs/prd/triage/, deciding everything itself.
 ---
 
-This skill takes the current conversation context and codebase understanding and produces a PRD. Do NOT interview the user — just synthesize what you already know.
+Writes one PRD from the context the caller hands over (a plan step and its plan file) and the codebase. Nobody answers questions: decide, and record each decision in the PRD.
 
 ## Process
 
-1. Explore the repo to understand the current state of the codebase, if you haven't already. Use the project's domain glossary vocabulary throughout the PRD, and respect any ADRs in the area you're touching.
+1. Explore the repo to understand the current state of the code the step touches.
 
-2. Sketch out the major modules you will need to build or modify to complete the implementation. Actively look for opportunities to extract deep modules that can be tested in isolation.
+2. Sketch the modules to build or modify. Look for deep modules — a lot of functionality behind a small, testable interface that rarely changes. Decide which modules get tests; record the choice under Testing Decisions.
 
-A deep module (as opposed to a shallow module) is one which encapsulates a lot of functionality in a simple, testable interface which rarely changes.
+3. If the work is too big for one TDD cycle and a natural build order exists, add an Implementation Chunks section listing each chunk in dependency order. When in doubt, cut: a chunk too small costs a commit, a chunk too big costs a failed cycle.
 
-Check with the user that these modules match their expectations. Check with the user which modules they want tests written for.
+4. A question you can't settle from the plan or the code → a fresh `guideline` agent, handed the plan file path and the question. Record its decision under Implementation Decisions.
 
-For big features, actively search these modules for a natural build order; if one exists, add an Implementation Chunks section (after Implementation Decisions) listing each chunk in dependency order. If unsure whether the PRD needs cutting, ask the user.
-
-3. Write the PRD to `docs/prd/triage/<slug>.md` using the frontmatter and template below.
+5. Write the PRD to the path the caller gave (default `docs/prd/triage/<slug>.md`), using the template below, in English.
 
 <prd-template>
 

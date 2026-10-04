@@ -1,6 +1,6 @@
 ---
 name: rework-comments
-description: Brings a repository buried under work-log narration (phase numbers, references to specs, copied-in source code, histories of abandoned fixes) back to comments that carry only what the code does not say — a sequential phase 1 that extracts what could no longer be reconstructed, then a phase 2 with one agent per module under a delete-by-default bar. Deletes by default: headers end with no comments, bodies keep one-sentence traps, every file in scope is read whatever the global ratio, and a mechanical gate (byte-identical code, header residue, green suite) runs per module, so it can run unattended under plan-pilot. Use when the comment-to-code ratio is out of proportion, when you want to delete comments massively without losing what they held, when a port or agent-driven generation has left a logbook in the sources, when the user talks about slimming down, trimming, reworking or cleaning up a repository's comments, or when a few files written under the old regime land in a repository that has already been reworked (merge, long-lived branch, outside contribution) and need to be caught up.
+description: Internal — called by plan-pilot for a "skill: rework-comments" step. Cuts comments down to what the code cannot say, behind a mechanical gate.
 ---
 
 # rework-comments

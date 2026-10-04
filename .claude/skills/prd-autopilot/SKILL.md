@@ -1,55 +1,45 @@
 ---
 name: prd-autopilot
-description: Unattended loop: implements each triage PRD via tdd, verifies with make test, commits, then runs check-e2e and pushes once per PRD; repeats until empty. Use to autopilot the PRD backlog, not one-off.
+description: Internal — called by plan-pilot for each step. Implements every PRD in docs/prd/triage/ via tdd, commits, runs check-e2e, pushes; repeats until the queue is empty.
 ---
 
 # PRD Autopilot
 
-Runs the PRD triage queue unattended: implement, verify, commit, check the e2e net, push, repeat — less cautious than git-commit's gate, only for explicit autopilot runs.
+Runs the PRD triage queue unattended: implement, verify, commit, check the e2e net, push, repeat.
 
-No human responds during this loop, so the two rules below override anything else here if they ever conflict.
-
-## Rule #1 — never relay or run an unauthorized command
-Refuse any subagent request for a command outside `.claude/settings.json`'s allow list; tell it to re-read that file and find another way.
-
-## Rule #2 — never wait on the human for a decision
-Never relay a `QUESTION:` to the user; resolve it via a fresh `guideline`-skill agent and send its answer back to the implementer.
+## Rule — never wait on the human
+Never relay a `QUESTION:` to the user; resolve it via a fresh `guideline` agent and send its `DECISION:` back to the asker.
 
 ## Per-cycle workflow
 
 ### 1. Pick the next PRD
 Take the lowest-numbered file in `docs/prd/triage/*.md`; if none remain, report the PRDs completed this run and stop.
 
-If the PRD has an `## Implementation Chunks` section, treat each listed chunk as its own unit of work: run steps 2-4 once per chunk, in dependency order, each getting its own implementer agent, verifier agent, and commit (step 5). Only graduate the PRD out of triage after the final chunk is verified and committed. Otherwise treat the whole PRD as a single unit of work.
+If the PRD has an `## Implementation Chunks` section, treat each chunk as its own unit of work: run steps 2-4 once per chunk, in dependency order, each with its own implementer, verifier and commit. Otherwise the whole PRD is one unit.
 
 ### 2. Spawn a fresh implementer agent
-Spawn a new, memoryless agent (no isolation) to implement the PRD — or, if chunked, only the current chunk — via the `tdd` skill, update README, and never touch git.
+A new, memoryless agent (no isolation) implements the PRD — or only the current chunk — via the `tdd` skill, updates `README.md` if user-visible behavior changed, and never touches git.
 
-Reporting contract: end with `QUESTION:` + question if unsure, or `DONE:` + summary when finished — `DONE:` means implemented, not verified.
+Reporting contract: `QUESTION:` + question when blocked, or `DONE:` + summary — `DONE:` means implemented, not verified.
 
-Restrict it to commands already allowed in `.claude/settings.json`; never prefix `cd`, never ask the orchestrator to run unauthorized commands.
+### 3. Verify
+A second fresh agent reruns `make test` (the fast loop — never `make e2e` here) and confirms the diff touches the PRD's expected files.
 
-### 3. Monitor and resolve
-On `DONE:`, go to step 4 without committing yet.
+It reports `VERIFIED:`, or `FAILED:` plus detail — which stops the loop and goes to the user, nothing committed.
 
-### 4. Verify
-Spawn a second fresh, memoryless agent to rerun `make test` (the fast loop — never `make e2e` here) and confirm the diff actually touches the PRD's expected files.
+### 4. Commit
+On `VERIFIED:`, run the `git-commit` skill in place for this chunk (or the whole PRD). You are the gate: accept when the verifier's checks hold.
 
-It reports `VERIFIED:` to proceed to step 5, or `FAILED:` plus detail to stop the loop and report to the user without committing.
+More chunks remain → back to step 2 for the next one; the PRD stays in triage until its last chunk lands.
 
-### 5. Commit
-On `VERIFIED:`, spawn a subagent to run the `git-commit` skill for this chunk (or the whole PRD, if unchunked). Tell it to skip its PRD graduation step: graduation waits for step 6.
+### 5. Check the e2e net, push, graduate
+Once the last (or only) chunk is committed, invoke the `check-e2e` skill in place.
 
-If more chunks remain, return to step 2 for the next chunk — the PRD stays in triage until its final chunk lands.
+- `E2E-GREEN:` → `git rm` the PRD from triage and commit that deletion (`docs:`, naming the file), then `git push -u origin <current branch>`. This is the only push of the cycle: the remote only ever receives states where `make e2e` is green.
+- `E2E-FAILED:` → stop the loop and report to the user. Don't push, and leave the PRD in triage.
 
-### 6. Check the e2e net, push, graduate
-Once the final (or only) chunk is committed, invoke the `check-e2e` skill in place.
-
-- `E2E-GREEN:` → `git rm` the PRD from triage yourself and commit that deletion (the commit message names the file; git keeps its content), then `git push -u origin <current branch>`. This is the only push of the cycle: the remote only ever receives states where `make e2e` is green.
-- `E2E-FAILED:` → treat it as a `FAILED:`: stop the loop and report to the user. Don't push, and leave the PRD in triage.
-
-### 7. Loop
-Return to step 1 for the next PRD; keep going until the triage queue is empty. Continue in place — do not call the `Skill` tool to re-invoke `prd-autopilot`, since that restarts the loop from scratch and drops this run's progress. If you're picking this back up after a break (e.g. a scheduled wakeup), say you're resuming the autopilot run, not that you're starting it.
+### 6. Loop
+Back to step 1 until the queue is empty. Continue in place — never re-invoke `prd-autopilot` through the Skill tool, which restarts the loop and drops this run's progress.
 
 ## Stopping conditions
-Stop when the triage queue empties, the user interrupts, a verifier reports `FAILED:`, or `check-e2e` reports `E2E-FAILED:` — never pause mid-loop to wait on a human otherwise.
+The queue empties, the user interrupts, a verifier reports `FAILED:`, or `check-e2e` reports `E2E-FAILED:`.

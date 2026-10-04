@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Test-driven development with red-green-refactor loop. Use when user wants to build features or fix bugs using TDD, mentions "red-green-refactor", wants integration tests, or asks for test-first development.
+description: Internal — called by prd-autopilot and fix-bug implementers. Red-green-refactor, one behavior at a time, tests through the public interface.
 ---
 
 # Test-Driven Development
@@ -46,20 +46,18 @@ RIGHT (vertical):
 
 ### 1. Planning
 
-When exploring the codebase, use the project's domain glossary so that test names and interface vocabulary match the project's language, and respect ADRs in the area you're touching.
+Nobody answers questions: decide from the PRD or bug document you were handed, and the code. Before writing any code:
 
-Before writing any code:
+- [ ] Decide the interface changes needed
+- [ ] List the behaviors to test, most important first — not implementation steps. You can't test everything: critical paths and complex logic first.
+- [ ] Look for [deep modules](deep-modules.md) (small interface, deep implementation)
+- [ ] Design interfaces for [testability](interfaces-design.md): illegal states unrepresentable, core logic pure
 
-- [ ] Confirm with user what interface changes are needed
-- [ ] Confirm with user which behaviors to test (prioritize)
-- [ ] Identify opportunities for [deep modules](deep-modules.md) (small interface, deep implementation)
-- [ ] Design interfaces for [testability](interface-design.md): illegal states unrepresentable, core logic pure
-- [ ] List the behaviors to test (not implementation steps)
-- [ ] Get user approval on the plan
+A blocking question the inputs can't settle → end with `QUESTION:`; your caller gets it answered.
 
-Ask: "What should the public interface look like? Which behaviors are most important to test?"
+## Where tests live
 
-**You can't test everything.** Confirm with the user exactly which behaviors matter most. Focus testing effort on critical paths and complex logic, not every possible edge case.
+One `tests/test_<module>.c` per module, registered in the Makefile's `UNIT_TESTS`, run by `make test`. A test drives the module's public interface through the real path — "integration-style" below means that, not a new e2e. Never add a replay to `tests/e2e/`.
 
 ### 2. Tracer Bullet
 
@@ -72,11 +70,11 @@ GREEN: Write minimal code to pass → test passes
 
 This is your tracer bullet - proves the path works end-to-end.
 
-**Running tests**: always prefer `make test` (or the project's equivalent target) over invoking the test runner directly. Check for a `Makefile` or `package.json` test script first; use it if present.
+**Running tests**: `make test`, never a test binary run alone as the final check.
 
 ### 3. Incremental Loop
 
-For each remaining behavior, extend the same integration test rather than writing isolated unit tests:
+For each remaining behavior, extend the module's test file:
 
 ```
 RED:   Extend the test, type, or signature for the next behavior → fails
