@@ -194,3 +194,12 @@ The 12 header pointers, then the derived fields the header points at (`header.po
 - `src/game/planet.c` (2): g_type_picker, g_planet_vanish_roll (game-zone generators that `galaxy_populate` hands to the planet module)
 - `src/game/research.c` (2): g_projects[], g_projects_by_name[].project (a game-side registry that owns the load-zone research projects; section 2 allows only the engine registry)
 - `src/game/wormhole.h` (1): wormhole_t.too_far_target (non-`const` pointer to a file-scope sentinel, always the same address)
+
+### Step 1.1
+
+- Done: `tools/pointer_guard.sh` (one awk pass over source text, ~50 ms), `tests/test_pointer_guard.c` (~0.1 s), `tools/pointer_guard_exceptions.txt`, `pointer-guard` in `make test`. `make test` wall time unchanged (5.72 s vs 5.75 s, 8 alternating pairs). `make e2e` green, no `*.sha256` changed, nothing in `src/` touched.
+- Final counts: 241 pointers in 39 files, 13 `entity_list_t` in 7 files. Sorting above: 104 allowed, step 3: 28 + 13 lists, step 4: 33, step 5: 30, Unsorted: 46.
+- Differs from the plan: `entity_t` has exactly `class` + the 12 step-4 pointers, but `pos` and `map_pos` are pointers to pointer fields of the derived struct, so 21 derived fields (`pos`, `pos_before_shake`…) sort under step 4, not step 5; step 5 has 15 owned values/aliases, not 25, and 15 lists by pointer as planned. Research projects are not entities (load zone, never registered): the step-3 links to them (`planet_t.project`, `button_t.project`…) need an id that is not an entity handle.
+- The guard counts `entity_list_t` only: no game `pointer_list_t` holds entities (read from the code, not a `guideline` decision).
+- Deviation: sub-agents had no tool to spawn `guideline`; no `guideline` decision was needed for step 1.
+- **Unsorted is not empty (46): the run stops before step 2, pending the user.**
