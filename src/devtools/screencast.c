@@ -31,9 +31,8 @@ int screencast_write_frame(screencast_writer_t *writer, const p8_vram_t *mem) {
         for (int x = 0; x < P8_SCREEN_WIDTH; x += 2) {
             unsigned char even = mem->screen[y][x];
             unsigned char odd = mem->screen[y][x + 1];
-            /* Above 0x0f, a pixel spills into its neighbour's nibble. */
-            assert(even <= 0x0f);
-            assert(odd <= 0x0f);
+            assert(even <= 0x0f && "screencast: a pixel above 0x0f spills into its neighbour's nibble");
+            assert(odd <= 0x0f && "screencast: a pixel above 0x0f spills into its neighbour's nibble");
             packed[i++] = (unsigned char)(even | (odd << 4));
         }
     }
