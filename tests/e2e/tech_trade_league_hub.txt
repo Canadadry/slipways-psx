@@ -1,17 +1,17 @@
-« trade league » avec la triche : un trading hub reçoit deux ressources
-différentes et passe au niveau 2. 83 frames.
+"trade league" with the cheat: a trading hub receives two different
+resources and reaches level 2. 83 frames.
 
-- f0 : clic « reasonable » sur l'écran titre (76,70).
-- f2 : sonde `g_` en (71,46) ; f11-27 : `mz` tenu en (96,51) : « p27 »
-  (104,33) minérale, « p48 » (94,69) forgeworld.
-- f35, f37 : « p27 » en « mine » ; f39, f41 : « p48 » en « nanotech ».
-- f43-54 : triche O O X X O O X X : 99 de recherche.
-- f55-66 : « space folding », « geneseeds » (première rangée (30,24)),
-  puis « trade league » (quatrième rangée (30,50)).
-- f67-70 : trading hub glissé de son icône (134,116) en (116,58).
-- f71-78 : slipways de « p27 » puis de « p48 » vers le hub.
-- f79 : saut d'année `ix[1]` (150,0) : le hub reçoit ore et tech
-  (`dh`, branche `nl`), niveau 2 ; son `nl:ly` accélère la pulsation
-  (f81-82).
+- f0: click "reasonable" on the title screen (76,70).
+- f2: probe `g_` at (71,46). f11-27: `mz` held at (96,51). "p27"
+  (104,33) is mineral, "p48" (94,69) is a forgeworld.
+- f35, f37: "p27" becomes a "mine". f39, f41: "p48" becomes "nanotech".
+- f43-54: cheat O O X X O O X X: 99 research.
+- f55-66: "space folding", "geneseeds" (first row (30,24)), then
+  "trade league" (fourth row (30,50)).
+- f67-70: trading hub dragged from its icon (134,116) to (116,58).
+- f71-78: slipways from "p27", then from "p48", to the hub.
+- f79: year skip `ix[1]` (150,0). The hub receives ore and tech
+  (`dh`, branch `nl`) and reaches level 2. Its `nl:ly` speeds up the
+  pulse (f81-82).
 
-Relecture humaine dans raylib : à faire.
+Human review in raylib: pending.

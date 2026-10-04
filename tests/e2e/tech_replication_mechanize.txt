@@ -1,14 +1,14 @@
-« replication » avec la triche : « mechanize » change une planète
-minérale en forgeworld. 66 frames.
+"replication" with the cheat: "mechanize" turns a mineral planet into a
+forgeworld. 66 frames.
 
-- f0 : clic « reasonable » sur l'écran titre (76,70).
-- f2 : sonde `g_` en (71,46) ; f11-27 : `mz` tenu en (96,51) : « p27 »
-  (104,33) minérale.
-- f35-46 : triche : 99 de recherche.
-- f47-54 : « space folding », « geneseeds » (première rangée (30,24)).
-- f55 : écran techno ; f58 : cinquième rangée (30,58), prise une frame
-  après l'ouverture, pendant que le panneau glisse : « replication ».
-- f60, f62 : menu de « p27 », deuxième rangée « mechanize » (116,55) :
-  `jo:hu`, branche `go`, « p27 » devient une forgeworld.
+- f0: click "reasonable" on the title screen (76,70).
+- f2: probe `g_` at (71,46). f11-27: `mz` held at (96,51). "p27"
+  (104,33) is mineral.
+- f35-46: cheat: 99 research.
+- f47-54: "space folding", "geneseeds" (first row (30,24)).
+- f55: tech screen. f58: fifth row (30,58), picked one frame after the
+  screen opens, while the panel is sliding in: "replication".
+- f60, f62: menu of "p27", second row "mechanize" (116,55). `jo:hu`,
+  branch `go`. "p27" becomes a forgeworld.
 
-Relecture humaine dans raylib : à faire.
+Human review in raylib: pending.

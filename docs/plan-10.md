@@ -1,30 +1,30 @@
-# Plan 10 — Backend PSX : rendu GPU et manette
+# Plan 10 — PSX backend: GPU rendering and controller
 
-Brouillon, à passer en `plan-converge` avant toute exécution. Quatrième des cinq plans vers un `.bin/.cue` PSX (plans 7 à 11).
+Draft: run it through `plan-converge` before executing anything. Fourth of the five plans toward a PSX `.bin/.cue` (plans 7 to 11).
 
-## 1. Objectif
+## 1. Goal
 
-Le jeu complet compilé pour MIPS, dans un `.bin/.cue` qui démarre dans l'émulateur, affiche l'écran titre et se pilote à la manette.
+The full game compiled for MIPS, in a `.bin/.cue` that boots in the emulator, shows the title screen and is driven by the controller.
 
-## 2. Approche
+## 2. Approach
 
-- **Rendu GPU.** Chaque dessin PICO-8 (`cls`, `pset`, `line`, `rect`, `rectfill`, `circ`, `circfill`, `spr`, `map`, `print`, `fillp`, `palt`) devient des primitives GPU, au lieu d'un framebuffer 160×120 recopié. Les sprites et la police vivent en VRAM.
-- **Écart accepté.** Le rendu PSX peut différer de quelques pixels du PC (cercles, lignes). L'écart sera jugé sur place, pas avant.
-- **Manette.** La couche boutons → souris du plan 8, branchée sur le pilote de manette.
-- **Le cœur ne bouge pas.** Seuls `src/p8/` et un nouveau `src/platform/` PSX s'adaptent.
-- **Prérequis.** Plans 7 à 9 finis ; le plan 7 a laissé 1 980 o sous 768 Ko de zones, les tampons de primitives GPU vivent dans la moitié libérée. Le plan 9 sort une capture de VRAM, pas seulement du TTY : l'étape 4 s'y vérifie.
-- **Invariant de chaque commit.** `make test-all` passe, les `*.sha256` de `tests/e2e/` ne changent pas, `make test` et `make e2e` ne ralentissent pas ; `make sanitize-net`, `make full-game` et `make state` (marge, cf. plan 8 étape 0) passent aussi.
+- **GPU rendering.** Each PICO-8 draw call (`cls`, `pset`, `line`, `rect`, `rectfill`, `circ`, `circfill`, `spr`, `map`, `print`, `fillp`, `palt`) becomes GPU primitives, instead of copying a 160×120 framebuffer. Sprites and the font live in VRAM.
+- **Accepted divergence.** PSX rendering may differ from PC by a few pixels (circles, lines). The difference will be judged when we get there, not before.
+- **Controller.** Plan 8's button → mouse layer, wired to the controller driver.
+- **The core doesn't move.** Only `src/p8/` and a new PSX `src/platform/` adapt.
+- **Prerequisites.** Plans 7 to 9 done. Plan 7 left 1,980 bytes under the 768 KB of zones; the GPU primitive buffers live in the half it freed. Plan 9 produces a VRAM capture, not just TTY output: step 4 is checked against it.
+- **Invariant for every commit.** `make test-all` passes, the `*.sha256` in `tests/e2e/` don't change, `make test` and `make e2e` don't get slower; `make sanitize-net`, `make full-game` and `make state` (with the margin, see plan 8 step 0) pass too.
 
-## 3. Étapes
+## 3. Steps
 
-1. **Le cœur compile pour MIPS.** Sans rendu, il tourne N frames, et les appels libc restants (`fopen`, `snprintf`, `__divdi3`…) sont remplacés ou fournis. Fini quand l'état après N frames, sorti en TTY dans l'émulateur, égale celui du PC (`make state`) sur les lignes du jeu (horloge, planètes, slipways, structures) ; les lignes `zone` et `cap` sont relevées comme première mesure MIPS pour le plan 11.
-2. **Assets.** Sprites, carte et police embarqués sans parser JSON au démarrage.
-3. **Séparer l'API de dessin de son backend.** Le logiciel actuel reste pour PC et e2e, et le GPU s'ajoute pour la PSX. Les e2e PC ne changent pas.
-4. **Primitives GPU,** une famille à la fois, chacune vérifiée par une capture VRAM en émulateur (plan 9).
-5. **Manette** branchée, puis l'écran titre passé dans l'émulateur via une entrée scriptée.
-6. **`.bin/.cue` du jeu** produit par une cible `make`.
+1. **The core compiles for MIPS.** Without rendering, it runs N frames, and the remaining libc calls (`fopen`, `snprintf`, `__divdi3`…) are replaced or provided. Done when the state after N frames, printed over TTY in the emulator, matches the PC's (`make state`) on the game lines (clock, planets, slipways, structures). The `zone` and `cap` lines are recorded as a first MIPS measurement for plan 11.
+2. **Assets.** Sprites, map and font embedded without parsing JSON at startup.
+3. **Separate the drawing API from its backend.** The current software renderer stays for PC and the e2e, and the GPU one is added for PSX. The PC e2e don't change.
+4. **GPU primitives,** one family at a time, each checked by a VRAM capture in the emulator (plan 9).
+5. **Controller** wired, then the title screen passed in the emulator through scripted input.
+6. **The game's `.bin/.cue`** produced by a `make` target.
 
-## 4. Points ouverts
+## 4. Open questions
 
-- `fillp`, `palt` et la palette de dessin (blocs copiés dans la palette de dessin par `hud.c`) sur GPU : motif ou CLUT par texture, ou retour au logiciel pour ces cas. Tranché au début de l'étape 4.
-- Le rejeu d'un `events.json` dans l'émulateur, pour réutiliser les e2e. Tranché avant l'étape 5, qui en a besoin.
+- `fillp`, `palt` and the draw palette (blocks copied into the draw palette by `hud.c`) on the GPU: a pattern or a per-texture CLUT, or fall back to software for these cases. Decided at the start of step 4.
+- Replaying an `events.json` in the emulator, to reuse the e2e. Decided before step 5, which needs it.

@@ -83,7 +83,7 @@ On `FAILED:`, route by kind. A mechanical failure (test doesn't compile, wrong p
 
 Invoke the `git-commit` skill **yourself, in place** — don't delegate it to a sub-agent, since its proposal step waits for the user's go-ahead and a sub-agent can't collect it. This is the one stop in the pipeline.
 
-The commit message is where the finding is recorded — no journal file, no prose in the code. Write it in French, strictly factual, from the stage-1 bug document and the stage-3 evidence:
+The commit message is where the finding is recorded — no journal file, no prose in the code. Write it in English, strictly factual, from the stage-1 bug document and the stage-3 evidence:
 
 - the symptom as reported, and what surfaced it (human playtest, scripted replay, sanitizer);
 - **the hypothesis that was disproved**, when there was one — as valuable as the cause itself, since it's what spares the next reader the same detour;
@@ -95,7 +95,7 @@ Write it yourself rather than delegating: you hold both the proof and the verifi
 What the commit message must NOT absorb, because it belongs in the working tree instead:
 
 - a trap a future reader could reintroduce → an `assert` carrying a message at the exact spot, or, when the invariant isn't checkable at runtime, a comment of at most 40 words there;
-- a divergence from the cart that stays open → a numbered entry in `docs/trous-de-portage.md`, referenced from the code by a bare `/* GAP-n */`;
+- a divergence from the cart that stays open → a numbered entry in `docs/porting-gaps.md`, referenced from the code by a bare `/* GAP-n */`;
 
 Scope the commit to the code fix and its test (`fix:`). A gaps-file edit is a separate intention: commit it on its own (`docs:`).
 

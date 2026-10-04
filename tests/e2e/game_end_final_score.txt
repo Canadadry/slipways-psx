@@ -1,13 +1,13 @@
-Fin de partie par le temps : 25 années sautées, écran « final score »,
-« again? ». 63 frames.
+Game over by time: 25 years skipped, "final score" screen, "again?".
+63 frames.
 
-- f0 : clic « reasonable » sur l'écran titre (76,70).
-- f2-50 : 25 clics sur `ix[1]` (150,0), un toutes les deux frames ; au
-  dernier, l'année 3426 affiche le panneau « final score ».
-- f52, f54, f56 : trois clics de plus, en (134,0), tombent sur le panneau,
-  l'année reste 3426.
-- f58 : « again? » (80,101) : `_init`, retour à l'écran titre.
+- f0: click "reasonable" on the title screen (76,70).
+- f2-50: 25 clicks on `ix[1]` (150,0), one every two frames. On the
+  last one, year 3426 shows the "final score" panel.
+- f52, f54, f56: three more clicks, at (134,0), land on the panel. The
+  year stays 3426.
+- f58: "again?" (80,101): `_init`, back to the title screen.
 
-Remplace la TU `game_end`.
+Replaces the unit test `game_end`.
 
-Relecture humaine dans raylib : à faire.
+Human review in raylib: pending.

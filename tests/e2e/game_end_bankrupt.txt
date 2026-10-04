@@ -1,18 +1,19 @@
-Fin de partie par la ruine : des labos (15 $, 2 mois, entretien au carré
-du nombre de labos), le refus d'achat et l'écran « bankrupt ». 69 frames.
+Game over by bankruptcy: labs ($15, 2 months, upkeep equal to the square
+of the lab count), the refused purchase and the "bankrupt" screen.
+69 frames.
 
-- f0 : clic « reasonable » sur l'écran titre (76,70).
-- f2-26 : 5 labos, chacun glissé depuis l'icône (154,116) jusqu'à (40,16),
-  (120,16), (72,32), (88,48), (120,80) : 25 $ restent, mois 11.
-- f27-38 : triche O O X X O O X X : 200 $. Sans elle, l'année qui passe au
-  6ᵉ labo met la caisse sous 3 $ avant tout refus d'achat.
-- f39-42 : 6ᵉ labo (88,96) : le mois passe 12, l'année passe par le temps
-  (`hy:nx`), 149 $ après l'entretien de 36 $.
-- f44, 46, 48, 50 : 4 années sautées (`ix[1]`) : 5 $.
-- f52-55 : 7ᵉ labo refusé (72,64) : « -no money- ».
-- f57 : une année de plus : -31 $, écran « bankrupt ».
+- f0: click "reasonable" on the title screen (76,70).
+- f2-26: 5 labs, each dragged from the icon (154,116) to (40,16),
+  (120,16), (72,32), (88,48), (120,80). $25 left, month 11.
+- f27-38: cheat O O X X O O X X: $200. Without it, the year that passes
+  with the 6th lab drops the cash below $3 before any purchase is refused.
+- f39-42: 6th lab (88,96). The month goes to 12 and the year passes by
+  time (`hy:nx`). $149 after the $36 upkeep.
+- f44, 46, 48, 50: 4 years skipped (`ix[1]`): $5.
+- f52-55: 7th lab refused (72,64): "-no money-".
+- f57: one more year: -$31, "bankrupt" screen.
 
-Remplace la TU `shop_tooltip_fillp` : en f2, l'appui sur l'icône du labo
-affiche sa bulle, au fond rayé par `fillp`.
+Replaces the unit test `shop_tooltip_fillp`. At f2, pressing the lab
+icon shows its tooltip, with a background striped by `fillp`.
 
-Relecture humaine dans raylib : à faire.
+Human review in raylib: pending.

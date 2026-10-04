@@ -1,18 +1,18 @@
-Invention de « nanomaterials » sans triche, puis un menu de construction
-à prix réduit (×0,85). 48 frames.
+Inventing "nanomaterials" without the cheat, then a build menu at a
+reduced price (×0.85). 48 frames.
 
-- f0 : clic « reasonable » sur l'écran titre (76,70).
-- f2-13 : 6 années sautées (`ix[1]`, 150,0) : 6 de recherche.
-- f14 : écran techno (`ix[2]`, 4,4) ; f17 : troisième rangée (30,44),
-  « nanomaterials » (coût 6) : inventée, recherche à 0. « drillbots »
-  (coût 7) reste hors de portée.
-- f19 : sonde `g_` en (71,46) ; f21-36 : `mz` tenu en (96,51), relâché
-  f37 : « p27 » et « p48 » révélées.
-- f44 : clic sur « p27 » (104,33) : menu de construction, prix ×0,85
-  (`hp:od`) ; f46-47 : menu affiché, la souris survole « p27 ».
+- f0: click "reasonable" on the title screen (76,70).
+- f2-13: 6 years skipped (`ix[1]`, 150,0): 6 research.
+- f14: tech screen (`ix[2]`, 4,4). f17: third row (30,44),
+  "nanomaterials" (cost 6). Invented, research at 0. "drillbots"
+  (cost 7) stays out of reach.
+- f19: probe `g_` at (71,46). f21-36: `mz` held at (96,51), released at
+  f37. "p27" and "p48" are revealed.
+- f44: click on "p27" (104,33): build menu, prices ×0.85 (`hp:od`).
+  f46-47: menu displayed, the mouse hovers over "p27".
 
-Remplace la TU `tech_screen` (le scénario « première invention » du
-catalogue n'ajoutait aucune ligne ; celui-ci passe par le même écran et
-la même invention).
+Replaces the unit test `tech_screen`. The catalog's "first invention"
+scenario added no covered line, and this one goes through the same
+screen and the same invention.
 
-Relecture humaine dans raylib : à faire.
+Human review in raylib: pending.

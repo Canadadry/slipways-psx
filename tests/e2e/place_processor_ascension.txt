@@ -1,15 +1,15 @@
-Un processor puis, avec la triche, une ascension gate posés depuis leurs
-icônes. 76 frames. Seul e2e à instancier le processor (`os`) et
-l'ascension gate (`hj`).
+A processor, then, with the cheat, an ascension gate, both placed from
+their icons. 76 frames. The only e2e that instantiates the processor
+(`os`) and the ascension gate (`hj`).
 
-- f0 : clic « reasonable » sur l'écran titre (76,70).
-- f2-13 : triche O O X X O O X X : 99 de recherche.
-- f14-41 : sept inventions sur la première rangée (30,24) ; l'ère passe
-  à 4.
-- f42-53 : seconde triche ; f54-57 : « ascension » (30,54).
-- f58-61 : processor (`os`) glissé de son icône (144,116) en (76,56).
-- f62-65 : ascension gate (`hj`) glissée de son icône (124,116) en
+- f0: click "reasonable" on the title screen (76,70).
+- f2-13: cheat O O X X O O X X: 99 research.
+- f14-41: seven inventions on the first row (30,24). The era goes
+  to 4.
+- f42-53: second cheat. f54-57: "ascension" (30,54).
+- f58-61: processor (`os`) dragged from its icon (144,116) to (76,56).
+- f62-65: ascension gate (`hj`) dragged from its icon (124,116) to
   (116,86).
-- f66-75 : attente, les deux structures posées.
+- f66-75: wait, both structures placed.
 
-Relecture humaine dans raylib : à faire.
+Human review in raylib: pending.

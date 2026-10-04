@@ -1,19 +1,18 @@
-« geoharvesting » avec la triche, « harvest » sur une planète révélée :
-éclat `ga` jusqu'à sa fin. 140 frames.
+"geoharvesting" with the cheat, "harvest" on a revealed planet: a `ga`
+burst until it ends. 140 frames.
 
-- f0 : clic « reasonable » sur l'écran titre (76,70).
-- f2-13 : triche O O X X O O X X : 99 de recherche, 200 $.
-- f14-18, f19-23 : deux inventions sur la première rangée (écran `ix[2]`
-  en (4,4), rangée (30,24)) : « space folding », « geneseeds » ; l'ère
-  passe à 2.
-- f24-28 : troisième rangée (30,44) : « geoharvesting ».
-- f29 : sonde `g_` en (71,46) ; f31-46 : `mz` tenu en (96,51), relâché
-  f47 : « p27 » (104,33) est minérale.
-- f54 : clic sur « p27 » : menu « mine », « harvest ».
-- f56 : « harvest » (116,58) : +20 $, la planète devient un `ga`, la
-  caméra tremble.
-- f58-139 : l'éclat s'éteint ; plus rien à la place de « p27 » vers f139.
+- f0: click "reasonable" on the title screen (76,70).
+- f2-13: cheat O O X X O O X X: 99 research, $200.
+- f14-18, f19-23: two inventions on the first row (screen `ix[2]` at
+  (4,4), row (30,24)): "space folding", "geneseeds". The era goes to 2.
+- f24-28: third row (30,44): "geoharvesting".
+- f29: probe `g_` at (71,46). f31-46: `mz` held at (96,51), released at
+  f47. "p27" (104,33) is mineral.
+- f54: click on "p27": menu "mine", "harvest".
+- f56: "harvest" (116,58): +$20. The planet becomes a `ga` and the
+  camera shakes.
+- f58-139: the burst dies out. Nothing is left where "p27" was by f139.
 
-Remplace la TU `geoharvest_burst`.
+Replaces the unit test `geoharvest_burst`.
 
-Relecture humaine dans raylib : à faire.
+Human review in raylib: pending.

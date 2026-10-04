@@ -1,30 +1,29 @@
-Commerce jusqu'au palier rich : une mine reliée à trois fournisseurs de
-people et à trois labos, son panneau garde sa rangée « exports: ».
+Trade up to the rich tier: a mine linked to three people suppliers and
+to three labs. Its panel keeps its "exports:" row.
 152 frames.
 
-- f0 : clic « reasonable » sur l'écran titre (76,70).
-- f2-13 : triche O O X X O O X X : 99 de recherche, 200 $.
-- f14 : sonde `g_` en (121,16) ; f26-42 : `mz` tenu en (108,25) :
-  « p27 » (104,33) minérale, « p1 » (83,10) earth-like, « p71 » (134,41)
-  iceball.
-- f47, f49 : « p27 » colonisée en « mine ».
-- f51-67 : `mz` tenu en (109,84) : « p48 » (94,69) xeno.
-- f68-75 : deux inventions (`ix[2]` (4,4), rangée (30,24)) :
-  « space folding », « geneseeds ».
-- f88-99 : « p1 » hiveworld, « p71 » habitat, « p48 » colony : trois
-  fournisseurs de people.
-- f100-111 : trois labos glissés depuis (154,116) en (112,11), (76,41),
-  (121,66) ; le premier tombe dans la boîte de dépôt
-  du panneau (y ≥ 10).
-- f112-135 : six slipways depuis « p27 » vers les trois fournisseurs et
-  les trois labos ; f136 : « p1 » vers le labo (112,10).
-- f140 : saut d'année `ix[1]` (150,0) : le commerce passe (`bd`, `jo:ib`,
-  `jo:cn`, joker `?` des labos, `dh`, `db`) ; « p27 » passe rich
+- f0: click "reasonable" on the title screen (76,70).
+- f2-13: cheat O O X X O O X X: 99 research, $200.
+- f14: probe `g_` at (121,16). f26-42: `mz` held at (108,25).
+  "p27" (104,33) is mineral, "p1" (83,10) earth-like, "p71" (134,41)
+  an iceball.
+- f47, f49: "p27" colonized as a "mine".
+- f51-67: `mz` held at (109,84). "p48" (94,69) is xeno.
+- f68-75: two inventions (`ix[2]` (4,4), row (30,24)):
+  "space folding", "geneseeds".
+- f88-99: "p1" hiveworld, "p71" habitat, "p48" colony: three people
+  suppliers.
+- f100-111: three labs dragged from (154,116) to (112,11), (76,41),
+  (121,66). The first one lands in the panel's drop box (y ≥ 10).
+- f112-135: six slipways from "p27" to the three suppliers and the
+  three labs. f136: "p1" to the lab (112,10).
+- f140: year skip `ix[1]` (150,0). Trade flows (`bd`, `jo:ib`,
+  `jo:cn`, the labs' `?` wildcard, `dh`, `db`). "p27" becomes rich
   (3 exports, 3 imports).
-- f142 : panneau de « p27 » : « rich », « receives: », « exports: ».
-- f146, f148 : le premier clic ferme ce panneau, le second ouvre celui du
-  labo (112,10), servi : « wants more: », « makes: ».
+- f142: panel of "p27": "rich", "receives:", "exports:".
+- f146, f148: the first click closes this panel, the second opens the
+  panel of the lab (112,10), which is served: "wants more:", "makes:".
 
-Remplace la TU `rich_planet_exports`.
+Replaces the unit test `rich_planet_exports`.
 
-Relecture humaine dans raylib : à faire.
+Human review in raylib: pending.

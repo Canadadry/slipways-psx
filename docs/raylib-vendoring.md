@@ -1,42 +1,42 @@
-# raylib : vendoring et build
+# raylib: vendoring and build
 
-raylib n'est pas disponible en paquet système dans l'environnement de ce projet.
-Il est donc cloné et construit depuis les sources, une fois, hors de `make test`.
+raylib isn't available as a system package in this project's environment, so it
+is cloned and built from source, once, outside `make test`.
 
-## Mise en place
+## Setup
 
 ```sh
-make raylib-vendor-setup      # clone + build, lent et réseau, une seule fois
-make raylib                   # compile et LINK le binaire interactif
+make raylib-vendor-setup      # clone + build, slow and needs network, once
+make raylib                   # compile and LINK the interactive binary
 ```
 
-`raylib-vendor-setup` clone un tag de release figé (jamais une branche mouvante)
-dans `third_party/raylib/` (gitignoré) et construit `libraylib.a` avec le build
-system de raylib lui-même (`third_party/raylib/src/Makefile`, `PLATFORM_DESKTOP`).
+`raylib-vendor-setup` clones a pinned release tag (never a moving branch) into
+`third_party/raylib/` (gitignored) and builds `libraylib.a` with raylib's own
+build system (`third_party/raylib/src/Makefile`, `PLATFORM_DESKTOP`).
 
-`make raylib` ne lance jamais le binaire qu'il produit — voir `CLAUDE.md`. Il
-exige que `third_party/raylib/src/libraylib.a` existe déjà : sans vendoring, il
-échoue avec un « no rule to make target » ordinaire, comme `psx-hello` sans son
+`make raylib` never runs the binary it produces — see `CLAUDE.md`. It requires
+`third_party/raylib/src/libraylib.a` to exist already: without vendoring, it
+fails with a plain "no rule to make target", just like `psx-hello` without its
 toolchain.
 
-## Selon l'OS
+## Per OS
 
-Le script de vendoring et les flags de link du Makefile testent `uname -s`.
+The vendoring script and the Makefile's link flags check `uname -s`.
 
-**Linux** — `apt-get` installe les en-têtes X11/GL, et le link ajoute
+**Linux** — `apt-get` installs the X11/GL headers, and the link adds
 `-lGL -lX11 -lpthread -ldl -lrt`.
 
-`RAYLIB_VENDOR_SKIP_APT=1 make raylib-vendor-setup` saute l'étape `sudo apt-get`,
-pour qui a déjà les dépendances ou ne peut pas donner le sudo.
+`RAYLIB_VENDOR_SKIP_APT=1 make raylib-vendor-setup` skips the `sudo apt-get`
+step, for anyone who already has the dependencies or can't grant sudo.
 
-**macOS** — aucun paquet à installer, les Xcode Command Line Tools suffisent. Le
-link utilise `-framework OpenGL -framework Cocoa -framework IOKit
--framework CoreAudio -framework CoreVideo`, l'ensemble que le `src/Makefile` de
-raylib documente pour linker un programme externe PLATFORM_DESKTOP sur OSX.
+**macOS** — nothing to install; the Xcode Command Line Tools are enough. The
+link uses `-framework OpenGL -framework Cocoa -framework IOKit
+-framework CoreAudio -framework CoreVideo`, the set raylib's `src/Makefile`
+documents for linking an external PLATFORM_DESKTOP program on OSX.
 
-## Fichiers concernés
+## Files involved
 
 `src/cmd/game.c`, `src/platform/raylib_backend.c`,
-`src/platform/raylib_backend_coords.c`. Ce dernier est volontairement sans
-dépendance à raylib et est testé par `tests/test_raylib_backend_coords.c`,
-qui fait partie de `make test`.
+`src/platform/raylib_backend_coords.c`. The last one deliberately has no
+raylib dependency and is tested by `tests/test_raylib_backend_coords.c`, which
+is part of `make test`.

@@ -1,11 +1,11 @@
-Caméra : glisser au clic droit, puis D-pad tenu jusqu'à la butée.
+Camera: right-click drag, then the D-pad held until it hits the limit.
 19 frames.
 
-- f0 : clic « reasonable » sur l'écran titre (76,70).
-- f2 : clic droit en (133,113) (`bg:rdown`) ; f3 : tenu en (113,43)
-  (`bg:hq`) : la caméra passe de (176,196) à (196,266) ; relâché f4.
-- f5-18 : D-pad droite + bas tenu (`qb:ph`) : x atteint sa butée, 206,
-  en f13, y la sienne, 286, en f17. À ces butées le cadre 160×120 ne
-  sort pas de la grille du fond (GAP-27).
+- f0: click "reasonable" on the title screen (76,70).
+- f2: right-click at (133,113) (`bg:rdown`). f3: held at (113,43)
+  (`bg:hq`). The camera moves from (176,196) to (196,266). Released at f4.
+- f5-18: D-pad right + down held (`qb:ph`). x reaches its limit, 206,
+  at f13, and y reaches its own, 286, at f17. At these limits the
+  160×120 frame stays inside the background grid (GAP-27).
 
-Relecture humaine dans raylib : à faire.
+Human review in raylib: pending.

@@ -1,13 +1,13 @@
-Info-bulle d'un projet à deux entrées : la virgule de « tech,food ».
+Tooltip of a project with two inputs: the comma in "tech,food".
 42 frames.
 
-- f0 : clic « reasonable » sur l'écran titre (76,70).
-- f2 : sonde `g_` en (71,46) ; f9-25 : `mz` tenu en (96,51) : « p27 »
-  (104,33) xeno.
-- f33 : clic sur « p27 » : menu de construction (`jo:fe`).
-- f35-41 : souris posée, sans clic, sur la première rangée (116,49),
-  « colony » : son info-bulle (`hp:jb`) joint ses deux entrées par une
-  virgule, « tech,food », en bas d'écran (y=111) : seul texte du jeu à
-  contenir le glyphe ','.
+- f0: click "reasonable" on the title screen (76,70).
+- f2: probe `g_` at (71,46). f9-25: `mz` held at (96,51). "p27"
+  (104,33) is xeno.
+- f33: click on "p27": build menu (`jo:fe`).
+- f35-41: mouse resting, without a click, on the first row (116,49),
+  "colony". Its tooltip (`hp:jb`) joins its two inputs with a comma,
+  "tech,food", at the bottom of the screen (y=111). It is the only game
+  text that contains the ',' glyph.
 
-Relecture humaine dans raylib : à faire.
+Human review in raylib: pending.
