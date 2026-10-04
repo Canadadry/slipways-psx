@@ -25,7 +25,7 @@ int session_recorder_record_frame(session_recorder_t *recorder, const p8_input_f
      * session grows. The file must stay byte-identical to what
      * p8_input_save writes for the same frames, or a resumed recording
      * replays to another state. */
-    if (!p8_input_append(frame, recorder->path, &recorder->tail_offset)) {
+    if (!p8_input_append(frame, recorder->path, &recorder->tail_offset, 0)) {
         /* Dropped, not fatal: a live playtest outranks a frame of its own
          * recording. p8_input_append leaves *tail_offset untouched on
          * failure, so the next frame takes the slot this one never

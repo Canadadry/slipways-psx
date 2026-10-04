@@ -46,29 +46,32 @@ int p8_input_load(p8_input_t *input, const char *path);
  * always a full rewrite -- in the exact shape p8_input_load parses:
  * {"frames": [ { "mouse_x": ..., "mouse_y": ..., "mouse_buttons": ...,
  * "dpad": [6 bools] }, ... ]}, nonzero dpad written as
- * true. Returns 1 on success, 0 on a NULL `frames`, a non-positive
- * `frame_count` (it never writes a file p8_input_load would reject), or
- * a file error. No partial file is left behind: `path` is replaced only
+ * true. A nonzero `keyboard_cursor` adds a `"keyboard_cursor": true`
+ * member before "frames"; 0 omits it (false is never written). Returns 1
+ * on success, 0 on a NULL `frames`, a non-positive `frame_count` (it
+ * never writes a file p8_input_load would reject), or a file error. No partial file is left behind: `path` is replaced only
  * once every frame is written and the file has closed. */
-int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *path);
+int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *path, int keyboard_cursor);
 
 /* Adds one frame to the recording at `path` without re-serializing the
  * frames already there, so recording one frame costs the same whatever the
  * session's length. `*tail_offset` is the writer's whole memory of the
  * recording: set it to 0 to start one -- `path` is then created or
  * truncated -- and pass the same variable back untouched on every later
- * call.
+ * call. `keyboard_cursor` is read only on the call that starts a
+ * recording: pass the same value on every call of one recording; the
+ * value of later calls is ignored.
  *
  * After each successful call `path` holds a complete events.json that is
- * byte-for-byte what p8_input_save writes for the same frames. That
- * identity is the contract the whole replay toolchain rests
- * on: break it and a recorded session no longer replays as one that was
+ * byte-for-byte what p8_input_save writes for the same frames and the same
+ * declaration. That identity is the contract the whole replay toolchain
+ * rests on: break it and a recorded session no longer replays as one that was
  * saved. It is why the caller need not keep the frames it has recorded.
  *
  * Returns 1 on success, 0 on a NULL argument or a file error, leaving
  * `*tail_offset` unchanged so the next call rewrites the same slot
  * rather than writing past a frame that never landed. */
-int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_offset);
+int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_offset, int keyboard_cursor);
 
 /* Releases the frame array. Safe on an input that only went through
  * p8_input_init, and safe to call again before a fresh load. */

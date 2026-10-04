@@ -118,7 +118,7 @@ static void test_resumed_session_records_replayed_frames_then_new_ones(void) {
     const char *resumed_path = "tmp/test_recording_continuity_resumed.json";
 
     /* Written by `p8_input_save`, not by the recorder under test. */
-    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path));
+    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path, 0));
 
     run_resumed_session(source_path, resumed_path, SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT);
 
@@ -147,7 +147,7 @@ static void test_resumed_recording_is_itself_resumable(void) {
     const char *resumed_path = "tmp/test_recording_continuity_chain_resumed.json";
     const int total = SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT;
 
-    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path));
+    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path, 0));
     run_resumed_session(source_path, resumed_path, total);
 
     replay_source_t second;

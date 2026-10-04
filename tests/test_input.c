@@ -236,7 +236,7 @@ static void test_save_then_load_round_trips_every_field(void) {
     };
     const char *path = "tmp/test_input_save_roundtrip.json";
 
-    int saved = p8_input_save(written, 5, path);
+    int saved = p8_input_save(written, 5, path, 0);
     assert(saved);
 
     p8_input_t input;
@@ -270,10 +270,11 @@ static void test_save_writes_events_json_schema_shape(void) {
     };
     const char *path = "tmp/test_input_save_shape.json";
 
-    assert(p8_input_save(written, 2, path));
+    assert(p8_input_save(written, 2, path, 0));
 
     char *written_json = read_file_raw(path);
     assert(strstr(written_json, "\"frames\":") != NULL);
+    assert(strstr(written_json, "keyboard_cursor") == NULL);
     assert(strstr(written_json, "\"mouse_x\": 64") != NULL);
     assert(strstr(written_json, "\"mouse_y\": 32") != NULL);
     assert(strstr(written_json, "\"mouse_buttons\": 1") != NULL);
@@ -333,7 +334,7 @@ static void test_append_does_not_rewrite_already_recorded_frames(void) {
 
     for (int i = 0; i < 40; i++) {
         p8_input_frame_t fr = {i % 128, (i * 3) % 128, i % 8, {i % 2, 0, 1, 0}};
-        assert(p8_input_append(&fr, path, &tail_offset));
+        assert(p8_input_append(&fr, path, &tail_offset, 0));
     }
 
     char *before = read_file_raw(path);
@@ -353,7 +354,7 @@ static void test_append_does_not_rewrite_already_recorded_frames(void) {
     char *marked = read_file_raw(path);
 
     p8_input_frame_t extra = {77, 88, 1, {0, 0, 0, 1}};
-    assert(p8_input_append(&extra, path, &tail_offset));
+    assert(p8_input_append(&extra, path, &tail_offset, 0));
 
     char *after = read_file_raw(path);
     assert(after[victim_offset] == '9');
@@ -383,12 +384,13 @@ static void test_append_recording_is_byte_identical_to_save_every_frame(void) {
     long tail_offset = 0;
 
     for (int i = 0; i < 7; i++) {
-        assert(p8_input_append(&frames[i], appended_path, &tail_offset));
-        assert(p8_input_save(frames, i + 1, reference_path));
+        assert(p8_input_append(&frames[i], appended_path, &tail_offset, 0));
+        assert(p8_input_save(frames, i + 1, reference_path, 0));
 
         char *appended = read_file_raw(appended_path);
         char *reference = read_file_raw(reference_path);
         assert(strcmp(appended, reference) == 0);
+        assert(strstr(appended, "keyboard_cursor") == NULL);
         free(appended);
         free(reference);
     }
@@ -426,12 +428,12 @@ static void test_append_with_zero_tail_offset_starts_a_fresh_recording(void) {
     };
     long tail_offset = 0;
     for (int i = 0; i < 3; i++) {
-        assert(p8_input_append(&first[i], path, &tail_offset));
+        assert(p8_input_append(&first[i], path, &tail_offset, 0));
     }
 
     p8_input_frame_t only = {9, 9, 0, {0, 0, 0, 1}};
     tail_offset = 0;
-    assert(p8_input_append(&only, path, &tail_offset));
+    assert(p8_input_append(&only, path, &tail_offset, 0));
 
     p8_input_t input;
     p8_input_init(&input);
@@ -441,9 +443,82 @@ static void test_append_with_zero_tail_offset_starts_a_fresh_recording(void) {
     p8_input_free(&input);
 }
 
+static void test_save_with_the_declaration_writes_it_before_the_frames(void) {
+    p8_input_frame_t written[1] = {{64, 64, 0, {0, 0, 0, 0, 0, 0}}};
+    const char *path = "tmp/test_input_save_declared.json";
+
+    assert(p8_input_save(written, 1, path, 1));
+
+    char *saved = read_file_raw(path);
+    char *fixture = read_file_raw("tests/fixtures/events_keyboard_cursor_true.json");
+    assert(strcmp(saved, fixture) == 0);
+    free(saved);
+    free(fixture);
+
+    p8_input_t input;
+    p8_input_init(&input);
+    assert(p8_input_load(&input, path));
+    assert(input.keyboard_cursor == 1);
+    assert(input.frame_count == 1);
+    assert(p8_input_read_mouse(&input).x == 64);
+    p8_input_free(&input);
+}
+
+static void test_declared_append_is_byte_identical_to_declared_save_every_frame(void) {
+    p8_input_frame_t frames[4] = {
+        {64, 32, 1, {0, 1, 0, 0, 1, 0}},
+        {0, 127, 3, {1, 0, 1, 0, 0, 1}},
+        {127, 0, 0, {0, 0, 0, 1, 0, 0}},
+        {10, 20, 7, {1, 1, 1, 1, 1, 1}},
+    };
+    const char *appended_path = "tmp/test_input_append_declared.json";
+    const char *reference_path = "tmp/test_input_append_declared_reference.json";
+    long tail_offset = 0;
+
+    for (int i = 0; i < 4; i++) {
+        assert(p8_input_append(&frames[i], appended_path, &tail_offset, 1));
+        assert(p8_input_save(frames, i + 1, reference_path, 1));
+
+        char *appended = read_file_raw(appended_path);
+        char *reference = read_file_raw(reference_path);
+        assert(strcmp(appended, reference) == 0);
+        free(appended);
+        free(reference);
+    }
+
+    p8_input_t input;
+    p8_input_init(&input);
+    assert(p8_input_load(&input, appended_path));
+    assert(input.keyboard_cursor == 1);
+    assert(input.frame_count == 4);
+    p8_input_free(&input);
+}
+
+static void test_append_ignores_the_declaration_after_the_first_call(void) {
+    p8_input_frame_t frames[3] = {
+        {1, 1, 1, {1, 0, 0, 0, 0, 0}},
+        {2, 2, 2, {0, 1, 0, 0, 0, 0}},
+        {3, 3, 3, {0, 0, 1, 0, 0, 0}},
+    };
+    const char *appended_path = "tmp/test_input_append_started_off.json";
+    const char *reference_path = "tmp/test_input_append_started_off_reference.json";
+    long tail_offset = 0;
+
+    assert(p8_input_append(&frames[0], appended_path, &tail_offset, 0));
+    assert(p8_input_append(&frames[1], appended_path, &tail_offset, 1));
+    assert(p8_input_append(&frames[2], appended_path, &tail_offset, 1));
+    assert(p8_input_save(frames, 3, reference_path, 0));
+
+    char *appended = read_file_raw(appended_path);
+    char *reference = read_file_raw(reference_path);
+    assert(strcmp(appended, reference) == 0);
+    free(appended);
+    free(reference);
+}
+
 static void test_save_rejects_empty_frame_list(void) {
     const char *path = "tmp/test_input_save_empty.json";
-    int saved = p8_input_save(NULL, 0, path);
+    int saved = p8_input_save(NULL, 0, path, 0);
     assert(!saved);
 }
 
@@ -467,9 +542,12 @@ int main(void) {
     test_save_then_load_round_trips_every_field();
     test_save_writes_events_json_schema_shape();
     test_save_rejects_empty_frame_list();
+    test_save_with_the_declaration_writes_it_before_the_frames();
     test_append_does_not_rewrite_already_recorded_frames();
     test_append_recording_is_byte_identical_to_save_every_frame();
     test_append_with_zero_tail_offset_starts_a_fresh_recording();
+    test_declared_append_is_byte_identical_to_declared_save_every_frame();
+    test_append_ignores_the_declaration_after_the_first_call();
 
     printf("test_input: all tests passed\n");
     return 0;
