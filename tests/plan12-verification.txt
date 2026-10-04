@@ -1,0 +1,74 @@
+# Plan 12, step 6: each converted replay checked against tests/plan12-oracle/
+# on the 160x120 code. Temporary, removed at step 7 with the oracle,
+# tests/plan12-conversion.txt and tests/plan12-coverage-accepted.txt.
+# <replay> <class> etat <tenu|ecart n|arrete> couverture <tenue|n manquantes|-> <garde|reecrit|diagnostic: ...>
+# Classes: full_game (stop and zone/cap limits only, final state not
+# compared: human decision, the cart draws rnd for a vanishing planet on
+# screen and the wider frame draws one more), titre, identique, sorti,
+# hors-ecran. couverture: the e2e's own 128x128 set (tmp worktree at
+# 5c6bb25, translated) against its current set, accepted lines removed.
+full_game full_game etat tenu couverture - garde
+full_game_new_game full_game etat tenu couverture - garde
+full_game_pause_restart full_game etat tenu couverture - garde
+full_game_pause_idle full_game etat tenu couverture - garde
+title_idle titre etat tenu couverture - garde
+camera_drag_dpad identique etat tenu couverture tenue garde
+cheat_code identique etat tenu couverture tenue garde
+colony_income_offscreen hors-ecran etat tenu couverture tenue garde: f44 « p27 » visible 0 (camera 282 302), retour sur `gd` couvert (planet.c:337-338 ; le planet.c:447 du .txt n'existe plus)
+colony_panel identique etat tenu couverture tenue garde
+empty_planet_fade identique etat tenu couverture tenue garde
+game_end_bankrupt identique etat tenu couverture tenue garde
+game_end_final_score identique etat tenu couverture tenue garde
+message_box_hold identique etat tenu couverture tenue garde
+pause_menu_rows identique etat tenu couverture tenue garde
+pause_restart identique etat tenu couverture tenue garde
+place_processor_ascension identique etat tenu couverture tenue garde
+project_tooltip_inputs identique etat tenu couverture tenue garde
+slipgate_outgoing_first identique etat tenu couverture 1 manquantes garde: probe.c:120 couverte par slipway_build et slipway_refused ; neuf lignes acceptées (cadre)
+slipway_build identique etat tenu couverture tenue garde
+slipway_refused identique etat tenu couverture tenue garde
+space_fold_same_spot identique etat tenu couverture tenue garde
+synthesizer_second_link identique etat tenu couverture tenue garde
+tech_geoharvesting_burst identique etat tenu couverture tenue garde
+tech_infraspace_infragate identique etat tenu couverture tenue garde
+tech_nanomaterials_discount identique etat tenu couverture tenue garde
+tech_replication_mechanize identique etat tenu couverture tenue garde
+tech_slipgates_relay identique etat tenu couverture 1 manquantes garde: probe.c:120 couverte par slipway_build et slipway_refused ; neuf lignes acceptées (cadre)
+tech_starbirth_protostar sorti etat tenu couverture tenue garde: le clic droit de f87 part de structure_icon et déplace la caméra comme à 128 ; f89 « p27 » protostar et « p48 » visible 0
+tech_trade_league_hub identique etat tenu couverture tenue garde
+tech_xenofoods_recipes identique etat tenu couverture tenue garde
+trade_rich_mine sorti etat ecart 1 couverture tenue reecrit: f102 le labo déposé en (112,8) tombait hors de la boîte du panneau (y 10..110), refusé ; déposé en (112,11), seul écart la position de s1 (world y 205.42 au lieu de 202.42)
+
+# Coverage (make coverage-check, src/ diff from 5c6bb25 to the working tree)
+oracle 6445
+reecrites 12
+traduites 6433
+couvertes 6424
+manquantes 0
+acceptees 9
+gagnees 13
+reecrites src/cmd/replay.c 2
+reecrites src/engine/entity_geom.c 4
+reecrites src/game/hud.c 1
+reecrites src/game/layout.c 1
+reecrites src/game/score_panel.c 1
+reecrites src/game/score_panel_display.c 2
+reecrites src/game/ui_button.c 1
+
+# Accepted lines (tests/plan12-coverage-accepted.txt)
+cadre: src/game/probe.c:32 33 128 135 136 139 187 489 490 -- the throwaway
+  target of targeting_track, taken when a drag is outside the panel box
+  with no planet in reach; at 128x128 slipgate_outgoing_first and
+  tech_slipgates_relay took it on the first frame of the slipgate drag from
+  its icon (102,124), outside the box; at 160x120 the icon (134,116) lies
+  over a planet in reach (probe.c:167-168 at f67-69).
+non récupérée: aucune
+
+# Rewrites (e2e, frames before -> after)
+trade_rich_mine 152 -> 152
+
+# docs/trous-de-portage.md entries added
+aucune
+
+# fix-bug fixes
+aucun
