@@ -836,13 +836,15 @@ static void test_needs_new_in_the_zone_passed(void) {
     assert(!b->row.has_resource && !b->has_satisfied);
 }
 
-/* The projects rebuilt from `project_records_table` forget the ones held,
- * whose memory goes back at the next load, and are the same; shutdown leaves
- * no class and no project, the row tail still the generated row; init again,
- * then a load, gives them once more, and a second load takes the same bytes. */
+/* The projects rebuilt from `project_records_table` forget the ones held
+ * and are the same; shutdown leaves no class and no project, the row tail
+ * still the generated row; init again, then a load, gives them once more,
+ * and a second load takes the same bytes. The load sub-zone holds one set
+ * of projects: it is reset before the rebuild, as cart_load() does. */
 static void test_rebuild_and_shutdown(void) {
     size_t k;
 
+    game_zone_reset();
     research_build_projects();
     test_projects();
 

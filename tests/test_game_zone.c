@@ -446,7 +446,7 @@ int main(int argc, char **argv) {
     expect_clean("load_zone_survives_start_game");
     expect_poison_crash("load_zone_dead_after_cart_load");
     expect_clean("load_zone_grab_arena_and_max");
-    expect_fatal("load_zone_full", "zone load full, limit 65536 bytes");
+    expect_fatal("load_zone_full", "zone load full, limit 24680 bytes");
     expect_clean("static_lists_in_load_zone");
     remove(STDERR_LOG);
     printf("test_game_zone: all tests passed\n");

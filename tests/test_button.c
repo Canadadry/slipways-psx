@@ -46,6 +46,7 @@
 #include "game/ui_button.h"
 #include "engine/vec.h"
 #include "engine/frame_zone.h"
+#include "engine/game_zone.h"
 #include "game/ui_zone.h"
 #include "heap_allocator.h"
 
@@ -1681,7 +1682,9 @@ static void test_open_box_layer_only_from_back_color(void) {
 }
 
 /* tech_gate_available_technologies writes the affordable flag for every
- * entry, kept or not; `data_init()` forgets them all. */
+ * entry, kept or not; `data_init()` forgets them all. It rebuilds the
+ * projects in the load sub-zone, which holds one set: the reset comes
+ * first, as in cart_load(). */
 static void test_available_technologies_writes_every_is_affordable(void) {
     available_technologies_kept_t kept;
     p8_fixed_t jk;
@@ -1710,6 +1713,7 @@ static void test_available_technologies_writes_every_is_affordable(void) {
     for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
         assert(tech_gate_affordable_flags(&technologies_table[i]) == 1);
     }
+    game_zone_reset();
     data_init();
     for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
         assert(tech_gate_affordable_flags(&technologies_table[i]) == 0);

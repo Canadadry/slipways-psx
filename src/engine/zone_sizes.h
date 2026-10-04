@@ -9,7 +9,7 @@
 #define PARTICLES_ZONE_BYTES (128u * 1024u)
 /* The game zone is its generation plus the load sub-zone. */
 #define GENERATION_ZONE_BYTES 462520u
-#define LOAD_ZONE_BYTES (64u * 1024u)
+#define LOAD_ZONE_BYTES 24680u
 #define GAME_ZONE_BYTES (GENERATION_ZONE_BYTES + LOAD_ZONE_BYTES)
 
 /* PSX ceiling: it is not moved to make room. */
