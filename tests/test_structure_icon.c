@@ -41,9 +41,9 @@
 #define CONSTRUCTION_HASH 0x22EBAD5Du
 #define START_HASH 0x8C839F39u
 #define DIRECTED_HASH 0xA5C469BDu
-#define DRAW_HASH 0x93161F7Cu
+#define DRAW_HASH 0x911DC3DAu
 #define RESTART_HASH 0xB33A149Au
-#define KIND_VIEW_HASH 0xCCFB2802u
+#define KIND_VIEW_HASH 0x6D6C25A0u
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;

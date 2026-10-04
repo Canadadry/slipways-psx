@@ -43,7 +43,7 @@
 
 
 #define BUILT_HASH 0xA539DD6Du
-#define LIFE_HASH 0x47C40CADu
+#define LIFE_HASH 0x11AD2B84u
 #define BURST_FRAMES 86
 
 /* The tag a layout row's placed items carried as a tagged list, which the

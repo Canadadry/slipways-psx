@@ -46,7 +46,7 @@ static int pos_copies(const vec_t *ra, const vec_t *mp) {
 
 
 #define BUILT_HASH 0x480897DDu
-#define LIFE_HASH 0xC4F93DC7u
+#define LIFE_HASH 0x55015DBBu
 
 /* The tag planet_rebuild_trades's list carried as a tagged list, which the
  * frozen hashes fold: any other value moves every *_HASH. */

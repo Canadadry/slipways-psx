@@ -65,8 +65,8 @@
 #define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
 #define TITLE_HASH 0x0D4E51A2u
-#define START_GAME_HASH 0x7BC019E6u
-#define PAUSE_HASH 0x8F8FC35Du
+#define START_GAME_HASH 0xAE71379Eu
+#define PAUSE_HASH 0xD2FE343Du
 #define RESEARCH_HASH 0x41D4B83Eu
 #define PROJECTS_PANEL_HASH 0x6E72F895u
 #define INSPECTION_PANEL_HASH 0x8897BD95u
@@ -77,8 +77,8 @@
 #define REFRESH_HASH 0x0FA6ACC7u
 #define PROJECTS_PANEL_ON_CLICK_HASH 0xCB3A928Cu
 #define TECH_TREE_SCREEN_ON_CLICK_HASH 0x7ED641D9u
-#define DRAW_HASH 0x6B63F8E8u
-#define BUTTON_MEMBERS_HASH 0xEF120802u
+#define DRAW_HASH 0x0C4D70CFu
+#define BUTTON_MEMBERS_HASH 0x9E488464u
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
@@ -658,6 +658,43 @@ static void test_pause(void) {
     check_shared_pos();
     h = fold_ephemerals(h, "pause");
     check("pause", h, PAUSE_HASH);
+}
+
+static button_t *galaxy_menu_entry(int i) {
+    void *ix[4];
+    int k;
+
+    assert(galaxy_menu_buttons(ix) == 4);
+    for (k = 0; k < 4; k++) {
+        if (button_of(ix[k])->on_click == galaxy_menu_on_click(i)) {
+            return button_of(ix[k]);
+        }
+    }
+    assert(0 && "galaxy_menu_entry: no galaxy menu button carries that on_click");
+    return NULL;
+}
+
+static int at(const vec_t *p, int x, int y) {
+    return p != NULL && p->x == p8_fixed_from_int(x) && p->y == p8_fixed_from_int(y);
+}
+
+/* The pause button sits 11 lines above the bottom edge, the score button
+ * centered at the top; the pause menu opens 10 lines above the pause
+ * button, then climbs by 11. */
+static void test_bar_buttons_and_pause_menu_anchors(void) {
+    const entity_list_t *le;
+    int k;
+
+    start_game();
+    assert(at(galaxy_menu_entry(4)->pos, 0, P8_SCREEN_HEIGHT - 11));
+    assert(at(galaxy_menu_entry(3)->pos, P8_SCREEN_WIDTH / 2 - 17, 0));
+    call_on_click(galaxy_menu_entry(4));
+    le = main_ui_ephemerals();
+    assert(le != NULL && le->count == 4);
+    for (k = 0; k < le->count; k++) {
+        assert(at(button_of(le->items[k])->pos, 0, P8_SCREEN_HEIGHT - 21));
+        assert(at(button_of(le->items[k])->slide_target, 0, P8_SCREEN_HEIGHT - 21 - 11 * k));
+    }
 }
 
 static void invent(char *rr) {
@@ -1966,6 +2003,7 @@ int main(void) {
     dispatch_context_set_input(&input);
 
     cart_load();
+    in_fresh_child(test_bar_buttons_and_pause_menu_anchors);
     in_fresh_child(test_title);
     in_fresh_child(test_start_game);
     in_fresh_child(test_pause);

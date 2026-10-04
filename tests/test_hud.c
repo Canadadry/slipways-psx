@@ -50,10 +50,24 @@ static void test_fractional_index_selects_its_floor(void) {
     assert_draw_palette_is_block_8(&mem);
 }
 
+static void test_bar_reaches_the_right_edge(void) {
+    p8_vram_t mem;
+    p8_graphics_t gfx;
+    p8_vram_init(&mem);
+    p8_gfx_init(&gfx);
+
+    hud_draw_bar(&gfx, &mem, p8_fixed_from_int(5), p8_fixed_from_int(6), 7);
+
+    for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+        assert(mem.screen[5][x] == 7 && mem.screen[6][x] == 7);
+    }
+}
+
 int main(void) {
     test_each_block_matches_the_sprite_sheet_pixels();
     test_select_needs_no_sprite_sheet();
     test_fractional_index_selects_its_floor();
+    test_bar_reaches_the_right_edge();
 
     printf("test_hud: OK\n");
     return 0;

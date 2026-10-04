@@ -1,5 +1,7 @@
 #include "game/game_data.h"
 
+#include "p8/vram.h"
+
 #include <assert.h>
 #include <stddef.h>
 #include <string.h>
@@ -54,8 +56,8 @@ static const data_row_t galaxy_menu_4_layout_row = {.count = 1, .items = galaxy_
 const galaxy_menu_entry_t galaxy_menu_table[GALAXY_MENU_COUNT] = {
     {118, 0, &galaxy_menu_1_layout_row},
     {0, 0, &galaxy_menu_2_layout_row},
-    {47, 0, &galaxy_menu_3_layout_row},
-    {0, 117, &galaxy_menu_4_layout_row},
+    {P8_SCREEN_WIDTH / 2 - 17, 0, &galaxy_menu_3_layout_row},
+    {0, P8_SCREEN_HEIGHT - 11, &galaxy_menu_4_layout_row},
 };
 
 static const data_item_t pause_menu_1_layout_row_items[] = {{.number = 31}, {.text = "restart     "}};
@@ -74,7 +76,7 @@ const pause_menu_entry_t pause_menu_table[PAUSE_MENU_COUNT] = {
     {&pause_menu_4_layout_row},
 };
 
-const pause_menu_tail_t pause_menu_tail = {0, 107, 0, -11, 14};
+const pause_menu_tail_t pause_menu_tail = {0, P8_SCREEN_HEIGHT - 21, 0, -11, 14};
 
 static const data_item_t difficulty_options_1_layout_row_items[] = {{.number = 49}, {.text = "forgiving   "}};
 static const data_row_t difficulty_options_1_layout_row = {.count = 2, .items = difficulty_options_1_layout_row_items};
@@ -241,11 +243,11 @@ static const data_item_t score_panel_countdown_rows_items[] = {{.row = &score_pa
     {.row = &score_panel_countdown_rows_5}};
 const data_row_t score_panel_countdown_rows_row = {.count = 5, .items = score_panel_countdown_rows_items};
 
-static const data_item_t score_panel_frame_rows_1_items[] = {{.number = 126}, {.number = 127}, {.number = 1}};
+static const data_item_t score_panel_frame_rows_1_items[] = {{.number = P8_SCREEN_HEIGHT - 2}, {.number = P8_SCREEN_HEIGHT - 1}, {.number = 1}};
 static const data_row_t score_panel_frame_rows_1 = {.count = 3, .items = score_panel_frame_rows_1_items, .draw_function = DRAW_FUNCTION_DRAW_BAR};
 static const data_item_t score_panel_frame_rows_2_items[] = {{.number = 0}, {.number = 1}, {.number = 1}};
 static const data_row_t score_panel_frame_rows_2 = {.count = 3, .items = score_panel_frame_rows_2_items, .draw_function = DRAW_FUNCTION_DRAW_BAR};
-static const data_item_t score_panel_frame_rows_3_items[] = {{.number = 8}, {.number = 118}, {.number = 34}};
+static const data_item_t score_panel_frame_rows_3_items[] = {{.number = 8}, {.number = P8_SCREEN_HEIGHT - 10}, {.number = 34}};
 static const data_row_t score_panel_frame_rows_3 = {.count = 3, .items = score_panel_frame_rows_3_items, .draw_function = DRAW_FUNCTION_DRAW_HELP_FRAME};
 static const data_item_t score_panel_frame_rows_4_items[] = {{.number = 0}, {.number = -3}, {.number = 26}};
 static const data_row_t score_panel_frame_rows_4 = {.count = 3, .items = score_panel_frame_rows_4_items, .draw_function = DRAW_FUNCTION_DRAW_HELP_FRAME};
@@ -263,15 +265,15 @@ static const data_row_t score_panel_year_banner_2 = {.count = 5, .items = score_
 static const data_item_t score_panel_year_banner_items[] = {{.row = &score_panel_year_banner_1}, {.row = &score_panel_year_banner_2}};
 const data_row_t score_panel_year_banner_row = {.count = 2, .items = score_panel_year_banner_items};
 
-static const data_item_t score_panel_readouts_1_items[] = {{.is_false = 1}, {.number = 13}, {.number = 121}, {.number = 9}};
+static const data_item_t score_panel_readouts_1_items[] = {{.is_false = 1}, {.number = 13}, {.number = P8_SCREEN_HEIGHT - 7}, {.number = 9}};
 static const data_row_t score_panel_readouts_1 = {.count = 4, .items = score_panel_readouts_1_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
-static const data_item_t score_panel_readouts_2_items[] = {{.is_false = 1}, {.number = 37}, {.number = 121}, {.number = 2}};
+static const data_item_t score_panel_readouts_2_items[] = {{.is_false = 1}, {.number = 37}, {.number = P8_SCREEN_HEIGHT - 7}, {.number = 2}};
 static const data_row_t score_panel_readouts_2 = {.count = 4, .items = score_panel_readouts_2_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
 static const data_item_t score_panel_readouts_3_items[] = {{.is_false = 1}, {.number = 13}, {.number = 2}, {.number = 9}};
 static const data_row_t score_panel_readouts_3 = {.count = 4, .items = score_panel_readouts_3_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
 static const data_item_t score_panel_readouts_4_items[] = {{.is_false = 1}, {.number = 29}, {.number = 2}, {.number = 2}};
 static const data_row_t score_panel_readouts_4 = {.count = 4, .items = score_panel_readouts_4_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
-static const data_item_t score_panel_readouts_5_items[] = {{.is_false = 1}, {.number = 59}, {.number = 2}, {.number = 2}};
+static const data_item_t score_panel_readouts_5_items[] = {{.is_false = 1}, {.number = P8_SCREEN_WIDTH / 2 - 5}, {.number = 2}, {.number = 2}};
 static const data_row_t score_panel_readouts_5 = {.count = 4, .items = score_panel_readouts_5_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
 static const data_item_t score_panel_readouts_6_items[] = {{.is_false = 1}, {.number = 85}, {.number = 2}, {.number = 13}};
 static const data_row_t score_panel_readouts_6 = {.count = 4, .items = score_panel_readouts_6_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};

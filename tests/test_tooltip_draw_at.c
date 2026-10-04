@@ -17,11 +17,11 @@
 #include "engine/entity_class.h"
 #include "heap_allocator.h"
 
-#define ICON_TOOLTIPS_FIRST_ENTRY_HASH 0x38233998u
-#define BARE_STRINGS_HASH 0x5A3E5741u
-#define NO_OVERRIDES_HASH 0xFF43E245u
-#define ICON_TOOLTIPS_ALL_BY_NAME_HASH 0xD2ED8589u
-#define MIXED_BY_NAME_HASH 0x6109F220u
+#define ICON_TOOLTIPS_FIRST_ENTRY_HASH 0x2E96E558u
+#define BARE_STRINGS_HASH 0xF4C6CE21u
+#define NO_OVERRIDES_HASH 0x71213C65u
+#define ICON_TOOLTIPS_ALL_BY_NAME_HASH 0xF9246249u
+#define MIXED_BY_NAME_HASH 0xED66CC40u
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;

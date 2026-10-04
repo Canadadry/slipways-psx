@@ -23,6 +23,7 @@
 #include "p8/fixed.h"
 #include "game/main_economy.h"
 #include "game/game_data.h"
+#include "game/draw_functions.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "game/layout.h"
@@ -36,9 +37,9 @@
 #include "game/ui_button.h"
 #include "engine/vec.h"
 
-#define BUILT_HASH 0xC419CD23u
+#define BUILT_HASH 0xF283D1BBu
 #define SHARED_HASH 0x1F82BA04u
-#define LIFE_HASH 0xCF07CBE8u
+#define LIFE_HASH 0xBA06DC7Fu
 #define TECH_TREE_SCREEN_HASH 0x7D1C5B1Fu
 
 static p8_vram_t memory;
@@ -786,6 +787,34 @@ static void test_update_rows_show_final_score(void) {
     }
 }
 
+/* The frame rows drawn alone: the bottom rule fills the last two lines,
+ * the bottom-left frame sits 10 lines above the bottom edge, and nothing
+ * else lies between them. */
+static void test_frame_rows_hug_the_bottom_edge(void) {
+    const data_row_t *rows[5];
+    int frame_left = 8;
+    int frame_right = 39;
+    int i;
+
+    for (i = 0; i < score_panel_frame_rows_row.count; i++) {
+        rows[i] = score_panel_frame_rows_row.items[i].row;
+    }
+    p8_gfx_init(&graphics);
+    memset(memory.screen, 0, sizeof memory.screen);
+    draw_functions_draw_rows_default(&graphics, &memory, rows, score_panel_frame_rows_row.count);
+
+    for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+        int in_frame = x >= frame_left && x <= frame_right;
+        if (!in_frame) {
+            assert(memory.screen[P8_SCREEN_HEIGHT - 2][x] == 1 && memory.screen[P8_SCREEN_HEIGHT - 1][x] == 1);
+        }
+        for (int y = P8_SCREEN_HEIGHT - 10; y < P8_SCREEN_HEIGHT - 2; y++) {
+            assert(in_frame || memory.screen[y][x] == 0);
+        }
+    }
+    assert(memory.screen[P8_SCREEN_HEIGHT - 9][20] == 5);
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -796,6 +825,7 @@ int main(void) {
     dispatch_context_set_input(&input);
 
     cart_load();
+    in_fresh_child(test_frame_rows_hug_the_bottom_edge);
     in_fresh_child(test_built);
     in_fresh_child(test_shared);
     in_fresh_child(test_life);
