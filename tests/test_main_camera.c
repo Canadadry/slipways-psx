@@ -125,8 +125,8 @@ static void test_is_on_screen_frame_is_the_screen_plus_12_on_each_edge(void) {
     assert(on_screen_at(mid_x, P8_SCREEN_HEIGHT + 12) && !on_screen_at(mid_x, P8_SCREEN_HEIGHT + 13));
 }
 
-/* The same frame pinned at 160x120: columns 141 to 159, outside the old
- * 128x128 frame, are on screen. */
+/* The same frame pinned at 160x120: columns 141 to 159, beyond the cart's
+ * 128 columns, are on screen. */
 static void test_is_on_screen_frame_at_160x120(void) {
     entity_registry_init(NULL);
     assert(on_screen_at(172, 60) && !on_screen_at(173, 60));

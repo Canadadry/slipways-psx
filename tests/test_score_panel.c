@@ -850,7 +850,7 @@ static void test_year_banner_is_centered(void) {
     assert(abs(left - (P8_SCREEN_WIDTH - 1 - right)) <= 1);
 }
 
-/* The seven score lines keep their 128x128 offsets from the center:
+/* The seven score lines keep the cart's offsets from its center (64,64):
  * x = W/2, y = H/2 + (y128 - 64). */
 static void test_score_lines_are_centered(void) {
     static const int y128[7] = {21, 34, 43, 52, 61, 74, 82};
@@ -869,7 +869,7 @@ static void test_score_lines_are_centered(void) {
 }
 
 /* The five backgrounds of the score table, drawn alone, cover lines
- * H/2 - 40 to H/2 + 22: the table at 128x128 (24 to 86) moved with the
+ * H/2 - 40 to H/2 + 22: the cart's table (24 to 86) moved with the
  * center. */
 static void test_score_backgrounds_follow_the_center(void) {
     const score_row_t *rows;

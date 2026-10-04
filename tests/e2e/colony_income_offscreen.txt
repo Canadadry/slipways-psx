@@ -11,7 +11,7 @@ Saut d'année avec une colonie hors de l'écran : pas de toast de revenu.
 - f44 : saut d'année `ix[1]` (150,0) : `jo:hk` de « p27 » a un `kr` non
   nul mais `gd` est faux, pas de toast « -1$ ».
 
-La ligne visée (`planet.c:447`) est ce retour sur `gd`, pas le cas
+La ligne visée (`planet_new_year`, `planet.c:337-338`) est ce retour sur `gd`, pas le cas
 `kr` = 0, déjà couvert par les planètes inconnues.
 
 Relecture humaine dans raylib : à faire.
