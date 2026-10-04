@@ -331,7 +331,7 @@ available_projects_kept_t research_display_available_projects(const entity_t *pl
         research_project_t *b = research_projects_at(k);
 
         if (available_projects_predicate(b, planet_instance)) {
-            result.items[result.count++] = b;
+            result.items[result.count++] = research_project_id_of(b);
         }
     }
     return result;

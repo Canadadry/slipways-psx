@@ -155,7 +155,7 @@ static void update_tiers_visit(entity_t *entity, void *context) {
 
     if (!has_development_tier || tier > development_tier) {
         if (has_development_tier && development_tier == p8_fixed_from_int(1)) {
-            research_project_t *hn = planet->project;
+            research_project_t *hn = research_project_get(planet->project);
             if (hn != NULL && hn->has_byproduct) {
                 if (planet->needs != NULL) {
                     need_t *entry = need_new(game_zone(), &hn->byproduct);
@@ -170,7 +170,7 @@ static void update_tiers_visit(entity_t *entity, void *context) {
     }
 
     if (development_tier != p8_fixed_from_int(0)) {
-        research_project_t *hn = planet->project;
+        research_project_t *hn = research_project_get(planet->project);
         if (hn != NULL) {
             const production_tables_entry_t *po = research_project_production(hn);
             if (po != NULL) {

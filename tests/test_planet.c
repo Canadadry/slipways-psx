@@ -254,7 +254,7 @@ static uint32_t fold_planet(uint32_t hash, const void *entity) {
     hash = fnv(hash, (uint32_t)(planet->map_pos != NULL));
     hash = fnv(hash, (uint32_t)(planet->pos != NULL));
     hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
-    hash = fnv(hash, (uint32_t)(planet->project != NULL));
+    hash = fnv(hash, (uint32_t)(research_project_get(planet->project) != NULL));
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
     hash = fnv(hash, (uint32_t)(planet->needs != NULL));
     hash = fnv(hash, (uint32_t)(planet->planet_type != NULL));
@@ -541,7 +541,7 @@ static void test_production_shared(void) {
     assert(a->production != NULL && a->production != planet_shared_production());
     assert(a->production->amount == p8_fixed_from_int(0));
     assert(b->production == planet_shared_production());
-    assert(a->project == hp && list_size(a->needs) >= 0);
+    assert(research_project_get(a->project) == hp && list_size(a->needs) >= 0);
 
     economy_total_production(&production_before);
     kw->has_resource = 1;

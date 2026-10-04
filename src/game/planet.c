@@ -70,7 +70,7 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
     self->map_pos = NULL;
     self->pos = NULL;
     self->slipways = NULL;
-    self->project = NULL;
+    self->project = RESEARCH_PROJECT_ID_NONE;
     self->description = NULL;
     self->needs = NULL;
     self->planet_type = NULL;
@@ -243,7 +243,7 @@ void planet_install_project(planet_t *self, research_project_t *research_project
     }
     n = planet_project_need_count(research_project_instance);
 
-    self->project = research_project_instance;
+    self->project = research_project_id_of(research_project_instance);
     self->description = NULL;
 
     pointer_list_init(&jy, zone);

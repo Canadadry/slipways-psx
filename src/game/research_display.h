@@ -15,7 +15,7 @@ layout_row_t *research_display_planet_resource_row(const allocator_t *zone, cons
                         p8_fixed_t amount, p8_fixed_t used, p8_fixed_t spacing);
 
 typedef struct {
-    research_project_t *items[PROJECT_RECORDS_COUNT];
+    research_project_id_t items[PROJECT_RECORDS_COUNT];
     int count;
 } available_projects_kept_t;
 

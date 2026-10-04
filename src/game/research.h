@@ -1,6 +1,8 @@
 #ifndef GAME_RESEARCH_H
 #define GAME_RESEARCH_H
 
+#include <stdint.h>
+
 #include "p8/fixed.h"
 #include "game/game_data.h"
 #include "game/map_tables.h"
@@ -44,6 +46,22 @@ typedef struct {
     data_row_t layout_row_inner;
     data_item_t layout_row_inner_items[2];
 } research_project_t;
+
+typedef struct {
+    uint16_t index;
+    uint16_t epoch;
+} research_project_id_t;
+
+#define RESEARCH_PROJECT_ID_NONE ((research_project_id_t){0, 0})
+
+/* NULL for no project, and for an id taken before the projects were last
+ * forgotten or the world last reset. */
+research_project_t *research_project_get(research_project_id_t id);
+
+/* RESEARCH_PROJECT_ID_NONE for NULL. */
+research_project_id_t research_project_id_of(const research_project_t *project);
+
+void research_expire_project_ids(void);
 
 void research_init(void);
 

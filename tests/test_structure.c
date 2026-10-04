@@ -327,7 +327,7 @@ static uint32_t fold_lab(uint32_t hash, void *entity) {
     hash = fnv(hash, (uint32_t)(planet->map_pos != NULL));
     hash = fnv(hash, (uint32_t)(planet->pos != NULL));
     hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
-    hash = fnv(hash, (uint32_t)(planet->project != NULL));
+    hash = fnv(hash, (uint32_t)(research_project_get(planet->project) != NULL));
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
     hash = fnv(hash, (uint32_t)(planet->needs != NULL));
     hash = fnv(hash, (uint32_t)(planet->planet_type != NULL));
@@ -352,7 +352,7 @@ static uint32_t fold_lab(uint32_t hash, void *entity) {
            planet->archetype->made_resources == &planet_made_resources_seq);
     assert(planet->production != NULL && planet->production != planet_shared_production());
     assert(research_projects_at(1) != NULL);
-    assert(planet->project == research_projects_at(1));
+    assert(research_project_get(planet->project) == research_projects_at(1));
     hash = fold_production(hash, planet);
     hash = fnv(hash, (uint32_t)entity_list_count(planet->slipways));
     hash = fnv(hash, (uint32_t)list_size(planet->needs));

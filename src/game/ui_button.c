@@ -104,7 +104,7 @@ static button_t *button_create(const button_keys_t *keys) {
     self->has_type_bias = 0;
     self->technology = NULL;
     self->project_planet = NULL;
-    self->project = NULL;
+    self->project = RESEARCH_PROJECT_ID_NONE;
     self->project_cost = 0;
     self->has_project_cost = 0;
     self->archetype = &button_archetype;

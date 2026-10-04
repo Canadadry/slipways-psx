@@ -6,37 +6,74 @@
 
 #include "game/tech_gate.h"
 #include "engine/game_zone.h"
+#include "p8/fatal.h"
 
 static int g_research_project_up = 0;
 
-static research_project_t *g_projects[PROJECT_RECORDS_COUNT];
+/* Built in place: a project's layout_row points into the project itself. */
+static research_project_t g_project_table[PROJECT_RECORDS_COUNT];
+static int g_project_table_count = 0;
+static uint16_t g_project_epoch = 1;
+
+static int g_projects[PROJECT_RECORDS_COUNT];
 static int g_projects_count = 0;
 /* The name is borrowed, never copied: it must outlive the project. */
 static struct {
     const char *name;
-    research_project_t *project;
+    int project;
 } g_projects_by_name[PROJECT_RECORDS_COUNT];
 static int g_projects_by_name_count = 0;
 static int g_projects_up = 0;
 static const char *g_required_tech = NULL;
 
-static void forget_projects(void) {
-    g_projects_count = 0;
-    g_projects_by_name_count = 0;
+void research_expire_project_ids(void) {
+    g_project_epoch++;
+    if (g_project_epoch == 0) {
+        g_project_epoch = 1;
+    }
 }
 
-static void projects_register(research_project_t *hp) {
+static void forget_projects(void) {
+    g_project_table_count = 0;
+    g_projects_count = 0;
+    g_projects_by_name_count = 0;
+    research_expire_project_ids();
+}
+
+research_project_t *research_project_get(research_project_id_t id) {
+    if (id.epoch != g_project_epoch || id.index >= g_project_table_count) {
+        return NULL;
+    }
+    return &g_project_table[id.index];
+}
+
+research_project_id_t research_project_id_of(const research_project_t *project) {
+    uintptr_t at = (uintptr_t)project;
+    uintptr_t first = (uintptr_t)g_project_table;
+    size_t index;
+
+    if (project == NULL) {
+        return RESEARCH_PROJECT_ID_NONE;
+    }
+    index = (size_t)(at - first) / sizeof g_project_table[0];
+    assert(at >= first && index < (size_t)g_project_table_count && project == &g_project_table[index] &&
+           "research_project_id_of: a project lives in the project table, made since the projects were last forgotten");
+    return (research_project_id_t){(uint16_t)index, g_project_epoch};
+}
+
+static void projects_register(int index) {
+    const char *name = g_project_table[index].name;
     int i;
 
     for (i = 0; i < g_projects_by_name_count; i++) {
-        if (strcmp(g_projects_by_name[i].name, hp->name) == 0) {
-            g_projects_by_name[i].project = hp;
+        if (strcmp(g_projects_by_name[i].name, name) == 0) {
+            g_projects_by_name[i].project = index;
             return;
         }
     }
     assert(g_projects_by_name_count < PROJECT_RECORDS_COUNT && "projects_register: every name comes from the project records, which have fewer names than records");
-    g_projects_by_name[g_projects_by_name_count].name = hp->name;
-    g_projects_by_name[g_projects_by_name_count].project = hp;
+    g_projects_by_name[g_projects_by_name_count].name = name;
+    g_projects_by_name[g_projects_by_name_count].project = index;
     g_projects_by_name_count++;
 }
 
@@ -113,11 +150,18 @@ need_t *need_new(const allocator_t *zone, const p8_fixed_t *qe) {
 
 static research_project_t *project_create(const research_project_keys_t *keys) {
     const allocator_t *load_zone = game_zone_load_zone();
-    research_project_t *self = (research_project_t *)allocator_alloc(load_zone, sizeof *self);
+    research_project_t *self;
     pointer_list_t *new_i;
     const char *input_codes = "";
     size_t input_count;
+    int index;
 
+    if (g_project_table_count >= PROJECT_RECORDS_COUNT) {
+        p8_fatal("research project table full");
+    }
+    index = g_project_table_count++;
+    self = &g_project_table[index];
+    memset(self, 0, sizeof *self);
     entity_init_header(&self->header, &research_project_class_def);
     self->name = NULL;
     self->planet_codes = NULL;
@@ -156,7 +200,7 @@ static research_project_t *project_create(const research_project_keys_t *keys) {
 
     if (self->name != NULL) {
         assert(g_projects_up && "project_create: a named project registers itself, so research_build_projects() runs first");
-        projects_register(self);
+        projects_register(index);
     }
 
     if (self->has_icon_sprite) {
@@ -253,12 +297,9 @@ void research_build_projects(void) {
             g_required_tech = e->header;
         } else {
             research_project_keys_t keys = {0};
-            research_project_t *inst;
-
             keys.record = e;
             keys.required_tech = g_required_tech;
-            inst = research_project_new(&keys);
-            g_projects[g_projects_count++] = inst;
+            g_projects[g_projects_count++] = research_project_id_of(research_project_new(&keys)).index;
         }
     }
 }
@@ -271,7 +312,7 @@ research_project_t *research_projects_at(int k) {
     if (k < 1 || k > g_projects_count) {
         return NULL;
     }
-    return g_projects[k - 1];
+    return &g_project_table[g_projects[k - 1]];
 }
 
 research_project_t *research_projects_find(const char *px) {
@@ -279,7 +320,7 @@ research_project_t *research_projects_find(const char *px) {
 
     for (i = 0; px != NULL && i < g_projects_by_name_count; i++) {
         if (strcmp(g_projects_by_name[i].name, px) == 0) {
-            return g_projects_by_name[i].project;
+            return &g_project_table[g_projects_by_name[i].project];
         }
     }
     return NULL;

@@ -21,7 +21,7 @@ typedef struct {
     vec_t *map_pos;
     vec_t *pos;
     entity_list_t *slipways;
-    research_project_t *project;
+    research_project_id_t project;
     const char *description;
     pointer_list_t *needs;
     const planet_types_entry_t *planet_type;

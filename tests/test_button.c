@@ -367,7 +367,7 @@ static uint32_t fold_button(uint32_t hash, const void *entity) {
     hash = fold_opt_fixed(hash, button->has_trade, button->trade);
     hash = fold_opt_fixed(hash, button->has_type_bias, button->type_bias);
     hash = fold_opt_ref(hash, button->project_planet);
-    hash = fold_opt_ref(hash, button->project);
+    hash = fold_opt_ref(hash, research_project_get(button->project));
     hash = fold_opt_fixed(hash, button->has_project_cost, button->project_cost);
     if (button->technology != NULL) {
         const technologies_entry_t *t = button->technology;
@@ -1287,7 +1287,7 @@ static uint32_t fold_button_members(uint32_t h, const void *e) {
         h = fnv(h, 0u);
     }
     h = fold_member_opt_ref(h, b->project_planet);
-    h = fold_member_opt_ref(h, b->project);
+    h = fold_member_opt_ref(h, research_project_get(b->project));
     return fold_member_fixed(h, b->has_project_cost, b->project_cost);
 }
 
@@ -1417,7 +1417,7 @@ static uint32_t fold_keys(uint32_t hash, layout_row_t *source_row) {
         button = built(none);
         assert(button->name == NULL && !button->has_trade && !button->has_type_bias && !button->has_project_cost);
         assert(button->pos == NULL && button->slide_target == NULL && button->refresh == NULL && !button->has_on_click && button->technology == NULL);
-        assert(button->project_planet == NULL && button->project == NULL);
+        assert(button->project_planet == NULL && research_project_get(button->project) == NULL);
         hash = fold_and_drop(hash, button);
     }
     keys = none;
@@ -1536,7 +1536,7 @@ static uint32_t members_title_and_game(void) {
         assert(b->header.hit_box != NULL);
         assert(!b->has_side_tooltip && b->tooltip == NULL && b->pos == NULL && b->slide_target == NULL && !b->is_hovered);
         assert(b->name == NULL && !b->has_trade && !b->has_type_bias && b->technology == NULL);
-        assert(b->project_planet == NULL && b->project == NULL && !b->has_project_cost);
+        assert(b->project_planet == NULL && research_project_get(b->project) == NULL && !b->has_project_cost);
         assert(on_click_state(fresh[key_index]) == 0 && button_of(fresh[key_index])->refresh == NULL);
         hash = fold_button_members(hash, fresh[key_index]);
     }
@@ -1625,7 +1625,7 @@ static uint32_t members_projects_panel(void) {
         }
         assert(b->project_planet == pt);
         assert(is_of_class(pt, planet_class()) && entity_list_listed(entities_by_tag(TAG_PLANET), pt));
-        assert(b->project != NULL && is_of_class(b->project, research_project_class()));
+        assert(research_project_get(b->project) != NULL && is_of_class(research_project_get(b->project), research_project_class()));
         assert(b->has_project_cost);
         assert(b->on_click != NULL);
         assert(b->tooltip != NULL && is_of_class(b->tooltip, tooltip_class()));
@@ -1720,7 +1720,7 @@ static void test_projects_panel_free_row(void) {
     known_panel();
     le = main_ui_ephemerals();
     for (i = 0; i < le->count && b == NULL; i++) {
-        b = button_of(le->items[i])->project;
+        b = research_project_get(button_of(le->items[i])->project);
         pt = button_of(le->items[i])->project_planet;
     }
     assert(b != NULL && pt != NULL);
@@ -1731,7 +1731,7 @@ static void test_projects_panel_free_row(void) {
     for (i = 0; i < le->count; i++) {
         const button_t *row = button_of(le->items[i]);
 
-        if (row->project == b) {
+        if (research_project_get(row->project) == b) {
             assert(row->project_cost == 0 && row->has_side_tooltip && row->side_tooltip == NULL);
             found = 1;
         }

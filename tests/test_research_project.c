@@ -38,6 +38,7 @@
 #include "engine/entity_class.h"
 #include "game/tech_gate.h"
 #include "game/ui.h"
+#include "game/ui_button.h"
 #include "engine/vec.h"
 #include "engine/zone.h"
 #include "engine/frame_zone.h"
@@ -653,8 +654,8 @@ static uint32_t fold_needs(uint32_t h, const planet_t *p) {
 static uint32_t fold_planet(uint32_t hash, void *entity) {
     const planet_t *p = as_planet(entity);
 
-    hash = fnv(hash, (uint32_t)projects_rank(p->project));
-    hash = fnv(hash, (uint32_t)(p->project != NULL));
+    hash = fnv(hash, (uint32_t)projects_rank(research_project_get(p->project)));
+    hash = fnv(hash, (uint32_t)(research_project_get(p->project) != NULL));
     hash = fold_string_member(hash, p->description);
     hash = fold_needs(hash, p);
     hash = fold_production(hash, p);
@@ -714,12 +715,12 @@ static void test_install(void) {
 
     first = new_planet("p901", 10, 12);
     planet_install_project(first, ordinary_project);
-    assert((void *)as_planet(first)->project == ordinary_project && as_planet(first)->description == NULL);
+    assert((void *)research_project_get(as_planet(first)->project) == ordinary_project && as_planet(first)->description == NULL);
     hash = fold_planet(hash, first);
 
     first = new_planet("p902", 30, 14);
     planet_apply_project(first, ordinary_project);
-    assert((void *)as_planet(first)->project == ordinary_project);
+    assert((void *)research_project_get(as_planet(first)->project) == ordinary_project);
     hash = fold_planet(hash, first);
 
     next_type_project = project_with(with_next_type, 0);
@@ -742,7 +743,7 @@ static void test_install(void) {
 
     first = new_planet("p906", 110, 20);
     planet_apply_project(first, NULL);
-    assert(as_planet(first)->project == NULL);
+    assert(research_project_get(as_planet(first)->project) == NULL);
     hash = fold_planet(hash, first);
     check("install", hash, INSTALL_HASH);
 }
@@ -758,7 +759,7 @@ static uint32_t fold_world(void) {
     cart_draw();
     jo = entities_by_tag(TAG_PLANET);
     for (i = 0; jo != NULL && i < jo->count; i++) {
-        h = fnv(h, (uint32_t)projects_rank(as_planet(jo->items[i])->project));
+        h = fnv(h, (uint32_t)projects_rank(research_project_get(as_planet(jo->items[i])->project)));
     }
     return fnv(h, screen_hash());
 }
@@ -791,7 +792,8 @@ static size_t block_bytes(size_t size) {
     return ZONE_CELLS(size) * sizeof(zone_cell_t);
 }
 
-/* Each project, its `inputs` list, its items unless empty, its needs. */
+/* Each project's `inputs` list, its items unless empty, its needs: the
+ * projects themselves live in the project table. */
 static size_t projects_bytes(void) {
     size_t bytes = 0;
     int k;
@@ -800,7 +802,7 @@ static size_t projects_bytes(void) {
         const research_project_t *b = project(k);
         const int n = b->inputs->count;
 
-        bytes += block_bytes(sizeof *b) + block_bytes(sizeof *b->inputs) +
+        bytes += block_bytes(sizeof *b->inputs) +
                   (size_t)n * block_bytes(sizeof(need_t));
         if (n > 0) {
             bytes += block_bytes((size_t)n * sizeof(void *));
@@ -809,7 +811,7 @@ static size_t projects_bytes(void) {
     return bytes;
 }
 
-/* The projects are all the load sub-zone holds after cart_load(), each
+/* The projects' needs are all the load sub-zone holds after cart_load(), each
  * `inputs` list reserved to its exact length. */
 static void test_projects_in_load_zone(void) {
     int k;
@@ -1073,6 +1075,84 @@ static void test_projects_name_is_the_last_registered(void) {
     assert(research_projects_at(1) == first && research_projects_count() == PROJECTS_COUNT);
 }
 
+static void test_project_id_resolves_until_reset_or_rebuild(void) {
+    research_project_t *b = project(COLONY);
+    const char *name = b->name;
+    research_project_id_t id = research_project_id_of(b);
+
+    assert(research_project_get(id) == b);
+    assert(research_project_get(RESEARCH_PROJECT_ID_NONE) == NULL);
+    assert(research_project_get(research_project_id_of(NULL)) == NULL);
+
+    reset_world(NULL);
+    assert(research_project_get(id) == NULL);
+    assert(research_projects_at(COLONY) == b);
+    assert(research_project_get(research_project_id_of(b)) == b);
+
+    id = research_project_id_of(research_projects_find(name));
+    assert(research_project_get(id) != NULL);
+    game_zone_reset();
+    research_build_projects();
+    assert(research_project_get(id) == NULL);
+    assert(research_project_get(research_project_id_of(research_projects_find(name))) == research_projects_find(name));
+    assert(research_projects_find(name) != NULL && research_projects_count() == PROJECTS_COUNT);
+}
+
+static void test_project_links_resolve_until_reset(void) {
+    button_keys_t keys = {0};
+    button_t *row;
+    void *a;
+
+    start_game();
+    a = new_planet("p960", 14, 18);
+    planet_install_project(a, project(COLONY));
+    keys.project = research_project_id_of(project(EXPORTER));
+    row = button_new(&keys);
+    assert(research_project_get(as_planet(a)->project) == project(COLONY));
+    assert(research_project_get(row->project) == project(EXPORTER));
+
+    reset_world(NULL);
+    assert(research_project_get(as_planet(a)->project) == NULL);
+    assert(research_project_get(row->project) == NULL);
+}
+
+static void fill_project_table(void) {
+    int i;
+
+    for (i = 0; i <= PROJECT_RECORDS_COUNT; i++) {
+        (void)research_project_new(NULL);
+    }
+}
+
+static void test_project_table_full_is_fatal(void) {
+    char said[512];
+    ssize_t n;
+    size_t got = 0;
+    int fds[2];
+    pid_t child;
+    int status;
+
+    fflush(stdout);
+    assert(pipe(fds) == 0);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        close(fds[0]);
+        assert(dup2(fds[1], 2) == 2);
+        fill_project_table();
+        _exit(0);
+    }
+    close(fds[1]);
+    while (got < sizeof said - 1 && (n = read(fds[0], said + got, sizeof said - 1 - got)) > 0) {
+        got += (size_t)n;
+    }
+    said[got] = '\0';
+    close(fds[0]);
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFEXITED(status) && WEXITSTATUS(status) == 3);
+    assert(strstr(said, "research project table full") != NULL);
+}
+
 /* Each scenario runs in a child forked right after cart_load(), as a fresh
  * process would start it: the rnd state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
@@ -1112,6 +1192,9 @@ int main(void) {
     in_fresh_child(test_rebuild_and_shutdown);
     in_fresh_child(test_projects_in_load_zone);
     in_fresh_child(test_needs_new_in_the_zone_passed);
+    in_fresh_child(test_project_id_resolves_until_reset_or_rebuild);
+    in_fresh_child(test_project_links_resolve_until_reset);
+    in_fresh_child(test_project_table_full_is_fatal);
 
     printf("test_research_project: all tests passed\n");
     return 0;

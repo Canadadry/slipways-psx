@@ -364,7 +364,7 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fnv(hash, (uint32_t)(planet->map_pos != NULL));
     hash = fnv(hash, (uint32_t)(planet->pos != NULL));
     hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
-    hash = fnv(hash, (uint32_t)(planet->project != NULL));
+    hash = fnv(hash, (uint32_t)(research_project_get(planet->project) != NULL));
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
     hash = fnv(hash, (uint32_t)(planet->needs != NULL));
     hash = fnv(hash, (uint32_t)(planet->planet_type != NULL));

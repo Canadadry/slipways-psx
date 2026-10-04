@@ -301,7 +301,7 @@ static void planet_projects_panel_on_click_method(button_t *self) {
         return;
     }
     pt = self->project_planet;
-    b = self->project;
+    b = research_project_get(self->project);
     if (self->has_project_cost) {
         od = self->project_cost;
     }
@@ -343,7 +343,7 @@ static void planet_projects_panel_keys(planet_t *self, research_project_t *b, bu
     }
 
     keys->project_planet = self;
-    keys->project = b;
+    keys->project = research_project_id_of(b);
     keys->has_project_cost = 1;
     keys->project_cost = od;
     keys->has_on_click = 1;
@@ -372,7 +372,7 @@ void planet_projects_panel(planet_t *self) {
     memset(bs, 0, cap * sizeof *bs);
     memset(rows, 0, cap * sizeof *rows);
     for (i = 0; i < available_projects_list.count; i++) {
-        planet_projects_panel_keys(self, available_projects_list.items[i], &bs[n], &rows[n]);
+        planet_projects_panel_keys(self, research_project_get(available_projects_list.items[i]), &bs[n], &rows[n]);
         n++;
     }
 
