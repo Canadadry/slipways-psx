@@ -45,7 +45,7 @@ Bilan contre 768 Ko (786 432), marge 1/8 (règle 3). `game` compte la générati
 
 Candidats de 4b, du plus gros au plus petit, gain attendu en octets de budget (baisse de la cible, marge comprise, pris l'un après l'autre) :
 
-1. `frame` — rendre les offres temporaires de `planet_rebuild_trades` à son retour : **258 344** (pic 247 640 → 18 000). À mesurer : pic de `frame` et frame qui le tient.
+1. `frame` — rendre les offres temporaires de `planet_rebuild_trades` à son retour : **258 344** (pic 247 640 → 18 000). Fait : gain réel **258 344**, pic 18 000 tenu par `full_game.json` (frame 4149), cible 20 256.
 2. `game` — arènes de prise à la taille de ce qu'elles tiennent : **103 128** (pic − 91 664). À mesurer : pic de `game` au démarrage de `full_game_new_game`.
 3. `game` — réserve de points de transit d'un slipway de 64 à 24, qui ne rapporte qu'avec 2 : **69 120** (192 × 320 au pic). À mesurer : idem.
 4. `game` — blocs morts des agrandissements de listes, dans les deux générations : **31 424** (pic − 27 936). À mesurer : idem.

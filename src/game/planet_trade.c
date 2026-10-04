@@ -178,6 +178,7 @@ entity_list_t *planet_rebuild_trades(planet_t *self) {
     const entity_list_t *slipways = NULL;
     entity_list_iter_t iter;
     entity_t *w_val;
+    frame_zone_mark_t offers;
 
     if (self == NULL) {
         return NULL;
@@ -200,6 +201,7 @@ entity_list_t *planet_rebuild_trades(planet_t *self) {
 
     slipways = self->slipways;
 
+    offers = frame_zone_mark();
     iter = entity_list_all(slipways);
     while (entity_list_iter_next(&iter, &w_val)) {
         entity_t *w;
@@ -242,6 +244,7 @@ entity_list_t *planet_rebuild_trades(planet_t *self) {
         }
     }
 
+    frame_zone_rewind(offers);
     return accepted_routes;
 }
 

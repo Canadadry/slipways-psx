@@ -37,6 +37,7 @@
 #include "game/particle.h"
 #include "game/planet.h"
 #include "game/planet_family.h"
+#include "game/planet_trade.h"
 #include "game/probe.h"
 #include "game/structure_icon.h"
 #include "game/score_panel.h"
@@ -733,6 +734,32 @@ static void trade_rich_mine_kept_route_survives_frame(void) {
     assert(t->planets->count == nlp && memcmp(lp, t->planets->items, (size_t)nlp * sizeof *lp) == 0);
     assert(t->slipways->count == nrl && memcmp(rl, t->slipways->items, (size_t)nrl * sizeof *rl) == 0);
     printf("  trade_rich_mine: p27 route (%d planets, %d slipways) read back at f151\n", nlp, nrl);
+}
+
+/* At f139, a rebuild of p27 over its kept routes gives back to the frame
+ * zone every candidate offer it made, and the routes it hands back still
+ * read the same. */
+static void trade_rich_mine_rebuild_gives_back_frame(void) {
+    entity_t *lp[16];
+    start_e2e("trade_rich_mine");
+    play_until(139);
+    planet_t *p27 = (planet_t *)planet_with_id("p27");
+    assert(p27->slipways != NULL && p27->slipways->count > 0 && "f139: p27 is linked");
+    const entity_list_t *by = p27->outgoing_routes;
+    assert(by != NULL && by->count > 0 && "f139: p27 keeps a route");
+    const int n = by->count;
+    const trade_route_t *t = (const trade_route_t *)by->items[n - 1];
+    const int nlp = t->planets->count;
+    assert(nlp <= 16);
+    memcpy(lp, t->planets->items, (size_t)nlp * sizeof *lp);
+    const size_t before = frame_zone_used();
+    entity_list_t *out = planet_rebuild_trades(p27);
+    const size_t after = frame_zone_used();
+    printf("  trade_rich_mine f139: frame %lu -> %lu across a rebuild of p27\n", (unsigned long)before,
+           (unsigned long)after);
+    assert(after == before && "planet_rebuild_trades keeps its candidate offers in the frame zone");
+    assert(out == by && out->count == n && "the rebuild hands back the kept routes");
+    assert(t->planets->count == nlp && memcmp(lp, t->planets->items, (size_t)nlp * sizeof *lp) == 0);
 }
 
 /* The transit dots still alive at the end of the game go back to the
@@ -1471,6 +1498,7 @@ int main(void) {
     in_child(game_end_final_score_rebuild_does_not_grow_game);
     in_child(trade_rich_mine_route_rebuild_does_not_grow_game);
     in_child(trade_rich_mine_kept_route_survives_frame);
+    in_child(trade_rich_mine_rebuild_gives_back_frame);
     in_child(trade_rich_mine_releases_trails_on_reload);
     in_child(refused_grabs_do_not_grow_game);
     in_child(placed_grab_reuses_dead_wormhole_arena);
