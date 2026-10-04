@@ -176,12 +176,21 @@ void cart_init(void) {
            "cart_init: help_init() and score_panel_init() reset these bridges, so cart_load() must "
            "install them afterwards: every button copies the value when it is built");
 
+    /* A pending flip would trip flip_zone_flip's assert; an empty generation
+     * (cart_load() just reset the zone) needs none, and would trip it at a
+     * cart_start_game() of the same frame. */
+    if (!game_zone_pending() && game_zone_used() > 0) game_zone_flip();
     reset_world();
 
     /* The icons' shared cursor takes the rest cursor itself (it aliases its
      * vector, it is not a copy), and the shown message box is cleared. */
     structure_icon_set_cursor(structure_icon_rest_cursor());
     message_box_set_shown(NULL);
+
+    /* The quit game's economy and score panel die with the generation the
+     * flip above left pending; the boot placeholder stays. */
+    if (main_economy_typed() != NULL) probe_set_main_economy(NULL);
+    score_panel_set_main(NULL);
 
     (void)help_screen_new();
 }

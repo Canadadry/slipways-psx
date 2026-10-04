@@ -56,11 +56,10 @@ const entity_class_t *main_economy_placeholder_class(void);
 
 /* The main economy: the provisional, which probe_init() installs, then,
  * from cart_start_game() on, an economy; read it through
- * main_economy_typed() and main_economy_placeholder(). NULL before init and
- * after shutdown, which several callers test for. The setter only repoints:
- * from cart_init() to the next cart_start_game() the slot still holds the
- * quit game's economy, alive until the flush that follows. These functions
- * and their state are defined in probe.c. */
+ * main_economy_typed() and main_economy_placeholder(). NULL before init,
+ * after shutdown, and from a cart_init() that quits a game to the next
+ * cart_start_game(), which several callers test for. The setter only
+ * repoints. These functions and their state are defined in probe.c. */
 entity_t *main_economy(void);
 void probe_set_main_economy(entity_t *instance);
 

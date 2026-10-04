@@ -666,6 +666,7 @@ static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
     cart_init();
+    cart_flush_exit_queue();
     cart_start_game(NULL);
 }
 

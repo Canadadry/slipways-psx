@@ -124,7 +124,7 @@ button_fn_t score_panel_init_field_value(void);
 void score_panel_set_init(button_fn_t fn);
 
 /* NULL until cart_start_game() builds the one panel instance and sets it
- * here. The setter takes no ownership. */
+ * here, and again from cart_init(). The setter takes no ownership. */
 score_panel_t *main_score_panel(void);
 void score_panel_set_main(score_panel_t *instance);
 

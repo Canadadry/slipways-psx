@@ -84,15 +84,14 @@ static int case_dead_after_next_update(void) {
     return 0;
 }
 
-static int case_init_keeps_generation(void) {
+static int case_dead_after_init(void) {
     load_cart_and_start();
     cart_start_game(NULL);
     cart_update60();
     unsigned char *block = counting_block();
     cart_init();
     cart_update60();
-    allocate_again();
-    for (int i = 0; i < 64; i++) assert(block[i] == i && "cart_init does not flip the game zone");
+    sink = block[63];
     return 0;
 }
 
@@ -336,7 +335,7 @@ static const struct {
 } CASES[] = {
     {"alive_through_start_game", case_alive_through_start_game},
     {"dead_after_next_update", case_dead_after_next_update},
-    {"init_keeps_generation", case_init_keeps_generation},
+    {"dead_after_init", case_dead_after_init},
     {"dead_after_cart_load", case_dead_after_cart_load},
     {"grab_arena_and_max", case_grab_arena_and_max},
     {"free_grabs_keep_the_largest", case_free_grabs_keep_the_largest},
@@ -430,7 +429,7 @@ int main(int argc, char **argv) {
     self_path = argv[0];
     expect_clean("alive_through_start_game");
     expect_poison_crash("dead_after_next_update");
-    expect_clean("init_keeps_generation");
+    expect_poison_crash("dead_after_init");
     expect_poison_crash("dead_after_cart_load");
     expect_clean("grab_arena_and_max");
     expect_clean("free_grabs_keep_the_largest");

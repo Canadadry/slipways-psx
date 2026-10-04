@@ -178,6 +178,7 @@ static void start_title(void) {
     dispatch_context_set_input(&input);
     leave_help_screen();
     cart_init();
+    cart_flush_exit_queue();
 }
 
 /* A game started by cart_start_game with no difficulty picked: a NULL

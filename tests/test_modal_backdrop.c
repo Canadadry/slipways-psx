@@ -216,6 +216,7 @@ static void test_hover_loop_on_the_veil(void) {
     modal_backdrop_t *veil;
 
     cart_init();
+    cart_flush_exit_queue();
     cart_start_game(NULL);
     veil = modal_backdrop_new(NULL);
 

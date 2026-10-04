@@ -19,7 +19,7 @@ void cart_load(void);
  * and the end of the slipway it holds, the shown message box, the main
  * score panel's last box, the planets' targeted_by; a quitting difficulty
  * becomes a copy of its fields. Then releases the game-zone generation the
- * last cart_start_game() left, if one is pending. Called by cart_update60()
+ * last cart_init() or cart_start_game() left, if one is pending. Called by cart_update60()
  * after frame_zone_reset(), by cart_load() and cart_shutdown() after the
  * live entities are abandoned, and by the replay and the tests. */
 void cart_flush_exit_queue(void);

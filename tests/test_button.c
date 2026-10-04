@@ -452,6 +452,7 @@ static void start_title(void) {
  * a NULL difficulty reads as difficulty 0. */
 static void start_game(void) {
     start_title();
+    cart_flush_exit_queue();
     cart_start_game(NULL);
     cart_flush_exit_queue();
 }
@@ -755,6 +756,7 @@ static void test_difficulty(void) {
          * planets to the exit queue, which only a frame empties. */
         cart_flush_exit_queue();
         start_title();
+        cart_flush_exit_queue();
         nj = title_button(i);
         cart_start_game(nj);
         assert(economy_score_difficulty() == nj);
@@ -1074,6 +1076,7 @@ static void test_button_is_a_struct(void) {
     start_title();
     check_int("struct title", all_buttons_are_structs(), 4);
     nj = title_button(2);
+    cart_flush_exit_queue();
     cart_start_game(nj);
     assert(is_button(nj) && economy_score_difficulty() == nj);
     assert(galaxy_menu_buttons(ix) == 4);
@@ -1416,6 +1419,7 @@ static uint32_t members_title_and_game(void) {
     assert(button_of(chosen_option)->has_trade && button_of(chosen_option)->has_type_bias);
     printf("[members] difficulty: trade %d, type_bias %d/65536\n", p8_fixed_flr_int(button_of(chosen_option)->trade), (int)button_of(chosen_option)->type_bias);
     hash = fold_button_members(hash, chosen_option);
+    cart_flush_exit_queue();
     cart_start_game(chosen_option);
     assert(economy_score_difficulty() == chosen_option);
     assert(galaxy_menu_buttons(galaxy_menu) == 4);

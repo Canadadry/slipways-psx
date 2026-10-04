@@ -259,6 +259,7 @@ static void test_launch_with_left_held(void) {
     const void *first_main_mouse;
 
     cart_init();
+    cart_flush_exit_queue();
     first_main_mouse = main_mouse();
     frame(0, 64, 64, 1);
     frame(1, 64, 64, 1);
