@@ -7,7 +7,6 @@ static unsigned char *bump_alloc(const allocator_t *z, size_t n) {
     return bump_zone_alloc(z->bump, n);
 }
 
-/* Copies, no realloc: the block lives in the zone, not on the heap. */
 static unsigned char *bump_grow(const allocator_t *z, unsigned char *p,
                                 size_t old_n, size_t new_n) {
     unsigned char *q = bump_zone_alloc(z->bump, new_n);
@@ -100,7 +99,7 @@ void allocator_release(const allocator_t *z, unsigned char *p) {
     z->release(z, p);
 }
 
-/* handle first: the handle's address is the block's. */
+/* `handle` must stay first: arena_t is reached by casting the handle. */
 typedef struct {
     allocator_t handle;
     bump_zone_t bump;
@@ -109,8 +108,7 @@ typedef struct {
 
 #define ARENA_HEAD_CELLS ZONE_CELLS(sizeof(arena_t))
 
-/* Trap: no bump_zone_init, which poisons two halves under ASan, hence past
- * the block; and no reset, the arena is released whole. */
+/* Not bump_zone_init: under ASan it poisons two halves, past the block. */
 const allocator_t *arena_take(const allocator_t *from,
                                                      const char *name, size_t size) {
     size_t cells = size / sizeof(zone_cell_t);
@@ -148,8 +146,6 @@ static unsigned char *arena_spill_grow(const allocator_t *z, unsigned char *p,
     return q;
 }
 
-/* The header does not grow: the spill is the handle's two function
- * pointers, which arena_flush puts back. */
 void arena_spill(const allocator_t *arena) {
     arena_t *a = (arena_t *)arena;
     assert(arena != NULL && arena->bump == &a->bump && "spill of a handle that is not an arena");
