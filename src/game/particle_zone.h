@@ -21,8 +21,8 @@ typedef enum {
 #define PARTICLE_SLOT 32u
 #define TRANSIT_DOTS_SLOT 24u
 /* Elements reserved for a list of the kind, which its slot holds just. */
-#define PARTICLES_CAPACITY 160
-#define PARTICLES_HELP_SCREEN_CAPACITY 768
+#define PARTICLES_CAPACITY 158
+#define PARTICLES_HELP_SCREEN_CAPACITY 653
 
 /* The handle that gives and takes back a whole slot of the kind: alloc
  * asks for the slot size at most, grow is refused. A slot of a particle

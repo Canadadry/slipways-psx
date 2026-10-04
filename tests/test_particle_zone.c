@@ -74,7 +74,7 @@ static int case_particle_dead_after_release(void) {
 }
 
 static int case_burst_zone_full(void) {
-    for (int i = 0; i < 9; i++) particle_zone_slot(PARTICLE_SLOT_BURST);
+    for (int i = 0; i <= particle_zone_count(PARTICLE_SLOT_BURST); i++) particle_zone_slot(PARTICLE_SLOT_BURST);
     return 0;
 }
 
@@ -322,7 +322,7 @@ static int case_transit_dots_dead_after_release(void) {
 }
 
 static int case_transit_dots_zone_full(void) {
-    for (int i = 0; i < 681; i++) trail();
+    for (int i = 0; i <= particle_zone_count(PARTICLE_SLOT_TRANSIT_DOT); i++) trail();
     return 0;
 }
 
@@ -426,8 +426,8 @@ int main(int argc, char **argv) {
     self_path = argv[0];
     expect_clean("live_slots_follow_takes");
     expect_poison_crash("particle_dead_after_release");
-    expect_fatal("burst_zone_full", "zone particles burst full, limit 8 slots");
-    expect_fatal("particle_zone_full", "zone particles particle full, limit 2085 slots");
+    expect_fatal("burst_zone_full", "zone particles burst full, limit 4 slots");
+    expect_fatal("particle_zone_full", "zone particles particle full, limit 887 slots");
     expect_clean("particles_holds_its_capacity");
     expect_fatal("particles_past_capacity", "zone slot particles full, limit ");
     expect_clean("particles_help_screen_holds_its_capacity");
@@ -444,7 +444,7 @@ int main(int argc, char **argv) {
     expect_clean("transit_dots_takes_and_gives_back");
     expect_clean("zone_used_keeps_its_peak");
     expect_poison_crash("transit_dots_dead_after_release");
-    expect_fatal("transit_dots_zone_full", "zone particles transit_dots full, limit 680 slots");
+    expect_fatal("transit_dots_zone_full", "zone particles transit_dots full, limit 437 slots");
     remove(STDERR_LOG);
     printf("test_particle_zone: all tests passed\n");
     return 0;

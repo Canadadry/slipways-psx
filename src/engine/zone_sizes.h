@@ -6,7 +6,7 @@
  * Reserves no memory. */
 #define FRAME_ZONE_BYTES 20256u
 #define UI_ZONE_BYTES 203961u
-#define PARTICLES_ZONE_BYTES (128u * 1024u)
+#define PARTICLES_ZONE_BYTES 73035u
 /* The game zone is its generation plus the load sub-zone. */
 #define GENERATION_ZONE_BYTES 462520u
 #define LOAD_ZONE_BYTES 24680u

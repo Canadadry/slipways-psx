@@ -850,6 +850,7 @@ static void test_components_carried(void) {
     static const int probe[24] = {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1};
     void *entities[24];
     entity_t *other_help;
+    entity_t *other_protostar;
     size_t index;
 
     (void)start_game();
@@ -885,7 +886,8 @@ static void test_components_carried(void) {
     }
 
     assert_own_emitter(entities[8], &ascension_new(NULL)->header, sizeof(planet_t));
-    assert_own_emitter(entities[9], &protostar_new(NULL)->header, sizeof(planet_t));
+    other_protostar = &protostar_new(NULL)->header;
+    assert_own_emitter(entities[9], other_protostar, sizeof(planet_t));
     assert_own_emitter(entities[10], &burst_new(NULL)->header, sizeof(planet_t));
     assert_own_emitter(entities[13], &synthesizer_new(NULL)->header, sizeof(planet_t));
     assert_own_emitter(entities[14], &probe_new(NULL)->header, sizeof(probe_t));
@@ -895,7 +897,7 @@ static void test_components_carried(void) {
     assert_own_probe(entities[6], &trading_hub_new(NULL)->header, sizeof(planet_t));
     assert_own_probe(entities[7], &processor_new(NULL)->header, sizeof(planet_t));
     assert_own_probe(entities[8], &ascension_new(NULL)->header, sizeof(planet_t));
-    assert_own_probe(entities[9], &protostar_new(NULL)->header, sizeof(planet_t));
+    assert_own_probe(entities[9], other_protostar, sizeof(planet_t));
     assert_own_probe(entities[11], &slipgate_new(NULL)->header, sizeof(planet_t));
     assert_own_probe(entities[12], &infraspace_gate_new(NULL)->header, sizeof(planet_t));
     assert_own_probe(entities[13], &synthesizer_new(NULL)->header, sizeof(planet_t));

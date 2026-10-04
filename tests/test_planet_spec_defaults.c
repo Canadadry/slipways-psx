@@ -252,6 +252,10 @@ int main(void) {
     test_processor_defaults();
     test_ascension_defaults();
     test_protostar_defaults();
+    /* The bursts the protostars spawned go, as at a new game: the burst
+     * slots hold what lives at once in a game, not one of each test. */
+    reset_world();
+    cart_flush_exit_queue();
     test_burst_defaults();
     test_slipgate_defaults();
     test_infraspace_gate_defaults();
