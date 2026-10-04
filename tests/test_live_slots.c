@@ -943,7 +943,7 @@ static void offscreen_planet_forgets_refused_grab(void) {
     dispatch_context_set_input(g_input);
     cheat_step(&g_cheat, g_input);
     cart_update60();
-    const entity_t *held = main_ui()->left_held;
+    const entity_t *held = ui_left_held(main_ui());
     assert(held != NULL && "f23: a structure is held");
     planet_t *p34 = planet_targeted_by(held);
     assert(p34 != NULL && "f23: the held structure sets a planet's targeted_by");
@@ -956,7 +956,7 @@ static void offscreen_planet_forgets_refused_grab(void) {
     g_frame++;
     while (g_frame <= 27) play_one_frame(1);
     play_one_frame(0);
-    assert(main_ui()->left_held == held && "f28: the next grab reuses the arena, at the same address");
+    assert(ui_left_held(main_ui()) == held && "f28: the next grab reuses the arena, at the same address");
     assert(entity_get(p34->targeted_by) == NULL && "an off-screen planet's targeted_by points at a refused, recycled grab");
 }
 
@@ -975,7 +975,7 @@ static void refused_grab_crosses_new_game(void) {
  * grab (f371-377). A refusal is released on the 12th frame of its cycle and
  * freed by the flush of the 14th. */
 static const slipway_t *held_slipway(void) {
-    const entity_t *held = main_ui()->left_held;
+    const entity_t *held = ui_left_held(main_ui());
     assert(held != NULL && held->class == slipway_class() && "a slipway is held");
     return (const slipway_t *)held;
 }
@@ -1057,7 +1057,7 @@ static void refused_slipway_crosses_new_game(void) {
     assert(entities_by_tag(TAG_SLIPWAY) != NULL && entities_by_tag(TAG_SLIPWAY)->count == 1);
     play_until(371);
     assert(entities_by_tag(TAG_SLIPWAY) == NULL || entities_by_tag(TAG_SLIPWAY)->count == 0);
-    assert(main_ui()->left_held != NULL && "f371: a grab in the new game");
+    assert(ui_left_held(main_ui()) != NULL && "f371: a grab in the new game");
     play_until(377);
 }
 
@@ -1071,7 +1071,7 @@ static void refused_slipway_crosses_new_game(void) {
  * (f218-224). A refusal is released on the 5th frame of its cycle and freed
  * by the flush of the 7th. */
 static const wormhole_t *held_wormhole(void) {
-    const entity_t *held = main_ui()->left_held;
+    const entity_t *held = ui_left_held(main_ui());
     assert(held != NULL && held->class == wormhole_class() && "a wormhole is held");
     return (const wormhole_t *)held;
 }
@@ -1130,7 +1130,7 @@ static void refused_wormhole_crosses_new_game(void) {
  * (f109-115). A refusal is released on the 5th frame of its cycle and freed
  * by the flush of the 7th. */
 static const probe_t *held_probe(void) {
-    const entity_t *held = main_ui()->left_held;
+    const entity_t *held = ui_left_held(main_ui());
     assert(held != NULL && held->class == probe_class() && "a probe is held");
     return (const probe_t *)held;
 }
@@ -1178,7 +1178,7 @@ static void offscreen_planet_forgets_refused_probe(void) {
     g_frame++;
     while (g_frame <= 78) play_one_frame(1);
     play_one_frame(0);
-    assert(main_ui()->left_held == held && "f79: the next probe reuses the arena, at the same address");
+    assert(ui_left_held(main_ui()) == held && "f79: the next probe reuses the arena, at the same address");
     assert(entity_get(p34->targeted_by) == NULL && "an off-screen planet's targeted_by points at a refused, recycled probe");
 }
 

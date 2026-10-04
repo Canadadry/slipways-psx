@@ -1,4 +1,5 @@
 #include "game/message_box.h"
+#include "engine/entity_id.h"
 
 #include <assert.h>
 #include <stddef.h>
@@ -317,9 +318,9 @@ static button_t *open_box_step(open_box_ctx_t *ctx, const button_keys_t *row) {
     return button_new(&b);
 }
 
-static void open_box_add(entity_list_t *le, button_t *button) {
+static void open_box_add(entity_id_list_t *le, button_t *button) {
     if (le != NULL) {
-        entity_list_add(le, &button->header);
+        entity_id_list_add(le, entity_id_link(&button->header));
     }
 }
 
@@ -327,7 +328,7 @@ void message_box_open_box(const open_box_frame_t *frame, const button_keys_t *bu
     layout_row_cell_t description_cell;
     vec_t box_pos;
     open_box_ctx_t step_context;
-    entity_list_t *ephemerals;
+    entity_id_list_t *ephemerals;
     ui_t *dispatcher;
     button_keys_t description_row = {0};
     layout_row_keys_t description_layout_row = {0};

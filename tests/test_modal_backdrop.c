@@ -19,6 +19,7 @@
 #include "p8/vram.h"
 #include "game/score_panel_display.h"
 #include "engine/entity_class.h"
+#include "engine/entity_id.h"
 #include "game/ui.h"
 #include "game/ui_button.h"
 #include "game/ui_zone.h"
@@ -88,7 +89,7 @@ static uint32_t fold_veil(uint32_t h, const modal_backdrop_t *e) {
 }
 
 static const void *main_ui_hovered(void) {
-    return main_ui()->hovered;
+    return ui_hovered(main_ui());
 }
 
 static int g_on_click_calls = 0;
@@ -112,7 +113,7 @@ static modal_backdrop_t *veil_with_on_click(int answer) {
 static int left_press(void *veil) {
     down_t out = modal_backdrop_class()->left_press(veil, NULL, NULL);
 
-    assert(out.held == NULL);
+    assert(entity_get(out.held) == NULL);
     return out.stop;
 }
 
@@ -202,7 +203,7 @@ static int in_layer(int layer, const void *e) {
     if (ic == NULL) {
         return 0;
     }
-    return entity_list_listed(&ic->layers[layer], e);
+    return entity_id_list_has(&ic->layers[layer], entity_id_of(e));
 }
 
 /* A started game, then a bare veil: the hover loop of `main_ui()` makes it
@@ -232,7 +233,7 @@ static void test_hover_loop_on_the_veil(void) {
     check("hover_cursor", screen_hash(), HOVER_CURSOR_HASH);
 
     assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, NULL, NULL, NULL, &kv, &kn));
-    assert((void *)kv == veil && kn.stop && kn.held == NULL);
+    assert((void *)kv == veil && kn.stop && entity_get(kn.held) == NULL);
     kv = NULL;
     if (ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_RIGHT_PRESS, NULL, NULL, NULL, &kv, &kn)) {
         assert((void *)kv != veil);

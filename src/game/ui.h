@@ -3,6 +3,7 @@
 
 #include "game/background.h"
 #include "engine/entity_list.h"
+#include "engine/entity_id_list.h"
 #include "game/game_data.h"
 #include "engine/geom.h"
 #include "p8/gfx.h"
@@ -16,21 +17,21 @@ typedef enum { MOUSE_SIDE_LEFT, MOUSE_SIDE_RIGHT } mouse_side_t;
 
 typedef struct {
     int layer_count;
-    entity_list_t layers[UI_HOVER_LAYERS];
+    entity_id_list_t layers[UI_HOVER_LAYERS];
 } ui_hovered_by_layer_t;
 
 typedef struct {
     entity_t header;
     const ui_archetype_t *archetype;
-    entity_list_t *ephemerals;
+    entity_id_list_t *ephemerals;
     vec_t *mouse_world;
     vec_t mouse_world_own;
     ui_hovered_by_layer_t *hovered_by_layer;
     ui_hovered_by_layer_t hovered_by_layer_own;
-    entity_t *hovered;
-    entity_t *previous_hovered;
-    entity_t *left_held;
-    background_t *right_held;
+    entity_id_t hovered;
+    entity_id_t previous_hovered;
+    entity_id_t left_held;
+    entity_id_t right_held;
 } ui_t;
 
 void ui_init(void);
@@ -43,13 +44,23 @@ const entity_class_t *ui_class(void);
 
 const box_t *ui_panel_box(void);
 
-entity_list_t *ui_ephemerals_shared(void);
+entity_id_list_t *ui_ephemerals_shared(void);
 
-entity_list_t *ui_ephemerals_new(void);
+entity_id_list_t *ui_ephemerals_new(void);
 
-void ui_set_ephemerals(ui_t *self, entity_list_t *le);
+void ui_set_ephemerals(ui_t *self, entity_id_list_t *le);
 
 ui_t *ui_new(void);
+
+/* Each NULL when absent or once its entity was flushed. */
+entity_t *ui_hovered(const ui_t *self);
+entity_t *ui_previous_hovered(const ui_t *self);
+entity_t *ui_left_held(const ui_t *self);
+background_t *ui_right_held(const ui_t *self);
+
+/* Empties the ui's own ephemerals list (kept, not replaced) and its hover
+ * layers: their ids name entities of the world reset_world() abandons. */
+void ui_forget_world(ui_t *self);
 
 entity_t *main_mouse(void);
 

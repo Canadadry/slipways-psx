@@ -9,6 +9,7 @@
 #include <sys/wait.h>
 
 #include "p8/assets.h"
+#include "engine/entity_id.h"
 #include "game/cart.h"
 #include "engine/collect.h"
 #include "engine/dispatch_context.h"
@@ -130,13 +131,13 @@ static size_t read_cells(const layout_row_t *lq) {
 /* Resets the frame zone once the panel is built, then rereads and draws
  * each button, tooltip included: returns the number of tooltips drawn. */
 static int reset_then_draw_panel(void) {
-    const entity_list_t *le = main_ui()->ephemerals;
+    const entity_id_list_t *le = main_ui()->ephemerals;
     int bubbles = 0;
 
     frame_zone_reset();
     allocate_again();
     for (int i = 0; i < le->count; i++) {
-        button_t *js = (button_t *)le->items[i];
+        button_t *js = (button_t *)entity_id_list_at(le, i);
         vec_t p = js->pos != NULL ? *js->pos : vec_make(0, 0);
 
         sink = (unsigned char)read_cells(js->layout_row);

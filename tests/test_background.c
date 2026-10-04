@@ -30,6 +30,7 @@
 #include "game/research.h"
 #include "game/scroll.h"
 #include "engine/entity_class.h"
+#include "engine/entity_id.h"
 #include "game/ui.h"
 #include "game/ui_button.h"
 #include "engine/vec.h"
@@ -293,7 +294,7 @@ static void test_drag(void) {
 
     rp = vec_ref(30, 40);
     out = background_class()->right_press(&bg->header, vec_ref(5, 6), rp);
-    assert(out.stop && (void *)out.held == bg);
+    assert(out.stop && (void *)entity_get(out.held) == bg);
     assert(drag_mouse_is(bg, rp));
     h = fold_vec(h, drag_mouse_of(bg));
 
@@ -323,15 +324,15 @@ static void test_left_press(void) {
     check_int("left_press_wormhole_before", wormhole_before, LEFT_PRESS_WORMHOLE_BEFORE);
 
     out = background_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));
-    assert(out.stop && out.held != NULL);
-    assert(out.held->class == probe_class());
-    assert(entity_list_listed(entities_by_tag(TAG_PROBE), out.held));
+    assert(out.stop && entity_get(out.held) != NULL);
+    assert(entity_get(out.held)->class == probe_class());
+    assert(entity_list_listed(entities_by_tag(TAG_PROBE), entity_get(out.held)));
 
     out = background_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));
-    assert(out.stop && out.held != NULL);
-    assert(out.held->class == wormhole_class());
-    assert(entity_list_listed(entities_by_tag(TAG_WORMHOLE), out.held));
-    assert(is_state(&((const wormhole_t *)out.held)->header, ENTITY_STATE_PLACING));
+    assert(out.stop && entity_get(out.held) != NULL);
+    assert(entity_get(out.held)->class == wormhole_class());
+    assert(entity_list_listed(entities_by_tag(TAG_WORMHOLE), entity_get(out.held)));
+    assert(is_state(&((const wormhole_t *)entity_get(out.held))->header, ENTITY_STATE_PLACING));
 
     check_int("left_press_probe_after", entity_list_list_count(entities_by_tag(TAG_PROBE)), LEFT_PRESS_PROBE_AFTER);
     check_int("left_press_wormhole_after", entity_list_list_count(entities_by_tag(TAG_WORMHOLE)), LEFT_PRESS_WORMHOLE_AFTER);
@@ -343,7 +344,7 @@ static int in_layer(int layer, const void *e) {
     if (ic == NULL) {
         return 0;
     }
-    return entity_list_listed(&ic->layers[layer], e);
+    return entity_id_list_has(&ic->layers[layer], entity_id_of(e));
 }
 
 /* Nothing else hovered: the background is `hovered`, marked `is_hovered`,
@@ -370,21 +371,21 @@ static void test_hover(void) {
     update_entities();
 
     ui_update(&memory, main_ui());
-    assert((void *)main_ui()->hovered == bg);
+    assert((void *)ui_hovered(main_ui()) == bg);
     assert(is_hovered_state(bg) == 2);
     assert(in_layer(1, bg));
     h = fnv(h, is_hovered_state(bg));
 
     assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, vec_ref(1, 1), vec_ref(2, 2), NULL, &kv, &kn));
-    assert((void *)kv == bg && kn.stop && kn.held != NULL && (void *)kn.held != bg);
+    assert((void *)kv == bg && kn.stop && entity_get(kn.held) != NULL && (void *)entity_get(kn.held) != bg);
     kv = NULL;
     assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_RIGHT_PRESS, vec_ref(1, 1), vec_ref(2, 2), NULL, &kv, &kn));
-    assert((void *)kv == bg && kn.stop && (void *)kn.held == bg);
+    assert((void *)kv == bg && kn.stop && (void *)entity_get(kn.held) == bg);
     h = fold_vec(h, drag_mouse_of(bg));
 
     veil = (void *)modal_backdrop_new(NULL);
     ui_update(&memory, main_ui());
-    assert((void *)main_ui()->hovered == veil);
+    assert((void *)ui_hovered(main_ui()) == veil);
     assert(is_hovered_state(bg) == 0);
     h = fnv(h, is_hovered_state(bg));
     check("hover", h, HOVER_HASH);
@@ -419,7 +420,7 @@ static void test_accept_drop(void) {
     ly = first_planet_with_state(ENTITY_STATE_SETTLED);
     assert(ly != NULL);
     r = planet_accept_drop(ly, &bg->header);
-    assert(r.stop && r.held == NULL);
+    assert(r.stop && entity_get(r.held) == NULL);
     assert(is_state(&ly->header, ENTITY_STATE_SETTLED));
 
     keys.planet_id = NULL;
@@ -427,7 +428,7 @@ static void test_accept_drop(void) {
     keys.pos = ly->pos;
     nr = slipgate_new(&keys);
     r = slipgate_accept_drop(nr, &bg->header);
-    assert(r.stop && r.held == NULL);
+    assert(r.stop && entity_get(r.held) == NULL);
 }
 
 /* The background alone under draw, drawn by draw_layers with the main
@@ -449,7 +450,7 @@ static void test_draw(void) {
 enum { HELD_ABSENT, HELD_PROBE_STRUCT, HELD_WORMHOLE_STRUCT, HELD_OTHER };
 
 static uint32_t left_held_kind(void) {
-    const void *held = main_ui()->left_held;
+    const void *held = ui_left_held(main_ui());
 
     if (held == NULL) {
         return HELD_ABSENT;
@@ -499,7 +500,7 @@ static void test_scripted_drags(void) {
         cart_update60();
         cart_draw();
         assert(find_background(&count) == bg && count == 1);
-        assert((main_ui()->right_held == bg) == (i < 3));
+        assert((ui_right_held(main_ui()) == bg) == (i < 3));
         if (i == 6) {
             assert(left_held_kind() == HELD_PROBE_STRUCT);
         }

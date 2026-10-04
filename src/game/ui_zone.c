@@ -15,7 +15,7 @@
 #define TOAST_COUNT 48u
 #define ROW_SIZE 1184u
 #define ROW_COUNT 71u
-#define EPHEMERALS_SIZE (96u + 24u + UI_EPHEMERALS_RESERVE * 8u)
+#define EPHEMERALS_SIZE (96u + 24u + UI_EPHEMERALS_RESERVE * 4u)
 #define EPHEMERALS_COUNT 6u
 
 typedef char ui_zone_exceeded_t[

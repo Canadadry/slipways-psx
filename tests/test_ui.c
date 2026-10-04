@@ -98,7 +98,7 @@ static int entity_list_listed(const entity_list_t *list, const void *e) {
     return entity_list_rank_in(list, e) >= 0;
 }
 
-static const entity_list_t *ephemerals_of(const ui_t *ok) {
+static const entity_id_list_t *ephemerals_of(const ui_t *ok) {
     assert(ok->ephemerals != NULL);
     return ok->ephemerals;
 }
@@ -145,7 +145,7 @@ static int layer_count(const ui_t *ok, int mf) {
 }
 
 static int in_layer(const ui_t *ok, int mf, const void *e) {
-    return ok->hovered_by_layer != NULL && entity_list_listed(&ok->hovered_by_layer->layers[mf], e);
+    return ok->hovered_by_layer != NULL && entity_id_list_has(&ok->hovered_by_layer->layers[mf], entity_id_of(e));
 }
 
 static uint32_t fold_layers(uint32_t h, const ui_t *ok) {
@@ -287,8 +287,8 @@ static void test_built(void) {
     /* The presence word is constant by the struct's shape, kept so that
      * BUILT_HASH still proves the typed read. */
     hash = fnv(fnv(hash, 1u), (uint32_t)ok->header.state_time);
-    assert(ok->mouse_world == NULL && ok->hovered_by_layer == NULL && ok->hovered == NULL && ok->previous_hovered == NULL && ok->left_held == NULL &&
-           ok->right_held == NULL);
+    assert(ok->mouse_world == NULL && ok->hovered_by_layer == NULL && ui_hovered(ok) == NULL && ui_previous_hovered(ok) == NULL && ui_left_held(ok) == NULL &&
+           ui_right_held(ok) == NULL);
     assert(ui_class()->draw_overlay != NULL);
     assert(ui_class()->states[ENTITY_STATE_NORMAL] == NULL && ui_class()->left_press == NULL &&
            ui_class()->right_press == NULL && ui_class()->hit_test == NULL);
@@ -313,7 +313,7 @@ static void test_shared(void) {
     uint32_t h = 2166136261u;
     ui_t *ok = start_game();
     ui_t *other = ui_new();
-    const entity_list_t *le = ok->ephemerals;
+    const entity_id_list_t *le = ok->ephemerals;
 
     assert(other != NULL && other != ok);
     assert(other->header.cursor_sprite == &other->archetype->cursor_sprite);
@@ -328,7 +328,7 @@ static void test_shared(void) {
     call_galaxy_menu_on_click(4);
     assert(ok->ephemerals != le && other->ephemerals != ok->ephemerals);
     h = fnv(h, (uint32_t)ephemerals_of(ok)->count);
-    h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), ephemerals_of(ok)->items[0]));
+    h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), entity_id_list_at(ephemerals_of(ok), 0)));
     assert(ui_ephemerals_shared() == le && le->count == 0);
 
     (void)help_screen_new();
@@ -349,12 +349,12 @@ static void test_fresh(void) {
     ui_update(&memory, main_ui());
     want = vec_add(vec_at(checked_main_mouse()->pos), vec_at(checked_main_camera()->pos));
     assert(vec_at(ok->mouse_world).x == want.x && vec_at(ok->mouse_world).y == want.y);
-    assert(ok->hovered_by_layer != NULL && ok->hovered != NULL);
-    assert(ok->previous_hovered == ok->hovered);
-    assert((void *)ok->hovered == the_background());
+    assert(ok->hovered_by_layer != NULL && ui_hovered(ok) != NULL);
+    assert(ui_previous_hovered(ok) == ui_hovered(ok));
+    assert((void *)ui_hovered(ok) == the_background());
     h = fold_vec(h, vec_at(ok->mouse_world));
     h = fold_layers(h, ok);
-    h = fold_entity(h, ok->hovered);
+    h = fold_entity(h, ui_hovered(ok));
     h = fnv(h, cursor_is(58));
     assert(ok->ephemerals == ui_ephemerals_shared());
     check("fresh", h, FRESH_HASH);
@@ -394,22 +394,22 @@ static void test_hover(void) {
     planet = planet_on_screen(&x, &y);
     mouse_at(x, y, 0);
     ui_update(&memory, ok);
-    assert((void *)ok->hovered == planet);
+    assert((void *)ui_hovered(ok) == planet);
     assert(is_hovered_state(planet) == 2);
     assert(in_layer(ok, 6, planet) && in_layer(ok, 1, the_background()));
     h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), planet));
     h = fold_layers(h, ok);
 
     ui_update(&memory, ok);
-    assert((void *)ok->previous_hovered == planet && (void *)ok->hovered == planet);
+    assert((void *)ui_previous_hovered(ok) == planet && (void *)ui_hovered(ok) == planet);
     assert(is_hovered_state(planet) == 2);
     h = fnv(h, cursor_is(58));
 
     mouse_at(x + 40 > 143 ? x - 40 : x + 40, y, 0);
     ui_update(&memory, ok);
-    assert((void *)ok->hovered != planet);
+    assert((void *)ui_hovered(ok) != planet);
     assert(is_hovered_state(planet) == 0);
-    h = fold_entity(h, ok->hovered);
+    h = fold_entity(h, ui_hovered(ok));
     check("hover", h, HOVER_HASH);
 }
 
@@ -438,11 +438,11 @@ static void test_layers(void) {
 
     entity_set_state(&planet->header, ENTITY_STATE_KNOWN);
     assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, qa, ra, NULL, &kv, &kn));
-    assert((void *)kv == planet && kn.stop && kn.held == NULL);
+    assert((void *)kv == planet && kn.stop && entity_get(kn.held) == NULL);
     h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), kv));
     kv = NULL;
     assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_RIGHT_PRESS, qa, ra, NULL, &kv, &kn));
-    assert((void *)kv == the_background() && kn.stop && (void *)kn.held == the_background());
+    assert((void *)kv == the_background() && kn.stop && (void *)entity_get(kn.held) == the_background());
     h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), kv));
     check("layers", h, LAYERS_HASH);
 }
@@ -460,21 +460,40 @@ static void test_right(void) {
     bg = the_background();
     mouse_at(80, 96, 2);
     ui_update(&memory, ok);
-    assert((void *)ok->right_held == bg && ok->left_held == NULL);
+    assert((void *)ui_right_held(ok) == bg && ui_left_held(ok) == NULL);
     h = fnv(h, cursor_is(9));
 
     mouse_at(86, 86, 2);
     ui_update(&memory, ok);
-    assert((void *)ok->right_held == bg);
+    assert((void *)ui_right_held(ok) == bg);
     h = fold_vec(h, vec_at(checked_main_camera()->pos));
     h = fnv(h, cursor_is(9));
 
     mouse_at(86, 86, 0);
     ui_update(&memory, ok);
-    assert(ok->right_held == NULL && ok->left_held == NULL);
+    assert(ui_right_held(ok) == NULL && ui_left_held(ok) == NULL);
     h = fold_vec(h, vec_at(checked_main_camera()->pos));
     h = fnv(h, cursor_is(58));
     check("right", h, RIGHT_HASH);
+}
+
+static void test_held_links_read_null_after_the_flush(void) {
+    ui_t *ok = start_game();
+    background_t *bg;
+    entity_t *probe;
+
+    mouse_at(80, 96, 0);
+    ui_update(&memory, ok);
+    bg = the_background();
+    mouse_at(80, 96, 3);
+    ui_update(&memory, ok);
+    probe = ui_left_held(ok);
+    assert(is_of(probe, probe_class()) && ui_right_held(ok) == bg);
+    entity_unregister(probe);
+    entity_unregister(&bg->header);
+    assert(ui_left_held(ok) == probe && ui_right_held(ok) == bg);
+    cart_flush_exit_queue();
+    assert(ui_left_held(ok) == NULL && ui_right_held(ok) == NULL);
 }
 
 static int slipways_count(void *planet) {
@@ -535,8 +554,8 @@ static void test_left(void) {
     ui_update(&memory, dispatcher);
     mouse_at(pixel_x, pixel_y, 1);
     ui_update(&memory, dispatcher);
-    held = dispatcher->left_held;
-    assert(held != NULL && is_of(held, slipway_class()) && dispatcher->right_held == NULL);
+    held = ui_left_held(dispatcher);
+    assert(held != NULL && is_of(held, slipway_class()) && ui_right_held(dispatcher) == NULL);
     assert((void *)slipway_start(((const slipway_t *)held)) == start_planet && slipways_count(start_planet) == 0);
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), held));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), start_planet));
@@ -545,14 +564,14 @@ static void test_left(void) {
     screen_of(other, &pixel_x, &pixel_y);
     mouse_at(pixel_x, pixel_y, 1);
     ui_update(&memory, dispatcher);
-    assert((void *)dispatcher->left_held == held);
-    target = dispatcher->hovered;
+    assert((void *)ui_left_held(dispatcher) == held);
+    target = ui_hovered(dispatcher);
     assert(target == other);
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), target));
 
     mouse_at(pixel_x, pixel_y, 0);
     ui_update(&memory, dispatcher);
-    assert(dispatcher->left_held == NULL && dispatcher->right_held == NULL);
+    assert(ui_left_held(dispatcher) == NULL && ui_right_held(dispatcher) == NULL);
     assert(slipways_count(start_planet) == 1 && slipways_count(target) == 1);
     hash = fnv(hash, (uint32_t)entities_by_tag(TAG_SLIPWAY)->count);
     check("left", hash, LEFT_HASH);
@@ -563,30 +582,32 @@ static void test_left(void) {
 static void test_clear_ephemerals(void) {
     uint32_t h = 2166136261u;
     ui_t *ok = start_game();
-    const entity_list_t *le;
+    const entity_id_list_t *le;
+    entity_t *buttons[16];
     int count;
     int i;
 
     call_galaxy_menu_on_click(4);
     le = ephemerals_of(ok);
     count = le->count;
-    assert(count > 0);
+    assert(count > 0 && count <= 16);
     for (i = 0; i < count; i++) {
-        assert(entity_list_listed(live_entities(), le->items[i]));
-        h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), le->items[i]));
+        buttons[i] = entity_id_list_at(le, i);
+        assert(entity_list_listed(live_entities(), buttons[i]));
+        h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), buttons[i]));
     }
     h = fnv(h, (uint32_t)live_entities()->count);
     ui_clear_ephemerals(main_ui());
     assert(ok->ephemerals != le && ephemerals_of(ok)->count == 0 && ok->ephemerals != ui_ephemerals_shared());
     for (i = 0; i < count; i++) {
-        assert(!entity_list_listed(live_entities(), le->items[i]));
+        assert(!entity_list_listed(live_entities(), buttons[i]));
     }
     h = fnv(h, (uint32_t)live_entities()->count);
     check("clear_ephemerals", h, CLEAR_EPHEMERALS_HASH);
 }
 
 /* The pause menu's list of 4 buttons takes its 8 places at creation: its
- * slot holds 184 bytes (arena header 96, list 24, 8 x 8, x86-64), no block
+ * slot holds 152 bytes (arena header 96, list 24, 8 ids x 4, x86-64), no block
  * left dead by a growth; its 4 elements are recorded when the ui gets it. */
 static void test_ephemerals_reserve_at_creation(void) {
     ui_t *ok = start_game();
@@ -594,35 +615,33 @@ static void test_ephemerals_reserve_at_creation(void) {
     call_galaxy_menu_on_click(4);
     assert(ephemerals_of(ok)->count == 4);
     assert(ephemerals_of(ok)->capacity == 8);
-    assert(ui_zone_max_bytes(SLOT_KIND_EPHEMERALS) == 184);
+    assert(ui_zone_max_bytes(SLOT_KIND_EPHEMERALS) == 152);
     assert(ui_zone_max_ephemerals() == 4);
 }
 
 /* Eight elements fit the reserve: neither the list nor its slot grows. */
 static void test_ephemerals_eight_fit_the_reserve(void) {
-    entity_t marks[8];
-    entity_list_t *le;
+    entity_id_list_t *le;
     int i;
 
     (void)start_game();
     le = ui_ephemerals_new();
     for (i = 0; i < 8; i++) {
-        marks[i] = (entity_t){0};
-        entity_list_add(le, &marks[i]);
+        entity_id_list_add(le, (entity_id_t){(uint16_t)(i + 1), 1});
     }
     assert(le->count == 8 && le->capacity == 8);
-    assert(ui_zone_max_bytes(SLOT_KIND_EPHEMERALS) == 184);
+    assert(ui_zone_max_bytes(SLOT_KIND_EPHEMERALS) == 152);
 }
 
 /* On the title screen, a click on a difficulty button runs
  * `cart_start_game()` from inside ui_update: `reset_world()` rebuilds
- * `main_ui()`, and the end of ui_update still runs on the old one, whose
- * cleared ephemerals and `previous_hovered` land on it, not on the new one. */
+ * `main_ui()`, and the end of ui_update still runs on the old one: its
+ * ephemerals are cleared and its links, of the old world, read NULL. */
 static void test_stale(void) {
     uint32_t h = 2166136261u;
     ui_t *old;
     void *button;
-    const entity_list_t *le;
+    const entity_id_list_t *le;
 
     p8_input_init(&input);
     dispatch_context_set_input(&input);
@@ -630,7 +649,7 @@ static void test_stale(void) {
     old = main_ui();
     mouse_at(76, 71, 0);
     ui_update(&memory, old);
-    button = old->hovered;
+    button = ui_hovered(old);
     le = ephemerals_of(old);
     assert(button != NULL && is_of(button, button_class()) && le->count == 0);
     h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), button));
@@ -638,10 +657,10 @@ static void test_stale(void) {
     mouse_at(76, 71, 1);
     ui_update(&memory, old);
     assert(main_ui() != old && main_ui() != NULL);
-    assert(old->previous_hovered == old->hovered && old->previous_hovered != NULL && is_of(old->previous_hovered, button_class()));
-    h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), old->previous_hovered));
+    assert(ui_previous_hovered(old) == NULL && ui_hovered(old) == NULL);
+    h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), ui_previous_hovered(old)));
     assert(old->ephemerals != le && ephemerals_of(old)->count == 0);
-    assert(main_ui()->previous_hovered == NULL && main_ui()->mouse_world == NULL);
+    assert(ui_previous_hovered(main_ui()) == NULL && main_ui()->mouse_world == NULL);
     h = fnv(h, (uint32_t)ephemerals_of(main_ui())->count);
     h = fnv(h, (uint32_t)(main_ui()->ephemerals == ui_ephemerals_shared()));
     h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), main_ui()));
@@ -649,12 +668,30 @@ static void test_stale(void) {
     check("stale", h, STALE_HASH);
 }
 
+static void test_reset_world_drops_the_old_world_ids(void) {
+    ui_t *old = start_game();
+    entity_t *kv = NULL;
+    down_t kn;
+    int mf;
+
+    call_galaxy_menu_on_click(4);
+    mouse_at(80, 96, 0);
+    ui_update(&memory, old);
+    assert(ephemerals_of(old)->count == 4 && layer_count(old, 1) == 1);
+    reset_world(NULL);
+    assert(main_ui() != old && ephemerals_of(old)->count == 0);
+    for (mf = 0; mf < UI_HOVER_LAYERS; mf++) {
+        assert(layer_count(old, mf) == 0);
+    }
+    assert(!ui_send_to_hovered(old, SEND_TO_HOVERED_RIGHT_PRESS, NULL, NULL, NULL, &kv, &kn));
+    ui_clear_ephemerals(old);
+    assert(ephemerals_of(old)->count == 0);
+}
+
 /* `ui_init()` empties the shared ephemerals. */
 static void test_init_empties_shared_ephemerals(void) {
-    static entity_t mark;
-
     (void)start_game();
-    entity_list_add(ui_ephemerals_shared(), &mark);
+    entity_id_list_add(ui_ephemerals_shared(), (entity_id_t){1, 1});
     assert(ui_ephemerals_shared()->count == 1);
     ui_init();
     assert(ui_ephemerals_shared()->count == 0);
@@ -714,7 +751,7 @@ static down_t giver_down(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen
     (void)mouse_world;
     (void)mouse_screen;
     out.stop = g_given != NULL;
-    out.held = g_given;
+    out.held = entity_id_link(g_given);
     return out;
 }
 
@@ -754,7 +791,7 @@ static void test_ui_held_aborts_on_other_classes(void) {
     void *right[6];
     size_t i;
 
-    entity_register(&g_giver.header);
+    entity_construct(&g_giver.header);
     left[0] = protostar_new(NULL);
     left[1] = burst_new(NULL);
     left[2] = entities_by_tag(TAG_PLANET)->items[0];
@@ -1140,10 +1177,12 @@ int main(void) {
     in_fresh_child(test_layers);
     in_fresh_child(test_right);
     in_fresh_child(test_left);
+    in_fresh_child(test_held_links_read_null_after_the_flush);
     in_fresh_child(test_clear_ephemerals);
     in_fresh_child(test_ephemerals_reserve_at_creation);
     in_fresh_child(test_ephemerals_eight_fit_the_reserve);
     in_fresh_child(test_stale);
+    in_fresh_child(test_reset_world_drops_the_old_world_ids);
     in_fresh_child(test_init_empties_shared_ephemerals);
     in_fresh_child(test_ui_is_a_struct);
     in_fresh_child(test_ui_held_aborts_on_other_classes);

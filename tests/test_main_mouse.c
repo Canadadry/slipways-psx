@@ -19,6 +19,7 @@
 #include "game/mouse.h"
 #include "p8/vram.h"
 #include "engine/entity_class.h"
+#include "engine/entity_id.h"
 #include "game/ui.h"
 #include "engine/vec.h"
 
@@ -94,7 +95,7 @@ static void test_update_on_placeholder(void) {
     assert_placeholder(1);
     ok = ui_new();
     ui_update(&memory, ok);
-    assert(ok->left_held == NULL && ok->right_held == NULL);
+    assert(ui_left_held(ok) == NULL && ui_right_held(ok) == NULL);
     assert(ok->mouse_world != NULL);
     qa = ok->mouse_world;
     printf("[update mouse_world] (%d,%d)\n", (int)qa->x, (int)qa->y);

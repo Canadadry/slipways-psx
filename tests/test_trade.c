@@ -166,9 +166,9 @@ static void join(void *qu, void *re) {
     jc = slipway_new(&slipway_keys);
     *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
                         vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
-    main_ui()->hovered = re;
+    main_ui()->hovered = entity_id_link(re);
     slipway_class()->drag(&jc->header, mp, NULL);
-    main_ui()->hovered = NULL;
+    main_ui()->hovered = entity_id_link(NULL);
     while (jc->header.state_time < p8_fixed_from_int(15)) {
         update_entities();
     }

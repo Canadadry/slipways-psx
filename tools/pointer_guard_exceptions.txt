@@ -5,7 +5,7 @@
 # included; a line `entity-lists <file> <count>` gives its fields and
 # variables of type entity_list_t. A file with neither has no line. Strict
 # equality: plan 13 lowers these counts, and no step may raise one.
-src/engine/entity_class.h 18
+src/engine/entity_class.h 17
 src/game/economy_score.c 2
 src/game/economy_score.h 1
 src/game/gen.h 3
@@ -35,7 +35,7 @@ src/game/structure_icon.h 7
 src/game/targeting.h 1
 src/game/trade.h 4
 src/game/ui.c 2
-src/game/ui.h 8
+src/game/ui.h 4
 src/game/ui_button.h 17
 src/game/wormhole.h 7
 # Files whose pointers all stay: const pointers to static data (plan 13, section 2).
@@ -44,5 +44,3 @@ src/game/game_data.c 1
 src/game/game_data.h 31
 src/game/planet_family.c 1
 src/game/tech_gate.h 1
-entity-lists src/game/ui.c 1
-entity-lists src/game/ui.h 2

@@ -365,7 +365,7 @@ static void *dragged(void *qu, void *re) {
     *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
                         vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
     drag_over(jc, re, mp);
-    main_ui()->hovered = NULL;
+    main_ui()->hovered = entity_id_link(NULL);
     while (as_slipway(jc)->header.state_time < p8_fixed_from_int(15)) {
         update_entities();
     }
@@ -414,7 +414,7 @@ static vec_t *vec_ref_fixed(vec_t at) {
 
 /* slipway_drag reads the hovered entity off the main user interface. */
 static void drag_over(void *jc, void *hovered, vec_t *mp) {
-    main_ui()->hovered = hovered;
+    main_ui()->hovered = entity_id_link(hovered);
     class_of(jc)->drag(jc, mp, NULL);
 }
 
@@ -489,8 +489,8 @@ static void test_construction(void) {
     ly = first_with_state(TAG_PLANET, ENTITY_STATE_SETTLED);
     assert(ly != NULL);
     made = class_of(ly)->left_press(ly, NULL, NULL);
-    assert(made.stop && made.held != NULL);
-    by_left_press = made.held;
+    assert(made.stop && entity_get(made.held) != NULL);
+    by_left_press = entity_get(made.held);
     check_fresh_slipway(by_left_press, ly);
     by_lookup = build_slipway(ly);
     check_fresh_slipway(by_lookup, ly);

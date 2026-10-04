@@ -288,8 +288,8 @@ static void *build(const entity_kind_t *kind) {
 
     assert(icon != NULL);
     made = class_of(icon)->left_press(icon, NULL, NULL);
-    assert(made.stop && made.held != NULL);
-    return made.held;
+    assert(made.stop && entity_get(made.held) != NULL);
+    return entity_get(made.held);
 }
 
 static void *build_ascension(void) {

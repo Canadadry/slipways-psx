@@ -549,7 +549,7 @@ static uint32_t fold_layout_row(uint32_t h, const layout_row_t *lq) {
  * head row, then one row per tech, all at the layer of the back color, each
  * at the fixed position, its slide_target stepped by the row step. */
 static uint32_t fold_tech_tree_screen_ephemerals(uint32_t h, const char **head) {
-    const entity_list_t *le;
+    const entity_id_list_t *le;
     const layout_row_t *lq;
     const vec_t *ra;
     int i;
@@ -558,14 +558,14 @@ static uint32_t fold_tech_tree_screen_ephemerals(uint32_t h, const char **head) 
     le = main_ui()->ephemerals;
     assert(le->count >= 2);
     h = fnv(h, (uint32_t)le->count);
-    lq = as_button(le->items[0])->layout_row;
+    lq = as_button(entity_id_list_at(le, 0))->layout_row;
     assert(lq != NULL && lq->has_color && lq->color == p8_fixed_from_int(13));
     assert(row_count(lq) > 0 && row_item(lq, 0).kind == LAYOUT_ROW_CELL_STRING);
     *head = row_item(lq, 0).as.text;
     h = fnv_str(h, *head);
-    ra = as_button(le->items[0])->pos;
+    ra = as_button(entity_id_list_at(le, 0))->pos;
     for (i = 0; i < le->count; i++) {
-        const button_t *b = as_button(le->items[i]);
+        const button_t *b = as_button(entity_id_list_at(le, i));
         vec_t qf = vec_of(b->slide_target);
         assert(b->pos != NULL && b->pos->x == ra->x && b->pos->y == ra->y);
         assert(b->layer == p8_fixed_from_int(10));

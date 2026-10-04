@@ -283,7 +283,7 @@ void button_draw(p8_graphics_t *graphics, p8_vram_t *memory, const button_t *sel
 
 down_t button_left_press(button_t *self) {
     int has_on_click = self != NULL && self->on_click != NULL;
-    down_t out = {1, NULL};
+    down_t out = {1, ENTITY_ID_NONE};
 
     if (has_on_click) {
         self->on_click(self);
@@ -346,7 +346,7 @@ modal_backdrop_t *modal_backdrop_new(const modal_backdrop_keys_t *keys) {
 }
 
 down_t modal_backdrop_left_press(modal_backdrop_t *self) {
-    down_t out = {1, NULL};
+    down_t out = {1, ENTITY_ID_NONE};
 
     if (self == NULL) {
         return out;

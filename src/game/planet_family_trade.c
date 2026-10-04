@@ -22,7 +22,7 @@ static int g_family_trade_up = 0;
 down_t slipgate_accept_drop(const planet_t *self, const entity_t *s) {
     int start_not_self;
     int slipways_count = 0;
-    down_t out = {0, NULL};
+    down_t out = {0, ENTITY_ID_NONE};
 
     if (self == NULL) {
         return out;
@@ -50,8 +50,9 @@ typedef struct {
 static const slipgate_left_press_empty_t slipgate_left_press_empty = {{.class = &slipgate_left_press_empty_class_def}};
 
 down_t slipgate_left_press(planet_t *self) {
-    down_t accept_drop_result = {0, NULL};
+    down_t accept_drop_result = {0, ENTITY_ID_NONE};
     slipway_keys_t keys = {0};
+    slipway_t *made;
 
     if (self == NULL) {
         return accept_drop_result;
@@ -65,8 +66,9 @@ down_t slipgate_left_press(planet_t *self) {
 
     assert(slipway_ready() && "slipway_init() must run before slipgate_left_press builds a slipway");
     keys.start = entity_id_link(&self->header);
-    accept_drop_result.held = (entity_t *)slipway_new(&keys);
-    accept_drop_result.stop = accept_drop_result.held != NULL;
+    made = slipway_new(&keys);
+    accept_drop_result.held = entity_id_link(made != NULL ? &made->header : NULL);
+    accept_drop_result.stop = made != NULL;
     return accept_drop_result;
 }
 

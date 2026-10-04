@@ -203,7 +203,7 @@ static p8_fixed_t dist2(vec_t a, vec_t b) {
 
 /* Two generated planets colonized and joined by a paid slipway, the rest
  * of the galaxy left unknown, then left to settle. The slipway's drag reads
- * the hovered planet off main_ui()->hovered. */
+ * the hovered planet off ui_hovered(main_ui()). */
 static void world(void) {
     const entity_list_t *jos;
     slipway_keys_t slipway_keys = {0};
@@ -230,9 +230,9 @@ static void world(void) {
     jc = slipway_new(&slipway_keys);
     *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
                         vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
-    main_ui()->hovered = re;
+    main_ui()->hovered = entity_id_link(re);
     slipway_class()->drag(&jc->header, mp, NULL);
-    main_ui()->hovered = NULL;
+    main_ui()->hovered = entity_id_link(NULL);
     while (jc->header.state_time < p8_fixed_from_int(15)) {
         update_entities();
     }
@@ -342,14 +342,14 @@ static void test_construction(void) {
     mzs = entities_by_tag(TAG_WORMHOLE);
     before = mzs == NULL ? 0 : mzs->count;
     made = background_left_press(NULL);
-    assert(made.stop && made.held != NULL);
-    assert(entity_list_listed(entities_by_tag(TAG_PROBE), made.held));
+    assert(made.stop && entity_get(made.held) != NULL);
+    assert(entity_list_listed(entities_by_tag(TAG_PROBE), entity_get(made.held)));
     mzs = entities_by_tag(TAG_WORMHOLE);
     assert((mzs == NULL ? 0 : mzs->count) == before);
 
     made = background_left_press(NULL);
-    assert(made.stop && made.held != NULL);
-    check_fresh_wormhole(made.held);
+    assert(made.stop && entity_get(made.held) != NULL);
+    check_fresh_wormhole(entity_get(made.held));
     check_fresh_wormhole(build_wormhole());
     check_fresh_wormhole(wormhole_new());
 }
@@ -741,14 +741,14 @@ static void test_accept_drop(void) {
     ly = first_planet_with_state(ENTITY_STATE_SETTLED);
     assert(ly != NULL);
     r = planet_accept_drop(ly, &mz->header);
-    assert(r.stop && r.held == NULL);
+    assert(r.stop && entity_get(r.held) == NULL);
 
     keys.planet_id = NULL;
     keys.map_pos = ly->map_pos;
     keys.pos = ly->pos;
     nr = slipgate_new(&keys);
     r = slipgate_accept_drop(nr, &mz->header);
-    assert(r.stop && r.held == NULL);
+    assert(r.stop && entity_get(r.held) == NULL);
 }
 
 /* The wormhole's too-far target: status_text and nothing else, never
@@ -829,7 +829,7 @@ static void test_wormhole_is_a_struct(void) {
     (void)background_left_press(NULL);
     made = background_left_press(NULL);
     mz = wormhole_new();
-    assert(is_a_wormhole_struct(made.held) && is_a_wormhole_struct(build_wormhole()) && is_a_wormhole_struct(mz));
+    assert(is_a_wormhole_struct(entity_get(made.held)) && is_a_wormhole_struct(build_wormhole()) && is_a_wormhole_struct(mz));
     assert(wormhole_class()->drag != NULL && wormhole_class()->drop != NULL);
     assert(wormhole_class()->draw_at == NULL);
     assert(wormhole_class()->states[ENTITY_STATE_PLACING] != NULL &&

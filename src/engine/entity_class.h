@@ -72,7 +72,7 @@ static inline void entity_init_header(entity_t *self, const entity_class_t *cls)
 
 typedef struct {
     int stop;
-    entity_t *held;
+    entity_id_t held;
 } down_t;
 
 typedef void (*state_fn_t)(entity_t *self, p8_fixed_t t);

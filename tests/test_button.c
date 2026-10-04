@@ -115,6 +115,16 @@ static int entity_list_listed(const entity_list_t *list, const void *e) {
     return entity_list_rank_in(list, e) >= 0;
 }
 
+static int id_list_rank_in(const entity_id_list_t *list, const void *e) {
+    int i;
+    for (i = 0; list != NULL && i < list->count; i++) {
+        if (entity_id_list_at(list, i) == e) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 static const entity_class_t *class_of(const void *e) {
     return ((const entity_t *)e)->class;
 }
@@ -330,7 +340,7 @@ static uint32_t fold_hit_box(uint32_t h, const button_t *b) {
     return h;
 }
 
-static const entity_list_t *main_ui_ephemerals(void) {
+static const entity_id_list_t *main_ui_ephemerals(void) {
     return main_ui() == NULL ? NULL : main_ui()->ephemerals;
 }
 
@@ -385,18 +395,18 @@ static uint32_t fold_button(uint32_t hash, const void *entity) {
     for (index = 0; index < sizeof messages / sizeof messages[0]; index++) {
         hash = fnv(hash, (uint32_t)entity_list_listed(entities_by_message(messages[index]), button));
     }
-    return fnv(hash, (uint32_t)entity_list_rank_in(main_ui_ephemerals(), button));
+    return fnv(hash, (uint32_t)id_list_rank_in(main_ui_ephemerals(), button));
 }
 
 static uint32_t fold_ephemerals(uint32_t h, const char *label) {
-    const entity_list_t *le = main_ui_ephemerals();
+    const entity_id_list_t *le = main_ui_ephemerals();
     int i;
 
     assert(le != NULL);
     printf("[%s] %d button(s) in main_ui.ephemerals\n", label, le->count);
     h = fnv(h, (uint32_t)le->count);
     for (i = 0; i < le->count; i++) {
-        void *b = le->items[i];
+        void *b = entity_id_list_at(le, i);
         printf("[%s] button %d: on_click %u, side_tooltip %u, tooltip %u\n", label, i, on_click_state(b), side_tooltip_state(b),
                button_of(b)->tooltip != NULL ? 3u : 0u);
         h = fold_button(h, b);
@@ -411,10 +421,10 @@ static int same_vec(const vec_t *a, const vec_t *b) {
 /* The position every row of one button list starts from: each button holds
  * a copy of it. */
 static void check_shared_pos(void) {
-    const entity_list_t *le = main_ui_ephemerals();
+    const entity_id_list_t *le = main_ui_ephemerals();
     int i;
     for (i = 1; le != NULL && i < le->count; i++) {
-        assert(same_vec(button_of(le->items[i])->pos, button_of(le->items[0])->pos));
+        assert(same_vec(button_of(entity_id_list_at(le, i))->pos, button_of(entity_id_list_at(le, 0))->pos));
     }
 }
 
@@ -524,9 +534,9 @@ static void *built_world(void) {
     jc = slipway_new(&slipway_keys);
     *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
                         vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
-    main_ui()->hovered = re;
+    main_ui()->hovered = entity_id_link(re);
     slipway_class()->drag(&jc->header, mp, NULL);
-    main_ui()->hovered = NULL;
+    main_ui()->hovered = entity_id_link(NULL);
     while (jc->header.state_time < p8_fixed_from_int(15)) {
         update_entities();
     }
@@ -642,7 +652,7 @@ static void test_start_game(void) {
     start_game();
     check_int("start_game buttons", galaxy_menu_buttons(ix), 4);
     for (i = 0; i < 4; i++) {
-        assert(!entity_list_listed(main_ui_ephemerals(), ix[i]));
+        assert(id_list_rank_in(main_ui_ephemerals(), ix[i]) < 0);
         assert((button_of(ix[i])->refresh != NULL) == (i == 1));
         h = fold_button(h, ix[i]);
     }
@@ -683,7 +693,7 @@ static int at(const vec_t *p, int x, int y) {
  * centered at the top, the next-year button 10 pixels from the right edge; the pause menu opens 10 lines above the pause
  * button, then climbs by 11. */
 static void test_bar_buttons_and_pause_menu_anchors(void) {
-    const entity_list_t *le;
+    const entity_id_list_t *le;
     int k;
 
     start_game();
@@ -707,8 +717,8 @@ static void test_bar_buttons_and_pause_menu_anchors(void) {
     le = main_ui_ephemerals();
     assert(le != NULL && le->count == 4);
     for (k = 0; k < le->count; k++) {
-        assert(at(button_of(le->items[k])->pos, 0, P8_SCREEN_HEIGHT - 21));
-        assert(at(button_of(le->items[k])->slide_target, 0, P8_SCREEN_HEIGHT - 21 - 11 * k));
+        assert(at(button_of(entity_id_list_at(le, k))->pos, 0, P8_SCREEN_HEIGHT - 21));
+        assert(at(button_of(entity_id_list_at(le, k))->slide_target, 0, P8_SCREEN_HEIGHT - 21 - 11 * k));
     }
 }
 
@@ -719,7 +729,7 @@ static void invent(char *rr) {
 
 static void test_research(void) {
     uint32_t h = 2166136261u;
-    const entity_list_t *le;
+    const entity_id_list_t *le;
     const tooltip_t *jb;
     const layout_row_t *line;
     int unaffordable = 0;
@@ -731,14 +741,14 @@ static void test_research(void) {
     check_shared_pos();
     le = main_ui_ephemerals();
     for (i = 0; i < le->count; i++) {
-        if (on_click_state(le->items[i]) == 1) {
+        if (on_click_state(entity_id_list_at(le, i)) == 1) {
             unaffordable++;
         }
     }
     printf("[research] %d unaffordable tech(s)\n", unaffordable);
     assert(unaffordable >= 1);
-    assert(!button_of(le->items[le->count - 1])->has_on_click && button_of(le->items[le->count - 1])->tooltip != NULL);
-    jb = button_of(le->items[le->count - 1])->tooltip;
+    assert(!button_of(entity_id_list_at(le, le->count - 1))->has_on_click && button_of(entity_id_list_at(le, le->count - 1))->tooltip != NULL);
+    jb = button_of(entity_id_list_at(le, le->count - 1))->tooltip;
     assert(jb->rows_count == 1);
     line = jb->rows[0];
     assert(line->items_count == 1 && line->items[0].kind == LAYOUT_ROW_CELL_STRING);
@@ -751,14 +761,14 @@ static void test_research(void) {
 
 static void test_projects_panel(void) {
     uint32_t h = 2166136261u;
-    const entity_list_t *le;
+    const entity_id_list_t *le;
     int with_planet = 0;
     int i;
 
     known_panel();
     le = main_ui_ephemerals();
     for (i = 0; i < le->count; i++) {
-        with_planet += entity_get(button_of(le->items[i])->project_planet) != NULL;
+        with_planet += entity_get(button_of(entity_id_list_at(le, i))->project_planet) != NULL;
     }
     printf("[projects_panel] %d row(s) carry project_planet\n", with_planet);
     assert(with_planet >= 1);
@@ -934,10 +944,10 @@ static void test_left_press(void) {
     with_false = build(keyed_on_click(none, NULL), "b", NULL);
 
     r = class_of(with_on_click)->left_press(with_on_click, NULL, NULL);
-    assert(r.stop && r.held == NULL);
+    assert(r.stop && entity_get(r.held) == NULL);
     assert(on_click_calls == 1 && on_click_self == with_on_click);
     r = class_of(with_false)->left_press(with_false, NULL, NULL);
-    assert(r.stop && r.held == NULL);
+    assert(r.stop && entity_get(r.held) == NULL);
     assert(on_click_calls == 1);
     assert(on_click_state(with_false) == 1);
     h = fnv(h, (uint32_t)on_click_calls);
@@ -985,13 +995,13 @@ static void test_refresh(void) {
 /* The `on_click` of a projects panel row builds on its `project_planet`. */
 static void test_projects_panel_on_click(void) {
     uint32_t h = 2166136261u;
-    const entity_list_t *le;
+    const entity_id_list_t *le;
     int i;
 
     known_panel();
     le = main_ui_ephemerals();
     for (i = 0; i < le->count; i++) {
-        void *b = le->items[i];
+        void *b = entity_id_list_at(le, i);
         const planet_t *pt;
         if (entity_get(button_of(b)->project_planet) == NULL) {
             continue;
@@ -1013,7 +1023,7 @@ static void test_projects_panel_on_click(void) {
 /* The `on_click` of a tech tree screen row invents its `technology`. */
 static void test_tech_tree_screen_on_click(void) {
     uint32_t h = 2166136261u;
-    const entity_list_t *le;
+    const entity_id_list_t *le;
     const pointer_list_t *invented;
     const char *last;
     int i;
@@ -1021,7 +1031,7 @@ static void test_tech_tree_screen_on_click(void) {
     tech_screen();
     le = main_ui_ephemerals();
     for (i = 0; i < le->count; i++) {
-        if (on_click_state(le->items[i]) == 3) {
+        if (on_click_state(entity_id_list_at(le, i)) == 3) {
             break;
         }
     }
@@ -1029,7 +1039,7 @@ static void test_tech_tree_screen_on_click(void) {
     assert(main_economy_typed() != NULL);
     invented = main_economy_typed()->invented;
     h = fnv(h, (uint32_t)invented->count);
-    call_on_click(le->items[i]);
+    call_on_click(entity_id_list_at(le, i));
     invented = main_economy_typed()->invented;
     h = fnv(h, (uint32_t)invented->count);
     assert(invented->count >= 1);
@@ -1293,13 +1303,13 @@ static uint32_t fold_button_members(uint32_t h, const void *e) {
 }
 
 static uint32_t fold_ephemerals_members(uint32_t h) {
-    const entity_list_t *le = main_ui_ephemerals();
+    const entity_id_list_t *le = main_ui_ephemerals();
     int i;
 
     assert(le != NULL);
     h = fnv(h, (uint32_t)le->count);
     for (i = 0; i < le->count; i++) {
-        h = fold_button_members(h, le->items[i]);
+        h = fold_button_members(h, entity_id_list_at(le, i));
     }
     return h;
 }
@@ -1318,13 +1328,13 @@ static void check_one_open_box(void *const *b, int n) {
 }
 
 static void check_ephemerals_one_open_box(void) {
-    const entity_list_t *le = main_ui_ephemerals();
+    const entity_id_list_t *le = main_ui_ephemerals();
     void *b[32];
     int i;
 
     assert(le != NULL && le->count <= 32);
     for (i = 0; i < le->count; i++) {
-        b[i] = le->items[i];
+        b[i] = entity_id_list_at(le, i);
     }
     check_one_open_box(b, le->count);
 }
@@ -1566,7 +1576,7 @@ static uint32_t members_title_and_game(void) {
 }
 
 static uint32_t members_research(void) {
-    const entity_list_t *le;
+    const entity_id_list_t *le;
     uint32_t h = 2166136261u;
     int dear = 0;
     int affordable = 0;
@@ -1582,7 +1592,7 @@ static uint32_t members_research(void) {
     tech_screen();
     le = main_ui_ephemerals();
     for (i = 0; i < le->count; i++) {
-        void *b = le->items[i];
+        void *b = entity_id_list_at(le, i);
 
         if (on_click_state(b) == 0) {
             continue;
@@ -1606,7 +1616,7 @@ static uint32_t members_research(void) {
 }
 
 static uint32_t members_projects_panel(void) {
-    const entity_list_t *le;
+    const entity_id_list_t *le;
     const void *pt = NULL;
     uint32_t h = 2166136261u;
     int rows = 0;
@@ -1616,7 +1626,7 @@ static uint32_t members_projects_panel(void) {
     known_panel();
     le = main_ui_ephemerals();
     for (i = 0; i < le->count; i++) {
-        const button_t *b = button_of(le->items[i]);
+        const button_t *b = button_of(entity_id_list_at(le, i));
 
         if (entity_get(b->project_planet) == NULL) {
             continue;
@@ -1712,7 +1722,7 @@ static void test_button_members_by_name(void) {
 /* A free building of the projects panel has a side tooltip that is false,
  * not the empty row of a present but absent key. */
 static void test_projects_panel_free_row(void) {
-    const entity_list_t *le;
+    const entity_id_list_t *le;
     research_project_t *b = NULL;
     planet_t *pt = NULL;
     int found = 0;
@@ -1721,8 +1731,8 @@ static void test_projects_panel_free_row(void) {
     known_panel();
     le = main_ui_ephemerals();
     for (i = 0; i < le->count && b == NULL; i++) {
-        b = research_project_get(button_of(le->items[i])->project);
-        pt = (planet_t *)entity_get(button_of(le->items[i])->project_planet);
+        b = research_project_get(button_of(entity_id_list_at(le, i))->project);
+        pt = (planet_t *)entity_get(button_of(entity_id_list_at(le, i))->project_planet);
     }
     assert(b != NULL && pt != NULL);
     b->has_base_cost = 1;
@@ -1730,7 +1740,7 @@ static void test_projects_panel_free_row(void) {
     planet_projects_panel(pt);
     le = main_ui_ephemerals();
     for (i = 0; i < le->count; i++) {
-        const button_t *row = button_of(le->items[i]);
+        const button_t *row = button_of(entity_id_list_at(le, i));
 
         if (research_project_get(row->project) == b) {
             assert(row->project_cost == 0 && row->has_side_tooltip && row->side_tooltip == NULL);
@@ -1771,11 +1781,11 @@ static void test_open_box_layer_only_from_back_color(void) {
 
     start_game();
     message_box_open_box(&frame, &row, 1);
-    assert(main_ui_ephemerals()->count == 1 && button_of(main_ui_ephemerals()->items[0])->layer == p8_fixed_from_int(11));
+    assert(main_ui_ephemerals()->count == 1 && button_of(entity_id_list_at(main_ui_ephemerals(), 0))->layer == p8_fixed_from_int(11));
     frame.has_back_color = 1;
     frame.back_color = p8_fixed_from_int(14);
     message_box_open_box(&frame, &row, 1);
-    assert(main_ui_ephemerals()->count == 1 && button_of(main_ui_ephemerals()->items[0])->layer == p8_fixed_from_int(14));
+    assert(main_ui_ephemerals()->count == 1 && button_of(entity_id_list_at(main_ui_ephemerals(), 0))->layer == p8_fixed_from_int(14));
 }
 
 /* tech_gate_available_technologies writes the affordable flag for every
@@ -1875,7 +1885,7 @@ static void test_button_slots_come_back(void) {
     open = button_slots();
     printf("[slots] button: %d before the pause menu, %d open\n", base, open);
     assert(open == base + main_ui_ephemerals()->count && main_ui_ephemerals()->count > 0);
-    last = main_ui_ephemerals()->items[main_ui_ephemerals()->count - 1];
+    last = entity_id_list_at(main_ui_ephemerals(), main_ui_ephemerals()->count - 1);
     before = vec_of(button_of(last)->pos);
     for (i = 0; i < 30; i++) {
         one_frame();
@@ -1950,7 +1960,7 @@ static int ephemerals_slots(void) {
  * until the next frame gives its slot back. */
 static void test_ephemerals_slots_come_back(void) {
     void *ix[4];
-    const entity_list_t *menu;
+    const entity_id_list_t *menu;
     int base;
     int open;
     int count;
@@ -2023,7 +2033,7 @@ static void test_largest_buttons_fit_their_slots(void) {
         invent((char *)technologies_table[i].name);
     }
     menu_show_tech_tree_screen();
-    assert(button_of(main_ui_ephemerals()->items[main_ui_ephemerals()->count - 1])->tooltip->rows_count == TECHNOLOGIES_COUNT);
+    assert(button_of(entity_id_list_at(main_ui_ephemerals(), main_ui_ephemerals()->count - 1))->tooltip->rows_count == TECHNOLOGIES_COUNT);
     one_frame();
 
     for (k = 1; k <= research_projects_count(); k++) {
@@ -2048,7 +2058,7 @@ static void test_largest_buttons_fit_their_slots(void) {
 }
 
 static void test_project_planet_resolves_until_the_flush(void) {
-    const entity_list_t *le;
+    const entity_id_list_t *le;
     button_t *button = NULL;
     entity_t *planet;
     int i;
@@ -2056,8 +2066,8 @@ static void test_project_planet_resolves_until_the_flush(void) {
     known_panel();
     le = main_ui_ephemerals();
     for (i = 0; i < le->count && button == NULL; i++) {
-        if (entity_get(button_of(le->items[i])->project_planet) != NULL) {
-            button = button_of(le->items[i]);
+        if (entity_get(button_of(entity_id_list_at(le, i))->project_planet) != NULL) {
+            button = button_of(entity_id_list_at(le, i));
         }
     }
     assert(button != NULL);

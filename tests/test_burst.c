@@ -822,8 +822,8 @@ static void test_leaving_lets_go_of_a_dragged_slipway(void) {
     slipway_keys.start = entity_id_link(&planet_new(&keys)->header);
     jc = slipway_new(&slipway_keys);
     e = harvest(40, 40, "s86");
-    main_ui()->left_held = &jc->header;
-    main_ui()->hovered = e;
+    main_ui()->left_held = entity_id_link(&jc->header);
+    main_ui()->hovered = entity_id_link(e);
     slipway_drag(jc, &mp);
     assert(slipway_end(jc) == e);
     entity_unregister(e);

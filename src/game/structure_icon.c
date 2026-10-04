@@ -1,4 +1,5 @@
 #include "game/structure_icon.h"
+#include "engine/entity_id.h"
 
 #include <assert.h>
 #include <string.h>
@@ -103,7 +104,8 @@ down_t structure_icon_left_press(structure_icon_t *self) {
     char *id_num_str;
     char *id_str;
     planet_keys_t keys;
-    down_t out = {0, NULL};
+    entity_t *held;
+    down_t out = {0, ENTITY_ID_NONE};
 
     assert(g_structure_icon_up && "structure_icon_init() must run before structure_icon_left_press bumps the shared identifier counter");
     new_id = p8_fixed_add(g_has_id_counter ? g_id_counter : p8_fixed_from_int(0),
@@ -123,9 +125,10 @@ down_t structure_icon_left_press(structure_icon_t *self) {
     keys.planet_id = id_str;
     keys.map_pos = NULL;
     keys.pos = NULL;
-    out.held = entity_kind->new_entity(&keys);
+    held = entity_kind->new_entity(&keys);
     grab_arena_close();
-    out.stop = out.held != NULL;
+    out.held = entity_id_link(held);
+    out.stop = held != NULL;
     return out;
 }
 

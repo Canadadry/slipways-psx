@@ -6,6 +6,7 @@
 #include "engine/entity_registry.h"
 #include "engine/exit_queue.h"
 #include "engine/entity.h"
+#include "engine/entity_id.h"
 #include "game/mouse_button.h"
 #include "game/planet_family.h"
 #include "game/scroll.h"
@@ -19,26 +20,26 @@
 static int g_ui_up = 0;
 static entity_t *g_main_mouse = NULL;
 static ui_t *g_main_ui = NULL;
-static entity_list_t g_shared_ephemerals;
+static entity_id_list_t g_shared_ephemerals;
 
 const box_t *ui_panel_box(void) {
     return g_ui_up ? &ui_archetype.panel_box : NULL;
 }
 
-entity_list_t *ui_ephemerals_shared(void) {
+entity_id_list_t *ui_ephemerals_shared(void) {
     return &g_shared_ephemerals;
 }
 
-entity_list_t *ui_ephemerals_new(void) {
+entity_id_list_t *ui_ephemerals_new(void) {
     const allocator_t *slot = ui_zone_slot(SLOT_KIND_EPHEMERALS);
-    entity_list_t *le = (entity_list_t *)allocator_alloc(slot, sizeof *le);
+    entity_id_list_t *le = (entity_id_list_t *)allocator_alloc(slot, sizeof *le);
 
-    entity_list_init_reserve(le, slot, UI_EPHEMERALS_RESERVE);
+    entity_id_list_init_reserve(le, slot, UI_EPHEMERALS_RESERVE);
     return le;
 }
 
-void ui_set_ephemerals(ui_t *self, entity_list_t *le) {
-    entity_list_t *old = self->ephemerals;
+void ui_set_ephemerals(ui_t *self, entity_id_list_t *le) {
+    entity_id_list_t *old = self->ephemerals;
 
     if (le != &g_shared_ephemerals) ui_zone_record_ephemerals(le->count);
     self->ephemerals = le;
@@ -110,19 +111,19 @@ static ui_t *ui_create(void) {
     self->hovered_by_layer = NULL;
     self->hovered_by_layer_own.layer_count = UI_HOVER_LAYERS;
     for (i = 0; i < UI_HOVER_LAYERS; i++) {
-        entity_list_init(&self->hovered_by_layer_own.layers[i], frame_zone());
+        entity_id_list_init(&self->hovered_by_layer_own.layers[i], frame_zone());
     }
-    self->hovered = NULL;
-    self->previous_hovered = NULL;
-    self->left_held = NULL;
-    self->right_held = NULL;
+    self->hovered = ENTITY_ID_NONE;
+    self->previous_hovered = ENTITY_ID_NONE;
+    self->left_held = ENTITY_ID_NONE;
+    self->right_held = ENTITY_ID_NONE;
     entity_construct(&self->header);
     return self;
 }
 
 void ui_init(void) {
     ui_shutdown();
-    entity_list_init(&g_shared_ephemerals, game_zone_load_zone());
+    entity_id_list_init(&g_shared_ephemerals, game_zone_load_zone());
     g_ui_up = 1;
 
     g_main_mouse = (entity_t *)&g_main_mouse_placeholder;
@@ -130,7 +131,7 @@ void ui_init(void) {
 
 void ui_shutdown(void) {
     g_ui_up = 0;
-    entity_list_free(&g_shared_ephemerals);
+    entity_id_list_free(&g_shared_ephemerals);
     g_main_mouse = NULL;
     g_main_ui = NULL;
 }
@@ -149,6 +150,36 @@ const entity_class_t *ui_class(void) {
 
 ui_t *ui_new(void) {
     return ui_create();
+}
+
+entity_t *ui_hovered(const ui_t *self) {
+    return entity_get(self->hovered);
+}
+
+entity_t *ui_previous_hovered(const ui_t *self) {
+    return entity_get(self->previous_hovered);
+}
+
+entity_t *ui_left_held(const ui_t *self) {
+    return entity_get(self->left_held);
+}
+
+background_t *ui_right_held(const ui_t *self) {
+    entity_t *held = entity_get(self->right_held);
+
+    assert((held == NULL || held->class == background_class()) && "ui_right_held: only the background is ever held on the right");
+    return (background_t *)held;
+}
+
+void ui_forget_world(ui_t *self) {
+    int index;
+
+    if (self->ephemerals != NULL && self->ephemerals != &g_shared_ephemerals) {
+        entity_id_list_clear(self->ephemerals);
+    }
+    for (index = 0; index < UI_HOVER_LAYERS; index++) {
+        entity_id_list_clear(&self->hovered_by_layer_own.layers[index]);
+    }
 }
 
 entity_t *main_mouse(void) {
@@ -184,7 +215,7 @@ void ui_set_main_ui(ui_t *ui) {
 }
 
 void ui_update(p8_vram_t *mem, ui_t *self) {
-    entity_list_t *ephemerals_ptr_before;
+    entity_id_list_t *ephemerals_ptr_before;
     int ephemerals_count;
     vec_t qa;
     int hit;
@@ -209,7 +240,7 @@ void ui_update(p8_vram_t *mem, ui_t *self) {
 
     ui_update_hover(self);
 
-    hit = (ephemerals_count == 0) || entity_list_has(ephemerals_ptr_before, self->hovered);
+    hit = (ephemerals_count == 0) || entity_id_list_has(ephemerals_ptr_before, self->hovered);
     if (hit) {
         ui_handle_button(self, MOUSE_SIDE_LEFT);
     }
@@ -227,16 +258,18 @@ void ui_update(p8_vram_t *mem, ui_t *self) {
 void ui_draw_overlay(const p8_graphics_t *gfx, p8_vram_t *mem, const ui_t *self) {
     vec_t main_mouse_pos;
     const mouse_t *je;
+    const entity_t *hovered;
     int spr_id = 0;
 
     if (self == NULL || gfx == NULL || mem == NULL) {
         return;
     }
 
-    if (self->right_held != NULL) {
+    hovered = ui_hovered(self);
+    if (ui_right_held(self) != NULL) {
         spr_id = 9;
-    } else if (self->hovered != NULL) {
-        spr_id = ui_to_int(self->hovered->cursor_sprite != NULL ? *self->hovered->cursor_sprite : self->archetype->cursor_sprite);
+    } else if (hovered != NULL) {
+        spr_id = ui_to_int(hovered->cursor_sprite != NULL ? *hovered->cursor_sprite : self->archetype->cursor_sprite);
     } else {
         spr_id = ui_to_int(self->archetype->cursor_sprite);
     }
@@ -250,6 +283,8 @@ void ui_update_hover(ui_t *self) {
     const mouse_t *mouse;
     const vec_t *main_mouse_pos;
     const entity_list_t *hit_test_bucket;
+    entity_t *previous;
+    entity_t *hovered = NULL;
     int index;
 
     if (self == NULL) {
@@ -257,10 +292,10 @@ void ui_update_hover(ui_t *self) {
     }
 
     for (index = 0; index < UI_HOVER_LAYERS; index++) {
-        entity_list_init(&self->hovered_by_layer_own.layers[index], frame_zone());
+        entity_id_list_init(&self->hovered_by_layer_own.layers[index], frame_zone());
     }
     self->hovered_by_layer = &self->hovered_by_layer_own;
-    self->hovered = NULL;
+    self->hovered = ENTITY_ID_NONE;
 
     mouse = main_mouse_typed();
     main_mouse_pos = mouse != NULL ? mouse->pos : NULL;
@@ -275,23 +310,25 @@ void ui_update_hover(ui_t *self) {
 
                 assert(fa >= 0 && fa < UI_HOVER_LAYERS &&
                        "ui_update_hover: a hovered entity's layer outside 0..15, the layers ui_send_to_hovered walks -- stop, do not widen");
-                entity_list_add(&self->hovered_by_layer->layers[fa], e);
+                entity_id_list_add(&self->hovered_by_layer->layers[fa], entity_id_link(e));
             }
-            self->hovered = e;
+            hovered = e;
+            self->hovered = entity_id_link(e);
         }
     }
 
     /* Clear before set, so an entity hovered two frames in a row stays hovered. */
-    if (self->previous_hovered != NULL) {
-        assert(self->previous_hovered->is_hovered != NULL &&
+    previous = ui_previous_hovered(self);
+    if (previous != NULL) {
+        assert(previous->is_hovered != NULL &&
                "ui_update_hover: the previously hovered entity has no is_hovered member -- stop, do not add one");
-        *self->previous_hovered->is_hovered = 0;
+        *previous->is_hovered = 0;
     }
 
-    if (self->hovered != NULL) {
-        assert(self->hovered->is_hovered != NULL &&
+    if (hovered != NULL) {
+        assert(hovered->is_hovered != NULL &&
                "ui_update_hover: the hovered entity has no is_hovered member -- stop, do not add one");
-        *self->hovered->is_hovered = 1;
+        *hovered->is_hovered = 1;
     }
 }
 
@@ -319,22 +356,29 @@ void ui_handle_button(ui_t *self, mouse_side_t side) {
     if (button != NULL && button->pressed) {
         entity_t *kv = NULL;
         down_t kn;
+        const entity_t *given;
 
         if (ui_send_to_hovered(self, is_left ? SEND_TO_HOVERED_LEFT_PRESS : SEND_TO_HOVERED_RIGHT_PRESS, self->mouse_world, main_mouse_pos, NULL, &kv, &kn) &&
-            kn.held != NULL) {
+            (given = entity_get(kn.held)) != NULL) {
             if (is_left) {
-                assert(ui_is_held_class(kn.held->class) &&
+                assert(ui_is_held_class(given->class) &&
                        "ui_handle_button: a left press hands over a slipway; a probe or a wormhole from the background; a "
                        "structure, processor, slipgate, infraspace_gate, trading_hub, synthesizer or ascension from an icon");
                 self->left_held = kn.held;
             } else {
-                assert(kn.held->class == background_class() && "ui_handle_button: a right press hands over the background only");
-                self->right_held = (background_t *)kn.held;
+                assert(given->class == background_class() && "ui_handle_button: a right press hands over the background only");
+                self->right_held = kn.held;
             }
         }
     }
 
-    held_inst = is_left ? self->left_held : (self->right_held != NULL ? &self->right_held->header : NULL);
+    if (is_left) {
+        held_inst = ui_left_held(self);
+    } else {
+        /* GAP-28 */
+        background_t *right = ui_right_held(self);
+        held_inst = right != NULL ? &right->header : NULL;
+    }
 
     if (held_inst != NULL && held_inst->class->drag != NULL) {
         held_inst->class->drag(held_inst, self->mouse_world, main_mouse_pos);
@@ -350,9 +394,9 @@ void ui_handle_button(ui_t *self, mouse_side_t side) {
             held_inst->class->drop(held_inst, target);
         }
         if (is_left) {
-            self->left_held = NULL;
+            self->left_held = ENTITY_ID_NONE;
         } else {
-            self->right_held = NULL;
+            self->right_held = ENTITY_ID_NONE;
         }
     }
 }
@@ -371,12 +415,11 @@ int ui_send_to_hovered(ui_t *self, send_to_hovered_slot_t message, vec_t *mouse_
     }
 
     for (layer = UI_HOVER_LAYERS - 1; layer >= 0; layer--) {
-        const entity_list_t *bucket = &self->hovered_by_layer->layers[layer];
-        int i;
+        entity_id_list_iter_t it = entity_id_list_all(&self->hovered_by_layer->layers[layer]);
+        entity_t *h;
 
-        for (i = 0; i < bucket->count; i++) {
-            entity_t *h = bucket->items[i];
-            down_t kn = {0, NULL};
+        while (entity_id_list_iter_next(&it, &h)) {
+            down_t kn = {0, ENTITY_ID_NONE};
 
             switch (message) {
             case SEND_TO_HOVERED_LEFT_PRESS:
@@ -412,12 +455,10 @@ void ui_clear_ephemerals(ui_t *self) {
     }
 
     if (self->ephemerals != NULL) {
-        entity_list_iter_t it = entity_list_all(self->ephemerals);
+        entity_id_list_iter_t it = entity_id_list_all(self->ephemerals);
         entity_t *e;
-        while (entity_list_iter_next(&it, &e)) {
-            if (e != NULL) {
-                entity_unregister(e);
-            }
+        while (entity_id_list_iter_next(&it, &e)) {
+            entity_unregister(e);
         }
     }
 

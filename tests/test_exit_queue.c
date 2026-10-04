@@ -104,9 +104,9 @@ static int case_entity_unregister_released_at_flush(void) {
 
 /* ui_clear_ephemerals replaces the ui's ephemerals; the frame still reads
  * the old list. */
-static const entity_list_t *replaced_ephemerals(void) {
+static const entity_id_list_t *replaced_ephemerals(void) {
     load_cart_and_start();
-    const entity_list_t *old = main_ui()->ephemerals;
+    const entity_id_list_t *old = main_ui()->ephemerals;
     assert(old != ui_ephemerals_shared());
     ui_clear_ephemerals(main_ui());
     assert(exit_queue_count() == 1 && "ui_clear_ephemerals queues the list it replaces");
@@ -114,7 +114,7 @@ static const entity_list_t *replaced_ephemerals(void) {
 }
 
 static int case_ephemerals_alive_until_flush(void) {
-    const entity_list_t *old = replaced_ephemerals();
+    const entity_id_list_t *old = replaced_ephemerals();
     sink = (unsigned char)old->count;
     cart_update60();
     assert(exit_queue_count() == 0);
@@ -122,7 +122,7 @@ static int case_ephemerals_alive_until_flush(void) {
 }
 
 static int case_ephemerals_released_at_flush(void) {
-    const entity_list_t *old = replaced_ephemerals();
+    const entity_id_list_t *old = replaced_ephemerals();
     cart_update60();
     sink = (unsigned char)old->count;
     return 0;
@@ -200,9 +200,9 @@ static message_box_t *pointed_at_everywhere(void) {
     load_cart_and_start();
     cart_start_game(NULL);
     message_box_t *e = new_entity(&freed_cls);
-    entity_register(&e->header);
-    main_ui()->hovered = &e->header;
-    main_ui()->previous_hovered = &e->header;
+    entity_construct(&e->header);
+    main_ui()->hovered = entity_id_link(&e->header);
+    main_ui()->previous_hovered = entity_id_link(&e->header);
     message_box_set_shown(e);
     main_score_panel()->last_box = e;
     entity_unregister(&e->header);
@@ -210,9 +210,11 @@ static message_box_t *pointed_at_everywhere(void) {
 }
 
 static int case_flush_forgets_references(void) {
-    (void)pointed_at_everywhere();
+    message_box_t *e = pointed_at_everywhere();
+    assert(ui_hovered(main_ui()) == &e->header && ui_previous_hovered(main_ui()) == &e->header &&
+           "an unregistered entity still resolves until the flush");
     cart_flush_exit_queue();
-    assert(main_ui()->hovered == NULL && main_ui()->previous_hovered == NULL);
+    assert(ui_hovered(main_ui()) == NULL && ui_previous_hovered(main_ui()) == NULL);
     assert(shown_message_box() == NULL && main_score_panel()->last_box == NULL);
     return 0;
 }

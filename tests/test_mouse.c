@@ -20,6 +20,7 @@
 #include "game/mouse_button.h"
 #include "game/mouse.h"
 #include "engine/entity_class.h"
+#include "engine/entity_id.h"
 #include "game/ui.h"
 #include "engine/vec.h"
 
@@ -249,7 +250,7 @@ static void test_placeholder_main_mouse(void) {
     assert(main_mouse_left() == NULL && main_mouse_right() == NULL && !pos_of_main_mouse(&ra));
     ok = ui_new();
     ui_update(&memory, ok);
-    assert(ok->left_held == NULL && ok->right_held == NULL);
+    assert(ui_left_held(ok) == NULL && ui_right_held(ok) == NULL);
     assert(ok->mouse_world != NULL);
 }
 

@@ -327,8 +327,8 @@ static probe_t *left_press(void) {
 
     assert(entity_list_list_count(entities_by_tag(TAG_PROBE)) == 0);
     out = class_of(bg)->left_press(&bg->header, vec_ref(vec_xy(1, 1)), vec_ref(vec_xy(2, 2)));
-    assert(out.stop && out.held != NULL && is_probe(out.held));
-    return as_probe(out.held);
+    assert(out.stop && entity_get(out.held) != NULL && is_probe(entity_get(out.held)));
+    return as_probe(entity_get(out.held));
 }
 
 /* Third road: the 4 keys of test_probe_spawn_particle_order.c. */

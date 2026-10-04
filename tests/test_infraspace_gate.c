@@ -218,8 +218,8 @@ static void *build(const entity_kind_t *kind) {
 
     assert(icon != NULL);
     made = class_of(icon)->left_press(icon, NULL, NULL);
-    assert(made.stop && made.held != NULL);
-    return made.held;
+    assert(made.stop && entity_get(made.held) != NULL);
+    return entity_get(made.held);
 }
 
 /* The link sprites of a slipgate or a gate; NULL on any other struct. */
@@ -458,11 +458,11 @@ static uint32_t fold_route(uint32_t h, void *from) {
     int from_has_infraspace = class_of(from) == infraspace_gate_class();
     const slipway_t *made;
 
-    assert(jc.stop && jc.held != NULL && class_of(jc.held) == slipway_class());
-    made = (const slipway_t *)jc.held;
+    assert(jc.stop && entity_get(jc.held) != NULL && class_of(entity_get(jc.held)) == slipway_class());
+    made = (const slipway_t *)entity_get(jc.held);
     assert(slipway_start(made) == from);
     assert(ra != NULL);
-    class_of(jc.held)->drag(jc.held, vec_ref(vec_add(*ra, vec_xy(20, 0))), NULL);
+    class_of(entity_get(jc.held))->drag(entity_get(jc.held), vec_ref(vec_add(*ra, vec_xy(20, 0))), NULL);
     assert(made->has_infraspace == from_has_infraspace);
     assert(made->layer == p8_fixed_from_int(from_has_infraspace ? 2 : 4));
     h = made->has_infraspace ? fold_fixed_member(h, made->infraspace) : fold_absent(h);
@@ -509,11 +509,11 @@ static void test_life(void) {
     hash = fold_bool(hash, class_of(placed)->accept_drop(placed, NULL).stop);
     hash = fold_bool(hash, class_of(placed)->accept_drop(placed, idle).stop);
     slipway = class_of(placed)->left_press(placed, NULL, NULL);
-    assert(slipway.stop && slipway.held != NULL);
-    assert(class_of(slipway.held) == slipway_class() && slipway_start(((const slipway_t *)slipway.held)) == placed);
+    assert(slipway.stop && entity_get(slipway.held) != NULL);
+    assert(class_of(entity_get(slipway.held)) == slipway_class() && slipway_start(((const slipway_t *)entity_get(slipway.held))) == placed);
     hash = fnv(hash, FROZEN_STRUCT_TAG);
-    hash = fold_bool(hash, class_of(placed)->accept_drop(placed, slipway.held).stop);
-    hash = fold_bool(hash, class_of(idle)->accept_drop(idle, slipway.held).stop);
+    hash = fold_bool(hash, class_of(placed)->accept_drop(placed, entity_get(slipway.held)).stop);
+    hash = fold_bool(hash, class_of(idle)->accept_drop(idle, entity_get(slipway.held)).stop);
 
     slipways = as_structure(placed)->slipways;
     for (index = 0; index <= 3; index++) {
@@ -524,7 +524,7 @@ static void test_life(void) {
     }
     assert(as_structure(placed)->sprite == p8_fixed_from_int(76));
     slipway = class_of(placed)->left_press(placed, NULL, NULL);
-    assert(slipway.held == NULL);
+    assert(entity_get(slipway.held) == NULL);
     hash = fold_bool(hash, slipway.stop);
     as_structure(placed)->slipways = slipways;
     class_of(placed)->refresh(placed);

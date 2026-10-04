@@ -1,4 +1,5 @@
 #include "game/background.h"
+#include "engine/entity_id.h"
 
 #include <assert.h>
 #include <stddef.h>
@@ -173,17 +174,17 @@ down_t background_left_press(background_t *self) {
         made = (entity_t *)probe_new(NULL);
     }
     out.stop = made != NULL;
-    out.held = made;
+    out.held = entity_id_link(made);
     return out;
 }
 
 down_t background_right_press(background_t *self, vec_t *rp) {
-    down_t out = {0, NULL};
+    down_t out = {0, ENTITY_ID_NONE};
 
     if (self != NULL) {
         background_set_drag_mouse(self, rp);
         out.stop = 1;
-        out.held = &self->header;
+        out.held = entity_id_link(&self->header);
     }
     return out;
 }

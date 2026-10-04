@@ -239,7 +239,7 @@ static slipway_t *slipway_dragged_over_nothing(entity_t *qu) {
     keys.start = entity_id_link(qu);
     jc = slipway_new(&keys);
     *mp = vec_make(p8_fixed_from_int(-640), p8_fixed_from_int(-640));
-    main_ui()->hovered = NULL;
+    main_ui()->hovered = entity_id_link(NULL);
     slipway_class()->drag(&jc->header, mp, NULL);
     return jc;
 }

@@ -18,6 +18,7 @@
 #include <string.h>
 
 #include "engine/bootstrap.h"
+#include "engine/entity_id.h"
 #include "game/data_init.h"
 #include "engine/entity_class.h"
 #include "engine/dispatch_context.h"
@@ -32,7 +33,7 @@
 #include "engine/vec.h"
 
 /* The buttons message_box_open_box just built. */
-static const entity_list_t *main_ui_ephemerals(void) {
+static const entity_id_list_t *main_ui_ephemerals(void) {
     const ui_t *ok = main_ui();
     assert(ok != NULL);
     assert(ok->ephemerals != NULL);
@@ -91,7 +92,7 @@ static void test_inspection_panel_exports_row_layout_row_receives_its_four_items
     static production_t production;
     const data_row_t *production_row;
     vec_t *planet_pos;
-    const entity_list_t *ephemerals;
+    const entity_id_list_t *ephemerals;
     const layout_row_t *exports_layout_row = NULL;
     layout_row_cell_t entry;
     int index;
@@ -123,7 +124,7 @@ static void test_inspection_panel_exports_row_layout_row_receives_its_four_items
     assert(ephemerals->count >= 2);
 
     for (index = 0; index < ephemerals->count; index++) {
-        const layout_row_t *lq = button_layout_row(ephemerals->items[index]);
+        const layout_row_t *lq = button_layout_row(entity_id_list_at(ephemerals, index));
         assert(lq != NULL && lq->header.class == layout_row_class());
         if (layout_row_index_is_string(lq, 1, "exports:")) {
             exports_layout_row = lq;

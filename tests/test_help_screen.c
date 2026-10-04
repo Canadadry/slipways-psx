@@ -33,6 +33,7 @@
 #include "game/planet.h"
 #include "game/probe.h"
 #include "engine/entity_class.h"
+#include "engine/entity_id.h"
 #include "game/ui.h"
 #include "game/ui_button.h"
 #include "engine/vec.h"
@@ -280,7 +281,7 @@ static int in_layer(int layer, const void *e) {
     if (ic == NULL) {
         return 0;
     }
-    return entity_list_listed(&ic->layers[layer], e);
+    return entity_id_list_has(&ic->layers[layer], entity_id_of(e));
 }
 
 static const button_t *as_button(const void *e) {
@@ -491,7 +492,7 @@ static void test_hover(void) {
     fv = the_help();
     mouse_at(P8_SCREEN_WIDTH / 2, P8_SCREEN_HEIGHT / 2 + 48);
     ui_update(&memory, main_ui());
-    assert((void *)main_ui()->hovered == fv);
+    assert((void *)ui_hovered(main_ui()) == fv);
     assert(is_hovered_state(fv) == 2);
     assert(in_layer(10, fv));
     h = fnv(h, is_hovered_state(fv));
@@ -506,7 +507,7 @@ static void test_hover(void) {
 
     mouse_at(P8_SCREEN_WIDTH / 2, P8_SCREEN_HEIGHT / 2 - 54);
     ui_update(&memory, main_ui());
-    assert((void *)main_ui()->hovered != fv);
+    assert((void *)ui_hovered(main_ui()) != fv);
     assert(is_hovered_state(fv) == 0);
     assert(!in_layer(10, fv));
     h = fnv(h, is_hovered_state(fv));

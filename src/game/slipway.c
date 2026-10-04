@@ -115,7 +115,7 @@ void slipway_drag(slipway_t *self, vec_t *mp) {
     }
 
     ok = main_ui();
-    hovered = ok != NULL ? ok->hovered : NULL;
+    hovered = ok != NULL ? ui_hovered(ok) : NULL;
 
     if (hovered != NULL && hovered->class->accept_drop != NULL) {
         self->end = entity_id_link(hovered);

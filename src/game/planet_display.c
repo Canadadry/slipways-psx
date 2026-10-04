@@ -277,7 +277,7 @@ void planet_inspection_panel(const planet_t *self) {
 }
 
 down_t planet_accept_drop(const planet_t *self, const entity_t *s) {
-    down_t out = {0, NULL};
+    down_t out = {0, ENTITY_ID_NONE};
 
     if (self == NULL) {
         return out;
@@ -479,7 +479,7 @@ down_t planet_left_press_method(entity_t *self, vec_t *mouse_world, vec_t *mouse
 }
 
 down_t planet_left_press(planet_t *self) {
-    down_t out = {0, NULL};
+    down_t out = {0, ENTITY_ID_NONE};
 
     if (self == NULL) {
         return out;
@@ -491,11 +491,13 @@ down_t planet_left_press(planet_t *self) {
     }
     if (self->header.state == ENTITY_STATE_SETTLED) {
         slipway_keys_t keys = {0};
+        slipway_t *made;
 
         assert(slipway_ready() && "slipway_init() must run before planet_left_press builds a slipway");
         keys.start = entity_id_link(&self->header);
-        out.held = (entity_t *)slipway_new(&keys);
-        out.stop = out.held != NULL;
+        made = slipway_new(&keys);
+        out.held = entity_id_link(made != NULL ? &made->header : NULL);
+        out.stop = made != NULL;
     }
     return out;
 }

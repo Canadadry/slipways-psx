@@ -97,15 +97,8 @@ void cart_load(void) {
 
 /* A released slot can come back at the same address, so stale pointers must be cleared here; ASan does not see the comparison. */
 static void forget(const entity_t *e) {
-    ui_t *ok = main_ui();
     score_panel_t *ju = main_score_panel();
 
-    if (ok != NULL && ok->hovered == e) {
-        ok->hovered = NULL;
-    }
-    if (ok != NULL && ok->previous_hovered == e) {
-        ok->previous_hovered = NULL;
-    }
     if ((const entity_t *)shown_message_box() == e) {
         message_box_set_shown(NULL);
     }

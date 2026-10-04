@@ -720,9 +720,9 @@ static void built_planet_panel(void) {
     jc = slipway_new(&slipway_keys);
     *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
                         vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
-    main_ui()->hovered = re;
+    main_ui()->hovered = entity_id_link(re);
     slipway_class()->drag(&jc->header, mp, NULL);
-    main_ui()->hovered = NULL;
+    main_ui()->hovered = entity_id_link(NULL);
     while (jc->header.state_time < p8_fixed_from_int(15)) {
         update_entities();
     }
@@ -756,7 +756,7 @@ static uint32_t fold_button_row(uint32_t h, const layout_row_t *lq) {
  * ephemerals: its layout_row and side_tooltip; then the screen. */
 static void test_planet_panel(void) {
     uint32_t h = 2166136261u;
-    const entity_list_t *le;
+    const entity_id_list_t *le;
     int buttons = 0;
     int i;
 
@@ -764,7 +764,7 @@ static void test_planet_panel(void) {
     le = main_ui()->ephemerals;
     assert(le != NULL);
     for (i = 0; i < le->count; i++) {
-        const void *button = le->items[i];
+        const void *button = entity_id_list_at(le, i);
         if (button != NULL &&
             ((const entity_t *)button)->class == button_class()) {
             buttons++;
@@ -780,11 +780,11 @@ static void test_planet_panel(void) {
 /* The row of the main ui's ephemerals whose first item is `head`, NULL when
  * none. */
 static const layout_row_t *panel_row(const char *head) {
-    const entity_list_t *le = main_ui()->ephemerals;
+    const entity_id_list_t *le = main_ui()->ephemerals;
     int i;
 
     for (i = 0; le != NULL && i < le->count; i++) {
-        const entity_t *button = le->items[i];
+        const entity_t *button = entity_id_list_at(le, i);
         const layout_row_t *lq;
         layout_row_cell_t v;
 

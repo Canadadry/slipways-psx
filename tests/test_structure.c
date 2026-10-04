@@ -267,8 +267,8 @@ static void *build_lab(void) {
 
     assert(icon != NULL);
     made = class_of(icon)->left_press(icon, NULL, NULL);
-    assert(made.stop && made.held != NULL);
-    return made.held;
+    assert(made.stop && entity_get(made.held) != NULL);
+    return entity_get(made.held);
 }
 
 /* A laboratory as structure_icon_left_press and planet_construct left it:
@@ -570,10 +570,10 @@ static void *bought(const entity_kind_t *kind) {
         void *icon = hb->items[i];
         if (class_of(icon) == structure_icon_class() && ((const structure_icon_t *)icon)->kind == kind) {
             down_t made = class_of(icon)->left_press(icon, NULL, NULL);
-            assert(made.stop && made.held != NULL);
-            class_of(made.held)->drag(made.held, vec_ref(vec_add(*main_camera_pos, vec_xy(80, 60))),
+            assert(made.stop && entity_get(made.held) != NULL);
+            class_of(entity_get(made.held))->drag(entity_get(made.held), vec_ref(vec_add(*main_camera_pos, vec_xy(80, 60))),
                                   vec_ref(vec_xy(64, 64)));
-            return made.held;
+            return entity_get(made.held);
         }
     }
     assert(0 && "no icon for that kind");

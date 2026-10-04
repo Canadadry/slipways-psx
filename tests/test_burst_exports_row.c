@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "engine/bootstrap.h"
+#include "engine/entity_id.h"
 #include "game/data_init.h"
 #include "engine/entity_class.h"
 #include "engine/dispatch_context.h"
@@ -25,7 +26,7 @@
 #include "engine/vec.h"
 
 /* The buttons planet_inspection_panel just built. */
-static const entity_list_t *main_ui_ephemerals(void) {
+static const entity_id_list_t *main_ui_ephemerals(void) {
     const ui_t *ok = main_ui();
     assert(ok != NULL);
     assert(ok->ephemerals != NULL);
@@ -88,7 +89,7 @@ static void test_burst_export_line_counts_the_outgoing_routes(void) {
     trade_route_list_t *outgoing;
     const trade_route_t route_a = trade_new(NULL);
     const trade_route_t route_b = trade_new(NULL);
-    const entity_list_t *ephemerals;
+    const entity_id_list_t *ephemerals;
     const layout_row_t *exports_layout_row = NULL;
     int index;
 
@@ -112,7 +113,7 @@ static void test_burst_export_line_counts_the_outgoing_routes(void) {
     planet_inspection_panel(planet);
     ephemerals = main_ui_ephemerals();
     for (index = 0; index < ephemerals->count; index++) {
-        const layout_row_t *lq = button_layout_row(ephemerals->items[index]);
+        const layout_row_t *lq = button_layout_row(entity_id_list_at(ephemerals, index));
         if (layout_row_index_is_string(lq, 1, "exports:")) {
             exports_layout_row = lq;
         }
@@ -132,7 +133,7 @@ static void test_burst_export_line_counts_the_outgoing_routes(void) {
     planet_inspection_panel(planet);
     ephemerals = main_ui_ephemerals();
     for (index = 0; index < ephemerals->count; index++) {
-        const layout_row_t *lq = button_layout_row(ephemerals->items[index]);
+        const layout_row_t *lq = button_layout_row(entity_id_list_at(ephemerals, index));
         if (layout_row_index_is_string(lq, 1, "exports:")) {
             exports_layout_row = lq;
         }

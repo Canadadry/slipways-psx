@@ -15,6 +15,9 @@ void reset_world(const entity_registry_reserve_t *reserve) {
     mouse_t *real_main_mouse;
     ui_t *real_main_ui;
 
+    if (main_ui() != NULL) {
+        ui_forget_world(main_ui());
+    }
     entity_registry_abandon_live_entities();
     entity_registry_init(reserve);
     research_expire_project_ids();
