@@ -21,8 +21,8 @@ typedef enum {
 #define PARTICLE_SLOT 32u
 #define TRANSIT_DOTS_SLOT 24u
 /* Elements reserved for a list of the kind, which its slot holds just. */
-#define PARTICLES_CAPACITY 160
-#define PARTICLES_HELP_SCREEN_CAPACITY 768
+#define PARTICLES_CAPACITY 158
+#define PARTICLES_HELP_SCREEN_CAPACITY 653
 
 /* The handle that gives and takes back a whole slot of the kind: alloc
  * asks for the slot size at most, grow is refused. A slot of a particle
@@ -37,6 +37,16 @@ const allocator_t *particle_zone_slot(particle_slot_kind_t slot_kind);
 
 /* Slots taken and not yet given back. */
 int particle_zone_live(particle_slot_kind_t slot_kind);
+
+/* Reserved bytes of the live slots of every kind, as SLOT_ZONE_BYTES
+ * counts them, and their maximum since the process started. */
+size_t particle_zone_used(void);
+size_t particle_zone_max_used(void);
+
+/* Limits: slots of the kind, bytes of one, bytes reserved for the zone. */
+int particle_zone_count(particle_slot_kind_t slot_kind);
+size_t particle_zone_slot_size(particle_slot_kind_t slot_kind);
+size_t particle_zone_reserved(void);
 
 /* Session maxima. Bytes: those of an arena slot, header included, the
  * slots still live measured when read; 0 for a particle. Elements: the

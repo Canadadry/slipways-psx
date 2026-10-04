@@ -40,6 +40,7 @@
 #include "game/ui.h"
 #include "engine/vec.h"
 #include "engine/zone.h"
+#include "engine/frame_zone.h"
 #include "engine/game_zone.h"
 
 /* Project 12, a colony that needs two resources and exports one; project 3,
@@ -517,6 +518,7 @@ static uint32_t fold_functions(uint32_t h) {
         const data_row_t *jb = research_project_tooltip(b);
         uint32_t layout_row_h;
 
+        frame_zone_reset();
         h = fnv(h, (uint32_t)k);
         h = fnv(h, (uint32_t)(po == NULL ? -2 : (int)(po - production_tables_table)));
         h = fnv(h, (uint32_t)research_project_cost(b));
@@ -834,13 +836,15 @@ static void test_needs_new_in_the_zone_passed(void) {
     assert(!b->row.has_resource && !b->has_satisfied);
 }
 
-/* The projects rebuilt from `project_records_table` forget the ones held,
- * whose memory goes back at the next load, and are the same; shutdown leaves
- * no class and no project, the row tail still the generated row; init again,
- * then a load, gives them once more, and a second load takes the same bytes. */
+/* The projects rebuilt from `project_records_table` forget the ones held
+ * and are the same; shutdown leaves no class and no project, the row tail
+ * still the generated row; init again, then a load, gives them once more,
+ * and a second load takes the same bytes. The load sub-zone holds one set
+ * of projects: it is reset before the rebuild, as cart_load() does. */
 static void test_rebuild_and_shutdown(void) {
     size_t k;
 
+    game_zone_reset();
     research_build_projects();
     test_projects();
 

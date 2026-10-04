@@ -58,19 +58,22 @@ void entity_registry_shutdown(void) {
     g_initialized = 0;
 }
 
-void entity_registry_init(void) {
+void entity_registry_init(const entity_registry_reserve_t *reserve) {
+    static const entity_registry_reserve_t no_reserve = {0};
     int i;
+
+    if (reserve == NULL) reserve = &no_reserve;
 
     entity_registry_shutdown();
 
-    entity_list_init(&g_live_entities, game_zone());
+    entity_list_init_reserve(&g_live_entities, game_zone(), reserve->live);
 
     for (i = 0; i < ENTITY_MESSAGE_COUNT; i++) {
-        entity_list_init(&g_entities_by_message[i], game_zone());
+        entity_list_init_reserve(&g_entities_by_message[i], game_zone(), reserve->by_message[i]);
     }
 
     for (i = 0; i < TAG_COUNT; i++) {
-        entity_list_init(&g_entities_by_tag[i].list, game_zone());
+        entity_list_init_reserve(&g_entities_by_tag[i].list, game_zone(), reserve->by_tag[i]);
     }
 
     g_main_camera = (entity_t *)&g_main_camera_placeholder;

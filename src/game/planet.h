@@ -100,37 +100,17 @@ planet_t *planet_new(const planet_keys_t *keys);
  * constructor does, after its own defaults. Requires planet_init(). */
 void planet_init_instance(planet_t *self, const entity_class_t *instance_class, const planet_archetype_t *archetype);
 
-/* Bytes of the arena a held icon, a drawn slipway or a wormhole builds its
- * object in. */
-#define PLANET_GRAB_ARENA_BYTES 2048u
+/* The bytes a structure of `kind` takes in its construction zone, its
+ * planet_id aside. */
+size_t planet_kind_construction_bytes(const entity_kind_t *kind);
 
-/* Where the planet constructors, planet_construct and
- * planet_install_project allocate: the grab arena between
- * planet_grab_arena_open and planet_grab_arena_close, else the game zone. */
-const allocator_t *planet_zone_construction(void);
-
-/* Opens a grab arena, taken from the free grabs (emptied) or else from the
- * game zone; a placed structure keeps it until the game zone is given back. */
-void planet_grab_arena_open(void);
-void planet_grab_arena_close(void);
-/* Called last by the release method of an object built in `zone`, with the
- * object's state: a grab arena (NULL or another zone: nothing) whose object
- * is still placing goes on the free grabs, for the next grab to empty and
- * reuse. */
-void planet_grab_arena_zone_released(const allocator_t *zone, state_t state);
-/* The same whatever the state: for an object whose memory nothing borrows
- * after its death. */
-void planet_grab_arena_arena_released(const allocator_t *zone);
-/* planet_grab_arena_zone_released with the zone of the planet's slipways. */
+/* grab_arena_give_back_if_placing with the zone of the planet's slipways. */
 void planet_grab_arena_released(const planet_t *self);
 /* Sets to NULL the `targeted_by` of every node entity that points at the
  * entity being given back: planet_draw leaves `targeted_by` set on a planet
  * off screen or fading, and a recycled grab arena would put a new structure
  * behind it. */
 void planet_forget_targeted_by(const entity_t *e);
-/* Drops the free grabs, without reading them: their arenas belong to a
- * game zone about to be given back or reset. */
-void planet_forget_grab_arenas(void);
 
 /* The slipways list taken from, and grown in, the construction zone. */
 void planet_construct(planet_t *self);

@@ -1,24 +1,29 @@
 #include "game/ui_zone.h"
 
-#include <assert.h>
 #include <stddef.h>
 
+#include "engine/slot_group.h"
 #include "engine/zone_sizes.h"
 
-/* Size: the largest slot the game builds, arena header included
- * (x86-64). Count: what lives at once at the worst point of a frame. */
-#define BUTTON_SIZE 6240u
-#define BUTTON_COUNT 24u
-#define MODAL_BACKDROP_SIZE 256u
-#define MODAL_BACKDROP_COUNT 4u
-#define MESSAGE_BOX_SIZE 4624u
-#define MESSAGE_BOX_COUNT 6u
-#define TOAST_SIZE 320u
-#define TOAST_COUNT 128u
-#define ROW_SIZE 1192u
-#define ROW_COUNT 100u
-#define EPHEMERALS_SIZE 216u
-#define EPHEMERALS_COUNT 16u
+/* Sizes in bytes on x86-64, arena header included. Each count, and each
+ * size but two: its peak in make state plus 1/8. The button and row sizes
+ * are the largest the game's rules can build, which the tests
+ * test_largest_buttons_fit_their_slots and
+ * test_planet_resource_row_largest_row_fits_a_slot build: no margin. An
+ * ephemerals slot holds its arena header, its list and the list's
+ * reserve. */
+#define BUTTON_SIZE 5880u
+#define BUTTON_COUNT 14u
+#define MODAL_BACKDROP_SIZE 272u
+#define MODAL_BACKDROP_COUNT 2u
+#define MESSAGE_BOX_SIZE 5056u
+#define MESSAGE_BOX_COUNT 4u
+#define TOAST_SIZE 336u
+#define TOAST_COUNT 48u
+#define ROW_SIZE 1176u
+#define ROW_COUNT 71u
+#define EPHEMERALS_SIZE (96u + 24u + UI_EPHEMERALS_RESERVE * 8u)
+#define EPHEMERALS_COUNT 6u
 
 typedef char ui_zone_exceeded_t[
     (SLOT_ZONE_BYTES(BUTTON_SIZE, BUTTON_COUNT) + SLOT_ZONE_BYTES(MODAL_BACKDROP_SIZE, MODAL_BACKDROP_COUNT) +
@@ -43,30 +48,52 @@ static const slot_kind_zone_t SLOT_KINDS[SLOT_KIND_COUNT] = {
     [SLOT_KIND_EPHEMERALS] = {"ui ephemerals", "slot ephemerals", ephemerals_cells, ephemerals_taken, EPHEMERALS_SIZE, EPHEMERALS_COUNT},
 };
 
-static slot_zone_t g_zones[SLOT_KIND_COUNT];
-static allocator_t g_handles[SLOT_KIND_COUNT];
-static int g_ready;
-
-/* Lazy: allocator_init_slot_kinds poisons the storage under ASan, which a
- * static initializer would not do. */
-static void init_once(void) {
-    if (g_ready) return;
-    allocator_init_slot_kinds(SLOT_KINDS, SLOT_KIND_COUNT, g_zones, g_handles);
-    g_ready = 1;
-}
+static slot_group_t g_group = SLOT_GROUP(SLOT_KINDS, SLOT_KIND_COUNT);
 
 const allocator_t *ui_zone(slot_kind_t slot_kind) {
-    assert(slot_kind >= 0 && slot_kind < SLOT_KIND_COUNT);
-    init_once();
-    return &g_handles[slot_kind];
+    return slot_group_handle(&g_group, slot_kind);
 }
 
 const allocator_t *ui_zone_slot(slot_kind_t slot_kind) {
-    return arena_take(ui_zone(slot_kind), SLOT_KINDS[slot_kind].slot_name, SLOT_KINDS[slot_kind].size);
+    return slot_group_slot(&g_group, slot_kind);
 }
 
 int ui_zone_live(slot_kind_t slot_kind) {
-    assert(slot_kind >= 0 && slot_kind < SLOT_KIND_COUNT);
-    init_once();
-    return (int)slot_zone_taken(&g_zones[slot_kind]);
+    return slot_group_live(&g_group, slot_kind);
+}
+
+int ui_zone_max_live(slot_kind_t slot_kind) {
+    return slot_group_max_live(&g_group, slot_kind);
+}
+
+size_t ui_zone_max_bytes(slot_kind_t slot_kind) {
+    return slot_group_max_bytes(&g_group, slot_kind);
+}
+
+size_t ui_zone_used(void) {
+    return slot_group_used(&g_group);
+}
+
+size_t ui_zone_max_used(void) {
+    return slot_group_max_used(&g_group);
+}
+
+void ui_zone_record_ephemerals(int count) {
+    slot_group_record_elements(&g_group, SLOT_KIND_EPHEMERALS, count);
+}
+
+int ui_zone_max_ephemerals(void) {
+    return slot_group_max_elements(&g_group, SLOT_KIND_EPHEMERALS);
+}
+
+int ui_zone_count(slot_kind_t slot_kind) {
+    return slot_group_count(&g_group, slot_kind);
+}
+
+size_t ui_zone_slot_size(slot_kind_t slot_kind) {
+    return slot_group_slot_size(&g_group, slot_kind);
+}
+
+size_t ui_zone_reserved(void) {
+    return slot_group_reserved(&g_group);
 }

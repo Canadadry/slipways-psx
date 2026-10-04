@@ -55,6 +55,10 @@ static message_box_t *new_entity(const entity_class_t *cls) {
     return mh;
 }
 
+static void forget_nothing(const entity_t *e) {
+    (void)e;
+}
+
 static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
@@ -147,13 +151,25 @@ static int case_reset_world_enqueues_registered(void) {
     entity_register(&counted->header);
     entity_register(&kept->header);
     int expected = registered_with_release();
-    reset_world();
+    reset_world(NULL);
     assert(exit_queue_count() == expected && "reset_world queues every registered entity that has something to release");
     entity_unregister(&counted->header);
     assert(exit_queue_count() == expected && "entity_unregister after reset_world: the entity is no longer live, not queued twice");
     assert(released == 0 && "reset_world releases nothing before the end of the frame");
     cart_load();
     assert(released == 1 && exit_queue_count() == 0 && "cart_load flushes the queue");
+    return 0;
+}
+
+/* Live entities at the restart that ends worst-case/full_game.json (275 of
+ * them have a release): reset_world queues them all in one burst. */
+#define FULL_GAME_LIVE_ENTITIES 286
+
+static int case_reset_world_after_a_full_game(void) {
+    load_cart_and_start();
+    while (registered_with_release() < FULL_GAME_LIVE_ENTITIES) entity_register(&new_entity(&counted_cls)->header);
+    reset_world(NULL);
+    assert(exit_queue_count() == FULL_GAME_LIVE_ENTITIES);
     return 0;
 }
 
@@ -224,16 +240,34 @@ static int case_full(void) {
     return 0;
 }
 
+static int case_max_survives_flush(void) {
+    released = 0;
+    message_box_t *e = new_entity(&counted_cls);
+    assert(exit_queue_max() == 0);
+    for (int i = 0; i < 3; i++) exit_queue_put(&e->header);
+    exit_queue_flush(forget_nothing);
+    assert(exit_queue_count() == 0);
+    assert(exit_queue_max() == 3 && "the flush empties the queue, not its peak");
+    exit_queue_put(&e->header);
+    exit_queue_flush(forget_nothing);
+    assert(exit_queue_max() == 3 && "a smaller batch leaves the peak alone");
+    assert(released == 4);
+    free(e);
+    return 0;
+}
+
 static const struct {
     const char *name;
     int (*run)(void);
 } CASES[] = {
+    {"max_survives_flush", case_max_survives_flush},
     {"entity_unregister_alive_until_flush", case_entity_unregister_alive_until_flush},
     {"entity_unregister_released_at_flush", case_entity_unregister_released_at_flush},
     {"ephemerals_alive_until_flush", case_ephemerals_alive_until_flush},
     {"ephemerals_released_at_flush", case_ephemerals_released_at_flush},
     {"entity_unregister_outside_live_entities_or_without_member", case_entity_unregister_outside_live_entities_or_without_member},
     {"reset_world_enqueues_registered", case_reset_world_enqueues_registered},
+    {"reset_world_after_a_full_game", case_reset_world_after_a_full_game},
     {"shutdown_drains", case_shutdown_drains},
     {"flush_forgets_references", case_flush_forgets_references},
     {"update60_after_forgetting", case_update60_after_forgetting},
@@ -328,11 +362,13 @@ int main(int argc, char **argv) {
     expect_poison_crash("ephemerals_released_at_flush");
     expect_clean("entity_unregister_outside_live_entities_or_without_member");
     expect_clean("reset_world_enqueues_registered");
+    expect_clean("reset_world_after_a_full_game");
     expect_clean("shutdown_drains");
     expect_clean("flush_forgets_references");
     expect_clean("update60_after_forgetting");
     expect_clean("difficulty_outlives_its_button");
-    expect_fatal("full", "exit queue full, limit 256");
+    expect_fatal("full", "exit queue full, limit 315");
+    expect_clean("max_survives_flush");
     remove(STDERR_LOG);
     printf("test_exit_queue: all tests passed\n");
     return 0;

@@ -11,7 +11,7 @@
 #include "game/message_box.h"
 #include "game/research.h"
 #include "engine/frame_zone.h"
-#include "engine/game_zone.h"
+#include "game/grab_arena.h"
 
 static int g_planet_up = 0;
 
@@ -21,15 +21,6 @@ static random_walk_t *g_planet_vanish_roll = NULL;
 /* Shared by every bare planet: written in place by update_tiers_visit and
  * synthesizer_attach_slipway until planet_install_project gives it its own. */
 static production_t g_planet_production_shared;
-
-/* Grab arenas are recognised by the address of this name (planet_grab_arena_arena_released). */
-static const char planet_name_grab_arena[] = "grab";
-#define GRAB_ARENAS_FREE_MAX 8
-
-/* Non-NULL only between planet_grab_arena_open and planet_grab_arena_close. */
-static const allocator_t *g_planet_grab_arena = NULL;
-static const allocator_t *g_planet_grab_arenas_free[GRAB_ARENAS_FREE_MAX];
-static int g_planet_grab_arenas_free_n = 0;
 
 int planet_hit_test_method(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen) {
     return entity_geom_contains_cursor(self, mouse_world, mouse_screen);
@@ -106,7 +97,7 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
 }
 
 static planet_t *planet_create(const planet_keys_t *keys) {
-    planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
+    planet_t *self = (planet_t *)allocator_alloc(grab_arena_construction_zone(), sizeof *self);
 
     planet_init_instance(self, &planet_class_def, &planet_archetype);
     if (keys != NULL) {
@@ -177,42 +168,8 @@ planet_t *planet_new(const planet_keys_t *keys) {
     return planet_create(keys);
 }
 
-const allocator_t *planet_zone_construction(void) {
-    return g_planet_grab_arena != NULL ? g_planet_grab_arena : game_zone();
-}
-
-void planet_grab_arena_open(void) {
-    assert(g_planet_grab_arena == NULL && "a grab arena is already open");
-    if (g_planet_grab_arenas_free_n > 0) {
-        g_planet_grab_arena = g_planet_grab_arenas_free[--g_planet_grab_arenas_free_n];
-        arena_flush(g_planet_grab_arena);
-    } else {
-        g_planet_grab_arena = arena_take(game_zone(), planet_name_grab_arena, PLANET_GRAB_ARENA_BYTES);
-    }
-}
-
-void planet_grab_arena_close(void) {
-    g_planet_grab_arena = NULL;
-}
-
 void planet_grab_arena_released(const planet_t *self) {
-    planet_grab_arena_zone_released(self->slipways != NULL ? self->slipways->zone : NULL, self->header.state);
-}
-
-void planet_grab_arena_zone_released(const allocator_t *zone, state_t state) {
-    if (state != ENTITY_STATE_PLACING) {
-        return;
-    }
-    planet_grab_arena_arena_released(zone);
-}
-
-void planet_grab_arena_arena_released(const allocator_t *zone) {
-    if (zone == NULL || zone->bump == NULL || zone->bump->name != planet_name_grab_arena) {
-        return;
-    }
-    assert(g_planet_grab_arenas_free_n < GRAB_ARENAS_FREE_MAX &&
-           "free grab arenas full: more refused grabs in flight than expected");
-    g_planet_grab_arenas_free[g_planet_grab_arenas_free_n++] = zone;
+    grab_arena_give_back_if_placing(self->slipways != NULL ? self->slipways->zone : NULL, self->header.state);
 }
 
 /* GAP-26 */
@@ -229,12 +186,8 @@ void planet_forget_targeted_by(const entity_t *e) {
     }
 }
 
-void planet_forget_grab_arenas(void) {
-    g_planet_grab_arenas_free_n = 0;
-}
-
 void planet_construct(planet_t *self) {
-    planet_construct_in(self, planet_zone_construction());
+    planet_construct_in(self, grab_arena_construction_zone());
 }
 
 void planet_construct_in(planet_t *self, const allocator_t *zone) {
@@ -257,35 +210,59 @@ void planet_construct_in(planet_t *self, const allocator_t *zone) {
     }
 }
 
-/* A copy of each need, never shared with the project's inputs. */
-static int planet_install_project_copy_step(void *e, void *ctx, void **out) {
-    if (e != NULL) {
-        need_t *copy = (need_t *)allocator_alloc((const allocator_t *)ctx, sizeof *copy);
-        const need_t *i = e;
+static int planet_project_need_count(const research_project_t *project) {
+    int n = 0;
 
-        *copy = *i;
-        *out = copy;
-        return 1;
+    for (int i = 0; project != NULL && project->inputs != NULL && i < project->inputs->count; i++) {
+        n += project->inputs->items[i] != NULL;
     }
-    return 0;
+    return n;
+}
+
+/* What planet_install_project takes in its zone. */
+static size_t planet_project_bytes(const research_project_t *project) {
+    size_t n = (size_t)planet_project_need_count(project);
+
+    return ZONE_BYTES(n * sizeof(void *)) + n * ZONE_BYTES(sizeof(need_t)) + ZONE_BYTES(sizeof(pointer_list_t));
+}
+
+size_t planet_kind_construction_bytes(const entity_kind_t *kind) {
+    const planet_archetype_t *archetype = kind->record->archetype;
+    const research_project_t *target = research_projects_at(p8_fixed_flr_int(archetype->project_index));
+
+    return ZONE_BYTES(sizeof(planet_t)) + ZONE_BYTES(sizeof(entity_list_t)) +
+           (target != NULL ? planet_project_bytes(target) : 0);
 }
 
 void planet_install_project(planet_t *self, research_project_t *research_project_instance) {
-    const allocator_t *zone = planet_zone_construction();
+    const allocator_t *zone = grab_arena_construction_zone();
     pointer_list_t jy;
     pointer_list_t *needs_own;
+    int n;
 
     research_project_assert(research_project_instance);
     if (self == NULL) {
         return;
     }
+    n = planet_project_need_count(research_project_instance);
 
     self->project = research_project_instance;
     self->description = NULL;
 
     pointer_list_init(&jy, zone);
-    if (research_project_instance != NULL && research_project_instance->inputs != NULL) {
-        jy = collect_map_pointer_list(zone, research_project_instance->inputs, planet_install_project_copy_step, (void *)zone);
+    if (n > 0) {
+        pointer_list_init_reserve(&jy, zone, n);
+    }
+    for (int i = 0; n > 0 && i < research_project_instance->inputs->count; i++) {
+        const need_t *input = research_project_instance->inputs->items[i];
+        need_t *copy;
+
+        if (input == NULL) {
+            continue;
+        }
+        copy = (need_t *)allocator_alloc(zone, sizeof *copy);
+        *copy = *input;
+        pointer_list_add(&jy, copy);
     }
     needs_own = (pointer_list_t *)allocator_alloc(zone, sizeof *needs_own);
     *needs_own = jy;

@@ -33,13 +33,14 @@ entity_list_t *ui_ephemerals_new(void) {
     const allocator_t *slot = ui_zone_slot(SLOT_KIND_EPHEMERALS);
     entity_list_t *le = (entity_list_t *)allocator_alloc(slot, sizeof *le);
 
-    entity_list_init(le, slot);
+    entity_list_init_reserve(le, slot, UI_EPHEMERALS_RESERVE);
     return le;
 }
 
 void ui_set_ephemerals(ui_t *self, entity_list_t *le) {
     entity_list_t *old = self->ephemerals;
 
+    if (le != &g_shared_ephemerals) ui_zone_record_ephemerals(le->count);
     self->ephemerals = le;
     if (old != NULL && old != &g_shared_ephemerals) {
         exit_queue_put_arena(old->zone);

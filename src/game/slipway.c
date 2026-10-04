@@ -10,6 +10,7 @@
 #include "game/main_economy.h"
 #include "engine/geom.h"
 #include "engine/entity.h"
+#include "game/grab_arena.h"
 #include "game/planet.h"
 #include "game/targeting.h"
 #include "game/tech_gate.h"
@@ -82,7 +83,7 @@ void slipway_construct(slipway_t *self) {
         return;
     }
 
-    zone = planet_zone_construction();
+    zone = grab_arena_construction_zone();
     ts = (pointer_list_t *)allocator_alloc(zone, sizeof *ts);
     pointer_list_init_reserve(ts, zone, SLIPWAY_TRANSIT_DOTS_RESERVE);
     self->transit_dots = ts;
@@ -319,7 +320,7 @@ static void slipway_release_method(entity_t *self) {
     for (int i = 0; i < jc->transit_dots->count; i++)
         allocator_release(particle_zone(PARTICLE_SLOT_TRANSIT_DOT), jc->transit_dots->items[i]);
     jc->transit_dots->count = 0;
-    planet_grab_arena_zone_released(zone, jc->header.state);
+    grab_arena_give_back_if_placing(zone, jc->header.state);
 }
 
 static int slipway_is_endpoint_class(const entity_class_t *cls) {
@@ -338,8 +339,8 @@ static const entity_class_t slipway_class_def = {
 static slipway_t *slipway_create(const slipway_keys_t *keys) {
     slipway_t *self;
 
-    planet_grab_arena_open();
-    self = (slipway_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
+    grab_arena_open(SLIPWAY_CONSTRUCTION_BYTES);
+    self = (slipway_t *)allocator_alloc(grab_arena_construction_zone(), sizeof *self);
 
     entity_init_instance(&self->header, &slipway_class_def, slipway_archetype.state, slipway_archetype.state_time);
     self->archetype = &slipway_archetype;
@@ -376,7 +377,7 @@ static slipway_t *slipway_create(const slipway_keys_t *keys) {
         self->start = keys->start;
     }
     slipway_construct(self);
-    planet_grab_arena_close();
+    grab_arena_close();
     entity_construct(&self->header);
     return self;
 }

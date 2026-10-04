@@ -4,13 +4,32 @@
 #include "engine/entity_list.h"
 #include "engine/entity_class.h"
 
+typedef enum {
+    ENTITY_MESSAGE_DRAW,
+    ENTITY_MESSAGE_DRAW_OVERLAY,
+    ENTITY_MESSAGE_HIT_TEST,
+    ENTITY_MESSAGE_NEW_YEAR,
+    ENTITY_MESSAGE_REFRESH,
+    ENTITY_MESSAGE_COUNT
+} entity_message_t;
+
+/* Entries each registry takes at once from the generation; 0 takes
+ * nothing. A registry that goes past its reserve grows as usual: a size,
+ * not a cap. */
+typedef struct {
+    int live;
+    int by_message[ENTITY_MESSAGE_COUNT];
+    int by_tag[TAG_COUNT];
+} entity_registry_reserve_t;
+
 /* (Re)builds the live list and the per-message and per-tag registries
  * empty, growing in the current game-zone generation (engine/game_zone.h),
  * after entity_registry_shutdown() dropped the previous build, and puts back
  * the placeholder main camera. Must run before anything below is used.
  * reset_world() (engine/bootstrap.c) calls it, then replaces the placeholder
- * through entity_registry_set_main_camera(). */
-void entity_registry_init(void);
+ * through entity_registry_set_main_camera(). Each list is taken at its
+ * reserve; NULL reserves nothing. */
+void entity_registry_init(const entity_registry_reserve_t *reserve);
 
 /* Drops the backing arrays of the live list and the registries, which go
  * back with their game-zone generation; the main camera is dropped unread:
@@ -32,15 +51,6 @@ void entity_registry_forget_registries(void);
  * order, as pointers to a struct that starts with an entity_t
  * (engine/entity_class.h). */
 const entity_list_t *live_entities(void);
-
-typedef enum {
-    ENTITY_MESSAGE_DRAW,
-    ENTITY_MESSAGE_DRAW_OVERLAY,
-    ENTITY_MESSAGE_HIT_TEST,
-    ENTITY_MESSAGE_NEW_YEAR,
-    ENTITY_MESSAGE_REFRESH,
-    ENTITY_MESSAGE_COUNT
-} entity_message_t;
 
 /* Never NULL. The buckets are fixed, so a returned pointer stays valid for
  * the module's whole lifetime. */

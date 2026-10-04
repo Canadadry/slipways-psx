@@ -489,7 +489,10 @@ static void test_planet_resource_row(void) {
         assert(p->has_output);
         o = p->output;
         for (b = 0; b < sizeof jqs / sizeof jqs[0]; b++) {
-            const void *lq = research_display_planet_resource_row(frame_zone(), is, &o, p8_fixed_from_int(jqs[b]),
+            const void *lq;
+
+            frame_zone_reset();
+            lq = research_display_planet_resource_row(frame_zone(), is, &o, p8_fixed_from_int(jqs[b]),
                                          p8_fixed_from_int((int)b % 3), p8_fixed_from_int((int)b % 2));
             assert(lq != NULL);
             assert(as_layout_row(lq)->has_color == (jqs[b] > 5));
@@ -666,6 +669,7 @@ static void start_game(void) {
     p8_input_init(&input);
     dispatch_context_set_input(&input);
     cart_init();
+    cart_flush_exit_queue();
     cart_start_game(NULL);
 }
 
@@ -802,14 +806,16 @@ static const layout_row_t *panel_row(const char *head) {
  * none nothing, 6 wide. */
 static void test_inspection_panel_wants_more(void) {
     p8_fixed_t ore = p8_fixed_from_int(21);
-    need_t *a = need_new(game_zone(), &ore);
-    need_t *b = need_new(game_zone(), NULL);
+    need_t *a;
+    need_t *b;
     pointer_list_t *jy = malloc(sizeof *jy);
     planet_t *planet;
     const layout_row_t *wants;
     const layout_row_t *receives;
 
     start_game();
+    a = need_new(game_zone(), &ore);
+    b = need_new(game_zone(), NULL);
     a->has_satisfied = 1;
     a->satisfied = p8_fixed_from_int(1);
     b->has_satisfied = 1;
@@ -840,13 +846,14 @@ static void test_inspection_panel_wants_more(void) {
  * though every want arrives. */
 static void test_inspection_panel_w_maker_wants_no_more(void) {
     p8_fixed_t ore = p8_fixed_from_int(21);
-    need_t *a = need_new(game_zone(), &ore);
+    need_t *a;
     pointer_list_t *jy = malloc(sizeof *jy);
     production_t *kw = calloc(1, sizeof *kw);
     planet_t *planet;
     int r_w;
 
     start_game();
+    a = need_new(game_zone(), &ore);
     assert(resource_code_lookup("w", &r_w));
     kw->has_resource = 1;
     kw->resource = p8_fixed_from_int(r_w);
@@ -868,13 +875,15 @@ static void test_inspection_panel_w_maker_wants_no_more(void) {
 
 /* A laboratory (a structure) lists only its last want under "wants more:". */
 static void test_inspection_panel_lab_wants_its_last(void) {
-    need_t *a = need_new(game_zone(), NULL);
-    need_t *b = need_new(game_zone(), NULL);
+    need_t *a;
+    need_t *b;
     pointer_list_t *jy = malloc(sizeof *jy);
     planet_t *lab;
     const layout_row_t *wants;
 
     start_game();
+    a = need_new(game_zone(), NULL);
+    b = need_new(game_zone(), NULL);
     a->has_satisfied = 1;
     a->satisfied = p8_fixed_from_int(1);
     b->has_satisfied = 1;

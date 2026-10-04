@@ -152,7 +152,7 @@ static void test_reset_world_builds_a_mouse_reader(void) {
     const void *je;
     vec_t ra;
 
-    reset_world();
+    reset_world(NULL);
     je = main_mouse();
     assert(entity_list_listed(live_entities(), je) && !in_any_entities_by_message(je));
     assert(pos_of_main_mouse(&ra) && ra.x == 0 && ra.y == 0);
@@ -167,7 +167,7 @@ static void test_scripted_ticks(void) {
     uint32_t h = 2166136261u;
     int i;
 
-    reset_world();
+    reset_world(NULL);
     for (i = 0; i < SCRIPTED_TICKS; i++) {
         frame(i, 7 + 9 * i, 120 - 5 * i, buttons[i]);
     }
@@ -186,7 +186,7 @@ static void test_scripted_ticks(void) {
 /* No e2e replay ever holds the middle button, which the cart counts as
  * the right one. */
 static void test_middle_alone_presses_the_right_button(void) {
-    reset_world();
+    reset_world(NULL);
     frame(0, 30, 30, P8_MOUSE_MIDDLE);
     frame(1, 30, 30, 0);
     script(2);
@@ -205,7 +205,7 @@ static void test_middle_alone_presses_the_right_button(void) {
 static void test_buttons_survive_reset_world(void) {
     const mouse_button_t *l_before;
 
-    reset_world();
+    reset_world(NULL);
     frame(0, 40, 40, 1);
     frame(1, 41, 41, 1);
     frame(2, 42, 42, 1);
@@ -216,7 +216,7 @@ static void test_buttons_survive_reset_world(void) {
     assert(held_of(main_mouse_left()) == 1);
     l_before = main_mouse_left();
 
-    reset_world();
+    reset_world(NULL);
     p8_input_step(&input);
     update_entities();
     unscript();
@@ -226,7 +226,7 @@ static void test_buttons_survive_reset_world(void) {
 
 /* `mouse_init()` starts both button states afresh. */
 static void test_mouse_init_starts_the_tables_afresh(void) {
-    reset_world();
+    reset_world(NULL);
     frame(0, 10, 10, 1);
     script(1);
     update_entities();
@@ -234,7 +234,7 @@ static void test_mouse_init_starts_the_tables_afresh(void) {
     assert(held_of(main_mouse_left()) == 1);
 
     mouse_init();
-    reset_world();
+    reset_world(NULL);
     assert(held_of(main_mouse_left()) == -1 && held_of(main_mouse_right()) == -1);
 }
 
@@ -244,7 +244,7 @@ static void test_placeholder_main_mouse(void) {
     ui_t *ok;
     vec_t ra;
 
-    reset_world();
+    reset_world(NULL);
     ui_init();
     assert(main_mouse_left() == NULL && main_mouse_right() == NULL && !pos_of_main_mouse(&ra));
     ok = ui_new();
@@ -259,6 +259,7 @@ static void test_launch_with_left_held(void) {
     const void *first_main_mouse;
 
     cart_init();
+    cart_flush_exit_queue();
     first_main_mouse = main_mouse();
     frame(0, 64, 64, 1);
     frame(1, 64, 64, 1);
@@ -286,7 +287,7 @@ static void test_mouse_is_a_struct_sharing_its_buttons(void) {
     void *built;
     void *generic;
 
-    reset_world();
+    reset_world(NULL);
     built = mouse_new();
     generic = mouse_new();
 

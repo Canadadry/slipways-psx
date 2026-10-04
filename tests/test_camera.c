@@ -159,7 +159,7 @@ static void check_fresh_main_camera(const camera_t *mo) {
 }
 
 static void test_reset_world_builds_a_camera(void) {
-    reset_world();
+    reset_world(NULL);
     check_fresh_main_camera(checked_main_camera());
 }
 
@@ -173,7 +173,7 @@ static void apply_camera_to(p8_fixed_t fy, int want_x, int want_y) {
 /* camera_apply puts the camera on the position times the factor. The later
  * tests of this process start from the camera the last call leaves: 192,192. */
 static void test_apply_camera_sets_the_camera(void) {
-    reset_world();
+    reset_world(NULL);
     apply_camera_to(p8_fixed_from_int(1), 192, 192);
     apply_camera_to(P8_FIXED_LIT(0x00008000, 0.5), 96, 96);
     apply_camera_to(0, 0, 0);
@@ -186,7 +186,7 @@ static void test_scripted_ticks(void) {
     int bounded = 0;
     int i;
 
-    reset_world();
+    reset_world(NULL);
     for (i = 0; i < SCRIPTED_TICKS; i++) {
         if (i < 3) {
             pad(i, 0, 0, 0, 0);
@@ -226,7 +226,7 @@ static void test_shake_decays(void) {
     int ticks = 0;
     const camera_t *mo;
 
-    reset_world();
+    reset_world(NULL);
     mo = checked_main_camera();
     checked_main_camera()->shake = p8_fixed_from_int(3);
     assert(mo->shake == p8_fixed_from_int(3));
@@ -252,22 +252,22 @@ static void test_shake_decays(void) {
 static void test_second_reset_world(void) {
     const void *first;
 
-    reset_world();
+    reset_world(NULL);
     first = main_camera();
-    reset_world();
+    reset_world(NULL);
     assert(main_camera() != first);
     assert(!entity_list_listed(live_entities(), first));
     check_fresh_main_camera(checked_main_camera());
 
     bootstrap_shutdown();
-    reset_world();
+    reset_world(NULL);
     check_fresh_main_camera(checked_main_camera());
 }
 
 /* Before `reset_world()`, the main camera is the placeholder, not a
  * `camera_t`: nothing is applied and the camera stays put. */
 static void test_placeholder_main_camera(void) {
-    entity_registry_init();
+    entity_registry_init(NULL);
     p8_camera(&graphics, 5, 6);
     assert(main_camera()->class != camera_class());
     assert(graphics.camera_x == 5 && graphics.camera_y == 6);
@@ -363,7 +363,7 @@ static int is_a_camera_struct(const void *e) {
 static void test_camera_is_a_struct(void) {
     camera_t *generic;
 
-    reset_world();
+    reset_world(NULL);
     generic = camera_new();
     assert(is_a_camera_struct(main_camera()) && is_a_camera_struct(generic));
     assert(entity_list_listed(live_entities(), generic) && !in_any_entities_by_message(generic));

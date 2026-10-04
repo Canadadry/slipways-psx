@@ -90,7 +90,7 @@ static void test_update_on_placeholder(void) {
     ui_t *ok;
     const vec_t *qa;
 
-    entity_registry_init();
+    entity_registry_init(NULL);
     assert_placeholder(1);
     ok = ui_new();
     ui_update(&memory, ok);
@@ -132,11 +132,11 @@ static void test_reset_world_without_cart_load(void) {
      * cart_shutdown() would abandon it, so the live entities go first. */
     bootstrap_shutdown();
     cart_shutdown();
-    reset_world();
+    reset_world(NULL);
     assert_a_mouse();
     bootstrap_shutdown();
     assert(main_mouse() == NULL);
-    reset_world();
+    reset_world(NULL);
     assert_a_mouse();
     bootstrap_shutdown();
 }
@@ -154,7 +154,7 @@ static void test_placeholder_is_a_struct(void) {
     cart_load();
     placeholder = main_mouse();
     assert(is_a_struct_of(placeholder, main_mouse_placeholder_class()));
-    reset_world();
+    reset_world(NULL);
     assert(is_a_struct_of(main_mouse(), mouse_class()));
     ui_init();
     assert(main_mouse() == placeholder);

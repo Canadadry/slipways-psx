@@ -15,9 +15,9 @@
 
 enum { SLIPWAY_SERVED_PLANETS_CAP = 90 };
 
-/* Transit dots reserved in the grab arena: past them the list grows in it,
- * and a full arena is fatal (p8_fatal). */
-enum { SLIPWAY_TRANSIT_DOTS_RESERVE = 64 };
+/* Transit dots reserved in the grab arena: past them, once the slipway is
+ * built, the list grows in the game zone. */
+enum { SLIPWAY_TRANSIT_DOTS_RESERVE = 24 };
 
 /* The planet_id of each planet a slipway serves, each once; the strings
  * are borrowed from the planets. */
@@ -48,7 +48,7 @@ typedef struct {
  * before). The cost and the target (NULL when absent) live in `targeting`,
  * which points at `targeting_own`; `point.pos` and `point.map_pos` point at
  * `point_pos` and `point_map_pos`: never copy the struct. Built with its
- * transit dots in a grab arena (planet_grab_arena_open), which a refused
+ * transit dots in a grab arena (grab_arena_open), which a refused
  * slipway's release method puts back on the free grabs. */
 typedef struct {
     entity_t header;
@@ -70,6 +70,11 @@ typedef struct {
     vec_t point_pos;
     vec_t point_map_pos;
 } slipway_t;
+
+/* What slipway_new takes in its grab arena. */
+#define SLIPWAY_CONSTRUCTION_BYTES                                         \
+    (ZONE_BYTES(sizeof(slipway_t)) + ZONE_BYTES(sizeof(pointer_list_t)) + \
+     ZONE_BYTES(SLIPWAY_TRANSIT_DOTS_RESERVE * sizeof(void *)))
 
 /* The one static "-too far-" struct slipway_obstruction returns:
  * `targeted_by` is the last slipway that linked itself to it, borrowed. */

@@ -124,6 +124,39 @@ const allocator_t *arena_take(const allocator_t *from,
     return &arena->handle;
 }
 
+size_t arena_size_for(size_t n) {
+    return ARENA_HEAD_CELLS * sizeof(zone_cell_t) + ZONE_BYTES(n);
+}
+
+size_t arena_size(const allocator_t *arena) {
+    const arena_t *a = (const arena_t *)arena;
+    assert(arena != NULL && arena->bump == &a->bump && "size of a handle that is not an arena");
+    return ARENA_HEAD_CELLS * sizeof(zone_cell_t) + a->bump.capacity;
+}
+
+static unsigned char *arena_spill_alloc(const allocator_t *z, size_t n) {
+    arena_t *a = (arena_t *)z;
+    if (ZONE_BYTES(n) <= a->bump.capacity - a->bump.used)
+        return bump_zone_alloc(&a->bump, n);
+    return allocator_alloc(a->from, n);
+}
+
+static unsigned char *arena_spill_grow(const allocator_t *z, unsigned char *p,
+                                       size_t old_n, size_t new_n) {
+    unsigned char *q = arena_spill_alloc(z, new_n);
+    if (old_n > 0) memcpy(q, p, old_n);
+    return q;
+}
+
+/* The header does not grow: the spill is the handle's two function
+ * pointers, which arena_flush puts back. */
+void arena_spill(const allocator_t *arena) {
+    arena_t *a = (arena_t *)arena;
+    assert(arena != NULL && arena->bump == &a->bump && "spill of a handle that is not an arena");
+    a->handle.alloc = arena_spill_alloc;
+    a->handle.grow = arena_spill_grow;
+}
+
 size_t arena_used(const allocator_t *arena) {
     const arena_t *a = (const arena_t *)arena;
     assert(arena != NULL && arena->bump == &a->bump && "usage of a handle that is not an arena");
@@ -134,6 +167,7 @@ void arena_flush(const allocator_t *arena) {
     arena_t *a = (arena_t *)arena;
     assert(arena != NULL && arena->bump == &a->bump && "flush of a handle that is not an arena");
     bump_zone_init_single(&a->bump, a->bump.name, a->bump.storage, a->bump.capacity);
+    a->handle = allocator_from_bump_zone(&a->bump);
 }
 
 void arena_release(const allocator_t *arena) {

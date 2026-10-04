@@ -46,6 +46,7 @@
 #include "engine/entity_class.h"
 #include "game/ui.h"
 #include "game/ui_button.h"
+#include "game/ui_zone.h"
 #include "engine/vec.h"
 #include "game/wormhole.h"
 
@@ -582,6 +583,35 @@ static void test_clear_ephemerals(void) {
     check("clear_ephemerals", h, CLEAR_EPHEMERALS_HASH);
 }
 
+/* The pause menu's list of 4 buttons takes its 8 places at creation: its
+ * slot holds 184 bytes (arena header 96, list 24, 8 x 8, x86-64), no block
+ * left dead by a growth; its 4 elements are recorded when the ui gets it. */
+static void test_ephemerals_reserve_at_creation(void) {
+    ui_t *ok = start_game();
+
+    call_galaxy_menu_on_click(4);
+    assert(ephemerals_of(ok)->count == 4);
+    assert(ephemerals_of(ok)->capacity == 8);
+    assert(ui_zone_max_bytes(SLOT_KIND_EPHEMERALS) == 184);
+    assert(ui_zone_max_ephemerals() == 4);
+}
+
+/* Eight elements fit the reserve: neither the list nor its slot grows. */
+static void test_ephemerals_eight_fit_the_reserve(void) {
+    entity_t marks[8];
+    entity_list_t *le;
+    int i;
+
+    (void)start_game();
+    le = ui_ephemerals_new();
+    for (i = 0; i < 8; i++) {
+        marks[i] = (entity_t){0};
+        entity_list_add(le, &marks[i]);
+    }
+    assert(le->count == 8 && le->capacity == 8);
+    assert(ui_zone_max_bytes(SLOT_KIND_EPHEMERALS) == 184);
+}
+
 /* On the title screen, a click on a difficulty button runs
  * `cart_start_game()` from inside ui_update: `reset_world()` rebuilds
  * `main_ui()`, and the end of ui_update still runs on the old one, whose
@@ -819,6 +849,8 @@ static void test_components_carried(void) {
     static const int emitter[24] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0};
     static const int probe[24] = {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1};
     void *entities[24];
+    entity_t *other_help;
+    entity_t *other_protostar;
     size_t index;
 
     (void)start_game();
@@ -854,21 +886,23 @@ static void test_components_carried(void) {
     }
 
     assert_own_emitter(entities[8], &ascension_new(NULL)->header, sizeof(planet_t));
-    assert_own_emitter(entities[9], &protostar_new(NULL)->header, sizeof(planet_t));
+    other_protostar = &protostar_new(NULL)->header;
+    assert_own_emitter(entities[9], other_protostar, sizeof(planet_t));
     assert_own_emitter(entities[10], &burst_new(NULL)->header, sizeof(planet_t));
     assert_own_emitter(entities[13], &synthesizer_new(NULL)->header, sizeof(planet_t));
     assert_own_emitter(entities[14], &probe_new(NULL)->header, sizeof(probe_t));
-    assert_own_emitter(entities[15], help_alone(entities[15]), sizeof(probe_t));
+    other_help = help_alone(entities[15]);
+    assert_own_emitter(entities[15], other_help, sizeof(probe_t));
     assert_own_probe(entities[5], &structure_new(NULL)->header, sizeof(planet_t));
     assert_own_probe(entities[6], &trading_hub_new(NULL)->header, sizeof(planet_t));
     assert_own_probe(entities[7], &processor_new(NULL)->header, sizeof(planet_t));
     assert_own_probe(entities[8], &ascension_new(NULL)->header, sizeof(planet_t));
-    assert_own_probe(entities[9], &protostar_new(NULL)->header, sizeof(planet_t));
+    assert_own_probe(entities[9], other_protostar, sizeof(planet_t));
     assert_own_probe(entities[11], &slipgate_new(NULL)->header, sizeof(planet_t));
     assert_own_probe(entities[12], &infraspace_gate_new(NULL)->header, sizeof(planet_t));
     assert_own_probe(entities[13], &synthesizer_new(NULL)->header, sizeof(planet_t));
     assert_own_probe(entities[14], &probe_new(NULL)->header, sizeof(probe_t));
-    assert_own_probe(entities[15], help_alone(entities[15]), sizeof(probe_t));
+    assert_own_probe(entities[15], other_help, sizeof(probe_t));
     assert_own_probe(entities[19], &slipway_new(NULL)->header, sizeof(slipway_t));
     assert_own_probe(entities[23], &wormhole_new()->header, sizeof(wormhole_t));
 }
@@ -1105,6 +1139,8 @@ int main(void) {
     in_fresh_child(test_right);
     in_fresh_child(test_left);
     in_fresh_child(test_clear_ephemerals);
+    in_fresh_child(test_ephemerals_reserve_at_creation);
+    in_fresh_child(test_ephemerals_eight_fit_the_reserve);
     in_fresh_child(test_stale);
     in_fresh_child(test_init_empties_shared_ephemerals);
     in_fresh_child(test_ui_is_a_struct);

@@ -42,6 +42,7 @@ void planet_refresh(planet_t *self) {
     p8_fixed_t mu = p8_fixed_from_int(0);
     layout_row_t *layout_row_result;
     const allocator_t *slot;
+    frame_zone_mark_t scratch;
 
     if (self == NULL) {
         return;
@@ -54,6 +55,7 @@ void planet_refresh(planet_t *self) {
     }
     by_list = self->outgoing_routes;
 
+    scratch = frame_zone_mark();
     slot = ui_zone_slot(SLOT_KIND_ROW);
     layout_row_result = research_display_planet_resource_row(slot, needs_list, qe, mu, p8_fixed_from_int(by_list != NULL ? by_list->count : 0),
                             p8_fixed_from_int(0));
@@ -66,6 +68,9 @@ void planet_refresh(planet_t *self) {
     }
     self->layout_row = layout_row_result;
     self->layout_row_slot = slot;
+    /* The ROW cells of the row's items[] point into the rewound tuples:
+     * only placed_items[] may be read from now on. */
+    frame_zone_rewind(scratch);
 }
 
 void planet_release_row(entity_t *self) {

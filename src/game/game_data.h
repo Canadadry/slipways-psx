@@ -49,6 +49,7 @@ typedef struct kind_record {
     state_t state;
     int has_cost;
     p8_fixed_t cost;
+    const struct planet_archetype *archetype; /* what the kind builds */
 } kind_record_t;
 
 /* `resource` is only meaningful when has_resource is set. */
@@ -265,7 +266,7 @@ typedef struct {
  * burst's `outgoing_routes`, point at objects their module owns, and
  * `production_own` only holds what planet_install_project() writes: not
  * here. */
-typedef struct {
+typedef struct planet_archetype {
     state_t state;
     p8_fixed_t state_time;
     int is_planet;

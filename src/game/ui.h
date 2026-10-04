@@ -75,7 +75,8 @@ const box_t *ui_panel_box(void);
  * static, never freed, emptied (not freed) by each `ui_init()`. */
 entity_list_t *ui_ephemerals_shared(void);
 
-/* An empty list in an ephemerals slot of its own, its items grown there. */
+/* An empty list in an ephemerals slot of its own, its UI_EPHEMERALS_RESERVE
+ * places taken there at once. */
 entity_list_t *ui_ephemerals_new(void);
 
 /* A list from ui_ephemerals_new() becomes `self->ephemerals`; the list it

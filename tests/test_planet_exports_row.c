@@ -78,7 +78,7 @@ static void setup_panel_state(p8_vram_t *mem, p8_graphics_t *gfx) {
     dispatch_context_set_mem(mem);
 
     data_init();
-    reset_world();
+    reset_world(NULL);
     layout_init();
     button_init();
     planet_init();

@@ -4,7 +4,9 @@
 #include "engine/entity_class.h"
 #include "engine/allocator.h"
 
-#define EXIT_QUEUE_CAP 256
+/* Peak in make state plus 1/8. Accepted risk: the peak is the world a
+ * restart abandons, which grows with the game. */
+#define EXIT_QUEUE_CAP 315
 
 /* An entity that has left live_entities and whose class has a release: the
  * current frame may still read it, so it is released only at the flush.
@@ -16,6 +18,9 @@ void exit_queue_put(entity_t *e);
 void exit_queue_put_arena(const allocator_t *arena);
 
 int exit_queue_count(void);
+/* The most entries held at once since the process started; a flush does
+ * not lower it. */
+int exit_queue_max(void);
 
 /* For each entry, in order: an entity goes through forget, which sets to
  * NULL whatever still points to it, then through its class's release; an

@@ -69,6 +69,12 @@ void bump_zone_reset(bump_zone_t *zone) {
     zone->used = 0;
 }
 
+void bump_zone_rewind(bump_zone_t *zone, size_t used) {
+    assert(used <= zone->used);
+    POISON(bump_half(zone) + used, zone->used - used);
+    zone->used = used;
+}
+
 void flip_zone_init(flip_zone_t *zone, const char *name,
                              zone_cell_t *storage, size_t capacity) {
     zone->name = name;

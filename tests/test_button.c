@@ -46,6 +46,7 @@
 #include "game/ui_button.h"
 #include "engine/vec.h"
 #include "engine/frame_zone.h"
+#include "engine/game_zone.h"
 #include "game/ui_zone.h"
 #include "heap_allocator.h"
 
@@ -452,6 +453,7 @@ static void start_title(void) {
  * a NULL difficulty reads as difficulty 0. */
 static void start_game(void) {
     start_title();
+    cart_flush_exit_queue();
     cart_start_game(NULL);
     cart_flush_exit_queue();
 }
@@ -755,6 +757,7 @@ static void test_difficulty(void) {
          * planets to the exit queue, which only a frame empties. */
         cart_flush_exit_queue();
         start_title();
+        cart_flush_exit_queue();
         nj = title_button(i);
         cart_start_game(nj);
         assert(economy_score_difficulty() == nj);
@@ -1074,6 +1077,7 @@ static void test_button_is_a_struct(void) {
     start_title();
     check_int("struct title", all_buttons_are_structs(), 4);
     nj = title_button(2);
+    cart_flush_exit_queue();
     cart_start_game(nj);
     assert(is_button(nj) && economy_score_difficulty() == nj);
     assert(galaxy_menu_buttons(ix) == 4);
@@ -1086,6 +1090,10 @@ static void test_button_is_a_struct(void) {
     }
     call_on_click(ix[3]);
     check_int("struct pause", all_buttons_are_structs(), 8);
+    /* As in the game: the pause menu closes, and its buttons go, a frame
+     * before the tech tree screen opens. */
+    ui_clear_ephemerals(main_ui());
+    cart_flush_exit_queue();
     menu_show_tech_tree_screen();
     check_int("struct research", all_buttons_are_structs(), 9);
     {
@@ -1416,8 +1424,11 @@ static uint32_t members_title_and_game(void) {
     assert(button_of(chosen_option)->has_trade && button_of(chosen_option)->has_type_bias);
     printf("[members] difficulty: trade %d, type_bias %d/65536\n", p8_fixed_flr_int(button_of(chosen_option)->trade), (int)button_of(chosen_option)->type_bias);
     hash = fold_button_members(hash, chosen_option);
+    cart_flush_exit_queue();
     cart_start_game(chosen_option);
     assert(economy_score_difficulty() == chosen_option);
+    /* The title's buttons go at the next frame, as in the game. */
+    cart_flush_exit_queue();
     assert(galaxy_menu_buttons(galaxy_menu) == 4);
     for (index = 0; index < 4; index++) {
         assert((button_of(galaxy_menu[index])->refresh != NULL) == (index == 1));
@@ -1677,7 +1688,9 @@ static void test_open_box_layer_only_from_back_color(void) {
 }
 
 /* tech_gate_available_technologies writes the affordable flag for every
- * entry, kept or not; `data_init()` forgets them all. */
+ * entry, kept or not; `data_init()` forgets them all. It rebuilds the
+ * projects in the load sub-zone, which holds one set: the reset comes
+ * first, as in cart_load(). */
 static void test_available_technologies_writes_every_is_affordable(void) {
     available_technologies_kept_t kept;
     p8_fixed_t jk;
@@ -1706,6 +1719,7 @@ static void test_available_technologies_writes_every_is_affordable(void) {
     for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
         assert(tech_gate_affordable_flags(&technologies_table[i]) == 1);
     }
+    game_zone_reset();
     data_init();
     for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
         assert(tech_gate_affordable_flags(&technologies_table[i]) == 0);
@@ -1906,9 +1920,12 @@ static void test_largest_buttons_fit_their_slots(void) {
     start_game();
     fm = main_economy_typed();
     fm->research_points = p8_fixed_from_int(9999);
+    /* Each screen closes, its buttons gone at the next frame, before the
+     * next opens: the game never opens one over the other. */
     for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
         fm->era = p8_fixed_from_int(technologies_table[i].era);
         menu_show_tech_tree_screen();
+        ui_clear_ephemerals(main_ui());
         one_frame();
     }
     for (i = 0; i < TECHNOLOGIES_COUNT; i++) {

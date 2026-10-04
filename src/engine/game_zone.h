@@ -5,10 +5,11 @@
 
 #include "engine/allocator.h"
 
-/* Game zone: one generation per game, from one cart_start_game() to the
- * next. A block it allocates lives until its generation is released, by the
- * exit-queue flush that follows the flip. Never free such a block. The zone
- * initialises itself on the first call to any of these functions. */
+/* Game zone: one generation per game and one per title screen, each opened
+ * by a flip of cart_init() or cart_start_game(). A block it allocates lives
+ * until its generation is released, by the exit-queue flush that follows
+ * the flip. Never free such a block. The zone initialises itself on the
+ * first call to any of these functions. */
 const allocator_t *game_zone(void);
 void game_zone_flip(void);
 int game_zone_pending(void);

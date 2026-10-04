@@ -18,6 +18,12 @@
 #                       the state of the last frame (clock, planets,
 #                       slipways, structures), zone and cap use to
 #                       tmp/state.txt, outside the suite
+# make state         -> replays the worst-case/ games (FULL_GAME_EVENTS) and
+#                       every e2e of tests/e2e/, each state in
+#                       tmp/state/<name>.txt, then
+#                       writes to tmp/state.txt the peak of each zone and cap
+#                       over them all, its limit and the replay holding it;
+#                       fails if a replay stops, outside the suite
 # make e2e-baseline  -> sets or resets the .json.sha256 of tests/e2e/ from the
 #                       current code, never run by make test
 # make e2e-ref       -> for each diverging e2e, replays the commit that set its
@@ -35,6 +41,16 @@
 #                       passes when every replay exits cleanly; also runs
 #                       test_live_slots (slots returned after each replay,
 #                       ~11 s), outside the suite
+# make full-game     -> replays each worst-case/ game (FULL_GAME_EVENTS:
+#                       full_game.json, then the same game followed by a new
+#                       game from the title, cut short by pause ->
+#                       restart -> new game, and cut short by a pause menu
+#                       left open 300 frames; plus title_idle.json, the
+#                       title screen left alone 300 frames) to its last
+#                       frame with the `-O0`
+#                       binary of make test; passes when every replay exits
+#                       cleanly (fails on any p8_fatal, a full zone or cap),
+#                       outside the suite
 # make constants-check -> compares each P8_FIXED_LIT of the core with its
 #                       recorded hex value
 #                       (tools/pico8_reference_probe_out.txt); fails unless
@@ -165,6 +181,7 @@ ENGINE_SRCS := \
     src/game/particle.c \
     src/game/draw_functions.c \
     src/game/planet.c \
+    src/game/grab_arena.c \
     src/game/planet_display.c \
     src/game/planet_family.c \
     src/game/planet_family_trade.c \
@@ -188,6 +205,8 @@ ENGINE_SRCS := \
     src/game/wormhole_display.c \
     src/engine/zone.c \
     src/engine/allocator.c \
+    src/engine/slot_tally.c \
+    src/engine/slot_group.c \
     src/engine/frame_zone.c \
     src/game/ui_zone.c \
     src/game/particle_zone.c \
@@ -200,65 +219,17 @@ CORE_SRCS := $(filter-out src/p8/assets.c src/devtools/dump.c src/platform/fatal
 
 # A narrower closure: what data_init() reaches to build a real game state,
 # without calling cart_load().
-DATA_ENGINE_SRCS := \
-    src/game/data_init.c \
-    src/p8/assets.c \
-    src/game/background.c \
-    src/engine/bootstrap.c \
-    src/engine/collect.c \
-    src/engine/dispatch_context.c \
-    src/devtools/dump.c \
-    src/game/economy.c \
-    src/game/economy_formulas.c \
-    src/game/economy_score.c \
-    src/game/economy_tiers.c \
-    src/engine/entity_registry.c \
-    src/engine/entity_geom.c \
-    src/engine/exit_queue.c \
-    src/p8/fixed.c \
-    src/game/game_data.c \
-    src/game/gen.c \
-    src/engine/geom.c \
-    src/p8/gfx.c \
-    src/game/hud.c \
-    src/p8/input.c \
-    src/devtools/input_json.c \
-    src/engine/entity.c \
-    src/game/layout.c \
-    src/engine/entity_list.c \
-    src/engine/pointer_list.c \
-    src/game/map_tables.c \
-    src/p8/vram.c \
-    src/game/mouse_button.c \
-    src/game/mouse.c \
-    src/game/message_box.c \
-    src/game/particle.c \
-    src/game/draw_functions.c \
-    src/game/planet.c \
-    src/game/planet_display.c \
-    src/game/planet_family.c \
-    src/game/planet_trade.c \
-    src/game/probe.c \
-    src/game/research.c \
-    src/game/research_display.c \
-    src/game/scroll.c \
-    src/game/slipway.c \
-    src/game/slipway_display.c \
-    src/p8/str.c \
-    src/game/tech_gate.c \
-    src/game/trade.c \
-    src/game/ui.c \
-    src/game/ui_button.c \
-    src/engine/vec.c \
-    src/game/wormhole.c \
-    src/game/wormhole_display.c \
-    src/engine/zone.c \
-    src/engine/allocator.c \
-    src/engine/frame_zone.c \
-    src/game/ui_zone.c \
-    src/game/particle_zone.c \
-    src/engine/game_zone.c \
-    src/platform/fatal_pc.c
+CART_ONLY_SRCS := \
+    src/game/cart.c \
+    src/game/cheat.c \
+    src/game/galaxy.c \
+    src/game/help.c \
+    src/game/menu.c \
+    src/game/planet_family_trade.c \
+    src/game/score_panel.c \
+    src/game/score_panel_display.c \
+    src/game/structure_icon.c
+DATA_ENGINE_SRCS := $(filter-out $(CART_ONLY_SRCS),$(ENGINE_SRCS))
 
 # The system libraries of raylib, for the two raylib targets; everything else
 # is portable C, with no link flags specific to the platform.
@@ -341,6 +312,9 @@ $(TMP_DIR)/test_frames_check: $(call objs,tests/test_frames_check.c) tools/frame
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_e2e_limits: $(call objs,tests/test_e2e_limits.c) tools/e2e_limits.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_state_peaks: $(call objs,tests/test_state_peaks.c) tools/state_peaks.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_float_guard: $(call objs,tests/test_float_guard.c) tools/float_guard.sh | $(TMP_DIR)
@@ -533,7 +507,10 @@ $(TMP_DIR)/test_allocator: $(call asan_objs,tests/test_allocator.c tests/heap_al
 $(TMP_DIR)/test_particle_zone: $(call asan_objs,tests/test_particle_zone.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_ui_zone: $(call asan_objs,tests/test_ui_zone.c src/game/ui_zone.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_ui_zone: $(call asan_objs,tests/test_ui_zone.c src/game/ui_zone.c src/engine/slot_group.c src/engine/slot_tally.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_slot_tally: $(call asan_objs,tests/test_slot_tally.c src/engine/slot_tally.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_exit_queue: $(call asan_objs,tests/test_exit_queue.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -588,6 +565,7 @@ UNIT_TESTS := \
     test_frames_tool \
     test_frames_check \
     test_e2e_limits \
+    test_state_peaks \
     test_float_guard \
     test_alloc_guard \
     test_float_grep \
@@ -601,6 +579,7 @@ UNIT_TESTS := \
     test_arena \
     test_frame_zone \
     test_ui_zone \
+    test_slot_tally \
     test_particle_zone \
     test_game_zone \
     test_exit_queue \
@@ -694,17 +673,14 @@ unit-run-test_frames_tool: | unit-run-test_headless_capture
 .PHONY: $(UNIT_RUNS)
 
 # Fails before any compilation rather than replay a default file.
-ifneq ($(filter replay state,$(MAKECMDGOALS)),)
+ifneq ($(filter replay,$(MAKECMDGOALS)),)
     ifeq ($(strip $(EVENTS)),)
-        $(error EVENTS missing: make $(filter replay state,$(MAKECMDGOALS)) EVENTS=<events.json>)
+        $(error EVENTS missing: make replay EVENTS=<events.json>)
     endif
 endif
 
 replay: $(TMP_DIR)/replay
 	./$(TMP_DIR)/replay $(EVENTS)
-
-state: $(TMP_DIR)/replay
-	STATE=$(TMP_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS)
 
 test: unit constants-check float-grep float-guard alloc-guard data-guard p8-guard
 
@@ -808,6 +784,38 @@ sanitize-net: $(SANITIZE_RUNS) unit-run-test_live_slots
 
 .PHONY: sanitize-net $(SANITIZE_RUNS)
 
+FULL_GAME_EVENTS := worst-case/full_game.json worst-case/full_game_new_game.json worst-case/full_game_pause_restart.json worst-case/full_game_pause_idle.json worst-case/title_idle.json
+FULL_GAME_DIR := $(TMP_DIR)/full-game
+
+full-game: $(FULL_GAME_EVENTS) $(TMP_DIR)/replay
+	@mkdir -p $(FULL_GAME_DIR)
+	@$(foreach e,$(FULL_GAME_EVENTS),./$(TMP_DIR)/replay $(e) /dev/null $(FULL_GAME_DIR)/$(notdir $(e)).dump.txt > $(FULL_GAME_DIR)/$(notdir $(e)).log 2>&1 || { cat $(FULL_GAME_DIR)/$(notdir $(e)).log; echo "full-game: $(e) stopped"; exit 1; }; echo "full-game: $(e) clean"; ) true
+
+.PHONY: full-game
+
+STATE_DIR := $(TMP_DIR)/state
+STATE_EVENTS := $(FULL_GAME_EVENTS) $(E2E_EVENTS)
+STATE_RUNS := $(addprefix state-run-,$(STATE_EVENTS))
+state_file = $(STATE_DIR)/$(basename $(notdir $(1))).txt
+
+# A stopped replay does not stop the others: tools/state_peaks.sh judges each
+# from its state file, removed first so that a stale one never counts.
+$(STATE_RUNS): state-run-%: % $(TMP_DIR)/replay
+	@mkdir -p $(STATE_DIR)
+	@rm -f $(call state_file,$<)
+	@STATE=$(call state_file,$<) ./$(TMP_DIR)/replay $< /dev/null $(basename $(call state_file,$<)).dump.txt > $(basename $(call state_file,$<)).log 2>&1 || true
+
+.PHONY: $(STATE_RUNS)
+
+ifneq ($(strip $(EVENTS)),)
+state: $(TMP_DIR)/replay
+	STATE=$(TMP_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS)
+else
+state: $(STATE_RUNS) tools/state_peaks.sh
+	@sh tools/state_peaks.sh $(TMP_DIR)/state.txt $(foreach e,$(STATE_EVENTS),$(e) $(call state_file,$(e)))
+	@echo "state: $(words $(STATE_EVENTS)) replays, peaks in $(TMP_DIR)/state.txt"
+endif
+
 # The core sources, where the comparator reads the P8_FIXED_LIT calls.
 constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_gaps.txt tools/pico8_reference_probe_out.txt src/p8/fixed.c src/p8/fixed.h $(CORE_SRCS) | $(TMP_DIR)
 	@sh tools/constants_check.sh tools/constants_expected_gaps.txt tools/pico8_reference_probe_out.txt src/p8/fixed.c $(TMP_DIR)/constants_check \
@@ -876,8 +884,18 @@ raylib-vendor-setup:
 # its files need `-I third_party/raylib/src`, which the others do not have,
 # and platform/raylib_backend_coords.c is also linked without that flag by a
 # test.
-$(TMP_DIR)/game: src/cmd/game.c src/platform/raylib_backend.c src/platform/raylib_backend.h src/platform/raylib_backend_coords.c src/platform/raylib_backend_coords.h src/p8/palette.c src/p8/palette.h src/p8/assets.c src/p8/assets.h src/game/background.c src/engine/bootstrap.c src/game/cart.c src/game/cart.h src/game/cheat.c src/game/cheat.h src/engine/collect.c src/game/data_init.c src/engine/dispatch_context.c src/engine/dispatch_context.h src/devtools/dump.c src/game/economy.c src/game/economy_formulas.c src/game/economy_score.c src/game/economy_tiers.c src/engine/entity_registry.c src/engine/entity_geom.c src/engine/exit_queue.c src/p8/fixed.c src/game/galaxy.c src/game/game_data.c src/game/gen.c src/engine/geom.c src/p8/gfx.c src/game/help.c src/game/help.h src/game/hud.c src/p8/input.c src/devtools/input_json.c src/engine/entity.c src/game/layout.c src/engine/entity_list.c src/engine/pointer_list.c src/game/map_tables.c src/p8/vram.c src/game/menu.c src/game/mouse_button.c src/game/mouse.c src/game/message_box.c src/game/particle.c src/game/draw_functions.c src/game/planet.c src/game/planet_display.c src/game/planet_family.c src/game/planet_family_trade.c src/game/planet_trade.c src/game/probe.c src/devtools/replay_control.c src/devtools/replay_control.h src/devtools/replay_source.c src/devtools/replay_source.h src/game/research.c src/game/research_display.c src/game/structure_icon.c src/game/score_panel.c src/game/score_panel_display.c src/game/scroll.c src/devtools/session_recorder.c src/devtools/session_recorder.h src/game/slipway.c src/game/slipway_display.c src/p8/str.c src/game/tech_gate.c src/game/trade.c src/game/ui.c src/game/ui_button.c src/game/ui_button.h src/engine/vec.c src/game/wormhole.c src/game/wormhole_display.c src/engine/zone.c src/engine/allocator.c src/engine/frame_zone.c src/game/ui_zone.c src/game/particle_zone.c src/engine/game_zone.c src/platform/fatal_pc.c third_party/raylib/src/libraylib.a | $(TMP_DIR)
-	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ src/cmd/game.c src/platform/raylib_backend.c src/platform/raylib_backend_coords.c src/p8/palette.c src/p8/assets.c src/game/background.c src/engine/bootstrap.c src/game/cart.c src/game/cheat.c src/engine/collect.c src/game/data_init.c src/engine/dispatch_context.c src/devtools/dump.c src/game/economy.c src/game/economy_formulas.c src/game/economy_score.c src/game/economy_tiers.c src/engine/entity_registry.c src/engine/entity_geom.c src/engine/exit_queue.c src/p8/fixed.c src/game/galaxy.c src/game/game_data.c src/game/gen.c src/engine/geom.c src/p8/gfx.c src/game/help.c src/game/hud.c src/p8/input.c src/devtools/input_json.c src/engine/entity.c src/game/layout.c src/engine/entity_list.c src/engine/pointer_list.c src/game/map_tables.c src/p8/vram.c src/game/menu.c src/game/mouse_button.c src/game/mouse.c src/game/message_box.c src/game/particle.c src/game/draw_functions.c src/game/planet.c src/game/planet_display.c src/game/planet_family.c src/game/planet_family_trade.c src/game/planet_trade.c src/game/probe.c src/devtools/replay_control.c src/devtools/replay_source.c src/game/research.c src/game/research_display.c src/game/structure_icon.c src/game/score_panel.c src/game/score_panel_display.c src/game/scroll.c src/devtools/session_recorder.c src/game/slipway.c src/game/slipway_display.c src/p8/str.c src/game/tech_gate.c src/game/trade.c src/game/ui.c src/game/ui_button.c src/engine/vec.c src/game/wormhole.c src/game/wormhole_display.c src/engine/zone.c src/engine/allocator.c src/engine/frame_zone.c src/game/ui_zone.c src/game/particle_zone.c src/engine/game_zone.c src/platform/fatal_pc.c third_party/raylib/src/libraylib.a $(RAYLIB_LDLIBS)
+GAME_SRCS := \
+    src/cmd/game.c \
+    src/platform/raylib_backend.c \
+    src/platform/raylib_backend_coords.c \
+    src/p8/palette.c \
+    src/devtools/replay_control.c \
+    src/devtools/replay_source.c \
+    src/devtools/session_recorder.c \
+    $(ENGINE_SRCS)
+
+$(TMP_DIR)/game: $(GAME_SRCS) $(wildcard src/*/*.h) third_party/raylib/src/libraylib.a | $(TMP_DIR)
+	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ $(GAME_SRCS) third_party/raylib/src/libraylib.a $(RAYLIB_LDLIBS)
 
 raylib: $(TMP_DIR)/game
 

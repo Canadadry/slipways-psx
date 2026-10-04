@@ -24,6 +24,7 @@
 #include "game/menu.h"
 #include "game/mouse.h"
 #include "game/message_box.h"
+#include "game/grab_arena.h"
 #include "game/planet.h"
 #include "game/planet_family.h"
 #include "game/planet_family_trade.h"
@@ -44,7 +45,7 @@ static void quit_game_zone(void) {
     cart_flush_exit_queue();
     game_zone_reset();
     entity_registry_forget_registries();
-    planet_forget_grab_arenas();
+    grab_arena_forget_free();
 }
 
 /* data_init() and score_panel_init() each run further module inits of
@@ -126,7 +127,7 @@ static void forget(const entity_t *e) {
 /* Game-zone forget point: cuts the references into the generation that
  * game_zone_release() is about to give back. */
 static void forget_game_zone(void) {
-    planet_forget_grab_arenas();
+    grab_arena_forget_free();
 }
 
 void cart_flush_exit_queue(void) {
@@ -176,12 +177,21 @@ void cart_init(void) {
            "cart_init: help_init() and score_panel_init() reset these bridges, so cart_load() must "
            "install them afterwards: every button copies the value when it is built");
 
-    reset_world();
+    /* A pending flip would trip flip_zone_flip's assert; an empty generation
+     * (cart_load() just reset the zone) needs none, and would trip it at a
+     * cart_start_game() of the same frame. */
+    if (!game_zone_pending() && game_zone_used() > 0) game_zone_flip();
+    reset_world(NULL);
 
     /* The icons' shared cursor takes the rest cursor itself (it aliases its
      * vector, it is not a copy), and the shown message box is cleared. */
     structure_icon_set_cursor(structure_icon_rest_cursor());
     message_box_set_shown(NULL);
+
+    /* The quit game's economy and score panel die with the generation the
+     * flip above left pending; the boot placeholder stays. */
+    if (main_economy_typed() != NULL) probe_set_main_economy(NULL);
+    score_panel_set_main(NULL);
 
     (void)help_screen_new();
 }
@@ -190,6 +200,29 @@ void cart_init_method(button_t *self) {
     (void)self;
     cart_init();
 }
+
+const entity_registry_reserve_t cart_game_registry_reserve = {
+    329,
+    {
+        [ENTITY_MESSAGE_DRAW] = 322,
+        [ENTITY_MESSAGE_DRAW_OVERLAY] = 265,
+        [ENTITY_MESSAGE_HIT_TEST] = 125,
+        [ENTITY_MESSAGE_NEW_YEAR] = 111,
+        [ENTITY_MESSAGE_REFRESH] = 120,
+    },
+    {
+        [TAG_STRUCTURE] = 8,
+        [TAG_ASCENSION] = 3,
+        [TAG_SLIPGATE] = 14,
+        [TAG_PROBE] = 2,
+        [TAG_MESSAGE_BOX] = 4,
+        [TAG_SLIPWAY] = 216,
+        [TAG_WORMHOLE] = 3,
+        [TAG_PLANET] = 110,
+        [TAG_NODE] = 110,
+        [TAG_TARGETING] = 110,
+    },
+};
 
 void cart_start_game(button_t *chosen_option) {
     const entity_kind_t *kind_table[7];
@@ -202,7 +235,7 @@ void cart_start_game(button_t *chosen_option) {
 
     /* reset_world() runs a second time here, after cart_init()'s: it always
      * rebuilds the registries and the main camera, mouse and user interface. */
-    reset_world();
+    reset_world(&cart_game_registry_reserve);
     (void)background_new();
     galaxy_populate(p8_fixed_from_int(90));
 

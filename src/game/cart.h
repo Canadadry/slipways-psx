@@ -1,6 +1,7 @@
 #ifndef GAME_CART_H
 #define GAME_CART_H
 
+#include "engine/entity_registry.h"
 #include "game/ui_button.h"
 
 /* Runs every module's init, then the game data build (data_init(): the
@@ -19,7 +20,7 @@ void cart_load(void);
  * and the end of the slipway it holds, the shown message box, the main
  * score panel's last box, the planets' targeted_by; a quitting difficulty
  * becomes a copy of its fields. Then releases the game-zone generation the
- * last cart_start_game() left, if one is pending. Called by cart_update60()
+ * last cart_init() or cart_start_game() left, if one is pending. Called by cart_update60()
  * after frame_zone_reset(), by cart_load() and cart_shutdown() after the
  * live entities are abandoned, and by the replay and the tests. */
 void cart_flush_exit_queue(void);
@@ -34,6 +35,11 @@ void cart_init(void);
 
 /* cart_init() as a button's on_click: the button argument is discarded. */
 void cart_init_method(button_t *self);
+
+/* What cart_start_game() reserves for each registry: its peak over the
+ * replays of make state, plus 1/8. cart_init() reserves nothing, so the
+ * title screen does not add them to the peak of a return to the title. */
+extern const entity_registry_reserve_t cart_game_registry_reserve;
 
 /* Starts a game from the clicked difficulty button, which becomes the
  * difficulty (borrowed, not copied); a NULL button gives a NULL difficulty.

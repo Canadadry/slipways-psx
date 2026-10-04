@@ -584,17 +584,26 @@ static uint32_t fold_tech_tree_screen_ephemerals(uint32_t h, const char **head) 
 static void test_tech_tree_screen(void) {
     uint32_t h = 2166136261u;
     const score_panel_layout_block_t *cr;
-    const char *head1;
-    const char *head2;
+    const char *head;
+    /* Copies: the head row lives in a button slot, given back at the
+     * next flush. */
+    char head1[64];
+    char head2[64];
 
     (void)start_game();
     cr = score_panel_layout_block();
     assert(cr != NULL && cr->description == NULL);
     menu_show_tech_tree_screen();
-    h = fold_tech_tree_screen_ephemerals(h, &head1);
+    h = fold_tech_tree_screen_ephemerals(h, &head);
+    snprintf(head1, sizeof head1, "%s", head);
     assert(cr->description != NULL && strcmp(cr->description, head1) == 0);
+    /* As in the game: the first screen closes, and its buttons go, a frame
+     * before the second opens. */
+    ui_clear_ephemerals(main_ui());
+    cart_flush_exit_queue();
     menu_show_tech_tree_screen();
-    h = fold_tech_tree_screen_ephemerals(h, &head2);
+    h = fold_tech_tree_screen_ephemerals(h, &head);
+    snprintf(head2, sizeof head2, "%s", head);
     assert(strcmp(head1, head2) == 0);
     assert(score_panel_new() != NULL && score_panel_layout_block() == cr);
 
@@ -602,7 +611,7 @@ static void test_tech_tree_screen(void) {
     assert(score_panel_layout_block() == cr);
     assert(cr->description != NULL && strcmp(cr->description, head2) == 0);
     menu_show_tech_tree_screen();
-    h = fold_tech_tree_screen_ephemerals(h, &head1);
+    h = fold_tech_tree_screen_ephemerals(h, &head);
     check("tech_tree_screen", h, TECH_TREE_SCREEN_HASH);
 }
 

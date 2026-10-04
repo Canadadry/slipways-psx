@@ -209,7 +209,7 @@ static void test_synthesizer_defaults(void) {
  * holds a state time of 0. */
 static void test_second_reset_world_keeps_entity(void) {
     assert(entity_ready());
-    reset_world();
+    reset_world(NULL);
     assert(entity_ready());
     assert(planet_new(NULL)->header.state_time == 0);
     assert(structure_new(NULL)->header.state_time == 0);
@@ -243,7 +243,7 @@ int main(void) {
     assert(!infraspace_gate_ready());
     assert(!synthesizer_ready());
     cart_load();
-    reset_world();
+    reset_world(NULL);
 
     test_second_reset_world_keeps_entity();
     test_planet_defaults();
@@ -252,6 +252,10 @@ int main(void) {
     test_processor_defaults();
     test_ascension_defaults();
     test_protostar_defaults();
+    /* The bursts the protostars spawned go, as at a new game: the burst
+     * slots hold what lives at once in a game, not one of each test. */
+    reset_world(NULL);
+    cart_flush_exit_queue();
     test_burst_defaults();
     test_slipgate_defaults();
     test_infraspace_gate_defaults();

@@ -22,6 +22,8 @@
 #include "game/map_tables.h"
 #include "p8/vram.h"
 #include "game/mouse.h"
+#include "game/grab_arena.h"
+#include "game/planet.h"
 #include "game/planet_family.h"
 #include "game/structure_icon.h"
 #include "game/score_panel.h"
@@ -83,15 +85,14 @@ static int case_dead_after_next_update(void) {
     return 0;
 }
 
-static int case_init_keeps_generation(void) {
+static int case_dead_after_init(void) {
     load_cart_and_start();
     cart_start_game(NULL);
     cart_update60();
     unsigned char *block = counting_block();
     cart_init();
     cart_update60();
-    allocate_again();
-    for (int i = 0; i < 64; i++) assert(block[i] == i && "cart_init does not flip the game zone");
+    sink = block[63];
     return 0;
 }
 
@@ -110,23 +111,32 @@ static size_t populate_galaxy_states(void) {
            sizeof(zone_cell_t);
 }
 
-/* Bytes a list has taken in its generation since a reset_world(): the
- * capacities 4, 8, ... up to its own, since each growth copies and leaves
- * the old block dead until the release. NULL (a tag never seen): none. */
-static size_t registry_bytes(const entity_list_t *list) {
+/* Bytes a list has taken in its generation: its first block, of `first`
+ * entries, then each doubling up to its capacity, each growth leaving the
+ * old block dead until the release. A NULL list (a tag never seen) still
+ * holds its first block. */
+static size_t list_bytes_from(const entity_list_t *list, int first) {
     size_t bytes = 0;
-    for (int k = 4; list != NULL && k <= list->capacity; k *= 2) {
+    const int capacity = list != NULL ? list->capacity : first;
+    for (int k = first; k > 0 && k <= capacity; k *= 2) {
         bytes += ZONE_CELLS((size_t)k * sizeof(entity_t *)) * sizeof(zone_cell_t);
     }
     return bytes;
 }
 
+/* A list made empty: capacities 4, 8, ... NULL: none. */
+static size_t registry_bytes(const entity_list_t *list) {
+    return list != NULL ? list_bytes_from(list, 4) : 0;
+}
+
+/* The registries of a game, each taken at its reserve by cart_start_game. */
 static size_t registries_bytes(void) {
-    static const entity_message_t CV[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
-    static const tag_t CG[] = {TAG_STRUCTURE, TAG_ASCENSION, TAG_SLIPGATE, TAG_PROBE, TAG_MESSAGE_BOX, TAG_SLIPWAY, TAG_WORMHOLE, TAG_PLANET, TAG_NODE, TAG_TARGETING};
-    size_t r = registry_bytes(live_entities());
-    for (size_t i = 0; i < sizeof CV / sizeof CV[0]; i++) r += registry_bytes(entities_by_message(CV[i]));
-    for (size_t i = 0; i < sizeof CG / sizeof CG[0]; i++) r += registry_bytes(entities_by_tag(CG[i]));
+    const entity_registry_reserve_t *rv = &cart_game_registry_reserve;
+    size_t r = list_bytes_from(live_entities(), rv->live);
+    for (int m = 0; m < ENTITY_MESSAGE_COUNT; m++) {
+        r += list_bytes_from(entities_by_message((entity_message_t)m), rv->by_message[m]);
+    }
+    for (int t = 0; t < TAG_COUNT; t++) r += list_bytes_from(entities_by_tag((tag_t)t), rv->by_tag[t]);
     return r;
 }
 
@@ -229,6 +239,30 @@ static int case_grab_arena_and_max(void) {
     return 0;
 }
 
+static const allocator_t *grab(size_t bytes) {
+    grab_arena_open(bytes);
+    const allocator_t *arena = grab_arena_construction_zone();
+    grab_arena_close();
+    return arena;
+}
+
+/* Wormholes leave arenas of a growing size on the free grabs: when they are
+ * full, the smallest is dropped, never a p8_fatal. */
+static int case_free_grabs_keep_the_largest(void) {
+    load_cart_and_start();
+    const allocator_t *arenas[GRAB_ARENAS_FREE_MAX + 1];
+    for (int k = 0; k <= GRAB_ARENAS_FREE_MAX; k++) arenas[k] = grab((size_t)(k + 1) * 64);
+    for (int k = 0; k <= GRAB_ARENAS_FREE_MAX; k++) grab_arena_give_back(arenas[k]);
+    const size_t used = game_zone_used();
+    assert(grab(64) == arenas[1] && "the smallest free grab that holds it; the smallest of all was dropped");
+    assert(grab((GRAB_ARENAS_FREE_MAX + 1) * 64) == arenas[GRAB_ARENAS_FREE_MAX]);
+    assert(game_zone_used() == used && "a reused grab takes nothing");
+    (void)grab((GRAB_ARENAS_FREE_MAX + 2) * 64);
+    assert(game_zone_used() == used + arena_size_for((GRAB_ARENAS_FREE_MAX + 2) * 64) &&
+           "no free grab holds it: a new arena of its size");
+    return 0;
+}
+
 static unsigned char *counting_block_load_zone(void) {
     unsigned char *block = allocator_alloc(game_zone_load_zone(), 64);
     for (int i = 0; i < 64; i++) block[i] = (unsigned char)i;
@@ -311,9 +345,10 @@ static const struct {
 } CASES[] = {
     {"alive_through_start_game", case_alive_through_start_game},
     {"dead_after_next_update", case_dead_after_next_update},
-    {"init_keeps_generation", case_init_keeps_generation},
+    {"dead_after_init", case_dead_after_init},
     {"dead_after_cart_load", case_dead_after_cart_load},
     {"grab_arena_and_max", case_grab_arena_and_max},
+    {"free_grabs_keep_the_largest", case_free_grabs_keep_the_largest},
     {"double_start_game_without_flush", case_double_start_game_without_flush},
     {"load_zone_survives_start_game", case_load_zone_survives_start_game},
     {"load_zone_dead_after_cart_load", case_load_zone_dead_after_cart_load},
@@ -404,14 +439,15 @@ int main(int argc, char **argv) {
     self_path = argv[0];
     expect_clean("alive_through_start_game");
     expect_poison_crash("dead_after_next_update");
-    expect_clean("init_keeps_generation");
+    expect_poison_crash("dead_after_init");
     expect_poison_crash("dead_after_cart_load");
     expect_clean("grab_arena_and_max");
+    expect_clean("free_grabs_keep_the_largest");
     expect_assert("double_start_game_without_flush", "flush the exit queue between two game starts");
     expect_clean("load_zone_survives_start_game");
     expect_poison_crash("load_zone_dead_after_cart_load");
     expect_clean("load_zone_grab_arena_and_max");
-    expect_fatal("load_zone_full", "zone load full, limit 65536 bytes");
+    expect_fatal("load_zone_full", "zone load full, limit 24680 bytes");
     expect_clean("static_lists_in_load_zone");
     remove(STDERR_LOG);
     printf("test_game_zone: all tests passed\n");

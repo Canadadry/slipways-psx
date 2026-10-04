@@ -37,6 +37,7 @@
 #include "game/particle.h"
 #include "game/planet.h"
 #include "game/planet_family.h"
+#include "game/planet_trade.h"
 #include "game/probe.h"
 #include "game/structure_icon.h"
 #include "game/score_panel.h"
@@ -255,7 +256,7 @@ static void in_child_dying_by_asan(void (*test)(void)) {
         fprintf(stderr, "%s", err);
         assert(0 && "expected use-after-poison on the released block");
     }
-    printf("  pause_restart f13: reading the released block crashes (use-after-poison)\n");
+    printf("  reading the released block crashes (use-after-poison)\n");
     free(err);
     remove(ASAN_LOG);
 }
@@ -336,9 +337,8 @@ static void check_sentinel(const unsigned char *s) {
 }
 
 /* f12: 'challenging' click, so cart_start_game: the zone flips, and the
- * generation of the quit game (and of the f7 title) lives until the end of
- * the frame. */
-static void pause_restart_keeps_quit_game_during_click(void) {
+ * generation of the f7 title screen lives until the end of the frame. */
+static void pause_restart_keeps_title_during_click(void) {
     start_e2e("pause_restart");
     play_until(11);
     assert(!game_zone_pending());
@@ -351,14 +351,46 @@ static void pause_restart_keeps_quit_game_during_click(void) {
     printf("  pause_restart f12: game=%lu, sentinel read\n", (unsigned long)game_zone_used());
 }
 
-/* f13: cart_update60 flushes the exit queue, then releases the quit
+/* f13: cart_update60 flushes the exit queue, then releases the title
  * generation. */
-static void pause_restart_releases_quit_game_next_frame(void) {
+static void pause_restart_releases_title_next_frame(void) {
     start_e2e("pause_restart");
     play_until(11);
     unsigned char *s = sentinel();
     play_until(13);
     g_spend = s[63];
+}
+
+/* f7: 'restart' (cart_init) flips the zone, so the title screen has its
+ * own generation; the quit game lives until the end of the click frame. */
+static void pause_restart_keeps_game_during_restart_click(void) {
+    start_e2e("pause_restart");
+    play_until(6);
+    assert(!game_zone_pending());
+    unsigned char *s = sentinel();
+    play_until(7);
+    assert(game_zone_pending() && "'restart' flips the game zone");
+    check_sentinel(s);
+}
+
+/* f8: cart_update60 releases the generation of the game quit at f7. */
+static void pause_restart_releases_game_after_restart(void) {
+    start_e2e("pause_restart");
+    play_until(6);
+    unsigned char *s = sentinel();
+    play_until(8);
+    assert(!game_zone_pending());
+    g_spend = s[63];
+}
+
+/* f8: the quit game's economy and score panel died at the release; the
+ * title screen must not keep them as main economy and main score panel,
+ * which the exit-queue flush, the cheat and make state read. */
+static void pause_restart_title_drops_quit_economy_and_panel(void) {
+    start_e2e("pause_restart");
+    play_until(8);
+    assert(main_economy() == NULL && "the title after 'restart' keeps the released economy");
+    assert(main_score_panel() == NULL && "the title after 'restart' keeps the released score panel");
 }
 
 static const planet_t *planet_of_first_game(void) {
@@ -369,49 +401,47 @@ static const planet_t *planet_of_first_game(void) {
     return (const planet_t *)jo->items[0];
 }
 
-/* f12: the click flips the zone; the planets of the quit game still live. */
+/* f7: the 'restart' click flips the zone; the planets of the quit game
+ * still live. */
 static void pause_restart_keeps_quit_planets_during_click(void) {
     const planet_t *p = planet_of_first_game();
-    play_until(12);
+    play_until(7);
     assert(game_zone_pending());
     g_spend = (unsigned char)p->has_production_bonus;
 }
 
-/* f13: they die with their generation. */
+/* f8: they die with their generation. */
 static void pause_restart_releases_quit_planets(void) {
     const planet_t *p = planet_of_first_game();
-    play_until(13);
+    play_until(8);
     g_spend = (unsigned char)p->has_production_bonus;
 }
 
-/* f11: the title screen still reads the economy of the quit game. */
 static const economy_t *economy_of_first_game(void) {
     start_e2e("pause_restart");
-    play_until(11);
+    play_until(6);
     const economy_t *fm = main_economy_typed();
-    assert(fm != NULL && "between cart_init and cart_start_game, the main economy is the quit game's");
+    assert(fm != NULL && "the first game has its main economy");
     return fm;
 }
 
-/* f12: cart_start_game replaces it; its generation lives until the end of
- * the frame. */
+/* f7: its generation lives until the end of the frame. */
 static void pause_restart_keeps_quit_economy_during_click(void) {
     const economy_t *fm = economy_of_first_game();
-    play_until(12);
+    play_until(7);
     assert(game_zone_pending());
-    assert(main_economy_typed() != fm && "the f12 click makes a new economy");
     g_spend = (unsigned char)fm->credits;
 }
 
-/* f13: it dies with its generation. */
+/* f8: it dies with its generation. */
 static void pause_restart_releases_quit_economy(void) {
     const economy_t *fm = economy_of_first_game();
-    play_until(13);
+    play_until(8);
     g_spend = (unsigned char)fm->credits;
 }
 
 /* f6: the live entities hold the structure icons of the first game; the
- * reset_world of cart_init removes them before f11. */
+ * reset_world of cart_init removes them at f7. */
 static const structure_icon_t *icon_of_first_game(void) {
     start_e2e("pause_restart");
     play_until(6);
@@ -423,19 +453,16 @@ static const structure_icon_t *icon_of_first_game(void) {
     return NULL;
 }
 
-/* f12: cart_start_game makes new ones; their generation lives until the end
- * of the frame. */
 static void pause_restart_keeps_quit_icons_during_click(void) {
     const structure_icon_t *ie = icon_of_first_game();
-    play_until(12);
+    play_until(7);
     assert(game_zone_pending());
     g_spend = (unsigned char)ie->is_revealed;
 }
 
-/* f13: they die with their generation. */
 static void pause_restart_releases_quit_icons(void) {
     const structure_icon_t *ie = icon_of_first_game();
-    play_until(13);
+    play_until(8);
     g_spend = (unsigned char)ie->is_revealed;
 }
 
@@ -451,55 +478,75 @@ static const probe_t *help_screen_in_live_entities(void) {
 
 static const background_t *background_in_live_entities(void);
 
-enum { SINGLETON_MAIN_CAMERA, SINGLETON_MAIN_MOUSE, SINGLETON_MAIN_UI, SINGLETON_BACKGROUND, SINGLETON_MAIN_SCORE_PANEL, SINGLETON_HELP_SCREEN, SINGLETON_COUNT };
-static const char *const NAMES_OF_SINGLETONS[SINGLETON_COUNT] = {"main_camera", "main_mouse", "main_ui", "background", "main_score_panel", "help_screen"};
+/* The first five live in the generation of the first game, read at f6 and
+ * released at f8; the last four in that of the f7 title screen, read at
+ * f11 and released at f13. */
+enum {
+    SINGLETON_GAME_CAMERA, SINGLETON_GAME_MOUSE, SINGLETON_GAME_UI, SINGLETON_BACKGROUND, SINGLETON_MAIN_SCORE_PANEL,
+    SINGLETON_TITLE_CAMERA, SINGLETON_TITLE_MOUSE, SINGLETON_TITLE_UI, SINGLETON_HELP_SCREEN, SINGLETON_COUNT
+};
+static const char *const NAMES_OF_SINGLETONS[SINGLETON_COUNT] = {
+    "game main_camera", "game main_mouse", "game main_ui", "background", "main_score_panel",
+    "title main_camera", "title main_mouse", "title main_ui", "help_screen"};
 
-/* f6: the background made by the first cart_start_game; f11: the camera,
- * mouse, main_ui and help screen of the f7 cart_init, and the score panel of
- * the first cart_start_game. All in the generation of the first game. */
 static void singletons_of_quit_game(const void *out[SINGLETON_COUNT]) {
     start_e2e("pause_restart");
     play_until(6);
+    out[SINGLETON_GAME_CAMERA] = main_camera_typed();
+    out[SINGLETON_GAME_MOUSE] = main_mouse_typed();
+    out[SINGLETON_GAME_UI] = main_ui();
     out[SINGLETON_BACKGROUND] = background_in_live_entities();
-    play_until(11);
-    out[SINGLETON_MAIN_CAMERA] = main_camera_typed();
-    out[SINGLETON_MAIN_MOUSE] = main_mouse_typed();
-    out[SINGLETON_MAIN_UI] = main_ui();
     out[SINGLETON_MAIN_SCORE_PANEL] = main_score_panel();
-    out[SINGLETON_HELP_SCREEN] = help_screen_in_live_entities();
-    for (int k = 0; k < SINGLETON_COUNT; k++) assert(out[k] != NULL && "a singleton is missing at f11");
+    for (int k = 0; k < SINGLETON_TITLE_CAMERA; k++) assert(out[k] != NULL && "a singleton is missing at f6");
 }
 
-/* f12: the click flips the zone; the quit main_ui finishes its update after
- * the reset_world of cart_start_game. */
+static void singletons_of_title(const void *out[SINGLETON_COUNT]) {
+    singletons_of_quit_game(out);
+    play_until(11);
+    out[SINGLETON_TITLE_CAMERA] = main_camera_typed();
+    out[SINGLETON_TITLE_MOUSE] = main_mouse_typed();
+    out[SINGLETON_TITLE_UI] = main_ui();
+    out[SINGLETON_HELP_SCREEN] = help_screen_in_live_entities();
+    for (int k = SINGLETON_TITLE_CAMERA; k < SINGLETON_COUNT; k++) assert(out[k] != NULL && "a singleton is missing at f11");
+}
+
+/* f7: the quit main_ui finishes its update after the reset_world of
+ * cart_init. */
 static void pause_restart_keeps_quit_singletons_during_click(void) {
     const void *s[SINGLETON_COUNT];
     singletons_of_quit_game(s);
+    play_until(7);
+    assert(game_zone_pending());
+    assert(main_camera_typed() != s[SINGLETON_GAME_CAMERA] && main_ui() != s[SINGLETON_GAME_UI] &&
+           "the f7 click makes new singletons");
+    for (int k = 0; k < SINGLETON_TITLE_CAMERA; k++) g_spend = *(const unsigned char *)s[k];
+}
+
+/* f12: the title main_ui finishes its update after the reset_world of
+ * cart_start_game. */
+static void pause_restart_keeps_title_singletons_during_click(void) {
+    const void *s[SINGLETON_COUNT];
+    singletons_of_title(s);
     play_until(12);
     assert(game_zone_pending());
-    assert(main_camera_typed() != s[SINGLETON_MAIN_CAMERA] && main_ui() != s[SINGLETON_MAIN_UI] && main_score_panel() != s[SINGLETON_MAIN_SCORE_PANEL] &&
+    assert(main_camera_typed() != s[SINGLETON_TITLE_CAMERA] && main_ui() != s[SINGLETON_TITLE_UI] &&
            "the f12 click makes new singletons");
-    for (int k = 0; k < SINGLETON_COUNT; k++) g_spend = *(const unsigned char *)s[k];
+    for (int k = SINGLETON_TITLE_CAMERA; k < SINGLETON_COUNT; k++) g_spend = *(const unsigned char *)s[k];
 }
 
 static int g_singleton;
 
-/* f13: each one dies with its generation. */
-static void pause_restart_releases_quit_singleton(void) {
+/* Each one dies with its generation. */
+static void pause_restart_releases_singleton(void) {
     const void *s[SINGLETON_COUNT];
-    singletons_of_quit_game(s);
-    play_until(13);
+    if (g_singleton < SINGLETON_TITLE_CAMERA) {
+        singletons_of_quit_game(s);
+        play_until(8);
+    } else {
+        singletons_of_title(s);
+        play_until(13);
+    }
     g_spend = *(const unsigned char *)s[g_singleton];
-}
-
-/* f7: 'restart' (cart_init) does not flip the zone. */
-static void pause_restart_keeps_game_across_restart(void) {
-    start_e2e("pause_restart");
-    play_until(6);
-    unsigned char *s = sentinel();
-    play_until(11);
-    assert(!game_zone_pending() && "'restart' does not flip the game zone");
-    check_sentinel(s);
 }
 
 /* Bytes that galaxy_populate takes in the generation of each
@@ -509,24 +556,32 @@ static size_t populate_galaxy_states(void) {
            sizeof(zone_cell_t);
 }
 
-/* Bytes a list has taken in its generation since a reset_world: the
- * capacities 4, 8, ... up to its own, as each growth copies and leaves the
- * old block dead until the release. NULL (a tag nothing registered under
- * yet): none. */
-static size_t registry_bytes(const entity_list_t *list) {
+/* Bytes a list has taken in its generation: its first block, of `first`
+ * entries, then each doubling up to its capacity, as each growth copies and
+ * leaves the old block dead until the release. A NULL list (a tag nothing
+ * registered under yet) still holds its first block. */
+static size_t list_bytes_from(const entity_list_t *list, int first) {
     size_t bytes = 0;
-    for (int k = 4; list != NULL && k <= list->capacity; k *= 2) {
+    const int capacity = list != NULL ? list->capacity : first;
+    for (int k = first; k > 0 && k <= capacity; k *= 2) {
         bytes += ZONE_CELLS((size_t)k * sizeof(entity_t *)) * sizeof(zone_cell_t);
     }
     return bytes;
 }
 
+/* A list made empty: capacities 4, 8, ... NULL: none. */
+static size_t registry_bytes(const entity_list_t *list) {
+    return list != NULL ? list_bytes_from(list, 4) : 0;
+}
+
+/* The registries of a game, each taken at its reserve by cart_start_game. */
 static size_t registries_bytes(void) {
-    static const entity_message_t CV[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
-    static const tag_t CG[] = {TAG_STRUCTURE, TAG_ASCENSION, TAG_SLIPGATE, TAG_PROBE, TAG_MESSAGE_BOX, TAG_SLIPWAY, TAG_WORMHOLE, TAG_PLANET, TAG_NODE, TAG_TARGETING};
-    size_t r = registry_bytes(live_entities());
-    for (size_t i = 0; i < sizeof CV / sizeof CV[0]; i++) r += registry_bytes(entities_by_message(CV[i]));
-    for (size_t i = 0; i < sizeof CG / sizeof CG[0]; i++) r += registry_bytes(entities_by_tag(CG[i]));
+    const entity_registry_reserve_t *rv = &cart_game_registry_reserve;
+    size_t r = list_bytes_from(live_entities(), rv->live);
+    for (int m = 0; m < ENTITY_MESSAGE_COUNT; m++) {
+        r += list_bytes_from(entities_by_message((entity_message_t)m), rv->by_message[m]);
+    }
+    for (int t = 0; t < TAG_COUNT; t++) r += list_bytes_from(entities_by_tag((tag_t)t), rv->by_tag[t]);
     return r;
 }
 
@@ -622,7 +677,7 @@ static size_t singletons_bytes(void) {
 
 /* After the f13 release, the generation holds only what the f12
  * cart_start_game made and what has grown since: the galaxy_populate states,
- * the registries with their dead blocks, its planets, its economy and
+ * the registries at their reserves, its planets, its economy and
  * structure icons, and its singletons. */
 static void pause_restart_bounds_dead_registry_blocks(void) {
     const size_t g = populate_galaxy_states();
@@ -633,7 +688,27 @@ static void pause_restart_bounds_dead_registry_blocks(void) {
     printf("  pause_restart f13: game=%lu, galaxy_populate states=%lu, registries=%lu, planets=%lu\n",
            (unsigned long)game_zone_used(), (unsigned long)g, (unsigned long)r, (unsigned long)p);
     assert(game_zone_used() == g + r + p + research_and_economy_bytes() + singletons_bytes() &&
-           "the registries take 2C - 4 pointers, and nothing else gets in");
+           "the registries take their reserves and leave no dead block, and nothing else gets in");
+}
+
+/* f11: the title screen alone, built by cart_init with empty registries;
+ * f13: the game the f12 cart_start_game started, its registries taken at
+ * their reserves, none of which the pause_restart game exceeds. */
+static void pause_restart_reserves_registries_at_game_start_only(void) {
+    const entity_registry_reserve_t *rv = &cart_game_registry_reserve;
+    start_e2e("pause_restart");
+    play_until(11);
+    assert(live_entities()->capacity < rv->live && "the title screen takes the reserves of a game");
+    play_until(13);
+    assert(live_entities()->capacity == rv->live);
+    for (int m = 0; m < ENTITY_MESSAGE_COUNT; m++) {
+        assert(entities_by_message((entity_message_t)m)->capacity == rv->by_message[m]);
+    }
+    for (int t = 0; t < TAG_COUNT; t++) {
+        const entity_list_t *list = entities_by_tag((tag_t)t);
+        assert((list == NULL || list->capacity == rv->by_tag[t]) && "a registry of the game grew past its reserve");
+    }
+    printf("  pause_restart f13: live %d/%d\n", live_entities()->count, live_entities()->capacity);
 }
 
 /* Only cart_load fills the load zone: two games add nothing to it. */
@@ -648,17 +723,17 @@ static void pause_restart_leaves_load_zone_alone(void) {
     assert(game_zone_load_zone_max() == f1);
 }
 
-/* f12: the galaxy_populate of the new game takes its states beside those of
- * the quit game, released at f13. */
+/* f11: the title screen alone, the quit game released at f8; f12: the
+ * galaxy_populate of the new game takes its states beside the title
+ * generation, released at f13. */
 static void pause_restart_counts_populate_galaxy_states(void) {
     const size_t g = populate_galaxy_states();
     start_e2e("pause_restart");
     play_until(11);
     const size_t f11 = game_zone_used();
-    assert(f11 >= g && "one game: one generation of galaxy_populate states");
     play_until(12);
     const size_t f12 = game_zone_used();
-    assert(f12 >= f11 + g && "the states of both games live until the release");
+    assert(f12 >= f11 + g && "the title generation lives beside the new game until the release");
     play_until(13);
     assert(game_zone_used() == g + registries_bytes() + planets_bytes() + research_and_economy_bytes() +
                                              singletons_bytes() &&
@@ -700,7 +775,7 @@ static void trade_rich_mine_route_rebuild_does_not_grow_game(void) {
     const size_t f151 = game_without_registries();
     printf("  trade_rich_mine f139/f151: game - registries = %lu/%lu\n", (unsigned long)f139,
            (unsigned long)f151);
-    assert(f151 == f139 + PLANET_GRAB_ARENA_BYTES &&
+    assert(f151 == f139 + arena_size_for(SLIPWAY_CONSTRUCTION_BYTES) &&
            "a rebuild over routes grows the generation, or the f148 refusal does not reuse the f142 arena");
 }
 
@@ -733,6 +808,32 @@ static void trade_rich_mine_kept_route_survives_frame(void) {
     assert(t->planets->count == nlp && memcmp(lp, t->planets->items, (size_t)nlp * sizeof *lp) == 0);
     assert(t->slipways->count == nrl && memcmp(rl, t->slipways->items, (size_t)nrl * sizeof *rl) == 0);
     printf("  trade_rich_mine: p27 route (%d planets, %d slipways) read back at f151\n", nlp, nrl);
+}
+
+/* At f139, a rebuild of p27 over its kept routes gives back to the frame
+ * zone every candidate offer it made, and the routes it hands back still
+ * read the same. */
+static void trade_rich_mine_rebuild_gives_back_frame(void) {
+    entity_t *lp[16];
+    start_e2e("trade_rich_mine");
+    play_until(139);
+    planet_t *p27 = (planet_t *)planet_with_id("p27");
+    assert(p27->slipways != NULL && p27->slipways->count > 0 && "f139: p27 is linked");
+    const entity_list_t *by = p27->outgoing_routes;
+    assert(by != NULL && by->count > 0 && "f139: p27 keeps a route");
+    const int n = by->count;
+    const trade_route_t *t = (const trade_route_t *)by->items[n - 1];
+    const int nlp = t->planets->count;
+    assert(nlp <= 16);
+    memcpy(lp, t->planets->items, (size_t)nlp * sizeof *lp);
+    const size_t before = frame_zone_used();
+    entity_list_t *out = planet_rebuild_trades(p27);
+    const size_t after = frame_zone_used();
+    printf("  trade_rich_mine f139: frame %lu -> %lu across a rebuild of p27\n", (unsigned long)before,
+           (unsigned long)after);
+    assert(after == before && "planet_rebuild_trades keeps its candidate offers in the frame zone");
+    assert(out == by && out->count == n && "the rebuild hands back the kept routes");
+    assert(t->planets->count == nlp && memcmp(lp, t->planets->items, (size_t)nlp * sizeof *lp) == 0);
 }
 
 /* The transit dots still alive at the end of the game go back to the
@@ -782,20 +883,24 @@ static const planet_t *placed_grab(void) {
     return placed;
 }
 
-/* The rebuild after the placement makes the outgoing_routes and
- * incoming_routes lists in the generation, outside the arena. */
-static void placed_grab_reuses_dead_wormhole_arena(void) {
+/* The f4 wormhole's arena, free since f48, is too small for a structure:
+ * the grabs take one new arena of the structure's size, full, and the
+ * rebuild after the placement makes the outgoing_routes and incoming_routes
+ * lists in the generation, outside the arena. */
+static void placed_grab_does_not_fit_dead_wormhole_arena(void) {
     start_e2e(GRABS);
     play_until(160);
     const size_t before = game_without_registries();
     play_until(174);
     const size_t after = game_without_registries();
     const planet_t *placed = placed_grab();
+    const allocator_t *arena = placed->slipways->zone;
     const size_t lists = planet_list_bytes(placed->outgoing_routes) + planet_list_bytes(placed->incoming_routes);
-    printf("  placed grab: game - registries = %lu -> %lu (outgoing_routes/incoming_routes %lu)\n", (unsigned long)before,
-           (unsigned long)after, (unsigned long)lists);
-    assert(after == before + lists &&
-           "the placed grab reuses the free arena of the f4 wormhole (released at f48), and only adds its route lists");
+    printf("  placed grab: game - registries = %lu -> %lu (arena %lu, outgoing_routes/incoming_routes %lu)\n",
+           (unsigned long)before, (unsigned long)after, (unsigned long)arena_size(arena), (unsigned long)lists);
+    assert(arena_used(arena) == arena_size(arena) && "the placed structure fills its arena");
+    assert(after == before + arena_size(arena) + lists &&
+           "one new arena for the grabs past the f4 wormhole's, too small, and the placed grab's route lists");
 }
 
 /* One replay frame; when draw is 0, no draw method clears targeted_by. */
@@ -890,9 +995,12 @@ static size_t slipways_of_p27_and_p48_bytes(void) {
     return registry_bytes(planet_with_id("p27")->slipways) + registry_bytes(planet_with_id("p48")->slipways);
 }
 
-/* The planet_attach_slipway of the placement grows the slipways lists at
- * both ends, in the generation, outside the arena. */
-static void placed_slipway_reuses_dead_wormhole_arena(void) {
+/* The f4 wormhole's arena, free since f48, is too small for a slipway: the
+ * placed slipway reuses the arena of the last refused one, the next refused
+ * one takes a new arena of a slipway's size. The planet_attach_slipway of
+ * the placement grows the slipways lists at both ends, in the generation,
+ * outside the arena. */
+static void placed_slipway_does_not_fit_dead_wormhole_arena(void) {
     start_e2e(SLIPWAYS);
     play_until(334);
     const size_t before = game_without_registries();
@@ -903,8 +1011,8 @@ static void placed_slipway_reuses_dead_wormhole_arena(void) {
     assert(entities_by_tag(TAG_SLIPWAY) != NULL && entities_by_tag(TAG_SLIPWAY)->count == 1 && "f338: one placed slipway");
     printf("  slipway placed then refused: game - registries = %lu -> %lu (slipways %lu)\n", (unsigned long)before,
            (unsigned long)after, (unsigned long)oe);
-    assert(after == before + oe &&
-           "the placed slipway reuses the free arena of the f4 wormhole (released at f48), the next refused one the other");
+    assert(after == before + arena_size_for(SLIPWAY_CONSTRUCTION_BYTES) + oe &&
+           "one new slipway arena past the f4 wormhole's, too small, and the slipways lists of the placement");
 }
 
 /* f345: the slipway held from p27 towards (73,91) sets the targeted_by of
@@ -1091,8 +1199,8 @@ static void refused_probe_crosses_new_game(void) {
 #define WORMHOLE_ABANDONED "tests/fixtures/wormhole_abandoned.json"
 
 /* WORMHOLE_ABANDONED: f0-20 of slipway_build (wormhole opened at f20), then
- * f2-17 of pause_restart: 'restart' at f26 abandons the wormhole, and the
- * 'challenging' click at f31 flips the game zone. */
+ * f2-17 of pause_restart: 'restart' at f26 abandons the wormhole and flips
+ * the game zone. */
 static const wormhole_t *abandoned_wormhole(void) {
     start_e2e(WORMHOLE_ABANDONED);
     play_until(22);
@@ -1103,14 +1211,14 @@ static const wormhole_t *abandoned_wormhole(void) {
 
 static void abandoned_wormhole_rereads_during_click(void) {
     const wormhole_t *mz = abandoned_wormhole();
-    play_until(31);
-    assert(game_zone_pending() && "the f31 click flips the game zone");
+    play_until(26);
+    assert(game_zone_pending() && "the f26 'restart' flips the game zone");
     g_spend = (unsigned char)mz->is_dead;
 }
 
 static void abandoned_wormhole_dies_with_its_game(void) {
     const wormhole_t *mz = abandoned_wormhole();
-    play_until(32);
+    play_until(27);
     g_spend = (unsigned char)mz->is_dead;
 }
 
@@ -1449,9 +1557,11 @@ int main(void) {
     printf("  invariant particle = sum of the registered #particles, transit_dots = sum of the #transit_dots of entities_by_tag(slipway): %d e2e, every frame\n", e2e_count);
     assert(e2e_count == 26 && "tests/e2e/ holds 26 replays");
     in_child(pause_restart_returns_to_title);
-    in_child(pause_restart_keeps_quit_game_during_click);
-    in_child_dying_by_asan(pause_restart_releases_quit_game_next_frame);
-    in_child(pause_restart_keeps_game_across_restart);
+    in_child(pause_restart_keeps_title_during_click);
+    in_child_dying_by_asan(pause_restart_releases_title_next_frame);
+    in_child(pause_restart_keeps_game_during_restart_click);
+    in_child_dying_by_asan(pause_restart_releases_game_after_restart);
+    in_child(pause_restart_title_drops_quit_economy_and_panel);
     in_child(pause_restart_keeps_quit_planets_during_click);
     in_child_dying_by_asan(pause_restart_releases_quit_planets);
     in_child(pause_restart_keeps_quit_economy_during_click);
@@ -1459,26 +1569,29 @@ int main(void) {
     in_child(pause_restart_keeps_quit_icons_during_click);
     in_child_dying_by_asan(pause_restart_releases_quit_icons);
     in_child(pause_restart_keeps_quit_singletons_during_click);
+    in_child(pause_restart_keeps_title_singletons_during_click);
     for (g_singleton = 0; g_singleton < SINGLETON_COUNT; g_singleton++) {
         printf("  singleton %s:", NAMES_OF_SINGLETONS[g_singleton]);
-        in_child_dying_by_asan(pause_restart_releases_quit_singleton);
+        in_child_dying_by_asan(pause_restart_releases_singleton);
     }
     in_child(pause_restart_counts_populate_galaxy_states);
     in_child(pause_restart_leaves_load_zone_alone);
+    in_child(pause_restart_reserves_registries_at_game_start_only);
     in_child(pause_restart_bounds_dead_registry_blocks);
     in_child(pause_restart_reloads_after_title);
     in_child(pause_restart_reveals_on_new_game_states);
     in_child(game_end_final_score_rebuild_does_not_grow_game);
     in_child(trade_rich_mine_route_rebuild_does_not_grow_game);
     in_child(trade_rich_mine_kept_route_survives_frame);
+    in_child(trade_rich_mine_rebuild_gives_back_frame);
     in_child(trade_rich_mine_releases_trails_on_reload);
     in_child(refused_grabs_do_not_grow_game);
-    in_child(placed_grab_reuses_dead_wormhole_arena);
+    in_child(placed_grab_does_not_fit_dead_wormhole_arena);
     in_child(refused_grab_crosses_new_game);
     in_child(offscreen_planet_forgets_refused_grab);
     in_child(held_slipway_does_not_grow_game);
     in_child(refused_slipways_do_not_grow_game);
-    in_child(placed_slipway_reuses_dead_wormhole_arena);
+    in_child(placed_slipway_does_not_fit_dead_wormhole_arena);
     in_child(refused_slipway_crosses_new_game);
     in_child(offscreen_planet_forgets_refused_slipway);
     in_child(held_wormhole_does_not_grow_game);

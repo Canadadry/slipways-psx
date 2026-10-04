@@ -33,6 +33,7 @@
 #include "game/planet_family_trade.h"
 #include "game/research.h"
 #include "game/structure_icon.h"
+#include "game/map_tables.h"
 #include "game/scroll.h"
 #include "engine/entity_class.h"
 #include "engine/vec.h"
@@ -177,6 +178,7 @@ static void start_title(void) {
     dispatch_context_set_input(&input);
     leave_help_screen();
     cart_init();
+    cart_flush_exit_queue();
 }
 
 /* A game started by cart_start_game with no difficulty picked: a NULL
@@ -478,14 +480,14 @@ static void test_entities_by_tag_null_until_seen(void) {
     void *a;
 
     start_title();
-    entity_registry_init();
+    entity_registry_init(NULL);
     assert(entities_by_tag(TAG_PLANET) == NULL && entities_by_tag(TAG_NODE) == NULL);
     a = new_planet("p902", 5, 6);
     assert(entities_by_tag(TAG_PLANET) != NULL && entities_by_tag(TAG_NODE) != NULL && entities_by_tag(TAG_TARGETING) != NULL);
     assert(entities_by_tag(TAG_STRUCTURE) == NULL);
     entity_unregister(a);
     assert(entities_by_tag(TAG_PLANET) != NULL && entities_by_tag(TAG_PLANET)->count == 0);
-    entity_registry_init();
+    entity_registry_init(NULL);
     assert(entities_by_tag(TAG_PLANET) == NULL);
 }
 
@@ -689,6 +691,58 @@ static void test_rows_given_back_after_restart(void) {
     assert(row_slots() == title);
 }
 
+/* The largest row planet_refresh can build: luxury produced, so two
+ * outputs, the most wants a project has, and an amount of 5. */
+static planet_t *planet_with_the_largest_row(void) {
+    planet_t *a = (planet_t *)entities_by_tag(TAG_PLANET)->items[0];
+    const pointer_list_t *is = NULL;
+    int r_w;
+    int k;
+
+    for (k = 1; research_projects_at(k) != NULL; k++) {
+        const research_project_t *p = research_projects_at(k);
+        if (p->inputs != NULL && (is == NULL || p->inputs->count > is->count)) is = p->inputs;
+    }
+    assert(is != NULL && resource_code_lookup("w", &r_w));
+    a->needs = (pointer_list_t *)is;
+    a->production = &a->production_own;
+    a->production_own.has_resource = 1;
+    a->production_own.resource = p8_fixed_from_int(r_w);
+    a->production_own.amount = p8_fixed_from_int(5);
+    return a;
+}
+
+#define REFRESHES_IN_ONE_FRAME 200
+
+/* One tick may rerun economy_recompute, so refresh every planet, several
+ * times: a refresh leaves the frame zone as it found it, the row it builds
+ * stays the same. */
+static void test_refresh_many_times_in_one_frame(void) {
+    layout_row_item_t first[16];
+    int first_count;
+    p8_fixed_t first_width;
+    planet_t *a;
+    int i;
+
+    start_game();
+    cart_flush_exit_queue();
+    a = planet_with_the_largest_row();
+    planet_refresh(a);
+    first_count = a->layout_row->placed_items_count;
+    assert(first_count <= 16);
+    first_width = a->layout_row->width;
+    memcpy(first, a->layout_row->placed_items, (size_t)first_count * sizeof *first);
+    for (i = 0; i < REFRESHES_IN_ONE_FRAME; i++) planet_refresh(a);
+    assert(a->layout_row->placed_items_count == first_count && a->layout_row->width == first_width);
+    for (i = 0; i < first_count; i++) {
+        const layout_row_item_t *now = &a->layout_row->placed_items[i];
+        assert(now->kind == first[i].kind && now->sprite_id == first[i].sprite_id &&
+               now->sprite_palette_block == first[i].sprite_palette_block &&
+               now->offset.x == first[i].offset.x && now->offset.y == first[i].offset.y);
+        assert(now->kind != LAYOUT_ROW_ITEM_TEXT || strcmp(now->text, first[i].text) == 0);
+    }
+}
+
 /* The galaxy depends on the rnd state: run each scenario in a child forked
  * right after cart_load(), as a fresh process would start it. */
 static pid_t spawn(void (*test)(void)) {
@@ -736,6 +790,7 @@ int main(void) {
     in_fresh_child(test_refresh_row_slot);
     in_fresh_child(test_refresh_without_resource_takes_no_slot);
     in_fresh_child(test_rows_given_back_after_restart);
+    in_fresh_child(test_refresh_many_times_in_one_frame);
 
     printf("test_planet: all tests passed\n");
     return 0;

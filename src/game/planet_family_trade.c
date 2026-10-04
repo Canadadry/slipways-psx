@@ -5,6 +5,7 @@
 
 #include "engine/entity_class.h"
 #include "game/particle.h"
+#include "game/grab_arena.h"
 #include "game/planet.h"
 #include "game/planet_family.h"
 #include "game/planet_trade.h"
@@ -187,7 +188,7 @@ static void slipgate_init_instance(planet_t *self, const entity_class_t *cls, co
 }
 
 static planet_t *slipgate_create(const planet_keys_t *keys) {
-    planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
+    planet_t *self = (planet_t *)allocator_alloc(grab_arena_construction_zone(), sizeof *self);
 
     assert(g_family_trade_up && "planet_family_trade_init() must run first");
     slipgate_init_instance(self, &slipgate_class_def, &slipgate_archetype);
@@ -230,7 +231,7 @@ static const entity_class_t infraspace_gate_class_def = {
 };
 
 static planet_t *infraspace_gate_create(const planet_keys_t *keys) {
-    planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
+    planet_t *self = (planet_t *)allocator_alloc(grab_arena_construction_zone(), sizeof *self);
 
     assert(g_family_trade_up && "planet_family_trade_init() must run first");
     slipgate_init_instance(self, &infraspace_gate_class_def, &infraspace_gate_archetype);
@@ -321,7 +322,7 @@ static const entity_class_t synthesizer_class_def = {
 };
 
 static planet_t *synthesizer_create(const planet_keys_t *keys) {
-    planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
+    planet_t *self = (planet_t *)allocator_alloc(grab_arena_construction_zone(), sizeof *self);
 
     assert(g_family_trade_up && "planet_family_trade_init() must run first");
     ascension_init_instance(self, &synthesizer_class_def, &synthesizer_archetype);

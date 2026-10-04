@@ -687,15 +687,15 @@ const planet_archetype_t infraspace_gate_archetype = {
     .targeting = {.attach_distance = 0x28e, .cost = 0x190000, .has_cost = 1, .confirmed_state = ENTITY_STATE_SETTLED, .clock_ticks = 0x10000},
 };
 
-const kind_record_t structure_kind_record = {NULL, 1, 0xae0000, ENTITY_STATE_PLACING, 1, 0xf0000};
-const kind_record_t trading_hub_kind_record = {trading_hub_required_tech_text, 1, 0x440000, ENTITY_STATE_PLACING, 1, 0x140000};
-const kind_record_t processor_kind_record = {NULL, 1, 0x640000, ENTITY_STATE_PLACING, 1, 0xf0000};
-const kind_record_t ascension_kind_record = {ascension_required_tech_text, 1, 0xa60000, ENTITY_STATE_PLACING, 1, 0x3c0000};
-const kind_record_t protostar_kind_record = {ascension_required_tech_text, 1, 0x620000, ENTITY_STATE_SETTLED, 1, 0x3c0000};
-const kind_record_t burst_kind_record = {NULL, 0, 0x0, ENTITY_STATE_UNKNOWN, 0, 0x0};
-const kind_record_t slipgate_kind_record = {slipgate_required_tech_text, 1, 0xaa0000, ENTITY_STATE_PLACING, 1, 0xa0000};
-const kind_record_t infraspace_gate_kind_record = {infraspace_gate_required_tech_text, 1, 0x4e0000, ENTITY_STATE_PLACING, 1, 0x190000};
-const kind_record_t synthesizer_kind_record = {synthesizer_required_tech_text, 1, 0x420000, ENTITY_STATE_PLACING, 1, 0x280000};
+const kind_record_t structure_kind_record = {NULL, 1, 0xae0000, ENTITY_STATE_PLACING, 1, 0xf0000, &structure_archetype};
+const kind_record_t trading_hub_kind_record = {trading_hub_required_tech_text, 1, 0x440000, ENTITY_STATE_PLACING, 1, 0x140000, &trading_hub_archetype};
+const kind_record_t processor_kind_record = {NULL, 1, 0x640000, ENTITY_STATE_PLACING, 1, 0xf0000, &processor_archetype};
+const kind_record_t ascension_kind_record = {ascension_required_tech_text, 1, 0xa60000, ENTITY_STATE_PLACING, 1, 0x3c0000, &ascension_archetype};
+const kind_record_t protostar_kind_record = {ascension_required_tech_text, 1, 0x620000, ENTITY_STATE_SETTLED, 1, 0x3c0000, &protostar_archetype};
+const kind_record_t burst_kind_record = {NULL, 0, 0x0, ENTITY_STATE_UNKNOWN, 0, 0x0, &burst_archetype};
+const kind_record_t slipgate_kind_record = {slipgate_required_tech_text, 1, 0xaa0000, ENTITY_STATE_PLACING, 1, 0xa0000, &slipgate_archetype};
+const kind_record_t infraspace_gate_kind_record = {infraspace_gate_required_tech_text, 1, 0x4e0000, ENTITY_STATE_PLACING, 1, 0x190000, &infraspace_gate_archetype};
+const kind_record_t synthesizer_kind_record = {synthesizer_required_tech_text, 1, 0x420000, ENTITY_STATE_PLACING, 1, 0x280000, &synthesizer_archetype};
 
 int int_seq_at(const int *seq, int count, int i, int *out) {
     assert(seq != NULL && count >= 0 && "a sequence is an array and its length");

@@ -75,12 +75,22 @@ void allocator_release(const allocator_t *z, unsigned char *p);
  * The name must live as long as the arena: it makes up "zone <name> full". */
 const allocator_t *arena_take(const allocator_t *from,
                                                      const char *name, size_t size);
+/* The size to pass to arena_take for an arena that holds exactly n bytes of
+ * blocks, rounded up to whole cells. */
+size_t arena_size_for(size_t n);
+/* The size the arena was taken with, header included. */
+size_t arena_size(const allocator_t *arena);
 /* Bytes taken in the block, header included. */
 size_t arena_used(const allocator_t *arena);
-/* Brings the arena back to its header alone and poisons the rest of its
- * block; the block stays taken from its zone. ASan blind spot: the next
- * allocations reuse the same addresses, so a pointer kept from before the
- * flush reads the new block there without crashing. */
+/* From now on, a block or a growth that no longer fits in the arena is
+ * taken from the handle the arena came from instead of a p8_fatal: it lives
+ * as long as that handle's memory, not as long as the arena, and
+ * arena_release does not give it back. arena_flush ends it. */
+void arena_spill(const allocator_t *arena);
+/* Brings the arena back to its header alone, out of arena_spill, and
+ * poisons the rest of its block; the block stays taken from its zone. ASan
+ * blind spot: the next allocations reuse the same addresses, so a pointer
+ * kept from before the flush reads the new block there without crashing. */
 void arena_flush(const allocator_t *arena);
 /* Releases the whole block to the handle it was taken from. */
 void arena_release(const allocator_t *arena);

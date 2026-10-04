@@ -57,7 +57,7 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
     g_draw_calls = 0;
 
     /* reset_world() builds the real registries and the real main camera. */
-    reset_world();
+    reset_world(NULL);
     camera = main_camera();
     assert(camera != NULL);
 

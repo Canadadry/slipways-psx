@@ -58,7 +58,7 @@ static void test_second_reset_world_keeps_specs(void) {
     entity_list_add(ui_ephemerals, mark);
     ui_count = ui_ephemerals->count;
 
-    reset_world();
+    reset_world(NULL);
 
     assert(camera_ready());
     assert(mouse_left_of(main_mouse_typed()) == mouse_left && mouse_left_of(main_mouse_typed())->released == 0x7777);
@@ -250,7 +250,7 @@ int main(void) {
     assert(!probe_ready());
     assert(!help_screen_ready());
     cart_load();
-    reset_world();
+    reset_world(NULL);
 
     test_second_reset_world_keeps_specs();
     test_background_defaults_and_ready();

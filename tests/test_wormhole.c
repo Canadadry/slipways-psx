@@ -438,7 +438,8 @@ static void test_arena(void) {
     mz = build_wormhole();
     printf("[arena] generation +%lu, anchors %d/%d\n", (unsigned long)(generation_but_registries() - before),
            mz->anchors->count, mz->anchors->capacity);
-    assert(generation_but_registries() == before + PLANET_GRAB_ARENA_BYTES);
+    assert(generation_but_registries() == before + arena_size(mz->anchors->zone));
+    assert(arena_used(mz->anchors->zone) == arena_size(mz->anchors->zone) && "the arena holds the wormhole exactly");
     assert(mz->anchors->count > 0 && mz->anchors->count == mz->anchors->capacity);
     for (i = 1; i < mz->anchors->count; i++) {
         assert(entity_list_rank_in(live_entities(), mz->anchors->items[i - 1]) < entity_list_rank_in(live_entities(), mz->anchors->items[i]));

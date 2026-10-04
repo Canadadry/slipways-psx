@@ -137,12 +137,14 @@ static int any_listed(const run_t *run) {
     return 0;
 }
 
-/* One game tick: update_entities(), then draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY) on a
- * fresh framebuffer, folded with every tracked box's state. */
+/* One game tick: frame_zone_reset() and update_entities() as cart_update60()
+ * does them, then draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY) on a fresh
+ * framebuffer, folded with every tracked box's state. */
 static void tick(run_t *run) {
     uint32_t drawn;
     int i;
 
+    frame_zone_reset();
     update_entities();
     drawn = draw_hash();
     p8_cls(&memory);
@@ -195,7 +197,7 @@ static const message_box_t *year_box(int yr) {
 static void test_year_with_a_message(void) {
     run_t run;
 
-    reset_world();
+    reset_world(NULL);
     cart_flush_exit_queue();
     run_start(&run);
     track(&run, year_box(3425));
@@ -209,7 +211,7 @@ static void test_year_with_a_message(void) {
 static void test_year_without_a_message(void) {
     run_t run;
 
-    reset_world();
+    reset_world(NULL);
     cart_flush_exit_queue();
     run_start(&run);
     track(&run, year_box(3400));
@@ -227,7 +229,7 @@ static void test_two_years_in_a_row(void) {
     const message_box_t *second;
     int i;
 
-    reset_world();
+    reset_world(NULL);
     cart_flush_exit_queue();
     run_start(&run);
     first = year_box(3424);
@@ -257,7 +259,7 @@ static void set_is_shown(score_panel_t *ju, int on) {
  * main camera, mouse and user interface. */
 static score_panel_t *game_main_score_panel(void) {
     cart_start_game(NULL);
-    reset_world();
+    reset_world(NULL);
     cart_flush_exit_queue();
     assert(main_score_panel() != NULL);
     return main_score_panel();
@@ -305,7 +307,7 @@ static void test_scores_box_follows_is_shown(void) {
 static void test_defaults_match_the_parsed_spec(void) {
     const message_box_t *box;
 
-    reset_world();
+    reset_world(NULL);
     cart_flush_exit_queue();
     box = year_box(3400);
     assert(box->archetype == &message_box_archetype);
@@ -340,7 +342,7 @@ static void test_message_box_is_a_struct_registered_under_draw_overlay(void) {
     int out;
     int i;
 
-    reset_world();
+    reset_world(NULL);
     cart_flush_exit_queue();
     from_score_panel = year_box(3400);
     keys.keep_open = counting_keep_open;
@@ -365,7 +367,7 @@ static void test_message_box_nil_keep_open_key_reads_absent(void) {
     message_box_keys_t keys = {0};
     message_box_t *box;
 
-    reset_world();
+    reset_world(NULL);
     cart_flush_exit_queue();
     keys.keep_open = NULL;
     box = message_box_new(&keys);
@@ -379,7 +381,7 @@ static void test_box_gives_its_slot_back(void) {
     run_t run;
     int base;
 
-    reset_world();
+    reset_world(NULL);
     cart_flush_exit_queue();
     base = ui_zone_live(SLOT_KIND_MESSAGE_BOX);
     run_start(&run);
@@ -422,7 +424,7 @@ static void test_scores_box_keeps_its_articles(void) {
 static void test_year_box_keeps_its_label(void) {
     uint32_t want;
 
-    reset_world();
+    reset_world(NULL);
     cart_flush_exit_queue();
     (void)year_box(3424);
     want = draw_hash();

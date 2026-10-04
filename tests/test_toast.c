@@ -93,7 +93,7 @@ static int entity_list_listed(const entity_list_t *list, const void *e) {
 static void fresh_world(void) {
     vec_t *mouse = malloc(sizeof *mouse);
 
-    reset_world();
+    reset_world(NULL);
     *mouse = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
     assert(main_mouse() != NULL && main_mouse()->class == mouse_class());
     ((mouse_t *)main_mouse())->pos = mouse;

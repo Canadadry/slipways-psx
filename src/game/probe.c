@@ -13,6 +13,7 @@
 #include "game/hud.h"
 #include "engine/entity.h"
 #include "game/particle.h"
+#include "game/grab_arena.h"
 #include "game/planet.h"
 #include "game/slipway.h"
 #include "game/ui.h"
@@ -359,7 +360,7 @@ void probe_release_method(entity_t *self) {
 
     emitter_release_particles(self->emitter);
     if (g_->grab_arena != NULL && self->state != ENTITY_STATE_SETTLED) {
-        planet_grab_arena_arena_released(g_->grab_arena);
+        grab_arena_give_back(g_->grab_arena);
     }
 }
 
@@ -410,11 +411,11 @@ static probe_t *probe_create(const probe_keys_t *keys) {
     probe_t *self;
 
     assert(g_probe_up && "probe_init() must run first");
-    planet_grab_arena_open();
-    self = (probe_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
+    grab_arena_open(ZONE_BYTES(sizeof *self));
+    self = (probe_t *)allocator_alloc(grab_arena_construction_zone(), sizeof *self);
     probe_init_instance(self, &probe_class_def, &probe_archetype);
-    self->grab_arena = planet_zone_construction();
-    planet_grab_arena_close();
+    self->grab_arena = grab_arena_construction_zone();
+    grab_arena_close();
     if (keys != NULL) {
         self->header.state_time = keys->state_time;
         if (keys->has_angle_slices) {

@@ -35,6 +35,30 @@ static int case_live_slots_follow_takes(void) {
     return 0;
 }
 
+static int case_maxima_keep_the_peak(void) {
+    assert(ui_zone_max_live(SLOT_KIND_MESSAGE_BOX) == 0 && ui_zone_max_bytes(SLOT_KIND_MESSAGE_BOX) == 0);
+    assert(ui_zone_used() == 0 && ui_zone_max_used() == 0);
+
+    const allocator_t *a = ui_zone_slot(SLOT_KIND_MESSAGE_BOX);
+    const allocator_t *b = ui_zone_slot(SLOT_KIND_MESSAGE_BOX);
+    allocator_alloc(a, 1000);
+    size_t released_used = arena_used(a);
+    size_t both = ui_zone_used();
+    assert(both > 0);
+    arena_release(a);
+    assert(ui_zone_live(SLOT_KIND_MESSAGE_BOX) == 1);
+    assert(ui_zone_max_live(SLOT_KIND_MESSAGE_BOX) == 2 && "the peak of live slots outlives their release");
+    assert(ui_zone_max_bytes(SLOT_KIND_MESSAGE_BOX) == released_used && "the largest slot, header included, read at its release");
+    assert(ui_zone_used() < both && ui_zone_max_used() == both && "the zone peak outlives the release");
+
+    allocator_alloc(b, 2000);
+    assert(ui_zone_max_bytes(SLOT_KIND_MESSAGE_BOX) == arena_used(b) && "a slot still live is measured when read");
+    arena_release(b);
+    assert(ui_zone_used() == 0);
+    assert(ui_zone_max_live(SLOT_KIND_BUTTON) == 0 && "each kind keeps its own peak");
+    return 0;
+}
+
 static int case_slot_alive_until_released(void) {
     const allocator_t *slot = ui_zone_slot(SLOT_KIND_ROW);
     unsigned char *text = allocator_alloc(slot, 64);
@@ -54,17 +78,17 @@ static int case_slot_dead_after_release(void) {
 }
 
 static int case_button_slot_full(void) {
-    allocator_alloc(ui_zone_slot(SLOT_KIND_BUTTON), 6240);
+    allocator_alloc(ui_zone_slot(SLOT_KIND_BUTTON), ui_zone_slot_size(SLOT_KIND_BUTTON));
     return 0;
 }
 
 static int case_modal_backdrop_zone_full(void) {
-    for (int i = 0; i <= 4; i++) ui_zone_slot(SLOT_KIND_MODAL_BACKDROP);
+    for (int i = 0; i <= ui_zone_count(SLOT_KIND_MODAL_BACKDROP); i++) ui_zone_slot(SLOT_KIND_MODAL_BACKDROP);
     return 0;
 }
 
 static int case_row_slot_full(void) {
-    allocator_alloc(ui_zone_slot(SLOT_KIND_ROW), 1192);
+    allocator_alloc(ui_zone_slot(SLOT_KIND_ROW), ui_zone_slot_size(SLOT_KIND_ROW));
     return 0;
 }
 
@@ -74,6 +98,7 @@ static const struct {
 } CASES[] = {
     {"live_slots_follow_takes", case_live_slots_follow_takes},
     {"slot_alive_until_released", case_slot_alive_until_released},
+    {"maxima_keep_the_peak", case_maxima_keep_the_peak},
     {"slot_dead_after_release", case_slot_dead_after_release},
     {"button_slot_full", case_button_slot_full},
     {"row_slot_full", case_row_slot_full},
@@ -153,10 +178,11 @@ int main(int argc, char **argv) {
     self_path = argv[0];
     expect_clean("live_slots_follow_takes");
     expect_clean("slot_alive_until_released");
+    expect_clean("maxima_keep_the_peak");
     expect_poison_crash("slot_dead_after_release");
     expect_fatal("button_slot_full", "zone slot button full, limit ");
     expect_fatal("row_slot_full", "zone slot row full, limit ");
-    expect_fatal("modal_backdrop_zone_full", "zone ui modal_backdrop full, limit 4 slots");
+    expect_fatal("modal_backdrop_zone_full", "zone ui modal_backdrop full, limit 2 slots");
     remove(STDERR_LOG);
     printf("test_ui_zone: all tests passed\n");
     return 0;

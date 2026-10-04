@@ -12,6 +12,7 @@ typedef struct {
 
 static entry_t g_queue[EXIT_QUEUE_CAP];
 static int g_count;
+static int g_max;
 
 static void put(entry_t entry) {
     if (g_count == EXIT_QUEUE_CAP) {
@@ -20,6 +21,7 @@ static void put(entry_t entry) {
         p8_fatal(message);
     }
     g_queue[g_count++] = entry;
+    if (g_count > g_max) g_max = g_count;
 }
 
 void exit_queue_put(entity_t *e) {
@@ -36,6 +38,10 @@ void exit_queue_put_arena(const allocator_t *arena) {
 
 int exit_queue_count(void) {
     return g_count;
+}
+
+int exit_queue_max(void) {
+    return g_max;
 }
 
 void exit_queue_flush(void (*forget)(const entity_t *e)) {
