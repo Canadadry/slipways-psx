@@ -55,6 +55,8 @@ Décision : les e2e font foi, pas les tests unitaires qui figent une séquence ;
 
 Fin de 4b : somme des cibles des zones **745 034** (`game` 462 520 + 24 680, `frame` 20 256, `ui` 165 481, `particles` 72 097), reste **41 398** sous 786 432.
 
+4c, campagne élargie à deux états de repos, 31 rejeux tous verrouillés par `make full-game` : `title_idle.json` (300 frames sans entrée depuis le titre) et `full_game_pause_idle.json` (`full_game_pause_restart` coupée à la frame 7505, menu de pause ouvert, puis 300 frames sans entrée). Pics nouveaux : liste de l'écran d'aide **580** éléments (235 avant ; cible 653 au lieu de 265) ; points de transit à l'écran **388** (385 avant ; cible 437 au lieu de 434 ; le monde qui tourne sous le menu, pas le menu : 388 aussi sans pause). La fin de partie laissée ouverte (`full_game.json` coupée à la frame 7643, 300 frames) ne monte rien. Laissés 2 000 frames, la pause et la fin de partie montent les points de transit à 389 : un pic qui fluctue avec le temps passé, pas un plafond.
+
 ## 3. Règles
 
 - Le jeu ne change pas : tous les `*.sha256` de `tests/e2e/` restent identiques.

@@ -43,8 +43,11 @@
 #                       ~11 s), outside the suite
 # make full-game     -> replays each worst-case/ game (FULL_GAME_EVENTS:
 #                       full_game.json, then the same game followed by a new
-#                       game from the title, and cut short by pause ->
-#                       restart -> new game) to its last frame with the `-O0`
+#                       game from the title, cut short by pause ->
+#                       restart -> new game, and cut short by a pause menu
+#                       left open 300 frames; plus title_idle.json, the
+#                       title screen left alone 300 frames) to its last
+#                       frame with the `-O0`
 #                       binary of make test; passes when every replay exits
 #                       cleanly (fails on any p8_fatal, a full zone or cap),
 #                       outside the suite
@@ -828,7 +831,7 @@ sanitize-net: $(SANITIZE_RUNS) unit-run-test_live_slots
 
 .PHONY: sanitize-net $(SANITIZE_RUNS)
 
-FULL_GAME_EVENTS := worst-case/full_game.json worst-case/full_game_new_game.json worst-case/full_game_pause_restart.json
+FULL_GAME_EVENTS := worst-case/full_game.json worst-case/full_game_new_game.json worst-case/full_game_pause_restart.json worst-case/full_game_pause_idle.json worst-case/title_idle.json
 FULL_GAME_DIR := $(TMP_DIR)/full-game
 
 full-game: $(FULL_GAME_EVENTS) $(TMP_DIR)/replay
