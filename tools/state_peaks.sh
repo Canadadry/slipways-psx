@@ -5,7 +5,9 @@
 # zone and cap, the highest peak over every state (a tie keeps the first
 # pair), then the first `budget zones <sum> <limit>` line, whose bytes left
 # go to stdout. Exit 1, with `state: <events> stopped`, when a state is missing or
-# starts with `stopped`.
+# starts with `stopped`, and with `state: <zone|cap> <name> peak ... over margin`
+# for each peak line where 9 x peak > 8 x limit (plan 7 sized limits at peak +
+# 1/8); an exempt line only needs peak <= limit.
 
 set -u
 
@@ -52,4 +54,22 @@ fi
 
 mv "$out.tmp" "$out"
 awk '$1 == "budget" { print "state: " $4 - $3 " bytes left under ZONE_BUDGET_BYTES" }' "$out"
+
+# Proven ceilings (largest-case unit tests, sized without margin):
+#   bytes_button bytes_row particles_help_screen.
+# Lists reserved in full at creation, their margin judged on elements_*:
+#   bytes_particles bytes_particles_help_screen bytes_ephemerals.
+exempt="bytes_button bytes_row particles_help_screen bytes_particles bytes_particles_help_screen bytes_ephemerals"
+awk -v exempt="$exempt" '
+    BEGIN { n = split(exempt, names, " "); for (i = 1; i <= n; i++) is_exempt[names[i]] = 1 }
+    ($1 == "zone" || $1 == "cap") && NF == 5 {
+        peak = $3 + 0; limit = $4 + 0
+        fits = ($2 in is_exempt) ? peak <= limit : 9 * peak <= 8 * limit
+        if (!fits) {
+            printf "state: %s %s peak %d over margin %d (limit %d, %s)\n", $1, $2, peak, int(8 * limit / 9), limit, $5 > "/dev/stderr"
+            bad = 1
+        }
+    }
+    END { exit bad }
+' "$out" || failed=1
 exit $failed

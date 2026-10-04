@@ -9,7 +9,7 @@
 - A raylib session records its input as `events.json`: whatever a human played, an agent can replay without a window.
 - `worst-case/full_game.json` is a fully built-up game (50 planets, 192 slipways) that measures worst-case memory use:
   - `make state EVENTS=worst-case/full_game.json` writes each zone's peak and capacity to `tmp/state.txt`.
-  - `make state` without `EVENTS` writes there the highest peak of each zone and cap across this game and every e2e, with its limit and the replay that reaches it.
+  - `make state` without `EVENTS` writes there the highest peak of each zone and cap across this game and every e2e, with its limit and the replay that reaches it, and prints the bytes left under `ZONE_BUDGET_BYTES`. It fails if a replay stops, or if a peak eats the 1/8 margin its limit was sized with (`9 × peak > 8 × limit`); the proven ceilings and fully reserved list slots listed in `tools/state_peaks.sh` only need to fit their limit.
   - `make full-game` (outside `make test-all`, run by CI) fails if a `p8_fatal` stops this game before its last frame, or stops one of its variants. It has three variants: `full_game_new_game.json` (a new game started after it), `full_game_pause_restart.json` (cut short by pause, "restart" and a new game) and `full_game_pause_idle.json` (cut short by a pause menu left open for 300 frames). It also replays the title screen left idle for 300 frames (`title_idle.json`). `make state` replays all of these too.
 
 ## To do

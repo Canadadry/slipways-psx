@@ -76,14 +76,18 @@ static void test_stopped_replay_fails_is_named_and_table_still_written(void) {
     write_file(DIR "/a.txt", "zone game 1 100 1000\n");
     write_file(DIR "/b.txt",
                "stopped p8_fatal frame 42\n"
-               "zone game 1000 1000 1000\n");
+               "zone game 1 800 1000\n"
+               "cap toast 0 10 10\n");
     assert(run("a.json " DIR "/a.txt b.json " DIR "/b.txt") != 0);
     const char *out = read_file(OUT);
     assert(strstr(out, "replay a.json clean\n") != NULL);
     assert(strstr(out, "replay b.json stopped p8_fatal frame 42\n") != NULL);
-    assert(strstr(out, "zone game 1000 1000 b.json\n") != NULL);
-    assert(strstr(read_file(LOG), "state: b.json stopped") != NULL);
-    assert(strstr(read_file(LOG), "state: a.json") == NULL);
+    assert(strstr(out, "zone game 800 1000 b.json\n") != NULL);
+    const char *log = read_file(LOG);
+    assert(strstr(log, "state: b.json stopped") != NULL);
+    assert(strstr(log, "state: a.json") == NULL);
+    assert(strstr(log, "state: zone game") == NULL);
+    assert(strstr(log, "state: cap toast peak 10 over margin 8 (limit 10, b.json)\n") != NULL);
 }
 
 static void test_missing_state_fails(void) {
@@ -114,6 +118,59 @@ static void test_no_budget_line_prints_no_bytes_left(void) {
     assert(strstr(read_file(LOG), "bytes left") == NULL);
 }
 
+static void test_peak_at_plan_7_sizing_passes_and_one_more_fails(void) {
+    reset();
+    write_file(DIR "/a.txt", "zone load 1 8 9\ncap toast 0 9 10\n");
+    assert(run("a.json " DIR "/a.txt") != 0);
+    const char *log = read_file(LOG);
+    assert(strstr(log, "state: zone load") == NULL && "9 x 8 <= 8 x 9");
+    assert(strstr(log, "state: cap toast peak 9 over margin 8 (limit 10, a.json)\n") != NULL);
+}
+
+static void test_every_failing_line_is_named_and_table_still_written(void) {
+    reset();
+    write_file(DIR "/a.txt", "zone game 1 100 1000\nzone ui 1 950 1000\ncap toast 0 128 128\n");
+    assert(run("a.json " DIR "/a.txt") != 0);
+    const char *out = read_file(OUT);
+    assert(strstr(out, "replay a.json clean\n") != NULL);
+    assert(strstr(out, "zone game 100 1000 a.json\n") != NULL);
+    assert(strstr(out, "zone ui 950 1000 a.json\n") != NULL);
+    assert(strstr(out, "cap toast 128 128 a.json\n") != NULL);
+    assert(strstr(out, "over margin") == NULL);
+    const char *log = read_file(LOG);
+    assert(strstr(log, "state: zone ui peak 950 over margin 888 (limit 1000, a.json)\n") != NULL);
+    assert(strstr(log, "state: cap toast peak 128 over margin 113 (limit 128, a.json)\n") != NULL);
+    assert(strstr(log, "state: zone game") == NULL);
+}
+
+static void test_proven_ceiling_is_judged_on_its_limit(void) {
+    reset();
+    write_file(DIR "/a.txt", "cap particles_help_screen 1 1 1\ncap bytes_button - 6240 6240\ncap bytes_row - 96 96\n");
+    assert(run("a.json " DIR "/a.txt") == 0);
+    write_file(DIR "/a.txt", "cap message_box 1 1 1\n");
+    assert(run("a.json " DIR "/a.txt") != 0);
+    assert(strstr(read_file(LOG), "state: cap message_box peak 1 over margin 0 (limit 1, a.json)\n") != NULL);
+}
+
+static void test_fully_reserved_slot_is_judged_on_its_limit(void) {
+    reset();
+    write_file(DIR "/a.txt",
+               "cap bytes_particles - 1384 1384\n"
+               "cap bytes_particles_help_screen - 5344 5344\n"
+               "cap bytes_ephemerals - 184 184\n");
+    assert(run("a.json " DIR "/a.txt") == 0);
+    write_file(DIR "/a.txt", "cap bytes_burst - 640 640\n");
+    assert(run("a.json " DIR "/a.txt") != 0);
+    assert(strstr(read_file(LOG), "state: cap bytes_burst peak 640 over margin 568 (limit 640, a.json)\n") != NULL);
+}
+
+static void test_exempt_line_over_its_limit_fails(void) {
+    reset();
+    write_file(DIR "/a.txt", "cap bytes_row - 97 96\n");
+    assert(run("a.json " DIR "/a.txt") != 0);
+    assert(strstr(read_file(LOG), "state: cap bytes_row peak 97 over margin 85 (limit 96, a.json)\n") != NULL);
+}
+
 int main(void) {
     test_highest_peak_is_kept_with_its_replay_and_limit();
     test_tie_keeps_the_first_replay();
@@ -121,6 +178,11 @@ int main(void) {
     test_missing_state_fails();
     test_budget_line_is_copied_and_bytes_left_printed();
     test_no_budget_line_prints_no_bytes_left();
+    test_peak_at_plan_7_sizing_passes_and_one_more_fails();
+    test_every_failing_line_is_named_and_table_still_written();
+    test_proven_ceiling_is_judged_on_its_limit();
+    test_fully_reserved_slot_is_judged_on_its_limit();
+    test_exempt_line_over_its_limit_fails();
     assert(system("rm -rf " DIR) == 0);
     printf("test_state_peaks: all tests passed\n");
     return 0;

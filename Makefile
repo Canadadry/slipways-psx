@@ -22,8 +22,10 @@
 #                       every e2e of tests/e2e/, each state in
 #                       tmp/state/<name>.txt, then
 #                       writes to tmp/state.txt the peak of each zone and cap
-#                       over them all, its limit and the replay holding it;
-#                       fails if a replay stops, outside the suite
+#                       over them all, its limit and the replay holding it,
+#                       and prints the bytes left under ZONE_BUDGET_BYTES;
+#                       fails if a replay stops or a peak eats its 1/8
+#                       margin (9 x peak > 8 x limit), outside the suite
 # make e2e-baseline  -> sets or resets the .json.sha256 of tests/e2e/ from the
 #                       current code, never run by make test
 # make e2e-ref       -> for each diverging e2e, replays the commit that set its
