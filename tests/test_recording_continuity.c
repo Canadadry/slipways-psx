@@ -18,6 +18,8 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* The session that is resumed: every field distinct, all coordinates
  * below 50, so a live frame can never be mistaken for a replayed one. */
@@ -60,12 +62,13 @@ static void poll_simulated_live_frame(int live_index, p8_input_frame_t *out_fram
 /* The loop of src/cmd/game.c, with that call replaced and the game step
  * dropped. The frame is recorded before the game steps on it, and
  * unconditionally, as the game does: this test must not reverse that. */
-static void run_resumed_session(const char *source_path, const char *resumed_path, int iterations) {
+static void run_session(const char *source_path, const char *resumed_path, int iterations) {
     replay_source_t replay;
-    assert(replay_source_open(&replay, source_path) == REPLAY_SOURCE_LOADED);
+    replay_source_status_t expected = source_path ? REPLAY_SOURCE_LOADED : REPLAY_SOURCE_NONE;
+    assert(replay_source_open(&replay, source_path) == expected);
 
     session_recorder_t recorder;
-    session_recorder_open(&recorder, resumed_path);
+    session_recorder_open(&recorder, resumed_path, replay_source_keyboard_cursor(&replay));
 
     int live_index = 0;
     for (int i = 0; i < iterations; i++) {
@@ -90,7 +93,7 @@ static void test_recorder_writes_a_loadable_recording(void) {
     };
 
     session_recorder_t recorder;
-    session_recorder_open(&recorder, path);
+    session_recorder_open(&recorder, path, 0);
     assert(session_recorder_frame_count(&recorder) == 0);
 
     for (int i = 0; i < 2; i++) {
@@ -120,7 +123,7 @@ static void test_resumed_session_records_replayed_frames_then_new_ones(void) {
     /* Written by `p8_input_save`, not by the recorder under test. */
     assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path, 0));
 
-    run_resumed_session(source_path, resumed_path, SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT);
+    run_session(source_path, resumed_path, SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT);
 
     p8_input_t resumed;
     p8_input_init(&resumed);
@@ -148,7 +151,7 @@ static void test_resumed_recording_is_itself_resumable(void) {
     const int total = SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT;
 
     assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path, 0));
-    run_resumed_session(source_path, resumed_path, total);
+    run_session(source_path, resumed_path, total);
 
     replay_source_t second;
     assert(replay_source_open(&second, resumed_path) == REPLAY_SOURCE_LOADED);
@@ -172,10 +175,92 @@ static void test_resumed_recording_is_itself_resumable(void) {
     remove(resumed_path);
 }
 
+/* Caller frees. */
+static char *read_whole_file(const char *path) {
+    FILE *file = fopen(path, "rb");
+    assert(file);
+    assert(fseek(file, 0, SEEK_END) == 0);
+    long size = ftell(file);
+    assert(size >= 0);
+    rewind(file);
+    char *bytes = malloc((size_t)size + 1);
+    assert(bytes);
+    assert(fread(bytes, 1, (size_t)size, file) == (size_t)size);
+    bytes[size] = '\0';
+    fclose(file);
+    return bytes;
+}
+
+static void test_declared_recording_resumes_declared(void) {
+    const char *source_path = "tmp/test_recording_continuity_declared_source.json";
+    const char *resumed_path = "tmp/test_recording_continuity_declared_resumed.json";
+
+    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path, 1));
+    run_session(source_path, resumed_path, SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT);
+
+    p8_input_t resumed;
+    p8_input_init(&resumed);
+    assert(p8_input_load(&resumed, resumed_path));
+    assert(resumed.keyboard_cursor == 1);
+    assert(resumed.frame_count == SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT);
+    for (int i = 0; i < SOURCE_FRAME_COUNT; i++) {
+        assert_frame_equals(&resumed.frames[i], &source_frames[i]);
+    }
+    for (int i = 0; i < LIVE_FRAME_COUNT; i++) {
+        assert_frame_equals(&resumed.frames[SOURCE_FRAME_COUNT + i], &live_frames[i]);
+    }
+
+    p8_input_free(&resumed);
+    remove(source_path);
+    remove(resumed_path);
+}
+
+static void test_undeclared_recording_resumes_undeclared(void) {
+    const char *source_path = "tmp/test_recording_continuity_undeclared_source.json";
+    const char *resumed_path = "tmp/test_recording_continuity_undeclared_resumed.json";
+
+    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path, 0));
+    run_session(source_path, resumed_path, SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT);
+
+    char *bytes = read_whole_file(resumed_path);
+    assert(!strstr(bytes, "keyboard_cursor"));
+    free(bytes);
+
+    p8_input_t resumed;
+    p8_input_init(&resumed);
+    assert(p8_input_load(&resumed, resumed_path));
+    assert(resumed.keyboard_cursor == 0);
+    p8_input_free(&resumed);
+
+    remove(source_path);
+    remove(resumed_path);
+}
+
+static void test_fresh_session_records_declared(void) {
+    const char *path = "tmp/test_recording_continuity_fresh.json";
+
+    run_session(NULL, path, LIVE_FRAME_COUNT);
+
+    p8_input_t recorded;
+    p8_input_init(&recorded);
+    assert(p8_input_load(&recorded, path));
+    assert(recorded.keyboard_cursor == 1);
+    assert(recorded.frame_count == LIVE_FRAME_COUNT);
+    for (int i = 0; i < LIVE_FRAME_COUNT; i++) {
+        assert_frame_equals(&recorded.frames[i], &live_frames[i]);
+    }
+
+    p8_input_free(&recorded);
+    remove(path);
+}
+
 int main(void) {
     test_recorder_writes_a_loadable_recording();
     test_resumed_session_records_replayed_frames_then_new_ones();
     test_resumed_recording_is_itself_resumable();
+    test_declared_recording_resumes_declared();
+    test_undeclared_recording_resumes_undeclared();
+    test_fresh_session_records_declared();
 
     printf("test_recording_continuity: all tests passed\n");
     return 0;

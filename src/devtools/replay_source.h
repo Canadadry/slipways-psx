@@ -55,6 +55,12 @@ int replay_source_frame_count(const replay_source_t *source);
  * that frame's 0-based position, the number the marker file writes. */
 int replay_source_frames_served(const replay_source_t *source);
 
+/* Whether this session runs the keyboard cursor: 1 for a new game (no
+ * path), the recording's own declaration when one loaded, 0 when the load
+ * failed. A resumed session follows its recording because a file holds one
+ * declaration for all its frames, replayed and live alike. */
+int replay_source_keyboard_cursor(const replay_source_t *source);
+
 /* Serves the next recorded frame, or reports that there are none left.
  * Returns 1 and copies the frame into *out_frame while the recording has
  * one; returns 0 and leaves *out_frame untouched once it is exhausted --

@@ -23,7 +23,7 @@ void raylib_backend_init(raylib_backend_t *backend) {
     char record_path[SESSION_RECORDER_PATH_MAX];
     snprintf(record_path, sizeof(record_path), "tmp/events_recorded_%ld.json", (long)now);
     snprintf(backend->markers_path, sizeof(backend->markers_path), "tmp/events_recorded_%ld.markers.txt", (long)now);
-    session_recorder_open(&backend->recorder, record_path);
+    session_recorder_open(&backend->recorder, record_path, 0);
 
     InitWindow(P8_SCREEN_WIDTH * RAYLIB_BACKEND_SCALE, P8_SCREEN_HEIGHT * RAYLIB_BACKEND_SCALE,
                "Slipways (raylib PC port)");

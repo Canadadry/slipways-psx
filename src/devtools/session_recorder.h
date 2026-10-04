@@ -24,14 +24,16 @@ typedef struct {
     char path[SESSION_RECORDER_PATH_MAX];
     int frame_count;
     long tail_offset;
+    int keyboard_cursor;
 } session_recorder_t;
 
 /* Starts a new, empty recording at `path`. The file is created by the
  * first recorded frame, not here, so a session that plays nothing leaves
  * no file; an existing file at `path` is truncated by that first frame,
  * never appended to. `path` must be shorter than
- * SESSION_RECORDER_PATH_MAX -- a longer one aborts. */
-void session_recorder_open(session_recorder_t *recorder, const char *path);
+ * SESSION_RECORDER_PATH_MAX -- a longer one aborts. `keyboard_cursor`
+ * (0 or 1) is the declaration written in the recording's head. */
+void session_recorder_open(session_recorder_t *recorder, const char *path, int keyboard_cursor);
 
 /* Adds one played frame to the recording, replayed or live alike -- this
  * module never asks which, which is what keeps a resumed session's file
