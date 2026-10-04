@@ -1,0 +1,33 @@
+Keyboard only: cheat typed in game, tech screen, "space folding"
+invented. 90 frames.
+
+Keyboard cursor declared. The mouse stays at the start position (76,70)
+with no button in every frame: the cursor starts there and only the
+directions, O and X move or click it. Frame 0 is idle because a button
+cannot rise on the layer's first frame.
+
+- f1: tap O at (76,70), "reasonable" on the title screen.
+- f3: tap X at (76,70). The title click was an O edge, so the cheat
+  matcher stood at 1: this X brings it back to 0, otherwise O O X X ...
+  would fail on its third O. Count the O and X edges since the last
+  reset. The right click without movement drags the map by zero.
+- f5-19: O O X X O O X X, one tap every two frames, cursor still at
+  (76,70). The cheat fires at f19: $200, 99 research.
+- f21-61: move to (4,4). f62: tap O, tech screen `ix[2]`.
+- f64-65: wait. f66-83: move to (30,24), on the "space folding" row.
+  f84: tap O: "space folding" invented.
+- f86-89: wait. `make state`: `techs space folding`, 1 tech, $200,
+  95 research, JAN 3401.
+
+The cheat's four O taps on the map place no probe: each press makes
+one, but p68 sits 11 px from (76,70), so it is refused (red hatched
+disk around p68 in the dump at f5) and dies on release. Checked: credits
+stay $200 and the clock does not move, and O then held 16 frames at
+(68,20) confirms no space fold, which it does after a probe placed at
+(86,32).
+
+The cheat typed on the title screen would be lost: starting a game
+replaces its economy. Mirrors the mouse replays `cheat_code` and
+`tech_xenofoods_recipes`.
+
+Human review in raylib: pending.

@@ -1,0 +1,21 @@
+Keyboard only: title, pause menu, "restart", title again, new game.
+107 frames.
+
+Keyboard cursor declared. The mouse stays at the start position (76,70)
+with no button in every frame: the cursor starts there and only the
+directions and O move or click it. Frame 0 is idle because a button
+cannot rise on the layer's first frame.
+
+- f1: tap O at (76,70), "reasonable" on the title screen.
+- f3-44: move to (2,111). f45: tap O, the pause button `ix[4]`: the
+  menu opens, "how to play?" visible from f46.
+- f47-49: wait. f50-57: move to (10,104). f58: tap O, "restart": back
+  to the title screen (`make state` at f59: clock "-", 0 planets).
+- f60-62: wait. f63-100: move to (76,82), the "challenging" row lit.
+  f101: tap O, "challenging".
+- f102-106: a new game, top bar at JAN 3401, `make state`: 90 planets,
+  0 colonies, $100.
+
+Mirrors the mouse replay `pause_restart`.
+
+Human review in raylib: pending.
