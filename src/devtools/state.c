@@ -216,6 +216,7 @@ static void write_zones(FILE *out) {
     write_zone(out, "frame", frame_zone_used(), frame_zone_max(), FRAME_ZONE_BYTES);
     write_zone(out, "ui", ui_zone_used(), ui_zone_max_used(), ui_zone_reserved());
     write_zone(out, "particles", particle_zone_used(), particle_zone_max_used(), particle_zone_reserved());
+    fprintf(out, "budget zones %lu %lu\n", (unsigned long)ZONE_BUDGET_USED_BYTES, (unsigned long)ZONE_BUDGET_BYTES);
 }
 
 static void write_peak(FILE *out, const char *name, size_t peak, size_t limit) {

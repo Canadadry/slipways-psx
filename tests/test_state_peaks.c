@@ -94,11 +94,33 @@ static void test_missing_state_fails(void) {
     assert(strstr(read_file(LOG), "state: b.json stopped") != NULL);
 }
 
+static void test_budget_line_is_copied_and_bytes_left_printed(void) {
+    reset();
+    write_file(DIR "/a.txt", "zone game 1 100 1000\nbudget zones 784452 786432\n");
+    write_file(DIR "/b.txt", "zone game 1 50 1000\nbudget zones 784452 786432\n");
+    assert(run("a.json " DIR "/a.txt b.json " DIR "/b.txt") == 0);
+    const char *out = read_file(OUT);
+    const char *budget = strstr(out, "budget zones 784452 786432\n");
+    assert(budget != NULL);
+    assert(strstr(budget + 1, "budget zones") == NULL && "copied once");
+    assert(strstr(read_file(LOG), "state: 1980 bytes left under ZONE_BUDGET_BYTES\n") != NULL);
+}
+
+static void test_no_budget_line_prints_no_bytes_left(void) {
+    reset();
+    write_file(DIR "/a.txt", "zone game 1 100 1000\n");
+    assert(run("a.json " DIR "/a.txt") == 0);
+    assert(strstr(read_file(OUT), "budget") == NULL);
+    assert(strstr(read_file(LOG), "bytes left") == NULL);
+}
+
 int main(void) {
     test_highest_peak_is_kept_with_its_replay_and_limit();
     test_tie_keeps_the_first_replay();
     test_stopped_replay_fails_is_named_and_table_still_written();
     test_missing_state_fails();
+    test_budget_line_is_copied_and_bytes_left_printed();
+    test_no_budget_line_prints_no_bytes_left();
     assert(system("rm -rf " DIR) == 0);
     printf("test_state_peaks: all tests passed\n");
     return 0;

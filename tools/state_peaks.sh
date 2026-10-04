@@ -3,7 +3,8 @@
 # Writes <out> in every case: one `replay <events> clean|stopped ...|no state`
 # line per pair, then one `<zone|cap> <name> <peak> <limit> <events>` line per
 # zone and cap, the highest peak over every state (a tie keeps the first
-# pair). Exit 1, with `state: <events> stopped`, when a state is missing or
+# pair), then the first `budget zones <sum> <limit>` line, whose bytes left
+# go to stdout. Exit 1, with `state: <events> stopped`, when a state is missing or
 # starts with `stopped`.
 
 set -u
@@ -41,9 +42,14 @@ if [ -n "$awk_args" ]; then
             if (!(key in peak)) { order[++keys] = key; peak[key] = -1 }
             if ($4 + 0 > peak[key]) { peak[key] = $4 + 0; limit[key] = $5; holder[key] = replay }
         }
-        END { for (i = 1; i <= keys; i++) print order[i], peak[order[i]], limit[order[i]], holder[order[i]] }
+        $1 == "budget" && $2 == "zones" && NF == 4 && budget == "" { budget = $0 }
+        END {
+            for (i = 1; i <= keys; i++) print order[i], peak[order[i]], limit[order[i]], holder[order[i]]
+            if (budget != "") print budget
+        }
     ' $awk_args >> "$out.tmp"
 fi
 
 mv "$out.tmp" "$out"
+awk '$1 == "budget" { print "state: " $4 - $3 " bytes left under ZONE_BUDGET_BYTES" }' "$out"
 exit $failed
