@@ -331,6 +331,9 @@ $(TMP_DIR)/test_float_guard: $(call objs,tests/test_float_guard.c) tools/float_g
 $(TMP_DIR)/test_alloc_guard: $(call objs,tests/test_alloc_guard.c) tools/alloc_guard.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_pointer_guard: $(call objs,tests/test_pointer_guard.c) tools/pointer_guard.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_float_grep: $(call objs,tests/test_float_grep.c) tools/float_grep.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -577,6 +580,7 @@ UNIT_TESTS := \
     test_state_peaks \
     test_float_guard \
     test_alloc_guard \
+    test_pointer_guard \
     test_float_grep \
     test_float_link \
     test_constants_check \
