@@ -14,9 +14,6 @@
 #include "engine/frame_zone.h"
 
 
-/* The countdown the year banner's keep_open callback captures. One static is
- * enough: the banner's keep_open is replaced wholesale by every call that
- * sets it, so only one such callback is ever live. */
 static int g_score_panel_new_year_keep_open = 0;
 
 static int score_panel_new_year_keep_open_method(message_box_t *self) {
@@ -77,8 +74,6 @@ void score_panel_new_year(p8_fixed_t year) {
     }
 }
 
-/* The panel toggle's body: score_panel_update() stores it in a button, the
- * galaxy menu in a backdrop, each through the variant of its own type. */
 static void score_panel_toggle_visibility(void) {
     score_panel_t *ju = main_score_panel();
     if (ju != NULL) {
@@ -98,8 +93,6 @@ static void score_panel_toggle_button_on_click_method(button_t *self) {
     score_panel_toggle_visibility();
 }
 
-/* The box's owner is always the main score panel, built once per game by
- * cart_start_game(), so reading its is_shown here is reading the owner's. */
 static int score_panel_update_keep_open_method(message_box_t *self) {
     const score_panel_t *ju = main_score_panel();
     (void)self;
@@ -110,7 +103,6 @@ typedef struct {
     const final_score_t *final_score;
 } score_panel_update_ctx_t;
 
-/* The final score's given entry as text, in the frame zone. */
 static char *score_panel_final_score_text(const final_score_t *s, int i) {
     switch (i) {
     case 1:
@@ -131,7 +123,6 @@ static char *score_panel_final_score_text(const final_score_t *s, int i) {
     }
 }
 
-/* A draw_row article and its items, in one block. */
 typedef struct {
     data_row_t row;
     data_item_t items[3];
@@ -142,9 +133,6 @@ static void score_panel_update_set(score_row_t *st, int i, data_item_t item) {
     st->has_value[i - 1] = 1;
 }
 
-/* One score row as score_panel_update() shows it: a row without a score is
- * its own article; one with a score gets that score's text at 3 (and more
- * for scores 0 and 6), then becomes the line of a draw_row article. */
 static const data_row_t *score_panel_update_map(score_row_t *score_row, const score_panel_update_ctx_t *context) {
     int score_i;
     char *score_text;
@@ -270,9 +258,7 @@ void score_panel_update(score_panel_t *self) {
         int is_shown = self != NULL && self->has_is_shown && self->is_shown;
         int last_box_equals_shown_message_box = 0;
 
-        /* A NULL last_box is the class default, the number 1, which is never
-         * the shown box, not even a NULL one: without the NULL test, NULL ==
-         * NULL would keep the block from firing on the first eligible tick. */
+        /* Without the NULL test, NULL == NULL would fire on the first eligible tick. */
         if (self != NULL) {
             last_box_equals_shown_message_box = self->last_box != NULL && shown_message_box() == self->last_box;
         }

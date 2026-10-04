@@ -35,8 +35,6 @@ static int targeting_track_target_is_holder_class(const entity_class_t *cls) {
 
 static const entity_class_t targeting_track_target_class_def = {0};
 
-/* The target targeting_track sets over the void, off the panel: never
- * allocated nor freed; only targeted_by is written, overwritten next time. */
 static targeting_track_target_t g_targeting_track_target = {{.class = &targeting_track_target_class_def}, NULL};
 
 static int probe_to_int(p8_fixed_t x) {
@@ -65,8 +63,6 @@ static int targeting_track_slipway_predicate(entity_t *e, void *ctx_ptr) {
     return geom_near_segment(start_p, end_p, ctx->self_map_pos, P8_FIXED_LIT(0x000000d1, 0.0032));
 }
 
-/* The panel box is read off the UI archetype, not off main_ui(); while the
- * UI module is down there is none: the point reads as outside it. */
 static int probe_panel_box_contains(vec_t rp) {
     const box_t *hw = ui_panel_box();
 
@@ -76,8 +72,6 @@ static int probe_panel_box_contains(vec_t rp) {
     return box_contains(hw, rp);
 }
 
-/* pos and map_pos, which a host of targeting_track holds for itself: the
- * probe line, the planet family or a wormhole. */
 static void probe_host_set_positions(entity_t *self, vec_t *ra, vec_t *p) {
     probe_t *g_;
     planet_t *jo;
@@ -102,8 +96,6 @@ static void probe_host_set_positions(entity_t *self, vec_t *ra, vec_t *p) {
     mz->map_pos = p;
 }
 
-/* What targeting_track aims at: the node tag (planets, and the structure
- * classes: exactly those with a settled state), a slipway, or the throwaway. */
 static int probe_is_target_class(const entity_class_t *cls) {
     return cls->states[ENTITY_STATE_SETTLED] != NULL || cls == planet_class() ||
            cls == slipway_class() || cls == targeting_track_target_class();
@@ -206,8 +198,6 @@ void targeting_track_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_scr
     targeting_track(self, mouse_world, mouse_screen);
 }
 
-/* The status_text of the tooltip's target: the wormhole's and the slipway's
- * too-far structs have one; any other target reads as absent, NULL. */
 static const char *probe_target_status_text(const entity_t *et) {
     if (et->class == wormhole_too_far_target_class()) {
         return ((const wormhole_too_far_target_t *)et)->status_text;
@@ -264,8 +254,6 @@ void targeting_tooltip_method(entity_t *self, const vec_t *screen_pos) {
     targeting_tooltip(dispatch_context_gfx(), dispatch_context_mem(), self);
 }
 
-/* Raises is_dead, which a host of targeting_confirm holds for itself: the
- * probe line, the planet family, a slipway or a wormhole. */
 static void probe_host_raise_is_dead(entity_t *self) {
     assert(self->is_dead != NULL && "targeting_confirm: a host that carries no is_dead, none of whose drop runs it -- stop");
     *self->is_dead = 1;
@@ -330,8 +318,7 @@ particle_t *probe_spawn_particle(entity_t *self) {
         pk = emitter->archetype->quarter_turn != 0;
     }
 
-    /* Two statements, not two arguments: C leaves argument order unspecified
-     * (gcc drew rnd(0.5) first), and rnd(angle_slices) must come first. */
+    /* Two statements: C leaves argument order unspecified, and rnd(angle_slices) must come first. */
     rnd_angle_slices = p8_fixed_rnd(angle_slices);
     rnd_half = p8_fixed_rnd(P8_FIXED_LIT(0x00008000, 0.5));
     a = p8_fixed_add(

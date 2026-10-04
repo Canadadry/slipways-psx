@@ -12,7 +12,6 @@
 #include "game/tech_gate.h"
 #include "engine/frame_zone.h"
 
-/* In the frame zone. */
 static char *research_project_tooltip_join(const research_project_t *self) {
     const pointer_list_t *i_list;
     size_t capacity = 16;
@@ -63,7 +62,6 @@ static char *research_project_tooltip_join(const research_project_t *self) {
     return names;
 }
 
-/* A project's tooltip, its one line and their items, in one block. */
 typedef struct {
     data_row_t outer;
     data_item_t outer_item;
@@ -105,7 +103,6 @@ const data_row_t *research_project_tooltip(const research_project_t *self) {
     return &jb->outer;
 }
 
-/* A tuple of the layout row and its items, in one block of the frame zone. */
 typedef struct {
     data_row_t row;
     data_item_t items[4];
@@ -186,8 +183,6 @@ layout_row_t *research_display_planet_resource_row(const allocator_t *zone, cons
             tuple->items[0] = qe.kind == RESOURCE_FIXED ? planet_resource_row_fixed(qe.number)
                                                            : (data_item_t){.is_ref = 1};
             tuple->items[1] = planet_resource_row_fixed(p8_fixed_sub(p8_fixed_from_int(3), p8_fixed_from_int(crowded)));
-            /* `satisfied` 0 draws in color 7; any other value, or none, in
-             * color 0 -- not the reverse. */
             tuple->items[2] = planet_resource_row_fixed(p8_fixed_from_int(gc_zero ? 7 : 0));
             cells[l_count++] = layout_row_cell_row(&tuple->row);
         }
@@ -292,8 +287,6 @@ layout_row_t *research_project_layout_row(research_project_t *self) {
     return l;
 }
 
-/* A planet type name is one character wide by construction, so matching it
- * in `planet_codes` is a plain char comparison -- no string identity. */
 static int available_projects_predicate(const research_project_t *b, const entity_t *planet_instance) {
     const char *name_str = NULL;
     int mg = 0;

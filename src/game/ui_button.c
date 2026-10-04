@@ -45,7 +45,6 @@ static void button_draw_method(entity_t *self, const vec_t *screen_pos) {
     button_draw(dispatch_context_gfx(), dispatch_context_mem(), (button_t *)self, p);
 }
 
-/* The hit test is the generic one of entity_geom: the cursor in the box. */
 static int button_hit_test_method(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen) {
     return entity_geom_contains_cursor(self, mouse_world, mouse_screen);
 }
@@ -56,8 +55,6 @@ static down_t button_left_press_method(entity_t *self, vec_t *mouse_world, vec_t
     return button_left_press((button_t *)self);
 }
 
-/* `refresh` is the row's own callback, set by only one galaxy menu row: a
- * button without one has no `refresh` and stays out of that message. */
 static int button_has_refresh(const entity_t *self) {
     return ((const button_t *)self)->refresh != NULL;
 }
@@ -166,8 +163,6 @@ button_t *button_new(const button_keys_t *keys) {
     return button_create(keys);
 }
 
-/* The button's layout row: built from a row's keys, else a copy of a
- * `layout_row_t`, else an empty row. */
 static layout_row_t *button_layout_row(const allocator_t *slot, const layout_row_t *copy,
                                const layout_row_keys_t *row) {
     if (row != NULL) {

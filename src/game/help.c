@@ -33,10 +33,8 @@ static int help_screen_hit_test_method(entity_t *self, const vec_t *mouse_world,
     return entity_geom_contains_cursor(self, mouse_world, mouse_screen);
 }
 
-/* The most items a row of difficulty_options_table holds. */
 #define HELP_DIFFICULTY_OPTIONS_ROW_CAP 4
 
-/* Opens the difficulty box; each button's on_click starts this game. */
 void help_screen_construct(probe_t *self) {
     button_keys_t bs[DIFFICULTY_OPTIONS_COUNT];
     layout_row_keys_t lq[DIFFICULTY_OPTIONS_COUNT];
@@ -70,7 +68,6 @@ void help_screen_construct(probe_t *self) {
     message_box_open_box(&frame, bs, DIFFICULTY_OPTIONS_COUNT);
 }
 
-/* The help screen's rows hold four articles. */
 enum { HELP_SCREEN_ROWS_CAP = 4 };
 
 void help_screen_draw(p8_graphics_t *gfx, p8_vram_t *mem, probe_t *self, vec_t p) {
@@ -124,7 +121,6 @@ static probe_t *screen_create(void) {
     return self;
 }
 
-/* The probe class comes from probe_init(): asserted, not repaired. */
 void help_init(void) {
     assert(probe_ready() && "help_init() runs after probe_init()");
 
