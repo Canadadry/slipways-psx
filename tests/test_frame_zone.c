@@ -481,7 +481,7 @@ int main(int argc, char **argv) {
     expect_poison_crash("update60_resets");
     expect_clean("list_alive_within_frame");
     expect_poison_crash("list_dead_next_frame");
-    expect_fatal("full", "zone frame full, limit 262144 bytes");
+    expect_fatal("full", "zone frame full, limit 20256 bytes");
     expect_clean("alive_before_mark");
     expect_poison_crash("dead_after_rewind");
     expect_clean("rewind_gives_room_back");

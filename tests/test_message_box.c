@@ -137,12 +137,14 @@ static int any_listed(const run_t *run) {
     return 0;
 }
 
-/* One game tick: update_entities(), then draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY) on a
- * fresh framebuffer, folded with every tracked box's state. */
+/* One game tick: frame_zone_reset() and update_entities() as cart_update60()
+ * does them, then draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY) on a fresh
+ * framebuffer, folded with every tracked box's state. */
 static void tick(run_t *run) {
     uint32_t drawn;
     int i;
 
+    frame_zone_reset();
     update_entities();
     drawn = draw_hash();
     p8_cls(&memory);

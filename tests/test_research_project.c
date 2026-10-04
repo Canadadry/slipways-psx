@@ -40,6 +40,7 @@
 #include "game/ui.h"
 #include "engine/vec.h"
 #include "engine/zone.h"
+#include "engine/frame_zone.h"
 #include "engine/game_zone.h"
 
 /* Project 12, a colony that needs two resources and exports one; project 3,
@@ -517,6 +518,7 @@ static uint32_t fold_functions(uint32_t h) {
         const data_row_t *jb = research_project_tooltip(b);
         uint32_t layout_row_h;
 
+        frame_zone_reset();
         h = fnv(h, (uint32_t)k);
         h = fnv(h, (uint32_t)(po == NULL ? -2 : (int)(po - production_tables_table)));
         h = fnv(h, (uint32_t)research_project_cost(b));

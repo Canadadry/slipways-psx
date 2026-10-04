@@ -489,7 +489,10 @@ static void test_planet_resource_row(void) {
         assert(p->has_output);
         o = p->output;
         for (b = 0; b < sizeof jqs / sizeof jqs[0]; b++) {
-            const void *lq = research_display_planet_resource_row(frame_zone(), is, &o, p8_fixed_from_int(jqs[b]),
+            const void *lq;
+
+            frame_zone_reset();
+            lq = research_display_planet_resource_row(frame_zone(), is, &o, p8_fixed_from_int(jqs[b]),
                                          p8_fixed_from_int((int)b % 3), p8_fixed_from_int((int)b % 2));
             assert(lq != NULL);
             assert(as_layout_row(lq)->has_color == (jqs[b] > 5));

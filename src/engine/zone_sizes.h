@@ -4,7 +4,7 @@
 /* Real sizes in bytes, without the two halves the ASan build reserves for
  * the frame zone: the budget measures what the PSX will pay.
  * Reserves no memory. */
-#define FRAME_ZONE_BYTES (256u * 1024u)
+#define FRAME_ZONE_BYTES 20256u
 #define UI_ZONE_BYTES (335u * 1024u)
 #define PARTICLES_ZONE_BYTES (128u * 1024u)
 #define GAME_ZONE_BYTES (768u * 1024u)
