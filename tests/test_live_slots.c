@@ -21,6 +21,7 @@
 #include "game/background.h"
 #include "game/cart.h"
 #include "game/cheat.h"
+#include "engine/entity_id.h"
 #include "engine/dispatch_context.h"
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
@@ -570,11 +571,6 @@ static size_t list_bytes_from(const entity_list_t *list, int first) {
     return bytes;
 }
 
-/* A list made empty: capacities 4, 8, ... NULL: none. */
-static size_t registry_bytes(const entity_list_t *list) {
-    return list != NULL ? list_bytes_from(list, 4) : 0;
-}
-
 /* The registries of a game, each taken at its reserve by cart_start_game. */
 static size_t registries_bytes(void) {
     const entity_registry_reserve_t *rv = &cart_game_registry_reserve;
@@ -592,9 +588,15 @@ static size_t block_bytes(size_t size) {
 
 /* Bytes of a planet list made in the generation: its container, then its
  * blocks as for a registry. */
-static size_t planet_list_bytes(const entity_list_t *list) {
+static size_t id_list_bytes(const entity_id_list_t *list) {
+    size_t bytes = 0;
+    for (int k = 4; list != NULL && k <= list->capacity; k *= 2) bytes += block_bytes((size_t)k * sizeof(entity_id_t));
+    return bytes;
+}
+
+static size_t planet_list_bytes(const entity_id_list_t *list) {
     if (list == NULL) return 0;
-    return block_bytes(sizeof *list) + registry_bytes(list);
+    return block_bytes(sizeof *list) + id_list_bytes(list);
 }
 
 static size_t route_list_bytes(const trade_route_list_t *list) {
@@ -925,7 +927,7 @@ static planet_t *planet_targeted_by(const entity_t *held) {
     const entity_list_t *np = entities_by_tag(TAG_NODE);
     for (int i = 0; np != NULL && i < np->count; i++) {
         planet_t *p = (planet_t *)np->items[i];
-        if (p->targeted_by == held) return p;
+        if (entity_get(p->targeted_by) == held) return p;
     }
     return NULL;
 }
@@ -949,13 +951,13 @@ static void offscreen_planet_forgets_refused_grab(void) {
     p34->pos = &far;
     assert(!entity_geom_is_on_screen(&p34->header) && "p34 is off screen");
     cart_draw();
-    assert(p34->targeted_by == held && "off screen, the draw leaves targeted_by set");
+    assert(entity_get(p34->targeted_by) == held && "off screen, the draw leaves targeted_by set");
     if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
     g_frame++;
     while (g_frame <= 27) play_one_frame(1);
     play_one_frame(0);
     assert(main_ui()->left_held == held && "f28: the next grab reuses the arena, at the same address");
-    assert(p34->targeted_by == NULL && "an off-screen planet's targeted_by points at a refused, recycled grab");
+    assert(entity_get(p34->targeted_by) == NULL && "an off-screen planet's targeted_by points at a refused, recycled grab");
 }
 
 static void refused_grab_crosses_new_game(void) {
@@ -984,7 +986,7 @@ static void held_slipway_does_not_grow_game(void) {
     const slipway_t *held = held_slipway();
     const size_t f36 = game_zone_used();
     play_until(45);
-    assert(held_slipway() == held && held->end == &held->point.header && "f45: held over empty space");
+    assert(held_slipway() == held && slipway_end(held) == &held->point.header && "f45: held over empty space");
     printf("  held slipway f36/f45: game = %lu/%lu\n", (unsigned long)f36, (unsigned long)game_zone_used());
     assert(game_zone_used() == f36 && "a held slipway allocates every frame");
 }
@@ -1000,7 +1002,7 @@ static void refused_slipways_do_not_grow_game(void) {
 }
 
 static size_t slipways_of_p27_and_p48_bytes(void) {
-    return registry_bytes(planet_with_id("p27")->slipways) + registry_bytes(planet_with_id("p48")->slipways);
+    return id_list_bytes(planet_with_id("p27")->slipways) + id_list_bytes(planet_with_id("p48")->slipways);
 }
 
 /* The f4 wormhole's arena, free since f48, is too small for a slipway: the
@@ -1043,10 +1045,10 @@ static void offscreen_planet_forgets_refused_slipway(void) {
     if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
     g_frame++;
     play_until(354);
-    assert(p->targeted_by == &held->header && "off screen, the draw leaves targeted_by set");
+    assert(entity_get(p->targeted_by) == &held->header && "off screen, the draw leaves targeted_by set");
     play_until(355);
     printf("  refused slipway: targeted_by of %s cleared by the f355 flush\n", p->planet_id);
-    assert(p->targeted_by == NULL && "an off-screen planet's targeted_by points at a refused, released slipway");
+    assert(entity_get(p->targeted_by) == NULL && "an off-screen planet's targeted_by points at a refused, released slipway");
 }
 
 static void refused_slipway_crosses_new_game(void) {
@@ -1171,13 +1173,13 @@ static void offscreen_planet_forgets_refused_probe(void) {
     p34->pos = &far;
     assert(!entity_geom_is_on_screen(&p34->header) && "p34 is off screen");
     cart_draw();
-    assert(p34->targeted_by == held && "off screen, the draw leaves targeted_by set");
+    assert(entity_get(p34->targeted_by) == held && "off screen, the draw leaves targeted_by set");
     if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
     g_frame++;
     while (g_frame <= 78) play_one_frame(1);
     play_one_frame(0);
     assert(main_ui()->left_held == held && "f79: the next probe reuses the arena, at the same address");
-    assert(p34->targeted_by == NULL && "an off-screen planet's targeted_by points at a refused, recycled probe");
+    assert(entity_get(p34->targeted_by) == NULL && "an off-screen planet's targeted_by points at a refused, recycled probe");
 }
 
 /* f90: the anchors of the held wormhole keep only placed probes; the placed
@@ -1188,7 +1190,7 @@ static void wormhole_targets_only_placed_probe(void) {
     const wormhole_t *mz = held_wormhole();
     const probe_t *placed = NULL;
     for (int i = 0; i < mz->anchors->count; i++) {
-        const entity_t *e = mz->anchors->items[i];
+        const entity_t *e = entity_id_list_at(mz->anchors, i);
         if (e->class != probe_class()) continue;
         assert(placed == NULL && e->state == ENTITY_STATE_SETTLED && "the anchors keep a single probe, a placed one");
         placed = (const probe_t *)e;

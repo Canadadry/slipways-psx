@@ -422,15 +422,14 @@ game. If the planet comes back on screen, the cart draws one more halo
 with that dead object's `attach_distance`.
 
 The port releases the object through the exit queue and recycles its
-arena, so reading `targeted_by` again would be a use after free. `forget`
-(`src/game/cart.c`) therefore resets to nil the `targeted_by` of every
-entity with the `node` tag that targets the released object, and that
-halo is not drawn. In the "vanishing" state there is no difference: from
-t ≥ 60 on, `planet_draw` always returns before reading `targeted_by`. No
-e2e reaches this case.
+arena. The planet's `targeted_by` is an entity id: after the flush that
+releases the held object, it resolves to NULL, and that halo is not
+drawn. In the "vanishing" state there is no difference: from t ≥ 60 on,
+`planet_draw` always returns before reading `targeted_by`. No e2e reaches
+this case.
 
-Files: `src/game/cart.c` (`forget`), `src/game/planet.c`
-(`planet_forget_targeted_by`).
+Files: `src/game/planet_display.c` (`planet_draw`), `src/game/probe.c`
+(`probe_link_target`).
 
 ## GAP-27 — The camera never shows anything outside the background grid
 

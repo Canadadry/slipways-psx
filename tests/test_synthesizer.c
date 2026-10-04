@@ -16,6 +16,7 @@
 #include <unistd.h>
 
 #include "p8/assets.h"
+#include "engine/entity_id.h"
 #include "engine/bootstrap.h"
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
@@ -141,7 +142,7 @@ static int pointer_list_size(const pointer_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
-static int entity_list_count(const entity_list_t *l) {
+static int id_list_count(const entity_id_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
@@ -365,7 +366,7 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(structure->archetype->accepted_resources != NULL));
-    hash = fnv(hash, structure->targeting->target != NULL ? 1u : 0u);
+    hash = fnv(hash, targeting_target(structure->targeting) != NULL ? 1u : 0u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
@@ -389,7 +390,7 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     hash = fnv(hash, (uint32_t)(planet->planet_type != NULL));
     hash = fnv(hash, (uint32_t)(planet->fold_anchor != 0));
     hash = fnv(hash, (uint32_t)(planet->layout_row != NULL));
-    hash = fnv(hash, (uint32_t)(planet->targeted_by != NULL));
+    hash = fnv(hash, (uint32_t)(entity_get(planet->targeted_by) != NULL));
     hash = fnv(hash, (uint32_t)planet->has_production_bonus);
     hash = fnv(hash, (uint32_t)(planet->is_dead != 0));
     hash = fnv(hash, (uint32_t)planet->has_net_income);
@@ -416,7 +417,7 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     assert(research_projects_at(5) != NULL);
     assert(research_project_get(planet->project) == research_projects_at(5));
     hash = fold_production(hash, planet);
-    hash = fnv(hash, (uint32_t)entity_list_count(planet->slipways));
+    hash = fnv(hash, (uint32_t)id_list_count(planet->slipways));
     hash = fnv(hash, (uint32_t)pointer_list_size(planet->needs));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), entity));
     for (index = 0; index < sizeof messages / sizeof messages[0]; index++) {
@@ -552,12 +553,12 @@ static void *join(void *qu, void *synthesizer) {
     slipway_keys_t slipway_keys = {0};
     void *jc;
 
-    slipway_keys.start = qu;
+    slipway_keys.start = entity_id_link(qu);
     jc = slipway_new(&slipway_keys);
     assert(jc != NULL);
     set_credits(999);
     class_of(jc)->drop(jc, synthesizer);
-    assert(entity_list_listed(as_ascension(synthesizer)->slipways, jc));
+    assert(entity_id_list_has(as_ascension(synthesizer)->slipways, entity_id_of(jc)));
     return jc;
 }
 
@@ -583,7 +584,7 @@ static uint32_t fold_attach_slipway(uint32_t h, void *e) {
     h = fold_production(h, jo);
     h = fold_fixed_member(h, jo->shake);
     h = (jo->fold_anchor != 0) ? fold_bool_member(h, jo->fold_anchor) : fold_absent(h);
-    return fnv(h, (uint32_t)entity_list_count(jo->slipways));
+    return fnv(h, (uint32_t)id_list_count(jo->slipways));
 }
 
 /* synthesizer_attach_slipway on a slipway from an ascension whose needs

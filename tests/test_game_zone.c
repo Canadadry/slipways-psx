@@ -124,11 +124,6 @@ static size_t list_bytes_from(const entity_list_t *list, int first) {
     return bytes;
 }
 
-/* A list made empty: capacities 4, 8, ... NULL: none. */
-static size_t registry_bytes(const entity_list_t *list) {
-    return list != NULL ? list_bytes_from(list, 4) : 0;
-}
-
 /* The registries of a game, each taken at its reserve by cart_start_game. */
 static size_t registries_bytes(void) {
     const entity_registry_reserve_t *rv = &cart_game_registry_reserve;
@@ -146,9 +141,11 @@ static size_t block_bytes(size_t size) {
 
 /* Bytes of a planet list made in the generation: its container, then its
  * blocks as for a registry. */
-static size_t planet_list_bytes(const entity_list_t *list) {
+static size_t planet_list_bytes(const entity_id_list_t *list) {
+    size_t bytes = 0;
     if (list == NULL) return 0;
-    return block_bytes(sizeof *list) + registry_bytes(list);
+    for (int k = 4; k <= list->capacity; k *= 2) bytes += block_bytes((size_t)k * sizeof(entity_id_t));
+    return block_bytes(sizeof *list) + bytes;
 }
 
 static size_t route_list_bytes(const trade_route_list_t *list) {

@@ -1,7 +1,7 @@
 #ifndef GAME_PLANET_H
 #define GAME_PLANET_H
 
-#include "engine/entity_list.h"
+#include "engine/entity_id_list.h"
 #include "p8/fixed.h"
 #include "game/game_data.h"
 #include "game/gen.h"
@@ -21,7 +21,7 @@ typedef struct {
     const char *planet_id;
     vec_t *map_pos;
     vec_t *pos;
-    entity_list_t *slipways;
+    entity_id_list_t *slipways;
     research_project_id_t project;
     const char *description;
     pointer_list_t *needs;
@@ -29,7 +29,7 @@ typedef struct {
     p8_fixed_t fold_anchor;
     layout_row_t *layout_row;
     const allocator_t *layout_row_slot;
-    entity_t *targeted_by;
+    entity_id_t targeted_by;
     p8_fixed_t production_bonus;
     int has_production_bonus;
     int is_dead;
@@ -74,7 +74,6 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
 size_t planet_kind_construction_bytes(const entity_kind_t *kind);
 
 void planet_grab_arena_released(const planet_t *self);
-void planet_forget_targeted_by(const entity_t *e);
 
 void planet_construct(planet_t *self);
 void planet_construct_in(planet_t *self, const allocator_t *zone);

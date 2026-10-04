@@ -6,6 +6,7 @@
 #include "game/economy.h"
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
+#include "engine/entity_id.h"
 #include "p8/fixed.h"
 #include "game/main_economy.h"
 #include "engine/geom.h"
@@ -35,7 +36,7 @@ static int targeting_track_target_is_holder_class(const entity_class_t *cls) {
 
 static const entity_class_t targeting_track_target_class_def = {0};
 
-static targeting_track_target_t g_targeting_track_target = {{.class = &targeting_track_target_class_def}, NULL};
+static targeting_track_target_t g_targeting_track_target = {{.class = &targeting_track_target_class_def}, {0, 0}};
 
 static int probe_to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
@@ -57,8 +58,8 @@ static int targeting_track_slipway_predicate(entity_t *e, void *ctx_ptr) {
     assert(e->class == slipway_class() && "the slipway tag holds slipways only");
     sw = (const slipway_t *)e;
 
-    start_p = slipway_end_map_pos(sw->start);
-    end_p = slipway_end_map_pos(sw->end);
+    start_p = slipway_end_map_pos(slipway_start(sw));
+    end_p = slipway_end_map_pos(slipway_end(sw));
 
     return geom_near_segment(start_p, end_p, ctx->self_map_pos, P8_FIXED_LIT(0x000000d1, 0.0032));
 }
@@ -106,7 +107,7 @@ void probe_link_target(entity_t *et, entity_t *self) {
         assert((self->class->drag == targeting_track_method || self->class == slipway_class()) &&
                "probe_link_target: a planet's targeted_by takes NULL, a host whose drag is targeting_track_method "
                "or a slipway, nothing else -- stop, do not widen the member");
-        ((planet_t *)et)->targeted_by = self;
+        ((planet_t *)et)->targeted_by = entity_id_link(self);
         return;
     }
     if (et->class == slipway_class()) {
@@ -114,21 +115,53 @@ void probe_link_target(entity_t *et, entity_t *self) {
                 self->class == wormhole_class()) &&
                "probe_link_target: a slipway's targeted_by takes NULL, a host whose drag is targeting_track_method, "
                "a wormhole or another slipway, nothing else -- stop");
-        ((slipway_t *)et)->targeted_by = self;
+        ((slipway_t *)et)->targeted_by = entity_id_link(self);
         return;
     }
     if (et->class == slipway_too_far_class()) {
         assert(self->class == slipway_class() &&
                "probe_link_target: the too-far slipway struct's targeted_by takes NULL or a slipway, nothing else "
                "-- stop, do not widen the member");
-        ((slipway_too_far_t *)et)->targeted_by = (slipway_t *)self;
+        ((slipway_too_far_t *)et)->targeted_by = entity_id_link(self);
         return;
     }
     assert(et == &g_targeting_track_target.header && "probe_link_target: the target is a planet, a slipway or the static throwaway struct, nothing else");
     assert(targeting_track_target_is_holder_class(self->class) &&
            "probe_link_target: the throwaway target's targeted_by takes NULL, a host whose drag is "
            "targeting_track_method or a wormhole, nothing else -- stop, do not widen the member");
-    g_targeting_track_target.targeted_by = self;
+    g_targeting_track_target.targeted_by = entity_id_link(self);
+}
+
+entity_t *targeting_target(const targeting_t *self) {
+    switch (self->target.kind) {
+    case TARGETING_TARGET_ENTITY:
+        return entity_get(self->target.id);
+    case TARGETING_TARGET_TRACK_THROWAWAY:
+        return &g_targeting_track_target.header;
+    case TARGETING_TARGET_SLIPWAY_TOO_FAR:
+        return slipway_too_far();
+    case TARGETING_TARGET_WORMHOLE_TOO_FAR:
+        return &wormhole_too_far_target_wrapper()->header;
+    case TARGETING_TARGET_NONE:
+        break;
+    }
+    return NULL;
+}
+
+void targeting_set_target(targeting_t *self, entity_t *target) {
+    targeting_target_t value = {TARGETING_TARGET_NONE, ENTITY_ID_NONE};
+
+    if (target == &g_targeting_track_target.header) {
+        value.kind = TARGETING_TARGET_TRACK_THROWAWAY;
+    } else if (target == slipway_too_far()) {
+        value.kind = TARGETING_TARGET_SLIPWAY_TOO_FAR;
+    } else if (target == &wormhole_too_far_target_wrapper()->header) {
+        value.kind = TARGETING_TARGET_WORMHOLE_TOO_FAR;
+    } else if (target != NULL) {
+        value.kind = TARGETING_TARGET_ENTITY;
+        value.id = entity_id_link(target);
+    }
+    self->target = value;
 }
 
 void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
@@ -187,10 +220,10 @@ void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
             probe_is_target_class(target->class)) &&
            "targeting_track: the target is NULL or what it aims at (a planet, a class with a settled state, a slipway, "
            "or the static throwaway struct), nothing else");
-    targeting->target = target;
+    targeting_set_target(targeting, target);
 
-    if (targeting->target != NULL) {
-        probe_link_target(targeting->target, self);
+    if (targeting_target(targeting) != NULL) {
+        probe_link_target(targeting_target(targeting), self);
     }
 }
 
@@ -229,8 +262,8 @@ void targeting_tooltip_show(const p8_graphics_t *gfx, p8_vram_t *mem, state_t st
     je = main_mouse_typed();
     mp = je != NULL && je->pos != NULL ? *je->pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 
-    if (pb->target != NULL) {
-        const char *qs = probe_target_status_text(pb->target);
+    if (targeting_target(pb) != NULL) {
+        const char *qs = probe_target_status_text(targeting_target(pb));
         if (qs != NULL) {
             display = qs;
         } else {
@@ -271,7 +304,7 @@ int targeting_confirm(entity_t *self) {
     assert(self->targeting != NULL && "targeting_confirm: a class that carries no targeting is no receiver -- stop");
 
     targeting = self->targeting;
-    has_target = targeting->target != NULL;
+    has_target = targeting_target(targeting) != NULL;
 
     fm = main_economy_typed();
     if (!has_target) {
@@ -379,7 +412,7 @@ void probe_init_instance(probe_t *self, const entity_class_t *cls, const probe_a
     self->map_pos = NULL;
     self->targeting = &self->targeting_own;
     self->targeting->archetype = &self->archetype->targeting;
-    self->targeting->target = NULL;
+    targeting_set_target(self->targeting, NULL);
     self->is_dead = 0;
     self->grab_arena = NULL;
     self->targeting->cost = self->archetype->targeting.cost;

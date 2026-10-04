@@ -32,14 +32,15 @@ typedef struct {
     const slipway_archetype_t *archetype;
     p8_fixed_t layer;
     p8_fixed_t fade_in_step;
-    entity_t *start;
+    entity_id_t start;
     pointer_list_t *transit_dots;
     slipway_served_planets_t *served_planets;
     slipway_served_planets_t served_planets_own;
-    entity_t *end;
+    entity_id_t end;
+    int end_is_point;
     p8_fixed_t infraspace;
     int has_infraspace;
-    entity_t *targeted_by;
+    entity_id_t targeted_by;
     int is_dead;
     targeting_t *targeting;
     targeting_t targeting_own;
@@ -55,7 +56,7 @@ typedef struct {
 typedef struct {
     entity_t header;
     const char *status_text;
-    slipway_t *targeted_by;
+    entity_id_t targeted_by;
 } slipway_too_far_t;
 
 void slipway_init(void);
@@ -68,10 +69,17 @@ vec_t slipway_end_map_pos(const entity_t *end);
 vec_t slipway_end_pos(const entity_t *end);
 
 typedef struct {
-    entity_t *start;
+    entity_id_t start;
 } slipway_keys_t;
 
 slipway_t *slipway_new(const slipway_keys_t *keys);
+
+/* NULL once the planet was flushed. */
+entity_t *slipway_start(const slipway_t *self);
+/* The planet, the slipway's own mouse point, or NULL. */
+entity_t *slipway_end(const slipway_t *self);
+
+entity_t *slipway_too_far(void);
 
 void slipway_construct(slipway_t *self);
 

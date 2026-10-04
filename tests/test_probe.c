@@ -17,6 +17,7 @@
 #include <unistd.h>
 
 #include "p8/assets.h"
+#include "engine/entity_id.h"
 #include "engine/bootstrap.h"
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
@@ -114,7 +115,7 @@ static int is_targeting_track_target(const void *e) {
 /* The throwaway target's targeted_by, NULL when absent. */
 static const void *throwaway_targeted_by(const void *t) {
     assert(is_targeting_track_target(t));
-    return ((const targeting_track_target_t *)t)->targeted_by;
+    return entity_get(((const targeting_track_target_t *)t)->targeted_by);
 }
 
 static uint32_t fold_ref(uint32_t h, const void *ref) {
@@ -380,7 +381,7 @@ static uint32_t fold_probe(uint32_t hash, probe_t *entity) {
     assert(emitter->trail_colors == &probe_trail_colors_seq);
     hash = fnv(hash, (uint32_t)size_of(emitter->particles));
     assert(size_of(emitter->particles) == 0);
-    assert(entity->pos == NULL && entity->map_pos == NULL && targeting->target == NULL && !entity->is_dead);
+    assert(entity->pos == NULL && entity->map_pos == NULL && targeting_target(targeting) == NULL && !entity->is_dead);
     assert(class_of(entity)->hit_test == NULL && class_of(entity)->new_year == NULL && class_of(entity)->refresh == NULL &&
            class_of(entity)->states[ENTITY_STATE_SETTLED] == NULL && class_of(entity)->states[ENTITY_STATE_NORMAL] == NULL);
     assert(class_of(entity)->drag == targeting_track_method);
@@ -437,10 +438,10 @@ static uint32_t fold_particle(uint32_t h, const particle_t *q) {
 static uint32_t target_kind(const probe_t *e) {
     const void *ref;
 
-    if (e->targeting->target == NULL) {
+    if (targeting_target(e->targeting) == NULL) {
         return 1;
     }
-    ref = e->targeting->target;
+    ref = targeting_target(e->targeting);
     if (entity_list_listed(entities_by_tag(TAG_NODE), ref)) {
         return 2;
     }
@@ -455,14 +456,14 @@ static uint32_t target_kind(const probe_t *e) {
 /* The targeted_by of the probe's target, a planet, a slipway or the
  * throwaway. */
 static const void *target_targeted_by(const probe_t *e) {
-    entity_t *et = e->targeting->target;
+    entity_t *et = targeting_target(e->targeting);
 
     assert(et != NULL);
     if (planet_is_family(et)) {
-        return ((const planet_t *)et)->targeted_by;
+        return entity_get(((const planet_t *)et)->targeted_by);
     }
     if (et->class == slipway_class()) {
-        return ((const slipway_t *)et)->targeted_by;
+        return entity_get(((const slipway_t *)et)->targeted_by);
     }
     return throwaway_targeted_by(et);
 }
@@ -470,10 +471,10 @@ static const void *target_targeted_by(const probe_t *e) {
 /* The target as the frozen hashes fold it: a false boolean when NULL, else
  * the target. */
 static uint32_t fold_target(uint32_t h, const probe_t *e) {
-    if (e->targeting->target == NULL) {
+    if (targeting_target(e->targeting) == NULL) {
         return fnv(fnv(h, 0xB0u), 0u);
     }
-    return fold_ref(h, e->targeting->target);
+    return fold_ref(h, targeting_target(e->targeting));
 }
 
 /* The first planet of the node tag. */
@@ -511,9 +512,9 @@ static slipway_t *a_slipway(vec_t *middle) {
     keys.map_pos = vec_ref(end_p);
     keys.planet_id = "s92";
     re = planet_new(&keys);
-    slipway_keys.start = qu;
+    slipway_keys.start = entity_id_link(qu);
     jc = slipway_new(&slipway_keys);
-    jc->end = re;
+    jc->end = entity_id_link(re);
     *middle = vec_div(vec_add(start_p, end_p), p8_fixed_from_int(2));
     return jc;
 }
@@ -565,7 +566,7 @@ static void test_life(void) {
 
     hash = fold_drag(hash, first, planet_map_pos(), 64, 2);
     hash = fold_drag(hash, first, slipway_center, 64, 3);
-    assert((void *)slipway->targeted_by == first);
+    assert((void *)entity_get(slipway->targeted_by) == first);
     hash = fold_drag(hash, first, vec_add(slipway_center, vec_xy(0, 3)), 64, 1);
     hash = fold_drag(hash, first, vec_add(slipway_center, vec_xy(0, 3)), 2, 4);
 
@@ -796,8 +797,8 @@ static void test_targeting_track_target_is_a_struct(void) {
     a = left_press();
     (void)a_slipway(&middle);
     class_of(a)->drag(&a->header, mouse_at(vec_add(middle, vec_xy(0, 3))), vec_ref(vec_xy(2, 2)));
-    assert(a->targeting->target != NULL);
-    et = a->targeting->target;
+    assert(targeting_target(a->targeting) != NULL);
+    et = targeting_target(a->targeting);
     assert(is_targeting_track_target(et) && throwaway_targeted_by(et) == a);
     assert(class_of(et)->draw_overlay == NULL);
 }
@@ -888,6 +889,31 @@ static void test_leaving_gives_back_its_particles(void) {
     assert(a->emitter->particles == NULL);
 }
 
+static void test_target_links_resolve_until_the_flush(void) {
+    probe_t *first;
+    probe_t *second;
+    planet_t *planet;
+
+    start_game();
+    first = left_press();
+    class_of(first)->drag(&first->header, mouse_at(planet_map_pos()), vec_ref(vec_xy(64, 64)));
+    planet = a_planet();
+    assert(targeting_target(first->targeting) == &planet->header);
+    assert(entity_get(planet->targeted_by) == &first->header);
+    entity_unregister(&first->header);
+    assert(entity_get(planet->targeted_by) == &first->header);
+    cart_flush_exit_queue();
+    assert(entity_get(planet->targeted_by) == NULL);
+
+    second = probe_new(NULL);
+    class_of(second)->drag(&second->header, mouse_at(planet_map_pos()), vec_ref(vec_xy(64, 64)));
+    assert(targeting_target(second->targeting) == &planet->header);
+    entity_unregister(&planet->header);
+    assert(targeting_target(second->targeting) == &planet->header);
+    cart_flush_exit_queue();
+    assert(targeting_target(second->targeting) == NULL);
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -899,6 +925,7 @@ int main(void) {
 
     cart_load();
     in_fresh_child(test_built);
+    in_fresh_child(test_target_links_resolve_until_the_flush);
     in_fresh_child(test_life);
     in_fresh_child(test_drop_on);
     in_fresh_child(test_drop_off);

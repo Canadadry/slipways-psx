@@ -106,10 +106,6 @@ static void forget(const entity_t *e) {
     if (ok != NULL && ok->previous_hovered == e) {
         ok->previous_hovered = NULL;
     }
-    if (ok != NULL && ok->left_held != NULL && ok->left_held->class == slipway_class() &&
-        ((slipway_t *)ok->left_held)->end == e) {
-        ((slipway_t *)ok->left_held)->end = NULL;
-    }
     if ((const entity_t *)shown_message_box() == e) {
         message_box_set_shown(NULL);
     }
@@ -117,7 +113,6 @@ static void forget(const entity_t *e) {
         ju->last_box = NULL;
     }
     economy_score_difficulty_quits(e);
-    planet_forget_targeted_by(e);
 }
 
 static void forget_game_zone(void) {

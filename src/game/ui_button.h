@@ -41,7 +41,7 @@ struct button {
     p8_fixed_t type_bias;
     int has_type_bias;
     const technologies_entry_t *technology;
-    planet_t *project_planet;
+    entity_id_t project_planet;
     research_project_id_t project;
     p8_fixed_t project_cost;
     int has_project_cost;
@@ -76,7 +76,7 @@ typedef struct {
     int has_type_bias;
     p8_fixed_t type_bias;
     const technologies_entry_t *technology;
-    planet_t *project_planet;
+    entity_id_t project_planet;
     research_project_id_t project;
     int has_project_cost;
     p8_fixed_t project_cost;

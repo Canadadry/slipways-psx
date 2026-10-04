@@ -5,13 +5,15 @@
 
 #include "engine/dispatch_context.h"
 #include "p8/fixed.h"
+#include "engine/entity_id.h"
 #include "game/wormhole.h"
 
 static vec_t nearest_anchor_pos(const wormhole_t *self) {
     const vec_t *ra = NULL;
+    const entity_t *anchor = entity_get(self->anchor);
 
-    if (self->anchor != NULL && self->anchor->pos != NULL) {
-        ra = *self->anchor->pos;
+    if (anchor != NULL && anchor->pos != NULL) {
+        ra = *anchor->pos;
     }
     return ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
@@ -30,7 +32,7 @@ void wormhole_draw(p8_graphics_t *graphics, p8_vram_t *memory, wormhole_t *self,
     if (self->header.state == ENTITY_STATE_PLACING) {
         vec_t cp;
 
-        if (self->targeting->target == NULL) {
+        if (targeting_target(self->targeting) == NULL) {
             p8_fixed_t oi = self->radius;
             if (graphics != NULL && memory != NULL) {
                 p8_circ(graphics, memory, screen_x, screen_y, p8_fixed_flr_int(oi), 1);

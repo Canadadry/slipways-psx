@@ -26,6 +26,9 @@ entity_t *entity_get(entity_id_t id);
 /* ENTITY_ID_NONE when e holds no slot of the current table. */
 entity_id_t entity_id_of(const entity_t *e);
 
+/* ENTITY_ID_NONE for NULL; asserts a non-NULL e holds a slot. */
+entity_id_t entity_id_link(const entity_t *e);
+
 int entity_id_live(void);
 int entity_id_max(void);
 

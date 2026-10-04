@@ -260,6 +260,14 @@ static void dead_entity_resolves_until_the_flush(void) {
     assert(entity_get(id) == NULL && "a class without release frees its slot at the flush");
 }
 
+static void a_link_is_the_id_of_a_constructed_entity_or_none(void) {
+    entity_t linked = {0};
+    new_world();
+    entity_id_t id = entity_id_take(&linked);
+    assert(entity_id_equal(entity_id_link(&linked), id));
+    assert(entity_id_is_none(entity_id_link(NULL)));
+}
+
 /* Runs in a child process: p8_fatal exits. */
 static int take_one_slot_too_many(void) {
     new_world();
@@ -304,6 +312,7 @@ int main(int argc, char **argv) {
     released_slot_never_resolves_again();
     releasing_an_entity_without_a_slot_frees_nothing();
     a_copy_of_a_live_entity_holds_no_id();
+    a_link_is_the_id_of_a_constructed_entity_or_none();
     generation_wraparound_skips_zero();
     ids_of_a_previous_world_never_resolve();
     live_count_follows_slots_and_peak_survives_reset();

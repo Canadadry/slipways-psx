@@ -13,6 +13,7 @@
 
 #include "p8/assets.h"
 #include "game/background.h"
+#include "engine/entity_id.h"
 #include "engine/bootstrap.h"
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
@@ -235,7 +236,7 @@ static slipway_t *slipway_dragged_over_nothing(entity_t *qu) {
     vec_t *mp = malloc(sizeof *mp);
     slipway_t *jc;
 
-    keys.start = qu;
+    keys.start = entity_id_link(qu);
     jc = slipway_new(&keys);
     *mp = vec_make(p8_fixed_from_int(-640), p8_fixed_from_int(-640));
     main_ui()->hovered = NULL;
@@ -247,7 +248,7 @@ static slipway_t *slipway_dragged_over_nothing(entity_t *qu) {
  * `map_pos` alone; the slipway's `infraspace` is its start's, else absent. */
 static void test_mouse_point_has_null_links(void) {
     slipway_t *jc = slipway_dragged_over_nothing(&planet_new(NULL)->header);
-    slipway_mouse_point_t *point = (slipway_mouse_point_t *)jc->end;
+    slipway_mouse_point_t *point = (slipway_mouse_point_t *)slipway_end(jc);
     slipway_t *from_infraspace_gate = slipway_dragged_over_nothing(&infraspace_gate_new(NULL)->header);
 
     assert(point != NULL && point->header.class == slipway_mouse_point_class());

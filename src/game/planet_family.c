@@ -53,7 +53,7 @@ void structure_init_instance(planet_t *self, const entity_class_t *cls, const pl
     self->targeting->cost = self->archetype->targeting.cost;
     self->targeting->has_cost = self->archetype->targeting.has_cost;
     self->sprite = self->archetype->sprite;
-    self->targeting->target = NULL;
+    targeting_set_target(self->targeting, NULL);
 }
 
 static planet_t *structure_create(const planet_keys_t *keys) {

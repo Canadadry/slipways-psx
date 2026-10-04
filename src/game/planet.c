@@ -77,7 +77,7 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
     self->fold_anchor = 0;
     self->layout_row = NULL;
     self->layout_row_slot = NULL;
-    self->targeted_by = NULL;
+    self->targeted_by = ENTITY_ID_NONE;
     self->production_bonus = 0;
     self->has_production_bonus = 0;
     self->is_dead = 0;
@@ -170,33 +170,19 @@ void planet_grab_arena_released(const planet_t *self) {
     grab_arena_give_back_if_placing(self->slipways != NULL ? self->slipways->zone : NULL, self->header.state);
 }
 
-/* GAP-26 */
-void planet_forget_targeted_by(const entity_t *e) {
-    const entity_list_t *np = entities_by_tag(TAG_NODE);
-
-    for (int i = 0; np != NULL && i < np->count; i++) {
-        planet_t *p = (planet_t *)np->items[i];
-
-        assert(planet_is_family(&p->header) && "the node tag holds planets only, and only planets have targeted_by");
-        if (p->targeted_by == e) {
-            p->targeted_by = NULL;
-        }
-    }
-}
-
 void planet_construct(planet_t *self) {
     planet_construct_in(self, grab_arena_construction_zone());
 }
 
 void planet_construct_in(planet_t *self, const allocator_t *zone) {
-    entity_list_t *oe;
+    entity_id_list_t *oe;
 
     if (self == NULL) {
         return;
     }
 
-    oe = (entity_list_t *)allocator_alloc(zone, sizeof *oe);
-    entity_list_init(oe, zone);
+    oe = (entity_id_list_t *)allocator_alloc(zone, sizeof *oe);
+    entity_id_list_init(oe, zone);
     self->slipways = oe;
 
     if (self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) {
@@ -227,7 +213,7 @@ size_t planet_kind_construction_bytes(const entity_kind_t *kind) {
     const planet_archetype_t *archetype = kind->record->archetype;
     const research_project_t *target = research_projects_at(p8_fixed_flr_int(archetype->project_index));
 
-    return ZONE_BYTES(sizeof(planet_t)) + ZONE_BYTES(sizeof(entity_list_t)) +
+    return ZONE_BYTES(sizeof(planet_t)) + ZONE_BYTES(sizeof(entity_id_list_t)) +
            (target != NULL ? planet_project_bytes(target) : 0);
 }
 

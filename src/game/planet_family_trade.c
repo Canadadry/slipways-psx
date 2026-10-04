@@ -29,7 +29,7 @@ down_t slipgate_accept_drop(const planet_t *self, const entity_t *s) {
     }
 
     start_not_self = !(s != NULL && s->class == slipway_class() &&
-                    ((const slipway_t *)s)->start == &self->header);
+                    slipway_start((const slipway_t *)s) == &self->header);
 
     slipways_count = self->slipways != NULL ? self->slipways->count : 0;
 
@@ -64,7 +64,7 @@ down_t slipgate_left_press(planet_t *self) {
     }
 
     assert(slipway_ready() && "slipway_init() must run before slipgate_left_press builds a slipway");
-    keys.start = (entity_t *)self;
+    keys.start = entity_id_link(&self->header);
     accept_drop_result.held = (entity_t *)slipway_new(&keys);
     accept_drop_result.stop = accept_drop_result.held != NULL;
     return accept_drop_result;
@@ -102,8 +102,8 @@ static void slipgate_refresh_method(entity_t *self) {
 
 void slipgate_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
     const trade_route_t *route;
-    const entity_list_t *slipways = NULL;
-    entity_list_iter_t iter;
+    const entity_id_list_t *slipways = NULL;
+    entity_id_list_iter_t iter;
     entity_t *slipway;
 
     if (self == NULL || trade_offer == NULL) {
@@ -113,12 +113,8 @@ void slipgate_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
 
     slipways = self->slipways;
 
-    iter = entity_list_all(slipways);
-    while (entity_list_iter_next(&iter, &slipway)) {
-        if (slipway == NULL) {
-            continue;
-        }
-
+    iter = entity_id_list_all(slipways);
+    while (entity_id_list_iter_next(&iter, &slipway)) {
         if (trade_offer->amount <= p8_fixed_from_int(0)) {
             continue;
         }

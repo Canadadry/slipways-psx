@@ -86,6 +86,13 @@ entity_id_t entity_id_of(const entity_t *e) {
     return slot_of(e) < 0 ? ENTITY_ID_NONE : e->id;
 }
 
+entity_id_t entity_id_link(const entity_t *e) {
+    if (e == NULL) return ENTITY_ID_NONE;
+    entity_id_t id = entity_id_of(e);
+    assert(!entity_id_is_none(id) && "a link names a constructed entity: one without a slot would read NULL at once");
+    return id;
+}
+
 int entity_id_live(void) {
     return g_table.entities == NULL ? 0 : ENTITY_TABLE_CAP - g_table.free_count;
 }

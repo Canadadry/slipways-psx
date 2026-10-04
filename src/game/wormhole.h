@@ -1,7 +1,7 @@
 #ifndef GAME_WORMHOLE_H
 #define GAME_WORMHOLE_H
 
-#include "engine/entity_list.h"
+#include "engine/entity_id_list.h"
 #include "p8/fixed.h"
 #include "game/game_data.h"
 #include "game/targeting.h"
@@ -18,10 +18,10 @@ typedef struct {
     const wormhole_archetype_t *archetype;
     p8_fixed_t radius;
     wormhole_too_far_target_t *too_far_target;
-    entity_list_t *anchors;
+    entity_id_list_t *anchors;
     const vec_t *pos;
     const vec_t *map_pos;
-    entity_t *anchor;
+    entity_id_t anchor;
     int is_dead;
     targeting_t *targeting;
     targeting_t targeting_own;

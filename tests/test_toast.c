@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "p8/assets.h"
+#include "engine/entity_id.h"
 #include "engine/bootstrap.h"
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
@@ -176,7 +177,7 @@ static void test_wormhole_scan_skips_a_live_toast(void) {
     e = build(&ra, "+1$", 11);
     mz = wormhole_new();
     assert(mz->anchors != NULL);
-    assert(!entity_list_listed(mz->anchors, e));
+    assert(!entity_id_list_has(mz->anchors, entity_id_of(e)));
     assert(mz->anchors->count == 0);
 }
 

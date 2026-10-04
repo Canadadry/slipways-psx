@@ -18,7 +18,7 @@ src/game/message_box.h 12
 src/game/mouse.h 2
 src/game/particle.h 3
 src/game/planet.c 2
-src/game/planet.h 16
+src/game/planet.h 15
 src/game/planet_family.h 2
 src/game/planet_trade.h 1
 src/game/probe.c 1
@@ -29,22 +29,20 @@ src/game/score_panel.c 1
 src/game/score_panel.h 6
 src/game/score_panel_display.c 1
 src/game/scroll.h 4
-src/game/slipway.h 13
+src/game/slipway.h 8
 src/game/structure_icon.c 1
 src/game/structure_icon.h 7
-src/game/targeting.h 3
+src/game/targeting.h 1
 src/game/trade.h 4
 src/game/ui.c 2
 src/game/ui.h 8
-src/game/ui_button.h 19
-src/game/wormhole.h 8
+src/game/ui_button.h 17
+src/game/wormhole.h 7
 # Files whose pointers all stay: const pointers to static data (plan 13, section 2).
 src/game/background.h 1
 src/game/game_data.c 1
 src/game/game_data.h 31
 src/game/planet_family.c 1
 src/game/tech_gate.h 1
-entity-lists src/game/planet.h 1
 entity-lists src/game/ui.c 1
 entity-lists src/game/ui.h 2
-entity-lists src/game/wormhole.h 1

@@ -358,7 +358,7 @@ static void test_built(void) {
     hash = fold_fixed_member(hash, probe->header.state_time);
     hash = fnv(hash, (uint32_t)size_of(emitter->particles));
     assert(size_of(emitter->particles) == 0);
-    assert(!help_screen->is_hovered && probe->map_pos == NULL && targeting->target == NULL && !probe->is_dead);
+    assert(!help_screen->is_hovered && probe->map_pos == NULL && targeting_target(targeting) == NULL && !probe->is_dead);
     assert(class_of(help_screen)->new_year == NULL && class_of(help_screen)->refresh == NULL && class_of(help_screen)->states[ENTITY_STATE_NORMAL] == NULL &&
            class_of(help_screen)->left_press == NULL);
 

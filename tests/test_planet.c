@@ -15,6 +15,7 @@
 #include <unistd.h>
 
 #include "p8/assets.h"
+#include "engine/entity_id.h"
 #include "engine/bootstrap.h"
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
@@ -132,7 +133,7 @@ static int list_size(const pointer_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
-static int entity_list_count(const entity_list_t *l) {
+static int id_list_count(const entity_id_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
@@ -260,7 +261,7 @@ static uint32_t fold_planet(uint32_t hash, const void *entity) {
     hash = fnv(hash, (uint32_t)(planet->planet_type != NULL));
     hash = fnv(hash, (uint32_t)(planet->fold_anchor != 0));
     hash = fnv(hash, (uint32_t)(planet->layout_row != NULL));
-    hash = fnv(hash, (uint32_t)(planet->targeted_by != NULL));
+    hash = fnv(hash, (uint32_t)(entity_get(planet->targeted_by) != NULL));
     hash = fnv(hash, (uint32_t)planet->has_production_bonus);
     hash = fnv(hash, (uint32_t)(planet->is_dead != 0));
     hash = fnv(hash, (uint32_t)planet->has_net_income);
@@ -309,11 +310,11 @@ static uint32_t fold_live(uint32_t h, const void *e) {
     h = fold_string_member(h, jo->description);
     h = fnv(h, is_dead_state(jo));
     h = fold_production(h, jo);
-    h = fnv(h, (uint32_t)entity_list_count(jo->slipways));
+    h = fnv(h, (uint32_t)id_list_count(jo->slipways));
     h = fnv(h, (uint32_t)list_size(jo->needs));
     h = fnv(h, (uint32_t)(jo->outgoing_routes != NULL ? trade_route_list_count(jo->outgoing_routes) : -1));
     h = fnv(h, (uint32_t)(jo->incoming_routes != NULL ? trade_route_list_count(jo->incoming_routes) : -1));
-    h = fnv(h, (uint32_t)(jo->targeted_by != NULL));
+    h = fnv(h, (uint32_t)(entity_get(jo->targeted_by) != NULL));
     h = fnv(h, (uint32_t)(jo->planet_type != NULL));
     h = fnv(h, (uint32_t)(jo->layout_row != NULL));
     h = fnv(h, (uint32_t)(jo->is_hovered != 0));

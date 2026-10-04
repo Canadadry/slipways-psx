@@ -12,6 +12,7 @@
 #include "game/game_data.h"
 #include "game/hud.h"
 #include "engine/entity.h"
+#include "engine/entity_id.h"
 #include "game/map_tables.h"
 #include "game/message_box.h"
 #include "game/planet.h"
@@ -284,7 +285,7 @@ down_t planet_accept_drop(const planet_t *self, const entity_t *s) {
     if (self->header.state != ENTITY_STATE_SETTLED) {
         return out;
     }
-    if (s != NULL && s->class == slipway_class() && ((const slipway_t *)s)->start == &self->header) {
+    if (s != NULL && s->class == slipway_class() && slipway_start((const slipway_t *)s) == &self->header) {
         planet_inspection_panel(self);
         return out;
     }
@@ -300,13 +301,13 @@ static void planet_projects_panel_on_click_method(button_t *self) {
     if (self == NULL) {
         return;
     }
-    pt = self->project_planet;
+    pt = (planet_t *)entity_get(self->project_planet);
     b = research_project_get(self->project);
     if (self->has_project_cost) {
         od = self->project_cost;
     }
 
-    assert(pt != NULL && "the projects panel button lost its captured planet");
+    assert(pt != NULL && planet_is_family(&pt->header) && "the projects panel button lost its captured planet");
     if (economy_spend(main_economy_typed(), od)) {
         planet_apply_project(pt, b);
     }
@@ -342,7 +343,7 @@ static void planet_projects_panel_keys(planet_t *self, research_project_t *b, bu
         keys->side_tooltip_row = &row->cost_keys;
     }
 
-    keys->project_planet = self;
+    keys->project_planet = entity_id_link(&self->header);
     keys->project = research_project_id_of(b);
     keys->has_project_cost = 1;
     keys->project_cost = od;
@@ -435,13 +436,16 @@ void planet_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec
     }
 
     {
-        if (self->targeted_by != NULL) {
+        /* GAP-26 */
+        const entity_t *targeted_by = entity_get(self->targeted_by);
+
+        if (targeted_by != NULL) {
             p8_fixed_t dw = p8_fixed_from_int(0);
             p8_fixed_t radius_f;
             int radius;
 
-            if (self->targeted_by->targeting != NULL) {
-                dw = self->targeted_by->targeting->archetype->attach_distance;
+            if (targeted_by->targeting != NULL) {
+                dw = targeted_by->targeting->archetype->attach_distance;
             }
             radius_f = p8_fixed_mul(p8_fixed_sqrt(dw), p8_fixed_from_int(128));
             radius = p8_fixed_flr_int(radius_f);
@@ -450,7 +454,7 @@ void planet_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec
             p8_fillp_transparent(graphics, 0xAAAAu);
             p8_circfill(graphics, memory, screen_x, screen_y, radius, 2);
             p8_fillp_reset(graphics);
-            self->targeted_by = NULL;
+            self->targeted_by = ENTITY_ID_NONE;
         }
     }
 }
@@ -489,7 +493,7 @@ down_t planet_left_press(planet_t *self) {
         slipway_keys_t keys = {0};
 
         assert(slipway_ready() && "slipway_init() must run before planet_left_press builds a slipway");
-        keys.start = (entity_t *)self;
+        keys.start = entity_id_link(&self->header);
         out.held = (entity_t *)slipway_new(&keys);
         out.stop = out.held != NULL;
     }

@@ -40,7 +40,7 @@ static void planet_rebuild_trades_attach_slipway_closure(trade_offer_t *self, co
 }
 
 void planet_attach_slipway(planet_t *self, entity_t *slipway) {
-    entity_list_t *oe = NULL;
+    entity_id_list_t *oe = NULL;
     entity_t *other = NULL;
 
     if (self == NULL) {
@@ -49,7 +49,7 @@ void planet_attach_slipway(planet_t *self, entity_t *slipway) {
 
     oe = self->slipways;
     if (oe != NULL) {
-        entity_list_add(oe, slipway);
+        entity_id_list_add(oe, entity_id_link(slipway));
     }
 
     if (slipway != NULL) {
@@ -170,8 +170,8 @@ trade_route_list_t *planet_rebuild_trades(planet_t *self) {
     trade_route_list_t *accepted_routes;
     trade_keys_t keys = {0};
     p8_fixed_t amount = p8_fixed_from_int(0);
-    const entity_list_t *slipways = NULL;
-    entity_list_iter_t iter;
+    const entity_id_list_t *slipways = NULL;
+    entity_id_list_iter_t iter;
     entity_t *w_val;
     frame_zone_mark_t offers;
 
@@ -197,17 +197,14 @@ trade_route_list_t *planet_rebuild_trades(planet_t *self) {
     slipways = self->slipways;
 
     offers = frame_zone_mark();
-    iter = entity_list_all(slipways);
-    while (entity_list_iter_next(&iter, &w_val)) {
+    iter = entity_id_list_all(slipways);
+    while (entity_id_list_iter_next(&iter, &w_val)) {
         entity_t *w;
         trade_offer_t lw;
         entity_id_list_t *planets_list;
         entity_id_list_t *slipways_list;
         entity_t *other;
 
-        if (w_val == NULL) {
-            continue;
-        }
         w = w_val;
 
         planets_list = (entity_id_list_t *)allocator_alloc(frame_zone(), sizeof *planets_list);

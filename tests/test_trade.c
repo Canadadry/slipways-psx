@@ -162,7 +162,7 @@ static void join(void *qu, void *re) {
     vec_t *mp = malloc(sizeof *mp);
     slipway_t *jc;
 
-    slipway_keys.start = qu;
+    slipway_keys.start = entity_id_link(qu);
     jc = slipway_new(&slipway_keys);
     *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
                         vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));

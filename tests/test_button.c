@@ -15,6 +15,7 @@
 #include <unistd.h>
 
 #include "p8/assets.h"
+#include "engine/entity_id.h"
 #include "engine/bootstrap.h"
 #include "game/cart.h"
 #include "game/data_init.h"
@@ -366,7 +367,7 @@ static uint32_t fold_button(uint32_t hash, const void *entity) {
     hash = fold_opt_string(hash, button->name);
     hash = fold_opt_fixed(hash, button->has_trade, button->trade);
     hash = fold_opt_fixed(hash, button->has_type_bias, button->type_bias);
-    hash = fold_opt_ref(hash, button->project_planet);
+    hash = fold_opt_ref(hash, entity_get(button->project_planet));
     hash = fold_opt_ref(hash, research_project_get(button->project));
     hash = fold_opt_fixed(hash, button->has_project_cost, button->project_cost);
     if (button->technology != NULL) {
@@ -519,7 +520,7 @@ static void *built_world(void) {
     planet_apply_project(qu, project(COLONY));
     planet_apply_project(re, project(EXPORTER));
 
-    slipway_keys.start = qu;
+    slipway_keys.start = entity_id_link(qu);
     jc = slipway_new(&slipway_keys);
     *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
                         vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
@@ -757,7 +758,7 @@ static void test_projects_panel(void) {
     known_panel();
     le = main_ui_ephemerals();
     for (i = 0; i < le->count; i++) {
-        with_planet += button_of(le->items[i])->project_planet != NULL;
+        with_planet += entity_get(button_of(le->items[i])->project_planet) != NULL;
     }
     printf("[projects_panel] %d row(s) carry project_planet\n", with_planet);
     assert(with_planet >= 1);
@@ -992,10 +993,10 @@ static void test_projects_panel_on_click(void) {
     for (i = 0; i < le->count; i++) {
         void *b = le->items[i];
         const planet_t *pt;
-        if (button_of(b)->project_planet == NULL) {
+        if (entity_get(button_of(b)->project_planet) == NULL) {
             continue;
         }
-        pt = button_of(b)->project_planet;
+        pt = (const planet_t *)entity_get(button_of(b)->project_planet);
         h = fold_string_or_nil(h, entity_state_name(pt->header.state));
         h = fnv(h, (uint32_t)live_entities()->count);
         call_on_click(b);
@@ -1286,7 +1287,7 @@ static uint32_t fold_button_members(uint32_t h, const void *e) {
     } else {
         h = fnv(h, 0u);
     }
-    h = fold_member_opt_ref(h, b->project_planet);
+    h = fold_member_opt_ref(h, entity_get(b->project_planet));
     h = fold_member_opt_ref(h, research_project_get(b->project));
     return fold_member_fixed(h, b->has_project_cost, b->project_cost);
 }
@@ -1417,7 +1418,7 @@ static uint32_t fold_keys(uint32_t hash, layout_row_t *source_row) {
         button = built(none);
         assert(button->name == NULL && !button->has_trade && !button->has_type_bias && !button->has_project_cost);
         assert(button->pos == NULL && button->slide_target == NULL && button->refresh == NULL && !button->has_on_click && button->technology == NULL);
-        assert(button->project_planet == NULL && research_project_get(button->project) == NULL);
+        assert(entity_get(button->project_planet) == NULL && research_project_get(button->project) == NULL);
         hash = fold_and_drop(hash, button);
     }
     keys = none;
@@ -1536,7 +1537,7 @@ static uint32_t members_title_and_game(void) {
         assert(b->header.hit_box != NULL);
         assert(!b->has_side_tooltip && b->tooltip == NULL && b->pos == NULL && b->slide_target == NULL && !b->is_hovered);
         assert(b->name == NULL && !b->has_trade && !b->has_type_bias && b->technology == NULL);
-        assert(b->project_planet == NULL && research_project_get(b->project) == NULL && !b->has_project_cost);
+        assert(entity_get(b->project_planet) == NULL && research_project_get(b->project) == NULL && !b->has_project_cost);
         assert(on_click_state(fresh[key_index]) == 0 && button_of(fresh[key_index])->refresh == NULL);
         hash = fold_button_members(hash, fresh[key_index]);
     }
@@ -1617,13 +1618,13 @@ static uint32_t members_projects_panel(void) {
     for (i = 0; i < le->count; i++) {
         const button_t *b = button_of(le->items[i]);
 
-        if (b->project_planet == NULL) {
+        if (entity_get(b->project_planet) == NULL) {
             continue;
         }
         if (pt == NULL) {
-            pt = b->project_planet;
+            pt = entity_get(b->project_planet);
         }
-        assert(b->project_planet == pt);
+        assert(entity_get(b->project_planet) == pt);
         assert(is_of_class(pt, planet_class()) && entity_list_listed(entities_by_tag(TAG_PLANET), pt));
         assert(research_project_get(b->project) != NULL && is_of_class(research_project_get(b->project), research_project_class()));
         assert(b->has_project_cost);
@@ -1721,7 +1722,7 @@ static void test_projects_panel_free_row(void) {
     le = main_ui_ephemerals();
     for (i = 0; i < le->count && b == NULL; i++) {
         b = research_project_get(button_of(le->items[i])->project);
-        pt = button_of(le->items[i])->project_planet;
+        pt = (planet_t *)entity_get(button_of(le->items[i])->project_planet);
     }
     assert(b != NULL && pt != NULL);
     b->has_base_cost = 1;
@@ -2046,6 +2047,28 @@ static void test_largest_buttons_fit_their_slots(void) {
     }
 }
 
+static void test_project_planet_resolves_until_the_flush(void) {
+    const entity_list_t *le;
+    button_t *button = NULL;
+    entity_t *planet;
+    int i;
+
+    known_panel();
+    le = main_ui_ephemerals();
+    for (i = 0; i < le->count && button == NULL; i++) {
+        if (entity_get(button_of(le->items[i])->project_planet) != NULL) {
+            button = button_of(le->items[i]);
+        }
+    }
+    assert(button != NULL);
+    planet = entity_get(button->project_planet);
+    assert(planet_is_family(planet));
+    entity_unregister(planet);
+    assert(entity_get(button->project_planet) == planet);
+    cart_flush_exit_queue();
+    assert(entity_get(button->project_planet) == NULL);
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -2059,6 +2082,7 @@ int main(void) {
     in_fresh_child(test_bar_buttons_and_pause_menu_anchors);
     in_fresh_child(test_title);
     in_fresh_child(test_start_game);
+    in_fresh_child(test_project_planet_resolves_until_the_flush);
     in_fresh_child(test_pause);
     in_fresh_child(test_research);
     in_fresh_child(test_projects_panel);

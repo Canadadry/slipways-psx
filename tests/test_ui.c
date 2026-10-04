@@ -19,6 +19,7 @@
 
 #include "p8/assets.h"
 #include "game/background.h"
+#include "engine/entity_id.h"
 #include "engine/bootstrap.h"
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
@@ -477,7 +478,7 @@ static void test_right(void) {
 }
 
 static int slipways_count(void *planet) {
-    const entity_list_t *oe = as_planet(planet)->slipways;
+    const entity_id_list_t *oe = as_planet(planet)->slipways;
     return oe == NULL ? 0 : oe->count;
 }
 
@@ -536,7 +537,7 @@ static void test_left(void) {
     ui_update(&memory, dispatcher);
     held = dispatcher->left_held;
     assert(held != NULL && is_of(held, slipway_class()) && dispatcher->right_held == NULL);
-    assert((void *)((const slipway_t *)held)->start == start_planet && slipways_count(start_planet) == 0);
+    assert((void *)slipway_start(((const slipway_t *)held)) == start_planet && slipways_count(start_planet) == 0);
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), held));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), start_planet));
     hash = fnv(hash, cursor_is(58));

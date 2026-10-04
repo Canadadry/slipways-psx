@@ -5,6 +5,7 @@
 
 #include "engine/dispatch_context.h"
 #include "engine/entity_geom.h"
+#include "engine/entity_id.h"
 #include "game/planet.h"
 #include "game/slipway.h"
 #include "engine/vec.h"
@@ -64,8 +65,8 @@ void slipway_draw_line(const p8_graphics_t *gfx, p8_vram_t *mem, const slipway_t
     assert(s > p8_fixed_from_int(0) && "slipway_draw_line only ascends: a zero step hangs, a negative one draws nothing");
     assert(gfx != NULL && mem != NULL && "p8_line dereferences the graphics state and memory: neither may be NULL here");
 
-    qu = self->start;
-    re = self->end;
+    qu = slipway_start(self);
+    re = slipway_end(self);
     t = self->header.state_time;
 
     start_point = vec_add(slipway_end_pos(qu),
@@ -93,8 +94,8 @@ void slipway_draw(const p8_graphics_t *graphics, p8_vram_t *memory, slipway_t *s
         return;
     }
 
-    start_node = self->start;
-    end_node = self->end;
+    start_node = slipway_start(self);
+    end_node = slipway_end(self);
 
     if (entity_geom_is_on_screen(start_node) || entity_geom_is_on_screen(end_node)) {
         p8_fixed_t fade_in_step = self->fade_in_step;
@@ -119,7 +120,7 @@ void slipway_draw(const p8_graphics_t *graphics, p8_vram_t *memory, slipway_t *s
             self->fade_in_step = p8_fixed_add(fade_in_step, p8_fixed_from_int(1));
         }
 
-        target_or_targeted_by = self->targeting->target != NULL || self->targeted_by != NULL;
+        target_or_targeted_by = targeting_target(self->targeting) != NULL || entity_get(self->targeted_by) != NULL;
         infraspace_truthy = self->has_infraspace;
 
         line_color = target_or_targeted_by ? p8_fixed_from_int(2) : (infraspace_truthy ? p8_fixed_from_int(0) : fade_color);
@@ -170,7 +171,7 @@ void slipway_draw(const p8_graphics_t *graphics, p8_vram_t *memory, slipway_t *s
         slipway_spawn_transit_dot(self, end_node, start_node);
     }
 
-    self->targeted_by = NULL;
+    self->targeted_by = ENTITY_ID_NONE;
 }
 
 void slipway_draw_method(entity_t *self, const vec_t *screen_pos) {

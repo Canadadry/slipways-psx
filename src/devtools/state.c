@@ -170,7 +170,7 @@ static int write_slipways(FILE *out) {
     for (int i = 0; i < count_of(jc); i++) {
         const slipway_t *s = (const slipway_t *)jc->items[i];
         if (!slipway_placed(&s->header)) continue;
-        fprintf(out, "slipway %s %s %s\n", id_of(s->start), id_of(s->end),
+        fprintf(out, "slipway %s %s %s\n", id_of(slipway_start(s)), id_of(slipway_end(s)),
                 s->has_infraspace && s->infraspace != 0 ? "infragate" : "normal");
         n++;
     }
@@ -184,7 +184,7 @@ static void write_structures(FILE *out, vec_t camera) {
         fprintf(out, "structure %s %s", id_of(&g->header),
                 g->header.class == infraspace_gate_class() ? "infragate" : "slipgate");
         write_position(out, &g->header, camera);
-        fprintf(out, " links %d\n", count_of(g->slipways));
+        fprintf(out, " links %d\n", g->slipways != NULL ? entity_id_list_count(g->slipways) : 0);
     }
 }
 

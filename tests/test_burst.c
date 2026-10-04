@@ -19,6 +19,7 @@
 
 #include "p8/assets.h"
 #include "game/cart.h"
+#include "engine/entity_id.h"
 #include "engine/dispatch_context.h"
 #include "engine/entity.h"
 #include "engine/entity_registry.h"
@@ -139,7 +140,7 @@ static int pointer_list_size(const pointer_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
-static int entity_list_count(const entity_list_t *l) {
+static int id_list_count(const entity_id_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
@@ -330,7 +331,7 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fnv(hash, (uint32_t)tag_count(planet->header.class->tags));
     hash = fnv(hash, (uint32_t)trade_route_list_count(planet->outgoing_routes));
     hash = fnv(hash, (uint32_t)pointer_list_size(emitter->particles));
-    hash = fnv(hash, (uint32_t)entity_list_count(planet->slipways));
+    hash = fnv(hash, (uint32_t)id_list_count(planet->slipways));
     assert(main_camera_typed() != NULL);
     hash = fold_fixed_member(hash, main_camera_typed()->shake);
     /* The 1s of spawn_rate, the four matrix entries, acceleration_factor,
@@ -370,7 +371,7 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fnv(hash, (uint32_t)(planet->planet_type != NULL));
     hash = fnv(hash, (uint32_t)(planet->fold_anchor != 0));
     hash = fnv(hash, (uint32_t)(planet->layout_row != NULL));
-    hash = fnv(hash, (uint32_t)(planet->targeted_by != NULL));
+    hash = fnv(hash, (uint32_t)(entity_get(planet->targeted_by) != NULL));
     hash = fnv(hash, (uint32_t)(planet->has_production_bonus != 0));
     hash = fnv(hash, (uint32_t)(planet->is_dead != 0));
     hash = fnv(hash, (uint32_t)(planet->has_net_income != 0));
@@ -818,16 +819,16 @@ static void test_leaving_lets_go_of_a_dragged_slipway(void) {
     keys.planet_id = "s85";
     keys.map_pos = vec_ref(vec_xy(30, 30));
     keys.pos = vec_ref(near_main_camera(60, 60));
-    slipway_keys.start = &planet_new(&keys)->header;
+    slipway_keys.start = entity_id_link(&planet_new(&keys)->header);
     jc = slipway_new(&slipway_keys);
     e = harvest(40, 40, "s86");
     main_ui()->left_held = &jc->header;
     main_ui()->hovered = e;
     slipway_drag(jc, &mp);
-    assert(jc->end == e);
+    assert(slipway_end(jc) == e);
     entity_unregister(e);
     cart_flush_exit_queue();
-    assert(jc->end == NULL);
+    assert(slipway_end(jc) == NULL);
 }
 
 int main(void) {
