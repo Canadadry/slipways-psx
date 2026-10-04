@@ -31,6 +31,9 @@
 # make line-coverage-test -> builds and runs test_line_coverage, the test of
 #                       tools/line_coverage.sh; temporary (plan 12), outside
 #                       the suite
+# make cursor-labels-test -> builds and runs test_cursor_label, the test of
+#                       src/devtools/cursor_label.c; temporary (plan 12),
+#                       outside the suite
 # make oracle        -> make state, then writes to tests/plan12-oracle/ each
 #                       state of tmp/state/ without its camera line and the
 #                       screen and visible fields, and the line coverage of
@@ -521,6 +524,14 @@ line-coverage: $(TMP_DIR)/replay_gcov tools/line_coverage.sh
 	@echo "line coverage: $$(wc -l < $(TMP_DIR)/line_coverage.txt) line(s) in $(TMP_DIR)/line_coverage.txt"
 
 .PHONY: line-coverage-test line-coverage
+
+$(TMP_DIR)/test_cursor_label: $(call objs,tests/test_cursor_label.c src/devtools/cursor_label.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+cursor-labels-test: $(TMP_DIR)/test_cursor_label
+	./$<
+
+.PHONY: cursor-labels-test
 
 $(TMP_DIR)/test_state: $(call objs,tests/test_state.c src/devtools/state.c $(ENGINE_SRCS)) $(TMP_DIR)/replay | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
