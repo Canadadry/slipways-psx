@@ -231,21 +231,19 @@ lui-même.
 
 Fichier : `src/p8/fixed.c`.
 
-## GAP-18 — Le remap de couleurs de `pal()` n'est pas porté
+## GAP-18 — Le remap de couleurs de `pal()` n'est porté que pour les sprites
 
 Lua : `pal()`, `dv()`.
 
-`p8_spr` lit la couleur d'un pixel de la feuille de sprites, teste le
-bit de transparence, puis l'écrit **telle quelle**. Le remap de couleurs
-que `pal()` installe dans la palette de dessin n'est appliqué nulle part :
-seul le bit 0x80 de l'octet de palette est lu.
+`p8_spr`, et `p8_map` qui passe par lui, dessinent chaque pixel opaque
+dans la couleur que lui donne la palette de dessin (quartet bas de
+l'octet). Les autres primitives — `pset`, `line`, `rect`, `circ`, les
+remplissages et `print` — écrivent leur couleur **telle quelle**.
 
-Ce qui marche quand même : `hud_select_palette_block` sélectionne un bloc
-de palette et le cart s'en sert surtout pour éteindre ou allumer des
-couleurs, pas pour les permuter. Ce qui ne marche pas se verrait sur un
-effet qui permute réellement deux couleurs.
+Ce qui se verrait : un texte ou une forme dessinés sous un bloc de
+palette autre que 0 garderaient leurs couleurs d'origine.
 
-Fichier : `src/p8/gfx.c`, marqué par un `TODO` sur place.
+Fichier : `src/p8/gfx.c`.
 
 ## GAP-19 — La police est reconstituée à la main
 
