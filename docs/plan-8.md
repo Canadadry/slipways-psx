@@ -1,39 +1,39 @@
-# Plan 8 — Jouer sans souris, au clavier
+# Plan 8 — Play without a mouse, on the keyboard
 
-Brouillon, à passer en `plan-converge` avant toute exécution. Deuxième des cinq plans vers un `.bin/.cue` PSX (plans 7 à 11).
+Draft: run it through `plan-converge` before executing anything. Second of the five plans toward a PSX `.bin/.cue` (plans 7 to 11).
 
-## 1. Objectif
+## 1. Goal
 
-On joue une partie complète sur PC **au clavier seul** : menus, colonisation, slipways, recherche, fin de partie. Le clavier tient lieu de manette PSX : six boutons PICO-8 (quatre directions, O, X), plus au besoin les boutons de tranche de la manette.
+A full game can be played on PC **with the keyboard alone**: menus, colonization, slipways, research, end of game. The keyboard stands in for the PSX controller: the six PICO-8 buttons (four directions, O, X), plus the controller's shoulder buttons if needed.
 
-La souris reste branchée : les e2e existants restent à la souris et leurs `*.sha256` restent identiques. Invariant de chaque commit : `make test-all` passe ; `make sanitize-net`, `make full-game` et `make state` (marge, cf. plan 8 étape 0) passent aussi.
+The mouse stays connected. The existing e2e replays keep using the mouse and their `*.sha256` stay unchanged. Invariant for every commit: `make test-all` passes; `make sanitize-net`, `make full-game` and `make state` (with the margin, see plan 8 step 0) pass too.
 
-## 2. Contraintes déjà dans le code
+## 2. Constraints already in the code
 
-- Les flèches font défiler la carte (`src/game/scroll.c`).
-- La triche lit des séquences O/X (`src/game/cheat.c`).
-- Le jeu ne lit la souris que via `p8_input_read_mouse` (`src/game/mouse.c` seul).
+- The arrow keys scroll the map (`src/game/scroll.c`).
+- The cheat reads O/X sequences (`src/game/cheat.c`).
+- The game reads the mouse only through `p8_input_read_mouse` (in `src/game/mouse.c` alone).
 
-## 3. Approche
+## 3. Approach
 
-Une couche du cœur, sans raylib, qui traduit les boutons en curseur et en clic :
-- un mode curseur, où les directions déplacent un curseur et un bouton clique ;
-- le défilement de carte garde un accès, par exemple quand le curseur pousse le bord de l'écran ;
-- la triche reste atteignable.
+A core layer, with no raylib, that turns button presses into a cursor and clicks:
+- a cursor mode, where the directions move a cursor and a button clicks;
+- map scrolling stays reachable, for example when the cursor pushes against the screen edge;
+- the cheat stays reachable.
 
-La souris réelle, quand elle bouge, reprend la main sur le curseur clavier.
+When the real mouse moves, it takes the cursor back from the keyboard.
 
-## 4. Étapes
+## 4. Steps
 
-0. **Garde de marge.** `make state` échoue quand le pic d'une zone ou d'un cap dépasse sa limite moins la marge de 1/8 (la limite elle-même pour `button`, `row` et `particles_help_screen`, plafonds prouvés), et affiche la place restante sous `ZONE_BUDGET_BYTES` (1 980 o à la fin du plan 7).
-1. **Décider le mapping** : quelle touche clique, comment on défile, comment on reste compatible avec la triche. Un agent écrit ici un mapping par défaut ; l'humain le ratifie ou le corrige avant tout code.
-2. **Couche boutons → souris** dans le cœur, testée en unitaire.
-3. **Branchement raylib** des touches (le backend lit déjà les flèches, Z et X).
-4. **e2e clavier** : sans aucun mouvement de souris, un rejeu court par écran cité dans l'objectif (menus, colonisation et slipway, recherche, fin de partie).
-5. **Essai humain** : une partie jouée au clavier sur PC. Les constats vont dans « Décisions actées » ; si c'est injouable, retour à l'étape 1. L'`events.json` enregistré est rejoué par `make state` : si un pic dépasse celui de `full_game.json`, il entre dans `worst-case/` et `FULL_GAME_EVENTS`.
+0. **Margin guard.** `make state` fails when the peak of a zone or cap exceeds its limit minus a 1/8 margin (the limit itself for `button`, `row` and `particles_help_screen`, whose ceilings are proven), and prints the space left under `ZONE_BUDGET_BYTES` (1,980 bytes at the end of plan 7).
+1. **Decide the mapping**: which key clicks, how scrolling works, how the cheat stays compatible. An agent writes a default mapping here; the human approves or corrects it before any code.
+2. **Button → mouse layer** in the core, unit-tested.
+3. **raylib wiring** for the keys (the backend already reads the arrows, Z and X).
+4. **Keyboard e2e**: with no mouse movement at all, one short replay per screen named in the goal (menus, colonization and slipway, research, end of game).
+5. **Human trial**: one game played on the keyboard on PC. Findings go in "Settled decisions"; if it's unplayable, back to step 1. The recorded `events.json` is replayed by `make state`: if a peak exceeds `full_game.json`'s, it joins `worst-case/` and `FULL_GAME_EVENTS`.
 
-## 5. Décisions actées
+## 5. Settled decisions
 
-- Le clavier suffit : il représente la manette, pas besoin de manette physique sur PC.
-- Le mode saut de planète en planète est **hors plan**.
-- Les e2e clavier passent avant l'essai humain : ils repèrent sans fenêtre un écran inatteignable au clavier.
+- The keyboard is enough: it represents the controller, so no physical controller is needed on PC.
+- A mode that jumps from planet to planet is **out of this plan**.
+- The keyboard e2e come before the human trial: they catch, without a window, a screen that can't be reached by keyboard.

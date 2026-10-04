@@ -1,34 +1,38 @@
-# Notes de projet
+# Project notes
 
-## Le portage
+## The port
 
-- Cible active : **PC via raylib, rendu logiciel** — voir le `README`. Le C est la référence : le jeu est couvert par les e2e, et `pico8/lua.lua` (la source décompilée du cart) reste comme archive. Les objets du jeu sont des structs C plates : un noyau commun (`entity_t`), un archétype `static const` par sorte, des composants par pointeur.
-- PSX est **en pause**, pas abandonné : on y revient quand une version PC/C est jouable de bout en bout. `psx-hello/` est un projet de test du toolchain — voir `docs/psx-hello-world.md`.
-- L'audio (`sfx`, `music`) est **hors périmètre**, pas reporté.
-- **Les e2e font foi, pas les tests unitaires.** Un changement qui améliore les chances du portage et garde tous les `*.sha256` de `tests/e2e/` peut casser un test unitaire qui figeait l'ancien comportement : on met le test à jour.
+- Active target: **PC via raylib, software rendering** — see the `README`. The C code is the reference: the game is covered by the e2e replays, and `pico8/lua.lua` (the cart's decompiled source) stays as an archive. Game objects are flat C structs: a shared core (`entity_t`), one `static const` archetype per kind, and components held by pointer.
+- PSX is **paused**, not abandoned: we come back to it once a PC/C build is playable end to end. `psx-hello/` is a toolchain test project — see `docs/psx-hello-world.md`.
+- Audio (`sfx`, `music`) is **out of scope**, not postponed.
+- **The e2e replays are the source of truth, not the unit tests.** A change that improves the port and keeps every `*.sha256` in `tests/e2e/` unchanged may break a unit test that froze the old behavior: update that test.
 
-## Arborescence et noms
+## Layout and naming
 
-- `src/` en six répertoires : `p8/` le runtime PICO-8 émulé (symboles en `p8_`, fichiers sans préfixe) ; `engine/` le socle objet et mémoire, sans planète ni slipway (`entity_t` et les classes dans `entity_class.h`, registres, listes, zones, file de sortie) ; `game/` le jeu ; `platform/` le backend raylib ; `devtools/` la vérification sans fenêtre (dump, rejeu, capture, état) ; `cmd/` un fichier par binaire. Les includes s'écrivent depuis `src/` (`#include "game/planet.h"`, `-Isrc` seul).
-- `tests/` à plat, un `test_<module>.c` par module, les rejeux dans `tests/e2e/` ; `tools/` les scripts de contrôle et les gardes.
-- Les noms sont anglais et complets : aucun préfixe pour le jeu, `p8_` pour le seul runtime ; une fonction exportée s'écrit `module_verbe[_objet]` ; une ou deux lettres seulement pour une locale ou un paramètre dont la portée tient en 40 lignes.
+- `src/` has six directories: `p8/` is the emulated PICO-8 runtime (symbols prefixed `p8_`, file names unprefixed); `engine/` is the object and memory layer, with no planets or slipways (`entity_t` and the classes in `entity_class.h`, registries, lists, zones, output queue); `game/` is the game; `platform/` is the raylib backend; `devtools/` is headless verification (dump, replay, capture, state); `cmd/` holds one file per binary. Includes are written relative to `src/` (`#include "game/planet.h"`, `-Isrc` only).
+- `tests/` is flat, one `test_<module>.c` per module, with the replays in `tests/e2e/`; `tools/` holds the check scripts and guards.
+- Names are full English words: no prefix for the game, `p8_` for the runtime only. An exported function is named `module_verb[_object]`. One- or two-letter names are only for a local or parameter whose scope fits in 40 lines.
 
-## Ce qu'on ne fait pas
+## Language
 
-- **Ne jamais allonger `make test` ni `make e2e`**, en aucun cas : la boucle doit rester rapide. Une vérification lente va dans une cible à part, hors de `make test-all`.
-- **Ne jamais lancer l'appli raylib.** Pas de fenêtre, pas de serveur X : un agent n'a ni yeux ni souris, il ne verrait rien de ce qu'il ouvre. La vérification se fait sans fenêtre — N frames pilotées par un `events.json` scripté, puis dump texte du framebuffer. Jouer le jeu, c'est le travail d'un humain.
+Everything written in the repository is in English: code, comments, docs, e2e notes, skills, commit messages, PR titles and descriptions, PRDs. Older commits and PRs stay as they are.
+
+## What we don't do
+
+- **Never make `make test` or `make e2e` slower**, under any circumstances: the loop must stay fast. A slow check goes in a separate target, outside `make test-all`.
+- **Never launch the raylib app.** No window, no X server: an agent has neither eyes nor a mouse and would see nothing of what it opens. Verification is headless — N frames driven by a scripted `events.json`, then a text dump of the framebuffer. Playing the game is a human's job.
 
 ## Build
 
-- `make test` est la boucle rapide (TU et contrôles statiques, ~5 s). `make e2e` rejoue les e2e de `tests/e2e/` depuis l'écran titre (~1 s). `make test-all` fait les deux. La légende des cibles est en tête du `Makefile`.
-- `make raylib` compile et linke le binaire interactif sans jamais l'exécuter ; il faut `make raylib-vendor-setup` d'abord — voir `docs/raylib-vendoring.md`.
+- `make test` is the fast loop (unit tests and static checks, ~5 s). `make e2e` replays the e2e files of `tests/e2e/` from the title screen (~1 s). `make test-all` runs both. The target legend is at the top of the `Makefile`.
+- `make raylib` compiles and links the interactive binary without ever running it; run `make raylib-vendor-setup` first — see `docs/raylib-vendoring.md`.
 
 ## Docs
 
-`docs/` ne décrit que ce qui est vrai ou à faire. Ce qui est fini — plan, étude, PRD implémentée — est supprimé : l'historique, c'est git.
+`docs/` only describes what is true or still to do. Anything finished — a plan, a study, an implemented PRD — is deleted: git is the history.
 
-## Commentaires
+## Comments
 
-Un commentaire ne reste que s'il porte l'une de ces trois choses : un écart connu avec le cart (→ `docs/trous-de-portage.md`, référencé par un `/* GAP-7 */` nu), un piège qu'on réintroduirait (un `assert` porteur de message, sinon 40 mots), ou un contrat C que le nom ne dit pas (qui libère la mémoire, ce que rend la fonction si le champ manque). `TODO` reste autorisé. Dans un `Makefile`, seule l'aide à la lecture d'une commande reste. Tout le reste va dans le message de commit.
+A comment stays only if it carries one of three things: a known divergence from the cart (→ `docs/porting-gaps.md`, referenced by a bare `/* GAP-7 */`), a trap someone would reintroduce (an `assert` with a message, otherwise 40 words at most), or a C contract the name doesn't state (who frees the memory, what the function returns when the field is missing). `TODO` is allowed. In a `Makefile`, only help for reading a command stays. Everything else goes in the commit message.
 
-Pour reprendre un fichier déjà écrit : skill `reprendre-les-commentaires`.
+To rework a file written before these rules: skill `rework-comments`.

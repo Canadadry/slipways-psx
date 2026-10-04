@@ -1,25 +1,25 @@
-# Plan 11 — Mesurer, optimiser, livrer
+# Plan 11 — Measure, optimize, ship
 
-Brouillon, à passer en `plan-converge` avant toute exécution. Dernier des cinq plans vers un `.bin/.cue` PSX (plans 7 à 11).
+Draft: run it through `plan-converge` before executing anything. Last of the five plans toward a PSX `.bin/.cue` (plans 7 to 11).
 
-## 1. Objectif
+## 1. Goal
 
-Un `.bin/.cue` final, où une partie complète se joue dans l'émulateur à la cadence du jeu, sans plantage mémoire.
+A final `.bin/.cue` in which a full game plays in the emulator at the game's frame rate, without running out of memory.
 
-## 2. Règles
+## 2. Rules
 
-- Le jeu ne change pas : tous les `*.sha256` de `tests/e2e/` restent identiques, `make test-all` passe à chaque commit.
-- Une saturation est d'abord lue comme une fuite ; on ne relève une limite qu'une fois la fuite écartée.
-- Taille d'une zone ou d'un cap = pic mesuré + 1/8, arrondi à la cellule ou à la place entière ; un plafond prouvé par un test du plus grand cas se dimensionne sur ce plafond, sans marge.
-- Le rejeu dans l'émulateur est une cible dédiée, hors de `make test-all`, qui ne doit pas ralentir.
+- The game doesn't change: every `*.sha256` in `tests/e2e/` stays identical, and `make test-all` passes on every commit.
+- A saturation is first treated as a leak; a limit is raised only once a leak is ruled out.
+- Size of a zone or cap = measured peak + 1/8, rounded up to a whole cell or slot. A ceiling proven by a largest-case test is sized on that ceiling, with no margin.
+- The emulator replay is a dedicated target, outside `make test-all`, which must not get slower.
 
-## 3. Étapes
+## 3. Steps
 
-1. **Rejouer `full_game.json` dans l'émulateur** jusqu'au bout, avec mesure par frame : temps CPU, pic de chaque zone, taille des tampons de primitives. Si le plan 10 n'a pas livré le rejeu d'un `events.json` dans l'émulateur, c'est le premier travail.
-2. **Remesurer les zones sur MIPS** : tailles de place des zones interface et particules ; `button`, `row` et `particles_help_screen` sont dimensionnées sur leur plafond prouvé, sans marge : relancer leurs tests du plus grand cas sur MIPS.
-3. **Optimiser seulement ce que la mesure désigne,** dans la marge libérée par le plan 7. La mesure désigne une frame qui dépasse 1/60 s ou une zone qui dépasse sa taille. Pistes notées, non engagées : la table `p8_quarter_wave` (64 Ko), les chaînes d'`assert`, le nombre de primitives par frame. Piste mémoire, non mesurée : remplacer les pointeurs stockés par des index 16 bits locaux au tableau dynamique d'où vient l'objet (la plupart des références pointent dans une liste ou une arène de taille bornée), au lieu d'adresses 32 bits. Réserves connues : place `row` 1 176 → 1 120 atteignables (~4 Ko) ; `button` 14 → 12 places si un test prouve 12 en jeu (~12 Ko). Risque accepté : la file de sortie, les points de transit, les particules et les réserves des registres suivent la taille de `full_game.json`.
-4. **Livraison.** `.bin/.cue` final, et une partie complète jouée par un humain à la manette.
+1. **Replay `full_game.json` in the emulator** to the end, measuring per frame: CPU time, each zone's peak, primitive buffer size. If plan 10 didn't deliver `events.json` replay in the emulator, that is the first job.
+2. **Re-measure the zones on MIPS**: slot sizes of the UI and particle zones. `button`, `row` and `particles_help_screen` are sized on their proven ceiling, with no margin: rerun their largest-case tests on MIPS.
+3. **Optimize only what the measurement points to,** within the margin plan 7 freed. The measurement points to a frame that takes longer than 1/60 s, or a zone that exceeds its size. Leads noted, not committed to: the `p8_quarter_wave` table (64 KB), the `assert` strings, the number of primitives per frame. A memory lead, not measured: replace stored pointers with 16-bit indexes local to the dynamic array the object comes from (most references point into a bounded-size list or arena), instead of 32-bit addresses. Known reserves: `row` slots 1,176 → 1,120 reachable (~4 KB); `button` 14 → 12 slots if a test proves 12 in play (~12 KB). Accepted risk: the output queue, transit points, particles and registry reserves follow the size of `full_game.json`.
+4. **Ship.** The final `.bin/.cue`, and a full game played by a human with the controller.
 
-## 4. Critère de fin
+## 4. Done when
 
-L'humain finit une partie dans l'émulateur. Les écarts de rendu qu'il relève sont acceptés ou corrigés un par un ; un ralentissement ou un plantage renvoie à l'étape 1.
+The human finishes a game in the emulator. The rendering differences they find are accepted or fixed one by one; a slowdown or a crash sends us back to step 1.
