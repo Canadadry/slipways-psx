@@ -52,7 +52,7 @@ To move those links to ids in step 3, the engine first needs an id that can be c
 24. As a port developer, I want an id taken before `reset_world()` to resolve to NULL afterwards, even when its index is taken again in the new world, so that nothing from the old world aliases a new entity.
 25. As a port developer, I want the entities that `reset_world()` abandons (and the exit queue flushes later in the frame) not to free any slot of the new world, so that a new entity built in the same frame keeps its id.
 26. As a port developer, I want `cart_shutdown()` and the game-zone teardown (`quit_game_zone`) to leave no dangling table, so that a fresh `cart_load()` starts clean.
-27. As a port developer, I want the table's storage to count against the zone budget, so that the 768 KiB budget stays a true upper bound.
+27. As a port developer, I want the game zone budget raised by exactly the table's size, with that size derived from the 512 capacity and the element sizes, so that the zone budget arithmetic stays honest and the table's cost is visible in it.
 28. As a port developer, I want a live count and a peak count of taken slots, so that the step note can report the slot-table peak and `make state` can watch the margin.
 29. As a port developer, I want `make state` to print the table's current, peak and limit on a `cap` line, so that the peak over the worst-case games is measured like every other cap.
 30. As a port developer, I want the measured peak (329 live entities today) to stay well under 512, so that `make state`'s 1/8 margin rule holds.
@@ -62,10 +62,11 @@ To move those links to ids in step 3, the engine first needs an id that can be c
 34. As a port developer, I want `make test` and `make e2e` to be no slower, so that the fast loop stays fast.
 35. As a port developer, I want the table's operations to be O(1) for construct and `entity_get`, so that no per-frame path gets slower.
 36. As a port developer, I want no game code to call the new API in this step, so that the step stays a pure engine addition proven by unit tests.
-37. As a reviewer, I want the pointer-guard counts unchanged by this step, so that the plan's ratchet ("steps 2 and 6 leave them as they are") holds.
+37. As a reviewer, I want the pointer-guard counts unchanged by this step (241 pointers, 13 entity lists), so that the plan's ratchet ("step 2 leaves them as they are") holds.
 38. As a reviewer, I want the table's internal entity pointers to stay inside `engine/`, so that they fall under the section-2 exception for the engine registry's internal lists.
 39. As a future step-3 implementer, I want `entity_id_t` declared in a small engine header that game headers can include cheaply, so that game structs can hold ids without pulling in the registry.
 40. As a future step-3 implementer, I want the flush to be the only point where an id goes dead, so that removing dead ids from game lists "where the cart calls `del()`" has one clear deadline.
+41. As a port developer, I want research projects (never `entity_construct`ed) to take no slot, so that the table only covers entities and step 3 can give projects their own ids.
 
 ## Implementation Decisions
 
@@ -75,7 +76,7 @@ To move those links to ids in step 3, the engine first needs an id that can be c
   - `entity_id_of(const entity_t *e)` returns the entity's id, or "no link" when it holds no slot. It is a scan, kept for tests, and step 3 decides whether the header carries the id (see the guideline decision below).
   - Internal to the engine: take a slot for an entity (called by `entity_construct`), free the slot of an entity (called by the exit-queue flush), reset the table (called by the registry init), plus `live` and `max` counts for `make state`.
   - Capacity: a named constant of 512.
-- **Storage (guideline DECISION).** The 512-slot table is allocated from `game_zone()` in `entity_registry_init()`, next to the registries, which `reset_world()` already calls. The budget constants (`ZONE_BUDGET_*`, `zone_sizes.h`) stay unchanged. Being inside an existing zone is how the table counts against the zone budget. WHY: only 1,980 bytes of budget are left and a 512-slot table is ≥ 5 KiB on the 64-bit host; the registries already live there.
+- **Storage and budget (user decision, plan section 7 "Step 1 sorting — user decisions").** The 512-slot table is allocated as one block from `game_zone()` in `entity_registry_init()`, next to the registries, which `reset_world()` already calls. The game zone budget is raised by the table's size: a named table-size constant in the zone-sizes header is computed from the capacity and the element sizes, rounded the way the zone rounds an allocation. It is added to `GENERATION_ZONE_BYTES`, and `ZONE_BUDGET_BYTES` goes up by the same amount, so the bytes left under the budget (1,980 today) don't change and the compile-time budget check keeps passing on honest numbers. A unit test (or a compile-time check) proves that the block the table takes from the game zone is exactly that constant. This replaces the earlier guideline decision ("budget constants unchanged"), which contradicted the user's decision. The `make state` budget line then shows the raised figures.
 - **entity_t unchanged (guideline DECISION).** Step 2 does not add an id field to `entity_t`: every entity would grow and the fixed UI and particle slot arenas would get tighter. The flush finds an entity's slot by scanning the table for its pointer, and `entity_id_of` scans too. Whether the header carries its id is left to step 3 or step 4. WHY: the plan says nobody uses the table yet, so the smaller change wins.
 - **Table layout.** Two parallel arrays of 512, the entity pointers and the `uint16_t` generations, plus a way to find a free slot in O(1) (a free-index stack of `uint16_t`, or an equivalent). Construct and `entity_get` are O(1). Only the flush scans, once per queued entity (at most a few hundred entries, once per world change), which does not measurably slow `make e2e`.
 - **Generations.** A slot's generation is never 0 while it holds an entity. Incrementing skips 0 on wraparound (65535 → 1). Allocating a fresh table at each `entity_registry_init()` would restart every generation, so the table seeds all its slots from a file-scope world epoch that `reset_world` advances (also skipping 0). An id from the previous world then fails the generation check even when its index is reused. The epoch is a plain integer, not a pointer.
@@ -92,7 +93,7 @@ To move those links to ids in step 3, the engine first needs an id that can be c
 
 ## Implementation Chunks
 
-1. **The table alone.** The id type, "no link", the 512-slot table with its generations, take, free-by-pointer, `entity_get`, `entity_id_of`, reset with an epoch, `live`/`max`, `p8_fatal` when full. Unit-tested in isolation, with no other engine module calling it yet.
+1. **The table alone.** The id type, "no link", the table-size constant with the game zone budget raise, the 512-slot table with its generations, take, free-by-pointer, `entity_get`, `entity_id_of`, reset with an epoch, `live`/`max`, `p8_fatal` when full. Unit-tested in isolation, with no other engine module calling it yet.
 2. **Wiring into the lifecycle.** `entity_registry_init`, shutdown and forget own the table. `entity_construct` takes a slot. `entity_unregister` queues every class. `exit_queue_put` loses its release-only assert. `exit_queue_flush` frees the slot between `forget` and an optional `release`. The `cap` line goes into `make state`. Tests cover the lifecycle through `entity_construct` / `entity_unregister` / flush / `reset_world`. `make test-all`, `make sanitize-net` and `make full-game` are green, with every sha unchanged.
 
 ## Testing Decisions
@@ -109,23 +110,24 @@ To move those links to ids in step 3, the engine first needs an id that can be c
   - `reset_world()` → every pre-reset id is NULL, including one whose index is reused by a post-reset entity;
   - an entity abandoned by `reset_world()` and flushed later in the same frame does not free the slot of an entity built after the reset;
   - an entity registered without `entity_construct` has "no link" as its id, and its flush frees nothing;
-  - the live count goes up and down, and the peak survives the flush and the reset.
+  - the live count goes up and down, and the peak survives the flush and the reset;
+  - the block the table takes from the game zone equals the table-size constant added to the budget.
 - `tests/test_exit_queue.c` currently has a case that relies on `exit_queue_put` asserting on a class without `release`, if it has one, and its comments describe release-only queuing. Update those cases to the new contract (every unregistered entity is queued). Per CLAUDE.md, the e2e replays are the source of truth, and a unit test that froze the old behaviour is updated. Its reset-burst case (286 entries) must still pass unchanged, because abandonment stays release-only.
 - Prior art: `tests/test_exit_queue.c` (fatal on overflow, child processes under ASan, flush behaviour), `tests/test_entity_list.c` (small engine container), `tests/test_camera.c` (`reset_world` cases).
 - Outside the unit tests: every `*.sha256` unchanged (`make e2e`), `make sanitize-net`, `make full-game`. `plan-pilot` runs the last two after `prd-autopilot`, and the step note records them.
 
 ## Hypotheses on step 1
 
-Step 1 (pointer guard) is being implemented in parallel. This PRD is written against the committed tree, before step 1's commits. Each of the following hypotheses must be checked against plan section 7 and the tree as it is when step 2 starts. A false one is re-decided before coding.
+Checked against the committed plan's section 7 ("Step 1 sorting", "Step 1 sorting — user decisions", "Step 1.1") after step 1 graduated.
 
-- **H-2-1.** `tools/pointer_guard.sh` and `tools/pointer_guard_exceptions.txt` exist and run in `make test` with strict equality, so any count step 2 changed would turn `make test` red.
-- **H-2-2.** The guard's scope is `src/game/` (headers and `.c` files) plus `src/engine/entity_class.h`, as the plan states. The new engine module (its header and `.c` file) is outside that scope, so the table's internal `entity_t *` array is not counted.
-- **H-2-3.** Step 2 changes no count. `entity_t` and `entity_class.h` are untouched (guideline decision), `entity_id_t` holds no pointer, and no field or file-scope variable is added in `src/game/`. The only file-scope state added (world epoch, table handle) lives in `engine/` outside `entity_class.h`. If the guard turns out to scan all of `engine/`, the table's pointer is an "engine registry internal list" allowed by section 2 and gets a line in the exceptions file, sorted as allowed.
-- **H-2-4.** The second count (game fields and file-scope variables holding a list of entity pointers) is unchanged: the table is not an `entity_list_t` or `pointer_list_t`, and it is not in `game/`.
-- **H-2-5.** The section-7 sorting has an empty `Unsorted` heading (otherwise the run would have stopped before step 2), and step 1's note reports no surprise that touches the exit queue, the registry, `entity_construct` or `reset_world`.
-- **H-2-6.** Step 1 does not change `exit_queue_flush`, its `forget` callback, `entity_unregister`, `entity_registry_init`, `reset_world` or the zone constants. Its only `Makefile` edits are the new guard target in `make test` and its unit test, so step 2's `UNIT_TESTS` addition merges trivially.
-- **H-2-7.** Step 1 leaves `make test` and `make e2e` at today's speed, so step 2's own budget is measured against the same baseline.
-- **H-2-8.** Counts are frozen by step 1 at today's values. From step 2 on, "no step raises a count" is checked by the guard and not by this PRD.
+- **H-2-1 — held.** `tools/pointer_guard.sh` and `tools/pointer_guard_exceptions.txt` exist, and `pointer-guard` runs in `make test` with strict equality (Step 1.1).
+- **H-2-2 — held.** The guard reads `src/game/*.[ch]` and `src/engine/entity_class.h` only, so the new engine module and its internal `entity_t *` array are outside it.
+- **H-2-3 — held.** Step 2 changes no count. The plan now says "step 2 leaves them as they are", and the table's pointer is also an engine registry internal list, allowed by section 2.
+- **H-2-4 — held.** The 13 `entity_list_t` are frozen, no game `pointer_list_t` holds entities, and the table is neither of these.
+- **H-2-5 — failed, then resolved.** Unsorted held 46 pointers. The user's decisions emptied it, and none of them touches the exit queue, the registry, `entity_construct` or `reset_world`. One of them is a new requirement for step 2: raise the game zone budget by the table's size. The Storage decision and user story 27 now follow it, replacing the guideline decision that the budget stayed unchanged.
+- **H-2-6 — held.** Step 1 touched nothing in `src/`. Its Makefile change is the `pointer-guard` target and `test_pointer_guard`.
+- **H-2-7 — held.** `make test` measured 5.72 s against 5.75 s before step 1, and `make e2e` is green with no sha changed.
+- **H-2-8 — held.** The counts are frozen at 241 pointers in 39 files and 13 entity lists in 7 files.
 
 ## Out of Scope
 
@@ -134,11 +136,12 @@ Step 1 (pointer guard) is being implemented in parallel. This PRD is written aga
 - Changing `entity_registry_abandon_live_entities` to queue release-less entities.
 - Moving `entity_t` / `entity_class.h` out of `engine/`.
 - Lowering pointer-guard counts.
-- Resizing zones or changing `ZONE_BUDGET_BYTES`.
+- Resizing any zone other than the one raise of the game zone budget by the table's size.
 - Audio, the raylib binary, PSX.
 
 ## Further Notes
 
 - Peak: `cart_game_registry_reserve` measures 329 live entities. With 512 slots, `make state`'s margin rule (9 × peak ≤ 8 × limit) holds with room to spare. The title screen and the frame of a world change are also covered, because a reset clears the table before the new world's entities take slots.
-- Risk: the game zone's generation now carries about 5 to 6 KiB more per world. `make full-game` fails on a full zone. If it fails, the fix is a measured raise of the generation zone within the 1,980 bytes of budget left, or a smaller table layout. The 512 capacity and the "counts against the budget" rule are never relaxed.
-- Step 2 graduates with one line in plan section 7: the slot-table peak measured by `make state`, the exit-queue peak, and confirmation that the guard counts did not move.
+- The table's bytes are added to the game zone budget, so the generation zone's headroom over its measured peak is the same as before step 2. If `make full-game` still reports a full game zone, the size constant doesn't match the allocation, and the unit test that ties the two must catch it. The 512 capacity is never relaxed.
+- Research projects have a header but are never `entity_construct`ed (step 1 note), so they take no slot. Step 3 gives them project ids, not entity handles.
+- Step 2 graduates with one line in plan section 7: the slot-table peak measured by `make state`, the exit-queue peak, the table's size added to the game zone budget, and confirmation that the guard counts did not move (241 / 13).
