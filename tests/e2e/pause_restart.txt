@@ -9,5 +9,3 @@
 
 Also replaces the unit test `top_menubar`. The catalog's "title screen"
 scenario added no covered line, and these last frames show the same bar.
-
-Human review in raylib: pending.

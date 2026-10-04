@@ -11,5 +11,3 @@ their icons. 76 frames. The only e2e that instantiates the processor
 - f62-65: ascension gate (`hj`) dragged from its icon (124,116) to
   (116,86).
 - f66-75: wait, both structures placed.
-
-Human review in raylib: pending.

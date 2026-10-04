@@ -13,5 +13,3 @@ the need the first one already serves. 113 frames.
 - f101-108: second synthesizer at (131,16), linked to "p27". `mx:kf`
   skips the need whose `gc` is no longer 0 and serves the other one.
 - f109-112: wait.
-
-Human review in raylib: pending.

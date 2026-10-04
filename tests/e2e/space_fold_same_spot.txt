@@ -9,5 +9,3 @@ Space fold held on the probe itself: no anchor, refused.
 - f25: released after 15 ticks. `d_` returns nil (no payment) and
   `mz:ey` destroys the fold. The money stays at $100.
 - f26-31: wait.
-
-Human review in raylib: pending.

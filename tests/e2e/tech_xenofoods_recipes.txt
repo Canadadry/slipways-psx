@@ -10,5 +10,3 @@ improved recipes (`hp:po`, branch `mc`) and cost ×1.5 (`hp:od`).
   f47. "p40" (44,40) is earth-like.
 - f49: click on "p40": build menu with improved recipes.
   f51-52: menu displayed.
-
-Human review in raylib: pending.

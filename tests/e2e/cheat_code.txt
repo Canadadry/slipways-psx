@@ -8,5 +8,3 @@ Cheat code O O X X O O X X: complete, interrupted, complete. 36 frames.
 - f24-35: complete sequence. It triggers at f35 and research is back to 99.
 
 Replaces the unit test `cheat_code`.
-
-Human review in raylib: pending.

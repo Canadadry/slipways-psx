@@ -14,5 +14,3 @@ reduced price (×0.85). 48 frames.
 Replaces the unit test `tech_screen`. The catalog's "first invention"
 scenario added no covered line, and this one goes through the same
 screen and the same invention.
-
-Human review in raylib: pending.

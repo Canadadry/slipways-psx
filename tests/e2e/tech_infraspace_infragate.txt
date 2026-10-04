@@ -13,5 +13,3 @@ ordinary slipway drawn next to it. 89 frames.
 - f80-83: slipway from "p27" to the infragate (`mt`=1).
 - f84-87: ordinary slipway from "p27" to "p48". `jc:ce` ignores the
   infragate's slipway, which is not on the same plane (`mt`).
-
-Human review in raylib: pending.

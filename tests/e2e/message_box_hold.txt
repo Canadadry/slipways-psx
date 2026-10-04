@@ -10,5 +10,3 @@ one left to run its course. 159 frames.
   previous one. Its `lh` holds it as long as the panel is open.
 - f122: click (80,60). The panel closes. f124-158: the box exits and
   removes itself (`p_`, `kc` reset to nil).
-
-Human review in raylib: pending.

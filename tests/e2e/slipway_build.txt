@@ -14,5 +14,3 @@ year. 45 frames.
 - f43: year skip `ix[1]` (150,0).
 
 Replaces the unit tests `slipway_drag` and `playability`.
-
-Human review in raylib: pending.

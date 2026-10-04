@@ -7,5 +7,3 @@ The three pause menu rows that do not leave the game. 25 frames.
 - f16: pause. f21: "how to play?" (10,75), the menu closes.
 
 Replaces the unit test `pause_menu_music`.
-
-Human review in raylib: pending.

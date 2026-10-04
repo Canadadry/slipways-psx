@@ -18,5 +18,3 @@ protostar, whose energy powers a forgeworld. 91 frames.
 - f87-89: right-click drag from (133,113) to (27,7). The camera moves
   away, the protostar and the probe leave the screen, and their
   particles are no longer drawn (`ei`).
-
-Human review in raylib: pending.

@@ -6,7 +6,7 @@
 # pair), then the first `budget zones <sum> <limit>` line, whose bytes left
 # go to stdout. Exit 1, with `state: <events> stopped`, when a state is missing or
 # starts with `stopped`, and with `state: <zone|cap> <name> peak ... over margin`
-# for each peak line where 9 x peak > 8 x limit (plan 7 sized limits at peak +
+# for each peak line where 9 x peak > 8 x limit (limits are sized at peak +
 # 1/8); an exempt line only needs peak <= limit.
 
 set -u

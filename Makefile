@@ -36,7 +36,7 @@
 #                       diverging frame, outside the suite
 # make data-guard    -> none of the patterns of the pre-composition model
 #                       (DATA_GUARD_PATTERN) in src/ or tests/, in make test
-# make p8-guard      -> none of what plan 6 removed (P8_GUARD_PATTERN: audio,
+# make p8-guard      -> none of the PICO-8-only APIs (P8_GUARD_PATTERN: audio,
 #                       p8_stat, peek/poke, PICO-8 addresses, string-keyed
 #                       tags/messages/states, map.json) in src/ or tests/, in
 #                       make test; entity_state_name's table is the accepted
@@ -772,7 +772,7 @@ P8_GUARD_PATTERN := \bp8_(stat|sfx|music|play_sfx|peek|poke|memcpy|memory_t)\b|\
 
 p8-guard:
 	@status=0; grep -rnE '$(P8_GUARD_PATTERN)' --include='*.c' --include='*.h' src tests || status=$$?; \
-	if [ $$status -eq 0 ]; then echo "p8-guard: pattern removed by plan 6 above"; exit 1; fi; \
+	if [ $$status -eq 0 ]; then echo "p8-guard: PICO-8-only pattern above"; exit 1; fi; \
 	[ $$status -eq 1 ] || exit $$status; \
 	echo "p8-guard: clean"
 

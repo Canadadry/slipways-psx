@@ -13,5 +13,3 @@ The catalog's planned "uncolonized planet menu" scenario added no
 covered line: that menu is already the one at f27.
 
 Replaces the unit test `built_planet_panel_nil_row`.
-
-Human review in raylib: pending.

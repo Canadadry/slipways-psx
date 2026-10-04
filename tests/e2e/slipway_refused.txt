@@ -11,5 +11,3 @@ Refused slipways: a path that crosses a planet, then a duplicate.
 - f40-43: slipway from "p27" to "p48". Built, $5.
 - f44-47: the same slipway a second time. `jc:ce` returns the existing
   slipway, refused.
-
-Human review in raylib: pending.
