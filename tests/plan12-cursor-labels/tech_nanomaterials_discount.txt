@@ -1,4 +1,4 @@
-button
+button:difficulte
 carte
 button:galaxy_menu_1
 button:galaxy_menu_1
@@ -14,8 +14,8 @@ button:galaxy_menu_1
 button:galaxy_menu_1
 button:galaxy_menu_2
 button:galaxy_menu_2
-button
-button
+button:technologies
+button:technologies
 planet
 carte
 carte

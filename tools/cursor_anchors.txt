@@ -21,7 +21,11 @@ button:galaxy_menu_1 droite haut
 button:galaxy_menu_2 gauche haut
 button:galaxy_menu_3 centre haut
 button:galaxy_menu_4 gauche bas
-button centre centre
+button:monde carte
+button:technologies gauche haut
+button:pause gauche bas
+button:difficulte centre centre
+button:fin_de_partie centre centre
 modal_backdrop centre centre
 help_screen centre centre
 structure_icon droite bas

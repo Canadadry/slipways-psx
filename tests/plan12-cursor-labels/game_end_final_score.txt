@@ -1,4 +1,4 @@
-button
+button:difficulte
 carte
 button:galaxy_menu_1
 button:galaxy_menu_1
@@ -56,7 +56,7 @@ modal_backdrop
 modal_backdrop
 modal_backdrop
 modal_backdrop
-button
+button:fin_de_partie
 carte
 carte
 carte

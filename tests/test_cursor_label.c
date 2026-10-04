@@ -14,6 +14,7 @@
 #include "game/planet.h"
 #include "game/planet_family.h"
 #include "game/planet_family_trade.h"
+#include "game/score_panel.h"
 #include "game/structure_icon.h"
 #include "game/ui.h"
 #include "game/ui_button.h"
@@ -48,10 +49,11 @@ static entity_t of_class(const entity_class_t *c) {
     return e;
 }
 
-static button_t button_with(button_fn_t on_click) {
+static button_t button_with(int layer, button_fn_t on_click) {
     button_t b;
     memset(&b, 0, sizeof b);
     entity_init_header(&b.header, button_class());
+    b.layer = p8_fixed_from_int(layer);
     b.on_click = on_click;
     b.has_on_click = on_click != NULL;
     return b;
@@ -79,6 +81,7 @@ static const named_class_t NAMED[] = {
 
 #define FIXTURE "tests/fixtures/title_click_reasonable.json"
 #define LABELS_OUT "tmp/test_cursor_label_labels.txt"
+#define CLAMP_OUT "tmp/test_cursor_label_clamp.txt"
 #define LOG_OUT "tmp/test_cursor_label_log.txt"
 #define DUMP_WITH "tmp/test_cursor_label_dump_with.txt"
 #define DUMP_WITHOUT "tmp/test_cursor_label_dump_without.txt"
@@ -128,11 +131,12 @@ static int replayed_frames(void) {
 }
 
 static void test_driver_writes_one_label_per_frame(void) {
-    size_t labels_len, with_len, without_len, i;
+    size_t labels_len, with_len, without_len, clamp_len, i;
     int lines = 0;
     char *labels, *with, *without;
     remove(LABELS_OUT);
-    assert(system("LABELS=" LABELS_OUT " ./tmp/replay " FIXTURE " /dev/null " DUMP_WITH " > " LOG_OUT) == 0);
+    remove(CLAMP_OUT);
+    assert(system("LABELS=" LABELS_OUT " CAMERA_CLAMP=" CLAMP_OUT " ./tmp/replay " FIXTURE " /dev/null " DUMP_WITH " > " LOG_OUT) == 0);
     assert(system("./tmp/replay " FIXTURE " /dev/null " DUMP_WITHOUT " > /dev/null") == 0);
     labels = read_whole_file(LABELS_OUT, &labels_len);
     for (i = 0; i < labels_len; i++) {
@@ -142,10 +146,12 @@ static void test_driver_writes_one_label_per_frame(void) {
     assert(lines == replayed_frames());
     assert(strcmp(nth_line(labels, 0), "carte") == 0);
     assert(strcmp(nth_line(labels, 49), "carte") == 0);
-    assert(strcmp(nth_line(labels, 50), "button") == 0 && "frame 50 moves onto a difficulty row: its own hit test, not the previous one");
-    assert(strcmp(nth_line(labels, 60), "button") == 0 &&
+    assert(strcmp(nth_line(labels, 50), "button:difficulte") == 0 && "frame 50 moves onto a difficulty row: its own hit test, not the previous one");
+    assert(strcmp(nth_line(labels, 60), "button:difficulte") == 0 &&
            "frame 60 clicks the difficulty: the ui that dispatched it, not the one reset_world() built during it");
     assert(strcmp(nth_line(labels, 61), "carte") == 0);
+    free(read_whole_file(CLAMP_OUT, &clamp_len));
+    assert(clamp_len == 0 && "the title screen's camera stays at (192,192)");
     with = read_whole_file(DUMP_WITH, &with_len);
     without = read_whole_file(DUMP_WITHOUT, &without_len);
     assert(with_len == without_len && memcmp(with, without, with_len) == 0 && "LABELS must not change the replay");
@@ -153,9 +159,75 @@ static void test_driver_writes_one_label_per_frame(void) {
     free(with);
     free(without);
     remove(LABELS_OUT);
+    remove(CLAMP_OUT);
     remove(LOG_OUT);
     remove(DUMP_WITH);
     remove(DUMP_WITHOUT);
+}
+
+static void expect_button(hand_ui_t *h, button_t *b, const char *label) {
+    hand_ui_init(h);
+    hand_ui_put(h, 8, &b->header);
+    expect(&h->ui, label);
+}
+
+static void test_buttons_named_by_their_fields(hand_ui_t *h) {
+    button_t b;
+
+    b = button_with(9, NULL);
+    expect_button(h, &b, "button:monde");
+    b = button_with(0, help_start_game_field_value());
+    expect_button(h, &b, "button:monde");
+
+    b = button_with(11, NULL);
+    b.technology = &technologies_table[0];
+    expect_button(h, &b, "button:technologies");
+
+    score_panel_init();
+    b = button_with(10, NULL);
+    expect_button(h, &b, "button:technologies");
+    score_panel_shutdown();
+    expect_button(h, &b, "button");
+
+    b = button_with(11, help_start_game_field_value());
+    expect_button(h, &b, "button:difficulte");
+
+    b = button_with(pause_menu_tail.back_color, score_panel_init_field_value());
+    expect_button(h, &b, "button:pause");
+    b = button_with(pause_menu_tail.back_color, NULL);
+    expect_button(h, &b, "button:pause");
+
+    b = button_with(15, score_panel_init_field_value());
+    expect_button(h, &b, "button:fin_de_partie");
+}
+
+static vec_t at(int x, int y) {
+    return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
+}
+
+static void test_camera_clamp_zone(void) {
+    assert(!cursor_label_camera_clamped(at(192, 192)));
+    assert(!cursor_label_camera_clamped(at(-47, 315)));
+    assert(!cursor_label_camera_clamped(vec_make(p8_fixed_sub(p8_fixed_from_int(-48), -1), p8_fixed_sub(p8_fixed_from_int(316), 1))));
+    assert(cursor_label_camera_clamped(at(-48, 0)));
+    assert(cursor_label_camera_clamped(at(-64, 192)));
+    assert(cursor_label_camera_clamped(at(0, 316)));
+    assert(cursor_label_camera_clamped(at(320, 320)));
+}
+
+static void test_driver_lists_the_clamped_camera_frames(void) {
+    size_t len;
+    char *clamp;
+    remove(CLAMP_OUT);
+    assert(system("LABELS=" LABELS_OUT " CAMERA_CLAMP=" CLAMP_OUT " ./tmp/replay tests/e2e/camera_drag_dpad.json /dev/null " DUMP_WITH
+                  " > " LOG_OUT) == 0);
+    clamp = read_whole_file(CLAMP_OUT, &len);
+    assert(strcmp(clamp, "15\n16\n17\n18\n") == 0 && "the d-pad drives the camera to x <= -48 on these frames only");
+    free(clamp);
+    remove(CLAMP_OUT);
+    remove(LABELS_OUT);
+    remove(LOG_OUT);
+    remove(DUMP_WITH);
 }
 
 int main(void) {
@@ -178,7 +250,7 @@ int main(void) {
     hand_ui_put(&h, 3, &planet);
     expect(&h.ui, "planet");
 
-    button_t plain = button_with(NULL);
+    button_t plain = button_with(11, NULL);
     hand_ui_put(&h, 5, &plain.header);
     expect(&h.ui, "button");
 
@@ -192,13 +264,15 @@ int main(void) {
                                              "button:galaxy_menu_4"};
         int i;
         for (i = 1; i <= 4; i++) {
-            button_t menu = button_with(galaxy_menu_on_click(i));
+            button_t menu = button_with(11, galaxy_menu_on_click(i));
             hand_ui_init(&h);
             hand_ui_put(&h, 2, &planet);
             hand_ui_put(&h, 9, &menu.header);
             expect(&h.ui, galaxy[i - 1]);
         }
     }
+
+    test_buttons_named_by_their_fields(&h);
 
     {
         size_t i;
@@ -213,7 +287,7 @@ int main(void) {
 
     {
         hand_ui_t before;
-        button_t menu = button_with(galaxy_menu_on_click(2));
+        button_t menu = button_with(11, galaxy_menu_on_click(2));
         hand_ui_init(&h);
         hand_ui_put(&h, 0, &background);
         hand_ui_put(&h, 6, &planet);
@@ -229,6 +303,8 @@ int main(void) {
         assert(memcmp(&planet_before, &planet, sizeof planet) == 0);
     }
 
+    test_camera_clamp_zone();
     test_driver_writes_one_label_per_frame();
+    test_driver_lists_the_clamped_camera_frames();
     return 0;
 }

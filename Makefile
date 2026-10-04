@@ -39,7 +39,9 @@
 #                       temporary (plan 12), outside the suite
 # make cursor-labels -> the same for the worst-case/ games (FULL_GAME_EVENTS)
 #                       and every e2e of tests/e2e/, one <name>.txt each in
-#                       tests/plan12-cursor-labels/; fails if a replay stops,
+#                       tests/plan12-cursor-labels/, and camera-clamp.txt
+#                       there, the frames of each whose camera top-left is
+#                       at x <= -48 or y >= 316; fails if a replay stops,
 #                       if a file has not one line per frame, or if a label is
 #                       not in tools/cursor_anchors.txt; temporary (plan 12),
 #                       outside the suite
@@ -896,7 +898,7 @@ cursor-labels: $(TMP_DIR)/replay $(CURSOR_ANCHORS) $(STATE_EVENTS)
 	@rm -rf $(TMP_DIR)/cursor-labels && mkdir -p $(TMP_DIR)/cursor-labels
 	@for e in $(STATE_EVENTS); do \
 	    n=$(TMP_DIR)/cursor-labels/$$(basename $$e .json); \
-	    LABELS=$$n.txt ./$(TMP_DIR)/replay $$e /dev/null $$n.dump.txt > $$n.log 2>&1 || { cat $$n.log; echo "cursor-labels: $$e stopped"; exit 1; }; \
+	    LABELS=$$n.txt CAMERA_CLAMP=$$n.clamp ./$(TMP_DIR)/replay $$e /dev/null $$n.dump.txt > $$n.log 2>&1 || { cat $$n.log; echo "cursor-labels: $$e stopped"; exit 1; }; \
 	    frames=$$(sed -n 's/^replay: \([0-9]*\) frame(s) run .*/\1/p' $$n.log); \
 	    lines=$$(wc -l < $$n.txt); \
 	    [ "$$lines" -eq "$$frames" ] || { echo "cursor-labels: $$e has $$frames frame(s) but $$lines label(s)"; exit 1; }; \
@@ -906,7 +908,13 @@ cursor-labels: $(TMP_DIR)/replay $(CURSOR_ANCHORS) $(STATE_EVENTS)
 	[ -z "$$missing" ] || { echo "cursor-labels: not in $(CURSOR_ANCHORS): $$missing"; exit 1; }
 	@rm -rf $(CURSOR_LABELS_DIR) && mkdir -p $(CURSOR_LABELS_DIR)
 	@cp $(foreach e,$(STATE_EVENTS),$(TMP_DIR)/cursor-labels/$(basename $(notdir $(e))).txt) $(CURSOR_LABELS_DIR)/
-	@echo "cursor-labels: $(words $(STATE_EVENTS)) label files in $(CURSOR_LABELS_DIR)"
+	@{ echo "# <replay> <frames from 0, a-b inclusive> | aucune: camera top-left at x <= -48 or y >= 316"; \
+	   for e in $(STATE_EVENTS); do n=$$(basename $$e .json); \
+	     printf '%s %s\n' $$n "$$(awk 'NR == 1 { a = b = $$1; next } $$1 == b + 1 { b = $$1; next } \
+	       { r = r (r == "" ? "" : ",") (a == b ? a : a "-" b); a = b = $$1 } \
+	       END { if (NR) r = r (r == "" ? "" : ",") (a == b ? a : a "-" b); print (r == "" ? "aucune" : r) }' $(TMP_DIR)/cursor-labels/$$n.clamp)"; \
+	   done; } > $(CURSOR_LABELS_DIR)/camera-clamp.txt
+	@echo "cursor-labels: $(words $(STATE_EVENTS)) label files and camera-clamp.txt in $(CURSOR_LABELS_DIR)"
 endif
 
 .PHONY: cursor-labels

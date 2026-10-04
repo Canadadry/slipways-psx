@@ -1,4 +1,4 @@
-button
+button:difficulte
 carte
 carte
 carte
@@ -33,10 +33,10 @@ carte
 carte
 planet
 planet
-button
-button
-button
-button
-button
-button
-button
+button:monde
+button:monde
+button:monde
+button:monde
+button:monde
+button:monde
+button:monde

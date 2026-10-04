@@ -1,4 +1,4 @@
-button
+button:difficulte
 carte
 carte
 carte
@@ -47,7 +47,7 @@ carte
 carte
 planet
 planet
-button
+button:monde
 carte
 carte
 carte
@@ -68,11 +68,11 @@ carte
 carte
 button:galaxy_menu_2
 button:galaxy_menu_2
-button
+button:technologies
 carte
 button:galaxy_menu_2
 button:galaxy_menu_2
-button
+button:technologies
 carte
 carte
 carte
@@ -88,15 +88,15 @@ carte
 carte
 planet
 planet
-button
+button:monde
 carte
 planet
 planet
-button
+button:monde
 carte
 planet
 planet
-button
+button:monde
 carte
 structure_icon
 carte
@@ -148,5 +148,5 @@ structure
 structure
 structure
 structure
-button
-button
+button:monde
+button:monde

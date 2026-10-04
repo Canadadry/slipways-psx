@@ -1,4 +1,4 @@
-button
+button:difficulte
 carte
 button:galaxy_menu_1
 button:galaxy_menu_1
