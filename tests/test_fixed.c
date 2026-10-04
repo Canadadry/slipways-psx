@@ -576,7 +576,19 @@ static void test_sin_and_cos_periodic_at_whole_turn_boundary(void) {
     assert(p8_fixed_cos(two_turns) == p8_fixed_cos(zero_turns));
 }
 
+/* The compile-time constant agrees with the function, negatives included. */
+static void test_fixed_int_constant_matches_from_int(void) {
+    static const p8_fixed_t constants[] = {P8_FIXED_INT(0), P8_FIXED_INT(1), P8_FIXED_INT(-1), P8_FIXED_INT(-3),
+        P8_FIXED_INT(150), P8_FIXED_INT(32767), P8_FIXED_INT(-32768)};
+    static const int32_t ints[] = {0, 1, -1, -3, 150, 32767, -32768};
+
+    for (int i = 0; i < 7; i++) {
+        assert(constants[i] == p8_fixed_from_int(ints[i]));
+    }
+}
+
 int main(void) {
+    test_fixed_int_constant_matches_from_int();
     test_sqrt_perfect_square();
     test_sqrt_perfect_square_fractional();
     test_sqrt_zero_is_zero();

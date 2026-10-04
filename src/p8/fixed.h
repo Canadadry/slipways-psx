@@ -23,6 +23,10 @@ typedef int32_t p8_fixed_t;
 
 p8_fixed_t p8_fixed_from_int(int32_t i);
 
+/* p8_fixed_from_int() as a constant expression, for static initializers;
+ * i from -32768 to 32767. */
+#define P8_FIXED_INT(i) ((p8_fixed_t)((uint32_t)(int32_t)(i) << P8_FIXED_SHIFT))
+
 /* Overflow wraps, two's-complement, as PICO-8 documents. Computed through
  * the unsigned 32-bit type, since signed overflow is undefined behavior in
  * C -- never by relying on int32_t overflow or on -fwrapv. */

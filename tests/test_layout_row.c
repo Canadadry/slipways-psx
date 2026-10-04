@@ -55,7 +55,7 @@
 #define PLANET_RESOURCE_ROW_HASH 0x14C8A4D7u
 #define RESEARCH_PROJECT_LAYOUT_ROW_HASH 0x0C4EF324u
 #define CALLS_HASH 0xAF82B163u
-#define PANEL_HASH 0x13ED0B98u
+#define PANEL_HASH 0xE36A4B9Au
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;

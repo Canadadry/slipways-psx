@@ -49,7 +49,7 @@ static int pos_copies(const vec_t *ra, const vec_t *mp) {
 #define FROZEN_INSTANCE_TAG 0x9E5C1451u
 
 #define BUILT_HASH 0xD2F8504Au
-#define LIFE_HASH 0x0D9EEFC1u
+#define LIFE_HASH 0x338111F6u
 #define DROP_ON_HASH 0x49056D9Bu
 #define DROP_OFF_HASH 0x3EA86A53u
 #define HELP_SCREEN_HASH 0x9573B239u
@@ -802,6 +802,36 @@ static void test_targeting_track_target_is_a_struct(void) {
     assert(class_of(et)->draw_overlay == NULL);
 }
 
+/* Over the void, a drag released within 10 pixels of any screen edge has
+ * the throwaway target, so the drop cancels; 15 pixels in, it has none, so
+ * the drop places. */
+static void test_drop_near_an_edge_cancels(void) {
+    static const int screen_points[][2] = {
+        {P8_SCREEN_WIDTH - 5, P8_SCREEN_HEIGHT / 2}, {P8_SCREEN_WIDTH / 2, P8_SCREEN_HEIGHT - 5},
+        {5, P8_SCREEN_HEIGHT / 2}, {P8_SCREEN_WIDTH / 2, 5},
+    };
+    probe_t *a;
+    vec_t middle;
+    vec_t *void_point;
+    size_t i;
+
+    start_game();
+    a = left_press();
+    (void)a_slipway(&middle);
+    void_point = mouse_at(vec_add(middle, vec_xy(0, 3)));
+    for (i = 0; i < sizeof screen_points / sizeof screen_points[0]; i++) {
+        int x = screen_points[i][0];
+        int y = screen_points[i][1];
+        int inward_x = x < P8_SCREEN_WIDTH / 2 ? x + 10 : (x > P8_SCREEN_WIDTH / 2 ? x - 10 : x);
+        int inward_y = y < P8_SCREEN_HEIGHT / 2 ? y + 10 : (y > P8_SCREEN_HEIGHT / 2 ? y - 10 : y);
+
+        class_of(a)->drag(&a->header, void_point, vec_ref(vec_xy(x, y)));
+        assert(target_kind(a) == 4);
+        class_of(a)->drag(&a->header, void_point, vec_ref(vec_xy(inward_x, inward_y)));
+        assert(target_kind(a) == 1);
+    }
+}
+
 /* Each scenario runs in a child forked right after cart_load(), as a fresh
  * process would start it: the rnd state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
@@ -876,6 +906,7 @@ int main(void) {
     in_fresh_child(test_help_screen);
     in_fresh_child(test_probe_is_a_struct);
     in_fresh_child(test_targeting_track_target_is_a_struct);
+    in_fresh_child(test_drop_near_an_edge_cancels);
     in_fresh_child(test_leaving_gives_back_its_particles);
 
     printf("test_probe: all tests passed\n");

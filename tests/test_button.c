@@ -65,7 +65,7 @@
 #define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
 #define TITLE_HASH 0x0D4E51A2u
-#define START_GAME_HASH 0xAE71379Eu
+#define START_GAME_HASH 0xD47F70BEu
 #define PAUSE_HASH 0xD2FE343Du
 #define RESEARCH_HASH 0x41D4B83Eu
 #define PROJECTS_PANEL_HASH 0x6E72F895u
@@ -78,7 +78,7 @@
 #define PROJECTS_PANEL_ON_CLICK_HASH 0xCB3A928Cu
 #define TECH_TREE_SCREEN_ON_CLICK_HASH 0x7ED641D9u
 #define DRAW_HASH 0x0C4D70CFu
-#define BUTTON_MEMBERS_HASH 0x9E488464u
+#define BUTTON_MEMBERS_HASH 0x17FB38CAu
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
@@ -679,7 +679,7 @@ static int at(const vec_t *p, int x, int y) {
 }
 
 /* The pause button sits 11 lines above the bottom edge, the score button
- * centered at the top; the pause menu opens 10 lines above the pause
+ * centered at the top, the next-year button 10 pixels from the right edge; the pause menu opens 10 lines above the pause
  * button, then climbs by 11. */
 static void test_bar_buttons_and_pause_menu_anchors(void) {
     const entity_list_t *le;
@@ -688,6 +688,20 @@ static void test_bar_buttons_and_pause_menu_anchors(void) {
     start_game();
     assert(at(galaxy_menu_entry(4)->pos, 0, P8_SCREEN_HEIGHT - 11));
     assert(at(galaxy_menu_entry(3)->pos, P8_SCREEN_WIDTH / 2 - 17, 0));
+    assert(at(galaxy_menu_entry(1)->pos, P8_SCREEN_WIDTH - 10, 0));
+    {
+        button_t *next_year = galaxy_menu_entry(1);
+        int touches = 0;
+        int y;
+
+        p8_camera(&graphics, 0, 0);
+        p8_cls(&memory);
+        class_of(next_year)->draw(&next_year->header, next_year->pos);
+        for (y = 0; y < 11; y++) {
+            touches |= memory.screen[y][P8_SCREEN_WIDTH - 1] != 0;
+        }
+        assert(touches);
+    }
     call_on_click(galaxy_menu_entry(4));
     le = main_ui_ephemerals();
     assert(le != NULL && le->count == 4);

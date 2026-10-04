@@ -38,12 +38,12 @@
 #include "game/wormhole.h"
 #include "heap_allocator.h"
 
-#define CONSTRUCTION_HASH 0x22EBAD5Du
-#define START_HASH 0x8C839F39u
-#define DIRECTED_HASH 0xA5C469BDu
-#define DRAW_HASH 0x911DC3DAu
-#define RESTART_HASH 0xB33A149Au
-#define KIND_VIEW_HASH 0x6D6C25A0u
+#define CONSTRUCTION_HASH 0x4639EF5Du
+#define START_HASH 0xC69B34A1u
+#define DIRECTED_HASH 0xD03BC385u
+#define DRAW_HASH 0xBE0FADAAu
+#define RESTART_HASH 0x2A322B1Au
+#define KIND_VIEW_HASH 0x4427C70Eu
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
@@ -281,7 +281,7 @@ static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const v
     assert(ie->archetype->layer == p8_fixed_from_int(12));
     assert(ie->pos == &ie->archetype->pos);
     assert(ie->pos->x == p8_fixed_from_int(999) && ie->pos->y == p8_fixed_from_int(999));
-    assert(ie->archetype->rest_cursor.x == p8_fixed_from_int(118) && ie->archetype->rest_cursor.y == p8_fixed_from_int(120));
+    assert(ie->archetype->rest_cursor.x == p8_fixed_from_int(P8_SCREEN_WIDTH - 10) && ie->archetype->rest_cursor.y == p8_fixed_from_int(P8_SCREEN_HEIGHT - 8));
     assert((const void *)ie->kind == ke);
     assert((const void *)ie->tooltip == jb);
     assert(!ie->has_is_revealed && !ie->is_hovered);
@@ -371,6 +371,29 @@ static void test_start(void) {
     check("start", h, START_HASH);
 }
 
+/* The icons revealed at the start line up from the bottom-right corner,
+ * 10 pixels apart, leftward. */
+static void test_revealed_icons_anchor_bottom_right(void) {
+    void *all[16];
+    int n;
+    int revealed = 0;
+    int i;
+
+    start_game();
+    n = icons(all, 16);
+    for (i = 0; i < n; i++) {
+        const vec_t *pos = as_structure_icon(all[i])->pos;
+        if (is_revealed_state(all[i]) != 2) {
+            continue;
+        }
+        assert(pos->x == p8_fixed_from_int(P8_SCREEN_WIDTH - 10 - 10 * revealed));
+        assert(pos->y == p8_fixed_from_int(P8_SCREEN_HEIGHT - 8));
+        revealed++;
+    }
+    printf("[revealed_icons] %d\n", revealed);
+    assert(revealed >= 2);
+}
+
 static void *first_icon_with_is_revealed(uint32_t kh) {
     void *all[16];
     int n = icons(all, 16);
@@ -458,11 +481,9 @@ static uint32_t screen_hash(void) {
 /* Drawn 16 pixels above its rest position: at (118,120) the icon lies
  * below a 120-line screen until the interface is anchored (step 4). */
 static uint32_t draw_alone(void *icon) {
-    vec_t on_screen = vec_sub(*as_structure_icon(icon)->pos, vec_at(0, 16));
-
     p8_camera(&graphics, 0, 0);
     p8_cls(&memory);
-    class_of(icon)->draw(icon, &on_screen);
+    class_of(icon)->draw(icon, as_structure_icon(icon)->pos);
     return screen_hash();
 }
 
@@ -724,6 +745,7 @@ int main(void) {
     cart_load();
     in_fresh_child(test_construction);
     in_fresh_child(test_start);
+    in_fresh_child(test_revealed_icons_anchor_bottom_right);
     in_fresh_child(test_directed);
     in_fresh_child(test_draw);
     in_fresh_child(test_restart);

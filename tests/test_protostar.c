@@ -39,7 +39,7 @@
 
 
 #define BUILT_HASH 0x9F8A0FC3u
-#define LIFE_HASH 0xE6E2076Fu
+#define LIFE_HASH 0x8FC668CBu
 
 /* The tag planet_rebuild_trades's list carried as a tagged list, which the
  * frozen hashes fold: any other value moves every *_HASH. */

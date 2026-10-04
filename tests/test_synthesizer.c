@@ -49,7 +49,7 @@ static int pos_copies(const vec_t *ra, const vec_t *mp) {
 
 
 #define BUILT_HASH 0xB935BCCBu
-#define LIFE_HASH 0xCEF4C6E7u
+#define LIFE_HASH 0xB7440137u
 #define SYNTHESIS_HASH 0x2DBF1611u
 
 /* The tag planet_rebuild_trades's list carried as a tagged list, which the

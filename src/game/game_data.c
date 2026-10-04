@@ -54,7 +54,7 @@ static const data_item_t galaxy_menu_4_layout_row_items[] = {{.row = &galaxy_men
 static const data_row_t galaxy_menu_4_layout_row = {.count = 1, .items = galaxy_menu_4_layout_row_items};
 
 const galaxy_menu_entry_t galaxy_menu_table[GALAXY_MENU_COUNT] = {
-    {118, 0, &galaxy_menu_1_layout_row},
+    {P8_SCREEN_WIDTH - 10, 0, &galaxy_menu_1_layout_row},
     {0, 0, &galaxy_menu_2_layout_row},
     {P8_SCREEN_WIDTH / 2 - 17, 0, &galaxy_menu_3_layout_row},
     {0, P8_SCREEN_HEIGHT - 11, &galaxy_menu_4_layout_row},
@@ -251,7 +251,7 @@ static const data_item_t score_panel_frame_rows_3_items[] = {{.number = 8}, {.nu
 static const data_row_t score_panel_frame_rows_3 = {.count = 3, .items = score_panel_frame_rows_3_items, .draw_function = DRAW_FUNCTION_DRAW_HELP_FRAME};
 static const data_item_t score_panel_frame_rows_4_items[] = {{.number = 0}, {.number = -3}, {.number = 26}};
 static const data_row_t score_panel_frame_rows_4 = {.count = 3, .items = score_panel_frame_rows_4_items, .draw_function = DRAW_FUNCTION_DRAW_HELP_FRAME};
-static const data_item_t score_panel_frame_rows_5_items[] = {{.number = 81}, {.number = -3}, {.number = 117}};
+static const data_item_t score_panel_frame_rows_5_items[] = {{.number = P8_SCREEN_WIDTH - 47}, {.number = -3}, {.number = P8_SCREEN_WIDTH - 11}};
 static const data_row_t score_panel_frame_rows_5 = {.count = 3, .items = score_panel_frame_rows_5_items, .draw_function = DRAW_FUNCTION_DRAW_HELP_FRAME};
 static const data_item_t score_panel_frame_rows_items[] = {{.row = &score_panel_frame_rows_1}, {.row = &score_panel_frame_rows_2}, {.row = &score_panel_frame_rows_3},
     {.row = &score_panel_frame_rows_4}, {.row = &score_panel_frame_rows_5}};
@@ -275,9 +275,9 @@ static const data_item_t score_panel_readouts_4_items[] = {{.is_false = 1}, {.nu
 static const data_row_t score_panel_readouts_4 = {.count = 4, .items = score_panel_readouts_4_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
 static const data_item_t score_panel_readouts_5_items[] = {{.is_false = 1}, {.number = P8_SCREEN_WIDTH / 2 - 5}, {.number = 2}, {.number = 2}};
 static const data_row_t score_panel_readouts_5 = {.count = 4, .items = score_panel_readouts_5_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
-static const data_item_t score_panel_readouts_6_items[] = {{.is_false = 1}, {.number = 85}, {.number = 2}, {.number = 13}};
+static const data_item_t score_panel_readouts_6_items[] = {{.is_false = 1}, {.number = P8_SCREEN_WIDTH - 43}, {.number = 2}, {.number = 13}};
 static const data_row_t score_panel_readouts_6 = {.count = 4, .items = score_panel_readouts_6_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
-static const data_item_t score_panel_readouts_7_items[] = {{.is_false = 1}, {.number = 99}, {.number = 2}, {.number = 13}};
+static const data_item_t score_panel_readouts_7_items[] = {{.is_false = 1}, {.number = P8_SCREEN_WIDTH - 29}, {.number = 2}, {.number = 13}};
 static const data_row_t score_panel_readouts_7 = {.count = 4, .items = score_panel_readouts_7_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
 static const data_item_t score_panel_readouts_items[] = {{.row = &score_panel_readouts_1}, {.row = &score_panel_readouts_2}, {.row = &score_panel_readouts_3},
     {.row = &score_panel_readouts_4}, {.row = &score_panel_readouts_5}, {.row = &score_panel_readouts_6}, {.row = &score_panel_readouts_7}};
@@ -298,7 +298,7 @@ const ui_archetype_t ui_archetype = {
     .state_time = 0x0,
     .cursor_sprite = 0x3a0000,
     .layer = 0xf0000,
-    .panel_box = {0xa0000, 0xa0000, 0x760000, 0x760000},
+    .panel_box = {0xa0000, 0xa0000, P8_FIXED_INT(P8_SCREEN_WIDTH - 10), P8_FIXED_INT(P8_SCREEN_HEIGHT - 10)},
 };
 
 const button_archetype_t button_archetype = {
@@ -354,7 +354,7 @@ const structure_icon_archetype_t structure_icon_archetype = {
     .hit_box = {0x0, 0x0, 0x90000, 0x80000},
     .layer = 0xc0000,
     .pos = {0x3e70000, 0x3e70000},
-    .rest_cursor = {0x760000, 0x780000},
+    .rest_cursor = {P8_FIXED_INT(P8_SCREEN_WIDTH - 10), P8_FIXED_INT(P8_SCREEN_HEIGHT - 8)},
 };
 
 const score_panel_archetype_t score_panel_archetype = {

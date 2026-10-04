@@ -37,9 +37,9 @@
 #include "game/ui_button.h"
 #include "engine/vec.h"
 
-#define BUILT_HASH 0xF283D1BBu
+#define BUILT_HASH 0x4CF8A4FBu
 #define SHARED_HASH 0x1F82BA04u
-#define LIFE_HASH 0xBA06DC7Fu
+#define LIFE_HASH 0x4CDE6238u
 #define TECH_TREE_SCREEN_HASH 0x7D1C5B1Fu
 
 static p8_vram_t memory;

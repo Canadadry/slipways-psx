@@ -295,7 +295,8 @@ static void test_built(void) {
     assert(ok->ephemerals == ui_ephemerals_shared());
     assert(ok->archetype == &ui_archetype);
     assert(ok->archetype->panel_box.left == p8_fixed_from_int(10) && ok->archetype->panel_box.top == p8_fixed_from_int(10));
-    assert(ok->archetype->panel_box.right == p8_fixed_from_int(118) && ok->archetype->panel_box.bottom == p8_fixed_from_int(118));
+    assert(ok->archetype->panel_box.right == p8_fixed_from_int(P8_SCREEN_WIDTH - 10) &&
+           ok->archetype->panel_box.bottom == p8_fixed_from_int(P8_SCREEN_HEIGHT - 10));
     assert(ephemerals_of(ok)->count == 0);
     check("built", hash, BUILT_HASH);
 }
