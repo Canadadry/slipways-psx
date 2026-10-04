@@ -147,6 +147,70 @@ static void test_gap_with_missing_set_fails(void) {
     assert(strstr(read_file(LOG), DIR "/absent.txt") != NULL);
 }
 
+/* `diff` is the text of a `git diff -U0 --no-renames`, only its headers
+ * matter. Returns the translated set; the rewritten lines are in
+ * DIR "/rewritten.txt". */
+static const char *remap(const char *set, const char *diff) {
+    write_file(DIR "/old.lines", set);
+    write_file(DIR "/src.diff", diff);
+    assert(run(SCRIPT " remap " DIR "/old.lines " DIR "/src.diff " DIR "/rewritten.txt",
+               DIR "/out.lines") == 0);
+    return read_file(DIR "/out.lines");
+}
+
+#define FILE_HEADER(path) \
+    "diff --git a/" path " b/" path "\nindex 1..2 100644\n--- a/" path "\n+++ b/" path "\n"
+
+static void test_remap_shifts_lines_after_a_pure_insertion(void) {
+    const char *out = remap("src/a.c:3\nsrc/a.c:4\nsrc/a.c:9\nsrc/b.c:4\n",
+                            FILE_HEADER("src/a.c") "@@ -4,0 +5,2 @@\n+x\n+y\n");
+    assert(strcmp(out, "src/a.c:3\nsrc/a.c:4\nsrc/a.c:11\nsrc/b.c:4\n") == 0);
+    assert(strcmp(read_file(DIR "/rewritten.txt"), "") == 0);
+}
+
+static void test_remap_insertion_at_start_and_in_the_middle(void) {
+    const char *out = remap("src/a.c:1\nsrc/a.c:5\nsrc/a.c:6\n",
+                            FILE_HEADER("src/a.c") "@@ -0,0 +1 @@\n+x\n@@ -5,0 +7,3 @@\n");
+    assert(strcmp(out, "src/a.c:2\nsrc/a.c:6\nsrc/a.c:10\n") == 0);
+}
+
+static void test_remap_pure_deletion_rewrites_its_lines_and_shifts_the_rest(void) {
+    const char *out = remap("src/a.c:2\nsrc/a.c:3\nsrc/a.c:4\nsrc/a.c:5\nsrc/a.c:9\n",
+                            FILE_HEADER("src/a.c") "@@ -3,2 +2,0 @@\n-x\n-y\n");
+    assert(strcmp(out, "src/a.c:2\nsrc/a.c:3\nsrc/a.c:7\n") == 0);
+    assert(strcmp(read_file(DIR "/rewritten.txt"), "src/a.c:3 réécrite\nsrc/a.c:4 réécrite\n") == 0);
+}
+
+static void test_remap_replacement_of_same_and_other_length(void) {
+    const char *out = remap("src/a.c:4\nsrc/a.c:5\nsrc/a.c:6\nsrc/b.c:9\nsrc/b.c:10\nsrc/b.c:11\n",
+                            FILE_HEADER("src/a.c") "@@ -5 +5 @@\n-x\n+y\n"
+                            FILE_HEADER("src/b.c") "@@ -10 +10,4 @@\n");
+    assert(strcmp(out, "src/a.c:4\nsrc/a.c:6\nsrc/b.c:9\nsrc/b.c:14\n") == 0);
+    assert(strcmp(read_file(DIR "/rewritten.txt"), "src/a.c:5 réécrite\nsrc/b.c:10 réécrite\n") == 0);
+}
+
+static void test_remap_several_blocks_add_their_shifts(void) {
+    const char *out = remap("src/a.c:1\nsrc/a.c:10\nsrc/a.c:20\nsrc/a.c:30\n",
+                            FILE_HEADER("src/a.c") "@@ -5,0 +6,2 @@\n@@ -12,3 +15 @@\n@@ -25 +26,4 @@\n");
+    assert(strcmp(out, "src/a.c:1\nsrc/a.c:12\nsrc/a.c:20\nsrc/a.c:33\n") == 0);
+}
+
+static void test_remap_deleted_file_is_all_rewritten_new_file_changes_nothing(void) {
+    const char *out = remap("src/a.c:1\nsrc/a.c:7\nsrc/c.c:3\n",
+                            "diff --git a/src/a.c b/src/a.c\ndeleted file mode 100644\n"
+                            "--- a/src/a.c\n+++ /dev/null\n@@ -1,9 +0,0 @@\n"
+                            "diff --git a/src/n.c b/src/n.c\nnew file mode 100644\n"
+                            "--- /dev/null\n+++ b/src/n.c\n@@ -0,0 +1,5 @@\n");
+    assert(strcmp(out, "src/c.c:3\n") == 0);
+    assert(strcmp(read_file(DIR "/rewritten.txt"), "src/a.c:1 réécrite\nsrc/a.c:7 réécrite\n") == 0);
+}
+
+static void test_remap_of_empty_set_or_empty_diff(void) {
+    assert(strcmp(remap("", FILE_HEADER("src/a.c") "@@ -1 +1 @@\n"), "") == 0);
+    assert(strcmp(read_file(DIR "/rewritten.txt"), "") == 0);
+    assert(strcmp(remap("src/a.c:2\nsrc/a.c:10\n", ""), "src/a.c:2\nsrc/a.c:10\n") == 0);
+}
+
 int main(void) {
     assert(system("rm -rf " DIR " && mkdir -p " DIR) == 0);
     write_fixtures();
@@ -159,6 +223,13 @@ int main(void) {
     test_gap_removes_covered_and_unreachable_lines();
     test_gap_of_empty_covered_set_is_whole_reference();
     test_gap_with_missing_set_fails();
+    test_remap_shifts_lines_after_a_pure_insertion();
+    test_remap_insertion_at_start_and_in_the_middle();
+    test_remap_pure_deletion_rewrites_its_lines_and_shifts_the_rest();
+    test_remap_replacement_of_same_and_other_length();
+    test_remap_several_blocks_add_their_shifts();
+    test_remap_deleted_file_is_all_rewritten_new_file_changes_nothing();
+    test_remap_of_empty_set_or_empty_diff();
     assert(system("rm -rf " DIR) == 0);
     printf("test_line_coverage: all tests passed\n");
     return 0;

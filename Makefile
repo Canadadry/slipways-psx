@@ -76,6 +76,16 @@
 #                       in tmp/oracle-check/<name>.diff; fails unless every
 #                       full_game* and title_idle is held; temporary (plan
 #                       12), outside the suite
+# make coverage-check -> translates tests/plan12-oracle/line_coverage.txt into
+#                       the current numbering (tools/line_coverage.sh remap
+#                       on the src/ diff from ORACLE_REF, the lines of changed
+#                       blocks set aside), measures the line coverage of the
+#                       e2e, and writes the balance to
+#                       tmp/coverage-check.txt, the sets to
+#                       tmp/coverage-check/; fails if a translated line is
+#                       neither covered nor in
+#                       tests/plan12-coverage-accepted.txt; temporary (plan
+#                       12), outside the suite
 # make oracle-check-test -> builds and runs test_oracle_check, the test of
 #                       tools/oracle_check.sh; temporary (plan 12), outside
 #                       the suite
@@ -949,6 +959,32 @@ oracle-check: state tools/oracle_check.sh
 	@! grep -Ev ' tenu$$' $(TMP_DIR)/oracle-check.txt | grep -E '^(full_game[a-z_]*|title_idle) '
 
 .PHONY: oracle-check
+
+ORACLE_REF := 5c6bb25
+COVERAGE_CHECK_DIR := $(TMP_DIR)/coverage-check
+COVERAGE_ACCEPTED := tests/plan12-coverage-accepted.txt
+
+coverage-check: $(TMP_DIR)/replay_gcov tools/line_coverage.sh $(COVERAGE_ACCEPTED)
+	@rm -f $(COVERAGE_CHECK_DIR)/*.txt $(COVERAGE_CHECK_DIR)/*.diff && mkdir -p $(COVERAGE_CHECK_DIR)
+	@git diff -U0 --no-renames $(ORACLE_REF) -- src > $(COVERAGE_CHECK_DIR)/src.diff
+	@sh tools/line_coverage.sh remap $(ORACLE_DIR)/line_coverage.txt $(COVERAGE_CHECK_DIR)/src.diff $(COVERAGE_CHECK_DIR)/rewritten.txt > $(COVERAGE_CHECK_DIR)/translated.txt
+	@$(LINE_COVERAGE_COVER) $(E2E_EVENTS) > $(COVERAGE_CHECK_DIR)/current.txt
+	@sh tools/line_coverage.sh gap $(COVERAGE_CHECK_DIR)/translated.txt $(COVERAGE_ACCEPTED) $(COVERAGE_CHECK_DIR)/current.txt > $(COVERAGE_CHECK_DIR)/missing.txt
+	@sh tools/line_coverage.sh diff $(COVERAGE_CHECK_DIR)/current.txt $(COVERAGE_CHECK_DIR)/translated.txt > $(COVERAGE_CHECK_DIR)/gained.txt
+	@{ c=$(COVERAGE_CHECK_DIR); \
+	   echo "oracle $$(wc -l < $(ORACLE_DIR)/line_coverage.txt)"; \
+	   echo "reecrites $$(wc -l < $$c/rewritten.txt)"; \
+	   echo "traduites $$(wc -l < $$c/translated.txt)"; \
+	   echo "couvertes $$(($$(wc -l < $$c/translated.txt) - $$(sh tools/line_coverage.sh diff $$c/translated.txt $$c/current.txt | wc -l)))"; \
+	   echo "manquantes $$(wc -l < $$c/missing.txt)"; \
+	   echo "acceptees $$(grep -c '^[^#]' $(COVERAGE_ACCEPTED))"; \
+	   echo "gagnees $$(wc -l < $$c/gained.txt)"; \
+	   cut -d: -f1 $$c/rewritten.txt | uniq -c | awk '{ print "reecrites " $$2 " " $$1 }'; \
+	 } > $(TMP_DIR)/coverage-check.txt
+	@cat $(TMP_DIR)/coverage-check.txt
+	@[ ! -s $(COVERAGE_CHECK_DIR)/missing.txt ] || { echo "coverage-check: $$(wc -l < $(COVERAGE_CHECK_DIR)/missing.txt) line(s) missing, in $(COVERAGE_CHECK_DIR)/missing.txt"; exit 1; }
+
+.PHONY: coverage-check
 
 CURSOR_LABELS_DIR := tests/plan12-cursor-labels
 CURSOR_ANCHORS := tools/cursor_anchors.txt

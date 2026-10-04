@@ -3,6 +3,7 @@
 #        line_coverage.sh diff <set> <set>
 #        line_coverage.sh contrib <set> [<set>...]
 #        line_coverage.sh gap <reference> <unreachable> <set>
+#        line_coverage.sh remap <set> <diff> <rewritten>
 # A set: one `file:line` line per executed source line, sorted.
 # cover: the union of the lines covered by the replays, one process per
 #   file, each from the title screen. Exit 1, writing nothing on the
@@ -12,6 +13,10 @@
 #   one file adds).
 # gap: the lines of the reference neither covered by the set nor listed as
 #   unreachable (`file:line reason`, only the first field counts).
+# remap: the set translated into the numbering after <diff>, the output of
+#   `git diff -U0 --no-renames <old> <new>`. A line inside a changed or
+#   removed block, or in a deleted file, goes to <rewritten> as
+#   `file:line réécrite`; any other shifts by the blocks before it.
 # Exit 1 on bad arguments or a missing set.
 
 set -u
@@ -45,6 +50,43 @@ gap() {
     awk -v reference="$1" '
         FILENAME != reference { if (NF) seen[$1] = 1; next }
         !($0 in seen)' "$2" "$3" "$1" | sorted
+}
+
+remap() {
+    for set in "$1" "$2"; do
+        if [ ! -f "$set" ]; then
+            echo "missing set: $set" >&2
+            exit 1
+        fi
+    done
+    : > "$3"
+    awk -v diff="$2" -v rewritten="$3" '
+        FILENAME == diff {
+            if ($0 ~ /^diff --git /) { header = 1; next }
+            if (header && $0 ~ /^--- /) { old = substr($0, 7); next }
+            if (header && $0 ~ /^\+\+\+ /) { if ($2 == "/dev/null") deleted[old] = 1; next }
+            if ($0 ~ /^@@ /) {
+                header = 0
+                split(substr($2, 2), a, ","); split(substr($3, 2), c, ",")
+                b = (2 in a) ? a[2] : 1; d = (2 in c) ? c[2] : 1
+                n = ++blocks[old]
+                start[old, n] = a[1]; count[old, n] = b; delta[old, n] = d - b
+            }
+            next
+        }
+        {
+            colon = index($0, ":"); file = substr($0, 1, colon - 1); line = substr($0, colon + 1) + 0
+            if (file in deleted) { print file ":" line " réécrite" > rewritten; next }
+            shift = 0
+            for (i = 1; i <= blocks[file]; i++) {
+                if (count[file, i] > 0 && line >= start[file, i] && line < start[file, i] + count[file, i]) {
+                    print file ":" line " réécrite" > rewritten; next
+                }
+                if (line >= start[file, i] + (count[file, i] > 0 ? count[file, i] : 1)) shift += delta[file, i]
+            }
+            print file ":" line + shift
+        }' "$2" "$1" | sorted
+    sorted < "$3" > "$3.tmp" && mv "$3.tmp" "$3"
 }
 
 cover() {
@@ -141,8 +183,13 @@ case "${1:-}" in
         [ $# -eq 3 ] || { echo "usage: $0 gap <reference> <unreachable> <set>" >&2; exit 1; }
         gap "$@"
         ;;
+    remap)
+        shift
+        [ $# -eq 3 ] || { echo "usage: $0 remap <set> <diff> <rewritten>" >&2; exit 1; }
+        remap "$@"
+        ;;
     *)
-        sed -n '2,5s/^# //p' "$0" >&2
+        sed -n '2,6s/^# //p' "$0" >&2
         exit 1
         ;;
 esac
