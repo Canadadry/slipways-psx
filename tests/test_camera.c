@@ -29,7 +29,7 @@
 #include "engine/vec.h"
 
 #define SCRIPTED_TICKS 110
-#define SCRIPTED_HASH 0xF0801C76u
+#define SCRIPTED_HASH 0x1DCD4922u
 #define SHAKE_TICKS 31
 #define SHAKE_HASH 0xF1E7A593u
 #define GEOHARVEST_WINDOW 60
@@ -180,7 +180,7 @@ static void test_apply_camera_sets_the_camera(void) {
     apply_camera_to(p8_fixed_from_int(1), 176, 196);
 }
 
-/* Idle, left, right+up, down held into the 320 bound, then released. */
+/* Idle, left, right+up, down held into the bottom bound, then released. */
 static void test_scripted_ticks(void) {
     uint32_t h = 2166136261u;
     int bounded = 0;
@@ -205,7 +205,7 @@ static void test_scripted_ticks(void) {
         update_entities();
         h = fold_main_camera(h);
         h = fnv(h, (uint32_t)checked_main_camera()->header.state_time);
-        if (must_vec(checked_main_camera()->pos_before_shake).y == p8_fixed_from_int(320)) {
+        if (must_vec(checked_main_camera()->pos_before_shake).y == p8_fixed_from_int(448 - P8_SCREEN_HEIGHT)) {
             bounded++;
         }
         if (i < SCRIPTED_TICKS - 1) {
@@ -213,9 +213,50 @@ static void test_scripted_ticks(void) {
         }
     }
     unscript();
-    printf("[scripted] pos_before_shake.y at the 320 bound on %d ticks\n", bounded);
+    printf("[scripted] pos_before_shake.y at the bottom bound on %d ticks\n", bounded);
     assert(bounded > 0);
     check("scripted", h, SCRIPTED_HASH);
+}
+
+/* The cart's 128-px frame, held at either camera bound, showed at most
+ * [-64, 448] of the world and [-32, 288] of the background, which
+ * draw_layers places at half parallax: the 160x120 frame must not show more. */
+static void check_frame_in_cart_window(int world_min, int world_max, int background_min, int background_max) {
+    camera_t *mo = checked_main_camera();
+
+    camera_apply(&graphics, mo, layer_fades_table[1]);
+    assert(graphics.camera_x >= world_min && graphics.camera_x + P8_SCREEN_WIDTH <= world_max);
+    assert(graphics.camera_y >= world_min && graphics.camera_y + P8_SCREEN_HEIGHT <= world_max);
+    camera_apply(&graphics, mo, layer_fades_table[0]);
+    printf("[cart window] background frame at %d,%d\n", graphics.camera_x, graphics.camera_y);
+    assert(graphics.camera_x >= background_min && graphics.camera_x + P8_SCREEN_WIDTH <= background_max);
+    assert(graphics.camera_y >= background_min && graphics.camera_y + P8_SCREEN_HEIGHT <= background_max);
+}
+
+static void hold_dpad(int left, int right, int up, int down) {
+    int i;
+
+    for (i = 0; i < SCRIPTED_TICKS; i++) {
+        pad(i, left, right, up, down);
+    }
+    script(SCRIPTED_TICKS);
+    for (i = 0; i < SCRIPTED_TICKS; i++) {
+        update_entities();
+        if (i < SCRIPTED_TICKS - 1) {
+            p8_input_step(&input);
+        }
+    }
+    unscript();
+}
+
+static void test_held_dpad_keeps_the_frame_in_the_cart_window(void) {
+    assert(background_archetype.layer == p8_fixed_from_int(1));
+    reset_world(NULL);
+    hold_dpad(0, 1, 0, 1);
+    check_frame_in_cart_window(-64, 448, -32, 288);
+    hold_dpad(1, 0, 1, 0);
+    hold_dpad(1, 0, 1, 0);
+    check_frame_in_cart_window(-64, 448, -32, 288);
 }
 
 /* A shake of 3, as a burst's construction writes it, decays by 0.1 per
@@ -399,6 +440,7 @@ int main(void) {
     test_reset_world_builds_a_camera();
     test_apply_camera_sets_the_camera();
     test_scripted_ticks();
+    test_held_dpad_keeps_the_frame_in_the_cart_window();
     test_shake_decays();
     test_second_reset_world();
     test_placeholder_main_camera();

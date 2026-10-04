@@ -7,7 +7,7 @@ Saut d'année avec une colonie hors de l'écran : pas de toast de revenu.
 - f33, f35 : « p27 » en « colony ». Une colonie fraîche ne rapporte pas
   0 : sans commerce, elle paie son entretien, `kr` = -1.
 - f39-41 : clic droit glissé de (133,113) à (27,7) : la caméra passe de
-  (176,196) à (282,302), « p27 » sort de l'écran.
+  (176,196) à (256,302), x arrêté à sa butée, « p27 » sort de l'écran.
 - f44 : saut d'année `ix[1]` (150,0) : `jo:hk` de « p27 » a un `kr` non
   nul mais `gd` est faux, pas de toast « -1$ ».
 

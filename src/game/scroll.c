@@ -74,6 +74,17 @@ camera_t *camera_new(void) {
     return camera_create();
 }
 
+/* The cart bounds its 128-px frame to [-64, 448] of the world, and to
+ * [-32, 288] of the background, drawn at half parallax: 26 px past its grid.
+ * A larger frame stops earlier on the far side so it never shows more. */
+static p8_fixed_t camera_far_bound(int frame_size) {
+    p8_fixed_t frame = p8_fixed_from_int(frame_size);
+    p8_fixed_t world = p8_fixed_sub(p8_fixed_from_int(448), frame);
+    p8_fixed_t background = p8_fixed_div(p8_fixed_sub(p8_fixed_from_int(288), frame), layer_fades_table[0]);
+
+    return world < background ? world : background;
+}
+
 void camera_update(const p8_input_t *input, camera_t *self) {
     vec_t direction = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     const vec_seq_t *dpad_directions = NULL;
@@ -103,8 +114,8 @@ void camera_update(const p8_input_t *input, camera_t *self) {
     p = vec_add(p, v);
     v = vec_add(v, vec_mul(vec_sub(direction, v), P8_FIXED_LIT(0x00003333, 0.2)));
 
-    p.x = p8_fixed_mid(p8_fixed_from_int(-64), p8_fixed_from_int(320), p.x);
-    p.y = p8_fixed_mid(p8_fixed_from_int(-64), p8_fixed_from_int(320), p.y);
+    p.x = p8_fixed_mid(p8_fixed_from_int(-64), camera_far_bound(P8_SCREEN_WIDTH), p.x);
+    p.y = p8_fixed_mid(p8_fixed_from_int(-64), camera_far_bound(P8_SCREEN_HEIGHT), p.y);
 
     self->pos_before_shake_own = p;
     self->pos_before_shake = &self->pos_before_shake_own;

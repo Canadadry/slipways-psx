@@ -3,9 +3,10 @@ Caméra : glisser au clic droit, puis D-pad tenu jusqu'à la butée.
 
 - f0 : clic « reasonable » sur l'écran titre (76,70).
 - f2 : clic droit en (133,113) (`bg:rdown`) ; f3 : tenu en (27,7)
-  (`bg:hq`) : la caméra passe de (176,196) à (282,302) ; relâché f4.
-- f5-18 : D-pad droite + bas tenu (`qb:ph`) : la caméra atteint la butée
-  en y, 320, en f15 et y reste ; x, parti de 282, n'y arrive pas : 309.65
-  en f18.
+  (`bg:hq`) : la caméra passe de (176,196) à (256,302), x arrêté à sa
+  butée ; relâché f4.
+- f5-18 : D-pad droite + bas tenu (`qb:ph`) : x reste à 256 ; y atteint
+  sa butée, 328, en f18. À ces butées le cadre 160×120 ne montre pas plus
+  du fond que le cadre 128 du cart aux siennes (−64…320).
 
 Relecture humaine dans raylib : à faire.
