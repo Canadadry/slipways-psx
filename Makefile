@@ -24,13 +24,6 @@
 #                       writes to tmp/state.txt the peak of each zone and cap
 #                       over them all, its limit and the replay holding it;
 #                       fails if a replay stops, outside the suite
-# make line-coverage EVENTS="<events>..." -> the lines executed by these
-#                       replays (gcov-instrumented driver tmp/replay_gcov), one
-#                       `file:line` per line, sorted, in tmp/line_coverage.txt;
-#                       temporary (plan 12), outside the suite
-# make line-coverage-test -> builds and runs test_line_coverage, the test of
-#                       tools/line_coverage.sh; temporary (plan 12), outside
-#                       the suite
 # make replay-convert-test -> builds and runs test_replay_convert, the test of
 #                       tools/replay_convert.sh; temporary (plan 12), outside
 #                       the suite
@@ -131,12 +124,11 @@ TMP_DIR := tmp
 
 # One object tree per set of flags. An object compiled without -fsanitize is
 # not instrumented: sharing it with a target that is would leave the binary
-# blind on that code, silently. Do not merge the five.
+# blind on that code, silently. Do not merge the four.
 OBJ_DIR := $(TMP_DIR)/obj
 OBJ_ASAN_DIR := $(TMP_DIR)/obj-asan
 OBJ_UBSAN_DIR := $(TMP_DIR)/obj-ubsan
 OBJ_SANITIZE_DIR := $(TMP_DIR)/obj-sanitize
-OBJ_GCOV_DIR := $(TMP_DIR)/obj-gcov
 
 # `-MMD -MP`: next to each object, the compiler writes the list of headers that
 # the translation unit actually opened. The include at the bottom of this file
@@ -145,7 +137,6 @@ DEPFLAGS := -MMD -MP
 ASAN_CFLAGS := -fsanitize=address -fno-omit-frame-pointer
 UBSAN_CFLAGS := -fsanitize=undefined -fno-sanitize-recover=undefined
 SANITIZE_OPT_CFLAGS := -O2
-GCOV_CFLAGS := --coverage
 
 # `$(call objs,<sources>)` -> the paths of the matching object files in the
 # tree concerned. A target names its sources once; its prerequisites and its
@@ -154,7 +145,6 @@ objs = $(patsubst %.c,$(OBJ_DIR)/%.o,$(1))
 asan_objs = $(patsubst %.c,$(OBJ_ASAN_DIR)/%.o,$(1))
 ubsan_objs = $(patsubst %.c,$(OBJ_UBSAN_DIR)/%.o,$(1))
 sanitize_objs = $(patsubst %.c,$(OBJ_SANITIZE_DIR)/%.o,$(1))
-gcov_objs = $(patsubst %.c,$(OBJ_GCOV_DIR)/%.o,$(1))
 
 # `mkdir -p $(@D)` in the recipe rather than a directory as a prerequisite:
 # the mtime of a directory changes with every file written into it, which would
@@ -174,10 +164,6 @@ $(OBJ_UBSAN_DIR)/%.o: %.c
 $(OBJ_SANITIZE_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) $(UBSAN_CFLAGS) $(SANITIZE_OPT_CFLAGS) $(DEPFLAGS) -c -o $@ $<
-
-$(OBJ_GCOV_DIR)/%.o: %.c
-	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) $(GCOV_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
 # The whole engine closure: all of src/ except the three entry points of
 # src/cmd/, src/p8/palette.c, the two `src/platform/raylib_backend*.c` and
@@ -530,23 +516,6 @@ REPLAY_SRCS := src/cmd/replay.c src/devtools/cursor_label.c src/devtools/screenc
 
 $(TMP_DIR)/replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
-
-$(TMP_DIR)/replay_gcov: $(call gcov_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
-	$(CC) $(CFLAGS) $(GCOV_CFLAGS) -o $@ $(filter %.o,$^)
-
-$(TMP_DIR)/test_line_coverage: $(call objs,tests/test_line_coverage.c) $(TMP_DIR)/replay_gcov tools/line_coverage.sh | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
-
-line-coverage-test: $(TMP_DIR)/test_line_coverage
-	./$<
-
-LINE_COVERAGE_COVER := sh tools/line_coverage.sh cover ./$(TMP_DIR)/replay_gcov $(OBJ_GCOV_DIR)
-
-line-coverage: $(TMP_DIR)/replay_gcov tools/line_coverage.sh
-	@$(LINE_COVERAGE_COVER) $(EVENTS) > $(TMP_DIR)/line_coverage.txt
-	@echo "line coverage: $$(wc -l < $(TMP_DIR)/line_coverage.txt) line(s) in $(TMP_DIR)/line_coverage.txt"
-
-.PHONY: line-coverage-test line-coverage
 
 $(TMP_DIR)/test_replay_convert: $(call objs,tests/test_replay_convert.c) tools/replay_convert.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
@@ -1046,5 +1015,4 @@ raylib: $(TMP_DIR)/game
 -include $(wildcard $(OBJ_ASAN_DIR)/src/*/*.d $(OBJ_ASAN_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_UBSAN_DIR)/src/*/*.d $(OBJ_UBSAN_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_SANITIZE_DIR)/src/*/*.d $(OBJ_SANITIZE_DIR)/tests/*.d)
--include $(wildcard $(OBJ_GCOV_DIR)/src/*/*.d $(OBJ_GCOV_DIR)/tests/*.d)
 
