@@ -25,7 +25,8 @@ static void setup_sky(p8_vram_t *mem, p8_graphics_t *gfx) {
 }
 
 static void test_background_draw_leaves_empty_map_cells_black(void) {
-    static const int probe_cells[][2] = {{1, 1}, {6, 2}, {2, 5}, {13, 6}, {10, 10}, {15, 15}};
+    static const int probe_cells[][2] = {{1, 1}, {6, 2}, {2, 5}, {13, 6}, {10, 10},
+                                         {P8_SCREEN_WIDTH / P8_SPRITE_SIZE - 1, P8_SCREEN_HEIGHT / P8_SPRITE_SIZE - 1}};
     const int probe_count = (int)(sizeof(probe_cells) / sizeof(probe_cells[0]));
     p8_vram_t mem;
     p8_graphics_t gfx;
@@ -37,6 +38,7 @@ static void test_background_draw_leaves_empty_map_cells_black(void) {
     for (int i = 0; i < probe_count; i++) {
         int cx = probe_cells[i][0];
         int cy = probe_cells[i][1];
+        assert(cx < P8_SCREEN_WIDTH / P8_SPRITE_SIZE && cy < P8_SCREEN_HEIGHT / P8_SPRITE_SIZE);
         for (int dy = 0; dy < P8_SPRITE_SIZE; dy++) {
             for (int dx = 0; dx < P8_SPRITE_SIZE; dx++) {
                 assert(screen_at(&mem, cx * P8_SPRITE_SIZE + dx, cy * P8_SPRITE_SIZE + dy) == 0);

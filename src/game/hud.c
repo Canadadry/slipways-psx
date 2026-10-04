@@ -55,7 +55,7 @@ void hud_draw_bar(p8_graphics_t *gfx, p8_vram_t *mem, p8_fixed_t y1, p8_fixed_t 
     if (gfx != NULL) {
         gfx->pen_color = col;
     }
-    p8_rectfill(gfx, mem, 0, to_int(y1), 127, to_int(y2), col);
+    p8_rectfill(gfx, mem, 0, to_int(y1), P8_SCREEN_WIDTH - 1, to_int(y2), col);
 }
 
 void hud_draw_bar_y1(p8_graphics_t *gfx, p8_vram_t *mem, p8_fixed_t y1, int col) {

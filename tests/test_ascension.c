@@ -55,7 +55,7 @@ static int pos_copies(const vec_t *ra, const vec_t *mp) {
 #define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
 #define BUILT_HASH 0x9AC68FB2u
-#define LIFE_HASH 0x7CA7348Bu
+#define LIFE_HASH 0x80134036u
 #define HEIRS_HASH 0x2E00DEDDu
 
 /* The tag planet_rebuild_trades's list carried as a tagged list, which the
@@ -518,7 +518,7 @@ static void test_life(void) {
     assert(main_camera_typed() != NULL);
     main_camera_pos = main_camera_typed()->pos;
     assert(main_camera_pos != NULL);
-    mouse_world = vec_ref(vec_add(*main_camera_pos, vec_xy(12, 108)));
+    mouse_world = vec_ref(vec_add(*main_camera_pos, vec_xy(28, 104)));
     class_of(placed)->drag(placed, mouse_world, vec_ref(vec_xy(64, 64)));
     assert(pos_copies(as_ascension(placed)->pos, mouse_world));
     hash = fold_vec(hash, as_ascension(placed)->map_pos);

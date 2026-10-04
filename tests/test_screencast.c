@@ -63,10 +63,10 @@ static void test_written_frame_reads_back_pixel_for_pixel(void) {
 
     assert(pixel_at(frame, 0, 0) == expected_pixel(0, 0, 0));
     assert(pixel_at(frame, 1, 0) == expected_pixel(0, 1, 0));
-    assert(pixel_at(frame, 127, 0) == expected_pixel(0, 127, 0));
+    assert(pixel_at(frame, 159, 0) == expected_pixel(0, 159, 0));
     assert(pixel_at(frame, 64, 64) == expected_pixel(0, 64, 64));
-    assert(pixel_at(frame, 0, 127) == expected_pixel(0, 0, 127));
-    assert(pixel_at(frame, 127, 127) == expected_pixel(0, 127, 127));
+    assert(pixel_at(frame, 0, 119) == expected_pixel(0, 0, 119));
+    assert(pixel_at(frame, 159, 119) == expected_pixel(0, 159, 119));
 
     screencast_reader_close(&reader);
     remove(path);
@@ -75,7 +75,7 @@ static void test_written_frame_reads_back_pixel_for_pixel(void) {
 /* The frame count is the file size divided by the size of a frame, and
  * nothing else: the format has no header nor index where a counter could
  * hide. The assertion on the file size is the other half of the same
- * claim, and it is the one that pins 8 192 bytes per frame. */
+ * claim, and it is the one that pins 9 600 bytes per frame. */
 static void test_frame_count_is_file_size_divided_by_frame_size(void) {
     const char *path = "tmp/test_screencast_count.bin";
     screencast_reader_t reader;
@@ -85,7 +85,7 @@ static void test_frame_count_is_file_size_divided_by_frame_size(void) {
     FILE *raw = fopen(path, "rb");
     assert(raw != NULL);
     assert(fseek(raw, 0, SEEK_END) == 0);
-    assert(ftell(raw) == 5L * 8192L);
+    assert(ftell(raw) == 5L * 9600L);
     fclose(raw);
 
     assert(screencast_reader_open(&reader, path) == SCREENCAST_OK);
@@ -114,7 +114,7 @@ static void test_each_frame_holds_its_own_pixels_in_order(void) {
         assert(pixel_at(frame, 0, 0) == expected_pixel(seed, 0, 0));
         assert(pixel_at(frame, 3, 0) == expected_pixel(seed, 3, 0));
         assert(pixel_at(frame, 64, 64) == expected_pixel(seed, 64, 64));
-        assert(pixel_at(frame, 127, 127) == expected_pixel(seed, 127, 127));
+        assert(pixel_at(frame, 159, 119) == expected_pixel(seed, 159, 119));
     }
 
     screencast_reader_close(&reader);
@@ -123,7 +123,7 @@ static void test_each_frame_holds_its_own_pixels_in_order(void) {
 
 /* Nothing in the format forces frames to be read in order, and a read
  * that depended on the order would belie "frame N is at offset
- * N x 8192". The tested order reads backwards, skips, and reads a frame
+ * N x 9600". The tested order reads backwards, skips, and reads a frame
  * again; the pixels must be the same as in a sequential read. */
 static void test_frames_can_be_read_out_of_sequence(void) {
     const char *path = "tmp/test_screencast_out_of_order.bin";
@@ -141,7 +141,7 @@ static void test_frames_can_be_read_out_of_sequence(void) {
         assert(pixel_at(frame, 0, 0) == expected_pixel(seed, 0, 0));
         assert(pixel_at(frame, 1, 0) == expected_pixel(seed, 1, 0));
         assert(pixel_at(frame, 70, 12) == expected_pixel(seed, 70, 12));
-        assert(pixel_at(frame, 127, 127) == expected_pixel(seed, 127, 127));
+        assert(pixel_at(frame, 159, 119) == expected_pixel(seed, 159, 119));
     }
 
     screencast_reader_close(&reader);
@@ -173,7 +173,7 @@ static void write_raw_bytes(const char *path, long size) {
 }
 
 /* An empty file is refused and is not a capture of zero frames: zero is a
- * multiple of 8 192, so without this explicit refusal it would pass the
+ * multiple of 9 600, so without this explicit refusal it would pass the
  * size validation, and a reader would be handed a capture with no frame. */
 static void test_empty_file_is_refused(void) {
     const char *path = "tmp/test_screencast_empty.bin";
@@ -191,20 +191,20 @@ static void test_empty_file_is_refused(void) {
 /* A size that is not a multiple of the frame size describes an incomplete
  * frame: a truncated file, or an interrupted write. Refusing it at opening
  * is what keeps an incomplete file from being taken for a short session.
- * The two tested sizes are the two shapes of the case: 8191, less than
- * one frame; 2 x 8192 + 1, whole frames followed by a remainder. */
+ * The two tested sizes are the two shapes of the case: 9599, less than
+ * one frame; 2 x 9600 + 1, whole frames followed by a remainder. */
 static void test_size_that_is_not_a_whole_number_of_frames_is_refused(void) {
     const char *short_path = "tmp/test_screencast_short.bin";
     const char *ragged_path = "tmp/test_screencast_ragged.bin";
     screencast_reader_t reader;
 
-    write_raw_bytes(short_path, 8191);
+    write_raw_bytes(short_path, 9599);
     assert(screencast_reader_open(&reader, short_path) == SCREENCAST_TRUNCATED);
     assert(screencast_frame_count(&reader) == 0);
     screencast_reader_close(&reader);
     remove(short_path);
 
-    write_raw_bytes(ragged_path, 2L * 8192L + 1L);
+    write_raw_bytes(ragged_path, 2L * 9600L + 1L);
     assert(screencast_reader_open(&reader, ragged_path) == SCREENCAST_TRUNCATED);
     assert(screencast_frame_count(&reader) == 0);
     screencast_reader_close(&reader);
@@ -242,7 +242,7 @@ static void test_reading_leaves_the_file_byte_for_byte_unchanged(void) {
     const char *path = "tmp/test_screencast_readonly.bin";
     screencast_reader_t reader;
     unsigned char frame[SCREENCAST_FRAME_PIXELS];
-    static unsigned char before[3 * 8192];
+    static unsigned char before[3 * 9600];
     static unsigned char after[sizeof(before)];
 
     write_seeded_frames(path, 3);
@@ -279,7 +279,7 @@ static void test_frame_index_past_the_end_is_refused(void) {
 
     /* The buffer still holds the last frame actually read. */
     assert(pixel_at(frame, 0, 0) == expected_pixel(1, 0, 0));
-    assert(pixel_at(frame, 127, 127) == expected_pixel(1, 127, 127));
+    assert(pixel_at(frame, 159, 119) == expected_pixel(1, 159, 119));
 
     screencast_reader_close(&reader);
     remove(path);
@@ -324,7 +324,7 @@ static void test_on_disk_byte_holds_the_even_pixel_in_its_low_nibble(void) {
     const char *path = "tmp/test_screencast_nibbles.bin";
     screencast_writer_t writer;
     p8_vram_t mem;
-    static unsigned char raw[8192];
+    static unsigned char raw[9600];
 
     p8_vram_init(&mem);
     paint_frame(&mem, 0);
@@ -340,6 +340,9 @@ static void test_on_disk_byte_holds_the_even_pixel_in_its_low_nibble(void) {
     assert(read_whole_file(path, raw, (long)sizeof(raw)) == (long)sizeof(raw));
     assert(raw[0] == 0xc3);
     assert(raw[1] == 0x0f);
+    assert(raw[79] >> 4 == mem.screen[0][159]);
+    assert((raw[119 * 80] & 0x0f) == mem.screen[119][0]);
+    assert(raw[9599] >> 4 == mem.screen[119][159]);
 
     remove(path);
 }

@@ -64,21 +64,21 @@
  * value moves every *_HASH. */
 #define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
-#define TITLE_HASH 0x0D4E51A2u
-#define START_GAME_HASH 0x7BC019E6u
-#define PAUSE_HASH 0x8F8FC35Du
+#define TITLE_HASH 0xA03EFF2Au
+#define START_GAME_HASH 0xD47F70BEu
+#define PAUSE_HASH 0xD2FE343Du
 #define RESEARCH_HASH 0x41D4B83Eu
 #define PROJECTS_PANEL_HASH 0x6E72F895u
 #define INSPECTION_PANEL_HASH 0x8897BD95u
-#define SCORE_PANEL_HASH 0xF6DACECDu
+#define SCORE_PANEL_HASH 0x15A0978Du
 #define DIFFICULTY_HASH 0x5178903Bu
 #define UPDATE_HASH 0xD2A611E7u
 #define LEFT_PRESS_HASH 0x02AEDFCFu
 #define REFRESH_HASH 0x0FA6ACC7u
 #define PROJECTS_PANEL_ON_CLICK_HASH 0xCB3A928Cu
 #define TECH_TREE_SCREEN_ON_CLICK_HASH 0x7ED641D9u
-#define DRAW_HASH 0xD4E4525Bu
-#define BUTTON_MEMBERS_HASH 0x73AEDB8Eu
+#define DRAW_HASH 0x8E87EDFAu
+#define BUTTON_MEMBERS_HASH 0x2FFA417Au
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
@@ -660,6 +660,57 @@ static void test_pause(void) {
     check("pause", h, PAUSE_HASH);
 }
 
+static button_t *galaxy_menu_entry(int i) {
+    void *ix[4];
+    int k;
+
+    assert(galaxy_menu_buttons(ix) == 4);
+    for (k = 0; k < 4; k++) {
+        if (button_of(ix[k])->on_click == galaxy_menu_on_click(i)) {
+            return button_of(ix[k]);
+        }
+    }
+    assert(0 && "galaxy_menu_entry: no galaxy menu button carries that on_click");
+    return NULL;
+}
+
+static int at(const vec_t *p, int x, int y) {
+    return p != NULL && p->x == p8_fixed_from_int(x) && p->y == p8_fixed_from_int(y);
+}
+
+/* The pause button sits 11 lines above the bottom edge, the score button
+ * centered at the top, the next-year button 10 pixels from the right edge; the pause menu opens 10 lines above the pause
+ * button, then climbs by 11. */
+static void test_bar_buttons_and_pause_menu_anchors(void) {
+    const entity_list_t *le;
+    int k;
+
+    start_game();
+    assert(at(galaxy_menu_entry(4)->pos, 0, P8_SCREEN_HEIGHT - 11));
+    assert(at(galaxy_menu_entry(3)->pos, P8_SCREEN_WIDTH / 2 - 17, 0));
+    assert(at(galaxy_menu_entry(1)->pos, P8_SCREEN_WIDTH - 10, 0));
+    {
+        button_t *next_year = galaxy_menu_entry(1);
+        int touches = 0;
+        int y;
+
+        p8_camera(&graphics, 0, 0);
+        p8_cls(&memory);
+        class_of(next_year)->draw(&next_year->header, next_year->pos);
+        for (y = 0; y < 11; y++) {
+            touches |= memory.screen[y][P8_SCREEN_WIDTH - 1] != 0;
+        }
+        assert(touches);
+    }
+    call_on_click(galaxy_menu_entry(4));
+    le = main_ui_ephemerals();
+    assert(le != NULL && le->count == 4);
+    for (k = 0; k < le->count; k++) {
+        assert(at(button_of(le->items[k])->pos, 0, P8_SCREEN_HEIGHT - 21));
+        assert(at(button_of(le->items[k])->slide_target, 0, P8_SCREEN_HEIGHT - 21 - 11 * k));
+    }
+}
+
 static void invent(char *rr) {
     assert(main_economy_typed() != NULL && main_economy_typed()->invented != NULL);
     pointer_list_add(main_economy_typed()->invented, rr);
@@ -1040,6 +1091,45 @@ static void test_draw(void) {
 /* GAP-23: a row whose side tooltip or tooltip key is present but absent
  * still gets an empty row or tooltip; only false, or no key at all, gets
  * none. */
+/* The first and last screen rows whose column 0 is no longer `background`;
+ * -1 if none. */
+static void painted_rows(int background, int *first, int *last) {
+    int y;
+
+    *first = -1;
+    *last = -1;
+    for (y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        if (memory.screen[y][0] != background) {
+            if (*first < 0) {
+                *first = y;
+            }
+            *last = y;
+        }
+    }
+}
+
+/* A hovered button's tooltip of n lines rests on the bottom edge: its
+ * band runs from H - 1 - (8 n + 2) to H - 1. */
+static void test_hovered_tooltip_rests_on_the_bottom_edge(void) {
+    void *b;
+    int n;
+    int first;
+    int last;
+
+    start_game();
+    b = build(button_at(10, 20), "plain", NULL);
+    button_of(b)->tooltip = tooltip_new(&heap_allocator, &icon_tooltips_table[0]);
+    button_of(b)->is_hovered = 1;
+    n = button_of(b)->tooltip->rows_count;
+    p8_camera(&graphics, 0, 0);
+    p8_rectfill(&graphics, &memory, 0, 0, P8_SCREEN_WIDTH - 1, P8_SCREEN_HEIGHT - 1, 7);
+    class_of(b)->draw_overlay(b, NULL);
+    painted_rows(7, &first, &last);
+    printf("[hovered_tooltip] %d line(s), rows %d-%d\n", n, first, last);
+    assert(last == P8_SCREEN_HEIGHT - 1);
+    assert(first == P8_SCREEN_HEIGHT - 1 - (8 * n + 2));
+}
+
 static void test_nil_keys(void) {
     button_keys_t b = {0};
     void *nil_keys;
@@ -1966,6 +2056,7 @@ int main(void) {
     dispatch_context_set_input(&input);
 
     cart_load();
+    in_fresh_child(test_bar_buttons_and_pause_menu_anchors);
     in_fresh_child(test_title);
     in_fresh_child(test_start_game);
     in_fresh_child(test_pause);
@@ -1980,6 +2071,7 @@ int main(void) {
     in_fresh_child(test_projects_panel_on_click);
     in_fresh_child(test_tech_tree_screen_on_click);
     in_fresh_child(test_draw);
+    in_fresh_child(test_hovered_tooltip_rests_on_the_bottom_edge);
     in_fresh_child(test_nil_keys);
     in_fresh_child(test_projects_panel_free_row);
     in_fresh_child(test_button_is_a_struct);

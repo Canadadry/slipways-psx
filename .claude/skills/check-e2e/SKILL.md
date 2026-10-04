@@ -27,7 +27,7 @@ Run `make e2e`. Green → report `E2E-GREEN:` with the list of `fix:` commits ma
 ### 2. Split the red into failures
 One failure = one `frames: DIVERGENT <events>` line. Keep the full output of each.
 
-Take the failure whose replay has the fewest frames (the size of `tmp/frames/<events>.bin` divided by 8192): it is the cheapest to diagnose. Handle it alone; the others wait for the next `make e2e`, since a fix often repairs more than one.
+Take the failure whose replay has the fewest frames (the size of `tmp/frames/<events>.bin` divided by 9600): it is the cheapest to diagnose. Handle it alone; the others wait for the next `make e2e`, since a fix often repairs more than one.
 
 ### 3. Invoke fix-bug on it
 Invoke the `fix-bug` skill in place. Its argument is a bug report you write, containing:

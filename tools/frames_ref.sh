@@ -10,7 +10,7 @@ set -u
 LC_ALL=C
 export LC_ALL
 
-FRAME_BYTES=8192
+FRAME_BYTES=9600
 
 tool=$1
 frames_dir=$2

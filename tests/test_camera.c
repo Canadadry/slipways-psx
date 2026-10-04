@@ -23,13 +23,14 @@
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "p8/vram.h"
+#include "game/background.h"
 #include "game/planet_family.h"
 #include "game/scroll.h"
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
 #define SCRIPTED_TICKS 110
-#define SCRIPTED_HASH 0xDF9F2872u
+#define SCRIPTED_HASH 0xD63EDC0Eu
 #define SHAKE_TICKS 31
 #define SHAKE_HASH 0xF1E7A593u
 #define GEOHARVEST_WINDOW 60
@@ -141,8 +142,8 @@ static void check_fresh_main_camera(const camera_t *mo) {
     vec_t v = must_vec(mo->velocity);
 
     assert(entity_list_listed(live_entities(), mo) && !in_any_entities_by_message(mo));
-    assert(p.x == p8_fixed_from_int(192) && p.y == p8_fixed_from_int(192));
-    assert(ra.x == p8_fixed_from_int(192) && ra.y == p8_fixed_from_int(192));
+    assert(p.x == p8_fixed_from_int(176) && p.y == p8_fixed_from_int(196));
+    assert(ra.x == p8_fixed_from_int(176) && ra.y == p8_fixed_from_int(196));
     assert(v.x == 0 && v.y == 0);
     assert(mo->shake == 0);
     assert(mo->header.state_time == 0);
@@ -171,16 +172,16 @@ static void apply_camera_to(p8_fixed_t fy, int want_x, int want_y) {
 }
 
 /* camera_apply puts the camera on the position times the factor. The later
- * tests of this process start from the camera the last call leaves: 192,192. */
+ * tests of this process start from the camera the last call leaves: 176,196. */
 static void test_apply_camera_sets_the_camera(void) {
     reset_world(NULL);
-    apply_camera_to(p8_fixed_from_int(1), 192, 192);
-    apply_camera_to(P8_FIXED_LIT(0x00008000, 0.5), 96, 96);
+    apply_camera_to(p8_fixed_from_int(1), 176, 196);
+    apply_camera_to(P8_FIXED_LIT(0x00008000, 0.5), 88, 98);
     apply_camera_to(0, 0, 0);
-    apply_camera_to(p8_fixed_from_int(1), 192, 192);
+    apply_camera_to(p8_fixed_from_int(1), 176, 196);
 }
 
-/* Idle, left, right+up, down held into the 320 bound, then released. */
+/* Idle, left, right+up, down held into the bottom bound, then released. */
 static void test_scripted_ticks(void) {
     uint32_t h = 2166136261u;
     int bounded = 0;
@@ -205,7 +206,7 @@ static void test_scripted_ticks(void) {
         update_entities();
         h = fold_main_camera(h);
         h = fnv(h, (uint32_t)checked_main_camera()->header.state_time);
-        if (must_vec(checked_main_camera()->pos_before_shake).y == p8_fixed_from_int(320)) {
+        if (must_vec(checked_main_camera()->pos_before_shake).y == p8_fixed_div(p8_fixed_from_int(BACKGROUND_GRID_EDGE + 1 - P8_SCREEN_HEIGHT), layer_fades_table[0])) {
             bounded++;
         }
         if (i < SCRIPTED_TICKS - 1) {
@@ -213,9 +214,67 @@ static void test_scripted_ticks(void) {
         }
     }
     unscript();
-    printf("[scripted] pos_before_shake.y at the 320 bound on %d ticks\n", bounded);
+    printf("[scripted] pos_before_shake.y at the bottom bound on %d ticks\n", bounded);
     assert(bounded > 0);
     check("scripted", h, SCRIPTED_HASH);
+}
+
+/* Every pixel of the frame, drawn at the background's half parallax, lies on
+ * the grid [0, BACKGROUND_GRID_EDGE]; at full parallax it still reaches the
+ * hit box (7 px) of a planet anywhere galaxy_populate places one,
+ * (0.125 + rnd(2.75)) * 128, so in [16, 368). */
+static void check_frame_in_grid(void) {
+    camera_t *mo = checked_main_camera();
+
+    camera_apply(&graphics, mo, layer_fades_table[0]);
+    assert(graphics.camera_x >= 0 && graphics.camera_x + P8_SCREEN_WIDTH - 1 <= BACKGROUND_GRID_EDGE);
+    assert(graphics.camera_y >= 0 && graphics.camera_y + P8_SCREEN_HEIGHT - 1 <= BACKGROUND_GRID_EDGE);
+}
+
+static void check_frame_reaches_every_planet(int far) {
+    camera_t *mo = checked_main_camera();
+
+    camera_apply(&graphics, mo, layer_fades_table[1]);
+    printf("[grid] world frame at %d,%d\n", graphics.camera_x, graphics.camera_y);
+    if (far) {
+        assert(graphics.camera_x + P8_SCREEN_WIDTH - 1 >= 368 - 7);
+        assert(graphics.camera_y + P8_SCREEN_HEIGHT - 1 >= 368 - 7);
+    } else {
+        assert(graphics.camera_x <= 16 + 7 && graphics.camera_y <= 16 + 7);
+    }
+}
+
+static void hold_dpad_checking_each_tick(int left, int right, int up, int down) {
+    int i;
+
+    for (i = 0; i < SCRIPTED_TICKS; i++) {
+        pad(i, left, right, up, down);
+    }
+    script(SCRIPTED_TICKS);
+    for (i = 0; i < SCRIPTED_TICKS; i++) {
+        if (i % 20 == 0) {
+            checked_main_camera()->shake = p8_fixed_from_int(3);
+        }
+        update_entities();
+        check_frame_in_grid();
+        if (i < SCRIPTED_TICKS - 1) {
+            p8_input_step(&input);
+        }
+    }
+    unscript();
+}
+
+/* Held into each bound, shaken by a burst every 20 ticks. */
+static void test_held_dpad_keeps_the_frame_in_the_grid(void) {
+    assert(background_archetype.layer == p8_fixed_from_int(1));
+    reset_world(NULL);
+    hold_dpad_checking_each_tick(0, 1, 0, 1);
+    hold_dpad_checking_each_tick(0, 1, 0, 1);
+    check_frame_reaches_every_planet(1);
+    hold_dpad_checking_each_tick(1, 0, 1, 0);
+    hold_dpad_checking_each_tick(1, 0, 1, 0);
+    hold_dpad_checking_each_tick(1, 0, 1, 0);
+    check_frame_reaches_every_planet(0);
 }
 
 /* A shake of 3, as a burst's construction writes it, decays by 0.1 per
@@ -399,6 +458,7 @@ int main(void) {
     test_reset_world_builds_a_camera();
     test_apply_camera_sets_the_camera();
     test_scripted_ticks();
+    test_held_dpad_keeps_the_frame_in_the_grid();
     test_shake_decays();
     test_second_reset_world();
     test_placeholder_main_camera();

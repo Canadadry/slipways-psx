@@ -80,7 +80,7 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
         assert(found);
     }
 
-    /* A position inside the camera's default (192,192) viewport, so the
+    /* A position inside the camera's default (176,196) viewport, so the
      * off-screen early return of planet_draw is not taken and the real draw
      * body runs. */
     pos_heap = malloc(sizeof *pos_heap);
@@ -95,11 +95,12 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
     /* planet_draw paints colour 0, which is also the framebuffer's cleared
      * value, so reading 0 back proves nothing unless the byte held something
      * else first -- hence the sentinel 9. The pixel is world (256,256)
-     * minus the camera (192,192) that apply_camera sets inside this same
-     * draw_layers(ENTITY_MESSAGE_DRAW), hardcoded here because the camera is not set yet,
-     * and cross-checked against the real camera below. */
-    screen_x = 256 - 192;
-    screen_y = 256 - 192;
+     * minus the camera (176,196) that apply_camera sets inside this same
+     * draw_layers(ENTITY_MESSAGE_DRAW): the centre of the screen, hardcoded
+     * here because the camera is not set yet, and cross-checked against the
+     * real camera below. */
+    screen_x = 80;
+    screen_y = 60;
     memory.screen[screen_y][screen_x] = 9;
 
     assert(graphics.camera_x == 0 && graphics.camera_y == 0);
@@ -108,19 +109,19 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
     /* Order, never the reverse: within a layer, the camera call runs before
      * the per-entity loop, so the real planet_draw already sees its camera. */
     assert(g_draw_calls == 1);
-    assert(g_camera_x_at_draw == 192 && g_camera_y_at_draw == 192);
+    assert(g_camera_x_at_draw == 176 && g_camera_y_at_draw == 196);
 
     /* apply_camera really ran: the camera lands on its spec position
-     * (192,192), its shake having decayed to its 0 default so it adds nothing. */
-    assert(graphics.camera_x == 192);
-    assert(graphics.camera_y == 192);
+     * (176,196), its shake having decayed to its 0 default so it adds nothing. */
+    assert(graphics.camera_x == 176);
+    assert(graphics.camera_y == 196);
 
     /* The sentinel pixel against the camera actually set, so the two
      * cannot drift apart. */
     assert(screen_x == 256 - graphics.camera_x && screen_y == 256 - graphics.camera_y);
 
     /* planet_draw's filled circle of radius 7 in colour 0 paints a black disc on
-     * world (256,256), i.e. screen (64,64): the sentinel is gone. */
+     * world (256,256), i.e. screen (80,60): the sentinel is gone. */
     pixel_after = memory.screen[screen_y][screen_x];
     assert(pixel_after == 0);
 

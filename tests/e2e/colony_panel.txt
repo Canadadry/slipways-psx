@@ -1,10 +1,10 @@
 Colonisation d'une planète puis son panneau d'information. 35 frames.
 
-- f0 : clic « reasonable » sur l'écran titre (60,74).
-- f2 : sonde `g_` en (55,50) ; f4-19 : `mz` tenu en (80,55), relâché f20 :
-  « p27 » (88,37) earth-like et « p48 » (78,73) forgeworld révélées.
+- f0 : clic « reasonable » sur l'écran titre (76,70).
+- f2 : sonde `g_` en (71,46) ; f4-19 : `mz` tenu en (96,51), relâché f20 :
+  « p27 » (104,33) earth-like et « p48 » (94,69) forgeworld révélées.
 - f27 : clic sur « p27 » : menu de construction (`jo:fe`).
-- f29 : clic sur la première rangée (100,53) : « p27 » colonisée, 5 $.
+- f29 : clic sur la première rangée (116,49) : « p27 » colonisée, 5 $.
 - f31-32 : appui et relâchement sur « p27 » : son panneau (`jo:gh`), sans
   rangée fantôme ; f33-34 : panneau affiché.
 

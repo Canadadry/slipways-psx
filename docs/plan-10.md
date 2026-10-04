@@ -8,7 +8,7 @@ Le jeu complet compilé pour MIPS, dans un `.bin/.cue` qui démarre dans l'émul
 
 ## 2. Approche
 
-- **Rendu GPU.** Chaque dessin PICO-8 (`cls`, `pset`, `line`, `rect`, `rectfill`, `circ`, `circfill`, `spr`, `map`, `print`, `fillp`, `palt`) devient des primitives GPU, au lieu d'un framebuffer 128×128 recopié. Les sprites et la police vivent en VRAM.
+- **Rendu GPU.** Chaque dessin PICO-8 (`cls`, `pset`, `line`, `rect`, `rectfill`, `circ`, `circfill`, `spr`, `map`, `print`, `fillp`, `palt`) devient des primitives GPU, au lieu d'un framebuffer 160×120 recopié. Les sprites et la police vivent en VRAM.
 - **Écart accepté.** Le rendu PSX peut différer de quelques pixels du PC (cercles, lignes). L'écart sera jugé sur place, pas avant.
 - **Manette.** La couche boutons → souris du plan 8, branchée sur le pilote de manette.
 - **Le cœur ne bouge pas.** Seuls `src/p8/` et un nouveau `src/platform/` PSX s'adaptent.

@@ -1,6 +1,9 @@
 #ifndef GAME_BACKGROUND_H
 #define GAME_BACKGROUND_H
 
+/* Inclusive: the last pixel row and column of the grid background_draw frames. */
+#define BACKGROUND_GRID_EDGE 262
+
 #include "game/game_data.h"
 #include "p8/gfx.h"
 #include "p8/vram.h"

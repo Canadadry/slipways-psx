@@ -151,12 +151,12 @@ void background_draw(p8_graphics_t *gfx, p8_vram_t *mem, const background_t *sel
 
     p8_map(gfx, mem, 0, 0, 0, 0, 32, 32);
     p8_fillp(gfx, 0xA5A5u);
-    for (xy = 3; xy <= 262; xy += 32) {
-        p8_rectfill(gfx, mem, xy, 0, xy, 262, 1);
-        p8_rectfill(gfx, mem, 0, xy, 262, xy, 1);
+    for (xy = 3; xy <= BACKGROUND_GRID_EDGE; xy += 32) {
+        p8_rectfill(gfx, mem, xy, 0, xy, BACKGROUND_GRID_EDGE, 1);
+        p8_rectfill(gfx, mem, 0, xy, BACKGROUND_GRID_EDGE, xy, 1);
     }
     p8_fillp_reset(gfx);
-    p8_rect(gfx, mem, 0, 0, 262, 262, 5);
+    p8_rect(gfx, mem, 0, 0, BACKGROUND_GRID_EDGE, BACKGROUND_GRID_EDGE, 5);
 }
 
 down_t background_left_press(background_t *self) {

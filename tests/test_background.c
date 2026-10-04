@@ -46,7 +46,7 @@
 #define LEFT_PRESS_WORMHOLE_BEFORE 0
 #define LEFT_PRESS_WORMHOLE_AFTER 1
 #define HOVER_HASH 0x19BC9067u
-#define DRAW_HASH 0xE18E0472u
+#define DRAW_HASH 0xA9BBBF46u
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;

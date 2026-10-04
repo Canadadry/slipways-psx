@@ -57,11 +57,11 @@
 
 #define BUILT_HASH 0x86CE257Cu
 #define SHARED_HASH 0x690E4805u
-#define FRESH_HASH 0xA03A8C66u
-#define HOVER_HASH 0xEDBB9550u
+#define FRESH_HASH 0xAC467A96u
+#define HOVER_HASH 0xE6A09234u
 #define LAYERS_HASH 0xDBA4EEF8u
-#define RIGHT_HASH 0xF02024DCu
-#define LEFT_HASH 0xBD9BC256u
+#define RIGHT_HASH 0xF56595E2u
+#define LEFT_HASH 0xF1302109u
 #define CLEAR_EPHEMERALS_HASH 0xD215FB81u
 #define STALE_HASH 0x5B066E86u
 #define ENTITY_STATE_HASH 0xD49B8748u
@@ -295,7 +295,8 @@ static void test_built(void) {
     assert(ok->ephemerals == ui_ephemerals_shared());
     assert(ok->archetype == &ui_archetype);
     assert(ok->archetype->panel_box.left == p8_fixed_from_int(10) && ok->archetype->panel_box.top == p8_fixed_from_int(10));
-    assert(ok->archetype->panel_box.right == p8_fixed_from_int(118) && ok->archetype->panel_box.bottom == p8_fixed_from_int(118));
+    assert(ok->archetype->panel_box.right == p8_fixed_from_int(P8_SCREEN_WIDTH - 10) &&
+           ok->archetype->panel_box.bottom == p8_fixed_from_int(P8_SCREEN_HEIGHT - 10));
     assert(ephemerals_of(ok)->count == 0);
     check("built", hash, BUILT_HASH);
 }
@@ -343,7 +344,7 @@ static void test_fresh(void) {
     ui_t *ok = start_game();
     vec_t want;
 
-    mouse_at(64, 100, 0);
+    mouse_at(80, 96, 0);
     ui_update(&memory, main_ui());
     want = vec_add(vec_at(checked_main_mouse()->pos), vec_at(checked_main_camera()->pos));
     assert(vec_at(ok->mouse_world).x == want.x && vec_at(ok->mouse_world).y == want.y);
@@ -368,7 +369,7 @@ static planet_t *planet_on_screen(int *sx, int *sy) {
         vec_t at = vec_at(as_planet(jo->items[i])->pos);
         int x = p8_fixed_flr_int(p8_fixed_sub(at.x, cam.x));
         int y = p8_fixed_flr_int(p8_fixed_sub(at.y, cam.y));
-        if (x >= 16 && x <= 112 && y >= 16 && y <= 112) {
+        if (x >= 32 && x <= 128 && y >= 12 && y <= 108) {
             *sx = x;
             *sy = y;
             return (planet_t *)jo->items[i];
@@ -387,7 +388,7 @@ static void test_hover(void) {
     int y;
     planet_t *planet;
 
-    mouse_at(64, 100, 0);
+    mouse_at(80, 96, 0);
     ui_update(&memory, ok);
     planet = planet_on_screen(&x, &y);
     mouse_at(x, y, 0);
@@ -403,7 +404,7 @@ static void test_hover(void) {
     assert(is_hovered_state(planet) == 2);
     h = fnv(h, cursor_is(58));
 
-    mouse_at(x + 40 > 127 ? x - 40 : x + 40, y, 0);
+    mouse_at(x + 40 > 143 ? x - 40 : x + 40, y, 0);
     ui_update(&memory, ok);
     assert((void *)ok->hovered != planet);
     assert(is_hovered_state(planet) == 0);
@@ -425,7 +426,7 @@ static void test_layers(void) {
     int x;
     int y;
 
-    mouse_at(64, 100, 0);
+    mouse_at(80, 96, 0);
     ui_update(&memory, ok);
     planet = planet_on_screen(&x, &y);
     mouse_at(x, y, 0);
@@ -453,21 +454,21 @@ static void test_right(void) {
     ui_t *ok = start_game();
     void *bg;
 
-    mouse_at(64, 100, 0);
+    mouse_at(80, 96, 0);
     ui_update(&memory, ok);
     bg = the_background();
-    mouse_at(64, 100, 2);
+    mouse_at(80, 96, 2);
     ui_update(&memory, ok);
     assert((void *)ok->right_held == bg && ok->left_held == NULL);
     h = fnv(h, cursor_is(9));
 
-    mouse_at(70, 90, 2);
+    mouse_at(86, 86, 2);
     ui_update(&memory, ok);
     assert((void *)ok->right_held == bg);
     h = fold_vec(h, vec_at(checked_main_camera()->pos));
     h = fnv(h, cursor_is(9));
 
-    mouse_at(70, 90, 0);
+    mouse_at(86, 86, 0);
     ui_update(&memory, ok);
     assert(ok->right_held == NULL && ok->left_held == NULL);
     h = fold_vec(h, vec_at(checked_main_camera()->pos));
@@ -493,7 +494,7 @@ static int on_screen(void *e) {
     int y;
 
     screen_of(e, &x, &y);
-    return x >= 8 && x < 120 && y >= 8 && y < 120;
+    return x >= 24 && x < 136 && y >= 4 && y < 116;
 }
 
 /* A started game's first planet on screen whose nearest one is on screen

@@ -9,6 +9,7 @@
 #include "game/message_box.h"
 #include "game/score_panel.h"
 #include "p8/str.h"
+#include "p8/vram.h"
 #include "game/ui_button.h"
 #include "engine/frame_zone.h"
 
@@ -225,8 +226,10 @@ void score_panel_update(score_panel_t *self) {
         layout_row_keys_t second_line = {0};
         button_t *made1;
         button_t *made2;
-        const vec_t first_line_pos = vec_make(p8_fixed_from_int(51), p8_fixed_from_int(100));
-        const vec_t second_line_pos = vec_make(p8_fixed_from_int(39), p8_fixed_from_int(100));
+        const vec_t first_line_pos =
+            vec_make(p8_fixed_from_int(P8_SCREEN_WIDTH / 2 - 13), p8_fixed_from_int(P8_SCREEN_HEIGHT / 2 + 36));
+        const vec_t second_line_pos =
+            vec_make(p8_fixed_from_int(P8_SCREEN_WIDTH / 2 - 25), p8_fixed_from_int(P8_SCREEN_HEIGHT / 2 + 36));
 
         (void)modal_backdrop_new(NULL);
 

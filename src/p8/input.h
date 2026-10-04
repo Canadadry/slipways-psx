@@ -15,7 +15,7 @@ typedef struct {
 #define P8_MOUSE_RIGHT 2
 #define P8_MOUSE_MIDDLE 4
 
-/* In the 128x128 screen space; `buttons` holds P8_MOUSE_* bits. */
+/* In the 160x120 screen space; `buttons` holds P8_MOUSE_* bits. */
 typedef struct {
     int x;
     int y;

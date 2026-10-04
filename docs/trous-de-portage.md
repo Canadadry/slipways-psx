@@ -440,3 +440,28 @@ différence : dès t ≥ 60, `planet_draw` sort toujours avant de lire
 
 Fichiers : `src/game/cart.c` (`forget`), `src/game/planet.c`
 (`planet_forget_targeted_by`).
+
+## GAP-27 — La caméra ne montre jamais rien hors de la grille du fond
+
+Lua : `qb:ph`, `mid(-64,320,…)`, `qb:md`, `camera`.
+
+La cartouche borne le coin haut-gauche de la caméra à [−64, 320] sur chaque
+axe, pour un cadre de 128. Le fond est dessiné à la parallaxe 0.5
+(`layer_fades_table[0]`) et sa grille va de 0 à `BACKGROUND_GRID_EDGE` (262)
+(`background_draw`) : aux butées, le cadre du cart montre 32 px de vide en
+haut et à gauche, 26 px à droite et en bas.
+
+Le port borne la caméra pour que le cadre de `P8_SCREEN_WIDTH` ×
+`P8_SCREEN_HEIGHT` reste dans la grille : de 0 à
+(`BACKGROUND_GRID_EDGE` + 1 − taille) / 0.5, soit x ∈ [0, 206] et
+y ∈ [0, 286] à 160×120. La position secouée (`pos`) est bornée elle aussi,
+alors que la cartouche secoue au-delà de ses butées.
+
+Les planètes sont placées dans [16, 368) (`galaxy_populate`). En y, le
+cadre couvre [0, 405] : toutes restent loin des barres. En x, il couvre
+[0, 365] : une planète tout au bord droit (x = 367,99, tirée dans
+`pause_restart`) a son centre 2 px hors du cadre à la butée, mais 6
+colonnes de son disque sont visibles et sa boîte de clic (± 7 px) atteint
+la colonne 155.
+
+Fichiers : `src/game/scroll.c` (`camera_bound`), `src/game/background.h`.

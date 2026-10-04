@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define DUMP_HEADER "128 128\n"
+#define DUMP_HEADER "160 120\n"
 #define DUMP_ROW_CHARS (P8_SCREEN_WIDTH)
 #define DUMP_LINE_LEN (DUMP_ROW_CHARS + 1)
 #define DUMP_SIZE (sizeof(DUMP_HEADER) - 1 + (size_t)DUMP_LINE_LEN * P8_SCREEN_HEIGHT)
@@ -73,9 +73,9 @@ static void test_dump_of_hand_drawn_pattern_matches_exact_text(void) {
 
     p8_cls(&mem);
     p8_pset(&gfx, &mem, 0, 0, 10);
-    p8_pset(&gfx, &mem, 127, 0, 1);
+    p8_pset(&gfx, &mem, 159, 0, 1);
     p8_pset(&gfx, &mem, 64, 64, 15);
-    p8_pset(&gfx, &mem, 0, 127, 9);
+    p8_pset(&gfx, &mem, 0, 119, 9);
 
     size_t actual_len;
     char *actual = dump_to_buffer(&mem, &actual_len);
@@ -92,9 +92,9 @@ static void test_dump_of_hand_drawn_pattern_matches_exact_text(void) {
     expected[DUMP_SIZE] = '\0';
 
     set_expected_pixel(expected, 0, 0, 'a');
-    set_expected_pixel(expected, 127, 0, '1');
+    set_expected_pixel(expected, 159, 0, '1');
     set_expected_pixel(expected, 64, 64, 'f');
-    set_expected_pixel(expected, 0, 127, '9');
+    set_expected_pixel(expected, 0, 119, '9');
 
     assert(actual_len == DUMP_SIZE);
     assert(memcmp(actual, expected, DUMP_SIZE) == 0);

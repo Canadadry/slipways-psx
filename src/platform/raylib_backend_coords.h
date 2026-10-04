@@ -6,8 +6,11 @@
 #ifndef PLATFORM_RAYLIB_BACKEND_COORDS_H
 #define PLATFORM_RAYLIB_BACKEND_COORDS_H
 
-/* Converts a window-pixel mouse position to the 128x128 PICO-8 space:
- * divides by `scale` and clamps each axis into [0, 127], so a cursor
+#include "p8/vram.h"
+
+/* Converts a window-pixel mouse position to the PICO-8 screen space:
+ * divides by `scale` and clamps x into [0, P8_SCREEN_WIDTH - 1] and y into
+ * [0, P8_SCREEN_HEIGHT - 1], so a cursor
  * outside the scaled window -- still reported by raylib while a button is
  * held -- never yields an out-of-range coordinate. A `scale` of 0 or less
  * maps to (0, 0). Pure and raylib-free: plain integers in and out. */

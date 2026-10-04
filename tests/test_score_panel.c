@@ -23,6 +23,7 @@
 #include "p8/fixed.h"
 #include "game/main_economy.h"
 #include "game/game_data.h"
+#include "game/draw_functions.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "game/layout.h"
@@ -36,9 +37,9 @@
 #include "game/ui_button.h"
 #include "engine/vec.h"
 
-#define BUILT_HASH 0xC419CD23u
-#define SHARED_HASH 0x1F82BA04u
-#define LIFE_HASH 0xDDBCC765u
+#define BUILT_HASH 0x455004CBu
+#define SHARED_HASH 0xAAACD2E4u
+#define LIFE_HASH 0x7647D312u
 #define TECH_TREE_SCREEN_HASH 0x7D1C5B1Fu
 
 static p8_vram_t memory;
@@ -786,6 +787,157 @@ static void test_update_rows_show_final_score(void) {
     }
 }
 
+/* The frame rows drawn alone: the bottom rule fills the last two lines,
+ * the bottom-left frame sits 10 lines above the bottom edge, and nothing
+ * else lies between them. */
+static void test_frame_rows_hug_the_bottom_edge(void) {
+    const data_row_t *rows[5];
+    int frame_left = 8;
+    int frame_right = 39;
+    int i;
+
+    for (i = 0; i < score_panel_frame_rows_row.count; i++) {
+        rows[i] = score_panel_frame_rows_row.items[i].row;
+    }
+    p8_gfx_init(&graphics);
+    memset(memory.screen, 0, sizeof memory.screen);
+    draw_functions_draw_rows_default(&graphics, &memory, rows, score_panel_frame_rows_row.count);
+
+    for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+        int in_frame = x >= frame_left && x <= frame_right;
+        if (!in_frame) {
+            assert(memory.screen[P8_SCREEN_HEIGHT - 2][x] == 1 && memory.screen[P8_SCREEN_HEIGHT - 1][x] == 1);
+        }
+        for (int y = P8_SCREEN_HEIGHT - 10; y < P8_SCREEN_HEIGHT - 2; y++) {
+            assert(in_frame || memory.screen[y][x] == 0);
+        }
+    }
+    assert(memory.screen[P8_SCREEN_HEIGHT - 9][20] == 5);
+}
+
+/* The year banner drawn alone: its rule on lines H/2 - 22 and H/2 - 21
+ * across the screen, its "year N" centered on W/2. */
+static void test_year_banner_is_centered(void) {
+    const score_panel_year_banner_t *ea;
+    const data_row_t *rows[3];
+    int left = P8_SCREEN_WIDTH;
+    int right = -1;
+    int x;
+    int y;
+    int i;
+
+    (void)start_game();
+    class_of(main_score_panel())->new_year(&main_score_panel()->header, p8_fixed_from_int(3425));
+    ea = score_panel_year_banner();
+    for (i = 0; i < 2; i++) {
+        rows[i] = ea->row.items[i].row;
+    }
+    p8_gfx_init(&graphics);
+    p8_rectfill(&graphics, &memory, 0, 0, P8_SCREEN_WIDTH - 1, P8_SCREEN_HEIGHT - 1, 7);
+    draw_functions_draw_rows_default(&graphics, &memory, rows, 2);
+
+    for (y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        int on_rule = y == P8_SCREEN_HEIGHT / 2 - 22 || y == P8_SCREEN_HEIGHT / 2 - 21;
+        assert((memory.screen[y][0] == 1) == on_rule);
+        for (x = 0; x < P8_SCREEN_WIDTH; x++) {
+            if (memory.screen[y][x] == 6) {
+                left = x < left ? x : left;
+                right = x > right ? x : right;
+            }
+        }
+    }
+    assert(right >= left);
+    assert(abs(left - (P8_SCREEN_WIDTH - 1 - right)) <= 1);
+}
+
+/* The seven score lines keep the cart's offsets from its center (64,64):
+ * x = W/2, y = H/2 + (y128 - 64). */
+static void test_score_lines_are_centered(void) {
+    static const int y128[7] = {21, 34, 43, 52, 61, 74, 82};
+    const score_row_t *rows;
+    int i;
+
+    (void)start_game();
+    rows = score_panel_rows();
+    assert(rows != NULL);
+    for (i = 0; i < 7; i++) {
+        const score_row_t *r = &rows[5 + i];
+        assert(r->entry->has_pos);
+        assert(r->pos.x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2));
+        assert(r->pos.y == p8_fixed_from_int(P8_SCREEN_HEIGHT / 2 + (y128[i] - 64)));
+    }
+}
+
+/* The five backgrounds of the score table, drawn alone, cover lines
+ * H/2 - 40 to H/2 + 22: the cart's table (24 to 86) moved with the
+ * center. */
+static void test_score_backgrounds_follow_the_center(void) {
+    const score_row_t *rows;
+    const data_row_t *backgrounds[5];
+    int y;
+    int i;
+
+    (void)start_game();
+    rows = score_panel_rows();
+    for (i = 0; i < 5; i++) {
+        backgrounds[i] = &rows[i].row;
+    }
+    p8_gfx_init(&graphics);
+    p8_rectfill(&graphics, &memory, 0, 0, P8_SCREEN_WIDTH - 1, P8_SCREEN_HEIGHT - 1, 7);
+    draw_functions_draw_rows_default(&graphics, &memory, backgrounds, 5);
+    for (y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        int in_table = y >= P8_SCREEN_HEIGHT / 2 - 40 && y <= P8_SCREEN_HEIGHT / 2 + 22;
+        assert((memory.screen[y][0] != 7) == in_table);
+    }
+}
+
+/* At the game's end, " again? " sits 13 pixels left of the center and 36
+ * below it, the back button 25 left of it on the same line. */
+static void test_end_buttons_are_centered(void) {
+    const entity_list_t *hv;
+    int found = 0;
+    int i;
+
+    (void)start_game();
+    main_economy_typed()->end_status = "final score";
+    main_economy_typed()->has_end_status = 1;
+    class_of(main_score_panel())->states[ENTITY_STATE_NORMAL](&main_score_panel()->header, p8_fixed_from_int(0));
+    hv = live_entities();
+    for (i = 0; i < hv->count; i++) {
+        const button_t *b = (const button_t *)hv->items[i];
+        if (!is_of(b, button_class()) || b->layer != p8_fixed_from_int(15) || b->layout_row == NULL) {
+            continue;
+        }
+        assert(b->pos->y == p8_fixed_from_int(P8_SCREEN_HEIGHT / 2 + 36));
+        if (b->on_click == score_panel_init_field_value()) {
+            assert(b->pos->x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2 - 13));
+        } else {
+            assert(b->pos->x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2 - 25));
+        }
+        found++;
+    }
+    assert(found == 2);
+}
+
+/* The curtain at its full height h covers lines H - 1 - h to H - 1 at the
+ * bottom, and not the line above. */
+static void test_curtain_closes_on_the_bottom_edge(void) {
+    score_panel_t *ju = start_game();
+    p8_fixed_t h = p8_fixed_mul(P8_FIXED_LIT(0x00033333, 3.2), P8_FIXED_LIT(0x00033333, 3.2));
+    int first = p8_fixed_flr_int(p8_fixed_sub(p8_fixed_from_int(P8_SCREEN_HEIGHT - 1), h));
+    int y;
+
+    ju->has_curtain = 1;
+    ju->curtain = P8_FIXED_LIT(0x00033333, 3.2);
+    p8_gfx_init(&graphics);
+    p8_rectfill(&graphics, &memory, 0, 0, P8_SCREEN_WIDTH - 1, P8_SCREEN_HEIGHT - 1, 7);
+    score_panel_draw(&graphics, &memory, ju);
+    for (y = first; y < P8_SCREEN_HEIGHT; y++) {
+        assert(memory.screen[y][0] == 0);
+    }
+    assert(memory.screen[first - 1][0] == 7);
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -796,6 +948,12 @@ int main(void) {
     dispatch_context_set_input(&input);
 
     cart_load();
+    in_fresh_child(test_frame_rows_hug_the_bottom_edge);
+    in_fresh_child(test_year_banner_is_centered);
+    in_fresh_child(test_score_lines_are_centered);
+    in_fresh_child(test_score_backgrounds_follow_the_center);
+    in_fresh_child(test_end_buttons_are_centered);
+    in_fresh_child(test_curtain_closes_on_the_bottom_edge);
     in_fresh_child(test_built);
     in_fresh_child(test_shared);
     in_fresh_child(test_life);

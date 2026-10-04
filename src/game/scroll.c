@@ -9,6 +9,7 @@
 #include "engine/entity_geom.h"
 #include "engine/vec.h"
 #include "engine/game_zone.h"
+#include "game/background.h"
 
 static int g_camera_up = 0;
 
@@ -74,6 +75,17 @@ camera_t *camera_new(void) {
     return camera_create();
 }
 
+/* GAP-27 */
+static p8_fixed_t camera_bound(p8_fixed_t p, int frame_size) {
+    p8_fixed_t far = p8_fixed_div(p8_fixed_from_int(BACKGROUND_GRID_EDGE + 1 - frame_size), layer_fades_table[0]);
+
+    return p8_fixed_mid(p8_fixed_from_int(0), far, p);
+}
+
+static vec_t camera_bounded(vec_t p) {
+    return vec_make(camera_bound(p.x, P8_SCREEN_WIDTH), camera_bound(p.y, P8_SCREEN_HEIGHT));
+}
+
 void camera_update(const p8_input_t *input, camera_t *self) {
     vec_t direction = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     const vec_seq_t *dpad_directions = NULL;
@@ -103,14 +115,13 @@ void camera_update(const p8_input_t *input, camera_t *self) {
     p = vec_add(p, v);
     v = vec_add(v, vec_mul(vec_sub(direction, v), P8_FIXED_LIT(0x00003333, 0.2)));
 
-    p.x = p8_fixed_mid(p8_fixed_from_int(-64), p8_fixed_from_int(320), p.x);
-    p.y = p8_fixed_mid(p8_fixed_from_int(-64), p8_fixed_from_int(320), p.y);
+    p = camera_bounded(p);
 
     self->pos_before_shake_own = p;
     self->pos_before_shake = &self->pos_before_shake_own;
     camera_set_velocity(self, v);
 
-    self->pos_own = entity_geom_shake(p, (entity_t *)self);
+    self->pos_own = camera_bounded(entity_geom_shake(p, (entity_t *)self));
     self->pos = &self->pos_own;
 }
 

@@ -207,7 +207,8 @@ void score_panel_draw(p8_graphics_t *gfx, p8_vram_t *mem, score_panel_t *self) {
         /* The only bar drawn without a colour: the bottom bar inherits the
          * pen colour the line above leaves behind. Passing a colour here
          * would change what is drawn. */
-        hud_draw_bar_default(gfx, mem, p8_fixed_sub(p8_fixed_from_int(127), h), p8_fixed_from_int(127));
+        hud_draw_bar_default(gfx, mem, p8_fixed_sub(p8_fixed_from_int(P8_SCREEN_HEIGHT - 1), h),
+                             p8_fixed_from_int(P8_SCREEN_HEIGHT - 1));
     }
 }
 
