@@ -17,6 +17,10 @@
  * difficulty. The driver takes no option; an argument starting with '-'
  * gets the usage and exit 2.
  *
+ * A file declaring "keyboard_cursor": true plays each frame through
+ * button_cursor; the cheat still reads the raw frame. An undeclared file
+ * plays the script as recorded.
+ *
  * REPLAY_FILL=<file>, optional, gets after the dump, once the exit queue
  * is flushed: one "<sort> <count>" line of live places per interface sort
  * ("button" to "ephemerals"), then per particle sort; "max_live <sort>
@@ -36,6 +40,7 @@
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "game/cheat.h"
+#include "engine/button_cursor.h"
 #include "devtools/dump.h"
 #include "devtools/screencast.h"
 #include "devtools/state.h"
@@ -129,8 +134,17 @@ int main(int argc, char **argv) {
     const char *state_path = getenv("STATE");
     static int i;
     if (state_path != NULL) state_write_on_exit(state_path, &i);
+    button_cursor_t cursor;
+    button_cursor_init(&cursor);
+    p8_input_frame_t played_frame;
+    p8_input_t played = { .frames = &played_frame, .frame_count = 1, .current_frame = 0 };
     for (i = 0; i < frame_count; i++) {
-        dispatch_context_set_input(&input);
+        if (input.keyboard_cursor) {
+            button_cursor_step(&cursor, &input.frames[input.current_frame], &played_frame);
+            dispatch_context_set_input(&played);
+        } else {
+            dispatch_context_set_input(&input);
+        }
         cheat_step(&cheat, &input);
         cart_update60();
         cart_draw();
