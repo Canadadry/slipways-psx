@@ -95,25 +95,12 @@ void cart_load(void) {
     score_panel_set_init(cart_init_method);
 }
 
-/* A released slot can come back at the same address, so stale pointers must be cleared here; ASan does not see the comparison. */
-static void forget(const entity_t *e) {
-    score_panel_t *ju = main_score_panel();
-
-    if ((const entity_t *)shown_message_box() == e) {
-        message_box_set_shown(NULL);
-    }
-    if (ju != NULL && (const entity_t *)ju->last_box == e) {
-        ju->last_box = NULL;
-    }
-    economy_score_difficulty_quits(e);
-}
-
 static void forget_game_zone(void) {
     grab_arena_forget_free();
 }
 
 void cart_flush_exit_queue(void) {
-    exit_queue_flush(forget);
+    exit_queue_flush();
     if (game_zone_pending()) {
         forget_game_zone();
         game_zone_release();

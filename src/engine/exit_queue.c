@@ -45,7 +45,7 @@ int exit_queue_max(void) {
     return g_max;
 }
 
-void exit_queue_flush(void (*forget)(const entity_t *e)) {
+void exit_queue_flush(void) {
     for (int i = 0; i < g_count; i++) {
         entity_t *e = g_queue[i].entity;
         if (e == NULL) {
@@ -53,7 +53,6 @@ void exit_queue_flush(void (*forget)(const entity_t *e)) {
             continue;
         }
         void (*release)(entity_t *self) = e->class->release;
-        if (release != NULL) forget(e);
         /* The slot goes before the memory: no slot may point at a returned block. */
         entity_id_release(e);
         if (release != NULL) release(e);

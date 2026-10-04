@@ -23,7 +23,10 @@
 #include "engine/frame_zone.h"
 
 static int g_probe_up = 0;
-static entity_t *g_main_economy = NULL;
+typedef enum { MAIN_ECONOMY_NONE, MAIN_ECONOMY_PLACEHOLDER, MAIN_ECONOMY_REAL } main_economy_state_t;
+
+static main_economy_state_t g_main_economy_state = MAIN_ECONOMY_NONE;
+static entity_id_t g_main_economy;
 
 static const entity_class_t main_economy_placeholder_class_def = {0};
 
@@ -462,12 +465,12 @@ void probe_init(void) {
     g_main_economy_placeholder.has_research_points = 0;
     g_main_economy_placeholder.credits = 0;
     g_main_economy_placeholder.has_credits = 0;
-    g_main_economy = (entity_t *)&g_main_economy_placeholder;
+    probe_set_main_economy(&g_main_economy_placeholder.header);
 }
 
 void probe_shutdown(void) {
     g_probe_up = 0;
-    g_main_economy = NULL;
+    probe_set_main_economy(NULL);
 }
 
 int probe_ready(void) {
@@ -487,23 +490,38 @@ const entity_class_t *main_economy_placeholder_class(void) {
 }
 
 entity_t *main_economy(void) {
-    return g_main_economy;
+    switch (g_main_economy_state) {
+    case MAIN_ECONOMY_PLACEHOLDER:
+        return &g_main_economy_placeholder.header;
+    case MAIN_ECONOMY_REAL:
+        return entity_get(g_main_economy);
+    default:
+        return NULL;
+    }
 }
 
 economy_t *main_economy_typed(void) {
-    if (g_main_economy == NULL || g_main_economy == &g_main_economy_placeholder.header) {
-        return NULL;
-    }
-    assert(g_main_economy->class == economy_class() && "main_economy_typed: only the placeholder or an economy is ever stored");
-    return (economy_t *)g_main_economy;
+    entity_t *e = g_main_economy_state == MAIN_ECONOMY_REAL ? entity_get(g_main_economy) : NULL;
+
+    assert((e == NULL || e->class == economy_class()) && "main_economy_typed: only the placeholder or an economy is ever stored");
+    return (economy_t *)e;
 }
 
 const main_economy_placeholder_t *main_economy_placeholder(void) {
-    return g_main_economy == &g_main_economy_placeholder.header ? &g_main_economy_placeholder : NULL;
+    return g_main_economy_state == MAIN_ECONOMY_PLACEHOLDER ? &g_main_economy_placeholder : NULL;
 }
 
 void probe_set_main_economy(entity_t *instance) {
-    g_main_economy = instance;
+    if (instance == NULL) {
+        g_main_economy_state = MAIN_ECONOMY_NONE;
+        g_main_economy = ENTITY_ID_NONE;
+    } else if (instance == &g_main_economy_placeholder.header) {
+        g_main_economy_state = MAIN_ECONOMY_PLACEHOLDER;
+        g_main_economy = ENTITY_ID_NONE;
+    } else {
+        g_main_economy_state = MAIN_ECONOMY_REAL;
+        g_main_economy = entity_id_link(instance);
+    }
 }
 
 const entity_class_t *targeting_track_target_class(void) {

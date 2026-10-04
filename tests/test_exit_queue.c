@@ -13,6 +13,7 @@
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
 #include "game/economy_score.h"
+#include "game/main_economy.h"
 #include "engine/entity.h"
 #include "engine/entity_id.h"
 #include "engine/entity_registry.h"
@@ -55,10 +56,6 @@ static message_box_t *new_entity(const entity_class_t *cls) {
     mh->header.class = cls;
     mh->header.is_hovered = &mh->is_dead;
     return mh;
-}
-
-static void forget_nothing(const entity_t *e) {
-    (void)e;
 }
 
 static p8_vram_t memory;
@@ -204,7 +201,7 @@ static message_box_t *pointed_at_everywhere(void) {
     main_ui()->hovered = entity_id_link(&e->header);
     main_ui()->previous_hovered = entity_id_link(&e->header);
     message_box_set_shown(e);
-    main_score_panel()->last_box = e;
+    score_panel_set_last_box(main_score_panel(), e);
     entity_unregister(&e->header);
     return e;
 }
@@ -215,7 +212,7 @@ static int case_flush_forgets_references(void) {
            "an unregistered entity still resolves until the flush");
     cart_flush_exit_queue();
     assert(ui_hovered(main_ui()) == NULL && ui_previous_hovered(main_ui()) == NULL);
-    assert(shown_message_box() == NULL && main_score_panel()->last_box == NULL);
+    assert(shown_message_box() == NULL && score_panel_last_box(main_score_panel()) == NULL);
     return 0;
 }
 
@@ -223,7 +220,7 @@ static int case_update60_after_forgetting(void) {
     (void)pointed_at_everywhere();
     cart_update60();
     cart_draw();
-    assert(shown_message_box() == NULL && main_score_panel()->last_box == NULL);
+    assert(shown_message_box() == NULL && score_panel_last_box(main_score_panel()) == NULL);
     return 0;
 }
 
@@ -248,6 +245,60 @@ static int case_difficulty_outlives_its_button(void) {
     return 0;
 }
 
+static int case_singletons_resolve_until_the_flush(void) {
+    load_cart_and_start();
+    cart_start_game(NULL);
+    score_panel_t *score_panel = main_score_panel();
+    ui_t *ui = main_ui();
+    entity_t *mouse = main_mouse();
+    assert(score_panel != NULL && ui != NULL && main_mouse_typed() != NULL);
+    entity_unregister(&score_panel->header);
+    entity_unregister(&ui->header);
+    entity_unregister(mouse);
+    assert(main_score_panel() == score_panel && main_ui() == ui && main_mouse() == mouse);
+    cart_flush_exit_queue();
+    assert(main_score_panel() == NULL && main_ui() == NULL && main_mouse() == NULL && main_mouse_typed() == NULL);
+    return 0;
+}
+
+static int case_singletons_of_a_previous_world_never_resolve(void) {
+    load_cart_and_start();
+    cart_start_game(NULL);
+    assert(main_economy_typed() != NULL && main_score_panel() != NULL);
+    message_box_t *box = message_box_new(NULL);
+    score_panel_set_last_box(main_score_panel(), box);
+    score_panel_t *score_panel = main_score_panel();
+    assert(shown_message_box() == box && score_panel_last_box(score_panel) == box);
+    reset_world(NULL);
+    assert(main_economy() == NULL && main_economy_typed() == NULL && main_economy_placeholder() == NULL);
+    assert(main_score_panel() == NULL && shown_message_box() == NULL && score_panel_last_box(score_panel) == NULL);
+    return 0;
+}
+
+static int case_main_economy_placeholder_survives_reset_world(void) {
+    load_cart_and_start();
+    assert(main_economy_placeholder() != NULL && main_economy() == &main_economy_placeholder()->header);
+    reset_world(NULL);
+    assert(main_economy_placeholder() != NULL && main_economy_typed() == NULL);
+    return 0;
+}
+
+static int case_difficulty_is_copied_at_the_choice(void) {
+    static button_t chosen;
+    load_cart_and_start();
+    chosen.name = "chosen";
+    chosen.has_type_bias = 1;
+    chosen.type_bias = p8_fixed_from_int(2);
+    economy_score_set_difficulty(&chosen);
+    memset(&chosen, 0, sizeof chosen);
+    const button_t *dk = economy_score_difficulty();
+    assert(dk != NULL && dk != &chosen && strcmp(dk->name, "chosen") == 0 && dk->has_type_bias &&
+           dk->type_bias == p8_fixed_from_int(2) && !dk->has_trade);
+    economy_score_set_difficulty(NULL);
+    assert(economy_score_difficulty() == NULL);
+    return 0;
+}
+
 static int case_full(void) {
     message_box_t *e = new_entity(&counted_cls);
     for (int i = 0; i <= EXIT_QUEUE_CAP; i++) exit_queue_put(&e->header);
@@ -259,11 +310,11 @@ static int case_max_survives_flush(void) {
     message_box_t *e = new_entity(&counted_cls);
     assert(exit_queue_max() == 0);
     for (int i = 0; i < 3; i++) exit_queue_put(&e->header);
-    exit_queue_flush(forget_nothing);
+    exit_queue_flush();
     assert(exit_queue_count() == 0);
     assert(exit_queue_max() == 3 && "the flush empties the queue, not its peak");
     exit_queue_put(&e->header);
-    exit_queue_flush(forget_nothing);
+    exit_queue_flush();
     assert(exit_queue_max() == 3 && "a smaller batch leaves the peak alone");
     assert(released == 4);
     free(e);
@@ -286,6 +337,10 @@ static const struct {
     {"flush_forgets_references", case_flush_forgets_references},
     {"update60_after_forgetting", case_update60_after_forgetting},
     {"difficulty_outlives_its_button", case_difficulty_outlives_its_button},
+    {"singletons_resolve_until_the_flush", case_singletons_resolve_until_the_flush},
+    {"singletons_of_a_previous_world_never_resolve", case_singletons_of_a_previous_world_never_resolve},
+    {"main_economy_placeholder_survives_reset_world", case_main_economy_placeholder_survives_reset_world},
+    {"difficulty_is_copied_at_the_choice", case_difficulty_is_copied_at_the_choice},
     {"full", case_full},
 };
 
@@ -381,6 +436,10 @@ int main(int argc, char **argv) {
     expect_clean("flush_forgets_references");
     expect_clean("update60_after_forgetting");
     expect_clean("difficulty_outlives_its_button");
+    expect_clean("singletons_resolve_until_the_flush");
+    expect_clean("singletons_of_a_previous_world_never_resolve");
+    expect_clean("main_economy_placeholder_survives_reset_world");
+    expect_clean("difficulty_is_copied_at_the_choice");
     expect_fatal("full", "exit queue full, limit 315");
     expect_clean("max_survives_flush");
     remove(STDERR_LOG);

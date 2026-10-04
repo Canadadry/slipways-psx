@@ -24,6 +24,7 @@
 #include "p8/input.h"
 #include "p8/vram.h"
 #include "game/message_box.h"
+#include "engine/entity_id.h"
 #include "game/economy_score.h"
 #include "game/main_economy.h"
 #include "game/score_panel.h"
@@ -254,15 +255,25 @@ static void set_is_shown(score_panel_t *ju, int on) {
 }
 
 /* A game started by cart_start_game() with no difficulty picked (a NULL
- * difficulty reads as difficulty 0), then reset_world() again: the main
- * economy and the main score panel stay, the live entities hold only the
- * main camera, mouse and user interface. */
+ * difficulty reads as difficulty 0), then reset_world() again: the live
+ * entities hold only the main camera, mouse and user interface. The game's
+ * economy and score panel take a slot of the new table, unregistered, to
+ * stay the main ones. */
 static score_panel_t *game_main_score_panel(void) {
+    economy_t *economy;
+    score_panel_t *ju;
+
     cart_start_game(NULL);
+    economy = main_economy_typed();
+    ju = main_score_panel();
     reset_world(NULL);
     cart_flush_exit_queue();
-    assert(main_score_panel() != NULL);
-    return main_score_panel();
+    entity_id_take(&economy->header);
+    entity_id_take(&ju->header);
+    probe_set_main_economy(&economy->header);
+    score_panel_set_main(ju);
+    assert(main_score_panel() == ju && main_economy_typed() == economy);
+    return ju;
 }
 
 /* score_panel_update() on the game's one panel, its curtain already set: the
@@ -283,7 +294,7 @@ static void test_scores_box_follows_is_shown(void) {
     score_panel_update(ju);
     box = shown_message_box();
     assert(box != NULL);
-    assert(ju->last_box == box);
+    assert(score_panel_last_box(ju) == box);
     built = entity_list_count_of(entities_by_tag(TAG_MESSAGE_BOX));
     track(&run, box);
     run.hash = fnv(run.hash, draw_hash());
@@ -413,7 +424,7 @@ static void test_scores_box_keeps_its_articles(void) {
     ju->has_curtain = 1;
     set_is_shown(ju, 1);
     score_panel_update(ju);
-    assert(shown_message_box() != NULL && ju->last_box == shown_message_box());
+    assert(shown_message_box() != NULL && score_panel_last_box(ju) == shown_message_box());
     want = draw_hash();
     scribble_frame_zone();
     assert(draw_hash() == want);
@@ -439,6 +450,7 @@ static void test_largest_scores_box_fits_its_slot(void) {
     static button_t challenging;
     score_panel_t *ju = game_main_score_panel();
     const button_t *dk = economy_score_difficulty();
+    button_t saved = dk != NULL ? *dk : (button_t){0};
 
     challenging.name = "challenging";
     economy_score_set_difficulty(&challenging);
@@ -450,8 +462,8 @@ static void test_largest_scores_box_fits_its_slot(void) {
     ju->has_curtain = 1;
     set_is_shown(ju, 1);
     score_panel_update(ju);
-    assert(shown_message_box() != NULL && ju->last_box == shown_message_box());
-    economy_score_set_difficulty(dk);
+    assert(shown_message_box() != NULL && score_panel_last_box(ju) == shown_message_box());
+    economy_score_set_difficulty(dk != NULL ? &saved : NULL);
 }
 
 int main(void) {

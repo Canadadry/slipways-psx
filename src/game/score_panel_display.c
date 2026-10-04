@@ -260,7 +260,8 @@ void score_panel_update(score_panel_t *self) {
 
         /* Without the NULL test, NULL == NULL would fire on the first eligible tick. */
         if (self != NULL) {
-            last_box_equals_shown_message_box = self->last_box != NULL && shown_message_box() == self->last_box;
+            message_box_t *last_box = score_panel_last_box(self);
+            last_box_equals_shown_message_box = last_box != NULL && shown_message_box() == last_box;
         }
 
         if (is_shown && !last_box_equals_shown_message_box) {
@@ -285,7 +286,7 @@ void score_panel_update(score_panel_t *self) {
             made = message_box_new(&keys);
 
             if (self != NULL) {
-                self->last_box = made;
+                score_panel_set_last_box(self, made);
             }
         }
     }

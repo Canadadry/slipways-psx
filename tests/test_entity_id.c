@@ -181,13 +181,8 @@ static void constructed_entity_resolves_by_its_id(void) {
     assert(entity_get(id) == e);
 }
 
-static void forget_nothing(const entity_t *e) {
-    (void)e;
-}
-
 static entity_id_t g_releasing_id;
 static int g_released;
-static int g_forgotten;
 
 static void release_after_slot(entity_t *self) {
     (void)self;
@@ -196,11 +191,6 @@ static void release_after_slot(entity_t *self) {
 }
 
 static const entity_class_t released_cls = {.release = release_after_slot};
-
-static void count_forgets(const entity_t *e) {
-    (void)e;
-    g_forgotten++;
-}
 
 static void flush_frees_the_slot_then_releases(void) {
     registry_world();
@@ -211,10 +201,9 @@ static void flush_frees_the_slot_then_releases(void) {
     g_releasing_id = entity_id_of(released);
     entity_unregister(kept);
     entity_unregister(released);
-    g_released = g_forgotten = 0;
-    exit_queue_flush(count_forgets);
+    g_released = 0;
+    exit_queue_flush();
     assert(g_released == 1);
-    assert(g_forgotten == 1 && "forget still runs for the classes with a release only");
 }
 
 static void reset_world_drops_every_old_id(void) {
@@ -230,7 +219,7 @@ static void reset_world_drops_every_old_id(void) {
     assert(entity_get(old_id) == NULL && entity_get(g_releasing_id) == NULL);
     entity_construct(fresh);
     entity_id_t fresh_id = entity_id_of(fresh);
-    exit_queue_flush(forget_nothing);
+    exit_queue_flush();
     assert(entity_get(fresh_id) == fresh && "an abandoned entity frees no slot of the new world");
     assert(entity_get(old_id) == NULL);
 }
@@ -244,7 +233,7 @@ static void registered_without_construct_holds_no_id(void) {
     entity_register(bare);
     assert(entity_id_is_none(entity_id_of(bare)));
     entity_unregister(bare);
-    exit_queue_flush(forget_nothing);
+    exit_queue_flush();
     assert(entity_get(held_id) == held);
     assert(entity_id_live() == 1);
 }
@@ -256,7 +245,7 @@ static void dead_entity_resolves_until_the_flush(void) {
     entity_id_t id = entity_id_of(e);
     entity_unregister(e);
     assert(entity_get(id) == e && "the frame of the death still reads the entity");
-    exit_queue_flush(forget_nothing);
+    exit_queue_flush();
     assert(entity_get(id) == NULL && "a class without release frees its slot at the flush");
 }
 

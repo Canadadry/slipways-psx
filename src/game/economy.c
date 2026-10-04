@@ -7,6 +7,7 @@
 #include "game/economy_formulas.h"
 #include "game/economy_score.h"
 #include "game/economy_tiers.h"
+#include "engine/entity_id.h"
 #include "engine/entity_registry.h"
 #include "engine/entity_list.h"
 #include "game/main_economy.h"
@@ -63,6 +64,8 @@ static economy_t *economy_create(void) {
     self->year_ticks = self->archetype->year_ticks;
     self->year = self->archetype->year;
 
+    /* A slot, never entity_register: in the live list the economy would join the update order. */
+    entity_id_take(&self->header);
     return self;
 }
 

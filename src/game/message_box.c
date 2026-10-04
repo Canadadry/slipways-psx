@@ -18,14 +18,14 @@
 
 static int g_message_box_up = 0;
 static int g_toast_up = 0;
-static message_box_t *g_shown_message_box = NULL;
+static entity_id_t g_shown_message_box;
 
 message_box_t *shown_message_box(void) {
-    return g_shown_message_box;
+    return (message_box_t *)entity_get(g_shown_message_box);
 }
 
 void message_box_set_shown(message_box_t *mh) {
-    g_shown_message_box = mh;
+    g_shown_message_box = entity_id_link(mh != NULL ? &mh->header : NULL);
 }
 
 void message_box_construct(message_box_t *self) {
@@ -143,8 +143,8 @@ static message_box_t *message_box_create(const message_box_keys_t *keys) {
         }
         self->keep_open = keys->keep_open;
     }
-    message_box_construct(self);
     entity_construct(&self->header);
+    message_box_construct(self);
     return self;
 }
 

@@ -18,8 +18,11 @@
 #include "engine/game_zone.h"
 
 static int g_ui_up = 0;
-static entity_t *g_main_mouse = NULL;
-static ui_t *g_main_ui = NULL;
+typedef enum { MAIN_MOUSE_NONE, MAIN_MOUSE_PLACEHOLDER, MAIN_MOUSE_REAL } main_mouse_state_t;
+
+static main_mouse_state_t g_main_mouse_state = MAIN_MOUSE_NONE;
+static entity_id_t g_main_mouse;
+static entity_id_t g_main_ui;
 static entity_id_list_t g_shared_ephemerals;
 
 const box_t *ui_panel_box(void) {
@@ -67,7 +70,7 @@ static vec_t ui_vec_or_zero(const vec_t *v) {
 static const mouse_button_t *ui_main_mouse_button(mouse_side_t side) {
     const mouse_button_t *b;
 
-    assert(g_main_mouse != NULL && "ui_main_mouse_button: reading a button of an absent main mouse stops the run");
+    assert(main_mouse() != NULL && "ui_main_mouse_button: reading a button of an absent main mouse stops the run");
     if (main_mouse_typed() == NULL) {
         return NULL;
     }
@@ -126,14 +129,14 @@ void ui_init(void) {
     entity_id_list_init(&g_shared_ephemerals, game_zone_load_zone());
     g_ui_up = 1;
 
-    g_main_mouse = (entity_t *)&g_main_mouse_placeholder;
+    ui_set_main_mouse(&g_main_mouse_placeholder.header);
 }
 
 void ui_shutdown(void) {
     g_ui_up = 0;
     entity_id_list_free(&g_shared_ephemerals);
-    g_main_mouse = NULL;
-    g_main_ui = NULL;
+    ui_set_main_mouse(NULL);
+    g_main_ui = ENTITY_ID_NONE;
 }
 
 const entity_class_t *main_mouse_placeholder_class(void) {
@@ -183,35 +186,47 @@ void ui_forget_world(ui_t *self) {
 }
 
 entity_t *main_mouse(void) {
-    return g_main_mouse;
+    switch (g_main_mouse_state) {
+    case MAIN_MOUSE_PLACEHOLDER:
+        return &g_main_mouse_placeholder.header;
+    case MAIN_MOUSE_REAL:
+        return entity_get(g_main_mouse);
+    default:
+        return NULL;
+    }
 }
 
 mouse_t *main_mouse_typed(void) {
-    if (g_main_mouse == NULL || g_main_mouse == &g_main_mouse_placeholder.header) {
-        return NULL;
-    }
-    assert(g_main_mouse->class == mouse_class() && "main_mouse_typed: only the placeholder or a mouse is ever stored");
-    return (mouse_t *)g_main_mouse;
+    entity_t *e = g_main_mouse_state == MAIN_MOUSE_REAL ? entity_get(g_main_mouse) : NULL;
+
+    assert((e == NULL || e->class == mouse_class()) && "main_mouse_typed: only the placeholder or a mouse is ever stored");
+    return (mouse_t *)e;
 }
 
 /* Never frees the outgoing instance: a click inside ui_update replaces it while `self` is still the old one. */
 void ui_set_main_mouse(entity_t *instance) {
-    if (instance == g_main_mouse) {
-        return;
+    if (instance == NULL) {
+        g_main_mouse_state = MAIN_MOUSE_NONE;
+        g_main_mouse = ENTITY_ID_NONE;
+    } else if (instance == &g_main_mouse_placeholder.header) {
+        g_main_mouse_state = MAIN_MOUSE_PLACEHOLDER;
+        g_main_mouse = ENTITY_ID_NONE;
+    } else {
+        g_main_mouse_state = MAIN_MOUSE_REAL;
+        g_main_mouse = entity_id_link(instance);
     }
-    g_main_mouse = instance;
 }
 
 ui_t *main_ui(void) {
-    return g_main_ui;
+    entity_t *e = entity_get(g_main_ui);
+
+    assert((e == NULL || e->class == &ui_class_def) && "main_ui: only a ui is ever stored");
+    return (ui_t *)e;
 }
 
 /* Never frees the outgoing ui, for the same reason as ui_set_main_mouse(). */
 void ui_set_main_ui(ui_t *ui) {
-    if (ui == g_main_ui) {
-        return;
-    }
-    g_main_ui = ui;
+    g_main_ui = entity_id_link(ui != NULL ? &ui->header : NULL);
 }
 
 void ui_update(p8_vram_t *mem, ui_t *self) {

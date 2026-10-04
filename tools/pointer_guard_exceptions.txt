@@ -6,14 +6,14 @@
 # variables of type entity_list_t. A file with neither has no line. Strict
 # equality: plan 13 lowers these counts, and no step may raise one.
 src/engine/entity_class.h 17
-src/game/economy_score.c 2
+src/game/economy_score.c 1
 src/game/economy_score.h 1
 src/game/gen.h 3
 src/game/layout.h 9
 src/game/main_economy.h 5
 src/game/map_tables.h 22
 src/game/menu.c 2
-src/game/message_box.c 2
+src/game/message_box.c 1
 src/game/message_box.h 12
 src/game/mouse.h 2
 src/game/particle.h 3
@@ -21,12 +21,10 @@ src/game/planet.c 2
 src/game/planet.h 15
 src/game/planet_family.h 2
 src/game/planet_trade.h 1
-src/game/probe.c 1
 src/game/probe.h 5
 src/game/research.c 2
 src/game/research.h 12
-src/game/score_panel.c 1
-src/game/score_panel.h 6
+src/game/score_panel.h 5
 src/game/score_panel_display.c 1
 src/game/scroll.h 4
 src/game/slipway.h 8
@@ -34,7 +32,6 @@ src/game/structure_icon.c 1
 src/game/structure_icon.h 7
 src/game/targeting.h 1
 src/game/trade.h 4
-src/game/ui.c 2
 src/game/ui.h 4
 src/game/ui_button.h 17
 src/game/wormhole.h 7

@@ -12,6 +12,7 @@
 #include "game/game_data.h"
 #include "game/hud.h"
 #include "engine/entity.h"
+#include "engine/entity_id.h"
 #include "game/map_tables.h"
 #include "game/draw_functions.h"
 #include "p8/str.h"
@@ -22,7 +23,7 @@
 
 static int g_score_panel_up = 0;
 static score_row_t g_score_rows[SCORE_ROWS_COUNT];
-static score_panel_t *g_main_score_panel = NULL;
+static entity_id_t g_main_score_panel;
 
 static p8_fixed_t fixed_min(p8_fixed_t a, p8_fixed_t b) {
     return (a < b) ? a : b;
@@ -225,7 +226,7 @@ static score_panel_t *score_panel_create(void) {
     self->archetype = &score_panel_archetype;
     self->layer = self->archetype->layer;
     self->header.layer = &self->layer;
-    self->last_box = NULL;
+    self->last_box = ENTITY_ID_NONE;
     self->is_shown = 0;
     self->has_is_shown = 0;
     self->curtain = 0;
@@ -266,7 +267,7 @@ void score_panel_init(void) {
     g_score_panel_layout_block.description = NULL;
 
     score_panel_set_init(NULL);
-    g_main_score_panel = NULL;
+    g_main_score_panel = ENTITY_ID_NONE;
 
     score_panel_display_init();
 }
@@ -275,7 +276,7 @@ void score_panel_shutdown(void) {
     score_panel_display_shutdown();
     g_score_panel_up = 0;
     score_panel_set_init(NULL);
-    g_main_score_panel = NULL;
+    g_main_score_panel = ENTITY_ID_NONE;
 }
 
 int score_panel_ready(void) {
@@ -294,10 +295,21 @@ score_row_t *score_panel_rows(void) {
     return g_score_panel_up ? g_score_rows : NULL;
 }
 
+message_box_t *score_panel_last_box(const score_panel_t *self) {
+    return (message_box_t *)entity_get(self->last_box);
+}
+
+void score_panel_set_last_box(score_panel_t *self, message_box_t *box) {
+    self->last_box = entity_id_link(box != NULL ? &box->header : NULL);
+}
+
 score_panel_t *main_score_panel(void) {
-    return g_main_score_panel;
+    entity_t *e = entity_get(g_main_score_panel);
+
+    assert((e == NULL || e->class == &score_panel_class_def) && "main_score_panel: only a score panel is ever stored");
+    return (score_panel_t *)e;
 }
 
 void score_panel_set_main(score_panel_t *instance) {
-    g_main_score_panel = instance;
+    g_main_score_panel = entity_id_link(instance != NULL ? &instance->header : NULL);
 }

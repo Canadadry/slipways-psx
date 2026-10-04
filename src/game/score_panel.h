@@ -14,7 +14,7 @@ typedef struct {
     entity_t header;
     const score_panel_archetype_t *archetype;
     p8_fixed_t layer;
-    message_box_t *last_box;
+    entity_id_t last_box;
     int is_shown;
     int has_is_shown;
     p8_fixed_t curtain;
@@ -71,6 +71,9 @@ const data_row_t *score_panel_frame_rows(void);
 const data_row_t *score_panel_countdown_rows(void);
 
 score_panel_t *score_panel_new(void);
+
+message_box_t *score_panel_last_box(const score_panel_t *self);
+void score_panel_set_last_box(score_panel_t *self, message_box_t *box);
 
 score_row_t *score_panel_rows(void);
 

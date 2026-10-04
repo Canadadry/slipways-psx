@@ -92,7 +92,7 @@ static uint32_t is_shown_state(const score_panel_t *pj) {
 
 /* A NULL last_box reads as the class's default, the number 1. */
 static p8_fixed_t last_box_fixed(const score_panel_t *pj) {
-    assert(pj->last_box == NULL);
+    assert(score_panel_last_box(pj) == NULL);
     return p8_fixed_from_int(1);
 }
 
@@ -222,7 +222,7 @@ static uint32_t fold_ref_member(uint32_t h, const void *ref) {
 }
 
 static uint32_t fold_last_box(uint32_t h, const score_panel_t *pj) {
-    assert(pj->last_box == NULL && "fold_last_box: no test folds a score panel holding a last box: to fold one, fold 1 then its rank in the live entities (0x4E, rank) as fold_ref does, or outside them 0xEEEE then the frozen struct tag 0x9E5C57C7");
+    assert(score_panel_last_box(pj) == NULL && "fold_last_box: no test folds a score panel holding a last box: to fold one, fold 1 then its rank in the live entities (0x4E, rank) as fold_ref does, or outside them 0xEEEE then the frozen struct tag 0x9E5C57C7");
     return fold_fixed_member(h, last_box_fixed(pj));
 }
 
@@ -372,7 +372,7 @@ static void test_built(void) {
 
     assert(ju->layer == p8_fixed_from_int(10));
     assert(ju->archetype == &score_panel_archetype && ju->layer == ju->archetype->layer);
-    assert(ju->last_box == NULL);
+    assert(score_panel_last_box(ju) == NULL);
     assert(ju->header.state == ENTITY_STATE_NORMAL);
     hash = fold_fixed_member(hash, ju->header.state_time);
     assert(!ju->has_is_shown && !ju->has_curtain);
@@ -473,14 +473,14 @@ static void test_life(void) {
     assert(score_panel->has_curtain && score_panel->curtain == 0);
     assert(score_panel->layer == p8_fixed_from_int(13));
     assert(modal_backdrop_count() == modal_backdrop_before + 1 && layer15_button_count() == button_before + 2);
-    assert(score_panel->last_box == shown_message_box() && shown_message_box() != NULL);
+    assert(score_panel_last_box(score_panel) == shown_message_box() && shown_message_box() != NULL);
     boxes = entity_list_count_of(entities_by_tag(TAG_MESSAGE_BOX));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), shown_message_box()));
     hash = fnv(hash, (uint32_t)live_entities()->count);
 
     class_of(score_panel)->states[ENTITY_STATE_NORMAL](&score_panel->header, p8_fixed_from_int(0));
     assert(entity_list_count_of(entities_by_tag(TAG_MESSAGE_BOX)) == boxes);
-    assert(score_panel->last_box == shown_message_box());
+    assert(score_panel_last_box(score_panel) == shown_message_box());
 
     for (index = 0; index < 3; index++) {
         class_of(score_panel)->draw(&score_panel->header, NULL);

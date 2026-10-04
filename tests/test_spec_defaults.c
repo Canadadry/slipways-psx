@@ -203,7 +203,7 @@ static void test_score_panel_defaults_and_ready(void) {
     const score_panel_layout_block_t *cr = score_panel_layout_block();
 
     assert(pj->archetype == &score_panel_archetype && pj->layer == pj->archetype->layer);
-    assert(pj->last_box == NULL);
+    assert(score_panel_last_box(pj) == NULL);
     assert(cr->fixed_pos->x == 0 && cr->fixed_pos->y == p8_fixed_from_int(11));
     assert(cr->row_step->x == 0 && cr->row_step->y == p8_fixed_from_int(11));
     assert(cr->back_color == p8_fixed_from_int(10));

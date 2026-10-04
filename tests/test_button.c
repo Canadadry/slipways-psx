@@ -168,6 +168,14 @@ static button_t *button_of(const void *e) {
     return (button_t *)e;
 }
 
+static int is_difficulty_copy_of(const void *e) {
+    const button_t *dk = economy_score_difficulty();
+    const button_t *nj = button_of(e);
+
+    return dk != NULL && dk != nj && dk->name == nj->name && dk->has_trade == nj->has_trade && dk->trade == nj->trade &&
+           dk->has_type_bias == nj->has_type_bias && dk->type_bias == nj->type_bias;
+}
+
 /* 0 absent or false, 2 true. */
 static uint32_t is_hovered_state(const void *e) {
     const button_t *b = button_of(e);
@@ -822,7 +830,7 @@ static void test_difficulty(void) {
         cart_flush_exit_queue();
         nj = title_button(i);
         cart_start_game(nj);
-        assert(economy_score_difficulty() == nj);
+        assert(is_difficulty_copy_of(nj));
         h = fold_fixed_or_nil(h, button_of(nj)->has_type_bias, button_of(nj)->type_bias);
         h = fold_fixed_or_nil(h, button_of(nj)->has_trade, button_of(nj)->trade);
         h = fold_string_or_nil(h, button_of(nj)->name);
@@ -1180,7 +1188,7 @@ static void test_button_is_a_struct(void) {
     nj = title_button(2);
     cart_flush_exit_queue();
     cart_start_game(nj);
-    assert(is_button(nj) && economy_score_difficulty() == nj);
+    assert(is_button(nj) && is_difficulty_copy_of(nj));
     assert(galaxy_menu_buttons(ix) == 4);
     check_int("struct start_game", all_buttons_are_structs(), 4);
     for (i = 0; i < 4; i++) {
@@ -1527,7 +1535,7 @@ static uint32_t members_title_and_game(void) {
     hash = fold_button_members(hash, chosen_option);
     cart_flush_exit_queue();
     cart_start_game(chosen_option);
-    assert(economy_score_difficulty() == chosen_option);
+    assert(is_difficulty_copy_of(chosen_option));
     /* The title's buttons go at the next frame, as in the game. */
     cart_flush_exit_queue();
     assert(galaxy_menu_buttons(galaxy_menu) == 4);

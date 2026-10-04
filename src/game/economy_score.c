@@ -246,29 +246,27 @@ p8_fixed_t economy_score_happiness(void) {
     return p8_fixed_add(h_val, ctx.total);
 }
 
-static const button_t *g_difficulty = NULL;
+/* The cart reads the difficulty all game long, after the menu button dies: keep a copy, never a link to the button. */
+static button_t g_difficulty;
+static int g_has_difficulty;
 
 const button_t *economy_score_difficulty(void) {
-    return g_difficulty;
+    return g_has_difficulty ? &g_difficulty : NULL;
 }
 
 void economy_score_set_difficulty(const button_t *dk) {
-    g_difficulty = dk;
-}
+    button_t copy = {0};
 
-void economy_score_difficulty_quits(const entity_t *e) {
-    static button_t copy;
-
-    if (g_difficulty == NULL || &g_difficulty->header != e) {
+    g_has_difficulty = dk != NULL;
+    if (dk == NULL) {
         return;
     }
-    memset(&copy, 0, sizeof copy);
-    copy.name = g_difficulty->name;
-    copy.has_trade = g_difficulty->has_trade;
-    copy.trade = g_difficulty->trade;
-    copy.has_type_bias = g_difficulty->has_type_bias;
-    copy.type_bias = g_difficulty->type_bias;
-    g_difficulty = &copy;
+    copy.name = dk->name;
+    copy.has_trade = dk->has_trade;
+    copy.trade = dk->trade;
+    copy.has_type_bias = dk->has_type_bias;
+    copy.type_bias = dk->type_bias;
+    g_difficulty = copy;
 }
 
 p8_fixed_t economy_score_net_income(entity_t *p) {

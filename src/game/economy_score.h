@@ -27,8 +27,6 @@ p8_fixed_t economy_score_happiness(void);
 const button_t *economy_score_difficulty(void);
 void economy_score_set_difficulty(const button_t *dk);
 
-void economy_score_difficulty_quits(const entity_t *e);
-
 p8_fixed_t economy_score_net_income(entity_t *p);
 
 #endif
