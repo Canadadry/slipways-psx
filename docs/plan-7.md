@@ -49,17 +49,9 @@ Candidats de 4b, du plus gros au plus petit, gain attendu en octets de budget (b
 2. `game` — arènes de prise à la taille de ce qu'elles tiennent : **103 128** (pic − 91 664). À mesurer : pic de `game` au démarrage de `full_game_new_game`.
 3. `game` — réserve de points de transit d'un slipway de 64 à 24, qui ne rapporte qu'avec 2 : **69 120** (192 × 320 au pic). À mesurer : idem.
 4. `game` — blocs morts des agrandissements de listes, dans les deux générations : **31 424** (pic − 27 936). À mesurer : idem.
+5. `game` — flipper la zone `game` dans `cart_init` avant `reset_world`, comme `cart_start_game` le fait déjà : l'ancienne génération n'est plus tenue à côté de la nouvelle. Pic de `game` 659 088 → 583 248 ; mesuré dans une copie hors dépôt, 26 hashes e2e gardés, ASan propre. Le cas `pause_restart_keeps_game_across_restart` de `test_live_slots`, qui fige l'ancienne séquence, est à mettre à jour.
 
-Ensemble 462 016 : les candidats **ne couvrent pas** l'excès, il manque **33 890** (somme des cibles 820 322). L'étape 4 s'arrête là. La coexistence des deux générations, que les candidats ne touchent pas, pèse 75 840 au pic (67 872 après 4).
-
-Vérification bornée : flipper la zone `game` dans `cart_init` avant `reset_world`, comme `cart_start_game` le fait déjà, garde les 26 hashes e2e, passe ASan sur les e2e et les deux nouvelles parties, et ramène le pic de `game` à 583 248 (ancienne génération plus 1 608 de l'écran titre). Seul le cas `pause_restart_keeps_game_across_restart` de `test_live_slots`, qui fige « `restart` ne flippe pas », casse. Avec ce changement et les quatre candidats, la somme des cibles serait 743 962 (reste 42 470) ; mesuré dans une copie hors dépôt, pas un candidat.
-
-Décisions ouvertes, pour un humain :
-
-- Adopter le flip au retour au titre (ci-dessus), qui change la séquence de redémarrage sans changer l'image, et le test qui la fige.
-- Compter la coexistence autrement : dimensionner la génération de `game` sur une seule partie, et traiter le démarrage après une longue partie à part.
-- Relever le plafond de 768 Ko : hors de ce que le plan permet.
-- Changer la séquence de redémarrage d'une autre façon (bâtir la nouvelle partie une frame plus tard, par exemple) : change le jeu, donc les hashes.
+Décision : les e2e font foi, pas les tests unitaires qui figent une séquence ; le plafond de 768 Ko est la cible et ne bouge pas. Les cinq candidats couvrent l'excès : somme des cibles 743 962, reste 42 470.
 
 ## 3. Règles
 
