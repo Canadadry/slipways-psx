@@ -58,9 +58,7 @@ unsigned char *bump_zone_alloc(bump_zone_t *zone, size_t size) {
     return p;
 }
 
-/* Under ASan, each reset moves to the other half and poisons the one it
- * leaves: going back to the start would hand its addresses to the next
- * allocations, and a stale pointer would read there without crashing. */
+/* Not back to the start under ASan: a stale pointer would read the next allocations there without crashing. */
 void bump_zone_reset(bump_zone_t *zone) {
     assert(!zone->never_reset &&
            "reset of a single-half zone: an arena is never reset, it is released");
@@ -121,9 +119,6 @@ int flip_zone_pending(const flip_zone_t *zone) {
     return zone->pending;
 }
 
-/* No second half under ASan: the generations already alternate between the
- * ends. Blind spot: a pointer kept across two flips lands on the reused end
- * and no longer crashes. */
 void flip_zone_release(flip_zone_t *zone) {
     if (!zone->pending) return;
     if (zone->current_top) {
@@ -170,9 +165,7 @@ void slot_zone_init(slot_zone_t *zone, const char *name,
     POISON(storage, count * ZONE_CELLS(slot_size) * sizeof *storage);
 }
 
-/* Rotating cursor, no LIFO free list: a released slot is taken again only
- * after a full turn, otherwise a pointer to it would at once land on a slot
- * that is valid again. */
+/* No LIFO free list: a stale pointer to a released slot would at once land on a valid one again. */
 unsigned char *slot_zone_alloc(slot_zone_t *zone) {
     for (size_t step = 0; step < zone->count; step++) {
         size_t i = (zone->cursor + step) % zone->count;

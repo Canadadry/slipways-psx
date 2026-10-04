@@ -8,9 +8,6 @@ void p8_gfx_init(p8_graphics_t *gfx) {
     gfx->camera_y = 0;
     gfx->fillp_pattern = 0;
     gfx->fillp_transparent = 0;
-    /* 6 is PICO-8's power-on pen color. The one draw call that omits the
-     * color (game/score_panel.c) always follows one that gives it, so this
-     * default is never observed today. */
     gfx->pen_color = 6;
 }
 
@@ -80,10 +77,6 @@ void p8_line(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, i
     }
 }
 
-/* The 16-bit pattern is a 4x4 grid read most-significant-bit first,
- * row-major from the top left: bit 15 is (row 0, col 0), bit 0 is
- * (row 3, col 3). Only the fills consult it -- the game always resets the
- * pattern before any line/rect/circ, so those need not. */
 static int fillp_bit_set(const p8_graphics_t *gfx, int x, int y) {
     int row = ((y % 4) + 4) % 4;
     int col = ((x % 4) + 4) % 4;
@@ -91,12 +84,7 @@ static int fillp_bit_set(const p8_graphics_t *gfx, int x, int y) {
     return (gfx->fillp_pattern >> bit_index) & 1;
 }
 
-/* A fill pattern is two-colored and the `col` parameter carries both: the
- * clear bits draw its low nibble, the set bits its high nibble, or nothing
- * at all (-1 here) when the transparency flag is set. So game/layout.c's
- * 0x10 to hud_draw_bar means colors 0 and 1, not color 16. The masking is
- * here, not in p8_pset, which stays unmasked so devtools/dump.c's assert
- * keeps catching any primitive that stores an index above 0x0f. */
+/* Masked here, not in p8_pset, so devtools/dump.c's assert still catches a primitive storing an index above 0x0f. */
 static int fillp_color(const p8_graphics_t *gfx, int x, int y, int col) {
     if (!fillp_bit_set(gfx, x, y)) {
         return col & 0x0F;
@@ -220,19 +208,7 @@ unsigned char p8_sget(const p8_vram_t *mem, int x, int y) {
     return mem->sprite_sheet[y][x];
 }
 
-/* A sprite's top-left pixel is at ((index % 16) * 8, (index / 16) * 8) on
- * the 128x128 sheet; width and height count 8px cells, so a multi-cell
- * sprite reads one larger rectangle and spills over, as on real hardware.
- *
- * A source pixel is transparent when its draw-palette byte has the 0x80
- * bit. That is how color 3, not color 0, is the invisible one here:
- * every palette block of game/hud.c carries it, cart_draw() reselects block 0
- * per frame.
- * Consulting a gfx-side flag instead drew a green band behind the title
- * logo, whose art fills with color 3.
- *
- * An opaque pixel is drawn in the low nibble of that byte: pal()'s color
- * remap (GAP-18). */
+/* GAP-18 */
 void p8_spr(const p8_graphics_t *gfx, p8_vram_t *mem, int n, int x, int y, int w, int h) {
     const int sprites_per_row = P8_SPRITE_SHEET_WIDTH / P8_SPRITE_SIZE;
     int sheet_x = (n % sprites_per_row) * P8_SPRITE_SIZE;
@@ -277,11 +253,6 @@ void p8_map(const p8_graphics_t *gfx, p8_vram_t *mem, int cel_x, int cel_y, int 
     for (int r = 0; r < cel_h; r++) {
         for (int c = 0; c < cel_w; c++) {
             unsigned char sprite_n = map_cell_get(mem, cel_x + c, cel_y + r);
-            /* map() takes sprite 0 as empty and skips it; spr(0,...)
-             * still draws it. The distinction matters: sprite 0 holds the
-             * pixels of the palette blocks game/hud.c copies as a table, and
-             * game/background.c writes cell value 0 over most of the sky.
-             * (PICO-8's opt-out, POKE(0x5F36,0x8), is never poked here.) */
             if (sprite_n == 0) {
                 continue;
             }
@@ -290,17 +261,6 @@ void p8_map(const p8_graphics_t *gfx, p8_vram_t *mem, int cel_x, int cel_y, int 
     }
 }
 
-/* Hand-authored bitmap font, not PICO-8's own glyphs: the real ones live
- * in the PICO-8 runtime, not in the extracted assets. It only has to make
- * one character tellable from another in a text dump. Each row is a 3-bit
- * value, MSB the leftmost column of the 3x5 bitmap.
- *
- * Covered: space, 0-9, A-Z and a-z, and ! $ % ' ( ) + , - . / : = ?
- * (font_glyph_rows below is the list). Case shares a bitmap, as do 'u' and
- * 'v': at 3x5 there is no room to tell them apart.
- *
- * Anything uncovered draws FONT_ROWS_PLACEHOLDER, a solid block, on
- * purpose -- a missing glyph must not read as whitespace. */
 static const unsigned char FONT_ROWS_PLACEHOLDER[P8_FONT_GLYPH_HEIGHT] = {7, 7, 7, 7, 7};
 static const unsigned char FONT_ROWS_SPACE[P8_FONT_GLYPH_HEIGHT] = {0, 0, 0, 0, 0};
 
@@ -390,7 +350,7 @@ static const unsigned char *font_glyph_rows(char character) {
         case 'S': case 's': return FONT_ROWS_S;
         case 'T': case 't': return FONT_ROWS_T;
         case 'U': case 'u': return FONT_ROWS_U;
-        case 'V': case 'v': return FONT_ROWS_U; /* shares the U bitmap on purpose */
+        case 'V': case 'v': return FONT_ROWS_U;
         case 'W': case 'w': return FONT_ROWS_W;
         case 'X': case 'x': return FONT_ROWS_X;
         case 'Y': case 'y': return FONT_ROWS_Y;

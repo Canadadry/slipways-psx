@@ -38,9 +38,6 @@ char *p8_tostr_fixed(const allocator_t *zone, p8_fixed_t x) {
     uint32_t p = (mag & 0xFFFFu) * 625u;
     uint32_t q = p >> 12;
     uint32_t r = p & 4095u;
-    /* Round half to even, as glibc printf does: half-up would be
-     * wrong on 8 of the 16 exact ties per integer part, e.g.
-     * 0x0000.0800 -> "0.0312". */
     if (r > 2048u || (r == 2048u && (q & 1u))) {
         q++;
     }
