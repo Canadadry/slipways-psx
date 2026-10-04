@@ -31,6 +31,17 @@
 # make line-coverage-test -> builds and runs test_line_coverage, the test of
 #                       tools/line_coverage.sh; temporary (plan 12), outside
 #                       the suite
+# make replay-convert-test -> builds and runs test_replay_convert, the test of
+#                       tools/replay_convert.sh; temporary (plan 12), outside
+#                       the suite
+# make replay-convert [EVENTS=<events>] -> rewrites in place each replay of
+#                       make state (or that one) for 160x120 from its 128x128
+#                       version at REPLAY_CONVERT_REF and its labels of
+#                       tests/plan12-cursor-labels/; clamped frames and
+#                       position map in tmp/replay-convert/<name>.txt, the
+#                       pairs of the e2e .txt still at 128x128 in
+#                       <name>.stale.txt; temporary (plan 12), outside the
+#                       suite
 # make cursor-labels-test -> builds and runs test_cursor_label, the test of
 #                       src/devtools/cursor_label.c and of the LABELS hook of
 #                       tmp/replay; temporary (plan 12), outside the suite
@@ -536,6 +547,14 @@ line-coverage: $(TMP_DIR)/replay_gcov tools/line_coverage.sh
 
 .PHONY: line-coverage-test line-coverage
 
+$(TMP_DIR)/test_replay_convert: $(call objs,tests/test_replay_convert.c) tools/replay_convert.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+replay-convert-test: $(TMP_DIR)/test_replay_convert
+	./$<
+
+.PHONY: replay-convert-test
+
 $(TMP_DIR)/test_cursor_label: $(call objs,tests/test_cursor_label.c src/devtools/cursor_label.c $(ENGINE_SRCS)) $(TMP_DIR)/replay tests/fixtures/title_click_reasonable.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -918,6 +937,22 @@ cursor-labels: $(TMP_DIR)/replay $(CURSOR_ANCHORS) $(STATE_EVENTS)
 endif
 
 .PHONY: cursor-labels
+
+REPLAY_CONVERT_REF := 339b242
+REPLAY_CONVERT_DIR := $(TMP_DIR)/replay-convert
+
+replay-convert: tools/replay_convert.sh $(CURSOR_ANCHORS)
+	@mkdir -p $(REPLAY_CONVERT_DIR)
+	@for e in $(or $(EVENTS),$(STATE_EVENTS)); do \
+	    n=$(REPLAY_CONVERT_DIR)/$$(basename $$e .json); \
+	    git show $(REPLAY_CONVERT_REF):$$e > $$n.128.json || exit 1; \
+	    sh tools/replay_convert.sh convert $$n.128.json $(CURSOR_LABELS_DIR)/$$(basename $$e .json).txt $(CURSOR_ANCHORS) $$e $$n.txt || { echo "replay-convert: $$e failed"; exit 1; }; \
+	    t=$${e%.json}.txt; stale=0; \
+	    if [ -f $$t ]; then sh tools/replay_convert.sh stale-pairs $$t $$n.128.json $$e > $$n.stale.txt || exit 1; stale=$$(wc -l < $$n.stale.txt); fi; \
+	    echo "replay-convert: $$e, $$(grep -c '^recadre ' $$n.txt) clamped, $$stale stale pair(s) in $$t"; \
+	done
+
+.PHONY: replay-convert
 
 # The core sources, where the comparator reads the P8_FIXED_LIT calls.
 constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_gaps.txt tools/pico8_reference_probe_out.txt src/p8/fixed.c src/p8/fixed.h $(CORE_SRCS) | $(TMP_DIR)
