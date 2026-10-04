@@ -78,7 +78,7 @@ p8_fixed_t economy_score_colony_upkeep(void) {
 p8_fixed_t economy_score_trade_income(const entity_t *entity) {
     p8_fixed_t total = p8_fixed_from_int(0);
     const planet_t *planet;
-    const entity_list_t *outgoing;
+    const trade_route_list_t *outgoing;
     const button_t *difficulty = economy_score_difficulty();
 
     if (entity == NULL) {
@@ -90,13 +90,9 @@ p8_fixed_t economy_score_trade_income(const entity_t *entity) {
 
     if (outgoing != NULL) {
         int i;
-        for (i = 0; i < outgoing->count; i++) {
-            entity_t *e = outgoing->items[i];
+        for (i = 0; i < trade_route_list_count(outgoing); i++) {
             entity_t *partner;
-            if (e == NULL) {
-                continue;
-            }
-            if (!trade_last_planet((const trade_route_t *)e, &partner) || partner == NULL) {
+            if (!trade_last_planet(trade_route_list_at(outgoing, i), &partner)) {
                 continue;
             }
             {

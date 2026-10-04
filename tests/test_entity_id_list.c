@@ -178,6 +178,16 @@ static void nearest_in_ids_skips_the_same_spot_and_ignores_unlisted_entities(voi
     entity_id_list_free(&anchors);
 }
 
+static void at_resolves_the_id_at_an_index(void) {
+    entity_id_list_t list;
+    new_table();
+    entity_id_list_init(&list, &heap_allocator);
+    for (int i = 0; i < 3; i++) entity_id_list_add(&list, id_of(i));
+    assert(entity_id_list_at(&list, 0) == &g_entities[0]);
+    assert(entity_id_list_at(&list, 2) == &g_entities[2]);
+    entity_id_list_free(&list);
+}
+
 #define STDERR_LOG "tmp/test_entity_id_list_stderr.txt"
 
 static void walk_a_list_holding_a_dead_id(void) {
@@ -194,18 +204,27 @@ static void walk_a_list_holding_a_dead_id(void) {
     }
 }
 
-static void walking_a_dead_id_asserts(void) {
+static void read_a_dead_id_at_an_index(void) {
+    entity_id_list_t list;
+    new_table();
+    entity_id_list_init(&list, &heap_allocator);
+    entity_id_list_add(&list, id_of(0));
+    entity_id_release(&g_entities[0]);
+    (void)entity_id_list_at(&list, 0);
+}
+
+static void expect_dead_id_assert(void (*body)(void)) {
     fflush(stdout);
     pid_t child = fork();
     assert(child >= 0);
     if (child == 0) {
         if (freopen(STDERR_LOG, "w", stderr) == NULL) _exit(2);
-        walk_a_list_holding_a_dead_id();
+        body();
         _exit(0);
     }
     int status;
     assert(waitpid(child, &status, 0) == child);
-    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT && "a dead id in a walked list must assert");
+    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT && "reading a dead id from a list must assert");
     FILE *log = fopen(STDERR_LOG, "r");
     char line[512] = {0};
     assert(log != NULL);
@@ -223,7 +242,9 @@ int main(void) {
     filter_keeps_the_resolved_entities_the_predicate_accepts();
     clear_empties_and_a_reserved_list_grows_past_its_reserve();
     nearest_in_ids_skips_the_same_spot_and_ignores_unlisted_entities();
-    walking_a_dead_id_asserts();
+    at_resolves_the_id_at_an_index();
+    expect_dead_id_assert(walk_a_list_holding_a_dead_id);
+    expect_dead_id_assert(read_a_dead_id_at_an_index);
     printf("test_entity_id_list: all tests passed\n");
     return 0;
 }

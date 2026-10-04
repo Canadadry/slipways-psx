@@ -20,6 +20,8 @@ void entity_id_list_add(entity_id_list_t *list, entity_id_t id);
 int entity_id_list_count(const entity_id_list_t *list);
 /* Removes the first id equal to id; 1 when one was removed. */
 int entity_id_list_del(entity_id_list_t *list, entity_id_t id);
+/* The id at index, resolved; asserts on an id that resolves to NULL. */
+entity_t *entity_id_list_at(const entity_id_list_t *list, int index);
 /* 0 for a NULL list. */
 int entity_id_list_has(const entity_id_list_t *list, entity_id_t id);
 entity_id_list_t entity_id_list_concat(const allocator_t *zone, const entity_id_list_t *a,

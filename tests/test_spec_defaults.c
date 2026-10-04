@@ -225,9 +225,6 @@ static void test_economy_ready(void) {
 }
 
 static void test_trade_ready(void) {
-    trade_route_t *trade = trade_new(game_zone(), NULL);
-
-    assert(trade->header.class == trade_class());
     assert(trade_ready());
     trade_shutdown();
     assert(!trade_ready());

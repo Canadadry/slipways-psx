@@ -311,8 +311,8 @@ static uint32_t fold_live(uint32_t h, const void *e) {
     h = fold_production(h, jo);
     h = fnv(h, (uint32_t)entity_list_count(jo->slipways));
     h = fnv(h, (uint32_t)list_size(jo->needs));
-    h = fnv(h, (uint32_t)entity_list_count(jo->outgoing_routes));
-    h = fnv(h, (uint32_t)entity_list_count(jo->incoming_routes));
+    h = fnv(h, (uint32_t)(jo->outgoing_routes != NULL ? trade_route_list_count(jo->outgoing_routes) : -1));
+    h = fnv(h, (uint32_t)(jo->incoming_routes != NULL ? trade_route_list_count(jo->incoming_routes) : -1));
     h = fnv(h, (uint32_t)(jo->targeted_by != NULL));
     h = fnv(h, (uint32_t)(jo->planet_type != NULL));
     h = fnv(h, (uint32_t)(jo->layout_row != NULL));

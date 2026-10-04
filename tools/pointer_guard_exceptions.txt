@@ -20,7 +20,7 @@ src/game/particle.h 3
 src/game/planet.c 2
 src/game/planet.h 16
 src/game/planet_family.h 2
-src/game/planet_trade.h 2
+src/game/planet_trade.h 1
 src/game/probe.c 1
 src/game/probe.h 5
 src/game/research.c 2
@@ -44,10 +44,7 @@ src/game/game_data.c 1
 src/game/game_data.h 31
 src/game/planet_family.c 1
 src/game/tech_gate.h 1
-entity-lists src/game/planet.h 3
-entity-lists src/game/planet_family.c 1
-entity-lists src/game/planet_trade.h 1
-entity-lists src/game/trade.h 4
+entity-lists src/game/planet.h 1
 entity-lists src/game/ui.c 1
 entity-lists src/game/ui.h 2
 entity-lists src/game/wormhole.h 1

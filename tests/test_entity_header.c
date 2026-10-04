@@ -104,7 +104,6 @@ static void test_non_carriers_have_null_links(void) {
     assert_links(&tooltip_new(&heap_allocator, NULL)->header, (entity_t){0});
     assert_links(&research_project_new(NULL)->header, (entity_t){0});
     assert_links(&economy_new()->header, (entity_t){0});
-    assert_links(&trade_new(game_zone(), NULL)->header, (entity_t){0});
     assert_links(&view.header, (entity_t){0});
 }
 

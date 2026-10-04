@@ -461,7 +461,7 @@ static uint32_t fold_update_entities(uint32_t h, void *e) {
 
 /* planet_rebuild_trades's list, folded as the other planet tests' fold_ref
  * folds the tagged list it was: never a live entity, so the tag branch. */
-static uint32_t fold_rebuild_trades(uint32_t h, const entity_list_t *ib) {
+static uint32_t fold_rebuild_trades(uint32_t h, const trade_route_list_t *ib) {
     if (ib == NULL) {
         return fnv(h, 0xDEADu);
     }
@@ -472,7 +472,7 @@ static uint32_t fold_rebuild_trades(uint32_t h, const entity_list_t *ib) {
  * planet_is_colonized and economy_score_planet_upkeep (is_structure false)
  * give on a protostar. */
 static uint32_t fold_economy(uint32_t h, void *e) {
-    entity_list_t *ib = planet_rebuild_trades(e);
+    trade_route_list_t *ib = planet_rebuild_trades(e);
     h = fnv(h, (uint32_t)economy_tiers_compute_tier(e));
     h = fold_rebuild_trades(h, ib);
     h = fnv(fnv(h, 0xB0u), planet_is_colonized(e) ? 1u : 0u);

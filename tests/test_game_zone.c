@@ -151,6 +151,13 @@ static size_t planet_list_bytes(const entity_list_t *list) {
     return block_bytes(sizeof *list) + registry_bytes(list);
 }
 
+static size_t route_list_bytes(const trade_route_list_t *list) {
+    if (list == NULL) return 0;
+    size_t bytes = block_bytes(sizeof *list);
+    for (int k = 4; k <= list->values.capacity; k *= 2) bytes += block_bytes((size_t)k * sizeof(trade_route_t));
+    return bytes;
+}
+
 /* Footprint of the tagged planets: struct, map position, position,
  * identifier and the slipways, outgoing and incoming route lists. No needs
  * nor copies of needs, which populated planets lack before an action. */
@@ -162,7 +169,7 @@ static size_t planets_bytes(void) {
         assert(p->needs == NULL && "a planet has needs, which planets_bytes does not count");
         bytes += block_bytes(sizeof *p) + block_bytes(sizeof *p->map_pos) + block_bytes(sizeof *p->pos) +
                   block_bytes(strlen(p->planet_id) + 1) + planet_list_bytes(p->slipways) +
-                  planet_list_bytes(p->outgoing_routes) + planet_list_bytes(p->incoming_routes);
+                  route_list_bytes(p->outgoing_routes) + route_list_bytes(p->incoming_routes);
     }
     return bytes;
 }
@@ -322,13 +329,14 @@ static int case_static_lists_in_load_zone(void) {
     entity_list_add(le, &element);
     assert(load_zone_used() == start + four_pointers_bytes() &&
            "the starting ui_ephemerals_shared list takes its capacity in the load sub-zone");
-    entity_list_t *by = burst_new(NULL)->outgoing_routes;
-    entity_list_add(by, &element);
-    assert(load_zone_used() == start + 2 * four_pointers_bytes() &&
+    trade_route_list_t *by = burst_new(NULL)->outgoing_routes;
+    const trade_route_t route = {0};
+    trade_route_list_add(by, &route);
+    assert(load_zone_used() == start + four_pointers_bytes() + block_bytes(4 * sizeof(trade_route_t)) &&
            "the outgoing_routes list bursts share takes its capacity in the load sub-zone");
     cart_shutdown();
     assert(le->items == NULL && le->count == 0 && le->capacity == 0 && "ui_shutdown forgets the starting list");
-    assert(by->items == NULL && by->count == 0 && by->capacity == 0 && "the shutdown forgets the shared outgoing_routes list");
+    assert(by->values.items == NULL && by->values.count == 0 && by->values.capacity == 0 && "the shutdown forgets the shared outgoing_routes list");
     return 0;
 }
 

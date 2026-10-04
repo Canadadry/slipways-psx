@@ -32,6 +32,7 @@
 #include "game/planet_family_trade.h"
 #include "game/research.h"
 #include "game/structure_icon.h"
+#include "engine/entity_id.h"
 #include "game/trade.h"
 #include "engine/game_zone.h"
 #include "engine/entity_class.h"
@@ -439,7 +440,7 @@ static uint32_t fold_update_entities(uint32_t h, void *e) {
 
 /* planet_rebuild_trades's list, folded as fold_ref folded the tagged list
  * it was: never a live entity, so the tag branch. */
-static uint32_t fold_rebuild_trades(uint32_t h, const entity_list_t *ib) {
+static uint32_t fold_rebuild_trades(uint32_t h, const trade_route_list_t *ib) {
     if (ib == NULL) {
         return fnv(h, 0xDEADu);
     }
@@ -450,7 +451,7 @@ static uint32_t fold_rebuild_trades(uint32_t h, const entity_list_t *ib) {
  * planet_rebuild_trades, planet_is_colonized and economy_score_planet_upkeep
  * (is_structure false) give on a processor. */
 static uint32_t fold_economy(uint32_t h, void *e) {
-    entity_list_t *ib = planet_rebuild_trades(e);
+    trade_route_list_t *ib = planet_rebuild_trades(e);
     h = fnv(h, (uint32_t)economy_tiers_compute_tier(e));
     h = fold_rebuild_trades(h, ib);
     h = fnv(fnv(h, 0xB0u), planet_is_colonized(e) ? 1u : 0u);
@@ -463,17 +464,17 @@ static uint32_t fold_economy(uint32_t h, void *e) {
  * first and end at the second. */
 static void export_to(void *pt, void *oz) {
     trade_keys_t keys = {0};
-    entity_list_t *lp = malloc(sizeof *lp);
-    entity_list_t *by = malloc(sizeof *by);
-    trade_route_t *t;
+    entity_id_list_t *lp = malloc(sizeof *lp);
+    trade_route_list_t *by = malloc(sizeof *by);
+    trade_route_t t;
 
-    entity_list_init(lp, &heap_allocator);
-    entity_list_add(lp, pt);
-    entity_list_add(lp, oz);
+    entity_id_list_init(lp, &heap_allocator);
+    entity_id_list_add(lp, entity_id_of(pt));
+    entity_id_list_add(lp, entity_id_of(oz));
     keys.planets = lp;
-    t = trade_new(game_zone(), &keys);
-    entity_list_init(by, &heap_allocator);
-    entity_list_add(by, &t->header);
+    t = trade_new(&keys);
+    trade_route_list_init(by, &heap_allocator);
+    trade_route_list_add(by, &t);
     assert(planet_is_family(pt));
     ((planet_t *)pt)->outgoing_routes = by;
 }

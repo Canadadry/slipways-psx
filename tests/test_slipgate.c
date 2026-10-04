@@ -35,6 +35,7 @@
 #include "game/scroll.h"
 #include "game/slipway.h"
 #include "engine/entity_class.h"
+#include "engine/entity_id.h"
 #include "game/trade.h"
 #include "engine/game_zone.h"
 #include "engine/vec.h"
@@ -418,7 +419,7 @@ static uint32_t fold_update_entities(uint32_t h, void *e) {
 
 /* planet_rebuild_trades's list, folded as fold_ref folded the tagged list
  * it was: never a live entity, so the tag branch. */
-static uint32_t fold_rebuild_trades(uint32_t h, const entity_list_t *ib) {
+static uint32_t fold_rebuild_trades(uint32_t h, const trade_route_list_t *ib) {
     if (ib == NULL) {
         return fnv(h, 0xDEADu);
     }
@@ -428,7 +429,7 @@ static uint32_t fold_rebuild_trades(uint32_t h, const entity_list_t *ib) {
 /* What economy_tiers_compute_tier, planet_rebuild_trades,
  * planet_is_colonized and economy_score_planet_upkeep give on a slipgate. */
 static uint32_t fold_economy(uint32_t h, void *e) {
-    entity_list_t *ib = planet_rebuild_trades(e);
+    trade_route_list_t *ib = planet_rebuild_trades(e);
     h = fnv(h, (uint32_t)economy_tiers_compute_tier(e));
     h = fold_rebuild_trades(h, ib);
     h = fnv(fnv(h, 0xB0u), planet_is_colonized(e) ? 1u : 0u);
@@ -585,8 +586,8 @@ static void test_slipgate_is_a_struct(void) {
 /* Counts the offers offer_trade makes, taking each as planet_rebuild_trades's accept does. */
 static int g_offers = 0;
 
-static void take_offer(trade_offer_t *self, trade_route_t *a) {
-    entity_list_add(self->accepted_routes, &a->header);
+static void take_offer(trade_offer_t *self, const trade_route_t *a) {
+    trade_route_list_add(self->accepted_routes, a);
     self->amount -= p8_fixed_from_int(1);
     g_offers++;
 }
@@ -601,9 +602,9 @@ static void test_offer_trade_skips_a_slipway_already_in_slipways(void) {
     slipway_keys_t slipway_keys = {0};
     slipway_t *slipway;
     pointer_list_t *needs = malloc(sizeof *needs);
-    entity_list_t *with_w = malloc(sizeof *with_w);
-    entity_list_t *without_w = malloc(sizeof *without_w);
-    entity_list_t ib;
+    entity_id_list_t *with_w = malloc(sizeof *with_w);
+    entity_id_list_t *without_w = malloc(sizeof *without_w);
+    trade_route_list_t ib;
     trade_keys_t keys = {0};
     trade_offer_t lw = {0};
     p8_fixed_t qe;
@@ -623,25 +624,25 @@ static void test_offer_trade_skips_a_slipway_already_in_slipways(void) {
     assert(self->slipways != NULL && self->slipways->count == 0);
     entity_list_add(self->slipways, &slipway->header);
 
-    entity_list_init(with_w, &heap_allocator);
-    entity_list_add(with_w, &slipway->header);
-    entity_list_init(&ib, &heap_allocator);
+    entity_id_list_init(with_w, &heap_allocator);
+    entity_id_list_add(with_w, entity_id_of(&slipway->header));
+    trade_route_list_init(&ib, &heap_allocator);
     keys.has_resource = 1;
     keys.resource = qe;
     keys.slipways = with_w;
-    lw.route = trade_new(game_zone(), &keys);
+    lw.route = trade_new(&keys);
     lw.amount = p8_fixed_from_int(2);
     lw.accept = take_offer;
     lw.accepted_routes = &ib;
     slipgate_offer_trade(self, &lw);
-    assert(g_offers == 0 && ib.count == 0 && lw.amount == p8_fixed_from_int(2));
+    assert(g_offers == 0 && trade_route_list_count(&ib) == 0 && lw.amount == p8_fixed_from_int(2));
 
-    entity_list_init(without_w, &heap_allocator);
+    entity_id_list_init(without_w, &heap_allocator);
     keys.slipways = without_w;
-    lw.route = trade_new(game_zone(), &keys);
+    lw.route = trade_new(&keys);
     slipgate_offer_trade(self, &lw);
-    assert(g_offers == 1 && ib.count == 1 && lw.amount == p8_fixed_from_int(1));
-    entity_list_free(&ib);
+    assert(g_offers == 1 && trade_route_list_count(&ib) == 1 && lw.amount == p8_fixed_from_int(1));
+    trade_route_list_free(&ib);
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked

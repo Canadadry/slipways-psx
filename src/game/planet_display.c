@@ -35,7 +35,7 @@ static const data_row_t *planet_production_tuple(const production_t *kw) {
 
 void planet_refresh(planet_t *self) {
     const pointer_list_t *needs_list;
-    const entity_list_t *by_list;
+    const trade_route_list_t *by_list;
     const p8_fixed_t *qe = NULL;
     p8_fixed_t mu = p8_fixed_from_int(0);
     layout_row_t *layout_row_result;
@@ -55,7 +55,7 @@ void planet_refresh(planet_t *self) {
 
     scratch = frame_zone_mark();
     slot = ui_zone_slot(SLOT_KIND_ROW);
-    layout_row_result = research_display_planet_resource_row(slot, needs_list, qe, mu, p8_fixed_from_int(by_list != NULL ? by_list->count : 0),
+    layout_row_result = research_display_planet_resource_row(slot, needs_list, qe, mu, p8_fixed_from_int(by_list != NULL ? trade_route_list_count(by_list) : 0),
                             p8_fixed_from_int(0));
     if (layout_row_result == NULL) {
         arena_release(slot);
@@ -247,8 +247,8 @@ void planet_inspection_panel(const planet_t *self) {
                 row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string("makes:");
                 row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string(amount_str);
             } else {
-                const entity_list_t *by = self->outgoing_routes;
-                int by_count = (by != NULL) ? by->count : 0;
+                const trade_route_list_t *by = self->outgoing_routes;
+                int by_count = (by != NULL) ? trade_route_list_count(by) : 0;
                 char *count_str = p8_tostr_fixed(frame_zone(), p8_fixed_from_int(by_count));
                 char *amount_str = p8_tostr_fixed(frame_zone(), mu);
                 char *combined = p8_concat2(frame_zone(), p8_concat2(frame_zone(), count_str, "/"), amount_str);
@@ -510,6 +510,8 @@ void planet_apply_project(planet_t *self, research_project_t *research_project_i
         const entity_kind_t *target_kind = NULL;
         planet_keys_t keys;
 
+        assert((self->slipways == NULL || self->slipways->count == 0) &&
+               "a linked planet never dies: the routes kept in outgoing_routes would name it, and the cart never drops them");
         self->is_dead = 1;
 
         target_kind = planet_kind_named(research_project_instance->class_name);

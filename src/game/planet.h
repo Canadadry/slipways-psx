@@ -10,6 +10,7 @@
 #include "game/targeting.h"
 #include "engine/pointer_list.h"
 #include "game/research.h"
+#include "game/trade.h"
 #include "engine/entity_class.h"
 
 typedef struct {
@@ -34,8 +35,8 @@ typedef struct {
     int is_dead;
     p8_fixed_t net_income;
     int has_net_income;
-    entity_list_t *incoming_routes;
-    entity_list_t *outgoing_routes;
+    trade_route_list_t *incoming_routes;
+    trade_route_list_t *outgoing_routes;
     p8_fixed_t development_tier;
     int has_development_tier;
     int is_hovered;

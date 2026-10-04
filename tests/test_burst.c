@@ -328,7 +328,7 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fold_vec(hash, planet->map_pos);
     hash = fnv(hash, (uint32_t)(emitter->trail_colors == NULL ? -1 : emitter->trail_colors->count));
     hash = fnv(hash, (uint32_t)tag_count(planet->header.class->tags));
-    hash = fnv(hash, (uint32_t)entity_list_count(planet->outgoing_routes));
+    hash = fnv(hash, (uint32_t)trade_route_list_count(planet->outgoing_routes));
     hash = fnv(hash, (uint32_t)pointer_list_size(emitter->particles));
     hash = fnv(hash, (uint32_t)entity_list_count(planet->slipways));
     assert(main_camera_typed() != NULL);
@@ -567,7 +567,8 @@ static void test_life(void) {
     void *second;
     void *third;
     void *protostar;
-    entity_list_t *outgoing;
+    trade_route_list_t *outgoing;
+    static const trade_route_t no_route = {0};
     static production_t production;
     uint32_t row_hash;
     int live_entities_count;
@@ -618,15 +619,15 @@ static void test_life(void) {
     row_hash = fold_layout_row(2166136261u, first);
     hash = fnv(hash, row_hash);
     outgoing = as_burst(third)->outgoing_routes;
-    assert(outgoing == as_burst(first)->outgoing_routes && outgoing->count == 0);
-    entity_list_add(outgoing, &trade_new(game_zone(), NULL)->header);
-    entity_list_add(outgoing, &trade_new(game_zone(), NULL)->header);
+    assert(outgoing == as_burst(first)->outgoing_routes && trade_route_list_count(outgoing) == 0);
+    trade_route_list_add(outgoing, &no_route);
+    trade_route_list_add(outgoing, &no_route);
     class_of(first)->refresh(first);
     assert(fold_layout_row(2166136261u, first) != row_hash);
     hash = fold_layout_row(hash, first);
-    assert(entity_list_count(as_burst(second)->outgoing_routes) == 2);
+    assert(trade_route_list_count(as_burst(second)->outgoing_routes) == 2);
     /* planet_rebuild_trades reuses the outgoing routes held: routes kept, no fresh list. */
-    assert(planet_rebuild_trades(as_burst(second)) == outgoing && outgoing->count == 2);
+    assert(planet_rebuild_trades(as_burst(second)) == outgoing && trade_route_list_count(outgoing) == 2);
 
     live_entities_count = live_entities()->count;
     class_of(second)->new_year(second, p8_fixed_from_int(0));

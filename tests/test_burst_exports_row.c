@@ -75,7 +75,7 @@ static void setup_panel_state(p8_vram_t *mem, p8_graphics_t *gfx) {
 
 /* Read on the instance's member, not the class defaults, so the test
  * says nothing about where the value comes from. */
-static entity_list_t *outgoing_routes_of(const planet_t *planet) {
+static trade_route_list_t *outgoing_routes_of(const planet_t *planet) {
     return planet->outgoing_routes;
 }
 
@@ -85,9 +85,9 @@ static void test_burst_export_line_counts_the_outgoing_routes(void) {
     planet_t *planet;
     static production_t production;
     vec_t *planet_pos;
-    entity_list_t *outgoing;
-    trade_route_t *route_a;
-    trade_route_t *route_b;
+    trade_route_list_t *outgoing;
+    const trade_route_t route_a = trade_new(NULL);
+    const trade_route_t route_b = trade_new(NULL);
     const entity_list_t *ephemerals;
     const layout_row_t *exports_layout_row = NULL;
     int index;
@@ -125,10 +125,8 @@ static void test_burst_export_line_counts_the_outgoing_routes(void) {
      * list burst_create installed. */
     outgoing = outgoing_routes_of(planet);
     assert(outgoing != NULL);
-    route_a = trade_new(game_zone(), NULL);
-    route_b = trade_new(game_zone(), NULL);
-    entity_list_add(outgoing, &route_a->header);
-    entity_list_add(outgoing, &route_b->header);
+    trade_route_list_add(outgoing, &route_a);
+    trade_route_list_add(outgoing, &route_b);
 
     exports_layout_row = NULL;
     planet_inspection_panel(planet);

@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "engine/entity_class.h"
+#include "engine/entity_id.h"
 #include "game/particle.h"
 #include "game/grab_arena.h"
 #include "game/planet.h"
@@ -100,7 +101,7 @@ static void slipgate_refresh_method(entity_t *self) {
 }
 
 void slipgate_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
-    trade_route_t *route;
+    const trade_route_t *route;
     const entity_list_t *slipways = NULL;
     entity_list_iter_t iter;
     entity_t *slipway;
@@ -108,14 +109,12 @@ void slipgate_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
     if (self == NULL || trade_offer == NULL) {
         return;
     }
-    route = trade_offer->route;
+    route = &trade_offer->route;
 
     slipways = self->slipways;
 
     iter = entity_list_all(slipways);
     while (entity_list_iter_next(&iter, &slipway)) {
-        const entity_list_t *t_slipways = NULL;
-
         if (slipway == NULL) {
             continue;
         }
@@ -124,19 +123,15 @@ void slipgate_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
             continue;
         }
 
-        if (route != NULL && route->slipways != NULL) {
-            t_slipways = route->slipways;
-        }
-        if (entity_list_has(t_slipways, slipway)) {
+        if (entity_id_list_has(route->slipways, entity_id_of(slipway))) {
             continue;
         }
 
         {
             trade_offer_t gf = *trade_offer;
-            trade_route_t *extended = trade_extend(frame_zone(), route, &self->header, slipway);
             entity_t *other;
 
-            gf.route = extended;
+            gf.route = trade_extend(frame_zone(), route, &self->header, slipway);
             assert(slipway->class == slipway_class() && "a slipgate's slipways list holds slipways only: planet_attach_slipway adds to it");
             other = slipway_other_end((const slipway_t *)slipway, (const entity_t *)self);
             /* The copy is on the stack: no offer_trade method may store its offer. */

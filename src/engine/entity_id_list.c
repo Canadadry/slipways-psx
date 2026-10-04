@@ -57,6 +57,13 @@ int entity_id_list_del(entity_id_list_t *list, entity_id_t id) {
     return 0;
 }
 
+entity_t *entity_id_list_at(const entity_id_list_t *list, int index) {
+    assert(index >= 0 && index < list->count && "entity_id_list_at: index out of range");
+    entity_t *e = entity_get(list->items[index]);
+    assert(e != NULL && "a game id list holds no dead id: remove it where the entity dies");
+    return e;
+}
+
 int entity_id_list_has(const entity_id_list_t *list, entity_id_t id) {
     if (list == NULL) return 0;
     for (int i = 0; i < list->count; i++)
@@ -106,9 +113,7 @@ int entity_id_list_iter_next(entity_id_list_iter_t *iter, entity_t **out) {
         next_index = iter->index + 1;
     }
     if (next_index >= iter->list->count) return 0;
-    entity_t *e = entity_get(iter->list->items[next_index]);
-    assert(e != NULL && "a game id list holds no dead id: remove it where the entity dies");
-    *out = e;
+    *out = entity_id_list_at(iter->list, next_index);
     iter->index = next_index;
     iter->last_count = iter->list->count;
     return 1;

@@ -17,7 +17,7 @@
 #include "engine/game_zone.h"
 
 static int g_family_up = 0;
-static entity_list_t g_burst_outgoing_routes;
+static trade_route_list_t g_burst_outgoing_routes;
 
 void structure_update_settled_method(entity_t *self, p8_fixed_t t) {
     planet_bob(self, t);
@@ -503,12 +503,12 @@ void planet_family_init(void) {
     assert(planet_ready() && "planet_init() must run first");
     planet_family_shutdown();
     g_family_up = 1;
-    entity_list_init(&g_burst_outgoing_routes, game_zone_load_zone());
+    trade_route_list_init(&g_burst_outgoing_routes, game_zone_load_zone());
 }
 
 void planet_family_shutdown(void) {
     g_family_up = 0;
-    entity_list_free(&g_burst_outgoing_routes);
+    trade_route_list_free(&g_burst_outgoing_routes);
 }
 
 int structure_ready(void) {

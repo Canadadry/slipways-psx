@@ -293,6 +293,8 @@ void planet_update_vanishing(planet_t *self, p8_fixed_t t) {
         return;
     }
     self->is_dead = t > p8_fixed_from_int(60);
+    assert((!self->is_dead || self->slipways == NULL || self->slipways->count == 0) &&
+           "a linked planet never dies: the routes kept in outgoing_routes would name it, and the cart never drops them");
 }
 
 void planet_roll_type(planet_t *self) {
