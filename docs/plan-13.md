@@ -210,3 +210,12 @@ The user validated (2026-10-04) the resolution of the 46 Unsorted pointers: call
 - The guard counts `entity_list_t` only: no game `pointer_list_t` holds entities (read from the code, not a `guideline` decision).
 - Deviation: sub-agents had no tool to spawn `guideline`; no `guideline` decision was needed for step 1.
 - Unsorted was not empty (46): the run stopped before step 2; resolved by the user decisions above.
+
+### Step 1.2
+
+- Done: `engine/entity_id.{h,c}` (`entity_id_t` = 16-bit index + 16-bit generation, `ENTITY_ID_NONE` = `{0,0}`; `entity_get`, `entity_id_of` (table scan), `entity_id_take`, `entity_id_release`, `entity_id_table_init/forget`, `entity_id_live/max`). The 512-slot table (6144 bytes, 64-bit) comes from `game_zone()` in `entity_registry_init()`; `GENERATION_ZONE_BYTES` and `ZONE_BUDGET_BYTES` rise by that amount, 1980 bytes left under the budget as before.
+- `entity_construct` takes a slot; `entity_unregister` queues every class (GAP-5 condition kept); `exit_queue_flush` runs `forget` (classes with a `release` only, as before), frees the slot, then `release` if any. `reset_world` still queues only classes with a `release`; an abandoned entity flushed later frees no slot of the new world.
+- Deviation from the PRD: a new table starts one above the highest generation ever handed out, not at epoch+1 — the epoch scheme let an id of the previous world resolve to an entity of the new one (test `ids_of_a_previous_world_never_resolve`). No separate shutdown function: `entity_id_table_forget()` serves shutdown and forget.
+- Table peak: 160 of 512 (`game_end_bankrupt`, `make state` line `cap entity_table`), below the plan's 329: only constructed entities take a slot. Exit-queue peak 102 of 315.
+- Guard unchanged (241 pointers, 13 entity lists). `make e2e` same shas; `make sanitize-net` (30 clean) and `make full-game` passed. `make test` not slower.
+- Guideline decisions (PRD writer applied the `guideline` skill itself): the table lives in the game zone; `entity_t` unchanged in this step.
