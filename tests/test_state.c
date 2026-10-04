@@ -88,13 +88,14 @@ static void memory_lines_have_peak_and_limit(void) {
 
 static void trade_rich_mine(void) {
     replay(REPLAY("tests/e2e/trade_rich_mine.json"));
-    /* TODO: plan 12 step 6 -- the converted replay leaves the loop at frame
-     * 126 (tests/plan12-conversion.txt): restore from its oracle the
-     * planet, colony, slipway and structure counts and the p1-s1 slipway
-     * line. */
+    assert(has("count planets 93"));
+    assert(has("count slipways 7"));
+    assert(has("count colonies 7") && "p1, p27, p48, p71 and the three labs");
+    assert(has("count structures 0"));
     assert(has("planet p1 colonized planet e world 259.10 206.16 screen 83.10 10.16 visible 1"));
     assert(has("planet p2 unknown planet - world 60.38 236.90 screen -115.61 40.90 visible 0"));
     assert(has("slipway p27 p1 normal"));
+    assert(has("slipway p1 s1 normal"));
     assert(has("camera world 176 196"));
     assert(has("techs space folding"));
     assert(has("techs geneseeds"));

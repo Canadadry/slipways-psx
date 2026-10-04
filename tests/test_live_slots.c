@@ -775,10 +775,7 @@ static void trade_rich_mine_route_rebuild_does_not_grow_game(void) {
     const size_t f151 = game_without_registries();
     printf("  trade_rich_mine f139/f151: game - registries = %lu/%lu\n", (unsigned long)f139,
            (unsigned long)f151);
-    /* TODO: plan 12 step 6 -- the converted replay leaves the loop at frame
-     * 126 (tests/plan12-conversion.txt) and no longer refuses a slipway at
-     * f142; restore f151 == f139 + one slipway arena. */
-    assert((f151 == f139 || f151 == f139 + arena_size_for(SLIPWAY_CONSTRUCTION_BYTES)) &&
+    assert(f151 == f139 + arena_size_for(SLIPWAY_CONSTRUCTION_BYTES) &&
            "a rebuild over routes grows the generation, or the f148 refusal does not reuse the f142 arena");
 }
 
