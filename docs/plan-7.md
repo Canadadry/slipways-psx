@@ -46,7 +46,7 @@ Bilan contre 768 Ko (786 432), marge 1/8 (règle 3). `game` compte la générati
 Candidats de 4b, du plus gros au plus petit, gain attendu en octets de budget (baisse de la cible, marge comprise, pris l'un après l'autre) :
 
 1. `frame` — rendre les offres temporaires de `planet_rebuild_trades` à son retour : **258 344** (pic 247 640 → 18 000). Fait : gain réel **258 344**, pic 18 000 tenu par `full_game.json` (frame 4149), cible 20 256.
-2. `game` — arènes de prise à la taille de ce qu'elles tiennent : **103 128** (pic − 91 664). À mesurer : pic de `game` au démarrage de `full_game_new_game`.
+2. `game` — arènes de prise à la taille de ce qu'elles tiennent : **103 128** (pic − 91 664). Fait : gain réel **99 640**, pic 570 520 tenu par `full_game_new_game.json` (frame 7690), cible 641 840 + 24 680 ; écart 3 488 : les arènes exactes des wormholes, dont le nombre d'ancres croît, restent sur la liste des arènes libres au lieu d'être reprises ; reste recalculé 38 982.
 3. `game` — réserve de points de transit d'un slipway de 64 à 24, qui ne rapporte qu'avec 2 : **69 120** (192 × 320 au pic). À mesurer : idem.
 4. `game` — blocs morts des agrandissements de listes, dans les deux générations : **31 424** (pic − 27 936). À mesurer : idem.
 5. `game` — flipper la zone `game` dans `cart_init` avant `reset_world`, comme `cart_start_game` le fait déjà : l'ancienne génération n'est plus tenue à côté de la nouvelle. Pic de `game` 659 088 → 583 248 ; mesuré dans une copie hors dépôt, 26 hashes e2e gardés, ASan propre. Le cas `pause_restart_keeps_game_across_restart` de `test_live_slots`, qui fige l'ancienne séquence, est à mettre à jour.

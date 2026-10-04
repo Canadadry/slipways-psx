@@ -338,7 +338,7 @@ static const entity_class_t slipway_class_def = {
 static slipway_t *slipway_create(const slipway_keys_t *keys) {
     slipway_t *self;
 
-    planet_grab_arena_open();
+    planet_grab_arena_open(SLIPWAY_CONSTRUCTION_BYTES);
     self = (slipway_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
     entity_init_instance(&self->header, &slipway_class_def, slipway_archetype.state, slipway_archetype.state_time);

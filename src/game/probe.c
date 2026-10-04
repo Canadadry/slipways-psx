@@ -410,7 +410,7 @@ static probe_t *probe_create(const probe_keys_t *keys) {
     probe_t *self;
 
     assert(g_probe_up && "probe_init() must run first");
-    planet_grab_arena_open();
+    planet_grab_arena_open(ZONE_BYTES(sizeof *self));
     self = (probe_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
     probe_init_instance(self, &probe_class_def, &probe_archetype);
     self->grab_arena = planet_zone_construction();

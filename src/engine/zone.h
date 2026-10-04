@@ -16,6 +16,8 @@ typedef union {
 
 #define ZONE_CELLS(bytes) \
     (((bytes) + sizeof(zone_cell_t) - 1) / sizeof(zone_cell_t))
+/* Bytes a block of `bytes` takes in a zone. */
+#define ZONE_BYTES(bytes) (ZONE_CELLS(bytes) * sizeof(zone_cell_t))
 
 #if defined(__SANITIZE_ADDRESS__)
 #define ZONE_ASAN 1

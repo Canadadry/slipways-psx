@@ -1118,6 +1118,28 @@ static void in_fresh_child(void (*test)(void)) {
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
 }
 
+/* A drawn slipway's grab arena holds exactly what it was built with; once
+ * placed, its transit dots grow past the arena into the game zone, never a
+ * p8_fatal. */
+static void test_placed_slipway_grows_past_its_arena(void) {
+    slipway_t *jc;
+    const allocator_t *arena;
+    size_t used_before;
+    int i;
+
+    world();
+    jc = as_slipway(the_slipway());
+    arena = jc->transit_dots->zone;
+    assert(arena_used(arena) == arena_size(arena) && "a fresh grab arena is full at close");
+    used_before = game_zone_used();
+    for (i = jc->transit_dots->count; i <= SLIPWAY_TRANSIT_DOTS_RESERVE; i++) {
+        pointer_list_add(jc->transit_dots, &memory);
+    }
+    assert(game_zone_used() == used_before + 2 * SLIPWAY_TRANSIT_DOTS_RESERVE * sizeof(void *) &&
+           "past its reserve, the list grows in the game zone");
+    jc->transit_dots->count = 0;
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -1144,6 +1166,7 @@ int main(void) {
     in_fresh_child(test_too_far_is_a_struct);
     in_fresh_child(test_mouse_point_is_a_struct);
     in_fresh_child(test_slipway_new_stops_off_start);
+    in_fresh_child(test_placed_slipway_grows_past_its_arena);
 
     printf("test_slipway: all tests passed\n");
     return 0;

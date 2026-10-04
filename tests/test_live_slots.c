@@ -701,7 +701,7 @@ static void trade_rich_mine_route_rebuild_does_not_grow_game(void) {
     const size_t f151 = game_without_registries();
     printf("  trade_rich_mine f139/f151: game - registries = %lu/%lu\n", (unsigned long)f139,
            (unsigned long)f151);
-    assert(f151 == f139 + PLANET_GRAB_ARENA_BYTES &&
+    assert(f151 == f139 + arena_size_for(SLIPWAY_CONSTRUCTION_BYTES) &&
            "a rebuild over routes grows the generation, or the f148 refusal does not reuse the f142 arena");
 }
 
@@ -809,20 +809,24 @@ static const planet_t *placed_grab(void) {
     return placed;
 }
 
-/* The rebuild after the placement makes the outgoing_routes and
- * incoming_routes lists in the generation, outside the arena. */
-static void placed_grab_reuses_dead_wormhole_arena(void) {
+/* The f4 wormhole's arena, free since f48, is too small for a structure:
+ * the grabs take one new arena of the structure's size, full, and the
+ * rebuild after the placement makes the outgoing_routes and incoming_routes
+ * lists in the generation, outside the arena. */
+static void placed_grab_does_not_fit_dead_wormhole_arena(void) {
     start_e2e(GRABS);
     play_until(160);
     const size_t before = game_without_registries();
     play_until(174);
     const size_t after = game_without_registries();
     const planet_t *placed = placed_grab();
+    const allocator_t *arena = placed->slipways->zone;
     const size_t lists = planet_list_bytes(placed->outgoing_routes) + planet_list_bytes(placed->incoming_routes);
-    printf("  placed grab: game - registries = %lu -> %lu (outgoing_routes/incoming_routes %lu)\n", (unsigned long)before,
-           (unsigned long)after, (unsigned long)lists);
-    assert(after == before + lists &&
-           "the placed grab reuses the free arena of the f4 wormhole (released at f48), and only adds its route lists");
+    printf("  placed grab: game - registries = %lu -> %lu (arena %lu, outgoing_routes/incoming_routes %lu)\n",
+           (unsigned long)before, (unsigned long)after, (unsigned long)arena_size(arena), (unsigned long)lists);
+    assert(arena_used(arena) == arena_size(arena) && "the placed structure fills its arena");
+    assert(after == before + arena_size(arena) + lists &&
+           "one new arena for the grabs past the f4 wormhole's, too small, and the placed grab's route lists");
 }
 
 /* One replay frame; when draw is 0, no draw method clears targeted_by. */
@@ -917,9 +921,12 @@ static size_t slipways_of_p27_and_p48_bytes(void) {
     return registry_bytes(planet_with_id("p27")->slipways) + registry_bytes(planet_with_id("p48")->slipways);
 }
 
-/* The planet_attach_slipway of the placement grows the slipways lists at
- * both ends, in the generation, outside the arena. */
-static void placed_slipway_reuses_dead_wormhole_arena(void) {
+/* The f4 wormhole's arena, free since f48, is too small for a slipway: the
+ * placed slipway reuses the arena of the last refused one, the next refused
+ * one takes a new arena of a slipway's size. The planet_attach_slipway of
+ * the placement grows the slipways lists at both ends, in the generation,
+ * outside the arena. */
+static void placed_slipway_does_not_fit_dead_wormhole_arena(void) {
     start_e2e(SLIPWAYS);
     play_until(334);
     const size_t before = game_without_registries();
@@ -930,8 +937,8 @@ static void placed_slipway_reuses_dead_wormhole_arena(void) {
     assert(entities_by_tag(TAG_SLIPWAY) != NULL && entities_by_tag(TAG_SLIPWAY)->count == 1 && "f338: one placed slipway");
     printf("  slipway placed then refused: game - registries = %lu -> %lu (slipways %lu)\n", (unsigned long)before,
            (unsigned long)after, (unsigned long)oe);
-    assert(after == before + oe &&
-           "the placed slipway reuses the free arena of the f4 wormhole (released at f48), the next refused one the other");
+    assert(after == before + arena_size_for(SLIPWAY_CONSTRUCTION_BYTES) + oe &&
+           "one new slipway arena past the f4 wormhole's, too small, and the slipways lists of the placement");
 }
 
 /* f345: the slipway held from p27 towards (73,91) sets the targeted_by of
@@ -1501,12 +1508,12 @@ int main(void) {
     in_child(trade_rich_mine_rebuild_gives_back_frame);
     in_child(trade_rich_mine_releases_trails_on_reload);
     in_child(refused_grabs_do_not_grow_game);
-    in_child(placed_grab_reuses_dead_wormhole_arena);
+    in_child(placed_grab_does_not_fit_dead_wormhole_arena);
     in_child(refused_grab_crosses_new_game);
     in_child(offscreen_planet_forgets_refused_grab);
     in_child(held_slipway_does_not_grow_game);
     in_child(refused_slipways_do_not_grow_game);
-    in_child(placed_slipway_reuses_dead_wormhole_arena);
+    in_child(placed_slipway_does_not_fit_dead_wormhole_arena);
     in_child(refused_slipway_crosses_new_game);
     in_child(offscreen_planet_forgets_refused_slipway);
     in_child(held_wormhole_does_not_grow_game);

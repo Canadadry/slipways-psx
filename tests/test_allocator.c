@@ -259,6 +259,68 @@ static int case_arena_flush_kills_old_block(void) {
     return 0;
 }
 
+/* An arena taken from the bump zone, whose blocks lie past the arena once
+ * it spills. */
+static int in_bump(const unsigned char *p) {
+    return p >= (const unsigned char *)bump_cells && p < (const unsigned char *)bump_cells + CAPACITY;
+}
+
+static const allocator_t *full_spilled_arena(void) {
+    const allocator_t *arena = arena_take(&handle, "test-arena", ARENA_SIZE);
+    arena_spill(arena);
+    allocator_alloc(arena, ARENA_SIZE - arena_used(arena));
+    assert(arena_used(arena) == ARENA_SIZE);
+    return arena;
+}
+
+static int case_arena_spill_alloc_takes_from_origin(void) {
+    const allocator_t *arena = full_spilled_arena();
+    size_t used = bump.used;
+    unsigned char *p = allocator_alloc(arena, 10);
+    assert(in_bump(p) && (p < (const unsigned char *)arena || p >= (const unsigned char *)arena + ARENA_SIZE) &&
+           "a spilled arena takes what no longer fits from its zone");
+    assert(bump.used == used + 16 && arena_used(arena) == ARENA_SIZE);
+    memset(p, 1, 10);
+    return 0;
+}
+
+static int case_arena_spill_grow_copies_to_origin(void) {
+    const allocator_t *arena = arena_take(&handle, "test-arena", ARENA_SIZE);
+    arena_spill(arena);
+    unsigned char *items = arena_counting(arena);
+    allocator_alloc(arena, ARENA_SIZE - arena_used(arena));
+    size_t used = bump.used;
+    unsigned char *grown = allocator_grow(arena, items, 64, 128);
+    assert(bump.used == used + 128 && "the growth past the arena's end is taken from its zone");
+    expect_counting(grown);
+    return 0;
+}
+
+static int case_arena_spill_fits_stays_inside(void) {
+    const allocator_t *arena = arena_take(&handle, "test-arena", ARENA_SIZE);
+    arena_spill(arena);
+    size_t used = bump.used;
+    size_t head = arena_used(arena);
+    allocator_alloc(arena, 10);
+    assert(bump.used == used && arena_used(arena) == head + 16 && "a block that fits stays in the arena");
+    return 0;
+}
+
+static int case_arena_flush_stops_spill(void) {
+    const allocator_t *arena = full_spilled_arena();
+    arena_flush(arena);
+    allocator_alloc(arena, ARENA_SIZE);
+    return 0;
+}
+
+static int case_arena_size_for_fits_exactly(void) {
+    const allocator_t *arena = arena_take(&heap_allocator, "test-arena", arena_size_for(40));
+    allocator_alloc(arena, 40);
+    assert(arena_used(arena) == arena_size_for(40) && arena_size(arena) == arena_size_for(40) && "an arena sized for n bytes holds exactly them");
+    arena_release(arena);
+    return 0;
+}
+
 #define RESERVED 40
 
 /* An arena that holds exactly the list and its RESERVED items: a single
@@ -423,6 +485,11 @@ static const struct {
     {"arena_alive_until_released", case_arena_alive_until_released},
     {"arena_dead_after_release", case_arena_dead_after_release},
     {"arena_full", case_arena_full},
+    {"arena_spill_alloc_takes_from_origin", case_arena_spill_alloc_takes_from_origin},
+    {"arena_spill_grow_copies_to_origin", case_arena_spill_grow_copies_to_origin},
+    {"arena_spill_fits_stays_inside", case_arena_spill_fits_stays_inside},
+    {"arena_flush_stops_spill", case_arena_flush_stops_spill},
+    {"arena_size_for_fits_exactly", case_arena_size_for_fits_exactly},
     {"arena_spares_neighbour", case_arena_spares_neighbour},
     {"arena_taken_counts_head_and_blocks", case_arena_taken_counts_head_and_blocks},
     {"arena_flush_back_to_head", case_arena_flush_back_to_head},
@@ -556,6 +623,11 @@ int main(int argc, char **argv) {
     expect_clean("arena_alive_until_released");
     expect_freed_crash("arena_dead_after_release");
     expect_fatal("arena_full", "zone test-arena full, limit ");
+    expect_clean("arena_spill_alloc_takes_from_origin");
+    expect_clean("arena_spill_grow_copies_to_origin");
+    expect_clean("arena_spill_fits_stays_inside");
+    expect_fatal("arena_flush_stops_spill", "zone test-arena full, limit ");
+    expect_clean("arena_size_for_fits_exactly");
     expect_clean("arena_spares_neighbour");
     expect_clean("arena_taken_counts_head_and_blocks");
     expect_clean("arena_flush_back_to_head");

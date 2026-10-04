@@ -18,6 +18,7 @@
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "p8/vram.h"
+#include "game/planet.h"
 #include "game/planet_family.h"
 #include "game/planet_family_trade.h"
 #include "game/research.h"
@@ -151,6 +152,27 @@ static void test_kind_fields_and_build(void) {
     check("kind", h, KIND_HASH);
 }
 
+/* Built in a grab arena opened for planet_kind_construction_bytes, each
+ * kind but burst (built in its slot) fills it exactly. */
+static void test_kind_fills_its_grab_arena(void) {
+    int i;
+
+    for (i = 0; i < KIND_COUNT - 1; i++) {
+        const entity_t *made;
+        const allocator_t *arena;
+
+        planet_grab_arena_open(planet_kind_construction_bytes(kind_of(i)));
+        arena = planet_zone_construction();
+        made = kind_build(i);
+        planet_grab_arena_close();
+        assert(made != NULL && ((const planet_t *)made)->slipways->zone == arena);
+        if (arena_used(arena) != arena_size(arena))
+            fprintf(stderr, "kind %d: arena %lu, used %lu\n", i, (unsigned long)arena_size(arena),
+                    (unsigned long)arena_used(arena));
+        assert(arena_used(arena) == arena_size(arena) && "the kind's construction bytes are exact");
+    }
+}
+
 /* Each kind's `record` holds the generated default of the class that sets
  * each field. */
 static void test_kind_reader_serves_the_generated_defaults(void) {
@@ -248,6 +270,7 @@ int main(void) {
     reset_world();
     test_kind_fields_and_build();
     test_kind_reader_serves_the_generated_defaults();
+    test_kind_fills_its_grab_arena();
 
     printf("test_entity_kind: all tests passed\n");
     return 0;

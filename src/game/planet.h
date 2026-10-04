@@ -100,23 +100,30 @@ planet_t *planet_new(const planet_keys_t *keys);
  * constructor does, after its own defaults. Requires planet_init(). */
 void planet_init_instance(planet_t *self, const entity_class_t *instance_class, const planet_archetype_t *archetype);
 
-/* Bytes of the arena a held icon, a drawn slipway or a wormhole builds its
- * object in. */
-#define PLANET_GRAB_ARENA_BYTES 2048u
+/* The bytes a structure of `kind` takes in its construction zone, its
+ * planet_id aside. */
+size_t planet_kind_construction_bytes(const entity_kind_t *kind);
 
 /* Where the planet constructors, planet_construct and
  * planet_install_project allocate: the grab arena between
  * planet_grab_arena_open and planet_grab_arena_close, else the game zone. */
 const allocator_t *planet_zone_construction(void);
 
-/* Opens a grab arena, taken from the free grabs (emptied) or else from the
- * game zone; a placed structure keeps it until the game zone is given back. */
-void planet_grab_arena_open(void);
+/* Opens a grab arena for a construction that takes exactly `bytes`
+ * (ZONE_BYTES of each block): the smallest free grab that holds them
+ * (emptied), else a new one of that size from the game zone; a placed
+ * structure keeps it until the game zone is given back. Past `bytes`, the
+ * construction is a p8_fatal "zone grab full". */
+void planet_grab_arena_open(size_t bytes);
+/* From then on, what no longer fits in the arena spills into the game
+ * zone (arena_spill). */
 void planet_grab_arena_close(void);
 /* Called last by the release method of an object built in `zone`, with the
  * object's state: a grab arena (NULL or another zone: nothing) whose object
  * is still placing goes on the free grabs, for the next grab to empty and
- * reuse. */
+ * reuse. The free grabs keep the PLANET_GRAB_ARENAS_FREE_MAX largest: one
+ * dropped stays in the game zone until its generation is given back. */
+#define PLANET_GRAB_ARENAS_FREE_MAX 8
 void planet_grab_arena_zone_released(const allocator_t *zone, state_t state);
 /* The same whatever the state: for an object whose memory nothing borrows
  * after its death. */

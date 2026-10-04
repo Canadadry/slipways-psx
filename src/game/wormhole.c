@@ -25,21 +25,29 @@ static int wormhole_anchor(const entity_t *p) {
     return p != NULL && p->fold_anchor != NULL && *p->fold_anchor != 0;
 }
 
+static int wormhole_anchor_count(void) {
+    entity_list_iter_t it = entity_list_all(live_entities());
+    entity_t *p;
+    int n = 0;
+
+    while (entity_list_iter_next(&it, &p)) {
+        n += wormhole_anchor(p);
+    }
+    return n;
+}
+
 void wormhole_construct(wormhole_t *self) {
     const allocator_t *zone = planet_zone_construction();
     entity_list_t *ox;
     entity_list_iter_t it;
     entity_t *p;
-    int n = 0;
+    int n;
 
     if (self == NULL) {
         return;
     }
 
-    it = entity_list_all(live_entities());
-    while (entity_list_iter_next(&it, &p)) {
-        n += wormhole_anchor(p);
-    }
+    n = wormhole_anchor_count();
     ox = (entity_list_t *)allocator_alloc(zone, sizeof *ox);
     entity_list_init_reserve(ox, zone, n);
     it = entity_list_all(live_entities());
@@ -213,7 +221,8 @@ static const entity_class_t wormhole_class_def = {
 static wormhole_t *wormhole_create(void) {
     wormhole_t *self;
 
-    planet_grab_arena_open();
+    planet_grab_arena_open(ZONE_BYTES(sizeof *self) + ZONE_BYTES(sizeof(entity_list_t)) +
+                           ZONE_BYTES((size_t)wormhole_anchor_count() * sizeof(entity_t *)));
     self = (wormhole_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
 
     entity_init_instance(&self->header, &wormhole_class_def, wormhole_archetype.state, wormhole_archetype.state_time);

@@ -22,6 +22,7 @@
 #include "game/map_tables.h"
 #include "p8/vram.h"
 #include "game/mouse.h"
+#include "game/planet.h"
 #include "game/planet_family.h"
 #include "game/structure_icon.h"
 #include "game/score_panel.h"
@@ -229,6 +230,30 @@ static int case_grab_arena_and_max(void) {
     return 0;
 }
 
+static const allocator_t *grab(size_t bytes) {
+    planet_grab_arena_open(bytes);
+    const allocator_t *arena = planet_zone_construction();
+    planet_grab_arena_close();
+    return arena;
+}
+
+/* Wormholes leave arenas of a growing size on the free grabs: when they are
+ * full, the smallest is dropped, never a p8_fatal. */
+static int case_free_grabs_keep_the_largest(void) {
+    load_cart_and_start();
+    const allocator_t *arenas[PLANET_GRAB_ARENAS_FREE_MAX + 1];
+    for (int k = 0; k <= PLANET_GRAB_ARENAS_FREE_MAX; k++) arenas[k] = grab((size_t)(k + 1) * 64);
+    for (int k = 0; k <= PLANET_GRAB_ARENAS_FREE_MAX; k++) planet_grab_arena_arena_released(arenas[k]);
+    const size_t used = game_zone_used();
+    assert(grab(64) == arenas[1] && "the smallest free grab that holds it; the smallest of all was dropped");
+    assert(grab((PLANET_GRAB_ARENAS_FREE_MAX + 1) * 64) == arenas[PLANET_GRAB_ARENAS_FREE_MAX]);
+    assert(game_zone_used() == used && "a reused grab takes nothing");
+    (void)grab((PLANET_GRAB_ARENAS_FREE_MAX + 2) * 64);
+    assert(game_zone_used() == used + arena_size_for((PLANET_GRAB_ARENAS_FREE_MAX + 2) * 64) &&
+           "no free grab holds it: a new arena of its size");
+    return 0;
+}
+
 static unsigned char *counting_block_load_zone(void) {
     unsigned char *block = allocator_alloc(game_zone_load_zone(), 64);
     for (int i = 0; i < 64; i++) block[i] = (unsigned char)i;
@@ -314,6 +339,7 @@ static const struct {
     {"init_keeps_generation", case_init_keeps_generation},
     {"dead_after_cart_load", case_dead_after_cart_load},
     {"grab_arena_and_max", case_grab_arena_and_max},
+    {"free_grabs_keep_the_largest", case_free_grabs_keep_the_largest},
     {"double_start_game_without_flush", case_double_start_game_without_flush},
     {"load_zone_survives_start_game", case_load_zone_survives_start_game},
     {"load_zone_dead_after_cart_load", case_load_zone_dead_after_cart_load},
@@ -407,6 +433,7 @@ int main(int argc, char **argv) {
     expect_clean("init_keeps_generation");
     expect_poison_crash("dead_after_cart_load");
     expect_clean("grab_arena_and_max");
+    expect_clean("free_grabs_keep_the_largest");
     expect_assert("double_start_game_without_flush", "flush the exit queue between two game starts");
     expect_clean("load_zone_survives_start_game");
     expect_poison_crash("load_zone_dead_after_cart_load");
