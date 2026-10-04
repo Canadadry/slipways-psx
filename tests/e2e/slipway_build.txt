@@ -1,17 +1,17 @@
 Deux colonies, un slipway entre elles, une sonde qui le survole, puis une
 année. 45 frames.
 
-- f0 : clic « reasonable » sur l'écran titre (60,74).
-- f2 : sonde `g_` en (55,50) ; f4-19 : `mz` tenu en (80,55), relâché f20 :
-  « p27 » (88,37) et « p48 » (78,73) révélées.
-- f27, f29 : « p27 » colonisée (menu, rangée (100,53)).
-- f31, f33 : « p48 » colonisée (menu, rangée (90,88) : la boîte de clic
+- f0 : clic « reasonable » sur l'écran titre (76,70).
+- f2 : sonde `g_` en (71,46) ; f4-19 : `mz` tenu en (96,51), relâché f20 :
+  « p27 » (104,33) et « p48 » (94,69) révélées.
+- f27, f29 : « p27 » colonisée (menu, rangée (116,49)).
+- f31, f33 : « p48 » colonisée (menu, rangée (106,84) : la boîte de clic
   commence à l'abscisse de la planète).
 - f35-38 : glissé de « p27 » à « p48 », relâché sur « p48 » : slipway
   construit, 84 $ → 79 $.
-- f39-41 : appui tenu sur le milieu du slipway (83,55) : un `mz` dont la
+- f39-41 : appui tenu sur le milieu du slipway (99,51) : un `mz` dont la
   cible est le slipway (`bv`) ; relâché f42, abandonné.
-- f43 : saut d'année `ix[1]` (118,0).
+- f43 : saut d'année `ix[1]` (150,0).
 
 Remplace les TU `slipway_drag` et `playability`.
 

@@ -1,10 +1,10 @@
 « restart » du menu pause : retour au titre, puis une autre difficulté.
 18 frames.
 
-- f0 : clic « reasonable » sur l'écran titre (60,74).
-- f2 : `ix[4]` (2,119) ouvre la pause.
-- f7 : « restart » (10,112) : `_init`, retour à l'écran titre.
-- f12 : clic « challenging » (60,86) ; f13-17 : nouvelle partie, barre du
+- f0 : clic « reasonable » sur l'écran titre (76,70).
+- f2 : `ix[4]` (2,111) ouvre la pause.
+- f7 : « restart » (10,104) : `_init`, retour à l'écran titre.
+- f12 : clic « challenging » (76,82) ; f13-17 : nouvelle partie, barre du
   haut à JAN 3401, 0 technologie.
 
 Remplace aussi la TU `top_menubar` : le scénario « écran titre » du

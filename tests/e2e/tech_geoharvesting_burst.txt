@@ -1,16 +1,16 @@
 « geoharvesting » avec la triche, « harvest » sur une planète révélée :
 éclat `ga` jusqu'à sa fin. 140 frames.
 
-- f0 : clic « reasonable » sur l'écran titre (60,74).
+- f0 : clic « reasonable » sur l'écran titre (76,70).
 - f2-13 : triche O O X X O O X X : 99 de recherche, 200 $.
 - f14-18, f19-23 : deux inventions sur la première rangée (écran `ix[2]`
   en (4,4), rangée (30,24)) : « space folding », « geneseeds » ; l'ère
   passe à 2.
 - f24-28 : troisième rangée (30,44) : « geoharvesting ».
-- f29 : sonde `g_` en (55,50) ; f31-46 : `mz` tenu en (80,55), relâché
-  f47 : « p27 » (88,37) est minérale.
+- f29 : sonde `g_` en (71,46) ; f31-46 : `mz` tenu en (96,51), relâché
+  f47 : « p27 » (104,33) est minérale.
 - f54 : clic sur « p27 » : menu « mine », « harvest ».
-- f56 : « harvest » (100,62) : +20 $, la planète devient un `ga`, la
+- f56 : « harvest » (116,58) : +20 $, la planète devient un `ga`, la
   caméra tremble.
 - f58-139 : l'éclat s'éteint ; plus rien à la place de « p27 » vers f139.
 

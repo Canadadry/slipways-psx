@@ -2,14 +2,14 @@ Un processor puis, avec la triche, une ascension gate posés depuis leurs
 icônes. 76 frames. Seul e2e à instancier le processor (`os`) et
 l'ascension gate (`hj`).
 
-- f0 : clic « reasonable » sur l'écran titre (60,74).
+- f0 : clic « reasonable » sur l'écran titre (76,70).
 - f2-13 : triche O O X X O O X X : 99 de recherche.
 - f14-41 : sept inventions sur la première rangée (30,24) ; l'ère passe
   à 4.
 - f42-53 : seconde triche ; f54-57 : « ascension » (30,54).
-- f58-61 : processor (`os`) glissé de son icône (112,124) en (60,60).
-- f62-65 : ascension gate (`hj`) glissée de son icône (92,124) en
-  (100,90).
+- f58-61 : processor (`os`) glissé de son icône (144,116) en (76,56).
+- f62-65 : ascension gate (`hj`) glissée de son icône (124,116) en
+  (116,86).
 - f66-75 : attente, les deux structures posées.
 
 Relecture humaine dans raylib : à faire.

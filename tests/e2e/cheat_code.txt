@@ -1,9 +1,9 @@
 Code de triche O O X X O O X X : complet, interrompu, complet. 36 frames.
 
-- f0 : clic « reasonable » sur l'écran titre (60,74).
+- f0 : clic « reasonable » sur l'écran titre (76,70).
 - f2-13 : séquence complète (`dpad[4]` = O, `dpad[5]` = X) ; elle se
   déclenche sur le dernier X, f13 : 99 de recherche, 200 $.
-- f14 : saut d'année `ix[1]` (118,0) : la recherche passe à 100.
+- f14 : saut d'année `ix[1]` (150,0) : la recherche passe à 100.
 - f16-22 : O O X O : la séquence repart de zéro, rien ne se déclenche.
 - f24-35 : séquence complète : déclenchée en f35, la recherche revient à 99.
 

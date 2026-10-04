@@ -1,11 +1,11 @@
 Slipways refusés : un tracé qui passe sur une planète, puis un doublon.
 49 frames.
 
-- f0 : clic « reasonable » sur l'écran titre (60,74).
-- f2 : sonde `g_` en (55,50) ; f5-21 : `mz` tenu en (80,55) : « p27 »
-  (88,37) earth-like, « p48 » (78,73) remnant.
+- f0 : clic « reasonable » sur l'écran titre (76,70).
+- f2 : sonde `g_` en (71,46) ; f5-21 : `mz` tenu en (96,51) : « p27 »
+  (104,33) earth-like, « p48 » (94,69) remnant.
 - f28, f30 : « p27 » colonisée ; f32, f34 : « p48 » colonisée.
-- f36-39 : glissé de « p27 » vers le vide en (72,96) : le tracé passe
+- f36-39 : glissé de « p27 » vers le vide en (88,92) : le tracé passe
   sur « p48 », `jc:ce` la désigne (`fo`) ; relâché dans le vide, refusé.
 - f40-43 : slipway de « p27 » à « p48 » : construit, 5 $.
 - f44-47 : le même slipway une seconde fois : `jc:ce` rend le slipway

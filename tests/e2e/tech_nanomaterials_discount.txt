@@ -1,14 +1,14 @@
 Invention de « nanomaterials » sans triche, puis un menu de construction
 à prix réduit (×0,85). 48 frames.
 
-- f0 : clic « reasonable » sur l'écran titre (60,74).
-- f2-13 : 6 années sautées (`ix[1]`, 118,0) : 6 de recherche.
+- f0 : clic « reasonable » sur l'écran titre (76,70).
+- f2-13 : 6 années sautées (`ix[1]`, 150,0) : 6 de recherche.
 - f14 : écran techno (`ix[2]`, 4,4) ; f17 : troisième rangée (30,44),
   « nanomaterials » (coût 6) : inventée, recherche à 0. « drillbots »
   (coût 7) reste hors de portée.
-- f19 : sonde `g_` en (55,50) ; f21-36 : `mz` tenu en (80,55), relâché
+- f19 : sonde `g_` en (71,46) ; f21-36 : `mz` tenu en (96,51), relâché
   f37 : « p27 » et « p48 » révélées.
-- f44 : clic sur « p27 » (88,37) : menu de construction, prix ×0,85
+- f44 : clic sur « p27 » (104,33) : menu de construction, prix ×0,85
   (`hp:od`) ; f46-47 : menu affiché, la souris survole « p27 ».
 
 Remplace la TU `tech_screen` (le scénario « première invention » du

@@ -82,18 +82,19 @@ static void memory_lines_have_peak_and_limit(void) {
     const char *frame = memory_line("zone frame");
     assert(memory_value(frame, 1) > 0);
     assert(memory_value(frame, 2) == (long)FRAME_ZONE_BYTES);
+    assert(memory_value(memory_line("cap message_box"), 1) >= 1 && "the replay opens a message box");
+    assert(memory_value(memory_line("cap bytes_message_box"), 1) > 0);
 }
 
 static void trade_rich_mine(void) {
     replay(REPLAY("tests/e2e/trade_rich_mine.json"));
-    /* TODO: once trade_rich_mine.json is converted to 160x120 (plan 12,
-     * step 5), restore from its oracle the trajectory assertions dropped
-     * here: the planet, colony, slipway and structure counts, the p1
-     * colonized and p2 unknown lines, the p27-p1 and p1-s1 slipway lines;
-     * and, once the next-year click of this replay and of cheat_code.json
-     * follows its right anchor, the peaks of "cap message_box" (>= 1) and
-     * "cap bytes_message_box" (> 0). Until then make test no longer covers
-     * the slipway line format nor the message box caps. */
+    /* TODO: plan 12 step 6 -- the converted replay leaves the loop at frame
+     * 126 (tests/plan12-conversion.txt): restore from its oracle the
+     * planet, colony, slipway and structure counts and the p1-s1 slipway
+     * line. */
+    assert(has("planet p1 colonized planet e world 259.10 206.16 screen 83.10 10.16 visible 1"));
+    assert(has("planet p2 unknown planet - world 60.38 236.90 screen -115.61 40.90 visible 0"));
+    assert(has("slipway p27 p1 normal"));
     assert(has("camera world 176 196"));
     assert(has("techs space folding"));
     assert(has("techs geneseeds"));
