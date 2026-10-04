@@ -3,13 +3,10 @@
 #include <assert.h>
 #include <stdio.h>
 
-/* Multiples of the game's 60 FPS, never raw frame rates. The uncapped
- * level (0) must stay last: replay_control_uncap and the top clamp both
- * use LEVEL_COUNT - 1. */
+/* The uncapped level (0) must stay last: replay_control_uncap and the top clamp use LEVEL_COUNT - 1. */
 #define LEVEL_COUNT 5
 static const int level_multipliers[LEVEL_COUNT] = { 1, 2, 4, 8, 0 };
 
-/* 4x. */
 #define DEFAULT_LEVEL 2
 
 void replay_control_init(replay_control_t *control) {
@@ -58,8 +55,7 @@ void replay_control_format_status(const replay_control_t *control, int frames_pl
     assert(out);
     assert(out_size > 0);
 
-    /* Widened before multiplying: frames_played * 100 overflows a 32-bit
-     * int past 21 474 836 frames. */
+    /* Widened before multiplying: frames_played * 100 overflows a 32-bit int past 21 474 836 frames. */
     int percent = 0;
     if (frames_total > 0) {
         percent = (int)(((long)frames_played * 100) / frames_total);

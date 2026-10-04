@@ -1,27 +1,11 @@
-/* The headless replay driver: steps the game one frame per events.json
- * entry, then dumps the final framebuffer as text.
+/* REPLAY_FILL=<file>, read by tools/*.sh: one "<sort> <count>" line of live
+ * places per interface sort, then per particle sort; "max_live <sort> <count>"
+ * per particle sort; "max_bytes <sort> <bytes>", then "max_elements <sort>
+ * <count>", for the list sorts only, burst without max_elements; then
+ * "game <bytes>", "max_bytes game <bytes>", "load <bytes>",
+ * "max_bytes load <bytes>".
  *
- * argv[1], required, names the script; without it, or if it starts with
- * '-', the usage and exit 2. argv[2], optional, receives the screencast
- * capture; the final dump is the same without it. argv[3], optional, is
- * the text dump, tmp/replay_dump.txt by default.
- *
- * Every replay starts on the title screen: the file itself clicks the
- * difficulty. A file declaring "keyboard_cursor": true plays each frame
- * through button_cursor; the cheat still reads the raw frame.
- *
- * REPLAY_FILL=<file>, optional, gets after the dump, once the exit queue
- * is flushed: one "<sort> <count>" line of live places per interface sort
- * ("button" to "ephemerals"), then per particle sort; "max_live <sort>
- * <count>" per particle sort; "max_bytes <sort> <bytes>", then
- * "max_elements <sort> <count>", for the list sorts only, burst without
- * max_elements; then "game <bytes>", "max_bytes game <bytes>", "load
- * <bytes>", "max_bytes load <bytes>": the game zone, its loading sub-zone
- * and their session maxima. Capture, dump and exit code stay the same; a
- * fill file that cannot be opened gets a message on stderr, still exit 0.
- *
- * STATE=<file>, optional, gets the devtools/state text of the last frame,
- * before the fill file; a p8_fatal during the replay still writes it there,
+ * STATE=<file>: the devtools/state text of the last frame; after a p8_fatal,
  * "stopped p8_fatal frame <n>" first. */
 
 #include "p8/vram.h"
@@ -107,8 +91,7 @@ int main(int argc, char **argv) {
     cart_load();
     cart_init();
 
-    /* Every capture failure exits 1: a truncated capture would yield a
-     * wrong hash, indistinguishable from a regression. */
+    /* Every capture failure exits 1: a truncated capture yields a wrong hash that reads as a regression. */
     screencast_writer_t capture = { NULL };
     if (capture_path && !screencast_writer_open(&capture, capture_path)) {
         fprintf(stderr, "replay: cannot open the capture file '%s'\n",
@@ -136,8 +119,7 @@ int main(int argc, char **argv) {
         cheat_step(&cheat, &input);
         cart_update60();
         cart_draw();
-        /* AFTER cart_draw(): at the top of the loop, the whole capture
-         * would be shifted by one frame. */
+        /* After cart_draw(): at the top of the loop the capture would be shifted by one frame. */
         if (capture_path && !screencast_write_frame(&capture, &memory)) {
             fprintf(stderr, "replay: cannot write frame %d to '%s'\n",
                     i, capture_path);
@@ -149,8 +131,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    /* BEFORE the text dump, so a failed close skips it: a fresh dump would
-     * make a run whose capture is lost look normal. */
+    /* Before the text dump: a fresh dump would make a run whose capture is lost look normal. */
     if (capture_path && !screencast_writer_close(&capture)) {
         fprintf(stderr, "replay: cannot close the capture file '%s'\n",
                 capture_path);

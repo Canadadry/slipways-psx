@@ -13,8 +13,7 @@ static Color palette_color(unsigned char index) {
 }
 
 void raylib_backend_init(raylib_backend_t *backend, int keyboard_cursor) {
-    /* One clock read for both names: two could straddle a second, and a
-     * human pairs the marker file with its recording by name. */
+    /* One clock read for both names: a human pairs the marker file with its recording by name. */
     time_t now = time(NULL);
     char record_path[SESSION_RECORDER_PATH_MAX];
     snprintf(record_path, sizeof(record_path), "tmp/events_recorded_%ld.json", (long)now);
@@ -64,8 +63,6 @@ void raylib_backend_poll_input(raylib_backend_t *backend, p8_input_frame_t *out_
     out_frame->dpad[4] = IsKeyDown(KEY_Z) ? 1 : 0;
     out_frame->dpad[5] = IsKeyDown(KEY_X) ? 1 : 0;
 
-    /* The count read here is the index this frame gets when the caller
-     * records it on its very next call. */
     if (IsKeyReleased(KEY_SPACE)) {
         int marked_frame = session_recorder_frame_count(&backend->recorder);
         FILE *markers = fopen(backend->markers_path, "a");

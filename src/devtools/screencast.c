@@ -3,18 +3,14 @@
 #include <assert.h>
 #include <stddef.h>
 
-/* 9600 is fixed by the published format; the macro derives from the
- * screen size. */
 typedef char screencast_frame_is_9600_bytes_t[(SCREENCAST_FRAME_BYTES == 9600) ? 1 : -1];
-/* Two pixels per byte: an odd width would split a pair across two rows. */
 typedef char screencast_width_is_even_t[(P8_SCREEN_WIDTH % 2 == 0) ? 1 : -1];
 
 int screencast_writer_open(screencast_writer_t *writer, const char *path) {
     assert(writer);
     assert(path);
 
-    /* Never "ab": two concatenated captures still have a size that is a
-     * multiple of 9600, so no validation would catch them. */
+    /* Never "ab": two concatenated captures would still pass the size validation. */
     writer->file = fopen(path, "wb");
     return writer->file != NULL;
 }
@@ -104,8 +100,7 @@ int screencast_read_frame(screencast_reader_t *reader, int index, unsigned char 
         return 0;
     }
 
-    /* Cast before multiplying: in a 32-bit int, index x 9600 overflows
-     * past 223696 frames (62 minutes at 60 Hz). */
+    /* Cast before multiplying: index x 9600 overflows a 32-bit int past 223696 frames. */
     if (fseek(reader->file, (long)index * SCREENCAST_FRAME_BYTES, SEEK_SET) != 0) {
         return 0;
     }

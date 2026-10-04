@@ -14,7 +14,6 @@ void session_recorder_open(session_recorder_t *recorder, const char *path, int k
 
     recorder->frame_count = 0;
     recorder->keyboard_cursor = keyboard_cursor;
-    /* 0 is p8_input_append's "start a new recording". */
     recorder->tail_offset = 0;
 }
 
@@ -23,9 +22,7 @@ int session_recorder_record_frame(session_recorder_t *recorder, const p8_input_f
     assert(frame);
 
     if (!p8_input_append(frame, recorder->path, &recorder->tail_offset, recorder->keyboard_cursor)) {
-        /* Dropped, not fatal. The count must stay unchanged, like the
-         * tail offset p8_input_append leaves alone: the next frame takes
-         * this slot, and the marker file indexes frames by this count. */
+        /* Dropped, not fatal: the count must stay unchanged, since the marker file indexes frames by it. */
         return 0;
     }
 

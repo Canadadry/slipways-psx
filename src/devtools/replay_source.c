@@ -55,8 +55,6 @@ int replay_source_next_frame(replay_source_t *source, p8_input_frame_t *out_fram
     assert(source);
     assert(out_frame);
 
-    /* No status check: a NONE or LOAD_FAILED source has a frame_count of
-     * 0, so it is exhausted like a recording that ran out. */
     if (source->next_frame_index >= source->recording.frame_count) {
         return 0;
     }

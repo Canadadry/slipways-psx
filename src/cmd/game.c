@@ -1,9 +1,3 @@
-/* The interactive PC driver: each frame's input comes from a recording
- * given as the one optional argument, then from the live window.
- *
- * The driver must NOT click a difficulty button itself: a recording starts
- * on the title screen and holds its own click. */
-
 #include "p8/vram.h"
 #include "p8/assets.h"
 #include "p8/gfx.h"
@@ -60,10 +54,10 @@ int main(int argc, char **argv) {
     raylib_backend_init(&backend, keyboard_cursor);
 
     cart_load();
+    /* Never click a difficulty here: a recording starts on the title screen and holds its own click. */
     cart_init();
 
-    /* Every recorded frame is stepped AND drawn: drawing has side effects
-     * on game state, so skipping either misses the recorded state. */
+    /* Step AND draw every recorded frame: drawing has side effects on game state. */
     cheat_t cheat;
     cheat_init(&cheat);
     button_cursor_t cursor;
@@ -74,13 +68,10 @@ int main(int argc, char **argv) {
         if (!from_recording) {
             raylib_backend_poll_input(&backend, &frame);
         } else {
-            /* No poll_input while the file drives: raylib still pumps
-             * events in present(), so the window stays closable. */
             raylib_backend_poll_replay_controls(&replay_control);
         }
         raylib_backend_set_frame_rate_cap(replay_control_target_fps(&replay_control, from_recording));
-        /* The raw frame, never the played one: a declared replay runs
-         * button_cursor again on what it reads. */
+        /* The raw frame, never the played one: a replay runs button_cursor again on what it reads. */
         raylib_backend_record_frame(&backend, &frame);
         p8_input_frame_t played_frame = frame;
         if (keyboard_cursor) {
