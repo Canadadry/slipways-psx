@@ -60,6 +60,7 @@ Fin de 4b : somme des cibles des zones **745 034** (`game` 462 520 + 24 680, `fr
 4c, valeurs posées (pic de la campagne de 31 rejeux, règle 3) :
 
 - `frame` **20 256** (pic 18 000, `full_game.json` frame 4149).
+- génération de `game` **462 520**, posée (pic 411 128, `full_game.json` frame 7643, retour au titre) ; `GAME_ZONE_BYTES` devient la somme génération plus `load`.
 
 ## 3. Règles
 
