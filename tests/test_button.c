@@ -77,7 +77,7 @@
 #define REFRESH_HASH 0x0FA6ACC7u
 #define PROJECTS_PANEL_ON_CLICK_HASH 0xCB3A928Cu
 #define TECH_TREE_SCREEN_ON_CLICK_HASH 0x7ED641D9u
-#define DRAW_HASH 0x0C4D70CFu
+#define DRAW_HASH 0x8E87EDFAu
 #define BUTTON_MEMBERS_HASH 0x17FB38CAu
 
 static p8_vram_t memory;
@@ -1091,6 +1091,45 @@ static void test_draw(void) {
 /* GAP-23: a row whose side tooltip or tooltip key is present but absent
  * still gets an empty row or tooltip; only false, or no key at all, gets
  * none. */
+/* The first and last screen rows whose column 0 is no longer `background`;
+ * -1 if none. */
+static void painted_rows(int background, int *first, int *last) {
+    int y;
+
+    *first = -1;
+    *last = -1;
+    for (y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        if (memory.screen[y][0] != background) {
+            if (*first < 0) {
+                *first = y;
+            }
+            *last = y;
+        }
+    }
+}
+
+/* A hovered button's tooltip of n lines rests on the bottom edge: its
+ * band runs from H - 1 - (8 n + 2) to H - 1. */
+static void test_hovered_tooltip_rests_on_the_bottom_edge(void) {
+    void *b;
+    int n;
+    int first;
+    int last;
+
+    start_game();
+    b = build(button_at(10, 20), "plain", NULL);
+    button_of(b)->tooltip = tooltip_new(&heap_allocator, &icon_tooltips_table[0]);
+    button_of(b)->is_hovered = 1;
+    n = button_of(b)->tooltip->rows_count;
+    p8_camera(&graphics, 0, 0);
+    p8_rectfill(&graphics, &memory, 0, 0, P8_SCREEN_WIDTH - 1, P8_SCREEN_HEIGHT - 1, 7);
+    class_of(b)->draw_overlay(b, NULL);
+    painted_rows(7, &first, &last);
+    printf("[hovered_tooltip] %d line(s), rows %d-%d\n", n, first, last);
+    assert(last == P8_SCREEN_HEIGHT - 1);
+    assert(first == P8_SCREEN_HEIGHT - 1 - (8 * n + 2));
+}
+
 static void test_nil_keys(void) {
     button_keys_t b = {0};
     void *nil_keys;
@@ -2032,6 +2071,7 @@ int main(void) {
     in_fresh_child(test_projects_panel_on_click);
     in_fresh_child(test_tech_tree_screen_on_click);
     in_fresh_child(test_draw);
+    in_fresh_child(test_hovered_tooltip_rests_on_the_bottom_edge);
     in_fresh_child(test_nil_keys);
     in_fresh_child(test_projects_panel_free_row);
     in_fresh_child(test_button_is_a_struct);

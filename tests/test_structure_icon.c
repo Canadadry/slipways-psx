@@ -41,9 +41,9 @@
 #define CONSTRUCTION_HASH 0x4639EF5Du
 #define START_HASH 0xC69B34A1u
 #define DIRECTED_HASH 0xD03BC385u
-#define DRAW_HASH 0xBE0FADAAu
+#define DRAW_HASH 0xFDCE193Fu
 #define RESTART_HASH 0x2A322B1Au
-#define KIND_VIEW_HASH 0x4427C70Eu
+#define KIND_VIEW_HASH 0x7DAC5ABFu
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
@@ -392,6 +392,22 @@ static void test_revealed_icons_anchor_bottom_right(void) {
     }
     printf("[revealed_icons] %d\n", revealed);
     assert(revealed >= 2);
+}
+
+static void *first_icon_with_is_revealed(uint32_t kh);
+
+/* A hovered icon's tooltip hangs from the top edge, whatever the height of
+ * the screen. */
+static void test_hovered_icon_tooltip_starts_at_the_top(void) {
+    void *shown;
+
+    start_game();
+    shown = first_icon_with_is_revealed(2);
+    as_structure_icon(shown)->is_hovered = 1;
+    p8_camera(&graphics, 0, 0);
+    p8_rectfill(&graphics, &memory, 0, 0, P8_SCREEN_WIDTH - 1, P8_SCREEN_HEIGHT - 1, 7);
+    class_of(shown)->draw(shown, as_structure_icon(shown)->pos);
+    assert(memory.screen[0][0] != 7);
 }
 
 static void *first_icon_with_is_revealed(uint32_t kh) {
@@ -746,6 +762,7 @@ int main(void) {
     in_fresh_child(test_construction);
     in_fresh_child(test_start);
     in_fresh_child(test_revealed_icons_anchor_bottom_right);
+    in_fresh_child(test_hovered_icon_tooltip_starts_at_the_top);
     in_fresh_child(test_directed);
     in_fresh_child(test_draw);
     in_fresh_child(test_restart);

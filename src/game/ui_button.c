@@ -228,7 +228,7 @@ void button_draw_overlay(p8_graphics_t *gfx, p8_vram_t *mem, const button_t *sel
     }
 
     if (self->tooltip != NULL && self->is_hovered) {
-        tooltip_draw_at(gfx, mem, self->tooltip, p8_fixed_from_int(127), p8_fixed_from_int(1));
+        tooltip_draw_at(gfx, mem, self->tooltip, p8_fixed_from_int(P8_SCREEN_HEIGHT - 1), p8_fixed_from_int(1));
     }
 }
 

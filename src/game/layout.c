@@ -287,7 +287,7 @@ void tooltip_draw_at(p8_graphics_t *gfx, p8_vram_t *mem, const tooltip_t *self, 
     p8_fillp_reset(gfx);
 
     for (i = 0; i < self->rows_count; i++) {
-        vec_t pos = vec_make(p8_fixed_from_int(64), p8_fixed_add(om, p8_fixed_from_int(2)));
+        vec_t pos = vec_make(p8_fixed_from_int(P8_SCREEN_WIDTH / 2), p8_fixed_add(om, p8_fixed_from_int(2)));
         layout_row_draw_at(gfx, mem, self->rows[i], pos, P8_FIXED_LIT(0x00008000, 0.5));
         om = p8_fixed_add(om, p8_fixed_from_int(8));
     }

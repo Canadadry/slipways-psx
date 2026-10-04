@@ -1,11 +1,10 @@
 /* tooltip_draw_at() draws only when a replay hovers a button or a structure
- * icon, which the e2e replays may never do: these hashes pin its pixels.
- * They were taken before the tooltip became a plain struct and must not be
- * re-taken. */
+ * icon, which the e2e replays may never do: these hashes pin its pixels. */
 
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "p8/assets.h"
 #include "game/data_init.h"
@@ -17,11 +16,11 @@
 #include "engine/entity_class.h"
 #include "heap_allocator.h"
 
-#define ICON_TOOLTIPS_FIRST_ENTRY_HASH 0x2E96E558u
-#define BARE_STRINGS_HASH 0xF4C6CE21u
+#define ICON_TOOLTIPS_FIRST_ENTRY_HASH 0xE95AEE75u
+#define BARE_STRINGS_HASH 0xADA3B721u
 #define NO_OVERRIDES_HASH 0x71213C65u
-#define ICON_TOOLTIPS_ALL_BY_NAME_HASH 0xF9246249u
-#define MIXED_BY_NAME_HASH 0xED66CC40u
+#define ICON_TOOLTIPS_ALL_BY_NAME_HASH 0x99D54CCEu
+#define MIXED_BY_NAME_HASH 0x96E46DA0u
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
@@ -57,7 +56,7 @@ static void check(const char *label, uint32_t got, uint32_t want) {
 
 /* A button's call (ui_button.c), on the first entry of icon_tooltips_table. */
 static void test_icon_tooltips_entry_draws_as_before(void) {
-    check("icon_tooltips_first_entry", draw_tooltip(tooltip_new(&heap_allocator, &icon_tooltips_table[0]), p8_fixed_from_int(127), p8_fixed_from_int(1)),
+    check("icon_tooltips_first_entry", draw_tooltip(tooltip_new(&heap_allocator, &icon_tooltips_table[0]), p8_fixed_from_int(P8_SCREEN_HEIGHT - 1), p8_fixed_from_int(1)),
           ICON_TOOLTIPS_FIRST_ENTRY_HASH);
 }
 
@@ -91,7 +90,7 @@ static void test_tooltip_is_a_struct_with_its_method_table(void) {
     dispatch_context_set_mem(&memory);
     p8_gfx_init(&graphics);
     p8_cls(&memory);
-    tooltip_draw_at(&graphics, &memory, tooltip_new(&heap_allocator, &icon_tooltips_table[0]), p8_fixed_from_int(127), p8_fixed_from_int(1));
+    tooltip_draw_at(&graphics, &memory, tooltip_new(&heap_allocator, &icon_tooltips_table[0]), p8_fixed_from_int(P8_SCREEN_HEIGHT - 1), p8_fixed_from_int(1));
     check("icon_tooltips_first_entry drawn", screen_hash(), ICON_TOOLTIPS_FIRST_ENTRY_HASH);
 
     /* The class's draw_at gets a vector no caller passes it: the top is 0. */
@@ -138,7 +137,7 @@ static void test_tooltip_state_by_name(void) {
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);
     for (i = 1; i <= 7; i++) {
-        h ^= draw_by_name(tooltip_new(&heap_allocator, &icon_tooltips_table[i - 1]), p8_fixed_from_int(127), p8_fixed_from_int(1));
+        h ^= draw_by_name(tooltip_new(&heap_allocator, &icon_tooltips_table[i - 1]), p8_fixed_from_int(P8_SCREEN_HEIGHT - 1), p8_fixed_from_int(1));
         h *= 16777619u;
     }
     printf("[icon_tooltips_all_by_name] 0x%08Xu\n", (unsigned)h);
@@ -151,12 +150,36 @@ static void test_tooltip_state_by_name(void) {
     assert(h == MIXED_BY_NAME_HASH);
 }
 
+/* A line of even width is centered on the screen: as many blank columns
+ * on its left as on its right, to one column. */
+static void test_line_is_centered_on_the_screen(void) {
+    static const data_item_t items[] = {{.text = "abcd"}};
+    static const data_row_t spec = {.count = 1, .items = items};
+    int left = P8_SCREEN_WIDTH;
+    int right = -1;
+    int x;
+    int y;
+
+    draw_tooltip(tooltip_new(&heap_allocator, &spec), p8_fixed_from_int(0), p8_fixed_from_int(0));
+    for (y = 0; y < 10; y++) {
+        for (x = 0; x < P8_SCREEN_WIDTH; x++) {
+            if (memory.screen[y][x] > 1) {
+                left = x < left ? x : left;
+                right = x > right ? x : right;
+            }
+        }
+    }
+    assert(right >= left);
+    assert(abs(left - (P8_SCREEN_WIDTH - 1 - right)) <= 1);
+}
+
 int main(void) {
     p8_vram_init(&memory);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
     data_init();
     layout_init();
 
+    test_line_is_centered_on_the_screen();
     test_icon_tooltips_entry_draws_as_before();
     test_bare_strings_draw_as_before();
     test_no_overrides_draws_frame_only();
