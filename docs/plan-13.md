@@ -64,3 +64,133 @@ A rule that works against one of these goals in a case nobody anticipated may be
 ## 7. Step notes
 
 An exception or a `breaks rule N on purpose` is written here as "pending user validation" and only counts as validated once the user has reviewed it. When a step graduates, it adds one line here about what it found that differs from what the plan assumed: final counts, slot-table peak, GAPs added, rules broken on purpose. The next step's PRD checks its hypotheses against these lines.
+
+### Step 1 sorting
+
+241 pointers in 39 files and 13 `entity_list_t` in 7 files, as `tools/pointer_guard.sh` counts them. Every per-file total below was checked against `tools/pointer_guard_exceptions.txt`: each file's numbers across the five categories add up to its line. Types are the typedef names; `[]` marks an array declarator (counted once).
+
+- **No typedef hides a pointer:** no `typedef` in `src/game/` or `entity_class.h` names a data pointer type (only function-pointer typedefs).
+- **No game `pointer_list_t` holds entities:** every `pointer_list_add` in `src/game/` was read. `economy_t.invented` holds technology names; `planet_t.needs`, `research_project_t.inputs` and `planet_inspection_panel_ctx_t.received_needs` (by value, `planet_display.c`) hold `need_t`; `emitter_t.particles` and `slipway_t.transit_dots` hold `particle_t`.
+- **Header:** `entity_t` holds 13 pointers: `class` plus the 12 that step 4 names. Step 4's count is right. Two of them, `pos` and `map_pos`, are pointers to pointers (`const vec_t *const *`) that point at a pointer field of the derived struct, so step 4 also removes those derived fields (listed under step 4). Step 5's examples `pos` and `pos_before_shake` are such fields: they are sorted under step 4 here.
+- **Research projects are not entities:** they have a header but are never `entity_construct`ed. They live in the load zone, which `reset_world` frees. Links to them are sorted under step 3 as "another object that can die"; step 3 needs an id for them that is not a handle (their index, say).
+
+#### Allowed by section 2 (104)
+
+Each one was checked by reading every assignment: it only ever points to a `static const` archetype, record, table or row, a string literal or a `static const` compound literal.
+
+- `src/engine/entity_class.h` (2): entity_t.class, entity_kind_t.record
+- `src/game/background.h` (1): background_t.archetype
+- `src/game/economy_score.c` (1): sum_by_development_tier_ctx_t.seq
+- `src/game/game_data.c` (1): period_names_table[]
+- `src/game/game_data.h` (31): int_seq_t.items, str_seq_t.items (no instance), vec_seq_t.items, kind_record_t.required_tech, kind_record_t.archetype, planet_types_entry_t.name, planet_types_entry_t.description, galaxy_menu_entry_t.layout_row, pause_menu_entry_t.layout_row, difficulty_options_entry_t.layout_row, difficulty_options_entry_t.name, background_archetype_t.tile_choices, camera_archetype_t.dpad_directions, research_project_archetype_t.row_tail, score_panel_archetype_t.countdown_rows, score_panel_archetype_t.frame_rows, wormhole_archetype_t.color_ramp, slipway_archetype_t.trail_colors, emitter_archetype_t.trail_colors, probe_archetype_t.rows, planet_archetype_t.ring_colors, .mood_rows, .made_resources, .spacer, .name, .accepted_resources, .required_tech, .class_name, .link_sprites, .synthesizable_resources, burst_construct_keys_t.trail_colors
+- `src/game/gen.h` (2): weighted_picker_t.tickets[], weighted_picker_t.recent[] (into `planet_types_table`)
+- `src/game/main_economy.h` (2): economy_t.archetype, economy_t.end_status
+- `src/game/map_tables.h` (18): resource_code_t.key, resource_names_entry_t.key, .name, production_tables_entry_t.key, .upgraded_entry, project_records_entry_t.header, .name, .planet_codes, .production_key, .inputs, .output, .upgrade_tech, .byproduct, .next_type, .class_name, technologies_entry_t.name, .icon_key, .tooltip_rows
+- `src/game/message_box.h` (2): message_box_t.archetype, toast_t.archetype
+- `src/game/mouse.h` (1): mouse_t.archetype
+- `src/game/particle.h` (2): emitter_t.archetype, emitter_t.trail_colors
+- `src/game/planet.h` (4): planet_t.archetype, .description, .planet_type, .synthesizable_resources
+- `src/game/planet_family.c` (1): planet_kinds[].class_name
+- `src/game/planet_family.h` (1): burst_keys_t.construct
+- `src/game/probe.h` (1): probe_t.archetype
+- `src/game/research.c` (2): g_projects_by_name[].name, g_required_tech
+- `src/game/research.h` (10): research_project_t.archetype, .name, .planet_codes, .production_key, .upgrade_tech, .required_tech, .class_name, .next_type, research_project_keys_t.record, research_project_keys_t.required_tech
+- `src/game/score_panel.h` (4): score_panel_t.archetype, score_panel_layout_block_t.fixed_pos, .row_step, score_row_t.entry
+- `src/game/scroll.h` (1): camera_t.archetype
+- `src/game/slipway.h` (2): slipway_t.archetype, slipway_too_far_t.status_text
+- `src/game/structure_icon.h` (4): structure_icon_t.archetype, structure_icon_t.kind, structure_icon_kind_t.required_tech, structure_icon_keys_t.kind
+- `src/game/targeting.h` (1): targeting_t.archetype
+- `src/game/tech_gate.h` (1): available_technologies_kept_t.items[]
+- `src/game/ui.h` (1): ui_t.archetype
+- `src/game/ui_button.h` (6): button_t.archetype, .name, .technology, button_keys_t.name, .technology, modal_backdrop_t.archetype
+- `src/game/wormhole.h` (2): wormhole_too_far_target_t.status_text, wormhole_t.archetype
+
+#### Step 3: links (28 pointers, 13 entity lists)
+
+- `src/engine/entity_class.h` (1): down_t.held
+- `src/game/economy_score.c` (1): g_difficulty (a difficulty button; `economy_score_difficulty_quits` swaps it for a static copy)
+- `src/game/message_box.c` (1): g_shown_message_box
+- `src/game/planet.h` (2): planet_t.project (research project), planet_t.targeted_by
+- `src/game/planet_trade.h` (1): trade_offer_t.route (a trade route, not registered)
+- `src/game/probe.c` (1): g_main_economy
+- `src/game/research_display.h` (1): available_projects_kept_t.items[] (research projects)
+- `src/game/score_panel.c` (1): g_main_score_panel
+- `src/game/score_panel.h` (1): score_panel_t.last_box
+- `src/game/slipway.h` (5): slipway_t.start, .end, .targeted_by, slipway_too_far_t.targeted_by, slipway_keys_t.start
+- `src/game/targeting.h` (2): targeting_t.target, targeting_track_target_t.targeted_by
+- `src/game/ui.c` (2): g_main_mouse, g_main_ui
+- `src/game/ui.h` (4): ui_t.hovered, .previous_hovered, .left_held, .right_held
+- `src/game/ui_button.h` (4): button_t.project_planet, button_t.project (research project), button_keys_t.project_planet, button_keys_t.project (research project)
+- `src/game/wormhole.h` (1): wormhole_t.anchor
+- `entity-lists src/game/planet.h` (3): planet_t.slipways, .incoming_routes, .outgoing_routes
+- `entity-lists src/game/planet_family.c` (1): g_burst_outgoing_routes
+- `entity-lists src/game/planet_trade.h` (1): trade_offer_t.accepted_routes
+- `entity-lists src/game/trade.h` (4): trade_route_t.planets, .slipways, trade_keys_t.planets, .slipways
+- `entity-lists src/game/ui.c` (1): g_shared_ephemerals
+- `entity-lists src/game/ui.h` (2): ui_hovered_by_layer_t.layers[], ui_t.ephemerals
+- `entity-lists src/game/wormhole.h` (1): wormhole_t.anchors
+
+#### Step 4: header (33)
+
+The 12 header pointers, then the derived fields the header points at (`header.pos = &self->pos`) and the `targeting`/`emitter` pointers that step 4 turns into plain fields.
+
+- `src/engine/entity_class.h` (12): entity_t.layer, .pos, .map_pos, .hit_box, .cursor_sprite, .infraspace, .shake, .fold_anchor, .is_dead, .is_hovered, .emitter, .targeting
+- `src/game/layout.h` (1): layout_row_t.pos
+- `src/game/message_box.h` (1): toast_t.pos
+- `src/game/mouse.h` (1): mouse_t.pos
+- `src/game/planet.h` (4): planet_t.map_pos, .pos, .targeting, .emitter
+- `src/game/probe.h` (4): probe_t.emitter, .targeting, .pos, .map_pos
+- `src/game/scroll.h` (2): camera_t.pos_before_shake, camera_t.pos
+- `src/game/slipway.h` (3): slipway_mouse_point_t.pos, .map_pos, slipway_t.targeting
+- `src/game/structure_icon.h` (1): structure_icon_t.pos
+- `src/game/ui_button.h` (1): button_t.pos
+- `src/game/wormhole.h` (3): wormhole_t.pos, .map_pos, .targeting
+
+#### Step 5: owned values, aliases, lists by pointer (30)
+
+15 lists held by pointer (as the plan says) and 15 other pointers, not 25: the other `_own` cases are header-backed and sorted under step 4.
+
+- `src/game/main_economy.h` (3): economy_t.invented (list), .production, .demand
+- `src/game/menu.c` (2): pause_menu_open_box_t.fixed_pos, .row_step (point at file-scope `vec_t`s)
+- `src/game/message_box.h` (1): toast_t.text (points at its own `text_buf`)
+- `src/game/particle.h` (1): emitter_t.particles (list)
+- `src/game/planet.h` (5): planet_t.production, .slipways (list), .needs (list), .incoming_routes (list), .outgoing_routes (list)
+- `src/game/planet_trade.h` (1): trade_offer_t.accepted_routes (list)
+- `src/game/research.h` (2): research_project_t.inputs (list), .layout_row
+- `src/game/score_panel.h` (1): score_panel_layout_block_t.description (a frame-zone string kept in a file-scope variable)
+- `src/game/scroll.h` (1): camera_t.velocity
+- `src/game/slipway.h` (3): slipway_served_planets_t.ids[] (aliases of `planet_t.planet_id`), slipway_t.transit_dots (list), slipway_t.served_planets
+- `src/game/structure_icon.c` (1): g_cursor (game-zone `vec_t`)
+- `src/game/trade.h` (4): trade_route_t.planets, .slipways, trade_keys_t.planets, .slipways (lists)
+- `src/game/ui.h` (3): ui_t.ephemerals (list), .mouse_world, .hovered_by_layer
+- `src/game/ui_button.h` (1): button_t.slide_target
+- `src/game/wormhole.h` (1): wormhole_t.anchors (list)
+
+#### Unsorted (46)
+
+**Call-scoped bundles (22).** Keys, contexts and returned structs that live on the stack for one call. Their pointers are not static: `vec_t`s, rows, zone strings. Section 2 allows parameters, but these are struct fields, and several callees keep the address (`planet_t.pos = keys->pos`, `layout_row_t.pos = keys->pos`, `toast_t.pos = keys->pos`), which is step 6's rule, and step 6 lowers no count.
+- `src/engine/entity_class.h` (3): planet_keys_t.planet_id, .map_pos, .pos
+- `src/game/economy_score.h` (1): final_score_t.happiness (frame-zone string)
+- `src/game/layout.h` (2): layout_row_keys_t.items, .pos
+- `src/game/message_box.c` (1): open_box_ctx_t.frame
+- `src/game/message_box.h` (7): message_box_keys_t.items, toast_keys_t.pos, .text, open_box_frame_t.description, .fixed_pos, .row_step, .pos
+- `src/game/planet_family.h` (1): burst_keys_t.pos_copy
+- `src/game/score_panel_display.c` (1): score_panel_update_ctx_t.final_score
+- `src/game/ui_button.h` (6): button_keys_t.layout_row_copy, .layout_row_keys, .side_tooltip_row, .tooltip_row, .pos, .slide_target
+
+**Rows used both ways (7).** The same type points at static tables and at runtime rows in the frame zone, on the stack or inside their owner (`research_project_t.layout_row_own`, the `message_box_draw_row_t` copy). Stored rows can outlive what they point at: `planet_display.c` notes that a planet row's `items[]` point into rewound frame-zone tuples.
+- `src/game/layout.h` (2): layout_row_cell_t.as.text, .as.row
+- `src/game/map_tables.h` (4): data_item_t.text, .row, .ref, data_row_t.items
+- `src/game/message_box.h` (1): message_box_t.items[]
+
+**Owned variable-size objects and buffers (11).** Allocated in the owner's zone or ui_zone slot and freed with it. They are not `x = &self->x_own` and cannot become a plain value.
+- `src/game/layout.h` (4): layout_row_item_t.text, layout_row_t.items, layout_row_t.placed_items, tooltip_t.rows
+- `src/game/planet.h` (2): planet_t.planet_id (zone string), planet_t.layout_row
+- `src/game/structure_icon.h` (2): structure_icon_t.tooltip, structure_icon_keys_t.tooltip
+- `src/game/ui_button.h` (3): button_t.layout_row, .side_tooltip, .tooltip
+
+**Other (6).**
+- `src/game/gen.h` (1): weighted_picker_t.random_ctx (`void *` context of a function pointer, a game-zone `random_walk_t`)
+- `src/game/planet.c` (2): g_type_picker, g_planet_vanish_roll (game-zone generators that `galaxy_populate` hands to the planet module)
+- `src/game/research.c` (2): g_projects[], g_projects_by_name[].project (a game-side registry that owns the load-zone research projects; section 2 allows only the engine registry)
+- `src/game/wormhole.h` (1): wormhole_t.too_far_target (non-`const` pointer to a file-scope sentinel, always the same address)
