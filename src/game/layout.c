@@ -30,9 +30,6 @@ layout_row_cell_t layout_row_cell_string(const char *s) {
 layout_row_cell_t layout_row_cell_row(const data_row_t *row) {
     layout_row_cell_t cell = {.kind = LAYOUT_ROW_CELL_ROW, .as.row = row};
 
-    /* Not optional: a NULL read as anything but NOTHING reaches the sprite
-     * branch of row_measure_item() and draws sprite 0, a block of raw data
-     * on screen (test_layout_nil_item_draws_nothing). */
     if (row == NULL) {
         return layout_row_cell_nothing();
     }
@@ -58,7 +55,6 @@ layout_row_cell_t layout_row_cell_item(const data_item_t *item) {
     return layout_row_cell_fixed(p8_fixed_from_int(item->number));
 }
 
-/* One of a tuple's four items, or an item of a line. */
 static layout_row_cell_t row_scalar_item(const data_item_t *item) {
     assert(item->row == NULL && "a tuple or a line holds scalar items only; a row inside one has no reader here");
     return layout_row_cell_item(item);
@@ -72,7 +68,6 @@ static const char *row_copy_text(const allocator_t *zone, const char *s) {
     return copy;
 }
 
-/* A STRING cell points at its copy in `zone`; any other cell is kept as is. */
 static layout_row_cell_t row_own_cell(const allocator_t *zone, layout_row_cell_t cell) {
     if (cell.kind == LAYOUT_ROW_CELL_STRING) {
         cell.as.text = row_copy_text(zone, cell.as.text);
@@ -80,9 +75,6 @@ static layout_row_cell_t row_own_cell(const allocator_t *zone, layout_row_cell_t
     return cell;
 }
 
-/* Writes out_item plus the item's width and spacing (out_w, out_spacing).
- * `self` may be NULL; it is only read for the TEXT branch's color. A
- * non-FIXED second, third or fourth tuple item reads as 0. */
 static void row_measure_item(const layout_row_t *self, layout_row_cell_t cell, layout_row_item_t *out_item,
                          p8_fixed_t *out_w, p8_fixed_t *out_spacing) {
     p8_fixed_t width = p8_fixed_from_int(6);
@@ -144,9 +136,6 @@ static void row_measure_item(const layout_row_t *self, layout_row_cell_t cell, l
     *out_spacing = have_spacing ? spacing : p8_fixed_from_int(2);
 }
 
-/* The last item's spacing starts at 0, so a row with no item gets width 0:
- * empty rows are built, for a button with no row and for a tooltip line that
- * is neither a string nor a row. */
 static void layout_row_construct(layout_row_t *self) {
     p8_fixed_t w = p8_fixed_from_int(0);
     p8_fixed_t fs = p8_fixed_from_int(0);
@@ -220,10 +209,8 @@ void layout_row_draw_at_default(const p8_graphics_t *gfx, p8_vram_t *mem, const 
     layout_row_draw_at(gfx, mem, self, p, p8_fixed_from_int(0));
 }
 
-/* The longest tooltip line of the data, technologies_9_tooltip_rows_1. */
 #define TOOLTIP_LINE_CAP 7
 
-/* The line tooltip_construct() builds from one item of its row. */
 static layout_row_t *tooltip_line(const allocator_t *zone, const data_item_t *item) {
     layout_row_keys_t keys = {0};
     layout_row_cell_t s;
@@ -252,12 +239,11 @@ static layout_row_t *tooltip_line(const allocator_t *zone, const data_item_t *it
     return layout_row_new(zone, &keys);
 }
 
-/* `rows` is allocated even for no line: tooltip_draw_at() draws the frame of
- * an empty tooltip, and skips one whose `rows` is NULL. */
 static void tooltip_construct(tooltip_t *self, const data_row_t *row) {
     int n = row != NULL ? row->count : 0;
     int i;
 
+    /* Allocated even for no line: tooltip_draw_at() skips a NULL `rows` but draws an empty tooltip's frame. */
     self->rows = (layout_row_t **)allocator_alloc(self->zone, (size_t)(n > 0 ? n : 1) * sizeof *self->rows);
     for (i = 0; i < n; i++) {
         self->rows[i] = tooltip_line(self->zone, &row->items[i]);
@@ -265,8 +251,6 @@ static void tooltip_construct(tooltip_t *self, const data_row_t *row) {
     self->rows_count = n;
 }
 
-/* The line count is rows_count: tooltip_construct() makes exactly one line
- * per positional item of its row, so the two counts never differ. */
 void tooltip_draw_at(p8_graphics_t *gfx, p8_vram_t *mem, const tooltip_t *self, p8_fixed_t om,
                   p8_fixed_t a) {
     p8_fixed_t h;
@@ -297,7 +281,6 @@ static void layout_row_draw_at_method(entity_t *self, vec_t p, p8_fixed_t a) {
     layout_row_draw_at(dispatch_context_gfx(), dispatch_context_mem(), (const layout_row_t *)self, p, a);
 }
 
-/* Only a planet's layout row is drawn through its class, never a tooltip; the position is ignored, the top read as 0. */
 static void tooltip_draw_at_method(entity_t *self, vec_t p, p8_fixed_t a) {
     (void)p;
     tooltip_draw_at(dispatch_context_gfx(), dispatch_context_mem(), (const tooltip_t *)self, p8_fixed_from_int(0), a);
@@ -307,7 +290,6 @@ static const entity_class_t layout_row_class_def = {
     .draw_at = layout_row_draw_at_method,
 };
 
-/* A row with room for that many cells, members unset, not laid out. */
 static layout_row_t *row_struct_alloc(const allocator_t *zone, int n) {
     layout_row_t *self;
 
@@ -410,7 +392,6 @@ static const entity_class_t tooltip_class_def = {
     .draw_at = tooltip_draw_at_method,
 };
 
-/* The tooltip itself, before its lines. */
 static tooltip_t *tooltip_struct_alloc(const allocator_t *zone) {
     tooltip_t *self;
 

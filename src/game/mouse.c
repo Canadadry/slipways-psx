@@ -13,11 +13,8 @@
 static int g_mouse_up = 0;
 static mouse_button_t g_left_button;
 static mouse_button_t g_right_button;
-/* Not in the archetype: two translation units write it in place. */
 static vec_t g_mouse_pos;
 
-/* update_entities() calls the per-tick state method with the entity's
- * frame counter, which mouse_update does not read. */
 static void mouse_update_method(entity_t *self, p8_fixed_t t) {
     (void)t;
     mouse_update(dispatch_context_input(), (mouse_t *)self);
@@ -32,7 +29,6 @@ static mouse_t *mouse_create(void) {
 
     entity_init_instance(&self->header, &mouse_class_def, mouse_archetype.state, mouse_archetype.state_time);
     self->archetype = &mouse_archetype;
-    /* Read-only: this module writes through its member. */
     self->header.pos = (const vec_t *const *)&self->pos;
     self->pos = &g_mouse_pos;
     entity_construct(&self->header);

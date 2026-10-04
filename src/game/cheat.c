@@ -17,8 +17,6 @@ void cheat_init(cheat_t *cheat) {
     cheat->matched = 0;
 }
 
-/* Before cart_start_game(), the main economy is still the placeholder, and
- * the code is typed on the title screen too: the cheat writes it there. */
 static void apply(void) {
     entity_t *fm = main_economy();
     economy_t *hy;

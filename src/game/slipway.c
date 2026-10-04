@@ -23,9 +23,6 @@ static int g_slipway_up = 0;
 
 static const entity_class_t slipway_too_far_class_def = {0};
 
-/* What slipway_obstruction returns beyond range: never allocated, never
- * freed; the status text is fixed, only `targeted_by` is written, and the
- * next drag overwrites it. */
 static slipway_too_far_t g_slipway_too_far = {{.class = &slipway_too_far_class_def}, "-too far-", NULL};
 
 static const entity_class_t slipway_mouse_point_class_def = {0};
@@ -115,7 +112,7 @@ void slipway_drag(slipway_t *self, vec_t *mp) {
     self->targeting->cost = economy_formulas_route_base_cost(slipway_end_map_pos(self->start), slipway_end_map_pos(self->end));
     self->targeting->has_cost = 1;
 
-    /* The start's infraspace when it has one, else the end's; 0 counts as one. */
+    /* An infraspace of 0 still counts as one. */
     self->infraspace = p8_fixed_from_int(0);
     self->has_infraspace = slipway_infraspace_of(self->start, &self->infraspace) || slipway_infraspace_of(self->end, &self->infraspace);
     self->header.infraspace = self->has_infraspace ? &self->infraspace : NULL;
@@ -135,8 +132,7 @@ void slipway_drop(slipway_t *self, entity_t *end_planet) {
         return;
     }
 
-    /* targeting_confirm charges the player and advances the clock, so it
-     * must stay behind the NULL end short-circuit. */
+    /* targeting_confirm charges the player and advances the clock: keep it behind the NULL test. */
     refused = (end_planet == NULL) || !targeting_confirm((entity_t *)self);
     if (refused) {
         self->is_dead = 1;
@@ -170,8 +166,6 @@ typedef struct {
     vec_t end_point;
 } slipway_obstruction_node_ctx_t;
 
-/* geom_near_segment leaves out the segment's two ends (fraction bounds 0.01
- * and 0.99), so the start and end nodes never match themselves here. */
 static int slipway_obstruction_node_predicate(entity_t *e, void *ctx_ptr) {
     const slipway_obstruction_node_ctx_t *ctx = (const slipway_obstruction_node_ctx_t *)ctx_ptr;
 
@@ -188,8 +182,6 @@ typedef struct {
     p8_fixed_t self_infraspace;
 } slipway_obstruction_slipway_ctx_t;
 
-/* `self` is already under the slipway tag when this runs; a segment never
- * crosses itself (geom_segments_cross), so no self-exclusion is needed. */
 static int slipway_obstruction_slipway_predicate(entity_t *e, void *ctx_ptr) {
     const slipway_obstruction_slipway_ctx_t *ctx = (const slipway_obstruction_slipway_ctx_t *)ctx_ptr;
     const slipway_t *sw;
@@ -281,8 +273,7 @@ entity_t *slipway_other_end(const slipway_t *self, const entity_t *planet_instan
         return NULL;
     }
 
-    /* A NULL end falls through to the start even when `planet_instance` is
-     * the start, so this is not a plain ternary. */
+    /* A NULL end falls through to the start even when `planet_instance` is the start. */
     if (planet_instance == self->start && self->end != NULL) {
         return self->end;
     }

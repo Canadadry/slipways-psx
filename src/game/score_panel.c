@@ -28,13 +28,9 @@ static p8_fixed_t fixed_min(p8_fixed_t a, p8_fixed_t b) {
     return (a < b) ? a : b;
 }
 
-/* The panel class's readouts and year banner, reset by each init to their
- * generated rows and rewritten in place by refresh and new_year. */
 static score_panel_readouts_t g_score_panel_readouts;
 static score_panel_year_banner_t g_score_panel_year_banner;
 
-/* Copies a row into the destination and its item storage (the capacity
- * argument), draw function and color included; nested rows stay generated. */
 static void score_panel_row_copy(data_row_t *dst, data_item_t *items, int cap, const data_row_t *src) {
     int i;
 
@@ -141,7 +137,6 @@ void score_panel_refresh(void) {
         if (resource_code_lookup("k", &resource_index)) {
             resource_map_get(main_economy_production, p8_fixed_from_int(resource_index), &production_val);
         }
-        /* "+" then the science production plus one: the sum comes first. */
         production_text =
             p8_tostr_fixed(frame_zone(), p8_fixed_add(production_val, p8_fixed_from_int(1)));
         readouts[3] = (data_item_t){.text = p8_concat2(frame_zone(), "+", production_text)};
@@ -176,7 +171,6 @@ static void score_panel_refresh_method(entity_t *self) {
     score_panel_refresh();
 }
 
-/* The frame rows then the readouts: 5 then 7 articles. */
 enum { SCORE_PANEL_DRAW_ARTICLES_CAP = 5 + 7 };
 
 void score_panel_draw(p8_graphics_t *gfx, p8_vram_t *mem, score_panel_t *self) {
@@ -204,9 +198,7 @@ void score_panel_draw(p8_graphics_t *gfx, p8_vram_t *mem, score_panel_t *self) {
 
         self->curtain = gz;
         hud_draw_bar(gfx, mem, p8_fixed_from_int(0), h, 0);
-        /* The only bar drawn without a colour: the bottom bar inherits the
-         * pen colour the line above leaves behind. Passing a colour here
-         * would change what is drawn. */
+        /* No colour on purpose: the bottom bar inherits the pen colour the line above leaves. */
         hud_draw_bar_default(gfx, mem, p8_fixed_sub(p8_fixed_from_int(P8_SCREEN_HEIGHT - 1), h),
                              p8_fixed_from_int(P8_SCREEN_HEIGHT - 1));
     }

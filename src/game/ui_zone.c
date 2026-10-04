@@ -5,13 +5,6 @@
 #include "engine/slot_group.h"
 #include "engine/zone_sizes.h"
 
-/* Sizes in bytes on x86-64, arena header included. Each count, and each
- * size but two: its peak in make state plus 1/8. The button and row sizes
- * are the largest the game's rules can build, which the tests
- * test_largest_buttons_fit_their_slots and
- * test_planet_resource_row_largest_row_fits_a_slot build: no margin. An
- * ephemerals slot holds its arena header, its list and the list's
- * reserve. */
 #define BUTTON_SIZE 5880u
 #define BUTTON_COUNT 14u
 #define MODAL_BACKDROP_SIZE 272u

@@ -204,8 +204,7 @@ void economy_recompute(economy_t *self) {
         return;
     }
 
-    /* Terminates because economy_tiers_update_tiers() reports only tier
-     * INCREASES, capped at 4; a "tier changed" test would spin forever. */
+    /* Terminates only because update_tiers reports tier increases, capped at 4; a "changed" test spins forever. */
     do {
         economy_tiers_rebuild_incoming_routes();
     } while (economy_tiers_update_tiers());
@@ -356,8 +355,7 @@ static void crowding_penalty_visit(entity_t *l, void *ctx) {
     if (!last->row.has_resource) {
         return;
     }
-    /* Fallback 1, not 0: the map was seeded with 1 for every resource code,
-     * so an absent key is an unlisted resource, given that same seed. */
+    /* Fallback 1, not 0: the map was seeded with 1 for every resource code. */
     if (!resource_map_get(d, last->row.resource, &current)) {
         current = p8_fixed_from_int(1);
     }

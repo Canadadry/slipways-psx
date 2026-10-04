@@ -20,14 +20,13 @@ void slipway_spawn_transit_dot(slipway_t *self, const entity_t *f, const entity_
     if (self == NULL) {
         return;
     }
-    /* The random draw happens before the served planets test: swapping the
-     * two would consume the RNG differently and desynchronise every replay. */
+    /* The random draw must stay before the served planets test, or the RNG desynchronises. */
     if (p8_fixed_rnd_default() >= P8_FIXED_LIT(0x0000147a, 0.08)) {
         return;
     }
 
     if (self->served_planets != NULL) {
-        /* The mouse point slipway_drag hangs the end on has no planet_id. */
+        /* The mouse point slipway_drag hangs the end on is not a planet. */
         const char *t_id = t != NULL && planet_is_family(t) ? ((const planet_t *)t)->planet_id : NULL;
         if (slipway_served_planets_has(self->served_planets, t_id)) {
             if (self->transit_dots != NULL) {
@@ -151,8 +150,7 @@ void slipway_draw(const p8_graphics_t *graphics, p8_vram_t *memory, slipway_t *s
                     new_l = p8_fixed_sub(t->life, p8_fixed_from_int(1));
                     t->life = new_l;
 
-                    /* No `else`: an expired particle is removed and released,
-                     * yet still drawn once more at its final position. */
+                    /* No `else`: an expired particle is still drawn once more at its final position. */
                     if (new_l <= p8_fixed_from_int(0)) {
                         pointer_list_del(ts, t);
                         allocator_release(particle_zone(PARTICLE_SLOT_TRANSIT_DOT), (unsigned char *)t);

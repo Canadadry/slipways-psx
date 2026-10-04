@@ -13,7 +13,6 @@
 
 static int g_camera_up = 0;
 
-/* NULL reads as the zero vector. */
 static vec_t camera_vec(const vec_t *v) {
     if (v != NULL) {
         return *v;
@@ -21,8 +20,6 @@ static vec_t camera_vec(const vec_t *v) {
     return vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
-/* update_entities() calls the per-tick state method with the entity's
- * frame counter, which camera_update does not read. */
 static void camera_update_method(entity_t *self, p8_fixed_t t) {
     (void)t;
     camera_update(dispatch_context_input(), (camera_t *)self);

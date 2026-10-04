@@ -5,20 +5,13 @@
 #include "engine/slot_group.h"
 #include "engine/zone_sizes.h"
 
-/* Size: arena header included (x86-64), a list holds just its reserved
- * capacity. Each count and capacity: its peak in make state plus 1/8, but
- * the help screen's list, a singleton (one slot, no margin). */
 #define PARTICLES_SIZE (96u + 24u + PARTICLES_CAPACITY * 8u)
 #define PARTICLES_HELP_SCREEN_SIZE (96u + 24u + PARTICLES_HELP_SCREEN_CAPACITY * 8u)
 #define BURST_SIZE 640u
 #define PARTICLES_COUNT 18
 #define PARTICLES_HELP_SCREEN_COUNT 1
 #define BURST_COUNT 4
-/* Accepted risk: ~21 transit dots live per slipway served both ways, and
- * 437 slots hold about twenty such visible slipways. */
 #define TRANSIT_DOTS_COUNT 437
-/* Accepted risk: the particles grow with the game, the help screen's 580
- * alone on the title. */
 #define PARTICLE_CAPACITY 887
 
 typedef char particle_zone_holds_help_screen_t[PARTICLE_CAPACITY >= PARTICLES_HELP_SCREEN_CAPACITY ? 1 : -1];
