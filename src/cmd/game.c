@@ -13,6 +13,7 @@
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "game/cheat.h"
+#include "engine/button_cursor.h"
 #include "engine/dispatch_context.h"
 #include "game/cart.h"
 #include "platform/raylib_backend.h"
@@ -62,8 +63,9 @@ int main(int argc, char **argv) {
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);
 
+    int keyboard_cursor = replay_source_keyboard_cursor(&replay);
     raylib_backend_t backend;
-    raylib_backend_init(&backend);
+    raylib_backend_init(&backend, keyboard_cursor);
 
     cart_load();
     cart_init();
@@ -75,6 +77,8 @@ int main(int argc, char **argv) {
      * state, so skipping either misses the recorded state. */
     cheat_t cheat;
     cheat_init(&cheat);
+    button_cursor_t cursor;
+    button_cursor_init(&cursor);
     while (raylib_backend_should_continue(&backend)) {
         p8_input_frame_t frame;
         int from_recording = replay_source_next_frame(&replay, &frame);
@@ -90,12 +94,19 @@ int main(int argc, char **argv) {
         }
         raylib_backend_set_frame_rate_cap(replay_control_target_fps(&replay_control, from_recording));
         /* Recorded before the game steps, and unconditionally: see
-         * raylib_backend_record_frame. */
+         * raylib_backend_record_frame. Always the raw frame, never the
+         * played one: a declared replay runs button_cursor again on what
+         * it reads. */
         raylib_backend_record_frame(&backend, &frame);
-        p8_input_t input = { &frame, 1, 0 };
-        dispatch_context_set_input(&input);
+        p8_input_frame_t played_frame = frame;
+        if (keyboard_cursor) {
+            button_cursor_step(&cursor, &frame, &played_frame);
+        }
+        p8_input_t played = { .frames = &played_frame, .frame_count = 1, .current_frame = 0 };
+        p8_input_t raw = { .frames = &frame, .frame_count = 1, .current_frame = 0 };
+        dispatch_context_set_input(&played);
 
-        cheat_step(&cheat, &input);
+        cheat_step(&cheat, &raw);
         cart_update60();
         cart_draw();
 
@@ -108,7 +119,7 @@ int main(int argc, char **argv) {
                                                replay_status_text, sizeof replay_status_text);
             replay_status = replay_status_text;
         }
-        raylib_backend_present(&backend, &memory, &frame, replay_status);
+        raylib_backend_present(&backend, &memory, &played_frame, replay_status);
     }
 
     raylib_backend_shutdown(&backend);

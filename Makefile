@@ -8,7 +8,9 @@
 #                       sha256 of its capture to <name>.json.sha256; also fails
 #                       if an e2e lacks its .txt or its .json.sha256, or runs
 #                       past 180 frames (600 if listed in
-#                       tools/e2e_long_exceptions.txt)
+#                       tools/e2e_long_exceptions.txt), or if a keyboard_*
+#                       e2e lacks "keyboard_cursor": true, moves the mouse
+#                       or presses a mouse button
 # make test-all      -> test + e2e, the full suite
 # make unit          -> the binaries of tests/, built and run
 # make replay EVENTS=<events> -> replays that file in the headless engine,
@@ -22,8 +24,10 @@
 #                       every e2e of tests/e2e/, each state in
 #                       tmp/state/<name>.txt, then
 #                       writes to tmp/state.txt the peak of each zone and cap
-#                       over them all, its limit and the replay holding it;
-#                       fails if a replay stops, outside the suite
+#                       over them all, its limit and the replay holding it,
+#                       and prints the bytes left under ZONE_BUDGET_BYTES;
+#                       fails if a replay stops or a peak eats its 1/8
+#                       margin (9 x peak > 8 x limit), outside the suite
 # make e2e-baseline  -> sets or resets the .json.sha256 of tests/e2e/ from the
 #                       current code, never run by make test
 # make e2e-ref       -> for each diverging e2e, replays the commit that set its
@@ -144,6 +148,7 @@ ENGINE_SRCS := \
     src/p8/assets.c \
     src/game/background.c \
     src/engine/bootstrap.c \
+    src/engine/button_cursor.c \
     src/game/cheat.c \
     src/game/cart.c \
     src/engine/collect.c \
@@ -254,7 +259,7 @@ $(TMP_DIR)/test_asset_loading: $(call objs,tests/test_asset_loading.c src/p8/ass
 $(TMP_DIR)/test_gfx: $(call objs,tests/test_gfx.c src/p8/gfx.c src/p8/vram.c src/p8/assets.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_input: $(call objs,tests/test_input.c src/p8/input.c src/devtools/input_json.c) tests/fixtures/demo_events.json tests/fixtures/events_valid_ox.json tests/fixtures/events_malformed_five_dpad.json | $(TMP_DIR)
+$(TMP_DIR)/test_input: $(call objs,tests/test_input.c src/p8/input.c src/devtools/input_json.c) tests/fixtures/demo_events.json tests/fixtures/events_valid_ox.json tests/fixtures/events_malformed_five_dpad.json $(wildcard tests/fixtures/events_keyboard_cursor_*.json) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_dump: $(call objs,tests/test_dump.c src/devtools/dump.c src/p8/gfx.c src/p8/vram.c) | $(TMP_DIR)
@@ -273,7 +278,10 @@ $(TMP_DIR)/test_fixed_ubsan: $(call ubsan_objs,tests/test_fixed.c src/p8/fixed.c
 $(TMP_DIR)/test_raylib_backend_coords: $(call objs,tests/test_raylib_backend_coords.c src/platform/raylib_backend_coords.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_replay_source: $(call objs,tests/test_replay_source.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) tests/fixtures/events_valid.json tests/fixtures/events_malformed_missing_field.json | $(TMP_DIR)
+$(TMP_DIR)/test_button_cursor: $(call objs,tests/test_button_cursor.c src/engine/button_cursor.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_replay_source: $(call objs,tests/test_replay_source.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) tests/fixtures/events_valid.json tests/fixtures/events_malformed_missing_field.json tests/fixtures/events_keyboard_cursor_true.json tests/fixtures/events_keyboard_cursor_false.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_recording_continuity: $(call objs,tests/test_recording_continuity.c src/devtools/session_recorder.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) | $(TMP_DIR)
@@ -552,6 +560,7 @@ UNIT_TESTS := \
     test_draw_layers_camera \
     test_demo \
     test_raylib_backend_coords \
+    test_button_cursor \
     test_replay_source \
     test_recording_continuity \
     test_replay_control \

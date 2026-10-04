@@ -3,15 +3,17 @@
 #include <assert.h>
 #include <stdio.h>
 
-void session_recorder_open(session_recorder_t *recorder, const char *path) {
+void session_recorder_open(session_recorder_t *recorder, const char *path, int keyboard_cursor) {
     assert(recorder);
     assert(path);
+    assert(keyboard_cursor == 0 || keyboard_cursor == 1);
 
     int written = snprintf(recorder->path, sizeof(recorder->path), "%s", path);
     assert(written > 0 && (size_t)written < sizeof(recorder->path) &&
            "a truncated path records to a file the caller did not name, and one that no longer pairs with the marker file");
 
     recorder->frame_count = 0;
+    recorder->keyboard_cursor = keyboard_cursor;
     /* 0 is p8_input_append's "start a new recording": the first frame
      * creates or truncates the file. */
     recorder->tail_offset = 0;
@@ -25,7 +27,7 @@ int session_recorder_record_frame(session_recorder_t *recorder, const p8_input_f
      * session grows. The file must stay byte-identical to what
      * p8_input_save writes for the same frames, or a resumed recording
      * replays to another state. */
-    if (!p8_input_append(frame, recorder->path, &recorder->tail_offset)) {
+    if (!p8_input_append(frame, recorder->path, &recorder->tail_offset, recorder->keyboard_cursor)) {
         /* Dropped, not fatal: a live playtest outranks a frame of its own
          * recording. p8_input_append leaves *tail_offset untouched on
          * failure, so the next frame takes the slot this one never
@@ -49,4 +51,5 @@ void session_recorder_close(session_recorder_t *recorder) {
     recorder->path[0] = '\0';
     recorder->frame_count = 0;
     recorder->tail_offset = 0;
+    recorder->keyboard_cursor = 0;
 }

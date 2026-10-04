@@ -84,6 +84,10 @@ static void memory_lines_have_peak_and_limit(void) {
     assert(memory_value(frame, 2) == (long)FRAME_ZONE_BYTES);
     assert(memory_value(memory_line("cap message_box"), 1) >= 1 && "the replay opens a message box");
     assert(memory_value(memory_line("cap bytes_message_box"), 1) > 0);
+    char budget[64];
+    snprintf(budget, sizeof budget, "budget zones %lu %lu", (unsigned long)ZONE_BUDGET_USED_BYTES,
+             (unsigned long)ZONE_BUDGET_BYTES);
+    assert(has(budget) && "the state carries the zone budget of the build");
 }
 
 static void trade_rich_mine(void) {

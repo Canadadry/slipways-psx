@@ -71,7 +71,7 @@ static void run_resumed_session(const char *source_path, const char *resumed_pat
     assert(replay_source_open(&replay, source_path) == REPLAY_SOURCE_LOADED);
 
     session_recorder_t recorder;
-    session_recorder_open(&recorder, resumed_path);
+    session_recorder_open(&recorder, resumed_path, replay_source_keyboard_cursor(&replay));
 
     int live_index = 0;
     for (int i = 0; i < TOTAL_FRAME_COUNT; i++) {
@@ -98,7 +98,7 @@ static void test_marker_index_counts_the_replayed_frames_too(void) {
     int marker_for_iteration[TOTAL_FRAME_COUNT];
 
     /* Written by `p8_input_save`, not by the recorder under test. */
-    assert(p8_input_save(replayed_frames, REPLAYED_FRAME_COUNT, source_path));
+    assert(p8_input_save(replayed_frames, REPLAYED_FRAME_COUNT, source_path, 0));
 
     run_resumed_session(source_path, resumed_path, marker_for_iteration);
 
@@ -121,7 +121,7 @@ static void test_marker_index_names_the_frame_that_was_on_screen(void) {
     const char *resumed_path = "tmp/test_marker_coherence_resolve_resumed.json";
     int marker_for_iteration[TOTAL_FRAME_COUNT];
 
-    assert(p8_input_save(replayed_frames, REPLAYED_FRAME_COUNT, source_path));
+    assert(p8_input_save(replayed_frames, REPLAYED_FRAME_COUNT, source_path, 0));
     run_resumed_session(source_path, resumed_path, marker_for_iteration);
 
     p8_input_t resumed;
@@ -153,7 +153,7 @@ static void test_markers_are_unchanged_when_no_recording_is_replayed(void) {
     assert(replay_source_open(&replay, NULL) == REPLAY_SOURCE_NONE);
 
     session_recorder_t recorder;
-    session_recorder_open(&recorder, path);
+    session_recorder_open(&recorder, path, replay_source_keyboard_cursor(&replay));
 
     for (int i = 0; i < LIVE_FRAME_COUNT; i++) {
         p8_input_frame_t frame;

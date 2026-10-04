@@ -172,6 +172,48 @@ static void test_frames_served_tracks_the_replay_position(void) {
     replay_source_close(&source);
 }
 
+static void test_new_game_declares_the_keyboard_cursor(void) {
+    replay_source_t source;
+
+    assert(replay_source_open(&source, NULL) == REPLAY_SOURCE_NONE);
+    assert(replay_source_keyboard_cursor(&source) == 1);
+
+    replay_source_close(&source);
+}
+
+static void test_undeclared_recording_does_not_declare(void) {
+    replay_source_t source;
+
+    assert(replay_source_open(&source, "tests/fixtures/events_valid.json") == REPLAY_SOURCE_LOADED);
+    assert(replay_source_keyboard_cursor(&source) == 0);
+    replay_source_close(&source);
+
+    assert(replay_source_open(&source, "tests/fixtures/events_keyboard_cursor_false.json") ==
+           REPLAY_SOURCE_LOADED);
+    assert(replay_source_keyboard_cursor(&source) == 0);
+    replay_source_close(&source);
+}
+
+static void test_declared_recording_declares(void) {
+    replay_source_t source;
+
+    assert(replay_source_open(&source, "tests/fixtures/events_keyboard_cursor_true.json") ==
+           REPLAY_SOURCE_LOADED);
+    assert(replay_source_keyboard_cursor(&source) == 1);
+
+    replay_source_close(&source);
+}
+
+static void test_failed_load_does_not_declare(void) {
+    replay_source_t source;
+
+    assert(replay_source_open(&source, "tests/fixtures/no_such_recording.json") ==
+           REPLAY_SOURCE_LOAD_FAILED);
+    assert(replay_source_keyboard_cursor(&source) == 0);
+
+    replay_source_close(&source);
+}
+
 int main(void) {
     test_no_path_requests_no_recording();
     test_valid_recording_loads_with_its_frame_count();
@@ -182,6 +224,10 @@ int main(void) {
     test_exhausted_recording_reports_exhaustion_forever();
     test_no_recording_is_exhausted_from_the_first_frame();
     test_frames_served_tracks_the_replay_position();
+    test_new_game_declares_the_keyboard_cursor();
+    test_undeclared_recording_does_not_declare();
+    test_declared_recording_declares();
+    test_failed_load_does_not_declare();
 
     printf("test_replay_source: all tests passed\n");
     return 0;

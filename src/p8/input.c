@@ -7,6 +7,7 @@ void p8_input_init(p8_input_t *input) {
     input->frames = NULL;
     input->frame_count = 0;
     input->current_frame = 0;
+    input->keyboard_cursor = 0;
 }
 
 void p8_input_step(p8_input_t *input) {

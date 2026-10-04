@@ -1,0 +1,35 @@
+Keyboard only: probe, space fold, two colonies, a slipway between them.
+162 frames.
+
+Keyboard cursor declared. The mouse stays at the start position (76,70)
+with no button in every frame: the cursor starts there and only the
+directions and O move or click it. Frame 0 is idle because a button
+cannot rise on the layer's first frame.
+
+The title click at f1, not f0, gives a galaxy no mouse replay plays:
+the planets below come from `make state` on this file, not from a mouse
+replay's note.
+
+- f1: tap O at (76,70), "reasonable" on the title screen.
+- f3-26: move to (86,32). f27: tap O, which places the probe.
+- f29-42: move to (68,20). f43-58: O held 16 frames at (68,20),
+  released at f59 (an idle frame): the fold is confirmed, $100 -> $97,
+  month 2. p30 (44,22) and p88 (67,45) turn known at f69, types m and f.
+  p28, off screen above, is revealed empty at f70 and vanishes.
+- f60-76: move to (44,22). f77: tap O on p30, its build menu opens.
+  f79-91: move to (48,38). f92: tap O, first row: p30 colonized, $92,
+  month 5.
+- f94-109: move to (67,45). f110: tap O on p88. f112-124: move to
+  (71,61). f125: tap O, first row: p88 colonized, $84, month 8.
+- f127-139: move to (67,45). f140: O pressed on p88, held while moving
+  to (44,22), released at f159 on p30: slipway built, $84 -> $80.
+- f159-161: wait. `make state`: `slipway p88 p30 normal`, 2 colonies,
+  1 slipway, $80, income 3, month 9.
+
+The probe and the fold point stay more than 20 px from every planet: a
+fold held closer is refused (red hatched disk, no $3, nothing revealed),
+which is why neither sits at the start position.
+
+Mirrors the mouse replay `slipway_build`.
+
+Human review in raylib: pending.

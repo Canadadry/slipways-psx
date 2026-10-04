@@ -86,11 +86,33 @@ static int find_dpad_field(const char *obj, int dpad_out[6]) {
     return 1;
 }
 
+/* Searches only json[0, head_end): a key inside a frame or after the frames
+ * array is not the session's declaration. Returns 0 on a value other than
+ * true or false; an absent key reads as 0. */
+static int find_keyboard_cursor(const char *json, const char *head_end, int *out) {
+    static const char key[] = "\"keyboard_cursor\":";
+    const char *p = strstr(json, key);
+    *out = 0;
+    if (!p || p >= head_end) {
+        return 1;
+    }
+    p += strlen(key);
+    while (*p == ' ' || *p == '\t') {
+        p++;
+    }
+    if (strncmp(p, "true", 4) == 0) {
+        *out = 1;
+        return 1;
+    }
+    return strncmp(p, "false", 5) == 0;
+}
+
 void p8_input_free(p8_input_t *input) {
     free(input->frames);
     input->frames = NULL;
     input->frame_count = 0;
     input->current_frame = 0;
+    input->keyboard_cursor = 0;
 }
 
 int p8_input_load(p8_input_t *input, const char *path) {
@@ -101,6 +123,11 @@ int p8_input_load(p8_input_t *input, const char *path) {
 
     const char *cursor = strstr(json, "\"frames\":");
     if (!cursor) {
+        free(json);
+        return 0;
+    }
+    int keyboard_cursor;
+    if (!find_keyboard_cursor(json, cursor, &keyboard_cursor)) {
         free(json);
         return 0;
     }
@@ -185,6 +212,7 @@ int p8_input_load(p8_input_t *input, const char *path) {
     input->frames = frames;
     input->frame_count = count;
     input->current_frame = 0;
+    input->keyboard_cursor = keyboard_cursor;
     return 1;
 }
 
@@ -194,9 +222,15 @@ int p8_input_load(p8_input_t *input, const char *path) {
  * contract in p8/input.h). Frame lines are joined by FRAME_SEPARATOR, the
  * last one followed by JSON_SUFFIX. */
 #define JSON_PREFIX "{\n  \"frames\": [\n"
+#define JSON_PREFIX_KEYBOARD_CURSOR "{\n  \"keyboard_cursor\": true,\n  \"frames\": [\n"
 #define JSON_SUFFIX "\n  ]\n}\n"
 #define FRAME_SEPARATOR ",\n"
 #define FRAME_LINE_MAX 160
+
+/* Never "false": an absent member is the only spelling of a mouse session. */
+static const char *json_prefix(int keyboard_cursor) {
+    return keyboard_cursor ? JSON_PREFIX_KEYBOARD_CURSOR : JSON_PREFIX;
+}
 
 static int format_frame_line(char *buf, size_t size, const p8_input_frame_t *fr) {
     int rc = snprintf(
@@ -215,7 +249,7 @@ static int format_frame_line(char *buf, size_t size, const p8_input_frame_t *fr)
     return rc > 0 && (size_t)rc < size;
 }
 
-int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *path) {
+int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *path, int keyboard_cursor) {
     if (!frames || frame_count <= 0) {
         return 0;
     }
@@ -237,7 +271,7 @@ int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *p
     }
 
     int ok = 1;
-    if (fputs(JSON_PREFIX, f) < 0) {
+    if (fputs(json_prefix(keyboard_cursor), f) < 0) {
         ok = 0;
     }
     for (int i = 0; ok && i < frame_count; i++) {
@@ -271,7 +305,7 @@ int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *p
     return 1;
 }
 
-int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_offset) {
+int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_offset, int keyboard_cursor) {
     if (!frame || !path || !tail_offset) {
         return 0;
     }
@@ -286,10 +320,10 @@ int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_
      * suffix -- strictly longer, so the file only grows and nothing ever
      * needs truncating. */
     int fresh = (*tail_offset <= 0);
-    const char *head = fresh ? JSON_PREFIX : FRAME_SEPARATOR;
+    const char *head = fresh ? json_prefix(keyboard_cursor) : FRAME_SEPARATOR;
     long start = fresh ? 0 : *tail_offset;
 
-    char tail[sizeof(JSON_PREFIX) + FRAME_LINE_MAX + sizeof(JSON_SUFFIX)];
+    char tail[sizeof(JSON_PREFIX_KEYBOARD_CURSOR) + FRAME_LINE_MAX + sizeof(JSON_SUFFIX)];
     int written = snprintf(tail, sizeof(tail), "%s%s%s", head, line, JSON_SUFFIX);
     if (written <= 0 || (size_t)written >= sizeof(tail)) {
         return 0;

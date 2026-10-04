@@ -1555,7 +1555,7 @@ static void replay_writes_session_peak(void) {
 int main(void) {
     int e2e_count = invariant_on_all_e2e();
     printf("  invariant particle = sum of the registered #particles, transit_dots = sum of the #transit_dots of entities_by_tag(slipway): %d e2e, every frame\n", e2e_count);
-    assert(e2e_count == 26 && "tests/e2e/ holds 26 replays");
+    assert(e2e_count >= 26 && "tests/e2e/ lost some of its 26 mouse replays");
     in_child(pause_restart_returns_to_title);
     in_child(pause_restart_keeps_title_during_click);
     in_child_dying_by_asan(pause_restart_releases_title_next_frame);
