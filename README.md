@@ -19,4 +19,5 @@ Règle de cette liste : chaque todo est une seule phrase claire, lisible sans r�
 - [ ] À la reprise PSX, décider si la manette émule la souris PICO-8 ou saute de planète en planète ; idées dans l'historique git de `docs/after-v1.md`.
 - [ ] À la reprise PSX, remesurer sur MIPS les tailles de place des zones interface et particules : sur x86-64, celles des boutons (`button`) et des boîtes de message (`message_box`) sont sans marge.
 - [ ] Avant tout nouveau point de libération, rendre mécanique la liste des références coupées par `forget` (`src/game/cart.c`) : l'inventaire par grep en a manqué trois (la difficulté retenue, `slipway->end`, `targeted_by`).
+- [ ] Sur PC, avant le portage PSX, ne recalculer que les routes commerciales touchées par un changement, au lieu de tout reconstruire à chaque recalcul de l'économie.
 - [ ] Décider de GAP-26 : une planète hors écran perd le halo de l'objet tenu rendu, là où la cartouche relirait sa mémoire.
