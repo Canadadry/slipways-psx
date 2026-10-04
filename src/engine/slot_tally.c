@@ -11,9 +11,8 @@ static int is_arena(const slot_tally_t *t, int kind) {
     return t->kinds[kind].slot_name != NULL;
 }
 
-static void read_bytes(slot_tally_t *t, int kind, const unsigned char *arena) {
-    size_t used = arena_used((const allocator_t *)arena);
-    if (used > t->max_bytes[kind]) t->max_bytes[kind] = used;
+static size_t arena_bytes(const unsigned char *arena) {
+    return arena_used((const allocator_t *)arena);
 }
 
 void slot_tally_init(slot_tally_t *t, const slot_kind_zone_t *kinds, const slot_zone_t *zones, int n) {
@@ -35,7 +34,10 @@ void slot_tally_take(slot_tally_t *t, int kind) {
 void slot_tally_give_back(slot_tally_t *t, int kind, const unsigned char *slot) {
     check_kind(t, kind);
     assert(t->live[kind] > 0 && "slot tally: give back of a slot never taken");
-    if (is_arena(t, kind)) read_bytes(t, kind, slot);
+    if (is_arena(t, kind)) {
+        size_t used = arena_bytes(slot);
+        if (used > t->released_max_bytes[kind]) t->released_max_bytes[kind] = used;
+    }
     t->live[kind]--;
     t->zone_bytes -= SLOT_ZONE_BYTES(t->kinds[kind].size, 1);
 }
@@ -50,14 +52,18 @@ int slot_tally_max_live(const slot_tally_t *t, int kind) {
     return t->max_live[kind];
 }
 
-size_t slot_tally_max_bytes(slot_tally_t *t, int kind) {
+size_t slot_tally_max_bytes(const slot_tally_t *t, int kind) {
     check_kind(t, kind);
+    size_t max = t->released_max_bytes[kind];
     if (is_arena(t, kind)) {
         const slot_zone_t *zone = &t->zones[kind];
-        for (size_t i = 0; i < zone->count; i++)
-            if (zone->taken[i]) read_bytes(t, kind, (const unsigned char *)(zone->storage + i * ZONE_CELLS(zone->slot_size)));
+        for (size_t i = 0; i < zone->count; i++) {
+            if (!zone->taken[i]) continue;
+            size_t used = arena_bytes((const unsigned char *)(zone->storage + i * ZONE_CELLS(zone->slot_size)));
+            if (used > max) max = used;
+        }
     }
-    return t->max_bytes[kind];
+    return max;
 }
 
 size_t slot_tally_zone_bytes(const slot_tally_t *t) {

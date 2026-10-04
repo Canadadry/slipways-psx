@@ -17,7 +17,7 @@ typedef struct {
     int n;
     int live[SLOT_TALLY_KINDS_MAX];
     int max_live[SLOT_TALLY_KINDS_MAX];
-    size_t max_bytes[SLOT_TALLY_KINDS_MAX];
+    size_t released_max_bytes[SLOT_TALLY_KINDS_MAX];
     size_t zone_bytes;
     size_t zone_max_bytes;
 } slot_tally_t;
@@ -31,8 +31,10 @@ void slot_tally_give_back(slot_tally_t *t, int kind, const unsigned char *slot);
 int slot_tally_live(const slot_tally_t *t, int kind);
 int slot_tally_max_live(const slot_tally_t *t, int kind);
 /* The largest arena of the kind, header included, the arenas still live
- * measured when read; 0 for a kind that is not an arena. */
-size_t slot_tally_max_bytes(slot_tally_t *t, int kind);
+ * measured when read; 0 for a kind that is not an arena. A live arena is
+ * recorded only at its give back: arena_flush on it before then would
+ * lose its earlier peak. */
+size_t slot_tally_max_bytes(const slot_tally_t *t, int kind);
 /* The reserved bytes of the live slots of every kind, as SLOT_ZONE_BYTES
  * counts them. */
 size_t slot_tally_zone_bytes(const slot_tally_t *t);
