@@ -1,59 +1,39 @@
-# When to Mock
+# When to Use a Test Double
 
-Mock at **system boundaries** only:
+Replace only **system boundaries**:
 
-- External APIs (payment, email, etc.)
-- Databases (sometimes - prefer test DB)
-- Time/randomness
-- File system (sometimes)
+- Memory: the `allocator_t` a module receives (`tests/heap_allocator.h` backs it with `malloc`)
+- Input: a scripted events file loaded into `p8_input_t`, never a real mouse
+- Output: `p8_graphics_t` and `p8_vram_t`, read back as a framebuffer — never a window
+- The raylib backend: never linked into a unit test
 
-Don't mock:
+Don't replace:
 
-- Your own classes/modules
+- Your own modules
 - Internal collaborators
-- Anything you control
+- Anything in `src/game/` or `src/engine/` a test can call for real
+- Randomness: `p8_fixed_rnd` already starts from a fixed seed, so a run is reproducible as is
 
-## Designing for Mockability
+## Designing for Test Doubles
 
-At system boundaries, design interfaces that are easy to mock:
+**1. Pass the dependency in**
 
-**1. Use dependency injection**
+The module receives its allocator, its graphics or its input as a parameter instead of reaching for a global:
 
-Pass external dependencies in rather than creating them internally:
+```c
+/* Easy to test: the caller chooses the allocator (real signature) */
+void entity_list_init(entity_list_t *entity_list, const allocator_t *zone);
 
-```typescript
-// Easy to mock
-function processPayment(order, paymentClient) {
-  return paymentClient.charge(order.total);
-}
-
-// Hard to mock
-function processPayment(order) {
-  const client = new StripeClient(process.env.STRIPE_KEY);
-  return client.charge(order.total);
-}
+/* Hard to test: hidden dependency on the game's zone */
+void entity_list_init(entity_list_t *entity_list);
 ```
 
-**2. Prefer SDK-style interfaces over generic fetchers**
+The test then passes `&heap_allocator`; the game passes a zone allocator.
 
-Create specific functions for each external operation instead of one generic function with conditional logic:
+**2. One narrow function per boundary operation**
 
-```typescript
-// GOOD: Each function is independently mockable
-const api = {
-  getUser: (id) => fetch(`/users/${id}`),
-  getOrders: (userId) => fetch(`/users/${userId}/orders`),
-  createOrder: (data) => fetch('/orders', { method: 'POST', body: data }),
-};
+An `allocator_t` has `alloc`, `grow` and `release` — not one `do(op, ...)` entry point with a switch. Each double then implements one plain behavior:
 
-// BAD: Mocking requires conditional logic inside the mock
-const api = {
-  fetch: (endpoint, options) => fetch(endpoint, options),
-};
-```
-
-The SDK approach means:
-- Each mock returns one specific shape
-- No conditional logic in test setup
-- Easier to see which endpoints a test exercises
-- Type safety per endpoint
+- No conditional logic in the test setup
+- Easy to see which operations a test exercises
+- A refusing double (`allocator_grow_refused`) tests the full-zone path in one line
