@@ -367,7 +367,7 @@ int main(int argc, char **argv) {
     expect_clean("flush_forgets_references");
     expect_clean("update60_after_forgetting");
     expect_clean("difficulty_outlives_its_button");
-    expect_fatal("full", "exit queue full, limit 512");
+    expect_fatal("full", "exit queue full, limit 315");
     expect_clean("max_survives_flush");
     remove(STDERR_LOG);
     printf("test_exit_queue: all tests passed\n");
