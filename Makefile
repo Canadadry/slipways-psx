@@ -24,20 +24,6 @@
 #                       writes to tmp/state.txt the peak of each zone and cap
 #                       over them all, its limit and the replay holding it;
 #                       fails if a replay stops, outside the suite
-# make cursor-labels-test -> builds and runs test_cursor_label, the test of
-#                       src/devtools/cursor_label.c and of the LABELS hook of
-#                       tmp/replay; temporary (plan 12), outside the suite
-# make cursor-labels EVENTS=<events> -> replays that file with LABELS set, one
-#                       cursor label per frame in tmp/cursor_labels.txt;
-#                       temporary (plan 12), outside the suite
-# make cursor-labels -> the same for the worst-case/ games (FULL_GAME_EVENTS)
-#                       and every e2e of tests/e2e/, one <name>.txt each in
-#                       tests/plan12-cursor-labels/, and camera-clamp.txt
-#                       there, the frames of each whose camera top-left is
-#                       at x <= -48 or y >= 316; fails if a replay stops,
-#                       if a file has not one line per frame, or if a label is
-#                       not in tools/cursor_anchors.txt; temporary (plan 12),
-#                       outside the suite
 # make e2e-baseline  -> sets or resets the .json.sha256 of tests/e2e/ from the
 #                       current code, never run by make test
 # make e2e-ref       -> for each diverging e2e, replays the commit that set its
@@ -495,18 +481,10 @@ $(TMP_DIR)/test_draw_layers_camera: $(call objs,tests/test_draw_layers_camera.c 
 $(TMP_DIR)/test_demo: $(call objs,tests/test_demo.c src/p8/vram.c src/p8/assets.c src/p8/gfx.c src/p8/input.c src/devtools/input_json.c src/devtools/dump.c) tests/fixtures/demo_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-REPLAY_SRCS := src/cmd/replay.c src/devtools/cursor_label.c src/devtools/screencast.c src/devtools/state.c $(ENGINE_SRCS)
+REPLAY_SRCS := src/cmd/replay.c src/devtools/screencast.c src/devtools/state.c $(ENGINE_SRCS)
 
 $(TMP_DIR)/replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
-
-$(TMP_DIR)/test_cursor_label: $(call objs,tests/test_cursor_label.c src/devtools/cursor_label.c $(ENGINE_SRCS)) $(TMP_DIR)/replay tests/fixtures/title_click_reasonable.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-cursor-labels-test: $(TMP_DIR)/test_cursor_label
-	./$<
-
-.PHONY: cursor-labels-test
 
 $(TMP_DIR)/test_state: $(call objs,tests/test_state.c src/devtools/state.c $(ENGINE_SRCS)) $(TMP_DIR)/replay | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
@@ -837,40 +815,6 @@ state: $(STATE_RUNS) tools/state_peaks.sh
 	@sh tools/state_peaks.sh $(TMP_DIR)/state.txt $(foreach e,$(STATE_EVENTS),$(e) $(call state_file,$(e)))
 	@echo "state: $(words $(STATE_EVENTS)) replays, peaks in $(TMP_DIR)/state.txt"
 endif
-
-CURSOR_LABELS_DIR := tests/plan12-cursor-labels
-CURSOR_ANCHORS := tools/cursor_anchors.txt
-
-ifneq ($(strip $(EVENTS)),)
-cursor-labels: $(TMP_DIR)/replay
-	LABELS=$(TMP_DIR)/cursor_labels.txt ./$(TMP_DIR)/replay $(EVENTS) /dev/null $(TMP_DIR)/cursor_labels_dump.txt
-else
-# Written to tmp/ and checked there, then copied: a stopped or short replay
-# never reaches the versioned directory.
-cursor-labels: $(TMP_DIR)/replay $(CURSOR_ANCHORS) $(STATE_EVENTS)
-	@rm -rf $(TMP_DIR)/cursor-labels && mkdir -p $(TMP_DIR)/cursor-labels
-	@for e in $(STATE_EVENTS); do \
-	    n=$(TMP_DIR)/cursor-labels/$$(basename $$e .json); \
-	    LABELS=$$n.txt CAMERA_CLAMP=$$n.clamp ./$(TMP_DIR)/replay $$e /dev/null $$n.dump.txt > $$n.log 2>&1 || { cat $$n.log; echo "cursor-labels: $$e stopped"; exit 1; }; \
-	    frames=$$(sed -n 's/^replay: \([0-9]*\) frame(s) run .*/\1/p' $$n.log); \
-	    lines=$$(wc -l < $$n.txt); \
-	    [ "$$lines" -eq "$$frames" ] || { echo "cursor-labels: $$e has $$frames frame(s) but $$lines label(s)"; exit 1; }; \
-	done
-	@missing=$$(cat $(foreach e,$(STATE_EVENTS),$(TMP_DIR)/cursor-labels/$(basename $(notdir $(e))).txt) | sort -u | while read l; do \
-	    grep -q "^$$l " $(CURSOR_ANCHORS) || echo "$$l"; done); \
-	[ -z "$$missing" ] || { echo "cursor-labels: not in $(CURSOR_ANCHORS): $$missing"; exit 1; }
-	@rm -rf $(CURSOR_LABELS_DIR) && mkdir -p $(CURSOR_LABELS_DIR)
-	@cp $(foreach e,$(STATE_EVENTS),$(TMP_DIR)/cursor-labels/$(basename $(notdir $(e))).txt) $(CURSOR_LABELS_DIR)/
-	@{ echo "# <replay> <frames from 0, a-b inclusive> | aucune: camera top-left at x <= -48 or y >= 316"; \
-	   for e in $(STATE_EVENTS); do n=$$(basename $$e .json); \
-	     printf '%s %s\n' $$n "$$(awk 'NR == 1 { a = b = $$1; next } $$1 == b + 1 { b = $$1; next } \
-	       { r = r (r == "" ? "" : ",") (a == b ? a : a "-" b); a = b = $$1 } \
-	       END { if (NR) r = r (r == "" ? "" : ",") (a == b ? a : a "-" b); print (r == "" ? "aucune" : r) }' $(TMP_DIR)/cursor-labels/$$n.clamp)"; \
-	   done; } > $(CURSOR_LABELS_DIR)/camera-clamp.txt
-	@echo "cursor-labels: $(words $(STATE_EVENTS)) label files and camera-clamp.txt in $(CURSOR_LABELS_DIR)"
-endif
-
-.PHONY: cursor-labels
 
 # The core sources, where the comparator reads the P8_FIXED_LIT calls.
 constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_gaps.txt tools/pico8_reference_probe_out.txt src/p8/fixed.c src/p8/fixed.h $(CORE_SRCS) | $(TMP_DIR)

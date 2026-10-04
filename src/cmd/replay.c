@@ -1,11 +1,15 @@
-/* The headless replay driver: loads pico8/gfx.json, calls cart_load() and
- * cart_init(), steps the game one frame per events.json entry, and dumps
- * the final framebuffer as text. It asserts nothing about the game itself.
+/* The headless replay driver: loads pico8/gfx.json, calls cart_load()
+ * and cart_init(), steps the game one frame per events.json entry, and
+ * dumps the final framebuffer as text. It asserts nothing about the game
+ * itself -- that is what tests/ is for.
  *
  * argv[1], required, names the script to replay; without it the driver
- * prints its usage and exits 2. argv[2], optional, is where each frame's
- * pixels are written. Without it, nothing is captured and the final dump is
- * the same as with it -- tests/test_headless_capture.c asserts that.
+ * prints its usage and exits 2.
+ *
+ * argv[2], optional, is where each frame's pixels are written. Without it,
+ * nothing is captured and the final dump is the same as with it --
+ * tests/test_headless_capture.c asserts that.
+ *
  * argv[3], optional, is where the text dump goes; absent means
  * tmp/replay_dump.txt. Giving it requires giving argv[2].
  *
@@ -25,17 +29,13 @@
  *
  * STATE=<file>, optional, gets the devtools/state text of the last frame,
  * before the fill file; a p8_fatal during the replay still writes it there,
- * "stopped p8_fatal frame <n>" first. LABELS=<file>, optional, gets one
- * cursor label per frame (cursor_label_update60); temporary (plan 12), it
- * adds no executed line here: tests/plan12-oracle/line_coverage.txt lists
- * this file's lines. */
+ * "stopped p8_fatal frame <n>" first. */
 
 #include "p8/vram.h"
 #include "p8/assets.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "game/cheat.h"
-#include "devtools/cursor_label.h"
 #include "devtools/dump.h"
 #include "devtools/screencast.h"
 #include "devtools/state.h"
@@ -126,13 +126,13 @@ int main(int argc, char **argv) {
     int frame_count = input.frame_count;
     cheat_t cheat;
     cheat_init(&cheat);
-    const char *state_path = getenv("STATE"), *labels_path = getenv("LABELS");
+    const char *state_path = getenv("STATE");
     static int i;
     if (state_path != NULL) state_write_on_exit(state_path, &i);
     for (i = 0; i < frame_count; i++) {
         dispatch_context_set_input(&input);
         cheat_step(&cheat, &input);
-        if (labels_path == NULL) cart_update60(); else if (!cursor_label_update60(labels_path)) return 1;
+        cart_update60();
         cart_draw();
         /* AFTER cart_draw() and before the next frame: the only moment
          * the screen memory holds the whole frame just drawn. At the top

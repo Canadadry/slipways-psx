@@ -29,5 +29,3 @@ src/devtools/session_recorder.c | session recording of the interactive driver
 src/devtools/session_recorder.h | session recording of the interactive driver
 src/devtools/state.c | text state of make state, host tool
 src/devtools/state.h | text state of make state, header of devtools/state.c
-src/devtools/cursor_label.c | cursor label of the replay, host tool, temporary (plan 12)
-src/devtools/cursor_label.h | cursor label of the replay, header of devtools/cursor_label.c, temporary (plan 12)
