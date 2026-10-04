@@ -32,4 +32,4 @@ which is why neither sits at the start position.
 
 Mirrors the mouse replay `slipway_build`.
 
-Human review in raylib: keyboard play tried by hand, works.
+Human review in raylib: watched, and keyboard play tried by hand, works.
