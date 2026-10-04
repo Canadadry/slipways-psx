@@ -13,7 +13,7 @@
 #define GAME_ZONE_BYTES (GENERATION_ZONE_BYTES + LOAD_ZONE_BYTES)
 
 /* PSX ceiling: it is not moved to make room. */
-#define ZONE_BUDGET_BYTES (1536u * 1024u)
+#define ZONE_BUDGET_BYTES (768u * 1024u)
 
 typedef char zone_budget_exceeded_t[
     (FRAME_ZONE_BYTES + UI_ZONE_BYTES +

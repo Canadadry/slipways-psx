@@ -70,6 +70,8 @@ Fin de 4b : somme des cibles des zones **745 034** (`game` 462 520 + 24 680, `fr
 
 Fin de 4c : somme des zones **784 452** (`game` 462 520 + 24 680, `frame` 20 256, `ui` 203 961, `particles` 73 035), reste **1 980** sous 786 432 ; `ZONE_BUDGET_BYTES` inchangé (4d). Écarts avec la fin de 4b (745 034) : `ui` +38 480 (tailles de `button` et de `row` sur leurs plafonds prouvés, `ephemerals` sans bloc mort), `particles` +938 (liste de l'écran d'aide à 653 éléments sur une place, points de transit à 437).
 
+Fin de 4d : `ZONE_BUDGET_BYTES` = 768 Ko (786 432), contrôlé à la compilation contre la somme des zones, 784 452 ; reste 1 980.
+
 ## 3. Règles
 
 - Le jeu ne change pas : tous les `*.sha256` de `tests/e2e/` restent identiques.
