@@ -13,16 +13,17 @@ people et à trois labos, son panneau garde sa rangée « exports: ».
   « space folding », « geneseeds ».
 - f88-99 : « p1 » hiveworld, « p71 » habitat, « p48 » colony : trois
   fournisseurs de people.
-- f100-111 : trois labos glissés depuis (154,116) en (112,8), (76,41),
-  (121,66).
+- f100-111 : trois labos glissés depuis (154,116) en (112,11), (76,41),
+  (121,66) ; le premier tombe dans la boîte de dépôt
+  du panneau (y ≥ 10).
 - f112-135 : six slipways depuis « p27 » vers les trois fournisseurs et
-  les trois labos ; f136 : « p1 » vers le labo (112,8).
+  les trois labos ; f136 : « p1 » vers le labo (112,10).
 - f140 : saut d'année `ix[1]` (150,0) : le commerce passe (`bd`, `jo:ib`,
   `jo:cn`, joker `?` des labos, `dh`, `db`) ; « p27 » passe rich
   (3 exports, 3 imports).
 - f142 : panneau de « p27 » : « rich », « receives: », « exports: ».
 - f146, f148 : le premier clic ferme ce panneau, le second ouvre celui du
-  labo (112,8), servi : « wants more: », « makes: ».
+  labo (112,10), servi : « wants more: », « makes: ».
 
 Remplace la TU `rich_planet_exports`.
 
