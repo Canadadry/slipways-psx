@@ -494,8 +494,6 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-/* Drawn 16 pixels above its rest position: at (118,120) the icon lies
- * below a 120-line screen until the interface is anchored (step 4). */
 static uint32_t draw_alone(void *icon) {
     p8_camera(&graphics, 0, 0);
     p8_cls(&memory);
