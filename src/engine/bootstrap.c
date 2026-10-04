@@ -10,12 +10,18 @@
 #include "game/ui.h"
 
 void reset_world(void) {
+    static const entity_registry_reserve_t no_reserve = {0};
+
+    reset_world_with_reserve(&no_reserve);
+}
+
+void reset_world_with_reserve(const entity_registry_reserve_t *reserve) {
     camera_t *real_main_camera;
     mouse_t *real_main_mouse;
     ui_t *real_main_ui;
 
     entity_registry_abandon_live_entities();
-    entity_registry_init();
+    entity_registry_init_with_reserve(reserve);
 
     /* Build once, never rebuild. The entity module must be ready before the
      * camera and mouse modules, whose inits assert it. */

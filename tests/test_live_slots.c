@@ -556,24 +556,32 @@ static size_t populate_galaxy_states(void) {
            sizeof(zone_cell_t);
 }
 
-/* Bytes a list has taken in its generation since a reset_world: the
- * capacities 4, 8, ... up to its own, as each growth copies and leaves the
- * old block dead until the release. NULL (a tag nothing registered under
- * yet): none. */
-static size_t registry_bytes(const entity_list_t *list) {
+/* Bytes a list has taken in its generation: its first block, of `first`
+ * entries, then each doubling up to its capacity, as each growth copies and
+ * leaves the old block dead until the release. A NULL list (a tag nothing
+ * registered under yet) still holds its first block. */
+static size_t list_bytes_from(const entity_list_t *list, int first) {
     size_t bytes = 0;
-    for (int k = 4; list != NULL && k <= list->capacity; k *= 2) {
+    const int capacity = list != NULL ? list->capacity : first;
+    for (int k = first; k > 0 && k <= capacity; k *= 2) {
         bytes += ZONE_CELLS((size_t)k * sizeof(entity_t *)) * sizeof(zone_cell_t);
     }
     return bytes;
 }
 
+/* A list made empty: capacities 4, 8, ... NULL: none. */
+static size_t registry_bytes(const entity_list_t *list) {
+    return list != NULL ? list_bytes_from(list, 4) : 0;
+}
+
+/* The registries of a game, each taken at its reserve by cart_start_game. */
 static size_t registries_bytes(void) {
-    static const entity_message_t CV[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
-    static const tag_t CG[] = {TAG_STRUCTURE, TAG_ASCENSION, TAG_SLIPGATE, TAG_PROBE, TAG_MESSAGE_BOX, TAG_SLIPWAY, TAG_WORMHOLE, TAG_PLANET, TAG_NODE, TAG_TARGETING};
-    size_t r = registry_bytes(live_entities());
-    for (size_t i = 0; i < sizeof CV / sizeof CV[0]; i++) r += registry_bytes(entities_by_message(CV[i]));
-    for (size_t i = 0; i < sizeof CG / sizeof CG[0]; i++) r += registry_bytes(entities_by_tag(CG[i]));
+    const entity_registry_reserve_t *rv = &cart_game_registry_reserve;
+    size_t r = list_bytes_from(live_entities(), rv->live);
+    for (int m = 0; m < ENTITY_MESSAGE_COUNT; m++) {
+        r += list_bytes_from(entities_by_message((entity_message_t)m), rv->by_message[m]);
+    }
+    for (int t = 0; t < TAG_COUNT; t++) r += list_bytes_from(entities_by_tag((tag_t)t), rv->by_tag[t]);
     return r;
 }
 
@@ -669,7 +677,7 @@ static size_t singletons_bytes(void) {
 
 /* After the f13 release, the generation holds only what the f12
  * cart_start_game made and what has grown since: the galaxy_populate states,
- * the registries with their dead blocks, its planets, its economy and
+ * the registries at their reserves, its planets, its economy and
  * structure icons, and its singletons. */
 static void pause_restart_bounds_dead_registry_blocks(void) {
     const size_t g = populate_galaxy_states();
@@ -680,7 +688,27 @@ static void pause_restart_bounds_dead_registry_blocks(void) {
     printf("  pause_restart f13: game=%lu, galaxy_populate states=%lu, registries=%lu, planets=%lu\n",
            (unsigned long)game_zone_used(), (unsigned long)g, (unsigned long)r, (unsigned long)p);
     assert(game_zone_used() == g + r + p + research_and_economy_bytes() + singletons_bytes() &&
-           "the registries take 2C - 4 pointers, and nothing else gets in");
+           "the registries take their reserves and leave no dead block, and nothing else gets in");
+}
+
+/* f11: the title screen alone, built by cart_init with empty registries;
+ * f13: the game the f12 cart_start_game started, its registries taken at
+ * their reserves, none of which the pause_restart game exceeds. */
+static void pause_restart_reserves_registries_at_game_start_only(void) {
+    const entity_registry_reserve_t *rv = &cart_game_registry_reserve;
+    start_e2e("pause_restart");
+    play_until(11);
+    assert(live_entities()->capacity < rv->live && "the title screen takes the reserves of a game");
+    play_until(13);
+    assert(live_entities()->capacity == rv->live);
+    for (int m = 0; m < ENTITY_MESSAGE_COUNT; m++) {
+        assert(entities_by_message((entity_message_t)m)->capacity == rv->by_message[m]);
+    }
+    for (int t = 0; t < TAG_COUNT; t++) {
+        const entity_list_t *list = entities_by_tag((tag_t)t);
+        assert((list == NULL || list->capacity == rv->by_tag[t]) && "a registry of the game grew past its reserve");
+    }
+    printf("  pause_restart f13: live %d/%d\n", live_entities()->count, live_entities()->capacity);
 }
 
 /* Only cart_load fills the load zone: two games add nothing to it. */
@@ -1548,6 +1576,7 @@ int main(void) {
     }
     in_child(pause_restart_counts_populate_galaxy_states);
     in_child(pause_restart_leaves_load_zone_alone);
+    in_child(pause_restart_reserves_registries_at_game_start_only);
     in_child(pause_restart_bounds_dead_registry_blocks);
     in_child(pause_restart_reloads_after_title);
     in_child(pause_restart_reveals_on_new_game_states);

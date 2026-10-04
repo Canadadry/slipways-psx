@@ -200,6 +200,29 @@ void cart_init_method(button_t *self) {
     cart_init();
 }
 
+const entity_registry_reserve_t cart_game_registry_reserve = {
+    329,
+    {
+        [ENTITY_MESSAGE_DRAW] = 322,
+        [ENTITY_MESSAGE_DRAW_OVERLAY] = 265,
+        [ENTITY_MESSAGE_HIT_TEST] = 125,
+        [ENTITY_MESSAGE_NEW_YEAR] = 111,
+        [ENTITY_MESSAGE_REFRESH] = 120,
+    },
+    {
+        [TAG_STRUCTURE] = 8,
+        [TAG_ASCENSION] = 3,
+        [TAG_SLIPGATE] = 14,
+        [TAG_PROBE] = 2,
+        [TAG_MESSAGE_BOX] = 4,
+        [TAG_SLIPWAY] = 216,
+        [TAG_WORMHOLE] = 3,
+        [TAG_PLANET] = 110,
+        [TAG_NODE] = 110,
+        [TAG_TARGETING] = 110,
+    },
+};
+
 void cart_start_game(button_t *chosen_option) {
     const entity_kind_t *kind_table[7];
     int index;
@@ -211,7 +234,7 @@ void cart_start_game(button_t *chosen_option) {
 
     /* reset_world() runs a second time here, after cart_init()'s: it always
      * rebuilds the registries and the main camera, mouse and user interface. */
-    reset_world();
+    reset_world_with_reserve(&cart_game_registry_reserve);
     (void)background_new();
     galaxy_populate(p8_fixed_from_int(90));
 

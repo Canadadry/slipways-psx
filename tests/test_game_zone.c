@@ -110,23 +110,32 @@ static size_t populate_galaxy_states(void) {
            sizeof(zone_cell_t);
 }
 
-/* Bytes a list has taken in its generation since a reset_world(): the
- * capacities 4, 8, ... up to its own, since each growth copies and leaves
- * the old block dead until the release. NULL (a tag never seen): none. */
-static size_t registry_bytes(const entity_list_t *list) {
+/* Bytes a list has taken in its generation: its first block, of `first`
+ * entries, then each doubling up to its capacity, each growth leaving the
+ * old block dead until the release. A NULL list (a tag never seen) still
+ * holds its first block. */
+static size_t list_bytes_from(const entity_list_t *list, int first) {
     size_t bytes = 0;
-    for (int k = 4; list != NULL && k <= list->capacity; k *= 2) {
+    const int capacity = list != NULL ? list->capacity : first;
+    for (int k = first; k > 0 && k <= capacity; k *= 2) {
         bytes += ZONE_CELLS((size_t)k * sizeof(entity_t *)) * sizeof(zone_cell_t);
     }
     return bytes;
 }
 
+/* A list made empty: capacities 4, 8, ... NULL: none. */
+static size_t registry_bytes(const entity_list_t *list) {
+    return list != NULL ? list_bytes_from(list, 4) : 0;
+}
+
+/* The registries of a game, each taken at its reserve by cart_start_game. */
 static size_t registries_bytes(void) {
-    static const entity_message_t CV[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
-    static const tag_t CG[] = {TAG_STRUCTURE, TAG_ASCENSION, TAG_SLIPGATE, TAG_PROBE, TAG_MESSAGE_BOX, TAG_SLIPWAY, TAG_WORMHOLE, TAG_PLANET, TAG_NODE, TAG_TARGETING};
-    size_t r = registry_bytes(live_entities());
-    for (size_t i = 0; i < sizeof CV / sizeof CV[0]; i++) r += registry_bytes(entities_by_message(CV[i]));
-    for (size_t i = 0; i < sizeof CG / sizeof CG[0]; i++) r += registry_bytes(entities_by_tag(CG[i]));
+    const entity_registry_reserve_t *rv = &cart_game_registry_reserve;
+    size_t r = list_bytes_from(live_entities(), rv->live);
+    for (int m = 0; m < ENTITY_MESSAGE_COUNT; m++) {
+        r += list_bytes_from(entities_by_message((entity_message_t)m), rv->by_message[m]);
+    }
+    for (int t = 0; t < TAG_COUNT; t++) r += list_bytes_from(entities_by_tag((tag_t)t), rv->by_tag[t]);
     return r;
 }
 
