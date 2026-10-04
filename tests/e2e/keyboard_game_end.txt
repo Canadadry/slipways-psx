@@ -21,5 +21,3 @@ cannot rise on the layer's first frame.
 - f156-159: wait, the title screen with its four difficulty rows.
 
 Mirrors the mouse replay `game_end_final_score`.
-
-Human review in raylib: watched, and keyboard play tried by hand, works.

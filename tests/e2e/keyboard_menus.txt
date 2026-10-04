@@ -17,5 +17,3 @@ cannot rise on the layer's first frame.
   0 colonies, $100.
 
 Mirrors the mouse replay `pause_restart`.
-
-Human review in raylib: watched, and keyboard play tried by hand, works.

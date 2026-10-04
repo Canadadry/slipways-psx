@@ -31,5 +31,3 @@ fold held closer is refused (red hatched disk, no $3, nothing revealed),
 which is why neither sits at the start position.
 
 Mirrors the mouse replay `slipway_build`.
-
-Human review in raylib: watched, and keyboard play tried by hand, works.
