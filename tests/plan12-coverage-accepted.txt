@@ -1,3 +1,12 @@
 # Plan 12, step 6: lines of tests/plan12-oracle/line_coverage.txt (HEAD
 # numbering) that the 160x120 e2e no longer cover, accepted. Temporary,
 # removed at step 7. <file>:<line> cadre|non récupérée: <reason>
+src/game/probe.c:32 cadre: cible jetable du glisser hors de la boîte du panneau (P8_SCREEN_*) ; à 160 l'icône du slipgate (134,116) tombe sur une planète à portée, slipgate_outgoing_first et tech_slipgates_relay ne la visent pas
+src/game/probe.c:33 cadre: cible jetable du glisser hors de la boîte du panneau (P8_SCREEN_*) ; à 160 l'icône du slipgate (134,116) tombe sur une planète à portée, slipgate_outgoing_first et tech_slipgates_relay ne la visent pas
+src/game/probe.c:128 cadre: cible jetable du glisser hors de la boîte du panneau (P8_SCREEN_*) ; à 160 l'icône du slipgate (134,116) tombe sur une planète à portée, slipgate_outgoing_first et tech_slipgates_relay ne la visent pas
+src/game/probe.c:135 cadre: cible jetable du glisser hors de la boîte du panneau (P8_SCREEN_*) ; à 160 l'icône du slipgate (134,116) tombe sur une planète à portée, slipgate_outgoing_first et tech_slipgates_relay ne la visent pas
+src/game/probe.c:136 cadre: cible jetable du glisser hors de la boîte du panneau (P8_SCREEN_*) ; à 160 l'icône du slipgate (134,116) tombe sur une planète à portée, slipgate_outgoing_first et tech_slipgates_relay ne la visent pas
+src/game/probe.c:139 cadre: cible jetable du glisser hors de la boîte du panneau (P8_SCREEN_*) ; à 160 l'icône du slipgate (134,116) tombe sur une planète à portée, slipgate_outgoing_first et tech_slipgates_relay ne la visent pas
+src/game/probe.c:187 cadre: cible jetable du glisser hors de la boîte du panneau (P8_SCREEN_*) ; à 160 l'icône du slipgate (134,116) tombe sur une planète à portée, slipgate_outgoing_first et tech_slipgates_relay ne la visent pas
+src/game/probe.c:489 cadre: cible jetable du glisser hors de la boîte du panneau (P8_SCREEN_*) ; à 160 l'icône du slipgate (134,116) tombe sur une planète à portée, slipgate_outgoing_first et tech_slipgates_relay ne la visent pas
+src/game/probe.c:490 cadre: cible jetable du glisser hors de la boîte du panneau (P8_SCREEN_*) ; à 160 l'icône du slipgate (134,116) tombe sur une planète à portée, slipgate_outgoing_first et tech_slipgates_relay ne la visent pas
