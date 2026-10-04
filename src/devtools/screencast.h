@@ -1,12 +1,12 @@
 /* The whole capture format; no other module knows it: the replay driver
  * computes no offset.
  * Raw frames concatenated in capture order, with no header, no index and
- * no version number. A frame takes SCREENCAST_FRAME_BYTES = 8192 bytes:
- * the 16384 pixels of the 128x128 screen, two pixels per byte, in the
+ * no version number. A frame takes SCREENCAST_FRAME_BYTES = 9600 bytes:
+ * the 19200 pixels of the 160x120 screen, two pixels per byte, in the
  * scan order of the screen memory. Each byte holds two horizontally
  * adjacent pixels: the even-indexed one in its LOW nibble, the
  * odd-indexed one in its high nibble. Frame N therefore starts at offset
- * N x 8192, and the frame count is the file size divided by 8192, never a
+ * N x 9600, and the frame count is the file size divided by 9600, never a
  * stored counter. This contract is public -- an outside script must be
  * able to read the file without the project's code -- and
  * tests/test_screencast.c asserts the nibble order on the raw bytes,
@@ -24,11 +24,11 @@
 
 #include <stdio.h>
 
-/* The 16384 pixels of a frame, one per byte: the size of the buffer that
+/* The 19200 pixels of a frame, one per byte: the size of the buffer that
  * screencast_read_frame fills. */
 #define SCREENCAST_FRAME_PIXELS (P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT)
 
-/* The 8192 bytes a frame takes IN THE FILE, two pixels per byte. */
+/* The 9600 bytes a frame takes IN THE FILE, two pixels per byte. */
 #define SCREENCAST_FRAME_BYTES (SCREENCAST_FRAME_PIXELS / 2)
 
 /* The capture being written; `file` is only written through this module. */
@@ -42,7 +42,7 @@ typedef struct {
 int screencast_writer_open(screencast_writer_t *writer, const char *path);
 
 /* Appends a frame to the capture, read from mem->screen and packed in
- * the format above. Returns 1 if the 8192 bytes were written, 0
+ * the format above. Returns 1 if the 9600 bytes were written, 0
  * otherwise. The failure goes back to the caller instead of being
  * absorbed: unlike session_recorder_record_frame, which drops a frame it
  * cannot append, losing a frame here yields a truncated file whose
@@ -64,7 +64,7 @@ typedef enum {
     /* Missing, or unreadable. */
     SCREENCAST_UNREADABLE = 1,
     /* Present and empty. A value of its own, not a case of invalid size:
-     * zero IS a multiple of 8192, so without this explicit refusal an
+     * zero IS a multiple of 9600, so without this explicit refusal an
      * empty file would pass for a capture of zero frames. */
     SCREENCAST_EMPTY = 2,
     /* The size is not a multiple of SCREENCAST_FRAME_BYTES: the file

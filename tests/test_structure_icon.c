@@ -41,9 +41,9 @@
 #define CONSTRUCTION_HASH 0x22EBAD5Du
 #define START_HASH 0x8C839F39u
 #define DIRECTED_HASH 0xA5C469BDu
-#define DRAW_HASH 0xA740E905u
+#define DRAW_HASH 0x93161F7Cu
 #define RESTART_HASH 0xB33A149Au
-#define KIND_VIEW_HASH 0xD0C93314u
+#define KIND_VIEW_HASH 0xCCFB2802u
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
@@ -455,10 +455,14 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
+/* Drawn 16 pixels above its rest position: at (118,120) the icon lies
+ * below a 120-line screen until the interface is anchored (step 4). */
 static uint32_t draw_alone(void *icon) {
+    vec_t on_screen = vec_sub(*as_structure_icon(icon)->pos, vec_at(0, 16));
+
     p8_camera(&graphics, 0, 0);
     p8_cls(&memory);
-    class_of(icon)->draw(icon, as_structure_icon(icon)->pos);
+    class_of(icon)->draw(icon, &on_screen);
     return screen_hash();
 }
 

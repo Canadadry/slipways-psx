@@ -570,7 +570,7 @@ static void *bought(const entity_kind_t *kind) {
         if (class_of(icon) == structure_icon_class() && ((const structure_icon_t *)icon)->kind == kind) {
             down_t made = class_of(icon)->left_press(icon, NULL, NULL);
             assert(made.stop && made.held != NULL);
-            class_of(made.held)->drag(made.held, vec_ref(vec_add(*main_camera_pos, vec_xy(64, 64))),
+            class_of(made.held)->drag(made.held, vec_ref(vec_add(*main_camera_pos, vec_xy(80, 60))),
                                   vec_ref(vec_xy(64, 64)));
             return made.held;
         }

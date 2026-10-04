@@ -56,8 +56,8 @@
 #define FUNCTIONS_HASH 0xA90BEF24u
 #define FUNCTIONS_INVENTED_HASH 0x5F2D2AD4u
 #define INSTALL_HASH 0x45B1D201u
-#define BUILT_WORLD_HASH 0xDF3A48A1u
-#define HARVESTED_WORLD_HASH 0xE7F2768Cu
+#define BUILT_WORLD_HASH 0xBDEBB925u
+#define HARVESTED_WORLD_HASH 0x363DB417u
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
@@ -585,7 +585,7 @@ static void *new_planet(const char *id, int x, int y) {
     assert(main_camera_pos != NULL);
     keys.planet_id = id;
     keys.map_pos = vec_ref(vec_xy(x / 2, y / 2));
-    keys.pos = vec_ref(vec_add(*main_camera_pos, vec_xy(x, y)));
+    keys.pos = vec_ref(vec_add(*main_camera_pos, vec_xy(x + 16, y - 4)));
     return planet_new(&keys);
 }
 

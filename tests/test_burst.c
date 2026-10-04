@@ -43,7 +43,7 @@
 
 
 #define BUILT_HASH 0xA539DD6Du
-#define LIFE_HASH 0xD3D468CEu
+#define LIFE_HASH 0x47C40CADu
 #define BURST_FRAMES 86
 
 /* The tag a layout row's placed items carried as a tagged list, which the
@@ -205,7 +205,7 @@ static vec_t near_main_camera(int x, int y) {
     assert(main_camera_typed() != NULL);
     main_camera_pos = main_camera_typed()->pos;
     assert(main_camera_pos != NULL);
-    return vec_add(*main_camera_pos, vec_xy(x, y));
+    return vec_add(*main_camera_pos, vec_xy(x + 16, y - 4));
 }
 
 static const entity_class_t *class_of(const void *e) {

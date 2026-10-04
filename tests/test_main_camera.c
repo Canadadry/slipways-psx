@@ -27,7 +27,8 @@
 #define IS_ON_SCREEN_FAR 0
 #define UPDATE_MOUSE_WORLD_X 0
 #define UPDATE_MOUSE_WORLD_Y 0
-#define CAMERA_POS 192
+#define CAMERA_X 176
+#define CAMERA_Y 196
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
@@ -66,7 +67,7 @@ static void assert_a_camera(void) {
 
     assert(main_camera_typed() != NULL && main_camera_typed()->pos != NULL);
     ra = main_camera_typed()->pos;
-    assert(ra->x == p8_fixed_from_int(CAMERA_POS) && ra->y == p8_fixed_from_int(CAMERA_POS));
+    assert(ra->x == p8_fixed_from_int(CAMERA_X) && ra->y == p8_fixed_from_int(CAMERA_Y));
 }
 
 static void test_placeholder_after_init(void) {
@@ -82,11 +83,11 @@ typedef struct {
 
 static const entity_class_t pos_only_class_def = {0};
 
-/* entity_geom_is_on_screen reads the camera position as (0,0): 64 off is
- * inside the 76 margin, 77 is not. */
+/* entity_geom_is_on_screen reads the camera position as (0,0): 16 off the
+ * centre is inside the 92 margin, 93 is not. */
 static void test_is_on_screen_on_placeholder(void) {
     vec_t near_pos = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
-    vec_t far_pos = vec_make(p8_fixed_from_int(64 + 77), p8_fixed_from_int(64));
+    vec_t far_pos = vec_make(p8_fixed_from_int(80 + 93), p8_fixed_from_int(64));
     pos_only_t near_e = {{.class = &pos_only_class_def, .pos = &near_e.pos}, NULL};
     pos_only_t far_e = {{.class = &pos_only_class_def, .pos = &far_e.pos}, NULL};
     int near_hit;
@@ -122,6 +123,17 @@ static void test_is_on_screen_frame_is_the_screen_plus_12_on_each_edge(void) {
     assert(on_screen_at(P8_SCREEN_WIDTH + 12, mid_y) && !on_screen_at(P8_SCREEN_WIDTH + 13, mid_y));
     assert(on_screen_at(mid_x, -12) && !on_screen_at(mid_x, -13));
     assert(on_screen_at(mid_x, P8_SCREEN_HEIGHT + 12) && !on_screen_at(mid_x, P8_SCREEN_HEIGHT + 13));
+}
+
+/* The same frame pinned at 160x120: columns 141 to 159, outside the old
+ * 128x128 frame, are on screen. */
+static void test_is_on_screen_frame_at_160x120(void) {
+    entity_registry_init(NULL);
+    assert(on_screen_at(172, 60) && !on_screen_at(173, 60));
+    assert(on_screen_at(-12, 60) && !on_screen_at(-13, 60));
+    assert(on_screen_at(80, 132) && !on_screen_at(80, 133));
+    assert(on_screen_at(80, -12) && !on_screen_at(80, -13));
+    assert(on_screen_at(150, 60));
 }
 
 /* A ui_update on the placeholder, the `ui_t` built by hand since
@@ -233,6 +245,7 @@ int main(void) {
     test_placeholder_after_init();
     test_is_on_screen_on_placeholder();
     test_is_on_screen_frame_is_the_screen_plus_12_on_each_edge();
+    test_is_on_screen_frame_at_160x120();
     test_update_on_placeholder();
     test_shutdown_and_init_cycle();
     test_replaced_by_reset_world();

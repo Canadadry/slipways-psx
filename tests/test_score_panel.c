@@ -38,7 +38,7 @@
 
 #define BUILT_HASH 0xC419CD23u
 #define SHARED_HASH 0x1F82BA04u
-#define LIFE_HASH 0xDDBCC765u
+#define LIFE_HASH 0xCF07CBE8u
 #define TECH_TREE_SCREEN_HASH 0x7D1C5B1Fu
 
 static p8_vram_t memory;

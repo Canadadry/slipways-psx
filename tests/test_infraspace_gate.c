@@ -46,7 +46,7 @@ static int pos_copies(const vec_t *ra, const vec_t *mp) {
 
 
 #define BUILT_HASH 0x480897DDu
-#define LIFE_HASH 0xC3A5DD13u
+#define LIFE_HASH 0xC4F93DC7u
 
 /* The tag planet_rebuild_trades's list carried as a tagged list, which the
  * frozen hashes fold: any other value moves every *_HASH. */
@@ -443,7 +443,7 @@ static void slot(void *e, int x, int y) {
     assert(main_camera_typed() != NULL);
     main_camera_pos = main_camera_typed()->pos;
     assert(main_camera_pos != NULL);
-    mp = vec_ref(vec_add(*main_camera_pos, vec_xy(x, y)));
+    mp = vec_ref(vec_add(*main_camera_pos, vec_xy(x + 16, y - 4)));
     class_of(e)->drag(e, mp, vec_ref(vec_xy(64, 64)));
     assert(pos_copies(as_structure(e)->pos, mp));
 }

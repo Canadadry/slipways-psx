@@ -49,9 +49,9 @@
 #define DROP_HASH 0xEC58A304u
 #define DRAG_HASH 0xCD175E6Bu
 #define OTHER_END_HASH 0x19ADC88Cu
-#define DRAW_HASH 0x92EAE4C5u
+#define DRAW_HASH 0x7479AA4Bu
 #define TARGETING_TRACK_HASH 0xB930691Fu
-#define TOO_FAR_HASH 0x65AE0C50u
+#define TOO_FAR_HASH 0x1D7E9DEDu
 #define MOUSE_POINT_HASH 0x4C9D6519u
 
 static p8_vram_t memory;
@@ -829,7 +829,7 @@ static void test_drag_mouse_point(void) {
     check("mouse_point", hash, MOUSE_POINT_HASH);
 
     on_camera = vec_add(vec_of(main_camera_typed()->pos),
-                              vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64)));
+                              vec_make(p8_fixed_from_int(80), p8_fixed_from_int(60)));
     drag_over(second, NULL, vec_ref_fixed(on_camera));
     assert(entity_geom_is_on_screen(as_slipway(second)->end));
 }

@@ -51,7 +51,7 @@
 #define DROP_HASH 0x86F499FFu
 #define UPDATE_UNFOLDING_HASH 0x85EB1EC6u
 #define UPDATE_UNFOLDING_EXIT_TICK 27
-#define DRAW_HASH 0xD124A50Cu
+#define DRAW_HASH 0xA2BAB777u
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;

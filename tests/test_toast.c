@@ -31,11 +31,11 @@
 #include "game/ui_zone.h"
 
 #define NO_MONEY_TICKS 51
-#define NO_MONEY_SEQUENCE_HASH 0x0F5C11D3u
-#define NO_MONEY_FIRST_DRAW_HASH 0x5D21D95Du
+#define NO_MONEY_SEQUENCE_HASH 0xAD86C71Cu
+#define NO_MONEY_FIRST_DRAW_HASH 0x7487F35Du
 #define PRICE_TICKS 51
-#define PRICE_SEQUENCE_HASH 0xA692DEE9u
-#define PRICE_FIRST_DRAW_HASH 0x884AD566u
+#define PRICE_SEQUENCE_HASH 0x843EB6FBu
+#define PRICE_FIRST_DRAW_HASH 0xA9B7E9A6u
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
@@ -94,7 +94,7 @@ static void fresh_world(void) {
     vec_t *mouse = malloc(sizeof *mouse);
 
     reset_world(NULL);
-    *mouse = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
+    *mouse = vec_make(p8_fixed_from_int(80), p8_fixed_from_int(60));
     assert(main_mouse() != NULL && main_mouse()->class == mouse_class());
     ((mouse_t *)main_mouse())->pos = mouse;
 }

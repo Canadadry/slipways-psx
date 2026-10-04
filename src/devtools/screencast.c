@@ -3,18 +3,20 @@
 #include <assert.h>
 #include <stddef.h>
 
-/* 8192 is a constant of the published format, but the macro derives from
+/* 9600 is a constant of the published format, but the macro derives from
  * the screen size: this compile-time assertion ties the two, so that a
  * change of screen size breaks the build here instead of silently
  * changing the format. */
-typedef char screencast_frame_is_8192_bytes_t[(SCREENCAST_FRAME_BYTES == 8192) ? 1 : -1];
+typedef char screencast_frame_is_9600_bytes_t[(SCREENCAST_FRAME_BYTES == 9600) ? 1 : -1];
+/* Two pixels per byte: an odd width would split a pair across two rows. */
+typedef char screencast_width_is_even_t[(P8_SCREEN_WIDTH % 2 == 0) ? 1 : -1];
 
 int screencast_writer_open(screencast_writer_t *writer, const char *path) {
     assert(writer);
     assert(path);
 
     /* "wb" and never "ab": two concatenated captures would be a game
-     * nobody played, and their size would still be a multiple of 8192, so
+     * nobody played, and their size would still be a multiple of 9600, so
      * no validation would catch them. */
     writer->file = fopen(path, "wb");
     return writer->file != NULL;
@@ -109,8 +111,8 @@ int screencast_read_frame(screencast_reader_t *reader, int index, unsigned char 
     }
 
     /* The cast to long comes before the multiplication, and must stay
-     * there: with a 32-bit `int`, index x 8192 overflows past 262144
-     * frames (72 minutes at 60 Hz), well before fseek's own limit. */
+     * there: with a 32-bit `int`, index x 9600 overflows past 223696
+     * frames (62 minutes at 60 Hz), well before fseek's own limit. */
     if (fseek(reader->file, (long)index * SCREENCAST_FRAME_BYTES, SEEK_SET) != 0) {
         return 0;
     }

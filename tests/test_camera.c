@@ -29,7 +29,7 @@
 #include "engine/vec.h"
 
 #define SCRIPTED_TICKS 110
-#define SCRIPTED_HASH 0xDF9F2872u
+#define SCRIPTED_HASH 0xF0801C76u
 #define SHAKE_TICKS 31
 #define SHAKE_HASH 0xF1E7A593u
 #define GEOHARVEST_WINDOW 60
@@ -141,8 +141,8 @@ static void check_fresh_main_camera(const camera_t *mo) {
     vec_t v = must_vec(mo->velocity);
 
     assert(entity_list_listed(live_entities(), mo) && !in_any_entities_by_message(mo));
-    assert(p.x == p8_fixed_from_int(192) && p.y == p8_fixed_from_int(192));
-    assert(ra.x == p8_fixed_from_int(192) && ra.y == p8_fixed_from_int(192));
+    assert(p.x == p8_fixed_from_int(176) && p.y == p8_fixed_from_int(196));
+    assert(ra.x == p8_fixed_from_int(176) && ra.y == p8_fixed_from_int(196));
     assert(v.x == 0 && v.y == 0);
     assert(mo->shake == 0);
     assert(mo->header.state_time == 0);
@@ -171,13 +171,13 @@ static void apply_camera_to(p8_fixed_t fy, int want_x, int want_y) {
 }
 
 /* camera_apply puts the camera on the position times the factor. The later
- * tests of this process start from the camera the last call leaves: 192,192. */
+ * tests of this process start from the camera the last call leaves: 176,196. */
 static void test_apply_camera_sets_the_camera(void) {
     reset_world(NULL);
-    apply_camera_to(p8_fixed_from_int(1), 192, 192);
-    apply_camera_to(P8_FIXED_LIT(0x00008000, 0.5), 96, 96);
+    apply_camera_to(p8_fixed_from_int(1), 176, 196);
+    apply_camera_to(P8_FIXED_LIT(0x00008000, 0.5), 88, 98);
     apply_camera_to(0, 0, 0);
-    apply_camera_to(p8_fixed_from_int(1), 192, 192);
+    apply_camera_to(p8_fixed_from_int(1), 176, 196);
 }
 
 /* Idle, left, right+up, down held into the 320 bound, then released. */

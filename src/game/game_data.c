@@ -317,8 +317,8 @@ const camera_archetype_t camera_archetype = {
     .state_time = 0x0,
     .velocity = {0x0, 0x0},
     .shake = 0x0,
-    .pos_before_shake = {0xc00000, 0xc00000},
-    .pos = {0xc00000, 0xc00000},
+    .pos_before_shake = {0xb00000, 0xc40000},
+    .pos = {0xb00000, 0xc40000},
     .dpad_directions = &camera_dpad_directions_vecs,
 };
 

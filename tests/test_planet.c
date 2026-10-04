@@ -394,7 +394,7 @@ static void *bought(const entity_kind_t *kind) {
         void *icon = hb->items[i];
         if (class_of(icon) == structure_icon_class() && ((const structure_icon_t *)icon)->kind == kind) {
             down_t made = class_of(icon)->left_press(icon, NULL, NULL);
-            vec_t middle = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
+            vec_t middle = vec_make(p8_fixed_from_int(80), p8_fixed_from_int(60));
             assert(made.stop && made.held != NULL);
             class_of(made.held)->drag(made.held, vec_ref(vec_add(*main_camera_pos, middle)), vec_ref(middle));
             return made.held;

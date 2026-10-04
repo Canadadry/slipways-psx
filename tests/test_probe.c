@@ -49,10 +49,10 @@ static int pos_copies(const vec_t *ra, const vec_t *mp) {
 #define FROZEN_INSTANCE_TAG 0x9E5C1451u
 
 #define BUILT_HASH 0xD2F8504Au
-#define LIFE_HASH 0x74EB6007u
+#define LIFE_HASH 0x2C70013Eu
 #define DROP_ON_HASH 0x49056D9Bu
 #define DROP_OFF_HASH 0x3EA86A53u
-#define HELP_SCREEN_HASH 0x938EC51Bu
+#define HELP_SCREEN_HASH 0x9573B239u
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;

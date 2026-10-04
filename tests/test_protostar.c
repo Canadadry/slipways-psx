@@ -39,7 +39,7 @@
 
 
 #define BUILT_HASH 0x9F8A0FC3u
-#define LIFE_HASH 0x3F990656u
+#define LIFE_HASH 0xF115D7FCu
 
 /* The tag planet_rebuild_trades's list carried as a tagged list, which the
  * frozen hashes fold: any other value moves every *_HASH. */
@@ -505,7 +505,7 @@ static void test_life(void) {
     assert(main_camera_typed() != NULL);
     main_camera_pos = main_camera_typed()->pos;
     assert(main_camera_pos != NULL);
-    ra = vec_add(*main_camera_pos, vec_xy(12, 108));
+    ra = vec_add(*main_camera_pos, vec_xy(28, 104));
     placed = build_protostar(&map_pos, &ra, "s90");
     hash = fold_spawned(hash, placed);
     assert(as_ascension(placed)->header.state == ENTITY_STATE_SETTLED);

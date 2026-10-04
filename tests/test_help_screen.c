@@ -39,8 +39,8 @@
 
 
 #define BUILT_HASH 0x05BC81D1u
-#define LIFE_HASH 0x64B6480Bu
-#define HOVER_HASH 0xB508C2D4u
+#define LIFE_HASH 0x47AA2839u
+#define HOVER_HASH 0xB2C80DC5u
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
