@@ -1,5 +1,6 @@
 /* tools/e2e_limits.sh, the guard of new e2e files (companion files, 180
- * frames, 600 for a listed exception), on built events files. */
+ * frames, 600 for a listed exception, keyboard_ files without the mouse), on
+ * built events files. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -11,8 +12,14 @@
 #define LOG DIR "/log.txt"
 #define EXCEPTIONS DIR "/exceptions.txt"
 
-#define FRAME "{ \"mouse_x\": 64, \"mouse_y\": 64, \"mouse_buttons\": 0, " \
+#define FRAME "{ \"mouse_x\": %d, \"mouse_y\": %d, \"mouse_buttons\": %d, " \
               "\"dpad\": [false, false, false, false, false, false] }"
+
+typedef struct {
+    int x, y, buttons;
+} mouse_t;
+
+static const mouse_t still = {64, 64, 0};
 
 static void write_file(const char *path, const char *text) {
     FILE *file = fopen(path, "w");
@@ -32,15 +39,21 @@ static const char *read_log(void) {
     return buf;
 }
 
-/* A complete e2e: <name>.json of `frames` frames, <name>.txt and <name>.json.sha256. */
-static void write_e2e(const char *name, int frames) {
+/* A complete e2e: <name>.json of `frames` frames, <name>.txt and
+ * <name>.json.sha256. Frame 1 has the mouse `odd`, every other one `still`;
+ * `declared` writes the keyboard_cursor member before "frames". */
+static void write_e2e_mouse(const char *name, int frames, int declared, mouse_t odd) {
     char path[256];
     snprintf(path, sizeof path, DIR "/%s.json", name);
     FILE *file = fopen(path, "w");
     assert(file != NULL);
-    fputs("{\n  \"frames\": [\n", file);
+    fputs(declared ? "{\n  \"keyboard_cursor\": true,\n  \"frames\": [\n"
+                   : "{\n  \"frames\": [\n", file);
     for (int i = 0; i < frames; i++) {
-        fprintf(file, "    %s%s\n", FRAME, i + 1 < frames ? "," : "");
+        mouse_t mouse = i == 1 ? odd : still;
+        fputs("    ", file);
+        fprintf(file, FRAME, mouse.x, mouse.y, mouse.buttons);
+        fputs(i + 1 < frames ? ",\n" : "\n", file);
     }
     fputs("  ]\n}\n", file);
     fclose(file);
@@ -48,6 +61,10 @@ static void write_e2e(const char *name, int frames) {
     write_file(path, "what the replay does\n");
     snprintf(path, sizeof path, DIR "/%s.json.sha256", name);
     write_file(path, "0000\n");
+}
+
+static void write_e2e(const char *name, int frames) {
+    write_e2e_mouse(name, frames, 0, still);
 }
 
 static int run(const char *events) {
@@ -112,6 +129,42 @@ static void test_missing_exceptions_list_fails(void) {
     assert(run("") != 0);
 }
 
+static void test_keyboard_e2e_declared_with_still_mouse_passes(void) {
+    reset();
+    write_e2e_mouse("keyboard_ok", 10, 1, still);
+    assert(run(DIR "/keyboard_ok.json") == 0);
+}
+
+static void test_declared_e2e_not_named_keyboard_may_move_the_mouse(void) {
+    reset();
+    write_e2e_mouse("takeover", 10, 1, (mouse_t){30, 20, 1});
+    assert(run(DIR "/takeover.json") == 0);
+}
+
+static void test_keyboard_e2e_with_moved_mouse_fails_and_is_named(void) {
+    reset();
+    write_e2e_mouse("keyboard_x", 10, 1, (mouse_t){65, 64, 0});
+    assert(run(DIR "/keyboard_x.json") != 0);
+    assert(strstr(read_log(), DIR "/keyboard_x.json") != NULL);
+    write_e2e_mouse("keyboard_y", 10, 1, (mouse_t){64, 63, 0});
+    assert(run(DIR "/keyboard_y.json") != 0);
+    assert(strstr(read_log(), DIR "/keyboard_y.json") != NULL);
+}
+
+static void test_keyboard_e2e_with_mouse_button_fails_and_is_named(void) {
+    reset();
+    write_e2e_mouse("keyboard_click", 10, 1, (mouse_t){64, 64, 1});
+    assert(run(DIR "/keyboard_click.json") != 0);
+    assert(strstr(read_log(), DIR "/keyboard_click.json") != NULL);
+}
+
+static void test_keyboard_e2e_without_declaration_fails_and_is_named(void) {
+    reset();
+    write_e2e_mouse("keyboard_undeclared", 10, 0, still);
+    assert(run(DIR "/keyboard_undeclared.json") != 0);
+    assert(strstr(read_log(), DIR "/keyboard_undeclared.json") != NULL);
+}
+
 int main(void) {
     test_no_e2e_passes();
     test_e2e_of_180_frames_passes();
@@ -119,6 +172,11 @@ int main(void) {
     test_listed_exception_is_allowed_up_to_600_frames();
     test_missing_companion_file_fails();
     test_missing_exceptions_list_fails();
+    test_keyboard_e2e_declared_with_still_mouse_passes();
+    test_declared_e2e_not_named_keyboard_may_move_the_mouse();
+    test_keyboard_e2e_with_moved_mouse_fails_and_is_named();
+    test_keyboard_e2e_with_mouse_button_fails_and_is_named();
+    test_keyboard_e2e_without_declaration_fails_and_is_named();
     assert(system("rm -rf " DIR) == 0);
     printf("test_e2e_limits: all tests passed\n");
     return 0;

@@ -8,7 +8,9 @@
 #                       sha256 of its capture to <name>.json.sha256; also fails
 #                       if an e2e lacks its .txt or its .json.sha256, or runs
 #                       past 180 frames (600 if listed in
-#                       tools/e2e_long_exceptions.txt)
+#                       tools/e2e_long_exceptions.txt), or if a keyboard_*
+#                       e2e lacks "keyboard_cursor": true, moves the mouse
+#                       or presses a mouse button
 # make test-all      -> test + e2e, the full suite
 # make unit          -> the binaries of tests/, built and run
 # make replay EVENTS=<events> -> replays that file in the headless engine,
