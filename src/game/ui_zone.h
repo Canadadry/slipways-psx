@@ -41,10 +41,10 @@ size_t ui_zone_max_bytes(slot_kind_t slot_kind);
 size_t ui_zone_used(void);
 size_t ui_zone_max_used(void);
 
-/* Ephemerals only: the largest element count ui_zone_record_elements has
- * seen for a list, since the process started. */
-void ui_zone_record_elements(slot_kind_t slot_kind, int count);
-int ui_zone_max_elements(slot_kind_t slot_kind);
+/* The largest element count ui_zone_record_ephemerals has seen for an
+ * ephemerals list, since the process started. */
+void ui_zone_record_ephemerals(int count);
+int ui_zone_max_ephemerals(void);
 
 /* Limits: slots of the kind, bytes of one, bytes reserved for the zone. */
 int ui_zone_count(slot_kind_t slot_kind);

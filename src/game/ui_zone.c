@@ -1,9 +1,8 @@
 #include "game/ui_zone.h"
 
-#include <assert.h>
 #include <stddef.h>
 
-#include "engine/slot_tally.h"
+#include "engine/slot_group.h"
 #include "engine/zone_sizes.h"
 
 /* Sizes in bytes on x86-64, arena header included. Each count, and each
@@ -49,112 +48,52 @@ static const slot_kind_zone_t SLOT_KINDS[SLOT_KIND_COUNT] = {
     [SLOT_KIND_EPHEMERALS] = {"ui ephemerals", "slot ephemerals", ephemerals_cells, ephemerals_taken, EPHEMERALS_SIZE, EPHEMERALS_COUNT},
 };
 
-static slot_zone_t g_zones[SLOT_KIND_COUNT];
-static allocator_t g_slots[SLOT_KIND_COUNT];
-static int g_ready;
-static slot_tally_t g_tally;
-static int g_max_ephemerals_elements;
-
-static slot_kind_t slot_kind_of(const allocator_t *z);
-
-/* Lazy: allocator_init_slot_kinds poisons the storage under ASan, which a
- * static initializer would not do. */
-static void init_once(void) {
-    if (g_ready) return;
-    allocator_init_slot_kinds(SLOT_KINDS, SLOT_KIND_COUNT, g_zones, g_slots);
-    slot_tally_init(&g_tally, SLOT_KINDS, g_zones, SLOT_KIND_COUNT);
-    g_ready = 1;
-}
-
-static unsigned char *slot_alloc(const allocator_t *z, size_t n) {
-    slot_kind_t slot_kind = slot_kind_of(z);
-    init_once();
-    unsigned char *p = allocator_alloc(&g_slots[slot_kind], n);
-    slot_tally_take(&g_tally, slot_kind);
-    return p;
-}
-
-static void slot_release(const allocator_t *z, unsigned char *p) {
-    slot_kind_t slot_kind = slot_kind_of(z);
-    if (p == NULL) return;
-    slot_tally_give_back(&g_tally, slot_kind, p);
-    allocator_release(&g_slots[slot_kind], p);
-}
-
-static const allocator_t slot_allocators[SLOT_KIND_COUNT] = {
-    [SLOT_KIND_BUTTON] = {slot_alloc, allocator_grow_refused, slot_release, NULL, NULL},
-    [SLOT_KIND_MODAL_BACKDROP] = {slot_alloc, allocator_grow_refused, slot_release, NULL, NULL},
-    [SLOT_KIND_MESSAGE_BOX] = {slot_alloc, allocator_grow_refused, slot_release, NULL, NULL},
-    [SLOT_KIND_TOAST] = {slot_alloc, allocator_grow_refused, slot_release, NULL, NULL},
-    [SLOT_KIND_ROW] = {slot_alloc, allocator_grow_refused, slot_release, NULL, NULL},
-    [SLOT_KIND_EPHEMERALS] = {slot_alloc, allocator_grow_refused, slot_release, NULL, NULL},
-};
-
-static slot_kind_t slot_kind_of(const allocator_t *z) {
-    assert(z >= slot_allocators && z < slot_allocators + SLOT_KIND_COUNT && "slot_kind_of: handle outside the ui zone");
-    return (slot_kind_t)(z - slot_allocators);
-}
+static slot_group_t g_group = SLOT_GROUP(SLOT_KINDS, SLOT_KIND_COUNT);
 
 const allocator_t *ui_zone(slot_kind_t slot_kind) {
-    assert(slot_kind >= 0 && slot_kind < SLOT_KIND_COUNT);
-    return &slot_allocators[slot_kind];
+    return slot_group_handle(&g_group, slot_kind);
 }
 
 const allocator_t *ui_zone_slot(slot_kind_t slot_kind) {
-    return arena_take(ui_zone(slot_kind), SLOT_KINDS[slot_kind].slot_name, SLOT_KINDS[slot_kind].size);
+    return slot_group_slot(&g_group, slot_kind);
 }
 
 int ui_zone_live(slot_kind_t slot_kind) {
-    assert(slot_kind >= 0 && slot_kind < SLOT_KIND_COUNT);
-    init_once();
-    assert((size_t)slot_tally_live(&g_tally, slot_kind) == slot_zone_taken(&g_zones[slot_kind]) &&
-           "ui_zone_live: a slot taken or given back without its kind's handle");
-    return slot_tally_live(&g_tally, slot_kind);
+    return slot_group_live(&g_group, slot_kind);
 }
 
 int ui_zone_max_live(slot_kind_t slot_kind) {
-    assert(slot_kind >= 0 && slot_kind < SLOT_KIND_COUNT);
-    init_once();
-    return slot_tally_max_live(&g_tally, slot_kind);
+    return slot_group_max_live(&g_group, slot_kind);
 }
 
 size_t ui_zone_max_bytes(slot_kind_t slot_kind) {
-    assert(slot_kind >= 0 && slot_kind < SLOT_KIND_COUNT);
-    init_once();
-    return slot_tally_max_bytes(&g_tally, slot_kind);
+    return slot_group_max_bytes(&g_group, slot_kind);
 }
 
 size_t ui_zone_used(void) {
-    init_once();
-    return slot_tally_zone_bytes(&g_tally);
+    return slot_group_used(&g_group);
 }
 
 size_t ui_zone_max_used(void) {
-    init_once();
-    return slot_tally_zone_max_bytes(&g_tally);
+    return slot_group_max_used(&g_group);
 }
 
-void ui_zone_record_elements(slot_kind_t slot_kind, int count) {
-    assert(slot_kind == SLOT_KIND_EPHEMERALS && "ui_zone_record_elements: only the ephemerals slot holds a list");
-    if (count > g_max_ephemerals_elements) g_max_ephemerals_elements = count;
+void ui_zone_record_ephemerals(int count) {
+    slot_group_record_elements(&g_group, SLOT_KIND_EPHEMERALS, count);
 }
 
-int ui_zone_max_elements(slot_kind_t slot_kind) {
-    assert(slot_kind == SLOT_KIND_EPHEMERALS && "ui_zone_max_elements: only the ephemerals slot holds a list");
-    return g_max_ephemerals_elements;
+int ui_zone_max_ephemerals(void) {
+    return slot_group_max_elements(&g_group, SLOT_KIND_EPHEMERALS);
 }
 
 int ui_zone_count(slot_kind_t slot_kind) {
-    assert(slot_kind >= 0 && slot_kind < SLOT_KIND_COUNT);
-    return (int)SLOT_KINDS[slot_kind].count;
+    return slot_group_count(&g_group, slot_kind);
 }
 
 size_t ui_zone_slot_size(slot_kind_t slot_kind) {
-    assert(slot_kind >= 0 && slot_kind < SLOT_KIND_COUNT);
-    return SLOT_KINDS[slot_kind].size;
+    return slot_group_slot_size(&g_group, slot_kind);
 }
 
 size_t ui_zone_reserved(void) {
-    init_once();
-    return slot_tally_zone_reserved(&g_tally);
+    return slot_group_reserved(&g_group);
 }

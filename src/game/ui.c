@@ -40,7 +40,7 @@ entity_list_t *ui_ephemerals_new(void) {
 void ui_set_ephemerals(ui_t *self, entity_list_t *le) {
     entity_list_t *old = self->ephemerals;
 
-    if (le != &g_shared_ephemerals) ui_zone_record_elements(SLOT_KIND_EPHEMERALS, le->count);
+    if (le != &g_shared_ephemerals) ui_zone_record_ephemerals(le->count);
     self->ephemerals = le;
     if (old != NULL && old != &g_shared_ephemerals) {
         exit_queue_put_arena(old->zone);

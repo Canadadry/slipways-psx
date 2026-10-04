@@ -593,7 +593,7 @@ static void test_ephemerals_reserve_at_creation(void) {
     assert(ephemerals_of(ok)->count == 4);
     assert(ephemerals_of(ok)->capacity == 8);
     assert(ui_zone_max_bytes(SLOT_KIND_EPHEMERALS) == 184);
-    assert(ui_zone_max_elements(SLOT_KIND_EPHEMERALS) == 4);
+    assert(ui_zone_max_ephemerals() == 4);
 }
 
 /* Eight elements fit the reserve: neither the list nor its slot grows. */

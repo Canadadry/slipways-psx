@@ -238,7 +238,7 @@ static void write_caps(FILE *out) {
                PARTICLES_HELP_SCREEN_CAPACITY);
     write_peak(out, "elements_transit_dots", (size_t)particle_zone_max_elements(PARTICLE_SLOT_TRANSIT_DOT),
                SLIPWAY_TRANSIT_DOTS_RESERVE);
-    write_peak(out, "elements_ephemerals", (size_t)ui_zone_max_elements(SLOT_KIND_EPHEMERALS), UI_EPHEMERALS_RESERVE);
+    write_peak(out, "elements_ephemerals", (size_t)ui_zone_max_ephemerals(), UI_EPHEMERALS_RESERVE);
     char name[64];
     for (int i = PARTICLE_SLOT_LIST; i <= PARTICLE_SLOT_BURST; i++) {
         particle_slot_kind_t k = (particle_slot_kind_t)i;
