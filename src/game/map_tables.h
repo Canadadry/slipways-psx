@@ -22,8 +22,6 @@ typedef struct {
     const char *name;
 } resource_names_entry_t;
 
-/* values[0..count-1] are the entry's positionals; upgraded_entry is NULL
- * when absent. */
 typedef struct {
     const char *key;
     int count;
@@ -31,11 +29,6 @@ typedef struct {
     const char *upgraded_entry;
 } production_tables_entry_t;
 
-/* An item is the string `text` when non-NULL, the row when the row field is
- * non-NULL, false when is_false is set, the number `fixed` when is_fixed is
- * set (a non-integer, as fixed-point bits), the pointer `ref` when is_ref is
- * set (NULL: absent; never set by the data tables), the integer `number`
- * otherwise. */
 typedef struct data_row data_row_t;
 typedef struct {
     const char *text;
@@ -58,9 +51,6 @@ typedef enum {
     DRAW_FUNCTION_COUNT
 } draw_function_t;
 
-/* `color` is only meaningful when has_color is set; `resource`, which row_measure_item() draws as that resource's
- * sprite 5 pixels wide, only when has_resource is set (never by the data
- * tables). */
 struct data_row {
     int count;
     const data_item_t *items;
@@ -71,12 +61,6 @@ struct data_row {
     p8_fixed_t resource;
 };
 
-/* A non-NULL header makes the entry a bare string, the required_tech of the
- * records that follow, every other field zero. Otherwise positions 1..npos
- * are present: name, planet_codes, base_cost, production_key, inputs,
- * output, upgrade_tech, byproduct; upgrade_tech_false marks position 7
- * written false, upgrade_tech then being NULL. icon_sprite is only
- * meaningful under has_icon_sprite. */
 typedef struct {
     const char *header;
     int npos;
@@ -95,8 +79,6 @@ typedef struct {
     const char *class_name;
 } project_records_entry_t;
 
-/* icon_key is position 3 as written, a resource code; icon is that code's
- * resource, as resource_code_lookup() gives it. */
 typedef struct {
     const char *name;
     int era;
@@ -113,15 +95,9 @@ extern const project_records_entry_t project_records_table[PROJECT_RECORDS_COUNT
 extern const data_row_t icon_tooltips_table[ICON_TOOLTIPS_COUNT];
 extern const technologies_entry_t technologies_table[TECHNOLOGIES_COUNT];
 
-/* Returns 1 and writes *out_resource when key is present, 0 and leaves
- * *out_resource untouched otherwise. */
 int resource_code_lookup(const char *key, int *out_resource);
-/* NULL when key is absent. */
 const char *resource_names_lookup(const char *key);
-/* NULL when key is absent; otherwise a pointer into production_tables_table. */
 const production_tables_entry_t *production_tables_lookup(const char *key);
-/* The technologies_table entry with that name, NULL when none or when the
- * name is NULL. */
 const technologies_entry_t *map_tables_technologies_lookup(const char *px);
 
 #endif

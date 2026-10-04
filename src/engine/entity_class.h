@@ -5,8 +5,6 @@
 #include "engine/geom.h"
 #include "engine/vec.h"
 
-/* The states of an entity: update_entities() runs the method of `states`
- * that `state` names, called with `state_time`. */
 typedef enum {
     ENTITY_STATE_NONE,
     ENTITY_STATE_NORMAL,
@@ -19,8 +17,6 @@ typedef enum {
     STATE_COUNT
 } state_t;
 
-/* The ten tags the registry indexes entities under, in the order
- * every class lists its own. */
 typedef enum {
     TAG_STRUCTURE,
     TAG_ASCENSION,
@@ -37,7 +33,6 @@ typedef enum {
 
 #define TAG(t) (1u << (t))
 
-/* The four classes whose descendants the code asks after. */
 typedef enum {
     LINEAGE_PLANET,
     LINEAGE_STRUCTURE,
@@ -51,14 +46,6 @@ typedef struct entity_class entity_class_t;
 struct emitter;
 struct targeting;
 
-/* First member of every entity struct, and of the parent struct a child
- * embeds first. A component link points at the
- * field's storage, the archetype's for a field the class never writes;
- * NULL: the class has no such field, or it is absent. Written through:
- * `shake` by entity_geom_shake(), `is_dead` by its class, `is_hovered` by
- * the hover tracking of game/ui.c, and `emitter` and `targeting`, which
- * the instance stores in itself, by their modules. `*fold_anchor` 0:
- * absent. */
 typedef struct {
     const entity_class_t *class;
     state_t state;
@@ -77,18 +64,10 @@ typedef struct {
     struct targeting *targeting;
 } entity_t;
 
-/* Every constructor calls it first: its zone block leaves the header
- * indeterminate, and a reader would follow a link left unset. `state` is
- * ENTITY_STATE_NONE, `state_time` 0 and every link NULL until the
- * constructor sets its own. */
 static inline void entity_init_header(entity_t *self, const entity_class_t *cls) {
     *self = (entity_t){.class = cls};
 }
 
-/* What `left_press`, `right_press` and `accept_drop` return: `stop`
- * nonzero when the handler takes the event, 0 when it declines or has
- * nothing to say; `held` the entity it hands back, NULL otherwise. `held`
- * != NULL implies `stop`. */
 typedef struct {
     int stop;
     entity_t *held;
@@ -101,13 +80,6 @@ struct trade_offer;
 struct str_seq;
 struct kind_record;
 
-/* One `static const` per class. A NULL member: the class has no such
- * method. `draw`, `draw_overlay` and `hit_test` read the vectors they get
- * and never keep them; `left_press`, `right_press` and `drag` may keep
- * theirs. A NULL screen position: none given. `has_refresh` is NULL when a
- * non-NULL `refresh` is enough for the entity to have one; otherwise the
- * instance decides. `spawn_particle` returns a fresh particle the caller
- * owns. */
 struct entity_class {
     void (*draw)(entity_t *self, const vec_t *screen_pos);
     void (*draw_overlay)(entity_t *self, const vec_t *screen_pos);
@@ -125,41 +97,23 @@ struct entity_class {
     void (*draw_at)(entity_t *self, vec_t p, p8_fixed_t a);
     struct particle *(*spawn_particle)(entity_t *self);
     state_fn_t states[STATE_COUNT];
-    /* Set of `TAG(t)`: entity_register() files every instance under each
-     * such tag. */
     unsigned tags;
-    /* Set of `LINEAGE(l)`: the class is that lineage's or descends from
-     * it. */
     unsigned lineage;
     void (*apply_camera)(entity_t *self, p8_fixed_t parallax);
-    /* Releases what the instance holds in the interface and particle
-     * zones; only exit_queue_flush() calls it. */
     void (*release)(entity_t *self);
 };
 
-/* The construction keys of the planet family. NULL: the key is absent.
- * The constructor reads the struct, never keeps it, and adopts the string
- * and vectors it points at, without copying them. */
 typedef struct {
     const char *planet_id;
     vec_t *map_pos;
     vec_t *pos;
 } planet_keys_t;
 
-/* A kind handled as a value (the kind table, a structure icon's `kind`, a
- * research project's `class_name`): one `static const` per kind, never
- * freed. Not an entity: it has no `entity_t` header. `new_entity` builds
- * one entity of the kind and returns its header. `record`, never NULL,
- * holds the kind's `required_tech`, `sprite`, `state` and `cost` whether
- * its modules are up or down. */
 typedef struct {
     entity_t *(*new_entity)(const planet_keys_t *keys);
     const struct kind_record *record;
 } entity_kind_t;
 
-/* Here, not in game/slipway.h / game/probe.h: ui.c compares against them,
- * and slipway.c and probe.c include game/ui.h, so either header in ui.c
- * would make a mutual include. */
 const entity_class_t *slipway_class(void);
 const entity_class_t *probe_class(void);
 

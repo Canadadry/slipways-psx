@@ -23,10 +23,7 @@ p8_fixed_t random_walk_next(random_walk_t *state) {
     return v;
 }
 
-/* The scan stops at the first slot never written. Slots fill in the order
- * the shrinking ticket count picks: a pool whose size is not a multiple of
- * three fills a later slot first, which the early return keeps out of the
- * window until the slots before it are written. */
+/* Return, not continue, at the first unwritten slot: slots fill out of order. */
 static int weighted_picker_recent_contains(const weighted_picker_t *state, const planet_types_entry_t *e) {
     int i;
     for (i = 0; i < 3; i++) {
@@ -40,8 +37,6 @@ static int weighted_picker_recent_contains(const weighted_picker_t *state, const
     return 0;
 }
 
-/* Each entry gets flr(weight * multiplier) tickets, none when the product
- * is below 1. */
 weighted_picker_t *weighted_picker_new(const allocator_t *zone, const planet_types_entry_t *hr, int entries_count,
                            p8_fixed_t og, weighted_picker_random_fn_t r, void *r_ctx) {
     weighted_picker_t *state = (weighted_picker_t *)allocator_alloc(zone, sizeof *state);
@@ -72,8 +67,6 @@ weighted_picker_t *weighted_picker_new(const allocator_t *zone, const planet_typ
     return state;
 }
 
-/* The first ticket equal to the picked entry goes and the later ones shift
- * down; the picked entry is always in the pool. */
 static void weighted_picker_tickets_del(weighted_picker_t *state, const planet_types_entry_t *e) {
     int i = 0;
 
@@ -86,8 +79,6 @@ static void weighted_picker_tickets_del(weighted_picker_t *state, const planet_t
     }
 }
 
-/* Each draw removes its ticket for good: 66 tickets, while a 90-planet
- * galaxy can draw more, and an emptied pool would index out of range. */
 /* GAP-16 */
 const planet_types_entry_t *weighted_picker_next(weighted_picker_t *state) {
     const planet_types_entry_t *e;

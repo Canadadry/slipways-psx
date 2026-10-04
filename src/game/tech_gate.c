@@ -8,7 +8,6 @@
 #include "game/economy_formulas.h"
 #include "game/main_economy.h"
 
-/* The affordability flag of each entry of `technologies_table`, by rank. */
 static int g_affordable_flags[TECHNOLOGIES_COUNT];
 
 int tech_gate_is_unlocked(const char *px) {
@@ -32,7 +31,6 @@ p8_fixed_t tech_gate_if_unlocked(const char *px, p8_fixed_t lk, p8_fixed_t mc) {
     return lk;
 }
 
-/* flr(cost * max(demand for the icon resource, 0.55)); absent demand: 0. */
 static p8_fixed_t research_cost_with_discount(p8_fixed_t od, int has_planet_type, p8_fixed_t nk) {
     const economy_t *fm = main_economy_typed();
     p8_fixed_t fu = p8_fixed_from_int(0);
@@ -54,9 +52,6 @@ p8_fixed_t tech_gate_research_cost(const technologies_entry_t *t) {
     return research_cost_with_discount(p8_fixed_from_int(t->cost), 1, p8_fixed_from_int(t->icon));
 }
 
-/* The flag write below happens for every entry, before any early return:
- * hoisting it under a keep/drop branch would change what callers read back
- * through tech_gate_affordable_flags(). */
 static int available_technologies_predicate(const technologies_entry_t *t, int bi) {
     const economy_t *fm = main_economy_typed();
     const main_economy_placeholder_t *provisional = main_economy_placeholder();
@@ -70,6 +65,7 @@ static int available_technologies_predicate(const technologies_entry_t *t, int b
         jk = provisional->research_points;
     }
     affordable = tech_gate_research_cost(t) <= jk;
+    /* Written for every entry, before any early return: tech_gate_affordable_flags() reads it back. */
     g_affordable_flags[t - technologies_table] = affordable;
 
     if (fm != NULL) {

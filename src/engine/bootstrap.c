@@ -17,8 +17,6 @@ void reset_world(const entity_registry_reserve_t *reserve) {
     entity_registry_abandon_live_entities();
     entity_registry_init(reserve);
 
-    /* Build once, never rebuild. The entity module must be ready before the
-     * camera and mouse modules, whose inits assert it. */
     if (!entity_ready()) {
         entity_init();
     }
@@ -57,9 +55,6 @@ void update_entities(void) {
     for (i = 0; i < hv->count; i++) {
         entity_t *qc = hv->items[i];
 
-        /* The only caller of the state methods: the entity's state picks
-         * one at run time, so no site calls one by name and a grep reads
-         * them as dead code. */
         if (qc->state != ENTITY_STATE_NONE && qc->class->states[qc->state] != NULL) {
             qc->class->states[qc->state](qc, qc->state_time);
         }

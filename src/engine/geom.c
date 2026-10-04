@@ -12,8 +12,6 @@ side_of_line_t geom_side_of_line(vec_t a, vec_t b, vec_t c) {
     return (p8_fixed_sgn(kl) > 0) ? SIDE_POSITIVE : SIDE_NEGATIVE;
 }
 
-/* The four SIDE_ON_LINE tests are the "none of the four is on the line"
- * half; the two inequalities are the "each pair straddles" half. */
 int geom_segments_cross(vec_t p1, vec_t p2, vec_t q1, vec_t q2) {
     side_of_line_t q1_side = geom_side_of_line(p1, p2, q1);
     side_of_line_t q2_side = geom_side_of_line(p1, p2, q2);
@@ -24,9 +22,6 @@ int geom_segments_cross(vec_t p1, vec_t p2, vec_t q1, vec_t q2) {
            q1_side != q2_side && p1_side != p2_side;
 }
 
-/* The projection fraction is a dot product over the SQUARED segment
- * length, and the distance test compares squared distances too; the
- * 0.01/0.99 bounds leave out the two ends of the segment. */
 int geom_near_segment(vec_t a, vec_t b, vec_t c, p8_fixed_t fh) {
     vec_t d = vec_sub(b, a);
     p8_fixed_t l = p8_fixed_div(vec_dot(d, vec_sub(c, a)), vec_length_squared(d));

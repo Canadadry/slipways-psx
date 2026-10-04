@@ -2,9 +2,6 @@
 
 #include <string.h>
 
-/* All zero except the draw palette, which powers on as the identity map
- * with color 0 transparent -- PICO-8's own palt() reset state. An all-zero
- * table would instead mean "every color drawn as 0, nothing transparent". */
 void p8_vram_init(p8_vram_t *mem) {
     int c;
 

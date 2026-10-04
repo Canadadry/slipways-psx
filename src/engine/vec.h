@@ -14,31 +14,22 @@ vec_t vec_add(vec_t a, vec_t b);
 
 vec_t vec_sub(vec_t a, vec_t b);
 
-/* Vector by scalar only; no call site multiplies two vectors. */
 vec_t vec_mul(vec_t v, p8_fixed_t m);
 
-/* Vector by scalar only. Division by zero saturates per component, as
- * p8_fixed_div does -- see vec_normalize. */
 vec_t vec_div(vec_t v, p8_fixed_t d);
 
 vec_t vec_neg(vec_t v);
 
 p8_fixed_t vec_dot(vec_t a, vec_t b);
 
-/* The SQUARED length. Call sites that only compare distances use it
- * directly. */
 p8_fixed_t vec_length_squared(vec_t v);
 
 p8_fixed_t vec_length(vec_t v);
 
-/* A zero-length vector is not special-cased: its length is then 0 and
- * each component saturates through p8_fixed_div. */
 vec_t vec_normalize(vec_t v);
 
 vec_t vec_perpendicular(vec_t v);
 
-/* The angle is in turns; the y component follows p8_fixed_sin's
- * inverted sign. */
 vec_t vec_from_polar(p8_fixed_t fy, p8_fixed_t lx);
 
 #endif

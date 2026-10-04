@@ -27,9 +27,6 @@ const allocator_t *frame_zone(void) {
     return &frame_handle;
 }
 
-/* Taken only where used is about to drop, and when read: between two
- * such points a bump zone only grows, so the hot allocation path pays
- * nothing. */
 static void sample_max(void) {
     if (frame.used > frame_max) frame_max = frame.used;
 }

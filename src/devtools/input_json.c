@@ -86,9 +86,6 @@ static int find_dpad_field(const char *obj, int dpad_out[6]) {
     return 1;
 }
 
-/* Searches only json[0, head_end): a key inside a frame or after the frames
- * array is not the session's declaration. Returns 0 on a value other than
- * true or false; an absent key reads as 0. */
 static int find_keyboard_cursor(const char *json, const char *head_end, int *out) {
     static const char key[] = "\"keyboard_cursor\":";
     const char *p = strstr(json, key);
@@ -216,11 +213,6 @@ int p8_input_load(p8_input_t *input, const char *path) {
     return 1;
 }
 
-/* The file's fixed head and tail, and the single spelling of a frame line,
- * shared by p8_input_save and p8_input_append: the two writers must not
- * drift into different bytes for the same frames (see p8_input_append's
- * contract in p8/input.h). Frame lines are joined by FRAME_SEPARATOR, the
- * last one followed by JSON_SUFFIX. */
 #define JSON_PREFIX "{\n  \"frames\": [\n"
 #define JSON_PREFIX_KEYBOARD_CURSOR "{\n  \"keyboard_cursor\": true,\n  \"frames\": [\n"
 #define JSON_SUFFIX "\n  ]\n}\n"
@@ -260,8 +252,6 @@ int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *p
         return 0;
     }
     snprintf(tmp_path, tmp_path_size, "%s.tmp", path);
-    /* tmp_path_size was sized for this exact suffix; a longer one would
-     * silently truncate the path and rename over the wrong file. */
     assert(strlen(tmp_path) == strlen(path) + 4);
 
     FILE *f = fopen(tmp_path, "wb");
@@ -315,10 +305,6 @@ int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_
         return 0;
     }
 
-    /* `*tail_offset` is where JSON_SUFFIX currently starts. Writing
-     * there turns that suffix into a separator, the new line and a fresh
-     * suffix -- strictly longer, so the file only grows and nothing ever
-     * needs truncating. */
     int fresh = (*tail_offset <= 0);
     const char *head = fresh ? json_prefix(keyboard_cursor) : FRAME_SEPARATOR;
     long start = fresh ? 0 : *tail_offset;
@@ -338,8 +324,7 @@ int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_
         return 0;
     }
 
-    /* One fwrite of the whole tail: a process killed mid-session leaves the
-     * recording either without this frame or with it, never torn. */
+    /* One fwrite of the whole tail: a process killed mid-session must never leave a torn frame. */
     size_t tail_len = (size_t)written;
     if (fwrite(tail, 1, tail_len, f) != tail_len) {
         fclose(f);
@@ -350,8 +335,6 @@ int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_
     }
 
     *tail_offset = start + (long)strlen(head) + (long)strlen(line);
-    /* The new offset must land exactly on the JSON_SUFFIX just written,
-     * which is where the next frame overwrites it. */
     assert(*tail_offset + (long)strlen(JSON_SUFFIX) == start + (long)written);
     return 1;
 }

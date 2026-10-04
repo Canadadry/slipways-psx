@@ -18,8 +18,7 @@ static int g_planet_up = 0;
 static weighted_picker_t *g_type_picker = NULL;
 static random_walk_t *g_planet_vanish_roll = NULL;
 
-/* Shared by every bare planet: written in place by update_tiers_visit and
- * synthesizer_attach_slipway until planet_install_project gives it its own. */
+/* Shared by every bare planet, written in place, until planet_install_project gives it its own. */
 static production_t g_planet_production_shared;
 
 int planet_hit_test_method(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen) {
@@ -59,7 +58,6 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
     entity_init_instance(&self->header, instance_class, archetype->state, archetype->state_time);
     self->archetype = archetype;
     self->header.layer = &self->archetype->layer;
-    /* Read-only: the planet modules write through their members. */
     self->header.pos = (const vec_t *const *)&self->pos;
     self->header.map_pos = (const vec_t *const *)&self->map_pos;
     self->header.hit_box = &self->archetype->hit_box;
@@ -219,7 +217,6 @@ static int planet_project_need_count(const research_project_t *project) {
     return n;
 }
 
-/* What planet_install_project takes in its zone. */
 static size_t planet_project_bytes(const research_project_t *project) {
     size_t n = (size_t)planet_project_need_count(project);
 
@@ -308,9 +305,6 @@ void planet_roll_type(planet_t *self) {
         p8_fixed_t roll = random_walk_next(g_planet_vanish_roll);
         int use_vanishing = 0;
 
-        /* A winning roll (below 0.45) without a "vanishing" planet type falls
-         * through to the weighted picker -- both conditions, never the roll
-         * alone. */
         if (roll < P8_FIXED_LIT(0x00007333, 0.45)) {
             use_vanishing = planet_types_lookup("vanishing") != NULL;
         }
@@ -344,8 +338,6 @@ void planet_new_year(const planet_t *self) {
 
         keys.pos = self->pos;
         text = collect_format_signed(frame_zone(), self->net_income, 10, "$", &color);
-        /* One call gives both toast keys: the signed text and its color
-         * (10 for a gain, 8 for a loss). */
         keys.text = text;
         keys.color = p8_fixed_from_int(color);
         toast_new(&keys);

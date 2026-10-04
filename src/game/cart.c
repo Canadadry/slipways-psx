@@ -48,9 +48,7 @@ static void quit_game_zone(void) {
     grab_arena_forget_free();
 }
 
-/* data_init() and score_panel_init() each run further module inits of
- * their own (research, score-panel display); listing those here would
- * run them twice. */
+/* Do not list the inits data_init() and score_panel_init() run themselves: they would run twice. */
 void cart_load(void) {
     p8_vram_t *memory;
 
@@ -97,9 +95,7 @@ void cart_load(void) {
     score_panel_set_init(cart_init_method);
 }
 
-/* A released slot can come back at the same address: the shown message box
- * would equal the panel's last box for a new box, and the hover write would
- * land in another object. ASan does not see the comparison. */
+/* A released slot can come back at the same address, so stale pointers must be cleared here; ASan does not see the comparison. */
 static void forget(const entity_t *e) {
     ui_t *ok = main_ui();
     score_panel_t *ju = main_score_panel();
@@ -124,8 +120,6 @@ static void forget(const entity_t *e) {
     planet_forget_targeted_by(e);
 }
 
-/* Game-zone forget point: cuts the references into the generation that
- * game_zone_release() is about to give back. */
 static void forget_game_zone(void) {
     grab_arena_forget_free();
 }
@@ -177,19 +171,13 @@ void cart_init(void) {
            "cart_init: help_init() and score_panel_init() reset these bridges, so cart_load() must "
            "install them afterwards: every button copies the value when it is built");
 
-    /* A pending flip would trip flip_zone_flip's assert; an empty generation
-     * (cart_load() just reset the zone) needs none, and would trip it at a
-     * cart_start_game() of the same frame. */
+    /* An empty generation needs no flip, and flipping it would trip flip_zone_flip's assert. */
     if (!game_zone_pending() && game_zone_used() > 0) game_zone_flip();
     reset_world(NULL);
 
-    /* The icons' shared cursor takes the rest cursor itself (it aliases its
-     * vector, it is not a copy), and the shown message box is cleared. */
     structure_icon_set_cursor(structure_icon_rest_cursor());
     message_box_set_shown(NULL);
 
-    /* The quit game's economy and score panel die with the generation the
-     * flip above left pending; the boot placeholder stays. */
     if (main_economy_typed() != NULL) probe_set_main_economy(NULL);
     score_panel_set_main(NULL);
 
@@ -233,8 +221,7 @@ void cart_start_game(button_t *chosen_option) {
     economy_score_set_difficulty(chosen_option);
     game_zone_flip();
 
-    /* reset_world() runs a second time here, after cart_init()'s: it always
-     * rebuilds the registries and the main camera, mouse and user interface. */
+    /* Not redundant with cart_init()'s call: the registries, camera, mouse and UI must be rebuilt. */
     reset_world(&cart_game_registry_reserve);
     (void)background_new();
     galaxy_populate(p8_fixed_from_int(90));
@@ -270,9 +257,7 @@ void cart_start_game(button_t *chosen_option) {
     economy_recompute(main_economy_typed());
 }
 
-/* Here and not in a driver: replay, raylib and unit tests all go
- * through cart_update60(), and cart_draw(), which follows in the same frame,
- * reads back what the update wrote in the frame zone. */
+/* Here, not in a driver: every driver goes through cart_update60(), and cart_draw() reads what it wrote in the frame zone. */
 void cart_update60(void) {
     frame_zone_reset();
     cart_flush_exit_queue();

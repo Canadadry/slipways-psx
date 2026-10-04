@@ -64,8 +64,6 @@ void message_box_draw_overlay(p8_graphics_t *gfx, p8_vram_t *mem, message_box_t 
         }
     }
 
-    /* The cube of the time, negated, then divided by 9: the power binds
-     * tighter than the negation, which binds tighter than the division. */
     t3 = p8_fixed_mul(p8_fixed_mul(t, t), t);
     nc = p8_fixed_div(p8_fixed_neg(t3), p8_fixed_from_int(9));
 
@@ -91,14 +89,12 @@ static const entity_class_t message_box_class_def = {
     .release = message_box_release,
 };
 
-/* A draw_row article copied into a box's slot, its vector by value. */
 typedef struct {
     data_row_t row;
     data_item_t items[3];
     vec_t pos;
 } message_box_draw_row_t;
 
-/* The article, or its copy in the slot when it is a draw_row article. */
 static const data_row_t *message_box_article(const allocator_t *slot, const data_row_t *e) {
     message_box_draw_row_t *copy;
     const vec_t *ra;
@@ -301,8 +297,6 @@ typedef struct {
     vec_t pos;
 } open_box_ctx_t;
 
-/* One button row onto a copy of its keys: the common position, its own
- * slide_target, the layer from the back color; then the button. */
 static button_t *open_box_step(open_box_ctx_t *ctx, const button_keys_t *row) {
     button_keys_t b = *row;
     vec_t qf = ctx->button_pos;
@@ -323,7 +317,6 @@ static button_t *open_box_step(open_box_ctx_t *ctx, const button_keys_t *row) {
     return button_new(&b);
 }
 
-/* With no main_ui() there is no list to hold the button. */
 static void open_box_add(entity_list_t *le, button_t *button) {
     if (le != NULL) {
         entity_list_add(le, &button->header);
@@ -381,8 +374,6 @@ void message_box_open_box(const open_box_frame_t *frame, const button_keys_t *bu
         ui_set_ephemerals(dispatcher, ephemerals);
     }
 
-    /* The buttons built just above stay registered in the live entities
-     * once the ephemerals no longer hold them. */
     if (frame->clear_ephemerals_after && dispatcher != NULL) {
         ui_set_ephemerals(dispatcher, ui_ephemerals_new());
     }

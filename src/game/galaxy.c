@@ -13,8 +13,6 @@
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
 
-/* Adapts random_walk_next() to weighted_picker_random_fn_t: the context
- * pointer is always the random_walk_t this file passes alongside it. */
 static p8_fixed_t picker_random(void *ctx) {
     return random_walk_next((random_walk_t *)ctx);
 }
@@ -41,10 +39,7 @@ void galaxy_populate(p8_fixed_t planet_count) {
         planet_keys_t keys;
         planet_t *made;
 
-        /* The planet tag is empty only on the very first trial: every
-         * accepted planet below registers itself under it, so later
-         * candidates really are rejection-sampled against the ones already
-         * placed. Not an inert loop over a list that stays empty. */
+        /* Not an inert loop: every accepted planet registers under the planet tag, so later candidates are rejected against it. */
         do {
             p8_fixed_t rx = p8_fixed_add(p8_fixed_rnd(map_span), map_margin);
             p8_fixed_t ry = p8_fixed_add(p8_fixed_rnd(map_span), map_margin);
@@ -63,13 +58,10 @@ void galaxy_populate(p8_fixed_t planet_count) {
         keys.map_pos = p_box;
         keys.pos = pos_box;
 
-        /* Built for its side effect: it registers itself in the live list and the registries. */
         made = planet_new(&keys);
         (void)made;
     }
 
-    /* No difficulty button, or one without a type bias, leaves the bias
-     * at 0. */
     difficulty = economy_score_difficulty();
     if (difficulty != NULL && difficulty->has_type_bias) {
         difficulty_type_bias = difficulty->type_bias;

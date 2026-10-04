@@ -5,10 +5,9 @@
 
 #include "engine/game_zone.h"
 
-/* Grab arenas are recognised by the address of this name (grab_arena_give_back). */
+/* Grab arenas are recognised by this name's address, not its contents. */
 static const char grab_arena_name[] = "grab";
 
-/* Non-NULL only between grab_arena_open and grab_arena_close. */
 static const allocator_t *g_grab_arena = NULL;
 static const allocator_t *g_grab_arenas_free[GRAB_ARENAS_FREE_MAX];
 static int g_grab_arenas_free_n = 0;

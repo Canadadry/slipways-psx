@@ -3,21 +3,14 @@
 #include <assert.h>
 #include <stddef.h>
 
-/* 9600 is a constant of the published format, but the macro derives from
- * the screen size: this compile-time assertion ties the two, so that a
- * change of screen size breaks the build here instead of silently
- * changing the format. */
 typedef char screencast_frame_is_9600_bytes_t[(SCREENCAST_FRAME_BYTES == 9600) ? 1 : -1];
-/* Two pixels per byte: an odd width would split a pair across two rows. */
 typedef char screencast_width_is_even_t[(P8_SCREEN_WIDTH % 2 == 0) ? 1 : -1];
 
 int screencast_writer_open(screencast_writer_t *writer, const char *path) {
     assert(writer);
     assert(path);
 
-    /* "wb" and never "ab": two concatenated captures would be a game
-     * nobody played, and their size would still be a multiple of 9600, so
-     * no validation would catch them. */
+    /* Never "ab": two concatenated captures would still pass the size validation. */
     writer->file = fopen(path, "wb");
     return writer->file != NULL;
 }
@@ -34,11 +27,8 @@ int screencast_write_frame(screencast_writer_t *writer, const p8_vram_t *mem) {
         for (int x = 0; x < P8_SCREEN_WIDTH; x += 2) {
             unsigned char even = mem->screen[y][x];
             unsigned char odd = mem->screen[y][x + 1];
-            /* A byte above 0x0f would spill into the neighbouring nibble and
-             * corrupt the pixel next to it, which would only show later, as a
-             * rendering divergence. */
-            assert(even <= 0x0f);
-            assert(odd <= 0x0f);
+            assert(even <= 0x0f && "screencast: a pixel above 0x0f spills into its neighbour's nibble");
+            assert(odd <= 0x0f && "screencast: a pixel above 0x0f spills into its neighbour's nibble");
             packed[i++] = (unsigned char)(even | (odd << 4));
         }
     }
@@ -110,9 +100,7 @@ int screencast_read_frame(screencast_reader_t *reader, int index, unsigned char 
         return 0;
     }
 
-    /* The cast to long comes before the multiplication, and must stay
-     * there: with a 32-bit `int`, index x 9600 overflows past 223696
-     * frames (62 minutes at 60 Hz), well before fseek's own limit. */
+    /* Cast before multiplying: index x 9600 overflows a 32-bit int past 223696 frames. */
     if (fseek(reader->file, (long)index * SCREENCAST_FRAME_BYTES, SEEK_SET) != 0) {
         return 0;
     }

@@ -6,17 +6,10 @@
 #include "game/planet.h"
 #include "game/trade.h"
 
-/* Throughout this module a NULL instance or NULL offer argument is a safe
- * no-op (NULL for the value-returning function), and an absent or
- * wrong-kind field reads as absent rather than crashing. */
-
 typedef struct trade_offer trade_offer_t;
 
-/* `self` is the offer itself, never the planet that built it. */
 typedef void (*trade_offer_accept_fn_t)(trade_offer_t *self, trade_route_t *a);
 
-/* `accepted_routes` is the one list every offer built by a single
- * planet_rebuild_trades() call shares and appends to. */
 struct trade_offer {
     trade_route_t *route;
     p8_fixed_t amount;
@@ -28,12 +21,6 @@ void planet_attach_slipway(planet_t *self, entity_t *slipway);
 
 void planet_offer_trade(planet_t *self, trade_offer_t *offer);
 
-/* Returns the planet's `outgoing_routes` itself when it is set, else a list
- * made in the game zone, never given back before it; never writes
- * `outgoing_routes` back -- its caller does. Every block the call takes in
- * the frame zone (the candidate offers) is dead on return, its room given
- * back: an offer_trade method or accept callback keeps nothing of the frame
- * zone, and grows no frame-zone list made before the call. */
 entity_list_t *planet_rebuild_trades(planet_t *self);
 
 #endif

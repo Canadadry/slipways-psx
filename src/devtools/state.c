@@ -55,7 +55,6 @@ static void write_position(FILE *out, const entity_t *e, vec_t camera) {
     fprintf(out, " visible %d", entity_geom_is_on_screen(e));
 }
 
-/* The class name, or NULL outside the planet lineage. */
 static const char *class_of(const entity_t *e) {
     const entity_class_t *c = e->class;
     if (c == planet_class()) return "planet";
@@ -101,8 +100,6 @@ static void write_clock(FILE *out) {
     fputc('\n', out);
 }
 
-/* Before cart_start_game(), only the main economy placeholder holds the
- * resources, which the cheat writes. */
 static void write_resources(FILE *out) {
     const economy_t *economy = main_economy_typed();
     const main_economy_placeholder_t *placeholder = main_economy_placeholder();
@@ -162,8 +159,6 @@ static void write_planets(FILE *out, vec_t camera) {
     }
 }
 
-/* A slipway still held by the mouse is placing; the probe's confirm
- * moves it to normal once placed. */
 static int slipway_placed(const entity_t *e) {
     return e->state != ENTITY_STATE_PLACING;
 }
@@ -192,8 +187,7 @@ static void write_structures(FILE *out, vec_t camera) {
     }
 }
 
-/* Planets settled, labs included: planet_is_colonized() would skip those
- * whose archetype has no is_planet. */
+/* Not planet_is_colonized(): it skips labs, whose archetype has no is_planet. */
 static int count_colonies(void) {
     const entity_list_t *planets = entities_by_tag(TAG_PLANET);
     int n = 0;
@@ -203,9 +197,6 @@ static int count_colonies(void) {
     return n;
 }
 
-/* Every zone and cap line: "<current> <peak> <limit>". Zones in bytes;
- * caps in slots, except `elements_*` (elements of a list) and `bytes_*`
- * (bytes of an arena slot), whose current is unknown: -. */
 static void write_zone(FILE *out, const char *name, size_t current, size_t peak, size_t limit) {
     fprintf(out, "zone %s %lu %lu %lu\n", name, (unsigned long)current, (unsigned long)peak, (unsigned long)limit);
 }

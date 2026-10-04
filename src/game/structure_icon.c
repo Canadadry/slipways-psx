@@ -19,10 +19,6 @@
 
 static int g_structure_icon_up = 0;
 
-/* One cursor and one counter shared by every icon, never a member. The
- * cursor is rebound, never written through: an icon's `pos`, and the rest
- * position, may hold its REF. cart_init(), structure_icon_init() and the
- * shutdown reset the cursor; only structure_icon_init() resets the counter. */
 static const vec_t *g_cursor = NULL;
 static p8_fixed_t g_id_counter = 0;
 static int g_has_id_counter = 0;
@@ -31,8 +27,6 @@ static int structure_icon_to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
 }
 
-/* Returns the kind the icon holds, or NULL when it holds none. The
- * result is borrowed. */
 static const entity_kind_t *structure_icon_own_kind(const structure_icon_t *self) {
     return self != NULL ? self->kind : NULL;
 }
@@ -76,8 +70,6 @@ void structure_icon_refresh(structure_icon_t *self) {
         return;
     }
 
-    /* Structure and processor kinds never set `required_tech`, so it stays
-     * absent for them and tech_gate_is_unlocked() then answers 1. */
     rr = structure_icon_kind_view(self).required_tech;
 
     if (!tech_gate_is_unlocked(rr)) {
@@ -86,9 +78,7 @@ void structure_icon_refresh(structure_icon_t *self) {
 
     assert(g_structure_icon_up && "structure_icon_init() must run before structure_icon_refresh moves the shared cursor");
 
-    /* `self->pos` points at the vector the shared cursor points at now. The
-     * subtraction below rebinds the cursor to a fresh vector rather than
-     * writing through the old one, so this snapshot survives it. */
+    /* Rebind the cursor, never write through it: `self->pos` keeps the old vector. */
     self->pos = g_cursor;
     self->is_revealed = 1;
     self->has_is_revealed = 1;
@@ -126,8 +116,7 @@ down_t structure_icon_left_press(structure_icon_t *self) {
         return out;
     }
 
-    /* The grab opens before `id_str` is made: the planet keeps that exact
-     * pointer as its `planet_id`, so it lives and dies with the grab arena. */
+    /* The grab opens before `id_str` is made: the planet keeps that pointer, so it lives and dies with the grab arena. */
     id_num_str = p8_tostr_fixed(frame_zone(), new_id);
     grab_arena_open(ZONE_BYTES(1 + strlen(id_num_str) + 1) + planet_kind_construction_bytes(entity_kind));
     id_str = p8_concat2(grab_arena_construction_zone(), "s", id_num_str);
@@ -149,7 +138,6 @@ static down_t structure_icon_left_press_method(entity_t *self, vec_t *mouse_worl
 void structure_icon_draw(p8_graphics_t *gfx, p8_vram_t *mem, structure_icon_t *self, vec_t p) {
     structure_icon_kind_t view;
 
-    /* An icon not yet revealed by structure_icon_refresh() draws nothing. */
     if (self == NULL || !(self->has_is_revealed && self->is_revealed)) {
         return;
     }
@@ -163,9 +151,6 @@ void structure_icon_draw(p8_graphics_t *gfx, p8_vram_t *mem, structure_icon_t *s
     p8_spr_default(gfx, mem, view.has_sprite ? structure_icon_to_int(view.sprite) : 0, structure_icon_to_int(p.x),
                       structure_icon_to_int(p.y));
 
-    /* targeting_tooltip_show() is not inert here: every kind an icon holds
-     * inherits the structure's state, placing, so it passes its own state
-     * check and draws the kind-level build cost. */
     if (self->is_hovered) {
         if (structure_icon_own_kind(self) != NULL) {
             targeting_t pb = {.archetype = &targeting_archetype_none};
@@ -182,13 +167,11 @@ void structure_icon_draw(p8_graphics_t *gfx, p8_vram_t *mem, structure_icon_t *s
     p8_palt(mem, 3, 1);
 }
 
-/* draw_layers() passes each entity its own `pos`: always `self->pos`. */
 static void structure_icon_draw_method(entity_t *self, const vec_t *screen_pos) {
     vec_t p = screen_pos != NULL ? *screen_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     structure_icon_draw(dispatch_context_gfx(), dispatch_context_mem(), (structure_icon_t *)self, p);
 }
 
-/* The hit test is entity_geom_contains_cursor() itself, nothing more. */
 static int structure_icon_hit_test_method(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen) {
     return entity_geom_contains_cursor(self, mouse_world, mouse_screen);
 }

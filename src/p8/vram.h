@@ -13,10 +13,6 @@
 #define P8_MAP_HEIGHT 32
 
 typedef struct {
-    /* One byte per source color 0-15, low bits giving the color it is
-     * actually drawn as, P8_DRAW_PALETTE_TRANSPARENT_BIT meaning "not drawn
-     * at all". p8_palt() and hud_select_palette_block() write these same
-     * bytes. */
     unsigned char draw_palette[16];
     unsigned char sprite_sheet[P8_SPRITE_SHEET_HEIGHT][P8_SPRITE_SHEET_WIDTH];
     unsigned char map_cells[P8_MAP_HEIGHT][P8_MAP_WIDTH];

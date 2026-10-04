@@ -53,7 +53,6 @@ typedef struct {
     entity_t header;
 } main_mouse_placeholder_t;
 
-/* The only one: never allocated, never freed. */
 static main_mouse_placeholder_t g_main_mouse_placeholder = {{.class = &main_mouse_placeholder_class_def}};
 
 static int ui_to_int(p8_fixed_t x) {
@@ -64,8 +63,6 @@ static vec_t ui_vec_or_zero(const vec_t *v) {
     return v != NULL ? *v : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
-/* The button of the main mouse on that side, NULL when it has none (the
- * member-less placeholder) or before its first update. */
 static const mouse_button_t *ui_main_mouse_button(mouse_side_t side) {
     const mouse_button_t *b;
 
@@ -166,9 +163,7 @@ mouse_t *main_mouse_typed(void) {
     return (mouse_t *)g_main_mouse;
 }
 
-/* The outgoing instance lives on with its generation. `reset_world()`
- * rebuilds the main mouse and `main_ui()` mid-frame, from a click handled
- * inside ui_update, whose `self` is still the old one after it returns. */
+/* Never frees the outgoing instance: a click inside ui_update replaces it while `self` is still the old one. */
 void ui_set_main_mouse(entity_t *instance) {
     if (instance == g_main_mouse) {
         return;
@@ -180,7 +175,7 @@ ui_t *main_ui(void) {
     return g_main_ui;
 }
 
-/* Same non-freeing rule as ui_set_main_mouse(), and the same reason. */
+/* Never frees the outgoing ui, for the same reason as ui_set_main_mouse(). */
 void ui_set_main_ui(ui_t *ui) {
     if (ui == g_main_ui) {
         return;
@@ -188,8 +183,6 @@ void ui_set_main_ui(ui_t *ui) {
     g_main_ui = ui;
 }
 
-/* The ephemerals are read before the hover and button handling run: the
- * test further down is a pointer identity check against this frame's list. */
 void ui_update(p8_vram_t *mem, ui_t *self) {
     entity_list_t *ephemerals_ptr_before;
     int ephemerals_count;
@@ -231,8 +224,6 @@ void ui_update(p8_vram_t *mem, ui_t *self) {
     self->previous_hovered = self->hovered;
 }
 
-/* A right-held background shows sprite 9; a hovered entity whose own
- * `cursor_sprite` is absent falls through to self's own cursor sprite. */
 void ui_draw_overlay(const p8_graphics_t *gfx, p8_vram_t *mem, const ui_t *self) {
     vec_t main_mouse_pos;
     const mouse_t *je;
@@ -255,9 +246,6 @@ void ui_draw_overlay(const p8_graphics_t *gfx, p8_vram_t *mem, const ui_t *self)
     p8_spr_default(gfx, mem, spr_id, ui_to_int(main_mouse_pos.x), ui_to_int(main_mouse_pos.y));
 }
 
-/* An absent previously hovered entity is skipped. The previous one is
- * cleared before the hovered one is set, so an entity hovered on two frames
- * in a row stays hovered. */
 void ui_update_hover(ui_t *self) {
     const mouse_t *mouse;
     const vec_t *main_mouse_pos;
@@ -293,6 +281,7 @@ void ui_update_hover(ui_t *self) {
         }
     }
 
+    /* Clear before set, so an entity hovered two frames in a row stays hovered. */
     if (self->previous_hovered != NULL) {
         assert(self->previous_hovered->is_hovered != NULL &&
                "ui_update_hover: the previously hovered entity has no is_hovered member -- stop, do not add one");
@@ -355,8 +344,6 @@ void ui_handle_button(ui_t *self, mouse_side_t side) {
         entity_t *target = NULL;
         down_t down;
 
-        /* The drop target is the entity ui_send_to_hovered found, not a
-         * field read on the held entity. */
         (void)ui_send_to_hovered(self, SEND_TO_HOVERED_ACCEPT_DROP, NULL, NULL, held_inst, &target, &down);
 
         if (held_inst->class->drop != NULL) {
@@ -370,9 +357,7 @@ void ui_handle_button(ui_t *self, mouse_side_t side) {
     }
 }
 
-/* Layers descend from 15 to 0 and the first answer whose `stop` is set
- * wins: that order is the dispatch priority between overlapping entities,
- * not an arbitrary walk. */
+/* Layers descend from 15 to 0 and the first `stop` wins: that order is the dispatch priority. */
 int ui_send_to_hovered(ui_t *self, send_to_hovered_slot_t message, vec_t *mouse_world, vec_t *mouse_screen, const entity_t *held,
                 entity_t **out_target, down_t *out_down) {
     int layer;

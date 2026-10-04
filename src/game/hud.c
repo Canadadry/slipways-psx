@@ -3,7 +3,6 @@
 #include <assert.h>
 #include <string.h>
 
-/* The 8 outline offsets in black, then the center in color 15. */
 typedef struct {
     int offset_x;
     int offset_y;
@@ -18,9 +17,6 @@ static int to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
 }
 
-/* Row = block, column = source color; color 3 carries the transparency
- * bit in every block. tests/test_hud.c checks it against the cart's
- * sprite-sheet pixels (block n, color c at pixel (n, c)). */
 static const unsigned char palette_blocks[16][16] = {
     {0, 1, 2, 131, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
     {0, 1, 2, 131, 2, 5, 6, 7, 8, 4, 9, 11, 12, 5, 14, 9},
@@ -62,8 +58,6 @@ void hud_draw_bar_y1(p8_graphics_t *gfx, p8_vram_t *mem, p8_fixed_t y1, int col)
     hud_draw_bar(gfx, mem, y1, y1, col);
 }
 
-/* 6 is PICO-8's pen color at power-on, before any explicit color; its one
- * caller always draws a colored bar first. */
 void hud_draw_bar_default(p8_graphics_t *gfx, p8_vram_t *mem, p8_fixed_t y1, p8_fixed_t y2) {
     int col = (gfx != NULL) ? gfx->pen_color : 6;
     hud_draw_bar(gfx, mem, y1, y2, col);

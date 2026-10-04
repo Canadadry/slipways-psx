@@ -15,8 +15,6 @@ static int g_wormhole_up = 0;
 
 static const entity_class_t wormhole_too_far_target_class_def = {0};
 
-/* The only one: never allocated, never freed; no writer, so a write
- * reaching it stops the run. */
 static wormhole_too_far_target_t g_wormhole_too_far_target_wrapper = {
     {.class = &wormhole_too_far_target_class_def},
     wormhole_too_far_target_status_text,
@@ -125,8 +123,7 @@ void wormhole_drop(wormhole_t *self) {
 
     t = self->header.state_time;
 
-    /* targeting_confirm's side effects must not run before tick 15, so
-     * this call cannot be hoisted out of the else branch. */
+    /* targeting_confirm's side effects must not run before tick 15: do not hoist it out of the else. */
     if (t < p8_fixed_from_int(15)) {
         result = 1;
     } else {
@@ -201,13 +198,10 @@ static void wormhole_release_method(entity_t *self) {
     grab_arena_give_back(((wormhole_t *)self)->anchors->zone);
 }
 
-/* The drag entry is wormhole_drag, which calls targeting_track itself and
- * then searches the nearest anchor. Putting targeting_track_method there,
- * as in the other targeting classes, would look uniform and would drop the
- * nearest-anchor search and the too-far target. */
 static const entity_class_t wormhole_class_def = {
     .draw = wormhole_draw_method,
     .draw_overlay = targeting_tooltip_method,
+    /* Not targeting_track_method: wormhole_drag adds the nearest-anchor search and the too-far target. */
     .drag = wormhole_drag_method,
     .drop = wormhole_drop_method,
     .release = wormhole_release_method,

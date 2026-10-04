@@ -7,18 +7,13 @@
 #include <stdio.h>
 #include <time.h>
 
-/* The shared table has no raylib (three bytes per color) so that
- * `make unit` can assert it without a window; the alpha, always opaque, is
- * added here. */
 static Color palette_color(unsigned char index) {
     p8_rgb_t rgb = P8_PALETTE_RGB[index & 0x0f];
     return (Color){ rgb.red, rgb.green, rgb.blue, 0xFF };
 }
 
 void raylib_backend_init(raylib_backend_t *backend, int keyboard_cursor) {
-    /* One time(NULL) for both names: the marker file is only usable if a
-     * human can pair it with its recording by name, and two clock reads
-     * could straddle a second. */
+    /* One clock read for both names: a human pairs the marker file with its recording by name. */
     time_t now = time(NULL);
     char record_path[SESSION_RECORDER_PATH_MAX];
     snprintf(record_path, sizeof(record_path), "tmp/events_recorded_%ld.json", (long)now);
@@ -68,9 +63,6 @@ void raylib_backend_poll_input(raylib_backend_t *backend, p8_input_frame_t *out_
     out_frame->dpad[4] = IsKeyDown(KEY_Z) ? 1 : 0;
     out_frame->dpad[5] = IsKeyDown(KEY_X) ? 1 : 0;
 
-    /* Appended rather than rewritten, so a marker already on disk
-     * survives a later crash. The count read here is the index this frame
-     * gets when the caller records it on its very next call. */
     if (IsKeyReleased(KEY_SPACE)) {
         int marked_frame = session_recorder_frame_count(&backend->recorder);
         FILE *markers = fopen(backend->markers_path, "a");
@@ -111,8 +103,6 @@ void raylib_backend_present(raylib_backend_t *backend, const p8_vram_t *mem, con
     BeginDrawing();
     ClearBackground(BLACK);
     DrawTextureEx(backend->screen_texture, (Vector2){ 0, 0 }, 0.0f, (float)RAYLIB_BACKEND_SCALE, WHITE);
-    /* The band behind the text is there because the game draws every
-     * pixel underneath. */
     if (replay_status) {
         DrawRectangle(0, 0, P8_SCREEN_WIDTH * RAYLIB_BACKEND_SCALE, 26, (Color){ 0, 0, 0, 190 });
         DrawText(replay_status, 8, 5, 18, RAYWHITE);
@@ -123,9 +113,6 @@ void raylib_backend_present(raylib_backend_t *backend, const p8_vram_t *mem, con
 }
 
 void raylib_backend_record_frame(raylib_backend_t *backend, const p8_input_frame_t *frame) {
-    /* The return value is ignored on purpose: the recorder leaves its own
-     * count alone on failure, so the marker file keeps naming the right
-     * frame. */
     (void)session_recorder_record_frame(&backend->recorder, frame);
 }
 

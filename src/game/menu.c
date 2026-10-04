@@ -19,12 +19,9 @@
 #include "engine/frame_zone.h"
 #include "game/ui_zone.h"
 
-/* The most items a row of the galaxy menu or the pause menu holds. */
 #define MENU_ROW_CAP 4
 
 static int g_menu_up = 0;
-/* The galaxy menu's positions and the pause menu's fixed_pos and row_step,
- * reset by each init: the buttons borrow them. */
 static vec_t g_galaxy_menu_pos[GALAXY_MENU_COUNT];
 static vec_t g_pause_menu_fixed_pos;
 static vec_t g_pause_menu_row_step;
@@ -36,13 +33,11 @@ typedef struct {
     vec_t *fixed_pos;
     vec_t *row_step;
     p8_fixed_t back_color;
-    int has_back_color; /* 0: no back color, and back_color is then never read */
+    int has_back_color;
 } pause_menu_open_box_t;
 
 static const entity_class_t pause_menu_open_box_class_def = {0};
 
-/* Never allocated nor freed: menu_init() points its fixed_pos and row_step at
- * the pause menu's values and sets its back color; menu_shutdown() clears. */
 static pause_menu_open_box_t g_pause_menu_open_box = {
     {.class = &pause_menu_open_box_class_def},
     NULL,
@@ -51,9 +46,6 @@ static pause_menu_open_box_t g_pause_menu_open_box = {
     0,
 };
 
-/* The technology field of the button keys is where tech_tree_screen_step
- * stashes the row's captured tech, as its entry of technologies_table, read
- * back here off the button the keys were copied to. */
 static void tech_tree_screen_row_on_click_method(button_t *self) {
     if (self == NULL) {
         return;
@@ -63,7 +55,6 @@ static void tech_tree_screen_row_on_click_method(button_t *self) {
     }
 }
 
-/* One tech-tree screen button: its keys and the layout rows they read. */
 typedef struct {
     button_keys_t row;
     layout_row_keys_t layout_row;
@@ -72,8 +63,6 @@ typedef struct {
     layout_row_cell_t cost_items[2];
 } tech_tree_screen_row_t;
 
-/* An unaffordable tech gets on_click present but NULL, not absent: the
- * affordable flag is a comparison, and a false one leaves no callback. */
 static void tech_tree_screen_step(const technologies_entry_t *t, tech_tree_screen_row_t *b) {
     static const data_item_t pair_items[] = {{.number = 24}, {.number = 5}};
     static const data_row_t pair = {.count = 2, .items = pair_items};
@@ -101,6 +90,7 @@ static void tech_tree_screen_step(const technologies_entry_t *t, tech_tree_scree
     b->row.has_tooltip = 1;
     b->row.tooltip_row = t->tooltip_rows;
 
+    /* An unaffordable tech gets on_click present but NULL, not absent. */
     b->row.has_on_click = 1;
     if (tech_gate_affordable_flags(t)) {
         b->row.technology = t;
@@ -108,8 +98,6 @@ static void tech_tree_screen_step(const technologies_entry_t *t, tech_tree_scree
     }
 }
 
-/* Tooltip of the invented-count row: one line per invented tech, its name
- * (NULL an empty line), in one block of the frame zone. */
 static const data_row_t *invented_lines(const pointer_list_t *list) {
     int n = list != NULL ? list->count : 0;
     size_t size = sizeof(data_row_t) + (size_t)n * sizeof(data_item_t);
@@ -151,9 +139,7 @@ void menu_show_tech_tree_screen(void) {
         next_threshold = p8_fixed_from_int(tier_thresholds);
     }
 
-    /* 1 is the ignore-cost flag: this screen lists every tech of the era,
-     * affordable or not. The second galaxy row's refresh wants only the
-     * affordable ones. The two sites do not merge. */
+    /* 1 lists every tech of the era, affordable or not; the galaxy row's refresh must pass 0. */
     available_technologies_list = tech_gate_available_technologies(1);
     rows = (tech_tree_screen_row_t *)allocator_alloc(frame_zone(), ((size_t)available_technologies_list.count + 1) * sizeof *rows);
     buttons = (button_keys_t *)allocator_alloc(frame_zone(), ((size_t)available_technologies_list.count + 1) * sizeof *buttons);
@@ -231,9 +217,6 @@ static void galaxy_menu_button2_on_click_method(button_t *self) {
     menu_show_tech_tree_screen();
 }
 
-/* Without the flag, only affordable techs count. menu_show_tech_tree_screen()
- * passes it, the other, non-interchangeable site: passing it here would light
- * the icon whenever any tech of the era is left. */
 static void galaxy_menu_button2_refresh_method(button_t *self) {
     available_technologies_kept_t available_technologies_list;
     int available_technologies_count;
@@ -245,6 +228,7 @@ static void galaxy_menu_button2_refresh_method(button_t *self) {
         return;
     }
 
+    /* Passing 1 here would light the icon whenever any tech of the era is left. */
     available_technologies_list = tech_gate_available_technologies(0);
     available_technologies_count = available_technologies_list.count;
 
@@ -259,8 +243,6 @@ static void galaxy_menu_button2_refresh_method(button_t *self) {
     self->layout_row_slot = slot;
 }
 
-/* The modal backdrop takes the on_click of the one panel toggle of
- * score_panel_display.c, the one score_panel_update() uses. */
 static void galaxy_menu_button3_on_click_method(button_t *self) {
     score_panel_t *ju = main_score_panel();
     modal_backdrop_keys_t keys = {0};
@@ -275,8 +257,7 @@ static void galaxy_menu_button3_on_click_method(button_t *self) {
     (void)built;
 }
 
-/* Must stay non-NULL: ui_button draws a button without on_click in color 5
- * instead of 12/13, which would move pixels of the pause menu. */
+/* Must stay non-NULL: ui_button draws a button without on_click in color 5 instead of 12/13. */
 static void pause_menu_row2_on_click_method(button_t *self) {
     (void)self;
 }
@@ -297,8 +278,6 @@ static const button_fn_t galaxy_menu_on_click_table[GALAXY_MENU_COUNT] = {
 };
 static const button_fn_t galaxy_menu_refresh_table[GALAXY_MENU_COUNT] = {NULL, galaxy_menu_button2_refresh_method, NULL, NULL};
 
-/* Opens the pause menu: its rows go in as buttons, their on_click installed
- * on every run, in the frame the pause-menu struct carries. */
 static void galaxy_menu_button4_on_click_method(button_t *self) {
     const button_fn_t my[PAUSE_MENU_COUNT] = {
         score_panel_init_field_value(),

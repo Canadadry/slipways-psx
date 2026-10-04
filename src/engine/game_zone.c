@@ -23,9 +23,6 @@ static void game_zone_init_once(void) {
     load_zone_handle = allocator_from_bump_zone(&load_zone_storage);
 }
 
-/* The bump zone keeps no peak: `used` only grows between two resets, so
- * reading it before each reset and on each read of the maximum is
- * enough. */
 static void load_zone_record_max(void) {
     if (load_zone_storage.used > load_zone_max_used) load_zone_max_used = load_zone_storage.used;
 }

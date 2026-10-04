@@ -24,8 +24,6 @@
 #include "engine/frame_zone.h"
 #include "game/ui_zone.h"
 
-/* The production as row_measure_item reads it, its resource only (the
- * amount is never read there), in the frame zone. */
 static const data_row_t *planet_production_tuple(const production_t *kw) {
     data_row_t *t = (data_row_t *)allocator_alloc(frame_zone(), sizeof *t);
 
@@ -68,8 +66,7 @@ void planet_refresh(planet_t *self) {
     }
     self->layout_row = layout_row_result;
     self->layout_row_slot = slot;
-    /* The ROW cells of the row's items[] point into the rewound tuples:
-     * only placed_items[] may be read from now on. */
+    /* The row's items[] point into the rewound tuples: read only placed_items[] from here. */
     frame_zone_rewind(scratch);
 }
 
@@ -92,8 +89,6 @@ typedef struct {
     pointer_list_t received_needs;
 } planet_inspection_panel_ctx_t;
 
-/* Keeps a need nothing satisfies, and appends it to the context's list once
- * per satisfied unit: that side effect builds the receives row. */
 static int planet_inspection_panel_filter_step(void *e, void *ctx_ptr) {
     planet_inspection_panel_ctx_t *ctx = (planet_inspection_panel_ctx_t *)ctx_ptr;
     p8_fixed_t gc = p8_fixed_from_int(0);
@@ -113,28 +108,20 @@ static int planet_inspection_panel_filter_step(void *e, void *ctx_ptr) {
     return gc == p8_fixed_from_int(0);
 }
 
-/* The most items an inspection panel icon row, or a projects panel row, holds. */
 #define PLANET_ROW_CAP 8
 
-/* The most rows the inspection panel opens its box with: the icon, needs
- * or wants more, receives, makes or exports. */
 #define PLANET_INSPECTION_PANEL_ROWS 4
 
-/* The makes or exports row: its head, the amount text, the tuple, then
- * the gap. */
 #define PLANET_INSPECTION_PANEL_EXPORTS_CAP 4
 
-/* Room for that many cells of an inspection panel row, the gap's included. */
 static layout_row_cell_t *planet_inspection_panel_row_items(int n) {
     return (layout_row_cell_t *)allocator_alloc(frame_zone(), (size_t)n * sizeof(layout_row_cell_t));
 }
 
-/* The text followed by "$", in the frame zone. */
 static char *planet_dollar(const char *s) {
     return p8_concat2(frame_zone(), s, "$");
 }
 
-/* A planet's box frame: description and pos NULL when absent, back color and row step always. */
 static open_box_frame_t planet_open_box_frame(const planet_t *self) {
     open_box_frame_t frame = {0};
 
@@ -235,8 +222,6 @@ void planet_inspection_panel(const planet_t *self) {
         }
     }
 
-    /* A receives list the filter appended nothing to leaves no row at all,
-     * not an empty one. */
     if (filter_context.received_needs.count >= 1) {
         row_cap[row_count] = 1 + filter_context.received_needs.count + 1;
         row_items[row_count] = planet_inspection_panel_row_items(row_cap[row_count]);
@@ -275,8 +260,7 @@ void planet_inspection_panel(const planet_t *self) {
         }
     }
 
-    /* From the second row on: the first row's layout row is a single icon,
-     * not a list. */
+    /* Starts at 1: row 0's layout row is a single icon, not a list. */
     for (index = 1; index < row_count; index++) {
         static const data_item_t gap_items[] = {{.is_false = 1}, {.number = 1}};
         static const data_row_t gap = {.count = 2, .items = gap_items};
@@ -300,7 +284,6 @@ down_t planet_accept_drop(const planet_t *self, const entity_t *s) {
     if (self->header.state != ENTITY_STATE_SETTLED) {
         return out;
     }
-    /* Only a held slipway has a start: a held background, wormhole or planet has none. */
     if (s != NULL && s->class == slipway_class() && ((const slipway_t *)s)->start == &self->header) {
         planet_inspection_panel(self);
         return out;
@@ -309,9 +292,6 @@ down_t planet_accept_drop(const planet_t *self, const entity_t *s) {
     return out;
 }
 
-/* No closures in C: the three values this callback needs ride on the
- * button keys (project_planet, project, project_cost), copied verbatim
- * onto the button this method is later dispatched on. */
 static void planet_projects_panel_on_click_method(button_t *self) {
     planet_t *pt;
     research_project_t *b;
@@ -332,8 +312,6 @@ static void planet_projects_panel_on_click_method(button_t *self) {
     }
 }
 
-/* One button of the projects panel: its keys and the rows they point at,
- * alive until message_box_open_box returns. */
 typedef struct {
     layout_row_keys_t layout_row;
     layout_row_cell_t layout_row_items[PLANET_ROW_CAP];
@@ -412,8 +390,7 @@ void planet_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec
         return;
     }
 
-    /* Also decays the shake. Everything below draws at `shaken_pos`, never
-     * at the `screen_pos` that was passed in. */
+    /* Everything below draws at shaken_pos, never at screen_pos. */
     shaken_pos = entity_geom_shake(screen_pos, (entity_t *)self);
 
     if (self->header.state == ENTITY_STATE_VANISHING) {
@@ -428,13 +405,10 @@ void planet_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec
 
     p8_circfill(graphics, memory, screen_x, screen_y, 7, 0);
 
-    /* Only a trading hub has a palette block; any other planet takes 0, the default. */
     hud_select_palette_block(memory, (self->header.class->lineage & LINEAGE(LINEAGE_TRADING_HUB)) ? self->palette_block : p8_fixed_from_int(0));
     p8_palt(memory, 3, 0);
     p8_palt(memory, 0, 1);
 
-    /* A planet type always has a sprite, so only a planet without a type
-     * falls through to the structure's own sprite, then to 43. */
     if (self->planet_type != NULL) {
         spr_index = self->planet_type->sprite;
     } else if (self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) {
@@ -472,9 +446,7 @@ void planet_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec
             radius_f = p8_fixed_mul(p8_fixed_sqrt(dw), p8_fixed_from_int(128));
             radius = p8_fixed_flr_int(radius_f);
 
-            /* The pattern's fractional .1 in PICO-8 is the transparency
-             * flag: its set bits leave the screen untouched, so this is
-             * p8_fillp_transparent, not plain p8_fillp. */
+            /* The cart's fractional .1 pattern is transparent: p8_fillp_transparent, not p8_fillp. */
             p8_fillp_transparent(graphics, 0xAAAAu);
             p8_circfill(graphics, memory, screen_x, screen_y, radius, 2);
             p8_fillp_reset(graphics);
