@@ -146,6 +146,7 @@ ENGINE_SRCS := \
     src/p8/assets.c \
     src/game/background.c \
     src/engine/bootstrap.c \
+    src/engine/button_cursor.c \
     src/game/cheat.c \
     src/game/cart.c \
     src/engine/collect.c \
@@ -273,6 +274,9 @@ $(TMP_DIR)/test_fixed_ubsan: $(call ubsan_objs,tests/test_fixed.c src/p8/fixed.c
 	$(CC) $(CFLAGS) $(UBSAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_raylib_backend_coords: $(call objs,tests/test_raylib_backend_coords.c src/platform/raylib_backend_coords.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_button_cursor: $(call objs,tests/test_button_cursor.c src/engine/button_cursor.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_replay_source: $(call objs,tests/test_replay_source.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) tests/fixtures/events_valid.json tests/fixtures/events_malformed_missing_field.json | $(TMP_DIR)
@@ -554,6 +558,7 @@ UNIT_TESTS := \
     test_draw_layers_camera \
     test_demo \
     test_raylib_backend_coords \
+    test_button_cursor \
     test_replay_source \
     test_recording_continuity \
     test_replay_control \
