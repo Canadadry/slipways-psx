@@ -480,14 +480,14 @@ static void test_entities_by_tag_null_until_seen(void) {
     void *a;
 
     start_title();
-    entity_registry_init();
+    entity_registry_init(NULL);
     assert(entities_by_tag(TAG_PLANET) == NULL && entities_by_tag(TAG_NODE) == NULL);
     a = new_planet("p902", 5, 6);
     assert(entities_by_tag(TAG_PLANET) != NULL && entities_by_tag(TAG_NODE) != NULL && entities_by_tag(TAG_TARGETING) != NULL);
     assert(entities_by_tag(TAG_STRUCTURE) == NULL);
     entity_unregister(a);
     assert(entities_by_tag(TAG_PLANET) != NULL && entities_by_tag(TAG_PLANET)->count == 0);
-    entity_registry_init();
+    entity_registry_init(NULL);
     assert(entities_by_tag(TAG_PLANET) == NULL);
 }
 

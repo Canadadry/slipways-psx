@@ -58,14 +58,11 @@ void entity_registry_shutdown(void) {
     g_initialized = 0;
 }
 
-void entity_registry_init(void) {
+void entity_registry_init(const entity_registry_reserve_t *reserve) {
     static const entity_registry_reserve_t no_reserve = {0};
-
-    entity_registry_init_with_reserve(&no_reserve);
-}
-
-void entity_registry_init_with_reserve(const entity_registry_reserve_t *reserve) {
     int i;
+
+    if (reserve == NULL) reserve = &no_reserve;
 
     entity_registry_shutdown();
 

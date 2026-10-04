@@ -267,7 +267,7 @@ int main(void) {
 
     cart_load();
     test_every_class_name_is_protostar_or_burst();
-    reset_world();
+    reset_world(NULL);
     test_kind_fields_and_build();
     test_kind_reader_serves_the_generated_defaults();
     test_kind_fills_its_grab_arena();

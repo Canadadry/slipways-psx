@@ -129,7 +129,7 @@ static void test_left_press_with_a_true_on_click_removes_the_veil(void) {
     modal_backdrop_t *veil;
     int ticks = 0;
 
-    reset_world();
+    reset_world(NULL);
     cart_flush_exit_queue();
     veil = veil_with_on_click(1);
     h = fold_veil(h, veil);
@@ -158,7 +158,7 @@ static void test_bare_veil_swallows_the_click_and_stays(void) {
     modal_backdrop_t *veil;
     int i;
 
-    reset_world();
+    reset_world(NULL);
     cart_flush_exit_queue();
     veil = modal_backdrop_new(NULL);
     for (i = 0; i < IDLE_TICKS; i++) {
@@ -180,7 +180,7 @@ static void test_false_on_click_keeps_the_veil(void) {
     modal_backdrop_t *veil;
     int i;
 
-    reset_world();
+    reset_world(NULL);
     cart_flush_exit_queue();
     veil = veil_with_on_click(0);
     for (i = 0; i < IDLE_TICKS; i++) {
@@ -251,7 +251,7 @@ static void test_hover_loop_on_the_veil(void) {
 static void test_defaults_match_the_parsed_spec(void) {
     modal_backdrop_t *veil;
 
-    reset_world();
+    reset_world(NULL);
     cart_flush_exit_queue();
     veil = modal_backdrop_new(NULL);
     assert(veil->archetype == &modal_backdrop_archetype);
@@ -280,7 +280,7 @@ static void test_modal_backdrop_is_a_struct_registered_under_hit_test(void) {
     void *generic;
     int i;
 
-    reset_world();
+    reset_world(NULL);
     cart_flush_exit_queue();
     keys.on_click = score_panel_toggle_on_click();
     built = modal_backdrop_new(&keys);
@@ -304,7 +304,7 @@ static void test_veil_gives_its_slot_back(void) {
     int base;
     int ticks = 0;
 
-    reset_world();
+    reset_world(NULL);
     cart_flush_exit_queue();
     base = ui_zone_live(SLOT_KIND_MODAL_BACKDROP);
     veil = veil_with_on_click(1);

@@ -65,7 +65,7 @@ static void test_probe_particle_draws_rnd_angle_slices_before_rnd_half(void) {
     p8_fixed_t second;
     p8_fixed_t a;
 
-    entity_registry_init();
+    entity_registry_init(NULL);
     entity_init();
     probe_init();
     probe = new_probe(angle_slices, state_time, base_radius, speed_factor);

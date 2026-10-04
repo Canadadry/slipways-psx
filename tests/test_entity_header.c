@@ -273,7 +273,7 @@ int main(int argc, char **argv) {
     dispatch_context_set_mem(&memory);
     dispatch_context_set_input(&input);
     cart_load();
-    reset_world();
+    reset_world(NULL);
 
     assert_malloc_fills();
     test_non_carriers_have_null_links();

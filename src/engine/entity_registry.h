@@ -4,14 +4,6 @@
 #include "engine/entity_list.h"
 #include "engine/entity_class.h"
 
-/* (Re)builds the live list and the per-message and per-tag registries
- * empty, growing in the current game-zone generation (engine/game_zone.h),
- * after entity_registry_shutdown() dropped the previous build, and puts back
- * the placeholder main camera. Must run before anything below is used.
- * reset_world() (engine/bootstrap.c) calls it, then replaces the placeholder
- * through entity_registry_set_main_camera(). */
-void entity_registry_init(void);
-
 typedef enum {
     ENTITY_MESSAGE_DRAW,
     ENTITY_MESSAGE_DRAW_OVERLAY,
@@ -30,8 +22,14 @@ typedef struct {
     int by_tag[TAG_COUNT];
 } entity_registry_reserve_t;
 
-/* entity_registry_init(), each list taken at its reserve. */
-void entity_registry_init_with_reserve(const entity_registry_reserve_t *reserve);
+/* (Re)builds the live list and the per-message and per-tag registries
+ * empty, growing in the current game-zone generation (engine/game_zone.h),
+ * after entity_registry_shutdown() dropped the previous build, and puts back
+ * the placeholder main camera. Must run before anything below is used.
+ * reset_world() (engine/bootstrap.c) calls it, then replaces the placeholder
+ * through entity_registry_set_main_camera(). Each list is taken at its
+ * reserve; NULL reserves nothing. */
+void entity_registry_init(const entity_registry_reserve_t *reserve);
 
 /* Drops the backing arrays of the live list and the registries, which go
  * back with their game-zone generation; the main camera is dropped unread:

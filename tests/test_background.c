@@ -435,7 +435,7 @@ static void test_accept_drop(void) {
 static void test_draw(void) {
     void *bg;
 
-    reset_world();
+    reset_world(NULL);
     bg = (void *)background_new();
     assert(entity_list_list_count(entities_by_message(ENTITY_MESSAGE_DRAW)) == 1 && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), bg));
     p8_gfx_init(&graphics);

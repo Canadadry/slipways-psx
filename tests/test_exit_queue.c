@@ -151,7 +151,7 @@ static int case_reset_world_enqueues_registered(void) {
     entity_register(&counted->header);
     entity_register(&kept->header);
     int expected = registered_with_release();
-    reset_world();
+    reset_world(NULL);
     assert(exit_queue_count() == expected && "reset_world queues every registered entity that has something to release");
     entity_unregister(&counted->header);
     assert(exit_queue_count() == expected && "entity_unregister after reset_world: the entity is no longer live, not queued twice");
@@ -168,7 +168,7 @@ static int case_reset_world_enqueues_registered(void) {
 static int case_reset_world_after_a_full_game(void) {
     load_cart_and_start();
     while (registered_with_release() < FULL_GAME_LIVE_ENTITIES) entity_register(&new_entity(&counted_cls)->header);
-    reset_world();
+    reset_world(NULL);
     assert(exit_queue_count() == FULL_GAME_LIVE_ENTITIES);
     return 0;
 }

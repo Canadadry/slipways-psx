@@ -70,7 +70,7 @@ static void assert_a_camera(void) {
 }
 
 static void test_placeholder_after_init(void) {
-    entity_registry_init();
+    entity_registry_init(NULL);
     assert_placeholder();
     assert(!entity_list_listed(live_entities(), main_camera()));
 }
@@ -92,7 +92,7 @@ static void test_is_on_screen_on_placeholder(void) {
     int near_hit;
     int far_hit;
 
-    entity_registry_init();
+    entity_registry_init(NULL);
     near_e.pos = &near_pos;
     far_e.pos = &far_pos;
     near_hit = entity_geom_is_on_screen(&near_e.header);
@@ -109,7 +109,7 @@ static void test_update_on_placeholder(void) {
     ui_t *ok;
     const vec_t *qa;
 
-    entity_registry_init();
+    entity_registry_init(NULL);
     ok = ui_new();
     ui_update(&memory, ok);
     assert(ok->mouse_world != NULL);
@@ -122,10 +122,10 @@ static void test_update_on_placeholder(void) {
 static void test_shutdown_and_init_cycle(void) {
     entity_registry_shutdown();
     assert(main_camera() == NULL);
-    entity_registry_init();
+    entity_registry_init(NULL);
     assert_placeholder();
-    entity_registry_init();
-    entity_registry_init();
+    entity_registry_init(NULL);
+    entity_registry_init(NULL);
     assert_placeholder();
     entity_registry_shutdown();
     entity_registry_shutdown();
@@ -135,14 +135,14 @@ static void test_shutdown_and_init_cycle(void) {
 /* `reset_world()` puts a `camera_t` in its place; entity_registry_init()
  * puts it back. */
 static void test_replaced_by_reset_world(void) {
-    reset_world();
+    reset_world(NULL);
     assert_a_camera();
-    entity_registry_init();
+    entity_registry_init(NULL);
     assert_placeholder();
-    reset_world();
+    reset_world(NULL);
     bootstrap_shutdown();
     assert(main_camera() == NULL);
-    reset_world();
+    reset_world(NULL);
     assert_a_camera();
 }
 
@@ -156,12 +156,12 @@ static int is_a_struct_of(const void *e, const entity_class_t *cls) {
 static void test_placeholder_is_a_struct(void) {
     const void *placeholder;
 
-    entity_registry_init();
+    entity_registry_init(NULL);
     placeholder = main_camera();
     assert(is_a_struct_of(placeholder, main_camera_placeholder_class()));
-    reset_world();
+    reset_world(NULL);
     assert(is_a_struct_of(main_camera(), camera_class()));
-    entity_registry_init();
+    entity_registry_init(NULL);
     assert(main_camera() == placeholder);
     bootstrap_shutdown();
 }
@@ -180,7 +180,7 @@ static void test_is_on_screen_under_a_shaken_camera(void) {
     const vec_t *saved_p;
     const vec_t *saved_pos;
 
-    reset_world();
+    reset_world(NULL);
     qb = main_camera_typed();
     assert(qb != NULL);
     saved_p = qb->pos_before_shake;
