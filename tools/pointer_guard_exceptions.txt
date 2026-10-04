@@ -1,0 +1,53 @@
+# Exception list of the pointer guard (tools/pointer_guard.sh, make
+# pointer-guard), read from the source text of src/game/ and
+# src/engine/entity_class.h. A line `<file> <count>` gives the data pointers
+# the file declares in struct fields and file-scope variables, const ones
+# included; a line `entity-lists <file> <count>` gives its fields and
+# variables of type entity_list_t. A file with neither has no line. Strict
+# equality: plan 13 lowers these counts, and no step may raise one.
+src/engine/entity_class.h 18
+src/game/background.h 1
+src/game/economy_score.c 2
+src/game/economy_score.h 1
+src/game/game_data.c 1
+src/game/game_data.h 31
+src/game/gen.h 3
+src/game/layout.h 9
+src/game/main_economy.h 5
+src/game/map_tables.h 22
+src/game/menu.c 2
+src/game/message_box.c 2
+src/game/message_box.h 12
+src/game/mouse.h 2
+src/game/particle.h 3
+src/game/planet.c 2
+src/game/planet.h 17
+src/game/planet_family.c 1
+src/game/planet_family.h 2
+src/game/planet_trade.h 2
+src/game/probe.c 1
+src/game/probe.h 5
+src/game/research.c 4
+src/game/research.h 12
+src/game/research_display.h 1
+src/game/score_panel.c 1
+src/game/score_panel.h 6
+src/game/score_panel_display.c 1
+src/game/scroll.h 4
+src/game/slipway.h 13
+src/game/structure_icon.c 1
+src/game/structure_icon.h 7
+src/game/targeting.h 3
+src/game/tech_gate.h 1
+src/game/trade.h 4
+src/game/ui.c 2
+src/game/ui.h 8
+src/game/ui_button.h 21
+src/game/wormhole.h 8
+entity-lists src/game/planet.h 3
+entity-lists src/game/planet_family.c 1
+entity-lists src/game/planet_trade.h 1
+entity-lists src/game/trade.h 4
+entity-lists src/game/ui.c 1
+entity-lists src/game/ui.h 2
+entity-lists src/game/wormhole.h 1

@@ -2,7 +2,8 @@
 # per target).
 #
 # make test          -> unit + constants-check + float-grep + float-guard +
-#                       alloc-guard + data-guard + p8-guard, the fast loop
+#                       alloc-guard + pointer-guard + data-guard + p8-guard,
+#                       the fast loop
 # make e2e           -> replays each e2e of tests/e2e/ from the title screen,
 #                       with the `-O0` binary of make test, and compares the
 #                       sha256 of its capture to <name>.json.sha256; also fails
@@ -67,6 +68,12 @@
 #                       object of the core; fails on any difference, higher or
 #                       lower, from tools/alloc_guard_exceptions.txt (a
 #                       ratchet, updated by hand), in make test
+# make pointer-guard -> counts the data pointers and entity_list_t
+#                       declarations in the struct fields and file-scope
+#                       variables of src/game/ and entity_class.h; fails on
+#                       any difference, higher or lower, from
+#                       tools/pointer_guard_exceptions.txt (a ratchet,
+#                       updated by hand), in make test
 # make float-grep    -> searches the core (CORE_SRCS and the headers that `-MM`
 #                       finds for them) for any floating-point type or call,
 #                       the rest of src/ excluded by
@@ -695,7 +702,7 @@ endif
 replay: $(TMP_DIR)/replay
 	./$(TMP_DIR)/replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard alloc-guard data-guard p8-guard
+test: unit constants-check float-grep float-guard alloc-guard pointer-guard data-guard p8-guard
 
 test-all: test e2e
 
@@ -854,6 +861,14 @@ alloc-guard: tools/alloc_guard.sh $(ALLOC_GUARD_EXCEPTIONS) $(call objs,$(CORE_S
 	@sh tools/alloc_guard.sh $(ALLOC_GUARD_EXCEPTIONS) $(OBJ_DIR) $(call objs,$(CORE_SRCS))
 
 .PHONY: alloc-guard
+
+POINTER_GUARD_EXCEPTIONS := tools/pointer_guard_exceptions.txt
+POINTER_GUARD_SRCS := $(wildcard src/game/*.[ch]) src/engine/entity_class.h
+
+pointer-guard: tools/pointer_guard.sh $(POINTER_GUARD_EXCEPTIONS) $(POINTER_GUARD_SRCS)
+	@sh tools/pointer_guard.sh $(POINTER_GUARD_EXCEPTIONS) $(POINTER_GUARD_SRCS)
+
+.PHONY: pointer-guard
 
 FLOAT_GREP_EXCLUSIONS := tools/float_grep_exclusions.txt
 
