@@ -219,3 +219,13 @@ The user validated (2026-10-04) the resolution of the 46 Unsorted pointers: call
 - Table peak: 160 of 512 (`game_end_bankrupt`, `make state` line `cap entity_table`), below the plan's 329: only constructed entities take a slot. Exit-queue peak 102 of 315.
 - Guard unchanged (241 pointers, 13 entity lists). `make e2e` same shas; `make sanitize-net` (30 clean) and `make full-game` passed. `make test` not slower.
 - Guideline decisions (PRD writer applied the `guideline` skill itself): the table lives in the game zone; `entity_t` unchanged in this step.
+
+### Step 1.3
+
+- Done in six commits: engine groundwork (`entity_id_type.h`, header `id` → O(1) `entity_id_of`/`release`, `entity_id_list_t` asserting on a dead id, `value_list_t`, `entity_geom_nearest_in_ids`, `entity_id_link`); research project ids; trade routes as values; map links; UI links; singletons. `exit_queue_flush` takes no callback; `forget`, `planet_forget_targeted_by` and `economy_score_difficulty_quits` are gone.
+- Guard: 241 → 211 pointers, 13 → 0 entity lists. `make e2e` same shas; `make sanitize-net` (30 clean) and `make full-game` passed after the last chunk.
+- Differs from the plan: trade routes are not entities — `trade_route_t` lost its header, route lists are value lists, route planets/slipways are id lists. Research projects die at `game_zone_reset` (rebuild) as well as `reset_world`: projects live by value in a static 42-row table (23520 bytes outside the zones) with an epoch id; the load-zone peak drops by 19040 bytes. The economy takes an id slot without being registered.
+- Memory: `entity_t` +8 bytes (header id): ui/particles/load slots re-measured, `ZONE_BUDGET_BYTES` +4056 (`HEADER_ID_BYTES`), slack still 1980. Game-zone peak 117424 (was 117048 before step 3).
+- Dead ids: the cart never drops a kept route and only unlinked planets die, so both planet death sites assert the planet has no slipway; attached slipways never die before `reset_world`; `reset_world` empties the outgoing ui's lists (`ui_forget_world`) since a restart click runs mid-`ui_update`.
+- GAPs: GAP-26 rewritten (the halo link reads NULL after the flush); GAP-28 added (a right drag held across a restart no longer moves the new camera; no e2e reaches it).
+- Deviation: chunk 3's first verification failed (dead planet ids in kept routes); the implementer proved the case unreachable in the cart and added the asserts above instead of pruning routes. Guideline decisions (applied by the PRD writer): D1 routes as values, D2 economy slot, D3 header id, D4 targeting kind + id and slipway `end_is_point`, D5 project table with epoch, D6 difficulty copied, D7 placeholders as a state, D8 links compared only by resolving.
