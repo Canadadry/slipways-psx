@@ -32,7 +32,16 @@
 #                       tools/line_coverage.sh; temporary (plan 12), outside
 #                       the suite
 # make cursor-labels-test -> builds and runs test_cursor_label, the test of
-#                       src/devtools/cursor_label.c; temporary (plan 12),
+#                       src/devtools/cursor_label.c and of the LABELS hook of
+#                       tmp/replay; temporary (plan 12), outside the suite
+# make cursor-labels EVENTS=<events> -> replays that file with LABELS set, one
+#                       cursor label per frame in tmp/cursor_labels.txt;
+#                       temporary (plan 12), outside the suite
+# make cursor-labels -> the same for the worst-case/ games (FULL_GAME_EVENTS)
+#                       and every e2e of tests/e2e/, one <name>.txt each in
+#                       tests/plan12-cursor-labels/; fails if a replay stops,
+#                       if a file has not one line per frame, or if a label is
+#                       not in tools/cursor_anchors.txt; temporary (plan 12),
 #                       outside the suite
 # make oracle        -> make state, then writes to tests/plan12-oracle/ each
 #                       state of tmp/state/ without its camera line and the
@@ -503,7 +512,7 @@ $(TMP_DIR)/test_draw_layers_camera: $(call objs,tests/test_draw_layers_camera.c 
 $(TMP_DIR)/test_demo: $(call objs,tests/test_demo.c src/p8/vram.c src/p8/assets.c src/p8/gfx.c src/p8/input.c src/devtools/input_json.c src/devtools/dump.c) tests/fixtures/demo_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-REPLAY_SRCS := src/cmd/replay.c src/devtools/screencast.c src/devtools/state.c $(ENGINE_SRCS)
+REPLAY_SRCS := src/cmd/replay.c src/devtools/cursor_label.c src/devtools/screencast.c src/devtools/state.c $(ENGINE_SRCS)
 
 $(TMP_DIR)/replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
@@ -525,7 +534,7 @@ line-coverage: $(TMP_DIR)/replay_gcov tools/line_coverage.sh
 
 .PHONY: line-coverage-test line-coverage
 
-$(TMP_DIR)/test_cursor_label: $(call objs,tests/test_cursor_label.c src/devtools/cursor_label.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_cursor_label: $(call objs,tests/test_cursor_label.c src/devtools/cursor_label.c $(ENGINE_SRCS)) $(TMP_DIR)/replay tests/fixtures/title_click_reasonable.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 cursor-labels-test: $(TMP_DIR)/test_cursor_label
@@ -873,6 +882,34 @@ oracle: state $(TMP_DIR)/replay_gcov tools/line_coverage.sh
 	@echo "oracle: $(words $(STATE_EVENTS)) states and $$(wc -l < $(ORACLE_DIR)/line_coverage.txt) covered line(s) in $(ORACLE_DIR)"
 
 .PHONY: oracle
+
+CURSOR_LABELS_DIR := tests/plan12-cursor-labels
+CURSOR_ANCHORS := tools/cursor_anchors.txt
+
+ifneq ($(strip $(EVENTS)),)
+cursor-labels: $(TMP_DIR)/replay
+	LABELS=$(TMP_DIR)/cursor_labels.txt ./$(TMP_DIR)/replay $(EVENTS) /dev/null $(TMP_DIR)/cursor_labels_dump.txt
+else
+# Written to tmp/ and checked there, then copied: a stopped or short replay
+# never reaches the versioned directory.
+cursor-labels: $(TMP_DIR)/replay $(CURSOR_ANCHORS) $(STATE_EVENTS)
+	@rm -rf $(TMP_DIR)/cursor-labels && mkdir -p $(TMP_DIR)/cursor-labels
+	@for e in $(STATE_EVENTS); do \
+	    n=$(TMP_DIR)/cursor-labels/$$(basename $$e .json); \
+	    LABELS=$$n.txt ./$(TMP_DIR)/replay $$e /dev/null $$n.dump.txt > $$n.log 2>&1 || { cat $$n.log; echo "cursor-labels: $$e stopped"; exit 1; }; \
+	    frames=$$(sed -n 's/^replay: \([0-9]*\) frame(s) run .*/\1/p' $$n.log); \
+	    lines=$$(wc -l < $$n.txt); \
+	    [ "$$lines" -eq "$$frames" ] || { echo "cursor-labels: $$e has $$frames frame(s) but $$lines label(s)"; exit 1; }; \
+	done
+	@missing=$$(cat $(foreach e,$(STATE_EVENTS),$(TMP_DIR)/cursor-labels/$(basename $(notdir $(e))).txt) | sort -u | while read l; do \
+	    grep -q "^$$l " $(CURSOR_ANCHORS) || echo "$$l"; done); \
+	[ -z "$$missing" ] || { echo "cursor-labels: not in $(CURSOR_ANCHORS): $$missing"; exit 1; }
+	@rm -rf $(CURSOR_LABELS_DIR) && mkdir -p $(CURSOR_LABELS_DIR)
+	@cp $(foreach e,$(STATE_EVENTS),$(TMP_DIR)/cursor-labels/$(basename $(notdir $(e))).txt) $(CURSOR_LABELS_DIR)/
+	@echo "cursor-labels: $(words $(STATE_EVENTS)) label files in $(CURSOR_LABELS_DIR)"
+endif
+
+.PHONY: cursor-labels
 
 # The core sources, where the comparator reads the P8_FIXED_LIT calls.
 constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_gaps.txt tools/pico8_reference_probe_out.txt src/p8/fixed.c src/p8/fixed.h $(CORE_SRCS) | $(TMP_DIR)

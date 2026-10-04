@@ -10,4 +10,14 @@
  * nothing. Temporary (plan 12). */
 const char *cursor_label_read(const ui_t *ui);
 
+/* cart_update60(), then appends to `path` the label of the ui whose hit test
+ * dispatched this frame's click, and a newline: line n+1 is frame n. A click
+ * that starts a game runs reset_world() inside ui_update, so main_ui() is
+ * then a new ui whose hovered_by_layer is still NULL; the old one and its
+ * layered list stay readable until the next frame's flush and zone reset.
+ * `path` is opened (truncated) at the first call, kept open, and closed at
+ * exit. 0, with a message on stderr, when it cannot be opened or written;
+ * 1 otherwise. Temporary (plan 12). */
+int cursor_label_update60(const char *path);
+
 #endif

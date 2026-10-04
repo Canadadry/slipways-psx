@@ -2,8 +2,10 @@
 
 #include <assert.h>
 #include <stddef.h>
+#include <stdio.h>
 
 #include "game/background.h"
+#include "game/cart.h"
 #include "game/help.h"
 #include "game/menu.h"
 #include "game/planet.h"
@@ -62,4 +64,21 @@ const char *cursor_label_read(const ui_t *ui) {
     if (c == structure_icon_class()) return "structure_icon";
     assert(0 && "cursor_label_read: a class the hit test can find has no label; name it here and in the anchor table");
     return NULL;
+}
+
+int cursor_label_update60(const char *path) {
+    static FILE *out;
+    const ui_t *before = main_ui();
+    const ui_t *after;
+    if (out == NULL && (out = fopen(path, "w")) == NULL) {
+        fprintf(stderr, "replay: cannot open the labels file '%s'\n", path);
+        return 0;
+    }
+    cart_update60();
+    after = main_ui();
+    if (fprintf(out, "%s\n", cursor_label_read(after != NULL && after->hovered_by_layer != NULL ? after : before)) < 0) {
+        fprintf(stderr, "replay: cannot write to the labels file '%s'\n", path);
+        return 0;
+    }
+    return 1;
 }

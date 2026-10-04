@@ -1,0 +1,27 @@
+# Plan 12: the anchor of each cursor label, the only definition of the
+# 128x128 -> 160x120 cursor offsets. Temporary, removed at step 7.
+# <label> <x> <y>, x in gauche centre droite, y in haut centre bas; or <label> carte.
+# x offset: gauche 0, centre +16, droite +32
+# y offset: haut 0, centre -4, bas -8
+# carte: +16 -4 (same world centre)
+# The plan's five words: gauche = gauche haut, droite = droite haut,
+# haut = gauche haut, bas = gauche bas, centre = centre centre.
+carte carte
+planet carte
+structure carte
+trading_hub carte
+processor carte
+ascension carte
+protostar carte
+synthesizer carte
+burst carte
+slipgate carte
+infraspace_gate carte
+button:galaxy_menu_1 droite haut
+button:galaxy_menu_2 gauche haut
+button:galaxy_menu_3 centre haut
+button:galaxy_menu_4 gauche bas
+button centre centre
+modal_backdrop centre centre
+help_screen centre centre
+structure_icon droite bas
