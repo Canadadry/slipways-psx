@@ -5,6 +5,7 @@
 - Cible active : **PC via raylib, rendu logiciel** — voir le `README`. Le C est la référence : le jeu est couvert par les e2e, et `pico8/lua.lua` (la source décompilée du cart) reste comme archive. Les objets du jeu sont des structs C plates : un noyau commun (`entity_t`), un archétype `static const` par sorte, des composants par pointeur.
 - PSX est **en pause**, pas abandonné : on y revient quand une version PC/C est jouable de bout en bout. `psx-hello/` est un projet de test du toolchain — voir `docs/psx-hello-world.md`.
 - L'audio (`sfx`, `music`) est **hors périmètre**, pas reporté.
+- **Les e2e font foi, pas les tests unitaires.** Un changement qui améliore les chances du portage et garde tous les `*.sha256` de `tests/e2e/` peut casser un test unitaire qui figeait l'ancien comportement : on met le test à jour.
 
 ## Arborescence et noms
 
