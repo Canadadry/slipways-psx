@@ -39,7 +39,7 @@
 
 #define BUILT_HASH 0x455004CBu
 #define SHARED_HASH 0xAAACD2E4u
-#define LIFE_HASH 0x4CDE6238u
+#define LIFE_HASH 0x7647D312u
 #define TECH_TREE_SCREEN_HASH 0x7D1C5B1Fu
 
 static p8_vram_t memory;
@@ -850,6 +850,94 @@ static void test_year_banner_is_centered(void) {
     assert(abs(left - (P8_SCREEN_WIDTH - 1 - right)) <= 1);
 }
 
+/* The seven score lines keep their 128x128 offsets from the center:
+ * x = W/2, y = H/2 + (y128 - 64). */
+static void test_score_lines_are_centered(void) {
+    static const int y128[7] = {21, 34, 43, 52, 61, 74, 82};
+    const score_row_t *rows;
+    int i;
+
+    (void)start_game();
+    rows = score_panel_rows();
+    assert(rows != NULL);
+    for (i = 0; i < 7; i++) {
+        const score_row_t *r = &rows[5 + i];
+        assert(r->entry->has_pos);
+        assert(r->pos.x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2));
+        assert(r->pos.y == p8_fixed_from_int(P8_SCREEN_HEIGHT / 2 + (y128[i] - 64)));
+    }
+}
+
+/* The five backgrounds of the score table, drawn alone, cover lines
+ * H/2 - 40 to H/2 + 22: the table at 128x128 (24 to 86) moved with the
+ * center. */
+static void test_score_backgrounds_follow_the_center(void) {
+    const score_row_t *rows;
+    const data_row_t *backgrounds[5];
+    int y;
+    int i;
+
+    (void)start_game();
+    rows = score_panel_rows();
+    for (i = 0; i < 5; i++) {
+        backgrounds[i] = &rows[i].row;
+    }
+    p8_gfx_init(&graphics);
+    p8_rectfill(&graphics, &memory, 0, 0, P8_SCREEN_WIDTH - 1, P8_SCREEN_HEIGHT - 1, 7);
+    draw_functions_draw_rows_default(&graphics, &memory, backgrounds, 5);
+    for (y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        int in_table = y >= P8_SCREEN_HEIGHT / 2 - 40 && y <= P8_SCREEN_HEIGHT / 2 + 22;
+        assert((memory.screen[y][0] != 7) == in_table);
+    }
+}
+
+/* At the game's end, " again? " sits 13 pixels left of the center and 36
+ * below it, the back button 25 left of it on the same line. */
+static void test_end_buttons_are_centered(void) {
+    const entity_list_t *hv;
+    int found = 0;
+    int i;
+
+    (void)start_game();
+    main_economy_typed()->end_status = "final score";
+    main_economy_typed()->has_end_status = 1;
+    class_of(main_score_panel())->states[ENTITY_STATE_NORMAL](&main_score_panel()->header, p8_fixed_from_int(0));
+    hv = live_entities();
+    for (i = 0; i < hv->count; i++) {
+        const button_t *b = (const button_t *)hv->items[i];
+        if (!is_of(b, button_class()) || b->layer != p8_fixed_from_int(15) || b->layout_row == NULL) {
+            continue;
+        }
+        assert(b->pos->y == p8_fixed_from_int(P8_SCREEN_HEIGHT / 2 + 36));
+        if (b->on_click == score_panel_init_field_value()) {
+            assert(b->pos->x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2 - 13));
+        } else {
+            assert(b->pos->x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2 - 25));
+        }
+        found++;
+    }
+    assert(found == 2);
+}
+
+/* The curtain at its full height h covers lines H - 1 - h to H - 1 at the
+ * bottom, and not the line above. */
+static void test_curtain_closes_on_the_bottom_edge(void) {
+    score_panel_t *ju = start_game();
+    p8_fixed_t h = p8_fixed_mul(P8_FIXED_LIT(0x00033333, 3.2), P8_FIXED_LIT(0x00033333, 3.2));
+    int first = p8_fixed_flr_int(p8_fixed_sub(p8_fixed_from_int(P8_SCREEN_HEIGHT - 1), h));
+    int y;
+
+    ju->has_curtain = 1;
+    ju->curtain = P8_FIXED_LIT(0x00033333, 3.2);
+    p8_gfx_init(&graphics);
+    p8_rectfill(&graphics, &memory, 0, 0, P8_SCREEN_WIDTH - 1, P8_SCREEN_HEIGHT - 1, 7);
+    score_panel_draw(&graphics, &memory, ju);
+    for (y = first; y < P8_SCREEN_HEIGHT; y++) {
+        assert(memory.screen[y][0] == 0);
+    }
+    assert(memory.screen[first - 1][0] == 7);
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -862,6 +950,10 @@ int main(void) {
     cart_load();
     in_fresh_child(test_frame_rows_hug_the_bottom_edge);
     in_fresh_child(test_year_banner_is_centered);
+    in_fresh_child(test_score_lines_are_centered);
+    in_fresh_child(test_score_backgrounds_follow_the_center);
+    in_fresh_child(test_end_buttons_are_centered);
+    in_fresh_child(test_curtain_closes_on_the_bottom_edge);
     in_fresh_child(test_built);
     in_fresh_child(test_shared);
     in_fresh_child(test_life);

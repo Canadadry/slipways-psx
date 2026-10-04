@@ -94,11 +94,11 @@ const difficulty_options_entry_t difficulty_options_table[DIFFICULTY_OPTIONS_COU
     {&difficulty_options_4_layout_row, "tough", 4, -0x3334},
 };
 
-static const data_item_t score_rows_1_items[] = {{.number = 26}, {.number = 86}, {.number = 0}};
-static const data_item_t score_rows_2_items[] = {{.number = 51}, {.number = 59}, {.number = 1}};
-static const data_item_t score_rows_3_items[] = {{.number = 76}, {.number = 77}, {.number = 1}};
-static const data_item_t score_rows_4_items[] = {{.number = 24}, {.number = 25}, {.number = 1}};
-static const data_item_t score_rows_5_items[] = {{.number = 33}, {.number = 41}, {.number = 1}};
+static const data_item_t score_rows_1_items[] = {{.number = P8_SCREEN_HEIGHT / 2 - 38}, {.number = P8_SCREEN_HEIGHT / 2 + 22}, {.number = 0}};
+static const data_item_t score_rows_2_items[] = {{.number = P8_SCREEN_HEIGHT / 2 - 13}, {.number = P8_SCREEN_HEIGHT / 2 - 5}, {.number = 1}};
+static const data_item_t score_rows_3_items[] = {{.number = P8_SCREEN_HEIGHT / 2 + 12}, {.number = P8_SCREEN_HEIGHT / 2 + 13}, {.number = 1}};
+static const data_item_t score_rows_4_items[] = {{.number = P8_SCREEN_HEIGHT / 2 - 40}, {.number = P8_SCREEN_HEIGHT / 2 - 39}, {.number = 1}};
+static const data_item_t score_rows_5_items[] = {{.number = P8_SCREEN_HEIGHT / 2 - 31}, {.number = P8_SCREEN_HEIGHT / 2 - 23}, {.number = 1}};
 static const data_item_t score_rows_6_items[] = {{.text = ""}};
 static const data_item_t score_rows_7_items[] = {{.number = 55}, {.text = "planets:   "}};
 static const data_item_t score_rows_8_items[] = {{.number = 19}, {.text = "population:"}};
@@ -119,14 +119,14 @@ const score_rows_entry_t score_rows_table[SCORE_ROWS_COUNT] = {
     {.row = {.count = 3, .items = score_rows_3_items}, .draw_function = DRAW_FUNCTION_DRAW_BAR},
     {.row = {.count = 3, .items = score_rows_4_items}, .draw_function = DRAW_FUNCTION_DRAW_BAR},
     {.row = {.count = 3, .items = score_rows_5_items}, .draw_function = DRAW_FUNCTION_DRAW_BAR},
-    {.row = {.count = 1, .items = score_rows_6_items, .has_color = 1, .color = 5}, .has_score = 1, .score = 0, .has_pos = 1, .pos_x = 64,
-        .pos_y = 21},
-    {.row = {.count = 2, .items = score_rows_7_items}, .has_score = 1, .score = 1, .has_pos = 1, .pos_x = 64, .pos_y = 34},
-    {.row = {.count = 2, .items = score_rows_8_items}, .has_score = 1, .score = 2, .has_pos = 1, .pos_x = 64, .pos_y = 43},
-    {.row = {.count = 2, .items = score_rows_9_items}, .has_score = 1, .score = 3, .has_pos = 1, .pos_x = 64, .pos_y = 52},
-    {.row = {.count = 5, .items = score_rows_10_items}, .has_score = 1, .score = 4, .has_pos = 1, .pos_x = 64, .pos_y = 61},
-    {.row = {.count = 2, .items = score_rows_11_items}, .has_score = 1, .score = 5, .has_pos = 1, .pos_x = 64, .pos_y = 74},
-    {.row = {.count = 0, .items = NULL}, .has_score = 1, .score = 6, .has_pos = 1, .pos_x = 64, .pos_y = 82},
+    {.row = {.count = 1, .items = score_rows_6_items, .has_color = 1, .color = 5}, .has_score = 1, .score = 0, .has_pos = 1, .pos_x = P8_SCREEN_WIDTH / 2,
+        .pos_y = P8_SCREEN_HEIGHT / 2 - 43},
+    {.row = {.count = 2, .items = score_rows_7_items}, .has_score = 1, .score = 1, .has_pos = 1, .pos_x = P8_SCREEN_WIDTH / 2, .pos_y = P8_SCREEN_HEIGHT / 2 - 30},
+    {.row = {.count = 2, .items = score_rows_8_items}, .has_score = 1, .score = 2, .has_pos = 1, .pos_x = P8_SCREEN_WIDTH / 2, .pos_y = P8_SCREEN_HEIGHT / 2 - 21},
+    {.row = {.count = 2, .items = score_rows_9_items}, .has_score = 1, .score = 3, .has_pos = 1, .pos_x = P8_SCREEN_WIDTH / 2, .pos_y = P8_SCREEN_HEIGHT / 2 - 12},
+    {.row = {.count = 5, .items = score_rows_10_items}, .has_score = 1, .score = 4, .has_pos = 1, .pos_x = P8_SCREEN_WIDTH / 2, .pos_y = P8_SCREEN_HEIGHT / 2 - 3},
+    {.row = {.count = 2, .items = score_rows_11_items}, .has_score = 1, .score = 5, .has_pos = 1, .pos_x = P8_SCREEN_WIDTH / 2, .pos_y = P8_SCREEN_HEIGHT / 2 + 10},
+    {.row = {.count = 0, .items = NULL}, .has_score = 1, .score = 6, .has_pos = 1, .pos_x = P8_SCREEN_WIDTH / 2, .pos_y = P8_SCREEN_HEIGHT / 2 + 18},
 };
 
 static const int planet_ring_colors_items[] = {2, 3, 9, 12};
