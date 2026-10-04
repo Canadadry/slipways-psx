@@ -83,7 +83,7 @@ On `FAILED:`, route by kind. A mechanical failure (test doesn't compile, wrong p
 
 Invoke the `git-commit` skill **yourself, in place** — don't delegate it to a sub-agent, since its proposal step waits for the user's go-ahead and a sub-agent can't collect it. This is the one stop in the pipeline.
 
-The commit message is where the finding is recorded — no journal file, no prose in the code. Write it in French, strictly factual, from the stage-1 bug document and the stage-3 evidence:
+The commit message is where the finding is recorded — no journal file, no prose in the code. Write it in English, strictly factual, from the stage-1 bug document and the stage-3 evidence:
 
 - the symptom as reported, and what surfaced it (human playtest, scripted replay, sanitizer);
 - **the hypothesis that was disproved**, when there was one — as valuable as the cause itself, since it's what spares the next reader the same detour;
