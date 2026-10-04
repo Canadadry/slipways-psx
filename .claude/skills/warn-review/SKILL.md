@@ -35,7 +35,14 @@ Checklist (each is an outside-in hint that something is off):
 
 ## Project ground rules: pointers
 
-Check these too, on every run, in `src/`. Unlike the checklist above they are hard rules, not smells: flag every violation, still as a bare warning.
+Check these too, on every run, in `src/`. Unlike the checklist above they are rules, not smells: flag every violation, still as a bare warning.
+
+Why they exist, and the only two goals they serve:
+
+- **Safety**: a link to something that died must fail loudly (NULL, an `assert`), never read freed memory silently, and must not depend on someone remembering to clear it.
+- **Readability**: one name per piece of data, and a field whose meaning the type says, not a paragraph of comment about what NULL means or who writes through it.
+
+The rules are the means, not the goal. If code breaks one in a case nobody anticipated and the result is clearly safer or clearer than following the rule, don't flag it as a violation: report it as `file[:line]: breaks rule N on purpose`, so the user can check the reasoning. Following a rule in a way that defeats safety or readability is the violation.
 
 Allowed pointers: `self` and large structs as parameters (borrowed for the call only), `const` pointers to static never-freed data (archetypes, tables, strings), function pointers, runtime handles (`allocator_t`, `p8_graphics_t`, `p8_vram_t`), and the engine registry's internal lists. Anything else is a violation:
 
