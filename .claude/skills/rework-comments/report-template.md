@@ -19,6 +19,7 @@ the only real failure.
 
 check: preprocessor diff before/after <identical | difference, which one>
        lines of code <identical | difference>
+       header_residue.sh <empty | -x <header> claimed as an external format>
 ```
 
 The check goes here, next to the ratio: it is the first thing the orchestrator
@@ -26,10 +27,12 @@ must read, and the only proof that the cleanup broke nothing.
 
 ## 2. What I kept, and under which destination
 
-One line per comment kept, with its destination (3 = trap, 4 = contract):
+One line per comment kept, with its destination (2 = gap marker, 3 = trap,
+4 = external format). A header should appear here only for a gap marker, a
+`TODO` or an external format. Every line must answer: what bug would a reader
+reintroduce without it, and why no assert or test catches it.
 
-- `function()` — contract: who frees the returned buffer.
-- `other()` — trap, 40 words: <one-line summary>.
+- `other()` (body) — trap: <the bug it prevents>; not an assert because <…>.
 
 ## 3. Asserts added
 
@@ -54,7 +57,7 @@ As important as the previous section. One block per candidate:
 ```
 condition considered : <cond>
 why rejected         : <what the examination showed>
-replaced by          : <the 40 words, or nothing>
+replaced by          : <the one sentence, or nothing>
 ```
 
 If the margin computation said no, give the numbers. It has already revealed a
@@ -96,3 +99,8 @@ glossary errors and a bug declared fixed that was only half fixed.
 What you could not rework without stepping outside your mandate (touching an
 assertion, modifying code, ruling on a gap), and what would need to be
 decided.
+
+Findings outside comments go here too, one line each, marked `defect` (wrong
+output, crash, out-of-bounds, data loss, today) or `note` (everything else).
+The orchestrator turns a `defect` into a separate task and a `note` into a line
+of the commit message; neither becomes a question to the user.

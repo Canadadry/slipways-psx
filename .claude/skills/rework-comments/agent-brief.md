@@ -16,14 +16,34 @@ removing it. **You change no behavior**: not a signature, not a value, not a
 call order. The only code you are allowed to add is `#include <assert.h>` and
 `assert`s, under the conditions below.
 
-## The four destinations
+## The bar: delete by default
 
-Every comment you read goes to one of these four destinations, or it goes away.
+**A comment is deleted unless it proves it must stay.** "It is true" and "it is
+useful" are not reasons: nearly every comment is both. The only question:
+**with this comment deleted, would a competent reader holding only the code
+reintroduce a bug that no assert and no test catches?** If not, delete it. **In
+doubt, delete**: git keeps it, and I put what matters in the commit message.
 
-1. **The meaning of a name** → `<docs/glossary.md>`. You **do not write** to
-   this file (other agents are working in parallel): you list in your report the
-   entries to add or correct, one line each. The code does not repeat the
-   glossary.
+- **The header ends with no comments.** Not one per declaration, not one per
+  field, not a file banner. The signature and the names are the documentation.
+  "Must outlive the handle", "may be NULL", "returns 0 on failure", "called
+  once per frame": all deleted. Only three things may remain, listed below.
+  The check `<header_residue.sh>` must print nothing on your header.
+- **The body keeps only traps**, one sentence each, at the line they protect.
+- **A test file keeps the reason for a literal value**, nothing else (see
+  below).
+
+Example of the expected result: `src/engine/allocator.h` went from a comment on
+every declaration to none, and `allocator.c` kept two one-line traps ("`handle`
+must stay first: arena_t is reached by casting the handle"; "Not
+bump_zone_init: under ASan it poisons two halves, past the block").
+
+What may survive, each in exactly one place:
+
+1. **The meaning of a name** → `<docs/glossary.md>`, if the repository has one.
+   You **do not write** to this file (other agents are working in parallel):
+   you list in your report the entries to add or correct. The code does not
+   repeat the glossary.
 2. **A known gap with <THE REFERENCE>**, or a piece deliberately left undone →
    an entry in `<docs/gaps.md>`. You do not write there either: you propose the
    entry in your report. In the code, you leave only a **bare marker**
@@ -32,15 +52,13 @@ Every comment you read goes to one of these four destinations, or it goes away.
    `/* GAP-? */` and report it.
 3. **A trap a future reader would reintroduce** → an
    `assert(cond && "short message")` at the exact site **if you can establish
-   that it holds**, otherwise **40 words at most** of prose. Read the next
-   section before writing a single assert.
-4. **A contract that neither the name nor the glossary carries** — who owns the
-   memory, who frees it, what the function returns when the field is missing,
-   what a NULL triggers, the exact format of an output a test relies on → **one
-   sentence** in the header.
+   that it holds**, otherwise **one sentence** in the body, at that line. Read
+   the next section before writing a single assert.
+4. **A file format that something outside the repository must read** → it may
+   stay in full in the header that writes it. A format read only by this
+   repository's code or tests does not qualify: the tests pin it. Say in your
+   report which header you claim this for, and why.
 
-Everything else goes into the commit message, which I write. You do not have to
-preserve it in the file: tell me in your report and git will keep it.
 `TODO` is still allowed: it admits that a case is not handled.
 
 ## The assert rule — the most important one in this brief
@@ -66,7 +84,7 @@ So: you add an assert only if you can **establish** it, which means
 - proving the invariant **locally, with no assumption at all about the callers**.
 
 "I don't see how that could happen" is not a proof. If you cannot establish it,
-you write 40 words. **One assert too many costs more than one comment too
+you write one sentence. **One assert too many costs more than one comment too
 many.**
 
 Compute the margin before writing, when there is one (bounds, pool sizes,
@@ -81,14 +99,15 @@ reason. That list is worth as much as the ones you add.
 non-vendored dependency, no test builds it — then **you add no assert at all**,
 even an established one. The net that catches wrong asserts is the test suite;
 where it does not reach, a human will catch it, much later. Say so in your report
-and write 40 words.
+and write one sentence.
 
 **A pre-existing assert with no message** (a bare `assert(cond)`, with next to it
 the comment that would be exactly its message) is a frequent case in a
 repository that has already been reworked: the first pass added the assert, the
 second finds the orphaned comment. Merging them is the right transformation
 **and it is a code change**: you do not make it. You keep the prose and report
-it.
+it; the orchestrator merges it after your pass, in its own `refactor:` commit,
+then deletes the comment.
 
 ## Verify every status claim before believing it
 
@@ -156,10 +175,21 @@ usual check (identical non-comment lines) does not see them.
   safety net.
 - No nested block comment (a `/* */` does not nest).
 - `#include <assert.h>` present if you added an assert.
+- `<header_residue.sh> <your headers>` prints nothing (`-x <header>` only
+  for a header you claim under destination 4).
 - Count the comment lines before and after with **the command given in this
   brief**, not with your own: otherwise your figure is comparable to no other.
 - Report files from the same batch that you came across without being in
   charge of them. A catch-up that leaves half of them behind is not one.
+
+## Findings outside comments
+
+You will find things that are not comments: a claim the code contradicts, a
+latent overflow, an argument parsed differently from its usage line. Report
+them in section 9, one line each, **marked `defect` only if it produces a
+wrong output, a crash, an out-of-bounds access or data loss** today, on a
+platform the repository builds for. Everything else is marked `note` and ends
+in the commit message. You fix none of them.
 
 ## Report
 

@@ -1,6 +1,6 @@
 ---
 name: rework-comments
-description: Brings a repository buried under work-log narration (phase numbers, references to specs, copied-in source code, histories of abandoned fixes) back to comments that carry only what the code does not say — a sequential phase 1 that extracts what could no longer be reconstructed, then a phase 2 with one agent per module under a four-destination rule. Use when the comment-to-code ratio is out of proportion, when you want to delete comments massively without losing what they held, when a port or agent-driven generation has left a logbook in the sources, when the user talks about slimming down, trimming, reworking or cleaning up a repository's comments, or when a few files written under the old regime land in a repository that has already been reworked (merge, long-lived branch, outside contribution) and need to be caught up.
+description: Brings a repository buried under work-log narration (phase numbers, references to specs, copied-in source code, histories of abandoned fixes) back to comments that carry only what the code does not say — a sequential phase 1 that extracts what could no longer be reconstructed, then a phase 2 with one agent per module under a delete-by-default bar. Deletes by default: headers end with no comments, bodies keep one-sentence traps, every file in scope is read whatever the global ratio, and a mechanical gate (byte-identical code, header residue, green suite) runs per module, so it can run unattended under plan-pilot. Use when the comment-to-code ratio is out of proportion, when you want to delete comments massively without losing what they held, when a port or agent-driven generation has left a logbook in the sources, when the user talks about slimming down, trimming, reworking or cleaning up a repository's comments, or when a few files written under the old regime land in a repository that has already been reworked (merge, long-lived branch, outside contribution) and need to be caught up.
 ---
 
 # rework-comments
@@ -9,20 +9,19 @@ A repository written by successive waves of agents accumulates **work-log narrat
 
 This skill cuts that volume down to what has a reason to live in the code, **without changing any behavior**.
 
-A worked example from start to finish (a C port of a PICO-8 cart, 18,544 → 2,966 comment lines, 47% → 12%): [worked-example.md](worked-example.md). The rest of this file is the method, to apply elsewhere.
+A worked example from start to finish (a C port of a PICO-8 cart, 18,544 → 2,966 comment lines, 47% → 12%): [worked-example.md](worked-example.md) — run under the old, looser bar; 12% turned out to still be mostly comments that should not exist. The rest of this file is the method, to apply elsewhere.
 
-## Two modes of use — pick one before you start
+## Scope — every file, decided per file
 
-A repository is reworked only once; catching up comes back with every merge. The two uses do not follow the same path.
+**The scope is every source and test file**, unless the invocation names files. Whether a file needs work is decided by reading it against the bar below, **never by a ratio**, and never by a belief that a directory "was already reworked".
 
-**Full campaign** — the repository has never been reworked, and narration is everywhere. Phase 1 then phase 2, in that order, with the ratio measured over the whole repository.
+What happened: a catch-up pass measured 13% comments over `src/`, concluded the repository was clean, and reworked only the six densest files. `engine/` and `game/` were never opened — and `allocator.h` alone held a comment on every declaration, none of which met the bar. A low global ratio says comments are *short*, not that they *should exist*. **A ratio is a progress measure, not a scoping tool.**
 
-**One-off catch-up** — the repository has already been reworked, and a few new files have arrived written under the old regime: a merge, a long-lived branch, an outside contribution. This is the most frequent use once the campaign is over. In that case:
+Two modes remain, and they differ only in phase 1:
 
-- **Skip phase 1.** The glossary and the gaps file already exist: they are read-only, and, as in a campaign, the agent does not write to them — it proposes its additions and corrections in its report.
-- **The destination rule (four, or three if the repository no longer has a glossary) is already in the repository's instructions file** (`CLAUDE.md` or equivalent). The agent reads it there; the brief does not need to copy it, only point to it.
-- **Measure the ratio per file**, never over the repository: on two files, the global figure does not move and tells you nothing.
-- **A single agent** if the files fit in what one wave would give it. The "header and body together" rule still applies.
+**Full campaign** — no gaps file yet (and, if names are cryptic, no glossary). Phase 1, then phase 2 over every file.
+
+**Catch-up** — the gaps file exists. Skip phase 1: the glossary and gaps file are read-only, agents propose additions in their report. Phase 2 still covers **every file in scope**; a file that already meets the bar costs one read and an empty diff, which is cheap. The destination rule lives in the repository's instructions file (`CLAUDE.md` or equivalent); the bar below is stricter, and **this skill's bar wins** for the duration of the pass.
 
 A half-reworked repository — a glossary but no gaps file, or the other way round — is still a catch-up. Do not create the missing half for symmetry; create it the day a real gap shows up.
 
@@ -30,7 +29,7 @@ A half-reworked repository — a glossary but no gaps file, or the other way rou
 
 **A test suite that attests the behavior, and that is green before you start.** The method adds `assert`s; a wrong assert aborts the process. On the reference project, an agent added one that brought down the whole suite (see below). The safety net caught it, not the review.
 
-Without a test suite: add no asserts at all, and destination 3 shrinks to its prose variant. Tell the user rather than improvising.
+Without a test suite: add no asserts at all, and destination 3 shrinks to its prose variant. Tell the user rather than improvising (unattended: stop before phase 2 and report it).
 
 **This is the orchestrator's obligation, not a box the agent ticks**: the agent is not allowed to run the suite (the build directory is shared). Say so explicitly in the brief, otherwise the agent believes it is working without a net — or worse, believes it has one where there is none.
 
@@ -45,14 +44,24 @@ cloc --by-file src/ | tail -5
 
 **Give this command to the agents; it is the definition.** "Comment line" has at least three meanings (a line that is entirely comment, a line containing one, `cloc`'s own definition): without a canonical command, each agent writes its own counter and the figures are comparable neither with each other nor with yours. It is the only measure the method presents as objective; letting it depend on each agent's tooling empties it of meaning.
 
-## The rule: four destinations
+## The bar: delete by default
 
-Every comment you meet goes to **one** of these four destinations, or it goes away.
+**A comment is deleted unless it proves it must stay.** The question is not "is it true?" nor "is it useful?" — nearly every comment is both. The question is: **with this comment deleted, would a competent reader holding only the code reintroduce a bug that no assert and no test catches?** If not, it goes. When in doubt, it goes: git keeps it.
+
+By kind of file:
+
+- **Headers carry no comments.** The signature and the names are the documentation. Three exceptions, nothing else: a bare `/* GAP-n */` marker, a `TODO`, and a file format that something outside the repository must read. A contract that matters ("NULL aborts", "returns 0 on a missing field") is either enforced by an assert in the body, or is not worth a sentence. Checked mechanically: [header_residue.sh](header_residue.sh) must print nothing.
+- **Bodies (`.c`)** keep only traps, at the exact line, **one sentence** — or the assert that replaces it.
+- **Tests** keep the reason for a literal value (a pixel, a range, a frame index). Everything else goes.
+
+The reference failure for this rule is under-deletion, not over-deletion: a pass that kept every "contract" in `allocator.h` — "Handle on an already initialised zone, which must outlive it", "The block may be NULL", "Uninitialised memory; p8_fatal when the zone is full" — because each was true, short, and fitted the old destination 4. The user's verdict: none of them was useful. The calibrated result kept zero lines in the header and two one-line traps in the body.
+
+Every comment that survives goes to **one** of these destinations:
 
 1. **The meaning of a name** → a glossary file, one line per symbol. The code does not repeat it.
 2. **A known gap with the reference**, or a piece deliberately left undone → a numbered entry in a gaps file. The code refers to it only through a **bare marker**, `/* GAP-7 */`, alone on its line above the declaration concerned — no summary next to it; it would go stale.
-3. **A trap a future reader would reintroduce** → `assert(cond && "short message")` at the exact site if it can be checked at runtime, **otherwise 40 words at most**.
-4. **A contract that neither the name nor the glossary carries** — who owns the memory, who frees it, what the function returns when the field is missing, what a NULL triggers → one sentence in the header. One exception, named so that it does not become a loophole: **a file format or a protocol that something outside the repository must be able to read** is a legitimate long contract — it has nowhere else to live. Everything else fits in one sentence, or moves to a `docs/format-*.md`.
+3. **A trap a future reader would reintroduce** → `assert(cond && "short message")` at the exact site if it can be checked at runtime, **otherwise one sentence in the body**, at the line it protects.
+4. **A file format or a protocol that something outside the repository must be able to read** → it may stay in full in the header that writes it; it has nowhere else to live. A format read only by the repository's own code or tests is not one: the tests pin it. Pass the header to `header_residue.sh` with `-x`, and justify it in the report.
 
 Everything else goes into the **commit message**. Git keeps it, and nobody pays for it in tokens on every read of the file. `TODO` is still allowed: it admits that a case is not handled.
 
@@ -63,7 +72,7 @@ The orchestrator does it alone, before any agent. It extracts what could no long
 1. **The glossary.** Useful when identifiers do not carry their meaning: transliterated minified code, symbols inherited from a binary format, domain abbreviations. Build it by reading every header, one line per symbol, and check mechanically that every symbol cited still exists. *Transposing*: if the names already speak for themselves, this file has no reason to exist — do not create it for symmetry. It can become a glossary of domain vocabulary, or nothing.
 2. **The numbered gaps.** One entry per divergence from the reference (another implementation, a spec, a replaced system) or per acknowledged omission. **Re-check every entry against the code** rather than copying the comment: that is where you find stale claims, and sometimes a gap that has become reachable without anyone noting it.
 3. **Delete the work logs** that git now makes redundant, and patch every dangling reference.
-4. **Rewire the process that produced the prose** — otherwise it grows back. Concretely: write the four-destination rule into the repository's instructions file (`CLAUDE.md` or equivalent), and **fix the skills that wrote narration**. On the reference project, a bug-fixing skill appended a log paragraph on every run; that step was removed, and the finding now goes into the commit message.
+4. **Rewire the process that produced the prose** — otherwise it grows back. Concretely: write the destination rule into the repository's instructions file (`CLAUDE.md` or equivalent), and **fix the skills that wrote narration**. On the reference project, a bug-fixing skill appended a log paragraph on every run; that step was removed, and the finding now goes into the commit message.
 
 Commit phase 1 before opening phase 2.
 
@@ -91,7 +100,7 @@ What happened: an agent added an assert requiring a data spec to end with a comm
 
 Hence the instruction, to put in bold in every agent's prompt:
 
-> **If it cannot establish that an assert holds other than by reasoning, it writes 40 words.** One assert too many costs more than one comment too many.
+> **If it cannot establish that an assert holds other than by reasoning, it writes one sentence.** One assert too many costs more than one comment too many.
 
 Establishing means: exhaustively enumerating the call sites, measuring a length or some content outside the target language, or proving the invariant **locally, with no assumption about the callers**. Not: "I don't see how that could happen."
 
@@ -110,12 +119,36 @@ Later waves refused five asserts for this reason, and one of those refusals prod
 1. **Compile each module in isolation** as soon as its agent hands back (`make src/obj/module.o` or the equivalent). That catches the missing `#include <assert.h>` and nested comments.
 2. **Run the full suite only on a stabilized tree** — every agent of the wave has handed back. A build on a half-rewritten tree tells you nothing, and this is precisely what made it possible to attribute the assert failure correctly.
 3. **Commit module by module**, with the narration in the message: the before/after ratio, the asserts added and how each was proven, the stale claims taken apart, the glossary corrections.
-4. **Keep commits that add `abort()`s** (an assert is one) separate from those that only delete text. A purely subtractive commit must read as such, and be revertable without taking anything else with it.
-5. **Recommend line-range replacement**, which refuses if the range contains anything other than comment, over exact-string replacement copied from a read. The former cannot touch code and fails loudly; the latter gets a newline wrong and pastes approximate text.
-6. **Record the ratio at every wave.** It is the useful progress measure, and the only one that does not depend on judgment.
+4. **Merge each reported bare assert with its orphaned comment** (the comment becomes the message, then goes), in a `refactor:` commit of its own, after the module's subtractive commit.
+5. **Keep commits that add `abort()`s** (an assert is one) separate from those that only delete text. A purely subtractive commit must read as such, and be revertable without taking anything else with it.
+6. **Recommend line-range replacement**, which refuses if the range contains anything other than comment, over exact-string replacement copied from a read. The former cannot touch code and fails loudly; the latter gets a newline wrong and pastes approximate text.
+7. **Record the ratio at every wave.** It is the useful progress measure, and the only one that does not depend on judgment.
+8. **The gate, per module, before its commit** — all mechanical, all must pass:
+   - comment-stripped output byte-identical before/after (step 0), lines of code identical;
+   - `header_residue.sh` prints nothing for the module's headers (`-x` only for an external format, named in the commit message);
+   - the test suite green on the stabilized tree.
+   A failing gate sends the module back to its agent with the output; it is never waved through.
+9. **Scripted deletion is allowed, only behind the gate.** A regex that strips comments is fast and right for headers, where everything goes; it is also how a trailing `/* ... */` takes the newline after it and glues two declarations together. Measured on this repository: the byte check caught it on the first try. Never script without step 0.
+
+## Running unattended (plan-pilot)
+
+No one answers during the run. The bar above **is** the decision: there is no calibration question to ask, and a doubt on a comment resolves to deletion. A doubt on anything else (a gap entry, an assert) resolves to the conservative side: no assert, the gap proposed in the report, not written.
+
+Waves are sized as in phase 2; each module that passes the gate is committed, the next wave starts. The run stops only when every file in scope has passed the gate, or when the suite goes red and the cause is not found in the wave's own diff.
+
+## What reaches the user
+
+The final report is about comments: per-module ratio, the gate's results, the commits, the asserts added and rejected, the gap entries proposed. **A finding outside comments is not a decision to put to the user.** Agents surface them (a claim found false, a latent overflow, an argument parsed differently from its usage line) and that is their job; the orchestrator sorts them:
+
+- a real defect — wrong output, crash, out-of-bounds, data loss → a separate task (`spawn_task`, or one line in the report naming it as such);
+- anything else → the commit message, where git keeps it.
+
+What happened: a catch-up report ended with four "points to decide" — an argv check, a 32-bit Windows overflow on a platform nobody targets, an undocumented exit code, two assert messages. The user's answer to three of them: what is the link with your task.
 
 ## What the method does not guarantee
 
-It produced one failure: a wrong assert that aborted the whole test suite. It was written by a conscientious agent who had validated its rule offline before adding it. The review did not catch it; the first `make test` of the next wave did.
+It produced two failures. The first: a wrong assert that aborted the whole test suite. It was written by a conscientious agent who had validated its rule offline before adding it. The review did not catch it; the first `make test` of the next wave did.
 
 The method is therefore safe **exactly to the extent that the test suite is**. If the suite does not cover a path, a wrong assert on that path will survive until a user hits it. That is the argument for the prerequisite at the top of this file, and for the verifiable-assert rule.
+
+The second was the opposite: a pass that changed too little. It scoped itself by ratio, skipped the directories it believed clean, and kept every true sentence as a "contract". Nothing caught it but the user reading `allocator.h`. That is the argument for the delete-by-default bar, for scoping every file, and for `header_residue.sh`: under-deletion leaves no failing test behind, so it needs its own mechanical check.
