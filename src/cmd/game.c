@@ -1,12 +1,8 @@
-/* The interactive PC driver: the same boot as src/cmd/replay.c up to
- * cart_load() and cart_init(), but the input of each frame comes from a
- * live raylib window, or from a recording given as the one optional
- * positional argument, and the framebuffer is presented as a texture
- * instead of dumped as text.
+/* The interactive PC driver: each frame's input comes from a recording
+ * given as the one optional argument, then from the live window.
  *
- * The driver must NOT click a difficulty button itself: a recording made
- * here starts on the title screen and holds its own click, so a driver
- * that clicked first would desynchronise every recording it replays. */
+ * The driver must NOT click a difficulty button itself: a recording starts
+ * on the title screen and holds its own click. */
 
 #include "p8/vram.h"
 #include "p8/assets.h"
@@ -24,8 +20,6 @@
 #include <stdio.h>
 
 int main(int argc, char **argv) {
-    /* One optional positional argument, nothing else: no flags, no
-     * recording-picker UI. */
     const char *replay_path = (argc > 1) ? argv[1] : NULL;
 
     replay_source_t replay;
@@ -47,8 +41,6 @@ int main(int argc, char **argv) {
                 replay_path, replay_source_frame_count(&replay));
     }
 
-    /* Initialised before the window opens so the first replayed frame
-     * already runs at the replay's default speed. */
     replay_control_t replay_control;
     replay_control_init(&replay_control);
 
@@ -70,11 +62,8 @@ int main(int argc, char **argv) {
     cart_load();
     cart_init();
 
-    /* One loop for replay and live play, with one call site for
-     * cart_update60(), cart_draw() and raylib_backend_present(): they
-     * differ only in where the frame came from. Every recorded frame is
-     * stepped AND drawn -- drawing has measured side effects on game
-     * state, so skipping either misses the recorded state. */
+    /* Every recorded frame is stepped AND drawn: drawing has side effects
+     * on game state, so skipping either misses the recorded state. */
     cheat_t cheat;
     cheat_init(&cheat);
     button_cursor_t cursor;
@@ -85,18 +74,13 @@ int main(int argc, char **argv) {
         if (!from_recording) {
             raylib_backend_poll_input(&backend, &frame);
         } else {
-            /* poll_input is not called while the file drives: live
-             * hardware has no say in a replayed frame, and a space bar
-             * tapped here would bookmark a frame the player is only
-             * watching. raylib still pumps events in present(), so the
-             * window stays closable. */
+            /* No poll_input while the file drives: raylib still pumps
+             * events in present(), so the window stays closable. */
             raylib_backend_poll_replay_controls(&replay_control);
         }
         raylib_backend_set_frame_rate_cap(replay_control_target_fps(&replay_control, from_recording));
-        /* Recorded before the game steps, and unconditionally: see
-         * raylib_backend_record_frame. Always the raw frame, never the
-         * played one: a declared replay runs button_cursor again on what
-         * it reads. */
+        /* The raw frame, never the played one: a declared replay runs
+         * button_cursor again on what it reads. */
         raylib_backend_record_frame(&backend, &frame);
         p8_input_frame_t played_frame = frame;
         if (keyboard_cursor) {

@@ -1,25 +1,14 @@
-/* The headless replay driver: loads pico8/gfx.json, calls cart_load()
- * and cart_init(), steps the game one frame per events.json entry, and
- * dumps the final framebuffer as text. It asserts nothing about the game
- * itself -- that is what tests/ is for.
+/* The headless replay driver: steps the game one frame per events.json
+ * entry, then dumps the final framebuffer as text.
  *
- * argv[1], required, names the script to replay; without it the driver
- * prints its usage and exits 2.
- *
- * argv[2], optional, is where each frame's pixels are written. Without it,
- * nothing is captured and the final dump is the same as with it --
- * tests/test_headless_capture.c asserts that.
- *
- * argv[3], optional, is where the text dump goes; absent means
- * tmp/replay_dump.txt. Giving it requires giving argv[2].
+ * argv[1], required, names the script; without it, or if it starts with
+ * '-', the usage and exit 2. argv[2], optional, receives the screencast
+ * capture; the final dump is the same without it. argv[3], optional, is
+ * the text dump, tmp/replay_dump.txt by default.
  *
  * Every replay starts on the title screen: the file itself clicks the
- * difficulty. The driver takes no option; an argument starting with '-'
- * gets the usage and exit 2.
- *
- * A file declaring "keyboard_cursor": true plays each frame through
- * button_cursor; the cheat still reads the raw frame. An undeclared file
- * plays the script as recorded.
+ * difficulty. A file declaring "keyboard_cursor": true plays each frame
+ * through button_cursor; the cheat still reads the raw frame.
  *
  * REPLAY_FILL=<file>, optional, gets after the dump, once the exit queue
  * is flushed: one "<sort> <count>" line of live places per interface sort
@@ -118,9 +107,8 @@ int main(int argc, char **argv) {
     cart_load();
     cart_init();
 
-    /* A failure prints its message and returns 1: a missing or truncated
-     * capture would yield a wrong hash, indistinguishable from a
-     * regression. fprintf rather than assert, so the message names the path. */
+    /* Every capture failure exits 1: a truncated capture would yield a
+     * wrong hash, indistinguishable from a regression. */
     screencast_writer_t capture = { NULL };
     if (capture_path && !screencast_writer_open(&capture, capture_path)) {
         fprintf(stderr, "replay: cannot open the capture file '%s'\n",
@@ -148,11 +136,8 @@ int main(int argc, char **argv) {
         cheat_step(&cheat, &input);
         cart_update60();
         cart_draw();
-        /* AFTER cart_draw() and before the next frame: the only moment
-         * the screen memory holds the whole frame just drawn. At the top
-         * of the loop, the whole capture would be shifted by one frame --
-         * tests/test_headless_capture.c catches that by comparing the
-         * last captured frame with the text dump. */
+        /* AFTER cart_draw(): at the top of the loop, the whole capture
+         * would be shifted by one frame. */
         if (capture_path && !screencast_write_frame(&capture, &memory)) {
             fprintf(stderr, "replay: cannot write frame %d to '%s'\n",
                     i, capture_path);
@@ -164,11 +149,8 @@ int main(int argc, char **argv) {
         }
     }
 
-    /* The close is checked like the writes: fclose is the last place
-     * where a buffered write can fail. It comes BEFORE the text dump, and
-     * a failure therefore skips the dump: a fresh dump would make a run
-     * whose capture is lost look normal to whoever reads only the
-     * dump. */
+    /* BEFORE the text dump, so a failed close skips it: a fresh dump would
+     * make a run whose capture is lost look normal. */
     if (capture_path && !screencast_writer_close(&capture)) {
         fprintf(stderr, "replay: cannot close the capture file '%s'\n",
                 capture_path);

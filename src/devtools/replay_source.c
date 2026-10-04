@@ -15,10 +15,6 @@ replay_source_status_t replay_source_open(replay_source_t *source, const char *p
         return source->status;
     }
 
-    /* Missing, unreadable, malformed and empty all collapse into one
-     * outcome: p8_input_load reports them the same way, nothing is
-     * half-loaded, and the caller's message names the path, which is what
-     * tells them apart for a human. */
     if (!p8_input_load(&source->recording, path)) {
         source->status = REPLAY_SOURCE_LOAD_FAILED;
         return source->status;
@@ -59,9 +55,8 @@ int replay_source_next_frame(replay_source_t *source, p8_input_frame_t *out_fram
     assert(source);
     assert(out_frame);
 
-    /* A NONE source has a frame_count of 0 and an index of 0, so it is
-     * exhausted on its first call without any status check: "there never
-     * was a recording" and "the recording ran out" are one code path. */
+    /* No status check: a NONE or LOAD_FAILED source has a frame_count of
+     * 0, so it is exhausted like a recording that ran out. */
     if (source->next_frame_index >= source->recording.frame_count) {
         return 0;
     }
