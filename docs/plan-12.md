@@ -21,7 +21,7 @@ Le jeu dessine un framebuffer de 160×120 au lieu de 128×128 : du 4:3 exact, qu
 
 1. **Figer l'oracle.**
    - Restaurer depuis `c38875e^` la mesure de couverture de lignes (`tests/test_line_coverage.c` et ce dont elle dépend), sous une cible hors de `make test-all`.
-   - Écrire, pour les 13 e2e et les 5 rejeux de `worst-case/`, l'état normalisé de la dernière frame dans un répertoire versionné le temps du plan.
+   - Écrire, pour les 26 e2e et les 5 rejeux de `worst-case/`, l'état normalisé de la dernière frame dans un répertoire versionné le temps du plan.
    - Écrire la couverture de lignes de l'ensemble des e2e.
 2. **Étiqueter les rejeux sur le code actuel.** Un devtool rejoue un `events.json` et écrit, pour chaque frame, ce qui est sous le curseur : la classe de l'entité que donne le hit test existant, ou « carte ». Une table classe → ancre (gauche, droite, haut, bas, centre ; carte) accompagne cet outil. On produit un fichier d'étiquettes par rejeu.
 3. **Passer le framebuffer à 160×120.**
@@ -38,9 +38,9 @@ Le jeu dessine un framebuffer de 160×120 au lieu de 128×128 : du 4:3 exact, qu
    - l'écran de score final : son contenu (y 12–122) est centré et passe à 8–118, alors que les barres de son cadre (`score_panel_frame` {126,127}, `hud_draw_bar` jusqu'à 127) sont ancrées en bas ;
    - l'écran titre.
    Cet ancrage passe par les tables (`game_data.c`, `map_tables.c`) comme par le code.
-5. **Convertir les rejeux.** Un script lit chaque `events.json` et son fichier d'étiquettes, puis applique à chaque frame le décalage de l'ancre (+16 / −4 pour la carte). Le `.txt` de chaque e2e reprend ensuite les nouvelles coordonnées.
+5. **Convertir les rejeux.** Un script lit chaque `events.json` et son fichier d'étiquettes, puis applique à chaque frame le décalage de l'ancre (+16 / −4 pour la carte). Le `.txt` de chaque e2e reprend ensuite les nouvelles coordonnées. Le devtool de l'étape 2, relancé sur le nouveau code avec les rejeux convertis, doit rendre les mêmes étiquettes frame par frame : la première frame qui diverge désigne l'ancre fausse, qu'on corrige dans la table avant de reconvertir.
 6. **Vérifier contre l'oracle.**
-   - Chaque rejeu converti finit dans l'état normalisé figé à l'étape 1, sans `p8_fatal`.
+   - Chaque rejeu converti finit dans l'état normalisé figé à l'étape 1, sans `p8_fatal`. Les lignes `zone` et `cap` comptent ce qui est dessiné et bougent avec le cadre : un écart limité à ces lignes est attendu, on vérifie seulement qu'elles restent sous leur limite. Un `full_game*` « échoue » s'il s'arrête ou s'écarte de l'oracle hors de ces lignes.
    - La couverture de lignes des e2e ne baisse pas ; les lignes réécrites aux étapes 3 et 4 sont hors comparaison.
    - Un e2e court qui échoue, ou dont la prémisse dépend du hors-écran (`colony_income_offscreen`, tout cas GAP-26), est réécrit à partir de son `.txt`. Il est alors jugé sur la couverture, et `make state` vérifie à la frame clé que la planète visée a bien `visible 0`.
    - Si un rejeu `full_game*` échoue, on s'arrête et on revient à l'humain avant toute autre action.
