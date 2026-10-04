@@ -18,4 +18,4 @@ cannot rise on the layer's first frame.
 
 Mirrors the mouse replay `pause_restart`.
 
-Human review in raylib: pending.
+Human review in raylib: keyboard play tried by hand, works.

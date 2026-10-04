@@ -22,4 +22,4 @@ cannot rise on the layer's first frame.
 
 Mirrors the mouse replay `game_end_final_score`.
 
-Human review in raylib: pending.
+Human review in raylib: keyboard play tried by hand, works.

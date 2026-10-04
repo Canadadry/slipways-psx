@@ -30,4 +30,4 @@ The cheat typed on the title screen would be lost: starting a game
 replaces its economy. Mirrors the mouse replays `cheat_code` and
 `tech_xenofoods_recipes`.
 
-Human review in raylib: pending.
+Human review in raylib: keyboard play tried by hand, works.
