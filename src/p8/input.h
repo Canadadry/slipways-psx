@@ -26,6 +26,7 @@ typedef struct {
     p8_input_frame_t *frames;
     int frame_count;
     int current_frame;
+    int keyboard_cursor;
 } p8_input_t;
 
 void p8_input_init(p8_input_t *input);
@@ -34,8 +35,10 @@ void p8_input_init(p8_input_t *input);
  * `input`, positioned at frame 0. Returns 1 on success, 0 on a missing or
  * malformed file: no "frames" array, a frame object missing one of
  * mouse_x/mouse_y/mouse_buttons, a "dpad" that is neither 4 nor 6 JSON
- * booleans, or an empty frames array. A 4-boolean dpad loads with O and X
- * released. There is no partial load: on 0,
+ * booleans, an empty frames array, or a "keyboard_cursor" member before
+ * "frames" whose value is neither true nor false. That member sets
+ * `keyboard_cursor` (absent reads 0); one after "frames" is not read.
+ * A 4-boolean dpad loads with O and X released. There is no partial load: on 0,
  * `input` is left untouched and the caller has nothing to replay. */
 int p8_input_load(p8_input_t *input, const char *path);
 

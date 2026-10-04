@@ -144,6 +144,73 @@ static void test_load_malformed_no_frames_key_is_hard_error(void) {
     p8_input_free(&input);
 }
 
+static void test_declared_keyboard_cursor_loads_on(void) {
+    p8_input_t input;
+    p8_input_init(&input);
+
+    assert(p8_input_load(&input, "tests/fixtures/events_keyboard_cursor_true.json"));
+    assert(input.keyboard_cursor == 1);
+
+    p8_input_free(&input);
+}
+
+static void test_undeclared_keyboard_cursor_loads_off(void) {
+    p8_input_t input;
+    p8_input_init(&input);
+    assert(p8_input_load(&input, "tests/fixtures/events_keyboard_cursor_true.json"));
+
+    assert(p8_input_load(&input, "tests/fixtures/events_valid.json"));
+    assert(input.keyboard_cursor == 0);
+
+    p8_input_free(&input);
+}
+
+static void test_keyboard_cursor_declared_false_loads_off(void) {
+    p8_input_t input;
+    p8_input_init(&input);
+    assert(p8_input_load(&input, "tests/fixtures/events_keyboard_cursor_true.json"));
+
+    assert(p8_input_load(&input, "tests/fixtures/events_keyboard_cursor_false.json"));
+    assert(input.keyboard_cursor == 0);
+
+    p8_input_free(&input);
+}
+
+static void test_malformed_keyboard_cursor_fails_and_leaves_input_untouched(void) {
+    p8_input_t input;
+    p8_input_init(&input);
+    assert(p8_input_load(&input, "tests/fixtures/events_keyboard_cursor_true.json"));
+    p8_input_frame_t *frames_before = input.frames;
+
+    assert(!p8_input_load(&input, "tests/fixtures/events_keyboard_cursor_malformed.json"));
+    assert(input.keyboard_cursor == 1);
+    assert(input.frames == frames_before);
+    assert(input.frame_count == 1);
+
+    p8_input_free(&input);
+}
+
+static void test_keyboard_cursor_after_the_frames_is_not_read(void) {
+    p8_input_t input;
+    p8_input_init(&input);
+
+    assert(p8_input_load(&input, "tests/fixtures/events_keyboard_cursor_after_frames.json"));
+    assert(input.keyboard_cursor == 0);
+
+    p8_input_free(&input);
+}
+
+static void test_init_and_free_leave_keyboard_cursor_off(void) {
+    p8_input_t input;
+    input.keyboard_cursor = 1;
+    p8_input_init(&input);
+    assert(input.keyboard_cursor == 0);
+
+    assert(p8_input_load(&input, "tests/fixtures/events_keyboard_cursor_true.json"));
+    p8_input_free(&input);
+    assert(input.keyboard_cursor == 0);
+}
+
 static char *read_file_raw(const char *path) {
     FILE *f = fopen(path, "rb");
     assert(f);
@@ -391,6 +458,12 @@ int main(void) {
     test_load_malformed_missing_field_is_hard_error();
     test_load_malformed_short_dpad_is_hard_error();
     test_load_malformed_no_frames_key_is_hard_error();
+    test_declared_keyboard_cursor_loads_on();
+    test_undeclared_keyboard_cursor_loads_off();
+    test_keyboard_cursor_declared_false_loads_off();
+    test_malformed_keyboard_cursor_fails_and_leaves_input_untouched();
+    test_keyboard_cursor_after_the_frames_is_not_read();
+    test_init_and_free_leave_keyboard_cursor_off();
     test_save_then_load_round_trips_every_field();
     test_save_writes_events_json_schema_shape();
     test_save_rejects_empty_frame_list();

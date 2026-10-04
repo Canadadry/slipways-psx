@@ -86,11 +86,33 @@ static int find_dpad_field(const char *obj, int dpad_out[6]) {
     return 1;
 }
 
+/* Searches only json[0, head_end): a key inside a frame or after the frames
+ * array is not the session's declaration. Returns 0 on a value other than
+ * true or false; an absent key reads as 0. */
+static int find_keyboard_cursor(const char *json, const char *head_end, int *out) {
+    static const char key[] = "\"keyboard_cursor\":";
+    const char *p = strstr(json, key);
+    *out = 0;
+    if (!p || p >= head_end) {
+        return 1;
+    }
+    p += strlen(key);
+    while (*p == ' ' || *p == '\t') {
+        p++;
+    }
+    if (strncmp(p, "true", 4) == 0) {
+        *out = 1;
+        return 1;
+    }
+    return strncmp(p, "false", 5) == 0;
+}
+
 void p8_input_free(p8_input_t *input) {
     free(input->frames);
     input->frames = NULL;
     input->frame_count = 0;
     input->current_frame = 0;
+    input->keyboard_cursor = 0;
 }
 
 int p8_input_load(p8_input_t *input, const char *path) {
@@ -101,6 +123,11 @@ int p8_input_load(p8_input_t *input, const char *path) {
 
     const char *cursor = strstr(json, "\"frames\":");
     if (!cursor) {
+        free(json);
+        return 0;
+    }
+    int keyboard_cursor;
+    if (!find_keyboard_cursor(json, cursor, &keyboard_cursor)) {
         free(json);
         return 0;
     }
@@ -185,6 +212,7 @@ int p8_input_load(p8_input_t *input, const char *path) {
     input->frames = frames;
     input->frame_count = count;
     input->current_frame = 0;
+    input->keyboard_cursor = keyboard_cursor;
     return 1;
 }
 

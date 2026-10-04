@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
         /* Recorded before the game steps, and unconditionally: see
          * raylib_backend_record_frame. */
         raylib_backend_record_frame(&backend, &frame);
-        p8_input_t input = { &frame, 1, 0 };
+        p8_input_t input = { .frames = &frame, .frame_count = 1, .current_frame = 0 };
         dispatch_context_set_input(&input);
 
         cheat_step(&cheat, &input);
