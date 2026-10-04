@@ -1,467 +1,461 @@
-# Trous de portage
+# Porting gaps
 
-Les écarts connus entre ce port C et le cart PICO-8 d'origine, et les
-morceaux volontairement non faits. Le code y renvoie par un commentaire
-`/* GAP-n */` à l'endroit concerné, sans répéter l'explication.
+Known divergences between this C port and the original PICO-8 cart, plus
+the pieces deliberately left undone. The code points here with a
+`/* GAP-n */` comment at the relevant spot, without repeating the
+explanation.
 
-Chaque entrée est décrite avec les noms C et les chemins d'aujourd'hui ;
-les noms du cart et ceux de l'API PICO-8 qu'elle cite sont rassemblés sur
-sa ligne « Lua : », sous le titre.
+Each entry is written with today's C names and paths. The cart names and
+PICO-8 API names it cites are gathered on its "Lua:" line, under the
+heading.
 
-Chaque entrée a été revérifiée contre le code au moment de la reprise des
-commentaires. Une entrée supprimée est une entrée refermée : voir git.
+Every entry was rechecked against the code when the comments were
+reworked. A deleted entry is a closed entry: see git.
 
 ---
 
-## GAP-1 — `sin`/`cos` ne sont pas bit-exacts hors des 64 points relevés
+## GAP-1 — `sin`/`cos` are not bit-exact outside the 64 measured points
 
-Lua : `sin`, `cos`.
+Lua: `sin`, `cos`.
 
-`p8_fixed_cos`/`p8_fixed_sin` lisent une table de quart d'onde 16.16
-(`p8_quarter_wave` de `src/p8/quarter_wave.h`, 16 385 entrées, une par
-fraction de tour r/65536 du premier quart, sans interpolation), générée sur
-l'hôte par `tools/gen_quarter_wave.c` (`make sin-table`). Elles sont exactes
-au bit près sur les 64 points i/64 du relevé
-(`tools/pico8_reference_probe_out.txt`, bloc E, asserté par `make test`).
-Ailleurs, elles rendent l'arrondi au plus proche de la valeur vraie, ce que
-rendait l'ancien calcul `double` de la libc, **sans source PICO-8** :
-l'approximation propre de PICO-8 n'est pas publiée.
+`p8_fixed_cos`/`p8_fixed_sin` read a 16.16 quarter-wave table
+(`p8_quarter_wave` in `src/p8/quarter_wave.h`, 16,385 entries, one per
+turn fraction r/65536 of the first quarter, no interpolation), generated
+on the host by `tools/gen_quarter_wave.c` (`make sin-table`). They are
+bit-exact on the 64 points i/64 of the probe
+(`tools/pico8_reference_probe_out.txt`, block E, asserted by `make test`).
+Everywhere else they return the true value rounded to nearest, which is
+what the old libc `double` computation returned. This has **no PICO-8
+source**: PICO-8's own approximation is not published.
 
-Le générateur pseudo-aléatoire relève de GAP-17.
+The pseudo-random generator falls under GAP-17.
 
-Conséquence : une partie rejouée ici peut diverger d'une partie rejouée
-dans le vrai PICO-8. Les rejeux internes restent déterministes,
-puisqu'ils comparent ce port à lui-même.
+Consequence: a game replayed here can diverge from the same game replayed
+in real PICO-8. The internal replays stay deterministic, since they compare
+this port with itself.
 
-Fichiers : `src/p8/fixed.c`, `src/p8/quarter_wave.h`.
+Files: `src/p8/fixed.c`, `src/p8/quarter_wave.h`.
 
-## GAP-3 — Les chaînes ne sont pas internées
+## GAP-3 — Strings are not interned
 
-Lua : `hy.invented`, `oj`, `jo:gg`, `ho()`, `r`, `hp.o`, `hp.dm`, `kw.qe`,
+Lua: `hy.invented`, `oj`, `jo:gg`, `ho()`, `r`, `hp.o`, `hp.dm`, `kw.qe`,
 `{qe=r[c]}`.
 
-Lua interne les littéraux : deux chaînes identiques y sont le même objet.
-Ce port copie ou alloue ses chaînes (les données générées ont un tableau
-distinct par jeton) : deux chaînes égales n'y sont donc pas le même
-pointeur.
+Lua interns literals, so two identical strings are the same object. This
+port copies or allocates its strings (the generated data has a separate
+array per token). Two equal strings are therefore not the same pointer.
 
-Contourné au cas par cas : `collect_contains_string` compare par contenu
-(les chaînes de la liste `invented` de l'économie, pour
-`tech_gate_is_unlocked`). Toute nouvelle comparaison de chaînes doit choisir
-explicitement.
+Worked around case by case: `collect_contains_string` compares by content
+(the strings in the economy's `invented` list, for
+`tech_gate_is_unlocked`). Any new string comparison must choose
+explicitly.
 
-**Hors de GAP-3 : les ressources.** Ce que le chargeur des tables de
-données du cart route à travers la table des ressources (`output` et
-`byproduct` d'un projet, donc `resource` d'une `production_t`) et les
-besoins à ressource sont des nombres — l'indice d'une ressource —, pas des
-chaînes : ils se comparent par valeur (`==` sur `p8_fixed_t`,
-`resource_equal`).
+**Not part of GAP-3: resources.** What the cart's data-table loader routes
+through the resource table (a project's `output` and `byproduct`, hence
+the `resource` of a `production_t`) and resource needs are numbers (the
+index of a resource), not strings. They compare by value (`==` on
+`p8_fixed_t`, `resource_equal`).
 
-Fichiers : `src/engine/collect.c`.
+Files: `src/engine/collect.c`.
 
-## GAP-5 — `update_entities` saute une entité quand une entité s'auto-supprime
+## GAP-5 — `update_entities` skips an entity when an entity removes itself
 
-Lua : `dg()`, `hv`.
+Lua: `dg()`, `hv`.
 
-`update_entities` parcourt la liste des entités vivantes
-(`live_entities`) par index. Quand une entité se retire pendant sa propre
-visite (`entity_unregister`), les suivantes glissent d'un cran et celle qui
-prend sa place n'est pas visitée cette frame. Lua fait autrement.
+`update_entities` walks the list of live entities (`live_entities`) by
+index. When an entity removes itself during its own visit
+(`entity_unregister`), the following ones shift down by one, and the one
+that takes its place is not visited this frame. Lua behaves differently.
 
-Divergence assumée : une entité sautée est simplement traitée à la frame
-suivante.
+Accepted divergence: a skipped entity is simply processed on the next
+frame.
 
-Fichier : `src/engine/bootstrap.c`.
+File: `src/engine/bootstrap.c`.
 
-## GAP-8 — Le tag `targeting` n'a aucun lecteur
+## GAP-8 — The `targeting` tag has no reader
 
-Lua : `g_`, `jo`, `prober`, `cg("prober")`.
+Lua: `g_`, `jo`, `prober`, `cg("prober")`.
 
-La sonde (`probe`), l'écran d'aide et toute la famille des planètes
-s'enregistrent sous le tag `TAG_TARGETING`, mais rien ne fait jamais
-`entities_by_tag(TAG_TARGETING)`. Conservé par fidélité, pas par utilité.
+The probe (`probe`), the help screen and the whole planet family register
+under the `TAG_TARGETING` tag, but nothing ever calls
+`entities_by_tag(TAG_TARGETING)`. Kept for fidelity, not for usefulness.
 
-## GAP-9 — Pas de suppression de champ nommé
+## GAP-9 — No deletion of a named field
 
-Lua : `t[nom]=nil`.
+Lua: `t[nom]=nil`.
 
-La table à clés dynamiques du port savait retirer un élément par indice,
-pas un champ nommé : aucun site d'appel n'en a eu besoin. Effacer un champ
-nommé n'a donc pas d'équivalent exact — écrire une valeur fausse n'est pas
-la même chose qu'un champ absent.
+The port's dynamic-key table could remove an element by index, but not a
+named field: no call site needed it. Clearing a named field therefore has
+no exact equivalent. Writing a false value is not the same thing as an
+absent field.
 
-Un site : le bouton d'une boîte ouverte (`message_box_open_box`) ne prend
-la couleur de fond du cadre que si le cadre en a une, au lieu d'écrire une
-couleur absente (en Lua, écrire nil effacerait le champ). Fixé par
-`test_open_box_layer_only_from_back_color` de `tests/test_button.c`.
+One site: the button of an opened box (`message_box_open_box`) takes the
+frame's background color only if the frame has one, instead of writing an
+absent color (in Lua, writing nil would clear the field). Pinned by
+`test_open_box_layer_only_from_back_color` in `tests/test_button.c`.
 
-Fichier : `src/game/message_box.c`.
+File: `src/game/message_box.c`.
 
-## GAP-12 — Le premier anneau du trou de ver est noir au lieu de garder la plume
+## GAP-12 — The wormhole's first ring is black instead of keeping the pen color
 
-Lua : `mz:kj`, `self.kk[flr(sr/self.oi*8)]`, `kk`, `kk[0]`, `self.t`, `dt`.
+Lua: `mz:kj`, `self.kk[flr(sr/self.oi*8)]`, `kk`, `kk[0]`, `self.t`, `dt`.
 
-`wormhole_draw` colore chaque anneau par la rampe `color_ramp` de
-l'archétype, à l'indice flr(sr/oi*8). L'indice tombe à 0 dès que sr < oi/8,
-c'est-à-dire pour l'anneau le plus jeune, à chaque tick où le temps d'état
-vient de dépasser un `dt`.
+`wormhole_draw` colors each ring from the archetype's `color_ramp`, at
+index flr(sr/oi*8). The index drops to 0 as soon as sr < oi/8, that is,
+for the youngest ring, on every tick where the state time has just passed
+a `dt`.
 
-La rampe du cart est une table Lua indexée à partir de 1 : l'indice 0 y est
-nil, et PICO-8 conserve alors la couleur de plume courante. Ce port
-retombe sur 0 (`int_seq_at` laisse la couleur par défaut) et dessine en
-noir. Ce n'est pas la même image.
+The cart's ramp is a Lua table indexed from 1: index 0 is nil there, and
+PICO-8 then keeps the current pen color. This port falls back to 0
+(`int_seq_at` leaves the default color) and draws in black. It is not the
+same image.
 
-Trouvé en reprenant les commentaires : le commentaire à cet endroit
-affirmait l'inverse — « REAL, FAITHFULLY-REPRODUCED EDGE CASE ». L'écart
-est réel, l'affirmation était fausse.
+Found while reworking the comments: the comment at that spot claimed the
+opposite, "REAL, FAITHFULLY-REPRODUCED EDGE CASE". The gap is real; the
+claim was false.
 
-Pas transformé en `assert` : la condition est atteinte en permanence, et
-c'est le comportement actuel que les rejeux enregistrent. Le corriger
-changera les enregistrements existants, ce qui en fait une décision de
-jeu, pas une reprise de commentaires.
+Not turned into an `assert`: the condition is hit all the time, and the
+current behavior is what the replays record. Fixing it will change the
+existing recordings, which makes it a gameplay decision, not a comment
+rework.
 
 
-**Prémisse probablement fausse** (établi pour GAP-20, même situation) :
-l'indice 0 de la rampe est un nil **explicite**, que zepto8 et fake-08
-convertissent en couleur 0 ; le noir du port serait alors fidèle. Non
-vérifié sur le binaire PICO-8 — même vérification que GAP-20.
+**Premise probably false** (established for GAP-20, same situation): index
+0 of the ramp is an **explicit** nil, which zepto8 and fake-08 convert to
+color 0. The port's black would then be faithful. Not verified on the
+PICO-8 binary; same check as GAP-20.
 
-Fichier : `src/game/wormhole_display.c`.
+File: `src/game/wormhole_display.c`.
 
-## GAP-13 — `tostr` d'un champ absent rend la chaîne vide
+## GAP-13 — `tostr` of an absent field returns the empty string
 
-Lua : `tostr`, `s[st.score]`, `score == 0`, `ky()`.
+Lua: `tostr`, `s[st.score]`, `score == 0`, `ky()`.
 
-La rangée « score 0 » du panneau lit l'entrée 0 du score final, c'est-à-dire
-un indice que `economy_score_final` ne pose jamais. Lua y verrait nil.
+The panel's "score 0" row reads entry 0 of the final score, that is, an
+index that `economy_score_final` never sets. Lua would see nil there.
 
-Ce port n'a pas de nil à mettre en chaîne : `score_panel_final_score_text`
-rend `""` pour tout indice hors de 1..6. PICO-8, lui, a une représentation
-dédiée pour nil dans `tostr` — donc la ligne ne s'affiche pas pareil.
+This port has no nil to turn into a string: `score_panel_final_score_text`
+returns `""` for any index outside 1..6. PICO-8, on the other hand, has a
+dedicated representation for nil in `tostr`, so the line does not display
+the same way.
 
-Fixé par `test_scores_box_follows_is_shown` de `tests/test_message_box.c`
+Pinned by `test_scores_box_follows_is_shown` in `tests/test_message_box.c`
 (`SCORES_SEQUENCE_HASH`).
 
-Fichier : `src/game/score_panel_display.c`.
+File: `src/game/score_panel_display.c`.
 
-## GAP-14 — Une boucle qui supprime son propre élément en saute un
+## GAP-14 — A loop that deletes its own element skips one
 
-Lua : `ei()`, `qy`.
+Lua: `ei()`, `qy`.
 
-Même famille que GAP-5, à d'autres endroits et sur d'autres listes :
-`emitter_update` parcourt les particules de son émetteur (`particles`) et en
-supprime au milieu de sa propre boucle (`pointer_list_del`), sans compenser
-l'indice. La particule qui prend la place de celle qui vient d'être retirée
-n'est pas visitée cette frame. Le même motif existe dans l'affichage des
-slipways.
+Same family as GAP-5, in other places and on other lists: `emitter_update`
+walks its emitter's particles (`particles`) and deletes some in the middle
+of its own loop (`pointer_list_del`) without adjusting the index. The
+particle that takes the place of the one just removed is not visited this
+frame. The same pattern exists in the slipway display.
 
-Sans conséquence visible : une particule vit une frame de plus que prévu,
-et elle sera visitée à la frame suivante. Consigné parce que c'est le
-troisième site du même motif, et qu'un futur lecteur qui en corrige un
-seul rendra les trois incohérents entre eux.
+No visible consequence: a particle lives one frame longer than intended,
+and it will be visited on the next frame. Recorded because this is the
+third site of the same pattern, and a future reader who fixes only one of
+them will make the three inconsistent with each other.
 
-Fichiers : `src/game/particle.c`, `src/game/slipway_display.c`,
-et `src/engine/bootstrap.c` pour la variante de GAP-5.
+Files: `src/game/particle.c`, `src/game/slipway_display.c`,
+and `src/engine/bootstrap.c` for the GAP-5 variant.
 
-## GAP-15 — Là où Lua planterait, ce port ignore
+## GAP-15 — Where Lua would crash, this port ignores it
 
-Lua : `bd()`, `hg`, `lt`, `he`, `bm`, `dc`, `fa`, `ck()`.
+Lua: `bd()`, `hg`, `lt`, `he`, `bm`, `dc`, `fa`, `ck()`.
 
-Convention générale du portage, et non un oubli local : quand le cart
-indexe une table absente, Lua lève une erreur. Ce port lit le champ comme
-absent et continue. Les sites connus :
+This is a general convention of the port, not a local oversight. When the
+cart indexes a missing table, Lua raises an error. This port reads the
+field as absent and carries on. The known sites:
 
-- `economy_tiers_rebuild_incoming_routes` écrit dans l'ensemble
-  `served_planets` d'un slipway qui n'en a pas : écriture ignorée.
-- `entity_register`/`entity_unregister` testent la **présence** du membre
-  de message de la classe, pas sa véracité Lua : un membre posé à faux
-  inscrit quand même l'entité.
-- `entity_unregister` sur une étiquette jamais enregistrée ne fait rien.
-- `draw_layers` écarte de toutes les couches une entité sans `layer`, ou
-  dont le `layer` sort de 1..15.
-- `economy_crowding_penalty` saute une planète dont la liste de besoins est
-  absente ou vide.
+- `economy_tiers_rebuild_incoming_routes` writes into the `served_planets`
+  set of a slipway that has none: the write is ignored.
+- `entity_register`/`entity_unregister` test the **presence** of the
+  class's message member, not its Lua truthiness: a member set to false
+  still registers the entity.
+- `entity_unregister` on a tag that was never registered does nothing.
+- `draw_layers` leaves out of every layer an entity with no `layer`, or
+  whose `layer` falls outside 1..15.
+- `economy_crowding_penalty` skips a planet whose needs list is absent or
+  empty.
 
-Aucun de ces cas n'est atteint en partie normale — ils décrivent ce qui
-arriverait sur une donnée malformée. Consignés parce qu'un lecteur qui en
-« corrige » un seul en le rendant fatal rendrait le port moins tolérant
-que le cart à un endroit et pas aux autres.
+None of these cases is reached in normal play. They describe what would
+happen on malformed data. Recorded because a reader who "fixes" only one
+of them by making it fatal would make the port less tolerant than the cart
+in one place and not in the others.
 
-Fichiers : `src/game/economy_tiers.c`, `src/game/economy_formulas.c`,
+Files: `src/game/economy_tiers.c`, `src/game/economy_formulas.c`,
 `src/engine/entity.c`.
 
-## GAP-16 — Le tirage pondéré lit hors bornes si son pool se vide
+## GAP-16 — The weighted pick reads out of bounds if its pool runs empty
 
-Lua : `gn()`, `gn_next()`, `oc.items[0]`, `df`, `bw(90)`, `jo:hh`,
+Lua: `gn()`, `gn_next()`, `oc.items[0]`, `df`, `bw(90)`, `jo:hh`,
 `oc[flr(r()*0+1)]`, `until not gu(nm,e)`.
 
-`weighted_picker_new` construit un pool de tickets **consommable** : chaque
-`weighted_picker_next` retire le ticket tiré, et rien ne le regarnit. Quand
-il est vide, `idx0` vaut 0 et le code lit le ticket 0 d'une liste vide —
-`tickets` peut être `NULL`.
+`weighted_picker_new` builds a **consumable** pool of tickets: each
+`weighted_picker_next` removes the ticket it drew, and nothing refills it.
+Once the pool is empty, `idx0` is 0 and the code reads ticket 0 of an
+empty list. `tickets` can be `NULL`.
 
-Les chiffres, calculés sur le littéral des types de planète du dépôt avec
-`og` à 2 : **66 tickets**. `galaxy_populate` place 90 planètes, et
-`planet_roll_type` tire un ticket pour chacune qui ne prend pas la branche
-fixe (environ 55 % des cas). L'espérance reste sous 66, mais la queue de
-distribution la franchit.
+The numbers, computed on the repository's planet-type literal with `og`
+at 2: **66 tickets**. `galaxy_populate` places 90 planets, and
+`planet_roll_type` draws a ticket for each one that does not take the
+fixed branch (about 55% of cases). The expected value stays under 66, but
+the tail of the distribution goes past it.
 
-Trouvé en reprenant les commentaires : un agent voulait poser un `assert`
-sur `tickets_count` positif et a calculé la marge avant de l'écrire —
-l'assert aurait sauté. Ni le cart ni ce port ne gardent contre ce cas ; en
-Lua, le tirage dans une liste vide vaut nil et la boucle de tirage tourne
-indéfiniment, ce qui n'est pas mieux.
+Found while reworking the comments: an agent wanted to add an `assert`
+that `tickets_count` is positive, and computed the margin before writing
+it. The assert would have fired. Neither the cart nor this port guards
+against this case. In Lua, drawing from an empty list yields nil and the
+draw loop spins forever, which is no better.
 
-Fichier : `src/game/gen.c`.
+File: `src/game/gen.c`.
 
-## GAP-17 — Le générateur pseudo-aléatoire n'est pas celui de PICO-8
+## GAP-17 — The pseudo-random generator is not PICO-8's
 
-Lua : `rnd`.
+Lua: `rnd`.
 
-`p8_fixed_rnd` tire d'un générateur maison (`rnd_next_u32`), pas de celui
-de PICO-8. Aucune séquence ne coïncide.
+`p8_fixed_rnd` draws from a home-made generator (`rnd_next_u32`), not
+from PICO-8's. No sequence matches.
 
-Conséquence directe, et plus forte que GAP-1 : l'objectif acté
-« même graine → même galaxie » **ne tient pas** face au vrai cart, et pas
-seulement parce que le flottant dérive. Ici la première valeur tirée
-diffère déjà.
+Direct consequence, and stronger than GAP-1: the agreed goal "same seed →
+same galaxy" **does not hold** against the real cart, and not only because
+floating point drifts. Here the very first value drawn already differs.
 
-Les rejeux internes restent déterministes — ce port se compare à
-lui-même.
+The internal replays stay deterministic, since this port is compared with
+itself.
 
-Fichier : `src/p8/fixed.c`.
+File: `src/p8/fixed.c`.
 
-## GAP-18 — Le remap de couleurs de `pal()` n'est pas porté
+## GAP-18 — The color remap of `pal()` is not ported
 
-Lua : `pal()`, `dv()`.
+Lua: `pal()`, `dv()`.
 
-`p8_spr` lit la couleur d'un pixel de la feuille de sprites, teste le
-bit de transparence, puis l'écrit **telle quelle**. Le remap de couleurs
-que `pal()` installe dans la palette de dessin n'est appliqué nulle part :
-seul le bit 0x80 de l'octet de palette est lu.
+`p8_spr` reads a pixel's color from the sprite sheet, tests the
+transparency bit, then writes it **as is**. The color remap that `pal()`
+installs in the draw palette is applied nowhere. Only bit 0x80 of the
+palette byte is read.
 
-Ce qui marche quand même : `hud_select_palette_block` sélectionne un bloc
-de palette et le cart s'en sert surtout pour éteindre ou allumer des
-couleurs, pas pour les permuter. Ce qui ne marche pas se verrait sur un
-effet qui permute réellement deux couleurs.
+What works anyway: `hud_select_palette_block` selects a palette block, and
+the cart mostly uses it to turn colors off or on, not to swap them. What
+does not work would show on an effect that actually swaps two colors.
 
-Fichier : `src/p8/gfx.c`, marqué par un `TODO` sur place.
+File: `src/p8/gfx.c`, marked by a `TODO` in place.
 
-## GAP-19 — La police est reconstituée à la main
+## GAP-19 — The font is rebuilt by hand
 
-Les glyphes de PICO-8 appartiennent à son runtime, pas au cart : ils ne
-sont dans aucun asset exportable. Ce port les redessine — 3×5 pixels dans
-une cellule de 4 (`font_glyph_rows`) — et affiche un bloc plein pour tout
-caractère non couvert.
+PICO-8's glyphs belong to its runtime, not to the cart, so they are in no
+exportable asset. This port redraws them (3×5 pixels in a 4-wide cell,
+`font_glyph_rows`) and displays a solid block for any character not
+covered.
 
-Divergence visuelle permanente, assumée : la seule façon de la refermer
-serait de relever les glyphes depuis PICO-8 lui-même.
+Permanent, accepted visual divergence: the only way to close it would be
+to capture the glyphs from PICO-8 itself.
 
-Fichier : `src/p8/gfx.c`.
+File: `src/p8/gfx.c`.
 
-## GAP-20 — Un `nil` explicite comme couleur de `circ` n'est pas vérifié sur PICO-8
+## GAP-20 — An explicit `nil` as the color of `circ` is not verified on PICO-8
 
-Lua : `ga:kj`, `circ(p.x,p.y,pt.p:qx(),self.k_[flr(pt.l/2)])`, `1 < l < 2`,
+Lua: `ga:kj`, `circ(p.x,p.y,pt.p:qx(),self.k_[flr(pt.l/2)])`, `1 < l < 2`,
 `k_`, `k_[0]`, `nil`, `circ`, `color(8) circ(64,64,10,nil)`, `rk`,
 `rk_default`.
 
-Dans `burst_draw`, chaque particule est tracée par `p8_circ`, de la couleur
-de la rampe de traînée à l'indice flr(life/2) (lua.lua:1091). Les
-particules de vie entre 1 et 2 donnent l'indice 0 ; la rampe du cart est
-indexée à partir de 1, donc l'indice 0 y est nil et `circ` reçoit un
-quatrième argument **nil explicite**, pas un argument omis. Ce port trace
-alors en couleur 0 (noir).
+In `burst_draw`, each particle is drawn by `p8_circ`, in the color of the
+trail ramp at index flr(life/2) (lua.lua:1091). Particles whose life is
+between 1 and 2 give index 0. The cart's ramp is indexed from 1, so index
+0 is nil there and `circ` receives an **explicit nil** fourth argument,
+not an omitted one. This port then draws in color 0 (black).
 
-Ce n'est probablement pas un écart. Le manuel ne dit rien d'un nil
-explicite ; deux émulateurs le convertissent en 0 et posent aussi la plume
-à 0 : zepto8 (lua_isnone seul marque l'argument absent, nil donne
-lua_tonumber(nil) = 0) et fake-08 (lua_tonumber(L,4) dès qu'il y a plus
-de 3 arguments). Le port trace donc comme eux ; il ne pose pas la plume,
-sans effet visible ici.
+This is probably not a divergence. The manual says nothing about an
+explicit nil. Two emulators convert it to 0 and also set the pen to 0:
+zepto8 (only lua_isnone marks the argument as absent; nil gives
+lua_tonumber(nil) = 0) and fake-08 (lua_tonumber(L,4) as soon as there
+are more than 3 arguments). The port therefore draws as they do. It does
+not set the pen, which has no visible effect here.
 
-Non vérifié sur le binaire PICO-8. La vérification : tracer un cercle de
-couleur nil après avoir posé la plume à 8, dans une cartouche, et regarder
-la couleur. Si PICO-8 gardait la plume, il faudrait d'abord un vrai état de
-plume dans le port (voir la note sur `pen_color` plus bas) ; seules 22
-frames de `geoharvest_burst` bougeraient.
+Not verified on the PICO-8 binary. The check: in a cart, draw a circle
+with a nil color after setting the pen to 8, and look at the color. If
+PICO-8 kept the pen, the port would first need real pen state (see the
+note on `pen_color` below); only 22 frames of `geoharvest_burst` would
+change.
 
-Note liée : dans les deux émulateurs, **tout** tracé coloré met la plume à
-jour, alors que `pen_color` du port n'est écrit que par `hud_draw_bar`. Un
-tracé coloré entre un `hud_draw_bar` et un `hud_draw_bar_default` ferait
-diverger le port. Non étudié.
+Related note: in both emulators, **every** colored draw updates the pen,
+whereas the port's `pen_color` is written only by `hud_draw_bar`. A
+colored draw between a `hud_draw_bar` and a `hud_draw_bar_default` would
+make the port diverge. Not investigated.
 
-Prémisse réfutée par diagnostic dans les émulateurs.
+Premise refuted by diagnosis in the emulators.
 
-Fichier : `src/game/planet_family.c`.
+File: `src/game/planet_family.c`.
 
-## GAP-21 — La palette d'un éclat né d'une protoétoile est celle de la classe
+## GAP-21 — The palette of a burst born from a protostar is the class's
 
-Lua : `ga:kj`, `self.k_`, `k_`, `pm:pq()`, `ga`,
+Lua: `ga:kj`, `self.k_`, `k_`, `pm:pq()`, `ga`,
 `k_=o(1,2,8,14,14,14,14,8,8,2,2,1,1)`, `k_=o(1,2,4,9,9,10,10,7,7,7,7,7)`.
 
-`burst_draw` lit la rampe de traînée de l'instance quand elle en a une
-(lua.lua:1091). `protostar_construct` en donne une à l'éclat qu'il crée
-(1,2,8,14,14,14,14,8,8,2,2,1,1 ; lua.lua:1030, 1033), qui masque celle de la
-classe (1,2,4,9,9,10,10,7,7,7,7,7 ; lua.lua:1077). Ce port lit la rampe de
-la classe (`burst_trail_colors_seq`), jamais celle de l'instance : l'éclat
-d'une protoétoile prend la palette de l'éclat ordinaire.
+`burst_draw` reads the instance's trail ramp when it has one
+(lua.lua:1091). `protostar_construct` gives one to the burst it creates
+(1,2,8,14,14,14,14,8,8,2,2,1,1; lua.lua:1030, 1033), which shadows the
+class's (1,2,4,9,9,10,10,7,7,7,7,7; lua.lua:1077). This port reads the
+class's ramp (`burst_trail_colors_seq`), never the instance's, so a
+protostar's burst gets the palette of an ordinary burst.
 
-Probable, pas vérifié contre PICO-8. `protostar_construct` est exécuté par
-l'e2e `tests/e2e/tech_starbirth_protostar.json` : son empreinte fige le
-rendu du port, écart compris.
+Probable, not verified against PICO-8. `protostar_construct` runs in the
+e2e `tests/e2e/tech_starbirth_protostar.json`: its hash pins the port's
+rendering, divergence included.
 
-Fichier : `src/game/planet_family.c`.
+File: `src/game/planet_family.c`.
 
-## GAP-22 — `tostr` sous 0.0001 n'est pas sourcé
+## GAP-22 — `tostr` below 0.0001 is not sourced
 
-Lua : `tostr`.
+Lua: `tostr`.
 
-`p8_tostr_fixed` écrit un nombre avec 4 décimales arrondies au pair,
-puis retire les zéros de fin et le point nu. Cette règle reproduit 13 des
-14 témoins du bloc C de `tools/pico8_reference_probe_out.txt`, dont
-2/3 → `"0.6667"`.
+`p8_tostr_fixed` writes a number with 4 decimals rounded half to even,
+then strips trailing zeros and a bare point. This rule reproduces 13 of
+the 14 witnesses in block C of `tools/pico8_reference_probe_out.txt`,
+including 2/3 → `"0.6667"`.
 
-Le 14ᵉ est le brut −6 (`0xffff.fffa`) : PICO-8 affiche `"-0"`, ce port
-`"-0.0001"`. Aucune règle unique ne concilie ce témoin avec
-2/3 → `"0.6667"`, donc elle n'est pas devinée. Ce port garde sa sortie :
-brut −6 → `"-0.0001"`, bruts −1 à −3 → `"-0"`, bruts 1 à 3 → `"0"`. Pour
-les autres magnitudes inférieures à 0.0001, la règle de PICO-8 est
-inconnue.
+The 14th is raw −6 (`0xffff.fffa`): PICO-8 displays `"-0"`, this port
+`"-0.0001"`. No single rule reconciles this witness with
+2/3 → `"0.6667"`, so none is guessed. This port keeps its output: raw −6 →
+`"-0.0001"`, raw −1 to −3 → `"-0"`, raw 1 to 3 → `"0"`. For the other
+magnitudes below 0.0001, PICO-8's rule is unknown.
 
-Non atteint par le filet : aucune valeur affichée par le jeu n'a une
-magnitude inférieure à 0.0001. Se tranche par une ligne de plus dans
-`tools/pico8_reference_probe.p8`, lancée sur PICO-8.
+Not reached by the e2e: no value the game displays has a magnitude
+below 0.0001. It can be settled by one more line in
+`tools/pico8_reference_probe.p8`, run on PICO-8.
 
-Fichier : `src/p8/str.c`.
+File: `src/p8/str.c`.
 
-## GAP-23 — Une ligne de bouton qui porte son infobulle latérale ou son infobulle à nil a quand même sa pastille ou son infobulle
+## GAP-23 — A button line that carries its side tooltip or its tooltip as nil still gets its badge or its tooltip
 
-Lua : `h_`, `jb`, `js:pq`, `self.h_=self.h_ and lq(self.h_)`,
+Lua: `h_`, `jb`, `js:pq`, `self.h_=self.h_ and lq(self.h_)`,
 `self.jb=self.jb and jb(self.jb)`, `lq`, `jo:fe`, `b:jb()`, `hp:jb`, `ii`,
 `jo:gh`, `kr`, `js`, `has_h_`, `has_jb`, `h_row`, `h_is_false`, `jb_row`.
 
-Dans le cart, la construction d'un bouton ne construit rien pour une clé
-nil. Ce port construit une rangée vide (`layout_row_new`), ou une
-infobulle vide, dès que la ligne porte la clé, même à nil (GAP-9 : une clé
-nommée écrite à nil reste présente). Seul `false` n'en construit pas.
+In the cart, building a button builds nothing for a nil key. This port
+builds an empty row (`layout_row_new`), or an empty tooltip, as soon as
+the line carries the key, even as nil (GAP-9: a named key written as nil
+stays present). Only `false` builds none.
 
-Atteint par le filet : la ligne de `planet_projects_panel` d'un bâtiment
-dont `research_project_tooltip` rend `NULL` (quand le projet a son
-`icon_sprite`) reçoit une infobulle vide, dessinée au survol. La ligne de
-`planet_inspection_panel` sans `net_income` recevrait une pastille vide ;
-aucun rejeu ne l'atteint. La struct `button_t`, où nil vaut absent, garde
-ce comportement : la présence d'une clé `side_tooltip` ou `tooltip` nil est
-portée par `has_side_tooltip`/`has_tooltip` de `button_keys_t`, sans
-`side_tooltip_row` ni `side_tooltip_is_false` (sans `tooltip_row`) ;
-`button_construct` construit alors une rangée ou une infobulle vides. Fixé
-par `test_nil_keys` de `tests/test_button.c`.
+Reached by the e2e: the `planet_projects_panel` line of a building
+whose `research_project_tooltip` returns `NULL` (when the project has its
+`icon_sprite`) gets an empty tooltip, drawn on hover. The
+`planet_inspection_panel` line without `net_income` would get an empty
+badge; no replay reaches it. The `button_t` struct, where nil means
+absent, keeps this behavior: the presence of a nil `side_tooltip` or
+`tooltip` key is carried by `has_side_tooltip`/`has_tooltip` in
+`button_keys_t`, with no `side_tooltip_row` or `side_tooltip_is_false`
+(no `tooltip_row`). `button_construct` then builds an empty row or
+tooltip. Pinned by `test_nil_keys` in `tests/test_button.c`.
 
-Fichier : `src/game/ui_button.c`.
+File: `src/game/ui_button.c`.
 
-## GAP-24 — `trade_extend` donne une ressource `false` à la route neuve quand la route n'a pas de ressource
+## GAP-24 — `trade_extend` gives the new route a `false` resource when the route has no resource
 
-Lua : `trade:kg`, `qe=false`, `self.qe`, `qe`, `trade`, `jo:cn`, `jo:ib`,
+Lua: `trade:kg`, `qe=false`, `self.qe`, `qe`, `trade`, `jo:cn`, `jo:ib`,
 `kg`, `nr:cn`, `dh`, `kw`.
 
-Dans le cart, l'allongement d'une route recopie sa ressource telle quelle :
-nil reste nil, et aucune route n'a jamais une ressource `false`. Ce port
-pose `false` quand la route allongée n'a pas de ressource. Dans la struct
-`trade_route_t`, nil et absent ne font qu'un : une ressource nil, passée
-explicitement ou omise, donne `false`.
+In the cart, extending a route copies its resource as is: nil stays nil,
+and no route ever has a `false` resource. This port sets `false` when the
+extended route has no resource. In the `trade_route_t` struct, nil and
+absent are one and the same: a nil resource, whether passed explicitly or
+omitted, gives `false`.
 
-`resource_t` garde les trois états et `resource_equal` est le `==` de Lua :
-l'écart se voit là où une route rencontre un besoin sans ressource. Dans
-`planet_offer_trade`, une route venue de `planet_rebuild_trades` sans
-ressource (nil) répond à un tel besoin, comme dans le cart ; passée par
-`trade_extend` (`slipgate_offer_trade`), elle vaut `false` et n'y répond
-plus. Dans `economy_tiers_compute_tier`, la garde `has_resource` écarte en
-plus la route nil que le cart compterait : une route sans nombre n'y compte
-jamais.
+`resource_t` keeps all three states, and `resource_equal` is Lua's `==`.
+The divergence shows where a route meets a need with no resource. In
+`planet_offer_trade`, a route coming from `planet_rebuild_trades` with no
+resource (nil) answers such a need, as in the cart. Once it has gone
+through `trade_extend` (`slipgate_offer_trade`), it is `false` and no
+longer answers it. In `economy_tiers_compute_tier`, the `has_resource`
+guard also leaves out the nil route that the cart would count: a route
+with no number never counts there.
 
-Non atteint par les e2e : toute route qu'ils construisent a une ressource
-non nil. `planet_rebuild_trades` passe pourtant une ressource nil quand la
-`production` de la planète n'a pas de ressource. `tests/test_trade.c` fixe
-les deux lectures.
+Not reached by the e2e: every route they build has a non-nil resource.
+`planet_rebuild_trades` does pass a nil resource when the planet's
+`production` has no resource. `tests/test_trade.c` pins both readings.
 
-Fichiers : `src/game/trade.c`, `src/game/planet_trade.c`,
+Files: `src/game/trade.c`, `src/game/planet_trade.c`,
 `src/game/economy_tiers.c`.
 
-## GAP-25 — La rangée « score 0 » du panneau de fin a un trou, le port en dessine les deux éléments
+## GAP-25 — The end panel's "score 0" row has a hole, and the port draws both of its elements
 
-Lua : `o("",score=0,ra=v(64,21),c=5)`, `bz`, `pj:ph`, `st[3]`, `st[1]`, `lq`,
+Lua: `o("",score=0,ra=v(64,21),c=5)`, `bz`, `pj:ph`, `st[3]`, `st[1]`, `lq`,
 `lq:pq`, `nv`, `all(self)`, `#t`, `all`, `fs`, `w`, `a=0.5`, `pi.ld`, `[1]`,
 `[3]`, `t[1]`.
 
-La ligne de la rangée « score 0 » du panneau (lua.lua:803) n'a qu'un
-positionnel, l'indice 1. `score_panel_update` (lua.lua:885-891) lui écrit
-l'indice 3 (la chaîne de GAP-13), puis réécrit l'indice 1, et la passe à
-une rangée de mise en page. La rangée porte donc les indices 1 et 3, sans
-2.
+The line for the panel's "score 0" row (lua.lua:803) has only one
+positional entry, index 1. `score_panel_update` (lua.lua:885-891) writes index 3
+into it (the string from GAP-13), then rewrites index 1, and passes it to
+a layout row. The row therefore carries indices 1 and 3, with no 2.
 
-Dans le cart, la construction de la rangée la parcourt jusqu'à sa bordure
-(lua.lua:289-290). Le port, lui, prend toutes les clés d'indice dans
-l'ordre croissant (la boucle de `score_panel_update` sur `has_value`) et
-resserre le trou : le membre `items` de la rangée garde les deux éléments,
-`placed_items` en a deux, et `width` compte les deux. Le centrage de la
-rangée (alignement 0.5) en dépend. Atteint par le filet (`game_end`, 4
-constructions).
+In the cart, building the row walks it up to its border
+(lua.lua:289-290). The port instead takes every index key in ascending
+order (the loop in `score_panel_update` over `has_value`) and closes the
+hole: the row's `items` member keeps both elements, `placed_items` has
+two, and `width` counts both. The row's centering (alignment 0.5) depends
+on it. Reached by the e2e (`game_end`, 4 constructions).
 
-Vérifié dans la source du cart : la ligne de la rangée, l'ordre des
-écritures de `score_panel_update` et le parcours de la construction de la
-rangée. Non vérifié sur PICO-8 : la bordure de cette table. Dans
-l'implémentation de Lua 5.2, une table construite avec l'indice 1 puis
-complétée de l'indice 3 a une bordure de 1, et le parcours ne verrait que
-l'indice 1 ; PICO-8 peut rendre 3, l'autre bordure valide (l'indice 1
-n'étant pas nil, 0 n'en est pas une).
+Verified in the cart source: the row's line, the order of the writes in
+`score_panel_update`, and the walk done when building the row. Not
+verified on PICO-8: the border of this table. In the Lua 5.2
+implementation, a table built with index 1 and then given index 3 has a
+border of 1, and the walk would see only index 1. PICO-8 may return 3,
+the other valid border (since index 1 is not nil, 0 is not a border).
 
-Préexistant : l'instance de la rangée parcourait déjà toutes les clés
-d'indice. La conversion en struct préserve l'écart.
+Pre-existing: the row instance already walked every index key. The
+conversion to a struct preserves the divergence.
 
-Fichiers : `src/game/layout.c` (construction de la rangée,
-`layout_row_construct`), `src/game/score_panel_display.c`.
+Files: `src/game/layout.c` (row construction, `layout_row_construct`),
+`src/game/score_panel_display.c`.
 
-## GAP-26 — La cible d'une planète hors écran est coupée quand l'objet tenu est rendu
+## GAP-26 — An off-screen planet's target is cut off when the held object is released
 
-Lua : `fo`, `jo:kj`, `self.fo=nil`, `gd()`, `ll`, `jc`, `dw`, `kj`, `np`.
+Lua: `fo`, `jo:kj`, `self.fo=nil`, `gd()`, `ll`, `jc`, `dw`, `kj`, `np`.
 
-`planet_draw` (lua.lua) sort avant d'effacer `targeted_by` quand la planète
-est hors de l'écran (`entity_geom_is_on_screen`) ou à l'état
-« vanishing ». Son `targeted_by` garde alors l'objet tenu (une structure
-prise par une icône de recherche, un slipway) après que celui-ci a quitté
-la partie ; si la planète revient à l'écran, la cartouche dessine un halo
-de plus avec l'`attach_distance` de cet objet mort.
+`planet_draw` (lua.lua) returns before clearing `targeted_by` when the
+planet is off screen (`entity_geom_is_on_screen`) or in the "vanishing"
+state. Its `targeted_by` then still holds the held object (a structure
+picked up by a research icon, a slipway) after that object has left the
+game. If the planet comes back on screen, the cart draws one more halo
+with that dead object's `attach_distance`.
 
-Le port rend l'objet par la file de sortie et recycle son arène : relire
-`targeted_by` serait un usage après libération. `forget` (`src/game/cart.c`)
-remet donc à nil le `targeted_by` de toute entité du tag `node` qui vise
-l'objet rendu, et ce halo n'est pas dessiné. À l'état « vanishing », aucune
-différence : dès t ≥ 60, `planet_draw` sort toujours avant de lire
-`targeted_by`. Aucun e2e n'atteint ce cas.
+The port releases the object through the exit queue and recycles its
+arena, so reading `targeted_by` again would be a use after free. `forget`
+(`src/game/cart.c`) therefore resets to nil the `targeted_by` of every
+entity with the `node` tag that targets the released object, and that
+halo is not drawn. In the "vanishing" state there is no difference: from
+t ≥ 60 on, `planet_draw` always returns before reading `targeted_by`. No
+e2e reaches this case.
 
-Fichiers : `src/game/cart.c` (`forget`), `src/game/planet.c`
+Files: `src/game/cart.c` (`forget`), `src/game/planet.c`
 (`planet_forget_targeted_by`).
 
-## GAP-27 — La caméra ne montre jamais rien hors de la grille du fond
+## GAP-27 — The camera never shows anything outside the background grid
 
-Lua : `qb:ph`, `mid(-64,320,…)`, `qb:md`, `camera`.
+Lua: `qb:ph`, `mid(-64,320,…)`, `qb:md`, `camera`.
 
-La cartouche borne le coin haut-gauche de la caméra à [−64, 320] sur chaque
-axe, pour un cadre de 128. Le fond est dessiné à la parallaxe 0.5
-(`layer_fades_table[0]`) et sa grille va de 0 à `BACKGROUND_GRID_EDGE` (262)
-(`background_draw`) : aux butées, le cadre du cart montre 32 px de vide en
-haut et à gauche, 26 px à droite et en bas.
+The cart clamps the camera's top-left corner to [−64, 320] on each axis,
+for a 128-pixel view. The background is drawn at parallax 0.5
+(`layer_fades_table[0]`) and its grid runs from 0 to
+`BACKGROUND_GRID_EDGE` (262) (`background_draw`). At the clamp limits, the cart's
+view shows 32 px of empty space at the top and left, and 26 px at the
+right and bottom.
 
-Le port borne la caméra pour que le cadre de `P8_SCREEN_WIDTH` ×
-`P8_SCREEN_HEIGHT` reste dans la grille : de 0 à
-(`BACKGROUND_GRID_EDGE` + 1 − taille) / 0.5, soit x ∈ [0, 206] et
-y ∈ [0, 286] à 160×120. La position secouée (`pos`) est bornée elle aussi,
-alors que la cartouche secoue au-delà de ses butées.
+The port clamps the camera so that the `P8_SCREEN_WIDTH` ×
+`P8_SCREEN_HEIGHT` view stays inside the grid: from 0 to
+(`BACKGROUND_GRID_EDGE` + 1 − size) / 0.5, that is x ∈ [0, 206] and
+y ∈ [0, 286] at 160×120. The shaken position (`pos`) is clamped too,
+whereas the cart shakes past its clamp limits.
 
-Les planètes sont placées dans [16, 368) (`galaxy_populate`). En y, le
-cadre couvre [0, 405] : toutes restent loin des barres. En x, il couvre
-[0, 365] : une planète tout au bord droit (x = 367,99, tirée dans
-`pause_restart`) a son centre 2 px hors du cadre à la butée, mais 6
-colonnes de son disque sont visibles et sa boîte de clic (± 7 px) atteint
-la colonne 155.
+Planets are placed in [16, 368) (`galaxy_populate`). In y, the view covers
+[0, 405]: all planets stay well clear of the
+top and bottom HUD bars. In x, it covers
+[0, 365]: a planet at the very right edge (x = 367.99, rolled in
+`pause_restart`) has its center 2 px outside the view at the clamp limit, but 6
+columns of its disc are visible and its click box (± 7 px) reaches
+column 155.
 
-Fichiers : `src/game/scroll.c` (`camera_bound`), `src/game/background.h`.
+Files: `src/game/scroll.c` (`camera_bound`), `src/game/background.h`.
