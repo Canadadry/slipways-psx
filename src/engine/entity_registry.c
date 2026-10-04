@@ -2,6 +2,7 @@
 
 #include <assert.h>
 
+#include "engine/entity_id.h"
 #include "engine/exit_queue.h"
 #include "game/game_data.h"
 #include "engine/entity_class.h"
@@ -47,6 +48,8 @@ void entity_registry_shutdown(void) {
         g_entities_by_tag[i].seen = 0;
     }
 
+    entity_id_table_forget();
+
     g_main_camera = NULL;
 
     g_initialized = 0;
@@ -59,6 +62,8 @@ void entity_registry_init(const entity_registry_reserve_t *reserve) {
     if (reserve == NULL) reserve = &no_reserve;
 
     entity_registry_shutdown();
+
+    entity_id_table_init(game_zone());
 
     entity_list_init_reserve(&g_live_entities, game_zone(), reserve->live);
 
@@ -94,6 +99,7 @@ static void forget_list(entity_list_t *list) {
 void entity_registry_forget_registries(void) {
     int i;
 
+    entity_id_table_forget();
     forget_list(&g_live_entities);
     for (i = 0; i < ENTITY_MESSAGE_COUNT; i++) {
         forget_list(&g_entities_by_message[i]);
@@ -169,7 +175,7 @@ void entity_unregister(entity_t *e) {
     int i;
 
     /* GAP-5 */
-    if (entity_list_del(&g_live_entities, e) && e->class->release != NULL) {
+    if (entity_list_del(&g_live_entities, e)) {
         exit_queue_put(e);
     }
 

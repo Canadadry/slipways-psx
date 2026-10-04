@@ -4,7 +4,11 @@
 #include <string.h>
 #include <sys/wait.h>
 
+#include "engine/bootstrap.h"
+#include "engine/entity.h"
 #include "engine/entity_id.h"
+#include "engine/entity_registry.h"
+#include "engine/exit_queue.h"
 #include "engine/game_zone.h"
 #include "engine/zone_sizes.h"
 
@@ -139,6 +143,113 @@ static void a_full_table_reuses_a_freed_slot(void) {
     assert(entity_get(late) == &g_crowd[ENTITY_TABLE_CAP]);
 }
 
+static const entity_class_t kept_cls = {0};
+
+static void registry_world(void) {
+    entity_registry_shutdown();
+    game_zone_reset();
+    entity_registry_init(NULL);
+}
+
+/* Static, never on the stack: a stack address can repeat one an earlier
+ * case left in its table. */
+static entity_t g_lifecycle[4];
+
+static entity_t *lifecycle_entity(int i, const entity_class_t *cls) {
+    entity_t none = {0};
+    g_lifecycle[i] = none;
+    g_lifecycle[i].class = cls;
+    return &g_lifecycle[i];
+}
+
+static void constructed_entity_resolves_by_its_id(void) {
+    registry_world();
+    entity_t *e = lifecycle_entity(0, &kept_cls);
+    entity_construct(e);
+    entity_id_t id = entity_id_of(e);
+    assert(!entity_id_is_none(id) && "entity_construct takes a slot");
+    assert(entity_get(id) == e);
+}
+
+static void forget_nothing(const entity_t *e) {
+    (void)e;
+}
+
+static entity_id_t g_releasing_id;
+static int g_released;
+static int g_forgotten;
+
+static void release_after_slot(entity_t *self) {
+    (void)self;
+    assert(entity_get(g_releasing_id) == NULL && "the slot is freed before release returns the memory");
+    g_released++;
+}
+
+static const entity_class_t released_cls = {.release = release_after_slot};
+
+static void count_forgets(const entity_t *e) {
+    (void)e;
+    g_forgotten++;
+}
+
+static void flush_frees_the_slot_then_releases(void) {
+    registry_world();
+    entity_t *kept = lifecycle_entity(0, &kept_cls);
+    entity_t *released = lifecycle_entity(1, &released_cls);
+    entity_construct(kept);
+    entity_construct(released);
+    g_releasing_id = entity_id_of(released);
+    entity_unregister(kept);
+    entity_unregister(released);
+    g_released = g_forgotten = 0;
+    exit_queue_flush(count_forgets);
+    assert(g_released == 1);
+    assert(g_forgotten == 1 && "forget still runs for the classes with a release only");
+}
+
+static void reset_world_drops_every_old_id(void) {
+    registry_world();
+    entity_t *old = lifecycle_entity(0, &kept_cls);
+    entity_t *abandoned = lifecycle_entity(1, &released_cls);
+    entity_t *fresh = lifecycle_entity(2, &kept_cls);
+    entity_construct(old);
+    entity_construct(abandoned);
+    entity_id_t old_id = entity_id_of(old);
+    g_releasing_id = entity_id_of(abandoned);
+    reset_world(NULL);
+    assert(entity_get(old_id) == NULL && entity_get(g_releasing_id) == NULL);
+    entity_construct(fresh);
+    entity_id_t fresh_id = entity_id_of(fresh);
+    exit_queue_flush(forget_nothing);
+    assert(entity_get(fresh_id) == fresh && "an abandoned entity frees no slot of the new world");
+    assert(entity_get(old_id) == NULL);
+}
+
+static void registered_without_construct_holds_no_id(void) {
+    registry_world();
+    entity_t *held = lifecycle_entity(0, &kept_cls);
+    entity_t *bare = lifecycle_entity(1, &kept_cls);
+    entity_construct(held);
+    entity_id_t held_id = entity_id_of(held);
+    entity_register(bare);
+    assert(entity_id_is_none(entity_id_of(bare)));
+    entity_unregister(bare);
+    exit_queue_flush(forget_nothing);
+    assert(entity_get(held_id) == held);
+    assert(entity_id_live() == 1);
+}
+
+static void dead_entity_resolves_until_the_flush(void) {
+    registry_world();
+    entity_t *e = lifecycle_entity(0, &kept_cls);
+    entity_construct(e);
+    entity_id_t id = entity_id_of(e);
+    entity_unregister(e);
+    assert(entity_get(id) == e && "the frame of the death still reads the entity");
+    exit_queue_flush(forget_nothing);
+    assert(entity_get(id) == NULL && "a class without release frees its slot at the flush");
+}
+
 /* Runs in a child process: p8_fatal exits. */
 static int take_one_slot_too_many(void) {
     new_world();
@@ -187,6 +298,11 @@ int main(int argc, char **argv) {
     live_count_follows_slots_and_peak_survives_reset();
     a_forgotten_table_resolves_nothing();
     a_full_table_reuses_a_freed_slot();
+    constructed_entity_resolves_by_its_id();
+    dead_entity_resolves_until_the_flush();
+    flush_frees_the_slot_then_releases();
+    reset_world_drops_every_old_id();
+    registered_without_construct_holds_no_id();
     full_table_is_fatal(argv[0]);
     printf("test_entity_id: all tests passed\n");
     return 0;

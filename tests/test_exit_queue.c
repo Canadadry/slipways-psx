@@ -13,6 +13,8 @@
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
 #include "game/economy_score.h"
+#include "engine/entity.h"
+#include "engine/entity_id.h"
 #include "engine/entity_registry.h"
 #include "engine/exit_queue.h"
 #include "p8/gfx.h"
@@ -126,14 +128,19 @@ static int case_ephemerals_released_at_flush(void) {
     return 0;
 }
 
-static int case_entity_unregister_outside_live_entities_or_without_member(void) {
+static int case_entity_unregister_outside_live_entities_or_without_release(void) {
     load_cart_and_start();
     message_box_t *absent = new_entity(&counted_cls);
     message_box_t *kept = new_entity(&kept_cls);
     entity_unregister(&absent->header);
+    assert(exit_queue_count() == 0 && "an entity outside the live list is not queued");
     entity_register(&kept->header);
     entity_unregister(&kept->header);
-    assert(exit_queue_count() == 0);
+    assert(exit_queue_count() == 1 && "a class without release is queued too: the flush frees its id");
+    entity_unregister(&kept->header);
+    assert(exit_queue_count() == 1 && "unregistered twice, queued once");
+    cart_update60();
+    assert(exit_queue_count() == 0 && released == 0);
     return 0;
 }
 
@@ -176,11 +183,16 @@ static int case_reset_world_after_a_full_game(void) {
 static int case_shutdown_drains(void) {
     load_cart_and_start();
     message_box_t *e = new_entity(&counted_cls);
+    message_box_t *alive = new_entity(&kept_cls);
     entity_register(&e->header);
     entity_unregister(&e->header);
+    entity_construct(&alive->header);
+    entity_id_t alive_id = entity_id_of(&alive->header);
     cart_shutdown();
     assert(released == 1 && exit_queue_count() == 0 &&
            "cart_shutdown flushes the queue: no entry survives until the next cart_load");
+    assert(entity_get(alive_id) == NULL && entity_id_live() == 0 && "cart_shutdown leaves no table behind");
+    free(alive);
     return 0;
 }
 
@@ -265,7 +277,7 @@ static const struct {
     {"entity_unregister_released_at_flush", case_entity_unregister_released_at_flush},
     {"ephemerals_alive_until_flush", case_ephemerals_alive_until_flush},
     {"ephemerals_released_at_flush", case_ephemerals_released_at_flush},
-    {"entity_unregister_outside_live_entities_or_without_member", case_entity_unregister_outside_live_entities_or_without_member},
+    {"entity_unregister_outside_live_entities_or_without_release", case_entity_unregister_outside_live_entities_or_without_release},
     {"reset_world_enqueues_registered", case_reset_world_enqueues_registered},
     {"reset_world_after_a_full_game", case_reset_world_after_a_full_game},
     {"shutdown_drains", case_shutdown_drains},
@@ -360,7 +372,7 @@ int main(int argc, char **argv) {
     expect_freed_crash("entity_unregister_released_at_flush");
     expect_clean("ephemerals_alive_until_flush");
     expect_poison_crash("ephemerals_released_at_flush");
-    expect_clean("entity_unregister_outside_live_entities_or_without_member");
+    expect_clean("entity_unregister_outside_live_entities_or_without_release");
     expect_clean("reset_world_enqueues_registered");
     expect_clean("reset_world_after_a_full_game");
     expect_clean("shutdown_drains");

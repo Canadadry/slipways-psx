@@ -6,6 +6,7 @@
 
 #include "engine/entity.h"
 #include "engine/entity_geom.h"
+#include "engine/entity_id.h"
 #include "engine/entity_registry.h"
 #include "engine/exit_queue.h"
 #include "engine/frame_zone.h"
@@ -225,6 +226,7 @@ static void write_caps(FILE *out) {
                 particle_zone_count(k));
     }
     fprintf(out, "cap exit_queue %d %d %d\n", exit_queue_count(), exit_queue_max(), EXIT_QUEUE_CAP);
+    fprintf(out, "cap entity_table %d %d %d\n", entity_id_live(), entity_id_max(), ENTITY_TABLE_CAP);
     write_peak(out, "elements_particles", (size_t)particle_zone_max_elements(PARTICLE_SLOT_LIST), PARTICLES_CAPACITY);
     write_peak(out, "elements_particles_help_screen", (size_t)particle_zone_max_elements(PARTICLE_SLOT_HELP_LIST),
                PARTICLES_HELP_SCREEN_CAPACITY);

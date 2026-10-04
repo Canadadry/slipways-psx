@@ -132,7 +132,7 @@ static size_t registry_bytes(const entity_list_t *list) {
 /* The registries of a game, each taken at its reserve by cart_start_game. */
 static size_t registries_bytes(void) {
     const entity_registry_reserve_t *rv = &cart_game_registry_reserve;
-    size_t r = list_bytes_from(live_entities(), rv->live);
+    size_t r = ENTITY_TABLE_BYTES + list_bytes_from(live_entities(), rv->live);
     for (int m = 0; m < ENTITY_MESSAGE_COUNT; m++) {
         r += list_bytes_from(entities_by_message((entity_message_t)m), rv->by_message[m]);
     }

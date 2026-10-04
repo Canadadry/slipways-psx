@@ -39,7 +39,7 @@ static const char *const MEMORY_LINES[] = {
     "cap button", "cap modal_backdrop", "cap message_box", "cap toast", "cap row", "cap ephemerals",
     "cap bytes_button", "cap bytes_modal_backdrop", "cap bytes_message_box", "cap bytes_toast", "cap bytes_row",
     "cap bytes_ephemerals", "cap particle", "cap particles", "cap particles_help_screen", "cap burst",
-    "cap transit_dots", "cap exit_queue", "cap elements_particles", "cap elements_particles_help_screen",
+    "cap transit_dots", "cap exit_queue", "cap entity_table", "cap elements_particles", "cap elements_particles_help_screen",
     "cap elements_transit_dots", "cap elements_ephemerals", "cap bytes_particles", "cap bytes_particles_help_screen", "cap bytes_burst",
 };
 
@@ -84,6 +84,7 @@ static void memory_lines_have_peak_and_limit(void) {
     assert(memory_value(frame, 2) == (long)FRAME_ZONE_BYTES);
     assert(memory_value(memory_line("cap message_box"), 1) >= 1 && "the replay opens a message box");
     assert(memory_value(memory_line("cap bytes_message_box"), 1) > 0);
+    assert(memory_value(memory_line("cap entity_table"), 1) > 0 && "every constructed entity takes a slot");
     char budget[64];
     snprintf(budget, sizeof budget, "budget zones %lu %lu", (unsigned long)ZONE_BUDGET_USED_BYTES,
              (unsigned long)ZONE_BUDGET_BYTES);
