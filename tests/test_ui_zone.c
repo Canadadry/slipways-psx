@@ -78,17 +78,17 @@ static int case_slot_dead_after_release(void) {
 }
 
 static int case_button_slot_full(void) {
-    allocator_alloc(ui_zone_slot(SLOT_KIND_BUTTON), 6240);
+    allocator_alloc(ui_zone_slot(SLOT_KIND_BUTTON), ui_zone_slot_size(SLOT_KIND_BUTTON));
     return 0;
 }
 
 static int case_modal_backdrop_zone_full(void) {
-    for (int i = 0; i <= 4; i++) ui_zone_slot(SLOT_KIND_MODAL_BACKDROP);
+    for (int i = 0; i <= ui_zone_count(SLOT_KIND_MODAL_BACKDROP); i++) ui_zone_slot(SLOT_KIND_MODAL_BACKDROP);
     return 0;
 }
 
 static int case_row_slot_full(void) {
-    allocator_alloc(ui_zone_slot(SLOT_KIND_ROW), 1192);
+    allocator_alloc(ui_zone_slot(SLOT_KIND_ROW), ui_zone_slot_size(SLOT_KIND_ROW));
     return 0;
 }
 
@@ -182,7 +182,7 @@ int main(int argc, char **argv) {
     expect_poison_crash("slot_dead_after_release");
     expect_fatal("button_slot_full", "zone slot button full, limit ");
     expect_fatal("row_slot_full", "zone slot row full, limit ");
-    expect_fatal("modal_backdrop_zone_full", "zone ui modal_backdrop full, limit 4 slots");
+    expect_fatal("modal_backdrop_zone_full", "zone ui modal_backdrop full, limit 2 slots");
     remove(STDERR_LOG);
     printf("test_ui_zone: all tests passed\n");
     return 0;

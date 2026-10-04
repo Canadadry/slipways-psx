@@ -6,20 +6,25 @@
 #include "engine/slot_tally.h"
 #include "engine/zone_sizes.h"
 
-/* Size: the largest slot the game builds, arena header included
- * (x86-64). Count: what lives at once at the worst point of a frame. */
-#define BUTTON_SIZE 6240u
-#define BUTTON_COUNT 24u
-#define MODAL_BACKDROP_SIZE 256u
-#define MODAL_BACKDROP_COUNT 4u
-#define MESSAGE_BOX_SIZE 4624u
-#define MESSAGE_BOX_COUNT 6u
-#define TOAST_SIZE 320u
-#define TOAST_COUNT 128u
-#define ROW_SIZE 1192u
-#define ROW_COUNT 100u
-#define EPHEMERALS_SIZE 216u
-#define EPHEMERALS_COUNT 16u
+/* Sizes in bytes on x86-64, arena header included. Each count, and each
+ * size but two: its peak in make state plus 1/8. The button and row sizes
+ * are the largest the game's rules can build, which the tests
+ * test_largest_buttons_fit_their_slots and
+ * test_planet_resource_row_largest_row_fits_a_slot build: no margin. An
+ * ephemerals slot holds its arena header, its list and the list's
+ * reserve. */
+#define BUTTON_SIZE 5880u
+#define BUTTON_COUNT 14u
+#define MODAL_BACKDROP_SIZE 272u
+#define MODAL_BACKDROP_COUNT 2u
+#define MESSAGE_BOX_SIZE 5056u
+#define MESSAGE_BOX_COUNT 4u
+#define TOAST_SIZE 336u
+#define TOAST_COUNT 48u
+#define ROW_SIZE 1176u
+#define ROW_COUNT 71u
+#define EPHEMERALS_SIZE (96u + 24u + UI_EPHEMERALS_RESERVE * 8u)
+#define EPHEMERALS_COUNT 6u
 
 typedef char ui_zone_exceeded_t[
     (SLOT_ZONE_BYTES(BUTTON_SIZE, BUTTON_COUNT) + SLOT_ZONE_BYTES(MODAL_BACKDROP_SIZE, MODAL_BACKDROP_COUNT) +

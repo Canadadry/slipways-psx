@@ -1090,6 +1090,10 @@ static void test_button_is_a_struct(void) {
     }
     call_on_click(ix[3]);
     check_int("struct pause", all_buttons_are_structs(), 8);
+    /* As in the game: the pause menu closes, and its buttons go, a frame
+     * before the tech tree screen opens. */
+    ui_clear_ephemerals(main_ui());
+    cart_flush_exit_queue();
     menu_show_tech_tree_screen();
     check_int("struct research", all_buttons_are_structs(), 9);
     {
@@ -1423,6 +1427,8 @@ static uint32_t members_title_and_game(void) {
     cart_flush_exit_queue();
     cart_start_game(chosen_option);
     assert(economy_score_difficulty() == chosen_option);
+    /* The title's buttons go at the next frame, as in the game. */
+    cart_flush_exit_queue();
     assert(galaxy_menu_buttons(galaxy_menu) == 4);
     for (index = 0; index < 4; index++) {
         assert((button_of(galaxy_menu[index])->refresh != NULL) == (index == 1));
@@ -1914,9 +1920,12 @@ static void test_largest_buttons_fit_their_slots(void) {
     start_game();
     fm = main_economy_typed();
     fm->research_points = p8_fixed_from_int(9999);
+    /* Each screen closes, its buttons gone at the next frame, before the
+     * next opens: the game never opens one over the other. */
     for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
         fm->era = p8_fixed_from_int(technologies_table[i].era);
         menu_show_tech_tree_screen();
+        ui_clear_ephemerals(main_ui());
         one_frame();
     }
     for (i = 0; i < TECHNOLOGIES_COUNT; i++) {

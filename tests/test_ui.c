@@ -849,6 +849,7 @@ static void test_components_carried(void) {
     static const int emitter[24] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0};
     static const int probe[24] = {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1};
     void *entities[24];
+    entity_t *other_help;
     size_t index;
 
     (void)start_game();
@@ -888,7 +889,8 @@ static void test_components_carried(void) {
     assert_own_emitter(entities[10], &burst_new(NULL)->header, sizeof(planet_t));
     assert_own_emitter(entities[13], &synthesizer_new(NULL)->header, sizeof(planet_t));
     assert_own_emitter(entities[14], &probe_new(NULL)->header, sizeof(probe_t));
-    assert_own_emitter(entities[15], help_alone(entities[15]), sizeof(probe_t));
+    other_help = help_alone(entities[15]);
+    assert_own_emitter(entities[15], other_help, sizeof(probe_t));
     assert_own_probe(entities[5], &structure_new(NULL)->header, sizeof(planet_t));
     assert_own_probe(entities[6], &trading_hub_new(NULL)->header, sizeof(planet_t));
     assert_own_probe(entities[7], &processor_new(NULL)->header, sizeof(planet_t));
@@ -898,7 +900,7 @@ static void test_components_carried(void) {
     assert_own_probe(entities[12], &infraspace_gate_new(NULL)->header, sizeof(planet_t));
     assert_own_probe(entities[13], &synthesizer_new(NULL)->header, sizeof(planet_t));
     assert_own_probe(entities[14], &probe_new(NULL)->header, sizeof(probe_t));
-    assert_own_probe(entities[15], help_alone(entities[15]), sizeof(probe_t));
+    assert_own_probe(entities[15], other_help, sizeof(probe_t));
     assert_own_probe(entities[19], &slipway_new(NULL)->header, sizeof(slipway_t));
     assert_own_probe(entities[23], &wormhole_new()->header, sizeof(wormhole_t));
 }

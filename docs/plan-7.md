@@ -63,12 +63,14 @@ Fin de 4b : somme des cibles des zones **745 034** (`game` 462 520 + 24 680, `fr
 - génération de `game` **462 520**, posée (pic 411 128, `full_game.json` frame 7643, retour au titre) ; `GAME_ZONE_BYTES` devient la somme génération plus `load`.
 - `load` **24 680** (pic 21 936, le même sur les 31 rejeux dès le titre) ; `GAME_ZONE_BYTES` 487 200.
 - `ephemerals` : la liste réserve **8** places à sa création (pic 7 éléments, `full_game.json` et 13 autres rejeux ; ligne `elements_ephemerals` de `make state`) ; plus de bloc mort, la place tombe de 216 à 184 octets ; sa taille et son compte se posent avec `ui`.
+- `ui` **203 961** (somme de ses places) : `button` 5 880 × 14, `row` 1 176 × 71, `modal_backdrop` 272 × 2, `message_box` 5 056 × 4, `toast` 336 × 48, `ephemerals` 184 × 6. Comptes et quatre tailles : pic plus 1/8 (`button` 12 places, `full_game_pause_restart` ; `row` 63 ; `modal_backdrop` 1 ; `message_box` 3 et `toast` 42, `game_end_bankrupt` ; `ephemerals` 5 ; octets 240, 4 488, 296 ; `ephemerals` 96 + 24 + 8 × 8). Les tailles de `button` et de `row` sont des plafonds prouvés (règle 3), sans marge : le pic de la campagne (3 768 et 840) tient à ce que `full_game.json` n'invente que 12 techs et n'a pas de planète à forte production ; le bouton « invented » de l'écran des techs, ses 19 techs inventées, tient 5 880 (`test_largest_buttons_fit_their_slots`) ; la ligne d'une planète de luxe, deux besoins et 5 de production, 1 176 (`test_planet_resource_row_largest_row_fits_a_slot`). Avec les règles de production (tableau `f-` au plus 3, bonus de production 1, sous-produit en besoin), la plus grande ligne atteignable serait 1 120 ; le test, plus large, fait foi.
+- Somme courante des quatre zones : 487 200 + 20 256 + 203 961 + 131 072 (`particles`, pas encore retaillée) = 842 489. Fin de 4c projetée : `particles` 73 035 (`particle` 887, `particles` 18 × 1 384, `particles_help_screen` **1** × 5 344 — un singleton, plafond prouvé —, `burst` 4 × 640, `transit_dots` 437), somme **784 452**, reste **1 980** sous 786 432.
 
 ## 3. Règles
 
 - Le jeu ne change pas : tous les `*.sha256` de `tests/e2e/` restent identiques.
 - Une saturation est d'abord lue comme une fuite (place jamais rendue, remise à zéro manquante), jamais comme un besoin. On ne relève une limite qu'une fois la fuite écartée.
-- Chaque zone est dimensionnée sur son pic mesuré, plus une marge fixe, la même pour toutes : 1/8 du pic, arrondie au-dessus à la cellule de zone pour des octets, à la place entière pour un compte, caps compris.
+- Chaque zone est dimensionnée sur son pic mesuré, plus une marge fixe, la même pour toutes : 1/8 du pic, arrondie au-dessus à la cellule de zone pour des octets, à la place entière pour un compte, caps compris. Un plafond prouvé par les règles du jeu (et figé par un test du plus grand cas) se dimensionne sur ce plafond, sans marge.
 - Invariant de chaque commit : `make test-all` et `make sanitize-net` passent ; dès l'étape 2, la cible verrou aussi.
 
 ## 4. Étapes
