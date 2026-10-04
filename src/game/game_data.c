@@ -230,13 +230,13 @@ const data_row_t help_screen_rows_row = {.count = 4, .items = help_screen_rows_i
 static const data_item_t research_project_row_tail_items[] = {{.is_false = 1}, {.number = 2}};
 const data_row_t research_project_row_tail_row = {.count = 2, .items = research_project_row_tail_items};
 
-static const data_item_t score_panel_countdown_rows_1_items[] = {{.text = "last year!"}, {.number = 64}, {.number = 48}, {.number = 9},
+static const data_item_t score_panel_countdown_rows_1_items[] = {{.text = "last year!"}, {.number = P8_SCREEN_WIDTH / 2}, {.number = P8_SCREEN_HEIGHT / 2 - 16}, {.number = 9},
     {.is_fixed = 1, .fixed = 0x8000}};
 static const data_row_t score_panel_countdown_rows_1 = {.count = 5, .items = score_panel_countdown_rows_1_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
-static const data_item_t score_panel_countdown_rows_2_items[] = {{.text = "2 years remain"}, {.number = 64}, {.number = 48}, {.number = 2},
+static const data_item_t score_panel_countdown_rows_2_items[] = {{.text = "2 years remain"}, {.number = P8_SCREEN_WIDTH / 2}, {.number = P8_SCREEN_HEIGHT / 2 - 16}, {.number = 2},
     {.is_fixed = 1, .fixed = 0x8000}};
 static const data_row_t score_panel_countdown_rows_2 = {.count = 5, .items = score_panel_countdown_rows_2_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
-static const data_item_t score_panel_countdown_rows_5_items[] = {{.text = "5 years remain"}, {.number = 64}, {.number = 48}, {.number = 2},
+static const data_item_t score_panel_countdown_rows_5_items[] = {{.text = "5 years remain"}, {.number = P8_SCREEN_WIDTH / 2}, {.number = P8_SCREEN_HEIGHT / 2 - 16}, {.number = 2},
     {.is_fixed = 1, .fixed = 0x8000}};
 static const data_row_t score_panel_countdown_rows_5 = {.count = 5, .items = score_panel_countdown_rows_5_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
 static const data_item_t score_panel_countdown_rows_items[] = {{.row = &score_panel_countdown_rows_1}, {.row = &score_panel_countdown_rows_2}, {.is_false = 1}, {.is_false = 1},
@@ -257,9 +257,9 @@ static const data_item_t score_panel_frame_rows_items[] = {{.row = &score_panel_
     {.row = &score_panel_frame_rows_4}, {.row = &score_panel_frame_rows_5}};
 const data_row_t score_panel_frame_rows_row = {.count = 5, .items = score_panel_frame_rows_items};
 
-static const data_item_t score_panel_year_banner_1_items[] = {{.number = 42}, {.number = 43}, {.number = 1}};
+static const data_item_t score_panel_year_banner_1_items[] = {{.number = P8_SCREEN_HEIGHT / 2 - 22}, {.number = P8_SCREEN_HEIGHT / 2 - 21}, {.number = 1}};
 static const data_row_t score_panel_year_banner_1 = {.count = 3, .items = score_panel_year_banner_1_items, .draw_function = DRAW_FUNCTION_DRAW_BAR};
-static const data_item_t score_panel_year_banner_2_items[] = {{.text = ""}, {.number = 64}, {.number = 40}, {.number = 6},
+static const data_item_t score_panel_year_banner_2_items[] = {{.text = ""}, {.number = P8_SCREEN_WIDTH / 2}, {.number = P8_SCREEN_HEIGHT / 2 - 24}, {.number = 6},
     {.is_fixed = 1, .fixed = 0x8000}};
 static const data_row_t score_panel_year_banner_2 = {.count = 5, .items = score_panel_year_banner_2_items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
 static const data_item_t score_panel_year_banner_items[] = {{.row = &score_panel_year_banner_1}, {.row = &score_panel_year_banner_2}};
@@ -405,7 +405,7 @@ const probe_archetype_t help_screen_archetype = {
     .layer = 0xa0000,
     .pos = {0x400000, 0x1c0000},
     .has_pos = 1,
-    .fixed_pos = {0x220000, 0x380000},
+    .fixed_pos = {P8_FIXED_INT(P8_SCREEN_WIDTH / 2 - 30), P8_FIXED_INT(P8_SCREEN_HEIGHT / 2 - 8)},
     .back_color = 0xb0000,
     .row_step = {0x0, 0xb0000},
     .clear_ephemerals_after = 0x10000,

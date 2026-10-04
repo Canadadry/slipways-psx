@@ -64,7 +64,7 @@
  * value moves every *_HASH. */
 #define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
-#define TITLE_HASH 0x0D4E51A2u
+#define TITLE_HASH 0xA03EFF2Au
 #define START_GAME_HASH 0xD47F70BEu
 #define PAUSE_HASH 0xD2FE343Du
 #define RESEARCH_HASH 0x41D4B83Eu
@@ -78,7 +78,7 @@
 #define PROJECTS_PANEL_ON_CLICK_HASH 0xCB3A928Cu
 #define TECH_TREE_SCREEN_ON_CLICK_HASH 0x7ED641D9u
 #define DRAW_HASH 0x8E87EDFAu
-#define BUTTON_MEMBERS_HASH 0x17FB38CAu
+#define BUTTON_MEMBERS_HASH 0xFD4F7CC7u
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;

@@ -37,8 +37,8 @@
 #include "game/ui_button.h"
 #include "engine/vec.h"
 
-#define BUILT_HASH 0x4CF8A4FBu
-#define SHARED_HASH 0x1F82BA04u
+#define BUILT_HASH 0x455004CBu
+#define SHARED_HASH 0xAAACD2E4u
 #define LIFE_HASH 0x4CDE6238u
 #define TECH_TREE_SCREEN_HASH 0x7D1C5B1Fu
 
@@ -815,6 +815,41 @@ static void test_frame_rows_hug_the_bottom_edge(void) {
     assert(memory.screen[P8_SCREEN_HEIGHT - 9][20] == 5);
 }
 
+/* The year banner drawn alone: its rule on lines H/2 - 22 and H/2 - 21
+ * across the screen, its "year N" centered on W/2. */
+static void test_year_banner_is_centered(void) {
+    const score_panel_year_banner_t *ea;
+    const data_row_t *rows[3];
+    int left = P8_SCREEN_WIDTH;
+    int right = -1;
+    int x;
+    int y;
+    int i;
+
+    (void)start_game();
+    class_of(main_score_panel())->new_year(&main_score_panel()->header, p8_fixed_from_int(3425));
+    ea = score_panel_year_banner();
+    for (i = 0; i < 2; i++) {
+        rows[i] = ea->row.items[i].row;
+    }
+    p8_gfx_init(&graphics);
+    p8_rectfill(&graphics, &memory, 0, 0, P8_SCREEN_WIDTH - 1, P8_SCREEN_HEIGHT - 1, 7);
+    draw_functions_draw_rows_default(&graphics, &memory, rows, 2);
+
+    for (y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        int on_rule = y == P8_SCREEN_HEIGHT / 2 - 22 || y == P8_SCREEN_HEIGHT / 2 - 21;
+        assert((memory.screen[y][0] == 1) == on_rule);
+        for (x = 0; x < P8_SCREEN_WIDTH; x++) {
+            if (memory.screen[y][x] == 6) {
+                left = x < left ? x : left;
+                right = x > right ? x : right;
+            }
+        }
+    }
+    assert(right >= left);
+    assert(abs(left - (P8_SCREEN_WIDTH - 1 - right)) <= 1);
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -826,6 +861,7 @@ int main(void) {
 
     cart_load();
     in_fresh_child(test_frame_rows_hug_the_bottom_edge);
+    in_fresh_child(test_year_banner_is_centered);
     in_fresh_child(test_built);
     in_fresh_child(test_shared);
     in_fresh_child(test_life);

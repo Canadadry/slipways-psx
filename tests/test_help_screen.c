@@ -38,8 +38,8 @@
 #include "engine/vec.h"
 
 
-#define BUILT_HASH 0x05BC81D1u
-#define LIFE_HASH 0x47AA2839u
+#define BUILT_HASH 0x984657B5u
+#define LIFE_HASH 0x22EBE40Eu
 #define HOVER_HASH 0xB2C80DC5u
 
 static p8_vram_t memory;
@@ -379,7 +379,7 @@ static void test_built(void) {
         assert(b->layer == p8_fixed_from_int(11));
         assert(b->slide_target != NULL);
         qf = *b->slide_target;
-        assert(qf.x == p8_fixed_from_int(34) && qf.y == p8_fixed_from_int(56 + 11 * key_index));
+        assert(qf.x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2 - 30) && qf.y == p8_fixed_from_int(P8_SCREEN_HEIGHT / 2 - 8 + 11 * key_index));
         hash = fold_vec(hash, b->slide_target);
         hash = fold_vec(hash, b->pos);
         hash = fold_fixed_member(hash, b->layer);
