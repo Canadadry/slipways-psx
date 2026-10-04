@@ -1,6 +1,6 @@
 ---
 name: plan-review
-description: Read-only review of a project plan document that proposes methodology improvements (breakdown, sequencing, testability, learning capture) — never content/scope changes. Use when spawned by plan-converge or plan-pilot to get a fresh opinion on a plan file, or when the user directly asks for a plan/project-management review of a plan document.
+description: Internal — called by plan-converge and plan-pilot. Read-only review of a plan file that proposes method improvements, never content or scope changes.
 ---
 
 # Plan Review

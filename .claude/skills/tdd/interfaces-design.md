@@ -1,80 +1,67 @@
 # Interface Design for Testability
 
-Good interfaces make testing natural:
+Good interfaces make testing natural. Names are illustrative.
 
 1. **Accept dependencies, don't create them**
 
-   ```typescript
-   // Testable
-   function processOrder(order, paymentGateway) {}
+   ```c
+   /* Testable */
+   void hud_draw(const hud_t *hud, const p8_graphics_t *gfx, p8_vram_t *mem);
 
-   // Hard to test
-   function processOrder(order) {
-     const gateway = new StripeGateway();
-   }
+   /* Hard to test */
+   void hud_draw(const hud_t *hud);   /* draws into a global screen */
    ```
 
 2. **Return results, don't produce side effects**
 
-   ```typescript
-   // Testable
-   function calculateDiscount(cart): Discount {}
+   ```c
+   /* Testable */
+   int trade_route_income(const trade_route_t *route);
 
-   // Hard to test
-   function applyDiscount(cart): void {
-     cart.total -= discount;
-   }
+   /* Hard to test */
+   void trade_route_pay(const trade_route_t *route);  /* adds into global credits */
    ```
 
 3. **Small surface area**
-   - Fewer methods = fewer tests needed
-   - Fewer params = simpler test setup
+   - Fewer functions in the header = fewer tests needed
+   - Fewer parameters = simpler test setup
 
 4. **Make illegal states unrepresentable**
 
-   Prefer precise types over generic ones. A field that's only meaningful in some cases is a sign the type is wrong, not that the field should be optional.
+   A field meaningful only in some cases says the type is wrong. Here, presence is a bit in `has`, never a NULL pointer (see `warn-review`'s pointer rules):
 
-   ```typescript
-   // Allows an impossible state: "success" with an error, or neither
-   type Result = { status: string; value?: number; error?: string };
+   ```c
+   /* Allows an impossible state: a target pointer that outlived its entity */
+   typedef struct { entity_t *target; } probe_t;
 
-   // Illegal states unrepresentable
-   type Result = { status: "success"; value: number } | { status: "error"; error: string };
+   /* A checked id and a presence bit */
+   typedef struct { uint16_t has; entity_id_t target; } probe_t;
    ```
 
-5. **Keep functions pure; push statefulness to the top**
+5. **Keep functions pure; push state to the top**
 
-   Core logic should be pure (same input → same output, no I/O, no mutation). Confine state and side effects to a thin, high-level layer that calls into the pure core.
+   Core logic is pure: same input, same output, no I/O, no global. A thin top layer holds the state and calls into it.
 
-   ```typescript
-   // Pure — no I/O, trivial to test
-   function nextBoard(board: Board, move: Move): Board {}
+   ```c
+   /* Pure: trivial to test */
+   vec_t camera_clamp(vec_t wanted, box_t bounds);
 
-   // Stateful — orchestrates, stays at the top
-   async function handleMove(move: Move) {
-     const board = await loadBoard();
-     await saveBoard(nextBoard(board, move));
+   /* Stateful: orchestrates, stays at the top */
+   void camera_update(game_t *game) {
+       game->camera = camera_clamp(camera_follow(game), game->bounds);
    }
    ```
 
 6. **Assert preconditions at the boundary**
 
-   Every public function that receives arguments should assert what it requires. This makes invalid input loud immediately — the error fires at the call site, not three stack frames later at the symptom.
+   Every public function asserts what it requires, so invalid input fails at the call site, not three frames later.
 
-   ```typescript
-   // Unclear failure — blows up somewhere inside processOrder
-   function processOrder(order, quantity) {
-     // ...
-   }
-
-   // Clear failure — tells the caller exactly what went wrong
-   function processOrder(order, quantity) {
-     assert(order != null, "order is required");
-     assert(typeof quantity === "number" && quantity > 0, `quantity must be a positive number, got ${quantity}`);
-     // ...
+   ```c
+   void slipway_connect(game_t *game, entity_id_t from, entity_id_t to) {
+       assert(from != to && "a slipway joins two different planets");
+       assert(planet_by_id(game, from) != NULL && "from is dead");
+       /* ... */
    }
    ```
 
-   Assertions are not input validation for end-user data — they are contracts between modules. They document what callers must guarantee and crash loudly when that contract is broken during development, pointing directly to the programmer error.
-
-   Key invariants inside a module (e.g., "after every move the board must not contain negative values") belong as assertions too, not just as tests. Assertions are always-on self-documentation the runtime can verify.
+   Assertions are not input validation for player data — they are contracts between modules. Key invariants inside a module ("no dead id in a live list") belong as assertions too, not just as tests.

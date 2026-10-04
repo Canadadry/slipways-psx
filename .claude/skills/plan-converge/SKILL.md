@@ -1,6 +1,6 @@
 ---
 name: plan-converge
-description: Pre-flight convergence loop that repeatedly spawns plan-review against a plan document, filters its proposals for actual value, and applies accepted ones — until two consecutive empty rounds or an oscillation. Use before starting unsupervised implementation of a plan file, to sharpen it while it's still cheap to change.
+description: Sharpens a plan file before plan-pilot: loops plan-review rounds, applies what is worth it, stops when two rounds come back empty.
 ---
 
 # Plan Converge
@@ -44,3 +44,11 @@ This is where traceability lives — never as prose injected into the plan file 
 
 - Never touch content/scope — that filtering already happened inside `plan-review`; if a proposal that reaches you looks like it crossed that line anyway, reject it rather than second-guessing `plan-review`'s job.
 - Don't reuse this skill's loop/git machinery from other contexts — `plan-pilot` calls `plan-review` directly during active development instead, without a loop or a temp branch, because commits are already landing for real work by then.
+
+## End
+
+Report the rounds (applied, rejected, why it stopped), then print the next command, to run in a new session:
+
+```
+next: /plan-pilot <plan file>
+```

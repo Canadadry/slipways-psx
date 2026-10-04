@@ -1,6 +1,6 @@
 ---
 name: check-e2e
-description: Runs `make e2e` and drives every red replay to green through `fix-bug`, one failure at a time, each fix proven by a new unit test that goes red then green. Use when prd-autopilot finishes a PRD, or when the user runs /check-e2e to validate the end of a dev loop.
+description: Internal — called by prd-autopilot after each PRD, and by plan-pilot after a "skill:" step. Runs make e2e and drives every red replay to green through fix-bug, one failure at a time.
 ---
 
 # check-e2e

@@ -1,19 +1,15 @@
 ---
 name: warn-review
-description: Scans code for design smells - structural red flags visible from the outside (file shape, naming vs behavior, missing organization) - and reports them as bare warnings without proposing fixes. Use only when the user explicitly runs /warn-review; never trigger it automatically or as part of another review.
+description: Internal — called by plan-pilot at each phase end. Flags design smells and pointer-rule violations as bare warnings, never fixes.
 ---
 
 # Warn Review
 
-Flags design smells as warnings only. Never suggests fixes, causes, or direction - just states what's wrong and where. The point is to make the user reason through the fix themselves, not hand them a solution.
-
-## Before scanning
-
-Always start by asking the user: "Is there something about this app's design that already bugs you? Anything specific you want me to look at?" Use their answer as an extra lead to investigate alongside the checklist below - ask this every run, even if a path argument was also given.
+Flags design smells as warnings only. Never suggests fixes, causes, or direction - just states what's wrong and where. The caller (plan-pilot, through plan-review) decides what to do about them.
 
 ## Scope
 
-- Given a path/file argument: review only that.
+- Given paths (plan-pilot passes the code a phase touched): review only those.
 - Given no argument: recursively scan the current working directory. Respect `.gitignore`. Skip build output, vendor/third-party code, binary assets, and `.git`. Restrict to the project's main detected language's source files.
 
 ## What to flag
@@ -67,4 +63,4 @@ Plain markdown list, one line per finding: `file[:line]: should not <do Y>`.
 
 ## When a finding doesn't fit the checklist
 
-If the review (from the user's lead or general scanning) turns up a smell that isn't one of the items above, report it the same way, then ask the user if they want it added as a new checklist rule. If they say yes, edit this file to append it as the next item.
+Report it the same way, prefixed `[off-checklist]`, so the reader can tell it apart.

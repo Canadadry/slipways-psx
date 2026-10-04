@@ -1,11 +1,11 @@
 ---
 name: help-me-debug
-description: Evidence-driven bug investigation discipline. This skill helps UNDERSTAND a bug, not fix it.
+description: Internal — called by fix-bug. Proves the cause of one bug with evidence; changes nothing, fixes nothing.
 ---
 
-# dbg — understand a bug, with evidence
+# help-me-debug — understand a bug, with evidence
 
-A bug understood is a bug half-solved. The goal of this skill is NOT to produce the most likely solution, nor to fix anything. It is to help the user **understand the real cause** of a bug, step by step, without ever jumping to conclusions.
+A bug understood is a bug half-solved. The goal of this skill is NOT to produce the most likely solution, nor to fix anything. It is to establish **the real cause** of a bug, step by step, without ever jumping to conclusions.
 
 The main trap in debugging isn't a lack of ideas: it's overconfidence. The problem *looks* obvious, the hypothesis *seems* solid, and a fix gets proposed based on a cause that was assumed but never verified. This skill exists to resist that slope. Here, only facts count.
 
@@ -29,29 +29,19 @@ Follow this loop, returning to it as many times as needed:
 
 3. **Define the discriminating test.** For each hypothesis, ask: which observation would confirm it, and above all which would eliminate it? Prefer the cheapest test that separates the most hypotheses. A good test eliminates; it doesn't just reinforce.
 
-4. **Gather the proof.** Run the test and tie the result to one of the three forms of proof above. See "Who runs the test" below to know when to act yourself and when to involve the user.
+4. **Gather the proof.** Run the test and tie the result to one of the three forms of proof above. You run every test yourself, headless (see below).
 
 5. **Update, then start over.** Depending on the result, eliminate or confirm. Until the cause is **established by proof** (not merely made probable), return to step 2 or 3. Don't stop on a hypothesis simply because it's well-ranked.
 
 ## Who runs the test
 
-Claude can run commands itself when useful and safe. But its environment very likely differs from the user's: environment variables, installed versions, local data, configuration. A test that passes in Claude's environment proves nothing about the environment where the bug occurs.
+You do, headless: nobody else is there. No window, no X server (`CLAUDE.md`): reproduce through a scripted `events.json`, a fixed frame count and a text dump. Throwaway programs and instrumented copies go in `tmp/`; never change `src/` or `tests/`.
 
-So: when the result depends on the bug's real environment, **involve the user** rather than presume. Give them the exact command to run and ask them to paste the output. Don't hesitate to call on them — they're the one with the environment where the bug lives.
+Your environment likely differs from the reporter's (a real window, a real OS). A test that only their environment could run is not a proof you can get: name it as the missing observation, never presume its result.
 
-When the user must act, propose **one test at a time**: wait for their output before moving on, otherwise the signal drowns. When Claude can verify everything on its own and without risk, it may group several checks.
+## When the report jumps to a conclusion
 
-## When the user jumps to a conclusion
-
-The user has expertise in the software they're testing and a knowledge base Claude has no access to. Their intuition is often worth more than a deduction by Claude. So the skill must never stand against them dogmatically.
-
-But the proof rule applies to their claims too. If the user concludes without proof ("it's got to be the cache"), the right response is neither to contradict them nor to follow blindly. It is to:
-
-- **calmly note that there is no proof yet** for that hypothesis;
-- **propose a test** that would confirm or eliminate it, **without insisting**;
-- optionally ask a **naive, sincere question**: "what makes you think it's the cache?" — their answer may already contain proof, or reveal that there is none.
-
-Then let them decide. The aim is to protect the investigation from hasty conclusions, including their own, without ever overriding what they know and Claude doesn't.
+The bug report, or your caller, may name a cause ("it's the cache"). It may be right: the reporter knows things you don't. But it is a hypothesis like any other — list it, test it, and give it no head start.
 
 ## Explicit prohibitions
 
@@ -65,11 +55,9 @@ Never do the following — it's exactly the slope this skill fights:
 
 ## Stopping point: the bug document
 
-This skill's work stops the moment the cause is **understood and proven**. Fixing the bug is not its purpose.
+This skill's work stops the moment the cause is **proven**. Fixing the bug is not its purpose.
 
-At that point, summarize the understanding reached and offer to write a **bug document** for the team: a basis to prioritize and feed a kanban-style ticket. Offer it, don't impose it.
-
-If the user agrees, follow this template:
+Report `PROVEN:` followed by the bug document below, or `UNPROVEN:` followed by what was eliminated, what remains open, and exactly which observation is missing.
 
 ```markdown
 # [Short, factual bug title]
