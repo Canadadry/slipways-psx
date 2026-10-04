@@ -1,121 +1,121 @@
 ---
-name: reprendre-les-commentaires
-description: Ramène un dépôt noyé sous le récit de chantier (numéros de phase, renvois aux specs, code source recopié, historiques de correctifs abandonnés) à des commentaires qui ne portent plus que ce que le code ne dit pas — phase 1 séquentielle qui extrait ce qu'on ne pourrait plus reconstituer, phase 2 avec un agent par module sous une règle de quatre destinations. Use when le ratio commentaires/code est hors de proportion, quand on veut supprimer massivement du commentaire sans perdre ce qu'il contenait, quand un portage ou une génération par agents a laissé du journal de bord dans les sources, quand l'utilisateur parle de dégraisser, tailler, reprendre ou nettoyer les commentaires d'un dépôt, ou quand quelques fichiers écrits sous l'ancien régime arrivent dans un dépôt déjà repris (merge, branche longue, contribution extérieure) et qu'il faut les rattraper.
+name: rework-comments
+description: Brings a repository buried under work-log narration (phase numbers, references to specs, copied-in source code, histories of abandoned fixes) back to comments that carry only what the code does not say — a sequential phase 1 that extracts what could no longer be reconstructed, then a phase 2 with one agent per module under a four-destination rule. Use when the comment-to-code ratio is out of proportion, when you want to delete comments massively without losing what they held, when a port or agent-driven generation has left a logbook in the sources, when the user talks about slimming down, trimming, reworking or cleaning up a repository's comments, or when a few files written under the old regime land in a repository that has already been reworked (merge, long-lived branch, outside contribution) and need to be caught up.
 ---
 
-# Reprendre les commentaires
+# rework-comments
 
-Un dépôt écrit par vagues d'agents accumule du **récit de chantier** dans ses commentaires : numéros de phase et de lot, renvois à des PRD, code de référence recopié, justifications de découpage, historiques de correctifs abandonnés. Ça se lit une fois et ça se paie à chaque lecture de fichier ensuite.
+A repository written by successive waves of agents accumulates **work-log narration** in its comments: phase and batch numbers, references to PRDs, copied-in reference code, justifications for how modules were split, histories of abandoned fixes. It is read once, and paid for on every later read of the file.
 
-Cette skill ramène ce volume à ce qui a une raison de vivre dans le code, **sans changer un comportement**.
+This skill cuts that volume down to what has a reason to live in the code, **without changing any behavior**.
 
-Exemple travaillé de bout en bout (un port C d'un cart PICO-8, 18 544 → 2 966 lignes de commentaire, 47 % → 12 %) : [exemple-travaille.md](exemple-travaille.md). Le reste de ce fichier est la méthode, à appliquer ailleurs.
+A worked example from start to finish (a C port of a PICO-8 cart, 18,544 → 2,966 comment lines, 47% → 12%): [worked-example.md](worked-example.md). The rest of this file is the method, to apply elsewhere.
 
-## Deux régimes d'emploi — choisir avant de commencer
+## Two modes of use — pick one before you start
 
-Un dépôt ne se reprend qu'une fois ; le rattrapage, lui, revient à chaque merge. Les deux usages ne suivent pas le même chemin.
+A repository is reworked only once; catching up comes back with every merge. The two uses do not follow the same path.
 
-**Campagne complète** — le dépôt n'a jamais été repris, le récit est partout. Phase 1 puis phase 2, dans l'ordre, ratio mesuré sur le dépôt entier.
+**Full campaign** — the repository has never been reworked, and narration is everywhere. Phase 1 then phase 2, in that order, with the ratio measured over the whole repository.
 
-**Rattrapage ponctuel** — le dépôt a déjà été repris, et quelques fichiers neufs sont arrivés sous l'ancien régime : un merge, une branche longue, une contribution extérieure. C'est l'usage le plus fréquent une fois la campagne passée. Alors :
+**One-off catch-up** — the repository has already been reworked, and a few new files have arrived written under the old regime: a merge, a long-lived branch, an outside contribution. This is the most frequent use once the campaign is over. In that case:
 
-- **phase 1 sautée.** Le glossaire et le fichier d'écarts existent : ils se consultent en lecture seule, et comme en campagne l'agent n'y écrit pas — il propose ses ajouts et ses corrections dans son rapport.
-- **la règle des destinations (quatre, ou trois si le dépôt n'a plus de glossaire) est déjà dans le fichier d'instructions du dépôt** (`CLAUDE.md` ou équivalent). L'agent la lit là-bas ; la consigne n'a pas à la recopier, seulement à y renvoyer.
-- **ratio mesuré par fichier**, jamais sur le dépôt : sur deux fichiers, la mesure globale ne bouge pas et ne dit rien.
-- **un seul agent** si les fichiers tiennent dans ce qu'une vague lui donnerait. La règle « l'en-tête et le corps ensemble » vaut toujours.
+- **Skip phase 1.** The glossary and the gaps file already exist: they are read-only, and, as in a campaign, the agent does not write to them — it proposes its additions and corrections in its report.
+- **The destination rule (four, or three if the repository no longer has a glossary) is already in the repository's instructions file** (`CLAUDE.md` or equivalent). The agent reads it there; the brief does not need to copy it, only point to it.
+- **Measure the ratio per file**, never over the repository: on two files, the global figure does not move and tells you nothing.
+- **A single agent** if the files fit in what one wave would give it. The "header and body together" rule still applies.
 
-Dépôt à moitié repris — un glossaire mais pas de fichier d'écarts, ou l'inverse : c'est un rattrapage quand même. On ne fabrique pas la moitié manquante par symétrie ; on la crée le jour où un écart se présente vraiment.
+A half-reworked repository — a glossary but no gaps file, or the other way round — is still a catch-up. Do not create the missing half for symmetry; create it the day a real gap shows up.
 
-## Prérequis, non négociable
+## Prerequisite, non-negotiable
 
-**Une suite de tests qui atteste le comportement, et qui est verte avant de commencer.** La méthode ajoute des `assert` ; un assert faux fait abandonner le processus. Sur le chantier de référence, un agent en a posé un qui faisait tomber toute la suite (voir plus bas). C'est le filet qui l'a attrapé, pas la relecture.
+**A test suite that attests the behavior, and that is green before you start.** The method adds `assert`s; a wrong assert aborts the process. On the reference project, an agent added one that brought down the whole suite (see below). The safety net caught it, not the review.
 
-Sans suite de tests : n'ajoutez aucun assert, la destination 3 se réduit à sa variante prose. Dites-le à l'utilisateur plutôt que de bricoler.
+Without a test suite: add no asserts at all, and destination 3 shrinks to its prose variant. Tell the user rather than improvising.
 
-**C'est une obligation de l'orchestrateur, pas une case que l'agent coche** : l'agent n'a pas le droit de lancer la suite (le répertoire de build est partagé). Le dire explicitement dans la consigne, sinon l'agent croit travailler sans filet — ou pire, croit en avoir un là où il n'y en a pas.
+**This is the orchestrator's obligation, not a box the agent ticks**: the agent is not allowed to run the suite (the build directory is shared). Say so explicitly in the brief, otherwise the agent believes it is working without a net — or worse, believes it has one where there is none.
 
-**Et il y a des fichiers que la suite n'atteint pas.** Sur le chantier de référence, deux d'entre eux incluaient une bibliothèque graphique non vendorisée, dans un dépôt qui interdit par ailleurs d'ouvrir une fenêtre : aucune cible lançable ne les construit. Un assert faux y survivrait à toute la suite et n'exploserait qu'entre les mains d'un humain. **Dans un fichier qu'aucune cible lançable n'atteint, on ne pose aucun assert, même établi.** Recensez ces fichiers avant d'ouvrir la phase 2 et dites-le à leurs agents.
+**And some files are out of the suite's reach.** On the reference project, two of them included a graphics library that was not vendored, in a repository that also forbids opening a window: no runnable target builds them. A wrong assert there would survive the whole suite and only blow up in a human's hands. **In a file that no runnable target reaches, add no assert, even an established one.** List these files before opening phase 2 and tell their agents.
 
-Relevez le ratio de départ, il sert de mesure de progrès à chaque vague :
+Record the starting ratio; it is the progress measure for every wave:
 
 ```sh
-# à adapter au langage ; ici commentaires C/C++ vs lignes de code
+# adapt to the language; here C/C++ comments vs lines of code
 cloc --by-file src/ | tail -5
 ```
 
-**Donnez cette commande aux agents, elle est la définition.** « Ligne de commentaire » a au moins trois sens (ligne entièrement commentaire, ligne en contenant, définition propre à `cloc`) : sans commande canonique, chaque agent écrit son compteur et les chiffres ne sont comparables ni entre eux ni avec le vôtre. C'est la seule mesure que la méthode présente comme objective ; qu'elle dépende de l'outil de chacun la vide de son sens.
+**Give this command to the agents; it is the definition.** "Comment line" has at least three meanings (a line that is entirely comment, a line containing one, `cloc`'s own definition): without a canonical command, each agent writes its own counter and the figures are comparable neither with each other nor with yours. It is the only measure the method presents as objective; letting it depend on each agent's tooling empties it of meaning.
 
-## La règle : quatre destinations
+## The rule: four destinations
 
-Tout commentaire rencontré va dans **une** de ces quatre destinations, sinon il part.
+Every comment you meet goes to **one** of these four destinations, or it goes away.
 
-1. **Le sens d'un nom** → un fichier de glossaire, une ligne par symbole. Le code ne le répète pas.
-2. **Un écart connu avec la référence**, ou un morceau volontairement non fait → une entrée numérotée dans un fichier d'écarts. Le code n'y renvoie que par un **marqueur nu**, `/* GAP-7 */`, seul sur sa ligne au-dessus de la déclaration concernée — pas de résumé à côté, il périmerait.
-3. **Un piège qu'un lecteur futur réintroduirait** → `assert(cond && "message court")` au site exact si c'est vérifiable à l'exécution, **sinon 40 mots maximum**.
-4. **Un contrat que ni le nom ni le glossaire ne portent** — qui possède la mémoire, qui la libère, ce que rend la fonction quand le champ est absent, ce qu'un NULL déclenche → une phrase en en-tête. Une exception, à nommer pour qu'elle ne serve pas de passe-droit : **un format de fichier ou un protocole que quelque chose d'extérieur au dépôt doit pouvoir lire** est un contrat long légitime — il n'a nulle part ailleurs où vivre. Tout le reste tient en une phrase, ou part dans un `docs/format-*.md`.
+1. **The meaning of a name** → a glossary file, one line per symbol. The code does not repeat it.
+2. **A known gap with the reference**, or a piece deliberately left undone → a numbered entry in a gaps file. The code refers to it only through a **bare marker**, `/* GAP-7 */`, alone on its line above the declaration concerned — no summary next to it; it would go stale.
+3. **A trap a future reader would reintroduce** → `assert(cond && "short message")` at the exact site if it can be checked at runtime, **otherwise 40 words at most**.
+4. **A contract that neither the name nor the glossary carries** — who owns the memory, who frees it, what the function returns when the field is missing, what a NULL triggers → one sentence in the header. One exception, named so that it does not become a loophole: **a file format or a protocol that something outside the repository must be able to read** is a legitimate long contract — it has nowhere else to live. Everything else fits in one sentence, or moves to a `docs/format-*.md`.
 
-Tout le reste va dans le **message de commit**. Git le garde, et personne ne le paie en jetons à chaque lecture du fichier. `TODO` reste autorisé : c'est l'aveu qu'un cas n'est pas traité.
+Everything else goes into the **commit message**. Git keeps it, and nobody pays for it in tokens on every read of the file. `TODO` is still allowed: it admits that a case is not handled.
 
-## Phase 1 — campagne complète seulement, séquentielle, pendant que la prose est encore là
+## Phase 1 — full campaign only, sequential, while the prose is still there
 
-L'orchestrateur la fait seul, avant tout agent. Elle extrait ce qu'on ne pourrait plus reconstituer une fois les commentaires taillés.
+The orchestrator does it alone, before any agent. It extracts what could no longer be reconstructed once the comments are trimmed.
 
-1. **Le glossaire.** Utile quand les identifiants ne portent pas leur sens : code minifié translittéré, symboles hérités d'un format binaire, abréviations d'un domaine. Le construire en lisant tous les en-têtes, une ligne par symbole, et vérifier mécaniquement que chaque symbole cité existe encore. *Transposition* : si les noms sont déjà parlants, ce fichier n'a pas lieu d'être — ne le fabriquez pas par symétrie. Il peut devenir un glossaire de vocabulaire métier, ou rien.
-2. **Les écarts numérotés.** Une entrée par divergence avec la référence (autre implémentation, spec, système remplacé) ou par manque assumé. **Revérifier chaque entrée contre le code** plutôt que recopier le commentaire : c'est là qu'on trouve les affirmations périmées, et parfois un écart devenu atteignable que personne n'a noté.
-3. **Supprimer les journaux de chantier** devenus redondants avec git, et patcher tous les renvois pendants.
-4. **Recâbler le processus qui produisait la prose** — sinon elle repousse. Concrètement : écrire la règle des quatre destinations dans le fichier d'instructions du dépôt (`CLAUDE.md` ou équivalent), et **corriger les skills qui écrivaient du récit**. Sur le chantier de référence, une skill de correction de bug ajoutait un paragraphe de journal à chaque passage ; l'étape a été retirée, le constat va au message de commit.
+1. **The glossary.** Useful when identifiers do not carry their meaning: transliterated minified code, symbols inherited from a binary format, domain abbreviations. Build it by reading every header, one line per symbol, and check mechanically that every symbol cited still exists. *Transposing*: if the names already speak for themselves, this file has no reason to exist — do not create it for symmetry. It can become a glossary of domain vocabulary, or nothing.
+2. **The numbered gaps.** One entry per divergence from the reference (another implementation, a spec, a replaced system) or per acknowledged omission. **Re-check every entry against the code** rather than copying the comment: that is where you find stale claims, and sometimes a gap that has become reachable without anyone noting it.
+3. **Delete the work logs** that git now makes redundant, and patch every dangling reference.
+4. **Rewire the process that produced the prose** — otherwise it grows back. Concretely: write the four-destination rule into the repository's instructions file (`CLAUDE.md` or equivalent), and **fix the skills that wrote narration**. On the reference project, a bug-fixing skill appended a log paragraph on every run; that step was removed, and the finding now goes into the commit message.
 
-Commiter la phase 1 avant d'ouvrir la phase 2.
+Commit phase 1 before opening phase 2.
 
-## Le récit ne vit pas que dans les commentaires
+## Narration does not live only in comments
 
-Une chaîne destinée à un humain — bannière, message d'aide, ligne d'état — est de la documentation qui s'exécute, et elle périme exactement comme un commentaire. Sur le chantier de référence, un mode de lecture rejeté avait disparu des commentaires **et** du code, mais survivait dans la bannière que le programme imprime à chaque lancement : la seule phrase que lit l'humain avant de regarder ce qu'il va signer lui promettait un comportement qui n'existe plus.
+A string meant for a human — banner, help message, status line — is documentation that executes, and it goes stale exactly like a comment. On the reference project, a rejected playback mode had disappeared from the comments **and** the code, but survived in the banner the program prints on every launch: the only sentence the human reads before looking at what they are about to sign off on promised a behavior that no longer exists.
 
-D'où la règle, à mettre dans chaque consigne : **une chaîne destinée à l'humain se vérifie comme un commentaire, et une divergence se signale — elle ne se corrige jamais dans cette passe.** C'est du code : le diff cesserait d'être purement soustractif, et le correctif mérite son propre commit `fix:`.
+Hence the rule, to put in every brief: **a string meant for a human is checked like a comment, and a divergence is reported — never fixed in this pass.** It is code: the diff would stop being purely subtractive, and the fix deserves its own `fix:` commit.
 
-## Phase 2 — un agent par module
+## Phase 2 — one agent per module
 
-En rattrapage ponctuel, c'est ici qu'on entre directement.
+In a one-off catch-up, this is where you start.
 
-Un agent, un module, et **l'en-tête et le corps ensemble** (`.h` + `.c`, interface + implémentation) : le piège est souvent décrit dans l'en-tête alors que l'assert qui le remplace doit vivre dans le corps. Un agent qui ne voit qu'un des deux fichiers perd la moitié de la transformation.
+One agent, one module, and **the header and the body together** (`.h` + `.c`, interface + implementation): the trap is often described in the header while the assert that replaces it must live in the body. An agent that sees only one of the two files loses half of the transformation.
 
-La consigne à copier : [consigne-agent.md](consigne-agent.md). Le rapport à exiger : [modele-rapport.md](modele-rapport.md).
+The brief to copy: [agent-brief.md](agent-brief.md). The report to require: [report-template.md](report-template.md).
 
-Grouper les modules par vagues cohérentes (4 à 6 agents), une vague à la fois.
+Group modules into coherent waves (4 to 6 agents), one wave at a time.
 
-## La règle centrale : un assert doit être vérifiable, pas seulement plausible
+## The central rule: an assert must be verifiable, not just plausible
 
-Les agents ne peuvent pas lancer la compilation — ils partagent le répertoire de build — donc ils **raisonnent au lieu de mesurer**, et un raisonnement sérieux encode parfois une hypothèse plutôt qu'un invariant.
+Agents cannot run the build — they share the build directory — so they **reason instead of measuring**, and serious reasoning sometimes encodes an assumption rather than an invariant.
 
-Ce qui est arrivé : un agent a posé un assert exigeant qu'une spec de données se termine par une virgule. La règle était vraie, et c'était le piège le plus coûteux du dépôt. Il l'avait validée sérieusement — réimplémentation de la machine à états du parseur hors ligne, passée sur les 58 specs recensées. Le premier `make test` a dit le contraire : mesurées, les specs décodées depuis la mémoire finissent par **deux** virgules et l'index n'y atterrit pas au même endroit. La condition était fausse d'un cran. Assert retiré, règle remise en prose.
+What happened: an agent added an assert requiring a data spec to end with a comma. The rule was true, and it was the costliest trap in the repository. The agent had validated it seriously — reimplementing the parser's state machine offline and running it over all 58 known specs. The first `make test` said otherwise: measured, the specs decoded from memory end with **two** commas, and the index does not land in the same place. The condition was off by one. Assert removed, rule put back into prose.
 
-D'où la consigne, à mettre en gras dans la prompt de chaque agent :
+Hence the instruction, to put in bold in every agent's prompt:
 
-> **S'il ne peut pas établir qu'un assert tient autrement qu'en raisonnant, il écrit 40 mots.** Un assert de trop coûte plus cher qu'un commentaire de trop.
+> **If it cannot establish that an assert holds other than by reasoning, it writes 40 words.** One assert too many costs more than one comment too many.
 
-Établir, ça veut dire : énumérer exhaustivement les sites d'appel, mesurer une longueur ou un contenu hors du langage cible, ou prouver l'invariant **localement, sans hypothèse sur les appelants**. Pas : « je ne vois pas comment ça pourrait arriver ».
+Establishing means: exhaustively enumerating the call sites, measuring a length or some content outside the target language, or proving the invariant **locally, with no assumption about the callers**. Not: "I don't see how that could happen."
 
-Les vagues suivantes ont refusé cinq asserts pour cette raison, et l'un d'eux a produit la meilleure trouvaille du chantier : l'agent a calculé la marge avant d'écrire (66 tickets dans un pool pour 90 tirages possibles), le calcul a dit non — et ce « non » était un bug de lecture hors bornes que personne n'avait vu. **Demander explicitement la liste des asserts envisagés puis écartés** : elle vaut autant que ceux qui sont posés.
+Later waves refused five asserts for this reason, and one of those refusals produced the best find of the project: the agent computed the margin before writing (66 tickets in a pool for 90 possible draws), the computation said no — and that "no" was an out-of-bounds read bug nobody had seen. **Explicitly ask for the list of asserts considered and then rejected**: it is worth as much as the ones that get added.
 
-## Les autres règles, toutes vérifiées sur le terrain
+## The other rules, all tested in the field
 
-- **Vérifier toute affirmation de statut avant de la croire.** « Pas encore porté », « jamais exercé », « aucun lecteur », « code mort » : une cinquantaine se sont révélées fausses. Elles ne mentaient pas à l'écriture, elles ont vieilli — et c'est ce qui les rend dangereuses, plusieurs détournaient le regard du seul endroit qu'il fallait examiner. Une affirmation de statut se vérifie (grep, compte d'appelants) ou se supprime.
-- **Un fichier de test a sa propre règle.** Son commentaire porte *pourquoi cette valeur-là*, ce qu'aucun commentaire de code ne porte : une assertion sur un pixel, une fourchette, un index de frame est irrécupérable sans sa raison. Le taux de conservation y est légitimement plus haut. **Tu ne modifies ni ne supprimes une assertion existante** : ni sa valeur, ni sa présence. Changer ce qu'un test prouve dans un commit de nettoyage, c'est le faire passer sans relecture. En **ajouter** une est permis si elle est prouvée comme n'importe quel assert : elle est listée au rapport, et l'orchestrateur en fait un commit `test:` à côté du commit `docs:`.
-- **Les agents n'écrivent ni dans le glossaire ni dans le fichier d'écarts.** Plusieurs se les partageraient. Ils *signalent* les entrées manquantes et les erreurs dans leur rapport, l'orchestrateur applique par lots. Sur le chantier de référence : une quarantaine d'entrées ajoutées ainsi, et **quatre erreurs de l'orchestrateur lui-même** trouvées par ses agents.
-- **La rubrique « ce que tu as hésité à supprimer » est la plus utile du rapport.** C'est elle qui fait remonter les vrais écarts, les erreurs du glossaire et les bugs déclarés corrigés qui ne le sont qu'à moitié. La demander explicitement, avec la consigne de **ne pas la remplir par politesse ni de l'omettre**.
+- **Verify every status claim before believing it.** "Not ported yet", "never exercised", "no reader", "dead code": about fifty turned out to be false. They were not lies when written, they aged — and that is what makes them dangerous; several steered attention away from the one place that needed examining. A status claim gets verified (grep, caller count) or deleted.
+- **A test file has its own rule.** Its comment carries *why this value*, which no code comment carries: an assertion on a pixel, a range or a frame index cannot be recovered without its reason. The retention rate is legitimately higher there. **You do not modify or delete an existing assertion**: neither its value nor its presence. Changing what a test proves in a cleanup commit means slipping it through without review. **Adding** one is allowed if it is proven like any other assert: it is listed in the report, and the orchestrator makes a `test:` commit of it alongside the `docs:` commit.
+- **Agents write neither to the glossary nor to the gaps file.** Several would share them. They *report* missing entries and errors in their report, and the orchestrator applies them in batches. On the reference project: about forty entries added this way, and **four errors by the orchestrator itself** found by its agents.
+- **The "what I hesitated to delete" section is the most useful part of the report.** It is what surfaces the real gaps, the glossary errors and the bugs declared fixed that are only half fixed. Ask for it explicitly, with the instruction **neither to fill it out of politeness nor to leave it out**.
 
-## Rôle de l'orchestrateur
+## The orchestrator's role
 
-0. **Le contrôle mécanique marche partout, y compris là où la compilation échoue.** `gcc -fpreprocessed -dD -E -P` ne résout pas les `#include` : il se contente de retirer les commentaires. Un fichier qui n'est pas compilable ici — dépendance non vendorisée, en-tête absent — se vérifie donc quand même, octet pour octet. Ne dites jamais à un agent de « relire le diff à la main » pour ces fichiers-là : vous lui retirez sa seule preuve. Second filet gratuit : le nombre de lignes de code doit être identique avant et après.
-1. **Compiler chaque module en isolation** dès que son agent rend la main (`make src/obj/module.o` ou l'équivalent). Ça attrape l'`#include <assert.h>` manquant et les commentaires imbriqués.
-2. **Ne lancer la suite complète que sur un arbre stabilisé** — tous les agents de la vague rendus. Une compilation sur un arbre à moitié réécrit ne dit rien, et c'est précisément ce qui a permis d'attribuer correctement la panne de l'assert.
-3. **Commiter module par module**, avec le récit dans le message : le ratio avant/après, les asserts posés et leur mode de preuve, les affirmations périmées démontées, les corrections du glossaire.
-4. **Séparer les commits qui ajoutent des `abort()`** (un assert en est un) de ceux qui ne font que supprimer du texte. Un commit purement soustractif doit pouvoir se relire comme tel, et se révoquer sans rien emporter.
-5. **Recommander le remplacement par plage de lignes**, qui refuse si la plage contient autre chose que du commentaire, plutôt que le remplacement de chaînes exactes recopiées depuis une lecture. Le premier ne peut pas toucher au code et échoue bruyamment ; le second se trompe d'un retour à la ligne et colle du texte approximatif.
-6. **Relever le ratio à chaque vague.** C'est la mesure de progrès utile, et la seule qui ne dépende pas d'un jugement.
+0. **The mechanical check works everywhere, including where compilation fails.** `gcc -fpreprocessed -dD -E -P` does not resolve `#include`s: it only strips comments. A file that does not compile here — non-vendored dependency, missing header — can therefore still be checked, byte for byte. Never tell an agent to "review the diff by hand" for those files: you would take away its only proof. A second, free safety net: the number of lines of code must be identical before and after.
+1. **Compile each module in isolation** as soon as its agent hands back (`make src/obj/module.o` or the equivalent). That catches the missing `#include <assert.h>` and nested comments.
+2. **Run the full suite only on a stabilized tree** — every agent of the wave has handed back. A build on a half-rewritten tree tells you nothing, and this is precisely what made it possible to attribute the assert failure correctly.
+3. **Commit module by module**, with the narration in the message: the before/after ratio, the asserts added and how each was proven, the stale claims taken apart, the glossary corrections.
+4. **Keep commits that add `abort()`s** (an assert is one) separate from those that only delete text. A purely subtractive commit must read as such, and be revertable without taking anything else with it.
+5. **Recommend line-range replacement**, which refuses if the range contains anything other than comment, over exact-string replacement copied from a read. The former cannot touch code and fails loudly; the latter gets a newline wrong and pastes approximate text.
+6. **Record the ratio at every wave.** It is the useful progress measure, and the only one that does not depend on judgment.
 
-## Ce que la méthode ne garantit pas
+## What the method does not guarantee
 
-Elle a produit une panne : un assert faux, qui faisait abandonner toute la suite de tests. Il a été écrit par un agent consciencieux, qui avait validé sa règle hors ligne avant de la poser. Ce n'est pas la relecture qui l'a attrapé, c'est le premier `make test` de la vague suivante.
+It produced one failure: a wrong assert that aborted the whole test suite. It was written by a conscientious agent who had validated its rule offline before adding it. The review did not catch it; the first `make test` of the next wave did.
 
-La méthode est donc sûre **dans la mesure exacte où la suite de tests l'est**. Si elle ne couvre pas un chemin, un assert faux sur ce chemin survivra jusqu'à un utilisateur. C'est l'argument pour le prérequis en tête de ce fichier, et pour la règle de l'assert vérifiable.
+The method is therefore safe **exactly to the extent that the test suite is**. If the suite does not cover a path, a wrong assert on that path will survive until a user hits it. That is the argument for the prerequisite at the top of this file, and for the verifiable-assert rule.

@@ -1,167 +1,168 @@
-# Consigne d'agent — à adapter et coller
+# Agent brief — adapt and paste
 
-Un agent, un module. Remplacer les `<...>`. Les passages en gras sont ceux qui ont
-été payés cher : ne pas les adoucir.
+One agent, one module. Replace the `<...>`. The bold passages are the ones that
+were paid for dearly: do not soften them.
 
 ---
 
-Tu reprends les commentaires de **<MODULE>** : `<chemin/module.h>` et
-`<chemin/module.c>`. **Les deux ensemble** — le piège est souvent énoncé dans
-l'en-tête alors que le contrôle qui le remplace doit vivre dans le corps.
+You are reworking the comments of **<MODULE>**: `<path/module.h>` and
+`<path/module.c>`. **Both together** — the trap is often stated in the header
+while the check that replaces it must live in the body.
 
-Ce dépôt a accumulé du récit de chantier dans ses commentaires : numéros de phase
-et de lot, renvois à des documents de conception, code de référence recopié,
-justifications de découpage, historiques de correctifs abandonnés. On le retire.
-**Tu ne changes aucun comportement** : pas une signature, pas une valeur, pas un
-ordre d'appel. Le seul code que tu as le droit d'ajouter est `#include <assert.h>`
-et des `assert`, sous les conditions ci-dessous.
+This repository has accumulated work-log narration in its comments: phase and
+batch numbers, references to design documents, copied-in reference code,
+justifications for how modules were split, histories of abandoned fixes. We are
+removing it. **You change no behavior**: not a signature, not a value, not a
+call order. The only code you are allowed to add is `#include <assert.h>` and
+`assert`s, under the conditions below.
 
-## Les quatre destinations
+## The four destinations
 
-Tout commentaire que tu lis va dans une de ces quatre destinations, sinon il part.
+Every comment you read goes to one of these four destinations, or it goes away.
 
-1. **Le sens d'un nom** → `<docs/glossaire.md>`. Tu **n'écris pas** dans ce
-   fichier (d'autres agents travaillent en parallèle) : tu listes dans ton rapport
-   les entrées à ajouter ou à corriger, une ligne chacune. Le code ne répète pas
-   le glossaire.
-2. **Un écart connu avec <LA RÉFÉRENCE>**, ou un morceau volontairement non fait →
-   une entrée dans `<docs/ecarts.md>`. Là non plus tu n'écris pas : tu proposes
-   l'entrée dans ton rapport. Dans le code, tu ne laisses qu'un **marqueur nu**
-   `/* GAP-n */`, seul sur sa ligne au-dessus de la déclaration concernée. Pas de
-   résumé à côté : il périmerait. Pour un écart non encore numéroté, écris
-   `/* GAP-? */` et signale-le.
-3. **Un piège qu'un lecteur futur réintroduirait** → un
-   `assert(cond && "message court")` au site exact **si tu peux établir qu'il
-   tient**, sinon **40 mots maximum** de prose. Lis la section suivante avant
-   d'écrire le moindre assert.
-4. **Un contrat que ni le nom ni le glossaire ne portent** — qui possède la
-   mémoire, qui la libère, ce que rend la fonction quand le champ est absent, ce
-   qu'un NULL déclenche, le format exact d'une sortie sur laquelle un test
-   s'appuie → **une phrase** en en-tête.
+1. **The meaning of a name** → `<docs/glossary.md>`. You **do not write** to
+   this file (other agents are working in parallel): you list in your report the
+   entries to add or correct, one line each. The code does not repeat the
+   glossary.
+2. **A known gap with <THE REFERENCE>**, or a piece deliberately left undone →
+   an entry in `<docs/gaps.md>`. You do not write there either: you propose the
+   entry in your report. In the code, you leave only a **bare marker**
+   `/* GAP-n */`, alone on its line above the declaration concerned. No summary
+   next to it: it would go stale. For a gap that has no number yet, write
+   `/* GAP-? */` and report it.
+3. **A trap a future reader would reintroduce** → an
+   `assert(cond && "short message")` at the exact site **if you can establish
+   that it holds**, otherwise **40 words at most** of prose. Read the next
+   section before writing a single assert.
+4. **A contract that neither the name nor the glossary carries** — who owns the
+   memory, who frees it, what the function returns when the field is missing,
+   what a NULL triggers, the exact format of an output a test relies on → **one
+   sentence** in the header.
 
-Tout le reste va dans le message de commit, que j'écris. Tu n'as pas à le
-préserver dans le fichier : dis-le-moi dans ton rapport et il sera gardé par git.
-`TODO` reste autorisé : c'est l'aveu qu'un cas n'est pas traité.
+Everything else goes into the commit message, which I write. You do not have to
+preserve it in the file: tell me in your report and git will keep it.
+`TODO` is still allowed: it admits that a case is not handled.
 
-## La règle de l'assert — la plus importante de cette consigne
+## The assert rule — the most important one in this brief
 
-**Un assert doit être vérifiable, pas seulement plausible.** Tu ne peux pas lancer
-la compilation ni les tests (le répertoire de build est partagé), donc tu es
-tenté de raisonner au lieu de mesurer. Un raisonnement sérieux encode parfois une
-hypothèse plutôt qu'un invariant.
+**An assert must be verifiable, not just plausible.** You cannot run the build
+or the tests (the build directory is shared), so you are tempted to reason
+instead of measuring. Serious reasoning sometimes encodes an assumption rather
+than an invariant.
 
-C'est arrivé : un agent a posé un assert exigeant qu'une spec de données se
-termine par une virgule. La règle était vraie et c'était le piège le plus coûteux
-du dépôt ; il l'avait validée en réimplémentant le parseur hors ligne et en la
-passant sur les 58 specs recensées. **Le premier lancement de la suite a dit le
-contraire** : mesurées, les specs décodées depuis la mémoire finissent par deux
-virgules et l'index n'y atterrit pas au même endroit. La condition était fausse
-d'un cran, et toute la suite abandonnait.
+It happened: an agent added an assert requiring a data spec to end with a comma.
+The rule was true, and it was the costliest trap in the repository; the agent
+had validated it by reimplementing the parser offline and running it over all 58
+known specs. **The first run of the suite said otherwise**: measured, the specs
+decoded from memory end with two commas, and the index does not land in the same
+place. The condition was off by one, and the whole suite aborted.
 
-Donc : tu poses un assert seulement si tu peux l'**établir**, c'est-à-dire
+So: you add an assert only if you can **establish** it, which means
 
-- énumérer exhaustivement les sites d'appel, et montrer que tous le respectent ; ou
-- **mesurer** (compter une longueur, décoder un contenu, exécuter un script hors
-  du langage cible) plutôt que déduire ; ou
-- prouver l'invariant **localement, sans aucune hypothèse sur les appelants**.
+- exhaustively enumerating the call sites, and showing that all of them respect
+  it; or
+- **measuring** (counting a length, decoding some content, running a script outside
+  the target language) rather than deducing; or
+- proving the invariant **locally, with no assumption at all about the callers**.
 
-« Je ne vois pas comment ça pourrait arriver » n'est pas une preuve. Si tu ne peux
-pas établir, tu écris 40 mots. **Un assert de trop coûte plus cher qu'un
-commentaire de trop.**
+"I don't see how that could happen" is not a proof. If you cannot establish it,
+you write 40 words. **One assert too many costs more than one comment too
+many.**
 
-Calcule la marge avant d'écrire, quand il y en a une (bornes, tailles de pool,
-compteurs). Si le calcul dit non, ne pose pas l'assert — et **dis-le-moi** : sur
-ce chantier, un « non » de ce genre était un bug de lecture hors bornes que
-personne n'avait vu.
+Compute the margin before writing, when there is one (bounds, pool sizes,
+counters). If the computation says no, do not add the assert — and **tell me**:
+on this project, a "no" of that kind was an out-of-bounds read bug nobody had
+seen.
 
-Dans ton rapport, liste les asserts **envisagés puis écartés** avec la raison.
-Cette liste vaut autant que ceux que tu poses.
+In your report, list the asserts **considered and then rejected**, with the
+reason. That list is worth as much as the ones you add.
 
-**Si ton fichier n'est atteint par aucune cible lançable ici** — il inclut une
-dépendance non vendorisée, aucun test ne le construit — alors **tu ne poses aucun
-assert du tout**, même établi. Le filet qui rattrape les asserts faux, c'est la
-suite de tests ; là où elle ne passe pas, c'est un humain qui le rattrapera, bien
-plus tard. Dis-le dans ton rapport et écris 40 mots.
+**If your file is reached by no runnable target here** — it includes a
+non-vendored dependency, no test builds it — then **you add no assert at all**,
+even an established one. The net that catches wrong asserts is the test suite;
+where it does not reach, a human will catch it, much later. Say so in your report
+and write 40 words.
 
-**Un assert préexistant sans message** (`assert(cond)` nu, avec à côté le
-commentaire qui serait exactement son message) est un cas fréquent sur un dépôt
-déjà repris : la première passe a posé l'assert, la seconde trouve le commentaire
-orphelin. La fusion est la bonne transformation **et c'est une modification de
-code** : tu ne la fais pas. Tu gardes la prose et tu le signales.
+**A pre-existing assert with no message** (a bare `assert(cond)`, with next to it
+the comment that would be exactly its message) is a frequent case in a
+repository that has already been reworked: the first pass added the assert, the
+second finds the orphaned comment. Merging them is the right transformation
+**and it is a code change**: you do not make it. You keep the prose and report
+it.
 
-## Vérifie toute affirmation de statut avant de la croire
+## Verify every status claim before believing it
 
-« Pas encore porté », « jamais exercé », « aucun lecteur », « code mort », « ce
-sera un problème le jour où X » : ces phrases ne mentaient pas quand elles ont
-été écrites, elles ont vieilli. Une cinquantaine se sont révélées fausses sur ce
-dépôt, et plusieurs détournaient le regard du seul endroit qu'il fallait
-examiner. Chacune se vérifie (grep, compte d'appelants, lecture de la référence)
-ou se supprime. Une affirmation vérifiée fausse est un résultat : signale-la.
+"Not ported yet", "never exercised", "no reader", "dead code", "this will be a
+problem the day X happens": these sentences were not lies when they were
+written, they aged. About fifty turned out to be false in this repository, and
+several steered attention away from the one place that needed examining. Each
+one gets verified (grep, caller count, reading the reference) or deleted. A
+claim verified false is a result: report it.
 
-**Ça vaut aussi pour les chaînes destinées à l'humain** — bannière, message
-d'aide, ligne d'état : c'est de la documentation qui s'exécute, et elle périme
-comme un commentaire. Sur ce chantier, un mode de lecture rejeté avait disparu du
-code et des commentaires mais survivait dans la bannière du programme. **Tu la
-vérifies, et une divergence se signale — jamais ne se corrige ici** : c'est du
-code, ça mérite son propre commit `fix:`.
+**This also applies to strings meant for a human** — banner, help message,
+status line: they are documentation that executes, and they go stale like a
+comment. On this project, a rejected playback mode had disappeared from the code
+and the comments but survived in the program's banner. **You check it, and a
+divergence is reported — never fixed here**: it is code, and it deserves its own
+`fix:` commit.
 
-## Si ton module est un fichier de test
+## If your module is a test file
 
-Règle différente. Le commentaire d'un test porte **pourquoi cette valeur-là** —
-ce qu'aucun commentaire de code ne porte. Une assertion sur un pixel, une
-fourchette, un index est irrécupérable sans sa raison : tu gardes ces raisons, le
-taux de conservation sera légitimement plus élevé. Tu retires le récit de chantier
-et les affirmations périmées, rien d'autre.
+Different rule. A test's comment carries **why this value** — which no code
+comment carries. An assertion on a pixel, a range or an index cannot be
+recovered without its reason: you keep those reasons, and the retention rate
+will legitimately be higher. You remove work-log narration and stale claims,
+nothing else.
 
-**Tu ne modifies ni ne supprimes une assertion existante** : ni sa valeur, ni sa présence. Tu peux en **ajouter** une si tu l'as prouvée — même exigence de preuve qu'ailleurs. Liste-la au rapport : l'orchestrateur en fera un commit `test:` séparé du commit `docs:`.
+**You do not modify or delete an existing assertion**: neither its value nor its presence. You may **add** one if you have proven it — the same burden of proof as anywhere else. List it in the report: the orchestrator will make a `test:` commit of it, separate from the `docs:` commit.
 
-Une assertion que tu juges **fausse, faible ou trompeuse** — elle ne prouve pas ce
-que son nom annonce — se signale dans ton rapport, avec ce qu'elle prouve
-réellement. Elle ne se corrige pas ici.
+An assertion you judge **wrong, weak or misleading** — it does not prove what
+its name announces — goes in your report, with what it actually proves.
+It is not fixed here.
 
-Le curseur, puisque « taux plus élevé » n'en est pas un : **une phrase reste si
-elle explique une valeur littérale, un choix de cas ou un contrat de tampon ; elle
-part si elle raconte d'où vient la décision.**
+The threshold, since "a higher rate" is not one: **a sentence stays if it
+explains a literal value, a choice of case or a buffer contract; it goes if it
+tells where the decision came from.**
 
-## Quand un commentaire n'en est pas tout à fait un
+## When a comment is not quite a comment
 
-Quatre cas où ce qui ressemble à un commentaire est lu par une machine. Le
-contrôle habituel (lignes hors commentaire identiques) ne les voit pas.
+Four cases where something that looks like a comment is read by a machine. The
+usual check (identical non-comment lines) does not see them.
 
-- **Une ligne de commentaire qu'un script imprime** — son aide tirée de son
-  propre en-tête (`sed -n '2p' "$0"`) — est une chaîne, pas un commentaire. Tu la
-  traites comme un message : la preuve est la sortie du script, avant et après,
-  et la ligne ne change pas de numéro.
-- **Un `#` dans un ici-document** (`<<EOF`) n'est pas un commentaire : c'est du
-  texte que le script écrit. Tu le laisses tel quel, ou tu le signales.
-- **Un programme `awk`** (ou tout programme) **entre apostrophes dans un script
-  shell** : un commentaire glissé dedans peut le casser — une apostrophe dans le
-  texte (« entity's ») ferme la chaîne — sans changer une seule ligne hors
-  commentaire. Aucun commentaire n'y entre. Le contrôle ajoute `sh -n` et des
-  sorties identiques à l'octet, dans tous les modes et pour tous les refus.
-- **Un fichier dont un outil compare les numéros de ligne** — référence de
-  couverture, message d'`assert` qui imprime sa ligne — garde la hauteur de
-  chaque bloc de commentaire : un bloc qui grandit ou rétrécit décale tout le
-  code qui suit. Contrôle : les lignes qui ne sont pas des commentaires restent
-  aux mêmes numéros.
+- **A comment line that a script prints** — its help taken from its own header
+  (`sed -n '2p' "$0"`) — is a string, not a comment. Treat it as a message: the
+  proof is the script's output, before and after, and the line keeps its line
+  number.
+- **A `#` inside a here-document** (`<<EOF`) is not a comment: it is text the
+  script writes. Leave it as is, or report it.
+- **An `awk` program** (or any program) **inside single quotes in a shell
+  script**: a comment slipped into it can break it — an apostrophe in the text
+  ("entity's") closes the string — without changing a single non-comment line.
+  No comment goes in there. The check adds `sh -n` and byte-identical outputs,
+  in every mode and for every refusal.
+- **A file whose line numbers a tool compares** — a coverage reference, an
+  `assert` message that prints its line — keeps the height of every comment
+  block: a block that grows or shrinks shifts all the code after it. Check: the
+  lines that are not comments stay at the same line numbers.
 
-## Contrôle avant de rendre la main
+## Check before handing back
 
-- Aucune déclaration, aucune ligne de code perdue. Compare la sortie du
-  préprocesseur (`<gcc -fpreprocessed -dD -E -P>`) avant/après : elle doit être
-  identique, aux `assert` près. **Cette vérification marche même sur un fichier
-  que tu ne peux pas compiler** : l'option ne résout pas les `#include`, elle
-  retire les commentaires. Ne te rabats jamais sur une relecture à l'œil.
-- Le nombre de lignes de code est identique avant et après. Second filet, gratuit.
-- Pas de commentaire de bloc imbriqué (un `/* */` ne s'imbrique pas).
-- `#include <assert.h>` présent si tu as posé un assert.
-- Compte les lignes de commentaire avant et après avec **la commande que donne la
-  consigne**, pas avec la tienne : sinon ton chiffre n'est comparable à aucun autre.
-- Signale les fichiers du même lot que tu as croisés sans les avoir en charge. Un
-  rattrapage qui en laisse la moitié derrière lui n'en est pas un.
+- No declaration and no line of code lost. Compare the preprocessor output
+  (`<gcc -fpreprocessed -dD -E -P>`) before/after: it must be identical, apart
+  from the `assert`s. **This check works even on a file you cannot compile**:
+  the option does not resolve `#include`s, it strips comments. Never fall back
+  on eyeballing.
+- The number of lines of code is identical before and after. A second, free
+  safety net.
+- No nested block comment (a `/* */` does not nest).
+- `#include <assert.h>` present if you added an assert.
+- Count the comment lines before and after with **the command given in this
+  brief**, not with your own: otherwise your figure is comparable to no other.
+- Report files from the same batch that you came across without being in
+  charge of them. A catch-up that leaves half of them behind is not one.
 
-## Rapport
+## Report
 
-Rends ton rapport au format de `modele-rapport.md`. **La rubrique « ce que j'ai
-hésité à supprimer » n'est pas optionnelle** : ne la remplis pas par politesse, ne
-l'omets pas non plus.
+Hand back your report in the format of `report-template.md`. **The "what I
+hesitated to delete" section is not optional**: do not fill it out of
+politeness, do not leave it out either.

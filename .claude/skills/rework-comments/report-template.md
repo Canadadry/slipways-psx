@@ -1,98 +1,98 @@
-# Modèle de rapport d'agent
+# Agent report template
 
-À coller en fin de consigne, ou à faire lire à l'agent. L'orchestrateur en tire le
-message de commit, les lots d'entrées de glossaire et d'écarts, et la décision de
-relancer un module. Il lit **les rubriques 7 et 8 en premier** : ce sont elles qui
-portent les résultats.
+Paste it at the end of the brief, or have the agent read it. The orchestrator
+draws from it the commit message, the batches of glossary and gap entries, and
+the decision to rerun a module. It reads **sections 7 and 8 first**: they are
+the ones that carry the results.
 
-**Une rubrique vide n'est pas une rubrique ratée**, et ça vaut pour les neuf. Sur
-un rattrapage de quelques fichiers, 3, 5 et 6 sont souvent vides par construction.
-Meubler est le seul vrai échec.
+**An empty section is not a failed section**, and that holds for all nine. On a
+catch-up of a few files, 3, 5 and 6 are often empty by construction. Padding is
+the only real failure.
 
 ---
 
 ## 1. Ratio
 
 ```
-<module>.h   <N> → <n> lignes de commentaire   (<X> lignes de code)
-<module>.c   <N> → <n>                          (<X>)
+<module>.h   <N> → <n> comment lines   (<X> lines of code)
+<module>.c   <N> → <n>                 (<X>)
 
-contrôle : diff préprocesseur avant/après <identique | écart, lequel>
-            lignes de code <identiques | écart>
+check: preprocessor diff before/after <identical | difference, which one>
+       lines of code <identical | difference>
 ```
 
-Le contrôle va ici, à côté du ratio : c'est la première chose que l'orchestrateur
-doit lire, et la seule preuve que le nettoyage n'a rien cassé.
+The check goes here, next to the ratio: it is the first thing the orchestrator
+must read, and the only proof that the cleanup broke nothing.
 
-## 2. Ce que j'ai gardé, et sous quelle destination
+## 2. What I kept, and under which destination
 
-Une ligne par commentaire conservé, avec sa destination (3 = piège, 4 = contrat) :
+One line per comment kept, with its destination (3 = trap, 4 = contract):
 
-- `fonction()` — contrat : qui libère le tampon rendu.
-- `autre()` — piège, 40 mots : <résumé en une ligne>.
+- `function()` — contract: who frees the returned buffer.
+- `other()` — trap, 40 words: <one-line summary>.
 
-## 3. Asserts posés
+## 3. Asserts added
 
-Vide sur un fichier de test, et vide sur un fichier qu'aucune cible lançable
-n'atteint : dans les deux cas la passe n'en pose pas.
+Empty on a test file, and empty on a file that no runnable target reaches: in
+both cases the pass adds none.
 
-Un bloc par assert. **Le mode de preuve est obligatoire** : énumération des sites
-d'appel, mesure, ou preuve locale sans hypothèse sur les appelants. « Je ne vois
-pas comment ça pourrait arriver » n'est pas un mode de preuve.
+One block per assert. **The proof method is mandatory**: enumeration of the call
+sites, measurement, or local proof with no assumption about the callers. "I
+don't see how that could happen" is not a proof method.
 
 ```
-site      : <fichier:ligne>
+site      : <file:line>
 condition : assert(<cond> && "<message>")
-remplace  : <le commentaire qui disait le piège>
-preuve    : <énumération / mesure / locale> — <le détail qui l'établit>
+replaces  : <the comment that stated the trap>
+proof     : <enumeration / measurement / local> — <the detail that establishes it>
 ```
 
-## 4. Asserts envisagés puis écartés
+## 4. Asserts considered and then rejected
 
-Aussi important que la rubrique précédente. Un bloc par candidat :
+As important as the previous section. One block per candidate:
 
 ```
-condition envisagée : <cond>
-pourquoi écarté     : <ce que l'examen a montré>
-remplacé par        : <les 40 mots, ou rien>
+condition considered : <cond>
+why rejected         : <what the examination showed>
+replaced by          : <the 40 words, or nothing>
 ```
 
-Si le calcul de marge a dit non, donne les nombres. Ça a déjà révélé un bug.
+If the margin computation said no, give the numbers. It has already revealed a
+bug.
 
-## 5. Entrées de glossaire à ajouter ou corriger
+## 5. Glossary entries to add or correct
 
-Tu n'écris pas dans le glossaire. Propose, l'orchestrateur applique par lots.
+You do not write to the glossary. Propose; the orchestrator applies in batches.
 
-- ajout : `<symbole>` — <sens, une ligne>
-- correction : `<symbole>` — le glossaire dit « <X> », le code dit « <Y> », vérifié
-  par <…>
+- add: `<symbol>` — <meaning, one line>
+- correct: `<symbol>` — the glossary says "<X>", the code says "<Y>", verified
+  by <…>
 
-## 6. Écarts à consigner
+## 6. Gaps to record
 
-- GAP-? — <titre> — <2 à 4 lignes> — marqueur posé à `<fichier:ligne>`
-- GAP-<n> existant — fichier à ajouter à la liste : `<chemin>`
+- GAP-? — <title> — <2 to 4 lines> — marker placed at `<file:line>`
+- existing GAP-<n> — file to add to its list: `<path>`
 
-## 7. Affirmations de statut vérifiées fausses
+## 7. Status claims verified false
 
-Une ligne chacune : ce que le commentaire affirmait, ce que la vérification a
-montré, comment tu l'as vérifié.
+One line each: what the comment claimed, what the verification showed, how you
+verified it.
 
-## 8. Ce que j'ai hésité à supprimer
+## 8. What I hesitated to delete
 
-**Obligatoire. Ne pas remplir par politesse, ne pas omettre.**
+**Mandatory. Do not fill it out of politeness, do not leave it out.**
 
-Ce qui t'a fait hésiter et que tu as supprimé quand même, ou gardé sans en être
-sûr : une justification longue mais reconstituable de nulle part ailleurs, une
-connaissance qui risque de ne plus être écrite nulle part après ton passage, un
-commentaire qui contredit le code, un bug annoncé corrigé dont tu ne retrouves
-que la moitié du correctif. Dis ce qui se perd et à quel prix on le
-reconstituerait.
+What made you hesitate and you deleted anyway, or kept without being sure: a
+long justification that cannot be reconstructed from anywhere else, knowledge
+that risks no longer being written down anywhere after your pass, a comment that
+contradicts the code, a bug announced as fixed of which you find only half the
+fix. Say what is lost and what it would cost to reconstruct.
 
-C'est la rubrique qui, sur le chantier de référence, a fait remonter les vrais
-écarts, les erreurs du glossaire et un bug déclaré corrigé qui ne l'était qu'à
-moitié.
+This is the section that, on the reference project, surfaced the real gaps, the
+glossary errors and a bug declared fixed that was only half fixed.
 
-## 9. Ce qui reste en l'état, et pourquoi
+## 9. What stays as is, and why
 
-Ce que tu n'as pas pu reprendre sans sortir de ton mandat (toucher une assertion,
-modifier du code, arbitrer un écart). Avec ce qu'il faudrait décider.
+What you could not rework without stepping outside your mandate (touching an
+assertion, modifying code, ruling on a gap), and what would need to be
+decided.

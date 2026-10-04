@@ -1,96 +1,94 @@
-# L'exemple travaillé — un port C d'un cart PICO-8
+# The worked example — a C port of a PICO-8 cart
 
-Le chantier dont cette skill est tirée. À lire comme un exemple, pas comme la
-définition : les noms de fichiers, la notion de glossaire et la référence
-« le cart » sont propres à ce dépôt.
+The project this skill was drawn from. Read it as an example, not as the
+definition: the file names, the notion of a glossary and the reference
+"the cart" are specific to this repository.
 
-## Le point de départ
+## The starting point
 
-**18 544 lignes de commentaire pour 39 274 lignes de code — 47 %.** Presque tout
-était du récit de chantier : numéros de phase et de « chunk », renvois aux PRD,
-code Lua du cart recopié au-dessus de chaque fonction portée, justifications de
-découpage de modules, historiques de correctifs abandonnés. Résultat :
-**2 966 lignes, 12 %**, sans changer un comportement, suite de tests verte à
-chaque étape.
+**18,544 comment lines for 39,274 lines of code — 47%.** Almost all of it was
+work-log narration: phase and "chunk" numbers, references to PRDs, the cart's
+Lua code copied above every ported function, justifications for how modules
+were split, histories of abandoned fixes. Result: **2,966 lines, 12%**, with no
+behavior change and the test suite green at every step.
 
-Le code Lua recopié en commentaire avait une raison à l'époque : c'était la
-méthode de vérification de la phase de portage. Elle a été remplacée par le rejeu
-enregistré (9 729 frames comparées) — le commentaire ne vérifiait plus rien, il
-coûtait seulement.
+The Lua code copied into comments had a reason at the time: it was the
+verification method of the porting phase. It was replaced by the recorded replay
+(9,729 frames compared) — the comment no longer verified anything, it was pure cost.
 
-## Les trois artefacts produits
+## The three artifacts produced
 
-- `CLAUDE.md`, section « Commentaires » : la règle des destinations — quatre à
-  l'époque, trois depuis que les noms sont devenus parlants —, dans le fichier
-  d'instructions que toute session relit.
-- Un glossaire des noms : 191 symboles, une ligne chacun. Le cart est minifié en
-  digrammes et le port les translittérait littéralement : le **nom** était donc
-  déjà dans le code, c'est le **sens** qui manquait, et il ne se déduisait ni du
-  C ni du Lua. Un renommage en noms anglais complets l'a remplacé depuis : le
-  nom porte le sens, la destination « sens d'un nom » est tombée.
-- `docs/trous-de-portage.md` : les écarts numérotés, revérifiés contre le code un
-  par un. Le code n'y renvoie que par `/* GAP-7 */`.
+- `CLAUDE.md`, "Comments" section: the destination rule — four at the time,
+  three since the names became self-explanatory —, in the instructions file
+  every session rereads.
+- A glossary of names: 191 symbols, one line each. The cart is minified into
+  two-letter names and the port transliterated them literally: the **name** was
+  therefore already in the code, it was the **meaning** that was missing, and it
+  could be deduced neither from the C nor from the Lua. A rename to full English
+  names has since replaced it: the name carries the meaning, and the "meaning of
+  a name" destination has been dropped.
+- `docs/porting-gaps.md`: the numbered gaps, re-checked against the code one by
+  one. The code refers to them only through `/* GAP-7 */`.
 
 ## Phase 1
 
-Construite en lisant les 13 195 lignes d'en-tête pendant que la prose était encore
-là. Trois constats sont tombés à ce moment-là, aucun n'aurait survécu à la
-phase 2 :
+Built by reading the 13,195 header lines while the prose was still there. Three
+findings came up at that point, none of which would have survived phase 2:
 
-- une affirmation périmée (« cette table est vide face au vrai `map.json` ») que
-  le plan actait comme résolue depuis longtemps ;
-- **GAP-4 devenu atteignable sans que personne le note** : le commentaire disait
-  « ce sera un vrai trou le jour où `spr` sera enregistré comme constructeur », et
-  l'initialisation l'enregistre bien ;
-- **GAP-1 contredisant une décision actée** du plan (« pas de flottant natif »)
-  alors que `p8_fixed_cos/_sin` passent par le `cos()` de l'hôte.
+- a stale claim ("this table is empty compared to the real `map.json`") that the
+  plan had recorded as resolved long ago;
+- **GAP-4 had become reachable without anyone noting it**: the comment said
+  "this will be a real gap the day `spr` is registered as a constructor", and
+  initialization does register it;
+- **GAP-1 contradicted a recorded decision** of the plan ("no native floating
+  point") while `p8_fixed_cos/_sin` go through the host's `cos()`.
 
-Le recâblage du processus, dans le même commit : la règle dans `CLAUDE.md`, et
-l'étape « Log the finding » retirée de la skill `fix-bug`, qui écrivait un
-paragraphe de journal dans le dépôt à chaque correction de bug — et imposait un
-second commit `docs:` pour ça. Sans ce point, la prose repousse.
+Rewiring the process, in the same commit: the rule in `CLAUDE.md`, and the "Log
+the finding" step removed from the `fix-bug` skill, which wrote a log paragraph
+into the repository on every bug fix — and required a second `docs:` commit for
+it. Without this step, the prose grows back.
 
-## Phase 2 — ce que les vagues ont donné
+## Phase 2 — what the waves produced
 
-Une vingtaine de modules, en vagues de 4 à 6 agents. Quelques résultats qui
-illustrent chaque règle :
+About twenty modules, in waves of 4 to 6 agents. A few results that illustrate
+each rule:
 
-- **L'assert qui a cassé la suite** (le parseur de specs, module retiré depuis
-  avec la couche Lua) : exigeait une virgule finale ; règle vraie, validée hors
-  ligne sur 58 specs, fausse d'un cran en réalité — les specs décodées depuis la
-  mémoire finissent par **deux** virgules. Retiré, règle remise en prose avec ce
-  que la mesure a établi. Aucune tentative de rafistoler la condition : un
-  second invariant mal posé coûte un autre tour, et la règle autorise la prose.
-- **Le refus qui a trouvé un bug** (tirage pondéré des planètes) : l'agent
-  voulait `assert(state->tickets_count > 0)`, a calculé la marge avant d'écrire
-  — 66 tickets pour 90 planètes possibles — et a renoncé. En vérifiant, c'était
-  pire que sa conclusion : pool vide, l'index tombe à 0, le code lit `items[0]`
-  sur une liste dont le tableau peut être NULL. Consigné en GAP-16.
-- **Les asserts écartés par la plomberie** : `i >= 1` dans `p8_sub` alors que
-  `unstash()` l'appelle avec 0 à chaque fin de chaîne ; `frames != NULL` dans
-  `p8_input_save` alors qu'un test passe NULL exprès. Les deux auraient cassé
-  la suite. La rubrique « envisagés puis écartés » les a fait remonter.
-- **Le seul assert établi par mesure** de sa vague : la longueur de l'alphabet de
-  `unstash`, comptée hors du C — 51 caractères, saut de ligne compris. Se tromper
-  d'un décale tout le décodage en silence.
-- **Les fichiers de test** : 1 346 → 591 lignes, le taux de conservation le plus
-  élevé du chantier, et c'est voulu. Trois fichiers laissés intacts. Deux
-  affirmations qui se contredisaient elles-mêmes : un test annonçant « n'asserte
-  rien » alors qu'il asserte six fois.
-- **Les erreurs de l'orchestrateur trouvées par ses agents** : quatre, dont une
-  entrée de glossaire qui attribuait un drapeau à l'écran de difficulté alors que
-  son seul écrivain est le menu pause, et un en-tête annonçant 8 sites d'appel
-  avec leurs numéros de ligne — il y en a 5.
-- **Une perte assumée et signalée** : la dérivation d'un seuil de 5 000 crédits
-  (34 lignes remontant quatre modules) réduite à sa conclusion, parce qu'elle est
-  reconstituable depuis des sources nommées. Le plafond de 20 000 garde sa
-  justification complète — le format 16.16 plafonne vers 32 768 — parce que
-  celle-là n'est reconstituable de nulle part.
+- **The assert that broke the suite** (the spec parser, a module since removed
+  along with the Lua layer): required a trailing comma; the rule was true,
+  validated offline on 58 specs, off by one in reality — specs decoded from
+  memory end with **two** commas. Removed, and the rule put back into prose with
+  what the measurement established. No attempt to patch the condition: a second
+  badly stated invariant costs another round, and the rule allows prose.
+- **The refusal that found a bug** (weighted planet draw): the agent wanted
+  `assert(state->tickets_count > 0)`, computed the margin before writing — 66
+  tickets for 90 possible planets — and gave up. On checking, it was worse than
+  its conclusion: with an empty pool, the index falls to 0, and the code reads
+  `items[0]` on a list whose array can be NULL. Recorded as GAP-16.
+- **The asserts rejected by the plumbing**: `i >= 1` in `p8_sub` while
+  `unstash()` calls it with 0 at the end of every string; `frames != NULL` in
+  `p8_input_save` while a test passes NULL on purpose. Both would have broken
+  the suite. The "considered and then rejected" section surfaced them.
+- **The only assert established by measurement** in its wave: the length of the
+  `unstash` alphabet, counted outside the C — 51 characters, newline included.
+  Getting it wrong by one silently shifts the whole decoding.
+- **The test files**: 1,346 → 591 lines, the highest retention rate of the
+  project, and that is intended. Three files left untouched. Two claims that
+  contradicted themselves: a test announcing that it "asserts nothing" while it
+  asserts six times.
+- **The orchestrator's errors found by its agents**: four, including a glossary
+  entry that attributed a flag to the difficulty screen when its only writer is
+  the pause menu, and a header announcing 8 call sites with their line numbers
+  — there are 5.
+- **A loss accepted and reported**: the derivation of a 5,000-credit threshold
+  (34 lines tracing back through four modules) cut down to its conclusion,
+  because it can be reconstructed from named sources. The 20,000 cap keeps its
+  full justification — the 16.16 format caps out around 32,768 — because that
+  one cannot be reconstructed from anywhere.
 
-## Les ratios, vague par vague
+## The ratios, wave by wave
 
-Ils ne se ressemblent pas, et c'est normal : la plomberie portait peu de récit
-(183 → 105), les modules de gameplay en portaient beaucoup (722 → 133 pour
-`collect` + le parseur de specs, 1 021 → 124 pour les trois modules de
-recherche), les tests gardent leur « pourquoi cette valeur » (1 346 → 591). Un
-ratio bas n'est pas un meilleur travail : c'est la nature du fichier.
+They do not look alike, and that is normal: the plumbing carried little
+narration (183 → 105), the gameplay modules carried a lot (722 → 133 for
+`collect` + the spec parser, 1,021 → 124 for the three research modules), the
+tests keep their "why this value" (1,346 → 591). A low ratio is not better
+work: it is the nature of the file.
