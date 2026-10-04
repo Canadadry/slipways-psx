@@ -9,5 +9,3 @@ Tooltip of a project with two inputs: the comma in "tech,food".
   "colony". Its tooltip (`hp:jb`) joins its two inputs with a comma,
   "tech,food", at the bottom of the screen (y=111). It is the only game
   text that contains the ',' glyph.
-
-Human review in raylib: pending.

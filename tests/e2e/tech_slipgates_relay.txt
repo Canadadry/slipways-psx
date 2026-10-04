@@ -18,5 +18,3 @@ forgeworld relays the trade. 111 frames.
   "content", "wants more:", "receives:", "exports:".
 - f105, f107: the first click on `ix[1]` closes the panel, the second
   skips a year.
-
-Human review in raylib: pending.

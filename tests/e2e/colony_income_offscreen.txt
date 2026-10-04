@@ -14,5 +14,3 @@ Year skip with a colony off screen: no income toast.
 
 The targeted line (`planet_new_year`, `planet.c:337-338`) is this early
 return on `gd`, not the `kr` = 0 case, which unknown planets already cover.
-
-Human review in raylib: pending.

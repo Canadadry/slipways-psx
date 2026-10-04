@@ -11,5 +11,3 @@ Empty planet: once revealed, it fades out and frees the spot for a lab.
 - f95-98: a lab dragged onto the spot of "p40" (44,40). Placed, $15.
 
 Replaces the unit test `empty_planet_cleared`.
-
-Human review in raylib: pending.

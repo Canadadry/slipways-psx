@@ -15,5 +15,3 @@ out before the slipgate's slipways have all been visited. 85 frames.
 - f79-84: wait.
 
 No year skip or second client is needed. Placement order is enough.
-
-Human review in raylib: pending.

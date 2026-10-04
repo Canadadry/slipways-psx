@@ -7,5 +7,3 @@ Camera: right-click drag, then the D-pad held until it hits the limit.
 - f5-18: D-pad right + down held (`qb:ph`). x reaches its limit, 206,
   at f13, and y reaches its own, 286, at f17. At these limits the
   160×120 frame stays inside the background grid (GAP-27).
-
-Human review in raylib: pending.

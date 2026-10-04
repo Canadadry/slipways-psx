@@ -13,5 +13,3 @@ resources and reaches level 2. 83 frames.
 - f79: year skip `ix[1]` (150,0). The hub receives ore and tech
   (`dh`, branch `nl`) and reaches level 2. Its `nl:ly` speeds up the
   pulse (f81-82).
-
-Human review in raylib: pending.

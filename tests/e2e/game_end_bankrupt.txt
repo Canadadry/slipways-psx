@@ -15,5 +15,3 @@ of the lab count), the refused purchase and the "bankrupt" screen.
 
 Replaces the unit test `shop_tooltip_fillp`. At f2, pressing the lab
 icon shows its tooltip, with a background striped by `fillp`.
-
-Human review in raylib: pending.

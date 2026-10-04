@@ -14,5 +14,3 @@ burst until it ends. 140 frames.
 - f58-139: the burst dies out. Nothing is left where "p27" was by f139.
 
 Replaces the unit test `geoharvest_burst`.
-
-Human review in raylib: pending.

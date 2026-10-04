@@ -10,5 +10,3 @@ forgeworld. 66 frames.
   screen opens, while the panel is sliding in: "replication".
 - f60, f62: menu of "p27", second row "mechanize" (116,55). `jo:hu`,
   branch `go`. "p27" becomes a forgeworld.
-
-Human review in raylib: pending.

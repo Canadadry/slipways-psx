@@ -9,5 +9,3 @@ Game over by time: 25 years skipped, "final score" screen, "again?".
 - f58: "again?" (80,101): `_init`, back to the title screen.
 
 Replaces the unit test `game_end`.
-
-Human review in raylib: pending.

@@ -25,5 +25,3 @@ to three labs. Its panel keeps its "exports:" row.
   panel of the lab (112,10), which is served: "wants more:", "makes:".
 
 Replaces the unit test `rich_planet_exports`.
-
-Human review in raylib: pending.
