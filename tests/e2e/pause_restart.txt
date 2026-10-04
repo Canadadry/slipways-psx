@@ -1,14 +1,13 @@
-« restart » du menu pause : retour au titre, puis une autre difficulté.
+"restart" from the pause menu: back to the title, then another difficulty.
 18 frames.
 
-- f0 : clic « reasonable » sur l'écran titre (76,70).
-- f2 : `ix[4]` (2,111) ouvre la pause.
-- f7 : « restart » (10,104) : `_init`, retour à l'écran titre.
-- f12 : clic « challenging » (76,82) ; f13-17 : nouvelle partie, barre du
-  haut à JAN 3401, 0 technologie.
+- f0: click "reasonable" on the title screen (76,70).
+- f2: `ix[4]` (2,111) opens the pause menu.
+- f7: "restart" (10,104): `_init`, back to the title screen.
+- f12: click "challenging" (76,82). f13-17: new game, top bar at
+  JAN 3401, 0 technology.
 
-Remplace aussi la TU `top_menubar` : le scénario « écran titre » du
-catalogue n'ajoutait aucune ligne, et ces dernières frames montrent la même
-barre.
+Also replaces the unit test `top_menubar`. The catalog's "title screen"
+scenario added no covered line, and these last frames show the same bar.
 
-Relecture humaine dans raylib : à faire.
+Human review in raylib: pending.

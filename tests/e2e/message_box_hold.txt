@@ -1,15 +1,14 @@
-Boîtes de message retenues par `lh` : « 5 years remain », puis le
-panneau de score, chacune laissée à son terme. 159 frames.
+Message boxes held by `lh`: "5 years remain", then the score panel, each
+one left to run its course. 159 frames.
 
-- f0 : clic « reasonable » sur l'écran titre (76,70).
-- f2-41 : 20 clics sur `ix[1]` (150,0) : année 3421, la boîte de l'année
-  porte « 5 years remain » (`pj:hk`) et se retient 90 ticks par son
-  `lh`.
-- f42-90 : attente ; la boîte arrive au bout de son entrée et interroge
-  `lh` (`mh:ev`), qui la retient.
-- f91 : `ix[3]` (66,3) ouvre le panneau de score, sa boîte remplace la
-  précédente ; son `lh` la retient tant que le panneau est ouvert.
-- f122 : clic (80,60) : le panneau se ferme ; f124-158 : la boîte sort
-  et se retire d'elle-même (`p_`, `kc` remis à nil).
+- f0: click "reasonable" on the title screen (76,70).
+- f2-41: 20 clicks on `ix[1]` (150,0). Year 3421. The year's box reads
+  "5 years remain" (`pj:hk`) and its `lh` holds it for 90 ticks.
+- f42-90: wait. The box reaches the end of its entry and queries `lh`
+  (`mh:ev`), which holds it.
+- f91: `ix[3]` (66,3) opens the score panel, whose box replaces the
+  previous one. Its `lh` holds it as long as the panel is open.
+- f122: click (80,60). The panel closes. f124-158: the box exits and
+  removes itself (`p_`, `kc` reset to nil).
 
-Relecture humaine dans raylib : à faire.
+Human review in raylib: pending.

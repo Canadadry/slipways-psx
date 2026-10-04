@@ -1,16 +1,17 @@
-Colonisation d'une planète puis son panneau d'information. 35 frames.
+Colonizing a planet, then its info panel. 35 frames.
 
-- f0 : clic « reasonable » sur l'écran titre (76,70).
-- f2 : sonde `g_` en (71,46) ; f4-19 : `mz` tenu en (96,51), relâché f20 :
-  « p27 » (104,33) earth-like et « p48 » (94,69) forgeworld révélées.
-- f27 : clic sur « p27 » : menu de construction (`jo:fe`).
-- f29 : clic sur la première rangée (116,49) : « p27 » colonisée, 5 $.
-- f31-32 : appui et relâchement sur « p27 » : son panneau (`jo:gh`), sans
-  rangée fantôme ; f33-34 : panneau affiché.
+- f0: click "reasonable" on the title screen (76,70).
+- f2: probe `g_` at (71,46). f4-19: `mz` held at (96,51), released at
+  f20. "p27" (104,33) earth-like and "p48" (94,69) forgeworld are
+  revealed.
+- f27: click on "p27": build menu (`jo:fe`).
+- f29: click on the first row (116,49). "p27" is colonized, $5.
+- f31-32: press and release on "p27": its panel (`jo:gh`), with no
+  phantom row. f33-34: panel displayed.
 
-Le menu d'une planète non colonisée, prévu au catalogue, n'ajoutait
-aucune ligne : c'est déjà le menu de f27.
+The catalog's planned "uncolonized planet menu" scenario added no
+covered line: that menu is already the one at f27.
 
-Remplace la TU `built_planet_panel_nil_row`.
+Replaces the unit test `built_planet_panel_nil_row`.
 
-Relecture humaine dans raylib : à faire.
+Human review in raylib: pending.

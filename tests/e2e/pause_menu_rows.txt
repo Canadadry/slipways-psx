@@ -1,11 +1,11 @@
-Les trois rangées du menu pause qui ne quittent pas la partie. 25 frames.
+The three pause menu rows that do not leave the game. 25 frames.
 
-- f0 : clic « reasonable » sur l'écran titre (76,70).
-- f2 : `ix[4]` (2,111) ouvre la pause ; f7 : « toggle music » (10,94),
-  le menu se ferme.
-- f9 : pause ; f14 : « toggle sfx » (10,84), le menu se ferme.
-- f16 : pause ; f21 : « how to play? » (10,75), le menu se ferme.
+- f0: click "reasonable" on the title screen (76,70).
+- f2: `ix[4]` (2,111) opens the pause menu. f7: "toggle music" (10,94),
+  the menu closes.
+- f9: pause. f14: "toggle sfx" (10,84), the menu closes.
+- f16: pause. f21: "how to play?" (10,75), the menu closes.
 
-Remplace la TU `pause_menu_music`.
+Replaces the unit test `pause_menu_music`.
 
-Relecture humaine dans raylib : à faire.
+Human review in raylib: pending.
