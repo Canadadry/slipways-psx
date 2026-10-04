@@ -1,5 +1,5 @@
 /* The raylib-facing half of the interactive PC driver: the window, the
- * upload of the 128x128 PICO-8 framebuffer, the live input poll, and this
+ * upload of the PICO-8 framebuffer, the live input poll, and this
  * session's always-on recording. This file includes raylib.h, so nothing
  * in it is built or exercised by `make unit` -- every piece of the driver
  * that can be decided without a window lives in a module without raylib
@@ -16,8 +16,8 @@
 
 #include "raylib.h"
 
-/* Fixed integer scale of the 128x128 framebuffer -> window pixels. The
- * window is not resizable. */
+/* Fixed integer scale of the P8_SCREEN_WIDTH x P8_SCREEN_HEIGHT
+ * framebuffer -> window pixels. The window is not resizable. */
 #define RAYLIB_BACKEND_SCALE 6
 
 /* Owns the raylib window and texture, this session's recording and the
@@ -25,7 +25,7 @@
  * meant to be read or written directly. */
 typedef struct {
     Texture2D screen_texture;
-    Color pixel_buffer[128 * 128];
+    Color pixel_buffer[P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT];
     session_recorder_t recorder;
     char markers_path[64];
 } raylib_backend_t;
@@ -43,7 +43,7 @@ void raylib_backend_init(raylib_backend_t *backend);
 int raylib_backend_should_continue(const raylib_backend_t *backend);
 
 /* Fills *out_frame from live hardware: the mouse position converted to
- * the 128x128 space (raylib_backend_window_to_screen), the left/right/
+ * the screen space (raylib_backend_window_to_screen), the left/right/
  * middle buttons as P8_MOUSE_* bits, and the d-pad of the
  * only player: the four arrow keys as entries 0 to 3, Z and X as entries
  * 4 and 5. Records and presents nothing.

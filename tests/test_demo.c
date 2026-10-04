@@ -27,7 +27,7 @@ int main(void) {
 
     p8_cls(&memory);
     assert(screen_pixel(&memory, 0, 0) == 0);
-    assert(screen_pixel(&memory, 127, 127) == 0);
+    assert(screen_pixel(&memory, P8_SCREEN_WIDTH - 1, P8_SCREEN_HEIGHT - 1) == 0);
 
     p8_line(&graphics, &memory, 0, 5, 4, 5, 8);
     for (int x = 0; x <= 4; x++) {

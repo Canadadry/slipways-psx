@@ -102,6 +102,28 @@ static void test_is_on_screen_on_placeholder(void) {
     assert(near_hit == IS_ON_SCREEN_NEAR && far_hit == IS_ON_SCREEN_FAR);
 }
 
+/* The frame around the screen reaches 12 pixels past each edge: an entity
+ * on the frame is on screen, one pixel past it is not, on each of the four
+ * edges, under the placeholder camera at (0,0). */
+static int on_screen_at(int x, int y) {
+    vec_t at = vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
+    pos_only_t e = {{.class = &pos_only_class_def, .pos = &e.pos}, NULL};
+
+    e.pos = &at;
+    return entity_geom_is_on_screen(&e.header);
+}
+
+static void test_is_on_screen_frame_is_the_screen_plus_12_on_each_edge(void) {
+    const int mid_x = P8_SCREEN_WIDTH / 2;
+    const int mid_y = P8_SCREEN_HEIGHT / 2;
+
+    entity_registry_init(NULL);
+    assert(on_screen_at(-12, mid_y) && !on_screen_at(-13, mid_y));
+    assert(on_screen_at(P8_SCREEN_WIDTH + 12, mid_y) && !on_screen_at(P8_SCREEN_WIDTH + 13, mid_y));
+    assert(on_screen_at(mid_x, -12) && !on_screen_at(mid_x, -13));
+    assert(on_screen_at(mid_x, P8_SCREEN_HEIGHT + 12) && !on_screen_at(mid_x, P8_SCREEN_HEIGHT + 13));
+}
+
 /* A ui_update on the placeholder, the `ui_t` built by hand since
  * `reset_world()` has not run: `mouse_world` is the mouse position plus the
  * camera position. */
@@ -210,6 +232,7 @@ int main(void) {
 
     test_placeholder_after_init();
     test_is_on_screen_on_placeholder();
+    test_is_on_screen_frame_is_the_screen_plus_12_on_each_edge();
     test_update_on_placeholder();
     test_shutdown_and_init_cycle();
     test_replaced_by_reset_world();

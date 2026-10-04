@@ -1,11 +1,11 @@
 #include "platform/raylib_backend_coords.h"
 
-static int clamp_0_127(int v) {
+static int clamp_to_axis(int v, int size) {
     if (v < 0) {
         return 0;
     }
-    if (v > 127) {
-        return 127;
+    if (v > size - 1) {
+        return size - 1;
     }
     return v;
 }
@@ -17,6 +17,6 @@ void raylib_backend_window_to_screen(int window_x, int window_y, int scale, int 
         px = window_x / scale;
         py = window_y / scale;
     }
-    *out_x = clamp_0_127(px);
-    *out_y = clamp_0_127(py);
+    *out_x = clamp_to_axis(px, P8_SCREEN_WIDTH);
+    *out_y = clamp_to_axis(py, P8_SCREEN_HEIGHT);
 }

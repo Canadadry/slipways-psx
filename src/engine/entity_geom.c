@@ -6,6 +6,7 @@
 
 #include "engine/entity_registry.h"
 #include "engine/geom.h"
+#include "p8/vram.h"
 
 static vec_t zero_vec(void) {
     return vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
@@ -43,11 +44,12 @@ int entity_geom_contains_cursor(const entity_t *e, const vec_t *mp, const vec_t 
 int entity_geom_is_on_screen(const entity_t *e) {
     vec_t e_pos = pos_of(e);
     vec_t main_camera_pos = pos_of(main_camera());
-    p8_fixed_t sixty_four = p8_fixed_from_int(64);
-    p8_fixed_t seventy_six = p8_fixed_from_int(76);
+    p8_fixed_t half_w = p8_fixed_from_int(P8_SCREEN_WIDTH / 2);
+    p8_fixed_t half_h = p8_fixed_from_int(P8_SCREEN_HEIGHT / 2);
+    p8_fixed_t margin = p8_fixed_from_int(12);
 
-    return p8_fixed_abs(p8_fixed_sub(p8_fixed_sub(e_pos.x, main_camera_pos.x), sixty_four)) <= seventy_six &&
-           p8_fixed_abs(p8_fixed_sub(p8_fixed_sub(e_pos.y, main_camera_pos.y), sixty_four)) <= seventy_six;
+    return p8_fixed_abs(p8_fixed_sub(p8_fixed_sub(e_pos.x, main_camera_pos.x), half_w)) <= p8_fixed_add(half_w, margin) &&
+           p8_fixed_abs(p8_fixed_sub(p8_fixed_sub(e_pos.y, main_camera_pos.y), half_h)) <= p8_fixed_add(half_h, margin);
 }
 
 vec_t entity_geom_shake(vec_t p, entity_t *e) {

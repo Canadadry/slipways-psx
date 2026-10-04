@@ -15,6 +15,8 @@
  * cursor position, any other the first; a NULL one reads as the zero vector. */
 int entity_geom_contains_cursor(const entity_t *e, const vec_t *mp, const vec_t *rp);
 
+/* Under the main camera, within the screen plus a 12-pixel margin on each
+ * edge. */
 int entity_geom_is_on_screen(const entity_t *e);
 
 /* The entity is NULL or has a shake (asserted): a planet or the camera.
