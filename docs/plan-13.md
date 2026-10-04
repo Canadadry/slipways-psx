@@ -38,7 +38,7 @@ A rule that works against one of these goals in a case nobody anticipated may be
    - A game list of ids holds no dead id: it is removed at the entity's death, where the cart calls `del()`. A walk that meets a dead id `assert`s.
    - `down_t.held` becomes an id.
    - The `forget` callback of `exit_queue_flush` goes away.
-   - Research projects are not entities: the links to them (`planet_t.project`, `button_t.project`, `button_keys_t.project`, `available_projects_kept_t.items[]`) and the game-side registry `g_projects[]` / `g_projects_by_name[].project` become project ids (an index into the project table, checked), not entity handles.
+   - Research projects are not entities: the links to them (`planet_t.project`, `button_t.project`, `button_keys_t.project`, `available_projects_kept_t.items[]`) and the game-side registry `g_projects[]` / `g_projects_by_name[].project` become project ids (an index into the project table, checked), not entity handles. Projects are freed by `reset_world()`: an id from before the reset resolves to NULL, like an entity id.
 
 ### Phase 2 — Readability
 
@@ -47,8 +47,8 @@ A rule that works against one of these goals in a case nobody anticipated may be
    - The copies in derived structs (`planet->pos`, `probe->pos`, `planet->shake`, `planet->is_dead`…) go away: the header is the only owner.
    - `targeting_track` writes the position instead of re-pointing it.
    - `targeting` and `emitter` leave `entity_t`. Each struct that has one keeps it as a plain field (`probe_t.targeting`), with presence in its `has` bit. The game reaches it through `targeting_of(e)` / `emitter_of(e)`, which switch on the class and whose result nobody keeps. `engine/` no longer names them.
-5. **`_own` and lists by value in `game/`.** The 25 `x = &self->x_own` cases (`production`, `demand`, `velocity`, `pos_before_shake`, `served_planets`, `layout_row`, `mouse_world`, `hovered_by_layer`, `pos`…) become a value + a presence bit. The 15 lists held by pointer become lists held by value. A list the cart distinguishes as "absent" from "empty" gets a presence bit. `wormhole_t.too_far_target` (a pointer to a static sentinel) becomes a flag.
-5b. **Rows: static and runtime apart.** `data_item_t.text/row/ref`, `data_row_t.items`, `layout_row_cell_t.as.text/as.row` and `message_box_t.items[]` point sometimes at static tables, sometimes at runtime rows, and a stored planet row points into frame-zone memory that is rewound. Static rows keep `const` pointers to static data; a stored runtime row owns a copy of its text and items (a value, or a buffer freed with its owner), never a pointer into the frame zone.
+5. **`_own` and lists by value in `game/`.** The fields the step-1 sorting assigns to step 4 (the derived fields the header points at, such as `pos` and `pos_before_shake`) are done by step 4, not here. The rest of the 25 `x = &self->x_own` cases (`production`, `demand`, `velocity`, `pos_before_shake`, `served_planets`, `layout_row`, `mouse_world`, `hovered_by_layer`, `pos`…) become a value + a presence bit. The 15 lists held by pointer become lists held by value. A list the cart distinguishes as "absent" from "empty" gets a presence bit. `wormhole_t.too_far_target` (a pointer to a static sentinel) becomes a flag.
+5b. **Rows: static and runtime apart.** `data_item_t.text/row/ref`, `data_row_t.items`, `layout_row_cell_t.as.text/as.row` and `message_box_t.items[]` point sometimes at static tables, sometimes at runtime rows, and a stored planet row points into frame-zone memory that is rewound. Static rows keep `const` pointers to static data; a stored runtime row owns a copy of its text and items (a value, or a buffer freed with its owner), never a pointer into the frame zone. The zone that holds the copies has its budget raised by their measured size; `make full-game` proves it.
 6. **Parameters.** `vec_t`, `box_t` and `p8_fixed_t` are passed by value: about 170 `vec_t *` today. Where the pointer meant "not given", use a presence flag or a separate function, whichever reads better at the call site. The `entity_class_t` contract that lets `left_press`, `right_press` and `drag` keep their vectors goes away. The call-scoped bundles (`planet_keys_t`, `layout_row_keys_t`, `message_box_keys_t`, `toast_keys_t`, `open_box_frame_t`, `open_box_ctx_t`, `burst_keys_t`, `button_keys_t`, `final_score_t.happiness`, `score_panel_update_ctx_t.final_score`) hold values, not addresses: the callee copies, never keeps a pointer (e.g. `planet_t.pos = keys->pos`).
 
 ## 4. Review
@@ -61,7 +61,7 @@ A rule that works against one of these goals in a case nobody anticipated may be
 
 ## 6. Open questions
 
-- Should the step-4 verifier of `prd-autopilot` check the rules the guard can't see (parameters, kept addresses, dead ids in lists) at every step? Without it, they are only checked at the end of a phase.
+- Settled: yes. `plan-pilot` tells each step's `prd-autopilot` verifier to check the diff against the section-2 rules the guard can't see (small values by pointer, kept addresses, dead ids in lists); a new violation fails the verification.
 
 ## 7. Step notes
 
