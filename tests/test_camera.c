@@ -23,13 +23,14 @@
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "p8/vram.h"
+#include "game/background.h"
 #include "game/planet_family.h"
 #include "game/scroll.h"
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
 #define SCRIPTED_TICKS 110
-#define SCRIPTED_HASH 0x1DCD4922u
+#define SCRIPTED_HASH 0xD63EDC0Eu
 #define SHAKE_TICKS 31
 #define SHAKE_HASH 0xF1E7A593u
 #define GEOHARVEST_WINDOW 60
@@ -205,7 +206,7 @@ static void test_scripted_ticks(void) {
         update_entities();
         h = fold_main_camera(h);
         h = fnv(h, (uint32_t)checked_main_camera()->header.state_time);
-        if (must_vec(checked_main_camera()->pos_before_shake).y == p8_fixed_from_int(448 - P8_SCREEN_HEIGHT)) {
+        if (must_vec(checked_main_camera()->pos_before_shake).y == p8_fixed_div(p8_fixed_from_int(BACKGROUND_GRID_EDGE + 1 - P8_SCREEN_HEIGHT), layer_fades_table[0])) {
             bounded++;
         }
         if (i < SCRIPTED_TICKS - 1) {
@@ -218,22 +219,32 @@ static void test_scripted_ticks(void) {
     check("scripted", h, SCRIPTED_HASH);
 }
 
-/* The cart's 128-px frame, held at either camera bound, showed at most
- * [-64, 448] of the world and [-32, 288] of the background, which
- * draw_layers places at half parallax: the 160x120 frame must not show more. */
-static void check_frame_in_cart_window(int world_min, int world_max, int background_min, int background_max) {
+/* Every pixel of the frame, drawn at the background's half parallax, lies on
+ * the grid [0, BACKGROUND_GRID_EDGE]; at full parallax it still reaches the
+ * hit box (7 px) of a planet anywhere galaxy_populate places one,
+ * (0.125 + rnd(2.75)) * 128, so in [16, 368). */
+static void check_frame_in_grid(void) {
+    camera_t *mo = checked_main_camera();
+
+    camera_apply(&graphics, mo, layer_fades_table[0]);
+    assert(graphics.camera_x >= 0 && graphics.camera_x + P8_SCREEN_WIDTH - 1 <= BACKGROUND_GRID_EDGE);
+    assert(graphics.camera_y >= 0 && graphics.camera_y + P8_SCREEN_HEIGHT - 1 <= BACKGROUND_GRID_EDGE);
+}
+
+static void check_frame_reaches_every_planet(int far) {
     camera_t *mo = checked_main_camera();
 
     camera_apply(&graphics, mo, layer_fades_table[1]);
-    assert(graphics.camera_x >= world_min && graphics.camera_x + P8_SCREEN_WIDTH <= world_max);
-    assert(graphics.camera_y >= world_min && graphics.camera_y + P8_SCREEN_HEIGHT <= world_max);
-    camera_apply(&graphics, mo, layer_fades_table[0]);
-    printf("[cart window] background frame at %d,%d\n", graphics.camera_x, graphics.camera_y);
-    assert(graphics.camera_x >= background_min && graphics.camera_x + P8_SCREEN_WIDTH <= background_max);
-    assert(graphics.camera_y >= background_min && graphics.camera_y + P8_SCREEN_HEIGHT <= background_max);
+    printf("[grid] world frame at %d,%d\n", graphics.camera_x, graphics.camera_y);
+    if (far) {
+        assert(graphics.camera_x + P8_SCREEN_WIDTH - 1 >= 368 - 7);
+        assert(graphics.camera_y + P8_SCREEN_HEIGHT - 1 >= 368 - 7);
+    } else {
+        assert(graphics.camera_x <= 16 + 7 && graphics.camera_y <= 16 + 7);
+    }
 }
 
-static void hold_dpad(int left, int right, int up, int down) {
+static void hold_dpad_checking_each_tick(int left, int right, int up, int down) {
     int i;
 
     for (i = 0; i < SCRIPTED_TICKS; i++) {
@@ -241,7 +252,11 @@ static void hold_dpad(int left, int right, int up, int down) {
     }
     script(SCRIPTED_TICKS);
     for (i = 0; i < SCRIPTED_TICKS; i++) {
+        if (i % 20 == 0) {
+            checked_main_camera()->shake = p8_fixed_from_int(3);
+        }
         update_entities();
+        check_frame_in_grid();
         if (i < SCRIPTED_TICKS - 1) {
             p8_input_step(&input);
         }
@@ -249,14 +264,17 @@ static void hold_dpad(int left, int right, int up, int down) {
     unscript();
 }
 
-static void test_held_dpad_keeps_the_frame_in_the_cart_window(void) {
+/* Held into each bound, shaken by a burst every 20 ticks. */
+static void test_held_dpad_keeps_the_frame_in_the_grid(void) {
     assert(background_archetype.layer == p8_fixed_from_int(1));
     reset_world(NULL);
-    hold_dpad(0, 1, 0, 1);
-    check_frame_in_cart_window(-64, 448, -32, 288);
-    hold_dpad(1, 0, 1, 0);
-    hold_dpad(1, 0, 1, 0);
-    check_frame_in_cart_window(-64, 448, -32, 288);
+    hold_dpad_checking_each_tick(0, 1, 0, 1);
+    hold_dpad_checking_each_tick(0, 1, 0, 1);
+    check_frame_reaches_every_planet(1);
+    hold_dpad_checking_each_tick(1, 0, 1, 0);
+    hold_dpad_checking_each_tick(1, 0, 1, 0);
+    hold_dpad_checking_each_tick(1, 0, 1, 0);
+    check_frame_reaches_every_planet(0);
 }
 
 /* A shake of 3, as a burst's construction writes it, decays by 0.1 per
@@ -440,7 +458,7 @@ int main(void) {
     test_reset_world_builds_a_camera();
     test_apply_camera_sets_the_camera();
     test_scripted_ticks();
-    test_held_dpad_keeps_the_frame_in_the_cart_window();
+    test_held_dpad_keeps_the_frame_in_the_grid();
     test_shake_decays();
     test_second_reset_world();
     test_placeholder_main_camera();
