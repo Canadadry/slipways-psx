@@ -68,7 +68,7 @@ typedef struct {
     p8_fixed_t speed_factor;
 } probe_keys_t;
 
-/* `keys` NULL means none. Built in a grab arena (planet_grab_arena_open),
+/* `keys` NULL means none. Built in a grab arena (grab_arena_open),
  * so no other grab may be open. The new probe registers itself among the
  * live entities, draw layers and tags through entity_construct (and gets
  * its particle list from emitter_init, which its release method gives

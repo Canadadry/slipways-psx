@@ -22,6 +22,7 @@
 #include "game/map_tables.h"
 #include "p8/vram.h"
 #include "game/mouse.h"
+#include "game/grab_arena.h"
 #include "game/planet.h"
 #include "game/planet_family.h"
 #include "game/structure_icon.h"
@@ -239,9 +240,9 @@ static int case_grab_arena_and_max(void) {
 }
 
 static const allocator_t *grab(size_t bytes) {
-    planet_grab_arena_open(bytes);
-    const allocator_t *arena = planet_zone_construction();
-    planet_grab_arena_close();
+    grab_arena_open(bytes);
+    const allocator_t *arena = grab_arena_construction_zone();
+    grab_arena_close();
     return arena;
 }
 
@@ -249,15 +250,15 @@ static const allocator_t *grab(size_t bytes) {
  * full, the smallest is dropped, never a p8_fatal. */
 static int case_free_grabs_keep_the_largest(void) {
     load_cart_and_start();
-    const allocator_t *arenas[PLANET_GRAB_ARENAS_FREE_MAX + 1];
-    for (int k = 0; k <= PLANET_GRAB_ARENAS_FREE_MAX; k++) arenas[k] = grab((size_t)(k + 1) * 64);
-    for (int k = 0; k <= PLANET_GRAB_ARENAS_FREE_MAX; k++) planet_grab_arena_arena_released(arenas[k]);
+    const allocator_t *arenas[GRAB_ARENAS_FREE_MAX + 1];
+    for (int k = 0; k <= GRAB_ARENAS_FREE_MAX; k++) arenas[k] = grab((size_t)(k + 1) * 64);
+    for (int k = 0; k <= GRAB_ARENAS_FREE_MAX; k++) grab_arena_give_back(arenas[k]);
     const size_t used = game_zone_used();
     assert(grab(64) == arenas[1] && "the smallest free grab that holds it; the smallest of all was dropped");
-    assert(grab((PLANET_GRAB_ARENAS_FREE_MAX + 1) * 64) == arenas[PLANET_GRAB_ARENAS_FREE_MAX]);
+    assert(grab((GRAB_ARENAS_FREE_MAX + 1) * 64) == arenas[GRAB_ARENAS_FREE_MAX]);
     assert(game_zone_used() == used && "a reused grab takes nothing");
-    (void)grab((PLANET_GRAB_ARENAS_FREE_MAX + 2) * 64);
-    assert(game_zone_used() == used + arena_size_for((PLANET_GRAB_ARENAS_FREE_MAX + 2) * 64) &&
+    (void)grab((GRAB_ARENAS_FREE_MAX + 2) * 64);
+    assert(game_zone_used() == used + arena_size_for((GRAB_ARENAS_FREE_MAX + 2) * 64) &&
            "no free grab holds it: a new arena of its size");
     return 0;
 }

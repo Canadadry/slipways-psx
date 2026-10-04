@@ -47,7 +47,7 @@ void wormhole_shutdown(void);
 int wormhole_ready(void);
 const entity_class_t *wormhole_class(void);
 
-/* Built in a grab arena (planet_grab_arena_open), so no other grab may be
+/* Built in a grab arena (grab_arena_open), so no other grab may be
  * open; the struct registers itself among the live entities, draw layers
  * and tags through entity_construct. */
 wormhole_t *wormhole_new(void);

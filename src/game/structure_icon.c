@@ -9,6 +9,7 @@
 #include "p8/gfx.h"
 #include "engine/entity.h"
 #include "game/layout.h"
+#include "game/grab_arena.h"
 #include "game/planet.h"
 #include "game/probe.h"
 #include "p8/str.h"
@@ -128,13 +129,13 @@ down_t structure_icon_left_press(structure_icon_t *self) {
     /* The grab opens before `id_str` is made: the planet keeps that exact
      * pointer as its `planet_id`, so it lives and dies with the grab arena. */
     id_num_str = p8_tostr_fixed(frame_zone(), new_id);
-    planet_grab_arena_open(ZONE_BYTES(1 + strlen(id_num_str) + 1) + planet_kind_construction_bytes(entity_kind));
-    id_str = p8_concat2(planet_zone_construction(), "s", id_num_str);
+    grab_arena_open(ZONE_BYTES(1 + strlen(id_num_str) + 1) + planet_kind_construction_bytes(entity_kind));
+    id_str = p8_concat2(grab_arena_construction_zone(), "s", id_num_str);
     keys.planet_id = id_str;
     keys.map_pos = NULL;
     keys.pos = NULL;
     out.held = entity_kind->new_entity(&keys);
-    planet_grab_arena_close();
+    grab_arena_close();
     out.stop = out.held != NULL;
     return out;
 }

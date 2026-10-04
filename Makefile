@@ -181,6 +181,7 @@ ENGINE_SRCS := \
     src/game/particle.c \
     src/game/draw_functions.c \
     src/game/planet.c \
+    src/game/grab_arena.c \
     src/game/planet_display.c \
     src/game/planet_family.c \
     src/game/planet_family_trade.c \

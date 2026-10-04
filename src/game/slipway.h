@@ -48,7 +48,7 @@ typedef struct {
  * before). The cost and the target (NULL when absent) live in `targeting`,
  * which points at `targeting_own`; `point.pos` and `point.map_pos` point at
  * `point_pos` and `point_map_pos`: never copy the struct. Built with its
- * transit dots in a grab arena (planet_grab_arena_open), which a refused
+ * transit dots in a grab arena (grab_arena_open), which a refused
  * slipway's release method puts back on the free grabs. */
 typedef struct {
     entity_t header;

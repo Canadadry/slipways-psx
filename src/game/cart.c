@@ -24,6 +24,7 @@
 #include "game/menu.h"
 #include "game/mouse.h"
 #include "game/message_box.h"
+#include "game/grab_arena.h"
 #include "game/planet.h"
 #include "game/planet_family.h"
 #include "game/planet_family_trade.h"
@@ -44,7 +45,7 @@ static void quit_game_zone(void) {
     cart_flush_exit_queue();
     game_zone_reset();
     entity_registry_forget_registries();
-    planet_forget_grab_arenas();
+    grab_arena_forget_free();
 }
 
 /* data_init() and score_panel_init() each run further module inits of
@@ -126,7 +127,7 @@ static void forget(const entity_t *e) {
 /* Game-zone forget point: cuts the references into the generation that
  * game_zone_release() is about to give back. */
 static void forget_game_zone(void) {
-    planet_forget_grab_arenas();
+    grab_arena_forget_free();
 }
 
 void cart_flush_exit_queue(void) {

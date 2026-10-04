@@ -10,6 +10,7 @@
 #include "engine/entity_registry.h"
 #include "engine/entity.h"
 #include "game/particle.h"
+#include "game/grab_arena.h"
 #include "game/planet.h"
 #include "game/planet_display.h"
 #include "game/probe.h"
@@ -57,7 +58,7 @@ void structure_init_instance(planet_t *self, const entity_class_t *cls, const pl
 }
 
 static planet_t *structure_create(const planet_keys_t *keys) {
-    planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
+    planet_t *self = (planet_t *)allocator_alloc(grab_arena_construction_zone(), sizeof *self);
 
     assert(g_family_up && "planet_family_init() must run first");
     structure_init_instance(self, &structure_class_def, &structure_archetype);
@@ -115,7 +116,7 @@ static const entity_class_t trading_hub_class_def = {
 };
 
 static planet_t *trading_hub_create(const planet_keys_t *keys) {
-    planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
+    planet_t *self = (planet_t *)allocator_alloc(grab_arena_construction_zone(), sizeof *self);
 
     assert(g_family_up && "planet_family_init() must run first");
     structure_init_instance(self, &trading_hub_class_def, &trading_hub_archetype);
@@ -156,7 +157,7 @@ static const entity_class_t processor_class_def = {
 };
 
 static planet_t *processor_create(const planet_keys_t *keys) {
-    planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
+    planet_t *self = (planet_t *)allocator_alloc(grab_arena_construction_zone(), sizeof *self);
 
     assert(g_family_up && "planet_family_init() must run first");
     structure_init_instance(self, &processor_class_def, &processor_archetype);
@@ -234,7 +235,7 @@ void ascension_init_instance(planet_t *self, const entity_class_t *cls, const pl
 }
 
 static planet_t *ascension_create(const planet_keys_t *keys) {
-    planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
+    planet_t *self = (planet_t *)allocator_alloc(grab_arena_construction_zone(), sizeof *self);
 
     assert(g_family_up && "planet_family_init() must run first");
     ascension_init_instance(self, &ascension_class_def, &ascension_archetype);
@@ -300,7 +301,7 @@ static const entity_class_t protostar_class_def = {
 };
 
 static planet_t *protostar_create(const planet_keys_t *keys) {
-    planet_t *self = (planet_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
+    planet_t *self = (planet_t *)allocator_alloc(grab_arena_construction_zone(), sizeof *self);
 
     assert(g_family_up && "planet_family_init() must run first");
     ascension_init_instance(self, &protostar_class_def, &protostar_archetype);

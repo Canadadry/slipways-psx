@@ -18,6 +18,7 @@
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "p8/vram.h"
+#include "game/grab_arena.h"
 #include "game/planet.h"
 #include "game/planet_family.h"
 #include "game/planet_family_trade.h"
@@ -161,10 +162,10 @@ static void test_kind_fills_its_grab_arena(void) {
         const entity_t *made;
         const allocator_t *arena;
 
-        planet_grab_arena_open(planet_kind_construction_bytes(kind_of(i)));
-        arena = planet_zone_construction();
+        grab_arena_open(planet_kind_construction_bytes(kind_of(i)));
+        arena = grab_arena_construction_zone();
         made = kind_build(i);
-        planet_grab_arena_close();
+        grab_arena_close();
         assert(made != NULL && ((const planet_t *)made)->slipways->zone == arena);
         if (arena_used(arena) != arena_size(arena))
             fprintf(stderr, "kind %d: arena %lu, used %lu\n", i, (unsigned long)arena_size(arena),

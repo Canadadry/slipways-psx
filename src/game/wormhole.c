@@ -5,6 +5,7 @@
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
 #include "engine/entity.h"
+#include "game/grab_arena.h"
 #include "game/planet.h"
 #include "game/targeting.h"
 #include "game/tech_gate.h"
@@ -37,7 +38,7 @@ static int wormhole_anchor_count(void) {
 }
 
 void wormhole_construct(wormhole_t *self) {
-    const allocator_t *zone = planet_zone_construction();
+    const allocator_t *zone = grab_arena_construction_zone();
     entity_list_t *ox;
     entity_list_iter_t it;
     entity_t *p;
@@ -197,7 +198,7 @@ p8_fixed_t wormhole_reveal_radius(wormhole_t *self, p8_fixed_t t) {
 }
 
 static void wormhole_release_method(entity_t *self) {
-    planet_grab_arena_arena_released(((wormhole_t *)self)->anchors->zone);
+    grab_arena_give_back(((wormhole_t *)self)->anchors->zone);
 }
 
 /* The drag entry is wormhole_drag, which calls targeting_track itself and
@@ -221,9 +222,9 @@ static const entity_class_t wormhole_class_def = {
 static wormhole_t *wormhole_create(void) {
     wormhole_t *self;
 
-    planet_grab_arena_open(ZONE_BYTES(sizeof *self) + ZONE_BYTES(sizeof(entity_list_t)) +
+    grab_arena_open(ZONE_BYTES(sizeof *self) + ZONE_BYTES(sizeof(entity_list_t)) +
                            ZONE_BYTES((size_t)wormhole_anchor_count() * sizeof(entity_t *)));
-    self = (wormhole_t *)allocator_alloc(planet_zone_construction(), sizeof *self);
+    self = (wormhole_t *)allocator_alloc(grab_arena_construction_zone(), sizeof *self);
 
     entity_init_instance(&self->header, &wormhole_class_def, wormhole_archetype.state, wormhole_archetype.state_time);
     self->archetype = &wormhole_archetype;
@@ -245,7 +246,7 @@ static wormhole_t *wormhole_create(void) {
     self->header.is_dead = &self->is_dead;
     self->is_dead = 0;
     wormhole_construct(self);
-    planet_grab_arena_close();
+    grab_arena_close();
     entity_construct(&self->header);
     return self;
 }
