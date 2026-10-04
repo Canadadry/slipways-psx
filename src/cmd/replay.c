@@ -1,4 +1,4 @@
-/* REPLAY_FILL=<file>, read by tools/*.sh: one "<sort> <count>" line of live
+/* REPLAY_FILL=<file>, read by the tools/ scripts: one "<sort> <count>" line of live
  * places per interface sort, then per particle sort; "max_live <sort> <count>"
  * per particle sort; "max_bytes <sort> <bytes>", then "max_elements <sort>
  * <count>", for the list sorts only, burst without max_elements; then

@@ -126,7 +126,9 @@ Later waves refused five asserts for this reason, and one of those refusals prod
 8. **The gate, per module, before its commit** — all mechanical, all must pass:
    - comment-stripped output byte-identical before/after (step 0), lines of code identical;
    - `header_residue.sh` prints nothing for the module's headers (`-x` only for an external format, named in the commit message);
+   - the module compiles with the repository's warnings as errors: the byte check is blind to a `/*` inside a comment (`tools/*.sh` in prose), which `-Werror=comment` rejects;
    - the test suite green on the stabilized tree.
+   Stage only the files of agents that have handed back (`git add <their files>`, never a directory): a directory sweeps in a wave still being edited.
    A failing gate sends the module back to its agent with the output; it is never waved through.
 9. **Scripted deletion is allowed, only behind the gate.** A regex that strips comments is fast and right for headers, where everything goes; it is also how a trailing `/* ... */` takes the newline after it and glues two declarations together. Measured on this repository: the byte check caught it on the first try. Never script without step 0.
 
