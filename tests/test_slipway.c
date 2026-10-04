@@ -1140,6 +1140,14 @@ static void test_placed_slipway_grows_past_its_arena(void) {
     jc->transit_dots->count = 0;
 }
 
+static void test_placed_slipway_reserves_24_transit_dots(void) {
+    slipway_t *jc;
+
+    world();
+    jc = as_slipway(the_slipway());
+    assert(jc->transit_dots->capacity == 24);
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -1167,6 +1175,7 @@ int main(void) {
     in_fresh_child(test_mouse_point_is_a_struct);
     in_fresh_child(test_slipway_new_stops_off_start);
     in_fresh_child(test_placed_slipway_grows_past_its_arena);
+    in_fresh_child(test_placed_slipway_reserves_24_transit_dots);
 
     printf("test_slipway: all tests passed\n");
     return 0;

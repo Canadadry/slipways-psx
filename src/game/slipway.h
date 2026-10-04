@@ -17,7 +17,7 @@ enum { SLIPWAY_SERVED_PLANETS_CAP = 90 };
 
 /* Transit dots reserved in the grab arena: past them, once the slipway is
  * built, the list grows in the game zone. */
-enum { SLIPWAY_TRANSIT_DOTS_RESERVE = 64 };
+enum { SLIPWAY_TRANSIT_DOTS_RESERVE = 24 };
 
 /* The planet_id of each planet a slipway serves, each once; the strings
  * are borrowed from the planets. */
