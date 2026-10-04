@@ -231,9 +231,8 @@ unsigned char p8_sget(const p8_vram_t *mem, int x, int y) {
  * Consulting a gfx-side flag instead drew a green band behind the title
  * logo, whose art fills with color 3.
  *
- * TODO: only the transparency bit of that byte is honored. The rest of
- * the draw palette -- pal()'s color remap -- is not applied, here or in
- * any other primitive. */
+ * An opaque pixel is drawn in the low nibble of that byte: pal()'s color
+ * remap (GAP-18). */
 void p8_spr(const p8_graphics_t *gfx, p8_vram_t *mem, int n, int x, int y, int w, int h) {
     const int sprites_per_row = P8_SPRITE_SHEET_WIDTH / P8_SPRITE_SIZE;
     int sheet_x = (n % sprites_per_row) * P8_SPRITE_SIZE;
@@ -247,7 +246,7 @@ void p8_spr(const p8_graphics_t *gfx, p8_vram_t *mem, int n, int x, int y, int w
             if (p8_gfx_is_transparent(mem, col)) {
                 continue;
             }
-            p8_pset(gfx, mem, x + dx, y + dy, col);
+            p8_pset(gfx, mem, x + dx, y + dy, mem->draw_palette[col] & 0x0f);
         }
     }
 }

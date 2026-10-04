@@ -229,20 +229,19 @@ itself.
 
 File: `src/p8/fixed.c`.
 
-## GAP-18 — The color remap of `pal()` is not ported
+## GAP-18 — The color remap of `pal()` is ported for sprites only
 
 Lua: `pal()`, `dv()`.
 
-`p8_spr` reads a pixel's color from the sprite sheet, tests the
-transparency bit, then writes it **as is**. The color remap that `pal()`
-installs in the draw palette is applied nowhere. Only bit 0x80 of the
-palette byte is read.
+`p8_spr`, and `p8_map` which goes through it, draw each opaque pixel in the
+color the draw palette maps it to (the low nibble of the byte). The other
+primitives — `pset`, `line`, `rect`, `circ`, the fills and `print` — write
+their color **as is**.
 
-What works anyway: `hud_select_palette_block` selects a palette block, and
-the cart mostly uses it to turn colors off or on, not to swap them. What
-does not work would show on an effect that actually swaps two colors.
+What would show: text or a shape drawn under a palette block other than 0
+would keep its original colors.
 
-File: `src/p8/gfx.c`, marked by a `TODO` in place.
+File: `src/p8/gfx.c`.
 
 ## GAP-19 — The font is rebuilt by hand
 
