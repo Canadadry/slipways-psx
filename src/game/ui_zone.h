@@ -18,6 +18,9 @@ typedef enum {
     SLOT_KIND_COUNT
 } slot_kind_t;
 
+/* Places a list from ui_ephemerals_new() takes in its slot at creation. */
+#define UI_EPHEMERALS_RESERVE 8
+
 /* A handle that gives and takes back a whole slot of the kind: an
  * allocation no larger than the slot size, never a grow. */
 const allocator_t *ui_zone(slot_kind_t slot_kind);
@@ -37,6 +40,11 @@ int ui_zone_max_live(slot_kind_t slot_kind);
 size_t ui_zone_max_bytes(slot_kind_t slot_kind);
 size_t ui_zone_used(void);
 size_t ui_zone_max_used(void);
+
+/* Ephemerals only: the largest element count ui_zone_record_elements has
+ * seen for a list, since the process started. */
+void ui_zone_record_elements(slot_kind_t slot_kind, int count);
+int ui_zone_max_elements(slot_kind_t slot_kind);
 
 /* Limits: slots of the kind, bytes of one, bytes reserved for the zone. */
 int ui_zone_count(slot_kind_t slot_kind);

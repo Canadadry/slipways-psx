@@ -40,7 +40,7 @@ static const char *const MEMORY_LINES[] = {
     "cap bytes_button", "cap bytes_modal_backdrop", "cap bytes_message_box", "cap bytes_toast", "cap bytes_row",
     "cap bytes_ephemerals", "cap particle", "cap particles", "cap particles_help_screen", "cap burst",
     "cap transit_dots", "cap exit_queue", "cap elements_particles", "cap elements_particles_help_screen",
-    "cap elements_transit_dots", "cap bytes_particles", "cap bytes_particles_help_screen", "cap bytes_burst",
+    "cap elements_transit_dots", "cap elements_ephemerals", "cap bytes_particles", "cap bytes_particles_help_screen", "cap bytes_burst",
 };
 
 /* "-" reads as -1. */

@@ -62,6 +62,7 @@ Fin de 4b : somme des cibles des zones **745 034** (`game` 462 520 + 24 680, `fr
 - `frame` **20 256** (pic 18 000, `full_game.json` frame 4149).
 - génération de `game` **462 520**, posée (pic 411 128, `full_game.json` frame 7643, retour au titre) ; `GAME_ZONE_BYTES` devient la somme génération plus `load`.
 - `load` **24 680** (pic 21 936, le même sur les 31 rejeux dès le titre) ; `GAME_ZONE_BYTES` 487 200.
+- `ephemerals` : la liste réserve **8** places à sa création (pic 7 éléments, `full_game.json` et 13 autres rejeux ; ligne `elements_ephemerals` de `make state`) ; plus de bloc mort, la place tombe de 216 à 184 octets ; sa taille et son compte se posent avec `ui`.
 
 ## 3. Règles
 

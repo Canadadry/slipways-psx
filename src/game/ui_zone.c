@@ -48,6 +48,7 @@ static slot_zone_t g_zones[SLOT_KIND_COUNT];
 static allocator_t g_slots[SLOT_KIND_COUNT];
 static int g_ready;
 static slot_tally_t g_tally;
+static int g_max_ephemerals_elements;
 
 static slot_kind_t slot_kind_of(const allocator_t *z);
 
@@ -126,6 +127,16 @@ size_t ui_zone_used(void) {
 size_t ui_zone_max_used(void) {
     init_once();
     return slot_tally_zone_max_bytes(&g_tally);
+}
+
+void ui_zone_record_elements(slot_kind_t slot_kind, int count) {
+    assert(slot_kind == SLOT_KIND_EPHEMERALS && "ui_zone_record_elements: only the ephemerals slot holds a list");
+    if (count > g_max_ephemerals_elements) g_max_ephemerals_elements = count;
+}
+
+int ui_zone_max_elements(slot_kind_t slot_kind) {
+    assert(slot_kind == SLOT_KIND_EPHEMERALS && "ui_zone_max_elements: only the ephemerals slot holds a list");
+    return g_max_ephemerals_elements;
 }
 
 int ui_zone_count(slot_kind_t slot_kind) {
