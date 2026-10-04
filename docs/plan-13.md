@@ -229,3 +229,12 @@ The user validated (2026-10-04) the resolution of the 46 Unsorted pointers: call
 - Dead ids: the cart never drops a kept route and only unlinked planets die, so both planet death sites assert the planet has no slipway; attached slipways never die before `reset_world`; `reset_world` empties the outgoing ui's lists (`ui_forget_world`) since a restart click runs mid-`ui_update`.
 - GAPs: GAP-26 rewritten (the halo link reads NULL after the flush); GAP-28 added (a right drag held across a restart no longer moves the new camera; no e2e reaches it).
 - Deviation: chunk 3's first verification failed (dead planet ids in kept routes); the implementer proved the case unreachable in the cart and added the asserts above instead of pruning routes. Guideline decisions (applied by the PRD writer): D1 routes as values, D2 economy slot, D3 header id, D4 targeting kind + id and slipway `end_is_point`, D5 project table with epoch, D6 difficulty copied, D7 placeholders as a state, D8 links compared only by resolving.
+
+### Phase 1 review
+
+`warn-review` at the end of phase 1 (55 `src/` files):
+- **Violation, pending user validation:** `src/engine/bootstrap.c` names research projects (`#include "game/research.h"`, `research_expire_project_ids()` in `reset_world()`), a game concept in `engine/`. It extends a reverse dependency that predates the plan (`bootstrap.c` already includes `game/mouse.h`, `game/scroll.h`, `game/ui.h`).
+- **Breaks rule 15 on purpose, pending user validation:** `planet.c` and `planet_display.c` never remove a dying planet's id from id lists; they assert the dying planet has no slipway (the cart never drops kept routes, and only unlinked planets die).
+- Every other pointer warning is planned for steps 4 to 6.
+- Smells, for a later `plan-review`: `engine/` includes `game/` headers (`bootstrap.c`, `entity_registry.c`); `entity_class.h` declares `slipway_class`/`probe_class`; targeting is implemented in `probe.c`; hand-measured zone sizes inline (`HEADER_ID_BYTES`, `BUTTON_SIZE`…); the economy's id slot is taken outside `entity_construct` and never freed by the exit queue; `slipway_create` silently drops a start key that resolves to NULL.
+- **The run stops here, pending the user.**
