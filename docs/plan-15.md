@@ -281,3 +281,11 @@ None.
 
 
 ## 6. Step notes
+
+### Step 1.1
+
+- Done: `p8_input_frame_t` gained `int pad_buttons`, a bitmask with `P8_PAD_UP`…`P8_PAD_START` (11 bits, 1…1024). `p8_input_t` gained `p8_input_mode_t mode` (`P8_INPUT_MOUSE` = 0, `P8_INPUT_PAD`). `p8_input_save` / `p8_input_append` take the mode as their last parameter. A pad replay is `"input": "pad"` then frames `{ "pad": ["up", "cross"] }`, saved in a fixed button order. The loader rejects unknown or duplicate names, a missing `"pad"`, any mouse or `dpad` field, pad plus `keyboard_cursor`, and an unknown `"input"` value. Mouse output is unchanged byte for byte.
+- `tools/e2e_limits.sh` counts a pad replay's `"pad":` keys, so the header's `"pad"` value is not counted as a frame. It rejects `mouse_x`, `mouse_y`, `mouse_buttons`, `dpad` and `keyboard_cursor` in a pad replay.
+- Deviation: the PRD said positional frame initialisers would keep compiling. Under `-Wextra -Werror` they don't, so 53 test initialisers got a trailing `0`.
+- Left for 1.2: `raylib_backend_poll_input` and the frame in `src/cmd/game.c` don't set `pad_buttons` yet. `make raylib` was not run, because raylib is not vendored in the session.
+- Every `*.sha256` is unchanged.
