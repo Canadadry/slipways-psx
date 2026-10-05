@@ -94,7 +94,6 @@ trade_route_t trade_extend(const allocator_t *zone, const trade_route_t *self,
     trade_route_t extended = {0};
 
     assert(self != NULL && "trade_extend: a route value is always there to extend");
-    /* GAP-24 */
     extended.has_resource = 1;
     extended.resource_is_bool = self->has_resource ? self->resource_is_bool : 1;
     extended.resource = self->has_resource ? self->resource : 0;

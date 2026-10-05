@@ -14,33 +14,6 @@ reworked. A deleted entry is a closed entry: see git.
 
 ---
 
-## GAP-24 — `trade_extend` gives the new route a `false` resource when the route has no resource
-
-Lua: `trade:kg`, `qe=false`, `self.qe`, `qe`, `trade`, `jo:cn`, `jo:ib`,
-`kg`, `nr:cn`, `dh`, `kw`.
-
-In the cart, extending a route copies its resource as is: nil stays nil,
-and no route ever has a `false` resource. This port sets `false` when the
-extended route has no resource. In the `trade_route_t` struct, nil and
-absent are one and the same: a nil resource, whether passed explicitly or
-omitted, gives `false`.
-
-`resource_t` keeps all three states, and `resource_equal` is Lua's `==`.
-The divergence shows where a route meets a need with no resource. In
-`planet_offer_trade`, a route coming from `planet_rebuild_trades` with no
-resource (nil) answers such a need, as in the cart. Once it has gone
-through `trade_extend` (`slipgate_offer_trade`), it is `false` and no
-longer answers it. In `economy_tiers_compute_tier`, the `has_resource`
-guard also leaves out the nil route that the cart would count: a route
-with no number never counts there.
-
-Not reached by the e2e: every route they build has a non-nil resource.
-`planet_rebuild_trades` does pass a nil resource when the planet's
-`production` has no resource. `tests/test_trade.c` pins both readings.
-
-Files: `src/game/trade.c`, `src/game/planet_trade.c`,
-`src/game/economy_tiers.c`.
-
 ## GAP-25 — The end panel's "score 0" row has a hole, and the port draws both of its elements
 
 Lua: `o("",score=0,ra=v(64,21),c=5)`, `bz`, `pj:ph`, `st[3]`, `st[1]`, `lq`,
