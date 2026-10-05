@@ -16,8 +16,24 @@ The goals behind every rule below:
 
 - `make test-all` passes on every commit. `make test` and `make e2e` never get slower.
 - The 26 mouse replays of `tests/e2e/` (every file except `keyboard_*`) keep their `*.sha256` unchanged for the whole plan.
-- **Coverage never drops.** Each `keyboard_*` scenario has a pad replay covering the same thing before that `keyboard_*` replay is deleted (step 4.1).
-- Never launch the raylib app. `make raylib` must build. Every check is headless: replays, dumps, `make state`.
+- Until step 4.1, the 4 `keyboard_*` replays (`"keyboard_cursor": true`) keep running through `button_cursor`, and their `*.sha256` stay unchanged too. Every step before 4.1 checks them alongside the mouse hashes.
+- **Refreshing pad hashes is allowed, and only pad hashes.**
+  - Any step after 1.4 whose own behaviour shows in an earlier `pad_*` replay deliberately changes how that replay looks. Examples: free mode at game start, network visuals, the build tab's focus, the colour-12 tab, modality.
+  - This is the plan's explicit exception to the "every `*.sha256` stays unchanged" rule of `check-e2e` and `guideline`, and it covers `pad_*` files only.
+  - Each such step's check states up front which earlier `pad_*` replays it expects to change.
+  - The step's own implementation refreshes the affected `pad_*.json.sha256` one file at a time, before `check-e2e` runs. Never `make e2e-baseline` over the directory.
+  - It reruns `make state` on each refreshed replay and confirms the end-state lines in its `.txt` still hold.
+  - The step note lists which pad hashes changed and why.
+  - `git diff --stat tests/e2e/` shows no mouse or `keyboard_*` `.sha256` changed.
+- **A new pad replay proves what it claims.**
+  - Its hash passes by construction, so a hash alone proves nothing.
+  - Every step that adds a `pad_*.json` runs `make state EVENTS=<replay>` (and reads the dump at the key frames). It records the decisive end-state lines in the replay's `.txt`, as the `keyboard_*` notes do: slipways, techs, clock, credits.
+  - When the replay covers a `keyboard_*` scenario, its note puts that end state next to the old replay's end state.
+- **Coverage never drops.** Each `keyboard_*` scenario has a pad replay covering the same thing before that `keyboard_*` replay is deleted (step 4.1). Each pad-replay step's note records which `keyboard_*` scenario it covers, if any.
+- Never launch the raylib app. Every check is headless: replays, dumps, `make state`.
+- **`make raylib` must build, and it is checked.** `make test` and `make e2e` never compile `src/cmd/game.c` or `src/platform/`.
+  - Step 1.2 starts with `make raylib-vendor-setup` and confirms that `make raylib` builds on the unchanged tree. If vendoring can't be done in the session, the step note says so, and the CI `raylib` job on the pushed commit becomes the check instead.
+  - Every step whose diff touches `src/cmd/game.c` or `src/platform/` lists "`make raylib` builds" (or "the CI raylib job is green") in its check. Its step note records the result.
 - Pad mode adds behavior and visuals that the cart doesn't have. That is accepted. No document tracks divergences from the cart: `docs/porting-gaps.md` was deleted by plan 14.
 
 ### Input modes
@@ -82,7 +98,7 @@ The goals behind every rule below:
   - A new module, `src/game/pad_nav.c`, turns each frame's pad buttons into a synthetic cursor position plus synthetic left presses and releases.
   - These go through the existing dispatch (`ui_update_hover`, `ui_handle_button`, `left_press` / `drag` / `accept_drop` / `drop`), so no game rule is duplicated in the navigation layer.
   - Right click has no pad equivalent: ○ replaces its cancel uses.
-- **No auto-repeat.** A held direction or button acts once, on the press. Holding Left/Right on slipways or a direction in a panel moves the selection only once. The only exception is free mode, where a held D-pad moves the camera continuously (speed curve below). This is the user's decision.
+- **No auto-repeat.** A held direction or button acts once, on the press. Holding Left/Right on slipways or a direction in a panel moves the selection only once. The only exception is free mode, where a held D-pad moves the camera continuously (speed curve below). This is the user's decision. A held × is still a held left button for as long as it is down, so holds and drags keep working (for example the space fold, confirmed by holding).
 
 ### Map tab — network mode
 
@@ -161,10 +177,10 @@ This covers the title screen, the planet menu, the tech panel, the score panel, 
 1. **Pad frames in the input layer and the replay format.**
    - `p8_input_frame_t` (`src/p8/input.h`) carries the PSX button set.
    - `src/devtools/input_json.c` parses and saves `"input": "pad"` replays, where each frame lists PSX buttons. A file without `"input"` stays a mouse replay.
-   - `tools/e2e_limits.sh` rejects a pad replay that contains a mouse field.
+   - `tools/e2e_limits.sh` rejects a pad replay that contains a mouse field. It counts a pad replay's frames correctly, so the 180/600-frame limit applies to pad replays too (today it counts `"mouse_x"` keys).
    - Verified by:
      - unit tests in `tests/test_input.c` (round trip, malformed pad frame, missing field means mouse);
-     - a `tests/test_e2e_limits.c` case for the mouse-field rejection;
+     - `tests/test_e2e_limits.c` cases for the mouse-field rejection and for a pad replay over 180 frames, not listed in the exceptions, being rejected;
      - every `*.sha256` unchanged.
 2. **Mode selection and the replay driver.**
    - `src/cmd/game.c` takes `--mouse`, and pad is the default.
@@ -172,9 +188,12 @@ This covers the title screen, the planet menu, the tech panel, the score panel, 
    - In pad mode the mouse is ignored, and the D-pad is not passed to the cart's camera scroll.
    - The session recorder writes pad frames in pad mode.
    - In pad mode, × and ○ feed the cheat (× = O, ○ = X).
+   - `src/cmd/game.c` and `src/cmd/replay.c` run one shared per-frame input step (mode, then pad navigation and cheat, then dispatch) instead of each wiring input on its own. That way every pad replay also covers the code the human plays.
    - Verified by:
      - unit tests in `tests/test_replay_source.c` and `tests/test_recording_continuity.c`;
      - a unit test in which the pad sequence × × ○ ○ × × ○ ○ fires the cheat;
+     - a unit test of the shared input step: a pad frame recorded by the session recorder and played back gives the same input as the live frame;
+     - a headless pad-mode run with a moving mouse, mouse buttons pressed and the D-pad held, which leaves the camera, the hovered entity and the game state unchanged;
      - every mouse `*.sha256` unchanged.
 3. **`keymap.cfg` and the raylib backend.**
    - The keymap parser is plain C, with a name table and no raylib call, so it can be unit-tested.
@@ -187,7 +206,7 @@ This covers the title screen, the planet menu, the tech panel, the score panel, 
    - `src/game/pad_nav.c` emits a synthetic cursor and clicks through the existing dispatch.
    - Generic panel navigation (nearest clickable item of the top layer, focus drawn as hover, × clicks) works on the title screen.
    - Verified by:
-     - a reachability unit test for the title screen;
+     - reachability unit tests for every panel listed under "Panels and menus" in §2: title screen, planet menu, tech, score, pause menu, a message box, help. These panels already exist in the mouse game, so the tests open them directly, without tabs or pad navigation. If a panel fails, this step's note records it and it is settled before phase 2 starts;
      - the first pad replay, `tests/e2e/pad_title.json`: choose a difficulty with D-pad and ×.
 
 ### Phase 2 — Map modes
@@ -196,19 +215,19 @@ This covers the title screen, the planet menu, the tech panel, the score panel, 
    - The game starts in it.
    - The cursor is fixed at the centre, and the D-pad moves the camera with the 1/2/4 px speed curve.
    - × launches a probe or wormhole, and ○ does nothing while there is no starting planet.
-   - Verified by `pad_probe.json`: place the starting wormhole, then launch a probe.
+   - Verified by `pad_probe.json`: place the starting wormhole, launch a probe, then confirm a space fold by holding × (the `keyboard_slipway` fold).
 2. **Planet menu and network mode.**
    - △ in free mode opens the planet menu, and generic panel navigation runs inside it.
    - Colonising lands the selection on that planet in network mode.
    - The network visuals are in place: hidden cursor, blinking circle, the planet's hover info.
-   - Verified by `pad_colonise.json` and a reachability unit test for the planet menu.
+   - Verified by `pad_colonise.json`.
 3. **Slipways from free mode, and network travel.**
    - □ enters free mode from the selected planet.
    - × on a planet creates a slipway when the drop is accepted. A refused drop does nothing.
    - Left/Right cycle slipways clockwise, with the brighter slipway. Up/Down travel.
    - ○ returns to the starting planet.
    - Verified by:
-     - `pad_slipway.json`: two colonies, a slipway, travel back and forth, a refused target;
+     - `pad_slipway.json`: two colonies, a slipway, travel back and forth, a refused target, and one slipway whose starting planet is off screen when × is pressed;
      - unit tests for the clockwise order and for travel.
 
 ### Phase 3 — Tabs and modality
@@ -220,8 +239,7 @@ This covers the title screen, the planet menu, the tech panel, the score panel, 
    - Verified by:
      - `pad_end_turn.json`;
      - `pad_research.json`: the cheat typed as × × ○ ○ × × ○ ○, then a tech invented, covering `keyboard_research`;
-     - `pad_score.json`;
-     - reachability unit tests for the tech and score panels.
+     - `pad_score.json`.
 2. **Build tab and placement.**
    - Pick a structure icon, place it with ×, and cancel a second one with ○.
    - Verified by `pad_build.json`.
@@ -231,15 +249,15 @@ This covers the title screen, the planet menu, the tech panel, the score panel, 
    - Start during a sub-mode returns to it intact.
    - Verified by:
      - `pad_pause_restart.json`: pause, restart, new game, covering `keyboard_menus`;
-     - `pad_message_box.json`;
+     - `pad_message_box.json`, which also opens help from the pause menu and navigates it;
      - unit tests for each modality rule.
 4. **Game end on the pad.** Verified by `pad_game_end.json`: years skipped through the `end turn` tab, the final score panel, "again?", back to the title screen. It covers `keyboard_game_end`, and `tools/e2e_long_exceptions.txt` gets an entry only if the replay needs more than 180 frames.
 
 ### Phase 4 — Remove the old keyboard cursor
 
 1. **Delete `button_cursor` and the `keyboard_*` replays.**
-   - Before deleting anything, write the coverage mapping into this step's note:
-     - `keyboard_slipway` → `pad_probe`, `pad_colonise`, `pad_slipway`. If `keyboard_slipway` covers the space fold, add it to a pad replay first.
+   - Before deleting anything, check the coverage mapping and the end-state pairs recorded in the earlier step notes and `.txt` files, and copy the mapping into this step's note:
+     - `keyboard_slipway` → `pad_probe`, `pad_colonise`, `pad_slipway` (the fold is in `pad_probe`).
      - `keyboard_research` → `pad_research`.
      - `keyboard_menus` → `pad_pause_restart`.
      - `keyboard_game_end` → `pad_game_end`.
