@@ -116,20 +116,6 @@ itself.
 
 File: `src/p8/fixed.c`.
 
-## GAP-18 — The color remap of `pal()` is ported for sprites only
-
-Lua: `pal()`, `dv()`.
-
-`p8_spr`, and `p8_map` which goes through it, draw each opaque pixel in the
-color the draw palette maps it to (the low nibble of the byte). The other
-primitives — `pset`, `line`, `rect`, `circ`, the fills and `print` — write
-their color **as is**.
-
-What would show: text or a shape drawn under a palette block other than 0
-would keep its original colors.
-
-File: `src/p8/gfx.c`.
-
 ## GAP-19 — The font is rebuilt by hand
 
 PICO-8's glyphs belong to its runtime, not to the cart, so they are in no
