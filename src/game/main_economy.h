@@ -3,6 +3,7 @@
 
 #include "game/economy_formulas.h"
 #include "p8/fixed.h"
+#include <stdint.h>
 #include "engine/pointer_list.h"
 #include "engine/entity_class.h"
 
@@ -20,18 +21,20 @@ typedef struct {
     p8_fixed_t income;
     p8_fixed_t research_points;
     p8_fixed_t era;
-    pointer_list_t *invented;
+    pointer_list_t invented;
     p8_fixed_t year_ticks;
     p8_fixed_t year;
-    resource_map_t *production;
-    resource_map_t *demand;
-    resource_map_t production_own;
-    resource_map_t demand_own;
+    resource_map_t production;
+    resource_map_t demand;
+    uint16_t has;
     p8_fixed_t happiness;
     int has_happiness;
     const char *end_status;
     int has_end_status;
 } economy_t;
+
+#define ECONOMY_HAS_PRODUCTION (1u << 0)
+#define ECONOMY_HAS_DEMAND (1u << 1)
 
 typedef struct {
     entity_t header;

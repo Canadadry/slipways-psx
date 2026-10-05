@@ -171,13 +171,13 @@ static size_t planets_bytes(void) {
     return bytes;
 }
 
-/* Bytes of the economy cart_start_game makes: its struct and the
- * `invented` container, with no element while nothing is invented. */
+/* Bytes of the economy cart_start_game makes: its struct, with no
+ * `invented` element while nothing is invented. */
 static size_t economy_bytes(void) {
     const economy_t *fm = main_economy_typed();
-    assert(fm != NULL && fm->invented != NULL && "cart_start_game built the economy of the game");
-    assert(fm->invented->count == 0 && fm->invented->items == NULL && "an invention, which economy_bytes does not count");
-    return block_bytes(sizeof *fm) + block_bytes(sizeof *fm->invented);
+    assert(fm != NULL && "cart_start_game built the economy of the game");
+    assert(fm->invented.count == 0 && fm->invented.items == NULL && "an invention, which economy_bytes does not count");
+    return block_bytes(sizeof *fm);
 }
 
 /* Bytes of the seven structure icons among the live entities, in table

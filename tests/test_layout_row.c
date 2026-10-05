@@ -872,7 +872,8 @@ static void test_inspection_panel_w_maker_wants_no_more(void) {
     pointer_list_add(jy, a);
     planet = planet_new(NULL);
     planet->needs = jy;
-    planet->production = kw;
+    planet->production = *kw;
+    planet->has |= PLANET_HAS_PRODUCTION;
     planet->has_development_tier = 1;
     planet->development_tier = p8_fixed_from_int(1);
     entity_set_pos(&planet->header, vec_xy(64, 64));

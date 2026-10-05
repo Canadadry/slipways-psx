@@ -48,9 +48,10 @@ void planet_refresh(planet_t *self) {
     }
 
     needs_list = self->needs;
-    if (self->production != NULL) {
-        qe = self->production->has_resource ? &self->production->resource : NULL;
-        mu = self->production->amount;
+    {
+        const production_t *kw = planet_production_read(self);
+        qe = kw->has_resource ? &kw->resource : NULL;
+        mu = kw->amount;
     }
     by_list = self->outgoing_routes;
 
@@ -200,11 +201,11 @@ void planet_inspection_panel(const planet_t *self) {
         row_count++;
     } else {
         p8_fixed_t development_tier_fixed = self->has_development_tier ? self->development_tier : p8_fixed_from_int(0);
-        const production_t *kw = self->production;
+        const production_t *kw = planet_production_read(self);
         int r_w;
         int resource_is_r_w;
 
-        resource_is_r_w = kw != NULL && kw->has_resource && resource_code_lookup("w", &r_w) && kw->resource == p8_fixed_from_int(r_w);
+        resource_is_r_w = kw->has_resource && resource_code_lookup("w", &r_w) && kw->resource == p8_fixed_from_int(r_w);
 
         if (development_tier_fixed < p8_fixed_from_int(4) && needs != NULL && needs->count > 0 && !resource_is_r_w) {
             int last_only = (self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && self->archetype->is_structure;
@@ -234,8 +235,8 @@ void planet_inspection_panel(const planet_t *self) {
     }
 
     {
-        const production_t *kw = self->production;
-        p8_fixed_t mu = kw != NULL ? kw->amount : p8_fixed_from_int(0);
+        const production_t *kw = planet_production_read(self);
+        p8_fixed_t mu = kw->amount;
 
         if (mu > p8_fixed_from_int(0)) {
             int makes = kw->has_resource && int_seq_has_fixed(planet_made_resources(), kw->resource);
@@ -324,8 +325,8 @@ static void planet_projects_panel_keys(planet_t *self, research_project_t *b, bu
     p8_fixed_t od = research_project_cost(b);
 
     memset(keys, 0, sizeof *keys);
-    if (b->layout_row != NULL) {
-        row->layout_row = layout_row_keys_of_row(b->layout_row, row->layout_row_items, PLANET_ROW_CAP);
+    if (b->has & RESEARCH_PROJECT_HAS_LAYOUT_ROW) {
+        row->layout_row = layout_row_keys_of_row(&b->layout_row, row->layout_row_items, PLANET_ROW_CAP);
         keys->layout_row_keys = &row->layout_row;
     } else {
         keys->layout_row_copy = research_project_layout_row(b);

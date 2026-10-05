@@ -559,8 +559,8 @@ static char *const kind_table_required_tech[7] = {NULL, NULL, "slipgates", "infr
                                      "ascension"};
 
 static void invent(char *rr) {
-    assert(main_economy_typed() != NULL && main_economy_typed()->invented != NULL);
-    pointer_list_add(main_economy_typed()->invented, rr);
+    assert(main_economy_typed() != NULL);
+    pointer_list_add(&main_economy_typed()->invented, rr);
 }
 
 /* Per icon, in fill_kind_table() order: the refresh reveals it exactly when

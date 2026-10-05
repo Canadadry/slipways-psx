@@ -744,8 +744,8 @@ static void test_bar_buttons_and_pause_menu_anchors(void) {
 }
 
 static void invent(char *rr) {
-    assert(main_economy_typed() != NULL && main_economy_typed()->invented != NULL);
-    pointer_list_add(main_economy_typed()->invented, rr);
+    assert(main_economy_typed() != NULL);
+    pointer_list_add(&main_economy_typed()->invented, rr);
 }
 
 static void test_research(void) {
@@ -1058,10 +1058,10 @@ static void test_tech_tree_screen_on_click(void) {
     }
     assert(i < le->count);
     assert(main_economy_typed() != NULL);
-    invented = main_economy_typed()->invented;
+    invented = &main_economy_typed()->invented;
     h = fnv(h, (uint32_t)invented->count);
     call_on_click(entity_id_list_at(le, i));
-    invented = main_economy_typed()->invented;
+    invented = &main_economy_typed()->invented;
     h = fnv(h, (uint32_t)invented->count);
     assert(invented->count >= 1);
     last = invented->items[invented->count - 1];
@@ -2067,8 +2067,8 @@ static void test_largest_buttons_fit_their_slots(void) {
         layout_row_keys_t h = {.items = &h_item, .count = 1};
         button_keys_t keys = {.has_side_tooltip = 1, .side_tooltip_row = &h, .has_tooltip = 1};
 
-        if (b->layout_row != NULL) {
-            lq = layout_row_keys_of_row(b->layout_row, layout_row_items, 8);
+        if (b->has & RESEARCH_PROJECT_HAS_LAYOUT_ROW) {
+            lq = layout_row_keys_of_row(&b->layout_row, layout_row_items, 8);
             keys.layout_row_keys = &lq;
         } else {
             keys.layout_row_copy = research_project_layout_row(b);

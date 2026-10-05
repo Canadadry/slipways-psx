@@ -124,18 +124,16 @@ p8_fixed_t economy_score_trade_income(const entity_t *entity) {
     }
 
     {
-        const production_t *kw = planet->production;
-        if (kw != NULL) {
-            int w;
-            if (kw->has_resource && resource_code_lookup("w", &w) && kw->resource == p8_fixed_from_int(w)) {
-                p8_fixed_t mu = kw->amount;
-                p8_fixed_t trade_mult = p8_fixed_from_int(0);
-                if (difficulty != NULL && difficulty->has_trade) {
-                    trade_mult = difficulty->trade;
-                }
-                total = p8_fixed_add(
-                    total, p8_fixed_mul(p8_fixed_mul(mu, trade_mult), P8_FIXED_LIT(0x00018000, 1.5)));
+        const production_t *kw = planet_production_read(planet);
+        int w;
+        if (kw->has_resource && resource_code_lookup("w", &w) && kw->resource == p8_fixed_from_int(w)) {
+            p8_fixed_t mu = kw->amount;
+            p8_fixed_t trade_mult = p8_fixed_from_int(0);
+            if (difficulty != NULL && difficulty->has_trade) {
+                trade_mult = difficulty->trade;
             }
+            total = p8_fixed_add(
+                total, p8_fixed_mul(p8_fixed_mul(mu, trade_mult), P8_FIXED_LIT(0x00018000, 1.5)));
         }
     }
 
@@ -179,9 +177,8 @@ final_score_t economy_score_final(void) {
     p8_fixed_t total;
     const economy_t *fm = main_economy_typed();
     p8_fixed_t happiness = fm != NULL && fm->has_happiness ? fm->happiness : p8_fixed_from_int(0);
-    const pointer_list_t *invented = fm != NULL ? fm->invented : NULL;
-    int invented_count = (invented != NULL) ? invented->count : 0;
-    const resource_map_t *main_economy_production = fm != NULL ? fm->production : NULL;
+    int invented_count = fm != NULL ? fm->invented.count : 0;
+    const resource_map_t *main_economy_production = fm != NULL && (fm->has & ECONOMY_HAS_PRODUCTION) ? &fm->production : NULL;
     char *happiness_str;
     final_score_t result;
 
@@ -219,7 +216,7 @@ final_score_t economy_score_final(void) {
 
 p8_fixed_t economy_score_happiness(void) {
     const economy_t *fm = main_economy_typed();
-    const resource_map_t *main_economy_production = fm != NULL ? fm->production : NULL;
+    const resource_map_t *main_economy_production = fm != NULL && (fm->has & ECONOMY_HAS_PRODUCTION) ? &fm->production : NULL;
     p8_fixed_t r_h = p8_fixed_from_int(0);
     p8_fixed_t r_w = p8_fixed_from_int(0);
     p8_fixed_t h_val;

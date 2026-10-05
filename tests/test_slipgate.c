@@ -334,7 +334,7 @@ static uint32_t fold_slipgate(uint32_t hash, const void *entity) {
     hash = fnv(hash, (uint32_t)(planet->archetype->ring_colors != NULL));
     hash = fnv(hash, (uint32_t)(planet->archetype->mood_rows != NULL));
     hash = fnv(hash, (uint32_t)(planet->archetype->made_resources != NULL));
-    hash = fnv(hash, (uint32_t)(planet->production != NULL));
+    hash = fnv(hash, (uint32_t)(planet_production_read(planet) != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
@@ -376,7 +376,7 @@ static uint32_t fold_slipgate(uint32_t hash, const void *entity) {
     assert(planet->archetype == &slipgate_archetype);
     assert(planet->archetype->spacer == &planet_spacer_row && planet->archetype->ring_colors == &planet_ring_colors_seq && planet->archetype->mood_rows == planet_mood_rows_rows &&
            planet->archetype->made_resources == &planet_made_resources_seq);
-    assert(planet->production != NULL && planet->production != planet_shared_production());
+    assert(planet->has & PLANET_HAS_PRODUCTION);
     assert(research_projects_at(1) != NULL);
     assert(research_project_get(planet->project) == research_projects_at(1));
     hash = fnv(hash, (uint32_t)id_list_count(planet->slipways));
@@ -401,7 +401,7 @@ static void test_built(void) {
     start_game();
     a = build_slipgate();
     b = build_slipgate();
-    assert(a != b && as_structure(a)->slipways != as_structure(b)->slipways && as_structure(a)->production != as_structure(b)->production);
+    assert(a != b && as_structure(a)->slipways != as_structure(b)->slipways && planet_production_read(as_structure(a)) != planet_production_read(as_structure(b)));
     hash = fold_slipgate(hash, a);
     hash = fold_slipgate(hash, b);
     check("built", hash, BUILT_HASH);
@@ -538,7 +538,7 @@ static void test_life(void) {
 
     bare = slipgate_new(NULL);
     assert(gate_kind(bare) == SLIPGATE && as_structure(bare)->planet_id == NULL && as_structure(bare)->slipways != NULL &&
-           as_structure(bare)->production != NULL);
+           (as_structure(bare)->has & PLANET_HAS_PRODUCTION));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_SLIPGATE), bare));
     {
         planet_keys_t keys;
@@ -583,7 +583,7 @@ static void test_slipgate_is_a_struct(void) {
     assert(slipgate_ready() && infraspace_gate_ready());
     {
         planet_t *bare = slipgate_new(NULL);
-        assert(is_a_slipgate_struct(bare) && bare->planet_id == NULL && bare->slipways != NULL && bare->production != NULL);
+        assert(is_a_slipgate_struct(bare) && bare->planet_id == NULL && bare->slipways != NULL && (bare->has & PLANET_HAS_PRODUCTION));
     }
     fr = build(infraspace_gate_kind());
     assert(fr != NULL &&

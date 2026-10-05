@@ -147,7 +147,7 @@ static int id_list_count(const entity_id_list_t *l) {
 }
 
 static uint32_t fold_production(uint32_t h, const planet_t *jo) {
-    const production_t *k = jo->production;
+    const production_t *k = planet_production_read(jo);
 
     if (k == NULL) {
         return fnv(h, 0xA0u);
@@ -256,7 +256,7 @@ static uint32_t fold_planet(uint32_t hash, const void *entity) {
     hash = fnv(hash, (uint32_t)(planet->archetype->ring_colors != NULL));
     hash = fnv(hash, (uint32_t)(planet->archetype->mood_rows != NULL));
     hash = fnv(hash, (uint32_t)(planet->archetype->made_resources != NULL));
-    hash = fnv(hash, (uint32_t)(planet->production != NULL));
+    hash = fnv(hash, (uint32_t)(planet_production_read(planet) != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
@@ -281,7 +281,7 @@ static uint32_t fold_planet(uint32_t hash, const void *entity) {
     assert_planet_members(class_of(entity));
     assert(planet->archetype == &planet_archetype);
     assert(planet->archetype == &planet_archetype);
-    assert(planet->header.class->tags == (TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && planet->production == planet_shared_production() && planet->archetype->spacer == &planet_spacer_row);
+    assert(planet->header.class->tags == (TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && !(planet->has & PLANET_HAS_PRODUCTION) && planet->archetype->spacer == &planet_spacer_row);
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), entity));
     for (index = 0; index < sizeof messages / sizeof messages[0]; index++) {
         hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(messages[index]), entity));
@@ -538,19 +538,19 @@ static void test_production_shared(void) {
     start_title();
     a = new_planet("p902", 5, 6);
     b = new_planet("p903", 7, 8);
-    kw = a->production;
-    assert(kw == planet_shared_production() && b->production == kw);
+    kw = planet_production(a);
+    assert(!(a->has & PLANET_HAS_PRODUCTION) && kw == planet_shared_production() && planet_production(b) == kw);
     kw->amount = p8_fixed_from_int(7);
-    assert(b->production->amount == p8_fixed_from_int(7));
+    assert(planet_production_read(b)->amount == p8_fixed_from_int(7));
     assert(planet_shared_production()->amount == p8_fixed_from_int(7));
 
     assert(research_projects_count() > 0);
     hp = research_projects_find("");
     assert(hp != NULL);
     planet_install_project(a, hp);
-    assert(a->production != NULL && a->production != planet_shared_production());
-    assert(a->production->amount == p8_fixed_from_int(0));
-    assert(b->production == planet_shared_production());
+    assert(a->has & PLANET_HAS_PRODUCTION);
+    assert(planet_production_read(a) == &a->production && a->production.amount == p8_fixed_from_int(0));
+    assert(!(b->has & PLANET_HAS_PRODUCTION) && planet_production_read(b) == planet_shared_production());
     assert(research_project_get(a->project) == hp && list_size(a->needs) >= 0);
 
     economy_total_production(&production_before);
@@ -561,7 +561,7 @@ static void test_production_shared(void) {
     resource_map_get(&production_after, kw->resource, &after);
     assert(after == before);
     planet_init();
-    assert(b->production == planet_shared_production());
+    assert(planet_production_read(b) == planet_shared_production());
     assert(!kw->has_resource && kw->amount == p8_fixed_from_int(0));
 }
 
@@ -634,10 +634,10 @@ static int row_slots(void) {
 static planet_t *planet_with_a_row(void) {
     planet_t *a = (planet_t *)entities_by_tag(TAG_PLANET)->items[0];
 
-    a->production = &a->production_own;
-    a->production_own.has_resource = 1;
-    a->production_own.resource = p8_fixed_from_int(28);
-    a->production_own.amount = p8_fixed_from_int(2);
+    a->has |= PLANET_HAS_PRODUCTION;
+    a->production.has_resource = 1;
+    a->production.resource = p8_fixed_from_int(28);
+    a->production.amount = p8_fixed_from_int(2);
     return a;
 }
 
@@ -673,7 +673,7 @@ static void test_refresh_without_resource_takes_no_slot(void) {
 
     start_title();
     a = new_planet("p903", 7, 8);
-    assert(a->production != NULL && !a->production->has_resource);
+    assert(!planet_production_read(a)->has_resource);
     before = row_slots();
     class_of(a)->refresh(&a->header);
     assert(a->layout_row == NULL && row_slots() == before);
@@ -715,10 +715,10 @@ static planet_t *planet_with_the_largest_row(void) {
     }
     assert(is != NULL && resource_code_lookup("w", &r_w));
     a->needs = (pointer_list_t *)is;
-    a->production = &a->production_own;
-    a->production_own.has_resource = 1;
-    a->production_own.resource = p8_fixed_from_int(r_w);
-    a->production_own.amount = p8_fixed_from_int(5);
+    a->has |= PLANET_HAS_PRODUCTION;
+    a->production.has_resource = 1;
+    a->production.resource = p8_fixed_from_int(r_w);
+    a->production.amount = p8_fixed_from_int(5);
     return a;
 }
 

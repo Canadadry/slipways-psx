@@ -29,7 +29,7 @@ static void assert_same_state(state_t a, state_t b) {
 }
 
 /* The planet members every class of the lineage inherits, and its kind's
- * archetype; the production aside, which planet_install_project points at
+ * archetype; the production aside, which planet_install_project marks as
  * the planet's own when it has a research project. */
 static void assert_planet_tail(const planet_t *jo, const planet_archetype_t *archetype) {
     assert(jo->archetype == archetype);
@@ -72,9 +72,9 @@ static void test_planet_defaults(void) {
     assert_planet_tail(jo, &planet_archetype);
     assert(jo->archetype->ring_colors == &planet_ring_colors_seq && jo->archetype->mood_rows == planet_mood_rows_rows && jo->archetype->made_resources == &planet_made_resources_seq);
     assert(jo->development_tier == 0 && !jo->has_development_tier);
-    assert(jo->production == planet_shared_production());
-    assert(jo->production->amount == 0 && !jo->production->has_resource);
-    assert(jo->production_own.amount == 0 && !jo->production_own.has_resource && jo->production_own.resource == 0);
+    assert(!(jo->has & PLANET_HAS_PRODUCTION) && planet_production_read(jo) == planet_shared_production());
+    assert(planet_production_read(jo)->amount == 0 && !planet_production_read(jo)->has_resource);
+    assert(jo->production.amount == 0 && !jo->production.has_resource && jo->production.resource == 0);
 }
 
 static void test_structure_defaults(void) {
@@ -160,9 +160,9 @@ static void test_burst_defaults(void) {
     assert_planet_tail(ga, &burst_archetype);
     assert(ga->archetype->trade_multiplier == p8_fixed_from_int(1));
     assert(ga->development_tier == 0 && !ga->has_development_tier);
-    assert(ga->production == planet_shared_production());
-    assert(ga->production->amount == 0 && !ga->production->has_resource);
-    assert(ga->production_own.amount == 0 && !ga->production_own.has_resource && ga->production_own.resource == 0);
+    assert(!(ga->has & PLANET_HAS_PRODUCTION) && planet_production_read(ga) == planet_shared_production());
+    assert(planet_production_read(ga)->amount == 0 && !planet_production_read(ga)->has_resource);
+    assert(ga->production.amount == 0 && !ga->production.has_resource && ga->production.resource == 0);
 }
 
 /* What the slipgate and the infraspace gate inherit from the structure and

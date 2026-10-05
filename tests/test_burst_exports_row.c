@@ -102,7 +102,8 @@ static void test_burst_export_line_counts_the_outgoing_routes(void) {
     production.has_resource = 1;
     production.resource = p8_fixed_from_int(99);
     production.amount = p8_fixed_from_int(2);
-    planet->production = &production;
+    planet->production = production;
+    planet->has |= PLANET_HAS_PRODUCTION;
 
     entity_set_pos(&planet->header, vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64)));
 

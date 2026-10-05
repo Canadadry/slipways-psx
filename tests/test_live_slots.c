@@ -624,13 +624,13 @@ static size_t planets_bytes(void) {
     return bytes;
 }
 
-/* Bytes of the main economy made by cart_start_game: its struct and the
- * invented container, with no items while nothing is invented. */
+/* Bytes of the main economy made by cart_start_game: its struct, with no
+ * invented items while nothing is invented. */
 static size_t economy_bytes(void) {
     const economy_t *fm = main_economy_typed();
-    assert(fm != NULL && fm->invented != NULL && "cart_start_game made the game economy");
-    assert(fm->invented->count == 0 && fm->invented->items == NULL && "an invention, which economy_bytes does not count");
-    return block_bytes(sizeof *fm) + block_bytes(sizeof *fm->invented);
+    assert(fm != NULL && "cart_start_game made the game economy");
+    assert(fm->invented.count == 0 && fm->invented.items == NULL && "an invention, which economy_bytes does not count");
+    return block_bytes(sizeof *fm);
 }
 
 /* Bytes of the seven structure icons among the live entities, in the order

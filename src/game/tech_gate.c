@@ -18,7 +18,7 @@ int tech_gate_is_unlocked(const char *px) {
         return 1;
     }
     if (fm != NULL) {
-        invented_list = fm->invented;
+        invented_list = &fm->invented;
     }
     /* GAP-3 */
     return collect_contains_string(invented_list, px);
@@ -37,8 +37,8 @@ static p8_fixed_t research_cost_with_discount(p8_fixed_t od, int has_planet_type
     p8_fixed_t threshold = P8_FIXED_LIT(0x00008ccc, 0.55);
     p8_fixed_t factor;
 
-    if (has_planet_type && fm != NULL && fm->demand != NULL) {
-        resource_map_get(fm->demand, nk, &fu);
+    if (has_planet_type && fm != NULL && (fm->has & ECONOMY_HAS_DEMAND)) {
+        resource_map_get(&fm->demand, nk, &fu);
     }
 
     factor = (fu > threshold) ? fu : threshold;

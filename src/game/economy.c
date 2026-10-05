@@ -34,7 +34,6 @@ const economy_archetype_t economy_archetype = {
 
 static economy_t *economy_create(void) {
     economy_t *self = (economy_t *)allocator_alloc(game_zone(), sizeof *self);
-    pointer_list_t *invented;
 
     entity_init_header(&self->header, &economy_class_def);
     self->archetype = &economy_archetype;
@@ -42,13 +41,11 @@ static economy_t *economy_create(void) {
     self->income = p8_fixed_from_int(0);
     self->research_points = p8_fixed_from_int(0);
     self->era = p8_fixed_from_int(0);
-    self->invented = NULL;
     self->year_ticks = p8_fixed_from_int(0);
     self->year = p8_fixed_from_int(0);
-    self->production = NULL;
-    self->demand = NULL;
-    self->production_own.count = 0;
-    self->demand_own.count = 0;
+    self->production.count = 0;
+    self->demand.count = 0;
+    self->has = 0;
     self->happiness = p8_fixed_from_int(0);
     self->has_happiness = 0;
     self->end_status = NULL;
@@ -58,9 +55,7 @@ static economy_t *economy_create(void) {
     self->income = p8_fixed_from_int(0);
     self->research_points = p8_fixed_from_int(0);
     self->era = self->archetype->era;
-    invented = (pointer_list_t *)allocator_alloc(game_zone(), sizeof *invented);
-    pointer_list_init(invented, game_zone());
-    self->invented = invented;
+    pointer_list_init(&self->invented, game_zone());
     self->year_ticks = self->archetype->year_ticks;
     self->year = self->archetype->year;
 
@@ -137,10 +132,10 @@ void economy_new_year(economy_t *self) {
     income = self->income;
     research_points = self->research_points;
 
-    if (self->production != NULL) {
+    if (self->has & ECONOMY_HAS_PRODUCTION) {
         int k;
         if (resource_code_lookup("k", &k)) {
-            resource_map_get(self->production, p8_fixed_from_int(k), &science_production);
+            resource_map_get(&self->production, p8_fixed_from_int(k), &science_production);
         }
     }
 
@@ -212,10 +207,9 @@ void economy_recompute(economy_t *self) {
         economy_tiers_rebuild_incoming_routes();
     } while (economy_tiers_update_tiers());
 
-    economy_total_production(&self->production_own);
-    economy_crowding_penalty(&self->demand_own);
-    self->production = &self->production_own;
-    self->demand = &self->demand_own;
+    economy_total_production(&self->production);
+    economy_crowding_penalty(&self->demand);
+    self->has |= ECONOMY_HAS_PRODUCTION | ECONOMY_HAS_DEMAND;
 
     planet_list = entities_by_tag(TAG_PLANET);
     if (planet_list != NULL) {
@@ -276,12 +270,10 @@ void economy_invent(economy_t *self, const technologies_entry_t *t) {
     jk = self->research_points;
     self->research_points = p8_fixed_sub(jk, tech_gate_research_cost(t));
 
-    if (self->invented != NULL) {
-        if (t != NULL && t->name != NULL) {
-            pointer_list_add(self->invented, (void *)t->name);
-        }
-        count = self->invented->count;
+    if (t != NULL && t->name != NULL) {
+        pointer_list_add(&self->invented, (void *)t->name);
     }
+    count = self->invented.count;
 
     ew = self->era;
     if (ew < p8_fixed_from_int(4)) {
@@ -323,8 +315,8 @@ static void total_production_visit(entity_t *pt, void *ctx) {
     if (jo->needs == NULL) {
         return;
     }
-    kw = jo->production;
-    if (kw == NULL || !kw->has_resource) {
+    kw = planet_production_read(jo);
+    if (!kw->has_resource) {
         return;
     }
     if (!resource_map_get(p, kw->resource, &current)) {

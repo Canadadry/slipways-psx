@@ -168,9 +168,7 @@ static void update_tiers_visit(entity_t *entity, void *context) {
                 if (planet->has_production_bonus) {
                     jh = planet->production_bonus;
                 }
-                if (planet->production != NULL) {
-                    planet->production->amount = p8_fixed_add(base, jh);
-                }
+                planet_production(planet)->amount = p8_fixed_add(base, jh);
             }
         }
     }

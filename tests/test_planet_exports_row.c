@@ -107,7 +107,8 @@ static void test_inspection_panel_exports_row_layout_row_receives_its_four_items
     production.has_resource = 1;
     production.resource = p8_fixed_from_int(99);
     production.amount = p8_fixed_from_int(1);
-    planet->production = &production;
+    planet->production = production;
+    planet->has |= PLANET_HAS_PRODUCTION;
 
     /* The panel reads it, and the archetype's row_step, for the box's row
      * placement. */

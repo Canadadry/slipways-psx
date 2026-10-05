@@ -67,7 +67,6 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
     self->header.fold_anchor = 0;
     self->header.has |= ENTITY_HAS_IS_DEAD;
     self->header.shake = self->archetype->shake;
-    self->production = &g_planet_production_shared;
     self->planet_id = NULL;
     self->slipways = NULL;
     self->project = RESEARCH_PROJECT_ID_NONE;
@@ -88,7 +87,7 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
     self->has_development_tier = self->archetype->has_development_tier;
     self->header.has |= ENTITY_HAS_IS_HOVERED;
     self->header.is_hovered = 0;
-    self->production_own = (production_t){0};
+    self->production = (production_t){0};
     self->has = 0;
 }
 
@@ -154,6 +153,14 @@ const data_row_t *planet_spacer(void) {
 
 production_t *planet_shared_production(void) {
     return &g_planet_production_shared;
+}
+
+production_t *planet_production(planet_t *self) {
+    return (self->has & PLANET_HAS_PRODUCTION) ? &self->production : &g_planet_production_shared;
+}
+
+const production_t *planet_production_read(const planet_t *self) {
+    return (self->has & PLANET_HAS_PRODUCTION) ? &self->production : &g_planet_production_shared;
 }
 
 const entity_class_t *planet_class(void) {
@@ -249,10 +256,10 @@ void planet_install_project(planet_t *self, research_project_t *research_project
     *needs_own = jy;
     self->needs = needs_own;
 
-    self->production_own.has_resource = research_project_instance != NULL && research_project_instance->has_output;
-    self->production_own.resource = self->production_own.has_resource ? research_project_instance->output : 0;
-    self->production_own.amount = p8_fixed_from_int(0);
-    self->production = &self->production_own;
+    self->production.has_resource = research_project_instance != NULL && research_project_instance->has_output;
+    self->production.resource = self->production.has_resource ? research_project_instance->output : 0;
+    self->production.amount = p8_fixed_from_int(0);
+    self->has |= PLANET_HAS_PRODUCTION;
 }
 
 int planet_is_colonized(const planet_t *self) {

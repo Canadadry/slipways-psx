@@ -741,7 +741,7 @@ static void test_final_score_reads_invented_and_happiness(void) {
     (void)start_game();
     fm = main_economy_typed();
     for (i = 0; i < 10; i++) {
-        pointer_list_add(fm->invented, "a tech");
+        pointer_list_add(&fm->invented, "a tech");
     }
     fm->happiness = p8_fixed_from_int(1);
     fm->has_happiness = 1;
@@ -777,7 +777,7 @@ static void test_update_rows_show_final_score(void) {
     int i;
 
     for (i = 0; i < 10; i++) {
-        pointer_list_add(fm->invented, "a tech");
+        pointer_list_add(&fm->invented, "a tech");
     }
     fm->happiness = p8_fixed_from_int(1);
     fm->has_happiness = 1;

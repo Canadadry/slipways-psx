@@ -129,8 +129,8 @@ void menu_show_tech_tree_screen(void) {
     if (economy != NULL) {
         current_era = economy->era;
     }
-    if (economy != NULL && economy->invented != NULL) {
-        invented_count = economy->invented->count;
+    if (economy != NULL) {
+        invented_count = economy->invented.count;
     }
 
     if (int_seq_at(tier_thresholds_table, TIER_THRESHOLDS_COUNT, p8_fixed_flr_int(current_era) - 1, &tier_thresholds)) {
@@ -159,7 +159,7 @@ void menu_show_tech_tree_screen(void) {
         extra->layout_row.color = p8_fixed_from_int(3);
         extra->row.layout_row_keys = &extra->layout_row;
         extra->row.has_tooltip = 1;
-        extra->row.tooltip_row = invented_lines(economy->invented);
+        extra->row.tooltip_row = invented_lines(&economy->invented);
     }
     for (index = 0; index < row_count; index++) {
         buttons[index] = rows[index].row;

@@ -371,7 +371,7 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fnv(hash, (uint32_t)(planet->archetype->ring_colors != NULL));
     hash = fnv(hash, (uint32_t)(planet->archetype->mood_rows != NULL));
     hash = fnv(hash, (uint32_t)(planet->archetype->made_resources != NULL));
-    hash = fnv(hash, (uint32_t)(planet->production != NULL));
+    hash = fnv(hash, (uint32_t)(planet_production_read(planet) != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
@@ -418,7 +418,7 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
         assert(emitter->trail_colors == &burst_trail_colors_seq);
     }
     assert(planet->archetype == &burst_archetype);
-    assert(planet->production == planet_shared_production());
+    assert(!(planet->has & PLANET_HAS_PRODUCTION));
     assert(planet->archetype->spacer == &planet_spacer_row);
     assert(planet->archetype->ring_colors == &planet_ring_colors_seq);
     assert(planet->archetype->mood_rows == planet_mood_rows_rows);
@@ -629,7 +629,8 @@ static void test_life(void) {
     production.has_resource = 1;
     production.resource = p8_fixed_from_int(12);
     production.amount = p8_fixed_from_int(2);
-    as_burst(first)->production = &production;
+    as_burst(first)->production = production;
+    as_burst(first)->has |= PLANET_HAS_PRODUCTION;
     class_of(first)->refresh(first);
     row_hash = fold_layout_row(2166136261u, first);
     hash = fnv(hash, row_hash);

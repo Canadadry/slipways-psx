@@ -156,7 +156,7 @@ static int id_list_count(const entity_id_list_t *l) {
 }
 
 static uint32_t fold_production(uint32_t h, const planet_t *jo) {
-    const production_t *k = jo->production;
+    const production_t *k = planet_production_read(jo);
 
     if (k == NULL) {
         return fnv(h, 0xA0u);
@@ -385,7 +385,7 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     hash = fnv(hash, (uint32_t)(planet->archetype->ring_colors != NULL));
     hash = fnv(hash, (uint32_t)(planet->archetype->mood_rows != NULL));
     hash = fnv(hash, (uint32_t)(planet->archetype->made_resources != NULL));
-    hash = fnv(hash, (uint32_t)(planet->production != NULL));
+    hash = fnv(hash, (uint32_t)(planet_production_read(planet) != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
@@ -422,7 +422,7 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     assert(planet->archetype == &synthesizer_archetype);
     assert(planet->archetype->spacer == &planet_spacer_row && planet->archetype->ring_colors == &planet_ring_colors_seq && planet->archetype->mood_rows == planet_mood_rows_rows &&
            planet->archetype->made_resources == &planet_made_resources_seq);
-    assert(planet->production != NULL && planet->production != planet_shared_production());
+    assert(planet->has & PLANET_HAS_PRODUCTION);
     assert(research_projects_at(5) != NULL);
     assert(research_project_get(planet->project) == research_projects_at(5));
     hash = fold_production(hash, planet);
@@ -625,7 +625,7 @@ static void test_synthesis(void) {
     give_row(home, 20);
     (void)join(home, s);
     assert(!synthesizable_resources_is_the_class_one(s) && synthesizable_resources_size(s) == 0);
-    kw = as_ascension(s)->production;
+    kw = planet_production_read(as_ascension(s));
     assert(kw->has_resource && kw->resource == p8_fixed_from_int(20));
     assert(synthesizer_synthesizable_resources_seq.count == 4);
     assert(!planet_shared_production()->has_resource || planet_shared_production()->resource != p8_fixed_from_int(20));
@@ -635,7 +635,7 @@ static void test_synthesis(void) {
     give_row(home, 21);
     (void)join(home, s);
     assert(synthesizable_resources_of(s) == fresh && synthesizable_resources_size(s) == 0);
-    kw = as_ascension(s)->production;
+    kw = planet_production_read(as_ascension(s));
     assert(kw->has_resource && kw->resource == p8_fixed_from_int(20));
     h = fold_attach_slipway(h, s);
 
@@ -697,7 +697,7 @@ static void test_synthesizer_is_a_struct(void) {
     {
         planet_t *bare = synthesizer_new(NULL);
         assert(is_a_synthesizer_struct(bare) && bare->planet_id == NULL && bare->slipways != NULL &&
-               bare->production != NULL && pointer_list_size(bare->emitter.particles) == 0 &&
+               (bare->has & PLANET_HAS_PRODUCTION) && pointer_list_size(bare->emitter.particles) == 0 &&
                entity_list_listed(entities_by_tag(TAG_PLANET), bare));
     }
 }

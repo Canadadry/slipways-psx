@@ -10,7 +10,7 @@
 
 static int g_research_project_up = 0;
 
-/* Built in place: a project's layout_row points into the project itself. */
+/* Built in place: a project's layout_row items point into the project itself. */
 static research_project_t g_project_table[PROJECT_RECORDS_COUNT];
 static int g_project_table_count = 0;
 static uint16_t g_project_epoch = 1;
@@ -180,7 +180,7 @@ static research_project_t *project_create(const research_project_keys_t *keys) {
     self->has_icon_sprite = 0;
     self->class_name = NULL;
     self->next_type = NULL;
-    self->layout_row = NULL;
+    self->has = 0;
     self->archetype = &research_project_archetype;
 
     if (keys != NULL && keys->record != NULL) {
@@ -209,11 +209,11 @@ static research_project_t *project_create(const research_project_keys_t *keys) {
         self->layout_row_inner_items[0] = (data_item_t){.is_fixed = 1, .fixed = self->icon_sprite};
         self->layout_row_inner_items[1] = (data_item_t){.number = 8};
         self->layout_row_inner = (data_row_t){.count = 2, .items = self->layout_row_inner_items};
-        self->layout_row_own_items[0] = (data_item_t){.text = self->name};
-        self->layout_row_own_items[1] = (data_item_t){.number = 32};
-        self->layout_row_own_items[2] = (data_item_t){.row = &self->layout_row_inner};
-        self->layout_row_own = (data_row_t){.count = 3, .items = self->layout_row_own_items};
-        self->layout_row = &self->layout_row_own;
+        self->layout_row_items[0] = (data_item_t){.text = self->name};
+        self->layout_row_items[1] = (data_item_t){.number = 32};
+        self->layout_row_items[2] = (data_item_t){.row = &self->layout_row_inner};
+        self->layout_row = (data_row_t){.count = 3, .items = self->layout_row_items};
+        self->has |= RESEARCH_PROJECT_HAS_LAYOUT_ROW;
     }
 
     /* A character that is no resource code still makes a need, with no resource. */

@@ -483,18 +483,18 @@ static void test_projects(void) {
             qe = need_resource(i_list->items[inner_index]);
             hash = fold_resource(hash, qe);
         }
-        if (built->layout_row != NULL) {
-            const data_row_t *lq = built->layout_row;
+        if (built->has & RESEARCH_PROJECT_HAS_LAYOUT_ROW) {
+            const data_row_t *lq = &built->layout_row;
             /* Constant by the struct's shape, kept so that PROJECTS_HASH
              * still proves the typed reads. */
             hash = fnv(hash, (uint32_t)REF_KIND);
-            assert(lq == &built->layout_row_own && built->has_icon_sprite);
+            assert(built->has_icon_sprite);
             for (inner_index = 1; inner_index <= 3; inner_index++) {
                 hash = inner_index <= lq->count ? fold_item(hash, &lq->items[inner_index - 1], 2) : fnv(hash, 0xFFFFFFFFu);
             }
         } else {
             hash = fnv(hash, (uint32_t)FUNCTION_KIND);
-            assert(built->layout_row == NULL && !built->has_icon_sprite);
+            assert(!built->has_icon_sprite);
         }
 
         if (index == 1) {
@@ -537,7 +537,7 @@ static uint32_t fold_functions(uint32_t h) {
         assert((jb == NULL) == (b->has_icon_sprite != 0));
         layout_row_h = fold_layout_row_instance(2166136261u, research_project_layout_row(b));
         h = fnv(h, layout_row_h);
-        if (b->layout_row == NULL) {
+        if (!(b->has & RESEARCH_PROJECT_HAS_LAYOUT_ROW)) {
             assert(fold_layout_row_instance(2166136261u, research_project_layout_row(b)) == layout_row_h);
         }
     }
@@ -627,7 +627,7 @@ static void *project_with(int (*match)(const research_project_t *), int nth) {
 
 /* The production by content: a production_t has no tag to fold. */
 static uint32_t fold_production(uint32_t h, const planet_t *p) {
-    const production_t *k = p->production;
+    const production_t *k = planet_production_read(p);
 
     if (k == NULL) {
         return fnv(h, 0xFFFFFFFFu);
@@ -1046,7 +1046,7 @@ static void test_research_project_is_a_struct(void) {
     assert(bare != NULL && bare->header.class == cls);
     assert(bare->archetype == &research_project_archetype && bare->archetype == b->archetype);
     assert(bare->inputs != NULL && bare->inputs->count == 0);
-    assert(bare->layout_row == NULL);
+    assert(!(bare->has & RESEARCH_PROJECT_HAS_LAYOUT_ROW));
     assert(bare->name == NULL && bare->planet_codes == NULL && !bare->has_base_cost && bare->production_key == NULL && !bare->has_output);
     assert(!bare->has_upgrade_tech && !bare->has_byproduct && bare->required_tech == NULL && !bare->has_icon_sprite && bare->class_name == NULL);
     assert(bare->next_type == NULL);

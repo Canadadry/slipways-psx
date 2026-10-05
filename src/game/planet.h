@@ -16,7 +16,6 @@
 typedef struct {
     entity_t header;
     const planet_archetype_t *archetype;
-    production_t *production;
     const char *planet_id;
     entity_id_list_t *slipways;
     research_project_id_t project;
@@ -34,7 +33,7 @@ typedef struct {
     trade_route_list_t *outgoing_routes;
     p8_fixed_t development_tier;
     int has_development_tier;
-    production_t production_own;
+    production_t production;
     p8_fixed_t sprite;
     p8_fixed_t palette_block;
     p8_fixed_t acceleration_factor, speed;
@@ -46,6 +45,7 @@ typedef struct {
 
 #define PLANET_HAS_TARGETING (1u << 0)
 #define PLANET_HAS_EMITTER (1u << 1)
+#define PLANET_HAS_PRODUCTION (1u << 2)
 
 /* GAP-8 */
 void planet_init(void);
@@ -62,6 +62,10 @@ const int_seq_t *planet_ring_colors(void);
 const data_row_t *planet_spacer(void);
 
 production_t *planet_shared_production(void);
+
+/* Without PLANET_HAS_PRODUCTION, the result is the shared production: a write through it shows on every such planet. Valid for the call only. */
+production_t *planet_production(planet_t *self);
+const production_t *planet_production_read(const planet_t *self);
 
 planet_t *planet_new(const planet_keys_t *keys);
 

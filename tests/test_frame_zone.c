@@ -161,7 +161,8 @@ static int case_inspection_panel_rows_survive_reset(void) {
     planet = (planet_t *)entities_by_tag(TAG_PLANET)->items[0];
     kw.resource = p8_fixed_from_int(99);
     kw.amount = p8_fixed_from_int(1);
-    planet->production = &kw;
+    planet->production = kw;
+    planet->has |= PLANET_HAS_PRODUCTION;
     planet_inspection_panel(planet);
     assert(main_ui()->ephemerals->count >= 2 && "planet_inspection_panel: the icon and the exports row");
     reset_then_draw_panel();
@@ -170,7 +171,7 @@ static int case_inspection_panel_rows_survive_reset(void) {
 
 static int case_invented_lines_survive_reset(void) {
     start_game();
-    pointer_list_add(main_economy_typed()->invented, "slipgates");
+    pointer_list_add(&main_economy_typed()->invented, "slipgates");
     menu_show_tech_tree_screen();
     assert(reset_then_draw_panel() >= 1 && "menu_show_tech_tree_screen: the invented-count row carries its tooltip");
     return 0;

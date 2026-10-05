@@ -100,7 +100,7 @@ void score_panel_refresh(void) {
     p8_fixed_t main_economy_year_ticks = economy != NULL ? economy->year_ticks : p8_fixed_from_int(0);
     data_item_t main_economy_year = economy != NULL ? (data_item_t){.is_fixed = 1, .fixed = economy->year}
                                        : (data_item_t){.is_ref = 1};
-    const resource_map_t *main_economy_production = economy != NULL ? economy->production : NULL;
+    const resource_map_t *main_economy_production = economy != NULL && (economy->has & ECONOMY_HAS_PRODUCTION) ? &economy->production : NULL;
     score_panel_readouts_t *readouts_state;
     data_item_t readouts[7];
     char *text;

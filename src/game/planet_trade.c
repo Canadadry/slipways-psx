@@ -186,12 +186,13 @@ trade_route_list_t *planet_rebuild_trades(planet_t *self) {
         trade_route_list_init(accepted_routes, game_zone());
     }
 
-    if (self->production != NULL) {
-        if (self->production->has_resource) {
+    {
+        const production_t *kw = planet_production_read(self);
+        if (kw->has_resource) {
             keys.has_resource = 1;
-            keys.resource = self->production->resource;
+            keys.resource = kw->resource;
         }
-        amount = self->production->amount;
+        amount = kw->amount;
     }
 
     slipways = self->slipways;

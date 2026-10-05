@@ -130,11 +130,11 @@ static void write_resources(FILE *out) {
 
 static int write_techs(FILE *out) {
     const economy_t *economy = main_economy_typed();
-    if (economy == NULL || economy->invented == NULL) return 0;
-    for (int i = 0; i < economy->invented->count; i++) {
-        fprintf(out, "techs %s\n", (const char *)economy->invented->items[i]);
+    if (economy == NULL) return 0;
+    for (int i = 0; i < economy->invented.count; i++) {
+        fprintf(out, "techs %s\n", (const char *)economy->invented.items[i]);
     }
-    return economy->invented->count;
+    return economy->invented.count;
 }
 
 static vec_t write_camera(FILE *out) {

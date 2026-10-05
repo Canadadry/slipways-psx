@@ -266,11 +266,9 @@ void synthesizer_attach_slipway(planet_t *self, entity_t *slipway) {
             }
 
             if (i->row.has_resource && self->synthesizable_resources != NULL && int_seq_has_fixed(self->synthesizable_resources, i->row.resource)) {
-                production_t *kw = self->production;
-                if (kw != NULL) {
-                    kw->has_resource = 1;
-                    kw->resource = i->row.resource;
-                }
+                production_t *kw = planet_production(self);
+                kw->has_resource = 1;
+                kw->resource = i->row.resource;
                 self->synthesizable_resources = &synthesizer_synthesizable_resources_spent;
             }
         }
