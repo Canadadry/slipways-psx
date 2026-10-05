@@ -6,6 +6,8 @@ status: needs-triage
 
 ## Hypotheses on step 1.2
 
+Checked against step 1.2 as landed (its step note in `docs/plan-15.md`): every hypothesis holds. One detail: a usage error (unknown option, two paths) exits 2, not 1. `raylib_backend_init(&backend, keyboard_cursor, mode)` already takes the mode; the input step is `src/game/input_step.{c,h}`.
+
 Step 1.2 (`docs/prd/triage/phase1-step2-mode-selection.md`) is being implemented while this PRD is written. This PRD reads only committed code (`HEAD`, which has step 1.1 but not step 1.2) and builds on step 1.2's PRD. Each assumption about step 1.2's outcome is listed here.
 
 **Rule for the implementer:** if step 1.2 landed with a different name, signature or spelling, use what it actually landed; the behavior this PRD asks for does not change. Only a hypothesis whose *behavior* turns out false needs a note in the step note, and the fallback given with it applies.
