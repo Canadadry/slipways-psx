@@ -278,7 +278,7 @@ void targeting_tooltip_show(const p8_graphics_t *gfx, p8_vram_t *mem, state_t st
 
     if (gfx != NULL && mem != NULL) {
         p8_fixed_t a = P8_FIXED_LIT(0x00008000, 0.5);
-        hud_print_outlined(gfx, mem, display, mp.x, p8_fixed_sub(mp.y, p8_fixed_from_int(8)), 8, &a);
+        hud_print_outlined(gfx, mem, display, mp.x, p8_fixed_sub(mp.y, p8_fixed_from_int(8)), 8, a);
     }
 }
 

@@ -706,7 +706,7 @@ static void test_offer_trade_wildcard_want(void) {
     start_game();
     assert(resource_code_lookup("?", &any_resource));
     any = p8_fixed_from_int(any_resource);
-    want = need_new(game_zone(), &any);
+    want = need_new(game_zone(), (resource_t){.kind = RESOURCE_FIXED, .number = any});
     pointer_list_init(jy, &heap_allocator);
     pointer_list_add(jy, want);
     qh = structure_new(NULL);
@@ -731,7 +731,7 @@ static void test_offer_trade_nil_want_after_extend(void) {
 
     start_game();
     pointer_list_init(jy, &heap_allocator);
-    pointer_list_add(jy, need_new(game_zone(), NULL));
+    pointer_list_add(jy, need_new(game_zone(), (resource_t){.kind = RESOURCE_NIL}));
     qh = structure_new(NULL);
     qh->needs = *jy;
     qh->has |= PLANET_HAS_NEEDS;
@@ -761,8 +761,8 @@ static void test_compute_tier_counts_numbered_routes_only(void) {
     trade_route_t route_value;
 
     start_game();
-    nil_want = need_new(game_zone(), NULL);
-    x_want = need_new(game_zone(), &x);
+    nil_want = need_new(game_zone(), (resource_t){.kind = RESOURCE_NIL});
+    x_want = need_new(game_zone(), (resource_t){.kind = RESOURCE_FIXED, .number = x});
     pointer_list_init(jy, &heap_allocator);
     pointer_list_add(jy, nil_want);
     pointer_list_add(jy, x_want);

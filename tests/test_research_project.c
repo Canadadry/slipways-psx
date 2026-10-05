@@ -864,18 +864,20 @@ static void test_projects_in_load_zone(void) {
     assert(load_zone_used() == projects_bytes());
 }
 
-/* A need is taken from the zone its caller passes. */
+/* A need is taken from the zone its caller passes, and gives back the resource it was made with. */
 static void test_needs_new_in_the_zone_passed(void) {
-    const p8_fixed_t qe = p8_fixed_from_int(3);
+    const resource_t qe = {.kind = RESOURCE_FIXED, .number = p8_fixed_from_int(3)};
+    const resource_t nil = {.kind = RESOURCE_NIL};
     const size_t load_zone = load_zone_used();
     const size_t game_zone_used_before = game_zone_used();
-    need_t *a = need_new(game_zone_load_zone(), &qe);
-    need_t *b = need_new(game_zone(), NULL);
+    need_t *a = need_new(game_zone_load_zone(), qe);
+    need_t *b = need_new(game_zone(), nil);
 
     assert(load_zone_used() == load_zone + block_bytes(sizeof *a));
     assert(game_zone_used() == game_zone_used_before + block_bytes(sizeof *b));
-    assert(a->row.has_resource && a->row.resource == qe && !a->has_satisfied);
+    assert(a->row.has_resource && a->row.resource == qe.number && !a->has_satisfied);
     assert(!b->row.has_resource && !b->has_satisfied);
+    assert(resource_equal(need_resource(a), qe) && resource_equal(need_resource(b), nil));
 }
 
 /* The projects rebuilt from `project_records_table` forget the ones held

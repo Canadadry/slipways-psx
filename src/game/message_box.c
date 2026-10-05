@@ -308,7 +308,7 @@ void toast_draw(const p8_graphics_t *gfx, p8_vram_t *mem, const toast_t *self, v
 
     color = p8_fixed_flr_int(self->color);
 
-    hud_print_outlined(gfx, mem, self->text, p.x, p.y, color, &a_center);
+    hud_print_outlined(gfx, mem, self->text, p.x, p.y, color, a_center);
 
     hud_select_palette_block_default(mem);
 }

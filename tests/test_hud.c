@@ -3,6 +3,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 
 static const unsigned char block_8[16] = {0, 1, 2, 131, 4, 5, 6, 7, 10, 9, 0, 4, 2, 13, 0, 0};
 
@@ -63,11 +64,55 @@ static void test_bar_reaches_the_right_edge(void) {
     }
 }
 
+static int screen_equal(const p8_vram_t *a, const p8_vram_t *b) {
+    return memcmp(a->screen, b->screen, sizeof a->screen) == 0;
+}
+
+static int screen_has_ink(const p8_vram_t *mem) {
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            if (mem->screen[y][x] != 0) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+static void test_alignment_zero_prints_as_the_default(void) {
+    p8_vram_t aligned, plain;
+    p8_graphics_t gfx;
+    p8_gfx_init(&gfx);
+    p8_vram_init(&aligned);
+    p8_vram_init(&plain);
+
+    hud_print_outlined(&gfx, &aligned, "ore", p8_fixed_from_int(40), p8_fixed_from_int(30), 7, p8_fixed_from_int(0));
+    hud_print_outlined_default(&gfx, &plain, "ore", p8_fixed_from_int(40), p8_fixed_from_int(30), 7);
+
+    assert(screen_has_ink(&plain));
+    assert(screen_equal(&aligned, &plain));
+}
+
+static void test_half_alignment_shifts_by_two_pixels_per_letter(void) {
+    p8_vram_t centered, shifted;
+    p8_graphics_t gfx;
+    p8_gfx_init(&gfx);
+    p8_vram_init(&centered);
+    p8_vram_init(&shifted);
+
+    hud_print_outlined(&gfx, &centered, "ore", p8_fixed_from_int(40), p8_fixed_from_int(30), 7, P8_FIXED_LIT(0x00008000, 0.5));
+    hud_print_outlined_default(&gfx, &shifted, "ore", p8_fixed_from_int(34), p8_fixed_from_int(30), 7);
+
+    assert(screen_equal(&centered, &shifted));
+}
+
 int main(void) {
     test_each_block_matches_the_sprite_sheet_pixels();
     test_select_needs_no_sprite_sheet();
     test_fractional_index_selects_its_floor();
     test_bar_reaches_the_right_edge();
+    test_alignment_zero_prints_as_the_default();
+    test_half_alignment_shifts_by_two_pixels_per_letter();
 
     printf("test_hud: OK\n");
     return 0;

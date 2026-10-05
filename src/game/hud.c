@@ -75,16 +75,12 @@ void hud_draw_help_frame(const p8_graphics_t *gfx, p8_vram_t *mem, p8_fixed_t x1
 }
 
 void hud_print_outlined(const p8_graphics_t *gfx, p8_vram_t *mem, const char *t, p8_fixed_t x, p8_fixed_t y, int c,
-              const p8_fixed_t *a) {
+              p8_fixed_t a) {
     int ix = to_int(x);
     int iy = to_int(y);
     int i;
 
-    if (a != NULL) {
-        p8_fixed_t shift =
-            p8_fixed_mul(p8_fixed_mul(*a, p8_fixed_from_int(4)), p8_fixed_from_int((int)strlen(t)));
-        ix -= to_int(shift);
-    }
+    ix -= to_int(p8_fixed_mul(p8_fixed_mul(a, p8_fixed_from_int(4)), p8_fixed_from_int((int)strlen(t))));
 
     for (i = 0; i < 9; i++) {
         p8_print(gfx, mem, t, ix + outline_offsets[i].offset_x, iy + outline_offsets[i].offset_y, outline_offsets[i].color & c);
@@ -93,5 +89,5 @@ void hud_print_outlined(const p8_graphics_t *gfx, p8_vram_t *mem, const char *t,
 
 void hud_print_outlined_default(const p8_graphics_t *gfx, p8_vram_t *mem, const char *t, p8_fixed_t x, p8_fixed_t y,
                        int c) {
-    hud_print_outlined(gfx, mem, t, x, y, c, NULL);
+    hud_print_outlined(gfx, mem, t, x, y, c, p8_fixed_from_int(0));
 }

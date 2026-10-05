@@ -109,8 +109,7 @@ void planet_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
         }
 
         {
-            p8_fixed_t e_resource = bonus_resource.number;
-            need_t *fresh = need_new(game_zone(), &e_resource);
+            need_t *fresh = need_new(game_zone(), bonus_resource);
             pointer_list_t prefix;
 
             pointer_list_init(&prefix, frame_zone());

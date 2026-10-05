@@ -793,8 +793,8 @@ static void test_inspection_panel_wants_more(void) {
     const layout_row_t *receives;
 
     start_game();
-    a = need_new(game_zone(), &ore);
-    b = need_new(game_zone(), NULL);
+    a = need_new(game_zone(), (resource_t){.kind = RESOURCE_FIXED, .number = ore});
+    b = need_new(game_zone(), (resource_t){.kind = RESOURCE_NIL});
     a->has_satisfied = 1;
     a->satisfied = p8_fixed_from_int(1);
     b->has_satisfied = 1;
@@ -835,7 +835,7 @@ static void test_inspection_panel_w_maker_wants_no_more(void) {
     int r_w;
 
     start_game();
-    a = need_new(game_zone(), &ore);
+    a = need_new(game_zone(), (resource_t){.kind = RESOURCE_FIXED, .number = ore});
     assert(resource_code_lookup("w", &r_w));
     kw->has_resource = 1;
     kw->resource = p8_fixed_from_int(r_w);
@@ -865,8 +865,8 @@ static void test_inspection_panel_lab_wants_its_last(void) {
     const layout_row_t *wants;
 
     start_game();
-    a = need_new(game_zone(), NULL);
-    b = need_new(game_zone(), NULL);
+    a = need_new(game_zone(), (resource_t){.kind = RESOURCE_NIL});
+    b = need_new(game_zone(), (resource_t){.kind = RESOURCE_NIL});
     a->has_satisfied = 1;
     a->satisfied = p8_fixed_from_int(1);
     b->has_satisfied = 1;

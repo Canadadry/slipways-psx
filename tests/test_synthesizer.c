@@ -583,8 +583,7 @@ static void *join(void *qu, void *synthesizer) {
 /* synthesizer_attach_slipway reads the other end's needs: one row per
  * resource, its satisfied field its count of suppliers. */
 static void give_row(void *e, int qe) {
-    p8_fixed_t want_resource = p8_fixed_from_int(qe);
-    need_t *row = need_new(game_zone(), &want_resource);
+    need_t *row = need_new(game_zone(), (resource_t){.kind = RESOURCE_FIXED, .number = p8_fixed_from_int(qe)});
     pointer_list_t *jy = malloc(sizeof *jy);
 
     row->has_satisfied = 1;

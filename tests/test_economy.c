@@ -544,7 +544,7 @@ static void test_recompute(void) {
     check("recompute", hash, RECOMPUTE_HASH);
 
     demand = &checked_main_economy()->demand;
-    need = need_new(game_zone(), &need_amount);
+    need = need_new(game_zone(), (resource_t){.kind = RESOURCE_FIXED, .number = need_amount});
     structure = structure_new(NULL);
     pointer_list_init(&needs, &heap_allocator);
     pointer_list_add(&needs, need);

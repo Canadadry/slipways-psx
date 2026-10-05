@@ -60,7 +60,7 @@ static void print_outlined_entry(const data_row_t *e) {
     int c = p8_fixed_flr_int(number(e, 4));
     if (is_number(e, 5)) {
         p8_fixed_t a_val = number(e, 5);
-        hud_print_outlined(g_draw_functions_gfx, g_draw_functions_mem, t, x, y, c, &a_val);
+        hud_print_outlined(g_draw_functions_gfx, g_draw_functions_mem, t, x, y, c, a_val);
     } else {
         hud_print_outlined_default(g_draw_functions_gfx, g_draw_functions_mem, t, x, y, c);
     }

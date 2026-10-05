@@ -625,7 +625,7 @@ static void test_offer_trade_skips_a_slipway_already_in_slipways(void) {
     self = slipgate_new(NULL);
     other = structure_new(NULL);
     pointer_list_init(needs, &heap_allocator);
-    pointer_list_add(needs, need_new(game_zone(), &qe));
+    pointer_list_add(needs, need_new(game_zone(), (resource_t){.kind = RESOURCE_FIXED, .number = qe}));
     other->needs = *needs;
     other->has |= PLANET_HAS_NEEDS;
     slipway_keys.start = entity_id_link(&self->header);

@@ -18,7 +18,7 @@ typedef struct {
 
 resource_t need_resource(const need_t *i);
 
-need_t *need_new(const allocator_t *zone, const p8_fixed_t *qe);
+need_t *need_new(const allocator_t *zone, resource_t resource);
 
 typedef struct {
     entity_t header;

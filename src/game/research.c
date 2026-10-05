@@ -137,13 +137,15 @@ resource_t need_resource(const need_t *i) {
     return i->row.has_resource ? (resource_t){.kind = RESOURCE_FIXED, .number = i->row.resource} : (resource_t){.kind = RESOURCE_NIL};
 }
 
-need_t *need_new(const allocator_t *zone, const p8_fixed_t *qe) {
-    need_t *i = (need_t *)allocator_alloc(zone, sizeof *i);
+need_t *need_new(const allocator_t *zone, resource_t resource) {
+    need_t *i;
 
+    assert(resource.kind != RESOURCE_FALSE && "need_new: a need holds a fixed resource or none, never false");
+    i = (need_t *)allocator_alloc(zone, sizeof *i);
     memset(i, 0, sizeof *i);
-    if (qe != NULL) {
+    if (resource.kind == RESOURCE_FIXED) {
         i->row.has_resource = 1;
-        i->row.resource = *qe;
+        i->row.resource = resource.number;
     }
     return i;
 }
@@ -214,13 +216,11 @@ static research_project_t *project_create(const research_project_keys_t *keys) {
     for (input_count = 0; input_codes[input_count] != '\0'; input_count++) {
         char key[2] = {input_codes[input_count], '\0'};
         int r_resource;
-        p8_fixed_t qe;
 
         if (resource_code_lookup(key, &r_resource)) {
-            qe = p8_fixed_from_int(r_resource);
-            pointer_list_add(&self->inputs, need_new(load_zone, &qe));
+            pointer_list_add(&self->inputs, need_new(load_zone, (resource_t){.kind = RESOURCE_FIXED, .number = p8_fixed_from_int(r_resource)}));
         } else {
-            pointer_list_add(&self->inputs, need_new(load_zone, NULL));
+            pointer_list_add(&self->inputs, need_new(load_zone, (resource_t){.kind = RESOURCE_NIL}));
         }
     }
     return self;
