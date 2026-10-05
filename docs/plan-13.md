@@ -290,3 +290,13 @@ Measurement only (`make state` and `size tmp/replay` on `807cf47`, the commit be
 - Slots: button 3768 → 2984, message box 4488 → 3360, toast 296 → 232, row 784 → 600, burst 568 → 536, modal backdrop 240 → 208.
 - Outside the zones: the research projects now live in a static 42-row table (9072 bytes) instead of the load zone; `tmp/replay` bss 799408 → 813904 (+14496: the +10200 zone reservation and the project table, less removed statics), data 48992 → 47144, text 348005 → 370174 (+22169 of code).
 - Verdict: the plan costs about 10 KB of reserved memory (the handle table and the header id) and gains about 23 KB of peak use across load and frame; every zone keeps more headroom than before except ui (+2 KB peak, 123 KB free).
+
+### Phase 2 review
+
+`warn-review` at the end of phase 2 (70 `src/` files):
+- **Violation, pending user validation:** `score_panel.h` `score_panel_layout_block_t.fixed_pos`/`.row_step` encode presence by NULL (`menu.c` tests `!= NULL`) instead of a `has` bit; both always point at static `vec_t` literals.
+- **Pending user validation (from step 2.6):** `layout_row_cell_t.as.text`, `data_item_t.text`, `data_item_t.row`, `data_row_t.items` (the score-panel readouts and year banner point into their own arrays through them).
+- Allowed by user decisions: owned buffers (`placed_items`, `tooltip_t.rows`, `planet_t.layout_row`, button tooltips, structure-icon tooltip), generator state, the rule-15 break.
+- Smells, for later: `engine/` still includes `game/` headers and `entity_class.h` names game concepts (predates the plan); inline caps and magic sizes; no guard catches a new small-value pointer parameter or kept address; two presence encodings (`uint16_t has` and `int has_*`) side by side.
+- Done when: met except the exception list and the last review, which wait on the items above.
+- **The run stops here, pending the user.**
