@@ -3,6 +3,7 @@
 
 #include "engine/button_cursor.h"
 #include "game/cheat.h"
+#include "game/pad_nav.h"
 #include "p8/input.h"
 
 typedef struct {
@@ -10,6 +11,7 @@ typedef struct {
     int keyboard_cursor;
     button_cursor_t cursor;
     cheat_t cheat;
+    pad_nav_t pad_nav;
     p8_input_frame_t played_frame;
     p8_input_t played;
 } input_step_t;

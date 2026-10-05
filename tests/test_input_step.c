@@ -89,13 +89,24 @@ static void test_keyboard_cursor_runs_button_cursor(void) {
     }
 }
 
+/* The synthetic mouse comes from pad navigation: two steps fed the same pad masks with different
+ * raw mice must play the same frames. */
 static void test_pad_keeps_only_the_pad_mask(void) {
     input_step_t step;
+    input_step_t quiet_step;
     input_step_init(&step, P8_INPUT_PAD, 0);
+    input_step_init(&quiet_step, P8_INPUT_PAD, 0);
     for (int i = 0; i < NOISY_FRAME_COUNT; i++) {
-        p8_input_frame_t want = { 0, 0, 0, { 0, 0, 0, 0, 0, 0 }, noisy_frames[i].pad_buttons };
+        p8_input_frame_t quiet = { 0, 0, 0, { 0, 0, 0, 0, 0, 0 }, noisy_frames[i].pad_buttons };
+        input_step_run(&quiet_step, &quiet);
+        p8_input_frame_t want = *input_step_played_frame(&quiet_step);
         input_step_run(&step, &noisy_frames[i]);
-        assert_frame_equals(input_step_played_frame(&step), &want);
+        const p8_input_frame_t *played = input_step_played_frame(&step);
+        for (int b = 0; b < 6; b++) {
+            assert(played->dpad[b] == 0);
+        }
+        assert(played->pad_buttons == noisy_frames[i].pad_buttons);
+        assert_frame_equals(played, &want);
         assert_installed(&step);
     }
 }
@@ -316,7 +327,6 @@ static void in_fresh_child(void (*test)(void)) {
 int main(void) {
     test_mouse_passthrough();
     test_keyboard_cursor_runs_button_cursor();
-    test_pad_keeps_only_the_pad_mask();
 
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -325,6 +335,7 @@ int main(void) {
     dispatch_context_set_mem(&memory);
     cart_load();
     cart_init();
+    in_fresh_child(test_pad_keeps_only_the_pad_mask);
     in_fresh_child(test_pad_cheat_fires_on_cross_and_circle);
     in_fresh_child(test_pad_cheat_ignores_dpad_o_and_x);
     in_fresh_child(test_mouse_cheat_reads_dpad_only);

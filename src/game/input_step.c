@@ -27,12 +27,14 @@ void input_step_init(input_step_t *step, p8_input_mode_t mode, int keyboard_curs
     step->keyboard_cursor = keyboard_cursor;
     button_cursor_init(&step->cursor);
     cheat_init(&step->cheat);
+    pad_nav_init(&step->pad_nav);
 }
 
 int input_step_run(input_step_t *step, const p8_input_frame_t *raw) {
     if (step->mode == P8_INPUT_PAD) {
         memset(&step->played_frame, 0, sizeof step->played_frame);
         step->played_frame.pad_buttons = raw->pad_buttons;
+        pad_nav_step(&step->pad_nav, raw->pad_buttons, &step->played_frame);
     } else if (step->keyboard_cursor) {
         button_cursor_step(&step->cursor, raw, &step->played_frame);
     } else {
@@ -42,7 +44,6 @@ int input_step_run(input_step_t *step, const p8_input_frame_t *raw) {
     step->played.frames = &step->played_frame;
     step->played.frame_count = 1;
     step->played.current_frame = 0;
-    /* TODO step 1.4: pad navigation runs here, between the mode and the cheat. */
     int fired = run_cheat(&step->cheat, step->mode, raw);
     dispatch_context_set_input(&step->played);
     return fired;

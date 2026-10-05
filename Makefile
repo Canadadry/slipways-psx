@@ -159,6 +159,7 @@ ENGINE_SRCS := \
     src/engine/button_cursor.c \
     src/game/cheat.c \
     src/game/input_step.c \
+    src/game/pad_nav.c \
     src/game/cart.c \
     src/engine/collect.c \
     src/game/data_init.c \
@@ -240,6 +241,7 @@ CART_ONLY_SRCS := \
     src/game/cart.c \
     src/game/cheat.c \
     src/game/input_step.c \
+    src/game/pad_nav.c \
     src/game/galaxy.c \
     src/game/help.c \
     src/game/menu.c \
@@ -514,6 +516,9 @@ $(TMP_DIR)/test_main_economy: $(call objs,tests/test_main_economy.c $(ENGINE_SRC
 $(TMP_DIR)/test_input_step: $(call objs,tests/test_input_step.c src/devtools/replay_source.c src/devtools/session_recorder.c src/devtools/state.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_pad_nav: $(call objs,tests/test_pad_nav.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
 $(TMP_DIR)/test_draw_layers_camera: $(call objs,tests/test_draw_layers_camera.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -667,7 +672,8 @@ UNIT_TESTS := \
     test_layout_row \
     test_economy \
     test_main_economy \
-    test_input_step
+    test_input_step \
+    test_pad_nav
 
 # One run per test, each its own target: that is what `-j` runs in parallel.
 UNIT_RUNS := $(addprefix unit-run-,$(UNIT_TESTS))
