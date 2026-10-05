@@ -103,3 +103,9 @@ Phase 2 review: `warn-review` raised 30 warnings; `plan-review` found no plan ch
 ### Step 3.6
 
 Thirteen commits, one per GAP, in plan order; no code line, test logic or frozen value changed; all sha identical after each. Cross-citations reworded in the commit closing the cited number: GAP-17's citation of GAP-1, GAP-25's citation of GAP-13. GAP-19 and GAP-20 had no code marker. Test comments and the `test_str.c` assert message, and the `camera_drag_dpad.txt` note, kept their sentence without the GAP name. The 13 mechanical deletions were done by the pilot directly (helper script; GAP grep, unchanged `tests/e2e/*.sha256` and `make test-all` before each commit) instead of one implementer agent per chunk. `docs/porting-gaps.md` now holds only its intro; the only `GAP-n` left outside the excluded paths is the `/* GAP-7 */` example in `CLAUDE.md`, for step 7. No `guideline` decision.
+
+### Step 3.7
+
+`docs/porting-gaps.md` deleted. `CLAUDE.md` keeps two reasons for a comment; `README.md`, `fix-bug` and `rework-comments` (SKILL, agent brief, report template renumbered, worked example kept as history) lose the gap route. `header_residue.sh` accepts only `TODO`: on scratch headers the `TODO` one prints nothing and exits 0, the `/* GAP-1 */` one is printed and exits 1 (the old script let it through). No code change.
+
+Done when, checked at the end: the file is gone and the step-7 `git grep` returns nothing; `make test-all`, `make full-game`, `make state` and `make sanitize-net` pass; the only sha changed by the plan is `tests/e2e/tech_starbirth_protostar.json.sha256`. Deviation: three visual change lines instead of two (step 1.4's fix also removes an empty side badge).
