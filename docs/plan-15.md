@@ -301,3 +301,13 @@ None.
 - Breaks pointer rule 12 on purpose: `input_step_t` holds a `p8_input_t` whose `frames` points at the step's own played frame, because `dispatch_context_set_input` keeps a `p8_input_t *`. It is re-pointed on every run, and pointer-guard's count is unchanged.
 - The backend poll does not fill `pad_buttons` yet (step 1.3).
 - Every `*.sha256` is unchanged.
+
+### Step 1.3
+
+- Done: `src/platform/keymap.{c,h}` and `keymap_names.h` hold a plain C parser with no raylib call and no allocation. The name lists are X-macros generated from raylib 6.0's `raylib.h`.
+- `keymap.cfg` is versioned. A test holds it byte for byte equal to the built-in default text, and the defaults are that text run through the same parser.
+- Errors carry their line number. Line 0 is about the file as a whole (unreadable, too large, a button missing). Space, PageUp, PageDown, End and Escape are reserved.
+- `tests/test_keymap.c` has 21 tests.
+- `raylib_backend_init` takes the keymap. The poll fills `pad_buttons` in pad mode only: keyboard plus gamepad 0, with no stick, and availability checked every frame. One C99 compile-time check per name against `KEY_*` / `GAMEPAD_BUTTON_*`; a scratch mismatch was shown to fail the build.
+- `game.c` loads `keymap.cfg` before the window: a notice when it is missing, a refusal with `keymap.cfg:<line>` when it is invalid. The pad-mode startup notice was reworded and its `TODO` kept.
+- `make raylib` builds (raylib vendored in the session). Every `*.sha256` is unchanged.
