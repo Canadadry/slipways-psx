@@ -273,3 +273,12 @@ Each is recorded here, as the to-prd skill asks. No `guideline` agent could be s
   - that every mouse and `keyboard_*` `*.sha256` is unchanged.
 - Step 2.3 inherits the stored map mode. □ sets it to free with the selection as the starting planet. ○ in free mode returns to that planet. × in free mode on a planet goes through 2.1's single filter. Network mode's directions move the selection, and the camera follows it through `camera_pan`.
 - Every later pad replay that reaches network mode shows the circle and the hidden cursor. A step that changes those visuals refreshes `pad_colonise` under §2's rule.
+
+## Progress (for a resumed run)
+
+- Chunk 1 is committed ("feat: open the planet menu with △ and enter network mode"). Its implementer decided:
+  - No stored economy id. `reset_world` makes every old id stale, so the dead-selection fallback covers the title and new games.
+  - ○'s close has no "game running" check, because the title has no ui box.
+  - The PRD's premise that pause keeps its open flag outside the ui is false: pause is a ui box. `pause_menu_shown()` excludes it.
+  - The tests allow one extra frame between the focus landing and the hover.
+- Chunks 2 (network visuals) and 3 (`pad_colonise`) remain. The step note must record N3, N4 (with the pause detail), N5, and the decisions above.
