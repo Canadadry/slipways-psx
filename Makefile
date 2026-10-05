@@ -147,7 +147,7 @@ $(OBJ_SANITIZE_DIR)/%.o: %.c
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) $(UBSAN_CFLAGS) $(SANITIZE_OPT_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
 # The whole engine closure: all of src/ except the three entry points of
-# src/cmd/, src/p8/palette.c, the two `src/platform/raylib_backend*.c` and
+# src/cmd/, src/p8/palette.c, the two `src/platform/raylib_backend*.c`, `src/platform/keymap.c` and
 # the modules of src/devtools/ that only the tools and the interactive game
 # link (fixed_test_double, replay_control, replay_source, screencast,
 # session_recorder, state). Used by the
@@ -942,6 +942,7 @@ GAME_SRCS := \
     src/cmd/game.c \
     src/platform/raylib_backend.c \
     src/platform/raylib_backend_coords.c \
+    src/platform/keymap.c \
     src/p8/palette.c \
     src/devtools/replay_control.c \
     src/devtools/replay_source.c \

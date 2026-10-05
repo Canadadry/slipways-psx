@@ -6,6 +6,7 @@
 #include "engine/dispatch_context.h"
 #include "game/cart.h"
 #include "platform/raylib_backend.h"
+#include "platform/keymap.h"
 #include "devtools/replay_source.h"
 #include "devtools/replay_control.h"
 
@@ -13,6 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 
+static const char KEYMAP_PATH[] = "keymap.cfg";
 static const char USAGE[] = "usage: game [--mouse] [<recording.json>]\n";
 
 int main(int argc, char **argv) {
@@ -51,9 +53,27 @@ int main(int argc, char **argv) {
         replay_source_close(&replay);
         return 1;
     }
+
+    keymap_t keymap;
+    keymap_error_t keymap_error;
+    keymap_load_status_t keymap_status = keymap_load(KEYMAP_PATH, &keymap, &keymap_error);
+    if (keymap_status == KEYMAP_INVALID) {
+        assert(!IsWindowReady() && "an invalid keymap.cfg must fail before the window opens");
+        if (keymap_error.line > 0) {
+            fprintf(stderr, "game: %s:%d: %s\n", KEYMAP_PATH, keymap_error.line, keymap_error.message);
+        } else {
+            fprintf(stderr, "game: %s: %s\n", KEYMAP_PATH, keymap_error.message);
+        }
+        replay_source_close(&replay);
+        return 1;
+    }
+    if (keymap_status == KEYMAP_MISSING) {
+        fprintf(stderr, "game: %s not found, using the built-in defaults.\n", KEYMAP_PATH);
+    }
+
     /* TODO: drop the pad warning in the step that makes pad mode playable (phase 2 at the latest). */
     if (mode == P8_INPUT_PAD) {
-        fprintf(stderr, "game: pad mode -- pad controls are not playable yet; run with --mouse to play with the mouse.\n");
+        fprintf(stderr, "game: pad mode -- %s sets the PSX buttons, but nothing navigates with them yet; run with --mouse to play with the mouse.\n", KEYMAP_PATH);
     } else {
         fprintf(stderr, "game: mouse mode.\n");
     }
@@ -81,7 +101,7 @@ int main(int argc, char **argv) {
 
     int keyboard_cursor = replay_source_keyboard_cursor(&replay);
     raylib_backend_t backend;
-    raylib_backend_init(&backend, keyboard_cursor, mode);
+    raylib_backend_init(&backend, keyboard_cursor, mode, &keymap);
 
     cart_load();
     /* Never click a difficulty here: a recording starts on the title screen and holds its own click. */

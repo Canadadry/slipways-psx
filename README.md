@@ -13,6 +13,7 @@
 
 - `make raylib` builds `tmp/game`; run it as `tmp/game [--mouse] [<recording.json>]`.
 - The game starts in pad mode by default. Pad controls are not playable yet, so run with `--mouse` to play.
+- Run it from the repository root: it reads `keymap.cfg`, which binds keyboard keys and gamepad 0 buttons to the PSX buttons of pad mode. A missing file means the built-in defaults; an invalid line refuses to start.
 - A recording decides its own mode: a mouse recording resumes in mouse mode, a pad recording in pad mode, and `--mouse` with a pad recording is refused.
 
 ## Controls (mouse mode)

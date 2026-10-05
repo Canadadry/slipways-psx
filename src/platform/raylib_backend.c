@@ -1,18 +1,26 @@
 #include "platform/raylib_backend.h"
 
 #include "platform/raylib_backend_coords.h"
+#include "platform/keymap_names.h"
 #include "p8/gfx.h"
 #include "p8/palette.h"
 
 #include <stdio.h>
 #include <time.h>
 
+#define KEYMAP_CHECK_KEY(name, code) typedef char keymap_check_key_##name[(KEY_##name == (code)) ? 1 : -1];
+#define KEYMAP_CHECK_GAMEPAD(name, code) typedef char keymap_check_gamepad_##name[(GAMEPAD_BUTTON_##name == (code)) ? 1 : -1];
+KEYMAP_KEYBOARD_NAMES(KEYMAP_CHECK_KEY)
+KEYMAP_GAMEPAD_NAMES(KEYMAP_CHECK_GAMEPAD)
+
 static Color palette_color(unsigned char index) {
     p8_rgb_t rgb = P8_PALETTE_RGB[index & 0x0f];
     return (Color){ rgb.red, rgb.green, rgb.blue, 0xFF };
 }
 
-void raylib_backend_init(raylib_backend_t *backend, int keyboard_cursor, p8_input_mode_t mode) {
+void raylib_backend_init(raylib_backend_t *backend, int keyboard_cursor, p8_input_mode_t mode, const keymap_t *keymap) {
+    backend->mode = mode;
+    backend->keymap = *keymap;
     /* One clock read for both names: a human pairs the marker file with its recording by name. */
     time_t now = time(NULL);
     char record_path[SESSION_RECORDER_PATH_MAX];
@@ -35,6 +43,15 @@ void raylib_backend_init(raylib_backend_t *backend, int keyboard_cursor, p8_inpu
 int raylib_backend_should_continue(const raylib_backend_t *backend) {
     (void)backend;
     return !WindowShouldClose();
+}
+
+static int binding_down(keymap_device_t device, int code, void *context) {
+    (void)context;
+    if (device == KEYMAP_KEYBOARD) {
+        return IsKeyDown(code);
+    }
+    /* Checked every frame, so a gamepad plugged in mid-game starts working. */
+    return IsGamepadAvailable(0) && IsGamepadButtonDown(0, code);
 }
 
 void raylib_backend_poll_input(raylib_backend_t *backend, p8_input_frame_t *out_frame) {
@@ -62,6 +79,11 @@ void raylib_backend_poll_input(raylib_backend_t *backend, p8_input_frame_t *out_
     out_frame->dpad[3] = IsKeyDown(KEY_DOWN) ? 1 : 0;
     out_frame->dpad[4] = IsKeyDown(KEY_Z) ? 1 : 0;
     out_frame->dpad[5] = IsKeyDown(KEY_X) ? 1 : 0;
+
+    out_frame->pad_buttons = 0;
+    if (backend->mode == P8_INPUT_PAD) {
+        out_frame->pad_buttons = keymap_pad_buttons(&backend->keymap, binding_down, NULL);
+    }
 
     if (IsKeyReleased(KEY_SPACE)) {
         int marked_frame = session_recorder_frame_count(&backend->recorder);
